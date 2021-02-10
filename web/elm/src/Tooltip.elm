@@ -104,6 +104,9 @@ policy domID =
         PipelineCardInstanceVar _ _ _ _ ->
             OnlyShowWhenOverflowing
 
+        PipelineCardInstanceVars _ _ _ ->
+            OnlyShowWhenOverflowing
+
         _ ->
             AlwaysShow
 

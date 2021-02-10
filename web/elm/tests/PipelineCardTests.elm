@@ -411,6 +411,27 @@ all =
                             , Query.has [ text "group" ]
                             , Query.has [ text "no instance vars" ]
                             ]
+                , test "all instance vars appear on the same row" <|
+                    setup
+                        [ pipelineInstanceWithVars 1
+                            [ ( "a", JsonString "1" )
+                            , ( "b", JsonString "2" )
+                            ]
+                        ]
+                        >> findCardHeader
+                        >> Expect.all
+                            [ Query.has
+                                [ style "height" "80px"
+                                , style "box-sizing" "border-box"
+                                ]
+                            , Query.has [ text "group" ]
+                            , Query.has
+                                [ containing [ text "a" ]
+                                , containing [ text "1" ]
+                                , containing [ text "b" ]
+                                , containing [ text "2" ]
+                                ]
+                            ]
                 ]
             ]
         , describe "colored banner" <|

@@ -1,5 +1,6 @@
 module Dashboard.Pipeline exposing
     ( hdPipelineView
+    , headerRows
     , pipelineNotSetView
     , pipelineStatus
     , pipelineView
@@ -276,6 +277,25 @@ transition =
 headerView : PipelinesSection -> Pipeline -> Bool -> Float -> Bool -> Bool -> Html Message
 headerView section pipeline resourceError headerHeight viewingInstanceGroups inInstanceGroup =
     let
+        rows =
+            headerRows section viewingInstanceGroups pipeline inInstanceGroup
+
+        resourceErrorElem =
+            Html.div
+                [ classList [ ( "dashboard-resource-error", resourceError ) ] ]
+                []
+    in
+    Html.a
+        [ href <| Routes.toString <| Routes.pipelineRoute pipeline, draggable "false" ]
+        [ Html.div
+            (class "card-header" :: Styles.pipelineCardHeader headerHeight)
+            (rows ++ [ resourceErrorElem ])
+        ]
+
+
+headerRows : PipelinesSection -> Bool -> Pipeline -> Bool -> List (Html Message)
+headerRows section viewingInstanceGroups pipeline inInstanceGroup =
+    let
         nameRow =
             if viewingInstanceGroups then
                 []
@@ -289,44 +309,53 @@ headerView section pipeline resourceError headerHeight viewingInstanceGroups inI
                     [ Html.text pipeline.name ]
                 ]
 
-        rows =
-            nameRow
-                ++ (if Dict.isEmpty pipeline.instanceVars then
-                        if inInstanceGroup then
-                            [ Html.div Styles.noInstanceVars [ Html.text "no instance vars" ] ]
-
-                        else
-                            []
-
-                    else
-                        pipeline.instanceVars
-                            |> Dict.toList
-                            |> List.concatMap (\( k, v ) -> flattenJson k v)
-                            |> List.map
-                                (\( k, v ) ->
-                                    Html.div
-                                        (class "instance-var"
-                                            :: Styles.instanceVar
-                                            ++ Tooltip.hoverAttrs (PipelineCardInstanceVar section pipeline.id k v)
-                                        )
-                                        [ Html.span [ style "color" Colors.pending ]
-                                            [ Html.text <| k ++ ": " ]
-                                        , Html.text v
-                                        ]
-                                )
-                   )
-
-        resourceErrorElem =
-            Html.div
-                [ classList [ ( "dashboard-resource-error", resourceError ) ] ]
+        instanceVarRows =
+            if not inInstanceGroup then
                 []
+
+            else if Dict.isEmpty pipeline.instanceVars then
+                [ Html.div Styles.noInstanceVars [ Html.text "no instance vars" ] ]
+
+            else if viewingInstanceGroups then
+                -- one row per key/value pair
+                pipeline.instanceVars
+                    |> Dict.toList
+                    |> List.concatMap (\( k, v ) -> flattenJson k v)
+                    |> List.map
+                        (\( k, v ) ->
+                            Html.div
+                                (class "instance-var"
+                                    :: Styles.instanceVar
+                                    ++ Tooltip.hoverAttrs (PipelineCardInstanceVar section pipeline.id k v)
+                                )
+                                [ Html.span [ style "color" Colors.pending ]
+                                    [ Html.text <| k ++ ":" ]
+                                , Html.text v
+                                ]
+                        )
+
+            else
+                -- single row consisting of inline key/value pairs
+                [ Html.div
+                    (class "instance-vars"
+                        :: Styles.instanceVar
+                        ++ Tooltip.hoverAttrs (PipelineCardInstanceVars section pipeline.id pipeline.instanceVars)
+                    )
+                    (pipeline.instanceVars
+                        |> Dict.toList
+                        |> List.concatMap (\( k, v ) -> flattenJson k v)
+                        |> List.map
+                            (\( k, v ) ->
+                                Html.span Styles.inlineInstanceVar
+                                    [ Html.span [ style "color" Colors.pending ]
+                                        [ Html.text <| k ++ ":" ]
+                                    , Html.text v
+                                    ]
+                            )
+                    )
+                ]
     in
-    Html.a
-        [ href <| Routes.toString <| Routes.pipelineRoute pipeline, draggable "false" ]
-        [ Html.div
-            (class "card-header" :: Styles.pipelineCardHeader headerHeight)
-            (rows ++ [ resourceErrorElem ])
-        ]
+    nameRow ++ instanceVarRows
 
 
 bodyView : PipelinesSection -> HoverState.HoverState -> List (List Concourse.Job) -> Html Message

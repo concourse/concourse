@@ -760,6 +760,12 @@ toHtmlID domId =
                 ++ "_var_"
                 ++ Base64.encode varName
 
+        PipelineCardInstanceVars section p _ ->
+            pipelinesSectionName section
+                ++ "_"
+                ++ encodePipelineId p
+                ++ "_vars"
+
         PipelinePreview section p ->
             "pipeline_preview_"
                 ++ pipelinesSectionName section

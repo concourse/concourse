@@ -262,6 +262,24 @@ all =
                     |> Maybe.withDefault (Html.text "")
                     |> Query.fromHtml
                     |> Query.has [ text "foo.bar: some-value" ]
+        , test "displays instance var key: value when hovering over pipeline card instance vars in favorites" <|
+            \_ ->
+                Dashboard.tooltip
+                    { session
+                        | hovered =
+                            Tooltip
+                                (PipelineCardInstanceVars AllPipelinesSection 1 <|
+                                    Dict.fromList
+                                        [ ( "foo", JsonString "bar" )
+                                        , ( "baz", JsonObject [ ( "qux", JsonNumber 123 ) ] )
+                                        ]
+                                )
+                                Data.elementPosition
+                    }
+                    |> Maybe.map .body
+                    |> Maybe.withDefault (Html.text "")
+                    |> Query.fromHtml
+                    |> Query.has [ text "baz.qux:123, foo:bar" ]
         ]
 
 

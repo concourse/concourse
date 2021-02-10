@@ -67,6 +67,7 @@ type DomID
     | PipelineCardNameHD Concourse.DatabaseID
     | InstanceGroupCardNameHD Concourse.TeamName String
     | PipelineCardInstanceVar PipelinesSection Concourse.DatabaseID String String
+    | PipelineCardInstanceVars PipelinesSection Concourse.DatabaseID Concourse.InstanceVars
     | PipelineStatusIcon PipelinesSection Concourse.DatabaseID
     | PipelineCardFavoritedIcon PipelinesSection Concourse.DatabaseID
     | InstanceGroupCardFavoritedIcon PipelinesSection Concourse.InstanceGroupIdentifier

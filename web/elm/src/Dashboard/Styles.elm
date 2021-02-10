@@ -11,6 +11,7 @@ module Dashboard.Styles exposing
     , infoBar
     , infoCliIcon
     , infoItem
+    , inlineInstanceVar
     , instanceGroupCard
     , instanceGroupCardBadge
     , instanceGroupCardBanner
@@ -239,6 +240,11 @@ pipelineName =
 instanceVar : List (Html.Attribute msg)
 instanceVar =
     pipelineName ++ [ style "letter-spacing" "0.05em" ]
+
+
+inlineInstanceVar : List (Html.Attribute msg)
+inlineInstanceVar =
+    [ style "padding-right" "8px" ]
 
 
 noInstanceVars : List (Html.Attribute msg)

@@ -1021,6 +1021,21 @@ tooltip session =
                 , containerAttrs = Just Styles.cardTooltip
                 }
 
+        HoverState.Tooltip (Message.PipelineCardInstanceVars _ _ vars) _ ->
+            Just
+                { body =
+                    Html.text
+                        (vars
+                            |> Dict.toList
+                            |> List.concatMap (\( k, v ) -> Concourse.flattenJson k v)
+                            |> List.map (\( k, v ) -> k ++ ":" ++ v)
+                            |> String.join ", "
+                        )
+                , attachPosition = { direction = Tooltip.Right 0, alignment = Tooltip.Middle 30 }
+                , arrow = Just 15
+                , containerAttrs = Just Styles.cardTooltip
+                }
+
         _ ->
             Nothing
 
