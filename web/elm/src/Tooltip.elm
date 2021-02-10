@@ -80,6 +80,9 @@ policy domID =
         SideBarPipeline _ _ ->
             OnlyShowWhenOverflowing
 
+        SideBarInstancedPipeline _ _ ->
+            OnlyShowWhenOverflowing
+
         SideBarTeam _ _ ->
             OnlyShowWhenOverflowing
 

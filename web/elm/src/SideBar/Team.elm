@@ -1,4 +1,4 @@
-module SideBar.Team exposing (team)
+module SideBar.Team exposing (PipelineType(..), team)
 
 import Assets
 import Concourse exposing (PipelineGrouping(..))
@@ -19,10 +19,16 @@ type alias PipelineScoped a =
     }
 
 
+type PipelineType
+    = RegularPipeline Concourse.Pipeline
+    | InstancedPipeline Concourse.Pipeline
+    | InstanceGroup Concourse.Pipeline (List Concourse.Pipeline)
+
+
 team :
     { a
         | hovered : HoverState.HoverState
-        , pipelines : List (PipelineGrouping Concourse.Pipeline)
+        , pipelines : List PipelineType
         , currentPipeline : Maybe (PipelineScoped b)
         , favoritedPipelines : Set Int
         , favoritedInstanceGroups : Set ( Concourse.TeamName, Concourse.PipelineName )
@@ -80,10 +86,13 @@ team params t =
             |> List.map
                 (\g ->
                     case g of
-                        Concourse.RegularPipeline p ->
-                            Pipeline.pipeline params p |> Views.PipelineListItem
+                        RegularPipeline p ->
+                            Pipeline.regularPipeline params p |> Views.PipelineListItem
 
-                        Concourse.InstanceGroup p ps ->
+                        InstancedPipeline p ->
+                            Pipeline.instancedPipeline params p |> Views.PipelineListItem
+
+                        InstanceGroup p ps ->
                             InstanceGroup.instanceGroup params p ps |> Views.InstanceGroupListItem
                 )
     , background =

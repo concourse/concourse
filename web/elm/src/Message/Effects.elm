@@ -683,6 +683,11 @@ toHtmlID domId =
         SideBarPipeline section id ->
             pipelinesSectionName section ++ "_" ++ String.fromInt id
 
+        SideBarInstancedPipeline section id ->
+            -- This can be the same as SideBarPipeline because they are
+            -- mutually exclusive
+            pipelinesSectionName section ++ "_" ++ String.fromInt id
+
         SideBarInstanceGroup section teamName groupName ->
             pipelinesSectionName section
                 ++ "_"

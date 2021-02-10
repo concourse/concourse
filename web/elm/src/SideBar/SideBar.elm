@@ -14,7 +14,7 @@ module SideBar.SideBar exposing
 
 import Assets
 import Colors
-import Concourse exposing (PipelineGrouping(..))
+import Concourse
 import EffectTransformer exposing (ET)
 import Favorites
 import HoverState
@@ -39,7 +39,7 @@ import Set exposing (Set)
 import SideBar.Pipeline as Pipeline
 import SideBar.State exposing (SideBarState)
 import SideBar.Styles as Styles
-import SideBar.Team as Team
+import SideBar.Team as Team exposing (PipelineType(..))
 import SideBar.Views as Views
 import Tooltip
 import Views.Icon as Icon
@@ -262,6 +262,12 @@ tooltip model =
 
         isSideBarClickable =
             hasVisiblePipelines model
+
+        beyondStarOffset =
+            Styles.tooltipArrowSize
+                + (Styles.starPadding * 2)
+                + Styles.starWidth
+                - Styles.tooltipOffset
     in
     case model.hovered of
         HoverState.Tooltip (SideBarTeam _ teamName) _ ->
@@ -280,14 +286,22 @@ tooltip model =
             lookupPipeline (byDatabaseId id) model
                 |> Maybe.map
                     (\p ->
-                        { body = Html.div Styles.tooltipBody [ Html.text <| Pipeline.text p ]
+                        { body = Html.div Styles.tooltipBody [ Html.text <| Pipeline.regularPipelineText p ]
                         , attachPosition =
-                            { direction =
-                                Tooltip.Right <|
-                                    Styles.tooltipArrowSize
-                                        + (Styles.starPadding * 2)
-                                        + Styles.starWidth
-                                        - Styles.tooltipOffset
+                            { direction = Tooltip.Right beyondStarOffset
+                            , alignment = Tooltip.Middle <| 2 * Styles.tooltipArrowSize
+                            }
+                        , arrow = Just { size = Styles.tooltipArrowSize, color = Colors.tooltipBackground }
+                        }
+                    )
+
+        HoverState.Tooltip (SideBarInstancedPipeline _ id) _ ->
+            lookupPipeline (byDatabaseId id) model
+                |> Maybe.map
+                    (\p ->
+                        { body = Html.div Styles.tooltipBody [ Html.text <| Pipeline.instancedPipelineText p ]
+                        , attachPosition =
+                            { direction = Tooltip.Right beyondStarOffset
                             , alignment = Tooltip.Middle <| 2 * Styles.tooltipArrowSize
                             }
                         , arrow = Just Styles.tooltipArrowSize
@@ -299,12 +313,7 @@ tooltip model =
             Just
                 { body = Html.text name
                 , attachPosition =
-                    { direction =
-                        Tooltip.Right <|
-                            Styles.tooltipArrowSize
-                                + (Styles.starPadding * 2)
-                                + Styles.starWidth
-                                - Styles.tooltipOffset
+                    { direction = Tooltip.Right beyondStarOffset
                     , alignment = Tooltip.Middle <| 2 * Styles.tooltipArrowSize
                     }
                 , arrow = Just Styles.tooltipArrowSize
@@ -349,6 +358,15 @@ allPipelinesSection model currentPipeline =
                     (\( p, ps ) ->
                         ( p.teamName
                         , Concourse.groupPipelinesWithinTeam (p :: ps)
+                            |> List.map
+                                (\g ->
+                                    case g of
+                                        Concourse.RegularPipeline p_ ->
+                                            RegularPipeline p_
+
+                                        Concourse.InstanceGroup p_ ps_ ->
+                                            InstanceGroup p_ ps_
+                                )
                         )
                     )
                 |> List.filter (Tuple.second >> List.isEmpty >> not)
@@ -383,23 +401,28 @@ favoritedPipelinesSection model currentPipeline =
                 |> List.concatMap
                     (\g ->
                         case g of
-                            RegularPipeline p ->
+                            Concourse.RegularPipeline p ->
                                 if Favorites.isPipelineFavorited model p then
-                                    [ g ]
+                                    [ RegularPipeline p ]
 
                                 else
                                     []
 
-                            InstanceGroup p ps ->
-                                (if Favorites.isInstanceGroupFavorited model (Concourse.toInstanceGroupId p) then
-                                    [ g ]
+                            Concourse.InstanceGroup p ps ->
+                                let
+                                    favoritedInstances =
+                                        List.filter (Favorites.isPipelineFavorited model) (p :: ps)
+                                in
+                                (if
+                                    Favorites.isInstanceGroupFavorited model (Concourse.toInstanceGroupId p)
+                                        || (not << List.isEmpty) favoritedInstances
+                                 then
+                                    [ InstanceGroup p ps ]
 
                                  else
                                     []
                                 )
-                                    ++ (List.filter (Favorites.isPipelineFavorited model) (p :: ps)
-                                            |> List.map RegularPipeline
-                                       )
+                                    ++ (favoritedInstances |> List.map InstancedPipeline)
                     )
 
         favoritedPipelinesByTeam =

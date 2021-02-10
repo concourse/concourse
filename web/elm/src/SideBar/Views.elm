@@ -1,5 +1,6 @@
 module SideBar.Views exposing
-    ( InstanceGroup
+    ( Icon(..)
+    , InstanceGroup
     , Pipeline
     , Team
     , TeamListItem(..)
@@ -67,8 +68,13 @@ type TeamListItem
     | InstanceGroupListItem InstanceGroup
 
 
+type Icon
+    = AssetIcon Assets.Asset
+    | TextIcon String
+
+
 type alias Pipeline =
-    { icon : Assets.Asset
+    { icon : Icon
     , name :
         { color : Styles.SidebarElementColor
         , text : String
@@ -116,9 +122,16 @@ viewPipeline p =
                , onMouseLeave <| Hover Nothing
                ]
         )
-        [ Html.div
-            (Styles.pipelineIcon p.icon)
-            []
+        [ case p.icon of
+            AssetIcon asset ->
+                Html.div
+                    (Styles.pipelineIcon asset)
+                    []
+
+            TextIcon s ->
+                Html.div
+                    Styles.pipelineTextIcon
+                    [ Html.text s ]
         , Html.div
             (id (toHtmlID p.domID)
                 :: Styles.pipelineName p.name

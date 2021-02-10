@@ -318,7 +318,7 @@ team { active, expanded, hovered, hasFavorited, isFavoritesSection } =
                 HoverState.NoHover
 
         pipelines =
-            [ Data.pipeline "team" 0 |> Data.withName "pipeline" |> Concourse.RegularPipeline ]
+            [ Data.pipeline "team" 0 |> Data.withName "pipeline" |> Team.RegularPipeline ]
 
         pipelineIdentifier =
             { teamName = "team", pipelineName = "pipeline", pipelineInstanceVars = Dict.empty }
