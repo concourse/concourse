@@ -300,7 +300,7 @@ tooltip model =
             lookupPipeline (byDatabaseId id) model
                 |> Maybe.map
                     (\p ->
-                        { body = Html.div Styles.tooltipBody [ Html.text <| Pipeline.instancedPipelineText p ]
+                        { body = Html.text <| Pipeline.instancedPipelineText p
                         , attachPosition =
                             { direction = Tooltip.Right beyondStarOffset
                             , alignment = Tooltip.Middle <| 2 * Styles.tooltipArrowSize
