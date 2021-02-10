@@ -445,6 +445,17 @@ all =
                     |> Common.queryView
                     |> Query.find [ id "top-bar-app" ]
                     |> Query.has [ style "height" "54px" ]
+        , test "hovering over dashboard clears tooltip" <|
+            \_ ->
+                Common.init "/"
+                    |> givenDataAndUser
+                        (apiData [ ( "team", [] ) ])
+                        (userWithRoles [])
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.find [ id "dashboard" ]
+                    |> Event.simulate Event.mouseOver
+                    |> Event.expect (ApplicationMsgs.Update <| Msgs.Hover <| Just Msgs.Dashboard)
         , describe "loading section" <|
             [ test "has a loading section when awaiting API data" <|
                 \_ ->
