@@ -713,6 +713,14 @@ toHtmlID domId =
                 ++ encodePipelineId p
                 ++ "_favorite"
 
+        InstanceGroupCardFavoritedIcon section { teamName, name } ->
+            pipelinesSectionName section
+                ++ "_"
+                ++ Base64.encode teamName
+                ++ "_"
+                ++ Base64.encode name
+                ++ "_favorite"
+
         PipelineCardPauseToggle section p ->
             pipelinesSectionName section
                 ++ "_"

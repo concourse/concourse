@@ -902,6 +902,27 @@ tooltip session =
                 , containerAttrs = Nothing
                 }
 
+        HoverState.Tooltip (Message.InstanceGroupCardFavoritedIcon _ id) _ ->
+            let
+                isFavorited =
+                    Favorites.isInstanceGroupFavorited session id
+            in
+            Just
+                { body =
+                    Html.text <|
+                        if isFavorited then
+                            "unfavorite instance group"
+
+                        else
+                            "favorite instance group"
+                , attachPosition =
+                    { direction = Tooltip.Bottom
+                    , alignment = Tooltip.End
+                    }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
+
         HoverState.Tooltip (Message.PipelineCardPauseToggle _ id) _ ->
             session
                 |> lookupPipeline (byDatabaseId id)
