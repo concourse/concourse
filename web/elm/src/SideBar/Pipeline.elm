@@ -45,13 +45,15 @@ pipeline isInstancedPipeline params p =
         pipelineId =
             Concourse.toPipelineId p
 
-        domID =
-            (if isInstancedPipeline then
+        domIDFn =
+            if isInstancedPipeline then
                 SideBarInstancedPipeline
 
-             else
+            else
                 SideBarPipeline
-            )
+
+        domID =
+            domIDFn
                 (if params.isFavoritesSection then
                     FavoritesSection
 

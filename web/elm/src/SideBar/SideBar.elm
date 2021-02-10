@@ -13,7 +13,6 @@ module SideBar.SideBar exposing
     )
 
 import Assets
-import Colors
 import Concourse
 import EffectTransformer exposing (ET)
 import Favorites

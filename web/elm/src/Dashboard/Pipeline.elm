@@ -32,7 +32,6 @@ import Html.Attributes
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Message.Effects as Effects
 import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
-import RemoteData
 import Routes
 import Time
 import Tooltip
