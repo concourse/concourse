@@ -5,7 +5,7 @@ import Application.Models exposing (Session)
 import Assets
 import Build.StepTree.Models as STModels
 import ColorValues
-import Common exposing (defineHoverBehaviour, queryView)
+import Common exposing (defineHoverBehaviour, expectNoTooltip, expectTooltip, queryView)
 import Concourse exposing (JsonValue(..))
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.Pagination exposing (Direction(..), Page, Pagination)
@@ -115,11 +115,6 @@ purpleHex =
 lightGreyHex : String
 lightGreyHex =
     "#3d3c3c"
-
-
-tooltipGreyHex : String
-tooltipGreyHex =
-    "#9b9b9b"
 
 
 darkGreyHex : String
@@ -860,7 +855,7 @@ all =
                             |> Query.find (versionSelector version)
                             |> findLast [ tag "div", containing [ text version ] ]
                             |> Query.has purpleOutlineSelector
-                , test "mousing over pin bar sends TogglePinBarTooltip message" <|
+                , test "mousing over pin bar sends Hover message" <|
                     \_ ->
                         init
                             |> givenResourcePinnedStatically
@@ -869,60 +864,6 @@ all =
                             |> Event.simulate Event.mouseEnter
                             |> Event.expect
                                 (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinBar)
-                , test "TogglePinBarTooltip causes tooltip to appear" <|
-                    \_ ->
-                        init
-                            |> givenResourcePinnedStatically
-                            |> hoverOverPinBar
-                            |> queryView
-                            |> Query.has pinBarTooltipSelector
-                , test "pin bar tooltip has text 'pinned in pipeline config'" <|
-                    \_ ->
-                        init
-                            |> givenResourcePinnedStatically
-                            |> hoverOverPinBar
-                            |> queryView
-                            |> Query.find pinBarTooltipSelector
-                            |> Query.has [ text "pinned in pipeline config" ]
-                , test "pin bar tooltip is positioned above and near the left of the pin bar" <|
-                    \_ ->
-                        init
-                            |> givenResourcePinnedStatically
-                            |> hoverOverPinBar
-                            |> queryView
-                            |> Query.find pinBarTooltipSelector
-                            |> Query.has
-                                [ style "position" "absolute"
-                                , style "top" "-10px"
-                                , style "left" "30px"
-                                ]
-                , test "pin bar tooltip is light grey" <|
-                    \_ ->
-                        init
-                            |> givenResourcePinnedStatically
-                            |> hoverOverPinBar
-                            |> queryView
-                            |> Query.find pinBarTooltipSelector
-                            |> Query.has
-                                [ style "background-color" ColorValues.grey20 ]
-                , test "pin bar tooltip has a bit of padding around text" <|
-                    \_ ->
-                        init
-                            |> givenResourcePinnedStatically
-                            |> hoverOverPinBar
-                            |> queryView
-                            |> Query.find pinBarTooltipSelector
-                            |> Query.has
-                                [ style "padding" "5px" ]
-                , test "pin bar tooltip appears above other elements in the DOM" <|
-                    \_ ->
-                        init
-                            |> givenResourcePinnedStatically
-                            |> hoverOverPinBar
-                            |> queryView
-                            |> Query.find pinBarTooltipSelector
-                            |> Query.has
-                                [ style "z-index" "2" ]
                 , test "mousing out of pin bar sends Hover Nothing message" <|
                     \_ ->
                         init
@@ -933,15 +874,6 @@ all =
                             |> Event.simulate Event.mouseLeave
                             |> Event.expect
                                 (Msgs.Update <| Message.Message.Hover Nothing)
-                , test "when mousing off pin bar, tooltip disappears" <|
-                    \_ ->
-                        init
-                            |> givenResourcePinnedStatically
-                            |> hoverOverPinBar
-                            |> update (Message.Message.Hover Nothing)
-                            |> Tuple.first
-                            |> queryView
-                            |> Query.hasNot pinBarTooltipSelector
                 ]
             , describe "per-version pin buttons"
                 [ test "unpinned versions are lower opacity" <|
@@ -967,36 +899,6 @@ all =
                                         Just <|
                                             Message.Message.PinButton versionID
                                 )
-                , test "mousing over an unpinned version's pin button doesn't send any msg" <|
-                    \_ ->
-                        init
-                            |> givenResourcePinnedStatically
-                            |> givenVersionsWithoutPagination
-                            |> queryView
-                            |> Query.find (versionSelector otherVersion)
-                            |> Query.find pinButtonSelector
-                            |> Event.simulate Event.mouseOver
-                            |> Event.toResult
-                            |> Expect.err
-                , test "shows tooltip on the pinned version's pin button on ToggleVersionTooltip" <|
-                    \_ ->
-                        init
-                            |> givenResourcePinnedStatically
-                            |> givenVersionsWithoutPagination
-                            |> hoverOverPinButton
-                            |> queryView
-                            |> Query.find (versionSelector version)
-                            |> Query.has versionTooltipSelector
-                , test "keeps tooltip on the pinned version's pin button on autorefresh" <|
-                    \_ ->
-                        init
-                            |> givenResourcePinnedStatically
-                            |> givenVersionsWithoutPagination
-                            |> hoverOverPinButton
-                            |> givenVersionsWithoutPagination
-                            |> queryView
-                            |> Query.find (versionSelector version)
-                            |> Query.has versionTooltipSelector
                 , test "mousing off the pinned version's pin button sends Hover Nothing" <|
                     \_ ->
                         init
@@ -1009,29 +911,6 @@ all =
                             |> Event.simulate Event.mouseOut
                             |> Event.expect
                                 (Msgs.Update <| Message.Message.Hover Nothing)
-                , test "mousing off an unpinned version's pin button doesn't send any msg" <|
-                    \_ ->
-                        init
-                            |> givenResourcePinnedStatically
-                            |> givenVersionsWithoutPagination
-                            |> hoverOverPinButton
-                            |> queryView
-                            |> Query.find (versionSelector otherVersion)
-                            |> Query.find pinButtonSelector
-                            |> Event.simulate Event.mouseOut
-                            |> Event.toResult
-                            |> Expect.err
-                , test "hides tooltip on the pinned version's pin button on ToggleVersionTooltip" <|
-                    \_ ->
-                        init
-                            |> givenResourcePinnedStatically
-                            |> givenVersionsWithoutPagination
-                            |> hoverOverPinButton
-                            |> update (Message.Message.Hover Nothing)
-                            |> Tuple.first
-                            |> queryView
-                            |> Query.find (versionSelector version)
-                            |> Query.hasNot versionTooltipSelector
                 , test "clicking on pin button on pinned version doesn't send any msg" <|
                     \_ ->
                         init
@@ -1080,13 +959,7 @@ all =
                             |> queryView
                             |> Query.find [ id "pin-bar" ]
                 in
-                [ test "when mousing over pin bar, tooltip does not appear" <|
-                    \_ ->
-                        pinBar
-                            |> Event.simulate Event.mouseEnter
-                            |> Event.toResult
-                            |> Expect.err
-                , test "aligns its children on top left" <|
+                [ test "aligns its children on top left" <|
                     \_ ->
                         pinBar
                             |> Query.has [ style "align-items" "flex-start" ]
@@ -1512,15 +1385,6 @@ all =
                                     Assets.backgroundImage <|
                                         Just Assets.PinIconWhite
                                 ]
-                , test "does not show tooltip on the pin button on ToggleVersionTooltip" <|
-                    \_ ->
-                        init
-                            |> givenResourcePinnedDynamically
-                            |> givenVersionsWithoutPagination
-                            |> hoverOverPinButton
-                            |> queryView
-                            |> Query.find (versionSelector version)
-                            |> Query.hasNot versionTooltipSelector
                 , test "unpinned versions are lower opacity" <|
                     \_ ->
                         init
@@ -2319,16 +2183,6 @@ all =
                                     , style "background-position" "50% 50%"
                                     ]
                             )
-                , test "pin buttons are positioned to anchor their tooltips" <|
-                    allVersions
-                        >> Query.each
-                            (Query.children []
-                                >> Query.first
-                                >> Query.children []
-                                >> Query.index 1
-                                >> Query.has
-                                    [ style "position" "relative" ]
-                            )
                 , test "version headers lay out horizontally, centering" <|
                     allVersions
                         >> Query.each
@@ -2380,15 +2234,6 @@ all =
                         |> Event.simulate Event.mouseEnter
                         |> Event.toResult
                         |> Expect.err
-            , test "does not show tooltip on the pin icon on ToggleVersionTooltip" <|
-                \_ ->
-                    init
-                        |> givenResourceIsNotPinned
-                        |> givenVersionsWithoutPagination
-                        |> hoverOverPinButton
-                        |> queryView
-                        |> Query.find (versionSelector version)
-                        |> Query.hasNot versionTooltipSelector
             , test "all pin buttons have pointer cursor" <|
                 \_ ->
                     init
@@ -3452,6 +3297,79 @@ all =
                                 (Effects.GetViewportOf <| Message.Message.StepState "plan")
                 ]
             ]
+        , describe "tooltips" <|
+            [ test "manual check button" <|
+                \_ ->
+                    init
+                        |> givenResourceIsNotPinned
+                        |> expectTooltip (CheckButton False) "trigger manual check"
+            , test "pin icon" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedDynamically
+                        |> expectTooltip PinIcon "unpin version"
+            , test "edit button" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedDynamically
+                        |> expectTooltip EditButton "edit pin comment"
+            , test "version pin button, no pin" <|
+                \_ ->
+                    init
+                        |> givenResourceIsNotPinned
+                        |> givenVersionsWithoutPagination
+                        |> expectTooltip (PinButton versionID) "pin version"
+            , test "version pin button, other version pinned" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedDynamically
+                        |> givenVersionsWithoutPagination
+                        |> expectTooltip (PinButton otherVersionID) "pin version"
+            , test "version pin button, current version pinned" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedDynamically
+                        |> givenVersionsWithoutPagination
+                        |> expectTooltip (PinButton versionID) "unpin version"
+            , test "version pin button, static pin" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedStatically
+                        |> givenVersionsWithoutPagination
+                        |> expectTooltip (PinButton otherVersionID) "version is pinned in the pipeline config"
+            , test "enable version toggle button, enabled" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedDynamically
+                        |> givenVersionsWithoutPagination
+                        |> expectTooltip (VersionToggle otherVersionID) "disable version"
+            , test "enable version toggle button, disabled" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedDynamically
+                        |> givenVersionsWithoutPagination
+                        |> expectTooltip (VersionToggle disabledVersionID) "enable version"
+            , test "pin bar, dynamic pin" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedDynamically
+                        |> expectNoTooltip PinBar
+            , test "pin bar, static pin" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedStatically
+                        |> expectTooltip PinBar "version is pinned in the pipeline config"
+            , test "next page button" <|
+                \_ ->
+                    init
+                        |> givenVersionsWithPagination
+                        |> expectTooltip NextPageButton "view next page"
+            , test "previous page button" <|
+                \_ ->
+                    init
+                        |> givenVersionsWithPagination
+                        |> expectTooltip PreviousPageButton "view previous page"
+            ]
         ]
 
 
@@ -3824,23 +3742,6 @@ purpleOutlineSelector =
 findLast : List Selector -> Query.Single msg -> Query.Single msg
 findLast selectors =
     Query.findAll selectors >> Query.index -1
-
-
-pinBarTooltipSelector : List Selector
-pinBarTooltipSelector =
-    [ id "pin-bar-tooltip" ]
-
-
-versionTooltipSelector : List Selector
-versionTooltipSelector =
-    [ style "position" "absolute"
-    , style "bottom" "25px"
-    , style "background-color" ColorValues.grey20
-    , style "z-index" "2"
-    , style "padding" "5px"
-    , style "width" "170px"
-    , containing [ text "enable via pipeline config" ]
-    ]
 
 
 pinButtonHasTransitionState : Query.Single msg -> Expectation

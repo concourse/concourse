@@ -1252,7 +1252,8 @@ tooltip model { hovered } =
                     { direction = Tooltip.Top
                     , alignment = Tooltip.Start
                     }
-                , arrow = Just { size = 5, color = Colors.tooltipBackground }
+                , arrow = Just 5
+                , containerAttrs = Nothing
                 }
 
         HoverState.Tooltip (StepInitialization _) _ ->
@@ -1265,7 +1266,8 @@ tooltip model { hovered } =
                     { direction = Tooltip.Top
                     , alignment = Tooltip.End
                     }
-                , arrow = Just { size = 5, color = Colors.tooltipBackground }
+                , arrow = Just 5
+                , containerAttrs = Nothing
                 }
 
         HoverState.Tooltip (StepState id) _ ->
@@ -1307,5 +1309,6 @@ stepDurationTooltip { state, initialize, start, finish } =
         { direction = Tooltip.Top
         , alignment = Tooltip.End
         }
-    , arrow = Just { size = 5, color = Colors.tooltipBackground }
+    , arrow = Just 5
+    , containerAttrs = Nothing
     }

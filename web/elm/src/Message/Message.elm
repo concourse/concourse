@@ -48,6 +48,8 @@ type DomID
     | TriggerBuildButton
     | AbortBuildButton
     | RerunBuildButton
+    | JobName
+    | JobBuildLink Concourse.BuildName
     | PreviousPageButton
     | NextPageButton
     | CheckButton Bool
@@ -66,11 +68,12 @@ type DomID
     | InstanceGroupCardNameHD Concourse.TeamName String
     | PipelineCardInstanceVar PipelinesSection Concourse.DatabaseID String String
     | PipelineStatusIcon PipelinesSection Concourse.DatabaseID
-    | PipelineCardPauseToggle PipelinesSection Concourse.PipelineIdentifier
+    | PipelineCardFavoritedIcon PipelinesSection Concourse.DatabaseID
+    | PipelineCardPauseToggle PipelinesSection Concourse.DatabaseID
+    | TopBarPinIcon
     | TopBarFavoritedIcon Concourse.DatabaseID
     | TopBarPauseToggle Concourse.PipelineIdentifier
     | VisibilityButton PipelinesSection Concourse.DatabaseID
-    | PipelineCardFavoritedIcon PipelinesSection Concourse.DatabaseID
     | FooterCliIcon Cli.Cli
     | WelcomeCardCliIcon Cli.Cli
     | CopyTokenButton

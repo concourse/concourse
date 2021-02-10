@@ -2,7 +2,7 @@ module JobTests exposing (all)
 
 import Application.Application as Application
 import Assets
-import Common exposing (defineHoverBehaviour, queryView)
+import Common exposing (defineHoverBehaviour, expectTooltip, hoverOver, queryView)
 import Concourse exposing (Build, JsonValue(..))
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.Pagination exposing (Direction(..), Paginated)
@@ -120,11 +120,11 @@ all =
                 init { disabled = False, paused = False }
                     >> queryView
                     >> Query.find [ class "build-header" ]
-                    >> Query.has [ id "pause-toggle" ]
+                    >> Query.has [ id toggleJobID ]
             , test "play/pause has background of the header color, faded" <|
                 init { disabled = False, paused = False }
                     >> queryView
-                    >> Query.find [ id "pause-toggle" ]
+                    >> Query.find [ id toggleJobID ]
                     >> Query.has
                         [ style "padding" "10px"
                         , style "border" "none"
@@ -140,7 +140,7 @@ all =
                         )
                     >> Tuple.first
                     >> queryView
-                    >> Query.find [ id "pause-toggle" ]
+                    >> Query.find [ id toggleJobID ]
                     >> Query.has
                         [ style "padding" "10px"
                         , style "border" "none"
@@ -152,7 +152,7 @@ all =
                 , setup =
                     init { disabled = False, paused = False } ()
                 , query =
-                    queryView >> Query.find [ id "pause-toggle" ]
+                    queryView >> Query.find [ id toggleJobID ]
                 , unhoveredSelector =
                     { description = "grey pause icon"
                     , selector =
@@ -178,7 +178,7 @@ all =
                 , setup =
                     init { disabled = False, paused = True } ()
                 , query =
-                    queryView >> Query.find [ id "pause-toggle" ]
+                    queryView >> Query.find [ id toggleJobID ]
                 , unhoveredSelector =
                     { description = "grey play icon"
                     , selector =
@@ -296,32 +296,37 @@ all =
                                 }
                     }
                 , hoveredSelector =
-                    { description = "grey plus icon with tooltip"
+                    { description = "grey plus icon"
                     , selector =
-                        [ style "position" "relative"
-                        , containing
-                            [ containing
-                                [ text "manual triggering disabled in job config" ]
-                            , style "position" "absolute"
-                            , style "right" "100%"
-                            , style "top" "15px"
-                            , style "width" "300px"
-                            , style "color" "#ecf0f1"
-                            , style "font-size" "12px"
-                            , style "font-family" Views.Styles.fontFamilyDefault
-                            , style "padding" "10px"
-                            , style "text-align" "right"
-                            ]
-                        , containing <|
-                            [ style "opacity" "0.5" ]
-                                ++ iconSelector
-                                    { size = "40px"
-                                    , image = Assets.AddCircleIcon |> Assets.CircleOutlineIcon
-                                    }
-                        ]
+                        style "opacity" "0.5"
+                            :: iconSelector
+                                { size = "40px"
+                                , image = Assets.AddCircleIcon |> Assets.CircleOutlineIcon
+                                }
                     }
                 , hoverable = Message.Message.TriggerBuildButton
                 }
+            , test "hovering trigger build button has tooltip" <|
+                init { disabled = False, paused = False }
+                    >> expectTooltip TriggerBuildButton "trigger a new build"
+            , test "hovering disabled trigger build button has tooltip" <|
+                init { disabled = True, paused = False }
+                    >> expectTooltip TriggerBuildButton "manual triggering disabled in job config"
+            , test "hovering pause toggle button has tooltip" <|
+                init { disabled = False, paused = False }
+                    >> expectTooltip ToggleJobButton "pause job"
+            , test "hovering paused pause toggle button has tooltip" <|
+                init { disabled = False, paused = True }
+                    >> expectTooltip ToggleJobButton "unpause job"
+            , test "hovering build link has tooltip" <|
+                init { disabled = False, paused = True }
+                    >> expectTooltip (JobBuildLink "1.1") "view build #1.1"
+            , test "hovering next page button has tooltip" <|
+                init { disabled = False, paused = True }
+                    >> expectTooltip NextPageButton "view next page"
+            , test "hovering previous page button has tooltip" <|
+                init { disabled = False, paused = True }
+                    >> expectTooltip PreviousPageButton "view previous page"
             , describe "archived pipelines" <|
                 let
                     fetchArchivedPipeline =
@@ -346,7 +351,7 @@ all =
                     initWithArchivedPipeline
                         >> queryView
                         >> Query.find [ class "build-header" ]
-                        >> Query.hasNot [ id "pause-toggle" ]
+                        >> Query.hasNot [ id toggleJobID ]
                 , test "header still includes job name" <|
                     initWithArchivedPipeline
                         >> queryView
@@ -968,3 +973,7 @@ loadingIndicatorSelector =
     , style "width" "14px"
     , style "margin" "7px"
     ]
+
+
+toggleJobID =
+    Effects.toHtmlID ToggleJobButton

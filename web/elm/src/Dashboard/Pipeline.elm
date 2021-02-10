@@ -350,12 +350,12 @@ footerView session pipeline section now hovered existingJobs =
                     status == PipelineStatus.PipelineStatusPaused
                 , pipeline = pipelineId
                 , isToggleHovered =
-                    HoverState.isHovered (PipelineCardPauseToggle section pipelineId) hovered
+                    HoverState.isHovered (PipelineCardPauseToggle section pipeline.id) hovered
                 , isToggleLoading = pipeline.isToggleLoading
                 , tooltipPosition = Views.Styles.Above
                 , margin = "0"
                 , userState = session.userState
-                , domID = PipelineCardPauseToggle section pipelineId
+                , domID = PipelineCardPauseToggle section pipeline.id
                 }
 
         visibilityButton =
@@ -381,7 +381,7 @@ footerView session pipeline section now hovered existingJobs =
                 , isSideBar = False
                 , domID = PipelineCardFavoritedIcon section pipeline.id
                 }
-                [ id <| Effects.toHtmlID <| PipelineCardFavoritedIcon section pipeline.id ]
+                []
     in
     Html.div
         (class "card-footer" :: Styles.pipelineCardFooter)

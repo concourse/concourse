@@ -13,7 +13,6 @@ module SideBar.SideBar exposing
     )
 
 import Assets
-import Colors
 import Concourse
 import EffectTransformer exposing (ET)
 import HoverState
@@ -23,7 +22,13 @@ import Html.Events exposing (onClick, onMouseDown, onMouseEnter, onMouseLeave)
 import List.Extra
 import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects
-import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
+import Message.Message
+    exposing
+        ( DomID(..)
+        , Message(..)
+        , PipelinesSection(..)
+        , VisibilityAction(..)
+        )
 import Message.Subscription exposing (Delivery(..))
 import RemoteData exposing (RemoteData(..), WebData)
 import Routes
@@ -162,6 +167,22 @@ handleCallback callback ( model, effects ) =
             , effects
             )
 
+        VisibilityChanged Hide id (Ok ()) ->
+            ( updatePipeline
+                (\p -> { p | public = False })
+                (byPipelineId id)
+                model
+            , effects
+            )
+
+        VisibilityChanged Expose id (Ok ()) ->
+            ( updatePipeline
+                (\p -> { p | public = True })
+                (byPipelineId id)
+                model
+            , effects
+            )
+
         _ ->
             ( model, effects )
 
@@ -241,18 +262,19 @@ tooltip { hovered } =
     case hovered of
         HoverState.Tooltip (SideBarTeam _ teamName) _ ->
             Just
-                { body = Html.div Styles.tooltipBody [ Html.text teamName ]
+                { body = Html.text teamName
                 , attachPosition =
                     { direction =
                         Tooltip.Right (Styles.tooltipArrowSize - Styles.tooltipOffset)
                     , alignment = Tooltip.Middle <| 2 * Styles.tooltipArrowSize
                     }
-                , arrow = Just { size = Styles.tooltipArrowSize, color = Colors.tooltipBackground }
+                , arrow = Just Styles.tooltipArrowSize
+                , containerAttrs = Just Styles.tooltipBody
                 }
 
         HoverState.Tooltip (SideBarPipeline _ pipelineID) _ ->
             Just
-                { body = Html.div Styles.tooltipBody [ Html.text pipelineID.pipelineName ]
+                { body = Html.text pipelineID.pipelineName
                 , attachPosition =
                     { direction =
                         Tooltip.Right <|
@@ -262,17 +284,19 @@ tooltip { hovered } =
                                 - Styles.tooltipOffset
                     , alignment = Tooltip.Middle <| 2 * Styles.tooltipArrowSize
                     }
-                , arrow = Just { size = Styles.tooltipArrowSize, color = Colors.tooltipBackground }
+                , arrow = Just Styles.tooltipArrowSize
+                , containerAttrs = Just Styles.tooltipBody
                 }
 
         HoverState.Tooltip (SideBarInstanceGroup _ _ name) _ ->
             Just
-                { body = Html.div Styles.tooltipBody [ Html.text name ]
+                { body = Html.text name
                 , attachPosition =
                     { direction = Tooltip.Right <| Styles.tooltipArrowSize - Styles.tooltipOffset
                     , alignment = Tooltip.Middle <| 2 * Styles.tooltipArrowSize
                     }
-                , arrow = Just { size = Styles.tooltipArrowSize, color = Colors.tooltipBackground }
+                , arrow = Just Styles.tooltipArrowSize
+                , containerAttrs = Just Styles.tooltipBody
                 }
 
         _ ->
@@ -393,6 +417,19 @@ hasVisiblePipelines model =
 isPipelineVisible : { a | favoritedPipelines : Set Concourse.DatabaseID } -> Concourse.Pipeline -> Bool
 isPipelineVisible { favoritedPipelines } p =
     not p.archived || Set.member p.id favoritedPipelines
+
+
+updatePipeline :
+    (Concourse.Pipeline -> Concourse.Pipeline)
+    -> (Concourse.Pipeline -> Bool)
+    -> { b | pipelines : WebData (List Concourse.Pipeline) }
+    -> { b | pipelines : WebData (List Concourse.Pipeline) }
+updatePipeline updater predicate model =
+    { model
+        | pipelines =
+            model.pipelines
+                |> RemoteData.map (List.Extra.updateIf predicate updater)
+    }
 
 
 lookupPipeline :

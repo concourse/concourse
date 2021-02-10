@@ -391,7 +391,8 @@ view session model =
                 , TopBar.concourseLogo
                 , TopBar.breadcrumbs session route
                 , PinMenu.viewPinMenu session model
-                , Html.div (id "top-bar-favorited-icon" :: Styles.favoritedIcon)
+                , Html.div
+                    Styles.favoritedIcon
                     [ FavoritedIcon.view
                         { isHovered = HoverState.isHovered (TopBarFavoritedIcon <| getPipelineId model.pipeline) session.hovered
                         , isFavorited =
@@ -406,7 +407,7 @@ view session model =
 
                   else
                     Html.div
-                        (id "top-bar-pause-toggle" :: Styles.pauseToggle)
+                        Styles.pauseToggle
                         [ PauseToggle.view
                             { pipeline = model.pipelineLocator
                             , isPaused = isPaused model.pipeline
@@ -433,9 +434,43 @@ view session model =
         ]
 
 
-tooltip : Model -> a -> Maybe Tooltip.Tooltip
-tooltip _ _ =
-    Nothing
+tooltip : Model -> Session -> Maybe Tooltip.Tooltip
+tooltip model session =
+    case session.hovered of
+        HoverState.Tooltip (TopBarFavoritedIcon _) _ ->
+            let
+                isFavorited =
+                    Set.member (getPipelineId model.pipeline) session.favoritedPipelines
+            in
+            Just
+                { body =
+                    Html.text <|
+                        if isFavorited then
+                            "unfavorite pipeline"
+
+                        else
+                            "favorite pipeline"
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
+
+        HoverState.Tooltip (TopBarPauseToggle _) _ ->
+            Just
+                { body =
+                    Html.text <|
+                        if isPaused model.pipeline then
+                            "unpause pipeline"
+
+                        else
+                            "pause pipeline"
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
+
+        _ ->
+            PinMenu.tooltip model session
 
 
 getPipelineId : WebData Concourse.Pipeline -> Int

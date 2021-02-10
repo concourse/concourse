@@ -334,22 +334,6 @@ all =
                         , style "opacity" "30%"
                         , style "filter" "grayscale(1)"
                         ]
-        , describe "sidebar tooltips"
-            [ test "hovering over instance group gets its viewport" <|
-                let
-                    domID =
-                        SideBarInstanceGroup AllPipelinesSection "main" "group"
-                in
-                \_ ->
-                    Common.init "/teams/team/pipelines/pipeline"
-                        |> Application.update
-                            (Msgs.Update <|
-                                Hover <|
-                                    Just domID
-                            )
-                        |> Tuple.second
-                        |> Common.contains (Effects.GetViewportOf domID)
-            ]
         , describe "update" <|
             let
                 defaultModel : Pipeline.Model
@@ -501,7 +485,7 @@ all =
                 [ it "shows a pin icon on top bar" <|
                     Common.queryView
                         >> Query.find [ id "top-bar-app" ]
-                        >> Query.has [ id "pin-icon" ]
+                        >> Query.has [ id "top-bar-pin-icon" ]
                 , it "shows a star icon on top bar" <|
                     Common.queryView
                         >> Query.find [ id "top-bar-app" ]
@@ -694,11 +678,7 @@ all =
                 [ defineHoverBehaviour
                     { name = "star icon"
                     , setup = Common.init "teams/t/pipelines/p"
-                    , query =
-                        queryView
-                            >> Query.find [ id "top-bar-favorited-icon" ]
-                            >> Query.children []
-                            >> Query.first
+                    , query = queryView >> Query.find [ id "top-bar-favorited-icon" ]
                     , unhoveredSelector =
                         { description = "faded star icon"
                         , selector =
@@ -729,8 +709,6 @@ all =
                             |> Tuple.first
                             |> queryView
                             |> Query.find [ id "top-bar-favorited-icon" ]
-                            |> Query.children []
-                            |> Query.first
                             |> Event.simulate Event.click
                             |> Event.expect favMsg
                 , test "click has FavoritedPipeline effect" <|

@@ -2,8 +2,6 @@ module Build.Styles exposing
     ( MetadataCellType(..)
     , abortButton
     , body
-    , buttonTooltip
-    , buttonTooltipArrow
     , changedStepTooltip
     , durationTooltip
     , errorLog
@@ -145,39 +143,6 @@ button =
     ]
 
 
-buttonTooltipArrow : List (Html.Attribute msg)
-buttonTooltipArrow =
-    [ style "width" "0"
-    , style "height" "0"
-    , style "left" "50%"
-    , style "bottom" "0"
-    , style "margin-left" "-5px"
-    , style "border-bottom" <| "5px solid " ++ Colors.frame
-    , style "border-left" "5px solid transparent"
-    , style "border-right" "5px solid transparent"
-    , style "position" "absolute"
-    ]
-
-
-buttonTooltip : Int -> List (Html.Attribute msg)
-buttonTooltip width =
-    [ style "position" "absolute"
-    , style "right" "0"
-    , style "top" "100%"
-    , style "width" <| String.fromInt width ++ "px"
-    , style "color" Colors.text
-    , style "background-color" Colors.frame
-    , style "padding" "10px"
-    , style "text-align" "right"
-    , style "pointer-events" "none"
-    , style "z-index" "1"
-
-    -- ^ need a value greater than 0 (inherited from .fixed-header) since this
-    -- element is earlier in the document than the build tabs
-    ]
-        ++ Views.Styles.defaultFont
-
-
 stepHeader : StepState -> List (Html.Attribute msg)
 stepHeader state =
     [ style "display" "flex"
@@ -236,26 +201,12 @@ stepStatusIcon =
 
 changedStepTooltip : List (Html.Attribute msg)
 changedStepTooltip =
-    [ style "background-color" Colors.tooltipBackground
-    , style "color" Colors.tooltipText
-    , style "padding" "5px"
-    , style "z-index" "100"
-    , style "width" "fit-content"
-    , style "pointer-events" "none"
-    ]
-        ++ Application.Styles.disableInteraction
+    style "pointer-events" "none" :: Application.Styles.disableInteraction
 
 
 durationTooltip : List (Html.Attribute msg)
 durationTooltip =
-    [ style "background-color" Colors.tooltipBackground
-    , style "color" Colors.tooltipText
-    , style "padding" "5px"
-    , style "z-index" "100"
-    , style "width" "fit-content"
-    , style "pointer-events" "none"
-    ]
-        ++ Application.Styles.disableInteraction
+    style "pointer-events" "none" :: Application.Styles.disableInteraction
 
 
 errorLog : List (Html.Attribute msg)

@@ -2,9 +2,13 @@ module Common exposing
     ( and
     , contains
     , defineHoverBehaviour
+    , expectNoTooltip
+    , expectTooltip
+    , expectTooltipWith
     , given
     , givenDataUnauthenticated
     , gotPipelines
+    , hoverOver
     , iOpenTheBuildPage
     , init
     , initQuery
@@ -26,6 +30,7 @@ import Application.Application as Application
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Data
+import EffectTransformer exposing (ET)
 import Expect exposing (Expectation)
 import Html
 import Html.Attributes as Attr
@@ -33,12 +38,13 @@ import List.Extra
 import Message.Callback as Callback
 import Message.Effects exposing (Effect)
 import Message.Message exposing (DomID(..), Message(..))
+import Message.Subscription exposing (Delivery(..))
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import Routes
 import Test exposing (Test, describe, test)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (Selector, attribute, style)
+import Test.Html.Selector exposing (Selector, attribute, id, style, text)
 import Url
 
 
@@ -341,7 +347,71 @@ gotPipelines data =
         >> Tuple.first
 
 
+hoverOver : Message.Message.DomID -> Application.Model -> ( Application.Model, List Effect )
+hoverOver domID =
+    Application.update
+        (Update (Message.Message.Hover (Just domID)))
+        >> Tuple.first
+        >> Application.handleCallback
+            (Callback.GotViewport domID <|
+                Ok
+                    { scene =
+                        { width = 1
+                        , height = 0
+                        }
+                    , viewport =
+                        { width = 1
+                        , height = 0
+                        , x = 0
+                        , y = 0
+                        }
+                    }
+            )
+        >> Tuple.first
+        >> Application.handleCallback
+            (Callback.GotElement <|
+                Ok
+                    { scene =
+                        { width = 0
+                        , height = 0
+                        }
+                    , viewport =
+                        { width = 0
+                        , height = 0
+                        , x = 0
+                        , y = 0
+                        }
+                    , element =
+                        { x = 0
+                        , y = 0
+                        , width = 1
+                        , height = 1
+                        }
+                    }
+            )
 
--- 6 places where Application.init is used with a query
--- 6 places where Application.init is used with a fragment
--- 1 place where Application.init is used with an instance name
+
+expectTooltip : DomID -> String -> Application.Model -> Expect.Expectation
+expectTooltip domID tooltip =
+    hoverOver domID
+        >> Tuple.first
+        >> queryView
+        >> Query.find [ id "tooltips" ]
+        >> Query.has [ text tooltip ]
+
+
+expectTooltipWith : DomID -> (Query.Single TopLevelMessage -> Expect.Expectation) -> Application.Model -> Expect.Expectation
+expectTooltipWith domID expectation =
+    hoverOver domID
+        >> Tuple.first
+        >> queryView
+        >> Query.find [ id "tooltips" ]
+        >> expectation
+
+
+expectNoTooltip : DomID -> Application.Model -> Expect.Expectation
+expectNoTooltip domID =
+    hoverOver domID
+        >> Tuple.first
+        >> queryView
+        >> Query.hasNot [ id "tooltips" ]

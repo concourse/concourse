@@ -50,7 +50,7 @@ import Job.Styles as Styles
 import List.Extra
 import Login.Login as Login
 import Message.Callback exposing (Callback(..))
-import Message.Effects exposing (Effect(..))
+import Message.Effects exposing (Effect(..), toHtmlID)
 import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
@@ -448,9 +448,66 @@ view session model =
         ]
 
 
-tooltip : Model -> a -> Maybe Tooltip.Tooltip
-tooltip _ _ =
-    Nothing
+tooltip : Model -> Session -> Maybe Tooltip.Tooltip
+tooltip model session =
+    case ( model.job |> RemoteData.toMaybe, session.hovered ) of
+        ( Just job, HoverState.Tooltip TriggerBuildButton _ ) ->
+            Just
+                { body =
+                    Html.text <|
+                        if job.disableManualTrigger then
+                            "manual triggering disabled in job config"
+
+                        else
+                            "trigger a new build"
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
+
+        ( Just job, HoverState.Tooltip ToggleJobButton _ ) ->
+            Just
+                { body =
+                    Html.text <|
+                        if job.paused then
+                            "unpause job"
+
+                        else
+                            "pause job"
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.Start }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
+
+        ( _, HoverState.Tooltip (JobBuildLink buildName) _ ) ->
+            Just
+                { body =
+                    Html.text <|
+                        "view build #"
+                            ++ buildName
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.Start }
+                , arrow = Nothing
+                , containerAttrs = Nothing
+                }
+
+        ( _, HoverState.Tooltip NextPageButton _ ) ->
+            Just
+                { body = Html.text "view next page"
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
+
+        ( _, HoverState.Tooltip PreviousPageButton _ ) ->
+            Just
+                { body = Html.text "view previous page"
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
+
+        _ ->
+            Nothing
 
 
 viewMainJobsSection : Session -> Model -> Html Message
@@ -495,7 +552,7 @@ viewMainJobsSection session model =
 
                               else
                                 Html.button
-                                    ([ id "pause-toggle"
+                                    ([ id <| toHtmlID ToggleJobButton
                                      , onMouseEnter <| Hover <| Just ToggleJobButton
                                      , onMouseLeave <| Hover Nothing
                                      , onClick <| Click ToggleJobButton
@@ -527,7 +584,8 @@ viewMainJobsSection session model =
 
                           else
                             Html.button
-                                ([ class "trigger-build"
+                                ([ id <| toHtmlID TriggerBuildButton
+                                 , class "trigger-build"
                                  , onLeftClick <| Click TriggerBuildButton
                                  , attribute "aria-label" "Trigger Build"
                                  , attribute "title" "Trigger Build"
@@ -548,18 +606,6 @@ viewMainJobsSection session model =
                                             && not job.disableManualTrigger
                                     )
                                 ]
-                                    ++ (if job.disableManualTrigger && triggerHovered then
-                                            [ Html.div
-                                                Styles.triggerTooltip
-                                                [ Html.text <|
-                                                    "manual triggering disabled "
-                                                        ++ "in job config"
-                                                ]
-                                            ]
-
-                                        else
-                                            []
-                                       )
                         ]
                     , Html.div
                         [ id "pagination-header"
@@ -646,6 +692,7 @@ viewPaginationBar session model =
                                 ([ StrictEvents.onLeftClick <| GoToRoute jobRoute
                                  , href <| Routes.toString <| jobRoute
                                  , attribute "aria-label" "Previous Page"
+                                 , id <| toHtmlID PreviousPageButton
                                  ]
                                     ++ chevronLeft
                                         { enabled = True
@@ -685,6 +732,7 @@ viewPaginationBar session model =
                                 ([ StrictEvents.onLeftClick <| GoToRoute jobRoute
                                  , href <| Routes.toString jobRoute
                                  , attribute "aria-label" "Next Page"
+                                 , id <| toHtmlID NextPageButton
                                  ]
                                     ++ chevronRight
                                         { enabled = True
@@ -743,6 +791,10 @@ viewBuildWithResources session model bwr =
 
 viewBuildHeader : Concourse.Build -> Html Message
 viewBuildHeader b =
+    let
+        domID =
+            JobBuildLink b.name
+    in
     Html.a
         [ class <| Concourse.BuildStatus.show b.status
         , StrictEvents.onLeftClick <|
@@ -751,9 +803,11 @@ viewBuildHeader b =
         , href <|
             Routes.toString <|
                 Routes.buildRoute b.id b.name b.job
+        , onMouseEnter <| Hover <| Just domID
+        , onMouseLeave <| Hover Nothing
+        , id <| toHtmlID domID
         ]
-        [ Html.text ("#" ++ b.name)
-        ]
+        [ Html.text ("#" ++ b.name) ]
 
 
 viewBuildResources : BuildWithResources -> List (Html Message)

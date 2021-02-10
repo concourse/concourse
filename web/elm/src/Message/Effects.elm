@@ -688,6 +688,18 @@ toHtmlID domId =
                 ++ encodePipelineId p
                 ++ "_visibility"
 
+        PipelineCardFavoritedIcon section p ->
+            pipelinesSectionName section
+                ++ "_"
+                ++ encodePipelineId p
+                ++ "_favorite"
+
+        PipelineCardPauseToggle section p ->
+            pipelinesSectionName section
+                ++ "_"
+                ++ encodePipelineId p
+                ++ "_toggle_pause"
+
         PipelineCardName section p ->
             pipelinesSectionName section
                 ++ "_"
@@ -755,6 +767,54 @@ toHtmlID domId =
 
         TopBarFavoritedIcon _ ->
             "top-bar-favorited-icon"
+
+        TopBarPauseToggle _ ->
+            "top-bar-pause-toggle"
+
+        TopBarPinIcon ->
+            "top-bar-pin-icon"
+
+        AbortBuildButton ->
+            "abort-build-button"
+
+        RerunBuildButton ->
+            "rerun-build-button"
+
+        TriggerBuildButton ->
+            "trigger-build-button"
+
+        ToggleJobButton ->
+            "toggle-job-button"
+
+        CheckButton _ ->
+            "check-button"
+
+        PinIcon ->
+            "pin-icon"
+
+        EditButton ->
+            "edit-button"
+
+        PinButton id ->
+            "pin-button_" ++ String.fromInt id.versionID
+
+        VersionToggle id ->
+            "version-toggle_" ++ String.fromInt id.versionID
+
+        PinBar ->
+            "pin-bar"
+
+        JobName ->
+            "job-name"
+
+        JobBuildLink name ->
+            "job-build-" ++ Base64.encode name
+
+        NextPageButton ->
+            "next-page"
+
+        PreviousPageButton ->
+            "previous-page"
 
         _ ->
             ""

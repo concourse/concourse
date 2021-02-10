@@ -396,7 +396,6 @@ handleCallback callback session ( model, effects ) =
                                             , expanded = False
                                             , inputTo = []
                                             , outputOf = []
-                                            , showTooltip = False
                                             }
                                 )
                     }
@@ -927,13 +926,7 @@ versions model =
                 , expanded = v.expanded
                 , inputTo = v.inputTo
                 , outputOf = v.outputOf
-                , pinState =
-                    case Pinned.pinState v.version v.id model.pinnedVersion of
-                        PinnedStatically _ ->
-                            PinnedStatically v.showTooltip
-
-                        x ->
-                            x
+                , pinState = Pinned.pinState v.version v.id model.pinnedVersion
                 }
             )
 
@@ -980,11 +973,131 @@ view session model =
         ]
 
 
-tooltip : Model -> { a | hovered : HoverState.HoverState } -> Maybe Tooltip.Tooltip
+tooltip : Model -> Session -> Maybe Tooltip.Tooltip
 tooltip model session =
-    model.output
-        |> Maybe.andThen .steps
-        |> Maybe.andThen (\steps -> StepTree.tooltip steps session)
+    case session.hovered of
+        HoverState.Tooltip (CheckButton _) _ ->
+            Just
+                { body = Html.text "trigger manual check"
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.Start }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
+
+        HoverState.Tooltip PinIcon _ ->
+            Just
+                { body = Html.text "unpin version"
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.Start }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
+
+        HoverState.Tooltip EditButton _ ->
+            Just
+                { body = Html.text "edit pin comment"
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
+
+        HoverState.Tooltip (PinButton id) _ ->
+            let
+                version =
+                    model.versions.content |> List.Extra.find (\v -> v.id == id)
+
+                isPinnedDynamically =
+                    case ( version, model.pinnedVersion ) of
+                        ( Just cur, PinnedDynamicallyTo _ v ) ->
+                            cur.version == v
+
+                        _ ->
+                            False
+
+                isStatic =
+                    case model.pinnedVersion of
+                        PinnedStaticallyTo _ ->
+                            True
+
+                        _ ->
+                            False
+            in
+            Just
+                { body =
+                    Html.text <|
+                        if isStatic then
+                            "version is pinned in the pipeline config"
+
+                        else if isPinnedDynamically then
+                            "unpin version"
+
+                        else
+                            "pin version"
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.Start }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
+
+        HoverState.Tooltip (VersionToggle id) _ ->
+            let
+                enabled =
+                    model
+                        |> versions
+                        |> List.Extra.find (\v -> v.id == id)
+                        |> Maybe.map .enabled
+            in
+            (case enabled of
+                Just Models.Enabled ->
+                    Just "disable version"
+
+                Just Models.Disabled ->
+                    Just "enable version"
+
+                _ ->
+                    Nothing
+            )
+                |> Maybe.map
+                    (\text ->
+                        { body =
+                            Html.text text
+                        , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.Start }
+                        , arrow = Just 5
+                        , containerAttrs = Nothing
+                        }
+                    )
+
+        HoverState.Tooltip PinBar _ ->
+            case model.pinnedVersion of
+                PinnedStaticallyTo _ ->
+                    Just
+                        { body = Html.text "version is pinned in the pipeline config"
+                        , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.Start }
+                        , arrow = Nothing
+                        , containerAttrs = Nothing
+                        }
+
+                _ ->
+                    Nothing
+
+        HoverState.Tooltip NextPageButton _ ->
+            Just
+                { body = Html.text "view next page"
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
+
+        HoverState.Tooltip PreviousPageButton _ ->
+            Just
+                { body = Html.text "view previous page"
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
+
+        _ ->
+            model.output
+                |> Maybe.andThen .steps
+                |> Maybe.andThen (\steps -> StepTree.tooltip steps session)
 
 
 header : Session -> Model -> Html Message
@@ -1133,6 +1246,7 @@ paginationMenu { hovered } model =
                                     , page = Just page
                                     }
                          , attribute "aria-label" "Previous Page"
+                         , id <| toHtmlID PreviousPageButton
                          ]
                             ++ chevronLeft
                                 { enabled = True
@@ -1170,6 +1284,7 @@ paginationMenu { hovered } model =
                                     , page = Just page
                                     }
                          , attribute "aria-label" "Next Page"
+                         , id <| toHtmlID NextPageButton
                          ]
                             ++ chevronRight
                                 { enabled = True
@@ -1296,7 +1411,8 @@ checkButton ({ hovered, userState, checkStatus } as params) =
             (isClickable && isHovered) || isCurrentlyChecking
     in
     Html.div
-        ([ onMouseEnter <| Hover <| Just <| CheckButton isMember
+        ([ id <| toHtmlID <| CheckButton isMember
+         , onMouseEnter <| Hover <| Just <| CheckButton isMember
          , onMouseLeave <| Hover Nothing
          ]
             ++ Resource.Styles.checkButton isClickable
@@ -1387,7 +1503,7 @@ editButton session =
         { sizePx = 16
         , image = Assets.PencilIcon
         }
-        ([ id "edit-button"
+        ([ id <| toHtmlID EditButton
          , onMouseEnter <| Hover <| Just EditButton
          , onMouseLeave <| Hover Nothing
          , onClick <| Click EditButton
@@ -1498,7 +1614,7 @@ pinBar session { pinnedVersion, resourceIdentifier } =
     in
     Html.div
         (attrList
-            [ ( id "pin-bar", True )
+            [ ( id <| toHtmlID PinBar, True )
             , ( onMouseEnter <| Hover <| Just PinBar, isPinnedStatically )
             , ( onMouseLeave <| Hover Nothing, isPinnedStatically )
             ]
@@ -1514,14 +1630,16 @@ pinBar session { pinnedVersion, resourceIdentifier } =
                     Assets.PinIconGrey
             }
             (attrList
-                [ ( id "pin-icon", True )
+                [ ( id <| toHtmlID PinIcon, True )
                 , ( onClick <| Click PinIcon
                   , isPinnedDynamically && not archived
                   )
                 , ( onMouseEnter <| Hover <| Just PinIcon
                   , isPinnedDynamically && not archived
                   )
-                , ( onMouseLeave <| Hover Nothing, True )
+                , ( onMouseLeave <| Hover Nothing
+                  , isPinnedDynamically && not archived
+                  )
                 ]
                 ++ Resource.Styles.pinIcon
                     { clickable = isPinnedDynamically && not archived
@@ -1534,15 +1652,6 @@ pinBar session { pinnedVersion, resourceIdentifier } =
 
                     _ ->
                         []
-               )
-            ++ (if HoverState.isHovered PinBar session.hovered then
-                    [ Html.div
-                        (id "pin-bar-tooltip" :: Resource.Styles.pinBarTooltip)
-                        [ Html.text "pinned in pipeline config" ]
-                    ]
-
-                else
-                    []
                )
         )
 
@@ -1558,10 +1667,7 @@ isPipelineArchived session id =
 
 
 viewVersionedResources :
-    { a
-        | hovered : HoverState.HoverState
-        , pipelines : WebData (List Concourse.Pipeline)
-    }
+    { a | pipelines : WebData (List Concourse.Pipeline) }
     ->
         { b
             | versions : Paginated Models.Version
@@ -1576,26 +1682,16 @@ viewVersionedResources session model =
     in
     model
         |> versions
-        |> List.map
-            (\v ->
-                viewVersionedResource
-                    { version = v
-                    , pinnedVersion = model.pinnedVersion
-                    , hovered = session.hovered
-                    , archived = archived
-                    }
-            )
+        |> List.map (\v -> viewVersionedResource { version = v, archived = archived })
         |> Html.ul [ class "list list-collapsable list-enableDisable resource-versions" ]
 
 
 viewVersionedResource :
     { version : VersionPresenter
-    , pinnedVersion : Models.PinnedVersion
-    , hovered : HoverState.HoverState
     , archived : Bool
     }
     -> Html Message
-viewVersionedResource { version, hovered, archived } =
+viewVersionedResource { version, archived } =
     Html.li
         (case ( version.pinState, version.enabled ) of
             ( Disabled, _ ) ->
@@ -1626,7 +1722,6 @@ viewVersionedResource { version, hovered, archived } =
                 , viewPinButton
                     { versionID = version.id
                     , pinState = version.pinState
-                    , hovered = hovered
                     }
                 ]
              )
@@ -1689,21 +1784,26 @@ viewEnabledCheckbox :
     -> Html Message
 viewEnabledCheckbox ({ enabled, id } as params) =
     let
-        clickHandler =
-            case enabled of
-                Models.Enabled ->
-                    [ onClick <| Click <| VersionToggle id ]
+        eventHandlers =
+            [ onMouseOver <| Hover <| Just <| VersionToggle id
+            , onMouseOut <| Hover Nothing
+            ]
+                ++ (case enabled of
+                        Models.Enabled ->
+                            [ onClick <| Click <| VersionToggle id ]
 
-                Models.Changing ->
-                    []
+                        Models.Changing ->
+                            []
 
-                Models.Disabled ->
-                    [ onClick <| Click <| VersionToggle id ]
+                        Models.Disabled ->
+                            [ onClick <| Click <| VersionToggle id ]
+                   )
     in
     Html.div
-        (Html.Attributes.attribute "aria-label" "Toggle Resource Version Enabled"
+        (Html.Attributes.id (toHtmlID <| VersionToggle id)
+            :: Html.Attributes.attribute "aria-label" "Toggle Resource Version Enabled"
             :: Resource.Styles.enabledCheckbox params
-            ++ clickHandler
+            ++ eventHandlers
         )
         (case enabled of
             Models.Enabled ->
@@ -1724,49 +1824,43 @@ viewEnabledCheckbox ({ enabled, id } as params) =
 viewPinButton :
     { versionID : Models.VersionId
     , pinState : VersionPinState
-    , hovered : HoverState.HoverState
     }
     -> Html Message
-viewPinButton { versionID, pinState, hovered } =
+viewPinButton { versionID, pinState } =
     let
         eventHandlers =
-            case pinState of
-                Enabled ->
-                    [ onClick <| Click <| PinButton versionID ]
+            [ onMouseOver <| Hover <| Just <| PinButton versionID
+            , onMouseOut <| Hover Nothing
+            ]
+                ++ (case pinState of
+                        Enabled ->
+                            [ onClick <| Click <| PinButton versionID ]
 
-                PinnedDynamically ->
-                    [ onClick <| Click <| PinButton versionID ]
+                        PinnedDynamically ->
+                            [ onClick <| Click <| PinButton versionID ]
 
-                NotThePinnedVersion ->
-                    [ onClick <| Click <| PinButton versionID ]
+                        NotThePinnedVersion ->
+                            [ onClick <| Click <| PinButton versionID ]
 
-                PinnedStatically _ ->
-                    [ onMouseOver <| Hover <| Just <| PinButton versionID
-                    , onMouseOut <| Hover Nothing
-                    ]
+                        PinnedStatically ->
+                            [ onMouseOver <| Hover <| Just <| PinButton versionID
+                            , onMouseOut <| Hover Nothing
+                            ]
 
-                Disabled ->
-                    []
+                        Disabled ->
+                            []
 
-                InTransition ->
-                    []
+                        InTransition ->
+                            []
+                   )
     in
     Html.div
-        (Html.Attributes.attribute "aria-label" "Pin Resource Version"
+        (id (toHtmlID <| PinButton versionID)
+            :: Html.Attributes.attribute "aria-label" "Pin Resource Version"
             :: Resource.Styles.pinButton pinState
             ++ eventHandlers
         )
         (case pinState of
-            PinnedStatically _ ->
-                if HoverState.isHovered (PinButton versionID) hovered then
-                    [ Html.div
-                        Resource.Styles.pinButtonTooltip
-                        [ Html.text "enable via pipeline config" ]
-                    ]
-
-                else
-                    []
-
             InTransition ->
                 [ Spinner.spinner
                     { sizePx = 12.5

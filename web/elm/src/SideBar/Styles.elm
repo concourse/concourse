@@ -24,7 +24,6 @@ module SideBar.Styles exposing
     , teamHeader
     , teamIcon
     , teamName
-    , tooltip
     , tooltipArrowSize
     , tooltipBody
     , tooltipOffset
@@ -35,6 +34,7 @@ import ColorValues
 import Colors
 import Html
 import Html.Attributes as Attr exposing (style)
+import Tooltip
 import Views.Icon as Icon
 import Views.Styles
 
@@ -380,24 +380,13 @@ pipelineFavorite fav =
     ]
 
 
-tooltip : Float -> Float -> List (Html.Attribute msg)
-tooltip top left =
-    [ style "position" "fixed"
-    , style "left" <| String.fromFloat left ++ "px"
-    , style "top" <| String.fromFloat top ++ "px"
-    , style "margin-top" "-15px"
-    , style "z-index" "1"
-    , style "display" "flex"
-    ]
-
-
 tooltipBody : List (Html.Attribute msg)
 tooltipBody =
-    [ style "background-color" Colors.tooltipBackground
-    , style "color" Colors.tooltipText
-    , style "padding-right" "10px"
+    [ style "padding-right" "12px"
+    , style "padding-left" "6px"
     , style "font-size" "12px"
     , style "display" "flex"
     , style "align-items" "center"
     , style "height" "30px"
     ]
+        ++ Tooltip.colors

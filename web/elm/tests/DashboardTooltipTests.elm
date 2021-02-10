@@ -11,6 +11,7 @@ import HoverState exposing (HoverState(..))
 import Html
 import Message.Message exposing (DomID(..), PipelinesSection(..))
 import RemoteData exposing (RemoteData(..))
+import Set
 import Test exposing (Test, describe, test)
 import Test.Html.Query as Query
 import Test.Html.Selector exposing (text)
@@ -47,6 +48,63 @@ all =
                     |> Maybe.withDefault (Html.text "")
                     |> Query.fromHtml
                     |> Query.has [ text "expose" ]
+        , test "says 'favorite' when an unfavorited pipeline is hovered" <|
+            \_ ->
+                Dashboard.tooltip
+                    { session
+                        | hovered =
+                            Tooltip
+                                (PipelineCardFavoritedIcon AllPipelinesSection 1)
+                                Data.elementPosition
+                        , pipelines = Success [ Data.pipeline "team" 1 ]
+                    }
+                    |> Maybe.map .body
+                    |> Maybe.withDefault (Html.text "")
+                    |> Query.fromHtml
+                    |> Query.has [ text "favorite" ]
+        , test "says 'unfavorite' when a favorited pipeline is hovered" <|
+            \_ ->
+                Dashboard.tooltip
+                    { session
+                        | hovered =
+                            Tooltip
+                                (PipelineCardFavoritedIcon AllPipelinesSection 1)
+                                Data.elementPosition
+                        , pipelines = Success [ Data.pipeline "team" 1 ]
+                        , favoritedPipelines = Set.singleton 1
+                    }
+                    |> Maybe.map .body
+                    |> Maybe.withDefault (Html.text "")
+                    |> Query.fromHtml
+                    |> Query.has [ text "unfavorite" ]
+        , test "says 'pause' when an unpaused pipeline is hovered" <|
+            \_ ->
+                Dashboard.tooltip
+                    { session
+                        | hovered =
+                            Tooltip
+                                (PipelineCardPauseToggle AllPipelinesSection 1)
+                                Data.elementPosition
+                        , pipelines = Success [ Data.pipeline "team" 1 |> Data.withPaused False ]
+                    }
+                    |> Maybe.map .body
+                    |> Maybe.withDefault (Html.text "")
+                    |> Query.fromHtml
+                    |> Query.has [ text "pause" ]
+        , test "says 'unpause' when a paused pipeline is hovered" <|
+            \_ ->
+                Dashboard.tooltip
+                    { session
+                        | hovered =
+                            Tooltip
+                                (PipelineCardPauseToggle AllPipelinesSection 1)
+                                Data.elementPosition
+                        , pipelines = Success [ Data.pipeline "team" 1 |> Data.withPaused True ]
+                    }
+                    |> Maybe.map .body
+                    |> Maybe.withDefault (Html.text "")
+                    |> Query.fromHtml
+                    |> Query.has [ text "unpause" ]
         , test "says 'disabled' when a pipeline with jobs disabled is hovered" <|
             \_ ->
                 Dashboard.tooltip

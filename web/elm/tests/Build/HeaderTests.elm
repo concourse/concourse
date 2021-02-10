@@ -152,29 +152,7 @@ all =
                             )
             ]
         , describe "buttons"
-            [ describe "trigger"
-                [ test "has tooltip on hover when manual triggering is disabled" <|
-                    \_ ->
-                        Header.header
-                            { session
-                                | hovered =
-                                    HoverState.Hovered
-                                        Message.TriggerBuildButton
-                            }
-                            { model | disableManualTrigger = False }
-                            |> .rightWidgets
-                            |> Common.notContains
-                                (Views.Button <|
-                                    Just
-                                        { type_ = Views.Trigger
-                                        , isClickable = False
-                                        , backgroundShade = Views.Dark
-                                        , backgroundColor = model.status
-                                        , tooltip = True
-                                        }
-                                )
-                ]
-            , describe "re-run"
+            [ describe "re-run"
                 [ test "does not appear on non-running one-off build" <|
                     \_ ->
                         Header.header session
@@ -187,7 +165,6 @@ all =
                                         , isClickable = True
                                         , backgroundShade = Views.Light
                                         , backgroundColor = BuildStatusSucceeded
-                                        , tooltip = False
                                         }
                                 )
                 , test "appears on non-running job build" <|
@@ -202,27 +179,6 @@ all =
                                         , isClickable = True
                                         , backgroundShade = Views.Light
                                         , backgroundColor = BuildStatusSucceeded
-                                        , tooltip = False
-                                        }
-                                )
-                , test "is hoverable with tooltip" <|
-                    \_ ->
-                        { model | status = BuildStatusSucceeded, job = Just jobId }
-                            |> Header.header
-                                { session
-                                    | hovered =
-                                        HoverState.Hovered
-                                            Message.RerunBuildButton
-                                }
-                            |> .rightWidgets
-                            |> Common.contains
-                                (Views.Button <|
-                                    Just
-                                        { type_ = Views.Rerun
-                                        , isClickable = True
-                                        , backgroundShade = Views.Dark
-                                        , backgroundColor = BuildStatusSucceeded
-                                        , tooltip = True
                                         }
                                 )
                 , test "clicking sends RerunJobBuild API call" <|

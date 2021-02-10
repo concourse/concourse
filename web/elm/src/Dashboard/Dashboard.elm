@@ -54,6 +54,8 @@ import Html.Events
     exposing
         ( onMouseEnter
         , onMouseLeave
+        , onMouseOut
+        , onMouseOver
         )
 import Http
 import List.Extra
@@ -77,7 +79,7 @@ import Ordering
 import Routes
 import ScreenSize exposing (ScreenSize(..))
 import Set
-import SideBar.SideBar as SideBar exposing (byDatabaseId, byPipelineId, lookupPipeline)
+import SideBar.SideBar as SideBar exposing (byDatabaseId, lookupPipeline)
 import StrictEvents exposing (onScroll)
 import Tooltip
 import UserState
@@ -752,21 +754,19 @@ updateBody session msg ( model, effects ) =
             , effects
             )
 
-        Click (PipelineCardPauseToggle _ pipelineId) ->
-            let
-                isPaused =
-                    session
-                        |> lookupPipeline (byPipelineId pipelineId)
-                        |> Maybe.map .paused
-            in
-            case isPaused of
-                Just ip ->
+        Click (PipelineCardPauseToggle _ id) ->
+            case session |> lookupPipeline (byDatabaseId id) of
+                Just pipeline ->
+                    let
+                        pipelineId =
+                            Concourse.toPipelineId pipeline
+                    in
                     ( updatePipeline
                         (\p -> { p | isToggleLoading = True })
                         pipelineId
                         model
                     , effects
-                        ++ [ SendTogglePipelineRequest pipelineId ip ]
+                        ++ [ SendTogglePipelineRequest pipelineId pipeline.paused ]
                     )
 
                 Nothing ->
@@ -855,12 +855,10 @@ tooltip session =
     case session.hovered of
         HoverState.Tooltip (Message.PipelineStatusIcon _ _) _ ->
             Just
-                { body =
-                    Html.div
-                        Styles.jobsDisabledTooltip
-                        [ Html.text "automatic job monitoring disabled" ]
+                { body = Html.text "automatic job monitoring disabled"
                 , attachPosition = { direction = Tooltip.Top, alignment = Tooltip.Start }
                 , arrow = Nothing
+                , containerAttrs = Nothing
                 }
 
         HoverState.Tooltip (Message.VisibilityButton _ id) _ ->
@@ -869,31 +867,69 @@ tooltip session =
                 |> Maybe.map
                     (\p ->
                         { body =
-                            Html.div
-                                Styles.visibilityTooltip
-                                [ Html.text <|
-                                    if p.public then
-                                        "hide pipeline"
+                            Html.text <|
+                                if p.public then
+                                    "hide pipeline"
 
-                                    else
-                                        "expose pipeline"
-                                ]
+                                else
+                                    "expose pipeline"
                         , attachPosition =
-                            { direction = Tooltip.Top
+                            { direction = Tooltip.Bottom
                             , alignment = Tooltip.End
                             }
-                        , arrow = Nothing
+                        , arrow = Just 5
+                        , containerAttrs = Nothing
+                        }
+                    )
+
+        HoverState.Tooltip (Message.PipelineCardFavoritedIcon _ id) _ ->
+            let
+                isFavorited =
+                    Set.member id session.favoritedPipelines
+            in
+            Just
+                { body =
+                    Html.text <|
+                        if isFavorited then
+                            "unfavorite pipeline"
+
+                        else
+                            "favorite pipeline"
+                , attachPosition =
+                    { direction = Tooltip.Bottom
+                    , alignment = Tooltip.End
+                    }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
+
+        HoverState.Tooltip (Message.PipelineCardPauseToggle _ id) _ ->
+            session
+                |> lookupPipeline (byDatabaseId id)
+                |> Maybe.map
+                    (\p ->
+                        { body =
+                            Html.text <|
+                                if p.paused then
+                                    "unpause pipeline"
+
+                                else
+                                    "pause pipeline"
+                        , attachPosition =
+                            { direction = Tooltip.Bottom
+                            , alignment = Tooltip.End
+                            }
+                        , arrow = Just 5
+                        , containerAttrs = Nothing
                         }
                     )
 
         HoverState.Tooltip (Message.JobPreview _ _ jobName) _ ->
             Just
-                { body =
-                    Html.div
-                        Styles.jobPreviewTooltip
-                        [ Html.text jobName ]
+                { body = Html.text jobName
                 , attachPosition = { direction = Tooltip.Right 0, alignment = Tooltip.Middle 30 }
-                , arrow = Just { size = 15, color = "#000" }
+                , arrow = Just 15
+                , containerAttrs = Just Styles.jobPreviewTooltip
                 }
 
         HoverState.Tooltip (Message.PipelinePreview _ id) _ ->
@@ -901,15 +937,13 @@ tooltip session =
                 |> lookupPipeline (byDatabaseId id)
                 |> Maybe.map
                     (\p ->
-                        { body =
-                            Html.div
-                                Styles.pipelinePreviewTooltip
-                                [ Html.text <| hyphenNotation p.instanceVars ]
+                        { body = Html.text <| hyphenNotation p.instanceVars
                         , attachPosition =
                             { direction = Tooltip.Right 0
                             , alignment = Tooltip.Middle 30
                             }
-                        , arrow = Just { size = 15, color = "#000" }
+                        , arrow = Just 15
+                        , containerAttrs = Just Styles.pipelinePreviewTooltip
                         }
                     )
 
@@ -918,15 +952,13 @@ tooltip session =
                 |> lookupPipeline (byDatabaseId id)
                 |> Maybe.map
                     (\p ->
-                        { body =
-                            Html.div
-                                Styles.cardTooltip
-                                [ Html.text p.name ]
+                        { body = Html.text p.name
                         , attachPosition =
                             { direction = Tooltip.Right 0
                             , alignment = Tooltip.Middle 30
                             }
-                        , arrow = Just { size = 15, color = "#000" }
+                        , arrow = Just 15
+                        , containerAttrs = Just Styles.cardTooltip
                         }
                     )
 
@@ -935,46 +967,38 @@ tooltip session =
                 |> lookupPipeline (byDatabaseId id)
                 |> Maybe.map
                     (\p ->
-                        { body =
-                            Html.div
-                                Styles.cardTooltip
-                                [ Html.text p.name ]
+                        { body = Html.text p.name
                         , attachPosition =
                             { direction = Tooltip.Right 0
                             , alignment = Tooltip.Middle 30
                             }
-                        , arrow = Just { size = 15, color = "#000" }
+                        , arrow = Just 15
+                        , containerAttrs = Just Styles.cardTooltip
                         }
                     )
 
         HoverState.Tooltip (Message.InstanceGroupCardName _ _ groupName) _ ->
             Just
-                { body =
-                    Html.div
-                        Styles.cardTooltip
-                        [ Html.text groupName ]
+                { body = Html.text groupName
                 , attachPosition = { direction = Tooltip.Right 0, alignment = Tooltip.Middle 30 }
-                , arrow = Just { size = 15, color = "#000" }
+                , arrow = Just 15
+                , containerAttrs = Just Styles.cardTooltip
                 }
 
         HoverState.Tooltip (Message.InstanceGroupCardNameHD _ groupName) _ ->
             Just
-                { body =
-                    Html.div
-                        Styles.cardTooltip
-                        [ Html.text groupName ]
+                { body = Html.text groupName
                 , attachPosition = { direction = Tooltip.Right 0, alignment = Tooltip.Middle 30 }
-                , arrow = Just { size = 15, color = "#000" }
+                , arrow = Just 15
+                , containerAttrs = Just Styles.cardTooltip
                 }
 
         HoverState.Tooltip (Message.PipelineCardInstanceVar _ _ key value) _ ->
             Just
-                { body =
-                    Html.div
-                        Styles.cardTooltip
-                        [ Html.text <| key ++ ": " ++ value ]
+                { body = Html.text <| key ++ ": " ++ value
                 , attachPosition = { direction = Tooltip.Right 0, alignment = Tooltip.Middle 30 }
-                , arrow = Just { size = 15, color = "#000" }
+                , arrow = Just 15
+                , containerAttrs = Just Styles.cardTooltip
                 }
 
         _ ->
@@ -1092,6 +1116,8 @@ dashboardView session model =
             (class (.pageBodyClass Message.Effects.stickyHeaderConfig)
                 :: id (toHtmlID Dashboard)
                 :: onScroll Scrolled
+                :: onMouseOver (Hover <| Just Dashboard)
+                :: onMouseOut (Hover Nothing)
                 :: Styles.content model.highDensity
             )
             (case model.pipelines of

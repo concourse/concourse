@@ -279,7 +279,7 @@ viewBuildHeader session model build =
                         ]
                             ++ (if buttonDisabled && buttonHovered then
                                     [ Html.div
-                                        (Build.Styles.buttonTooltip 240)
+                                        []
                                         [ Html.text <|
                                             "manual triggering disabled "
                                                 ++ "in job config"

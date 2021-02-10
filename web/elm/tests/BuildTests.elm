@@ -8,7 +8,14 @@ import Build.Models as Models
 import Build.StepTree.Models as STModels
 import Char
 import Colors
-import Common exposing (defineHoverBehaviour, isColorWithStripes)
+import Common
+    exposing
+        ( defineHoverBehaviour
+        , expectTooltip
+        , expectTooltipWith
+        , hoverOver
+        , isColorWithStripes
+        )
 import Concourse exposing (BuildPrepStatus(..))
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.Pagination exposing (Direction(..))
@@ -22,7 +29,7 @@ import Json.Encode as Encode
 import Keyboard
 import Message.Callback as Callback
 import Message.Effects as Effects
-import Message.Message
+import Message.Message exposing (DomID(..))
 import Message.ScrollDirection as ScrollDirection
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..))
 import Message.TopLevelMessage as Msgs
@@ -2184,38 +2191,18 @@ all =
                             [ attribute <|
                                 Attr.attribute "aria-label" "Trigger Build"
                             ]
-                        >> Query.has
-                            [ style "padding" "10px"
-                            , style "background-color" brightGreen
-                            , style "outline" "none"
-                            , style "margin" "0"
-                            , style "border-width" "0 0 0 1px"
-                            , style "border-color" darkGreen
-                            , style "border-style" "solid"
-                            ]
+                        >> Query.has [ style "background-color" brightGreen ]
                 , test "hovered trigger build button is styled as a box of the secondary color of the build status" <|
                     givenHistoryAndDetailsFetched
                         >> Tuple.first
-                        >> Application.update
-                            (Msgs.Update <|
-                                Message.Message.Hover <|
-                                    Just Message.Message.TriggerBuildButton
-                            )
+                        >> hoverOver Message.Message.TriggerBuildButton
                         >> Tuple.first
                         >> Common.queryView
                         >> Query.find
                             [ attribute <|
                                 Attr.attribute "aria-label" "Trigger Build"
                             ]
-                        >> Query.has
-                            [ style "padding" "10px"
-                            , style "background-color" darkGreen
-                            , style "outline" "none"
-                            , style "margin" "0"
-                            , style "border-width" "0 0 0 1px"
-                            , style "border-color" darkGreen
-                            , style "border-style" "solid"
-                            ]
+                        >> Query.has [ style "background-color" darkGreen ]
                 , test "trigger build button has pointer cursor" <|
                     givenHistoryAndDetailsFetched
                         >> Tuple.first
@@ -2241,7 +2228,28 @@ all =
                                 , image = Assets.AddCircleIcon |> Assets.CircleOutlineIcon
                                 }
                             )
+                , test "hovering trigger build button displays a tooltip" <|
+                    givenHistoryAndDetailsFetched
+                        >> Tuple.first
+                        >> expectTooltip TriggerBuildButton "trigger a new build"
+                , test "rerun build button in the header" <|
+                    givenHistoryAndDetailsFetched
+                        >> Tuple.first
+                        >> Common.queryView
+                        >> Query.find [ id "build-header" ]
+                        >> Query.has
+                            [ attribute <|
+                                Attr.attribute "aria-label" "Rerun Build"
+                            ]
+                , test "hovering rerun build button displays a tooltip" <|
+                    givenHistoryAndDetailsFetched
+                        >> Tuple.first
+                        >> expectTooltip RerunBuildButton "re-run with the same inputs"
                 ]
+            , test "job name has a tooltip" <|
+                givenBuildFetched
+                    >> Tuple.first
+                    >> expectTooltip JobName "view job builds"
             , describe "when history and details fetched with manual triggering disabled" <|
                 let
                     givenHistoryAndDetailsFetched =
@@ -2279,22 +2287,19 @@ all =
                                 }
                         }
                     , hoveredSelector =
-                        { description = "grey plus icon with tooltip"
+                        { description = "grey plus icon"
                         , selector =
-                            [ style "position" "relative"
-                            , containing
-                                [ containing
-                                    [ text "manual triggering disabled in job config" ]
-                                ]
-                            , containing <|
-                                iconSelector
-                                    { size = "40px"
-                                    , image = Assets.AddCircleIcon |> Assets.CircleOutlineIcon
-                                    }
-                            ]
+                            iconSelector
+                                { size = "40px"
+                                , image = Assets.AddCircleIcon |> Assets.CircleOutlineIcon
+                                }
                         }
                     , hoverable = Message.Message.TriggerBuildButton
                     }
+                , test "hovering displays a tooltip" <|
+                    givenHistoryAndDetailsFetched
+                        >> Tuple.first
+                        >> expectTooltip TriggerBuildButton "manual triggering disabled in job config"
                 ]
             ]
         , describe "given build started and history and details fetched" <|
@@ -2335,38 +2340,22 @@ all =
                         [ attribute <|
                             Attr.attribute "aria-label" "Abort Build"
                         ]
-                    >> Query.has
-                        [ style "padding" "10px"
-                        , style "background-color" brightRed
-                        , style "outline" "none"
-                        , style "margin" "0"
-                        , style "border-width" "0 0 0 1px"
-                        , style "border-color" darkRed
-                        , style "border-style" "solid"
-                        ]
+                    >> Query.has [ style "background-color" brightRed ]
             , test "hovered abort build button is styled as a dark red box" <|
                 givenBuildStarted
                     >> Tuple.first
-                    >> Application.update
-                        (Msgs.Update <|
-                            Message.Message.Hover <|
-                                Just Message.Message.AbortBuildButton
-                        )
+                    >> hoverOver Message.Message.AbortBuildButton
                     >> Tuple.first
                     >> Common.queryView
                     >> Query.find
                         [ attribute <|
                             Attr.attribute "aria-label" "Abort Build"
                         ]
-                    >> Query.has
-                        [ style "padding" "10px"
-                        , style "background-color" darkRed
-                        , style "outline" "none"
-                        , style "margin" "0"
-                        , style "border-width" "0 0 0 1px"
-                        , style "border-color" darkRed
-                        , style "border-style" "solid"
-                        ]
+                    >> Query.has [ style "background-color" darkRed ]
+            , test "shows tooltip when hovered" <|
+                givenBuildStarted
+                    >> Tuple.first
+                    >> expectTooltip AbortBuildButton "abort the current build"
             , test "abort build button has pointer cursor" <|
                 givenBuildStarted
                     >> Tuple.first
@@ -3218,15 +3207,8 @@ all =
                                     ]
                             )
                         >> Tuple.first
-                        >> hoverOver (Message.Message.StepState "plan")
-                        >> Tuple.first
-                        >> Common.queryView
-                        >> Query.find [ id "tooltips" ]
-                        >> Query.children []
-                        >> Query.index -1
-                        >> Query.findAll [ tag "tr" ]
-                        >> Query.index 0
-                        >> Query.has [ text "initialization", text "10s" ]
+                        >> expectTooltipWith (StepState "plan")
+                            (Query.has [ text "initialization", text "10s" ])
                 , test "finished task lists step duration in tooltip" <|
                     fetchPlanWithTaskStep
                         >> Application.handleDelivery
@@ -3254,15 +3236,8 @@ all =
                                     ]
                             )
                         >> Tuple.first
-                        >> hoverOver (Message.Message.StepState "plan")
-                        >> Tuple.first
-                        >> Common.queryView
-                        >> Query.find [ id "tooltips" ]
-                        >> Query.children []
-                        >> Query.index -1
-                        >> Query.findAll [ tag "tr" ]
-                        >> Query.index 1
-                        >> Query.has [ text "step", text "20s" ]
+                        >> expectTooltipWith (StepState "plan")
+                            (Query.has [ text "step", text "20s" ])
                 , test "running step has loading spinner at the right" <|
                     fetchPlanWithTaskStep
                         >> Application.handleDelivery
@@ -3303,11 +3278,7 @@ all =
                                     ]
                             )
                         >> Tuple.first
-                        >> hoverOver (Message.Message.StepState "plan")
-                        >> Tuple.first
-                        >> Common.queryView
-                        >> Query.find [ id "tooltips" ]
-                        >> Query.has [ text "running" ]
+                        >> expectTooltip (StepState "plan") "running"
                 , test "pending step has dashed circle at the right" <|
                     fetchPlanWithTaskStep
                         >> Common.queryView
@@ -3323,11 +3294,7 @@ all =
                             )
                 , test "pending step shows pending in tooltip" <|
                     fetchPlanWithTaskStep
-                        >> hoverOver (Message.Message.StepState "plan")
-                        >> Tuple.first
-                        >> Common.queryView
-                        >> Query.find [ id "tooltips" ]
-                        >> Query.has [ text "pending" ]
+                        >> expectTooltip (StepState "plan") "pending"
                 , test "interrupted step has no-entry circle at the right" <|
                     fetchPlanWithTaskStep
                         >> Application.handleDelivery
@@ -3383,11 +3350,7 @@ all =
                                     ]
                             )
                         >> Tuple.first
-                        >> hoverOver (Message.Message.StepState "plan")
-                        >> Tuple.first
-                        >> Common.queryView
-                        >> Query.find [ id "tooltips" ]
-                        >> Query.has [ text "interrupted" ]
+                        >> expectTooltip (StepState "plan") "interrupted"
                 , test "cancelled step has dashed circle with dot at the right" <|
                     fetchPlanWithTaskStep
                         >> Application.handleDelivery
@@ -3427,11 +3390,7 @@ all =
                                     ]
                             )
                         >> Tuple.first
-                        >> hoverOver (Message.Message.StepState "plan")
-                        >> Tuple.first
-                        >> Common.queryView
-                        >> Query.find [ id "tooltips" ]
-                        >> Query.has [ text "cancelled" ]
+                        >> expectTooltip (StepState "plan") "cancelled"
                 , test "failing step has an X at the far right" <|
                     fetchPlanWithGetStep
                         >> Application.handleDelivery
@@ -3884,51 +3843,3 @@ receiveEvent :
     -> ( Application.Model, List Effects.Effect )
 receiveEvent envelope =
     Application.update (Msgs.DeliveryReceived <| EventsReceived <| Ok [ envelope ])
-
-
-hoverOver domID =
-    Application.update
-        (Msgs.Update (Message.Message.Hover (Just domID)))
-        >> Tuple.first
-        >> Application.handleDelivery
-            (ClockTicked OneSecond <|
-                Time.millisToPosix 1
-            )
-        >> Tuple.first
-        >> Application.handleCallback
-            (Callback.GotViewport domID <|
-                Ok
-                    { scene =
-                        { width = 1
-                        , height = 0
-                        }
-                    , viewport =
-                        { width = 1
-                        , height = 0
-                        , x = 0
-                        , y = 0
-                        }
-                    }
-            )
-        >> Tuple.first
-        >> Application.handleCallback
-            (Callback.GotElement <|
-                Ok
-                    { scene =
-                        { width = 0
-                        , height = 0
-                        }
-                    , viewport =
-                        { width = 0
-                        , height = 0
-                        , x = 0
-                        , y = 0
-                        }
-                    , element =
-                        { x = 0
-                        , y = 0
-                        , width = 1
-                        , height = 1
-                        }
-                    }
-            )
