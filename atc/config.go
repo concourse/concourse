@@ -201,6 +201,8 @@ type ResourceType struct {
 	CheckEvery *CheckEvery `json:"check_every,omitempty"`
 	Tags       Tags        `json:"tags,omitempty"`
 	Params     Params      `json:"params,omitempty"`
+
+	Parent *ResourceType `json:"parent_resource_type,omitempty"`
 }
 
 type Prototype struct {
