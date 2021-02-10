@@ -11,7 +11,7 @@ import Application.Models exposing (Session)
 import Concourse
 import Dashboard.Grid as Grid
 import Dashboard.Grid.Constants as GridConstants
-import Dashboard.Group.Models exposing (Card(..), Pipeline)
+import Dashboard.Group.Models exposing (Card(..), Pipeline, cardIdentifier)
 import Dashboard.Group.Tag as Tag
 import Dashboard.InstanceGroup as InstanceGroup
 import Dashboard.Models exposing (DragState(..), DropState(..))
@@ -406,14 +406,14 @@ pipelineCardView session params section { bounds, headerHeight, pipeline, inInst
                             "event.dataTransfer.setData('text/plain', '');"
                         , draggable "true"
                         , on "dragstart"
-                            (Json.Decode.succeed (DragStart pipeline.teamName pipeline.id))
+                            (Json.Decode.succeed (DragStart pipeline.teamName <| cardIdentifier <| PipelineCard pipeline))
                         , on "dragend" (Json.Decode.succeed DragEnd)
                         ]
 
                     else
                         []
                    )
-                ++ (if params.dragState == Dragging pipeline.teamName pipeline.id then
+                ++ (if params.dragState == Dragging pipeline.teamName (cardIdentifier <| PipelineCard pipeline) then
                         [ style "width" "0"
                         , style "margin" "0 12.5px"
                         , style "overflow" "hidden"
@@ -507,14 +507,14 @@ instanceGroupCardView session params section { bounds, headerHeight } p ps =
                             "event.dataTransfer.setData('text/plain', '');"
                         , draggable "true"
                         , on "dragstart"
-                            (Json.Decode.succeed (DragStart p.teamName p.id))
+                            (Json.Decode.succeed (DragStart p.teamName <| cardIdentifier <| InstanceGroupCard p ps))
                         , on "dragend" (Json.Decode.succeed DragEnd)
                         ]
 
                     else
                         []
                    )
-                ++ (if params.dragState == Dragging p.teamName p.id then
+                ++ (if params.dragState == Dragging p.teamName (cardIdentifier <| InstanceGroupCard p ps) then
                         [ style "width" "0"
                         , style "margin" "0 12.5px"
                         , style "overflow" "hidden"

@@ -24,7 +24,7 @@ type Message
     | ToggleGroup Concourse.PipelineGroup
     | SetGroups (List String)
       -- Dashboard
-    | DragStart String Int
+    | DragStart String String
     | DragOver DropTarget
     | DragEnd
       -- Resource
@@ -128,5 +128,5 @@ type alias VersionId =
 
 
 type DropTarget
-    = Before Int
+    = Before String
     | End

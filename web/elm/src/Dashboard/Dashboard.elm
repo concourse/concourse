@@ -683,7 +683,7 @@ updateBody session msg ( model, effects ) =
 
         DragEnd ->
             case ( model.dragState, model.dropState ) of
-                ( Dragging teamName name, Dropping target ) ->
+                ( Dragging teamName identifier, Dropping target ) ->
                     let
                         teamCards =
                             model.pipelines
@@ -692,7 +692,7 @@ updateBody session msg ( model, effects ) =
                                 |> groupCardsWithinTeam
                                 |> (\cards ->
                                         cards
-                                            |> (case Drag.dragCardIndices name target cards of
+                                            |> (case Drag.dragCardIndices identifier target cards of
                                                     Just ( from, to ) ->
                                                         Drag.drag from to
 

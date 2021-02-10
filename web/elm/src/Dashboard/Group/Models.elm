@@ -15,17 +15,17 @@ type Card
     | InstanceGroupCard Pipeline (List Pipeline)
 
 
-cardIdentifier : Card -> Int
+cardIdentifier : Card -> String
 cardIdentifier c =
     case c of
         PipelineCard p ->
-            p.id
+            String.fromInt p.id
 
         InstancedPipelineCard p ->
-            p.id
+            String.fromInt p.id
 
         InstanceGroupCard p _ ->
-            p.id
+            p.teamName ++ "/" ++ p.name
 
 
 cardName : Card -> String
