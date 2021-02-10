@@ -1,5 +1,5 @@
 ---
-name: 🚀 Ship a patch release
+name: 🛩 Ship a patch release
 about: Checklist for the major/minor release process
 title: 'Release X.X.X'
 assignees: ''
