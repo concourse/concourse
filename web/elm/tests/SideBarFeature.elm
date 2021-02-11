@@ -78,6 +78,11 @@ hasSideBar iAmLookingAtThePage =
 
         iHaveAnExpandedTeam =
             iHaveAnOpenSideBar_ >> iClickedThePipelineGroup
+
+        iHaveANotClickableSiteBar_ =
+            given iAmLookingAtThePage
+                >> given iAmOnANonPhoneScreen
+                >> given myBrowserFetchedNoPipelines
     in
     [ test "top bar is exactly 54px tall" <|
         given iAmLookingAtThePage
@@ -117,7 +122,7 @@ hasSideBar iAmLookingAtThePage =
                 , hoverable = Message.SideBarIcon
                 , hoveredSelector =
                     { description = "still grey"
-                    , selector = hoveredSideBarIcon True
+                    , selector = sideBarIcon True
                     }
                 }
             , test "is not clickable" <|
@@ -197,6 +202,10 @@ hasSideBar iAmLookingAtThePage =
                 given iHaveAClosedSideBar_
                     >> when iHoverOverTheSideBarIcon
                     >> then_ iSeeShowSideBarMessage
+            , test "shows no pipelines tooltip when is not clickable" <|
+                given iHaveANotClickableSiteBar_
+                    >> when iHoverOverTheSideBarIcon
+                    >> then_ iSeeNoPipelineSideBarMessage
             , defineHoverBehaviour
                 { name = "sidebar icon"
                 , setup =
@@ -919,6 +928,10 @@ iSeeShowSideBarMessage =
     expectTooltip Message.SideBarIcon "show sidebar"
 
 
+iSeeNoPipelineSideBarMessage =
+    expectTooltip Message.SideBarIcon "no visible pipelines"
+
+
 iSeeAnOpenedSideBarIcon =
     Query.has <|
         sideBarIcon True
@@ -949,6 +962,7 @@ hoveredSideBarIcon opened =
             { size = sidebarIconWidth
             , image = Assets.SideBarIconOpenedWhite
             }
+
     else
         DashboardTests.iconSelector
             { size = sidebarIconWidth

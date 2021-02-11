@@ -258,7 +258,17 @@ view model currentPipeline =
 
 
 tooltip : Model m -> Maybe Tooltip.Tooltip
-tooltip { hovered, sideBarState } =
+tooltip model =
+    let
+        hovered =
+            model.hovered
+
+        sideBarState =
+            model.sideBarState
+
+        isSideBarClickable =
+            hasVisiblePipelines model
+    in
     case hovered of
         HoverState.Tooltip (SideBarTeam _ teamName) _ ->
             Just
@@ -302,7 +312,10 @@ tooltip { hovered, sideBarState } =
         HoverState.Tooltip SideBarIcon _ ->
             let
                 text =
-                    if sideBarState.isOpen then
+                    if not isSideBarClickable then
+                        "no visible pipelines"
+
+                    else if sideBarState.isOpen then
                         "hide sidebar"
 
                     else
@@ -404,7 +417,10 @@ sideBarIcon model =
                 HoverState.isHovered SideBarIcon model.hovered
 
             assetSideBarIcon =
-                if isOpen && isHovered then
+                if not isSideBarClickable then
+                    Assets.SideBarIconOpenedGrey
+
+                else if isOpen && isHovered then
                     Assets.SideBarIconClosedWhite
 
                 else if isOpen && not isHovered then
