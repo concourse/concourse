@@ -18,7 +18,6 @@ want to just run Concourse yourself on real hardware or your own managed VMs.
 
 \split-sections
 
-\include-section{install/quickstart.lit}
 \include-section{install/db.lit}
 \include-section{install/concourse-cli.lit}
 \include-section{install/generating-keys.lit}

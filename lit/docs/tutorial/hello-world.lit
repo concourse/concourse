@@ -1,0 +1,84 @@
+\title{Hello World Pipeline}
+
+\use-plugin{concourse-docs}
+
+Let's start where all tutorials start, with a \code{Hello World!} example!
+
+In this section you're going to create a pipeline that simply prints
+\code{Hello world!} to the console. While building up the pipeline we will pause
+to explain the core pieces of the pipeline.
+
+Let's first answer: \bold{what is a pipeline made up from?}
+
+A \reference{pipelines}{pipeline} is a list of \reference{jobs}.
+\reference{Jobs} themselves are a list of \reference{steps}. If you've used
+other "pipeline" building tools in the past, then what you think of as a
+pipeline is probably most similar to a job in Concourse.
+
+For our \code{Hello World!} pipeline we will need \bold{one job} with \bold{one step}. The step is what will print \code{Hello World!} to the console.
+
+Create and open a new file called \code{hello-world.yml}. Inside that file let's add the first top-level key, \code{\reference{jobs}{jobs}}.
+
+\codeblock{yaml}{{
+jobs:
+}}
+
+The \code{\reference{jobs}{jobs}} key is where we define the list of jobs that
+should make up our pipeline. The order of the jobs does not matter. \bold{The
+order does not define the structure of the pipeline.} We'll get into pipeline
+structure later when we talk about \reference{resources}.
+
+We only need one job right now so let's add a single job named
+\code{hello-world}.
+
+\codeblock{yaml}{{
+jobs:
+- name: hello-world
+}}
+
+Awesome, we have a \reference{jobs}{job} named \code{hello-world}! Now we need
+to add a \code{\reference{steps}{step}} to our job. To define a list of
+\reference{steps}{steps} a job should execute we need to add the
+\code{\reference{schema.job.plan}{plan}} key to our job.
+
+\codeblock{yaml}{{
+jobs:
+- name: hello-world
+  plan:
+}}
+
+Now, unlike \reference{jobs}{jobs}, the order of \reference{steps}{steps}
+\bold{does matter!} Concourse will run the \reference{steps}{steps} in a
+\reference{jobs}{job} in the order that they are listed. Let's
+\italic{carefully} place a \reference{schema.step.task-step.task}{task step} as
+the first (and only) step in our job.
+
+\codeblock{yaml}{{
+jobs:
+- name: hello-world
+  plan:
+  - task: print-hello-world
+}}
+
+Fantastic! Now we need to tell Concourse \italic{how} to run our task step. We
+do that by providing a \reference{schema.task}{task config}.
+
+\codeblock{yaml}{{
+jobs:
+- name: hello-world
+  plan:
+  - task: print-hello-world
+    config:
+}}
+
+At this point we are going to pause to explain steps a bit more.
+
+Each \reference{steps}{step} in a job plan runs in its own container. So if you
+have a job with five steps Concourse will create five containers, one for each
+step. Therefore, we need to tell Concourse the following about each step:
+
+\list{
+What container image to use
+}{
+What command to run inside the container
+}
