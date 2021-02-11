@@ -350,9 +350,7 @@ allPipelinesSection : Model m -> Maybe (PipelineScoped a) -> List (Html Message)
 allPipelinesSection model currentPipeline =
     let
         pipelinesByTeam =
-            model.pipelines
-                |> RemoteData.withDefault []
-                |> List.filter (isPipelineVisible model)
+            visiblePipelines model
                 |> List.Extra.gatherEqualsBy .teamName
                 |> List.map
                     (\( p, ps ) ->
@@ -426,8 +424,7 @@ favoritedPipelinesSection model currentPipeline =
                     )
 
         favoritedPipelinesByTeam =
-            model.pipelines
-                |> RemoteData.withDefault []
+            visiblePipelines model
                 |> List.Extra.gatherEqualsBy .teamName
                 |> List.map
                     (\( p, ps ) ->
@@ -517,11 +514,16 @@ sideBarIcon model =
             ]
 
 
-hasVisiblePipelines : Model m -> Bool
-hasVisiblePipelines model =
+visiblePipelines : Model m -> List Concourse.Pipeline
+visiblePipelines model =
     model.pipelines
-        |> RemoteData.map (List.any (isPipelineVisible model))
-        |> RemoteData.withDefault False
+        |> RemoteData.withDefault []
+        |> List.filter (isPipelineVisible model)
+
+
+hasVisiblePipelines : Model m -> Bool
+hasVisiblePipelines =
+    visiblePipelines >> List.isEmpty >> not
 
 
 isPipelineVisible : { a | favoritedPipelines : Set Concourse.DatabaseID } -> Concourse.Pipeline -> Bool
