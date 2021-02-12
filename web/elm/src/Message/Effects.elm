@@ -756,6 +756,9 @@ toHtmlID domId =
         StepInitialization stepID ->
             stepID ++ "_image"
 
+        SideBarIcon ->
+            "sidebar-icon"
+
         Dashboard ->
             "dashboard"
 

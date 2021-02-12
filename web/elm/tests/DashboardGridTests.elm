@@ -109,7 +109,7 @@ all =
         , test "fetches the viewport of the scrollable area when the sidebar is opened" <|
             \_ ->
                 loadDashboardWithSize 600 600
-                    |> Application.update (Update <| Click HamburgerMenu)
+                    |> Application.update (Update <| Click SideBarIcon)
                     |> Tuple.second
                     |> Common.contains (GetViewportOf Dashboard)
         , test "fetches the viewport of the scrollable area when the sidebar state is loaded" <|

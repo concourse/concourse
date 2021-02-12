@@ -5,8 +5,6 @@ module SideBar.Styles exposing
     , SidebarElementColor(..)
     , collapseIcon
     , column
-    , hamburgerIcon
-    , hamburgerMenu
     , iconGroup
     , instanceGroup
     , instanceGroupBadge
@@ -18,6 +16,7 @@ module SideBar.Styles exposing
     , sectionHeader
     , sideBar
     , sideBarHandle
+    , sideBarMenu
     , starPadding
     , starWidth
     , team
@@ -267,10 +266,10 @@ pipelineName { color, weight } =
     ]
 
 
-hamburgerMenu :
-    { isSideBarOpen : Bool, isClickable : Bool }
+sideBarMenu :
+    Bool
     -> List (Html.Attribute msg)
-hamburgerMenu { isSideBarOpen, isClickable } =
+sideBarMenu isClickable =
     [ style "border-right" <| "1px solid " ++ Colors.border
     , style "opacity" "1"
     , style "cursor" <|
@@ -279,23 +278,7 @@ hamburgerMenu { isSideBarOpen, isClickable } =
 
         else
             "default"
-    , style "background-color" <|
-        if isSideBarOpen then
-            Colors.sideBarBackground
-
-        else
-            Colors.hamburgerClosedBackground
-    ]
-
-
-hamburgerIcon : { isHovered : Bool, isActive : Bool } -> List (Html.Attribute msg)
-hamburgerIcon { isHovered, isActive } =
-    [ style "opacity" <|
-        if isActive || isHovered then
-            "1"
-
-        else
-            "0.5"
+    , style "background-color" Colors.sideBarIconBackground
     ]
 
 

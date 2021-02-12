@@ -8,6 +8,7 @@ import Colors
 import Common
     exposing
         ( defineHoverBehaviour
+        , expectTooltip
         , given
         , iOpenTheBuildPage
         , myBrowserFetchedTheBuild
@@ -66,127 +67,174 @@ pageLoadIsSideBarCompatible iAmLookingAtThePage =
 hasSideBar : (() -> ( Application.Model, List Effects.Effect )) -> List Test
 hasSideBar iAmLookingAtThePage =
     let
-        iHaveAnOpenSideBar_ =
+        iHaveAClosedSideBar_ =
             given iAmLookingAtThePage
                 >> given iAmOnANonPhoneScreen
                 >> given myBrowserFetchedPipelines
-                >> given iClickedTheHamburgerIcon
+
+        iHaveAnOpenSideBar_ =
+            iHaveAClosedSideBar_
+                >> given iClickedTheSideBarIcon
 
         iHaveAnExpandedTeam =
             iHaveAnOpenSideBar_ >> iClickedThePipelineGroup
+
+        iHaveANotClickableSiteBar_ =
+            given iAmLookingAtThePage
+                >> given iAmOnANonPhoneScreen
+                >> given myBrowserFetchedNoPipelines
     in
     [ test "top bar is exactly 54px tall" <|
         given iAmLookingAtThePage
             >> given iAmOnANonPhoneScreen
             >> when iAmLookingAtTheTopBar
             >> then_ iSeeItIs54PxTall
-    , describe "hamburger icon"
+    , describe "sidebar icon"
         [ test "appears in the top bar on non-phone screens" <|
             given iAmLookingAtThePage
                 >> given iAmOnANonPhoneScreen
                 >> given iAmLookingAtTheLeftHandSectionOfTheTopBar
                 >> when iAmLookingAtTheFirstChild
-                >> then_ iSeeAHamburgerIcon
+                >> then_ iSeeAnOpenedSideBarIcon
         , test "does not appear on phone screens" <|
             given iAmLookingAtThePage
                 >> given iAmOnAPhoneScreen
                 >> when iAmLookingAtTheLeftHandSectionOfTheTopBar
-                >> then_ iSeeNoHamburgerIcon
+                >> then_ iSeeNoSideBarIcon
         , test "is clickable when there are pipelines" <|
             given iAmLookingAtThePage
                 >> given iAmOnANonPhoneScreen
                 >> given myBrowserFetchedPipelines
-                >> when iAmLookingAtTheHamburgerMenu
-                >> then_ (itIsClickable Message.HamburgerMenu)
+                >> when iAmLookingAtTheSideBarIconContainer
+                >> then_ (itIsClickable Message.SideBarIcon)
         , describe "before pipelines are fetched"
             [ defineHoverBehaviour
-                { name = "hamburger icon"
+                { name = "sidebar icon"
                 , setup =
                     iAmLookingAtThePage ()
                         |> given iAmOnANonPhoneScreen
                         |> Tuple.first
-                , query = (\a -> ( a, [] )) >> iAmLookingAtTheHamburgerMenu
+                , query = (\a -> ( a, [] )) >> iAmLookingAtTheSideBarIconContainer
                 , unhoveredSelector =
                     { description = "grey"
-                    , selector = [ containing [ style "opacity" "0.5" ] ]
+                    , selector = sideBarIcon True
                     }
-                , hoverable = Message.HamburgerMenu
+                , hoverable = Message.SideBarIcon
                 , hoveredSelector =
                     { description = "still grey"
-                    , selector = [ containing [ style "opacity" "0.5" ] ]
+                    , selector = sideBarIcon True
                     }
                 }
             , test "is not clickable" <|
                 given iAmLookingAtThePage
                     >> given iAmOnANonPhoneScreen
-                    >> when iAmLookingAtTheHamburgerMenu
+                    >> when iAmLookingAtTheSideBarIconContainer
                     >> then_ itIsNotClickable
             ]
         , test "is not clickable when there are no pipelines" <|
             given iAmLookingAtThePage
                 >> given iAmOnANonPhoneScreen
                 >> given myBrowserFetchedNoPipelines
-                >> when iAmLookingAtTheHamburgerMenu
+                >> when iAmLookingAtTheSideBarIconContainer
                 >> then_ itIsNotClickable
         , test """has a dark dividing line separating it from the concourse
                   logo""" <|
             given iAmLookingAtThePage
                 >> given iAmOnANonPhoneScreen
-                >> when iAmLookingAtTheHamburgerMenu
+                >> when iAmLookingAtTheSideBarIconContainer
                 >> then_ iSeeADarkDividingLineToTheRight
-        , defineHoverBehaviour
-            { name = "hamburger icon"
-            , setup =
-                iAmLookingAtThePage ()
-                    |> iAmOnANonPhoneScreen
-                    |> myBrowserFetchedPipelines
-                    |> Tuple.first
-            , query = (\a -> ( a, [] )) >> iAmLookingAtTheHamburgerMenu
-            , unhoveredSelector =
-                { description = "grey"
-                , selector = [ containing [ style "opacity" "0.5" ] ]
+        , describe "when the sidebar is open" <|
+            [ test "icon changes to closed on click" <|
+                given iHaveAnOpenSideBar_
+                    >> when iAmLookingAtTheSideBarIcon
+                    >> then_ iSeeAClosedSideBarIcon
+            , test "background is the same" <|
+                given iHaveAnOpenSideBar_
+                    >> when iAmLookingAtTheSideBarIconContainer
+                    >> then_ iSeeADarkerBackground
+            , test "background does not become lighter when opened but there are no pipelines" <|
+                given iHaveAnOpenSideBar_
+                    >> given myBrowserFetchedNoPipelines
+                    >> when iAmLookingAtTheSideBarIconContainer
+                    >> then_ iSeeADarkerBackground
+            , test "browser toggles sidebar state on click" <|
+                when iHaveAnOpenSideBar_
+                    >> given iClickedTheSideBarIcon
+                    >> then_ myBrowserSavesSideBarState { isOpen = False, width = 275 }
+            , test "shows tooltip when hovering" <|
+                given iHaveAnOpenSideBar_
+                    >> when iHoverOverTheSideBarIcon
+                    >> then_ iSeeHideSideBarMessage
+            , defineHoverBehaviour
+                { name = "sidebar icon"
+                , setup =
+                    iAmLookingAtThePage ()
+                        |> iAmOnANonPhoneScreen
+                        |> myBrowserFetchedPipelines
+                        |> iClickedTheSideBarIcon
+                        |> Tuple.first
+                , query = (\a -> ( a, [] )) >> iAmLookingAtTheSideBarIconContainer
+                , unhoveredSelector =
+                    { description = "grey"
+                    , selector = sideBarIcon False
+                    }
+                , hoverable = Message.SideBarIcon
+                , hoveredSelector =
+                    { description = "white"
+                    , selector = hoveredSideBarIcon False
+                    }
                 }
-            , hoverable = Message.HamburgerMenu
-            , hoveredSelector =
-                { description = "white"
-                , selector = [ containing [ style "opacity" "1" ] ]
+            ]
+        , describe "when the sidebar is closed" <|
+            [ test "icon changes to opened on click" <|
+                given iHaveAClosedSideBar_
+                    >> when iAmLookingAtTheSideBarIcon
+                    >> then_ iSeeAnOpenedSideBarIcon
+            , test "background is the same" <|
+                given iHaveAClosedSideBar_
+                    >> when iAmLookingAtTheSideBarIconContainer
+                    >> then_ iSeeADarkerBackground
+            , test "browser toggles sidebar state on click" <|
+                when iHaveAClosedSideBar_
+                    >> given iClickedTheSideBarIcon
+                    >> then_ myBrowserSavesSideBarState { isOpen = True, width = 275 }
+            , test "shows tooltip when hovering" <|
+                given iHaveAClosedSideBar_
+                    >> when iHoverOverTheSideBarIcon
+                    >> then_ iSeeShowSideBarMessage
+            , test "shows no pipelines tooltip when is not clickable" <|
+                given iHaveANotClickableSiteBar_
+                    >> when iHoverOverTheSideBarIcon
+                    >> then_ iSeeNoPipelineSideBarMessage
+            , defineHoverBehaviour
+                { name = "sidebar icon"
+                , setup =
+                    iAmLookingAtThePage ()
+                        |> iAmOnANonPhoneScreen
+                        |> myBrowserFetchedPipelines
+                        |> Tuple.first
+                , query = (\a -> ( a, [] )) >> iAmLookingAtTheSideBarIconContainer
+                , unhoveredSelector =
+                    { description = "grey"
+                    , selector = sideBarIcon True
+                    }
+                , hoverable = Message.SideBarIcon
+                , hoveredSelector =
+                    { description = "white"
+                    , selector = hoveredSideBarIcon True
+                    }
                 }
-            }
-        , test "browser saves sidebar state on click" <|
-            when iHaveAnOpenSideBar_
-                >> then_ myBrowserSavesSideBarState { isOpen = True, width = 275 }
-        , test "background becomes lighter on click" <|
-            given iHaveAnOpenSideBar_
-                >> when iAmLookingAtTheHamburgerMenu
-                >> then_ iSeeALighterBackground
-        , test "icon becomes bright on click" <|
-            given iHaveAnOpenSideBar_
-                >> when iAmLookingAtTheHamburgerIcon
-                >> then_ iSeeItIsBright
-        , test "background does not become lighter when opened but there are no pipelines" <|
-            given iHaveAnOpenSideBar_
-                >> given myBrowserFetchedNoPipelines
-                >> when iAmLookingAtTheHamburgerMenu
-                >> then_ iSeeADarkerBackground
-        , test "browser toggles sidebar state on click" <|
-            when iHaveAnOpenSideBar_
-                >> given iClickedTheHamburgerIcon
-                >> then_ myBrowserSavesSideBarState { isOpen = False, width = 275 }
-        , test "background toggles back to dark" <|
-            given iHaveAnOpenSideBar_
-                >> given iClickedTheHamburgerIcon
-                >> when iAmLookingAtTheHamburgerMenu
-                >> then_ iSeeADarkerBackground
-        , test "when shrinking viewport hamburger icon disappears" <|
+            ]
+        , test "when shrinking viewport sidebar icon disappears" <|
             given iAmLookingAtThePage
                 >> given iAmOnANonPhoneScreen
                 >> given iShrankTheViewport
                 >> when iAmLookingAtTheLeftHandSectionOfTheTopBar
-                >> then_ iDoNotSeeAHamburgerIcon
+                >> then_ iSeeNoSideBarIcon
         , test "side bar does not expand before teams and pipelines are fetched" <|
             given iAmLookingAtThePage
                 >> given iAmOnANonPhoneScreen
-                >> given iClickedTheHamburgerIcon
+                >> given iClickedTheSideBarIcon
                 >> when iAmLookingAtThePageBelowTheTopBar
                 >> then_ iSeeNoSideBar
         ]
@@ -223,7 +271,7 @@ hasSideBar iAmLookingAtThePage =
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheSideBar
                 >> then_ iSeeADividingLineToTheRight
-        , test "sidebar has hamburger menu background" <|
+        , test "sidebar has same background as icon container" <|
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheSideBar
                 >> then_ iSeeALighterBackground
@@ -288,7 +336,7 @@ hasSideBar iAmLookingAtThePage =
                 >> then_ iSeeItHasWidth 100
         , test "toggles away" <|
             given iHaveAnOpenSideBar_
-                >> given iClickedTheHamburgerIcon
+                >> given iClickedTheSideBarIcon
                 >> when iAmLookingAtThePageBelowTheTopBar
                 >> then_ iSeeNoSideBar
         ]
@@ -339,7 +387,7 @@ hasSideBar iAmLookingAtThePage =
         , test "if all pipelines are archived, sidebar is not clickable" <|
             given iHaveAnOpenSideBar_
                 >> given myBrowserFetchedOnlyArchivedPipelines
-                >> when iAmLookingAtTheHamburgerMenu
+                >> when iAmLookingAtTheSideBarIconContainer
                 >> then_ itIsNotClickable
         ]
     , describe "teams list" <|
@@ -550,7 +598,7 @@ hasSideBar iAmLookingAtThePage =
             { name = "pipeline"
             , setup =
                 iAmViewingTheDashboardOnANonPhoneScreen ()
-                    |> iClickedTheHamburgerIcon
+                    |> iClickedTheSideBarIcon
                     |> iClickedThePipelineGroup
                     |> Tuple.first
             , query = (\a -> ( a, [] )) >> iAmLookingAtTheFirstPipeline
@@ -673,14 +721,14 @@ hasSideBar iAmLookingAtThePage =
             given iAmLookingAtThePage
                 >> given iAmOnANonPhoneScreen
                 >> given myBrowserFetchedPipelinesFromMultipleTeams
-                >> given iClickedTheHamburgerIcon
+                >> given iClickedTheSideBarIcon
                 >> when iAmLookingAtTheSideBar
                 >> then_ iSeeTwoTeams
         , test "sidebar has text content of second team's name" <|
             given iAmLookingAtThePage
                 >> given iAmOnANonPhoneScreen
                 >> given myBrowserFetchedPipelinesFromMultipleTeams
-                >> given iClickedTheHamburgerIcon
+                >> given iClickedTheSideBarIcon
                 >> when iAmLookingAtTheSideBar
                 >> then_ iSeeTheSecondTeamName
         , test "pipeline names align with the teamName" <|
@@ -699,14 +747,14 @@ hasCurrentPipelineInSideBar iAmLookingAtThePage =
         given iAmLookingAtThePage
             >> given iAmOnANonPhoneScreen
             >> given myBrowserFetchedPipelinesFromMultipleTeams
-            >> given iClickedTheHamburgerIcon
+            >> given iClickedTheSideBarIcon
             >> when iAmLookingAtTheOtherPipelineList
             >> then_ iSeeOneChild
     , test "current team only automatically expands on page load" <|
         given iAmLookingAtThePage
             >> given iAmOnANonPhoneScreen
             >> given myBrowserFetchedPipelinesFromMultipleTeams
-            >> given iClickedTheHamburgerIcon
+            >> given iClickedTheSideBarIcon
             >> given iClickedTheOtherPipelineGroup
             >> given iNavigateToTheDashboard
             >> given iNavigateBackToThePipelinePage
@@ -717,14 +765,14 @@ hasCurrentPipelineInSideBar iAmLookingAtThePage =
         given iAmLookingAtThePage
             >> given iAmOnANonPhoneScreen
             >> given myBrowserFetchedPipelinesFromMultipleTeams
-            >> given iClickedTheHamburgerIcon
+            >> given iClickedTheSideBarIcon
             >> when iAmLookingAtTheOtherTeamIcon
             >> then_ iSeeTheTeamIcon
     , test "current team name is white" <|
         given iAmLookingAtThePage
             >> given iAmOnANonPhoneScreen
             >> given myBrowserFetchedPipelinesFromMultipleTeams
-            >> given iClickedTheHamburgerIcon
+            >> given iClickedTheSideBarIcon
             >> given iClickedTheOtherPipelineGroup
             >> when iAmLookingAtTheOtherTeamName
             >> then_ iSeeTheTextIsWhite
@@ -732,33 +780,32 @@ hasCurrentPipelineInSideBar iAmLookingAtThePage =
         given iAmLookingAtThePage
             >> given iAmOnANonPhoneScreen
             >> given myBrowserFetchedPipelinesFromMultipleTeams
-            >> given iClickedTheHamburgerIcon
+            >> given iClickedTheSideBarIcon
             >> when iAmLookingAtTheOtherPipeline
             >> then_ iSeeADarkBackground
     , test "current pipeline has bright pipeline icon" <|
         given iAmLookingAtThePage
             >> given iAmOnANonPhoneScreen
             >> given myBrowserFetchedPipelinesFromMultipleTeams
-            >> given iClickedTheHamburgerIcon
+            >> given iClickedTheSideBarIcon
             >> when iAmLookingAtTheOtherPipelineIcon
             >> then_ iSeeThePipelineIconIsBright
     , test "current pipeline name is bright" <|
         given iAmLookingAtThePage
             >> given iAmOnANonPhoneScreen
             >> given myBrowserFetchedPipelinesFromMultipleTeams
-            >> given iClickedTheHamburgerIcon
+            >> given iClickedTheSideBarIcon
             >> when iAmLookingAtTheOtherPipeline
             >> then_ iSeeTheTextIsBright
     , test "pipeline with same name on other team has invisible border" <|
         given iAmLookingAtThePage
             >> given iAmOnANonPhoneScreen
             >> given myBrowserFetchedPipelinesFromMultipleTeams
-            >> given iClickedTheHamburgerIcon
+            >> given iClickedTheSideBarIcon
             >> given iClickedThePipelineGroup
             >> when iAmLookingAtThePipelineWithTheSameName
             >> then_ iSeeAnInvisibleBackground
     ]
-
 
 
 all : Test
@@ -787,14 +834,10 @@ all =
         , describe "pipeline page current pipeline" <|
             hasCurrentPipelineInSideBar (when iOpenedThePipelinePage)
         , describe "pipeline page exceptions"
-            [ describe "hamburger icon"
-                [ test "shows turbulence when pipelines fail to fetch" <|
-                    given iAmViewingThePipelinePageOnANonPhoneScreen
-                        >> when myBrowserFailsToFetchPipelines
-                        >> then_ iSeeTheTurbulenceMessage
-
-                -- TODO find a more general description
-                ]
+            [ test "shows turbulence when pipelines fail to fetch" <|
+                given iAmViewingThePipelinePageOnANonPhoneScreen
+                    >> when myBrowserFailsToFetchPipelines
+                    >> then_ iSeeTheTurbulenceMessage
             , describe "sidebar"
                 [ test "clicking a pipeline link respects sidebar state" <|
                     given iHaveAnExpandedPipelineGroup
@@ -816,7 +859,7 @@ all =
                     >> given iAmOnANonPhoneScreen
                     >> given myBrowserFetchedPipelinesFromMultipleTeams
                     >> given myBrowserFetchedTheBuild
-                    >> given iClickedTheHamburgerIcon
+                    >> given iClickedTheSideBarIcon
                     >> when iAmLookingAtTheOtherPipelineList
                     >> then_ iSeeOneChild
             ]
@@ -873,16 +916,61 @@ iAmLookingAtTheFirstChild =
     Query.children [] >> Query.first
 
 
-iSeeAHamburgerIcon =
-    Query.has
-        (DashboardTests.iconSelector
-            { size = hamburgerIconWidth
-            , image = Assets.HamburgerMenuIcon
+iHoverOverTheSideBarIcon =
+    Tuple.first
+
+
+iSeeHideSideBarMessage =
+    expectTooltip Message.SideBarIcon "hide sidebar"
+
+
+iSeeShowSideBarMessage =
+    expectTooltip Message.SideBarIcon "show sidebar"
+
+
+iSeeNoPipelineSideBarMessage =
+    expectTooltip Message.SideBarIcon "no visible pipelines"
+
+
+iSeeAnOpenedSideBarIcon =
+    Query.has <|
+        sideBarIcon True
+
+
+iSeeAClosedSideBarIcon =
+    Query.has <|
+        sideBarIcon False
+
+
+sideBarIcon opened =
+    if opened then
+        DashboardTests.iconSelector
+            { size = sidebarIconWidth
+            , image = Assets.SideBarIconOpenedGrey
             }
-        )
+
+    else
+        DashboardTests.iconSelector
+            { size = sidebarIconWidth
+            , image = Assets.SideBarIconClosedGrey
+            }
 
 
-hamburgerIconWidth =
+hoveredSideBarIcon opened =
+    if opened then
+        DashboardTests.iconSelector
+            { size = sidebarIconWidth
+            , image = Assets.SideBarIconOpenedWhite
+            }
+
+    else
+        DashboardTests.iconSelector
+            { size = sidebarIconWidth
+            , image = Assets.SideBarIconClosedWhite
+            }
+
+
+sidebarIconWidth =
     "54px"
 
 
@@ -980,18 +1068,14 @@ dataRefreshes =
             )
 
 
-iSeeNoHamburgerIcon =
-    Query.hasNot
-        (DashboardTests.iconSelector
-            { size = hamburgerIconWidth
-            , image = Assets.HamburgerMenuIcon
-            }
-        )
+iSeeNoSideBarIcon =
+    Query.hasNot <|
+        sideBarIcon False
 
 
-iAmLookingAtTheHamburgerMenu =
+iAmLookingAtTheSideBarIconContainer =
     iAmLookingAtTheTopBar
-        >> Query.find [ id "hamburger-menu" ]
+        >> Query.find [ id "sidebar-icon" ]
 
 
 itIsClickable domID =
@@ -1029,10 +1113,10 @@ iReleaseTheSideBarHandle =
             Subscription.MouseUp
 
 
-iClickedTheHamburgerIcon =
+iClickedTheSideBarIcon =
     Tuple.first
         >> Application.update
-            (TopLevelMessage.Update <| Message.Click Message.HamburgerMenu)
+            (TopLevelMessage.Update <| Message.Click Message.SideBarIcon)
 
 
 iSeeALighterBackground =
@@ -1106,9 +1190,9 @@ iAmLookingAtTheTeam =
         >> Query.first
 
 
-iSeeItIsAsWideAsTheHamburgerIcon =
+iSeeItIsAsWideAsTheSideBarIcon =
     Query.has
-        [ style "width" hamburgerIconWidth
+        [ style "width" sidebarIconWidth
         , style "box-sizing" "border-box"
         ]
 
@@ -1463,7 +1547,7 @@ myBrowserFetchesPipelines ( a, effects ) =
 
 iHaveAnOpenSideBar =
     iAmViewingTheDashboardOnANonPhoneScreen
-        >> iClickedTheHamburgerIcon
+        >> iClickedTheSideBarIcon
 
 
 iSeeItHasTopPadding =
@@ -1609,8 +1693,8 @@ iShrankTheViewport =
     Tuple.first >> Application.handleDelivery (Subscription.WindowResized 300 300)
 
 
-iAmLookingAtTheHamburgerIcon =
-    iAmLookingAtTheHamburgerMenu
+iAmLookingAtTheSideBarIcon =
+    iAmLookingAtTheSideBarIconContainer
         >> Query.children []
         >> Query.first
 
@@ -1636,15 +1720,6 @@ itIsHoverable domID =
                     Message.Hover Nothing
                 )
         ]
-
-
-iDoNotSeeAHamburgerIcon =
-    Query.hasNot
-        (DashboardTests.iconSelector
-            { size = hamburgerIconWidth
-            , image = Assets.HamburgerMenuIcon
-            }
-        )
 
 
 iSeeNoSideBar =
@@ -2028,15 +2103,6 @@ iAmLookingAtTheLeftSideOfTheTopBar =
         >> Query.find [ id "top-bar-app" ]
         >> Query.children []
         >> Query.first
-
-
-iSeeAHamburgerMenu =
-    Query.has
-        (DashboardTests.iconSelector
-            { size = "54px"
-            , image = Assets.HamburgerMenuIcon
-            }
-        )
 
 
 myBrowserFetchesScreenSize =
