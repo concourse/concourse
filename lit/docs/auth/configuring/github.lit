@@ -31,8 +31,10 @@ model and other security improvements in their infrastructure.
   }}}
 
   Note that the client must be created under an \italic{organization} if you
-  want to authorize users based on organization/team membership. If the client
-  is created under a personal account, only individual users can be authorized.
+  want to authorize users based on organization/team membership. In addition,
+  the GitHub application must have at least read access on the organization's
+  members. If the client is created under a personal account, only individual
+  users can be authorized.
 
   If you're configuring GitHub Enterprise, you'll also need to set the
   following env:
