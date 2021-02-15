@@ -1,0 +1,20 @@
+[
+  {
+    "id": "1",
+    "email": "user1@example.com",
+    "email_verified": true,
+    "username": "user1",
+    "preferred_username": "John",
+    "password": "user1pass",
+    "groups": ["group1"]
+  },
+  {
+    "id": "2",
+    "email": "user2@example.com",
+    "email_verified": true,
+    "username": "user2",
+    "preferred_username": "John",
+    "password": "user2pass",
+    "groups": []
+  }
+]

@@ -13,8 +13,16 @@ import (
 
 func (s *Server) GetConfig(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("get-config")
-	pipelineName := rata.Param(r, "pipeline_name")
 	teamName := rata.Param(r, "team_name")
+	pipelineName := rata.Param(r, "pipeline_name")
+	pipelineRef := atc.PipelineRef{Name: pipelineName}
+	var err error
+	pipelineRef.InstanceVars, err = atc.InstanceVarsFromQueryParams(r.URL.Query())
+	if err != nil {
+		logger.Error("malformed-instance-vars", err)
+		s.handleBadRequest(w, fmt.Sprintf("instance vars are malformed: %v", err))
+		return
+	}
 
 	team, found, err := s.teamFactory.FindTeam(teamName)
 	if err != nil {
@@ -29,7 +37,7 @@ func (s *Server) GetConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pipeline, found, err := team.Pipeline(pipelineName)
+	pipeline, found, err := team.Pipeline(pipelineRef)
 	if err != nil {
 		logger.Error("failed-to-find-pipeline", err)
 		w.WriteHeader(http.StatusInternalServerError)

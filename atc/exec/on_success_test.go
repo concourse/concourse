@@ -24,6 +24,7 @@ var _ = Describe("On Success Step", func() {
 
 		onSuccessStep exec.Step
 
+		stepOk  bool
 		stepErr error
 	)
 
@@ -39,11 +40,12 @@ var _ = Describe("On Success Step", func() {
 
 		onSuccessStep = exec.OnSuccess(step, hook)
 
+		stepOk = false
 		stepErr = nil
 	})
 
 	JustBeforeEach(func() {
-		stepErr = onSuccessStep.Run(ctx, state)
+		stepOk, stepErr = onSuccessStep.Run(ctx, state)
 	})
 
 	AfterEach(func() {
@@ -52,7 +54,7 @@ var _ = Describe("On Success Step", func() {
 
 	Context("when the step succeeds", func() {
 		BeforeEach(func() {
-			step.SucceededReturns(true)
+			step.RunReturns(true, nil)
 		})
 
 		It("runs the hook", func() {
@@ -81,7 +83,7 @@ var _ = Describe("On Success Step", func() {
 		disaster := errors.New("disaster")
 
 		BeforeEach(func() {
-			step.RunReturns(disaster)
+			step.RunReturns(false, disaster)
 		})
 
 		It("does not run the hook", func() {
@@ -96,7 +98,7 @@ var _ = Describe("On Success Step", func() {
 
 	Context("when the step fails", func() {
 		BeforeEach(func() {
-			step.SucceededReturns(false)
+			step.RunReturns(false, nil)
 		})
 
 		It("does not run the hook", func() {
@@ -114,37 +116,35 @@ var _ = Describe("On Success Step", func() {
 		Expect(runCtx).To(Equal(ctx))
 	})
 
-	Describe("Succeeded", func() {
-		Context("when step fails", func() {
-			BeforeEach(func() {
-				step.SucceededReturns(false)
-			})
-
-			It("returns false", func() {
-				Expect(onSuccessStep.Succeeded()).To(BeFalse())
-			})
+	Context("when step fails", func() {
+		BeforeEach(func() {
+			step.RunReturns(false, nil)
 		})
 
-		Context("when step succeeds and hook succeeds", func() {
-			BeforeEach(func() {
-				step.SucceededReturns(true)
-				hook.SucceededReturns(true)
-			})
+		It("returns false", func() {
+			Expect(stepOk).To(BeFalse())
+		})
+	})
 
-			It("returns true", func() {
-				Expect(onSuccessStep.Succeeded()).To(BeTrue())
-			})
+	Context("when step succeeds and hook succeeds", func() {
+		BeforeEach(func() {
+			step.RunReturns(true, nil)
+			hook.RunReturns(true, nil)
 		})
 
-		Context("when step succeeds and hook fails", func() {
-			BeforeEach(func() {
-				step.SucceededReturns(false)
-				hook.SucceededReturns(false)
-			})
+		It("returns true", func() {
+			Expect(stepOk).To(BeTrue())
+		})
+	})
 
-			It("returns false", func() {
-				Expect(onSuccessStep.Succeeded()).To(BeFalse())
-			})
+	Context("when step succeeds and hook fails", func() {
+		BeforeEach(func() {
+			step.RunReturns(false, nil)
+			hook.RunReturns(false, nil)
+		})
+
+		It("returns false", func() {
+			Expect(stepOk).To(BeFalse())
 		})
 	})
 })

@@ -13,6 +13,9 @@ import Dict exposing (Dict)
 import FetchResult exposing (FetchResult)
 import Login.Login as Login
 import Message.Effects exposing (Effect(..))
+import Message.Message exposing (DropTarget)
+import Routes
+import Set exposing (Set)
 import Time
 
 
@@ -21,10 +24,9 @@ type alias Model =
         (Login.Model
             { now : Maybe Time.Posix
             , highDensity : Bool
-            , query : String
-            , pipelinesWithResourceErrors : Dict ( String, String ) Bool
-            , jobs : FetchResult (Dict ( String, String, String ) Concourse.Job)
-            , pipelineLayers : Dict ( String, String ) (List (List Concourse.JobIdentifier))
+            , pipelinesWithResourceErrors : Set Concourse.DatabaseID
+            , jobs : FetchResult (Dict ( Concourse.DatabaseID, Concourse.JobName ) Concourse.Job)
+            , pipelineLayers : Dict Concourse.DatabaseID (List (List Concourse.JobName))
             , teams : FetchResult (List Concourse.Team)
             , dragState : DragState
             , dropState : DropState
@@ -39,7 +41,7 @@ type alias Model =
             , viewportWidth : Float
             , viewportHeight : Float
             , scrollTop : Float
-            , pipelineJobs : Dict ( String, String ) (List Concourse.JobIdentifier)
+            , pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobName)
             , effectsToRetry : List Effect
             }
         )
@@ -52,17 +54,13 @@ type FetchError
 
 type DragState
     = NotDragging
-    | Dragging Concourse.TeamName PipelineIndex
+    | Dragging Concourse.TeamName Int
 
 
 type DropState
     = NotDropping
-    | Dropping PipelineIndex
+    | Dropping DropTarget
     | DroppingWhileApiRequestInFlight Concourse.TeamName
-
-
-type alias PipelineIndex =
-    Int
 
 
 type alias FooterModel r =
@@ -70,9 +68,11 @@ type alias FooterModel r =
         | hideFooter : Bool
         , hideFooterCounter : Int
         , showHelp : Bool
-        , pipelines : Maybe (List Dashboard.Group.Models.Pipeline)
+        , pipelines : Maybe (Dict String (List Dashboard.Group.Models.Pipeline))
         , dropdown : Dropdown
         , highDensity : Bool
+        , dashboardView : Routes.DashboardView
+        , query : String
     }
 
 

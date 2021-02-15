@@ -18,8 +18,8 @@ import (
 // dashboard object and also a scheduler job object. Figure out what this is
 // trying to encapsulate or considering splitting this out!
 type JobFactory interface {
-	VisibleJobs([]string) (atc.Dashboard, error)
-	AllActiveJobs() (atc.Dashboard, error)
+	VisibleJobs([]string) ([]atc.JobSummary, error)
+	AllActiveJobs() ([]atc.JobSummary, error)
 	JobsToSchedule() (SchedulerJobs, error)
 }
 
@@ -46,19 +46,32 @@ type SchedulerJob struct {
 type SchedulerResources []SchedulerResource
 
 type SchedulerResource struct {
-	Name   string
-	Type   string
-	Source atc.Source
+	Name                 string
+	Type                 string
+	Source               atc.Source
+	ExposeBuildCreatedBy bool
 }
 
-func (resources SchedulerResources) Lookup(name string) (SchedulerResource, bool) {
+func (r *SchedulerResource) ApplySourceDefaults(resourceTypes atc.VersionedResourceTypes) {
+	parentType, found := resourceTypes.Lookup(r.Type)
+	if found {
+		r.Source = parentType.Defaults.Merge(r.Source)
+	} else {
+		defaults, found := atc.FindBaseResourceTypeDefaults(r.Type)
+		if found {
+			r.Source = defaults.Merge(r.Source)
+		}
+	}
+}
+
+func (resources SchedulerResources) Lookup(name string) (*SchedulerResource, bool) {
 	for _, resource := range resources {
 		if resource.Name == name {
-			return resource, true
+			return &resource, true
 		}
 	}
 
-	return SchedulerResource{}, false
+	return nil, false
 }
 
 func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
@@ -134,9 +147,10 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 			}
 
 			schedulerResources = append(schedulerResources, SchedulerResource{
-				Name:   name,
-				Type:   type_,
-				Source: config.Source,
+				Name:                 name,
+				Type:                 type_,
+				Source:               config.Source,
+				ExposeBuildCreatedBy: config.ExposeBuildCreatedBy,
 			})
 		}
 
@@ -183,7 +197,7 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 	return schedulerJobs, nil
 }
 
-func (j *jobFactory) VisibleJobs(teamNames []string) (atc.Dashboard, error) {
+func (j *jobFactory) VisibleJobs(teamNames []string) ([]atc.JobSummary, error) {
 	tx, err := j.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -209,7 +223,7 @@ func (j *jobFactory) VisibleJobs(teamNames []string) (atc.Dashboard, error) {
 	return dashboard, nil
 }
 
-func (j *jobFactory) AllActiveJobs() (atc.Dashboard, error) {
+func (j *jobFactory) AllActiveJobs() ([]atc.JobSummary, error) {
 	tx, err := j.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -247,7 +261,7 @@ func newDashboardFactory(tx Tx, pred interface{}) dashboardFactory {
 	}
 }
 
-func (d dashboardFactory) buildDashboard() (atc.Dashboard, error) {
+func (d dashboardFactory) buildDashboard() ([]atc.JobSummary, error) {
 	dashboard, err := d.constructJobsForDashboard()
 	if err != nil {
 		return nil, err
@@ -266,8 +280,8 @@ func (d dashboardFactory) buildDashboard() (atc.Dashboard, error) {
 	return d.combineJobInputsAndOutputsWithDashboardJobs(dashboard, jobInputs, jobOutputs), nil
 }
 
-func (d dashboardFactory) constructJobsForDashboard() (atc.Dashboard, error) {
-	rows, err := psql.Select("j.id", "j.name", "p.name", "j.paused", "j.has_new_inputs", "j.tags", "tm.name",
+func (d dashboardFactory) constructJobsForDashboard() ([]atc.JobSummary, error) {
+	rows, err := psql.Select("j.id", "j.name", "p.id", "p.name", "p.instance_vars", "j.paused", "j.has_new_inputs", "j.tags", "tm.name",
 		"l.id", "l.name", "l.status", "l.start_time", "l.end_time",
 		"n.id", "n.name", "n.status", "n.start_time", "n.end_time",
 		"t.id", "t.name", "t.status", "t.start_time", "t.end_time").
@@ -297,14 +311,16 @@ func (d dashboardFactory) constructJobsForDashboard() (atc.Dashboard, error) {
 		endTime   pq.NullTime
 	}
 
-	var dashboard atc.Dashboard
+	var dashboard []atc.JobSummary
 	for rows.Next() {
 		var (
 			f, n, t nullableBuild
+
+			pipelineInstanceVars sql.NullString
 		)
 
-		j := atc.DashboardJob{}
-		err = rows.Scan(&j.ID, &j.Name, &j.PipelineName, &j.Paused, &j.HasNewInputs, pq.Array(&j.Groups), &j.TeamName,
+		j := atc.JobSummary{}
+		err = rows.Scan(&j.ID, &j.Name, &j.PipelineID, &j.PipelineName, &pipelineInstanceVars, &j.Paused, &j.HasNewInputs, pq.Array(&j.Groups), &j.TeamName,
 			&f.id, &f.name, &f.status, &f.startTime, &f.endTime,
 			&n.id, &n.name, &n.status, &n.startTime, &n.endTime,
 			&t.id, &t.name, &t.status, &t.startTime, &t.endTime)
@@ -312,42 +328,55 @@ func (d dashboardFactory) constructJobsForDashboard() (atc.Dashboard, error) {
 			return nil, err
 		}
 
+		if pipelineInstanceVars.Valid {
+			err = json.Unmarshal([]byte(pipelineInstanceVars.String), &j.PipelineInstanceVars)
+			if err != nil {
+				return nil, err
+			}
+		}
+
 		if f.id.Valid {
-			j.FinishedBuild = &atc.DashboardBuild{
-				ID:           int(f.id.Int64),
-				Name:         f.name.String,
-				JobName:      j.Name,
-				PipelineName: j.PipelineName,
-				TeamName:     j.TeamName,
-				Status:       f.status.String,
-				StartTime:    f.startTime.Time,
-				EndTime:      f.endTime.Time,
+			j.FinishedBuild = &atc.BuildSummary{
+				ID:                   int(f.id.Int64),
+				Name:                 f.name.String,
+				JobName:              j.Name,
+				PipelineID:           j.PipelineID,
+				PipelineName:         j.PipelineName,
+				PipelineInstanceVars: j.PipelineInstanceVars,
+				TeamName:             j.TeamName,
+				Status:               atc.BuildStatus(f.status.String),
+				StartTime:            f.startTime.Time.Unix(),
+				EndTime:              f.endTime.Time.Unix(),
 			}
 		}
 
 		if n.id.Valid {
-			j.NextBuild = &atc.DashboardBuild{
-				ID:           int(n.id.Int64),
-				Name:         n.name.String,
-				JobName:      j.Name,
-				PipelineName: j.PipelineName,
-				TeamName:     j.TeamName,
-				Status:       n.status.String,
-				StartTime:    n.startTime.Time,
-				EndTime:      n.endTime.Time,
+			j.NextBuild = &atc.BuildSummary{
+				ID:                   int(n.id.Int64),
+				Name:                 n.name.String,
+				JobName:              j.Name,
+				PipelineID:           j.PipelineID,
+				PipelineName:         j.PipelineName,
+				PipelineInstanceVars: j.PipelineInstanceVars,
+				TeamName:             j.TeamName,
+				Status:               atc.BuildStatus(n.status.String),
+				StartTime:            n.startTime.Time.Unix(),
+				EndTime:              n.endTime.Time.Unix(),
 			}
 		}
 
 		if t.id.Valid {
-			j.TransitionBuild = &atc.DashboardBuild{
-				ID:           int(t.id.Int64),
-				Name:         t.name.String,
-				JobName:      j.Name,
-				PipelineName: j.PipelineName,
-				TeamName:     j.TeamName,
-				Status:       t.status.String,
-				StartTime:    t.startTime.Time,
-				EndTime:      t.endTime.Time,
+			j.TransitionBuild = &atc.BuildSummary{
+				ID:                   int(t.id.Int64),
+				Name:                 t.name.String,
+				JobName:              j.Name,
+				PipelineID:           j.PipelineID,
+				PipelineName:         j.PipelineName,
+				PipelineInstanceVars: j.PipelineInstanceVars,
+				TeamName:             j.TeamName,
+				Status:               atc.BuildStatus(t.status.String),
+				StartTime:            t.startTime.Time.Unix(),
+				EndTime:              t.endTime.Time.Unix(),
 			}
 		}
 
@@ -357,7 +386,7 @@ func (d dashboardFactory) constructJobsForDashboard() (atc.Dashboard, error) {
 	return dashboard, nil
 }
 
-func (d dashboardFactory) fetchJobInputs() (map[int][]atc.DashboardJobInput, error) {
+func (d dashboardFactory) fetchJobInputs() (map[int][]atc.JobInputSummary, error) {
 	rows, err := psql.Select("j.id", "i.name", "r.name", "array_agg(jp.name ORDER BY jp.id)", "i.trigger").
 		From("job_inputs i").
 		Join("jobs j ON j.id = i.job_id").
@@ -377,7 +406,7 @@ func (d dashboardFactory) fetchJobInputs() (map[int][]atc.DashboardJobInput, err
 		return nil, err
 	}
 
-	jobInputs := make(map[int][]atc.DashboardJobInput)
+	jobInputs := make(map[int][]atc.JobInputSummary)
 	for rows.Next() {
 		var passedString []sql.NullString
 		var inputName, resourceName string
@@ -396,7 +425,7 @@ func (d dashboardFactory) fetchJobInputs() (map[int][]atc.DashboardJobInput, err
 			}
 		}
 
-		jobInputs[jobID] = append(jobInputs[jobID], atc.DashboardJobInput{
+		jobInputs[jobID] = append(jobInputs[jobID], atc.JobInputSummary{
 			Name:     inputName,
 			Resource: resourceName,
 			Trigger:  trigger,
@@ -407,7 +436,7 @@ func (d dashboardFactory) fetchJobInputs() (map[int][]atc.DashboardJobInput, err
 	return jobInputs, nil
 }
 
-func (d dashboardFactory) fetchJobOutputs() (map[int][]atc.JobOutput, error) {
+func (d dashboardFactory) fetchJobOutputs() (map[int][]atc.JobOutputSummary, error) {
 	rows, err := psql.Select("o.name", "r.name", "o.job_id").
 		From("job_outputs o").
 		Join("jobs j ON j.id = o.job_id").
@@ -425,11 +454,10 @@ func (d dashboardFactory) fetchJobOutputs() (map[int][]atc.JobOutput, error) {
 		return nil, err
 	}
 
-	jobOutputs := make(map[int][]atc.JobOutput)
+	jobOutputs := make(map[int][]atc.JobOutputSummary)
 	for rows.Next() {
-		var output atc.JobOutput
+		var output atc.JobOutputSummary
 		var jobID int
-
 		err = rows.Scan(&output.Name, &output.Resource, &jobID)
 		if err != nil {
 			return nil, err
@@ -441,8 +469,8 @@ func (d dashboardFactory) fetchJobOutputs() (map[int][]atc.JobOutput, error) {
 	return jobOutputs, err
 }
 
-func (d dashboardFactory) combineJobInputsAndOutputsWithDashboardJobs(dashboard atc.Dashboard, jobInputs map[int][]atc.DashboardJobInput, jobOutputs map[int][]atc.JobOutput) atc.Dashboard {
-	var finalDashboard atc.Dashboard
+func (d dashboardFactory) combineJobInputsAndOutputsWithDashboardJobs(dashboard []atc.JobSummary, jobInputs map[int][]atc.JobInputSummary, jobOutputs map[int][]atc.JobOutputSummary) []atc.JobSummary {
+	var finalDashboard []atc.JobSummary
 	for _, job := range dashboard {
 		for _, input := range jobInputs[job.ID] {
 			job.Inputs = append(job.Inputs, input)

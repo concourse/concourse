@@ -2,6 +2,7 @@ package exec
 
 import (
 	"context"
+	"errors"
 )
 
 // OnAbortStep will run one step, and then a second step if the first step
@@ -25,22 +26,16 @@ func OnAbort(step Step, hook Step) OnAbortStep {
 //
 // If the first step aborts (that is, it gets interrupted), the second
 // step is executed. If the second step errors, its error is returned.
-func (o OnAbortStep) Run(ctx context.Context, state RunState) error {
-	stepRunErr := o.step.Run(ctx, state)
+func (o OnAbortStep) Run(ctx context.Context, state RunState) (bool, error) {
+	stepRunOk, stepRunErr := o.step.Run(ctx, state)
 	if stepRunErr == nil {
-		return nil
+		return stepRunOk, nil
 	}
 
-	if stepRunErr == context.Canceled {
+	if errors.Is(stepRunErr, context.Canceled) {
 		// run only on abort, not timeout
 		o.hook.Run(context.Background(), state)
 	}
 
-	return stepRunErr
-}
-
-// Succeeded is true if the first step doesn't exist, or if it
-// completed successfully.
-func (o OnAbortStep) Succeeded() bool {
-	return o.step.Succeeded()
+	return stepRunOk, stepRunErr
 }

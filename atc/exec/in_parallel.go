@@ -3,26 +3,30 @@ package exec
 import (
 	"context"
 	"errors"
-	"fmt"
-	"strings"
+	"sync/atomic"
+
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/util"
+	"github.com/hashicorp/go-multierror"
 )
 
 // InParallelStep is a step of steps to run in parallel.
 type InParallelStep struct {
-	steps    []Step
-	limit    int
-	failFast bool
+	steps       []Step
+	maxInFlight atc.MaxInFlightConfig
+	failFast    bool
 }
 
 // InParallel constructs an InParallelStep.
 func InParallel(steps []Step, limit int, failFast bool) InParallelStep {
+	maxInFlight := atc.MaxInFlightConfig{Limit: limit}
 	if limit < 1 {
-		limit = len(steps)
+		maxInFlight.All = true
 	}
 	return InParallelStep{
-		steps:    steps,
-		limit:    limit,
-		failFast: failFast,
+		steps:       steps,
+		maxInFlight: maxInFlight,
+		failFast:    failFast,
 	}
 }
 
@@ -36,68 +40,89 @@ func InParallel(steps []Step, limit int, failFast bool) InParallelStep {
 // Cancelling a parallel step means that any outstanding steps will not be scheduled to run.
 // After all steps finish, their errors (if any) will be collected and returned as a
 // single error.
-func (step InParallelStep) Run(ctx context.Context, state RunState) error {
+func (step InParallelStep) Run(ctx context.Context, state RunState) (bool, error) {
+	return parallelExecutor{
+		stepName: "in_parallel",
+
+		maxInFlight: &step.maxInFlight,
+		failFast:    step.failFast,
+		count:       len(step.steps),
+
+		runFunc: func(ctx context.Context, i int) (bool, error) {
+			return step.steps[i].Run(ctx, state)
+		},
+	}.run(ctx)
+}
+
+type parallelExecutor struct {
+	stepName string
+
+	maxInFlight *atc.MaxInFlightConfig
+	failFast    bool
+	count       int
+
+	runFunc func(ctx context.Context, i int) (bool, error)
+}
+
+func (p parallelExecutor) run(ctx context.Context) (bool, error) {
 	var (
-		errs          = make(chan error, len(step.steps))
-		sem           = make(chan bool, step.limit)
+		errs          = make(chan error, p.count)
+		sem           = make(chan bool, p.maxInFlight.EffectiveLimit(p.count))
 		executedSteps int
 	)
 
 	runCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	for _, s := range step.steps {
-		s := s
+	var numFailures uint32 = 0
+	for i := 0; i < p.count; i++ {
+		i := i
 		sem <- true
-
 		if runCtx.Err() != nil {
 			break
 		}
-
 		go func() {
+			defer func() {
+				err := util.DumpPanic(recover(), "%s step", p.stepName)
+				if err != nil {
+					errs <- err
+				}
+			}()
 			defer func() {
 				<-sem
 			}()
 
-			errs <- s.Run(runCtx, state)
-			if !s.Succeeded() && step.failFast {
-				cancel()
+			succeeded, err := p.runFunc(runCtx, i)
+			if !succeeded {
+				atomic.AddUint32(&numFailures, 1)
+				if p.failFast {
+					cancel()
+				}
 			}
+			errs <- err
 		}()
 		executedSteps++
 	}
 
-	var errorMessages []string
+	var result error
 	for i := 0; i < executedSteps; i++ {
 		err := <-errs
 		if err != nil && !errors.Is(err, context.Canceled) {
 			// The Run context being cancelled only means that one or more steps failed, not
 			// in_parallel itself. If we return context.Canceled error messages the step will
 			// be marked as errored instead of failed, and therefore they should be ignored.
-			errorMessages = append(errorMessages, err.Error())
+			result = multierror.Append(result, err)
 		}
 	}
 
 	if ctx.Err() != nil {
-		return ctx.Err()
+		return false, ctx.Err()
 	}
 
-	if len(errorMessages) > 0 {
-		return fmt.Errorf("one or more parallel steps errored:\n%s", strings.Join(errorMessages, "\n"))
+	if result != nil {
+		return false, result
 	}
 
-	return nil
-}
-
-// Succeeded is true if all of the steps' Succeeded is true
-func (step InParallelStep) Succeeded() bool {
-	succeeded := true
-
-	for _, step := range step.steps {
-		if !step.Succeeded() {
-			succeeded = false
-		}
-	}
-
-	return succeeded
+	allStepsSuccessful := atomic.LoadUint32(&numFailures) == 0
+	return allStepsSuccessful, nil
 }

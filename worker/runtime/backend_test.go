@@ -1,17 +1,20 @@
 package runtime_test
 
 import (
+	"context"
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/garden/gardenfakes"
 	"github.com/concourse/concourse/worker/runtime"
-	"github.com/concourse/concourse/worker/runtime/runtimefakes"
 	"github.com/concourse/concourse/worker/runtime/libcontainerd/libcontainerdfakes"
+	"github.com/concourse/concourse/worker/runtime/runtimefakes"
 	"github.com/containerd/containerd"
 	"github.com/containerd/containerd/errdefs"
+	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -110,7 +113,7 @@ func (s *BackendSuite) TestCreateContainerNewTaskFailure() {
 	s.client.NewContainerReturns(fakeContainer, nil)
 
 	_, err := s.backend.Create(minimumValidGdnSpec)
-	s.EqualError(errors.Unwrap(err), expectedErr.Error())
+	s.EqualError(errors.Unwrap(errors.Unwrap(err)), expectedErr.Error())
 
 	s.Equal(1, fakeContainer.NewTaskCallCount())
 }
@@ -141,9 +144,119 @@ func (s *BackendSuite) TestCreateContainerSetsHandle() {
 	s.NoError(err)
 
 	s.Equal("handle", cont.Handle())
-
 }
 
+func (s *BackendSuite) TestCreateMaxContainersReached() {
+	backend, err := runtime.NewGardenBackend(s.client,
+		runtime.WithKiller(s.killer),
+		runtime.WithNetwork(s.network),
+		runtime.WithUserNamespace(s.userns),
+		runtime.WithMaxContainers(1),
+		runtime.WithRequestTimeout(1*time.Second),
+	)
+	s.NoError(err)
+
+	fakeTask := new(libcontainerdfakes.FakeTask)
+	fakeContainer := new(libcontainerdfakes.FakeContainer)
+
+	fakeContainer.NewTaskReturns(fakeTask, nil)
+	s.client.NewContainerReturns(fakeContainer, nil)
+
+	s.client.ContainersReturns([]containerd.Container{fakeContainer}, nil)
+	_, err = backend.Create(minimumValidGdnSpec)
+	s.Error(err)
+	s.Contains(err.Error(), "max containers reached")
+}
+
+func (s *BackendSuite) TestCreateMaxContainersReachedConcurrent() {
+	fakeTask := new(libcontainerdfakes.FakeTask)
+	fakeContainer := new(libcontainerdfakes.FakeContainer)
+
+	fakeContainer.NewTaskReturns(fakeTask, nil)
+
+	s.client.NewContainerStub = func(context context.Context, str string, strings map[string]string, spec *specs.Spec) (container containerd.Container, e error) {
+		s.client.ContainersReturns([]containerd.Container{fakeContainer}, nil)
+		return fakeContainer, nil
+	}
+
+	backend, err := runtime.NewGardenBackend(s.client,
+		runtime.WithKiller(s.killer),
+		runtime.WithNetwork(s.network),
+		runtime.WithUserNamespace(s.userns),
+		runtime.WithMaxContainers(1),
+		runtime.WithRequestTimeout(1*time.Second),
+	)
+	s.NoError(err)
+
+	numberOfRequests := 10
+	requestErrors := make(chan error, numberOfRequests)
+	wg := sync.WaitGroup{}
+	wg.Add(numberOfRequests)
+
+	for i := 0; i < numberOfRequests; i++ {
+		go func() {
+			_, err := backend.Create(minimumValidGdnSpec)
+			if err != nil {
+				requestErrors <- err
+			}
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+	close(requestErrors)
+
+	s.Len(requestErrors, numberOfRequests-1)
+	s.Equal(s.client.NewContainerCallCount(), 1)
+	for err := range requestErrors {
+		s.Contains(err.Error(), "max containers reached")
+	}
+}
+
+func (s *BackendSuite) TestCreateContainerLockTimeout() {
+	fakeTask := new(libcontainerdfakes.FakeTask)
+	fakeContainer := new(libcontainerdfakes.FakeContainer)
+
+	fakeContainer.IDReturns("handle")
+	fakeContainer.NewTaskReturns(fakeTask, nil)
+
+	s.client.NewContainerStub = func(context context.Context, str string, strings map[string]string, spec *specs.Spec) (container containerd.Container, e error) {
+		s.client.ContainersReturns([]containerd.Container{fakeContainer}, nil)
+		time.Sleep(500 * time.Millisecond)
+		return fakeContainer, nil
+	}
+
+	numberOfRequests := 10
+
+	backend, err := runtime.NewGardenBackend(s.client,
+		runtime.WithKiller(s.killer),
+		runtime.WithNetwork(s.network),
+		runtime.WithUserNamespace(s.userns),
+		runtime.WithRequestTimeout(10*time.Millisecond),
+		runtime.WithMaxContainers(numberOfRequests),
+	)
+	s.NoError(err)
+
+	requestErrors := make(chan error, numberOfRequests)
+	wg := sync.WaitGroup{}
+	wg.Add(numberOfRequests)
+
+	for i := 0; i < numberOfRequests; i++ {
+		go func() {
+			_, err := backend.Create(minimumValidGdnSpec)
+			if err != nil {
+				requestErrors <- err
+			}
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+	close(requestErrors)
+
+	s.Len(requestErrors, numberOfRequests-1)
+	for err := range requestErrors {
+		s.Contains(err.Error(), "acquiring create container lock")
+	}
+}
 func (s *BackendSuite) TestContainersWithContainerdFailure() {
 	s.client.ContainersReturns(nil, errors.New("err"))
 
@@ -371,10 +484,11 @@ func (s *BackendSuite) TestDestroySucceeds() {
 	s.NoError(err)
 }
 
-func (s *BackendSuite) TestStart() {
+func (s *BackendSuite) TestStartInitsClientAndSetsUpRestrictedNetworks() {
 	err := s.backend.Start()
 	s.NoError(err)
 	s.Equal(1, s.client.InitCallCount())
+	s.Equal(1, s.network.SetupRestrictedNetworksCallCount())
 }
 
 func (s *BackendSuite) TestStartInitError() {

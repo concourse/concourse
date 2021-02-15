@@ -1,18 +1,15 @@
 ---
-resources:
-- name: some-image
-  type: registry-image
-  source: {repository: alpine}
-
 jobs:
 - name: use-the-internet
   plan:
-  - get: some-image
   - task: hello
-    image: some-image
     config:
       platform: linux
 
+      image_resource:
+        type: mock
+        source: {mirror_self: true}
+
       run:
-        path: echo
-        args: ["Hello, world!"]
+        path: wget
+        args: [https://example.com]

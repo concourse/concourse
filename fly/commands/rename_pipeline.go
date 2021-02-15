@@ -1,25 +1,27 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
-	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/rc"
 )
 
 type RenamePipelineCommand struct {
-	Pipeline flaghelpers.PipelineFlag `short:"o"  long:"old-name" required:"true"  description:"Pipeline to rename"`
-	Name     flaghelpers.PipelineFlag `short:"n"  long:"new-name" required:"true"  description:"Name to set as pipeline name"`
+	OldName string `short:"o"  long:"old-name" required:"true"  description:"Existing pipeline or instance group to rename"`
+	NewName string `short:"n"  long:"new-name" required:"true"  description:"New name for the pipeline or instance group"`
 }
 
 func (command *RenamePipelineCommand) Validate() error {
-	err := command.Pipeline.Validate()
-	if err != nil {
-		return err
+	if strings.Contains(command.OldName, "/") {
+		return errors.New("old pipeline name cannot contain '/'")
 	}
-
-	return command.Name.Validate()
+	if strings.Contains(command.NewName, "/") {
+		return errors.New("new pipeline name cannot contain '/'")
+	}
+	return nil
 }
 
 func (command *RenamePipelineCommand) Execute([]string) error {
@@ -38,20 +40,21 @@ func (command *RenamePipelineCommand) Execute([]string) error {
 		return err
 	}
 
-	oldName := string(command.Pipeline)
-	newName := string(command.Name)
-
-	found, err := target.Team().RenamePipeline(oldName, newName)
+	found, warnings, err := target.Team().RenamePipeline(command.OldName, command.NewName)
 	if err != nil {
 		return err
 	}
 
+	if len(warnings) > 0 {
+		displayhelpers.ShowWarnings(warnings)
+	}
+
 	if !found {
-		displayhelpers.Failf("pipeline '%s' not found\n", oldName)
+		displayhelpers.Failf("pipeline '%s' not found\n", command.OldName)
 		return nil
 	}
 
-	fmt.Printf("pipeline successfully renamed to %s\n", newName)
+	fmt.Printf("pipeline successfully renamed to '%s'\n", command.NewName)
 
 	return nil
 }

@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/ifrit"
-	"go.opentelemetry.io/otel/exporter/trace/jaeger"
+	"go.opentelemetry.io/otel/exporters/trace/jaeger"
 
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
@@ -37,29 +37,22 @@ var _ = BeforeSuite(func() {
 	jaegerURL := os.Getenv("JAEGER_URL")
 
 	if jaegerURL != "" {
-		spanSyncer, err := (tracing.Jaeger{
-			Endpoint: jaegerURL + "/api/traces",
-			Service:  "algorithm_test",
-		}).Exporter()
+		c := tracing.Config{
+			Jaeger: tracing.Jaeger{
+				Endpoint: jaegerURL + "/api/traces",
+				Service:  "algorithm_test",
+			},
+		}
+
+		err := c.Prepare()
 		Expect(err).ToNot(HaveOccurred())
-
-		exporter = spanSyncer.(*jaeger.Exporter)
-
-		tp := tracing.TraceProvider(exporter)
-		tracing.ConfigureTraceProvider(tp)
 	}
 
-	postgresRunner = postgresrunner.Runner{
-		Port: 5433 + GinkgoParallelNode(),
-	}
-
-	dbProcess = ifrit.Invoke(postgresRunner)
-
-	postgresRunner.CreateTestDB()
+	postgresrunner.InitializeRunnerForGinkgo(&postgresRunner, &dbProcess)
 })
 
 var _ = BeforeEach(func() {
-	postgresRunner.Truncate()
+	postgresRunner.CreateTestDBFromTemplate()
 
 	dbConn = postgresRunner.OpenConn()
 
@@ -70,11 +63,12 @@ var _ = BeforeEach(func() {
 var _ = AfterEach(func() {
 	err := dbConn.Close()
 	Expect(err).NotTo(HaveOccurred())
+
+	postgresRunner.DropTestDB()
 })
 
 var _ = AfterSuite(func() {
-	dbProcess.Signal(os.Interrupt)
-	<-dbProcess.Wait()
+	postgresrunner.FinalizeRunnerForGinkgo(&postgresRunner, &dbProcess)
 
 	if exporter != nil {
 		exporter.Flush()

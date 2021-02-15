@@ -1,6 +1,7 @@
 package present
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/concourse/concourse/atc"
@@ -9,6 +10,9 @@ import (
 
 func Container(container db.Container, expiresAt time.Time) atc.Container {
 	meta := container.Metadata()
+
+	var pipelineInstanceVars atc.InstanceVars
+	_ = json.Unmarshal([]byte(meta.PipelineInstanceVars), &pipelineInstanceVars)
 
 	atcContainer := atc.Container{
 		ID:         container.Handle(),
@@ -21,9 +25,10 @@ func Container(container db.Container, expiresAt time.Time) atc.Container {
 		JobID:      meta.JobID,
 		BuildID:    meta.BuildID,
 
-		PipelineName: meta.PipelineName,
-		JobName:      meta.JobName,
-		BuildName:    meta.BuildName,
+		PipelineName:         meta.PipelineName,
+		PipelineInstanceVars: pipelineInstanceVars,
+		JobName:              meta.JobName,
+		BuildName:            meta.BuildName,
 
 		StepName: meta.StepName,
 		Attempt:  meta.Attempt,

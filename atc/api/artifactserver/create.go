@@ -23,13 +23,14 @@ func (s *Server) CreateArtifact(team db.Team) http.Handler {
 		workerSpec := worker.WorkerSpec{
 			TeamID:   team.ID(),
 			Platform: r.FormValue("platform"),
+			Tags:     r.Form["tags"],
 		}
 
 		volumeSpec := worker.VolumeSpec{
 			Strategy: baggageclaim.EmptyStrategy{},
 		}
 
-		volume, err := s.workerClient.CreateVolume(hLog, volumeSpec, workerSpec, db.VolumeTypeArtifact)
+		volume, err := s.workerPool.CreateVolume(hLog, volumeSpec, workerSpec, db.VolumeTypeArtifact)
 		if err != nil {
 			hLog.Error("failed-to-create-volume", err)
 			w.WriteHeader(http.StatusInternalServerError)

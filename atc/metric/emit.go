@@ -4,6 +4,8 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
+
+	"github.com/concourse/concourse/atc/db"
 )
 
 type Event struct {
@@ -26,19 +28,61 @@ type EmitterFactory interface {
 	NewEmitter() (Emitter, error)
 }
 
+type Monitor struct {
+	emitter          Emitter
+	eventHost        string
+	eventAttributes  map[string]string
+	emissions        chan eventEmission
+	emitterFactories []EmitterFactory
+
+	Databases       []db.Conn
+	DatabaseQueries Counter
+
+	ContainersCreated Counter
+	VolumesCreated    Counter
+
+	FailedContainers Counter
+	FailedVolumes    Counter
+
+	ContainersDeleted Counter
+	VolumesDeleted    Counter
+	ChecksDeleted     Counter
+
+	JobsScheduled  Counter
+	JobsScheduling Gauge
+
+	BuildsStarted Counter
+	BuildsRunning Gauge
+
+	TasksWaiting map[TasksWaitingLabels]*Gauge
+
+	ChecksFinishedWithError   Counter
+	ChecksFinishedWithSuccess Counter
+	ChecksStarted             Counter
+	ChecksEnqueued            Counter
+
+	ConcurrentRequests         map[string]*Gauge
+	ConcurrentRequestsLimitHit map[string]*Counter
+
+	VolumesStreamed Counter
+}
+
+var Metrics = NewMonitor()
+
+func NewMonitor() *Monitor {
+	return &Monitor{
+		TasksWaiting:               map[TasksWaitingLabels]*Gauge{},
+		ConcurrentRequests:         map[string]*Gauge{},
+		ConcurrentRequestsLimitHit: map[string]*Counter{},
+	}
+}
+
 type eventEmission struct {
 	event  Event
 	logger lager.Logger
 }
 
-var (
-	emitter         Emitter
-	eventHost       string
-	eventAttributes map[string]string
-	emissions       chan eventEmission
-)
-
-func Initialize(logger lager.Logger, factory EmitterFactory, host string, attributes map[string]string, bufferSize uint32) error {
+func (m *Monitor) Initialize(logger lager.Logger, factory EmitterFactory, host string, attributes map[string]string, bufferSize uint32) error {
 	logger.Debug("metric-initialize", lager.Data{
 		"host":        host,
 		"attributes":  attributes,
@@ -58,29 +102,26 @@ func Initialize(logger lager.Logger, factory EmitterFactory, host string, attrib
 		return nil
 	}
 
-	eventHost = host
-	eventAttributes = attributes
-	emissions = make(chan eventEmission, int(bufferSize))
+	m.emitter = emitter
+	m.eventHost = host
+	m.eventAttributes = attributes
+	m.emissions = make(chan eventEmission, int(bufferSize))
 
-	go emitLoop()
+	go m.emitLoop()
 
 	return nil
 }
 
-func Deinitialize(logger lager.Logger) {
-	close(emissions)
-}
-
-func emit(logger lager.Logger, event Event) {
-	if emitter == nil {
+func (m *Monitor) emit(logger lager.Logger, event Event) {
+	if m.emitter == nil {
 		return
 	}
 
-	event.Host = eventHost
+	event.Host = m.eventHost
 	event.Time = time.Now()
 
 	mergedAttributes := map[string]string{}
-	for k, v := range eventAttributes {
+	for k, v := range m.eventAttributes {
 		mergedAttributes[k] = v
 	}
 
@@ -93,14 +134,14 @@ func emit(logger lager.Logger, event Event) {
 	event.Attributes = mergedAttributes
 
 	select {
-	case emissions <- eventEmission{logger: logger, event: event}:
+	case m.emissions <- eventEmission{logger: logger, event: event}:
 	default:
 		logger.Error("queue-full", nil)
 	}
 }
 
-func emitLoop() {
-	for emission := range emissions {
-		emitter.Emit(emission.logger.Session("emit"), emission.event)
+func (m *Monitor) emitLoop() {
+	for emission := range m.emissions {
+		m.emitter.Emit(emission.logger.Session("emit"), emission.event)
 	}
 }

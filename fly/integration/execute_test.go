@@ -19,6 +19,7 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/event"
+	"github.com/concourse/concourse/atc/testhelpers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -34,13 +35,15 @@ var _ = Describe("Fly CLI", func() {
 
 	var streaming chan struct{}
 	var events chan atc.Event
-	var uploadingBits <-chan struct{}
+	var uploadedBits chan struct{}
 
 	var expectedPlan atc.Plan
+	var taskPlan atc.Plan
 	var workerArtifact = atc.WorkerArtifact{
 		ID:   125,
 		Name: "some-dir",
 	}
+	var planFactory atc.PlanFactory
 
 	BeforeEach(func() {
 		var err error
@@ -84,56 +87,57 @@ run:
 		streaming = make(chan struct{})
 		events = make(chan atc.Event)
 
-		planFactory := atc.NewPlanFactory(0)
+		planFactory = atc.NewPlanFactory(0)
 
-		expectedPlan = planFactory.NewPlan(atc.DoPlan{
-			planFactory.NewPlan(atc.AggregatePlan{
-				planFactory.NewPlan(atc.ArtifactInputPlan{
-					ArtifactID: 125,
-					Name:       filepath.Base(buildDir),
-				}),
-			}),
-			planFactory.NewPlan(atc.TaskPlan{
-				Name: "one-off",
-				Config: &atc.TaskConfig{
-					Platform: "some-platform",
-					ImageResource: &atc.ImageResource{
-						Type: "registry-image",
-						Source: atc.Source{
-							"repository": "ubuntu",
-						},
-					},
-					Inputs: []atc.TaskInputConfig{
-						{Name: "fixture"},
-					},
-					Params: map[string]string{
-						"FOO":   "bar",
-						"BAZ":   "buzz",
-						"X":     "1",
-						"EMPTY": "",
-					},
-					Run: atc.TaskRunConfig{
-						Path: "find",
-						Args: []string{"."},
+		taskPlan = planFactory.NewPlan(atc.TaskPlan{
+			Name: "one-off",
+			Config: &atc.TaskConfig{
+				Platform: "some-platform",
+				ImageResource: &atc.ImageResource{
+					Type: "registry-image",
+					Source: atc.Source{
+						"repository": "ubuntu",
 					},
 				},
+				Inputs: []atc.TaskInputConfig{
+					{Name: "fixture"},
+				},
+				Params: map[string]string{
+					"FOO":   "bar",
+					"BAZ":   "buzz",
+					"X":     "1",
+					"EMPTY": "",
+				},
+				Run: atc.TaskRunConfig{
+					Path: "find",
+					Args: []string{"."},
+				},
+			},
+		})
+
+		expectedPlan = planFactory.NewPlan(atc.DoPlan{
+			planFactory.NewPlan(atc.InParallelPlan{
+				Steps: []atc.Plan{
+					planFactory.NewPlan(atc.ArtifactInputPlan{
+						ArtifactID: 125,
+						Name:       filepath.Base(buildDir),
+					}),
+				},
 			}),
+			taskPlan,
 		})
 	})
 
 	AfterEach(func() {
 		os.RemoveAll(tmpdir)
+		close(uploadedBits)
 	})
 
 	JustBeforeEach(func() {
-		uploading := make(chan struct{})
-		uploadingBits = uploading
-
+		uploadedBits = make(chan struct{}, 5) // at most there should only be 2 uploads
 		atcServer.RouteToHandler("POST", "/api/v1/teams/main/artifacts",
 			ghttp.CombineHandlers(
 				func(w http.ResponseWriter, req *http.Request) {
-					close(uploading)
-
 					gr, err := gzip.NewReader(req.Body)
 					Expect(err).NotTo(HaveOccurred())
 
@@ -148,6 +152,8 @@ run:
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(hdr.Name).To(MatchRegexp("(./)?task.yml$"))
+
+					uploadedBits <- struct{}{}
 				},
 				ghttp.RespondWith(201, `{"id":125}`),
 			),
@@ -238,14 +244,48 @@ run:
 		<-sess.Exited
 		Expect(sess.ExitCode()).To(Equal(0))
 
-		Expect(uploadingBits).To(BeClosed())
+		Expect(uploadedBits).To(HaveLen(1))
 	})
 
 	Context("when there is a pipeline job with the same input", func() {
 		BeforeEach(func() {
+			taskPlan.Task.VersionedResourceTypes = atc.VersionedResourceTypes{
+				atc.VersionedResourceType{
+					ResourceType: atc.ResourceType{
+						Name:   "resource-type",
+						Type:   "s3",
+						Source: atc.Source{},
+					},
+				},
+			}
+
+			planFactory := atc.NewPlanFactory(0)
+
+			expectedPlan = planFactory.NewPlan(atc.DoPlan{
+				planFactory.NewPlan(atc.InParallelPlan{
+					Steps: []atc.Plan{
+						planFactory.NewPlan(atc.GetPlan{
+							Name: "fixture",
+							VersionedResourceTypes: atc.VersionedResourceTypes{
+								atc.VersionedResourceType{
+									ResourceType: atc.ResourceType{
+										Name:   "resource-type",
+										Type:   "s3",
+										Source: atc.Source{},
+									},
+								},
+							},
+						}),
+					},
+				}),
+				taskPlan,
+			})
+
+			expectedQueryParams := "vars.branch=%22master%22"
 			atcServer.RouteToHandler("POST", "/api/v1/teams/main/pipelines/some-pipeline/builds",
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("POST", "/api/v1/teams/main/pipelines/some-pipeline/builds"),
+					ghttp.VerifyRequest("POST", "/api/v1/teams/main/pipelines/some-pipeline/builds", expectedQueryParams),
+					testhelpers.VerifyPlan(expectedPlan),
 					func(w http.ResponseWriter, r *http.Request) {
 						http.SetCookie(w, &http.Cookie{
 							Name:    "Some-Cookie",
@@ -258,15 +298,29 @@ run:
 				),
 			)
 			atcServer.RouteToHandler("GET", "/api/v1/teams/main/pipelines/some-pipeline/jobs/some-job/inputs",
-				ghttp.RespondWithJSONEncoded(200, []atc.BuildInput{atc.BuildInput{Name: "fixture"}}),
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/some-pipeline/jobs/some-job/inputs", expectedQueryParams),
+					ghttp.RespondWithJSONEncoded(200, []atc.BuildInput{atc.BuildInput{Name: "fixture"}}),
+				),
 			)
 			atcServer.RouteToHandler("GET", "/api/v1/teams/main/pipelines/some-pipeline/resource-types",
-				ghttp.RespondWithJSONEncoded(200, atc.VersionedResourceTypes{}),
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/some-pipeline/resource-types", expectedQueryParams),
+					ghttp.RespondWithJSONEncoded(200, atc.VersionedResourceTypes{
+						atc.VersionedResourceType{
+							ResourceType: atc.ResourceType{
+								Name:   "resource-type",
+								Type:   "s3",
+								Source: atc.Source{},
+							},
+						},
+					}),
+				),
 			)
 		})
 
 		It("creates a build, streams output, and polls until completion", func() {
-			flyCmd := exec.Command(flyPath, "-t", targetName, "e", "-c", taskConfigPath, "-j", "some-pipeline/some-job")
+			flyCmd := exec.Command(flyPath, "-t", targetName, "e", "-c", taskConfigPath, "-j", "some-pipeline/branch:master/some-job")
 			flyCmd.Dir = buildDir
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -318,155 +372,320 @@ run: {}
 	})
 
 	Context("when the build config is valid", func() {
-		Context("when arguments include input that is not a git repo", func() {
+		JustBeforeEach(func() {
+			atcServer.RouteToHandler("POST", "/api/v1/teams/main/artifacts",
+				ghttp.CombineHandlers(
+					func(w http.ResponseWriter, req *http.Request) {
+						uploadedBits <- struct{}{}
+					},
+					ghttp.RespondWith(201, `{"id":125}`),
+				),
+			)
+		})
 
-			Context("when arguments not include --include-ignored", func() {
-				It("uploading with everything", func() {
-					flyCmd := exec.Command(flyPath, "-t", targetName, "e", "-c", taskConfigPath, "-i", "fixture="+buildDir)
+		Context("when task defines one input but it was not passed in as a flag", func() {
+			It("uploads the current directory", func() {
+				flyCmd := exec.Command(flyPath, "-t", targetName, "e", "-c", taskConfigPath)
+				flyCmd.Dir = buildDir
 
-					flyCmd.Dir = buildDir
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
 
-					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-					Expect(err).NotTo(HaveOccurred())
+				buildURL, _ := url.Parse(atcServer.URL())
+				buildURL.Path = path.Join(buildURL.Path, "builds/128")
+				Eventually(sess.Out).Should(gbytes.Say("executing build 128 at %s", buildURL.String()))
 
-					// sync with after create
-					Eventually(streaming).Should(BeClosed())
+				close(events)
 
-					close(events)
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(0))
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(0))
-
-					Expect(uploadingBits).To(BeClosed())
-				})
+				Expect(uploadedBits).To(HaveLen(1))
 			})
 		})
 
-		Context("when arguments include input that is a git repo", func() {
+		Context("when task defines 2 inputs but only 1 was passed as a flag", func() {
+			var bardir string
 
 			BeforeEach(func() {
-				gitIgnorePath := filepath.Join(buildDir, ".gitignore")
+				err := ioutil.WriteFile(
+					filepath.Join(buildDir, "task.yml"),
+					[]byte(`---
+platform: some-platform
 
-				err := ioutil.WriteFile(gitIgnorePath, []byte(`*.test`), 0644)
-				Expect(err).NotTo(HaveOccurred())
+image_resource:
+  type: registry-image
+  source:
+    repository: ubuntu
 
-				fileToBeIgnoredPath := filepath.Join(buildDir, "dev.test")
-				err = ioutil.WriteFile(fileToBeIgnoredPath, []byte(`test file content`), 0644)
-				Expect(err).NotTo(HaveOccurred())
+inputs:
+- name: fixture
+- name: bar
 
-				err = os.Mkdir(filepath.Join(buildDir, ".git"), 0755)
-				Expect(err).NotTo(HaveOccurred())
+run:
+  path: find
+  args: [.]
+`),
+					0644,
+				)
+				bardir = filepath.Join(tmpdir, "bar")
+				err = os.Mkdir(bardir, 0755)
+				Expect(err).ToNot(HaveOccurred())
 
-				err = os.Mkdir(filepath.Join(buildDir, ".git/refs"), 0755)
-				Expect(err).NotTo(HaveOccurred())
+				taskPlan.Task.Config.Inputs = []atc.TaskInputConfig{
+					{Name: "fixture"},
+					{Name: "bar"},
+				}
+				taskPlan.Task.Config.Params = nil
 
-				err = os.Mkdir(filepath.Join(buildDir, ".git/objects"), 0755)
 				Expect(err).NotTo(HaveOccurred())
+				expectedPlan = planFactory.NewPlan(atc.DoPlan{
+					planFactory.NewPlan(atc.InParallelPlan{
+						Steps: []atc.Plan{
+							planFactory.NewPlan(atc.ArtifactInputPlan{
+								ArtifactID: 125,
+								Name:       filepath.Base(buildDir),
+							}),
+							planFactory.NewPlan(atc.ArtifactInputPlan{
+								ArtifactID: 125,
+								Name:       filepath.Base(bardir),
+							}),
+						},
+					}),
+					taskPlan,
+				})
 
-				gitHEADPath := filepath.Join(buildDir, ".git/HEAD")
-				err = ioutil.WriteFile(gitHEADPath, []byte(`ref: refs/heads/master`), 0644)
-				Expect(err).NotTo(HaveOccurred())
 			})
 
-			Context("when arguments not include --include-ignored", func() {
-				It("by default apply .gitignore", func() {
-					uploading := make(chan struct{})
-					uploadingBits = uploading
-					atcServer.RouteToHandler("POST", "/api/v1/teams/main/artifacts",
-						ghttp.CombineHandlers(
-							func(w http.ResponseWriter, req *http.Request) {
-								close(uploading)
+			AfterEach(func() {
+				os.RemoveAll(bardir)
+			})
 
-								gr, err := gzip.NewReader(req.Body)
-								Expect(err).NotTo(HaveOccurred())
-
-								tr := tar.NewReader(gr)
-
-								var matchFound = false
-								for {
-									hdr, err := tr.Next()
-									if err != nil {
-										break
-									}
-									if strings.Contains(hdr.Name, "dev.test") {
-										matchFound = true
-										break
-									}
-								}
-
-								Expect(matchFound).To(Equal(false))
-							},
-							ghttp.RespondWith(201, `{"id":125}`),
-						),
+			Context("when the current directory name is the same as the missing input", func() {
+				It("uploads the current directory", func() {
+					flyCmd := exec.Command(flyPath, "-t", targetName, "e",
+						"-c", taskConfigPath,
+						"-i", fmt.Sprintf("bar=%s", bardir),
 					)
-
-					flyCmd := exec.Command(flyPath, "-t", targetName, "e", "-c", taskConfigPath)
 					flyCmd.Dir = buildDir
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
 
-					// sync with after create
-					Eventually(streaming).Should(BeClosed())
+					buildURL, _ := url.Parse(atcServer.URL())
+					buildURL.Path = path.Join(buildURL.Path, "builds/128")
+					Eventually(sess.Out).Should(gbytes.Say("executing build 128 at %s", buildURL.String()))
 
 					close(events)
 
 					<-sess.Exited
 					Expect(sess.ExitCode()).To(Equal(0))
 
-					Expect(uploadingBits).To(BeClosed())
+					Expect(uploadedBits).To(HaveLen(2))
 				})
 			})
 
-			Context("when arguments include --include-ignored", func() {
-				It("uploading with everything", func() {
-					uploading := make(chan struct{})
-					uploadingBits = uploading
-					atcServer.RouteToHandler("POST", "/api/v1/teams/main/artifacts",
-						ghttp.CombineHandlers(
-							func(w http.ResponseWriter, req *http.Request) {
-								close(uploading)
+			Context("when the current directory name is not the same as the missing input", func() {
+				BeforeEach(func() {
+					err := ioutil.WriteFile(
+						filepath.Join(buildDir, "task.yml"),
+						[]byte(`---
+platform: some-platform
 
-								Expect(req.FormValue("platform")).To(Equal("some-platform"))
+image_resource:
+  type: registry-image
+  source:
+    repository: ubuntu
 
-								gr, err := gzip.NewReader(req.Body)
-								Expect(err).NotTo(HaveOccurred())
+inputs:
+- name: foo
+- name: bar
 
-								tr := tar.NewReader(gr)
+params:
+  FOO: bar
+  BAZ: buzz
+  X: 1
+  EMPTY:
 
-								var matchFound = false
-								for {
-									hdr, err := tr.Next()
-									if err != nil {
-										break
-									}
-									if strings.Contains(hdr.Name, "dev.test") {
-										matchFound = true
-										break
-									}
-								}
-
-								Expect(matchFound).To(Equal(true))
-							},
-							ghttp.RespondWith(201, `{"id":125}`),
-						),
+run:
+  path: find
+  args: [.]
+`),
+						0644,
 					)
-					flyCmd := exec.Command(flyPath, "-t", targetName, "e", "-c", taskConfigPath, "--include-ignored")
+					Expect(err).NotTo(HaveOccurred())
+					(*expectedPlan.Do)[1].Task.Config.Inputs = []atc.TaskInputConfig{
+						{Name: "foo"},
+						{Name: "bar"},
+					}
+				})
+
+				It("errors with the missing input", func() {
+					flyCmd := exec.Command(flyPath, "-t", targetName, "e",
+						"-c", taskConfigPath,
+						"-i", fmt.Sprintf("bar=%s", bardir),
+					)
 					flyCmd.Dir = buildDir
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
 
-					// sync with after create
-					Eventually(streaming).Should(BeClosed())
+					Eventually(sess.Err).Should(gbytes.Say("error: missing required input `foo`"))
 
 					close(events)
 
 					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(0))
+					Expect(sess.ExitCode()).To(Equal(1))
 
-					Expect(uploadingBits).To(BeClosed())
+					Expect(uploadedBits).To(HaveLen(1))
 				})
+			})
+		})
+	})
+
+	Context("when arguments include input that is not a git repo", func() {
+
+		Context("when arguments not include --include-ignored", func() {
+			It("uploading with everything", func() {
+				flyCmd := exec.Command(flyPath, "-t", targetName, "e", "-c", taskConfigPath, "-i", "fixture="+buildDir)
+
+				flyCmd.Dir = buildDir
+
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				// sync with after create
+				Eventually(streaming).Should(BeClosed())
+
+				close(events)
+
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(0))
+
+				Expect(uploadedBits).To(HaveLen(1))
+			})
+		})
+	})
+
+	Context("when arguments include input that is a git repo", func() {
+
+		BeforeEach(func() {
+			gitIgnorePath := filepath.Join(buildDir, ".gitignore")
+
+			err := ioutil.WriteFile(gitIgnorePath, []byte(`*.test`), 0644)
+			Expect(err).NotTo(HaveOccurred())
+
+			fileToBeIgnoredPath := filepath.Join(buildDir, "dev.test")
+			err = ioutil.WriteFile(fileToBeIgnoredPath, []byte(`test file content`), 0644)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = os.Mkdir(filepath.Join(buildDir, ".git"), 0755)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = os.Mkdir(filepath.Join(buildDir, ".git/refs"), 0755)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = os.Mkdir(filepath.Join(buildDir, ".git/objects"), 0755)
+			Expect(err).NotTo(HaveOccurred())
+
+			gitHEADPath := filepath.Join(buildDir, ".git/HEAD")
+			err = ioutil.WriteFile(gitHEADPath, []byte(`ref: refs/heads/master`), 0644)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("when arguments not include --include-ignored", func() {
+			It("by default apply .gitignore", func() {
+				atcServer.RouteToHandler("POST", "/api/v1/teams/main/artifacts",
+					ghttp.CombineHandlers(
+						func(w http.ResponseWriter, req *http.Request) {
+							gr, err := gzip.NewReader(req.Body)
+							Expect(err).NotTo(HaveOccurred())
+
+							tr := tar.NewReader(gr)
+
+							var matchFound = false
+							for {
+								hdr, err := tr.Next()
+								if err != nil {
+									break
+								}
+								if strings.Contains(hdr.Name, "dev.test") {
+									matchFound = true
+									break
+								}
+							}
+
+							Expect(matchFound).To(Equal(false))
+
+							uploadedBits <- struct{}{}
+						},
+						ghttp.RespondWith(201, `{"id":125}`),
+					),
+				)
+				flyCmd := exec.Command(flyPath, "-t", targetName, "e", "-c", taskConfigPath)
+				flyCmd.Dir = buildDir
+
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				// sync with after create
+				Eventually(streaming).Should(BeClosed())
+
+				close(events)
+
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(0))
+
+				Expect(uploadedBits).To(HaveLen(1))
+			})
+		})
+
+		Context("when arguments include --include-ignored", func() {
+			It("uploading with everything", func() {
+				atcServer.RouteToHandler("POST", "/api/v1/teams/main/artifacts",
+					ghttp.CombineHandlers(
+						func(w http.ResponseWriter, req *http.Request) {
+							Expect(req.FormValue("platform")).To(Equal("some-platform"))
+
+							gr, err := gzip.NewReader(req.Body)
+							Expect(err).NotTo(HaveOccurred())
+
+							tr := tar.NewReader(gr)
+
+							var matchFound = false
+							for {
+								hdr, err := tr.Next()
+								if err != nil {
+									break
+								}
+								if strings.Contains(hdr.Name, "dev.test") {
+									matchFound = true
+									break
+								}
+							}
+
+							Expect(matchFound).To(Equal(true))
+							uploadedBits <- struct{}{}
+						},
+						ghttp.RespondWith(201, `{"id":125}`),
+					),
+				)
+
+				flyCmd := exec.Command(flyPath, "-t", targetName, "e", "-c", taskConfigPath, "--include-ignored")
+				flyCmd.Dir = buildDir
+
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				// sync with after create
+				Eventually(streaming).Should(BeClosed())
+
+				close(events)
+
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(0))
+
+				Expect(uploadedBits).To(HaveLen(1))
 			})
 		})
 	})
@@ -493,7 +712,7 @@ run: {}
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(0))
 
-			Expect(uploadingBits).To(BeClosed())
+			Expect(uploadedBits).To(HaveLen(1))
 		})
 	})
 
@@ -519,7 +738,7 @@ run: {}
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(0))
 
-			Expect(uploadingBits).To(BeClosed())
+			Expect(uploadedBits).To(HaveLen(1))
 		})
 	})
 
@@ -573,6 +792,62 @@ run: {}
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(1))
 			})
+		})
+	})
+
+	Context("when the task specifies no input", func() {
+		BeforeEach(func() {
+			err := ioutil.WriteFile(
+				filepath.Join(buildDir, "task.yml"),
+				[]byte(`---
+platform: some-platform
+
+image_resource:
+  type: registry-image
+  source:
+    repository: ubuntu
+
+inputs:
+
+params:
+  FOO: bar
+  BAZ: buzz
+  X: 1
+  EMPTY:
+
+
+run:
+  path: find
+  args: [.]
+`),
+				0644,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			(*expectedPlan.Do)[1].Task.Config.Inputs = nil
+			(*expectedPlan.Do)[0].InParallel = &atc.InParallelPlan{}
+		})
+
+		It("shouldn't upload the current directory", func() {
+			atcServer.RouteToHandler("POST", "/api/v1/teams/main/artifacts",
+				ghttp.CombineHandlers(
+					func(w http.ResponseWriter, req *http.Request) {
+						uploadedBits <- struct{}{}
+					},
+					ghttp.RespondWith(201, `{"id":125}`),
+				),
+			)
+
+			flyCmd := exec.Command(flyPath, "-t", targetName, "e", "-c", taskConfigPath)
+			flyCmd.Dir = buildDir
+
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+
+			close(events)
+
+			<-sess.Exited
+			Expect(sess.ExitCode()).To(Equal(0))
+			Expect(uploadedBits).To(HaveLen(0))
 		})
 	})
 
@@ -635,7 +910,7 @@ run:
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(0))
 
-				Expect(uploadingBits).To(BeClosed())
+				Expect(uploadedBits).To(HaveLen(1))
 			})
 		})
 
@@ -662,7 +937,7 @@ run:
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(0))
 
-				Expect(uploadingBits).To(BeClosed())
+				Expect(uploadedBits).To(HaveLen(1))
 			})
 		})
 	})
@@ -700,13 +975,13 @@ run:
 
 		Context("When some required inputs are not passed", func() {
 			It("Prints an error", func() {
-				flyCmd := exec.Command(flyPath, "-t", targetName, "e", "-c", taskConfigPath, "-i", "something=.")
+				flyCmd := exec.Command(flyPath, "-t", targetName, "e", "-c", taskConfigPath, "-i", "fixture=.")
 				flyCmd.Dir = buildDir
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				Eventually(sess.Err).Should(gbytes.Say("missing required input `fixture`"))
+				Eventually(sess.Err).Should(gbytes.Say("missing required input `something`"))
 
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(1))
@@ -752,7 +1027,7 @@ run:
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(0))
 
-			Expect(uploadingBits).To(BeClosed())
+			Expect(uploadedBits).To(HaveLen(1))
 		})
 	})
 
@@ -779,7 +1054,7 @@ run:
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(sess.Err).Should(gbytes.Say("argument format should be <pipeline>/<job>"))
+			Eventually(sess.Err).Should(gbytes.Say("argument format should be <pipeline>/<key:value>/<job>"))
 
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(1))
@@ -814,7 +1089,7 @@ run:
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(0))
 
-			Expect(uploadingBits).To(BeClosed())
+			Expect(uploadedBits).To(HaveLen(1))
 		})
 	})
 
@@ -845,7 +1120,7 @@ run:
 
 					Eventually(streaming).Should(BeClosed())
 
-					Eventually(uploadingBits).Should(BeClosed())
+					Expect(uploadedBits).To(HaveLen(1))
 
 					sess.Signal(os.Interrupt)
 
@@ -869,7 +1144,7 @@ run:
 
 					Eventually(streaming).Should(BeClosed())
 
-					Eventually(uploadingBits).Should(BeClosed())
+					Expect(uploadedBits).To(HaveLen(1))
 
 					sess.Signal(syscall.SIGTERM)
 
@@ -901,7 +1176,7 @@ run:
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(0))
 
-			Expect(uploadingBits).To(BeClosed())
+			Expect(uploadedBits).To(HaveLen(1))
 		})
 	})
 
@@ -921,7 +1196,7 @@ run:
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(1))
 
-			Expect(uploadingBits).To(BeClosed())
+			Expect(uploadedBits).To(HaveLen(1))
 		})
 	})
 
@@ -941,7 +1216,7 @@ run:
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(2))
 
-			Expect(uploadingBits).To(BeClosed())
+			Expect(uploadedBits).To(HaveLen(1))
 		})
 	})
 })

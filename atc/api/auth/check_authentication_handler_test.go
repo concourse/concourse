@@ -44,7 +44,7 @@ var _ = Describe("AuthenticationHandler", func() {
 		fakeAccessor = new(accessorfakes.FakeAccessFactory)
 		fakeRejector = new(authfakes.FakeRejector)
 
-		fakeAccessor.CreateReturns(fakeAccess)
+		fakeAccessor.CreateReturns(fakeAccess, nil)
 
 		fakeRejector.UnauthorizedStub = func(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "nope", http.StatusUnauthorized)
@@ -71,9 +71,6 @@ var _ = Describe("AuthenticationHandler", func() {
 				"some-action",
 				innerHandler,
 				fakeAccessor,
-				new(accessorfakes.FakeTokenVerifier),
-				new(accessorfakes.FakeTeamFetcher),
-				new(accessorfakes.FakeUserTracker),
 				new(auditorfakes.FakeAuditor),
 				map[string]string{},
 			))
@@ -132,9 +129,6 @@ var _ = Describe("AuthenticationHandler", func() {
 				"some-action",
 				innerHandler,
 				fakeAccessor,
-				new(accessorfakes.FakeTokenVerifier),
-				new(accessorfakes.FakeTeamFetcher),
-				new(accessorfakes.FakeUserTracker),
 				new(auditorfakes.FakeAuditor),
 				map[string]string{},
 			))

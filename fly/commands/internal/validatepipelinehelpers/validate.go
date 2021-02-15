@@ -1,7 +1,9 @@
 package validatepipelinehelpers
 
 import (
+	"errors"
 	"fmt"
+
 	"github.com/concourse/concourse/atc"
 
 	"github.com/concourse/concourse/atc/configvalidate"
@@ -11,7 +13,7 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-func Validate(yamlTemplate templatehelpers.YamlTemplateWithParams, strict bool, output bool) error {
+func Validate(yamlTemplate templatehelpers.YamlTemplateWithParams, strict bool, output bool, enableAcrossStep bool) error {
 	evaluatedTemplate, err := yamlTemplate.Evaluate(true, strict)
 	if err != nil {
 		return err
@@ -30,6 +32,10 @@ func Validate(yamlTemplate templatehelpers.YamlTemplateWithParams, strict bool, 
 		}
 	}
 
+	if enableAcrossStep {
+		atc.EnableAcrossStep = true
+	}
+
 	warnings, errorMessages := configvalidate.Validate(unmarshalledTemplate)
 
 	if len(warnings) > 0 {
@@ -45,7 +51,7 @@ func Validate(yamlTemplate templatehelpers.YamlTemplateWithParams, strict bool, 
 	}
 
 	if len(errorMessages) > 0 || (strict && len(warnings) > 0) {
-		displayhelpers.Failf("configuration invalid")
+		return errors.New("configuration invalid")
 	}
 
 	if output {

@@ -1,47 +1,38 @@
 package vars
 
-import (
-	"fmt"
-	"strings"
-)
-
 type NamedVariables map[string]Variables
 
 // Get checks var_source if presents, then forward var to underlying secret manager.
-// A `varDef.Name` with a var_source looks like "myvault:foo", where "myvault" is
+// A Reference with a var_source looks like "myvault:foo", where "myvault" is
 // the var_source name, and "foo" is the real var name that should be forwarded
 // to the underlying secret manager.
-func (m NamedVariables) Get(varDef VariableDefinition) (interface{}, bool, error) {
-	var sourceName, varName string
-	parts := strings.Split(varDef.Name, ":")
-	if len(parts) == 1 {
-		// No source name, then no need to query named vars.
+func (m NamedVariables) Get(ref Reference) (interface{}, bool, error) {
+	if ref.Source == "" {
 		return nil, false, nil
-	} else if len(parts) == 2 {
-		sourceName = parts[0]
-		varName = parts[1]
-	} else {
-		return nil, false, fmt.Errorf("invalid var: %s", varDef.Name)
 	}
 
-	if vars, ok := m[sourceName]; ok {
-		return vars.Get(VariableDefinition{Name: varName})
+	if vars, ok := m[ref.Source]; ok {
+		return vars.Get(ref)
 	}
 
-	return nil, false, fmt.Errorf("unknown var source: %s", sourceName)
+	return nil, false, MissingSourceError{Name: ref.String(), Source: ref.Source}
 }
 
-func (m NamedVariables) List() ([]VariableDefinition, error) {
-	var allDefs []VariableDefinition
+func (m NamedVariables) List() ([]Reference, error) {
+	var allRefs []Reference
 
-	for _, vars := range m {
-		defs, err := vars.List()
+	for source, vars := range m {
+		refs, err := vars.List()
 		if err != nil {
 			return nil, err
 		}
 
-		allDefs = append(allDefs, defs...)
+		for i, _ := range refs {
+			refs[i].Source = source
+		}
+
+		allRefs = append(allRefs, refs...)
 	}
 
-	return allDefs, nil
+	return allRefs, nil
 }

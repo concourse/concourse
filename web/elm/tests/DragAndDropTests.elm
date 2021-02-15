@@ -2,6 +2,8 @@ module DragAndDropTests exposing (all)
 
 import Application.Application as Application
 import Common exposing (given, then_, when)
+import Concourse exposing (JsonValue(..))
+import DashboardTests exposing (whenOnDashboard)
 import Data
 import Dict exposing (Dict)
 import Expect exposing (Expectation)
@@ -9,7 +11,7 @@ import Http
 import Json.Encode as Encode
 import Message.Callback as Callback
 import Message.Effects as Effects
-import Message.Message as Message
+import Message.Message as Message exposing (DropTarget(..))
 import Message.Subscription exposing (Delivery(..), Interval(..))
 import Message.TopLevelMessage as TopLevelMessage exposing (TopLevelMessage)
 import Test exposing (Test, describe, test)
@@ -81,6 +83,13 @@ all =
         , test "API call only orders pipelines on a single team" <|
             given iVisitedTheDashboard
                 >> given myBrowserFetchedPipelinesFromMultipleTeams
+                >> given iAmDraggingTheFirstPipelineCard
+                >> given iAmDraggingOverTheThirdDropArea
+                >> when iDropThePipelineCard
+                >> then_ myBrowserMakesTheOrderPipelinesAPICall
+        , test "instance group name appears once in API call" <|
+            given iVisitedTheDashboard
+                >> given myBrowserFetchedPipelinesWithInstanceVars
                 >> given iAmDraggingTheFirstPipelineCard
                 >> given iAmDraggingOverTheThirdDropArea
                 >> when iDropThePipelineCard
@@ -170,14 +179,14 @@ all =
 
 
 iVisitedTheDashboard _ =
-    Common.init "/"
+    whenOnDashboard { highDensity = False }
 
 
 myBrowserFetchedOnePipeline =
     Application.handleCallback
         (Callback.AllPipelinesFetched <|
             Ok
-                [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
         )
 
 
@@ -185,8 +194,21 @@ myBrowserFetchedTwoPipelines =
     Application.handleCallback
         (Callback.AllPipelinesFetched <|
             Ok
-                [ Data.pipeline "team" 0 |> Data.withName "pipeline"
-                , Data.pipeline "team" 1 |> Data.withName "other-pipeline"
+                [ Data.pipeline "team" 1 |> Data.withName "pipeline"
+                , Data.pipeline "team" 2 |> Data.withName "other-pipeline"
+                ]
+        )
+
+
+myBrowserFetchedPipelinesWithInstanceVars =
+    Application.handleCallback
+        (Callback.AllPipelinesFetched <|
+            Ok
+                [ Data.pipeline "team" 1 |> Data.withName "pipeline"
+                , Data.pipeline "team" 2 |> Data.withName "other-pipeline"
+                , Data.pipeline "team" 3
+                    |> Data.withName "other-pipeline"
+                    |> Data.withInstanceVars (Dict.fromList [ ( "hello", JsonString "world" ) ])
                 ]
         )
 
@@ -195,9 +217,9 @@ myBrowserFetchedPipelinesFromMultipleTeams =
     Application.handleCallback
         (Callback.AllPipelinesFetched <|
             Ok
-                [ Data.pipeline "team" 0 |> Data.withName "pipeline"
-                , Data.pipeline "team" 1 |> Data.withName "other-pipeline"
-                , Data.pipeline "other-team" 2 |> Data.withName "third-pipeline"
+                [ Data.pipeline "team" 1 |> Data.withName "pipeline"
+                , Data.pipeline "team" 2 |> Data.withName "other-pipeline"
+                , Data.pipeline "other-team" 3 |> Data.withName "third-pipeline"
                 ]
         )
 
@@ -212,7 +234,7 @@ iAmLookingAtTheFirstPipelineCard =
 iAmLookingAtTheFirstPipelineCardWrapper =
     Tuple.first
         >> Common.queryView
-        >> Query.findAll [ class "pipeline-wrapper" ]
+        >> Query.findAll [ class "card-wrapper" ]
         >> Query.first
 
 
@@ -234,13 +256,13 @@ itListensForDragStart : Query.Single TopLevelMessage -> Expectation
 itListensForDragStart =
     Event.simulate (Event.custom "dragstart" (Encode.object []))
         >> Event.expect
-            (TopLevelMessage.Update <| Message.DragStart "team" 0)
+            (TopLevelMessage.Update <| Message.DragStart "team" 1)
 
 
 iAmDraggingTheFirstPipelineCard =
     Tuple.first
         >> Application.update
-            (TopLevelMessage.Update <| Message.DragStart "team" 0)
+            (TopLevelMessage.Update <| Message.DragStart "team" 1)
 
 
 itIsInvisible =
@@ -281,7 +303,7 @@ iAmLookingAtTheFinalDropArea =
 itListensForDragEnter =
     Event.simulate (Event.custom "dragenter" (Encode.object []))
         >> Event.expect
-            (TopLevelMessage.Update <| Message.DragOver "team" 2)
+            (TopLevelMessage.Update <| Message.DragOver <| End)
 
 
 
@@ -295,19 +317,19 @@ itListensForDragEnter =
 itListensForDragOverPreventingDefault =
     Event.simulate (Event.custom "dragover" (Encode.object []))
         >> Event.expect
-            (TopLevelMessage.Update <| Message.DragOver "team" 2)
+            (TopLevelMessage.Update <| Message.DragOver <| End)
 
 
-iAmDraggingOverTheSecondDropArea =
+iAmDraggingOverTheFirstDropArea =
     Tuple.first
         >> Application.update
-            (TopLevelMessage.Update <| Message.DragOver "team" 2)
+            (TopLevelMessage.Update <| Message.DragOver <| Before 0)
 
 
 iAmDraggingOverTheThirdDropArea =
     Tuple.first
         >> Application.update
-            (TopLevelMessage.Update <| Message.DragOver "team" 3)
+            (TopLevelMessage.Update <| Message.DragOver <| End)
 
 
 iAmLookingAtTheTeamHeader =
@@ -355,6 +377,10 @@ iDropThePipelineCard =
     Tuple.first
         >> Application.update
             (TopLevelMessage.Update <| Message.DragEnd)
+
+
+iDropTheCard =
+    iDropThePipelineCard
 
 
 itIsTheOtherPipelineCard =

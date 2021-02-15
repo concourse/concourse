@@ -18,7 +18,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Vault", func() {
+var _ = XDescribe("Vault", func() {
 	var tokenDuration = 30 * time.Second
 
 	BeforeEach(func() {

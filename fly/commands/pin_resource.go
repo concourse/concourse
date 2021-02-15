@@ -3,10 +3,13 @@ package commands
 import (
 	"encoding/json"
 	"fmt"
+	"runtime"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/rc"
+	"github.com/jessevdk/go-flags"
 )
 
 type PinResourceCommand struct {
@@ -28,13 +31,32 @@ func (command *PinResourceCommand) Execute([]string) error {
 
 	team := target.Team()
 
+	pipelineRef := command.Resource.PipelineRef
+
+	if command.Version == nil && command.Comment == "" {
+		shortDelim := "-"
+		longDelim := "--"
+		if runtime.GOOS == "windows" {
+			shortDelim = "/"
+			longDelim = "/"
+		}
+		return &flags.Error{
+			Type: flags.ErrRequired,
+			Message: fmt.Sprintf(
+				"the required flag `%sv, %sversion' was not specified",
+				shortDelim,
+				longDelim,
+			),
+		}
+	}
+
 	if command.Version != nil {
 		latestResourceVersion, err := GetLatestResourceVersion(team, command.Resource, *command.Version)
 		if err != nil {
 			return err
 		}
 
-		pinned, err := team.PinResourceVersion(command.Resource.PipelineName, command.Resource.ResourceName, latestResourceVersion.ID)
+		pinned, err := team.PinResourceVersion(pipelineRef, command.Resource.ResourceName, latestResourceVersion.ID)
 
 		if err != nil {
 			return err
@@ -46,14 +68,14 @@ func (command *PinResourceCommand) Execute([]string) error {
 				return err
 			}
 
-			fmt.Printf("pinned '%s/%s' with version %s\n", command.Resource.PipelineName, command.Resource.ResourceName, string(versionBytes))
+			fmt.Printf("pinned '%s/%s' with version %s\n", pipelineRef.String(), command.Resource.ResourceName, string(versionBytes))
 		} else {
-			displayhelpers.Failf("could not pin '%s/%s', make sure the resource exists\n", command.Resource.PipelineName, command.Resource.ResourceName)
+			displayhelpers.Failf("could not pin '%s/%s', make sure the resource exists\n", pipelineRef.String(), command.Resource.ResourceName)
 		}
 	}
 
 	if command.Comment != "" {
-		saved, err := team.SetPinComment(command.Resource.PipelineName, command.Resource.ResourceName, command.Comment)
+		saved, err := team.SetPinComment(pipelineRef, command.Resource.ResourceName, command.Comment)
 
 		if err != nil {
 			return err
@@ -62,7 +84,7 @@ func (command *PinResourceCommand) Execute([]string) error {
 		if saved {
 			fmt.Printf("pin comment '%s' is saved\n", command.Comment)
 		} else {
-			displayhelpers.Failf("could not save comment, make sure '%s/%s' is pinned\n", command.Resource.PipelineName, command.Resource.ResourceName)
+			displayhelpers.Failf("could not save comment, make sure '%s/%s' is pinned\n", pipelineRef.String(), command.Resource.ResourceName)
 		}
 	}
 

@@ -433,7 +433,8 @@ var _ = Describe("Register", func() {
 				Expect(res.StatusCode).To(Equal(http.StatusTeapot))
 
 				By("exiting successfully")
-				Eventually(registerErr).Should(Receive(BeNil()))
+				// https://golang.org/src/net/http/transport.go -> IdleConnTimeout is 90s in the DefaultTransport used by gclient.BasicGardenClientWithRequestTimeout
+				Eventually(registerErr, time.Second*100).Should(Receive(BeNil()))
 			})
 
 			Context("with a drain timeout", func() {

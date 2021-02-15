@@ -1,6 +1,8 @@
 module Message.Message exposing
     ( DomID(..)
+    , DropTarget(..)
     , Message(..)
+    , PipelinesSection(..)
     , VersionId
     , VersionToggleAction(..)
     , VisibilityAction(..)
@@ -23,10 +25,8 @@ type Message
     | SetGroups (List String)
       -- Dashboard
     | DragStart String Int
-    | DragOver String Int
+    | DragOver DropTarget
     | DragEnd
-    | Tooltip String String
-    | TooltipHd String String
       -- Resource
     | EditComment String
     | FocusTextArea
@@ -48,28 +48,42 @@ type DomID
     | TriggerBuildButton
     | AbortBuildButton
     | RerunBuildButton
+    | JobName
+    | JobBuildLink Concourse.BuildName
     | PreviousPageButton
     | NextPageButton
     | CheckButton Bool
     | EditButton
     | SaveCommentButton
     | ResourceCommentTextarea
-    | FirstOccurrenceGetStepLabel StepID
+    | ChangedStepLabel StepID String
     | StepState StepID
     | PinIcon
     | PinMenuDropDown String
     | PinButton VersionId
     | PinBar
-    | PipelineStatusIcon Concourse.PipelineIdentifier
-    | PipelineButton Concourse.PipelineIdentifier
-    | VisibilityButton Concourse.PipelineIdentifier
+    | PipelineCardName PipelinesSection Concourse.DatabaseID
+    | InstanceGroupCardName PipelinesSection Concourse.TeamName String
+    | PipelineCardNameHD Concourse.DatabaseID
+    | InstanceGroupCardNameHD Concourse.TeamName String
+    | PipelineCardInstanceVar PipelinesSection Concourse.DatabaseID String String
+    | PipelineStatusIcon PipelinesSection Concourse.DatabaseID
+    | PipelineCardFavoritedIcon PipelinesSection Concourse.DatabaseID
+    | PipelineCardPauseToggle PipelinesSection Concourse.DatabaseID
+    | TopBarPinIcon
+    | TopBarFavoritedIcon Concourse.DatabaseID
+    | TopBarPauseToggle Concourse.PipelineIdentifier
+    | VisibilityButton PipelinesSection Concourse.DatabaseID
     | FooterCliIcon Cli.Cli
     | WelcomeCardCliIcon Cli.Cli
     | CopyTokenButton
     | SendTokenButton
+    | CopyTokenInput
     | JobGroup Int
     | StepTab String Int
     | StepHeader String
+    | StepSubHeader String Int
+    | StepInitialization String
     | ShowSearchButton
     | ClearSearchButton
     | LoginButton
@@ -79,14 +93,21 @@ type DomID
     | VersionHeader VersionId
     | VersionToggle VersionId
     | BuildTab Int String
-    | PipelineWrapper Concourse.PipelineIdentifier
-    | JobPreview Concourse.JobIdentifier
-    | HamburgerMenu
+    | JobPreview PipelinesSection Concourse.DatabaseID Concourse.JobName
+    | PipelinePreview PipelinesSection Concourse.DatabaseID
+    | SideBarIcon
     | SideBarResizeHandle
-    | SideBarTeam String
-    | SideBarPipeline Concourse.PipelineIdentifier
+    | SideBarTeam PipelinesSection String
+    | SideBarPipeline PipelinesSection Concourse.PipelineIdentifier
+    | SideBarInstanceGroup PipelinesSection Concourse.TeamName String
+    | SideBarFavoritedIcon Concourse.DatabaseID
     | Dashboard
     | DashboardGroup String
+
+
+type PipelinesSection
+    = FavoritesSection
+    | AllPipelinesSection
 
 
 type VersionToggleAction
@@ -101,3 +122,8 @@ type VisibilityAction
 
 type alias VersionId =
     Concourse.VersionedResourceIdentifier
+
+
+type DropTarget
+    = Before Int
+    | End

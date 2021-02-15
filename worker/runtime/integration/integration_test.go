@@ -3,6 +3,7 @@ package integration_test
 import (
 	"bytes"
 	"fmt"
+	"github.com/concourse/concourse/worker/workercmd"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -18,6 +19,8 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
+//Note: Some of these integration tests call on functionality that manipulates
+//the iptable rule set. They lack isolation and, therefore, should never be run in parallel.
 type IntegrationSuite struct {
 	suite.Suite
 	*require.Assertions
@@ -36,10 +39,15 @@ func (s *IntegrationSuite) containerdSocket() string {
 }
 
 func (s *IntegrationSuite) startContainerd() {
+	configPath := filepath.Join(s.tmpDir, "containerd.toml")
+	err := workercmd.WriteDefaultContainerdConfig(configPath)
+	s.NoError(err)
+
 	command := exec.Command("containerd",
 		"--address="+s.containerdSocket(),
 		"--root="+filepath.Join(s.tmpDir, "root"),
 		"--state="+filepath.Join(s.tmpDir, "state"),
+		"--config="+configPath,
 	)
 
 	command.Stdout = &s.stdout
@@ -48,7 +56,7 @@ func (s *IntegrationSuite) startContainerd() {
 		Pdeathsig: syscall.SIGKILL,
 	}
 
-	err := command.Start()
+	err = command.Start()
 	s.NoError(err)
 
 	s.containerdProcess = command
@@ -132,6 +140,14 @@ func (s *IntegrationSuite) setupRootfs() {
 func (s *IntegrationSuite) TearDownTest() {
 	s.gardenBackend.Stop()
 	os.RemoveAll(s.rootfs)
+	s.cleanupIptables()
+}
+
+func (s *IntegrationSuite) cleanupIptables() {
+	//Flush all rules
+	exec.Command("iptables", "-F").Run()
+	//Delete all user-defined chains
+	exec.Command("iptables", "-X").Run()
 }
 
 func (s *IntegrationSuite) TestPing() {
@@ -209,6 +225,69 @@ func (s *IntegrationSuite) TestContainerNetworkEgress() {
 
 	s.Equal(exitCode, 0)
 	s.Equal("200 OK\n", buf.String())
+}
+
+// TestContainerNetworkEgressWithRestrictedNetworks verifies that a process that we run in a
+// container that we create through our gardenBackend is not able to reach an address that
+// we have blocked access to.
+//
+func (s *IntegrationSuite) TestContainerNetworkEgressWithRestrictedNetworks() {
+	namespace := "test-restricted-networks"
+	requestTimeout := 3 * time.Second
+
+	network, err := runtime.NewCNINetwork(
+		runtime.WithRestrictedNetworks([]string{"1.1.1.1"}),
+	)
+
+	s.NoError(err)
+
+	networkOpt := runtime.WithNetwork(network)
+	customBackend, err := runtime.NewGardenBackend(
+		libcontainerd.New(
+			s.containerdSocket(),
+			namespace,
+			requestTimeout,
+		),
+		networkOpt,
+	)
+	s.NoError(err)
+
+	s.NoError(customBackend.Start())
+
+	handle := uuid()
+
+	container, err := customBackend.Create(garden.ContainerSpec{
+		Handle:     handle,
+		RootFSPath: "raw://" + s.rootfs,
+		Privileged: true,
+	})
+	s.NoError(err)
+
+	defer func() {
+		s.NoError(customBackend.Destroy(handle))
+		customBackend.Stop()
+	}()
+
+	buf := new(buffer)
+	proc, err := container.Run(
+		garden.ProcessSpec{
+			Path: "/executable",
+			Args: []string{
+				"-http-get=http://1.1.1.1",
+			},
+		},
+		garden.ProcessIO{
+			Stdout: buf,
+			Stderr: buf,
+		},
+	)
+	s.NoError(err)
+
+	exitCode, err := proc.Wait()
+	s.NoError(err)
+
+	s.Equal(exitCode, 1, "Process in container should not be able to connect to restricted network")
+	s.Contains(buf.String(), "connect: connection refused")
 }
 
 // TestRunPrivileged tests whether we're able to run a process in a privileged
@@ -418,7 +497,7 @@ func (s *IntegrationSuite) TestCustomDNS() {
 	s.NoError(err)
 
 	s.Equal(exitCode, 0)
-	expectedDNSServer := "nameserver 1.1.1.1\nnameserver 1.2.3.4\n"
+	expectedDNSServer := "nameserver 1.1.1.1\nnameserver 1.2.3.4"
 	s.Equal(expectedDNSServer, buf.String())
 }
 
@@ -463,4 +542,50 @@ func (s *IntegrationSuite) testStop(kill bool) {
 	)
 	s.NoError(err)
 	s.NoError(container.Stop(kill))
+}
+
+// TestMaxContainers aims at making sure that when the max container count is
+// reached, any additional Create calls will fail
+//
+func (s *IntegrationSuite) TestMaxContainers() {
+	namespace := "test-max-containers"
+	requestTimeout := 1 * time.Second
+
+	limit := runtime.WithMaxContainers(1)
+
+	customBackend, err := runtime.NewGardenBackend(
+		libcontainerd.New(
+			s.containerdSocket(),
+			namespace,
+			requestTimeout,
+		),
+		limit,
+	)
+	s.NoError(err)
+
+	s.NoError(customBackend.Start())
+
+	handle1 := uuid()
+	handle2 := uuid()
+
+	_, err = customBackend.Create(garden.ContainerSpec{
+		Handle:     handle1,
+		RootFSPath: "raw://" + s.rootfs,
+		Privileged: true,
+	})
+	s.NoError(err)
+
+	defer func() {
+		s.NoError(customBackend.Destroy(handle1))
+		customBackend.Stop()
+	}()
+
+	// not destroying handle2 as it is never successfully created
+	_, err = customBackend.Create(garden.ContainerSpec{
+		Handle:     handle2,
+		RootFSPath: "raw://" + s.rootfs,
+		Privileged: true,
+	})
+	s.Error(err)
+	s.Contains(err.Error(), "max containers reached")
 }

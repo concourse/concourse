@@ -4,60 +4,42 @@ import (
 	"context"
 	"strconv"
 	"sync"
-	"time"
 
-	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/metric"
+	"github.com/concourse/concourse/atc/util"
 	"github.com/concourse/concourse/tracing"
-	"github.com/pkg/errors"
 )
 
-func NewScanner(
-	logger lager.Logger,
-	checkFactory db.CheckFactory,
-	secrets creds.Secrets,
-	defaultCheckTimeout time.Duration,
-	defaultCheckInterval time.Duration,
-	defaultWithWebhookCheckInterval time.Duration,
-) *scanner {
+func NewScanner(checkFactory db.CheckFactory) *scanner {
 	return &scanner{
-		logger:                          logger,
-		checkFactory:                    checkFactory,
-		secrets:                         secrets,
-		defaultCheckTimeout:             defaultCheckTimeout,
-		defaultCheckInterval:            defaultCheckInterval,
-		defaultWithWebhookCheckInterval: defaultWithWebhookCheckInterval,
+		checkFactory: checkFactory,
 	}
 }
 
 type scanner struct {
-	logger lager.Logger
-
-	checkFactory                    db.CheckFactory
-	secrets                         creds.Secrets
-	defaultCheckTimeout             time.Duration
-	defaultCheckInterval            time.Duration
-	defaultWithWebhookCheckInterval time.Duration
+	checkFactory db.CheckFactory
 }
 
 func (s *scanner) Run(ctx context.Context) error {
+	logger := lagerctx.FromContext(ctx)
+
 	spanCtx, span := tracing.StartSpan(ctx, "scanner.Run", nil)
-	s.logger.Info("start")
 	defer span.End()
-	defer s.logger.Info("end")
+
+	logger.Info("start")
+	defer logger.Info("end")
 
 	resources, err := s.checkFactory.Resources()
 	if err != nil {
-		s.logger.Error("failed-to-get-resources", err)
+		logger.Error("failed-to-get-resources", err)
 		return err
 	}
 
 	resourceTypes, err := s.checkFactory.ResourceTypes()
 	if err != nil {
-		s.logger.Error("failed-to-get-resource-types", err)
+		logger.Error("failed-to-get-resource-types", err)
 		return err
 	}
 
@@ -68,22 +50,29 @@ func (s *scanner) Run(ctx context.Context) error {
 		waitGroup.Add(1)
 
 		go func(resource db.Resource, resourceTypes db.ResourceTypes) {
+			defer func() {
+				err := util.DumpPanic(recover(), "scanning resource %d", resource.ID())
+				if err != nil {
+					logger.Error("panic-in-scanner-run", err)
+				}
+			}()
 			defer waitGroup.Done()
 
-			err := s.check(spanCtx, resource, resourceTypes, resourceTypesChecked)
-			s.setCheckError(s.logger, resource, err)
+			if resource.CheckEvery() != nil && resource.CheckEvery().Never {
+				return
+			}
 
+			s.check(spanCtx, resource, resourceTypes, resourceTypesChecked)
 		}(resource, resourceTypes)
 	}
 
 	waitGroup.Wait()
 
-	return s.checkFactory.NotifyChecker()
+	return nil
 }
 
-func (s *scanner) check(ctx context.Context, checkable db.Checkable, resourceTypes db.ResourceTypes, resourceTypesChecked *sync.Map) error {
-
-	var err error
+func (s *scanner) check(ctx context.Context, checkable db.Checkable, resourceTypes db.ResourceTypes, resourceTypesChecked *sync.Map) {
+	logger := lagerctx.FromContext(ctx)
 
 	spanCtx, span := tracing.StartSpan(ctx, "scanner.check", tracing.Attrs{
 		"team":                     checkable.TeamName(),
@@ -98,52 +87,21 @@ func (s *scanner) check(ctx context.Context, checkable db.Checkable, resourceTyp
 	if found {
 		if _, exists := resourceTypesChecked.LoadOrStore(parentType.ID(), true); !exists {
 			// only create a check for resource type if it has not been checked yet
-			err = s.check(spanCtx, parentType, resourceTypes, resourceTypesChecked)
-			s.setCheckError(s.logger, parentType, err)
-
-			if err != nil {
-				s.logger.Error("failed-to-create-type-check", err)
-				return errors.Wrapf(err, "parent type '%v' error", parentType.Name())
-			}
+			s.check(spanCtx, parentType, resourceTypes, resourceTypesChecked)
 		}
-	}
-
-	interval := s.defaultCheckInterval
-	if checkable.HasWebhook() {
-		interval = s.defaultWithWebhookCheckInterval
-	}
-	if every := checkable.CheckEvery(); every != "" {
-		interval, err = time.ParseDuration(every)
-		if err != nil {
-			s.logger.Error("failed-to-parse-check-every", err)
-			return err
-		}
-	}
-
-	if time.Now().Before(checkable.LastCheckEndTime().Add(interval)) {
-		return nil
 	}
 
 	version := checkable.CurrentPinnedVersion()
 
-	_, created, err := s.checkFactory.TryCreateCheck(lagerctx.NewContext(spanCtx, s.logger), checkable, resourceTypes, version, false)
+	_, created, err := s.checkFactory.TryCreateCheck(lagerctx.NewContext(spanCtx, logger), checkable, resourceTypes, version, false)
 	if err != nil {
-		s.logger.Error("failed-to-create-check", err)
-		return err
+		logger.Error("failed-to-create-check", err)
+		return
 	}
 
 	if !created {
-		s.logger.Debug("check-already-exists")
-	}
-
-	metric.ChecksEnqueued.Inc()
-
-	return nil
-}
-
-func (s *scanner) setCheckError(logger lager.Logger, checkable db.Checkable, err error) {
-	setErr := checkable.SetCheckSetupError(err)
-	if setErr != nil {
-		logger.Error("failed-to-set-check-error", setErr)
+		logger.Debug("check-already-exists")
+	} else {
+		metric.Metrics.ChecksEnqueued.Inc()
 	}
 }

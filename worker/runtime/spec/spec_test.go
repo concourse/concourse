@@ -21,7 +21,7 @@ type SpecSuite struct {
 }
 
 func uint64Ptr(i uint64) *uint64 { return &i }
-func int64Ptr(i int64) *int64 { return &i }
+func int64Ptr(i int64) *int64    { return &i }
 
 func (s *SpecSuite) TestContainerSpecValidations() {
 	for _, tc := range []struct {
@@ -83,7 +83,7 @@ func (s *SpecSuite) TestContainerSpecValidations() {
 		},
 	} {
 		s.T().Run(tc.desc, func(t *testing.T) {
-			_, err := spec.OciSpec(tc.spec, dummyMaxUid, dummyMaxGid)
+			_, err := spec.OciSpec(spec.DefaultInitBinPath, tc.spec, dummyMaxUid, dummyMaxGid)
 			s.Error(err)
 		})
 	}
@@ -293,7 +293,7 @@ func (s *SpecSuite) TestOciResourceLimits() {
 		{
 			desc: "PID limit",
 			limits: garden.Limits{
-				Pid: garden.PidLimits {
+				Pid: garden.PidLimits{
 					Max: 1000,
 				},
 			},
@@ -304,8 +304,8 @@ func (s *SpecSuite) TestOciResourceLimits() {
 			},
 		},
 		{
-			desc: "No limits specified",
-			limits: garden.Limits{},
+			desc:     "No limits specified",
+			limits:   garden.Limits{},
 			expected: nil,
 		},
 	} {
@@ -324,18 +324,18 @@ func (s *SpecSuite) TestOciCgroupsPath() {
 		expected   string
 	}{
 		{
-			desc: "not privileged",
-			basePath: "garden",
-			handle: "1234",
+			desc:       "not privileged",
+			basePath:   "garden",
+			handle:     "1234",
 			privileged: false,
-			expected: "garden/1234",
+			expected:   "garden/1234",
 		},
 		{
-			desc: "privileged",
-			basePath: "garden",
-			handle: "1234",
+			desc:       "privileged",
+			basePath:   "garden",
+			handle:     "1234",
 			privileged: true,
-			expected: "",
+			expected:   "",
 		},
 	} {
 		s.T().Run(tc.desc, func(t *testing.T) {
@@ -360,20 +360,44 @@ func (s *SpecSuite) TestContainerSpec() {
 			check: func(oci *specs.Spec) {
 				s.Equal("/", oci.Process.Cwd)
 				s.Equal([]string{"/tmp/gdn-init"}, oci.Process.Args)
-				s.Equal(oci.Mounts, spec.AnyContainerMounts)
+				s.Equal(oci.Mounts, spec.ContainerMounts(false, spec.DefaultInitBinPath))
 
 				s.Equal(minimalContainerSpec.Handle, oci.Hostname)
 				s.Equal(spec.AnyContainerDevices, oci.Linux.Resources.Devices)
 			},
 		},
 		{
-			desc: "default devices privileged",
-			gdn:  garden.ContainerSpec{
+			desc: "privileged mounts",
+			gdn: garden.ContainerSpec{
 				Handle: "handle", RootFSPath: "raw:///rootfs",
 				Privileged: true,
 			},
 			check: func(oci *specs.Spec) {
-				s.Equal(append(spec.PrivilegedOnlyDevices, spec.AnyContainerDevices...), oci.Linux.Resources.Devices)
+				s.Contains(oci.Mounts, specs.Mount{
+					Destination: "/sys",
+					Type:        "sysfs",
+					Source:      "sysfs",
+					Options:     []string{"nosuid", "noexec", "nodev"},
+				})
+				s.Contains(oci.Mounts, specs.Mount{
+					Destination: "/sys/fs/cgroup",
+					Type:        "cgroup",
+					Source:      "cgroup",
+					Options:     []string{"nosuid", "noexec", "nodev"},
+				})
+				s.Contains(oci.Mounts, specs.Mount{
+					Destination: "/sys/fs/cgroup",
+					Type:        "cgroup",
+					Source:      "cgroup",
+					Options:     []string{"nosuid", "noexec", "nodev"},
+				})
+				for _, ociMount := range oci.Mounts {
+					if ociMount.Destination == "/sys" {
+						s.NotContains(ociMount.Options, "ro", "%s: %s", ociMount.Destination, ociMount.Type)
+					} else if ociMount.Type == "cgroup" {
+						s.NotContains(ociMount.Options, "ro", "%s: %s", ociMount.Destination, ociMount.Type)
+					}
+				}
 			},
 		},
 		{
@@ -500,7 +524,7 @@ func (s *SpecSuite) TestContainerSpec() {
 		},
 	} {
 		s.T().Run(tc.desc, func(t *testing.T) {
-			actual, err := spec.OciSpec(tc.gdn, dummyMaxUid, dummyMaxGid)
+			actual, err := spec.OciSpec(spec.DefaultInitBinPath, tc.gdn, dummyMaxUid, dummyMaxGid)
 			s.NoError(err)
 
 			tc.check(actual)

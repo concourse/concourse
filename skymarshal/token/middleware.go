@@ -1,9 +1,7 @@
 package token
 
 import (
-	"errors"
 	"net/http"
-	"strconv"
 	"time"
 )
 
@@ -30,65 +28,39 @@ func NewMiddleware(secureCookies bool) Middleware {
 	return &middleware{secureCookies: secureCookies}
 }
 
-const NumCookies = 15
 const stateCookieName = "skymarshal_state"
 const authCookieName = "skymarshal_auth"
 const csrfCookieName = "skymarshal_csrf"
-const maxCookieSize = 4000
 
 func (m *middleware) UnsetAuthToken(w http.ResponseWriter) {
-	for i := 0; i < NumCookies; i++ {
-		http.SetCookie(w, &http.Cookie{
-			Name:     authCookieName + strconv.Itoa(i),
-			Path:     "/",
-			MaxAge:   -1,
-			Secure:   m.secureCookies,
-			HttpOnly: true,
-		})
-	}
+	http.SetCookie(w, &http.Cookie{
+		Name:     authCookieName,
+		Path:     "/",
+		MaxAge:   -1,
+		Secure:   m.secureCookies,
+		HttpOnly: true,
+	})
 }
 
 func (m *middleware) SetAuthToken(w http.ResponseWriter, tokenStr string, expiry time.Time) error {
-	tokenLength := len(tokenStr)
-	if tokenLength > maxCookieSize*NumCookies {
-		return errors.New("token is too long to fit in cookies")
-	}
+	http.SetCookie(w, &http.Cookie{
+		Name:     authCookieName,
+		Value:    tokenStr,
+		Path:     "/",
+		Expires:  expiry,
+		HttpOnly: true,
+		Secure:   m.secureCookies,
+	})
 
-	for i := 0; i < NumCookies; i++ {
-		if len(tokenStr) > maxCookieSize {
-			http.SetCookie(w, &http.Cookie{
-				Name:     authCookieName + strconv.Itoa(i),
-				Value:    tokenStr[:maxCookieSize],
-				Path:     "/",
-				Expires:  expiry,
-				HttpOnly: true,
-				Secure:   m.secureCookies,
-			})
-			tokenStr = tokenStr[maxCookieSize:]
-		} else {
-			http.SetCookie(w, &http.Cookie{
-				Name:     authCookieName + strconv.Itoa(i),
-				Value:    tokenStr,
-				Path:     "/",
-				Expires:  expiry,
-				HttpOnly: true,
-				Secure:   m.secureCookies,
-			})
-			break
-		}
-	}
 	return nil
 }
 
 func (m *middleware) GetAuthToken(r *http.Request) string {
-	authCookie := ""
-	for i := 0; i < NumCookies; i++ {
-		cookie, err := r.Cookie(authCookieName + strconv.Itoa(i))
-		if err == nil {
-			authCookie += cookie.Value
-		}
+	cookie, err := r.Cookie(authCookieName)
+	if err != nil {
+		return ""
 	}
-	return authCookie
+	return cookie.Value
 }
 
 func (m *middleware) UnsetCSRFToken(w http.ResponseWriter) {

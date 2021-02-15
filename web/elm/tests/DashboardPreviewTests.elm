@@ -6,14 +6,18 @@ import Common exposing (defineHoverBehaviour, isColorWithStripes, queryView)
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Dashboard.DashboardPreview as DP
+import DashboardTests exposing (whenOnDashboard)
 import Data
 import Expect
 import Message.Callback as Callback
-import Message.Message exposing (DomID(..))
-import Message.TopLevelMessage exposing (TopLevelMessage)
+import Message.Effects exposing (toHtmlID)
+import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
+import Message.Subscription as Subscription
+import Message.TopLevelMessage exposing (TopLevelMessage(..))
+import Set
 import Test exposing (Test, describe, test)
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (class, containing, style, text)
+import Test.Html.Selector exposing (class, containing, id, style, text)
 import Time
 import Url
 
@@ -21,7 +25,12 @@ import Url
 all : Test
 all =
     describe "job boxes in dashboard pipeline preview"
-        [ test "fills available space" <|
+        [ test "has dom id" <|
+            \_ ->
+                job
+                    |> viewJob
+                    |> Query.has [ id <| toHtmlID <| JobPreview AllPipelinesSection 0 "job" ]
+        , test "fills available space" <|
             \_ ->
                 job
                     |> viewJob
@@ -51,7 +60,7 @@ all =
                 { description = "light grey background"
                 , selector = [ style "background-color" Colors.pending ]
                 }
-            , hoverable = JobPreview jobId
+            , hoverable = JobPreview AllPipelinesSection 0 "job"
             , hoveredSelector =
                 { description = "dark grey background"
                 , selector = [ style "background-color" Colors.pendingFaded ]
@@ -164,6 +173,45 @@ all =
                         { thick = Colors.abortedFaded
                         , thin = Colors.aborted
                         }
+        , describe "preview in favorites section" <|
+            let
+                dashboardWithJobInFavoritesSection =
+                    dashboardWithJob
+                        >> Application.handleDelivery
+                            (Subscription.FavoritedPipelinesReceived <| Ok <| Set.singleton 0)
+                        >> Tuple.first
+
+                findJobPreviewInFavoritesSection =
+                    queryView
+                        >> Query.find [ id "dashboard-favorite-pipelines" ]
+                        >> Query.find [ class "card", containing [ text "pipeline" ] ]
+                        >> Query.find [ class "parallel-grid" ]
+                        >> Query.children []
+                        >> Query.first
+            in
+            [ defineHoverBehaviour
+                { name = "pending job"
+                , setup = dashboardWithJobInFavoritesSection job
+                , query = findJobPreviewInFavoritesSection
+                , unhoveredSelector =
+                    { description = "light grey background"
+                    , selector = [ style "background-color" Colors.pending ]
+                    }
+                , hoverable = JobPreview FavoritesSection 0 "job"
+                , hoveredSelector =
+                    { description = "dark grey background"
+                    , selector = [ style "background-color" Colors.pendingFaded ]
+                    }
+                }
+            , test "hovering over job preview in favorites section does not highlight in all pipelines section" <|
+                \_ ->
+                    dashboardWithJob job
+                        |> Application.update
+                            (Update <| Hover <| Just (JobPreview FavoritesSection 0 "job"))
+                        |> Tuple.first
+                        |> findJobPreview
+                        |> Query.has [ style "background-color" Colors.pending ]
+            ]
         ]
 
 
@@ -174,7 +222,7 @@ viewJob =
 
 dashboardWithJob : Concourse.Job -> Application.Model
 dashboardWithJob j =
-    Common.init "/"
+    whenOnDashboard { highDensity = False }
         |> Application.handleCallback
             (Callback.AllJobsFetched <|
                 Ok
@@ -212,48 +260,31 @@ findJobPreview =
 
 job : Concourse.Job
 job =
-    { name = "job"
-    , pipelineName = "pipeline"
-    , teamName = "team"
-    , nextBuild = Nothing
-    , finishedBuild = Nothing
-    , transitionBuild = Nothing
-    , paused = False
-    , disableManualTrigger = False
-    , inputs = []
-    , outputs = []
-    , groups = []
-    }
+    Data.job 0
+        |> Data.withPipelineName "pipeline"
+        |> Data.withName "job"
 
 
 withNextBuild : Concourse.Job -> Concourse.Job
-withNextBuild j =
-    { j
-        | nextBuild =
-            Just
-                { id = 2
-                , name = "2"
-                , job = Just jobId
-                , status = BuildStatusStarted
-                , duration = { startedAt = Nothing, finishedAt = Nothing }
-                , reapTime = Nothing
-                }
-    }
+withNextBuild =
+    Data.withNextBuild
+        (Data.jobBuild BuildStatusStarted
+            |> Data.withId 2
+            |> Data.withName "2"
+            |> Data.withJob (Just jobId)
+            |> Just
+        )
 
 
 withStatus : BuildStatus -> Concourse.Job -> Concourse.Job
-withStatus status j =
-    { j
-        | finishedBuild =
-            Just
-                { id = 1
-                , name = "1"
-                , job = Just jobId
-                , status = status
-                , duration = { startedAt = Nothing, finishedAt = Nothing }
-                , reapTime = Nothing
-                }
-    }
+withStatus status =
+    Data.withFinishedBuild
+        (Data.jobBuild status
+            |> Data.withId 1
+            |> Data.withName "1"
+            |> Data.withJob (Just jobId)
+            |> Just
+        )
 
 
 isPaused : Concourse.Job -> Concourse.Job
@@ -263,7 +294,4 @@ isPaused j =
 
 jobId : Concourse.JobIdentifier
 jobId =
-    { teamName = "team"
-    , pipelineName = "pipeline"
-    , jobName = "job"
-    }
+    Data.jobId

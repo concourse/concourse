@@ -3,15 +3,14 @@ package exec_test
 import (
 	"context"
 	"errors"
-	"io/ioutil"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/build"
-	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/runtime/runtimefakes"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
+	"github.com/concourse/concourse/vars"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -21,14 +20,14 @@ var _ = Describe("ArtifactOutputStep", func() {
 		ctx    context.Context
 		cancel func()
 
-		state    exec.RunState
-		delegate *execfakes.FakeBuildStepDelegate
+		state exec.RunState
 
-		step             exec.Step
-		stepErr          error
-		plan             atc.Plan
-		fakeBuild        *dbfakes.FakeBuild
-		fakeWorkerClient *workerfakes.FakeClient
+		step           exec.Step
+		stepOk         bool
+		stepErr        error
+		plan           atc.Plan
+		fakeBuild      *dbfakes.FakeBuild
+		fakeWorkerPool *workerfakes.FakePool
 
 		artifactName string
 	)
@@ -36,15 +35,12 @@ var _ = Describe("ArtifactOutputStep", func() {
 	BeforeEach(func() {
 		ctx, cancel = context.WithCancel(context.Background())
 
-		state = exec.NewRunState()
-
-		delegate = new(execfakes.FakeBuildStepDelegate)
-		delegate.StdoutReturns(ioutil.Discard)
+		state = exec.NewRunState(noopStepper, vars.StaticVariables{}, false)
 
 		fakeBuild = new(dbfakes.FakeBuild)
 		fakeBuild.TeamIDReturns(4)
 
-		fakeWorkerClient = new(workerfakes.FakeClient)
+		fakeWorkerPool = new(workerfakes.FakePool)
 
 		artifactName = "some-artifact-name"
 	})
@@ -54,10 +50,10 @@ var _ = Describe("ArtifactOutputStep", func() {
 	})
 
 	JustBeforeEach(func() {
-		plan = atc.Plan{ArtifactOutput: &atc.ArtifactOutputPlan{artifactName}}
+		plan = atc.Plan{ArtifactOutput: &atc.ArtifactOutputPlan{Name: artifactName}}
 
-		step = exec.NewArtifactOutputStep(plan, fakeBuild, fakeWorkerClient, delegate)
-		stepErr = step.Run(ctx, state)
+		step = exec.NewArtifactOutputStep(plan, fakeBuild, fakeWorkerPool)
+		stepOk, stepErr = step.Run(ctx, state)
 	})
 
 	Context("when the source does not exist", func() {
@@ -88,7 +84,7 @@ var _ = Describe("ArtifactOutputStep", func() {
 				fakeArtifact = new(runtimefakes.FakeArtifact)
 				fakeArtifact.IDReturns("some-artifact-id")
 
-				fakeWorkerClient.FindVolumeReturns(fakeWorkerVolume, true, nil)
+				fakeWorkerPool.FindVolumeReturns(fakeWorkerVolume, true, nil)
 
 				state.ArtifactRepository().RegisterArtifact(build.ArtifactName(artifactName), fakeArtifact)
 			})
@@ -113,13 +109,13 @@ var _ = Describe("ArtifactOutputStep", func() {
 				})
 
 				It("calls workerClient -> FindVolume with the correct arguments", func() {
-					_, actualTeamId, actualBuildArtifactID := fakeWorkerClient.FindVolumeArgsForCall(0)
+					_, actualTeamId, actualBuildArtifactID := fakeWorkerPool.FindVolumeArgsForCall(0)
 					Expect(actualTeamId).To(Equal(4))
 					Expect(actualBuildArtifactID).To(Equal("some-artifact-id"))
 				})
 
 				It("succeeds", func() {
-					Expect(step.Succeeded()).To(BeTrue())
+					Expect(stepOk).To(BeTrue())
 				})
 			})
 		})

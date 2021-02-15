@@ -2,7 +2,6 @@ package gc_test
 
 import (
 	"context"
-	"os"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -12,11 +11,11 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/dbtest"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/postgresrunner"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/tedsuo/ifrit"
 
 	"testing"
 )
@@ -34,7 +33,6 @@ var psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 var (
 	postgresRunner postgresrunner.Runner
-	dbProcess      ifrit.Process
 
 	dbConn                 db.Conn
 	err                    error
@@ -46,33 +44,31 @@ var (
 
 	teamFactory db.TeamFactory
 
-	defaultTeam     db.Team
-	defaultPipeline db.Pipeline
-	defaultJob      db.Job
-	defaultBuild    db.Build
+	defaultTeam        db.Team
+	defaultPipeline    db.Pipeline
+	defaultPipelineRef atc.PipelineRef
+	defaultJob         db.Job
+	defaultBuild       db.Build
 
 	usedResource     db.Resource
 	usedResourceType db.ResourceType
-	logger           *lagertest.TestLogger
-	fakeLogFunc      = func(logger lager.Logger, id lock.LockID) {}
+
+	builder dbtest.Builder
+
+	logger      *lagertest.TestLogger
+	fakeLogFunc = func(logger lager.Logger, id lock.LockID) {}
 )
 
-var _ = BeforeSuite(func() {
-	postgresRunner = postgresrunner.Runner{
-		Port: 5433 + GinkgoParallelNode(),
-	}
-
-	dbProcess = ifrit.Invoke(postgresRunner)
-
-	postgresRunner.CreateTestDB()
-})
+var _ = postgresrunner.GinkgoRunner(&postgresRunner)
 
 var _ = BeforeEach(func() {
-	postgresRunner.Truncate()
+	postgresRunner.CreateTestDBFromTemplate()
 
 	dbConn = postgresRunner.OpenConn()
 
 	lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton(), fakeLogFunc, fakeLogFunc)
+
+	builder = dbtest.NewBuilder(dbConn, lockFactory)
 
 	teamFactory = db.NewTeamFactory(dbConn, lockFactory)
 	buildFactory = db.NewBuildFactory(dbConn, lockFactory, 0, time.Hour)
@@ -108,7 +104,8 @@ var _ = BeforeEach(func() {
 		},
 	}
 
-	defaultPipeline, _, err = defaultTeam.SavePipeline("default-pipeline", atcConfig, db.ConfigVersion(0), false)
+	defaultPipelineRef = atc.PipelineRef{Name: "default-pipeline"}
+	defaultPipeline, _, err = defaultTeam.SavePipeline(defaultPipelineRef, atcConfig, db.ConfigVersion(0), false)
 	Expect(err).NotTo(HaveOccurred())
 
 	var found bool
@@ -145,9 +142,5 @@ var _ = BeforeEach(func() {
 
 var _ = AfterEach(func() {
 	Expect(dbConn.Close()).To(Succeed())
-})
-
-var _ = AfterSuite(func() {
-	dbProcess.Signal(os.Interrupt)
-	Eventually(dbProcess.Wait(), 10*time.Second).Should(Receive())
+	postgresRunner.DropTestDB()
 })

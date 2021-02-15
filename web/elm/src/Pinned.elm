@@ -30,7 +30,7 @@ type VersionPinState
     = Enabled
     | PinnedDynamically
     | NotThePinnedVersion
-    | PinnedStatically Bool
+    | PinnedStatically
     | Disabled
     | InTransition
 
@@ -113,7 +113,7 @@ pinState version id resourcePinState =
     case resourcePinState of
         PinnedStaticallyTo v ->
             if v == version then
-                PinnedStatically False
+                PinnedStatically
 
             else
                 Disabled

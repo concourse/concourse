@@ -7,7 +7,7 @@ import Expect
 import HoverState exposing (TooltipPosition(..))
 import Message.Callback as Callback
 import Message.Effects as Effects
-import Message.Message exposing (DomID(..), Message(..))
+import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import Test exposing (Test, describe, test)
 import Tooltip
 
@@ -81,10 +81,7 @@ nonOverflowingViewport =
 
 domID : DomID
 domID =
-    SideBarPipeline
-        { teamName = "team"
-        , pipelineName = "pipeline"
-        }
+    SideBarPipeline AllPipelinesSection Data.pipelineId
 
 
 overflowingViewport : Browser.Dom.Viewport

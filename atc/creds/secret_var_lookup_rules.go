@@ -24,8 +24,8 @@ func NewSecretLookupWithPrefix(prefix string) SecretLookupPath {
 	}
 }
 
-func (sl SecretLookupWithPrefix) VariableToSecretPath(varName string) (string, error) {
-	return sl.Prefix + varName, nil
+func (sl SecretLookupWithPrefix) VariableToSecretPath(path string) (string, error) {
+	return sl.Prefix + path, nil
 }
 
 // SecretLookupWithTemplate uses the given template to construct a lookup path specific
@@ -80,7 +80,7 @@ func NewSecretLookupWithTemplate(pathTemplate *SecretTemplate, teamName string, 
 	}
 }
 
-func (sl SecretLookupWithTemplate) VariableToSecretPath(varName string) (string, error) {
+func (sl SecretLookupWithTemplate) VariableToSecretPath(path string) (string, error) {
 	var buf bytes.Buffer
 	data := struct {
 		Team     string
@@ -89,7 +89,7 @@ func (sl SecretLookupWithTemplate) VariableToSecretPath(varName string) (string,
 	}{
 		sl.TeamName,
 		sl.PipelineName,
-		varName,
+		path,
 	}
 
 	err := sl.PathTemplate.Execute(&buf, &data)

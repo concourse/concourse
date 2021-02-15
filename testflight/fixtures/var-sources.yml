@@ -7,6 +7,8 @@ var_sources:
       some_var: hello-im-a-var
       some_numeric_var: 42
       initial_version_var: hello-im-a-version
+      var:with.and_colon:
+        some_key: some-value
 
 resources:
 - name: resource-using-vars
@@ -37,5 +39,6 @@ jobs:
         - -exc
         - |
           test "((vs:some_var))" = "hello-im-a-var"
+          test "((vs:"var:with.and_colon".some_key))" = "some-value"
           test "$(cat resource-using-vars/version)" = "hello-im-a-version"
           test "$(cat resource-using-vars/some_file)" = "42"

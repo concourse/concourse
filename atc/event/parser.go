@@ -43,9 +43,13 @@ func init() {
 	RegisterEvent(InitializePut{})
 	RegisterEvent(StartPut{})
 	RegisterEvent(FinishPut{})
+	RegisterEvent(SetPipelineChanged{})
 	RegisterEvent(Status{})
+	RegisterEvent(SelectedWorker{})
 	RegisterEvent(Log{})
 	RegisterEvent(Error{})
+	RegisterEvent(ImageCheck{})
+	RegisterEvent(ImageGet{})
 
 	// deprecated:
 	RegisterEvent(InitializeV10{})

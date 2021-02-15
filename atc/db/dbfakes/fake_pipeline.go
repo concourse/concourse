@@ -135,16 +135,16 @@ type FakePipeline struct {
 		result1 db.Build
 		result2 error
 	}
-	DashboardStub        func() (atc.Dashboard, error)
+	DashboardStub        func() ([]atc.JobSummary, error)
 	dashboardMutex       sync.RWMutex
 	dashboardArgsForCall []struct {
 	}
 	dashboardReturns struct {
-		result1 atc.Dashboard
+		result1 []atc.JobSummary
 		result2 error
 	}
 	dashboardReturnsOnCall map[int]struct {
-		result1 atc.Dashboard
+		result1 []atc.JobSummary
 		result2 error
 	}
 	DeleteBuildEventsByBuildIDsStub        func([]int) error
@@ -167,6 +167,16 @@ type FakePipeline struct {
 	}
 	destroyReturnsOnCall map[int]struct {
 		result1 error
+	}
+	DisplayStub        func() *atc.DisplayConfig
+	displayMutex       sync.RWMutex
+	displayArgsForCall []struct {
+	}
+	displayReturns struct {
+		result1 *atc.DisplayConfig
+	}
+	displayReturnsOnCall map[int]struct {
+		result1 *atc.DisplayConfig
 	}
 	ExposeStub        func() error
 	exposeMutex       sync.RWMutex
@@ -235,6 +245,16 @@ type FakePipeline struct {
 	}
 	iDReturnsOnCall map[int]struct {
 		result1 int
+	}
+	InstanceVarsStub        func() atc.InstanceVars
+	instanceVarsMutex       sync.RWMutex
+	instanceVarsArgsForCall []struct {
+	}
+	instanceVarsReturns struct {
+		result1 atc.InstanceVars
+	}
+	instanceVarsReturnsOnCall map[int]struct {
+		result1 atc.InstanceVars
 	}
 	JobStub        func(string) (db.Job, bool, error)
 	jobMutex       sync.RWMutex
@@ -356,17 +376,6 @@ type FakePipeline struct {
 	reloadReturnsOnCall map[int]struct {
 		result1 bool
 		result2 error
-	}
-	RenameStub        func(string) error
-	renameMutex       sync.RWMutex
-	renameArgsForCall []struct {
-		arg1 string
-	}
-	renameReturns struct {
-		result1 error
-	}
-	renameReturnsOnCall map[int]struct {
-		result1 error
 	}
 	ResourceStub        func(string) (db.Resource, bool, error)
 	resourceMutex       sync.RWMutex
@@ -1117,7 +1126,7 @@ func (fake *FakePipeline) CreateStartedBuildReturnsOnCall(i int, result1 db.Buil
 	}{result1, result2}
 }
 
-func (fake *FakePipeline) Dashboard() (atc.Dashboard, error) {
+func (fake *FakePipeline) Dashboard() ([]atc.JobSummary, error) {
 	fake.dashboardMutex.Lock()
 	ret, specificReturn := fake.dashboardReturnsOnCall[len(fake.dashboardArgsForCall)]
 	fake.dashboardArgsForCall = append(fake.dashboardArgsForCall, struct {
@@ -1140,34 +1149,34 @@ func (fake *FakePipeline) DashboardCallCount() int {
 	return len(fake.dashboardArgsForCall)
 }
 
-func (fake *FakePipeline) DashboardCalls(stub func() (atc.Dashboard, error)) {
+func (fake *FakePipeline) DashboardCalls(stub func() ([]atc.JobSummary, error)) {
 	fake.dashboardMutex.Lock()
 	defer fake.dashboardMutex.Unlock()
 	fake.DashboardStub = stub
 }
 
-func (fake *FakePipeline) DashboardReturns(result1 atc.Dashboard, result2 error) {
+func (fake *FakePipeline) DashboardReturns(result1 []atc.JobSummary, result2 error) {
 	fake.dashboardMutex.Lock()
 	defer fake.dashboardMutex.Unlock()
 	fake.DashboardStub = nil
 	fake.dashboardReturns = struct {
-		result1 atc.Dashboard
+		result1 []atc.JobSummary
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakePipeline) DashboardReturnsOnCall(i int, result1 atc.Dashboard, result2 error) {
+func (fake *FakePipeline) DashboardReturnsOnCall(i int, result1 []atc.JobSummary, result2 error) {
 	fake.dashboardMutex.Lock()
 	defer fake.dashboardMutex.Unlock()
 	fake.DashboardStub = nil
 	if fake.dashboardReturnsOnCall == nil {
 		fake.dashboardReturnsOnCall = make(map[int]struct {
-			result1 atc.Dashboard
+			result1 []atc.JobSummary
 			result2 error
 		})
 	}
 	fake.dashboardReturnsOnCall[i] = struct {
-		result1 atc.Dashboard
+		result1 []atc.JobSummary
 		result2 error
 	}{result1, result2}
 }
@@ -1286,6 +1295,58 @@ func (fake *FakePipeline) DestroyReturnsOnCall(i int, result1 error) {
 	}
 	fake.destroyReturnsOnCall[i] = struct {
 		result1 error
+	}{result1}
+}
+
+func (fake *FakePipeline) Display() *atc.DisplayConfig {
+	fake.displayMutex.Lock()
+	ret, specificReturn := fake.displayReturnsOnCall[len(fake.displayArgsForCall)]
+	fake.displayArgsForCall = append(fake.displayArgsForCall, struct {
+	}{})
+	fake.recordInvocation("Display", []interface{}{})
+	fake.displayMutex.Unlock()
+	if fake.DisplayStub != nil {
+		return fake.DisplayStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.displayReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakePipeline) DisplayCallCount() int {
+	fake.displayMutex.RLock()
+	defer fake.displayMutex.RUnlock()
+	return len(fake.displayArgsForCall)
+}
+
+func (fake *FakePipeline) DisplayCalls(stub func() *atc.DisplayConfig) {
+	fake.displayMutex.Lock()
+	defer fake.displayMutex.Unlock()
+	fake.DisplayStub = stub
+}
+
+func (fake *FakePipeline) DisplayReturns(result1 *atc.DisplayConfig) {
+	fake.displayMutex.Lock()
+	defer fake.displayMutex.Unlock()
+	fake.DisplayStub = nil
+	fake.displayReturns = struct {
+		result1 *atc.DisplayConfig
+	}{result1}
+}
+
+func (fake *FakePipeline) DisplayReturnsOnCall(i int, result1 *atc.DisplayConfig) {
+	fake.displayMutex.Lock()
+	defer fake.displayMutex.Unlock()
+	fake.DisplayStub = nil
+	if fake.displayReturnsOnCall == nil {
+		fake.displayReturnsOnCall = make(map[int]struct {
+			result1 *atc.DisplayConfig
+		})
+	}
+	fake.displayReturnsOnCall[i] = struct {
+		result1 *atc.DisplayConfig
 	}{result1}
 }
 
@@ -1622,6 +1683,58 @@ func (fake *FakePipeline) IDReturnsOnCall(i int, result1 int) {
 	}
 	fake.iDReturnsOnCall[i] = struct {
 		result1 int
+	}{result1}
+}
+
+func (fake *FakePipeline) InstanceVars() atc.InstanceVars {
+	fake.instanceVarsMutex.Lock()
+	ret, specificReturn := fake.instanceVarsReturnsOnCall[len(fake.instanceVarsArgsForCall)]
+	fake.instanceVarsArgsForCall = append(fake.instanceVarsArgsForCall, struct {
+	}{})
+	fake.recordInvocation("InstanceVars", []interface{}{})
+	fake.instanceVarsMutex.Unlock()
+	if fake.InstanceVarsStub != nil {
+		return fake.InstanceVarsStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.instanceVarsReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakePipeline) InstanceVarsCallCount() int {
+	fake.instanceVarsMutex.RLock()
+	defer fake.instanceVarsMutex.RUnlock()
+	return len(fake.instanceVarsArgsForCall)
+}
+
+func (fake *FakePipeline) InstanceVarsCalls(stub func() atc.InstanceVars) {
+	fake.instanceVarsMutex.Lock()
+	defer fake.instanceVarsMutex.Unlock()
+	fake.InstanceVarsStub = stub
+}
+
+func (fake *FakePipeline) InstanceVarsReturns(result1 atc.InstanceVars) {
+	fake.instanceVarsMutex.Lock()
+	defer fake.instanceVarsMutex.Unlock()
+	fake.InstanceVarsStub = nil
+	fake.instanceVarsReturns = struct {
+		result1 atc.InstanceVars
+	}{result1}
+}
+
+func (fake *FakePipeline) InstanceVarsReturnsOnCall(i int, result1 atc.InstanceVars) {
+	fake.instanceVarsMutex.Lock()
+	defer fake.instanceVarsMutex.Unlock()
+	fake.InstanceVarsStub = nil
+	if fake.instanceVarsReturnsOnCall == nil {
+		fake.instanceVarsReturnsOnCall = make(map[int]struct {
+			result1 atc.InstanceVars
+		})
+	}
+	fake.instanceVarsReturnsOnCall[i] = struct {
+		result1 atc.InstanceVars
 	}{result1}
 }
 
@@ -2218,66 +2331,6 @@ func (fake *FakePipeline) ReloadReturnsOnCall(i int, result1 bool, result2 error
 		result1 bool
 		result2 error
 	}{result1, result2}
-}
-
-func (fake *FakePipeline) Rename(arg1 string) error {
-	fake.renameMutex.Lock()
-	ret, specificReturn := fake.renameReturnsOnCall[len(fake.renameArgsForCall)]
-	fake.renameArgsForCall = append(fake.renameArgsForCall, struct {
-		arg1 string
-	}{arg1})
-	fake.recordInvocation("Rename", []interface{}{arg1})
-	fake.renameMutex.Unlock()
-	if fake.RenameStub != nil {
-		return fake.RenameStub(arg1)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.renameReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakePipeline) RenameCallCount() int {
-	fake.renameMutex.RLock()
-	defer fake.renameMutex.RUnlock()
-	return len(fake.renameArgsForCall)
-}
-
-func (fake *FakePipeline) RenameCalls(stub func(string) error) {
-	fake.renameMutex.Lock()
-	defer fake.renameMutex.Unlock()
-	fake.RenameStub = stub
-}
-
-func (fake *FakePipeline) RenameArgsForCall(i int) string {
-	fake.renameMutex.RLock()
-	defer fake.renameMutex.RUnlock()
-	argsForCall := fake.renameArgsForCall[i]
-	return argsForCall.arg1
-}
-
-func (fake *FakePipeline) RenameReturns(result1 error) {
-	fake.renameMutex.Lock()
-	defer fake.renameMutex.Unlock()
-	fake.RenameStub = nil
-	fake.renameReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakePipeline) RenameReturnsOnCall(i int, result1 error) {
-	fake.renameMutex.Lock()
-	defer fake.renameMutex.Unlock()
-	fake.RenameStub = nil
-	if fake.renameReturnsOnCall == nil {
-		fake.renameReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.renameReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
 }
 
 func (fake *FakePipeline) Resource(arg1 string) (db.Resource, bool, error) {
@@ -3083,6 +3136,8 @@ func (fake *FakePipeline) Invocations() map[string][][]interface{} {
 	defer fake.deleteBuildEventsByBuildIDsMutex.RUnlock()
 	fake.destroyMutex.RLock()
 	defer fake.destroyMutex.RUnlock()
+	fake.displayMutex.RLock()
+	defer fake.displayMutex.RUnlock()
 	fake.exposeMutex.RLock()
 	defer fake.exposeMutex.RUnlock()
 	fake.getBuildsWithVersionAsInputMutex.RLock()
@@ -3095,6 +3150,8 @@ func (fake *FakePipeline) Invocations() map[string][][]interface{} {
 	defer fake.hideMutex.RUnlock()
 	fake.iDMutex.RLock()
 	defer fake.iDMutex.RUnlock()
+	fake.instanceVarsMutex.RLock()
+	defer fake.instanceVarsMutex.RUnlock()
 	fake.jobMutex.RLock()
 	defer fake.jobMutex.RUnlock()
 	fake.jobsMutex.RLock()
@@ -3117,8 +3174,6 @@ func (fake *FakePipeline) Invocations() map[string][][]interface{} {
 	defer fake.publicMutex.RUnlock()
 	fake.reloadMutex.RLock()
 	defer fake.reloadMutex.RUnlock()
-	fake.renameMutex.RLock()
-	defer fake.renameMutex.RUnlock()
 	fake.resourceMutex.RLock()
 	defer fake.resourceMutex.RUnlock()
 	fake.resourceByIDMutex.RLock()

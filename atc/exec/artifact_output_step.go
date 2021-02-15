@@ -21,23 +21,20 @@ func (e ArtifactNotFoundError) Error() string {
 }
 
 type ArtifactOutputStep struct {
-	plan         atc.Plan
-	build        db.Build
-	workerClient worker.Client
-	delegate     BuildStepDelegate
-	succeeded    bool
+	plan       atc.Plan
+	build      db.Build
+	workerPool worker.Pool
 }
 
-func NewArtifactOutputStep(plan atc.Plan, build db.Build, workerClient worker.Client, delegate BuildStepDelegate) Step {
+func NewArtifactOutputStep(plan atc.Plan, build db.Build, workerPool worker.Pool) Step {
 	return &ArtifactOutputStep{
-		plan:         plan,
-		build:        build,
-		workerClient: workerClient,
-		delegate:     delegate,
+		plan:       plan,
+		build:      build,
+		workerPool: workerPool,
 	}
 }
 
-func (step *ArtifactOutputStep) Run(ctx context.Context, state RunState) error {
+func (step *ArtifactOutputStep) Run(ctx context.Context, state RunState) (bool, error) {
 	logger := lagerctx.FromContext(ctx).WithData(lager.Data{
 		"plan-id": step.plan.ID,
 	})
@@ -46,23 +43,23 @@ func (step *ArtifactOutputStep) Run(ctx context.Context, state RunState) error {
 
 	buildArtifact, found := state.ArtifactRepository().ArtifactFor(build.ArtifactName(outputName))
 	if !found {
-		return ArtifactNotFoundError{outputName}
+		return false, ArtifactNotFoundError{outputName}
 	}
 
 	// TODO (Runtime/#3607): step shouldn't know about volumes,
 	//  	use the artifactRepo and artifact interface
-	volume, found, err := step.workerClient.FindVolume(logger, step.build.TeamID(), buildArtifact.ID())
+	volume, found, err := step.workerPool.FindVolume(logger, step.build.TeamID(), buildArtifact.ID())
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	if !found {
-		return ArtifactNotFoundError{outputName}
+		return false, ArtifactNotFoundError{outputName}
 	}
 
 	dbWorkerArtifact, err := volume.InitializeArtifact(outputName, step.build.ID())
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	logger.Info("initialize-artifact-from-source", lager.Data{
@@ -70,11 +67,5 @@ func (step *ArtifactOutputStep) Run(ctx context.Context, state RunState) error {
 		"artifact_id": dbWorkerArtifact.ID(),
 	})
 
-	step.succeeded = true
-
-	return nil
-}
-
-func (step *ArtifactOutputStep) Succeeded() bool {
-	return step.succeeded
+	return true, nil
 }

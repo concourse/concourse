@@ -1,8 +1,9 @@
 package secretsmanager_test
 
 import (
-	"code.cloudfoundry.org/lager/lagertest"
 	"errors"
+
+	"code.cloudfoundry.org/lager/lagertest"
 
 	"github.com/concourse/concourse/atc/creds"
 
@@ -39,11 +40,11 @@ func (mock *MockSecretsManagerService) GetSecretValue(input *secretsmanager.GetS
 var _ = Describe("SecretsManager", func() {
 	var secretAccess *SecretsManager
 	var variables vars.Variables
-	var varDef vars.VariableDefinition
+	var varRef vars.Reference
 	var mockService MockSecretsManagerService
 
 	JustBeforeEach(func() {
-		varDef = vars.VariableDefinition{Name: "cheery"}
+		varRef = vars.Reference{Path: "cheery"}
 		t1, err := creds.BuildSecretTemplate("t1", DefaultPipelineSecretTemplate)
 		Expect(t1).NotTo(BeNil())
 		Expect(err).To(BeNil())
@@ -63,7 +64,7 @@ var _ = Describe("SecretsManager", func() {
 
 	Describe("Get()", func() {
 		It("should get parameter if exists", func() {
-			value, found, err := variables.Get(varDef)
+			value, found, err := variables.Get(varRef)
 			Expect(value).To(BeEquivalentTo("secret value"))
 			Expect(found).To(BeTrue())
 			Expect(err).To(BeNil())
@@ -75,7 +76,7 @@ var _ = Describe("SecretsManager", func() {
 					SecretBinary: []byte(`{"name": "yours", "pass": "truely"}`),
 				}, nil
 			}
-			value, found, err := variables.Get(vars.VariableDefinition{Name: "user"})
+			value, found, err := variables.Get(vars.Reference{Path: "user"})
 			Expect(err).To(BeNil())
 			Expect(found).To(BeTrue())
 			Expect(value).To(BeEquivalentTo(map[string]interface{}{
@@ -91,7 +92,7 @@ var _ = Describe("SecretsManager", func() {
 				}
 				return &secretsmanager.GetSecretValueOutput{SecretString: aws.String("team decrypted value")}, nil
 			}
-			value, found, err := variables.Get(varDef)
+			value, found, err := variables.Get(varRef)
 			Expect(value).To(BeEquivalentTo("team decrypted value"))
 			Expect(found).To(BeTrue())
 			Expect(err).To(BeNil())
@@ -99,7 +100,7 @@ var _ = Describe("SecretsManager", func() {
 
 		It("should return not found on error", func() {
 			mockService.stubGetParameter = nil
-			value, found, err := variables.Get(varDef)
+			value, found, err := variables.Get(varRef)
 			Expect(value).To(BeNil())
 			Expect(found).To(BeFalse())
 			Expect(err).NotTo(BeNil())
@@ -111,7 +112,7 @@ var _ = Describe("SecretsManager", func() {
 				Expect(input).To(Equal("/concourse/alpha/cheery"))
 				return &secretsmanager.GetSecretValueOutput{SecretString: aws.String("team power")}, nil
 			}
-			value, found, err := variables.Get(varDef)
+			value, found, err := variables.Get(varRef)
 			Expect(value).To(BeEquivalentTo("team power"))
 			Expect(found).To(BeTrue())
 			Expect(err).To(BeNil())

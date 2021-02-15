@@ -1,8 +1,10 @@
 module Pipeline.Styles exposing
     ( cliIcon
+    , favoritedIcon
     , groupItem
     , groupsBar
     , pauseToggle
+    , pipelineBackground
     )
 
 import Assets
@@ -46,14 +48,21 @@ groupItem { selected, hovered } =
            )
 
 
-pauseToggle : Bool -> List (Html.Attribute msg)
-pauseToggle isPaused =
+favoritedIcon : List (Html.Attribute msg)
+favoritedIcon =
     [ style "border-left" <|
-        if isPaused then
-            "1px solid rgba(255, 255, 255, 0.5)"
+        "1px solid "
+            ++ Colors.background
+    , style "background-color" Colors.topBarBackground
+    ]
 
-        else
-            "1px solid #3d3c3c"
+
+pauseToggle : List (Html.Attribute msg)
+pauseToggle =
+    [ style "border-left" <|
+        "1px solid "
+            ++ Colors.background
+    , style "background-color" Colors.topBarBackground
     ]
 
 
@@ -68,4 +77,21 @@ cliIcon cli =
     , style "background-position" "50% 50%"
     , style "background-size" "contain"
     , style "display" "inline-block"
+    ]
+
+
+pipelineBackground : String -> List (Html.Attribute msg)
+pipelineBackground bg =
+    [ style "background-image" <|
+        "url(\""
+            ++ bg
+            ++ "\")"
+    , style "background-repeat" "no-repeat"
+    , style "background-size" "cover"
+    , style "background-position" "center"
+    , style "opacity" "30%"
+    , style "filter" "grayscale(1)"
+    , style "width" "100%"
+    , style "height" "100%"
+    , style "position" "absolute"
     ]

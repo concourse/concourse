@@ -3,30 +3,33 @@ module SideBarFeature exposing (all)
 import Application.Application as Application
 import Assets
 import Base64
+import ColorValues
 import Colors
 import Common
     exposing
         ( defineHoverBehaviour
+        , expectTooltip
         , given
         , iOpenTheBuildPage
         , myBrowserFetchedTheBuild
         , then_
         , when
         )
-import Concourse
+import Concourse exposing (JsonValue(..))
 import Concourse.BuildStatus exposing (BuildStatus(..))
-import DashboardTests
+import DashboardTests exposing (iconSelector)
 import Data
 import Dict
 import Expect
 import Html.Attributes as Attr
 import Http
 import Message.Callback as Callback
-import Message.Effects as Effects
-import Message.Message as Message
+import Message.Effects as Effects exposing (pipelinesSectionName)
+import Message.Message as Message exposing (PipelinesSection(..))
 import Message.Subscription as Subscription
 import Message.TopLevelMessage as TopLevelMessage
 import Routes
+import Set
 import Test exposing (Test, describe, test)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -64,119 +67,174 @@ pageLoadIsSideBarCompatible iAmLookingAtThePage =
 hasSideBar : (() -> ( Application.Model, List Effects.Effect )) -> List Test
 hasSideBar iAmLookingAtThePage =
     let
-        iHaveAnOpenSideBar_ =
+        iHaveAClosedSideBar_ =
             given iAmLookingAtThePage
                 >> given iAmOnANonPhoneScreen
                 >> given myBrowserFetchedPipelines
-                >> given iClickedTheHamburgerIcon
+
+        iHaveAnOpenSideBar_ =
+            iHaveAClosedSideBar_
+                >> given iClickedTheSideBarIcon
+
+        iHaveAnExpandedTeam =
+            iHaveAnOpenSideBar_ >> iClickedThePipelineGroup
+
+        iHaveANotClickableSiteBar_ =
+            given iAmLookingAtThePage
+                >> given iAmOnANonPhoneScreen
+                >> given myBrowserFetchedNoPipelines
     in
     [ test "top bar is exactly 54px tall" <|
         given iAmLookingAtThePage
             >> given iAmOnANonPhoneScreen
             >> when iAmLookingAtTheTopBar
             >> then_ iSeeItIs54PxTall
-    , describe "hamburger icon"
+    , describe "sidebar icon"
         [ test "appears in the top bar on non-phone screens" <|
             given iAmLookingAtThePage
                 >> given iAmOnANonPhoneScreen
                 >> given iAmLookingAtTheLeftHandSectionOfTheTopBar
                 >> when iAmLookingAtTheFirstChild
-                >> then_ iSeeAHamburgerIcon
+                >> then_ iSeeAnOpenedSideBarIcon
         , test "does not appear on phone screens" <|
             given iAmLookingAtThePage
                 >> given iAmOnAPhoneScreen
                 >> when iAmLookingAtTheLeftHandSectionOfTheTopBar
-                >> then_ iSeeNoHamburgerIcon
+                >> then_ iSeeNoSideBarIcon
         , test "is clickable when there are pipelines" <|
             given iAmLookingAtThePage
                 >> given iAmOnANonPhoneScreen
                 >> given myBrowserFetchedPipelines
-                >> when iAmLookingAtTheHamburgerMenu
-                >> then_ (itIsClickable Message.HamburgerMenu)
+                >> when iAmLookingAtTheSideBarIconContainer
+                >> then_ (itIsClickable Message.SideBarIcon)
         , describe "before pipelines are fetched"
             [ defineHoverBehaviour
-                { name = "hamburger icon"
+                { name = "sidebar icon"
                 , setup =
                     iAmLookingAtThePage ()
                         |> given iAmOnANonPhoneScreen
                         |> Tuple.first
-                , query = (\a -> ( a, [] )) >> iAmLookingAtTheHamburgerMenu
+                , query = (\a -> ( a, [] )) >> iAmLookingAtTheSideBarIconContainer
                 , unhoveredSelector =
                     { description = "grey"
-                    , selector = [ containing [ style "opacity" "0.5" ] ]
+                    , selector = sideBarIcon True
                     }
-                , hoverable = Message.HamburgerMenu
+                , hoverable = Message.SideBarIcon
                 , hoveredSelector =
                     { description = "still grey"
-                    , selector = [ containing [ style "opacity" "0.5" ] ]
+                    , selector = sideBarIcon True
                     }
                 }
             , test "is not clickable" <|
                 given iAmLookingAtThePage
                     >> given iAmOnANonPhoneScreen
-                    >> when iAmLookingAtTheHamburgerMenu
+                    >> when iAmLookingAtTheSideBarIconContainer
                     >> then_ itIsNotClickable
             ]
         , test "is not clickable when there are no pipelines" <|
             given iAmLookingAtThePage
                 >> given iAmOnANonPhoneScreen
                 >> given myBrowserFetchedNoPipelines
-                >> when iAmLookingAtTheHamburgerMenu
+                >> when iAmLookingAtTheSideBarIconContainer
                 >> then_ itIsNotClickable
         , test """has a dark dividing line separating it from the concourse
                   logo""" <|
             given iAmLookingAtThePage
                 >> given iAmOnANonPhoneScreen
-                >> when iAmLookingAtTheHamburgerMenu
+                >> when iAmLookingAtTheSideBarIconContainer
                 >> then_ iSeeADarkDividingLineToTheRight
-        , defineHoverBehaviour
-            { name = "hamburger icon"
-            , setup =
-                iAmLookingAtThePage ()
-                    |> iAmOnANonPhoneScreen
-                    |> myBrowserFetchedPipelines
-                    |> Tuple.first
-            , query = (\a -> ( a, [] )) >> iAmLookingAtTheHamburgerMenu
-            , unhoveredSelector =
-                { description = "grey"
-                , selector = [ containing [ style "opacity" "0.5" ] ]
+        , describe "when the sidebar is open" <|
+            [ test "icon changes to closed on click" <|
+                given iHaveAnOpenSideBar_
+                    >> when iAmLookingAtTheSideBarIcon
+                    >> then_ iSeeAClosedSideBarIcon
+            , test "background is the same" <|
+                given iHaveAnOpenSideBar_
+                    >> when iAmLookingAtTheSideBarIconContainer
+                    >> then_ iSeeADarkerBackground
+            , test "background does not become lighter when opened but there are no pipelines" <|
+                given iHaveAnOpenSideBar_
+                    >> given myBrowserFetchedNoPipelines
+                    >> when iAmLookingAtTheSideBarIconContainer
+                    >> then_ iSeeADarkerBackground
+            , test "browser toggles sidebar state on click" <|
+                when iHaveAnOpenSideBar_
+                    >> given iClickedTheSideBarIcon
+                    >> then_ myBrowserSavesSideBarState { isOpen = False, width = 275 }
+            , test "shows tooltip when hovering" <|
+                given iHaveAnOpenSideBar_
+                    >> when iHoverOverTheSideBarIcon
+                    >> then_ iSeeHideSideBarMessage
+            , defineHoverBehaviour
+                { name = "sidebar icon"
+                , setup =
+                    iAmLookingAtThePage ()
+                        |> iAmOnANonPhoneScreen
+                        |> myBrowserFetchedPipelines
+                        |> iClickedTheSideBarIcon
+                        |> Tuple.first
+                , query = (\a -> ( a, [] )) >> iAmLookingAtTheSideBarIconContainer
+                , unhoveredSelector =
+                    { description = "grey"
+                    , selector = sideBarIcon False
+                    }
+                , hoverable = Message.SideBarIcon
+                , hoveredSelector =
+                    { description = "white"
+                    , selector = hoveredSideBarIcon False
+                    }
                 }
-            , hoverable = Message.HamburgerMenu
-            , hoveredSelector =
-                { description = "white"
-                , selector = [ containing [ style "opacity" "1" ] ]
+            ]
+        , describe "when the sidebar is closed" <|
+            [ test "icon changes to opened on click" <|
+                given iHaveAClosedSideBar_
+                    >> when iAmLookingAtTheSideBarIcon
+                    >> then_ iSeeAnOpenedSideBarIcon
+            , test "background is the same" <|
+                given iHaveAClosedSideBar_
+                    >> when iAmLookingAtTheSideBarIconContainer
+                    >> then_ iSeeADarkerBackground
+            , test "browser toggles sidebar state on click" <|
+                when iHaveAClosedSideBar_
+                    >> given iClickedTheSideBarIcon
+                    >> then_ myBrowserSavesSideBarState { isOpen = True, width = 275 }
+            , test "shows tooltip when hovering" <|
+                given iHaveAClosedSideBar_
+                    >> when iHoverOverTheSideBarIcon
+                    >> then_ iSeeShowSideBarMessage
+            , test "shows no pipelines tooltip when is not clickable" <|
+                given iHaveANotClickableSiteBar_
+                    >> when iHoverOverTheSideBarIcon
+                    >> then_ iSeeNoPipelineSideBarMessage
+            , defineHoverBehaviour
+                { name = "sidebar icon"
+                , setup =
+                    iAmLookingAtThePage ()
+                        |> iAmOnANonPhoneScreen
+                        |> myBrowserFetchedPipelines
+                        |> Tuple.first
+                , query = (\a -> ( a, [] )) >> iAmLookingAtTheSideBarIconContainer
+                , unhoveredSelector =
+                    { description = "grey"
+                    , selector = sideBarIcon True
+                    }
+                , hoverable = Message.SideBarIcon
+                , hoveredSelector =
+                    { description = "white"
+                    , selector = hoveredSideBarIcon True
+                    }
                 }
-            }
-        , test "browser saves sidebar state on click" <|
-            when iHaveAnOpenSideBar_
-                >> then_ myBrowserSavesSideBarState { isOpen = True, width = 275 }
-        , test "background becomes lighter on click" <|
-            given iHaveAnOpenSideBar_
-                >> when iAmLookingAtTheHamburgerMenu
-                >> then_ iSeeALighterBackground
-        , test "icon becomes bright on click" <|
-            given iHaveAnOpenSideBar_
-                >> when iAmLookingAtTheHamburgerIcon
-                >> then_ iSeeItIsBright
-        , test "browser toggles sidebar state on click" <|
-            when iHaveAnOpenSideBar_
-                >> given iClickedTheHamburgerIcon
-                >> then_ myBrowserSavesSideBarState { isOpen = False, width = 275 }
-        , test "background toggles back to dark" <|
-            given iHaveAnOpenSideBar_
-                >> given iClickedTheHamburgerIcon
-                >> when iAmLookingAtTheHamburgerMenu
-                >> then_ iSeeADarkerBackground
-        , test "when shrinking viewport hamburger icon disappears" <|
+            ]
+        , test "when shrinking viewport sidebar icon disappears" <|
             given iAmLookingAtThePage
                 >> given iAmOnANonPhoneScreen
                 >> given iShrankTheViewport
                 >> when iAmLookingAtTheLeftHandSectionOfTheTopBar
-                >> then_ iDoNotSeeAHamburgerIcon
+                >> then_ iSeeNoSideBarIcon
         , test "side bar does not expand before teams and pipelines are fetched" <|
             given iAmLookingAtThePage
                 >> given iAmOnANonPhoneScreen
-                >> given iClickedTheHamburgerIcon
+                >> given iClickedTheSideBarIcon
                 >> when iAmLookingAtThePageBelowTheTopBar
                 >> then_ iSeeNoSideBar
         ]
@@ -213,7 +271,7 @@ hasSideBar iAmLookingAtThePage =
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheSideBar
                 >> then_ iSeeADividingLineToTheRight
-        , test "sidebar has hamburger menu background" <|
+        , test "sidebar has same background as icon container" <|
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheSideBar
                 >> then_ iSeeALighterBackground
@@ -278,15 +336,61 @@ hasSideBar iAmLookingAtThePage =
                 >> then_ iSeeItHasWidth 100
         , test "toggles away" <|
             given iHaveAnOpenSideBar_
-                >> given iClickedTheHamburgerIcon
+                >> given iClickedTheSideBarIcon
                 >> when iAmLookingAtThePageBelowTheTopBar
                 >> then_ iSeeNoSideBar
         ]
+    , describe "favorites section" <|
+        [ test "exists when there are favorited pipelines" <|
+            given iHaveAnOpenSideBar_
+                >> given myBrowserFetchedFavoritedPipelines
+                >> when iAmLookingAtTheSideBar
+                >> then_ iSeeFavoritesSection
+        , test "does not exist when there are no favorited pipelines" <|
+            given iHaveAnOpenSideBar_
+                >> when iAmLookingAtTheSideBar
+                >> then_ iDoNotSeeFavoritesSection
+        , test "does not exist when localStorage has pipelines that no longer exist" <|
+            given iHaveAnOpenSideBar_
+                >> given myBrowserFetchedFavoritedPipelinesThatDoNotExist
+                >> when iAmLookingAtTheSideBar
+                >> then_ iDoNotSeeFavoritesSection
+        , test "don't show teams that have no favorited pipelines" <|
+            given iHaveAnOpenSideBar_
+                >> given myBrowserFetchedPipelinesFromMultipleTeams
+                >> given myBrowserFetchedFavoritedPipelines
+                >> when iAmLookingAtTheFavoritesSection
+                >> then_ iDoNotSeeTheOtherTeam
+        , test "teams are expanded by default" <|
+            given iHaveAnOpenSideBar_
+                >> given myBrowserFetchedFavoritedPipelines
+                >> when iAmLookingAtTheTeamInTheFavoritesSection
+                >> then_ iSeeItIsExpanded
+        ]
+    , describe "archived pipelines" <|
+        [ test "not displayed in sidebar" <|
+            given iHaveAnOpenSideBar_
+                >> given myBrowserFetchedArchivedAndNonArchivedPipelines
+                >> when iAmLookingAtTheSideBar
+                >> then_ iDoNotSeeTheArchivedPipeline
+        , test "if also favorited, is displayed in sidebar" <|
+            given iHaveAnOpenSideBar_
+                >> given myBrowserFetchedArchivedAndNonArchivedPipelines
+                >> given myBrowserFetchedFavoritedPipelines
+                >> when iAmLookingAtTheSideBar
+                >> then_ iSeeTheArchivedPipeline
+        , test "if all pipelines are archived, does not show sidebar" <|
+            given iHaveAnOpenSideBar_
+                >> given myBrowserFetchedOnlyArchivedPipelines
+                >> when iAmLookingAtTheSideBar
+                >> then_ iSeeNoSideBar
+        , test "if all pipelines are archived, sidebar is not clickable" <|
+            given iHaveAnOpenSideBar_
+                >> given myBrowserFetchedOnlyArchivedPipelines
+                >> when iAmLookingAtTheSideBarIconContainer
+                >> then_ itIsNotClickable
+        ]
     , describe "teams list" <|
-        let
-            iHaveAnExpandedTeam =
-                iHaveAnOpenSideBar_ >> iClickedThePipelineGroup
-        in
         [ test "sidebar contains pipeline groups" <|
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheSideBar
@@ -358,7 +462,7 @@ hasSideBar iAmLookingAtThePage =
         , test "team header is clickable" <|
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheTeamHeader
-                >> then_ (itIsClickable <| Message.SideBarTeam "team")
+                >> then_ (itIsClickable <| Message.SideBarTeam AllPipelinesSection "team")
         , test "there is a minus icon when group is clicked" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
@@ -380,16 +484,40 @@ hasSideBar iAmLookingAtThePage =
                 >> given iClickedThePipelineGroup
                 >> when iAmLookingAtThePipelineList
                 >> then_ iSeeTwoChildren
+        , test "pipeline star icon is clickable" <|
+            given iHaveAnOpenSideBar_
+                >> given iClickedThePipelineGroup
+                >> when iAmLookingAtTheFirstPipelineStar
+                >> then_ (itIsClickable <| Message.SideBarFavoritedIcon 0)
+        , test "pipeline gets favorited when star icon is clicked" <|
+            given iHaveAnOpenSideBar_
+                >> given iClickedThePipelineGroup
+                >> given iClickedTheFirstPipelineStar
+                >> when iAmLookingAtTheFirstPipelineStar
+                >> then_ iSeeFilledStarIcon
+        , test "clicked on favorited pipeline has unfilled star icon" <|
+            given iHaveAnOpenSideBar_
+                >> given iClickedThePipelineGroup
+                >> given iClickedTheFirstPipelineStar
+                >> given iClickedTheFirstPipelineStar
+                >> when iAmLookingAtTheFirstPipelineStar
+                >> then_ iSeeUnfilledStarIcon
+        , test "favorited pipelines are loaded from local storage" <|
+            given iHaveAnOpenSideBar_
+                >> given iClickedThePipelineGroup
+                >> given myBrowserFetchedFavoritedPipelines
+                >> when iAmLookingAtTheFirstPipelineStar
+                >> then_ iSeeFilledStarIcon
         , test "pipeline list lays out vertically" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
                 >> when iAmLookingAtThePipelineList
                 >> then_ iSeeItLaysOutVertically
-        , test "pipeline has two children" <|
+        , test "pipeline has three children" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
                 >> when iAmLookingAtTheFirstPipeline
-                >> then_ iSeeTwoChildren
+                >> then_ iSeeThreeChildren
         , test "pipeline lays out horizontally" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
@@ -424,7 +552,7 @@ hasSideBar iAmLookingAtThePage =
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
                 >> when iAmLookingAtTheFirstPipelineIcon
-                >> then_ iSeeItIsDim
+                >> then_ iSeeThePipelineIconIsDim
         , test "pipeline link has padding" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
@@ -460,38 +588,127 @@ hasSideBar iAmLookingAtThePage =
                 >> given iClickedThePipelineGroup
                 >> when iAmLookingAtTheFirstPipeline
                 >> then_ iSeeItHasAValidPipelineId
-        , test "pipeline icon is bright when pipeline link is hovered" <|
+        , test "pipeline icon is white when pipeline link is hovered" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
                 >> given iHoveredThePipelineLink
                 >> when iAmLookingAtTheFirstPipelineIcon
-                >> then_ iSeeItIsBright
+                >> then_ iSeeThePipelineIconIsWhite
         , defineHoverBehaviour
             { name = "pipeline"
             , setup =
                 iAmViewingTheDashboardOnANonPhoneScreen ()
-                    |> iClickedTheHamburgerIcon
+                    |> iClickedTheSideBarIcon
                     |> iClickedThePipelineGroup
                     |> Tuple.first
             , query = (\a -> ( a, [] )) >> iAmLookingAtTheFirstPipeline
             , unhoveredSelector =
                 { description = "grey"
                 , selector =
-                    [ style "opacity" "0.4" ]
+                    [ style "color" ColorValues.grey30 ]
                 }
-            , hoverable =
-                Message.SideBarPipeline
-                    { pipelineName = "pipeline"
-                    , teamName = "team"
-                    }
+            , hoverable = Message.SideBarPipeline AllPipelinesSection Data.pipelineId
             , hoveredSelector =
-                { description = "light background"
+                { description = "dark background and light text"
                 , selector =
-                    [ style "opacity" "1"
-                    , style "background-color" Colors.sideBarHovered
+                    [ style "background-color" Colors.sideBarHovered
+                    , style "color" ColorValues.white
                     ]
                 }
             }
+        , describe "instance group list item" <|
+            let
+                iHaveAnOpenSideBarWithAnInstanceGroup =
+                    iHaveAnOpenSideBar_
+                        >> myBrowserFetchedAnInstanceGroup
+            in
+            [ test "lays out horizontally" <|
+                given iHaveAnOpenSideBarWithAnInstanceGroup
+                    >> given iClickedThePipelineGroup
+                    >> when iAmLookingAtTheFirstInstanceGroup
+                    >> then_ iSeeItLaysOutHorizontally
+            , test "centers contents" <|
+                given iHaveAnOpenSideBarWithAnInstanceGroup
+                    >> given iClickedThePipelineGroup
+                    >> when iAmLookingAtTheFirstInstanceGroup
+                    >> then_ iSeeItCentersContents
+            , test "has padding" <|
+                given iHaveAnOpenSideBarWithAnInstanceGroup
+                    >> given iClickedThePipelineGroup
+                    >> when iAmLookingAtTheFirstInstanceGroup
+                    >> then_ iSeeItHasProperPadding
+            , test "has badge on the left" <|
+                given iHaveAnOpenSideBarWithAnInstanceGroup
+                    >> given iClickedThePipelineGroup
+                    >> when iAmLookingAtTheFirstInstanceGroupBadge
+                    >> then_ iSeeABadge
+            , test "badge has left margin" <|
+                given iHaveAnOpenSideBarWithAnInstanceGroup
+                    >> given iClickedThePipelineGroup
+                    >> when iAmLookingAtTheFirstInstanceGroupBadge
+                    >> then_ iSeeItHasLeftMargin
+            , test "badge does not shrink when group name is long" <|
+                given iHaveAnOpenSideBarWithAnInstanceGroup
+                    >> given iClickedThePipelineGroup
+                    >> when iAmLookingAtTheFirstInstanceGroupBadge
+                    >> then_ iSeeItDoesNotShrink
+            , test "badge is dim" <|
+                given iHaveAnOpenSideBarWithAnInstanceGroup
+                    >> given iClickedThePipelineGroup
+                    >> when iAmLookingAtTheFirstInstanceGroupBadge
+                    >> then_ iSeeItIsDim
+            , test "link has padding" <|
+                given iHaveAnOpenSideBarWithAnInstanceGroup
+                    >> given iClickedThePipelineGroup
+                    >> when iAmLookingAtTheFirstInstanceGroupLink
+                    >> then_ iSeeItHasProperPadding
+            , test "link contains text of group name" <|
+                given iHaveAnOpenSideBarWithAnInstanceGroup
+                    >> given iClickedThePipelineGroup
+                    >> when iAmLookingAtTheFirstInstanceGroupLink
+                    >> then_ iSeeItContainsTheGroupName
+            , test "link is a link to the group" <|
+                given iHaveAnOpenSideBarWithAnInstanceGroup
+                    >> given iClickedThePipelineGroup
+                    >> when iAmLookingAtTheFirstInstanceGroup
+                    >> then_ iSeeItIsALinkToTheFirstInstanceGroup
+            , test "link has medium font" <|
+                given iHaveAnOpenSideBarWithAnInstanceGroup
+                    >> given iClickedThePipelineGroup
+                    >> when iAmLookingAtTheFirstInstanceGroupLink
+                    >> then_ iSeeMediumFont
+            , test "link will ellipsize if it is too long" <|
+                given iHaveAnOpenSideBarWithAnInstanceGroup
+                    >> given iClickedThePipelineGroup
+                    >> when iAmLookingAtTheFirstInstanceGroupLink
+                    >> then_ iSeeItEllipsizesLongText
+            , test "link will have a valid id" <|
+                given iHaveAnOpenSideBarWithAnInstanceGroup
+                    >> given iClickedThePipelineGroup
+                    >> when iAmLookingAtTheFirstInstanceGroup
+                    >> then_ iSeeItHasAValidInstanceGroupId
+            , defineHoverBehaviour
+                { name = "instance group"
+                , setup =
+                    iHaveAnOpenSideBarWithAnInstanceGroup ()
+                        |> iClickedThePipelineGroup
+                        |> Tuple.first
+                , query = (\a -> ( a, [] )) >> iAmLookingAtTheFirstInstanceGroup
+                , unhoveredSelector =
+                    { description = "grey"
+                    , selector =
+                        [ style "color" ColorValues.grey30 ]
+                    }
+                , hoverable = Message.SideBarInstanceGroup AllPipelinesSection "team" "group"
+                , hoveredSelector =
+                    { description = "dark background and light text"
+                    , selector =
+                        [ style "background-color" Colors.sideBarHovered
+                        , style "color" ColorValues.white
+                        ]
+                    }
+                }
+            ]
         , test "subscribes to 5-second tick" <|
             given iAmLookingAtThePage
                 >> then_ myBrowserNotifiesEveryFiveSeconds
@@ -504,14 +721,14 @@ hasSideBar iAmLookingAtThePage =
             given iAmLookingAtThePage
                 >> given iAmOnANonPhoneScreen
                 >> given myBrowserFetchedPipelinesFromMultipleTeams
-                >> given iClickedTheHamburgerIcon
+                >> given iClickedTheSideBarIcon
                 >> when iAmLookingAtTheSideBar
                 >> then_ iSeeTwoTeams
         , test "sidebar has text content of second team's name" <|
             given iAmLookingAtThePage
                 >> given iAmOnANonPhoneScreen
                 >> given myBrowserFetchedPipelinesFromMultipleTeams
-                >> given iClickedTheHamburgerIcon
+                >> given iClickedTheSideBarIcon
                 >> when iAmLookingAtTheSideBar
                 >> then_ iSeeTheSecondTeamName
         , test "pipeline names align with the teamName" <|
@@ -530,61 +747,61 @@ hasCurrentPipelineInSideBar iAmLookingAtThePage =
         given iAmLookingAtThePage
             >> given iAmOnANonPhoneScreen
             >> given myBrowserFetchedPipelinesFromMultipleTeams
-            >> given iClickedTheHamburgerIcon
+            >> given iClickedTheSideBarIcon
             >> when iAmLookingAtTheOtherPipelineList
             >> then_ iSeeOneChild
     , test "current team only automatically expands on page load" <|
         given iAmLookingAtThePage
             >> given iAmOnANonPhoneScreen
             >> given myBrowserFetchedPipelinesFromMultipleTeams
-            >> given iClickedTheHamburgerIcon
+            >> given iClickedTheSideBarIcon
             >> given iClickedTheOtherPipelineGroup
             >> given iNavigateToTheDashboard
             >> given iNavigateBackToThePipelinePage
             >> given myBrowserFetchedPipelinesFromMultipleTeams
             >> when iAmLookingAtTheOtherPipelineList
             >> then_ iSeeNoPipelineNames
-    , test "current team has bright team icon" <|
+    , test "current team has team icon" <|
         given iAmLookingAtThePage
             >> given iAmOnANonPhoneScreen
             >> given myBrowserFetchedPipelinesFromMultipleTeams
-            >> given iClickedTheHamburgerIcon
+            >> given iClickedTheSideBarIcon
             >> when iAmLookingAtTheOtherTeamIcon
-            >> then_ iSeeItIsBright
-    , test "current team name is bright" <|
+            >> then_ iSeeTheTeamIcon
+    , test "current team name is white" <|
         given iAmLookingAtThePage
             >> given iAmOnANonPhoneScreen
             >> given myBrowserFetchedPipelinesFromMultipleTeams
-            >> given iClickedTheHamburgerIcon
+            >> given iClickedTheSideBarIcon
             >> given iClickedTheOtherPipelineGroup
             >> when iAmLookingAtTheOtherTeamName
-            >> then_ iSeeItIsBright
+            >> then_ iSeeTheTextIsWhite
     , test "current pipeline name has grey background" <|
         given iAmLookingAtThePage
             >> given iAmOnANonPhoneScreen
             >> given myBrowserFetchedPipelinesFromMultipleTeams
-            >> given iClickedTheHamburgerIcon
+            >> given iClickedTheSideBarIcon
             >> when iAmLookingAtTheOtherPipeline
-            >> then_ iSeeADarkGreyBackground
+            >> then_ iSeeADarkBackground
     , test "current pipeline has bright pipeline icon" <|
         given iAmLookingAtThePage
             >> given iAmOnANonPhoneScreen
             >> given myBrowserFetchedPipelinesFromMultipleTeams
-            >> given iClickedTheHamburgerIcon
+            >> given iClickedTheSideBarIcon
             >> when iAmLookingAtTheOtherPipelineIcon
-            >> then_ iSeeItIsBright
+            >> then_ iSeeThePipelineIconIsBright
     , test "current pipeline name is bright" <|
         given iAmLookingAtThePage
             >> given iAmOnANonPhoneScreen
             >> given myBrowserFetchedPipelinesFromMultipleTeams
-            >> given iClickedTheHamburgerIcon
+            >> given iClickedTheSideBarIcon
             >> when iAmLookingAtTheOtherPipeline
-            >> then_ iSeeItIsBright
+            >> then_ iSeeTheTextIsBright
     , test "pipeline with same name on other team has invisible border" <|
         given iAmLookingAtThePage
             >> given iAmOnANonPhoneScreen
             >> given myBrowserFetchedPipelinesFromMultipleTeams
-            >> given iClickedTheHamburgerIcon
+            >> given iClickedTheSideBarIcon
             >> given iClickedThePipelineGroup
             >> when iAmLookingAtThePipelineWithTheSameName
             >> then_ iSeeAnInvisibleBackground
@@ -617,14 +834,10 @@ all =
         , describe "pipeline page current pipeline" <|
             hasCurrentPipelineInSideBar (when iOpenedThePipelinePage)
         , describe "pipeline page exceptions"
-            [ describe "hamburger icon"
-                [ test "shows turbulence when pipelines fail to fetch" <|
-                    given iAmViewingThePipelinePageOnANonPhoneScreen
-                        >> when myBrowserFailsToFetchPipelines
-                        >> then_ iSeeTheTurbulenceMessage
-
-                -- TODO find a more general description
-                ]
+            [ test "shows turbulence when pipelines fail to fetch" <|
+                given iAmViewingThePipelinePageOnANonPhoneScreen
+                    >> when myBrowserFailsToFetchPipelines
+                    >> then_ iSeeTheTurbulenceMessage
             , describe "sidebar"
                 [ test "clicking a pipeline link respects sidebar state" <|
                     given iHaveAnExpandedPipelineGroup
@@ -646,7 +859,7 @@ all =
                     >> given iAmOnANonPhoneScreen
                     >> given myBrowserFetchedPipelinesFromMultipleTeams
                     >> given myBrowserFetchedTheBuild
-                    >> given iClickedTheHamburgerIcon
+                    >> given iClickedTheSideBarIcon
                     >> when iAmLookingAtTheOtherPipelineList
                     >> then_ iSeeOneChild
             ]
@@ -703,16 +916,61 @@ iAmLookingAtTheFirstChild =
     Query.children [] >> Query.first
 
 
-iSeeAHamburgerIcon =
-    Query.has
-        (DashboardTests.iconSelector
-            { size = hamburgerIconWidth
-            , image = Assets.HamburgerMenuIcon
+iHoverOverTheSideBarIcon =
+    Tuple.first
+
+
+iSeeHideSideBarMessage =
+    expectTooltip Message.SideBarIcon "hide sidebar"
+
+
+iSeeShowSideBarMessage =
+    expectTooltip Message.SideBarIcon "show sidebar"
+
+
+iSeeNoPipelineSideBarMessage =
+    expectTooltip Message.SideBarIcon "no visible pipelines"
+
+
+iSeeAnOpenedSideBarIcon =
+    Query.has <|
+        sideBarIcon True
+
+
+iSeeAClosedSideBarIcon =
+    Query.has <|
+        sideBarIcon False
+
+
+sideBarIcon opened =
+    if opened then
+        DashboardTests.iconSelector
+            { size = sidebarIconWidth
+            , image = Assets.SideBarIconOpenedGrey
             }
-        )
+
+    else
+        DashboardTests.iconSelector
+            { size = sidebarIconWidth
+            , image = Assets.SideBarIconClosedGrey
+            }
 
 
-hamburgerIconWidth =
+hoveredSideBarIcon opened =
+    if opened then
+        DashboardTests.iconSelector
+            { size = sidebarIconWidth
+            , image = Assets.SideBarIconOpenedWhite
+            }
+
+    else
+        DashboardTests.iconSelector
+            { size = sidebarIconWidth
+            , image = Assets.SideBarIconClosedWhite
+            }
+
+
+sidebarIconWidth =
     "54px"
 
 
@@ -752,6 +1010,12 @@ iAmViewingTheDashboard =
         >> dataRefreshes
 
 
+iAmViewingTheDashboardForAnInstanceGroup =
+    iVisitTheDashboard
+        >> iNavigateToTheInstanceGroup
+        >> teamDataLoads
+
+
 iVisitTheDashboard _ =
     Application.init
         { turbulenceImgSrc = ""
@@ -769,7 +1033,7 @@ iVisitTheDashboard _ =
         }
 
 
-apiDataLoads =
+teamDataLoads =
     Tuple.first
         >> Application.handleCallback
             (Callback.AllTeamsFetched <|
@@ -778,6 +1042,10 @@ apiDataLoads =
                     , { name = "other-team", id = 1 }
                     ]
             )
+
+
+apiDataLoads =
+    teamDataLoads
         >> Tuple.first
         >> Application.handleCallback
             (Callback.AllPipelinesFetched <|
@@ -800,24 +1068,20 @@ dataRefreshes =
             )
 
 
-iSeeNoHamburgerIcon =
-    Query.hasNot
-        (DashboardTests.iconSelector
-            { size = hamburgerIconWidth
-            , image = Assets.HamburgerMenuIcon
-            }
-        )
+iSeeNoSideBarIcon =
+    Query.hasNot <|
+        sideBarIcon False
 
 
-iAmLookingAtTheHamburgerMenu =
+iAmLookingAtTheSideBarIconContainer =
     iAmLookingAtTheTopBar
-        >> Query.find [ id "hamburger-menu" ]
+        >> Query.find [ id "sidebar-icon" ]
 
 
 itIsClickable domID =
     Expect.all
         [ Query.has [ style "cursor" "pointer" ]
-        , Event.simulate Event.click
+        , Event.simulate Data.leftClickEvent
             >> Event.expect
                 (TopLevelMessage.Update <|
                     Message.Click domID
@@ -849,18 +1113,18 @@ iReleaseTheSideBarHandle =
             Subscription.MouseUp
 
 
-iClickedTheHamburgerIcon =
+iClickedTheSideBarIcon =
     Tuple.first
         >> Application.update
-            (TopLevelMessage.Update <| Message.Click Message.HamburgerMenu)
+            (TopLevelMessage.Update <| Message.Click Message.SideBarIcon)
 
 
 iSeeALighterBackground =
-    Query.has [ style "background-color" "#333333" ]
+    Query.has [ style "background-color" ColorValues.grey90 ]
 
 
 iSeeADarkerBackground =
-    Query.has [ style "background-color" Colors.frame ]
+    Query.has [ style "background-color" ColorValues.grey100 ]
 
 
 iSeeTwoChildren =
@@ -868,7 +1132,11 @@ iSeeTwoChildren =
 
 
 iSeeTwoTeams =
-    Query.children [ class "side-bar-team" ] >> Query.count (Expect.equal 2)
+    Query.children [ class "side-bar-team" ] >> Query.first >> Query.children [] >> Query.count (Expect.equal 2)
+
+
+iSeeThreeChildren =
+    Query.children [] >> Query.count (Expect.equal 3)
 
 
 iAmLookingAtThePageBelowTheTopBar =
@@ -901,11 +1169,11 @@ iAmLookingAtTheSideBar =
 
 
 iSeeADividingLineBelow =
-    Query.has [ style "border-bottom" <| "1px solid " ++ Colors.frame ]
+    Query.has [ style "border-bottom" <| "1px solid " ++ ColorValues.black ]
 
 
 iSeeADividingLineToTheRight =
-    Query.has [ style "border-right" <| "1px solid " ++ Colors.frame ]
+    Query.has [ style "border-right" <| "1px solid " ++ ColorValues.black ]
 
 
 iSeeItIs275PxWide =
@@ -922,9 +1190,9 @@ iAmLookingAtTheTeam =
         >> Query.first
 
 
-iSeeItIsAsWideAsTheHamburgerIcon =
+iSeeItIsAsWideAsTheSideBarIcon =
     Query.has
-        [ style "width" hamburgerIconWidth
+        [ style "width" sidebarIconWidth
         , style "box-sizing" "border-box"
         ]
 
@@ -959,6 +1227,10 @@ iSeeTheTeamName =
     Query.has [ text "team" ]
 
 
+iDoNotSeeTheOtherTeam =
+    Query.hasNot [ text "other-team" ]
+
+
 iSeeItSpreadsAndCentersContents =
     Query.has
         [ style "align-items" "center"
@@ -987,15 +1259,35 @@ iSeeItEllipsizesLongText =
 
 
 iSeeItHasAValidTeamId =
-    Query.has [ id <| Base64.encode "team" ]
+    Query.has
+        [ id <|
+            (pipelinesSectionName AllPipelinesSection
+                ++ "_"
+                ++ Base64.encode "team"
+            )
+        ]
 
 
 iSeeItHasAValidPipelineId =
     Query.has
         [ id <|
-            (Base64.encode "team"
+            (pipelinesSectionName AllPipelinesSection
+                ++ "_"
+                ++ Base64.encode "team"
                 ++ "_"
                 ++ Base64.encode "pipeline"
+            )
+        ]
+
+
+iSeeItHasAValidInstanceGroupId =
+    Query.has
+        [ id <|
+            (pipelinesSectionName AllPipelinesSection
+                ++ "_"
+                ++ Base64.encode "team"
+                ++ "_"
+                ++ Base64.encode "group"
             )
         ]
 
@@ -1024,64 +1316,159 @@ iSeeItHasAResizeHandle =
     Query.has [ style "cursor" "col-resize" ]
 
 
+iSeeUnfilledStarIcon =
+    Query.has
+        (DashboardTests.iconSelector
+            { size = "18px"
+            , image = Assets.FavoritedToggleIcon { isFavorited = False, isHovered = False, isSideBar = True }
+            }
+        )
+
+
+iSeeFilledStarIcon =
+    Query.has
+        (DashboardTests.iconSelector
+            { size = "18px"
+            , image = Assets.FavoritedToggleIcon { isFavorited = True, isHovered = False, isSideBar = True }
+            }
+        )
+
+
 iClickedThePipelineGroup =
     Tuple.first
         >> Application.update
-            (TopLevelMessage.Update <| Message.Click <| Message.SideBarTeam "team")
+            (TopLevelMessage.Update <|
+                Message.Click <|
+                    Message.SideBarTeam AllPipelinesSection "team"
+            )
+
+
+iClickedTheFirstPipelineStar =
+    Tuple.first
+        >> Application.update
+            (TopLevelMessage.Update <|
+                Message.Click <|
+                    Message.SideBarFavoritedIcon 0
+            )
+
+
+iClickedFavoritedPipelineStar =
+    iClickedTheFirstPipelineStar
+
+
+iAmLookingAtThePreviousPipelineStar =
+    iAmLookingAtTheFirstPipeline
+        >> Query.findAll [ attribute <| Attr.attribute "aria-label" "Favorite Icon" ]
+        >> Query.index 0
 
 
 iSeeAMinusIcon =
     Query.has
-        (DashboardTests.iconSelector
+        (iconSelector
             { size = "10px"
             , image = Assets.MinusIcon
             }
         )
 
 
+iSeeThePipelineIconIsDim =
+    Query.has
+        [ style "background-image" <|
+            Assets.backgroundImage <|
+                Just Assets.PipelineIconGrey
+        ]
+
+
+iSeeThePipelineIconIsBright =
+    Query.has
+        [ style "background-image" <|
+            Assets.backgroundImage <|
+                Just Assets.PipelineIconLightGrey
+        ]
+
+
+iSeeThePipelineIconIsWhite =
+    Query.has
+        [ style "background-image" <|
+            Assets.backgroundImage <|
+                Just Assets.PipelineIconWhite
+        ]
+
+
+iSeeTheFavoritedIconIsDim =
+    Query.has
+        [ style "background-image" <|
+            Assets.backgroundImage <|
+                Just <|
+                    Assets.FavoritedToggleIcon { isFavorited = False, isHovered = False, isSideBar = True }
+        ]
+
+
+iSeeTheFavoritedIconIsBright =
+    Query.has
+        [ style "background-image" <|
+            Assets.backgroundImage <|
+                Just <|
+                    Assets.FavoritedToggleIcon { isFavorited = False, isHovered = True, isSideBar = True }
+        ]
+
+
+iSeeTheTeamIcon =
+    Query.has
+        [ style "background-image" <|
+            Assets.backgroundImage <|
+                Just Assets.PeopleIcon
+        ]
+
+
+iSeeTheTextIsWhite =
+    Query.has [ style "color" ColorValues.white ]
+
+
+iSeeTheTextIsBright =
+    Query.has [ style "color" ColorValues.grey20 ]
+
+
 iSeeItIsBright =
     Query.has [ style "opacity" "1" ]
 
 
-iSeeItIsGreyedOut =
-    Query.has [ style "opacity" "0.7" ]
-
-
 iSeeItIsDim =
-    Query.has [ style "opacity" "0.4" ]
+    Query.has [ style "background-color" ColorValues.grey30 ]
 
 
 iAmLookingAtThePipelineList =
-    iAmLookingAtTheTeam >> Query.children [] >> Query.index 1
+    iAmLookingAtTheAllPipelinesSection
+        >> Query.children []
+        >> Query.index 0
 
 
 iAmLookingAtTheFirstPipeline =
-    iAmLookingAtThePipelineList >> Query.children [] >> Query.first
+    iAmLookingAtThePipelineList >> Query.children [] >> Query.index 1 >> Query.children [] >> Query.first
+
+
+iAmLookingAtTheFirstInstanceGroup =
+    iAmLookingAtTheFirstPipeline
 
 
 iAmLookingAtTheFirstPipelineLink =
     iAmLookingAtTheFirstPipeline >> Query.children [] >> Query.index 1
 
 
-iHoveredTheFirstPipelineLink =
-    Tuple.first
-        >> Application.update
-            (TopLevelMessage.Update <|
-                Message.Hover <|
-                    Just <|
-                        Message.SideBarPipeline
-                            { teamName = "team"
-                            , pipelineName = "pipeline"
-                            }
-            )
+iAmLookingAtTheFirstInstanceGroupLink =
+    iAmLookingAtTheFirstInstanceGroup >> Query.children [] >> Query.index 1
 
 
 iSeeItContainsThePipelineName =
     Query.has [ text "pipeline" ]
 
 
+iSeeItContainsTheGroupName =
+    Query.has [ text "group" ]
+
+
 iAmLookingAtTheTeamHeader =
-    iAmLookingAtTheTeam >> Query.children [] >> Query.first
+    iAmLookingAtTheTeam >> Query.children [] >> Query.first >> Query.children [] >> Query.first
 
 
 iAmLookingAtTheTeamName =
@@ -1093,12 +1480,38 @@ iSeeItIsALinkToTheFirstPipeline =
         [ tag "a", attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
 
 
+iSeeItIsALinkToTheFirstInstanceGroup =
+    Query.has
+        [ tag "a"
+        , Common.routeHref <|
+            Routes.Dashboard
+                { searchType = Routes.Normal "team:\"team\" group:\"group\""
+                , dashboardView = Routes.ViewNonArchivedPipelines
+                }
+        ]
+
+
 iToggledToHighDensity =
     Tuple.first
         >> Application.update
             (TopLevelMessage.DeliveryReceived <|
                 Subscription.RouteChanged <|
-                    Routes.Dashboard Routes.HighDensity
+                    Routes.Dashboard
+                        { searchType = Routes.HighDensity
+                        , dashboardView = Routes.ViewNonArchivedPipelines
+                        }
+            )
+
+
+iNavigateToTheInstanceGroup =
+    Tuple.first
+        >> Application.update
+            (TopLevelMessage.DeliveryReceived <|
+                Subscription.RouteChanged <|
+                    Routes.Dashboard
+                        { searchType = Routes.Normal "team:\"team\" group:\"group\""
+                        , dashboardView = Routes.ViewNonArchivedPipelines
+                        }
             )
 
 
@@ -1134,7 +1547,7 @@ myBrowserFetchesPipelines ( a, effects ) =
 
 iHaveAnOpenSideBar =
     iAmViewingTheDashboardOnANonPhoneScreen
-        >> iClickedTheHamburgerIcon
+        >> iClickedTheSideBarIcon
 
 
 iSeeItHasTopPadding =
@@ -1153,16 +1566,41 @@ iAmLookingAtTheFirstPipelineIcon =
     iAmLookingAtTheFirstPipeline >> Query.children [] >> Query.first
 
 
+iAmLookingAtTheFirstInstanceGroupBadge =
+    iAmLookingAtTheFirstInstanceGroup >> Query.children [] >> Query.first
+
+
+iAmLookingAtTheFirstPipelineStar =
+    iAmLookingAtTheFirstPipeline
+        >> Query.findAll [ attribute <| Attr.attribute "aria-label" "Favorite Icon" ]
+        >> Query.index 0
+
+
+iAmLookingAtTheAllPipelinesSection =
+    Tuple.first >> Common.queryView >> Query.find [ id "all-pipelines" ]
+
+
+iAmLookingAtTheFavoritesSection =
+    Tuple.first >> Common.queryView >> Query.find [ id "favorites" ]
+
+
 iSeeAPipelineIcon =
     Query.has
         [ style "background-image" <|
             Assets.backgroundImage <|
-                Just (Assets.BreadcrumbIcon Assets.PipelineComponent)
+                Just Assets.PipelineIconGrey
         , style "background-repeat" "no-repeat"
         , style "height" "18px"
         , style "width" "18px"
         , style "background-size" "contain"
         , style "background-position" "center"
+        ]
+
+
+iSeeABadge =
+    Query.has
+        [ style "font-size" "12px"
+        , containing [ text "3" ]
         ]
 
 
@@ -1255,22 +1693,17 @@ iShrankTheViewport =
     Tuple.first >> Application.handleDelivery (Subscription.WindowResized 300 300)
 
 
-iAmLookingAtTheHamburgerIcon =
-    iAmLookingAtTheHamburgerMenu
+iAmLookingAtTheSideBarIcon =
+    iAmLookingAtTheSideBarIconContainer
         >> Query.children []
         >> Query.first
 
 
 iSeeADarkDividingLineToTheRight =
     Query.has
-        [ style "border-right" <| "1px solid " ++ Colors.frame
+        [ style "border-right" <| "1px solid " ++ ColorValues.black
         , style "opacity" "1"
         ]
-
-
-iSeeAWhiteDividingLineToTheRight =
-    Query.has
-        [ style "border-right" <| "1px solid " ++ Colors.pausedTopbarSeparator ]
 
 
 itIsHoverable domID =
@@ -1289,17 +1722,16 @@ itIsHoverable domID =
         ]
 
 
-iDoNotSeeAHamburgerIcon =
-    Query.hasNot
-        (DashboardTests.iconSelector
-            { size = hamburgerIconWidth
-            , image = Assets.HamburgerMenuIcon
-            }
-        )
-
-
 iSeeNoSideBar =
     Query.hasNot [ id "side-bar" ]
+
+
+iSeeFavoritesSection =
+    Query.has [ text "favorite pipelines" ]
+
+
+iDoNotSeeFavoritesSection =
+    Query.hasNot [ text "favorite pipelines" ]
 
 
 myBrowserFetchedPipelinesFromMultipleTeams =
@@ -1324,6 +1756,74 @@ myBrowserFetchedPipelines =
                     , Data.pipeline "team" 1 |> Data.withName "other-pipeline"
                     ]
             )
+
+
+myBrowserFetchedAnInstanceGroup =
+    Tuple.first
+        >> Application.handleCallback
+            (Callback.AllPipelinesFetched <|
+                Ok
+                    [ Data.pipeline "team" 1
+                        |> Data.withName "group"
+                        |> Data.withInstanceVars (Dict.fromList [ ( "version", JsonString "1" ) ])
+                    , Data.pipeline "team" 2
+                        |> Data.withName "group"
+                        |> Data.withInstanceVars (Dict.fromList [ ( "version", JsonString "2" ) ])
+                    , Data.pipeline "team" 3
+                        |> Data.withName "group"
+                        |> Data.withInstanceVars Dict.empty
+                    ]
+            )
+
+
+myBrowserFetchedArchivedAndNonArchivedPipelines =
+    Tuple.first
+        >> Application.handleCallback
+            (Callback.AllPipelinesFetched <|
+                Ok
+                    [ Data.pipeline "team" 0 |> Data.withName "archived" |> Data.withArchived True
+                    , Data.pipeline "team" 1 |> Data.withName "non-archived"
+                    ]
+            )
+
+
+myBrowserFetchedOnlyArchivedPipelines =
+    Tuple.first
+        >> Application.handleCallback
+            (Callback.AllPipelinesFetched <|
+                Ok
+                    [ Data.pipeline "team" 0 |> Data.withName "archived1" |> Data.withArchived True
+                    , Data.pipeline "team" 1 |> Data.withName "archived2" |> Data.withArchived True
+                    ]
+            )
+
+
+iDoNotSeeTheArchivedPipeline =
+    Query.hasNot [ text "archived" ]
+
+
+iSeeTheArchivedPipeline =
+    Query.has [ text "archived" ]
+
+
+myBrowserFetchedFavoritedPipelines =
+    Tuple.first
+        >> Application.handleDelivery
+            (Subscription.FavoritedPipelinesReceived <|
+                Ok (Set.singleton 0)
+            )
+
+
+myBrowserFetchedFavoritedPipelinesThatDoNotExist =
+    Tuple.first
+        >> Application.handleDelivery
+            (Subscription.FavoritedPipelinesReceived <|
+                Ok (Set.singleton 100)
+            )
+
+
+iAmLookingAtTheTeamInTheFavoritesSection =
+    iAmLookingAtTheFavoritesSection >> Query.children [ containing [ text "team" ] ] >> Query.first
 
 
 itIsNotClickable =
@@ -1378,26 +1878,13 @@ iHaveAnExpandedPipelineGroup =
     iHaveAnOpenSideBar >> iClickedThePipelineGroup
 
 
-iHoveredThePipelineGroup =
-    Tuple.first
-        >> Application.update
-            (TopLevelMessage.Update <|
-                Message.Hover <|
-                    Just <|
-                        Message.SideBarTeam "team"
-            )
-
-
 iHoveredThePipelineLink =
     Tuple.first
         >> Application.update
             (TopLevelMessage.Update <|
                 Message.Hover <|
                     Just <|
-                        Message.SideBarPipeline
-                            { pipelineName = "pipeline"
-                            , teamName = "team"
-                            }
+                        Message.SideBarPipeline AllPipelinesSection Data.pipelineId
             )
 
 
@@ -1421,7 +1908,7 @@ iSeeNoPipelineNames =
 iSeeAllPipelineNames =
     Query.children []
         >> Expect.all
-            [ Query.index 0 >> Query.has [ text "pipeline" ]
+            [ Query.index 1 >> Query.has [ text "pipeline" ]
             , Query.index 1 >> Query.has [ text "other-pipeline" ]
             ]
 
@@ -1431,7 +1918,7 @@ iClickedTheOtherPipelineGroup =
         >> Application.update
             (TopLevelMessage.Update <|
                 Message.Click <|
-                    Message.SideBarTeam "other-team"
+                    Message.SideBarTeam AllPipelinesSection "other-team"
             )
 
 
@@ -1443,6 +1930,8 @@ iAmLookingAtTheOtherPipelineGroup =
     iAmLookingAtTheSideBar
         >> Query.children [ containing [ text "other-team" ] ]
         >> Query.first
+        >> Query.children []
+        >> Query.index 1
 
 
 iAmLookingAtTheOtherPipelineList =
@@ -1464,7 +1953,7 @@ iAmLookingAtTheOtherTeamIcon =
         >> Query.children []
         >> Query.first
         >> Query.children []
-        >> Query.first
+        >> Query.index 1
 
 
 iAmLookingAtTheOtherPipeline =
@@ -1499,10 +1988,7 @@ iClickAPipelineLink =
                 Subscription.RouteChanged <|
                     Routes.Pipeline
                         { groups = []
-                        , id =
-                            { pipelineName = "other-pipeline"
-                            , teamName = "team"
-                            }
+                        , id = Data.pipelineId |> Data.withPipelineName "other-pipeline"
                         }
             )
 
@@ -1511,12 +1997,23 @@ iSeeThePipelineGroupIsStillExpanded =
     iAmLookingAtThePipelineList >> iSeeAllPipelineNames
 
 
+iSeeItIsExpanded =
+    iSeeItContainsThePipelineName
+
+
+iSeeItIsCollapsed =
+    iSeeNoPipelineNames
+
+
 iNavigateToTheDashboard =
     Tuple.first
         >> Application.update
             (TopLevelMessage.DeliveryReceived <|
                 Subscription.RouteChanged <|
-                    Routes.Dashboard (Routes.Normal Nothing)
+                    Routes.Dashboard
+                        { searchType = Routes.Normal ""
+                        , dashboardView = Routes.ViewNonArchivedPipelines
+                        }
             )
 
 
@@ -1532,9 +2029,9 @@ iNavigateBackToThePipelinePage =
                     Routes.Pipeline
                         { groups = []
                         , id =
-                            { pipelineName = "yet-another-pipeline"
-                            , teamName = "other-team"
-                            }
+                            Data.pipelineId
+                                |> Data.withTeamName "other-team"
+                                |> Data.withPipelineName "yet-another-pipeline"
                         }
             )
 
@@ -1583,6 +2080,7 @@ iAmLookingAtAOneOffBuildPageOnANonPhoneScreen =
                 (Ok
                     { id = 1
                     , name = "1"
+                    , teamName = "team"
                     , job = Nothing
                     , status = BuildStatusStarted
                     , duration = { startedAt = Nothing, finishedAt = Nothing }
@@ -1605,15 +2103,6 @@ iAmLookingAtTheLeftSideOfTheTopBar =
         >> Query.find [ id "top-bar-app" ]
         >> Query.children []
         >> Query.first
-
-
-iSeeAHamburgerMenu =
-    Query.has
-        (DashboardTests.iconSelector
-            { size = "54px"
-            , image = Assets.HamburgerMenuIcon
-            }
-        )
 
 
 myBrowserFetchesScreenSize =
@@ -1666,8 +2155,8 @@ iSeeAGreyBackground =
     Query.has [ style "background-color" "#353434" ]
 
 
-iSeeADarkGreyBackground =
-    Query.has [ style "background-color" "#272727" ]
+iSeeADarkBackground =
+    Query.has [ style "background-color" ColorValues.grey100 ]
 
 
 iSeeItStretches =

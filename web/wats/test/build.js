@@ -31,8 +31,8 @@ test('shows abort hooks', async t => {
   await t.context.web.waitForText("say-bye-from-job");
   // await t.context.web.waitForText("looping");
 
-  await t.context.web.page.waitFor('button[title="Abort Build"]');
-  await t.context.web.page.click('button[title="Abort Build"]');
+  await t.context.web.page.waitFor('button[aria-label="Abort Build"]');
+  await t.context.web.page.click('button[aria-label="Abort Build"]');
 
   await t.context.web.waitForBackgroundColor('.build-header', palette.brown, {
     timeout: 60000,

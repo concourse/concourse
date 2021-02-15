@@ -291,6 +291,23 @@ var _ = Describe("Runner", func() {
 					})
 				})
 
+				Context("when job scheduling panic", func() {
+					BeforeEach(func() {
+						fakeScheduler.ScheduleStub = func(_ context.Context, _ lager.Logger, job db.SchedulerJob) (bool, error) {
+							if job.Name() == "some-job" {
+								panic("something went wrong")
+							}
+							return false, nil
+						}
+					})
+
+					It("does not update last scheduled", func() {
+						Expect(schedulerErr).ToNot(HaveOccurred())
+						Eventually(fakeJob2.UpdateLastScheduledCallCount).Should(Equal(1))
+						Consistently(fakeJob1.UpdateLastScheduledCallCount).Should(Equal(0))
+					})
+				})
+
 				Context("when there is no error but needs retry", func() {
 					BeforeEach(func() {
 						fakeScheduler.ScheduleReturnsOnCall(0, true, nil)

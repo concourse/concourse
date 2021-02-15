@@ -98,16 +98,9 @@ func (recursor StepRecursor) VisitInParallel(step *InParallelStep) error {
 	return nil
 }
 
-// VisitAggregate recurses through to the wrapped steps.
-func (recursor StepRecursor) VisitAggregate(step *AggregateStep) error {
-	for _, sub := range step.Steps {
-		err := sub.Config.Visit(recursor)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+// VisitAcross recurses through to the wrapped step.
+func (recursor StepRecursor) VisitAcross(step *AcrossStep) error {
+	return step.Step.Visit(recursor)
 }
 
 // VisitTimeout recurses through to the wrapped step.

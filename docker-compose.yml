@@ -4,8 +4,7 @@ services:
   db:
     image: postgres:${POSTGRES_TAG:-latest}
     shm_size: 1gb
-    ports:
-    - 6543:5432
+    ports: [6543:5432]
     environment:
       POSTGRES_DB: concourse
       POSTGRES_USER: dev
@@ -14,13 +13,17 @@ services:
   web:
     build: .
     image: concourse/concourse:local
-    volumes:
-    - .:/src
     command: web
     depends_on: [db]
-    ports:
-    - 8080:8080
+    ports: [8080:8080]
+    volumes:
+    - .:/src
+    - "./hack/keys:/concourse-keys"
     environment:
+      CONCOURSE_SESSION_SIGNING_KEY: /concourse-keys/session_signing_key
+      CONCOURSE_TSA_AUTHORIZED_KEYS: /concourse-keys/authorized_worker_keys
+      CONCOURSE_TSA_HOST_KEY: /concourse-keys/tsa_host_key
+
       CONCOURSE_LOG_LEVEL: debug
       CONCOURSE_POSTGRES_HOST: db
       CONCOURSE_POSTGRES_USER: dev
@@ -30,7 +33,8 @@ services:
       CONCOURSE_ADD_LOCAL_USER: test:test,guest:guest
       CONCOURSE_MAIN_TEAM_LOCAL_USER: test
       CONCOURSE_CLUSTER_NAME: dev
-      CONCOURSE_ENABLE_ARCHIVE_PIPELINE: "true"
+      CONCOURSE_ENABLE_PIPELINE_INSTANCES: "true"
+      CONCOURSE_ENABLE_ACROSS_STEP: "true"
 
   worker:
     build: .
@@ -41,14 +45,20 @@ services:
     ports:
     - 7777:7777
     - 7788:7788
+    volumes: ["./hack/keys:/concourse-keys"]
     stop_signal: SIGUSR2
     environment:
+      CONCOURSE_TSA_PUBLIC_KEY: /concourse-keys/tsa_host_key.pub
+      CONCOURSE_TSA_WORKER_PRIVATE_KEY: /concourse-keys/worker_key
+
       CONCOURSE_LOG_LEVEL: debug
       CONCOURSE_TSA_HOST: web:2222
+
+      CONCOURSE_BIND_IP: 0.0.0.0
+      CONCOURSE_BAGGAGECLAIM_BIND_IP: 0.0.0.0
 
       # avoid using loopbacks
       CONCOURSE_BAGGAGECLAIM_DRIVER: overlay
 
-      # so we can reach Garden/Baggageclaim for debugging
-      CONCOURSE_BIND_IP: 0.0.0.0
-      CONCOURSE_BAGGAGECLAIM_BIND_IP: 0.0.0.0
+      # work with docker-compose's dns
+      CONCOURSE_GARDEN_DNS_PROXY_ENABLE: "true"

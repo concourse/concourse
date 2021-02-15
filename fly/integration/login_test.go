@@ -19,26 +19,12 @@ import (
 	"github.com/onsi/gomega/ghttp"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/fly/version"
 )
 
 var _ = Describe("login Command", func() {
 	var (
 		loginATCServer *ghttp.Server
-		tmpDir         string
 	)
-
-	BeforeEach(func() {
-		var err error
-		tmpDir, err = ioutil.TempDir("", "fly-test")
-		Expect(err).ToNot(HaveOccurred())
-
-		os.Setenv("HOME", tmpDir)
-	})
-
-	AfterEach(func() {
-		os.RemoveAll(tmpDir)
-	})
 
 	Describe("login with no target name", func() {
 		var (
@@ -509,7 +495,6 @@ var _ = Describe("login Command", func() {
 						ghttp.RespondWithJSONEncoded(200, map[string]string{
 							"token_type":   "Bearer",
 							"access_token": "access-token",
-							"id_token":     "some-token",
 						}),
 					),
 					userInfoHandler(),
@@ -555,7 +540,7 @@ var _ = Describe("login Command", func() {
 							infoHandler(),
 							ghttp.CombineHandlers(
 								ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines"),
-								ghttp.VerifyHeaderKV("Authorization", "Bearer some-token"),
+								ghttp.VerifyHeaderKV("Authorization", "Bearer access-token"),
 								ghttp.RespondWithJSONEncoded(200, []atc.Pipeline{
 									{Name: "pipeline-1"},
 								}),
@@ -594,14 +579,13 @@ var _ = Describe("login Command", func() {
 								ghttp.RespondWithJSONEncoded(200, map[string]string{
 									"token_type":   "Bearer",
 									"access_token": "some-new-token",
-									"id_token":     "some-new-id-token",
 								}),
 							),
 							userInfoHandler(),
 							infoHandler(),
 							ghttp.CombineHandlers(
 								ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines"),
-								ghttp.VerifyHeaderKV("Authorization", "Bearer some-new-id-token"),
+								ghttp.VerifyHeaderKV("Authorization", "Bearer some-new-token"),
 								ghttp.RespondWithJSONEncoded(200, []atc.Pipeline{
 									{Name: "pipeline-2"},
 								}),
@@ -634,38 +618,6 @@ var _ = Describe("login Command", func() {
 						Expect(sess.ExitCode()).To(Equal(0))
 					})
 				})
-			})
-		})
-
-		Context("when fly and atc differ in major versions", func() {
-			var flyVersion string
-
-			BeforeEach(func() {
-				major, minor, patch, err := version.GetSemver(atcVersion)
-				Expect(err).NotTo(HaveOccurred())
-
-				flyVersion = fmt.Sprintf("%d.%d.%d", major+1, minor, patch)
-				flyPath, err := gexec.Build(
-					"github.com/concourse/concourse/fly",
-					"-ldflags", fmt.Sprintf("-X github.com/concourse/concourse.Version=%s", flyVersion),
-				)
-				Expect(err).NotTo(HaveOccurred())
-				flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-u", "user", "-p", "pass")
-
-				loginATCServer.AppendHandlers(
-					infoHandler(),
-					tokenHandler(),
-					userInfoHandler(),
-				)
-			})
-
-			It("warns user and does not fail", func() {
-				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-				Expect(err).NotTo(HaveOccurred())
-
-				Eventually(sess).Should(gexec.Exit(0))
-				Expect(sess.Err).To(gbytes.Say(`fly version \(%s\) is out of sync with the target \(%s\). to sync up, run the following:\n\n    `, flyVersion, atcVersion))
-				Expect(sess.Err).To(gbytes.Say(`fly.* -t some-target sync\n`))
 			})
 		})
 
@@ -724,7 +676,7 @@ var _ = Describe("login Command", func() {
 		})
 
 		Context("when logging in as an admin user", func() {
-			It("can login to any team", func() {
+			It("can login to any team that exists", func() {
 				loginATCServer.AppendHandlers(
 					infoHandler(),
 					tokenHandler(),
@@ -733,6 +685,21 @@ var _ = Describe("login Command", func() {
 						ghttp.RespondWithJSONEncoded(200, map[string]interface{}{
 							"user_name": "admin_user",
 							"is_admin":  true,
+						}),
+					),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/teams"),
+						ghttp.RespondWithJSONEncoded(200, []atc.Team{
+							{
+								ID:   1,
+								Name: "any-team",
+								Auth: atc.TeamAuth{
+									"owner": map[string][]string{
+										"groups": []string{},
+										"users":  []string{},
+									},
+								},
+							},
 						}),
 					),
 				)
@@ -746,6 +713,44 @@ var _ = Describe("login Command", func() {
 
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(0))
+			})
+			It("fails to login if the team does not exist", func() {
+				loginATCServer.AppendHandlers(
+					infoHandler(),
+					tokenHandler(),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/user"),
+						ghttp.RespondWithJSONEncoded(200, map[string]interface{}{
+							"user_name": "admin_user",
+							"is_admin":  true,
+						}),
+					),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/teams"),
+						ghttp.RespondWithJSONEncoded(200, []atc.Team{
+							{
+								ID:   1,
+								Name: "main",
+								Auth: atc.TeamAuth{
+									"owner": map[string][]string{
+										"groups": []string{},
+										"users":  []string{},
+									},
+								},
+							},
+						}),
+					),
+				)
+
+				flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-n", "doesNotExist", "-u", "admin_user", "-p", "pass")
+
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(sess.Err).Should(gbytes.Say("error: team 'doesNotExist' does not exist"))
+
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(1))
 			})
 		})
 	})

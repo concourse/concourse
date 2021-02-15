@@ -19,7 +19,7 @@ const baseCgroupsPath = "garden"
 
 // OciSpec converts a given `garden` container specification to an OCI spec.
 //
-func OciSpec(gdn garden.ContainerSpec, maxUid, maxGid uint32) (oci *specs.Spec, err error) {
+func OciSpec(initBinPath string, gdn garden.ContainerSpec, maxUid, maxGid uint32) (oci *specs.Spec, err error) {
 	if gdn.Handle == "" {
 		err = fmt.Errorf("handle must be specified")
 		return
@@ -45,7 +45,7 @@ func OciSpec(gdn garden.ContainerSpec, maxUid, maxGid uint32) (oci *specs.Spec, 
 	cgroupsPath := OciCgroupsPath(baseCgroupsPath, gdn.Handle, gdn.Privileged)
 
 	oci = merge(
-		defaultGardenOciSpec(gdn.Privileged, maxUid, maxGid),
+		defaultGardenOciSpec(initBinPath, gdn.Privileged, maxUid, maxGid),
 		&specs.Spec{
 			Version:  specs.Version,
 			Hostname: gdn.Handle,
@@ -202,16 +202,11 @@ func envWithDefaultPath(env []string, privileged bool) []string {
 // ps.: this spec is NOT completed - it must be merged with more properties to
 // form a properly working container.
 //
-func defaultGardenOciSpec(privileged bool, maxUid, maxGid uint32) *specs.Spec {
+func defaultGardenOciSpec(initBinPath string, privileged bool, maxUid, maxGid uint32) *specs.Spec {
 	var (
 		namespaces   = OciNamespaces(privileged)
 		capabilities = OciCapabilities(privileged)
 	)
-
-	devices := AnyContainerDevices
-	if privileged {
-		devices = append(PrivilegedOnlyDevices, devices...)
-	}
 
 	spec := &specs.Spec{
 		Process: &specs.Process{
@@ -222,12 +217,12 @@ func defaultGardenOciSpec(privileged bool, maxUid, maxGid uint32) *specs.Spec {
 		Linux: &specs.Linux{
 			Namespaces: namespaces,
 			Resources: &specs.LinuxResources{
-				Devices: devices,
+				Devices: AnyContainerDevices,
 			},
 			UIDMappings: OciIDMappings(privileged, maxUid),
 			GIDMappings: OciIDMappings(privileged, maxGid),
 		},
-		Mounts: AnyContainerMounts,
+		Mounts: ContainerMounts(privileged, initBinPath),
 	}
 
 	if !privileged {

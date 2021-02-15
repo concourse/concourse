@@ -5,6 +5,7 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
+	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/fly/ui"
 	"github.com/concourse/concourse/go-concourse/concourse"
@@ -12,9 +13,9 @@ import (
 )
 
 type JobsCommand struct {
-	Pipeline string `short:"p" long:"pipeline" required:"true" description:"Get jobs in this pipeline"`
-	Json     bool   `long:"json" description:"Print command result as JSON"`
-	Team     string `long:"team" description:"Name of the team to which the pipeline belongs, if different from the target default"`
+	Pipeline flaghelpers.PipelineFlag `short:"p" long:"pipeline" required:"true" description:"Get jobs in this pipeline"`
+	Json     bool                     `long:"json" description:"Print command result as JSON"`
+	Team     string                   `long:"team" description:"Name of the team to which the pipeline belongs, if different from the target default"`
 }
 
 func (command *JobsCommand) Execute([]string) error {
@@ -22,7 +23,6 @@ func (command *JobsCommand) Execute([]string) error {
 		headers []string
 		team    concourse.Team
 	)
-	pipelineName := command.Pipeline
 
 	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
 	if err != nil {
@@ -44,7 +44,7 @@ func (command *JobsCommand) Execute([]string) error {
 	}
 
 	var jobs []atc.Job
-	jobs, err = team.ListJobs(pipelineName)
+	jobs, err = team.ListJobs(command.Pipeline.Ref())
 	if err != nil {
 		return err
 	}
@@ -79,23 +79,7 @@ func (command *JobsCommand) Execute([]string) error {
 
 		var statusColumn ui.TableCell
 		if p.FinishedBuild != nil {
-			statusColumn.Contents = p.FinishedBuild.Status
-			switch p.FinishedBuild.Status {
-			case "pending":
-				statusColumn.Color = ui.PendingColor
-			case "started":
-				statusColumn.Color = ui.StartedColor
-			case "succeeded":
-				statusColumn.Color = ui.SucceededColor
-			case "failed":
-				statusColumn.Color = ui.FailedColor
-			case "errored":
-				statusColumn.Color = ui.ErroredColor
-			case "aborted":
-				statusColumn.Color = ui.AbortedColor
-			case "paused":
-				statusColumn.Color = ui.PausedColor
-			}
+			statusColumn = ui.BuildStatusCell(p.FinishedBuild.Status)
 		} else {
 			statusColumn.Contents = "n/a"
 		}
@@ -103,13 +87,7 @@ func (command *JobsCommand) Execute([]string) error {
 
 		var nextColumn ui.TableCell
 		if p.NextBuild != nil {
-			nextColumn.Contents = p.NextBuild.Status
-			switch p.NextBuild.Status {
-			case "pending:":
-				nextColumn.Color = ui.PendingColor
-			case "started":
-				nextColumn.Color = ui.StartedColor
-			}
+			nextColumn = ui.BuildStatusCell(p.NextBuild.Status)
 		} else {
 			nextColumn.Contents = "n/a"
 		}

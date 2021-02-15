@@ -3,6 +3,7 @@ module Resource.Styles exposing
     , checkBarStatus
     , checkButton
     , checkButtonIcon
+    , checkStatus
     , checkStatusIcon
     , commentBar
     , commentBarIconContainer
@@ -19,10 +20,8 @@ module Resource.Styles exposing
     , headerResourceName
     , pagination
     , pinBar
-    , pinBarTooltip
     , pinBarViewVersion
     , pinButton
-    , pinButtonTooltip
     , pinIcon
     , pinTools
     , versionHeader
@@ -90,17 +89,6 @@ pinIcon { clickable, hover } =
     , style "background-origin" "content-box"
     , style "min-width" "14px"
     , style "min-height" "14px"
-    ]
-
-
-pinBarTooltip : List (Html.Attribute msg)
-pinBarTooltip =
-    [ style "position" "absolute"
-    , style "top" "-10px"
-    , style "left" "30px"
-    , style "background-color" Colors.tooltipBackground
-    , style "padding" "5px"
-    , style "z-index" "2"
     ]
 
 
@@ -179,7 +167,7 @@ pinButton pinState =
             Pinned.NotThePinnedVersion ->
                 "pointer"
 
-            Pinned.PinnedStatically _ ->
+            Pinned.PinnedStatically ->
                 "default"
 
             Pinned.Disabled ->
@@ -198,22 +186,11 @@ pinButton pinState =
     ]
 
 
-pinButtonTooltip : List (Html.Attribute msg)
-pinButtonTooltip =
-    [ style "position" "absolute"
-    , style "bottom" "25px"
-    , style "background-color" Colors.tooltipBackground
-    , style "z-index" "2"
-    , style "padding" "5px"
-    , style "width" "170px"
-    ]
-
-
 versionHeader : Pinned.VersionPinState -> List (Html.Attribute msg)
 versionHeader pinnedState =
     [ style "background-color" Colors.sectionHeader
     , style "border" <| "1px solid " ++ borderColor pinnedState
-    , style "padding-left" "10px"
+    , style "padding" "5px 0 5px 10px"
     , style "cursor" "pointer"
     , style "flex-grow" "1"
     , style "display" "flex"
@@ -229,7 +206,7 @@ pinBarViewVersion =
 borderColor : Pinned.VersionPinState -> String
 borderColor pinnedState =
     case pinnedState of
-        Pinned.PinnedStatically _ ->
+        Pinned.PinnedStatically ->
             Colors.pinned
 
         Pinned.PinnedDynamically ->
@@ -412,6 +389,14 @@ pagination =
     ]
 
 
+checkStatus : List (Html.Attribute msg)
+checkStatus =
+    [ style "display" "flex"
+    , style "flex-direction" "column"
+    , style "flex-grow" "1"
+    ]
+
+
 checkBarStatus : List (Html.Attribute msg)
 checkBarStatus =
     [ style "display" "flex"
@@ -420,14 +405,14 @@ checkBarStatus =
     , style "flex-grow" "1"
     , style "height" "28px"
     , style "background" Colors.sectionHeader
-    , style "padding-left" "5px"
+    , style "padding-left" "6px"
     ]
 
 
 checkButton : Bool -> List (Html.Attribute msg)
 checkButton isClickable =
-    [ style "height" "28px"
-    , style "width" "28px"
+    [ style "height" "30px"
+    , style "width" "30px"
     , style "background-color" Colors.sectionHeader
     , style "margin-right" "5px"
     , style "cursor" <|
@@ -441,7 +426,7 @@ checkButton isClickable =
 
 checkButtonIcon : Bool -> List (Html.Attribute msg)
 checkButtonIcon isHighlighted =
-    [ style "margin" "4px"
+    [ style "margin" "5px"
     , style "background-size" "contain"
     , style "opacity" <|
         if isHighlighted then

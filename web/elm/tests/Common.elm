@@ -2,32 +2,49 @@ module Common exposing
     ( and
     , contains
     , defineHoverBehaviour
+    , expectNoTooltip
+    , expectTooltip
+    , expectTooltipWith
     , given
+    , givenDataUnauthenticated
+    , gotPipelines
+    , hoverOver
     , iOpenTheBuildPage
     , init
+    , initQuery
+    , initRoute
     , isColorWithStripes
     , myBrowserFetchedTheBuild
     , notContains
     , pipelineRunningKeyframes
     , queryView
+    , routeHref
     , then_
     , when
+    , whenOnDesktop
+    , whenOnMobile
+    , withAllPipelinesVisible
     )
 
 import Application.Application as Application
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
+import Data
+import EffectTransformer exposing (ET)
 import Expect exposing (Expectation)
 import Html
+import Html.Attributes as Attr
 import List.Extra
 import Message.Callback as Callback
 import Message.Effects exposing (Effect)
-import Message.Message exposing (DomID, Message(..))
+import Message.Message exposing (DomID(..), Message(..))
+import Message.Subscription exposing (Delivery(..))
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
+import Routes
 import Test exposing (Test, describe, test)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (Selector, style)
+import Test.Html.Selector exposing (Selector, attribute, id, style, text)
 import Url
 
 
@@ -65,6 +82,11 @@ notContains x xs =
         Expect.pass
 
 
+routeHref : Routes.Route -> Test.Html.Selector.Selector
+routeHref =
+    Routes.toString >> Attr.href >> attribute
+
+
 isColorWithStripes :
     { thick : String, thin : String }
     -> Query.Single msg
@@ -95,8 +117,8 @@ pipelineRunningKeyframes =
     "pipeline-running"
 
 
-init : String -> Application.Model
-init path =
+initQuery : String -> Maybe String -> Application.Model
+initQuery path query =
     Application.init
         { turbulenceImgSrc = ""
         , notFoundImgSrc = "notfound.svg"
@@ -108,10 +130,33 @@ init path =
         , host = ""
         , port_ = Nothing
         , path = path
-        , query = Nothing
+        , query = query
         , fragment = Nothing
         }
         |> Tuple.first
+
+
+initRoute : Routes.Route -> Application.Model
+initRoute route =
+    case Url.fromString ("http://test.com" ++ Routes.toString route) of
+        Just url ->
+            Application.init
+                { turbulenceImgSrc = ""
+                , notFoundImgSrc = "notfound.svg"
+                , csrfToken = "csrf_token"
+                , authToken = ""
+                , pipelineRunningKeyframes = "pipeline-running"
+                }
+                url
+                |> Tuple.first
+
+        Nothing ->
+            Debug.todo ("invalid route stringification: " ++ Debug.toString route)
+
+
+init : String -> Application.Model
+init path =
+    initQuery path Nothing
 
 
 given =
@@ -154,12 +199,14 @@ myBrowserFetchedTheBuild =
                 Ok
                     { id = 1
                     , name = "1"
+                    , teamName = "other-team"
                     , job =
                         Just
-                            { teamName = "other-team"
-                            , pipelineName = "yet-another-pipeline"
-                            , jobName = "job"
-                            }
+                            (Data.jobId
+                                |> Data.withTeamName "other-team"
+                                |> Data.withPipelineName "yet-another-pipeline"
+                                |> Data.withJobName "job"
+                            )
                     , status = BuildStatusStarted
                     , duration =
                         { startedAt = Nothing
@@ -231,7 +278,140 @@ defineHoverBehaviour { name, setup, query, unhoveredSelector, hoverable, hovered
         ]
 
 
+withScreenSize : Float -> Float -> Application.Model -> Application.Model
+withScreenSize width height =
+    Application.handleCallback
+        (Callback.ScreenResized
+            { scene = { width = 0, height = 0 }
+            , viewport = { x = 0, y = 0, width = width, height = height }
+            }
+        )
+        >> Tuple.first
 
--- 6 places where Application.init is used with a query
--- 6 places where Application.init is used with a fragment
--- 1 place where Application.init is used with an instance name
+
+withAllPipelinesVisible : Application.Model -> Application.Model
+withAllPipelinesVisible =
+    Application.handleCallback
+        (Callback.GotViewport
+            Dashboard
+            (Ok
+                { scene = { width = 0, height = 0 }
+                , viewport = { x = 0, y = 0, width = 1000, height = 100000 }
+                }
+            )
+        )
+        >> Tuple.first
+
+
+whenOnDesktop : Application.Model -> Application.Model
+whenOnDesktop =
+    withScreenSize 1500 900
+
+
+whenOnMobile : Application.Model -> Application.Model
+whenOnMobile =
+    withScreenSize 400 900
+
+
+givenDataUnauthenticated :
+    List Concourse.Team
+    -> Application.Model
+    -> ( Application.Model, List Effect )
+givenDataUnauthenticated data =
+    Application.handleCallback
+        (Callback.AllTeamsFetched <| Ok data)
+        >> Tuple.first
+        >> Application.handleCallback
+            (Callback.UserFetched <| Data.httpUnauthorized)
+
+
+gotPipelines : List ( Concourse.Pipeline, List Concourse.Job ) -> Application.Model -> Application.Model
+gotPipelines data =
+    let
+        pipelines =
+            data |> List.map Tuple.first
+
+        jobs =
+            data |> List.concatMap Tuple.second
+
+        teams =
+            pipelines |> List.map .teamName |> List.Extra.unique |> List.indexedMap Concourse.Team
+    in
+    Application.handleCallback
+        (Callback.AllPipelinesFetched <| Ok pipelines)
+        >> Tuple.first
+        >> Application.handleCallback
+            (Callback.AllJobsFetched <| Ok jobs)
+        >> Tuple.first
+        >> givenDataUnauthenticated teams
+        >> Tuple.first
+
+
+hoverOver : Message.Message.DomID -> Application.Model -> ( Application.Model, List Effect )
+hoverOver domID =
+    Application.update
+        (Update (Message.Message.Hover (Just domID)))
+        >> Tuple.first
+        >> Application.handleCallback
+            (Callback.GotViewport domID <|
+                Ok
+                    { scene =
+                        { width = 1
+                        , height = 0
+                        }
+                    , viewport =
+                        { width = 1
+                        , height = 0
+                        , x = 0
+                        , y = 0
+                        }
+                    }
+            )
+        >> Tuple.first
+        >> Application.handleCallback
+            (Callback.GotElement <|
+                Ok
+                    { scene =
+                        { width = 0
+                        , height = 0
+                        }
+                    , viewport =
+                        { width = 0
+                        , height = 0
+                        , x = 0
+                        , y = 0
+                        }
+                    , element =
+                        { x = 0
+                        , y = 0
+                        , width = 1
+                        , height = 1
+                        }
+                    }
+            )
+
+
+expectTooltip : DomID -> String -> Application.Model -> Expect.Expectation
+expectTooltip domID tooltip =
+    hoverOver domID
+        >> Tuple.first
+        >> queryView
+        >> Query.find [ id "tooltips" ]
+        >> Query.has [ text tooltip ]
+
+
+expectTooltipWith : DomID -> (Query.Single TopLevelMessage -> Expect.Expectation) -> Application.Model -> Expect.Expectation
+expectTooltipWith domID expectation =
+    hoverOver domID
+        >> Tuple.first
+        >> queryView
+        >> Query.find [ id "tooltips" ]
+        >> expectation
+
+
+expectNoTooltip : DomID -> Application.Model -> Expect.Expectation
+expectNoTooltip domID =
+    hoverOver domID
+        >> Tuple.first
+        >> queryView
+        >> Query.hasNot [ id "tooltips" ]

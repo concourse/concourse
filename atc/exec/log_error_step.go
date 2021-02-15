@@ -2,6 +2,7 @@ package exec
 
 import (
 	"context"
+	"errors"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
@@ -10,36 +11,33 @@ import (
 const AbortedLogMessage = "interrupted"
 const TimeoutLogMessage = "timeout exceeded"
 
-type LogErrorStepDelegate interface {
-	Errored(lager.Logger, string)
-}
-
 type LogErrorStep struct {
 	Step
 
-	delegate LogErrorStepDelegate
+	delegateFactory BuildStepDelegateFactory
 }
 
-func LogError(step Step, delegate LogErrorStepDelegate) Step {
+func LogError(step Step, delegateFactory BuildStepDelegateFactory) Step {
 	return LogErrorStep{
 		Step: step,
 
-		delegate: delegate,
+		delegateFactory: delegateFactory,
 	}
 }
 
-func (step LogErrorStep) Run(ctx context.Context, state RunState) error {
+func (step LogErrorStep) Run(ctx context.Context, state RunState) (bool, error) {
 	logger := lagerctx.FromContext(ctx)
 
-	runErr := step.Step.Run(ctx, state)
+	runOk, runErr := step.Step.Run(ctx, state)
+	if runErr == nil {
+		return runOk, nil
+	}
 
 	var message string
-	switch runErr {
-	case nil:
-		return nil
-	case context.Canceled:
+	switch {
+	case errors.Is(runErr, context.Canceled):
 		message = AbortedLogMessage
-	case context.DeadlineExceeded:
+	case errors.Is(runErr, context.DeadlineExceeded):
 		message = TimeoutLogMessage
 	default:
 		message = runErr.Error()
@@ -47,7 +45,8 @@ func (step LogErrorStep) Run(ctx context.Context, state RunState) error {
 
 	logger.Info("errored", lager.Data{"error": runErr.Error()})
 
-	step.delegate.Errored(logger, message)
+	delegate := step.delegateFactory.BuildStepDelegate(state)
+	delegate.Errored(logger, message)
 
-	return runErr
+	return runOk, runErr
 }

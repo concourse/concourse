@@ -3,11 +3,13 @@ package configvalidate
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/concourse/concourse/atc"
 	. "github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
+	"github.com/gobwas/glob"
 )
 
 func formatErr(groupName string, err error) string {
@@ -25,25 +27,29 @@ func Validate(c Config) ([]ConfigWarning, []string) {
 	warnings := []ConfigWarning{}
 	errorMessages := []string{}
 
-	groupsErr := validateGroups(c)
+	groupsWarnings, groupsErr := validateGroups(c)
 	if groupsErr != nil {
 		errorMessages = append(errorMessages, formatErr("groups", groupsErr))
 	}
+	warnings = append(warnings, groupsWarnings...)
 
-	resourcesErr := validateResources(c)
+	resourcesWarnings, resourcesErr := validateResources(c)
 	if resourcesErr != nil {
 		errorMessages = append(errorMessages, formatErr("resources", resourcesErr))
 	}
+	warnings = append(warnings, resourcesWarnings...)
 
-	resourceTypesErr := validateResourceTypes(c)
+	resourceTypesWarnings, resourceTypesErr := validateResourceTypes(c)
 	if resourceTypesErr != nil {
 		errorMessages = append(errorMessages, formatErr("resource types", resourceTypesErr))
 	}
+	warnings = append(warnings, resourceTypesWarnings...)
 
-	varSourcesErr := validateVarSources(c)
+	varSourcesWarnings, varSourcesErr := validateVarSources(c)
 	if varSourcesErr != nil {
 		errorMessages = append(errorMessages, formatErr("variable sources", varSourcesErr))
 	}
+	warnings = append(warnings, varSourcesWarnings...)
 
 	jobWarnings, jobsErr := validateJobs(c)
 	if jobsErr != nil {
@@ -51,10 +57,17 @@ func Validate(c Config) ([]ConfigWarning, []string) {
 	}
 	warnings = append(warnings, jobWarnings...)
 
+	displayWarnings, displayErr := validateDisplay(c)
+	if displayErr != nil {
+		errorMessages = append(errorMessages, formatErr("display config", displayErr))
+	}
+	warnings = append(warnings, displayWarnings...)
+
 	return warnings, errorMessages
 }
 
-func validateGroups(c Config) error {
+func validateGroups(c Config) ([]ConfigWarning, error) {
+	var warnings []ConfigWarning
 	var errorMessages []string
 
 	jobsGrouped := make(map[string]bool)
@@ -64,7 +77,21 @@ func validateGroups(c Config) error {
 		jobsGrouped[job.Name] = false
 	}
 
-	for _, group := range c.Groups {
+	for i, group := range c.Groups {
+		var identifier string
+		if group.Name == "" {
+			identifier = fmt.Sprintf("groups[%d]", i)
+		} else {
+			identifier = fmt.Sprintf("groups.%s", group.Name)
+		}
+
+		warning, err := ValidateIdentifier(group.Name, identifier)
+		if err != nil {
+			errorMessages = append(errorMessages, err.Error())
+		}
+		if warning != nil {
+			warnings = append(warnings, *warning)
+		}
 
 		if val, ok := groupNames[group.Name]; ok {
 			groupNames[group.Name] = val + 1
@@ -73,13 +100,23 @@ func validateGroups(c Config) error {
 			groupNames[group.Name] = 1
 		}
 
-		for _, job := range group.Jobs {
-			_, exists := c.Jobs.Lookup(job)
-			if !exists {
+		for _, jobGlob := range group.Jobs {
+			matchingJob := false
+			g, err := glob.Compile(jobGlob)
+			if err != nil {
 				errorMessages = append(errorMessages,
-					fmt.Sprintf("group '%s' has unknown job '%s'", group.Name, job))
-			} else {
-				jobsGrouped[job] = true
+					fmt.Sprintf("invalid glob expression '%s' for group '%s'", jobGlob, group.Name))
+				continue
+			}
+			for _, job := range c.Jobs {
+				if g.Match(job.Name) {
+					jobsGrouped[job.Name] = true
+					matchingJob = true
+				}
+			}
+			if !matchingJob {
+				errorMessages = append(errorMessages,
+					fmt.Sprintf("no jobs match '%s' for group '%s'", jobGlob, group.Name))
 			}
 		}
 
@@ -107,10 +144,11 @@ func validateGroups(c Config) error {
 		}
 	}
 
-	return compositeErr(errorMessages)
+	return warnings, compositeErr(errorMessages)
 }
 
-func validateResources(c Config) error {
+func validateResources(c Config) ([]ConfigWarning, error) {
+	var warnings []ConfigWarning
 	var errorMessages []string
 
 	names := map[string]int{}
@@ -121,6 +159,14 @@ func validateResources(c Config) error {
 			identifier = fmt.Sprintf("resources[%d]", i)
 		} else {
 			identifier = fmt.Sprintf("resources.%s", resource.Name)
+		}
+
+		warning, err := ValidateIdentifier(resource.Name, identifier)
+		if err != nil {
+			errorMessages = append(errorMessages, err.Error())
+		}
+		if warning != nil {
+			warnings = append(warnings, *warning)
 		}
 
 		if other, exists := names[resource.Name]; exists {
@@ -143,10 +189,11 @@ func validateResources(c Config) error {
 
 	errorMessages = append(errorMessages, validateResourcesUnused(c)...)
 
-	return compositeErr(errorMessages)
+	return warnings, compositeErr(errorMessages)
 }
 
-func validateResourceTypes(c Config) error {
+func validateResourceTypes(c Config) ([]ConfigWarning, error) {
+	var warnings []ConfigWarning
 	var errorMessages []string
 
 	names := map[string]int{}
@@ -157,6 +204,14 @@ func validateResourceTypes(c Config) error {
 			identifier = fmt.Sprintf("resource_types[%d]", i)
 		} else {
 			identifier = fmt.Sprintf("resource_types.%s", resourceType.Name)
+		}
+
+		warning, err := ValidateIdentifier(resourceType.Name, identifier)
+		if err != nil {
+			errorMessages = append(errorMessages, err.Error())
+		}
+		if warning != nil {
+			warnings = append(warnings, *warning)
 		}
 
 		if other, exists := names[resourceType.Name]; exists {
@@ -177,7 +232,7 @@ func validateResourceTypes(c Config) error {
 		}
 	}
 
-	return compositeErr(errorMessages)
+	return warnings, compositeErr(errorMessages)
 }
 
 func validateResourcesUnused(c Config) []string {
@@ -219,12 +274,25 @@ func validateJobs(c Config) ([]ConfigWarning, error) {
 
 	names := map[string]int{}
 
+	if len(c.Jobs) == 0 {
+		errorMessages = append(errorMessages, "jobs: pipeline must contain at least one job")
+		return warnings, compositeErr(errorMessages)
+	}
+
 	for i, job := range c.Jobs {
 		var identifier string
 		if job.Name == "" {
 			identifier = fmt.Sprintf("jobs[%d]", i)
 		} else {
 			identifier = fmt.Sprintf("jobs.%s", job.Name)
+		}
+
+		warning, err := ValidateIdentifier(job.Name, identifier)
+		if err != nil {
+			errorMessages = append(errorMessages, err.Error())
+		}
+		if warning != nil {
+			warnings = append(warnings, *warning)
 		}
 
 		if other, exists := names[job.Name]; exists {
@@ -279,18 +347,13 @@ func validateJobs(c Config) ([]ConfigWarning, error) {
 			}
 		}
 
-		stepConfig := job.StepConfig()
+		step := job.Step()
 
 		validator := atc.NewStepValidator(c, []string{identifier, ".plan"})
 
-		_ = stepConfig.Visit(validator)
+		_ = validator.Validate(step)
 
-		for _, warning := range validator.Warnings {
-			warnings = append(warnings, ConfigWarning{
-				Type:    "pipeline",
-				Message: warning,
-			})
-		}
+		warnings = append(warnings, validator.Warnings...)
 
 		errorMessages = append(errorMessages, validator.Errors...)
 	}
@@ -306,41 +369,83 @@ func compositeErr(errorMessages []string) error {
 	return errors.New(strings.Join(errorMessages, "\n"))
 }
 
-func validateVarSources(c Config) error {
+func validateVarSources(c Config) ([]ConfigWarning, error) {
+	var warnings []ConfigWarning
+	var errorMessages []string
+
 	names := map[string]interface{}{}
 
-	for _, cm := range c.VarSources {
-		factory := creds.ManagerFactories()[cm.Type]
-		if factory == nil {
-			return fmt.Errorf("unknown credential manager type: %s", cm.Type)
+	for i, cm := range c.VarSources {
+		var identifier string
+		if cm.Name == "" {
+			identifier = fmt.Sprintf("var_sources[%d]", i)
+		} else {
+			identifier = fmt.Sprintf("var_sources.%s", cm.Name)
 		}
 
-		// TODO: this check should eventually be removed once all credential managers
-		// are supported in pipeline. - @evanchaoli
-		switch cm.Type {
-		case "vault", "dummy", "ssm":
-		default:
-			return fmt.Errorf("credential manager type %s is not supported in pipeline yet", cm.Type)
-		}
-
-		if _, ok := names[cm.Name]; ok {
-			return fmt.Errorf("duplicate var_source name: %s", cm.Name)
-		}
-		names[cm.Name] = 0
-
-		manager, err := factory.NewInstance(cm.Config)
+		warning, err := ValidateIdentifier(cm.Name, identifier)
 		if err != nil {
-			return fmt.Errorf("failed to create credential manager %s: %s", cm.Name, err.Error())
+			errorMessages = append(errorMessages, err.Error())
 		}
-		err = manager.Validate()
-		if err != nil {
-			return fmt.Errorf("credential manager %s is invalid: %s", cm.Name, err.Error())
+		if warning != nil {
+			warnings = append(warnings, *warning)
+		}
+
+		if factory, exists := creds.ManagerFactories()[cm.Type]; exists {
+			// TODO: this check should eventually be removed once all credential managers
+			// are supported in pipeline. - @evanchaoli
+			switch cm.Type {
+			case "vault", "dummy", "ssm":
+			default:
+				errorMessages = append(errorMessages, fmt.Sprintf("credential manager type %s is not supported in pipeline yet", cm.Type))
+			}
+
+			if _, ok := names[cm.Name]; ok {
+				errorMessages = append(errorMessages, fmt.Sprintf("duplicate var_source name: %s", cm.Name))
+			}
+			names[cm.Name] = 0
+
+			if manager, err := factory.NewInstance(cm.Config); err == nil {
+				err = manager.Validate()
+				if err != nil {
+					errorMessages = append(errorMessages, fmt.Sprintf("credential manager %s is invalid: %s", cm.Name, err.Error()))
+				}
+			} else {
+				errorMessages = append(errorMessages, fmt.Sprintf("failed to create credential manager %s: %s", cm.Name, err.Error()))
+			}
+		} else {
+			errorMessages = append(errorMessages, fmt.Sprintf("unknown credential manager type: %s", cm.Type))
 		}
 	}
 
 	if _, err := c.VarSources.OrderByDependency(); err != nil {
-		return err
+		errorMessages = append(errorMessages, fmt.Sprintf("failed to order by dependency: %s", err.Error()))
 	}
 
-	return nil
+	return warnings, compositeErr(errorMessages)
+}
+
+func validateDisplay(c Config) ([]ConfigWarning, error) {
+	var warnings []ConfigWarning
+
+	if c.Display == nil {
+		return warnings, nil
+	}
+
+	url, err := url.Parse(c.Display.BackgroundImage)
+
+	if err != nil {
+		return warnings, fmt.Errorf("background_image is not a valid URL: %s", c.Display.BackgroundImage)
+	}
+
+	switch url.Scheme {
+	case "https":
+	case "http":
+	case "":
+		break
+	default:
+		return warnings, fmt.Errorf("background_image scheme must be either http, https or relative")
+	}
+
+	return warnings, nil
 }

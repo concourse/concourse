@@ -77,28 +77,35 @@ name6:
 `)))
 	})
 
-	It("can interpolate different data types into a byte slice with !key", func() {
-		template := NewTemplate([]byte("otherstuff: ((!boule))"))
-		vars := StaticVariables{"boule": true}
-
-		result, err := template.Evaluate(vars, EvaluateOpts{})
-		Expect(err).NotTo(HaveOccurred())
-		Expect(result).To(Equal([]byte("otherstuff: true\n")))
-	})
-
 	It("return errors if there are missing variable keys and ExpectAllKeys is true", func() {
 		template := NewTemplate([]byte(`
+((key4))_array:
+- ((key_in_array))
 ((key)): ((key2))
 ((key3)): 2
 dup-key: ((key3))
-((key4))_array:
-- ((key_in_array))
 `))
 		vars := StaticVariables{"key3": "foo"}
 
 		_, err := template.Evaluate(vars, EvaluateOpts{ExpectAllKeys: true})
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(Equal("undefined vars: key, key2, key4, key_in_array"))
+	})
+
+	It("return errors if there are multiple variables with same path and ExpectAllKeys is true", func() {
+		template := NewTemplate([]byte("((var1:key1)): ((var2:key1))"))
+		vars := NamedVariables{
+			"var1": StaticVariables{
+				"key3": "fuzz",
+			},
+			"var2": StaticVariables{
+				"key4": "blah",
+			},
+		}
+
+		_, err := template.Evaluate(vars, EvaluateOpts{ExpectAllKeys: true})
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(Equal("undefined vars: var1:key1, var2:key1"))
 	})
 
 	It("does not return error if there are missing variable keys and ExpectAllKeys is false", func() {
@@ -117,6 +124,22 @@ dup-key: ((key3))
 		_, err := template.Evaluate(vars, EvaluateOpts{ExpectAllVarsUsed: true})
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(Equal("unused vars: key1, key3"))
+	})
+
+	It("return errors if there are unused named variable keys and ExpectAllVarsUsed is true", func() {
+		template := NewTemplate([]byte("((key2))"))
+		vars := NamedVariables{
+			"var1": StaticVariables{
+				"key1": "fuzz",
+			},
+			"var2": StaticVariables{
+				"key1": "blah",
+			},
+		}
+
+		_, err := template.Evaluate(vars, EvaluateOpts{ExpectAllVarsUsed: true})
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(Equal("unused vars: var1:key1, var2:key1"))
 	})
 
 	It("does not return error if there are unused variable keys and ExpectAllVarsUsed is false", func() {
@@ -181,6 +204,45 @@ dup-key: ((key3))
 		Expect(result).To(Equal([]byte("dash: underscore\n")))
 	})
 
+	It("can interpolate quoted keys with dot and colon into a byte slice", func() {
+		template := NewTemplate([]byte("bar: ((foo:\"with.dot:colon\".buzz))"))
+		vars := NamedVariables{
+			"foo": StaticVariables{
+				"with.dot:colon": map[string]interface{}{
+					"buzz": "fuzz",
+				},
+			},
+		}
+
+		result, err := template.Evaluate(vars, EvaluateOpts{})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(result)).To(Equal("bar: fuzz\n"))
+	})
+
+	It("can interpolate quoted keys with colon and no var source", func() {
+		template := NewTemplate([]byte("bar: ((\"with:colon\"))"))
+		vars := StaticVariables{
+			"with:colon": "foo",
+		}
+
+		result, err := template.Evaluate(vars, EvaluateOpts{})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(result)).To(Equal("bar: foo\n"))
+	})
+
+	It("can interpolate quoted keys with dot in subkey into a byte slice", func() {
+		template := NewTemplate([]byte("bar: ((secret-name.\"secret.field\"))"))
+		vars := StaticVariables{
+			"secret-name": map[string]interface{}{
+				"secret.field": "topsekrit",
+			},
+		}
+
+		result, err := template.Evaluate(vars, EvaluateOpts{})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(result)).To(Equal(string([]byte("bar: topsekrit\n"))))
+	})
+
 	It("can interpolate a secret key in the middle of a string", func() {
 		template := NewTemplate([]byte("url: https://((ip))"))
 		vars := StaticVariables{
@@ -204,16 +266,15 @@ dup-key: ((key3))
 		Expect(result).To(Equal([]byte("uri: nats://nats:secret@10.0.0.0:4222\n")))
 	})
 
-	It("can interpolate multiple secret keys in the middle of a string even if keys have ! marks", func() {
-		template := NewTemplate([]byte("uri: nats://nats:((!password))@((ip)):4222"))
+	It("allows @ in a var name", func() {
+		template := NewTemplate([]byte("((\"foo/bar/me.com-test@me.com/password\"))"))
 		vars := StaticVariables{
-			"password": "secret",
-			"ip":       "10.0.0.0",
+			"foo/bar/me.com-test@me.com/password": "secret",
 		}
 
 		result, err := template.Evaluate(vars, EvaluateOpts{})
 		Expect(err).NotTo(HaveOccurred())
-		Expect(result).To(Equal([]byte("uri: nats://nats:secret@10.0.0.0:4222\n")))
+		Expect(result).To(Equal([]byte("secret\n")))
 	})
 
 	It("can interpolate multiple keys of type string and int in the middle of a string", func() {
@@ -299,18 +360,11 @@ dup-key: ((key3))
 		Expect(result).To(Equal([]byte("(()\n")))
 	})
 
-	It("strips away ! from variable keys", func() {
-		template := NewTemplate([]byte("abc: ((!key))\nxyz: [((!key))]"))
-		vars := StaticVariables{"key": "val"}
-
-		result, err := template.Evaluate(vars, EvaluateOpts{})
-		Expect(err).NotTo(HaveOccurred())
-		Expect(result).To(Equal([]byte("abc: val\nxyz:\n- val\n")))
-	})
-
 	It("allow var_source name in variable keys", func() {
 		template := NewTemplate([]byte("abc: ((dummy:key))"))
-		vars := StaticVariables{"dummy:key": "val"}
+		vars := NamedVariables{
+			"dummy": StaticVariables{"key": "val"},
+		}
 
 		result, err := template.Evaluate(vars, EvaluateOpts{})
 		Expect(err).NotTo(HaveOccurred())

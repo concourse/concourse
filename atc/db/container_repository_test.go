@@ -141,7 +141,7 @@ var _ = Describe("ContainerRepository", func() {
 						RunWith(dbConn).Exec()
 					Expect(err).NotTo(HaveOccurred())
 
-					err = resourceConfigFactory.CleanUnreferencedConfigs()
+					err = resourceConfigFactory.CleanUnreferencedConfigs(0)
 					Expect(err).NotTo(HaveOccurred())
 				})
 
@@ -206,7 +206,7 @@ var _ = Describe("ContainerRepository", func() {
 
 			BeforeEach(func() {
 				var err error
-				build, err = defaultJob.CreateBuild()
+				build, err = defaultJob.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).NotTo(HaveOccurred())
 
 				creatingContainer, err = defaultWorker.CreateContainer(
@@ -314,7 +314,7 @@ var _ = Describe("ContainerRepository", func() {
 
 			BeforeEach(func() {
 				var err error
-				build, err = defaultJob.CreateBuild()
+				build, err = defaultJob.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).NotTo(HaveOccurred())
 
 				creatingTaskContainer, err = defaultWorker.CreateContainer(
@@ -382,7 +382,7 @@ var _ = Describe("ContainerRepository", func() {
 
 			BeforeEach(func() {
 				var err error
-				build, err = defaultJob.CreateBuild()
+				build, err = defaultJob.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).NotTo(HaveOccurred())
 
 				creatingTaskContainer, err = defaultWorker.CreateContainer(

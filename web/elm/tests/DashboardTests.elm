@@ -10,7 +10,6 @@ module DashboardTests exposing
     , darkGrey
     , fadedGreen
     , givenDataAndUser
-    , givenDataUnauthenticated
     , green
     , iconSelector
     , job
@@ -23,14 +22,17 @@ module DashboardTests exposing
     , running
     , userWithRoles
     , whenOnDashboard
+    , whenOnDashboardViewingAllPipelines
     , white
     )
 
 import Application.Application as Application
 import Assets
+import ColorValues
 import Common
     exposing
         ( defineHoverBehaviour
+        , givenDataUnauthenticated
         , isColorWithStripes
         , pipelineRunningKeyframes
         )
@@ -49,6 +51,8 @@ import Message.Effects as Effects
 import Message.Message as Msgs
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..))
 import Message.TopLevelMessage as ApplicationMsgs
+import Routes
+import Set
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -429,7 +433,7 @@ all =
                         , style "align-items" "center"
                         , containing
                             [ style "font-size" "21px"
-                            , style "color" "#ffffff"
+                            , style "color" ColorValues.white
                             , style "letter-spacing" "0.1em"
                             , style "margin-left" "10px"
                             , containing [ text "foobar" ]
@@ -441,6 +445,17 @@ all =
                     |> Common.queryView
                     |> Query.find [ id "top-bar-app" ]
                     |> Query.has [ style "height" "54px" ]
+        , test "hovering over dashboard clears tooltip" <|
+            \_ ->
+                Common.init "/"
+                    |> givenDataAndUser
+                        (apiData [ ( "team", [] ) ])
+                        (userWithRoles [])
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.find [ id "dashboard" ]
+                    |> Event.simulate Event.mouseEnter
+                    |> Event.expect (ApplicationMsgs.Update <| Msgs.Hover <| Just Msgs.Dashboard)
         , describe "loading section" <|
             [ test "has a loading section when awaiting API data" <|
                 \_ ->
@@ -695,31 +710,15 @@ all =
                     |> Application.handleCallback
                         (Callback.AllJobsFetched <|
                             Ok
-                                [ { name = "job"
-                                  , pipelineName = "pipeline"
-                                  , teamName = "team"
-                                  , nextBuild = Nothing
-                                  , finishedBuild =
-                                        Just
-                                            { id = 0
-                                            , name = "1"
-                                            , job =
-                                                Just
-                                                    { teamName = "team"
-                                                    , pipelineName = "pipeline"
-                                                    , jobName = "job"
-                                                    }
-                                            , status = BuildStatusSucceeded
-                                            , duration = { startedAt = Nothing, finishedAt = Nothing }
-                                            , reapTime = Nothing
-                                            }
-                                  , transitionBuild = Nothing
-                                  , paused = False
-                                  , disableManualTrigger = False
-                                  , inputs = []
-                                  , outputs = []
-                                  , groups = []
-                                  }
+                                [ Data.job 1
+                                    |> Data.withPipelineName "pipeline"
+                                    |> Data.withTeamName "team"
+                                    |> Data.withFinishedBuild
+                                        (Data.jobBuild BuildStatusSucceeded
+                                            |> Data.withTeamName "team"
+                                            |> Data.withJob (Just Data.jobId)
+                                            |> Just
+                                        )
                                 ]
                         )
                     |> Tuple.first
@@ -728,7 +727,7 @@ all =
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
                             Ok
-                                [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                         )
                     |> Tuple.first
                     |> Common.queryView
@@ -736,12 +735,9 @@ all =
                         [ class "dashboard-team-group"
                         , attribute <| Attr.attribute "data-team-name" "team"
                         ]
-                    |> Query.find
-                        [ attribute <| Attr.attribute "data-tooltip" "job" ]
-                    |> Query.find
-                        [ tag "a" ]
                     |> Query.has
-                        [ attribute <|
+                        [ tag "a"
+                        , attribute <|
                             Attr.href "/teams/team/pipelines/pipeline/jobs/job/builds/1"
                         ]
         , test "HD view redirects to no pipelines view when there are no pipelines" <|
@@ -1158,7 +1154,7 @@ all =
                             , style "padding" "7.5px 30px"
                             , style "position" "fixed"
                             , style "bottom" "0"
-                            , style "background-color" almostBlack
+                            , style "background-color" ColorValues.grey100
                             , style "width" "100%"
                             , style "box-sizing" "border-box"
                             ]
@@ -1271,7 +1267,7 @@ all =
                                             >> Query.has
                                                 (iconSelector
                                                     { size = "20px"
-                                                    , image = PipelineStatusPending True |> Assets.PipelineStatusIcon
+                                                    , image = Assets.PipelineStatusIconPending
                                                     }
                                                 )
                                         , Query.index 1
@@ -1286,7 +1282,7 @@ all =
                                             >> Query.has
                                                 (iconSelector
                                                     { size = "20px"
-                                                    , image = PipelineStatusPaused |> Assets.PipelineStatusIcon
+                                                    , image = Assets.PipelineStatusIconPaused
                                                     }
                                                 )
                                         , Query.index 1
@@ -1309,7 +1305,7 @@ all =
                             |> Query.find [ id "legend" ]
                             |> Query.children []
                             |> Query.index -2
-                            |> Query.has [ style "color" menuGrey ]
+                            |> Query.has [ style "color" ColorValues.grey40 ]
                 , test "the legend separator centers contents vertically" <|
                     \_ ->
                         whenOnDashboard { highDensity = False }
@@ -1389,7 +1385,7 @@ all =
                                 [ style "text-transform" "uppercase"
                                 , style "display" "flex"
                                 , style "align-items" "center"
-                                , style "color" menuGrey
+                                , style "color" ColorValues.grey40
                                 ]
                 , test "legend items have 20px space between them" <|
                     \_ ->
@@ -1486,12 +1482,16 @@ all =
                     , test "displays the label using a grey color" <|
                         \_ ->
                             hdToggle
-                                |> Query.has [ style "color" menuGrey ]
+                                |> Query.has [ style "color" ColorValues.grey40 ]
                     , test "label text is all caps" <|
                         \_ ->
                             hdToggle
                                 |> Query.has
                                     [ style "text-transform" "uppercase" ]
+                    , test "displays label on the right" <|
+                        \_ ->
+                            hdToggle
+                                |> Query.has [ style "flex-direction" "row" ]
                     , test "links to HD view" <|
                         \_ ->
                             hdToggle
@@ -1504,7 +1504,7 @@ all =
                                 |> Query.has
                                     [ style "background-image" <|
                                         Assets.backgroundImage <|
-                                            Just (Assets.HighDensityIcon False)
+                                            Just (Assets.ToggleSwitch False)
                                     , style "background-size" "contain"
                                     , style "height" "20px"
                                     , style "width" "35px"
@@ -1536,7 +1536,7 @@ all =
                                 |> Query.has
                                     [ style "background-image" <|
                                         Assets.backgroundImage <|
-                                            Just (Assets.HighDensityIcon True)
+                                            Just (Assets.ToggleSwitch True)
                                     , style "background-size" "contain"
                                     , style "height" "20px"
                                     , style "width" "35px"
@@ -1576,6 +1576,96 @@ all =
                                     [ style "flex-shrink" "0" ]
                     ]
                 ]
+            , describe "when there are favorited pipelines" <|
+                let
+                    setup params =
+                        whenOnDashboard params
+                            |> givenDataUnauthenticated
+                                (apiData [ ( "team", [] ) ])
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.AllPipelinesFetched <|
+                                    Ok
+                                        [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                )
+                            |> Tuple.first
+                            |> Application.handleDelivery
+                                (Subscription.FavoritedPipelinesReceived <|
+                                    Ok <|
+                                        Set.singleton 0
+                                )
+                in
+                [ test "displays favorite pipelines header" <|
+                    \_ ->
+                        setup { highDensity = False }
+                            |> Tuple.first
+                            |> Common.queryView
+                            |> Query.has [ text "favorite pipelines" ]
+                , test "does not display header when on the HD view" <|
+                    \_ ->
+                        setup { highDensity = True }
+                            |> Tuple.first
+                            |> Common.queryView
+                            |> Query.hasNot [ text "favorite pipelines" ]
+                ]
+            , describe "when there are no favorited pipelines"
+                [ test "does not display header" <|
+                    \_ ->
+                        whenOnDashboard { highDensity = False }
+                            |> givenDataUnauthenticated
+                                (apiData [ ( "team", [] ) ])
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.AllPipelinesFetched <|
+                                    Ok
+                                        [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                )
+                            |> Tuple.first
+                            |> Common.queryView
+                            |> Query.hasNot [ text "favorite pipelines" ]
+                ]
+            , describe "all pipelines header"
+                [ test "displayed when there are pipelines" <|
+                    \_ ->
+                        whenOnDashboard { highDensity = False }
+                            |> givenDataUnauthenticated
+                                (apiData [ ( "team", [] ) ])
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.AllPipelinesFetched <|
+                                    Ok
+                                        [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                )
+                            |> Tuple.first
+                            |> Common.queryView
+                            |> Query.has [ text "all pipelines" ]
+                , test "displayed when there are no pipelines" <|
+                    \_ ->
+                        whenOnDashboard { highDensity = False }
+                            |> givenDataUnauthenticated
+                                (apiData [ ( "team", [] ) ])
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.AllPipelinesFetched <|
+                                    Ok []
+                                )
+                            |> Tuple.first
+                            |> Common.queryView
+                            |> Query.has [ text "all pipelines" ]
+                , test "not displayed when there are no teams" <|
+                    \_ ->
+                        whenOnDashboard { highDensity = False }
+                            |> givenDataUnauthenticated
+                                (apiData [])
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.AllPipelinesFetched <|
+                                    Ok []
+                                )
+                            |> Tuple.first
+                            |> Common.queryView
+                            |> Query.hasNot [ text "all pipelines" ]
+                ]
             , describe "info section" <|
                 let
                     info =
@@ -1598,7 +1688,7 @@ all =
                 , test "displays info in a grey color" <|
                     \_ ->
                         info
-                            |> Query.has [ style "color" menuGrey ]
+                            |> Query.has [ style "color" ColorValues.grey40 ]
                 , test "displays text slightly larger" <|
                     \_ ->
                         info
@@ -1910,7 +2000,7 @@ all =
                         (Callback.AllJobsFetched <| Ok [])
                     |> Tuple.first
                     |> Application.update
-                        (ApplicationMsgs.Update <| Msgs.DragStart "team" 0)
+                        (ApplicationMsgs.Update <| Msgs.DragStart "team" 1)
                     |> Tuple.first
                     |> Application.handleDelivery
                         (ClockTicked FiveSeconds <|
@@ -2021,12 +2111,32 @@ iconSelector { size, image } =
 
 whenOnDashboard : { highDensity : Bool } -> Application.Model
 whenOnDashboard { highDensity } =
-    Common.init <|
-        if highDensity then
+    Common.init
+        (if highDensity then
             "/hd"
 
-        else
+         else
             "/"
+        )
+        |> Common.withAllPipelinesVisible
+
+
+whenOnDashboardViewingAllPipelines : { highDensity : Bool } -> Application.Model
+whenOnDashboardViewingAllPipelines { highDensity } =
+    whenOnDashboard { highDensity = highDensity }
+        |> Application.handleDelivery
+            (RouteChanged <|
+                Routes.Dashboard
+                    { searchType =
+                        if highDensity then
+                            Routes.HighDensity
+
+                        else
+                            Routes.Normal ""
+                    , dashboardView = Routes.ViewAllPipelines
+                    }
+            )
+        |> Tuple.first
 
 
 givenDataAndUser :
@@ -2053,18 +2163,6 @@ userWithRoles roles =
     }
 
 
-givenDataUnauthenticated :
-    List Concourse.Team
-    -> Application.Model
-    -> ( Application.Model, List Effects.Effect )
-givenDataUnauthenticated data =
-    Application.handleCallback
-        (Callback.AllTeamsFetched <| Ok data)
-        >> Tuple.first
-        >> Application.handleCallback
-            (Callback.UserFetched <| Data.httpUnauthorized)
-
-
 givenClusterInfo :
     String
     -> String
@@ -2083,26 +2181,8 @@ apiData pipelines =
 
 
 running : Concourse.Job -> Concourse.Job
-running j =
-    { j
-        | nextBuild =
-            Just
-                { id = 1
-                , name = "1"
-                , job =
-                    Just
-                        { teamName = "team"
-                        , pipelineName = "pipeline"
-                        , jobName = "job"
-                        }
-                , status = BuildStatusStarted
-                , duration =
-                    { startedAt = Nothing
-                    , finishedAt = Nothing
-                    }
-                , reapTime = Nothing
-                }
-    }
+running =
+    Data.withNextBuild (Data.jobBuild BuildStatusStarted |> Just)
 
 
 otherJob : BuildStatus -> Concourse.Job
@@ -2118,19 +2198,17 @@ job =
 jobWithNameTransitionedAt : String -> Maybe Time.Posix -> BuildStatus -> Concourse.Job
 jobWithNameTransitionedAt jobName transitionedAt status =
     { name = jobName
+    , pipelineId = 1
     , pipelineName = "pipeline"
+    , pipelineInstanceVars = Dict.empty
     , teamName = "team"
     , nextBuild = Nothing
     , finishedBuild =
         Just
             { id = 0
             , name = "0"
-            , job =
-                Just
-                    { teamName = "team"
-                    , pipelineName = "pipeline"
-                    , jobName = jobName
-                    }
+            , teamName = "team"
+            , job = Just Data.jobId
             , status = status
             , duration =
                 { startedAt = Nothing
@@ -2144,12 +2222,8 @@ jobWithNameTransitionedAt jobName transitionedAt status =
                 (\t ->
                     { id = 1
                     , name = "1"
-                    , job =
-                        Just
-                            { teamName = "team"
-                            , pipelineName = "pipeline"
-                            , jobName = jobName
-                            }
+                    , teamName = "team"
+                    , job = Just Data.jobId
                     , status = status
                     , duration =
                         { startedAt = Nothing
@@ -2169,19 +2243,17 @@ jobWithNameTransitionedAt jobName transitionedAt status =
 circularJobs : List Concourse.Job
 circularJobs =
     [ { name = "jobA"
+      , pipelineId = 1
       , pipelineName = "pipeline"
+      , pipelineInstanceVars = Dict.empty
       , teamName = "team"
       , nextBuild = Nothing
       , finishedBuild =
             Just
                 { id = 0
                 , name = "0"
-                , job =
-                    Just
-                        { teamName = "team"
-                        , pipelineName = "pipeline"
-                        , jobName = "jobA"
-                        }
+                , teamName = "team"
+                , job = Just (Data.jobId |> Data.withJobName "jobA")
                 , status = BuildStatusSucceeded
                 , duration =
                     { startedAt = Nothing
@@ -2193,12 +2265,8 @@ circularJobs =
             Just
                 { id = 1
                 , name = "1"
-                , job =
-                    Just
-                        { teamName = "team"
-                        , pipelineName = "pipeline"
-                        , jobName = "jobA"
-                        }
+                , teamName = "team"
+                , job = Just (Data.jobId |> Data.withJobName "jobA")
                 , status = BuildStatusSucceeded
                 , duration =
                     { startedAt = Nothing
@@ -2219,19 +2287,17 @@ circularJobs =
       , groups = []
       }
     , { name = "jobB"
+      , pipelineId = 1
       , pipelineName = "pipeline"
+      , pipelineInstanceVars = Dict.empty
       , teamName = "team"
       , nextBuild = Nothing
       , finishedBuild =
             Just
                 { id = 0
                 , name = "0"
-                , job =
-                    Just
-                        { teamName = "team"
-                        , pipelineName = "pipeline"
-                        , jobName = "jobB"
-                        }
+                , teamName = "team"
+                , job = Just (Data.jobId |> Data.withJobName "jobB")
                 , status = BuildStatusSucceeded
                 , duration =
                     { startedAt = Nothing
@@ -2243,12 +2309,8 @@ circularJobs =
             Just
                 { id = 1
                 , name = "1"
-                , job =
-                    Just
-                        { teamName = "team"
-                        , pipelineName = "pipeline"
-                        , jobName = "jobB"
-                        }
+                , teamName = "team"
+                , job = Just (Data.jobId |> Data.withJobName "jobB")
                 , status = BuildStatusSucceeded
                 , duration =
                     { startedAt = Nothing

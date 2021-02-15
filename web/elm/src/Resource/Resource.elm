@@ -6,6 +6,7 @@ module Resource.Resource exposing
     , handleCallback
     , handleDelivery
     , init
+    , startingPage
     , subscriptions
     , tooltip
     , update
@@ -16,13 +17,19 @@ module Resource.Resource exposing
     , viewVersionHeader
     )
 
+import Api.Endpoints as Endpoints
 import Application.Models exposing (Session)
 import Assets
+import Build.Output.Models exposing (OutputModel)
+import Build.Output.Output
+import Build.StepTree.Models as STModels
+import Build.StepTree.StepTree as StepTree
 import Concourse
 import Concourse.BuildStatus
 import Concourse.Pagination
     exposing
-        ( Page
+        ( Direction(..)
+        , Page
         , Paginated
         , chevronContainer
         , chevronLeft
@@ -57,13 +64,14 @@ import Html.Events
         , onMouseOut
         , onMouseOver
         )
+import Html.Lazy
 import Http
 import Keyboard
 import List.Extra
 import Login.Login as Login
 import Maybe.Extra as ME
 import Message.Callback exposing (Callback(..))
-import Message.Effects exposing (Effect(..), toHtmlID)
+import Message.Effects as Effects exposing (Effect(..), toHtmlID)
 import Message.Message as Message
     exposing
         ( DomID(..)
@@ -81,7 +89,7 @@ import RemoteData exposing (WebData)
 import Resource.Models as Models exposing (Model)
 import Resource.Styles
 import Routes
-import SideBar.SideBar as SideBar
+import SideBar.SideBar as SideBar exposing (byPipelineId, lookupPipeline)
 import StrictEvents
 import Svg
 import Svg.Attributes as SvgAttributes
@@ -102,18 +110,29 @@ type alias Flags =
     }
 
 
+pageLimit : Int
+pageLimit =
+    100
+
+
+startingPage : Page
+startingPage =
+    { direction = ToMostRecent, limit = pageLimit }
+
+
 init : Flags -> ( Model, List Effect )
 init flags =
     let
+        page =
+            flags.paging |> Maybe.withDefault startingPage
+
         model =
             { resourceIdentifier = flags.resourceId
             , pageStatus = Err Models.Empty
-            , checkStatus = Models.CheckingSuccessfully
-            , checkError = ""
-            , checkSetupError = ""
+            , checkStatus = Models.NotChecking
             , lastChecked = Nothing
             , pinnedVersion = NotPinned
-            , currentPage = flags.paging
+            , currentPage = page
             , versions =
                 { content = []
                 , pagination = { previousPage = Nothing, nextPage = Nothing }
@@ -124,11 +143,15 @@ init flags =
             , isUserMenuExpanded = False
             , icon = Nothing
             , isEditing = False
+            , build = Nothing
+            , authorized = True
+            , output = Nothing
+            , highlight = Routes.HighlightNothing
             }
     in
     ( model
     , [ FetchResource flags.resourceId
-      , FetchVersionedResources flags.resourceId flags.paging
+      , FetchVersionedResources flags.resourceId page
       , GetCurrentTimeZone
       , FetchAllPipelines
       , SyncTextareaHeight ResourceCommentTextarea
@@ -138,18 +161,42 @@ init flags =
 
 changeToResource : Flags -> ET Model
 changeToResource flags ( model, effects ) =
+    let
+        page =
+            flags.paging |> Maybe.withDefault startingPage
+    in
     ( { model
-        | currentPage = flags.paging
+        | currentPage = page
         , versions =
             { content = []
             , pagination = { previousPage = Nothing, nextPage = Nothing }
             }
       }
     , effects
-        ++ [ FetchVersionedResources model.resourceIdentifier flags.paging
+        ++ [ FetchVersionedResources model.resourceIdentifier page
            , SyncTextareaHeight ResourceCommentTextarea
            ]
     )
+
+
+initBuild : Maybe Concourse.Build -> ET Model
+initBuild mbuild ( model, effects ) =
+    case mbuild of
+        Nothing ->
+            ( model, effects )
+
+        Just build ->
+            if Maybe.map .id model.build == Just build.id then
+                ( { model | build = Just build }, effects )
+
+            else
+                let
+                    ( output, outputCmd ) =
+                        Build.Output.Output.init model.highlight build
+                in
+                ( { model | build = Just build, output = Just output }
+                , effects ++ outputCmd
+                )
 
 
 updatePinnedVersion : Concourse.Resource -> Model -> Model
@@ -219,14 +266,26 @@ getUpdateMessage model =
         UpdateMsg.AOK
 
 
-subscriptions : List Subscription
-subscriptions =
+subscriptions : Model -> List Subscription
+subscriptions model =
+    let
+        buildEventsUrl =
+            model.output
+                |> Maybe.andThen .eventStreamUrlPath
+    in
     [ OnClockTick Subscription.FiveSeconds
     , OnClockTick Subscription.OneSecond
     , OnKeyDown
     , OnKeyUp
     , OnWindowResize
     ]
+        ++ (case buildEventsUrl of
+                Nothing ->
+                    []
+
+                Just url ->
+                    [ Subscription.FromEventSource ( url, [ "end", "event" ] ) ]
+           )
 
 
 handleCallback : Callback -> Session -> ET Model
@@ -238,16 +297,24 @@ handleCallback callback session ( model, effects ) =
                 , resourceIdentifier =
                     { teamName = resource.teamName
                     , pipelineName = resource.pipelineName
+                    , pipelineInstanceVars = resource.pipelineInstanceVars
                     , resourceName = resource.name
                     }
                 , checkStatus =
-                    if resource.failingToCheck then
-                        Models.FailingToCheck
+                    case resource.build of
+                        Nothing ->
+                            Models.NotChecking
 
-                    else
-                        Models.CheckingSuccessfully
-                , checkError = resource.checkError
-                , checkSetupError = resource.checkSetupError
+                        Just { id, status } ->
+                            case status of
+                                Concourse.BuildStatus.BuildStatusSucceeded ->
+                                    Models.NotChecking
+
+                                Concourse.BuildStatus.BuildStatusStarted ->
+                                    Models.CurrentlyChecking id
+
+                                _ ->
+                                    Models.NotChecking
                 , lastChecked = resource.lastChecked
                 , icon = resource.icon
               }
@@ -262,6 +329,7 @@ handleCallback callback session ( model, effects ) =
                    )
                 ++ [ SyncTextareaHeight ResourceCommentTextarea ]
             )
+                |> initBuild resource.build
 
         ResourceFetched (Err err) ->
             case err of
@@ -280,9 +348,6 @@ handleCallback callback session ( model, effects ) =
 
         VersionedResourcesFetched (Ok ( requestedPage, paginated )) ->
             let
-                fetchedPage =
-                    permalink paginated.content
-
                 resourceVersions =
                     { pagination = paginated.pagination
                     , content =
@@ -321,6 +386,7 @@ handleCallback callback session ( model, effects ) =
                                             { id =
                                                 { teamName = model.resourceIdentifier.teamName
                                                 , pipelineName = model.resourceIdentifier.pipelineName
+                                                , pipelineInstanceVars = model.resourceIdentifier.pipelineInstanceVars
                                                 , resourceName = model.resourceIdentifier.resourceName
                                                 , versionID = vr.id
                                                 }
@@ -330,39 +396,40 @@ handleCallback callback session ( model, effects ) =
                                             , expanded = False
                                             , inputTo = []
                                             , outputOf = []
-                                            , showTooltip = False
                                             }
                                 )
                     }
 
                 newModel =
-                    \newPage ->
-                        { model
+                    \newPage newEffects ->
+                        ( { model
                             | versions = resourceVersions
                             , currentPage = newPage
-                        }
-
-                chosenModelWith =
-                    \requestedPageUnwrapped ->
-                        case model.currentPage of
-                            Nothing ->
-                                newModel <| Just fetchedPage
-
-                            Just page ->
-                                if Concourse.Pagination.equal page requestedPageUnwrapped then
-                                    newModel <| requestedPage
-
-                                else
-                                    model
+                          }
+                        , newEffects
+                        )
             in
-            case requestedPage of
-                Nothing ->
-                    ( newModel (Just fetchedPage), effects )
+            if
+                Concourse.Pagination.isPreviousPage requestedPage
+                    && (List.length resourceVersions.content < pageLimit)
+            then
+                -- otherwise a new version would show up as a single element page
+                newModel startingPage <|
+                    effects
+                        ++ [ FetchVersionedResources model.resourceIdentifier startingPage
+                           , NavigateTo <|
+                                Routes.toString <|
+                                    Routes.Resource
+                                        { id = model.resourceIdentifier
+                                        , page = Just startingPage
+                                        }
+                           ]
 
-                Just requestedPageUnwrapped ->
-                    ( chosenModelWith requestedPageUnwrapped
-                    , effects
-                    )
+            else if Concourse.Pagination.equal model.currentPage requestedPage then
+                newModel requestedPage effects
+
+            else
+                ( model, effects )
 
         InputToFetched (Ok ( versionID, builds )) ->
             ( updateVersion versionID (\v -> { v | inputTo = builds }) model
@@ -454,27 +521,8 @@ handleCallback callback session ( model, effects ) =
             , effects
             )
 
-        Checked (Ok { status, id }) ->
-            case status of
-                Concourse.Succeeded ->
-                    ( { model | checkStatus = Models.CheckingSuccessfully }
-                    , effects
-                        ++ [ FetchResource model.resourceIdentifier
-                           , FetchVersionedResources
-                                model.resourceIdentifier
-                                model.currentPage
-                           ]
-                    )
-
-                Concourse.Started ->
-                    ( { model | checkStatus = Models.CurrentlyChecking id }
-                    , effects
-                    )
-
-                Concourse.Errored ->
-                    ( { model | checkStatus = Models.FailingToCheck }
-                    , effects ++ [ FetchResource model.resourceIdentifier ]
-                    )
+        Checked (Ok _) ->
+            ( model, effects ++ [ FetchResource model.resourceIdentifier ] )
 
         Checked (Err (Http.BadStatus { status })) ->
             ( model
@@ -507,13 +555,43 @@ handleCallback callback session ( model, effects ) =
                    ]
             )
 
+        PlanAndResourcesFetched buildId (Ok planAndResources) ->
+            updateOutput
+                (Build.Output.Output.planAndResourcesFetched
+                    buildId
+                    planAndResources
+                )
+                ( model
+                , effects
+                    ++ [ Effects.OpenBuildEventStream
+                            { url =
+                                Endpoints.BuildEventStream
+                                    |> Endpoints.Build buildId
+                                    |> Endpoints.toString []
+                            , eventTypes = [ "end", "event" ]
+                            }
+                       ]
+                )
+
+        PlanAndResourcesFetched _ (Err err) ->
+            case err of
+                Http.BadStatus { status } ->
+                    if status.code == 401 || status.code == 403 then
+                        ( { model | authorized = False }, effects )
+
+                    else
+                        ( model, effects )
+
+                _ ->
+                    ( model, effects )
+
         _ ->
             ( model, effects )
 
 
-handleDelivery : Delivery -> ET Model
-handleDelivery delivery ( model, effects ) =
-    case delivery of
+handleDelivery : { a | hovered : HoverState.HoverState } -> Delivery -> ET Model
+handleDelivery session delivery ( model, effects ) =
+    (case delivery of
         KeyDown keyEvent ->
             if
                 (keyEvent.code == Keyboard.Enter)
@@ -534,12 +612,12 @@ handleDelivery delivery ( model, effects ) =
 
         ClockTicked OneSecond time ->
             ( { model | now = Just time }
-            , case model.checkStatus of
-                Models.CurrentlyChecking id ->
-                    effects ++ [ FetchCheck id ]
+            , case session.hovered of
+                HoverState.Hovered (StepState stepID) ->
+                    [ GetViewportOf (StepState stepID) ]
 
                 _ ->
-                    effects
+                    []
             )
 
         ClockTicked FiveSeconds _ ->
@@ -557,19 +635,38 @@ handleDelivery delivery ( model, effects ) =
             , effects ++ [ SyncTextareaHeight ResourceCommentTextarea ]
             )
 
+        EventsReceived (Ok envelopes) ->
+            let
+                ended =
+                    List.any (\{ data } -> data == STModels.End) envelopes
+            in
+            updateOutput
+                (Build.Output.Output.handleEnvelopes envelopes)
+                ( model
+                , effects
+                    ++ (if ended then
+                            [ FetchResource model.resourceIdentifier
+                            , FetchVersionedResources model.resourceIdentifier model.currentPage
+                            ]
+
+                        else
+                            []
+                       )
+                )
+
         _ ->
             ( model, effects )
+    )
+        |> Tooltip.handleDelivery session delivery
 
 
 update : Message -> ET Model
 update msg ( model, effects ) =
     case msg of
         Click (PaginationButton page) ->
-            ( { model
-                | currentPage = Just page
-              }
+            ( { model | currentPage = page }
             , effects
-                ++ [ FetchVersionedResources model.resourceIdentifier <| Just page
+                ++ [ FetchVersionedResources model.resourceIdentifier <| page
                    , NavigateTo <|
                         Routes.toString <|
                             Routes.Resource
@@ -716,6 +813,16 @@ update msg ( model, effects ) =
             , effects ++ [ Focus (toHtmlID ResourceCommentTextarea) ]
             )
 
+        Click (StepHeader id) ->
+            updateOutput
+                (Build.Output.Output.handleStepTreeMsg <| StepTree.toggleStep id)
+                ( model, effects )
+
+        Click (StepInitialization id) ->
+            updateOutput
+                (Build.Output.Output.handleStepTreeMsg <| StepTree.toggleStepInitialization id)
+                ( model, effects ++ [ SyncStickyBuildLogHeaders ] )
+
         EditComment input ->
             let
                 newPinnedVersion =
@@ -785,20 +892,6 @@ updateVersion versionID updateFunc model =
     { model | versions = { resourceVersions | content = newVersionsContent } }
 
 
-permalink : List Concourse.VersionedResource -> Page
-permalink versionedResources =
-    case List.head versionedResources of
-        Nothing ->
-            { direction = Concourse.Pagination.Since 0
-            , limit = 100
-            }
-
-        Just version ->
-            { direction = Concourse.Pagination.From version.id
-            , limit = List.length versionedResources
-            }
-
-
 documentTitle : Model -> String
 documentTitle model =
     model.resourceIdentifier.resourceName
@@ -833,13 +926,7 @@ versions model =
                 , expanded = v.expanded
                 , inputTo = v.inputTo
                 , outputOf = v.outputOf
-                , pinState =
-                    case Pinned.pinState v.version v.id model.pinnedVersion of
-                        PinnedStatically _ ->
-                            PinnedStatically v.showTooltip
-
-                        x ->
-                            x
+                , pinState = Pinned.pinState v.version v.id model.pinnedVersion
                 }
             )
 
@@ -857,10 +944,10 @@ view session model =
         (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
         [ Html.div
             (id "top-bar-app" :: Views.Styles.topBar False)
-            [ SideBar.hamburgerMenu session
+            [ SideBar.sideBarIcon session
             , TopBar.concourseLogo
-            , TopBar.breadcrumbs route
-            , Login.view session.userState model False
+            , TopBar.breadcrumbs session route
+            , Login.view session.userState model
             ]
         , Html.div
             (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
@@ -886,18 +973,138 @@ view session model =
         ]
 
 
-tooltip : Model -> a -> Maybe Tooltip.Tooltip
-tooltip _ _ =
-    Nothing
+tooltip : Model -> Session -> Maybe Tooltip.Tooltip
+tooltip model session =
+    case session.hovered of
+        HoverState.Tooltip (CheckButton _) _ ->
+            Just
+                { body = Html.text "trigger manual check"
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.Start }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
+
+        HoverState.Tooltip PinIcon _ ->
+            Just
+                { body = Html.text "unpin version"
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.Start }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
+
+        HoverState.Tooltip EditButton _ ->
+            Just
+                { body = Html.text "edit pin comment"
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
+
+        HoverState.Tooltip (PinButton id) _ ->
+            let
+                version =
+                    model.versions.content |> List.Extra.find (\v -> v.id == id)
+
+                isPinnedDynamically =
+                    case ( version, model.pinnedVersion ) of
+                        ( Just cur, PinnedDynamicallyTo _ v ) ->
+                            cur.version == v
+
+                        _ ->
+                            False
+
+                isStatic =
+                    case model.pinnedVersion of
+                        PinnedStaticallyTo _ ->
+                            True
+
+                        _ ->
+                            False
+            in
+            Just
+                { body =
+                    Html.text <|
+                        if isStatic then
+                            "version is pinned in the pipeline config"
+
+                        else if isPinnedDynamically then
+                            "unpin version"
+
+                        else
+                            "pin version"
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.Start }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
+
+        HoverState.Tooltip (VersionToggle id) _ ->
+            let
+                enabled =
+                    model
+                        |> versions
+                        |> List.Extra.find (\v -> v.id == id)
+                        |> Maybe.map .enabled
+            in
+            (case enabled of
+                Just Models.Enabled ->
+                    Just "disable version"
+
+                Just Models.Disabled ->
+                    Just "enable version"
+
+                _ ->
+                    Nothing
+            )
+                |> Maybe.map
+                    (\text ->
+                        { body =
+                            Html.text text
+                        , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.Start }
+                        , arrow = Just 5
+                        , containerAttrs = Nothing
+                        }
+                    )
+
+        HoverState.Tooltip PinBar _ ->
+            case model.pinnedVersion of
+                PinnedStaticallyTo _ ->
+                    Just
+                        { body = Html.text "version is pinned in the pipeline config"
+                        , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.Start }
+                        , arrow = Nothing
+                        , containerAttrs = Nothing
+                        }
+
+                _ ->
+                    Nothing
+
+        HoverState.Tooltip NextPageButton _ ->
+            Just
+                { body = Html.text "view next page"
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
+
+        HoverState.Tooltip PreviousPageButton _ ->
+            Just
+                { body = Html.text "view previous page"
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
+
+        _ ->
+            model.output
+                |> Maybe.andThen .steps
+                |> Maybe.andThen (\steps -> StepTree.tooltip steps session)
 
 
 header : Session -> Model -> Html Message
 header session model =
     let
         archived =
-            isPipelineArchived
-                session.pipelines
-                model.resourceIdentifier
+            isPipelineArchived session model.resourceIdentifier
 
         lastCheckedView =
             case ( model.now, model.lastChecked, archived ) of
@@ -942,6 +1149,7 @@ body :
         | userState : UserState
         , pipelines : WebData (List Concourse.Pipeline)
         , hovered : HoverState.HoverState
+        , timeZone : Time.Zone
     }
     -> Model
     -> Html Message
@@ -949,17 +1157,17 @@ body session model =
     let
         sectionModel =
             { checkStatus = model.checkStatus
-            , checkSetupError = model.checkSetupError
-            , checkError = model.checkError
+            , build = model.build
             , hovered = session.hovered
             , userState = session.userState
+            , timeZone = session.timeZone
             , teamName = model.resourceIdentifier.teamName
+            , authorized = model.authorized
+            , output = model.output
             }
 
         archived =
-            isPipelineArchived
-                session.pipelines
-                model.resourceIdentifier
+            isPipelineArchived session model.resourceIdentifier
     in
     Html.div
         (id "body" :: Resource.Styles.body)
@@ -1038,6 +1246,7 @@ paginationMenu { hovered } model =
                                     , page = Just page
                                     }
                          , attribute "aria-label" "Previous Page"
+                         , id <| toHtmlID PreviousPageButton
                          ]
                             ++ chevronLeft
                                 { enabled = True
@@ -1075,6 +1284,7 @@ paginationMenu { hovered } model =
                                     , page = Just page
                                     }
                          , attribute "aria-label" "Next Page"
+                         , id <| toHtmlID NextPageButton
                          ]
                             ++ chevronRight
                                 { enabled = True
@@ -1089,78 +1299,56 @@ paginationMenu { hovered } model =
 checkSection :
     { a
         | checkStatus : Models.CheckStatus
-        , checkSetupError : String
-        , checkError : String
+        , build : Maybe Concourse.Build
         , hovered : HoverState.HoverState
         , userState : UserState
         , teamName : String
+        , timeZone : Time.Zone
+        , authorized : Bool
+        , output : Maybe OutputModel
     }
     -> Html Message
-checkSection ({ checkStatus, checkSetupError, checkError } as model) =
+checkSection ({ checkStatus, build } as model) =
     let
-        failingToCheck =
-            checkStatus == Models.FailingToCheck
+        spinner =
+            Spinner.spinner
+                { sizePx = 14
+                , margin = "7px"
+                }
 
-        checkMessage =
-            case checkStatus of
-                Models.FailingToCheck ->
-                    "checking failed"
+        icon image =
+            Icon.icon
+                { sizePx = 28
+                , image = image
+                }
+                Resource.Styles.checkStatusIcon
 
-                Models.CheckPending ->
-                    "check pending"
+        ( checkMessage, statusIcon ) =
+            case Maybe.map .status build of
+                Nothing ->
+                    ( "not checked yet", icon Assets.PendingIcon )
 
-                Models.CurrentlyChecking _ ->
-                    "check in progress"
+                Just Concourse.BuildStatus.BuildStatusFailed ->
+                    ( "check failed", icon Assets.FailureTimesIcon )
 
-                Models.CheckingSuccessfully ->
-                    "checking successfully"
+                Just Concourse.BuildStatus.BuildStatusPending ->
+                    ( "check pending", icon Assets.PendingIcon )
 
-        stepBody =
-            if failingToCheck then
-                if not (String.isEmpty checkSetupError) then
-                    [ Html.div [ class "step-body" ]
-                        [ Html.pre [] [ Html.text checkSetupError ]
-                        ]
-                    ]
+                Just Concourse.BuildStatus.BuildStatusStarted ->
+                    ( "check in progress", spinner )
 
-                else
-                    [ Html.div [ class "step-body" ]
-                        [ Html.pre [] [ Html.text checkError ]
-                        ]
-                    ]
+                Just Concourse.BuildStatus.BuildStatusSucceeded ->
+                    ( "check succeeded", icon Assets.SuccessCheckIcon )
 
-            else
-                []
+                Just Concourse.BuildStatus.BuildStatusErrored ->
+                    ( "check errored", icon Assets.ExclamationTriangleIcon )
 
-        statusIcon =
-            case checkStatus of
-                Models.CurrentlyChecking _ ->
-                    Spinner.spinner
-                        { sizePx = 14
-                        , margin = "7px"
-                        }
-
-                Models.CheckPending ->
-                    Spinner.spinner
-                        { sizePx = 14
-                        , margin = "7px"
-                        }
-
-                _ ->
-                    Icon.icon
-                        { sizePx = 28
-                        , image =
-                            if failingToCheck then
-                                Assets.ExclamationTriangleIcon
-
-                            else
-                                Assets.SuccessCheckIcon
-                        }
-                        Resource.Styles.checkStatusIcon
+                Just Concourse.BuildStatus.BuildStatusAborted ->
+                    ( "check aborted", icon Assets.InterruptedIcon )
 
         statusBar =
             Html.div
-                Resource.Styles.checkBarStatus
+                (class "resource-check-status-summary" :: Resource.Styles.checkBarStatus)
                 [ Html.h3 [] [ Html.text checkMessage ]
                 , statusIcon
                 ]
@@ -1169,10 +1357,20 @@ checkSection ({ checkStatus, checkSetupError, checkError } as model) =
             Html.div
                 [ style "display" "flex" ]
                 [ checkButton model
-                , statusBar
+                , Html.div Resource.Styles.checkStatus
+                    [ if model.authorized && model.output /= Nothing then
+                        Html.Lazy.lazy3
+                            viewBuildOutput
+                            model.timeZone
+                            (Build.Output.Output.filterHoverState model.hovered)
+                            model.output
+
+                      else
+                        statusBar
+                    ]
                 ]
     in
-    Html.div [ class "resource-check-status" ] <| checkBar :: stepBody
+    Html.div [ class "resource-check-status" ] [ checkBar ]
 
 
 checkButton :
@@ -1193,10 +1391,10 @@ checkButton ({ hovered, userState, checkStatus } as params) =
 
         isCurrentlyChecking =
             case checkStatus of
-                Models.CurrentlyChecking _ ->
+                Models.CheckPending ->
                     True
 
-                Models.CheckPending ->
+                Models.CurrentlyChecking _ ->
                     True
 
                 _ ->
@@ -1213,7 +1411,8 @@ checkButton ({ hovered, userState, checkStatus } as params) =
             (isClickable && isHovered) || isCurrentlyChecking
     in
     Html.div
-        ([ onMouseEnter <| Hover <| Just <| CheckButton isMember
+        ([ id <| toHtmlID <| CheckButton isMember
+         , onMouseEnter <| Hover <| Just <| CheckButton isMember
          , onMouseLeave <| Hover Nothing
          ]
             ++ Resource.Styles.checkButton isClickable
@@ -1263,11 +1462,7 @@ commentBar session { resourceIdentifier, pinnedVersion, pinCommentLoading, isEdi
                                     { teamName = resourceIdentifier.teamName
                                     , userState = session.userState
                                     }
-                                    && not
-                                        (isPipelineArchived
-                                            session.pipelines
-                                            resourceIdentifier
-                                        )
+                                    && not (isPipelineArchived session resourceIdentifier)
                             then
                                 [ Html.textarea
                                     ([ id (toHtmlID ResourceCommentTextarea)
@@ -1308,7 +1503,7 @@ editButton session =
         { sizePx = 16
         , image = Assets.PencilIcon
         }
-        ([ id "edit-button"
+        ([ id <| toHtmlID EditButton
          , onMouseEnter <| Hover <| Just EditButton
          , onMouseLeave <| Hover Nothing
          , onClick <| Click EditButton
@@ -1389,7 +1584,7 @@ pinBar :
             , resourceIdentifier : Concourse.ResourceIdentifier
         }
     -> Html Message
-pinBar { hovered, pipelines } { pinnedVersion, resourceIdentifier } =
+pinBar session { pinnedVersion, resourceIdentifier } =
     let
         pinBarVersion =
             Pinned.stable pinnedVersion
@@ -1415,13 +1610,11 @@ pinBar { hovered, pipelines } { pinnedVersion, resourceIdentifier } =
                     False
 
         archived =
-            isPipelineArchived
-                pipelines
-                resourceIdentifier
+            isPipelineArchived session resourceIdentifier
     in
     Html.div
         (attrList
-            [ ( id "pin-bar", True )
+            [ ( id <| toHtmlID PinBar, True )
             , ( onMouseEnter <| Hover <| Just PinBar, isPinnedStatically )
             , ( onMouseLeave <| Hover Nothing, isPinnedStatically )
             ]
@@ -1437,18 +1630,20 @@ pinBar { hovered, pipelines } { pinnedVersion, resourceIdentifier } =
                     Assets.PinIconGrey
             }
             (attrList
-                [ ( id "pin-icon", True )
+                [ ( id <| toHtmlID PinIcon, True )
                 , ( onClick <| Click PinIcon
                   , isPinnedDynamically && not archived
                   )
                 , ( onMouseEnter <| Hover <| Just PinIcon
                   , isPinnedDynamically && not archived
                   )
-                , ( onMouseLeave <| Hover Nothing, True )
+                , ( onMouseLeave <| Hover Nothing
+                  , isPinnedDynamically && not archived
+                  )
                 ]
                 ++ Resource.Styles.pinIcon
                     { clickable = isPinnedDynamically && not archived
-                    , hover = HoverState.isHovered PinIcon hovered
+                    , hover = HoverState.isHovered PinIcon session.hovered
                     }
             )
             :: (case pinBarVersion of
@@ -1458,35 +1653,21 @@ pinBar { hovered, pipelines } { pinnedVersion, resourceIdentifier } =
                     _ ->
                         []
                )
-            ++ (if HoverState.isHovered PinBar hovered then
-                    [ Html.div
-                        (id "pin-bar-tooltip" :: Resource.Styles.pinBarTooltip)
-                        [ Html.text "pinned in pipeline config" ]
-                    ]
-
-                else
-                    []
-               )
         )
 
 
 isPipelineArchived :
-    WebData (List Concourse.Pipeline)
+    { r | pipelines : WebData (List Concourse.Pipeline) }
     -> Concourse.ResourceIdentifier
     -> Bool
-isPipelineArchived pipelines { pipelineName, teamName } =
-    pipelines
-        |> RemoteData.withDefault []
-        |> List.Extra.find (\p -> p.name == pipelineName && p.teamName == teamName)
+isPipelineArchived session id =
+    lookupPipeline (byPipelineId id) session
         |> Maybe.map .archived
         |> Maybe.withDefault False
 
 
 viewVersionedResources :
-    { a
-        | hovered : HoverState.HoverState
-        , pipelines : WebData (List Concourse.Pipeline)
-    }
+    { a | pipelines : WebData (List Concourse.Pipeline) }
     ->
         { b
             | versions : Paginated Models.Version
@@ -1494,35 +1675,23 @@ viewVersionedResources :
             , resourceIdentifier : Concourse.ResourceIdentifier
         }
     -> Html Message
-viewVersionedResources { hovered, pipelines } model =
+viewVersionedResources session model =
     let
         archived =
-            isPipelineArchived
-                pipelines
-                model.resourceIdentifier
+            isPipelineArchived session model.resourceIdentifier
     in
     model
         |> versions
-        |> List.map
-            (\v ->
-                viewVersionedResource
-                    { version = v
-                    , pinnedVersion = model.pinnedVersion
-                    , hovered = hovered
-                    , archived = archived
-                    }
-            )
+        |> List.map (\v -> viewVersionedResource { version = v, archived = archived })
         |> Html.ul [ class "list list-collapsable list-enableDisable resource-versions" ]
 
 
 viewVersionedResource :
     { version : VersionPresenter
-    , pinnedVersion : Models.PinnedVersion
-    , hovered : HoverState.HoverState
     , archived : Bool
     }
     -> Html Message
-viewVersionedResource { version, hovered, archived } =
+viewVersionedResource { version, archived } =
     Html.li
         (case ( version.pinState, version.enabled ) of
             ( Disabled, _ ) ->
@@ -1553,7 +1722,6 @@ viewVersionedResource { version, hovered, archived } =
                 , viewPinButton
                     { versionID = version.id
                     , pinState = version.pinState
-                    , hovered = hovered
                     }
                 ]
              )
@@ -1616,21 +1784,26 @@ viewEnabledCheckbox :
     -> Html Message
 viewEnabledCheckbox ({ enabled, id } as params) =
     let
-        clickHandler =
-            case enabled of
-                Models.Enabled ->
-                    [ onClick <| Click <| VersionToggle id ]
+        eventHandlers =
+            [ onMouseOver <| Hover <| Just <| VersionToggle id
+            , onMouseOut <| Hover Nothing
+            ]
+                ++ (case enabled of
+                        Models.Enabled ->
+                            [ onClick <| Click <| VersionToggle id ]
 
-                Models.Changing ->
-                    []
+                        Models.Changing ->
+                            []
 
-                Models.Disabled ->
-                    [ onClick <| Click <| VersionToggle id ]
+                        Models.Disabled ->
+                            [ onClick <| Click <| VersionToggle id ]
+                   )
     in
     Html.div
-        (Html.Attributes.attribute "aria-label" "Toggle Resource Version Enabled"
+        (Html.Attributes.id (toHtmlID <| VersionToggle id)
+            :: Html.Attributes.attribute "aria-label" "Toggle Resource Version Enabled"
             :: Resource.Styles.enabledCheckbox params
-            ++ clickHandler
+            ++ eventHandlers
         )
         (case enabled of
             Models.Enabled ->
@@ -1651,49 +1824,43 @@ viewEnabledCheckbox ({ enabled, id } as params) =
 viewPinButton :
     { versionID : Models.VersionId
     , pinState : VersionPinState
-    , hovered : HoverState.HoverState
     }
     -> Html Message
-viewPinButton { versionID, pinState, hovered } =
+viewPinButton { versionID, pinState } =
     let
         eventHandlers =
-            case pinState of
-                Enabled ->
-                    [ onClick <| Click <| PinButton versionID ]
+            [ onMouseOver <| Hover <| Just <| PinButton versionID
+            , onMouseOut <| Hover Nothing
+            ]
+                ++ (case pinState of
+                        Enabled ->
+                            [ onClick <| Click <| PinButton versionID ]
 
-                PinnedDynamically ->
-                    [ onClick <| Click <| PinButton versionID ]
+                        PinnedDynamically ->
+                            [ onClick <| Click <| PinButton versionID ]
 
-                NotThePinnedVersion ->
-                    [ onClick <| Click <| PinButton versionID ]
+                        NotThePinnedVersion ->
+                            [ onClick <| Click <| PinButton versionID ]
 
-                PinnedStatically _ ->
-                    [ onMouseOver <| Hover <| Just <| PinButton versionID
-                    , onMouseOut <| Hover Nothing
-                    ]
+                        PinnedStatically ->
+                            [ onMouseOver <| Hover <| Just <| PinButton versionID
+                            , onMouseOut <| Hover Nothing
+                            ]
 
-                Disabled ->
-                    []
+                        Disabled ->
+                            []
 
-                InTransition ->
-                    []
+                        InTransition ->
+                            []
+                   )
     in
     Html.div
-        (Html.Attributes.attribute "aria-label" "Pin Resource Version"
+        (id (toHtmlID <| PinButton versionID)
+            :: Html.Attributes.attribute "aria-label" "Pin Resource Version"
             :: Resource.Styles.pinButton pinState
             ++ eventHandlers
         )
         (case pinState of
-            PinnedStatically _ ->
-                if HoverState.isHovered (PinButton versionID) hovered then
-                    [ Html.div
-                        Resource.Styles.pinButtonTooltip
-                        [ Html.text "enable via pipeline config" ]
-                    ]
-
-                else
-                    []
-
             InTransition ->
                 [ Spinner.spinner
                     { sizePx = 12.5
@@ -1832,6 +1999,7 @@ viewBuildsByJob buildDict jobName =
                                     { id =
                                         { teamName = job.teamName
                                         , pipelineName = job.pipelineName
+                                        , pipelineInstanceVars = job.pipelineInstanceVars
                                         , jobName = job.jobName
                                         , buildName = build.name
                                         }
@@ -1864,3 +2032,44 @@ fetchDataForExpandedVersions model =
     model.versions.content
         |> List.filter .expanded
         |> List.concatMap (\v -> [ FetchInputTo v.id, FetchOutputOf v.id ])
+
+
+updateOutput :
+    (OutputModel -> ( OutputModel, List Effect ))
+    -> ET Model
+updateOutput updater ( model, effects ) =
+    case model.output of
+        Just output ->
+            let
+                ( newOutput, outputEffects ) =
+                    updater output
+
+                newModel =
+                    { model
+                        | output =
+                            -- model.output must be equal-by-reference
+                            -- to its previous value when passed
+                            -- into `Html.Lazy.lazy3` below.
+                            if newOutput /= output then
+                                Just newOutput
+
+                            else
+                                model.output
+                    }
+            in
+            ( newModel, effects ++ outputEffects )
+
+        _ ->
+            ( model, effects )
+
+
+viewBuildOutput : Time.Zone -> HoverState.HoverState -> Maybe OutputModel -> Html Message
+viewBuildOutput timeZone hovered output =
+    case output of
+        Just o ->
+            Build.Output.Output.view
+                { timeZone = timeZone, hovered = hovered }
+                o
+
+        Nothing ->
+            Html.div [] []

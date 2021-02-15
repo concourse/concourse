@@ -3,22 +3,26 @@ module Views.Styles exposing
     , breadcrumbComponent
     , breadcrumbContainer
     , breadcrumbItem
+    , clusterName
     , concourseLogo
     , defaultFont
     , fontFamilyDefault
     , fontWeightBold
     , fontWeightDefault
     , fontWeightLight
+    , instanceGroupBadge
     , pageBelowTopBar
     , pageHeaderHeight
     , pageIncludingTopBar
     , pauseToggle
     , pauseToggleIcon
     , pauseToggleTooltip
+    , separator
     , topBar
     )
 
 import Assets
+import ColorValues
 import Colors
 import Html
 import Html.Attributes exposing (style)
@@ -124,8 +128,8 @@ topBar isPaused =
             Colors.paused
 
         else
-            Colors.frame
-    , style "border-bottom" <| "1px solid " ++ Colors.frame
+            Colors.topBarBackground
+    , style "border-bottom" <| "1px solid " ++ Colors.border
     ]
 
 
@@ -143,31 +147,47 @@ concourseLogo =
     ]
 
 
+clusterName : List (Html.Attribute msg)
+clusterName =
+    [ style "font-size" "21px"
+    , style "color" Colors.white
+    , style "letter-spacing" "0.1em"
+    , style "margin-left" "10px"
+    ]
+
+
 breadcrumbContainer : List (Html.Attribute msg)
 breadcrumbContainer =
-    [ style "flex-grow" "1" ]
+    [ style "flex-grow" "1"
+    , style "display" "flex"
+    ]
 
 
-breadcrumbComponent : Assets.ComponentType -> List (Html.Attribute msg)
-breadcrumbComponent componentType =
+breadcrumbComponent :
+    { component : Assets.ComponentType
+    , widthPx : Float
+    , heightPx : Float
+    }
+    -> List (Html.Attribute msg)
+breadcrumbComponent { component, widthPx, heightPx } =
     [ style "background-image" <|
         Assets.backgroundImage <|
             Just <|
-                Assets.BreadcrumbIcon componentType
+                Assets.BreadcrumbIcon component
     , style "background-repeat" "no-repeat"
     , style "background-size" "contain"
+    , style "background-position" "center"
     , style "display" "inline-block"
-    , style "vertical-align" "middle"
-    , style "height" "16px"
-    , style "width" "32px"
+    , style "height" <| String.fromFloat heightPx ++ "px"
+    , style "width" <| String.fromFloat widthPx ++ "px"
     , style "margin-right" "10px"
     ]
 
 
 breadcrumbItem : Bool -> List (Html.Attribute msg)
 breadcrumbItem clickable =
-    [ style "display" "inline-block"
-    , style "vertical-align" "middle"
+    [ style "display" "inline-flex"
+    , style "align-items" "center"
     , style "font-size" "18px"
     , style "padding" "0 10px"
     , style "line-height" "54px"
@@ -177,6 +197,7 @@ breadcrumbItem clickable =
 
         else
             "default"
+    , style "color" Colors.white
     ]
 
 
@@ -218,7 +239,8 @@ type TooltipPosition
 
 pauseToggleTooltip : TooltipPosition -> List (Html.Attribute msg)
 pauseToggleTooltip ttp =
-    [ style "background-color" "#9b9b9b"
+    [ style "background-color" Colors.tooltipBackground
+    , style "color" Colors.tooltipText
     , style "position" "absolute"
     , style
         (case ttp of
@@ -234,4 +256,29 @@ pauseToggleTooltip ttp =
     , style "margin-bottom" "5px"
     , style "right" "-150%"
     , style "z-index" "1"
+    ]
+
+
+separator : Float -> Html.Html msg
+separator topMargin =
+    Html.div
+        [ style "border-bottom" "1px solid black"
+        , style "margin-top" <| String.fromFloat topMargin ++ "px"
+        ]
+        []
+
+
+instanceGroupBadge : String -> List (Html.Attribute msg)
+instanceGroupBadge backgroundColor =
+    [ style "background-color" backgroundColor
+    , style "border-radius" "4px"
+    , style "color" ColorValues.grey90
+    , style "display" "flex"
+    , style "letter-spacing" "0"
+    , style "margin-right" "8px"
+    , style "width" "20px"
+    , style "height" "20px"
+    , style "flex-shrink" "0"
+    , style "align-items" "center"
+    , style "justify-content" "center"
     ]

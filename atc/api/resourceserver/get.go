@@ -5,16 +5,17 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
 )
 
 func (s *Server) GetResource(pipeline db.Pipeline) http.Handler {
-	logger := s.logger.Session("get-resource")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resourceName := r.FormValue(":resource_name")
-		teamName := r.FormValue(":team_name")
+
+		logger := s.logger.Session("get-resource", lager.Data{
+			"resource": resourceName,
+		})
 
 		dbResource, found, err := pipeline.Resource(resourceName)
 		if err != nil {
@@ -24,17 +25,12 @@ func (s *Server) GetResource(pipeline db.Pipeline) http.Handler {
 		}
 
 		if !found {
-			logger.Debug("resource-not-found", lager.Data{"resource": resourceName})
+			logger.Info("resource-not-found")
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
 
-		acc := accessor.GetAccessor(r)
-		resource := present.Resource(
-			dbResource,
-			acc.IsAuthorized(teamName),
-			teamName,
-		)
+		resource := present.Resource(dbResource)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)

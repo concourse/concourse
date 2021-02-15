@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/auth"
 	"github.com/concourse/concourse/atc/api/pipelineserver"
 	"github.com/concourse/concourse/atc/db"
@@ -115,7 +116,7 @@ var _ = Describe("Handler", func() {
 
 				It("looks up the pipeline by the right name", func() {
 					Expect(fakeTeam.PipelineCallCount()).To(Equal(1))
-					Expect(fakeTeam.PipelineArgsForCall(0)).To(Equal("some-pipeline"))
+					Expect(fakeTeam.PipelineArgsForCall(0)).To(Equal(atc.PipelineRef{Name: "some-pipeline"}))
 				})
 
 				It("returns 200", func() {

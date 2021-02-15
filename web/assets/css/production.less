@@ -96,7 +96,7 @@
 }
 
 .jobs-builds-list li {
-  background-color: @base02;
+  background-color: @grey80;
   width: 100%;
   float: none;
   margin: 0;
@@ -160,11 +160,7 @@ li.prep-status {
 }
 
 .step-body {
-  padding: 10px;
-}
-
-.step-body div {
-  white-space: pre-wrap;
+  padding: 10px 0 10px 10px;
 }
 
 .build-step pre {
@@ -191,13 +187,14 @@ li.prep-status {
 .build-step.inactive i,
 .build-step.inactive .dictionary,
 .prep-status.inactive {
-  color: @base03;
+  color: @grey70;
 }
 
 .build-step .header {
   cursor: pointer;
   clear: both;
   min-height: 28px;
+  border: 1px solid transparent;
   position: sticky;
   top: 0;
   z-index: 1;
@@ -240,6 +237,10 @@ li.prep-status {
   max-width: 50%;
 }
 
+.step-body .header .dictionary {
+  max-width: 100%;
+}
+
 .dict-key {
   text-align: right;
   vertical-align: top;
@@ -252,10 +253,6 @@ li.prep-status {
   padding: 0;
   margin: 0;
   word-break: break-all;
-}
-
-.resource-check-status .header {
-  cursor: default;
 }
 
 .legend {
@@ -283,77 +280,5 @@ li.prep-status {
   .pipeline-content {
     position: relative;
     flex-grow: 1;
-  }
-}
-
-svg.pipeline-graph {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-
-  h1 {
-    margin: 5px;
-    width: 100%;
-  }
-
-  h1.resource {
-    font-size: 1.5em;
-    font-weight: normal;
-    width: 100%;
-  }
-
-  h1 a {
-    padding: 5px;
-    text-decoration: none;
-  }
-
-  .node a {
-    cursor: pointer;
-  }
-
-  .node rect {
-    shape-rendering: crispEdges;
-  }
-
-  .edge path {
-    stroke-width: 2px;
-    fill: none;
-  }
-
-  .node text {
-    fill: #fff;
-  }
-
-  .node.constrained-input {
-    text {
-      fill: @base04;
-    }
-
-    &.pinned {
-      text {
-        fill: #fff;
-        opacity: 0.7;
-      }
-    }
-  }
-
-  .active path {
-    stroke-width: 4px;
-  }
-
-  .active.node rect {
-    filter: url(#embiggen);
-  }
-
-  .active.node image {
-    transform: scale(1.09) translate(-5px, -1px);
-  }
-
-  .active.node text {
-    font-size: 1.06em;
-  }
-
-  .active.node use {
-    transform: scale(1.09) translate(-5px, -1px);
   }
 }

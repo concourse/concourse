@@ -9,7 +9,6 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/garden/gardenfakes"
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/runtime"
@@ -51,7 +50,6 @@ var _ = Describe("RunScript", func() {
 
 		gardenWorker    worker.Worker
 		workerContainer worker.Container
-		fakeDelegate    *workerfakes.FakeImageFetchingDelegate
 		fakeOwner       *dbfakes.FakeContainerOwner
 
 		runScriptCtx    context.Context
@@ -78,7 +76,6 @@ var _ = Describe("RunScript", func() {
 		fakeDBWorker = new(dbfakes.FakeWorker)
 		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 
-		fakeDelegate = new(workerfakes.FakeImageFetchingDelegate)
 		fakeOwner = new(dbfakes.FakeContainerOwner)
 
 		stderrBuf = gbytes.NewBuffer()
@@ -106,7 +103,6 @@ var _ = Describe("RunScript", func() {
 			fakeDBWorker,
 			fakeResourceCacheFactory,
 			0,
-			nil,
 		)
 
 		fakeCreatedContainer.HandleReturns("some-handle")
@@ -116,11 +112,9 @@ var _ = Describe("RunScript", func() {
 		workerContainer, _ = gardenWorker.FindOrCreateContainer(
 			context.TODO(),
 			testLogger,
-			fakeDelegate,
 			fakeOwner,
 			db.ContainerMetadata{},
 			worker.ContainerSpec{},
-			atc.VersionedResourceTypes{},
 		)
 
 		runScriptCtx, runScriptCancel = context.WithCancel(context.Background())

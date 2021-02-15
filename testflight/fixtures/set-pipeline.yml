@@ -7,6 +7,11 @@ resources:
       pipeline.yml: |
         ---
         jobs:
+        # The sp job is required so the pipeline is not GC'd after `set_pipeline: self`
+        - name: sp
+          plan:
+          - set_pipeline: self
+            file: does-not-matter
         - name: normal-job
           public: true
           plan:
@@ -18,7 +23,7 @@ resources:
                 source: {mirror_self: true}
               run:
                 path: echo
-                args: ["hello world"]
+                args: ["START_VARgreetingsEND_VAR"]
       name.yml: |
         ---
         name: somebody
@@ -34,4 +39,14 @@ jobs:
       var_files:
       - some-resource/name.yml
       vars:
-        greetings: hello
+        greetings: hello world
+
+- name: sp-with-instance-vars
+  public: true
+  plan:
+    - get: some-resource
+    - set_pipeline: ((pipeline_name))
+      team: ((team_name))
+      file: some-resource/pipeline.yml
+      instance_vars:
+        greetings: "instanced-pipeline"

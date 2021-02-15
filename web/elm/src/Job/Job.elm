@@ -7,6 +7,7 @@ module Job.Job exposing
     , handleCallback
     , handleDelivery
     , init
+    , startingPage
     , subscriptions
     , tooltip
     , update
@@ -49,13 +50,13 @@ import Job.Styles as Styles
 import List.Extra
 import Login.Login as Login
 import Message.Callback exposing (Callback(..))
-import Message.Effects exposing (Effect(..))
+import Message.Effects exposing (Effect(..), toHtmlID)
 import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import RemoteData exposing (WebData)
 import Routes
-import SideBar.SideBar as SideBar
+import SideBar.SideBar as SideBar exposing (byPipelineId, lookupPipeline)
 import StrictEvents exposing (onLeftClick)
 import Time
 import Tooltip
@@ -73,8 +74,8 @@ type alias Model =
         { jobIdentifier : Concourse.JobIdentifier
         , job : WebData Concourse.Job
         , pausedChanging : Bool
-        , buildsWithResources : Paginated BuildWithResources
-        , currentPage : Maybe Page
+        , buildsWithResources : WebData (Paginated BuildWithResources)
+        , currentPage : Page
         , now : Time.Posix
         }
 
@@ -85,8 +86,8 @@ type alias BuildWithResources =
     }
 
 
-jobBuildsPerPage : Int
-jobBuildsPerPage =
+pageLimit : Int
+pageLimit =
     100
 
 
@@ -96,28 +97,32 @@ type alias Flags =
     }
 
 
+startingPage : Page
+startingPage =
+    { limit = pageLimit
+    , direction = Concourse.Pagination.ToMostRecent
+    }
+
+
 init : Flags -> ( Model, List Effect )
 init flags =
     let
+        page =
+            flags.paging |> Maybe.withDefault startingPage
+
         model =
             { jobIdentifier = flags.jobId
             , job = RemoteData.NotAsked
             , pausedChanging = False
-            , buildsWithResources =
-                { content = []
-                , pagination =
-                    { previousPage = Nothing
-                    , nextPage = Nothing
-                    }
-                }
+            , buildsWithResources = RemoteData.Loading
             , now = Time.millisToPosix 0
-            , currentPage = flags.paging
+            , currentPage = page
             , isUserMenuExpanded = False
             }
     in
     ( model
     , [ FetchJob flags.jobId
-      , FetchJobBuilds flags.jobId flags.paging
+      , FetchJobBuilds flags.jobId page
       , GetCurrentTime
       , GetCurrentTimeZone
       , FetchAllPipelines
@@ -127,17 +132,15 @@ init flags =
 
 changeToJob : Flags -> ET Model
 changeToJob flags ( model, effects ) =
+    let
+        page =
+            flags.paging |> Maybe.withDefault startingPage
+    in
     ( { model
-        | currentPage = flags.paging
-        , buildsWithResources =
-            { content = []
-            , pagination =
-                { previousPage = Nothing
-                , nextPage = Nothing
-                }
-            }
+        | currentPage = page
+        , buildsWithResources = RemoteData.Loading
       }
-    , effects ++ [ FetchJobBuilds model.jobIdentifier flags.paging ]
+    , effects ++ [ FetchJobBuilds model.jobIdentifier page ]
     )
 
 
@@ -175,6 +178,7 @@ handleCallback callback ( model, effects ) =
                                         { id =
                                             { teamName = job.teamName
                                             , pipelineName = job.pipelineName
+                                            , pipelineInstanceVars = job.pipelineInstanceVars
                                             , jobName = job.jobName
                                             , buildName = build.name
                                             }
@@ -183,8 +187,8 @@ handleCallback callback ( model, effects ) =
                            ]
             )
 
-        JobBuildsFetched (Ok builds) ->
-            handleJobBuildsFetched builds ( model, effects )
+        JobBuildsFetched (Ok ( requestedPage, builds )) ->
+            handleJobBuildsFetched requestedPage builds ( model, effects )
 
         JobFetched (Ok job) ->
             ( { model | job = RemoteData.Success job }
@@ -204,30 +208,24 @@ handleCallback callback ( model, effects ) =
                     ( model, effects )
 
         BuildResourcesFetched (Ok ( id, buildResources )) ->
-            case model.buildsWithResources.content of
-                [] ->
-                    ( model, effects )
-
-                anyList ->
-                    let
-                        transformer bwr =
-                            if bwr.build.id == id then
-                                { bwr | resources = Just buildResources }
-
-                            else
-                                bwr
-
-                        bwrs =
-                            model.buildsWithResources
-                    in
+            case model.buildsWithResources of
+                RemoteData.Success { content, pagination } ->
                     ( { model
                         | buildsWithResources =
-                            { bwrs
-                                | content = List.map transformer anyList
-                            }
+                            RemoteData.Success
+                                { content =
+                                    List.Extra.updateIf
+                                        (\bwr -> bwr.build.id == id)
+                                        (\bwr -> { bwr | resources = Just buildResources })
+                                        content
+                                , pagination = pagination
+                                }
                       }
                     , effects
                     )
+
+                _ ->
+                    ( model, effects )
 
         BuildResourcesFetched (Err _) ->
             ( model, effects )
@@ -306,12 +304,12 @@ permalink : List Concourse.Build -> Page
 permalink builds =
     case List.head builds of
         Nothing ->
-            { direction = Concourse.Pagination.Since 0
-            , limit = jobBuildsPerPage
+            { direction = Concourse.Pagination.ToMostRecent
+            , limit = pageLimit
             }
 
         Just build ->
-            { direction = Concourse.Pagination.Since (build.id + 1)
+            { direction = Concourse.Pagination.To build.id
             , limit = List.length builds
             }
 
@@ -350,8 +348,12 @@ promoteBuild model build =
             }
 
         existingBuildWithResource =
-            List.head
-                (List.filter (existingBuild build) model.buildsWithResources.content)
+            case model.buildsWithResources of
+                RemoteData.Success bwrs ->
+                    List.Extra.find (existingBuild build) bwrs.content
+
+                _ ->
+                    Nothing
     in
     setResourcesToOld existingBuildWithResource newBwr
 
@@ -371,8 +373,8 @@ updateResourcesIfNeeded bwr =
             Just <| FetchBuildResources bwr.build.id
 
 
-handleJobBuildsFetched : Paginated Concourse.Build -> ET Model
-handleJobBuildsFetched paginatedBuilds ( model, effects ) =
+handleJobBuildsFetched : Page -> Paginated Concourse.Build -> ET Model
+handleJobBuildsFetched requestedPage paginatedBuilds ( model, effects ) =
     let
         newPage =
             permalink paginatedBuilds.content
@@ -380,12 +382,29 @@ handleJobBuildsFetched paginatedBuilds ( model, effects ) =
         newBWRs =
             setExistingResources paginatedBuilds model
     in
-    ( { model
-        | buildsWithResources = newBWRs
-        , currentPage = Just newPage
-      }
-    , effects ++ List.filterMap updateResourcesIfNeeded newBWRs.content
-    )
+    if
+        Concourse.Pagination.isPreviousPage requestedPage
+            && (List.length paginatedBuilds.content < pageLimit)
+    then
+        ( model
+        , effects
+            ++ [ FetchJobBuilds model.jobIdentifier startingPage
+               , NavigateTo <|
+                    Routes.toString <|
+                        Routes.Job
+                            { id = model.jobIdentifier
+                            , page = Just startingPage
+                            }
+               ]
+        )
+
+    else
+        ( { model
+            | buildsWithResources = RemoteData.Success newBWRs
+            , currentPage = newPage
+          }
+        , effects ++ List.filterMap updateResourcesIfNeeded newBWRs.content
+        )
 
 
 isRunning : Concourse.Build -> Bool
@@ -404,17 +423,17 @@ view session model =
         route =
             Routes.Job
                 { id = model.jobIdentifier
-                , page = model.currentPage
+                , page = Just model.currentPage
                 }
     in
     Html.div
         (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
         [ Html.div
             (id "top-bar-app" :: Views.Styles.topBar False)
-            [ SideBar.hamburgerMenu session
+            [ SideBar.sideBarIcon session
             , TopBar.concourseLogo
-            , TopBar.breadcrumbs route
-            , Login.view session.userState model False
+            , TopBar.breadcrumbs session route
+            , Login.view session.userState model
             ]
         , Html.div
             (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
@@ -429,18 +448,75 @@ view session model =
         ]
 
 
-tooltip : Model -> a -> Maybe Tooltip.Tooltip
-tooltip _ _ =
-    Nothing
+tooltip : Model -> Session -> Maybe Tooltip.Tooltip
+tooltip model session =
+    case ( model.job |> RemoteData.toMaybe, session.hovered ) of
+        ( Just job, HoverState.Tooltip TriggerBuildButton _ ) ->
+            Just
+                { body =
+                    Html.text <|
+                        if job.disableManualTrigger then
+                            "manual triggering disabled in job config"
+
+                        else
+                            "trigger a new build"
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
+
+        ( Just job, HoverState.Tooltip ToggleJobButton _ ) ->
+            Just
+                { body =
+                    Html.text <|
+                        if job.paused then
+                            "unpause job"
+
+                        else
+                            "pause job"
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.Start }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
+
+        ( _, HoverState.Tooltip (JobBuildLink buildName) _ ) ->
+            Just
+                { body =
+                    Html.text <|
+                        "view build #"
+                            ++ buildName
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.Start }
+                , arrow = Nothing
+                , containerAttrs = Nothing
+                }
+
+        ( _, HoverState.Tooltip NextPageButton _ ) ->
+            Just
+                { body = Html.text "view next page"
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
+
+        ( _, HoverState.Tooltip PreviousPageButton _ ) ->
+            Just
+                { body = Html.text "view previous page"
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
+
+        _ ->
+            Nothing
 
 
 viewMainJobsSection : Session -> Model -> Html Message
 viewMainJobsSection session model =
     let
         archived =
-            isPipelineArchived
-                session.pipelines
-                model.jobIdentifier
+            lookupPipeline (byPipelineId model.jobIdentifier) session
+                |> Maybe.map .archived
+                |> Maybe.withDefault False
     in
     Html.div
         [ class "with-fixed-header"
@@ -476,7 +552,7 @@ viewMainJobsSection session model =
 
                               else
                                 Html.button
-                                    ([ id "pause-toggle"
+                                    ([ id <| toHtmlID ToggleJobButton
                                      , onMouseEnter <| Hover <| Just ToggleJobButton
                                      , onMouseLeave <| Hover Nothing
                                      , onClick <| Click ToggleJobButton
@@ -508,7 +584,8 @@ viewMainJobsSection session model =
 
                           else
                             Html.button
-                                ([ class "trigger-build"
+                                ([ id <| toHtmlID TriggerBuildButton
+                                 , class "trigger-build"
                                  , onLeftClick <| Click TriggerBuildButton
                                  , attribute "aria-label" "Trigger Build"
                                  , attribute "title" "Trigger Build"
@@ -529,18 +606,6 @@ viewMainJobsSection session model =
                                             && not job.disableManualTrigger
                                     )
                                 ]
-                                    ++ (if job.disableManualTrigger && triggerHovered then
-                                            [ Html.div
-                                                Styles.triggerTooltip
-                                                [ Html.text <|
-                                                    "manual triggering disabled "
-                                                        ++ "in job config"
-                                                ]
-                                            ]
-
-                                        else
-                                            []
-                                       )
                         ]
                     , Html.div
                         [ id "pagination-header"
@@ -556,39 +621,28 @@ viewMainJobsSection session model =
                         , viewPaginationBar session model
                         ]
                     ]
-        , case ( model.buildsWithResources.content, model.currentPage ) of
-            ( _, Nothing ) ->
+        , case model.buildsWithResources of
+            RemoteData.Success { content } ->
+                if List.isEmpty content then
+                    Html.div Styles.noBuildsMessage
+                        [ Html.text <|
+                            "no builds for job “"
+                                ++ model.jobIdentifier.jobName
+                                ++ "”"
+                        ]
+
+                else
+                    Html.div
+                        [ class "scrollable-body job-body"
+                        , style "overflow-y" "auto"
+                        ]
+                        [ Html.ul [ class "jobs-builds-list builds-list" ] <|
+                            List.map (viewBuildWithResources session model) content
+                        ]
+
+            _ ->
                 LoadingIndicator.view
-
-            ( [], Just _ ) ->
-                Html.div Styles.noBuildsMessage
-                    [ Html.text <|
-                        "no builds for job “"
-                            ++ model.jobIdentifier.jobName
-                            ++ "”"
-                    ]
-
-            ( anyList, Just _ ) ->
-                Html.div
-                    [ class "scrollable-body job-body"
-                    , style "overflow-y" "auto"
-                    ]
-                    [ Html.ul [ class "jobs-builds-list builds-list" ] <|
-                        List.map (viewBuildWithResources session model) anyList
-                    ]
         ]
-
-
-isPipelineArchived :
-    WebData (List Concourse.Pipeline)
-    -> Concourse.JobIdentifier
-    -> Bool
-isPipelineArchived pipelines { pipelineName, teamName } =
-    pipelines
-        |> RemoteData.withDefault []
-        |> List.Extra.find (\p -> p.name == pipelineName && p.teamName == teamName)
-        |> Maybe.map .archived
-        |> Maybe.withDefault False
 
 
 headerBuildStatus : Maybe Concourse.Build -> BuildStatus
@@ -608,9 +662,92 @@ viewPaginationBar session model =
         , style "display" "flex"
         , style "align-items" "stretch"
         ]
-        [ case model.buildsWithResources.pagination.previousPage of
-            Nothing ->
-                Html.div
+        (case model.buildsWithResources of
+            RemoteData.Success { pagination } ->
+                [ case pagination.previousPage of
+                    Nothing ->
+                        Html.div
+                            chevronContainer
+                            [ Html.div
+                                (chevronLeft
+                                    { enabled = False
+                                    , hovered = False
+                                    }
+                                )
+                                []
+                            ]
+
+                    Just page ->
+                        let
+                            jobRoute =
+                                Routes.Job { id = model.jobIdentifier, page = Just page }
+                        in
+                        Html.div
+                            ([ onMouseEnter <| Hover <| Just PreviousPageButton
+                             , onMouseLeave <| Hover Nothing
+                             ]
+                                ++ chevronContainer
+                            )
+                            [ Html.a
+                                ([ StrictEvents.onLeftClick <| GoToRoute jobRoute
+                                 , href <| Routes.toString <| jobRoute
+                                 , attribute "aria-label" "Previous Page"
+                                 , id <| toHtmlID PreviousPageButton
+                                 ]
+                                    ++ chevronLeft
+                                        { enabled = True
+                                        , hovered =
+                                            HoverState.isHovered
+                                                PreviousPageButton
+                                                session.hovered
+                                        }
+                                )
+                                []
+                            ]
+                , case pagination.nextPage of
+                    Nothing ->
+                        Html.div
+                            chevronContainer
+                            [ Html.div
+                                (chevronRight
+                                    { enabled = False
+                                    , hovered = False
+                                    }
+                                )
+                                []
+                            ]
+
+                    Just page ->
+                        let
+                            jobRoute =
+                                Routes.Job { id = model.jobIdentifier, page = Just page }
+                        in
+                        Html.div
+                            ([ onMouseEnter <| Hover <| Just NextPageButton
+                             , onMouseLeave <| Hover Nothing
+                             ]
+                                ++ chevronContainer
+                            )
+                            [ Html.a
+                                ([ StrictEvents.onLeftClick <| GoToRoute jobRoute
+                                 , href <| Routes.toString jobRoute
+                                 , attribute "aria-label" "Next Page"
+                                 , id <| toHtmlID NextPageButton
+                                 ]
+                                    ++ chevronRight
+                                        { enabled = True
+                                        , hovered =
+                                            HoverState.isHovered
+                                                NextPageButton
+                                                session.hovered
+                                        }
+                                )
+                                []
+                            ]
+                ]
+
+            _ ->
+                [ Html.div
                     chevronContainer
                     [ Html.div
                         (chevronLeft
@@ -620,36 +757,7 @@ viewPaginationBar session model =
                         )
                         []
                     ]
-
-            Just page ->
-                let
-                    jobRoute =
-                        Routes.Job { id = model.jobIdentifier, page = Just page }
-                in
-                Html.div
-                    ([ onMouseEnter <| Hover <| Just PreviousPageButton
-                     , onMouseLeave <| Hover Nothing
-                     ]
-                        ++ chevronContainer
-                    )
-                    [ Html.a
-                        ([ StrictEvents.onLeftClick <| GoToRoute jobRoute
-                         , href <| Routes.toString <| jobRoute
-                         , attribute "aria-label" "Previous Page"
-                         ]
-                            ++ chevronLeft
-                                { enabled = True
-                                , hovered =
-                                    HoverState.isHovered
-                                        PreviousPageButton
-                                        session.hovered
-                                }
-                        )
-                        []
-                    ]
-        , case model.buildsWithResources.pagination.nextPage of
-            Nothing ->
-                Html.div
+                , Html.div
                     chevronContainer
                     [ Html.div
                         (chevronRight
@@ -659,34 +767,8 @@ viewPaginationBar session model =
                         )
                         []
                     ]
-
-            Just page ->
-                let
-                    jobRoute =
-                        Routes.Job { id = model.jobIdentifier, page = Just page }
-                in
-                Html.div
-                    ([ onMouseEnter <| Hover <| Just NextPageButton
-                     , onMouseLeave <| Hover Nothing
-                     ]
-                        ++ chevronContainer
-                    )
-                    [ Html.a
-                        ([ StrictEvents.onLeftClick <| GoToRoute jobRoute
-                         , href <| Routes.toString jobRoute
-                         , attribute "aria-label" "Next Page"
-                         ]
-                            ++ chevronRight
-                                { enabled = True
-                                , hovered =
-                                    HoverState.isHovered
-                                        NextPageButton
-                                        session.hovered
-                                }
-                        )
-                        []
-                    ]
-        ]
+                ]
+        )
 
 
 viewBuildWithResources :
@@ -709,6 +791,10 @@ viewBuildWithResources session model bwr =
 
 viewBuildHeader : Concourse.Build -> Html Message
 viewBuildHeader b =
+    let
+        domID =
+            JobBuildLink b.name
+    in
     Html.a
         [ class <| Concourse.BuildStatus.show b.status
         , StrictEvents.onLeftClick <|
@@ -717,9 +803,11 @@ viewBuildHeader b =
         , href <|
             Routes.toString <|
                 Routes.buildRoute b.id b.name b.job
+        , onMouseEnter <| Hover <| Just domID
+        , onMouseLeave <| Hover Nothing
+        , id <| toHtmlID domID
         ]
-        [ Html.text ("#" ++ b.name)
-        ]
+        [ Html.text ("#" ++ b.name) ]
 
 
 viewBuildResources : BuildWithResources -> List (Html Message)

@@ -56,10 +56,10 @@ view session model =
         (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
         [ Html.div
             (id "top-bar-app" :: Views.Styles.topBar False)
-            [ SideBar.hamburgerMenu session
+            [ SideBar.sideBarIcon session
             , TopBar.concourseLogo
-            , TopBar.breadcrumbs model.route
-            , Login.view session.userState model False
+            , TopBar.breadcrumbs session model.route
+            , Login.view session.userState model
             ]
         , Html.div
             (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar model.route)

@@ -2,6 +2,7 @@ module PinMenu.PinMenuTests exposing (all)
 
 import Colors
 import Concourse
+import Data
 import Dict
 import Expect
 import HoverState
@@ -21,10 +22,7 @@ import Views.Styles
 
 init =
     Pipeline.init
-        { pipelineLocator =
-            { teamName = "team"
-            , pipelineName = "pipeline"
-            }
+        { pipelineLocator = Data.pipelineId
         , turbulenceImgSrc = ""
         , selectedGroups = []
         }
@@ -63,31 +61,10 @@ all =
                 model =
                     { init
                         | fetchedResources =
-                            Just <|
-                                JE.list identity
-                                    [ JE.object
-                                        [ ( "team_name", JE.string "team" )
-                                        , ( "pipeline_name", JE.string "pipeline" )
-                                        , ( "name", JE.string "test" )
-                                        , ( "type", JE.string "type" )
-                                        , ( "pinned_version"
-                                          , JE.object
-                                                [ ( "version"
-                                                  , JE.string "v1"
-                                                  )
-                                                ]
-                                          )
-                                        ]
-                                    ]
+                            Just [ Data.resource (Just "v1") |> Data.withName "test" ]
                     }
             in
-            [ test "is hoverable" <|
-                \_ ->
-                    model
-                        |> PinMenu.pinMenu { hovered = HoverState.NoHover }
-                        |> .hoverable
-                        |> Expect.equal True
-            , test "is clickable" <|
+            [ test "is clickable" <|
                 \_ ->
                     model
                         |> PinMenu.pinMenu { hovered = HoverState.NoHover }
@@ -124,13 +101,13 @@ all =
             , test "has bright icon when hovered" <|
                 \_ ->
                     model
-                        |> PinMenu.pinMenu { hovered = HoverState.Hovered PinIcon }
+                        |> PinMenu.pinMenu { hovered = HoverState.Hovered TopBarPinIcon }
                         |> .opacity
                         |> Expect.equal SS.Bright
             , test "clicking brightens background" <|
                 \_ ->
                     ( model, [] )
-                        |> PinMenu.update (Click PinIcon)
+                        |> PinMenu.update (Click TopBarPinIcon)
                         |> Tuple.first
                         |> PinMenu.pinMenu { hovered = HoverState.NoHover }
                         |> .background
@@ -138,7 +115,7 @@ all =
             , test "clicking brightens icon" <|
                 \_ ->
                     ( model, [] )
-                        |> PinMenu.update (Click PinIcon)
+                        |> PinMenu.update (Click TopBarPinIcon)
                         |> Tuple.first
                         |> PinMenu.pinMenu { hovered = HoverState.NoHover }
                         |> .opacity
@@ -146,7 +123,7 @@ all =
             , test "clicking reveals dropdown" <|
                 \_ ->
                     ( model, [] )
-                        |> PinMenu.update (Click PinIcon)
+                        |> PinMenu.update (Click TopBarPinIcon)
                         |> Tuple.first
                         |> PinMenu.pinMenu { hovered = HoverState.NoHover }
                         |> .dropdown
@@ -168,17 +145,13 @@ all =
                                               , color = Colors.text
                                               }
                                             ]
-                                      , background = Colors.sideBar
+                                      , background = Colors.pinMenuBackground
                                       , paddingPx = 10
                                       , hoverable = True
                                       , onClick =
                                             GoToRoute <|
                                                 Routes.Resource
-                                                    { id =
-                                                        { teamName = "team"
-                                                        , pipelineName = "pipeline"
-                                                        , resourceName = "test"
-                                                        }
+                                                    { id = Data.resourceId |> Data.withResourceName "test"
                                                     , page = Nothing
                                                     }
                                       }
@@ -188,7 +161,7 @@ all =
             , test "clicking again dismisses dropdown" <|
                 \_ ->
                     ( { model | pinMenuExpanded = True }, [] )
-                        |> PinMenu.update (Click PinIcon)
+                        |> PinMenu.update (Click TopBarPinIcon)
                         |> Tuple.first
                         |> PinMenu.pinMenu { hovered = HoverState.NoHover }
                         |> .dropdown
@@ -219,17 +192,13 @@ all =
                                               , color = Colors.text
                                               }
                                             ]
-                                      , background = Colors.sideBarActive
+                                      , background = Colors.pinMenuHover
                                       , paddingPx = 10
                                       , hoverable = True
                                       , onClick =
                                             GoToRoute <|
                                                 Routes.Resource
-                                                    { id =
-                                                        { teamName = "team"
-                                                        , pipelineName = "pipeline"
-                                                        , resourceName = "test"
-                                                        }
+                                                    { id = Data.resourceId |> Data.withResourceName "test"
                                                     , page = Nothing
                                                     }
                                       }

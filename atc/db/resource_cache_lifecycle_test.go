@@ -6,6 +6,7 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/dbtest"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -28,7 +29,7 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 			}
 
 			resourceCacheForJobBuild := func() (db.UsedResourceCache, db.Build) {
-				build, err := defaultJob.CreateBuild()
+				build, err := defaultJob.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 				return createResourceCacheWithUser(db.ForBuild(build.ID())), build
 			}
@@ -148,7 +149,7 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 						})
 						It("does not remove the resource caches from other jobs", func() {
 							By("creating a second pipeline")
-							secondPipeline, _, err := defaultTeam.SavePipeline("second-pipeline", atc.Config{
+							secondPipeline, _, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "second-pipeline"}, atc.Config{
 								Jobs: atc.JobConfigs{
 									{
 										Name: "some-job",
@@ -178,7 +179,7 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 							By("creating an image resource cache tied to the job in the second pipeline")
 							job, _, err := secondPipeline.Job("some-job")
 							Expect(err).ToNot(HaveOccurred())
-							build, err := job.CreateBuild()
+							build, err := job.CreateBuild(defaultBuildCreatedBy)
 							Expect(err).ToNot(HaveOccurred())
 							resourceCache := createResourceCacheWithUser(db.ForBuild(build.ID()))
 
@@ -324,7 +325,7 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 				err = resourceConfigCheckSessionLifecycle.CleanInactiveResourceConfigCheckSessions()
 				Expect(err).ToNot(HaveOccurred())
 
-				err = resourceConfigFactory.CleanUnreferencedConfigs()
+				err = resourceConfigFactory.CleanUnreferencedConfigs(0)
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(countResourceCaches()).ToNot(BeZero())
@@ -338,13 +339,26 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 
 		Context("when the cache is for a resource version used as an input for the next build of a job", func() {
 			It("does not remove the cache", func() {
-				err := defaultPipeline.Unpause()
+				scenario := dbtest.Setup(
+					builder.WithPipeline(atc.Config{
+						Resources: atc.ResourceConfigs{
+							{
+								Name: "some-resource",
+								Type: "some-base-resource-type",
+								Source: atc.Source{
+									"some": "source",
+								},
+							},
+						},
+					}),
+					builder.WithResourceVersions("some-resource", atc.Version{"some": "version"}),
+				)
+
+				rc, found, err := resourceConfigFactory.FindResourceConfigByID(scenario.Resource("some-resource").ResourceConfigID())
+				Expect(found).To(BeTrue())
 				Expect(err).ToNot(HaveOccurred())
 
-				resourceConfigScope, err := defaultResource.SetResourceConfig(
-					atc.Source{"some": "source"},
-					atc.VersionedResourceTypes{},
-				)
+				resourceConfigScope, err := rc.FindOrCreateScope(scenario.Resource("some-resource"))
 				Expect(err).ToNot(HaveOccurred())
 
 				containerOwner := db.NewResourceConfigCheckSessionContainerOwner(
@@ -358,9 +372,6 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 
 				_ = createResourceCacheWithUser(db.ForContainer(container.ID()))
 
-				err = resourceConfigScope.SaveVersions(nil, []atc.Version{{"some": "version"}})
-				Expect(err).ToNot(HaveOccurred())
-
 				resourceConfigVersion, found, err := resourceConfigScope.FindVersion(atc.Version{"some": "version"})
 				Expect(found).To(BeTrue())
 				Expect(err).ToNot(HaveOccurred())
@@ -370,7 +381,7 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 						Input: &db.AlgorithmInput{
 							AlgorithmVersion: db.AlgorithmVersion{
 								Version:    db.ResourceVersion(convertToMD5(atc.Version(resourceConfigVersion.Version()))),
-								ResourceID: defaultResource.ID(),
+								ResourceID: scenario.Resource("some-resource").ID(),
 							},
 						},
 						PassedBuildIDs: []int{},

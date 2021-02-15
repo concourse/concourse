@@ -79,8 +79,8 @@ type Job interface {
 	Unpause() error
 
 	ScheduleBuild(Build) (bool, error)
-	CreateBuild() (Build, error)
-	RerunBuild(Build) (Build, error)
+	CreateBuild(createdBy string) (Build, error)
+	RerunBuild(build Build, createdBy string) (Build, error)
 
 	RequestSchedule() error
 	UpdateLastScheduled(time.Time) error
@@ -105,7 +105,7 @@ type Job interface {
 	HasNewInputs() bool
 }
 
-var jobsQuery = psql.Select("j.id", "j.name", "j.config", "j.paused", "j.public", "j.first_logged_build_id", "j.pipeline_id", "p.name", "p.team_id", "t.name", "j.nonce", "j.tags", "j.has_new_inputs", "j.schedule_requested", "j.max_in_flight", "j.disable_manual_trigger").
+var jobsQuery = psql.Select("j.id", "j.name", "j.config", "j.paused", "j.public", "j.first_logged_build_id", "j.pipeline_id", "p.name", "p.instance_vars", "p.team_id", "t.name", "j.nonce", "j.tags", "j.has_new_inputs", "j.schedule_requested", "j.max_in_flight", "j.disable_manual_trigger").
 	From("jobs j, pipelines p").
 	LeftJoin("teams t ON p.team_id = t.id").
 	Where(sq.Expr("j.pipeline_id = p.id"))
@@ -772,7 +772,7 @@ func (j *job) GetPendingBuilds() ([]Build, error) {
 	return builds, nil
 }
 
-func (j *job) CreateBuild() (Build, error) {
+func (j *job) CreateBuild(createdBy string) (Build, error) {
 	tx, err := j.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -793,6 +793,7 @@ func (j *job) CreateBuild() (Build, error) {
 		"team_id":            j.teamID,
 		"status":             BuildStatusPending,
 		"manually_triggered": true,
+		"created_by":         createdBy,
 	})
 	if err != nil {
 		return nil, err
@@ -821,9 +822,9 @@ func (j *job) CreateBuild() (Build, error) {
 	return build, nil
 }
 
-func (j *job) RerunBuild(buildToRerun Build) (Build, error) {
+func (j *job) RerunBuild(buildToRerun Build, createdBy string) (Build, error) {
 	for {
-		rerunBuild, err := j.tryRerunBuild(buildToRerun)
+		rerunBuild, err := j.tryRerunBuild(buildToRerun, createdBy)
 		if err != nil {
 			if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == pqUniqueViolationErrCode {
 				continue
@@ -836,7 +837,7 @@ func (j *job) RerunBuild(buildToRerun Build) (Build, error) {
 	}
 }
 
-func (j *job) tryRerunBuild(buildToRerun Build) (Build, error) {
+func (j *job) tryRerunBuild(buildToRerun Build, createdBy string) (Build, error) {
 	tx, err := j.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -863,6 +864,7 @@ func (j *job) tryRerunBuild(buildToRerun Build) (Build, error) {
 		"status":       BuildStatusPending,
 		"rerun_of":     buildToRerunID,
 		"rerun_number": rerunNumber,
+		"created_by":   createdBy,
 	})
 	if err != nil {
 		return nil, err
@@ -1374,11 +1376,12 @@ func (j *job) isPipelineOrJobPaused(tx Tx) (bool, error) {
 
 func scanJob(j *job, row scannable) error {
 	var (
-		config sql.NullString
-		nonce  sql.NullString
+		config               sql.NullString
+		nonce                sql.NullString
+		pipelineInstanceVars sql.NullString
 	)
 
-	err := row.Scan(&j.id, &j.name, &config, &j.paused, &j.public, &j.firstLoggedBuildID, &j.pipelineID, &j.pipelineName, &j.teamID, &j.teamName, &nonce, pq.Array(&j.tags), &j.hasNewInputs, &j.scheduleRequestedTime, &j.maxInFlight, &j.disableManualTrigger)
+	err := row.Scan(&j.id, &j.name, &config, &j.paused, &j.public, &j.firstLoggedBuildID, &j.pipelineID, &j.pipelineName, &pipelineInstanceVars, &j.teamID, &j.teamName, &nonce, pq.Array(&j.tags), &j.hasNewInputs, &j.scheduleRequestedTime, &j.maxInFlight, &j.disableManualTrigger)
 	if err != nil {
 		return err
 	}
@@ -1389,6 +1392,13 @@ func scanJob(j *job, row scannable) error {
 
 	if config.Valid {
 		j.rawConfig = &config.String
+	}
+
+	if pipelineInstanceVars.Valid {
+		err = json.Unmarshal([]byte(pipelineInstanceVars.String), &j.pipelineInstanceVars)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

@@ -86,6 +86,15 @@ decodeBuildEvent =
                                 (Json.Decode.maybe <| Json.Decode.field "time" <| Json.Decode.map dateFromSeconds Json.Decode.int)
                             )
 
+                    "selected-worker" ->
+                        Json.Decode.field
+                            "data"
+                            (Json.Decode.map3 SelectedWorker
+                                (Json.Decode.field "origin" <| Json.Decode.lazy (\_ -> decodeOrigin))
+                                (Json.Decode.field "selected_worker" Json.Decode.string)
+                                (Json.Decode.maybe <| Json.Decode.field "time" <| Json.Decode.map dateFromSeconds Json.Decode.int)
+                            )
+
                     "error" ->
                         Json.Decode.field "data" decodeErrorEvent
 
@@ -176,6 +185,28 @@ decodeBuildEvent =
 
                     "finish-put" ->
                         Json.Decode.field "data" (decodeFinishResource FinishPut)
+
+                    "set-pipeline-changed" ->
+                        Json.Decode.field
+                            "data"
+                            (Json.Decode.map2 SetPipelineChanged
+                                (Json.Decode.field "origin" decodeOrigin)
+                                (Json.Decode.field "changed" Json.Decode.bool)
+                            )
+
+                    "image-check" ->
+                        Json.Decode.field "data"
+                            (Json.Decode.map2 ImageCheck
+                                (Json.Decode.field "origin" decodeOrigin)
+                                (Json.Decode.field "plan" Concourse.decodeBuildPlan)
+                            )
+
+                    "image-get" ->
+                        Json.Decode.field "data"
+                            (Json.Decode.map2 ImageGet
+                                (Json.Decode.field "origin" decodeOrigin)
+                                (Json.Decode.field "plan" Concourse.decodeBuildPlan)
+                            )
 
                     unknown ->
                         Json.Decode.fail ("unknown event type: " ++ unknown)

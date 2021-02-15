@@ -3,9 +3,10 @@ module Views.PauseToggle exposing (view)
 import Assets
 import Concourse
 import Html exposing (Html)
-import Html.Attributes exposing (class)
+import Html.Attributes exposing (class, id)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
-import Message.Message exposing (DomID(..), Message(..))
+import Message.Effects exposing (toHtmlID)
+import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import UserState exposing (UserState(..))
 import Views.Icon as Icon
 import Views.Spinner as Spinner
@@ -21,6 +22,7 @@ view :
         , margin : String
         , userState : UserState
         , tooltipPosition : Styles.TooltipPosition
+        , domID : DomID
     }
     -> Html Message
 view params =
@@ -38,12 +40,13 @@ view params =
     else
         Html.div
             (Styles.pauseToggle params.margin
-                ++ [ onMouseEnter <| Hover <| Just <| PipelineButton params.pipeline
+                ++ [ onMouseEnter <| Hover <| Just <| params.domID
                    , onMouseLeave <| Hover Nothing
                    , class "pause-toggle"
+                   , id <| toHtmlID params.domID
                    ]
                 ++ (if isClickable then
-                        [ onClick <| Click <| PipelineButton params.pipeline ]
+                        [ onClick <| Click <| params.domID ]
 
                     else
                         []

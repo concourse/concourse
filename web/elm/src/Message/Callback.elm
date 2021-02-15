@@ -4,7 +4,6 @@ import Browser.Dom
 import Concourse
 import Concourse.Pagination exposing (Page, Paginated)
 import Http
-import Json.Encode
 import Message.Message
     exposing
         ( DomID
@@ -24,18 +23,18 @@ type Callback
     | GotCurrentTime Time.Posix
     | GotCurrentTimeZone Time.Zone
     | BuildTriggered (Fetched Concourse.Build)
-    | JobBuildsFetched (Fetched (Paginated Concourse.Build))
+    | JobBuildsFetched (Fetched ( Page, Paginated Concourse.Build ))
     | JobFetched (Fetched Concourse.Job)
-    | JobsFetched (Fetched Json.Encode.Value)
+    | JobsFetched (Fetched (List Concourse.Job))
     | PipelineFetched (Fetched Concourse.Pipeline)
     | PipelinesFetched (Fetched (List Concourse.Pipeline))
     | PipelineToggled Concourse.PipelineIdentifier (Fetched ())
     | PipelinesOrdered String (Fetched ())
     | UserFetched (Fetched Concourse.User)
-    | ResourcesFetched (Fetched Json.Encode.Value)
+    | ResourcesFetched (Fetched (List Concourse.Resource))
     | BuildResourcesFetched (Fetched ( Int, Concourse.BuildResources ))
     | ResourceFetched (Fetched Concourse.Resource)
-    | VersionedResourcesFetched (Fetched ( Maybe Page, Paginated Concourse.VersionedResource ))
+    | VersionedResourcesFetched (Fetched ( Page, Paginated Concourse.VersionedResource ))
     | ClusterInfoFetched (Fetched Concourse.ClusterInfo)
     | PausedToggled (Fetched ())
     | InputToFetched (Fetched ( VersionId, List Concourse.Build ))
@@ -43,7 +42,7 @@ type Callback
     | VersionPinned (Fetched ())
     | VersionUnpinned (Fetched ())
     | VersionToggled VersionToggleAction VersionId (Fetched ())
-    | Checked (Fetched Concourse.Check)
+    | Checked (Fetched Concourse.Build)
     | CommentSet (Fetched ())
     | AllTeamsFetched (Fetched (List Concourse.Team))
     | AllJobsFetched (Fetched (List Concourse.Job))

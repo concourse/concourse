@@ -2,8 +2,11 @@ package atc
 
 import (
 	"crypto/tls"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"golang.org/x/crypto/ssh"
 	"sigs.k8s.io/yaml"
@@ -22,6 +25,7 @@ type Config struct {
 	Resources     ResourceConfigs  `json:"resources,omitempty"`
 	ResourceTypes ResourceTypes    `json:"resource_types,omitempty"`
 	Jobs          JobConfigs       `json:"jobs,omitempty"`
+	Display       *DisplayConfig   `json:"display,omitempty"`
 }
 
 func UnmarshalConfig(payload []byte, config interface{}) error {
@@ -32,6 +36,7 @@ func UnmarshalConfig(payload []byte, config interface{}) error {
 		Resources     interface{} `json:"resources,omitempty"`
 		ResourceTypes interface{} `json:"resource_types,omitempty"`
 		Jobs          interface{} `json:"jobs,omitempty"`
+		Display       interface{} `json:"display,omitempty"`
 	}
 
 	var stripped skeletonConfig
@@ -171,29 +176,76 @@ func (c VarSourceConfigs) OrderByDependency() (VarSourceConfigs, error) {
 }
 
 type ResourceConfig struct {
-	Name         string  `json:"name"`
-	Public       bool    `json:"public,omitempty"`
-	WebhookToken string  `json:"webhook_token,omitempty"`
-	Type         string  `json:"type"`
-	Source       Source  `json:"source"`
-	CheckEvery   string  `json:"check_every,omitempty"`
-	CheckTimeout string  `json:"check_timeout,omitempty"`
-	Tags         Tags    `json:"tags,omitempty"`
-	Version      Version `json:"version,omitempty"`
-	Icon         string  `json:"icon,omitempty"`
+	Name                 string      `json:"name"`
+	OldName              string      `json:"old_name,omitempty"`
+	Public               bool        `json:"public,omitempty"`
+	WebhookToken         string      `json:"webhook_token,omitempty"`
+	Type                 string      `json:"type"`
+	Source               Source      `json:"source"`
+	CheckEvery           *CheckEvery `json:"check_every,omitempty"`
+	CheckTimeout         string      `json:"check_timeout,omitempty"`
+	Tags                 Tags        `json:"tags,omitempty"`
+	Version              Version     `json:"version,omitempty"`
+	Icon                 string      `json:"icon,omitempty"`
+	ExposeBuildCreatedBy bool        `json:"expose_build_created_by,omitempty"`
 }
 
 type ResourceType struct {
-	Name                 string `json:"name"`
-	Type                 string `json:"type"`
-	Source               Source `json:"source"`
-	Privileged           bool   `json:"privileged,omitempty"`
-	CheckEvery           string `json:"check_every,omitempty"`
-	Tags                 Tags   `json:"tags,omitempty"`
-	Params               Params `json:"params,omitempty"`
-	CheckSetupError      string `json:"check_setup_error,omitempty"`
-	CheckError           string `json:"check_error,omitempty"`
-	UniqueVersionHistory bool   `json:"unique_version_history,omitempty"`
+	Name       string      `json:"name"`
+	Type       string      `json:"type"`
+	Source     Source      `json:"source"`
+	Defaults   Source      `json:"defaults,omitempty"`
+	Privileged bool        `json:"privileged,omitempty"`
+	CheckEvery *CheckEvery `json:"check_every,omitempty"`
+	Tags       Tags        `json:"tags,omitempty"`
+	Params     Params      `json:"params,omitempty"`
+}
+
+type DisplayConfig struct {
+	BackgroundImage string `json:"background_image,omitempty"`
+}
+
+type CheckEvery struct {
+	Never    bool
+	Interval time.Duration
+}
+
+func (c *CheckEvery) UnmarshalJSON(checkEvery []byte) error {
+	var data interface{}
+
+	err := json.Unmarshal(checkEvery, &data)
+	if err != nil {
+		return err
+	}
+
+	actual, ok := data.(string)
+	if !ok {
+		return errors.New("non-string value provided")
+	}
+
+	if actual != "" {
+		if actual == "never" {
+			c.Never = true
+			return nil
+		}
+		c.Interval, err = time.ParseDuration(actual)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *CheckEvery) MarshalJSON() ([]byte, error) {
+	if c.Never {
+		return json.Marshal("never")
+	}
+
+	if c.Interval != 0 {
+		return json.Marshal(c.Interval.String())
+	}
+
+	return json.Marshal("")
 }
 
 type ResourceTypes []ResourceType

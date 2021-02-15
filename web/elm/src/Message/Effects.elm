@@ -1,5 +1,6 @@
 port module Message.Effects exposing
     ( Effect(..)
+    , pipelinesSectionName
     , renderPipeline
     , renderSvgIcon
     , runEffect
@@ -13,7 +14,7 @@ import Assets
 import Base64
 import Browser.Dom exposing (Viewport, getElement, getViewport, getViewportOf, setViewportOf)
 import Browser.Navigation as Navigation
-import Concourse exposing (encodeJob, encodePipeline, encodeTeam)
+import Concourse exposing (DatabaseID, encodeJob, encodePipeline, encodeTeam)
 import Concourse.BuildStatus exposing (BuildStatus)
 import Concourse.Pagination exposing (Page)
 import Json.Decode
@@ -23,6 +24,7 @@ import Message.Callback exposing (Callback(..))
 import Message.Message
     exposing
         ( DomID(..)
+        , PipelinesSection(..)
         , VersionToggleAction(..)
         , VisibilityAction(..)
         )
@@ -30,6 +32,7 @@ import Message.ScrollDirection exposing (ScrollDirection(..))
 import Message.Storage
     exposing
         ( deleteFromLocalStorage
+        , favoritedPipelinesKey
         , jobsKey
         , loadFromLocalStorage
         , loadFromSessionStorage
@@ -42,6 +45,7 @@ import Message.Storage
         )
 import Process
 import Routes
+import Set exposing (Set)
 import SideBar.State exposing (SideBarState, encodeSideBarState)
 import Task
 import Time
@@ -52,12 +56,6 @@ port renderPipeline : ( Json.Encode.Value, Json.Encode.Value ) -> Cmd msg
 
 
 port pinTeamNames : StickyHeaderConfig -> Cmd msg
-
-
-port tooltip : ( String, String ) -> Cmd msg
-
-
-port tooltipHd : ( String, String ) -> Cmd msg
 
 
 port resetPipelineFocus : () -> Cmd msg
@@ -87,6 +85,9 @@ port renderSvgIcon : String -> Cmd msg
 port syncTextareaHeight : String -> Cmd msg
 
 
+port syncStickyBuildLogHeaders : () -> Cmd msg
+
+
 port scrollToId : ( String, String ) -> Cmd msg
 
 
@@ -97,6 +98,10 @@ type alias StickyHeaderConfig =
     , sectionClass : String
     , sectionBodyClass : String
     }
+
+
+type alias DatabaseID =
+    Int
 
 
 stickyHeaderConfig : StickyHeaderConfig
@@ -112,10 +117,10 @@ stickyHeaderConfig =
 type Effect
     = FetchJob Concourse.JobIdentifier
     | FetchJobs Concourse.PipelineIdentifier
-    | FetchJobBuilds Concourse.JobIdentifier (Maybe Page)
+    | FetchJobBuilds Concourse.JobIdentifier Page
     | FetchResource Concourse.ResourceIdentifier
     | FetchCheck Int
-    | FetchVersionedResources Concourse.ResourceIdentifier (Maybe Page)
+    | FetchVersionedResources Concourse.ResourceIdentifier Page
     | FetchResources Concourse.PipelineIdentifier
     | FetchBuildResources Concourse.BuildId
     | FetchPipeline Concourse.PipelineIdentifier
@@ -143,7 +148,7 @@ type Effect
     | PauseJob Concourse.JobIdentifier
     | UnpauseJob Concourse.JobIdentifier
     | ResetPipelineFocus
-    | RenderPipeline Json.Encode.Value Json.Encode.Value
+    | RenderPipeline (List Concourse.Job) (List Concourse.Resource)
     | RedirectToLogin
     | LoadExternal String
     | NavigateTo String
@@ -155,8 +160,6 @@ type Effect
     | SetPinComment Concourse.ResourceIdentifier String
     | SendTokenToFly String Int
     | SendTogglePipelineRequest Concourse.PipelineIdentifier Bool
-    | ShowTooltip ( String, String )
-    | ShowTooltipHd ( String, String )
     | SendOrderPipelinesRequest String (List String)
     | SendLogOutRequest
     | GetScreenSize
@@ -186,6 +189,9 @@ type Effect
     | GetViewportOf DomID
     | GetElement DomID
     | SyncTextareaHeight DomID
+    | SyncStickyBuildLogHeaders
+    | SaveFavoritedPipelines (Set DatabaseID)
+    | LoadFavoritedPipelines
 
 
 type alias VersionId =
@@ -204,16 +210,17 @@ runEffect effect key csrfToken =
         FetchJobs id ->
             Api.get
                 (Endpoints.PipelineJobsList |> Endpoints.Pipeline id)
-                |> Api.expectJson Json.Decode.value
+                |> Api.expectJson (Json.Decode.list Concourse.decodeJob)
                 |> Api.request
                 |> Task.attempt JobsFetched
 
         FetchJobBuilds id page ->
             Api.paginatedGet
                 (Endpoints.JobBuildsList |> Endpoints.Job id)
-                page
+                (Just page)
                 Concourse.decodeBuild
                 |> Api.request
+                |> Task.map (\b -> ( page, b ))
                 |> Task.attempt JobBuildsFetched
 
         FetchResource id ->
@@ -223,24 +230,24 @@ runEffect effect key csrfToken =
                 |> Task.attempt ResourceFetched
 
         FetchCheck id ->
-            Api.get (Endpoints.Check id)
-                |> Api.expectJson Concourse.decodeCheck
+            Api.get (Endpoints.Build id Endpoints.BaseBuild)
+                |> Api.expectJson Concourse.decodeBuild
                 |> Api.request
                 |> Task.attempt Checked
 
-        FetchVersionedResources id paging ->
+        FetchVersionedResources id page ->
             Api.paginatedGet
                 (Endpoints.ResourceVersionsList |> Endpoints.Resource id)
-                paging
+                (Just page)
                 Concourse.decodeVersionedResource
                 |> Api.request
-                |> Task.map (\b -> ( paging, b ))
+                |> Task.map (\b -> ( page, b ))
                 |> Task.attempt VersionedResourcesFetched
 
         FetchResources id ->
             Api.get
                 (Endpoints.PipelineResourcesList |> Endpoints.Pipeline id)
-                |> Api.expectJson Json.Decode.value
+                |> Api.expectJson (Json.Decode.list Concourse.decodeResource)
                 |> Api.request
                 |> Task.attempt ResourcesFetched
 
@@ -368,7 +375,10 @@ runEffect effect key csrfToken =
             resetPipelineFocus ()
 
         RenderPipeline jobs resources ->
-            renderPipeline ( jobs, resources )
+            renderPipeline
+                ( Json.Encode.list Concourse.encodeJob jobs
+                , Json.Encode.list Concourse.encodeResource resources
+                )
 
         DoPinVersion id ->
             Api.put
@@ -405,7 +415,7 @@ runEffect effect key csrfToken =
                 csrfToken
                 |> Api.withJsonBody
                     (Json.Encode.object [ ( "from", Json.Encode.null ) ])
-                |> Api.expectJson Concourse.decodeCheck
+                |> Api.expectJson Concourse.decodeBuild
                 |> Api.request
                 |> Task.attempt Checked
 
@@ -439,12 +449,6 @@ runEffect effect key csrfToken =
             Api.put endpoint csrfToken
                 |> Api.request
                 |> Task.attempt (PipelineToggled id)
-
-        ShowTooltip ( teamName, pipelineName ) ->
-            tooltip ( teamName, pipelineName )
-
-        ShowTooltipHd ( teamName, pipelineName ) ->
-            tooltipHd ( teamName, pipelineName )
 
         SendOrderPipelinesRequest teamName pipelineNames ->
             Api.put
@@ -512,7 +516,7 @@ runEffect effect key csrfToken =
         FetchBuildPlanAndResources buildId ->
             Task.map2 (\a b -> ( a, b ))
                 (Api.get (Endpoints.BuildPlan |> Endpoints.Build buildId)
-                    |> Api.expectJson Concourse.decodeBuildPlan
+                    |> Api.expectJson Concourse.decodeBuildPlanResponse
                     |> Api.request
                 )
                 (Api.get (Endpoints.BuildResourcesList |> Endpoints.Build buildId)
@@ -523,7 +527,7 @@ runEffect effect key csrfToken =
 
         FetchBuildPlan buildId ->
             Api.get (Endpoints.BuildPlan |> Endpoints.Build buildId)
-                |> Api.expectJson Concourse.decodeBuildPlan
+                |> Api.expectJson Concourse.decodeBuildPlanResponse
                 |> Api.request
                 |> Task.map (\p -> ( p, Concourse.emptyBuildResources ))
                 |> Task.attempt (PlanAndResourcesFetched buildId)
@@ -613,6 +617,15 @@ runEffect effect key csrfToken =
         DeleteCachedPipelines ->
             deleteFromLocalStorage pipelinesKey
 
+        SaveFavoritedPipelines pipelineIDs ->
+            saveToLocalStorage
+                ( favoritedPipelinesKey
+                , pipelineIDs |> Json.Encode.set Json.Encode.int
+                )
+
+        LoadFavoritedPipelines ->
+            loadFromLocalStorage favoritedPipelinesKey
+
         SaveCachedTeams teams ->
             saveToLocalStorage ( teamsKey, teams |> Json.Encode.list encodeTeam )
 
@@ -633,33 +646,118 @@ runEffect effect key csrfToken =
         SyncTextareaHeight domID ->
             syncTextareaHeight (toHtmlID domID)
 
+        SyncStickyBuildLogHeaders ->
+            syncStickyBuildLogHeaders ()
+
+
+pipelinesSectionName : PipelinesSection -> String
+pipelinesSectionName section =
+    case section of
+        FavoritesSection ->
+            "Favorites"
+
+        AllPipelinesSection ->
+            "AllPipelines"
+
 
 toHtmlID : DomID -> String
 toHtmlID domId =
     case domId of
-        SideBarTeam t ->
-            Base64.encode t
+        SideBarTeam section t ->
+            pipelinesSectionName section ++ "_" ++ Base64.encode t
 
-        SideBarPipeline p ->
-            Base64.encode p.teamName ++ "_" ++ Base64.encode p.pipelineName
+        SideBarPipeline section p ->
+            pipelinesSectionName section ++ "_" ++ Base64.encode p.teamName ++ "_" ++ Base64.encode p.pipelineName
 
-        PipelineStatusIcon p ->
-            Base64.encode p.teamName
+        SideBarInstanceGroup section teamName groupName ->
+            pipelinesSectionName section
                 ++ "_"
-                ++ Base64.encode p.pipelineName
+                ++ Base64.encode teamName
+                ++ "_"
+                ++ Base64.encode groupName
+
+        PipelineStatusIcon section p ->
+            pipelinesSectionName section
+                ++ "_"
+                ++ encodePipelineId p
                 ++ "_status"
 
-        VisibilityButton p ->
-            Base64.encode p.teamName
+        VisibilityButton section p ->
+            pipelinesSectionName section
                 ++ "_"
-                ++ Base64.encode p.pipelineName
+                ++ encodePipelineId p
                 ++ "_visibility"
 
-        FirstOccurrenceGetStepLabel stepID ->
-            stepID ++ "_first_occurrence"
+        PipelineCardFavoritedIcon section p ->
+            pipelinesSectionName section
+                ++ "_"
+                ++ encodePipelineId p
+                ++ "_favorite"
+
+        PipelineCardPauseToggle section p ->
+            pipelinesSectionName section
+                ++ "_"
+                ++ encodePipelineId p
+                ++ "_toggle_pause"
+
+        PipelineCardName section p ->
+            pipelinesSectionName section
+                ++ "_"
+                ++ encodePipelineId p
+                ++ "_name"
+
+        PipelineCardNameHD p ->
+            "HD_"
+                ++ encodePipelineId p
+                ++ "_name"
+
+        InstanceGroupCardName section teamName groupName ->
+            pipelinesSectionName section
+                ++ "_"
+                ++ Base64.encode teamName
+                ++ "_"
+                ++ Base64.encode groupName
+                ++ "_name"
+
+        InstanceGroupCardNameHD teamName groupName ->
+            "HD_"
+                ++ Base64.encode teamName
+                ++ "_"
+                ++ Base64.encode groupName
+                ++ "_name"
+
+        PipelineCardInstanceVar section p varName _ ->
+            pipelinesSectionName section
+                ++ "_"
+                ++ encodePipelineId p
+                ++ "_var_"
+                ++ Base64.encode varName
+
+        PipelinePreview section p ->
+            "pipeline_preview_"
+                ++ pipelinesSectionName section
+                ++ "_"
+                ++ encodePipelineId p
+
+        JobPreview section p jobName ->
+            "job_preview_"
+                ++ pipelinesSectionName section
+                ++ "_"
+                ++ encodePipelineId p
+                ++ "_jobs_"
+                ++ jobName
+
+        ChangedStepLabel stepID _ ->
+            stepID ++ "_changed"
 
         StepState stepID ->
             stepID ++ "_state"
+
+        StepInitialization stepID ->
+            stepID ++ "_image"
+
+        SideBarIcon ->
+            "sidebar-icon"
 
         Dashboard ->
             "dashboard"
@@ -670,8 +768,64 @@ toHtmlID domId =
         ResourceCommentTextarea ->
             "resource_comment"
 
+        TopBarFavoritedIcon _ ->
+            "top-bar-favorited-icon"
+
+        TopBarPauseToggle _ ->
+            "top-bar-pause-toggle"
+
+        TopBarPinIcon ->
+            "top-bar-pin-icon"
+
+        AbortBuildButton ->
+            "abort-build-button"
+
+        RerunBuildButton ->
+            "rerun-build-button"
+
+        TriggerBuildButton ->
+            "trigger-build-button"
+
+        ToggleJobButton ->
+            "toggle-job-button"
+
+        CheckButton _ ->
+            "check-button"
+
+        PinIcon ->
+            "pin-icon"
+
+        EditButton ->
+            "edit-button"
+
+        PinButton id ->
+            "pin-button_" ++ String.fromInt id.versionID
+
+        VersionToggle id ->
+            "version-toggle_" ++ String.fromInt id.versionID
+
+        PinBar ->
+            "pin-bar"
+
+        JobName ->
+            "job-name"
+
+        JobBuildLink name ->
+            "job-build-" ++ Base64.encode name
+
+        NextPageButton ->
+            "next-page"
+
+        PreviousPageButton ->
+            "previous-page"
+
         _ ->
             ""
+
+
+encodePipelineId : Concourse.DatabaseID -> String
+encodePipelineId id =
+    String.fromInt id
 
 
 scroll : ScrollDirection -> String -> Cmd Callback

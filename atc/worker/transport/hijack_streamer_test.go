@@ -2,6 +2,7 @@ package transport_test
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -249,6 +250,32 @@ var _ = Describe("hijackStreamer", func() {
 				Expect(hijackError).To(HaveOccurred())
 				Expect(fakeBody.CloseCallCount()).To(Equal(1))
 				Expect(hijackError).To(MatchError(fmt.Errorf("Backend error: Exit status: %d, message: %s", httpResp.StatusCode, "some-error")))
+				Expect(fakeHijackCloser.CloseCallCount()).To(Equal(1))
+			})
+		})
+
+		Context("when httpResponse fails with ExecutableNotFoundError", func() {
+			var fakeBody *transportfakes.FakeReadCloser
+			gerr := garden.ExecutableNotFoundError{Message: "sorry, couldn't find it"}
+
+			BeforeEach(func() {
+				fakeHijackableClient.DoReturns(&httpResp, fakeHijackCloser, nil)
+				fakeBody = new(transportfakes.FakeReadCloser)
+				httpResp = http.Response{StatusCode: http.StatusTeapot, Body: fakeBody}
+
+				jsonBody, _ := garden.Error{Err: gerr}.MarshalJSON()
+				realBody := bytes.NewReader(jsonBody)
+				fakeBody.ReadStub = func(buf []byte) (int, error) {
+					Expect(fakeBody.CloseCallCount()).To(BeZero())
+					return realBody.Read(buf)
+				}
+			})
+
+			It("closes httpResp.Body, hijackCloser and returns ExecutableNotFoundError", func() {
+				Expect(fakeHijackCloser).NotTo(BeNil())
+				Expect(hijackError).To(HaveOccurred())
+				Expect(fakeBody.CloseCallCount()).To(Equal(1))
+				Expect(hijackError).To(MatchError(gerr))
 				Expect(fakeHijackCloser.CloseCallCount()).To(Equal(1))
 			})
 		})

@@ -16,7 +16,9 @@ type Container struct {
 	ResourceID     int `json:"resource_id,omitempty"`
 	ResourceTypeID int `json:"resource_type_id,omitempty"`
 
-	PipelineName     string `json:"pipeline_name,omitempty"`
+	PipelineName         string       `json:"pipeline_name,omitempty"`
+	PipelineInstanceVars InstanceVars `json:"pipeline_instance_vars,omitempty"`
+
 	JobName          string `json:"job_name,omitempty"`
 	BuildName        string `json:"build_name,omitempty"`
 	ResourceName     string `json:"resource_name,omitempty"`
@@ -42,6 +44,8 @@ var ValidContainerPlacementStrategies = []ContainerPlacementStrategy{
 	ContainerPlacementRandom,
 	ContainerPlacementFewestBuildContainers,
 	ContainerPlacementLimitActiveTasks,
+	ContainerPlacementLimitActiveContainers,
+	ContainerPlacementLimitActiveVolumes,
 }
 
 const (
@@ -49,6 +53,8 @@ const (
 	ContainerPlacementRandom                ContainerPlacementStrategy = "random"
 	ContainerPlacementFewestBuildContainers ContainerPlacementStrategy = "fewest-build-containers"
 	ContainerPlacementLimitActiveTasks      ContainerPlacementStrategy = "limit-active-tasks"
+	ContainerPlacementLimitActiveContainers ContainerPlacementStrategy = "limit-active-containers"
+	ContainerPlacementLimitActiveVolumes    ContainerPlacementStrategy = "limit-active-volumes"
 )
 
 type StreamingArtifactsCompression string

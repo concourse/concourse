@@ -2,14 +2,16 @@
 package execfakes
 
 import (
+	"context"
 	"io"
 	"sync"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec"
-	"github.com/concourse/concourse/vars"
+	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/tracing"
+	"go.opentelemetry.io/otel/api/trace"
 )
 
 type FakeBuildStepDelegate struct {
@@ -19,40 +21,53 @@ type FakeBuildStepDelegate struct {
 		arg1 lager.Logger
 		arg2 string
 	}
+	FetchImageStub        func(context.Context, atc.ImageResource, atc.VersionedResourceTypes, bool) (worker.ImageSpec, error)
+	fetchImageMutex       sync.RWMutex
+	fetchImageArgsForCall []struct {
+		arg1 context.Context
+		arg2 atc.ImageResource
+		arg3 atc.VersionedResourceTypes
+		arg4 bool
+	}
+	fetchImageReturns struct {
+		result1 worker.ImageSpec
+		result2 error
+	}
+	fetchImageReturnsOnCall map[int]struct {
+		result1 worker.ImageSpec
+		result2 error
+	}
 	FinishedStub        func(lager.Logger, bool)
 	finishedMutex       sync.RWMutex
 	finishedArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 bool
 	}
-	ImageSourceRedactionStub        func(atc.Source) (atc.Source, error)
-	imageSourceRedactionMutex       sync.RWMutex
-	imageSourceRedactionArgsForCall []struct {
-		arg1 atc.Source
-	}
-	imageSourceRedactionReturns struct {
-		result1 atc.Source
-		result2 error
-	}
-	imageSourceRedactionReturnsOnCall map[int]struct {
-		result1 atc.Source
-		result2 error
-	}
-	ImageVersionDeterminedStub        func(db.UsedResourceCache) error
-	imageVersionDeterminedMutex       sync.RWMutex
-	imageVersionDeterminedArgsForCall []struct {
-		arg1 db.UsedResourceCache
-	}
-	imageVersionDeterminedReturns struct {
-		result1 error
-	}
-	imageVersionDeterminedReturnsOnCall map[int]struct {
-		result1 error
-	}
 	InitializingStub        func(lager.Logger)
 	initializingMutex       sync.RWMutex
 	initializingArgsForCall []struct {
 		arg1 lager.Logger
+	}
+	SelectedWorkerStub        func(lager.Logger, string)
+	selectedWorkerMutex       sync.RWMutex
+	selectedWorkerArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 string
+	}
+	StartSpanStub        func(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
+	startSpanMutex       sync.RWMutex
+	startSpanArgsForCall []struct {
+		arg1 context.Context
+		arg2 string
+		arg3 tracing.Attrs
+	}
+	startSpanReturns struct {
+		result1 context.Context
+		result2 trace.Span
+	}
+	startSpanReturnsOnCall map[int]struct {
+		result1 context.Context
+		result2 trace.Span
 	}
 	StartingStub        func(lager.Logger)
 	startingMutex       sync.RWMutex
@@ -78,16 +93,6 @@ type FakeBuildStepDelegate struct {
 	}
 	stdoutReturnsOnCall map[int]struct {
 		result1 io.Writer
-	}
-	VariablesStub        func() vars.CredVarsTracker
-	variablesMutex       sync.RWMutex
-	variablesArgsForCall []struct {
-	}
-	variablesReturns struct {
-		result1 vars.CredVarsTracker
-	}
-	variablesReturnsOnCall map[int]struct {
-		result1 vars.CredVarsTracker
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -125,6 +130,72 @@ func (fake *FakeBuildStepDelegate) ErroredArgsForCall(i int) (lager.Logger, stri
 	return argsForCall.arg1, argsForCall.arg2
 }
 
+func (fake *FakeBuildStepDelegate) FetchImage(arg1 context.Context, arg2 atc.ImageResource, arg3 atc.VersionedResourceTypes, arg4 bool) (worker.ImageSpec, error) {
+	fake.fetchImageMutex.Lock()
+	ret, specificReturn := fake.fetchImageReturnsOnCall[len(fake.fetchImageArgsForCall)]
+	fake.fetchImageArgsForCall = append(fake.fetchImageArgsForCall, struct {
+		arg1 context.Context
+		arg2 atc.ImageResource
+		arg3 atc.VersionedResourceTypes
+		arg4 bool
+	}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("FetchImage", []interface{}{arg1, arg2, arg3, arg4})
+	fake.fetchImageMutex.Unlock()
+	if fake.FetchImageStub != nil {
+		return fake.FetchImageStub(arg1, arg2, arg3, arg4)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.fetchImageReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeBuildStepDelegate) FetchImageCallCount() int {
+	fake.fetchImageMutex.RLock()
+	defer fake.fetchImageMutex.RUnlock()
+	return len(fake.fetchImageArgsForCall)
+}
+
+func (fake *FakeBuildStepDelegate) FetchImageCalls(stub func(context.Context, atc.ImageResource, atc.VersionedResourceTypes, bool) (worker.ImageSpec, error)) {
+	fake.fetchImageMutex.Lock()
+	defer fake.fetchImageMutex.Unlock()
+	fake.FetchImageStub = stub
+}
+
+func (fake *FakeBuildStepDelegate) FetchImageArgsForCall(i int) (context.Context, atc.ImageResource, atc.VersionedResourceTypes, bool) {
+	fake.fetchImageMutex.RLock()
+	defer fake.fetchImageMutex.RUnlock()
+	argsForCall := fake.fetchImageArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+}
+
+func (fake *FakeBuildStepDelegate) FetchImageReturns(result1 worker.ImageSpec, result2 error) {
+	fake.fetchImageMutex.Lock()
+	defer fake.fetchImageMutex.Unlock()
+	fake.FetchImageStub = nil
+	fake.fetchImageReturns = struct {
+		result1 worker.ImageSpec
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeBuildStepDelegate) FetchImageReturnsOnCall(i int, result1 worker.ImageSpec, result2 error) {
+	fake.fetchImageMutex.Lock()
+	defer fake.fetchImageMutex.Unlock()
+	fake.FetchImageStub = nil
+	if fake.fetchImageReturnsOnCall == nil {
+		fake.fetchImageReturnsOnCall = make(map[int]struct {
+			result1 worker.ImageSpec
+			result2 error
+		})
+	}
+	fake.fetchImageReturnsOnCall[i] = struct {
+		result1 worker.ImageSpec
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeBuildStepDelegate) Finished(arg1 lager.Logger, arg2 bool) {
 	fake.finishedMutex.Lock()
 	fake.finishedArgsForCall = append(fake.finishedArgsForCall, struct {
@@ -157,129 +228,6 @@ func (fake *FakeBuildStepDelegate) FinishedArgsForCall(i int) (lager.Logger, boo
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeBuildStepDelegate) RedactImageSource(arg1 atc.Source) (atc.Source, error) {
-	fake.imageSourceRedactionMutex.Lock()
-	ret, specificReturn := fake.imageSourceRedactionReturnsOnCall[len(fake.imageSourceRedactionArgsForCall)]
-	fake.imageSourceRedactionArgsForCall = append(fake.imageSourceRedactionArgsForCall, struct {
-		arg1 atc.Source
-	}{arg1})
-	fake.recordInvocation("RedactImageSource", []interface{}{arg1})
-	fake.imageSourceRedactionMutex.Unlock()
-	if fake.ImageSourceRedactionStub != nil {
-		return fake.ImageSourceRedactionStub(arg1)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	fakeReturns := fake.imageSourceRedactionReturns
-	return fakeReturns.result1, fakeReturns.result2
-}
-
-func (fake *FakeBuildStepDelegate) ImageSourceRedactionCallCount() int {
-	fake.imageSourceRedactionMutex.RLock()
-	defer fake.imageSourceRedactionMutex.RUnlock()
-	return len(fake.imageSourceRedactionArgsForCall)
-}
-
-func (fake *FakeBuildStepDelegate) ImageSourceRedactionCalls(stub func(atc.Source) (atc.Source, error)) {
-	fake.imageSourceRedactionMutex.Lock()
-	defer fake.imageSourceRedactionMutex.Unlock()
-	fake.ImageSourceRedactionStub = stub
-}
-
-func (fake *FakeBuildStepDelegate) ImageSourceRedactionArgsForCall(i int) atc.Source {
-	fake.imageSourceRedactionMutex.RLock()
-	defer fake.imageSourceRedactionMutex.RUnlock()
-	argsForCall := fake.imageSourceRedactionArgsForCall[i]
-	return argsForCall.arg1
-}
-
-func (fake *FakeBuildStepDelegate) ImageSourceRedactionReturns(result1 atc.Source, result2 error) {
-	fake.imageSourceRedactionMutex.Lock()
-	defer fake.imageSourceRedactionMutex.Unlock()
-	fake.ImageSourceRedactionStub = nil
-	fake.imageSourceRedactionReturns = struct {
-		result1 atc.Source
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeBuildStepDelegate) ImageSourceRedactionReturnsOnCall(i int, result1 atc.Source, result2 error) {
-	fake.imageSourceRedactionMutex.Lock()
-	defer fake.imageSourceRedactionMutex.Unlock()
-	fake.ImageSourceRedactionStub = nil
-	if fake.imageSourceRedactionReturnsOnCall == nil {
-		fake.imageSourceRedactionReturnsOnCall = make(map[int]struct {
-			result1 atc.Source
-			result2 error
-		})
-	}
-	fake.imageSourceRedactionReturnsOnCall[i] = struct {
-		result1 atc.Source
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeBuildStepDelegate) ImageVersionDetermined(arg1 db.UsedResourceCache) error {
-	fake.imageVersionDeterminedMutex.Lock()
-	ret, specificReturn := fake.imageVersionDeterminedReturnsOnCall[len(fake.imageVersionDeterminedArgsForCall)]
-	fake.imageVersionDeterminedArgsForCall = append(fake.imageVersionDeterminedArgsForCall, struct {
-		arg1 db.UsedResourceCache
-	}{arg1})
-	fake.recordInvocation("ImageVersionDetermined", []interface{}{arg1})
-	fake.imageVersionDeterminedMutex.Unlock()
-	if fake.ImageVersionDeterminedStub != nil {
-		return fake.ImageVersionDeterminedStub(arg1)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.imageVersionDeterminedReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeBuildStepDelegate) ImageVersionDeterminedCallCount() int {
-	fake.imageVersionDeterminedMutex.RLock()
-	defer fake.imageVersionDeterminedMutex.RUnlock()
-	return len(fake.imageVersionDeterminedArgsForCall)
-}
-
-func (fake *FakeBuildStepDelegate) ImageVersionDeterminedCalls(stub func(db.UsedResourceCache) error) {
-	fake.imageVersionDeterminedMutex.Lock()
-	defer fake.imageVersionDeterminedMutex.Unlock()
-	fake.ImageVersionDeterminedStub = stub
-}
-
-func (fake *FakeBuildStepDelegate) ImageVersionDeterminedArgsForCall(i int) db.UsedResourceCache {
-	fake.imageVersionDeterminedMutex.RLock()
-	defer fake.imageVersionDeterminedMutex.RUnlock()
-	argsForCall := fake.imageVersionDeterminedArgsForCall[i]
-	return argsForCall.arg1
-}
-
-func (fake *FakeBuildStepDelegate) ImageVersionDeterminedReturns(result1 error) {
-	fake.imageVersionDeterminedMutex.Lock()
-	defer fake.imageVersionDeterminedMutex.Unlock()
-	fake.ImageVersionDeterminedStub = nil
-	fake.imageVersionDeterminedReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeBuildStepDelegate) ImageVersionDeterminedReturnsOnCall(i int, result1 error) {
-	fake.imageVersionDeterminedMutex.Lock()
-	defer fake.imageVersionDeterminedMutex.Unlock()
-	fake.ImageVersionDeterminedStub = nil
-	if fake.imageVersionDeterminedReturnsOnCall == nil {
-		fake.imageVersionDeterminedReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.imageVersionDeterminedReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
 func (fake *FakeBuildStepDelegate) Initializing(arg1 lager.Logger) {
 	fake.initializingMutex.Lock()
 	fake.initializingArgsForCall = append(fake.initializingArgsForCall, struct {
@@ -309,6 +257,103 @@ func (fake *FakeBuildStepDelegate) InitializingArgsForCall(i int) lager.Logger {
 	defer fake.initializingMutex.RUnlock()
 	argsForCall := fake.initializingArgsForCall[i]
 	return argsForCall.arg1
+}
+
+func (fake *FakeBuildStepDelegate) SelectedWorker(arg1 lager.Logger, arg2 string) {
+	fake.selectedWorkerMutex.Lock()
+	fake.selectedWorkerArgsForCall = append(fake.selectedWorkerArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 string
+	}{arg1, arg2})
+	fake.recordInvocation("SelectedWorker", []interface{}{arg1, arg2})
+	fake.selectedWorkerMutex.Unlock()
+	if fake.SelectedWorkerStub != nil {
+		fake.SelectedWorkerStub(arg1, arg2)
+	}
+}
+
+func (fake *FakeBuildStepDelegate) SelectedWorkerCallCount() int {
+	fake.selectedWorkerMutex.RLock()
+	defer fake.selectedWorkerMutex.RUnlock()
+	return len(fake.selectedWorkerArgsForCall)
+}
+
+func (fake *FakeBuildStepDelegate) SelectedWorkerCalls(stub func(lager.Logger, string)) {
+	fake.selectedWorkerMutex.Lock()
+	defer fake.selectedWorkerMutex.Unlock()
+	fake.SelectedWorkerStub = stub
+}
+
+func (fake *FakeBuildStepDelegate) SelectedWorkerArgsForCall(i int) (lager.Logger, string) {
+	fake.selectedWorkerMutex.RLock()
+	defer fake.selectedWorkerMutex.RUnlock()
+	argsForCall := fake.selectedWorkerArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeBuildStepDelegate) StartSpan(arg1 context.Context, arg2 string, arg3 tracing.Attrs) (context.Context, trace.Span) {
+	fake.startSpanMutex.Lock()
+	ret, specificReturn := fake.startSpanReturnsOnCall[len(fake.startSpanArgsForCall)]
+	fake.startSpanArgsForCall = append(fake.startSpanArgsForCall, struct {
+		arg1 context.Context
+		arg2 string
+		arg3 tracing.Attrs
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("StartSpan", []interface{}{arg1, arg2, arg3})
+	fake.startSpanMutex.Unlock()
+	if fake.StartSpanStub != nil {
+		return fake.StartSpanStub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.startSpanReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeBuildStepDelegate) StartSpanCallCount() int {
+	fake.startSpanMutex.RLock()
+	defer fake.startSpanMutex.RUnlock()
+	return len(fake.startSpanArgsForCall)
+}
+
+func (fake *FakeBuildStepDelegate) StartSpanCalls(stub func(context.Context, string, tracing.Attrs) (context.Context, trace.Span)) {
+	fake.startSpanMutex.Lock()
+	defer fake.startSpanMutex.Unlock()
+	fake.StartSpanStub = stub
+}
+
+func (fake *FakeBuildStepDelegate) StartSpanArgsForCall(i int) (context.Context, string, tracing.Attrs) {
+	fake.startSpanMutex.RLock()
+	defer fake.startSpanMutex.RUnlock()
+	argsForCall := fake.startSpanArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeBuildStepDelegate) StartSpanReturns(result1 context.Context, result2 trace.Span) {
+	fake.startSpanMutex.Lock()
+	defer fake.startSpanMutex.Unlock()
+	fake.StartSpanStub = nil
+	fake.startSpanReturns = struct {
+		result1 context.Context
+		result2 trace.Span
+	}{result1, result2}
+}
+
+func (fake *FakeBuildStepDelegate) StartSpanReturnsOnCall(i int, result1 context.Context, result2 trace.Span) {
+	fake.startSpanMutex.Lock()
+	defer fake.startSpanMutex.Unlock()
+	fake.StartSpanStub = nil
+	if fake.startSpanReturnsOnCall == nil {
+		fake.startSpanReturnsOnCall = make(map[int]struct {
+			result1 context.Context
+			result2 trace.Span
+		})
+	}
+	fake.startSpanReturnsOnCall[i] = struct {
+		result1 context.Context
+		result2 trace.Span
+	}{result1, result2}
 }
 
 func (fake *FakeBuildStepDelegate) Starting(arg1 lager.Logger) {
@@ -446,79 +491,27 @@ func (fake *FakeBuildStepDelegate) StdoutReturnsOnCall(i int, result1 io.Writer)
 	}{result1}
 }
 
-func (fake *FakeBuildStepDelegate) Variables() vars.CredVarsTracker {
-	fake.variablesMutex.Lock()
-	ret, specificReturn := fake.variablesReturnsOnCall[len(fake.variablesArgsForCall)]
-	fake.variablesArgsForCall = append(fake.variablesArgsForCall, struct {
-	}{})
-	fake.recordInvocation("Variables", []interface{}{})
-	fake.variablesMutex.Unlock()
-	if fake.VariablesStub != nil {
-		return fake.VariablesStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.variablesReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeBuildStepDelegate) VariablesCallCount() int {
-	fake.variablesMutex.RLock()
-	defer fake.variablesMutex.RUnlock()
-	return len(fake.variablesArgsForCall)
-}
-
-func (fake *FakeBuildStepDelegate) VariablesCalls(stub func() vars.CredVarsTracker) {
-	fake.variablesMutex.Lock()
-	defer fake.variablesMutex.Unlock()
-	fake.VariablesStub = stub
-}
-
-func (fake *FakeBuildStepDelegate) VariablesReturns(result1 vars.CredVarsTracker) {
-	fake.variablesMutex.Lock()
-	defer fake.variablesMutex.Unlock()
-	fake.VariablesStub = nil
-	fake.variablesReturns = struct {
-		result1 vars.CredVarsTracker
-	}{result1}
-}
-
-func (fake *FakeBuildStepDelegate) VariablesReturnsOnCall(i int, result1 vars.CredVarsTracker) {
-	fake.variablesMutex.Lock()
-	defer fake.variablesMutex.Unlock()
-	fake.VariablesStub = nil
-	if fake.variablesReturnsOnCall == nil {
-		fake.variablesReturnsOnCall = make(map[int]struct {
-			result1 vars.CredVarsTracker
-		})
-	}
-	fake.variablesReturnsOnCall[i] = struct {
-		result1 vars.CredVarsTracker
-	}{result1}
-}
-
 func (fake *FakeBuildStepDelegate) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.erroredMutex.RLock()
 	defer fake.erroredMutex.RUnlock()
+	fake.fetchImageMutex.RLock()
+	defer fake.fetchImageMutex.RUnlock()
 	fake.finishedMutex.RLock()
 	defer fake.finishedMutex.RUnlock()
-	fake.imageSourceRedactionMutex.RLock()
-	defer fake.imageSourceRedactionMutex.RUnlock()
-	fake.imageVersionDeterminedMutex.RLock()
-	defer fake.imageVersionDeterminedMutex.RUnlock()
 	fake.initializingMutex.RLock()
 	defer fake.initializingMutex.RUnlock()
+	fake.selectedWorkerMutex.RLock()
+	defer fake.selectedWorkerMutex.RUnlock()
+	fake.startSpanMutex.RLock()
+	defer fake.startSpanMutex.RUnlock()
 	fake.startingMutex.RLock()
 	defer fake.startingMutex.RUnlock()
 	fake.stderrMutex.RLock()
 	defer fake.stderrMutex.RUnlock()
 	fake.stdoutMutex.RLock()
 	defer fake.stdoutMutex.RUnlock()
-	fake.variablesMutex.RLock()
-	defer fake.variablesMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

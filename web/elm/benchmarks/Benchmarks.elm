@@ -37,7 +37,7 @@ import Html.Lazy
 import Keyboard
 import Login.Login as Login
 import Maybe.Extra
-import Message.Message exposing (DomID(..), Message(..))
+import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import RemoteData exposing (WebData)
 import Routes exposing (Highlight)
 import ScreenSize
@@ -89,7 +89,7 @@ main =
         Benchmark.describe "benchmark suite"
             [ Benchmark.compare "DashboardPreview.view"
                 "current"
-                (\_ -> DP.view HoverState.NoHover (DP.groupByRank sampleJobs))
+                (\_ -> DP.view AllPipelinesSection HoverState.NoHover (DP.groupByRank sampleJobs))
                 "old"
                 (\_ -> dashboardPreviewView sampleJobs)
             , Benchmark.compare "Build.view"
@@ -131,10 +131,10 @@ buildView session model =
         (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
         [ Html.div
             (id "top-bar-app" :: Views.Styles.topBar False)
-            [ SideBar.hamburgerMenu session
+            [ SideBar.sideBarIcon session
             , TopBar.concourseLogo
-            , breadcrumbs model
-            , Login.view session.userState model False
+            , breadcrumbs session model
+            , Login.view session.userState model
             ]
         , Html.div
             (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
@@ -185,18 +185,18 @@ currentJob =
         >> Maybe.andThen .job
 
 
-breadcrumbs : Model -> Html Message
-breadcrumbs model =
+breadcrumbs : Session -> Model -> Html Message
+breadcrumbs session model =
     case ( currentJob model, model.page ) of
         ( Just jobId, _ ) ->
-            TopBar.breadcrumbs <|
+            TopBar.breadcrumbs session <|
                 Routes.Job
                     { id = jobId
                     , page = Nothing
                     }
 
         ( _, JobBuildPage buildId ) ->
-            TopBar.breadcrumbs <|
+            TopBar.breadcrumbs session <|
                 Routes.Build
                     { id = buildId
                     , highlight = model.highlight
@@ -279,7 +279,7 @@ viewBuildHeader session model build =
                         ]
                             ++ (if buttonDisabled && buttonHovered then
                                     [ Html.div
-                                        (Build.Styles.buttonTooltip 240)
+                                        []
                                         [ Html.text <|
                                             "manual triggering disabled "
                                                 ++ "in job config"
@@ -680,7 +680,9 @@ sampleSession =
     { authToken = ""
     , clusterName = ""
     , csrfToken = ""
-    , expandedTeams = Set.empty
+    , expandedTeamsInAllPipelines = Set.empty
+    , collapsedTeamsInFavorites = Set.empty
+    , favoritedPipelines = Set.empty
     , hovered = HoverState.NoHover
     , sideBarState =
         { isOpen = False
@@ -695,6 +697,11 @@ sampleSession =
     , turbulenceImgSrc = ""
     , userState = UserState.UserStateLoggedOut
     , version = ""
+    , route =
+        Routes.OneOffBuild
+            { id = 1
+            , highlight = Routes.HighlightNothing
+            }
     }
 
 
@@ -710,6 +717,7 @@ sampleOldModel =
             { build =
                 { id = 0
                 , name = "0"
+                , teamName = "team"
                 , job = Nothing
                 , status = Concourse.BuildStatus.BuildStatusStarted
                 , duration =
@@ -721,7 +729,7 @@ sampleOldModel =
             , prep = Nothing
             , output =
                 Output
-                    { steps = steps
+                    { steps = stepsModel
                     , state = Build.Output.Models.StepsLiveUpdating
                     , eventSourceOpened = True
                     , eventStreamUrlPath = Nothing
@@ -757,7 +765,7 @@ sampleModel =
     , status = Concourse.BuildStatus.BuildStatusStarted
     , output =
         Output
-            { steps = steps
+            { steps = stepsModel
             , state = Build.Output.Models.StepsLiveUpdating
             , eventSourceOpened = True
             , eventStreamUrlPath = Nothing
@@ -815,36 +823,49 @@ log =
 
 tree : STModels.StepTree
 tree =
-    STModels.Task
+    STModels.Task "stepid"
+
+
+steps : Dict Routes.StepID STModels.Step
+steps =
+    Dict.singleton "stepid"
         { id = "stepid"
-        , name = "task_step"
+        , buildStep = Concourse.BuildStepTask "task_step"
         , state = STModels.StepStateRunning
         , log = log
         , error = Nothing
         , expanded = True
         , version = Nothing
         , metadata = []
-        , firstOccurrence = False
+        , changed = False
         , timestamps = Dict.empty
         , initialize = Nothing
         , start = Nothing
         , finish = Nothing
+        , tabFocus = STModels.Auto
+        , expandedHeaders = Dict.empty
+        , initializationExpanded = False
+        , imageCheck = Nothing
+        , imageGet = Nothing
         }
 
 
-steps : Maybe STModels.StepTreeModel
-steps =
+stepsModel : Maybe STModels.StepTreeModel
+stepsModel =
     Just
         { tree = tree
-        , foci = Dict.empty
+        , steps = steps
         , highlight = Routes.HighlightNothing
+        , resources = { inputs = [], outputs = [] }
         }
 
 
 sampleJob : String -> List String -> Concourse.Job
 sampleJob name passed =
     { name = name
+    , pipelineId = 1
     , pipelineName = "pipeline"
+    , pipelineInstanceVars = Dict.empty
     , teamName = "team"
     , nextBuild = Nothing
     , finishedBuild = Nothing
@@ -967,7 +988,9 @@ jobByName jobs job =
 
         Nothing ->
             { name = ""
+            , pipelineId = 0
             , pipelineName = ""
+            , pipelineInstanceVars = Dict.empty
             , teamName = ""
             , nextBuild = Nothing
             , finishedBuild = Nothing

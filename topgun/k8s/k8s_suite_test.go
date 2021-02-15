@@ -3,6 +3,7 @@ package k8s_test
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -51,6 +52,7 @@ var (
 	fly                    FlyCli
 	releaseName, namespace string
 	kubeClient             *kubernetes.Clientset
+	deployedReleases       map[string]string // map[releaseName] = namespace
 )
 
 var _ = SynchronizedBeforeSuite(func() []byte {
@@ -66,9 +68,6 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	By("Checking if kubectl has a context set for port forwarding later")
 	Wait(Start(nil, "kubectl", "config", "current-context"))
 
-	By("Initializing the client side of helm")
-	Wait(Start(nil, "helm", "init", "--client-only"))
-
 	By("Updating the dependencies of the Concourse chart locally")
 	Wait(Start(nil, "helm", "dependency", "update", parsedEnv.ConcourseChartDir))
 
@@ -79,6 +78,8 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 }, func(data []byte) {
 	err := json.Unmarshal(data, &Environment)
 	Expect(err).ToNot(HaveOccurred())
+
+	deployedReleases = make(map[string]string)
 })
 
 var _ = BeforeEach(func() {
@@ -113,6 +114,12 @@ var _ = BeforeEach(func() {
 
 	kubeClient, err = kubernetes.NewForConfig(config)
 	Expect(err).ToNot(HaveOccurred())
+})
+
+// In case one of the tests exited before entering the It block, make sure to cleanup
+// any releases that might've already been deployed
+var _ = AfterSuite(func() {
+	cleanupReleases()
 })
 
 func setReleaseNameAndNamespace(description string) {
@@ -266,11 +273,12 @@ func portForward(namespace, resource, port string) (*gexec.Session, string) {
 }
 
 func helmDeploy(releaseName, namespace, chartDir string, args ...string) *gexec.Session {
+
 	helmArgs := []string{
 		"upgrade",
 		"--install",
-		"--force",
 		"--namespace", namespace,
+		"--create-namespace",
 	}
 
 	helmArgs = append(helmArgs, args...)
@@ -278,6 +286,10 @@ func helmDeploy(releaseName, namespace, chartDir string, args ...string) *gexec.
 
 	sess := Start(nil, "helm", helmArgs...)
 	<-sess.Exited
+
+	if sess.ExitCode() == 0 {
+		deployedReleases[releaseName] = namespace
+	}
 	return sess
 }
 
@@ -316,10 +328,11 @@ func deployConcourseChart(releaseName string, args ...string) {
 	Expect(sess.ExitCode()).To(Equal(0))
 }
 
-func helmDestroy(releaseName string) {
+func helmDestroy(releaseName, namespace string) {
 	helmArgs := []string{
 		"delete",
-		"--purge",
+		"--namespace",
+		namespace,
 		releaseName,
 	}
 
@@ -327,7 +340,7 @@ func helmDestroy(releaseName string) {
 }
 
 func getPods(namespace string, listOptions metav1.ListOptions) []corev1.Pod {
-	pods, err := kubeClient.CoreV1().Pods(namespace).List(listOptions)
+	pods, err := kubeClient.CoreV1().Pods(namespace).List(context.TODO(), listOptions)
 	Expect(err).ToNot(HaveOccurred())
 
 	return pods.Items
@@ -412,9 +425,13 @@ func waitAndLogin(namespace, service string) Endpoint {
 	return atc
 }
 
-func cleanup(releaseName, namespace string) {
-	helmDestroy(releaseName)
-	Run(nil, "kubectl", "delete", "namespace", namespace, "--wait=false")
+func cleanupReleases() {
+	for releaseName, namespace := range deployedReleases {
+		helmDestroy(releaseName, namespace)
+		kubeClient.CoreV1().Namespaces().Delete(context.TODO(), namespace, metav1.DeleteOptions{})
+	}
+
+	deployedReleases = make(map[string]string)
 }
 
 func onPks(f func()) {

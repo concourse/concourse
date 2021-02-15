@@ -1,4 +1,8 @@
-module Dashboard.Drag exposing (drag, insertAt)
+module Dashboard.Drag exposing (drag, dragCardIndices, insertAt, reverseIndices)
+
+import Dashboard.Group.Models exposing (Card(..), cardIdentifier)
+import List.Extra
+import Message.Message exposing (DropTarget(..))
 
 
 insertAt : Int -> a -> List a -> List a
@@ -9,6 +13,33 @@ insertAt idx x xs =
 
         _ ->
             x :: xs
+
+
+dragCardIndices : Int -> DropTarget -> List Card -> Maybe ( Int, Int )
+dragCardIndices cardId target cards =
+    let
+        cardIndex id =
+            cards |> List.Extra.findIndex (cardIdentifier >> (==) id)
+
+        fromIndex =
+            cardIndex cardId
+
+        toIndex =
+            (case target of
+                Before name ->
+                    cardIndex name
+
+                End ->
+                    List.length cards |> Just
+            )
+                |> Maybe.map ((+) 1)
+    in
+    Maybe.map2 Tuple.pair fromIndex toIndex
+
+
+reverseIndices : Int -> ( Int, Int ) -> ( Int, Int )
+reverseIndices length ( from, to ) =
+    ( max 0 (to - 1), min length (from + 1) )
 
 
 drag : Int -> Int -> List a -> List a

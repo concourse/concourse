@@ -5,12 +5,16 @@ import (
 	"compress/gzip"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
+	"time"
 
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc/compression"
+	"github.com/concourse/concourse/atc/compression/compressionfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/runtime"
@@ -23,11 +27,86 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+var _ = Describe("ArtifactSourcer", func() {
+	var (
+		logger          *lagertest.TestLogger
+		fakeCompression *compressionfakes.FakeCompression
+	)
+
+	BeforeEach(func() {
+		logger = lagertest.NewTestLogger("test")
+		fakeCompression = new(compressionfakes.FakeCompression)
+	})
+
+	It("locates images by handle", func() {
+		artifact := runtime.GetArtifact{VolumeHandle: "image"}
+		vf := FakeVolumeFinder{Volumes: map[string]worker.Volume{
+			"image": newVolumeWithContent(content{".": []byte("image content")}),
+		}}
+
+		sourcer := worker.NewArtifactSourcer(fakeCompression, vf, false, 0)
+		source, err := sourcer.SourceImage(logger, artifact)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(source).To(BeStreamableWithContent(content{".": []byte("image content")}))
+	})
+
+	It("locates inputs and caches", func() {
+		inputs := map[string]runtime.Artifact{
+			"existing_cache": &runtime.CacheArtifact{
+				TeamID:   1,
+				JobID:    1,
+				StepName: "task1",
+				Path:     "existing_cache",
+			},
+			"missing_cache": &runtime.CacheArtifact{
+				TeamID:   1,
+				JobID:    1,
+				StepName: "task2",
+				Path:     "missing_cache",
+			},
+			"task_artifact": &runtime.TaskArtifact{VolumeHandle: "output"},
+		}
+		fakeWorker := new(workerfakes.FakeWorker)
+		fakeWorker.FindVolumeForTaskCacheStub = func(_ lager.Logger, teamID int, jobID int, stepName string, path string) (worker.Volume, bool, error) {
+			switch path {
+			case "existing_cache":
+				return new(workerfakes.FakeVolume), true, nil
+			case "missing_cache":
+				return nil, false, nil
+			default:
+				return nil, false, fmt.Errorf("unexpected path %s", path)
+			}
+		}
+		vf := FakeVolumeFinder{Volumes: map[string]worker.Volume{
+			"output": newVolumeWithContent(content{".": []byte("output")})},
+		}
+
+		sourcer := worker.NewArtifactSourcer(fakeCompression, vf, false, 0)
+		inputSources, err := sourcer.SourceInputsAndCaches(logger, 0, inputs)
+		Expect(err).ToNot(HaveOccurred())
+
+		sources := make([]worker.ArtifactSource, len(inputSources))
+		for i, v := range inputSources {
+			sources[i] = v.Source()
+		}
+
+		Expect(sources).To(ConsistOf(
+			BeStreamableWithContent(content{".": []byte("output")}),
+			ExistOnWorker(fakeWorker),
+			Not(ExistOnWorker(fakeWorker)),
+		))
+	})
+})
+
 var _ = Describe("StreamableArtifactSource", func() {
 	var (
 		fakeDestination *workerfakes.FakeArtifactDestination
 		fakeVolume      *workerfakes.FakeVolume
 		fakeArtifact    *runtimefakes.FakeArtifact
+
+		enabledP2pStreaming bool
+		p2pStreamingTimeout time.Duration
 
 		artifactSource worker.StreamableArtifactSource
 		comp           compression.Compression
@@ -42,64 +121,134 @@ var _ = Describe("StreamableArtifactSource", func() {
 		fakeDestination = new(workerfakes.FakeArtifactDestination)
 		comp = compression.NewGzipCompression()
 
-		artifactSource = worker.NewStreamableArtifactSource(fakeArtifact, fakeVolume, comp)
+		enabledP2pStreaming = false
+		p2pStreamingTimeout = 15 * time.Minute
+
 		testLogger = lager.NewLogger("test")
 		disaster = errors.New("disaster")
 	})
 
-	Context("StreamTo", func() {
-		var (
-			streamToErr error
-			outStream   *gbytes.Buffer
-		)
+	JustBeforeEach(func() {
+		artifactSource = worker.NewStreamableArtifactSource(fakeArtifact, fakeVolume, comp, enabledP2pStreaming, p2pStreamingTimeout)
+	})
 
-		BeforeEach(func() {
-			outStream = gbytes.NewBuffer()
-			fakeVolume.StreamOutReturns(outStream, nil)
-		})
+	Context("StreamTo", func() {
+		var streamToErr error
 
 		JustBeforeEach(func() {
-			streamToErr = artifactSource.StreamTo(context.TODO(), testLogger, fakeDestination)
+			streamToErr = artifactSource.StreamTo(context.TODO(), fakeDestination)
 		})
 
-		Context("when ArtifactSource can successfully stream to ArtifactDestination", func() {
+		Context("via atc", func() {
+			var outStream *gbytes.Buffer
 
-			It("calls StreamOut and StreamIn with the correct params", func() {
-				Expect(fakeVolume.StreamOutCallCount()).To(Equal(1))
-
-				_, actualPath, encoding := fakeVolume.StreamOutArgsForCall(0)
-				Expect(actualPath).To(Equal("."))
-				Expect(encoding).To(Equal(baggageclaim.GzipEncoding))
-
-				_, actualPath, encoding, actualStreamedOutBits := fakeDestination.StreamInArgsForCall(0)
-				Expect(actualPath).To(Equal("."))
-				Expect(actualStreamedOutBits).To(Equal(outStream))
-				Expect(encoding).To(Equal(baggageclaim.GzipEncoding))
-			})
-
-			It("does not return an err", func() {
-				Expect(streamToErr).ToNot(HaveOccurred())
-			})
-		})
-
-		Context("when streaming out of source fails ", func() {
 			BeforeEach(func() {
-				fakeVolume.StreamOutReturns(nil, disaster)
+				outStream = gbytes.NewBuffer()
+				fakeVolume.StreamOutReturns(outStream, nil)
 			})
-			It("returns the err", func() {
-				Expect(streamToErr).To(Equal(disaster))
+
+			Context("when ArtifactSource can successfully stream to ArtifactDestination", func() {
+
+				It("calls StreamOut and StreamIn with the correct params", func() {
+					Expect(fakeVolume.StreamOutCallCount()).To(Equal(1))
+
+					_, actualPath, encoding := fakeVolume.StreamOutArgsForCall(0)
+					Expect(actualPath).To(Equal("."))
+					Expect(encoding).To(Equal(baggageclaim.GzipEncoding))
+
+					_, actualPath, encoding, actualStreamedOutBits := fakeDestination.StreamInArgsForCall(0)
+					Expect(actualPath).To(Equal("."))
+					Expect(actualStreamedOutBits).To(Equal(outStream))
+					Expect(encoding).To(Equal(baggageclaim.GzipEncoding))
+				})
+
+				It("does not return an err", func() {
+					Expect(streamToErr).ToNot(HaveOccurred())
+				})
+			})
+
+			Context("when streaming out of source fails ", func() {
+				BeforeEach(func() {
+					fakeVolume.StreamOutReturns(nil, disaster)
+				})
+				It("returns the err", func() {
+					Expect(streamToErr).To(Equal(disaster))
+				})
+			})
+
+			Context("when streaming in to destination fails ", func() {
+				BeforeEach(func() {
+					fakeDestination.StreamInReturns(disaster)
+				})
+				It("returns the err", func() {
+					Expect(streamToErr).To(Equal(disaster))
+				})
+				It("closes the streamOut io.reader", func() {
+					Expect(outStream.Closed()).To(BeTrue())
+				})
 			})
 		})
 
-		Context("when streaming in to destination fails ", func() {
+		Context("p2p", func() {
 			BeforeEach(func() {
-				fakeDestination.StreamInReturns(disaster)
+				enabledP2pStreaming = true
 			})
-			It("returns the err", func() {
-				Expect(streamToErr).To(Equal(disaster))
+
+			Context("GetStreamInP2pUrl fails", func() {
+				BeforeEach(func() {
+					fakeDestination.GetStreamInP2pUrlReturns("", disaster)
+				})
+
+				It("does return an err", func() {
+					Expect(streamToErr).To(HaveOccurred())
+					Expect(streamToErr).To(Equal(disaster))
+				})
+
+				It("should not call StreamP2pOut", func() {
+					Expect(fakeDestination.GetStreamInP2pUrlCallCount()).To(Equal(1))
+
+					_, actualPath := fakeDestination.GetStreamInP2pUrlArgsForCall(0)
+					Expect(actualPath).To(Equal("."))
+
+					Expect(fakeVolume.StreamP2pOutCallCount()).To(Equal(0))
+				})
 			})
-			It("closes the streamOut io.reader", func() {
-				Expect(outStream.Closed()).To(BeTrue())
+
+			Context("GetStreamInP2pUrl succeeds", func() {
+				BeforeEach(func() {
+					fakeDestination.GetStreamInP2pUrlReturns("some-url", nil)
+				})
+
+				It("calls GetStreamInP2pUrl and StreamP2pOut with the correct params", func() {
+					Expect(fakeDestination.GetStreamInP2pUrlCallCount()).To(Equal(1))
+
+					_, actualPath := fakeDestination.GetStreamInP2pUrlArgsForCall(0)
+					Expect(actualPath).To(Equal("."))
+
+					Expect(fakeVolume.StreamP2pOutCallCount()).To(Equal(1))
+
+					_, actualPath, actualStreamUrl, actualEncoding := fakeVolume.StreamP2pOutArgsForCall(0)
+					Expect(actualPath).To(Equal("."))
+					Expect(actualStreamUrl).To(Equal("some-url"))
+					Expect(actualEncoding).To(Equal(baggageclaim.GzipEncoding))
+				})
+
+				Context("StreamP2pOut fails", func() {
+					BeforeEach(func() {
+						fakeVolume.StreamP2pOutReturns(disaster)
+					})
+
+					It("does return an err", func() {
+						Expect(streamToErr).To(HaveOccurred())
+						Expect(streamToErr).To(Equal(disaster))
+					})
+				})
+
+				Context("StreamP2pOut succeeds", func() {
+					It("does not return an err", func() {
+						Expect(streamToErr).ToNot(HaveOccurred())
+					})
+				})
 			})
 		})
 	})
@@ -111,7 +260,7 @@ var _ = Describe("StreamableArtifactSource", func() {
 		)
 
 		JustBeforeEach(func() {
-			streamFileReader, streamFileErr = artifactSource.StreamFile(context.TODO(), testLogger, "some-file")
+			streamFileReader, streamFileErr = artifactSource.StreamFile(context.TODO(), "some-file")
 		})
 
 		Context("when ArtifactSource can successfully stream a file out", func() {
@@ -302,7 +451,6 @@ var _ = Describe("CacheArtifactSource", func() {
 			Expect(actualVolume).To(Equal(fakeVolume))
 			Expect(actualFound).To(BeTrue())
 			Expect(actualErr).To(Equal(disaster))
-
 		})
 	})
 })

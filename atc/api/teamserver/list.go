@@ -22,7 +22,7 @@ func (s *Server) ListTeams(w http.ResponseWriter, r *http.Request) {
 	acc := accessor.GetAccessor(r)
 	presentedTeams := make([]atc.Team, 0)
 	for _, team := range teams {
-		if acc.IsAdmin() || acc.IsAuthorized(team.Name()) {
+		if acc.IsAuthorized(team.Name()) {
 			presentedTeams = append(presentedTeams, present.Team(team))
 		}
 	}

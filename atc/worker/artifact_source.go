@@ -3,14 +3,84 @@ package worker
 import (
 	"archive/tar"
 	"context"
+	"fmt"
 	"io"
+	"time"
+
+	"code.cloudfoundry.org/lager/lagerctx"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/compression"
+	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/tracing"
 	"github.com/hashicorp/go-multierror"
 )
+
+//go:generate counterfeiter . ArtifactSourcer
+
+type ArtifactSourcer interface {
+	SourceInputsAndCaches(logger lager.Logger, teamID int, inputMap map[string]runtime.Artifact) ([]InputSource, error)
+	SourceImage(logger lager.Logger, imageArtifact runtime.Artifact) (StreamableArtifactSource, error)
+}
+
+type artifactSourcer struct {
+	compression         compression.Compression
+	volumeFinder        VolumeFinder
+	enableP2PStreaming  bool
+	p2pStreamingTimeout time.Duration
+}
+
+func NewArtifactSourcer(
+	compression compression.Compression,
+	volumeFinder VolumeFinder,
+	enableP2PStreaming bool,
+	p2pStreamingTimeout time.Duration,
+) ArtifactSourcer {
+	return artifactSourcer{
+		compression:         compression,
+		volumeFinder:        volumeFinder,
+		enableP2PStreaming:  enableP2PStreaming,
+		p2pStreamingTimeout: p2pStreamingTimeout,
+	}
+}
+
+func (w artifactSourcer) SourceInputsAndCaches(logger lager.Logger, teamID int, inputMap map[string]runtime.Artifact) ([]InputSource, error) {
+	var inputs []InputSource
+	for path, artifact := range inputMap {
+		if cache, ok := artifact.(*runtime.CacheArtifact); ok {
+			// task caches may not have a volume, it will be discovered on
+			// the worker later. We do not stream task caches
+			source := NewCacheArtifactSource(*cache)
+			inputs = append(inputs, inputSource{source, path})
+		} else {
+			artifactVolume, found, err := w.volumeFinder.FindVolume(logger, teamID, artifact.ID())
+			if err != nil {
+				return nil, err
+			}
+			if !found {
+				return nil, fmt.Errorf("volume not found for artifact id %v type %T", artifact.ID(), artifact)
+			}
+
+			source := NewStreamableArtifactSource(artifact, artifactVolume, w.compression, w.enableP2PStreaming, w.p2pStreamingTimeout)
+			inputs = append(inputs, inputSource{source, path})
+		}
+	}
+
+	return inputs, nil
+}
+
+func (w artifactSourcer) SourceImage(logger lager.Logger, imageArtifact runtime.Artifact) (StreamableArtifactSource, error) {
+	artifactVolume, found, err := w.volumeFinder.FindVolume(logger, 0, imageArtifact.ID())
+	if err != nil {
+		return nil, err
+	}
+	if !found {
+		return nil, fmt.Errorf("volume not found for artifact id %v type %T", imageArtifact.ID(), imageArtifact)
+	}
+
+	return NewStreamableArtifactSource(imageArtifact, artifactVolume, w.compression, w.enableP2PStreaming, w.p2pStreamingTimeout), nil
+}
 
 //go:generate counterfeiter . ArtifactSource
 
@@ -30,40 +100,67 @@ type StreamableArtifactSource interface {
 	// StreamTo copies the data from the source to the destination. Note that
 	// this potentially uses a lot of network transfer, for larger artifacts, as
 	// the ATC will effectively act as a middleman.
-	StreamTo(context.Context, lager.Logger, ArtifactDestination) error
+	StreamTo(context.Context, ArtifactDestination) error
 
 	// StreamFile returns the contents of a single file in the artifact source.
 	// This is used for loading a task's configuration at runtime.
-	StreamFile(context.Context, lager.Logger, string) (io.ReadCloser, error)
+	StreamFile(context.Context, string) (io.ReadCloser, error)
 }
 
 type artifactSource struct {
-	artifact    runtime.Artifact
-	volume      Volume
-	compression compression.Compression
+	artifact            runtime.Artifact
+	volume              Volume
+	compression         compression.Compression
+	enabledP2pStreaming bool
+	p2pStreamingTimeout time.Duration
 }
 
 func NewStreamableArtifactSource(
 	artifact runtime.Artifact,
 	volume Volume,
 	compression compression.Compression,
+	enabledP2pStreaming bool,
+	p2pStreamingTimeout time.Duration,
 ) StreamableArtifactSource {
 	return &artifactSource{
-		artifact:    artifact,
-		volume:      volume,
-		compression: compression,
+		artifact:            artifact,
+		volume:              volume,
+		compression:         compression,
+		enabledP2pStreaming: enabledP2pStreaming,
+		p2pStreamingTimeout: p2pStreamingTimeout,
 	}
 }
 
-// TODO: figure out if we want logging before and after streams, I remove logger from private methods
 func (source *artifactSource) StreamTo(
 	ctx context.Context,
-	logger lager.Logger,
 	destination ArtifactDestination,
 ) error {
+	logger := lagerctx.FromContext(ctx).Session("stream-to")
+	logger.Info("start")
+	defer logger.Info("end")
+
 	ctx, span := tracing.StartSpan(ctx, "artifactSource.StreamTo", nil)
 	defer span.End()
 
+	var err error
+	if !source.enabledP2pStreaming {
+		err = source.streamTo(ctx, destination)
+	} else {
+		err = source.p2pStreamTo(ctx, destination)
+	}
+
+	// Inc counter if no error occurred.
+	if err == nil {
+		metric.Metrics.VolumesStreamed.Inc()
+	}
+
+	return err
+}
+
+func (source *artifactSource) streamTo(
+	ctx context.Context,
+	destination ArtifactDestination,
+) error {
 	_, outSpan := tracing.StartSpan(ctx, "volume.StreamOut", tracing.Attrs{
 		"origin-volume": source.volume.Handle(),
 		"origin-worker": source.volume.WorkerName(),
@@ -78,15 +175,40 @@ func (source *artifactSource) StreamTo(
 
 	defer out.Close()
 
-	err = destination.StreamIn(ctx, ".", source.compression.Encoding(), out)
-
-	return err
+	return destination.StreamIn(ctx, ".", source.compression.Encoding(), out)
 }
 
-// TODO: figure out if we want logging before and after streams, I remove logger from private methods
+func (source *artifactSource) p2pStreamTo(
+	ctx context.Context,
+	destination ArtifactDestination,
+) error {
+	getCtx, getCancel := context.WithTimeout(ctx, 5*time.Second)
+	defer getCancel()
+	streamInUrl, err := destination.GetStreamInP2pUrl(getCtx, ".")
+	if err != nil {
+		return err
+	}
+
+	select {
+	case <-ctx.Done():
+		return context.Canceled
+	default:
+	}
+
+	_, outSpan := tracing.StartSpan(ctx, "volume.P2pStreamOut", tracing.Attrs{
+		"origin-volume": source.volume.Handle(),
+		"origin-worker": source.volume.WorkerName(),
+		"stream-in-url": streamInUrl,
+	})
+	defer outSpan.End()
+
+	putCtx, putCancel := context.WithTimeout(ctx, source.p2pStreamingTimeout)
+	defer putCancel()
+	return source.volume.StreamP2pOut(putCtx, ".", streamInUrl, source.compression.Encoding())
+}
+
 func (source *artifactSource) StreamFile(
 	ctx context.Context,
-	logger lager.Logger,
 	filepath string,
 ) (io.ReadCloser, error) {
 	out, err := source.volume.StreamOut(ctx, filepath, source.compression.Encoding())

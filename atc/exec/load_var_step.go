@@ -22,27 +22,26 @@ import (
 
 // LoadVarStep loads a value from a file and sets it as a build-local var.
 type LoadVarStep struct {
-	planID    atc.PlanID
-	plan      atc.LoadVarPlan
-	metadata  StepMetadata
-	delegate  BuildStepDelegate
-	client    worker.Client
-	succeeded bool
+	planID           atc.PlanID
+	plan             atc.LoadVarPlan
+	metadata         StepMetadata
+	delegateFactory  BuildStepDelegateFactory
+	artifactStreamer worker.ArtifactStreamer
 }
 
 func NewLoadVarStep(
 	planID atc.PlanID,
 	plan atc.LoadVarPlan,
 	metadata StepMetadata,
-	delegate BuildStepDelegate,
-	client worker.Client,
+	delegateFactory BuildStepDelegateFactory,
+	artifactStreamer worker.ArtifactStreamer,
 ) Step {
 	return &LoadVarStep{
-		planID:   planID,
-		plan:     plan,
-		metadata: metadata,
-		delegate: delegate,
-		client:   client,
+		planID:           planID,
+		plan:             plan,
+		metadata:         metadata,
+		delegateFactory:  delegateFactory,
+		artifactStreamer: artifactStreamer,
 	}
 }
 
@@ -65,57 +64,48 @@ func (err InvalidLocalVarFile) Error() string {
 	return fmt.Sprintf("failed to parse %s in format %s: %s", err.File, err.Format, err.Err.Error())
 }
 
-func (step *LoadVarStep) Run(ctx context.Context, state RunState) error {
-	ctx, span := tracing.StartSpan(ctx, "load_var", tracing.Attrs{
-		"team":     step.metadata.TeamName,
-		"pipeline": step.metadata.PipelineName,
-		"job":      step.metadata.JobName,
-		"build":    step.metadata.BuildName,
-		"name":     step.plan.Name,
-		"file":     step.plan.File,
+func (step *LoadVarStep) Run(ctx context.Context, state RunState) (bool, error) {
+	delegate := step.delegateFactory.BuildStepDelegate(state)
+	ctx, span := delegate.StartSpan(ctx, "load_var", tracing.Attrs{
+		"name": step.plan.Name,
 	})
 
-	err := step.run(ctx, state)
+	ok, err := step.run(ctx, state, delegate)
 	tracing.End(span, err)
 
-	return err
+	return ok, err
 }
 
-func (step *LoadVarStep) run(ctx context.Context, state RunState) error {
+func (step *LoadVarStep) run(ctx context.Context, state RunState, delegate BuildStepDelegate) (bool, error) {
 	logger := lagerctx.FromContext(ctx)
 	logger = logger.Session("load-var-step", lager.Data{
 		"step-name": step.plan.Name,
 		"job-id":    step.metadata.JobID,
 	})
 
-	step.delegate.Initializing(logger)
-	stdout := step.delegate.Stdout()
-	stderr := step.delegate.Stderr()
+	delegate.Initializing(logger)
+	stdout := delegate.Stdout()
+	stderr := delegate.Stderr()
 
 	fmt.Fprintln(stderr, "\x1b[1;33mWARNING: the load_var step is experimental and subject to change!\x1b[0m")
 	fmt.Fprintln(stderr, "")
 	fmt.Fprintln(stderr, "\x1b[33mfollow RFC #27 for updates: https://github.com/concourse/rfcs/pull/27\x1b[0m")
 	fmt.Fprintln(stderr, "")
 
-	step.delegate.Starting(logger)
+	delegate.Starting(logger)
 
 	value, err := step.fetchVars(ctx, logger, step.plan.File, state)
 	if err != nil {
-		return err
+		return false, err
 	}
 	fmt.Fprintf(stdout, "var %s fetched.\n", step.plan.Name)
 
-	step.delegate.Variables().AddLocalVar(step.plan.Name, value, !step.plan.Reveal)
+	state.AddLocalVar(step.plan.Name, value, !step.plan.Reveal)
 	fmt.Fprintf(stdout, "added var %s to build.\n", step.plan.Name)
 
-	step.succeeded = true
-	step.delegate.Finished(logger, step.succeeded)
+	delegate.Finished(logger, true)
 
-	return nil
-}
-
-func (step *LoadVarStep) Succeeded() bool {
-	return step.succeeded
+	return true, nil
 }
 
 func (step *LoadVarStep) fetchVars(
@@ -144,7 +134,7 @@ func (step *LoadVarStep) fetchVars(
 		return nil, UnknownArtifactSourceError{build.ArtifactName(artifactName), filePath}
 	}
 
-	stream, err := step.client.StreamFileFromArtifact(ctx, logger, art, filePath)
+	stream, err := step.artifactStreamer.StreamFileFromArtifact(lagerctx.NewContext(ctx, logger), art, filePath)
 	if err != nil {
 		if err == baggageclaim.ErrFileNotFound {
 			return nil, artifact.FileNotFoundError{
@@ -175,6 +165,8 @@ func (step *LoadVarStep) fetchVars(
 		if err != nil {
 			return nil, InvalidLocalVarFile{file, "yaml", err}
 		}
+	case "trim":
+		value = strings.TrimSpace(string(fileContent))
 	case "raw":
 		value = string(fileContent)
 	default:
@@ -197,12 +189,12 @@ func (step *LoadVarStep) fileFormat(file string) (string, error) {
 		return format, nil
 	}
 
-	return "raw", nil
+	return "trim", nil
 }
 
 func (step *LoadVarStep) isValidFormat(format string) bool {
 	switch format {
-	case "raw", "yml", "yaml", "json":
+	case "raw", "trim", "yml", "yaml", "json":
 		return true
 	}
 	return false

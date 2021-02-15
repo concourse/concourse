@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/concourse/concourse/atc"
+
 	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
@@ -23,6 +25,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/gc/gcfakes"
+	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 	"github.com/concourse/concourse/atc/wrappa"
 
@@ -36,7 +39,7 @@ var (
 	externalURL = "https://example.com"
 	clusterName = "Test Cluster"
 
-	fakeWorkerClient        *workerfakes.FakeClient
+	fakeWorkerPool          *workerfakes.FakePool
 	fakeVolumeRepository    *dbfakes.FakeVolumeRepository
 	fakeContainerRepository *dbfakes.FakeContainerRepository
 	fakeDestroyer           *gcfakes.FakeDestroyer
@@ -49,6 +52,7 @@ var (
 	fakeAccess              *accessorfakes.FakeAccess
 	fakeAccessor            *accessorfakes.FakeAccessFactory
 	dbWorkerFactory         *dbfakes.FakeWorkerFactory
+	dbWorkerTeamFactory     *dbfakes.FakeTeamFactory
 	dbWorkerLifecycle       *dbfakes.FakeWorkerLifecycle
 	build                   *dbfakes.FakeBuild
 	dbBuildFactory          *dbfakes.FakeBuildFactory
@@ -95,6 +99,7 @@ func (f *fakeEventHandlerFactory) Construct(
 
 var _ = BeforeEach(func() {
 	dbTeamFactory = new(dbfakes.FakeTeamFactory)
+	dbWorkerTeamFactory = new(dbfakes.FakeTeamFactory)
 	dbPipelineFactory = new(dbfakes.FakePipelineFactory)
 	dbJobFactory = new(dbfakes.FakeJobFactory)
 	dbResourceFactory = new(dbfakes.FakeResourceFactory)
@@ -112,10 +117,12 @@ var _ = BeforeEach(func() {
 	dbTeam.IDReturns(734)
 	dbTeamFactory.FindTeamReturns(dbTeam, true, nil)
 	dbTeamFactory.GetByIDReturns(dbTeam)
+	dbWorkerTeamFactory.FindTeamReturns(dbTeam, true, nil)
+	dbWorkerTeamFactory.GetByIDReturns(dbTeam)
 
 	fakeAccess = new(accessorfakes.FakeAccess)
 	fakeAccessor = new(accessorfakes.FakeAccessFactory)
-	fakeAccessor.CreateReturns(fakeAccess)
+	fakeAccessor.CreateReturns(fakeAccess, nil)
 
 	fakePipeline = new(dbfakes.FakePipeline)
 	dbTeam.PipelineReturns(fakePipeline, true, nil)
@@ -123,7 +130,7 @@ var _ = BeforeEach(func() {
 	dbWorkerFactory = new(dbfakes.FakeWorkerFactory)
 	dbWorkerLifecycle = new(dbfakes.FakeWorkerLifecycle)
 
-	fakeWorkerClient = new(workerfakes.FakeClient)
+	fakeWorkerPool = new(workerfakes.FakePool)
 
 	fakeVolumeRepository = new(dbfakes.FakeVolumeRepository)
 	fakeContainerRepository = new(dbfakes.FakeContainerRepository)
@@ -158,7 +165,7 @@ var _ = BeforeEach(func() {
 	checkWorkerTeamAccessHandlerFactory := auth.NewCheckWorkerTeamAccessHandlerFactory(dbWorkerFactory)
 
 	fakePolicyChecker = new(policycheckerfakes.FakePolicyChecker)
-	fakePolicyChecker.CheckReturns(true, nil)
+	fakePolicyChecker.CheckReturns(policy.PassedPolicyCheck(), nil)
 
 	apiWrapper := wrappa.MultiWrappa{
 		wrappa.NewPolicyCheckWrappa(logger, fakePolicyChecker),
@@ -183,6 +190,7 @@ var _ = BeforeEach(func() {
 		dbJobFactory,
 		dbResourceFactory,
 		dbWorkerFactory,
+		dbWorkerTeamFactory,
 		fakeVolumeRepository,
 		fakeContainerRepository,
 		fakeDestroyer,
@@ -193,7 +201,7 @@ var _ = BeforeEach(func() {
 
 		constructedEventHandler.Construct,
 
-		fakeWorkerClient,
+		fakeWorkerPool,
 
 		sink,
 
@@ -209,9 +217,9 @@ var _ = BeforeEach(func() {
 		time.Second,
 		dbWall,
 		fakeClock,
-
-		true, /* enableArchivePipeline */
 	)
+
+	atc.EnablePipelineInstances = true
 
 	Expect(err).NotTo(HaveOccurred())
 
@@ -220,9 +228,6 @@ var _ = BeforeEach(func() {
 		"some-action",
 		handler,
 		fakeAccessor,
-		new(accessorfakes.FakeTokenVerifier),
-		new(accessorfakes.FakeTeamFetcher),
-		new(accessorfakes.FakeUserTracker),
 		new(auditorfakes.FakeAuditor),
 		map[string]string{},
 	)

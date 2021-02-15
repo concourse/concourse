@@ -28,13 +28,13 @@ type ExecuteCommand struct {
 	Privileged     bool                               `short:"p" long:"privileged"                            description:"Run the task with full privileges"`
 	IncludeIgnored bool                               `          long:"include-ignored"                       description:"Including .gitignored paths. Disregards .gitignore entries and uploads everything"`
 	Inputs         []flaghelpers.InputPairFlag        `short:"i" long:"input"       value-name:"NAME=PATH"    description:"An input to provide to the task (can be specified multiple times)"`
-	InputMappings  []flaghelpers.VariablePairFlag     `short:"m" long:"input-mapping"       value-name:"[NAME=STRING]"    description:"Map a resource to a different name as task input"`
+	InputMappings  []flaghelpers.InputMappingPairFlag `short:"m" long:"input-mapping"       value-name:"[NAME=STRING]"    description:"Map a resource to a different name as task input"`
 	InputsFrom     flaghelpers.JobFlag                `short:"j" long:"inputs-from" value-name:"PIPELINE/JOB" description:"A job to base the inputs on"`
 	Outputs        []flaghelpers.OutputPairFlag       `short:"o" long:"output"      value-name:"NAME=PATH"    description:"An output to fetch from the task (can be specified multiple times)"`
 	Image          string                             `long:"image" description:"Image resource for the one-off build"`
 	Tags           []string                           `          long:"tag"         value-name:"TAG"          description:"A tag for a specific environment (can be specified multiple times)"`
-	Var            []flaghelpers.VariablePairFlag     `short:"v"  long:"var"       value-name:"[NAME=STRING]"  description:"Specify a string value to set for a variable in the pipeline"`
-	YAMLVar        []flaghelpers.YAMLVariablePairFlag `short:"y"  long:"yaml-var"  value-name:"[NAME=YAML]"    description:"Specify a YAML value to set for a variable in the pipeline"`
+	Var            []flaghelpers.VariablePairFlag     `short:"v"  long:"var"       value-name:"[NAME=STRING]"  unquote:"false"  description:"Specify a string value to set for a variable in the pipeline"`
+	YAMLVar        []flaghelpers.YAMLVariablePairFlag `short:"y"  long:"yaml-var"  value-name:"[NAME=YAML]"    unquote:"false"  description:"Specify a YAML value to set for a variable in the pipeline"`
 	VarsFrom       []atc.PathFlag                     `short:"l"  long:"load-vars-from"  description:"Variable flag that can be used for filling in template values in configuration from a YAML file"`
 }
 
@@ -56,7 +56,7 @@ func (command *ExecuteCommand) Execute(args []string) error {
 
 	planFactory := atc.NewPlanFactory(time.Now().Unix())
 
-	inputs, inputMappings, imageResource, err := executehelpers.DetermineInputs(
+	inputs, inputMappings, imageResource, resourceTypes, err := executehelpers.DetermineInputs(
 		planFactory,
 		target.Team(),
 		taskConfig.Inputs,
@@ -66,6 +66,7 @@ func (command *ExecuteCommand) Execute(args []string) error {
 		command.InputsFrom,
 		command.IncludeIgnored,
 		taskConfig.Platform,
+		command.Tags,
 	)
 	if err != nil {
 		return err
@@ -90,6 +91,7 @@ func (command *ExecuteCommand) Execute(args []string) error {
 		command.Privileged,
 		inputs,
 		inputMappings,
+		resourceTypes,
 		outputs,
 		taskConfig,
 		command.Tags,
@@ -108,8 +110,8 @@ func (command *ExecuteCommand) Execute(args []string) error {
 	var build atc.Build
 	var buildURL *url.URL
 
-	if command.InputsFrom.PipelineName != "" {
-		build, err = target.Team().CreatePipelineBuild(command.InputsFrom.PipelineName, plan)
+	if command.InputsFrom.PipelineRef.Name != "" {
+		build, err = target.Team().CreatePipelineBuild(command.InputsFrom.PipelineRef, plan)
 		if err != nil {
 			return err
 		}
@@ -125,7 +127,7 @@ func (command *ExecuteCommand) Execute(args []string) error {
 		return err
 	}
 
-	fmt.Printf("executing build %d at %s \n", build.ID, clientURL.ResolveReference(buildURL))
+	fmt.Printf("executing build %d at %s\n", build.ID, clientURL.ResolveReference(buildURL))
 
 	terminate := make(chan os.Signal, 1)
 
@@ -188,6 +190,7 @@ func (command *ExecuteCommand) CreateTaskConfig(args []string) (atc.TaskConfig, 
 		command.VarsFrom,
 		command.Var,
 		command.YAMLVar,
+		nil,
 	)
 
 	taskTemplateEvaluated, err := taskTemplate.Evaluate(false, false)

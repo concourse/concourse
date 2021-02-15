@@ -5,57 +5,63 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 )
 
 // Step is an "envelope" type, acting as a wrapper to handle the marshaling and
 // unmarshaling of an underlying StepConfig.
 type Step struct {
-	Config StepConfig
+	Config        StepConfig
+	UnknownFields map[string]*json.RawMessage
 }
 
 // ErrNoStepConfigured is returned when a step does not have any keys that
 // indicate its step type.
 var ErrNoStepConfigured = errors.New("no step configured")
+var ErrNoCoreStepDeclared = errors.New("no core step type declared (e.g. get, put, task, etc.)")
 
 // UnmarshalJSON unmarshals step configuration in multiple passes, determining
 // precedence by the order of StepDetectors listed in the StepPrecedence
 // variable.
 //
-// First, the data is unmarshalled into a map[string]*json.RawMessage. Next,
-// UnmarshalJSON loops over StepPrecedence.
+// First, the step data is unmarshalled into a map[string]*json.RawMessage. Next,
+// UnmarshalJSON loops over StepPrecedence to determine the type of step.
 //
 // For any StepDetector with a .Key field present in the map, .New is called to
-// construct an empty StepConfig, and then .ParseJSON is called on it to parse
-// the data. For step modifiers like `timeout:' and `attempts:', this will be a
-// non-strict parse that only parses their fields, ignoring the rest. For core
-// step types, this will be a strict parse, raising an error on any unknown
-// fields.
+// construct an empty StepConfig, and then json.Unmarshal is called on it to parse
+// the data.
 //
-// After a step is parsed, its .Key field is removed from the map, the map is
-// re-marshalled, and the loop continues on to the rest of the StepDetectors.
-// If a step was previously parsed, .Wrap will be called with the resulting
-// step.
+// For step modifiers like `timeout:` and `attempts:` they eventuallly wrap a
+// core step type (e.g. get, put, task etc.). Core step types do not wrap other
+// steps.
+//
+// When a core step type is encountered parsing stops and any remaining keys in
+// rawStepConfig are considered invalid. This is how we stop someone from
+// putting a `get` and `put` in the same step while still allowing valid step
+// modifiers. This is also why step modifiers are listed first in
+// StepPrecedence.
 //
 // If no StepDetectors match, no step is parsed, ErrNoStepConfigured is
 // returned.
 func (step *Step) UnmarshalJSON(data []byte) error {
-	var deferred map[string]*json.RawMessage
-	err := json.Unmarshal(data, &deferred)
+	var rawStepConfig map[string]*json.RawMessage
+	err := json.Unmarshal(data, &rawStepConfig)
 	if err != nil {
 		return err
 	}
 
-	var outerStep StepConfig
+	var prevStep StepWrapper
+	var coreStepDeclared bool
 	for _, s := range StepPrecedence {
-		_, found := deferred[s.Key]
+		_, found := rawStepConfig[s.Key]
 		if !found {
 			continue
 		}
 
-		step := s.New()
+		curStep := s.New()
 
-		err := step.ParseJSON(data)
+		err := json.Unmarshal(data, curStep)
 		if err != nil {
 			return MalformedStepError{
 				StepType: s.Key,
@@ -63,25 +69,40 @@ func (step *Step) UnmarshalJSON(data []byte) error {
 			}
 		}
 
-		if outerStep == nil {
-			outerStep = step
-		} else {
-			outerStep.Wrap(step)
+		if step.Config == nil {
+			step.Config = curStep
 		}
 
-		delete(deferred, s.Key)
+		if prevStep != nil {
+			prevStep.Wrap(curStep)
+		}
 
-		data, err = json.Marshal(deferred)
+		deleteKnownFields(rawStepConfig, curStep)
+
+		if wrapper, isWrapper := curStep.(StepWrapper); isWrapper {
+			prevStep = wrapper
+		} else {
+			coreStepDeclared = true
+			break
+		}
+
+		data, err = json.Marshal(rawStepConfig)
 		if err != nil {
-			return fmt.Errorf("re-marshal deferred parsing: %w", err)
+			return fmt.Errorf("re-marshal rawStepConfig parsing: %w", err)
 		}
 	}
 
-	if outerStep == nil {
+	if step.Config == nil {
 		return ErrNoStepConfigured
 	}
 
-	step.Config = outerStep
+	if !coreStepDeclared {
+		return ErrNoCoreStepDeclared
+	}
+
+	if len(rawStepConfig) != 0 {
+		step.UnknownFields = rawStepConfig
+	}
 
 	return nil
 }
@@ -90,7 +111,7 @@ func (step *Step) UnmarshalJSON(data []byte) error {
 // calling .Unwrap to marshal all nested steps into one big set of fields which
 // is then marshalled and returned.
 func (step Step) MarshalJSON() ([]byte, error) {
-	fields := map[string]*json.RawMessage{}
+	fields := step.UnknownFields
 
 	unwrapped := step.Config
 	for unwrapped != nil {
@@ -104,25 +125,39 @@ func (step Step) MarshalJSON() ([]byte, error) {
 			return nil, err
 		}
 
-		unwrapped = unwrapped.Unwrap()
+		if wrapper, isWrapper := unwrapped.(StepWrapper); isWrapper {
+			unwrapped = wrapper.Unwrap()
+		} else {
+			break
+		}
 	}
 
 	return json.Marshal(fields)
 }
 
+// See the note about json tags here: https://golang.org/pkg/encoding/json/#Marshal
+func deleteKnownFields(rawStepConfig map[string]*json.RawMessage, step StepConfig) {
+	stepType := reflect.TypeOf(step).Elem()
+	for i := 0; i < stepType.NumField(); i++ {
+		field := stepType.Field(i)
+		jsonTag := field.Tag.Get("json")
+		if jsonTag == "-" {
+			continue
+		}
+		jsonTagParts := strings.Split(jsonTag, ",")
+		if len(jsonTagParts) < 1 {
+			continue
+		}
+		jsonKey := jsonTagParts[0]
+		if jsonKey == "" {
+			jsonKey = field.Name
+		}
+		delete(rawStepConfig, jsonKey)
+	}
+}
+
 // StepConfig is implemented by all step types.
 type StepConfig interface {
-	// ParseJSON unmarshals the given data into the step type's struct.
-	//
-	// Core step types such as 'get:', 'put:', and 'in_parallel:' must error on
-	// extra fields. This will catch situations where multiple steps are
-	// configured at once, as well as any typoed fields.
-	//
-	// Modifier step types such as 'timeout:' and 'attempts:' must take care to
-	// ignore extra fields present in the data, and assume that they belong to
-	// the step they are wrapping.
-	ParseJSON([]byte) error
-
 	// Visit must call StepVisitor with the appropriate method corresponding to
 	// this step type.
 	//
@@ -130,15 +165,16 @@ type StepConfig interface {
 	// This allows the compiler to help us track down all the places where steps
 	// must be handled type-by-type.
 	Visit(StepVisitor) error
+}
 
+// StepWrapper is an optional interface for step types that is implemented by
+// steps that wrap/modify other steps (e.g. hooks like `on_success`, `timeout`, etc.)
+type StepWrapper interface {
 	// Wrap is called during (Step).UnmarshalJSON whenever an 'inner' step is
 	// parsed.
 	//
-	// Core step types should implement this as a no-op; it should never be
-	// possible, assuming they implement ParseJSON to disallow extra fields.
-	//
-	// Modifier step types should implement this by assigning to an internal
-	// field that has a `json:"-"` struct tag.
+	// Modifier step types should implement this function by assigning the
+	// passed in StepConfig to an internal field that has a `json:"-"` tag.
 	Wrap(StepConfig)
 
 	// Unwrap is called during (Step).MarshalJSON and must return the wrapped
@@ -160,7 +196,7 @@ type StepVisitor interface {
 	VisitTry(*TryStep) error
 	VisitDo(*DoStep) error
 	VisitInParallel(*InParallelStep) error
-	VisitAggregate(*AggregateStep) error
+	VisitAcross(*AcrossStep) error
 	VisitTimeout(*TimeoutStep) error
 	VisitRetry(*RetryStep) error
 	VisitOnSuccess(*OnSuccessStep) error
@@ -206,12 +242,12 @@ var StepPrecedence = []StepDetector{
 		New: func() StepConfig { return &OnSuccessStep{} },
 	},
 	{
-		Key: "attempts",
-		New: func() StepConfig { return &RetryStep{} },
+		Key: "across",
+		New: func() StepConfig { return &AcrossStep{} },
 	},
 	{
-		Key: "timeout",
-		New: func() StepConfig { return &TimeoutStep{} },
+		Key: "attempts",
+		New: func() StepConfig { return &RetryStep{} },
 	},
 	{
 		Key: "task",
@@ -224,6 +260,10 @@ var StepPrecedence = []StepDetector{
 	{
 		Key: "get",
 		New: func() StepConfig { return &GetStep{} },
+	},
+	{
+		Key: "timeout",
+		New: func() StepConfig { return &TimeoutStep{} },
 	},
 	{
 		Key: "set_pipeline",
@@ -245,10 +285,6 @@ var StepPrecedence = []StepDetector{
 		Key: "in_parallel",
 		New: func() StepConfig { return &InParallelStep{} },
 	},
-	{
-		Key: "aggregate",
-		New: func() StepConfig { return &AggregateStep{} },
-	},
 }
 
 type GetStep struct {
@@ -259,6 +295,7 @@ type GetStep struct {
 	Passed   []string       `json:"passed,omitempty"`
 	Trigger  bool           `json:"trigger,omitempty"`
 	Tags     Tags           `json:"tags,omitempty"`
+	Timeout  string         `json:"timeout,omitempty"`
 }
 
 func (step *GetStep) ResourceName() string {
@@ -268,13 +305,6 @@ func (step *GetStep) ResourceName() string {
 
 	return step.Name
 }
-
-func (step *GetStep) ParseJSON(data []byte) error {
-	return unmarshalStrict(data, step)
-}
-
-func (step *GetStep) Wrap(StepConfig)    {}
-func (step *GetStep) Unwrap() StepConfig { return nil }
 
 func (step *GetStep) Visit(v StepVisitor) error {
 	return v.VisitGet(step)
@@ -287,6 +317,7 @@ type PutStep struct {
 	Inputs    *InputsConfig `json:"inputs,omitempty"`
 	Tags      Tags          `json:"tags,omitempty"`
 	GetParams Params        `json:"get_params,omitempty"`
+	Timeout   string        `json:"timeout,omitempty"`
 }
 
 func (step *PutStep) ResourceName() string {
@@ -297,13 +328,6 @@ func (step *PutStep) ResourceName() string {
 	return step.Name
 }
 
-func (step *PutStep) ParseJSON(data []byte) error {
-	return unmarshalStrict(data, step)
-}
-
-func (step *PutStep) Wrap(StepConfig)    {}
-func (step *PutStep) Unwrap() StepConfig { return nil }
-
 func (step *PutStep) Visit(v StepVisitor) error {
 	return v.VisitPut(step)
 }
@@ -313,39 +337,27 @@ type TaskStep struct {
 	Privileged        bool              `json:"privileged,omitempty"`
 	ConfigPath        string            `json:"file,omitempty"`
 	Config            *TaskConfig       `json:"config,omitempty"`
-	Params            Params            `json:"params,omitempty"`
+	Params            TaskEnv           `json:"params,omitempty"`
 	Vars              Params            `json:"vars,omitempty"`
 	Tags              Tags              `json:"tags,omitempty"`
 	InputMapping      map[string]string `json:"input_mapping,omitempty"`
 	OutputMapping     map[string]string `json:"output_mapping,omitempty"`
 	ImageArtifactName string            `json:"image,omitempty"`
+	Timeout           string            `json:"timeout,omitempty"`
 }
-
-func (step *TaskStep) ParseJSON(data []byte) error {
-	return unmarshalStrict(data, step)
-}
-
-func (step *TaskStep) Wrap(StepConfig)    {}
-func (step *TaskStep) Unwrap() StepConfig { return nil }
 
 func (step *TaskStep) Visit(v StepVisitor) error {
 	return v.VisitTask(step)
 }
 
 type SetPipelineStep struct {
-	Name     string   `json:"set_pipeline"`
-	File     string   `json:"file,omitempty"`
-	Team     string   `json:"team,omitempty"`
-	Vars     Params   `json:"vars,omitempty"`
-	VarFiles []string `json:"var_files,omitempty"`
+	Name         string       `json:"set_pipeline"`
+	File         string       `json:"file,omitempty"`
+	Team         string       `json:"team,omitempty"`
+	Vars         Params       `json:"vars,omitempty"`
+	VarFiles     []string     `json:"var_files,omitempty"`
+	InstanceVars InstanceVars `json:"instance_vars,omitempty"`
 }
-
-func (step *SetPipelineStep) ParseJSON(data []byte) error {
-	return unmarshalStrict(data, step)
-}
-
-func (step *SetPipelineStep) Wrap(StepConfig)    {}
-func (step *SetPipelineStep) Unwrap() StepConfig { return nil }
 
 func (step *SetPipelineStep) Visit(v StepVisitor) error {
 	return v.VisitSetPipeline(step)
@@ -358,13 +370,6 @@ type LoadVarStep struct {
 	Reveal bool   `json:"reveal,omitempty"`
 }
 
-func (step *LoadVarStep) ParseJSON(data []byte) error {
-	return unmarshalStrict(data, step)
-}
-
-func (step *LoadVarStep) Wrap(StepConfig)    {}
-func (step *LoadVarStep) Unwrap() StepConfig { return nil }
-
 func (step *LoadVarStep) Visit(v StepVisitor) error {
 	return v.VisitLoadVar(step)
 }
@@ -372,13 +377,6 @@ func (step *LoadVarStep) Visit(v StepVisitor) error {
 type TryStep struct {
 	Step Step `json:"try"`
 }
-
-func (step *TryStep) ParseJSON(data []byte) error {
-	return unmarshalStrict(data, step)
-}
-
-func (step *TryStep) Wrap(StepConfig)    {}
-func (step *TryStep) Unwrap() StepConfig { return nil }
 
 func (step *TryStep) Visit(v StepVisitor) error {
 	return v.VisitTry(step)
@@ -388,42 +386,13 @@ type DoStep struct {
 	Steps []Step `json:"do"`
 }
 
-func (step *DoStep) ParseJSON(data []byte) error {
-	return unmarshalStrict(data, step)
-}
-
-func (step *DoStep) Wrap(StepConfig)    {}
-func (step *DoStep) Unwrap() StepConfig { return nil }
-
 func (step *DoStep) Visit(v StepVisitor) error {
 	return v.VisitDo(step)
-}
-
-type AggregateStep struct {
-	Steps []Step `json:"aggregate"`
-}
-
-func (step *AggregateStep) ParseJSON(data []byte) error {
-	return unmarshalStrict(data, step)
-}
-
-func (step *AggregateStep) Wrap(StepConfig)    {}
-func (step *AggregateStep) Unwrap() StepConfig { return nil }
-
-func (step *AggregateStep) Visit(v StepVisitor) error {
-	return v.VisitAggregate(step)
 }
 
 type InParallelStep struct {
 	Config InParallelConfig `json:"in_parallel"`
 }
-
-func (step *InParallelStep) ParseJSON(data []byte) error {
-	return unmarshalStrict(data, step)
-}
-
-func (step *InParallelStep) Wrap(StepConfig)    {}
-func (step *InParallelStep) Unwrap() StepConfig { return nil }
 
 func (step *InParallelStep) Visit(v StepVisitor) error {
 	return v.VisitInParallel(step)
@@ -464,21 +433,54 @@ func (c *InParallelConfig) UnmarshalJSON(payload []byte) error {
 	return nil
 }
 
+type AcrossVarConfig struct {
+	Var         string             `json:"var"`
+	Values      []interface{}      `json:"values,omitempty"`
+	MaxInFlight *MaxInFlightConfig `json:"max_in_flight,omitempty"`
+}
+
+func (config *AcrossVarConfig) UnmarshalJSON(data []byte) error {
+	// Used to avoid infinite recursion when unmarshalling.
+	type target AcrossVarConfig
+
+	var t target
+	if err := unmarshalStrict(data, &t); err != nil {
+		return err
+	}
+
+	*config = AcrossVarConfig(t)
+	return nil
+}
+
+type AcrossStep struct {
+	Step     StepConfig        `json:"-"`
+	Vars     []AcrossVarConfig `json:"across"`
+	FailFast bool              `json:"fail_fast,omitempty"`
+}
+
+func (step *AcrossStep) ParseJSON(data []byte) error {
+	return json.Unmarshal(data, step)
+}
+
+func (step *AcrossStep) Visit(v StepVisitor) error {
+	return v.VisitAcross(step)
+}
+
+func (step *AcrossStep) Wrap(sub StepConfig) {
+	step.Step = sub
+}
+
+func (step *AcrossStep) Unwrap() StepConfig {
+	return step.Step
+}
+
 type RetryStep struct {
 	Step     StepConfig `json:"-"`
 	Attempts int        `json:"attempts"`
 }
 
-func (step *RetryStep) ParseJSON(data []byte) error {
-	return json.Unmarshal(data, step)
-}
-
 func (step *RetryStep) Wrap(sub StepConfig) {
-	if step.Step != nil {
-		step.Step.Wrap(sub)
-	} else {
-		step.Step = sub
-	}
+	step.Step = sub
 }
 
 func (step *RetryStep) Unwrap() StepConfig {
@@ -497,16 +499,8 @@ type TimeoutStep struct {
 	Duration string `json:"timeout"`
 }
 
-func (step *TimeoutStep) ParseJSON(data []byte) error {
-	return json.Unmarshal(data, &step)
-}
-
 func (step *TimeoutStep) Wrap(sub StepConfig) {
-	if step.Step != nil {
-		step.Step.Wrap(sub)
-	} else {
-		step.Step = sub
-	}
+	step.Step = sub
 }
 
 func (step *TimeoutStep) Unwrap() StepConfig {
@@ -522,16 +516,8 @@ type OnSuccessStep struct {
 	Hook Step       `json:"on_success"`
 }
 
-func (step *OnSuccessStep) ParseJSON(data []byte) error {
-	return json.Unmarshal(data, step)
-}
-
 func (step *OnSuccessStep) Wrap(sub StepConfig) {
-	if step.Step != nil {
-		step.Step.Wrap(sub)
-	} else {
-		step.Step = sub
-	}
+	step.Step = sub
 }
 
 func (step *OnSuccessStep) Unwrap() StepConfig {
@@ -547,16 +533,8 @@ type OnFailureStep struct {
 	Hook Step       `json:"on_failure"`
 }
 
-func (step *OnFailureStep) ParseJSON(data []byte) error {
-	return json.Unmarshal(data, step)
-}
-
 func (step *OnFailureStep) Wrap(sub StepConfig) {
-	if step.Step != nil {
-		step.Step.Wrap(sub)
-	} else {
-		step.Step = sub
-	}
+	step.Step = sub
 }
 
 func (step *OnFailureStep) Unwrap() StepConfig {
@@ -572,16 +550,8 @@ type OnErrorStep struct {
 	Hook Step       `json:"on_error"`
 }
 
-func (step *OnErrorStep) ParseJSON(data []byte) error {
-	return json.Unmarshal(data, step)
-}
-
 func (step *OnErrorStep) Wrap(sub StepConfig) {
-	if step.Step != nil {
-		step.Step.Wrap(sub)
-	} else {
-		step.Step = sub
-	}
+	step.Step = sub
 }
 
 func (step *OnErrorStep) Unwrap() StepConfig {
@@ -597,16 +567,8 @@ type OnAbortStep struct {
 	Hook Step       `json:"on_abort"`
 }
 
-func (step *OnAbortStep) ParseJSON(data []byte) error {
-	return json.Unmarshal(data, step)
-}
-
 func (step *OnAbortStep) Wrap(sub StepConfig) {
-	if step.Step != nil {
-		step.Step.Wrap(sub)
-	} else {
-		step.Step = sub
-	}
+	step.Step = sub
 }
 
 func (step *OnAbortStep) Unwrap() StepConfig {
@@ -622,16 +584,8 @@ type EnsureStep struct {
 	Hook Step       `json:"ensure"`
 }
 
-func (step *EnsureStep) ParseJSON(data []byte) error {
-	return json.Unmarshal(data, step)
-}
-
 func (step *EnsureStep) Wrap(sub StepConfig) {
-	if step.Step != nil {
-		step.Step.Wrap(sub)
-	} else {
-		step.Step = sub
-	}
+	step.Step = sub
 }
 
 func (step *EnsureStep) Unwrap() StepConfig {
@@ -640,6 +594,54 @@ func (step *EnsureStep) Unwrap() StepConfig {
 
 func (step *EnsureStep) Visit(v StepVisitor) error {
 	return v.VisitEnsure(step)
+}
+
+// MaxInFlightConfig can represent either running all values in an AcrossStep
+// in parallel or a applying a limit to the sub-steps that can run at once.
+type MaxInFlightConfig struct {
+	All   bool
+	Limit int
+}
+
+const MaxInFlightAll = "all"
+
+func (c *MaxInFlightConfig) UnmarshalJSON(version []byte) error {
+	if bytes.HasPrefix(version, []byte{'"'}) {
+		var data string
+		err := json.Unmarshal(version, &data)
+		if err != nil {
+			return err
+		}
+		if data != MaxInFlightAll {
+			return fmt.Errorf("invalid max_in_flight %q", data)
+		}
+		c.All = true
+		return nil
+	}
+	err := json.Unmarshal(version, &c.Limit)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *MaxInFlightConfig) MarshalJSON() ([]byte, error) {
+	if c.All {
+		return json.Marshal(MaxInFlightAll)
+	}
+
+	return json.Marshal(c.Limit)
+}
+
+func (c *MaxInFlightConfig) EffectiveLimit(numSteps int) int {
+	if c == nil {
+		return 1
+	}
+	if c.All {
+		return numSteps
+	}
+	return c.Limit
 }
 
 // A VersionConfig represents the choice to include every version of a

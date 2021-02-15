@@ -76,15 +76,16 @@ var _ = Describe("Jobs API", func() {
 		})
 
 		BeforeEach(func() {
-			dbJobFactory.VisibleJobsReturns(atc.Dashboard{
-				atc.DashboardJob{
+			dbJobFactory.VisibleJobsReturns([]atc.JobSummary{
+				{
 					ID:           1,
 					Name:         "some-job",
 					Paused:       true,
+					PipelineID:   1,
 					PipelineName: "some-pipeline",
 					TeamName:     "some-team",
 
-					Inputs: []atc.DashboardJobInput{
+					Inputs: []atc.JobInputSummary{
 						{
 							Name:     "some-input",
 							Resource: "some-input",
@@ -98,23 +99,25 @@ var _ = Describe("Jobs API", func() {
 						},
 					},
 
-					NextBuild: &atc.DashboardBuild{
+					NextBuild: &atc.BuildSummary{
 						ID:           3,
 						Name:         "2",
 						JobName:      "some-job",
+						PipelineID:   1,
 						PipelineName: "some-pipeline",
 						TeamName:     "some-team",
 						Status:       "started",
 					},
-					FinishedBuild: &atc.DashboardBuild{
+					FinishedBuild: &atc.BuildSummary{
 						ID:           1,
 						Name:         "1",
 						JobName:      "some-job",
+						PipelineID:   1,
 						PipelineName: "some-pipeline",
 						TeamName:     "some-team",
 						Status:       "succeeded",
-						StartTime:    time.Unix(1, 0),
-						EndTime:      time.Unix(100, 0),
+						StartTime:    1,
+						EndTime:      100,
 					},
 
 					Groups: []string{"group-1", "group-2"},
@@ -141,6 +144,7 @@ var _ = Describe("Jobs API", func() {
 			{
 				"id": 1,
 				"name": "some-job",
+				"pipeline_id": 1,
 				"pipeline_name": "some-pipeline",
 				"team_name": "some-team",
 				"paused": true,
@@ -150,7 +154,7 @@ var _ = Describe("Jobs API", func() {
 					"name": "2",
 					"status": "started",
 					"job_name": "some-job",
-					"api_url": "/api/v1/builds/3",
+					"pipeline_id": 1,
 					"pipeline_name": "some-pipeline"
 				},
 				"finished_build": {
@@ -159,7 +163,7 @@ var _ = Describe("Jobs API", func() {
 					"name": "1",
 					"status": "succeeded",
 					"job_name": "some-job",
-					"api_url": "/api/v1/builds/1",
+					"pipeline_id": 1,
 					"pipeline_name": "some-pipeline",
 					"start_time": 1,
 					"end_time": 100
@@ -167,8 +171,7 @@ var _ = Describe("Jobs API", func() {
 				"inputs": [
 					{
 						"name": "some-input",
-						"resource": "some-input",
-						"trigger": false
+						"resource": "some-input"
 					},
 					{
 						"name": "some-name",
@@ -319,6 +322,7 @@ var _ = Describe("Jobs API", func() {
 					build1.IDReturns(1)
 					build1.NameReturns("1")
 					build1.JobNameReturns("some-job")
+					build1.PipelineIDReturns(1)
 					build1.PipelineNameReturns("some-pipeline")
 					build1.TeamNameReturns("some-team")
 					build1.StatusReturns(db.BuildStatusSucceeded)
@@ -329,6 +333,7 @@ var _ = Describe("Jobs API", func() {
 					build2.IDReturns(3)
 					build2.NameReturns("2")
 					build2.JobNameReturns("some-job")
+					build2.PipelineIDReturns(1)
 					build2.PipelineNameReturns("some-pipeline")
 					build2.TeamNameReturns("some-team")
 					build2.StatusReturns(db.BuildStatusStarted)
@@ -349,6 +354,7 @@ var _ = Describe("Jobs API", func() {
 						fakeJob.IDReturns(1)
 						fakeJob.PausedReturns(true)
 						fakeJob.FirstLoggedBuildIDReturns(99)
+						fakeJob.PipelineIDReturns(1)
 						fakeJob.PipelineNameReturns("some-pipeline")
 						fakeJob.NameReturns("some-job")
 						fakeJob.TagsReturns([]string{"group-1", "group-2"})
@@ -437,6 +443,7 @@ var _ = Describe("Jobs API", func() {
 								Expect(body).To(MatchJSON(`{
 							"id": 1,
 							"name": "some-job",
+							"pipeline_id": 1,
 							"pipeline_name": "some-pipeline",
 							"team_name": "some-team",
 							"paused": true,
@@ -447,6 +454,7 @@ var _ = Describe("Jobs API", func() {
 								"job_name": "some-job",
 								"status": "started",
 								"api_url": "/api/v1/builds/3",
+								"pipeline_id": 1,
 								"pipeline_name": "some-pipeline",
 								"team_name": "some-team"
 							},
@@ -456,6 +464,7 @@ var _ = Describe("Jobs API", func() {
 								"job_name": "some-job",
 								"status": "succeeded",
 								"api_url": "/api/v1/builds/1",
+								"pipeline_id": 1,
 								"pipeline_name": "some-pipeline",
 								"team_name": "some-team",
 								"start_time": 1,
@@ -913,7 +922,7 @@ var _ = Describe("Jobs API", func() {
 
 	Describe("GET /api/v1/teams/:team_name/pipelines/:pipeline_name/jobs", func() {
 		var response *http.Response
-		var dashboardResponse atc.Dashboard
+		var dashboardResponse []atc.JobSummary
 
 		JustBeforeEach(func() {
 			var err error
@@ -926,42 +935,50 @@ var _ = Describe("Jobs API", func() {
 
 			BeforeEach(func() {
 
-				dashboardResponse = atc.Dashboard{
+				dashboardResponse = []atc.JobSummary{
 					{
-						ID:           1,
-						Name:         "job-1",
-						PipelineName: "another-pipeline",
-						TeamName:     "some-team",
-						Paused:       true,
-						NextBuild: &atc.DashboardBuild{
-							ID:           3,
-							Name:         "2",
-							JobName:      "job-1",
-							PipelineName: "another-pipeline",
-							TeamName:     "some-team",
-							Status:       "started",
+						ID:                   1,
+						Name:                 "job-1",
+						PipelineID:           2,
+						PipelineName:         "another-pipeline",
+						PipelineInstanceVars: atc.InstanceVars{"branch": "master"},
+						TeamName:             "some-team",
+						Paused:               true,
+						NextBuild: &atc.BuildSummary{
+							ID:                   3,
+							Name:                 "2",
+							JobName:              "job-1",
+							PipelineID:           2,
+							PipelineName:         "another-pipeline",
+							PipelineInstanceVars: atc.InstanceVars{"branch": "master"},
+							TeamName:             "some-team",
+							Status:               "started",
 						},
-						FinishedBuild: &atc.DashboardBuild{
-							ID:           1,
-							Name:         "1",
-							JobName:      "job-1",
-							PipelineName: "another-pipeline",
-							TeamName:     "some-team",
-							Status:       "succeeded",
-							StartTime:    time.Unix(1, 0),
-							EndTime:      time.Unix(100, 0),
+						FinishedBuild: &atc.BuildSummary{
+							ID:                   1,
+							Name:                 "1",
+							JobName:              "job-1",
+							PipelineID:           2,
+							PipelineName:         "another-pipeline",
+							PipelineInstanceVars: atc.InstanceVars{"branch": "master"},
+							TeamName:             "some-team",
+							Status:               "succeeded",
+							StartTime:            1,
+							EndTime:              100,
 						},
-						TransitionBuild: &atc.DashboardBuild{
-							ID:           5,
-							Name:         "five",
-							JobName:      "job-1",
-							PipelineName: "another-pipeline",
-							TeamName:     "some-team",
-							Status:       "failed",
-							StartTime:    time.Unix(101, 0),
-							EndTime:      time.Unix(200, 0),
+						TransitionBuild: &atc.BuildSummary{
+							ID:                   5,
+							Name:                 "five",
+							JobName:              "job-1",
+							PipelineID:           2,
+							PipelineName:         "another-pipeline",
+							PipelineInstanceVars: atc.InstanceVars{"branch": "master"},
+							TeamName:             "some-team",
+							Status:               "failed",
+							StartTime:            101,
+							EndTime:              200,
 						},
-						Inputs: []atc.DashboardJobInput{
+						Inputs: []atc.JobInputSummary{
 							{
 								Name:     "input-1",
 								Resource: "input-1",
@@ -972,24 +989,28 @@ var _ = Describe("Jobs API", func() {
 						},
 					},
 					{
-						ID:           2,
-						Name:         "job-2",
-						PipelineName: "another-pipeline",
-						TeamName:     "some-team",
-						Paused:       true,
-						NextBuild:    nil,
-						FinishedBuild: &atc.DashboardBuild{
-							ID:           4,
-							Name:         "1",
-							JobName:      "job-2",
-							PipelineName: "another-pipeline",
-							TeamName:     "some-team",
-							Status:       "succeeded",
-							StartTime:    time.Unix(101, 0),
-							EndTime:      time.Unix(200, 0),
+						ID:                   2,
+						Name:                 "job-2",
+						PipelineID:           2,
+						PipelineName:         "another-pipeline",
+						PipelineInstanceVars: atc.InstanceVars{"branch": "master"},
+						TeamName:             "some-team",
+						Paused:               true,
+						NextBuild:            nil,
+						FinishedBuild: &atc.BuildSummary{
+							ID:                   4,
+							Name:                 "1",
+							JobName:              "job-2",
+							PipelineID:           2,
+							PipelineName:         "another-pipeline",
+							PipelineInstanceVars: atc.InstanceVars{"branch": "master"},
+							TeamName:             "some-team",
+							Status:               "succeeded",
+							StartTime:            101,
+							EndTime:              200,
 						},
 						TransitionBuild: nil,
-						Inputs: []atc.DashboardJobInput{
+						Inputs: []atc.JobInputSummary{
 							{
 								Name:     "input-2",
 								Resource: "input-2",
@@ -1000,15 +1021,17 @@ var _ = Describe("Jobs API", func() {
 						},
 					},
 					{
-						ID:              3,
-						Name:            "job-3",
-						PipelineName:    "another-pipeline",
-						TeamName:        "some-team",
-						Paused:          true,
-						NextBuild:       nil,
-						FinishedBuild:   nil,
-						TransitionBuild: nil,
-						Inputs: []atc.DashboardJobInput{
+						ID:                   3,
+						Name:                 "job-3",
+						PipelineID:           2,
+						PipelineName:         "another-pipeline",
+						PipelineInstanceVars: atc.InstanceVars{"branch": "master"},
+						TeamName:             "some-team",
+						Paused:               true,
+						NextBuild:            nil,
+						FinishedBuild:        nil,
+						TransitionBuild:      nil,
+						Inputs: []atc.JobInputSummary{
 							{
 								Name:     "input-3",
 								Resource: "input-3",
@@ -1077,7 +1100,11 @@ var _ = Describe("Jobs API", func() {
 							{
 								"id": 1,
 								"name": "job-1",
+								"pipeline_id": 2,
 								"pipeline_name": "another-pipeline",
+								"pipeline_instance_vars": {
+									"branch": "master"
+								},
 								"team_name": "some-team",
 								"paused": true,
 								"next_build": {
@@ -1085,8 +1112,11 @@ var _ = Describe("Jobs API", func() {
 									"name": "2",
 									"job_name": "job-1",
 									"status": "started",
-									"api_url": "/api/v1/builds/3",
+									"pipeline_id": 2,
 									"pipeline_name": "another-pipeline",
+									"pipeline_instance_vars": {
+										"branch": "master"
+									},
 									"team_name": "some-team"
 								},
 								"finished_build": {
@@ -1094,8 +1124,11 @@ var _ = Describe("Jobs API", func() {
 									"name": "1",
 									"job_name": "job-1",
 									"status": "succeeded",
-									"api_url": "/api/v1/builds/1",
-									"pipeline_name":"another-pipeline",
+									"pipeline_id": 2,
+									"pipeline_name": "another-pipeline",
+									"pipeline_instance_vars": {
+										"branch": "master"
+									},
 									"team_name": "some-team",
 									"start_time": 1,
 									"end_time": 100
@@ -1105,53 +1138,63 @@ var _ = Describe("Jobs API", func() {
 									"name": "five",
 									"job_name": "job-1",
 									"status": "failed",
-									"api_url": "/api/v1/builds/5",
-									"pipeline_name":"another-pipeline",
+									"pipeline_id": 2,
+									"pipeline_name": "another-pipeline",
+									"pipeline_instance_vars": {
+										"branch": "master"
+									},
 									"team_name": "some-team",
 									"start_time": 101,
 									"end_time": 200
 								},
-								"inputs": [{"name": "input-1", "resource": "input-1", "trigger": false}],
+								"inputs": [{"name": "input-1", "resource": "input-1"}],
 								"groups": ["group-1", "group-2"]
 							},
 							{
 								"id": 2,
 								"name": "job-2",
+								"pipeline_id": 2,
 								"pipeline_name": "another-pipeline",
+								"pipeline_instance_vars": {
+									"branch": "master"
+								},
 								"team_name": "some-team",
 								"paused": true,
-								"next_build": null,
 								"finished_build": {
 									"id": 4,
 									"name": "1",
 									"job_name": "job-2",
 									"status": "succeeded",
-									"api_url": "/api/v1/builds/4",
+									"pipeline_id": 2,
 									"pipeline_name": "another-pipeline",
+									"pipeline_instance_vars": {
+										"branch": "master"
+									},
 									"team_name": "some-team",
 									"start_time": 101,
 									"end_time": 200
 								},
-								"inputs": [{"name": "input-2", "resource": "input-2", "trigger": false}],
+								"inputs": [{"name": "input-2", "resource": "input-2"}],
 								"groups": ["group-2"]
 							},
 							{
 								"id": 3,
 								"name": "job-3",
+								"pipeline_id": 2,
 								"pipeline_name": "another-pipeline",
+								"pipeline_instance_vars": {
+									"branch": "master"
+								},
 								"team_name": "some-team",
 								"paused": true,
-								"next_build": null,
-								"finished_build": null,
-								"inputs": [{"name": "input-3", "resource": "input-3", "trigger": false}],
-								"groups": []
+								"inputs": [{"name": "input-3", "resource": "input-3"}]
 							}
 						]`))
 				})
 
 				Context("when there are no jobs in dashboard", func() {
 					BeforeEach(func() {
-						dashboardResponse = atc.Dashboard{}
+						dashboardResponse = []atc.JobSummary{}
 						fakePipeline.DashboardReturns(dashboardResponse, nil)
 					})
 					It("should return an empty array", func() {
@@ -1237,8 +1280,6 @@ var _ = Describe("Jobs API", func() {
 
 						page := fakeJob.BuildsArgsForCall(0)
 						Expect(page).To(Equal(db.Page{
-							Since: 0,
-							Until: 0,
 							Limit: 100,
 						}))
 					})
@@ -1246,7 +1287,7 @@ var _ = Describe("Jobs API", func() {
 
 				Context("when all the params are passed", func() {
 					BeforeEach(func() {
-						queryParams = "?since=2&until=3&limit=8"
+						queryParams = "?from=2&to=3&limit=8"
 					})
 
 					It("passes them through", func() {
@@ -1254,8 +1295,8 @@ var _ = Describe("Jobs API", func() {
 
 						page := fakeJob.BuildsArgsForCall(0)
 						Expect(page).To(Equal(db.Page{
-							Since: 2,
-							Until: 3,
+							From:  db.NewIntPtr(2),
+							To:    db.NewIntPtr(3),
 							Limit: 8,
 						}))
 					})
@@ -1364,16 +1405,30 @@ var _ = Describe("Jobs API", func() {
 					Context("when next/previous pages are available", func() {
 						BeforeEach(func() {
 							fakeJob.BuildsReturns(returnedBuilds, db.Pagination{
-								Previous: &db.Page{Until: 4, Limit: 2},
-								Next:     &db.Page{Since: 2, Limit: 2},
+								Newer: &db.Page{From: db.NewIntPtr(4), Limit: 2},
+								Older: &db.Page{To: db.NewIntPtr(2), Limit: 2},
 							}, nil)
 						})
 
 						It("returns Link headers per rfc5988", func() {
 							Expect(response.Header["Link"]).To(ConsistOf([]string{
-								fmt.Sprintf(`<%s/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/builds?until=4&limit=2>; rel="previous"`, externalURL),
-								fmt.Sprintf(`<%s/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/builds?since=2&limit=2>; rel="next"`, externalURL),
+								fmt.Sprintf(`<%s/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/builds?from=4&limit=2>; rel="previous"`, externalURL),
+								fmt.Sprintf(`<%s/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/builds?to=2&limit=2>; rel="next"`, externalURL),
 							}))
+						})
+
+						Context("and builds are on instanced pipeline", func() {
+							BeforeEach(func() {
+								fakePipeline.InstanceVarsReturns(atc.InstanceVars{"branch": "master"})
+							})
+
+							It("returns Link headers per rfc5988", func() {
+								link := fmt.Sprintf(`<%s/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/builds?`, externalURL)
+								Expect(response.Header["Link"]).To(ConsistOf([]string{
+									link + `from=4&limit=2&vars.branch=%22master%22>; rel="previous"`,
+									link + `to=2&limit=2&vars.branch=%22master%22>; rel="next"`,
+								}))
+							})
 						})
 					})
 				})
@@ -1591,10 +1646,6 @@ var _ = Describe("Jobs API", func() {
 									It("runs the check from the current pinned version", func() {
 										_, _, _, fromVersion, _ := dbCheckFactory.TryCreateCheckArgsForCall(0)
 										Expect(fromVersion).To(Equal(atc.Version{"some": "version"}))
-									})
-
-									It("notifies the checker to run", func() {
-										Expect(dbCheckFactory.NotifyCheckerCallCount()).To(Equal(1))
 									})
 
 									It("returns the build", func() {

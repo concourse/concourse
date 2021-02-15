@@ -8,7 +8,14 @@ import Build.Models as Models
 import Build.StepTree.Models as STModels
 import Char
 import Colors
-import Common exposing (defineHoverBehaviour, isColorWithStripes)
+import Common
+    exposing
+        ( defineHoverBehaviour
+        , expectTooltip
+        , expectTooltipWith
+        , hoverOver
+        , isColorWithStripes
+        )
 import Concourse exposing (BuildPrepStatus(..))
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.Pagination exposing (Direction(..))
@@ -22,7 +29,7 @@ import Json.Encode as Encode
 import Keyboard
 import Message.Callback as Callback
 import Message.Effects as Effects
-import Message.Message
+import Message.Message exposing (DomID(..))
 import Message.ScrollDirection as ScrollDirection
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..))
 import Message.TopLevelMessage as Msgs
@@ -51,11 +58,7 @@ all =
     describe "build page" <|
         let
             buildId =
-                { teamName = "t"
-                , pipelineName = "p"
-                , jobName = "j"
-                , buildName = "1"
-                }
+                Data.jobBuildId
 
             flags =
                 { turbulenceImgSrc = ""
@@ -64,6 +67,12 @@ all =
                 , authToken = ""
                 , pipelineRunningKeyframes = ""
                 }
+
+            fetchPipeline : Application.Model -> ( Application.Model, List Effects.Effect )
+            fetchPipeline =
+                Application.handleCallback <|
+                    Callback.AllPipelinesFetched <|
+                        Ok [ Data.pipeline "t" 1 |> Data.withName "p" ]
 
             fetchBuild : BuildStatus -> Application.Model -> ( Application.Model, List Effects.Effect )
             fetchBuild status =
@@ -101,18 +110,7 @@ all =
                 Application.handleCallback <|
                     Callback.BuildJobDetailsFetched <|
                         Ok
-                            { name = "j"
-                            , pipelineName = "p"
-                            , teamName = "t"
-                            , nextBuild = Nothing
-                            , finishedBuild = Nothing
-                            , transitionBuild = Nothing
-                            , paused = False
-                            , disableManualTrigger = False
-                            , inputs = []
-                            , outputs = []
-                            , groups = []
-                            }
+                            (Data.job 0 |> Data.withShortPipelineId |> Data.withName "j")
 
             fetchJobDetailsNoTrigger :
                 Application.Model
@@ -121,18 +119,11 @@ all =
                 Application.handleCallback <|
                     Callback.BuildJobDetailsFetched <|
                         Ok
-                            { name = "j"
-                            , pipelineName = "p"
-                            , teamName = "t"
-                            , nextBuild = Nothing
-                            , finishedBuild = Nothing
-                            , transitionBuild = Nothing
-                            , paused = False
-                            , disableManualTrigger = True
-                            , inputs = []
-                            , outputs = []
-                            , groups = []
-                            }
+                            (Data.job 0
+                                |> Data.withShortPipelineId
+                                |> Data.withName "j"
+                                |> Data.withDisableManualTrigger True
+                            )
 
             fetchHistory :
                 Application.Model
@@ -652,6 +643,7 @@ all =
                                 Ok
                                     { id = 1
                                     , name = "1"
+                                    , teamName = "team"
                                     , job = Nothing
                                     , status = BuildStatusPending
                                     , duration =
@@ -693,21 +685,13 @@ all =
                     |> Application.handleCallback
                         (Callback.BuildFetched <|
                             Ok
-                                { id = 1
-                                , name = "1"
-                                , job =
-                                    Just
-                                        { teamName = "t"
-                                        , pipelineName = "p"
-                                        , jobName = "j"
+                                (Data.jobBuild BuildStatusSucceeded
+                                    |> Data.withDuration
+                                        { startedAt = buildTime
+                                        , finishedAt = buildTime
                                         }
-                                , status = BuildStatusSucceeded
-                                , duration =
-                                    { startedAt = buildTime
-                                    , finishedAt = buildTime
-                                    }
-                                , reapTime = buildTime
-                                }
+                                    |> Data.withReapTime buildTime
+                                )
                         )
                     |> Tuple.first
                     |> Application.handleCallback
@@ -735,21 +719,12 @@ all =
                     |> Application.handleCallback
                         (Callback.BuildFetched <|
                             Ok
-                                { id = 1
-                                , name = "1"
-                                , job =
-                                    Just
-                                        { teamName = "t"
-                                        , pipelineName = "p"
-                                        , jobName = "j"
+                                (Data.jobBuild BuildStatusAborted
+                                    |> Data.withDuration
+                                        { startedAt = Nothing
+                                        , finishedAt = Just <| Time.millisToPosix 0
                                         }
-                                , status = BuildStatusAborted
-                                , duration =
-                                    { startedAt = Nothing
-                                    , finishedAt = Just <| Time.millisToPosix 0
-                                    }
-                                , reapTime = Nothing
-                                }
+                                )
                         )
                     |> Tuple.first
                     |> Application.handleCallback
@@ -766,24 +741,7 @@ all =
             \_ ->
                 Common.init "/teams/t/pipelines/p/jobs/j/builds/1"
                     |> Application.handleCallback
-                        (Callback.BuildFetched <|
-                            Ok
-                                { id = 1
-                                , name = "1"
-                                , job =
-                                    Just
-                                        { teamName = "t"
-                                        , pipelineName = "p"
-                                        , jobName = "j"
-                                        }
-                                , status = BuildStatusPending
-                                , duration =
-                                    { startedAt = Nothing
-                                    , finishedAt = Nothing
-                                    }
-                                , reapTime = Nothing
-                                }
-                        )
+                        (Callback.BuildFetched <| Ok (Data.jobBuild BuildStatusPending))
                     |> Tuple.first
                     |> Application.handleCallback
                         (Callback.BuildPrepFetched 1 <| Data.httpUnauthorized)
@@ -812,16 +770,9 @@ all =
                     |> Application.handleCallback
                         (Callback.BuildFetched <|
                             Ok
-                                { id = 1
-                                , name = "1"
-                                , job = Nothing
-                                , status = BuildStatusStarted
-                                , duration =
-                                    { startedAt = Nothing
-                                    , finishedAt = Nothing
-                                    }
-                                , reapTime = Nothing
-                                }
+                                (Data.jobBuild BuildStatusStarted
+                                    |> Data.withJob Nothing
+                                )
                         )
                     |> Tuple.first
                     |> Application.handleCallback
@@ -871,17 +822,14 @@ all =
                     |> Application.handleCallback
                         (Callback.BuildFetched <|
                             Ok
-                                { id = 1
-                                , name = "1"
-                                , job = Nothing
-                                , status = BuildStatusStarted
-                                , duration =
-                                    { startedAt =
-                                        Just <| Time.millisToPosix 0
-                                    , finishedAt = Nothing
-                                    }
-                                , reapTime = Nothing
-                                }
+                                (Data.jobBuild BuildStatusStarted
+                                    |> Data.withJob Nothing
+                                    |> Data.withDuration
+                                        { startedAt =
+                                            Just <| Time.millisToPosix 0
+                                        , finishedAt = Nothing
+                                        }
+                                )
                         )
                     |> Tuple.first
                     |> Application.handleCallback
@@ -899,17 +847,16 @@ all =
                     |> Application.handleCallback
                         (Callback.BuildFetched <|
                             Ok
-                                { id = 2
-                                , name = "2"
-                                , job = Nothing
-                                , status = BuildStatusStarted
-                                , duration =
-                                    { startedAt =
-                                        Just <| Time.millisToPosix 0
-                                    , finishedAt = Nothing
-                                    }
-                                , reapTime = Nothing
-                                }
+                                (Data.jobBuild BuildStatusStarted
+                                    |> Data.withId 2
+                                    |> Data.withName "2"
+                                    |> Data.withJob Nothing
+                                    |> Data.withDuration
+                                        { startedAt =
+                                            Just <| Time.millisToPosix 0
+                                        , finishedAt = Nothing
+                                        }
+                                )
                         )
                     |> Tuple.first
                     |> Common.queryView
@@ -920,33 +867,29 @@ all =
                     |> Application.handleCallback
                         (Callback.BuildFetched <|
                             Ok
-                                { id = 1
-                                , name = "1"
-                                , job = Nothing
-                                , status = BuildStatusStarted
-                                , duration =
-                                    { startedAt =
-                                        Just <| Time.millisToPosix 0
-                                    , finishedAt = Nothing
-                                    }
-                                , reapTime = Nothing
-                                }
+                                (Data.jobBuild BuildStatusStarted
+                                    |> Data.withJob Nothing
+                                    |> Data.withDuration
+                                        { startedAt =
+                                            Just <| Time.millisToPosix 0
+                                        , finishedAt = Nothing
+                                        }
+                                )
                         )
                     |> Tuple.first
                     |> Application.handleCallback
                         (Callback.BuildFetched <|
                             Ok
-                                { id = 2
-                                , name = "2"
-                                , job = Nothing
-                                , status = BuildStatusStarted
-                                , duration =
-                                    { startedAt =
-                                        Just <| Time.millisToPosix 0
-                                    , finishedAt = Nothing
-                                    }
-                                , reapTime = Nothing
-                                }
+                                (Data.jobBuild BuildStatusStarted
+                                    |> Data.withId 2
+                                    |> Data.withName "2"
+                                    |> Data.withJob Nothing
+                                    |> Data.withDuration
+                                        { startedAt =
+                                            Just <| Time.millisToPosix 0
+                                        , finishedAt = Nothing
+                                        }
+                                )
                         )
                     |> Tuple.first
                     |> Common.queryView
@@ -957,22 +900,14 @@ all =
                     |> Application.handleCallback
                         (Callback.BuildFetched <|
                             Ok
-                                { id = 1
-                                , name = "1"
-                                , job =
-                                    Just
-                                        { teamName = "team"
-                                        , pipelineName = "pipeline"
-                                        , jobName = "job"
+                                (Data.jobBuild BuildStatusStarted
+                                    |> Data.withJob (Just Data.jobId)
+                                    |> Data.withDuration
+                                        { startedAt =
+                                            Just <| Time.millisToPosix 0
+                                        , finishedAt = Nothing
                                         }
-                                , status = BuildStatusStarted
-                                , duration =
-                                    { startedAt =
-                                        Just <| Time.millisToPosix 0
-                                    , finishedAt = Nothing
-                                    }
-                                , reapTime = Nothing
-                                }
+                                )
                         )
                     |> Tuple.first
                     |> Application.handleCallback
@@ -995,17 +930,14 @@ all =
                     |> Application.handleCallback
                         (Callback.BuildFetched <|
                             Ok
-                                { id = 1
-                                , name = "1"
-                                , job = Nothing
-                                , status = BuildStatusStarted
-                                , duration =
-                                    { startedAt =
-                                        Just <| Time.millisToPosix 0
-                                    , finishedAt = Nothing
-                                    }
-                                , reapTime = Nothing
-                                }
+                                (Data.jobBuild BuildStatusStarted
+                                    |> Data.withJob Nothing
+                                    |> Data.withDuration
+                                        { startedAt =
+                                            Just <| Time.millisToPosix 0
+                                        , finishedAt = Nothing
+                                        }
+                                )
                         )
                     |> Tuple.first
                     |> Application.handleCallback
@@ -1168,18 +1100,11 @@ all =
                     |> Application.handleCallback
                         (Callback.BuildJobDetailsFetched <|
                             Ok
-                                { name = ""
-                                , pipelineName = "p"
-                                , teamName = "t"
-                                , nextBuild = Nothing
-                                , finishedBuild = Nothing
-                                , transitionBuild = Nothing
-                                , paused = False
-                                , disableManualTrigger = False
-                                , inputs = []
-                                , outputs = []
-                                , groups = []
-                                }
+                                (Data.job 1
+                                    |> Data.withName "j"
+                                    |> Data.withPipelineName "p"
+                                    |> Data.withTeamName "t"
+                                )
                         )
                     |> Tuple.first
                     |> Application.update
@@ -1212,13 +1137,7 @@ all =
                                 }
                         )
                     |> Tuple.second
-                    |> Expect.equal
-                        [ Effects.DoTriggerBuild
-                            { teamName = "t"
-                            , pipelineName = "p"
-                            , jobName = "j"
-                            }
-                        ]
+                    |> Expect.equal [ Effects.DoTriggerBuild Data.shortJobId ]
         , test "pressing 'R' reruns build" <|
             \_ ->
                 Common.init "/teams/t/pipelines/p/jobs/j/builds/1"
@@ -1228,18 +1147,11 @@ all =
                     |> Application.handleCallback
                         (Callback.BuildJobDetailsFetched <|
                             Ok
-                                { name = ""
-                                , pipelineName = "p"
-                                , teamName = "t"
-                                , nextBuild = Nothing
-                                , finishedBuild = Nothing
-                                , transitionBuild = Nothing
-                                , paused = False
-                                , disableManualTrigger = False
-                                , inputs = []
-                                , outputs = []
-                                , groups = []
-                                }
+                                (Data.job 1
+                                    |> Data.withName "j"
+                                    |> Data.withPipelineName "p"
+                                    |> Data.withTeamName "t"
+                                )
                         )
                     |> Tuple.first
                     |> Application.update
@@ -1252,14 +1164,7 @@ all =
                                 }
                         )
                     |> Tuple.second
-                    |> Expect.equal
-                        [ Effects.RerunJobBuild
-                            { teamName = "t"
-                            , pipelineName = "p"
-                            , jobName = "j"
-                            , buildName = "1"
-                            }
-                        ]
+                    |> Expect.equal [ Effects.RerunJobBuild Data.jobBuildId ]
         , test "pressing 'R' does nothing if there is a running build" <|
             \_ ->
                 Common.init "/teams/t/pipelines/p/jobs/j/builds/1"
@@ -1269,18 +1174,11 @@ all =
                     |> Application.handleCallback
                         (Callback.BuildJobDetailsFetched <|
                             Ok
-                                { name = ""
-                                , pipelineName = "p"
-                                , teamName = "t"
-                                , nextBuild = Nothing
-                                , finishedBuild = Nothing
-                                , transitionBuild = Nothing
-                                , paused = False
-                                , disableManualTrigger = False
-                                , inputs = []
-                                , outputs = []
-                                , groups = []
-                                }
+                                (Data.job 1
+                                    |> Data.withName "j"
+                                    |> Data.withPipelineName "p"
+                                    |> Data.withTeamName "t"
+                                )
                         )
                     |> Tuple.first
                     |> Application.update
@@ -1396,24 +1294,12 @@ all =
                     , fragment = Nothing
                     }
                     |> Tuple.second
-                    |> Common.contains
-                        (Effects.FetchJobBuild
-                            { teamName = "t"
-                            , pipelineName = "p"
-                            , jobName = "j"
-                            , buildName = "1"
-                            }
-                        )
+                    |> Common.contains (Effects.FetchJobBuild Data.jobBuildId)
         , test "does not reload build when highlight is modified" <|
             \_ ->
                 let
                     buildParams =
-                        { id =
-                            { teamName = "t"
-                            , pipelineName = "p"
-                            , jobName = "j"
-                            , buildName = "1"
-                            }
+                        { id = Data.jobBuildId
                         , highlight = Routes.HighlightNothing
                         }
                 in
@@ -1496,6 +1382,8 @@ all =
             , test "has the breadcrumbs" <|
                 \_ ->
                     Common.init "/teams/t/pipelines/p/jobs/j/builds/1"
+                        |> fetchPipeline
+                        |> Tuple.first
                         |> Common.queryView
                         |> Query.find [ id "top-bar-app" ]
                         |> Expect.all
@@ -1507,6 +1395,8 @@ all =
             , test "has the breadcrumbs after fetching build" <|
                 \_ ->
                     Common.init "/builds/1"
+                        |> fetchPipeline
+                        |> Tuple.first
                         |> fetchBuild BuildStatusSucceeded
                         |> Tuple.first
                         |> Common.queryView
@@ -1565,21 +1455,8 @@ all =
                 givenBuildFetched
                     >> Tuple.second
                     >> Expect.all
-                        [ Common.contains
-                            (Effects.FetchBuildHistory
-                                { teamName = "t"
-                                , pipelineName = "p"
-                                , jobName = "j"
-                                }
-                                Nothing
-                            )
-                        , Common.contains
-                            (Effects.FetchBuildJobDetails
-                                { teamName = "t"
-                                , pipelineName = "p"
-                                , jobName = "j"
-                                }
-                            )
+                        [ Common.contains (Effects.FetchBuildHistory Data.shortJobId Nothing)
+                        , Common.contains (Effects.FetchBuildJobDetails Data.shortJobId)
                         ]
             , test "header is 60px tall" <|
                 givenBuildFetched
@@ -1806,7 +1683,7 @@ all =
                             [ attribute <|
                                 Attr.attribute "aria-label" "Trigger Build"
                             ]
-                , test """page contents lay out vertically, filling available 
+                , test """page contents lay out vertically, filling available
                           space without scrolling horizontally""" <|
                     givenHistoryAndDetailsFetched
                         >> Tuple.first
@@ -1830,27 +1707,19 @@ all =
                                         { previousPage = Nothing
                                         , nextPage =
                                             Just
-                                                { direction = Until 1
+                                                { direction = To 1
                                                 , limit = 100
                                                 }
                                         }
                                     , content =
                                         [ Data.jobBuild BuildStatusSucceeded
-                                        , { id = 2
-                                          , name = "2"
-                                          , job =
-                                                Just
-                                                    { teamName = "t"
-                                                    , pipelineName = "p"
-                                                    , jobName = "j"
-                                                    }
-                                          , status = BuildStatusSucceeded
-                                          , duration =
+                                        , Data.jobBuild BuildStatusSucceeded
+                                            |> Data.withId 2
+                                            |> Data.withName "2"
+                                            |> Data.withDuration
                                                 { startedAt = Just <| Time.millisToPosix 0
                                                 , finishedAt = Just <| Time.millisToPosix 0
                                                 }
-                                          , reapTime = Nothing
-                                          }
                                         ]
                                     }
                                 )
@@ -1879,27 +1748,19 @@ all =
                                         { previousPage = Nothing
                                         , nextPage =
                                             Just
-                                                { direction = Until 1
+                                                { direction = To 1
                                                 , limit = 100
                                                 }
                                         }
                                     , content =
                                         [ Data.jobBuild BuildStatusSucceeded
-                                        , { id = 2
-                                          , name = "2"
-                                          , job =
-                                                Just
-                                                    { teamName = "t"
-                                                    , pipelineName = "p"
-                                                    , jobName = "j"
-                                                    }
-                                          , status = BuildStatusSucceeded
-                                          , duration =
+                                        , Data.jobBuild BuildStatusSucceeded
+                                            |> Data.withId 2
+                                            |> Data.withName "2"
+                                            |> Data.withDuration
                                                 { startedAt = Just <| Time.millisToPosix 0
                                                 , finishedAt = Just <| Time.millisToPosix 0
                                                 }
-                                          , reapTime = Nothing
-                                          }
                                         ]
                                     }
                                 )
@@ -1937,27 +1798,19 @@ all =
                                         { previousPage = Nothing
                                         , nextPage =
                                             Just
-                                                { direction = Until 1
+                                                { direction = To 1
                                                 , limit = 100
                                                 }
                                         }
                                     , content =
                                         [ Data.jobBuild BuildStatusSucceeded
-                                        , { id = 2
-                                          , name = "2"
-                                          , job =
-                                                Just
-                                                    { teamName = "t"
-                                                    , pipelineName = "p"
-                                                    , jobName = "j"
-                                                    }
-                                          , status = BuildStatusSucceeded
-                                          , duration =
+                                        , Data.jobBuild BuildStatusSucceeded
+                                            |> Data.withId 2
+                                            |> Data.withName "2"
+                                            |> Data.withDuration
                                                 { startedAt = Just <| Time.millisToPosix 0
                                                 , finishedAt = Just <| Time.millisToPosix 0
                                                 }
-                                          , reapTime = Nothing
-                                          }
                                         ]
                                     }
                                 )
@@ -1966,12 +1819,7 @@ all =
                         >> Application.handleDelivery
                             (RouteChanged <|
                                 Routes.Build
-                                    { id =
-                                        { teamName = "t"
-                                        , pipelineName = "p"
-                                        , jobName = "j"
-                                        , buildName = "2"
-                                        }
+                                    { id = Data.jobBuildId |> Data.withBuildName "2"
                                     , highlight = Routes.HighlightNothing
                                     }
                             )
@@ -1988,27 +1836,19 @@ all =
                                         { previousPage = Nothing
                                         , nextPage =
                                             Just
-                                                { direction = Until 1
+                                                { direction = To 1
                                                 , limit = 100
                                                 }
                                         }
                                     , content =
                                         [ Data.jobBuild BuildStatusSucceeded
-                                        , { id = 2
-                                          , name = "2"
-                                          , job =
-                                                Just
-                                                    { teamName = "t"
-                                                    , pipelineName = "p"
-                                                    , jobName = "j"
-                                                    }
-                                          , status = BuildStatusSucceeded
-                                          , duration =
+                                        , Data.jobBuild BuildStatusSucceeded
+                                            |> Data.withId 2
+                                            |> Data.withName "2"
+                                            |> Data.withDuration
                                                 { startedAt = Just <| Time.millisToPosix 0
                                                 , finishedAt = Just <| Time.millisToPosix 0
                                                 }
-                                          , reapTime = Nothing
-                                          }
                                         ]
                                     }
                                 )
@@ -2034,27 +1874,19 @@ all =
                                         { previousPage = Nothing
                                         , nextPage =
                                             Just
-                                                { direction = Until 1
+                                                { direction = To 1
                                                 , limit = 100
                                                 }
                                         }
                                     , content =
                                         [ Data.jobBuild BuildStatusSucceeded
-                                        , { id = 2
-                                          , name = "2"
-                                          , job =
-                                                Just
-                                                    { teamName = "t"
-                                                    , pipelineName = "p"
-                                                    , jobName = "j"
-                                                    }
-                                          , status = BuildStatusSucceeded
-                                          , duration =
+                                        , Data.jobBuild BuildStatusSucceeded
+                                            |> Data.withId 2
+                                            |> Data.withName "2"
+                                            |> Data.withDuration
                                                 { startedAt = Just <| Time.millisToPosix 0
                                                 , finishedAt = Just <| Time.millisToPosix 0
                                                 }
-                                          , reapTime = Nothing
-                                          }
                                         ]
                                     }
                                 )
@@ -2081,7 +1913,7 @@ all =
                                             { previousPage = Nothing
                                             , nextPage =
                                                 Just
-                                                    { direction = Until 1
+                                                    { direction = To 1
                                                     , limit = 100
                                                     }
                                             }
@@ -2163,7 +1995,7 @@ all =
                                         { previousPage = Nothing
                                         , nextPage =
                                             Just
-                                                { direction = Until 1
+                                                { direction = To 1
                                                 , limit = 100
                                                 }
                                         }
@@ -2176,12 +2008,8 @@ all =
                             (Subscription.ElementVisible ( "1", True ))
                         >> Tuple.second
                         >> Expect.equal
-                            [ Effects.FetchBuildHistory
-                                { teamName = "t"
-                                , pipelineName = "p"
-                                , jobName = "j"
-                                }
-                                (Just { direction = Until 1, limit = 100 })
+                            [ Effects.FetchBuildHistory Data.shortJobId
+                                (Just { direction = To 1, limit = 100 })
                             ]
                 , test "scrolling to last build while fetching fetches no more" <|
                     givenBuildFetched
@@ -2193,7 +2021,7 @@ all =
                                         { previousPage = Nothing
                                         , nextPage =
                                             Just
-                                                { direction = Until 1
+                                                { direction = To 1
                                                 , limit = 100
                                                 }
                                         }
@@ -2226,7 +2054,7 @@ all =
                                         { previousPage = Nothing
                                         , nextPage =
                                             Just
-                                                { direction = Until 1
+                                                { direction = To 1
                                                 , limit = 100
                                                 }
                                         }
@@ -2242,38 +2070,22 @@ all =
                                         { previousPage = Nothing
                                         , nextPage =
                                             Just
-                                                { direction = Until 2
+                                                { direction = To 2
                                                 , limit = 100
                                                 }
                                         }
                                     , content =
-                                        [ { id = 2
-                                          , name = "2"
-                                          , job =
-                                                Just
-                                                    { teamName = "t"
-                                                    , pipelineName = "p"
-                                                    , jobName = "j"
-                                                    }
-                                          , status = BuildStatusSucceeded
-                                          , duration =
-                                                { startedAt = Nothing
-                                                , finishedAt = Nothing
-                                                }
-                                          , reapTime = Nothing
-                                          }
+                                        [ Data.jobBuild BuildStatusSucceeded
+                                            |> Data.withId 2
+                                            |> Data.withName "2"
                                         ]
                                     }
                                 )
                             )
                         >> Tuple.second
                         >> Common.notContains
-                            (Effects.FetchBuildHistory
-                                { teamName = "t"
-                                , pipelineName = "p"
-                                , jobName = "j"
-                                }
-                                (Just { direction = Until 2, limit = 100 })
+                            (Effects.FetchBuildHistory Data.shortJobId
+                                (Just { direction = To 2, limit = 100 })
                             )
                 , test "if build is present in history, checks its visibility" <|
                     givenBuildFetched
@@ -2285,7 +2097,7 @@ all =
                                         { previousPage = Nothing
                                         , nextPage =
                                             Just
-                                                { direction = Until 1
+                                                { direction = To 1
                                                 , limit = 100
                                                 }
                                         }
@@ -2305,7 +2117,7 @@ all =
                                         { previousPage = Nothing
                                         , nextPage =
                                             Just
-                                                { direction = Until 1
+                                                { direction = To 1
                                                 , limit = 100
                                                 }
                                         }
@@ -2328,7 +2140,7 @@ all =
                                         { previousPage = Nothing
                                         , nextPage =
                                             Just
-                                                { direction = Until 1
+                                                { direction = To 1
                                                 , limit = 100
                                                 }
                                         }
@@ -2354,38 +2166,22 @@ all =
                                         { previousPage = Nothing
                                         , nextPage =
                                             Just
-                                                { direction = Until 2
+                                                { direction = To 2
                                                 , limit = 100
                                                 }
                                         }
                                     , content =
-                                        [ { id = 2
-                                          , name = "2"
-                                          , job =
-                                                Just
-                                                    { teamName = "t"
-                                                    , pipelineName = "p"
-                                                    , jobName = "j"
-                                                    }
-                                          , status = BuildStatusSucceeded
-                                          , duration =
-                                                { startedAt = Nothing
-                                                , finishedAt = Nothing
-                                                }
-                                          , reapTime = Nothing
-                                          }
+                                        [ Data.jobBuild BuildStatusSucceeded
+                                            |> Data.withId 2
+                                            |> Data.withName "2"
                                         ]
                                     }
                                 )
                             )
                         >> Tuple.second
                         >> Expect.equal
-                            [ Effects.FetchBuildHistory
-                                { teamName = "t"
-                                , pipelineName = "p"
-                                , jobName = "j"
-                                }
-                                (Just { direction = Until 2, limit = 100 })
+                            [ Effects.FetchBuildHistory Data.shortJobId
+                                (Just { direction = To 2, limit = 100 })
                             ]
                 , test "trigger build button is styled as a box of the color of the build status" <|
                     givenHistoryAndDetailsFetched
@@ -2395,38 +2191,18 @@ all =
                             [ attribute <|
                                 Attr.attribute "aria-label" "Trigger Build"
                             ]
-                        >> Query.has
-                            [ style "padding" "10px"
-                            , style "background-color" brightGreen
-                            , style "outline" "none"
-                            , style "margin" "0"
-                            , style "border-width" "0 0 0 1px"
-                            , style "border-color" darkGreen
-                            , style "border-style" "solid"
-                            ]
+                        >> Query.has [ style "background-color" brightGreen ]
                 , test "hovered trigger build button is styled as a box of the secondary color of the build status" <|
                     givenHistoryAndDetailsFetched
                         >> Tuple.first
-                        >> Application.update
-                            (Msgs.Update <|
-                                Message.Message.Hover <|
-                                    Just Message.Message.TriggerBuildButton
-                            )
+                        >> hoverOver Message.Message.TriggerBuildButton
                         >> Tuple.first
                         >> Common.queryView
                         >> Query.find
                             [ attribute <|
                                 Attr.attribute "aria-label" "Trigger Build"
                             ]
-                        >> Query.has
-                            [ style "padding" "10px"
-                            , style "background-color" darkGreen
-                            , style "outline" "none"
-                            , style "margin" "0"
-                            , style "border-width" "0 0 0 1px"
-                            , style "border-color" darkGreen
-                            , style "border-style" "solid"
-                            ]
+                        >> Query.has [ style "background-color" darkGreen ]
                 , test "trigger build button has pointer cursor" <|
                     givenHistoryAndDetailsFetched
                         >> Tuple.first
@@ -2452,7 +2228,28 @@ all =
                                 , image = Assets.AddCircleIcon |> Assets.CircleOutlineIcon
                                 }
                             )
+                , test "hovering trigger build button displays a tooltip" <|
+                    givenHistoryAndDetailsFetched
+                        >> Tuple.first
+                        >> expectTooltip TriggerBuildButton "trigger a new build"
+                , test "rerun build button in the header" <|
+                    givenHistoryAndDetailsFetched
+                        >> Tuple.first
+                        >> Common.queryView
+                        >> Query.find [ id "build-header" ]
+                        >> Query.has
+                            [ attribute <|
+                                Attr.attribute "aria-label" "Rerun Build"
+                            ]
+                , test "hovering rerun build button displays a tooltip" <|
+                    givenHistoryAndDetailsFetched
+                        >> Tuple.first
+                        >> expectTooltip RerunBuildButton "re-run with the same inputs"
                 ]
+            , test "job name has a tooltip" <|
+                givenBuildFetched
+                    >> Tuple.first
+                    >> expectTooltip JobName "view job builds"
             , describe "when history and details fetched with manual triggering disabled" <|
                 let
                     givenHistoryAndDetailsFetched =
@@ -2490,22 +2287,19 @@ all =
                                 }
                         }
                     , hoveredSelector =
-                        { description = "grey plus icon with tooltip"
+                        { description = "grey plus icon"
                         , selector =
-                            [ style "position" "relative"
-                            , containing
-                                [ containing
-                                    [ text "manual triggering disabled in job config" ]
-                                ]
-                            , containing <|
-                                iconSelector
-                                    { size = "40px"
-                                    , image = Assets.AddCircleIcon |> Assets.CircleOutlineIcon
-                                    }
-                            ]
+                            iconSelector
+                                { size = "40px"
+                                , image = Assets.AddCircleIcon |> Assets.CircleOutlineIcon
+                                }
                         }
                     , hoverable = Message.Message.TriggerBuildButton
                     }
+                , test "hovering displays a tooltip" <|
+                    givenHistoryAndDetailsFetched
+                        >> Tuple.first
+                        >> expectTooltip TriggerBuildButton "manual triggering disabled in job config"
                 ]
             ]
         , describe "given build started and history and details fetched" <|
@@ -2546,38 +2340,22 @@ all =
                         [ attribute <|
                             Attr.attribute "aria-label" "Abort Build"
                         ]
-                    >> Query.has
-                        [ style "padding" "10px"
-                        , style "background-color" brightRed
-                        , style "outline" "none"
-                        , style "margin" "0"
-                        , style "border-width" "0 0 0 1px"
-                        , style "border-color" darkRed
-                        , style "border-style" "solid"
-                        ]
+                    >> Query.has [ style "background-color" brightRed ]
             , test "hovered abort build button is styled as a dark red box" <|
                 givenBuildStarted
                     >> Tuple.first
-                    >> Application.update
-                        (Msgs.Update <|
-                            Message.Message.Hover <|
-                                Just Message.Message.AbortBuildButton
-                        )
+                    >> hoverOver Message.Message.AbortBuildButton
                     >> Tuple.first
                     >> Common.queryView
                     >> Query.find
                         [ attribute <|
                             Attr.attribute "aria-label" "Abort Build"
                         ]
-                    >> Query.has
-                        [ style "padding" "10px"
-                        , style "background-color" darkRed
-                        , style "outline" "none"
-                        , style "margin" "0"
-                        , style "border-width" "0 0 0 1px"
-                        , style "border-color" darkRed
-                        , style "border-style" "solid"
-                        ]
+                    >> Query.has [ style "background-color" darkRed ]
+            , test "shows tooltip when hovered" <|
+                givenBuildStarted
+                    >> Tuple.first
+                    >> expectTooltip AbortBuildButton "abort the current build"
             , test "abort build button has pointer cursor" <|
                 givenBuildStarted
                     >> Tuple.first
@@ -2748,12 +2526,12 @@ all =
                             )
                         >> Expect.all
                             [ Tuple.second
-                                >> Expect.equal
-                                    [ Effects.OpenBuildEventStream
+                                >> Common.contains
+                                    (Effects.OpenBuildEventStream
                                         { url = "/api/v1/builds/1/events"
                                         , eventTypes = [ "end", "event" ]
                                         }
-                                    ]
+                                    )
                             , Tuple.first
                                 >> Application.subscriptions
                                 >> Common.contains
@@ -2778,6 +2556,57 @@ all =
                                         )
                                     )
                             ]
+                ]
+            , describe "sync sticky build log headers" <|
+                let
+                    setup _ =
+                        Common.init "/teams/t/pipelines/p/jobs/j/builds/1"
+                            |> fetchBuild BuildStatusStarted
+                            |> Tuple.first
+                            |> fetchHistory
+                            |> Tuple.first
+                            |> fetchJobDetails
+                            |> Tuple.first
+                in
+                [ test "on plan received" <|
+                    setup
+                        >> Application.handleCallback
+                            (Callback.PlanAndResourcesFetched 1 <|
+                                Ok <|
+                                    ( { id = "plan"
+                                      , step =
+                                            Concourse.BuildStepGet
+                                                "step"
+                                                Nothing
+                                      }
+                                    , { inputs = [], outputs = [] }
+                                    )
+                            )
+                        >> Tuple.second
+                        >> Common.contains Effects.SyncStickyBuildLogHeaders
+                , test "on header clicked" <|
+                    setup
+                        >> Application.update
+                            (Msgs.Update <|
+                                Message.Message.Click <|
+                                    Message.Message.StepHeader "plan"
+                            )
+                        >> Tuple.second
+                        >> Common.contains Effects.SyncStickyBuildLogHeaders
+                , test "on sub header clicked" <|
+                    setup
+                        >> Application.update
+                            (Msgs.Update <|
+                                Message.Message.Click <|
+                                    Message.Message.StepSubHeader "plan" 0
+                            )
+                        >> Tuple.second
+                        >> Common.contains Effects.SyncStickyBuildLogHeaders
+                , test "on window resized" <|
+                    setup
+                        >> Application.handleDelivery (WindowResized 1 2)
+                        >> Tuple.second
+                        >> Common.contains Effects.SyncStickyBuildLogHeaders
                 ]
             , describe "step header" <|
                 let
@@ -2863,8 +2692,8 @@ all =
                                 )
                             >> Tuple.first
 
-                    fetchPlanWithSetPipelineStep : () -> Application.Model
-                    fetchPlanWithSetPipelineStep =
+                    fetchPlanWithCheckStep : () -> Application.Model
+                    fetchPlanWithCheckStep =
                         givenBuildStarted
                             >> Tuple.first
                             >> Application.handleCallback
@@ -2872,8 +2701,26 @@ all =
                                     Ok <|
                                         ( { id = "plan"
                                           , step =
+                                                Concourse.BuildStepCheck
+                                                    "step"
+                                          }
+                                        , { inputs = [], outputs = [] }
+                                        )
+                                )
+                            >> Tuple.first
+
+                    fetchPlanWithSetPipelineStep : () -> Application.Model
+                    fetchPlanWithSetPipelineStep =
+                        givenBuildStarted
+                            >> Tuple.first
+                            >> Application.handleCallback
+                                (Callback.PlanAndResourcesFetched 1 <|
+                                    Ok <|
+                                        ( { id = "plan"
+                                          , step =
                                                 Concourse.BuildStepSetPipeline
                                                     "step"
+                                                    Dict.empty
                                           }
                                         , { inputs = [], outputs = [] }
                                         )
@@ -3077,6 +2924,10 @@ all =
                     fetchPlanWithTaskStep
                         >> Common.queryView
                         >> Query.has taskStepLabel
+                , test "check step shows check label" <|
+                    fetchPlanWithCheckStep
+                        >> Common.queryView
+                        >> Query.has checkStepLabel
                 , test "set_pipeline step shows set_pipeline label" <|
                     fetchPlanWithSetPipelineStep
                         >> Common.queryView
@@ -3101,6 +2952,13 @@ all =
                     fetchPlanWithGetStep
                         >> Common.queryView
                         >> Query.find getStepLabel
+                        >> Event.simulate Event.mouseEnter
+                        >> Event.toResult
+                        >> Expect.err
+                , test "hovering over a normal set_pipeline step label does nothing" <|
+                    fetchPlanWithSetPipelineStep
+                        >> Common.queryView
+                        >> Query.find setPipelineStepLabel
                         >> Event.simulate Event.mouseEnter
                         >> Event.toResult
                         >> Expect.err
@@ -3227,60 +3085,6 @@ all =
                         >> Common.queryView
                         >> Query.findAll [ text "new version" ]
                         >> Query.count (Expect.equal 1)
-                , test "artifact input step always has checkmark at the right" <|
-                    fetchPlanWithArtifactInputStep
-                        >> Common.queryView
-                        >> Query.find [ class "header" ]
-                        >> Query.children []
-                        >> Query.index -1
-                        >> Query.has
-                            (iconSelector
-                                { size = "28px"
-                                , image = Assets.SuccessCheckIcon
-                                }
-                                ++ [ style "background-size" "14px 14px" ]
-                            )
-                , test "artifact output step has pending icon while build runs" <|
-                    fetchPlanWithEnsureArtifactOutputStep
-                        >> Common.queryView
-                        >> Query.findAll [ class "header" ]
-                        >> Query.index -1
-                        >> Query.children []
-                        >> Query.index -1
-                        >> Query.has
-                            (iconSelector
-                                { size = "28px"
-                                , image = Assets.PendingIcon
-                                }
-                                ++ [ style "background-size" "14px 14px" ]
-                            )
-                , test "artifact output step has green check on finished build" <|
-                    fetchPlanWithEnsureArtifactOutputStep
-                        >> Application.handleDelivery
-                            (EventsReceived <|
-                                Ok <|
-                                    [ { url =
-                                            eventsUrl
-                                      , data =
-                                            STModels.BuildStatus
-                                                BuildStatusFailed
-                                                (Time.millisToPosix 0)
-                                      }
-                                    ]
-                            )
-                        >> Tuple.first
-                        >> Common.queryView
-                        >> Query.findAll [ class "header" ]
-                        >> Query.index -1
-                        >> Query.children []
-                        >> Query.index -1
-                        >> Query.has
-                            (iconSelector
-                                { size = "28px"
-                                , image = Assets.SuccessCheckIcon
-                                }
-                                ++ [ style "background-size" "14px 14px" ]
-                            )
                 , test "successful step has a checkmark at the far right" <|
                     fetchPlanWithGetStep
                         >> Application.handleDelivery
@@ -3377,7 +3181,7 @@ all =
                         >> Common.contains
                             (Effects.GetViewportOf <| Message.Message.StepState "plan")
                 , test "finished task lists initialization duration in tooltip" <|
-                    fetchPlanWithGetStep
+                    fetchPlanWithTaskStep
                         >> Application.handleDelivery
                             (EventsReceived <|
                                 Ok <|
@@ -3403,66 +3207,10 @@ all =
                                     ]
                             )
                         >> Tuple.first
-                        >> Application.update
-                            (Msgs.Update <|
-                                Message.Message.Hover <|
-                                    Just <|
-                                        Message.Message.StepState
-                                            "plan"
-                            )
-                        >> Tuple.first
-                        >> Application.handleDelivery
-                            (ClockTicked OneSecond <|
-                                Time.millisToPosix 1
-                            )
-                        >> Tuple.first
-                        >> Application.handleCallback
-                            (Callback.GotViewport (Message.Message.StepState "plan") <|
-                                Ok
-                                    { scene =
-                                        { width = 1
-                                        , height = 0
-                                        }
-                                    , viewport =
-                                        { width = 1
-                                        , height = 0
-                                        , x = 0
-                                        , y = 0
-                                        }
-                                    }
-                            )
-                        >> Tuple.first
-                        >> Application.handleCallback
-                            (Callback.GotElement <|
-                                Ok
-                                    { scene =
-                                        { width = 0
-                                        , height = 0
-                                        }
-                                    , viewport =
-                                        { width = 0
-                                        , height = 0
-                                        , x = 0
-                                        , y = 0
-                                        }
-                                    , element =
-                                        { x = 0
-                                        , y = 0
-                                        , width = 1
-                                        , height = 1
-                                        }
-                                    }
-                            )
-                        >> Tuple.first
-                        >> Common.queryView
-                        >> Query.find [ class "header" ]
-                        >> Query.children []
-                        >> Query.index -1
-                        >> Query.findAll [ tag "tr" ]
-                        >> Query.index 0
-                        >> Query.has [ text "initialization", text "10s" ]
+                        >> expectTooltipWith (StepState "plan")
+                            (Query.has [ text "initialization", text "10s" ])
                 , test "finished task lists step duration in tooltip" <|
-                    fetchPlanWithGetStep
+                    fetchPlanWithTaskStep
                         >> Application.handleDelivery
                             (EventsReceived <|
                                 Ok <|
@@ -3488,64 +3236,8 @@ all =
                                     ]
                             )
                         >> Tuple.first
-                        >> Application.update
-                            (Msgs.Update <|
-                                Message.Message.Hover <|
-                                    Just <|
-                                        Message.Message.StepState
-                                            "plan"
-                            )
-                        >> Tuple.first
-                        >> Application.handleDelivery
-                            (ClockTicked OneSecond <|
-                                Time.millisToPosix 1
-                            )
-                        >> Tuple.first
-                        >> Application.handleCallback
-                            (Callback.GotViewport (Message.Message.StepState "plan") <|
-                                Ok
-                                    { scene =
-                                        { width = 1
-                                        , height = 0
-                                        }
-                                    , viewport =
-                                        { width = 1
-                                        , height = 0
-                                        , x = 0
-                                        , y = 0
-                                        }
-                                    }
-                            )
-                        >> Tuple.first
-                        >> Application.handleCallback
-                            (Callback.GotElement <|
-                                Ok
-                                    { scene =
-                                        { width = 0
-                                        , height = 0
-                                        }
-                                    , viewport =
-                                        { width = 0
-                                        , height = 0
-                                        , x = 0
-                                        , y = 0
-                                        }
-                                    , element =
-                                        { x = 0
-                                        , y = 0
-                                        , width = 1
-                                        , height = 1
-                                        }
-                                    }
-                            )
-                        >> Tuple.first
-                        >> Common.queryView
-                        >> Query.find [ class "header" ]
-                        >> Query.children []
-                        >> Query.index -1
-                        >> Query.findAll [ tag "tr" ]
-                        >> Query.index 1
-                        >> Query.has [ text "step", text "20s" ]
+                        >> expectTooltipWith (StepState "plan")
+                            (Query.has [ text "step", text "20s" ])
                 , test "running step has loading spinner at the right" <|
                     fetchPlanWithTaskStep
                         >> Application.handleDelivery
@@ -3570,6 +3262,23 @@ all =
                             [ style "animation"
                                 "container-rotate 1568ms linear infinite"
                             ]
+                , test "running step shows running in tooltip" <|
+                    fetchPlanWithTaskStep
+                        >> Application.handleDelivery
+                            (EventsReceived <|
+                                Ok <|
+                                    [ { url = eventsUrl
+                                      , data =
+                                            STModels.StartTask
+                                                { source = "stdout"
+                                                , id = "plan"
+                                                }
+                                                (Time.millisToPosix 0)
+                                      }
+                                    ]
+                            )
+                        >> Tuple.first
+                        >> expectTooltip (StepState "plan") "running"
                 , test "pending step has dashed circle at the right" <|
                     fetchPlanWithTaskStep
                         >> Common.queryView
@@ -3583,7 +3292,10 @@ all =
                                 }
                                 ++ [ style "background-size" "14px 14px" ]
                             )
-                , test "cancelled step has no-entry circle at the right" <|
+                , test "pending step shows pending in tooltip" <|
+                    fetchPlanWithTaskStep
+                        >> expectTooltip (StepState "plan") "pending"
+                , test "interrupted step has no-entry circle at the right" <|
                     fetchPlanWithTaskStep
                         >> Application.handleDelivery
                             (EventsReceived <|
@@ -3616,7 +3328,30 @@ all =
                                 }
                                 ++ [ style "background-size" "14px 14px" ]
                             )
-                , test "interrupted step has dashed circle with dot at the right" <|
+                , test "interrupted step shows interrupted in tooltip" <|
+                    fetchPlanWithTaskStep
+                        >> Application.handleDelivery
+                            (EventsReceived <|
+                                Ok <|
+                                    [ { url = eventsUrl
+                                      , data =
+                                            STModels.InitializeTask
+                                                { source = "stdout"
+                                                , id = "plan"
+                                                }
+                                                (Time.millisToPosix 0)
+                                      }
+                                    , { url = eventsUrl
+                                      , data =
+                                            STModels.BuildStatus
+                                                BuildStatusAborted
+                                                (Time.millisToPosix 0)
+                                      }
+                                    ]
+                            )
+                        >> Tuple.first
+                        >> expectTooltip (StepState "plan") "interrupted"
+                , test "cancelled step has dashed circle with dot at the right" <|
                     fetchPlanWithTaskStep
                         >> Application.handleDelivery
                             (EventsReceived <|
@@ -3641,6 +3376,21 @@ all =
                                 }
                                 ++ [ style "background-size" "14px 14px" ]
                             )
+                , test "cancelled step shows cancelled in tooltip" <|
+                    fetchPlanWithTaskStep
+                        >> Application.handleDelivery
+                            (EventsReceived <|
+                                Ok <|
+                                    [ { url = eventsUrl
+                                      , data =
+                                            STModels.BuildStatus
+                                                BuildStatusAborted
+                                                (Time.millisToPosix 0)
+                                      }
+                                    ]
+                            )
+                        >> Tuple.first
+                        >> expectTooltip (StepState "plan") "cancelled"
                 , test "failing step has an X at the far right" <|
                     fetchPlanWithGetStep
                         >> Application.handleDelivery
@@ -3717,8 +3467,7 @@ all =
                         >> Tuple.first
                         >> Common.queryView
                         >> Query.find [ class "header" ]
-                        >> Query.has
-                            [ style "border" <| "1px solid " ++ Colors.frame ]
+                        >> Query.has [ style "border-color" "transparent" ]
                 , test "failing step has a red border" <|
                     fetchPlanWithGetStep
                         >> Application.handleDelivery
@@ -3739,7 +3488,7 @@ all =
                         >> Common.queryView
                         >> Query.find [ class "header" ]
                         >> Query.has
-                            [ style "border" <| "1px solid " ++ Colors.failure ]
+                            [ style "border-color" <| Colors.failure ]
                 , test "started step has a yellow border" <|
                     fetchPlanWithTaskStep
                         >> Application.handleDelivery
@@ -3759,7 +3508,50 @@ all =
                         >> Common.queryView
                         >> Query.find [ class "header" ]
                         >> Query.has
-                            [ style "border" <| "1px solid " ++ Colors.started ]
+                            [ style "border-color" <| Colors.started ]
+                , test "set_pipeline step that changed something has a yellow text" <|
+                    fetchPlanWithSetPipelineStep
+                        >> Application.handleDelivery
+                            (EventsReceived <|
+                                Ok <|
+                                    [ { url = eventsUrl
+                                      , data =
+                                            STModels.SetPipelineChanged
+                                                { source = "stdout", id = "plan" }
+                                                True
+                                      }
+                                    ]
+                            )
+                        >> Tuple.first
+                        >> Common.queryView
+                        >> Query.has changedSetPipelineStepLabel
+                , test "set_pipeline step that changed something tooltip appears after 1 second" <|
+                    fetchPlanWithSetPipelineStep
+                        >> Application.handleDelivery
+                            (EventsReceived <|
+                                Ok <|
+                                    [ { url = eventsUrl
+                                      , data =
+                                            STModels.SetPipelineChanged
+                                                { source = "stdout", id = "plan" }
+                                                True
+                                      }
+                                    ]
+                            )
+                        >> Tuple.first
+                        >> Application.handleDelivery
+                            (ClockTicked OneSecond <|
+                                Time.millisToPosix 0
+                            )
+                        >> Tuple.first
+                        >> hoverSetPipelineChangedLabel
+                        >> Application.handleDelivery
+                            (ClockTicked OneSecond <|
+                                Time.millisToPosix 1
+                            )
+                        >> Tuple.second
+                        >> Common.contains
+                            (Effects.GetViewportOf setPipelineChangedLabelID)
                 , test "network error on first event shows passport officer" <|
                     let
                         imgUrl =
@@ -3830,24 +3622,7 @@ all =
                             }
                             |> Tuple.first
                             |> Application.handleCallback
-                                (Callback.BuildFetched <|
-                                    Ok
-                                        { id = 1
-                                        , name = "1"
-                                        , job =
-                                            Just
-                                                { teamName = "t"
-                                                , pipelineName = "p"
-                                                , jobName = "j"
-                                                }
-                                        , status = BuildStatusStarted
-                                        , duration =
-                                            { startedAt = Nothing
-                                            , finishedAt = Nothing
-                                            }
-                                        , reapTime = Nothing
-                                        }
-                                )
+                                (Callback.BuildFetched <| Ok (Data.jobBuild BuildStatusStarted))
                             |> Tuple.first
                             |> Application.handleCallback
                                 (Callback.PlanAndResourcesFetched 1 <|
@@ -3984,6 +3759,22 @@ setPipelineStepLabel =
     ]
 
 
+changedSetPipelineStepLabel =
+    [ style "color" Colors.started
+    , style "line-height" "28px"
+    , style "padding-left" "6px"
+    , containing [ text "set_pipeline:" ]
+    ]
+
+
+checkStepLabel =
+    [ style "color" Colors.pending
+    , style "line-height" "28px"
+    , style "padding-left" "6px"
+    , containing [ text "check:" ]
+    ]
+
+
 loadVarStepLabel =
     [ style "color" Colors.pending
     , style "line-height" "28px"
@@ -3993,13 +3784,26 @@ loadVarStepLabel =
 
 
 firstOccurrenceLabelID =
-    Message.Message.FirstOccurrenceGetStepLabel
+    Message.Message.ChangedStepLabel
         "foo"
+        "new version"
 
 
 hoverFirstOccurrenceLabel =
     Application.update
         (Msgs.Update <| Message.Message.Hover <| Just firstOccurrenceLabelID)
+        >> Tuple.first
+
+
+setPipelineChangedLabelID =
+    Message.Message.ChangedStepLabel
+        "foo"
+        "pipeline config changed"
+
+
+hoverSetPipelineChangedLabel =
+    Application.update
+        (Msgs.Update <| Message.Message.Hover <| Just setPipelineChangedLabelID)
         >> Tuple.first
 
 

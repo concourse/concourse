@@ -1,15 +1,18 @@
 module SideBar.SideBar exposing
     ( Model
-    , hamburgerMenu
+    , byDatabaseId
+    , byPipelineId
     , handleCallback
     , handleDelivery
+    , isPipelineVisible
+    , lookupPipeline
+    , sideBarIcon
     , tooltip
     , update
     , view
     )
 
 import Assets
-import Colors
 import Concourse
 import EffectTransformer exposing (ET)
 import HoverState
@@ -19,9 +22,16 @@ import Html.Events exposing (onClick, onMouseDown, onMouseEnter, onMouseLeave)
 import List.Extra
 import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects
-import Message.Message exposing (DomID(..), Message(..))
+import Message.Message
+    exposing
+        ( DomID(..)
+        , Message(..)
+        , PipelinesSection(..)
+        , VisibilityAction(..)
+        )
 import Message.Subscription exposing (Delivery(..))
 import RemoteData exposing (RemoteData(..), WebData)
+import Routes
 import ScreenSize exposing (ScreenSize(..))
 import Set exposing (Set)
 import SideBar.State exposing (SideBarState)
@@ -30,16 +40,20 @@ import SideBar.Team as Team
 import SideBar.Views as Views
 import Tooltip
 import Views.Icon as Icon
+import Views.Styles
 
 
 type alias Model m =
     Tooltip.Model
         { m
-            | expandedTeams : Set String
+            | expandedTeamsInAllPipelines : Set String
+            , collapsedTeamsInFavorites : Set String
             , pipelines : WebData (List Concourse.Pipeline)
             , sideBarState : SideBarState
             , draggingSideBar : Bool
             , screenSize : ScreenSize.ScreenSize
+            , favoritedPipelines : Set Concourse.DatabaseID
+            , route : Routes.Route
         }
 
 
@@ -52,8 +66,25 @@ type alias PipelineScoped a =
 
 update : Message -> Model m -> ( Model m, List Effects.Effect )
 update message model =
+    let
+        toggle element set =
+            if Set.member element set then
+                Set.remove element set
+
+            else
+                Set.insert element set
+
+        toggleFavorite pipelineID =
+            let
+                favoritedPipelines =
+                    toggle pipelineID model.favoritedPipelines
+            in
+            ( { model | favoritedPipelines = favoritedPipelines }
+            , [ Effects.SaveFavoritedPipelines <| favoritedPipelines ]
+            )
+    in
     case message of
-        Click HamburgerMenu ->
+        Click SideBarIcon ->
             let
                 oldState =
                     model.sideBarState
@@ -65,66 +96,90 @@ update message model =
             , [ Effects.SaveSideBarState newState ]
             )
 
-        Click (SideBarTeam teamName) ->
-            ( { model
-                | expandedTeams =
-                    if Set.member teamName model.expandedTeams then
-                        Set.remove teamName model.expandedTeams
+        Click (SideBarTeam section teamName) ->
+            case section of
+                AllPipelinesSection ->
+                    ( { model
+                        | expandedTeamsInAllPipelines =
+                            toggle teamName model.expandedTeamsInAllPipelines
+                      }
+                    , []
+                    )
 
-                    else
-                        Set.insert teamName model.expandedTeams
-              }
-            , []
-            )
+                FavoritesSection ->
+                    ( { model
+                        | collapsedTeamsInFavorites =
+                            toggle teamName model.collapsedTeamsInFavorites
+                      }
+                    , []
+                    )
 
         Click SideBarResizeHandle ->
             ( { model | draggingSideBar = True }, [] )
 
-        Hover (Just (SideBarPipeline pipelineID)) ->
-            ( model
-            , [ Effects.GetViewportOf
-                    (SideBarPipeline pipelineID)
-              ]
-            )
+        Click (SideBarFavoritedIcon pipelineID) ->
+            toggleFavorite pipelineID
 
-        Hover (Just (SideBarTeam teamName)) ->
-            ( model
-            , [ Effects.GetViewportOf
-                    (SideBarTeam teamName)
-              ]
-            )
+        Click (PipelineCardFavoritedIcon _ pipelineID) ->
+            toggleFavorite pipelineID
+
+        Click (TopBarFavoritedIcon pipelineID) ->
+            toggleFavorite pipelineID
+
+        Hover (Just domID) ->
+            ( model, [ Effects.GetViewportOf domID ] )
 
         _ ->
             ( model, [] )
 
 
-handleCallback : Callback -> WebData (PipelineScoped a) -> ET (Model m)
-handleCallback callback currentPipeline ( model, effects ) =
+handleCallback : Callback -> ET (Model m)
+handleCallback callback ( model, effects ) =
     case callback of
         AllPipelinesFetched (Ok pipelines) ->
             ( { model
                 | pipelines = Success pipelines
-                , expandedTeams =
-                    case ( model.pipelines, currentPipeline ) of
-                        ( NotAsked, Success { teamName } ) ->
-                            Set.insert teamName model.expandedTeams
+                , expandedTeamsInAllPipelines =
+                    case ( model.pipelines, curPipeline pipelines model.route ) of
+                        -- First time receiving AllPipelines response
+                        ( NotAsked, Just { teamName } ) ->
+                            model.expandedTeamsInAllPipelines
+                                |> Set.insert teamName
 
                         _ ->
-                            model.expandedTeams
+                            model.expandedTeamsInAllPipelines
               }
             , effects
             )
 
         BuildFetched (Ok build) ->
             ( { model
-                | expandedTeams =
-                    case ( currentPipeline, build.job ) of
-                        ( NotAsked, Just { teamName } ) ->
-                            Set.insert teamName model.expandedTeams
+                | expandedTeamsInAllPipelines =
+                    case ( model.route, build.job, build ) of
+                        -- One-off build page for a job build should still expand team in sidebar
+                        ( Routes.OneOffBuild _, Just _, { teamName } ) ->
+                            model.expandedTeamsInAllPipelines
+                                |> Set.insert teamName
 
                         _ ->
-                            model.expandedTeams
+                            model.expandedTeamsInAllPipelines
               }
+            , effects
+            )
+
+        VisibilityChanged Hide id (Ok ()) ->
+            ( updatePipeline
+                (\p -> { p | public = False })
+                (byPipelineId id)
+                model
+            , effects
+            )
+
+        VisibilityChanged Expose id (Ok ()) ->
+            ( updatePipeline
+                (\p -> { p | public = True })
+                (byPipelineId id)
+                model
             , effects
             )
 
@@ -163,6 +218,9 @@ handleDelivery delivery ( model, effects ) =
                 []
             )
 
+        FavoritedPipelinesReceived (Ok pipelines) ->
+            ( { model | favoritedPipelines = pipelines }, effects )
+
         _ ->
             ( model, effects )
 
@@ -171,10 +229,7 @@ view : Model m -> Maybe (PipelineScoped a) -> Html Message
 view model currentPipeline =
     if
         model.sideBarState.isOpen
-            && not
-                (RemoteData.map List.isEmpty model.pipelines
-                    |> RemoteData.withDefault True
-                )
+            && hasVisiblePipelines model
             && (model.screenSize /= ScreenSize.Mobile)
     then
         let
@@ -186,22 +241,10 @@ view model currentPipeline =
         in
         Html.div
             (id "side-bar" :: Styles.sideBar newState)
-            ((model.pipelines
-                |> RemoteData.withDefault []
-                |> List.Extra.gatherEqualsBy .teamName
-                |> List.map
-                    (\( p, ps ) ->
-                        Team.team
-                            { hovered = model.hovered
-                            , pipelines = p :: ps
-                            , currentPipeline = currentPipeline
-                            }
-                            { name = p.teamName
-                            , isExpanded = Set.member p.teamName model.expandedTeams
-                            }
-                            |> Views.viewTeam
-                    )
-             )
+            -- I'd love to use the curPipeline function instead of passing it in to view,
+            -- but that doesn't work for OneOffBuilds that point to a JobBuild
+            (favoritedPipelinesSection model currentPipeline
+                ++ allPipelinesSection model currentPipeline
                 ++ [ Html.div
                         (Styles.sideBarHandle newState
                             ++ [ onMouseDown <| Click SideBarResizeHandle ]
@@ -215,68 +258,266 @@ view model currentPipeline =
 
 
 tooltip : Model m -> Maybe Tooltip.Tooltip
-tooltip { hovered } =
+tooltip model =
+    let
+        hovered =
+            model.hovered
+
+        sideBarState =
+            model.sideBarState
+
+        isSideBarClickable =
+            hasVisiblePipelines model
+    in
     case hovered of
-        HoverState.Tooltip (SideBarTeam teamName) _ ->
+        HoverState.Tooltip (SideBarTeam _ teamName) _ ->
             Just
-                { body = Html.div Styles.tooltipBody [ Html.text teamName ]
-                , attachPosition = { direction = Tooltip.Right, alignment = Tooltip.Middle 30 }
-                , arrow = Just { size = 15, color = Colors.frame }
+                { body = Html.text teamName
+                , attachPosition =
+                    { direction =
+                        Tooltip.Right (Styles.tooltipArrowSize - Styles.tooltipOffset)
+                    , alignment = Tooltip.Middle <| 2 * Styles.tooltipArrowSize
+                    }
+                , arrow = Just Styles.tooltipArrowSize
+                , containerAttrs = Just Styles.tooltipBody
                 }
 
-        HoverState.Tooltip (SideBarPipeline pipelineID) _ ->
+        HoverState.Tooltip (SideBarPipeline _ pipelineID) _ ->
             Just
-                { body = Html.div Styles.tooltipBody [ Html.text pipelineID.pipelineName ]
-                , attachPosition = { direction = Tooltip.Right, alignment = Tooltip.Middle 30 }
-                , arrow = Just { size = 15, color = Colors.frame }
+                { body = Html.text pipelineID.pipelineName
+                , attachPosition =
+                    { direction =
+                        Tooltip.Right <|
+                            Styles.tooltipArrowSize
+                                + (Styles.starPadding * 2)
+                                + Styles.starWidth
+                                - Styles.tooltipOffset
+                    , alignment = Tooltip.Middle <| 2 * Styles.tooltipArrowSize
+                    }
+                , arrow = Just Styles.tooltipArrowSize
+                , containerAttrs = Just Styles.tooltipBody
+                }
+
+        HoverState.Tooltip (SideBarInstanceGroup _ _ name) _ ->
+            Just
+                { body = Html.text name
+                , attachPosition =
+                    { direction = Tooltip.Right <| Styles.tooltipArrowSize - Styles.tooltipOffset
+                    , alignment = Tooltip.Middle <| 2 * Styles.tooltipArrowSize
+                    }
+                , arrow = Just Styles.tooltipArrowSize
+                , containerAttrs = Just Styles.tooltipBody
+                }
+
+        HoverState.Tooltip SideBarIcon _ ->
+            let
+                text =
+                    if not isSideBarClickable then
+                        "no visible pipelines"
+
+                    else if sideBarState.isOpen then
+                        "hide sidebar"
+
+                    else
+                        "show sidebar"
+            in
+            Just
+                { body = Html.text text
+                , attachPosition =
+                    { direction = Tooltip.Bottom
+                    , alignment = Tooltip.Middle <| 2 * Styles.tooltipArrowSize
+                    }
+                , arrow = Just 5
+                , containerAttrs = Just Styles.tooltipBody
                 }
 
         _ ->
             Nothing
 
 
-hamburgerMenu :
-    { a
-        | screenSize : ScreenSize
-        , pipelines : WebData (List Concourse.Pipeline)
-        , sideBarState : SideBarState
-        , hovered : HoverState.HoverState
-    }
-    -> Html Message
-hamburgerMenu model =
+allPipelinesSection : Model m -> Maybe (PipelineScoped a) -> List (Html Message)
+allPipelinesSection model currentPipeline =
+    [ Html.div Styles.sectionHeader [ Html.text "all pipelines" ]
+    , Html.div [ id "all-pipelines" ]
+        (model.pipelines
+            |> RemoteData.withDefault []
+            |> List.Extra.gatherEqualsBy .teamName
+            |> List.map
+                (\( p, ps ) ->
+                    Team.team
+                        { hovered = model.hovered
+                        , pipelines = (p :: ps) |> List.filter (isPipelineVisible model)
+                        , currentPipeline = currentPipeline
+                        , favoritedPipelines = model.favoritedPipelines
+                        , isFavoritesSection = False
+                        }
+                        { name = p.teamName
+                        , isExpanded = Set.member p.teamName model.expandedTeamsInAllPipelines
+                        }
+                        |> Views.viewTeam
+                )
+        )
+    ]
+
+
+favoritedPipelinesSection : Model m -> Maybe (PipelineScoped a) -> List (Html Message)
+favoritedPipelinesSection model currentPipeline =
+    let
+        favoritedPipelines =
+            model.pipelines
+                |> RemoteData.withDefault []
+                |> List.filter
+                    (\fp ->
+                        Set.member fp.id model.favoritedPipelines
+                    )
+    in
+    if List.isEmpty favoritedPipelines then
+        []
+
+    else
+        [ Html.div Styles.sectionHeader [ Html.text "favorite pipelines" ]
+        , Html.div [ id "favorites" ]
+            (favoritedPipelines
+                |> List.Extra.gatherEqualsBy .teamName
+                |> List.map
+                    (\( p, ps ) ->
+                        Team.team
+                            { hovered = model.hovered
+                            , pipelines = p :: ps
+                            , currentPipeline = currentPipeline
+                            , favoritedPipelines = model.favoritedPipelines
+                            , isFavoritesSection = True
+                            }
+                            { name = p.teamName
+                            , isExpanded =
+                                not <|
+                                    Set.member p.teamName model.collapsedTeamsInFavorites
+                            }
+                            |> Views.viewTeam
+                    )
+            )
+        , Views.Styles.separator 10
+        ]
+
+
+sideBarIcon : Model m -> Html Message
+sideBarIcon model =
     if model.screenSize == Mobile then
         Html.text ""
 
     else
         let
-            isHamburgerClickable =
-                RemoteData.map (not << List.isEmpty) model.pipelines
-                    |> RemoteData.withDefault False
+            isSideBarClickable =
+                hasVisiblePipelines model
+
+            isOpen =
+                model.sideBarState.isOpen
+
+            isHovered =
+                HoverState.isHovered SideBarIcon model.hovered
+
+            assetSideBarIcon =
+                if not isSideBarClickable then
+                    Assets.SideBarIconOpenedGrey
+
+                else if isOpen && isHovered then
+                    Assets.SideBarIconClosedWhite
+
+                else if isOpen && not isHovered then
+                    Assets.SideBarIconClosedGrey
+
+                else if not isOpen && isHovered then
+                    Assets.SideBarIconOpenedWhite
+
+                else
+                    Assets.SideBarIconOpenedGrey
         in
         Html.div
-            (id "hamburger-menu"
-                :: Styles.hamburgerMenu
-                    { isSideBarOpen = model.sideBarState.isOpen
-                    , isClickable = isHamburgerClickable
-                    }
-                ++ [ onMouseEnter <| Hover <| Just HamburgerMenu
+            (id "sidebar-icon"
+                :: Styles.sideBarMenu isSideBarClickable
+                ++ [ onMouseEnter <| Hover <| Just SideBarIcon
                    , onMouseLeave <| Hover Nothing
                    ]
-                ++ (if isHamburgerClickable then
-                        [ onClick <| Click HamburgerMenu ]
+                ++ (if isSideBarClickable then
+                        [ onClick <| Click SideBarIcon ]
 
                     else
                         []
                    )
             )
             [ Icon.icon
-                { sizePx = 54, image = Assets.HamburgerMenuIcon }
-              <|
-                (Styles.hamburgerIcon <|
-                    { isHovered =
-                        isHamburgerClickable
-                            && HoverState.isHovered HamburgerMenu model.hovered
-                    , isActive = model.sideBarState.isOpen
-                    }
-                )
+                { sizePx = 54, image = assetSideBarIcon }
+                []
             ]
+
+
+hasVisiblePipelines : Model m -> Bool
+hasVisiblePipelines model =
+    model.pipelines
+        |> RemoteData.map (List.any (isPipelineVisible model))
+        |> RemoteData.withDefault False
+
+
+isPipelineVisible : { a | favoritedPipelines : Set Concourse.DatabaseID } -> Concourse.Pipeline -> Bool
+isPipelineVisible { favoritedPipelines } p =
+    not p.archived || Set.member p.id favoritedPipelines
+
+
+updatePipeline :
+    (Concourse.Pipeline -> Concourse.Pipeline)
+    -> (Concourse.Pipeline -> Bool)
+    -> { b | pipelines : WebData (List Concourse.Pipeline) }
+    -> { b | pipelines : WebData (List Concourse.Pipeline) }
+updatePipeline updater predicate model =
+    { model
+        | pipelines =
+            model.pipelines
+                |> RemoteData.map (List.Extra.updateIf predicate updater)
+    }
+
+
+lookupPipeline :
+    (Concourse.Pipeline -> Bool)
+    -> { b | pipelines : WebData (List Concourse.Pipeline) }
+    -> Maybe Concourse.Pipeline
+lookupPipeline predicate { pipelines } =
+    case pipelines of
+        Success ps ->
+            List.Extra.find predicate ps
+
+        _ ->
+            Nothing
+
+
+byDatabaseId : Concourse.DatabaseID -> Concourse.Pipeline -> Bool
+byDatabaseId id =
+    .id >> (==) id
+
+
+byPipelineId :
+    { r | teamName : String, pipelineName : String, pipelineInstanceVars : Concourse.InstanceVars }
+    -> Concourse.Pipeline
+    -> Bool
+byPipelineId pipelineId p =
+    (p.name == pipelineId.pipelineName)
+        && (p.teamName == pipelineId.teamName)
+        && (p.instanceVars == pipelineId.pipelineInstanceVars)
+
+
+curPipeline : List Concourse.Pipeline -> Routes.Route -> Maybe Concourse.Pipeline
+curPipeline pipelines route =
+    case route of
+        Routes.Build { id } ->
+            List.Extra.find (byPipelineId id) pipelines
+
+        Routes.Resource { id } ->
+            List.Extra.find (byPipelineId id) pipelines
+
+        Routes.Job { id } ->
+            List.Extra.find (byPipelineId id) pipelines
+
+        Routes.Pipeline { id } ->
+            List.Extra.find (byPipelineId id) pipelines
+
+        _ ->
+            Nothing

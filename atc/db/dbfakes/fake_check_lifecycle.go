@@ -3,97 +3,82 @@ package dbfakes
 
 import (
 	"sync"
-	"time"
 
 	"github.com/concourse/concourse/atc/db"
 )
 
 type FakeCheckLifecycle struct {
-	RemoveExpiredChecksStub        func(time.Duration) (int, error)
-	removeExpiredChecksMutex       sync.RWMutex
-	removeExpiredChecksArgsForCall []struct {
-		arg1 time.Duration
+	DeleteCompletedChecksStub        func() error
+	deleteCompletedChecksMutex       sync.RWMutex
+	deleteCompletedChecksArgsForCall []struct {
 	}
-	removeExpiredChecksReturns struct {
-		result1 int
-		result2 error
+	deleteCompletedChecksReturns struct {
+		result1 error
 	}
-	removeExpiredChecksReturnsOnCall map[int]struct {
-		result1 int
-		result2 error
+	deleteCompletedChecksReturnsOnCall map[int]struct {
+		result1 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeCheckLifecycle) RemoveExpiredChecks(arg1 time.Duration) (int, error) {
-	fake.removeExpiredChecksMutex.Lock()
-	ret, specificReturn := fake.removeExpiredChecksReturnsOnCall[len(fake.removeExpiredChecksArgsForCall)]
-	fake.removeExpiredChecksArgsForCall = append(fake.removeExpiredChecksArgsForCall, struct {
-		arg1 time.Duration
-	}{arg1})
-	fake.recordInvocation("RemoveExpiredChecks", []interface{}{arg1})
-	fake.removeExpiredChecksMutex.Unlock()
-	if fake.RemoveExpiredChecksStub != nil {
-		return fake.RemoveExpiredChecksStub(arg1)
+func (fake *FakeCheckLifecycle) DeleteCompletedChecks() error {
+	fake.deleteCompletedChecksMutex.Lock()
+	ret, specificReturn := fake.deleteCompletedChecksReturnsOnCall[len(fake.deleteCompletedChecksArgsForCall)]
+	fake.deleteCompletedChecksArgsForCall = append(fake.deleteCompletedChecksArgsForCall, struct {
+	}{})
+	fake.recordInvocation("DeleteCompletedChecks", []interface{}{})
+	fake.deleteCompletedChecksMutex.Unlock()
+	if fake.DeleteCompletedChecksStub != nil {
+		return fake.DeleteCompletedChecksStub()
 	}
 	if specificReturn {
-		return ret.result1, ret.result2
+		return ret.result1
 	}
-	fakeReturns := fake.removeExpiredChecksReturns
-	return fakeReturns.result1, fakeReturns.result2
+	fakeReturns := fake.deleteCompletedChecksReturns
+	return fakeReturns.result1
 }
 
-func (fake *FakeCheckLifecycle) RemoveExpiredChecksCallCount() int {
-	fake.removeExpiredChecksMutex.RLock()
-	defer fake.removeExpiredChecksMutex.RUnlock()
-	return len(fake.removeExpiredChecksArgsForCall)
+func (fake *FakeCheckLifecycle) DeleteCompletedChecksCallCount() int {
+	fake.deleteCompletedChecksMutex.RLock()
+	defer fake.deleteCompletedChecksMutex.RUnlock()
+	return len(fake.deleteCompletedChecksArgsForCall)
 }
 
-func (fake *FakeCheckLifecycle) RemoveExpiredChecksCalls(stub func(time.Duration) (int, error)) {
-	fake.removeExpiredChecksMutex.Lock()
-	defer fake.removeExpiredChecksMutex.Unlock()
-	fake.RemoveExpiredChecksStub = stub
+func (fake *FakeCheckLifecycle) DeleteCompletedChecksCalls(stub func() error) {
+	fake.deleteCompletedChecksMutex.Lock()
+	defer fake.deleteCompletedChecksMutex.Unlock()
+	fake.DeleteCompletedChecksStub = stub
 }
 
-func (fake *FakeCheckLifecycle) RemoveExpiredChecksArgsForCall(i int) time.Duration {
-	fake.removeExpiredChecksMutex.RLock()
-	defer fake.removeExpiredChecksMutex.RUnlock()
-	argsForCall := fake.removeExpiredChecksArgsForCall[i]
-	return argsForCall.arg1
+func (fake *FakeCheckLifecycle) DeleteCompletedChecksReturns(result1 error) {
+	fake.deleteCompletedChecksMutex.Lock()
+	defer fake.deleteCompletedChecksMutex.Unlock()
+	fake.DeleteCompletedChecksStub = nil
+	fake.deleteCompletedChecksReturns = struct {
+		result1 error
+	}{result1}
 }
 
-func (fake *FakeCheckLifecycle) RemoveExpiredChecksReturns(result1 int, result2 error) {
-	fake.removeExpiredChecksMutex.Lock()
-	defer fake.removeExpiredChecksMutex.Unlock()
-	fake.RemoveExpiredChecksStub = nil
-	fake.removeExpiredChecksReturns = struct {
-		result1 int
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeCheckLifecycle) RemoveExpiredChecksReturnsOnCall(i int, result1 int, result2 error) {
-	fake.removeExpiredChecksMutex.Lock()
-	defer fake.removeExpiredChecksMutex.Unlock()
-	fake.RemoveExpiredChecksStub = nil
-	if fake.removeExpiredChecksReturnsOnCall == nil {
-		fake.removeExpiredChecksReturnsOnCall = make(map[int]struct {
-			result1 int
-			result2 error
+func (fake *FakeCheckLifecycle) DeleteCompletedChecksReturnsOnCall(i int, result1 error) {
+	fake.deleteCompletedChecksMutex.Lock()
+	defer fake.deleteCompletedChecksMutex.Unlock()
+	fake.DeleteCompletedChecksStub = nil
+	if fake.deleteCompletedChecksReturnsOnCall == nil {
+		fake.deleteCompletedChecksReturnsOnCall = make(map[int]struct {
+			result1 error
 		})
 	}
-	fake.removeExpiredChecksReturnsOnCall[i] = struct {
-		result1 int
-		result2 error
-	}{result1, result2}
+	fake.deleteCompletedChecksReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeCheckLifecycle) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.removeExpiredChecksMutex.RLock()
-	defer fake.removeExpiredChecksMutex.RUnlock()
+	fake.deleteCompletedChecksMutex.RLock()
+	defer fake.deleteCompletedChecksMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

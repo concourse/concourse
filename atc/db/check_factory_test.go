@@ -2,7 +2,7 @@ package db_test
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"time"
 
 	"github.com/concourse/concourse/atc"
@@ -13,82 +13,31 @@ import (
 )
 
 var _ = Describe("CheckFactory", func() {
-
 	var (
-		err                 error
-		resourceConfigScope db.ResourceConfigScope
-		metadata            db.CheckMetadata
+		err     error
+		created bool
+		build   db.Build
 	)
 
-	BeforeEach(func() {
-		setupTx, err := dbConn.Begin()
-		Expect(err).ToNot(HaveOccurred())
-
-		brt := db.BaseResourceType{
-			Name: "some-base-resource-type",
-		}
-
-		_, err = brt.FindOrCreate(setupTx, false)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(setupTx.Commit()).To(Succeed())
-
-		resourceConfigScope, err = defaultResource.SetResourceConfig(atc.Source{"some": "repository"}, atc.VersionedResourceTypes{})
-		Expect(err).NotTo(HaveOccurred())
-
-		metadata = db.CheckMetadata{
-			TeamID:             defaultTeam.ID(),
-			TeamName:           defaultTeam.Name(),
-			PipelineName:       defaultPipeline.Name(),
-			ResourceConfigID:   resourceConfigScope.ResourceConfig().ID(),
-			BaseResourceTypeID: resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID,
-		}
-	})
-
-	Describe("Check", func() {
-		var created, found bool
-		var check, foundCheck db.Check
-
-		BeforeEach(func() {
-			check, created, err = checkFactory.CreateCheck(
-				resourceConfigScope.ID(),
-				false,
-				atc.Plan{Check: &atc.CheckPlan{Name: "some-name", Type: "some-type"}},
-				metadata,
-				map[string]string{"fake": "span"},
-			)
-			Expect(created).To(BeTrue())
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		JustBeforeEach(func() {
-			foundCheck, found, err = checkFactory.Check(check.ID())
-		})
-
-		It("succeeds", func() {
-			Expect(found).To(BeTrue())
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		It("returns the db check", func() {
-			Expect(foundCheck).To(Equal(check))
-		})
-	})
-
 	Describe("TryCreateCheck", func() {
-
 		var (
-			created bool
-			check   db.Check
-
 			fakeResource      *dbfakes.FakeResource
 			fakeResourceType  *dbfakes.FakeResourceType
-			fakeResourceTypes []db.ResourceType
+			fakeResourceTypes db.ResourceTypes
 			fromVersion       atc.Version
 			manuallyTriggered bool
+
+			checkPlan atc.CheckPlan
+			fakeBuild *dbfakes.FakeBuild
 		)
 
 		BeforeEach(func() {
 			fromVersion = atc.Version{"from": "version"}
+
+			checkPlan = atc.CheckPlan{
+				Type:   "doesnt-matter",
+				Source: atc.Source{"doesnt": "matter"},
+			}
 
 			fakeResource = new(dbfakes.FakeResource)
 			fakeResource.NameReturns("some-name")
@@ -96,23 +45,30 @@ var _ = Describe("CheckFactory", func() {
 			fakeResource.SourceReturns(atc.Source{"some": "source"})
 			fakeResource.PipelineIDReturns(defaultPipeline.ID())
 			fakeResource.PipelineNameReturns(defaultPipeline.Name())
+			fakeResource.PipelineInstanceVarsReturns(defaultPipeline.InstanceVars())
 			fakeResource.PipelineReturns(defaultPipeline, true, nil)
+			fakeResource.CheckPlanReturns(checkPlan)
+
+			fakeBuild = new(dbfakes.FakeBuild)
+			fakeResource.CreateBuildReturns(fakeBuild, true, nil)
 
 			fakeResourceType = new(dbfakes.FakeResourceType)
 			fakeResourceType.NameReturns("some-type")
 			fakeResourceType.TypeReturns("some-base-type")
 			fakeResourceType.TagsReturns([]string{"some-tag"})
 			fakeResourceType.SourceReturns(atc.Source{"some": "type-source"})
+			fakeResourceType.DefaultsReturns(atc.Source{"some-default": "some-default-value"})
 			fakeResourceType.PipelineIDReturns(defaultPipeline.ID())
 			fakeResourceType.PipelineNameReturns(defaultPipeline.Name())
+			fakeResourceType.PipelineInstanceVarsReturns(defaultPipeline.InstanceVars())
 			fakeResourceType.PipelineReturns(defaultPipeline, true, nil)
 
-			fakeResourceTypes = []db.ResourceType{fakeResourceType}
-			manuallyTriggered = true
+			fakeResourceTypes = db.ResourceTypes{fakeResourceType}
+			manuallyTriggered = false
 		})
 
 		JustBeforeEach(func() {
-			check, created, err = checkFactory.TryCreateCheck(context.TODO(), fakeResource, fakeResourceTypes, fromVersion, manuallyTriggered)
+			build, created, err = checkFactory.TryCreateCheck(context.TODO(), fakeResource, fakeResourceTypes, fromVersion, manuallyTriggered)
 		})
 
 		Context("when the resource parent type is not a custom type", func() {
@@ -120,144 +76,103 @@ var _ = Describe("CheckFactory", func() {
 				fakeResource.TypeReturns("base-type")
 			})
 
-			Context("when the configured timeout is not parseable", func() {
+			It("returns the build", func() {
+				Expect(err).NotTo(HaveOccurred())
+				Expect(created).To(BeTrue())
+				Expect(build).To(Equal(fakeBuild))
+			})
+
+			It("starts the build with the check plan", func() {
+				Expect(fakeResource.CreateBuildCallCount()).To(Equal(1))
+				_, manuallyTriggered, plan := fakeResource.CreateBuildArgsForCall(0)
+				Expect(manuallyTriggered).To(BeFalse())
+				Expect(plan.ID).ToNot(BeEmpty())
+				Expect(plan.Check).To(Equal(&checkPlan))
+			})
+
+			Context("when the interval has not elapsed", func() {
 				BeforeEach(func() {
-					fakeResource.CheckTimeoutReturns("not-a-duration")
+					fakeResource.LastCheckEndTimeReturns(time.Now().Add(defaultCheckInterval))
 				})
 
-				It("errors", func() {
-					Expect(err).To(HaveOccurred())
+				It("does not create a build for the resource", func() {
+					Expect(fakeResource.CheckPlanCallCount()).To(Equal(0))
+					Expect(fakeResource.CreateBuildCallCount()).To(Equal(0))
+				})
+
+				Context("but the check is manually triggered", func() {
+					BeforeEach(func() {
+						manuallyTriggered = true
+					})
+
+					It("creates the build anyway", func() {
+						Expect(fakeResource.CheckPlanCallCount()).To(Equal(1))
+						Expect(fakeResource.CreateBuildCallCount()).To(Equal(1))
+					})
 				})
 			})
 
-			Context("when the configured timeout is parseable", func() {
+			Context("when a build is not created", func() {
 				BeforeEach(func() {
-					fakeResource.CheckTimeoutReturns("10s")
+					fakeResource.CreateBuildReturns(nil, false, nil)
 				})
 
-				Context("when evaluating the source fails", func() {
-					BeforeEach(func() {
-						fakeResource.SourceReturns(atc.Source{"some": "((secret))"})
-						fakeSecrets.GetReturns("", nil, false, nil)
-					})
+				It("returns false", func() {
+					Expect(err).NotTo(HaveOccurred())
+					Expect(created).To(BeFalse())
+					Expect(build).To(BeNil())
+				})
+			})
+		})
 
-					It("errors", func() {
-						Expect(err).To(HaveOccurred())
-					})
+		Context("when the resource has a webhook configured", func() {
+			BeforeEach(func() {
+				fakeResource.HasWebhookReturns(true)
+			})
+
+			It("creates a check plan with the default webhook interval", func() {
+				Expect(fakeResource.CheckPlanCallCount()).To(Equal(1))
+				version, interval, types, defaults := fakeResource.CheckPlanArgsForCall(0)
+				Expect(version).To(Equal(atc.Version{"from": "version"}))
+				Expect(interval).To(Equal(defaultWebhookCheckInterval))
+				Expect(types).To(BeNil())
+				Expect(defaults).To(BeEmpty())
+			})
+
+			Context("when the default webhook interval has not elapsed", func() {
+				BeforeEach(func() {
+					fakeResource.LastCheckEndTimeReturns(time.Now().Add(-(defaultWebhookCheckInterval / 2)))
 				})
 
-				Context("when evaluating the source succeeds", func() {
-					BeforeEach(func() {
-						fakeResource.SourceReturns(atc.Source{"some": "((secret))"})
-						fakeSecrets.GetReturns("source", nil, true, nil)
-					})
-
-					Context("when evaluating the resource types source fails", func() {
-						BeforeEach(func() {
-							fakeResourceType.SourceReturns(atc.Source{"some": "((other-secret))"})
-							fakeSecrets.GetReturns("", nil, false, nil)
-						})
-
-						It("errors", func() {
-							Expect(err).To(HaveOccurred())
-						})
-					})
-
-					Context("when evaluating the resource types source succeeds", func() {
-						BeforeEach(func() {
-							fakeResourceType.SourceReturns(atc.Source{"some": "((other-secret))"})
-							fakeSecrets.GetReturns("source", nil, true, nil)
-						})
-
-						Context("when updating the resource config scope fails", func() {
-							BeforeEach(func() {
-								fakeResource.SetResourceConfigReturns(nil, errors.New("nope"))
-							})
-
-							It("errors", func() {
-								Expect(err).To(HaveOccurred())
-							})
-						})
-
-						Context("when updating the resource config scope succeeds", func() {
-							BeforeEach(func() {
-								fakeResource.SetResourceConfigReturns(resourceConfigScope, nil)
-							})
-
-							Context("when fromVersion is not nil", func() {
-								BeforeEach(func() {
-									fromVersion = atc.Version{"version": "a"}
-								})
-
-								It("creates a check", func() {
-									Expect(err).NotTo(HaveOccurred())
-									Expect(created).To(BeTrue())
-									Expect(check).NotTo(BeNil())
-								})
-
-								It("creates a plan with a version", func() {
-									Expect(check.Plan().Check.FromVersion).To(Equal(atc.Version{"version": "a"}))
-									Expect(check.Plan().Check.Name).To(Equal("some-name"))
-									Expect(check.Plan().Check.Type).To(Equal("base-type"))
-									Expect(check.Plan().Check.Source).To(Equal(atc.Source{"some": "((secret))"}))
-									Expect(check.Plan().Check.Tags).To(ConsistOf("tag-a", "tag-b"))
-									Expect(check.Plan().Check.Timeout).To(Equal("10s"))
-								})
-							})
-
-							Context("when fromVersion is nil", func() {
-								BeforeEach(func() {
-									fromVersion = nil
-								})
-
-								Context("when fetching the latest version returns not found", func() {
-									BeforeEach(func() {
-										_, err = dbConn.Exec("DELETE FROM resource_config_versions")
-										Expect(err).NotTo(HaveOccurred())
-									})
-
-									It("creates a check", func() {
-										Expect(err).NotTo(HaveOccurred())
-										Expect(created).To(BeTrue())
-										Expect(check).NotTo(BeNil())
-									})
-
-									It("creates a plan with a nil version", func() {
-										Expect(check.Plan().Check.FromVersion).To(BeNil())
-										Expect(check.Plan().Check.Name).To(Equal("some-name"))
-										Expect(check.Plan().Check.Type).To(Equal("base-type"))
-										Expect(check.Plan().Check.Source).To(Equal(atc.Source{"some": "((secret))"}))
-										Expect(check.Plan().Check.Tags).To(ConsistOf("tag-a", "tag-b"))
-										Expect(check.Plan().Check.Timeout).To(Equal("10s"))
-									})
-								})
-
-								Context("when fetching the latest version returns a version", func() {
-
-									BeforeEach(func() {
-										err = resourceConfigScope.SaveVersions(nil, []atc.Version{{"some": "version"}})
-										Expect(err).NotTo(HaveOccurred())
-									})
-
-									It("creates a check", func() {
-										Expect(err).NotTo(HaveOccurred())
-										Expect(created).To(BeTrue())
-										Expect(check).NotTo(BeNil())
-									})
-
-									It("creates a plan with a version", func() {
-										Expect(check.Plan().Check.FromVersion).To(Equal(atc.Version{"some": "version"}))
-										Expect(check.Plan().Check.Name).To(Equal("some-name"))
-										Expect(check.Plan().Check.Type).To(Equal("base-type"))
-										Expect(check.Plan().Check.Source).To(Equal(atc.Source{"some": "((secret))"}))
-										Expect(check.Plan().Check.Tags).To(ConsistOf("tag-a", "tag-b"))
-										Expect(check.Plan().Check.Timeout).To(Equal("10s"))
-									})
-								})
-							})
-						})
-					})
+				It("does not create a build for the resource", func() {
+					Expect(fakeResource.CheckPlanCallCount()).To(Equal(0))
+					Expect(fakeResource.CreateBuildCallCount()).To(Equal(0))
 				})
+			})
+		})
+
+		Context("when an interval is specified", func() {
+			BeforeEach(func() {
+				fakeResource.CheckEveryReturns(&atc.CheckEvery{Interval: 42 * time.Second})
+			})
+
+			It("sets it in the check plan", func() {
+				Expect(fakeResource.CheckPlanCallCount()).To(Equal(1))
+				version, interval, types, defaults := fakeResource.CheckPlanArgsForCall(0)
+				Expect(version).To(Equal(atc.Version{"from": "version"}))
+				Expect(interval).To(Equal(42 * time.Second))
+				Expect(types).To(BeNil())
+				Expect(defaults).To(BeEmpty())
+			})
+		})
+
+		Context("when CheckEvery is never", func() {
+			BeforeEach(func() {
+				fakeResource.CheckEveryReturns(&atc.CheckEvery{Never: true})
+			})
+
+			It("does not try parsing the interval", func() {
+				Expect(err).ToNot(HaveOccurred())
 			})
 		})
 
@@ -267,330 +182,185 @@ var _ = Describe("CheckFactory", func() {
 				fakeResource.PipelineIDReturns(1)
 				fakeResourceType.NameReturns("custom-type")
 				fakeResourceType.PipelineIDReturns(1)
-
+				fakeResourceType.DefaultsReturns(atc.Source{"sdk": "sdk"})
 			})
 
-			Context("when the resource and type are properly configured", func() {
+			Context("when the parent type has no version", func() {
 				BeforeEach(func() {
-					fakeResourceType.LastCheckEndTimeReturns(time.Now().Add(-time.Hour))
-					fakeResource.LastCheckEndTimeReturns(time.Now().Add(-time.Hour))
-
-					fakeResource.SetResourceConfigReturns(resourceConfigScope, nil)
+					fakeResourceType.VersionReturns(nil)
 				})
 
-				Context("when the parent type has no version", func() {
+				It("errors", func() {
+					Expect(err).To(HaveOccurred())
+				})
+			})
+
+			Context("when the parent type has a version", func() {
+				BeforeEach(func() {
+					fakeResourceType.VersionReturns(atc.Version{"some": "version"})
+				})
+
+				Context("when the parent type's interval has not elapsed", func() {
 					BeforeEach(func() {
-						fakeResourceType.VersionReturns(nil)
+						fakeResourceType.LastCheckEndTimeReturns(time.Now().Add(defaultCheckInterval))
 					})
 
-					It("errors", func() {
-						Expect(err).To(HaveOccurred())
+					It("does not create a build for the parent type", func() {
+						Expect(fakeResourceType.CheckPlanCallCount()).To(Equal(0))
+						Expect(fakeResourceType.CreateBuildCallCount()).To(Equal(0))
 					})
 				})
 
-				Context("when the parent type has a version", func() {
+				Context("when the parent type's interval has elapsed", func() {
 					BeforeEach(func() {
-						fakeResourceType.VersionReturns(atc.Version{"some": "version"})
+						fakeResourceType.LastCheckEndTimeReturns(time.Now().Add(-defaultCheckInterval))
+						fakeResource.LastCheckEndTimeReturns(time.Now().Add(-defaultCheckInterval))
 					})
 
-					It("creates a check", func() {
+					It("creates a check plan", func() {
+						Expect(fakeResource.CheckPlanCallCount()).To(Equal(1))
+						version, interval, types, defaults := fakeResource.CheckPlanArgsForCall(0)
+						Expect(version).To(Equal(atc.Version{"from": "version"}))
+						Expect(interval).To(Equal(defaultCheckInterval))
+						Expect(types).To(Equal(fakeResourceTypes))
+						Expect(defaults).To(Equal(atc.Source{"sdk": "sdk"}))
+					})
+
+					It("returns the build", func() {
 						Expect(err).NotTo(HaveOccurred())
 						Expect(created).To(BeTrue())
-						Expect(check).NotTo(BeNil())
+						Expect(build).To(Equal(fakeBuild))
 					})
 
-					It("creates a plan for the resource", func() {
-						Expect(check.Plan().Check.FromVersion).To(Equal(atc.Version{"from": "version"}))
-						Expect(check.Plan().Check.Name).To(Equal("some-name"))
-						Expect(check.Plan().Check.Type).To(Equal("custom-type"))
-						Expect(check.Plan().Check.Source).To(Equal(atc.Source{"some": "source"}))
-						Expect(check.Plan().Check.Tags).To(ConsistOf("tag-a", "tag-b"))
-						Expect(check.Plan().Check.Timeout).To(Equal("1m0s"))
+					It("starts the build with the check plan", func() {
+						Expect(fakeResource.CreateBuildCallCount()).To(Equal(1))
+						_, manuallyTriggered, plan := fakeResource.CreateBuildArgsForCall(0)
+						Expect(manuallyTriggered).To(BeFalse())
+						Expect(plan.ID).ToNot(BeEmpty())
+						Expect(plan.Check).To(Equal(&checkPlan))
 					})
 				})
-			})
-		})
-	})
-
-	Describe("CreateCheck", func() {
-		var created bool
-		var check db.Check
-
-		JustBeforeEach(func() {
-			check, created, err = checkFactory.CreateCheck(
-				resourceConfigScope.ID(),
-				false,
-				atc.Plan{Check: &atc.CheckPlan{Name: "some-name", Type: "some-type"}},
-				metadata,
-				map[string]string{"fake": "span"},
-			)
-		})
-
-		It("succeeds", func() {
-			Expect(created).To(BeTrue())
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		It("returns the resource check", func() {
-			Expect(check.ID()).To(Equal(1))
-			Expect(check.TeamID()).To(Equal(defaultTeam.ID()))
-			Expect(check.Status()).To(Equal(db.CheckStatusStarted))
-			Expect(check.Schema()).To(Equal("exec.v2"))
-			Expect(check.Plan().Check.Name).To(Equal("some-name"))
-			Expect(check.Plan().Check.Type).To(Equal("some-type"))
-			Expect(check.CreateTime()).To(BeTemporally("~", time.Now(), time.Second))
-			Expect(check.ResourceConfigScopeID()).To(Equal(resourceConfigScope.ID()))
-			Expect(check.ResourceConfigID()).To(Equal(resourceConfigScope.ResourceConfig().ID()))
-			Expect(check.BaseResourceTypeID()).To(Equal(resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID))
-		})
-
-		Context("when a check is already pending", func() {
-			BeforeEach(func() {
-				_, created, err := checkFactory.CreateCheck(
-					resourceConfigScope.ID(),
-					false,
-					atc.Plan{},
-					metadata,
-					map[string]string{"fake": "span"},
-				)
-				Expect(created).To(BeTrue())
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			It("doesn't create a check", func() {
-				Expect(created).To(BeFalse())
-				Expect(err).NotTo(HaveOccurred())
-			})
-		})
-	})
-
-	Describe("StartedChecks", func() {
-		var (
-			checks []db.Check
-		)
-
-		JustBeforeEach(func() {
-			checks, err = checkFactory.StartedChecks()
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		Context("when looking up the resource check returns no results", func() {
-			BeforeEach(func() {
-				_, err = dbConn.Exec(`DELETE FROM checks`)
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			It("is not found", func() {
-				Expect(checks).To(HaveLen(0))
-			})
-		})
-
-		Context("when a check has no metadata", func() {
-			BeforeEach(func() {
-				_, err = dbConn.Exec(`INSERT INTO checks(resource_config_scope_id, status, schema) VALUES ($1, 'started', 'some-schema')`, resourceConfigScope.ID())
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			It("returns the check", func() {
-				Expect(checks).To(HaveLen(1))
-				Expect(checks[0].ID()).To(Equal(1))
-				Expect(checks[0].Status()).To(Equal(db.CheckStatusStarted))
-				Expect(checks[0].Schema()).To(Equal("some-schema"))
-				Expect(checks[0].TeamID()).To(Equal(0))
-				Expect(checks[0].ResourceConfigScopeID()).To(Equal(resourceConfigScope.ID()))
-				Expect(checks[0].ResourceConfigID()).To(Equal(0))
-				Expect(checks[0].BaseResourceTypeID()).To(Equal(0))
-			})
-		})
-
-		Context("when looking up the resource check succeeds", func() {
-			var check db.Check
-
-			BeforeEach(func() {
-				var created bool
-				check, created, err = checkFactory.CreateCheck(
-					resourceConfigScope.ID(),
-					false,
-					atc.Plan{},
-					metadata,
-					map[string]string{"fake": "span"},
-				)
-				Expect(created).To(BeTrue())
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			It("returns the resource checks", func() {
-				Expect(checks).To(HaveLen(1))
-				Expect(checks[0]).To(Equal(check))
-			})
-		})
-
-		Context("when there are manually triggered checks and non manually triggered checks", func() {
-			var nonManuallyTriggeredCheck, manuallyTriggeredCheck db.Check
-
-			BeforeEach(func() {
-				defaultPipeline, _, err = defaultTeam.SavePipeline("default-pipeline", atc.Config{
-					Resources: atc.ResourceConfigs{
-						{
-							Name: "some-resource",
-							Type: "some-base-resource-type",
-							Source: atc.Source{
-								"some": "source",
-							},
-						},
-						{
-							Name: "some-other-resource",
-							Type: "some-base-resource-type",
-							Source: atc.Source{
-								"some": "other-source",
-							},
-						},
-					},
-				}, db.ConfigVersion(1), false)
-				Expect(err).NotTo(HaveOccurred())
-
-				resource, found, err := defaultPipeline.Resource("some-resource")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				otherResource, found, err := defaultPipeline.Resource("some-other-resource")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				resourceConfigScope, err := resource.SetResourceConfig(atc.Source{"some": "source"}, atc.VersionedResourceTypes{})
-				Expect(err).NotTo(HaveOccurred())
-
-				otherResourceConfigScope, err := otherResource.SetResourceConfig(atc.Source{"some": "other-source"}, atc.VersionedResourceTypes{})
-				Expect(err).NotTo(HaveOccurred())
-
-				var created bool
-				nonManuallyTriggeredCheck, created, err = checkFactory.CreateCheck(
-					resourceConfigScope.ID(),
-					false,
-					atc.Plan{},
-					metadata,
-					map[string]string{"fake": "span"},
-				)
-				Expect(created).To(BeTrue())
-				Expect(err).NotTo(HaveOccurred())
-
-				manuallyTriggeredCheck, created, err = checkFactory.CreateCheck(
-					otherResourceConfigScope.ID(),
-					true,
-					atc.Plan{},
-					metadata,
-					map[string]string{"fake": "span"},
-				)
-				Expect(created).To(BeTrue())
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			It("returns the manually triggered checks first", func() {
-				Expect(checks).To(HaveLen(2))
-				Expect(checks[0].ID()).To(Equal(manuallyTriggeredCheck.ID()))
-				Expect(checks[1].ID()).To(Equal(nonManuallyTriggeredCheck.ID()))
 			})
 		})
 	})
 
 	Describe("Resources", func() {
 		var (
-			resources []db.Resource
+			resources       []db.Resource
+			putOnlyResource db.Resource
 		)
+
+		BeforeEach(func() {
+			defaultPipelineConfig = atc.Config{
+				Jobs: atc.JobConfigs{
+					{
+						Name: "some-job",
+						PlanSequence: []atc.Step{
+							{
+								Config: &atc.GetStep{
+									Name: "some-resource",
+								},
+							},
+							{
+								Config: &atc.PutStep{
+									Name: "some-put-only-resource",
+								},
+							},
+						},
+					},
+				},
+				Resources: atc.ResourceConfigs{
+					{
+						Name: "some-resource",
+						Type: "some-base-resource-type",
+						Source: atc.Source{
+							"some": "source",
+						},
+					},
+					{
+						Name: "some-put-only-resource",
+						Type: "some-base-resource-type",
+						Source: atc.Source{
+							"some": "source",
+						},
+					},
+				},
+				ResourceTypes: atc.ResourceTypes{
+					{
+						Name: "some-type",
+						Type: "some-base-resource-type",
+						Source: atc.Source{
+							"some-type": "source",
+						},
+					},
+				},
+			}
+
+			defaultPipelineRef = atc.PipelineRef{Name: "default-pipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}
+			defaultPipeline, _, err = defaultTeam.SavePipeline(defaultPipelineRef, defaultPipelineConfig, db.ConfigVersion(1), false)
+			Expect(err).NotTo(HaveOccurred())
+
+			var found bool
+			putOnlyResource, found, err = defaultPipeline.Resource("some-put-only-resource")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+		})
 
 		JustBeforeEach(func() {
 			resources, err = checkFactory.Resources()
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		// The default job doesn't use any resource, thus check should not run
-		// against un-used resource.
-		It("no resources in return", func() {
-			Expect(resources).To(HaveLen(0))
+		It("include only resources-in-use in return", func() {
+			Expect(resources).To(HaveLen(1))
+			Expect(resources[0].Name()).To(Equal("some-resource"))
 		})
 
-		Context("when the resources are used", func() {
-
+		Context("when the resource is not active", func() {
 			BeforeEach(func() {
-				defaultPipeline, _, err = defaultTeam.SavePipeline("default-pipeline", atc.Config{
-					Jobs: atc.JobConfigs{
-						{
-							Name: "some-job",
-							PlanSequence: []atc.Step{
-								{
-									Config: &atc.GetStep{
-										Name: "some-resource",
-									},
-								},
-								{
-									Config: &atc.PutStep{
-										Name: "some-resource-put-only",
-									},
-								},
-							},
-						},
-					},
-					Resources: atc.ResourceConfigs{
-						{
-							Name: "some-resource",
-							Type: "some-base-resource-type",
-							Source: atc.Source{
-								"some": "source",
-							},
-						},
-						{
-							Name: "some-resource-put-only",
-							Type: "some-base-resource-type",
-							Source: atc.Source{
-								"some": "source",
-							},
-						},
-					},
-					ResourceTypes: atc.ResourceTypes{
-						{
-							Name: "some-type",
-							Type: "some-base-resource-type",
-							Source: atc.Source{
-								"some-type": "source",
-							},
-						},
-					},
-				}, db.ConfigVersion(1), false)
+				_, err = dbConn.Exec(`UPDATE resources SET active = false`)
 				Expect(err).NotTo(HaveOccurred())
-
-				_, found, err := defaultPipeline.Resource("some-resource")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				_, found, err = defaultPipeline.Resource("some-resource-put-only")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
 			})
 
-			It("include only get-resources in return", func() {
-				Expect(resources).To(HaveLen(1))
-				Expect(resources[0].Name()).To(Equal("some-resource"))
+			It("does not return the resource", func() {
+				Expect(resources).To(HaveLen(0))
+			})
+		})
+
+		Context("when the resource pipeline is paused", func() {
+			BeforeEach(func() {
+				_, err = dbConn.Exec(`UPDATE pipelines SET paused = true`)
+				Expect(err).NotTo(HaveOccurred())
 			})
 
-			Context("when the resource is not active", func() {
+			It("does not return the resource", func() {
+				Expect(resources).To(HaveLen(0))
+			})
+		})
+
+		Context("when a put-only resource", func() {
+			for _, status := range []db.BuildStatus{db.BuildStatusAborted, db.BuildStatusErrored, db.BuildStatusFailed} {
+				Context(fmt.Sprintf("has a build that %s", status), func() {
+					BeforeEach(func() {
+						By("creating a failed build for the put-only resource")
+						build, created, err = putOnlyResource.CreateBuild(context.TODO(), false, atc.Plan{})
+						Expect(err).ToNot(HaveOccurred())
+						Expect(build.Finish(status)).To(Succeed())
+					})
+					It("returns the resource", func() {
+						Expect(resources).To(HaveLen(2))
+					})
+				})
+			}
+			Context("has NOT errored", func() {
 				BeforeEach(func() {
-					_, err = dbConn.Exec(`UPDATE resources SET active = false`)
-					Expect(err).NotTo(HaveOccurred())
+					By("creating a successful build for the put-only resource")
+					build, created, err = putOnlyResource.CreateBuild(context.TODO(), false, atc.Plan{})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(build.Finish(db.BuildStatusSucceeded)).To(Succeed())
 				})
-
-				It("does not return the resource", func() {
-					Expect(resources).To(HaveLen(0))
-				})
-			})
-
-			Context("when the resource pipeline is paused", func() {
-				BeforeEach(func() {
-					_, err = dbConn.Exec(`UPDATE pipelines SET paused = true`)
-					Expect(err).NotTo(HaveOccurred())
-				})
-
-				It("does not return the resource", func() {
-					Expect(resources).To(HaveLen(0))
+				It("returns does not return the resource", func() {
+					Expect(resources).To(HaveLen(1))
 				})
 			})
 		})

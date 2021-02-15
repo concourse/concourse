@@ -15,6 +15,11 @@ type Network interface {
 	//
 	SetupMounts(handle string) (mounts []specs.Mount, err error)
 
+	// SetupRestrictedNetworks sets up networking rules to prevent
+	// container access to specified network ranges
+	//
+	SetupRestrictedNetworks() (err error)
+
 	// Add adds a task to the network.
 	//
 	Add(ctx context.Context, task containerd.Task) (err error)

@@ -1,7 +1,0 @@
-receivers:
-  jaeger:
-    collector_http_port: 14268
-exporters:
-  jaeger:
-    service_name: atc
-    collector_endpoint: http://jaeger:14268/api/traces

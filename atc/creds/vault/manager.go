@@ -19,10 +19,12 @@ const managerName = "vault"
 type VaultManager struct {
 	URL string `yaml:"url"`
 
-	PathPrefix      string   `yaml:"path_prefix"`
-	LookupTemplates []string `yaml:"lookup_templates"`
-	SharedPath      string   `yaml:"shared_path"`
-	Namespace       string   `yaml:"namespace"`
+	PathPrefix      string        `yaml:"path_prefix"`
+	LookupTemplates []string      `yaml:"lookup_templates"`
+	SharedPath      string        `yaml:"shared_path"`
+	Namespace       string        `yaml:"namespace"`
+	LoginTimeout    time.Duration `yaml:"login_timeout"`
+	QueryTimeout    time.Duration `yaml:"query_timeout"`
 
 	TLS  TLSConfig
 	Auth AuthConfig
@@ -69,7 +71,7 @@ func (manager *VaultManager) Config() interface{} {
 func (manager *VaultManager) Init(log lager.Logger) error {
 	var err error
 
-	manager.Client, err = NewAPIClient(log, manager.URL, manager.TLS, manager.Auth, manager.Namespace)
+	manager.Client, err = NewAPIClient(log, manager.URL, manager.TLS, manager.Auth, manager.Namespace, manager.QueryTimeout)
 	if err != nil {
 		return err
 	}
@@ -104,6 +106,8 @@ func (manager *VaultManager) ApplyConfig(config map[string]interface{}) error {
 	manager.PathPrefix = "/concourse"
 	manager.Auth.RetryMax = 5 * time.Minute
 	manager.Auth.RetryInitial = time.Second
+	manager.LoginTimeout = 60 * time.Second
+	manager.QueryTimeout = 60 * time.Second
 
 	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 		DecodeHook:  mapstructure.StringToTimeDurationHookFunc(),
@@ -203,6 +207,7 @@ func (manager *VaultManager) NewSecretsFactory(logger lager.Logger) (creds.Secre
 
 		manager.SecretFactory = NewVaultFactory(
 			manager.Client,
+			manager.LoginTimeout,
 			manager.ReAuther.LoggedIn(),
 			manager.PathPrefix,
 			templates,

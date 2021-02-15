@@ -15,8 +15,19 @@ import (
 )
 
 var _ = Describe("ATC Handler Configs", func() {
+	var (
+		pipelineRef atc.PipelineRef
+	)
+
+	BeforeEach(func() {
+		pipelineRef = atc.PipelineRef{Name: "mypipeline"}
+	})
+
 	Describe("PipelineConfig", func() {
-		expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/config"
+		var (
+			expectedURL         = "/api/v1/teams/some-team/pipelines/mypipeline/config"
+			expectedQueryParams string
+		)
 
 		Context("ATC returns the correct response when it exists", func() {
 			var (
@@ -70,25 +81,42 @@ var _ = Describe("ATC Handler Configs", func() {
 				}
 
 				expectedVersion = "42"
+			})
 
-				configResponse := atc.ConfigResponse{
-					Config: expectedConfig,
-				}
-
+			JustBeforeEach(func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", expectedURL),
-						ghttp.RespondWithJSONEncoded(http.StatusOK, configResponse, http.Header{atc.ConfigVersionHeader: {expectedVersion}}),
+						ghttp.VerifyRequest("GET", expectedURL, expectedQueryParams),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, atc.ConfigResponse{Config: expectedConfig}, http.Header{atc.ConfigVersionHeader: {expectedVersion}}),
 					),
 				)
 			})
 
 			It("returns the given config and version for that pipeline", func() {
-				pipelineConfig, version, found, err := team.PipelineConfig("mypipeline")
+				pipelineConfig, version, found, err := team.PipelineConfig(pipelineRef)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(pipelineConfig).To(Equal(expectedConfig))
 				Expect(version).To(Equal(expectedVersion))
 				Expect(found).To(BeTrue())
+			})
+
+			Context("when specifying instance vars", func() {
+
+				BeforeEach(func() {
+					pipelineRef = atc.PipelineRef{
+						Name:         "mypipeline",
+						InstanceVars: atc.InstanceVars{"branch": "master"},
+					}
+					expectedQueryParams = "vars.branch=%22master%22"
+				})
+
+				It("returns the given config and version for that pipeline instance", func() {
+					pipelineConfig, version, found, err := team.PipelineConfig(pipelineRef)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(pipelineConfig).To(Equal(expectedConfig))
+					Expect(version).To(Equal(expectedVersion))
+					Expect(found).To(BeTrue())
+				})
 			})
 		})
 
@@ -103,7 +131,7 @@ var _ = Describe("ATC Handler Configs", func() {
 			})
 
 			It("returns false and no error", func() {
-				_, _, found, err := team.PipelineConfig("mypipeline")
+				_, _, found, err := team.PipelineConfig(pipelineRef)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
 			})
@@ -120,7 +148,7 @@ var _ = Describe("ATC Handler Configs", func() {
 			})
 
 			It("returns the error", func() {
-				_, _, _, err := team.PipelineConfig("mypipeline")
+				_, _, _, err := team.PipelineConfig(pipelineRef)
 				Expect(err).To(HaveOccurred())
 			})
 		})
@@ -136,7 +164,7 @@ var _ = Describe("ATC Handler Configs", func() {
 			})
 
 			It("returns an error", func() {
-				_, _, _, err := team.PipelineConfig("mypipeline")
+				_, _, _, err := team.PipelineConfig(pipelineRef)
 				Expect(err).NotTo(HaveOccurred())
 			})
 		})
@@ -144,9 +172,8 @@ var _ = Describe("ATC Handler Configs", func() {
 
 	Describe("CreateOrUpdatePipelineConfig", func() {
 		var (
-			expectedPipelineName string
-			expectedVersion      string
-			expectedConfig       []byte
+			expectedVersion string
+			expectedConfig  []byte
 
 			returnHeader int
 			returnBody   []byte
@@ -155,7 +182,6 @@ var _ = Describe("ATC Handler Configs", func() {
 		)
 
 		BeforeEach(func() {
-			expectedPipelineName = "mypipeline"
 			expectedVersion = "42"
 			expectedConfig = []byte("")
 
@@ -195,7 +221,7 @@ var _ = Describe("ATC Handler Configs", func() {
 			})
 
 			It("returns true for created and false for updated", func() {
-				created, updated, warnings, err := team.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig, checkCredentials)
+				created, updated, warnings, err := team.CreateOrUpdatePipelineConfig(pipelineRef, expectedVersion, expectedConfig, checkCredentials)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(created).To(BeTrue())
 				Expect(updated).To(BeFalse())
@@ -217,8 +243,27 @@ var _ = Describe("ATC Handler Configs", func() {
 				})
 
 				It("returns an error", func() {
-					_, _, _, err := team.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig, checkCredentials)
+					_, _, _, err := team.CreateOrUpdatePipelineConfig(pipelineRef, expectedVersion, expectedConfig, checkCredentials)
 					Expect(err).To(HaveOccurred())
+				})
+			})
+
+			Context("when instance vars are specified", func() {
+				BeforeEach(func() {
+					pipelineRef = atc.PipelineRef{
+						Name:         "mypipeline",
+						InstanceVars: atc.InstanceVars{"branch": "feature"},
+					}
+				})
+
+				It("submits with vars.xxx query params set", func() {
+					Expect(atcServer.ReceivedRequests()).To(HaveLen(0))
+
+					_, _, _, err := team.CreateOrUpdatePipelineConfig(pipelineRef, expectedVersion, expectedConfig, checkCredentials)
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(atcServer.ReceivedRequests()).To(HaveLen(1))
+					Expect(atcServer.ReceivedRequests()[0].URL.RawQuery).To(Equal("vars.branch=%22feature%22"))
 				})
 			})
 
@@ -230,7 +275,7 @@ var _ = Describe("ATC Handler Configs", func() {
 				It("submits with check_creds query param set", func() {
 					Expect(atcServer.ReceivedRequests()).To(HaveLen(0))
 
-					_, _, _, err := team.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig, checkCredentials)
+					_, _, _, err := team.CreateOrUpdatePipelineConfig(pipelineRef, expectedVersion, expectedConfig, checkCredentials)
 					Expect(err).ToNot(HaveOccurred())
 
 					Expect(atcServer.ReceivedRequests()).To(HaveLen(1))
@@ -249,7 +294,7 @@ var _ = Describe("ATC Handler Configs", func() {
 			})
 
 			It("returns false for created and true for updated", func() {
-				created, updated, warnings, err := team.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig, checkCredentials)
+				created, updated, warnings, err := team.CreateOrUpdatePipelineConfig(pipelineRef, expectedVersion, expectedConfig, checkCredentials)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(created).To(BeFalse())
 				Expect(updated).To(BeTrue())
@@ -271,8 +316,27 @@ var _ = Describe("ATC Handler Configs", func() {
 				})
 
 				It("returns an error", func() {
-					_, _, _, err := team.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig, checkCredentials)
+					_, _, _, err := team.CreateOrUpdatePipelineConfig(pipelineRef, expectedVersion, expectedConfig, checkCredentials)
 					Expect(err).To(HaveOccurred())
+				})
+			})
+
+			Context("when instance vars are specified", func() {
+				BeforeEach(func() {
+					pipelineRef = atc.PipelineRef{
+						Name:         "mypipeline",
+						InstanceVars: atc.InstanceVars{"branch": "feature"},
+					}
+				})
+
+				It("submits with vars.xxx query params set", func() {
+					Expect(atcServer.ReceivedRequests()).To(HaveLen(0))
+
+					_, _, _, err := team.CreateOrUpdatePipelineConfig(pipelineRef, expectedVersion, expectedConfig, checkCredentials)
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(atcServer.ReceivedRequests()).To(HaveLen(1))
+					Expect(atcServer.ReceivedRequests()[0].URL.RawQuery).To(Equal("vars.branch=%22feature%22"))
 				})
 			})
 
@@ -284,7 +348,7 @@ var _ = Describe("ATC Handler Configs", func() {
 				It("submits with check_creds query param set", func() {
 					Expect(atcServer.ReceivedRequests()).To(HaveLen(0))
 
-					_, _, _, err := team.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig, checkCredentials)
+					_, _, _, err := team.CreateOrUpdatePipelineConfig(pipelineRef, expectedVersion, expectedConfig, checkCredentials)
 					Expect(err).ToNot(HaveOccurred())
 
 					Expect(atcServer.ReceivedRequests()).To(HaveLen(1))
@@ -300,7 +364,7 @@ var _ = Describe("ATC Handler Configs", func() {
 			})
 
 			It("returns config validation error", func() {
-				_, _, _, err := team.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig, checkCredentials)
+				_, _, _, err := team.CreateOrUpdatePipelineConfig(pipelineRef, expectedVersion, expectedConfig, checkCredentials)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("invalid pipeline config:\n"))
 				Expect(err.Error()).To(ContainSubstring("fake-error1\nfake-error2"))
@@ -312,9 +376,22 @@ var _ = Describe("ATC Handler Configs", func() {
 				})
 
 				It("returns an error", func() {
-					_, _, _, err := team.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig, checkCredentials)
+					_, _, _, err := team.CreateOrUpdatePipelineConfig(pipelineRef, expectedVersion, expectedConfig, checkCredentials)
 					Expect(err).To(HaveOccurred())
 				})
+			})
+		})
+
+		Context("when setting config returns forbidden", func() {
+			BeforeEach(func() {
+				returnHeader = http.StatusForbidden
+				returnBody = []byte(`policy check failed: you can't do that`)
+			})
+
+			It("returns a forbidden error", func() {
+				_, _, _, err := team.CreateOrUpdatePipelineConfig(pipelineRef, expectedVersion, expectedConfig, checkCredentials)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("forbidden: policy check failed: you can't do that"))
 			})
 		})
 	})

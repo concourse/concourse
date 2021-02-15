@@ -64,7 +64,7 @@ var _ = Describe("cc.xml", func() {
 					Context("when a job is found", func() {
 						var endTime time.Time
 						BeforeEach(func() {
-							fakePipeline.DashboardReturns(atc.Dashboard{
+							fakePipeline.DashboardReturns([]atc.JobSummary{
 								{
 									Name:         "some-job",
 									PipelineName: "something-else",
@@ -77,15 +77,15 @@ var _ = Describe("cc.xml", func() {
 
 						Context("when the last build is successful", func() {
 							BeforeEach(func() {
-								fakePipeline.DashboardReturns(atc.Dashboard{
+								fakePipeline.DashboardReturns([]atc.JobSummary{
 									{
 										Name:         "some-job",
 										PipelineName: "something-else",
 										TeamName:     "a-team",
-										FinishedBuild: &atc.DashboardBuild{
+										FinishedBuild: &atc.BuildSummary{
 											Name:    "42",
 											Status:  "succeeded",
-											EndTime: endTime,
+											EndTime: endTime.Unix(),
 										},
 									},
 								}, nil)
@@ -116,15 +116,15 @@ var _ = Describe("cc.xml", func() {
 
 						Context("when the last build is aborted", func() {
 							BeforeEach(func() {
-								fakePipeline.DashboardReturns(atc.Dashboard{
+								fakePipeline.DashboardReturns([]atc.JobSummary{
 									{
 										Name:         "some-job",
 										PipelineName: "something-else",
 										TeamName:     "a-team",
-										FinishedBuild: &atc.DashboardBuild{
+										FinishedBuild: &atc.BuildSummary{
 											Name:    "42",
 											Status:  "aborted",
-											EndTime: endTime,
+											EndTime: endTime.Unix(),
 										},
 									},
 								}, nil)
@@ -144,15 +144,15 @@ var _ = Describe("cc.xml", func() {
 
 						Context("when the last build is errored", func() {
 							BeforeEach(func() {
-								fakePipeline.DashboardReturns(atc.Dashboard{
+								fakePipeline.DashboardReturns([]atc.JobSummary{
 									{
 										Name:         "some-job",
 										PipelineName: "something-else",
 										TeamName:     "a-team",
-										FinishedBuild: &atc.DashboardBuild{
+										FinishedBuild: &atc.BuildSummary{
 											Name:    "42",
 											Status:  "errored",
-											EndTime: endTime,
+											EndTime: endTime.Unix(),
 										},
 									},
 								}, nil)
@@ -172,15 +172,15 @@ var _ = Describe("cc.xml", func() {
 
 						Context("when the last build is failed", func() {
 							BeforeEach(func() {
-								fakePipeline.DashboardReturns(atc.Dashboard{
+								fakePipeline.DashboardReturns([]atc.JobSummary{
 									{
 										Name:         "some-job",
 										PipelineName: "something-else",
 										TeamName:     "a-team",
-										FinishedBuild: &atc.DashboardBuild{
+										FinishedBuild: &atc.BuildSummary{
 											Name:    "42",
 											Status:  "failed",
-											EndTime: endTime,
+											EndTime: endTime.Unix(),
 										},
 									},
 								}, nil)
@@ -200,17 +200,17 @@ var _ = Describe("cc.xml", func() {
 
 						Context("when a next build exists", func() {
 							BeforeEach(func() {
-								fakePipeline.DashboardReturns(atc.Dashboard{
+								fakePipeline.DashboardReturns([]atc.JobSummary{
 									{
 										Name:         "some-job",
 										PipelineName: "something-else",
 										TeamName:     "a-team",
-										FinishedBuild: &atc.DashboardBuild{
+										FinishedBuild: &atc.BuildSummary{
 											Name:    "42",
 											Status:  "succeeded",
-											EndTime: endTime,
+											EndTime: endTime.Unix(),
 										},
-										NextBuild: &atc.DashboardBuild{},
+										NextBuild: &atc.BuildSummary{},
 									},
 								}, nil)
 							})
@@ -239,7 +239,7 @@ var _ = Describe("cc.xml", func() {
 
 					Context("when no job is found", func() {
 						BeforeEach(func() {
-							fakePipeline.DashboardReturns(atc.Dashboard{}, nil)
+							fakePipeline.DashboardReturns([]atc.JobSummary{}, nil)
 						})
 
 						It("returns 200", func() {
@@ -262,6 +262,44 @@ var _ = Describe("cc.xml", func() {
 						It("returns 500", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 						})
+					})
+				})
+
+				Context("when an instanced pipeline is found", func() {
+					var fakePipeline *dbfakes.FakePipeline
+					instanceVars := atc.InstanceVars{"branch": "feature/foo"}
+					BeforeEach(func() {
+						fakePipeline = new(dbfakes.FakePipeline)
+						fakePipeline.InstanceVarsReturns(instanceVars)
+						fakeTeam.PipelinesReturns([]db.Pipeline{
+							fakePipeline,
+						}, nil)
+
+						endTime, _ := time.Parse(time.RFC3339, "2018-11-04T21:26:38Z")
+						fakePipeline.DashboardReturns([]atc.JobSummary{
+							{
+								Name:                 "some-job",
+								PipelineName:         "something-else",
+								PipelineInstanceVars: instanceVars,
+								TeamName:             "a-team",
+								FinishedBuild: &atc.BuildSummary{
+									Name:    "42",
+									Status:  "succeeded",
+									EndTime: endTime.Unix(),
+								},
+							},
+						}, nil)
+					})
+
+					It("returns the proper web url in the CC.xml", func() {
+						body, err := ioutil.ReadAll(response.Body)
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(body).To(MatchXML(`
+<Projects>
+  <Project activity="Sleeping" lastBuildLabel="42" lastBuildStatus="Success" lastBuildTime="2018-11-04T21:26:38Z" name="something-else/branch:&#34;feature/foo&#34;/some-job" webUrl="https://example.com/teams/a-team/pipelines/something-else/jobs/some-job?vars.branch=%22feature%2Ffoo%22"/>
+</Projects>
+`))
 					})
 				})
 

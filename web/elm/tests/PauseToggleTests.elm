@@ -1,6 +1,9 @@
 module PauseToggleTests exposing (all)
 
+import ColorValues
+import Data
 import Dict
+import Message.Message exposing (DomID(..), PipelinesSection(..))
 import Test exposing (Test, describe, test)
 import Test.Html.Query as Query
 import Test.Html.Selector exposing (containing, style, tag, text)
@@ -15,9 +18,7 @@ all =
         [ describe "when user is unauthorized" <|
             let
                 pipeline =
-                    { pipelineName = "pipeline"
-                    , teamName = "team"
-                    }
+                    Data.pipelineId
 
                 userState =
                     UserStateLoggedIn
@@ -39,6 +40,7 @@ all =
                         , margin = ""
                         , userState = userState
                         , tooltipPosition = Styles.Above
+                        , domID = PipelineCardPauseToggle AllPipelinesSection 1
                         }
                         |> Query.fromHtml
                         |> Query.has [ style "opacity" "0.2" ]
@@ -52,6 +54,7 @@ all =
                         , margin = ""
                         , userState = userState
                         , tooltipPosition = Styles.Above
+                        , domID = PipelineCardPauseToggle AllPipelinesSection 1
                         }
                         |> Query.fromHtml
                         |> Query.has
@@ -59,7 +62,7 @@ all =
                             , containing
                                 [ tag "div"
                                 , containing [ text "not authorized" ]
-                                , style "background-color" "#9b9b9b"
+                                , style "background-color" ColorValues.grey20
                                 , style "position" "absolute"
                                 , style "bottom" "100%"
                                 , style "white-space" "nowrap"
@@ -79,6 +82,7 @@ all =
                         , margin = ""
                         , userState = userState
                         , tooltipPosition = Styles.Below
+                        , domID = PipelineCardPauseToggle AllPipelinesSection 1
                         }
                         |> Query.fromHtml
                         |> Query.has
@@ -86,7 +90,7 @@ all =
                             , containing
                                 [ tag "div"
                                 , containing [ text "not authorized" ]
-                                , style "background-color" "#9b9b9b"
+                                , style "background-color" ColorValues.grey20
                                 , style "position" "absolute"
                                 , style "top" "100%"
                                 , style "white-space" "nowrap"

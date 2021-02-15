@@ -30,6 +30,36 @@ type FakeTarget struct {
 	clientReturnsOnCall map[int]struct {
 		result1 concourse.Client
 	}
+	ClientCertPathStub        func() string
+	clientCertPathMutex       sync.RWMutex
+	clientCertPathArgsForCall []struct {
+	}
+	clientCertPathReturns struct {
+		result1 string
+	}
+	clientCertPathReturnsOnCall map[int]struct {
+		result1 string
+	}
+	ClientCertificateStub        func() []tls.Certificate
+	clientCertificateMutex       sync.RWMutex
+	clientCertificateArgsForCall []struct {
+	}
+	clientCertificateReturns struct {
+		result1 []tls.Certificate
+	}
+	clientCertificateReturnsOnCall map[int]struct {
+		result1 []tls.Certificate
+	}
+	ClientKeyPathStub        func() string
+	clientKeyPathMutex       sync.RWMutex
+	clientKeyPathArgsForCall []struct {
+	}
+	clientKeyPathReturns struct {
+		result1 string
+	}
+	clientKeyPathReturnsOnCall map[int]struct {
+		result1 string
+	}
 	FindTeamStub        func(string) (concourse.Team, error)
 	findTeamMutex       sync.RWMutex
 	findTeamArgsForCall []struct {
@@ -257,6 +287,162 @@ func (fake *FakeTarget) ClientReturnsOnCall(i int, result1 concourse.Client) {
 	}
 	fake.clientReturnsOnCall[i] = struct {
 		result1 concourse.Client
+	}{result1}
+}
+
+func (fake *FakeTarget) ClientCertPath() string {
+	fake.clientCertPathMutex.Lock()
+	ret, specificReturn := fake.clientCertPathReturnsOnCall[len(fake.clientCertPathArgsForCall)]
+	fake.clientCertPathArgsForCall = append(fake.clientCertPathArgsForCall, struct {
+	}{})
+	fake.recordInvocation("ClientCertPath", []interface{}{})
+	fake.clientCertPathMutex.Unlock()
+	if fake.ClientCertPathStub != nil {
+		return fake.ClientCertPathStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.clientCertPathReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeTarget) ClientCertPathCallCount() int {
+	fake.clientCertPathMutex.RLock()
+	defer fake.clientCertPathMutex.RUnlock()
+	return len(fake.clientCertPathArgsForCall)
+}
+
+func (fake *FakeTarget) ClientCertPathCalls(stub func() string) {
+	fake.clientCertPathMutex.Lock()
+	defer fake.clientCertPathMutex.Unlock()
+	fake.ClientCertPathStub = stub
+}
+
+func (fake *FakeTarget) ClientCertPathReturns(result1 string) {
+	fake.clientCertPathMutex.Lock()
+	defer fake.clientCertPathMutex.Unlock()
+	fake.ClientCertPathStub = nil
+	fake.clientCertPathReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeTarget) ClientCertPathReturnsOnCall(i int, result1 string) {
+	fake.clientCertPathMutex.Lock()
+	defer fake.clientCertPathMutex.Unlock()
+	fake.ClientCertPathStub = nil
+	if fake.clientCertPathReturnsOnCall == nil {
+		fake.clientCertPathReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.clientCertPathReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeTarget) ClientCertificate() []tls.Certificate {
+	fake.clientCertificateMutex.Lock()
+	ret, specificReturn := fake.clientCertificateReturnsOnCall[len(fake.clientCertificateArgsForCall)]
+	fake.clientCertificateArgsForCall = append(fake.clientCertificateArgsForCall, struct {
+	}{})
+	fake.recordInvocation("ClientCertificate", []interface{}{})
+	fake.clientCertificateMutex.Unlock()
+	if fake.ClientCertificateStub != nil {
+		return fake.ClientCertificateStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.clientCertificateReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeTarget) ClientCertificateCallCount() int {
+	fake.clientCertificateMutex.RLock()
+	defer fake.clientCertificateMutex.RUnlock()
+	return len(fake.clientCertificateArgsForCall)
+}
+
+func (fake *FakeTarget) ClientCertificateCalls(stub func() []tls.Certificate) {
+	fake.clientCertificateMutex.Lock()
+	defer fake.clientCertificateMutex.Unlock()
+	fake.ClientCertificateStub = stub
+}
+
+func (fake *FakeTarget) ClientCertificateReturns(result1 []tls.Certificate) {
+	fake.clientCertificateMutex.Lock()
+	defer fake.clientCertificateMutex.Unlock()
+	fake.ClientCertificateStub = nil
+	fake.clientCertificateReturns = struct {
+		result1 []tls.Certificate
+	}{result1}
+}
+
+func (fake *FakeTarget) ClientCertificateReturnsOnCall(i int, result1 []tls.Certificate) {
+	fake.clientCertificateMutex.Lock()
+	defer fake.clientCertificateMutex.Unlock()
+	fake.ClientCertificateStub = nil
+	if fake.clientCertificateReturnsOnCall == nil {
+		fake.clientCertificateReturnsOnCall = make(map[int]struct {
+			result1 []tls.Certificate
+		})
+	}
+	fake.clientCertificateReturnsOnCall[i] = struct {
+		result1 []tls.Certificate
+	}{result1}
+}
+
+func (fake *FakeTarget) ClientKeyPath() string {
+	fake.clientKeyPathMutex.Lock()
+	ret, specificReturn := fake.clientKeyPathReturnsOnCall[len(fake.clientKeyPathArgsForCall)]
+	fake.clientKeyPathArgsForCall = append(fake.clientKeyPathArgsForCall, struct {
+	}{})
+	fake.recordInvocation("ClientKeyPath", []interface{}{})
+	fake.clientKeyPathMutex.Unlock()
+	if fake.ClientKeyPathStub != nil {
+		return fake.ClientKeyPathStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.clientKeyPathReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeTarget) ClientKeyPathCallCount() int {
+	fake.clientKeyPathMutex.RLock()
+	defer fake.clientKeyPathMutex.RUnlock()
+	return len(fake.clientKeyPathArgsForCall)
+}
+
+func (fake *FakeTarget) ClientKeyPathCalls(stub func() string) {
+	fake.clientKeyPathMutex.Lock()
+	defer fake.clientKeyPathMutex.Unlock()
+	fake.ClientKeyPathStub = stub
+}
+
+func (fake *FakeTarget) ClientKeyPathReturns(result1 string) {
+	fake.clientKeyPathMutex.Lock()
+	defer fake.clientKeyPathMutex.Unlock()
+	fake.ClientKeyPathStub = nil
+	fake.clientKeyPathReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeTarget) ClientKeyPathReturnsOnCall(i int, result1 string) {
+	fake.clientKeyPathMutex.Lock()
+	defer fake.clientKeyPathMutex.Unlock()
+	fake.ClientKeyPathStub = nil
+	if fake.clientKeyPathReturnsOnCall == nil {
+		fake.clientKeyPathReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.clientKeyPathReturnsOnCall[i] = struct {
+		result1 string
 	}{result1}
 }
 
@@ -870,6 +1056,12 @@ func (fake *FakeTarget) Invocations() map[string][][]interface{} {
 	defer fake.cACertMutex.RUnlock()
 	fake.clientMutex.RLock()
 	defer fake.clientMutex.RUnlock()
+	fake.clientCertPathMutex.RLock()
+	defer fake.clientCertPathMutex.RUnlock()
+	fake.clientCertificateMutex.RLock()
+	defer fake.clientCertificateMutex.RUnlock()
+	fake.clientKeyPathMutex.RLock()
+	defer fake.clientKeyPathMutex.RUnlock()
 	fake.findTeamMutex.RLock()
 	defer fake.findTeamMutex.RUnlock()
 	fake.isWorkerVersionCompatibleMutex.RLock()

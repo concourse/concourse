@@ -3,8 +3,11 @@ module Views.TopBar exposing
     , concourseLogo
     )
 
+import Application.Models exposing (Session)
 import Assets
-import Concourse
+import ColorValues
+import Concourse exposing (hyphenNotation)
+import Dashboard.FilterBuilder exposing (instanceGroupFilter)
 import Html exposing (Html)
 import Html.Attributes
     exposing
@@ -13,8 +16,11 @@ import Html.Attributes
         , id
         )
 import Message.Message exposing (DomID(..), Message(..))
+import RemoteData
 import Routes
+import SideBar.SideBar exposing (byPipelineId, isPipelineVisible, lookupPipeline)
 import Url
+import Views.InstanceGroupBadge as InstanceGroupBadge
 import Views.Styles as Styles
 
 
@@ -23,54 +29,72 @@ concourseLogo =
     Html.a (href "/" :: Styles.concourseLogo) []
 
 
-breadcrumbs : Routes.Route -> Html Message
-breadcrumbs route =
+breadcrumbs : Session -> Routes.Route -> Html Message
+breadcrumbs session route =
     Html.div
         (id "breadcrumbs" :: Styles.breadcrumbContainer)
     <|
         case route of
             Routes.Pipeline { id } ->
-                [ pipelineBreadcumb
-                    { teamName = id.teamName
-                    , pipelineName = id.pipelineName
-                    }
-                ]
+                case lookupPipeline (byPipelineId id) session of
+                    Nothing ->
+                        []
+
+                    Just pipeline ->
+                        pipelineBreadcrumbs session pipeline
 
             Routes.Build { id } ->
-                [ pipelineBreadcumb
-                    { teamName = id.teamName
-                    , pipelineName = id.pipelineName
-                    }
-                , breadcrumbSeparator
-                , jobBreadcrumb id.jobName
-                ]
+                case lookupPipeline (byPipelineId id) session of
+                    Nothing ->
+                        []
+
+                    Just pipeline ->
+                        pipelineBreadcrumbs session pipeline
+                            ++ [ breadcrumbSeparator
+                               , jobBreadcrumb id.jobName
+                               ]
 
             Routes.Resource { id } ->
-                [ pipelineBreadcumb
-                    { teamName = id.teamName
-                    , pipelineName = id.pipelineName
-                    }
-                , breadcrumbSeparator
-                , resourceBreadcrumb id.resourceName
-                ]
+                case lookupPipeline (byPipelineId id) session of
+                    Nothing ->
+                        []
+
+                    Just pipeline ->
+                        pipelineBreadcrumbs session pipeline
+                            ++ [ breadcrumbSeparator
+                               , resourceBreadcrumb id.resourceName
+                               ]
 
             Routes.Job { id } ->
-                [ pipelineBreadcumb
-                    { teamName = id.teamName
-                    , pipelineName = id.pipelineName
-                    }
-                , breadcrumbSeparator
-                , jobBreadcrumb id.jobName
-                ]
+                case lookupPipeline (byPipelineId id) session of
+                    Nothing ->
+                        []
+
+                    Just pipeline ->
+                        pipelineBreadcrumbs session pipeline
+                            ++ [ breadcrumbSeparator
+                               , jobBreadcrumb id.jobName
+                               ]
+
+            Routes.Dashboard _ ->
+                [ clusterNameBreadcrumb session ]
 
             _ ->
                 []
 
 
-breadcrumbComponent : Assets.ComponentType -> String -> List (Html Message)
-breadcrumbComponent componentType name =
+breadcrumbComponent :
+    { icon :
+        { component : Assets.ComponentType
+        , widthPx : Float
+        , heightPx : Float
+        }
+    , name : String
+    }
+    -> List (Html Message)
+breadcrumbComponent { name, icon } =
     [ Html.div
-        (Styles.breadcrumbComponent componentType)
+        (Styles.breadcrumbComponent icon)
         []
     , Html.text <| decodeName name
     ]
@@ -83,31 +107,106 @@ breadcrumbSeparator =
         [ Html.text "/" ]
 
 
-pipelineBreadcumb : Concourse.PipelineIdentifier -> Html Message
-pipelineBreadcumb pipelineId =
+clusterNameBreadcrumb : Session -> Html Message
+clusterNameBreadcrumb session =
+    Html.div
+        Styles.clusterName
+        [ Html.text session.clusterName ]
+
+
+pipelineBreadcrumbs : Session -> Concourse.Pipeline -> List (Html Message)
+pipelineBreadcrumbs session pipeline =
+    let
+        pipelineGroup =
+            session.pipelines
+                |> RemoteData.withDefault []
+                |> List.filter (\p -> p.name == pipeline.name && p.teamName == pipeline.teamName)
+                |> List.filter (isPipelineVisible session)
+
+        inInstanceGroup =
+            Concourse.isInstanceGroup pipelineGroup
+    in
+    (if inInstanceGroup then
+        [ Html.a
+            (id "breadcrumb-instance-group"
+                :: (href <|
+                        Routes.toString <|
+                            Routes.Dashboard
+                                { searchType = Routes.Normal <| instanceGroupFilter pipeline
+                                , dashboardView = Routes.ViewNonArchivedPipelines
+                                }
+                   )
+                :: Styles.breadcrumbItem True
+            )
+            [ InstanceGroupBadge.view ColorValues.white (List.length pipelineGroup)
+            , Html.text pipeline.name
+            ]
+        , breadcrumbSeparator
+        ]
+
+     else
+        []
+    )
+        ++ [ pipelineBreadcrumb inInstanceGroup pipeline ]
+
+
+pipelineBreadcrumb : Bool -> Concourse.Pipeline -> Html Message
+pipelineBreadcrumb inInstanceGroup pipeline =
+    let
+        text =
+            if inInstanceGroup then
+                hyphenNotation pipeline.instanceVars
+
+            else
+                pipeline.name
+    in
     Html.a
         ([ id "breadcrumb-pipeline"
          , href <|
             Routes.toString <|
-                Routes.Pipeline { id = pipelineId, groups = [] }
+                Routes.pipelineRoute pipeline
          ]
             ++ Styles.breadcrumbItem True
         )
-        (breadcrumbComponent Assets.PipelineComponent pipelineId.pipelineName)
+        (breadcrumbComponent
+            { icon =
+                { component = Assets.PipelineComponent
+                , widthPx = 28
+                , heightPx = 16
+                }
+            , name = text
+            }
+        )
 
 
 jobBreadcrumb : String -> Html Message
 jobBreadcrumb jobName =
     Html.li
         (id "breadcrumb-job" :: Styles.breadcrumbItem False)
-        (breadcrumbComponent Assets.JobComponent jobName)
+        (breadcrumbComponent
+            { icon =
+                { component = Assets.JobComponent
+                , widthPx = 32
+                , heightPx = 17
+                }
+            , name = jobName
+            }
+        )
 
 
 resourceBreadcrumb : String -> Html Message
 resourceBreadcrumb resourceName =
     Html.li
         (id "breadcrumb-resource" :: Styles.breadcrumbItem False)
-        (breadcrumbComponent Assets.ResourceComponent resourceName)
+        (breadcrumbComponent
+            { icon =
+                { component = Assets.ResourceComponent
+                , widthPx = 32
+                , heightPx = 17
+                }
+            , name = resourceName
+            }
+        )
 
 
 decodeName : String -> String

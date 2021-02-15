@@ -7,8 +7,8 @@ resources:
     create_files: {"task.yml":((task_content))}
 
 - name: some-image
-  type: registry-image
-  source: {repository: busybox}
+  type: mock
+  source: {mirror_self: true}
 
 jobs:
 - name: upstream-job

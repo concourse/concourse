@@ -14,10 +14,12 @@ import (
 )
 
 func (s *Server) CheckResourceType(dbPipeline db.Pipeline) http.Handler {
-	logger := s.logger.Session("check-resource-type")
-
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		resourceName := rata.Param(r, "resource_type_name")
+		resourceTypeName := rata.Param(r, "resource_type_name")
+
+		logger := s.logger.Session("check-resource-type", lager.Data{
+			"resource-type": resourceTypeName,
+		})
 
 		var reqBody atc.CheckRequestBody
 		err := json.NewDecoder(r.Body).Decode(&reqBody)
@@ -27,7 +29,7 @@ func (s *Server) CheckResourceType(dbPipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		dbResourceType, found, err := dbPipeline.ResourceType(resourceName)
+		dbResourceType, found, err := dbPipeline.ResourceType(resourceTypeName)
 		if err != nil {
 			logger.Error("failed-to-get-resource-type", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -35,7 +37,7 @@ func (s *Server) CheckResourceType(dbPipeline db.Pipeline) http.Handler {
 		}
 
 		if !found {
-			logger.Debug("resource-type-not-found", lager.Data{"resource": resourceName})
+			logger.Info("resource-type-not-found")
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
@@ -47,7 +49,7 @@ func (s *Server) CheckResourceType(dbPipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		check, created, err := s.checkFactory.TryCreateCheck(
+		build, created, err := s.checkFactory.TryCreateCheck(
 			lagerctx.NewContext(context.Background(), logger),
 			dbResourceType,
 			dbResourceTypes,
@@ -55,28 +57,21 @@ func (s *Server) CheckResourceType(dbPipeline db.Pipeline) http.Handler {
 			true,
 		)
 		if err != nil {
-			s.logger.Error("failed-to-create-check", err)
+			logger.Error("failed-to-create-check", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(err.Error()))
 			return
 		}
 
 		if !created {
-			s.logger.Info("check-not-created")
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		err = s.checkFactory.NotifyChecker()
-		if err != nil {
-			s.logger.Error("failed-to-notify-checker", err)
+			logger.Info("check-not-created")
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
 		w.WriteHeader(http.StatusCreated)
 
-		err = json.NewEncoder(w).Encode(present.Check(check))
+		err = json.NewEncoder(w).Encode(present.Build(build))
 		if err != nil {
 			logger.Error("failed-to-encode-check", err)
 			w.WriteHeader(http.StatusInternalServerError)

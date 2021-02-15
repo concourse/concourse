@@ -24,6 +24,7 @@ var _ = Describe("Ensure Step", func() {
 
 		ensure exec.Step
 
+		stepOk  bool
 		stepErr error
 	)
 
@@ -36,12 +37,12 @@ var _ = Describe("Ensure Step", func() {
 		step = &execfakes.FakeStep{}
 		hook = &execfakes.FakeStep{}
 
-		step.RunStub = func(ctx context.Context, state exec.RunState) error {
-			return ctx.Err()
+		step.RunStub = func(ctx context.Context, state exec.RunState) (bool, error) {
+			return true, ctx.Err()
 		}
 
-		hook.RunStub = func(ctx context.Context, state exec.RunState) error {
-			return ctx.Err()
+		hook.RunStub = func(ctx context.Context, state exec.RunState) (bool, error) {
+			return true, ctx.Err()
 		}
 
 		repo = build.NewRepository()
@@ -52,12 +53,12 @@ var _ = Describe("Ensure Step", func() {
 	})
 
 	JustBeforeEach(func() {
-		stepErr = ensure.Run(ctx, state)
+		stepOk, stepErr = ensure.Run(ctx, state)
 	})
 
 	Context("when the step succeeds", func() {
 		BeforeEach(func() {
-			step.SucceededReturns(true)
+			step.RunReturns(true, nil)
 		})
 
 		It("returns nil", func() {
@@ -72,7 +73,7 @@ var _ = Describe("Ensure Step", func() {
 
 	Context("when the step fails", func() {
 		BeforeEach(func() {
-			step.SucceededReturns(false)
+			step.RunReturns(false, nil)
 		})
 
 		It("returns nil", func() {
@@ -89,7 +90,7 @@ var _ = Describe("Ensure Step", func() {
 		disaster := errors.New("disaster")
 
 		BeforeEach(func() {
-			step.RunReturns(disaster)
+			step.RunReturns(false, disaster)
 		})
 
 		It("returns the error", func() {
@@ -126,9 +127,9 @@ var _ = Describe("Ensure Step", func() {
 
 	Context("when the context is canceled during the hook", func() {
 		BeforeEach(func() {
-			hook.RunStub = func(context.Context, exec.RunState) error {
+			hook.RunStub = func(context.Context, exec.RunState) (bool, error) {
 				cancel()
-				return ctx.Err()
+				return false, ctx.Err()
 			}
 		})
 
@@ -148,51 +149,47 @@ var _ = Describe("Ensure Step", func() {
 		})
 	})
 
-	Describe("Succeeded", func() {
-		Context("when the provided interface is type Success", func() {
-			Context("when both step and hook succeed", func() {
-				BeforeEach(func() {
-					step.SucceededReturns(true)
-					hook.SucceededReturns(true)
-				})
+	Context("when both step and hook succeed", func() {
+		BeforeEach(func() {
+			step.RunReturns(true, nil)
+			hook.RunReturns(true, nil)
+		})
 
-				It("succeeds", func() {
-					Expect(ensure.Succeeded()).To(BeTrue())
-				})
-			})
+		It("succeeds", func() {
+			Expect(stepOk).To(BeTrue())
+		})
+	})
 
-			Context("when step succeeds and hook fails", func() {
-				BeforeEach(func() {
-					step.SucceededReturns(true)
-					hook.SucceededReturns(false)
-				})
+	Context("when step succeeds and hook fails", func() {
+		BeforeEach(func() {
+			step.RunReturns(true, nil)
+			hook.RunReturns(false, nil)
+		})
 
-				It("does not succeed", func() {
-					Expect(ensure.Succeeded()).To(BeFalse())
-				})
-			})
+		It("does not succeed", func() {
+			Expect(stepOk).To(BeFalse())
+		})
+	})
 
-			Context("when step fails and hook succeeds", func() {
-				BeforeEach(func() {
-					step.SucceededReturns(false)
-					hook.SucceededReturns(true)
-				})
+	Context("when step fails and hook succeeds", func() {
+		BeforeEach(func() {
+			step.RunReturns(false, nil)
+			hook.RunReturns(true, nil)
+		})
 
-				It("does not succeed", func() {
-					Expect(ensure.Succeeded()).To(BeFalse())
-				})
-			})
+		It("does not succeed", func() {
+			Expect(stepOk).To(BeFalse())
+		})
+	})
 
-			Context("when step succeeds and hook fails", func() {
-				BeforeEach(func() {
-					step.SucceededReturns(false)
-					hook.SucceededReturns(false)
-				})
+	Context("when step succeeds and hook fails", func() {
+		BeforeEach(func() {
+			step.RunReturns(false, nil)
+			hook.RunReturns(false, nil)
+		})
 
-				It("does not succeed", func() {
-					Expect(ensure.Succeeded()).To(BeFalse())
-				})
-			})
+		It("does not succeed", func() {
+			Expect(stepOk).To(BeFalse())
 		})
 	})
 })

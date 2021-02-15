@@ -12,13 +12,14 @@ module Build.StepTree.Models exposing
     , StepTreeModel
     , TabFocus(..)
     , Version
-    , finishTree
-    , focusRetry
-    , map
+    , focusTabbed
+    , isActive
+    , lastActive
+    , mostSevereStepState
+    , showStepState
+    , toggleSubHeaderExpanded
+    , treeIsActive
     , updateAt
-    , wrapHook
-    , wrapMultiStep
-    , wrapStep
     )
 
 import Ansi.Log
@@ -26,27 +27,33 @@ import Array exposing (Array)
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus)
 import Dict exposing (Dict)
+import List.Extra
+import Maybe.Extra
+import Ordering exposing (Ordering)
 import Routes exposing (Highlight, StepID)
 import Time
 
 
 type alias StepTreeModel =
     { tree : StepTree
-    , foci : Dict StepID StepFocus
+    , steps : Dict StepID Step
     , highlight : Highlight
+    , resources : Concourse.BuildResources
     }
 
 
 type StepTree
-    = Task Step
-    | SetPipeline Step
-    | LoadVar Step
-    | ArtifactInput Step
-    | Get Step
-    | ArtifactOutput Step
-    | Put Step
-    | Aggregate (Array StepTree)
+    = Task StepID
+    | Check StepID
+    | Get StepID
+    | Put StepID
+    | SetPipeline StepID
+    | LoadVar StepID
+    | ArtifactInput StepID
+    | ArtifactOutput StepID
     | InParallel (Array StepTree)
+    | Across StepID (List String) (List (List Concourse.JsonValue)) (Array StepTree)
+    | Retry StepID (Array StepTree)
     | Do (Array StepTree)
     | OnSuccess HookedStep
     | OnFailure HookedStep
@@ -54,8 +61,13 @@ type StepTree
     | OnError HookedStep
     | Ensure HookedStep
     | Try StepTree
-    | Retry StepID Int TabFocus (Array StepTree)
     | Timeout StepTree
+
+
+type alias HookedStep =
+    { step : StepTree
+    , hook : StepTree
+    }
 
 
 type alias StepFocus =
@@ -64,18 +76,23 @@ type alias StepFocus =
 
 type alias Step =
     { id : StepID
-    , name : StepName
+    , buildStep : Concourse.BuildStep
     , state : StepState
     , log : Ansi.Log.Model
     , error : Maybe String
     , expanded : Bool
     , version : Maybe Version
     , metadata : List MetadataField
-    , firstOccurrence : Bool
+    , changed : Bool
     , timestamps : Dict Int Time.Posix
     , initialize : Maybe Time.Posix
     , start : Maybe Time.Posix
     , finish : Maybe Time.Posix
+    , tabFocus : TabFocus
+    , expandedHeaders : Dict Int Bool
+    , initializationExpanded : Bool
+    , imageCheck : Maybe StepTree
+    , imageGet : Maybe StepTree
     }
 
 
@@ -93,6 +110,59 @@ type StepState
     | StepStateErrored
 
 
+showStepState : StepState -> String
+showStepState state =
+    case state of
+        StepStatePending ->
+            "pending"
+
+        StepStateRunning ->
+            "running"
+
+        StepStateInterrupted ->
+            "interrupted"
+
+        StepStateCancelled ->
+            "cancelled"
+
+        StepStateSucceeded ->
+            "succeeded"
+
+        StepStateFailed ->
+            "failed"
+
+        StepStateErrored ->
+            "errored"
+
+
+stepStateOrdering : Ordering StepState
+stepStateOrdering =
+    Ordering.explicit
+        [ StepStateFailed
+        , StepStateErrored
+        , StepStateInterrupted
+        , StepStateCancelled
+        , StepStateRunning
+        , StepStatePending
+        , StepStateSucceeded
+        ]
+
+
+mostSevereStepState : StepTreeModel -> StepTree -> StepState
+mostSevereStepState model stepTree =
+    activeTreeSteps model stepTree
+        |> List.foldl
+            (\step state ->
+                case stepStateOrdering step.state state of
+                    LT ->
+                        step.state
+
+                    _ ->
+                        state
+            )
+            StepStateSucceeded
+
+
 type alias Version =
     Dict String String
 
@@ -103,15 +173,9 @@ type alias MetadataField =
     }
 
 
-type alias HookedStep =
-    { step : StepTree
-    , hook : StepTree
-    }
-
-
 type TabFocus
     = Auto
-    | User
+    | Manual Int
 
 
 type alias BuildEventEnvelope =
@@ -134,8 +198,12 @@ type BuildEvent
     | InitializePut Origin Time.Posix
     | StartPut Origin Time.Posix
     | FinishPut Origin Int Concourse.Version Concourse.Metadata (Maybe Time.Posix)
+    | SetPipelineChanged Origin Bool
     | Log Origin String (Maybe Time.Posix)
+    | SelectedWorker Origin String (Maybe Time.Posix)
     | Error Origin String Time.Posix
+    | ImageCheck Origin Concourse.BuildPlan
+    | ImageGet Origin Concourse.BuildPlan
     | End
     | Opened
     | NetworkError
@@ -151,254 +219,117 @@ type alias Origin =
 -- model manipulation functions
 
 
-focusRetry : Int -> StepTree -> StepTree
-focusRetry tab tree =
-    case tree of
-        Retry id _ _ steps ->
-            Retry id tab User steps
-
-        _ ->
-            -- impossible (non-retry tab focus)
-            tree
+focusTabbed : Int -> Step -> Step
+focusTabbed tab step =
+    { step | tabFocus = Manual tab }
 
 
-updateAt : StepID -> (StepTree -> StepTree) -> StepTreeModel -> StepTreeModel
-updateAt id update root =
-    case Dict.get id root.foci of
-        Nothing ->
-            -- updateAt: id " ++ id ++ " not found"
-            root
-
-        Just focus ->
-            { root | tree = focus update root.tree }
+toggleSubHeaderExpanded : Int -> Step -> Step
+toggleSubHeaderExpanded idx step =
+    { step | expandedHeaders = Dict.update idx (Just << not << Maybe.withDefault False) step.expandedHeaders }
 
 
-map : (Step -> Step) -> StepTree -> StepTree
-map f tree =
-    case tree of
-        Task step ->
-            Task (f step)
-
-        Get step ->
-            Get (f step)
-
-        Put step ->
-            Put (f step)
-
-        SetPipeline step ->
-            SetPipeline (f step)
-
-        LoadVar step ->
-            LoadVar (f step)
-
-        _ ->
-            tree
+updateAt : StepID -> (Step -> Step) -> StepTreeModel -> StepTreeModel
+updateAt id update model =
+    { model | steps = Dict.update id (Maybe.map update) model.steps }
 
 
-wrapMultiStep : Int -> Dict StepID StepFocus -> Dict StepID StepFocus
-wrapMultiStep i =
-    Dict.map (\_ subFocus -> subFocus >> setMultiStepIndex i)
-
-
-wrapStep : StepFocus -> StepFocus
-wrapStep subFocus =
-    subFocus >> updateStep
-
-
-wrapHook : StepFocus -> StepFocus
-wrapHook subFocus =
-    subFocus >> updateHook
-
-
-updateStep : (StepTree -> StepTree) -> StepTree -> StepTree
-updateStep update tree =
-    case tree of
-        OnSuccess hookedStep ->
-            OnSuccess { hookedStep | step = update hookedStep.step }
-
-        OnFailure hookedStep ->
-            OnFailure { hookedStep | step = update hookedStep.step }
-
-        OnAbort hookedStep ->
-            OnAbort { hookedStep | step = update hookedStep.step }
-
-        OnError hookedStep ->
-            OnError { hookedStep | step = update hookedStep.step }
-
-        Ensure hookedStep ->
-            Ensure { hookedStep | step = update hookedStep.step }
-
-        Try step ->
-            Try (update step)
-
-        Timeout step ->
-            Timeout (update step)
-
-        _ ->
-            --impossible
-            tree
-
-
-updateHook : (StepTree -> StepTree) -> StepTree -> StepTree
-updateHook update tree =
-    case tree of
-        OnSuccess hookedStep ->
-            OnSuccess { hookedStep | hook = update hookedStep.hook }
-
-        OnFailure hookedStep ->
-            OnFailure { hookedStep | hook = update hookedStep.hook }
-
-        OnAbort hookedStep ->
-            OnAbort { hookedStep | hook = update hookedStep.hook }
-
-        OnError hookedStep ->
-            OnError { hookedStep | hook = update hookedStep.hook }
-
-        Ensure hookedStep ->
-            Ensure { hookedStep | hook = update hookedStep.hook }
-
-        _ ->
-            -- impossible
-            tree
-
-
-getMultiStepIndex : Int -> StepTree -> StepTree
-getMultiStepIndex idx tree =
+activeStepIds : StepTreeModel -> StepTree -> List StepID
+activeStepIds model tree =
     let
-        steps =
-            case tree of
-                Aggregate trees ->
-                    trees
+        hooked step hook state =
+            activeStepIds model step
+                ++ (if mostSevereStepState model step == state then
+                        activeStepIds model hook
 
-                InParallel trees ->
-                    trees
-
-                Do trees ->
-                    trees
-
-                Retry _ _ _ trees ->
-                    trees
-
-                _ ->
-                    -- impossible
-                    Array.fromList []
+                    else
+                        []
+                   )
     in
-    case Array.get idx steps of
-        Just sub ->
-            sub
-
-        Nothing ->
-            -- impossible
-            tree
-
-
-setMultiStepIndex : Int -> (StepTree -> StepTree) -> StepTree -> StepTree
-setMultiStepIndex idx update tree =
     case tree of
-        Aggregate trees ->
-            Aggregate (Array.set idx (update (getMultiStepIndex idx tree)) trees)
+        Task stepId ->
+            [ stepId ]
+
+        Check stepId ->
+            [ stepId ]
+
+        Get stepId ->
+            [ stepId ]
+
+        Put stepId ->
+            [ stepId ]
+
+        ArtifactInput stepId ->
+            [ stepId ]
+
+        ArtifactOutput stepId ->
+            [ stepId ]
+
+        SetPipeline stepId ->
+            [ stepId ]
+
+        LoadVar stepId ->
+            [ stepId ]
 
         InParallel trees ->
-            InParallel (Array.set idx (update (getMultiStepIndex idx tree)) trees)
+            List.concatMap (activeStepIds model) (Array.toList trees)
 
         Do trees ->
-            Do (Array.set idx (update (getMultiStepIndex idx tree)) trees)
+            List.concatMap (activeStepIds model) (Array.toList trees)
 
-        Retry id tab focus trees ->
-            let
-                updatedSteps =
-                    Array.set idx (update (getMultiStepIndex idx tree)) trees
-            in
-            case focus of
-                Auto ->
-                    Retry id (idx + 1) Auto updatedSteps
+        Across _ _ _ trees ->
+            List.concatMap (activeStepIds model) (Array.toList trees)
 
-                User ->
-                    Retry id tab User updatedSteps
+        OnSuccess { step, hook } ->
+            hooked step hook StepStateSucceeded
 
-        _ ->
-            -- impossible
-            tree
+        OnFailure { step, hook } ->
+            hooked step hook StepStateFailed
 
+        OnAbort { step, hook } ->
+            hooked step hook StepStateInterrupted
 
-finishTree : StepTree -> StepTree
-finishTree root =
-    case root of
-        Task step ->
-            Task (finishStep step)
+        OnError { step, hook } ->
+            hooked step hook StepStateErrored
 
-        ArtifactInput step ->
-            ArtifactInput (finishStep step)
+        Ensure { step, hook } ->
+            activeStepIds model step ++ activeStepIds model hook
 
-        Get step ->
-            Get (finishStep step)
+        Try subTree ->
+            activeStepIds model subTree
 
-        ArtifactOutput step ->
-            ArtifactOutput { step | state = StepStateSucceeded }
+        Timeout subTree ->
+            activeStepIds model subTree
 
-        Put step ->
-            Put (finishStep step)
-
-        SetPipeline step ->
-            SetPipeline (finishStep step)
-
-        LoadVar step ->
-            LoadVar (finishStep step)
-
-        Aggregate trees ->
-            Aggregate (Array.map finishTree trees)
-
-        InParallel trees ->
-            InParallel (Array.map finishTree trees)
-
-        Do trees ->
-            Do (Array.map finishTree trees)
-
-        OnSuccess hookedStep ->
-            OnSuccess (finishHookedStep hookedStep)
-
-        OnFailure hookedStep ->
-            OnFailure (finishHookedStep hookedStep)
-
-        OnAbort hookedStep ->
-            OnAbort (finishHookedStep hookedStep)
-
-        OnError hookedStep ->
-            OnError (finishHookedStep hookedStep)
-
-        Ensure hookedStep ->
-            Ensure (finishHookedStep hookedStep)
-
-        Try tree ->
-            Try (finishTree tree)
-
-        Retry id tab focus trees ->
-            Retry id tab focus (Array.map finishTree trees)
-
-        Timeout tree ->
-            Timeout (finishTree tree)
+        Retry _ trees ->
+            trees
+                |> Array.toList
+                |> List.Extra.takeWhile (mostSevereStepState model >> (/=) StepStateSucceeded)
+                |> List.concatMap (activeStepIds model)
 
 
-finishStep : Step -> Step
-finishStep step =
-    let
-        newState =
-            case step.state of
-                StepStateRunning ->
-                    StepStateInterrupted
-
-                StepStatePending ->
-                    StepStateCancelled
-
-                otherwise ->
-                    otherwise
-    in
-    { step | state = newState }
+activeTreeSteps : StepTreeModel -> StepTree -> List Step
+activeTreeSteps model stepTree =
+    activeStepIds model stepTree
+        |> List.map (\id -> Dict.get id model.steps)
+        |> Maybe.Extra.values
 
 
-finishHookedStep : HookedStep -> HookedStep
-finishHookedStep hooked =
-    { hooked
-        | step = finishTree hooked.step
-        , hook = finishTree hooked.hook
-    }
+treeIsActive : StepTreeModel -> StepTree -> Bool
+treeIsActive model stepTree =
+    activeTreeSteps model stepTree
+        |> List.any (.state >> isActive)
+
+
+lastActive : StepTreeModel -> Array StepTree -> Maybe Int
+lastActive model trees =
+    Array.toIndexedList trees
+        |> List.reverse
+        |> List.filter (Tuple.second >> treeIsActive model)
+        |> List.head
+        |> Maybe.map Tuple.first
+
+
+isActive : StepState -> Bool
+isActive state =
+    state /= StepStatePending && state /= StepStateCancelled

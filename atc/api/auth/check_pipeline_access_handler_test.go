@@ -49,16 +49,13 @@ var _ = Describe("CheckPipelineAccessHandler", func() {
 			"some-action",
 			innerHandler,
 			fakeAccessor,
-			new(accessorfakes.FakeTokenVerifier),
-			new(accessorfakes.FakeTeamFetcher),
-			new(accessorfakes.FakeUserTracker),
 			new(auditorfakes.FakeAuditor),
 			map[string]string{},
 		)
 	})
 
 	JustBeforeEach(func() {
-		fakeAccessor.CreateReturns(fakeaccess)
+		fakeAccessor.CreateReturns(fakeaccess, nil)
 		server = httptest.NewServer(handler)
 
 		request, err := http.NewRequest("POST", server.URL+"?:team_name=some-team&:pipeline_name=some-pipeline", nil)

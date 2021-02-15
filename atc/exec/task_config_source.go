@@ -2,14 +2,12 @@ package exec
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"math"
-	"strconv"
 	"strings"
 
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/exec/build"
@@ -50,7 +48,7 @@ func (configSource StaticConfigSource) Warnings() []string {
 // be fetched from a specified file in the artifact.Repository.
 type FileConfigSource struct {
 	ConfigPath string
-	Client     worker.Client
+	Streamer   worker.ArtifactStreamer
 }
 
 // FetchConfig reads the specified file from the artifact.Repository and loads the
@@ -81,7 +79,7 @@ func (configSource FileConfigSource) FetchConfig(ctx context.Context, logger lag
 	if !found {
 		return atc.TaskConfig{}, UnknownArtifactSourceError{sourceName, configSource.ConfigPath}
 	}
-	stream, err := configSource.Client.StreamFileFromArtifact(ctx, logger, artifact, filePath)
+	stream, err := configSource.Streamer.StreamFileFromArtifact(lagerctx.NewContext(ctx, logger), artifact, filePath)
 	if err != nil {
 		if err == baggageclaim.ErrFileNotFound {
 			return atc.TaskConfig{}, fmt.Errorf("task config '%s/%s' not found", sourceName, filePath)
@@ -108,10 +106,31 @@ func (configSource FileConfigSource) Warnings() []string {
 	return []string{}
 }
 
+// BaseResourceTypeDefaultsApplySource applies base resource type defaults to image_source.
+type BaseResourceTypeDefaultsApplySource struct {
+	ConfigSource  TaskConfigSource
+	ResourceTypes atc.VersionedResourceTypes
+}
+
+func (configSource BaseResourceTypeDefaultsApplySource) FetchConfig(ctx context.Context, logger lager.Logger, repo *build.Repository) (atc.TaskConfig, error) {
+	config, err := configSource.ConfigSource.FetchConfig(ctx, logger, repo)
+	if err != nil {
+		return config, err
+	}
+
+	config.ImageResource.ApplySourceDefaults(configSource.ResourceTypes)
+
+	return config, nil
+}
+
+func (configSource BaseResourceTypeDefaultsApplySource) Warnings() []string {
+	return []string{}
+}
+
 // OverrideParamsConfigSource is used to override params in a config source
 type OverrideParamsConfigSource struct {
 	ConfigSource TaskConfigSource
-	Params       atc.Params
+	Params       atc.TaskEnv
 	WarningList  []string
 }
 
@@ -132,22 +151,7 @@ func (configSource *OverrideParamsConfigSource) FetchConfig(ctx context.Context,
 			configSource.WarningList = append(configSource.WarningList, fmt.Sprintf("%s was defined in pipeline but missing from task file", key))
 		}
 
-		switch v := val.(type) {
-		case string:
-			taskConfig.Params[key] = v
-		case float64:
-			if math.Floor(v) == v {
-				taskConfig.Params[key] = strconv.FormatInt(int64(v), 10)
-			} else {
-				taskConfig.Params[key] = strconv.FormatFloat(v, 'f', -1, 64)
-			}
-		default:
-			bs, err := json.Marshal(val)
-			if err != nil {
-				return atc.TaskConfig{}, err
-			}
-			taskConfig.Params[key] = string(bs)
-		}
+		taskConfig.Params[key] = val
 	}
 
 	return taskConfig, nil

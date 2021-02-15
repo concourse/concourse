@@ -89,7 +89,7 @@ func (s *Server) HijackContainer(team db.Team) http.Handler {
 			"handle": handle,
 		})
 
-		container, found, err := s.workerClient.FindContainer(hLog, team.ID(), handle)
+		container, found, err := s.workerPool.FindContainer(hLog, team.ID(), handle)
 		if err != nil {
 			hLog.Error("failed-to-find-container", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -229,6 +229,14 @@ func (s *Server) hijack(hLog lager.Logger, conn *websocket.Conn, request hijackR
 		Stderr: errW,
 	})
 	if err != nil {
+		if _, ok := err.(garden.ExecutableNotFoundError); ok {
+			hLog.Info("executable-not-found")
+
+			_ = conn.WriteJSON(atc.HijackOutput{
+				ExecutableNotFound: true,
+			})
+		}
+
 		_ = conn.WriteJSON(atc.HijackOutput{
 			Error: err.Error(),
 		})

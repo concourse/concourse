@@ -6,16 +6,18 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/eventstream"
 	"github.com/concourse/concourse/fly/rc"
 )
 
 type WatchCommand struct {
-	Job       flaghelpers.JobFlag `short:"j" long:"job"         value-name:"PIPELINE/JOB"  description:"Watches builds of the given job"`
-	Build     string              `short:"b" long:"build"                                  description:"Watches a specific build"`
-	Url       string              `short:"u" long:"url"                                    description:"URL for the build or job to watch"`
-	Timestamp bool                `short:"t" long:"timestamps"                             description:"Print with local timestamp"`
+	Job                      flaghelpers.JobFlag `short:"j" long:"job"         value-name:"PIPELINE/JOB"  description:"Watches builds of the given job"`
+	Build                    string              `short:"b" long:"build"                                  description:"Watches a specific build"`
+	Url                      string              `short:"u" long:"url"                                    description:"URL for the build or job to watch"`
+	Timestamp                bool                `short:"t" long:"timestamps"                             description:"Print with local timestamp"`
+	IgnoreEventParsingErrors bool                `long:"ignore-event-parsing-errors"                      description:"Ignore event parsing errors"`
 }
 
 func getBuildIDFromURL(target rc.Target, urlParam string) (int, error) {
@@ -47,7 +49,12 @@ func getBuildIDFromURL(target rc.Target, urlParam string) (int, error) {
 	}
 
 	if urlMap["pipelines"] != "" && urlMap["jobs"] != "" {
-		build, err := GetBuild(client, target.Team(), urlMap["jobs"], urlMap["builds"], urlMap["pipelines"])
+		pipelineRef := atc.PipelineRef{Name: urlMap["pipelines"]}
+		pipelineRef.InstanceVars, err = atc.InstanceVarsFromQueryParams(u.Query())
+		if err != nil {
+			return 0, err
+		}
+		build, err := GetBuild(client, target.Team(), urlMap["jobs"], urlMap["builds"], pipelineRef)
 
 		if err != nil {
 			return 0, err
@@ -79,7 +86,7 @@ func (command *WatchCommand) Execute(args []string) error {
 	var buildId int
 	client := target.Client()
 	if command.Job.JobName != "" || command.Build == "" && command.Url == "" {
-		build, err := GetBuild(client, target.Team(), command.Job.JobName, command.Build, command.Job.PipelineName)
+		build, err := GetBuild(client, target.Team(), command.Job.JobName, command.Build, command.Job.PipelineRef)
 		if err != nil {
 			return err
 		}
@@ -103,7 +110,10 @@ func (command *WatchCommand) Execute(args []string) error {
 		return err
 	}
 
-	renderOptions := eventstream.RenderOptions{ShowTimestamp: command.Timestamp}
+	renderOptions := eventstream.RenderOptions{
+		ShowTimestamp:            command.Timestamp,
+		IgnoreEventParsingErrors: command.IgnoreEventParsingErrors,
+	}
 
 	exitCode := eventstream.Render(os.Stdout, eventSource, renderOptions)
 

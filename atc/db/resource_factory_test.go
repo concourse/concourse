@@ -21,7 +21,7 @@ var _ = Describe("Resource Factory", func() {
 			otherTeam, err := teamFactory.CreateTeam(atc.Team{Name: "other-team"})
 			Expect(err).NotTo(HaveOccurred())
 
-			publicPipeline, _, err = otherTeam.SavePipeline("public-pipeline", atc.Config{
+			publicPipeline, _, err = otherTeam.SavePipeline(atc.PipelineRef{Name: "public-pipeline"}, atc.Config{
 				Resources: atc.ResourceConfigs{
 					{Name: "public-pipeline-resource"},
 				},
@@ -29,7 +29,7 @@ var _ = Describe("Resource Factory", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(publicPipeline.Expose()).To(Succeed())
 
-			_, _, err = otherTeam.SavePipeline("private-pipeline", atc.Config{
+			_, _, err = otherTeam.SavePipeline(atc.PipelineRef{Name: "private-pipeline"}, atc.Config{
 				Resources: atc.ResourceConfigs{
 					{Name: "private-pipeline-resource"},
 				},

@@ -25,7 +25,12 @@ func (wrappa APIMetricsWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 		case atc.BuildEvents, atc.DownloadCLI, atc.HijackContainer:
 			wrapped[name] = handler
 		default:
-			wrapped[name] = metric.WrapHandler(wrappa.logger, name, handler)
+			wrapped[name] = metric.WrapHandler(
+				wrappa.logger,
+				metric.Metrics,
+				name,
+				handler,
+			)
 		}
 	}
 

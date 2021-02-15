@@ -1,7 +1,6 @@
 package db_test
 
 import (
-	"os"
 	"testing"
 	"time"
 
@@ -15,10 +14,10 @@ import (
 	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
+	"github.com/concourse/concourse/atc/db/dbtest"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/postgresrunner"
-	"github.com/tedsuo/ifrit"
 )
 
 func TestDB(t *testing.T) {
@@ -28,7 +27,6 @@ func TestDB(t *testing.T) {
 
 var (
 	postgresRunner postgresrunner.Runner
-	dbProcess      ifrit.Process
 
 	dbConn                              db.Conn
 	fakeSecrets                         *credsfakes.FakeSecrets
@@ -51,7 +49,10 @@ var (
 	dbWall                              db.Wall
 	fakeClock                           dbfakes.FakeClock
 
+	builder dbtest.Builder
+
 	defaultWorkerResourceType atc.WorkerResourceType
+	uniqueWorkerResourceType  atc.WorkerResourceType
 	defaultTeam               db.Team
 	defaultWorkerPayload      atc.Worker
 	defaultWorker             db.Worker
@@ -61,9 +62,16 @@ var (
 	defaultResource           db.Resource
 	defaultPipelineConfig     atc.Config
 	defaultPipeline           db.Pipeline
+	defaultPipelineRef        atc.PipelineRef
 	defaultJob                db.Job
 	logger                    *lagertest.TestLogger
 	lockFactory               lock.LockFactory
+
+	defaultCheckInterval        = time.Minute
+	defaultWebhookCheckInterval = time.Hour
+	defaultCheckTimeout         = 5 * time.Minute
+
+	defaultBuildCreatedBy string
 
 	fullMetadata = db.ContainerMetadata{
 		Type: db.ContainerTypeTask,
@@ -86,18 +94,10 @@ var (
 	psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 )
 
-var _ = BeforeSuite(func() {
-	postgresRunner = postgresrunner.Runner{
-		Port: 5433 + GinkgoParallelNode(),
-	}
-
-	dbProcess = ifrit.Invoke(postgresRunner)
-
-	postgresRunner.CreateTestDB()
-})
+var _ = postgresrunner.GinkgoRunner(&postgresRunner)
 
 var _ = BeforeEach(func() {
-	postgresRunner.Truncate()
+	postgresRunner.CreateTestDBFromTemplate()
 
 	dbConn = postgresRunner.OpenConn()
 
@@ -116,11 +116,17 @@ var _ = BeforeEach(func() {
 	resourceConfigFactory = db.NewResourceConfigFactory(dbConn, lockFactory)
 	resourceCacheFactory = db.NewResourceCacheFactory(dbConn, lockFactory)
 	taskCacheFactory = db.NewTaskCacheFactory(dbConn)
-	checkFactory = db.NewCheckFactory(dbConn, lockFactory, fakeSecrets, fakeVarSourcePool, time.Minute)
+	checkFactory = db.NewCheckFactory(dbConn, lockFactory, fakeSecrets, fakeVarSourcePool, db.CheckDurations{
+		Timeout:             defaultCheckTimeout,
+		Interval:            defaultCheckInterval,
+		IntervalWithWebhook: defaultWebhookCheckInterval,
+	})
 	workerBaseResourceTypeFactory = db.NewWorkerBaseResourceTypeFactory(dbConn)
 	workerTaskCacheFactory = db.NewWorkerTaskCacheFactory(dbConn)
 	userFactory = db.NewUserFactory(dbConn)
 	dbWall = db.NewWall(dbConn, &fakeClock)
+
+	builder = dbtest.NewBuilder(dbConn, lockFactory)
 
 	var err error
 	defaultTeam, err = teamFactory.CreateTeam(atc.Team{Name: "default-team"})
@@ -132,22 +138,37 @@ var _ = BeforeEach(func() {
 		Version: "some-brt-version",
 	}
 
+	uniqueWorkerResourceType = atc.WorkerResourceType{
+		Type:                 "some-unique-base-resource-type",
+		Image:                "/path/to/unique/image",
+		Version:              "some-unique-brt-version",
+		UniqueVersionHistory: true,
+	}
+
 	certsPath := "/etc/ssl/certs"
 
 	defaultWorkerPayload = atc.Worker{
-		ResourceTypes:   []atc.WorkerResourceType{defaultWorkerResourceType},
 		Name:            "default-worker",
 		GardenAddr:      "1.2.3.4:7777",
 		BaggageclaimURL: "5.6.7.8:7878",
 		CertsPath:       &certsPath,
+
+		ResourceTypes: []atc.WorkerResourceType{
+			defaultWorkerResourceType,
+			uniqueWorkerResourceType,
+		},
 	}
 
 	otherWorkerPayload = atc.Worker{
-		ResourceTypes:   []atc.WorkerResourceType{defaultWorkerResourceType},
 		Name:            "other-worker",
 		GardenAddr:      "2.3.4.5:7777",
 		BaggageclaimURL: "6.7.8.9:7878",
 		CertsPath:       &certsPath,
+
+		ResourceTypes: []atc.WorkerResourceType{
+			defaultWorkerResourceType,
+			uniqueWorkerResourceType,
+		},
 	}
 
 	defaultWorker, err = workerFactory.SaveWorker(defaultWorkerPayload, 0)
@@ -156,7 +177,7 @@ var _ = BeforeEach(func() {
 	otherWorker, err = workerFactory.SaveWorker(otherWorkerPayload, 0)
 	Expect(err).NotTo(HaveOccurred())
 
-	defaultPipelineConfig := atc.Config{
+	defaultPipelineConfig = atc.Config{
 		Jobs: atc.JobConfigs{
 			{
 				Name: "some-job",
@@ -182,7 +203,9 @@ var _ = BeforeEach(func() {
 		},
 	}
 
-	defaultPipeline, _, err = defaultTeam.SavePipeline("default-pipeline", defaultPipelineConfig, db.ConfigVersion(0), false)
+	defaultPipelineRef = atc.PipelineRef{Name: "default-pipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}
+
+	defaultPipeline, _, err = defaultTeam.SavePipeline(defaultPipelineRef, defaultPipelineConfig, db.ConfigVersion(0), false)
 	Expect(err).NotTo(HaveOccurred())
 
 	var found bool
@@ -198,15 +221,19 @@ var _ = BeforeEach(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(found).To(BeTrue())
 
+	defaultBuildCreatedBy = "some-user"
+
 	logger = lagertest.NewTestLogger("test")
 })
+
+func destroy(d interface{ Destroy() error }) {
+	err := d.Destroy()
+	Expect(err).ToNot(HaveOccurred())
+}
 
 var _ = AfterEach(func() {
 	err := dbConn.Close()
 	Expect(err).NotTo(HaveOccurred())
-})
 
-var _ = AfterSuite(func() {
-	dbProcess.Signal(os.Interrupt)
-	<-dbProcess.Wait()
+	postgresRunner.DropTestDB()
 })

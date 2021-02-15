@@ -3,9 +3,11 @@ module Dashboard.Footer exposing (handleDelivery, view)
 import Assets
 import Concourse.Cli as Cli
 import Concourse.PipelineStatus as PipelineStatus exposing (PipelineStatus(..))
+import Dashboard.Filter as Filter
 import Dashboard.Group.Models exposing (Pipeline)
 import Dashboard.Models exposing (Dropdown(..), FooterModel)
 import Dashboard.Styles as Styles
+import Dict exposing (Dict)
 import HoverState
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, download, href, id, style)
@@ -17,6 +19,7 @@ import Message.Subscription exposing (Delivery(..), Interval(..))
 import Routes
 import ScreenSize
 import Views.Icon as Icon
+import Views.Toggle as Toggle
 
 
 handleDelivery :
@@ -34,8 +37,9 @@ handleDelivery delivery ( model, effects ) =
                             | showHelp =
                                 if
                                     model.pipelines
-                                        |> Maybe.withDefault []
-                                        |> List.isEmpty
+                                        |> Maybe.withDefault Dict.empty
+                                        |> Dict.values
+                                        |> List.all List.isEmpty
                                 then
                                     False
 
@@ -124,11 +128,7 @@ infoBar :
         , screenSize : ScreenSize.ScreenSize
         , version : String
     }
-    ->
-        { b
-            | highDensity : Bool
-            , pipelines : Maybe (List Pipeline)
-        }
+    -> FooterModel r
     -> Html Message
 infoBar session model =
     Html.div
@@ -145,11 +145,7 @@ infoBar session model =
 
 legend :
     { a | screenSize : ScreenSize.ScreenSize }
-    ->
-        { b
-            | pipelines : Maybe (List Pipeline)
-            , highDensity : Bool
-        }
+    -> FooterModel r
     -> Html Message
 legend session model =
     if hideLegend model then
@@ -179,8 +175,13 @@ legend session model =
                     , PipelineStatusAborted PipelineStatus.Running
                     , PipelineStatusSucceeded PipelineStatus.Running
                     ]
-                ++ legendSeparator session.screenSize
-                ++ [ toggleView model.highDensity ]
+                ++ (if Filter.isViewingInstanceGroups model.query then
+                        []
+
+                    else
+                        legendSeparator session.screenSize
+                            ++ [ toggleView model ]
+                   )
 
 
 concourseInfo :
@@ -200,36 +201,50 @@ concourseInfo { hovered, version } =
         ]
 
 
-hideLegend : { a | pipelines : Maybe (List Pipeline) } -> Bool
+hideLegend : { a | pipelines : Maybe (Dict String (List Pipeline)) } -> Bool
 hideLegend { pipelines } =
     pipelines
-        |> Maybe.withDefault []
-        |> List.isEmpty
+        |> Maybe.withDefault Dict.empty
+        |> Dict.values
+        |> List.all List.isEmpty
 
 
 legendItem : PipelineStatus -> Html Message
 legendItem status =
     Html.div
         Styles.legendItem
-        [ Icon.icon
-            { sizePx = 20, image = Assets.PipelineStatusIcon status }
-            Styles.pipelineStatusIcon
+        [ case Assets.pipelineStatusIcon status of
+            Just asset ->
+                Icon.icon
+                    { sizePx = 20, image = asset }
+                    Styles.pipelineStatusIcon
+
+            Nothing ->
+                Html.text ""
         , Html.div [ style "width" "10px" ] []
         , Html.text <| PipelineStatus.show status
         ]
 
 
-toggleView : Bool -> Html Message
-toggleView highDensity =
-    Html.a
-        ([ href <| Routes.toString <| Routes.dashboardRoute (not highDensity)
-         , attribute "aria-label" "Toggle high-density view"
-         ]
-            ++ Styles.highDensityToggle
-        )
-        [ Html.div (Styles.highDensityIcon highDensity) []
-        , Html.text "high-density"
-        ]
+toggleView : FooterModel r -> Html Message
+toggleView { highDensity, dashboardView } =
+    Toggle.toggleSwitch
+        { ariaLabel = "Toggle high-density view"
+        , hrefRoute =
+            Routes.Dashboard
+                { searchType =
+                    if highDensity then
+                        Routes.Normal ""
+
+                    else
+                        Routes.HighDensity
+                , dashboardView = dashboardView
+                }
+        , text = "high-density"
+        , textDirection = Toggle.Right
+        , on = highDensity
+        , styles = Styles.highDensityToggle
+        }
 
 
 legendSeparator : ScreenSize.ScreenSize -> List (Html Message)

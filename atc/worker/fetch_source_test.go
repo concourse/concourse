@@ -31,8 +31,6 @@ var _ = Describe("FetchSource", func() {
 		fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
 		fakeUsedResourceCache    *dbfakes.FakeUsedResourceCache
 		fakeResource             *resourcefakes.FakeResource
-		fakeDelegate             *workerfakes.FakeImageFetchingDelegate
-		resourceTypes            atc.VersionedResourceTypes
 		metadata                 db.ContainerMetadata
 		owner                    db.ContainerOwner
 
@@ -89,19 +87,6 @@ var _ = Describe("FetchSource", func() {
 			{Name: "some", Value: "metadata"},
 		}, nil)
 
-		fakeDelegate = new(workerfakes.FakeImageFetchingDelegate)
-
-		resourceTypes = atc.VersionedResourceTypes{
-			{
-				ResourceType: atc.ResourceType{
-					Name:   "custom-resource",
-					Type:   "custom-type",
-					Source: atc.Source{"some-custom": "source"},
-				},
-				Version: atc.Version{"some-custom": "version"},
-			},
-		}
-
 		getProcessSpec := runtime.ProcessSpec{
 			Path: "/opt/resource/in",
 			Args: []string{resource.ResourcesDir("get")},
@@ -114,10 +99,8 @@ var _ = Describe("FetchSource", func() {
 			owner,
 			fakeUsedResourceCache,
 			fakeResource,
-			resourceTypes,
 			worker.ContainerSpec{
 				TeamID: 42,
-				Tags:   []string{},
 				ImageSpec: worker.ImageSpec{
 					ResourceType: "fake-resource-type",
 				},
@@ -127,7 +110,6 @@ var _ = Describe("FetchSource", func() {
 			},
 			getProcessSpec,
 			metadata,
-			fakeDelegate,
 		)
 	})
 
@@ -148,7 +130,7 @@ var _ = Describe("FetchSource", func() {
 				expectedGetResult = worker.GetResult{
 					ExitStatus:    0,
 					VersionResult: runtime.VersionResult{Metadata: expectedMetadata},
-					GetArtifact:   runtime.GetArtifact{fakeVolume.Handle()},
+					GetArtifact:   runtime.GetArtifact{VolumeHandle: fakeVolume.Handle()},
 				}
 			})
 
@@ -199,7 +181,7 @@ var _ = Describe("FetchSource", func() {
 				expectedGetResult = worker.GetResult{
 					ExitStatus:    0,
 					VersionResult: runtime.VersionResult{Metadata: expectedMetadata},
-					GetArtifact:   runtime.GetArtifact{fakeVolume.Handle()},
+					GetArtifact:   runtime.GetArtifact{VolumeHandle: fakeVolume.Handle()},
 				}
 			})
 
@@ -219,7 +201,7 @@ var _ = Describe("FetchSource", func() {
 		Context("when there is no initialized volume", func() {
 			var atcMetadata []atc.MetadataField
 			BeforeEach(func() {
-				atcMetadata = []atc.MetadataField{{"foo", "bar"}}
+				atcMetadata = []atc.MetadataField{{Name: "foo", Value: "bar"}}
 				fakeWorker.FindVolumeForResourceCacheReturns(nil, false, nil)
 				fakeResource.GetReturns(runtime.VersionResult{Metadata: atcMetadata}, nil)
 			})
@@ -228,14 +210,12 @@ var _ = Describe("FetchSource", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
-				_, logger, delegate, owner, actualMetadata, containerSpec, types := fakeWorker.FindOrCreateContainerArgsForCall(0)
-				Expect(delegate).To(Equal(fakeDelegate))
+				_, logger, owner, actualMetadata, containerSpec := fakeWorker.FindOrCreateContainerArgsForCall(0)
 				Expect(owner).To(Equal(db.NewBuildStepContainerOwner(43, atc.PlanID("some-plan-id"), 42)))
 				Expect(actualMetadata).To(Equal(metadata))
 				Expect(containerSpec).To(Equal(
 					worker.ContainerSpec{
 						TeamID: 42,
-						Tags:   []string{},
 						ImageSpec: worker.ImageSpec{
 							ResourceType: "fake-resource-type",
 						},
@@ -244,7 +224,6 @@ var _ = Describe("FetchSource", func() {
 							"resource": resource.ResourcesDir("get"),
 						},
 					}))
-				Expect(types).To(Equal(resourceTypes))
 			})
 
 			It("executes the get script", func() {

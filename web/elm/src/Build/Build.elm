@@ -25,7 +25,6 @@ import Build.Shortcuts as Shortcuts
 import Build.StepTree.Models as STModels
 import Build.StepTree.StepTree as StepTree
 import Build.Styles as Styles
-import Colors
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import DateFormat
@@ -270,6 +269,7 @@ handleCallback action ( model, effects ) =
                                     |> Endpoints.toString []
                             , eventTypes = [ "end", "event" ]
                             }
+                       , SyncStickyBuildLogHeaders
                        ]
                 )
 
@@ -313,24 +313,13 @@ handleDelivery : { a | hovered : HoverState.HoverState } -> Delivery -> ET Model
 handleDelivery session delivery ( model, effects ) =
     (case delivery of
         ClockTicked OneSecond time ->
-            ( { model | now = Just time }
-            , effects
-                ++ (case session.hovered of
-                        HoverState.Hovered (FirstOccurrenceGetStepLabel stepID) ->
-                            [ GetViewportOf
-                                (FirstOccurrenceGetStepLabel stepID)
-                            ]
-
-                        HoverState.Hovered (StepState stepID) ->
-                            [ GetViewportOf (StepState stepID) ]
-
-                        _ ->
-                            []
-                   )
-            )
+            ( { model | now = Just time }, effects )
 
         ClockTicked FiveSeconds _ ->
             ( model, effects ++ [ Effects.FetchAllPipelines ] )
+
+        WindowResized _ _ ->
+            ( model, effects ++ [ SyncStickyBuildLogHeaders ] )
 
         EventsReceived (Ok envelopes) ->
             let
@@ -406,6 +395,7 @@ handleDelivery session delivery ( model, effects ) =
         _ ->
             ( model, effects )
     )
+        |> Tooltip.handleDelivery session delivery
         |> Shortcuts.handleDelivery delivery
         |> Header.handleDelivery delivery
 
@@ -435,7 +425,17 @@ update msg ( model, effects ) =
         Click (StepHeader id) ->
             updateOutput
                 (Build.Output.Output.handleStepTreeMsg <| StepTree.toggleStep id)
-                ( model, effects )
+                ( model, effects ++ [ SyncStickyBuildLogHeaders ] )
+
+        Click (StepInitialization id) ->
+            updateOutput
+                (Build.Output.Output.handleStepTreeMsg <| StepTree.toggleStepInitialization id)
+                ( model, effects ++ [ SyncStickyBuildLogHeaders ] )
+
+        Click (StepSubHeader id i) ->
+            updateOutput
+                (Build.Output.Output.handleStepTreeMsg <| StepTree.toggleStepSubHeader id i)
+                ( model, effects ++ [ SyncStickyBuildLogHeaders ] )
 
         Click (StepTab id tab) ->
             updateOutput
@@ -640,10 +640,10 @@ view session model =
         (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
         [ Html.div
             (id "top-bar-app" :: Views.Styles.topBar False)
-            [ SideBar.hamburgerMenu session
+            [ SideBar.sideBarIcon session
             , TopBar.concourseLogo
-            , breadcrumbs model
-            , Login.view session.userState model False
+            , breadcrumbs session model
+            , Login.view session.userState model
             ]
         , Html.div
             (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
@@ -661,38 +661,44 @@ view session model =
         ]
 
 
-tooltip : Model -> { a | hovered : HoverState.HoverState } -> Maybe Tooltip.Tooltip
-tooltip _ { hovered } =
-    case hovered of
-        HoverState.Tooltip (FirstOccurrenceGetStepLabel _) _ ->
-            Just
-                { body =
-                    Html.div
-                        Styles.firstOccurrenceTooltip
-                        [ Html.text "new version" ]
-                , attachPosition =
-                    { direction = Tooltip.Top
-                    , alignment = Tooltip.Start
-                    }
-                , arrow = Just { size = 5, color = Colors.tooltipBackground }
-                }
-
-        _ ->
-            Nothing
+tooltip : Model -> Session -> Maybe Tooltip.Tooltip
+tooltip model session =
+    tryAll
+        [ model.output
+            |> toMaybe
+            |> Maybe.andThen .steps
+            |> Maybe.andThen (\steps -> StepTree.tooltip steps session)
+        , Header.tooltip model session
+        ]
 
 
-breadcrumbs : Model -> Html Message
-breadcrumbs model =
+tryAll : List (Maybe a) -> Maybe a
+tryAll maybes =
+    List.foldl
+        (\prev cur ->
+            case prev of
+                Nothing ->
+                    cur
+
+                _ ->
+                    prev
+        )
+        Nothing
+        maybes
+
+
+breadcrumbs : Session -> Model -> Html Message
+breadcrumbs session model =
     case ( model.job, model.page ) of
         ( Just jobId, _ ) ->
-            TopBar.breadcrumbs <|
+            TopBar.breadcrumbs session <|
                 Routes.Job
                     { id = jobId
                     , page = Nothing
                     }
 
         ( _, JobBuildPage buildId ) ->
-            TopBar.breadcrumbs <|
+            TopBar.breadcrumbs session <|
                 Routes.Build
                     { id = buildId
                     , highlight = model.highlight
@@ -752,7 +758,7 @@ body session ({ prep, output, authorized, showHelp } as params) =
             , Html.Lazy.lazy3
                 viewBuildOutput
                 session.timeZone
-                (projectOntoBuildPage session.hovered)
+                (Build.Output.Output.filterHoverState session.hovered)
                 output
             , Shortcuts.keyboardHelp showHelp
             ]
@@ -760,40 +766,6 @@ body session ({ prep, output, authorized, showHelp } as params) =
 
         else
             [ NotAuthorized.view ]
-
-
-projectOntoBuildPage : HoverState.HoverState -> HoverState.HoverState
-projectOntoBuildPage hovered =
-    case hovered of
-        HoverState.Hovered (FirstOccurrenceGetStepLabel _) ->
-            hovered
-
-        HoverState.TooltipPending (FirstOccurrenceGetStepLabel _) ->
-            hovered
-
-        HoverState.Tooltip (FirstOccurrenceGetStepLabel _) _ ->
-            hovered
-
-        HoverState.Hovered (StepState _) ->
-            hovered
-
-        HoverState.TooltipPending (StepState _) ->
-            hovered
-
-        HoverState.Tooltip (StepState _) _ ->
-            hovered
-
-        HoverState.Hovered (StepTab _ _) ->
-            hovered
-
-        HoverState.TooltipPending (StepTab _ _) ->
-            hovered
-
-        HoverState.Tooltip (StepTab _ _) _ ->
-            hovered
-
-        _ ->
-            HoverState.NoHover
 
 
 tombstone :
@@ -907,9 +879,9 @@ viewBuildPrep buildPrep =
                     , style "align-items" "center"
                     ]
                     [ Icon.icon
-                        { sizePx = 15, image = Assets.CogsIcon }
-                        [ style "margin" "6.5px"
-                        , style "margin-right" "0.5px"
+                        { sizePx = 14, image = Assets.CogsIcon }
+                        [ style "margin" "7px"
+                        , style "margin-right" "2px"
                         , style "background-size" "contain"
                         ]
                     , Html.h3 [] [ Html.text "preparing build" ]

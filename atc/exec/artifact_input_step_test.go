@@ -3,14 +3,13 @@ package exec_test
 import (
 	"context"
 	"errors"
-	"io/ioutil"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/build"
-	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
+	"github.com/concourse/concourse/vars"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -20,29 +19,26 @@ var _ = Describe("ArtifactInputStep", func() {
 		ctx    context.Context
 		cancel func()
 
-		state    exec.RunState
-		delegate *execfakes.FakeBuildStepDelegate
+		state exec.RunState
 
-		step             exec.Step
-		stepErr          error
-		plan             atc.Plan
-		fakeBuild        *dbfakes.FakeBuild
-		fakeWorkerClient *workerfakes.FakeClient
+		step           exec.Step
+		stepOk         bool
+		stepErr        error
+		plan           atc.Plan
+		fakeBuild      *dbfakes.FakeBuild
+		fakeWorkerPool *workerfakes.FakePool
 	)
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithCancel(context.Background())
 
-		state = exec.NewRunState()
-
-		delegate = new(execfakes.FakeBuildStepDelegate)
-		delegate.StdoutReturns(ioutil.Discard)
+		state = exec.NewRunState(noopStepper, vars.StaticVariables{}, false)
 
 		fakeBuild = new(dbfakes.FakeBuild)
-		fakeWorkerClient = new(workerfakes.FakeClient)
+		fakeWorkerPool = new(workerfakes.FakePool)
 
 		plan = atc.Plan{ArtifactInput: &atc.ArtifactInputPlan{34, "some-input-artifact-name"}}
-		step = exec.NewArtifactInputStep(plan, fakeBuild, fakeWorkerClient, delegate)
+		step = exec.NewArtifactInputStep(plan, fakeBuild, fakeWorkerPool)
 	})
 
 	AfterEach(func() {
@@ -50,7 +46,7 @@ var _ = Describe("ArtifactInputStep", func() {
 	})
 
 	JustBeforeEach(func() {
-		stepErr = step.Run(ctx, state)
+		stepOk, stepErr = step.Run(ctx, state)
 	})
 
 	Context("when looking up the build artifact errors", func() {
@@ -98,7 +94,7 @@ var _ = Describe("ArtifactInputStep", func() {
 
 			Context("when looking up the worker volume fails", func() {
 				BeforeEach(func() {
-					fakeWorkerClient.FindVolumeReturns(nil, false, errors.New("nope"))
+					fakeWorkerPool.FindVolumeReturns(nil, false, errors.New("nope"))
 				})
 				It("returns the error", func() {
 					Expect(stepErr).To(HaveOccurred())
@@ -107,7 +103,7 @@ var _ = Describe("ArtifactInputStep", func() {
 
 			Context("when the worker volume does not exist", func() {
 				BeforeEach(func() {
-					fakeWorkerClient.FindVolumeReturns(nil, false, nil)
+					fakeWorkerPool.FindVolumeReturns(nil, false, nil)
 				})
 				It("returns the error", func() {
 					Expect(stepErr).To(HaveOccurred())
@@ -121,7 +117,7 @@ var _ = Describe("ArtifactInputStep", func() {
 
 				BeforeEach(func() {
 					fakeWorkerVolume = new(workerfakes.FakeVolume)
-					fakeWorkerClient.FindVolumeReturns(fakeWorkerVolume, true, nil)
+					fakeWorkerPool.FindVolumeReturns(fakeWorkerVolume, true, nil)
 
 					fakeDBWorkerArtifact = new(dbfakes.FakeWorkerArtifact)
 					fakeDBCreatedVolume = new(dbfakes.FakeCreatedVolume)
@@ -140,7 +136,7 @@ var _ = Describe("ArtifactInputStep", func() {
 				})
 
 				It("succeeds", func() {
-					Expect(step.Succeeded()).To(BeTrue())
+					Expect(stepOk).To(BeTrue())
 				})
 			})
 		})

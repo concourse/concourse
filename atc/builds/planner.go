@@ -59,6 +59,7 @@ func (visitor *planVisitor) VisitTask(step *atc.TaskStep) error {
 		InputMapping:      step.InputMapping,
 		OutputMapping:     step.OutputMapping,
 		ImageArtifactName: step.ImageArtifactName,
+		Timeout:           step.Timeout,
 
 		VersionedResourceTypes: visitor.resourceTypes,
 	})
@@ -89,6 +90,8 @@ func (visitor *planVisitor) VisitGet(step *atc.GetStep) error {
 		return VersionNotProvidedError{step.Name}
 	}
 
+	resource.ApplySourceDefaults(visitor.resourceTypes)
+
 	visitor.plan = visitor.planFactory.NewPlan(atc.GetPlan{
 		Name: step.Name,
 
@@ -98,6 +101,7 @@ func (visitor *planVisitor) VisitGet(step *atc.GetStep) error {
 		Params:   step.Params,
 		Version:  &version,
 		Tags:     step.Tags,
+		Timeout:  step.Timeout,
 
 		VersionedResourceTypes: visitor.resourceTypes,
 	})
@@ -118,14 +122,20 @@ func (visitor *planVisitor) VisitPut(step *atc.PutStep) error {
 		return UnknownResourceError{resourceName}
 	}
 
+	resource.ApplySourceDefaults(visitor.resourceTypes)
+
 	atcPutPlan := atc.PutPlan{
-		Type:     resource.Type,
-		Name:     logicalName,
-		Resource: resourceName,
-		Source:   resource.Source,
-		Params:   step.Params,
-		Tags:     step.Tags,
-		Inputs:   step.Inputs,
+		Name:                 logicalName,
+		Resource:             resourceName,
+		Type:                 resource.Type,
+		Source:               resource.Source,
+		Params:               step.Params,
+		ExposeBuildCreatedBy: resource.ExposeBuildCreatedBy,
+
+		Inputs: step.Inputs,
+
+		Tags:    step.Tags,
+		Timeout: step.Timeout,
 
 		VersionedResourceTypes: visitor.resourceTypes,
 	}
@@ -133,14 +143,15 @@ func (visitor *planVisitor) VisitPut(step *atc.PutStep) error {
 	putPlan := visitor.planFactory.NewPlan(atcPutPlan)
 
 	dependentGetPlan := visitor.planFactory.NewPlan(atc.GetPlan{
-		Type:        resource.Type,
 		Name:        logicalName,
 		Resource:    resourceName,
+		Type:        resource.Type,
+		Source:      resource.Source,
+		Params:      step.GetParams,
 		VersionFrom: &putPlan.ID,
 
-		Params: step.GetParams,
-		Tags:   step.Tags,
-		Source: resource.Source,
+		Tags:    step.Tags,
+		Timeout: step.Timeout,
 
 		VersionedResourceTypes: visitor.resourceTypes,
 	})
@@ -158,23 +169,6 @@ func (visitor *planVisitor) VisitDo(step *atc.DoStep) error {
 
 	for _, step := range step.Steps {
 		err := step.Config.Visit(visitor)
-		if err != nil {
-			return err
-		}
-
-		do = append(do, visitor.plan)
-	}
-
-	visitor.plan = visitor.planFactory.NewPlan(do)
-
-	return nil
-}
-
-func (visitor *planVisitor) VisitAggregate(step *atc.AggregateStep) error {
-	do := atc.AggregatePlan{}
-
-	for _, sub := range step.Steps {
-		err := sub.Config.Visit(visitor)
 		if err != nil {
 			return err
 		}
@@ -208,13 +202,59 @@ func (visitor *planVisitor) VisitInParallel(step *atc.InParallelStep) error {
 	return nil
 }
 
+func (visitor *planVisitor) VisitAcross(step *atc.AcrossStep) error {
+	vars := make([]atc.AcrossVar, len(step.Vars))
+	for i, v := range step.Vars {
+		vars[i] = atc.AcrossVar{
+			Var:         v.Var,
+			Values:      v.Values,
+			MaxInFlight: v.MaxInFlight,
+		}
+	}
+
+	acrossPlan := atc.AcrossPlan{
+		Vars:     vars,
+		Steps:    []atc.VarScopedPlan{},
+		FailFast: step.FailFast,
+	}
+	for _, vals := range cartesianProduct(step.Vars) {
+		err := step.Step.Visit(visitor)
+		if err != nil {
+			return err
+		}
+		acrossPlan.Steps = append(acrossPlan.Steps, atc.VarScopedPlan{
+			Step:   visitor.plan,
+			Values: vals,
+		})
+	}
+
+	visitor.plan = visitor.planFactory.NewPlan(acrossPlan)
+
+	return nil
+}
+
+func cartesianProduct(vars []atc.AcrossVarConfig) [][]interface{} {
+	if len(vars) == 0 {
+		return make([][]interface{}, 1)
+	}
+	var product [][]interface{}
+	subProduct := cartesianProduct(vars[:len(vars)-1])
+	for _, vec := range subProduct {
+		for _, val := range vars[len(vars)-1].Values {
+			product = append(product, append(vec, val))
+		}
+	}
+	return product
+}
+
 func (visitor *planVisitor) VisitSetPipeline(step *atc.SetPipelineStep) error {
 	visitor.plan = visitor.planFactory.NewPlan(atc.SetPipelinePlan{
-		Name:     step.Name,
-		File:     step.File,
-		Team:     step.Team,
-		Vars:     step.Vars,
-		VarFiles: step.VarFiles,
+		Name:         step.Name,
+		File:         step.File,
+		Team:         step.Team,
+		Vars:         step.Vars,
+		VarFiles:     step.VarFiles,
+		InstanceVars: step.InstanceVars,
 	})
 
 	return nil

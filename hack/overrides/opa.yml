@@ -8,11 +8,11 @@ version: '3'
 services:
   web:
     environment:
-      CONCOURSE_OPA_URL: http://opa:8181/v1/data/concourse/allow
+      CONCOURSE_OPA_URL: http://opa:8181/v1/data/concourse/decision
       CONCOURSE_POLICY_CHECK_FILTER_HTTP_METHODS: PUT,POST
 
       # uncomment to configure
-      # CONCOURSE_POLICY_CHECK_FILTER_ACTION: ListWorkers,ListContainers,UseImage
+      # CONCOURSE_POLICY_CHECK_FILTER_ACTION: ListWorkers,ListContainers,UseImage,SaveConfig
       # CONCOURSE_POLICY_CHECK_FILTER_ACTION_SKIP: PausePipeline,UnpausePipeline
 
   opa:

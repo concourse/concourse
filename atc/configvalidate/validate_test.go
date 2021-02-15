@@ -1,6 +1,7 @@
 package configvalidate_test
 
 import (
+	"encoding/json"
 	"strings"
 
 	"github.com/concourse/concourse/atc"
@@ -15,8 +16,8 @@ import (
 
 var _ = Describe("ValidateConfig", func() {
 	var (
-		config atc.Config
-
+		config        atc.Config
+		warnings      []atc.ConfigWarning
 		errorMessages []string
 	)
 
@@ -30,7 +31,7 @@ var _ = Describe("ValidateConfig", func() {
 				},
 				{
 					Name: "some-other-group",
-					Jobs: []string{"some-empty-job"},
+					Jobs: []string{"some-empty-*"},
 				},
 			},
 
@@ -73,7 +74,7 @@ var _ = Describe("ValidateConfig", func() {
 						},
 						{
 							Config: &atc.LoadVarStep{
-								Name: "some-var",
+								Name: "some_var",
 								File: "some-input/some-file.json",
 							},
 						},
@@ -105,15 +106,139 @@ var _ = Describe("ValidateConfig", func() {
 				},
 			},
 		}
+
+		atc.EnableAcrossStep = true
 	})
 
 	JustBeforeEach(func() {
-		_, errorMessages = configvalidate.Validate(config)
+		warnings, errorMessages = configvalidate.Validate(config)
 	})
 
 	Context("when the config is valid", func() {
 		It("returns no error", func() {
 			Expect(errorMessages).To(HaveLen(0))
+		})
+	})
+
+	Describe("invalid identifiers", func() {
+
+		Context("when a group has an invalid identifier", func() {
+			BeforeEach(func() {
+				config.Groups = append(config.Groups, atc.GroupConfig{
+					Name: "_some-group",
+					Jobs: []string{"some-job"},
+				})
+			})
+
+			It("returns a warning", func() {
+				Expect(warnings).To(HaveLen(1))
+				Expect(warnings[0].Message).To(ContainSubstring("'_some-group' is not a valid identifier"))
+			})
+		})
+
+		Context("when a resource has an invalid identifier", func() {
+			BeforeEach(func() {
+				config.Resources = append(config.Resources, atc.ResourceConfig{
+					Name: "_some-resource",
+					Type: "some-type",
+					Source: atc.Source{
+						"source-config": "some-value",
+					},
+				})
+			})
+
+			It("returns a warning", func() {
+				Expect(warnings).To(HaveLen(1))
+				Expect(warnings[0].Message).To(ContainSubstring("'_some-resource' is not a valid identifier"))
+			})
+		})
+
+		Context("when a resource type has an invalid identifier", func() {
+			BeforeEach(func() {
+				config.ResourceTypes = append(config.ResourceTypes, atc.ResourceType{
+					Name: "_some-resource-type",
+					Type: "some-type",
+					Source: atc.Source{
+						"source-config": "some-value",
+					},
+				})
+			})
+
+			It("returns a warning", func() {
+				Expect(warnings).To(HaveLen(1))
+				Expect(warnings[0].Message).To(ContainSubstring("'_some-resource-type' is not a valid identifier"))
+			})
+		})
+
+		Context("when a var source has an invalid identifier", func() {
+			BeforeEach(func() {
+				config.VarSources = append(config.VarSources, atc.VarSourceConfig{
+					Name:   "_some-var-source",
+					Type:   "dummy",
+					Config: "",
+				})
+			})
+
+			It("returns a warning", func() {
+				Expect(warnings).To(HaveLen(1))
+				Expect(warnings[0].Message).To(ContainSubstring("'_some-var-source' is not a valid identifier"))
+			})
+		})
+
+		Context("when a job has an invalid identifier", func() {
+			BeforeEach(func() {
+				config.Jobs = append(config.Jobs, atc.JobConfig{
+					Name: "_some-job",
+				})
+			})
+
+			It("returns a warning", func() {
+				Expect(warnings).To(HaveLen(1))
+				Expect(warnings[0].Message).To(ContainSubstring("'_some-job' is not a valid identifier"))
+			})
+		})
+
+		Context("when a step has an invalid identifier", func() {
+			var job atc.JobConfig
+
+			BeforeEach(func() {
+				job.PlanSequence = append(job.PlanSequence, atc.Step{
+					Config: &atc.GetStep{
+						Name: "_get-step",
+					},
+				})
+				job.PlanSequence = append(job.PlanSequence, atc.Step{
+					Config: &atc.TaskStep{
+						Name: "_task-step",
+					},
+				})
+				job.PlanSequence = append(job.PlanSequence, atc.Step{
+					Config: &atc.PutStep{
+						Name: "_put-step",
+					},
+				})
+				job.PlanSequence = append(job.PlanSequence, atc.Step{
+					Config: &atc.SetPipelineStep{
+						Name: "_set-pipeline-step",
+					},
+				})
+				job.PlanSequence = append(job.PlanSequence, atc.Step{
+					Config: &atc.LoadVarStep{
+						Name: "_load-var-step",
+					},
+				})
+
+				config.Jobs = append(config.Jobs, job)
+			})
+
+			It("returns a warning", func() {
+				Expect(warnings).To(HaveLen(5))
+				Expect(warnings[0].Message).To(ContainSubstring("'_get-step' is not a valid identifier"))
+				Expect(warnings[1].Message).To(ContainSubstring("'_task-step' is not a valid identifier"))
+				Expect(warnings[2].Message).To(ContainSubstring("'_put-step' is not a valid identifier"))
+				Expect(warnings[3].Message).To(ContainSubstring("'_set-pipeline-step' is not a valid identifier"))
+				Expect(warnings[4].Message).To(ContainSubstring("'_load-var-step' is not a valid identifier"))
+			})
 		})
 	})
 
@@ -137,14 +262,14 @@ var _ = Describe("ValidateConfig", func() {
 			BeforeEach(func() {
 				config.Groups = append(config.Groups, atc.GroupConfig{
 					Name: "bogus",
-					Jobs: []string{"bogus-job"},
+					Jobs: []string{"bogus-*"},
 				})
 			})
 
 			It("returns an error", func() {
 				Expect(errorMessages).To(HaveLen(1))
 				Expect(errorMessages[0]).To(ContainSubstring("invalid groups:"))
-				Expect(errorMessages[0]).To(ContainSubstring("unknown job 'bogus-job'"))
+				Expect(errorMessages[0]).To(ContainSubstring("no jobs match 'bogus-*' for group 'bogus'"))
 			})
 		})
 
@@ -199,6 +324,21 @@ var _ = Describe("ValidateConfig", func() {
 				Expect(errorLines).To(HaveLen(2))
 				Expect(errorLines[0]).To(ContainSubstring("invalid groups:"))
 				Expect(errorLines[1]).To(ContainSubstring("group 'some-group' appears 4 times. Duplicate names are not allowed."))
+			})
+		})
+
+		Context("when a group has and invalid glob expression", func() {
+			BeforeEach(func() {
+				config.Groups = append(config.Groups, atc.GroupConfig{
+					Name: "a-group",
+					Jobs: []string{"some-bad-glob-[0-9"},
+				})
+			})
+
+			It("returns an error", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("invalid groups:"))
+				Expect(errorMessages[0]).To(ContainSubstring("invalid glob expression 'some-bad-glob-[0-9' for group 'a-group'"))
 			})
 		})
 	})
@@ -421,10 +561,6 @@ var _ = Describe("ValidateConfig", func() {
 						Type: "some-type",
 					},
 					{
-						Name: "aggregate",
-						Type: "some-type",
-					},
-					{
 						Name: "parallel",
 						Type: "some-type",
 					},
@@ -490,17 +626,6 @@ var _ = Describe("ValidateConfig", func() {
 										{
 											Config: &atc.GetStep{
 												Name: "do",
-											},
-										},
-									},
-								},
-							},
-							{
-								Config: &atc.AggregateStep{
-									Steps: []atc.Step{
-										{
-											Config: &atc.GetStep{
-												Name: "aggregate",
 											},
 										},
 									},
@@ -813,12 +938,10 @@ var _ = Describe("ValidateConfig", func() {
 		})
 
 		Describe("plans", func() {
-			Context("when a task plan has neither a config or a path set", func() {
+			Context("when a task plan has neither a config, path, or name set set", func() {
 				BeforeEach(func() {
 					job.PlanSequence = append(job.PlanSequence, atc.Step{
-						Config: &atc.TaskStep{
-							Name: "lol",
-						},
+						Config: &atc.TaskStep{},
 					})
 
 					config.Jobs = append(config.Jobs, job)
@@ -827,7 +950,8 @@ var _ = Describe("ValidateConfig", func() {
 				It("returns an error", func() {
 					Expect(errorMessages).To(HaveLen(1))
 					Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].task(lol): must specify either `file:` or `config:`"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].task(): must specify either `file:` or `config:`"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].task(): identifier cannot be an empty string"))
 				})
 			})
 
@@ -1504,7 +1628,7 @@ var _ = Describe("ValidateConfig", func() {
 							Step: &atc.PutStep{
 								Name: "some-resource",
 							},
-							Attempts: -1,
+							Attempts: 0,
 						},
 					})
 
@@ -1513,16 +1637,14 @@ var _ = Describe("ValidateConfig", func() {
 
 				It("does return an error", func() {
 					Expect(errorMessages).To(HaveLen(1))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].attempts: cannot be negative"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].attempts: must be greater than 0"))
 				})
 			})
 
-			Context("when a set_pipeline step has no file configured", func() {
+			Context("when a set_pipeline step has no name or file configured", func() {
 				BeforeEach(func() {
 					job.PlanSequence = append(job.PlanSequence, atc.Step{
-						Config: &atc.SetPipelineStep{
-							Name: "other-pipeline",
-						},
+						Config: &atc.SetPipelineStep{},
 					})
 
 					config.Jobs = append(config.Jobs, job)
@@ -1530,7 +1652,8 @@ var _ = Describe("ValidateConfig", func() {
 
 				It("does return an error", func() {
 					Expect(errorMessages).To(HaveLen(1))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].set_pipeline(other-pipeline): no file specified"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].set_pipeline(): no file specified"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].set_pipeline(): identifier cannot be an empty string"))
 				})
 			})
 
@@ -1629,12 +1752,10 @@ var _ = Describe("ValidateConfig", func() {
 				})
 			})
 
-			Context("when a load_var has not defined 'File'", func() {
+			Context("when a load_var has no name or file defined", func() {
 				BeforeEach(func() {
 					job.PlanSequence = append(job.PlanSequence, atc.Step{
-						Config: &atc.LoadVarStep{
-							Name: "a-var",
-						},
+						Config: &atc.LoadVarStep{},
 					})
 
 					config.Jobs = append(config.Jobs, job)
@@ -1642,7 +1763,8 @@ var _ = Describe("ValidateConfig", func() {
 
 				It("returns an error", func() {
 					Expect(errorMessages).To(HaveLen(1))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].load_var(a-var): no file specified"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].load_var(): no file specified"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].load_var(): identifier cannot be an empty string"))
 				})
 			})
 
@@ -1665,7 +1787,219 @@ var _ = Describe("ValidateConfig", func() {
 
 				It("returns an error", func() {
 					Expect(errorMessages).To(HaveLen(1))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[1].load_var(a-var): repeated name"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[1].load_var(a-var): repeated var name"))
+				})
+			})
+
+			Context("when a step has unknown fields", func() {
+				BeforeEach(func() {
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.TaskStep{
+							Name:       "task",
+							ConfigPath: "some-file",
+						},
+						UnknownFields: map[string]*json.RawMessage{"bogus": nil},
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("returns an error", func() {
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring(`jobs.some-other-job.plan.do[0]: unknown fields ["bogus"]`))
+				})
+			})
+
+			Context("when an across step is valid", func() {
+				BeforeEach(func() {
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.AcrossStep{
+							Step: &atc.PutStep{
+								Name: "some-resource",
+							},
+							Vars: []atc.AcrossVarConfig{
+								{
+									Var:    "var1",
+									Values: []interface{}{"v1", "v2"},
+								},
+								{
+									Var:         "var2",
+									MaxInFlight: &atc.MaxInFlightConfig{Limit: 2},
+									Values:      []interface{}{"v1", "v2"},
+								},
+								{
+									Var:         "var3",
+									MaxInFlight: &atc.MaxInFlightConfig{All: true},
+									Values:      []interface{}{"v1", "v2"},
+								},
+							},
+						},
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("succeeds", func() {
+					Expect(errorMessages).To(HaveLen(0))
+				})
+			})
+
+			Context("when an across step has no vars", func() {
+				BeforeEach(func() {
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.AcrossStep{
+							Step: &atc.PutStep{
+								Name: "some-resource",
+							},
+							Vars: []atc.AcrossVarConfig{},
+						},
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("returns an error", func() {
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].across: no vars specified"))
+				})
+			})
+
+			Context("when an across step repeats a var name", func() {
+				BeforeEach(func() {
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.AcrossStep{
+							Step: &atc.PutStep{
+								Name: "some-resource",
+							},
+							Vars: []atc.AcrossVarConfig{
+								{
+									Var: "var1",
+								},
+								{
+									Var: "var1",
+								},
+							},
+						},
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("returns an error", func() {
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].across[1]: repeated var name"))
+				})
+			})
+
+			Context("when an across step shadows a var name from a parent scope", func() {
+				BeforeEach(func() {
+					job.PlanSequence = append(job.PlanSequence,
+						atc.Step{Config: &atc.LoadVarStep{
+							Name: "var1",
+							File: "unused",
+						}},
+						atc.Step{
+							Config: &atc.AcrossStep{
+								Step: &atc.PutStep{
+									Name: "some-resource",
+								},
+								Vars: []atc.AcrossVarConfig{
+									{
+										Var: "var1",
+									},
+								},
+							},
+						})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("returns a warning", func() {
+					Expect(errorMessages).To(BeEmpty())
+					Expect(warnings).To(HaveLen(1))
+					Expect(warnings[0].Message).To(ContainSubstring("jobs.some-other-job.plan.do[1].across[0]: shadows local var 'var1'"))
+				})
+			})
+
+			Context("when a substep of the across step shadows a var name from a parent scope", func() {
+				BeforeEach(func() {
+					job.PlanSequence = append(job.PlanSequence,
+						atc.Step{Config: &atc.LoadVarStep{
+							Name: "a",
+							File: "unused",
+						}},
+						atc.Step{
+							Config: &atc.AcrossStep{
+								Step: &atc.LoadVarStep{
+									Name: "a",
+									File: "unused",
+								},
+								Vars: []atc.AcrossVarConfig{
+									{
+										Var: "b",
+									},
+								},
+							},
+						})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("returns a warning", func() {
+					Expect(errorMessages).To(BeEmpty())
+					Expect(warnings).To(HaveLen(1))
+					Expect(warnings[0].Message).To(ContainSubstring("jobs.some-other-job.plan.do[1].across.load_var(a): shadows local var 'a'"))
+				})
+			})
+
+			Context("when an across step has a non-positive limit", func() {
+				BeforeEach(func() {
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.AcrossStep{
+							Step: &atc.PutStep{
+								Name: "some-resource",
+							},
+							Vars: []atc.AcrossVarConfig{
+								{
+									Var:         "var",
+									MaxInFlight: &atc.MaxInFlightConfig{Limit: 0},
+								},
+							},
+						},
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("returns an error", func() {
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].across[0].max_in_flight: must be greater than 0"))
+				})
+			})
+
+			Context("when the across step is not enabled", func() {
+				BeforeEach(func() {
+					atc.EnableAcrossStep = false
+
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.AcrossStep{
+							Step: &atc.PutStep{
+								Name: "some-resource",
+							},
+							Vars: []atc.AcrossVarConfig{
+								{
+									Var: "var",
+								},
+							},
+						},
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("returns an error", func() {
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].across: the across step must be explicitly opted-in to using the `--enable-across-step` flag"))
 				})
 			})
 		})
@@ -1720,6 +2054,73 @@ var _ = Describe("ValidateConfig", func() {
 				Expect(errorMessages[0]).To(ContainSubstring("jobs.some-job has negative build_log_retention.builds: -1"))
 				Expect(errorMessages[0]).To(ContainSubstring("jobs.some-job has negative build_log_retention.days: -1"))
 			})
+		})
+	})
+
+	Describe("validating display config", func() {
+		Context("when the background image is a valid http URL", func() {
+			BeforeEach(func() {
+				config.Display = &atc.DisplayConfig{
+					BackgroundImage: "http://example.com/image.jpg",
+				}
+			})
+
+			It("does not return an error", func() {
+				Expect(errorMessages).To(HaveLen(0))
+			})
+		})
+
+		Context("when the background image is a valid relative URL", func() {
+			BeforeEach(func() {
+				config.Display = &atc.DisplayConfig{
+					BackgroundImage: "public/images/image.jpg",
+				}
+			})
+
+			It("does not return an error", func() {
+				Expect(errorMessages).To(HaveLen(0))
+			})
+		})
+
+		Context("when the background image uses an unsupported scheme", func() {
+			BeforeEach(func() {
+				config.Display = &atc.DisplayConfig{
+					BackgroundImage: "data:image/png;base64, iVBORw0KGgoA",
+				}
+			})
+
+			It("returns an error", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("invalid display config:"))
+				Expect(errorMessages[0]).To(ContainSubstring("background_image scheme must be either http, https or relative"))
+			})
+		})
+
+		Context("when the background image is an invalid URL", func() {
+			BeforeEach(func() {
+				config.Display = &atc.DisplayConfig{
+					BackgroundImage: "://example.com",
+				}
+			})
+
+			It("returns an error", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("invalid display config:"))
+				Expect(errorMessages[0]).To(ContainSubstring("background_image is not a valid URL: ://example.com"))
+			})
+		})
+	})
+
+	Describe("invalid pipeline", func() {
+		Context("contains zero jobs", func() {
+			BeforeEach(func() {
+				config = atc.Config{}
+			})
+			It("is an invalid pipeline", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("pipeline must contain at least one job"))
+			})
+
 		})
 	})
 })

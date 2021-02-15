@@ -16,6 +16,7 @@ var _ = Describe("Identity", func() {
 
 		step IdentityStep
 
+		stepOk  bool
 		stepErr error
 	)
 
@@ -24,18 +25,13 @@ var _ = Describe("Identity", func() {
 	})
 
 	JustBeforeEach(func() {
-		stepErr = step.Run(context.Background(), state)
+		stepOk, stepErr = step.Run(context.Background(), state)
 	})
 
 	Describe("Run", func() {
 		It("is a no-op", func() {
 			Expect(stepErr).ToNot(HaveOccurred())
-		})
-	})
-
-	Describe("Succeeded", func() {
-		It("returns true", func() {
-			Expect(step.Succeeded()).To(BeTrue())
+			Expect(stepOk).To(BeTrue())
 		})
 	})
 })

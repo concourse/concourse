@@ -1,79 +1,155 @@
 package db_test
 
 import (
-	"time"
+	"context"
 
+	sq "github.com/Masterminds/squirrel"
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("CheckLifecycle", func() {
+var _ = Describe("Check Lifecycle", func() {
 	var (
-		checkLifecycle db.CheckLifecycle
-		removedChecks  int
-		err            error
+		lifecycle db.CheckLifecycle
+		plan      atc.Plan
 	)
 
 	BeforeEach(func() {
-		checkLifecycle = db.NewCheckLifecycle(dbConn)
+		lifecycle = db.NewCheckLifecycle(dbConn)
+		plan = atc.Plan{
+			ID: "some-plan",
+			Check: &atc.CheckPlan{
+				Name: "wreck",
+			},
+		}
 	})
 
-	Describe("RemoveExpiredChecks", func() {
-		JustBeforeEach(func() {
-			removedChecks, err = checkLifecycle.RemoveExpiredChecks(time.Hour * 24)
-			Expect(err).ToNot(HaveOccurred())
-		})
+	exists := func(b db.Build) bool {
+		found, err := b.Reload()
+		Expect(err).ToNot(HaveOccurred())
+		return found
+	}
 
-		Context("removes checks created more than 24 hours ago", func() {
+	createUnfinishedCheck := func(checkable interface {
+		CreateBuild(context.Context, bool, atc.Plan) (db.Build, bool, error)
+	}, plan atc.Plan) db.Build {
+		build, created, err := checkable.CreateBuild(context.Background(), true, plan)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(created).To(BeTrue())
 
-			BeforeEach(func() {
-				_, err := dbConn.Exec("INSERT INTO checks(schema, status, create_time) VALUES('some-schema', 'succeeded', NOW() - '25 hours'::interval)")
-				Expect(err).ToNot(HaveOccurred())
-			})
+		return build
+	}
 
-			It("removes the record", func() {
-				var count int
-				err := dbConn.QueryRow("SELECT count(*) from checks").Scan(&count)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(count).To(Equal(0))
-				Expect(removedChecks).To(Equal(1))
-			})
-		})
+	finish := func(build db.Build) {
+		err := build.Finish(db.BuildStatusSucceeded)
+		Expect(err).ToNot(HaveOccurred())
+	}
 
-		Context("doesn't remove check is not finished", func() {
+	createFinishedCheck := func(checkable interface {
+		CreateBuild(context.Context, bool, atc.Plan) (db.Build, bool, error)
+	}, plan atc.Plan) db.Build {
+		build := createUnfinishedCheck(checkable, plan)
+		finish(build)
+		return build
+	}
 
-			BeforeEach(func() {
-				_, err := dbConn.Exec("INSERT INTO checks(schema, status, create_time) VALUES('some-schema', 'started', NOW() - '25 hours'::interval)")
-				Expect(err).ToNot(HaveOccurred())
-			})
+	It("removes completed check builds when there is a new completed check", func() {
+		resourceBuild := createFinishedCheck(defaultResource, plan)
+		resourceTypeBuild := createFinishedCheck(defaultResourceType, plan)
 
-			It("does not remove the record", func() {
-				var count int
-				err := dbConn.QueryRow("SELECT count(*) from checks").Scan(&count)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(count).To(Equal(1))
-				Expect(removedChecks).To(Equal(0))
-			})
-		})
+		By("attempting to delete completed checks when there are no newer checks")
+		err := lifecycle.DeleteCompletedChecks()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(exists(resourceBuild)).To(BeTrue())
+		Expect(exists(resourceTypeBuild)).To(BeTrue())
 
-		Context("keeps checks for 24 hours", func() {
+		By("creating a new check for the resource")
+		createFinishedCheck(defaultResource, plan)
 
-			BeforeEach(func() {
-				_, err := dbConn.Exec("INSERT INTO checks(schema, status, create_time) VALUES('some-schema', 'succeeded', NOW() - '25 hours'::interval)")
-				Expect(err).ToNot(HaveOccurred())
+		By("deleting completed checks")
+		err = lifecycle.DeleteCompletedChecks()
+		Expect(err).ToNot(HaveOccurred())
 
-				_, err = dbConn.Exec("INSERT INTO checks(schema, status, create_time) VALUES('some-schema', 'succeeded', NOW() - '23 hours'::interval)")
-				Expect(err).ToNot(HaveOccurred())
-			})
+		Expect(exists(resourceBuild)).To(BeFalse())
+		Expect(numBuildEventsForCheck(resourceBuild)).To(Equal(0))
 
-			It("does not remove the record", func() {
-				var count int
-				err := dbConn.QueryRow("SELECT count(*) from checks").Scan(&count)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(count).To(Equal(1))
-				Expect(removedChecks).To(Equal(1))
-			})
-		})
+		Expect(exists(resourceTypeBuild)).To(BeTrue())
+
+		By("creating a new check for the resource type")
+		createFinishedCheck(defaultResourceType, plan)
+
+		By("deleting completed checks")
+		err = lifecycle.DeleteCompletedChecks()
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(exists(resourceTypeBuild)).To(BeFalse())
+		Expect(numBuildEventsForCheck(resourceTypeBuild)).To(Equal(0))
+	})
+
+	It("ignores incomplete checks", func() {
+		c1 := createUnfinishedCheck(defaultResource, plan)
+		c2 := createUnfinishedCheck(defaultResource, plan)
+
+		err := lifecycle.DeleteCompletedChecks()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(exists(c1)).To(BeTrue())
+		Expect(exists(c2)).To(BeTrue())
+
+		By("finishing the first check should allow it to be deleted")
+		finish(c1)
+
+		err = lifecycle.DeleteCompletedChecks()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(exists(c1)).To(BeFalse())
+		Expect(exists(c2)).To(BeTrue())
+
+		By("finishing the second check should NOT allow it to be deleted")
+		finish(c2)
+
+		err = lifecycle.DeleteCompletedChecks()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(exists(c2)).To(BeTrue())
+	})
+
+	It("deletes all expired checks", func() {
+		c1 := createFinishedCheck(defaultResource, plan)
+		c2 := createFinishedCheck(defaultResource, plan)
+
+		createFinishedCheck(defaultResource, plan)
+
+		err := lifecycle.DeleteCompletedChecks()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(exists(c1)).To(BeFalse())
+		Expect(exists(c2)).To(BeFalse())
+	})
+
+	It("ignores job builds", func() {
+		build, err := defaultJob.CreateBuild("foo")
+		Expect(err).ToNot(HaveOccurred())
+
+		err = build.Finish(db.BuildStatusSucceeded)
+		Expect(err).ToNot(HaveOccurred())
+
+		By("creating a new build for the same job")
+		_, err = defaultJob.CreateBuild("foo")
+		Expect(err).ToNot(HaveOccurred())
+
+		err = lifecycle.DeleteCompletedChecks()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(exists(build)).To(BeTrue())
 	})
 })
+
+func numBuildEventsForCheck(check db.Build) int {
+	var count int
+	err := psql.Select("COUNT(*)").
+		From("check_build_events").
+		Where(sq.Eq{"build_id": check.ID()}).
+		RunWith(dbConn).
+		QueryRow().
+		Scan(&count)
+	Expect(err).ToNot(HaveOccurred())
+	return count
+}

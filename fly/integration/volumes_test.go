@@ -30,11 +30,14 @@ var _ = Describe("Fly CLI", func() {
 						ghttp.VerifyRequest("GET", "/api/v1/teams/main/volumes"),
 						ghttp.RespondWithJSONEncoded(200, []atc.Volume{
 							{
-								ID:              "bbbbbb",
-								WorkerName:      "cccccc",
-								Type:            "container",
-								ContainerHandle: "container-handle-b",
-								Path:            "container-path-b",
+								ID:                   "bbbbbb",
+								WorkerName:           "cccccc",
+								Type:                 "container",
+								ContainerHandle:      "container-handle-b",
+								Path:                 "container-path-b",
+								PipelineID:           1,
+								PipelineName:         "pipeline-name",
+								PipelineInstanceVars: atc.InstanceVars{"branch": "master"},
 							},
 							{
 								ID:         "aaaaaa",
@@ -162,7 +165,11 @@ var _ = Describe("Fly CLI", func() {
                 "parent_handle": "",
                 "resource_type": null,
                 "base_resource_type": null,
-                "pipeline_name": "",
+                "pipeline_id": 1,
+                "pipeline_name": "pipeline-name",
+                "pipeline_instance_vars": {
+                  "branch": "master"
+                },
                 "job_name": "",
                 "step_name": ""
               },
@@ -191,7 +198,9 @@ var _ = Describe("Fly CLI", func() {
                   }
                 },
                 "base_resource_type": null,
+                "pipeline_id": 0,
                 "pipeline_name": "",
+                "pipeline_instance_vars": null,
                 "job_name": "",
                 "step_name": ""
               },
@@ -207,7 +216,9 @@ var _ = Describe("Fly CLI", func() {
                   "name": "base-resource-type",
                   "version": "base-resource-version"
                 },
+                "pipeline_id": 0,
                 "pipeline_name": "",
+                "pipeline_instance_vars": null,
                 "job_name": "",
                 "step_name": ""
               },
@@ -220,7 +231,9 @@ var _ = Describe("Fly CLI", func() {
                 "parent_handle": "",
                 "resource_type": null,
                 "base_resource_type": null,
+                "pipeline_id": 0,
                 "pipeline_name": "",
+                "pipeline_instance_vars": null,
                 "job_name": "",
                 "step_name": ""
               },
@@ -233,7 +246,9 @@ var _ = Describe("Fly CLI", func() {
                 "parent_handle": "parent-handle-i",
                 "resource_type": null,
                 "base_resource_type": null,
+                "pipeline_id": 0,
                 "pipeline_name": "",
+                "pipeline_instance_vars": null,
                 "job_name": "",
                 "step_name": ""
               },
@@ -246,7 +261,9 @@ var _ = Describe("Fly CLI", func() {
                 "parent_handle": "",
                 "resource_type": null,
                 "base_resource_type": null,
+                "pipeline_id": 0,
                 "pipeline_name": "some-pipeline",
+                "pipeline_instance_vars": null,
                 "job_name": "some-job",
                 "step_name": "some-step"
               }

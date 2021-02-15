@@ -58,9 +58,6 @@ var _ = Describe("CheckAdminHandler", func() {
 			"some-action",
 			innerHandler,
 			fakeAccessor,
-			new(accessorfakes.FakeTokenVerifier),
-			new(accessorfakes.FakeTeamFetcher),
-			new(accessorfakes.FakeUserTracker),
 			new(auditorfakes.FakeAuditor),
 			map[string]string{},
 		))
@@ -71,7 +68,7 @@ var _ = Describe("CheckAdminHandler", func() {
 	})
 
 	JustBeforeEach(func() {
-		fakeAccessor.CreateReturns(fakeaccess)
+		fakeAccessor.CreateReturns(fakeaccess, nil)
 	})
 
 	Context("when a request is made", func() {

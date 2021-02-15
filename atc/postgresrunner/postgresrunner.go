@@ -14,7 +14,6 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/encryption"
 	"github.com/concourse/concourse/atc/db/migration"
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -83,6 +82,13 @@ func (runner Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 
 	Expect(session).To(gexec.Exit(0))
 
+	// Optimize for non-durability: https://www.postgresql.org/docs/13/non-durability.html
+	appendToFile(filepath.Join(tmpdir, "postgresql.conf"), `
+fsync = off
+synchronous_commit = off
+full_page_writes = off
+`)
+
 	ginkgoRunner := &ginkgomon.Runner{
 		Name:          "postgres",
 		Command:       startCmd,
@@ -96,12 +102,22 @@ func (runner Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 	return ginkgoRunner.Run(signals, ready)
 }
 
+func appendToFile(path string, content string) {
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0755)
+	Expect(err).ToNot(HaveOccurred())
+	defer f.Close()
+
+	_, err = f.WriteString(content)
+	Expect(err).ToNot(HaveOccurred())
+}
+
 func (runner *Runner) MigrateToVersion(version int) {
 	err := migration.NewOpenHelper(
 		"postgres",
 		runner.DataSourceName(),
 		nil,
-		encryption.NewNoEncryption(),
+		nil,
+		nil,
 	).MigrateToVersion(version)
 	Expect(err).NotTo(HaveOccurred())
 }
@@ -111,7 +127,8 @@ func (runner *Runner) TryOpenDBAtVersion(version int) (*sql.DB, error) {
 		"postgres",
 		runner.DataSourceName(),
 		nil,
-		encryption.NewNoEncryption(),
+		nil,
+		nil,
 	).OpenAtVersion(version)
 
 	if err != nil {
@@ -136,7 +153,8 @@ func (runner *Runner) OpenDB() *sql.DB {
 		"postgres",
 		runner.DataSourceName(),
 		nil,
-		encryption.NewNoEncryption(),
+		nil,
+		nil,
 	).Open()
 	Expect(err).NotTo(HaveOccurred())
 
@@ -148,10 +166,14 @@ func (runner *Runner) OpenDB() *sql.DB {
 }
 
 func (runner *Runner) OpenConn() db.Conn {
+	return runner.openConn("testdb")
+}
+
+func (runner *Runner) openConn(dbName string) db.Conn {
 	dbConn, err := db.Open(
 		lagertest.NewTestLogger("postgres-runner"),
 		"postgres",
-		runner.DataSourceName(),
+		runner.dataSourceName(dbName),
 		nil,
 		nil,
 		"postgresrunner",
@@ -180,38 +202,82 @@ func (runner *Runner) OpenSingleton() *sql.DB {
 }
 
 func (runner *Runner) DataSourceName() string {
-	return fmt.Sprintf("host=/tmp user=postgres dbname=testdb sslmode=disable port=%d", runner.Port)
+	return runner.dataSourceName("testdb")
 }
 
-func (runner *Runner) CreateTestDB() {
-	createdb := exec.Command("createdb", "-h", "/tmp", "-U", "postgres", "-p", strconv.Itoa(runner.Port), "testdb")
+func (runner *Runner) dataSourceName(dbName string) string {
+	return fmt.Sprintf("host=/tmp user=postgres dbname=%s sslmode=disable port=%d", dbName, runner.Port)
+}
 
-	createS, err := gexec.Start(createdb, ginkgo.GinkgoWriter, ginkgo.GinkgoWriter)
+func (runner *Runner) psql(c string, args ...interface{}) int {
+	commandStr := fmt.Sprintf(c, args...)
+	cmd := exec.Command("psql", "-h", "/tmp", "-U", "postgres", "-p", strconv.Itoa(runner.Port), "-q", "-t", "-c", commandStr)
+	session, err := gexec.Start(cmd, ginkgo.GinkgoWriter, ginkgo.GinkgoWriter)
 	Expect(err).NotTo(HaveOccurred())
 
-	<-createS.Exited
+	<-session.Exited
 
-	if createS.ExitCode() != 0 {
-		runner.DropTestDB()
+	return session.ExitCode()
+}
 
-		createdb := exec.Command("createdb", "-h", "/tmp", "-U", "postgres", "-p", strconv.Itoa(runner.Port), "testdb")
-		createS, err = gexec.Start(createdb, ginkgo.GinkgoWriter, ginkgo.GinkgoWriter)
-		Expect(err).NotTo(HaveOccurred())
+func (runner *Runner) InitializeTestDBTemplate() {
+	createTemplate := "CREATE DATABASE testdb_template IS_TEMPLATE = true;"
+	exitCode := runner.psql(createTemplate)
+	if exitCode != 0 {
+		exitCode = runner.psql("DROP DATABASE IF EXISTS testdb_template;")
+		Expect(exitCode).To(Equal(0), "drop testdb_template")
+
+		exitCode = runner.psql(createTemplate)
+		Expect(exitCode).To(Equal(0), "create testdb_template")
 	}
 
-	<-createS.Exited
+	// to run the migration
+	conn := runner.openConn("testdb_template")
+	err := conn.Close()
+	Expect(err).ToNot(HaveOccurred())
 
-	Expect(createS).To(gexec.Exit(0))
+	// Optimize for non-durability: https://www.postgresql.org/docs/13/non-durability.html
+	exitCode = runner.psql(`
+			SET client_min_messages TO WARNING;
+			CREATE OR REPLACE FUNCTION mark_tables_as_unlogged() RETURNS void AS $$
+			DECLARE
+					statements CURSOR FOR
+							SELECT tablename FROM pg_tables
+							WHERE schemaname = 'public';
+			BEGIN
+					FOR stmt IN statements LOOP
+							EXECUTE 'ALTER TABLE ' || quote_ident(stmt.tablename) || ' SET UNLOGGED;';
+					END LOOP;
+			END;
+			$$ LANGUAGE plpgsql;
+
+			SELECT mark_tables_as_unlogged();
+	`)
+	Expect(exitCode).To(Equal(0), "mark tables as unlogged")
+
+	runner.terminateIdleConnections("testdb_template")
+}
+
+func (runner *Runner) CreateEmptyTestDB() {
+	exitCode := runner.psql("CREATE DATABASE testdb;")
+	Expect(exitCode).To(Equal(0), "create empty testdb")
+}
+
+func (runner *Runner) CreateTestDBFromTemplate() {
+	exitCode := runner.psql("CREATE DATABASE testdb TEMPLATE testdb_template;")
+	Expect(exitCode).To(Equal(0), "create testdb from template")
 }
 
 func (runner *Runner) DropTestDB() {
-	dropdb := exec.Command("dropdb", "-h", "/tmp", "-U", "postgres", "-p", strconv.Itoa(runner.Port), "testdb")
-	dropS, err := gexec.Start(dropdb, ginkgo.GinkgoWriter, ginkgo.GinkgoWriter)
-	Expect(err).NotTo(HaveOccurred())
+	runner.terminateIdleConnections("testdb")
 
-	<-dropS.Exited
+	exitCode := runner.psql("DROP DATABASE IF EXISTS testdb;")
+	Expect(exitCode).To(Equal(0), "drop testdb")
+}
 
-	Expect(dropS).To(gexec.Exit(0))
+func (runner *Runner) terminateIdleConnections(dbName string) {
+	exitCode := runner.psql("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE pid <> pg_backend_pid() AND datname = '%s' AND state = 'idle';", dbName)
+	Expect(exitCode).To(Equal(0), "terminate idle connections")
 }
 
 func (runner *Runner) Truncate() {

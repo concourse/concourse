@@ -12,7 +12,9 @@ import (
 )
 
 var _ = Describe("BuildFactory", func() {
-	var team db.Team
+	var (
+		team      db.Team
+	)
 
 	BeforeEach(func() {
 		var err error
@@ -105,10 +107,10 @@ var _ = Describe("BuildFactory", func() {
 		Context("pipeline builds", func() {
 
 			It("[#139963615] marks builds that aren't the latest as non-interceptible, ", func() {
-				build1, err := defaultJob.CreateBuild()
+				build1, err := defaultJob.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).NotTo(HaveOccurred())
 
-				build2, err := defaultJob.CreateBuild()
+				build2, err := defaultJob.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).NotTo(HaveOccurred())
 
 				err = build1.Finish(db.BuildStatusErrored)
@@ -116,7 +118,7 @@ var _ = Describe("BuildFactory", func() {
 				err = build2.Finish(db.BuildStatusErrored)
 				Expect(err).NotTo(HaveOccurred())
 
-				p, _, err := defaultTeam.SavePipeline("other-pipeline", atc.Config{
+				p, _, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "other-pipeline"}, atc.Config{
 					Jobs: atc.JobConfigs{
 						{
 							Name: "some-other-job",
@@ -129,10 +131,10 @@ var _ = Describe("BuildFactory", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				pb1, err := j.CreateBuild()
+				pb1, err := j.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).NotTo(HaveOccurred())
 
-				pb2, err := j.CreateBuild()
+				pb2, err := j.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).NotTo(HaveOccurred())
 
 				err = pb1.Finish(db.BuildStatusErrored)
@@ -164,7 +166,7 @@ var _ = Describe("BuildFactory", func() {
 
 			DescribeTable("completed builds",
 				func(status db.BuildStatus, matcher types.GomegaMatcher) {
-					b, err := defaultJob.CreateBuild()
+					b, err := defaultJob.CreateBuild(defaultBuildCreatedBy)
 					Expect(err).NotTo(HaveOccurred())
 
 					var i bool
@@ -185,7 +187,7 @@ var _ = Describe("BuildFactory", func() {
 			)
 
 			It("does not mark non-completed builds", func() {
-				b, err := defaultJob.CreateBuild()
+				b, err := defaultJob.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).NotTo(HaveOccurred())
 
 				var i bool
@@ -212,7 +214,7 @@ var _ = Describe("BuildFactory", func() {
 		Context("GC failed builds", func() {
 			It("marks failed builds non-interceptible after failed-grace-period", func() {
 				buildFactory = db.NewBuildFactory(dbConn, lockFactory, 0, 2*time.Second) // 1 second could create a flaky test
-				build, err := defaultJob.CreateBuild()
+				build, err := defaultJob.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).NotTo(HaveOccurred())
 
 				err = build.Finish(db.BuildStatusFailed)
@@ -251,17 +253,17 @@ var _ = Describe("BuildFactory", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			config := atc.Config{Jobs: atc.JobConfigs{{Name: "some-job"}}}
-			privatePipeline, _, err := team.SavePipeline("private-pipeline", config, db.ConfigVersion(1), false)
+			privatePipeline, _, err := team.SavePipeline(atc.PipelineRef{Name: "private-pipeline"}, config, db.ConfigVersion(1), false)
 			Expect(err).NotTo(HaveOccurred())
 
 			privateJob, found, err := privatePipeline.Job("some-job")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			build2, err = privateJob.CreateBuild()
+			build2, err = privateJob.CreateBuild(defaultBuildCreatedBy)
 			Expect(err).NotTo(HaveOccurred())
 
-			publicPipeline, _, err := team.SavePipeline("public-pipeline", config, db.ConfigVersion(1), false)
+			publicPipeline, _, err := team.SavePipeline(atc.PipelineRef{Name: "public-pipeline"}, config, db.ConfigVersion(1), false)
 			Expect(err).NotTo(HaveOccurred())
 			err = publicPipeline.Expose()
 			Expect(err).NotTo(HaveOccurred())
@@ -270,7 +272,7 @@ var _ = Describe("BuildFactory", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			build3, err = publicJob.CreateBuild()
+			build3, err = publicJob.CreateBuild(defaultBuildCreatedBy)
 			Expect(err).NotTo(HaveOccurred())
 
 			otherTeam, err := teamFactory.CreateTeam(atc.Team{Name: "some-other-team"})
@@ -279,7 +281,7 @@ var _ = Describe("BuildFactory", func() {
 			build4, err = otherTeam.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			build5, err = privateJob.RerunBuild(build2)
+			build5, err = privateJob.RerunBuild(build2, defaultBuildCreatedBy)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -310,17 +312,17 @@ var _ = Describe("BuildFactory", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			config := atc.Config{Jobs: atc.JobConfigs{{Name: "some-job"}}}
-			privatePipeline, _, err := team.SavePipeline("private-pipeline", config, db.ConfigVersion(1), false)
+			privatePipeline, _, err := team.SavePipeline(atc.PipelineRef{Name: "private-pipeline"}, config, db.ConfigVersion(1), false)
 			Expect(err).NotTo(HaveOccurred())
 
 			privateJob, found, err := privatePipeline.Job("some-job")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			build2, err = privateJob.CreateBuild()
+			build2, err = privateJob.CreateBuild(defaultBuildCreatedBy)
 			Expect(err).NotTo(HaveOccurred())
 
-			publicPipeline, _, err := team.SavePipeline("public-pipeline", config, db.ConfigVersion(1), false)
+			publicPipeline, _, err := team.SavePipeline(atc.PipelineRef{Name: "public-pipeline"}, config, db.ConfigVersion(1), false)
 			Expect(err).NotTo(HaveOccurred())
 			err = publicPipeline.Expose()
 			Expect(err).NotTo(HaveOccurred())
@@ -329,7 +331,7 @@ var _ = Describe("BuildFactory", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			build3, err = publicJob.CreateBuild()
+			build3, err = publicJob.CreateBuild(defaultBuildCreatedBy)
 			Expect(err).NotTo(HaveOccurred())
 
 			otherTeam, err := teamFactory.CreateTeam(atc.Team{Name: "some-other-team"})
@@ -356,17 +358,17 @@ var _ = Describe("BuildFactory", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			config := atc.Config{Jobs: atc.JobConfigs{{Name: "some-job"}}}
-			privatePipeline, _, err := team.SavePipeline("private-pipeline", config, db.ConfigVersion(1), false)
+			privatePipeline, _, err := team.SavePipeline(atc.PipelineRef{Name: "private-pipeline"}, config, db.ConfigVersion(1), false)
 			Expect(err).NotTo(HaveOccurred())
 
 			privateJob, found, err := privatePipeline.Job("some-job")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			_, err = privateJob.CreateBuild()
+			_, err = privateJob.CreateBuild(defaultBuildCreatedBy)
 			Expect(err).NotTo(HaveOccurred())
 
-			publicPipeline, _, err := team.SavePipeline("public-pipeline", config, db.ConfigVersion(1), false)
+			publicPipeline, _, err := team.SavePipeline(atc.PipelineRef{Name: "public-pipeline"}, config, db.ConfigVersion(1), false)
 			Expect(err).NotTo(HaveOccurred())
 			err = publicPipeline.Expose()
 			Expect(err).NotTo(HaveOccurred())
@@ -375,7 +377,7 @@ var _ = Describe("BuildFactory", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			publicBuild, err = publicJob.CreateBuild()
+			publicBuild, err = publicJob.CreateBuild(defaultBuildCreatedBy)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -392,7 +394,7 @@ var _ = Describe("BuildFactory", func() {
 		var build2DB, build3DB, build4DB db.Build
 
 		BeforeEach(func() {
-			pipeline, _, err := team.SavePipeline("other-pipeline", atc.Config{
+			pipeline, _, err := team.SavePipeline(atc.PipelineRef{Name: "other-pipeline"}, atc.Config{
 				Jobs: atc.JobConfigs{
 					{
 						Name: "some-job",
@@ -411,10 +413,10 @@ var _ = Describe("BuildFactory", func() {
 			build2DB, err = team.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			build3DB, err = job.CreateBuild()
+			build3DB, err = job.CreateBuild(defaultBuildCreatedBy)
 			Expect(err).NotTo(HaveOccurred())
 
-			build4DB, err = job.CreateBuild()
+			build4DB, err = job.CreateBuild(defaultBuildCreatedBy)
 			Expect(err).NotTo(HaveOccurred())
 
 			started, err := build2DB.Start(atc.Plan{})
@@ -447,7 +449,7 @@ var _ = Describe("BuildFactory", func() {
 		var build2DB db.Build
 
 		BeforeEach(func() {
-			pipeline, _, err := team.SavePipeline("other-pipeline", atc.Config{
+			pipeline, _, err := team.SavePipeline(atc.PipelineRef{Name: "other-pipeline"}, atc.Config{
 				Jobs: atc.JobConfigs{
 					{
 						Name: "some-job",
@@ -463,7 +465,7 @@ var _ = Describe("BuildFactory", func() {
 			build1DB, err = team.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			build2DB, err = job.CreateBuild()
+			build2DB, err = job.CreateBuild(defaultBuildCreatedBy)
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = team.CreateOneOffBuild()
@@ -496,7 +498,7 @@ var _ = Describe("BuildFactory", func() {
 		var build2DB db.Build
 
 		BeforeEach(func() {
-			pipeline, _, err := team.SavePipeline("other-pipeline", atc.Config{
+			pipeline, _, err := team.SavePipeline(atc.PipelineRef{Name: "other-pipeline"}, atc.Config{
 				Jobs: atc.JobConfigs{
 					{
 						Name: "some-job",
@@ -512,7 +514,7 @@ var _ = Describe("BuildFactory", func() {
 			build1DB, err = team.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			build2DB, err = job.CreateBuild()
+			build2DB, err = job.CreateBuild(defaultBuildCreatedBy)
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = team.CreateOneOffBuild()
@@ -527,11 +529,23 @@ var _ = Describe("BuildFactory", func() {
 			Expect(started).To(BeTrue())
 		})
 
-		Describe("with a future date as Page.Since", func() {
+		It("returns builds started in the given timespan", func() {
+			page := db.Page{
+				Limit:   10,
+				From:    db.NewIntPtr(int(time.Now().Unix() - 10000)),
+				To:      db.NewIntPtr(int(time.Now().Unix() + 10)),
+				UseDate: true,
+			}
+			builds, _, err := buildFactory.AllBuilds(page)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(builds)).To(Equal(2))
+		})
+
+		Describe("with a future date as Page.From", func() {
 			It("should return nothing", func() {
 				page := db.Page{
 					Limit:   10,
-					Since:   int(time.Now().Unix() + 10),
+					From:    db.NewIntPtr(int(time.Now().Unix() + 10)),
 					UseDate: true,
 				}
 				builds, _, err := buildFactory.AllBuilds(page)
@@ -540,11 +554,11 @@ var _ = Describe("BuildFactory", func() {
 			})
 		})
 
-		Describe("with a very old date as Page.Until", func() {
+		Describe("with a very old date as Page.To", func() {
 			It("should return nothing", func() {
 				page := db.Page{
 					Limit:   10,
-					Until:   int(time.Now().Unix() - 10000),
+					To:      db.NewIntPtr(int(time.Now().Unix() - 10000)),
 					UseDate: true,
 				}
 				builds, _, err := buildFactory.AllBuilds(page)

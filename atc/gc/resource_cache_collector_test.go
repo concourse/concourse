@@ -7,6 +7,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/dbtest"
 	"github.com/concourse/concourse/atc/gc"
 
 	. "github.com/onsi/ginkgo"
@@ -32,12 +33,33 @@ var _ = Describe("ResourceCacheCollector", func() {
 			var oneOffCache db.UsedResourceCache
 			var jobCache db.UsedResourceCache
 
-			var resource db.Resource
+			var scenario *dbtest.Scenario
 
 			BeforeEach(func() {
 				resourceCacheUseCollector = gc.NewResourceCacheUseCollector(resourceCacheLifecycle)
 
-				oneOffBuild, err = defaultTeam.CreateOneOffBuild()
+				scenario = dbtest.Setup(
+					builder.WithPipeline(atc.Config{
+						Resources: atc.ResourceConfigs{
+							{
+								Name:   "some-resource",
+								Type:   "some-base-type",
+								Source: atc.Source{"some": "source"},
+							},
+						},
+						Jobs: atc.JobConfigs{
+							{
+								Name: "some-job",
+							},
+							{
+								Name: "some-other-job",
+							},
+						},
+					}),
+					builder.WithResourceVersions("some-resource"),
+				)
+
+				oneOffBuild, err = scenario.Team.CreateOneOffBuild()
 				Expect(err).ToNot(HaveOccurred())
 
 				oneOffCache, err = resourceCacheFactory.FindOrCreateResourceCache(
@@ -52,7 +74,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 				)
 				Expect(err).NotTo(HaveOccurred())
 
-				jobBuild, err = defaultJob.CreateBuild()
+				jobBuild, err = scenario.Job("some-job").CreateBuild("someone")
 				Expect(err).ToNot(HaveOccurred())
 
 				jobCache, err = resourceCacheFactory.FindOrCreateResourceCache(
@@ -66,18 +88,6 @@ var _ = Describe("ResourceCacheCollector", func() {
 					atc.VersionedResourceTypes{},
 				)
 				Expect(err).NotTo(HaveOccurred())
-
-				var found bool
-				resource, found, err = defaultPipeline.Resource("some-resource")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				_, err = resource.SetResourceConfig(
-					atc.Source{
-						"some": "source",
-					},
-					atc.VersionedResourceTypes{})
-				Expect(err).ToNot(HaveOccurred())
 			})
 
 			resourceCacheExists := func(resourceCache db.UsedResourceCache) bool {
@@ -123,12 +133,12 @@ var _ = Describe("ResourceCacheCollector", func() {
 							RunWith(dbConn).QueryRow().Scan(&versionMD5)
 						Expect(err).NotTo(HaveOccurred())
 
-						Expect(defaultJob.SaveNextInputMapping(db.InputMapping{
+						Expect(scenario.Job("some-job").SaveNextInputMapping(db.InputMapping{
 							"whatever": db.InputResult{
 								Input: &db.AlgorithmInput{
 									AlgorithmVersion: db.AlgorithmVersion{
 										Version:    db.ResourceVersion(versionMD5),
-										ResourceID: resource.ID(),
+										ResourceID: scenario.Resource("some-resource").ID(),
 									},
 								},
 							},
@@ -137,7 +147,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 
 					Context("when pipeline is paused", func() {
 						BeforeEach(func() {
-							err := defaultPipeline.Pause()
+							err := scenario.Pipeline.Pause()
 							Expect(err).NotTo(HaveOccurred())
 						})
 
@@ -168,7 +178,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 						var secondJobCache db.UsedResourceCache
 
 						BeforeEach(func() {
-							secondJobBuild, err = defaultJob.CreateBuild()
+							secondJobBuild, err = scenario.Job("some-job").CreateBuild("someone")
 							Expect(err).ToNot(HaveOccurred())
 
 							secondJobCache, err = resourceCacheFactory.FindOrCreateResourceCache(
@@ -214,11 +224,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 						var secondJobCache db.UsedResourceCache
 
 						BeforeEach(func() {
-							secondJob, found, err := defaultPipeline.Job("some-other-job")
-							Expect(err).NotTo(HaveOccurred())
-							Expect(found).To(BeTrue())
-
-							secondJobBuild, err = secondJob.CreateBuild()
+							secondJobBuild, err = scenario.Job("some-other-job").CreateBuild("someone")
 							Expect(err).ToNot(HaveOccurred())
 
 							secondJobCache, err = resourceCacheFactory.FindOrCreateResourceCache(

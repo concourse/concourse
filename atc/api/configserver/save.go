@@ -69,7 +69,39 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pipelineName := rata.Param(r, "pipeline_name")
+	warning, err := atc.ValidateIdentifier(pipelineName, "pipeline")
+	if err != nil {
+		session.Info("ignoring-pipeline-name", lager.Data{"error": err.Error()})
+		s.handleBadRequest(w, err.Error())
+		return
+	}
+	if warning != nil {
+		warnings = append(warnings, *warning)
+	}
+
 	teamName := rata.Param(r, "team_name")
+	warning, err = atc.ValidateIdentifier(teamName, "team")
+	if err != nil {
+		session.Info("ignoring-team-name", lager.Data{"error": err.Error()})
+		s.handleBadRequest(w, err.Error())
+		return
+	}
+	if warning != nil {
+		warnings = append(warnings, *warning)
+	}
+
+	pipelineRef := atc.PipelineRef{Name: pipelineName}
+	pipelineRef.InstanceVars, err = atc.InstanceVarsFromQueryParams(r.URL.Query())
+	if atc.EnablePipelineInstances {
+		if err != nil {
+			session.Error("malformed-instance-vars", err)
+			s.handleBadRequest(w, fmt.Sprintf("instance vars are malformed: %v", err))
+			return
+		}
+	} else if pipelineRef.InstanceVars != nil {
+		s.handleBadRequest(w, "support for `instance vars` is disabled")
+		return
+	}
 
 	if checkCredentials {
 		variables := creds.NewVariables(s.secretManager, teamName, pipelineName, false)
@@ -92,11 +124,11 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 
 	if !found {
 		session.Debug("team-not-found")
-		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
-	_, created, err := team.SavePipeline(pipelineName, config, version, true)
+	_, created, err := team.SavePipeline(pipelineRef, config, version, true)
 	if err != nil {
 		session.Error("failed-to-save-config", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -149,26 +181,17 @@ func validateCredParams(credMgrVars vars.Variables, config atc.Config, session l
 	for _, job := range config.Jobs {
 		_ = job.StepConfig().Visit(atc.StepRecursor{
 			OnTask: func(step *atc.TaskStep) error {
-				_, err := creds.NewParams(credMgrVars, step.Params).Evaluate()
+				err := creds.NewTaskEnvValidator(credMgrVars, step.Params).Validate()
 				if err != nil {
 					errs = multierror.Append(errs, err)
 				}
 
-				if step.ConfigPath != "" {
-					// external task - we can't really validate much right now, because task yaml will be
-					// retrieved in runtime during job execution. but we can validate vars and params which will be
-					// passed to this task
-					err = creds.NewTaskParamsValidator(credMgrVars, step.Params).Validate()
-					if err != nil {
-						errs = multierror.Append(errs, err)
-					}
+				err = creds.NewTaskVarsValidator(credMgrVars, step.Vars).Validate()
+				if err != nil {
+					errs = multierror.Append(errs, err)
+				}
 
-					err = creds.NewTaskVarsValidator(credMgrVars, step.Vars).Validate()
-					if err != nil {
-						errs = multierror.Append(errs, err)
-					}
-
-				} else if step.Config != nil {
+				if step.Config != nil {
 					// embedded task - we can fully validate it, interpolating with cred mgr variables
 					var taskConfigSource exec.TaskConfigSource
 					embeddedTaskVars := []vars.Variables{credMgrVars}

@@ -1,6 +1,7 @@
 package integration_test
 
 import (
+	"fmt"
 	"net/http"
 	"os/exec"
 
@@ -90,11 +91,13 @@ var _ = Describe("Fly CLI", func() {
 	})
 
 	Context("when --team is set", func() {
+		nonExistentTeam := "doesnotexist"
+		otherTeam := "other-team"
 		DescribeTable("and the team does not exist",
 			func(flyCmd *exec.Cmd) {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/teams/doesnotexist"),
+						ghttp.VerifyRequest("GET", fmt.Sprintf("/api/v1/teams/%s", nonExistentTeam)),
 						ghttp.RespondWith(http.StatusNotFound, nil),
 					),
 				)
@@ -105,24 +108,38 @@ var _ = Describe("Fly CLI", func() {
 				Eventually(sess.Err.Contents).Should(ContainSubstring(`error: team 'doesnotexist' does not exist`))
 			},
 			Entry("trigger-job command returns an error",
-				exec.Command(flyPath, "-t", targetName, "trigger-job", "-j", "pipeline/job", "--team", "doesnotexist")),
+				exec.Command(flyPath, "-t", targetName, "trigger-job", "-j", "pipeline/job", "--team", nonExistentTeam)),
+			Entry("expose-pipeline command returns an error",
+				exec.Command(flyPath, "-t", targetName, "expose-pipeline", "-p", "pipeline", "--team", nonExistentTeam)),
+			Entry("hide-pipeline command returns an error",
+				exec.Command(flyPath, "-t", targetName, "hide-pipeline", "-p", "pipeline", "--team", nonExistentTeam)),
 			Entry("hijack command returns an error",
-				exec.Command(flyPath, "-t", targetName, "hijack", "--handle", "container-id", "--team", "doesnotexist")),
+				exec.Command(flyPath, "-t", targetName, "hijack", "--handle", "container-id", "--team", nonExistentTeam)),
 			Entry("jobs command returns an error",
-				exec.Command(flyPath, "-t", targetName, "jobs", "-p", "pipeline", "--team", "doesnotexist")),
+				exec.Command(flyPath, "-t", targetName, "jobs", "-p", "pipeline", "--team", nonExistentTeam)),
 			Entry("pause-job command returns an error",
-				exec.Command(flyPath, "-t", targetName, "pause-job", "-j", "pipeline/job", "--team", "doesnotexist")),
+				exec.Command(flyPath, "-t", targetName, "pause-job", "-j", "pipeline/job", "--team", nonExistentTeam)),
+			Entry("pause-pipeline command returns an error",
+				exec.Command(flyPath, "-t", targetName, "pause-pipeline", "-p", "pipeline", "--team", nonExistentTeam)),
 			Entry("unpause-job command returns an error",
-				exec.Command(flyPath, "-t", targetName, "unpause-job", "-j", "pipeline/job", "--team", "doesnotexist")),
+				exec.Command(flyPath, "-t", targetName, "unpause-job", "-j", "pipeline/job", "--team", nonExistentTeam)),
 			Entry("unpause-pipeline command returns an error",
-				exec.Command(flyPath, "-t", targetName, "unpause-pipeline", "-p", "pipeline", "--team", "doesnotexist")),
+				exec.Command(flyPath, "-t", targetName, "unpause-pipeline", "-p", "pipeline", "--team", nonExistentTeam)),
+			Entry("set-pipeline command returns an error",
+				exec.Command(flyPath, "-t", targetName, "set-pipeline", "-p", "pipeline", "-c", "fixtures/testConfig.yml", "--team", nonExistentTeam)),
+			Entry("destroy-pipeline command returns an error",
+				exec.Command(flyPath, "-t", targetName, "destroy-pipeline", "-p", "pipeline", "--team", nonExistentTeam)),
+			Entry("get-pipeline command returns an error",
+				exec.Command(flyPath, "-t", targetName, "get-pipeline", "-p", "pipeline", "--team", nonExistentTeam)),
+			Entry("order-pipelines command returns an error",
+				exec.Command(flyPath, "-t", targetName, "order-pipelines", "-p", "pipeline", "--team", nonExistentTeam)),
 		)
 
 		DescribeTable("and you are NOT authorized to view the team",
 			func(flyCmd *exec.Cmd) {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/teams/other-team"),
+						ghttp.VerifyRequest("GET", fmt.Sprintf("/api/v1/teams/%s", otherTeam)),
 						ghttp.RespondWith(http.StatusForbidden, nil),
 					),
 				)
@@ -133,17 +150,29 @@ var _ = Describe("Fly CLI", func() {
 				Eventually(sess.Err.Contents).Should(ContainSubstring(`error: you do not have a role on team 'other-team'`))
 			},
 			Entry("trigger-job command returns an error",
-				exec.Command(flyPath, "-t", targetName, "trigger-job", "-j", "pipeline/job", "--team", "other-team")),
+				exec.Command(flyPath, "-t", targetName, "trigger-job", "-j", "pipeline/job", "--team", otherTeam)),
+			Entry("expose-pipeline command returns an error",
+				exec.Command(flyPath, "-t", targetName, "expose-pipeline", "-p", "pipeline", "--team", otherTeam)),
+			Entry("hide-pipeline command returns an error",
+				exec.Command(flyPath, "-t", targetName, "hide-pipeline", "-p", "pipeline", "--team", otherTeam)),
 			Entry("hijack command returns an error",
-				exec.Command(flyPath, "-t", targetName, "hijack", "--handle", "container-id", "--team", "other-team")),
+				exec.Command(flyPath, "-t", targetName, "hijack", "--handle", "container-id", "--team", otherTeam)),
 			Entry("jobs command returns an error",
-				exec.Command(flyPath, "-t", targetName, "jobs", "-p", "pipeline", "--team", "other-team")),
+				exec.Command(flyPath, "-t", targetName, "jobs", "-p", "pipeline", "--team", otherTeam)),
 			Entry("pause-job command returns an error",
-				exec.Command(flyPath, "-t", targetName, "pause-job", "-j", "pipeline/job", "--team", "other-team")),
+				exec.Command(flyPath, "-t", targetName, "pause-job", "-j", "pipeline/job", "--team", otherTeam)),
+			Entry("pause-pipeline command returns an error",
+				exec.Command(flyPath, "-t", targetName, "pause-pipeline", "-p", "pipeline", "--team", otherTeam)),
 			Entry("unpause-job command returns an error",
-				exec.Command(flyPath, "-t", targetName, "unpause-job", "-j", "pipeline/job", "--team", "other-team")),
+				exec.Command(flyPath, "-t", targetName, "unpause-job", "-j", "pipeline/job", "--team", otherTeam)),
 			Entry("unpause-pipeline command returns an error",
-				exec.Command(flyPath, "-t", targetName, "unpause-pipeline", "-p", "pipeline", "--team", "other-team")),
+				exec.Command(flyPath, "-t", targetName, "unpause-pipeline", "-p", "pipeline", "--team", otherTeam)),
+			Entry("set-pipeline command returns an error",
+				exec.Command(flyPath, "-t", targetName, "set-pipeline", "-p", "pipeline", "-c", "fixtures/testConfig.yml", "--team", otherTeam)),
+			Entry("destroy-pipeline command returns an error",
+				exec.Command(flyPath, "-t", targetName, "destroy-pipeline", "-p", "pipeline", "--team", otherTeam)),
+			Entry("get-pipeline command returns an error",
+				exec.Command(flyPath, "-t", targetName, "get-pipeline", "-p", "pipeline", "--team", otherTeam)),
 		)
 	})
 })

@@ -1,5 +1,6 @@
 .DS_Store
 .idea
+.vscode
 *.iml
 node_modules
 *-packr.go
@@ -10,12 +11,14 @@ web/public/bundle.js
 web/public/*.bundle.js
 web/public/main.css
 docker-compose.override.yml
+*.coverprofile
+*.coverprofile.*
+*.test
 
 ci/deployments/*/.terraform/
 ci/deployments/*/keys/gcp.json
 ci/deployments/*/keys/id_rsa
 ci/deployments/*/keys/id_rsa.pub
 
-hack/vault/certs
 hack/vault/init.json
 worker/runtime/integration/sample/sample

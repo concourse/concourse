@@ -1,24 +1,25 @@
 package exec_test
 
 import (
+	"context"
+	"strings"
+
 	"code.cloudfoundry.org/lager/lagerctx"
 	"code.cloudfoundry.org/lager/lagertest"
-	"context"
-	"github.com/concourse/concourse/atc/exec/build"
-	"github.com/concourse/concourse/atc/exec/build/buildfakes"
-	"github.com/concourse/concourse/atc/worker/workerfakes"
-	"github.com/concourse/concourse/vars/varsfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+	"go.opentelemetry.io/otel/api/trace"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/exec/build"
+	"github.com/concourse/concourse/atc/exec/build/buildfakes"
 	"github.com/concourse/concourse/atc/exec/execfakes"
-	"github.com/concourse/concourse/vars"
+	"github.com/concourse/concourse/atc/worker/workerfakes"
 )
 
-const plainString = "pv"
+const plainString = "  pv  \n\n"
 
 const yamlString = `
 k1: yv1
@@ -38,8 +39,12 @@ var _ = Describe("LoadVarStep", func() {
 		cancel     func()
 		testLogger *lagertest.TestLogger
 
-		fakeDelegate     *execfakes.FakeBuildStepDelegate
-		fakeWorkerClient *workerfakes.FakeClient
+		fakeDelegate        *execfakes.FakeBuildStepDelegate
+		fakeDelegateFactory *execfakes.FakeBuildStepDelegateFactory
+
+		fakeArtifactStreamer *workerfakes.FakeArtifactStreamer
+
+		spanCtx context.Context
 
 		loadVarPlan        *atc.LoadVarPlan
 		artifactRepository *build.Repository
@@ -47,9 +52,8 @@ var _ = Describe("LoadVarStep", func() {
 		fakeSource         *buildfakes.FakeRegisterableArtifact
 
 		spStep  exec.Step
+		stepOk  bool
 		stepErr error
-
-		credVarsTracker vars.CredVarsTracker
 
 		stepMetadata = exec.StepMetadata{
 			TeamID:       123,
@@ -62,16 +66,13 @@ var _ = Describe("LoadVarStep", func() {
 
 		stdout, stderr *gbytes.Buffer
 
-		planID = 56
+		planID = "56"
 	)
 
 	BeforeEach(func() {
 		testLogger = lagertest.NewTestLogger("var-step-test")
 		ctx, cancel = context.WithCancel(context.Background())
 		ctx = lagerctx.NewContext(ctx, testLogger)
-
-		credVars := vars.StaticVariables{}
-		credVarsTracker = vars.NewCredVarsTracker(credVars, true)
 
 		artifactRepository = build.NewRepository()
 		state = new(execfakes.FakeRunState)
@@ -84,12 +85,25 @@ var _ = Describe("LoadVarStep", func() {
 		stderr = gbytes.NewBuffer()
 
 		fakeDelegate = new(execfakes.FakeBuildStepDelegate)
-		fakeDelegate.VariablesReturns(credVarsTracker)
 		fakeDelegate.StdoutReturns(stdout)
 		fakeDelegate.StderrReturns(stderr)
 
-		fakeWorkerClient = new(workerfakes.FakeClient)
+		spanCtx = context.Background()
+		fakeDelegate.StartSpanReturns(spanCtx, trace.NoopSpan{})
+
+		fakeDelegateFactory = new(execfakes.FakeBuildStepDelegateFactory)
+		fakeDelegateFactory.BuildStepDelegateReturns(fakeDelegate)
+
+		fakeArtifactStreamer = new(workerfakes.FakeArtifactStreamer)
 	})
+
+	expectLocalVarAdded := func(expectKey string, expectValue interface{}, expectRedact bool) {
+		Expect(state.AddLocalVarCallCount()).To(Equal(1))
+		k, v, redact := state.AddLocalVarArgsForCall(0)
+		Expect(k).To(Equal(expectKey))
+		Expect(v).To(Equal(expectValue))
+		Expect(redact).To(Equal(expectRedact))
+	}
 
 	AfterEach(func() {
 		cancel()
@@ -105,11 +119,11 @@ var _ = Describe("LoadVarStep", func() {
 			plan.ID,
 			*plan.LoadVar,
 			stepMetadata,
-			fakeDelegate,
-			fakeWorkerClient,
+			fakeDelegateFactory,
+			fakeArtifactStreamer,
 		)
 
-		stepErr = spStep.Run(ctx, state)
+		stepOk, stepErr = spStep.Run(ctx, state)
 	})
 
 	Context("when format is specified", func() {
@@ -128,6 +142,27 @@ var _ = Describe("LoadVarStep", func() {
 			})
 		})
 
+		Context("when format is trim", func() {
+			BeforeEach(func() {
+				loadVarPlan = &atc.LoadVarPlan{
+					Name:   "some-var",
+					File:   "some-resource/a.diff",
+					Format: "trim",
+				}
+
+				fakeArtifactStreamer.StreamFileFromArtifactReturns(&fakeReadCloser{str: plainString}, nil)
+			})
+
+			It("succeeds", func() {
+				Expect(stepErr).ToNot(HaveOccurred())
+				Expect(stepOk).To(BeTrue())
+			})
+
+			It("should var parsed correctly", func() {
+				expectLocalVarAdded("some-var", strings.TrimSpace(plainString), true)
+			})
+		})
+
 		Context("when format is raw", func() {
 			BeforeEach(func() {
 				loadVarPlan = &atc.LoadVarPlan{
@@ -136,17 +171,16 @@ var _ = Describe("LoadVarStep", func() {
 					Format: "raw",
 				}
 
-				fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: plainString}, nil)
+				fakeArtifactStreamer.StreamFileFromArtifactReturns(&fakeReadCloser{str: plainString}, nil)
 			})
 
-			It("step should not fail", func() {
+			It("succeeds", func() {
 				Expect(stepErr).ToNot(HaveOccurred())
+				Expect(stepOk).To(BeTrue())
 			})
 
 			It("should var parsed correctly", func() {
-				value, err := vars.NewTemplate([]byte("((.:some-var))")).Evaluate(credVarsTracker, vars.EvaluateOpts{})
-				Expect(err).ToNot(HaveOccurred())
-				Expect(string(value)).To(Equal("pv\n"))
+				expectLocalVarAdded("some-var", plainString, true)
 			})
 		})
 
@@ -158,17 +192,16 @@ var _ = Describe("LoadVarStep", func() {
 					Format: "json",
 				}
 
-				fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: jsonString}, nil)
+				fakeArtifactStreamer.StreamFileFromArtifactReturns(&fakeReadCloser{str: jsonString}, nil)
 			})
 
-			It("step should not fail", func() {
+			It("succeeds", func() {
 				Expect(stepErr).ToNot(HaveOccurred())
+				Expect(stepOk).To(BeTrue())
 			})
 
 			It("should var parsed correctly", func() {
-				value, err := vars.NewTemplate([]byte("((.:some-var.k1))((.:some-var.k2))")).Evaluate(credVarsTracker, vars.EvaluateOpts{})
-				Expect(err).ToNot(HaveOccurred())
-				Expect(string(value)).To(Equal("jv1jv2\n"))
+				expectLocalVarAdded("some-var", map[string]interface{}{"k1": "jv1", "k2": "jv2"}, true)
 			})
 		})
 
@@ -180,17 +213,16 @@ var _ = Describe("LoadVarStep", func() {
 					Format: "yml",
 				}
 
-				fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: yamlString}, nil)
+				fakeArtifactStreamer.StreamFileFromArtifactReturns(&fakeReadCloser{str: yamlString}, nil)
 			})
 
-			It("step should not fail", func() {
+			It("succeeds", func() {
 				Expect(stepErr).ToNot(HaveOccurred())
+				Expect(stepOk).To(BeTrue())
 			})
 
 			It("should var parsed correctly", func() {
-				value, err := vars.NewTemplate([]byte("((.:some-var.k1))((.:some-var.k2))")).Evaluate(credVarsTracker, vars.EvaluateOpts{})
-				Expect(err).ToNot(HaveOccurred())
-				Expect(string(value)).To(Equal("yv1yv2\n"))
+				expectLocalVarAdded("some-var", map[string]interface{}{"k1": "yv1", "k2": "yv2"}, true)
 			})
 		})
 
@@ -202,17 +234,16 @@ var _ = Describe("LoadVarStep", func() {
 					Format: "yaml",
 				}
 
-				fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: yamlString}, nil)
+				fakeArtifactStreamer.StreamFileFromArtifactReturns(&fakeReadCloser{str: yamlString}, nil)
 			})
 
-			It("step should not fail", func() {
+			It("succeeds", func() {
 				Expect(stepErr).ToNot(HaveOccurred())
+				Expect(stepOk).To(BeTrue())
 			})
 
 			It("should var parsed correctly", func() {
-				value, err := vars.NewTemplate([]byte("((.:some-var.k1))((.:some-var.k2))")).Evaluate(credVarsTracker, vars.EvaluateOpts{})
-				Expect(err).ToNot(HaveOccurred())
-				Expect(string(value)).To(Equal("yv1yv2\n"))
+				expectLocalVarAdded("some-var", map[string]interface{}{"k1": "yv1", "k2": "yv2"}, true)
 			})
 		})
 	})
@@ -225,17 +256,16 @@ var _ = Describe("LoadVarStep", func() {
 					File: "some-resource/a.diff",
 				}
 
-				fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: plainString}, nil)
+				fakeArtifactStreamer.StreamFileFromArtifactReturns(&fakeReadCloser{str: plainString}, nil)
 			})
 
-			It("step should not fail", func() {
+			It("succeeds", func() {
 				Expect(stepErr).ToNot(HaveOccurred())
+				Expect(stepOk).To(BeTrue())
 			})
 
-			It("should var parsed correctly as raw", func() {
-				value, err := vars.NewTemplate([]byte("((.:some-var))")).Evaluate(credVarsTracker, vars.EvaluateOpts{})
-				Expect(err).ToNot(HaveOccurred())
-				Expect(string(value)).To(Equal("pv\n"))
+			It("should var parsed correctly as trim", func() {
+				expectLocalVarAdded("some-var", strings.TrimSpace(plainString), true)
 			})
 		})
 
@@ -246,17 +276,16 @@ var _ = Describe("LoadVarStep", func() {
 					File: "some-resource/a.json",
 				}
 
-				fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: jsonString}, nil)
+				fakeArtifactStreamer.StreamFileFromArtifactReturns(&fakeReadCloser{str: jsonString}, nil)
 			})
 
-			It("step should not fail", func() {
+			It("succeeds", func() {
 				Expect(stepErr).ToNot(HaveOccurred())
+				Expect(stepOk).To(BeTrue())
 			})
 
 			It("should var parsed correctly", func() {
-				value, err := vars.NewTemplate([]byte("((.:some-var.k1))((.:some-var.k2))")).Evaluate(credVarsTracker, vars.EvaluateOpts{})
-				Expect(err).ToNot(HaveOccurred())
-				Expect(string(value)).To(Equal("jv1jv2\n"))
+				expectLocalVarAdded("some-var", map[string]interface{}{"k1": "jv1", "k2": "jv2"}, true)
 			})
 		})
 
@@ -267,17 +296,16 @@ var _ = Describe("LoadVarStep", func() {
 					File: "some-resource/a.yml",
 				}
 
-				fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: yamlString}, nil)
+				fakeArtifactStreamer.StreamFileFromArtifactReturns(&fakeReadCloser{str: yamlString}, nil)
 			})
 
-			It("step should not fail", func() {
+			It("succeeds", func() {
 				Expect(stepErr).ToNot(HaveOccurred())
+				Expect(stepOk).To(BeTrue())
 			})
 
 			It("should var parsed correctly", func() {
-				value, err := vars.NewTemplate([]byte("((.:some-var.k1))((.:some-var.k2))")).Evaluate(credVarsTracker, vars.EvaluateOpts{})
-				Expect(err).ToNot(HaveOccurred())
-				Expect(string(value)).To(Equal("yv1yv2\n"))
+				expectLocalVarAdded("some-var", map[string]interface{}{"k1": "yv1", "k2": "yv2"}, true)
 			})
 		})
 
@@ -288,17 +316,16 @@ var _ = Describe("LoadVarStep", func() {
 					File: "some-resource/a.yaml",
 				}
 
-				fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: yamlString}, nil)
+				fakeArtifactStreamer.StreamFileFromArtifactReturns(&fakeReadCloser{str: yamlString}, nil)
 			})
 
-			It("step should not fail", func() {
+			It("succeeds", func() {
 				Expect(stepErr).ToNot(HaveOccurred())
+				Expect(stepOk).To(BeTrue())
 			})
 
 			It("should var parsed correctly", func() {
-				value, err := vars.NewTemplate([]byte("((.:some-var.k1))((.:some-var.k2))")).Evaluate(credVarsTracker, vars.EvaluateOpts{})
-				Expect(err).ToNot(HaveOccurred())
-				Expect(string(value)).To(Equal("yv1yv2\n"))
+				expectLocalVarAdded("some-var", map[string]interface{}{"k1": "yv1", "k2": "yv2"}, true)
 			})
 		})
 	})
@@ -311,7 +338,7 @@ var _ = Describe("LoadVarStep", func() {
 					File: "some-resource/a.json",
 				}
 
-				fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: plainString}, nil)
+				fakeArtifactStreamer.StreamFileFromArtifactReturns(&fakeReadCloser{str: plainString}, nil)
 			})
 
 			It("step should fail", func() {
@@ -327,7 +354,7 @@ var _ = Describe("LoadVarStep", func() {
 					File: "some-resource/a.yaml",
 				}
 
-				fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: "a:\nb"}, nil)
+				fakeArtifactStreamer.StreamFileFromArtifactReturns(&fakeReadCloser{str: "a:\nb"}, nil)
 			})
 
 			It("step should fail", func() {
@@ -338,25 +365,17 @@ var _ = Describe("LoadVarStep", func() {
 	})
 
 	Context("reveal", func() {
-		var fakeCredVarsTracker *varsfakes.FakeCredVarsTracker
-
-		BeforeEach(func() {
-			fakeCredVarsTracker = new(varsfakes.FakeCredVarsTracker)
-			fakeDelegate.VariablesReturns(fakeCredVarsTracker)
-		})
-
 		Context("when reveal is not specified", func() {
 			BeforeEach(func() {
 				loadVarPlan = &atc.LoadVarPlan{
 					Name: "some-var",
 					File: "some-resource/a.diff",
 				}
-				fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: plainString}, nil)
+				fakeArtifactStreamer.StreamFileFromArtifactReturns(&fakeReadCloser{str: plainString}, nil)
 			})
 
 			It("local var should be redacted", func() {
-				_, _, redact := fakeCredVarsTracker.AddLocalVarArgsForCall(0)
-				Expect(redact).To(BeTrue())
+				expectLocalVarAdded("some-var", strings.TrimSpace(plainString), true)
 			})
 		})
 
@@ -367,12 +386,11 @@ var _ = Describe("LoadVarStep", func() {
 					File:   "some-resource/a.diff",
 					Reveal: false,
 				}
-				fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: plainString}, nil)
+				fakeArtifactStreamer.StreamFileFromArtifactReturns(&fakeReadCloser{str: plainString}, nil)
 			})
 
 			It("local var should be redacted", func() {
-				_, _, redact := fakeCredVarsTracker.AddLocalVarArgsForCall(0)
-				Expect(redact).To(BeTrue())
+				expectLocalVarAdded("some-var", strings.TrimSpace(plainString), true)
 			})
 		})
 
@@ -383,12 +401,11 @@ var _ = Describe("LoadVarStep", func() {
 					File:   "some-resource/a.diff",
 					Reveal: true,
 				}
-				fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: plainString}, nil)
+				fakeArtifactStreamer.StreamFileFromArtifactReturns(&fakeReadCloser{str: plainString}, nil)
 			})
 
 			It("local var should not be redacted", func() {
-				_, _, redact := fakeCredVarsTracker.AddLocalVarArgsForCall(0)
-				Expect(redact).To(BeFalse())
+				expectLocalVarAdded("some-var", strings.TrimSpace(plainString), false)
 			})
 		})
 	})

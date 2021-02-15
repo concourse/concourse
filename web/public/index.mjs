@@ -46,7 +46,7 @@ function redrawFunction(svg, jobs, resources, newUrl) {
       .attr("class", function(edge) { return "edge " + edge.source.node.status })
 
     svgEdges.each(function(edge) {
-      if (edge.customData !== null && edge.customData.trigger === false) {
+      if (edge.customData !== null && edge.customData.trigger !== true) {
         d3.select(this).classed("trigger-false", true)
       }
     })
@@ -347,18 +347,32 @@ export function resetPipelineFocus() {
   return g
 }
 
+function instanceVarsQuery() {
+  const filtered = window.location.search
+    .substring(1)
+    .split('&')
+    .filter(s => s.startsWith('vars.') || s.startsWith('vars='))
+    .join('&');
+  if (filtered === "") {
+    return "";
+  }
+  return '?' + filtered;
+}
+
 function createGraph(svg, jobs, resources) {
   var graph = new Graph();
 
   var resourceURLs = {};
-  var resourceFailing = {};
+  var resourceBuild = {};
   var resourcePinned = {};
   var resourceIcons = {};
 
+  const query = instanceVarsQuery();
+
   for (var i in resources) {
     var resource = resources[i];
-    resourceURLs[resource.name] = "/teams/"+resource.team_name+"/pipelines/"+resource.pipeline_name+"/resources/"+encodeURIComponent(resource.name);
-    resourceFailing[resource.name] = resource.failing_to_check;
+    resourceURLs[resource.name] = "/teams/"+resource.team_name+"/pipelines/"+resource.pipeline_name+"/resources/"+encodeURIComponent(resource.name) + query;
+    resourceBuild[resource.name] = resource.build;
     resourcePinned[resource.name] = resource.pinned_version;
     resourceIcons[resource.name] = resource.icon;
   }
@@ -378,6 +392,7 @@ function createGraph(svg, jobs, resources) {
       var build = job.finished_build
       url = "/teams/"+build.team_name+"/pipelines/"+build.pipeline_name+"/jobs/"+encodeURIComponent(build.job_name)+"/builds/"+build.name;
     }
+    url += query;
 
     var status;
     if (job.paused) {
@@ -406,8 +421,8 @@ function createGraph(svg, jobs, resources) {
 
   var resourceStatus = function (resource) {
     var status = "";
-    if (resourceFailing[resource]) {
-      status += " failing";
+    if (resourceBuild[resource]) {
+      status += " " + resourceBuild[resource].status;
     }
     if (resourcePinned[resource]) {
       status += " pinned";
@@ -434,7 +449,7 @@ function createGraph(svg, jobs, resources) {
           name: output.resource,
           icon: resourceIcons[output.resource],
           key: output.resource,
-          class: "output" + resourceStatus(output.resource),
+          class: "resource output" + resourceStatus(output.resource),
           repeatable: true,
           url: resourceURLs[output.resource],
           svg: svg
@@ -475,7 +490,7 @@ function createGraph(svg, jobs, resources) {
                 name: input.resource,
                 icon: resourceIcons[input.resource],
                 key: input.resource,
-                class: "constrained-input" + (resourcePinned[input.resource] ? " pinned" : ""),
+                class: "resource constrained-input" + resourceStatus(input.resource),
                 repeatable: true,
                 url: resourceURLs[input.resource],
                 svg: svg
@@ -518,7 +533,7 @@ function createGraph(svg, jobs, resources) {
             name: input.resource,
             icon: resourceIcons[input.resource],
             key: input.resource,
-            class: "input" + resourceStatus(input.resource),
+            class: "resource input" + resourceStatus(input.resource),
             status: status,
             repeatable: true,
             url: resourceURLs[input.resource],
@@ -566,10 +581,6 @@ function createIconStore() {
 
 function groupNode(name) {
   return "group-"+name;
-}
-
-function resourceNode(name) {
-  return "resource-"+name;
 }
 
 function jobNode(name) {

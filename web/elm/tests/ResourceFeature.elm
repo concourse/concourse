@@ -10,6 +10,7 @@ import Message.Callback as Callback
 import Message.Effects as Effects
 import Message.Message as Message exposing (DomID(..))
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
+import Resource.Resource as Resource
 import Test exposing (Test, describe, test)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -51,12 +52,12 @@ iAmOnTheResourcePage _ =
 
 theResourceIsAlreadyPinned =
     Application.handleCallback
-        (Callback.ResourceFetched <| Ok <| Data.resource pinnedVersion)
+        (Callback.ResourceFetched <| Ok <| Data.resource (Just pinnedVersion))
         >> Tuple.first
         >> Application.handleCallback
             (Callback.VersionedResourcesFetched <|
                 Ok
-                    ( Nothing
+                    ( Resource.startingPage
                     , { content =
                             [ Data.versionedResource pinnedVersion 0
                             , Data.versionedResource notThePinnedVersion 1
@@ -111,26 +112,15 @@ iClickTheVersionThatIsPinned =
 
 
 pinnedVersionID =
-    { teamName = Data.teamName
-    , pipelineName = Data.pipelineName
-    , resourceName = Data.resourceName
-    , versionID = 0
-    }
+    Data.resourceVersionId 0
 
 
 unpinnedVersionID =
-    { teamName = Data.teamName
-    , pipelineName = Data.pipelineName
-    , resourceName = Data.resourceName
-    , versionID = 1
-    }
+    Data.resourceVersionId 1
 
 
 resourceID =
-    { teamName = Data.teamName
-    , pipelineName = Data.pipelineName
-    , resourceName = Data.resourceName
-    }
+    Data.resourceId
 
 
 myBrowserSendsAPinResourceRequest =

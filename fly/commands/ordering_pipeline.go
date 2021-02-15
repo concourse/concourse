@@ -3,37 +3,23 @@ package commands
 import (
 	"errors"
 	"fmt"
+	"github.com/concourse/concourse/go-concourse/concourse"
 	"sort"
+	"strings"
 
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
-	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/rc"
 )
 
-var ErrMissingPipelineName = errors.New("Need to specify atleast one pipeline name")
+var ErrMissingPipelineName = errors.New("Need to specify at least one pipeline name")
 
 type OrderPipelinesCommand struct {
-	Alphabetical bool                       `short:"a"  long:"alphabetical" description:"Order all pipelines alphabetically"`
-	Pipelines    []flaghelpers.PipelineFlag `short:"p" long:"pipeline" description:"Name of pipeline to order"`
-}
-
-func (command *OrderPipelinesCommand) Validate() ([]string, error) {
-	var pipelines []string
-
-	for _, p := range command.Pipelines {
-		err := p.Validate()
-		if err != nil {
-			return nil, err
-		}
-		pipelines = append(pipelines, string(p))
-	}
-	return pipelines, nil
-
+	Alphabetical bool     `short:"a"  long:"alphabetical" description:"Order all pipelines alphabetically"`
+	Pipelines    []string `short:"p" long:"pipeline" description:"Name of pipelines to order"`
+	Team         string   `long:"team" description:"Name of the team to which the pipelines belong, if different from the target default"`
 }
 
 func (command *OrderPipelinesCommand) Execute(args []string) error {
-	var pipelines []string
-
 	if !command.Alphabetical && command.Pipelines == nil {
 		displayhelpers.Failf("error: either --pipeline or --alphabetical are required")
 	}
@@ -48,30 +34,47 @@ func (command *OrderPipelinesCommand) Execute(args []string) error {
 		return err
 	}
 
+	var orderedNames []string
 	if command.Alphabetical {
+		seen := map[string]bool{}
 		ps, err := target.Team().ListPipelines()
 		if err != nil {
 			return err
 		}
 
 		for _, p := range ps {
-			pipelines = append(pipelines, p.Name)
+			if !seen[p.Name] {
+				seen[p.Name] = true
+				orderedNames = append(orderedNames, p.Name)
+			}
 		}
-		sort.Strings(pipelines)
+		sort.Strings(orderedNames)
 	} else {
-		pipelines, err = command.Validate()
+		for _, p := range command.Pipelines {
+			if strings.ContainsRune(p, '/') {
+				return fmt.Errorf("pipeline name %q cannot contain '/'", p)
+			}
+		}
+		orderedNames = command.Pipelines
+	}
+
+	var team concourse.Team
+	if command.Team != "" {
+		team, err = target.FindTeam(command.Team)
 		if err != nil {
 			return err
 		}
+	} else {
+		team = target.Team()
 	}
 
-	err = target.Team().OrderingPipelines(pipelines)
+	err = team.OrderingPipelines(orderedNames)
 	if err != nil {
 		displayhelpers.FailWithErrorf("failed to order pipelines", err)
 	}
 
 	fmt.Printf("ordered pipelines \n")
-	for _, p := range pipelines {
+	for _, p := range orderedNames {
 		fmt.Printf("  - %s \n", p)
 	}
 

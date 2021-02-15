@@ -1,7 +1,6 @@
 package worker
 
 import (
-	"github.com/concourse/concourse/atc/policy"
 	"net/http"
 	"time"
 
@@ -15,6 +14,35 @@ import (
 	"github.com/concourse/retryhttp"
 	"github.com/cppforlife/go-semi-semantic/version"
 )
+
+//go:generate counterfeiter . WorkerProvider
+
+type WorkerProvider interface {
+	RunningWorkers(lager.Logger) ([]Worker, error)
+
+	FindWorkerForContainer(
+		logger lager.Logger,
+		teamID int,
+		handle string,
+	) (Worker, bool, error)
+
+	FindWorkerForVolume(
+		logger lager.Logger,
+		teamID int,
+		handle string,
+	) (Worker, bool, error)
+
+	FindWorkersForContainerByOwner(
+		logger lager.Logger,
+		owner db.ContainerOwner,
+	) ([]Worker, error)
+
+	NewGardenWorker(
+		logger lager.Logger,
+		savedWorker db.Worker,
+		numBuildWorkers int,
+	) Worker
+}
 
 type dbWorkerProvider struct {
 	lockFactory                       lock.LockFactory
@@ -32,7 +60,6 @@ type dbWorkerProvider struct {
 	workerVersion                     version.Version
 	baggageclaimResponseHeaderTimeout time.Duration
 	gardenRequestTimeout              time.Duration
-	policyChecker *policy.Checker
 }
 
 func NewDBWorkerProvider(
@@ -50,7 +77,6 @@ func NewDBWorkerProvider(
 	workerFactory db.WorkerFactory,
 	workerVersion version.Version,
 	baggageclaimResponseHeaderTimeout, gardenRequestTimeout time.Duration,
-	policyChecker *policy.Checker,
 ) WorkerProvider {
 	return &dbWorkerProvider{
 		lockFactory:                       lockFactory,
@@ -68,7 +94,6 @@ func NewDBWorkerProvider(
 		workerVersion:                     workerVersion,
 		baggageclaimResponseHeaderTimeout: baggageclaimResponseHeaderTimeout,
 		gardenRequestTimeout:              gardenRequestTimeout,
-		policyChecker: policyChecker,
 	}
 }
 
@@ -218,6 +243,5 @@ func (provider *dbWorkerProvider) NewGardenWorker(logger lager.Logger, savedWork
 		savedWorker,
 		provider.dbResourceCacheFactory,
 		buildContainersCount,
-		provider.policyChecker,
 	)
 }

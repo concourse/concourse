@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/db"
 )
@@ -44,6 +45,13 @@ type checkPipelineAccessHandler struct {
 func (h checkPipelineAccessHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	teamName := r.FormValue(":team_name")
 	pipelineName := r.FormValue(":pipeline_name")
+	pipelineRef := atc.PipelineRef{Name: pipelineName}
+	var err error
+	pipelineRef.InstanceVars, err = atc.InstanceVarsFromQueryParams(r.URL.Query())
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 
 	team, found, err := h.teamFactory.FindTeam(teamName)
 	if err != nil {
@@ -55,7 +63,8 @@ func (h checkPipelineAccessHandler) ServeHTTP(w http.ResponseWriter, r *http.Req
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	pipeline, found, err := team.Pipeline(pipelineName)
+
+	pipeline, found, err := team.Pipeline(pipelineRef)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

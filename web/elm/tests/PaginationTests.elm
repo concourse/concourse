@@ -29,7 +29,7 @@ all =
                         |> Api.Pagination.parseLinks
                         |> Expect.equal
                             { previousPage =
-                                Just { direction = Until 1, limit = 2 }
+                                Just { direction = From 1, limit = 2 }
                             , nextPage = Nothing
                             }
             , test "with a Link rel=\"next\" present" <|
@@ -39,7 +39,7 @@ all =
                         |> Expect.equal
                             { previousPage = Nothing
                             , nextPage =
-                                Just { direction = Since 1, limit = 2 }
+                                Just { direction = To 1, limit = 2 }
                             }
             , test "with a Link rel=\"previous\" and a Link rel=\"next\" present" <|
                 \_ ->
@@ -47,9 +47,9 @@ all =
                         |> Api.Pagination.parseLinks
                         |> Expect.equal
                             { previousPage =
-                                Just { direction = Until 1, limit = 2 }
+                                Just { direction = From 3, limit = 2 }
                             , nextPage =
-                                Just { direction = Since 3, limit = 4 }
+                                Just { direction = To 1, limit = 4 }
                             }
             , test "with malformed link header" <|
                 \_ ->
@@ -76,7 +76,7 @@ withPreviousLink : Dict String String
 withPreviousLink =
     Dict.fromList
         [ ( "Link"
-          , "<https://example.com/previous?until=1&limit=2>; rel=\"previous\""
+          , "<https://example.com/previous?from=1&limit=2>; rel=\"previous\""
           )
         ]
 
@@ -85,7 +85,7 @@ withNextLink : Dict String String
 withNextLink =
     Dict.fromList
         [ ( "Link"
-          , "<https://example.com/next?since=1&limit=2>; rel=\"next\""
+          , "<https://example.com/next?to=1&limit=2>; rel=\"next\""
           )
         ]
 
@@ -94,8 +94,8 @@ withPreviousAndNextLink : Dict String String
 withPreviousAndNextLink =
     Dict.fromList
         [ ( "link"
-          , "<https://example.com/previous?until=1&limit=2>; rel=\"previous\""
-                ++ ", <https://example.com/next?since=3&limit=4>; rel=\"next\""
+          , "<https://example.com/previous?from=3&limit=2>; rel=\"previous\""
+                ++ ", <https://example.com/next?to=1&limit=4>; rel=\"next\""
           )
         ]
 

@@ -1,8 +1,8 @@
 ---
 resources:
 - name: some-resource
-  type: registry-image
-  source: {repository: busybox}
+  type: mock
+  source: {mirror_self: true}
 
 - name: broken-time
   type: time
@@ -22,8 +22,8 @@ jobs:
       platform: linux
 
       image_resource:
-        type: registry-image
-        source: {repository: busybox}
+        type: mock
+        source: {mirror_self: true}
 
       run:
         path: sh
@@ -40,8 +40,8 @@ jobs:
       platform: linux
 
       image_resource:
-        type: registry-image
-        source: {repository: busybox}
+        type: mock
+        source: {mirror_self: true}
 
       run: {path: ((path))}
 
@@ -52,8 +52,8 @@ jobs:
       platform: linux
 
       image_resource:
-        type: registry-image
-        source: {repository: busybox}
+        type: mock
+        source: {mirror_self: true}
 
       run: {path: 'echo', args: ['i passed']}
 
@@ -64,8 +64,8 @@ jobs:
       platform: linux
 
       image_resource:
-        type: registry-image
-        source: {repository: busybox}
+        type: mock
+        source: {mirror_self: true}
 
       run: {path: 'banana'}
 
@@ -76,8 +76,8 @@ jobs:
       platform: linux
 
       image_resource:
-        type: registry-image
-        source: {repository: busybox}
+        type: mock
+        source: {mirror_self: true}
 
       run:
         path: sh

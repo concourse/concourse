@@ -7,6 +7,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
+	"github.com/concourse/concourse/atc/db/dbtest"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -558,101 +559,87 @@ var _ = Describe("WorkerFactory", func() {
 		Context("when there are check containers", func() {
 			Context("when there are multiple of the same containers on the global, team and tagged worker", func() {
 				var (
-					owner        db.ContainerOwner
-					taggedWorker db.Worker
-					teamWorker   db.Worker
+					scenario *dbtest.Scenario
 				)
 
 				BeforeEach(func() {
-					ownerExpiries := db.ContainerOwnerExpiries{
-						Min: 5 * time.Minute,
-						Max: 5 * time.Minute,
-					}
-
-					var err error
-					otherPipeline, _, err := defaultTeam.SavePipeline("other-pipeline", atc.Config{
-						Resources: atc.ResourceConfigs{
-							{
-								Name: "some-resource",
-								Type: "some-base-resource-type",
-								Source: atc.Source{
-									"some": "source",
+					scenario = dbtest.Setup(
+						builder.WithPipeline(atc.Config{
+							Resources: atc.ResourceConfigs{
+								{
+									Name: "some-resource",
+									Type: "some-base-resource-type",
+									Source: atc.Source{
+										"some": "source",
+									},
 								},
 							},
-						},
-					}, db.ConfigVersion(0), false)
-					Expect(err).NotTo(HaveOccurred())
-
-					taggedWorkerSpec := atc.Worker{
-						ResourceTypes:   []atc.WorkerResourceType{defaultWorkerResourceType},
-						GardenAddr:      "some-tagged-garden-addr",
-						BaggageclaimURL: "some-tagged-bc-url",
-						Name:            "some-tagged-name",
-						Tags:            []string{"some-tag"},
-					}
-
-					taggedWorker, err = workerFactory.SaveWorker(taggedWorkerSpec, 5*time.Minute)
-					Expect(err).NotTo(HaveOccurred())
-
-					teamWorkerSpec := atc.Worker{
-						ResourceTypes:   []atc.WorkerResourceType{defaultWorkerResourceType},
-						GardenAddr:      "some-team-garden-addr",
-						BaggageclaimURL: "some-team-bc-url",
-						Name:            "some-team-name",
-						Team:            "default-team",
-					}
-
-					teamWorker, err = defaultTeam.SaveWorker(teamWorkerSpec, 5*time.Minute)
-					Expect(err).NotTo(HaveOccurred())
-
-					otherWorkerSpec := atc.Worker{
-						ResourceTypes:   []atc.WorkerResourceType{defaultWorkerResourceType},
-						GardenAddr:      "some-other-garden-addr",
-						BaggageclaimURL: "some-other-bc-url",
-						Name:            "some-other-name",
-					}
-
-					_, err = workerFactory.SaveWorker(otherWorkerSpec, 5*time.Minute)
-					Expect(err).NotTo(HaveOccurred())
-
-					containerMetadata = db.ContainerMetadata{
-						Type: "check",
-					}
-
-					otherResource, found, err := otherPipeline.Resource("some-resource")
-					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeTrue())
-
-					rcs, err := otherResource.SetResourceConfig(atc.Source{"some": "source"}, atc.VersionedResourceTypes{})
-					Expect(err).NotTo(HaveOccurred())
-
-					owner = db.NewResourceConfigCheckSessionContainerOwner(
-						rcs.ResourceConfig().ID(),
-						rcs.ResourceConfig().OriginBaseResourceType().ID,
-						ownerExpiries,
+						}),
+						builder.WithWorker(atc.Worker{
+							ResourceTypes:   []atc.WorkerResourceType{defaultWorkerResourceType},
+							GardenAddr:      "some-tagged-garden-addr",
+							BaggageclaimURL: "some-tagged-bc-url",
+							Name:            "some-tagged-name",
+							Tags:            []string{"some-tag"},
+						}),
+						builder.WithWorker(atc.Worker{
+							ResourceTypes:   []atc.WorkerResourceType{defaultWorkerResourceType},
+							GardenAddr:      "some-team-garden-addr",
+							BaggageclaimURL: "some-team-bc-url",
+							Name:            "some-team-name",
+							Team:            "default-team",
+						}),
+						builder.WithWorker(atc.Worker{
+							ResourceTypes:   []atc.WorkerResourceType{defaultWorkerResourceType},
+							GardenAddr:      "some-other-garden-addr",
+							BaggageclaimURL: "some-other-bc-url",
+							Name:            "some-other-name",
+						}),
+						builder.WithResourceVersions(
+							"some-resource",
+						),
+						builder.WithCheckContainer(
+							"some-resource",
+							"some-other-name",
+						),
+						builder.WithCheckContainer(
+							"some-resource",
+							"some-tagged-name",
+						),
+						builder.WithCheckContainer(
+							"some-resource",
+							"some-team-name",
+						),
 					)
-
-					_, err = defaultWorker.CreateContainer(owner, containerMetadata)
-					Expect(err).ToNot(HaveOccurred())
-
-					_, err = taggedWorker.CreateContainer(owner, containerMetadata)
-					Expect(err).ToNot(HaveOccurred())
-
-					_, err = teamWorker.CreateContainer(owner, containerMetadata)
-					Expect(err).ToNot(HaveOccurred())
 				})
 
 				It("should find all the workers that have the same container", func() {
+					resource, found, err := scenario.Pipeline.Resource("some-resource")
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue(), "resource '%s' not found", "some-resource")
+
+					rc, found, err := resourceConfigFactory.FindResourceConfigByID(resource.ResourceConfigID())
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue(), "resource config '%s' not found", rc.ID())
+
+					owner := db.NewResourceConfigCheckSessionContainerOwner(
+						rc.ID(),
+						rc.OriginBaseResourceType().ID,
+						db.ContainerOwnerExpiries{
+							Min: 5 * time.Minute,
+							Max: 5 * time.Minute,
+						},
+					)
+
 					workers, err := workerFactory.FindWorkersForContainerByOwner(owner)
 					Expect(err).ToNot(HaveOccurred())
-					Expect(workers).To(HaveLen(3))
 
 					var workerNames []string
 					for _, w := range workers {
 						workerNames = append(workerNames, w.Name())
 					}
 
-					Expect(workerNames).To(ConsistOf([]string{defaultWorker.Name(), taggedWorker.Name(), teamWorker.Name()}))
+					Expect(workerNames).To(ConsistOf([]string{"some-other-name", "some-tagged-name", "some-team-name"}))
 				})
 			})
 		})

@@ -24,26 +24,34 @@ import (
 )
 
 const testflightFlyTarget = "tf"
+const testflightGuestFlyTarget = "tf-guest"
 const adminFlyTarget = "tf-admin"
 
 const pipelinePrefix = "tf-pipeline"
+
 const teamName = "testflight"
+const adminTeamName = "main"
+const guestTeamName = "testflight-guest"
 
 var flyTarget string
 
 type suiteConfig struct {
-	FlyBin      string `json:"fly"`
-	ATCURL      string `json:"atc_url"`
-	ATCUsername string `json:"atc_username"`
-	ATCPassword string `json:"atc_password"`
-	DownloadCLI bool   `json:"download_cli"`
+	FlyBin           string `json:"fly"`
+	ATCURL           string `json:"atc_url"`
+	ATCUsername      string `json:"atc_username"`
+	ATCPassword      string `json:"atc_password"`
+	ATCGuestUsername string `json:"atc_guest_username"`
+	ATCGuestPassword string `json:"atc_guest_password"`
+	DownloadCLI      bool   `json:"download_cli"`
 }
 
 var (
 	config = suiteConfig{
-		ATCURL:      "http://localhost:8080",
-		ATCUsername: "test",
-		ATCPassword: "test",
+		ATCURL:           "http://localhost:8080",
+		ATCUsername:      "test",
+		ATCPassword:      "test",
+		ATCGuestUsername: "guest",
+		ATCGuestPassword: "guest",
 	}
 
 	pipelineName string
@@ -86,29 +94,35 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		config.ATCPassword = atcPassword
 	}
 
+	atcGuestUsername := os.Getenv("ATC_GUEST_USERNAME")
+	if atcGuestUsername != "" {
+		config.ATCGuestUsername = atcUsername
+	}
+
+	atcGuestPassword := os.Getenv("ATC_GUEST_PASSWORD")
+	if atcGuestPassword != "" {
+		config.ATCGuestPassword = atcGuestPassword
+	}
+
 	payload, err := json.Marshal(config)
 	Expect(err).ToNot(HaveOccurred())
 
 	Eventually(func() *gexec.Session {
-		login := spawnFlyLogin(adminFlyTarget)
-		<-login.Exited
-		return login
+		return flyLogin(adminFlyTarget, adminTeamName, config.ATCUsername, config.ATCPassword)
 	}, 2*time.Minute, time.Second).Should(gexec.Exit(0))
 
+	fly("-t", adminFlyTarget, "set-team", "--non-interactive", "-n", guestTeamName, "--local-user", config.ATCGuestUsername)
+	flyLogin(testflightGuestFlyTarget, guestTeamName, config.ATCGuestUsername, config.ATCGuestPassword)
+
 	fly("-t", adminFlyTarget, "set-team", "--non-interactive", "-n", teamName, "--local-user", config.ATCUsername)
-	wait(spawnFlyLogin(testflightFlyTarget, "-n", teamName))
+	flyLogin(testflightFlyTarget, teamName, config.ATCUsername, config.ATCPassword)
 
-	for _, ps := range flyTable("-t", adminFlyTarget, "pipelines") {
-		name := ps["name"]
-		if strings.HasPrefix(name, pipelinePrefix) {
-			fly("-t", adminFlyTarget, "destroy-pipeline", "-n", "-p", name)
-		}
-	}
-
-	for _, ps := range flyTable("-t", testflightFlyTarget, "pipelines") {
-		name := ps["name"]
-		if strings.HasPrefix(name, pipelinePrefix) {
-			fly("-t", testflightFlyTarget, "destroy-pipeline", "-n", "-p", name)
+	for _, target := range []string{adminFlyTarget, testflightFlyTarget, testflightGuestFlyTarget} {
+		for _, ps := range flyTable("-t", target, "pipelines") {
+			name := ps["name"]
+			if strings.HasPrefix(name, pipelinePrefix) {
+				fly("-t", target, "destroy-pipeline", "-n", "-p", name)
+			}
 		}
 	}
 
@@ -175,18 +189,34 @@ func randomPipelineName() string {
 
 func fly(argv ...string) *gexec.Session {
 	sess := spawnFly(argv...)
-	wait(sess)
+	wait(sess, false)
 	return sess
 }
 
 func flyIn(dir string, argv ...string) *gexec.Session {
 	sess := spawnFlyIn(dir, argv...)
-	wait(sess)
+	wait(sess, false)
 	return sess
 }
 
-func spawnFlyLogin(target string, args ...string) *gexec.Session {
-	return spawn(config.FlyBin, append([]string{"-t", target, "login", "-c", config.ATCURL, "-u", config.ATCUsername, "-p", config.ATCPassword}, args...)...)
+func flyUnsafe(argv ...string) *gexec.Session {
+	sess := spawnFly(argv...)
+	wait(sess, true)
+	return sess
+}
+
+func flyLogin(target, team, username, password string) *gexec.Session {
+	sess := spawn(
+		config.FlyBin,
+		"-t", target,
+		"login",
+		"-c", config.ATCURL,
+		"-n", team,
+		"-u", username,
+		"-p", password,
+	)
+	wait(sess, false)
+	return sess
 }
 
 func spawnFly(argv ...string) *gexec.Session {
@@ -195,6 +225,35 @@ func spawnFly(argv ...string) *gexec.Session {
 
 func spawnFlyIn(dir string, argv ...string) *gexec.Session {
 	return spawnIn(dir, config.FlyBin, append([]string{"-t", flyTarget}, argv...)...)
+}
+
+func spawnFlyOpts(opts ...spawnOpt) func(argv ...string) *gexec.Session {
+	spawnFn := spawnOpts(opts...)
+	return func(argv ...string) *gexec.Session {
+		return spawnFn(config.FlyBin, append([]string{"-t", flyTarget}, argv...)...)
+	}
+}
+
+type spawnOpt func(*exec.Cmd) *exec.Cmd
+
+func withStdin(stdin io.Reader) spawnOpt {
+	return func(cmd *exec.Cmd) *exec.Cmd {
+		cmd.Stdin = stdin
+		return cmd
+	}
+}
+
+func spawnOpts(opts ...spawnOpt) func(argc string, argv ...string) *gexec.Session {
+	return func(argc string, argv ...string) *gexec.Session {
+		By("running: " + argc + " " + strings.Join(argv, " "))
+		cmd := exec.Command(argc, argv...)
+		for _, opt := range opts {
+			cmd = opt(cmd)
+		}
+		session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
+		Expect(err).ToNot(HaveOccurred())
+		return session
+	}
 }
 
 func spawn(argc string, argv ...string) *gexec.Session {
@@ -214,9 +273,11 @@ func spawnIn(dir string, argc string, argv ...string) *gexec.Session {
 	return session
 }
 
-func wait(session *gexec.Session) {
+func wait(session *gexec.Session, allowNonZero bool) {
 	<-session.Exited
-	Expect(session.ExitCode()).To(Equal(0), "Output: "+string(session.Out.Contents()))
+	if !allowNonZero {
+		Expect(session.ExitCode()).To(Equal(0), "Output: "+string(session.Out.Contents()))
+	}
 }
 
 var colSplit = regexp.MustCompile(`\s{2,}`)

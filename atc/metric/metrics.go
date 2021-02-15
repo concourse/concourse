@@ -11,42 +11,38 @@ import (
 	"github.com/concourse/concourse/atc/db"
 )
 
-var Databases []db.Conn
-var DatabaseQueries = &Counter{}
+type TasksWaitingLabels struct {
+	TeamId     string
+	WorkerTags string
+	Platform   string
+}
 
-var ContainersCreated = &Counter{}
-var VolumesCreated = &Counter{}
+type TasksWaitingDuration struct {
+	Labels   TasksWaitingLabels
+	Duration time.Duration
+}
 
-var FailedContainers = &Counter{}
-var FailedVolumes = &Counter{}
-
-var ContainersDeleted = &Counter{}
-var VolumesDeleted = &Counter{}
-var ChecksDeleted = &Counter{}
-
-var JobsScheduled = &Counter{}
-var JobsScheduling = &Gauge{}
-
-var BuildsStarted = &Counter{}
-var BuildsRunning = &Gauge{}
-
-var TasksWaiting = &Gauge{}
-
-var ChecksFinishedWithError = &Counter{}
-var ChecksFinishedWithSuccess = &Counter{}
-var ChecksQueueSize = &Gauge{}
-var ChecksStarted = &Counter{}
-var ChecksEnqueued = &Counter{}
-
-var ConcurrentRequests = map[string]*Gauge{}
-var ConcurrentRequestsLimitHit = map[string]*Counter{}
+func (event TasksWaitingDuration) Emit(logger lager.Logger) {
+	Metrics.emit(
+		logger.Session("tasks-waiting-duration"),
+		Event{
+			Name:  "tasks waiting duration",
+			Value: event.Duration.Seconds(),
+			Attributes: map[string]string{
+				"teamId":     event.Labels.TeamId,
+				"workerTags": event.Labels.WorkerTags,
+				"platform":   event.Labels.Platform,
+			},
+		},
+	)
+}
 
 type BuildCollectorDuration struct {
 	Duration time.Duration
 }
 
 func (event BuildCollectorDuration) Emit(logger lager.Logger) {
-	emit(
+	Metrics.emit(
 		logger.Session("gc-build-collector-duration"),
 		Event{
 			Name:  "gc: build collector duration (ms)",
@@ -60,7 +56,7 @@ type WorkerCollectorDuration struct {
 }
 
 func (event WorkerCollectorDuration) Emit(logger lager.Logger) {
-	emit(
+	Metrics.emit(
 		logger.Session("gc-worker-collector-duration"),
 		Event{
 			Name:  "gc: worker collector duration (ms)",
@@ -74,7 +70,7 @@ type ResourceCacheUseCollectorDuration struct {
 }
 
 func (event ResourceCacheUseCollectorDuration) Emit(logger lager.Logger) {
-	emit(
+	Metrics.emit(
 		logger.Session("gc-resource-cache-use-collector-duration"),
 		Event{
 			Name:  "gc: resource cache use collector duration (ms)",
@@ -88,7 +84,7 @@ type ResourceConfigCollectorDuration struct {
 }
 
 func (event ResourceConfigCollectorDuration) Emit(logger lager.Logger) {
-	emit(
+	Metrics.emit(
 		logger.Session("gc-resource-config-collector-duration"),
 		Event{
 			Name:  "gc: resource config collector duration (ms)",
@@ -102,7 +98,7 @@ type ResourceCacheCollectorDuration struct {
 }
 
 func (event ResourceCacheCollectorDuration) Emit(logger lager.Logger) {
-	emit(
+	Metrics.emit(
 		logger.Session("gc-resource-cache-collector-duration"),
 		Event{
 			Name:  "gc: resource cache collector duration (ms)",
@@ -116,7 +112,7 @@ type ResourceConfigCheckSessionCollectorDuration struct {
 }
 
 func (event ResourceConfigCheckSessionCollectorDuration) Emit(logger lager.Logger) {
-	emit(
+	Metrics.emit(
 		logger.Session("gc-resource-config-check-session-collector-duration"),
 		Event{
 			Name:  "gc: resource config check session collector duration (ms)",
@@ -130,7 +126,7 @@ type ArtifactCollectorDuration struct {
 }
 
 func (event ArtifactCollectorDuration) Emit(logger lager.Logger) {
-	emit(
+	Metrics.emit(
 		logger.Session("gc-artifact-collector-duration"),
 		Event{
 			Name:  "gc: artifact collector duration (ms)",
@@ -144,7 +140,7 @@ type ContainerCollectorDuration struct {
 }
 
 func (event ContainerCollectorDuration) Emit(logger lager.Logger) {
-	emit(
+	Metrics.emit(
 		logger.Session("gc-container-collector-duration"),
 		Event{
 			Name:  "gc: container collector duration (ms)",
@@ -158,7 +154,7 @@ type VolumeCollectorDuration struct {
 }
 
 func (event VolumeCollectorDuration) Emit(logger lager.Logger) {
-	emit(
+	Metrics.emit(
 		logger.Session("gc-volume-collector-duration"),
 		Event{
 			Name:  "gc: volume collector duration (ms)",
@@ -175,7 +171,7 @@ type SchedulingJobDuration struct {
 }
 
 func (event SchedulingJobDuration) Emit(logger lager.Logger) {
-	emit(
+	Metrics.emit(
 		logger.Session("job-scheduling-duration"),
 		Event{
 			Name:  "scheduling: job duration (ms)",
@@ -198,7 +194,7 @@ type WorkerContainers struct {
 }
 
 func (event WorkerContainers) Emit(logger lager.Logger) {
-	emit(
+	Metrics.emit(
 		logger.Session("worker-containers"),
 		Event{
 			Name:  "worker containers",
@@ -219,7 +215,7 @@ type WorkerUnknownContainers struct {
 }
 
 func (event WorkerUnknownContainers) Emit(logger lager.Logger) {
-	emit(
+	Metrics.emit(
 		logger.Session("worker-unknown-containers"),
 		Event{
 			Name:  "worker unknown containers",
@@ -240,7 +236,7 @@ type WorkerVolumes struct {
 }
 
 func (event WorkerVolumes) Emit(logger lager.Logger) {
-	emit(
+	Metrics.emit(
 		logger.Session("worker-volumes"),
 		Event{
 			Name:  "worker volumes",
@@ -261,7 +257,7 @@ type WorkerUnknownVolumes struct {
 }
 
 func (event WorkerUnknownVolumes) Emit(logger lager.Logger) {
-	emit(
+	Metrics.emit(
 		logger.Session("worker-unknown-volumes"),
 		Event{
 			Name:  "worker unknown volumes",
@@ -280,7 +276,7 @@ type WorkerTasks struct {
 }
 
 func (event WorkerTasks) Emit(logger lager.Logger) {
-	emit(
+	Metrics.emit(
 		logger.Session("worker-tasks"),
 		Event{
 			Name:  "worker tasks",
@@ -298,7 +294,7 @@ type VolumesToBeGarbageCollected struct {
 }
 
 func (event VolumesToBeGarbageCollected) Emit(logger lager.Logger) {
-	emit(
+	Metrics.emit(
 		logger.Session("gc-found-orphaned-volumes-for-deletion"),
 		Event{
 			Name:       "orphaned volumes to be garbage collected",
@@ -313,7 +309,7 @@ type CreatingContainersToBeGarbageCollected struct {
 }
 
 func (event CreatingContainersToBeGarbageCollected) Emit(logger lager.Logger) {
-	emit(
+	Metrics.emit(
 		logger.Session("gc-found-creating-containers-for-deletion"),
 		Event{
 			Name:       "creating containers to be garbage collected",
@@ -328,7 +324,7 @@ type CreatedContainersToBeGarbageCollected struct {
 }
 
 func (event CreatedContainersToBeGarbageCollected) Emit(logger lager.Logger) {
-	emit(
+	Metrics.emit(
 		logger.Session("gc-found-created-ccontainers-for-deletion"),
 		Event{
 			Name:       "created containers to be garbage collected",
@@ -343,7 +339,7 @@ type DestroyingContainersToBeGarbageCollected struct {
 }
 
 func (event DestroyingContainersToBeGarbageCollected) Emit(logger lager.Logger) {
-	emit(
+	Metrics.emit(
 		logger.Session("gc-found-destroying-containers-for-deletion"),
 		Event{
 			Name:       "destroying containers to be garbage collected",
@@ -358,7 +354,7 @@ type FailedContainersToBeGarbageCollected struct {
 }
 
 func (event FailedContainersToBeGarbageCollected) Emit(logger lager.Logger) {
-	emit(
+	Metrics.emit(
 		logger.Session("gc-found-failed-containers-for-deletion"),
 		Event{
 			Name:       "failed containers to be garbage collected",
@@ -373,7 +369,7 @@ type CreatedVolumesToBeGarbageCollected struct {
 }
 
 func (event CreatedVolumesToBeGarbageCollected) Emit(logger lager.Logger) {
-	emit(
+	Metrics.emit(
 		logger.Session("gc-found-created-volumes-for-deletion"),
 		Event{
 			Name:       "created volumes to be garbage collected",
@@ -388,7 +384,7 @@ type DestroyingVolumesToBeGarbageCollected struct {
 }
 
 func (event DestroyingVolumesToBeGarbageCollected) Emit(logger lager.Logger) {
-	emit(
+	Metrics.emit(
 		logger.Session("gc-found-destroying-volumes-for-deletion"),
 		Event{
 			Name:       "destroying volumes to be garbage collected",
@@ -403,7 +399,7 @@ type FailedVolumesToBeGarbageCollected struct {
 }
 
 func (event FailedVolumesToBeGarbageCollected) Emit(logger lager.Logger) {
-	emit(
+	Metrics.emit(
 		logger.Session("gc-found-failed-volumes-for-deletion"),
 		Event{
 			Name:       "failed volumes to be garbage collected",
@@ -418,7 +414,7 @@ type GarbageCollectionContainerCollectorJobDropped struct {
 }
 
 func (event GarbageCollectionContainerCollectorJobDropped) Emit(logger lager.Logger) {
-	emit(
+	Metrics.emit(
 		logger.Session("gc-container-collector-dropped"),
 		Event{
 			Name:  "GC container collector job dropped",
@@ -431,54 +427,34 @@ func (event GarbageCollectionContainerCollectorJobDropped) Emit(logger lager.Log
 }
 
 type BuildStarted struct {
-	PipelineName string
-	JobName      string
-	BuildName    string
-	BuildID      int
-	TeamName     string
+	Build db.Build
 }
 
 func (event BuildStarted) Emit(logger lager.Logger) {
-	emit(
+	Metrics.emit(
 		logger.Session("build-started"),
 		Event{
-			Name:  "build started",
-			Value: float64(event.BuildID),
-			Attributes: map[string]string{
-				"pipeline":   event.PipelineName,
-				"job":        event.JobName,
-				"build_name": event.BuildName,
-				"build_id":   strconv.Itoa(event.BuildID),
-				"team_name":  event.TeamName,
-			},
+			Name:       "build started",
+			Value:      float64(event.Build.ID()),
+			Attributes: event.Build.TracingAttrs(),
 		},
 	)
 }
 
 type BuildFinished struct {
-	PipelineName  string
-	JobName       string
-	BuildName     string
-	BuildID       int
-	BuildStatus   db.BuildStatus
-	BuildDuration time.Duration
-	TeamName      string
+	Build db.Build
 }
 
 func (event BuildFinished) Emit(logger lager.Logger) {
-	emit(
+	attrs := event.Build.TracingAttrs()
+	attrs["build_status"] = event.Build.Status().String()
+
+	Metrics.emit(
 		logger.Session("build-finished"),
 		Event{
-			Name:  "build finished",
-			Value: ms(event.BuildDuration),
-			Attributes: map[string]string{
-				"pipeline":     event.PipelineName,
-				"job":          event.JobName,
-				"build_name":   event.BuildName,
-				"build_id":     strconv.Itoa(event.BuildID),
-				"build_status": string(event.BuildStatus),
-				"team_name":    event.TeamName,
-			},
+			Name:       "build finished",
+			Value:      ms(event.Build.EndTime().Sub(event.Build.StartTime())),
+			Attributes: attrs,
 		},
 	)
 }
@@ -492,8 +468,8 @@ type ErrorLog struct {
 	Value   int
 }
 
-func (e ErrorLog) Emit(logger lager.Logger) {
-	emit(
+func (e ErrorLog) Emit(logger lager.Logger, m *Monitor) {
+	m.emit(
 		logger.Session("error-log"),
 		Event{
 			Name:  "error log",
@@ -513,8 +489,8 @@ type HTTPResponseTime struct {
 	Duration   time.Duration
 }
 
-func (event HTTPResponseTime) Emit(logger lager.Logger) {
-	emit(
+func (event HTTPResponseTime) Emit(logger lager.Logger, m *Monitor) {
+	m.emit(
 		logger.Session("http-response-time"),
 		Event{
 			Name:  "http response time",
@@ -546,7 +522,7 @@ type LockAcquired struct {
 }
 
 func (event LockAcquired) Emit(logger lager.Logger) {
-	emit(
+	Metrics.emit(
 		logger.Session("lock-acquired"),
 		Event{
 			Name:  "lock held",
@@ -563,7 +539,7 @@ type LockReleased struct {
 }
 
 func (event LockReleased) Emit(logger lager.Logger) {
-	emit(
+	Metrics.emit(
 		logger.Session("lock-released"),
 		Event{
 			Name:  "lock held",
@@ -603,7 +579,7 @@ type WorkersState struct {
 	WorkerStateByName map[string]db.WorkerState
 }
 
-func (event WorkersState) Emit(logger lager.Logger) {
+func (event WorkersState) Emit(logger lager.Logger, m *Monitor) {
 	for _, state := range db.AllWorkerStates() {
 		count := 0
 		for _, workerState := range event.WorkerStateByName {
@@ -612,7 +588,7 @@ func (event WorkersState) Emit(logger lager.Logger) {
 			}
 		}
 
-		emit(
+		m.emit(
 			logger.Session("worker-state"),
 			Event{
 				Name:  "worker state",

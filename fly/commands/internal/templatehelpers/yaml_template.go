@@ -15,14 +15,22 @@ type YamlTemplateWithParams struct {
 	templateVariablesFiles []atc.PathFlag
 	templateVariables      []flaghelpers.VariablePairFlag
 	yamlTemplateVariables  []flaghelpers.YAMLVariablePairFlag
+	instanceVars           atc.InstanceVars
 }
 
-func NewYamlTemplateWithParams(filePath atc.PathFlag, templateVariablesFiles []atc.PathFlag, templateVariables []flaghelpers.VariablePairFlag, yamlTemplateVariables []flaghelpers.YAMLVariablePairFlag) YamlTemplateWithParams {
+func NewYamlTemplateWithParams(
+	filePath atc.PathFlag,
+	templateVariablesFiles []atc.PathFlag,
+	templateVariables []flaghelpers.VariablePairFlag,
+	yamlTemplateVariables []flaghelpers.YAMLVariablePairFlag,
+	instanceVars atc.InstanceVars,
+) YamlTemplateWithParams {
 	return YamlTemplateWithParams{
 		filePath:               filePath,
 		templateVariablesFiles: templateVariablesFiles,
 		templateVariables:      templateVariables,
 		yamlTemplateVariables:  yamlTemplateVariables,
+		instanceVars:           instanceVars,
 	}
 }
 
@@ -50,14 +58,18 @@ func (yamlTemplate YamlTemplateWithParams) Evaluate(
 	var params []vars.Variables
 
 	// first, we take explicitly specified variables on the command line
-	flagVars := vars.StaticVariables{}
+	var flagVarPairs vars.KVPairs
 	for _, f := range yamlTemplate.templateVariables {
-		flagVars[f.Name] = f.Value
+		flagVarPairs = append(flagVarPairs, vars.KVPair(f))
 	}
 	for _, f := range yamlTemplate.yamlTemplateVariables {
-		flagVars[f.Name] = f.Value
+		flagVarPairs = append(flagVarPairs, vars.KVPair(f))
 	}
-	params = append(params, flagVars)
+
+	instanceVarPairs := vars.StaticVariables(yamlTemplate.instanceVars).Flatten()
+	flagVarPairs = append(flagVarPairs, instanceVarPairs...)
+
+	params = append(params, flagVarPairs.Expand())
 
 	// second, we take all files. with values in the files specified later on command line taking precedence over the
 	// same values in the files specified earlier on command line

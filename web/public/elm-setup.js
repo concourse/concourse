@@ -74,42 +74,6 @@ app.ports.requestLoginRedirect.subscribe(function (message) {
   document.location.href = loginUrl;
 });
 
-
-app.ports.tooltip.subscribe(function (pipelineInfo) {
-  const pipelineName = pipelineInfo[0];
-  const pipelineTeamName = pipelineInfo[1];
-
-  const team = document.getElementById(pipelineTeamName);
-  if (team === null) {
-    return;
-  }
-  const card = team.querySelector(`.card[data-pipeline-name="${pipelineName}"]`);
-  if (card === null) {
-    return;
-  }
-  const title = card.querySelector('.dashboard-pipeline-name');
-  if(title === null || title.offsetWidth >= title.scrollWidth) {
-    return;
-  }
-  title.parentNode.setAttribute('data-tooltip', pipelineName);
-});
-
-app.ports.tooltipHd.subscribe(function (pipelineInfo) {
-  var pipelineName = pipelineInfo[0];
-  var pipelineTeamName = pipelineInfo[1];
-
-  const card = document.querySelector(`.card[data-pipeline-name="${pipelineName}"][data-team-name="${pipelineTeamName}"]`);
-  if (card === null) {
-    return;
-  }
-  const title = card.querySelector('.dashboardhd-pipeline-name');
-
-  if(title === null || title.offsetWidth >= title.scrollWidth){
-    return;
-  }
-  title.parentNode.setAttribute('data-tooltip', pipelineName);
-});
-
 app.ports.saveToLocalStorage.subscribe(function(params) {
   if (!params || params.length !== 2) {
     return;
@@ -160,11 +124,12 @@ app.ports.deleteFromLocalStorage.subscribe(function(key) {
 
 
 const csrfTokenKey = "csrf_token";
+const favoritedPipelinesKey = "favorited_pipelines";
 window.addEventListener('storage', function(event) {
-  if (event.key === csrfTokenKey) {
-    const value = localStorage.getItem(csrfTokenKey);
+  if (event.key === csrfTokenKey || event.key === favoritedPipelinesKey) {
+    const value = localStorage.getItem(event.key);
     setTimeout(function() {
-      app.ports.receivedFromLocalStorage.send([csrfTokenKey, value]);
+      app.ports.receivedFromLocalStorage.send([event.key, value]);
     }, 0);
   }
 }, false);
@@ -189,12 +154,71 @@ app.ports.syncTextareaHeight.subscribe(function(id) {
   }, 0);
 });
 
+let syncStickyBuildLogHeadersInterval;
+
+app.ports.syncStickyBuildLogHeaders.subscribe(function() {
+  if (!CSS || !CSS.supports || !CSS.supports('position', 'sticky')) {
+    return;
+  }
+  if (syncStickyBuildLogHeadersInterval != null) {
+    return;
+  }
+  const attemptToSync = () => {
+    const padding = 5;
+    const headers = document.querySelectorAll('.build-step .header:not(.loading-header)');
+    if (headers.length === 0) {
+      return false;
+    }
+    headers.forEach(header => {
+      const parentHeader = findParentHeader(header);
+      let curHeight = 0;
+      if (parentHeader != null) {
+        const parentHeight = parsePixels(parentHeader.style.top || '') || 0;
+        curHeight = parentHeight + parentHeader.offsetHeight + padding;
+      }
+      header.style.top = curHeight + 'px';
+    });
+    return true;
+  }
+
+  setTimeout(() => {
+    const success = attemptToSync();
+    if (!success) {
+      // The headers do not always exist by the time we attempt to sync.
+      // Keep trying on an interval
+      syncStickyBuildLogHeadersInterval = setInterval(() => {
+        const success = attemptToSync();
+        if (success) {
+          clearInterval(syncStickyBuildLogHeadersInterval);
+          syncStickyBuildLogHeadersInterval = null;
+        }
+      }, 250);
+    }
+  }, 50);
+});
+
+function findParentHeader(el) {
+  const closestStepBody = el.closest('.step-body');
+  if (closestStepBody == null || closestStepBody.parentElement == null) {
+    return;
+  }
+  return closestStepBody.parentElement.querySelector('.header')
+}
+
+function parsePixels(raw) {
+  raw = raw.trim();
+  if(!raw.endsWith('px')) {
+    return 0;
+  }
+  return parseFloat(raw);
+}
+
 app.ports.scrollToId.subscribe(function(params) {
   if (!params || params.length !== 2) {
     return;
   }
   const [parentId, toId] = params;
-  const padding = 10;
+  const padding = 150;
   const interval = setInterval(function() {
     const parentElem = document.getElementById(parentId);
     if (parentElem === null) {
@@ -204,11 +228,20 @@ app.ports.scrollToId.subscribe(function(params) {
     if (elem === null) {
       return;
     }
-    parentElem.scrollTop = elem.offsetTop - padding;
+    parentElem.scrollTop = offsetTop(elem, parentElem) - padding;
     setTimeout(() => app.ports.scrolledToId.send([parentId, toId]), 50)
     clearInterval(interval);
   }, 20);
 });
+
+function offsetTop(element, untilElement) {
+  let offsetTop = 0;
+  while(element && element != untilElement) {
+    offsetTop += element.offsetTop;
+    element = element.offsetParent;
+  }
+  return offsetTop;
+}
 
 app.ports.openEventStream.subscribe(function(config) {
   var buffer = [];

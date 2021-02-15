@@ -23,10 +23,10 @@ func InitializeATCFlagsDEPRECATED(c *cobra.Command, flags *RunConfig) {
 	InitializeLetsEncryptFlags(c, flags)
 	c.Flags().Var(&flags.ConfigRBAC, "config-rbac", "Customize RBAC role-action mapping.")
 	InitializePolicyFlags(c, flags)
+	c.Flags().StringToStringVar(&flags.DisplayUserIdPerConnector, "display-user-id-per-connector", nil, "Define how to display user ID for each authentication connector. Format is <connector>:<fieldname>. Valid field names are user_id, name, username and email, where name maps to claims field username, and username maps to claims field preferred username")
 
 	InitializeDatabaseFlags(c, flags)
 
-	c.Flags().BoolVar(&flags.EnableRedactSecrets, "enable-redact-secrets", false, "Enable redacting secrets in build logs.")
 	InitializeSecretRetryFlags(c, flags)
 	InitializeCachedSecretsFlags(c, flags)
 	InitializeManagerFlags(c, flags)
@@ -34,7 +34,6 @@ func InitializeATCFlagsDEPRECATED(c *cobra.Command, flags *RunConfig) {
 	c.Flags().DurationVar(&flags.ComponentRunnerInterval, "component-runner-interval", CmdDefaults.ComponentRunnerInterval, "Interval on which runners are kicked off for builds, locks, scans, and checks")
 	c.Flags().DurationVar(&flags.BuildTrackerInterval, "build-tracker-interval", CmdDefaults.BuildTrackerInterval, "Interval on which to run build tracking.")
 
-	c.Flags().BoolVar(&flags.EnableGlobalResources, "enable-global-resources", false, "Enable equivalent resources across pipelines and teams to share a single version history.")
 	InitializeResourceCheckingFlags(c, flags)
 	InitializeJobSchedulingFlags(c, flags)
 	InitializeRuntimeFlags(c, flags)
@@ -56,6 +55,8 @@ func InitializeATCFlagsDEPRECATED(c *cobra.Command, flags *RunConfig) {
 
 	c.Flags().Var(&flags.CLIArtifactsDir, "cli-artifacts-dir", "Directory containing downloadable CLI binaries.")
 
+	c.Flags().Var(&flags.BaseResourceTypeDefaults, "base-resource-type-defaults", "Base resource type defaults")
+
 	c.Flags().BoolVar(&flags.TelemetryOptIn, "telemetry-opt-in", false, "Enable anonymous concourse version reporting.")
 	c.Flags().MarkHidden("telemetry-opt-in")
 
@@ -66,6 +67,7 @@ func InitializeTLSFlags(c *cobra.Command, flags *RunConfig) {
 	c.Flags().Uint16Var(&flags.TLS.BindPort, "tls-bind-port", 0, "Port on which to listen for HTTPS traffic.")
 	c.Flags().Var(&flags.TLS.Cert, "tls-cert", "File containing an SSL certificate.")
 	c.Flags().Var(&flags.TLS.Key, "tls-key", "File containing an RSA private key, used to encrypt HTTPS traffic.")
+	c.Flags().Var(&flags.TLS.CaCert, "tls-ca-cert", "", "File containing the client CA certificate, enables mTLS")
 }
 
 func InitializeLetsEncryptFlags(c *cobra.Command, flags *RunConfig) {
@@ -117,11 +119,15 @@ func InitializeJobSchedulingFlags(c *cobra.Command, flags *RunConfig) {
 }
 
 func InitializeRuntimeFlags(c *cobra.Command, flags *RunConfig) {
-	c.Flags().StringVar(&flags.Runtime.ContainerPlacementStrategy, "container-placement-strategy", CmdDefaults.Runtime.ContainerPlacementStrategy, "Method by which a worker is selected during container placement.")
-	c.Flags().IntVar(&flags.Runtime.MaxActiveTasksPerWorker, "max-active-tasks-per-worker", CmdDefaults.Runtime.MaxActiveTasksPerWorker, "Maximum allowed number of active build tasks per worker. Has effect only when used with limit-active-tasks placement strategy. 0 means no limit.")
+	c.Flags().StringSliceVar(&flags.Runtime.ContainerPlacementStrategyOptions.ContainerPlacementStrategy, "container-placement-strategy", CmdDefaults.Runtime.ContainerPlacementStrategyOptions.ContainerPlacementStrategy, "Method by which a worker is selected during container placement. If multiple methods are specified, they will be applied in order. Random strategy should only be used alone.")
+	c.Flags().IntVar(&flags.Runtime.MaxActiveTasksPerWorker, "max-active-tasks-per-worker", CmdDefaults.Runtime.ContainerPlacementStrategyOptions.MaxActiveTasksPerWorker, "Maximum allowed number of active build tasks per worker. Has effect only when used with limit-active-tasks placement strategy. 0 means no limit.")
+	c.Flags().IntVar(&flags.Runtime.ContainerPlacementStrategyOptions.MaxActiveContainersPerWorker, "max-active-containers-per-worker", CmdDefaults.Runtime.ContainerPlacementStrategyOptions.MaxActiveContainersPerWorker, "Maximum allowed number of active containers per worker. Has effect only when used with limit-active-containers placement strategy. 0 means no limit.")
+	c.Flags().IntVar(&flags.Runtime.ContainerPlacementStrategyOptions.MaxActiveVolumesPerWorker, "max-active-volumes-per-worker", CmdDefaults.Runtime.ContainerPlacementStrategyOptions.MaxActiveVolumesPerWorker, "Maximum allowed number of active volumes per worker. Has effect only when used with limit-active-volumes placement strategy. 0 means no limit.")
+
 	c.Flags().DurationVar(&flags.Runtime.BaggageclaimResponseHeaderTimeout, "baggageclaim-response-header-timeout", CmdDefaults.Runtime.BaggageclaimResponseHeaderTimeout, "How long to wait for Baggageclaim to send the response header.")
 	c.Flags().StringVar(&flags.Runtime.StreamingArtifactsCompression, "streaming-artifacts-compression", CmdDefaults.Runtime.StreamingArtifactsCompression, "Compression algorithm for internal streaming.")
 	c.Flags().DurationVar(&flags.Runtime.GardenRequestTimeout, "garden-request-timeout", CmdDefaults.Runtime.GardenRequestTimeout, "How long to wait for requests to Garden to complete. 0 means no timeout.")
+	c.Flags().DurationVar(&flags.Runtime.P2pVolumeStreamingTimeout, "p2p-volume-streaming-timeout", CmdDefaults.Runtime.P2pVolumeStreamingTimeout, "Timeout value of p2p volume streaming")
 }
 
 func InitializeMetricsFlags(c *cobra.Command, flags *RunConfig) {
@@ -227,6 +233,8 @@ func InitializeManagerFlags(c *cobra.Command, flags *RunConfig) {
 	c.Flags().StringSliceVar(&flags.CredentialManagers.Vault.LookupTemplates, "vault-lookup-templates", CmdDefaults.CredentialManagers.Vault.LookupTemplates, "Path templates for credential lookup")
 	c.Flags().StringVar(&flags.CredentialManagers.Vault.SharedPath, "vault-shared-path", "", "Path under which to lookup shared credentials.")
 	c.Flags().StringVar(&flags.CredentialManagers.Vault.Namespace, "vault-namespace", "", "Vault namespace to use for authentication and secret lookup.")
+	c.Flags().DurationVar(&flags.CredentialManagers.Vault.LoginTimeout, "login-timeout", CmdDefaults.CredentialManagers.Vault.LoginTimeout, "Timeout value for Vault login.")
+	c.Flags().DurationVar(&flags.CredentialManagers.Vault.QueryTimeout, "query-timeout", CmdDefaults.CredentialManagers.Vault.QueryTimeout, "Timeout value for Vault query.")
 	c.Flags().StringVar(&flags.CredentialManagers.Vault.TLS.CACertFile, "vault-ca-cert", "", "Path to a PEM-encoded CA cert file to use to verify the vault server SSL cert.")
 	c.Flags().StringVar(&flags.CredentialManagers.Vault.TLS.CAPath, "vault-ca-path", "", "Path to a directory of PEM-encoded CA cert files to verify the vault server SSL cert.")
 	c.Flags().StringVar(&flags.CredentialManagers.Vault.TLS.ClientCertFile, "vault-client-cert", "", "Path to the client certificate for Vault authorization.")
@@ -276,6 +284,7 @@ func InitializeGCFlags(c *cobra.Command, flags *RunConfig) {
 	c.Flags().DurationVar(&flags.GC.HijackGracePeriod, "gc-hijack-grace-period", CmdDefaults.GC.HijackGracePeriod, "Period after which hijacked containers will be garbage collected")
 	c.Flags().DurationVar(&flags.GC.FailedGracePeriod, "gc-failed-grace-period", CmdDefaults.GC.FailedGracePeriod, "Period after which failed containers will be garbage collected")
 	c.Flags().DurationVar(&flags.GC.CheckRecyclePeriod, "gc-check-recycle-period", CmdDefaults.GC.CheckRecyclePeriod, "Period after which to reap checks that are completed.")
+	c.Flags().DurationVar(&flags.GC.VarSourceRecyclePeriod, "var-source-recycle-period", CmdDefaults.GC.VarSourceRecyclePeriod, "Period after which to reap var_sources that are not used.")
 }
 
 func InitializeBuildLogRetentionFlags(c *cobra.Command, flags *RunConfig) {
@@ -325,7 +334,10 @@ func InitializeSystemClaimFlags(c *cobra.Command, flags *RunConfig) {
 }
 
 func InitializeExperimentalFlags(c *cobra.Command, flags *RunConfig) {
-	c.Flags().BoolVar(&flags.Experimental.EnableArchivePipeline, "enable-archive-pipeline", false, "Enable /api/v1/teams/{team}/pipelines/{pipeline}/archive endpoint.")
-
-	c.Flags().BoolVar(&flags.Experimental.EnableBuildRerunWhenWorkerDisappears, "enable-rerun-when-worker-disappears", false, "Enable automatically build rerun when worker disappears")
+	c.Flags().BoolVar(&flags.FeatureFlags.EnableBuildRerunWhenWorkerDisappears, "enable-rerun-when-worker-disappears", false, "Enable automatically build rerun when worker disappears")
+	c.Flags().BoolVar(&flags.FeatureFlags.EnableGlobalResources, "enable-global-resources", false, "Enable equivalent resources across pipelines and teams to share a single version history.")
+	c.Flags().BoolVar(&flags.FeatureFlags.EnableRedactSecrets, "enable-redact-secrets", false, "Enable redacting secrets in build logs.")
+	c.Flags().BoolVar(&flags.FeatureFlags.EnableAcrossStep, "enable-across-step", false, "Enable the experimental across step to be used in jobs. The API is subject to change.")
+	c.Flags().BoolVar(&flags.FeatureFlags.EnablePipelineInstances, "enable-pipeline-instances", false, "Enable pipeline instances")
+	c.Flags().BoolVar(&flags.FeatureFlags.EnableP2PVolumeStreaming, "enable-p2p-volume-streaming", false, "Enable P2P volume streaming")
 }

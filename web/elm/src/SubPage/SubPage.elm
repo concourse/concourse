@@ -20,7 +20,6 @@ import Dashboard.Models
 import EffectTransformer exposing (ET)
 import FlySuccess.FlySuccess as FlySuccess
 import FlySuccess.Models
-import HoverState
 import Html exposing (Html)
 import Job.Job as Job
 import Login.Login as Login
@@ -90,8 +89,11 @@ init session route =
                 }
                 |> Tuple.mapFirst PipelineModel
 
-        Routes.Dashboard searchType ->
-            Dashboard.init searchType
+        Routes.Dashboard { searchType, dashboardView } ->
+            Dashboard.init
+                { searchType = searchType
+                , dashboardView = dashboardView
+                }
                 |> Tuple.mapFirst DashboardModel
 
         Routes.FlySuccess noop flyPort ->
@@ -205,18 +207,25 @@ handleCallback callback session =
 handleLoggedOut : ET { a | isUserMenuExpanded : Bool }
 handleLoggedOut ( m, effs ) =
     ( { m | isUserMenuExpanded = False }
-    , effs ++ [ NavigateTo <| Routes.toString <| Routes.dashboardRoute False ]
+    , effs
+        ++ [ NavigateTo <|
+                Routes.toString <|
+                    Routes.Dashboard
+                        { searchType = Routes.Normal ""
+                        , dashboardView = Routes.ViewNonArchivedPipelines
+                        }
+           ]
     )
 
 
-handleDelivery : { a | hovered : HoverState.HoverState } -> Delivery -> ET Model
+handleDelivery : Session -> Delivery -> ET Model
 handleDelivery session delivery =
     genericUpdate
         (Build.handleDelivery session delivery)
         (Job.handleDelivery delivery)
-        (Resource.handleDelivery delivery)
+        (Resource.handleDelivery session delivery)
         (Pipeline.handleDelivery delivery)
-        (Dashboard.handleDelivery delivery)
+        (Dashboard.handleDelivery session delivery)
         (NotFound.handleDelivery delivery)
         (FlySuccess.handleDelivery delivery)
 
@@ -303,9 +312,8 @@ urlUpdate routes =
                 identity
         )
         (case routes.to of
-            Routes.Dashboard st ->
-                Tuple.mapFirst
-                    (\dm -> { dm | highDensity = st == Routes.HighDensity })
+            Routes.Dashboard f ->
+                Dashboard.changeRoute f
 
             _ ->
                 identity
@@ -368,8 +376,8 @@ tooltip mdl =
         ResourceModel model ->
             Resource.tooltip model
 
-        DashboardModel model ->
-            Dashboard.tooltip model
+        DashboardModel _ ->
+            Dashboard.tooltip
 
         NotFoundModel model ->
             NotFound.tooltip model
@@ -390,8 +398,8 @@ subscriptions mdl =
         PipelineModel _ ->
             Pipeline.subscriptions
 
-        ResourceModel _ ->
-            Resource.subscriptions
+        ResourceModel model ->
+            Resource.subscriptions model
 
         DashboardModel _ ->
             Dashboard.subscriptions

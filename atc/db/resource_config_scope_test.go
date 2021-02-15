@@ -5,74 +5,64 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/dbtest"
 	"github.com/concourse/concourse/atc/db/lock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Resource Config Scope", func() {
+	var scenario *dbtest.Scenario
 	var resourceScope db.ResourceConfigScope
-	var resource db.Resource
-	var pipeline db.Pipeline
 
 	BeforeEach(func() {
-		setupTx, err := dbConn.Begin()
+		scenario = dbtest.Setup(
+			builder.WithPipeline(atc.Config{
+				Resources: atc.ResourceConfigs{
+					{
+						Name: "some-resource",
+						Type: "some-base-resource-type",
+						Source: atc.Source{
+							"some": "source",
+						},
+					},
+				},
+				Jobs: atc.JobConfigs{
+					{
+						Name: "some-job",
+						PlanSequence: []atc.Step{
+							{
+								Config: &atc.GetStep{
+									Name: "some-resource",
+								},
+							},
+						},
+					},
+					{
+						Name: "downstream-job",
+						PlanSequence: []atc.Step{
+							{
+								Config: &atc.GetStep{
+									Name:   "some-resource",
+									Passed: []string{"some-job"},
+								},
+							},
+						},
+					},
+					{
+						Name: "some-other-job",
+					},
+				},
+			}),
+			builder.WithResourceVersions("some-resource"),
+		)
+
+		rc, found, err := resourceConfigFactory.FindResourceConfigByID(scenario.Resource("some-resource").ResourceConfigID())
 		Expect(err).ToNot(HaveOccurred())
-
-		brt := db.BaseResourceType{
-			Name: "some-type",
-		}
-
-		_, err = brt.FindOrCreate(setupTx, false)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(setupTx.Commit()).To(Succeed())
-
-		pipeline, _, err = defaultTeam.SavePipeline("scope-pipeline", atc.Config{
-			Resources: atc.ResourceConfigs{
-				{
-					Name: "some-resource",
-					Type: "some-type",
-					Source: atc.Source{
-						"some": "source",
-					},
-				},
-			},
-			Jobs: atc.JobConfigs{
-				{
-					Name: "some-job",
-					PlanSequence: []atc.Step{
-						{
-							Config: &atc.GetStep{
-								Name: "some-resource",
-							},
-						},
-					},
-				},
-				{
-					Name: "downstream-job",
-					PlanSequence: []atc.Step{
-						{
-							Config: &atc.GetStep{
-								Name:   "some-resource",
-								Passed: []string{"some-job"},
-							},
-						},
-					},
-				},
-				{
-					Name: "some-other-job",
-				},
-			},
-		}, db.ConfigVersion(0), false)
-		Expect(err).NotTo(HaveOccurred())
-
-		var found bool
-		resource, found, err = pipeline.Resource("some-resource")
-		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeTrue())
 
-		resourceScope, err = resource.SetResourceConfig(atc.Source{"some": "source"}, atc.VersionedResourceTypes{})
-		Expect(err).NotTo(HaveOccurred())
+		resourceScope, err = rc.FindOrCreateScope(scenario.Resource("some-resource"))
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	Describe("SaveVersions", func() {
@@ -152,11 +142,7 @@ var _ = Describe("Resource Config Scope", func() {
 					err := resourceScope.SaveVersions(nil, originalVersionSlice)
 					Expect(err).ToNot(HaveOccurred())
 
-					job, found, err := pipeline.Job("some-job")
-					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeTrue())
-
-					requestedSchedule := job.ScheduleRequestedTime()
+					requestedSchedule := scenario.Job("some-job").ScheduleRequestedTime()
 
 					newVersions := []atc.Version{
 						{"ref": "v0"},
@@ -165,22 +151,14 @@ var _ = Describe("Resource Config Scope", func() {
 					err = resourceScope.SaveVersions(nil, newVersions)
 					Expect(err).ToNot(HaveOccurred())
 
-					found, err = job.Reload()
-					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeTrue())
-
-					Expect(job.ScheduleRequestedTime()).Should(BeTemporally(">", requestedSchedule))
+					Expect(scenario.Job("some-job").ScheduleRequestedTime()).Should(BeTemporally(">", requestedSchedule))
 				})
 
 				It("does not request schedule on the jobs that use the resource but through passed constraints", func() {
 					err := resourceScope.SaveVersions(nil, originalVersionSlice)
 					Expect(err).ToNot(HaveOccurred())
 
-					job, found, err := pipeline.Job("downstream-job")
-					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeTrue())
-
-					requestedSchedule := job.ScheduleRequestedTime()
+					requestedSchedule := scenario.Job("downstream-job").ScheduleRequestedTime()
 
 					newVersions := []atc.Version{
 						{"ref": "v0"},
@@ -189,22 +167,14 @@ var _ = Describe("Resource Config Scope", func() {
 					err = resourceScope.SaveVersions(nil, newVersions)
 					Expect(err).ToNot(HaveOccurred())
 
-					found, err = job.Reload()
-					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeTrue())
-
-					Expect(job.ScheduleRequestedTime()).Should(BeTemporally("==", requestedSchedule))
+					Expect(scenario.Job("downstream-job").ScheduleRequestedTime()).Should(BeTemporally("==", requestedSchedule))
 				})
 
 				It("does not request schedule on the jobs that do not use the resource", func() {
 					err := resourceScope.SaveVersions(nil, originalVersionSlice)
 					Expect(err).ToNot(HaveOccurred())
 
-					job, found, err := pipeline.Job("some-other-job")
-					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeTrue())
-
-					requestedSchedule := job.ScheduleRequestedTime()
+					requestedSchedule := scenario.Job("some-other-job").ScheduleRequestedTime()
 
 					newVersions := []atc.Version{
 						{"ref": "v0"},
@@ -213,11 +183,7 @@ var _ = Describe("Resource Config Scope", func() {
 					err = resourceScope.SaveVersions(nil, newVersions)
 					Expect(err).ToNot(HaveOccurred())
 
-					found, err = job.Reload()
-					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeTrue())
-
-					Expect(job.ScheduleRequestedTime()).Should(BeTemporally("==", requestedSchedule))
+					Expect(scenario.Job("some-other-job").ScheduleRequestedTime()).Should(BeTemporally("==", requestedSchedule))
 				})
 			})
 		})
@@ -257,16 +223,14 @@ var _ = Describe("Resource Config Scope", func() {
 
 				Expect(savedRCV.Version()).To(Equal(db.Version{"version": "1"}))
 
-				err = resource.DisableVersion(savedRCV.ID())
-				Expect(err).ToNot(HaveOccurred())
+				scenario.Run(builder.WithDisabledVersion("some-resource", atc.Version(savedRCV.Version())))
 
 				latestVR, found, err := resourceScope.LatestVersion()
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(latestVR.Version()).To(Equal(db.Version{"version": "1"}))
 
-				err = resource.EnableVersion(savedRCV.ID())
-				Expect(err).ToNot(HaveOccurred())
+				scenario.Run(builder.WithEnabledVersion("some-resource", atc.Version(savedRCV.Version())))
 
 				latestVR, found, err = resourceScope.LatestVersion()
 				Expect(err).ToNot(HaveOccurred())
@@ -310,7 +274,6 @@ var _ = Describe("Resource Config Scope", func() {
 			})
 
 			It("gets the version of resource", func() {
-				Expect(latestCV.ResourceConfigScope().ID()).To(Equal(resourceScope.ID()))
 				Expect(latestCV.Version()).To(Equal(db.Version{"ref": "v1"}))
 				Expect(latestCV.CheckOrder()).To(Equal(1))
 			})
@@ -334,142 +297,30 @@ var _ = Describe("Resource Config Scope", func() {
 	})
 
 	Describe("UpdateLastCheckStartTime", func() {
-		var (
-			someResource        db.Resource
-			resourceConfigScope db.ResourceConfigScope
-		)
+		It("updates last check start time", func() {
+			lastTime := scenario.Resource("some-resource").LastCheckEndTime()
 
-		BeforeEach(func() {
-			var err error
-			var found bool
-
-			someResource, found, err = defaultPipeline.Resource("some-resource")
+			updated, err := resourceScope.UpdateLastCheckStartTime()
 			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
+			Expect(updated).To(BeTrue())
 
-			pipelineResourceTypes, err := defaultPipeline.ResourceTypes()
-			Expect(err).ToNot(HaveOccurred())
-
-			resourceConfigScope, err = someResource.SetResourceConfig(
-				someResource.Source(),
-				pipelineResourceTypes.Deserialize(),
-			)
-			Expect(err).ToNot(HaveOccurred())
-		})
-
-		Context("when there has not been a check", func() {
-			It("should update the last checked", func() {
-				updated, err := resourceConfigScope.UpdateLastCheckStartTime(1*time.Second, false)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(updated).To(BeTrue())
-			})
-
-			Context("when immediate", func() {
-				It("should update the last checked", func() {
-					updated, err := resourceConfigScope.UpdateLastCheckStartTime(1*time.Second, true)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(updated).To(BeTrue())
-				})
-			})
-		})
-
-		Context("when there has been a check recently", func() {
-			interval := 1 * time.Second
-
-			BeforeEach(func() {
-				updated, err := resourceConfigScope.UpdateLastCheckStartTime(interval, false)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(updated).To(BeTrue())
-			})
-
-			Context("when not immediate", func() {
-				It("does not update the last checked until the interval has elapsed", func() {
-					updated, err := resourceConfigScope.UpdateLastCheckStartTime(interval, false)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(updated).To(BeFalse())
-				})
-
-				Context("when the interval has elapsed", func() {
-					BeforeEach(func() {
-						time.Sleep(interval)
-					})
-
-					It("updates the last checked", func() {
-						updated, err := resourceConfigScope.UpdateLastCheckStartTime(interval, false)
-						Expect(err).ToNot(HaveOccurred())
-						Expect(updated).To(BeTrue())
-					})
-				})
-			})
-
-			Context("when it is immediate", func() {
-				It("updates the last checked", func() {
-					updated, err := resourceConfigScope.UpdateLastCheckStartTime(1*time.Second, true)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(updated).To(BeTrue())
-				})
-			})
+			Expect(scenario.Resource("some-resource").LastCheckStartTime()).To(BeTemporally(">", lastTime))
 		})
 	})
 
 	Describe("UpdateLastCheckEndTime", func() {
-		var (
-			someResource        db.Resource
-			resourceConfigScope db.ResourceConfigScope
-		)
+		It("updates last check end time", func() {
+			lastTime := scenario.Resource("some-resource").LastCheckEndTime()
 
-		BeforeEach(func() {
-			var err error
-			var found bool
-
-			someResource, found, err = defaultPipeline.Resource("some-resource")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			pipelineResourceTypes, err := defaultPipeline.ResourceTypes()
-			Expect(err).ToNot(HaveOccurred())
-
-			resourceConfigScope, err = someResource.SetResourceConfig(
-				someResource.Source(),
-				pipelineResourceTypes.Deserialize(),
-			)
-			Expect(err).ToNot(HaveOccurred())
-		})
-
-		It("should update last check finished", func() {
-			updated, err := resourceConfigScope.UpdateLastCheckEndTime()
+			updated, err := resourceScope.UpdateLastCheckEndTime()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(updated).To(BeTrue())
 
-			someResource.Reload()
-			Expect(someResource.LastCheckEndTime()).To(BeTemporally("~", time.Now(), 100*time.Millisecond))
+			Expect(scenario.Resource("some-resource").LastCheckEndTime()).To(BeTemporally(">", lastTime))
 		})
 	})
 
 	Describe("AcquireResourceCheckingLock", func() {
-		var (
-			someResource        db.Resource
-			resourceConfigScope db.ResourceConfigScope
-		)
-
-		BeforeEach(func() {
-			var err error
-			var found bool
-
-			someResource, found, err = defaultPipeline.Resource("some-resource")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			pipelineResourceTypes, err := defaultPipeline.ResourceTypes()
-			Expect(err).ToNot(HaveOccurred())
-
-			resourceConfigScope, err = someResource.SetResourceConfig(
-				someResource.Source(),
-				pipelineResourceTypes.Deserialize(),
-			)
-			Expect(err).ToNot(HaveOccurred())
-		})
-
 		Context("when there has been a check recently", func() {
 			var lock lock.Lock
 			var err error
@@ -477,7 +328,7 @@ var _ = Describe("Resource Config Scope", func() {
 			BeforeEach(func() {
 				var err error
 				var acquired bool
-				lock, acquired, err = resourceConfigScope.AcquireResourceCheckingLock(logger)
+				lock, acquired, err = resourceScope.AcquireResourceCheckingLock(logger)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(acquired).To(BeTrue())
 			})
@@ -487,7 +338,7 @@ var _ = Describe("Resource Config Scope", func() {
 			})
 
 			It("does not get the lock", func() {
-				_, acquired, err := resourceConfigScope.AcquireResourceCheckingLock(logger)
+				_, acquired, err := resourceScope.AcquireResourceCheckingLock(logger)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(acquired).To(BeFalse())
 			})
@@ -499,7 +350,7 @@ var _ = Describe("Resource Config Scope", func() {
 				})
 
 				It("gets the lock", func() {
-					lock, acquired, err := resourceConfigScope.AcquireResourceCheckingLock(logger)
+					lock, acquired, err := resourceScope.AcquireResourceCheckingLock(logger)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(acquired).To(BeTrue())
 
@@ -511,12 +362,12 @@ var _ = Describe("Resource Config Scope", func() {
 
 		Context("when there has not been a check recently", func() {
 			It("gets and keeps the lock and stops others from periodically getting it", func() {
-				lock, acquired, err := resourceConfigScope.AcquireResourceCheckingLock(logger)
+				lock, acquired, err := resourceScope.AcquireResourceCheckingLock(logger)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(acquired).To(BeTrue())
 
 				Consistently(func() bool {
-					_, acquired, err = resourceConfigScope.AcquireResourceCheckingLock(logger)
+					_, acquired, err = resourceScope.AcquireResourceCheckingLock(logger)
 					Expect(err).ToNot(HaveOccurred())
 
 					return acquired
@@ -527,7 +378,7 @@ var _ = Describe("Resource Config Scope", func() {
 
 				time.Sleep(time.Second)
 
-				lock, acquired, err = resourceConfigScope.AcquireResourceCheckingLock(logger)
+				lock, acquired, err = resourceScope.AcquireResourceCheckingLock(logger)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(acquired).To(BeTrue())
 

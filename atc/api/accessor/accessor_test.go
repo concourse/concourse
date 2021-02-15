@@ -1,6 +1,7 @@
 package accessor_test
 
 import (
+	"github.com/concourse/concourse/atc/atcfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -21,6 +22,8 @@ var _ = Describe("Accessor", func() {
 		fakeTeam1 *dbfakes.FakeTeam
 		fakeTeam2 *dbfakes.FakeTeam
 		fakeTeam3 *dbfakes.FakeTeam
+
+		fakeDisplayUserIdGenerator *atcfakes.FakeDisplayUserIdGenerator
 	)
 
 	BeforeEach(func() {
@@ -34,10 +37,12 @@ var _ = Describe("Accessor", func() {
 		verification = accessor.Verification{}
 
 		teams = []db.Team{fakeTeam1, fakeTeam2, fakeTeam3}
+
+		fakeDisplayUserIdGenerator = new(atcfakes.FakeDisplayUserIdGenerator)
 	})
 
 	JustBeforeEach(func() {
-		access = accessor.NewAccessor(verification, requiredRole, "sub", []string{"system"}, teams)
+		access = accessor.NewAccessor(verification, requiredRole, "sub", []string{"system"}, teams, fakeDisplayUserIdGenerator)
 	})
 
 	Describe("HasToken", func() {
@@ -158,7 +163,7 @@ var _ = Describe("Accessor", func() {
 					fakeTeam1.AdminReturns(true)
 					fakeTeam1.AuthReturns(atc.TeamAuth{
 						"owner": map[string][]string{
-							"users": []string{"some-connector:some-user-id"},
+							"users": {"some-connector:some-user-id"},
 						},
 					})
 				})
@@ -186,11 +191,11 @@ var _ = Describe("Accessor", func() {
 			fakeTeam1.AdminReturns(true)
 			fakeTeam1.AuthReturns(atc.TeamAuth{
 				actualRole: map[string][]string{
-					"users": []string{"some-connector:some-user-id"},
+					"users": {"some-connector:some-user-id"},
 				},
 			})
 
-			access = accessor.NewAccessor(verification, requiredRole, "sub", []string{"system"}, teams)
+			access = accessor.NewAccessor(verification, requiredRole, "sub", []string{"system"}, teams, fakeDisplayUserIdGenerator)
 			result := access.IsAuthorized("some-team")
 			Expect(expected).Should(Equal(result))
 		},
@@ -221,6 +226,7 @@ var _ = Describe("Accessor", func() {
 
 			verification.HasToken = true
 			verification.IsTokenValid = true
+
 			verification.RawClaims = map[string]interface{}{
 				"groups": []interface{}{"some-group"},
 				"federated_claims": map[string]interface{}{
@@ -232,11 +238,11 @@ var _ = Describe("Accessor", func() {
 			fakeTeam1.AdminReturns(true)
 			fakeTeam1.AuthReturns(atc.TeamAuth{
 				actualRole: map[string][]string{
-					"groups": []string{"some-connector:some-group"},
+					"groups": {"some-connector:some-group"},
 				},
 			})
 
-			access = accessor.NewAccessor(verification, requiredRole, "sub", []string{"system"}, teams)
+			access = accessor.NewAccessor(verification, requiredRole, "sub", []string{"system"}, teams, fakeDisplayUserIdGenerator)
 			result := access.IsAuthorized("some-team")
 			Expect(expected).Should(Equal(result))
 		},
@@ -260,6 +266,64 @@ var _ = Describe("Accessor", func() {
 		Entry("pipeline-operator attempting owner action", "owner", "pipeline-operator", false),
 		Entry("member attempting owner action", "owner", "member", false),
 		Entry("owner attempting owner action", "owner", "owner", true),
+	)
+
+	DescribeTable("IsAuthorized for both users and groups",
+		func(requiredRole string, actualUserRole, actualGroupRole string, expected bool) {
+
+			verification.HasToken = true
+			verification.IsTokenValid = true
+
+			verification.RawClaims = map[string]interface{}{
+				"groups": []interface{}{"some-group"},
+				"federated_claims": map[string]interface{}{
+					"connector_id": "some-connector",
+					"user_id":      "some-user-id",
+				},
+			}
+
+			fakeTeam1.NameReturns("some-team")
+			fakeTeam1.AdminReturns(true)
+
+			if actualUserRole == actualGroupRole {
+				fakeTeam1.AuthReturns(atc.TeamAuth{
+					actualUserRole: map[string][]string{
+						"users":  {"some-connector:some-user-id"},
+						"groups": {"some-connector:some-group"},
+					},
+				})
+			} else {
+				fakeTeam1.AuthReturns(atc.TeamAuth{
+					actualUserRole: map[string][]string{
+						"users": {"some-connector:some-user-id"},
+					},
+					actualGroupRole: map[string][]string{
+						"groups": {"some-connector:some-group"},
+					},
+				})
+			}
+
+			access = accessor.NewAccessor(verification, requiredRole, "sub", []string{"system"}, teams, fakeDisplayUserIdGenerator)
+			result := access.IsAuthorized("some-team")
+			Expect(expected).Should(Equal(result))
+		},
+
+		Entry("user is member and group is viewer attempting owner action", "owner", "member", "viewer", false),
+		Entry("user is viewer and group is member attempting owner action", "owner", "viewer", "member", false),
+		Entry("user is member and group is viewer attempting owner action", "owner", "member", "member", false),
+		Entry("user is viewer and group is member attempting owner action", "owner", "viewer", "viewer", false),
+		Entry("user is member and group is viewer attempting member action", "member", "member", "viewer", true),
+		Entry("user is viewer and group is member attempting member action", "member", "viewer", "member", true),
+		Entry("user is member and group is viewer attempting member action", "member", "member", "member", true),
+		Entry("user is viewer and group is member attempting member action", "member", "viewer", "viewer", false),
+		Entry("user is member and group is viewer attempting pipeline-operator action", "pipeline-operator", "member", "viewer", true),
+		Entry("user is viewer and group is member attempting pipeline-operator action", "pipeline-operator", "viewer", "member", true),
+		Entry("user is member and group is viewer attempting pipeline-operator action", "pipeline-operator", "member", "member", true),
+		Entry("user is viewer and group is member attempting pipeline-operator action", "pipeline-operator", "viewer", "viewer", false),
+		Entry("user is member and group is viewer attempting viewer action", "viewer", "member", "viewer", true),
+		Entry("user is viewer and group is member attempting viewer action", "viewer", "viewer", "member", true),
+		Entry("user is member and group is viewer attempting viewer action", "viewer", "member", "member", true),
+		Entry("user is viewer and group is member attempting viewer action", "viewer", "viewer", "viewer", true),
 	)
 
 	Describe("TeamNames", func() {
@@ -307,7 +371,7 @@ var _ = Describe("Accessor", func() {
 					fakeTeam1.AdminReturns(true)
 					fakeTeam1.AuthReturns(atc.TeamAuth{
 						"owner": map[string][]string{
-							"users": []string{"some-connector:some-user-id"},
+							"users": {"some-connector:some-user-id"},
 						},
 					})
 				})
@@ -326,17 +390,17 @@ var _ = Describe("Accessor", func() {
 				BeforeEach(func() {
 					fakeTeam1.AuthReturns(atc.TeamAuth{
 						"owner": map[string][]string{
-							"users": []string{"some-connector:some-user-id"},
+							"users": {"some-connector:some-user-id"},
 						},
 					})
 					fakeTeam2.AuthReturns(atc.TeamAuth{
 						"member": map[string][]string{
-							"users": []string{"some-connector:some-user-id"},
+							"users": {"some-connector:some-user-id"},
 						},
 					})
 					fakeTeam3.AuthReturns(atc.TeamAuth{
 						"viewer": map[string][]string{
-							"users": []string{"some-connector:some-user-id"},
+							"users": {"some-connector:some-user-id"},
 						},
 					})
 				})
@@ -427,17 +491,17 @@ var _ = Describe("Accessor", func() {
 				BeforeEach(func() {
 					fakeTeam1.AuthReturns(atc.TeamAuth{
 						"viewer": map[string][]string{
-							"users": []string{"some-connector:some-user-id"},
+							"users": {"some-connector:some-user-id"},
 						},
 					})
 					fakeTeam2.AuthReturns(atc.TeamAuth{
 						"member": map[string][]string{
-							"users": []string{"some-connector:some-user-id"},
+							"users": {"some-connector:some-user-id"},
 						},
 					})
 					fakeTeam3.AuthReturns(atc.TeamAuth{
 						"owner": map[string][]string{
-							"users": []string{"some-connector:some-user-id"},
+							"users": {"some-connector:some-user-id"},
 						},
 					})
 				})
@@ -452,7 +516,7 @@ var _ = Describe("Accessor", func() {
 					fakeTeam1.AdminReturns(true)
 					fakeTeam1.AuthReturns(atc.TeamAuth{
 						"viewer": map[string][]string{
-							"users": []string{"some-connector:some-user-id"},
+							"users": {"some-connector:some-user-id"},
 						},
 					})
 				})
@@ -467,7 +531,7 @@ var _ = Describe("Accessor", func() {
 					fakeTeam1.AdminReturns(true)
 					fakeTeam1.AuthReturns(atc.TeamAuth{
 						"member": map[string][]string{
-							"users": []string{"some-connector:some-user-id"},
+							"users": {"some-connector:some-user-id"},
 						},
 					})
 				})
@@ -579,17 +643,17 @@ var _ = Describe("Accessor", func() {
 			})
 		})
 
-		Context("when the token has a federated user_name", func() {
+		Context("when the token has a preferred user_name", func() {
 			BeforeEach(func() {
 				verification.HasToken = true
 				verification.IsTokenValid = true
 				verification.RawClaims = map[string]interface{}{
-					"sub":   "some-sub",
-					"name":  "some-name",
-					"email": "some-email",
+					"sub":                "some-sub",
+					"name":               "some-name",
+					"preferred_username": "some-user-name",
+					"email":              "some-email",
 					"federated_claims": map[string]interface{}{
 						"user_id":      "some-id",
-						"user_name":    "some-user-name",
 						"connector_id": "some-connector",
 					},
 				}
@@ -597,12 +661,56 @@ var _ = Describe("Accessor", func() {
 
 			It("returns the result", func() {
 				Expect(result).To(Equal(accessor.Claims{
-					Sub:       "some-sub",
-					Name:      "some-name",
-					Email:     "some-email",
-					UserID:    "some-id",
-					UserName:  "some-user-name",
-					Connector: "some-connector",
+					Sub:               "some-sub",
+					UserName:          "some-name",
+					Email:             "some-email",
+					UserID:            "some-id",
+					PreferredUsername: "some-user-name",
+					Connector:         "some-connector",
+				}))
+			})
+		})
+	})
+
+	Describe("UserInfo", func() {
+		var result atc.UserInfo
+
+		BeforeEach(func() {
+			fakeDisplayUserIdGenerator.DisplayUserIdReturns("some-user-id")
+		})
+
+		JustBeforeEach(func() {
+			result = access.UserInfo()
+		})
+
+		Context("when there is a valid token", func() {
+			BeforeEach(func() {
+				verification.HasToken = true
+				verification.IsTokenValid = true
+				verification.RawClaims = map[string]interface{}{
+					"sub":                "some-sub",
+					"name":               "some-name",
+					"preferred_username": "some-user-name",
+					"email":              "some-email",
+					"federated_claims": map[string]interface{}{
+						"user_id":      "some-id",
+						"connector_id": "some-connector",
+					},
+				}
+			})
+
+			It("returns the result", func() {
+				Expect(result).To(Equal(atc.UserInfo{
+					Sub:           "some-sub",
+					Name:          "some-name",
+					Email:         "some-email",
+					UserId:        "some-id",
+					UserName:      "some-user-name",
+					IsAdmin:       false,
+					IsSystem:      false,
+					Teams:         map[string][]string{},
+					Connector:     "some-connector",
+					DisplayUserId: "some-user-id",
 				}))
 			})
 		})
@@ -641,13 +749,13 @@ var _ = Describe("Accessor", func() {
 				verification.HasToken = true
 				verification.IsTokenValid = true
 				verification.RawClaims = map[string]interface{}{
-					"sub":   "some-sub",
-					"name":  "some-name",
-					"email": "some-email",
+					"sub":                "some-sub",
+					"name":               "some-name",
+					"preferred_username": "some-user-name",
+					"email":              "some-email",
 					"federated_claims": map[string]interface{}{
 						"connector_id": "some-connector",
 						"user_id":      "some-user-id",
-						"user_name":    "some-user-name",
 					},
 					"groups": []interface{}{"some-group"},
 				}
@@ -663,17 +771,17 @@ var _ = Describe("Accessor", func() {
 				BeforeEach(func() {
 					fakeTeam1.AuthReturns(atc.TeamAuth{
 						"owner": map[string][]string{
-							"users": []string{"some-connector:some-user-id"},
+							"users": {"some-connector:some-user-id"},
 						},
 					})
 					fakeTeam2.AuthReturns(atc.TeamAuth{
 						"member": map[string][]string{
-							"users": []string{"some-connector:some-user-id"},
+							"users": {"some-connector:some-user-id"},
 						},
 					})
 					fakeTeam3.AuthReturns(atc.TeamAuth{
 						"viewer": map[string][]string{
-							"users": []string{"some-connector:some-user-id"},
+							"users": {"some-connector:some-user-id"},
 						},
 					})
 				})
@@ -689,17 +797,17 @@ var _ = Describe("Accessor", func() {
 				BeforeEach(func() {
 					fakeTeam1.AuthReturns(atc.TeamAuth{
 						"owner": map[string][]string{
-							"users": []string{"some-connector:some-user-name"},
+							"users": {"some-connector:some-user-name"},
 						},
 					})
 					fakeTeam2.AuthReturns(atc.TeamAuth{
 						"member": map[string][]string{
-							"users": []string{"some-connector:some-user-name"},
+							"users": {"some-connector:some-user-name"},
 						},
 					})
 					fakeTeam3.AuthReturns(atc.TeamAuth{
 						"viewer": map[string][]string{
-							"users": []string{"some-connector:some-user-name"},
+							"users": {"some-connector:some-user-name"},
 						},
 					})
 				})
@@ -715,17 +823,17 @@ var _ = Describe("Accessor", func() {
 				BeforeEach(func() {
 					fakeTeam1.AuthReturns(atc.TeamAuth{
 						"owner": map[string][]string{
-							"groups": []string{"some-connector:some-group"},
+							"groups": {"some-connector:some-group"},
 						},
 					})
 					fakeTeam2.AuthReturns(atc.TeamAuth{
 						"member": map[string][]string{
-							"groups": []string{"some-connector:some-group"},
+							"groups": {"some-connector:some-group"},
 						},
 					})
 					fakeTeam3.AuthReturns(atc.TeamAuth{
 						"viewer": map[string][]string{
-							"groups": []string{"some-connector:some-group"},
+							"groups": {"some-connector:some-group"},
 						},
 					})
 				})
@@ -741,10 +849,10 @@ var _ = Describe("Accessor", func() {
 				BeforeEach(func() {
 					fakeTeam1.AuthReturns(atc.TeamAuth{
 						"owner": map[string][]string{
-							"users": []string{"some-connector:some-user-id"},
+							"users": {"some-connector:some-user-id"},
 						},
 						"member": map[string][]string{
-							"groups": []string{"some-connector:some-group"},
+							"groups": {"some-connector:some-group"},
 						},
 					})
 				})
@@ -759,8 +867,8 @@ var _ = Describe("Accessor", func() {
 				BeforeEach(func() {
 					fakeTeam1.AuthReturns(atc.TeamAuth{
 						"owner": map[string][]string{
-							"users":  []string{"some-connector:some-user-id"},
-							"groups": []string{"some-connector:some-group"},
+							"users":  {"some-connector:some-user-id"},
+							"groups": {"some-connector:some-group"},
 						},
 					})
 				})

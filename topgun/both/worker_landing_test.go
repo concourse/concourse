@@ -111,7 +111,7 @@ var _ = Describe("Worker landing", func() {
 
 					By("triggering a job")
 					buildSession := Fly.Start("trigger-job", "-w", "-j", "topgun/simple-job")
-					Eventually(buildSession).Should(gbytes.Say("fetching .*busybox.*"))
+					Eventually(buildSession).Should(gbytes.Say("mirroring self image"))
 					<-buildSession.Exited
 					Expect(buildSession.ExitCode()).To(Equal(0))
 
@@ -132,7 +132,7 @@ var _ = Describe("Worker landing", func() {
 					By("retaining cached image resource in second job build")
 					buildSession := Fly.Start("trigger-job", "-w", "-j", "topgun/simple-job")
 					<-buildSession.Exited
-					Expect(buildSession).NotTo(gbytes.Say("fetching .*busybox.*"))
+					Expect(buildSession).NotTo(gbytes.Say("mirroring self image"))
 					Expect(buildSession.ExitCode()).To(Equal(0))
 
 					By("retaining check containers")

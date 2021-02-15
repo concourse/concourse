@@ -10,11 +10,11 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/clock"
-	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/worker/gclient"
 	"github.com/tedsuo/rata"
 )
 
@@ -28,7 +28,7 @@ type Heartbeater struct {
 	interval    time.Duration
 	cprInterval time.Duration
 
-	gardenClient       garden.Client
+	gardenClient       gclient.Client
 	baggageclaimClient baggageclaim.Client
 
 	atcEndpointPicker EndpointPicker
@@ -42,7 +42,7 @@ func NewHeartbeater(
 	clock clock.Clock,
 	interval time.Duration,
 	cprInterval time.Duration,
-	gardenClient garden.Client,
+	gardenClient gclient.Client,
 	baggageclaimClient baggageclaim.Client,
 	atcEndpointPicker EndpointPicker,
 	httpClient *http.Client,

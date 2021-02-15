@@ -10,9 +10,9 @@ func NewMultiVars(varss []Variables) MultiVars {
 
 var _ Variables = MultiVars{}
 
-func (m MultiVars) Get(varDef VariableDefinition) (interface{}, bool, error) {
+func (m MultiVars) Get(ref Reference) (interface{}, bool, error) {
 	for _, vars := range m.varss {
-		val, found, err := vars.Get(varDef)
+		val, found, err := vars.Get(ref)
 		if found || err != nil {
 			return val, found, err
 		}
@@ -21,8 +21,8 @@ func (m MultiVars) Get(varDef VariableDefinition) (interface{}, bool, error) {
 	return nil, false, nil
 }
 
-func (m MultiVars) List() ([]VariableDefinition, error) {
-	var allDefs []VariableDefinition
+func (m MultiVars) List() ([]Reference, error) {
+	var allRefs []Reference
 
 	for _, vars := range m.varss {
 		defs, err := vars.List()
@@ -30,8 +30,8 @@ func (m MultiVars) List() ([]VariableDefinition, error) {
 			return nil, err
 		}
 
-		allDefs = append(allDefs, defs...)
+		allRefs = append(allRefs, defs...)
 	}
 
-	return allDefs, nil
+	return allRefs, nil
 }

@@ -7,21 +7,11 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var basicSQLMigration = []byte(`
-		BEGIN;
-		CREATE TABLE some_table;
-		COMMIT;`)
-
-var noTransactionMigration = []byte(`
-		-- NO_TRANSACTION
-		CREATE TYPE enum_type AS ENUM ('blue_type', 'green_type');
-		ALTER TYPE enum_type ADD VALUE 'some_type'; `)
-
-var multipleStatementMigration = []byte(`
-		BEGIN;
-		CREATE TABLE some_table (ID integer, something varchar);
-		ALTER TABLE some_table ADD COLUMN notes varchar;
-		COMMIT;`)
+var basicSQLMigration = []byte(`BEGIN;
+	-- create a table
+	CREATE TABLE some_table;
+COMMIT;
+`)
 
 var _ = Describe("Parser", func() {
 	var (
@@ -35,6 +25,7 @@ var _ = Describe("Parser", func() {
 
 		parser = migration.NewParser(bindata)
 	})
+
 	It("parses the direction of the migration from the file name", func() {
 		downMigration, err := parser.ParseFileToMigration("2000_some_migration.down.go")
 		Expect(err).ToNot(HaveOccurred())
@@ -53,49 +44,15 @@ var _ = Describe("Parser", func() {
 		bindata.AssetReturns(basicSQLMigration, nil)
 		upMigration, err := parser.ParseFileToMigration("1000_some_migration.up.sql")
 		Expect(err).ToNot(HaveOccurred())
-		Expect(upMigration.Strategy).To(Equal(migration.SQLTransaction))
-
-		bindata.AssetReturns(noTransactionMigration, nil)
-		upNoTxMigration, err := parser.ParseFileToMigration("3000_some_no_transaction_migration.up.sql")
-		Expect(err).ToNot(HaveOccurred())
-		Expect(upNoTxMigration.Strategy).To(Equal(migration.SQLNoTransaction))
+		Expect(upMigration.Strategy).To(Equal(migration.SQLMigration))
 	})
 
 	Context("SQL migrations", func() {
 		It("parses the migration into statements", func() {
-			bindata.AssetReturns(multipleStatementMigration, nil)
+			bindata.AssetReturns(basicSQLMigration, nil)
 			migration, err := parser.ParseFileToMigration("1234_create_and_alter_table.up.sql")
 			Expect(err).ToNot(HaveOccurred())
-			Expect(len(migration.Statements)).To(Equal(2))
-		})
-
-		It("combines sql functions in one statement", func() {
-			bindata.AssetStub = asset
-			migration, err := parser.ParseFileToMigration("1530823998_create_teams_trigger.up.sql")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(len(migration.Statements)).To(Equal(6))
-		})
-
-		It("removes the BEGIN and COMMIT statements", func() {
-			bindata.AssetReturns(multipleStatementMigration, nil)
-
-			migration, err := parser.ParseFileToMigration("1234_create_and_alter_table.up.sql")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(len(migration.Statements)).To(Equal(2))
-			Expect(migration.Statements[0]).ToNot(Equal("BEGIN"))
-		})
-
-		Context("No transactions", func() {
-			It("marks migration as no transaction", func() {
-				bindata.AssetReturns(noTransactionMigration, nil)
-
-				migration, err := parser.ParseFileToMigration("3000_some_no_transaction_migration.up.sql")
-				Expect(err).ToNot(HaveOccurred())
-				// this used to test for the length being 1 but forcing it to be one statement
-				// breaks non-transaction migrations that have more than one statement so
-				// this is now being changed.
-				Expect(len(migration.Statements)).To(Equal(2))
-			})
+			Expect(migration.Statements).To(Equal(string(basicSQLMigration)))
 		})
 	})
 
@@ -110,5 +67,4 @@ var _ = Describe("Parser", func() {
 			Expect(migration.Name).To(Equal("Up_2000"))
 		})
 	})
-
 })

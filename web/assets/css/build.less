@@ -16,7 +16,7 @@
 
 .keyboard-help {
   position: fixed;
-  z-index: 2;
+  z-index: 200;
   width: 100%;
   bottom: 0;
   left: 0;
@@ -46,6 +46,10 @@
   }
 }
 
+.timestamped-logs {
+  white-space: break-spaces;
+}
+
 .timestamped-line {
   display: flex;
   flex-direction: row;
@@ -62,7 +66,7 @@
     display: inline-block;
 
     &:hover {
-      color: @base06;
+      color: @grey10;
     }
 
     &.placeholder::before {
@@ -71,7 +75,7 @@
   }
 
   &.highlighted-line {
-    background: @base01;
+    background: @grey90;
 
     .timestamp {
       color: @base0A;

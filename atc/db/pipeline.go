@@ -40,10 +40,12 @@ type Pipeline interface {
 	Name() string
 	TeamID() int
 	TeamName() string
+	InstanceVars() atc.InstanceVars
 	ParentJobID() int
 	ParentBuildID() int
 	Groups() atc.GroupConfigs
 	VarSources() atc.VarSourceConfigs
+	Display() *atc.DisplayConfig
 	ConfigVersion() ConfigVersion
 	Config() (atc.Config, error)
 	Public() bool
@@ -80,7 +82,7 @@ type Pipeline interface {
 
 	Job(name string) (Job, bool, error)
 	Jobs() (Jobs, error)
-	Dashboard() (atc.Dashboard, error)
+	Dashboard() ([]atc.JobSummary, error)
 
 	Expose() error
 	Hide() error
@@ -91,7 +93,6 @@ type Pipeline interface {
 	Archive() error
 
 	Destroy() error
-	Rename(string) error
 
 	Variables(lager.Logger, creds.Secrets, creds.VarSourcePool) (vars.Variables, error)
 
@@ -103,10 +104,12 @@ type pipeline struct {
 	name          string
 	teamID        int
 	teamName      string
+	instanceVars  atc.InstanceVars
 	parentJobID   int
 	parentBuildID int
 	groups        atc.GroupConfigs
 	varSources    atc.VarSourceConfigs
+	display       *atc.DisplayConfig
 	configVersion ConfigVersion
 	paused        bool
 	public        bool
@@ -125,6 +128,7 @@ var pipelinesQuery = psql.Select(`
 		p.name,
 		p.groups,
 		p.var_sources,
+		p.display,
 		p.nonce,
 		p.version,
 		p.team_id,
@@ -134,7 +138,8 @@ var pipelinesQuery = psql.Select(`
 		p.archived,
 		p.last_updated,
 		p.parent_job_id,
-		p.parent_build_id
+		p.parent_build_id,
+		p.instance_vars
 	`).
 	From("pipelines p").
 	LeftJoin("teams t ON p.team_id = t.id")
@@ -146,15 +151,17 @@ func newPipeline(conn Conn, lockFactory lock.LockFactory) *pipeline {
 	}
 }
 
-func (p *pipeline) ID() int                  { return p.id }
-func (p *pipeline) Name() string             { return p.name }
-func (p *pipeline) TeamID() int              { return p.teamID }
-func (p *pipeline) TeamName() string         { return p.teamName }
-func (p *pipeline) ParentJobID() int         { return p.parentJobID }
-func (p *pipeline) ParentBuildID() int       { return p.parentBuildID }
-func (p *pipeline) Groups() atc.GroupConfigs { return p.groups }
+func (p *pipeline) ID() int                        { return p.id }
+func (p *pipeline) Name() string                   { return p.name }
+func (p *pipeline) TeamID() int                    { return p.teamID }
+func (p *pipeline) TeamName() string               { return p.teamName }
+func (p *pipeline) ParentJobID() int               { return p.parentJobID }
+func (p *pipeline) ParentBuildID() int             { return p.parentBuildID }
+func (p *pipeline) InstanceVars() atc.InstanceVars { return p.instanceVars }
+func (p *pipeline) Groups() atc.GroupConfigs       { return p.groups }
 
 func (p *pipeline) VarSources() atc.VarSourceConfigs { return p.varSources }
+func (p *pipeline) Display() *atc.DisplayConfig      { return p.display }
 func (p *pipeline) ConfigVersion() ConfigVersion     { return p.configVersion }
 func (p *pipeline) Public() bool                     { return p.public }
 func (p *pipeline) Paused() bool                     { return p.paused }
@@ -268,6 +275,7 @@ func (p *pipeline) Config() (atc.Config, error) {
 		Resources:     resources.Configs(),
 		ResourceTypes: resourceTypes.Configs(),
 		Jobs:          jobConfigs,
+		Display:       p.Display(),
 	}
 
 	return config, nil
@@ -572,7 +580,7 @@ func (p *pipeline) Jobs() (Jobs, error) {
 	return jobs, err
 }
 
-func (p *pipeline) Dashboard() (atc.Dashboard, error) {
+func (p *pipeline) Dashboard() ([]atc.JobSummary, error) {
 	tx, err := p.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -644,8 +652,16 @@ func (p *pipeline) Archive() error {
 	}
 
 	defer Rollback(tx)
+	err = p.archive(tx)
+	if err != nil {
+		return err
+	}
 
-	_, err = psql.Update("pipelines").
+	return tx.Commit()
+}
+
+func (p *pipeline) archive(tx Tx) error {
+	_, err := psql.Update("pipelines").
 		Set("archived", true).
 		Set("last_updated", sq.Expr("now()")).
 		Set("paused", true).
@@ -670,12 +686,7 @@ func (p *pipeline) Archive() error {
 		return err
 	}
 
-	err = p.clearConfigForResourceTypesInPipeline(tx)
-	if err != nil {
-		return err
-	}
-
-	return tx.Commit()
+	return p.clearConfigForResourceTypesInPipeline(tx)
 }
 
 func (p *pipeline) Hide() error {
@@ -702,27 +713,36 @@ func (p *pipeline) Expose() error {
 	return err
 }
 
-func (p *pipeline) Rename(name string) error {
-	_, err := psql.Update("pipelines").
-		Set("name", name).
-		Where(sq.Eq{
-			"id": p.id,
-		}).
-		RunWith(p.conn).
-		Exec()
-
-	return err
-}
-
 func (p *pipeline) Destroy() error {
-	_, err := psql.Delete("pipelines").
+	tx, err := p.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	_, err = psql.Delete("pipelines").
 		Where(sq.Eq{
 			"id": p.id,
 		}).
-		RunWith(p.conn).
+		RunWith(tx).
 		Exec()
 
-	return err
+	if err != nil {
+		return err
+	}
+
+	_, err = psql.Insert("deleted_pipelines").
+		Columns("id").
+		Values(p.id).
+		RunWith(tx).
+		Exec()
+
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }
 
 func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
@@ -749,9 +769,6 @@ func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
 		Join("resources r ON r.id = o.resource_id").
 		Where(sq.Expr("r.resource_config_scope_id = v.resource_config_scope_id")).
 		Where(sq.Expr("(r.id, v.version_md5) NOT IN (SELECT resource_id, version_md5 from resource_disabled_versions)")).
-		Where(sq.NotEq{
-			"v.check_order": 0,
-		}).
 		Where(sq.Eq{
 			"b.status":      BuildStatusSucceeded,
 			"r.pipeline_id": p.id,
@@ -784,9 +801,6 @@ func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
 		Join("resources r ON r.id = i.resource_id").
 		Where(sq.Expr("r.resource_config_scope_id = v.resource_config_scope_id")).
 		Where(sq.Expr("(r.id, v.version_md5) NOT IN (SELECT resource_id, version_md5 from resource_disabled_versions)")).
-		Where(sq.NotEq{
-			"v.check_order": 0,
-		}).
 		Where(sq.Eq{
 			"r.pipeline_id": p.id,
 			"r.active":      true,
@@ -826,9 +840,6 @@ func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
 		From("resource_config_versions v").
 		Join("resources r ON r.resource_config_scope_id = v.resource_config_scope_id").
 		LeftJoin("resource_disabled_versions d ON d.resource_id = r.id AND d.version_md5 = v.version_md5").
-		Where(sq.NotEq{
-			"v.check_order": 0,
-		}).
 		Where(sq.Eq{
 			"r.pipeline_id": p.id,
 			"r.active":      true,

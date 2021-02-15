@@ -2,13 +2,16 @@ package exec
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"github.com/concourse/concourse/atc/worker/transport"
+	"net"
+	"net/url"
 	"reflect"
 	"regexp"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
+	"github.com/concourse/concourse/atc/worker/transport"
 )
 
 type Retriable struct {
@@ -19,47 +22,50 @@ func (r Retriable) Error() string {
 	return fmt.Sprintf("retriable: %s", r.Cause.Error())
 }
 
-type RetryErrorStepDelegate interface {
-	Errored(lager.Logger, string)
-}
-
 type RetryErrorStep struct {
 	Step
 
-	delegate RetryErrorStepDelegate
+	delegateFactory BuildStepDelegateFactory
 }
 
-func RetryError(step Step, delegate RetryErrorStepDelegate) Step {
+func RetryError(step Step, delegateFactory BuildStepDelegateFactory) Step {
 	return RetryErrorStep{
-		Step:     step,
-		delegate: delegate,
+		Step:            step,
+		delegateFactory: delegateFactory,
 	}
 }
 
-func (step RetryErrorStep) Run(ctx context.Context, state RunState) error {
+func (step RetryErrorStep) Run(ctx context.Context, state RunState) (bool, error) {
 	logger := lagerctx.FromContext(ctx)
-	runErr := step.Step.Run(ctx, state)
+	runOk, runErr := step.Step.Run(ctx, state)
+
+	// If the build has been aborted, then no need to retry.
+	select {
+	case <-ctx.Done():
+		return runOk, runErr
+	default:
+	}
+
 	if runErr != nil && step.toRetry(logger, runErr) {
 		logger.Info("retriable", lager.Data{"error": runErr.Error()})
-		step.delegate.Errored(logger, fmt.Sprintf("%s, will retry ...", runErr.Error()))
+		delegate := step.delegateFactory.BuildStepDelegate(state)
+		delegate.Errored(logger, fmt.Sprintf("%s, will retry ...", runErr.Error()))
 		runErr = Retriable{runErr}
 	}
-	return runErr
+	return runOk, runErr
 }
 
 func (step RetryErrorStep) toRetry(logger lager.Logger, err error) bool {
-	switch err.(type) {
-	case transport.WorkerMissingError, transport.WorkerUnreachableError:
+	var urlError *url.Error
+	var netError net.Error
+	if errors.As(err, &transport.WorkerMissingError{}) || errors.As(err, &transport.WorkerUnreachableError{}) || errors.As(err, &urlError) {
 		logger.Debug("retry-error",
 			lager.Data{"err_type": reflect.TypeOf(err).String(), "err": err.Error()})
 		return true
-	default:
-		re := regexp.MustCompile(`worker .+ disappeared`)
-		if re.MatchString(err.Error()) {
-			logger.Debug("retry-error",
-				lager.Data{"err_type": reflect.TypeOf(err).String(), "err": err})
-			return true
-		}
+	} else if errors.As(err, &netError) || regexp.MustCompile(`worker .+ disappeared`).MatchString(err.Error()) {
+		logger.Debug("retry-error",
+			lager.Data{"err_type": reflect.TypeOf(err).String(), "err": err})
+		return true
 	}
 	return false
 }

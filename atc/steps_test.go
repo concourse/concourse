@@ -21,7 +21,8 @@ type StepTest struct {
 	ConfigYAML string
 	StepConfig atc.StepConfig
 
-	Err string
+	UnknownFields map[string]*json.RawMessage
+	Err           string
 }
 
 var factoryTests = []StepTest{
@@ -33,6 +34,7 @@ var factoryTests = []StepTest{
 			params: {some: params}
 			version: {some: version}
 			tags: [tag-1, tag-2]
+			timeout: 1h
 		`,
 		StepConfig: &atc.GetStep{
 			Name:     "some-name",
@@ -40,6 +42,7 @@ var factoryTests = []StepTest{
 			Params:   atc.Params{"some": "params"},
 			Version:  &atc.VersionConfig{Pinned: atc.Version{"some": "version"}},
 			Tags:     []string{"tag-1", "tag-2"},
+			Timeout:  "1h",
 		},
 	},
 	{
@@ -52,6 +55,7 @@ var factoryTests = []StepTest{
 			tags: [tag-1, tag-2]
 			inputs: all
 			get_params: {some: get-params}
+			timeout: 1h
 		`,
 		StepConfig: &atc.PutStep{
 			Name:      "some-name",
@@ -60,6 +64,7 @@ var factoryTests = []StepTest{
 			Tags:      []string{"tag-1", "tag-2"},
 			Inputs:    &atc.InputsConfig{All: true},
 			GetParams: atc.Params{"some": "get-params"},
+			Timeout:   "1h",
 		},
 	},
 	{
@@ -78,6 +83,7 @@ var factoryTests = []StepTest{
 			input_mapping: {generic: specific}
 			output_mapping: {specific: generic}
 			image: some-image
+			timeout: 1h
 		`,
 
 		StepConfig: &atc.TaskStep{
@@ -89,11 +95,36 @@ var factoryTests = []StepTest{
 			},
 			ConfigPath:        "some-task-file",
 			Vars:              atc.Params{"some": "vars"},
-			Params:            atc.Params{"SOME": "PARAMS"},
+			Params:            atc.TaskEnv{"SOME": "PARAMS"},
 			Tags:              []string{"tag-1", "tag-2"},
 			InputMapping:      map[string]string{"generic": "specific"},
 			OutputMapping:     map[string]string{"specific": "generic"},
 			ImageArtifactName: "some-image",
+			Timeout:           "1h",
+		},
+	},
+	{
+		Title: "task step with non-string params",
+
+		ConfigYAML: `
+			task: some-task
+			file: some-task-file
+			params:
+			  NUMBER: 42
+			  FLOAT: 1.5
+			  BOOL: yes
+			  OBJECT: {foo: bar}
+		`,
+
+		StepConfig: &atc.TaskStep{
+			Name:       "some-task",
+			ConfigPath: "some-task-file",
+			Params: atc.TaskEnv{
+				"NUMBER": "42",
+				"FLOAT":  "1.5",
+				"BOOL":   "true",
+				"OBJECT": `{"foo":"bar"}`,
+			},
 		},
 	},
 	{
@@ -104,13 +135,15 @@ var factoryTests = []StepTest{
 			file: some-pipeline-file
 			vars: {some: vars}
 			var_files: [file-1, file-2]
+			instance_vars: {branch: feature/foo}
 		`,
 
 		StepConfig: &atc.SetPipelineStep{
-			Name:     "some-pipeline",
-			File:     "some-pipeline-file",
-			Vars:     atc.Params{"some": "vars"},
-			VarFiles: []string{"file-1", "file-2"},
+			Name:         "some-pipeline",
+			File:         "some-pipeline-file",
+			Vars:         atc.Params{"some": "vars"},
+			VarFiles:     []string{"file-1", "file-2"},
+			InstanceVars: atc.InstanceVars{"branch": "feature/foo"},
 		},
 	},
 	{
@@ -242,32 +275,74 @@ var factoryTests = []StepTest{
 		},
 	},
 	{
-		Title: "aggregate step",
+		Title: "across step",
 
 		ConfigYAML: `
-			aggregate:
-			- load_var: some-var
-			  file: some-file
-			- load_var: some-other-var
-			  file: some-other-file
+			load_var: some-var
+			file: some-file
+			across:
+			- var: var1
+			  values: [1, 2, 3]
+			  max_in_flight: 3
+			- var: var2
+			  values: ["a", "b"]
+			  max_in_flight: all
+			- var: var3
+			  values: [{a: "a", b: "b"}]
+			fail_fast: true
 		`,
 
-		StepConfig: &atc.AggregateStep{
-			Steps: []atc.Step{
+		StepConfig: &atc.AcrossStep{
+			Step: &atc.LoadVarStep{
+				Name: "some-var",
+				File: "some-file",
+			},
+			Vars: []atc.AcrossVarConfig{
 				{
-					Config: &atc.LoadVarStep{
-						Name: "some-var",
-						File: "some-file",
-					},
+					Var:         "var1",
+					Values:      []interface{}{float64(1), float64(2), float64(3)},
+					MaxInFlight: &atc.MaxInFlightConfig{Limit: 3},
 				},
 				{
-					Config: &atc.LoadVarStep{
-						Name: "some-other-var",
-						File: "some-other-file",
-					},
+					Var:         "var2",
+					Values:      []interface{}{"a", "b"},
+					MaxInFlight: &atc.MaxInFlightConfig{All: true},
+				},
+				{
+					Var:    "var3",
+					Values: []interface{}{map[string]interface{}{"a": "a", "b": "b"}},
 				},
 			},
+			FailFast: true,
 		},
+	},
+	{
+		Title: "across step with invalid field",
+
+		ConfigYAML: `
+			load_var: some-var
+			file: some-file
+			across:
+			- var: var1
+			  values: [1, 2, 3]
+			  bogus_field: lol what ru gonna do about it 
+		`,
+
+		Err: `error unmarshaling JSON: while decoding JSON: malformed across step: json: unknown field "bogus_field"`,
+	},
+	{
+		Title: "across step with invalid max_in_flight",
+
+		ConfigYAML: `
+			load_var: some-var
+			file: some-file
+			across:
+			- var: var1
+			  values: [1, 2, 3]
+			  max_in_flight: some
+		`,
+
+		Err: `error unmarshaling JSON: while decoding JSON: malformed across step: invalid max_in_flight "some"`,
 	},
 	{
 		Title: "timeout modifier",
@@ -311,6 +386,9 @@ var factoryTests = []StepTest{
 			file: some-file
 			timeout: 1h
 			attempts: 3
+			across:
+			- var: version
+			  values: [v1, v2, v3]
 			on_success:
 			  load_var: success-var
 			  file: success-file
@@ -333,15 +411,23 @@ var factoryTests = []StepTest{
 				Step: &atc.OnAbortStep{
 					Step: &atc.OnFailureStep{
 						Step: &atc.OnSuccessStep{
-							Step: &atc.RetryStep{
-								Step: &atc.TimeoutStep{
-									Step: &atc.LoadVarStep{
-										Name: "some-var",
-										File: "some-file",
+							Step: &atc.AcrossStep{
+								Step: &atc.RetryStep{
+									Step: &atc.TimeoutStep{
+										Step: &atc.LoadVarStep{
+											Name: "some-var",
+											File: "some-file",
+										},
+										Duration: "1h",
 									},
-									Duration: "1h",
+									Attempts: 3,
 								},
-								Attempts: 3,
+								Vars: []atc.AcrossVarConfig{
+									{
+										Var:    "version",
+										Values: []interface{}{"v1", "v2", "v3"},
+									},
+								},
 							},
 							Hook: atc.Step{
 								Config: &atc.LoadVarStep{
@@ -381,19 +467,44 @@ var factoryTests = []StepTest{
 	},
 	{
 		Title: "unknown field with get step",
+
 		ConfigYAML: `
 			get: some-name
 			bogus: foo
 		`,
-		Err: `error unmarshaling JSON: while decoding JSON: malformed get step: json: unknown field "bogus"`,
+
+		StepConfig: &atc.GetStep{
+			Name: "some-name",
+		},
+
+		UnknownFields: map[string]*json.RawMessage{"bogus": rawMessage(`"foo"`)},
 	},
 	{
 		Title: "multiple steps defined",
+
 		ConfigYAML: `
 			put: some-name
 			get: some-other-name
 		`,
-		Err: `error unmarshaling JSON: while decoding JSON: malformed put step: json: unknown field "get"`,
+
+		StepConfig: &atc.PutStep{
+			Name: "some-name",
+		},
+
+		UnknownFields: map[string]*json.RawMessage{"get": rawMessage(`"some-other-name"`)},
+	},
+	{
+		Title: "step cannot contain only modifiers",
+
+		ConfigYAML: `
+			attempts: 2
+		`,
+
+		StepConfig: &atc.RetryStep{
+			Attempts: 2,
+		},
+
+		Err: "no core step type declared (e.g. get, put, task, etc.)",
 	},
 }
 
@@ -402,15 +513,15 @@ func (test StepTest) Run(s *StepsSuite) {
 
 	var step atc.Step
 	actualErr := yaml.Unmarshal([]byte(cleanIndents), &step)
-
 	if test.Err != "" {
-		s.EqualError(actualErr, test.Err)
+		s.Contains(actualErr.Error(), test.Err)
 		return
 	} else {
 		s.NoError(actualErr)
 	}
 
 	s.Equal(test.StepConfig, step.Config)
+	s.Equal(test.UnknownFields, step.UnknownFields)
 
 	remarshalled, err := json.Marshal(step)
 	s.NoError(err)
@@ -428,4 +539,9 @@ func (s *StepsSuite) TestFactory() {
 			test.Run(s)
 		})
 	}
+}
+
+func rawMessage(s string) *json.RawMessage {
+	raw := json.RawMessage(s)
+	return &raw
 }

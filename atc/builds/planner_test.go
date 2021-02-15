@@ -39,17 +39,27 @@ var resources = db.SchedulerResources{
 		Type:   "some-resource-type",
 		Source: atc.Source{"some": "source"},
 	},
+	db.SchedulerResource{
+		Name:   "some-base-resource",
+		Type:   "some-base-resource-type",
+		Source: atc.Source{"some": "source"},
+	},
 }
 
 var resourceTypes = atc.VersionedResourceTypes{
 	{
 		ResourceType: atc.ResourceType{
-			Name:   "some-resource-type",
-			Type:   "some-base-resource-type",
-			Source: atc.Source{"some": "type-source"},
+			Name:     "some-resource-type",
+			Type:     "some-base-resource-type",
+			Source:   atc.Source{"some": "type-source"},
+			Defaults: atc.Source{"default-key": "default-value"},
 		},
 		Version: atc.Version{"some": "type-version"},
 	},
+}
+
+var baseResourceTypeDefaults = map[string]atc.Source{
+	"some-base-resource-type": {"default-key": "default-value"},
 }
 
 var factoryTests = []PlannerTest{
@@ -58,6 +68,45 @@ var factoryTests = []PlannerTest{
 		Config: &atc.GetStep{
 			Name:     "some-name",
 			Resource: "some-resource",
+			Params:   atc.Params{"some": "params"},
+			Version:  &atc.VersionConfig{Pinned: atc.Version{"doesnt": "matter"}},
+			Tags:     atc.Tags{"tag-1", "tag-2"},
+			Timeout:  "1h",
+		},
+		Inputs: []db.BuildInput{
+			{
+				Name:    "some-name",
+				Version: atc.Version{"some": "version"},
+			},
+		},
+		PlanJSON: `{
+			"id": "(unique)",
+			"get": {
+				"name": "some-name",
+				"type": "some-resource-type",
+				"resource": "some-resource",
+				"source": {"some":"source","default-key":"default-value"},
+				"params": {"some":"params"},
+				"version": {"some":"version"},
+				"tags": ["tag-1", "tag-2"],
+				"timeout": "1h",
+				"resource_types": [
+					{
+						"name": "some-resource-type",
+						"type": "some-base-resource-type",
+						"source": {"some": "type-source"},
+						"defaults": {"default-key":"default-value"},
+						"version": {"some": "type-version"}
+					}
+				]
+			}
+		}`,
+	},
+	{
+		Title: "get step with base resource type",
+		Config: &atc.GetStep{
+			Name:     "some-name",
+			Resource: "some-base-resource",
 			Params:   atc.Params{"some": "params"},
 			Version:  &atc.VersionConfig{Pinned: atc.Version{"doesnt": "matter"}},
 			Tags:     atc.Tags{"tag-1", "tag-2"},
@@ -72,9 +121,9 @@ var factoryTests = []PlannerTest{
 			"id": "(unique)",
 			"get": {
 				"name": "some-name",
-				"type": "some-resource-type",
-				"resource": "some-resource",
-				"source": {"some":"source"},
+				"type": "some-base-resource-type",
+				"resource": "some-base-resource",
+				"source": {"some":"source","default-key":"default-value"},
 				"params": {"some":"params"},
 				"version": {"some":"version"},
 				"tags": ["tag-1", "tag-2"],
@@ -83,6 +132,7 @@ var factoryTests = []PlannerTest{
 						"name": "some-resource-type",
 						"type": "some-base-resource-type",
 						"source": {"some": "type-source"},
+						"defaults": {"default-key":"default-value"},
 						"version": {"some": "type-version"}
 					}
 				]
@@ -114,6 +164,7 @@ var factoryTests = []PlannerTest{
 			Tags:      atc.Tags{"tag-1", "tag-2"},
 			Inputs:    &atc.InputsConfig{All: true},
 			GetParams: atc.Params{"some": "get-params"},
+			Timeout:   "1h",
 		},
 		Inputs: []db.BuildInput{
 			{
@@ -134,14 +185,16 @@ var factoryTests = []PlannerTest{
 						"type": "some-resource-type",
 						"resource": "some-resource",
 						"inputs": "all",
-						"source": {"some":"source"},
+						"source": {"some":"source","default-key":"default-value"},
 						"params": {"some":"params"},
 						"tags": ["tag-1", "tag-2"],
+						"timeout": "1h",
 						"resource_types": [
 							{
 								"name": "some-resource-type",
 								"type": "some-base-resource-type",
 								"source": {"some": "type-source"},
+								"defaults": {"default-key":"default-value"},
 								"version": {"some": "type-version"}
 							}
 						]
@@ -153,15 +206,17 @@ var factoryTests = []PlannerTest{
 						"name": "some-name",
 						"type": "some-resource-type",
 						"resource": "some-resource",
-						"source": {"some":"source"},
+						"source": {"some":"source","default-key":"default-value"},
 						"params": {"some":"get-params"},
 						"tags": ["tag-1", "tag-2"],
 						"version_from": "1",
+						"timeout": "1h",
 						"resource_types": [
 							{
 								"name": "some-resource-type",
 								"type": "some-base-resource-type",
 								"source": {"some": "type-source"},
+								"defaults": {"default-key":"default-value"},
 								"version": {"some": "type-version"}
 							}
 						]
@@ -182,11 +237,12 @@ var factoryTests = []PlannerTest{
 			},
 			ConfigPath:        "some-task-file",
 			Vars:              atc.Params{"some": "vars"},
-			Params:            atc.Params{"SOME": "PARAMS"},
+			Params:            atc.TaskEnv{"SOME": "PARAMS"},
 			Tags:              atc.Tags{"tag-1", "tag-2"},
 			InputMapping:      map[string]string{"generic": "specific"},
 			OutputMapping:     map[string]string{"specific": "generic"},
 			ImageArtifactName: "some-image",
+			Timeout:           "1h",
 		},
 
 		PlanJSON: `{
@@ -205,11 +261,13 @@ var factoryTests = []PlannerTest{
 				"input_mapping": {"generic": "specific"},
 				"output_mapping": {"specific": "generic"},
 				"image": "some-image",
+				"timeout": "1h",
 				"resource_types": [
 					{
 						"name": "some-resource-type",
 						"type": "some-base-resource-type",
 						"source": {"some": "type-source"},
+						"defaults": {"default-key":"default-value"},
 						"version": {"some": "type-version"}
 					}
 				]
@@ -220,10 +278,11 @@ var factoryTests = []PlannerTest{
 		Title: "set_pipeline step",
 
 		Config: &atc.SetPipelineStep{
-			Name:     "some-pipeline",
-			File:     "some-pipeline-file",
-			Vars:     atc.Params{"some": "vars"},
-			VarFiles: []string{"file-1", "file-2"},
+			Name:         "some-pipeline",
+			File:         "some-pipeline-file",
+			Vars:         atc.Params{"some": "vars"},
+			VarFiles:     []string{"file-1", "file-2"},
+			InstanceVars: atc.InstanceVars{"branch": "feature/foo"},
 		},
 
 		PlanJSON: `{
@@ -232,7 +291,8 @@ var factoryTests = []PlannerTest{
 				"name": "some-pipeline",
 				"file": "some-pipeline-file",
 				"vars": {"some": "vars"},
-				"var_files": ["file-1", "file-2"]
+				"var_files": ["file-1", "file-2"],
+				"instance_vars": {"branch": "feature/foo"}
 			}
 		}`,
 	},
@@ -370,43 +430,85 @@ var factoryTests = []PlannerTest{
 		}`,
 	},
 	{
-		Title: "aggregate step",
+		Title: "across step",
 
-		Config: &atc.AggregateStep{
-			Steps: []atc.Step{
+		Config: &atc.AcrossStep{
+			Step: &atc.LoadVarStep{
+				Name: "some-var",
+				File: "some-file",
+			},
+			Vars: []atc.AcrossVarConfig{
 				{
-					Config: &atc.LoadVarStep{
-						Name: "some-var",
-						File: "some-file",
-					},
+					Var:         "var1",
+					Values:      []interface{}{"a1", "a2"},
+					MaxInFlight: &atc.MaxInFlightConfig{All: true},
 				},
 				{
-					Config: &atc.LoadVarStep{
-						Name: "some-other-var",
-						File: "some-other-file",
-					},
+					Var:         "var2",
+					Values:      []interface{}{"b1", "b2"},
+					MaxInFlight: &atc.MaxInFlightConfig{Limit: 1},
 				},
 			},
 		},
 
 		PlanJSON: `{
 			"id": "(unique)",
-			"aggregate": [
-				{
-					"id": "(unique)",
-					"load_var": {
-						"name": "some-var",
-						"file": "some-file"
+			"across": {
+				"vars": [
+					{
+						"name": "var1",
+						"values": ["a1", "a2"],
+						"max_in_flight": "all"
+					},
+					{
+						"name": "var2",
+						"values": ["b1", "b2"],
+						"max_in_flight": 1
 					}
-				},
-				{
-					"id": "(unique)",
-					"load_var": {
-						"name": "some-other-var",
-						"file": "some-other-file"
+				],
+				"steps": [
+					{
+						"values": ["a1", "b1"],
+						"step": {
+							"id": "(unique)",
+							"load_var": {
+								"name": "some-var",
+								"file": "some-file"
+							}
+						}
+					},
+					{
+						"values": ["a1", "b2"],
+						"step": {
+							"id": "(unique)",
+							"load_var": {
+								"name": "some-var",
+								"file": "some-file"
+							}
+						}
+					},
+					{
+						"values": ["a2", "b1"],
+						"step": {
+							"id": "(unique)",
+							"load_var": {
+								"name": "some-var",
+								"file": "some-file"
+							}
+						}
+					},
+					{
+						"values": ["a2", "b2"],
+						"step": {
+							"id": "(unique)",
+							"load_var": {
+								"name": "some-var",
+								"file": "some-file"
+							}
+						}
 					}
-				}
-			]
+				]
+			}
 		}`,
 	},
 	{
@@ -689,9 +791,11 @@ func (test PlannerTest) Run(s *PlannerSuite) {
 }
 
 func (s *PlannerSuite) TestFactory() {
+	atc.LoadBaseResourceTypeDefaults(baseResourceTypeDefaults)
 	for _, test := range factoryTests {
 		s.Run(test.Title, func() {
 			test.Run(s)
 		})
 	}
+	atc.LoadBaseResourceTypeDefaults(map[string]atc.Source{})
 }

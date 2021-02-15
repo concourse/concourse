@@ -29,6 +29,10 @@ type BuildLogRetention struct {
 	Days                   int `json:"days,omitempty"`
 }
 
+func (config JobConfig) Step() Step {
+	return Step{Config: config.StepConfig()}
+}
+
 func (config JobConfig) StepConfig() StepConfig {
 	var step StepConfig = &DoStep{
 		Steps: config.PlanSequence,

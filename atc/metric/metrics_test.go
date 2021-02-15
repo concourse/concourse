@@ -11,20 +11,27 @@ import (
 
 var _ = Describe("Metrics", func() {
 	Describe("worker state metric", func() {
-		var emitter *smartFakeEmitter
+		var (
+			emitter *smartFakeEmitter
+			monitor *metric.Monitor
+		)
 
 		BeforeEach(func() {
-			emitter = registerFakeEmitterInUnsafeGlobalMap()
-		})
+			emitter = new(smartFakeEmitter)
+			monitor = metric.NewMonitor()
 
-		AfterEach(func() {
-			metric.Deinitialize(testLogger)
+			emitterFactory := new(metricfakes.FakeEmitterFactory)
+			emitterFactory.IsConfiguredReturns(true)
+			emitterFactory.NewEmitterReturns(emitter, nil)
+
+			monitor.RegisterEmitter(emitterFactory)
+			monitor.Initialize(testLogger, "test", map[string]string{}, 1000)
 		})
 
 		It("emits a value for every state", func() {
-			givenNoWorkers().Emit(testLogger)
+			givenNoWorkers().Emit(testLogger, monitor)
 
-			waitForEventsOnUnsafeGlobalChannel(emitter)
+			waitForEvents(emitter)
 
 			for _, state := range db.AllWorkerStates() {
 				event := emitter.eventWithState(state)
@@ -34,9 +41,9 @@ var _ = Describe("Metrics", func() {
 
 		It("correctly emits the number of running workers", func() {
 			givenOneWorkerWithState(db.WorkerStateRunning).
-				Emit(testLogger)
+				Emit(testLogger, monitor)
 
-			waitForEventsOnUnsafeGlobalChannel(emitter)
+			waitForEvents(emitter)
 
 			event := emitter.eventWithState(db.WorkerStateRunning)
 			Expect(event.Value).To(Equal(float64(1)))
@@ -70,17 +77,7 @@ func givenOneWorkerWithState(state db.WorkerState) metric.WorkersState {
 	return workersState
 }
 
-func waitForEventsOnUnsafeGlobalChannel(fakeEmitter *smartFakeEmitter) {
+func waitForEvents(fakeEmitter *smartFakeEmitter) {
 	numberOfWorkerStates := len(db.AllWorkerStates())
 	Eventually(fakeEmitter.EmitCallCount).Should(Equal(numberOfWorkerStates))
-}
-
-func registerFakeEmitterInUnsafeGlobalMap() *smartFakeEmitter {
-	fakeEmitter := new(smartFakeEmitter)
-	emitterFactory := new(metricfakes.FakeEmitterFactory)
-	emitterFactory.IsConfiguredReturns(true)
-	emitterFactory.NewEmitterReturns(fakeEmitter, nil)
-	metric.RegisterEmitter(emitterFactory)
-	metric.Initialize(testLogger, "test", map[string]string{}, 1000)
-	return fakeEmitter
 }

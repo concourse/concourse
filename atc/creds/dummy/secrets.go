@@ -29,9 +29,7 @@ func (secrets *Secrets) NewSecretLookupPaths(teamName string, pipelineName strin
 }
 
 func (secrets *Secrets) Get(secretPath string) (interface{}, *time.Time, bool, error) {
-	v, found, err := secrets.StaticVariables.Get(vars.VariableDefinition{
-		Name: secretPath,
-	})
+	v, found, err := secrets.StaticVariables.Get(vars.Reference{Path: secretPath})
 	if err != nil {
 		return nil, nil, false, err
 	}

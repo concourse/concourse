@@ -4,12 +4,12 @@ import Application.Models exposing (Session)
 import Build.Header.Header as Header
 import Build.Header.Models as Models
 import Build.Header.Views as Views
-import Build.Shortcuts as Shortcuts
 import Build.StepTree.Models as STModels
 import Common
-import Concourse
+import Concourse exposing (JsonValue(..))
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Data
+import Dict
 import Expect
 import HoverState
 import Keyboard
@@ -19,9 +19,21 @@ import Message.Effects as Effects
 import Message.Message as Message
 import Message.Subscription as Subscription
 import RemoteData
+import Routes
 import ScreenSize
 import Set
 import Test exposing (Test, describe, test)
+import Test.Html.Query as Query
+import Test.Html.Selector
+    exposing
+        ( attribute
+        , class
+        , containing
+        , id
+        , style
+        , tag
+        , text
+        )
 import Time
 import UserState
 
@@ -30,11 +42,50 @@ all : Test
 all =
     describe "build page header"
         [ describe "title"
-            [ test "is 'build' on a one-off build page" <|
-                \_ ->
-                    Header.header session model
-                        |> .leftWidgets
-                        |> Common.contains (Views.Title "0" Nothing)
+            [ describe "job build" <|
+                let
+                    job =
+                        Data.jobId
+                            |> Data.withTeamName "some-team"
+                            |> Data.withPipelineName "some-pipeline"
+                            |> Data.withJobName "some-job"
+
+                    jobBuildModel =
+                        { model | name = "123", job = Just job }
+                in
+                [ test "contains the build name and job name" <|
+                    \_ ->
+                        Header.header session jobBuildModel
+                            |> .leftWidgets
+                            |> Common.contains (Views.Title "123" (Just job))
+                , test "shows job and build name as number" <|
+                    \_ ->
+                        Header.view session jobBuildModel
+                            |> Query.fromHtml
+                            |> Query.has
+                                [ containing [ text "some-job" ]
+                                , containing [ text "#123" ]
+                                ]
+                ]
+            , describe "non-job build" <|
+                let
+                    nonJobBuild =
+                        { model | name = "check", job = Nothing }
+                in
+                [ test "contains the build name" <|
+                    \_ ->
+                        Header.header session nonJobBuild
+                            |> .leftWidgets
+                            |> Common.contains (Views.Title "check" Nothing)
+                , test "shows build name, not as a number" <|
+                    \_ ->
+                        Header.view session nonJobBuild
+                            |> Query.fromHtml
+                            |> Expect.all
+                                [ Query.has [ containing [ text "check" ] ]
+                                , Query.hasNot [ containing [ text "#" ] ]
+                                ]
+                ]
             ]
         , describe "duration"
             [ test "pending build has no duration" <|
@@ -101,29 +152,7 @@ all =
                             )
             ]
         , describe "buttons"
-            [ describe "trigger"
-                [ test "has tooltip on hover when manual triggering is disabled" <|
-                    \_ ->
-                        Header.header
-                            { session
-                                | hovered =
-                                    HoverState.Hovered
-                                        Message.TriggerBuildButton
-                            }
-                            { model | disableManualTrigger = False }
-                            |> .rightWidgets
-                            |> Common.notContains
-                                (Views.Button <|
-                                    Just
-                                        { type_ = Views.Trigger
-                                        , isClickable = False
-                                        , backgroundShade = Views.Dark
-                                        , backgroundColor = model.status
-                                        , tooltip = True
-                                        }
-                                )
-                ]
-            , describe "re-run"
+            [ describe "re-run"
                 [ test "does not appear on non-running one-off build" <|
                     \_ ->
                         Header.header session
@@ -136,7 +165,6 @@ all =
                                         , isClickable = True
                                         , backgroundShade = Views.Light
                                         , backgroundColor = BuildStatusSucceeded
-                                        , tooltip = False
                                         }
                                 )
                 , test "appears on non-running job build" <|
@@ -151,27 +179,6 @@ all =
                                         , isClickable = True
                                         , backgroundShade = Views.Light
                                         , backgroundColor = BuildStatusSucceeded
-                                        , tooltip = False
-                                        }
-                                )
-                , test "is hoverable with tooltip" <|
-                    \_ ->
-                        { model | status = BuildStatusSucceeded, job = Just jobId }
-                            |> Header.header
-                                { session
-                                    | hovered =
-                                        HoverState.Hovered
-                                            Message.RerunBuildButton
-                                }
-                            |> .rightWidgets
-                            |> Common.contains
-                                (Views.Button <|
-                                    Just
-                                        { type_ = Views.Rerun
-                                        , isClickable = True
-                                        , backgroundShade = Views.Dark
-                                        , backgroundColor = BuildStatusSucceeded
-                                        , tooltip = True
                                         }
                                 )
                 , test "clicking sends RerunJobBuild API call" <|
@@ -182,12 +189,8 @@ all =
                             |> Header.update (Message.Click Message.RerunBuildButton)
                             |> Tuple.second
                             |> Common.contains
-                                (Effects.RerunJobBuild <|
-                                    { teamName = "team"
-                                    , pipelineName = "pipeline"
-                                    , jobName = "job"
-                                    , buildName = model.name
-                                    }
+                                (Effects.RerunJobBuild
+                                    (Data.longJobBuildId |> Data.withBuildName model.name)
                                 )
                 , test "archived pipeline's have no right widgets" <|
                     \_ ->
@@ -203,6 +206,28 @@ all =
                                 }
                             |> .rightWidgets
                             |> Expect.equal []
+                , test "pipeline lookup considers instance vars" <|
+                    \_ ->
+                        let
+                            instanceVars =
+                                Dict.fromList [ ( "foo", JsonString "bar" ) ]
+                        in
+                        { model | status = BuildStatusSucceeded, job = Just (jobId |> Data.withPipelineInstanceVars instanceVars) }
+                            |> Header.header
+                                { session
+                                    | pipelines =
+                                        RemoteData.Success
+                                            [ Data.pipeline jobId.teamName 0
+                                                |> Data.withName jobId.pipelineName
+                                                |> Data.withArchived True
+                                            , Data.pipeline jobId.teamName 1
+                                                |> Data.withName jobId.pipelineName
+                                                |> Data.withInstanceVars instanceVars
+                                                |> Data.withArchived False
+                                            ]
+                                }
+                            |> .rightWidgets
+                            |> Expect.notEqual []
                 ]
             ]
         , test "stops fetching history once current build appears" <|
@@ -329,13 +354,7 @@ all =
                                 }
                         )
                     |> Header.changeToBuild
-                        (Models.JobBuildPage
-                            { teamName = "team"
-                            , pipelineName = "pipeline"
-                            , jobName = "job"
-                            , buildName = "1"
-                            }
-                        )
+                        (Models.JobBuildPage Data.longJobBuildId)
                     |> Tuple.first
                     |> Header.header session
                     |> Expect.all
@@ -360,7 +379,8 @@ all =
 
 session : Session
 session =
-    { expandedTeams = Set.empty
+    { expandedTeamsInAllPipelines = Set.empty
+    , collapsedTeamsInFavorites = Set.empty
     , pipelines = RemoteData.NotAsked
     , hovered = HoverState.NoHover
     , sideBarState =
@@ -378,6 +398,8 @@ session =
     , authToken = ""
     , pipelineRunningKeyframes = ""
     , timeZone = Time.utc
+    , favoritedPipelines = Set.empty
+    , route = Routes.Build { id = Data.jobBuildId, highlight = Routes.HighlightNothing }
     }
 
 
@@ -400,18 +422,13 @@ model =
 
 build : Concourse.Build
 build =
-    { id = 0
-    , name = "0"
-    , job = Just jobId
-    , status = model.status
-    , duration = model.duration
-    , reapTime = Nothing
-    }
+    Data.jobBuild model.status
+        |> Data.withId 0
+        |> Data.withName "0"
+        |> Data.withJob (Just jobId)
+        |> Data.withDuration model.duration
 
 
 jobId : Concourse.JobIdentifier
 jobId =
-    { teamName = "team"
-    , pipelineName = "pipeline"
-    , jobName = "job"
-    }
+    Data.jobId

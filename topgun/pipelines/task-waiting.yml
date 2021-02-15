@@ -5,8 +5,8 @@ jobs:
     config:
       platform: linux
       image_resource:
-        type: registry-image
-        source: {repository: busybox}
+        type: mock
+        source: {mirror_self: true}
       run:
         path: sh
         args:
@@ -14,7 +14,7 @@ jobs:
         - |
           until test -f /tmp/stop-waiting; do
             echo 'waiting for /tmp/stop-waiting to exist'
-            sleep 1
+            sleep 10
           done
 
           echo done

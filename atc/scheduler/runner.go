@@ -9,8 +9,9 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/metric"
+	"github.com/concourse/concourse/atc/util"
 	"github.com/concourse/concourse/tracing"
-	"go.opentelemetry.io/otel/api/key"
+	"go.opentelemetry.io/otel/label"
 )
 
 //go:generate counterfeiter . BuildScheduler
@@ -68,6 +69,13 @@ func (s *Runner) Run(ctx context.Context) error {
 
 		go func(job db.SchedulerJob) {
 			defer func() {
+				err := util.DumpPanic(recover(), "scheduling job %d", job.ID())
+				if err != nil {
+					jLog.Error("panic-in-scheduler-run", err)
+				}
+			}()
+
+			defer func() {
 				<-s.guardJobScheduling
 				s.running.Delete(job.ID())
 			}()
@@ -95,9 +103,9 @@ func (s *Runner) Run(ctx context.Context) error {
 }
 
 func (s *Runner) scheduleJob(ctx context.Context, logger lager.Logger, job db.SchedulerJob) error {
-	metric.JobsScheduling.Inc()
-	defer metric.JobsScheduling.Dec()
-	defer metric.JobsScheduled.Inc()
+	metric.Metrics.JobsScheduling.Inc()
+	defer metric.Metrics.JobsScheduling.Dec()
+	defer metric.Metrics.JobsScheduled.Inc()
 
 	logger = logger.Session("schedule-job", lager.Data{"job": job.Name()})
 	spanCtx, span := tracing.StartSpan(ctx, "schedule-job", tracing.Attrs{
@@ -135,7 +143,7 @@ func (s *Runner) scheduleJob(ctx context.Context, logger lager.Logger, job db.Sc
 		return fmt.Errorf("schedule job: %w", err)
 	}
 
-	span.SetAttributes(key.New("needs-retry").Bool(needsRetry))
+	span.SetAttributes(label.Bool("needs-retry", needsRetry))
 	if !needsRetry {
 		err = job.UpdateLastScheduled(requestedTime)
 		if err != nil {

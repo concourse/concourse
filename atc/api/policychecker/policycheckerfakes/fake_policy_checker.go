@@ -7,10 +7,11 @@ import (
 
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/api/policychecker"
+	"github.com/concourse/concourse/atc/policy"
 )
 
 type FakePolicyChecker struct {
-	CheckStub        func(string, accessor.Access, *http.Request) (bool, error)
+	CheckStub        func(string, accessor.Access, *http.Request) (policy.PolicyCheckOutput, error)
 	checkMutex       sync.RWMutex
 	checkArgsForCall []struct {
 		arg1 string
@@ -18,18 +19,18 @@ type FakePolicyChecker struct {
 		arg3 *http.Request
 	}
 	checkReturns struct {
-		result1 bool
+		result1 policy.PolicyCheckOutput
 		result2 error
 	}
 	checkReturnsOnCall map[int]struct {
-		result1 bool
+		result1 policy.PolicyCheckOutput
 		result2 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakePolicyChecker) Check(arg1 string, arg2 accessor.Access, arg3 *http.Request) (bool, error) {
+func (fake *FakePolicyChecker) Check(arg1 string, arg2 accessor.Access, arg3 *http.Request) (policy.PolicyCheckOutput, error) {
 	fake.checkMutex.Lock()
 	ret, specificReturn := fake.checkReturnsOnCall[len(fake.checkArgsForCall)]
 	fake.checkArgsForCall = append(fake.checkArgsForCall, struct {
@@ -55,7 +56,7 @@ func (fake *FakePolicyChecker) CheckCallCount() int {
 	return len(fake.checkArgsForCall)
 }
 
-func (fake *FakePolicyChecker) CheckCalls(stub func(string, accessor.Access, *http.Request) (bool, error)) {
+func (fake *FakePolicyChecker) CheckCalls(stub func(string, accessor.Access, *http.Request) (policy.PolicyCheckOutput, error)) {
 	fake.checkMutex.Lock()
 	defer fake.checkMutex.Unlock()
 	fake.CheckStub = stub
@@ -68,28 +69,28 @@ func (fake *FakePolicyChecker) CheckArgsForCall(i int) (string, accessor.Access,
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
-func (fake *FakePolicyChecker) CheckReturns(result1 bool, result2 error) {
+func (fake *FakePolicyChecker) CheckReturns(result1 policy.PolicyCheckOutput, result2 error) {
 	fake.checkMutex.Lock()
 	defer fake.checkMutex.Unlock()
 	fake.CheckStub = nil
 	fake.checkReturns = struct {
-		result1 bool
+		result1 policy.PolicyCheckOutput
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakePolicyChecker) CheckReturnsOnCall(i int, result1 bool, result2 error) {
+func (fake *FakePolicyChecker) CheckReturnsOnCall(i int, result1 policy.PolicyCheckOutput, result2 error) {
 	fake.checkMutex.Lock()
 	defer fake.checkMutex.Unlock()
 	fake.CheckStub = nil
 	if fake.checkReturnsOnCall == nil {
 		fake.checkReturnsOnCall = make(map[int]struct {
-			result1 bool
+			result1 policy.PolicyCheckOutput
 			result2 error
 		})
 	}
 	fake.checkReturnsOnCall[i] = struct {
-		result1 bool
+		result1 policy.PolicyCheckOutput
 		result2 error
 	}{result1, result2}
 }

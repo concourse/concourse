@@ -266,6 +266,7 @@ Concourse is written in Go, but the web UI is written in
 After making changes to `web/`, run the following to rebuild the web UI assets:
 
 ```sh
+$ yarn install
 $ yarn build
 ```
 
@@ -783,4 +784,3 @@ pushed commits without the signature.
 [helm-charts]: https://github.com/helm/charts/blob/master/README.md
 [fav-commit]: https://dhwthompson.com/2019/my-favourite-git-commit
 [sb-changes]: https://medium.com/@kentbeck_7670/bs-changes-e574bc396aaa
-

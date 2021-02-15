@@ -2,16 +2,19 @@ package pipelineserver
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc/db"
 )
 
 func (s *Server) OrderPipelines(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("order-pipelines")
 
-	var pipelineNames []string
-	if err := json.NewDecoder(r.Body).Decode(&pipelineNames); err != nil {
+	var pipelinesNames []string
+	if err := json.NewDecoder(r.Body).Decode(&pipelinesNames); err != nil {
 		logger.Error("invalid-json", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -31,12 +34,18 @@ func (s *Server) OrderPipelines(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = team.OrderPipelines(pipelineNames)
+	err = team.OrderPipelines(pipelinesNames)
 	if err != nil {
 		logger.Error("failed-to-order-pipelines", err, lager.Data{
-			"pipeline-names": pipelineNames,
+			"pipeline_names": pipelinesNames,
 		})
-		w.WriteHeader(http.StatusInternalServerError)
+		var errNotFound db.ErrPipelineNotFound
+		if errors.As(err, &errNotFound) {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintln(w, err.Error())
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 		return
 	}
 

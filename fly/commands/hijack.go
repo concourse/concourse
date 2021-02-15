@@ -1,6 +1,8 @@
 package commands
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/url"
@@ -170,6 +172,12 @@ func (command *HijackCommand) Execute([]string) error {
 
 	path, args := remoteCommand(command.PositionalArgs.Command)
 
+	someShell := false
+	if path == "" {
+		path = "bash"
+		someShell = true
+	}
+
 	spec := atc.HijackProcessSpec{
 		Path: path,
 		Args: args,
@@ -199,15 +207,28 @@ func (command *HijackCommand) Execute([]string) error {
 			in = os.Stdin
 		}
 
+		inputs := make(chan atc.HijackInput, 1)
+		go func() {
+			io.Copy(&stdinWriter{inputs}, in)
+			inputs <- atc.HijackInput{Closed: true}
+		}()
+
 		io := hijacker.ProcessIO{
-			In:  in,
+			In:  inputs,
 			Out: os.Stdout,
 			Err: os.Stderr,
 		}
 
+		ctx := context.Background()
 		h := hijacker.New(target.TLSConfig(), reqGenerator, target.Token())
+		result, exeNotFound, err := h.Hijack(ctx, team.Name(), chosenContainer.ID, spec, io)
 
-		return h.Hijack(team.Name(), chosenContainer.ID, spec, io)
+		if exeNotFound && someShell {
+			spec.Path = "sh"
+			os.Stderr.WriteString("\rCouldn't find \"bash\" on container, retrying with \"sh\"\n\r")
+			result, exeNotFound, err = h.Hijack(ctx, team.Name(), chosenContainer.ID, spec, io)
+		}
+		return result, err
 	}()
 
 	if err != nil {
@@ -266,6 +287,18 @@ func (command *HijackCommand) getContainerFingerprintFromUrl(target rc.Target, u
 		checkName:     urlMap["resources"],
 	}
 
+	instanceVars, err := atc.InstanceVarsFromQueryParams(u.Query())
+	if err != nil {
+		return nil, err
+	}
+	if len(instanceVars) > 0 {
+		instanceVarsPayload, err := json.Marshal(instanceVars)
+		if err != nil {
+			return nil, err
+		}
+		fingerprint.pipelineInstanceVars = string(instanceVarsPayload)
+	}
+
 	return fingerprint, nil
 }
 
@@ -280,16 +313,23 @@ func (command *HijackCommand) getContainerFingerprint(target rc.Target, team con
 		}
 	}
 
-	pipelineName := command.Check.PipelineName
-	if command.Job.PipelineName != "" {
-		pipelineName = command.Job.PipelineName
+	pipelineRef := command.Check.PipelineRef
+	if command.Job.PipelineRef.Name != "" {
+		pipelineRef = command.Job.PipelineRef
+	}
+
+	var pipelineInstanceVars string
+	if pipelineRef.InstanceVars != nil {
+		instanceVarsJSON, _ := json.Marshal(pipelineRef.InstanceVars)
+		pipelineInstanceVars = string(instanceVarsJSON)
 	}
 
 	for _, field := range []struct {
 		fp  *string
 		cmd string
 	}{
-		{fp: &fingerprint.pipelineName, cmd: pipelineName},
+		{fp: &fingerprint.pipelineName, cmd: pipelineRef.Name},
+		{fp: &fingerprint.pipelineInstanceVars, cmd: pipelineInstanceVars},
 		{fp: &fingerprint.buildNameOrID, cmd: command.Build},
 		{fp: &fingerprint.stepName, cmd: command.StepName},
 		{fp: &fingerprint.stepType, cmd: command.StepType},
@@ -326,7 +366,7 @@ func remoteCommand(argv []string) (string, []string) {
 
 	switch len(argv) {
 	case 0:
-		path = "bash"
+		path = ""
 	case 1:
 		path = argv[0]
 	default:
@@ -362,6 +402,9 @@ func (locator stepContainerLocator) locate(fingerprint *containerFingerprint) (m
 
 	if fingerprint.jobName != "" {
 		reqValues["pipeline_name"] = fingerprint.pipelineName
+		if fingerprint.pipelineInstanceVars != "" {
+			reqValues["vars"] = fingerprint.pipelineInstanceVars
+		}
 		reqValues["job_name"] = fingerprint.jobName
 		if fingerprint.buildNameOrID != "" {
 			reqValues["build_name"] = fingerprint.buildNameOrID
@@ -369,7 +412,7 @@ func (locator stepContainerLocator) locate(fingerprint *containerFingerprint) (m
 	} else if fingerprint.buildNameOrID != "" {
 		reqValues["build_id"] = fingerprint.buildNameOrID
 	} else {
-		build, err := GetBuild(locator.client, nil, "", "", "")
+		build, err := GetBuild(locator.client, nil, "", "", atc.PipelineRef{})
 		if err != nil {
 			return reqValues, err
 		}
@@ -391,14 +434,18 @@ func (locator checkContainerLocator) locate(fingerprint *containerFingerprint) (
 	if fingerprint.pipelineName != "" {
 		reqValues["pipeline_name"] = fingerprint.pipelineName
 	}
+	if fingerprint.pipelineInstanceVars != "" {
+		reqValues["vars"] = fingerprint.pipelineInstanceVars
+	}
 
 	return reqValues, nil
 }
 
 type containerFingerprint struct {
-	pipelineName  string
-	jobName       string
-	buildNameOrID string
+	pipelineName         string
+	pipelineInstanceVars string
+	jobName              string
+	buildNameOrID        string
 
 	stepName string
 	stepType string
@@ -419,4 +466,16 @@ func locateContainer(client concourse.Client, fingerprint *containerFingerprint)
 	}
 
 	return locator.locate(fingerprint)
+}
+
+type stdinWriter struct {
+	inputs chan<- atc.HijackInput
+}
+
+func (w *stdinWriter) Write(d []byte) (int, error) {
+	w.inputs <- atc.HijackInput{
+		Stdin: d,
+	}
+
+	return len(d), nil
 }

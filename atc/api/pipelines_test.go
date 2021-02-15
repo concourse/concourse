@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -44,6 +43,9 @@ var _ = Describe("Pipelines API", func() {
 				Jobs:      []string{"job3", "job4"},
 				Resources: []string{"resource3", "resource4"},
 			},
+		})
+		publicPipeline.DisplayReturns(&atc.DisplayConfig{
+			BackgroundImage: "background.jpg",
 		})
 		publicPipeline.LastUpdatedReturns(time.Unix(1, 0))
 
@@ -131,7 +133,10 @@ var _ = Describe("Pipelines API", func() {
 							"jobs": ["job3", "job4"],
 							"resources": ["resource3", "resource4"]
 						}
-					]
+					],
+					"display": {
+						"background_image": "background.jpg"
+					}
 				},
 				{
 					"id": 2,
@@ -299,7 +304,10 @@ var _ = Describe("Pipelines API", func() {
 								"jobs": ["job3", "job4"],
 								"resources": ["resource3", "resource4"]
 							}
-						]
+						],
+						"display": {
+							"background_image": "background.jpg"
+						}
 					}
 				]`))
 			})
@@ -387,6 +395,9 @@ var _ = Describe("Pipelines API", func() {
 					Resources: []string{"resource3", "resource4"},
 				},
 			})
+			fakePipeline.DisplayReturns(&atc.DisplayConfig{
+				BackgroundImage: "background.jpg",
+			})
 			fakePipeline.LastUpdatedReturns(time.Unix(1, 0))
 		})
 
@@ -452,7 +463,10 @@ var _ = Describe("Pipelines API", func() {
 								"jobs": ["job3", "job4"],
 								"resources": ["resource3", "resource4"]
 							}
-						]
+						],
+						"display": {
+							"background_image": "background.jpg"
+						}
 					}`))
 			})
 		})
@@ -820,8 +834,8 @@ var _ = Describe("Pipelines API", func() {
 				})
 
 				It("injects the proper pipelineDB", func() {
-					pipelineName := fakeTeam.PipelineArgsForCall(0)
-					Expect(pipelineName).To(Equal("a-pipeline-name"))
+					pipelineRef := fakeTeam.PipelineArgsForCall(0)
+					Expect(pipelineRef).To(Equal(atc.PipelineRef{Name: "a-pipeline-name"}))
 				})
 
 				It("deletes the named pipeline from the database", func() {
@@ -893,8 +907,8 @@ var _ = Describe("Pipelines API", func() {
 				})
 
 				It("injects the proper pipelineDB", func() {
-					pipelineName := fakeTeam.PipelineArgsForCall(0)
-					Expect(pipelineName).To(Equal("a-pipeline"))
+					pipelineRef := fakeTeam.PipelineArgsForCall(0)
+					Expect(pipelineRef).To(Equal(atc.PipelineRef{Name: "a-pipeline"}))
 				})
 
 				Context("when pausing the pipeline succeeds", func() {
@@ -1019,8 +1033,8 @@ var _ = Describe("Pipelines API", func() {
 				})
 
 				It("injects the proper pipelineDB", func() {
-					pipelineName := fakeTeam.PipelineArgsForCall(0)
-					Expect(pipelineName).To(Equal("a-pipeline"))
+					pipelineRef := fakeTeam.PipelineArgsForCall(0)
+					Expect(pipelineRef).To(Equal(atc.PipelineRef{Name: "a-pipeline"}))
 				})
 
 				Context("when unpausing the pipeline succeeds", func() {
@@ -1103,8 +1117,8 @@ var _ = Describe("Pipelines API", func() {
 
 				It("injects the proper pipelineDB", func() {
 					Expect(fakeTeam.PipelineCallCount()).To(Equal(1))
-					pipelineName := fakeTeam.PipelineArgsForCall(0)
-					Expect(pipelineName).To(Equal("a-pipeline"))
+					pipelineRef := fakeTeam.PipelineArgsForCall(0)
+					Expect(pipelineRef).To(Equal(atc.PipelineRef{Name: "a-pipeline"}))
 				})
 
 				Context("when exposing the pipeline succeeds", func() {
@@ -1181,8 +1195,8 @@ var _ = Describe("Pipelines API", func() {
 				})
 
 				It("injects the proper pipeline", func() {
-					pipelineName := fakeTeam.PipelineArgsForCall(0)
-					Expect(pipelineName).To(Equal("a-pipeline"))
+					pipelineRef := fakeTeam.PipelineArgsForCall(0)
+					Expect(pipelineRef).To(Equal(atc.PipelineRef{Name: "a-pipeline"}))
 				})
 
 				Context("when hiding the pipeline succeeds", func() {
@@ -1232,24 +1246,23 @@ var _ = Describe("Pipelines API", func() {
 
 	Describe("PUT /api/v1/teams/:team_name/pipelines/ordering", func() {
 		var response *http.Response
-		var body io.Reader
+		var pipelineNames []string
 
 		BeforeEach(func() {
-			body = bytes.NewBufferString(`
-				[
-					"a-pipeline",
-					"another-pipeline",
-					"yet-another-pipeline",
-					"one-final-pipeline",
-					"just-kidding"
-				]
-			`)
+			pipelineNames = []string{
+				"a-pipeline",
+				"another-pipeline",
+				"yet-another-pipeline",
+				"one-final-pipeline",
+				"just-kidding",
+			}
 		})
 
 		JustBeforeEach(func() {
-			var err error
+			requestPayload, err := json.Marshal(pipelineNames)
+			Expect(err).NotTo(HaveOccurred())
 
-			request, err := http.NewRequest("PUT", server.URL+"/api/v1/teams/a-team/pipelines/ordering", body)
+			request, err := http.NewRequest("PUT", server.URL+"/api/v1/teams/a-team/pipelines/ordering", bytes.NewBuffer(requestPayload))
 			Expect(err).NotTo(HaveOccurred())
 
 			response, err = client.Do(request)
@@ -1261,20 +1274,10 @@ var _ = Describe("Pipelines API", func() {
 				fakeAccess.IsAuthenticatedReturns(true)
 			})
 
-			Context("when requester belonbgs to the team", func() {
+			Context("when requester belongs to the team", func() {
 				BeforeEach(func() {
 					fakeAccess.IsAuthorizedReturns(true)
 					dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
-				})
-
-				Context("with invalid json", func() {
-					BeforeEach(func() {
-						body = bytes.NewBufferString(`{}`)
-					})
-
-					It("returns 400", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
-					})
 				})
 
 				It("constructs team with provided team name", func() {
@@ -1289,21 +1292,22 @@ var _ = Describe("Pipelines API", func() {
 
 					It("orders the pipelines", func() {
 						Expect(fakeTeam.OrderPipelinesCallCount()).To(Equal(1))
-						pipelineNames := fakeTeam.OrderPipelinesArgsForCall(0)
-						Expect(pipelineNames).To(Equal(
-							[]string{
-								"a-pipeline",
-								"another-pipeline",
-								"yet-another-pipeline",
-								"one-final-pipeline",
-								"just-kidding",
-							},
-						))
-
+						Expect(fakeTeam.OrderPipelinesArgsForCall(0)).To(Equal(pipelineNames))
 					})
 
 					It("returns 200", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					})
+				})
+
+				Context("when a pipeline does not exist", func() {
+					BeforeEach(func() {
+						fakeTeam.OrderPipelinesReturns(db.ErrPipelineNotFound{Name: "a-pipeline"})
+					})
+
+					It("returns 400", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+						Expect(ioutil.ReadAll(response.Body)).To(ContainSubstring("pipeline 'a-pipeline' not found"))
 					})
 				})
 
@@ -1316,7 +1320,6 @@ var _ = Describe("Pipelines API", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 					})
 				})
-
 			})
 
 			Context("when requester does not belong to the team", func() {
@@ -1546,11 +1549,16 @@ var _ = Describe("Pipelines API", func() {
 
 	Describe("PUT /api/v1/teams/:team_name/pipelines/:pipeline_name/rename", func() {
 		var response *http.Response
+		var requestBody string
+
+		BeforeEach(func() {
+			requestBody = `{"name":"some-new-name"}`
+		})
 
 		JustBeforeEach(func() {
 			var err error
 
-			request, err := http.NewRequest("PUT", server.URL+"/api/v1/teams/a-team/pipelines/a-pipeline/rename", bytes.NewBufferString(`{"name":"some-new-name"}`))
+			request, err := http.NewRequest("PUT", server.URL+"/api/v1/teams/a-team/pipelines/a-pipeline/rename", bytes.NewBufferString(requestBody))
 			Expect(err).NotTo(HaveOccurred())
 
 			response, err = client.Do(request)
@@ -1561,41 +1569,81 @@ var _ = Describe("Pipelines API", func() {
 			BeforeEach(func() {
 				fakeAccess.IsAuthenticatedReturns(true)
 			})
-			Context("when requester belongs to the team", func() {
+			Context("when authorized", func() {
 				BeforeEach(func() {
 					fakeAccess.IsAuthorizedReturns(true)
 
 					dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
-					fakeTeam.PipelineReturns(dbPipeline, true, nil)
+					fakeTeam.RenamePipelineReturns(true, nil)
 				})
 
-				It("constructs teamDB with provided team name", func() {
+				It("finds the correct team", func() {
 					Expect(dbTeamFactory.FindTeamCallCount()).To(Equal(1))
 					Expect(dbTeamFactory.FindTeamArgsForCall(0)).To(Equal("a-team"))
 				})
 
-				It("injects the proper pipeline", func() {
-					pipelineName := fakeTeam.PipelineArgsForCall(0)
-					Expect(pipelineName).To(Equal("a-pipeline"))
-				})
-
-				It("returns 204", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusNoContent))
-				})
-
 				It("renames the pipeline to the name provided", func() {
-					Expect(dbPipeline.RenameCallCount()).To(Equal(1))
-					Expect(dbPipeline.RenameArgsForCall(0)).To(Equal("some-new-name"))
+					Expect(fakeTeam.RenamePipelineCallCount()).To(Equal(1))
+					oldName, newName := fakeTeam.RenamePipelineArgsForCall(0)
+					Expect(oldName).To(Equal("a-pipeline"))
+					Expect(newName).To(Equal("some-new-name"))
 				})
 
-				Context("when an error occurs on update", func() {
+				It("returns 200", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+
+				Context("when the pipeline does not exist", func() {
 					BeforeEach(func() {
-						fakeTeam.PipelineReturns(dbPipeline, true, nil)
-						dbPipeline.RenameReturns(errors.New("whoops"))
+						fakeTeam.RenamePipelineReturns(false, nil)
+					})
+
+					It("returns a 404", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+					})
+				})
+
+				Context("when renaming the pipeline errors", func() {
+					BeforeEach(func() {
+						fakeTeam.RenamePipelineReturns(false, errors.New("whoops"))
 					})
 
 					It("returns a 500 internal server error", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
+
+				Context("when the new name is an invalid identifier", func() {
+					Context("and is a string", func() {
+						BeforeEach(func() {
+							requestBody = `{"name":"_some-new-name"}`
+						})
+
+						It("returns a warning in the response body", func() {
+							Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
+							{
+								"warnings": [
+									{
+										"type": "invalid_identifier",
+										"message": "pipeline: '_some-new-name' is not a valid identifier: must start with a lowercase letter"
+									}
+								]
+							}`))
+						})
+					})
+					Context("and is an empty string", func() {
+						BeforeEach(func() {
+							requestBody = `{"name":""}`
+						})
+
+						It("returns a warning in the response body", func() {
+							Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
+							{
+								"errors": [
+										"pipeline: identifier cannot be an empty string"
+								]
+							}`))
+						})
 					})
 				})
 			})
@@ -1672,8 +1720,6 @@ var _ = Describe("Pipelines API", func() {
 
 					page := fakePipeline.BuildsArgsForCall(0)
 					Expect(page).To(Equal(db.Page{
-						Since: 0,
-						Until: 0,
 						Limit: 100,
 					}))
 				})
@@ -1681,7 +1727,7 @@ var _ = Describe("Pipelines API", func() {
 
 			Context("when all the params are passed", func() {
 				BeforeEach(func() {
-					queryParams = "?since=2&until=3&limit=8"
+					queryParams = "?from=2&to=3&limit=8"
 				})
 
 				It("passes them through", func() {
@@ -1689,8 +1735,8 @@ var _ = Describe("Pipelines API", func() {
 
 					page := fakePipeline.BuildsArgsForCall(0)
 					Expect(page).To(Equal(db.Page{
-						Since: 2,
-						Until: 3,
+						From:  db.NewIntPtr(2),
+						To:    db.NewIntPtr(3),
 						Limit: 8,
 					}))
 				})
@@ -1770,16 +1816,30 @@ var _ = Describe("Pipelines API", func() {
 				Context("when next/previous pages are available", func() {
 					BeforeEach(func() {
 						fakePipeline.BuildsReturns(returnedBuilds, db.Pagination{
-							Previous: &db.Page{Until: 4, Limit: 2},
-							Next:     &db.Page{Since: 2, Limit: 2},
+							Newer: &db.Page{From: db.NewIntPtr(4), Limit: 2},
+							Older: &db.Page{To: db.NewIntPtr(2), Limit: 2},
 						}, nil)
 					})
 
 					It("returns Link headers per rfc5988", func() {
 						Expect(response.Header["Link"]).To(ConsistOf([]string{
-							fmt.Sprintf(`<%s/api/v1/teams/some-team/pipelines/some-pipeline/builds?until=4&limit=2>; rel="previous"`, externalURL),
-							fmt.Sprintf(`<%s/api/v1/teams/some-team/pipelines/some-pipeline/builds?since=2&limit=2>; rel="next"`, externalURL),
+							fmt.Sprintf(`<%s/api/v1/teams/some-team/pipelines/some-pipeline/builds?from=4&limit=2>; rel="previous"`, externalURL),
+							fmt.Sprintf(`<%s/api/v1/teams/some-team/pipelines/some-pipeline/builds?to=2&limit=2>; rel="next"`, externalURL),
 						}))
+					})
+
+					Context("and pipeline is instanced", func() {
+						BeforeEach(func() {
+							fakePipeline.InstanceVarsReturns(atc.InstanceVars{"branch": "master"})
+						})
+
+						It("returns Link headers per rfc5988", func() {
+							link := fmt.Sprintf(`<%s/api/v1/teams/some-team/pipelines/some-pipeline/builds?`, externalURL)
+							Expect(response.Header["Link"]).To(ConsistOf([]string{
+								link + `to=2&limit=2&vars.branch=%22master%22>; rel="next"`,
+								link + `from=4&limit=2&vars.branch=%22master%22>; rel="previous"`,
+							}))
+						})
 					})
 				})
 			})

@@ -11,6 +11,7 @@ func CreateBuildPlan(
 	privileged bool,
 	inputs []Input,
 	inputMappings map[string]string,
+	versionedResourceTypes atc.VersionedResourceTypes,
 	outputs []Output,
 	config atc.TaskConfig,
 	tags []string,
@@ -19,29 +20,30 @@ func CreateBuildPlan(
 		return atc.Plan{}, err
 	}
 
-	buildInputs := atc.AggregatePlan{}
+	buildInputs := atc.InParallelPlan{}
 	for _, input := range inputs {
-		buildInputs = append(buildInputs, input.Plan)
+		buildInputs.Steps = append(buildInputs.Steps, input.Plan)
 	}
 
 	taskPlan := fact.NewPlan(atc.TaskPlan{
-		Name:         "one-off",
-		Privileged:   privileged,
-		Config:       &config,
-		InputMapping: inputMappings,
+		Name:                   "one-off",
+		Privileged:             privileged,
+		Config:                 &config,
+		InputMapping:           inputMappings,
+		VersionedResourceTypes: versionedResourceTypes,
 	})
 
 	if len(tags) != 0 {
 		taskPlan.Task.Tags = tags
 	}
 
-	buildOutputs := atc.AggregatePlan{}
+	buildOutputs := atc.InParallelPlan{}
 	for _, output := range outputs {
-		buildOutputs = append(buildOutputs, output.Plan)
+		buildOutputs.Steps = append(buildOutputs.Steps, output.Plan)
 	}
 
 	var plan atc.Plan
-	if len(buildOutputs) == 0 {
+	if len(buildOutputs.Steps) == 0 {
 		plan = fact.NewPlan(atc.DoPlan{
 			fact.NewPlan(buildInputs),
 			taskPlan,

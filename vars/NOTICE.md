@@ -1,4 +1,4 @@
-Copyright (c) 2019-Present Pivotal Software, Inc.
+Copyright (c) 2019-Present VMware, Inc. or its subsidiaries.
 
 Copyright (c) 2015-2019 CloudFoundry.org Foundation, Inc. All Rights Reserved.
 

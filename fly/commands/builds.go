@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/concourse/concourse/atc"
@@ -20,15 +21,15 @@ const timeDateLayout = "2006-01-02@15:04:05-0700"
 const inputTimeLayout = "2006-01-02 15:04:05"
 
 type BuildsCommand struct {
-	AllTeams    bool                     `short:"a" long:"all-teams" description:"Show builds for the all teams that user has access to"`
-	Count       int                      `short:"c" long:"count" default:"50" description:"Number of builds you want to limit the return to"`
-	CurrentTeam bool                     `long:"current-team" description:"Show builds for the currently targeted team"`
-	Job         flaghelpers.JobFlag      `short:"j" long:"job" value-name:"PIPELINE/JOB" description:"Name of a job to get builds for"`
-	Json        bool                     `long:"json" description:"Print command result as JSON"`
-	Pipeline    flaghelpers.PipelineFlag `short:"p" long:"pipeline" description:"Name of a pipeline to get builds for"`
-	Teams       []string                 `short:"n"  long:"team" description:"Show builds for these teams"`
-	Since       string                   `long:"since" description:"Start of the range to filter builds"`
-	Until       string                   `long:"until" description:"End of the range to filter builds"`
+	AllTeams    bool                      `short:"a" long:"all-teams" description:"Show builds for the all teams that user has access to"`
+	Count       int                       `short:"c" long:"count" default:"50" description:"Number of builds you want to limit the return to"`
+	CurrentTeam bool                      `long:"current-team" description:"Show builds for the currently targeted team"`
+	Job         flaghelpers.JobFlag       `short:"j" long:"job" value-name:"PIPELINE/JOB" description:"Name of a job to get builds for"`
+	Json        bool                      `long:"json" description:"Print command result as JSON"`
+	Pipeline    *flaghelpers.PipelineFlag `short:"p" long:"pipeline" description:"Name of a pipeline to get builds for"`
+	Teams       []string                  `short:"n"  long:"team" description:"Show builds for these teams"`
+	Since       string                    `long:"since" description:"Start of the range to filter builds"`
+	Until       string                    `long:"until" description:"End of the range to filter builds"`
 }
 
 func (command *BuildsCommand) Execute([]string) error {
@@ -136,7 +137,7 @@ func (command *BuildsCommand) validateJobBuilds(builds []atc.Build, currentTeam 
 	)
 
 	builds, _, found, err = currentTeam.JobBuilds(
-		command.Job.PipelineName,
+		command.Job.PipelineRef,
 		command.Job.JobName,
 		page,
 	)
@@ -150,14 +151,14 @@ func (command *BuildsCommand) validateJobBuilds(builds []atc.Build, currentTeam 
 }
 
 func (command *BuildsCommand) validatePipelineBuilds(builds []atc.Build, currentTeam concourse.Team, page concourse.Page) ([]atc.Build, error) {
-	err := command.Pipeline.Validate()
+	_, err := command.Pipeline.Validate()
 	if err != nil {
 		return nil, err
 	}
 
 	var found bool
 	builds, _, found, err = currentTeam.PipelineBuilds(
-		string(command.Pipeline),
+		command.Pipeline.Ref(),
 		page,
 	)
 
@@ -185,13 +186,13 @@ func (command *BuildsCommand) displayBuilds(builds []atc.Build) error {
 	table := ui.Table{
 		Headers: ui.TableRow{
 			{Contents: "id", Color: color.New(color.Bold)},
-			{Contents: "pipeline/job", Color: color.New(color.Bold)},
-			{Contents: "build", Color: color.New(color.Bold)},
+			{Contents: "name", Color: color.New(color.Bold)},
 			{Contents: "status", Color: color.New(color.Bold)},
 			{Contents: "start", Color: color.New(color.Bold)},
 			{Contents: "end", Color: color.New(color.Bold)},
 			{Contents: "duration", Color: color.New(color.Bold)},
 			{Contents: "team", Color: color.New(color.Bold)},
+			{Contents: "created by", Color: color.New(color.Bold)},
 		},
 	}
 
@@ -199,44 +200,43 @@ func (command *BuildsCommand) displayBuilds(builds []atc.Build) error {
 	for _, b := range builds[:buildCap] {
 		startTimeCell, endTimeCell, durationCell := populateTimeCells(time.Unix(b.StartTime, 0), time.Unix(b.EndTime, 0))
 
-		var pipelineJobCell, buildCell ui.TableCell
-		if b.PipelineName == "" {
-			pipelineJobCell.Contents = "one-off"
-			buildCell.Contents = "n/a"
-		} else {
-			pipelineJobCell.Contents = fmt.Sprintf("%s/%s", b.PipelineName, b.JobName)
-			buildCell.Contents = b.Name
+		var nameCell ui.TableCell
+
+		var names []string
+		if b.PipelineName != "" {
+			pipelineRef := atc.PipelineRef{
+				Name:         b.PipelineName,
+				InstanceVars: b.PipelineInstanceVars,
+			}
+
+			names = append(names, pipelineRef.String())
 		}
 
-		var statusCell ui.TableCell
-		statusCell.Contents = b.Status
-
-		switch b.Status {
-		case "pending":
-			statusCell.Color = ui.PendingColor
-		case "started":
-			statusCell.Color = ui.StartedColor
-		case "succeeded":
-			statusCell.Color = ui.SucceededColor
-		case "failed":
-			statusCell.Color = ui.FailedColor
-		case "errored":
-			statusCell.Color = ui.ErroredColor
-		case "aborted":
-			statusCell.Color = ui.AbortedColor
-		case "paused":
-			statusCell.Color = ui.PausedColor
+		if b.JobName != "" {
+			names = append(names, b.JobName)
 		}
 
+		if b.ResourceName != "" {
+			names = append(names, b.ResourceName)
+		}
+
+		names = append(names, b.Name)
+
+		nameCell.Contents = strings.Join(names, "/")
+
+		createdBy := "system"
+		if b.CreatedBy != nil {
+			createdBy = *b.CreatedBy
+		}
 		table.Data = append(table.Data, []ui.TableCell{
 			{Contents: strconv.Itoa(b.ID)},
-			pipelineJobCell,
-			buildCell,
-			statusCell,
+			nameCell,
+			ui.BuildStatusCell(b.Status),
 			startTimeCell,
 			endTimeCell,
 			durationCell,
 			{Contents: b.TeamName},
+			{Contents: createdBy},
 		})
 	}
 
@@ -250,14 +250,14 @@ func (command *BuildsCommand) validateBuildArguments(timeSince time.Time, page c
 		if err != nil {
 			return page, errors.New("Since time should be in the format: " + inputTimeLayout)
 		}
-		page.Since = int(timeSince.Unix())
+		page.From = int(timeSince.Unix())
 	}
 	if command.Until != "" {
 		timeUntil, err = time.ParseInLocation(inputTimeLayout, command.Until, time.Now().Location())
 		if err != nil {
 			return page, errors.New("Until time should be in the format: " + inputTimeLayout)
 		}
-		page.Until = int(timeUntil.Unix())
+		page.To = int(timeUntil.Unix())
 	}
 	if timeSince.After(timeUntil) && command.Since != "" && command.Until != "" {
 		return page, errors.New("Cannot have --since after --until")
@@ -309,11 +309,11 @@ func roundSecondsOffDuration(d time.Duration) time.Duration {
 }
 
 func (command *BuildsCommand) jobFlag() bool {
-	return command.Job.PipelineName != "" && command.Job.JobName != ""
+	return command.Job.PipelineRef.Name != "" && command.Job.JobName != ""
 }
 
 func (command *BuildsCommand) pipelineFlag() bool {
-	return command.Pipeline != ""
+	return command.Pipeline != nil
 }
 
 func (command *BuildsCommand) buildCap(builds []atc.Build) int {

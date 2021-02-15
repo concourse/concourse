@@ -9,7 +9,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"syscall"
-	"time"
 
 	"code.cloudfoundry.org/garden/server"
 	"code.cloudfoundry.org/lager"
@@ -19,73 +18,11 @@ import (
 	"github.com/concourse/concourse/worker/runtime/libcontainerd"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
-	"github.com/tedsuo/ifrit/restart"
 )
 
-func containerdGardenServerRunner(
-	logger lager.Logger,
-	bindAddr,
-	containerdAddr string,
-	requestTimeout time.Duration,
-	dnsServers []string,
-	networkPool string,
-) (ifrit.Runner, error) {
-	const (
-		graceTime = 0
-		namespace = "concourse"
-	)
-
-	backendOpts := []runtime.GardenBackendOpt{}
-	networkOpts := []runtime.CNINetworkOpt{}
-
-	if len(dnsServers) > 0 {
-		networkOpts = append(networkOpts, runtime.WithNameServers(dnsServers))
-	}
-
-	if networkPool != "" {
-		networkOpts = append(networkOpts, runtime.WithCNINetworkConfig(
-			runtime.CNINetworkConfig{
-				BridgeName:  "concourse0",
-				NetworkName: "concourse",
-				Subnet:      networkPool,
-			}))
-	}
-
-	cniNetwork, err := runtime.NewCNINetwork(networkOpts...)
-	if err != nil {
-		return nil, fmt.Errorf("new cni network: %w", err)
-	}
-
-	backendOpts = append(backendOpts, runtime.WithNetwork(cniNetwork))
-
-	gardenBackend, err := runtime.NewGardenBackend(
-		libcontainerd.New(containerdAddr, namespace, requestTimeout),
-		backendOpts...,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("containerd containerd init: %w", err)
-	}
-
-	server := server.New("tcp", bindAddr,
-		graceTime,
-		&gardenBackend,
-		logger,
-	)
-
-	runner := gardenServerRunner{logger, server}
-
-	return restart.Restarter{
-		Runner: runner,
-		Load: func(prevRunner ifrit.Runner, prevErr error) ifrit.Runner {
-			return runner
-		},
-	}, nil
-}
-
-// writeDefaultContainerdConfig writes a default containerd configuration file
+// WriteDefaultContainerdConfig writes a default containerd configuration file
 // to a destination.
-//
-func writeDefaultContainerdConfig(dest string) error {
+func WriteDefaultContainerdConfig(dest string) error {
 	// disable plugins we don't use:
 	//
 	// - CRI: we're not supposed to be targetted by a kubelet, so there's no
@@ -96,8 +33,10 @@ func writeDefaultContainerdConfig(dest string) error {
 	//                   on a single snapshotter implementation we can better
 	//                   reason about potential problems down the road.
 	//
-	const config = `disabled_plugins = ["cri", "aufs", "btrfs", "zfs"]`
-
+	const config = `
+oom_score = -999
+disabled_plugins = ["cri", "aufs", "btrfs", "zfs"]
+`
 	err := ioutil.WriteFile(dest, []byte(config), 0755)
 	if err != nil {
 		return fmt.Errorf("write file %s: %w", dest, err)
@@ -106,6 +45,69 @@ func writeDefaultContainerdConfig(dest string) error {
 	return nil
 }
 
+// containerdGardenServerRunner launches a Garden server configured to interact
+// with containerd via the containerdAddr socket.
+func (cmd *WorkerCommand) containerdGardenServerRunner(
+	logger lager.Logger,
+	containerdAddr string,
+	dnsServers []string,
+) (ifrit.Runner, error) {
+	const (
+		graceTime = 0
+		namespace = "concourse"
+	)
+
+	backendOpts := []runtime.GardenBackendOpt{}
+	networkOpts := []runtime.CNINetworkOpt{runtime.WithCNIBinariesDir(cmd.Containerd.CNIPluginsDir)}
+
+	if len(dnsServers) > 0 {
+		networkOpts = append(networkOpts, runtime.WithNameServers(dnsServers))
+	}
+
+	if len(cmd.Containerd.RestrictedNetworks) > 0 {
+		networkOpts = append(networkOpts, runtime.WithRestrictedNetworks(cmd.Containerd.RestrictedNetworks))
+	}
+
+	if cmd.Containerd.NetworkPool != "" {
+		networkOpts = append(networkOpts, runtime.WithCNINetworkConfig(
+			runtime.CNINetworkConfig{
+				BridgeName:  "concourse0",
+				NetworkName: "concourse",
+				Subnet:      cmd.Containerd.NetworkPool,
+			}))
+	}
+
+	cniNetwork, err := runtime.NewCNINetwork(networkOpts...)
+	if err != nil {
+		return nil, fmt.Errorf("new cni network: %w", err)
+	}
+
+	backendOpts = append(backendOpts,
+		runtime.WithNetwork(cniNetwork),
+		runtime.WithRequestTimeout(cmd.Containerd.RequestTimeout),
+		runtime.WithMaxContainers(cmd.Containerd.MaxContainers),
+		runtime.WithInitBinPath(cmd.Containerd.InitBin),
+	)
+
+	gardenBackend, err := runtime.NewGardenBackend(
+		libcontainerd.New(containerdAddr, namespace, cmd.Containerd.RequestTimeout),
+		backendOpts...,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("containerd containerd init: %w", err)
+	}
+
+	server := server.New("tcp", cmd.bindAddr(),
+		graceTime,
+		&gardenBackend,
+		logger,
+	)
+
+	return gardenServerRunner{logger, server}, nil
+}
+
+// containerdRunner spawns a containerd and a Garden server process for use as the container
+// runtime of Concourse.
 func (cmd *WorkerCommand) containerdRunner(logger lager.Logger) (ifrit.Runner, error) {
 	const sock = "/run/containerd/containerd.sock"
 
@@ -120,17 +122,17 @@ func (cmd *WorkerCommand) containerdRunner(logger lager.Logger) (ifrit.Runner, e
 		return nil, err
 	}
 
-	if cmd.Garden.Config.Path() != "" {
-		config = cmd.Garden.Config.Path()
+	if cmd.Containerd.Config.Path() != "" {
+		config = cmd.Containerd.Config.Path()
 	} else {
-		err := writeDefaultContainerdConfig(config)
+		err := WriteDefaultContainerdConfig(config)
 		if err != nil {
 			return nil, fmt.Errorf("write default containerd config: %w", err)
 		}
 	}
 
-	if cmd.Garden.Bin != "" {
-		bin = cmd.Garden.Bin
+	if cmd.Containerd.Bin != "" {
+		bin = cmd.Containerd.Bin
 	}
 
 	command := exec.Command(bin,
@@ -147,8 +149,8 @@ func (cmd *WorkerCommand) containerdRunner(logger lager.Logger) (ifrit.Runner, e
 
 	members := grouper.Members{}
 
-	dnsServers := cmd.Garden.DNSServers
-	if cmd.Garden.DNS.Enable {
+	dnsServers := cmd.Containerd.DNSServers
+	if cmd.Containerd.DNS.Enable {
 		dnsProxyRunner, err := cmd.dnsProxyRunner(logger.Session("dns-proxy"))
 		if err != nil {
 			return nil, err
@@ -170,19 +172,16 @@ func (cmd *WorkerCommand) containerdRunner(logger lager.Logger) (ifrit.Runner, e
 		})
 	}
 
-	gardenServerRunner, err := containerdGardenServerRunner(
+	gardenServerRunner, err := cmd.containerdGardenServerRunner(
 		logger,
-		cmd.bindAddr(),
 		sock,
-		cmd.Garden.RequestTimeout,
 		dnsServers,
-		cmd.ContainerNetworkPool,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("containerd garden server runner: %w", err)
 	}
 
-	members = append(members, grouper.Members{
+	members = append(grouper.Members{
 		{
 			Name:   "containerd",
 			Runner: CmdRunner{command},
@@ -191,7 +190,8 @@ func (cmd *WorkerCommand) containerdRunner(logger lager.Logger) (ifrit.Runner, e
 			Name:   "containerd-garden-backend",
 			Runner: gardenServerRunner,
 		},
-	}...)
+	}, members...)
 
-	return grouper.NewParallel(os.Interrupt, members), nil
+	// Using the Ordered strategy to ensure containerd is up before the garden server is started
+	return grouper.NewOrdered(os.Interrupt, members), nil
 }

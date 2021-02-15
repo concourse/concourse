@@ -19,15 +19,16 @@ type Access interface {
 	TeamNames() []string
 	TeamRoles() map[string][]string
 	Claims() Claims
+	UserInfo() atc.UserInfo
 }
 
 type Claims struct {
-	Sub       string
-	Name      string
-	UserID    string
-	UserName  string
-	Email     string
-	Connector string
+	Sub               string
+	UserID            string
+	UserName          string
+	PreferredUsername string
+	Email             string
+	Connector         string
 }
 
 type Verification struct {
@@ -37,11 +38,14 @@ type Verification struct {
 }
 
 type access struct {
-	verification      Verification
-	requiredRole      string
-	systemClaimKey    string
-	systemClaimValues []string
-	teams             []db.Team
+	verification           Verification
+	requiredRole           string
+	systemClaimKey         string
+	systemClaimValues      []string
+	teams                  []db.Team
+	teamRoles              map[string][]string
+	isAdmin                bool
+	displayUserIdGenerator atc.DisplayUserIdGenerator
 }
 
 func NewAccessor(
@@ -50,84 +54,50 @@ func NewAccessor(
 	systemClaimKey string,
 	systemClaimValues []string,
 	teams []db.Team,
+	displayUserIdGenerator atc.DisplayUserIdGenerator,
 ) *access {
-	return &access{
-		verification:      verification,
-		requiredRole:      requiredRole,
-		systemClaimKey:    systemClaimKey,
-		systemClaimValues: systemClaimValues,
-		teams:             teams,
+	a := &access{
+		verification:           verification,
+		requiredRole:           requiredRole,
+		systemClaimKey:         systemClaimKey,
+		systemClaimValues:      systemClaimValues,
+		teams:                  teams,
+		displayUserIdGenerator: displayUserIdGenerator,
 	}
+	a.computeTeamRoles()
+	return a
 }
 
-func (a *access) HasToken() bool {
-	return a.verification.HasToken
-}
-
-func (a *access) IsAuthenticated() bool {
-	return a.verification.IsTokenValid
-}
-
-func (a *access) IsAuthorized(teamName string) bool {
-
-	if a.IsAdmin() {
-		return true
-	}
-
-	for _, team := range a.TeamNames() {
-		if team == teamName {
-			return true
-		}
-	}
-
-	return false
-}
-
-func (a *access) TeamNames() []string {
-
-	teamNames := []string{}
-
-	isAdmin := a.IsAdmin()
+func (a *access) computeTeamRoles() {
+	a.teamRoles = map[string][]string{}
 
 	for _, team := range a.teams {
-		if isAdmin || a.hasRequiredRole(team.Auth()) {
-			teamNames = append(teamNames, team.Name())
+		roles := a.rolesForTeam(team.Auth())
+		if len(roles) > 0 {
+			a.teamRoles[team.Name()] = roles
+		}
+		if team.Admin() && contains(roles, "owner") {
+			a.isAdmin = true
 		}
 	}
-
-	return teamNames
 }
 
-func (a *access) hasRequiredRole(auth atc.TeamAuth) bool {
-	for _, teamRole := range a.rolesForTeam(auth) {
-		if a.hasPermission(teamRole) {
+func contains(arr []string, val string) bool {
+	for _, v := range arr {
+		if v == val {
 			return true
 		}
 	}
 	return false
-}
-
-func (a *access) teamRoles() map[string][]string {
-
-	teamRoles := map[string][]string{}
-
-	for _, team := range a.teams {
-		if roles := a.rolesForTeam(team.Auth()); len(roles) > 0 {
-			teamRoles[team.Name()] = roles
-		}
-	}
-
-	return teamRoles
 }
 
 func (a *access) rolesForTeam(auth atc.TeamAuth) []string {
-
 	roleSet := map[string]bool{}
 
 	groups := a.groups()
 	connectorID := a.connectorID()
 	userID := a.userID()
-	userName := a.UserName()
+	userName := a.userName()
 
 	for role, auth := range auth {
 		userAuth := auth["users"]
@@ -169,7 +139,41 @@ func (a *access) rolesForTeam(auth atc.TeamAuth) []string {
 	return roles
 }
 
-func (a *access) hasPermission(role string) bool {
+func (a *access) HasToken() bool {
+	return a.verification.HasToken
+}
+
+func (a *access) IsAuthenticated() bool {
+	return a.verification.IsTokenValid
+}
+
+func (a *access) IsAuthorized(teamName string) bool {
+	return a.isAdmin || a.hasPermission(a.teamRoles[teamName])
+}
+
+func (a *access) TeamNames() []string {
+	teamNames := []string{}
+	for _, team := range a.teams {
+		if a.isAdmin || a.hasPermission(a.teamRoles[team.Name()]) {
+			teamNames = append(teamNames, team.Name())
+		}
+	}
+
+	return teamNames
+}
+
+func (a *access) hasPermission(roles []string) bool {
+	allow := false
+	for _, role := range roles {
+		allow = allow || a.hasRequiredRole(role)
+		if allow {
+			return true
+		}
+	}
+	return false
+}
+
+func (a *access) hasRequiredRole(role string) bool {
 	switch a.requiredRole {
 	case OwnerRole:
 		return role == OwnerRole
@@ -218,12 +222,16 @@ func (a *access) claim(name string) string {
 	return ""
 }
 
-func (a *access) UserName() string {
-	return a.federatedClaim("user_name")
-}
-
 func (a *access) userID() string {
 	return a.federatedClaim("user_id")
+}
+
+func (a *access) userName() string {
+	if a.claim("preferred_username") != "" {
+		return a.claim("preferred_username")
+	}
+
+	return a.claim("name")
 }
 
 func (a *access) connectorID() string {
@@ -244,30 +252,8 @@ func (a *access) groups() []string {
 	return groups
 }
 
-func (a *access) adminTeams() []string {
-	var adminTeams []string
-
-	for _, team := range a.teams {
-		if team.Admin() {
-			adminTeams = append(adminTeams, team.Name())
-		}
-	}
-	return adminTeams
-}
-
 func (a *access) IsAdmin() bool {
-
-	teamRoles := a.teamRoles()
-
-	for _, adminTeam := range a.adminTeams() {
-		for _, role := range teamRoles[adminTeam] {
-			if role == "owner" {
-				return true
-			}
-		}
-	}
-
-	return false
+	return a.isAdmin
 }
 
 func (a *access) IsSystem() bool {
@@ -282,16 +268,38 @@ func (a *access) IsSystem() bool {
 }
 
 func (a *access) TeamRoles() map[string][]string {
-	return a.teamRoles()
+	return a.teamRoles
 }
 
 func (a *access) Claims() Claims {
 	return Claims{
-		Sub:       a.claim("sub"),
-		Name:      a.claim("name"),
-		Email:     a.claim("email"),
-		UserID:    a.userID(),
-		UserName:  a.UserName(),
-		Connector: a.connectorID(),
+		Sub:               a.claim("sub"),
+		Email:             a.claim("email"),
+		UserID:            a.userID(),
+		UserName:          a.claim("name"),
+		PreferredUsername: a.claim("preferred_username"),
+		Connector:         a.connectorID(),
+	}
+}
+
+func (a *access) UserInfo() atc.UserInfo {
+	claims := a.Claims()
+	return atc.UserInfo{
+		Sub:       claims.Sub,
+		Name:      claims.UserName,
+		UserId:    claims.UserID,
+		UserName:  claims.PreferredUsername,
+		Email:     claims.Email,
+		Connector: claims.Connector,
+		IsAdmin:   a.IsAdmin(),
+		IsSystem:  a.IsSystem(),
+		Teams:     a.TeamRoles(),
+		DisplayUserId: a.displayUserIdGenerator.DisplayUserId(
+			claims.Connector,
+			claims.UserID,
+			claims.UserName,
+			claims.PreferredUsername,
+			claims.Email,
+		),
 	}
 }

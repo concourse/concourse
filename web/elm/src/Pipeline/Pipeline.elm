@@ -32,13 +32,11 @@ import Html.Attributes
 import Html.Attributes.Aria exposing (ariaLabel)
 import Html.Events exposing (onMouseEnter, onMouseLeave)
 import Http
-import Json.Decode
-import Json.Encode
 import Keyboard
 import Login.Login as Login
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
-import Message.Message exposing (DomID(..), Message(..))
+import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import Message.Subscription
     exposing
         ( Delivery(..)
@@ -50,12 +48,14 @@ import Pipeline.PinMenu.PinMenu as PinMenu
 import Pipeline.Styles as Styles
 import RemoteData exposing (WebData)
 import Routes
+import Set
 import SideBar.SideBar as SideBar
 import StrictEvents exposing (onLeftClickOrShiftLeftClick)
 import Svg
 import Svg.Attributes as SvgAttributes
 import Tooltip
 import UpdateMsg exposing (UpdateMsg)
+import Views.FavoritedIcon as FavoritedIcon
 import Views.PauseToggle as PauseToggle
 import Views.Styles
 import Views.TopBar as TopBar
@@ -65,10 +65,10 @@ type alias Model =
     Login.Model
         { pipelineLocator : Concourse.PipelineIdentifier
         , pipeline : WebData Concourse.Pipeline
-        , fetchedJobs : Maybe Json.Encode.Value
-        , fetchedResources : Maybe Json.Encode.Value
-        , renderedJobs : Maybe Json.Encode.Value
-        , renderedResources : Maybe Json.Encode.Value
+        , fetchedJobs : Maybe (List Concourse.Job)
+        , fetchedResources : Maybe (List Concourse.Resource)
+        , renderedJobs : Maybe (List Concourse.Job)
+        , renderedResources : Maybe (List Concourse.Resource)
         , turbulenceImgSrc : String
         , experiencingTurbulence : Bool
         , selectedGroups : List String
@@ -329,7 +329,7 @@ update msg ( model, effects ) =
         SetGroups groups ->
             ( model, effects ++ [ NavigateTo <| getNextUrl groups model ] )
 
-        Click (PipelineButton pipelineIdentifier) ->
+        Click (TopBarPauseToggle pipelineIdentifier) ->
             let
                 paused =
                     model.pipeline |> RemoteData.map .paused
@@ -387,30 +387,42 @@ view session model =
             (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
             [ Html.div
                 (id "top-bar-app" :: Views.Styles.topBar displayPaused)
-                [ SideBar.hamburgerMenu session
+                [ SideBar.sideBarIcon session
                 , TopBar.concourseLogo
-                , TopBar.breadcrumbs route
+                , TopBar.breadcrumbs session route
                 , PinMenu.viewPinMenu session model
+                , Html.div
+                    Styles.favoritedIcon
+                    [ FavoritedIcon.view
+                        { isHovered = HoverState.isHovered (TopBarFavoritedIcon <| getPipelineId model.pipeline) session.hovered
+                        , isFavorited =
+                            Set.member (getPipelineId model.pipeline) session.favoritedPipelines
+                        , isSideBar = False
+                        , domID = TopBarFavoritedIcon <| getPipelineId model.pipeline
+                        }
+                        [ style "margin" "17px" ]
+                    ]
                 , if isArchived model.pipeline then
                     Html.text ""
 
                   else
                     Html.div
-                        (id "top-bar-pause-toggle" :: Styles.pauseToggle displayPaused)
+                        Styles.pauseToggle
                         [ PauseToggle.view
                             { pipeline = model.pipelineLocator
                             , isPaused = isPaused model.pipeline
                             , isToggleHovered =
                                 HoverState.isHovered
-                                    (PipelineButton model.pipelineLocator)
+                                    (TopBarPauseToggle model.pipelineLocator)
                                     session.hovered
                             , isToggleLoading = model.isToggleLoading
                             , tooltipPosition = Views.Styles.Below
                             , margin = "17px"
                             , userState = session.userState
+                            , domID = TopBarPauseToggle model.pipelineLocator
                             }
                         ]
-                , Login.view session.userState model <| displayPaused
+                , Login.view session.userState model
                 ]
             , Html.div
                 (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
@@ -422,9 +434,48 @@ view session model =
         ]
 
 
-tooltip : Model -> a -> Maybe Tooltip.Tooltip
-tooltip _ _ =
-    Nothing
+tooltip : Model -> Session -> Maybe Tooltip.Tooltip
+tooltip model session =
+    case session.hovered of
+        HoverState.Tooltip (TopBarFavoritedIcon _) _ ->
+            let
+                isFavorited =
+                    Set.member (getPipelineId model.pipeline) session.favoritedPipelines
+            in
+            Just
+                { body =
+                    Html.text <|
+                        if isFavorited then
+                            "unfavorite pipeline"
+
+                        else
+                            "favorite pipeline"
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
+
+        HoverState.Tooltip (TopBarPauseToggle _) _ ->
+            Just
+                { body =
+                    Html.text <|
+                        if isPaused model.pipeline then
+                            "unpause pipeline"
+
+                        else
+                            "pause pipeline"
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
+
+        _ ->
+            PinMenu.tooltip model session
+
+
+getPipelineId : WebData Concourse.Pipeline -> Int
+getPipelineId p =
+    RemoteData.withDefault -1 (RemoteData.map .id p)
 
 
 isPaused : WebData Concourse.Pipeline -> Bool
@@ -435,6 +486,18 @@ isPaused p =
 isArchived : WebData Concourse.Pipeline -> Bool
 isArchived p =
     RemoteData.withDefault False (RemoteData.map .archived p)
+
+
+backgroundImage : WebData Concourse.Pipeline -> List (Html.Attribute msg)
+backgroundImage pipeline =
+    case pipeline of
+        RemoteData.Success p ->
+            p.backgroundImage
+                |> Maybe.map Styles.pipelineBackground
+                |> Maybe.withDefault []
+
+        _ ->
+            []
 
 
 viewSubPage :
@@ -450,8 +513,12 @@ viewSubPage session model =
         , style "flex-grow" "1"
         ]
         [ viewGroupsBar session model
-        , Html.div [ class "pipeline-content" ]
-            [ Svg.svg
+        , Html.div
+            [ class "pipeline-content" ]
+            [ Html.div
+                (id "pipeline-background" :: backgroundImage model.pipeline)
+                []
+            , Svg.svg
                 [ SvgAttributes.class "pipeline-graph test" ]
                 []
             , Html.div
@@ -592,41 +659,16 @@ viewGroup { selectedGroups, pipelineLocator, hovered } idx grp =
         [ Html.text grp.name ]
 
 
-jobAppearsInGroups : List String -> Json.Encode.Value -> Bool
-jobAppearsInGroups groupNames jobJson =
-    let
-        concourseJob =
-            Json.Decode.decodeValue Concourse.decodeJob jobJson
-    in
-    case concourseJob of
-        Ok cj ->
-            anyIntersect cj.groups groupNames
-
-        Err _ ->
-            -- failed to check if job is in group
-            False
+jobAppearsInGroups : List String -> Concourse.Job -> Bool
+jobAppearsInGroups groupNames job =
+    anyIntersect job.groups groupNames
 
 
-expandJsonList : Json.Encode.Value -> List Json.Decode.Value
-expandJsonList flatList =
-    let
-        result =
-            Json.Decode.decodeValue (Json.Decode.list Json.Decode.value) flatList
-    in
-    case result of
-        Ok res ->
-            res
-
-        Err _ ->
-            []
-
-
-filterJobs : Model -> Json.Encode.Value -> Json.Encode.Value
-filterJobs model value =
-    Json.Encode.list identity <|
-        List.filter
-            (jobAppearsInGroups (activeGroups model))
-            (expandJsonList value)
+filterJobs : Model -> List Concourse.Job -> List Concourse.Job
+filterJobs model jobs =
+    List.filter
+        (jobAppearsInGroups (activeGroups model))
+        jobs
 
 
 activeGroups : Model -> List String
@@ -654,8 +696,8 @@ renderIfNeeded ( model, effects ) =
             case ( model.renderedResources, model.renderedJobs ) of
                 ( Just renderedResources, Just renderedJobs ) ->
                     if
-                        (expandJsonList renderedJobs /= expandJsonList filteredFetchedJobs)
-                            || (expandJsonList renderedResources /= expandJsonList fetchedResources)
+                        (renderedJobs /= filteredFetchedJobs)
+                            || (renderedResources /= fetchedResources)
                     then
                         ( { model
                             | renderedJobs = Just filteredFetchedJobs

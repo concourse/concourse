@@ -4,6 +4,7 @@ package accessorfakes
 import (
 	"sync"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor"
 )
 
@@ -88,6 +89,16 @@ type FakeAccess struct {
 	}
 	teamRolesReturnsOnCall map[int]struct {
 		result1 map[string][]string
+	}
+	UserInfoStub        func() atc.UserInfo
+	userInfoMutex       sync.RWMutex
+	userInfoArgsForCall []struct {
+	}
+	userInfoReturns struct {
+		result1 atc.UserInfo
+	}
+	userInfoReturnsOnCall map[int]struct {
+		result1 atc.UserInfo
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -517,6 +528,58 @@ func (fake *FakeAccess) TeamRolesReturnsOnCall(i int, result1 map[string][]strin
 	}{result1}
 }
 
+func (fake *FakeAccess) UserInfo() atc.UserInfo {
+	fake.userInfoMutex.Lock()
+	ret, specificReturn := fake.userInfoReturnsOnCall[len(fake.userInfoArgsForCall)]
+	fake.userInfoArgsForCall = append(fake.userInfoArgsForCall, struct {
+	}{})
+	fake.recordInvocation("UserInfo", []interface{}{})
+	fake.userInfoMutex.Unlock()
+	if fake.UserInfoStub != nil {
+		return fake.UserInfoStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.userInfoReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeAccess) UserInfoCallCount() int {
+	fake.userInfoMutex.RLock()
+	defer fake.userInfoMutex.RUnlock()
+	return len(fake.userInfoArgsForCall)
+}
+
+func (fake *FakeAccess) UserInfoCalls(stub func() atc.UserInfo) {
+	fake.userInfoMutex.Lock()
+	defer fake.userInfoMutex.Unlock()
+	fake.UserInfoStub = stub
+}
+
+func (fake *FakeAccess) UserInfoReturns(result1 atc.UserInfo) {
+	fake.userInfoMutex.Lock()
+	defer fake.userInfoMutex.Unlock()
+	fake.UserInfoStub = nil
+	fake.userInfoReturns = struct {
+		result1 atc.UserInfo
+	}{result1}
+}
+
+func (fake *FakeAccess) UserInfoReturnsOnCall(i int, result1 atc.UserInfo) {
+	fake.userInfoMutex.Lock()
+	defer fake.userInfoMutex.Unlock()
+	fake.UserInfoStub = nil
+	if fake.userInfoReturnsOnCall == nil {
+		fake.userInfoReturnsOnCall = make(map[int]struct {
+			result1 atc.UserInfo
+		})
+	}
+	fake.userInfoReturnsOnCall[i] = struct {
+		result1 atc.UserInfo
+	}{result1}
+}
+
 func (fake *FakeAccess) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -536,6 +599,8 @@ func (fake *FakeAccess) Invocations() map[string][][]interface{} {
 	defer fake.teamNamesMutex.RUnlock()
 	fake.teamRolesMutex.RLock()
 	defer fake.teamRolesMutex.RUnlock()
+	fake.userInfoMutex.RLock()
+	defer fake.userInfoMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

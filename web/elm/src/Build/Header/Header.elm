@@ -3,6 +3,7 @@ module Build.Header.Header exposing
     , handleCallback
     , handleDelivery
     , header
+    , tooltip
     , update
     , view
     )
@@ -32,10 +33,11 @@ import Message.Subscription
         , Interval(..)
         , Subscription(..)
         )
-import RemoteData exposing (WebData)
 import Routes
+import SideBar.SideBar exposing (byPipelineId, lookupPipeline)
 import StrictEvents exposing (DeltaMode(..))
 import Time
+import Tooltip
 
 
 historyId : String
@@ -45,12 +47,23 @@ historyId =
 
 header : Session -> Model r -> Views.Header
 header session model =
+    let
+        archived =
+            case model.job of
+                Just jobID ->
+                    lookupPipeline (byPipelineId jobID) session
+                        |> Maybe.map .archived
+                        |> Maybe.withDefault False
+
+                Nothing ->
+                    False
+    in
     { leftWidgets =
         [ Views.Title model.name model.job
         , Views.Duration (duration session model)
         ]
     , rightWidgets =
-        if isPipelineArchived session.pipelines model.job then
+        if archived then
             []
 
         else
@@ -70,7 +83,6 @@ header session model =
                             else
                                 Views.Light
                         , backgroundColor = Concourse.BuildStatus.BuildStatusFailed
-                        , tooltip = False
                         }
 
                  else if model.job /= Nothing then
@@ -90,7 +102,6 @@ header session model =
                             else
                                 Views.Light
                         , backgroundColor = model.status
-                        , tooltip = isHovered
                         }
 
                  else
@@ -114,7 +125,6 @@ header session model =
                             else
                                 Views.Light
                         , backgroundColor = model.status
-                        , tooltip = isHovered && model.disableManualTrigger
                         }
 
                  else
@@ -126,21 +136,49 @@ header session model =
     }
 
 
-isPipelineArchived :
-    WebData (List Concourse.Pipeline)
-    -> Maybe Concourse.JobIdentifier
-    -> Bool
-isPipelineArchived pipelines jobId =
-    case jobId of
-        Just { pipelineName, teamName } ->
-            pipelines
-                |> RemoteData.withDefault []
-                |> List.Extra.find (\p -> p.name == pipelineName && p.teamName == teamName)
-                |> Maybe.map .archived
-                |> Maybe.withDefault False
+tooltip : Model r -> Session -> Maybe Tooltip.Tooltip
+tooltip model session =
+    case session.hovered of
+        HoverState.Tooltip TriggerBuildButton _ ->
+            Just
+                { body =
+                    Html.text <|
+                        if model.disableManualTrigger then
+                            "manual triggering disabled in job config"
 
-        Nothing ->
-            False
+                        else
+                            "trigger a new build"
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
+
+        HoverState.Tooltip RerunBuildButton _ ->
+            Just
+                { body = Html.text "re-run with the same inputs"
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
+
+        HoverState.Tooltip AbortBuildButton _ ->
+            Just
+                { body = Html.text "abort the current build"
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
+
+        HoverState.Tooltip JobName _ ->
+            Just
+                { body = Html.text "view job builds"
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.Start }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
+
+        _ ->
+            Nothing
 
 
 tabs : Model r -> List Views.BuildTab
@@ -454,6 +492,7 @@ update msg ( model, effects ) =
                                 RerunJobBuild
                                     { teamName = j.teamName
                                     , pipelineName = j.pipelineName
+                                    , pipelineInstanceVars = j.pipelineInstanceVars
                                     , jobName = j.jobName
                                     , buildName = model.name
                                     }

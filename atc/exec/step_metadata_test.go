@@ -23,6 +23,7 @@ var _ = Describe("StepMetadata", func() {
 					PipelineID:   4444,
 					PipelineName: "some-pipeline-name",
 					ExternalURL:  "http://www.example.com",
+					CreatedBy:    "someone",
 				}
 			})
 
@@ -37,6 +38,7 @@ var _ = Describe("StepMetadata", func() {
 					"BUILD_PIPELINE_ID=4444",
 					"BUILD_PIPELINE_NAME=some-pipeline-name",
 					"ATC_EXTERNAL_URL=http://www.example.com",
+					"BUILD_CREATED_BY=someone",
 				))
 			})
 		})

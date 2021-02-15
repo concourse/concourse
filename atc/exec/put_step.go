@@ -2,6 +2,7 @@ package exec
 
 import (
 	"context"
+	"errors"
 	"io"
 
 	"code.cloudfoundry.org/lager"
@@ -13,23 +14,29 @@ import (
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"
-	"github.com/concourse/concourse/vars"
+	"go.opentelemetry.io/otel/api/trace"
 )
+
+//go:generate counterfeiter . PutDelegateFactory
+
+type PutDelegateFactory interface {
+	PutDelegate(state RunState) PutDelegate
+}
 
 //go:generate counterfeiter . PutDelegate
 
 type PutDelegate interface {
-	ImageVersionDetermined(db.UsedResourceCache) error
-	RedactImageSource(source atc.Source) (atc.Source, error)
+	StartSpan(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
+
+	FetchImage(context.Context, atc.ImageResource, atc.VersionedResourceTypes, bool) (worker.ImageSpec, error)
 
 	Stdout() io.Writer
 	Stderr() io.Writer
 
-	Variables() vars.CredVarsTracker
-
 	Initializing(lager.Logger)
 	Starting(lager.Logger)
 	Finished(lager.Logger, ExitStatus, runtime.VersionResult)
+	SelectedWorker(lager.Logger, string)
 	Errored(lager.Logger, string)
 
 	SaveOutput(lager.Logger, atc.PutPlan, atc.Source, atc.VersionedResourceTypes, runtime.VersionResult)
@@ -45,8 +52,9 @@ type PutStep struct {
 	resourceFactory       resource.ResourceFactory
 	resourceConfigFactory db.ResourceConfigFactory
 	strategy              worker.ContainerPlacementStrategy
-	workerClient          worker.Client
-	delegate              PutDelegate
+	workerPool            worker.Pool
+	artifactSourcer       worker.ArtifactSourcer
+	delegateFactory       PutDelegateFactory
 	succeeded             bool
 }
 
@@ -58,8 +66,9 @@ func NewPutStep(
 	resourceFactory resource.ResourceFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
 	strategy worker.ContainerPlacementStrategy,
-	workerClient worker.Client,
-	delegate PutDelegate,
+	workerPool worker.Pool,
+	artifactSourcer worker.ArtifactSourcer,
+	delegateFactory PutDelegateFactory,
 ) Step {
 	return &PutStep{
 		planID:                planID,
@@ -68,9 +77,10 @@ func NewPutStep(
 		containerMetadata:     containerMetadata,
 		resourceFactory:       resourceFactory,
 		resourceConfigFactory: resourceConfigFactory,
-		workerClient:          workerClient,
+		workerPool:            workerPool,
+		artifactSourcer:       artifactSourcer,
 		strategy:              strategy,
-		delegate:              delegate,
+		delegateFactory:       delegateFactory,
 	}
 }
 
@@ -82,46 +92,41 @@ func NewPutStep(
 //
 // The resource's put script is then invoked. If the context is canceled, the
 // script will be interrupted.
-func (step *PutStep) Run(ctx context.Context, state RunState) error {
-	ctx, span := tracing.StartSpan(ctx, "put", tracing.Attrs{
-		"team":     step.metadata.TeamName,
-		"pipeline": step.metadata.PipelineName,
-		"job":      step.metadata.JobName,
-		"build":    step.metadata.BuildName,
-		"resource": step.plan.Resource,
+func (step *PutStep) Run(ctx context.Context, state RunState) (bool, error) {
+	delegate := step.delegateFactory.PutDelegate(state)
+	ctx, span := delegate.StartSpan(ctx, "put", tracing.Attrs{
 		"name":     step.plan.Name,
+		"resource": step.plan.Resource,
 	})
 
-	err := step.run(ctx, state)
+	ok, err := step.run(ctx, state, delegate)
 	tracing.End(span, err)
 
-	return err
+	return ok, err
 }
 
-func (step *PutStep) run(ctx context.Context, state RunState) error {
+func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelegate) (bool, error) {
 	logger := lagerctx.FromContext(ctx)
 	logger = logger.Session("put-step", lager.Data{
 		"step-name": step.plan.Name,
 		"job-id":    step.metadata.JobID,
 	})
 
-	step.delegate.Initializing(logger)
+	delegate.Initializing(logger)
 
-	variables := step.delegate.Variables()
-
-	source, err := creds.NewSource(variables, step.plan.Source).Evaluate()
+	source, err := creds.NewSource(state, step.plan.Source).Evaluate()
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	params, err := creds.NewParams(variables, step.plan.Params).Evaluate()
+	params, err := creds.NewParams(state, step.plan.Params).Evaluate()
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	resourceTypes, err := creds.NewVersionedResourceTypes(variables, step.plan.VersionedResourceTypes).Evaluate()
+	resourceTypes, err := creds.NewVersionedResourceTypes(state, step.plan.VersionedResourceTypes).Evaluate()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	var putInputs PutInputs
@@ -139,32 +144,59 @@ func (step *PutStep) run(ctx context.Context, state RunState) error {
 		putInputs = NewSpecificInputs(step.plan.Inputs.Specified)
 	}
 
-	containerInputs, err := putInputs.FindAll(state.ArtifactRepository())
+	inputsMap, err := putInputs.FindAll(state.ArtifactRepository())
 	if err != nil {
-		return err
+		return false, err
+	}
+
+	containerInputs, err := step.artifactSourcer.SourceInputsAndCaches(logger, step.metadata.TeamID, inputsMap)
+	if err != nil {
+		return false, err
+	}
+
+	workerSpec := worker.WorkerSpec{
+		Tags:         step.plan.Tags,
+		TeamID:       step.metadata.TeamID,
+		ResourceType: step.plan.VersionedResourceTypes.Base(step.plan.Type),
+	}
+
+	var imageSpec worker.ImageSpec
+	resourceType, found := step.plan.VersionedResourceTypes.Lookup(step.plan.Type)
+	if found {
+		image := atc.ImageResource{
+			Name:    resourceType.Name,
+			Type:    resourceType.Type,
+			Source:  resourceType.Source,
+			Params:  resourceType.Params,
+			Version: resourceType.Version,
+			Tags:    resourceType.Tags,
+		}
+		if len(image.Tags) == 0 {
+			image.Tags = step.plan.Tags
+		}
+
+		types := step.plan.VersionedResourceTypes.Without(step.plan.Type)
+
+		var err error
+		imageSpec, err = delegate.FetchImage(ctx, image, types, resourceType.Privileged)
+		if err != nil {
+			return false, err
+		}
+	} else {
+		imageSpec.ResourceType = step.plan.Type
 	}
 
 	containerSpec := worker.ContainerSpec{
-		ImageSpec: worker.ImageSpec{
-			ResourceType: step.plan.Type,
-		},
-		Tags:   step.plan.Tags,
-		TeamID: step.metadata.TeamID,
+		ImageSpec: imageSpec,
+		TeamID:    step.metadata.TeamID,
 
 		Dir: step.containerMetadata.WorkingDirectory,
 
 		Env: step.metadata.Env(),
 
-		ArtifactByPath: containerInputs,
+		Inputs: containerInputs,
 	}
 	tracing.Inject(ctx, &containerSpec)
-
-	workerSpec := worker.WorkerSpec{
-		ResourceType:  step.plan.Type,
-		Tags:          step.plan.Tags,
-		TeamID:        step.metadata.TeamID,
-		ResourceTypes: resourceTypes,
-	}
 
 	owner := db.NewBuildStepContainerOwner(step.metadata.BuildID, step.planID, step.metadata.TeamID)
 
@@ -172,61 +204,67 @@ func (step *PutStep) run(ctx context.Context, state RunState) error {
 		&worker.CertsVolumeMount{Logger: logger},
 	}
 
-	imageSpec := worker.ImageFetcherSpec{
-		ResourceTypes: resourceTypes,
-		Delegate:      step.delegate,
-	}
-
 	processSpec := runtime.ProcessSpec{
 		Path:         "/opt/resource/out",
 		Args:         []string{resource.ResourcesDir("put")},
-		StdoutWriter: step.delegate.Stdout(),
-		StderrWriter: step.delegate.Stderr(),
+		StdoutWriter: delegate.Stdout(),
+		StderrWriter: delegate.Stderr(),
 	}
 
 	resourceToPut := step.resourceFactory.NewResource(source, params, nil)
 
-	result, err := step.workerClient.RunPutStep(
-		ctx,
-		logger,
+	processCtx, cancel, err := MaybeTimeout(ctx, step.plan.Timeout)
+	if err != nil {
+		return false, err
+	}
+
+	defer cancel()
+
+	worker, err := step.workerPool.SelectWorker(
+		lagerctx.NewContext(processCtx, logger),
 		owner,
 		containerSpec,
 		workerSpec,
 		step.strategy,
+	)
+	if err != nil {
+		return false, err
+	}
+	delegate.SelectedWorker(logger, worker.Name())
+
+	result, err := worker.RunPutStep(
+		lagerctx.NewContext(processCtx, logger),
+		owner,
+		containerSpec,
 		step.containerMetadata,
-		imageSpec,
 		processSpec,
-		step.delegate,
+		delegate,
 		resourceToPut,
 	)
 	if err != nil {
-		logger.Error("failed-to-put-resource", err)
-		return err
+		if errors.Is(err, context.DeadlineExceeded) {
+			delegate.Errored(logger, TimeoutLogMessage)
+			return false, nil
+		}
+
+		return false, err
 	}
 
 	if result.ExitStatus != 0 {
-		step.delegate.Finished(logger, ExitStatus(result.ExitStatus), runtime.VersionResult{})
-		return nil
+		delegate.Finished(logger, ExitStatus(result.ExitStatus), runtime.VersionResult{})
+		return false, nil
 	}
 
 	versionResult := result.VersionResult
 	// step.plan.Resource maps to an actual resource that may have been used outside of a pipeline context.
 	// Hence, if it was used outside the pipeline context, we don't want to save the output.
 	if step.plan.Resource != "" {
-		step.delegate.SaveOutput(logger, step.plan, source, resourceTypes, versionResult)
+		delegate.SaveOutput(logger, step.plan, source, resourceTypes, versionResult)
 	}
 
 	state.StoreResult(step.planID, versionResult)
 
-	step.succeeded = true
+	delegate.Finished(logger, 0, versionResult)
 
-	step.delegate.Finished(logger, 0, versionResult)
-
-	return nil
-
-}
-
-// Succeeded returns true if the resource script exited successfully.
-func (step *PutStep) Succeeded() bool {
-	return step.succeeded
+	return true, nil
 }

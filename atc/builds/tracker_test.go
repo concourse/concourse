@@ -2,6 +2,7 @@ package builds_test
 
 import (
 	"context"
+	"io/ioutil"
 	"testing"
 	"time"
 
@@ -11,9 +12,14 @@ import (
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/engine"
 	"github.com/concourse/concourse/atc/engine/enginefakes"
+	"github.com/concourse/concourse/atc/util"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
+
+func init() {
+	util.PanicSink = ioutil.Discard
+}
 
 type TrackerSuite struct {
 	suite.Suite
@@ -64,12 +70,64 @@ func (s *TrackerSuite) TestTrackRunsStartedBuilds() {
 	err := s.tracker.Run(context.TODO())
 	s.NoError(err)
 
-	ranBuilds := []db.Build{
-		<-running,
-		<-running,
-		<-running,
+	s.ElementsMatch([]int{
+		startedBuilds[0].ID(),
+		startedBuilds[1].ID(),
+		startedBuilds[2].ID(),
+	}, []int{
+		(<-running).ID(),
+		(<-running).ID(),
+		(<-running).ID(),
+	})
+}
+
+func (s *TrackerSuite) TestTrackerDoesntCrashWhenOneBuildPanic() {
+	startedBuilds := []db.Build{}
+	fakeBuild1 := new(dbfakes.FakeBuild)
+	fakeBuild1.IDReturns(1)
+	startedBuilds = append(startedBuilds, fakeBuild1)
+
+	// build 2 and 3 are normal running build
+	for i := 1; i < 3; i++ {
+		fakeBuild := new(dbfakes.FakeBuild)
+		fakeBuild.IDReturns(i + 1)
+		startedBuilds = append(startedBuilds, fakeBuild)
 	}
-	s.ElementsMatch(startedBuilds, ranBuilds)
+
+	s.fakeBuildFactory.GetAllStartedBuildsReturns(startedBuilds, nil)
+
+	running := make(chan db.Build, 3)
+	s.fakeEngine.NewBuildStub = func(build db.Build) engine.Runnable {
+		fakeEngineBuild := new(enginefakes.FakeRunnable)
+		fakeEngineBuild.RunStub = func(context.Context) {
+			if build.ID() == 1 {
+				panic("something went wrong")
+			} else {
+				running <- build
+			}
+		}
+
+		return fakeEngineBuild
+	}
+
+	err := s.tracker.Run(context.TODO())
+	s.NoError(err)
+
+	s.ElementsMatch([]int{
+		startedBuilds[1].ID(),
+		startedBuilds[2].ID(),
+	}, []int{
+		(<-running).ID(),
+		(<-running).ID(),
+	})
+
+	s.Eventually(func() bool {
+		return fakeBuild1.FinishCallCount() == 1
+	}, time.Second, 10*time.Millisecond)
+
+	s.Eventually(func() bool {
+		return fakeBuild1.FinishArgsForCall(0) == db.BuildStatusErrored
+	}, time.Second, 10*time.Millisecond)
 }
 
 func (s *TrackerSuite) TestTrackDoesntTrackAlreadyRunningBuilds() {

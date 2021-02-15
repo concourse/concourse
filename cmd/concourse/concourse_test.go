@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/concourse/concourse/atc/postgresrunner"
 	"github.com/onsi/gomega/gbytes"
@@ -37,11 +38,9 @@ var _ = Describe("Web Command", func() {
 
 	BeforeEach(func() {
 		hostKeyFile, hostPubKeyFile, _, _ = generateSSHKeypair()
-		postgresRunner = postgresrunner.Runner{
-			Port: 5433 + GinkgoParallelNode(),
-		}
-		dbProcess = ifrit.Invoke(postgresRunner)
-		postgresRunner.CreateTestDB()
+		postgresrunner.InitializeRunnerForGinkgo(&postgresRunner, &dbProcess)
+
+		postgresRunner.CreateEmptyTestDB()
 
 		concourseCommand = exec.Command(
 			concoursePath,
@@ -81,9 +80,7 @@ var _ = Describe("Web Command", func() {
 		<-concourseProcess.Wait()
 		postgresRunner.DropTestDB()
 
-		dbProcess.Signal(os.Interrupt)
-		err := <-dbProcess.Wait()
-		Expect(err).NotTo(HaveOccurred())
+		postgresrunner.FinalizeRunnerForGinkgo(&postgresRunner, &dbProcess)
 		os.Remove(hostKeyFile)
 		os.Remove(hostPubKeyFile)
 		os.Remove(filepath.Dir(hostPubKeyFile))
@@ -145,7 +142,7 @@ var _ = Describe("Web Command", func() {
 				})
 
 				It("errors", func() {
-					Eventually(concourseRunner.Err()).Should(
+					Eventually(concourseRunner.Err(), 5*time.Second).Should(
 						gbytes.Say("at least one systemClaimValue must be equal to tsa-client-id"),
 					)
 				})
