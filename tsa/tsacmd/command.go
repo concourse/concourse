@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -16,9 +17,10 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/flag"
 	"github.com/concourse/concourse/skymarshal/token"
 	"github.com/concourse/concourse/tsa"
-	"github.com/concourse/flag"
+	cflag "github.com/concourse/flag"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/spf13/cobra"
 	"github.com/tedsuo/ifrit"
@@ -31,18 +33,18 @@ import (
 )
 
 type TSACommand struct {
-	Logger flag.Lager
+	Logger cflag.Lager
 
-	BindIP      string `yaml:"bind_ip" validate:"ip"`
-	PeerAddress string `yaml:"peer_address"`
-	BindPort    uint16 `yaml:"bind_port"`
+	BindIP      flag.IP `yaml:"bind_ip"`
+	PeerAddress string  `yaml:"peer_address"`
+	BindPort    uint16  `yaml:"bind_port"`
 
 	Debug struct {
-		BindIP   string `yaml:"bind_ip" validate:"ip"`
-		BindPort uint16 `yaml:"bind_port"`
-	}
+		BindIP   flag.IP `yaml:"bind_ip"`
+		BindPort uint16  `yaml:"bind_port"`
+	} `yaml:"debug"`
 
-	HostKey                string            `yaml:"host_key" validate:"required"`
+	HostKey                *flag.PrivateKey  `yaml:"host_key" validate:"required"`
 	AuthorizedKeys         string            `yaml:"authorized_keys"`
 	TeamAuthorizedKeys     map[string]string `yaml:"team_authorized_keys"`
 	TeamAuthorizedKeysFile string            `yaml:"team_authorized_keys_file" validate:"file"`
@@ -61,14 +63,14 @@ type TSACommand struct {
 }
 
 func InitializeFlagsDEPRECATED(c *cobra.Command, flags *TSACommand) {
-	c.Flags().StringVar(&flags.BindIP, "tsa-bind-ip", "0.0.0.0", "IP address on which to listen for SSH.")
+	c.Flags().Var(&flags.BindIP, "tsa-bind-ip", "IP address on which to listen for SSH.")
 	c.Flags().Uint16Var(&flags.BindPort, "tsa-bind-port", 2222, "Port on which to listen for SSH.")
 	c.Flags().StringVar(&flags.PeerAddress, "tsa-peer-address", "127.0.0.1", "Network address of this web node, reachable by other web nodes. Used for forwarded worker addresses.")
 
-	c.Flags().StringVar(&flags.Debug.BindIP, "tsa-debug-bind-ip", "127.0.0.1", "IP address on which to listen for the pprof debugger endpoints.")
+	c.Flags().Var(&flags.Debug.BindIP, "tsa-debug-bind-ip", "IP address on which to listen for the pprof debugger endpoints.")
 	c.Flags().Uint16Var(&flags.Debug.BindPort, "tsa-debug-bind-port", 2221, "Port on which to listen for the pprof debugger endpoints.")
 
-	c.Flags().StringVar(&flags.HostKey, "tsa-host-key", "", "Path to private key to use for the SSH server.")
+	c.Flags().Var(flags.HostKey, "tsa-host-key", "Path to private key to use for the SSH server.")
 	c.Flags().StringVar(&flags.AuthorizedKeys, "tsa-authorized-keys", "", "Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line).")
 	c.Flags().StringToStringVar(&flags.TeamAuthorizedKeys, "tsa-team-authorized-keys", nil, "Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line).")
 	c.Flags().StringVar(&flags.TeamAuthorizedKeysFile, "tsa-team-authorized-keys-file", "", "Path to file containing a YAML array of teams and their authorized SSH keys, e.g. [{team:foo,ssh_keys:[key1,key2]}].")
@@ -87,11 +89,11 @@ func InitializeFlagsDEPRECATED(c *cobra.Command, flags *TSACommand) {
 }
 
 func SetDefaults(cmd *TSACommand) {
-	cmd.BindIP = "0.0.0.0"
+	cmd.BindIP = flag.IP{net.ParseIP("0.0.0.0")}
 	cmd.PeerAddress = "127.0.0.1"
 	cmd.BindPort = 2222
 
-	cmd.Debug.BindIP = "127.0.0.1"
+	cmd.Debug.BindIP = flag.IP{net.ParseIP("127.0.0.1")}
 	cmd.Debug.BindPort = 2221
 
 	cmd.ClientID = "concourse-worker"
