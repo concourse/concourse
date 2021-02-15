@@ -10,6 +10,7 @@ import (
 
 type VarFlags []VarFlag
 
+// This can go away once we no longer support flags
 func (pairs *VarFlags) String() string {
 	var fullVarFlags string
 	for _, pair := range *pairs {
@@ -39,6 +40,7 @@ func (pairs *VarFlags) Set(value string) error {
 }
 
 // XXX: Not sure if this is correct?
+// This can go away once we no longer support flags
 func (pairs *VarFlags) Type() string {
 	return "VarFlags"
 }

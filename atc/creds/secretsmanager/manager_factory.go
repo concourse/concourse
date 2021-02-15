@@ -4,6 +4,10 @@ import (
 	"github.com/concourse/concourse/atc/creds"
 )
 
+func init() {
+	creds.Register(managerName, NewManagerFactory())
+}
+
 type managerFactory struct{}
 
 func NewManagerFactory() creds.ManagerFactory {

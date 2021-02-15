@@ -14,6 +14,8 @@ import (
 	"github.com/concourse/concourse/atc/creds"
 )
 
+const managerName = "ssm"
+
 const DefaultPipelineSecretTemplate = "/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"
 const DefaultTeamSecretTemplate = "/concourse/{{.Team}}/{{.Secret}}"
 
@@ -39,6 +41,14 @@ func (manager *SsmManager) MarshalJSON() ([]byte, error) {
 		"team_secret_template":     manager.TeamSecretTemplate,
 		"health":                   health,
 	})
+}
+
+func (manager *SsmManager) Name() string {
+	return managerName
+}
+
+func (manager *SsmManager) Config() interface{} {
+	return manager
 }
 
 func (manager *SsmManager) Init(log lager.Logger) error {

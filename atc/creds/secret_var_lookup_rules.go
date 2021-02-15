@@ -37,7 +37,7 @@ type SecretTemplate struct {
 
 type SecretLookupWithTemplate struct {
 	PathTemplate *SecretTemplate
-	TeamName string
+	TeamName     string
 	PipelineName string
 }
 
@@ -52,7 +52,7 @@ func BuildSecretTemplate(name, tmpl string) (*SecretTemplate, error) {
 	}
 
 	// Validate that the template only consumes the expected keys
-	dummy := struct {Team, Pipeline, Secret string}{"team", "pipeline", "secret"}
+	dummy := struct{ Team, Pipeline, Secret string }{"team", "pipeline", "secret"}
 	if err = t.Execute(ioutil.Discard, &dummy); err != nil {
 		return nil, err
 	}
@@ -60,7 +60,7 @@ func BuildSecretTemplate(name, tmpl string) (*SecretTemplate, error) {
 	// Detect whether this template requires "Pipeline", and therefore
 	// should only be expanded when there is a pipeline context
 	pipelineDependent := false
-	dummyNoPipeline := struct {Team, Secret string}{"team", "secret"}
+	dummyNoPipeline := struct{ Team, Secret string }{"team", "secret"}
 	if t.Execute(ioutil.Discard, &dummyNoPipeline) != nil {
 		pipelineDependent = true
 	}
@@ -75,17 +75,17 @@ func NewSecretLookupWithTemplate(pathTemplate *SecretTemplate, teamName string, 
 
 	return &SecretLookupWithTemplate{
 		PathTemplate: pathTemplate,
-		TeamName: teamName,
+		TeamName:     teamName,
 		PipelineName: pipelineName,
 	}
 }
 
-func (sl SecretLookupWithTemplate) VariableToSecretPath(varName string) (string, error) {	
+func (sl SecretLookupWithTemplate) VariableToSecretPath(varName string) (string, error) {
 	var buf bytes.Buffer
 	data := struct {
-		Team string
+		Team     string
 		Pipeline string
-		Secret string
+		Secret   string
 	}{
 		sl.TeamName,
 		sl.PipelineName,

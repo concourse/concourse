@@ -13,6 +13,8 @@ import (
 	"github.com/concourse/concourse/atc/creds"
 )
 
+const managerName = "credhub"
+
 type CredHubManager struct {
 	URL string `yaml:"url"`
 
@@ -33,6 +35,14 @@ type TLS struct {
 type UAA struct {
 	ClientId     string `yaml:"client_id"`
 	ClientSecret string `yaml:"client_secret"`
+}
+
+func (manager *CredHubManager) Name() string {
+	return managerName
+}
+
+func (manager *CredHubManager) Config() interface{} {
+	return manager
 }
 
 func (manager *CredHubManager) MarshalJSON() ([]byte, error) {

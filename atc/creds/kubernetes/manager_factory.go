@@ -4,6 +4,10 @@ import (
 	"github.com/concourse/concourse/atc/creds"
 )
 
+func init() {
+	creds.Register(managerName, NewKubernetesManagerFactory())
+}
+
 type kubernetesManagerFactory struct{}
 
 func NewKubernetesManagerFactory() creds.ManagerFactory {

@@ -13,6 +13,8 @@ import (
 // Do not know if these constants are doing anything
 // Defaults are grabbed from the 'default:' path in the Manager struct for PipelineSecretTemplate and TeamSecretTemplate
 
+const managerName = "conjur"
+
 const DefaultPipelineSecretTemplate = "concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"
 const DefaultTeamSecretTemplate = "concourse/{{.Team}}/{{.Secret}}"
 
@@ -49,6 +51,14 @@ func newConjurClient(manager *Manager) (*conjurapi.Client, error) {
 			APIKey: manager.ConjurAuthnApiKey,
 		},
 	)
+}
+
+func (manager *Manager) Name() string {
+	return managerName
+}
+
+func (manager *Manager) Config() interface{} {
+	return manager
 }
 
 func (manager *Manager) Init(log lager.Logger) error {

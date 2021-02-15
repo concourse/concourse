@@ -12,10 +12,12 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
+const managerName = "kubernetes"
+
 type KubernetesManager struct {
 	InClusterConfig bool   `yaml:"in_cluster"`
 	ConfigPath      string `yaml:"config_path"`
-	NamespacePrefix string `yaml:"namespace_prefix" default:"concourse-" description:"Prefix to use for Kubernetes namespaces under which secrets will be looked up."`
+	NamespacePrefix string `yaml:"namespace_prefix"`
 }
 
 func (manager *KubernetesManager) MarshalJSON() ([]byte, error) {
@@ -25,6 +27,14 @@ func (manager *KubernetesManager) MarshalJSON() ([]byte, error) {
 		"config_path":       manager.ConfigPath,
 		"namespace_config":  manager.NamespacePrefix,
 	})
+}
+
+func (manager *KubernetesManager) Name() string {
+	return managerName
+}
+
+func (manager *KubernetesManager) Config() interface{} {
+	return manager
 }
 
 func (manager KubernetesManager) Init(log lager.Logger) error {

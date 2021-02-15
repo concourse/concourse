@@ -12,6 +12,8 @@ import (
 	"github.com/concourse/concourse/atc/creds"
 )
 
+const managerName = "secretsmanager"
+
 const DefaultPipelineSecretTemplate = "/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"
 const DefaultTeamSecretTemplate = "/concourse/{{.Team}}/{{.Secret}}"
 
@@ -23,6 +25,14 @@ type Manager struct {
 	PipelineSecretTemplate string `yaml:"pipeline_secret_template"`
 	TeamSecretTemplate     string `yaml:"team_secret_template"`
 	SecretManager          *SecretsManager
+}
+
+func (manager *Manager) Name() string {
+	return managerName
+}
+
+func (manager *Manager) Config() interface{} {
+	return manager
 }
 
 func (manager *Manager) Init(log lager.Logger) error {

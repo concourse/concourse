@@ -14,6 +14,8 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
+const managerName = "vault"
+
 type VaultManager struct {
 	URL string `yaml:"url"`
 
@@ -56,6 +58,14 @@ type AuthConfig struct {
 	Params map[string]string `yaml:"auth_params"`
 }
 
+func (manager *VaultManager) Name() string {
+	return managerName
+}
+
+func (manager *VaultManager) Config() interface{} {
+	return manager
+}
+
 func (manager *VaultManager) Init(log lager.Logger) error {
 	var err error
 
@@ -89,7 +99,7 @@ func (manager *VaultManager) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func (manager *VaultManager) Config(config map[string]interface{}) error {
+func (manager *VaultManager) ApplyConfig(config map[string]interface{}) error {
 	// apply defaults
 	manager.PathPrefix = "/concourse"
 	manager.Auth.RetryMax = 5 * time.Minute

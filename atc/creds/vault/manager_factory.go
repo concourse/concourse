@@ -6,6 +6,10 @@ import (
 	"github.com/concourse/concourse/atc/creds"
 )
 
+func init() {
+	creds.Register(managerName, NewVaultManagerFactory())
+}
+
 type vaultManagerFactory struct{}
 
 func NewVaultManagerFactory() creds.ManagerFactory {
@@ -18,7 +22,7 @@ func (factory *vaultManagerFactory) NewInstance(config interface{}) (creds.Manag
 	} else {
 		manager := &VaultManager{}
 
-		err := manager.Config(c)
+		err := manager.ApplyConfig(c)
 		if err != nil {
 			return nil, err
 		}

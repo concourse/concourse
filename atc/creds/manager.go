@@ -4,7 +4,12 @@ import (
 	"code.cloudfoundry.org/lager"
 )
 
+//go:generate counterfeiter . Manager
+
 type Manager interface {
+	Name() string
+	Config() interface{}
+
 	IsConfigured() bool
 	Validate() error
 	Health() (*HealthResponse, error)
@@ -32,6 +37,10 @@ type HealthResponse struct {
 }
 
 var managerFactories = map[string]ManagerFactory{}
+
+func Register(name string, managerFactory ManagerFactory) {
+	managerFactories[name] = managerFactory
+}
 
 func ManagerFactories() map[string]ManagerFactory {
 	return managerFactories

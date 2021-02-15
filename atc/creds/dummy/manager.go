@@ -8,8 +8,18 @@ import (
 	"github.com/concourse/concourse/atc/creds"
 )
 
+const managerName = "dummy"
+
 type Manager struct {
 	Vars VarFlags `yaml:"var"`
+}
+
+func (manager *Manager) Name() string {
+	return managerName
+}
+
+func (manager *Manager) Config() interface{} {
+	return manager
 }
 
 func (manager *Manager) Init(log lager.Logger) error {

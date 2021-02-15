@@ -5,6 +5,10 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
+func init() {
+	creds.Register(managerName, NewSsmManagerFactory())
+}
+
 type ssmManagerFactory struct{}
 
 func NewSsmManagerFactory() creds.ManagerFactory {
