@@ -2,8 +2,6 @@ package atccmd
 
 import (
 	"context"
-	"crypto/aes"
-	"crypto/cipher"
 	"crypto/tls"
 	"crypto/x509"
 	"database/sql"
@@ -15,12 +13,14 @@ import (
 	_ "net/http/pprof"
 	"net/url"
 	"os"
+	"reflect"
 	"strings"
 	"time"
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
+	"github.com/concourse/concourse"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api"
 	"github.com/concourse/concourse/atc/api/accessor"
@@ -45,7 +45,6 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/encryption"
 	"github.com/concourse/concourse/atc/db/lock"
-	"github.com/concourse/concourse/atc/db/migration"
 	"github.com/concourse/concourse/atc/engine"
 	"github.com/concourse/concourse/atc/engine/builder"
 	"github.com/concourse/concourse/atc/gc"
@@ -59,6 +58,7 @@ import (
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/image"
 	"github.com/concourse/concourse/atc/wrappa"
+	"github.com/concourse/concourse/flag"
 	clager "github.com/concourse/concourse/lager"
 	"github.com/concourse/concourse/skymarshal/dexserver"
 	"github.com/concourse/concourse/skymarshal/legacyserver"
@@ -69,10 +69,8 @@ import (
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/web"
 	"github.com/concourse/retryhttp"
-	"github.com/jessevdk/go-flags"
 
 	"github.com/cppforlife/go-semi-semantic/version"
-	multierror "github.com/hashicorp/go-multierror"
 	gocache "github.com/patrickmn/go-cache"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
@@ -84,6 +82,7 @@ import (
 	"gopkg.in/yaml.v2"
 
 	// dynamically registered metric emitters
+	"github.com/concourse/concourse/atc/metric/emitter"
 	_ "github.com/concourse/concourse/atc/metric/emitter"
 
 	// dynamically registered policy checkers
@@ -113,413 +112,423 @@ var workerAvailabilityPollingInterval = 5 * time.Second
 var workerStatusPublishInterval = 1 * time.Minute
 var BatcherInterval = 15 * time.Second
 
-type RunCommand struct {
-	Logger clager.Lager
-
+type RunConfig struct {
+	Logger        clager.Lager
 	varSourcePool creds.VarSourcePool
 
-	BindIP   net.IP `yaml:"bind_ip"`
-	BindPort uint16 `yaml:"bind_port"`
+	BindIP      net.IP    `yaml:"bind_ip"`
+	BindPort    uint16    `yaml:"bind_port"`
+	TLS         TLSConfig `yaml:"tls"`
+	ExternalURL flag.URL  `yaml:"external_url" validate:"url"`
 
-	TLS struct {
-		BindPort uint16 `yaml:"bind_port"`
-		Cert     string `yaml:"cert" validate:"file"`
-		Key      string `yaml:"key" validate:"file"`
-	} `yaml:"tls"`
+	Auth           AuthConfig           `yaml:"auth"`
+	Server         ServerConfig         `yaml:"web_server"`
+	SystemClaim    SystemClaimConfig    `yaml:"system_claim"`
+	LetsEncrypt    LetsEncryptConfig    `yaml:"lets_encrypt"`
+	ConfigRBAC     flag.File            `yaml:"config_rbac" validate:"rbac"`
+	PolicyCheckers PolicyCheckersConfig `yaml:"policy_checking"`
 
-	LetsEncrypt struct {
-		Enable  bool   `yaml:"enable"`
-		ACMEURL string `yaml:"acme_url"`
-	} `yaml:"lets_encrypt"`
+	Database DatabaseConfig `yaml:"database"`
 
-	ExternalURL string `yaml:"external_url"`
-
-	Database struct {
-		Postgres struct {
-			Host string `yaml:"host"`
-			Port uint16 `yaml:"port"`
-
-			Socket string `yaml:"socket"`
-
-			User     string `yaml:"user"`
-			Password string `yaml:"password"`
-
-			SSLMode    string `yaml:"sslmode"`
-			CACert     string `yaml:"ca_cert" validate:"file"`
-			ClientCert string `yaml:"client_cert" validate:"file"`
-			ClientKey  string `yaml:"client_key" validate:"file"`
-
-			ConnectTimeout time.Duration `yaml:"connect_timeout"`
-
-			Database string `yaml:"database"`
-		} `yaml:"postgres"`
-
-		ConcurrentRequestLimits   map[string]int `yaml:"concurrent_request_limit" validate:"keys,limited_route,endkeys"`
-		APIMaxOpenConnections     int            `yaml:"api_max_conns"`
-		BackendMaxOpenConnections int            `yaml:"backend_max_conns"`
-
-		// XXX UNMARSHAL CIPHER KEY
-		EncryptionKey    string `yaml:"encryption_key"`
-		OldEncryptionKey string `yaml:"old_encryption_key"`
-	} `yaml:"database"`
-
+	EnableRedactSecrets  bool                             `yaml:"enable_redact_secrets"`
 	CredentialManagement creds.CredentialManagementConfig `yaml:"credential_management"`
-	CredentialManagers   struct {
-		Conjur         conjur.Manager               `yaml:"conjur"`
-		CredHub        credhub.CredHubManager       `yaml:"credhub"`
-		Dummy          dummy.Manager                `yaml:"dummy_creds"`
-		Kubernetes     kubernetes.KubernetesManager `yaml:"kubernetes"`
-		SecretsManager secretsmanager.Manager       `yaml:"aws_secretsmanager"`
-		SSM            ssm.SsmManager               `yaml:"aws_ssm"`
-		Vault          vault.VaultManager           `yaml:"vault"`
-	} `yaml:"credential_managers"`
-
-	Debug struct {
-		BindIP   net.IP `yaml:"bind_ip"`
-		BindPort uint16 `yaml:"bind_port"`
-	} `yaml:"debug"`
-
-	InterceptIdleTimeout time.Duration `yaml:"intercept_idle_timeout"`
-
-	EnableGlobalResources bool `yaml:"enable_global_resources"`
+	CredentialManagers   CredentialManagersConfig         `yaml:"credential_managers"`
 
 	ComponentRunnerInterval time.Duration `yaml:"component_runner_interval"`
 	BuildTrackerInterval    time.Duration `yaml:"build_tracker_interval"`
 
-	// XXX: Split into it's own package to reduce clutter??
-	ResourceChecking struct {
-		ScannerInterval time.Duration `yaml:"scanner_interval"`
-		CheckerInterval time.Duration `yaml:"checker_interval"`
+	EnableGlobalResources bool                   `yaml:"enable_global_resources"`
+	ResourceChecking      ResourceCheckingConfig `yaml:"resource_checking"`
+	JobScheduling         JobSchedulingConfig    `yaml:"job_scheduling"`
+	Runtime               RuntimeConfig          `yaml:"runtime"`
 
-		Timeout                    time.Duration `yaml:"timeout"`
-		DefaultInterval            time.Duration `yaml:"default_interval"`
-		DefaultIntervalWithWebhook time.Duration `yaml:"default_interval_with_webhook"`
-		MaxChecksPerSecond         int           `yaml:"max_checks_per_second"`
-	} `yaml:"resource_checking"`
+	GC                GCConfig                `yaml:"garbage_collection"`
+	BuildLogRetention BuildLogRetentionConfig `yaml:"build_log_retention"`
 
-	JobScheduling struct {
-		MaxInFlight uint64 `yaml:"max_in_flight"`
-	} `yaml:"job_scheduling"`
-
-	Runtime struct {
-		ContainerPlacementStrategy        string        `yaml:"container_placement_strategy"`
-		MaxActiveTasksPerWorker           int           `yaml:"max_active_tasks_per_worker"`
-		BaggageclaimResponseHeaderTimeout time.Duration `yaml:"baggageclaim_response_header_timeout"`
-		StreamingArtifactsCompression     string        `yaml:"streaming_artifacts_compression"`
-
-		GardenRequestTimeout time.Duration `yaml:"garden_request_timeout"`
-	} `yaml:"runtime"`
-
-	CLIArtifactsDir string `yaml:"cli_artifacts_dir" validate:"dir"`
-
-	Metrics struct {
-		HostName            string            `yaml:"host_name"`
-		Attributes          map[string]string `yaml:"attributes"`
-		BufferSize          uint32            `yaml:"buffer_size"`
-		CaptureErrorMetrics bool              `yaml:"capture_errors"`
-	} `yaml:"metrics"`
-
+	Debug   DebugConfig    `yaml:"debug"`
+	Log     LogConfig      `yaml:"log"`
+	Metrics MetricsConfig  `yaml:"metrics"`
 	Tracing tracing.Config `yaml:"tracing"`
+	// XXX: How to structure this?
+	Auditor AuditorConfig `yaml:"auditing"`
+	Syslog  SyslogConfig  `yaml:"syslog"`
 
-	PolicyCheckers struct {
-		Filter policy.Filter `yaml:"filter"`
-	} `yaml:"policy_checking"`
+	DefaultCpuLimit      *int          `yaml:"default_task_cpu_limit"`
+	DefaultMemoryLimit   *string       `yaml:"default_task_memory_limit"`
+	InterceptIdleTimeout time.Duration `yaml:"intercept_idle_timeout"`
 
-	Server struct {
-		XFrameOptions string `yaml:"x_frame_options"`
-		ClusterName   string `yaml:"cluster_name"`
-		ClientID      string `yaml:"client_id"`
-		ClientSecret  string `yaml:"client_secret"`
-	} `yaml:"web_server"`
-
-	Log struct {
-		DBQueries   bool `yaml:"db_queries"`
-		ClusterName bool `yaml:"cluster_name"`
-	} `yaml:"log"`
-
-	GC struct {
-		Interval time.Duration `yaml:"interval"`
-
-		OneOffBuildGracePeriod time.Duration `yaml:"one_off_grace_period"`
-		MissingGracePeriod     time.Duration `yaml:"missing_grace_period"`
-		HijackGracePeriod      time.Duration `yaml:"hijack_grace_period"`
-		FailedGracePeriod      time.Duration `yaml:"failed_grace_period"`
-		CheckRecyclePeriod     time.Duration `yaml:"check_recycle_period"`
-	} `yaml:"garbage_collection"`
+	CLIArtifactsDir flag.Dir `yaml:"cli_artifacts_dir"`
 
 	// XXX NOT USED (HIDDEN)
 	TelemetryOptIn bool `yaml:"telemetry_opt_in"`
 
-	BuildLogRetention struct {
-		Default uint64 `yaml:"default"`
-		Max     uint64 `yaml:"max"`
-
-		DefaultDays uint64 `yaml:"default_days"`
-		MaxDays     uint64 `yaml:"max_days"`
-	} `yaml:"build_log_retention"`
-
-	DefaultCpuLimit    *int    `yaml:"default_task_cpu_limit"`
-	DefaultMemoryLimit *string `yaml:"default_task_memory_limit"`
-
-	// XXX: How to structure this?
-	Auditor struct {
-		EnableBuildAuditLog     bool `yaml:"enable_build`
-		EnableContainerAuditLog bool `yaml:"enable_container`
-		EnableJobAuditLog       bool `yaml:"enable_job`
-		EnablePipelineAuditLog  bool `yaml:"enable_pipeline`
-		EnableResourceAuditLog  bool `yaml:"enable_resource`
-		EnableSystemAuditLog    bool `yaml:"enable_system`
-		EnableTeamAuditLog      bool `yaml:"enable_team`
-		EnableWorkerAuditLog    bool `yaml:"enable_worker`
-		EnableVolumeAuditLog    bool `yaml:"enable_volume`
-	} `yaml:"auditing"`
-
-	Syslog struct {
-		Hostname      string        `yaml:"hostname"`
-		Address       string        `yaml:"address"`
-		Transport     string        `yaml:"transport"`
-		DrainInterval time.Duration `yaml:"drain_interval"`
-		CACerts       []string      `yaml:"ca_cert"`
-	} `yaml:"syslog"`
-
-	Auth struct {
-		AuthFlags     skycmd.AuthFlags
-		MainTeamFlags skycmd.AuthTeamFlags
-	} `yaml:"auth"`
-
-	EnableRedactSecrets bool `yaml:"enable_redact_secrets"`
-
-	ConfigRBAC string `yaml:"config_rbac" validate:"file"`
-
-	SystemClaim struct {
-		Key    string   `yaml:"key"`
-		Values []string `yaml:"values"`
-	} `yaml:"system_claim"`
-
-	Experimental struct {
-		EnableArchivePipeline                bool `yaml:"enable_archive_pipeline"`
-		EnableBuildRerunWhenWorkerDisappears bool `yaml:"enable_rerun_when_worker_disappears"`
-	} `yaml:"experimental"`
+	Experimental ExperimentalConfig `yaml:"experimental"`
 }
 
-func SetDefaults(cmd *RunCommand) {
-	cmd.BindIP = net.IPv4(0, 0, 0, 0)
-	cmd.BindPort = 8080
-
-	// Set postgres defaults
-	cmd.Database.Postgres.Host = "127.0.0.1"
-	cmd.Database.Postgres.Port = 5432
-	cmd.Database.Postgres.SSLMode = "disable"
-	cmd.Database.Postgres.ConnectTimeout = 5 * time.Minute
-	cmd.Database.Postgres.Database = "atc"
-
-	cmd.Database.APIMaxOpenConnections = 10
-	cmd.Database.BackendMaxOpenConnections = 50
-
-	cmd.Debug.BindIP = net.IPv4(127, 0, 0, 1)
-	cmd.Debug.BindPort = 8079
-
-	cmd.InterceptIdleTimeout = 0 * time.Minute
-
-	cmd.ComponentRunnerInterval = 10 * time.Second
-
-	// Set resource checking defaults
-	cmd.ResourceChecking.ScannerInterval = 10 * time.Second
-	cmd.ResourceChecking.CheckerInterval = 10 * time.Second
-	cmd.ResourceChecking.Timeout = 1 * time.Hour
-	cmd.ResourceChecking.DefaultInterval = 1 * time.Minute
-	cmd.ResourceChecking.DefaultIntervalWithWebhook = 1 * time.Minute
-
-	// Set runtime configuration defaults
-	cmd.Runtime.ContainerPlacementStrategy = "volume-locality"
-	cmd.Runtime.MaxActiveTasksPerWorker = 0
-	cmd.Runtime.BaggageclaimResponseHeaderTimeout = 1 * time.Minute
-	cmd.Runtime.StreamingArtifactsCompression = "gzip"
-	cmd.Runtime.GardenRequestTimeout = 5 * time.Minute
-
-	cmd.Metrics.BufferSize = 1000
-
-	// Set conjur configuration defaults
-	cmd.CredentialManagers.Conjur.PipelineSecretTemplate = "concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"
-	cmd.CredentialManagers.Conjur.TeamSecretTemplate = "concourse/{{.Team}}/{{.Secret}}"
-	cmd.CredentialManagers.Conjur.SecretTemplate = "vaultName/{{.Secret}}"
-
-	// Set credhub configuration defaults
-	cmd.CredentialManagers.CredHub.PathPrefix = "/concourse"
-
-	// Set kuberenetes configuration defaults
-	cmd.CredentialManagers.Kubernetes.NamespacePrefix = "concourse-"
-
-	// Set aws secrets manager configuration defaults
-	cmd.CredentialManagers.SecretsManager.PipelineSecretTemplate = "/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"
-	cmd.CredentialManagers.SecretsManager.TeamSecretTemplate = "/concourse/{{.Team}}/{{.Secret}}"
-
-	// Set aws ssm configuration defaults
-	cmd.CredentialManagers.SSM.PipelineSecretTemplate = "/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"
-	cmd.CredentialManagers.SSM.TeamSecretTemplate = "/concourse/{{.Team}}/{{.Secret}}"
-
-	// Set vault configuration defaults
-	cmd.CredentialManagers.Vault.PathPrefix = "/concourse"
-	cmd.CredentialManagers.Vault.LookupTemplates = []string{"/{{.Team}}/{{.Pipeline}}/{{.Secret}}", "/{{.Team}}/{{.Secret}}"}
-	cmd.CredentialManagers.Vault.Auth.RetryMax = 5 * time.Minute
-	cmd.CredentialManagers.Vault.Auth.RetryInitial = 1 * time.Second
+type TLSConfig struct {
+	BindPort uint16    `yaml:"bind_port" validate:"empty_tls_bind_port"`
+	Cert     flag.File `yaml:"cert" validate:"tls_cert_key"`
+	Key      flag.File `yaml:"key" validate:"tls"`
 }
 
-func (m *Migration) Execute(args []string) error {
-	if m.CurrentDBVersion {
-		return m.currentDBVersion()
-	}
-	if m.SupportedDBVersion {
-		return m.supportedDBVersion()
-	}
-	if m.MigrateDBToVersion > 0 {
-		return m.migrateDBToVersion()
-	}
-	return errors.New("must specify one of `--current-db-version`, `--supported-db-version`, or `--migrate-db-to-version`")
-
+type LetsEncryptConfig struct {
+	Enable  bool   `yaml:"enable" validate:"enable_lets_encrypt"`
+	ACMEURL string `yaml:"acme_url" validate:"url"`
 }
 
-func (cmd *Migration) currentDBVersion() error {
-	helper := migration.NewOpenHelper(
-		defaultDriverName,
-		cmd.Postgres.ConnectionString(),
-		nil,
-		encryption.NewNoEncryption(),
-	)
+type DatabaseConfig struct {
+	Postgres flag.PostgresConfig `yaml:"postgres"`
 
-	version, err := helper.CurrentVersion()
-	if err != nil {
-		return err
-	}
+	ConcurrentRequestLimits   map[string]int `yaml:"concurrent_request_limit" validate:"keys,limited_route,endkeys"`
+	APIMaxOpenConnections     int            `yaml:"api_max_conns"`
+	BackendMaxOpenConnections int            `yaml:"backend_max_conns"`
 
-	fmt.Println(version)
-	return nil
+	EncryptionKey    flag.Cipher `yaml:"encryption_key"`
+	OldEncryptionKey flag.Cipher `yaml:"old_encryption_key"`
 }
 
-func (cmd *Migration) supportedDBVersion() error {
-	helper := migration.NewOpenHelper(
-		defaultDriverName,
-		cmd.Postgres.ConnectionString(),
-		nil,
-		encryption.NewNoEncryption(),
-	)
-
-	version, err := helper.SupportedVersion()
-	if err != nil {
-		return err
-	}
-
-	fmt.Println(version)
-	return nil
+type CredentialManagersConfig struct {
+	Conjur         conjur.Manager               `yaml:"conjur"`
+	CredHub        credhub.CredHubManager       `yaml:"credhub"`
+	Dummy          dummy.Manager                `yaml:"dummy_creds"`
+	Kubernetes     kubernetes.KubernetesManager `yaml:"kubernetes"`
+	SecretsManager secretsmanager.Manager       `yaml:"aws_secretsmanager"`
+	SSM            ssm.SsmManager               `yaml:"aws_ssm"`
+	Vault          vault.VaultManager           `yaml:"vault"`
 }
 
-func (cmd *Migration) migrateDBToVersion() error {
-	version := cmd.MigrateDBToVersion
-
-	// XXX: Can this use runcommand.NewKey ????
-	var newKey *encryption.Key
-	if cmd.EncryptionKey != nil {
-		AEAD, err := parseAEAD(cmd.EncryptionKey)
-		if err != nil {
-			return err
-		}
-
-		newKey = encryption.NewKey(AEAD)
-	}
-
-	var strategy encryption.Strategy
-	if newKey != nil {
-		strategy = newKey
-	} else {
-		strategy = encryption.NewNoEncryption()
-	}
-
-	helper := migration.NewOpenHelper(
-		defaultDriverName,
-		cmd.Postgres.ConnectionString(),
-		nil,
-		strategy,
-	)
-
-	err := helper.MigrateToVersion(version)
-	if err != nil {
-		return fmt.Errorf("Could not migrate to version: %d Reason: %s", version, err.Error())
-	}
-
-	fmt.Println("Successfully migrated to version:", version)
-	return nil
+type DebugConfig struct {
+	BindIP   net.IP `yaml:"bind_ip"`
+	BindPort uint16 `yaml:"bind_port"`
 }
 
-func (cmd *ATCCommand) WireDynamicFlags(commandFlags *flags.Command) {
-	cmd.RunCommand.WireDynamicFlags(commandFlags)
+type ResourceCheckingConfig struct {
+	ScannerInterval time.Duration `yaml:"scanner_interval"`
+	CheckerInterval time.Duration `yaml:"checker_interval"`
+
+	Timeout                    time.Duration `yaml:"timeout"`
+	DefaultInterval            time.Duration `yaml:"default_interval"`
+	DefaultIntervalWithWebhook time.Duration `yaml:"default_interval_with_webhook"`
+	MaxChecksPerSecond         int           `yaml:"max_checks_per_second"`
 }
 
-func (cmd *RunCommand) WireDynamicFlags(commandFlags *flags.Command) {
-	var (
-		metricsGroup      *flags.Group
-		policyChecksGroup *flags.Group
-		credsGroup        *flags.Group
-		authGroup         *flags.Group
-	)
-
-	groups := commandFlags.Groups()
-	for i := 0; i < len(groups); i++ {
-		group := groups[i]
-
-		if credsGroup == nil && group.ShortDescription == "Credential Management" {
-			credsGroup = group
-		}
-
-		if metricsGroup == nil && group.ShortDescription == "Metrics & Diagnostics" {
-			metricsGroup = group
-		}
-
-		if policyChecksGroup == nil && group.ShortDescription == "Policy Checking" {
-			policyChecksGroup = group
-		}
-
-		if authGroup == nil && group.ShortDescription == "Authentication" {
-			authGroup = group
-		}
-
-		if metricsGroup != nil && credsGroup != nil && authGroup != nil && policyChecksGroup != nil {
-			break
-		}
-
-		groups = append(groups, group.Groups()...)
-	}
-
-	if metricsGroup == nil {
-		panic("could not find Metrics & Diagnostics group for registering emitters")
-	}
-
-	if policyChecksGroup == nil {
-		panic("could not find Policy Checking group for registering policy checkers")
-	}
-
-	if credsGroup == nil {
-		panic("could not find Credential Management group for registering managers")
-	}
-
-	if authGroup == nil {
-		panic("could not find Authentication group for registering connectors")
-	}
-
-	managerConfigs := make(creds.Managers)
-	for name, p := range creds.ManagerFactories() {
-		managerConfigs[name] = p.AddConfig(credsGroup)
-	}
-	cmd.CredentialManagers = managerConfigs
-
-	metric.WireEmitters(metricsGroup)
-
-	policy.WireCheckers(policyChecksGroup)
-
-	skycmd.WireConnectors(authGroup)
-	skycmd.WireTeamConnectors(authGroup.Find("Authentication (Main Team)"))
+type JobSchedulingConfig struct {
+	MaxInFlight uint64 `yaml:"max_in_flight"`
 }
 
-func (cmd *RunCommand) Execute(args []string) error {
+type RuntimeConfig struct {
+	ContainerPlacementStrategy        string        `yaml:"container_placement_strategy" validate:"cps"`
+	MaxActiveTasksPerWorker           int           `yaml:"max_active_tasks_per_worker"`
+	BaggageclaimResponseHeaderTimeout time.Duration `yaml:"baggageclaim_response_header_timeout"`
+	StreamingArtifactsCompression     string        `yaml:"streaming_artifacts_compression" validate:"sac"`
+
+	GardenRequestTimeout time.Duration `yaml:"garden_request_timeout"`
+}
+
+type MetricsConfig struct {
+	HostName            string            `yaml:"host_name"`
+	Attributes          map[string]string `yaml:"attributes"`
+	BufferSize          uint32            `yaml:"buffer_size"`
+	CaptureErrorMetrics bool              `yaml:"capture_errors"`
+
+	Emitter MetricsEmitterConfig `yaml:"emitter"`
+}
+
+type MetricsEmitterConfig struct {
+	Datadog    emitter.DogstatsDBConfig `yaml:"datadog"`
+	InfluxDB   emitter.InfluxDBConfig   `yaml:"influxdb"`
+	Lager      emitter.LagerConfig      `yaml:"lager"`
+	NewRelic   emitter.NewRelicConfig   `yaml:"newrelic"`
+	Prometheus emitter.PrometheusConfig `yaml:"prometheus"`
+}
+
+type PolicyCheckersConfig struct {
+	Filter policy.Filter `yaml:"filter"`
+}
+
+type ServerConfig struct {
+	XFrameOptions string `yaml:"x_frame_options"`
+	ClusterName   string `yaml:"cluster_name"`
+	ClientID      string `yaml:"client_id"`
+	ClientSecret  string `yaml:"client_secret"`
+}
+
+type LogConfig struct {
+	DBQueries   bool `yaml:"db_queries"`
+	ClusterName bool `yaml:"cluster_name"`
+}
+
+type GCConfig struct {
+	Interval time.Duration `yaml:"interval"`
+
+	OneOffBuildGracePeriod time.Duration `yaml:"one_off_grace_period"`
+	MissingGracePeriod     time.Duration `yaml:"missing_grace_period"`
+	HijackGracePeriod      time.Duration `yaml:"hijack_grace_period"`
+	FailedGracePeriod      time.Duration `yaml:"failed_grace_period"`
+	CheckRecyclePeriod     time.Duration `yaml:"check_recycle_period"`
+}
+
+type BuildLogRetentionConfig struct {
+	Default uint64 `yaml:"default"`
+	Max     uint64 `yaml:"max"`
+
+	DefaultDays uint64 `yaml:"default_days"`
+	MaxDays     uint64 `yaml:"max_days"`
+}
+
+type AuditorConfig struct {
+	EnableBuildAuditLog     bool `yaml:"enable_build`
+	EnableContainerAuditLog bool `yaml:"enable_container`
+	EnableJobAuditLog       bool `yaml:"enable_job`
+	EnablePipelineAuditLog  bool `yaml:"enable_pipeline`
+	EnableResourceAuditLog  bool `yaml:"enable_resource`
+	EnableSystemAuditLog    bool `yaml:"enable_system`
+	EnableTeamAuditLog      bool `yaml:"enable_team`
+	EnableWorkerAuditLog    bool `yaml:"enable_worker`
+	EnableVolumeAuditLog    bool `yaml:"enable_volume`
+}
+
+type SyslogConfig struct {
+	Hostname      string        `yaml:"hostname"`
+	Address       string        `yaml:"address"`
+	Transport     string        `yaml:"transport"`
+	DrainInterval time.Duration `yaml:"drain_interval"`
+	CACerts       []string      `yaml:"ca_cert"`
+}
+
+type AuthConfig struct {
+	AuthFlags     skycmd.AuthFlags
+	MainTeamFlags skycmd.AuthTeamFlags
+}
+
+type SystemClaimConfig struct {
+	Key    string   `yaml:"key"`
+	Values []string `yaml:"values"`
+}
+
+type ExperimentalConfig struct {
+	EnableArchivePipeline                bool `yaml:"enable_archive_pipeline"`
+	EnableBuildRerunWhenWorkerDisappears bool `yaml:"enable_rerun_when_worker_disappears"`
+}
+
+var CmdDefaults RunConfig = RunConfig{
+	BindIP:   net.IPv4(0, 0, 0, 0),
+	BindPort: 8080,
+
+	Auth: AuthConfig{
+		AuthFlags: skycmd.AuthFlags{
+			Expiration: 24 * time.Hour,
+		},
+	},
+
+	Server: ServerConfig{
+		XFrameOptions: "deny",
+		ClientID:      "concourse-web",
+	},
+
+	SystemClaim: SystemClaimConfig{
+		Key:    "aud",
+		Values: []string{"concourse-worker"},
+	},
+
+	LetsEncrypt: LetsEncryptConfig{
+		ACMEURL: "https://acme-v02.api.letsencrypt.org/directory",
+	},
+
+	Database: DatabaseConfig{
+		Postgres: flag.PostgresConfig{
+			Host:           "127.0.0.1",
+			Port:           5432,
+			SSLMode:        "disable",
+			ConnectTimeout: 5 * time.Minute,
+			Database:       "atc",
+		},
+		APIMaxOpenConnections:     10,
+		BackendMaxOpenConnections: 50,
+	},
+
+	CredentialManagement: creds.CredentialManagementConfig{
+		RetryConfig: creds.SecretRetryConfig{
+			Attempts: 5,
+			Interval: 1 * time.Second,
+		},
+
+		CacheConfig: creds.SecretCacheConfig{
+			Duration:         1 * time.Minute,
+			DurationNotFound: 10 * time.Second,
+			PurgeInterval:    10 * time.Minute,
+		},
+	},
+
+	CredentialManagers: CredentialManagersConfig{
+		Conjur: conjur.Manager{
+			PipelineSecretTemplate: "concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}",
+			TeamSecretTemplate:     "concourse/{{.Team}}/{{.Secret}}",
+			SecretTemplate:         "vaultName/{{.Secret}}",
+		},
+		CredHub: credhub.CredHubManager{
+			PathPrefix: "/concourse",
+		},
+		Kubernetes: kubernetes.KubernetesManager{
+			NamespacePrefix: "concourse-",
+		},
+		SecretsManager: secretsmanager.Manager{
+			PipelineSecretTemplate: "/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}",
+			TeamSecretTemplate:     "/concourse/{{.Team}}/{{.Secret}}",
+		},
+		SSM: ssm.SsmManager{
+			PipelineSecretTemplate: "/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}",
+			TeamSecretTemplate:     "/concourse/{{.Team}}/{{.Secret}}",
+		},
+		Vault: vault.VaultManager{
+			PathPrefix:      "/concourse",
+			LookupTemplates: []string{"/{{.Team}}/{{.Pipeline}}/{{.Secret}}", "/{{.Team}}/{{.Secret}}"},
+			Auth: vault.AuthConfig{
+				RetryMax:     5 * time.Minute,
+				RetryInitial: 1 * time.Second,
+			},
+		},
+	},
+
+	ComponentRunnerInterval: 10 * time.Second,
+	BuildTrackerInterval:    10 * time.Second,
+
+	ResourceChecking: ResourceCheckingConfig{
+		ScannerInterval:            10 * time.Second,
+		CheckerInterval:            10 * time.Second,
+		Timeout:                    1 * time.Hour,
+		DefaultInterval:            1 * time.Minute,
+		DefaultIntervalWithWebhook: 1 * time.Minute,
+	},
+
+	JobScheduling: JobSchedulingConfig{
+		MaxInFlight: 32,
+	},
+
+	Runtime: RuntimeConfig{
+		ContainerPlacementStrategy:        "volume-locality",
+		MaxActiveTasksPerWorker:           0,
+		BaggageclaimResponseHeaderTimeout: 1 * time.Minute,
+		StreamingArtifactsCompression:     "gzip",
+		GardenRequestTimeout:              5 * time.Minute,
+	},
+
+	GC: GCConfig{
+		Interval:               30 * time.Second,
+		OneOffBuildGracePeriod: 5 * time.Minute,
+		MissingGracePeriod:     5 * time.Minute,
+		HijackGracePeriod:      5 * time.Minute,
+		FailedGracePeriod:      120 * time.Hour,
+		CheckRecyclePeriod:     1 * time.Minute,
+	},
+
+	Debug: DebugConfig{
+		BindIP:   net.IPv4(127, 0, 0, 1),
+		BindPort: 8079,
+	},
+
+	Metrics: MetricsConfig{
+		BufferSize: 1000,
+
+		Emitter: MetricsEmitterConfig{
+			InfluxDB: emitter.InfluxDBConfig{
+				BatchSize:     5000,
+				BatchDuration: 300 * time.Second,
+			},
+			NewRelic: emitter.NewRelicConfig{
+				Url:           "https://insights-collector.newrelic.com",
+				ServicePrefix: "",
+				BatchSize:     2000,
+				BatchDuration: 60 * time.Second,
+			},
+		},
+	},
+
+	Tracing: tracing.Config{
+		Jaeger: tracing.Jaeger{
+			Service: "web",
+		},
+	},
+
+	Syslog: SyslogConfig{
+		Hostname:      "atc-syslog-drainer",
+		DrainInterval: 30 * time.Second,
+	},
+
+	InterceptIdleTimeout: 0 * time.Minute,
+}
+
+// func (cmd *ATCCommand) WireDynamicFlags(commandFlags *flags.Command) {
+// 	cmd.RunConfig.WireDynamicFlags(commandFlags)
+// }
+
+// func (cmd *RunConfig) WireDynamicFlags(commandFlags *flags.Command) {
+// 	var (
+// 		metricsGroup      *flags.Group
+// 		policyChecksGroup *flags.Group
+// 		credsGroup        *flags.Group
+// 		authGroup         *flags.Group
+// 	)
+
+// 	groups := commandFlags.Groups()
+// 	for i := 0; i < len(groups); i++ {
+// 		group := groups[i]
+
+// 		if credsGroup == nil && group.ShortDescription == "Credential Management" {
+// 			credsGroup = group
+// 		}
+
+// 		if metricsGroup == nil && group.ShortDescription == "Metrics & Diagnostics" {
+// 			metricsGroup = group
+// 		}
+
+// 		if policyChecksGroup == nil && group.ShortDescription == "Policy Checking" {
+// 			policyChecksGroup = group
+// 		}
+
+// 		if authGroup == nil && group.ShortDescription == "Authentication" {
+// 			authGroup = group
+// 		}
+
+// 		if metricsGroup != nil && credsGroup != nil && authGroup != nil && policyChecksGroup != nil {
+// 			break
+// 		}
+
+// 		groups = append(groups, group.Groups()...)
+// 	}
+
+// 	if metricsGroup == nil {
+// 		panic("could not find Metrics & Diagnostics group for registering emitters")
+// 	}
+
+// 	if policyChecksGroup == nil {
+// 		panic("could not find Policy Checking group for registering policy checkers")
+// 	}
+
+// 	if credsGroup == nil {
+// 		panic("could not find Credential Management group for registering managers")
+// 	}
+
+// 	if authGroup == nil {
+// 		panic("could not find Authentication group for registering connectors")
+// 	}
+
+// 	managerConfigs := make(creds.Managers)
+// 	for name, p := range creds.ManagerFactories() {
+// 		managerConfigs[name] = p.AddConfig(credsGroup)
+// 	}
+// 	cmd.CredentialManagers = managerConfigs
+
+/// XXX: [cf] DO THESE FLAGSSSSS
+// 	metric.WireEmitters(metricsGroup)
+
+// 	policy.WireCheckers(policyChecksGroup)
+
+// 	skycmd.WireConnectors(authGroup)
+// 	skycmd.WireTeamConnectors(authGroup.Find("Authentication (Main Team)"))
+// }
+
+func (cmd *RunConfig) Execute(args []string) error {
 	runner, err := cmd.Runner(args)
 	if err != nil {
 		return err
@@ -528,7 +537,7 @@ func (cmd *RunCommand) Execute(args []string) error {
 	return <-ifrit.Invoke(sigmon.New(runner)).Wait()
 }
 
-func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error) {
+func (cmd *RunConfig) Runner(positionalArguments []string) (ifrit.Runner, error) {
 	if cmd.ExternalURL.URL == nil {
 		cmd.ExternalURL = cmd.DefaultURL()
 	}
@@ -537,13 +546,8 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		return nil, fmt.Errorf("unexpected positional arguments: %v", positionalArguments)
 	}
 
-	err := cmd.validate()
-	if err != nil {
-		return nil, err
-	}
-
 	logger, reconfigurableSink := cmd.Logger.Logger("atc")
-	if cmd.LogClusterName {
+	if cmd.Log.ClusterName {
 		logger = logger.WithData(lager.Data{
 			"cluster": cmd.Server.ClusterName,
 		})
@@ -563,7 +567,7 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	//they rely on state of the command.
 	db.SetupConnectionRetryingDriver(
 		"postgres",
-		cmd.Postgres.ConnectionString(),
+		cmd.Database.Postgres.ConnectionString(),
 		retryingDriverName,
 	)
 
@@ -573,7 +577,7 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		logger.RegisterSink(&errorSinkCollector)
 	}
 
-	err = cmd.Tracing.Prepare()
+	err := cmd.Tracing.Prepare()
 	if err != nil {
 		return nil, err
 	}
@@ -595,12 +599,12 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 
 	lockFactory := lock.NewLockFactory(lockConn, metric.LogLockAcquired, metric.LogLockReleased)
 
-	apiConn, err := cmd.constructDBConn(retryingDriverName, logger, cmd.APIMaxOpenConnections, "api", lockFactory)
+	apiConn, err := cmd.constructDBConn(retryingDriverName, logger, cmd.Database.APIMaxOpenConnections, "api", lockFactory)
 	if err != nil {
 		return nil, err
 	}
 
-	backendConn, err := cmd.constructDBConn(retryingDriverName, logger, cmd.BackendMaxOpenConnections, "backend", lockFactory)
+	backendConn, err := cmd.constructDBConn(retryingDriverName, logger, cmd.Database.BackendMaxOpenConnections, "backend", lockFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -610,7 +614,7 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		return nil, err
 	}
 
-	storage, err := storage.NewPostgresStorage(logger, cmd.Postgres)
+	storage, err := storage.NewPostgresStorage(logger, cmd.Database.Postgres)
 	if err != nil {
 		return nil, err
 	}
@@ -664,7 +668,7 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	return run(grouper.NewParallel(os.Interrupt, members), onReady, onExit), nil
 }
 
-func (cmd *RunCommand) constructMembers(
+func (cmd *RunConfig) constructMembers(
 	logger lager.Logger,
 	reconfigurableSink *lager.ReconfigurableSink,
 	apiConn db.Conn,
@@ -748,7 +752,7 @@ func (cmd *RunCommand) constructMembers(
 	return members, nil
 }
 
-func (cmd *RunCommand) constructAPIMembers(
+func (cmd *RunConfig) constructAPIMembers(
 	logger lager.Logger,
 	reconfigurableSink *lager.ReconfigurableSink,
 	dbConn db.Conn,
@@ -814,8 +818,8 @@ func (cmd *RunCommand) constructAPIMembers(
 		teamFactory,
 		dbWorkerFactory,
 		workerVersion,
-		cmd.BaggageclaimResponseHeaderTimeout,
-		cmd.GardenRequestTimeout,
+		cmd.Runtime.BaggageclaimResponseHeaderTimeout,
+		cmd.Runtime.GardenRequestTimeout,
 		policyChecker,
 	)
 
@@ -828,15 +832,15 @@ func (cmd *RunCommand) constructAPIMembers(
 	dbContainerRepository := db.NewContainerRepository(dbConn)
 	gcContainerDestroyer := gc.NewDestroyer(logger, dbContainerRepository, dbVolumeRepository)
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod, cmd.GC.FailedGracePeriod)
-	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.varSourcePool, cmd.GlobalResourceCheckTimeout)
+	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.varSourcePool, cmd.ResourceChecking.Timeout)
 	dbClock := db.NewClock()
 	dbWall := db.NewWall(dbConn, &dbClock)
 
 	tokenVerifier := cmd.constructTokenVerifier(httpClient)
 
 	accessFactory := accessor.NewAccessFactory(
-		cmd.SystemClaimKey,
-		cmd.SystemClaimValues,
+		cmd.SystemClaim.Key,
+		cmd.SystemClaim.Values,
 	)
 
 	middleware := token.NewMiddleware(cmd.Auth.AuthFlags.SecureCookies)
@@ -985,7 +989,7 @@ func (cmd *RunCommand) constructAPIMembers(
 	return members, nil
 }
 
-func (cmd *RunCommand) backendComponents(
+func (cmd *RunConfig) backendComponents(
 	logger lager.Logger,
 	dbConn db.Conn,
 	lockFactory lock.LockFactory,
@@ -1017,7 +1021,7 @@ func (cmd *RunCommand) backendComponents(
 	)
 
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod, cmd.GC.FailedGracePeriod)
-	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.varSourcePool, cmd.GlobalResourceCheckTimeout)
+	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.varSourcePool, cmd.ResourceChecking.Timeout)
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
 	dbJobFactory := db.NewJobFactory(dbConn, lockFactory)
 	dbCheckableCounter := db.NewCheckableCounter(dbConn)
@@ -1035,7 +1039,7 @@ func (cmd *RunCommand) backendComponents(
 	}
 
 	var compressionLib compression.Compression
-	if cmd.StreamingArtifactsCompression == "zstd" {
+	if cmd.Runtime.StreamingArtifactsCompression == "zstd" {
 		compressionLib = compression.NewZstdCompression()
 	} else {
 		compressionLib = compression.NewGzipCompression()
@@ -1054,8 +1058,8 @@ func (cmd *RunCommand) backendComponents(
 		teamFactory,
 		dbWorkerFactory,
 		workerVersion,
-		cmd.BaggageclaimResponseHeaderTimeout,
-		cmd.GardenRequestTimeout,
+		cmd.Runtime.BaggageclaimResponseHeaderTimeout,
+		cmd.Runtime.GardenRequestTimeout,
 		policyChecker,
 	)
 
@@ -1095,42 +1099,42 @@ func (cmd *RunCommand) backendComponents(
 	// intervals consistent. Even if both intervals are configured, there is no
 	// reason webhooked resources take shorter checking interval than normal
 	// resources.
-	if cmd.ResourceWithWebhookCheckingInterval < cmd.ResourceCheckingInterval {
+	if cmd.ResourceChecking.DefaultIntervalWithWebhook < cmd.ResourceChecking.DefaultInterval {
 		logger.Info("update-resource-with-webhook-checking-interval",
 			lager.Data{
-				"oldValue": cmd.ResourceWithWebhookCheckingInterval,
-				"newValue": cmd.ResourceCheckingInterval,
+				"oldValue": cmd.ResourceChecking.DefaultIntervalWithWebhook,
+				"newValue": cmd.ResourceChecking.DefaultInterval,
 			})
-		cmd.ResourceWithWebhookCheckingInterval = cmd.ResourceCheckingInterval
+		cmd.ResourceChecking.DefaultIntervalWithWebhook = cmd.ResourceChecking.DefaultInterval
 	}
 
 	components := []RunnableComponent{
 		{
 			Component: atc.Component{
 				Name:     atc.ComponentLidarScanner,
-				Interval: cmd.LidarScannerInterval,
+				Interval: cmd.ResourceChecking.ScannerInterval,
 			},
 			Runnable: lidar.NewScanner(
 				logger.Session(atc.ComponentLidarScanner),
 				dbCheckFactory,
 				secretManager,
-				cmd.GlobalResourceCheckTimeout,
-				cmd.ResourceCheckingInterval,
-				cmd.ResourceWithWebhookCheckingInterval,
+				cmd.ResourceChecking.Timeout,
+				cmd.ResourceChecking.DefaultInterval,
+				cmd.ResourceChecking.DefaultIntervalWithWebhook,
 			),
 		},
 		{
 			Component: atc.Component{
 				Name:     atc.ComponentLidarChecker,
-				Interval: cmd.LidarCheckerInterval,
+				Interval: cmd.ResourceChecking.CheckerInterval,
 			},
 			Runnable: lidar.NewChecker(
 				logger.Session(atc.ComponentLidarChecker),
 				dbCheckFactory,
 				engine,
 				lidar.CheckRateCalculator{
-					MaxChecksPerSecond:       cmd.MaxChecksPerSecond,
-					ResourceCheckingInterval: cmd.ResourceCheckingInterval,
+					MaxChecksPerSecond:       cmd.ResourceChecking.MaxChecksPerSecond,
+					ResourceCheckingInterval: cmd.ResourceChecking.DefaultInterval,
 					CheckableCounter:         dbCheckableCounter,
 				},
 			),
@@ -1151,7 +1155,7 @@ func (cmd *RunCommand) backendComponents(
 						),
 						alg),
 				},
-				cmd.JobSchedulingMaxInFlight,
+				cmd.JobScheduling.MaxInFlight,
 			),
 		},
 		{
@@ -1170,10 +1174,10 @@ func (cmd *RunCommand) backendComponents(
 				dbPipelineFactory,
 				500,
 				gc.NewBuildLogRetentionCalculator(
-					cmd.DefaultBuildLogsToRetain,
-					cmd.MaxBuildLogsToRetain,
-					cmd.DefaultDaysToRetainBuildLogs,
-					cmd.MaxDaysToRetainBuildLogs,
+					cmd.BuildLogRetention.Default,
+					cmd.BuildLogRetention.Max,
+					cmd.BuildLogRetention.DefaultDays,
+					cmd.BuildLogRetention.MaxDays,
 				),
 				syslogDrainConfigured,
 			),
@@ -1199,7 +1203,7 @@ func (cmd *RunCommand) backendComponents(
 	return components, err
 }
 
-func (cmd *RunCommand) gcComponents(
+func (cmd *RunConfig) gcComponents(
 	logger lager.Logger,
 	gcConn db.Conn,
 	lockFactory lock.LockFactory,
@@ -1242,43 +1246,7 @@ func (cmd *RunCommand) gcComponents(
 	return components, nil
 }
 
-func (cmd *RunCommand) validateCustomRoles() error {
-	path := cmd.ConfigRBAC.Path()
-	if path == "" {
-		return nil
-	}
-
-	content, err := ioutil.ReadFile(path)
-	if err != nil {
-		return fmt.Errorf("failed to open RBAC config file (%s): %w", cmd.ConfigRBAC, err)
-	}
-
-	var data map[string][]string
-	if err = yaml.Unmarshal(content, &data); err != nil {
-		return fmt.Errorf("failed to parse RBAC config file (%s): %w", cmd.ConfigRBAC, err)
-	}
-
-	allKnownRoles := map[string]bool{}
-	for _, roleName := range accessor.DefaultRoles {
-		allKnownRoles[roleName] = true
-	}
-
-	for role, actions := range data {
-		if _, ok := allKnownRoles[role]; !ok {
-			return fmt.Errorf("failed to customize roles: %w", fmt.Errorf("unknown role %s", role))
-		}
-
-		for _, action := range actions {
-			if _, ok := accessor.DefaultRoles[action]; !ok {
-				return fmt.Errorf("failed to customize roles: %w", fmt.Errorf("unknown action %s", action))
-			}
-		}
-	}
-
-	return nil
-}
-
-func (cmd *RunCommand) parseCustomRoles() (map[string]string, error) {
+func (cmd *RunConfig) parseCustomRoles() (map[string]string, error) {
 	mapping := map[string]string{}
 
 	path := cmd.ConfigRBAC.Path()
@@ -1309,35 +1277,29 @@ func workerVersion() (version.Version, error) {
 	return version.NewVersionFromString(concourse.WorkerVersion)
 }
 
-func (cmd *RunCommand) secretManager(logger lager.Logger) (creds.Secrets, error) {
+func (cmd *RunConfig) secretManager(logger lager.Logger) (creds.Secrets, error) {
 	var secretsFactory creds.SecretsFactory = noop.NewNoopFactory()
-	for name, manager := range cmd.CredentialManagers {
-		if !manager.IsConfigured() {
-			continue
-		}
+	manager := cmd.ConfiguredCredentialManager()
 
-		credsLogger := logger.Session("credential-manager", lager.Data{
-			"name": name,
-		})
+	credsLogger := logger.Session("credential-manager", lager.Data{
+		"name": manager.Name(),
+	})
 
-		credsLogger.Info("configured credentials manager")
+	credsLogger.Info("configured credentials manager")
 
-		err := manager.Init(credsLogger)
-		if err != nil {
-			return nil, err
-		}
+	err := manager.Init(credsLogger)
+	if err != nil {
+		return nil, err
+	}
 
-		err = manager.Validate()
-		if err != nil {
-			return nil, fmt.Errorf("credential manager '%s' misconfigured: %s", name, err)
-		}
+	err = manager.Validate()
+	if err != nil {
+		return nil, fmt.Errorf("credential manager '%s' misconfigured: %s", manager.Name(), err)
+	}
 
-		secretsFactory, err = manager.NewSecretsFactory(credsLogger)
-		if err != nil {
-			return nil, err
-		}
-
-		break
+	secretsFactory, err = manager.NewSecretsFactory(credsLogger)
+	if err != nil {
+		return nil, err
 	}
 
 	result := secretsFactory.NewSecrets()
@@ -1348,34 +1310,25 @@ func (cmd *RunCommand) secretManager(logger lager.Logger) (creds.Secrets, error)
 	return result, nil
 }
 
-func (cmd *RunCommand) newKey() (*encryption.Key, error) {
+func (cmd *RunConfig) newKey() *encryption.Key {
 	var newKey *encryption.Key
-	if cmd.EncryptionKey != "" {
-		AEAD, err := parseAEAD(cmd.EncryptionKey)
-		if err != nil {
-			return nil, err
-		}
-
-		newKey = encryption.NewKey(AEAD)
+	if cmd.Database.EncryptionKey.AEAD != nil {
+		newKey = encryption.NewKey(cmd.Database.EncryptionKey.AEAD)
 	}
 
-	return newKey, nil
+	return newKey
 }
 
-func (cmd *RunCommand) oldKey() (*encryption.Key, error) {
+func (cmd *RunConfig) oldKey() *encryption.Key {
 	var oldKey *encryption.Key
-	if cmd.OldEncryptionKey != "" {
-		AEAD, err := parseAEAD(cmd.OldEncryptionKey)
-		if err != nil {
-			return nil, err
-		}
-
-		oldKey = encryption.NewKey(AEAD)
+	if cmd.Database.OldEncryptionKey.AEAD != nil {
+		oldKey = encryption.NewKey(cmd.Database.OldEncryptionKey.AEAD)
 	}
-	return oldKey, nil
+
+	return oldKey
 }
 
-func (cmd *RunCommand) constructWebHandler(logger lager.Logger) (http.Handler, error) {
+func (cmd *RunConfig) constructWebHandler(logger lager.Logger) (http.Handler, error) {
 	webHandler, err := web.NewHandler(logger)
 	if err != nil {
 		return nil, err
@@ -1383,7 +1336,7 @@ func (cmd *RunCommand) constructWebHandler(logger lager.Logger) (http.Handler, e
 	return metric.WrapHandler(logger, "web", webHandler), nil
 }
 
-func (cmd *RunCommand) skyHttpClient() (*http.Client, error) {
+func (cmd *RunConfig) skyHttpClient() (*http.Client, error) {
 	httpClient := http.DefaultClient
 
 	if cmd.isTLSEnabled() {
@@ -1399,7 +1352,7 @@ func (cmd *RunCommand) skyHttpClient() (*http.Client, error) {
 			// 	return false
 			// }
 
-			cert, err := tls.LoadX509KeyPair(string(cmd.TLSCert), string(cmd.TLSKey))
+			cert, err := tls.LoadX509KeyPair(string(cmd.TLS.Cert), string(cmd.TLS.Key))
 			if err != nil {
 				return nil, err
 			}
@@ -1447,7 +1400,7 @@ func (tripper mitmRoundTripper) RoundTrip(req *http.Request) (*http.Response, er
 	return tripper.RoundTripper.RoundTrip(req)
 }
 
-func (cmd *RunCommand) tlsConfig(logger lager.Logger, dbConn db.Conn) (*tls.Config, error) {
+func (cmd *RunConfig) tlsConfig(logger lager.Logger, dbConn db.Conn) (*tls.Config, error) {
 	var tlsConfig *tls.Config
 	tlsConfig = atc.DefaultTLSConfig()
 
@@ -1464,13 +1417,13 @@ func (cmd *RunCommand) tlsConfig(logger lager.Logger, dbConn db.Conn) (*tls.Conf
 				Prompt:     autocert.AcceptTOS,
 				Cache:      cache,
 				HostPolicy: autocert.HostWhitelist(cmd.ExternalURL.URL.Hostname()),
-				Client:     &acme.Client{DirectoryURL: cmd.LetsEncrypt.ACMEURL.String()},
+				Client:     &acme.Client{DirectoryURL: cmd.LetsEncrypt.ACMEURL},
 			}
 			tlsConfig.NextProtos = append(tlsConfig.NextProtos, acme.ALPNProto)
 			tlsConfig.GetCertificate = m.GetCertificate
 		} else {
 			tlsLogger.Debug("loading-tls-certs")
-			cert, err := tls.LoadX509KeyPair(string(cmd.TLSCert), string(cmd.TLSKey))
+			cert, err := tls.LoadX509KeyPair(string(cmd.TLS.Cert), string(cmd.TLS.Key))
 			if err != nil {
 				return nil, err
 			}
@@ -1480,14 +1433,14 @@ func (cmd *RunCommand) tlsConfig(logger lager.Logger, dbConn db.Conn) (*tls.Conf
 	return tlsConfig, nil
 }
 
-func (cmd *RunCommand) parseDefaultLimits() (atc.ContainerLimits, error) {
+func (cmd *RunConfig) parseDefaultLimits() (atc.ContainerLimits, error) {
 	return atc.ParseContainerLimits(map[string]interface{}{
 		"cpu":    cmd.DefaultCpuLimit,
 		"memory": cmd.DefaultMemoryLimit,
 	})
 }
 
-func (cmd *RunCommand) defaultBindIP() net.IP {
+func (cmd *RunConfig) defaultBindIP() net.IP {
 	URL := cmd.BindIP.String()
 	if URL == "0.0.0.0" {
 		URL = "127.0.0.1"
@@ -1496,10 +1449,12 @@ func (cmd *RunCommand) defaultBindIP() net.IP {
 	return net.ParseIP(URL)
 }
 
-func (cmd *RunCommand) DefaultURL() *url.URL {
-	return &url.URL{
-		Scheme: "http",
-		Host:   fmt.Sprintf("%s:%d", cmd.defaultBindIP().String(), cmd.BindPort),
+func (cmd *RunConfig) DefaultURL() flag.URL {
+	return flag.URL{
+		URL: &url.URL{
+			Scheme: "http",
+			Host:   fmt.Sprintf("%s:%d", cmd.defaultBindIP().String(), cmd.BindPort),
+		},
 	}
 }
 
@@ -1526,74 +1481,51 @@ func run(runner ifrit.Runner, onReady func(), onExit func()) ifrit.Runner {
 	})
 }
 
-func (cmd *RunCommand) validate() error {
-	var errs *multierror.Error
-
-	switch {
-	case cmd.TLSBindPort == 0:
-		if cmd.TLSCert != "" || cmd.TLSKey != "" || cmd.LetsEncrypt.Enable {
-			errs = multierror.Append(
-				errs,
-				errors.New("must specify --tls-bind-port to use TLS"),
-			)
-		}
-	case cmd.LetsEncrypt.Enable:
-		if cmd.TLSCert != "" || cmd.TLSKey != "" {
-			errs = multierror.Append(
-				errs,
-				errors.New("cannot specify --enable-lets-encrypt if --tls-cert or --tls-key are set"),
-			)
-		}
-	case cmd.TLSCert != "" && cmd.TLSKey != "":
-		if cmd.ExternalURL.URL.Scheme != "https" {
-			errs = multierror.Append(
-				errs,
-				errors.New("must specify HTTPS external-url to use TLS"),
-			)
-		}
-	default:
-		errs = multierror.Append(
-			errs,
-			errors.New("must specify --tls-cert and --tls-key, or --enable-lets-encrypt to use TLS"),
-		)
-	}
-
-	if err := cmd.validateCustomRoles(); err != nil {
-		errs = multierror.Append(errs, err)
-	}
-
-	return errs.ErrorOrNil()
-}
-
-func (cmd *RunCommand) nonTLSBindAddr() string {
+func (cmd *RunConfig) nonTLSBindAddr() string {
 	return fmt.Sprintf("%s:%d", cmd.BindIP, cmd.BindPort)
 }
 
-func (cmd *RunCommand) tlsBindAddr() string {
-	return fmt.Sprintf("%s:%d", cmd.BindIP, cmd.TLSBindPort)
+func (cmd *RunConfig) tlsBindAddr() string {
+	return fmt.Sprintf("%s:%d", cmd.BindIP, cmd.TLS.BindPort)
 }
 
-func (cmd *RunCommand) debugBindAddr() string {
-	return fmt.Sprintf("%s:%d", cmd.DebugBindIP, cmd.DebugBindPort)
+func (cmd *RunConfig) debugBindAddr() string {
+	return fmt.Sprintf("%s:%d", cmd.Debug.BindIP, cmd.Debug.BindPort)
 }
 
-func (cmd *RunCommand) configureMetrics(logger lager.Logger) error {
+func (cmd *RunConfig) configureMetrics(logger lager.Logger) error {
 	host := cmd.Metrics.HostName
 	if host == "" {
 		host, _ = os.Hostname()
 	}
 
-	return metric.Initialize(logger.Session("metrics"), host, cmd.Metrics.Attributes, cmd.Metrics.BufferSize)
+	var configuredEmitter metric.EmitterFactory
+	v := reflect.ValueOf(cmd.Metrics.Emitter)
+	for i := 0; i < v.NumField(); i++ {
+		emitter := v.Field(i).Interface().(metric.EmitterFactory)
+
+		if emitter.IsConfigured() {
+			// Error if there is already an emitter configured
+			if configuredEmitter != nil {
+				return fmt.Errorf("Multiple emitters configured: %s, %s", configuredEmitter.Description(), emitter.Description())
+			}
+
+			// Set the emitter to the configured emitter
+			configuredEmitter = emitter
+		}
+	}
+
+	return metric.Initialize(logger.Session("metrics"), configuredEmitter, host, cmd.Metrics.Attributes, cmd.Metrics.BufferSize)
 }
 
-func (cmd *RunCommand) constructDBConn(
+func (cmd *RunConfig) constructDBConn(
 	driverName string,
 	logger lager.Logger,
 	maxConn int,
 	connectionName string,
 	lockFactory lock.LockFactory,
 ) (db.Conn, error) {
-	dbConn, err := db.Open(logger.Session("db"), driverName, cmd.Postgres.ConnectionString(), cmd.newKey(), cmd.oldKey(), connectionName, lockFactory)
+	dbConn, err := db.Open(logger.Session("db"), driverName, cmd.Database.Postgres.ConnectionString(), cmd.newKey(), cmd.oldKey(), connectionName, lockFactory)
 	if err != nil {
 		return nil, fmt.Errorf("failed to migrate database: %s", err)
 	}
@@ -1603,7 +1535,7 @@ func (cmd *RunCommand) constructDBConn(
 	metric.Databases = append(metric.Databases, dbConn)
 
 	// Instrument with Logging
-	if cmd.LogDBQueries {
+	if cmd.Log.DBQueries {
 		dbConn = db.Log(logger.Session("log-conn"), dbConn)
 	}
 
@@ -1618,8 +1550,8 @@ type Closer interface {
 	Close() error
 }
 
-func (cmd *RunCommand) constructLockConn(driverName string) (*sql.DB, error) {
-	dbConn, err := sql.Open(driverName, cmd.Postgres.ConnectionString())
+func (cmd *RunConfig) constructLockConn(driverName string) (*sql.DB, error) {
+	dbConn, err := sql.Open(driverName, cmd.Database.Postgres.ConnectionString())
 	if err != nil {
 		return nil, err
 	}
@@ -1631,21 +1563,22 @@ func (cmd *RunCommand) constructLockConn(driverName string) (*sql.DB, error) {
 	return dbConn, nil
 }
 
-func (cmd *RunCommand) chooseBuildContainerStrategy() (worker.ContainerPlacementStrategy, error) {
+func (cmd *RunConfig) chooseBuildContainerStrategy() (worker.ContainerPlacementStrategy, error) {
 	var strategy worker.ContainerPlacementStrategy
-	if cmd.ContainerPlacementStrategy != "limit-active-tasks" && cmd.MaxActiveTasksPerWorker != 0 {
+	if atc.ContainerPlacementStrategy(cmd.Runtime.ContainerPlacementStrategy) != atc.ContainerPlacementLimitActiveTasks && cmd.Runtime.MaxActiveTasksPerWorker != 0 {
 		return nil, errors.New("max-active-tasks-per-worker has only effect with limit-active-tasks strategy")
 	}
-	if cmd.MaxActiveTasksPerWorker < 0 {
+	if cmd.Runtime.MaxActiveTasksPerWorker < 0 {
 		return nil, errors.New("max-active-tasks-per-worker must be greater or equal than 0")
 	}
-	switch cmd.ContainerPlacementStrategy {
-	case "random":
+
+	switch atc.ContainerPlacementStrategy(cmd.Runtime.ContainerPlacementStrategy) {
+	case atc.ContainerPlacementRandom:
 		strategy = worker.NewRandomPlacementStrategy()
-	case "fewest-build-containers":
+	case atc.ContainerPlacementFewestBuildContainers:
 		strategy = worker.NewFewestBuildContainersPlacementStrategy()
-	case "limit-active-tasks":
-		strategy = worker.NewLimitActiveTasksPlacementStrategy(cmd.MaxActiveTasksPerWorker)
+	case atc.ContainerPlacementLimitActiveTasks:
+		strategy = worker.NewLimitActiveTasksPlacementStrategy(cmd.Runtime.MaxActiveTasksPerWorker)
 	default:
 		strategy = worker.NewVolumeLocalityPlacementStrategy()
 	}
@@ -1653,7 +1586,7 @@ func (cmd *RunCommand) chooseBuildContainerStrategy() (worker.ContainerPlacement
 	return strategy, nil
 }
 
-func (cmd *RunCommand) configureAuthForDefaultTeam(teamFactory db.TeamFactory) error {
+func (cmd *RunConfig) configureAuthForDefaultTeam(teamFactory db.TeamFactory) error {
 	team, found, err := teamFactory.FindTeam(atc.DefaultTeamName)
 	if err != nil {
 		return err
@@ -1676,7 +1609,7 @@ func (cmd *RunCommand) configureAuthForDefaultTeam(teamFactory db.TeamFactory) e
 	return nil
 }
 
-func (cmd *RunCommand) constructEngine(
+func (cmd *RunConfig) constructEngine(
 	workerPool worker.Pool,
 	workerClient worker.Client,
 	resourceFactory resource.ResourceFactory,
@@ -1701,7 +1634,7 @@ func (cmd *RunCommand) constructEngine(
 		defaultLimits,
 		strategy,
 		lockFactory,
-		cmd.EnableBuildRerunWhenWorkerDisappears,
+		cmd.Experimental.EnableBuildRerunWhenWorkerDisappears,
 	)
 
 	stepBuilder := builder.NewStepBuilder(
@@ -1716,7 +1649,7 @@ func (cmd *RunCommand) constructEngine(
 	return engine.NewEngine(stepBuilder)
 }
 
-func (cmd *RunCommand) constructHTTPHandler(
+func (cmd *RunConfig) constructHTTPHandler(
 	logger lager.Logger,
 	webHandler http.Handler,
 	apiHandler http.Handler,
@@ -1758,7 +1691,7 @@ func (cmd *RunCommand) constructHTTPHandler(
 	return httpHandler
 }
 
-func (cmd *RunCommand) constructLegacyHandler(
+func (cmd *RunConfig) constructLegacyHandler(
 	logger lager.Logger,
 ) (http.Handler, error) {
 	return legacyserver.NewLegacyServer(&legacyserver.LegacyConfig{
@@ -1766,7 +1699,7 @@ func (cmd *RunCommand) constructLegacyHandler(
 	})
 }
 
-func (cmd *RunCommand) constructAuthHandler(
+func (cmd *RunConfig) constructAuthHandler(
 	logger lager.Logger,
 	storage storage.Storage,
 ) (http.Handler, error) {
@@ -1798,7 +1731,7 @@ func (cmd *RunCommand) constructAuthHandler(
 	return dexServer, nil
 }
 
-func (cmd *RunCommand) constructLoginHandler(
+func (cmd *RunConfig) constructLoginHandler(
 	logger lager.Logger,
 	httpClient *http.Client,
 	middleware token.Middleware,
@@ -1839,7 +1772,7 @@ func (cmd *RunCommand) constructLoginHandler(
 	return skyserver.NewSkyHandler(skyServer), nil
 }
 
-func (cmd *RunCommand) constructTokenVerifier(httpClient *http.Client) accessor.TokenVerifier {
+func (cmd *RunConfig) constructTokenVerifier(httpClient *http.Client) accessor.TokenVerifier {
 
 	publicKeyPath, _ := url.Parse("/sky/issuer/keys")
 	publicKeyURL := cmd.ExternalURL.URL.ResolveReference(publicKeyPath)
@@ -1852,7 +1785,7 @@ func (cmd *RunCommand) constructTokenVerifier(httpClient *http.Client) accessor.
 	return accessor.NewVerifier(httpClient, publicKeyURL, validClients)
 }
 
-func (cmd *RunCommand) constructAPIHandler(
+func (cmd *RunConfig) constructAPIHandler(
 	logger lager.Logger,
 	reconfigurableSink *lager.ReconfigurableSink,
 	teamFactory db.TeamFactory,
@@ -1920,7 +1853,7 @@ func (cmd *RunCommand) constructAPIHandler(
 	apiWrapper := wrappa.MultiWrappa{
 		wrappa.NewConcurrentRequestLimitsWrappa(
 			logger,
-			wrappa.NewConcurrentRequestPolicy(cmd.ConcurrentRequestLimits),
+			wrappa.NewConcurrentRequestPolicy(cmd.Database.ConcurrentRequestLimits),
 		),
 		wrappa.NewAPIMetricsWrappa(logger),
 		wrappa.NewPolicyCheckWrappa(logger, policychecker.NewApiPolicyChecker(policyChecker)),
@@ -1982,7 +1915,7 @@ func (cmd *RunCommand) constructAPIHandler(
 		dbWall,
 		clock.NewClock(),
 
-		cmd.EnableArchivePipeline,
+		cmd.Experimental.EnableArchivePipeline,
 	)
 }
 
@@ -2020,8 +1953,8 @@ func (h tlsRedirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (cmd *RunCommand) isTLSEnabled() bool {
-	return cmd.TLSBindPort != 0
+func (cmd *RunConfig) isTLSEnabled() bool {
+	return cmd.TLS.BindPort != 0
 }
 
 type drainRunner struct {

@@ -18,7 +18,7 @@ require (
 	github.com/aws/aws-sdk-go v1.25.18
 	github.com/caarlos0/env v3.5.0+incompatible
 	github.com/cenkalti/backoff v2.1.1+incompatible
-	github.com/clarafu/envstruct v0.0.0-20210103210407-50c984958249 // indirect
+	github.com/clarafu/envstruct v0.0.0-20210103210407-50c984958249
 	github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e // indirect
 	github.com/cloudfoundry/socks5-proxy v0.0.0-20180530211953-3659db090cb2 // indirect
 	github.com/concourse/baggageclaim v1.6.6
@@ -42,8 +42,9 @@ require (
 	github.com/docker/go-events v0.0.0-20190806004212-e31b211e4f1c // indirect
 	github.com/evanphx/json-patch v4.5.0+incompatible // indirect
 	github.com/fatih/color v1.7.0
-	github.com/fatih/structs v1.1.0
 	github.com/felixge/httpsnoop v1.0.0
+	github.com/go-playground/locales v0.13.0
+	github.com/go-playground/universal-translator v0.17.0
 	github.com/go-playground/validator/v10 v10.3.0
 	github.com/go-sql-driver/mysql v0.0.0-20160802113842-0b58b37b664c // indirect
 	github.com/gobuffalo/packr v1.13.7
@@ -66,7 +67,6 @@ require (
 	github.com/influxdata/influxdb1-client v0.0.0-20190118215656-f8cdb5d5f175
 	github.com/jessevdk/go-flags v1.4.0
 	github.com/json-iterator/go v1.1.7 // indirect
-	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/klauspost/compress v1.9.7
 	github.com/kr/pty v1.1.8
 	github.com/krishicks/yaml-patch v0.0.10

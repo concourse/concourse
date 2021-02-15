@@ -11,44 +11,27 @@ import (
 
 	"github.com/clarafu/envstruct"
 	concourseCmd "github.com/concourse/concourse/cmd"
+	"github.com/concourse/concourse/flag"
 	"github.com/concourse/concourse/tsa/tsacmd"
+	"github.com/go-playground/locales/en"
+	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 
 	"github.com/concourse/concourse/atc/atccmd"
-	"github.com/concourse/flag"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/sigmon"
 )
 
 var configFile string
-var webFlagsDEPRECATED Web
-
-type fieldError struct {
-	err validator.FieldError
-}
-
-func (q fieldError) String() string {
-	errorString := fmt.Sprintf("validation failed on field '%s', condition: %s", q.err.Field(), q.err.ActualTag())
-
-	// Print condition parameters, e.g. oneof=red blue -> { red blue }
-	if q.err.Param() != "" {
-		sb.WriteString(" { " + q.err.Param() + " }")
-	}
-
-	if q.err.Value() != nil && q.err.Value() != "" {
-		sb.WriteString(fmt.Sprintf(", actual: %v", q.err.Value()))
-	}
-
-	return sb.String()
-}
+var webCmd Web
 
 // type WebCommand struct {
 // 	PeerAddress string `long:"peer-address" default:"127.0.0.1" description:"Network address of this web node, reachable by other web nodes. Used for forwarded worker addresses."`
 
-// 	*atccmd.RunCommand
+// 	*atccmd.RunConfig
 // 	*tsacmd.TSACommand `group:"TSA Configuration" namespace:"tsa"`
 // }
 var WebCommand = &cobra.Command{
@@ -61,30 +44,20 @@ var WebCommand = &cobra.Command{
 func init() {
 	WebCommand.Flags().StringVar(&configFile, "config", "", "config file (default is $HOME/.cobra.yaml)")
 
-	WebCommand.Flags().StringVar(&webFlagsDEPRECATED.PeerAddress, "peer-address", "127.0.0.1", "Network address of this web node, reachable by other web nodes. Used for forwarded worker addresses.")
+	WebCommand.Flags().StringVar(&webCmd.PeerAddress, "peer-address", "127.0.0.1", "Network address of this web node, reachable by other web nodes. Used for forwarded worker addresses.")
 
-	atccmd.InitializeFlagsDEPRECATED(WebCommand, webFlagsDEPRECATED.RunCommand)
+	*webCmd.RunConfig = atccmd.CmdDefaults
 
-	tsacmd.InitializeFlagsDEPRECATED(WebCommand, webFlagsDEPRECATED.TSACommand)
+	// XXX: Can be removed when flags no longer supported
+	atccmd.InitializeATCFlagsDEPRECATED(WebCommand, webCmd.RunConfig)
+	tsacmd.InitializeFlagsDEPRECATED(WebCommand, webCmd.TSACommand)
 
-	// Mark all flags as deprecated
+	// TODO: Mark all flags as deprecated
 }
 
-// XXX: Double check with alex that we no longer need these
-// func (WebCommand) LessenRequirements(command *flags.Command) {
-// }
-
 func InitializeWeb(cmd *cobra.Command, args []string) error {
-	// Fetch all the flag values set
-	//
-	// XXX: When we stop supporting flags, we will need to replace this with a
-	// new web object and fill in defaults manually with:
-	// atccmd.SetDefaults(web.RunCommand)
-	// tsacmd.SetDefaults(web.TSACommand)
-	web := webFlagsDEPRECATED
-
-	// IMPORTANT!! This can be removed after we completely deprecate flags
-	fixupFlagDefaults(cmd, &web)
+	// XXX: This can be removed after we completely deprecate flags
+	fixupFlagDefaults(cmd, &webCmd)
 
 	// Fetch out env values
 	env := envstruct.New("CONCOURSE", "yaml", envstruct.Parser{
@@ -92,7 +65,7 @@ func InitializeWeb(cmd *cobra.Command, args []string) error {
 		Unmarshaler: yaml.Unmarshal,
 	})
 
-	err := env.FetchEnv(web)
+	err := env.FetchEnv(webCmd)
 	if err != nil {
 		return fmt.Errorf("fetch env: %s", err)
 	}
@@ -106,28 +79,33 @@ func InitializeWeb(cmd *cobra.Command, args []string) error {
 		}
 
 		decoder := yaml.NewDecoder(file)
-		err = decoder.Decode(&web)
+		err = decoder.Decode(&webCmd)
 		if err != nil {
 			return fmt.Errorf("decode config: %s", err)
 		}
 	}
 
 	// Validate the values passed in by the user
-	webValidator := atccmd.NewValidator()
-	err = webValidator.Struct(web)
+	en := en.New()
+	uni := ut.New(en, en)
+	trans, _ := uni.GetTranslator("en")
+
+	webValidator := atccmd.NewValidator(trans)
+
+	err = webValidator.Struct(webCmd)
 	if err != nil {
 		validationErrors := err.(validator.ValidationErrors)
 
+		// TODO: FIX ERROR HANDLING
 		var errOuts []string
 		for _, err := range validationErrors {
-			errOuts = append(errOuts, err)
+			errOuts = append(errOuts, err.Translate(trans))
 		}
-		// XXX: TODO ERROR
 
 		return fmt.Errorf(`TODO`)
 	}
 
-	err = web.Execute(cmd, args)
+	err = webCmd.Execute(cmd, args)
 	if err != nil {
 		return fmt.Errorf("failed to execute web: %s", err)
 	}
@@ -149,7 +127,7 @@ func fixupFlagDefaults(cmd *cobra.Command, web *Web) {
 type Web struct {
 	PeerAddress string `yaml:"peer_address"`
 
-	*atccmd.RunCommand
+	*atccmd.RunConfig
 	*tsacmd.TSACommand `yaml:"worker_gateway"`
 }
 
@@ -163,8 +141,8 @@ func (w *Web) Execute(cmd *cobra.Command, args []string) error {
 }
 
 func (w *Web) Runner(args []string) (ifrit.Runner, error) {
-	if w.RunCommand.CLIArtifactsDir == "" {
-		w.RunCommand.CLIArtifactsDir = concourseCmd.DiscoverAsset("fly-assets")
+	if w.RunConfig.CLIArtifactsDir == "" {
+		w.RunConfig.CLIArtifactsDir = flag.Dir(concourseCmd.DiscoverAsset("fly-assets"))
 	}
 
 	err := w.populateSharedFlags()
@@ -172,7 +150,7 @@ func (w *Web) Runner(args []string) (ifrit.Runner, error) {
 		return nil, err
 	}
 
-	atcRunner, err := w.RunCommand.Runner(args)
+	atcRunner, err := w.RunConfig.Runner(args)
 	if err != nil {
 		return nil, err
 	}
@@ -182,7 +160,7 @@ func (w *Web) Runner(args []string) (ifrit.Runner, error) {
 		return nil, err
 	}
 
-	logger, _ := w.RunCommand.Logger.Logger("web")
+	logger, _ := w.RunConfig.Logger.Logger("web")
 	return grouper.NewParallel(os.Interrupt, grouper.Members{
 		{
 			Name:   "atc",
@@ -197,50 +175,50 @@ func (w *Web) Runner(args []string) (ifrit.Runner, error) {
 
 func (w *Web) populateSharedFlags() error {
 	var signingKey *rsa.PrivateKey
-	if w.RunCommand.Auth.AuthFlags.SigningKey == nil || w.RunCommand.Auth.AuthFlags.SigningKey.PrivateKey == nil {
+	if w.RunConfig.Auth.AuthFlags.SigningKey == nil || w.RunConfig.Auth.AuthFlags.SigningKey.PrivateKey == nil {
 		var err error
 		signingKey, err = rsa.GenerateKey(rand.Reader, 2048)
 		if err != nil {
 			return fmt.Errorf("failed to generate session signing key: %s", err)
 		}
 
-		w.RunCommand.Auth.AuthFlags.SigningKey = &flag.PrivateKey{PrivateKey: signingKey}
+		w.RunConfig.Auth.AuthFlags.SigningKey = &flag.PrivateKey{PrivateKey: signingKey}
 	} else {
-		signingKey = w.RunCommand.Auth.AuthFlags.SigningKey.PrivateKey
+		signingKey = w.RunConfig.Auth.AuthFlags.SigningKey.PrivateKey
 	}
 
 	w.TSACommand.PeerAddress = w.PeerAddress
 
 	if len(w.TSACommand.ATCURLs) == 0 {
-		w.TSACommand.ATCURLs = []string{w.RunCommand.DefaultURL().String()}
+		w.TSACommand.ATCURLs = []string{w.RunConfig.DefaultURL().URL.String()}
 	}
 
 	if w.TSACommand.TokenURL == "" {
 		tokenPath, _ := url.Parse("/sky/issuer/token")
-		w.TSACommand.TokenURL = w.RunCommand.DefaultURL().ResolveReference(tokenPath).String()
+		w.TSACommand.TokenURL = w.RunConfig.DefaultURL().ResolveReference(tokenPath).String()
 	}
 
 	if w.TSACommand.ClientSecret == "" {
 		w.TSACommand.ClientSecret = derivedCredential(signingKey, w.TSACommand.ClientID)
 	}
 
-	if w.RunCommand.Server.ClientSecret == "" {
-		w.RunCommand.Server.ClientSecret = derivedCredential(signingKey, w.RunCommand.Server.ClientID)
+	if w.RunConfig.Server.ClientSecret == "" {
+		w.RunConfig.Server.ClientSecret = derivedCredential(signingKey, w.RunConfig.Server.ClientID)
 	}
 
-	w.RunCommand.Auth.AuthFlags.Clients[w.TSACommand.ClientID] = w.TSACommand.ClientSecret
-	w.RunCommand.Auth.AuthFlags.Clients[w.RunCommand.Server.ClientID] = w.RunCommand.Server.ClientSecret
+	w.RunConfig.Auth.AuthFlags.Clients[w.TSACommand.ClientID] = w.TSACommand.ClientSecret
+	w.RunConfig.Auth.AuthFlags.Clients[w.RunConfig.Server.ClientID] = w.RunConfig.Server.ClientSecret
 
 	// if we're using the 'aud' as the SystemClaimKey then we want to validate
 	// that the SystemClaimValues contains our TSA Client. If it's not 'aud' then
 	// we can't validate anything
-	if w.RunCommand.SystemClaim.Key == "aud" {
+	if w.RunConfig.SystemClaim.Key == "aud" {
 
 		// if we're using the default SystemClaimValues then override these values
 		// to make sure they include the TSA ClientID
-		if len(w.RunCommand.SystemClaim.Values) == 1 {
-			if w.RunCommand.SystemClaim.Values[0] == "concourse-worker" {
-				w.RunCommand.SystemClaim.Values = []string{w.TSACommand.ClientID}
+		if len(w.RunConfig.SystemClaim.Values) == 1 {
+			if w.RunConfig.SystemClaim.Values[0] == "concourse-worker" {
+				w.RunConfig.SystemClaim.Values = []string{w.TSACommand.ClientID}
 			}
 		}
 
@@ -249,15 +227,15 @@ func (w *Web) populateSharedFlags() error {
 		}
 	}
 
-	w.TSACommand.ClusterName = w.RunCommand.Server.ClusterName
-	w.TSACommand.LogClusterName = w.RunCommand.Log.ClusterName
+	w.TSACommand.ClusterName = w.RunConfig.Server.ClusterName
+	w.TSACommand.LogClusterName = w.RunConfig.Log.ClusterName
 
 	return nil
 }
 
 func (w *Web) validateSystemClaimValues() error {
 	found := false
-	for _, val := range w.RunCommand.SystemClaim.Values {
+	for _, val := range w.RunConfig.SystemClaim.Values {
 		if val == w.TSACommand.ClientID {
 			found = true
 		}

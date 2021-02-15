@@ -34,3 +34,31 @@ const (
 	ContainerStateDestroying = "destroying"
 	ContainerStateFailed     = "failed"
 )
+
+type ContainerPlacementStrategy string
+
+var ValidContainerPlacementStrategies = []ContainerPlacementStrategy{
+	ContainerPlacementVolumeLocality,
+	ContainerPlacementRandom,
+	ContainerPlacementFewestBuildContainers,
+	ContainerPlacementLimitActiveTasks,
+}
+
+const (
+	ContainerPlacementVolumeLocality        ContainerPlacementStrategy = "volume-locality"
+	ContainerPlacementRandom                ContainerPlacementStrategy = "random"
+	ContainerPlacementFewestBuildContainers ContainerPlacementStrategy = "fewest-build-containers"
+	ContainerPlacementLimitActiveTasks      ContainerPlacementStrategy = "limit-active-tasks"
+)
+
+type StreamingArtifactsCompression string
+
+var ValidStreamingArtifactsCompressions = []StreamingArtifactsCompression{
+	StreamingArtifactsGzip,
+	StreamingArtifactsZstd,
+}
+
+const (
+	StreamingArtifactsGzip StreamingArtifactsCompression = "gzip"
+	StreamingArtifactsZstd StreamingArtifactsCompression = "zstd"
+)
