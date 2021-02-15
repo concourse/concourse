@@ -69,7 +69,7 @@ func NewHandler(
 	workerVersion string,
 	secretManager creds.Secrets,
 	varSourcePool creds.VarSourcePool,
-	credsManagers creds.Managers,
+	credsManager creds.Manager,
 	interceptTimeoutFactory containerserver.InterceptTimeoutFactory,
 	interceptUpdateInterval time.Duration,
 	dbWall db.Wall,
@@ -102,7 +102,7 @@ func NewHandler(
 	containerServer := containerserver.NewServer(logger, workerClient, secretManager, varSourcePool, interceptTimeoutFactory, interceptUpdateInterval, containerRepository, destroyer, clock)
 	volumesServer := volumeserver.NewServer(logger, volumeRepository, destroyer)
 	teamServer := teamserver.NewServer(logger, dbTeamFactory, externalURL)
-	infoServer := infoserver.NewServer(logger, version, workerVersion, externalURL, clusterName, credsManagers)
+	infoServer := infoserver.NewServer(logger, version, workerVersion, externalURL, clusterName, credsManager)
 	artifactServer := artifactserver.NewServer(logger, workerClient)
 	usersServer := usersserver.NewServer(logger, dbUserFactory)
 	wallServer := wallserver.NewServer(dbWall, logger)

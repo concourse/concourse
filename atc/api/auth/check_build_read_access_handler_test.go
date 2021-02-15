@@ -2,6 +2,7 @@ package auth_test
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 
@@ -262,7 +263,7 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 						pipeline.JobReturns(fakeJob, true, nil)
 					})
 
-					It("returns "+string(status), func() {
+					It("returns "+fmt.Sprint(status), func() {
 						Expect(response.StatusCode).To(Equal(status))
 					})
 				})
@@ -294,7 +295,7 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 					build.PipelineReturns(pipeline, true, nil)
 				})
 
-				It("returns "+string(status), func() {
+				It("returns "+fmt.Sprint(status), func() {
 					Expect(response.StatusCode).To(Equal(status))
 				})
 			})

@@ -117,7 +117,8 @@ var _ = Describe("Pipelines API", func() {
 					Ssm:                    ssmAccess,
 				}
 
-				credsManagers["ssm"] = ssmManager
+				credsManager.NameReturns("ssm")
+				credsManager.ConfigReturns(ssmManager)
 			})
 
 			Context("returns configured ssm manager", func() {
@@ -201,7 +202,8 @@ var _ = Describe("Pipelines API", func() {
 				err := vaultManager.Init(lager.NewLogger("test"))
 				Expect(err).ToNot(HaveOccurred())
 
-				credsManagers["vault"] = vaultManager
+				credsManager.NameReturns("vault")
+				credsManager.ConfigReturns(vaultManager)
 
 				credServer.RouteToHandler("GET", "/v1/sys/health", ghttp.RespondWithJSONEncoded(
 					http.StatusOK,
@@ -327,7 +329,8 @@ var _ = Describe("Pipelines API", func() {
 						Client:     &credhub.LazyCredhub{},
 					}
 
-					credsManagers["credhub"] = credhubManager
+					credsManager.NameReturns("credhub")
+					credsManager.ConfigReturns(credhubManager)
 				})
 
 				It("returns configured creds manager with response", func() {
@@ -374,7 +377,8 @@ var _ = Describe("Pipelines API", func() {
 						Client:     &credhub.LazyCredhub{},
 					}
 
-					credsManagers["credhub"] = credhubManager
+					credsManager.NameReturns("credhub")
+					credsManager.ConfigReturns(credhubManager)
 				})
 
 				It("returns configured creds manager with error", func() {
@@ -414,7 +418,8 @@ var _ = Describe("Pipelines API", func() {
 					SecretManager:          secretsManagerAccess,
 				}
 
-				credsManagers["secretsmanager"] = secretsManager
+				credsManager.NameReturns("secretsmanager")
+				credsManager.ConfigReturns(secretsManager)
 			})
 
 			Context("returns configured secretsmanager manager", func() {

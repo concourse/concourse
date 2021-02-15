@@ -1,40 +1,10 @@
 package wrappa
 
 import (
-	"fmt"
-
 	"github.com/concourse/concourse/atc"
 )
 
-type LimitedRoute string
-
-var supportedActions = []LimitedRoute{LimitedRoute(atc.ListAllJobs)}
-
-func (lr *LimitedRoute) UnmarshalFlag(value string) error {
-	if !isValidAction(value) {
-		return fmt.Errorf("'%s' is not a valid action", value)
-	}
-	for _, supportedAction := range supportedActions {
-		if value == string(supportedAction) {
-			*lr = supportedAction
-			return nil
-		}
-	}
-	return fmt.Errorf(
-		"action '%s' is not supported. Supported actions are: %v",
-		value,
-		supportedActions,
-	)
-}
-
-func isValidAction(action string) bool {
-	for _, route := range atc.Routes {
-		if route.Name == action {
-			return true
-		}
-	}
-	return false
-}
+var SupportedActions = []string{atc.ListAllJobs}
 
 //go:generate counterfeiter . ConcurrentRequestPolicy
 
@@ -43,13 +13,13 @@ type ConcurrentRequestPolicy interface {
 }
 
 type concurrentRequestPolicy struct {
-	handlerPools map[LimitedRoute]Pool
+	handlerPools map[string]Pool
 }
 
 func NewConcurrentRequestPolicy(
-	limits map[LimitedRoute]int,
+	limits map[string]int,
 ) ConcurrentRequestPolicy {
-	pools := map[LimitedRoute]Pool{}
+	pools := map[string]Pool{}
 	for action, limit := range limits {
 		pools[action] = NewPool(limit)
 	}
@@ -59,6 +29,6 @@ func NewConcurrentRequestPolicy(
 }
 
 func (crp *concurrentRequestPolicy) HandlerPool(action string) (Pool, bool) {
-	pool, found := crp.handlerPools[LimitedRoute(action)]
+	pool, found := crp.handlerPools[action]
 	return pool, found
 }

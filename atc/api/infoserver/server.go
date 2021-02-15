@@ -11,7 +11,7 @@ type Server struct {
 	workerVersion string
 	externalURL   string
 	clusterName   string
-	credsManagers creds.Managers
+	credsManager  creds.Manager
 }
 
 func NewServer(
@@ -20,7 +20,7 @@ func NewServer(
 	workerVersion string,
 	externalURL string,
 	clusterName string,
-	credsManagers creds.Managers,
+	credsManager creds.Manager,
 ) *Server {
 	return &Server{
 		logger:        logger,
@@ -28,6 +28,6 @@ func NewServer(
 		workerVersion: workerVersion,
 		externalURL:   externalURL,
 		clusterName:   clusterName,
-		credsManagers: credsManagers,
+		credsManager:  credsManager,
 	}
 }

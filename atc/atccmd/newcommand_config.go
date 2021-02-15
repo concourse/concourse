@@ -822,7 +822,6 @@ func (cmd *RunCommand) constructAPIMembers(
 	pool := worker.NewPool(workerProvider)
 	workerClient := worker.NewClient(pool, workerProvider, compressionLib, workerAvailabilityPollingInterval, workerStatusPublishInterval)
 
-	credsManagers := cmd.CredentialManagers
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
 	dbJobFactory := db.NewJobFactory(dbConn, lockFactory)
 	dbResourceFactory := db.NewResourceFactory(dbConn, lockFactory)
@@ -842,6 +841,8 @@ func (cmd *RunCommand) constructAPIMembers(
 
 	middleware := token.NewMiddleware(cmd.Auth.AuthFlags.SecureCookies)
 
+	credsManager := cmd.ConfiguredCredentialManager()
+
 	apiHandler, err := cmd.constructAPIHandler(
 		logger,
 		reconfigurableSink,
@@ -859,7 +860,7 @@ func (cmd *RunCommand) constructAPIMembers(
 		userFactory,
 		workerClient,
 		secretManager,
-		credsManagers,
+		credsManager,
 		accessFactory,
 		dbWall,
 		tokenVerifier,
@@ -1868,7 +1869,7 @@ func (cmd *RunCommand) constructAPIHandler(
 	dbUserFactory db.UserFactory,
 	workerClient worker.Client,
 	secretManager creds.Secrets,
-	credsManagers creds.Managers,
+	credsManager creds.Manager,
 	accessFactory accessor.AccessFactory,
 	dbWall db.Wall,
 	tokenVerifier accessor.TokenVerifier,
@@ -1975,7 +1976,7 @@ func (cmd *RunCommand) constructAPIHandler(
 		concourse.WorkerVersion,
 		secretManager,
 		cmd.varSourcePool,
-		credsManagers,
+		credsManager,
 		containerserver.NewInterceptTimeoutFactory(cmd.InterceptIdleTimeout),
 		time.Minute,
 		dbWall,
@@ -1985,18 +1986,17 @@ func (cmd *RunCommand) constructAPIHandler(
 	)
 }
 
-func parseAEAD(key string) (cipher.AEAD, error) {
-	block, err := aes.NewCipher([]byte(key))
-	if err != nil {
-		return nil, fmt.Errorf("failed to construct AES cipher: %s", err)
+func (cmd *RunConfig) ConfiguredCredentialManager() creds.Manager {
+	v := reflect.ValueOf(cmd.CredentialManagers)
+
+	for i := 0; i < v.NumField(); i++ {
+		manager := v.Field(i).Interface().(creds.Manager)
+		if manager.IsConfigured() {
+			return manager
+		}
 	}
 
-	AEAD, err := cipher.NewGCM(block)
-	if err != nil {
-		return nil, fmt.Errorf("failed to construct GCM: %s", err)
-	}
-
-	return AEAD, nil
+	return nil
 }
 
 type tlsRedirectHandler struct {
