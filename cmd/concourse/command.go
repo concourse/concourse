@@ -17,7 +17,7 @@ func Execute() error {
 func init() {
 	ConcourseCmd.AddCommand(WebCommand)
 	// ConcourseCmd.AddCommand(workerCmd)
-	// ConcourseCmd.AddCommand(migrateCmd)
+	ConcourseCmd.AddCommand(MigrateCmd)
 	// ConcourseCmd.AddCommand(quickstartCmd)
 	// ConcourseCmd.AddCommand(landWorkerCmd)
 	// ConcourseCmd.AddCommand(retireWorkerCmd)
