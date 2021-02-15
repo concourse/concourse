@@ -17,13 +17,9 @@ type DogstatsdEmitter struct {
 }
 
 type DogstatsDBConfig struct {
-	Host   string `long:"datadog-agent-host" description:"Datadog agent host to expose dogstatsd metrics"`
-	Port   string `long:"datadog-agent-port" description:"Datadog agent port to expose dogstatsd metrics"`
-	Prefix string `long:"datadog-prefix" description:"Prefix for all metrics to easily find them in Datadog"`
-}
-
-func init() {
-	metric.RegisterEmitter(&DogstatsDBConfig{})
+	Host   string `yaml:"agent_host"`
+	Port   string `yaml:"agent_port"`
+	Prefix string `yaml:"prefix"`
 }
 
 func (config *DogstatsDBConfig) Description() string { return "Datadog" }

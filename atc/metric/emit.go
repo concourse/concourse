@@ -1,13 +1,9 @@
 package metric
 
 import (
-	"fmt"
-	"strings"
 	"time"
 
 	"code.cloudfoundry.org/lager"
-
-	flags "github.com/jessevdk/go-flags"
 )
 
 type Event struct {
@@ -30,21 +26,6 @@ type EmitterFactory interface {
 	NewEmitter() (Emitter, error)
 }
 
-var emitterFactories []EmitterFactory
-
-func RegisterEmitter(factory EmitterFactory) {
-	emitterFactories = append(emitterFactories, factory)
-}
-
-func WireEmitters(group *flags.Group) {
-	for _, factory := range emitterFactories {
-		_, err := group.AddGroup(fmt.Sprintf("Metric Emitter (%s)", factory.Description()), "", factory)
-		if err != nil {
-			panic(err)
-		}
-	}
-}
-
 type eventEmission struct {
 	event  Event
 	logger lager.Logger
@@ -57,7 +38,7 @@ var (
 	emissions       chan eventEmission
 )
 
-func Initialize(logger lager.Logger, host string, attributes map[string]string, bufferSize uint32) error {
+func Initialize(logger lager.Logger, factory EmitterFactory, host string, attributes map[string]string, bufferSize uint32) error {
 	logger.Debug("metric-initialize", lager.Data{
 		"host":        host,
 		"attributes":  attributes,
@@ -65,26 +46,12 @@ func Initialize(logger lager.Logger, host string, attributes map[string]string, 
 	})
 
 	var (
-		emitterDescriptions []string
-		err                 error
+		err error
 	)
 
-	for _, factory := range emitterFactories {
-		if factory.IsConfigured() {
-			emitterDescriptions = append(emitterDescriptions, factory.Description())
-		}
-	}
-	if len(emitterDescriptions) > 1 {
-		return fmt.Errorf("Multiple emitters configured: %s", strings.Join(emitterDescriptions, ", "))
-	}
-
-	for _, factory := range emitterFactories {
-		if factory.IsConfigured() {
-			emitter, err = factory.NewEmitter()
-			if err != nil {
-				return err
-			}
-		}
+	emitter, err = factory.NewEmitter()
+	if err != nil {
+		return err
 	}
 
 	if emitter == nil {
@@ -102,7 +69,6 @@ func Initialize(logger lager.Logger, host string, attributes map[string]string, 
 
 func Deinitialize(logger lager.Logger) {
 	close(emissions)
-	emitterFactories = nil
 }
 
 func emit(logger lager.Logger, event Event) {

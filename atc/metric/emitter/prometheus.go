@@ -66,8 +66,8 @@ type PrometheusEmitter struct {
 }
 
 type PrometheusConfig struct {
-	BindIP   string `long:"prometheus-bind-ip" description:"IP to listen on to expose Prometheus metrics."`
-	BindPort string `long:"prometheus-bind-port" description:"Port to listen on to expose Prometheus metrics."`
+	BindIP   string `yaml:"bind_ip"`
+	BindPort string `yaml:"bind_port"`
 }
 
 // The most natural data type to hold the labels is a set because each worker can have multiple but
@@ -87,10 +87,6 @@ func serializeLabels(labels *prometheus.Labels) string {
 	key = strings.Join(names, "_")
 
 	return key
-}
-
-func init() {
-	metric.RegisterEmitter(&PrometheusConfig{})
 }
 
 func (config *PrometheusConfig) Description() string { return "Prometheus" }

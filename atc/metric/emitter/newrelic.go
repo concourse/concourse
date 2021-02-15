@@ -38,21 +38,17 @@ type (
 	}
 
 	NewRelicConfig struct {
-		AccountID          string        `long:"newrelic-account-id" description:"New Relic Account ID"`
-		APIKey             string        `long:"newrelic-api-key" description:"New Relic Insights API Key"`
-		Url                string        `long:"newrelic-insights-api-url" default:"https://insights-collector.newrelic.com" description:"Base Url for insights Insert API"`
-		ServicePrefix      string        `long:"newrelic-service-prefix" default:"" description:"An optional prefix for emitted New Relic events"`
-		BatchSize          uint64        `long:"newrelic-batch-size" default:"2000" description:"Number of events to batch together before emitting"`
-		BatchDuration      time.Duration `long:"newrelic-batch-duration" default:"60s" description:"Length of time to wait between emitting until all currently batched events are emitted"`
-		DisableCompression bool          `long:"newrelic-batch-disable-compression" description:"Disables compression of the batch before sending it"`
+		AccountID          string        `yaml:"account_id"`
+		APIKey             string        `yaml:"api_key"`
+		Url                string        `yaml:"insights_api_url"`
+		ServicePrefix      string        `yaml:"service_prefix"`
+		BatchSize          uint64        `yaml:"batch_size"`
+		BatchDuration      time.Duration `yaml:"batch_duration"`
+		DisableCompression bool          `yaml:"batch_disable_compression"`
 	}
 
 	NewRelicEvent map[string]interface{}
 )
-
-func init() {
-	metric.RegisterEmitter(&NewRelicConfig{})
-}
 
 func (config *NewRelicConfig) Description() string { return "NewRelic" }
 func (config *NewRelicConfig) IsConfigured() bool {
@@ -61,7 +57,7 @@ func (config *NewRelicConfig) IsConfigured() bool {
 
 func (config *NewRelicConfig) NewEmitter() (metric.Emitter, error) {
 	client := &http.Client{
-		Transport: &http.Transport{ Proxy: http.ProxyFromEnvironment },
+		Transport: &http.Transport{Proxy: http.ProxyFromEnvironment},
 		Timeout:   time.Minute,
 	}
 

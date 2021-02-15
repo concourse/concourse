@@ -18,17 +18,17 @@ type InfluxDBEmitter struct {
 }
 
 type InfluxDBConfig struct {
-	URL string `long:"influxdb-url" description:"InfluxDB server address to emit points to."`
+	URL string `yaml:"url"`
 
-	Database string `long:"influxdb-database" description:"InfluxDB database to write points to."`
+	Database string `yaml:"database"`
 
-	Username string `long:"influxdb-username" description:"InfluxDB server username."`
-	Password string `long:"influxdb-password" description:"InfluxDB server password."`
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
 
-	InsecureSkipVerify bool `long:"influxdb-insecure-skip-verify" description:"Skip SSL verification when emitting to InfluxDB."`
+	InsecureSkipVerify bool `yaml:"insecure_skip_verify"`
 
-	BatchSize     uint32        `long:"influxdb-batch-size" default:"5000" description:"Number of points to batch together when emitting to InfluxDB."`
-	BatchDuration time.Duration `long:"influxdb-batch-duration" default:"300s" description:"The duration to wait before emitting a batch of points to InfluxDB, disregarding influxdb-batch-size."`
+	BatchSize     uint32        `yaml:"batch_size"`
+	BatchDuration time.Duration `yaml:"batch_duration"`
 }
 
 var (
@@ -39,7 +39,6 @@ var (
 func init() {
 	batch = make([]metric.Event, 0)
 	lastBatchTime = time.Now()
-	metric.RegisterEmitter(&InfluxDBConfig{})
 }
 
 func (config *InfluxDBConfig) Description() string { return "InfluxDB" }

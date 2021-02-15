@@ -10,11 +10,7 @@ import (
 type LagerEmitter struct{}
 
 type LagerConfig struct {
-	Enabled bool `long:"emit-to-logs" description:"Emit metrics to logs."`
-}
-
-func init() {
-	metric.RegisterEmitter(&LagerConfig{})
+	Enabled bool `yaml:"enable"`
 }
 
 func (config *LagerConfig) Description() string { return "Lager" }
