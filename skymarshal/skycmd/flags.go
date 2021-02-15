@@ -13,7 +13,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/flag"
+	"github.com/concourse/concourse/flag"
 )
 
 var connectors []*Connector
@@ -45,20 +45,14 @@ func WireTeamConnectors(group *flags.Group) {
 type AuthFlags struct {
 	SecureCookies bool              `yaml:"cookie_secure"`
 	Expiration    time.Duration     `yaml:"auth_duration"`
-	SigningKey    string            `yaml:"session_signing_key" validate:"private_key"`
+	SigningKey    *flag.PrivateKey  `yaml:"session_signing_key"`
 	LocalUsers    map[string]string `yaml:"add_local_user"`
 	Clients       map[string]string `yaml:"add_client"`
 }
 
 type AuthTeamFlags struct {
-	LocalUsers []string `yaml:"local_user"`
-	Config     string   `yaml:"config" validate:"file"`
-}
-
-// XXX: OLD
-type OldAuthTeamFlags struct {
-	LocalUsers []string  `long:"local-user" description:"A whitelisted local concourse user. These are the users you've added at web startup with the --add-local-user flag." value-name:"USERNAME"`
-	Config     flag.File `short:"c" long:"config" description:"Configuration file for specifying team params"`
+	LocalUsers []string  `yaml:"local_user"`
+	Config     flag.File `yaml:"config"`
 }
 
 func (flag *AuthTeamFlags) Format() (atc.TeamAuth, error) {
