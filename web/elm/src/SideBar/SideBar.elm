@@ -253,12 +253,6 @@ view model currentPipeline =
 tooltip : Model m -> Maybe Tooltip.Tooltip
 tooltip model =
     let
-        hovered =
-            model.hovered
-
-        sideBarState =
-            model.sideBarState
-
         isSideBarClickable =
             hasVisiblePipelines model
 
@@ -326,7 +320,7 @@ tooltip model =
                     if not isSideBarClickable then
                         "no visible pipelines"
 
-                    else if sideBarState.isOpen then
+                    else if model.sideBarState.isOpen then
                         "hide sidebar"
 
                     else

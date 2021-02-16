@@ -927,7 +927,7 @@ all =
             given iAmViewingThePipelinePageForAnInstance
                 >> given iAmOnANonPhoneScreen
                 >> given myBrowserFetchedPipelines
-                >> given iClickedTheHamburgerIcon
+                >> given iClickedTheSideBarIcon
                 >> given myBrowserFetchedAnInstanceGroup
                 >> given myBrowserFetchedFavoritedPipelineInstances
                 >> when iAmLookingAtTheFavoritesSection
