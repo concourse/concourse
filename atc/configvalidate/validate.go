@@ -262,6 +262,9 @@ func usedResources(c Config) map[string]bool {
 				usedResources[step.ResourceName()] = true
 				return nil
 			},
+			OnRun: func(step *RunStep) error {
+				return nil
+			},
 		})
 	}
 

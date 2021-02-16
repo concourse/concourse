@@ -1,0 +1,11 @@
+prototypes:
+- name: some-prototype
+  type: registry-image
+  source:
+    repository: vito/some-prototype
+
+jobs:
+- name: run-prototype
+  plan:
+  - run: some-message
+    type: some-prototype

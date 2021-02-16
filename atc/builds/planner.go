@@ -164,6 +164,11 @@ func (visitor *planVisitor) VisitPut(step *atc.PutStep) error {
 	return nil
 }
 
+func (visitor *planVisitor) VisitRun(step *atc.RunStep) error {
+	// TODO implement this
+	return nil
+}
+
 func (visitor *planVisitor) VisitDo(step *atc.DoStep) error {
 	do := atc.DoPlan{}
 

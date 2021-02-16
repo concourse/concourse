@@ -17,6 +17,9 @@ type StepRecursor struct {
 	// OnPut will be invoked for any *PutStep present in the StepConfig.
 	OnPut func(*PutStep) error
 
+	// OnRun will be invoked for any *RunStep present in the StepConfig.
+	OnRun func(*RunStep) error
+
 	// OnSetPipeline will be invoked for any *SetPipelineStep present in the StepConfig.
 	OnSetPipeline func(*SetPipelineStep) error
 
@@ -46,6 +49,15 @@ func (recursor StepRecursor) VisitGet(step *GetStep) error {
 func (recursor StepRecursor) VisitPut(step *PutStep) error {
 	if recursor.OnPut != nil {
 		return recursor.OnPut(step)
+	}
+
+	return nil
+}
+
+// VisitRun calls the OnRun hook if configured.
+func (recursor StepRecursor) VisitRun(step *RunStep) error {
+	if recursor.OnPut != nil {
+		return recursor.OnRun(step)
 	}
 
 	return nil

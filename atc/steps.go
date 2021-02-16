@@ -191,6 +191,7 @@ type StepVisitor interface {
 	VisitTask(*TaskStep) error
 	VisitGet(*GetStep) error
 	VisitPut(*PutStep) error
+	VisitRun(*RunStep) error
 	VisitSetPipeline(*SetPipelineStep) error
 	VisitLoadVar(*LoadVarStep) error
 	VisitTry(*TryStep) error
@@ -262,6 +263,10 @@ var StepPrecedence = []StepDetector{
 		New: func() StepConfig { return &GetStep{} },
 	},
 	{
+		Key: "run",
+		New: func() StepConfig { return &RunStep{} },
+	},
+	{
 		Key: "timeout",
 		New: func() StepConfig { return &TimeoutStep{} },
 	},
@@ -330,6 +335,29 @@ func (step *PutStep) ResourceName() string {
 
 func (step *PutStep) Visit(v StepVisitor) error {
 	return v.VisitPut(step)
+}
+
+type RunStep struct {
+	Name string `json:"run"`
+	Type string `json:"type,omitempty"`
+	// Resource  string        `json:"resource,omitempty"`
+	// Params    Params        `json:"params,omitempty"`
+	// Inputs    *InputsConfig `json:"inputs,omitempty"`
+	// Tags      Tags          `json:"tags,omitempty"`
+	// GetParams Params        `json:"get_params,omitempty"`
+	// Timeout   string        `json:"timeout,omitempty"`
+}
+
+func (step *RunStep) TypeName() string {
+	if step.Type != "" {
+		return step.Type
+	}
+
+	return step.Name
+}
+
+func (step *RunStep) Visit(v StepVisitor) error {
+	return v.VisitRun(step)
 }
 
 type TaskStep struct {
