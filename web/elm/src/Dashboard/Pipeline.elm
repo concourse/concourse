@@ -376,7 +376,7 @@ footerView :
 footerView session pipeline section now hovered existingJobs =
     let
         spacer =
-            Html.div [ style "width" "12px" ] []
+            Html.div [ style "width" "16px" ] []
 
         pipelineId =
             Concourse.toPipelineId pipeline

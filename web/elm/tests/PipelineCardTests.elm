@@ -1257,7 +1257,7 @@ all =
                     hasStyle "background-color" ColorValues.grey90
             , test "has medium padding" <|
                 \_ ->
-                    hasStyle "padding" "13.5px"
+                    hasStyle "padding" "16px"
             , test "lays out contents horizontally" <|
                 \_ ->
                     hasStyle "display" "flex"
@@ -2277,7 +2277,7 @@ all =
                             |> Query.children []
                             |> Expect.all
                                 [ Query.count (Expect.equal 5)
-                                , Query.index 1 >> Query.has [ style "width" "12px" ]
+                                , Query.index 1 >> Query.has [ style "width" "16px" ]
                                 ]
                 , test "there is medium spacing between the eye and the favorited icon" <|
                     \_ ->
@@ -2299,7 +2299,7 @@ all =
                             |> Query.children []
                             |> Expect.all
                                 [ Query.count (Expect.equal 5)
-                                , Query.index 3 >> Query.has [ style "width" "12px" ]
+                                , Query.index 3 >> Query.has [ style "width" "16px" ]
                                 ]
                 , describe "pause toggle"
                     [ test "the right section has a 20px square pause button on the left" <|

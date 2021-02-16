@@ -517,7 +517,7 @@ texture pipelineRunningKeyframes isRunning color =
 
 pipelineCardFooter : List (Html.Attribute msg)
 pipelineCardFooter =
-    [ style "padding" "13.5px"
+    [ style "padding" "16px"
     , style "display" "flex"
     , style "justify-content" "space-between"
     , style "background-color" Colors.card
