@@ -105,6 +105,6 @@ require (
 	sigs.k8s.io/yaml v1.2.0
 )
 
-go 1.13
+go 1.16
 
 replace github.com/docker/distribution v2.7.1+incompatible => github.com/docker/distribution v2.7.1-0.20190205005809-0d3efadf0154+incompatible
