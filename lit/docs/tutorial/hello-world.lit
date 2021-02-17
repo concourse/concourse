@@ -10,10 +10,16 @@ to explain the core pieces of the pipeline.
 
 Let's first answer: \bold{what is a pipeline made up from?}
 
-A \reference{pipelines}{pipeline} is a list of \reference{jobs}.
-\reference{Jobs} themselves are a list of \reference{steps}. If you've used
-other "pipeline" building tools in the past, then what you think of as a
-pipeline is probably most similar to a \reference{jobs}{job} in Concourse.
+A Concourse \reference{pipelines}{pipeline} is made of two core objects:
+
+\list{
+An unordered list of \reference{jobs}
+}{
+Each \reference{jobs}{job} contains an ordered list of \reference{steps}
+}
+If you've used other pipeline building tools in the past, then what you think
+of as a pipeline is probably most similar to a \reference{jobs}{job} in
+Concourse.
 
 For our \code{Hello World!} pipeline we will need \bold{one job} with \bold{one step}. This is the smallest pipeline you can make in Concourse. The single step is what will print \code{Hello World!} to the console.
 
@@ -73,12 +79,12 @@ jobs:
 
 At this point we are going to pause to explain steps a bit more.
 
-Each \reference{steps}{step} in a job plan runs in its own container. So if you
+Each \reference{steps}{step} in a \reference{schema.job.plan}{job plan} runs in its own container. So if you
 have a job with five steps Concourse will create five containers, one for each
 step. Therefore, we need to tell Concourse the following about each step:
 
 \list{
-What type of worker to run the task on (linux/windows/darwin)
+What type of \reference{worker-node}{worker} to run the task on (linux/windows/darwin)
 }{
 What container image to use
 }{
