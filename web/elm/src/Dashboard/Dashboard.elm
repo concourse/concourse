@@ -37,6 +37,7 @@ import Dashboard.Styles as Styles
 import Dashboard.Text as Text
 import Dict exposing (Dict)
 import EffectTransformer exposing (ET)
+import Favorites
 import FetchResult exposing (FetchResult(..), changedFrom)
 import HoverState
 import Html exposing (Html)
@@ -682,16 +683,16 @@ updateBody session msg ( model, effects ) =
 
         DragEnd ->
             case ( model.dragState, model.dropState ) of
-                ( Dragging teamName name, Dropping target ) ->
+                ( Dragging teamName identifier, Dropping target ) ->
                     let
                         teamCards =
                             model.pipelines
                                 |> Maybe.andThen (Dict.get teamName)
                                 |> Maybe.withDefault []
-                                |> groupCards
+                                |> groupCardsWithinTeam
                                 |> (\cards ->
                                         cards
-                                            |> (case Drag.dragCardIndices name target cards of
+                                            |> (case Drag.dragCardIndices identifier target cards of
                                                     Just ( from, to ) ->
                                                         Drag.drag from to
 
@@ -710,6 +711,9 @@ updateBody session msg ( model, effects ) =
                                                 (\card ->
                                                     case card of
                                                         PipelineCard p ->
+                                                            [ p ]
+
+                                                        InstancedPipelineCard p ->
                                                             [ p ]
 
                                                         InstanceGroupCard p ps ->
@@ -811,9 +815,6 @@ subscriptions =
     , OnKeyDown
     , OnKeyUp
     , OnWindowResize
-    , OnCachedJobsReceived
-    , OnCachedPipelinesReceived
-    , OnCachedTeamsReceived
     ]
 
 
@@ -883,7 +884,7 @@ tooltip session =
         HoverState.Tooltip (Message.PipelineCardFavoritedIcon _ id) _ ->
             let
                 isFavorited =
-                    Set.member id session.favoritedPipelines
+                    Favorites.isPipelineFavorited session { id = id }
             in
             Just
                 { body =
@@ -893,6 +894,27 @@ tooltip session =
 
                         else
                             "favorite pipeline"
+                , attachPosition =
+                    { direction = Tooltip.Bottom
+                    , alignment = Tooltip.End
+                    }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
+
+        HoverState.Tooltip (Message.InstanceGroupCardFavoritedIcon _ id) _ ->
+            let
+                isFavorited =
+                    Favorites.isInstanceGroupFavorited session id
+            in
+            Just
+                { body =
+                    Html.text <|
+                        if isFavorited then
+                            "unfavorite instance group"
+
+                        else
+                            "favorite instance group"
                 , attachPosition =
                     { direction = Tooltip.Bottom
                     , alignment = Tooltip.End
@@ -994,6 +1016,21 @@ tooltip session =
         HoverState.Tooltip (Message.PipelineCardInstanceVar _ _ key value) _ ->
             Just
                 { body = Html.text <| key ++ ": " ++ value
+                , attachPosition = { direction = Tooltip.Right 0, alignment = Tooltip.Middle 30 }
+                , arrow = Just 15
+                , containerAttrs = Just Styles.cardTooltip
+                }
+
+        HoverState.Tooltip (Message.PipelineCardInstanceVars _ _ vars) _ ->
+            Just
+                { body =
+                    Html.text
+                        (vars
+                            |> Dict.toList
+                            |> List.concatMap (\( k, v ) -> Concourse.flattenJson k v)
+                            |> List.map (\( k, v ) -> k ++ ":" ++ v)
+                            |> String.join ", "
+                        )
                 , attachPosition = { direction = Tooltip.Right 0, alignment = Tooltip.Middle 30 }
                 , arrow = Just 15
                 , containerAttrs = Just Styles.cardTooltip
@@ -1262,16 +1299,16 @@ regularCardsView session params =
                 |> List.map
                     (\( team, teamPipelines ) ->
                         ( team
-                        , groupCards teamPipelines
+                        , groupCardsWithinTeam teamPipelines
                         )
                     )
     in
     cardsView session params teamCards
 
 
-groupCards : List Pipeline -> List Card
-groupCards =
-    Concourse.groupPipelines
+groupCardsWithinTeam : List Pipeline -> List Card
+groupCardsWithinTeam =
+    Concourse.groupPipelinesWithinTeam
         >> List.map
             (\g ->
                 case g of
@@ -1301,7 +1338,7 @@ instanceGroupCardsView session model =
                             |> List.map
                                 (\( p, ps ) ->
                                     ( team ++ " / " ++ p.name
-                                    , p :: ps |> List.map PipelineCard
+                                    , p :: ps |> List.map InstancedPipelineCard
                                     )
                                 )
                     )
@@ -1316,7 +1353,7 @@ cardsView session params teamCards =
             params.jobs
                 |> FetchResult.withDefault Dict.empty
 
-        inInstanceGroupView =
+        viewingInstanceGroups =
             Filter.isViewingInstanceGroups params.query
 
         ( headerView, offsetHeight ) =
@@ -1328,27 +1365,33 @@ cardsView session params teamCards =
                     favoritedCards =
                         teamCards
                             |> List.concatMap Tuple.second
-                            |> List.filterMap
+                            |> List.concatMap
                                 (\c ->
-                                    let
-                                        isFavorited p =
-                                            Set.member p.id session.favoritedPipelines
-                                    in
                                     case c of
                                         PipelineCard p ->
-                                            if isFavorited p then
-                                                Just <| PipelineCard p
+                                            if Favorites.isPipelineFavorited session p then
+                                                [ c ]
 
                                             else
-                                                Nothing
+                                                []
+
+                                        InstancedPipelineCard p ->
+                                            if Favorites.isPipelineFavorited session p then
+                                                [ c ]
+
+                                            else
+                                                []
 
                                         InstanceGroupCard p ps ->
-                                            case List.filter isFavorited (p :: ps) of
-                                                x :: xs ->
-                                                    Just <| InstanceGroupCard x xs
+                                            (if Favorites.isInstanceGroupFavorited session (Concourse.toInstanceGroupId p) then
+                                                [ c ]
 
-                                                [] ->
-                                                    Nothing
+                                             else
+                                                []
+                                            )
+                                                ++ (List.filter (Favorites.isPipelineFavorited session) (p :: ps)
+                                                        |> List.map InstancedPipelineCard
+                                                   )
                                 )
 
                     allPipelinesHeader =
@@ -1371,7 +1414,7 @@ cardsView session params teamCards =
                                 , viewportWidth = params.viewportWidth
                                 , viewportHeight = params.viewportHeight
                                 , scrollTop = params.scrollTop - offset
-                                , isInstanceGroupView = inInstanceGroupView
+                                , viewingInstanceGroups = viewingInstanceGroups
                                 }
                                 favoritedCards
                     in
@@ -1388,7 +1431,7 @@ cardsView session params teamCards =
                         , jobs = jobs
                         , dashboardView = params.dashboardView
                         , query = params.query
-                        , inInstanceGroupView = inInstanceGroupView
+                        , viewingInstanceGroups = viewingInstanceGroups
                         }
                         layout.headers
                         layout.cards
@@ -1434,6 +1477,7 @@ cardsView session params teamCards =
                                             , viewportWidth = params.viewportWidth
                                             , viewportHeight = params.viewportHeight
                                             , scrollTop = params.scrollTop - startingOffset
+                                            , viewingInstanceGroups = viewingInstanceGroups
                                             }
                                             teamName
                                             cards
@@ -1451,7 +1495,7 @@ cardsView session params teamCards =
                                     , jobs = jobs
                                     , dashboardView = params.dashboardView
                                     , query = params.query
-                                    , inInstanceGroupView = inInstanceGroupView
+                                    , viewingInstanceGroups = viewingInstanceGroups
                                     }
                                     teamName
                                     layout.cards

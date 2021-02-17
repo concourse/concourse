@@ -11,12 +11,14 @@ module Dashboard.Styles exposing
     , infoBar
     , infoCliIcon
     , infoItem
+    , inlineInstanceVar
     , instanceGroupCard
     , instanceGroupCardBadge
     , instanceGroupCardBanner
     , instanceGroupCardBannerHd
     , instanceGroupCardBody
     , instanceGroupCardBodyHd
+    , instanceGroupCardFooter
     , instanceGroupCardHd
     , instanceGroupCardHeader
     , instanceGroupCardNameHd
@@ -208,8 +210,8 @@ noPipelineCardHeader =
     ]
 
 
-cardHeaderCommon : Float -> List (Html.Attribute msg)
-cardHeaderCommon height =
+pipelineCardHeader : Float -> List (Html.Attribute msg)
+pipelineCardHeader height =
     [ style "background-color" Colors.card
     , style "color" Colors.dashboardPipelineHeaderText
     , style "font-size" "1.5em"
@@ -220,17 +222,9 @@ cardHeaderCommon height =
     ]
 
 
-pipelineCardHeader : Float -> List (Html.Attribute msg)
-pipelineCardHeader height =
-    cardHeaderCommon height
-
-
 instanceGroupCardHeader : Float -> List (Html.Attribute msg)
-instanceGroupCardHeader height =
-    cardHeaderCommon height
-        ++ [ style "display" "flex"
-           , style "align-items" "center"
-           ]
+instanceGroupCardHeader =
+    pipelineCardHeader
 
 
 pipelineName : List (Html.Attribute msg)
@@ -248,6 +242,11 @@ instanceVar =
     pipelineName ++ [ style "letter-spacing" "0.05em" ]
 
 
+inlineInstanceVar : List (Html.Attribute msg)
+inlineInstanceVar =
+    [ style "padding-right" "8px" ]
+
+
 noInstanceVars : List (Html.Attribute msg)
 noInstanceVars =
     instanceVar ++ [ style "color" Colors.pending ]
@@ -256,6 +255,9 @@ noInstanceVars =
 instanceGroupName : List (Html.Attribute msg)
 instanceGroupName =
     pipelineName
+        ++ [ style "display" "flex"
+           , style "align-items" "center"
+           ]
 
 
 emptyCardBody : List (Html.Attribute msg)
@@ -297,7 +299,7 @@ instanceGroupCardBody : List (Html.Attribute msg)
 instanceGroupCardBody =
     [ style "background-color" Colors.card
     , style "padding" "20px 36px"
-    , style "margin" "2px 0 0 0"
+    , style "margin" "2px 0"
     , style "flex-grow" "1"
     , style "display" "flex"
     , style "flex-direction" "column"
@@ -518,6 +520,15 @@ pipelineCardFooter =
     [ style "padding" "13.5px"
     , style "display" "flex"
     , style "justify-content" "space-between"
+    , style "background-color" Colors.card
+    ]
+
+
+instanceGroupCardFooter : List (Html.Attribute msg)
+instanceGroupCardFooter =
+    [ style "padding" "13.5px"
+    , style "display" "flex"
+    , style "justify-content" "flex-end"
     , style "background-color" Colors.card
     ]
 

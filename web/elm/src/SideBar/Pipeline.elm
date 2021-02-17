@@ -1,7 +1,9 @@
-module SideBar.Pipeline exposing (pipeline)
+module SideBar.Pipeline exposing (instancedPipeline, instancedPipelineText, regularPipeline, regularPipelineText)
 
 import Assets
 import Concourse
+import Dict
+import Favorites
 import HoverState
 import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import Routes
@@ -14,24 +16,28 @@ type alias PipelineScoped a =
     { a
         | teamName : String
         , pipelineName : String
+        , pipelineInstanceVars : Concourse.InstanceVars
     }
 
 
-pipeline :
+type alias Params a b =
     { a
         | hovered : HoverState.HoverState
         , currentPipeline : Maybe (PipelineScoped b)
         , favoritedPipelines : Set Int
         , isFavoritesSection : Bool
     }
-    -> Concourse.Pipeline
-    -> Views.Pipeline
-pipeline params p =
+
+
+pipeline : Bool -> Params a b -> Concourse.Pipeline -> Views.Pipeline
+pipeline isInstancedPipeline params p =
     let
         isCurrent =
             case params.currentPipeline of
                 Just cp ->
-                    cp.pipelineName == p.name && cp.teamName == p.teamName
+                    (cp.pipelineName == p.name)
+                        && (cp.teamName == p.teamName)
+                        && (cp.pipelineInstanceVars == p.instanceVars)
 
                 Nothing ->
                     False
@@ -39,34 +45,46 @@ pipeline params p =
         pipelineId =
             Concourse.toPipelineId p
 
+        domIDFn =
+            if isInstancedPipeline then
+                SideBarInstancedPipeline
+
+            else
+                SideBarPipeline
+
         domID =
-            SideBarPipeline
+            domIDFn
                 (if params.isFavoritesSection then
                     FavoritesSection
 
                  else
                     AllPipelinesSection
                 )
-                pipelineId
+                p.id
 
         isHovered =
             HoverState.isHovered domID params.hovered
 
         isFavorited =
-            Set.member p.id params.favoritedPipelines
+            Favorites.isPipelineFavorited params p
     in
     { icon =
         if p.archived then
-            Assets.ArchivedPipelineIcon
+            Views.AssetIcon Assets.ArchivedPipelineIcon
 
-        else if isHovered then
-            Assets.PipelineIconWhite
-
-        else if isCurrent then
-            Assets.PipelineIconLightGrey
+        else if isInstancedPipeline then
+            Views.TextIcon "/"
 
         else
-            Assets.PipelineIconGrey
+            Views.AssetIcon <|
+                if isHovered then
+                    Assets.PipelineIconWhite
+
+                else if isCurrent then
+                    Assets.PipelineIconLightGrey
+
+                else
+                    Assets.PipelineIconGrey
     , name =
         { color =
             if isHovered then
@@ -77,7 +95,12 @@ pipeline params p =
 
             else
                 Styles.Grey
-        , text = p.name
+        , text =
+            if isInstancedPipeline then
+                instancedPipelineText p
+
+            else
+                regularPipelineText p
         , weight =
             if isCurrent || isHovered then
                 Styles.Bold
@@ -105,3 +128,34 @@ pipeline params p =
     , id = pipelineId
     , databaseID = p.id
     }
+
+
+instancedPipeline : Params a b -> Concourse.Pipeline -> Views.Pipeline
+instancedPipeline =
+    pipeline True
+
+
+instancedPipelineText : Concourse.Pipeline -> String
+instancedPipelineText p =
+    if Dict.isEmpty p.instanceVars then
+        "{}"
+
+    else
+        p.instanceVars
+            |> Dict.toList
+            |> List.concatMap
+                (\( k, v ) ->
+                    Concourse.flattenJson k v
+                        |> List.map (\( key, val ) -> key ++ ":" ++ val)
+                )
+            |> String.join ","
+
+
+regularPipeline : Params a b -> Concourse.Pipeline -> Views.Pipeline
+regularPipeline =
+    pipeline False
+
+
+regularPipelineText : Concourse.Pipeline -> String
+regularPipelineText p =
+    p.name

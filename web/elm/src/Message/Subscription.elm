@@ -18,18 +18,18 @@ import Browser.Events
         , onResize
         )
 import Build.StepTree.Models exposing (BuildEventEnvelope)
-import Concourse exposing (DatabaseID, decodeJob, decodePipeline, decodeTeam)
+import Concourse exposing (DatabaseID, decodeInstanceGroupId, decodeJob, decodePipeline, decodeTeam)
 import Concourse.BuildEvents exposing (decodeBuildEventEnvelope)
 import Json.Decode
 import Json.Encode
 import Keyboard
 import Message.Storage as Storage
     exposing
-        ( favoritedPipelinesKey
+        ( favoritedInstanceGroupsKey
+        , favoritedPipelinesKey
         , jobsKey
         , pipelinesKey
         , receivedFromLocalStorage
-        , receivedFromSessionStorage
         , sideBarStateKey
         , teamsKey
         , tokenKey
@@ -84,12 +84,7 @@ type Subscription
     | OnNonHrefLinkClicked
     | OnElementVisible
     | OnTokenSentToFly
-    | OnTokenReceived
-    | OnSideBarStateReceived
-    | OnCachedJobsReceived
-    | OnCachedPipelinesReceived
-    | OnCachedTeamsReceived
-    | OnFavoritedPipelinesReceived
+    | OnLocalStorageReceived
     | OnScrolledToId
 
 
@@ -112,6 +107,7 @@ type Delivery
     | CachedPipelinesReceived (Result Json.Decode.Error (List Concourse.Pipeline))
     | CachedTeamsReceived (Result Json.Decode.Error (List Concourse.Team))
     | FavoritedPipelinesReceived (Result Json.Decode.Error (Set DatabaseID))
+    | FavoritedInstanceGroupsReceived (Result Json.Decode.Error (Set ( Concourse.TeamName, Concourse.PipelineName )))
     | ScrolledToId ( String, String )
     | Noop
 
@@ -175,41 +171,9 @@ runSubscription s =
                             UrlRequest <| Browser.External path
                 )
 
-        OnTokenReceived ->
+        OnLocalStorageReceived ->
             receivedFromLocalStorage <|
-                decodeStorageResponse tokenKey
-                    Json.Decode.string
-                    TokenReceived
-
-        OnSideBarStateReceived ->
-            receivedFromSessionStorage <|
-                decodeStorageResponse sideBarStateKey
-                    decodeSideBarState
-                    SideBarStateReceived
-
-        OnCachedJobsReceived ->
-            receivedFromLocalStorage <|
-                decodeStorageResponse jobsKey
-                    (Json.Decode.list decodeJob)
-                    CachedJobsReceived
-
-        OnCachedPipelinesReceived ->
-            receivedFromLocalStorage <|
-                decodeStorageResponse pipelinesKey
-                    (Json.Decode.list decodePipeline)
-                    CachedPipelinesReceived
-
-        OnCachedTeamsReceived ->
-            receivedFromLocalStorage <|
-                decodeStorageResponse teamsKey
-                    (Json.Decode.list decodeTeam)
-                    CachedTeamsReceived
-
-        OnFavoritedPipelinesReceived ->
-            receivedFromLocalStorage <|
-                decodeStorageResponse favoritedPipelinesKey
-                    (Json.Decode.list Json.Decode.int |> Json.Decode.map Set.fromList)
-                    FavoritedPipelinesReceived
+                decodeStorageResponse
 
         OnElementVisible ->
             reportIsVisible ElementVisible
@@ -228,15 +192,45 @@ decodePosition =
         (Json.Decode.field "pageY" Json.Decode.float)
 
 
-decodeStorageResponse : Storage.Key -> Json.Decode.Decoder a -> (Result Json.Decode.Error a -> Delivery) -> ( Storage.Key, Storage.Value ) -> Delivery
-decodeStorageResponse expectedKey decoder toDelivery ( key, value ) =
-    if key /= expectedKey then
-        Noop
+decodeStorageResponse : ( Storage.Key, Storage.Value ) -> Delivery
+decodeStorageResponse ( key, value ) =
+    let
+        decodeValue decoder toDelivery =
+            Json.Decode.decodeString decoder >> toDelivery
+    in
+    value
+        |> (if key == tokenKey then
+                decodeValue Json.Decode.string TokenReceived
 
-    else
-        value
-            |> Json.Decode.decodeString decoder
-            |> toDelivery
+            else if key == sideBarStateKey then
+                decodeValue decodeSideBarState SideBarStateReceived
+
+            else if key == jobsKey then
+                decodeValue (Json.Decode.list decodeJob) CachedJobsReceived
+
+            else if key == pipelinesKey then
+                decodeValue (Json.Decode.list decodePipeline) CachedPipelinesReceived
+
+            else if key == teamsKey then
+                decodeValue (Json.Decode.list decodeTeam) CachedTeamsReceived
+
+            else if key == favoritedPipelinesKey then
+                decodeValue (Json.Decode.list Json.Decode.int |> Json.Decode.map Set.fromList)
+                    FavoritedPipelinesReceived
+
+            else if key == favoritedInstanceGroupsKey then
+                decodeValue
+                    (Json.Decode.list decodeInstanceGroupId
+                        |> Json.Decode.map
+                            (List.map (\{ teamName, name } -> ( teamName, name ))
+                                >> Set.fromList
+                            )
+                    )
+                    FavoritedInstanceGroupsReceived
+
+            else
+                always Noop
+           )
 
 
 decodeHttpResponse : String -> RawHttpResponse

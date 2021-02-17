@@ -3879,6 +3879,7 @@ session =
         }
     , draggingSideBar = False
     , favoritedPipelines = Set.empty
+    , favoritedInstanceGroups = Set.empty
     , screenSize = ScreenSize.Desktop
     , timeZone = Time.utc
     , route = Routes.Resource { id = Data.resourceId, page = Nothing }

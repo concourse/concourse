@@ -954,6 +954,7 @@ view session model =
             [ SideBar.view session
                 (Just
                     { pipelineName = model.resourceIdentifier.pipelineName
+                    , pipelineInstanceVars = model.resourceIdentifier.pipelineInstanceVars
                     , teamName = model.resourceIdentifier.teamName
                     }
                 )

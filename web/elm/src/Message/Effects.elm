@@ -32,13 +32,12 @@ import Message.ScrollDirection exposing (ScrollDirection(..))
 import Message.Storage
     exposing
         ( deleteFromLocalStorage
+        , favoritedInstanceGroupsKey
         , favoritedPipelinesKey
         , jobsKey
         , loadFromLocalStorage
-        , loadFromSessionStorage
         , pipelinesKey
         , saveToLocalStorage
-        , saveToSessionStorage
         , sideBarStateKey
         , teamsKey
         , tokenKey
@@ -192,6 +191,8 @@ type Effect
     | SyncStickyBuildLogHeaders
     | SaveFavoritedPipelines (Set DatabaseID)
     | LoadFavoritedPipelines
+    | SaveFavoritedInstanceGroups (Set ( Concourse.TeamName, Concourse.PipelineName ))
+    | LoadFavoritedInstanceGroups
 
 
 type alias VersionId =
@@ -594,10 +595,10 @@ runEffect effect key csrfToken =
             loadFromLocalStorage tokenKey
 
         SaveSideBarState state ->
-            saveToSessionStorage ( sideBarStateKey, encodeSideBarState state )
+            saveToLocalStorage ( sideBarStateKey, encodeSideBarState state )
 
         LoadSideBarState ->
-            loadFromSessionStorage sideBarStateKey
+            loadFromLocalStorage sideBarStateKey
 
         SaveCachedJobs jobs ->
             saveToLocalStorage ( jobsKey, jobs |> Json.Encode.list encodeJob )
@@ -625,6 +626,19 @@ runEffect effect key csrfToken =
 
         LoadFavoritedPipelines ->
             loadFromLocalStorage favoritedPipelinesKey
+
+        SaveFavoritedInstanceGroups igs ->
+            saveToLocalStorage
+                ( favoritedInstanceGroupsKey
+                , igs
+                    |> Json.Encode.set
+                        (\( teamName, name ) ->
+                            Concourse.encodeInstanceGroupId { teamName = teamName, name = name }
+                        )
+                )
+
+        LoadFavoritedInstanceGroups ->
+            loadFromLocalStorage favoritedInstanceGroupsKey
 
         SaveCachedTeams teams ->
             saveToLocalStorage ( teamsKey, teams |> Json.Encode.list encodeTeam )
@@ -666,8 +680,13 @@ toHtmlID domId =
         SideBarTeam section t ->
             pipelinesSectionName section ++ "_" ++ Base64.encode t
 
-        SideBarPipeline section p ->
-            pipelinesSectionName section ++ "_" ++ Base64.encode p.teamName ++ "_" ++ Base64.encode p.pipelineName
+        SideBarPipeline section id ->
+            pipelinesSectionName section ++ "_" ++ String.fromInt id
+
+        SideBarInstancedPipeline section id ->
+            -- This can be the same as SideBarPipeline because they are
+            -- mutually exclusive
+            pipelinesSectionName section ++ "_" ++ String.fromInt id
 
         SideBarInstanceGroup section teamName groupName ->
             pipelinesSectionName section
@@ -692,6 +711,14 @@ toHtmlID domId =
             pipelinesSectionName section
                 ++ "_"
                 ++ encodePipelineId p
+                ++ "_favorite"
+
+        InstanceGroupCardFavoritedIcon section { teamName, name } ->
+            pipelinesSectionName section
+                ++ "_"
+                ++ Base64.encode teamName
+                ++ "_"
+                ++ Base64.encode name
                 ++ "_favorite"
 
         PipelineCardPauseToggle section p ->
@@ -732,6 +759,12 @@ toHtmlID domId =
                 ++ encodePipelineId p
                 ++ "_var_"
                 ++ Base64.encode varName
+
+        PipelineCardInstanceVars section p _ ->
+            pipelinesSectionName section
+                ++ "_"
+                ++ encodePipelineId p
+                ++ "_vars"
 
         PipelinePreview section p ->
             "pipeline_preview_"

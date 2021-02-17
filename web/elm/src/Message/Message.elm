@@ -24,7 +24,7 @@ type Message
     | ToggleGroup Concourse.PipelineGroup
     | SetGroups (List String)
       -- Dashboard
-    | DragStart String Int
+    | DragStart String String
     | DragOver DropTarget
     | DragEnd
       -- Resource
@@ -67,8 +67,10 @@ type DomID
     | PipelineCardNameHD Concourse.DatabaseID
     | InstanceGroupCardNameHD Concourse.TeamName String
     | PipelineCardInstanceVar PipelinesSection Concourse.DatabaseID String String
+    | PipelineCardInstanceVars PipelinesSection Concourse.DatabaseID Concourse.InstanceVars
     | PipelineStatusIcon PipelinesSection Concourse.DatabaseID
     | PipelineCardFavoritedIcon PipelinesSection Concourse.DatabaseID
+    | InstanceGroupCardFavoritedIcon PipelinesSection Concourse.InstanceGroupIdentifier
     | PipelineCardPauseToggle PipelinesSection Concourse.DatabaseID
     | TopBarPinIcon
     | TopBarFavoritedIcon Concourse.DatabaseID
@@ -98,9 +100,11 @@ type DomID
     | SideBarIcon
     | SideBarResizeHandle
     | SideBarTeam PipelinesSection String
-    | SideBarPipeline PipelinesSection Concourse.PipelineIdentifier
+    | SideBarPipeline PipelinesSection Concourse.DatabaseID
+    | SideBarInstancedPipeline PipelinesSection Concourse.DatabaseID
     | SideBarInstanceGroup PipelinesSection Concourse.TeamName String
-    | SideBarFavoritedIcon Concourse.DatabaseID
+    | SideBarPipelineFavoritedIcon Concourse.DatabaseID
+    | SideBarInstanceGroupFavoritedIcon Concourse.InstanceGroupIdentifier
     | Dashboard
     | DashboardGroup String
 
@@ -125,5 +129,5 @@ type alias VersionId =
 
 
 type DropTarget
-    = Before Int
+    = Before String
     | End

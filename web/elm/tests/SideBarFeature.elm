@@ -55,9 +55,6 @@ pageLoadIsSideBarCompatible iAmLookingAtThePage =
     , test "fetches screen size on page load" <|
         when iAmLookingAtThePage
             >> then_ myBrowserFetchesScreenSize
-    , test "listens for sidebar state on page load" <|
-        when iAmLookingAtThePage
-            >> then_ myBrowserListensForSideBarStates
     , test "fetches sidebar state on page load" <|
         when iAmLookingAtThePage
             >> then_ myBrowserFetchesSideBarState
@@ -488,14 +485,14 @@ hasSideBar iAmLookingAtThePage =
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
                 >> when iAmLookingAtTheFirstPipelineStar
-                >> then_ (itIsClickable <| Message.SideBarFavoritedIcon 0)
+                >> then_ (itIsClickable <| Message.SideBarPipelineFavoritedIcon 0)
         , test "pipeline gets favorited when star icon is clicked" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
                 >> given iClickedTheFirstPipelineStar
                 >> when iAmLookingAtTheFirstPipelineStar
                 >> then_ iSeeFilledStarIcon
-        , test "clicked on favorited pipeline has unfilled star icon" <|
+        , test "clicked on favorited pipeline unfavorites it" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
                 >> given iClickedTheFirstPipelineStar
@@ -607,7 +604,7 @@ hasSideBar iAmLookingAtThePage =
                 , selector =
                     [ style "color" ColorValues.grey30 ]
                 }
-            , hoverable = Message.SideBarPipeline AllPipelinesSection Data.pipelineId
+            , hoverable = Message.SideBarPipeline AllPipelinesSection 0
             , hoveredSelector =
                 { description = "dark background and light text"
                 , selector =
@@ -708,6 +705,60 @@ hasSideBar iAmLookingAtThePage =
                         ]
                     }
                 }
+            , test "star icon is clickable" <|
+                given iHaveAnOpenSideBarWithAnInstanceGroup
+                    >> given iClickedThePipelineGroup
+                    >> when iAmLookingAtTheFirstInstanceGroupStar
+                    >> then_
+                        (itIsClickable <|
+                            Message.SideBarInstanceGroupFavoritedIcon
+                                { teamName = "team", name = "group" }
+                        )
+            , test "instance group gets favorited when star icon is clicked" <|
+                given iHaveAnOpenSideBarWithAnInstanceGroup
+                    >> given iClickedThePipelineGroup
+                    >> given iClickedTheFirstInstanceGroupStar
+                    >> when iAmLookingAtTheFirstInstanceGroupStar
+                    >> then_ iSeeFilledStarIcon
+            , test "clicked on favorited instance group unfavorites it" <|
+                given iHaveAnOpenSideBarWithAnInstanceGroup
+                    >> given iClickedThePipelineGroup
+                    >> given iClickedTheFirstInstanceGroupStar
+                    >> given iClickedTheFirstInstanceGroupStar
+                    >> when iAmLookingAtTheFirstInstanceGroupStar
+                    >> then_ iSeeUnfilledStarIcon
+            , test "favorited instance groups are loaded from local storage" <|
+                given iHaveAnOpenSideBarWithAnInstanceGroup
+                    >> given iClickedThePipelineGroup
+                    >> given myBrowserFetchedFavoritedInstanceGroups
+                    >> when iAmLookingAtTheFirstInstanceGroupStar
+                    >> then_ iSeeFilledStarIcon
+            , test "favorited instance groups are displayed in favorites section" <|
+                given iHaveAnOpenSideBarWithAnInstanceGroup
+                    >> given iClickedThePipelineGroup
+                    >> given myBrowserFetchedFavoritedInstanceGroups
+                    >> when iAmLookingAtTheFavoritesSection
+                    >> then_ iSeeABadge
+            ]
+        , describe "favorited pipeline instances" <|
+            [ test "favorited instances appear in the favorites section" <|
+                given iHaveAnOpenSideBar_
+                    >> given myBrowserFetchedAnInstanceGroup
+                    >> given myBrowserFetchedFavoritedPipelineInstances
+                    >> when iAmLookingAtTheTeamInTheFavoritesSection
+                    >> then_ iSeeThePipelineInstance
+            , test "instance list item links to the correct pipeline" <|
+                given iHaveAnOpenSideBar_
+                    >> given myBrowserFetchedAnInstanceGroup
+                    >> given myBrowserFetchedFavoritedPipelineInstances
+                    >> when iAmLookingAtTheTeamInTheFavoritesSection
+                    >> then_ iSeeALinkToThePipelineInstance
+            , test "displays instance group if any instances are favorited" <|
+                given iHaveAnOpenSideBar_
+                    >> given myBrowserFetchedAnInstanceGroup
+                    >> given myBrowserFetchedFavoritedPipelineInstances
+                    >> when iAmLookingAtTheTeamInTheFavoritesSection
+                    >> then_ iSeeTheInstanceGroup
             ]
         , test "subscribes to 5-second tick" <|
             given iAmLookingAtThePage
@@ -797,7 +848,7 @@ hasCurrentPipelineInSideBar iAmLookingAtThePage =
             >> given iClickedTheSideBarIcon
             >> when iAmLookingAtTheOtherPipeline
             >> then_ iSeeTheTextIsBright
-    , test "pipeline with same name on other team has invisible border" <|
+    , test "pipeline with same name on other team is not highlighted" <|
         given iAmLookingAtThePage
             >> given iAmOnANonPhoneScreen
             >> given myBrowserFetchedPipelinesFromMultipleTeams
@@ -872,6 +923,16 @@ all =
         , describe "resource page current pipeline" <|
             hasCurrentPipelineInSideBar (when iOpenTheResourcePage)
         , describe "on notfound page" <| hasSideBar (when iOpenTheNotFoundPage)
+        , test "other instances within the instance group are not highlighted" <|
+            given iAmViewingThePipelinePageForAnInstance
+                >> given iAmOnANonPhoneScreen
+                >> given myBrowserFetchedPipelines
+                >> given iClickedTheSideBarIcon
+                >> given myBrowserFetchedAnInstanceGroup
+                >> given myBrowserFetchedFavoritedPipelineInstances
+                >> when iAmLookingAtTheFavoritesSection
+                >> when iAmLookingAtTheOtherInstance
+                >> then_ iSeeAnInvisibleBackground
         ]
 
 
@@ -1269,15 +1330,7 @@ iSeeItHasAValidTeamId =
 
 
 iSeeItHasAValidPipelineId =
-    Query.has
-        [ id <|
-            (pipelinesSectionName AllPipelinesSection
-                ++ "_"
-                ++ Base64.encode "team"
-                ++ "_"
-                ++ Base64.encode "pipeline"
-            )
-        ]
+    Query.has [ id <| (pipelinesSectionName AllPipelinesSection ++ "_0") ]
 
 
 iSeeItHasAValidInstanceGroupId =
@@ -1348,18 +1401,17 @@ iClickedTheFirstPipelineStar =
         >> Application.update
             (TopLevelMessage.Update <|
                 Message.Click <|
-                    Message.SideBarFavoritedIcon 0
+                    Message.SideBarPipelineFavoritedIcon 0
             )
 
 
-iClickedFavoritedPipelineStar =
-    iClickedTheFirstPipelineStar
-
-
-iAmLookingAtThePreviousPipelineStar =
-    iAmLookingAtTheFirstPipeline
-        >> Query.findAll [ attribute <| Attr.attribute "aria-label" "Favorite Icon" ]
-        >> Query.index 0
+iClickedTheFirstInstanceGroupStar =
+    Tuple.first
+        >> Application.update
+            (TopLevelMessage.Update <|
+                Message.Click <|
+                    Message.SideBarInstanceGroupFavoritedIcon { teamName = "team", name = "group" }
+            )
 
 
 iSeeAMinusIcon =
@@ -1491,6 +1543,21 @@ iSeeItIsALinkToTheFirstInstanceGroup =
         ]
 
 
+iSeeALinkToThePipelineInstance =
+    Query.has
+        [ tag "a"
+        , Common.routeHref <|
+            Routes.Pipeline
+                { id =
+                    { teamName = "team"
+                    , pipelineName = "group"
+                    , pipelineInstanceVars = Dict.fromList [ ( "version", JsonString "1" ) ]
+                    }
+                , groups = []
+                }
+        ]
+
+
 iToggledToHighDensity =
     Tuple.first
         >> Application.update
@@ -1573,7 +1640,13 @@ iAmLookingAtTheFirstInstanceGroupBadge =
 iAmLookingAtTheFirstPipelineStar =
     iAmLookingAtTheFirstPipeline
         >> Query.findAll [ attribute <| Attr.attribute "aria-label" "Favorite Icon" ]
-        >> Query.index 0
+        >> Query.first
+
+
+iAmLookingAtTheFirstInstanceGroupStar =
+    iAmLookingAtTheFirstInstanceGroup
+        >> Query.findAll [ attribute <| Attr.attribute "aria-label" "Favorite Icon" ]
+        >> Query.first
 
 
 iAmLookingAtTheAllPipelinesSection =
@@ -1689,6 +1762,20 @@ iAmViewingThePipelinePage =
     iOpenedThePipelinePage >> Tuple.first
 
 
+iAmViewingThePipelinePageForAnInstance _ =
+    ( Common.initRoute <|
+        Routes.Pipeline
+            { id =
+                { teamName = "team"
+                , pipelineName = "group"
+                , pipelineInstanceVars = Dict.fromList [ ( "version", JsonString "v1" ) ]
+                }
+            , groups = []
+            }
+    , []
+    )
+
+
 iShrankTheViewport =
     Tuple.first >> Application.handleDelivery (Subscription.WindowResized 300 300)
 
@@ -1772,6 +1859,10 @@ myBrowserFetchedAnInstanceGroup =
                     , Data.pipeline "team" 3
                         |> Data.withName "group"
                         |> Data.withInstanceVars Dict.empty
+                    , Data.pipeline "team" 4
+                        |> Data.withName "group"
+                        |> Data.withInstanceVars (Dict.fromList [ ( "version", JsonString "4" ) ])
+                        |> Data.withArchived True
                     ]
             )
 
@@ -1811,6 +1902,22 @@ myBrowserFetchedFavoritedPipelines =
         >> Application.handleDelivery
             (Subscription.FavoritedPipelinesReceived <|
                 Ok (Set.singleton 0)
+            )
+
+
+myBrowserFetchedFavoritedPipelineInstances =
+    Tuple.first
+        >> Application.handleDelivery
+            (Subscription.FavoritedPipelinesReceived <|
+                Ok (Set.fromList [ 1, 2 ])
+            )
+
+
+myBrowserFetchedFavoritedInstanceGroups =
+    Tuple.first
+        >> Application.handleDelivery
+            (Subscription.FavoritedInstanceGroupsReceived <|
+                Ok (Set.singleton ( "team", "group" ))
             )
 
 
@@ -1884,7 +1991,7 @@ iHoveredThePipelineLink =
             (TopLevelMessage.Update <|
                 Message.Hover <|
                     Just <|
-                        Message.SideBarPipeline AllPipelinesSection Data.pipelineId
+                        Message.SideBarPipeline AllPipelinesSection 0
             )
 
 
@@ -1899,6 +2006,14 @@ iSeeTheTeamNameAbove =
 
 iSeeThePipelineNameBelow =
     Query.children [] >> Query.index 1 >> Query.has [ text "pipeline" ]
+
+
+iSeeTheInstanceGroup =
+    iSeeItIsALinkToTheFirstInstanceGroup
+
+
+iSeeThePipelineInstance =
+    Query.has [ text "version:1" ]
 
 
 iSeeNoPipelineNames =
@@ -2046,6 +2161,10 @@ iAmLookingAtThePipelineWithTheSameName =
         >> Query.first
 
 
+iAmLookingAtTheOtherInstance =
+    Query.find [ tag "a", containing [ text "version:2" ] ]
+
+
 myBrowserNotifiesEveryFiveSeconds =
     Tuple.first
         >> Application.subscriptions
@@ -2165,12 +2284,6 @@ iSeeItStretches =
 
 iSeeThreeChildrenDivs =
     Query.children [ tag "div" ] >> Query.count (Expect.equal 3)
-
-
-myBrowserListensForSideBarStates =
-    Tuple.first
-        >> Application.subscriptions
-        >> Common.contains Subscription.OnSideBarStateReceived
 
 
 myBrowserReadSideBarState =

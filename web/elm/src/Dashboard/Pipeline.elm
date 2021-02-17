@@ -1,5 +1,6 @@
 module Dashboard.Pipeline exposing
     ( hdPipelineView
+    , headerRows
     , pipelineNotSetView
     , pipelineStatus
     , pipelineView
@@ -16,6 +17,7 @@ import Dashboard.Group.Models exposing (Pipeline)
 import Dashboard.Styles as Styles
 import Dict
 import Duration
+import Favorites
 import HoverState
 import Html exposing (Html)
 import Html.Attributes
@@ -32,7 +34,6 @@ import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Message.Effects as Effects
 import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import Routes
-import Set
 import Time
 import Tooltip
 import UserState
@@ -125,10 +126,11 @@ pipelineView :
         , layers : List (List Concourse.Job)
         , section : PipelinesSection
         , headerHeight : Float
-        , inInstanceGroupView : Bool
+        , viewingInstanceGroups : Bool
+        , inInstanceGroup : Bool
         }
     -> Html Message
-pipelineView session { now, pipeline, hovered, resourceError, existingJobs, layers, section, headerHeight, inInstanceGroupView } =
+pipelineView session { now, pipeline, hovered, resourceError, existingJobs, layers, section, headerHeight, viewingInstanceGroups, inInstanceGroup } =
     let
         bannerStyle =
             if pipeline.stale then
@@ -145,7 +147,7 @@ pipelineView session { now, pipeline, hovered, resourceError, existingJobs, laye
     in
     Html.div
         (Styles.pipelineCard
-            ++ (if section == AllPipelinesSection && not pipeline.stale && not inInstanceGroupView then
+            ++ (if section == AllPipelinesSection && not pipeline.stale && not viewingInstanceGroups then
                     [ style "cursor" "move" ]
 
                 else
@@ -161,7 +163,7 @@ pipelineView session { now, pipeline, hovered, resourceError, existingJobs, laye
         [ Html.div
             (class "banner" :: bannerStyle)
             []
-        , headerView section pipeline resourceError headerHeight inInstanceGroupView
+        , headerView section pipeline resourceError headerHeight viewingInstanceGroups inInstanceGroup
         , if pipeline.jobsDisabled || pipeline.archived then
             previewPlaceholder
 
@@ -272,38 +274,11 @@ transition =
     .transitionBuild >> Maybe.andThen (.duration >> .finishedAt)
 
 
-headerView : PipelinesSection -> Pipeline -> Bool -> Float -> Bool -> Html Message
-headerView section pipeline resourceError headerHeight inInstanceGroupView =
+headerView : PipelinesSection -> Pipeline -> Bool -> Float -> Bool -> Bool -> Html Message
+headerView section pipeline resourceError headerHeight viewingInstanceGroups inInstanceGroup =
     let
         rows =
-            if not inInstanceGroupView then
-                [ Html.div
-                    (class "dashboard-pipeline-name"
-                        :: Styles.pipelineName
-                        ++ Tooltip.hoverAttrs (PipelineCardName section pipeline.id)
-                    )
-                    [ Html.text pipeline.name ]
-                ]
-
-            else if Dict.isEmpty pipeline.instanceVars then
-                [ Html.div Styles.noInstanceVars [ Html.text "no instance vars" ] ]
-
-            else
-                pipeline.instanceVars
-                    |> Dict.toList
-                    |> List.concatMap (\( k, v ) -> flattenJson k v)
-                    |> List.map
-                        (\( k, v ) ->
-                            Html.div
-                                (class "instance-var"
-                                    :: Styles.instanceVar
-                                    ++ Tooltip.hoverAttrs (PipelineCardInstanceVar section pipeline.id k v)
-                                )
-                                [ Html.span [ style "color" Colors.pending ]
-                                    [ Html.text <| k ++ ": " ]
-                                , Html.text v
-                                ]
-                        )
+            headerRows section viewingInstanceGroups pipeline inInstanceGroup
 
         resourceErrorElem =
             Html.div
@@ -316,6 +291,71 @@ headerView section pipeline resourceError headerHeight inInstanceGroupView =
             (class "card-header" :: Styles.pipelineCardHeader headerHeight)
             (rows ++ [ resourceErrorElem ])
         ]
+
+
+headerRows : PipelinesSection -> Bool -> Pipeline -> Bool -> List (Html Message)
+headerRows section viewingInstanceGroups pipeline inInstanceGroup =
+    let
+        nameRow =
+            if viewingInstanceGroups then
+                []
+
+            else
+                [ Html.div
+                    (class "dashboard-pipeline-name"
+                        :: Styles.pipelineName
+                        ++ Tooltip.hoverAttrs (PipelineCardName section pipeline.id)
+                    )
+                    [ Html.text pipeline.name ]
+                ]
+
+        instanceVarRows =
+            if not inInstanceGroup then
+                []
+
+            else if Dict.isEmpty pipeline.instanceVars then
+                [ Html.div Styles.noInstanceVars [ Html.text "no instance vars" ] ]
+
+            else if viewingInstanceGroups then
+                -- one row per key/value pair
+                pipeline.instanceVars
+                    |> Dict.toList
+                    |> List.concatMap (\( k, v ) -> flattenJson k v)
+                    |> List.map
+                        (\( k, v ) ->
+                            Html.div
+                                (class "instance-var"
+                                    :: Styles.instanceVar
+                                    ++ Tooltip.hoverAttrs (PipelineCardInstanceVar section pipeline.id k v)
+                                )
+                                [ Html.span [ style "color" Colors.pending ]
+                                    [ Html.text <| k ++ ":" ]
+                                , Html.text v
+                                ]
+                        )
+
+            else
+                -- single row consisting of inline key/value pairs
+                [ Html.div
+                    (class "instance-vars"
+                        :: Styles.instanceVar
+                        ++ Tooltip.hoverAttrs (PipelineCardInstanceVars section pipeline.id pipeline.instanceVars)
+                    )
+                    (pipeline.instanceVars
+                        |> Dict.toList
+                        |> List.concatMap (\( k, v ) -> flattenJson k v)
+                        |> List.map
+                            (\( k, v ) ->
+                                Html.span Styles.inlineInstanceVar
+                                    [ Html.span [ style "color" Colors.pending ]
+                                        [ Html.text <| k ++ ":" ]
+                                    , Html.text v
+                                    ]
+                            )
+                    )
+                ]
+    in
+    nameRow ++ instanceVarRows
 
 
 bodyView : PipelinesSection -> HoverState.HoverState -> List (List Concourse.Job) -> Html Message
@@ -376,7 +416,7 @@ footerView session pipeline section now hovered existingJobs =
 
         favoritedIcon =
             Views.FavoritedIcon.view
-                { isFavorited = Set.member pipeline.id session.favoritedPipelines
+                { isFavorited = Favorites.isPipelineFavorited session pipeline
                 , isHovered = HoverState.isHovered (PipelineCardFavoritedIcon section pipeline.id) hovered
                 , isSideBar = False
                 , domID = PipelineCardFavoritedIcon section pipeline.id

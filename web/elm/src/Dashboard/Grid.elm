@@ -7,7 +7,7 @@ module Dashboard.Grid exposing
     , computeLayout
     )
 
-import Concourse exposing (flattenJson)
+import Concourse
 import Dashboard.Drag as Drag
 import Dashboard.Grid.Constants
     exposing
@@ -26,9 +26,16 @@ import Dashboard.Group.Models as Models
         , cardTeamName
         )
 import Dashboard.Models exposing (DragState(..), DropState(..))
+import Dashboard.Pipeline as Pipeline
 import Dict exposing (Dict)
 import List.Extra
-import Message.Message exposing (DomID(..), DropTarget(..), Message(..))
+import Message.Message
+    exposing
+        ( DomID(..)
+        , DropTarget(..)
+        , Message(..)
+        , PipelinesSection(..)
+        )
 import UserState exposing (UserState(..))
 
 
@@ -67,6 +74,7 @@ computeLayout :
     , viewportWidth : Float
     , viewportHeight : Float
     , scrollTop : Float
+    , viewingInstanceGroups : Bool
     }
     -> Concourse.TeamName
     -> List Models.Card
@@ -104,6 +112,7 @@ computeLayout params teamName cards =
                 , offsetX = padding
                 , offsetY = 0
                 }
+                AllPipelinesSection
                 params
                 orderedCards
 
@@ -191,7 +200,7 @@ computeFavoritesLayout :
     , viewportWidth : Float
     , viewportHeight : Float
     , scrollTop : Float
-    , isInstanceGroupView : Bool
+    , viewingInstanceGroups : Bool
     }
     -> List Models.Card
     ->
@@ -208,13 +217,14 @@ computeFavoritesLayout params cards =
                 , offsetX = padding
                 , offsetY = groupHeaderHeight
                 }
+                FavoritesSection
                 params
                 cards
 
         headers =
             let
                 cardHeader =
-                    composeHeader params.isInstanceGroupView
+                    composeHeader params.viewingInstanceGroups
             in
             result.allCards
                 |> List.Extra.groupWhile
@@ -273,8 +283,8 @@ computeFavoritesLayout params cards =
 
 
 composeHeader : Bool -> Models.Card -> String
-composeHeader isInstanceGroupView card =
-    if isInstanceGroupView then
+composeHeader viewingInstanceGroups card =
+    if viewingInstanceGroups then
         cardTeamName card ++ " / " ++ cardName card
 
     else
@@ -288,8 +298,8 @@ cardSizes :
 cardSizes pipelineLayers =
     List.map
         (\card ->
-            case card of
-                PipelineCard pipeline ->
+            let
+                pipelineCardSize pipeline =
                     Dict.get pipeline.id pipelineLayers
                         |> Maybe.withDefault []
                         |> (\layers ->
@@ -301,6 +311,13 @@ cardSizes pipelineLayers =
                                         |> Maybe.withDefault 0
                                     )
                            )
+            in
+            case card of
+                PipelineCard pipeline ->
+                    pipelineCardSize pipeline
+
+                InstancedPipelineCard pipeline ->
+                    pipelineCardSize pipeline
 
                 InstanceGroupCard _ _ ->
                     ( 1, 1 )
@@ -352,10 +369,12 @@ computeCards :
     , offsetX : Float
     , offsetY : Float
     }
+    -> PipelinesSection
     ->
         { a
             | viewportWidth : Float
             , pipelineLayers : Dict Concourse.DatabaseID (List (List Concourse.JobName))
+            , viewingInstanceGroups : Bool
         }
     -> List Models.Card
     ->
@@ -363,7 +382,7 @@ computeCards :
         , allCards : List Card
         , numColumns : Int
         }
-computeCards config params cards =
+computeCards config section params cards =
     let
         numColumns =
             max 1 (floor (params.viewportWidth / (cardWidth + padding)))
@@ -386,7 +405,7 @@ computeCards config params cards =
             (\( first, rest ) state ->
                 let
                     headerHeight =
-                        maxBy (numHeaderRows << .card) first rest
+                        maxBy (numHeaderRows section params.viewingInstanceGroups << .card) first rest
                             |> cardHeaderHeight
                             |> toFloat
 
@@ -418,18 +437,14 @@ computeCards config params cards =
             }
 
 
-numHeaderRows : Models.Card -> Int
-numHeaderRows card =
+numHeaderRows : PipelinesSection -> Bool -> Models.Card -> Int
+numHeaderRows section viewingInstanceGroups card =
     case card of
-        Models.PipelineCard pipeline ->
-            if Dict.isEmpty pipeline.instanceVars then
-                1
+        Models.PipelineCard p ->
+            List.length <| Pipeline.headerRows section viewingInstanceGroups p False
 
-            else
-                pipeline.instanceVars
-                    |> Dict.toList
-                    |> List.concatMap (\( k, v ) -> flattenJson k v)
-                    |> List.length
+        Models.InstancedPipelineCard p ->
+            List.length <| Pipeline.headerRows section viewingInstanceGroups p True
 
         Models.InstanceGroupCard _ _ ->
             1

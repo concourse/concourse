@@ -22,6 +22,7 @@ import Test.Html.Selector exposing (style)
 defaultState =
     { active = False
     , hovered = False
+    , favorited = False
     , isFavoritesSection = False
     }
 
@@ -45,6 +46,25 @@ all =
                                 , color = Styles.White
                                 }
                 ]
+            , describe "when not favorited"
+                [ test "displays a bright unfilled star icon when hovered" <|
+                    \_ ->
+                        viewInstanceGroup { defaultState | active = True, hovered = True }
+                            |> .starIcon
+                            |> Expect.equal { filled = False, isBright = True }
+                ]
+            , describe "when favorited"
+                [ test "displays a bright filled star icon" <|
+                    \_ ->
+                        viewInstanceGroup
+                            { defaultState
+                                | active = True
+                                , hovered = True
+                                , favorited = True
+                            }
+                            |> .starIcon
+                            |> Expect.equal { filled = True, isBright = True }
+                ]
             ]
         , describe "when unhovered"
             [ test "background is dark" <|
@@ -58,6 +78,25 @@ all =
                         |> .badge
                         |> .color
                         |> Expect.equal Styles.LightGrey
+            , describe "when unfavorited"
+                [ test "displays a dim unfilled star icon" <|
+                    \_ ->
+                        viewInstanceGroup { defaultState | active = True, hovered = False }
+                            |> .starIcon
+                            |> Expect.equal { filled = False, isBright = True }
+                ]
+            , describe "when favorited"
+                [ test "displays a bright filled star icon" <|
+                    \_ ->
+                        viewInstanceGroup
+                            { defaultState
+                                | active = True
+                                , hovered = True
+                                , favorited = True
+                            }
+                            |> .starIcon
+                            |> Expect.equal { filled = True, isBright = True }
+                ]
             ]
         , test "font weight is bold" <|
             \_ ->
@@ -125,10 +164,11 @@ all =
 viewInstanceGroup :
     { active : Bool
     , hovered : Bool
+    , favorited : Bool
     , isFavoritesSection : Bool
     }
     -> Views.InstanceGroup
-viewInstanceGroup { active, hovered, isFavoritesSection } =
+viewInstanceGroup { active, hovered, favorited, isFavoritesSection } =
     let
         hoveredDomId =
             if hovered then
@@ -143,10 +183,18 @@ viewInstanceGroup { active, hovered, isFavoritesSection } =
 
             else
                 Nothing
+
+        favoritedInstanceGroups =
+            if favorited then
+                Set.singleton ( "team", "group" )
+
+            else
+                Set.empty
     in
     InstanceGroup.instanceGroup
         { hovered = hoveredDomId
         , currentPipeline = activePipeline
+        , favoritedInstanceGroups = favoritedInstanceGroups
         , isFavoritesSection = isFavoritesSection
         }
         (pipeline 1)

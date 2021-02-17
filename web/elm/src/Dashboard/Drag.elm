@@ -15,7 +15,7 @@ insertAt idx x xs =
             x :: xs
 
 
-dragCardIndices : Int -> DropTarget -> List Card -> Maybe ( Int, Int )
+dragCardIndices : String -> DropTarget -> List Card -> Maybe ( Int, Int )
 dragCardIndices cardId target cards =
     let
         cardIndex id =
@@ -26,8 +26,8 @@ dragCardIndices cardId target cards =
 
         toIndex =
             (case target of
-                Before name ->
-                    cardIndex name
+                Before id ->
+                    cardIndex id
 
                 End ->
                     List.length cards |> Just

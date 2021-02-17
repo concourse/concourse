@@ -51,6 +51,7 @@ module Concourse exposing
     , decodeBuildResources
     , decodeCause
     , decodeInfo
+    , decodeInstanceGroupId
     , decodeInstanceVars
     , decodeJob
     , decodeJsonValue
@@ -63,6 +64,7 @@ module Concourse exposing
     , decodeVersionedResource
     , emptyBuildResources
     , encodeBuild
+    , encodeInstanceGroupId
     , encodeInstanceVars
     , encodeJob
     , encodeJsonValue
@@ -70,12 +72,14 @@ module Concourse exposing
     , encodeResource
     , encodeTeam
     , flattenJson
-    , groupPipelines
+    , groupPipelinesWithinTeam
     , hyphenNotation
+    , isInInstanceGroup
     , isInstanceGroup
     , mapBuildPlan
     , pipelineId
     , retrieveCSRFToken
+    , toInstanceGroupId
     , toPipelineId
     )
 
@@ -544,10 +548,10 @@ type PipelineGrouping pipeline
     | InstanceGroup pipeline (List pipeline)
 
 
-groupPipelines :
+groupPipelinesWithinTeam :
     List { p | name : String, instanceVars : InstanceVars }
     -> List (PipelineGrouping { p | name : String, instanceVars : InstanceVars })
-groupPipelines =
+groupPipelinesWithinTeam =
     List.Extra.gatherEqualsBy .name
         >> List.map
             (\( p, ps ) ->
@@ -559,7 +563,7 @@ groupPipelines =
             )
 
 
-isInstanceGroup : List { p | name : String, instanceVars : InstanceVars } -> Bool
+isInstanceGroup : List { p | instanceVars : InstanceVars } -> Bool
 isInstanceGroup pipelines =
     case pipelines of
         p :: ps ->
@@ -567,6 +571,21 @@ isInstanceGroup pipelines =
 
         _ ->
             False
+
+
+isInInstanceGroup :
+    List { a | id : DatabaseID, name : String, teamName : String, instanceVars : InstanceVars }
+    -> { b | id : DatabaseID, name : String, teamName : String, instanceVars : InstanceVars }
+    -> Bool
+isInInstanceGroup allPipelines p =
+    not (Dict.isEmpty p.instanceVars)
+        || List.any
+            (\p2 ->
+                (p.name == p2.name)
+                    && (p.teamName == p2.teamName)
+                    && (p.id /= p2.id)
+            )
+            allPipelines
 
 
 type alias AcrossPlan =
@@ -1025,6 +1044,26 @@ type alias InstanceGroupIdentifier =
     { teamName : TeamName
     , name : PipelineName
     }
+
+
+toInstanceGroupId : { p | teamName : TeamName, name : PipelineName } -> InstanceGroupIdentifier
+toInstanceGroupId { teamName, name } =
+    { teamName = teamName, name = name }
+
+
+encodeInstanceGroupId : InstanceGroupIdentifier -> Json.Encode.Value
+encodeInstanceGroupId { teamName, name } =
+    Json.Encode.object
+        [ ( "team_name", Json.Encode.string teamName )
+        , ( "name", Json.Encode.string name )
+        ]
+
+
+decodeInstanceGroupId : Json.Decode.Decoder InstanceGroupIdentifier
+decodeInstanceGroupId =
+    Json.Decode.succeed InstanceGroupIdentifier
+        |> andMap (Json.Decode.field "team_name" Json.Decode.string)
+        |> andMap (Json.Decode.field "name" Json.Decode.string)
 
 
 

@@ -440,6 +440,7 @@ view session model =
             [ SideBar.view session
                 (Just
                     { pipelineName = model.jobIdentifier.pipelineName
+                    , pipelineInstanceVars = model.jobIdentifier.pipelineInstanceVars
                     , teamName = model.jobIdentifier.teamName
                     }
                 )

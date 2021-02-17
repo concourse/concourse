@@ -5,14 +5,15 @@ module SideBar.Styles exposing
     , SidebarElementColor(..)
     , collapseIcon
     , column
+    , favoriteIcon
     , iconGroup
     , instanceGroup
     , instanceGroupBadge
     , opacityAttr
     , pipeline
-    , pipelineFavorite
     , pipelineIcon
     , pipelineName
+    , pipelineTextIcon
     , sectionHeader
     , sideBar
     , sideBarHandle
@@ -316,6 +317,19 @@ pipelineIcon asset =
     ]
 
 
+pipelineTextIcon : List (Html.Attribute msg)
+pipelineTextIcon =
+    [ style "height" "18px"
+    , style "width" "18px"
+    , style "margin-left" "28px"
+    , style "flex-shrink" "0"
+    , style "display" "flex"
+    , style "justify-content" "center"
+    , style "align-items" "center"
+    , style "font-size" "16px"
+    ]
+
+
 instanceGroupBadge : { count : Int, color : SidebarElementColor } -> Html.Html msg
 instanceGroupBadge { count, color } =
     let
@@ -343,8 +357,8 @@ instanceGroupBadge { count, color } =
         [ Html.text text ]
 
 
-pipelineFavorite : { filled : Bool, isBright : Bool } -> List (Html.Attribute msg)
-pipelineFavorite fav =
+favoriteIcon : { filled : Bool, isBright : Bool } -> List (Html.Attribute msg)
+favoriteIcon fav =
     [ style "background-image" <|
         Assets.backgroundImage <|
             Just <|
