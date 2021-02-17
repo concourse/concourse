@@ -13,9 +13,9 @@ Let's first answer: \bold{what is a pipeline made up from?}
 A \reference{pipelines}{pipeline} is a list of \reference{jobs}.
 \reference{Jobs} themselves are a list of \reference{steps}. If you've used
 other "pipeline" building tools in the past, then what you think of as a
-pipeline is probably most similar to a job in Concourse.
+pipeline is probably most similar to a \reference{jobs}{job} in Concourse.
 
-For our \code{Hello World!} pipeline we will need \bold{one job} with \bold{one step}. The step is what will print \code{Hello World!} to the console.
+For our \code{Hello World!} pipeline we will need \bold{one job} with \bold{one step}. This is the smallest pipeline you can make in Concourse. The single step is what will print \code{Hello World!} to the console.
 
 Create and open a new file called \code{hello-world.yml}. Inside that file let's add the first top-level key, \code{\reference{jobs}{jobs}}.
 
@@ -33,17 +33,17 @@ We only need one job right now so let's add a single job named
 
 \codeblock{yaml}{{
 jobs:
-- name: hello-world
+- name: hello-world-job
 }}
 
 Awesome, we have a \reference{jobs}{job} named \code{hello-world}! Now we need
 to add a \code{\reference{steps}{step}} to our job. To define a list of
-\reference{steps}{steps} a job should execute we need to add the
+\reference{steps}{steps} a job should execute, we need to add the
 \code{\reference{schema.job.plan}{plan}} key to our job.
 
 \codeblock{yaml}{{
 jobs:
-- name: hello-world
+- name: hello-world-job
   plan:
 }}
 
@@ -55,9 +55,9 @@ the first (and only) step in our job.
 
 \codeblock{yaml}{{
 jobs:
-- name: hello-world
+- name: hello-world-job
   plan:
-  - task: print-hello-world
+  - task: hello-world-task
 }}
 
 Fantastic! Now we need to tell Concourse \italic{how} to run our task step. We
@@ -65,9 +65,9 @@ do that by providing a \reference{schema.task}{task config}.
 
 \codeblock{yaml}{{
 jobs:
-- name: hello-world
+- name: hello-world-job
   plan:
-  - task: print-hello-world
+  - task: hello-world-task
     config:
 }}
 
@@ -78,7 +78,61 @@ have a job with five steps Concourse will create five containers, one for each
 step. Therefore, we need to tell Concourse the following about each step:
 
 \list{
+What type of worker to run the task on (linux/windows/darwin)
+}{
 What container image to use
 }{
 What command to run inside the container
 }
+
+You can view the \reference{tasks}{task documentation} to see all configurable
+options for tasks. For now, you can add the following
+\reference{schema.task}{task config} to the step.
+
+\codeblock{yaml}{{
+jobs:
+- name: hello-world-job
+  plan:
+  - task: hello-world-task
+    config:
+      # Tells Concourse which type of worker this task should run on
+      platform: linux
+      # This is one way of telling Concourse which container image to use for a
+      # task. We'll explain this more when talking about resources
+      image_resource:
+        type: registry-image
+        source:
+          repository: busybox
+      # The command Concourse will run inside the container
+      # echo "Hello world!"
+      run:
+        path: echo
+        args: ["Hello world!"]
+}}
+
+That's the whole pipeline! You can now set it, unpause, and trigger it using
+the \reference{fly}{fly cli}.
+
+\codeblock{bash}{{
+$ fly -t tutorial set-pipeline -p hello-world -c hello-world.yml
+$ fly -t tutorial unpause-pipeline -p hello-world
+# trigger the job and watch it run to completion
+$ fly -t tutorial trigger-job --job hello-world/hello-world-job --watch
+}}
+
+You'll see extra output than what we're showing below, mainly the image being
+downloaded, but the last four lines will be the task executing.
+
+\codeblock{}{{
+selected worker: 701785fa43a1
+running echo Hello world!
+Hello world!
+succeeded
+}}
+
+Congratulations on building your first Concourse pipeline! If you want to see
+your pipeline you can visit the web interface at
+\link{http://localhost:8080/}{http://localhost:8080}.
+
+In the next section we will build upon what we have learned about tasks and
+introduce inputs and outputs, which allow you to pass files between tasks.
