@@ -160,6 +160,7 @@ type RunCommand struct {
 	GardenRequestTimeout time.Duration `long:"garden-request-timeout" default:"5m" description:"How long to wait for requests to Garden to complete. 0 means no timeout."`
 
 	CLIArtifactsDir flag.Dir `long:"cli-artifacts-dir" description:"Directory containing downloadable CLI binaries."`
+	WebPublicDir    flag.Dir `long:"web-public-dir" description:"Web public/ directory to serve live for local development."`
 
 	Metrics struct {
 		HostName            string            `long:"metrics-host-name" description:"Host string to attach to emitted metrics."`
@@ -1356,7 +1357,7 @@ func (cmd *RunCommand) oldKey() *encryption.Key {
 }
 
 func (cmd *RunCommand) constructWebHandler(logger lager.Logger) (http.Handler, error) {
-	webHandler, err := web.NewHandler(logger)
+	webHandler, err := web.NewHandler(logger, cmd.WebPublicDir.Path())
 	if err != nil {
 		return nil, err
 	}
