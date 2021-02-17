@@ -2,7 +2,9 @@ package gclient
 
 import (
 	"context"
+	"errors"
 	"io"
+	"net"
 	"strings"
 
 	"code.cloudfoundry.org/garden"
@@ -80,7 +82,7 @@ func (process *retryableProcess) Signal(sig garden.Signal) error {
 			return nil
 		}
 
-		if strings.Contains(err.Error(), "use of closed network connection") {
+		if errors.Is(err, net.ErrClosed) {
 			return err
 		}
 
@@ -98,7 +100,7 @@ func (process *retryableProcess) SetTTY(tty garden.TTYSpec) error {
 			return nil
 		}
 
-		if strings.Contains(err.Error(), "use of closed network connection") {
+		if errors.Is(err, net.ErrClosed) {
 			return err
 		}
 

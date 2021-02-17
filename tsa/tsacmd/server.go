@@ -2,6 +2,7 @@ package tsacmd
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -86,7 +87,7 @@ func (server *server) Serve(listener net.Listener) {
 	for {
 		c, err := listener.Accept()
 		if err != nil {
-			if !strings.Contains(err.Error(), "use of closed network connection") {
+			if !errors.Is(err, net.ErrClosed) {
 				server.logger.Error("failed-to-accept", err)
 			}
 
