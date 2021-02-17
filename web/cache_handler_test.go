@@ -1,4 +1,4 @@
-package publichandler_test
+package web_test
 
 import (
 	"compress/gzip"
@@ -11,7 +11,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/concourse/concourse/web/publichandler"
+	"github.com/concourse/concourse/web"
 )
 
 var _ = Describe("CacheNearlyForever", func() {
@@ -20,7 +20,7 @@ var _ = Describe("CacheNearlyForever", func() {
 			fmt.Fprint(w, "The wrapped handler was called!")
 		})
 
-		wrappedHandler := publichandler.CacheNearlyForever(insideHandler)
+		wrappedHandler := web.CacheNearlyForever(insideHandler)
 		recorder := httptest.NewRecorder()
 		request, err := http.NewRequest("GET", "/", nil)
 		Expect(err).ToNot(HaveOccurred())
@@ -39,7 +39,7 @@ var _ = Describe("CacheNearlyForever", func() {
 				fmt.Fprint(w, strings.Repeat("abc123", 1000))
 			})
 
-			wrappedHandler := publichandler.CacheNearlyForever(insideHandler)
+			wrappedHandler := web.CacheNearlyForever(insideHandler)
 			recorder := httptest.NewRecorder()
 			request, err := http.NewRequest("GET", "/", nil)
 			Expect(err).ToNot(HaveOccurred())
