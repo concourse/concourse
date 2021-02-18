@@ -1,12 +1,11 @@
 package migration_test
 
 import (
+	"testing"
+
 	"github.com/concourse/concourse/atc/postgresrunner"
-	"github.com/gobuffalo/packr"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"testing"
 )
 
 func TestMigration(t *testing.T) {
@@ -25,5 +24,3 @@ var _ = BeforeEach(func() {
 var _ = AfterEach(func() {
 	postgresRunner.DropTestDB()
 })
-
-var asset = packr.NewBox("./migrations").MustBytes
