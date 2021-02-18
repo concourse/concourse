@@ -201,11 +201,11 @@ Lfkzl8ebb+tt0XFMUFc42WNr
 				ok = expectedCaCertPool.AppendCertsFromPEM([]byte(rootCA))
 				Expect(ok).To(BeTrue())
 
-				Expect((*base).TLSClientConfig).To(Equal(&tls.Config{
-					InsecureSkipVerify: false,
-					RootCAs:            expectedCaCertPool,
-					Certificates:       []tls.Certificate{},
-				}))
+				config := (*base).TLSClientConfig
+				Expect(config.InsecureSkipVerify).To(Equal(false))
+				// x509.CertPool lazyily loads certs, which breaks direct equality comparisions
+				Expect(config.RootCAs.Subjects()).To(Equal(expectedCaCertPool.Subjects()))
+				Expect(config.Certificates).To(HaveLen(0))
 			})
 		})
 
