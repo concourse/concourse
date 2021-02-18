@@ -35,7 +35,6 @@ require (
 	github.com/docker/go-events v0.0.0-20190806004212-e31b211e4f1c // indirect
 	github.com/fatih/color v1.9.0
 	github.com/felixge/httpsnoop v1.0.1
-	github.com/gobuffalo/packr v1.13.7
 	github.com/gobwas/glob v0.2.3
 	github.com/goccy/go-yaml v1.8.3
 	github.com/gogo/googleapis v1.3.1 // indirect
