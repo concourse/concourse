@@ -39,7 +39,6 @@ require (
 	github.com/evanphx/json-patch v4.5.0+incompatible // indirect
 	github.com/fatih/color v1.10.0
 	github.com/felixge/httpsnoop v1.0.1
-	github.com/gobuffalo/packr v1.13.7
 	github.com/goccy/go-yaml v1.8.8
 	github.com/gogo/googleapis v1.3.1 // indirect
 	github.com/gogo/protobuf v1.3.1
