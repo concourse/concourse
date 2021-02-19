@@ -145,7 +145,7 @@ func (s *Server) HijackContainer(team db.Team) http.Handler {
 		err = conn.ReadJSON(&processSpec)
 		if err != nil {
 			hLog.Error("malformed-process-spec", err)
-			closeWithErr(hLog, conn, websocket.CloseUnsupportedData, fmt.Sprintf("malformed process spec"))
+			closeWithErr(hLog, conn, websocket.CloseUnsupportedData, "malformed process spec")
 			return
 		}
 

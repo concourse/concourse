@@ -37,7 +37,7 @@ func (h policyCheckingHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	result, err := h.policyChecker.Check(h.action, acc, r)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, fmt.Sprintf("policy check error: %s", err.Error()))
+		fmt.Fprint(w, fmt.Sprintf("policy check error: %s", err.Error()))
 		return
 	}
 
@@ -46,7 +46,7 @@ func (h policyCheckingHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 		policyCheckErr := policy.PolicyCheckNotPass{
 			Reasons: result.Reasons,
 		}
-		fmt.Fprintf(w, policyCheckErr.Error())
+		fmt.Fprint(w, policyCheckErr.Error())
 		return
 	}
 

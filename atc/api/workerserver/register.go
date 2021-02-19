@@ -39,7 +39,7 @@ func (s *Server) RegisterWorker(w http.ResponseWriter, r *http.Request) {
 	err = registration.Validate()
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, err.Error())
+		fmt.Fprint(w, err.Error())
 		return
 	}
 
