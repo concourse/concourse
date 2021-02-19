@@ -37,7 +37,7 @@ func (h policyCheckingHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	result, err := h.policyChecker.Check(h.action, acc, r)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, fmt.Sprintf("policy check error: %s", err.Error()))
+		fmt.Fprintf(w, "policy check error: %s", err.Error())
 		return
 	}
 
