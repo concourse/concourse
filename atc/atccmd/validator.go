@@ -54,7 +54,7 @@ func NewValidatorErrors(validate *validator.Validate, trans ut.Translator) *vali
 func (v *validatorErrors) SetupErrorMessages() {
 	// TODO: REGISTER ERROR MESSAGE FO EACH TAG
 	// XXX: TEST THIS
-	v.RegisterTranslation("limited_route", fmt.Sprintf("Not a valid route to limit. Valid routes include %v.", supportedActions))
+	v.RegisterTranslation("limited_route", fmt.Sprintf("Not a valid route to limit. Valid routes include %v.", wrappa.SupportedActions))
 	v.RegisterTranslation("empty_tls_bind_port", "must specify tls.bind_port to use TLS")
 	v.RegisterTranslation("enable_lets_encrypt", "cannot specify lets_encrypt.enable if tls.cert or tls.key are set")
 	v.RegisterTranslation("tls_cert_key", "must specify HTTPS external-url to use TLS")

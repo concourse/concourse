@@ -89,11 +89,7 @@ func (m *Monitor) Initialize(logger lager.Logger, factory EmitterFactory, host s
 		"buffer-size": bufferSize,
 	})
 
-	var (
-		err error
-	)
-
-	emitter, err = factory.NewEmitter()
+	emitter, err := factory.NewEmitter()
 	if err != nil {
 		return err
 	}

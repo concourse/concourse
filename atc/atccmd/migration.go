@@ -5,7 +5,9 @@ import (
 	"fmt"
 
 	"github.com/concourse/concourse/atc/db/encryption"
+	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/migration"
+	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/flag"
 )
 

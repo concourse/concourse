@@ -36,14 +36,14 @@ type VaultManager struct {
 
 type TLSConfig struct {
 	CACert     string `yaml:"ca_cert"`
-	CACertFile string `yaml:"ca_cert_file"`
+	CACertFile string `yaml:"ca_cert_file" env:"CONCOURSE_VAULT_CA_CERT_FILE,CONCOURSE_VAULT_CA_CERT"`
 	CAPath     string `yaml:"ca_path"`
 
 	ClientCert     string `yaml:"client_cert"`
-	ClientCertFile string `yaml:"client_cert_file"`
+	ClientCertFile string `yaml:"client_cert_file" env:"CONCOURSE_VAULT_CLIENT_CERT_FILE,CONCOURSE_VAULT_CLIENT_CERT"`
 
 	ClientKey     string `yaml:"client_key"`
-	ClientKeyFile string `yaml:"client_key_file"`
+	ClientKeyFile string `yaml:"client_key_file" env:"CONCOURSE_VAULT_CLIENT_KEY_FILE,CONCOURSE_VAULT_CLIENT_KEY"`
 
 	ServerName string `yaml:"server_name"`
 	Insecure   bool   `yaml:"insecure_skip_verify"`

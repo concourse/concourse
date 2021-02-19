@@ -60,10 +60,17 @@ func InitializeWeb(cmd *cobra.Command, args []string) error {
 	fixupFlagDefaults(cmd, &webCmd)
 
 	// Fetch out env values
-	env := envstruct.New("CONCOURSE", "yaml", envstruct.Parser{
-		Delimiter:   ",",
-		Unmarshaler: yaml.Unmarshal,
-	})
+	env := envstruct.Envstruct{
+		Prefix:        "CONCOURSE",
+		TagName:       "yaml",
+		OverrideName:  "env",
+		IgnoreTagName: "ignore_env",
+
+		Parser: envstruct.Parser{
+			Delimiter:   ",",
+			Unmarshaler: yaml.Unmarshal,
+		},
+	}
 
 	err := env.FetchEnv(webCmd)
 	if err != nil {

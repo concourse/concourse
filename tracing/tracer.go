@@ -27,12 +27,13 @@ import (
 var Configured bool
 
 type Config struct {
-	ServiceName string            `long:"service-name"  description:"service name to attach to traces as metadata" default:"concourse-web"`
-	Attributes  map[string]string `long:"attribute"  description:"attributes to attach to traces as metadata"`
-	Honeycomb   Honeycomb
+	ServiceName string            `yaml:"service_name"`
+	Attributes  map[string]string `yaml:"attribute"`
+
+	Honeycomb   Honeycomb   `yaml:"honeycomb"`
 	Jaeger      Jaeger      `yaml:"jaeger"`
 	Stackdriver Stackdriver `yaml:"stackdriver"`
-	OTLP        OTLP
+	OTLP        OTLP        `yaml:"otlp"`
 }
 
 func (c Config) resource() *resource.Resource {

@@ -71,7 +71,6 @@ import (
 	"gopkg.in/square/go-jose.v2/jwt"
 
 	"github.com/cppforlife/go-semi-semantic/version"
-	"github.com/hashicorp/go-multierror"
 	gocache "github.com/patrickmn/go-cache"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
@@ -119,15 +118,15 @@ type RunConfig struct {
 	TLS         TLSConfig `yaml:"tls"`
 	ExternalURL flag.URL  `yaml:"external_url" validate:"url"`
 
-	Auth                      AuthConfig           `yaml:"auth"`
+	Auth                      AuthConfig           `yaml:"auth" ignore_env:"true"`
 	Server                    ServerConfig         `yaml:"web_server"`
 	SystemClaim               SystemClaimConfig    `yaml:"system_claim"`
 	LetsEncrypt               LetsEncryptConfig    `yaml:"lets_encrypt"`
 	ConfigRBAC                flag.File            `yaml:"config_rbac" validate:"rbac"`
-	PolicyCheckers            PolicyCheckersConfig `yaml:"policy_checking"`
+	PolicyCheckers            PolicyCheckersConfig `yaml:"policy_check"`
 	DisplayUserIdPerConnector map[string]string    `yaml:"display_user_id_per_connector"`
 
-	Database DatabaseConfig `yaml:"database"`
+	Database DatabaseConfig `yaml:"database" ignore_env:"true"`
 
 	CredentialManagement creds.CredentialManagementConfig `yaml:"credential_management"`
 	CredentialManagers   CredentialManagersConfig         `yaml:"credential_managers"`
@@ -137,9 +136,9 @@ type RunConfig struct {
 
 	ResourceChecking ResourceCheckingConfig `yaml:"resource_checking"`
 	JobScheduling    JobSchedulingConfig    `yaml:"job_scheduling"`
-	Runtime          RuntimeConfig          `yaml:"runtime"`
+	Runtime          RuntimeConfig          `yaml:"runtime" ignore_env:"true"`
 
-	GC                GCConfig                `yaml:"garbage_collection"`
+	GC                GCConfig                `yaml:"gc"`
 	BuildLogRetention BuildLogRetentionConfig `yaml:"build_log_retention"`
 
 	Debug   DebugConfig    `yaml:"debug"`
@@ -158,10 +157,10 @@ type RunConfig struct {
 
 	BaseResourceTypeDefaults flag.File `yaml:"base_resource_type_defaults"`
 
-	// XXX NOT USED (HIDDEN)
+	// NOT USED (HIDDEN)
 	TelemetryOptIn bool `yaml:"telemetry_opt_in"`
 
-	FeatureFlags FeatureFlagsConfig
+	FeatureFlags FeatureFlagsConfig `yaml:"feature_flags" ignore_env:"true"`
 }
 
 type TLSConfig struct {
@@ -172,11 +171,12 @@ type TLSConfig struct {
 }
 
 type LetsEncryptConfig struct {
-	Enable  bool   `yaml:"enable" validate:"enable_lets_encrypt"`
+	Enable  bool   `yaml:"enable" validate:"enable_lets_encrypt" env:"CONCOURSE_ENABLE_LETS_ENCRYPT,CONCOURSE_LETS_ENCRYPT_ENABLE"`
 	ACMEURL string `yaml:"acme_url" validate:"url"`
 }
 
 type DatabaseConfig struct {
+	// XXX: env fix this
 	Postgres flag.PostgresConfig `yaml:"postgres"`
 
 	ConcurrentRequestLimits   map[string]int `yaml:"concurrent_request_limit" validate:"keys,limited_route,endkeys"`
@@ -203,13 +203,11 @@ type DebugConfig struct {
 }
 
 type ResourceCheckingConfig struct {
-	ScannerInterval time.Duration `yaml:"scanner_interval"`
-	CheckerInterval time.Duration `yaml:"checker_interval"`
-
-	Timeout                    time.Duration `yaml:"timeout"`
-	DefaultInterval            time.Duration `yaml:"default_interval"`
-	DefaultIntervalWithWebhook time.Duration `yaml:"default_interval_with_webhook"`
-	MaxChecksPerSecond         int           `yaml:"max_checks_per_second"`
+	ScannerInterval            time.Duration `yaml:"scanner_interval" env:"CONCOURSE_RESOURCE_CHECKING_SCANNER_INTERVAL,CONCOURSE_LIDAR_SCANNER_INTERVAL"`
+	Timeout                    time.Duration `yaml:"timeout" env:"CONCOURSE_RESOURCE_CHECKING_TIMEOUT,CONCOURSE_GLOBAL_RESOURCE_CHECK_TIMEOUT"`
+	DefaultInterval            time.Duration `yaml:"default_interval" env:"CONCOURSE_RESOURCE_CHECKING_DEFAULT_INTERVAL,CONCOURSE_RESOURCE_CHECKING_INTERVAL"`
+	DefaultIntervalWithWebhook time.Duration `yaml:"default_interval_with_webhook" env:"CONCOURSE_RESOURCE_CHECKING_DEFAULT_INTERVAL_WITH_WEBHOOK,CONCOURSE_RESOURCE_WITH_WEBHOOK_CHECKING_INTERVAL"`
+	MaxChecksPerSecond         int           `yaml:"max_checks_per_second" env:"CONCOURSE_RESOURCE_CHECKING_MAX_CHECKS_PER_SECOND,CONCOURSE_MAX_CHECKS_PER_SECOND"`
 }
 
 type JobSchedulingConfig struct {
@@ -229,9 +227,9 @@ type MetricsConfig struct {
 	HostName            string            `yaml:"host_name"`
 	Attributes          map[string]string `yaml:"attributes"`
 	BufferSize          uint32            `yaml:"buffer_size"`
-	CaptureErrorMetrics bool              `yaml:"capture_errors"`
+	CaptureErrorMetrics bool              `yaml:"capture_errors" env:"CONCOURSE_METRICS_CAPTURE_ERRORS,CONCOURSE_CAPTURE_ERROR_METRICS"`
 
-	Emitter MetricsEmitterConfig `yaml:"emitter"`
+	Emitter MetricsEmitterConfig `yaml:"emitter" ignore_env:"true"`
 }
 
 type MetricsEmitterConfig struct {
@@ -247,10 +245,10 @@ type PolicyCheckersConfig struct {
 }
 
 type ServerConfig struct {
-	XFrameOptions string `yaml:"x_frame_options"`
-	ClusterName   string `yaml:"cluster_name"`
-	ClientID      string `yaml:"client_id"`
-	ClientSecret  string `yaml:"client_secret"`
+	XFrameOptions string `yaml:"x_frame_options" env:"CONCOURSE_WEB_SERVER_X_FRAME_OPTIONS,CONCOURSE_X_FRAME_OPTIONS"`
+	ClusterName   string `yaml:"cluster_name" env:"CONCOURSE_WEB_SERVER_CLUSTER_NAME,CONCOURSE_CLUSTER_NAME"`
+	ClientID      string `yaml:"client_id" env:"CONCOURSE_WEB_SERVER_CLIENT_ID,CONCOURSE_CLIENT_ID"`
+	ClientSecret  string `yaml:"client_secret" env:"CONCOURSE_WEB_SERVER_CLIENT_SECRET,CONCOURSE_CLIENT_SECRET"`
 }
 
 type LogConfig struct {
@@ -270,23 +268,23 @@ type GCConfig struct {
 }
 
 type BuildLogRetentionConfig struct {
-	Default uint64 `yaml:"default"`
-	Max     uint64 `yaml:"max"`
+	Default uint64 `yaml:"default" env:"CONCOURSE_BUILD_LOG_RETENTION_DEFAULT,CONCOURSE_DEFAULT_BUILD_LOGS_TO_RETAIN"`
+	Max     uint64 `yaml:"max" env:"CONCOURSE_BUILD_LOG_RETENTION_MAX,CONCOURSE_MAX_BUILD_LOGS_TO_RETAIN"`
 
-	DefaultDays uint64 `yaml:"default_days"`
-	MaxDays     uint64 `yaml:"max_days"`
+	DefaultDays uint64 `yaml:"default_days" env:"CONCOURSE_BUILD_LOG_RETENTION_DEFAULT_DAYS,CONCOURSE_DEFAULT_DAYS_TO_RETAIN_BUILD_LOGS"`
+	MaxDays     uint64 `yaml:"max_days" env:"CONCOURSE_BUILD_LOG_RETENTION_MAX_DAYS,CONCOURSE_MAX_DAYS_TO_RETAIN_BUILD_LOGS"`
 }
 
 type AuditorConfig struct {
-	EnableBuildAuditLog     bool `yaml:"enable_build`
-	EnableContainerAuditLog bool `yaml:"enable_container`
-	EnableJobAuditLog       bool `yaml:"enable_job`
-	EnablePipelineAuditLog  bool `yaml:"enable_pipeline`
-	EnableResourceAuditLog  bool `yaml:"enable_resource`
-	EnableSystemAuditLog    bool `yaml:"enable_system`
-	EnableTeamAuditLog      bool `yaml:"enable_team`
-	EnableWorkerAuditLog    bool `yaml:"enable_worker`
-	EnableVolumeAuditLog    bool `yaml:"enable_volume`
+	EnableBuildAuditLog     bool `yaml:"enable_build" env:"CONCOURSE_AUDITING_ENABLE_BUILD,CONCOURSE_ENABLE_BUILD_AUDITING"`
+	EnableContainerAuditLog bool `yaml:"enable_container" env:"CONCOURSE_AUDITING_ENABLE_CONTAINER,CONCOURSE_ENABLE_CONTAINER_AUDITING"`
+	EnableJobAuditLog       bool `yaml:"enable_job" env:"CONCOURSE_AUDITING_ENABLE_JOB,CONCOURSE_ENABLE_JOB_AUDITING"`
+	EnablePipelineAuditLog  bool `yaml:"enable_pipeline" env:"CONCOURSE_AUDITING_ENABLE_PIPELINE,CONCOURSE_ENABLE_PIPELINE_AUDITING"`
+	EnableResourceAuditLog  bool `yaml:"enable_resource" env:"CONCOURSE_AUDITING_ENABLE_RESOURCE,CONCOURSE_ENABLE_RESOURCE_AUDITING"`
+	EnableSystemAuditLog    bool `yaml:"enable_system" env:"CONCOURSE_AUDITING_ENABLE_SYSTEM,CONCOURSE_ENABLE_SYSTEM_AUDITING"`
+	EnableTeamAuditLog      bool `yaml:"enable_team" env:"CONCOURSE_AUDITING_ENABLE_TEAM,CONCOURSE_ENABLE_TEAM_AUDITING"`
+	EnableWorkerAuditLog    bool `yaml:"enable_worker" env:"CONCOURSE_AUDITING_ENABLE_WORKER,CONCOURSE_ENABLE_WORKER_AUDITING"`
+	EnableVolumeAuditLog    bool `yaml:"enable_volume" env:"CONCOURSE_AUDITING_ENABLE_VOLUME,CONCOURSE_ENABLE_VOLUME_AUDITING"`
 }
 
 type SyslogConfig struct {
@@ -299,18 +297,18 @@ type SyslogConfig struct {
 
 type AuthConfig struct {
 	AuthFlags     skycmd.AuthFlags
-	MainTeamFlags skycmd.AuthTeamFlags
+	MainTeamFlags skycmd.AuthTeamFlags `yaml:"main_team"`
 }
 
 type SystemClaimConfig struct {
 	Key    string   `yaml:"key"`
-	Values []string `yaml:"values"`
+	Values []string `yaml:"value"`
 }
 
 type FeatureFlagsConfig struct {
-	EnableBuildRerunWhenWorkerDisappears bool `yaml:"enable_rerun_when_worker_disappears"`
 	EnableGlobalResources                bool `yaml:"enable_global_resources"`
 	EnableRedactSecrets                  bool `yaml:"enable_redact_secrets"`
+	EnableBuildRerunWhenWorkerDisappears bool `yaml:"enable_rerun_when_worker_disappears"`
 	EnableAcrossStep                     bool `yaml:"enable_across_step"`
 	EnablePipelineInstances              bool `yaml:"enable_pipeline_instances"`
 	EnableP2PVolumeStreaming             bool `yaml:"enable_p2p_volume_streaming"`
@@ -402,7 +400,6 @@ var CmdDefaults RunConfig = RunConfig{
 
 	ResourceChecking: ResourceCheckingConfig{
 		ScannerInterval:            10 * time.Second,
-		CheckerInterval:            10 * time.Second,
 		Timeout:                    1 * time.Hour,
 		DefaultInterval:            1 * time.Minute,
 		DefaultIntervalWithWebhook: 1 * time.Minute,
@@ -458,6 +455,12 @@ var CmdDefaults RunConfig = RunConfig{
 	},
 
 	Tracing: tracing.Config{
+		ServiceName: "concourse-web",
+
+		Honeycomb: tracing.Honeycomb{
+			ServiceName: "concourse",
+		},
+
 		Jaeger: tracing.Jaeger{
 			Service: "web",
 		},
@@ -627,7 +630,7 @@ func (cmd *RunConfig) Runner(positionalArguments []string) (ifrit.Runner, error)
 		return nil, err
 	}
 
-	lockConn, err := constructLockConn(retryingDriverName, cmd.Postgres.ConnectionString())
+	lockConn, err := constructLockConn(retryingDriverName, cmd.Database.Postgres.ConnectionString())
 	if err != nil {
 		return nil, err
 	}
@@ -1120,7 +1123,7 @@ func (cmd *RunConfig) backendComponents(
 
 	pool := worker.NewPool(workerProvider)
 	artifactStreamer := worker.NewArtifactStreamer(pool, compressionLib)
-	artifactSourcer := worker.NewArtifactSourcer(compressionLib, pool, cmd.FeatureFlags.EnableP2PVolumeStreaming, cmd.P2pVolumeStreamingTimeout)
+	artifactSourcer := worker.NewArtifactSourcer(compressionLib, pool, cmd.FeatureFlags.EnableP2PVolumeStreaming, cmd.Runtime.P2pVolumeStreamingTimeout)
 
 	defaultLimits, err := cmd.parseDefaultLimits()
 	if err != nil {
@@ -1133,8 +1136,8 @@ func (cmd *RunConfig) backendComponents(
 	}
 
 	rateLimiter := db.NewResourceCheckRateLimiter(
-		rate.Limit(cmd.MaxChecksPerSecond),
-		cmd.ResourceCheckingInterval,
+		rate.Limit(cmd.ResourceChecking.MaxChecksPerSecond),
+		cmd.ResourceChecking.DefaultInterval,
 		dbConn,
 		time.Minute,
 		clock.NewClock(),
@@ -1270,7 +1273,7 @@ func (cmd *RunConfig) gcComponents(
 	// 5 minutes is arbitrary - this really shouldn't matter a whole lot, but
 	// exposing a config specifically for it is a little risky, since you don't
 	// want to set it too low.
-	unreferencedConfigGracePeriod := cmd.GlobalResourceCheckTimeout + 5*time.Minute
+	unreferencedConfigGracePeriod := cmd.ResourceChecking.Timeout + 5*time.Minute
 
 	collectors := map[string]component.Runnable{
 		atc.ComponentCollectorBuilds:            gc.NewBuildCollector(dbBuildFactory),
@@ -1459,7 +1462,7 @@ func (cmd *RunConfig) tlsConfig(logger lager.Logger, dbConn db.Conn) (*tls.Confi
 
 		if cmd.isMTLSEnabled() {
 			tlsLogger.Debug("mTLS-Enabled")
-			clientCACert, err := ioutil.ReadFile(string(cmd.TLSCaCert))
+			clientCACert, err := ioutil.ReadFile(string(cmd.TLS.CaCert))
 			if err != nil {
 				return nil, err
 			}
@@ -1638,7 +1641,7 @@ func constructLockConn(driverName, connectionString string) (*sql.DB, error) {
 }
 
 func (cmd *RunConfig) chooseBuildContainerStrategy() (worker.ContainerPlacementStrategy, error) {
-	return worker.NewContainerPlacementStrategy(cmd.ContainerPlacementStrategyOptions)
+	return worker.NewContainerPlacementStrategy(cmd.Runtime.ContainerPlacementStrategyOptions)
 }
 
 func (cmd *RunConfig) configureAuthForDefaultTeam(teamFactory db.TeamFactory) error {
@@ -2025,6 +2028,6 @@ type RunnableComponent struct {
 	component.Runnable
 }
 
-func (cmd *RunCommand) isMTLSEnabled() bool {
-	return string(cmd.TLSCaCert) != ""
+func (cmd *RunConfig) isMTLSEnabled() bool {
+	return string(cmd.TLS.CaCert) != ""
 }

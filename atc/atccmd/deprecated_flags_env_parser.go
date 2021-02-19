@@ -67,7 +67,7 @@ func InitializeTLSFlags(c *cobra.Command, flags *RunConfig) {
 	c.Flags().Uint16Var(&flags.TLS.BindPort, "tls-bind-port", 0, "Port on which to listen for HTTPS traffic.")
 	c.Flags().Var(&flags.TLS.Cert, "tls-cert", "File containing an SSL certificate.")
 	c.Flags().Var(&flags.TLS.Key, "tls-key", "File containing an RSA private key, used to encrypt HTTPS traffic.")
-	c.Flags().Var(&flags.TLS.CaCert, "tls-ca-cert", "", "File containing the client CA certificate, enables mTLS")
+	c.Flags().Var(&flags.TLS.CaCert, "tls-ca-cert", "File containing the client CA certificate, enables mTLS")
 }
 
 func InitializeLetsEncryptFlags(c *cobra.Command, flags *RunConfig) {
@@ -106,7 +106,6 @@ func InitializeDebugFlags(c *cobra.Command, flags *RunConfig) {
 
 func InitializeResourceCheckingFlags(c *cobra.Command, flags *RunConfig) {
 	c.Flags().DurationVar(&flags.ResourceChecking.ScannerInterval, "lidar-scanner-interval", CmdDefaults.ResourceChecking.ScannerInterval, "Interval on which the resource scanner will run to see if new checks need to be scheduled")
-	c.Flags().DurationVar(&flags.ResourceChecking.CheckerInterval, "lidar-checker-interval", CmdDefaults.ResourceChecking.CheckerInterval, "Interval on which the resource checker runs any scheduled checks")
 
 	c.Flags().DurationVar(&flags.ResourceChecking.Timeout, "global-resource-check-timeout", CmdDefaults.ResourceChecking.Timeout, "Time limit on checking for new versions of resources.")
 	c.Flags().DurationVar(&flags.ResourceChecking.DefaultInterval, "resource-checking-interval", CmdDefaults.ResourceChecking.DefaultInterval, "Interval on which to check for new versions of resources.")
@@ -120,7 +119,7 @@ func InitializeJobSchedulingFlags(c *cobra.Command, flags *RunConfig) {
 
 func InitializeRuntimeFlags(c *cobra.Command, flags *RunConfig) {
 	c.Flags().StringSliceVar(&flags.Runtime.ContainerPlacementStrategyOptions.ContainerPlacementStrategy, "container-placement-strategy", CmdDefaults.Runtime.ContainerPlacementStrategyOptions.ContainerPlacementStrategy, "Method by which a worker is selected during container placement. If multiple methods are specified, they will be applied in order. Random strategy should only be used alone.")
-	c.Flags().IntVar(&flags.Runtime.MaxActiveTasksPerWorker, "max-active-tasks-per-worker", CmdDefaults.Runtime.ContainerPlacementStrategyOptions.MaxActiveTasksPerWorker, "Maximum allowed number of active build tasks per worker. Has effect only when used with limit-active-tasks placement strategy. 0 means no limit.")
+	c.Flags().IntVar(&flags.Runtime.ContainerPlacementStrategyOptions.MaxActiveTasksPerWorker, "max-active-tasks-per-worker", CmdDefaults.Runtime.ContainerPlacementStrategyOptions.MaxActiveTasksPerWorker, "Maximum allowed number of active build tasks per worker. Has effect only when used with limit-active-tasks placement strategy. 0 means no limit.")
 	c.Flags().IntVar(&flags.Runtime.ContainerPlacementStrategyOptions.MaxActiveContainersPerWorker, "max-active-containers-per-worker", CmdDefaults.Runtime.ContainerPlacementStrategyOptions.MaxActiveContainersPerWorker, "Maximum allowed number of active containers per worker. Has effect only when used with limit-active-containers placement strategy. 0 means no limit.")
 	c.Flags().IntVar(&flags.Runtime.ContainerPlacementStrategyOptions.MaxActiveVolumesPerWorker, "max-active-volumes-per-worker", CmdDefaults.Runtime.ContainerPlacementStrategyOptions.MaxActiveVolumesPerWorker, "Maximum allowed number of active volumes per worker. Has effect only when used with limit-active-volumes placement strategy. 0 means no limit.")
 
@@ -250,13 +249,26 @@ func InitializeManagerFlags(c *cobra.Command, flags *RunConfig) {
 }
 
 func InitializeTracingFlags(c *cobra.Command, flags *RunConfig) {
+	c.Flags().StringVar(&flags.Tracing.ServiceName, "tracing-service-name", "concourse-web", "service name to attach to traces as metadata")
+	c.Flags().StringToStringVar(&flags.Tracing.Attributes, "tracing-attribute", nil, "attributes to attach to traces as metadata")
+
+	// Honeycomb
+	c.Flags().StringVar(&flags.Tracing.Honeycomb.APIKey, "tracing-honeycomb-api-key", "", "honeycomb.io api key")
+	c.Flags().StringVar(&flags.Tracing.Honeycomb.Dataset, "tracing-honeycomb-dataset", "", "honeycomb.io dataset name")
+	c.Flags().StringVar(&flags.Tracing.Honeycomb.ServiceName, "tracing-honeycomb-service-name", "concourse", "honeycomb.io service name")
+
 	// Jaeger
 	c.Flags().StringVar(&flags.Tracing.Jaeger.Endpoint, "tracing-jaeger-endpoint", "", "jaeger http-based thrift collector")
 	c.Flags().StringToStringVar(&flags.Tracing.Jaeger.Tags, "tracing-jaeger-tags", nil, "tags to add to the components")
 	c.Flags().StringVar(&flags.Tracing.Jaeger.Service, "tracing-jaeger-service", CmdDefaults.Tracing.Jaeger.Service, "jaeger process service name")
 
-	// Jaeger
+	// Stackdriver
 	c.Flags().StringVar(&flags.Tracing.Stackdriver.ProjectID, "tracing-stackdriver-projectid", "", "GCP's Project ID")
+
+	// OTLP
+	c.Flags().StringVar(&flags.Tracing.OTLP.Address, "tracing-otlp-address", "", "otlp address to send traces to")
+	c.Flags().StringToStringVar(&flags.Tracing.OTLP.Headers, "tracing-otlp-header", nil, "headers to attach to each tracing message")
+	c.Flags().BoolVar(&flags.Tracing.OTLP.UseTLS, "tracing-otlp-use-tls", false, "whether to use tls or not")
 }
 
 func InitializePolicyFlags(c *cobra.Command, flags *RunConfig) {
