@@ -79,6 +79,7 @@ func (builder Builder) WithWorker(worker atc.Worker) SetupFunc {
 				return fmt.Errorf("team does not exist: %s", worker.Team)
 			}
 
+			//lint:ignore SA4006 linter is wrong
 			w, err = team.SaveWorker(worker, 0)
 		} else {
 			w, err = builder.WorkerFactory.SaveWorker(worker, 0)
