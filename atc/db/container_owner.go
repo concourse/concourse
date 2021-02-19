@@ -225,4 +225,32 @@ func (c resourceConfigCheckSessionContainerOwner) Create(tx Tx, workerName strin
 	return map[string]interface{}{
 		"resource_config_check_session_id": rccsID,
 	}, nil
+
+}
+
+// NewFixedHandleContainerOwner is used in testing to represent a container
+// with a fixed handle, rather than using the randomly generated UUID as a
+// handle.
+func NewFixedHandleContainerOwner(handle string) ContainerOwner {
+	return fixedHandleContainerOwner{
+		Handle: handle,
+	}
+}
+
+type fixedHandleContainerOwner struct {
+	Handle string
+}
+
+func (c fixedHandleContainerOwner) Find(Conn) (sq.Eq, bool, error) {
+	return sq.Eq(c.sqlMap()), true, nil
+}
+
+func (c fixedHandleContainerOwner) Create(Tx, string) (map[string]interface{}, error) {
+	return c.sqlMap(), nil
+}
+
+func (c fixedHandleContainerOwner) sqlMap() map[string]interface{} {
+	return map[string]interface{}{
+		"handle": c.Handle,
+	}
 }

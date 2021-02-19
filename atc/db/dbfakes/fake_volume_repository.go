@@ -81,6 +81,22 @@ type FakeVolumeRepository struct {
 		result1 db.CreatingVolume
 		result2 error
 	}
+	CreateVolumeWithHandleStub        func(string, int, string, db.VolumeType) (db.CreatingVolume, error)
+	createVolumeWithHandleMutex       sync.RWMutex
+	createVolumeWithHandleArgsForCall []struct {
+		arg1 string
+		arg2 int
+		arg3 string
+		arg4 db.VolumeType
+	}
+	createVolumeWithHandleReturns struct {
+		result1 db.CreatingVolume
+		result2 error
+	}
+	createVolumeWithHandleReturnsOnCall map[int]struct {
+		result1 db.CreatingVolume
+		result2 error
+	}
 	DestroyFailedVolumesStub        func() (int, error)
 	destroyFailedVolumesMutex       sync.RWMutex
 	destroyFailedVolumesArgsForCall []struct {
@@ -140,21 +156,6 @@ type FakeVolumeRepository struct {
 		result2 db.CreatedVolume
 		result3 error
 	}
-	FindCreatedVolumeStub        func(string) (db.CreatedVolume, bool, error)
-	findCreatedVolumeMutex       sync.RWMutex
-	findCreatedVolumeArgsForCall []struct {
-		arg1 string
-	}
-	findCreatedVolumeReturns struct {
-		result1 db.CreatedVolume
-		result2 bool
-		result3 error
-	}
-	findCreatedVolumeReturnsOnCall map[int]struct {
-		result1 db.CreatedVolume
-		result2 bool
-		result3 error
-	}
 	FindResourceCacheVolumeStub        func(string, db.UsedResourceCache) (db.CreatedVolume, bool, error)
 	findResourceCacheVolumeMutex       sync.RWMutex
 	findResourceCacheVolumeArgsForCall []struct {
@@ -202,6 +203,21 @@ type FakeVolumeRepository struct {
 	findTaskCacheVolumeReturnsOnCall map[int]struct {
 		result1 db.CreatedVolume
 		result2 bool
+		result3 error
+	}
+	FindVolumeStub        func(string) (db.CreatingVolume, db.CreatedVolume, error)
+	findVolumeMutex       sync.RWMutex
+	findVolumeArgsForCall []struct {
+		arg1 string
+	}
+	findVolumeReturns struct {
+		result1 db.CreatingVolume
+		result2 db.CreatedVolume
+		result3 error
+	}
+	findVolumeReturnsOnCall map[int]struct {
+		result1 db.CreatingVolume
+		result2 db.CreatedVolume
 		result3 error
 	}
 	FindVolumesForContainerStub        func(db.CreatedContainer) ([]db.CreatedVolume, error)
@@ -625,6 +641,73 @@ func (fake *FakeVolumeRepository) CreateVolumeReturnsOnCall(i int, result1 db.Cr
 	}{result1, result2}
 }
 
+func (fake *FakeVolumeRepository) CreateVolumeWithHandle(arg1 string, arg2 int, arg3 string, arg4 db.VolumeType) (db.CreatingVolume, error) {
+	fake.createVolumeWithHandleMutex.Lock()
+	ret, specificReturn := fake.createVolumeWithHandleReturnsOnCall[len(fake.createVolumeWithHandleArgsForCall)]
+	fake.createVolumeWithHandleArgsForCall = append(fake.createVolumeWithHandleArgsForCall, struct {
+		arg1 string
+		arg2 int
+		arg3 string
+		arg4 db.VolumeType
+	}{arg1, arg2, arg3, arg4})
+	stub := fake.CreateVolumeWithHandleStub
+	fakeReturns := fake.createVolumeWithHandleReturns
+	fake.recordInvocation("CreateVolumeWithHandle", []interface{}{arg1, arg2, arg3, arg4})
+	fake.createVolumeWithHandleMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeVolumeRepository) CreateVolumeWithHandleCallCount() int {
+	fake.createVolumeWithHandleMutex.RLock()
+	defer fake.createVolumeWithHandleMutex.RUnlock()
+	return len(fake.createVolumeWithHandleArgsForCall)
+}
+
+func (fake *FakeVolumeRepository) CreateVolumeWithHandleCalls(stub func(string, int, string, db.VolumeType) (db.CreatingVolume, error)) {
+	fake.createVolumeWithHandleMutex.Lock()
+	defer fake.createVolumeWithHandleMutex.Unlock()
+	fake.CreateVolumeWithHandleStub = stub
+}
+
+func (fake *FakeVolumeRepository) CreateVolumeWithHandleArgsForCall(i int) (string, int, string, db.VolumeType) {
+	fake.createVolumeWithHandleMutex.RLock()
+	defer fake.createVolumeWithHandleMutex.RUnlock()
+	argsForCall := fake.createVolumeWithHandleArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+}
+
+func (fake *FakeVolumeRepository) CreateVolumeWithHandleReturns(result1 db.CreatingVolume, result2 error) {
+	fake.createVolumeWithHandleMutex.Lock()
+	defer fake.createVolumeWithHandleMutex.Unlock()
+	fake.CreateVolumeWithHandleStub = nil
+	fake.createVolumeWithHandleReturns = struct {
+		result1 db.CreatingVolume
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeVolumeRepository) CreateVolumeWithHandleReturnsOnCall(i int, result1 db.CreatingVolume, result2 error) {
+	fake.createVolumeWithHandleMutex.Lock()
+	defer fake.createVolumeWithHandleMutex.Unlock()
+	fake.CreateVolumeWithHandleStub = nil
+	if fake.createVolumeWithHandleReturnsOnCall == nil {
+		fake.createVolumeWithHandleReturnsOnCall = make(map[int]struct {
+			result1 db.CreatingVolume
+			result2 error
+		})
+	}
+	fake.createVolumeWithHandleReturnsOnCall[i] = struct {
+		result1 db.CreatingVolume
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeVolumeRepository) DestroyFailedVolumes() (int, error) {
 	fake.destroyFailedVolumesMutex.Lock()
 	ret, specificReturn := fake.destroyFailedVolumesReturnsOnCall[len(fake.destroyFailedVolumesArgsForCall)]
@@ -888,73 +971,6 @@ func (fake *FakeVolumeRepository) FindContainerVolumeReturnsOnCall(i int, result
 	}{result1, result2, result3}
 }
 
-func (fake *FakeVolumeRepository) FindCreatedVolume(arg1 string) (db.CreatedVolume, bool, error) {
-	fake.findCreatedVolumeMutex.Lock()
-	ret, specificReturn := fake.findCreatedVolumeReturnsOnCall[len(fake.findCreatedVolumeArgsForCall)]
-	fake.findCreatedVolumeArgsForCall = append(fake.findCreatedVolumeArgsForCall, struct {
-		arg1 string
-	}{arg1})
-	stub := fake.FindCreatedVolumeStub
-	fakeReturns := fake.findCreatedVolumeReturns
-	fake.recordInvocation("FindCreatedVolume", []interface{}{arg1})
-	fake.findCreatedVolumeMutex.Unlock()
-	if stub != nil {
-		return stub(arg1)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2, ret.result3
-	}
-	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
-}
-
-func (fake *FakeVolumeRepository) FindCreatedVolumeCallCount() int {
-	fake.findCreatedVolumeMutex.RLock()
-	defer fake.findCreatedVolumeMutex.RUnlock()
-	return len(fake.findCreatedVolumeArgsForCall)
-}
-
-func (fake *FakeVolumeRepository) FindCreatedVolumeCalls(stub func(string) (db.CreatedVolume, bool, error)) {
-	fake.findCreatedVolumeMutex.Lock()
-	defer fake.findCreatedVolumeMutex.Unlock()
-	fake.FindCreatedVolumeStub = stub
-}
-
-func (fake *FakeVolumeRepository) FindCreatedVolumeArgsForCall(i int) string {
-	fake.findCreatedVolumeMutex.RLock()
-	defer fake.findCreatedVolumeMutex.RUnlock()
-	argsForCall := fake.findCreatedVolumeArgsForCall[i]
-	return argsForCall.arg1
-}
-
-func (fake *FakeVolumeRepository) FindCreatedVolumeReturns(result1 db.CreatedVolume, result2 bool, result3 error) {
-	fake.findCreatedVolumeMutex.Lock()
-	defer fake.findCreatedVolumeMutex.Unlock()
-	fake.FindCreatedVolumeStub = nil
-	fake.findCreatedVolumeReturns = struct {
-		result1 db.CreatedVolume
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakeVolumeRepository) FindCreatedVolumeReturnsOnCall(i int, result1 db.CreatedVolume, result2 bool, result3 error) {
-	fake.findCreatedVolumeMutex.Lock()
-	defer fake.findCreatedVolumeMutex.Unlock()
-	fake.FindCreatedVolumeStub = nil
-	if fake.findCreatedVolumeReturnsOnCall == nil {
-		fake.findCreatedVolumeReturnsOnCall = make(map[int]struct {
-			result1 db.CreatedVolume
-			result2 bool
-			result3 error
-		})
-	}
-	fake.findCreatedVolumeReturnsOnCall[i] = struct {
-		result1 db.CreatedVolume
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
 func (fake *FakeVolumeRepository) FindResourceCacheVolume(arg1 string, arg2 db.UsedResourceCache) (db.CreatedVolume, bool, error) {
 	fake.findResourceCacheVolumeMutex.Lock()
 	ret, specificReturn := fake.findResourceCacheVolumeReturnsOnCall[len(fake.findResourceCacheVolumeArgsForCall)]
@@ -1156,6 +1172,73 @@ func (fake *FakeVolumeRepository) FindTaskCacheVolumeReturnsOnCall(i int, result
 	fake.findTaskCacheVolumeReturnsOnCall[i] = struct {
 		result1 db.CreatedVolume
 		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeVolumeRepository) FindVolume(arg1 string) (db.CreatingVolume, db.CreatedVolume, error) {
+	fake.findVolumeMutex.Lock()
+	ret, specificReturn := fake.findVolumeReturnsOnCall[len(fake.findVolumeArgsForCall)]
+	fake.findVolumeArgsForCall = append(fake.findVolumeArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	stub := fake.FindVolumeStub
+	fakeReturns := fake.findVolumeReturns
+	fake.recordInvocation("FindVolume", []interface{}{arg1})
+	fake.findVolumeMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+}
+
+func (fake *FakeVolumeRepository) FindVolumeCallCount() int {
+	fake.findVolumeMutex.RLock()
+	defer fake.findVolumeMutex.RUnlock()
+	return len(fake.findVolumeArgsForCall)
+}
+
+func (fake *FakeVolumeRepository) FindVolumeCalls(stub func(string) (db.CreatingVolume, db.CreatedVolume, error)) {
+	fake.findVolumeMutex.Lock()
+	defer fake.findVolumeMutex.Unlock()
+	fake.FindVolumeStub = stub
+}
+
+func (fake *FakeVolumeRepository) FindVolumeArgsForCall(i int) string {
+	fake.findVolumeMutex.RLock()
+	defer fake.findVolumeMutex.RUnlock()
+	argsForCall := fake.findVolumeArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeVolumeRepository) FindVolumeReturns(result1 db.CreatingVolume, result2 db.CreatedVolume, result3 error) {
+	fake.findVolumeMutex.Lock()
+	defer fake.findVolumeMutex.Unlock()
+	fake.FindVolumeStub = nil
+	fake.findVolumeReturns = struct {
+		result1 db.CreatingVolume
+		result2 db.CreatedVolume
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeVolumeRepository) FindVolumeReturnsOnCall(i int, result1 db.CreatingVolume, result2 db.CreatedVolume, result3 error) {
+	fake.findVolumeMutex.Lock()
+	defer fake.findVolumeMutex.Unlock()
+	fake.FindVolumeStub = nil
+	if fake.findVolumeReturnsOnCall == nil {
+		fake.findVolumeReturnsOnCall = make(map[int]struct {
+			result1 db.CreatingVolume
+			result2 db.CreatedVolume
+			result3 error
+		})
+	}
+	fake.findVolumeReturnsOnCall[i] = struct {
+		result1 db.CreatingVolume
+		result2 db.CreatedVolume
 		result3 error
 	}{result1, result2, result3}
 }
@@ -1622,6 +1705,8 @@ func (fake *FakeVolumeRepository) Invocations() map[string][][]interface{} {
 	defer fake.createTaskCacheVolumeMutex.RUnlock()
 	fake.createVolumeMutex.RLock()
 	defer fake.createVolumeMutex.RUnlock()
+	fake.createVolumeWithHandleMutex.RLock()
+	defer fake.createVolumeWithHandleMutex.RUnlock()
 	fake.destroyFailedVolumesMutex.RLock()
 	defer fake.destroyFailedVolumesMutex.RUnlock()
 	fake.destroyUnknownVolumesMutex.RLock()
@@ -1630,14 +1715,14 @@ func (fake *FakeVolumeRepository) Invocations() map[string][][]interface{} {
 	defer fake.findBaseResourceTypeVolumeMutex.RUnlock()
 	fake.findContainerVolumeMutex.RLock()
 	defer fake.findContainerVolumeMutex.RUnlock()
-	fake.findCreatedVolumeMutex.RLock()
-	defer fake.findCreatedVolumeMutex.RUnlock()
 	fake.findResourceCacheVolumeMutex.RLock()
 	defer fake.findResourceCacheVolumeMutex.RUnlock()
 	fake.findResourceCertsVolumeMutex.RLock()
 	defer fake.findResourceCertsVolumeMutex.RUnlock()
 	fake.findTaskCacheVolumeMutex.RLock()
 	defer fake.findTaskCacheVolumeMutex.RUnlock()
+	fake.findVolumeMutex.RLock()
+	defer fake.findVolumeMutex.RUnlock()
 	fake.findVolumesForContainerMutex.RLock()
 	defer fake.findVolumesForContainerMutex.RUnlock()
 	fake.getDestroyingVolumesMutex.RLock()
