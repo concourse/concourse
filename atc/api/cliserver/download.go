@@ -59,7 +59,7 @@ func (s *Server) Download(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/octet-stream")
 			w.Header().Set("Content-Length", fmt.Sprintf("%d", f.UncompressedSize64))
 			w.Header().Set("Content-Disposition", "attachment; filename="+flyFile)
-			w.Header().Set("Last-Modified", f.ModTime().UTC().Format(http.TimeFormat))
+			w.Header().Set("Last-Modified", f.Modified.UTC().Format(http.TimeFormat))
 
 			stream, err := f.Open()
 			if err != nil {
