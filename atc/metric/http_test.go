@@ -22,7 +22,6 @@ func noopHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(404)
-	return
 }
 
 var _ = Describe("MetricsHandler", func() {

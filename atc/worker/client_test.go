@@ -117,7 +117,6 @@ var _ = Describe("Client", func() {
 				BeforeEach(func() {
 					fakeEventDelegate.StartingStub = func(lager.Logger) {
 						Expect(fakeResource.CheckCallCount()).To(Equal(0))
-						return
 					}
 				})
 
