@@ -83,13 +83,13 @@ func (h *hijackable) Hijack(ctx context.Context, handler string, body io.Reader,
 
 		errRespBytes, err := ioutil.ReadAll(httpResp.Body)
 		if err != nil {
-			return nil, nil, fmt.Errorf("Backend error: Exit status: %d, Body: %s, error reading response body: %s", httpResp.StatusCode, string(errRespBytes), err)
+			return nil, nil, fmt.Errorf("backend error: Exit status: %d, Body: %s, error reading response body: %s", httpResp.StatusCode, string(errRespBytes), err)
 		}
 
 		var result garden.Error
 		err = json.Unmarshal(errRespBytes, &result)
 		if err != nil {
-			return nil, nil, fmt.Errorf("Backend error: Exit status: %d, Body: %s, error reading response body: %s", httpResp.StatusCode, string(errRespBytes), err)
+			return nil, nil, fmt.Errorf("backend error: Exit status: %d, Body: %s, error reading response body: %s", httpResp.StatusCode, string(errRespBytes), err)
 		}
 
 		return nil, nil, result.Err
