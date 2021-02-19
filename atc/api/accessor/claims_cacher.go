@@ -53,6 +53,9 @@ func (c *claimsCacher) GetAccessToken(rawToken string) (db.AccessToken, bool, er
 	if err != nil {
 		return db.AccessToken{}, false, err
 	}
+	if !found {
+		return db.AccessToken{}, false, nil
+	}
 	payload, err := json.Marshal(token.Claims)
 	if err != nil {
 		return db.AccessToken{}, false, err
