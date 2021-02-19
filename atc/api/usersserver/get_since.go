@@ -68,8 +68,5 @@ func (s *Server) GetUsersSince(w http.ResponseWriter, r *http.Request) {
 }
 
 func isSinceSet(r *http.Request) bool {
-	if len(r.FormValue(since)) > 0 {
-		return true
-	}
-	return false
+	return len(r.FormValue(since)) > 0
 }
