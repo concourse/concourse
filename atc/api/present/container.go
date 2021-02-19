@@ -38,7 +38,7 @@ func Container(container db.Container, expiresAt time.Time) atc.Container {
 	}
 
 	if !expiresAt.IsZero() {
-		atcContainer.ExpiresIn = expiresAt.Sub(time.Now()).Round(time.Second).String()
+		atcContainer.ExpiresIn = time.Until(expiresAt).Round(time.Second).String()
 	}
 
 	return atcContainer
