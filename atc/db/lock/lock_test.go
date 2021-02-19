@@ -147,14 +147,14 @@ var _ = Describe("Locks", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(acquired).To(BeTrue())
 
-				dbLock2, acquired, err := lockFactory2.Acquire(logger, lock.LockID{42})
+				_, acquired, err = lockFactory2.Acquire(logger, lock.LockID{42})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(acquired).To(BeFalse())
 
 				err = dbLock.Release()
 				Expect(err).NotTo(HaveOccurred())
 
-				dbLock2, acquired, err = lockFactory2.Acquire(logger, lock.LockID{42})
+				dbLock2, acquired, err := lockFactory2.Acquire(logger, lock.LockID{42})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(acquired).To(BeTrue())
 

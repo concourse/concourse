@@ -197,6 +197,7 @@ var _ = Describe("Migration", func() {
 						var numRows = 0
 						for rows.Next() {
 							err = rows.Scan(&timeStamp)
+							Expect(err).NotTo(HaveOccurred())
 							numRows++
 						}
 						Expect(numRows).To(Equal(1))
@@ -368,6 +369,7 @@ var _ = Describe("Migration", func() {
 
 				By("applying the initial migration")
 				err := migrator.Migrate(nil, nil, 1510262030)
+				Expect(err).NotTo(HaveOccurred())
 				var columnExists string
 				err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM information_schema.columns where table_name = 'teams' AND column_name='basic_auth')").Scan(&columnExists)
 				Expect(err).NotTo(HaveOccurred())

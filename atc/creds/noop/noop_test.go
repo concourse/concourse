@@ -12,10 +12,6 @@ import (
 var _ = Describe("Noop", func() {
 	var noop Noop
 
-	BeforeEach(func() {
-		noop = Noop{}
-	})
-
 	Describe("Get", func() {
 		var val interface{}
 		var expiration *time.Time

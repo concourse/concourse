@@ -263,6 +263,7 @@ var _ = Describe("Pipeline", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			jobConfigs, err := jobs.Configs()
+			Expect(err).ToNot(HaveOccurred())
 			emptyJobConfigs := make(atc.JobConfigs, len(pipelineConfig.Jobs))
 			Expect(jobConfigs).To(Equal(emptyJobConfigs))
 		})
