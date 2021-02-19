@@ -4,7 +4,6 @@ import (
 	"context"
 	"sync"
 
-	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/engine"
@@ -24,8 +23,6 @@ func NewTracker(
 }
 
 type Tracker struct {
-	logger lager.Logger
-
 	buildFactory db.BuildFactory
 	engine       engine.Engine
 

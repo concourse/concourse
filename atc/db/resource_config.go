@@ -169,8 +169,7 @@ func (r *ResourceConfigDescriptor) findOrCreate(tx Tx, lockFactory lock.LockFact
 	if !found {
 		hash := mapHash(r.Source)
 
-		var err error
-		err = psql.Insert("resource_configs").
+		err := psql.Insert("resource_configs").
 			Columns(
 				parentColumnName,
 				"source_hash",
