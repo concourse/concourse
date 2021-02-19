@@ -1,9 +1,5 @@
 // dashboard.less
 
-@banner-height: 14px;
-@footer-padding: 27px;
-@name-padding: 25px;
-
 .dashboard {
   .pipeline-grid {
     float: none;
@@ -62,13 +58,12 @@
     background: @grey80;
     z-index: 2;
     opacity: 0.9;
-    padding-top: (64px * @scale);
-    padding-left: ((39px + @name-padding) * @scale);
+    padding-left: 64px * @scale;
     width: 100%;
   }
 
   .dashboard-team-name {
-    font-size: (36px * @scale);
+    font-size: 36px * @scale;
     padding-right: 0.5rem;
   }
 

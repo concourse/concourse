@@ -392,7 +392,7 @@ all =
                         >> findCardHeader
                         >> Expect.all
                             [ Query.has
-                                [ style "height" "80px"
+                                [ style "height" "82px"
                                 , style "box-sizing" "border-box"
                                 ]
                             , Query.has [ text "group" ]
@@ -406,7 +406,7 @@ all =
                         >> findCardHeader
                         >> Expect.all
                             [ Query.has
-                                [ style "height" "80px"
+                                [ style "height" "82px"
                                 , style "box-sizing" "border-box"
                                 ]
                             , Query.has [ text "group" ]
@@ -422,7 +422,7 @@ all =
                         >> findCardHeader
                         >> Expect.all
                             [ Query.has
-                                [ style "height" "80px"
+                                [ style "height" "82px"
                                 , style "box-sizing" "border-box"
                                 ]
                             , Query.has [ text "group" ]

@@ -213,7 +213,7 @@ computeFavoritesLayout params cards =
         result =
             computeCards
                 { colGap = padding
-                , rowGap = groupHeaderHeight
+                , rowGap = groupHeaderHeight + padding
                 , offsetX = padding
                 , offsetY = groupHeaderHeight
                 }
@@ -278,7 +278,7 @@ computeFavoritesLayout params cards =
     in
     { cards = result.allCards |> List.filter (isVisible params)
     , headers = headers |> List.filter (isVisible params)
-    , height = result.totalHeight
+    , height = result.totalHeight - padding
     }
 
 

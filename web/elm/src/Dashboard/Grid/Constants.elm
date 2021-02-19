@@ -24,18 +24,24 @@ padding =
     32
 
 
+carHeaderVerticalSpace : number
+carHeaderVerticalSpace =
+    8
+
+
 cardHeaderHeight : number -> number
 cardHeaderHeight numRows =
-    32 + 21 * numRows
+    32 + 21 * numRows + (numRows - 1) * carHeaderVerticalSpace
 
 
-
--- padding top 32 + line height 25 + spacing bottom 32
+groupHeaderLineHeight : number
+groupHeaderLineHeight =
+    25
 
 
 groupHeaderHeight : number
 groupHeaderHeight =
-    89
+    padding + groupHeaderLineHeight
 
 
 sectionHeaderHeight : number

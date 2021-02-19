@@ -277,8 +277,12 @@ transition =
 headerView : PipelinesSection -> Pipeline -> Bool -> Float -> Bool -> Bool -> Html Message
 headerView section pipeline resourceError headerHeight viewingInstanceGroups inInstanceGroup =
     let
+        verticalSpacer =
+            Html.div [ style "height" "8px" ] []
+
         rows =
-            headerRows section viewingInstanceGroups pipeline inInstanceGroup
+            List.intersperse verticalSpacer
+                (headerRows section viewingInstanceGroups pipeline inInstanceGroup)
 
         resourceErrorElem =
             Html.div

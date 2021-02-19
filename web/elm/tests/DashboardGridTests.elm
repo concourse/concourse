@@ -579,7 +579,7 @@ all =
                         |> findPipelineCard "pipeline-0"
                         |> hasBounds
                             { x = 32
-                            , y = 89
+                            , y = 32 + 25
                             , width = 272
                             , height = 268
                             }
@@ -597,7 +597,7 @@ all =
                         |> Query.find [ id "dashboard-favorite-pipelines" ]
                         |> Query.has
                             [ style "height" <|
-                                String.fromFloat (2 * 268 + 2 * 89)
+                                String.fromFloat (2 * 268 + 2 * 89 - 32)
                                     ++ "px"
                             ]
             , test "offsets all pipelines section by height of the favorites section" <|
@@ -626,7 +626,7 @@ all =
                         |> Common.queryView
                         |> Query.find [ id "dashboard-favorite-pipelines" ]
                         |> findHeader "team"
-                        |> hasBounds { x = 32, y = 0, width = 272, height = 89 }
+                        |> hasBounds { x = 32, y = 0, width = 272, height = 57 }
             , test "renders multiple teams' headers" <|
                 \_ ->
                     loadDashboardWithSize 700 200
@@ -641,9 +641,9 @@ all =
                         |> Query.find [ id "dashboard-favorite-pipelines" ]
                         |> Expect.all
                             [ findHeader "team1"
-                                >> hasBounds { x = 32, y = 0, width = 272, height = 89 }
+                                >> hasBounds { x = 32, y = 0, width = 272, height = 57 }
                             , findHeader "team2"
-                                >> hasBounds { x = 272 + 32 * 2, y = 0, width = 272, height = 89 }
+                                >> hasBounds { x = 272 + 32 * 2, y = 0, width = 272, height = 57 }
                             ]
             , test "renders one header per team" <|
                 \_ ->
@@ -658,7 +658,7 @@ all =
                         |> Common.queryView
                         |> Query.find [ id "dashboard-favorite-pipelines" ]
                         |> findHeader "team1"
-                        |> hasBounds { x = 32, y = 0, width = 272 * 2 + 32, height = 89 }
+                        |> hasBounds { x = 32, y = 0, width = 272 * 2 + 32, height = 57 }
             , test "renders a 'continued' header when a team spans multiple rows" <|
                 \_ ->
                     loadDashboardWithSize 300 600
@@ -672,7 +672,7 @@ all =
                         |> Common.queryView
                         |> Query.find [ id "dashboard-favorite-pipelines" ]
                         |> findHeader "team1 (continued)"
-                        |> hasBounds { x = 32, y = 268 + 89, width = 272, height = 89 }
+                        |> hasBounds { x = 32, y = 268 + 89, width = 272, height = 57 }
             ]
         ]
 
