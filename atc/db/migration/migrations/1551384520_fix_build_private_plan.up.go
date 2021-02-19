@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 )
 
-func (self *migrations) Up_1550160079() error {
+func (m *migrations) Up_1550160079() error {
 
 	type build struct {
 		id    int
@@ -13,7 +13,7 @@ func (self *migrations) Up_1550160079() error {
 		nonce sql.NullString
 	}
 
-	tx, err := self.DB.Begin()
+	tx, err := m.DB.Begin()
 	if err != nil {
 		return err
 	}
@@ -45,7 +45,7 @@ func (self *migrations) Up_1550160079() error {
 			noncense = &build.nonce.String
 		}
 
-		decrypted, err := self.Strategy.Decrypt(build.plan.String, noncense)
+		decrypted, err := m.Strategy.Decrypt(build.plan.String, noncense)
 		if err != nil {
 			return err
 		}
@@ -61,7 +61,7 @@ func (self *migrations) Up_1550160079() error {
 			return err
 		}
 
-		encrypted, newnonce, err := self.Strategy.Encrypt(fixed)
+		encrypted, newnonce, err := m.Strategy.Encrypt(fixed)
 		if err != nil {
 			return err
 		}

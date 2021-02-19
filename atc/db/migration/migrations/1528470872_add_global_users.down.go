@@ -4,9 +4,9 @@ import (
 	"errors"
 )
 
-func (self *migrations) Down_1528470872() error {
+func (m *migrations) Down_1528470872() error {
 	var count int
-	err := self.DB.QueryRow("SELECT count(*) FROM teams WHERE legacy_auth IS NULL AND name != 'main'").Scan(&count)
+	err := m.DB.QueryRow("SELECT count(*) FROM teams WHERE legacy_auth IS NULL AND name != 'main'").Scan(&count)
 	if err != nil {
 		return err
 	}
@@ -15,7 +15,7 @@ func (self *migrations) Down_1528470872() error {
 		return errors.New("changes have been made to the teams table since the 'global users' upgrade. There is no turning back")
 	}
 
-	tx, err := self.DB.Begin()
+	tx, err := m.DB.Begin()
 	if err != nil {
 		return err
 	}
