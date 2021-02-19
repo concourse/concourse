@@ -233,7 +233,7 @@ func (self *migrations) Up_1528470872() error {
 
 			case "bitbucket-server", "bitbucket-cloud":
 				tx.Rollback()
-				return errors.New("Bitbucket is no longer supported")
+				return errors.New("bitbucket is no longer supported")
 			}
 		}
 
@@ -278,7 +278,7 @@ func (self *migrations) Up_1528470872() error {
 	}
 	if errorMessage != "" {
 		tx.Rollback()
-		return fmt.Errorf("Problems in your database caused the migration to fail:\n\n%s", errorMessage)
+		return fmt.Errorf("problems in your database caused the migration to fail:\n\n%s", errorMessage)
 	}
 
 	err = tx.Commit()

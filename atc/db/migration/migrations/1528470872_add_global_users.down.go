@@ -12,7 +12,7 @@ func (self *migrations) Down_1528470872() error {
 	}
 
 	if count > 0 {
-		return errors.New("Changes have been made to the teams table since the 'global users' upgrade. There is no turning back.")
+		return errors.New("changes have been made to the teams table since the 'global users' upgrade. There is no turning back")
 	}
 
 	tx, err := self.DB.Begin()

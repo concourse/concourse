@@ -122,7 +122,7 @@ func (helper *OpenHelper) migrateFromMigrationVersion(db *sql.DB) error {
 	}
 
 	if dbVersion != oldMigrationLastVersion {
-		return fmt.Errorf("Must upgrade from db version %d (concourse 3.6.0), current db version: %d", oldMigrationLastVersion, dbVersion)
+		return fmt.Errorf("must upgrade from db version %d (concourse 3.6.0), current db version: %d", oldMigrationLastVersion, dbVersion)
 	}
 
 	if _, err = db.Exec("DROP TABLE IF EXISTS migration_version"); err != nil {

@@ -116,7 +116,7 @@ func (m *Monitor) Initialize(logger lager.Logger, host string, attributes map[st
 		}
 	}
 	if len(emitterDescriptions) > 1 {
-		return fmt.Errorf("Multiple emitters configured: %s", strings.Join(emitterDescriptions, ", "))
+		return fmt.Errorf("multiple emitters configured: %s", strings.Join(emitterDescriptions, ", "))
 	}
 
 	var emitter Emitter

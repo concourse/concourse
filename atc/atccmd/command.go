@@ -355,7 +355,7 @@ func (cmd *Migration) migrateDBToVersion() error {
 
 	err := helper.MigrateToVersion(version)
 	if err != nil {
-		return fmt.Errorf("Could not migrate to version: %d Reason: %s", version, err.Error())
+		return fmt.Errorf("could not migrate to version: %d Reason: %s", version, err.Error())
 	}
 
 	fmt.Println("Successfully migrated to version:", version)
