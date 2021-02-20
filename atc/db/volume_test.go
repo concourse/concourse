@@ -342,7 +342,7 @@ var _ = Describe("Volume", func() {
 
 				createdVolume, found, err = volumeRepository.FindTaskCacheVolume(defaultTeam.ID(), defaultWorker.Name(), taskCache)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(found).ToNot(BeTrue())
+				Expect(found).To(BeTrue())
 				Expect(createdVolume).ToNot(BeNil())
 				Expect(createdVolume.Handle()).To(Equal(volume.Handle()))
 
