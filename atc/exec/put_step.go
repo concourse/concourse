@@ -55,7 +55,6 @@ type PutStep struct {
 	workerPool            worker.Pool
 	artifactSourcer       worker.ArtifactSourcer
 	delegateFactory       PutDelegateFactory
-	succeeded             bool
 }
 
 func NewPutStep(

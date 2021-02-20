@@ -1082,33 +1082,6 @@ func (p *pipeline) CreateStartedBuild(plan atc.Plan) (Build, error) {
 	return build, nil
 }
 
-func (p *pipeline) getBuildsFrom(tx Tx, col string) (map[string]Build, error) {
-	rows, err := buildsQuery.
-		Where(sq.Eq{
-			"b.pipeline_id": p.id,
-		}).
-		Where(sq.Expr("j." + col + " = b.id")).
-		RunWith(tx).Query()
-	if err != nil {
-		return nil, err
-	}
-
-	defer Close(rows)
-
-	nextBuilds := make(map[string]Build)
-
-	for rows.Next() {
-		build := newEmptyBuild(p.conn, p.lockFactory)
-		err := scanBuild(build, rows, p.conn.EncryptionStrategy())
-		if err != nil {
-			return nil, err
-		}
-		nextBuilds[build.JobName()] = build
-	}
-
-	return nextBuilds, nil
-}
-
 // Variables creates variables for this pipeline. If this pipeline has its own
 // var_sources, a vars.MultiVars containing all pipeline specific var_sources
 // plug the global variables, otherwise just return the global variables.

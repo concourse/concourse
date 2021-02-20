@@ -195,60 +195,6 @@ func (r *ResourceConfigDescriptor) findOrCreate(tx Tx, lockFactory lock.LockFact
 	return rc, nil
 }
 
-func (r *ResourceConfigDescriptor) find(tx Tx, lockFactory lock.LockFactory, conn Conn) (ResourceConfig, bool, error) {
-	rc := &resourceConfig{
-		lockFactory: lockFactory,
-		conn:        conn,
-	}
-
-	var parentID int
-	var parentColumnName string
-	if r.CreatedByResourceCache != nil {
-		parentColumnName = "resource_cache_id"
-
-		resourceCache, found, err := r.CreatedByResourceCache.find(tx, lockFactory, conn)
-		if err != nil {
-			return nil, false, err
-		}
-
-		if !found {
-			return nil, false, nil
-		}
-
-		parentID = resourceCache.ID()
-
-		rc.createdByResourceCache = resourceCache
-	}
-
-	if r.CreatedByBaseResourceType != nil {
-		parentColumnName = "base_resource_type_id"
-
-		var err error
-		var found bool
-		rc.createdByBaseResourceType, found, err = r.CreatedByBaseResourceType.Find(tx)
-		if err != nil {
-			return nil, false, err
-		}
-
-		if !found {
-			return nil, false, nil
-		}
-
-		parentID = rc.createdByBaseResourceType.ID
-	}
-
-	found, err := r.findWithParentID(tx, rc, parentColumnName, parentID)
-	if err != nil {
-		return nil, false, err
-	}
-
-	if !found {
-		return nil, false, nil
-	}
-
-	return rc, true, nil
-}
-
 func (r *ResourceConfigDescriptor) findWithParentID(tx Tx, rc *resourceConfig, parentColumnName string, parentID int) (bool, error) {
 	err := psql.Select("id", "last_referenced").
 		From("resource_configs").

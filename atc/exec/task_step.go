@@ -93,7 +93,6 @@ type TaskStep struct {
 	artifactSourcer   worker.ArtifactSourcer
 	artifactStreamer  worker.ArtifactStreamer
 	delegateFactory   TaskDelegateFactory
-	dbWorkerFactory   db.WorkerFactory
 }
 
 func NewTaskStep(
