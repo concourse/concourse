@@ -506,7 +506,7 @@ func (r *groupResolver) vouchForCandidate(oldCandidate *versionCandidate, versio
 
 func (r *groupResolver) orderJobs(jobIDs map[int]bool) []int {
 	orderedJobs := []int{}
-	for id, _ := range jobIDs {
+	for id := range jobIDs {
 		orderedJobs = append(orderedJobs, id)
 	}
 
