@@ -1406,9 +1406,9 @@ var _ = Describe("Worker", func() {
 						fakeDBWorker.CreateContainerReturns(nil, db.ContainerOwnerDisappearedError{})
 					})
 
-					It("fails w/ ResourceConfigCheckSessionExpiredError", func() {
+					It("fails w/ ErrResourceConfigCheckSessionExpired", func() {
 						Expect(findOrCreateErr).To(HaveOccurred())
-						Expect(findOrCreateErr).To(Equal(fmt.Errorf("find or create container on worker some-worker: %w", ResourceConfigCheckSessionExpiredError)))
+						Expect(findOrCreateErr).To(Equal(fmt.Errorf("find or create container on worker some-worker: %w", ErrResourceConfigCheckSessionExpired)))
 					})
 				})
 
