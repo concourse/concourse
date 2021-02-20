@@ -486,9 +486,7 @@ func (r *groupResolver) vouchForCandidate(oldCandidate *versionCandidate, versio
 		}
 
 		if len(oldCandidate.SourceBuildIds) != 0 {
-			for _, sourceBuildId := range oldCandidate.SourceBuildIds {
-				newCandidate.SourceBuildIds = append(newCandidate.SourceBuildIds, sourceBuildId)
-			}
+			newCandidate.SourceBuildIds = append(newCandidate.SourceBuildIds, oldCandidate.SourceBuildIds...)
 		}
 
 		newCandidate.HasNextEveryVersion = oldCandidate.HasNextEveryVersion
