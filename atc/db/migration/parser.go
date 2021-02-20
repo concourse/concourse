@@ -69,7 +69,7 @@ func (p *Parser) ParseFileToMigration(migrationName string) (migration, error) {
 }
 
 func schemaVersion(assetName string) (int, error) {
-	regex := regexp.MustCompile("(\\d+)")
+	regex := regexp.MustCompile(`(\d+)`)
 	match := regex.FindStringSubmatch(assetName)
 	return strconv.Atoi(match[1])
 }
