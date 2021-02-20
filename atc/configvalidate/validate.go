@@ -45,6 +45,12 @@ func Validate(c Config) ([]ConfigWarning, []string) {
 	}
 	warnings = append(warnings, resourceTypesWarnings...)
 
+	prototypesWarnings, prototypesErr := validatePrototypes(c)
+	if prototypesErr != nil {
+		errorMessages = append(errorMessages, formatErr("prototypes", resourcesErr))
+	}
+	warnings = append(warnings, prototypesWarnings...)
+
 	varSourcesWarnings, varSourcesErr := validateVarSources(c)
 	if varSourcesErr != nil {
 		errorMessages = append(errorMessages, formatErr("variable sources", varSourcesErr))
@@ -183,6 +189,51 @@ func validateResources(c Config) ([]ConfigWarning, error) {
 		}
 
 		if resource.Type == "" {
+			errorMessages = append(errorMessages, identifier+" has no type")
+		}
+	}
+
+	errorMessages = append(errorMessages, validateResourcesUnused(c)...)
+
+	return warnings, compositeErr(errorMessages)
+}
+
+func validatePrototypes(c Config) ([]ConfigWarning, error) {
+	var warnings []ConfigWarning
+	var errorMessages []string
+
+	names := map[string]int{}
+
+	for i, prototype := range c.Prototypes {
+		var identifier string
+		if prototype.Name == "" {
+			identifier = fmt.Sprintf("prototypes[%d]", i)
+		} else {
+			identifier = fmt.Sprintf("prototypes.%s", prototype.Name)
+		}
+
+		warning, err := ValidateIdentifier(prototype.Name, identifier)
+		if err != nil {
+			errorMessages = append(errorMessages, err.Error())
+		}
+		if warning != nil {
+			warnings = append(warnings, *warning)
+		}
+
+		if other, exists := names[prototype.Name]; exists {
+			errorMessages = append(errorMessages,
+				fmt.Sprintf(
+					"prototypes[%d] and prototypes[%d] have the same name ('%s')",
+					other, i, prototype.Name))
+		} else if prototype.Name != "" {
+			names[prototype.Name] = i
+		}
+
+		if prototype.Name == "" {
+			errorMessages = append(errorMessages, identifier+" has no name")
+		}
+
+		if prototype.Type == "" {
 			errorMessages = append(errorMessages, identifier+" has no type")
 		}
 	}

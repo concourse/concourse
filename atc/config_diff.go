@@ -151,6 +151,21 @@ func (index ResourceTypeIndex) FindEquivalent(obj interface{}) (interface{}, boo
 	return ResourceTypes(index).Lookup(name(obj))
 }
 
+type PrototypeIndex Prototypes
+
+func (index PrototypeIndex) Slice() []interface{} {
+	slice := make([]interface{}, len(index))
+	for i, object := range index {
+		slice[i] = object
+	}
+
+	return slice
+}
+
+func (index PrototypeIndex) FindEquivalent(obj interface{}) (interface{}, bool) {
+	return Prototypes(index).Lookup(name(obj))
+}
+
 func groupDiffIndices(oldIndex GroupIndex, newIndex GroupIndex) Diffs {
 	diffs := Diffs{}
 
@@ -316,6 +331,16 @@ func (c Config) Diff(out io.Writer, newConfig Config) bool {
 
 		for _, diff := range resourceTypeDiffs {
 			diff.Render(indent, "resource type")
+		}
+	}
+
+	prototypeDiffs := diffIndices(PrototypeIndex(c.Prototypes), PrototypeIndex(newConfig.Prototypes))
+	if len(prototypeDiffs) > 0 {
+		diffExists = true
+		fmt.Fprintln(out, "prototypes:")
+
+		for _, diff := range prototypeDiffs {
+			diff.Render(indent, "prototype")
 		}
 	}
 
