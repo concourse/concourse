@@ -35,7 +35,6 @@ require (
 	github.com/docker/go-events v0.0.0-20190806004212-e31b211e4f1c // indirect
 	github.com/fatih/color v1.9.0
 	github.com/felixge/httpsnoop v1.0.1
-	github.com/gobuffalo/packr v1.13.7
 	github.com/gobwas/glob v0.2.3
 	github.com/goccy/go-yaml v1.8.3
 	github.com/gogo/googleapis v1.3.1 // indirect
@@ -105,6 +104,6 @@ require (
 	sigs.k8s.io/yaml v1.2.0
 )
 
-go 1.13
+go 1.16
 
 replace github.com/docker/distribution v2.7.1+incompatible => github.com/docker/distribution v2.7.1-0.20190205005809-0d3efadf0154+incompatible
