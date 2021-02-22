@@ -446,15 +446,6 @@ type CheckPlan struct {
 	Tags Tags `json:"tags,omitempty"`
 }
 
-type TaskConfigPathContext struct {
-	ConfigPath string `json:"config_path,omitempty"`
-
-	VarSourceConfigs VarSourceConfigs `json:"var_source_configs,omitempty"`
-
-	// Resource types to have available for use when fetching the task's image.
-	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
-}
-
 type TaskPlan struct {
 	// The name of the step.
 	Name string `json:"name"`
@@ -469,8 +460,8 @@ type TaskPlan struct {
 
 	// The task config to execute - either fetched from a path at runtime, or
 	// provided statically.
-	TaskConfigPathContext
-	Config *TaskConfig `json:"config,omitempty"`
+	ConfigPath string      `json:"config_path,omitempty"`
+	Config     *TaskConfig `json:"config,omitempty"`
 
 	// An artifact in the build plan to use as the task's image. Overrides any
 	// image set in the task's config.
@@ -486,6 +477,14 @@ type TaskPlan struct {
 	// build plan.
 	InputMapping  map[string]string `json:"input_mapping,omitempty"`
 	OutputMapping map[string]string `json:"output_mapping,omitempty"`
+
+	// These are necessary because we are dynamically creating substeps for image
+	// fetching and vars interpolation if the config is provided as a path to a
+	// file.
+	// Var source configs for evaluating vars
+	VarSourceConfigs VarSourceConfigs `json:"var_source_configs,omitempty"`
+	// Resource types to have available for use when fetching the task's image.
+	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
 }
 
 type SetPipelinePlan struct {

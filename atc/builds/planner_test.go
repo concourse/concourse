@@ -28,12 +28,19 @@ type PlannerTest struct {
 	Config atc.StepConfig
 	Inputs []db.BuildInput
 
-	CompareIDs bool
-	PlanJSON   string
-	Err        error
+	CompareIDs             bool
+	OverwriteResourceTypes atc.VersionedResourceTypes
+
+	PlanJSON string
+	Err      error
 }
 
 var resources = db.SchedulerResources{
+	db.SchedulerResource{
+		Name:   "some-child-resource",
+		Type:   "some-child-resource-type",
+		Source: atc.Source{"some": "child-source"},
+	},
 	db.SchedulerResource{
 		Name:   "some-resource",
 		Type:   "some-resource-type",
@@ -46,7 +53,7 @@ var resources = db.SchedulerResources{
 	},
 }
 
-var resourceTypes = atc.VersionedResourceTypes{
+var defaultResourceTypes = atc.VersionedResourceTypes{
 	{
 		ResourceType: atc.ResourceType{
 			Name:     "some-resource-type",
@@ -78,25 +85,254 @@ var factoryTests = []PlannerTest{
 				Version: atc.Version{"some": "version"},
 			},
 		},
+		CompareIDs: true,
 		PlanJSON: `{
-			"id": "(unique)",
-			"get": {
-				"name": "some-name",
-				"type": "some-resource-type",
-				"resource": "some-resource",
-				"source": {"some":"source","default-key":"default-value"},
-				"params": {"some":"params"},
-				"version": {"some":"version"},
-				"tags": ["tag-1", "tag-2"],
-				"resource_types": [
-					{
+			"id": "3",
+			"on_success": {
+				"step": {
+					"id": "1",
+					"get": {
 						"name": "some-resource-type",
 						"type": "some-base-resource-type",
-						"source": {"some": "type-source"},
-						"defaults": {"default-key":"default-value"},
-						"version": {"some": "type-version"}
+						"source": {
+						   "some": "type-source"
+						},
+						"base_image_type": "some-base-resource-type",
+						"version": {
+						   "some": "type-version"
+						},
+						"tags": [
+						   "tag-1",
+						   "tag-2"
+						]
 					}
-				]
+				},
+				"on_success": {
+					"id": "2",
+					"get": {
+						"name": "some-name",
+						"type": "some-resource-type",
+						"resource": "some-resource",
+						"source": {"some":"source","default-key":"default-value"},
+						"params": {"some":"params"},
+						"version": {"some":"version"},
+						"tags": ["tag-1", "tag-2"],
+						"image_spec_from": "1",
+						"resource_types": [
+							{
+								"name": "some-resource-type",
+								"type": "some-base-resource-type",
+								"source": {"some": "type-source"},
+								"defaults": {"default-key":"default-value"},
+								"version": {"some": "type-version"}
+							}
+						]
+					}
+				}
+			}
+		}`,
+	},
+	{
+		Title: "get step with nested resource type",
+		Config: &atc.GetStep{
+			Name:     "some-name",
+			Resource: "some-child-resource",
+			Params:   atc.Params{"some": "params"},
+			Version:  &atc.VersionConfig{Pinned: atc.Version{"doesnt": "matter"}},
+			Tags:     atc.Tags{"tag-1", "tag-2"},
+		},
+		Inputs: []db.BuildInput{
+			{
+				Name:    "some-name",
+				Version: atc.Version{"some": "version"},
+			},
+		},
+		CompareIDs: true,
+		OverwriteResourceTypes: atc.VersionedResourceTypes{
+			{
+				ResourceType: atc.ResourceType{
+					Name:   "some-child-resource-type",
+					Type:   "some-resource-type",
+					Source: atc.Source{"some": "child-source"},
+				},
+				Version: atc.Version{"some": "child-version"},
+			},
+			{
+				ResourceType: atc.ResourceType{
+					Name:   "some-resource-type",
+					Type:   "some-base-resource-type",
+					Source: atc.Source{"some": "type-source"},
+				},
+				Version: atc.Version{"some": "type-version"},
+			},
+		},
+		PlanJSON: `{
+			"id": "5",
+			"on_success": {
+				"step": {
+					"id": "3",
+					"on_success": {
+						"step": {
+							"id": "1",
+							"get": {
+								"name": "some-resource-type",
+								"type": "some-base-resource-type",
+								"source": {
+									 "some": "type-source"
+								},
+								"base_image_type": "some-base-resource-type",
+								"version": {
+									 "some": "type-version"
+								},
+								"tags": [
+									 "tag-1",
+									 "tag-2"
+								]
+							}
+						},
+						"on_success": {
+							"id": "2",
+							"get": {
+								"name": "some-child-resource-type",
+								"type": "some-resource-type",
+								"source": {
+									 "some": "child-source"
+								},
+								"image_spec_from": "1",
+								"version": {
+									 "some": "child-version"
+								},
+								"tags": [
+									 "tag-1",
+									 "tag-2"
+								],
+								"resource_types": [
+									{
+										"name": "some-resource-type",
+										"type": "some-base-resource-type",
+										"source": {"some": "type-source"},
+										"version": {"some": "type-version"}
+									}
+								]
+							}
+						}
+					}
+				},
+				"on_success": {
+					"id": "4",
+					"get": {
+						"name": "some-name",
+						"type": "some-child-resource-type",
+						"resource": "some-child-resource",
+						"source": {"some":"child-source"},
+						"params": {"some":"params"},
+						"version": {"some":"version"},
+						"tags": ["tag-1", "tag-2"],
+						"image_spec_from": "2",
+						"resource_types": [
+							{
+								"name": "some-child-resource-type",
+								"type": "some-resource-type",
+								"source": {"some": "child-source"},
+								"version": {"some": "child-version"}
+							},
+							{
+								"name": "some-resource-type",
+								"type": "some-base-resource-type",
+								"source": {"some": "type-source"},
+								"version": {"some": "type-version"}
+							}
+						]
+					}
+				}
+			}
+		}`,
+	},
+	{
+		Title: "get step with no version for custom resource type",
+		Config: &atc.GetStep{
+			Name:     "some-name",
+			Resource: "some-resource",
+			Params:   atc.Params{"some": "params"},
+			Version:  &atc.VersionConfig{Pinned: atc.Version{"doesnt": "matter"}},
+			Tags:     atc.Tags{"tag-1", "tag-2"},
+		},
+		Inputs: []db.BuildInput{
+			{
+				Name:    "some-name",
+				Version: atc.Version{"some": "version"},
+			},
+		},
+		CompareIDs: true,
+		OverwriteResourceTypes: atc.VersionedResourceTypes{
+			{
+				ResourceType: atc.ResourceType{
+					Name:   "some-resource-type",
+					Type:   "some-base-resource-type",
+					Source: atc.Source{"some": "type-source"},
+				},
+			},
+		},
+		PlanJSON: `{
+			"id": "5",
+			"on_success": {
+				"step": {
+					"id": "3",
+					"on_success": {
+						"step": {
+							"id": "1",
+							"check": {
+								"name": "some-resource-type",
+								"type": "some-base-resource-type",
+								"source": {
+									 "some": "type-source"
+								},
+								"base_image_type": "some-base-resource-type",
+								"tags": [
+									 "tag-1",
+									 "tag-2"
+								]
+							}
+						},
+						"on_success": {
+							"id": "2",
+							"get": {
+								"name": "some-resource-type",
+								"type": "some-base-resource-type",
+								"source": {
+									 "some": "type-source"
+								},
+								"base_image_type": "some-base-resource-type",
+								"version_from": "1",
+								"tags": [
+									 "tag-1",
+									 "tag-2"
+								]
+							}
+						}
+					}
+				},
+				"on_success": {
+					"id": "4",
+					"get": {
+						"name": "some-name",
+						"type": "some-resource-type",
+						"resource": "some-resource",
+						"source": {"some":"source"},
+						"params": {"some":"params"},
+						"version": {"some":"version"},
+						"tags": ["tag-1", "tag-2"],
+						"image_spec_from": "2",
+						"resource_types": [
+							{
+								"name": "some-resource-type",
+								"type": "some-base-resource-type",
+								"source": {"some": "type-source"},
+								"version": null
+							}
+						]
+					}
+				}
 			}
 		}`,
 	},
@@ -125,6 +361,7 @@ var factoryTests = []PlannerTest{
 				"params": {"some":"params"},
 				"version": {"some":"version"},
 				"tags": ["tag-1", "tag-2"],
+				"base_image_type": "some-base-resource-type",
 				"resource_types": [
 					{
 						"name": "some-resource-type",
@@ -157,7 +394,7 @@ var factoryTests = []PlannerTest{
 		Title: "put step",
 		Config: &atc.PutStep{
 			Name:      "some-name",
-			Resource:  "some-resource",
+			Resource:  "some-base-resource",
 			Params:    atc.Params{"some": "params"},
 			Tags:      atc.Tags{"tag-1", "tag-2"},
 			Inputs:    &atc.InputsConfig{All: true},
@@ -179,12 +416,13 @@ var factoryTests = []PlannerTest{
 					"id": "1",
 					"put": {
 						"name": "some-name",
-						"type": "some-resource-type",
-						"resource": "some-resource",
+						"type": "some-base-resource-type",
+						"resource": "some-base-resource",
 						"inputs": "all",
 						"source": {"some":"source","default-key":"default-value"},
 						"params": {"some":"params"},
 						"tags": ["tag-1", "tag-2"],
+						"base_image_type": "some-base-resource-type",
 						"resource_types": [
 							{
 								"name": "some-resource-type",
@@ -200,18 +438,168 @@ var factoryTests = []PlannerTest{
 					"id": "2",
 					"get": {
 						"name": "some-name",
-						"type": "some-resource-type",
-						"resource": "some-resource",
+						"type": "some-base-resource-type",
+						"resource": "some-base-resource",
 						"source": {"some":"source","default-key":"default-value"},
 						"params": {"some":"get-params"},
 						"tags": ["tag-1", "tag-2"],
 						"version_from": "1",
+						"base_image_type": "some-base-resource-type",
 						"resource_types": [
 							{
 								"name": "some-resource-type",
 								"type": "some-base-resource-type",
 								"source": {"some": "type-source"},
 								"defaults": {"default-key":"default-value"},
+								"version": {"some": "type-version"}
+							}
+						]
+					}
+				}
+			}
+		}`,
+	},
+	{
+		Title: "put step with nested resource type",
+		Config: &atc.PutStep{
+			Name:      "some-name",
+			Resource:  "some-child-resource",
+			Params:    atc.Params{"some": "params"},
+			Tags:      atc.Tags{"tag-1", "tag-2"},
+			Inputs:    &atc.InputsConfig{All: true},
+			GetParams: atc.Params{"some": "get-params"},
+		},
+		Inputs: []db.BuildInput{
+			{
+				Name:    "some-name",
+				Version: atc.Version{"some": "version"},
+			},
+		},
+		CompareIDs: true,
+		OverwriteResourceTypes: atc.VersionedResourceTypes{
+			{
+				ResourceType: atc.ResourceType{
+					Name:   "some-child-resource-type",
+					Type:   "some-resource-type",
+					Source: atc.Source{"some": "child-source"},
+				},
+				Version: atc.Version{"some": "child-version"},
+			},
+			{
+				ResourceType: atc.ResourceType{
+					Name:   "some-resource-type",
+					Type:   "some-base-resource-type",
+					Source: atc.Source{"some": "type-source"},
+				},
+				Version: atc.Version{"some": "type-version"},
+			},
+		},
+		PlanJSON: `{
+			"id": "7",
+			"on_success": {
+				"step": {
+					"id": "5",
+					"on_success": {
+						"step": {
+							"id": "3",
+							"on_success": {
+								"step": {
+									"id": "1",
+									"get": {
+										"name": "some-resource-type",
+										"type": "some-base-resource-type",
+										"source": {
+											 "some": "type-source"
+										},
+										"base_image_type": "some-base-resource-type",
+										"version": {
+											 "some": "type-version"
+										},
+										"tags": [
+											 "tag-1",
+											 "tag-2"
+										]
+									}
+								},
+								"on_success": {
+									"id": "2",
+									"get": {
+										"name": "some-child-resource-type",
+										"type": "some-resource-type",
+										"source": {
+											 "some": "child-source"
+										},
+										"image_spec_from": "1",
+										"version": {
+											 "some": "child-version"
+										},
+										"tags": [
+											 "tag-1",
+											 "tag-2"
+										],
+										"resource_types": [
+											{
+												"name": "some-resource-type",
+												"type": "some-base-resource-type",
+												"source": {"some": "type-source"},
+												"version": {"some": "type-version"}
+											}
+										]
+									}
+								}
+							}
+						},
+						"on_success": {
+							"id": "4",
+							"put": {
+								"name": "some-name",
+								"type": "some-child-resource-type",
+								"resource": "some-child-resource",
+								"source": {"some":"child-source"},
+								"params": {"some":"params"},
+								"tags": ["tag-1", "tag-2"],
+								"inputs": "all",
+								"image_spec_from": "2",
+								"resource_types": [
+									{
+										"name": "some-child-resource-type",
+										"type": "some-resource-type",
+										"source": {"some": "child-source"},
+										"version": {"some": "child-version"}
+									},
+									{
+										"name": "some-resource-type",
+										"type": "some-base-resource-type",
+										"source": {"some": "type-source"},
+										"version": {"some": "type-version"}
+									}
+								]
+							}
+						}
+					}
+				},
+				"on_success": {
+					"id": "6",
+					"get": {
+						"name": "some-name",
+						"type": "some-child-resource-type",
+						"resource": "some-child-resource",
+						"source": {"some":"child-source"},
+						"params": {"some":"get-params"},
+						"tags": ["tag-1", "tag-2"],
+						"version_from": "4",
+						"image_spec_from": "2",
+						"resource_types": [
+							{
+								"name": "some-child-resource-type",
+								"type": "some-resource-type",
+								"source": {"some": "child-source"},
+								"version": {"some": "child-version"}
+							},
+							{
+								"name": "some-resource-type",
+								"type": "some-base-resource-type",
+								"source": {"some": "type-source"},
 								"version": {"some": "type-version"}
 							}
 						]
@@ -793,6 +1181,10 @@ var factoryTests = []PlannerTest{
 func (test PlannerTest) Run(s *PlannerSuite) {
 	factory := builds.NewPlanner(atc.NewPlanFactory(0))
 
+	resourceTypes := defaultResourceTypes
+	if test.OverwriteResourceTypes != nil {
+		resourceTypes = test.OverwriteResourceTypes
+	}
 	actualPlan, actualErr := factory.Create(test.Config, resources, resourceTypes, test.Inputs)
 
 	if test.Err != nil {
