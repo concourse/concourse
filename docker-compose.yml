@@ -38,7 +38,7 @@ services:
       CONCOURSE_ENABLE_P2P_VOLUME_STREAMING: "true"
       CONCOURSE_CONTAINER_PLACEMENT_STRATEGY: "random"
       # TODO: delete before merge the PR
-      CONCOURSE_GC_INTERVAL: 20m
+      #CONCOURSE_GC_INTERVAL: 20m
 
   worker:
     build: .
@@ -69,6 +69,7 @@ services:
       # work with docker-compose's dns
       CONCOURSE_CONTAINERD_DNS_PROXY_ENABLE: "true"
 
+
 #  worker2:
 #    build: .
 #    image: concourse/concourse:local
@@ -94,6 +95,7 @@ services:
 #      CONCOURSE_BIND_IP: 0.0.0.0
 #      CONCOURSE_BAGGAGECLAIM_BIND_IP: 0.0.0.0
 #      CONCOURSE_CONTAINERD_DNS_PROXY_ENABLE: "true"
+
 #
 #  worker3:
 #    build: .
@@ -121,3 +123,4 @@ services:
 #      CONCOURSE_BAGGAGECLAIM_BIND_IP: 0.0.0.0
 #      CONCOURSE_CONTAINERD_DNS_PROXY_ENABLE: "true"
 #
+
