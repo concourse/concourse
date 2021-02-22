@@ -37,7 +37,12 @@ func (e ErrResourceNotFound) Error() string {
 	return fmt.Sprintf("resource '%s' not found", e.ResourceName)
 }
 
-//counterfeiter:generate . GetDelegateFactory
+type GetResult struct {
+	Name          string
+	ResourceCache db.UsedResourceCache
+}
+
+//go:generate counterfeiter . GetDelegateFactory
 type GetDelegateFactory interface {
 	GetDelegate(state RunState) GetDelegate
 }
@@ -297,7 +302,10 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 
 	var succeeded bool
 	if getResult.ExitStatus == 0 {
-		state.StoreResult(step.planID, resourceCache)
+		state.StoreResult(step.planID, GetResult{
+			Name:          step.plan.Name,
+			ResourceCache: resourceCache,
+		})
 
 		state.ArtifactRepository().RegisterArtifact(
 			build.ArtifactName(step.plan.Name),

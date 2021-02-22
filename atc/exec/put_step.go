@@ -272,7 +272,7 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 		delegate.SaveOutput(logger, step.plan, source, resourceTypes, versionResult)
 	}
 
-	state.StoreResult(step.planID, versionResult)
+	state.StoreResult(step.planID, versionResult.Version)
 
 	delegate.Finished(logger, 0, versionResult)
 

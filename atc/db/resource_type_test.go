@@ -2,7 +2,6 @@ package db_test
 
 import (
 	"context"
-	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -478,38 +477,6 @@ var _ = Describe("ResourceType", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(resourceType.ResourceConfigScopeID()).To(Equal(scope.ID()))
-		})
-	})
-
-	Describe("CheckPlan", func() {
-		var resourceType db.ResourceType
-		var resourceTypes db.ResourceTypes
-
-		BeforeEach(func() {
-			var err error
-			var found bool
-			resourceType, found, err = pipeline.ResourceType("some-type")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			resourceTypes, err = pipeline.ResourceTypes()
-			Expect(err).ToNot(HaveOccurred())
-		})
-
-		It("returns a plan which will update the resource type", func() {
-			defaults := atc.Source{"sdk": "sdv"}
-			Expect(resourceType.CheckPlan(atc.Version{"some": "version"}, time.Minute, resourceTypes, defaults)).To(Equal(atc.CheckPlan{
-				Name:   resourceType.Name(),
-				Type:   resourceType.Type(),
-				Source: defaults.Merge(resourceType.Source()),
-				Tags:   resourceType.Tags(),
-
-				FromVersion:            atc.Version{"some": "version"},
-				Interval:               "1m0s",
-				VersionedResourceTypes: resourceTypes.Deserialize(),
-
-				ResourceType: resourceType.Name(),
-			}))
 		})
 	})
 

@@ -3,10 +3,12 @@ package builds_test
 import (
 	"encoding/json"
 	"testing"
+	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/builds"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -28,12 +30,19 @@ type PlannerTest struct {
 	Config atc.StepConfig
 	Inputs []db.BuildInput
 
-	CompareIDs bool
-	PlanJSON   string
-	Err        error
+	CompareIDs             bool
+	OverwriteResourceTypes atc.VersionedResourceTypes
+
+	PlanJSON string
+	Err      error
 }
 
 var resources = db.SchedulerResources{
+	db.SchedulerResource{
+		Name:   "some-child-resource",
+		Type:   "some-child-resource-type",
+		Source: atc.Source{"some": "child-source"},
+	},
 	db.SchedulerResource{
 		Name:   "some-resource",
 		Type:   "some-resource-type",
@@ -46,7 +55,7 @@ var resources = db.SchedulerResources{
 	},
 }
 
-var resourceTypes = atc.VersionedResourceTypes{
+var defaultResourceTypes = atc.VersionedResourceTypes{
 	{
 		ResourceType: atc.ResourceType{
 			Name:     "some-resource-type",
@@ -79,8 +88,9 @@ var factoryTests = []PlannerTest{
 				Version: atc.Version{"some": "version"},
 			},
 		},
+		CompareIDs: true,
 		PlanJSON: `{
-			"id": "(unique)",
+			"id": "2",
 			"get": {
 				"name": "some-name",
 				"type": "some-resource-type",
@@ -89,7 +99,25 @@ var factoryTests = []PlannerTest{
 				"params": {"some":"params"},
 				"version": {"some":"version"},
 				"tags": ["tag-1", "tag-2"],
-				"timeout": "1h",
+			  "timeout": "1h",
+				"image_get_plan": {
+					"id": "1",
+					"get": {
+						"name": "some-resource-type",
+						"type": "some-base-resource-type",
+						"source": {
+							 "some": "type-source"
+						},
+						"base_image_type": "some-base-resource-type",
+						"version": {
+							 "some": "type-version"
+						},
+						"tags": [
+							 "tag-1",
+							 "tag-2"
+						]
+					}
+				},
 				"resource_types": [
 					{
 						"name": "some-resource-type",
@@ -97,6 +125,187 @@ var factoryTests = []PlannerTest{
 						"source": {"some": "type-source"},
 						"defaults": {"default-key":"default-value"},
 						"version": {"some": "type-version"}
+					}
+				]
+			}
+		}`,
+	},
+	{
+		Title: "get step with nested resource type",
+		Config: &atc.GetStep{
+			Name:     "some-name",
+			Resource: "some-child-resource",
+			Params:   atc.Params{"some": "params"},
+			Version:  &atc.VersionConfig{Pinned: atc.Version{"doesnt": "matter"}},
+			Tags:     atc.Tags{"tag-1", "tag-2"},
+		},
+		Inputs: []db.BuildInput{
+			{
+				Name:    "some-name",
+				Version: atc.Version{"some": "version"},
+			},
+		},
+		CompareIDs: true,
+		OverwriteResourceTypes: atc.VersionedResourceTypes{
+			{
+				ResourceType: atc.ResourceType{
+					Name:   "some-child-resource-type",
+					Type:   "some-resource-type",
+					Source: atc.Source{"some": "child-source"},
+				},
+				Version: atc.Version{"some": "child-version"},
+			},
+			{
+				ResourceType: atc.ResourceType{
+					Name:   "some-resource-type",
+					Type:   "some-base-resource-type",
+					Source: atc.Source{"some": "type-source"},
+				},
+				Version: atc.Version{"some": "type-version"},
+			},
+		},
+		PlanJSON: `{
+			"id": "3",
+			"get": {
+				"name": "some-name",
+				"type": "some-child-resource-type",
+				"resource": "some-child-resource",
+				"source": {"some":"child-source"},
+				"params": {"some":"params"},
+				"version": {"some":"version"},
+				"tags": ["tag-1", "tag-2"],
+				"image_get_plan": {
+					"id": "2",
+					"get": {
+						"name": "some-child-resource-type",
+						"type": "some-resource-type",
+						"source": {
+							 "some": "child-source"
+						},
+						"image_get_plan": {
+							"id": "1",
+							"get": {
+								"name": "some-resource-type",
+								"type": "some-base-resource-type",
+								"source": {
+									 "some": "type-source"
+								},
+								"base_image_type": "some-base-resource-type",
+								"version": {
+									 "some": "type-version"
+								},
+								"tags": [
+									 "tag-1",
+									 "tag-2"
+								]
+							}
+						},
+						"version": {
+							 "some": "child-version"
+						},
+						"tags": [
+							 "tag-1",
+							 "tag-2"
+						],
+						"resource_types": [
+							{
+								"name": "some-resource-type",
+								"type": "some-base-resource-type",
+								"source": {"some": "type-source"},
+								"version": {"some": "type-version"}
+							}
+						]
+					}
+				},
+				"resource_types": [
+					{
+						"name": "some-child-resource-type",
+						"type": "some-resource-type",
+						"source": {"some": "child-source"},
+						"version": {"some": "child-version"}
+					},
+					{
+						"name": "some-resource-type",
+						"type": "some-base-resource-type",
+						"source": {"some": "type-source"},
+						"version": {"some": "type-version"}
+					}
+				]
+			}
+		}`,
+	},
+	{
+		Title: "get step with no version for custom resource type",
+		Config: &atc.GetStep{
+			Name:     "some-name",
+			Resource: "some-resource",
+			Params:   atc.Params{"some": "params"},
+			Version:  &atc.VersionConfig{Pinned: atc.Version{"doesnt": "matter"}},
+			Tags:     atc.Tags{"tag-1", "tag-2"},
+		},
+		Inputs: []db.BuildInput{
+			{
+				Name:    "some-name",
+				Version: atc.Version{"some": "version"},
+			},
+		},
+		CompareIDs: true,
+		OverwriteResourceTypes: atc.VersionedResourceTypes{
+			{
+				ResourceType: atc.ResourceType{
+					Name:   "some-resource-type",
+					Type:   "some-base-resource-type",
+					Source: atc.Source{"some": "type-source"},
+				},
+			},
+		},
+		PlanJSON: `{
+			"id": "3",
+			"get": {
+				"name": "some-name",
+				"type": "some-resource-type",
+				"resource": "some-resource",
+				"source": {"some":"source"},
+				"params": {"some":"params"},
+				"version": {"some":"version"},
+				"tags": ["tag-1", "tag-2"],
+				"image_check_plan": {
+					"id": "1",
+					"check": {
+						"name": "some-resource-type",
+						"type": "some-base-resource-type",
+						"source": {
+							 "some": "type-source"
+						},
+						"base_image_type": "some-base-resource-type",
+						"tags": [
+							 "tag-1",
+							 "tag-2"
+						]
+					}
+				},
+				"image_get_plan": {
+					"id": "2",
+					"get": {
+						"name": "some-resource-type",
+						"type": "some-base-resource-type",
+						"source": {
+							 "some": "type-source"
+						},
+						"base_image_type": "some-base-resource-type",
+						"version_from": "1",
+						"tags": [
+							 "tag-1",
+							 "tag-2"
+						]
+					}
+				},
+				"resource_types": [
+					{
+						"name": "some-resource-type",
+						"type": "some-base-resource-type",
+						"source": {"some": "type-source"},
+						"version": null
 					}
 				]
 			}
@@ -127,6 +336,7 @@ var factoryTests = []PlannerTest{
 				"params": {"some":"params"},
 				"version": {"some":"version"},
 				"tags": ["tag-1", "tag-2"],
+				"base_image_type": "some-base-resource-type",
 				"resource_types": [
 					{
 						"name": "some-resource-type",
@@ -159,7 +369,7 @@ var factoryTests = []PlannerTest{
 		Title: "put step",
 		Config: &atc.PutStep{
 			Name:      "some-name",
-			Resource:  "some-resource",
+			Resource:  "some-base-resource",
 			Params:    atc.Params{"some": "params"},
 			Tags:      atc.Tags{"tag-1", "tag-2"},
 			Inputs:    &atc.InputsConfig{All: true},
@@ -182,13 +392,14 @@ var factoryTests = []PlannerTest{
 					"id": "1",
 					"put": {
 						"name": "some-name",
-						"type": "some-resource-type",
-						"resource": "some-resource",
+						"type": "some-base-resource-type",
+						"resource": "some-base-resource",
 						"inputs": "all",
 						"source": {"some":"source","default-key":"default-value"},
 						"params": {"some":"params"},
 						"tags": ["tag-1", "tag-2"],
 						"timeout": "1h",
+						"base_image_type": "some-base-resource-type",
 						"resource_types": [
 							{
 								"name": "some-resource-type",
@@ -204,13 +415,117 @@ var factoryTests = []PlannerTest{
 					"id": "2",
 					"get": {
 						"name": "some-name",
-						"type": "some-resource-type",
-						"resource": "some-resource",
+						"type": "some-base-resource-type",
+						"resource": "some-base-resource",
 						"source": {"some":"source","default-key":"default-value"},
 						"params": {"some":"get-params"},
 						"tags": ["tag-1", "tag-2"],
 						"version_from": "1",
 						"timeout": "1h",
+						"base_image_type": "some-base-resource-type",
+						"resource_types": [
+							{
+								"name": "some-resource-type",
+								"type": "some-base-resource-type",
+								"source": {"some": "type-source"},
+								"defaults": {"default-key":"default-value"},
+								"version": {"some": "type-version"}
+							}
+						]
+					}
+				}
+			}
+		}`,
+	},
+	{
+		Title: "put step with nested resource type",
+		Config: &atc.PutStep{
+			Name:      "some-name",
+			Resource:  "some-resource",
+			Params:    atc.Params{"some": "params"},
+			Tags:      atc.Tags{"tag-1", "tag-2"},
+			Inputs:    &atc.InputsConfig{All: true},
+			GetParams: atc.Params{"some": "get-params"},
+		},
+		Inputs: []db.BuildInput{
+			{
+				Name:    "some-name",
+				Version: atc.Version{"some": "version"},
+			},
+		},
+		CompareIDs: true,
+		PlanJSON: `{
+			"id": "5",
+			"on_success": {
+				"step": {
+					"id": "2",
+					"put": {
+						"name": "some-name",
+						"type": "some-resource-type",
+						"resource": "some-resource",
+						"source": {
+							 "some": "source",
+							 "default-key": "default-value"
+						},
+						"params": {"some":"params"},
+						"tags": ["tag-1", "tag-2"],
+						"inputs": "all",
+						"image_get_plan": {
+							"id": "1",
+							"get": {
+								"name": "some-resource-type",
+								"type": "some-base-resource-type",
+								"source": { "some": "type-source" },
+								"base_image_type": "some-base-resource-type",
+								"version": {
+									 "some": "type-version"
+								},
+								"tags": [
+									 "tag-1",
+									 "tag-2"
+								]
+							}
+						},
+						"resource_types": [
+							{
+								"name": "some-resource-type",
+								"type": "some-base-resource-type",
+								"source": {"some": "type-source"},
+								"defaults": {"default-key":"default-value"},
+								"version": {"some": "type-version"}
+							}
+						]
+					}
+				},
+				"on_success": {
+					"id": "4",
+					"get": {
+						"name": "some-name",
+						"type": "some-resource-type",
+						"resource": "some-resource",
+						"source": {
+							 "some": "source",
+							 "default-key": "default-value"
+						},
+						"params": {"some":"get-params"},
+						"tags": ["tag-1", "tag-2"],
+						"version_from": "2",
+						"image_get_plan": {
+							"id": "3",
+							"get": {
+								"name": "some-resource-type",
+								"type": "some-base-resource-type",
+								"source": { "some": "type-source" },
+								"base_image_type": "some-base-resource-type",
+								"version": {
+									 "some": "type-version"
+								},
+								"tags": [
+									 "tag-1",
+									 "tag-2"
+								]
+							}
+						},
 						"resource_types": [
 							{
 								"name": "some-resource-type",
@@ -814,6 +1129,10 @@ var factoryTests = []PlannerTest{
 func (test PlannerTest) Run(s *PlannerSuite) {
 	factory := builds.NewPlanner(atc.NewPlanFactory(0))
 
+	resourceTypes := defaultResourceTypes
+	if test.OverwriteResourceTypes != nil {
+		resourceTypes = test.OverwriteResourceTypes
+	}
 	actualPlan, actualErr := factory.Create(test.Config, resources, resourceTypes, test.Inputs)
 
 	if test.Err != nil {
@@ -844,13 +1163,183 @@ func (test PlannerTest) Run(s *PlannerSuite) {
 	s.JSONEq(test.PlanJSON, string(actualJSON))
 }
 
+type CheckableTest struct {
+	Name         string
+	Type         string
+	Tags         []string
+	CheckTimeout string
+	Source       atc.Source
+}
+
+type CheckPlannerTest struct {
+	Title string
+
+	Checkable              CheckableTest
+	VersionedResourceTypes atc.VersionedResourceTypes
+	From                   atc.Version
+	SourceDefaults         atc.Source
+	Interval               time.Duration
+
+	PlanJSON string
+}
+
+var checkTests = []CheckPlannerTest{
+	{
+		Title: "simple check plan",
+		Checkable: CheckableTest{
+			Name:         "some-resource",
+			Type:         "some-base-resource-type",
+			Tags:         []string{"tag"},
+			CheckTimeout: "1h",
+			Source: atc.Source{
+				"some": "source",
+			},
+		},
+		VersionedResourceTypes: nil,
+		From:                   atc.Version{"some": "version"},
+		SourceDefaults: atc.Source{
+			"source": "default",
+		},
+		Interval: 5 * time.Minute,
+
+		PlanJSON: `{
+  "id":"1",
+  "check":{
+    "name":"some-resource",
+    "type":"some-base-resource-type",
+    "source":{
+     "some":"source",
+     "source":"default"
+    },
+    "base_image_type":"some-base-resource-type",
+    "from_version":{
+     "some":"version"
+    },
+    "resource":"some-resource",
+    "interval":"5m0s",
+    "timeout":"1h",
+    "tags":[
+     "tag"
+    ]
+  }
+}`,
+	},
+	{
+		Title: "check step with custom type",
+		Checkable: CheckableTest{
+			Name:         "some-resource",
+			Type:         "some-resource-type",
+			Tags:         []string{"tag"},
+			CheckTimeout: "1h",
+			Source: atc.Source{
+				"some": "source",
+			},
+		},
+		VersionedResourceTypes: atc.VersionedResourceTypes{
+			{
+				ResourceType: atc.ResourceType{
+					Name:   "some-resource-type",
+					Type:   "some-base-resource-type",
+					Source: atc.Source{"some": "type-source"},
+				},
+				Version: nil,
+			},
+		},
+
+		From:     atc.Version{"some": "version"},
+		Interval: 5 * time.Minute,
+
+		PlanJSON: `{
+			"id": "3",
+			"check": {
+				"name": "some-resource",
+				"type": "some-resource-type",
+				"resource": "some-resource",
+				"source": {"some":"source"},
+				"from_version": {"some": "version"},
+				"tags": ["tag"],
+				"image_check_plan": {
+					"id": "1",
+					"check": {
+						"name": "some-resource-type",
+						"type": "some-base-resource-type",
+						"source": {
+							 "some": "type-source"
+						},
+						"base_image_type": "some-base-resource-type",
+						"tags": [
+							 "tag"
+						]
+					}
+				},
+				"image_get_plan": {
+					"id": "2",
+					"get": {
+						"name": "some-resource-type",
+						"type": "some-base-resource-type",
+						"source": {
+							 "some": "type-source"
+						},
+						"base_image_type": "some-base-resource-type",
+						"version_from": "1",
+						"tags": [
+							 "tag"
+						]
+					}
+				},
+				"interval": "5m0s",
+				"timeout":"1h",
+				"resource_types": [
+					{
+						"name": "some-resource-type",
+						"type": "some-base-resource-type",
+						"source": {"some": "type-source"},
+						"version": null
+					}
+				]
+			}
+		}`,
+	},
+}
+
+func (c CheckPlannerTest) Run(s *PlannerSuite) {
+	// These are the tests we want to write
+	// 1. Simple check plan test where checkable is using base resource type = result check plan
+	// 2. Checkable is using a custom type = result check plan + get/check image plan
+
+	checkPlanner := builds.NewCheckPlanner(atc.NewPlanFactory(0))
+
+	fakeCheckable := new(dbfakes.FakeCheckable)
+	fakeCheckable.NameReturns(c.Checkable.Name)
+	fakeCheckable.TypeReturns(c.Checkable.Type)
+	fakeCheckable.TagsReturns(c.Checkable.Tags)
+	fakeCheckable.CheckTimeoutReturns(c.Checkable.CheckTimeout)
+	fakeCheckable.SourceReturns(c.Checkable.Source)
+
+	plan := checkPlanner.Create(fakeCheckable, c.VersionedResourceTypes, c.From, c.SourceDefaults, c.Interval)
+
+	actualJSON, err := json.Marshal(plan)
+	s.NoError(err)
+	s.JSONEq(c.PlanJSON, string(actualJSON))
+}
+
 func (s *PlannerSuite) TestFactory() {
 	atc.LoadBaseResourceTypeDefaults(baseResourceTypeDefaults)
+
+	// Build planner tests
 	for _, test := range factoryTests {
 		s.Run(test.Title, func() {
 			test.Run(s)
 		})
 	}
+
+	// Check planner tests
+	for _, test := range checkTests {
+		s.Run(test.Title, func() {
+			test.Run(s)
+		})
+	}
+
 	atc.LoadBaseResourceTypeDefaults(map[string]atc.Source{})
 }
 

@@ -74,6 +74,102 @@ package atc
 // 	}
 // }
 
+// resource_types:
+// - name: a
+// 	type: registry-image
+
+// resources:
+// - name: b
+// 	type: a
+
+// jobs:
+// - name: foo
+// 	plan:
+// 		- get: b
+
+// Plan: {
+// 	Get: {
+// 		Name: b
+// 		ImageCheckPlan: {
+// 			OnSuccess: {
+//				ID: 0
+// 				Step: Check {
+// 					ID: 1
+// 					Name: a
+// 					BaseImageType: registry-image
+// 				}
+// 				Next: Get {
+// 					ID: 2
+// 					Name: a
+// 					BaseImageType: registry-image
+// 					VersionFrom: 1
+// 				}
+// 			}
+// 		}
+// 	}
+// }
+
+// resource_types:
+// - name: a
+// 	type: registry-image
+// - name: b
+// 	type: a
+
+// resources:
+// - name: c
+// 	type: b
+
+// jobs:
+// - name: foo
+// 	plan:
+// 		- get: c
+
+// Plan: {
+// 	Get: {
+// 		Name: c
+// 		ImageCheckPlan: {
+//				ID: 0
+// 				Check {
+// 					Name: b
+// 					ImageCheckPlan: {
+// 						ID:
+// 						Check: {
+//							Name: a
+//							BaseImageType: registry-image
+//						}
+// 					}
+// 					ImageGetPlan: {
+// 						ID:
+// 						Get: {
+//							Name: a
+//							BaseImageType: registry-image
+//						}
+// 					}
+// 				}
+// 			}
+// 		ImageGetPlan: {
+//				ID: 0
+// 				Get {
+// 					Name: b
+// 					ImageCheckPlan: {
+// 						ID:
+// 						Check: {
+//							Name: a
+//							BaseImageType: registry-image
+//						}
+// 					}
+// 					ImageGetPlan: {
+// 						ID:
+// 						Get: {
+//							Name: a
+//							BaseImageType: registry-image
+//						}
+// 					}
+// 				}
+// 			}
+// 		}
+// 	}
+
 // Plan: {
 // 	Check {
 // 		Name: a-check
@@ -359,8 +455,9 @@ type GetPlan struct {
 	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
 
 	// Image of the container. One of these must be specified.
-	BaseImageType *string `json:"base_image_type,omitempty"`
-	ImageSpecFrom *PlanID `json:"image_spec_from,omitempty"`
+	BaseImageType  string `json:"base_image_type,omitempty"`
+	ImageCheckPlan *Plan  `json:"image_check_plan,omitempty"`
+	ImageGetPlan   *Plan  `json:"image_get_plan,omitempty"`
 
 	// The version of the resource to fetch. One of these must be specified.
 	Version     *Version `json:"version,omitempty"`
@@ -390,8 +487,9 @@ type PutPlan struct {
 	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
 
 	// Image of the container. One of these must be specified.
-	BaseImageType *string `json:"base_image_type,omitempty"`
-	ImageSpecFrom *PlanID `json:"image_spec_from,omitempty"`
+	BaseImageType  string `json:"base_image_type,omitempty"`
+	ImageCheckPlan *Plan  `json:"image_check_plan,omitempty"`
+	ImageGetPlan   *Plan  `json:"image_get_plan,omitempty"`
 
 	// Params to pass to the put operation.
 	Params Params `json:"params,omitempty"`
@@ -423,8 +521,9 @@ type CheckPlan struct {
 	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
 
 	// Image of the container. One of these must be specified.
-	BaseImageType *string `json:"base_image_type,omitempty"`
-	ImageSpecFrom *PlanID `json:"image_spec_from,omitempty"`
+	BaseImageType  string `json:"base_image_type,omitempty"`
+	ImageCheckPlan *Plan  `json:"image_check_plan,omitempty"`
+	ImageGetPlan   *Plan  `json:"image_get_plan,omitempty"`
 
 	// The version to check from. If not specified, defaults to the latest
 	// version of the config.
@@ -451,13 +550,6 @@ func (plan CheckPlan) IsPeriodic() bool {
 	return plan.Resource != "" || plan.ResourceType != ""
 }
 
-type TaskConfigPathContext struct {
-	ConfigPath string `json:"config_path,omitempty"`
-
-	// Resource types to have available for use when fetching the task's image.
-	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
-}
-
 type TaskPlan struct {
 	// The name of the step.
 	Name string `json:"name"`
@@ -472,8 +564,8 @@ type TaskPlan struct {
 
 	// The task config to execute - either fetched from a path at runtime, or
 	// provided statically.
-	TaskConfigPathContext
-	Config *TaskConfig `json:"config,omitempty"`
+	ConfigPath string      `json:"config_path,omitempty"`
+	Config     *TaskConfig `json:"config,omitempty"`
 
 	// Limits to set on the Task Container
 	Limits *ContainerLimits `json:"container_limits,omitempty"`
@@ -496,6 +588,9 @@ type TaskPlan struct {
 	// A timeout to enforce on the task's process. Note that etching the task's
 	// image does not count towards the timeout.
 	Timeout string `json:"timeout,omitempty"`
+
+	// Resource types to have available for use when fetching the task's image.
+	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
 }
 
 type SetPipelinePlan struct {

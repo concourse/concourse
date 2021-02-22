@@ -421,41 +421,6 @@ var _ = Describe("Resource", func() {
 		})
 	})
 
-	Describe("CheckPlan", func() {
-		var resource db.Resource
-		var resourceTypes db.ResourceTypes
-
-		BeforeEach(func() {
-			var err error
-			var found bool
-			resource, found, err = pipeline.Resource("some-resource")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			resourceTypes, err = pipeline.ResourceTypes()
-			Expect(err).ToNot(HaveOccurred())
-		})
-
-		It("returns a plan which will update the resource", func() {
-			defaults := atc.Source{"sdk": "sdv"}
-			Expect(resource.CheckPlan(atc.Version{"some": "version"}, time.Minute, resourceTypes, defaults)).To(Equal(atc.CheckPlan{
-				Name:    resource.Name(),
-				Type:    resource.Type(),
-				Source:  defaults.Merge(resource.Source()),
-				Tags:    resource.Tags(),
-				Timeout: "999m",
-
-				FromVersion: atc.Version{"some": "version"},
-
-				Interval: "1m0s",
-
-				VersionedResourceTypes: resourceTypes.Deserialize(),
-
-				Resource: resource.Name(),
-			}))
-		})
-	})
-
 	Describe("CreateBuild", func() {
 		var ctx context.Context
 		var manuallyTriggered bool
