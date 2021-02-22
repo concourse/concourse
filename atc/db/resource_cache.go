@@ -234,7 +234,9 @@ func (cache *usedResourceCache) LoadVersionMetadata() ([]atc.MetadataField, erro
 
 	versionJSON, _ := json.Marshal(cache.Version())
 	row := resourceConfigVersionQuery.
+		LeftJoin("resource_config_scopes rcs ON v.resource_config_scope_id = rcs.id").
 		Where(sq.Expr("v.version_md5 = md5(?)", versionJSON)).
+		Where(sq.Eq{"rcs.resource_config_id": cache.resourceConfig.ID()}).
 		RunWith(r.conn).
 		QueryRow()
 
