@@ -216,6 +216,19 @@ type FakeTeam struct {
 		result2 bool
 		result3 error
 	}
+	FindWorkersForResourceCacheStub        func(int) ([]db.Worker, error)
+	findWorkersForResourceCacheMutex       sync.RWMutex
+	findWorkersForResourceCacheArgsForCall []struct {
+		arg1 int
+	}
+	findWorkersForResourceCacheReturns struct {
+		result1 []db.Worker
+		result2 error
+	}
+	findWorkersForResourceCacheReturnsOnCall map[int]struct {
+		result1 []db.Worker
+		result2 error
+	}
 	IDStub        func() int
 	iDMutex       sync.RWMutex
 	iDArgsForCall []struct {
@@ -1351,6 +1364,70 @@ func (fake *FakeTeam) FindWorkerForVolumeReturnsOnCall(i int, result1 db.Worker,
 	}{result1, result2, result3}
 }
 
+func (fake *FakeTeam) FindWorkersForResourceCache(arg1 int) ([]db.Worker, error) {
+	fake.findWorkersForResourceCacheMutex.Lock()
+	ret, specificReturn := fake.findWorkersForResourceCacheReturnsOnCall[len(fake.findWorkersForResourceCacheArgsForCall)]
+	fake.findWorkersForResourceCacheArgsForCall = append(fake.findWorkersForResourceCacheArgsForCall, struct {
+		arg1 int
+	}{arg1})
+	stub := fake.FindWorkersForResourceCacheStub
+	fakeReturns := fake.findWorkersForResourceCacheReturns
+	fake.recordInvocation("FindWorkersForResourceCache", []interface{}{arg1})
+	fake.findWorkersForResourceCacheMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeTeam) FindWorkersForResourceCacheCallCount() int {
+	fake.findWorkersForResourceCacheMutex.RLock()
+	defer fake.findWorkersForResourceCacheMutex.RUnlock()
+	return len(fake.findWorkersForResourceCacheArgsForCall)
+}
+
+func (fake *FakeTeam) FindWorkersForResourceCacheCalls(stub func(int) ([]db.Worker, error)) {
+	fake.findWorkersForResourceCacheMutex.Lock()
+	defer fake.findWorkersForResourceCacheMutex.Unlock()
+	fake.FindWorkersForResourceCacheStub = stub
+}
+
+func (fake *FakeTeam) FindWorkersForResourceCacheArgsForCall(i int) int {
+	fake.findWorkersForResourceCacheMutex.RLock()
+	defer fake.findWorkersForResourceCacheMutex.RUnlock()
+	argsForCall := fake.findWorkersForResourceCacheArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeTeam) FindWorkersForResourceCacheReturns(result1 []db.Worker, result2 error) {
+	fake.findWorkersForResourceCacheMutex.Lock()
+	defer fake.findWorkersForResourceCacheMutex.Unlock()
+	fake.FindWorkersForResourceCacheStub = nil
+	fake.findWorkersForResourceCacheReturns = struct {
+		result1 []db.Worker
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) FindWorkersForResourceCacheReturnsOnCall(i int, result1 []db.Worker, result2 error) {
+	fake.findWorkersForResourceCacheMutex.Lock()
+	defer fake.findWorkersForResourceCacheMutex.Unlock()
+	fake.FindWorkersForResourceCacheStub = nil
+	if fake.findWorkersForResourceCacheReturnsOnCall == nil {
+		fake.findWorkersForResourceCacheReturnsOnCall = make(map[int]struct {
+			result1 []db.Worker
+			result2 error
+		})
+	}
+	fake.findWorkersForResourceCacheReturnsOnCall[i] = struct {
+		result1 []db.Worker
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeTeam) ID() int {
 	fake.iDMutex.Lock()
 	ret, specificReturn := fake.iDReturnsOnCall[len(fake.iDArgsForCall)]
@@ -2309,6 +2386,8 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.findWorkerForContainerMutex.RUnlock()
 	fake.findWorkerForVolumeMutex.RLock()
 	defer fake.findWorkerForVolumeMutex.RUnlock()
+	fake.findWorkersForResourceCacheMutex.RLock()
+	defer fake.findWorkersForResourceCacheMutex.RUnlock()
 	fake.iDMutex.RLock()
 	defer fake.iDMutex.RUnlock()
 	fake.isCheckContainerMutex.RLock()

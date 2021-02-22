@@ -90,6 +90,13 @@ func (f FakeDestination) GetStreamInP2pUrl(ctx context.Context, path string) (st
 	panic("unimplemented")
 }
 
+func (f FakeDestination) Volume() worker.Volume {
+	fakeVolume := new(workerfakes.FakeVolume)
+	fakeVolume.WorkerNameReturns("some-worker")
+	fakeVolume.HandleReturns("some-handle")
+	return fakeVolume
+}
+
 func BeStreamableWithContent(content content) types.GomegaMatcher {
 	return streamableWithContentMatcher{content}
 }

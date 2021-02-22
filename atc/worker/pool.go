@@ -42,18 +42,18 @@ type Pool interface {
 		WorkerSpec,
 		ContainerPlacementStrategy,
 	) (Client, error)
-}
-
-//go:generate counterfeiter . VolumeFinder
-
-type VolumeFinder interface {
-	FindVolume(lager.Logger, int, string) (Volume, bool, error)
 
 	FindWorkersForResourceCache(
 		lager.Logger,
 		int,
 		int,
 	) ([]Worker, error)
+}
+
+//go:generate counterfeiter . VolumeFinder
+
+type VolumeFinder interface {
+	FindVolume(lager.Logger, int, string) (Volume, bool, error)
 }
 
 type pool struct {

@@ -27,6 +27,16 @@ type FakeStreamableArtifactSource struct {
 		result2 bool
 		result3 error
 	}
+	HandleStub        func() string
+	handleMutex       sync.RWMutex
+	handleArgsForCall []struct {
+	}
+	handleReturns struct {
+		result1 string
+	}
+	handleReturnsOnCall map[int]struct {
+		result1 string
+	}
 	StreamFileStub        func(context.Context, string) (io.ReadCloser, error)
 	streamFileMutex       sync.RWMutex
 	streamFileArgsForCall []struct {
@@ -123,6 +133,59 @@ func (fake *FakeStreamableArtifactSource) ExistsOnReturnsOnCall(i int, result1 w
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
+}
+
+func (fake *FakeStreamableArtifactSource) Handle() string {
+	fake.handleMutex.Lock()
+	ret, specificReturn := fake.handleReturnsOnCall[len(fake.handleArgsForCall)]
+	fake.handleArgsForCall = append(fake.handleArgsForCall, struct {
+	}{})
+	stub := fake.HandleStub
+	fakeReturns := fake.handleReturns
+	fake.recordInvocation("Handle", []interface{}{})
+	fake.handleMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeStreamableArtifactSource) HandleCallCount() int {
+	fake.handleMutex.RLock()
+	defer fake.handleMutex.RUnlock()
+	return len(fake.handleArgsForCall)
+}
+
+func (fake *FakeStreamableArtifactSource) HandleCalls(stub func() string) {
+	fake.handleMutex.Lock()
+	defer fake.handleMutex.Unlock()
+	fake.HandleStub = stub
+}
+
+func (fake *FakeStreamableArtifactSource) HandleReturns(result1 string) {
+	fake.handleMutex.Lock()
+	defer fake.handleMutex.Unlock()
+	fake.HandleStub = nil
+	fake.handleReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeStreamableArtifactSource) HandleReturnsOnCall(i int, result1 string) {
+	fake.handleMutex.Lock()
+	defer fake.handleMutex.Unlock()
+	fake.HandleStub = nil
+	if fake.handleReturnsOnCall == nil {
+		fake.handleReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.handleReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
 }
 
 func (fake *FakeStreamableArtifactSource) StreamFile(arg1 context.Context, arg2 string) (io.ReadCloser, error) {
@@ -257,6 +320,8 @@ func (fake *FakeStreamableArtifactSource) Invocations() map[string][][]interface
 	defer fake.invocationsMutex.RUnlock()
 	fake.existsOnMutex.RLock()
 	defer fake.existsOnMutex.RUnlock()
+	fake.handleMutex.RLock()
+	defer fake.handleMutex.RUnlock()
 	fake.streamFileMutex.RLock()
 	defer fake.streamFileMutex.RUnlock()
 	fake.streamToMutex.RLock()

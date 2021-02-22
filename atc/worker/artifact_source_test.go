@@ -31,11 +31,13 @@ var _ = Describe("ArtifactSourcer", func() {
 	var (
 		logger          *lagertest.TestLogger
 		fakeCompression *compressionfakes.FakeCompression
+		fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
 	)
 
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("test")
 		fakeCompression = new(compressionfakes.FakeCompression)
+		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 	})
 
 	It("locates images by handle", func() {
@@ -44,7 +46,7 @@ var _ = Describe("ArtifactSourcer", func() {
 			"image": newVolumeWithContent(content{".": []byte("image content")}),
 		}}
 
-		sourcer := worker.NewArtifactSourcer(fakeCompression, vf, false, 0)
+		sourcer := worker.NewArtifactSourcer(fakeCompression, vf, false, 0, fakeResourceCacheFactory)
 		source, err := sourcer.SourceImage(logger, artifact)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -82,7 +84,7 @@ var _ = Describe("ArtifactSourcer", func() {
 			"output": newVolumeWithContent(content{".": []byte("output")})},
 		}
 
-		sourcer := worker.NewArtifactSourcer(fakeCompression, vf, false, 0)
+		sourcer := worker.NewArtifactSourcer(fakeCompression, vf, false, 0, fakeResourceCacheFactory)
 		inputSources, err := sourcer.SourceInputsAndCaches(logger, 0, inputs)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -104,6 +106,7 @@ var _ = Describe("StreamableArtifactSource", func() {
 		fakeDestination *workerfakes.FakeArtifactDestination
 		fakeVolume      *workerfakes.FakeVolume
 		fakeArtifact    *runtimefakes.FakeArtifact
+		fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
 
 		enabledP2pStreaming bool
 		p2pStreamingTimeout time.Duration
@@ -119,6 +122,7 @@ var _ = Describe("StreamableArtifactSource", func() {
 		fakeArtifact = new(runtimefakes.FakeArtifact)
 		fakeVolume = new(workerfakes.FakeVolume)
 		fakeDestination = new(workerfakes.FakeArtifactDestination)
+		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 		comp = compression.NewGzipCompression()
 
 		enabledP2pStreaming = false
@@ -129,7 +133,7 @@ var _ = Describe("StreamableArtifactSource", func() {
 	})
 
 	JustBeforeEach(func() {
-		artifactSource = worker.NewStreamableArtifactSource(fakeArtifact, fakeVolume, comp, enabledP2pStreaming, p2pStreamingTimeout)
+		artifactSource = worker.NewStreamableArtifactSource(fakeArtifact, fakeVolume, comp, enabledP2pStreaming, p2pStreamingTimeout, fakeResourceCacheFactory)
 	})
 
 	Context("StreamTo", func() {
