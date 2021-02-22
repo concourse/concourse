@@ -426,6 +426,8 @@ func (worker *gardenWorker) createVolumes(
 	var volumeMounts []VolumeMount
 	var ioVolumeMounts []VolumeMount
 
+	logger.Info("EVAN:enter gardenWorker.createVolumes", lager.Data{"spec.Dir": spec.Dir})
+
 	scratchVolume, err := worker.volumeClient.FindOrCreateVolumeForContainer(
 		logger,
 		VolumeSpec{
@@ -497,6 +499,26 @@ func (worker *gardenWorker) createVolumes(
 		}
 	}
 
+	// stream remote volumes to local.
+	streamedMounts, err := worker.cloneRemoteVolumes(
+		ctx,
+		logger,
+		spec.TeamID,
+		isPrivileged,
+		creatingContainer,
+		nonlocalInputs,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, streamedMount := range streamedMounts {
+		localInputs = append(localInputs, mountableLocalInput{
+			desiredCOWParent: streamedMount.Volume,
+			desiredMountPath: streamedMount.MountPath,
+		})
+	}
+
 	// we create COW volumes for task caches too, in case multiple builds
 	// are running the same task
 	cowMounts, err := worker.cloneLocalVolumes(
@@ -510,20 +532,7 @@ func (worker *gardenWorker) createVolumes(
 		return nil, err
 	}
 
-	streamedMounts, err := worker.cloneRemoteVolumes(
-		ctx,
-		logger,
-		spec.TeamID,
-		isPrivileged,
-		creatingContainer,
-		nonlocalInputs,
-	)
-	if err != nil {
-		return nil, err
-	}
-
 	ioVolumeMounts = append(ioVolumeMounts, cowMounts...)
-	ioVolumeMounts = append(ioVolumeMounts, streamedMounts...)
 
 	for _, outputPath := range spec.Outputs {
 		cleanedOutputPath := filepath.Clean(outputPath)
@@ -569,6 +578,9 @@ func (worker *gardenWorker) cloneLocalVolumes(
 	mounts := make([]VolumeMount, len(locals))
 
 	for i, localInput := range locals {
+		logger.Info("EVAN:gardenWorker.cloneLocalVolumes-create-cow-for-local-input",
+			lager.Data{"parentVolume": localInput.desiredCOWParent.Handle(),
+				"mountPath": localInput.desiredMountPath})
 		inputVolume, err := worker.volumeClient.FindOrCreateCOWVolumeForContainer(
 			logger,
 			VolumeSpec{
@@ -583,6 +595,12 @@ func (worker *gardenWorker) cloneLocalVolumes(
 		if err != nil {
 			return nil, err
 		}
+
+		logger.Info("EVAN:gardenWorker.cloneLocalVolumes-created-cow-for-local-input",
+			lager.Data{"parentVolume": localInput.desiredCOWParent.Handle(),
+				"mountPath": localInput.desiredMountPath,
+				"newVolume": inputVolume.Handle(),
+			})
 
 		mounts[i] = VolumeMount{
 			Volume:    inputVolume,
@@ -613,6 +631,10 @@ func (worker *gardenWorker) cloneRemoteVolumes(
 	g, groupCtx := errgroup.WithContext(ctx)
 
 	for i, nonLocalInput := range nonLocals {
+		logger.Info("EVAN:gardenWorker.cloneRemoteVolumes-clone-remote-input",
+			lager.Data{"artifact": nonLocalInput.desiredArtifact.Handle(),
+				"mountPath": nonLocalInput.desiredMountPath})
+
 		// this is to ensure each go func gets its own non changing copy of the iterator
 		i, nonLocalInput := i, nonLocalInput
 		inputVolume, err := worker.volumeClient.FindOrCreateVolumeForContainer(
@@ -623,11 +645,17 @@ func (worker *gardenWorker) cloneRemoteVolumes(
 			},
 			container,
 			teamID,
-			nonLocalInput.desiredMountPath,
+			"",
 		)
 		if err != nil {
 			return []VolumeMount{}, err
 		}
+
+		logger.Info("EVAN:gardenWorker.cloneRemoteVolumes-cloned-remote-input",
+			lager.Data{"artifact": nonLocalInput.desiredArtifact.Handle(),
+				"mountPath":   nonLocalInput.desiredMountPath,
+				"localVolume": inputVolume.Handle(),
+			})
 
 		g.Go(func() error {
 			if streamable, ok := nonLocalInput.desiredArtifact.(StreamableArtifactSource); ok {
