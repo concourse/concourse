@@ -6,20 +6,24 @@ import (
 	"sync"
 
 	"code.cloudfoundry.org/lager/lagerctx"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/builds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/util"
 	"github.com/concourse/concourse/tracing"
 )
 
-func NewScanner(checkFactory db.CheckFactory) *scanner {
+func NewScanner(checkFactory db.CheckFactory, planFactory atc.PlanFactory) *scanner {
 	return &scanner{
 		checkFactory: checkFactory,
+		planFactory:  planFactory,
 	}
 }
 
 type scanner struct {
 	checkFactory db.CheckFactory
+	planFactory  atc.PlanFactory
 }
 
 func (s *scanner) Run(ctx context.Context) error {
@@ -107,7 +111,8 @@ func (s *scanner) check(ctx context.Context, checkable db.Checkable, resourceTyp
 		return
 	}
 
-	_, created, err := s.checkFactory.TryCreateCheck(lagerctx.NewContext(spanCtx, logger), checkable, resourceTypes, version, false)
+	checkPlanner := builds.NewCheckPlanner(s.planFactory)
+	_, created, err := s.checkFactory.TryCreateCheck(lagerctx.NewContext(spanCtx, logger), checkPlanner, checkable, resourceTypes, version, false)
 	if err != nil {
 		logger.Error("failed-to-create-check", err)
 		return

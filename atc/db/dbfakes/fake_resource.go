@@ -57,20 +57,6 @@ type FakeResource struct {
 	checkEveryReturnsOnCall map[int]struct {
 		result1 *atc.CheckEvery
 	}
-	CheckPlanStub        func(atc.Version, time.Duration, db.ResourceTypes, atc.Source) atc.CheckPlan
-	checkPlanMutex       sync.RWMutex
-	checkPlanArgsForCall []struct {
-		arg1 atc.Version
-		arg2 time.Duration
-		arg3 db.ResourceTypes
-		arg4 atc.Source
-	}
-	checkPlanReturns struct {
-		result1 atc.CheckPlan
-	}
-	checkPlanReturnsOnCall map[int]struct {
-		result1 atc.CheckPlan
-	}
 	CheckTimeoutStub        func() string
 	checkTimeoutMutex       sync.RWMutex
 	checkTimeoutArgsForCall []struct {
@@ -719,70 +705,6 @@ func (fake *FakeResource) CheckEveryReturnsOnCall(i int, result1 *atc.CheckEvery
 	}
 	fake.checkEveryReturnsOnCall[i] = struct {
 		result1 *atc.CheckEvery
-	}{result1}
-}
-
-func (fake *FakeResource) CheckPlan(arg1 atc.Version, arg2 time.Duration, arg3 db.ResourceTypes, arg4 atc.Source) atc.CheckPlan {
-	fake.checkPlanMutex.Lock()
-	ret, specificReturn := fake.checkPlanReturnsOnCall[len(fake.checkPlanArgsForCall)]
-	fake.checkPlanArgsForCall = append(fake.checkPlanArgsForCall, struct {
-		arg1 atc.Version
-		arg2 time.Duration
-		arg3 db.ResourceTypes
-		arg4 atc.Source
-	}{arg1, arg2, arg3, arg4})
-	stub := fake.CheckPlanStub
-	fakeReturns := fake.checkPlanReturns
-	fake.recordInvocation("CheckPlan", []interface{}{arg1, arg2, arg3, arg4})
-	fake.checkPlanMutex.Unlock()
-	if stub != nil {
-		return stub(arg1, arg2, arg3, arg4)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fakeReturns.result1
-}
-
-func (fake *FakeResource) CheckPlanCallCount() int {
-	fake.checkPlanMutex.RLock()
-	defer fake.checkPlanMutex.RUnlock()
-	return len(fake.checkPlanArgsForCall)
-}
-
-func (fake *FakeResource) CheckPlanCalls(stub func(atc.Version, time.Duration, db.ResourceTypes, atc.Source) atc.CheckPlan) {
-	fake.checkPlanMutex.Lock()
-	defer fake.checkPlanMutex.Unlock()
-	fake.CheckPlanStub = stub
-}
-
-func (fake *FakeResource) CheckPlanArgsForCall(i int) (atc.Version, time.Duration, db.ResourceTypes, atc.Source) {
-	fake.checkPlanMutex.RLock()
-	defer fake.checkPlanMutex.RUnlock()
-	argsForCall := fake.checkPlanArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
-}
-
-func (fake *FakeResource) CheckPlanReturns(result1 atc.CheckPlan) {
-	fake.checkPlanMutex.Lock()
-	defer fake.checkPlanMutex.Unlock()
-	fake.CheckPlanStub = nil
-	fake.checkPlanReturns = struct {
-		result1 atc.CheckPlan
-	}{result1}
-}
-
-func (fake *FakeResource) CheckPlanReturnsOnCall(i int, result1 atc.CheckPlan) {
-	fake.checkPlanMutex.Lock()
-	defer fake.checkPlanMutex.Unlock()
-	fake.CheckPlanStub = nil
-	if fake.checkPlanReturnsOnCall == nil {
-		fake.checkPlanReturnsOnCall = make(map[int]struct {
-			result1 atc.CheckPlan
-		})
-	}
-	fake.checkPlanReturnsOnCall[i] = struct {
-		result1 atc.CheckPlan
 	}{result1}
 }
 
@@ -2934,8 +2856,6 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.causalityMutex.RUnlock()
 	fake.checkEveryMutex.RLock()
 	defer fake.checkEveryMutex.RUnlock()
-	fake.checkPlanMutex.RLock()
-	defer fake.checkPlanMutex.RUnlock()
 	fake.checkTimeoutMutex.RLock()
 	defer fake.checkTimeoutMutex.RUnlock()
 	fake.clearResourceCacheMutex.RLock()

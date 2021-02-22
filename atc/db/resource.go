@@ -109,7 +109,6 @@ type Resource interface {
 
 	SetResourceConfigScope(ResourceConfigScope) error
 
-	CheckPlan(atc.Version, time.Duration, ResourceTypes, atc.Source) atc.CheckPlan
 	CreateBuild(context.Context, bool, atc.Plan) (Build, bool, error)
 
 	NotifyScan() error
@@ -294,22 +293,6 @@ func (r *resource) setResourceConfigScopeInTransaction(tx Tx, scope ResourceConf
 	}
 
 	return nil
-}
-
-func (r *resource) CheckPlan(from atc.Version, interval time.Duration, resourceTypes ResourceTypes, sourceDefaults atc.Source) atc.CheckPlan {
-	return atc.CheckPlan{
-		Name:    r.Name(),
-		Type:    r.Type(),
-		Source:  sourceDefaults.Merge(r.Source()),
-		Tags:    r.Tags(),
-		Timeout: r.CheckTimeout(),
-
-		FromVersion:            from,
-		Interval:               interval.String(),
-		VersionedResourceTypes: resourceTypes.Deserialize(),
-
-		Resource: r.Name(),
-	}
 }
 
 func (r *resource) CreateBuild(ctx context.Context, manuallyTriggered bool, plan atc.Plan) (Build, bool, error) {

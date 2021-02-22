@@ -223,6 +223,51 @@ var _ = Describe("GetStep", func() {
 		}))
 	})
 
+	Context("when using a dynamic version source", func() {
+		var (
+			found         bool
+			version       atc.Version
+			versionPlanID atc.PlanID
+		)
+
+		BeforeEach(func() {
+			getPlan.Version = nil
+			versionPlanID = atc.PlanID("some-plan-id")
+			getPlan.VersionFrom = &versionPlanID
+
+			version = atc.Version{"some": "version"}
+
+			found = true
+			fakeState.ResultStub = func(id atc.PlanID, to interface{}) bool {
+				Expect(id).To(Equal(versionPlanID))
+				if found {
+					to = version
+				} else {
+					to = "some-val"
+				}
+				return found
+			}
+		})
+
+		Context("when the version exists in the build results", func() {
+			It("uses the version to create a resource cache", func() {
+				Expect(fakeResourceCacheFactory.FindOrCreateResourceCacheCallCount()).To(Equal(1))
+				_, _, ver, _, _, _ := fakeResourceCacheFactory.FindOrCreateResourceCacheArgsForCall(0)
+				Expect(ver).To(Equal(version))
+			})
+		})
+
+		Context("when the version does not exist in the build results", func() {
+			BeforeEach(func() {
+				found = false
+			})
+
+			It("can't resolve version and errors", func() {
+				Expect(getStepErr).To(Equal(exec.ErrResultMissing))
+			})
+		})
+	})
+
 	Context("when tracing is enabled", func() {
 		var buildSpan trace.Span
 
@@ -657,7 +702,10 @@ var _ = Describe("GetStep", func() {
 			Expect(fakeState.StoreResultCallCount()).To(Equal(1))
 			key, val := fakeState.StoreResultArgsForCall(0)
 			Expect(key).To(Equal(atc.PlanID(planID)))
-			Expect(val).To(Equal(fakeResourceCache))
+			Expect(val).To(Equal(exec.GetResult{
+				Name:          getPlan.Name,
+				ResourceCache: fakeResourceCache,
+			}))
 		})
 
 		It("marks the step as succeeded", func() {

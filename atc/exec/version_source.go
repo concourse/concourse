@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/runtime"
 )
 
 func NewVersionSourceFromPlan(getPlan *atc.GetPlan) VersionSource {
@@ -13,7 +12,7 @@ func NewVersionSourceFromPlan(getPlan *atc.GetPlan) VersionSource {
 			version: *getPlan.Version,
 		}
 	} else if getPlan.VersionFrom != nil {
-		return &PutStepVersionSource{
+		return &DynamicVersionSource{
 			planID: *getPlan.VersionFrom,
 		}
 	} else {
@@ -33,19 +32,19 @@ func (p *StaticVersionSource) Version(RunState) (atc.Version, error) {
 	return p.version, nil
 }
 
-var ErrPutStepVersionMissing = errors.New("version is missing from put step")
+var ErrResultMissing = errors.New("version is missing from previous step")
 
-type PutStepVersionSource struct {
+type DynamicVersionSource struct {
 	planID atc.PlanID
 }
 
-func (p *PutStepVersionSource) Version(state RunState) (atc.Version, error) {
-	var info runtime.VersionResult
-	if !state.Result(p.planID, &info) {
-		return atc.Version{}, ErrPutStepVersionMissing
+func (p *DynamicVersionSource) Version(state RunState) (atc.Version, error) {
+	var version atc.Version
+	if !state.Result(p.planID, &version) {
+		return atc.Version{}, ErrResultMissing
 	}
 
-	return info.Version, nil
+	return version, nil
 }
 
 type EmptyVersionSource struct{}

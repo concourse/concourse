@@ -1123,7 +1123,10 @@ func (cmd *RunCommand) backendComponents(
 				Name:     atc.ComponentLidarScanner,
 				Interval: cmd.LidarScannerInterval,
 			},
-			Runnable: lidar.NewScanner(dbCheckFactory),
+			Runnable: lidar.NewScanner(
+				dbCheckFactory,
+				atc.NewPlanFactory(time.Now().Unix()),
+			),
 		},
 		{
 			Component: atc.Component{
@@ -1136,9 +1139,7 @@ func (cmd *RunCommand) backendComponents(
 				&scheduler.Scheduler{
 					Algorithm: alg,
 					BuildStarter: scheduler.NewBuildStarter(
-						builds.NewPlanner(
-							atc.NewPlanFactory(time.Now().Unix()),
-						),
+						builds.NewPlanner(atc.NewPlanFactory(time.Now().Unix())),
 						alg),
 				},
 				cmd.JobSchedulingMaxInFlight,
