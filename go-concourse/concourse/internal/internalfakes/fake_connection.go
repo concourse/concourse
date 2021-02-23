@@ -78,15 +78,16 @@ func (fake *FakeConnection) ConnectToEventStream(arg1 internal.Request) (*sse.Ev
 	fake.connectToEventStreamArgsForCall = append(fake.connectToEventStreamArgsForCall, struct {
 		arg1 internal.Request
 	}{arg1})
+	stub := fake.ConnectToEventStreamStub
+	fakeReturns := fake.connectToEventStreamReturns
 	fake.recordInvocation("ConnectToEventStream", []interface{}{arg1})
 	fake.connectToEventStreamMutex.Unlock()
-	if fake.ConnectToEventStreamStub != nil {
-		return fake.ConnectToEventStreamStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.connectToEventStreamReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -140,15 +141,16 @@ func (fake *FakeConnection) HTTPClient() *http.Client {
 	ret, specificReturn := fake.hTTPClientReturnsOnCall[len(fake.hTTPClientArgsForCall)]
 	fake.hTTPClientArgsForCall = append(fake.hTTPClientArgsForCall, struct {
 	}{})
+	stub := fake.HTTPClientStub
+	fakeReturns := fake.hTTPClientReturns
 	fake.recordInvocation("HTTPClient", []interface{}{})
 	fake.hTTPClientMutex.Unlock()
-	if fake.HTTPClientStub != nil {
-		return fake.HTTPClientStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.hTTPClientReturns
 	return fakeReturns.result1
 }
 
@@ -194,15 +196,16 @@ func (fake *FakeConnection) Send(arg1 internal.Request, arg2 *internal.Response)
 		arg1 internal.Request
 		arg2 *internal.Response
 	}{arg1, arg2})
+	stub := fake.SendStub
+	fakeReturns := fake.sendReturns
 	fake.recordInvocation("Send", []interface{}{arg1, arg2})
 	fake.sendMutex.Unlock()
-	if fake.SendStub != nil {
-		return fake.SendStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.sendReturns
 	return fakeReturns.result1
 }
 
@@ -256,15 +259,16 @@ func (fake *FakeConnection) SendHTTPRequest(arg1 *http.Request, arg2 bool, arg3 
 		arg2 bool
 		arg3 *internal.Response
 	}{arg1, arg2, arg3})
+	stub := fake.SendHTTPRequestStub
+	fakeReturns := fake.sendHTTPRequestReturns
 	fake.recordInvocation("SendHTTPRequest", []interface{}{arg1, arg2, arg3})
 	fake.sendHTTPRequestMutex.Unlock()
-	if fake.SendHTTPRequestStub != nil {
-		return fake.SendHTTPRequestStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.sendHTTPRequestReturns
 	return fakeReturns.result1
 }
 
@@ -315,15 +319,16 @@ func (fake *FakeConnection) URL() string {
 	ret, specificReturn := fake.uRLReturnsOnCall[len(fake.uRLArgsForCall)]
 	fake.uRLArgsForCall = append(fake.uRLArgsForCall, struct {
 	}{})
+	stub := fake.URLStub
+	fakeReturns := fake.uRLReturns
 	fake.recordInvocation("URL", []interface{}{})
 	fake.uRLMutex.Unlock()
-	if fake.URLStub != nil {
-		return fake.URLStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.uRLReturns
 	return fakeReturns.result1
 }
 
