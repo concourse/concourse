@@ -64,15 +64,16 @@ func (fake *FakeStreamableArtifactSource) ExistsOn(arg1 lager.Logger, arg2 worke
 		arg1 lager.Logger
 		arg2 worker.Worker
 	}{arg1, arg2})
+	stub := fake.ExistsOnStub
+	fakeReturns := fake.existsOnReturns
 	fake.recordInvocation("ExistsOn", []interface{}{arg1, arg2})
 	fake.existsOnMutex.Unlock()
-	if fake.ExistsOnStub != nil {
-		return fake.ExistsOnStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.existsOnReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -131,15 +132,16 @@ func (fake *FakeStreamableArtifactSource) StreamFile(arg1 context.Context, arg2 
 		arg1 context.Context
 		arg2 string
 	}{arg1, arg2})
+	stub := fake.StreamFileStub
+	fakeReturns := fake.streamFileReturns
 	fake.recordInvocation("StreamFile", []interface{}{arg1, arg2})
 	fake.streamFileMutex.Unlock()
-	if fake.StreamFileStub != nil {
-		return fake.StreamFileStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.streamFileReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -195,15 +197,16 @@ func (fake *FakeStreamableArtifactSource) StreamTo(arg1 context.Context, arg2 wo
 		arg1 context.Context
 		arg2 worker.ArtifactDestination
 	}{arg1, arg2})
+	stub := fake.StreamToStub
+	fakeReturns := fake.streamToReturns
 	fake.recordInvocation("StreamTo", []interface{}{arg1, arg2})
 	fake.streamToMutex.Unlock()
-	if fake.StreamToStub != nil {
-		return fake.StreamToStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.streamToReturns
 	return fakeReturns.result1
 }
 

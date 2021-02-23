@@ -38,15 +38,16 @@ func (fake *FakeArtifactStreamer) StreamFileFromArtifact(arg1 context.Context, a
 		arg2 runtime.Artifact
 		arg3 string
 	}{arg1, arg2, arg3})
+	stub := fake.StreamFileFromArtifactStub
+	fakeReturns := fake.streamFileFromArtifactReturns
 	fake.recordInvocation("StreamFileFromArtifact", []interface{}{arg1, arg2, arg3})
 	fake.streamFileFromArtifactMutex.Unlock()
-	if fake.StreamFileFromArtifactStub != nil {
-		return fake.StreamFileFromArtifactStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.streamFileFromArtifactReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

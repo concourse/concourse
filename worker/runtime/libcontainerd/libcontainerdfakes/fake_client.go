@@ -109,15 +109,16 @@ func (fake *FakeClient) Containers(arg1 context.Context, arg2 ...string) ([]cont
 		arg1 context.Context
 		arg2 []string
 	}{arg1, arg2})
+	stub := fake.ContainersStub
+	fakeReturns := fake.containersReturns
 	fake.recordInvocation("Containers", []interface{}{arg1, arg2})
 	fake.containersMutex.Unlock()
-	if fake.ContainersStub != nil {
-		return fake.ContainersStub(arg1, arg2...)
+	if stub != nil {
+		return stub(arg1, arg2...)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.containersReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -173,15 +174,16 @@ func (fake *FakeClient) Destroy(arg1 context.Context, arg2 string) error {
 		arg1 context.Context
 		arg2 string
 	}{arg1, arg2})
+	stub := fake.DestroyStub
+	fakeReturns := fake.destroyReturns
 	fake.recordInvocation("Destroy", []interface{}{arg1, arg2})
 	fake.destroyMutex.Unlock()
-	if fake.DestroyStub != nil {
-		return fake.DestroyStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.destroyReturns
 	return fakeReturns.result1
 }
 
@@ -234,15 +236,16 @@ func (fake *FakeClient) GetContainer(arg1 context.Context, arg2 string) (contain
 		arg1 context.Context
 		arg2 string
 	}{arg1, arg2})
+	stub := fake.GetContainerStub
+	fakeReturns := fake.getContainerReturns
 	fake.recordInvocation("GetContainer", []interface{}{arg1, arg2})
 	fake.getContainerMutex.Unlock()
-	if fake.GetContainerStub != nil {
-		return fake.GetContainerStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getContainerReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -296,15 +299,16 @@ func (fake *FakeClient) Init() error {
 	ret, specificReturn := fake.initReturnsOnCall[len(fake.initArgsForCall)]
 	fake.initArgsForCall = append(fake.initArgsForCall, struct {
 	}{})
+	stub := fake.InitStub
+	fakeReturns := fake.initReturns
 	fake.recordInvocation("Init", []interface{}{})
 	fake.initMutex.Unlock()
-	if fake.InitStub != nil {
-		return fake.InitStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.initReturns
 	return fakeReturns.result1
 }
 
@@ -352,15 +356,16 @@ func (fake *FakeClient) NewContainer(arg1 context.Context, arg2 string, arg3 map
 		arg3 map[string]string
 		arg4 *specs.Spec
 	}{arg1, arg2, arg3, arg4})
+	stub := fake.NewContainerStub
+	fakeReturns := fake.newContainerReturns
 	fake.recordInvocation("NewContainer", []interface{}{arg1, arg2, arg3, arg4})
 	fake.newContainerMutex.Unlock()
-	if fake.NewContainerStub != nil {
-		return fake.NewContainerStub(arg1, arg2, arg3, arg4)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.newContainerReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -414,15 +419,16 @@ func (fake *FakeClient) Stop() error {
 	ret, specificReturn := fake.stopReturnsOnCall[len(fake.stopArgsForCall)]
 	fake.stopArgsForCall = append(fake.stopArgsForCall, struct {
 	}{})
+	stub := fake.StopStub
+	fakeReturns := fake.stopReturns
 	fake.recordInvocation("Stop", []interface{}{})
 	fake.stopMutex.Unlock()
-	if fake.StopStub != nil {
-		return fake.StopStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.stopReturns
 	return fakeReturns.result1
 }
 
@@ -467,15 +473,16 @@ func (fake *FakeClient) Version(arg1 context.Context) error {
 	fake.versionArgsForCall = append(fake.versionArgsForCall, struct {
 		arg1 context.Context
 	}{arg1})
+	stub := fake.VersionStub
+	fakeReturns := fake.versionReturns
 	fake.recordInvocation("Version", []interface{}{arg1})
 	fake.versionMutex.Unlock()
-	if fake.VersionStub != nil {
-		return fake.VersionStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.versionReturns
 	return fakeReturns.result1
 }
 

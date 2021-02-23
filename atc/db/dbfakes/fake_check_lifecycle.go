@@ -27,15 +27,16 @@ func (fake *FakeCheckLifecycle) DeleteCompletedChecks() error {
 	ret, specificReturn := fake.deleteCompletedChecksReturnsOnCall[len(fake.deleteCompletedChecksArgsForCall)]
 	fake.deleteCompletedChecksArgsForCall = append(fake.deleteCompletedChecksArgsForCall, struct {
 	}{})
+	stub := fake.DeleteCompletedChecksStub
+	fakeReturns := fake.deleteCompletedChecksReturns
 	fake.recordInvocation("DeleteCompletedChecks", []interface{}{})
 	fake.deleteCompletedChecksMutex.Unlock()
-	if fake.DeleteCompletedChecksStub != nil {
-		return fake.DeleteCompletedChecksStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.deleteCompletedChecksReturns
 	return fakeReturns.result1
 }
 

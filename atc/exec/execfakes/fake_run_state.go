@@ -134,9 +134,10 @@ func (fake *FakeRunState) AddLocalVar(arg1 string, arg2 interface{}, arg3 bool) 
 		arg2 interface{}
 		arg3 bool
 	}{arg1, arg2, arg3})
+	stub := fake.AddLocalVarStub
 	fake.recordInvocation("AddLocalVar", []interface{}{arg1, arg2, arg3})
 	fake.addLocalVarMutex.Unlock()
-	if fake.AddLocalVarStub != nil {
+	if stub != nil {
 		fake.AddLocalVarStub(arg1, arg2, arg3)
 	}
 }
@@ -165,15 +166,16 @@ func (fake *FakeRunState) ArtifactRepository() *build.Repository {
 	ret, specificReturn := fake.artifactRepositoryReturnsOnCall[len(fake.artifactRepositoryArgsForCall)]
 	fake.artifactRepositoryArgsForCall = append(fake.artifactRepositoryArgsForCall, struct {
 	}{})
+	stub := fake.ArtifactRepositoryStub
+	fakeReturns := fake.artifactRepositoryReturns
 	fake.recordInvocation("ArtifactRepository", []interface{}{})
 	fake.artifactRepositoryMutex.Unlock()
-	if fake.ArtifactRepositoryStub != nil {
-		return fake.ArtifactRepositoryStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.artifactRepositoryReturns
 	return fakeReturns.result1
 }
 
@@ -218,15 +220,16 @@ func (fake *FakeRunState) Get(arg1 vars.Reference) (interface{}, bool, error) {
 	fake.getArgsForCall = append(fake.getArgsForCall, struct {
 		arg1 vars.Reference
 	}{arg1})
+	stub := fake.GetStub
+	fakeReturns := fake.getReturns
 	fake.recordInvocation("Get", []interface{}{arg1})
 	fake.getMutex.Unlock()
-	if fake.GetStub != nil {
-		return fake.GetStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.getReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -283,9 +286,10 @@ func (fake *FakeRunState) IterateInterpolatedCreds(arg1 vars.TrackedVarsIterator
 	fake.iterateInterpolatedCredsArgsForCall = append(fake.iterateInterpolatedCredsArgsForCall, struct {
 		arg1 vars.TrackedVarsIterator
 	}{arg1})
+	stub := fake.IterateInterpolatedCredsStub
 	fake.recordInvocation("IterateInterpolatedCreds", []interface{}{arg1})
 	fake.iterateInterpolatedCredsMutex.Unlock()
-	if fake.IterateInterpolatedCredsStub != nil {
+	if stub != nil {
 		fake.IterateInterpolatedCredsStub(arg1)
 	}
 }
@@ -314,15 +318,16 @@ func (fake *FakeRunState) List() ([]vars.Reference, error) {
 	ret, specificReturn := fake.listReturnsOnCall[len(fake.listArgsForCall)]
 	fake.listArgsForCall = append(fake.listArgsForCall, struct {
 	}{})
+	stub := fake.ListStub
+	fakeReturns := fake.listReturns
 	fake.recordInvocation("List", []interface{}{})
 	fake.listMutex.Unlock()
-	if fake.ListStub != nil {
-		return fake.ListStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.listReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -369,15 +374,16 @@ func (fake *FakeRunState) NewLocalScope() exec.RunState {
 	ret, specificReturn := fake.newLocalScopeReturnsOnCall[len(fake.newLocalScopeArgsForCall)]
 	fake.newLocalScopeArgsForCall = append(fake.newLocalScopeArgsForCall, struct {
 	}{})
+	stub := fake.NewLocalScopeStub
+	fakeReturns := fake.newLocalScopeReturns
 	fake.recordInvocation("NewLocalScope", []interface{}{})
 	fake.newLocalScopeMutex.Unlock()
-	if fake.NewLocalScopeStub != nil {
-		return fake.NewLocalScopeStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.newLocalScopeReturns
 	return fakeReturns.result1
 }
 
@@ -421,15 +427,16 @@ func (fake *FakeRunState) Parent() exec.RunState {
 	ret, specificReturn := fake.parentReturnsOnCall[len(fake.parentArgsForCall)]
 	fake.parentArgsForCall = append(fake.parentArgsForCall, struct {
 	}{})
+	stub := fake.ParentStub
+	fakeReturns := fake.parentReturns
 	fake.recordInvocation("Parent", []interface{}{})
 	fake.parentMutex.Unlock()
-	if fake.ParentStub != nil {
-		return fake.ParentStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.parentReturns
 	return fakeReturns.result1
 }
 
@@ -473,15 +480,16 @@ func (fake *FakeRunState) RedactionEnabled() bool {
 	ret, specificReturn := fake.redactionEnabledReturnsOnCall[len(fake.redactionEnabledArgsForCall)]
 	fake.redactionEnabledArgsForCall = append(fake.redactionEnabledArgsForCall, struct {
 	}{})
+	stub := fake.RedactionEnabledStub
+	fakeReturns := fake.redactionEnabledReturns
 	fake.recordInvocation("RedactionEnabled", []interface{}{})
 	fake.redactionEnabledMutex.Unlock()
-	if fake.RedactionEnabledStub != nil {
-		return fake.RedactionEnabledStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.redactionEnabledReturns
 	return fakeReturns.result1
 }
 
@@ -527,15 +535,16 @@ func (fake *FakeRunState) Result(arg1 atc.PlanID, arg2 interface{}) bool {
 		arg1 atc.PlanID
 		arg2 interface{}
 	}{arg1, arg2})
+	stub := fake.ResultStub
+	fakeReturns := fake.resultReturns
 	fake.recordInvocation("Result", []interface{}{arg1, arg2})
 	fake.resultMutex.Unlock()
-	if fake.ResultStub != nil {
-		return fake.ResultStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.resultReturns
 	return fakeReturns.result1
 }
 
@@ -588,15 +597,16 @@ func (fake *FakeRunState) Run(arg1 context.Context, arg2 atc.Plan) (bool, error)
 		arg1 context.Context
 		arg2 atc.Plan
 	}{arg1, arg2})
+	stub := fake.RunStub
+	fakeReturns := fake.runReturns
 	fake.recordInvocation("Run", []interface{}{arg1, arg2})
 	fake.runMutex.Unlock()
-	if fake.RunStub != nil {
-		return fake.RunStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.runReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -651,9 +661,10 @@ func (fake *FakeRunState) StoreResult(arg1 atc.PlanID, arg2 interface{}) {
 		arg1 atc.PlanID
 		arg2 interface{}
 	}{arg1, arg2})
+	stub := fake.StoreResultStub
 	fake.recordInvocation("StoreResult", []interface{}{arg1, arg2})
 	fake.storeResultMutex.Unlock()
-	if fake.StoreResultStub != nil {
+	if stub != nil {
 		fake.StoreResultStub(arg1, arg2)
 	}
 }

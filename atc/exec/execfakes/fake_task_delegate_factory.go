@@ -29,15 +29,16 @@ func (fake *FakeTaskDelegateFactory) TaskDelegate(arg1 exec.RunState) exec.TaskD
 	fake.taskDelegateArgsForCall = append(fake.taskDelegateArgsForCall, struct {
 		arg1 exec.RunState
 	}{arg1})
+	stub := fake.TaskDelegateStub
+	fakeReturns := fake.taskDelegateReturns
 	fake.recordInvocation("TaskDelegate", []interface{}{arg1})
 	fake.taskDelegateMutex.Unlock()
-	if fake.TaskDelegateStub != nil {
-		return fake.TaskDelegateStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.taskDelegateReturns
 	return fakeReturns.result1
 }
 

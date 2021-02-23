@@ -31,15 +31,16 @@ func (fake *FakeAgent) Check(arg1 policy.PolicyCheckInput) (policy.PolicyCheckOu
 	fake.checkArgsForCall = append(fake.checkArgsForCall, struct {
 		arg1 policy.PolicyCheckInput
 	}{arg1})
+	stub := fake.CheckStub
+	fakeReturns := fake.checkReturns
 	fake.recordInvocation("Check", []interface{}{arg1})
 	fake.checkMutex.Unlock()
-	if fake.CheckStub != nil {
-		return fake.CheckStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.checkReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

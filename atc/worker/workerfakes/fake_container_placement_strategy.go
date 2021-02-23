@@ -51,15 +51,16 @@ func (fake *FakeContainerPlacementStrategy) Choose(arg1 lager.Logger, arg2 []wor
 		arg2 []worker.Worker
 		arg3 worker.ContainerSpec
 	}{arg1, arg2Copy, arg3})
+	stub := fake.ChooseStub
+	fakeReturns := fake.chooseReturns
 	fake.recordInvocation("Choose", []interface{}{arg1, arg2Copy, arg3})
 	fake.chooseMutex.Unlock()
-	if fake.ChooseStub != nil {
-		return fake.ChooseStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.chooseReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -113,15 +114,16 @@ func (fake *FakeContainerPlacementStrategy) ModifiesActiveTasks() bool {
 	ret, specificReturn := fake.modifiesActiveTasksReturnsOnCall[len(fake.modifiesActiveTasksArgsForCall)]
 	fake.modifiesActiveTasksArgsForCall = append(fake.modifiesActiveTasksArgsForCall, struct {
 	}{})
+	stub := fake.ModifiesActiveTasksStub
+	fakeReturns := fake.modifiesActiveTasksReturns
 	fake.recordInvocation("ModifiesActiveTasks", []interface{}{})
 	fake.modifiesActiveTasksMutex.Unlock()
-	if fake.ModifiesActiveTasksStub != nil {
-		return fake.ModifiesActiveTasksStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.modifiesActiveTasksReturns
 	return fakeReturns.result1
 }
 

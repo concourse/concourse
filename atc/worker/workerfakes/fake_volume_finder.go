@@ -38,15 +38,16 @@ func (fake *FakeVolumeFinder) FindVolume(arg1 lager.Logger, arg2 int, arg3 strin
 		arg2 int
 		arg3 string
 	}{arg1, arg2, arg3})
+	stub := fake.FindVolumeStub
+	fakeReturns := fake.findVolumeReturns
 	fake.recordInvocation("FindVolume", []interface{}{arg1, arg2, arg3})
 	fake.findVolumeMutex.Unlock()
-	if fake.FindVolumeStub != nil {
-		return fake.FindVolumeStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.findVolumeReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 

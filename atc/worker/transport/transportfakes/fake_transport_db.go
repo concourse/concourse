@@ -34,15 +34,16 @@ func (fake *FakeTransportDB) GetWorker(arg1 string) (db.Worker, bool, error) {
 	fake.getWorkerArgsForCall = append(fake.getWorkerArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.GetWorkerStub
+	fakeReturns := fake.getWorkerReturns
 	fake.recordInvocation("GetWorker", []interface{}{arg1})
 	fake.getWorkerMutex.Unlock()
-	if fake.GetWorkerStub != nil {
-		return fake.GetWorkerStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.getWorkerReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 

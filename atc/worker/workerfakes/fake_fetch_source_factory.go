@@ -47,15 +47,16 @@ func (fake *FakeFetchSourceFactory) NewFetchSource(arg1 lager.Logger, arg2 worke
 		arg7 runtime.ProcessSpec
 		arg8 db.ContainerMetadata
 	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8})
+	stub := fake.NewFetchSourceStub
+	fakeReturns := fake.newFetchSourceReturns
 	fake.recordInvocation("NewFetchSource", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8})
 	fake.newFetchSourceMutex.Unlock()
-	if fake.NewFetchSourceStub != nil {
-		return fake.NewFetchSourceStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.newFetchSourceReturns
 	return fakeReturns.result1
 }
 

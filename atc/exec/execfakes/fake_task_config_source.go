@@ -49,15 +49,16 @@ func (fake *FakeTaskConfigSource) FetchConfig(arg1 context.Context, arg2 lager.L
 		arg2 lager.Logger
 		arg3 *build.Repository
 	}{arg1, arg2, arg3})
+	stub := fake.FetchConfigStub
+	fakeReturns := fake.fetchConfigReturns
 	fake.recordInvocation("FetchConfig", []interface{}{arg1, arg2, arg3})
 	fake.fetchConfigMutex.Unlock()
-	if fake.FetchConfigStub != nil {
-		return fake.FetchConfigStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.fetchConfigReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -111,15 +112,16 @@ func (fake *FakeTaskConfigSource) Warnings() []string {
 	ret, specificReturn := fake.warningsReturnsOnCall[len(fake.warningsArgsForCall)]
 	fake.warningsArgsForCall = append(fake.warningsArgsForCall, struct {
 	}{})
+	stub := fake.WarningsStub
+	fakeReturns := fake.warningsReturns
 	fake.recordInvocation("Warnings", []interface{}{})
 	fake.warningsMutex.Unlock()
-	if fake.WarningsStub != nil {
-		return fake.WarningsStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.warningsReturns
 	return fakeReturns.result1
 }
 

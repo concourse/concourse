@@ -417,15 +417,16 @@ func (fake *FakeTeam) Admin() bool {
 	ret, specificReturn := fake.adminReturnsOnCall[len(fake.adminArgsForCall)]
 	fake.adminArgsForCall = append(fake.adminArgsForCall, struct {
 	}{})
+	stub := fake.AdminStub
+	fakeReturns := fake.adminReturns
 	fake.recordInvocation("Admin", []interface{}{})
 	fake.adminMutex.Unlock()
-	if fake.AdminStub != nil {
-		return fake.AdminStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.adminReturns
 	return fakeReturns.result1
 }
 
@@ -469,15 +470,16 @@ func (fake *FakeTeam) Auth() atc.TeamAuth {
 	ret, specificReturn := fake.authReturnsOnCall[len(fake.authArgsForCall)]
 	fake.authArgsForCall = append(fake.authArgsForCall, struct {
 	}{})
+	stub := fake.AuthStub
+	fakeReturns := fake.authReturns
 	fake.recordInvocation("Auth", []interface{}{})
 	fake.authMutex.Unlock()
-	if fake.AuthStub != nil {
-		return fake.AuthStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.authReturns
 	return fakeReturns.result1
 }
 
@@ -522,15 +524,16 @@ func (fake *FakeTeam) Builds(arg1 db.Page) ([]db.Build, db.Pagination, error) {
 	fake.buildsArgsForCall = append(fake.buildsArgsForCall, struct {
 		arg1 db.Page
 	}{arg1})
+	stub := fake.BuildsStub
+	fakeReturns := fake.buildsReturns
 	fake.recordInvocation("Builds", []interface{}{arg1})
 	fake.buildsMutex.Unlock()
-	if fake.BuildsStub != nil {
-		return fake.BuildsStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.buildsReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -588,15 +591,16 @@ func (fake *FakeTeam) BuildsWithTime(arg1 db.Page) ([]db.Build, db.Pagination, e
 	fake.buildsWithTimeArgsForCall = append(fake.buildsWithTimeArgsForCall, struct {
 		arg1 db.Page
 	}{arg1})
+	stub := fake.BuildsWithTimeStub
+	fakeReturns := fake.buildsWithTimeReturns
 	fake.recordInvocation("BuildsWithTime", []interface{}{arg1})
 	fake.buildsWithTimeMutex.Unlock()
-	if fake.BuildsWithTimeStub != nil {
-		return fake.BuildsWithTimeStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.buildsWithTimeReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -653,15 +657,16 @@ func (fake *FakeTeam) Containers() ([]db.Container, error) {
 	ret, specificReturn := fake.containersReturnsOnCall[len(fake.containersArgsForCall)]
 	fake.containersArgsForCall = append(fake.containersArgsForCall, struct {
 	}{})
+	stub := fake.ContainersStub
+	fakeReturns := fake.containersReturns
 	fake.recordInvocation("Containers", []interface{}{})
 	fake.containersMutex.Unlock()
-	if fake.ContainersStub != nil {
-		return fake.ContainersStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.containersReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -708,15 +713,16 @@ func (fake *FakeTeam) CreateOneOffBuild() (db.Build, error) {
 	ret, specificReturn := fake.createOneOffBuildReturnsOnCall[len(fake.createOneOffBuildArgsForCall)]
 	fake.createOneOffBuildArgsForCall = append(fake.createOneOffBuildArgsForCall, struct {
 	}{})
+	stub := fake.CreateOneOffBuildStub
+	fakeReturns := fake.createOneOffBuildReturns
 	fake.recordInvocation("CreateOneOffBuild", []interface{}{})
 	fake.createOneOffBuildMutex.Unlock()
-	if fake.CreateOneOffBuildStub != nil {
-		return fake.CreateOneOffBuildStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.createOneOffBuildReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -764,15 +770,16 @@ func (fake *FakeTeam) CreateStartedBuild(arg1 atc.Plan) (db.Build, error) {
 	fake.createStartedBuildArgsForCall = append(fake.createStartedBuildArgsForCall, struct {
 		arg1 atc.Plan
 	}{arg1})
+	stub := fake.CreateStartedBuildStub
+	fakeReturns := fake.createStartedBuildReturns
 	fake.recordInvocation("CreateStartedBuild", []interface{}{arg1})
 	fake.createStartedBuildMutex.Unlock()
-	if fake.CreateStartedBuildStub != nil {
-		return fake.CreateStartedBuildStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.createStartedBuildReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -826,15 +833,16 @@ func (fake *FakeTeam) Delete() error {
 	ret, specificReturn := fake.deleteReturnsOnCall[len(fake.deleteArgsForCall)]
 	fake.deleteArgsForCall = append(fake.deleteArgsForCall, struct {
 	}{})
+	stub := fake.DeleteStub
+	fakeReturns := fake.deleteReturns
 	fake.recordInvocation("Delete", []interface{}{})
 	fake.deleteMutex.Unlock()
-	if fake.DeleteStub != nil {
-		return fake.DeleteStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.deleteReturns
 	return fakeReturns.result1
 }
 
@@ -883,15 +891,16 @@ func (fake *FakeTeam) FindCheckContainers(arg1 lager.Logger, arg2 atc.PipelineRe
 		arg4 creds.Secrets
 		arg5 creds.VarSourcePool
 	}{arg1, arg2, arg3, arg4, arg5})
+	stub := fake.FindCheckContainersStub
+	fakeReturns := fake.findCheckContainersReturns
 	fake.recordInvocation("FindCheckContainers", []interface{}{arg1, arg2, arg3, arg4, arg5})
 	fake.findCheckContainersMutex.Unlock()
-	if fake.FindCheckContainersStub != nil {
-		return fake.FindCheckContainersStub(arg1, arg2, arg3, arg4, arg5)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4, arg5)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.findCheckContainersReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -949,15 +958,16 @@ func (fake *FakeTeam) FindContainerByHandle(arg1 string) (db.Container, bool, er
 	fake.findContainerByHandleArgsForCall = append(fake.findContainerByHandleArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.FindContainerByHandleStub
+	fakeReturns := fake.findContainerByHandleReturns
 	fake.recordInvocation("FindContainerByHandle", []interface{}{arg1})
 	fake.findContainerByHandleMutex.Unlock()
-	if fake.FindContainerByHandleStub != nil {
-		return fake.FindContainerByHandleStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.findContainerByHandleReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -1015,15 +1025,16 @@ func (fake *FakeTeam) FindContainersByMetadata(arg1 db.ContainerMetadata) ([]db.
 	fake.findContainersByMetadataArgsForCall = append(fake.findContainersByMetadataArgsForCall, struct {
 		arg1 db.ContainerMetadata
 	}{arg1})
+	stub := fake.FindContainersByMetadataStub
+	fakeReturns := fake.findContainersByMetadataReturns
 	fake.recordInvocation("FindContainersByMetadata", []interface{}{arg1})
 	fake.findContainersByMetadataMutex.Unlock()
-	if fake.FindContainersByMetadataStub != nil {
-		return fake.FindContainersByMetadataStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.findContainersByMetadataReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -1078,15 +1089,16 @@ func (fake *FakeTeam) FindCreatedContainerByHandle(arg1 string) (db.CreatedConta
 	fake.findCreatedContainerByHandleArgsForCall = append(fake.findCreatedContainerByHandleArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.FindCreatedContainerByHandleStub
+	fakeReturns := fake.findCreatedContainerByHandleReturns
 	fake.recordInvocation("FindCreatedContainerByHandle", []interface{}{arg1})
 	fake.findCreatedContainerByHandleMutex.Unlock()
-	if fake.FindCreatedContainerByHandleStub != nil {
-		return fake.FindCreatedContainerByHandleStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.findCreatedContainerByHandleReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -1144,15 +1156,16 @@ func (fake *FakeTeam) FindVolumeForWorkerArtifact(arg1 int) (db.CreatedVolume, b
 	fake.findVolumeForWorkerArtifactArgsForCall = append(fake.findVolumeForWorkerArtifactArgsForCall, struct {
 		arg1 int
 	}{arg1})
+	stub := fake.FindVolumeForWorkerArtifactStub
+	fakeReturns := fake.findVolumeForWorkerArtifactReturns
 	fake.recordInvocation("FindVolumeForWorkerArtifact", []interface{}{arg1})
 	fake.findVolumeForWorkerArtifactMutex.Unlock()
-	if fake.FindVolumeForWorkerArtifactStub != nil {
-		return fake.FindVolumeForWorkerArtifactStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.findVolumeForWorkerArtifactReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -1210,15 +1223,16 @@ func (fake *FakeTeam) FindWorkerForContainer(arg1 string) (db.Worker, bool, erro
 	fake.findWorkerForContainerArgsForCall = append(fake.findWorkerForContainerArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.FindWorkerForContainerStub
+	fakeReturns := fake.findWorkerForContainerReturns
 	fake.recordInvocation("FindWorkerForContainer", []interface{}{arg1})
 	fake.findWorkerForContainerMutex.Unlock()
-	if fake.FindWorkerForContainerStub != nil {
-		return fake.FindWorkerForContainerStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.findWorkerForContainerReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -1276,15 +1290,16 @@ func (fake *FakeTeam) FindWorkerForVolume(arg1 string) (db.Worker, bool, error) 
 	fake.findWorkerForVolumeArgsForCall = append(fake.findWorkerForVolumeArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.FindWorkerForVolumeStub
+	fakeReturns := fake.findWorkerForVolumeReturns
 	fake.recordInvocation("FindWorkerForVolume", []interface{}{arg1})
 	fake.findWorkerForVolumeMutex.Unlock()
-	if fake.FindWorkerForVolumeStub != nil {
-		return fake.FindWorkerForVolumeStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.findWorkerForVolumeReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -1341,15 +1356,16 @@ func (fake *FakeTeam) ID() int {
 	ret, specificReturn := fake.iDReturnsOnCall[len(fake.iDArgsForCall)]
 	fake.iDArgsForCall = append(fake.iDArgsForCall, struct {
 	}{})
+	stub := fake.IDStub
+	fakeReturns := fake.iDReturns
 	fake.recordInvocation("ID", []interface{}{})
 	fake.iDMutex.Unlock()
-	if fake.IDStub != nil {
-		return fake.IDStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.iDReturns
 	return fakeReturns.result1
 }
 
@@ -1394,15 +1410,16 @@ func (fake *FakeTeam) IsCheckContainer(arg1 string) (bool, error) {
 	fake.isCheckContainerArgsForCall = append(fake.isCheckContainerArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.IsCheckContainerStub
+	fakeReturns := fake.isCheckContainerReturns
 	fake.recordInvocation("IsCheckContainer", []interface{}{arg1})
 	fake.isCheckContainerMutex.Unlock()
-	if fake.IsCheckContainerStub != nil {
-		return fake.IsCheckContainerStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.isCheckContainerReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -1458,15 +1475,16 @@ func (fake *FakeTeam) IsContainerWithinTeam(arg1 string, arg2 bool) (bool, error
 		arg1 string
 		arg2 bool
 	}{arg1, arg2})
+	stub := fake.IsContainerWithinTeamStub
+	fakeReturns := fake.isContainerWithinTeamReturns
 	fake.recordInvocation("IsContainerWithinTeam", []interface{}{arg1, arg2})
 	fake.isContainerWithinTeamMutex.Unlock()
-	if fake.IsContainerWithinTeamStub != nil {
-		return fake.IsContainerWithinTeamStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.isContainerWithinTeamReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -1520,15 +1538,16 @@ func (fake *FakeTeam) Name() string {
 	ret, specificReturn := fake.nameReturnsOnCall[len(fake.nameArgsForCall)]
 	fake.nameArgsForCall = append(fake.nameArgsForCall, struct {
 	}{})
+	stub := fake.NameStub
+	fakeReturns := fake.nameReturns
 	fake.recordInvocation("Name", []interface{}{})
 	fake.nameMutex.Unlock()
-	if fake.NameStub != nil {
-		return fake.NameStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.nameReturns
 	return fakeReturns.result1
 }
 
@@ -1578,15 +1597,16 @@ func (fake *FakeTeam) OrderPipelines(arg1 []string) error {
 	fake.orderPipelinesArgsForCall = append(fake.orderPipelinesArgsForCall, struct {
 		arg1 []string
 	}{arg1Copy})
+	stub := fake.OrderPipelinesStub
+	fakeReturns := fake.orderPipelinesReturns
 	fake.recordInvocation("OrderPipelines", []interface{}{arg1Copy})
 	fake.orderPipelinesMutex.Unlock()
-	if fake.OrderPipelinesStub != nil {
-		return fake.OrderPipelinesStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.orderPipelinesReturns
 	return fakeReturns.result1
 }
 
@@ -1638,15 +1658,16 @@ func (fake *FakeTeam) Pipeline(arg1 atc.PipelineRef) (db.Pipeline, bool, error) 
 	fake.pipelineArgsForCall = append(fake.pipelineArgsForCall, struct {
 		arg1 atc.PipelineRef
 	}{arg1})
+	stub := fake.PipelineStub
+	fakeReturns := fake.pipelineReturns
 	fake.recordInvocation("Pipeline", []interface{}{arg1})
 	fake.pipelineMutex.Unlock()
-	if fake.PipelineStub != nil {
-		return fake.PipelineStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.pipelineReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -1703,15 +1724,16 @@ func (fake *FakeTeam) Pipelines() ([]db.Pipeline, error) {
 	ret, specificReturn := fake.pipelinesReturnsOnCall[len(fake.pipelinesArgsForCall)]
 	fake.pipelinesArgsForCall = append(fake.pipelinesArgsForCall, struct {
 	}{})
+	stub := fake.PipelinesStub
+	fakeReturns := fake.pipelinesReturns
 	fake.recordInvocation("Pipelines", []interface{}{})
 	fake.pipelinesMutex.Unlock()
-	if fake.PipelinesStub != nil {
-		return fake.PipelinesStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.pipelinesReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -1759,15 +1781,16 @@ func (fake *FakeTeam) PrivateAndPublicBuilds(arg1 db.Page) ([]db.Build, db.Pagin
 	fake.privateAndPublicBuildsArgsForCall = append(fake.privateAndPublicBuildsArgsForCall, struct {
 		arg1 db.Page
 	}{arg1})
+	stub := fake.PrivateAndPublicBuildsStub
+	fakeReturns := fake.privateAndPublicBuildsReturns
 	fake.recordInvocation("PrivateAndPublicBuilds", []interface{}{arg1})
 	fake.privateAndPublicBuildsMutex.Unlock()
-	if fake.PrivateAndPublicBuildsStub != nil {
-		return fake.PrivateAndPublicBuildsStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.privateAndPublicBuildsReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -1824,15 +1847,16 @@ func (fake *FakeTeam) PublicPipelines() ([]db.Pipeline, error) {
 	ret, specificReturn := fake.publicPipelinesReturnsOnCall[len(fake.publicPipelinesArgsForCall)]
 	fake.publicPipelinesArgsForCall = append(fake.publicPipelinesArgsForCall, struct {
 	}{})
+	stub := fake.PublicPipelinesStub
+	fakeReturns := fake.publicPipelinesReturns
 	fake.recordInvocation("PublicPipelines", []interface{}{})
 	fake.publicPipelinesMutex.Unlock()
-	if fake.PublicPipelinesStub != nil {
-		return fake.PublicPipelinesStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.publicPipelinesReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -1880,15 +1904,16 @@ func (fake *FakeTeam) Rename(arg1 string) error {
 	fake.renameArgsForCall = append(fake.renameArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.RenameStub
+	fakeReturns := fake.renameReturns
 	fake.recordInvocation("Rename", []interface{}{arg1})
 	fake.renameMutex.Unlock()
-	if fake.RenameStub != nil {
-		return fake.RenameStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.renameReturns
 	return fakeReturns.result1
 }
 
@@ -1941,15 +1966,16 @@ func (fake *FakeTeam) RenamePipeline(arg1 string, arg2 string) (bool, error) {
 		arg1 string
 		arg2 string
 	}{arg1, arg2})
+	stub := fake.RenamePipelineStub
+	fakeReturns := fake.renamePipelineReturns
 	fake.recordInvocation("RenamePipeline", []interface{}{arg1, arg2})
 	fake.renamePipelineMutex.Unlock()
-	if fake.RenamePipelineStub != nil {
-		return fake.RenamePipelineStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.renamePipelineReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -2007,15 +2033,16 @@ func (fake *FakeTeam) SavePipeline(arg1 atc.PipelineRef, arg2 atc.Config, arg3 d
 		arg3 db.ConfigVersion
 		arg4 bool
 	}{arg1, arg2, arg3, arg4})
+	stub := fake.SavePipelineStub
+	fakeReturns := fake.savePipelineReturns
 	fake.recordInvocation("SavePipeline", []interface{}{arg1, arg2, arg3, arg4})
 	fake.savePipelineMutex.Unlock()
-	if fake.SavePipelineStub != nil {
-		return fake.SavePipelineStub(arg1, arg2, arg3, arg4)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.savePipelineReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -2074,15 +2101,16 @@ func (fake *FakeTeam) SaveWorker(arg1 atc.Worker, arg2 time.Duration) (db.Worker
 		arg1 atc.Worker
 		arg2 time.Duration
 	}{arg1, arg2})
+	stub := fake.SaveWorkerStub
+	fakeReturns := fake.saveWorkerReturns
 	fake.recordInvocation("SaveWorker", []interface{}{arg1, arg2})
 	fake.saveWorkerMutex.Unlock()
-	if fake.SaveWorkerStub != nil {
-		return fake.SaveWorkerStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.saveWorkerReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -2137,15 +2165,16 @@ func (fake *FakeTeam) UpdateProviderAuth(arg1 atc.TeamAuth) error {
 	fake.updateProviderAuthArgsForCall = append(fake.updateProviderAuthArgsForCall, struct {
 		arg1 atc.TeamAuth
 	}{arg1})
+	stub := fake.UpdateProviderAuthStub
+	fakeReturns := fake.updateProviderAuthReturns
 	fake.recordInvocation("UpdateProviderAuth", []interface{}{arg1})
 	fake.updateProviderAuthMutex.Unlock()
-	if fake.UpdateProviderAuthStub != nil {
-		return fake.UpdateProviderAuthStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.updateProviderAuthReturns
 	return fakeReturns.result1
 }
 
@@ -2196,15 +2225,16 @@ func (fake *FakeTeam) Workers() ([]db.Worker, error) {
 	ret, specificReturn := fake.workersReturnsOnCall[len(fake.workersArgsForCall)]
 	fake.workersArgsForCall = append(fake.workersArgsForCall, struct {
 	}{})
+	stub := fake.WorkersStub
+	fakeReturns := fake.workersReturns
 	fake.recordInvocation("Workers", []interface{}{})
 	fake.workersMutex.Unlock()
-	if fake.WorkersStub != nil {
-		return fake.WorkersStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.workersReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

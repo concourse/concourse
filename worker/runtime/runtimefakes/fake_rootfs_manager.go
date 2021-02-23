@@ -48,15 +48,16 @@ func (fake *FakeRootfsManager) LookupUser(arg1 string, arg2 string) (specs.User,
 		arg1 string
 		arg2 string
 	}{arg1, arg2})
+	stub := fake.LookupUserStub
+	fakeReturns := fake.lookupUserReturns
 	fake.recordInvocation("LookupUser", []interface{}{arg1, arg2})
 	fake.lookupUserMutex.Unlock()
-	if fake.LookupUserStub != nil {
-		return fake.LookupUserStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.lookupUserReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -115,15 +116,16 @@ func (fake *FakeRootfsManager) SetupCwd(arg1 string, arg2 string) error {
 		arg1 string
 		arg2 string
 	}{arg1, arg2})
+	stub := fake.SetupCwdStub
+	fakeReturns := fake.setupCwdReturns
 	fake.recordInvocation("SetupCwd", []interface{}{arg1, arg2})
 	fake.setupCwdMutex.Unlock()
-	if fake.SetupCwdStub != nil {
-		return fake.SetupCwdStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.setupCwdReturns
 	return fakeReturns.result1
 }
 

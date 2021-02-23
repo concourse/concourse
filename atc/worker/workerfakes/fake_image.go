@@ -38,15 +38,16 @@ func (fake *FakeImage) FetchForContainer(arg1 context.Context, arg2 lager.Logger
 		arg2 lager.Logger
 		arg3 db.CreatingContainer
 	}{arg1, arg2, arg3})
+	stub := fake.FetchForContainerStub
+	fakeReturns := fake.fetchForContainerReturns
 	fake.recordInvocation("FetchForContainer", []interface{}{arg1, arg2, arg3})
 	fake.fetchForContainerMutex.Unlock()
-	if fake.FetchForContainerStub != nil {
-		return fake.FetchForContainerStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.fetchForContainerReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

@@ -41,15 +41,16 @@ func (fake *FakeAlgorithm) Compute(arg1 context.Context, arg2 db.Job, arg3 db.In
 		arg2 db.Job
 		arg3 db.InputConfigs
 	}{arg1, arg2, arg3})
+	stub := fake.ComputeStub
+	fakeReturns := fake.computeReturns
 	fake.recordInvocation("Compute", []interface{}{arg1, arg2, arg3})
 	fake.computeMutex.Unlock()
-	if fake.ComputeStub != nil {
-		return fake.ComputeStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3, ret.result4
 	}
-	fakeReturns := fake.computeReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3, fakeReturns.result4
 }
 

@@ -71,15 +71,16 @@ func (fake *FakeUsedResourceCache) BaseResourceType() *db.UsedBaseResourceType {
 	ret, specificReturn := fake.baseResourceTypeReturnsOnCall[len(fake.baseResourceTypeArgsForCall)]
 	fake.baseResourceTypeArgsForCall = append(fake.baseResourceTypeArgsForCall, struct {
 	}{})
+	stub := fake.BaseResourceTypeStub
+	fakeReturns := fake.baseResourceTypeReturns
 	fake.recordInvocation("BaseResourceType", []interface{}{})
 	fake.baseResourceTypeMutex.Unlock()
-	if fake.BaseResourceTypeStub != nil {
-		return fake.BaseResourceTypeStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.baseResourceTypeReturns
 	return fakeReturns.result1
 }
 
@@ -124,15 +125,16 @@ func (fake *FakeUsedResourceCache) Destroy(arg1 db.Tx) (bool, error) {
 	fake.destroyArgsForCall = append(fake.destroyArgsForCall, struct {
 		arg1 db.Tx
 	}{arg1})
+	stub := fake.DestroyStub
+	fakeReturns := fake.destroyReturns
 	fake.recordInvocation("Destroy", []interface{}{arg1})
 	fake.destroyMutex.Unlock()
-	if fake.DestroyStub != nil {
-		return fake.DestroyStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.destroyReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -186,15 +188,16 @@ func (fake *FakeUsedResourceCache) ID() int {
 	ret, specificReturn := fake.iDReturnsOnCall[len(fake.iDArgsForCall)]
 	fake.iDArgsForCall = append(fake.iDArgsForCall, struct {
 	}{})
+	stub := fake.IDStub
+	fakeReturns := fake.iDReturns
 	fake.recordInvocation("ID", []interface{}{})
 	fake.iDMutex.Unlock()
-	if fake.IDStub != nil {
-		return fake.IDStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.iDReturns
 	return fakeReturns.result1
 }
 
@@ -238,15 +241,16 @@ func (fake *FakeUsedResourceCache) ResourceConfig() db.ResourceConfig {
 	ret, specificReturn := fake.resourceConfigReturnsOnCall[len(fake.resourceConfigArgsForCall)]
 	fake.resourceConfigArgsForCall = append(fake.resourceConfigArgsForCall, struct {
 	}{})
+	stub := fake.ResourceConfigStub
+	fakeReturns := fake.resourceConfigReturns
 	fake.recordInvocation("ResourceConfig", []interface{}{})
 	fake.resourceConfigMutex.Unlock()
-	if fake.ResourceConfigStub != nil {
-		return fake.ResourceConfigStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.resourceConfigReturns
 	return fakeReturns.result1
 }
 
@@ -290,15 +294,16 @@ func (fake *FakeUsedResourceCache) Version() atc.Version {
 	ret, specificReturn := fake.versionReturnsOnCall[len(fake.versionArgsForCall)]
 	fake.versionArgsForCall = append(fake.versionArgsForCall, struct {
 	}{})
+	stub := fake.VersionStub
+	fakeReturns := fake.versionReturns
 	fake.recordInvocation("Version", []interface{}{})
 	fake.versionMutex.Unlock()
-	if fake.VersionStub != nil {
-		return fake.VersionStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.versionReturns
 	return fakeReturns.result1
 }
 

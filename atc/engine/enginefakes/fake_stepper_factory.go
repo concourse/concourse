@@ -33,15 +33,16 @@ func (fake *FakeStepperFactory) StepperForBuild(arg1 db.Build) (exec.Stepper, er
 	fake.stepperForBuildArgsForCall = append(fake.stepperForBuildArgsForCall, struct {
 		arg1 db.Build
 	}{arg1})
+	stub := fake.StepperForBuildStub
+	fakeReturns := fake.stepperForBuildReturns
 	fake.recordInvocation("StepperForBuild", []interface{}{arg1})
 	fake.stepperForBuildMutex.Unlock()
-	if fake.StepperForBuildStub != nil {
-		return fake.StepperForBuildStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.stepperForBuildReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

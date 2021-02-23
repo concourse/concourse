@@ -62,15 +62,16 @@ func (fake *FakeCheckFactory) ResourceTypes() ([]db.ResourceType, error) {
 	ret, specificReturn := fake.resourceTypesReturnsOnCall[len(fake.resourceTypesArgsForCall)]
 	fake.resourceTypesArgsForCall = append(fake.resourceTypesArgsForCall, struct {
 	}{})
+	stub := fake.ResourceTypesStub
+	fakeReturns := fake.resourceTypesReturns
 	fake.recordInvocation("ResourceTypes", []interface{}{})
 	fake.resourceTypesMutex.Unlock()
-	if fake.ResourceTypesStub != nil {
-		return fake.ResourceTypesStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.resourceTypesReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -117,15 +118,16 @@ func (fake *FakeCheckFactory) Resources() ([]db.Resource, error) {
 	ret, specificReturn := fake.resourcesReturnsOnCall[len(fake.resourcesArgsForCall)]
 	fake.resourcesArgsForCall = append(fake.resourcesArgsForCall, struct {
 	}{})
+	stub := fake.ResourcesStub
+	fakeReturns := fake.resourcesReturns
 	fake.recordInvocation("Resources", []interface{}{})
 	fake.resourcesMutex.Unlock()
-	if fake.ResourcesStub != nil {
-		return fake.ResourcesStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.resourcesReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -177,15 +179,16 @@ func (fake *FakeCheckFactory) TryCreateCheck(arg1 context.Context, arg2 db.Check
 		arg4 atc.Version
 		arg5 bool
 	}{arg1, arg2, arg3, arg4, arg5})
+	stub := fake.TryCreateCheckStub
+	fakeReturns := fake.tryCreateCheckReturns
 	fake.recordInvocation("TryCreateCheck", []interface{}{arg1, arg2, arg3, arg4, arg5})
 	fake.tryCreateCheckMutex.Unlock()
-	if fake.TryCreateCheckStub != nil {
-		return fake.TryCreateCheckStub(arg1, arg2, arg3, arg4, arg5)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4, arg5)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.tryCreateCheckReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 

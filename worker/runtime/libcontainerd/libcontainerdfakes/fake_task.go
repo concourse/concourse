@@ -248,15 +248,16 @@ func (fake *FakeTask) Checkpoint(arg1 context.Context, arg2 ...containerd.Checkp
 		arg1 context.Context
 		arg2 []containerd.CheckpointTaskOpts
 	}{arg1, arg2})
+	stub := fake.CheckpointStub
+	fakeReturns := fake.checkpointReturns
 	fake.recordInvocation("Checkpoint", []interface{}{arg1, arg2})
 	fake.checkpointMutex.Unlock()
-	if fake.CheckpointStub != nil {
-		return fake.CheckpointStub(arg1, arg2...)
+	if stub != nil {
+		return stub(arg1, arg2...)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.checkpointReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -312,15 +313,16 @@ func (fake *FakeTask) CloseIO(arg1 context.Context, arg2 ...containerd.IOCloserO
 		arg1 context.Context
 		arg2 []containerd.IOCloserOpts
 	}{arg1, arg2})
+	stub := fake.CloseIOStub
+	fakeReturns := fake.closeIOReturns
 	fake.recordInvocation("CloseIO", []interface{}{arg1, arg2})
 	fake.closeIOMutex.Unlock()
-	if fake.CloseIOStub != nil {
-		return fake.CloseIOStub(arg1, arg2...)
+	if stub != nil {
+		return stub(arg1, arg2...)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.closeIOReturns
 	return fakeReturns.result1
 }
 
@@ -373,15 +375,16 @@ func (fake *FakeTask) Delete(arg1 context.Context, arg2 ...containerd.ProcessDel
 		arg1 context.Context
 		arg2 []containerd.ProcessDeleteOpts
 	}{arg1, arg2})
+	stub := fake.DeleteStub
+	fakeReturns := fake.deleteReturns
 	fake.recordInvocation("Delete", []interface{}{arg1, arg2})
 	fake.deleteMutex.Unlock()
-	if fake.DeleteStub != nil {
-		return fake.DeleteStub(arg1, arg2...)
+	if stub != nil {
+		return stub(arg1, arg2...)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.deleteReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -439,15 +442,16 @@ func (fake *FakeTask) Exec(arg1 context.Context, arg2 string, arg3 *specs.Proces
 		arg3 *specs.Process
 		arg4 cio.Creator
 	}{arg1, arg2, arg3, arg4})
+	stub := fake.ExecStub
+	fakeReturns := fake.execReturns
 	fake.recordInvocation("Exec", []interface{}{arg1, arg2, arg3, arg4})
 	fake.execMutex.Unlock()
-	if fake.ExecStub != nil {
-		return fake.ExecStub(arg1, arg2, arg3, arg4)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.execReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -501,15 +505,16 @@ func (fake *FakeTask) ID() string {
 	ret, specificReturn := fake.iDReturnsOnCall[len(fake.iDArgsForCall)]
 	fake.iDArgsForCall = append(fake.iDArgsForCall, struct {
 	}{})
+	stub := fake.IDStub
+	fakeReturns := fake.iDReturns
 	fake.recordInvocation("ID", []interface{}{})
 	fake.iDMutex.Unlock()
-	if fake.IDStub != nil {
-		return fake.IDStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.iDReturns
 	return fakeReturns.result1
 }
 
@@ -553,15 +558,16 @@ func (fake *FakeTask) IO() cio.IO {
 	ret, specificReturn := fake.iOReturnsOnCall[len(fake.iOArgsForCall)]
 	fake.iOArgsForCall = append(fake.iOArgsForCall, struct {
 	}{})
+	stub := fake.IOStub
+	fakeReturns := fake.iOReturns
 	fake.recordInvocation("IO", []interface{}{})
 	fake.iOMutex.Unlock()
-	if fake.IOStub != nil {
-		return fake.IOStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.iOReturns
 	return fakeReturns.result1
 }
 
@@ -608,15 +614,16 @@ func (fake *FakeTask) Kill(arg1 context.Context, arg2 syscall.Signal, arg3 ...co
 		arg2 syscall.Signal
 		arg3 []containerd.KillOpts
 	}{arg1, arg2, arg3})
+	stub := fake.KillStub
+	fakeReturns := fake.killReturns
 	fake.recordInvocation("Kill", []interface{}{arg1, arg2, arg3})
 	fake.killMutex.Unlock()
-	if fake.KillStub != nil {
-		return fake.KillStub(arg1, arg2, arg3...)
+	if stub != nil {
+		return stub(arg1, arg2, arg3...)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.killReturns
 	return fakeReturns.result1
 }
 
@@ -670,15 +677,16 @@ func (fake *FakeTask) LoadProcess(arg1 context.Context, arg2 string, arg3 cio.At
 		arg2 string
 		arg3 cio.Attach
 	}{arg1, arg2, arg3})
+	stub := fake.LoadProcessStub
+	fakeReturns := fake.loadProcessReturns
 	fake.recordInvocation("LoadProcess", []interface{}{arg1, arg2, arg3})
 	fake.loadProcessMutex.Unlock()
-	if fake.LoadProcessStub != nil {
-		return fake.LoadProcessStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.loadProcessReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -733,15 +741,16 @@ func (fake *FakeTask) Metrics(arg1 context.Context) (*types.Metric, error) {
 	fake.metricsArgsForCall = append(fake.metricsArgsForCall, struct {
 		arg1 context.Context
 	}{arg1})
+	stub := fake.MetricsStub
+	fakeReturns := fake.metricsReturns
 	fake.recordInvocation("Metrics", []interface{}{arg1})
 	fake.metricsMutex.Unlock()
-	if fake.MetricsStub != nil {
-		return fake.MetricsStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.metricsReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -796,15 +805,16 @@ func (fake *FakeTask) Pause(arg1 context.Context) error {
 	fake.pauseArgsForCall = append(fake.pauseArgsForCall, struct {
 		arg1 context.Context
 	}{arg1})
+	stub := fake.PauseStub
+	fakeReturns := fake.pauseReturns
 	fake.recordInvocation("Pause", []interface{}{arg1})
 	fake.pauseMutex.Unlock()
-	if fake.PauseStub != nil {
-		return fake.PauseStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.pauseReturns
 	return fakeReturns.result1
 }
 
@@ -855,15 +865,16 @@ func (fake *FakeTask) Pid() uint32 {
 	ret, specificReturn := fake.pidReturnsOnCall[len(fake.pidArgsForCall)]
 	fake.pidArgsForCall = append(fake.pidArgsForCall, struct {
 	}{})
+	stub := fake.PidStub
+	fakeReturns := fake.pidReturns
 	fake.recordInvocation("Pid", []interface{}{})
 	fake.pidMutex.Unlock()
-	if fake.PidStub != nil {
-		return fake.PidStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.pidReturns
 	return fakeReturns.result1
 }
 
@@ -908,15 +919,16 @@ func (fake *FakeTask) Pids(arg1 context.Context) ([]containerd.ProcessInfo, erro
 	fake.pidsArgsForCall = append(fake.pidsArgsForCall, struct {
 		arg1 context.Context
 	}{arg1})
+	stub := fake.PidsStub
+	fakeReturns := fake.pidsReturns
 	fake.recordInvocation("Pids", []interface{}{arg1})
 	fake.pidsMutex.Unlock()
-	if fake.PidsStub != nil {
-		return fake.PidsStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.pidsReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -973,15 +985,16 @@ func (fake *FakeTask) Resize(arg1 context.Context, arg2 uint32, arg3 uint32) err
 		arg2 uint32
 		arg3 uint32
 	}{arg1, arg2, arg3})
+	stub := fake.ResizeStub
+	fakeReturns := fake.resizeReturns
 	fake.recordInvocation("Resize", []interface{}{arg1, arg2, arg3})
 	fake.resizeMutex.Unlock()
-	if fake.ResizeStub != nil {
-		return fake.ResizeStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.resizeReturns
 	return fakeReturns.result1
 }
 
@@ -1033,15 +1046,16 @@ func (fake *FakeTask) Resume(arg1 context.Context) error {
 	fake.resumeArgsForCall = append(fake.resumeArgsForCall, struct {
 		arg1 context.Context
 	}{arg1})
+	stub := fake.ResumeStub
+	fakeReturns := fake.resumeReturns
 	fake.recordInvocation("Resume", []interface{}{arg1})
 	fake.resumeMutex.Unlock()
-	if fake.ResumeStub != nil {
-		return fake.ResumeStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.resumeReturns
 	return fakeReturns.result1
 }
 
@@ -1093,15 +1107,16 @@ func (fake *FakeTask) Start(arg1 context.Context) error {
 	fake.startArgsForCall = append(fake.startArgsForCall, struct {
 		arg1 context.Context
 	}{arg1})
+	stub := fake.StartStub
+	fakeReturns := fake.startReturns
 	fake.recordInvocation("Start", []interface{}{arg1})
 	fake.startMutex.Unlock()
-	if fake.StartStub != nil {
-		return fake.StartStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.startReturns
 	return fakeReturns.result1
 }
 
@@ -1153,15 +1168,16 @@ func (fake *FakeTask) Status(arg1 context.Context) (containerd.Status, error) {
 	fake.statusArgsForCall = append(fake.statusArgsForCall, struct {
 		arg1 context.Context
 	}{arg1})
+	stub := fake.StatusStub
+	fakeReturns := fake.statusReturns
 	fake.recordInvocation("Status", []interface{}{arg1})
 	fake.statusMutex.Unlock()
-	if fake.StatusStub != nil {
-		return fake.StatusStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.statusReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -1217,15 +1233,16 @@ func (fake *FakeTask) Update(arg1 context.Context, arg2 ...containerd.UpdateTask
 		arg1 context.Context
 		arg2 []containerd.UpdateTaskOpts
 	}{arg1, arg2})
+	stub := fake.UpdateStub
+	fakeReturns := fake.updateReturns
 	fake.recordInvocation("Update", []interface{}{arg1, arg2})
 	fake.updateMutex.Unlock()
-	if fake.UpdateStub != nil {
-		return fake.UpdateStub(arg1, arg2...)
+	if stub != nil {
+		return stub(arg1, arg2...)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.updateReturns
 	return fakeReturns.result1
 }
 
@@ -1277,15 +1294,16 @@ func (fake *FakeTask) Wait(arg1 context.Context) (<-chan containerd.ExitStatus, 
 	fake.waitArgsForCall = append(fake.waitArgsForCall, struct {
 		arg1 context.Context
 	}{arg1})
+	stub := fake.WaitStub
+	fakeReturns := fake.waitReturns
 	fake.recordInvocation("Wait", []interface{}{arg1})
 	fake.waitMutex.Unlock()
-	if fake.WaitStub != nil {
-		return fake.WaitStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.waitReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

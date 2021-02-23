@@ -40,9 +40,10 @@ func (fake *FakePool) Release() {
 	fake.releaseMutex.Lock()
 	fake.releaseArgsForCall = append(fake.releaseArgsForCall, struct {
 	}{})
+	stub := fake.ReleaseStub
 	fake.recordInvocation("Release", []interface{}{})
 	fake.releaseMutex.Unlock()
-	if fake.ReleaseStub != nil {
+	if stub != nil {
 		fake.ReleaseStub()
 	}
 }
@@ -64,15 +65,16 @@ func (fake *FakePool) Size() int {
 	ret, specificReturn := fake.sizeReturnsOnCall[len(fake.sizeArgsForCall)]
 	fake.sizeArgsForCall = append(fake.sizeArgsForCall, struct {
 	}{})
+	stub := fake.SizeStub
+	fakeReturns := fake.sizeReturns
 	fake.recordInvocation("Size", []interface{}{})
 	fake.sizeMutex.Unlock()
-	if fake.SizeStub != nil {
-		return fake.SizeStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.sizeReturns
 	return fakeReturns.result1
 }
 
@@ -116,15 +118,16 @@ func (fake *FakePool) TryAcquire() bool {
 	ret, specificReturn := fake.tryAcquireReturnsOnCall[len(fake.tryAcquireArgsForCall)]
 	fake.tryAcquireArgsForCall = append(fake.tryAcquireArgsForCall, struct {
 	}{})
+	stub := fake.TryAcquireStub
+	fakeReturns := fake.tryAcquireReturns
 	fake.recordInvocation("TryAcquire", []interface{}{})
 	fake.tryAcquireMutex.Unlock()
-	if fake.TryAcquireStub != nil {
-		return fake.TryAcquireStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.tryAcquireReturns
 	return fakeReturns.result1
 }
 

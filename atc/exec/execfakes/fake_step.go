@@ -34,15 +34,16 @@ func (fake *FakeStep) Run(arg1 context.Context, arg2 exec.RunState) (bool, error
 		arg1 context.Context
 		arg2 exec.RunState
 	}{arg1, arg2})
+	stub := fake.RunStub
+	fakeReturns := fake.runReturns
 	fake.recordInvocation("Run", []interface{}{arg1, arg2})
 	fake.runMutex.Unlock()
-	if fake.RunStub != nil {
-		return fake.RunStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.runReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

@@ -30,15 +30,16 @@ func (fake *FakeTeamFetcher) GetTeams() ([]db.Team, error) {
 	ret, specificReturn := fake.getTeamsReturnsOnCall[len(fake.getTeamsArgsForCall)]
 	fake.getTeamsArgsForCall = append(fake.getTeamsArgsForCall, struct {
 	}{})
+	stub := fake.GetTeamsStub
+	fakeReturns := fake.getTeamsReturns
 	fake.recordInvocation("GetTeams", []interface{}{})
 	fake.getTeamsMutex.Unlock()
-	if fake.GetTeamsStub != nil {
-		return fake.GetTeamsStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getTeamsReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

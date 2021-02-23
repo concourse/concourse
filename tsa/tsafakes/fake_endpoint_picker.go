@@ -28,15 +28,16 @@ func (fake *FakeEndpointPicker) Pick() *rata.RequestGenerator {
 	ret, specificReturn := fake.pickReturnsOnCall[len(fake.pickArgsForCall)]
 	fake.pickArgsForCall = append(fake.pickArgsForCall, struct {
 	}{})
+	stub := fake.PickStub
+	fakeReturns := fake.pickReturns
 	fake.recordInvocation("Pick", []interface{}{})
 	fake.pickMutex.Unlock()
-	if fake.PickStub != nil {
-		return fake.PickStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.pickReturns
 	return fakeReturns.result1
 }
 

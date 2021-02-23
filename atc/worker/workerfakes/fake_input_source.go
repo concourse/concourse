@@ -37,15 +37,16 @@ func (fake *FakeInputSource) DestinationPath() string {
 	ret, specificReturn := fake.destinationPathReturnsOnCall[len(fake.destinationPathArgsForCall)]
 	fake.destinationPathArgsForCall = append(fake.destinationPathArgsForCall, struct {
 	}{})
+	stub := fake.DestinationPathStub
+	fakeReturns := fake.destinationPathReturns
 	fake.recordInvocation("DestinationPath", []interface{}{})
 	fake.destinationPathMutex.Unlock()
-	if fake.DestinationPathStub != nil {
-		return fake.DestinationPathStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.destinationPathReturns
 	return fakeReturns.result1
 }
 
@@ -89,15 +90,16 @@ func (fake *FakeInputSource) Source() worker.ArtifactSource {
 	ret, specificReturn := fake.sourceReturnsOnCall[len(fake.sourceArgsForCall)]
 	fake.sourceArgsForCall = append(fake.sourceArgsForCall, struct {
 	}{})
+	stub := fake.SourceStub
+	fakeReturns := fake.sourceReturns
 	fake.recordInvocation("Source", []interface{}{})
 	fake.sourceMutex.Unlock()
-	if fake.SourceStub != nil {
-		return fake.SourceStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.sourceReturns
 	return fakeReturns.result1
 }
 

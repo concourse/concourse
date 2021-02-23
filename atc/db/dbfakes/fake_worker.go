@@ -336,15 +336,16 @@ func (fake *FakeWorker) ActiveContainers() int {
 	ret, specificReturn := fake.activeContainersReturnsOnCall[len(fake.activeContainersArgsForCall)]
 	fake.activeContainersArgsForCall = append(fake.activeContainersArgsForCall, struct {
 	}{})
+	stub := fake.ActiveContainersStub
+	fakeReturns := fake.activeContainersReturns
 	fake.recordInvocation("ActiveContainers", []interface{}{})
 	fake.activeContainersMutex.Unlock()
-	if fake.ActiveContainersStub != nil {
-		return fake.ActiveContainersStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.activeContainersReturns
 	return fakeReturns.result1
 }
 
@@ -388,15 +389,16 @@ func (fake *FakeWorker) ActiveTasks() (int, error) {
 	ret, specificReturn := fake.activeTasksReturnsOnCall[len(fake.activeTasksArgsForCall)]
 	fake.activeTasksArgsForCall = append(fake.activeTasksArgsForCall, struct {
 	}{})
+	stub := fake.ActiveTasksStub
+	fakeReturns := fake.activeTasksReturns
 	fake.recordInvocation("ActiveTasks", []interface{}{})
 	fake.activeTasksMutex.Unlock()
-	if fake.ActiveTasksStub != nil {
-		return fake.ActiveTasksStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.activeTasksReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -443,15 +445,16 @@ func (fake *FakeWorker) ActiveVolumes() int {
 	ret, specificReturn := fake.activeVolumesReturnsOnCall[len(fake.activeVolumesArgsForCall)]
 	fake.activeVolumesArgsForCall = append(fake.activeVolumesArgsForCall, struct {
 	}{})
+	stub := fake.ActiveVolumesStub
+	fakeReturns := fake.activeVolumesReturns
 	fake.recordInvocation("ActiveVolumes", []interface{}{})
 	fake.activeVolumesMutex.Unlock()
-	if fake.ActiveVolumesStub != nil {
-		return fake.ActiveVolumesStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.activeVolumesReturns
 	return fakeReturns.result1
 }
 
@@ -495,15 +498,16 @@ func (fake *FakeWorker) BaggageclaimURL() *string {
 	ret, specificReturn := fake.baggageclaimURLReturnsOnCall[len(fake.baggageclaimURLArgsForCall)]
 	fake.baggageclaimURLArgsForCall = append(fake.baggageclaimURLArgsForCall, struct {
 	}{})
+	stub := fake.BaggageclaimURLStub
+	fakeReturns := fake.baggageclaimURLReturns
 	fake.recordInvocation("BaggageclaimURL", []interface{}{})
 	fake.baggageclaimURLMutex.Unlock()
-	if fake.BaggageclaimURLStub != nil {
-		return fake.BaggageclaimURLStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.baggageclaimURLReturns
 	return fakeReturns.result1
 }
 
@@ -547,15 +551,16 @@ func (fake *FakeWorker) CertsPath() *string {
 	ret, specificReturn := fake.certsPathReturnsOnCall[len(fake.certsPathArgsForCall)]
 	fake.certsPathArgsForCall = append(fake.certsPathArgsForCall, struct {
 	}{})
+	stub := fake.CertsPathStub
+	fakeReturns := fake.certsPathReturns
 	fake.recordInvocation("CertsPath", []interface{}{})
 	fake.certsPathMutex.Unlock()
-	if fake.CertsPathStub != nil {
-		return fake.CertsPathStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.certsPathReturns
 	return fakeReturns.result1
 }
 
@@ -601,15 +606,16 @@ func (fake *FakeWorker) CreateContainer(arg1 db.ContainerOwner, arg2 db.Containe
 		arg1 db.ContainerOwner
 		arg2 db.ContainerMetadata
 	}{arg1, arg2})
+	stub := fake.CreateContainerStub
+	fakeReturns := fake.createContainerReturns
 	fake.recordInvocation("CreateContainer", []interface{}{arg1, arg2})
 	fake.createContainerMutex.Unlock()
-	if fake.CreateContainerStub != nil {
-		return fake.CreateContainerStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.createContainerReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -663,15 +669,16 @@ func (fake *FakeWorker) DecreaseActiveTasks() error {
 	ret, specificReturn := fake.decreaseActiveTasksReturnsOnCall[len(fake.decreaseActiveTasksArgsForCall)]
 	fake.decreaseActiveTasksArgsForCall = append(fake.decreaseActiveTasksArgsForCall, struct {
 	}{})
+	stub := fake.DecreaseActiveTasksStub
+	fakeReturns := fake.decreaseActiveTasksReturns
 	fake.recordInvocation("DecreaseActiveTasks", []interface{}{})
 	fake.decreaseActiveTasksMutex.Unlock()
-	if fake.DecreaseActiveTasksStub != nil {
-		return fake.DecreaseActiveTasksStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.decreaseActiveTasksReturns
 	return fakeReturns.result1
 }
 
@@ -715,15 +722,16 @@ func (fake *FakeWorker) Delete() error {
 	ret, specificReturn := fake.deleteReturnsOnCall[len(fake.deleteArgsForCall)]
 	fake.deleteArgsForCall = append(fake.deleteArgsForCall, struct {
 	}{})
+	stub := fake.DeleteStub
+	fakeReturns := fake.deleteReturns
 	fake.recordInvocation("Delete", []interface{}{})
 	fake.deleteMutex.Unlock()
-	if fake.DeleteStub != nil {
-		return fake.DeleteStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.deleteReturns
 	return fakeReturns.result1
 }
 
@@ -767,15 +775,16 @@ func (fake *FakeWorker) Ephemeral() bool {
 	ret, specificReturn := fake.ephemeralReturnsOnCall[len(fake.ephemeralArgsForCall)]
 	fake.ephemeralArgsForCall = append(fake.ephemeralArgsForCall, struct {
 	}{})
+	stub := fake.EphemeralStub
+	fakeReturns := fake.ephemeralReturns
 	fake.recordInvocation("Ephemeral", []interface{}{})
 	fake.ephemeralMutex.Unlock()
-	if fake.EphemeralStub != nil {
-		return fake.EphemeralStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.ephemeralReturns
 	return fakeReturns.result1
 }
 
@@ -819,15 +828,16 @@ func (fake *FakeWorker) ExpiresAt() time.Time {
 	ret, specificReturn := fake.expiresAtReturnsOnCall[len(fake.expiresAtArgsForCall)]
 	fake.expiresAtArgsForCall = append(fake.expiresAtArgsForCall, struct {
 	}{})
+	stub := fake.ExpiresAtStub
+	fakeReturns := fake.expiresAtReturns
 	fake.recordInvocation("ExpiresAt", []interface{}{})
 	fake.expiresAtMutex.Unlock()
-	if fake.ExpiresAtStub != nil {
-		return fake.ExpiresAtStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.expiresAtReturns
 	return fakeReturns.result1
 }
 
@@ -872,15 +882,16 @@ func (fake *FakeWorker) FindContainer(arg1 db.ContainerOwner) (db.CreatingContai
 	fake.findContainerArgsForCall = append(fake.findContainerArgsForCall, struct {
 		arg1 db.ContainerOwner
 	}{arg1})
+	stub := fake.FindContainerStub
+	fakeReturns := fake.findContainerReturns
 	fake.recordInvocation("FindContainer", []interface{}{arg1})
 	fake.findContainerMutex.Unlock()
-	if fake.FindContainerStub != nil {
-		return fake.FindContainerStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.findContainerReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -937,15 +948,16 @@ func (fake *FakeWorker) GardenAddr() *string {
 	ret, specificReturn := fake.gardenAddrReturnsOnCall[len(fake.gardenAddrArgsForCall)]
 	fake.gardenAddrArgsForCall = append(fake.gardenAddrArgsForCall, struct {
 	}{})
+	stub := fake.GardenAddrStub
+	fakeReturns := fake.gardenAddrReturns
 	fake.recordInvocation("GardenAddr", []interface{}{})
 	fake.gardenAddrMutex.Unlock()
-	if fake.GardenAddrStub != nil {
-		return fake.GardenAddrStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.gardenAddrReturns
 	return fakeReturns.result1
 }
 
@@ -989,15 +1001,16 @@ func (fake *FakeWorker) HTTPProxyURL() string {
 	ret, specificReturn := fake.hTTPProxyURLReturnsOnCall[len(fake.hTTPProxyURLArgsForCall)]
 	fake.hTTPProxyURLArgsForCall = append(fake.hTTPProxyURLArgsForCall, struct {
 	}{})
+	stub := fake.HTTPProxyURLStub
+	fakeReturns := fake.hTTPProxyURLReturns
 	fake.recordInvocation("HTTPProxyURL", []interface{}{})
 	fake.hTTPProxyURLMutex.Unlock()
-	if fake.HTTPProxyURLStub != nil {
-		return fake.HTTPProxyURLStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.hTTPProxyURLReturns
 	return fakeReturns.result1
 }
 
@@ -1041,15 +1054,16 @@ func (fake *FakeWorker) HTTPSProxyURL() string {
 	ret, specificReturn := fake.hTTPSProxyURLReturnsOnCall[len(fake.hTTPSProxyURLArgsForCall)]
 	fake.hTTPSProxyURLArgsForCall = append(fake.hTTPSProxyURLArgsForCall, struct {
 	}{})
+	stub := fake.HTTPSProxyURLStub
+	fakeReturns := fake.hTTPSProxyURLReturns
 	fake.recordInvocation("HTTPSProxyURL", []interface{}{})
 	fake.hTTPSProxyURLMutex.Unlock()
-	if fake.HTTPSProxyURLStub != nil {
-		return fake.HTTPSProxyURLStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.hTTPSProxyURLReturns
 	return fakeReturns.result1
 }
 
@@ -1093,15 +1107,16 @@ func (fake *FakeWorker) IncreaseActiveTasks() error {
 	ret, specificReturn := fake.increaseActiveTasksReturnsOnCall[len(fake.increaseActiveTasksArgsForCall)]
 	fake.increaseActiveTasksArgsForCall = append(fake.increaseActiveTasksArgsForCall, struct {
 	}{})
+	stub := fake.IncreaseActiveTasksStub
+	fakeReturns := fake.increaseActiveTasksReturns
 	fake.recordInvocation("IncreaseActiveTasks", []interface{}{})
 	fake.increaseActiveTasksMutex.Unlock()
-	if fake.IncreaseActiveTasksStub != nil {
-		return fake.IncreaseActiveTasksStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.increaseActiveTasksReturns
 	return fakeReturns.result1
 }
 
@@ -1145,15 +1160,16 @@ func (fake *FakeWorker) Land() error {
 	ret, specificReturn := fake.landReturnsOnCall[len(fake.landArgsForCall)]
 	fake.landArgsForCall = append(fake.landArgsForCall, struct {
 	}{})
+	stub := fake.LandStub
+	fakeReturns := fake.landReturns
 	fake.recordInvocation("Land", []interface{}{})
 	fake.landMutex.Unlock()
-	if fake.LandStub != nil {
-		return fake.LandStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.landReturns
 	return fakeReturns.result1
 }
 
@@ -1197,15 +1213,16 @@ func (fake *FakeWorker) Name() string {
 	ret, specificReturn := fake.nameReturnsOnCall[len(fake.nameArgsForCall)]
 	fake.nameArgsForCall = append(fake.nameArgsForCall, struct {
 	}{})
+	stub := fake.NameStub
+	fakeReturns := fake.nameReturns
 	fake.recordInvocation("Name", []interface{}{})
 	fake.nameMutex.Unlock()
-	if fake.NameStub != nil {
-		return fake.NameStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.nameReturns
 	return fakeReturns.result1
 }
 
@@ -1249,15 +1266,16 @@ func (fake *FakeWorker) NoProxy() string {
 	ret, specificReturn := fake.noProxyReturnsOnCall[len(fake.noProxyArgsForCall)]
 	fake.noProxyArgsForCall = append(fake.noProxyArgsForCall, struct {
 	}{})
+	stub := fake.NoProxyStub
+	fakeReturns := fake.noProxyReturns
 	fake.recordInvocation("NoProxy", []interface{}{})
 	fake.noProxyMutex.Unlock()
-	if fake.NoProxyStub != nil {
-		return fake.NoProxyStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.noProxyReturns
 	return fakeReturns.result1
 }
 
@@ -1301,15 +1319,16 @@ func (fake *FakeWorker) Platform() string {
 	ret, specificReturn := fake.platformReturnsOnCall[len(fake.platformArgsForCall)]
 	fake.platformArgsForCall = append(fake.platformArgsForCall, struct {
 	}{})
+	stub := fake.PlatformStub
+	fakeReturns := fake.platformReturns
 	fake.recordInvocation("Platform", []interface{}{})
 	fake.platformMutex.Unlock()
-	if fake.PlatformStub != nil {
-		return fake.PlatformStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.platformReturns
 	return fakeReturns.result1
 }
 
@@ -1353,15 +1372,16 @@ func (fake *FakeWorker) Prune() error {
 	ret, specificReturn := fake.pruneReturnsOnCall[len(fake.pruneArgsForCall)]
 	fake.pruneArgsForCall = append(fake.pruneArgsForCall, struct {
 	}{})
+	stub := fake.PruneStub
+	fakeReturns := fake.pruneReturns
 	fake.recordInvocation("Prune", []interface{}{})
 	fake.pruneMutex.Unlock()
-	if fake.PruneStub != nil {
-		return fake.PruneStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.pruneReturns
 	return fakeReturns.result1
 }
 
@@ -1405,15 +1425,16 @@ func (fake *FakeWorker) Reload() (bool, error) {
 	ret, specificReturn := fake.reloadReturnsOnCall[len(fake.reloadArgsForCall)]
 	fake.reloadArgsForCall = append(fake.reloadArgsForCall, struct {
 	}{})
+	stub := fake.ReloadStub
+	fakeReturns := fake.reloadReturns
 	fake.recordInvocation("Reload", []interface{}{})
 	fake.reloadMutex.Unlock()
-	if fake.ReloadStub != nil {
-		return fake.ReloadStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.reloadReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -1460,15 +1481,16 @@ func (fake *FakeWorker) ResourceCerts() (*db.UsedWorkerResourceCerts, bool, erro
 	ret, specificReturn := fake.resourceCertsReturnsOnCall[len(fake.resourceCertsArgsForCall)]
 	fake.resourceCertsArgsForCall = append(fake.resourceCertsArgsForCall, struct {
 	}{})
+	stub := fake.ResourceCertsStub
+	fakeReturns := fake.resourceCertsReturns
 	fake.recordInvocation("ResourceCerts", []interface{}{})
 	fake.resourceCertsMutex.Unlock()
-	if fake.ResourceCertsStub != nil {
-		return fake.ResourceCertsStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.resourceCertsReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -1518,15 +1540,16 @@ func (fake *FakeWorker) ResourceTypes() []atc.WorkerResourceType {
 	ret, specificReturn := fake.resourceTypesReturnsOnCall[len(fake.resourceTypesArgsForCall)]
 	fake.resourceTypesArgsForCall = append(fake.resourceTypesArgsForCall, struct {
 	}{})
+	stub := fake.ResourceTypesStub
+	fakeReturns := fake.resourceTypesReturns
 	fake.recordInvocation("ResourceTypes", []interface{}{})
 	fake.resourceTypesMutex.Unlock()
-	if fake.ResourceTypesStub != nil {
-		return fake.ResourceTypesStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.resourceTypesReturns
 	return fakeReturns.result1
 }
 
@@ -1570,15 +1593,16 @@ func (fake *FakeWorker) Retire() error {
 	ret, specificReturn := fake.retireReturnsOnCall[len(fake.retireArgsForCall)]
 	fake.retireArgsForCall = append(fake.retireArgsForCall, struct {
 	}{})
+	stub := fake.RetireStub
+	fakeReturns := fake.retireReturns
 	fake.recordInvocation("Retire", []interface{}{})
 	fake.retireMutex.Unlock()
-	if fake.RetireStub != nil {
-		return fake.RetireStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.retireReturns
 	return fakeReturns.result1
 }
 
@@ -1622,15 +1646,16 @@ func (fake *FakeWorker) StartTime() time.Time {
 	ret, specificReturn := fake.startTimeReturnsOnCall[len(fake.startTimeArgsForCall)]
 	fake.startTimeArgsForCall = append(fake.startTimeArgsForCall, struct {
 	}{})
+	stub := fake.StartTimeStub
+	fakeReturns := fake.startTimeReturns
 	fake.recordInvocation("StartTime", []interface{}{})
 	fake.startTimeMutex.Unlock()
-	if fake.StartTimeStub != nil {
-		return fake.StartTimeStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.startTimeReturns
 	return fakeReturns.result1
 }
 
@@ -1674,15 +1699,16 @@ func (fake *FakeWorker) State() db.WorkerState {
 	ret, specificReturn := fake.stateReturnsOnCall[len(fake.stateArgsForCall)]
 	fake.stateArgsForCall = append(fake.stateArgsForCall, struct {
 	}{})
+	stub := fake.StateStub
+	fakeReturns := fake.stateReturns
 	fake.recordInvocation("State", []interface{}{})
 	fake.stateMutex.Unlock()
-	if fake.StateStub != nil {
-		return fake.StateStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.stateReturns
 	return fakeReturns.result1
 }
 
@@ -1726,15 +1752,16 @@ func (fake *FakeWorker) Tags() []string {
 	ret, specificReturn := fake.tagsReturnsOnCall[len(fake.tagsArgsForCall)]
 	fake.tagsArgsForCall = append(fake.tagsArgsForCall, struct {
 	}{})
+	stub := fake.TagsStub
+	fakeReturns := fake.tagsReturns
 	fake.recordInvocation("Tags", []interface{}{})
 	fake.tagsMutex.Unlock()
-	if fake.TagsStub != nil {
-		return fake.TagsStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.tagsReturns
 	return fakeReturns.result1
 }
 
@@ -1778,15 +1805,16 @@ func (fake *FakeWorker) TeamID() int {
 	ret, specificReturn := fake.teamIDReturnsOnCall[len(fake.teamIDArgsForCall)]
 	fake.teamIDArgsForCall = append(fake.teamIDArgsForCall, struct {
 	}{})
+	stub := fake.TeamIDStub
+	fakeReturns := fake.teamIDReturns
 	fake.recordInvocation("TeamID", []interface{}{})
 	fake.teamIDMutex.Unlock()
-	if fake.TeamIDStub != nil {
-		return fake.TeamIDStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.teamIDReturns
 	return fakeReturns.result1
 }
 
@@ -1830,15 +1858,16 @@ func (fake *FakeWorker) TeamName() string {
 	ret, specificReturn := fake.teamNameReturnsOnCall[len(fake.teamNameArgsForCall)]
 	fake.teamNameArgsForCall = append(fake.teamNameArgsForCall, struct {
 	}{})
+	stub := fake.TeamNameStub
+	fakeReturns := fake.teamNameReturns
 	fake.recordInvocation("TeamName", []interface{}{})
 	fake.teamNameMutex.Unlock()
-	if fake.TeamNameStub != nil {
-		return fake.TeamNameStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.teamNameReturns
 	return fakeReturns.result1
 }
 
@@ -1882,15 +1911,16 @@ func (fake *FakeWorker) Version() *string {
 	ret, specificReturn := fake.versionReturnsOnCall[len(fake.versionArgsForCall)]
 	fake.versionArgsForCall = append(fake.versionArgsForCall, struct {
 	}{})
+	stub := fake.VersionStub
+	fakeReturns := fake.versionReturns
 	fake.recordInvocation("Version", []interface{}{})
 	fake.versionMutex.Unlock()
-	if fake.VersionStub != nil {
-		return fake.VersionStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.versionReturns
 	return fakeReturns.result1
 }
 

@@ -115,15 +115,16 @@ func (fake *FakeTSAClient) ContainersToDestroy(arg1 context.Context) ([]string, 
 	fake.containersToDestroyArgsForCall = append(fake.containersToDestroyArgsForCall, struct {
 		arg1 context.Context
 	}{arg1})
+	stub := fake.ContainersToDestroyStub
+	fakeReturns := fake.containersToDestroyReturns
 	fake.recordInvocation("ContainersToDestroy", []interface{}{arg1})
 	fake.containersToDestroyMutex.Unlock()
-	if fake.ContainersToDestroyStub != nil {
-		return fake.ContainersToDestroyStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.containersToDestroyReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -178,15 +179,16 @@ func (fake *FakeTSAClient) Delete(arg1 context.Context) error {
 	fake.deleteArgsForCall = append(fake.deleteArgsForCall, struct {
 		arg1 context.Context
 	}{arg1})
+	stub := fake.DeleteStub
+	fakeReturns := fake.deleteReturns
 	fake.recordInvocation("Delete", []interface{}{arg1})
 	fake.deleteMutex.Unlock()
-	if fake.DeleteStub != nil {
-		return fake.DeleteStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.deleteReturns
 	return fakeReturns.result1
 }
 
@@ -238,15 +240,16 @@ func (fake *FakeTSAClient) Land(arg1 context.Context) error {
 	fake.landArgsForCall = append(fake.landArgsForCall, struct {
 		arg1 context.Context
 	}{arg1})
+	stub := fake.LandStub
+	fakeReturns := fake.landReturns
 	fake.recordInvocation("Land", []interface{}{arg1})
 	fake.landMutex.Unlock()
-	if fake.LandStub != nil {
-		return fake.LandStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.landReturns
 	return fakeReturns.result1
 }
 
@@ -299,15 +302,16 @@ func (fake *FakeTSAClient) Register(arg1 context.Context, arg2 tsa.RegisterOptio
 		arg1 context.Context
 		arg2 tsa.RegisterOptions
 	}{arg1, arg2})
+	stub := fake.RegisterStub
+	fakeReturns := fake.registerReturns
 	fake.recordInvocation("Register", []interface{}{arg1, arg2})
 	fake.registerMutex.Unlock()
-	if fake.RegisterStub != nil {
-		return fake.RegisterStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.registerReturns
 	return fakeReturns.result1
 }
 
@@ -365,15 +369,16 @@ func (fake *FakeTSAClient) ReportContainers(arg1 context.Context, arg2 []string)
 		arg1 context.Context
 		arg2 []string
 	}{arg1, arg2Copy})
+	stub := fake.ReportContainersStub
+	fakeReturns := fake.reportContainersReturns
 	fake.recordInvocation("ReportContainers", []interface{}{arg1, arg2Copy})
 	fake.reportContainersMutex.Unlock()
-	if fake.ReportContainersStub != nil {
-		return fake.ReportContainersStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.reportContainersReturns
 	return fakeReturns.result1
 }
 
@@ -431,15 +436,16 @@ func (fake *FakeTSAClient) ReportVolumes(arg1 context.Context, arg2 []string) er
 		arg1 context.Context
 		arg2 []string
 	}{arg1, arg2Copy})
+	stub := fake.ReportVolumesStub
+	fakeReturns := fake.reportVolumesReturns
 	fake.recordInvocation("ReportVolumes", []interface{}{arg1, arg2Copy})
 	fake.reportVolumesMutex.Unlock()
-	if fake.ReportVolumesStub != nil {
-		return fake.ReportVolumesStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.reportVolumesReturns
 	return fakeReturns.result1
 }
 
@@ -491,15 +497,16 @@ func (fake *FakeTSAClient) Retire(arg1 context.Context) error {
 	fake.retireArgsForCall = append(fake.retireArgsForCall, struct {
 		arg1 context.Context
 	}{arg1})
+	stub := fake.RetireStub
+	fakeReturns := fake.retireReturns
 	fake.recordInvocation("Retire", []interface{}{arg1})
 	fake.retireMutex.Unlock()
-	if fake.RetireStub != nil {
-		return fake.RetireStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.retireReturns
 	return fakeReturns.result1
 }
 
@@ -551,15 +558,16 @@ func (fake *FakeTSAClient) VolumesToDestroy(arg1 context.Context) ([]string, err
 	fake.volumesToDestroyArgsForCall = append(fake.volumesToDestroyArgsForCall, struct {
 		arg1 context.Context
 	}{arg1})
+	stub := fake.VolumesToDestroyStub
+	fakeReturns := fake.volumesToDestroyReturns
 	fake.recordInvocation("VolumesToDestroy", []interface{}{arg1})
 	fake.volumesToDestroyMutex.Unlock()
-	if fake.VolumesToDestroyStub != nil {
-		return fake.VolumesToDestroyStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.volumesToDestroyReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

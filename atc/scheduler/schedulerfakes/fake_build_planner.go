@@ -44,15 +44,16 @@ func (fake *FakeBuildPlanner) Create(arg1 atc.StepConfig, arg2 db.SchedulerResou
 		arg3 atc.VersionedResourceTypes
 		arg4 []db.BuildInput
 	}{arg1, arg2, arg3, arg4Copy})
+	stub := fake.CreateStub
+	fakeReturns := fake.createReturns
 	fake.recordInvocation("Create", []interface{}{arg1, arg2, arg3, arg4Copy})
 	fake.createMutex.Unlock()
-	if fake.CreateStub != nil {
-		return fake.CreateStub(arg1, arg2, arg3, arg4)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.createReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

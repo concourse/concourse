@@ -25,9 +25,10 @@ func (fake *FakeEmitter) Emit(arg1 lager.Logger, arg2 metric.Event) {
 		arg1 lager.Logger
 		arg2 metric.Event
 	}{arg1, arg2})
+	stub := fake.EmitStub
 	fake.recordInvocation("Emit", []interface{}{arg1, arg2})
 	fake.emitMutex.Unlock()
-	if fake.EmitStub != nil {
+	if stub != nil {
 		fake.EmitStub(arg1, arg2)
 	}
 }

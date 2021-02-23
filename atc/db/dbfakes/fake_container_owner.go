@@ -49,15 +49,16 @@ func (fake *FakeContainerOwner) Create(arg1 db.Tx, arg2 string) (map[string]inte
 		arg1 db.Tx
 		arg2 string
 	}{arg1, arg2})
+	stub := fake.CreateStub
+	fakeReturns := fake.createReturns
 	fake.recordInvocation("Create", []interface{}{arg1, arg2})
 	fake.createMutex.Unlock()
-	if fake.CreateStub != nil {
-		return fake.CreateStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.createReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -112,15 +113,16 @@ func (fake *FakeContainerOwner) Find(arg1 db.Conn) (squirrel.Eq, bool, error) {
 	fake.findArgsForCall = append(fake.findArgsForCall, struct {
 		arg1 db.Conn
 	}{arg1})
+	stub := fake.FindStub
+	fakeReturns := fake.findReturns
 	fake.recordInvocation("Find", []interface{}{arg1})
 	fake.findMutex.Unlock()
-	if fake.FindStub != nil {
-		return fake.FindStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.findReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 

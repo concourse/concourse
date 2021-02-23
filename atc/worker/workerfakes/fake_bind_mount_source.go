@@ -34,15 +34,16 @@ func (fake *FakeBindMountSource) VolumeOn(arg1 worker.Worker) (garden.BindMount,
 	fake.volumeOnArgsForCall = append(fake.volumeOnArgsForCall, struct {
 		arg1 worker.Worker
 	}{arg1})
+	stub := fake.VolumeOnStub
+	fakeReturns := fake.volumeOnReturns
 	fake.recordInvocation("VolumeOn", []interface{}{arg1})
 	fake.volumeOnMutex.Unlock()
-	if fake.VolumeOnStub != nil {
-		return fake.VolumeOnStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.volumeOnReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 

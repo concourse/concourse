@@ -68,15 +68,16 @@ func (fake *FakeUser) Connector() string {
 	ret, specificReturn := fake.connectorReturnsOnCall[len(fake.connectorArgsForCall)]
 	fake.connectorArgsForCall = append(fake.connectorArgsForCall, struct {
 	}{})
+	stub := fake.ConnectorStub
+	fakeReturns := fake.connectorReturns
 	fake.recordInvocation("Connector", []interface{}{})
 	fake.connectorMutex.Unlock()
-	if fake.ConnectorStub != nil {
-		return fake.ConnectorStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.connectorReturns
 	return fakeReturns.result1
 }
 
@@ -120,15 +121,16 @@ func (fake *FakeUser) ID() int {
 	ret, specificReturn := fake.iDReturnsOnCall[len(fake.iDArgsForCall)]
 	fake.iDArgsForCall = append(fake.iDArgsForCall, struct {
 	}{})
+	stub := fake.IDStub
+	fakeReturns := fake.iDReturns
 	fake.recordInvocation("ID", []interface{}{})
 	fake.iDMutex.Unlock()
-	if fake.IDStub != nil {
-		return fake.IDStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.iDReturns
 	return fakeReturns.result1
 }
 
@@ -172,15 +174,16 @@ func (fake *FakeUser) LastLogin() time.Time {
 	ret, specificReturn := fake.lastLoginReturnsOnCall[len(fake.lastLoginArgsForCall)]
 	fake.lastLoginArgsForCall = append(fake.lastLoginArgsForCall, struct {
 	}{})
+	stub := fake.LastLoginStub
+	fakeReturns := fake.lastLoginReturns
 	fake.recordInvocation("LastLogin", []interface{}{})
 	fake.lastLoginMutex.Unlock()
-	if fake.LastLoginStub != nil {
-		return fake.LastLoginStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.lastLoginReturns
 	return fakeReturns.result1
 }
 
@@ -224,15 +227,16 @@ func (fake *FakeUser) Name() string {
 	ret, specificReturn := fake.nameReturnsOnCall[len(fake.nameArgsForCall)]
 	fake.nameArgsForCall = append(fake.nameArgsForCall, struct {
 	}{})
+	stub := fake.NameStub
+	fakeReturns := fake.nameReturns
 	fake.recordInvocation("Name", []interface{}{})
 	fake.nameMutex.Unlock()
-	if fake.NameStub != nil {
-		return fake.NameStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.nameReturns
 	return fakeReturns.result1
 }
 
@@ -276,15 +280,16 @@ func (fake *FakeUser) Sub() string {
 	ret, specificReturn := fake.subReturnsOnCall[len(fake.subArgsForCall)]
 	fake.subArgsForCall = append(fake.subArgsForCall, struct {
 	}{})
+	stub := fake.SubStub
+	fakeReturns := fake.subReturns
 	fake.recordInvocation("Sub", []interface{}{})
 	fake.subMutex.Unlock()
-	if fake.SubStub != nil {
-		return fake.SubStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.subReturns
 	return fakeReturns.result1
 }
 

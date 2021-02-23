@@ -52,15 +52,16 @@ func (fake *FakeTaskCacheFactory) Find(arg1 int, arg2 string, arg3 string) (db.U
 		arg2 string
 		arg3 string
 	}{arg1, arg2, arg3})
+	stub := fake.FindStub
+	fakeReturns := fake.findReturns
 	fake.recordInvocation("Find", []interface{}{arg1, arg2, arg3})
 	fake.findMutex.Unlock()
-	if fake.FindStub != nil {
-		return fake.FindStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.findReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -120,15 +121,16 @@ func (fake *FakeTaskCacheFactory) FindOrCreate(arg1 int, arg2 string, arg3 strin
 		arg2 string
 		arg3 string
 	}{arg1, arg2, arg3})
+	stub := fake.FindOrCreateStub
+	fakeReturns := fake.findOrCreateReturns
 	fake.recordInvocation("FindOrCreate", []interface{}{arg1, arg2, arg3})
 	fake.findOrCreateMutex.Unlock()
-	if fake.FindOrCreateStub != nil {
-		return fake.FindOrCreateStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.findOrCreateReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

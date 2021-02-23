@@ -64,15 +64,16 @@ func (fake *FakeChecker) Check(arg1 policy.PolicyCheckInput) (policy.PolicyCheck
 	fake.checkArgsForCall = append(fake.checkArgsForCall, struct {
 		arg1 policy.PolicyCheckInput
 	}{arg1})
+	stub := fake.CheckStub
+	fakeReturns := fake.checkReturns
 	fake.recordInvocation("Check", []interface{}{arg1})
 	fake.checkMutex.Unlock()
-	if fake.CheckStub != nil {
-		return fake.CheckStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.checkReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -127,15 +128,16 @@ func (fake *FakeChecker) ShouldCheckAction(arg1 string) bool {
 	fake.shouldCheckActionArgsForCall = append(fake.shouldCheckActionArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.ShouldCheckActionStub
+	fakeReturns := fake.shouldCheckActionReturns
 	fake.recordInvocation("ShouldCheckAction", []interface{}{arg1})
 	fake.shouldCheckActionMutex.Unlock()
-	if fake.ShouldCheckActionStub != nil {
-		return fake.ShouldCheckActionStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.shouldCheckActionReturns
 	return fakeReturns.result1
 }
 
@@ -187,15 +189,16 @@ func (fake *FakeChecker) ShouldCheckHttpMethod(arg1 string) bool {
 	fake.shouldCheckHttpMethodArgsForCall = append(fake.shouldCheckHttpMethodArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.ShouldCheckHttpMethodStub
+	fakeReturns := fake.shouldCheckHttpMethodReturns
 	fake.recordInvocation("ShouldCheckHttpMethod", []interface{}{arg1})
 	fake.shouldCheckHttpMethodMutex.Unlock()
-	if fake.ShouldCheckHttpMethodStub != nil {
-		return fake.ShouldCheckHttpMethodStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.shouldCheckHttpMethodReturns
 	return fakeReturns.result1
 }
 
@@ -247,15 +250,16 @@ func (fake *FakeChecker) ShouldSkipAction(arg1 string) bool {
 	fake.shouldSkipActionArgsForCall = append(fake.shouldSkipActionArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.ShouldSkipActionStub
+	fakeReturns := fake.shouldSkipActionReturns
 	fake.recordInvocation("ShouldSkipAction", []interface{}{arg1})
 	fake.shouldSkipActionMutex.Unlock()
-	if fake.ShouldSkipActionStub != nil {
-		return fake.ShouldSkipActionStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.shouldSkipActionReturns
 	return fakeReturns.result1
 }
 

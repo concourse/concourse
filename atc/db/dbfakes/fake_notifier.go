@@ -37,15 +37,16 @@ func (fake *FakeNotifier) Close() error {
 	ret, specificReturn := fake.closeReturnsOnCall[len(fake.closeArgsForCall)]
 	fake.closeArgsForCall = append(fake.closeArgsForCall, struct {
 	}{})
+	stub := fake.CloseStub
+	fakeReturns := fake.closeReturns
 	fake.recordInvocation("Close", []interface{}{})
 	fake.closeMutex.Unlock()
-	if fake.CloseStub != nil {
-		return fake.CloseStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.closeReturns
 	return fakeReturns.result1
 }
 
@@ -89,15 +90,16 @@ func (fake *FakeNotifier) Notify() <-chan struct{} {
 	ret, specificReturn := fake.notifyReturnsOnCall[len(fake.notifyArgsForCall)]
 	fake.notifyArgsForCall = append(fake.notifyArgsForCall, struct {
 	}{})
+	stub := fake.NotifyStub
+	fakeReturns := fake.notifyReturns
 	fake.recordInvocation("Notify", []interface{}{})
 	fake.notifyMutex.Unlock()
-	if fake.NotifyStub != nil {
-		return fake.NotifyStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.notifyReturns
 	return fakeReturns.result1
 }
 

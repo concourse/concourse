@@ -50,15 +50,16 @@ func (fake *FakeArtifactSourcer) SourceImage(arg1 lager.Logger, arg2 runtime.Art
 		arg1 lager.Logger
 		arg2 runtime.Artifact
 	}{arg1, arg2})
+	stub := fake.SourceImageStub
+	fakeReturns := fake.sourceImageReturns
 	fake.recordInvocation("SourceImage", []interface{}{arg1, arg2})
 	fake.sourceImageMutex.Unlock()
-	if fake.SourceImageStub != nil {
-		return fake.SourceImageStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.sourceImageReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -115,15 +116,16 @@ func (fake *FakeArtifactSourcer) SourceInputsAndCaches(arg1 lager.Logger, arg2 i
 		arg2 int
 		arg3 map[string]runtime.Artifact
 	}{arg1, arg2, arg3})
+	stub := fake.SourceInputsAndCachesStub
+	fakeReturns := fake.sourceInputsAndCachesReturns
 	fake.recordInvocation("SourceInputsAndCaches", []interface{}{arg1, arg2, arg3})
 	fake.sourceInputsAndCachesMutex.Unlock()
-	if fake.SourceInputsAndCachesStub != nil {
-		return fake.SourceInputsAndCachesStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.sourceInputsAndCachesReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
