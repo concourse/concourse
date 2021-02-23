@@ -352,15 +352,13 @@ func (r *groupResolver) paginatedBuilds(ctx context.Context, currentInputConfig 
 
 	if currentInputConfig.UseEveryVersion {
 		if r.lastUsedPassedBuilds == nil {
-			lastUsedBuildIDs := map[int]db.BuildCursor{}
-
 			buildID, found, err := r.vdb.LatestBuildUsingLatestVersion(ctx, currentJobID, currentInputConfig.ResourceID)
 			if err != nil {
 				return db.PaginatedBuilds{}, false, err
 			}
 
 			if found {
-				lastUsedBuildIDs, err = r.vdb.LatestBuildPipes(ctx, buildID)
+				lastUsedBuildIDs, err := r.vdb.LatestBuildPipes(ctx, buildID)
 				if err != nil {
 					return db.PaginatedBuilds{}, false, err
 				}
@@ -488,9 +486,7 @@ func (r *groupResolver) vouchForCandidate(oldCandidate *versionCandidate, versio
 		}
 
 		if len(oldCandidate.SourceBuildIds) != 0 {
-			for _, sourceBuildId := range oldCandidate.SourceBuildIds {
-				newCandidate.SourceBuildIds = append(newCandidate.SourceBuildIds, sourceBuildId)
-			}
+			newCandidate.SourceBuildIds = append(newCandidate.SourceBuildIds, oldCandidate.SourceBuildIds...)
 		}
 
 		newCandidate.HasNextEveryVersion = oldCandidate.HasNextEveryVersion
@@ -508,7 +504,7 @@ func (r *groupResolver) vouchForCandidate(oldCandidate *versionCandidate, versio
 
 func (r *groupResolver) orderJobs(jobIDs map[int]bool) []int {
 	orderedJobs := []int{}
-	for id, _ := range jobIDs {
+	for id := range jobIDs {
 		orderedJobs = append(orderedJobs, id)
 	}
 

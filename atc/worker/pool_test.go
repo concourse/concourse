@@ -10,7 +10,6 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/concourse/concourse/atc/worker"
 	. "github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 	. "github.com/onsi/ginkgo"
@@ -33,7 +32,7 @@ var _ = Describe("Pool", func() {
 
 	Describe("FindContainer", func() {
 		var (
-			foundContainer worker.Container
+			foundContainer Container
 			found          bool
 			findErr        error
 		)
@@ -92,7 +91,7 @@ var _ = Describe("Pool", func() {
 
 	Describe("FindVolume", func() {
 		var (
-			foundVolume worker.Volume
+			foundVolume Volume
 			found       bool
 			findErr     error
 		)
@@ -152,18 +151,18 @@ var _ = Describe("Pool", func() {
 	Describe("CreateVolume", func() {
 		var (
 			fakeWorker *workerfakes.FakeWorker
-			volumeSpec worker.VolumeSpec
-			workerSpec worker.WorkerSpec
+			volumeSpec VolumeSpec
+			workerSpec WorkerSpec
 			volumeType db.VolumeType
 			err        error
 		)
 
 		BeforeEach(func() {
-			volumeSpec = worker.VolumeSpec{
+			volumeSpec = VolumeSpec{
 				Strategy: baggageclaim.EmptyStrategy{},
 			}
 
-			workerSpec = worker.WorkerSpec{
+			workerSpec = WorkerSpec{
 				TeamID: 1,
 			}
 

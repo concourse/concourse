@@ -10,8 +10,8 @@ type V6ResourceConfigVersion struct {
 	Version map[string]string `json:"version,omitempty"`
 }
 
-func (self *migrations) Up_1585079293() error {
-	tx, err := self.DB.Begin()
+func (m *migrations) Up_1585079293() error {
+	tx, err := m.DB.Begin()
 	if err != nil {
 		return err
 	}
@@ -44,7 +44,7 @@ func (self *migrations) Up_1585079293() error {
 			noncense = &nonce.String
 		}
 
-		decrypted, err := self.Strategy.Decrypt(string(configBlob), noncense)
+		decrypted, err := m.Strategy.Decrypt(string(configBlob), noncense)
 		if err != nil {
 			return err
 		}
@@ -77,4 +77,3 @@ func (self *migrations) Up_1585079293() error {
 
 	return tx.Commit()
 }
-

@@ -263,6 +263,7 @@ var _ = Describe("Pipeline", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			jobConfigs, err := jobs.Configs()
+			Expect(err).ToNot(HaveOccurred())
 			emptyJobConfigs := make(atc.JobConfigs, len(pipelineConfig.Jobs))
 			Expect(jobConfigs).To(Equal(emptyJobConfigs))
 		})
@@ -1000,6 +1001,7 @@ var _ = Describe("Pipeline", func() {
 			By("initially having no versions")
 			resourceVersions, _, found, err := resource.Versions(db.Page{Limit: 10}, nil)
 			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
 			Expect(resourceVersions).To(HaveLen(0))
 
 			By("including saved versioned resources of the current pipeline")
@@ -1943,6 +1945,7 @@ var _ = Describe("Pipeline", func() {
 			Expect(found).To(BeTrue())
 
 			_, err = otherJob.CreateBuild(defaultBuildCreatedBy)
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		Context("when not providing boundaries", func() {

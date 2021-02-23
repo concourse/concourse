@@ -44,7 +44,7 @@ func groupInputsConfigsByPassedJobs(passedInputConfigs db.InputConfigs) []relate
 		var index int
 		var found bool
 
-		for passedJob, _ := range inputConfig.Passed {
+		for passedJob := range inputConfig.Passed {
 			for groupIndex, group := range groupedPassedInputConfigs {
 				if group.passedJobs[passedJob] {
 					found = true
@@ -56,14 +56,14 @@ func groupInputsConfigsByPassedJobs(passedInputConfigs db.InputConfigs) []relate
 		if found {
 			groupedPassedInputConfigs[index].inputConfigs = append(groupedPassedInputConfigs[index].inputConfigs, inputConfig)
 
-			for inputPassedJob, _ := range inputConfig.Passed {
+			for inputPassedJob := range inputConfig.Passed {
 				if !groupedPassedInputConfigs[index].passedJobs[inputPassedJob] {
 					groupedPassedInputConfigs[index].passedJobs[inputPassedJob] = true
 				}
 			}
 		} else {
 			passedJobs := map[int]bool{}
-			for jobID, _ := range inputConfig.Passed {
+			for jobID := range inputConfig.Passed {
 				passedJobs[jobID] = true
 			}
 

@@ -890,6 +890,7 @@ var _ = Describe("Team", func() {
 			It("resets legacy_auth to NULL", func() {
 				oldLegacyAuth := `{"basicauth": {"username": "u", "password": "p"}}`
 				_, err := dbConn.Exec("UPDATE teams SET legacy_auth = $1 WHERE id = $2", oldLegacyAuth, team.ID())
+				Expect(err).ToNot(HaveOccurred())
 				team.UpdateProviderAuth(authProvider)
 
 				var newLegacyAuth sql.NullString
@@ -3244,7 +3245,7 @@ var _ = Describe("Team", func() {
 			Expect(err).ToNot(HaveOccurred())
 			otherJobs, err = otherPipeline.Jobs()
 			Expect(err).ToNot(HaveOccurred())
-			otherJobConfigs, err = jobs.Configs()
+			otherJobConfigs, err = otherJobs.Configs()
 			Expect(err).ToNot(HaveOccurred())
 			expectConfigsEqual(atc.Config{
 				Groups:        otherPipeline.Groups(),
@@ -3308,7 +3309,7 @@ var _ = Describe("Team", func() {
 				Expect(otherTeamPipeline.Paused()).To(BeTrue())
 
 				By("updating the pipeline config for the correct team's pipeline")
-				teamPipeline, _, err = team.SavePipeline(pipelineRef, otherConfig, teamPipeline.ConfigVersion(), false)
+				_, _, err = team.SavePipeline(pipelineRef, otherConfig, teamPipeline.ConfigVersion(), false)
 				Expect(err).ToNot(HaveOccurred())
 
 				_, _, err = otherTeam.SavePipeline(pipelineRef, config, otherTeamPipeline.ConfigVersion(), false)

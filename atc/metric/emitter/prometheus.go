@@ -631,7 +631,7 @@ func (emitter *PrometheusEmitter) workerContainersMetric(logger lager.Logger, ev
 		logger.Error("failed-to-find-team-name-in-event", fmt.Errorf("expected team_name to exist in event.Attributes"))
 		return
 	}
-	tags, _ := event.Attributes["tags"]
+	tags := event.Attributes["tags"]
 
 	labels := prometheus.Labels{
 		"worker":   worker,
@@ -692,7 +692,7 @@ func (emitter *PrometheusEmitter) workerVolumesMetric(logger lager.Logger, event
 		logger.Error("failed-to-find-team-name-in-event", fmt.Errorf("expected team_name to exist in event.Attributes"))
 		return
 	}
-	tags, _ := event.Attributes["tags"]
+	tags := event.Attributes["tags"]
 
 	labels := prometheus.Labels{
 		"worker":   worker,

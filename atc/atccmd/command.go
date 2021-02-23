@@ -356,7 +356,7 @@ func (cmd *Migration) migrateDBToVersion() error {
 
 	err := helper.MigrateToVersion(version)
 	if err != nil {
-		return fmt.Errorf("Could not migrate to version: %d Reason: %s", version, err.Error())
+		return fmt.Errorf("could not migrate to version: %d Reason: %s", version, err.Error())
 	}
 
 	fmt.Println("Successfully migrated to version:", version)
@@ -511,7 +511,7 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 
 	commandSession.Info("start")
 	defer commandSession.Info("finish", lager.Data{
-		"duration": time.Now().Sub(startTime),
+		"duration": time.Since(startTime),
 	})
 
 	atc.EnableGlobalResources = cmd.FeatureFlags.EnableGlobalResources
@@ -1424,8 +1424,7 @@ func (tripper mitmRoundTripper) RoundTrip(req *http.Request) (*http.Response, er
 }
 
 func (cmd *RunCommand) tlsConfig(logger lager.Logger, dbConn db.Conn) (*tls.Config, error) {
-	var tlsConfig *tls.Config
-	tlsConfig = atc.DefaultTLSConfig()
+	tlsConfig := atc.DefaultTLSConfig()
 
 	if cmd.isTLSEnabled() {
 		tlsLogger := logger.Session("tls-enabled")

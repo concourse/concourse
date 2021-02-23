@@ -267,6 +267,10 @@ func (c *volumeClient) CreateVolumeForTaskCache(
 	}
 
 	usedWorkerTaskCache, err := c.dbWorkerTaskCacheFactory.FindOrCreate(workerTaskCache)
+	if err != nil {
+		logger.Error("failed-to-find-or-create-worker-task-cache-in-db", err)
+		return nil, err
+	}
 
 	return c.findOrCreateVolume(
 		logger.Session("find-or-create-volume-for-container"),

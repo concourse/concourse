@@ -57,7 +57,6 @@ func NewStepperFactory(
 
 type stepperFactory struct {
 	coreFactory     CoreStepFactory
-	delegateFactory DelegateFactory
 	externalURL     string
 	rateLimiter     RateLimiter
 	policyChecker   policy.Checker

@@ -168,6 +168,7 @@ var _ = Describe("Pipelines API", func() {
 
 				var pipelines []map[string]interface{}
 				err = json.Unmarshal(body, &pipelines)
+				Expect(err).NotTo(HaveOccurred())
 				Expect(pipelines).To(ConsistOf(
 					HaveKeyWithValue("id", BeNumerically("==", publicPipeline.ID())),
 					HaveKeyWithValue("id", BeNumerically("==", anotherPublicPipeline.ID())),
@@ -194,6 +195,7 @@ var _ = Describe("Pipelines API", func() {
 
 				var pipelines []map[string]interface{}
 				err = json.Unmarshal(body, &pipelines)
+				Expect(err).NotTo(HaveOccurred())
 				Expect(pipelines).To(ConsistOf(
 					HaveKeyWithValue("id", BeNumerically("==", publicPipeline.ID())),
 					HaveKeyWithValue("id", BeNumerically("==", privatePipeline.ID())),

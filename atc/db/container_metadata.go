@@ -41,7 +41,7 @@ func ContainerTypeFromString(containerType string) (ContainerType, error) {
 	case "task":
 		return ContainerTypeTask, nil
 	default:
-		return "", fmt.Errorf("Unrecognized containerType: %s", containerType)
+		return "", fmt.Errorf("unrecognized containerType: %s", containerType)
 	}
 }
 

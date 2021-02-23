@@ -5,12 +5,15 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/auditor"
 )
 
 //go:generate counterfeiter net/http.Handler
 
 //go:generate counterfeiter . AccessFactory
+
+const accessorContextKey atc.ContextKey = "accessor"
 
 type AccessFactory interface {
 	Create(req *http.Request, role string) (Access, error)
@@ -58,14 +61,14 @@ func (h *accessorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	claims := acc.Claims()
 
-	ctx := context.WithValue(r.Context(), "accessor", acc)
+	ctx := context.WithValue(r.Context(), accessorContextKey, acc)
 
 	h.auditor.Audit(h.action, claims.UserName, r)
 	h.handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
 func GetAccessor(r *http.Request) Access {
-	accessor := r.Context().Value("accessor")
+	accessor := r.Context().Value(accessorContextKey)
 	if accessor != nil {
 		return accessor.(Access)
 	}

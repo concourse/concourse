@@ -10,7 +10,7 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
-func (self *migrations) Up_1528470872() error {
+func (m *migrations) Up_1528470872() error {
 
 	type team struct {
 		id    int64
@@ -19,7 +19,7 @@ func (self *migrations) Up_1528470872() error {
 		nonce sql.NullString
 	}
 
-	tx, err := self.DB.Begin()
+	tx, err := m.DB.Begin()
 	if err != nil {
 		return err
 	}
@@ -94,7 +94,7 @@ func (self *migrations) Up_1528470872() error {
 			noncense = &team.nonce.String
 		}
 
-		decryptedAuth, err := self.Strategy.Decrypt(string(team.auth), noncense)
+		decryptedAuth, err := m.Strategy.Decrypt(string(team.auth), noncense)
 		if err != nil {
 			tx.Rollback()
 			return err
@@ -233,7 +233,7 @@ func (self *migrations) Up_1528470872() error {
 
 			case "bitbucket-server", "bitbucket-cloud":
 				tx.Rollback()
-				return errors.New("Bitbucket is no longer supported")
+				return errors.New("bitbucket is no longer supported")
 			}
 		}
 
@@ -278,7 +278,7 @@ func (self *migrations) Up_1528470872() error {
 	}
 	if errorMessage != "" {
 		tx.Rollback()
-		return fmt.Errorf("Problems in your database caused the migration to fail:\n\n%s", errorMessage)
+		return fmt.Errorf("problems in your database caused the migration to fail:\n\n%s", errorMessage)
 	}
 
 	err = tx.Commit()

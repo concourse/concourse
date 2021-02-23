@@ -34,7 +34,7 @@ var _ = Describe("CsrfValidationHandler", func() {
 
 	csrfRequiredWrapHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if isLoggerSet {
-			r = request.WithContext(context.WithValue(r.Context(), "logger", logger))
+			r = request.WithContext(context.WithValue(r.Context(), auth.LoggerContextKey, logger))
 		}
 		if isCSRFRequired {
 			r = request.WithContext(context.WithValue(r.Context(), auth.CSRFRequiredKey, true))

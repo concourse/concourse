@@ -16,9 +16,9 @@ type migrations struct {
 	encryption.Strategy
 }
 
-func (self *migrations) Run(name string) error {
+func (m *migrations) Run(name string) error {
 
-	res := reflect.ValueOf(self).MethodByName(name).Call(nil)
+	res := reflect.ValueOf(m).MethodByName(name).Call(nil)
 
 	ret := res[0].Interface()
 

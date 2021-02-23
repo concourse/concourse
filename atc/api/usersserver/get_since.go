@@ -65,12 +65,8 @@ func (s *Server) GetUsersSince(w http.ResponseWriter, r *http.Request) {
 		hLog.Error("failed-to-encode-users", err)
 		w.WriteHeader(http.StatusInternalServerError)
 	}
-	return
 }
 
 func isSinceSet(r *http.Request) bool {
-	if len(r.FormValue(since)) > 0 {
-		return true
-	}
-	return false
+	return len(r.FormValue(since)) > 0
 }

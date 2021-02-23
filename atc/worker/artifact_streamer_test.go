@@ -25,6 +25,7 @@ var _ = Describe("ArtifactStreamer", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		content, err := ioutil.ReadAll(reader)
+		Expect(err).ToNot(HaveOccurred())
 		Expect(content).To(Equal([]byte("some file")))
 	})
 

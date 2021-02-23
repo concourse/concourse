@@ -43,7 +43,7 @@ var _ = Describe("OpenHelper", func() {
 
 			err = openHelper.MigrateToVersion(5000)
 
-			Expect(err.Error()).To(Equal("Must upgrade from db version 189 (concourse 3.6.0), current db version: 188"))
+			Expect(err.Error()).To(Equal("must upgrade from db version 189 (concourse 3.6.0), current db version: 188"))
 
 			_, err = db.Exec("SELECT version FROM migration_version")
 			Expect(err).NotTo(HaveOccurred())
@@ -54,7 +54,7 @@ var _ = Describe("OpenHelper", func() {
 
 			err = openHelper.MigrateToVersion(5000)
 
-			Expect(err.Error()).To(Equal("Must upgrade from db version 189 (concourse 3.6.0), current db version: 190"))
+			Expect(err.Error()).To(Equal("must upgrade from db version 189 (concourse 3.6.0), current db version: 190"))
 
 			_, err = db.Exec("SELECT version FROM migration_version")
 			Expect(err).NotTo(HaveOccurred())

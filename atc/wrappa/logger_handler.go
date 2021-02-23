@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc/api/auth"
 )
 
 type LoggerHandler struct {
@@ -16,6 +17,6 @@ func (handler LoggerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	logger := handler.Logger.Session("http-request", lager.Data{
 		"request-path": r.URL.Path,
 	})
-	ctx := context.WithValue(r.Context(), "logger", logger)
+	ctx := context.WithValue(r.Context(), auth.LoggerContextKey, logger)
 	handler.Handler.ServeHTTP(w, r.WithContext(ctx))
 }

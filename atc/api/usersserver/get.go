@@ -18,5 +18,4 @@ func (s *Server) GetUser(w http.ResponseWriter, r *http.Request) {
 		hLog.Error("failed-to-encode-users", err)
 		w.WriteHeader(http.StatusInternalServerError)
 	}
-	return
 }

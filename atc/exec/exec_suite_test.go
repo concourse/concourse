@@ -25,14 +25,9 @@ func TestExec(t *testing.T) {
 	RunSpecs(t, "Exec Suite")
 }
 
-type testMetadata []string
-
-func (m testMetadata) Env() []string { return m }
-
 var (
 	testLogger = lagertest.NewTestLogger("test")
 
-	fakePolicyAgent        *policyfakes.FakeAgent
 	fakePolicyAgentFactory *policyfakes.FakeAgentFactory
 )
 

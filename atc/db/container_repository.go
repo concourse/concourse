@@ -156,6 +156,9 @@ func (repository *containerRepository) FindDestroyingContainers(workerName strin
 			"worker_name": workerName,
 		},
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	err = tx.Commit()
 	if err != nil {

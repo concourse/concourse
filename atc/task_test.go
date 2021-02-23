@@ -1,7 +1,6 @@
 package atc_test
 
 import (
-	"github.com/concourse/concourse/atc"
 	. "github.com/concourse/concourse/atc"
 
 	. "github.com/onsi/ginkgo"
@@ -169,7 +168,7 @@ run: {path: a/file}
 					task, err := NewTaskConfig(data)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(task.Platform).To(Equal("beos"))
-					Expect(task.Params).To(Equal(atc.TaskEnv{"FOO": "1"}))
+					Expect(task.Params).To(Equal(TaskEnv{"FOO": "1"}))
 				})
 			})
 
@@ -401,12 +400,12 @@ run: {path: a/file}
 })
 
 var _ = Context("ImageResource", func() {
-	var imageResource *atc.ImageResource
-	var resourceTypes atc.VersionedResourceTypes
+	var imageResource *ImageResource
+	var resourceTypes VersionedResourceTypes
 
 	Context("ApplySourceDefaults", func() {
 		BeforeEach(func() {
-			resourceTypes = atc.VersionedResourceTypes{}
+			resourceTypes = VersionedResourceTypes{}
 		})
 
 		JustBeforeEach(func() {
@@ -421,9 +420,9 @@ var _ = Context("ImageResource", func() {
 
 		Context("when imageResource is initialized", func() {
 			BeforeEach(func() {
-				imageResource = &atc.ImageResource{
+				imageResource = &ImageResource{
 					Type: "docker",
-					Source: atc.Source{
+					Source: Source{
 						"a":               "b",
 						"evaluated-value": "((task-variable-name))",
 					},
@@ -432,7 +431,7 @@ var _ = Context("ImageResource", func() {
 
 			Context("resourceTypes is empty, and no base resource type defaults configured", func() {
 				It("applied source should be identical to the original", func() {
-					Expect(imageResource.Source).To(Equal(atc.Source{
+					Expect(imageResource.Source).To(Equal(Source{
 						"a":               "b",
 						"evaluated-value": "((task-variable-name))",
 					}))
@@ -441,14 +440,14 @@ var _ = Context("ImageResource", func() {
 
 			Context("resourceTypes is empty, and base resource type defaults configured", func() {
 				BeforeEach(func() {
-					atc.LoadBaseResourceTypeDefaults(map[string]atc.Source{"docker": atc.Source{"some-key": "some-value"}})
+					LoadBaseResourceTypeDefaults(map[string]Source{"docker": {"some-key": "some-value"}})
 				})
 				AfterEach(func() {
-					atc.LoadBaseResourceTypeDefaults(map[string]atc.Source{})
+					LoadBaseResourceTypeDefaults(map[string]Source{})
 				})
 
 				It("defaults should be added to image source", func() {
-					Expect(imageResource.Source).To(Equal(atc.Source{
+					Expect(imageResource.Source).To(Equal(Source{
 						"a":               "b",
 						"evaluated-value": "((task-variable-name))",
 						"some-key":        "some-value",
@@ -458,18 +457,18 @@ var _ = Context("ImageResource", func() {
 
 			Context("resourceTypes contains image source type", func() {
 				BeforeEach(func() {
-					resourceTypes = atc.VersionedResourceTypes{
+					resourceTypes = VersionedResourceTypes{
 						{
-							ResourceType: atc.ResourceType{
+							ResourceType: ResourceType{
 								Name:     "docker",
-								Defaults: atc.Source{"some-key": "some-value"},
+								Defaults: Source{"some-key": "some-value"},
 							},
 						},
 					}
 				})
 
 				It("defaults should be added to image source", func() {
-					Expect(imageResource.Source).To(Equal(atc.Source{
+					Expect(imageResource.Source).To(Equal(Source{
 						"a":               "b",
 						"evaluated-value": "((task-variable-name))",
 						"some-key":        "some-value",
