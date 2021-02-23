@@ -1,3 +1,5 @@
-\title{Hello World Pipeline}
+\title{Inputs and Outputs}
 
 \use-plugin{concourse-docs}
+
+This section is going to go over how to pass data between different \reference{steps}{steps} in a \reference{jobs}{job}

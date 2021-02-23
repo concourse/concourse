@@ -23,3 +23,4 @@ It will also help if you know how to read YAML. We have a quick \reference{intro
 
 \include-section{tutorial/quickstart.lit}
 \include-section{tutorial/hello-world.lit}
+\include-section{tutorial/inputs-outputs.lit}
