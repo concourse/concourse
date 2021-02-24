@@ -832,7 +832,7 @@ tombstone timeZone model =
                 [ class "explanation" ]
                 [ Html.text "This log has been "
                 , Html.a
-                    [ Html.Attributes.href "https://concourse-ci.org/jobs.html#job-build-log-retention" ]
+                    [ Html.Attributes.href "https://concourse-ci.org/concourse-web.html#build-log-retention" ]
                     [ Html.text "reaped." ]
                 ]
             ]
