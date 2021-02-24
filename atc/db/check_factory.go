@@ -38,7 +38,7 @@ type Checkable interface {
 //go:generate counterfeiter . CheckFactory
 
 type CheckFactory interface {
-	TryCreateCheck(context.Context, Checkable, ResourceTypes, atc.Version, bool) (Build, bool, error)
+	TryCreateCheck(context.Context, Checkable, CheckPlanner, ResourceTypes, atc.Version, bool) (Build, bool, error)
 	Resources() ([]Resource, error)
 	ResourceTypes() ([]ResourceType, error)
 }
@@ -85,7 +85,11 @@ func NewCheckFactory(
 	}
 }
 
-func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, resourceTypes ResourceTypes, from atc.Version, manuallyTriggered bool) (Build, bool, error) {
+type CheckPlanner interface {
+	Create(resource Resource, resourceTypes ResourceTypes, from atc.Version) atc.PlanConfig
+}
+
+func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, planner CheckPlanner, resourceTypes ResourceTypes, from atc.Version, manuallyTriggered bool) (Build, bool, error) {
 	logger := lagerctx.FromContext(ctx)
 
 	var err error

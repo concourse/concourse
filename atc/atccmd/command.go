@@ -1079,13 +1079,14 @@ func (cmd *RunCommand) backendComponents(
 		cmd.ResourceWithWebhookCheckingInterval = cmd.ResourceCheckingInterval
 	}
 
+	planFactory := atc.NewPlanFactory(time.Now().Unix())
 	components := []RunnableComponent{
 		{
 			Component: atc.Component{
 				Name:     atc.ComponentLidarScanner,
 				Interval: cmd.LidarScannerInterval,
 			},
-			Runnable: lidar.NewScanner(dbCheckFactory),
+			Runnable: lidar.NewScanner(dbCheckFactory, planFactory),
 		},
 		{
 			Component: atc.Component{
@@ -1098,9 +1099,7 @@ func (cmd *RunCommand) backendComponents(
 				&scheduler.Scheduler{
 					Algorithm: alg,
 					BuildStarter: scheduler.NewBuildStarter(
-						builds.NewPlanner(
-							atc.NewPlanFactory(time.Now().Unix()),
-						),
+						builds.NewPlanner(planFactory),
 						alg),
 				},
 				cmd.JobSchedulingMaxInFlight,

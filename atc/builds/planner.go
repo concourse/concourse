@@ -1,6 +1,8 @@
 package builds
 
 import (
+	"time"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 )
@@ -462,14 +464,50 @@ func (visitor *planVisitor) VisitEnsure(step *atc.EnsureStep) error {
 	return nil
 }
 
-func (visitor *planVisitor) fetchImagePlan(resourceTypeName string, resourceTypes atc.VersionedResourceTypes, stepTags atc.Tags) (atc.Plan, *atc.PlanID, *string) {
+type CheckPlanner struct {
+	planFactory atc.PlanFactory
+}
+
+func (c *CheckPlanner) Create(resource db.Resource, resourceTypes db.ResourceTypes, from atc.Version, sourceDefaults atc.Source, interval time.Duration) atc.Plan {
+	versionedResourceTypes := resourceTypes.Deserialize()
+
+	checkPlan := atc.CheckPlan{
+		Name:    resource.Name(),
+		Type:    resource.Type(),
+		Source:  sourceDefaults.Merge(resource.Source()),
+		Tags:    resource.Tags(),
+		Timeout: resource.CheckTimeout(),
+
+		FromVersion:            from,
+		Interval:               interval.String(),
+		VersionedResourceTypes: versionedResourceTypes,
+
+		Resource: resource.Name(),
+	}
+
+	var plan atc.Plan
+	var imageFetchPlan atc.Plan
+	imageFetchPlan, checkPlan.ImageSpecFrom, checkPlan.BaseImageType = fetchImagePlan(c.planFactory, resource.Type(), checkPlan.VersionedResourceTypes, resource.Tags())
+	if checkPlan.ImageSpecFrom != nil {
+		plan = c.planFactory.NewPlan(atc.OnSuccessPlan{
+			Step: imageFetchPlan,
+			Next: c.planFactory.NewPlan(checkPlan),
+		})
+	} else {
+		plan = c.planFactory.NewPlan(checkPlan)
+	}
+
+	return plan
+}
+
+func fetchImagePlan(planFactory atc.PlanFactory, resourceTypeName string, resourceTypes atc.VersionedResourceTypes, stepTags atc.Tags) (atc.Plan, *atc.PlanID, *string) {
 	// Check if the resource type is a custom resource type
 	parentResourceType, found := resourceTypes.Lookup(resourceTypeName)
 	if found {
 		trimmedResourceTypes := resourceTypes.Without(resourceTypeName)
 
 		// If resource type is a custom type, recurse in order to resolve nested resource types
-		subPlan, subPlanID, subBaseImageType := visitor.fetchImagePlan(parentResourceType.Type, trimmedResourceTypes, stepTags)
+		subPlan, subPlanID, subBaseImageType := fetchImagePlan(planFactory, parentResourceType.Type, trimmedResourceTypes, stepTags)
 
 		tags := parentResourceType.Tags
 		if len(parentResourceType.Tags) == 0 {
@@ -496,7 +534,7 @@ func (visitor *planVisitor) fetchImagePlan(resourceTypeName string, resourceType
 		resourceTypeVersion := parentResourceType.Version
 		if resourceTypeVersion == nil {
 			// don't know the version, need to do a Check before the Get
-			checkPlan := visitor.planFactory.NewPlan(atc.CheckPlan{
+			checkPlan := planFactory.NewPlan(atc.CheckPlan{
 				Name:   parentResourceType.Name,
 				Type:   parentResourceType.Type,
 				Source: parentResourceType.Source,
@@ -510,17 +548,17 @@ func (visitor *planVisitor) fetchImagePlan(resourceTypeName string, resourceType
 			})
 
 			imageGetConfig.VersionFrom = &checkPlan.ID
-			imageGetPlan = visitor.planFactory.NewPlan(imageGetConfig)
+			imageGetPlan = planFactory.NewPlan(imageGetConfig)
 
 			// Build plan for running the check and then the get for the image
-			imageFetchPlan = visitor.planFactory.NewPlan(atc.OnSuccessPlan{
+			imageFetchPlan = planFactory.NewPlan(atc.OnSuccessPlan{
 				Step: checkPlan,
 				Next: imageGetPlan,
 			})
 		} else {
 			// version is already provided, only need to do Get step
 			imageGetConfig.Version = &resourceTypeVersion
-			imageGetPlan = visitor.planFactory.NewPlan(imageGetConfig)
+			imageGetPlan = planFactory.NewPlan(imageGetConfig)
 
 			imageFetchPlan = imageGetPlan
 		}
@@ -528,7 +566,7 @@ func (visitor *planVisitor) fetchImagePlan(resourceTypeName string, resourceType
 		if subBaseImageType == nil {
 			// If the parent of this resource type is a custom type,
 			// we have nested resource-types and need to run substeps first
-			return visitor.planFactory.NewPlan(atc.OnSuccessPlan{
+			return planFactory.NewPlan(atc.OnSuccessPlan{
 				Step: subPlan,
 				Next: imageFetchPlan,
 			}), &imageGetPlan.ID, nil
