@@ -109,15 +109,16 @@ func (fake *FakeAccess) Claims() accessor.Claims {
 	ret, specificReturn := fake.claimsReturnsOnCall[len(fake.claimsArgsForCall)]
 	fake.claimsArgsForCall = append(fake.claimsArgsForCall, struct {
 	}{})
+	stub := fake.ClaimsStub
+	fakeReturns := fake.claimsReturns
 	fake.recordInvocation("Claims", []interface{}{})
 	fake.claimsMutex.Unlock()
-	if fake.ClaimsStub != nil {
-		return fake.ClaimsStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.claimsReturns
 	return fakeReturns.result1
 }
 
@@ -161,15 +162,16 @@ func (fake *FakeAccess) HasToken() bool {
 	ret, specificReturn := fake.hasTokenReturnsOnCall[len(fake.hasTokenArgsForCall)]
 	fake.hasTokenArgsForCall = append(fake.hasTokenArgsForCall, struct {
 	}{})
+	stub := fake.HasTokenStub
+	fakeReturns := fake.hasTokenReturns
 	fake.recordInvocation("HasToken", []interface{}{})
 	fake.hasTokenMutex.Unlock()
-	if fake.HasTokenStub != nil {
-		return fake.HasTokenStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.hasTokenReturns
 	return fakeReturns.result1
 }
 
@@ -213,15 +215,16 @@ func (fake *FakeAccess) IsAdmin() bool {
 	ret, specificReturn := fake.isAdminReturnsOnCall[len(fake.isAdminArgsForCall)]
 	fake.isAdminArgsForCall = append(fake.isAdminArgsForCall, struct {
 	}{})
+	stub := fake.IsAdminStub
+	fakeReturns := fake.isAdminReturns
 	fake.recordInvocation("IsAdmin", []interface{}{})
 	fake.isAdminMutex.Unlock()
-	if fake.IsAdminStub != nil {
-		return fake.IsAdminStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.isAdminReturns
 	return fakeReturns.result1
 }
 
@@ -265,15 +268,16 @@ func (fake *FakeAccess) IsAuthenticated() bool {
 	ret, specificReturn := fake.isAuthenticatedReturnsOnCall[len(fake.isAuthenticatedArgsForCall)]
 	fake.isAuthenticatedArgsForCall = append(fake.isAuthenticatedArgsForCall, struct {
 	}{})
+	stub := fake.IsAuthenticatedStub
+	fakeReturns := fake.isAuthenticatedReturns
 	fake.recordInvocation("IsAuthenticated", []interface{}{})
 	fake.isAuthenticatedMutex.Unlock()
-	if fake.IsAuthenticatedStub != nil {
-		return fake.IsAuthenticatedStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.isAuthenticatedReturns
 	return fakeReturns.result1
 }
 
@@ -318,15 +322,16 @@ func (fake *FakeAccess) IsAuthorized(arg1 string) bool {
 	fake.isAuthorizedArgsForCall = append(fake.isAuthorizedArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.IsAuthorizedStub
+	fakeReturns := fake.isAuthorizedReturns
 	fake.recordInvocation("IsAuthorized", []interface{}{arg1})
 	fake.isAuthorizedMutex.Unlock()
-	if fake.IsAuthorizedStub != nil {
-		return fake.IsAuthorizedStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.isAuthorizedReturns
 	return fakeReturns.result1
 }
 
@@ -377,15 +382,16 @@ func (fake *FakeAccess) IsSystem() bool {
 	ret, specificReturn := fake.isSystemReturnsOnCall[len(fake.isSystemArgsForCall)]
 	fake.isSystemArgsForCall = append(fake.isSystemArgsForCall, struct {
 	}{})
+	stub := fake.IsSystemStub
+	fakeReturns := fake.isSystemReturns
 	fake.recordInvocation("IsSystem", []interface{}{})
 	fake.isSystemMutex.Unlock()
-	if fake.IsSystemStub != nil {
-		return fake.IsSystemStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.isSystemReturns
 	return fakeReturns.result1
 }
 
@@ -429,15 +435,16 @@ func (fake *FakeAccess) TeamNames() []string {
 	ret, specificReturn := fake.teamNamesReturnsOnCall[len(fake.teamNamesArgsForCall)]
 	fake.teamNamesArgsForCall = append(fake.teamNamesArgsForCall, struct {
 	}{})
+	stub := fake.TeamNamesStub
+	fakeReturns := fake.teamNamesReturns
 	fake.recordInvocation("TeamNames", []interface{}{})
 	fake.teamNamesMutex.Unlock()
-	if fake.TeamNamesStub != nil {
-		return fake.TeamNamesStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.teamNamesReturns
 	return fakeReturns.result1
 }
 
@@ -481,15 +488,16 @@ func (fake *FakeAccess) TeamRoles() map[string][]string {
 	ret, specificReturn := fake.teamRolesReturnsOnCall[len(fake.teamRolesArgsForCall)]
 	fake.teamRolesArgsForCall = append(fake.teamRolesArgsForCall, struct {
 	}{})
+	stub := fake.TeamRolesStub
+	fakeReturns := fake.teamRolesReturns
 	fake.recordInvocation("TeamRoles", []interface{}{})
 	fake.teamRolesMutex.Unlock()
-	if fake.TeamRolesStub != nil {
-		return fake.TeamRolesStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.teamRolesReturns
 	return fakeReturns.result1
 }
 
@@ -533,15 +541,16 @@ func (fake *FakeAccess) UserInfo() atc.UserInfo {
 	ret, specificReturn := fake.userInfoReturnsOnCall[len(fake.userInfoArgsForCall)]
 	fake.userInfoArgsForCall = append(fake.userInfoArgsForCall, struct {
 	}{})
+	stub := fake.UserInfoStub
+	fakeReturns := fake.userInfoReturns
 	fake.recordInvocation("UserInfo", []interface{}{})
 	fake.userInfoMutex.Unlock()
-	if fake.UserInfoStub != nil {
-		return fake.UserInfoStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.userInfoReturns
 	return fakeReturns.result1
 }
 

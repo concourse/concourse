@@ -54,15 +54,16 @@ func (fake *FakePipelineFactory) AllPipelines() ([]db.Pipeline, error) {
 	ret, specificReturn := fake.allPipelinesReturnsOnCall[len(fake.allPipelinesArgsForCall)]
 	fake.allPipelinesArgsForCall = append(fake.allPipelinesArgsForCall, struct {
 	}{})
+	stub := fake.AllPipelinesStub
+	fakeReturns := fake.allPipelinesReturns
 	fake.recordInvocation("AllPipelines", []interface{}{})
 	fake.allPipelinesMutex.Unlock()
-	if fake.AllPipelinesStub != nil {
-		return fake.AllPipelinesStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.allPipelinesReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -109,15 +110,16 @@ func (fake *FakePipelineFactory) PipelinesToSchedule() ([]db.Pipeline, error) {
 	ret, specificReturn := fake.pipelinesToScheduleReturnsOnCall[len(fake.pipelinesToScheduleArgsForCall)]
 	fake.pipelinesToScheduleArgsForCall = append(fake.pipelinesToScheduleArgsForCall, struct {
 	}{})
+	stub := fake.PipelinesToScheduleStub
+	fakeReturns := fake.pipelinesToScheduleReturns
 	fake.recordInvocation("PipelinesToSchedule", []interface{}{})
 	fake.pipelinesToScheduleMutex.Unlock()
-	if fake.PipelinesToScheduleStub != nil {
-		return fake.PipelinesToScheduleStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.pipelinesToScheduleReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -170,15 +172,16 @@ func (fake *FakePipelineFactory) VisiblePipelines(arg1 []string) ([]db.Pipeline,
 	fake.visiblePipelinesArgsForCall = append(fake.visiblePipelinesArgsForCall, struct {
 		arg1 []string
 	}{arg1Copy})
+	stub := fake.VisiblePipelinesStub
+	fakeReturns := fake.visiblePipelinesReturns
 	fake.recordInvocation("VisiblePipelines", []interface{}{arg1Copy})
 	fake.visiblePipelinesMutex.Unlock()
-	if fake.VisiblePipelinesStub != nil {
-		return fake.VisiblePipelinesStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.visiblePipelinesReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

@@ -31,15 +31,16 @@ func (fake *FakeConcurrentRequestPolicy) HandlerPool(arg1 string) (wrappa.Pool, 
 	fake.handlerPoolArgsForCall = append(fake.handlerPoolArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.HandlerPoolStub
+	fakeReturns := fake.handlerPoolReturns
 	fake.recordInvocation("HandlerPool", []interface{}{arg1})
 	fake.handlerPoolMutex.Unlock()
-	if fake.HandlerPoolStub != nil {
-		return fake.HandlerPoolStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.handlerPoolReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

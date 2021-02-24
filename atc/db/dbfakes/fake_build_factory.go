@@ -113,15 +113,16 @@ func (fake *FakeBuildFactory) AllBuilds(arg1 db.Page) ([]db.Build, db.Pagination
 	fake.allBuildsArgsForCall = append(fake.allBuildsArgsForCall, struct {
 		arg1 db.Page
 	}{arg1})
+	stub := fake.AllBuildsStub
+	fakeReturns := fake.allBuildsReturns
 	fake.recordInvocation("AllBuilds", []interface{}{arg1})
 	fake.allBuildsMutex.Unlock()
-	if fake.AllBuildsStub != nil {
-		return fake.AllBuildsStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.allBuildsReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -179,15 +180,16 @@ func (fake *FakeBuildFactory) Build(arg1 int) (db.Build, bool, error) {
 	fake.buildArgsForCall = append(fake.buildArgsForCall, struct {
 		arg1 int
 	}{arg1})
+	stub := fake.BuildStub
+	fakeReturns := fake.buildReturns
 	fake.recordInvocation("Build", []interface{}{arg1})
 	fake.buildMutex.Unlock()
-	if fake.BuildStub != nil {
-		return fake.BuildStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.buildReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -244,15 +246,16 @@ func (fake *FakeBuildFactory) GetAllStartedBuilds() ([]db.Build, error) {
 	ret, specificReturn := fake.getAllStartedBuildsReturnsOnCall[len(fake.getAllStartedBuildsArgsForCall)]
 	fake.getAllStartedBuildsArgsForCall = append(fake.getAllStartedBuildsArgsForCall, struct {
 	}{})
+	stub := fake.GetAllStartedBuildsStub
+	fakeReturns := fake.getAllStartedBuildsReturns
 	fake.recordInvocation("GetAllStartedBuilds", []interface{}{})
 	fake.getAllStartedBuildsMutex.Unlock()
-	if fake.GetAllStartedBuildsStub != nil {
-		return fake.GetAllStartedBuildsStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getAllStartedBuildsReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -299,15 +302,16 @@ func (fake *FakeBuildFactory) GetDrainableBuilds() ([]db.Build, error) {
 	ret, specificReturn := fake.getDrainableBuildsReturnsOnCall[len(fake.getDrainableBuildsArgsForCall)]
 	fake.getDrainableBuildsArgsForCall = append(fake.getDrainableBuildsArgsForCall, struct {
 	}{})
+	stub := fake.GetDrainableBuildsStub
+	fakeReturns := fake.getDrainableBuildsReturns
 	fake.recordInvocation("GetDrainableBuilds", []interface{}{})
 	fake.getDrainableBuildsMutex.Unlock()
-	if fake.GetDrainableBuildsStub != nil {
-		return fake.GetDrainableBuildsStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getDrainableBuildsReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -354,15 +358,16 @@ func (fake *FakeBuildFactory) MarkNonInterceptibleBuilds() error {
 	ret, specificReturn := fake.markNonInterceptibleBuildsReturnsOnCall[len(fake.markNonInterceptibleBuildsArgsForCall)]
 	fake.markNonInterceptibleBuildsArgsForCall = append(fake.markNonInterceptibleBuildsArgsForCall, struct {
 	}{})
+	stub := fake.MarkNonInterceptibleBuildsStub
+	fakeReturns := fake.markNonInterceptibleBuildsReturns
 	fake.recordInvocation("MarkNonInterceptibleBuilds", []interface{}{})
 	fake.markNonInterceptibleBuildsMutex.Unlock()
-	if fake.MarkNonInterceptibleBuildsStub != nil {
-		return fake.MarkNonInterceptibleBuildsStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.markNonInterceptibleBuildsReturns
 	return fakeReturns.result1
 }
 
@@ -407,15 +412,16 @@ func (fake *FakeBuildFactory) PublicBuilds(arg1 db.Page) ([]db.Build, db.Paginat
 	fake.publicBuildsArgsForCall = append(fake.publicBuildsArgsForCall, struct {
 		arg1 db.Page
 	}{arg1})
+	stub := fake.PublicBuildsStub
+	fakeReturns := fake.publicBuildsReturns
 	fake.recordInvocation("PublicBuilds", []interface{}{arg1})
 	fake.publicBuildsMutex.Unlock()
-	if fake.PublicBuildsStub != nil {
-		return fake.PublicBuildsStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.publicBuildsReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -479,15 +485,16 @@ func (fake *FakeBuildFactory) VisibleBuilds(arg1 []string, arg2 db.Page) ([]db.B
 		arg1 []string
 		arg2 db.Page
 	}{arg1Copy, arg2})
+	stub := fake.VisibleBuildsStub
+	fakeReturns := fake.visibleBuildsReturns
 	fake.recordInvocation("VisibleBuilds", []interface{}{arg1Copy, arg2})
 	fake.visibleBuildsMutex.Unlock()
-	if fake.VisibleBuildsStub != nil {
-		return fake.VisibleBuildsStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.visibleBuildsReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 

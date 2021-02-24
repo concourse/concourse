@@ -38,15 +38,16 @@ func (fake *FakeBuildScheduler) Schedule(arg1 context.Context, arg2 lager.Logger
 		arg2 lager.Logger
 		arg3 db.SchedulerJob
 	}{arg1, arg2, arg3})
+	stub := fake.ScheduleStub
+	fakeReturns := fake.scheduleReturns
 	fake.recordInvocation("Schedule", []interface{}{arg1, arg2, arg3})
 	fake.scheduleMutex.Unlock()
-	if fake.ScheduleStub != nil {
-		return fake.ScheduleStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.scheduleReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

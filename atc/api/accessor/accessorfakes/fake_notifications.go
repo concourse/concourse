@@ -43,15 +43,16 @@ func (fake *FakeNotifications) Listen(arg1 string) (chan bool, error) {
 	fake.listenArgsForCall = append(fake.listenArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.ListenStub
+	fakeReturns := fake.listenReturns
 	fake.recordInvocation("Listen", []interface{}{arg1})
 	fake.listenMutex.Unlock()
-	if fake.ListenStub != nil {
-		return fake.ListenStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.listenReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -107,15 +108,16 @@ func (fake *FakeNotifications) Unlisten(arg1 string, arg2 chan bool) error {
 		arg1 string
 		arg2 chan bool
 	}{arg1, arg2})
+	stub := fake.UnlistenStub
+	fakeReturns := fake.unlistenReturns
 	fake.recordInvocation("Unlisten", []interface{}{arg1, arg2})
 	fake.unlistenMutex.Unlock()
-	if fake.UnlistenStub != nil {
-		return fake.UnlistenStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.unlistenReturns
 	return fakeReturns.result1
 }
 

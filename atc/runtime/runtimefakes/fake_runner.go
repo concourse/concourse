@@ -53,15 +53,16 @@ func (fake *FakeRunner) RunScript(arg1 context.Context, arg2 string, arg3 []stri
 		arg6 io.Writer
 		arg7 bool
 	}{arg1, arg2, arg3Copy, arg4Copy, arg5, arg6, arg7})
+	stub := fake.RunScriptStub
+	fakeReturns := fake.runScriptReturns
 	fake.recordInvocation("RunScript", []interface{}{arg1, arg2, arg3Copy, arg4Copy, arg5, arg6, arg7})
 	fake.runScriptMutex.Unlock()
-	if fake.RunScriptStub != nil {
-		return fake.RunScriptStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4, arg5, arg6, arg7)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.runScriptReturns
 	return fakeReturns.result1
 }
 

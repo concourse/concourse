@@ -29,15 +29,16 @@ func (fake *FakeBuildStepDelegateFactory) BuildStepDelegate(arg1 exec.RunState) 
 	fake.buildStepDelegateArgsForCall = append(fake.buildStepDelegateArgsForCall, struct {
 		arg1 exec.RunState
 	}{arg1})
+	stub := fake.BuildStepDelegateStub
+	fakeReturns := fake.buildStepDelegateReturns
 	fake.recordInvocation("BuildStepDelegate", []interface{}{arg1})
 	fake.buildStepDelegateMutex.Unlock()
-	if fake.BuildStepDelegateStub != nil {
-		return fake.BuildStepDelegateStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.buildStepDelegateReturns
 	return fakeReturns.result1
 }
 

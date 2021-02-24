@@ -27,15 +27,16 @@ func (fake *FakeLock) Release() error {
 	ret, specificReturn := fake.releaseReturnsOnCall[len(fake.releaseArgsForCall)]
 	fake.releaseArgsForCall = append(fake.releaseArgsForCall, struct {
 	}{})
+	stub := fake.ReleaseStub
+	fakeReturns := fake.releaseReturns
 	fake.recordInvocation("Release", []interface{}{})
 	fake.releaseMutex.Unlock()
-	if fake.ReleaseStub != nil {
-		return fake.ReleaseStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.releaseReturns
 	return fakeReturns.result1
 }
 

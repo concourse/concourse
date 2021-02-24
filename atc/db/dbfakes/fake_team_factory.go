@@ -101,15 +101,16 @@ func (fake *FakeTeamFactory) CreateDefaultTeamIfNotExists() (db.Team, error) {
 	ret, specificReturn := fake.createDefaultTeamIfNotExistsReturnsOnCall[len(fake.createDefaultTeamIfNotExistsArgsForCall)]
 	fake.createDefaultTeamIfNotExistsArgsForCall = append(fake.createDefaultTeamIfNotExistsArgsForCall, struct {
 	}{})
+	stub := fake.CreateDefaultTeamIfNotExistsStub
+	fakeReturns := fake.createDefaultTeamIfNotExistsReturns
 	fake.recordInvocation("CreateDefaultTeamIfNotExists", []interface{}{})
 	fake.createDefaultTeamIfNotExistsMutex.Unlock()
-	if fake.CreateDefaultTeamIfNotExistsStub != nil {
-		return fake.CreateDefaultTeamIfNotExistsStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.createDefaultTeamIfNotExistsReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -157,15 +158,16 @@ func (fake *FakeTeamFactory) CreateTeam(arg1 atc.Team) (db.Team, error) {
 	fake.createTeamArgsForCall = append(fake.createTeamArgsForCall, struct {
 		arg1 atc.Team
 	}{arg1})
+	stub := fake.CreateTeamStub
+	fakeReturns := fake.createTeamReturns
 	fake.recordInvocation("CreateTeam", []interface{}{arg1})
 	fake.createTeamMutex.Unlock()
-	if fake.CreateTeamStub != nil {
-		return fake.CreateTeamStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.createTeamReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -220,15 +222,16 @@ func (fake *FakeTeamFactory) FindTeam(arg1 string) (db.Team, bool, error) {
 	fake.findTeamArgsForCall = append(fake.findTeamArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.FindTeamStub
+	fakeReturns := fake.findTeamReturns
 	fake.recordInvocation("FindTeam", []interface{}{arg1})
 	fake.findTeamMutex.Unlock()
-	if fake.FindTeamStub != nil {
-		return fake.FindTeamStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.findTeamReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -286,15 +289,16 @@ func (fake *FakeTeamFactory) GetByID(arg1 int) db.Team {
 	fake.getByIDArgsForCall = append(fake.getByIDArgsForCall, struct {
 		arg1 int
 	}{arg1})
+	stub := fake.GetByIDStub
+	fakeReturns := fake.getByIDReturns
 	fake.recordInvocation("GetByID", []interface{}{arg1})
 	fake.getByIDMutex.Unlock()
-	if fake.GetByIDStub != nil {
-		return fake.GetByIDStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.getByIDReturns
 	return fakeReturns.result1
 }
 
@@ -345,15 +349,16 @@ func (fake *FakeTeamFactory) GetTeams() ([]db.Team, error) {
 	ret, specificReturn := fake.getTeamsReturnsOnCall[len(fake.getTeamsArgsForCall)]
 	fake.getTeamsArgsForCall = append(fake.getTeamsArgsForCall, struct {
 	}{})
+	stub := fake.GetTeamsStub
+	fakeReturns := fake.getTeamsReturns
 	fake.recordInvocation("GetTeams", []interface{}{})
 	fake.getTeamsMutex.Unlock()
-	if fake.GetTeamsStub != nil {
-		return fake.GetTeamsStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getTeamsReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -400,15 +405,16 @@ func (fake *FakeTeamFactory) NotifyCacher() error {
 	ret, specificReturn := fake.notifyCacherReturnsOnCall[len(fake.notifyCacherArgsForCall)]
 	fake.notifyCacherArgsForCall = append(fake.notifyCacherArgsForCall, struct {
 	}{})
+	stub := fake.NotifyCacherStub
+	fakeReturns := fake.notifyCacherReturns
 	fake.recordInvocation("NotifyCacher", []interface{}{})
 	fake.notifyCacherMutex.Unlock()
-	if fake.NotifyCacherStub != nil {
-		return fake.NotifyCacherStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.notifyCacherReturns
 	return fakeReturns.result1
 }
 
@@ -452,15 +458,16 @@ func (fake *FakeTeamFactory) NotifyResourceScanner() error {
 	ret, specificReturn := fake.notifyResourceScannerReturnsOnCall[len(fake.notifyResourceScannerArgsForCall)]
 	fake.notifyResourceScannerArgsForCall = append(fake.notifyResourceScannerArgsForCall, struct {
 	}{})
+	stub := fake.NotifyResourceScannerStub
+	fakeReturns := fake.notifyResourceScannerReturns
 	fake.recordInvocation("NotifyResourceScanner", []interface{}{})
 	fake.notifyResourceScannerMutex.Unlock()
-	if fake.NotifyResourceScannerStub != nil {
-		return fake.NotifyResourceScannerStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.notifyResourceScannerReturns
 	return fakeReturns.result1
 }
 

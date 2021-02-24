@@ -35,9 +35,10 @@ func (fake *FakeEngine) Drain(arg1 context.Context) {
 	fake.drainArgsForCall = append(fake.drainArgsForCall, struct {
 		arg1 context.Context
 	}{arg1})
+	stub := fake.DrainStub
 	fake.recordInvocation("Drain", []interface{}{arg1})
 	fake.drainMutex.Unlock()
-	if fake.DrainStub != nil {
+	if stub != nil {
 		fake.DrainStub(arg1)
 	}
 }
@@ -67,15 +68,16 @@ func (fake *FakeEngine) NewBuild(arg1 db.Build) engine.Runnable {
 	fake.newBuildArgsForCall = append(fake.newBuildArgsForCall, struct {
 		arg1 db.Build
 	}{arg1})
+	stub := fake.NewBuildStub
+	fakeReturns := fake.newBuildReturns
 	fake.recordInvocation("NewBuild", []interface{}{arg1})
 	fake.newBuildMutex.Unlock()
-	if fake.NewBuildStub != nil {
-		return fake.NewBuildStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.newBuildReturns
 	return fakeReturns.result1
 }
 

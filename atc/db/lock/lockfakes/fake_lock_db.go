@@ -44,15 +44,16 @@ func (fake *FakeLockDB) Acquire(arg1 lock.LockID) (bool, error) {
 	fake.acquireArgsForCall = append(fake.acquireArgsForCall, struct {
 		arg1 lock.LockID
 	}{arg1})
+	stub := fake.AcquireStub
+	fakeReturns := fake.acquireReturns
 	fake.recordInvocation("Acquire", []interface{}{arg1})
 	fake.acquireMutex.Unlock()
-	if fake.AcquireStub != nil {
-		return fake.AcquireStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.acquireReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -107,15 +108,16 @@ func (fake *FakeLockDB) Release(arg1 lock.LockID) (bool, error) {
 	fake.releaseArgsForCall = append(fake.releaseArgsForCall, struct {
 		arg1 lock.LockID
 	}{arg1})
+	stub := fake.ReleaseStub
+	fakeReturns := fake.releaseReturns
 	fake.recordInvocation("Release", []interface{}{arg1})
 	fake.releaseMutex.Unlock()
-	if fake.ReleaseStub != nil {
-		return fake.ReleaseStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.releaseReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

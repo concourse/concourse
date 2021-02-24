@@ -73,15 +73,16 @@ func (fake *FakeWorkerArtifact) BuildID() int {
 	ret, specificReturn := fake.buildIDReturnsOnCall[len(fake.buildIDArgsForCall)]
 	fake.buildIDArgsForCall = append(fake.buildIDArgsForCall, struct {
 	}{})
+	stub := fake.BuildIDStub
+	fakeReturns := fake.buildIDReturns
 	fake.recordInvocation("BuildID", []interface{}{})
 	fake.buildIDMutex.Unlock()
-	if fake.BuildIDStub != nil {
-		return fake.BuildIDStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.buildIDReturns
 	return fakeReturns.result1
 }
 
@@ -125,15 +126,16 @@ func (fake *FakeWorkerArtifact) CreatedAt() time.Time {
 	ret, specificReturn := fake.createdAtReturnsOnCall[len(fake.createdAtArgsForCall)]
 	fake.createdAtArgsForCall = append(fake.createdAtArgsForCall, struct {
 	}{})
+	stub := fake.CreatedAtStub
+	fakeReturns := fake.createdAtReturns
 	fake.recordInvocation("CreatedAt", []interface{}{})
 	fake.createdAtMutex.Unlock()
-	if fake.CreatedAtStub != nil {
-		return fake.CreatedAtStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.createdAtReturns
 	return fakeReturns.result1
 }
 
@@ -177,15 +179,16 @@ func (fake *FakeWorkerArtifact) ID() int {
 	ret, specificReturn := fake.iDReturnsOnCall[len(fake.iDArgsForCall)]
 	fake.iDArgsForCall = append(fake.iDArgsForCall, struct {
 	}{})
+	stub := fake.IDStub
+	fakeReturns := fake.iDReturns
 	fake.recordInvocation("ID", []interface{}{})
 	fake.iDMutex.Unlock()
-	if fake.IDStub != nil {
-		return fake.IDStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.iDReturns
 	return fakeReturns.result1
 }
 
@@ -229,15 +232,16 @@ func (fake *FakeWorkerArtifact) Name() string {
 	ret, specificReturn := fake.nameReturnsOnCall[len(fake.nameArgsForCall)]
 	fake.nameArgsForCall = append(fake.nameArgsForCall, struct {
 	}{})
+	stub := fake.NameStub
+	fakeReturns := fake.nameReturns
 	fake.recordInvocation("Name", []interface{}{})
 	fake.nameMutex.Unlock()
-	if fake.NameStub != nil {
-		return fake.NameStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.nameReturns
 	return fakeReturns.result1
 }
 
@@ -282,15 +286,16 @@ func (fake *FakeWorkerArtifact) Volume(arg1 int) (db.CreatedVolume, bool, error)
 	fake.volumeArgsForCall = append(fake.volumeArgsForCall, struct {
 		arg1 int
 	}{arg1})
+	stub := fake.VolumeStub
+	fakeReturns := fake.volumeReturns
 	fake.recordInvocation("Volume", []interface{}{arg1})
 	fake.volumeMutex.Unlock()
-	if fake.VolumeStub != nil {
-		return fake.VolumeStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.volumeReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 

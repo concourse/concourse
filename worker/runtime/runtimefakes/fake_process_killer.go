@@ -39,15 +39,16 @@ func (fake *FakeProcessKiller) Kill(arg1 context.Context, arg2 containerd.Proces
 		arg3 syscall.Signal
 		arg4 time.Duration
 	}{arg1, arg2, arg3, arg4})
+	stub := fake.KillStub
+	fakeReturns := fake.killReturns
 	fake.recordInvocation("Kill", []interface{}{arg1, arg2, arg3, arg4})
 	fake.killMutex.Unlock()
-	if fake.KillStub != nil {
-		return fake.KillStub(arg1, arg2, arg3, arg4)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.killReturns
 	return fakeReturns.result1
 }
 

@@ -39,15 +39,16 @@ func (fake *FakeClock) Now() time.Time {
 	ret, specificReturn := fake.nowReturnsOnCall[len(fake.nowArgsForCall)]
 	fake.nowArgsForCall = append(fake.nowArgsForCall, struct {
 	}{})
+	stub := fake.NowStub
+	fakeReturns := fake.nowReturns
 	fake.recordInvocation("Now", []interface{}{})
 	fake.nowMutex.Unlock()
-	if fake.NowStub != nil {
-		return fake.NowStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.nowReturns
 	return fakeReturns.result1
 }
 
@@ -92,15 +93,16 @@ func (fake *FakeClock) Until(arg1 time.Time) time.Duration {
 	fake.untilArgsForCall = append(fake.untilArgsForCall, struct {
 		arg1 time.Time
 	}{arg1})
+	stub := fake.UntilStub
+	fakeReturns := fake.untilReturns
 	fake.recordInvocation("Until", []interface{}{arg1})
 	fake.untilMutex.Unlock()
-	if fake.UntilStub != nil {
-		return fake.UntilStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.untilReturns
 	return fakeReturns.result1
 }
 

@@ -78,15 +78,16 @@ func (fake *FakePrometheusGarbageCollectable) WorkerContainers() *prometheus.Gau
 	ret, specificReturn := fake.workerContainersReturnsOnCall[len(fake.workerContainersArgsForCall)]
 	fake.workerContainersArgsForCall = append(fake.workerContainersArgsForCall, struct {
 	}{})
+	stub := fake.WorkerContainersStub
+	fakeReturns := fake.workerContainersReturns
 	fake.recordInvocation("WorkerContainers", []interface{}{})
 	fake.workerContainersMutex.Unlock()
-	if fake.WorkerContainersStub != nil {
-		return fake.WorkerContainersStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.workerContainersReturns
 	return fakeReturns.result1
 }
 
@@ -130,15 +131,16 @@ func (fake *FakePrometheusGarbageCollectable) WorkerContainersLabels() map[strin
 	ret, specificReturn := fake.workerContainersLabelsReturnsOnCall[len(fake.workerContainersLabelsArgsForCall)]
 	fake.workerContainersLabelsArgsForCall = append(fake.workerContainersLabelsArgsForCall, struct {
 	}{})
+	stub := fake.WorkerContainersLabelsStub
+	fakeReturns := fake.workerContainersLabelsReturns
 	fake.recordInvocation("WorkerContainersLabels", []interface{}{})
 	fake.workerContainersLabelsMutex.Unlock()
-	if fake.WorkerContainersLabelsStub != nil {
-		return fake.WorkerContainersLabelsStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.workerContainersLabelsReturns
 	return fakeReturns.result1
 }
 
@@ -182,15 +184,16 @@ func (fake *FakePrometheusGarbageCollectable) WorkerTasks() *prometheus.GaugeVec
 	ret, specificReturn := fake.workerTasksReturnsOnCall[len(fake.workerTasksArgsForCall)]
 	fake.workerTasksArgsForCall = append(fake.workerTasksArgsForCall, struct {
 	}{})
+	stub := fake.WorkerTasksStub
+	fakeReturns := fake.workerTasksReturns
 	fake.recordInvocation("WorkerTasks", []interface{}{})
 	fake.workerTasksMutex.Unlock()
-	if fake.WorkerTasksStub != nil {
-		return fake.WorkerTasksStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.workerTasksReturns
 	return fakeReturns.result1
 }
 
@@ -234,15 +237,16 @@ func (fake *FakePrometheusGarbageCollectable) WorkerTasksLabels() map[string]map
 	ret, specificReturn := fake.workerTasksLabelsReturnsOnCall[len(fake.workerTasksLabelsArgsForCall)]
 	fake.workerTasksLabelsArgsForCall = append(fake.workerTasksLabelsArgsForCall, struct {
 	}{})
+	stub := fake.WorkerTasksLabelsStub
+	fakeReturns := fake.workerTasksLabelsReturns
 	fake.recordInvocation("WorkerTasksLabels", []interface{}{})
 	fake.workerTasksLabelsMutex.Unlock()
-	if fake.WorkerTasksLabelsStub != nil {
-		return fake.WorkerTasksLabelsStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.workerTasksLabelsReturns
 	return fakeReturns.result1
 }
 
@@ -286,15 +290,16 @@ func (fake *FakePrometheusGarbageCollectable) WorkerVolumes() *prometheus.GaugeV
 	ret, specificReturn := fake.workerVolumesReturnsOnCall[len(fake.workerVolumesArgsForCall)]
 	fake.workerVolumesArgsForCall = append(fake.workerVolumesArgsForCall, struct {
 	}{})
+	stub := fake.WorkerVolumesStub
+	fakeReturns := fake.workerVolumesReturns
 	fake.recordInvocation("WorkerVolumes", []interface{}{})
 	fake.workerVolumesMutex.Unlock()
-	if fake.WorkerVolumesStub != nil {
-		return fake.WorkerVolumesStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.workerVolumesReturns
 	return fakeReturns.result1
 }
 
@@ -338,15 +343,16 @@ func (fake *FakePrometheusGarbageCollectable) WorkerVolumesLabels() map[string]m
 	ret, specificReturn := fake.workerVolumesLabelsReturnsOnCall[len(fake.workerVolumesLabelsArgsForCall)]
 	fake.workerVolumesLabelsArgsForCall = append(fake.workerVolumesLabelsArgsForCall, struct {
 	}{})
+	stub := fake.WorkerVolumesLabelsStub
+	fakeReturns := fake.workerVolumesLabelsReturns
 	fake.recordInvocation("WorkerVolumesLabels", []interface{}{})
 	fake.workerVolumesLabelsMutex.Unlock()
-	if fake.WorkerVolumesLabelsStub != nil {
-		return fake.WorkerVolumesLabelsStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.workerVolumesLabelsReturns
 	return fakeReturns.result1
 }
 

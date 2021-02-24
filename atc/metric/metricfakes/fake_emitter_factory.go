@@ -49,15 +49,16 @@ func (fake *FakeEmitterFactory) Description() string {
 	ret, specificReturn := fake.descriptionReturnsOnCall[len(fake.descriptionArgsForCall)]
 	fake.descriptionArgsForCall = append(fake.descriptionArgsForCall, struct {
 	}{})
+	stub := fake.DescriptionStub
+	fakeReturns := fake.descriptionReturns
 	fake.recordInvocation("Description", []interface{}{})
 	fake.descriptionMutex.Unlock()
-	if fake.DescriptionStub != nil {
-		return fake.DescriptionStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.descriptionReturns
 	return fakeReturns.result1
 }
 
@@ -101,15 +102,16 @@ func (fake *FakeEmitterFactory) IsConfigured() bool {
 	ret, specificReturn := fake.isConfiguredReturnsOnCall[len(fake.isConfiguredArgsForCall)]
 	fake.isConfiguredArgsForCall = append(fake.isConfiguredArgsForCall, struct {
 	}{})
+	stub := fake.IsConfiguredStub
+	fakeReturns := fake.isConfiguredReturns
 	fake.recordInvocation("IsConfigured", []interface{}{})
 	fake.isConfiguredMutex.Unlock()
-	if fake.IsConfiguredStub != nil {
-		return fake.IsConfiguredStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.isConfiguredReturns
 	return fakeReturns.result1
 }
 
@@ -153,15 +155,16 @@ func (fake *FakeEmitterFactory) NewEmitter() (metric.Emitter, error) {
 	ret, specificReturn := fake.newEmitterReturnsOnCall[len(fake.newEmitterArgsForCall)]
 	fake.newEmitterArgsForCall = append(fake.newEmitterArgsForCall, struct {
 	}{})
+	stub := fake.NewEmitterStub
+	fakeReturns := fake.newEmitterReturns
 	fake.recordInvocation("NewEmitter", []interface{}{})
 	fake.newEmitterMutex.Unlock()
-	if fake.NewEmitterStub != nil {
-		return fake.NewEmitterStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.newEmitterReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

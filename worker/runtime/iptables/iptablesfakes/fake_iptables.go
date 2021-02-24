@@ -45,15 +45,16 @@ func (fake *FakeIptables) AppendRule(arg1 string, arg2 string, arg3 ...string) e
 		arg2 string
 		arg3 []string
 	}{arg1, arg2, arg3})
+	stub := fake.AppendRuleStub
+	fakeReturns := fake.appendRuleReturns
 	fake.recordInvocation("AppendRule", []interface{}{arg1, arg2, arg3})
 	fake.appendRuleMutex.Unlock()
-	if fake.AppendRuleStub != nil {
-		return fake.AppendRuleStub(arg1, arg2, arg3...)
+	if stub != nil {
+		return stub(arg1, arg2, arg3...)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.appendRuleReturns
 	return fakeReturns.result1
 }
 
@@ -106,15 +107,16 @@ func (fake *FakeIptables) CreateChainOrFlushIfExists(arg1 string, arg2 string) e
 		arg1 string
 		arg2 string
 	}{arg1, arg2})
+	stub := fake.CreateChainOrFlushIfExistsStub
+	fakeReturns := fake.createChainOrFlushIfExistsReturns
 	fake.recordInvocation("CreateChainOrFlushIfExists", []interface{}{arg1, arg2})
 	fake.createChainOrFlushIfExistsMutex.Unlock()
-	if fake.CreateChainOrFlushIfExistsStub != nil {
-		return fake.CreateChainOrFlushIfExistsStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.createChainOrFlushIfExistsReturns
 	return fakeReturns.result1
 }
 

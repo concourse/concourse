@@ -46,15 +46,16 @@ func (fake *FakeAccessTokenFactory) CreateAccessToken(arg1 string, arg2 db.Claim
 		arg1 string
 		arg2 db.Claims
 	}{arg1, arg2})
+	stub := fake.CreateAccessTokenStub
+	fakeReturns := fake.createAccessTokenReturns
 	fake.recordInvocation("CreateAccessToken", []interface{}{arg1, arg2})
 	fake.createAccessTokenMutex.Unlock()
-	if fake.CreateAccessTokenStub != nil {
-		return fake.CreateAccessTokenStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.createAccessTokenReturns
 	return fakeReturns.result1
 }
 
@@ -106,15 +107,16 @@ func (fake *FakeAccessTokenFactory) GetAccessToken(arg1 string) (db.AccessToken,
 	fake.getAccessTokenArgsForCall = append(fake.getAccessTokenArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.GetAccessTokenStub
+	fakeReturns := fake.getAccessTokenReturns
 	fake.recordInvocation("GetAccessToken", []interface{}{arg1})
 	fake.getAccessTokenMutex.Unlock()
-	if fake.GetAccessTokenStub != nil {
-		return fake.GetAccessTokenStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.getAccessTokenReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 

@@ -27,15 +27,16 @@ func (fake *FakeSecretsFactory) NewSecrets() creds.Secrets {
 	ret, specificReturn := fake.newSecretsReturnsOnCall[len(fake.newSecretsArgsForCall)]
 	fake.newSecretsArgsForCall = append(fake.newSecretsArgsForCall, struct {
 	}{})
+	stub := fake.NewSecretsStub
+	fakeReturns := fake.newSecretsReturns
 	fake.recordInvocation("NewSecrets", []interface{}{})
 	fake.newSecretsMutex.Unlock()
-	if fake.NewSecretsStub != nil {
-		return fake.NewSecretsStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.newSecretsReturns
 	return fakeReturns.result1
 }
 

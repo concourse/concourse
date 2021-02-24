@@ -105,15 +105,16 @@ func (fake *FakePool) ContainerInWorker(arg1 lager.Logger, arg2 db.ContainerOwne
 		arg2 db.ContainerOwner
 		arg3 worker.WorkerSpec
 	}{arg1, arg2, arg3})
+	stub := fake.ContainerInWorkerStub
+	fakeReturns := fake.containerInWorkerReturns
 	fake.recordInvocation("ContainerInWorker", []interface{}{arg1, arg2, arg3})
 	fake.containerInWorkerMutex.Unlock()
-	if fake.ContainerInWorkerStub != nil {
-		return fake.ContainerInWorkerStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.containerInWorkerReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -171,15 +172,16 @@ func (fake *FakePool) CreateVolume(arg1 lager.Logger, arg2 worker.VolumeSpec, ar
 		arg3 worker.WorkerSpec
 		arg4 db.VolumeType
 	}{arg1, arg2, arg3, arg4})
+	stub := fake.CreateVolumeStub
+	fakeReturns := fake.createVolumeReturns
 	fake.recordInvocation("CreateVolume", []interface{}{arg1, arg2, arg3, arg4})
 	fake.createVolumeMutex.Unlock()
-	if fake.CreateVolumeStub != nil {
-		return fake.CreateVolumeStub(arg1, arg2, arg3, arg4)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.createVolumeReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -236,15 +238,16 @@ func (fake *FakePool) FindContainer(arg1 lager.Logger, arg2 int, arg3 string) (w
 		arg2 int
 		arg3 string
 	}{arg1, arg2, arg3})
+	stub := fake.FindContainerStub
+	fakeReturns := fake.findContainerReturns
 	fake.recordInvocation("FindContainer", []interface{}{arg1, arg2, arg3})
 	fake.findContainerMutex.Unlock()
-	if fake.FindContainerStub != nil {
-		return fake.FindContainerStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.findContainerReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -304,15 +307,16 @@ func (fake *FakePool) FindVolume(arg1 lager.Logger, arg2 int, arg3 string) (work
 		arg2 int
 		arg3 string
 	}{arg1, arg2, arg3})
+	stub := fake.FindVolumeStub
+	fakeReturns := fake.findVolumeReturns
 	fake.recordInvocation("FindVolume", []interface{}{arg1, arg2, arg3})
 	fake.findVolumeMutex.Unlock()
-	if fake.FindVolumeStub != nil {
-		return fake.FindVolumeStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.findVolumeReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -374,15 +378,16 @@ func (fake *FakePool) SelectWorker(arg1 context.Context, arg2 db.ContainerOwner,
 		arg4 worker.WorkerSpec
 		arg5 worker.ContainerPlacementStrategy
 	}{arg1, arg2, arg3, arg4, arg5})
+	stub := fake.SelectWorkerStub
+	fakeReturns := fake.selectWorkerReturns
 	fake.recordInvocation("SelectWorker", []interface{}{arg1, arg2, arg3, arg4, arg5})
 	fake.selectWorkerMutex.Unlock()
-	if fake.SelectWorkerStub != nil {
-		return fake.SelectWorkerStub(arg1, arg2, arg3, arg4, arg5)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4, arg5)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.selectWorkerReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

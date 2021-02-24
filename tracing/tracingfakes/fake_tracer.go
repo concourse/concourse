@@ -36,15 +36,16 @@ func (fake *FakeTracer) Start(arg1 context.Context, arg2 string, arg3 ...trace.S
 		arg2 string
 		arg3 []trace.StartOption
 	}{arg1, arg2, arg3})
+	stub := fake.StartStub
+	fakeReturns := fake.startReturns
 	fake.recordInvocation("Start", []interface{}{arg1, arg2, arg3})
 	fake.startMutex.Unlock()
-	if fake.StartStub != nil {
-		return fake.StartStub(arg1, arg2, arg3...)
+	if stub != nil {
+		return stub(arg1, arg2, arg3...)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.startReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

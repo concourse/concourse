@@ -91,15 +91,16 @@ func (fake *FakeCreatingContainer) Created() (db.CreatedContainer, error) {
 	ret, specificReturn := fake.createdReturnsOnCall[len(fake.createdArgsForCall)]
 	fake.createdArgsForCall = append(fake.createdArgsForCall, struct {
 	}{})
+	stub := fake.CreatedStub
+	fakeReturns := fake.createdReturns
 	fake.recordInvocation("Created", []interface{}{})
 	fake.createdMutex.Unlock()
-	if fake.CreatedStub != nil {
-		return fake.CreatedStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.createdReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -146,15 +147,16 @@ func (fake *FakeCreatingContainer) Failed() (db.FailedContainer, error) {
 	ret, specificReturn := fake.failedReturnsOnCall[len(fake.failedArgsForCall)]
 	fake.failedArgsForCall = append(fake.failedArgsForCall, struct {
 	}{})
+	stub := fake.FailedStub
+	fakeReturns := fake.failedReturns
 	fake.recordInvocation("Failed", []interface{}{})
 	fake.failedMutex.Unlock()
-	if fake.FailedStub != nil {
-		return fake.FailedStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.failedReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -201,15 +203,16 @@ func (fake *FakeCreatingContainer) Handle() string {
 	ret, specificReturn := fake.handleReturnsOnCall[len(fake.handleArgsForCall)]
 	fake.handleArgsForCall = append(fake.handleArgsForCall, struct {
 	}{})
+	stub := fake.HandleStub
+	fakeReturns := fake.handleReturns
 	fake.recordInvocation("Handle", []interface{}{})
 	fake.handleMutex.Unlock()
-	if fake.HandleStub != nil {
-		return fake.HandleStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.handleReturns
 	return fakeReturns.result1
 }
 
@@ -253,15 +256,16 @@ func (fake *FakeCreatingContainer) ID() int {
 	ret, specificReturn := fake.iDReturnsOnCall[len(fake.iDArgsForCall)]
 	fake.iDArgsForCall = append(fake.iDArgsForCall, struct {
 	}{})
+	stub := fake.IDStub
+	fakeReturns := fake.iDReturns
 	fake.recordInvocation("ID", []interface{}{})
 	fake.iDMutex.Unlock()
-	if fake.IDStub != nil {
-		return fake.IDStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.iDReturns
 	return fakeReturns.result1
 }
 
@@ -305,15 +309,16 @@ func (fake *FakeCreatingContainer) Metadata() db.ContainerMetadata {
 	ret, specificReturn := fake.metadataReturnsOnCall[len(fake.metadataArgsForCall)]
 	fake.metadataArgsForCall = append(fake.metadataArgsForCall, struct {
 	}{})
+	stub := fake.MetadataStub
+	fakeReturns := fake.metadataReturns
 	fake.recordInvocation("Metadata", []interface{}{})
 	fake.metadataMutex.Unlock()
-	if fake.MetadataStub != nil {
-		return fake.MetadataStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.metadataReturns
 	return fakeReturns.result1
 }
 
@@ -357,15 +362,16 @@ func (fake *FakeCreatingContainer) State() string {
 	ret, specificReturn := fake.stateReturnsOnCall[len(fake.stateArgsForCall)]
 	fake.stateArgsForCall = append(fake.stateArgsForCall, struct {
 	}{})
+	stub := fake.StateStub
+	fakeReturns := fake.stateReturns
 	fake.recordInvocation("State", []interface{}{})
 	fake.stateMutex.Unlock()
-	if fake.StateStub != nil {
-		return fake.StateStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.stateReturns
 	return fakeReturns.result1
 }
 
@@ -409,15 +415,16 @@ func (fake *FakeCreatingContainer) WorkerName() string {
 	ret, specificReturn := fake.workerNameReturnsOnCall[len(fake.workerNameArgsForCall)]
 	fake.workerNameArgsForCall = append(fake.workerNameArgsForCall, struct {
 	}{})
+	stub := fake.WorkerNameStub
+	fakeReturns := fake.workerNameReturns
 	fake.recordInvocation("WorkerName", []interface{}{})
 	fake.workerNameMutex.Unlock()
-	if fake.WorkerNameStub != nil {
-		return fake.WorkerNameStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.workerNameReturns
 	return fakeReturns.result1
 }
 

@@ -36,15 +36,16 @@ func (fake *FakeLockFactory) Acquire(arg1 lager.Logger, arg2 lock.LockID) (lock.
 		arg1 lager.Logger
 		arg2 lock.LockID
 	}{arg1, arg2})
+	stub := fake.AcquireStub
+	fakeReturns := fake.acquireReturns
 	fake.recordInvocation("Acquire", []interface{}{arg1, arg2})
 	fake.acquireMutex.Unlock()
-	if fake.AcquireStub != nil {
-		return fake.AcquireStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.acquireReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 

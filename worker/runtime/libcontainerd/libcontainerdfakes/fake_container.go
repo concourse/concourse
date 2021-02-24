@@ -183,15 +183,16 @@ func (fake *FakeContainer) Checkpoint(arg1 context.Context, arg2 string, arg3 ..
 		arg2 string
 		arg3 []containerd.CheckpointOpts
 	}{arg1, arg2, arg3})
+	stub := fake.CheckpointStub
+	fakeReturns := fake.checkpointReturns
 	fake.recordInvocation("Checkpoint", []interface{}{arg1, arg2, arg3})
 	fake.checkpointMutex.Unlock()
-	if fake.CheckpointStub != nil {
-		return fake.CheckpointStub(arg1, arg2, arg3...)
+	if stub != nil {
+		return stub(arg1, arg2, arg3...)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.checkpointReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -247,15 +248,16 @@ func (fake *FakeContainer) Delete(arg1 context.Context, arg2 ...containerd.Delet
 		arg1 context.Context
 		arg2 []containerd.DeleteOpts
 	}{arg1, arg2})
+	stub := fake.DeleteStub
+	fakeReturns := fake.deleteReturns
 	fake.recordInvocation("Delete", []interface{}{arg1, arg2})
 	fake.deleteMutex.Unlock()
-	if fake.DeleteStub != nil {
-		return fake.DeleteStub(arg1, arg2...)
+	if stub != nil {
+		return stub(arg1, arg2...)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.deleteReturns
 	return fakeReturns.result1
 }
 
@@ -307,15 +309,16 @@ func (fake *FakeContainer) Extensions(arg1 context.Context) (map[string]types.An
 	fake.extensionsArgsForCall = append(fake.extensionsArgsForCall, struct {
 		arg1 context.Context
 	}{arg1})
+	stub := fake.ExtensionsStub
+	fakeReturns := fake.extensionsReturns
 	fake.recordInvocation("Extensions", []interface{}{arg1})
 	fake.extensionsMutex.Unlock()
-	if fake.ExtensionsStub != nil {
-		return fake.ExtensionsStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.extensionsReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -369,15 +372,16 @@ func (fake *FakeContainer) ID() string {
 	ret, specificReturn := fake.iDReturnsOnCall[len(fake.iDArgsForCall)]
 	fake.iDArgsForCall = append(fake.iDArgsForCall, struct {
 	}{})
+	stub := fake.IDStub
+	fakeReturns := fake.iDReturns
 	fake.recordInvocation("ID", []interface{}{})
 	fake.iDMutex.Unlock()
-	if fake.IDStub != nil {
-		return fake.IDStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.iDReturns
 	return fakeReturns.result1
 }
 
@@ -422,15 +426,16 @@ func (fake *FakeContainer) Image(arg1 context.Context) (containerd.Image, error)
 	fake.imageArgsForCall = append(fake.imageArgsForCall, struct {
 		arg1 context.Context
 	}{arg1})
+	stub := fake.ImageStub
+	fakeReturns := fake.imageReturns
 	fake.recordInvocation("Image", []interface{}{arg1})
 	fake.imageMutex.Unlock()
-	if fake.ImageStub != nil {
-		return fake.ImageStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.imageReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -486,15 +491,16 @@ func (fake *FakeContainer) Info(arg1 context.Context, arg2 ...containerd.InfoOpt
 		arg1 context.Context
 		arg2 []containerd.InfoOpts
 	}{arg1, arg2})
+	stub := fake.InfoStub
+	fakeReturns := fake.infoReturns
 	fake.recordInvocation("Info", []interface{}{arg1, arg2})
 	fake.infoMutex.Unlock()
-	if fake.InfoStub != nil {
-		return fake.InfoStub(arg1, arg2...)
+	if stub != nil {
+		return stub(arg1, arg2...)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.infoReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -549,15 +555,16 @@ func (fake *FakeContainer) Labels(arg1 context.Context) (map[string]string, erro
 	fake.labelsArgsForCall = append(fake.labelsArgsForCall, struct {
 		arg1 context.Context
 	}{arg1})
+	stub := fake.LabelsStub
+	fakeReturns := fake.labelsReturns
 	fake.recordInvocation("Labels", []interface{}{arg1})
 	fake.labelsMutex.Unlock()
-	if fake.LabelsStub != nil {
-		return fake.LabelsStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.labelsReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -614,15 +621,16 @@ func (fake *FakeContainer) NewTask(arg1 context.Context, arg2 cio.Creator, arg3 
 		arg2 cio.Creator
 		arg3 []containerd.NewTaskOpts
 	}{arg1, arg2, arg3})
+	stub := fake.NewTaskStub
+	fakeReturns := fake.newTaskReturns
 	fake.recordInvocation("NewTask", []interface{}{arg1, arg2, arg3})
 	fake.newTaskMutex.Unlock()
-	if fake.NewTaskStub != nil {
-		return fake.NewTaskStub(arg1, arg2, arg3...)
+	if stub != nil {
+		return stub(arg1, arg2, arg3...)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.newTaskReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -678,15 +686,16 @@ func (fake *FakeContainer) SetLabels(arg1 context.Context, arg2 map[string]strin
 		arg1 context.Context
 		arg2 map[string]string
 	}{arg1, arg2})
+	stub := fake.SetLabelsStub
+	fakeReturns := fake.setLabelsReturns
 	fake.recordInvocation("SetLabels", []interface{}{arg1, arg2})
 	fake.setLabelsMutex.Unlock()
-	if fake.SetLabelsStub != nil {
-		return fake.SetLabelsStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.setLabelsReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -741,15 +750,16 @@ func (fake *FakeContainer) Spec(arg1 context.Context) (*specs.Spec, error) {
 	fake.specArgsForCall = append(fake.specArgsForCall, struct {
 		arg1 context.Context
 	}{arg1})
+	stub := fake.SpecStub
+	fakeReturns := fake.specReturns
 	fake.recordInvocation("Spec", []interface{}{arg1})
 	fake.specMutex.Unlock()
-	if fake.SpecStub != nil {
-		return fake.SpecStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.specReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -805,15 +815,16 @@ func (fake *FakeContainer) Task(arg1 context.Context, arg2 cio.Attach) (containe
 		arg1 context.Context
 		arg2 cio.Attach
 	}{arg1, arg2})
+	stub := fake.TaskStub
+	fakeReturns := fake.taskReturns
 	fake.recordInvocation("Task", []interface{}{arg1, arg2})
 	fake.taskMutex.Unlock()
-	if fake.TaskStub != nil {
-		return fake.TaskStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.taskReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -869,15 +880,16 @@ func (fake *FakeContainer) Update(arg1 context.Context, arg2 ...containerd.Updat
 		arg1 context.Context
 		arg2 []containerd.UpdateContainerOpts
 	}{arg1, arg2})
+	stub := fake.UpdateStub
+	fakeReturns := fake.updateReturns
 	fake.recordInvocation("Update", []interface{}{arg1, arg2})
 	fake.updateMutex.Unlock()
-	if fake.UpdateStub != nil {
-		return fake.UpdateStub(arg1, arg2...)
+	if stub != nil {
+		return stub(arg1, arg2...)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.updateReturns
 	return fakeReturns.result1
 }
 

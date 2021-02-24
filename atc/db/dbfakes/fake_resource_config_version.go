@@ -80,15 +80,16 @@ func (fake *FakeResourceConfigVersion) CheckOrder() int {
 	ret, specificReturn := fake.checkOrderReturnsOnCall[len(fake.checkOrderArgsForCall)]
 	fake.checkOrderArgsForCall = append(fake.checkOrderArgsForCall, struct {
 	}{})
+	stub := fake.CheckOrderStub
+	fakeReturns := fake.checkOrderReturns
 	fake.recordInvocation("CheckOrder", []interface{}{})
 	fake.checkOrderMutex.Unlock()
-	if fake.CheckOrderStub != nil {
-		return fake.CheckOrderStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.checkOrderReturns
 	return fakeReturns.result1
 }
 
@@ -132,15 +133,16 @@ func (fake *FakeResourceConfigVersion) ID() int {
 	ret, specificReturn := fake.iDReturnsOnCall[len(fake.iDArgsForCall)]
 	fake.iDArgsForCall = append(fake.iDArgsForCall, struct {
 	}{})
+	stub := fake.IDStub
+	fakeReturns := fake.iDReturns
 	fake.recordInvocation("ID", []interface{}{})
 	fake.iDMutex.Unlock()
-	if fake.IDStub != nil {
-		return fake.IDStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.iDReturns
 	return fakeReturns.result1
 }
 
@@ -184,15 +186,16 @@ func (fake *FakeResourceConfigVersion) Metadata() db.ResourceConfigMetadataField
 	ret, specificReturn := fake.metadataReturnsOnCall[len(fake.metadataArgsForCall)]
 	fake.metadataArgsForCall = append(fake.metadataArgsForCall, struct {
 	}{})
+	stub := fake.MetadataStub
+	fakeReturns := fake.metadataReturns
 	fake.recordInvocation("Metadata", []interface{}{})
 	fake.metadataMutex.Unlock()
-	if fake.MetadataStub != nil {
-		return fake.MetadataStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.metadataReturns
 	return fakeReturns.result1
 }
 
@@ -236,15 +239,16 @@ func (fake *FakeResourceConfigVersion) Reload() (bool, error) {
 	ret, specificReturn := fake.reloadReturnsOnCall[len(fake.reloadArgsForCall)]
 	fake.reloadArgsForCall = append(fake.reloadArgsForCall, struct {
 	}{})
+	stub := fake.ReloadStub
+	fakeReturns := fake.reloadReturns
 	fake.recordInvocation("Reload", []interface{}{})
 	fake.reloadMutex.Unlock()
-	if fake.ReloadStub != nil {
-		return fake.ReloadStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.reloadReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -291,15 +295,16 @@ func (fake *FakeResourceConfigVersion) SpanContext() propagation.HTTPSupplier {
 	ret, specificReturn := fake.spanContextReturnsOnCall[len(fake.spanContextArgsForCall)]
 	fake.spanContextArgsForCall = append(fake.spanContextArgsForCall, struct {
 	}{})
+	stub := fake.SpanContextStub
+	fakeReturns := fake.spanContextReturns
 	fake.recordInvocation("SpanContext", []interface{}{})
 	fake.spanContextMutex.Unlock()
-	if fake.SpanContextStub != nil {
-		return fake.SpanContextStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.spanContextReturns
 	return fakeReturns.result1
 }
 
@@ -343,15 +348,16 @@ func (fake *FakeResourceConfigVersion) Version() db.Version {
 	ret, specificReturn := fake.versionReturnsOnCall[len(fake.versionArgsForCall)]
 	fake.versionArgsForCall = append(fake.versionArgsForCall, struct {
 	}{})
+	stub := fake.VersionStub
+	fakeReturns := fake.versionReturns
 	fake.recordInvocation("Version", []interface{}{})
 	fake.versionMutex.Unlock()
-	if fake.VersionStub != nil {
-		return fake.VersionStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.versionReturns
 	return fakeReturns.result1
 }
 

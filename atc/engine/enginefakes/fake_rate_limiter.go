@@ -30,15 +30,16 @@ func (fake *FakeRateLimiter) Wait(arg1 context.Context) error {
 	fake.waitArgsForCall = append(fake.waitArgsForCall, struct {
 		arg1 context.Context
 	}{arg1})
+	stub := fake.WaitStub
+	fakeReturns := fake.waitReturns
 	fake.recordInvocation("Wait", []interface{}{arg1})
 	fake.waitMutex.Unlock()
-	if fake.WaitStub != nil {
-		return fake.WaitStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.waitReturns
 	return fakeReturns.result1
 }
 

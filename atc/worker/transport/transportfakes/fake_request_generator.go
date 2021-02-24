@@ -38,15 +38,16 @@ func (fake *FakeRequestGenerator) CreateRequest(arg1 string, arg2 rata.Params, a
 		arg2 rata.Params
 		arg3 io.Reader
 	}{arg1, arg2, arg3})
+	stub := fake.CreateRequestStub
+	fakeReturns := fake.createRequestReturns
 	fake.recordInvocation("CreateRequest", []interface{}{arg1, arg2, arg3})
 	fake.createRequestMutex.Unlock()
-	if fake.CreateRequestStub != nil {
-		return fake.CreateRequestStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.createRequestReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

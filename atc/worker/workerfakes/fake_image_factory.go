@@ -40,15 +40,16 @@ func (fake *FakeImageFactory) GetImage(arg1 lager.Logger, arg2 worker.Worker, ar
 		arg4 worker.ImageSpec
 		arg5 int
 	}{arg1, arg2, arg3, arg4, arg5})
+	stub := fake.GetImageStub
+	fakeReturns := fake.getImageReturns
 	fake.recordInvocation("GetImage", []interface{}{arg1, arg2, arg3, arg4, arg5})
 	fake.getImageMutex.Unlock()
-	if fake.GetImageStub != nil {
-		return fake.GetImageStub(arg1, arg2, arg3, arg4, arg5)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4, arg5)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getImageReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

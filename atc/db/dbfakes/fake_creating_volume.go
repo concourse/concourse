@@ -61,15 +61,16 @@ func (fake *FakeCreatingVolume) Created() (db.CreatedVolume, error) {
 	ret, specificReturn := fake.createdReturnsOnCall[len(fake.createdArgsForCall)]
 	fake.createdArgsForCall = append(fake.createdArgsForCall, struct {
 	}{})
+	stub := fake.CreatedStub
+	fakeReturns := fake.createdReturns
 	fake.recordInvocation("Created", []interface{}{})
 	fake.createdMutex.Unlock()
-	if fake.CreatedStub != nil {
-		return fake.CreatedStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.createdReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -116,15 +117,16 @@ func (fake *FakeCreatingVolume) Failed() (db.FailedVolume, error) {
 	ret, specificReturn := fake.failedReturnsOnCall[len(fake.failedArgsForCall)]
 	fake.failedArgsForCall = append(fake.failedArgsForCall, struct {
 	}{})
+	stub := fake.FailedStub
+	fakeReturns := fake.failedReturns
 	fake.recordInvocation("Failed", []interface{}{})
 	fake.failedMutex.Unlock()
-	if fake.FailedStub != nil {
-		return fake.FailedStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.failedReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -171,15 +173,16 @@ func (fake *FakeCreatingVolume) Handle() string {
 	ret, specificReturn := fake.handleReturnsOnCall[len(fake.handleArgsForCall)]
 	fake.handleArgsForCall = append(fake.handleArgsForCall, struct {
 	}{})
+	stub := fake.HandleStub
+	fakeReturns := fake.handleReturns
 	fake.recordInvocation("Handle", []interface{}{})
 	fake.handleMutex.Unlock()
-	if fake.HandleStub != nil {
-		return fake.HandleStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.handleReturns
 	return fakeReturns.result1
 }
 
@@ -223,15 +226,16 @@ func (fake *FakeCreatingVolume) ID() int {
 	ret, specificReturn := fake.iDReturnsOnCall[len(fake.iDArgsForCall)]
 	fake.iDArgsForCall = append(fake.iDArgsForCall, struct {
 	}{})
+	stub := fake.IDStub
+	fakeReturns := fake.iDReturns
 	fake.recordInvocation("ID", []interface{}{})
 	fake.iDMutex.Unlock()
-	if fake.IDStub != nil {
-		return fake.IDStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.iDReturns
 	return fakeReturns.result1
 }
 

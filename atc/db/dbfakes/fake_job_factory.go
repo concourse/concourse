@@ -55,15 +55,16 @@ func (fake *FakeJobFactory) AllActiveJobs() ([]atc.JobSummary, error) {
 	ret, specificReturn := fake.allActiveJobsReturnsOnCall[len(fake.allActiveJobsArgsForCall)]
 	fake.allActiveJobsArgsForCall = append(fake.allActiveJobsArgsForCall, struct {
 	}{})
+	stub := fake.AllActiveJobsStub
+	fakeReturns := fake.allActiveJobsReturns
 	fake.recordInvocation("AllActiveJobs", []interface{}{})
 	fake.allActiveJobsMutex.Unlock()
-	if fake.AllActiveJobsStub != nil {
-		return fake.AllActiveJobsStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.allActiveJobsReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -110,15 +111,16 @@ func (fake *FakeJobFactory) JobsToSchedule() (db.SchedulerJobs, error) {
 	ret, specificReturn := fake.jobsToScheduleReturnsOnCall[len(fake.jobsToScheduleArgsForCall)]
 	fake.jobsToScheduleArgsForCall = append(fake.jobsToScheduleArgsForCall, struct {
 	}{})
+	stub := fake.JobsToScheduleStub
+	fakeReturns := fake.jobsToScheduleReturns
 	fake.recordInvocation("JobsToSchedule", []interface{}{})
 	fake.jobsToScheduleMutex.Unlock()
-	if fake.JobsToScheduleStub != nil {
-		return fake.JobsToScheduleStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.jobsToScheduleReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -171,15 +173,16 @@ func (fake *FakeJobFactory) VisibleJobs(arg1 []string) ([]atc.JobSummary, error)
 	fake.visibleJobsArgsForCall = append(fake.visibleJobsArgsForCall, struct {
 		arg1 []string
 	}{arg1Copy})
+	stub := fake.VisibleJobsStub
+	fakeReturns := fake.visibleJobsReturns
 	fake.recordInvocation("VisibleJobs", []interface{}{arg1Copy})
 	fake.visibleJobsMutex.Unlock()
-	if fake.VisibleJobsStub != nil {
-		return fake.VisibleJobsStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.visibleJobsReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

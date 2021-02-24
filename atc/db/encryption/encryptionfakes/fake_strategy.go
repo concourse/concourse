@@ -48,15 +48,16 @@ func (fake *FakeStrategy) Decrypt(arg1 string, arg2 *string) ([]byte, error) {
 		arg1 string
 		arg2 *string
 	}{arg1, arg2})
+	stub := fake.DecryptStub
+	fakeReturns := fake.decryptReturns
 	fake.recordInvocation("Decrypt", []interface{}{arg1, arg2})
 	fake.decryptMutex.Unlock()
-	if fake.DecryptStub != nil {
-		return fake.DecryptStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.decryptReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -116,15 +117,16 @@ func (fake *FakeStrategy) Encrypt(arg1 []byte) (string, *string, error) {
 	fake.encryptArgsForCall = append(fake.encryptArgsForCall, struct {
 		arg1 []byte
 	}{arg1Copy})
+	stub := fake.EncryptStub
+	fakeReturns := fake.encryptReturns
 	fake.recordInvocation("Encrypt", []interface{}{arg1Copy})
 	fake.encryptMutex.Unlock()
-	if fake.EncryptStub != nil {
-		return fake.EncryptStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.encryptReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 

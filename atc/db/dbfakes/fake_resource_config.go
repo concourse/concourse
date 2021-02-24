@@ -81,15 +81,16 @@ func (fake *FakeResourceConfig) CreatedByBaseResourceType() *db.UsedBaseResource
 	ret, specificReturn := fake.createdByBaseResourceTypeReturnsOnCall[len(fake.createdByBaseResourceTypeArgsForCall)]
 	fake.createdByBaseResourceTypeArgsForCall = append(fake.createdByBaseResourceTypeArgsForCall, struct {
 	}{})
+	stub := fake.CreatedByBaseResourceTypeStub
+	fakeReturns := fake.createdByBaseResourceTypeReturns
 	fake.recordInvocation("CreatedByBaseResourceType", []interface{}{})
 	fake.createdByBaseResourceTypeMutex.Unlock()
-	if fake.CreatedByBaseResourceTypeStub != nil {
-		return fake.CreatedByBaseResourceTypeStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.createdByBaseResourceTypeReturns
 	return fakeReturns.result1
 }
 
@@ -133,15 +134,16 @@ func (fake *FakeResourceConfig) CreatedByResourceCache() db.UsedResourceCache {
 	ret, specificReturn := fake.createdByResourceCacheReturnsOnCall[len(fake.createdByResourceCacheArgsForCall)]
 	fake.createdByResourceCacheArgsForCall = append(fake.createdByResourceCacheArgsForCall, struct {
 	}{})
+	stub := fake.CreatedByResourceCacheStub
+	fakeReturns := fake.createdByResourceCacheReturns
 	fake.recordInvocation("CreatedByResourceCache", []interface{}{})
 	fake.createdByResourceCacheMutex.Unlock()
-	if fake.CreatedByResourceCacheStub != nil {
-		return fake.CreatedByResourceCacheStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.createdByResourceCacheReturns
 	return fakeReturns.result1
 }
 
@@ -186,15 +188,16 @@ func (fake *FakeResourceConfig) FindOrCreateScope(arg1 db.Resource) (db.Resource
 	fake.findOrCreateScopeArgsForCall = append(fake.findOrCreateScopeArgsForCall, struct {
 		arg1 db.Resource
 	}{arg1})
+	stub := fake.FindOrCreateScopeStub
+	fakeReturns := fake.findOrCreateScopeReturns
 	fake.recordInvocation("FindOrCreateScope", []interface{}{arg1})
 	fake.findOrCreateScopeMutex.Unlock()
-	if fake.FindOrCreateScopeStub != nil {
-		return fake.FindOrCreateScopeStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.findOrCreateScopeReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -248,15 +251,16 @@ func (fake *FakeResourceConfig) ID() int {
 	ret, specificReturn := fake.iDReturnsOnCall[len(fake.iDArgsForCall)]
 	fake.iDArgsForCall = append(fake.iDArgsForCall, struct {
 	}{})
+	stub := fake.IDStub
+	fakeReturns := fake.iDReturns
 	fake.recordInvocation("ID", []interface{}{})
 	fake.iDMutex.Unlock()
-	if fake.IDStub != nil {
-		return fake.IDStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.iDReturns
 	return fakeReturns.result1
 }
 
@@ -300,15 +304,16 @@ func (fake *FakeResourceConfig) LastReferenced() time.Time {
 	ret, specificReturn := fake.lastReferencedReturnsOnCall[len(fake.lastReferencedArgsForCall)]
 	fake.lastReferencedArgsForCall = append(fake.lastReferencedArgsForCall, struct {
 	}{})
+	stub := fake.LastReferencedStub
+	fakeReturns := fake.lastReferencedReturns
 	fake.recordInvocation("LastReferenced", []interface{}{})
 	fake.lastReferencedMutex.Unlock()
-	if fake.LastReferencedStub != nil {
-		return fake.LastReferencedStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.lastReferencedReturns
 	return fakeReturns.result1
 }
 
@@ -352,15 +357,16 @@ func (fake *FakeResourceConfig) OriginBaseResourceType() *db.UsedBaseResourceTyp
 	ret, specificReturn := fake.originBaseResourceTypeReturnsOnCall[len(fake.originBaseResourceTypeArgsForCall)]
 	fake.originBaseResourceTypeArgsForCall = append(fake.originBaseResourceTypeArgsForCall, struct {
 	}{})
+	stub := fake.OriginBaseResourceTypeStub
+	fakeReturns := fake.originBaseResourceTypeReturns
 	fake.recordInvocation("OriginBaseResourceType", []interface{}{})
 	fake.originBaseResourceTypeMutex.Unlock()
-	if fake.OriginBaseResourceTypeStub != nil {
-		return fake.OriginBaseResourceTypeStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.originBaseResourceTypeReturns
 	return fakeReturns.result1
 }
 

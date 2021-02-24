@@ -29,15 +29,16 @@ func (fake *FakePutDelegateFactory) PutDelegate(arg1 exec.RunState) exec.PutDele
 	fake.putDelegateArgsForCall = append(fake.putDelegateArgsForCall, struct {
 		arg1 exec.RunState
 	}{arg1})
+	stub := fake.PutDelegateStub
+	fakeReturns := fake.putDelegateReturns
 	fake.recordInvocation("PutDelegate", []interface{}{arg1})
 	fake.putDelegateMutex.Unlock()
-	if fake.PutDelegateStub != nil {
-		return fake.PutDelegateStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.putDelegateReturns
 	return fakeReturns.result1
 }
 

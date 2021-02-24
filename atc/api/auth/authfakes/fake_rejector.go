@@ -31,9 +31,10 @@ func (fake *FakeRejector) Forbidden(arg1 http.ResponseWriter, arg2 *http.Request
 		arg1 http.ResponseWriter
 		arg2 *http.Request
 	}{arg1, arg2})
+	stub := fake.ForbiddenStub
 	fake.recordInvocation("Forbidden", []interface{}{arg1, arg2})
 	fake.forbiddenMutex.Unlock()
-	if fake.ForbiddenStub != nil {
+	if stub != nil {
 		fake.ForbiddenStub(arg1, arg2)
 	}
 }
@@ -63,9 +64,10 @@ func (fake *FakeRejector) Unauthorized(arg1 http.ResponseWriter, arg2 *http.Requ
 		arg1 http.ResponseWriter
 		arg2 *http.Request
 	}{arg1, arg2})
+	stub := fake.UnauthorizedStub
 	fake.recordInvocation("Unauthorized", []interface{}{arg1, arg2})
 	fake.unauthorizedMutex.Unlock()
-	if fake.UnauthorizedStub != nil {
+	if stub != nil {
 		fake.UnauthorizedStub(arg1, arg2)
 	}
 }
