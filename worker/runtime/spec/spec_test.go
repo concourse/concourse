@@ -385,12 +385,6 @@ func (s *SpecSuite) TestContainerSpec() {
 					Source:      "cgroup",
 					Options:     []string{"nosuid", "noexec", "nodev"},
 				})
-				s.Contains(oci.Mounts, specs.Mount{
-					Destination: "/sys/fs/cgroup",
-					Type:        "cgroup",
-					Source:      "cgroup",
-					Options:     []string{"nosuid", "noexec", "nodev"},
-				})
 				for _, ociMount := range oci.Mounts {
 					if ociMount.Destination == "/sys" {
 						s.NotContains(ociMount.Options, "ro", "%s: %s", ociMount.Destination, ociMount.Type)

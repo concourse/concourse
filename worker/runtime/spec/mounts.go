@@ -44,15 +44,9 @@ var (
 		},
 		{
 			Destination: "/sys/fs/cgroup",
-			Type: "cgroup",
-			Source: "cgroup",
-			Options: []string{"ro", "nosuid", "noexec", "nodev"},
-		},
-		{
-			Destination: "/run",
-			Type:        "tmpfs",
-			Source:      "tmpfs",
-			Options:     []string{"nosuid", "strictatime", "mode=755", "size=65536k"},
+			Type:        "cgroup",
+			Source:      "cgroup",
+			Options:     []string{"ro", "nosuid", "noexec", "nodev"},
 		},
 	}
 )
