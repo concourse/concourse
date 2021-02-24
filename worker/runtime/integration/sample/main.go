@@ -14,10 +14,11 @@ import (
 )
 
 var (
-	flagWaitForSignal = flag.String("wait-for-signal", "", "wait for a sigal (sigterm|sighup)")
-	flagHttpGet       = flag.String("http-get", "", "website to perform an HTTP GET request against")
-	flagWriteTenTimes = flag.String("write-many-times", "", "writes a string to stdout many times")
-	flagCatFile       = flag.String("cat", "", "writes contents of file to stdout")
+	flagWaitForSignal  = flag.String("wait-for-signal", "", "wait for a signal (sigterm|sighup)")
+	flagHttpGet        = flag.String("http-get", "", "website to perform an HTTP GET request against")
+	flagHttpServe      = flag.Int("http-serve", 0, "port on which to serve a simple HTTP server")
+	flagWriteManyTimes = flag.String("write-many-times", "", "writes a string to stdout many times")
+	flagCatFile        = flag.String("cat", "", "writes contents of file to stdout")
 
 	signals = map[string]os.Signal{
 		"sighup":  syscall.SIGHUP,
@@ -62,7 +63,16 @@ func httpGet(url string) {
 	fmt.Println(resp.Status)
 }
 
-func writeTenTimes(content string) {
+func httpServe(port int) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	if err := http.ListenAndServe(fmt.Sprintf(":%d", port), handler); err != nil {
+		panic(err)
+	}
+}
+
+func writeManyTimes(content string) {
 	for i := 0; i < 20; i++ {
 		fmt.Println(content)
 		time.Sleep(300 * time.Millisecond)
@@ -85,8 +95,10 @@ func main() {
 		waitForSignal(*flagWaitForSignal)
 	case *flagHttpGet != "":
 		httpGet(*flagHttpGet)
-	case *flagWriteTenTimes != "":
-		writeTenTimes(*flagWriteTenTimes)
+	case *flagHttpServe != 0:
+		httpServe(*flagHttpServe)
+	case *flagWriteManyTimes != "":
+		writeManyTimes(*flagWriteManyTimes)
 	case *flagCatFile != "":
 		catFile(*flagCatFile)
 	default:

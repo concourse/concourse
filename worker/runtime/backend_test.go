@@ -3,6 +3,7 @@ package runtime_test
 import (
 	"context"
 	"errors"
+	"net"
 	"sync"
 	"testing"
 	"time"
@@ -132,6 +133,18 @@ func (s *BackendSuite) TestCreateContainerTaskStartFailure() {
 	s.EqualError(errors.Unwrap(err), "start-err")
 }
 
+func (s *BackendSuite) TestCreateNetworkAddFailure() {
+	fakeTask := new(libcontainerdfakes.FakeTask)
+	fakeContainer := new(libcontainerdfakes.FakeContainer)
+
+	s.client.NewContainerReturns(fakeContainer, nil)
+	fakeContainer.NewTaskReturns(fakeTask, nil)
+	s.network.AddReturns(nil, errors.New("add-err"))
+
+	_, err := s.backend.Create(minimumValidGdnSpec)
+	s.Error(err)
+}
+
 func (s *BackendSuite) TestCreateContainerSetsHandle() {
 	fakeTask := new(libcontainerdfakes.FakeTask)
 	fakeContainer := new(libcontainerdfakes.FakeContainer)
@@ -144,6 +157,30 @@ func (s *BackendSuite) TestCreateContainerSetsHandle() {
 	s.NoError(err)
 
 	s.Equal("handle", cont.Handle())
+}
+
+func (s *BackendSuite) TestCreateContainerSetsIP() {
+	fakeTask := new(libcontainerdfakes.FakeTask)
+	fakeContainer := new(libcontainerdfakes.FakeContainer)
+	ip := &runtime.IPInfo{
+		ContainerIP: net.IPv4(1, 2, 3, 4),
+		HostIP:      net.IPv4(5, 6, 7, 8),
+	}
+	expectedLabels := map[string]string{
+		runtime.ContainerIPKey: ip.ContainerIP.String(),
+		runtime.BridgeIPKey:    ip.HostIP.String(),
+	}
+
+	fakeContainer.NewTaskReturns(fakeTask, nil)
+	s.network.AddReturns(ip, nil)
+
+	s.client.NewContainerReturns(fakeContainer, nil)
+	_, err := s.backend.Create(minimumValidGdnSpec)
+	s.NoError(err)
+
+	s.Equal(1, fakeContainer.SetLabelsCallCount())
+	_, labels := fakeContainer.SetLabelsArgsForCall(0)
+	s.Equal(expectedLabels, labels)
 }
 
 func (s *BackendSuite) TestCreateMaxContainersReached() {

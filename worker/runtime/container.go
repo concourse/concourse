@@ -15,6 +15,8 @@ import (
 )
 
 const GraceTimeKey = "garden.grace-time"
+const ContainerIPKey = "garden.network.container-ip"
+const BridgeIPKey = "garden.network.host-ip"
 
 type UserNotFoundError struct {
 	User string
@@ -204,11 +206,16 @@ func (c *Container) Property(name string) (string, error) {
 // Set a named property on a container to a specified value.
 //
 func (c *Container) SetProperty(name string, value string) error {
-	labelSet := map[string]string{
+	return c.SetProperties(map[string]string{
 		name: value,
-	}
+	})
+}
 
-	_, err := c.container.SetLabels(context.Background(), labelSet)
+// Set multiple named properties on a container.
+// Note: unlike SetProperty, this is not a part of the Garden spec.
+//
+func (c *Container) SetProperties(properties map[string]string) error {
+	_, err := c.container.SetLabels(context.Background(), properties)
 	if err != nil {
 		return fmt.Errorf("set label: %w", err)
 	}
@@ -222,10 +229,19 @@ func (c *Container) RemoveProperty(name string) (err error) {
 	return
 }
 
-// Info - Not Implemented
-func (c *Container) Info() (info garden.ContainerInfo, err error) {
-	err = ErrNotImplemented
-	return
+// Info returns information about a container.
+// Note: it does not return the full set of properties defined the Garden spec.
+//
+func (c *Container) Info() (garden.ContainerInfo, error) {
+	properties, err := c.Properties()
+	if err != nil {
+		return garden.ContainerInfo{}, err
+	}
+	return garden.ContainerInfo{
+		ContainerIP: properties[ContainerIPKey],
+		HostIP:      properties[BridgeIPKey],
+		Properties:  properties,
+	}, nil
 }
 
 // Metrics - Not Implemented
@@ -246,15 +262,19 @@ func (c *Container) StreamOut(spec garden.StreamOutSpec) (readCloser io.ReadClos
 	return
 }
 
-// SetGraceTime stores the grace time as a containerd label with key "garden.grace-time"
+// SetGraceTime stores the grace time as a label.
 //
 func (c *Container) SetGraceTime(graceTime time.Duration) error {
-	err := c.SetProperty(GraceTimeKey, fmt.Sprintf("%d", graceTime))
-	if err != nil {
-		return fmt.Errorf("set grace time: %w", err)
-	}
+	return c.SetProperty(GraceTimeKey, fmt.Sprintf("%d", graceTime))
+}
 
-	return nil
+// SetIP stores the container and bridge IP addresses as labels.
+//
+func (c *Container) SetIP(ip IPInfo) error {
+	return c.SetProperties(map[string]string{
+		ContainerIPKey: ip.ContainerIP.String(),
+		BridgeIPKey:    ip.HostIP.String(),
+	})
 }
 
 // CurrentBandwidthLimits returns no limits (achieves parity with Guardian)

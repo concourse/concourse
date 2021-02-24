@@ -3,12 +3,14 @@ package runtime_test
 import (
 	"context"
 	"errors"
+	"net"
 	"strings"
 
 	"github.com/concourse/concourse/worker/runtime"
 	"github.com/concourse/concourse/worker/runtime/iptables/iptablesfakes"
 	"github.com/concourse/concourse/worker/runtime/libcontainerd/libcontainerdfakes"
 	"github.com/concourse/concourse/worker/runtime/runtimefakes"
+	"github.com/containerd/go-cni"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -168,8 +170,35 @@ func (s *CNINetworkSuite) TestSetupRestrictedNetworksCreatesEmptyAdminChain() {
 	s.Equal(rulespec, []string{"-d", "8.8.8.8", "-j", "REJECT"})
 }
 
+func (s *CNINetworkSuite) TestAdd() {
+	containerIP := net.IPv4(1, 2, 3, 4)
+	hostIP := net.IPv4(5, 6, 7, 8)
+	task := new(libcontainerdfakes.FakeTask)
+
+	task.PidReturns(123)
+	task.IDReturns("id")
+	s.cni.SetupReturns(&cni.CNIResult{Interfaces: map[string]*cni.Config{
+		"eth0": {
+			IPConfigs: []*cni.IPConfig{{
+				IP:      containerIP,
+				Gateway: hostIP,
+			}},
+		},
+	}}, nil)
+
+	ips, err := s.network.Add(context.Background(), task)
+	s.NoError(err)
+	s.Equal(containerIP, ips.ContainerIP)
+	s.Equal(hostIP, ips.HostIP)
+
+	s.Equal(1, s.cni.SetupCallCount())
+	_, id, netns, _ := s.cni.SetupArgsForCall(0)
+	s.Equal("id", id)
+	s.Equal("/proc/123/ns/net", netns)
+}
+
 func (s *CNINetworkSuite) TestAddNilTask() {
-	err := s.network.Add(context.Background(), nil)
+	_, err := s.network.Add(context.Background(), nil)
 	s.EqualError(err, "nil task")
 }
 
@@ -177,22 +206,22 @@ func (s *CNINetworkSuite) TestAddSetupErrors() {
 	s.cni.SetupReturns(nil, errors.New("setup-err"))
 	task := new(libcontainerdfakes.FakeTask)
 
-	err := s.network.Add(context.Background(), task)
+	_, err := s.network.Add(context.Background(), task)
 	s.EqualError(errors.Unwrap(err), "setup-err")
 }
 
-func (s *CNINetworkSuite) TestAdd() {
-	task := new(libcontainerdfakes.FakeTask)
-	task.PidReturns(123)
-	task.IDReturns("id")
+func (s *CNINetworkSuite) TestAddMissingIP() {
+	for _, result := range []*cni.CNIResult{
+		{Interfaces: map[string]*cni.Config{}},
+		{Interfaces: map[string]*cni.Config{"eth0": {IPConfigs: []*cni.IPConfig{}}}},
+	} {
+		s.cni.SetupReturns(result, nil)
+		task := new(libcontainerdfakes.FakeTask)
 
-	err := s.network.Add(context.Background(), task)
-	s.NoError(err)
-
-	s.Equal(1, s.cni.SetupCallCount())
-	_, id, netns, _ := s.cni.SetupArgsForCall(0)
-	s.Equal("id", id)
-	s.Equal("/proc/123/ns/net", netns)
+		ips, err := s.network.Add(context.Background(), task)
+		s.NoError(err)
+		s.Nil(ips)
+	}
 }
 
 func (s *CNINetworkSuite) TestRemoveNilTask() {

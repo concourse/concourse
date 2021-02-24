@@ -290,11 +290,56 @@ func (s *IntegrationSuite) TestContainerNetworkEgressWithRestrictedNetworks() {
 	s.Contains(buf.String(), "connect: connection refused")
 }
 
+// TestContainerBridgeNetwork validates that containers are assigned an IP
+// address that is reachable by other containers (via the bridge network).
+//
+func (s *IntegrationSuite) TestContainerBridgeNetwork() {
+	handle := uuid()
+	properties := garden.Properties{"test": uuid()}
+
+	serverContainer, err := s.gardenBackend.Create(garden.ContainerSpec{
+		Handle:     handle,
+		RootFSPath: "raw://" + s.rootfs,
+		Privileged: true,
+		Properties: properties,
+	})
+	s.NoError(err)
+
+	defer func() {
+		s.NoError(s.gardenBackend.Destroy(handle))
+	}()
+
+	buf := new(buffer)
+	_, err = serverContainer.Run(
+		garden.ProcessSpec{
+			Path: "/executable",
+			Args: []string{
+				"-http-serve=8080",
+			},
+		},
+		garden.ProcessIO{
+			Stdout: buf,
+			Stderr: buf,
+		},
+	)
+	s.NoError(err)
+
+	info, err := serverContainer.Info()
+	s.NoError(err)
+
+	out, exitCode := s.runToCompletion(true, "-http-get", "http://"+info.ContainerIP+":8080")
+	s.Equal(0, exitCode)
+	s.Equal("200 OK\n", out)
+}
+
 // TestRunPrivileged tests whether we're able to run a process in a privileged
 // container.
 //
 func (s *IntegrationSuite) TestRunPrivileged() {
-	s.runToCompletion(true)
+	out, exitCode := s.runToCompletion(true)
+
+	s.Equal(0, exitCode)
+	s.Equal("hello world\n", out)
 }
 
 // TestRunPrivileged tests whether we're able to run a process in an
@@ -312,10 +357,13 @@ func (s *IntegrationSuite) TestRunUnprivileged() {
 		return os.Lchown(path, int(maxUid), int(maxGid))
 	})
 
-	s.runToCompletion(false)
+	out, exitCode := s.runToCompletion(false)
+
+	s.Equal(exitCode, 0)
+	s.Equal("hello world\n", out)
 }
 
-func (s *IntegrationSuite) runToCompletion(privileged bool) {
+func (s *IntegrationSuite) runToCompletion(privileged bool, args ...string) (string, int) {
 	handle := uuid()
 
 	container, err := s.gardenBackend.Create(garden.ContainerSpec{
@@ -336,6 +384,7 @@ func (s *IntegrationSuite) runToCompletion(privileged bool) {
 	proc, err := container.Run(
 		garden.ProcessSpec{
 			Path: "/executable",
+			Args: args,
 			Dir:  "/somewhere",
 		},
 		garden.ProcessIO{
@@ -348,9 +397,7 @@ func (s *IntegrationSuite) runToCompletion(privileged bool) {
 	exitCode, err := proc.Wait()
 	s.NoError(err)
 
-	s.Equal(exitCode, 0)
-	s.Equal("hello world\n", buf.String())
-
+	return buf.String(), exitCode
 }
 
 // TestAttachToUnknownProc verifies that trying to attach to a process that does

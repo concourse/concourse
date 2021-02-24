@@ -174,7 +174,7 @@ func NewCNINetwork(opts ...CNINetworkOpt) (*cniNetwork, error) {
 	var err error
 
 	n := &cniNetwork{
-		config:      defaultCNINetworkConfig,
+		config: defaultCNINetworkConfig,
 	}
 
 	for _, opt := range opts {
@@ -293,19 +293,27 @@ func (n cniNetwork) generateResolvConfContents() ([]byte, error) {
 	return []byte(contents), err
 }
 
-func (n cniNetwork) Add(ctx context.Context, task containerd.Task) error {
+func (n cniNetwork) Add(ctx context.Context, task containerd.Task) (*IPInfo, error) {
 	if task == nil {
-		return ErrInvalidInput("nil task")
+		return nil, ErrInvalidInput("nil task")
 	}
 
 	id, netns := netId(task), netNsPath(task)
 
-	_, err := n.client.Setup(ctx, id, netns)
+	result, err := n.client.Setup(ctx, id, netns)
 	if err != nil {
-		return fmt.Errorf("cni net setup: %w", err)
+		return nil, fmt.Errorf("cni net setup: %w", err)
 	}
 
-	return nil
+	defaultIface := result.Interfaces["eth0"]
+	if defaultIface == nil || len(defaultIface.IPConfigs) == 0 {
+		return nil, nil
+	}
+	config := defaultIface.IPConfigs[0]
+	return &IPInfo{
+		ContainerIP: config.IP,
+		HostIP:      config.Gateway,
+	}, nil
 }
 
 func (n cniNetwork) Remove(ctx context.Context, task containerd.Task) error {
