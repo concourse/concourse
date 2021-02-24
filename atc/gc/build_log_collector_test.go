@@ -704,6 +704,47 @@ var _ = Describe("BuildLogCollector", func() {
 		})
 	})
 
+	Context("When theres is a paused job", func() {
+		var fakePipeline *dbfakes.FakePipeline
+		var fakeJob *dbfakes.FakeJob
+
+		BeforeEach(func() {
+			fakePipeline = new(dbfakes.FakePipeline)
+			fakePipeline.IDReturns(42)
+
+			fakePipelineFactory.AllPipelinesReturns([]db.Pipeline{fakePipeline}, nil)
+
+			fakeJob = new(dbfakes.FakeJob)
+			fakeJob.PausedReturns(true)
+			fakeJob.NameReturns("job-1")
+			fakeJob.FirstLoggedBuildIDReturns(1)
+			fakeJob.ConfigReturns(atc.JobConfig{
+				BuildLogsToRetain: 1,
+			}, nil)
+			fakeJob.TagsReturns([]string{})
+
+			fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
+				if *page.From == 1 {
+					return []db.Build{sb(2), sb(1)}, db.Pagination{}, nil
+				}
+
+				Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
+				return nil, db.Pagination{}, nil
+			}
+
+			fakePipeline.JobsReturns([]db.Job{fakeJob}, nil)
+		})
+
+		It("skips the reaping step for that job", func() {
+			err := buildLogCollector.Run(context.TODO())
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(BeZero())
+			Expect(fakeJob.UpdateFirstLoggedBuildIDCallCount()).To(BeZero())
+		})
+	})
+
+	
 	Context("when getting the pipelines fails", func() {
 		var disaster error
 
