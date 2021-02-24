@@ -196,6 +196,8 @@ func (source *artifactSource) StreamTo(
 		return nil
 	}
 
+	metric.Metrics.StreamedResourceCaches.Inc()
+
 	return nil
 }
 

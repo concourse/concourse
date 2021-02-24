@@ -84,6 +84,22 @@ func tick(logger lager.Logger, m *Monitor) {
 	)
 
 	m.emit(
+		logger.Session("get-step-cache-hits"),
+		Event{
+			Name:  "get step cache hits",
+			Value: m.GetStepCacheHits.Delta(),
+		},
+	)
+
+	m.emit(
+		logger.Session("streamed-resource-caches"),
+		Event{
+			Name:  "streamed resource caches",
+			Value: m.StreamedResourceCaches.Delta(),
+		},
+	)
+
+	m.emit(
 		logger.Session("containers-created"),
 		Event{
 			Name:  "containers created",

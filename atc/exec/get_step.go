@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/concourse/concourse/atc/metric"
 	"io"
 
 	"code.cloudfoundry.org/lager"
@@ -208,6 +209,8 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 			ExitStatus(getResult.ExitStatus),
 			getResult.VersionResult,
 		)
+
+		metric.Metrics.GetStepCacheHits.Inc()
 
 		return true, nil
 	}
