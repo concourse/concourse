@@ -1,5 +1,0 @@
-version: '3'
-
-services:
-  concourse:
-    image: concourse/concourse-rc:latest
