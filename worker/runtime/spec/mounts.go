@@ -52,17 +52,14 @@ var (
 )
 
 func ContainerMounts(privileged bool, initBinPath string) []specs.Mount {
-	mounts := append(
-		[]specs.Mount{
-			{
-				Source:      initBinPath,
-				Destination: "/tmp/gdn-init",
-				Type:        "bind",
-				Options:     []string{"bind"},
-			},
-		},
-		DefaultContainerMounts...,
-	)
+	mounts := make([]specs.Mount, 0, len(DefaultContainerMounts)+1)
+	mounts = append(mounts, DefaultContainerMounts...)
+	mounts = append(mounts, specs.Mount{
+		Source:      initBinPath,
+		Destination: "/tmp/gdn-init",
+		Type:        "bind",
+		Options:     []string{"bind"},
+	})
 	// Following the current behaviour for privileged containers in Docker
 	if privileged {
 		for i, ociMount := range mounts {
