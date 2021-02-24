@@ -58,6 +58,7 @@ var _ = Describe("Worker", func() {
 		fakeBindMount *workerfakes.FakeBindMountSource
 
 		fakeRemoteInputContainerVolume *workerfakes.FakeVolume
+		fakeRemoteInputCOWVolume       *workerfakes.FakeVolume
 		fakeLocalVolume                *workerfakes.FakeVolume
 		fakeOutputVolume               *workerfakes.FakeVolume
 		fakeLocalCOWVolume             *workerfakes.FakeVolume
@@ -151,18 +152,22 @@ var _ = Describe("Worker", func() {
 		fakeRemoteInputContainerVolume = new(workerfakes.FakeVolume)
 		fakeRemoteInputContainerVolume.PathReturns("/fake/remote/input/container/volume")
 
+		fakeRemoteInputCOWVolume = new(workerfakes.FakeVolume)
+		fakeRemoteInputCOWVolume.PathReturns("/fake/remote/input/container/cow/volume")
+
 		stubbedVolumes = map[string]*workerfakes.FakeVolume{
 			"/scratch":                    fakeScratchVolume,
 			"/some/work-dir":              fakeWorkdirVolume,
 			"/some/work-dir/local-input":  fakeLocalCOWVolume,
-			"/some/work-dir/remote-input": fakeRemoteInputContainerVolume,
+			"":                            fakeRemoteInputContainerVolume,
+			"/some/work-dir/remote-input": fakeRemoteInputCOWVolume,
 			"/some/work-dir/output":       fakeOutputVolume,
 		}
 
 		volumeSpecs = map[string]VolumeSpec{}
 
 		fakeVolumeClient.FindOrCreateCOWVolumeForContainerStub = func(logger lager.Logger, volumeSpec VolumeSpec, creatingContainer db.CreatingContainer, volume Volume, teamID int, mountPath string) (Volume, error) {
-			Expect(volume).To(Equal(fakeLocalVolume))
+			Expect(volume).To(Or(Equal(fakeLocalVolume), Equal(fakeRemoteInputContainerVolume)))
 
 			volume, found := stubbedVolumes[mountPath]
 			if !found {
@@ -180,7 +185,9 @@ var _ = Describe("Worker", func() {
 				panic("unknown container volume: " + mountPath)
 			}
 
-			volumeSpecs[mountPath] = volumeSpec
+			if mountPath != "" {
+				volumeSpecs[mountPath] = volumeSpec
+			}
 
 			return volume, nil
 		}
@@ -846,7 +853,7 @@ var _ = Describe("Worker", func() {
 								Mode:    garden.BindMountModeRW,
 							},
 							{
-								SrcPath: "/fake/remote/input/container/volume",
+								SrcPath: "/fake/remote/input/container/cow/volume",
 								DstPath: "/some/work-dir/remote-input",
 								Mode:    garden.BindMountModeRW,
 							},
@@ -1001,7 +1008,7 @@ var _ = Describe("Worker", func() {
 										Mode:    garden.BindMountModeRW,
 									},
 									{
-										SrcPath: "/fake/remote/input/container/volume",
+										SrcPath: "/fake/remote/input/container/cow/volume",
 										DstPath: "/some/work-dir/remote-input",
 										Mode:    garden.BindMountModeRW,
 									},
@@ -1181,7 +1188,7 @@ var _ = Describe("Worker", func() {
 										Mode:    garden.BindMountModeRW,
 									},
 									{
-										SrcPath: "/fake/remote/input/container/volume",
+										SrcPath: "/fake/remote/input/container/cow/volume",
 										DstPath: "/some/work-dir/remote-input",
 										Mode:    garden.BindMountModeRW,
 									},
@@ -1226,7 +1233,7 @@ var _ = Describe("Worker", func() {
 						"/some/work-dir":              {Strategy: baggageclaim.EmptyStrategy{}},
 						"/some/work-dir/output":       {Strategy: baggageclaim.EmptyStrategy{}},
 						"/some/work-dir/local-input":  {Strategy: fakeLocalVolume.COWStrategy()},
-						"/some/work-dir/remote-input": {Strategy: baggageclaim.EmptyStrategy{}},
+						"/some/work-dir/remote-input": {Strategy: fakeRemoteInputContainerVolume.COWStrategy()},
 					}))
 				})
 
@@ -1273,7 +1280,7 @@ var _ = Describe("Worker", func() {
 							"/some/work-dir":              {Privileged: true, Strategy: baggageclaim.EmptyStrategy{}},
 							"/some/work-dir/output":       {Privileged: true, Strategy: baggageclaim.EmptyStrategy{}},
 							"/some/work-dir/local-input":  {Privileged: true, Strategy: fakeLocalVolume.COWStrategy()},
-							"/some/work-dir/remote-input": {Privileged: true, Strategy: baggageclaim.EmptyStrategy{}},
+							"/some/work-dir/remote-input": {Privileged: true, Strategy: fakeRemoteInputContainerVolume.COWStrategy()},
 						}))
 					})
 
@@ -1312,7 +1319,7 @@ var _ = Describe("Worker", func() {
 								Mode:    garden.BindMountModeRW,
 							},
 							{
-								SrcPath: "/fake/remote/input/container/volume",
+								SrcPath: "/fake/remote/input/container/cow/volume",
 								DstPath: "/some/work-dir/remote-input",
 								Mode:    garden.BindMountModeRW,
 							},

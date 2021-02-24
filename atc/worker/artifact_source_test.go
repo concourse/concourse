@@ -29,8 +29,8 @@ import (
 
 var _ = Describe("ArtifactSourcer", func() {
 	var (
-		logger          *lagertest.TestLogger
-		fakeCompression *compressionfakes.FakeCompression
+		logger                   *lagertest.TestLogger
+		fakeCompression          *compressionfakes.FakeCompression
 		fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
 	)
 
@@ -103,9 +103,10 @@ var _ = Describe("ArtifactSourcer", func() {
 
 var _ = Describe("StreamableArtifactSource", func() {
 	var (
-		fakeDestination *workerfakes.FakeArtifactDestination
-		fakeVolume      *workerfakes.FakeVolume
-		fakeArtifact    *runtimefakes.FakeArtifact
+		fakeDestination          *workerfakes.FakeArtifactDestination
+		fakeVolume               *workerfakes.FakeVolume
+		fakeDestVolume           *workerfakes.FakeVolume
+		fakeArtifact             *runtimefakes.FakeArtifact
 		fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
 
 		enabledP2pStreaming bool
@@ -121,9 +122,14 @@ var _ = Describe("StreamableArtifactSource", func() {
 	BeforeEach(func() {
 		fakeArtifact = new(runtimefakes.FakeArtifact)
 		fakeVolume = new(workerfakes.FakeVolume)
+		fakeDestVolume = new(workerfakes.FakeVolume)
 		fakeDestination = new(workerfakes.FakeArtifactDestination)
 		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 		comp = compression.NewGzipCompression()
+
+		fakeDestVolume.WorkerNameReturns("dest-worker")
+		fakeDestVolume.HandleReturns("dest-handle")
+		fakeDestination.VolumeReturns(fakeDestVolume)
 
 		enabledP2pStreaming = false
 		p2pStreamingTimeout = 15 * time.Minute
