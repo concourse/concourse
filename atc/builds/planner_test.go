@@ -2,11 +2,14 @@ package builds_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/builds"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -1215,12 +1218,107 @@ func (test PlannerTest) Run(s *PlannerSuite) {
 	s.JSONEq(test.PlanJSON, string(actualJSON))
 }
 
+type CheckableTest struct {
+	Name         string
+	Type         string
+	Tags         []string
+	CheckTimeout string
+	Source       atc.Source
+}
+
+type CheckPlannerTest struct {
+	Title string
+
+	Checkable              CheckableTest
+	VersionedResourceTypes atc.VersionedResourceTypes
+	From                   atc.Version
+	SourceDefaults         atc.Source
+	Interval               time.Duration
+
+	PlanJSON string
+}
+
+var checkTests = []CheckPlannerTest{
+	{
+		Title: "simple check plan",
+		Checkable: CheckableTest{
+			Name:         "some-resource",
+			Type:         "some-base-resource-type",
+			Tags:         []string{"tag"},
+			CheckTimeout: "1h",
+			Source: atc.Source{
+				"some": "source",
+			},
+		},
+		VersionedResourceTypes: nil,
+		From:                   atc.Version{"some": "version"},
+		SourceDefaults: atc.Source{
+			"source": "default",
+		},
+		Interval: 5 * time.Minute,
+
+		PlanJSON: `{
+		 "id":"1",
+		 "check":{
+				"name":"some-resource",
+				"type":"some-base-resource-type",
+				"source":{
+					 "some":"source",
+					 "source":"default"
+				},
+				"base_image_type":"some-base-resource-type",
+				"from_version":{
+					 "some":"version"
+				},
+				"resource":"some-resource",
+				"interval":"5m0s",
+				"timeout":"1h",
+				"tags":[
+					 "tag"
+				]
+		 }`,
+	},
+}
+
+func (c CheckPlannerTest) Run(s *PlannerSuite) {
+	// These are the tests we want to write
+	// 1. Simple check plan test where checkable is using base resource type = result check plan
+	// 2. Checkable is using a custom type = result check plan + get/check image plan
+
+	checkPlanner := builds.NewCheckPlanner(atc.NewPlanFactory(0))
+
+	fakeCheckable := new(dbfakes.FakeCheckable)
+	fakeCheckable.NameReturns(c.Checkable.Name)
+	fakeCheckable.TypeReturns(c.Checkable.Type)
+	fakeCheckable.TagsReturns(c.Checkable.Tags)
+	fakeCheckable.CheckTimeoutReturns(c.Checkable.CheckTimeout)
+	fakeCheckable.SourceReturns(c.Checkable.Source)
+
+	plan := checkPlanner.Create(fakeCheckable, c.VersionedResourceTypes, c.From, c.SourceDefaults, c.Interval)
+
+	actualJSON, err := json.Marshal(plan)
+	s.NoError(err)
+	fmt.Println(string(actualJSON))
+
+	s.JSONEq(c.PlanJSON, string(actualJSON))
+}
+
 func (s *PlannerSuite) TestFactory() {
 	atc.LoadBaseResourceTypeDefaults(baseResourceTypeDefaults)
+
+	// Build planner tests
 	for _, test := range factoryTests {
 		s.Run(test.Title, func() {
 			test.Run(s)
 		})
 	}
+
+	// Check planner tests
+	for _, test := range checkTests {
+		s.Run(test.Title, func() {
+			test.Run(s)
+		})
+	}
+
 	atc.LoadBaseResourceTypeDefaults(map[string]atc.Source{})
 }

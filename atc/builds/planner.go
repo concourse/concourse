@@ -107,7 +107,7 @@ func (visitor *planVisitor) VisitGet(step *atc.GetStep) error {
 
 	var plan atc.PlanConfig
 	var imageFetchPlan atc.Plan
-	imageFetchPlan, getPlan.ImageSpecFrom, getPlan.BaseImageType = visitor.fetchImagePlan(resource.Type, visitor.resourceTypes, step.Tags)
+	imageFetchPlan, getPlan.ImageSpecFrom, getPlan.BaseImageType = fetchImagePlan(visitor.planFactory, resource.Type, visitor.resourceTypes, step.Tags)
 	if getPlan.ImageSpecFrom != nil {
 		plan = atc.OnSuccessPlan{
 			Step: imageFetchPlan,
@@ -150,7 +150,7 @@ func (visitor *planVisitor) VisitPut(step *atc.PutStep) error {
 
 	var plan atc.Plan
 	var imageFetchPlan atc.Plan
-	imageFetchPlan, atcPutPlan.ImageSpecFrom, atcPutPlan.BaseImageType = visitor.fetchImagePlan(resource.Type, visitor.resourceTypes, step.Tags)
+	imageFetchPlan, atcPutPlan.ImageSpecFrom, atcPutPlan.BaseImageType = fetchImagePlan(visitor.planFactory, resource.Type, visitor.resourceTypes, step.Tags)
 
 	putPlan := visitor.planFactory.NewPlan(atcPutPlan)
 
@@ -468,26 +468,29 @@ type CheckPlanner struct {
 	planFactory atc.PlanFactory
 }
 
-func (c *CheckPlanner) Create(resource db.Resource, resourceTypes db.ResourceTypes, from atc.Version, sourceDefaults atc.Source, interval time.Duration) atc.Plan {
-	versionedResourceTypes := resourceTypes.Deserialize()
+func NewCheckPlanner(planFactory atc.PlanFactory) *CheckPlanner {
+	return &CheckPlanner{
+		planFactory: planFactory,
+	}
+}
 
+func (c *CheckPlanner) Create(checkable db.Checkable, versionedResourceTypes atc.VersionedResourceTypes, from atc.Version, sourceDefaults atc.Source, interval time.Duration) atc.Plan {
 	checkPlan := atc.CheckPlan{
-		Name:    resource.Name(),
-		Type:    resource.Type(),
-		Source:  sourceDefaults.Merge(resource.Source()),
-		Tags:    resource.Tags(),
-		Timeout: resource.CheckTimeout(),
+		Name:    checkable.Name(),
+		Type:    checkable.Type(),
+		Source:  sourceDefaults.Merge(checkable.Source()),
+		Tags:    checkable.Tags(),
+		Timeout: checkable.CheckTimeout(),
 
 		FromVersion:            from,
 		Interval:               interval.String(),
 		VersionedResourceTypes: versionedResourceTypes,
-
-		Resource: resource.Name(),
+		Resource:               checkable.Name(),
 	}
 
 	var plan atc.Plan
 	var imageFetchPlan atc.Plan
-	imageFetchPlan, checkPlan.ImageSpecFrom, checkPlan.BaseImageType = fetchImagePlan(c.planFactory, resource.Type(), checkPlan.VersionedResourceTypes, resource.Tags())
+	imageFetchPlan, checkPlan.ImageSpecFrom, checkPlan.BaseImageType = fetchImagePlan(c.planFactory, checkable.Type(), checkPlan.VersionedResourceTypes, checkable.Tags())
 	if checkPlan.ImageSpecFrom != nil {
 		plan = c.planFactory.NewPlan(atc.OnSuccessPlan{
 			Step: imageFetchPlan,
