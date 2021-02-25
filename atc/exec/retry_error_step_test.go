@@ -92,6 +92,16 @@ var _ = Describe("RetryErrorStep", func() {
 				_, message := fakeDelegate.ErroredArgsForCall(0)
 				Expect(message).To(Equal(fmt.Sprintf("%s, will retry ...", cause.Error())))
 			})
+
+			Context("when build aborted", func() {
+				BeforeEach(func() {
+					cancel()
+				})
+
+				It("should not retry", func() {
+					Expect(runErr).To(Equal(cause))
+				})
+			})
 		})
 
 		Context("when url.Error error happened", func() {

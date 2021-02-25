@@ -41,6 +41,14 @@ func RetryError(step Step, delegate RetryErrorStepDelegate) Step {
 func (step RetryErrorStep) Run(ctx context.Context, state RunState) error {
 	logger := lagerctx.FromContext(ctx)
 	runErr := step.Step.Run(ctx, state)
+
+	// If the build has been aborted, then no need to retry.
+	select {
+	case <-ctx.Done():
+		return runErr
+	default:
+	}
+
 	if runErr != nil && step.toRetry(logger, runErr) {
 		logger.Info("retriable", lager.Data{"error": runErr.Error()})
 		step.delegate.Errored(logger, fmt.Sprintf("%s, will retry ...", runErr.Error()))
