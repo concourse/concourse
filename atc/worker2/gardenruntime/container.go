@@ -112,3 +112,8 @@ func toGardenProcessIO(io runtime.ProcessIO) garden.ProcessIO {
 		Stderr: io.Stderr,
 	}
 }
+
+// for testing
+func (c Container) GardenContainer() gclient.Container {
+	return c.gardenContainer
+}

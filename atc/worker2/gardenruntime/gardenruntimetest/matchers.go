@@ -84,3 +84,26 @@ func (m bePrivilegedMatcher) expectation() string {
 	}
 	return "unprivileged"
 }
+
+func HaveHandle(handle string) types.GomegaMatcher {
+	return haveHandleMatcher{handle}
+}
+
+type haveHandleMatcher struct {
+	expected string
+}
+
+func (m haveHandleMatcher) Match(actual interface{}) (bool, error) {
+	volume, ok := actual.(*Volume)
+	if !ok {
+		return false, errors.New("expecting a *grt.Volume")
+	}
+
+	return HandleEq(m.expected)(volume), nil
+}
+func (m haveHandleMatcher) FailureMessage(actual interface{}) string {
+	return format.Message(actual, "to have handle "+m.expected)
+}
+func (m haveHandleMatcher) NegatedFailureMessage(actual interface{}) string {
+	return format.Message(actual, "not to have handle "+m.expected)
+}

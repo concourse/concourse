@@ -690,3 +690,11 @@ func markContainerAsFailed(logger lager.Logger, container db.CreatingContainer) 
 	}
 	metric.Metrics.FailedContainers.Inc()
 }
+
+// For testing
+func (worker *Worker) GardenClient() gclient.Client {
+	return worker.gardenClient
+}
+func (worker *Worker) BaggageclaimClient() baggageclaim.Client {
+	return worker.bcClient
+}

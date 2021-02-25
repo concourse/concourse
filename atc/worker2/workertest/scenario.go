@@ -87,3 +87,13 @@ func (s *Scenario) WorkerTaskCacheVolume(workerName string, path string) db.Crea
 
 	return volume
 }
+
+func (s *Scenario) ContainerVolume(workerName string, containerHandle string, mountPath string) (db.CreatingVolume, db.CreatedVolume) {
+	container, ok := s.DB.Container(workerName, db.NewFixedHandleContainerOwner(containerHandle)).(db.CreatingContainer)
+	Expect(ok).To(BeTrue(), "container is not in creating state")
+
+	creating, created, err := s.DBBuilder.VolumeRepo.FindContainerVolume(s.TeamID, workerName, container, mountPath)
+	Expect(err).ToNot(HaveOccurred())
+
+	return creating, created
+}
