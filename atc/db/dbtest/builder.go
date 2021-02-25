@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/concourse/concourse"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
@@ -19,6 +20,8 @@ const BaseResourceTypeVersion = "some-global-type-version"
 
 const UniqueBaseResourceType = "unique-base-type"
 const UniqueBaseResourceTypeVersion = "some-unique-type-version"
+
+const CertsPath = "/path/to/certs"
 
 type JobInputs []JobInput
 
@@ -44,17 +47,23 @@ func (inputs JobInputs) Lookup(name string) (JobInput, bool) {
 type JobOutputs map[string]atc.Version
 
 type Builder struct {
-	TeamFactory           db.TeamFactory
-	WorkerFactory         db.WorkerFactory
-	ResourceConfigFactory db.ResourceConfigFactory
+	TeamFactory            db.TeamFactory
+	WorkerFactory          db.WorkerFactory
+	ResourceConfigFactory  db.ResourceConfigFactory
+	VolumeRepo             db.VolumeRepository
+	TaskCacheFactory       db.TaskCacheFactory
+	WorkerTaskCacheFactory db.WorkerTaskCacheFactory
 }
 
 func NewBuilder(conn db.Conn, lockFactory lock.LockFactory) Builder {
 	logger := lagertest.NewTestLogger("dummy-logger")
 	return Builder{
-		TeamFactory:           db.NewTeamFactory(conn, lockFactory),
-		WorkerFactory:         db.NewWorkerFactory(conn, db.NewStaticWorkerCache(logger, conn, 0)),
-		ResourceConfigFactory: db.NewResourceConfigFactory(conn, lockFactory),
+		TeamFactory:            db.NewTeamFactory(conn, lockFactory),
+		WorkerFactory:          db.NewWorkerFactory(conn, db.NewStaticWorkerCache(logger, conn, 0)),
+		ResourceConfigFactory:  db.NewResourceConfigFactory(conn, lockFactory),
+		VolumeRepo:             db.NewVolumeRepository(conn),
+		TaskCacheFactory:       db.NewTaskCacheFactory(conn),
+		WorkerTaskCacheFactory: db.NewWorkerTaskCacheFactory(conn),
 	}
 }
 
@@ -100,6 +109,68 @@ func (builder Builder) WithWorker(worker atc.Worker) SetupFunc {
 	}
 }
 
+func (builder Builder) createContainer(workerName string, owner db.ContainerOwner, metadata db.ContainerMetadata) (db.CreatingContainer, error) {
+	worker, found, err := builder.WorkerFactory.GetWorker(workerName)
+	if err != nil {
+		return nil, err
+	}
+	if !found {
+		return nil, fmt.Errorf("worker does not exist: %s", workerName)
+	}
+
+	container, err := worker.CreateContainer(owner, metadata)
+	if err != nil {
+		return nil, err
+	}
+
+	return container, nil
+}
+
+func (builder Builder) WithCreatingContainer(workerName string, owner db.ContainerOwner, metadata db.ContainerMetadata) SetupFunc {
+	return func(scenario *Scenario) error {
+		_, err := builder.createContainer(workerName, owner, metadata)
+		return err
+	}
+}
+
+func (builder Builder) WithCreatedContainer(workerName string, owner db.ContainerOwner, metadata db.ContainerMetadata) SetupFunc {
+	return func(scenario *Scenario) error {
+		container, err := builder.createContainer(workerName, owner, metadata)
+		if err != nil {
+			return err
+		}
+
+		_, err = container.Created()
+		return err
+	}
+}
+
+func (builder Builder) createVolume(teamID int, workerName string, volumeType db.VolumeType, handle string) (db.CreatingVolume, error) {
+	if handle == "" {
+		return builder.VolumeRepo.CreateVolume(teamID, workerName, volumeType)
+	} else {
+		return builder.VolumeRepo.CreateVolumeWithHandle(handle, teamID, workerName, volumeType)
+	}
+}
+
+func (builder Builder) WithCreatingVolume(teamID int, workerName string, volumeType db.VolumeType, handle string) SetupFunc {
+	return func(scenario *Scenario) error {
+		_, err := builder.createVolume(teamID, workerName, volumeType, handle)
+		return err
+	}
+}
+
+func (builder Builder) WithCreatedVolume(teamID int, workerName string, volumeType db.VolumeType, handle string) SetupFunc {
+	return func(scenario *Scenario) error {
+		volume, err := builder.createVolume(teamID, workerName, volumeType, handle)
+		if err != nil {
+			return err
+		}
+		_, err = volume.Created()
+		return err
+	}
+}
+
 func (builder Builder) WithPipeline(config atc.Config) SetupFunc {
 	return func(scenario *Scenario) error {
 		if scenario.Team == nil {
@@ -125,8 +196,11 @@ func (builder Builder) WithPipeline(config atc.Config) SetupFunc {
 }
 
 func BaseWorker(name string) atc.Worker {
+	certsPath := CertsPath
 	return atc.Worker{
 		Name: name,
+
+		Version: concourse.WorkerVersion,
 
 		GardenAddr:      unique("garden-addr"),
 		BaggageclaimURL: unique("baggageclaim-url"),
@@ -144,6 +218,8 @@ func BaseWorker(name string) atc.Worker {
 				UniqueVersionHistory: true,
 			},
 		},
+
+		CertsPath: &certsPath,
 	}
 }
 
@@ -749,6 +825,28 @@ func (builder Builder) WithBaseResourceType(dbConn db.Conn, resourceTypeName str
 		}
 
 		return setupTx.Commit()
+	}
+}
+
+func (builder Builder) WithTaskCacheOnWorker(teamID int, workerName string, jobID int, stepName string, path string) SetupFunc {
+	return func(scenario *Scenario) error {
+		utc, err := builder.TaskCacheFactory.FindOrCreate(jobID, stepName, path)
+		if err != nil {
+			return err
+		}
+		uwtc, err := builder.WorkerTaskCacheFactory.FindOrCreate(db.WorkerTaskCache{
+			WorkerName: workerName,
+			TaskCache:  utc,
+		})
+		if err != nil {
+			return err
+		}
+		volume, err := builder.VolumeRepo.CreateTaskCacheVolume(teamID, uwtc)
+		if err != nil {
+			return err
+		}
+		_, err = volume.Created()
+		return err
 	}
 }
 

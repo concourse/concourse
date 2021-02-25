@@ -3,19 +3,9 @@ package worker2
 import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/cppforlife/go-semi-semantic/version"
 )
-
-type DB struct {
-	WorkerFactory                 db.WorkerFactory
-	TeamFactory                   db.TeamFactory
-	VolumeRepo                    db.VolumeRepository
-	TaskCacheFactory              db.TaskCacheFactory
-	WorkerBaseResourceTypeFactory db.WorkerBaseResourceTypeFactory
-	LockFactory                   lock.LockFactory
-}
 
 type Pool struct {
 	Factory

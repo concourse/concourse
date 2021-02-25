@@ -52,12 +52,7 @@ func (f DefaultFactory) newGardenWorker(logger lager.Logger, pool Pool, dbWorker
 		dbWorker,
 		gClient,
 		bcClient,
-		gardenruntime.DB{
-			VolumeRepo:                    pool.DB.VolumeRepo,
-			TaskCacheFactory:              pool.DB.TaskCacheFactory,
-			WorkerBaseResourceTypeFactory: pool.DB.WorkerBaseResourceTypeFactory,
-			LockFactory:                   pool.DB.LockFactory,
-		},
+		pool.DB.ToGardenRuntimeDB(),
 		pool,
 	)
 }
