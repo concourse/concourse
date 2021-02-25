@@ -216,7 +216,7 @@ pipelineCardHeader height =
     , style "color" Colors.dashboardPipelineHeaderText
     , style "font-size" "1.5em"
     , style "letter-spacing" "0.1em"
-    , style "padding" "16px"
+    , style "padding" <| String.fromInt GridConstants.cardHeaderPadding ++ "px"
     , style "height" <| String.fromFloat height ++ "px"
     , style "box-sizing" "border-box"
     ]
@@ -230,7 +230,7 @@ instanceGroupCardHeader =
 pipelineName : List (Html.Attribute msg)
 pipelineName =
     [ style "width" "240px"
-    , style "line-height" "21px"
+    , style "line-height" <| String.fromInt GridConstants.cardHeaderRowLineHeight ++ "px"
     , style "white-space" "nowrap"
     , style "overflow" "hidden"
     , style "text-overflow" "ellipsis"
@@ -517,7 +517,7 @@ texture pipelineRunningKeyframes isRunning color =
 
 pipelineCardFooter : List (Html.Attribute msg)
 pipelineCardFooter =
-    [ style "padding" "16px"
+    [ style "padding" <| String.fromInt GridConstants.cardHeaderPadding ++ "px"
     , style "display" "flex"
     , style "justify-content" "space-between"
     , style "background-color" Colors.card
@@ -1031,5 +1031,5 @@ pipelineSectionHeader : List (Html.Attribute msg)
 pipelineSectionHeader =
     [ style "font-size" "22px"
     , style "font-weight" Views.Styles.fontWeightBold
-    , style "padding" "32px 0 32px 32px"
+    , style "padding" <| String.fromInt GridConstants.padding ++ "px"
     ]

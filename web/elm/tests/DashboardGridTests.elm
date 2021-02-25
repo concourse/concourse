@@ -597,7 +597,7 @@ all =
                         |> Query.find [ id "dashboard-favorite-pipelines" ]
                         |> Query.has
                             [ style "height" <|
-                                String.fromFloat (2 * 268 + 2 * 89 - 32)
+                                String.fromFloat (2 * 268 + 2 * 89)
                                     ++ "px"
                             ]
             , test "offsets all pipelines section by height of the favorites section" <|

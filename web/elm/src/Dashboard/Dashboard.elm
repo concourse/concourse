@@ -1435,14 +1435,13 @@ cardsView session params teamCards =
                         }
                         layout.headers
                         layout.cards
-                    , Views.Styles.separator GridConstants.sectionSpacerHeight
+                    , Views.Styles.separator 0
                     , allPipelinesHeader
                     ]
                         |> (\html ->
                                 ( html
                                 , layout.height
                                     + (2 * GridConstants.sectionHeaderHeight)
-                                    + GridConstants.sectionSpacerHeight
                                 )
                            )
 
@@ -1467,7 +1466,6 @@ cardsView session params teamCards =
                                     startingOffset =
                                         totalOffset
                                             + GridConstants.groupHeaderHeight
-                                            + GridConstants.padding
 
                                     layout =
                                         Grid.computeLayout

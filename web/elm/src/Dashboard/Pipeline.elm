@@ -13,6 +13,7 @@ import Concourse exposing (flattenJson)
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.PipelineStatus as PipelineStatus
 import Dashboard.DashboardPreview as DashboardPreview
+import Dashboard.Grid.Constants as GridConstants
 import Dashboard.Group.Models exposing (Pipeline)
 import Dashboard.Styles as Styles
 import Dict
@@ -278,7 +279,7 @@ headerView : PipelinesSection -> Pipeline -> Bool -> Float -> Bool -> Bool -> Ht
 headerView section pipeline resourceError headerHeight viewingInstanceGroups inInstanceGroup =
     let
         verticalSpacer =
-            Html.div [ style "height" "8px" ] []
+            Html.div [ style "height" <| String.fromInt GridConstants.cardHeaderRowGap ++ "px" ] []
 
         rows =
             List.intersperse verticalSpacer

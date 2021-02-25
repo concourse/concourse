@@ -1,11 +1,14 @@
 module Dashboard.Grid.Constants exposing
     ( cardBodyHeight
     , cardHeaderHeight
+    , cardHeaderPadding
+    , cardHeaderRowGap
+    , cardHeaderRowLineHeight
     , cardWidth
     , groupHeaderHeight
+    , groupHeaderLineHeight
     , padding
     , sectionHeaderHeight
-    , sectionSpacerHeight
     )
 
 
@@ -24,14 +27,24 @@ padding =
     32
 
 
-carHeaderVerticalSpace : number
-carHeaderVerticalSpace =
+cardHeaderRowGap : number
+cardHeaderRowGap =
     8
+
+
+cardHeaderPadding : number
+cardHeaderPadding =
+    16
+
+
+cardHeaderRowLineHeight : number
+cardHeaderRowLineHeight =
+    21
 
 
 cardHeaderHeight : number -> number
 cardHeaderHeight numRows =
-    32 + 21 * numRows + (numRows - 1) * carHeaderVerticalSpace
+    2 * cardHeaderPadding + cardHeaderRowLineHeight * numRows + (numRows - 1) * cardHeaderRowGap
 
 
 groupHeaderLineHeight : number
@@ -44,11 +57,11 @@ groupHeaderHeight =
     padding + groupHeaderLineHeight
 
 
+sectionHeaderLineHeight : number
+sectionHeaderLineHeight =
+    30
+
+
 sectionHeaderHeight : number
 sectionHeaderHeight =
-    70
-
-
-sectionSpacerHeight : number
-sectionSpacerHeight =
-    30
+    sectionHeaderLineHeight + 2 * padding

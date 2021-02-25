@@ -278,7 +278,7 @@ computeFavoritesLayout params cards =
     in
     { cards = result.allCards |> List.filter (isVisible params)
     , headers = headers |> List.filter (isVisible params)
-    , height = result.totalHeight - padding
+    , height = result.totalHeight
     }
 
 
