@@ -340,10 +340,10 @@ as performing all pipeline scheduling. It's basically the brain of Concourse.
     run. While this is usually fine for small Concourse instances, as you scale up,
     you may run into storage concerns.
 
-    To clean up old build logs, Concourse periodically scans for builds whose
-    logs should be reaped based on a log retention policy, skipping over any paused
-    pipelines and jobs. When a build's logs are reaped, they are no longer visible
-    in the UI.
+    To clean up old build logs, you can configure Concourse to periodically
+    scan for builds whose logs should be reaped based on a log retention policy,
+    skipping over any paused pipelines and jobs. When a build's logs are reaped,
+    they are no longer visible in the UI.
 
     Concourse can be configured with a default build log retention policy for all jobs:
 
