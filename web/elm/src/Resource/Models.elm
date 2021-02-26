@@ -46,6 +46,7 @@ type alias Model =
         , authorized : Bool
         , output : Maybe OutputModel
         , highlight : Routes.Highlight
+        , highlightVersion : Maybe Concourse.Version
         }
 
 

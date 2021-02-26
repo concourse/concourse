@@ -23,6 +23,7 @@ import Concourse exposing (InstanceVars, JsonValue(..))
 import Concourse.Pagination as Pagination exposing (Direction(..))
 import Dict exposing (Dict)
 import DotNotation
+import Json.Decode
 import Maybe.Extra
 import RouteBuilder exposing (RouteBuilder, appendPath, appendQuery)
 import Url
@@ -47,7 +48,7 @@ import Url.Parser.Query as Query
 
 type Route
     = Build { id : Concourse.JobBuildIdentifier, highlight : Highlight }
-    | Resource { id : Concourse.ResourceIdentifier, page : Maybe Pagination.Page }
+    | Resource { id : Concourse.ResourceIdentifier, page : Maybe Pagination.Page, version : Maybe Concourse.Version }
     | Job { id : Concourse.JobIdentifier, page : Maybe Pagination.Page }
     | OneOffBuild { id : Concourse.BuildId, highlight : Highlight }
     | Pipeline { id : Concourse.PipelineIdentifier, groups : List String }
@@ -166,10 +167,32 @@ parsePage from to limit =
             Nothing
 
 
+parseVersion : Maybe String -> Maybe Concourse.Version
+parseVersion version =
+    let
+        decode =
+            Json.Decode.decodeString Concourse.decodeVersion
+
+        parse v =
+            case decode v of
+                Ok ver ->
+                    Just ver
+
+                _ ->
+                    Nothing
+    in
+    case version of
+        Just s ->
+            parse s
+
+        _ ->
+            Nothing
+
+
 resource : Parser ((InstanceVars -> Route) -> a) a
 resource =
     let
-        resourceHelper { teamName, pipelineName } resourceName from to limit =
+        resourceHelper { teamName, pipelineName } resourceName from to limit version =
             \iv ->
                 Resource
                     { id =
@@ -179,6 +202,7 @@ resource =
                         , resourceName = resourceName
                         }
                     , page = parsePage from to limit
+                    , version = parseVersion version
                     }
     in
     map resourceHelper
@@ -188,6 +212,7 @@ resource =
             <?> Query.int "from"
             <?> Query.int "to"
             <?> Query.int "limit"
+            <?> Query.string "version"
         )
 
 
@@ -318,6 +343,9 @@ resourceRoute r =
             , resourceName = r.name
             }
         , page = Nothing
+
+        --- XXX: is this funciton actually used?
+        , version = Nothing
         }
 
 

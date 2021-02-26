@@ -48,6 +48,7 @@ import Set exposing (Set)
 import SideBar.State exposing (SideBarState, encodeSideBarState)
 import Task
 import Time
+import Url.Builder
 import Views.Styles
 
 
@@ -120,6 +121,7 @@ type Effect
     | FetchResource Concourse.ResourceIdentifier
     | FetchCheck Int
     | FetchVersionedResources Concourse.ResourceIdentifier Page
+    | FetchVersionedResourceId Concourse.ResourceIdentifier Concourse.Version
     | FetchResources Concourse.PipelineIdentifier
     | FetchBuildResources Concourse.BuildId
     | FetchPipeline Concourse.PipelineIdentifier
@@ -219,6 +221,7 @@ runEffect effect key csrfToken =
             Api.paginatedGet
                 (Endpoints.JobBuildsList |> Endpoints.Job id)
                 (Just page)
+                []
                 Concourse.decodeBuild
                 |> Api.request
                 |> Task.map (\b -> ( page, b ))
@@ -236,10 +239,21 @@ runEffect effect key csrfToken =
                 |> Api.request
                 |> Task.attempt Checked
 
+        FetchVersionedResourceId id version ->
+            Api.paginatedGet
+                (Endpoints.ResourceVersionsList |> Endpoints.Resource id)
+                Nothing
+                (List.map (\q -> Url.Builder.string "filter" q) (Concourse.versionQuery version))
+                Concourse.decodeVersionedResource
+                |> Api.request
+                |> Task.map (\b -> List.head b.content)
+                |> Task.attempt VersionedResourceIdFetched
+
         FetchVersionedResources id page ->
             Api.paginatedGet
                 (Endpoints.ResourceVersionsList |> Endpoints.Resource id)
                 (Just page)
+                []
                 Concourse.decodeVersionedResource
                 |> Api.request
                 |> Task.map (\b -> ( page, b ))
@@ -498,6 +512,7 @@ runEffect effect key csrfToken =
             Api.paginatedGet
                 (Endpoints.JobBuildsList |> Endpoints.Job job)
                 page
+                []
                 Concourse.decodeBuild
                 |> Api.request
                 |> Task.attempt BuildHistoryFetched

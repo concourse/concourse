@@ -81,6 +81,7 @@ module Concourse exposing
     , retrieveCSRFToken
     , toInstanceGroupId
     , toPipelineId
+    , versionQuery
     )
 
 import Array exposing (Array)
@@ -1170,6 +1171,11 @@ decodeVersion =
 encodeVersion : Version -> Json.Encode.Value
 encodeVersion =
     Json.Encode.dict identity Json.Encode.string
+
+
+versionQuery : Version -> List String
+versionQuery v =
+    List.map (\kv -> Tuple.first kv ++ ":" ++ Tuple.second kv) <| Dict.toList v
 
 
 
