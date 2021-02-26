@@ -1,27 +1,20 @@
 package gardenruntime
 
 import (
-	"archive/tar"
 	"context"
 	"io"
 	"time"
 
 	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc/compression"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/runtime"
-	"github.com/concourse/concourse/tracing"
-	"github.com/hashicorp/go-multierror"
 )
 
 const creatingVolumeRetryDelay = 1 * time.Second
-
-// TODO
-var defaultCompression = compression.NewGzipCompression()
 
 type Volume struct {
 	dbVolume db.CreatedVolume
@@ -338,73 +331,4 @@ func (p byMountPath) Less(i, j int) bool {
 	path1 := p[i].MountPath
 	path2 := p[j].MountPath
 	return path1 < path2
-}
-
-// TODO: find a home for this
-func streamFile(ctx context.Context, volume runtime.Volume, path string) (io.ReadCloser, error) {
-	out, err := volume.StreamOut(ctx, path, defaultCompression)
-	if err != nil {
-		return nil, err
-	}
-
-	compressionReader, err := defaultCompression.NewReader(out)
-	if err != nil {
-		return nil, err
-	}
-	tarReader := tar.NewReader(compressionReader)
-
-	_, err = tarReader.Next()
-	if err != nil {
-		return nil, err
-	}
-
-	return fileReadMultiCloser{
-		Reader: tarReader,
-		closers: []io.Closer{
-			out,
-			compressionReader,
-		},
-	}, nil
-}
-
-// TODO: ...and this
-// TODO: also handle P2P streaming
-func stream(ctx context.Context, srcWorker string, src runtime.Volume, dst runtime.Volume) error {
-	logger := lagerctx.FromContext(ctx).Session("stream-to")
-	logger.Info("start")
-	defer logger.Info("end")
-
-	_, outSpan := tracing.StartSpan(ctx, "volume.StreamOut", tracing.Attrs{
-		"origin-volume": src.Handle(),
-		"origin-worker": srcWorker,
-	})
-	defer outSpan.End()
-	out, err := src.StreamOut(ctx, ".", defaultCompression)
-
-	if err != nil {
-		tracing.End(outSpan, err)
-		return err
-	}
-
-	defer out.Close()
-
-	return dst.StreamIn(ctx, ".", defaultCompression, out)
-}
-
-type fileReadMultiCloser struct {
-	io.Reader
-	closers []io.Closer
-}
-
-func (frc fileReadMultiCloser) Close() error {
-	var closeErrors error
-
-	for _, closer := range frc.closers {
-		err := closer.Close()
-		if err != nil {
-			closeErrors = multierror.Append(closeErrors, err)
-		}
-	}
-
-	return closeErrors
 }

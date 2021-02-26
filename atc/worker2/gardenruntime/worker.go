@@ -3,6 +3,7 @@ package gardenruntime
 import (
 	"context"
 	"fmt"
+	"io"
 	"path/filepath"
 	"sort"
 
@@ -23,8 +24,14 @@ type Pool interface {
 	LocateVolume(logger lager.Logger, teamID int, handle string) (runtime.Volume, runtime.Worker, bool, error)
 }
 
+type Streamer interface {
+	Stream(ctx context.Context, srcWorker string, src runtime.Volume, dst runtime.Volume) error
+	StreamFile(ctx context.Context, src runtime.Volume, path string) (io.ReadCloser, error)
+}
+
 type Worker struct {
-	pool Pool
+	pool     Pool
+	streamer Streamer
 
 	dbWorker     db.Worker
 	gardenClient gclient.Client
@@ -40,9 +47,10 @@ type DB struct {
 	LockFactory                   lock.LockFactory
 }
 
-func NewWorker(dbWorker db.Worker, gardenClient gclient.Client, bcClient baggageclaim.Client, db DB, pool Pool) *Worker {
+func NewWorker(dbWorker db.Worker, gardenClient gclient.Client, bcClient baggageclaim.Client, db DB, pool Pool, streamer Streamer) *Worker {
 	return &Worker{
-		pool: pool,
+		pool:     pool,
+		streamer: streamer,
 
 		dbWorker:     dbWorker,
 		gardenClient: gardenClient,
@@ -517,7 +525,7 @@ func (worker *Worker) cloneRemoteInputVolumes(
 		}
 
 		g.Go(func() error {
-			return stream(groupCtx, input.srcWorker, input.volume, inputVolume)
+			return worker.streamer.Stream(groupCtx, input.srcWorker, input.volume, inputVolume)
 		})
 	}
 

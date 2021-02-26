@@ -95,7 +95,7 @@ func (worker *Worker) imageProvidedByPreviousStepOnSameWorker(
 		return FetchedImage{}, fmt.Errorf("create COW volume: %w", err)
 	}
 
-	imageMetadataReader, err := streamFile(ctx, artifactVolume, ImageMetadataFile)
+	imageMetadataReader, err := worker.streamer.StreamFile(ctx, artifactVolume, ImageMetadataFile)
 	if err != nil {
 		logger.Error("failed-to-stream-metadata-file", err)
 		return FetchedImage{}, fmt.Errorf("stream metadata: %w", err)
@@ -142,13 +142,13 @@ func (worker *Worker) imageProvidedByPreviousStepOnDifferentWorker(
 		return FetchedImage{}, err
 	}
 
-	if err := stream(ctx, workerName, artifactVolume, imageVolume); err != nil {
+	if err := worker.streamer.Stream(ctx, workerName, artifactVolume, imageVolume); err != nil {
 		logger.Error("failed-to-stream-image-artifact", err)
 		return FetchedImage{}, err
 	}
 	logger.Debug("streamed-non-local-image-volume")
 
-	imageMetadataReader, err := streamFile(ctx, artifactVolume, ImageMetadataFile)
+	imageMetadataReader, err := worker.streamer.StreamFile(ctx, artifactVolume, ImageMetadataFile)
 	if err != nil {
 		logger.Error("failed-to-stream-metadata-file", err)
 		return FetchedImage{}, err
