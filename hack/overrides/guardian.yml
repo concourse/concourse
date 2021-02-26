@@ -1,0 +1,12 @@
+# guardian.yml - a docker-compose override that makes `worker` use guardian as
+# a container runtime
+#
+#
+version: '3'
+
+services:
+  worker:
+    environment:
+      CONCOURSE_RUNTIME: guardian
+      CONCOURSE_CONTAINERD_DNS_PROXY_ENABLE: ~
+      CONCOURSE_GARDEN_DNS_PROXY_ENABLE: "true"
