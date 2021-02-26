@@ -333,6 +333,47 @@ as performing all pipeline scheduling. It's basically the brain of Concourse.
   }
 
   \section{
+    \title{Build log retention}{build-log-retention}
+
+    Build logs are stored in the DB - if they are not cleanup up every once in
+    a while, the storage usage for build logs will continue to grow as more builds
+    run. While this is usually fine for small Concourse instances, as you scale up,
+    you may run into storage concerns.
+
+    To clean up old build logs, you can configure Concourse to periodically
+    scan for builds whose logs should be reaped based on a log retention policy,
+    skipping over any paused pipelines and jobs. When a build's logs are reaped,
+    they are no longer visible in the UI.
+
+    Concourse can be configured with a default build log retention policy for all jobs:
+
+    \codeblock{bash}{{{
+      CONCOURSE_DEFAULT_BUILD_LOGS_TO_RETAIN=50
+      CONCOURSE_DEFAULT_DAYS_TO_RETAIN_BUILD_LOGS=14
+    }}}
+
+    With these settings, Concource will keep the latest 50 builds for each job.
+    If a job runs more than 50 builds in 14 days, all of those builds will be
+    retained until 14 days after they ran.
+
+    Some jobs have differing retention requirements - you can configure
+    \reference{schema.build_log_retention_policy} on a job-by-job basis.
+
+    You can also configure Concourse with maximum values for build log
+    retention policies to prevent jobs from retaining their build logs for too
+    long:
+
+    \codeblock{bash}{{{
+      CONCOURSE_MAX_BUILD_LOGS_TO_RETAIN=100
+      CONCOURSE_MAX_DAYS_TO_RETAIN_BUILD_LOGS=30
+    }}}
+
+    With these settings, \reference{schema.build_log_retention_policy.builds}
+    is capped at 100, and \reference{schema.build_log_retention_policy.days} is
+    capped at 30.
+  }
+
+  \section{
     \title{Enabling audit logs}{audit-logs}
 
     A very simplistic form of audit logging can be enabled with the following

@@ -59,7 +59,8 @@ following schema:
     keeping around.
 
     Builds which are not retained by the configured policy will have their logs
-    reaped. If this configuration is omitted, logs are kept forever.
+    reaped. If this configuration is omitted, logs are kept forever (unless
+    \reference{build-log-retention} is configured globally).
 
     \example-toggle{A complicated example}{
       The following example will keep logs for any builds that have completed in
