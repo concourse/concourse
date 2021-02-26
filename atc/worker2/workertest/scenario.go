@@ -2,11 +2,14 @@ package workertest
 
 import (
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/concourse/concourse"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbtest"
+	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker2"
+	"github.com/cppforlife/go-semi-semantic/version"
 	. "github.com/onsi/gomega"
 )
 
@@ -26,7 +29,26 @@ type Scenario struct {
 
 type SetupFunc func(*Scenario)
 
-func Setup(poolFactory PoolFactory, builder dbtest.Builder, setup ...SetupFunc) *Scenario {
+func Setup(dbConn db.Conn, lockFactory lock.LockFactory, setup ...SetupFunc) *Scenario {
+	poolFactory := func(factory worker2.Factory) worker2.Pool {
+		return worker2.Pool{
+			Factory: factory,
+			DB: worker2.DB{
+				WorkerFactory:                 db.NewWorkerFactory(dbConn),
+				TeamFactory:                   db.NewTeamFactory(dbConn, lockFactory),
+				VolumeRepo:                    db.NewVolumeRepository(dbConn),
+				TaskCacheFactory:              db.NewTaskCacheFactory(dbConn),
+				WorkerBaseResourceTypeFactory: db.NewWorkerBaseResourceTypeFactory(dbConn),
+				LockFactory:                   lockFactory,
+			},
+			WorkerVersion: version.MustNewVersionFromString(concourse.WorkerVersion),
+		}
+	}
+	builder := dbtest.NewBuilder(dbConn, lockFactory)
+	return SetupWithPool(poolFactory, builder, setup...)
+}
+
+func SetupWithPool(poolFactory PoolFactory, builder dbtest.Builder, setup ...SetupFunc) *Scenario {
 	scenario := &Scenario{
 		DB:        dbtest.Setup(),
 		DBBuilder: builder,
@@ -74,6 +96,14 @@ func (s *Scenario) Worker(name string) runtime.Worker {
 	Expect(err).ToNot(HaveOccurred())
 	Expect(found).To(BeTrue())
 	return worker
+}
+
+func (s *Scenario) WorkerVolume(workerName string, handle string) runtime.Volume {
+	worker := s.Worker(workerName)
+	volume, found, err := worker.LookupVolume(dummyLogger, handle)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(found).To(BeTrue())
+	return volume
 }
 
 func (s *Scenario) WorkerTaskCacheVolume(workerName string, path string) db.CreatedVolume {

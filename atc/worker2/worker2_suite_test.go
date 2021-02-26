@@ -1,4 +1,4 @@
-package gardenruntime_test
+package worker2_test
 
 import (
 	"testing"
@@ -36,9 +36,9 @@ var _ = AfterEach(func() {
 	postgresRunner.DropTestDB()
 })
 
-func TestGardenRuntime(t *testing.T) {
+func TestWorker2(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Garden Runtime Suite")
+	RunSpecs(t, "Worker2 Suite")
 }
 
 func Setup(setup ...workertest.SetupFunc) *workertest.Scenario {

@@ -9,7 +9,10 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"net/http"
+	"net/http/httptest"
 	"path/filepath"
+	"strings"
 	"testing/fstest"
 
 	"code.cloudfoundry.org/lager"
@@ -226,12 +229,30 @@ func (v Volume) StreamOut(ctx context.Context, path string, encoding baggageclai
 	return noopCloser{buf}, nil
 }
 
-func (v Volume) GetStreamInP2pUrl(_ context.Context, _ string) (string, error) {
-	panic("unimplemented")
+func (v Volume) GetStreamInP2pUrl(_ context.Context, path string) (string, error) {
+	closeCh := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer close(closeCh)
+		path := strings.TrimPrefix(r.URL.Path, "/")
+		if err := v.StreamIn(r.Context(), path, baggageclaim.GzipEncoding, r.Body); err != nil {
+			panic(err)
+		}
+	}))
+	go func() {
+		<-closeCh
+		server.Close()
+	}()
+	return server.URL + "/" + path, nil
 }
 
-func (v Volume) StreamP2pOut(_ context.Context, _ string, _ string, _ baggageclaim.Encoding) error {
-	panic("unimplemented")
+func (v Volume) StreamP2pOut(ctx context.Context, path string, streamInURL string, encoding baggageclaim.Encoding) error {
+	stream, err := v.StreamOut(ctx, path, encoding)
+	if err != nil {
+		return err
+	}
+	defer stream.Close()
+	_, err = http.Post(streamInURL, "application/gzip", stream)
+	return err
 }
 
 func (v Volume) Destroy() error {

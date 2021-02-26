@@ -207,6 +207,12 @@ type Volume interface {
 	StreamOut(ctx context.Context, path string, compression compression.Compression) (io.ReadCloser, error)
 }
 
+type P2PVolume interface {
+	Handle() string
+	GetStreamInP2PURL(ctx context.Context, path string) (string, error)
+	StreamP2POut(ctx context.Context, path string, destURL string, compression compression.Compression) error
+}
+
 type VolumeSpec struct {
 	Strategy   VolumeStrategy
 	Properties map[string]string

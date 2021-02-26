@@ -43,6 +43,16 @@ func (v Volume) StreamIn(ctx context.Context, path string, compression compressi
 	return v.bcVolume.StreamIn(ctx, path, compression.Encoding(), reader)
 }
 
+func (v Volume) GetStreamInP2PURL(ctx context.Context, path string) (string, error) {
+	return v.bcVolume.GetStreamInP2pUrl(ctx, path)
+}
+
+func (v Volume) StreamP2POut(ctx context.Context, path string, destURL string, compression compression.Compression) error {
+	return v.bcVolume.StreamP2pOut(ctx, path, destURL, compression.Encoding())
+}
+
+var _ runtime.P2PVolume = Volume{}
+
 func (worker Worker) LookupVolume(logger lager.Logger, handle string) (runtime.Volume, bool, error) {
 	_, createdVolume, err := worker.db.VolumeRepo.FindVolume(handle)
 	if err != nil {
@@ -331,4 +341,9 @@ func (p byMountPath) Less(i, j int) bool {
 	path1 := p[i].MountPath
 	path2 := p[j].MountPath
 	return path1 < path2
+}
+
+// for testing
+func (v Volume) BaggageclaimVolume() baggageclaim.Volume {
+	return v.bcVolume
 }
