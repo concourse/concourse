@@ -41,6 +41,9 @@ quite involved.
   default to the field name \code{value}. You can specify the field to grab via
   \code{.} syntax, e.g. \code{((foo.bar))}.
 
+  If you have multiple, intermediate levels in your path, you can use the \code{/}
+  separator to reach your intended field, e.g. \code{((foo/bar/baz.qux))}.
+
   When executing a one-off task, there is no pipeline: so in this case, only the
   team path \code{/concourse/TEAM_NAME/foo} is searched.
 
