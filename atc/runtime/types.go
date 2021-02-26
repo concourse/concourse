@@ -12,6 +12,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/compression"
 	"github.com/concourse/concourse/atc/db"
 )
 
@@ -202,8 +203,8 @@ type ContainerLimits struct {
 
 type Volume interface {
 	Handle() string
-	StreamIn(ctx context.Context, path string, encoding Encoding, reader io.Reader) error
-	StreamOut(ctx context.Context, path string, encoding Encoding) (io.ReadCloser, error)
+	StreamIn(ctx context.Context, path string, compression compression.Compression, reader io.Reader) error
+	StreamOut(ctx context.Context, path string, compression compression.Compression) (io.ReadCloser, error)
 }
 
 type VolumeSpec struct {
@@ -211,13 +212,6 @@ type VolumeSpec struct {
 	Properties map[string]string
 	Privileged bool
 }
-
-type Encoding string
-
-const (
-	GzipEncoding Encoding = "gzip"
-	ZstdEncoding Encoding = "zstd"
-)
 
 type VolumeStrategy interface {
 	Encode() *json.RawMessage

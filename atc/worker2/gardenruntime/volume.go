@@ -42,12 +42,12 @@ func (v Volume) COWStrategy() baggageclaim.COWStrategy {
 	}
 }
 
-func (v Volume) StreamOut(ctx context.Context, path string, encoding runtime.Encoding) (io.ReadCloser, error) {
-	return v.bcVolume.StreamOut(ctx, path, baggageclaim.Encoding(encoding))
+func (v Volume) StreamOut(ctx context.Context, path string, compression compression.Compression) (io.ReadCloser, error) {
+	return v.bcVolume.StreamOut(ctx, path, compression.Encoding())
 }
 
-func (v Volume) StreamIn(ctx context.Context, path string, encoding runtime.Encoding, reader io.Reader) error {
-	return v.bcVolume.StreamIn(ctx, path, baggageclaim.Encoding(encoding), reader)
+func (v Volume) StreamIn(ctx context.Context, path string, compression compression.Compression, reader io.Reader) error {
+	return v.bcVolume.StreamIn(ctx, path, compression.Encoding(), reader)
 }
 
 func (worker Worker) LookupVolume(logger lager.Logger, handle string) (runtime.Volume, bool, error) {
@@ -342,7 +342,7 @@ func (p byMountPath) Less(i, j int) bool {
 
 // TODO: find a home for this
 func streamFile(ctx context.Context, volume runtime.Volume, path string) (io.ReadCloser, error) {
-	out, err := volume.StreamOut(ctx, path, runtime.Encoding(defaultCompression.Encoding()))
+	out, err := volume.StreamOut(ctx, path, defaultCompression)
 	if err != nil {
 		return nil, err
 	}
@@ -379,7 +379,7 @@ func stream(ctx context.Context, srcWorker string, src runtime.Volume, dst runti
 		"origin-worker": srcWorker,
 	})
 	defer outSpan.End()
-	out, err := src.StreamOut(ctx, ".", runtime.Encoding(defaultCompression.Encoding()))
+	out, err := src.StreamOut(ctx, ".", defaultCompression)
 
 	if err != nil {
 		tracing.End(outSpan, err)
@@ -388,7 +388,7 @@ func stream(ctx context.Context, srcWorker string, src runtime.Volume, dst runti
 
 	defer out.Close()
 
-	return dst.StreamIn(ctx, ".", runtime.Encoding(defaultCompression.Encoding()), out)
+	return dst.StreamIn(ctx, ".", defaultCompression, out)
 }
 
 type fileReadMultiCloser struct {
