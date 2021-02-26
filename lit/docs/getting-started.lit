@@ -1,4 +1,4 @@
-\title{Tutorial}
+\title{Getting Started}
 
 This tutorial will guide you through the basics of creating a Concourse pipeline. You will use a local instance of Concourse running on your machine to run the pipeline.
 
@@ -21,6 +21,7 @@ It will also help if you know how to read YAML. We have a quick \reference{intro
 
 \split-sections
 
-\include-section{tutorial/quickstart.lit}
-\include-section{tutorial/hello-world.lit}
-\include-section{tutorial/inputs-outputs.lit}
+\include-section{getting-started/quickstart.lit}
+\include-section{getting-started/hello-world.lit}
+\include-section{getting-started/inputs-outputs.lit}
+\include-section{getting-started/resources.lit}

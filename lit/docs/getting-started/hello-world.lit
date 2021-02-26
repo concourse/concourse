@@ -1,4 +1,4 @@
-\title{Hello World Pipeline}
+\title{Hello World Pipeline}{tutorial-hello-world}
 
 \use-plugin{concourse-docs}
 
