@@ -165,3 +165,5 @@ interesting scenarios related to artifacts that you're sure to encounter. The
 blog post, \link{Introduction to Task Inputs and
 outputs}{https://blog.concourse-ci.org/introduction-to-task-inputs-and-outputs/},
 goes over some other examples.
+
+The next section will introduce you to the concept of \reference{resources}.
