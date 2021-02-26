@@ -32,7 +32,7 @@ jobs:
 The \code{\reference{jobs}{jobs}} key is where we define the list of jobs that
 should make up our pipeline. The order of the jobs does not matter. \bold{The
 order does not define the structure of the pipeline.} We'll get into pipeline
-structure later when we talk about \reference{resources}.
+structure and job ordering later when we talk about \reference{resources}.
 
 We only need one job right now so let's add a single job named
 \code{hello-world}.
@@ -81,9 +81,15 @@ At this point we are going to pause to explain steps a bit more.
 
 \bold{What is a step?}
 
-A step is a single container running on a \reference{concourse-worker}{Concourse worker}. Each \reference{steps}{step} in a \reference{schema.job.plan}{job plan} runs in its own container. So if you
-have a job with five steps Concourse will create five containers, one for each
-step. Therefore, we need to tell Concourse the following about each step:
+A step is a single container running on a
+\reference{concourse-worker}{Concourse worker}. Each \reference{steps}{step} in
+a \reference{schema.job.plan}{job plan} runs in its own container. You can run
+anything you want inside the container \italic{(i.e. run my tests, run this
+bash script, build this image, etc.)}.
+
+So if you have a job with five steps Concourse will create five containers, one
+for each step. Therefore, we need to tell Concourse the following about each
+step:
 
 \list{
 What type of \reference{worker-node}{worker} to run the task on (linux/windows/darwin)
@@ -95,7 +101,7 @@ What command to run inside the container
 
 \aside{
 Concourse currently only supports Linux containers. Concourse does not yet run
-Windows containers.
+Windows containers. Darwin does not have native containers.
 }
 
 You can view the \reference{tasks}{task documentation} to see all configurable
