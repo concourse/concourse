@@ -51,6 +51,7 @@ type Builder struct {
 	WorkerFactory          db.WorkerFactory
 	ResourceConfigFactory  db.ResourceConfigFactory
 	VolumeRepo             db.VolumeRepository
+	ResourceCacheFactory   db.ResourceCacheFactory
 	TaskCacheFactory       db.TaskCacheFactory
 	WorkerTaskCacheFactory db.WorkerTaskCacheFactory
 }
@@ -62,6 +63,7 @@ func NewBuilder(conn db.Conn, lockFactory lock.LockFactory) Builder {
 		WorkerFactory:          db.NewWorkerFactory(conn, db.NewStaticWorkerCache(logger, conn, 0)),
 		ResourceConfigFactory:  db.NewResourceConfigFactory(conn, lockFactory),
 		VolumeRepo:             db.NewVolumeRepository(conn),
+		ResourceCacheFactory:   db.NewResourceCacheFactory(conn, lockFactory),
 		TaskCacheFactory:       db.NewTaskCacheFactory(conn),
 		WorkerTaskCacheFactory: db.NewWorkerTaskCacheFactory(conn),
 	}

@@ -39,7 +39,7 @@ func (worker *Worker) fetchImageForContainer(
 	container db.CreatingContainer,
 ) (FetchedImage, error) {
 	if imageSpec.ImageVolume != "" {
-		volume, otherWorker, found, err := worker.pool.LocateVolume(logger, teamID, imageSpec.ImageVolume)
+		volume, srcWorker, found, err := worker.locateVolumeOrLocalResourceCache(logger, teamID, imageSpec.ImageVolume)
 		if err != nil {
 			logger.Error("failed-to-locate-artifact-volume", err)
 			return FetchedImage{}, err
@@ -49,12 +49,12 @@ func (worker *Worker) fetchImageForContainer(
 			logger.Error("image-artifact-volume-not-found", err)
 			return FetchedImage{}, err
 		}
-		if worker.Name() == otherWorker.Name() {
+		if worker.Name() == srcWorker.Name() {
 			// it's on the same worker, so it will be a baggageclaim volume
 			volumeOnWorker := volume.(Volume)
 			return worker.imageProvidedByPreviousStepOnSameWorker(ctx, logger, imageSpec.Privileged, teamID, container, volumeOnWorker)
 		} else {
-			return worker.imageProvidedByPreviousStepOnDifferentWorker(ctx, logger, imageSpec.Privileged, teamID, container, volume, otherWorker.Name())
+			return worker.imageProvidedByPreviousStepOnDifferentWorker(ctx, logger, imageSpec.Privileged, teamID, container, volume, srcWorker.Name())
 		}
 	}
 

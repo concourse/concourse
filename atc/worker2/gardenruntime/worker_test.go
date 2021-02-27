@@ -265,14 +265,14 @@ var _ = Describe("Garden Worker", func() {
 		)
 		Expect(err).ToNot(HaveOccurred())
 
-		gardenContainer := gardenContainer(container)
-
 		var cowVolume *grt.Volume
 		By("validating the volume was cloned", func() {
 			var ok bool
 			cowVolume, ok = findVolumeBy(worker, grt.StrategyEq(baggageclaim.COWStrategy{Parent: imageVolume}))
 			Expect(ok).To(BeTrue())
 		})
+
+		gardenContainer := gardenContainer(container)
 
 		By("validating the container was created with the proper rootfs + metadata", func() {
 			Expect(gardenContainer.Spec.RootFSPath).To(Equal(fmt.Sprintf("raw://%s/rootfs", cowVolume.Path())))
@@ -302,6 +302,62 @@ var _ = Describe("Garden Worker", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(gardenContainer.NumProcesses()).To(Equal(2))
 			Expect(gardenContainer.Processes[1].Spec.User).To(Equal("somebodyelse"))
+		})
+	})
+
+	Test("fetch image from resource cache volume on same worker", func() {
+		imageContent := fstest.MapFS{
+			"metadata.json": grt.ImageMetadataFile(gardenruntime.ImageMetadata{
+				Env:  []string{"FOO=bar"},
+				User: "somebody",
+			}),
+		}
+		scenario := Setup(
+			workertest.WithWorkers(
+				grt.NewWorker("worker1").
+					WithDBContainersInState(grt.Creating, "container1").
+					WithVolumesCreatedInDBAndBaggageclaim(
+						grt.NewVolume("locally-cached-volume").
+							WithContent(imageContent),
+					).
+					WithResourceCacheOnVolume("container1", "locally-cached-volume", "some-resource"),
+				grt.NewWorker("worker2").
+					WithDBContainersInState(grt.Creating, "container2").
+					WithVolumesCreatedInDBAndBaggageclaim(
+						grt.NewVolume("remote-volume").
+							WithContent(imageContent),
+					).
+					WithResourceCacheOnVolume("container2", "remote-volume", "some-resource"),
+			),
+		)
+		worker := scenario.Worker("worker1")
+
+		container, err := worker.FindOrCreateContainer(
+			ctx,
+			db.NewFixedHandleContainerOwner("container1"),
+			db.ContainerMetadata{},
+			runtime.ContainerSpec{
+				ImageSpec: runtime.ImageSpec{
+					ImageVolume: "remote-volume",
+				},
+			},
+		)
+		Expect(err).ToNot(HaveOccurred())
+
+		localCacheVolume, ok := findVolumeBy(worker, grt.HandleEq("locally-cached-volume"))
+		Expect(ok).To(BeTrue())
+
+		var cowVolume *grt.Volume
+		By("validating the volume was cloned from the locally cached copy instead of the remote one", func() {
+			var ok bool
+			cowVolume, ok = findVolumeBy(worker, grt.StrategyEq(baggageclaim.COWStrategy{Parent: localCacheVolume}))
+			Expect(ok).To(BeTrue())
+		})
+
+		gardenContainer := gardenContainer(container)
+
+		By("validating the container was created with the proper rootfs", func() {
+			Expect(gardenContainer.Spec.RootFSPath).To(Equal(fmt.Sprintf("raw://%s/rootfs", cowVolume.Path())))
 		})
 	})
 
@@ -436,6 +492,53 @@ var _ = Describe("Garden Worker", func() {
 			),
 			"/output": grt.HaveStrategy(baggageclaim.EmptyStrategy{}),
 		}))
+	})
+
+	Test("input volume from resource cache on same worker", func() {
+		scenario := Setup(
+			workertest.WithWorkers(
+				grt.NewWorker("worker1").
+					WithDBContainersInState(grt.Creating, "container1").
+					WithVolumesCreatedInDBAndBaggageclaim(
+						grt.NewVolume("locally-cached-volume"),
+					).
+					WithResourceCacheOnVolume("container1", "locally-cached-volume", "some-resource"),
+				grt.NewWorker("worker2").
+					WithDBContainersInState(grt.Creating, "container2").
+					WithVolumesCreatedInDBAndBaggageclaim(
+						grt.NewVolume("remote-volume"),
+					).
+					WithResourceCacheOnVolume("container2", "remote-volume", "some-resource"),
+			),
+		)
+		worker := scenario.Worker("worker1")
+
+		_, err := worker.FindOrCreateContainer(
+			ctx,
+			db.NewFixedHandleContainerOwner("my-handle"),
+			db.ContainerMetadata{},
+			runtime.ContainerSpec{
+				ImageSpec: runtime.ImageSpec{
+					ImageURL: "raw:///img/rootfs",
+				},
+				Dir: "/workdir",
+				Inputs: []runtime.Input{
+					{
+						VolumeHandle:    "remote-volume",
+						DestinationPath: "/input",
+					},
+				},
+			},
+		)
+		Expect(err).ToNot(HaveOccurred())
+
+		localCacheVolume, ok := findVolumeBy(worker, grt.HandleEq("locally-cached-volume"))
+		Expect(ok).To(BeTrue())
+
+		By("validating the volume was cloned from the locally cached copy instead of the remote one", func() {
+			_, ok := findVolumeBy(worker, grt.StrategyEq(baggageclaim.COWStrategy{Parent: localCacheVolume}))
+			Expect(ok).To(BeTrue())
+		})
 	})
 
 	Test("input volume matching workdir/output", func() {

@@ -37,6 +37,7 @@ func Setup(dbConn db.Conn, lockFactory lock.LockFactory, setup ...SetupFunc) *Sc
 				WorkerFactory:                 db.NewWorkerFactory(dbConn),
 				TeamFactory:                   db.NewTeamFactory(dbConn, lockFactory),
 				VolumeRepo:                    db.NewVolumeRepository(dbConn),
+				ResourceCacheFactory:          db.NewResourceCacheFactory(dbConn, lockFactory),
 				TaskCacheFactory:              db.NewTaskCacheFactory(dbConn),
 				WorkerBaseResourceTypeFactory: db.NewWorkerBaseResourceTypeFactory(dbConn),
 				LockFactory:                   lockFactory,

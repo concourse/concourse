@@ -11,6 +11,7 @@ type DB struct {
 	TeamFactory                   db.TeamFactory
 	VolumeRepo                    db.VolumeRepository
 	TaskCacheFactory              db.TaskCacheFactory
+	ResourceCacheFactory          db.ResourceCacheFactory
 	WorkerBaseResourceTypeFactory db.WorkerBaseResourceTypeFactory
 	LockFactory                   lock.LockFactory
 }
@@ -19,6 +20,7 @@ func (db DB) ToGardenRuntimeDB() gardenruntime.DB {
 	return gardenruntime.DB{
 		VolumeRepo:                    db.VolumeRepo,
 		TaskCacheFactory:              db.TaskCacheFactory,
+		ResourceCacheFactory:          db.ResourceCacheFactory,
 		WorkerBaseResourceTypeFactory: db.WorkerBaseResourceTypeFactory,
 		LockFactory:                   db.LockFactory,
 	}

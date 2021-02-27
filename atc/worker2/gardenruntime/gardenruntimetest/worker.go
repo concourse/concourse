@@ -3,6 +3,7 @@ package gardenruntimetest
 import (
 	"strconv"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/compression"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbtest"
@@ -144,6 +145,34 @@ func (w *Worker) WithCachedPaths(cachedPaths ...string) *Worker {
 			cacheVolume := s.WorkerTaskCacheVolume(w.Name(), cachePath)
 			w.Volumes = append(w.Volumes, NewVolume(cacheVolume.Handle()))
 		}
+	})
+}
+
+func (w *Worker) WithResourceCacheOnVolume(containerHandle string, volumeHandle string, resourceTypeName string) *Worker {
+	return w.WithSetup(func(s *workertest.Scenario) {
+		container := s.DB.Container(w.Name(), db.NewFixedHandleContainerOwner(containerHandle))
+		cache, err := s.DBBuilder.ResourceCacheFactory.FindOrCreateResourceCache(
+			db.ForContainer(container.ID()),
+			resourceTypeName,
+			atc.Version{},
+			atc.Source{},
+			atc.Params{},
+			atc.VersionedResourceTypes{
+				{
+					ResourceType: atc.ResourceType{
+						Name: resourceTypeName,
+						Type: dbtest.BaseResourceType,
+					},
+				},
+			},
+		)
+		Expect(err).ToNot(HaveOccurred())
+
+		_, volume, err := s.DBBuilder.VolumeRepo.FindVolume(volumeHandle)
+		Expect(err).ToNot(HaveOccurred())
+
+		err = volume.InitializeResourceCache(cache)
+		Expect(err).ToNot(HaveOccurred())
 	})
 }
 

@@ -43,6 +43,7 @@ type Worker struct {
 type DB struct {
 	VolumeRepo                    db.VolumeRepository
 	TaskCacheFactory              db.TaskCacheFactory
+	ResourceCacheFactory          db.ResourceCacheFactory
 	WorkerBaseResourceTypeFactory db.WorkerBaseResourceTypeFactory
 	LockFactory                   lock.LockFactory
 }
@@ -411,7 +412,7 @@ func (worker *Worker) cloneInputVolumes(
 	var remoteInputs []mountableRemoteInput
 
 	for _, input := range spec.Inputs {
-		volume, otherWorker, found, err := worker.pool.LocateVolume(logger, spec.TeamID, input.VolumeHandle)
+		volume, srcWorker, found, err := worker.locateVolumeOrLocalResourceCache(logger, spec.TeamID, input.VolumeHandle)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -422,7 +423,7 @@ func (worker *Worker) cloneInputVolumes(
 		cleanedInputPath := filepath.Clean(input.DestinationPath)
 		inputDestinationPaths[cleanedInputPath] = true
 
-		if worker.Name() == otherWorker.Name() {
+		if worker.Name() == srcWorker.Name() {
 			localInputs = append(localInputs, mountableLocalInput{
 				cowParent: volume.(Volume),
 				mountPath: input.DestinationPath,
@@ -430,7 +431,7 @@ func (worker *Worker) cloneInputVolumes(
 		} else {
 			remoteInputs = append(remoteInputs, mountableRemoteInput{
 				volume:    volume,
-				srcWorker: otherWorker.Name(),
+				srcWorker: srcWorker.Name(),
 				mountPath: input.DestinationPath,
 			})
 		}
