@@ -41,7 +41,12 @@ func (w Worker) Name() string {
 }
 
 func (w *Worker) Setup(s *workertest.Scenario) {
-	s.DB.Run(s.DBBuilder.WithWorker(dbtest.BaseWorker(w.Name())))
+	atcWorker := dbtest.BaseWorker(w.Name())
+	atcWorker.ActiveContainers = len(w.Containers)
+	atcWorker.ActiveVolumes = len(w.Volumes)
+
+	s.DB.Run(s.DBBuilder.WithWorker(atcWorker))
+
 	for _, f := range w.SetupFuncs {
 		s.Run(func(s *workertest.Scenario) { f(w, s) })
 	}
@@ -182,6 +187,16 @@ func (w Worker) WithContainersCreatedInDBAndGarden(containers ...*Container) *Wo
 
 func (w Worker) WithVolumesCreatedInDBAndBaggageclaim(volumes ...*Volume) *Worker {
 	return w.WithBaggageclaimVolumes(volumes...).WithDBVolumesInState(Created, volumeHandles(volumes)...)
+}
+
+func (w Worker) WithActiveTasks(activeTasks int) *Worker {
+	return w.WithSetup(func(s *workertest.Scenario) {
+		worker := s.DB.Worker(w.Name())
+		for i := 0; i < activeTasks; i++ {
+			err := worker.IncreaseActiveTasks()
+			Expect(err).ToNot(HaveOccurred())
+		}
+	})
 }
 
 func containerHandles(containers []*Container) []string {

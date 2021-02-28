@@ -23,6 +23,34 @@ const UniqueBaseResourceTypeVersion = "some-unique-type-version"
 
 const CertsPath = "/path/to/certs"
 
+func BaseWorker(name string) atc.Worker {
+	certsPath := CertsPath
+	return atc.Worker{
+		Name: name,
+
+		Version: concourse.WorkerVersion,
+
+		GardenAddr:      unique("garden-addr"),
+		BaggageclaimURL: unique("baggageclaim-url"),
+
+		ResourceTypes: []atc.WorkerResourceType{
+			{
+				Type:    BaseResourceType,
+				Image:   "/path/to/global/image",
+				Version: "some-global-type-version",
+			},
+			{
+				Type:                 UniqueBaseResourceType,
+				Image:                "/path/to/unique/image",
+				Version:              "some-unique-type-version",
+				UniqueVersionHistory: true,
+			},
+		},
+
+		CertsPath: &certsPath,
+	}
+}
+
 type JobInputs []JobInput
 
 type JobInput struct {
