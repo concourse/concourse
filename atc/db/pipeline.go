@@ -1137,10 +1137,11 @@ func (p *pipeline) Variables(logger lager.Logger, globalSecrets creds.Secrets, v
 			return nil, errors.Wrapf(err, "evaluate var_source '%s' error", cm.Name)
 		}
 
-		config, ok := newConfig["config"].(map[string]interface{})
+		config, ok := newConfig["config"]
 		if !ok {
-			return nil, fmt.Errorf("var_source '%s' invalid config", cm.Name)
+			return nil, fmt.Errorf("var_source '%s' config not found", cm.Name)
 		}
+
 		secrets, err := varSourcePool.FindOrCreate(logger, config, factory)
 		if err != nil {
 			return nil, errors.Wrapf(err, "create var_source '%s' error", cm.Name)

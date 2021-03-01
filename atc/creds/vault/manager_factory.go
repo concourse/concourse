@@ -1,8 +1,6 @@
 package vault
 
 import (
-	"fmt"
-
 	"github.com/concourse/concourse/atc/creds"
 )
 
@@ -17,16 +15,12 @@ func NewVaultManagerFactory() creds.ManagerFactory {
 }
 
 func (factory *vaultManagerFactory) NewInstance(config interface{}) (creds.Manager, error) {
-	if c, ok := config.(map[string]interface{}); !ok {
-		return nil, fmt.Errorf("invalid vault config format")
-	} else {
-		manager := &VaultManager{}
+	manager := &VaultManager{}
 
-		err := manager.ApplyConfig(c)
-		if err != nil {
-			return nil, err
-		}
-
-		return manager, nil
+	err := manager.ApplyConfig(config)
+	if err != nil {
+		return nil, err
 	}
+
+	return manager, nil
 }

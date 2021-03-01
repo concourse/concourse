@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"database/sql"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -103,7 +102,6 @@ const algorithmLimitRows = 100
 
 var schedulerCache = gocache.New(10*time.Second, 10*time.Second)
 
-var defaultDriverName = "postgres"
 var retryingDriverName = "too-many-connections-retrying"
 
 var flyClientID = "fly"
@@ -318,6 +316,7 @@ var CmdDefaults RunConfig = RunConfig{
 	BindIP:   net.IPv4(0, 0, 0, 0),
 	BindPort: 8080,
 
+	TLS: TLSConfig{},
 	Auth: AuthConfig{
 		AuthFlags: skycmd.AuthFlags{
 			Expiration: 24 * time.Hour,
@@ -335,7 +334,7 @@ var CmdDefaults RunConfig = RunConfig{
 	},
 
 	LetsEncrypt: LetsEncryptConfig{
-		ACMEURL: "https://acme-v02.api.letsencrypt.org/directory",
+		ACMEURL: ignoreErrParseURL("https://acme-v02.api.letsencrypt.org/directory"),
 	},
 
 	Database: DatabaseConfig{
@@ -364,26 +363,26 @@ var CmdDefaults RunConfig = RunConfig{
 	},
 
 	CredentialManagers: CredentialManagersConfig{
-		Conjur: conjur.Manager{
-			PipelineSecretTemplate: "concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}",
-			TeamSecretTemplate:     "concourse/{{.Team}}/{{.Secret}}",
+		Conjur: &conjur.Manager{
+			PipelineSecretTemplate: conjur.DefaultPipelineSecretTemplate,
+			TeamSecretTemplate:     conjur.DefaultTeamSecretTemplate,
 			SecretTemplate:         "vaultName/{{.Secret}}",
 		},
-		CredHub: credhub.CredHubManager{
+		CredHub: &credhub.CredHubManager{
 			PathPrefix: "/concourse",
 		},
-		Kubernetes: kubernetes.KubernetesManager{
+		Kubernetes: &kubernetes.KubernetesManager{
 			NamespacePrefix: "concourse-",
 		},
-		SecretsManager: secretsmanager.Manager{
+		SecretsManager: &secretsmanager.Manager{
 			PipelineSecretTemplate: "/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}",
 			TeamSecretTemplate:     "/concourse/{{.Team}}/{{.Secret}}",
 		},
-		SSM: ssm.SsmManager{
+		SSM: &ssm.SsmManager{
 			PipelineSecretTemplate: "/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}",
 			TeamSecretTemplate:     "/concourse/{{.Team}}/{{.Secret}}",
 		},
-		Vault: vault.VaultManager{
+		Vault: &vault.VaultManager{
 			PathPrefix:      "/concourse",
 			LookupTemplates: []string{"/{{.Team}}/{{.Pipeline}}/{{.Secret}}", "/{{.Team}}/{{.Secret}}"},
 			LoginTimeout:    60 * time.Second,
@@ -441,11 +440,11 @@ var CmdDefaults RunConfig = RunConfig{
 		BufferSize: 1000,
 
 		Emitter: MetricsEmitterConfig{
-			InfluxDB: emitter.InfluxDBConfig{
+			InfluxDB: &emitter.InfluxDBConfig{
 				BatchSize:     5000,
 				BatchDuration: 300 * time.Second,
 			},
-			NewRelic: emitter.NewRelicConfig{
+			NewRelic: &emitter.NewRelicConfig{
 				Url:           "https://insights-collector.newrelic.com",
 				ServicePrefix: "",
 				BatchSize:     2000,
@@ -630,7 +629,7 @@ func (cmd *RunConfig) Runner(positionalArguments []string) (ifrit.Runner, error)
 		return nil, err
 	}
 
-	lockConn, err := constructLockConn(retryingDriverName, cmd.Database.Postgres.ConnectionString())
+	lockConn, err := lock.ConstructLockConn(retryingDriverName, cmd.Database.Postgres.ConnectionString())
 	if err != nil {
 		return nil, err
 	}
@@ -1338,6 +1337,9 @@ func workerVersion() (version.Version, error) {
 func (cmd *RunConfig) secretManager(logger lager.Logger) (creds.Secrets, error) {
 	var secretsFactory creds.SecretsFactory = noop.NewNoopFactory()
 	manager := cmd.ConfiguredCredentialManager()
+	if manager == nil {
+		return nil, nil
+	}
 
 	credsLogger := logger.Session("credential-manager", lager.Data{
 		"name": manager.Name(),
@@ -1484,7 +1486,7 @@ func (cmd *RunConfig) tlsConfig(logger lager.Logger, dbConn db.Conn) (*tls.Confi
 				Prompt:     autocert.AcceptTOS,
 				Cache:      cache,
 				HostPolicy: autocert.HostWhitelist(cmd.ExternalURL.URL.Hostname()),
-				Client:     &acme.Client{DirectoryURL: cmd.LetsEncrypt.ACMEURL},
+				Client:     &acme.Client{DirectoryURL: cmd.LetsEncrypt.ACMEURL.String()},
 			}
 			tlsConfig.NextProtos = append(tlsConfig.NextProtos, acme.ALPNProto)
 			tlsConfig.GetCertificate = m.GetCertificate
@@ -1578,8 +1580,11 @@ func (cmd *RunConfig) configureMetrics(logger lager.Logger) error {
 	var configuredEmitter metric.EmitterFactory
 	v := reflect.ValueOf(cmd.Metrics.Emitter)
 	for i := 0; i < v.NumField(); i++ {
-		emitter := v.Field(i).Interface().(metric.EmitterFactory)
+		if v.Field(i).IsNil() {
+			continue
+		}
 
+		emitter := v.Field(i).Interface().(metric.EmitterFactory)
 		if emitter.IsConfigured() {
 			// Error if there is already an emitter configured
 			if configuredEmitter != nil {
@@ -1591,7 +1596,14 @@ func (cmd *RunConfig) configureMetrics(logger lager.Logger) error {
 		}
 	}
 
-	return metric.Metrics.Initialize(logger.Session("metrics"), configuredEmitter, host, cmd.Metrics.Attributes, cmd.Metrics.BufferSize)
+	if configuredEmitter != nil {
+		err := metric.Metrics.Initialize(logger.Session("metrics"), configuredEmitter, host, cmd.Metrics.Attributes, cmd.Metrics.BufferSize)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (cmd *RunConfig) constructDBConn(
@@ -1625,19 +1637,6 @@ func (cmd *RunConfig) constructDBConn(
 
 type Closer interface {
 	Close() error
-}
-
-func constructLockConn(driverName, connectionString string) (*sql.DB, error) {
-	dbConn, err := sql.Open(driverName, connectionString)
-	if err != nil {
-		return nil, err
-	}
-
-	dbConn.SetMaxOpenConns(1)
-	dbConn.SetMaxIdleConns(1)
-	dbConn.SetConnMaxLifetime(0)
-
-	return dbConn, nil
 }
 
 func (cmd *RunConfig) chooseBuildContainerStrategy() (worker.ContainerPlacementStrategy, error) {
@@ -1977,6 +1976,10 @@ func (cmd *RunConfig) ConfiguredCredentialManager() creds.Manager {
 	v := reflect.ValueOf(cmd.CredentialManagers)
 
 	for i := 0; i < v.NumField(); i++ {
+		if v.Field(i).IsNil() {
+			continue
+		}
+
 		manager := v.Field(i).Interface().(creds.Manager)
 		if manager.IsConfigured() {
 			return manager
@@ -2031,3 +2034,9 @@ type RunnableComponent struct {
 func (cmd *RunConfig) isMTLSEnabled() bool {
 	return string(cmd.TLS.CaCert) != ""
 }
+
+func ignoreErrParseURL(urlString string) flag.URL {
+	parsedURL, _ := url.Parse(urlString)
+	return flag.URL{parsedURL}
+}
+

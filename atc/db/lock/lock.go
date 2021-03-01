@@ -58,6 +58,19 @@ func NewJobSchedulingLockID(jobID int) LockID {
 	return LockID{LockTypeJobScheduling, jobID}
 }
 
+func ConstructLockConn(driverName, connectionString string) (*sql.DB, error) {
+	dbConn, err := sql.Open(driverName, connectionString)
+	if err != nil {
+		return nil, err
+	}
+
+	dbConn.SetMaxOpenConns(1)
+	dbConn.SetMaxIdleConns(1)
+	dbConn.SetConnMaxLifetime(0)
+
+	return dbConn, nil
+}
+
 //go:generate counterfeiter . LockFactory
 
 type LockFactory interface {

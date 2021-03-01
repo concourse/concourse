@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
+	"gopkg.in/yaml.v2"
 
 	"github.com/concourse/concourse/atc/creds"
-	"github.com/mitchellh/mapstructure"
 )
 
 const managerName = "vault"
@@ -101,7 +101,7 @@ func (manager *VaultManager) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func (manager *VaultManager) ApplyConfig(config map[string]interface{}) error {
+func (manager *VaultManager) ApplyConfig(config interface{}) error {
 	// apply defaults
 	manager.PathPrefix = "/concourse"
 	manager.Auth.RetryMax = 5 * time.Minute
@@ -109,16 +109,12 @@ func (manager *VaultManager) ApplyConfig(config map[string]interface{}) error {
 	manager.LoginTimeout = 60 * time.Second
 	manager.QueryTimeout = 60 * time.Second
 
-	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-		DecodeHook:  mapstructure.StringToTimeDurationHookFunc(),
-		ErrorUnused: true,
-		Result:      &manager,
-	})
-	if err != nil {
-		return err
+	configBytes, ok := config.([]byte)
+	if !ok {
+		return fmt.Errorf("invalid config: %s", config)
 	}
 
-	err = decoder.Decode(config)
+	err := yaml.Unmarshal(configBytes, &manager)
 	if err != nil {
 		return err
 	}
@@ -126,7 +122,7 @@ func (manager *VaultManager) ApplyConfig(config map[string]interface{}) error {
 	// Fill in default templates if not otherwise set (done here so
 	// that these are effective all together or not at all, rather
 	// than combining the defaults with a user's custom setting)
-	if _, setsTemplates := config["lookup_templates"]; !setsTemplates {
+	if manager.LookupTemplates == nil {
 		manager.LookupTemplates = []string{
 			"/{{.Team}}/{{.Pipeline}}/{{.Secret}}",
 			"/{{.Team}}/{{.Secret}}",

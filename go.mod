@@ -39,6 +39,7 @@ require (
 	github.com/felixge/httpsnoop v1.0.1
 	github.com/go-playground/locales v0.13.0
 	github.com/go-playground/universal-translator v0.17.0
+	github.com/go-playground/validator v9.31.0+incompatible
 	github.com/go-playground/validator/v10 v10.4.0
 	github.com/gobuffalo/packr v1.13.7
 	github.com/gobwas/glob v0.2.3
@@ -80,6 +81,7 @@ require (
 	github.com/racksec/srslog v0.0.0-20180709174129-a4725f04ec91
 	github.com/sirupsen/logrus v1.6.0
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
+	github.com/spf13/afero v1.5.1 // indirect
 	github.com/spf13/cobra v1.0.0
 	github.com/square/certstrap v1.1.1
 	github.com/stretchr/testify v1.6.1

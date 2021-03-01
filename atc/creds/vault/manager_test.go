@@ -9,10 +9,12 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/concourse/concourse/atc/atccmd"
 	"github.com/concourse/concourse/atc/creds/vault"
 	"github.com/hashicorp/vault/api"
 	"github.com/jessevdk/go-flags"
 	"github.com/square/certstrap/pkix"
+	"gopkg.in/yaml.v2"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
@@ -23,11 +25,6 @@ var _ = Describe("VaultManager", func() {
 	var manager vault.VaultManager
 
 	Describe("IsConfigured()", func() {
-		JustBeforeEach(func() {
-			_, err := flags.ParseArgs(&manager, []string{})
-			Expect(err).To(BeNil())
-		})
-
 		It("fails on empty Manager", func() {
 			Expect(manager.IsConfigured()).To(BeFalse())
 		})
@@ -40,7 +37,11 @@ var _ = Describe("VaultManager", func() {
 
 	Describe("Validate()", func() {
 		JustBeforeEach(func() {
-			manager = vault.VaultManager{URL: "http://vault", Auth: vault.AuthConfig{ClientToken: "xxx"}}
+			manager = *atccmd.CmdDefaults.CredentialManagers.Vault
+			manager.URL = "http://vault"
+			manager.Auth = vault.AuthConfig{
+				ClientToken: "xxx",
+			}
 			_, err := flags.ParseArgs(&manager, []string{})
 			Expect(err).To(BeNil())
 			Expect(manager.SharedPath).To(Equal(""))
@@ -73,7 +74,8 @@ var _ = Describe("VaultManager", func() {
 	})
 
 	Describe("Config", func() {
-		var config map[string]interface{}
+		var config interface{}
+		var tlsConfig vault.TLSConfig
 		var fakeVault *httptest.Server
 
 		var configErr error
@@ -136,36 +138,45 @@ var _ = Describe("VaultManager", func() {
 
 			fakeVault.StartTLS()
 
-			config = map[string]interface{}{
-				"url":                  fakeVault.URL,
-				"path_prefix":          "/path-prefix",
-				"lookup_templates": []string{
+			tlsConfig = vault.TLSConfig{
+				CACert:     string(caBytes),
+				ClientCert: string(clientCertBytes),
+				ClientKey:  string(clientKeyBytes),
+				ServerName: serverName,
+				Insecure:   true,
+			}
+
+			vaultConfig := vault.VaultManager{
+				URL:        fakeVault.URL,
+				PathPrefix: "/path-prefix",
+				LookupTemplates: []string{
 					"/what/{{.Team}}/blah/{{.Pipeline}}/{{.Secret}}",
 					"/thing/{{.Team}}/{{.Secret}}",
 				},
-				"shared_path":          "/shared-path",
-				"namespace":            "some-namespace",
-				"ca_cert":              string(caBytes),
-				"client_cert":          string(clientCertBytes),
-				"client_key":           string(clientKeyBytes),
-				"server_name":          serverName,
-				"insecure_skip_verify": true,
-				"client_token":         "some-client-token",
-				"auth_backend_max_ttl": "5m",
-				"auth_retry_max":       "15m",
-				"auth_retry_initial":   "10s",
-				"auth_backend":         "approle",
-				"auth_params": map[string]string{
-					"role_id":   "some-role-id",
-					"secret_id": "some-secret-id",
+				SharedPath: "/shared-path",
+				Namespace:  "some-namespace",
+				TLS:        tlsConfig,
+				Auth: vault.AuthConfig{
+					ClientToken:   "some-client-token",
+					BackendMaxTTL: 5 * time.Minute,
+					RetryMax:      15 * time.Minute,
+					RetryInitial:  10 * time.Second,
+					Backend:       "approle",
+					Params: map[string]string{
+						"role_id":   "some-role-id",
+						"secret_id": "some-secret-id",
+					},
 				},
 			}
+
+			config, err = yaml.Marshal(vaultConfig)
+			Expect(err).ToNot(HaveOccurred())
 
 			manager = vault.VaultManager{}
 		})
 
 		JustBeforeEach(func() {
-			configErr = manager.Config(config)
+			configErr = manager.ApplyConfig(config)
 		})
 
 		It("configures TLS appropriately", func() {
@@ -207,10 +218,21 @@ var _ = Describe("VaultManager", func() {
 
 		Context("with optional configs omitted", func() {
 			BeforeEach(func() {
-				delete(config, "path_prefix")
-				delete(config, "auth_retry_max")
-				delete(config, "auth_retry_initial")
-				delete(config, "lookup_templates")
+				var err error
+				config, err = yaml.Marshal(map[string]interface{}{
+					"url":                  fakeVault.URL,
+					"shared_path":          "/shared-path",
+					"namespace":            "some-namespace",
+					"tls":                  tlsConfig,
+					"client_token":         "some-client-token",
+					"auth_backend_max_ttl": 5 * time.Minute,
+					"auth_retry_max":       "approle",
+					"auth_params": map[string]string{
+						"role_id":   "some-role-id",
+						"secret_id": "some-secret-id",
+					},
+				})
+				Expect(err).ToNot(HaveOccurred())
 			})
 
 			It("has sane defaults", func() {
@@ -223,17 +245,6 @@ var _ = Describe("VaultManager", func() {
 					"/{{.Team}}/{{.Pipeline}}/{{.Secret}}",
 					"/{{.Team}}/{{.Secret}}",
 				}))
-			})
-		})
-
-		Context("with extra keys in the config", func() {
-			BeforeEach(func() {
-				config["unknown_key"] = "whambam"
-			})
-
-			It("returns an error", func() {
-				Expect(configErr).To(HaveOccurred())
-				Expect(configErr.Error()).To(ContainSubstring("unknown_key"))
 			})
 		})
 	})

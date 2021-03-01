@@ -3,6 +3,7 @@ package atccmd
 import (
 	"time"
 
+	"github.com/concourse/concourse/flag"
 	"github.com/spf13/cobra"
 )
 
@@ -72,25 +73,25 @@ func InitializeTLSFlags(c *cobra.Command, flags *RunConfig) {
 
 func InitializeLetsEncryptFlags(c *cobra.Command, flags *RunConfig) {
 	c.Flags().BoolVar(&flags.LetsEncrypt.Enable, "enable-lets-encrypt", false, "Automatically configure TLS certificates via Let's Encrypt/ACME.")
-	c.Flags().StringVar(&flags.LetsEncrypt.ACMEURL, "lets-encrypt-acme-url", CmdDefaults.LetsEncrypt.ACMEURL, "URL of the ACME CA directory endpoint.")
+	c.Flags().Var(&flags.LetsEncrypt.ACMEURL, "lets-encrypt-acme-url", "URL of the ACME CA directory endpoint.")
 }
 
-func InitializePostgresFlags(c *cobra.Command, flags *RunConfig) {
-	c.Flags().StringVar(&flags.Database.Postgres.Host, "postgres-host", CmdDefaults.Database.Postgres.Host, "The host to connect to.")
-	c.Flags().Uint16Var(&flags.Database.Postgres.Port, "postgres-port", CmdDefaults.Database.Postgres.Port, "The port to connect to.")
-	c.Flags().StringVar(&flags.Database.Postgres.Socket, "postgres-socket", "", "Path to a UNIX domain socket to connect to.")
-	c.Flags().StringVar(&flags.Database.Postgres.User, "postgres-user", "", "The user to sign in as.")
-	c.Flags().StringVar(&flags.Database.Postgres.Password, "postgres-password", "", "The user's password.")
-	c.Flags().StringVar(&flags.Database.Postgres.SSLMode, "postgres-sslmode", CmdDefaults.Database.Postgres.SSLMode, "Whether or not to use SSL.")
-	c.Flags().Var(&flags.Database.Postgres.CACert, "postgres-ca-cert", "CA cert file location, to verify when connecting with SSL.")
-	c.Flags().Var(&flags.Database.Postgres.ClientCert, "postgres-client-cert", "Client cert file location.")
-	c.Flags().Var(&flags.Database.Postgres.ClientKey, "postgres-client-key", "Client key file location.")
-	c.Flags().DurationVar(&flags.Database.Postgres.ConnectTimeout, "postgres-connect-timeout", CmdDefaults.Database.Postgres.ConnectTimeout, "Dialing timeout. (0 means wait indefinitely)")
-	c.Flags().StringVar(&flags.Database.Postgres.Database, "postgres-database", CmdDefaults.Database.Postgres.Database, "The name of the database to use.")
+func InitializePostgresFlags(c *cobra.Command, flags *flag.PostgresConfig) {
+	c.Flags().StringVar(&flags.Host, "postgres-host", CmdDefaults.Database.Postgres.Host, "The host to connect to.")
+	c.Flags().Uint16Var(&flags.Port, "postgres-port", CmdDefaults.Database.Postgres.Port, "The port to connect to.")
+	c.Flags().StringVar(&flags.Socket, "postgres-socket", "", "Path to a UNIX domain socket to connect to.")
+	c.Flags().StringVar(&flags.User, "postgres-user", "", "The user to sign in as.")
+	c.Flags().StringVar(&flags.Password, "postgres-password", "", "The user's password.")
+	c.Flags().StringVar(&flags.SSLMode, "postgres-sslmode", CmdDefaults.Database.Postgres.SSLMode, "Whether or not to use SSL.")
+	c.Flags().Var(&flags.CACert, "postgres-ca-cert", "CA cert file location, to verify when connecting with SSL.")
+	c.Flags().Var(&flags.ClientCert, "postgres-client-cert", "Client cert file location.")
+	c.Flags().Var(&flags.ClientKey, "postgres-client-key", "Client key file location.")
+	c.Flags().DurationVar(&flags.ConnectTimeout, "postgres-connect-timeout", CmdDefaults.Database.Postgres.ConnectTimeout, "Dialing timeout. (0 means wait indefinitely)")
+	c.Flags().StringVar(&flags.Database, "postgres-database", CmdDefaults.Database.Postgres.Database, "The name of the database to use.")
 }
 
 func InitializeDatabaseFlags(c *cobra.Command, flags *RunConfig) {
-	InitializePostgresFlags(c, flags)
+	InitializePostgresFlags(c, &flags.Database.Postgres)
 
 	c.Flags().StringToIntVar(&flags.Database.ConcurrentRequestLimits, "concurrent-request-limit", nil, "Limit the number of concurrent requests to an API endpoint (Example: ListAllJobs:5)")
 	c.Flags().IntVar(&flags.Database.APIMaxOpenConnections, "api-max-conns", CmdDefaults.Database.APIMaxOpenConnections, "The maximum number of open connections for the api connection pool.")

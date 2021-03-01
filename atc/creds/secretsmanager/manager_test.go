@@ -1,8 +1,8 @@
 package secretsmanager_test
 
 import (
+	"github.com/concourse/concourse/atc/atccmd"
 	"github.com/concourse/concourse/atc/creds/secretsmanager"
-	"github.com/jessevdk/go-flags"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
@@ -13,11 +13,6 @@ var _ = Describe("Manager", func() {
 	var manager secretsmanager.Manager
 
 	Describe("IsConfigured()", func() {
-		JustBeforeEach(func() {
-			_, err := flags.ParseArgs(&manager, []string{})
-			Expect(err).To(BeNil())
-		})
-
 		It("fails on empty Manager", func() {
 			Expect(manager.IsConfigured()).To(BeFalse())
 		})
@@ -30,9 +25,9 @@ var _ = Describe("Manager", func() {
 
 	Describe("Validate()", func() {
 		JustBeforeEach(func() {
-			manager = secretsmanager.Manager{AwsRegion: "test-region"}
-			_, err := flags.ParseArgs(&manager, []string{})
-			Expect(err).To(BeNil())
+			manager = *atccmd.CmdDefaults.CredentialManagers.SecretsManager
+			manager.AwsRegion = "test-region"
+
 			Expect(manager.PipelineSecretTemplate).To(Equal(secretsmanager.DefaultPipelineSecretTemplate))
 			Expect(manager.TeamSecretTemplate).To(Equal(secretsmanager.DefaultTeamSecretTemplate))
 		})

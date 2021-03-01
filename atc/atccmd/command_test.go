@@ -17,7 +17,7 @@ type CommandSuite struct {
 func (s *CommandSuite) TestLetsEncryptDefaultIsUpToDate() {
 	cmd := atccmd.CmdDefaults
 
-	s.Equal(cmd.LetsEncrypt.ACMEURL, autocert.DefaultACMEDirectory)
+	s.Equal(cmd.LetsEncrypt.ACMEURL.String(), autocert.DefaultACMEDirectory)
 }
 
 func TestSuite(t *testing.T) {

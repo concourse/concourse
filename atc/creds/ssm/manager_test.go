@@ -1,8 +1,8 @@
 package ssm_test
 
 import (
+	"github.com/concourse/concourse/atc/atccmd"
 	"github.com/concourse/concourse/atc/creds/ssm"
-	flags "github.com/jessevdk/go-flags"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
@@ -13,11 +13,6 @@ var _ = Describe("SsmManager", func() {
 	var manager ssm.SsmManager
 
 	Describe("IsConfigured()", func() {
-		JustBeforeEach(func() {
-			_, err := flags.ParseArgs(&manager, []string{})
-			Expect(err).To(BeNil())
-		})
-
 		It("failes on empty SsmManager", func() {
 			Expect(manager.IsConfigured()).To(BeFalse())
 		})
@@ -33,9 +28,8 @@ var _ = Describe("SsmManager", func() {
 
 	Describe("Validate()", func() {
 		JustBeforeEach(func() {
-			manager = ssm.SsmManager{AwsRegion: "test-region"}
-			_, err := flags.ParseArgs(&manager, []string{})
-			Expect(err).To(BeNil())
+			manager = *atccmd.CmdDefaults.CredentialManagers.SSM
+			manager.AwsRegion = "test-region"
 			Expect(manager.PipelineSecretTemplate).To(Equal(ssm.DefaultPipelineSecretTemplate))
 			Expect(manager.TeamSecretTemplate).To(Equal(ssm.DefaultTeamSecretTemplate))
 		})

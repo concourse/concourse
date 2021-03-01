@@ -16,15 +16,14 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/atccmd"
 	"github.com/concourse/concourse/atc/postgresrunner"
+	"github.com/concourse/concourse/flag"
 	"github.com/concourse/concourse/go-concourse/concourse"
-	"github.com/concourse/flag"
-	"github.com/jessevdk/go-flags"
 	"github.com/tedsuo/ifrit"
 	"golang.org/x/oauth2"
 )
 
 var (
-	cmd            *atccmd.RunCommand
+	cmd            atccmd.RunConfig
 	postgresRunner postgresrunner.Runner
 	atcProcess     ifrit.Process
 	atcURL         string
@@ -33,19 +32,12 @@ var (
 var _ = postgresrunner.GinkgoRunner(&postgresRunner)
 
 var _ = BeforeEach(func() {
-	cmd = &atccmd.RunCommand{}
+	cmd = atccmd.CmdDefaults
 
-	// call parseArgs to populate flag defaults but ignore errors so that we can
-	// use the required:"true" field annotation
-	//
-	// use flags.None so that we don't print errors
-	parser := flags.NewParser(cmd, flags.None)
-	_, _ = parser.ParseArgs([]string{})
-
-	cmd.Postgres.User = "postgres"
-	cmd.Postgres.Database = "testdb"
-	cmd.Postgres.Port = uint16(postgresRunner.Port)
-	cmd.Postgres.SSLMode = "disable"
+	cmd.Database.Postgres.User = "postgres"
+	cmd.Database.Postgres.Database = "testdb"
+	cmd.Database.Postgres.Port = uint16(postgresRunner.Port)
+	cmd.Database.Postgres.SSLMode = "disable"
 	cmd.Auth.MainTeamFlags.LocalUsers = []string{"test"}
 	cmd.Auth.AuthFlags.LocalUsers = map[string]string{
 		"test":    "test",
@@ -62,7 +54,7 @@ var _ = BeforeEach(func() {
 	cmd.Logger.LogLevel = "debug"
 	cmd.Logger.SetWriterSink(GinkgoWriter)
 	cmd.BindPort = 9090 + uint16(GinkgoParallelNode())
-	cmd.DebugBindPort = 0
+	cmd.Debug.BindPort = 0
 
 	signingKey, err := rsa.GenerateKey(rand.Reader, 1024)
 	Expect(err).ToNot(HaveOccurred())

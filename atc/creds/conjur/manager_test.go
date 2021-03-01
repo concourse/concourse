@@ -1,8 +1,8 @@
 package conjur_test
 
 import (
+	"github.com/concourse/concourse/atc/atccmd"
 	"github.com/concourse/concourse/atc/creds/conjur"
-	"github.com/jessevdk/go-flags"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
@@ -13,11 +13,6 @@ var _ = Describe("Manager", func() {
 	var manager conjur.Manager
 
 	Describe("IsConfigured()", func() {
-		JustBeforeEach(func() {
-			_, err := flags.ParseArgs(&manager, []string{})
-			Expect(err).To(BeNil())
-		})
-
 		It("fails on empty Manager", func() {
 			Expect(manager.IsConfigured()).To(BeFalse())
 		})
@@ -30,14 +25,12 @@ var _ = Describe("Manager", func() {
 
 	Describe("Validate()", func() {
 		JustBeforeEach(func() {
-			manager = conjur.Manager{
-				ConjurApplianceUrl: "http://conjur-test",
-				ConjurAccount:      "account",
-				ConjurAuthnLogin:   "login",
-				ConjurAuthnApiKey:  "apiKey",
-			}
-			_, err := flags.ParseArgs(&manager, []string{})
-			Expect(err).To(BeNil())
+			manager = *atccmd.CmdDefaults.CredentialManagers.Conjur
+			manager.ConjurApplianceUrl = "http://conjur-test"
+			manager.ConjurAccount = "account"
+			manager.ConjurAuthnLogin = "login"
+			manager.ConjurAuthnApiKey = "apiKey"
+
 			Expect(manager.PipelineSecretTemplate).To(Equal(conjur.DefaultPipelineSecretTemplate))
 			Expect(manager.TeamSecretTemplate).To(Equal(conjur.DefaultTeamSecretTemplate))
 		})

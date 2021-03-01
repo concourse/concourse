@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/flag"
+	"github.com/concourse/concourse/flag"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

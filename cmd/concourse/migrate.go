@@ -1,84 +1,186 @@
 package main
 
+import (
+	"errors"
+	"fmt"
+
+	"github.com/concourse/concourse/atc/atccmd"
+	"github.com/concourse/concourse/atc/db/encryption"
+	"github.com/concourse/concourse/atc/db/lock"
+	"github.com/concourse/concourse/atc/db/migration"
+	"github.com/concourse/concourse/atc/metric"
+	"github.com/concourse/concourse/flag"
+	"github.com/spf13/cobra"
+)
+
+var defaultDriverName = "postgres"
+
 var MigrateCmd = &cobra.Command{
 	Use:   "migrate",
 	Short: "TODO",
 	Long:  `TODO`,
-	RunE:  InitializeMigrate,
+	RunE:  MigrateConfig.ExecuteMigration,
+}
+
+var MigrateConfig Migration
+
+type Migration struct {
+	lockFactory lock.LockFactory
+
+	Postgres               flag.PostgresConfig `group:"PostgreSQL Configuration" namespace:"postgres"`
+	EncryptionKey          flag.Cipher         `long:"encryption-key"     description:"A 16 or 32 length key used to encrypt sensitive information before storing it in the database."`
+	OldEncryptionKey       flag.Cipher         `long:"old-encryption-key" description:"Encryption key previously used for encrypting sensitive information. If provided without a new key, data is decrypted. If provided with a new key, data is re-encrypted."`
+	CurrentDBVersion       bool                `long:"current-db-version" description:"Print the current database version and exit"`
+	SupportedDBVersion     bool                `long:"supported-db-version" description:"Print the max supported database version and exit"`
+	MigrateDBToVersion     int                 `long:"migrate-db-to-version" description:"Migrate to the specified database version and exit"`
+	MigrateToLatestVersion bool                `long:"migrate-to-latest-version" description:"Migrate to the latest migration version and exit"`
 }
 
 func init() {
-	atccmd.InitializeATCFlagsDEPRECATED(WebCommand, webFlagsDEPRECATED.RunCommand)
-	atccmd.InitializePostgresFlags(MigrateCmd
-	MigrateCmd.Flags().StringVar(&configFile, "config", "", "config file (default is $HOME/.cobra.yaml)")
-	EncryptionKey      flag.Cipher         `long:"encryption-key"     description:"A 16 or 32 length key used to encrypt sensitive information before storing it in the database."`
-	CurrentDBVersion   bool                `long:"current-db-version" description:"Print the current database version and exit"`
-	SupportedDBVersion bool                `long:"supported-db-version" description:"Print the max supported database version and exit"`
-	MigrateDBToVersion int                 `long:"migrate-db-to-version" description:"Migrate to the specified database version and exit"`
+	atccmd.InitializePostgresFlags(MigrateCmd, &MigrateConfig.Postgres)
+
+	MigrateCmd.Flags().Var(&MigrateConfig.EncryptionKey, "encryption-key", "A 16 or 32 length key used to encrypt sensitive information before storing it in the database.")
+	MigrateCmd.Flags().Var(&MigrateConfig.OldEncryptionKey, "old-encryption-key", "Encryption key previously used for encrypting sensitive information. If provided without a new key, data is decrypted. If provided with a new key, data is re-encrypted.")
+
+	MigrateCmd.Flags().BoolVar(&MigrateConfig.CurrentDBVersion, "current-db-version", false, "Print the current database version and exit")
+	MigrateCmd.Flags().BoolVar(&MigrateConfig.SupportedDBVersion, "supported-db-version", false, "Print the max supported database version and exit")
+
+	MigrateCmd.Flags().IntVar(&MigrateConfig.MigrateDBToVersion, "migrate-db-to-version", 0, "Migrate to the specified database version and exit")
+	MigrateCmd.Flags().BoolVar(&MigrateConfig.MigrateToLatestVersion, "migrate-to-latest-version", false, "Migrate to the latest migration version and exit")
 }
 
-func InitializeMigrate(cmd *cobra.Command, args []string) error {
-	// Fetch all the flag values set
-	//
-	// XXX: When we stop supporting flags, we will need to replace this with a
-	// new web object and fill in defaults manually with:
-	// atccmd.SetDefaults(web.RunCommand)
-	// tsacmd.SetDefaults(web.TSACommand)
-	web := webFlagsDEPRECATED
-
-	// IMPORTANT!! This can be removed after we completely deprecate flags
-	fixupFlagDefaults(cmd, &web)
-
-	// Fetch out env values
-	env := envstruct.New("CONCOURSE", "yaml", envstruct.Parser{
-		Delimiter:   ",",
-		Unmarshaler: yaml.Unmarshal,
-	})
-
-	err := env.FetchEnv(web)
+func (m *Migration) ExecuteMigration(cmd *cobra.Command, args []string) error {
+	lockConn, err := lock.ConstructLockConn(defaultDriverName, m.Postgres.ConnectionString())
 	if err != nil {
-		return fmt.Errorf("fetch env: %s", err)
+		return err
 	}
+	defer lockConn.Close()
 
-	// Fetch out the values set from the config file and overwrite the flag
-	// values
-	if configFile != "" {
-		file, err := os.Open(configFile)
-		if err != nil {
-			return fmt.Errorf("open file: %s", err)
-		}
+	m.lockFactory = lock.NewLockFactory(lockConn, metric.LogLockAcquired, metric.LogLockReleased)
 
-		decoder := yaml.NewDecoder(file)
-		err = decoder.Decode(&web)
-		if err != nil {
-			return fmt.Errorf("decode config: %s", err)
-		}
+	if m.MigrateToLatestVersion {
+		return m.migrateToLatestVersion()
 	}
+	if m.CurrentDBVersion {
+		return m.currentDBVersion()
+	}
+	if m.SupportedDBVersion {
+		return m.supportedDBVersion()
+	}
+	if m.MigrateDBToVersion > 0 {
+		return m.migrateDBToVersion()
+	}
+	if m.OldEncryptionKey.AEAD != nil {
+		return m.rotateEncryptionKey()
+	}
+	return errors.New("must specify one of `--migrate-to-latest-version`, `--current-db-version`, `--supported-db-version`, `--migrate-db-to-version`, or `--old-encryption-key`")
+}
 
-	// Validate the values passed in by the user
-	en := en.New()
-	uni := ut.New(en, en)
-	trans, _ := uni.GetTranslator("en")
+func (cmd *Migration) currentDBVersion() error {
+	helper := migration.NewOpenHelper(
+		defaultDriverName,
+		cmd.Postgres.ConnectionString(),
+		cmd.lockFactory,
+		nil,
+		nil,
+	)
 
-	webValidator := atccmd.NewValidator(trans)
-
-	err = webValidator.Struct(web)
+	version, err := helper.CurrentVersion()
 	if err != nil {
-		validationErrors := err.(validator.ValidationErrors)
-
-		// TODO: FIX ERROR HANDLING
-		var errOuts []string
-		for _, err := range validationErrors {
-			errOuts = append(errOuts, err.Translate(trans))
-		}
-
-		return fmt.Errorf(`TODO`)
+		return err
 	}
 
-	err = web.Execute(cmd, args)
-	if err != nil {
-		return fmt.Errorf("failed to execute web: %s", err)
-	}
-
+	fmt.Println(version)
 	return nil
+}
+
+func (cmd *Migration) supportedDBVersion() error {
+	helper := migration.NewOpenHelper(
+		defaultDriverName,
+		cmd.Postgres.ConnectionString(),
+		cmd.lockFactory,
+		nil,
+		nil,
+	)
+
+	version, err := helper.SupportedVersion()
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(version)
+	return nil
+}
+
+func (cmd *Migration) migrateDBToVersion() error {
+	version := cmd.MigrateDBToVersion
+
+	var newKey *encryption.Key
+	var oldKey *encryption.Key
+
+	if cmd.EncryptionKey.AEAD != nil {
+		newKey = encryption.NewKey(cmd.EncryptionKey.AEAD)
+	}
+	if cmd.OldEncryptionKey.AEAD != nil {
+		oldKey = encryption.NewKey(cmd.OldEncryptionKey.AEAD)
+	}
+
+	helper := migration.NewOpenHelper(
+		defaultDriverName,
+		cmd.Postgres.ConnectionString(),
+		cmd.lockFactory,
+		newKey,
+		oldKey,
+	)
+	err := helper.MigrateToVersion(version)
+	if err != nil {
+		return fmt.Errorf("Could not migrate to version: %d Reason: %s", version, err.Error())
+	}
+
+	fmt.Println("Successfully migrated to version:", version)
+	return nil
+}
+
+func (cmd *Migration) rotateEncryptionKey() error {
+	var newKey *encryption.Key
+	var oldKey *encryption.Key
+
+	if cmd.EncryptionKey.AEAD != nil {
+		newKey = encryption.NewKey(cmd.EncryptionKey.AEAD)
+	}
+	if cmd.OldEncryptionKey.AEAD != nil {
+		oldKey = encryption.NewKey(cmd.OldEncryptionKey.AEAD)
+	}
+
+	helper := migration.NewOpenHelper(
+		defaultDriverName,
+		cmd.Postgres.ConnectionString(),
+		cmd.lockFactory,
+		newKey,
+		oldKey,
+	)
+
+	version, err := helper.CurrentVersion()
+	if err != nil {
+		return err
+	}
+
+	return helper.MigrateToVersion(version)
+}
+
+func (cmd *Migration) migrateToLatestVersion() error {
+	helper := migration.NewOpenHelper(
+		defaultDriverName,
+		cmd.Postgres.ConnectionString(),
+		cmd.lockFactory,
+		nil,
+		nil,
+	)
+
+	version, err := helper.SupportedVersion()
+	if err != nil {
+		return err
+	}
+
+	return helper.MigrateToVersion(version)
 }

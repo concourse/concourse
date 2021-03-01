@@ -4,15 +4,14 @@ import (
 	"net/http"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/wrappa"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Concurrent request limits", func() {
 	BeforeEach(func() {
-		cmd.ConcurrentRequestLimits = map[wrappa.LimitedRoute]int{
-			wrappa.LimitedRoute(atc.ListAllJobs): 0,
+		cmd.Database.ConcurrentRequestLimits = map[string]int{
+			atc.ListAllJobs: 0,
 		}
 	})
 
