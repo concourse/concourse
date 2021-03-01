@@ -194,7 +194,7 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 
 	getResult, found, err := step.getFromLocalCache(ctx, logger, step.metadata.TeamID, resourceCache, workerSpec)
 	if found {
-		fmt.Fprintln(delegate.Stderr(), "\x1b[1;33mINFO: found resouce cache from local cache\x1b[0m")
+		fmt.Fprintln(delegate.Stderr(), "\x1b[1;36mINFO: found resouce cache from local cache\x1b[0m")
 		fmt.Fprintln(delegate.Stderr(), "")
 
 		state.StoreResult(step.planID, resourceCache)
