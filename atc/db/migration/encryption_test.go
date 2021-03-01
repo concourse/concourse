@@ -11,7 +11,6 @@ import (
 	"github.com/concourse/concourse/atc/db/encryption"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/migration"
-	"github.com/concourse/concourse/atc/db/migration/migrationfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -23,7 +22,6 @@ var _ = Describe("Encryption", func() {
 		db          *sql.DB
 		lockDB      *sql.DB
 		lockFactory lock.LockFactory
-		bindata     *migrationfakes.FakeBindata
 		fakeLogFunc = func(logger lager.Logger, id lock.LockID) {}
 	)
 
@@ -35,9 +33,6 @@ var _ = Describe("Encryption", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		lockFactory = lock.NewLockFactory(lockDB, fakeLogFunc, fakeLogFunc)
-
-		bindata = new(migrationfakes.FakeBindata)
-		bindata.AssetStub = asset
 	})
 
 	AfterEach(func() {
