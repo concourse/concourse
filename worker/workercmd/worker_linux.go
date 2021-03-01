@@ -44,11 +44,13 @@ type ContainerdRuntime struct {
 	RequestTimeout time.Duration `long:"request-timeout" default:"5m" description:"How long to wait for requests to Containerd to complete. 0 means no timeout."`
 
 	Network struct {
+		ExternalIP flag.IP `long:"external-ip" description:"IP address to use to reach container's mapped ports. Autodetected if not specified."`
 		//TODO can DNSConfig be simplifed to just a bool rather than struct with a bool?
 		DNS                DNSConfig `group:"DNS Proxy Configuration" namespace:"dns-proxy"`
 		DNSServers         []string  `long:"dns-server" description:"DNS server IP address to use instead of automatically determined servers. Can be specified multiple times."`
 		RestrictedNetworks []string  `long:"restricted-network" description:"Network ranges to which traffic from containers will be restricted. Can be specified multiple times."`
 		Pool               string    `long:"network-pool" default:"10.80.0.0/16" description:"Network range to use for dynamically allocated container subnets."`
+		MTU                int       `long:"mtu" description:"MTU size for container network interfaces. Defaults to the MTU of the interface used for outbound access by the host. Max allowed value is 1500."`
 	} `group:"Container Networking"`
 
 	MaxContainers int `long:"max-containers" default:"250" description:"Max container capacity. 0 means no limit."`
