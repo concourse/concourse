@@ -8,6 +8,10 @@ import (
 
 type File string
 
+func (f File) MarshalYAML() (interface{}, error) {
+	return string(f), nil
+}
+
 func (f *File) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var value string
 	err := unmarshal(&value)
@@ -15,7 +19,11 @@ func (f *File) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return err
 	}
 
-	return f.Set(value)
+	if value != "" {
+		return f.Set(value)
+	}
+
+	return nil
 }
 
 // Can be removed once flags are deprecated

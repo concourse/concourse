@@ -9,6 +9,14 @@ type URL struct {
 	*url.URL
 }
 
+func (u URL) MarshalYAML() (interface{}, error) {
+	if u.URL == nil {
+		return "", nil
+	}
+
+	return u.URL.String(), nil
+}
+
 func (u *URL) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var value string
 	err := unmarshal(&value)
@@ -16,7 +24,11 @@ func (u *URL) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return err
 	}
 
-	return u.Set(value)
+	if value != "" {
+		return u.Set(value)
+	}
+
+	return nil
 }
 
 // Can be removed once flags are deprecated

@@ -8,6 +8,10 @@ import (
 
 type Dir string
 
+func (d Dir) MarshalYAML() (interface{}, error) {
+	return string(d), nil
+}
+
 func (d *Dir) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var value string
 	err := unmarshal(&value)
@@ -15,7 +19,11 @@ func (d *Dir) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return err
 	}
 
-	return d.Set(value)
+	if value != "" {
+		return d.Set(value)
+	}
+
+	return nil
 }
 
 // Can be removed once flags are deprecated
@@ -50,4 +58,3 @@ func (d *Dir) Type() string {
 func (d *Dir) Path() string {
 	return string(*d)
 }
-

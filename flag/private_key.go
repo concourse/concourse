@@ -2,8 +2,6 @@ package flag
 
 import (
 	"crypto/rsa"
-	"crypto/x509"
-	"encoding/pem"
 	"fmt"
 	"io/ioutil"
 
@@ -12,6 +10,11 @@ import (
 
 type PrivateKey struct {
 	*rsa.PrivateKey
+	originalKey string
+}
+
+func (p PrivateKey) MarshalYAML() (interface{}, error) {
+	return p.originalKey, nil
 }
 
 func (p *PrivateKey) UnmarshalYAML(unmarshal func(interface{}) error) error {
@@ -21,7 +24,11 @@ func (p *PrivateKey) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return err
 	}
 
-	return p.Set(value)
+	if value != "" {
+		return p.Set(value)
+	}
+
+	return nil
 }
 
 // Can be removed once flags are deprecated
@@ -36,6 +43,7 @@ func (p *PrivateKey) Set(value string) error {
 		return err
 	}
 
+	p.originalKey = value
 	p.PrivateKey = key
 
 	return nil
@@ -43,12 +51,7 @@ func (p *PrivateKey) Set(value string) error {
 
 // Can be removed once flags are deprecated
 func (p *PrivateKey) String() string {
-	return string(pem.EncodeToMemory(
-		&pem.Block{
-			Type:  "RSA PRIVATE KEY",
-			Bytes: x509.MarshalPKCS1PrivateKey(p.PrivateKey),
-		},
-	))
+	return p.originalKey
 }
 
 // Can be removed once flags are deprecated

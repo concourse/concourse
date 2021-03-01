@@ -8,6 +8,11 @@ import (
 
 type Cipher struct {
 	cipher.AEAD
+	originalCipher string
+}
+
+func (c Cipher) MarshalYAML() (interface{}, error) {
+	return c.originalCipher, nil
 }
 
 func (c *Cipher) UnmarshalYAML(unmarshal func(interface{}) error) error {
@@ -17,7 +22,11 @@ func (c *Cipher) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return err
 	}
 
-	return c.Set(value)
+	if value != "" {
+		return c.Set(value)
+	}
+
+	return nil
 }
 
 // Can be removed once flags are deprecated
@@ -32,13 +41,14 @@ func (c *Cipher) Set(value string) error {
 		return fmt.Errorf("failed to construct GCM: %s", err)
 	}
 
+	c.originalCipher = value
+
 	return nil
 }
 
 // Can be removed once flags are deprecated
-// XXX [cf]: Can this be not returning the cipher back?
 func (c *Cipher) String() string {
-	return ""
+	return c.originalCipher
 }
 
 // Can be removed once flags are deprecated
