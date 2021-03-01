@@ -2,7 +2,6 @@ package builds_test
 
 import (
 	"encoding/json"
-	"fmt"
 	"testing"
 	"time"
 
@@ -1258,25 +1257,113 @@ var checkTests = []CheckPlannerTest{
 		Interval: 5 * time.Minute,
 
 		PlanJSON: `{
-		 "id":"1",
-		 "check":{
-				"name":"some-resource",
-				"type":"some-base-resource-type",
-				"source":{
-					 "some":"source",
-					 "source":"default"
+  "id":"1",
+  "check":{
+    "name":"some-resource",
+    "type":"some-base-resource-type",
+    "source":{
+     "some":"source",
+     "source":"default"
+    },
+    "base_image_type":"some-base-resource-type",
+    "from_version":{
+     "some":"version"
+    },
+    "resource":"some-resource",
+    "interval":"5m0s",
+    "timeout":"1h",
+    "tags":[
+     "tag"
+    ]
+  }
+}`,
+	},
+	{
+		Title: "check step with custom type",
+		Checkable: CheckableTest{
+			Name:         "some-resource",
+			Type:         "some-resource-type",
+			Tags:         []string{"tag"},
+			CheckTimeout: "1h",
+			Source: atc.Source{
+				"some": "source",
+			},
+		},
+		VersionedResourceTypes: atc.VersionedResourceTypes{
+			{
+				ResourceType: atc.ResourceType{
+					Name:   "some-resource-type",
+					Type:   "some-base-resource-type",
+					Source: atc.Source{"some": "type-source"},
 				},
-				"base_image_type":"some-base-resource-type",
-				"from_version":{
-					 "some":"version"
+				Version: nil,
+			},
+		},
+
+		From:     atc.Version{"some": "version"},
+		Interval: 5 * time.Minute,
+
+		PlanJSON: `{
+			"id": "5",
+			"on_success": {
+				"step": {
+					"id": "3",
+					"on_success": {
+						"step": {
+							"id": "1",
+							"check": {
+								"name": "some-resource-type",
+								"type": "some-base-resource-type",
+								"source": {
+									 "some": "type-source"
+								},
+								"base_image_type": "some-base-resource-type",
+								"tags": [
+									 "tag"
+								]
+							}
+						},
+						"on_success": {
+							"id": "2",
+							"get": {
+								"name": "some-resource-type",
+								"type": "some-base-resource-type",
+								"source": {
+									 "some": "type-source"
+								},
+								"base_image_type": "some-base-resource-type",
+								"version_from": "1",
+								"tags": [
+									 "tag"
+								]
+							}
+						}
+					}
 				},
-				"resource":"some-resource",
-				"interval":"5m0s",
-				"timeout":"1h",
-				"tags":[
-					 "tag"
-				]
-		 }`,
+				"on_success": {
+					"id": "4",
+					"check": {
+						"name": "some-resource",
+						"type": "some-resource-type",
+						"resource": "some-resource",
+						"source": {"some":"source"},
+						"from_version": {"some": "version"},
+						"tags": ["tag"],
+						"image_spec_from": "2",
+						"interval": "5m0s",
+						"timeout":"1h",
+						"resource_types": [
+							{
+								"name": "some-resource-type",
+								"type": "some-base-resource-type",
+								"source": {"some": "type-source"},
+								"version": null
+							}
+						]
+					}
+				}
+			}
+		}`,
 	},
 }
 
@@ -1298,8 +1385,6 @@ func (c CheckPlannerTest) Run(s *PlannerSuite) {
 
 	actualJSON, err := json.Marshal(plan)
 	s.NoError(err)
-	fmt.Println(string(actualJSON))
-
 	s.JSONEq(c.PlanJSON, string(actualJSON))
 }
 

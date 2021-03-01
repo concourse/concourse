@@ -80,6 +80,8 @@ func NewCheckFactory(
 	}
 }
 
+//go:generate counterfeiter . CheckPlanner
+
 type CheckPlanner interface {
 	Create(checkable Checkable, versionedResourceTypes atc.VersionedResourceTypes, from atc.Version, sourceDefaults atc.Source, interval time.Duration) atc.Plan
 }

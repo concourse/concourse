@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/builds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/lidar"
@@ -22,14 +23,16 @@ var _ = Describe("Scanner", func() {
 		err error
 
 		fakeCheckFactory *dbfakes.FakeCheckFactory
+		planFactory      atc.PlanFactory
 
 		scanner Scanner
 	)
 
 	BeforeEach(func() {
+		planFactory = atc.NewPlanFactory(0)
 		fakeCheckFactory = new(dbfakes.FakeCheckFactory)
 
-		scanner = lidar.NewScanner(fakeCheckFactory)
+		scanner = lidar.NewScanner(fakeCheckFactory, planFactory)
 	})
 
 	JustBeforeEach(func() {
@@ -95,7 +98,7 @@ var _ = Describe("Scanner", func() {
 
 						Context("when try creating a check panics", func() {
 							BeforeEach(func() {
-								fakeCheckFactory.TryCreateCheckStub = func(context.Context, db.Checkable, db.ResourceTypes, atc.Version, bool) (db.Build, bool, error) {
+								fakeCheckFactory.TryCreateCheckStub = func(context.Context, db.CheckPlanner, db.Checkable, db.ResourceTypes, atc.Version, bool) (db.Build, bool, error) {
 									panic("something went wrong")
 								}
 							})
@@ -111,10 +114,16 @@ var _ = Describe("Scanner", func() {
 							fakeResource.CurrentPinnedVersionReturns(atc.Version{"some": "version"})
 						})
 
-						It("creates a check", func() {
+						It("creates a check with that pinned version", func() {
 							Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
-							_, _, _, fromVersion, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+							_, checkPlanner, _, _, fromVersion, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
 							Expect(fromVersion).To(Equal(atc.Version{"some": "version"}))
+							Expect(checkPlanner).To(Equal(builds.NewCheckPlanner(planFactory)))
+						})
+
+						It("creates a check with a check planner", func() {
+							_, checkPlanner, _, _, _, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+							Expect(checkPlanner).To(Equal(builds.NewCheckPlanner(planFactory)))
 						})
 					})
 
@@ -123,9 +132,9 @@ var _ = Describe("Scanner", func() {
 							fakeResource.CurrentPinnedVersionReturns(nil)
 						})
 
-						It("creates a check", func() {
+						It("creates a check with a nil pinned version", func() {
 							Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
-							_, _, _, fromVersion, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+							_, _, _, _, fromVersion, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
 							Expect(fromVersion).To(BeNil())
 						})
 					})
@@ -142,11 +151,11 @@ var _ = Describe("Scanner", func() {
 					It("creates a check for both the parent and the resource", func() {
 						Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(2))
 
-						_, checkable, _, _, manuallyTriggered := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+						_, _, checkable, _, _, manuallyTriggered := fakeCheckFactory.TryCreateCheckArgsForCall(0)
 						Expect(checkable).To(Equal(fakeResourceType))
 						Expect(manuallyTriggered).To(BeFalse())
 
-						_, checkable, _, _, manuallyTriggered = fakeCheckFactory.TryCreateCheckArgsForCall(1)
+						_, _, checkable, _, _, manuallyTriggered = fakeCheckFactory.TryCreateCheckArgsForCall(1)
 						Expect(checkable).To(Equal(fakeResource))
 						Expect(manuallyTriggered).To(BeFalse())
 					})
@@ -189,13 +198,13 @@ var _ = Describe("Scanner", func() {
 				Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(3))
 
 				var checked []string
-				_, checkable, _, _, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+				_, _, checkable, _, _, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
 				checked = append(checked, checkable.Name())
 
-				_, checkable, _, _, _ = fakeCheckFactory.TryCreateCheckArgsForCall(1)
+				_, _, checkable, _, _, _ = fakeCheckFactory.TryCreateCheckArgsForCall(1)
 				checked = append(checked, checkable.Name())
 
-				_, checkable, _, _, _ = fakeCheckFactory.TryCreateCheckArgsForCall(2)
+				_, _, checkable, _, _, _ = fakeCheckFactory.TryCreateCheckArgsForCall(2)
 				checked = append(checked, checkable.Name())
 
 				Expect(checked).To(ConsistOf([]string{fakeResourceType.Name(), fakeResource1.Name(), fakeResource2.Name()}))

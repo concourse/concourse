@@ -4,7 +4,6 @@ import (
 	"context"
 	"strconv"
 	"sync"
-	"time"
 
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
@@ -15,10 +14,10 @@ import (
 	"github.com/concourse/concourse/tracing"
 )
 
-func NewScanner(checkFactory db.CheckFactory) *scanner {
+func NewScanner(checkFactory db.CheckFactory, planFactory atc.PlanFactory) *scanner {
 	return &scanner{
 		checkFactory: checkFactory,
-		planFactory:  atc.NewPlanFactory(time.Now().Unix()),
+		planFactory:  planFactory,
 	}
 }
 

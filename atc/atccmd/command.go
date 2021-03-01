@@ -1085,7 +1085,10 @@ func (cmd *RunCommand) backendComponents(
 				Name:     atc.ComponentLidarScanner,
 				Interval: cmd.LidarScannerInterval,
 			},
-			Runnable: lidar.NewScanner(dbCheckFactory),
+			Runnable: lidar.NewScanner(
+				dbCheckFactory,
+				atc.NewPlanFactory(time.Now().Unix()),
+			),
 		},
 		{
 			Component: atc.Component{
