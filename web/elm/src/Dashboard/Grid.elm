@@ -213,7 +213,7 @@ computeFavoritesLayout params cards =
         result =
             computeCards
                 { colGap = padding
-                , rowGap = groupHeaderHeight
+                , rowGap = groupHeaderHeight + padding
                 , offsetX = padding
                 , offsetY = groupHeaderHeight
                 }

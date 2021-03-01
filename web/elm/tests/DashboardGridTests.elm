@@ -145,15 +145,15 @@ all =
                     |> Expect.all
                         [ findPipelineCard "pipeline-0"
                             >> hasBounds
-                                { x = 25
+                                { x = 32
                                 , y = 0
                                 , width = 272
                                 , height = 268
                                 }
                         , findPipelineCard "pipeline-1"
                             >> hasBounds
-                                { x = 25
-                                , y = 268 + 25
+                                { x = 32
+                                , y = 268 + 32
                                 , width = 272
                                 , height = 268
                                 }
@@ -171,14 +171,14 @@ all =
                     |> Expect.all
                         [ findPipelineCard "pipeline-0"
                             >> hasBounds
-                                { x = 25
+                                { x = 32
                                 , y = 0
                                 , width = 272
                                 , height = 268
                                 }
                         , findPipelineCard "pipeline-1"
                             >> hasBounds
-                                { x = 25 * 2 + 272
+                                { x = 32 * 2 + 272
                                 , y = 0
                                 , width = 272
                                 , height = 268
@@ -203,14 +203,14 @@ all =
                     |> Expect.all
                         [ findPipelineCard "pipeline-0"
                             >> hasBounds
-                                { x = 25
+                                { x = 32
                                 , y = 0
                                 , width = 272
                                 , height = 268
                                 }
                         , findPipelineCard "pipeline-1"
                             >> hasBounds
-                                { x = 25 * 2 + 272
+                                { x = 32 * 2 + 272
                                 , y = 0
                                 , width = 272
                                 , height = 268
@@ -218,7 +218,7 @@ all =
                         ]
         , test "pipelines with many jobs are rendered as cards spanning several rows" <|
             \_ ->
-                loadDashboardWithSize 600 300
+                loadDashboardWithSize 700 300
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
                             Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1 ]
@@ -235,19 +235,19 @@ all =
                     |> Expect.all
                         [ findPipelineCard "pipeline-0"
                             >> hasBounds
-                                { x = 25
+                                { x = 32
                                 , y = 0
                                 , width = 272
-                                , height = 50 + 218 * 2 + 25
+                                , height = 53 + 215 * 2 + 32
                                 }
                         , findPipelineCard "pipeline-1"
                             >> hasBounds
-                                { x = 25 * 2 + 272
+                                { x = 32 * 2 + 272
                                 , y = 0
                                 , width = 272
                                 , height = 268
                                 }
-                        , containerHasHeight <| 50 + (218 + 25) * 2
+                        , containerHasHeight <| 53 + (215 + 32) * 2
                         ]
         , test "pipelines with many dependant jobs are rendered as spanning multiple columns" <|
             \_ ->
@@ -268,14 +268,14 @@ all =
                     |> Expect.all
                         [ findPipelineCard "pipeline-0"
                             >> hasBounds
-                                { x = 25
+                                { x = 32
                                 , y = 0
-                                , width = 272 * 2 + 25
+                                , width = 272 * 2 + 32
                                 , height = 268
                                 }
                         , findPipelineCard "pipeline-1"
                             >> hasBounds
-                                { x = 25 + 2 * (272 + 25)
+                                { x = 32 + 2 * (272 + 32)
                                 , y = 0
                                 , width = 272
                                 , height = 268
@@ -283,7 +283,7 @@ all =
                         ]
         , test "wraps cards to the next row" <|
             \_ ->
-                loadDashboardWithSize 600 500
+                loadDashboardWithSize 700 500
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
                             Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1, Data.pipeline "team" 2 ]
@@ -294,26 +294,26 @@ all =
                     |> Expect.all
                         [ findPipelineCard "pipeline-0"
                             >> hasBounds
-                                { x = 25
+                                { x = 32
                                 , y = 0
                                 , width = 272
                                 , height = 268
                                 }
                         , findPipelineCard "pipeline-1"
                             >> hasBounds
-                                { x = 25 * 2 + 272
+                                { x = 32 * 2 + 272
                                 , y = 0
                                 , width = 272
                                 , height = 268
                                 }
                         , findPipelineCard "pipeline-2"
                             >> hasBounds
-                                { x = 25
-                                , y = 268 + 25
+                                { x = 32
+                                , y = 268 + 32
                                 , width = 272
                                 , height = 268
                                 }
-                        , containerHasHeight <| (268 + 25) * 2
+                        , containerHasHeight <| (268 + 32) * 2
                         ]
         , test "sets the container height to the height of the cards" <|
             \_ ->
@@ -324,7 +324,7 @@ all =
                         )
                     |> Tuple.first
                     |> Common.queryView
-                    |> containerHasHeight ((268 + 25) * 2)
+                    |> containerHasHeight ((268 + 32) * 2)
         , test "doesn't render rows below the viewport" <|
             \_ ->
                 loadDashboardWithSize 300 300
@@ -446,7 +446,7 @@ all =
         , describe "drop areas" <|
             [ test "renders a drop area over each pipeline card" <|
                 \_ ->
-                    loadDashboardWithSize 600 500
+                    loadDashboardWithSize 700 500
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
                                 Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1, Data.pipeline "team" 2 ]
@@ -460,21 +460,21 @@ all =
                                 >> hasBounds
                                     { x = 0
                                     , y = 0
-                                    , width = 272 + 25
+                                    , width = 272 + 32
                                     , height = 268
                                     }
                             , Query.index 1
                                 >> hasBounds
-                                    { x = 272 + 25
+                                    { x = 272 + 32
                                     , y = 0
-                                    , width = 272 + 25
+                                    , width = 272 + 32
                                     , height = 268
                                     }
                             , Query.index 2
                                 >> hasBounds
                                     { x = 0
-                                    , y = 268 + 25
-                                    , width = 272 + 25
+                                    , y = 268 + 32
+                                    , width = 272 + 32
                                     , height = 268
                                     }
                             ]
@@ -503,14 +503,14 @@ all =
                         |> Query.findAll [ class "drop-area" ]
                         |> Query.index -1
                         |> hasBounds
-                            { x = 272 + 25
+                            { x = 272 + 32
                             , y = 0
-                            , width = 272 + 25
+                            , width = 272 + 32
                             , height = 268
                             }
             , test "renders the drop area up one row when the card breaks the row, but there is space for a smaller card" <|
                 \_ ->
-                    loadDashboardWithSize 600 500
+                    loadDashboardWithSize 700 500
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
                                 Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1 ]
@@ -530,14 +530,14 @@ all =
                                 >> hasBounds
                                     { x = 0
                                     , y = 0
-                                    , width = 272 + 25
+                                    , width = 272 + 32
                                     , height = 268
                                     }
                             , Query.index 1
                                 >> hasBounds
-                                    { x = 272 + 25
+                                    { x = 272 + 32
                                     , y = 0
-                                    , width = 272 + 25
+                                    , width = 272 + 32
                                     , height = 268
                                     }
                             ]
@@ -578,8 +578,8 @@ all =
                         |> Query.find [ id "dashboard-favorite-pipelines" ]
                         |> findPipelineCard "pipeline-0"
                         |> hasBounds
-                            { x = 25
-                            , y = 60
+                            { x = 32
+                            , y = 32 + 25
                             , width = 272
                             , height = 268
                             }
@@ -597,7 +597,7 @@ all =
                         |> Query.find [ id "dashboard-favorite-pipelines" ]
                         |> Query.has
                             [ style "height" <|
-                                String.fromFloat (2 * 268 + 2 * 60)
+                                String.fromFloat (2 * 268 + 2 * 89)
                                     ++ "px"
                             ]
             , test "offsets all pipelines section by height of the favorites section" <|
@@ -626,10 +626,10 @@ all =
                         |> Common.queryView
                         |> Query.find [ id "dashboard-favorite-pipelines" ]
                         |> findHeader "team"
-                        |> hasBounds { x = 25, y = 0, width = 272, height = 60 }
+                        |> hasBounds { x = 32, y = 0, width = 272, height = 57 }
             , test "renders multiple teams' headers" <|
                 \_ ->
-                    loadDashboardWithSize 600 200
+                    loadDashboardWithSize 700 200
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
                                 Ok [ Data.pipeline "team1" 0, Data.pipeline "team2" 1 ]
@@ -641,13 +641,13 @@ all =
                         |> Query.find [ id "dashboard-favorite-pipelines" ]
                         |> Expect.all
                             [ findHeader "team1"
-                                >> hasBounds { x = 25, y = 0, width = 272, height = 60 }
+                                >> hasBounds { x = 32, y = 0, width = 272, height = 57 }
                             , findHeader "team2"
-                                >> hasBounds { x = 272 + 25 * 2, y = 0, width = 272, height = 60 }
+                                >> hasBounds { x = 272 + 32 * 2, y = 0, width = 272, height = 57 }
                             ]
             , test "renders one header per team" <|
                 \_ ->
-                    loadDashboardWithSize 600 200
+                    loadDashboardWithSize 700 200
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
                                 Ok [ Data.pipeline "team1" 0, Data.pipeline "team1" 1 ]
@@ -658,7 +658,7 @@ all =
                         |> Common.queryView
                         |> Query.find [ id "dashboard-favorite-pipelines" ]
                         |> findHeader "team1"
-                        |> hasBounds { x = 25, y = 0, width = 272 * 2 + 25, height = 60 }
+                        |> hasBounds { x = 32, y = 0, width = 272 * 2 + 32, height = 57 }
             , test "renders a 'continued' header when a team spans multiple rows" <|
                 \_ ->
                     loadDashboardWithSize 300 600
@@ -672,7 +672,7 @@ all =
                         |> Common.queryView
                         |> Query.find [ id "dashboard-favorite-pipelines" ]
                         |> findHeader "team1 (continued)"
-                        |> hasBounds { x = 25, y = 268 + 60, width = 272, height = 60 }
+                        |> hasBounds { x = 32, y = 268 + 89, width = 272, height = 57 }
             ]
         ]
 

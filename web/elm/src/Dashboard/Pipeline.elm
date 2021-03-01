@@ -13,6 +13,7 @@ import Concourse exposing (flattenJson)
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.PipelineStatus as PipelineStatus
 import Dashboard.DashboardPreview as DashboardPreview
+import Dashboard.Grid.Constants as GridConstants
 import Dashboard.Group.Models exposing (Pipeline)
 import Dashboard.Styles as Styles
 import Dict
@@ -277,8 +278,12 @@ transition =
 headerView : PipelinesSection -> Pipeline -> Bool -> Float -> Bool -> Bool -> Html Message
 headerView section pipeline resourceError headerHeight viewingInstanceGroups inInstanceGroup =
     let
+        verticalSpacer =
+            Html.div [ style "height" <| String.fromInt GridConstants.cardHeaderRowGap ++ "px" ] []
+
         rows =
-            headerRows section viewingInstanceGroups pipeline inInstanceGroup
+            List.intersperse verticalSpacer
+                (headerRows section viewingInstanceGroups pipeline inInstanceGroup)
 
         resourceErrorElem =
             Html.div
@@ -376,7 +381,7 @@ footerView :
 footerView session pipeline section now hovered existingJobs =
     let
         spacer =
-            Html.div [ style "width" "12px" ] []
+            Html.div [ style "width" "16px" ] []
 
         pipelineId =
             Concourse.toPipelineId pipeline

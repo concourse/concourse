@@ -147,10 +147,10 @@ all =
                             [ style "width" "272px"
                             , style "height" "268px"
                             ]
-                , test "card has a left margin of 25px" <|
+                , test "card has a left margin of 32px" <|
                     noPipelinesCard
                         >> Query.has
-                            [ style "margin-left" "25px" ]
+                            [ style "margin-left" "32px" ]
                 ]
             , describe "header" <|
                 let
@@ -340,7 +340,8 @@ all =
                     >> Query.children []
                     >> Query.first
                     >> Query.has
-                        [ style "width" "245px"
+                        [ style "width" "240px"
+                        , style "line-height" "21px"
                         , style "white-space" "nowrap"
                         , style "overflow" "hidden"
                         , style "text-overflow" "ellipsis"
@@ -391,7 +392,7 @@ all =
                         >> findCardHeader
                         >> Expect.all
                             [ Query.has
-                                [ style "height" "80px"
+                                [ style "height" "82px"
                                 , style "box-sizing" "border-box"
                                 ]
                             , Query.has [ text "group" ]
@@ -405,7 +406,7 @@ all =
                         >> findCardHeader
                         >> Expect.all
                             [ Query.has
-                                [ style "height" "80px"
+                                [ style "height" "82px"
                                 , style "box-sizing" "border-box"
                                 ]
                             , Query.has [ text "group" ]
@@ -421,7 +422,7 @@ all =
                         >> findCardHeader
                         >> Expect.all
                             [ Query.has
-                                [ style "height" "80px"
+                                [ style "height" "82px"
                                 , style "box-sizing" "border-box"
                                 ]
                             , Query.has [ text "group" ]
@@ -1256,7 +1257,7 @@ all =
                     hasStyle "background-color" ColorValues.grey90
             , test "has medium padding" <|
                 \_ ->
-                    hasStyle "padding" "13.5px"
+                    hasStyle "padding" "16px"
             , test "lays out contents horizontally" <|
                 \_ ->
                     hasStyle "display" "flex"
@@ -2276,7 +2277,7 @@ all =
                             |> Query.children []
                             |> Expect.all
                                 [ Query.count (Expect.equal 5)
-                                , Query.index 1 >> Query.has [ style "width" "12px" ]
+                                , Query.index 1 >> Query.has [ style "width" "16px" ]
                                 ]
                 , test "there is medium spacing between the eye and the favorited icon" <|
                     \_ ->
@@ -2298,7 +2299,7 @@ all =
                             |> Query.children []
                             |> Expect.all
                                 [ Query.count (Expect.equal 5)
-                                , Query.index 3 >> Query.has [ style "width" "12px" ]
+                                , Query.index 3 >> Query.has [ style "width" "16px" ]
                                 ]
                 , describe "pause toggle"
                     [ test "the right section has a 20px square pause button on the left" <|
