@@ -12,7 +12,7 @@ func (m NamedVariables) Get(ref Reference) (interface{}, bool, error) {
 	}
 
 	if vars, ok := m[ref.Source]; ok {
-		return vars.Get(ref)
+		return vars.Get(ref.WithoutSource())
 	}
 
 	return nil, false, MissingSourceError{Name: ref.String(), Source: ref.Source}
