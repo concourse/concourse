@@ -64,16 +64,16 @@ func (cmd *WorkerCommand) containerdGardenServerRunner(
 		networkOpts = append(networkOpts, runtime.WithNameServers(dnsServers))
 	}
 
-	if len(cmd.Containerd.RestrictedNetworks) > 0 {
-		networkOpts = append(networkOpts, runtime.WithRestrictedNetworks(cmd.Containerd.RestrictedNetworks))
+	if len(cmd.Containerd.Network.RestrictedNetworks) > 0 {
+		networkOpts = append(networkOpts, runtime.WithRestrictedNetworks(cmd.Containerd.Network.RestrictedNetworks))
 	}
 
-	if cmd.Containerd.NetworkPool != "" {
+	if cmd.Containerd.Network.Pool != "" {
 		networkOpts = append(networkOpts, runtime.WithCNINetworkConfig(
 			runtime.CNINetworkConfig{
 				BridgeName:  "concourse0",
 				NetworkName: "concourse",
-				Subnet:      cmd.Containerd.NetworkPool,
+				Subnet:      cmd.Containerd.Network.Pool,
 			}))
 	}
 
@@ -149,8 +149,8 @@ func (cmd *WorkerCommand) containerdRunner(logger lager.Logger) (ifrit.Runner, e
 
 	members := grouper.Members{}
 
-	dnsServers := cmd.Containerd.DNSServers
-	if cmd.Containerd.DNS.Enable {
+	dnsServers := cmd.Containerd.Network.DNSServers
+	if cmd.Containerd.Network.DNS.Enable {
 		dnsProxyRunner, err := cmd.dnsProxyRunner(logger.Session("dns-proxy"))
 		if err != nil {
 			return nil, err

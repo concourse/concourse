@@ -32,7 +32,7 @@ type GuardianRuntime struct {
 	DNS            DNSConfig     `group:"DNS Proxy Configuration" namespace:"dns-proxy"`
 	RequestTimeout time.Duration `long:"request-timeout" default:"5m" description:"How long to wait for requests to the Garden server to complete. 0 means no timeout."`
 
-  Config         flag.File     `long:"config"     description:"Path to a config file to use for the Garden backend. e.g. 'foo-bar=a,b' for '--foo-bar a --foo-bar b'."`
+	Config      flag.File `long:"config"     description:"Path to a config file to use for the Garden backend. e.g. 'foo-bar=a,b' for '--foo-bar a --foo-bar b'."`
 	BinaryFlags GdnBinaryFlags
 }
 
@@ -43,12 +43,15 @@ type ContainerdRuntime struct {
 	CNIPluginsDir  string        `long:"cni-plugins-dir" default:"/usr/local/concourse/bin" description:"Path to CNI network plugins."`
 	RequestTimeout time.Duration `long:"request-timeout" default:"5m" description:"How long to wait for requests to Containerd to complete. 0 means no timeout."`
 
-	//TODO can DNSConfig be simplifed to just a bool rather than struct with a bool?
-	DNS                DNSConfig `group:"DNS Proxy Configuration" namespace:"dns-proxy"`
-	DNSServers         []string  `long:"dns-server" description:"DNS server IP address to use instead of automatically determined servers. Can be specified multiple times."`
-	RestrictedNetworks []string  `long:"restricted-network" description:"Network ranges to which traffic from containers will be restricted. Can be specified multiple times."`
-	MaxContainers      int       `long:"max-containers" default:"250" description:"Max container capacity. 0 means no limit."`
-	NetworkPool        string    `long:"network-pool" default:"10.80.0.0/16" description:"Network range to use for dynamically allocated container subnets."`
+	Network struct {
+		//TODO can DNSConfig be simplifed to just a bool rather than struct with a bool?
+		DNS                DNSConfig `group:"DNS Proxy Configuration" namespace:"dns-proxy"`
+		DNSServers         []string  `long:"dns-server" description:"DNS server IP address to use instead of automatically determined servers. Can be specified multiple times."`
+		RestrictedNetworks []string  `long:"restricted-network" description:"Network ranges to which traffic from containers will be restricted. Can be specified multiple times."`
+		Pool               string    `long:"network-pool" default:"10.80.0.0/16" description:"Network range to use for dynamically allocated container subnets."`
+	} `group:"Container Networking"`
+
+	MaxContainers int `long:"max-containers" default:"250" description:"Max container capacity. 0 means no limit."`
 }
 
 const containerdRuntime = "containerd"
@@ -206,7 +209,6 @@ func (cmd *WorkerCommand) loadResources(logger lager.Logger) ([]atc.WorkerResour
 	return types, nil
 }
 
-
 func (cmd *WorkerCommand) hasFlags(prefix string) bool {
 	env := os.Environ()
 
@@ -226,7 +228,7 @@ const containerdEnvPrefix = "CONCOURSE_CONTAINERD_"
 func (cmd *WorkerCommand) verifyRuntimeFlags() error {
 	switch {
 	case cmd.Runtime == houdiniRuntime:
-		if cmd.hasFlags(guardianEnvPrefix)  || cmd.hasFlags(containerdEnvPrefix) {
+		if cmd.hasFlags(guardianEnvPrefix) || cmd.hasFlags(containerdEnvPrefix) {
 			return fmt.Errorf("cannot use %s or %s environment variables with Houdini", guardianEnvPrefix, containerdEnvPrefix)
 		}
 	case cmd.Runtime == containerdRuntime:
