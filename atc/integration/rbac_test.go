@@ -3,7 +3,6 @@ package integration_test
 import (
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"path/filepath"
 
@@ -158,54 +157,6 @@ jobs:
 		AfterEach(func() {
 			err := os.RemoveAll(tmp)
 			Expect(err).NotTo(HaveOccurred())
-		})
-
-		Context("when trying to customize an action that doesn't exist", func() {
-			BeforeEach(func() {
-				rbac = `
----
-viewer:
-- NotSaveConfig
-`
-			})
-
-			It("errors", func() {
-				file := filepath.Join(tmp, "rbac-not-action.yml")
-				err := ioutil.WriteFile(file, []byte(rbac), 0755)
-				Expect(err).ToNot(HaveOccurred())
-
-				cmd.ConfigRBAC = flag.File(file)
-
-				// workaround to avoid panic due to registering http handlers multiple times
-				http.DefaultServeMux = new(http.ServeMux)
-
-				_, err = cmd.Runner([]string{})
-				Expect(err).To(MatchError(ContainSubstring("failed to customize roles: unknown action NotSaveConfig")))
-			})
-		})
-
-		Context("when trying to customize a role that doesn't exist", func() {
-			BeforeEach(func() {
-				rbac = `
----
-not-viewer:
-- SaveConfig
-`
-			})
-
-			It("errors", func() {
-				file := filepath.Join(tmp, "rbac-not-role.yml")
-				err := ioutil.WriteFile(file, []byte(rbac), 0755)
-				Expect(err).ToNot(HaveOccurred())
-
-				cmd.ConfigRBAC = flag.File(file)
-
-				// workaround to avoid panic due to registering http handlers multiple times
-				http.DefaultServeMux = new(http.ServeMux)
-
-				_, err = cmd.Runner([]string{})
-				Expect(err).To(MatchError(ContainSubstring("failed to customize roles: unknown role not-viewer")))
-			})
 		})
 
 		Context("when successfully customizing a role", func() {

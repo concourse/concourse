@@ -2,18 +2,34 @@ package atccmd
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/url"
+	"os"
 	"strings"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/wrappa"
+	"github.com/concourse/concourse/flag"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
 	en_translations "github.com/go-playground/validator/v10/translations/en"
 	"gopkg.in/yaml.v2"
+)
+
+var (
+	ValidationErrParseURL     = "url is invalid"
+	ValidationErrLimitedRoute = fmt.Sprintf("Not a valid route to limit. Valid routes include %v.", wrappa.SupportedActions)
+
+	ValidationErrEmptyTLSBindPort  = "must specify tls.bind_port to use TLS"
+	ValidationErrEnableLetsEncrypt = "cannot specify lets_encrypt.enable if tls.cert or tls.key are set"
+	ValidationErrTLSCertKey        = "must specify HTTPS external-url to use TLS"
+	ValidationErrTLS               = "must specify tls.cert and tls.key, or lets_encrypt.enable to use TLS"
+
+	ValidationErrRBAC = "unknown rbac role or action defined in the config rbac file provided"
+
+	ValidationErrCPS = fmt.Sprintf("Not a valid list of container placement strategies. Valid strategies include %v.", atc.ValidContainerPlacementStrategies)
+	ValidationErrSAC = fmt.Sprintf("Not a valid streaming artifacts compression. Valid options include %v.", atc.ValidStreamingArtifactsCompressions)
 )
 
 func NewValidator(trans ut.Translator) *validator.Validate {
@@ -22,13 +38,9 @@ func NewValidator(trans ut.Translator) *validator.Validate {
 	en_translations.RegisterDefaultTranslations(validate, trans)
 
 	// XXX: Can we have better error messages for these?
-	validate.RegisterValidation("ip", ValidateIP)
-	validate.RegisterValidation("url", ValidateURL)
+	validate.RegisterStructValidation(ValidateURL, flag.URL{})
+	validate.RegisterStructValidation(ValidateTLSOrLetsEncrypt, TLSConfig{})
 	validate.RegisterValidation("limited_route", ValidateLimitedRoute)
-	validate.RegisterValidation("empty_tls_bind_port", ValidateEmptyTLSBindPort)
-	validate.RegisterValidation("enable_lets_encrypt", ValidateEnabledLetsEncrypt)
-	validate.RegisterValidation("tls_cert_key", ValidateTLSCertKey)
-	validate.RegisterValidation("tls", ValidateTLS)
 	validate.RegisterValidation("rbac", ValidateRBAC)
 	validate.RegisterValidation("cps", ValidateContainerPlacementStrategy)
 	validate.RegisterValidation("sac", ValidateStreamingArtifactsCompression)
@@ -54,12 +66,13 @@ func NewValidatorErrors(validate *validator.Validate, trans ut.Translator) *vali
 func (v *validatorErrors) SetupErrorMessages() {
 	// TODO: REGISTER ERROR MESSAGE FO EACH TAG
 	// XXX: TEST THIS
-	v.RegisterTranslation("limited_route", fmt.Sprintf("Not a valid route to limit. Valid routes include %v.", wrappa.SupportedActions))
-	v.RegisterTranslation("empty_tls_bind_port", "must specify tls.bind_port to use TLS")
-	v.RegisterTranslation("enable_lets_encrypt", "cannot specify lets_encrypt.enable if tls.cert or tls.key are set")
-	v.RegisterTranslation("tls_cert_key", "must specify HTTPS external-url to use TLS")
-	v.RegisterTranslation("tls", "must specify tls.cert and tls.key, or lets_encrypt.enable to use TLS")
-	v.RegisterTranslation("rbac", "unknown rbac role or action defined in the config rbac file provided")
+	v.RegisterTranslation("parseurl", ValidationErrParseURL)
+	v.RegisterTranslation("limited_route", ValidationErrLimitedRoute)
+	v.RegisterTranslation("tlsemptybindport", ValidationErrEmptyTLSBindPort)
+	v.RegisterTranslation("letsencryptenable", ValidationErrEnableLetsEncrypt)
+	v.RegisterTranslation("tlsexternalurl", ValidationErrTLSCertKey)
+	v.RegisterTranslation("tlsorletsencrypt", ValidationErrTLS)
+	v.RegisterTranslation("rbac", ValidationErrRBAC)
 }
 
 func (v *validatorErrors) RegisterTranslation(validationName string, errorString string) {
@@ -67,7 +80,8 @@ func (v *validatorErrors) RegisterTranslation(validationName string, errorString
 		return ut.Add(validationName, errorString, true) // see universal-translator for details
 	}, func(ut ut.Translator, fe validator.FieldError) string {
 		t, _ := ut.T(validationName, fe.Field())
-		return t
+		return fmt.Sprintf(`error: %s,
+value: %s=%s`, t, fe.Field(), fe.Value())
 	})
 }
 
@@ -76,119 +90,77 @@ func ValidateRequired(field validator.FieldLevel) bool {
 	return parsedIP != nil
 }
 
-func ValidateIP(field validator.FieldLevel) bool {
-	parsedIP := net.ParseIP(field.Field().String())
-	return parsedIP != nil
-}
-
-func ValidateURL(field validator.FieldLevel) bool {
-	value := normalizeURL(field.Field().String())
+func ValidateURL(sl validator.StructLevel) {
+	flagURL := sl.Current().Interface().(flag.URL)
+	value := normalizeURL(flagURL.String())
 	parsedURL, err := url.Parse(value)
 	if err != nil {
-		return false
+		sl.ReportError(flagURL.String(), "url", sl.Current().Type().Name(), "parseurl", "")
+		return
 	}
 
 	// localhost URLs that do not start with http:// are interpreted
 	// with `localhost` as the Scheme, not the Host
-	if parsedURL.Scheme == "" || parsedURL.Host == "" {
-		return false
+	if parsedURL.Scheme == "" {
+		sl.ReportError(flagURL.String(), "url", sl.Current().Type().Name(), "urlscheme", "")
+		return
 	}
 
-	return true
+	if parsedURL.Host == "" {
+		sl.ReportError(flagURL.String(), "url", sl.Current().Type().Name(), "urlhost", "")
+		return
+	}
 }
 
 func ValidateLimitedRoute(field validator.FieldLevel) bool {
 	for _, route := range atc.Routes {
+		// Ensure the value exists within the recognized routes
 		if route.Name == field.Field().String() {
-			return true
-		}
-	}
+			for _, supportedAction := range wrappa.SupportedActions {
+				// Check if the value is one of the supported actions
+				if field.Field().String() == supportedAction {
+					return true
+				}
+			}
 
-	for _, supportedAction := range wrappa.SupportedActions {
-		if field.Field().String() == supportedAction {
-			return true
 		}
 	}
 
 	return false
 }
 
-func ValidateEmptyTLSBindPort(field validator.FieldLevel) bool {
-	if field.Field().Interface() == 0 {
+func ValidateTLSOrLetsEncrypt(sl validator.StructLevel) {
+	var (
+		tlsConfig         TLSConfig
+		letsEncryptConfig LetsEncryptConfig
+	)
 
-		certField := field.Parent().FieldByName("Cert")
-		keyField := field.Parent().FieldByName("Key")
-		letsEncryptEnabledField := field.Top().FieldByName("LetsEncrypt").FieldByName("Enable")
-
-		if !certField.IsValid() || !keyField.IsValid() || !letsEncryptEnabledField.IsValid() {
-			return false
-		}
-
-		if certField.String() != "" || keyField.String() != "" || letsEncryptEnabledField.Bool() {
-			return false
-		}
+	tlsConfig = sl.Current().Interface().(TLSConfig)
+	if sl.Top().FieldByName("LetsEncrypt").Interface() != nil {
+		letsEncryptConfig = sl.Top().FieldByName("LetsEncrypt").Interface().(LetsEncryptConfig)
 	}
 
-	return true
-}
-
-func ValidateEnabledLetsEncrypt(field validator.FieldLevel) bool {
-	if field.Field().Bool() {
-		tlsFields := field.Top().FieldByName("TLS")
-		certField := tlsFields.FieldByName("Cert")
-		keyField := tlsFields.FieldByName("Key")
-
-		if !certField.IsValid() || !keyField.IsValid() {
-			return false
+	switch {
+	case tlsConfig.BindPort == 0:
+		if tlsConfig.Cert != "" || tlsConfig.Key != "" || letsEncryptConfig.Enable {
+			sl.ReportError(tlsConfig.BindPort, "tls.bind_port", sl.Current().Type().Name(), "tlsemptybindport", "")
+		}
+	case letsEncryptConfig.Enable:
+		if tlsConfig.Cert != "" || tlsConfig.Key != "" {
+			sl.ReportError(letsEncryptConfig.Enable, "lets_encrypt.enable", sl.Current().Type().Name(), "letsencryptenable", "")
+		}
+	case tlsConfig.Cert != "" && tlsConfig.Key != "":
+		var externalURLField flag.URL
+		if sl.Top().FieldByName("ExternalURL").Interface() != nil {
+			externalURLField = sl.Top().FieldByName("ExternalURL").Interface().(flag.URL)
 		}
 
-		if tlsFields.FieldByName("Cert").String() != "" || tlsFields.FieldByName("Key").String() != "" {
-			return false
+		if externalURLField.Scheme != "https" {
+			sl.ReportError(externalURLField.String(), "external_url", sl.Current().Type().Name(), "tlsexternalurl", "")
 		}
+	default:
+		sl.ReportError("", "tls.cert or tls.key or lets_encrypt.enable", sl.Current().Type().Name(), "tlsorletsencrypt", "")
 	}
-
-	return true
-}
-
-func ValidateTLSCertKey(field validator.FieldLevel) bool {
-	keyField := field.Parent().FieldByName("key")
-	if !keyField.IsValid() {
-		return false
-	}
-
-	if field.Field().String() != "" && keyField.String() != "" {
-		externalURLField := field.Top().FieldByName("ExternalURL")
-		if !externalURLField.IsValid() {
-			return false
-		}
-
-		value := strings.TrimRight(externalURLField.String(), "/")
-		parsedURL, err := url.Parse(value)
-		if err != nil {
-			return false
-		}
-
-		if parsedURL.Scheme != "https" {
-			return false
-		}
-	}
-
-	return true
-}
-
-func ValidateTLS(field validator.FieldLevel) bool {
-	certField := field.Parent().FieldByName("Cert")
-	letsEncryptEnabledField := field.Top().FieldByName("LetsEncrypt").FieldByName("Enable")
-
-	if !certField.IsValid() || !letsEncryptEnabledField.IsValid() {
-		return false
-	}
-
-	if field.Field().String() == "" && certField.String() == "" || !letsEncryptEnabledField.Bool() {
-		return false
-	}
-
-	return true
 }
 
 func ValidateRBAC(field validator.FieldLevel) bool {
@@ -197,7 +169,7 @@ func ValidateRBAC(field validator.FieldLevel) bool {
 		return true
 	}
 
-	content, err := ioutil.ReadFile(path)
+	content, err := os.ReadFile(path)
 	if err != nil {
 		return false
 	}
