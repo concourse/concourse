@@ -2,24 +2,24 @@ package migration
 
 import (
 	"errors"
+	"io/fs"
 	"regexp"
 	"strconv"
 	"strings"
 )
 
-var noTxPrefix = regexp.MustCompile(`^\s*--\s+(NO_TRANSACTION)`)
 var migrationDirection = regexp.MustCompile(`\.(up|down)\.`)
 var goMigrationFuncName = regexp.MustCompile(`(Up|Down)_[0-9]*`)
 
 var ErrCouldNotParseDirection = errors.New("could not parse direction for migration")
 
 type Parser struct {
-	bindata Bindata
+	migrationsFS fs.FS
 }
 
-func NewParser(bindata Bindata) *Parser {
+func NewParser(migrationsFS fs.FS) *Parser {
 	return &Parser{
-		bindata: bindata,
+		migrationsFS: migrationsFS,
 	}
 }
 
@@ -50,7 +50,7 @@ func (p *Parser) ParseFileToMigration(migrationName string) (migration, error) {
 		return migration, err
 	}
 
-	migrationBytes, err := p.bindata.Asset(migrationName)
+	migrationBytes, err := fs.ReadFile(p.migrationsFS, migrationName)
 	if err != nil {
 		return migration, err
 	}
@@ -61,16 +61,9 @@ func (p *Parser) ParseFileToMigration(migrationName string) (migration, error) {
 	switch migration.Strategy {
 	case GoMigration:
 		migration.Name = goMigrationFuncName.FindString(migrationContents)
-	case SQLNoTransaction:
-		// this used to be []string{migrationContents}, as though we explicitly
-		// wanted there to be only one statement but we can't remember why.
-		// Making it one statement breaks things if your migration has more than
-		// one statement so we're changing it for now.
-		migration.Statements = splitStatements(migrationContents)
+	case SQLMigration:
 		migration.Name = migrationName
-	case SQLTransaction:
-		migration.Statements = splitStatements(migrationContents)
-		migration.Name = migrationName
+		migration.Statements = migrationContents
 	}
 
 	return migration, nil
@@ -95,47 +88,6 @@ func determineMigrationStrategy(migrationName string, migrationContents string) 
 	if strings.HasSuffix(migrationName, ".go") {
 		return GoMigration
 	} else {
-		if noTxPrefix.MatchString(migrationContents) {
-			return SQLNoTransaction
-		}
+		return SQLMigration
 	}
-	return SQLTransaction
-}
-
-func splitStatements(migrationContents string) []string {
-	var (
-		fileStatements      []string
-		migrationStatements []string
-	)
-	fileStatements = append(fileStatements, strings.Split(migrationContents, ";")...)
-	// last string is empty
-	if strings.TrimSpace(fileStatements[len(fileStatements)-1]) == "" {
-		fileStatements = fileStatements[:len(fileStatements)-1]
-	}
-
-	var isSqlStatement = false
-	var sqlStatement string
-	for _, statement := range fileStatements {
-		statement = strings.TrimSpace(statement)
-
-		if statement == "BEGIN" || statement == "COMMIT" {
-			continue
-		}
-		if strings.Contains(statement, "BEGIN") {
-			isSqlStatement = true
-			sqlStatement = statement + ";"
-		} else {
-
-			if isSqlStatement {
-				sqlStatement = strings.Join([]string{sqlStatement, statement, ";"}, "")
-				if strings.HasPrefix(statement, "$$") {
-					migrationStatements = append(migrationStatements, sqlStatement)
-					isSqlStatement = false
-				}
-			} else {
-				migrationStatements = append(migrationStatements, statement)
-			}
-		}
-	}
-	return migrationStatements
 }
