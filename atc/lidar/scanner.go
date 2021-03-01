@@ -58,10 +58,6 @@ func (s *scanner) Run(ctx context.Context) error {
 			}()
 			defer waitGroup.Done()
 
-			if resource.CheckEvery() != nil && resource.CheckEvery().Never {
-				return
-			}
-
 			s.check(spanCtx, resource, resourceTypes, resourceTypesChecked)
 		}(resource, resourceTypes)
 	}
@@ -92,6 +88,10 @@ func (s *scanner) check(ctx context.Context, checkable db.Checkable, resourceTyp
 	}
 
 	version := checkable.CurrentPinnedVersion()
+
+	if checkable.CheckEvery() != nil && checkable.CheckEvery().Never {
+		return
+	}
 
 	_, created, err := s.checkFactory.TryCreateCheck(lagerctx.NewContext(spanCtx, logger), checkable, resourceTypes, version, false)
 	if err != nil {
