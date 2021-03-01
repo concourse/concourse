@@ -192,7 +192,7 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 		return false, err
 	}
 
-	getResult, found, err := step.getFromLocalCache(ctx, logger, step.metadata.TeamID, resourceCache)
+	getResult, found, err := step.getFromLocalCache(ctx, logger, step.metadata.TeamID, resourceCache, workerSpec)
 	if found {
 		fmt.Fprintln(delegate.Stderr(), "\x1b[1;33mINFO: found resouce cache from local cache\x1b[0m")
 		fmt.Fprintln(delegate.Stderr(), "")
@@ -297,8 +297,9 @@ func (step *GetStep) getFromLocalCache(
 	ctx context.Context,
 	logger lager.Logger,
 	teamId int,
-	resourceCache db.UsedResourceCache) (worker.GetResult, bool, error) {
-	volume, found, err := step.findResourceCache(ctx, logger, teamId, resourceCache)
+	resourceCache db.UsedResourceCache,
+	workerSpec worker.WorkerSpec) (worker.GetResult, bool, error) {
+	volume, found, err := step.findResourceCache(logger, teamId, resourceCache, workerSpec)
 	if err != nil {
 		return worker.GetResult{}, false, err
 	}
@@ -320,13 +321,14 @@ func (step *GetStep) getFromLocalCache(
 	}, true, nil
 }
 
-func (step *GetStep) findResourceCache(ctx context.Context, logger lager.Logger, teamId int, resourceCache db.UsedResourceCache) (worker.Volume, bool, error) {
-	workers, err := step.workerPool.FindWorkersForResourceCache(logger, teamId, resourceCache.ID())
+func (step *GetStep) findResourceCache(
+	logger lager.Logger,
+	teamId int,
+	resourceCache db.UsedResourceCache,
+	workerSpec worker.WorkerSpec) (worker.Volume, bool, error) {
+	workers, err := step.workerPool.FindWorkersForResourceCache(logger, teamId, resourceCache.ID(), workerSpec)
 	if err != nil {
 		return nil, false, err
-	}
-	if len(workers) == 0 {
-		return nil, false, nil
 	}
 
 	for _, sourceWorker := range workers {

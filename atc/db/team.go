@@ -172,14 +172,7 @@ func (t *team) FindWorkersForResourceCache(rcId int) ([]Worker, error) {
 			Join("resource_caches rc ON rc.id = wrc.resource_cache_id").
 			Where(sq.And{
 				sq.Eq{"rc.id": rcId},
-				sq.Eq{"w.state": "running"},
-			}).
-			Where(sq.Or{
-				sq.Eq{
-					"w.team_id": t.id,
-				}, sq.Eq{
-					"w.team_id": nil,
-				},
+				sq.Eq{"w.state": WorkerStateRunning},
 			}))
 }
 

@@ -47,6 +47,7 @@ type Pool interface {
 		lager.Logger,
 		int,
 		int,
+		WorkerSpec,
 	) ([]Worker, error)
 }
 
@@ -74,13 +75,17 @@ func (pool *pool) allSatisfying(logger lager.Logger, spec WorkerSpec) ([]Worker,
 		return nil, err
 	}
 
-	if len(workers) == 0 {
+	return pool.compatibleWorkers(logger, workers, spec)
+}
+
+func (pool *pool) compatibleWorkers(logger lager.Logger, candidateWorkers []Worker, spec WorkerSpec) ([]Worker, error) {
+	if len(candidateWorkers) == 0 {
 		return nil, ErrNoWorkers
 	}
 
 	compatibleTeamWorkers := []Worker{}
 	compatibleGeneralWorkers := []Worker{}
-	for _, worker := range workers {
+	for _, worker := range candidateWorkers {
 		compatible := worker.Satisfies(logger, spec)
 		if compatible {
 			if worker.IsOwnedByTeam() {
@@ -149,8 +154,13 @@ func (pool *pool) CreateVolume(logger lager.Logger, volumeSpec VolumeSpec, worke
 	return worker.CreateVolume(logger, volumeSpec, workerSpec.TeamID, volumeType)
 }
 
-func (pool *pool) FindWorkersForResourceCache(logger lager.Logger, teamId int, rcId int) ([]Worker, error) {
-	return pool.provider.FindWorkersForResourceCache(logger, teamId, rcId)
+func (pool *pool) FindWorkersForResourceCache(logger lager.Logger, teamId int, rcId int, workerSpec WorkerSpec) ([]Worker, error) {
+	workers, err := pool.provider.FindWorkersForResourceCache(logger, teamId, rcId)
+	if err != nil {
+		return nil, err
+	}
+
+	return pool.compatibleWorkers(logger, workers, workerSpec)
 }
 
 func (pool *pool) ContainerInWorker(logger lager.Logger, owner db.ContainerOwner, workerSpec WorkerSpec) (bool, error) {
