@@ -8,9 +8,9 @@ import (
 )
 
 type Honeycomb struct {
-	APIKey      string `yaml:"api_key"`
-	Dataset     string `yaml:"dataset"`
-	ServiceName string `yaml:"service_name"`
+	APIKey      string `yaml:"api_key,omitempty"`
+	Dataset     string `yaml:"dataset,omitempty"`
+	ServiceName string `yaml:"service_name,omitempty"`
 }
 
 func (h Honeycomb) IsConfigured() bool {

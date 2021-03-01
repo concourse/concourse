@@ -17,9 +17,9 @@ type DogstatsdEmitter struct {
 }
 
 type DogstatsDBConfig struct {
-	Host   string `yaml:"agent_host"`
-	Port   string `yaml:"agent_port"`
-	Prefix string `yaml:"prefix"`
+	Host   string `yaml:"agent_host,omitempty"`
+	Port   string `yaml:"agent_port,omitempty"`
+	Prefix string `yaml:"prefix,omitempty"`
 }
 
 func (config *DogstatsDBConfig) Description() string { return "Datadog" }

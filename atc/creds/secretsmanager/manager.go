@@ -18,12 +18,12 @@ const DefaultPipelineSecretTemplate = "/concourse/{{.Team}}/{{.Pipeline}}/{{.Sec
 const DefaultTeamSecretTemplate = "/concourse/{{.Team}}/{{.Secret}}"
 
 type Manager struct {
-	AwsAccessKeyID         string `yaml:"access_key"`
-	AwsSecretAccessKey     string `yaml:"secret_key"`
-	AwsSessionToken        string `yaml:"session_token"`
-	AwsRegion              string `yaml:"region"`
-	PipelineSecretTemplate string `yaml:"pipeline_secret_template"`
-	TeamSecretTemplate     string `yaml:"team_secret_template"`
+	AwsAccessKeyID         string `yaml:"access_key,omitempty"`
+	AwsSecretAccessKey     string `yaml:"secret_key,omitempty"`
+	AwsSessionToken        string `yaml:"session_token,omitempty"`
+	AwsRegion              string `yaml:"region,omitempty"`
+	PipelineSecretTemplate string `yaml:"pipeline_secret_template,omitempty"`
+	TeamSecretTemplate     string `yaml:"team_secret_template,omitempty"`
 	SecretManager          *SecretsManager
 }
 

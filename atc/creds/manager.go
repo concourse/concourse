@@ -26,8 +26,8 @@ type ManagerFactory interface {
 type Managers map[string]Manager
 
 type CredentialManagementConfig struct {
-	RetryConfig SecretRetryConfig `yaml:"secret_retry"`
-	CacheConfig SecretCacheConfig `yaml:"secret_cache"`
+	RetryConfig SecretRetryConfig `yaml:"secret_retry,omitempty"`
+	CacheConfig SecretCacheConfig `yaml:"secret_cache,omitempty"`
 }
 
 // NewSecrets creates a Secrets object from secretsFactory based on configs.

@@ -27,13 +27,13 @@ import (
 var Configured bool
 
 type Config struct {
-	ServiceName string            `yaml:"service_name"`
-	Attributes  map[string]string `yaml:"attribute"`
+	ServiceName string            `yaml:"service_name,omitempty"`
+	Attributes  map[string]string `yaml:"attribute,omitempty"`
 
-	Honeycomb   Honeycomb   `yaml:"honeycomb"`
-	Jaeger      Jaeger      `yaml:"jaeger"`
-	Stackdriver Stackdriver `yaml:"stackdriver"`
-	OTLP        OTLP        `yaml:"otlp"`
+	Honeycomb   Honeycomb   `yaml:"honeycomb,omitempty"`
+	Jaeger      Jaeger      `yaml:"jaeger,omitempty"`
+	Stackdriver Stackdriver `yaml:"stackdriver,omitempty"`
+	OTLP        OTLP        `yaml:"otlp,omitempty"`
 }
 
 func (c Config) resource() *resource.Resource {

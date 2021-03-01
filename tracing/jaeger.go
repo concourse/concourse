@@ -9,9 +9,9 @@ import (
 
 // Jaeger service to export traces to
 type Jaeger struct {
-	Endpoint string            `yaml:"endpoint"`
-	Tags     map[string]string `yaml:"tags"`
-	Service  string            `yaml:"service"`
+	Endpoint string            `yaml:"endpoint,omitempty"`
+	Tags     map[string]string `yaml:"tags,omitempty"`
+	Service  string            `yaml:"service,omitempty"`
 }
 
 // IsConfigured identifies if an endpoint has been set

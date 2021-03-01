@@ -10,22 +10,22 @@ import (
 )
 
 type PostgresConfig struct {
-	Host string `yaml:"host"`
-	Port uint16 `yaml:"port"`
+	Host string `yaml:"host,omitempty"`
+	Port uint16 `yaml:"port,omitempty"`
 
-	Socket string `yaml:"socket"`
+	Socket string `yaml:"socket,omitempty"`
 
-	User     string `yaml:"user"`
-	Password string `yaml:"password"`
+	User     string `yaml:"user,omitempty"`
+	Password string `yaml:"password,omitempty"`
 
-	SSLMode    string `yaml:"sslmode"`
-	CACert     File   `yaml:"ca_cert"`
-	ClientCert File   `yaml:"client_cert"`
-	ClientKey  File   `yaml:"client_key"`
+	SSLMode    string `yaml:"sslmode,omitempty"`
+	CACert     File   `yaml:"ca_cert,omitempty"`
+	ClientCert File   `yaml:"client_cert,omitempty"`
+	ClientKey  File   `yaml:"client_key,omitempty"`
 
-	ConnectTimeout time.Duration `yaml:"connect_timeout"`
+	ConnectTimeout time.Duration `yaml:"connect_timeout,omitempty"`
 
-	Database string `yaml:"database"`
+	Database string `yaml:"database,omitempty"`
 }
 
 var strEsc = regexp.MustCompile(`([\\'])`)

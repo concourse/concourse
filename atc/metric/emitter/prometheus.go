@@ -69,8 +69,8 @@ type PrometheusEmitter struct {
 }
 
 type PrometheusConfig struct {
-	BindIP   string `yaml:"bind_ip"`
-	BindPort string `yaml:"bind_port"`
+	BindIP   string `yaml:"bind_ip,omitempty"`
+	BindPort string `yaml:"bind_port,omitempty"`
 }
 
 // The most natural data type to hold the labels is a set because each worker can have multiple but

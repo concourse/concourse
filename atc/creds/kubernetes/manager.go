@@ -15,9 +15,9 @@ import (
 const managerName = "kubernetes"
 
 type KubernetesManager struct {
-	InClusterConfig bool   `yaml:"in_cluster"`
-	ConfigPath      string `yaml:"config_path"`
-	NamespacePrefix string `yaml:"namespace_prefix"`
+	InClusterConfig bool   `yaml:"in_cluster,omitempty"`
+	ConfigPath      string `yaml:"config_path,omitempty"`
+	NamespacePrefix string `yaml:"namespace_prefix,omitempty"`
 }
 
 func (manager *KubernetesManager) MarshalJSON() ([]byte, error) {

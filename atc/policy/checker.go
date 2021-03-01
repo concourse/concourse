@@ -19,17 +19,17 @@ func (e PolicyCheckNotPass) Error() string {
 }
 
 type Filter struct {
-	HttpMethods   []string `yaml:"http-method"`
-	Actions       []string `yaml:"action"`
-	ActionsToSkip []string `yaml:"action-skip"`
+	HttpMethods   []string `yaml:"http_method,omitempty"`
+	Actions       []string `yaml:"action,omitempty"`
+	ActionsToSkip []string `yaml:"action_skip,omitempty"`
 }
 
 type PolicyCheckInput struct {
-	Service        string      `json:"service"`
-	ClusterName    string      `json:"cluster_name"`
-	ClusterVersion string      `json:"cluster_version"`
+	Service        string      `json:"service,omitempty"`
+	ClusterName    string      `json:"cluster_name,omitempty"`
+	ClusterVersion string      `json:"cluster_version,omitempty"`
 	HttpMethod     string      `json:"http_method,omitempty"`
-	Action         string      `json:"action"`
+	Action         string      `json:"action,omitempty"`
 	User           string      `json:"user,omitempty"`
 	Team           string      `json:"team,omitempty"`
 	Roles          []string    `json:"roles,omitempty"`

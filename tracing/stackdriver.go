@@ -8,7 +8,7 @@ import (
 )
 
 type Stackdriver struct {
-	ProjectID string `yaml:"projectid"`
+	ProjectID string `yaml:"projectid,omitempty"`
 }
 
 func (s Stackdriver) IsConfigured() bool {

@@ -113,205 +113,205 @@ type RunConfig struct {
 	Logger        clager.Lager
 	varSourcePool creds.VarSourcePool
 
-	BindIP      net.IP    `yaml:"bind_ip"`
-	BindPort    uint16    `yaml:"bind_port"`
-	TLS         TLSConfig `yaml:"tls"`
-	ExternalURL flag.URL  `yaml:"external_url" validate:"url"`
+	BindIP      net.IP    `yaml:"bind_ip,omitempty"`
+	BindPort    uint16    `yaml:"bind_port,omitempty"`
+	TLS         TLSConfig `yaml:"tls,omitempty"`
+	ExternalURL flag.URL  `yaml:"external_url,omitempty" validate:"url"`
 
-	Auth                      AuthConfig           `yaml:"auth" ignore_env:"true"`
-	Server                    ServerConfig         `yaml:"web_server"`
-	SystemClaim               SystemClaimConfig    `yaml:"system_claim"`
-	LetsEncrypt               LetsEncryptConfig    `yaml:"lets_encrypt"`
-	ConfigRBAC                flag.File            `yaml:"config_rbac" validate:"rbac"`
-	PolicyCheckers            PolicyCheckersConfig `yaml:"policy_check"`
-	DisplayUserIdPerConnector map[string]string    `yaml:"display_user_id_per_connector"`
+	Auth                      AuthConfig           `yaml:"auth,omitempty" ignore_env:"true"`
+	Server                    ServerConfig         `yaml:"web_server,omitempty"`
+	SystemClaim               SystemClaimConfig    `yaml:"system_claim,omitempty"`
+	LetsEncrypt               LetsEncryptConfig    `yaml:"lets_encrypt,omitempty"`
+	ConfigRBAC                flag.File            `yaml:"config_rbac,omitempty" validate:"rbac"`
+	PolicyCheckers            PolicyCheckersConfig `yaml:"policy_check,omitempty"`
+	DisplayUserIdPerConnector map[string]string    `yaml:"display_user_id_per_connector,omitempty"`
 
-	Database DatabaseConfig `yaml:"database" ignore_env:"true"`
+	Database DatabaseConfig `yaml:"database,omitempty" ignore_env:"true"`
 
-	CredentialManagement creds.CredentialManagementConfig `yaml:"credential_management"`
-	CredentialManagers   CredentialManagersConfig         `yaml:"credential_managers"`
+	CredentialManagement creds.CredentialManagementConfig `yaml:"credential_management,omitempty"`
+	CredentialManagers   CredentialManagersConfig         `yaml:"credential_managers,omitempty"`
 
-	ComponentRunnerInterval time.Duration `yaml:"component_runner_interval"`
-	BuildTrackerInterval    time.Duration `yaml:"build_tracker_interval"`
+	ComponentRunnerInterval time.Duration `yaml:"component_runner_interval,omitempty"`
+	BuildTrackerInterval    time.Duration `yaml:"build_tracker_interval,omitempty"`
 
-	ResourceChecking ResourceCheckingConfig `yaml:"resource_checking"`
-	JobScheduling    JobSchedulingConfig    `yaml:"job_scheduling"`
-	Runtime          RuntimeConfig          `yaml:"runtime" ignore_env:"true"`
+	ResourceChecking ResourceCheckingConfig `yaml:"resource_checking,omitempty"`
+	JobScheduling    JobSchedulingConfig    `yaml:"job_scheduling,omitempty"`
+	Runtime          RuntimeConfig          `yaml:"runtime,omitempty" ignore_env:"true"`
 
-	GC                GCConfig                `yaml:"gc"`
-	BuildLogRetention BuildLogRetentionConfig `yaml:"build_log_retention"`
+	GC                GCConfig                `yaml:"gc,omitempty"`
+	BuildLogRetention BuildLogRetentionConfig `yaml:"build_log_retention,omitempty"`
 
-	Debug   DebugConfig    `yaml:"debug"`
-	Log     LogConfig      `yaml:"log"`
-	Metrics MetricsConfig  `yaml:"metrics"`
-	Tracing tracing.Config `yaml:"tracing"`
+	Debug   DebugConfig    `yaml:"debug,omitempty"`
+	Log     LogConfig      `yaml:"log,omitempty"`
+	Metrics MetricsConfig  `yaml:"metrics,omitempty"`
+	Tracing tracing.Config `yaml:"tracing,omitempty"`
 	// XXX: How to structure this?
-	Auditor AuditorConfig `yaml:"auditing"`
-	Syslog  SyslogConfig  `yaml:"syslog"`
+	Auditor AuditorConfig `yaml:"auditing,omitempty"`
+	Syslog  SyslogConfig  `yaml:"syslog,omitempty"`
 
-	DefaultCpuLimit      *int          `yaml:"default_task_cpu_limit"`
-	DefaultMemoryLimit   *string       `yaml:"default_task_memory_limit"`
-	InterceptIdleTimeout time.Duration `yaml:"intercept_idle_timeout"`
+	DefaultCpuLimit      *int          `yaml:"default_task_cpu_limit,omitempty"`
+	DefaultMemoryLimit   *string       `yaml:"default_task_memory_limit,omitempty"`
+	InterceptIdleTimeout time.Duration `yaml:"intercept_idle_timeout,omitempty"`
 
-	CLIArtifactsDir flag.Dir `yaml:"cli_artifacts_dir"`
+	CLIArtifactsDir flag.Dir `yaml:"cli_artifacts_dir,omitempty"`
 
-	BaseResourceTypeDefaults flag.File `yaml:"base_resource_type_defaults"`
+	BaseResourceTypeDefaults flag.File `yaml:"base_resource_type_defaults,omitempty"`
 
 	// NOT USED (HIDDEN)
-	TelemetryOptIn bool `yaml:"telemetry_opt_in"`
+	TelemetryOptIn bool `yaml:"telemetry_opt_in,omitempty"`
 
-	FeatureFlags FeatureFlagsConfig `yaml:"feature_flags" ignore_env:"true"`
+	FeatureFlags FeatureFlagsConfig `yaml:"feature_flags,omitempty" ignore_env:"true"`
 }
 
 type TLSConfig struct {
-	BindPort uint16    `yaml:"bind_port" validate:"empty_tls_bind_port"`
-	Cert     flag.File `yaml:"cert" validate:"tls_cert_key"`
-	Key      flag.File `yaml:"key" validate:"tls"`
-	CaCert   flag.File `yaml:"ca_cert"`
+	BindPort uint16    `yaml:"bind_port,omitempty"`
+	Cert     flag.File `yaml:"cert,omitempty"`
+	Key      flag.File `yaml:"key,omitempty"`
+	CaCert   flag.File `yaml:"ca_cert,omitempty"`
 }
 
 type LetsEncryptConfig struct {
-	Enable  bool   `yaml:"enable" validate:"enable_lets_encrypt" env:"CONCOURSE_ENABLE_LETS_ENCRYPT,CONCOURSE_LETS_ENCRYPT_ENABLE"`
-	ACMEURL string `yaml:"acme_url" validate:"url"`
+	Enable  bool     `yaml:"enable,omitempty" env:"CONCOURSE_ENABLE_LETS_ENCRYPT,CONCOURSE_LETS_ENCRYPT_ENABLE"`
+	ACMEURL flag.URL `yaml:"acme_url,omitempty"`
 }
 
 type DatabaseConfig struct {
 	// XXX: env fix this
-	Postgres flag.PostgresConfig `yaml:"postgres"`
+	Postgres flag.PostgresConfig `yaml:"postgres,omitempty"`
 
-	ConcurrentRequestLimits   map[string]int `yaml:"concurrent_request_limit" validate:"keys,limited_route,endkeys"`
-	APIMaxOpenConnections     int            `yaml:"api_max_conns"`
-	BackendMaxOpenConnections int            `yaml:"backend_max_conns"`
+	ConcurrentRequestLimits   map[string]int `yaml:"concurrent_request_limit,omitempty" validate:"dive,keys,limited_route,endkeys"`
+	APIMaxOpenConnections     int            `yaml:"api_max_conns,omitempty"`
+	BackendMaxOpenConnections int            `yaml:"backend_max_conns,omitempty"`
 
-	EncryptionKey    flag.Cipher `yaml:"encryption_key"`
-	OldEncryptionKey flag.Cipher `yaml:"old_encryption_key"`
+	EncryptionKey    flag.Cipher `yaml:"encryption_key,omitempty"`
+	OldEncryptionKey flag.Cipher `yaml:"old_encryption_key,omitempty"`
 }
 
 type CredentialManagersConfig struct {
-	Conjur         conjur.Manager               `yaml:"conjur"`
-	CredHub        credhub.CredHubManager       `yaml:"credhub"`
-	Dummy          dummy.Manager                `yaml:"dummy_creds"`
-	Kubernetes     kubernetes.KubernetesManager `yaml:"kubernetes"`
-	SecretsManager secretsmanager.Manager       `yaml:"aws_secretsmanager"`
-	SSM            ssm.SsmManager               `yaml:"aws_ssm"`
-	Vault          vault.VaultManager           `yaml:"vault"`
+	Conjur         *conjur.Manager               `yaml:"conjur,omitempty"`
+	CredHub        *credhub.CredHubManager       `yaml:"credhub,omitempty"`
+	Dummy          *dummy.Manager                `yaml:"dummy_creds,omitempty"`
+	Kubernetes     *kubernetes.KubernetesManager `yaml:"kubernetes,omitempty"`
+	SecretsManager *secretsmanager.Manager       `yaml:"aws_secretsmanager,omitempty"`
+	SSM            *ssm.SsmManager               `yaml:"aws_ssm,omitempty"`
+	Vault          *vault.VaultManager           `yaml:"vault,omitempty"`
 }
 
 type DebugConfig struct {
-	BindIP   net.IP `yaml:"bind_ip"`
-	BindPort uint16 `yaml:"bind_port"`
+	BindIP   net.IP `yaml:"bind_ip,omitempty"`
+	BindPort uint16 `yaml:"bind_port,omitempty"`
 }
 
 type ResourceCheckingConfig struct {
-	ScannerInterval            time.Duration `yaml:"scanner_interval" env:"CONCOURSE_RESOURCE_CHECKING_SCANNER_INTERVAL,CONCOURSE_LIDAR_SCANNER_INTERVAL"`
-	Timeout                    time.Duration `yaml:"timeout" env:"CONCOURSE_RESOURCE_CHECKING_TIMEOUT,CONCOURSE_GLOBAL_RESOURCE_CHECK_TIMEOUT"`
-	DefaultInterval            time.Duration `yaml:"default_interval" env:"CONCOURSE_RESOURCE_CHECKING_DEFAULT_INTERVAL,CONCOURSE_RESOURCE_CHECKING_INTERVAL"`
-	DefaultIntervalWithWebhook time.Duration `yaml:"default_interval_with_webhook" env:"CONCOURSE_RESOURCE_CHECKING_DEFAULT_INTERVAL_WITH_WEBHOOK,CONCOURSE_RESOURCE_WITH_WEBHOOK_CHECKING_INTERVAL"`
-	MaxChecksPerSecond         int           `yaml:"max_checks_per_second" env:"CONCOURSE_RESOURCE_CHECKING_MAX_CHECKS_PER_SECOND,CONCOURSE_MAX_CHECKS_PER_SECOND"`
+	ScannerInterval            time.Duration `yaml:"scanner_interval,omitempty" env:"CONCOURSE_RESOURCE_CHECKING_SCANNER_INTERVAL,CONCOURSE_LIDAR_SCANNER_INTERVAL"`
+	Timeout                    time.Duration `yaml:"timeout,omitempty" env:"CONCOURSE_RESOURCE_CHECKING_TIMEOUT,CONCOURSE_GLOBAL_RESOURCE_CHECK_TIMEOUT"`
+	DefaultInterval            time.Duration `yaml:"default_interval,omitempty" env:"CONCOURSE_RESOURCE_CHECKING_DEFAULT_INTERVAL,CONCOURSE_RESOURCE_CHECKING_INTERVAL"`
+	DefaultIntervalWithWebhook time.Duration `yaml:"default_interval_with_webhook,omitempty" env:"CONCOURSE_RESOURCE_CHECKING_DEFAULT_INTERVAL_WITH_WEBHOOK,CONCOURSE_RESOURCE_WITH_WEBHOOK_CHECKING_INTERVAL"`
+	MaxChecksPerSecond         int           `yaml:"max_checks_per_second,omitempty" env:"CONCOURSE_RESOURCE_CHECKING_MAX_CHECKS_PER_SECOND,CONCOURSE_MAX_CHECKS_PER_SECOND"`
 }
 
 type JobSchedulingConfig struct {
-	MaxInFlight uint64 `yaml:"max_in_flight"`
+	MaxInFlight uint64 `yaml:"max_in_flight,omitempty"`
 }
 
 type RuntimeConfig struct {
 	ContainerPlacementStrategyOptions worker.ContainerPlacementStrategyOptions
-	StreamingArtifactsCompression     string `yaml:"streaming_artifacts_compression" validate:"sac"`
+	StreamingArtifactsCompression     string `yaml:"streaming_artifacts_compression,omitempty" validate:"sac"`
 
-	BaggageclaimResponseHeaderTimeout time.Duration `yaml:"baggageclaim_response_header_timeout"`
-	P2pVolumeStreamingTimeout         time.Duration `yaml:"p2p_volume_streaming_timeout"`
-	GardenRequestTimeout              time.Duration `yaml:"garden_request_timeout"`
+	BaggageclaimResponseHeaderTimeout time.Duration `yaml:"baggageclaim_response_header_timeout,omitempty"`
+	P2pVolumeStreamingTimeout         time.Duration `yaml:"p2p_volume_streaming_timeout,omitempty"`
+	GardenRequestTimeout              time.Duration `yaml:"garden_request_timeout,omitempty"`
 }
 
 type MetricsConfig struct {
-	HostName            string            `yaml:"host_name"`
-	Attributes          map[string]string `yaml:"attributes"`
-	BufferSize          uint32            `yaml:"buffer_size"`
-	CaptureErrorMetrics bool              `yaml:"capture_errors" env:"CONCOURSE_METRICS_CAPTURE_ERRORS,CONCOURSE_CAPTURE_ERROR_METRICS"`
+	HostName            string            `yaml:"host_name,omitempty"`
+	Attributes          map[string]string `yaml:"attributes,omitempty"`
+	BufferSize          uint32            `yaml:"buffer_size,omitempty"`
+	CaptureErrorMetrics bool              `yaml:"capture_errors,omitempty" env:"CONCOURSE_METRICS_CAPTURE_ERRORS,CONCOURSE_CAPTURE_ERROR_METRICS"`
 
-	Emitter MetricsEmitterConfig `yaml:"emitter" ignore_env:"true"`
+	Emitter MetricsEmitterConfig `yaml:"emitter,omitempty" ignore_env:"true"`
 }
 
 type MetricsEmitterConfig struct {
-	Datadog    emitter.DogstatsDBConfig `yaml:"datadog"`
-	InfluxDB   emitter.InfluxDBConfig   `yaml:"influxdb"`
-	Lager      emitter.LagerConfig      `yaml:"lager"`
-	NewRelic   emitter.NewRelicConfig   `yaml:"newrelic"`
-	Prometheus emitter.PrometheusConfig `yaml:"prometheus"`
+	Datadog    *emitter.DogstatsDBConfig `yaml:"datadog,omitempty"`
+	InfluxDB   *emitter.InfluxDBConfig   `yaml:"influxdb,omitempty"`
+	Lager      *emitter.LagerConfig      `yaml:"lager,omitempty"`
+	NewRelic   *emitter.NewRelicConfig   `yaml:"newrelic,omitempty"`
+	Prometheus *emitter.PrometheusConfig `yaml:"prometheus,omitempty"`
 }
 
 type PolicyCheckersConfig struct {
-	Filter policy.Filter `yaml:"filter"`
+	Filter policy.Filter `yaml:"filter,omitempty"`
 }
 
 type ServerConfig struct {
-	XFrameOptions string `yaml:"x_frame_options" env:"CONCOURSE_WEB_SERVER_X_FRAME_OPTIONS,CONCOURSE_X_FRAME_OPTIONS"`
-	ClusterName   string `yaml:"cluster_name" env:"CONCOURSE_WEB_SERVER_CLUSTER_NAME,CONCOURSE_CLUSTER_NAME"`
-	ClientID      string `yaml:"client_id" env:"CONCOURSE_WEB_SERVER_CLIENT_ID,CONCOURSE_CLIENT_ID"`
-	ClientSecret  string `yaml:"client_secret" env:"CONCOURSE_WEB_SERVER_CLIENT_SECRET,CONCOURSE_CLIENT_SECRET"`
+	XFrameOptions string `yaml:"x_frame_options,omitempty" env:"CONCOURSE_WEB_SERVER_X_FRAME_OPTIONS,CONCOURSE_X_FRAME_OPTIONS"`
+	ClusterName   string `yaml:"cluster_name,omitempty" env:"CONCOURSE_WEB_SERVER_CLUSTER_NAME,CONCOURSE_CLUSTER_NAME"`
+	ClientID      string `yaml:"client_id,omitempty" env:"CONCOURSE_WEB_SERVER_CLIENT_ID,CONCOURSE_CLIENT_ID"`
+	ClientSecret  string `yaml:"client_secret,omitempty" env:"CONCOURSE_WEB_SERVER_CLIENT_SECRET,CONCOURSE_CLIENT_SECRET"`
 }
 
 type LogConfig struct {
-	DBQueries   bool `yaml:"db_queries"`
-	ClusterName bool `yaml:"cluster_name"`
+	DBQueries   bool `yaml:"db_queries,omitempty"`
+	ClusterName bool `yaml:"cluster_name,omitempty"`
 }
 
 type GCConfig struct {
-	Interval time.Duration `yaml:"interval"`
+	Interval time.Duration `yaml:"interval,omitempty"`
 
-	OneOffBuildGracePeriod time.Duration `yaml:"one_off_grace_period"`
-	MissingGracePeriod     time.Duration `yaml:"missing_grace_period"`
-	HijackGracePeriod      time.Duration `yaml:"hijack_grace_period"`
-	FailedGracePeriod      time.Duration `yaml:"failed_grace_period"`
-	CheckRecyclePeriod     time.Duration `yaml:"check_recycle_period"`
-	VarSourceRecyclePeriod time.Duration `yaml:"var_source_recycle_period"`
+	OneOffBuildGracePeriod time.Duration `yaml:"one_off_grace_period,omitempty"`
+	MissingGracePeriod     time.Duration `yaml:"missing_grace_period,omitempty"`
+	HijackGracePeriod      time.Duration `yaml:"hijack_grace_period,omitempty"`
+	FailedGracePeriod      time.Duration `yaml:"failed_grace_period,omitempty"`
+	CheckRecyclePeriod     time.Duration `yaml:"check_recycle_period,omitempty"`
+	VarSourceRecyclePeriod time.Duration `yaml:"var_source_recycle_period,omitempty"`
 }
 
 type BuildLogRetentionConfig struct {
-	Default uint64 `yaml:"default" env:"CONCOURSE_BUILD_LOG_RETENTION_DEFAULT,CONCOURSE_DEFAULT_BUILD_LOGS_TO_RETAIN"`
-	Max     uint64 `yaml:"max" env:"CONCOURSE_BUILD_LOG_RETENTION_MAX,CONCOURSE_MAX_BUILD_LOGS_TO_RETAIN"`
+	Default uint64 `yaml:"default,omitempty" env:"CONCOURSE_BUILD_LOG_RETENTION_DEFAULT,CONCOURSE_DEFAULT_BUILD_LOGS_TO_RETAIN"`
+	Max     uint64 `yaml:"max,omitempty" env:"CONCOURSE_BUILD_LOG_RETENTION_MAX,CONCOURSE_MAX_BUILD_LOGS_TO_RETAIN"`
 
-	DefaultDays uint64 `yaml:"default_days" env:"CONCOURSE_BUILD_LOG_RETENTION_DEFAULT_DAYS,CONCOURSE_DEFAULT_DAYS_TO_RETAIN_BUILD_LOGS"`
-	MaxDays     uint64 `yaml:"max_days" env:"CONCOURSE_BUILD_LOG_RETENTION_MAX_DAYS,CONCOURSE_MAX_DAYS_TO_RETAIN_BUILD_LOGS"`
+	DefaultDays uint64 `yaml:"default_days,omitempty" env:"CONCOURSE_BUILD_LOG_RETENTION_DEFAULT_DAYS,CONCOURSE_DEFAULT_DAYS_TO_RETAIN_BUILD_LOGS"`
+	MaxDays     uint64 `yaml:"max_days,omitempty" env:"CONCOURSE_BUILD_LOG_RETENTION_MAX_DAYS,CONCOURSE_MAX_DAYS_TO_RETAIN_BUILD_LOGS"`
 }
 
 type AuditorConfig struct {
-	EnableBuildAuditLog     bool `yaml:"enable_build" env:"CONCOURSE_AUDITING_ENABLE_BUILD,CONCOURSE_ENABLE_BUILD_AUDITING"`
-	EnableContainerAuditLog bool `yaml:"enable_container" env:"CONCOURSE_AUDITING_ENABLE_CONTAINER,CONCOURSE_ENABLE_CONTAINER_AUDITING"`
-	EnableJobAuditLog       bool `yaml:"enable_job" env:"CONCOURSE_AUDITING_ENABLE_JOB,CONCOURSE_ENABLE_JOB_AUDITING"`
-	EnablePipelineAuditLog  bool `yaml:"enable_pipeline" env:"CONCOURSE_AUDITING_ENABLE_PIPELINE,CONCOURSE_ENABLE_PIPELINE_AUDITING"`
-	EnableResourceAuditLog  bool `yaml:"enable_resource" env:"CONCOURSE_AUDITING_ENABLE_RESOURCE,CONCOURSE_ENABLE_RESOURCE_AUDITING"`
-	EnableSystemAuditLog    bool `yaml:"enable_system" env:"CONCOURSE_AUDITING_ENABLE_SYSTEM,CONCOURSE_ENABLE_SYSTEM_AUDITING"`
-	EnableTeamAuditLog      bool `yaml:"enable_team" env:"CONCOURSE_AUDITING_ENABLE_TEAM,CONCOURSE_ENABLE_TEAM_AUDITING"`
-	EnableWorkerAuditLog    bool `yaml:"enable_worker" env:"CONCOURSE_AUDITING_ENABLE_WORKER,CONCOURSE_ENABLE_WORKER_AUDITING"`
-	EnableVolumeAuditLog    bool `yaml:"enable_volume" env:"CONCOURSE_AUDITING_ENABLE_VOLUME,CONCOURSE_ENABLE_VOLUME_AUDITING"`
+	EnableBuildAuditLog     bool `yaml:"enable_build,omitempty" env:"CONCOURSE_AUDITING_ENABLE_BUILD,CONCOURSE_ENABLE_BUILD_AUDITING"`
+	EnableContainerAuditLog bool `yaml:"enable_container,omitempty" env:"CONCOURSE_AUDITING_ENABLE_CONTAINER,CONCOURSE_ENABLE_CONTAINER_AUDITING"`
+	EnableJobAuditLog       bool `yaml:"enable_job,omitempty" env:"CONCOURSE_AUDITING_ENABLE_JOB,CONCOURSE_ENABLE_JOB_AUDITING"`
+	EnablePipelineAuditLog  bool `yaml:"enable_pipeline,omitempty" env:"CONCOURSE_AUDITING_ENABLE_PIPELINE,CONCOURSE_ENABLE_PIPELINE_AUDITING"`
+	EnableResourceAuditLog  bool `yaml:"enable_resource,omitempty" env:"CONCOURSE_AUDITING_ENABLE_RESOURCE,CONCOURSE_ENABLE_RESOURCE_AUDITING"`
+	EnableSystemAuditLog    bool `yaml:"enable_system,omitempty" env:"CONCOURSE_AUDITING_ENABLE_SYSTEM,CONCOURSE_ENABLE_SYSTEM_AUDITING"`
+	EnableTeamAuditLog      bool `yaml:"enable_team,omitempty" env:"CONCOURSE_AUDITING_ENABLE_TEAM,CONCOURSE_ENABLE_TEAM_AUDITING"`
+	EnableWorkerAuditLog    bool `yaml:"enable_worker,omitempty" env:"CONCOURSE_AUDITING_ENABLE_WORKER,CONCOURSE_ENABLE_WORKER_AUDITING"`
+	EnableVolumeAuditLog    bool `yaml:"enable_volume,omitempty" env:"CONCOURSE_AUDITING_ENABLE_VOLUME,CONCOURSE_ENABLE_VOLUME_AUDITING"`
 }
 
 type SyslogConfig struct {
-	Hostname      string        `yaml:"hostname"`
-	Address       string        `yaml:"address"`
-	Transport     string        `yaml:"transport"`
-	DrainInterval time.Duration `yaml:"drain_interval"`
-	CACerts       []string      `yaml:"ca_cert"`
+	Hostname      string        `yaml:"hostname,omitempty"`
+	Address       string        `yaml:"address,omitempty"`
+	Transport     string        `yaml:"transport,omitempty"`
+	DrainInterval time.Duration `yaml:"drain_interval,omitempty"`
+	CACerts       []string      `yaml:"ca_cert,omitempty"`
 }
 
 type AuthConfig struct {
 	AuthFlags     skycmd.AuthFlags
-	MainTeamFlags skycmd.AuthTeamFlags `yaml:"main_team"`
+	MainTeamFlags skycmd.AuthTeamFlags `yaml:"main_team,omitempty"`
 }
 
 type SystemClaimConfig struct {
-	Key    string   `yaml:"key"`
-	Values []string `yaml:"value"`
+	Key    string   `yaml:"key,omitempty"`
+	Values []string `yaml:"value,omitempty"`
 }
 
 type FeatureFlagsConfig struct {
-	EnableGlobalResources                bool `yaml:"enable_global_resources"`
-	EnableRedactSecrets                  bool `yaml:"enable_redact_secrets"`
-	EnableBuildRerunWhenWorkerDisappears bool `yaml:"enable_rerun_when_worker_disappears"`
-	EnableAcrossStep                     bool `yaml:"enable_across_step"`
-	EnablePipelineInstances              bool `yaml:"enable_pipeline_instances"`
-	EnableP2PVolumeStreaming             bool `yaml:"enable_p2p_volume_streaming"`
+	EnableGlobalResources                bool `yaml:"enable_global_resources,omitempty"`
+	EnableRedactSecrets                  bool `yaml:"enable_redact_secrets,omitempty"`
+	EnableBuildRerunWhenWorkerDisappears bool `yaml:"enable_rerun_when_worker_disappears,omitempty"`
+	EnableAcrossStep                     bool `yaml:"enable_across_step,omitempty"`
+	EnablePipelineInstances              bool `yaml:"enable_pipeline_instances,omitempty"`
+	EnableP2PVolumeStreaming             bool `yaml:"enable_p2p_volume_streaming,omitempty"`
 }
 
 var CmdDefaults RunConfig = RunConfig{

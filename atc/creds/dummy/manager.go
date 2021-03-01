@@ -11,7 +11,7 @@ import (
 const managerName = "dummy"
 
 type Manager struct {
-	Vars VarFlags `yaml:"var"`
+	Vars VarFlags `yaml:"var,omitempty"`
 }
 
 func (manager *Manager) Name() string {

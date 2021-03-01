@@ -13,10 +13,10 @@ import (
 )
 
 type ContainerPlacementStrategyOptions struct {
-	ContainerPlacementStrategy   []string `yaml:"container_placement_strategy" validate:"cps"`
-	MaxActiveTasksPerWorker      int      `yaml:"max_active_tasks_per_worker"`
-	MaxActiveContainersPerWorker int      `yaml:"max_active_containers_per_worker"`
-	MaxActiveVolumesPerWorker    int      `yaml:"max_active_volumes_per_worker"`
+	ContainerPlacementStrategy   []string `yaml:"container_placement_strategy,omitempty" validate:"dive,cps"`
+	MaxActiveTasksPerWorker      int      `yaml:"max_active_tasks_per_worker,omitempty"`
+	MaxActiveContainersPerWorker int      `yaml:"max_active_containers_per_worker,omitempty"`
+	MaxActiveVolumesPerWorker    int      `yaml:"max_active_volumes_per_worker,omitempty"`
 }
 
 type NoWorkerFitContainerPlacementStrategyError struct {

@@ -10,7 +10,7 @@ import (
 type LagerEmitter struct{}
 
 type LagerConfig struct {
-	Enabled bool `yaml:"enable" env:"CONCOURSE_LAGER_ENABLE,CONCOURSE_EMIT_TO_LOGS"`
+	Enabled bool `yaml:"enable,omitempty" env:"CONCOURSE_LAGER_ENABLE,CONCOURSE_EMIT_TO_LOGS"`
 }
 
 func (config *LagerConfig) Description() string { return "Lager" }

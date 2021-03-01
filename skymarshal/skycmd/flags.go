@@ -43,16 +43,16 @@ func WireTeamConnectors(group *flags.Group) {
 }
 
 type AuthFlags struct {
-	SecureCookies bool              `yaml:"cookie_secure"`
-	Expiration    time.Duration     `yaml:"auth_duration"`
-	SigningKey    *flag.PrivateKey  `yaml:"session_signing_key"`
-	LocalUsers    map[string]string `yaml:"add_local_user"`
-	Clients       map[string]string `yaml:"add_client"`
+	SecureCookies bool              `yaml:"cookie_secure,omitempty"`
+	Expiration    time.Duration     `yaml:"auth_duration,omitempty"`
+	SigningKey    *flag.PrivateKey  `yaml:"session_signing_key,omitempty"`
+	LocalUsers    map[string]string `yaml:"add_local_user,omitempty"`
+	Clients       map[string]string `yaml:"add_client,omitempty"`
 }
 
 type AuthTeamFlags struct {
-	LocalUsers []string  `yaml:"local_user"`
-	Config     flag.File `yaml:"config"`
+	LocalUsers []string  `yaml:"local_user,omitempty"`
+	Config     flag.File `yaml:"config,omitempty"`
 }
 
 func (flag *AuthTeamFlags) Format() (atc.TeamAuth, error) {

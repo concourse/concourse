@@ -7,10 +7,10 @@ import (
 )
 
 type SecretCacheConfig struct {
-	Enabled          bool          `yaml:"enabled"`
-	Duration         time.Duration `yaml:"duration"`
-	DurationNotFound time.Duration `yaml:"duration-notfound"`
-	PurgeInterval    time.Duration `yaml:"purge-interval"`
+	Enabled          bool          `yaml:"enabled,omitempty"`
+	Duration         time.Duration `yaml:"duration,omitempty"`
+	DurationNotFound time.Duration `yaml:"duration-notfound,omitempty"`
+	PurgeInterval    time.Duration `yaml:"purge-interval,omitempty"`
 }
 
 type CachedSecrets struct {

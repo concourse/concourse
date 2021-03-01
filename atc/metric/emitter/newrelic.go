@@ -38,13 +38,13 @@ type (
 	}
 
 	NewRelicConfig struct {
-		AccountID          string        `yaml:"account_id"`
-		APIKey             string        `yaml:"api_key"`
-		Url                string        `yaml:"insights_api_url"`
-		ServicePrefix      string        `yaml:"service_prefix"`
-		BatchSize          uint64        `yaml:"batch_size"`
-		BatchDuration      time.Duration `yaml:"batch_duration"`
-		DisableCompression bool          `yaml:"batch_disable_compression"`
+		AccountID          string        `yaml:"account_id,omitempty"`
+		APIKey             string        `yaml:"api_key,omitempty"`
+		Url                string        `yaml:"insights_api_url,omitempty"`
+		ServicePrefix      string        `yaml:"service_prefix,omitempty"`
+		BatchSize          uint64        `yaml:"batch_size,omitempty"`
+		BatchDuration      time.Duration `yaml:"batch_duration,omitempty"`
+		DisableCompression bool          `yaml:"batch_disable_compression,omitempty"`
 	}
 
 	NewRelicEvent map[string]interface{}

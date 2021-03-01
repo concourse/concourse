@@ -19,12 +19,12 @@ const managerName = "vault"
 type VaultManager struct {
 	URL string `yaml:"url"`
 
-	PathPrefix      string        `yaml:"path_prefix"`
-	LookupTemplates []string      `yaml:"lookup_templates"`
-	SharedPath      string        `yaml:"shared_path"`
-	Namespace       string        `yaml:"namespace"`
-	LoginTimeout    time.Duration `yaml:"login_timeout"`
-	QueryTimeout    time.Duration `yaml:"query_timeout"`
+	PathPrefix      string        `yaml:"path_prefix,omitempty"`
+	LookupTemplates []string      `yaml:"lookup_templates,omitempty"`
+	SharedPath      string        `yaml:"shared_path,omitempty"`
+	Namespace       string        `yaml:"namespace,omitempty"`
+	LoginTimeout    time.Duration `yaml:"login_timeout,omitempty"`
+	QueryTimeout    time.Duration `yaml:"query_timeout,omitempty"`
 
 	TLS  TLSConfig
 	Auth AuthConfig
@@ -35,29 +35,29 @@ type VaultManager struct {
 }
 
 type TLSConfig struct {
-	CACert     string `yaml:"ca_cert"`
-	CACertFile string `yaml:"ca_cert_file" env:"CONCOURSE_VAULT_CA_CERT_FILE,CONCOURSE_VAULT_CA_CERT"`
-	CAPath     string `yaml:"ca_path"`
+	CACert     string `yaml:"ca_cert,omitempty"`
+	CACertFile string `yaml:"ca_cert_file,omitempty" env:"CONCOURSE_VAULT_CA_CERT_FILE,CONCOURSE_VAULT_CA_CERT"`
+	CAPath     string `yaml:"ca_path,omitempty"`
 
-	ClientCert     string `yaml:"client_cert"`
-	ClientCertFile string `yaml:"client_cert_file" env:"CONCOURSE_VAULT_CLIENT_CERT_FILE,CONCOURSE_VAULT_CLIENT_CERT"`
+	ClientCert     string `yaml:"client_cert,omitempty"`
+	ClientCertFile string `yaml:"client_cert_file,omitempty" env:"CONCOURSE_VAULT_CLIENT_CERT_FILE,CONCOURSE_VAULT_CLIENT_CERT"`
 
-	ClientKey     string `yaml:"client_key"`
-	ClientKeyFile string `yaml:"client_key_file" env:"CONCOURSE_VAULT_CLIENT_KEY_FILE,CONCOURSE_VAULT_CLIENT_KEY"`
+	ClientKey     string `yaml:"client_key,omitempty"`
+	ClientKeyFile string `yaml:"client_key_file,omitempty" env:"CONCOURSE_VAULT_CLIENT_KEY_FILE,CONCOURSE_VAULT_CLIENT_KEY"`
 
-	ServerName string `yaml:"server_name"`
-	Insecure   bool   `yaml:"insecure_skip_verify"`
+	ServerName string `yaml:"server_name,omitempty"`
+	Insecure   bool   `yaml:"insecure_skip_verify,omitempty"`
 }
 
 type AuthConfig struct {
-	ClientToken string `yaml:"client_token"`
+	ClientToken string `yaml:"client_token,omitempty"`
 
-	Backend       string        `yaml:"auth_backend"`
-	BackendMaxTTL time.Duration `yaml:"auth_backend_max_ttl"`
-	RetryMax      time.Duration `yaml:"auth_retry_max"`
-	RetryInitial  time.Duration `yaml:"auth_retry_initial"`
+	Backend       string        `yaml:"auth_backend,omitempty"`
+	BackendMaxTTL time.Duration `yaml:"auth_backend_max_ttl,omitempty"`
+	RetryMax      time.Duration `yaml:"auth_retry_max,omitempty"`
+	RetryInitial  time.Duration `yaml:"auth_retry_initial,omitempty"`
 
-	Params map[string]string `yaml:"auth_params"`
+	Params map[string]string `yaml:"auth_params,omitempty"`
 }
 
 func (manager *VaultManager) Name() string {

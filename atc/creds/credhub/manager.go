@@ -16,9 +16,9 @@ import (
 const managerName = "credhub"
 
 type CredHubManager struct {
-	URL string `yaml:"url"`
+	URL string `yaml:"url,omitempty"`
 
-	PathPrefix string `yaml:"path_prefix"`
+	PathPrefix string `yaml:"path_prefix,omitempty"`
 
 	TLS    TLS
 	UAA    UAA
@@ -26,15 +26,15 @@ type CredHubManager struct {
 }
 
 type TLS struct {
-	CACerts    []string `yaml:"ca_cert"`
-	ClientCert string   `yaml:"client_cert"`
-	ClientKey  string   `yaml:"client_key"`
-	Insecure   bool     `yaml:"insecure_skip_verify"`
+	CACerts    []string `yaml:"ca_cert,omitempty"`
+	ClientCert string   `yaml:"client_cert,omitempty"`
+	ClientKey  string   `yaml:"client_key,omitempty"`
+	Insecure   bool     `yaml:"insecure_skip_verify,omitempty"`
 }
 
 type UAA struct {
-	ClientId     string `yaml:"client_id"`
-	ClientSecret string `yaml:"client_secret"`
+	ClientId     string `yaml:"client_id,omitempty"`
+	ClientSecret string `yaml:"client_secret,omitempty"`
 }
 
 func (manager *CredHubManager) Name() string {

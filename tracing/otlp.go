@@ -8,9 +8,9 @@ import (
 
 // OTLP service to export traces to
 type OTLP struct {
-	Address string            `yaml:"address"`
-	Headers map[string]string `yaml:"header"`
-	UseTLS  bool              `yaml:"use_tls"`
+	Address string            `yaml:"address,omitempty"`
+	Headers map[string]string `yaml:"header,omitempty"`
+	UseTLS  bool              `yaml:"use_tls,omitempty"`
 }
 
 // IsConfigured identifies if an Address has been set

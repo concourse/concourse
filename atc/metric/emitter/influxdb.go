@@ -18,17 +18,17 @@ type InfluxDBEmitter struct {
 }
 
 type InfluxDBConfig struct {
-	URL string `yaml:"url"`
+	URL string `yaml:"url,omitempty"`
 
-	Database string `yaml:"database"`
+	Database string `yaml:"database,omitempty"`
 
-	Username string `yaml:"username"`
-	Password string `yaml:"password"`
+	Username string `yaml:"username,omitempty"`
+	Password string `yaml:"password,omitempty"`
 
-	InsecureSkipVerify bool `yaml:"insecure_skip_verify"`
+	InsecureSkipVerify bool `yaml:"insecure_skip_verify,omitempty"`
 
-	BatchSize     uint32        `yaml:"batch_size"`
-	BatchDuration time.Duration `yaml:"batch_duration"`
+	BatchSize     uint32        `yaml:"batch_size,omitempty"`
+	BatchDuration time.Duration `yaml:"batch_duration,omitempty"`
 }
 
 var (

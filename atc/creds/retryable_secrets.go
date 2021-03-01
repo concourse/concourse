@@ -8,8 +8,8 @@ import (
 )
 
 type SecretRetryConfig struct {
-	Attempts int           `yaml:"attempts"`
-	Interval time.Duration `yaml:"interval"`
+	Attempts int           `yaml:"attempts,omitempty"`
+	Interval time.Duration `yaml:"interval,omitempty"`
 }
 
 type RetryableSecrets struct {
