@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"github.com/concourse/baggageclaim"
+	"github.com/concourse/concourse/atc/db"
 )
 
 //go:generate counterfeiter . ArtifactDestination
@@ -19,5 +20,5 @@ type ArtifactDestination interface {
 
 	GetStreamInP2pUrl(ctx context.Context, path string) (string, error)
 
-	Volume() Volume
+	InitializeResourceCache(cache db.UsedResourceCache) error
 }

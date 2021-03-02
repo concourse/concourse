@@ -217,6 +217,6 @@ func (wad *artifactDestination) GetStreamInP2pUrl(ctx context.Context, path stri
 	return wad.destination.GetStreamInP2pUrl(ctx, path)
 }
 
-func (wad *artifactDestination) Volume() worker.Volume {
-	return wad.destination
+func (wad *artifactDestination) InitializeResourceCache(cache db.UsedResourceCache) error {
+	return wad.destination.InitializeResourceCache(cache)
 }

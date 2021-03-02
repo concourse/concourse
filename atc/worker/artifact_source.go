@@ -157,13 +157,6 @@ func (source *artifactSource) StreamTo(
 	ctx, span := tracing.StartSpan(ctx, "artifactSource.StreamTo", nil)
 	defer span.End()
 
-	logger.Debug("artifactSource-StreamTo", lager.Data{
-		"sourceWorker":       source.volume.WorkerName(),
-		"sourceVolumeHandle": source.volume.Handle(),
-		"destWorker":         destination.Volume().WorkerName(),
-		"destVolumeHandle":   destination.Volume().Handle(),
-	})
-
 	var err error
 	if !source.enabledP2pStreaming {
 		err = source.streamTo(ctx, destination)
@@ -178,7 +171,6 @@ func (source *artifactSource) StreamTo(
 	// Inc counter if no error occurred.
 	metric.Metrics.VolumesStreamed.Inc()
 
-	destVolume := destination.Volume()
 	usedResourceCache, found, err := source.resourceCacheFactory.FindResourceCacheByID(source.volume.GetResourceCacheID())
 	if err != nil {
 		logger.Error("artifactSource-StreamTo-failed-to-find-resource-cache", err)
@@ -190,7 +182,7 @@ func (source *artifactSource) StreamTo(
 		return nil
 	}
 
-	err = destVolume.InitializeResourceCache(usedResourceCache)
+	err = destination.InitializeResourceCache(usedResourceCache)
 	if err != nil {
 		logger.Error("artifactSource.StreamTo-failed-init-resource-cache-on-dest-worker", err)
 		return nil

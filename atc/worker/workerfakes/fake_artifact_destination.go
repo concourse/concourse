@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/concourse/baggageclaim"
+	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/worker"
 )
 
@@ -25,6 +26,17 @@ type FakeArtifactDestination struct {
 		result1 string
 		result2 error
 	}
+	InitializeResourceCacheStub        func(db.UsedResourceCache) error
+	initializeResourceCacheMutex       sync.RWMutex
+	initializeResourceCacheArgsForCall []struct {
+		arg1 db.UsedResourceCache
+	}
+	initializeResourceCacheReturns struct {
+		result1 error
+	}
+	initializeResourceCacheReturnsOnCall map[int]struct {
+		result1 error
+	}
 	StreamInStub        func(context.Context, string, baggageclaim.Encoding, io.Reader) error
 	streamInMutex       sync.RWMutex
 	streamInArgsForCall []struct {
@@ -38,16 +50,6 @@ type FakeArtifactDestination struct {
 	}
 	streamInReturnsOnCall map[int]struct {
 		result1 error
-	}
-	VolumeStub        func() worker.Volume
-	volumeMutex       sync.RWMutex
-	volumeArgsForCall []struct {
-	}
-	volumeReturns struct {
-		result1 worker.Volume
-	}
-	volumeReturnsOnCall map[int]struct {
-		result1 worker.Volume
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -118,6 +120,67 @@ func (fake *FakeArtifactDestination) GetStreamInP2pUrlReturnsOnCall(i int, resul
 	}{result1, result2}
 }
 
+func (fake *FakeArtifactDestination) InitializeResourceCache(arg1 db.UsedResourceCache) error {
+	fake.initializeResourceCacheMutex.Lock()
+	ret, specificReturn := fake.initializeResourceCacheReturnsOnCall[len(fake.initializeResourceCacheArgsForCall)]
+	fake.initializeResourceCacheArgsForCall = append(fake.initializeResourceCacheArgsForCall, struct {
+		arg1 db.UsedResourceCache
+	}{arg1})
+	stub := fake.InitializeResourceCacheStub
+	fakeReturns := fake.initializeResourceCacheReturns
+	fake.recordInvocation("InitializeResourceCache", []interface{}{arg1})
+	fake.initializeResourceCacheMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeArtifactDestination) InitializeResourceCacheCallCount() int {
+	fake.initializeResourceCacheMutex.RLock()
+	defer fake.initializeResourceCacheMutex.RUnlock()
+	return len(fake.initializeResourceCacheArgsForCall)
+}
+
+func (fake *FakeArtifactDestination) InitializeResourceCacheCalls(stub func(db.UsedResourceCache) error) {
+	fake.initializeResourceCacheMutex.Lock()
+	defer fake.initializeResourceCacheMutex.Unlock()
+	fake.InitializeResourceCacheStub = stub
+}
+
+func (fake *FakeArtifactDestination) InitializeResourceCacheArgsForCall(i int) db.UsedResourceCache {
+	fake.initializeResourceCacheMutex.RLock()
+	defer fake.initializeResourceCacheMutex.RUnlock()
+	argsForCall := fake.initializeResourceCacheArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeArtifactDestination) InitializeResourceCacheReturns(result1 error) {
+	fake.initializeResourceCacheMutex.Lock()
+	defer fake.initializeResourceCacheMutex.Unlock()
+	fake.InitializeResourceCacheStub = nil
+	fake.initializeResourceCacheReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeArtifactDestination) InitializeResourceCacheReturnsOnCall(i int, result1 error) {
+	fake.initializeResourceCacheMutex.Lock()
+	defer fake.initializeResourceCacheMutex.Unlock()
+	fake.InitializeResourceCacheStub = nil
+	if fake.initializeResourceCacheReturnsOnCall == nil {
+		fake.initializeResourceCacheReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.initializeResourceCacheReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeArtifactDestination) StreamIn(arg1 context.Context, arg2 string, arg3 baggageclaim.Encoding, arg4 io.Reader) error {
 	fake.streamInMutex.Lock()
 	ret, specificReturn := fake.streamInReturnsOnCall[len(fake.streamInArgsForCall)]
@@ -182,68 +245,15 @@ func (fake *FakeArtifactDestination) StreamInReturnsOnCall(i int, result1 error)
 	}{result1}
 }
 
-func (fake *FakeArtifactDestination) Volume() worker.Volume {
-	fake.volumeMutex.Lock()
-	ret, specificReturn := fake.volumeReturnsOnCall[len(fake.volumeArgsForCall)]
-	fake.volumeArgsForCall = append(fake.volumeArgsForCall, struct {
-	}{})
-	stub := fake.VolumeStub
-	fakeReturns := fake.volumeReturns
-	fake.recordInvocation("Volume", []interface{}{})
-	fake.volumeMutex.Unlock()
-	if stub != nil {
-		return stub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fakeReturns.result1
-}
-
-func (fake *FakeArtifactDestination) VolumeCallCount() int {
-	fake.volumeMutex.RLock()
-	defer fake.volumeMutex.RUnlock()
-	return len(fake.volumeArgsForCall)
-}
-
-func (fake *FakeArtifactDestination) VolumeCalls(stub func() worker.Volume) {
-	fake.volumeMutex.Lock()
-	defer fake.volumeMutex.Unlock()
-	fake.VolumeStub = stub
-}
-
-func (fake *FakeArtifactDestination) VolumeReturns(result1 worker.Volume) {
-	fake.volumeMutex.Lock()
-	defer fake.volumeMutex.Unlock()
-	fake.VolumeStub = nil
-	fake.volumeReturns = struct {
-		result1 worker.Volume
-	}{result1}
-}
-
-func (fake *FakeArtifactDestination) VolumeReturnsOnCall(i int, result1 worker.Volume) {
-	fake.volumeMutex.Lock()
-	defer fake.volumeMutex.Unlock()
-	fake.VolumeStub = nil
-	if fake.volumeReturnsOnCall == nil {
-		fake.volumeReturnsOnCall = make(map[int]struct {
-			result1 worker.Volume
-		})
-	}
-	fake.volumeReturnsOnCall[i] = struct {
-		result1 worker.Volume
-	}{result1}
-}
-
 func (fake *FakeArtifactDestination) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.getStreamInP2pUrlMutex.RLock()
 	defer fake.getStreamInP2pUrlMutex.RUnlock()
+	fake.initializeResourceCacheMutex.RLock()
+	defer fake.initializeResourceCacheMutex.RUnlock()
 	fake.streamInMutex.RLock()
 	defer fake.streamInMutex.RUnlock()
-	fake.volumeMutex.RLock()
-	defer fake.volumeMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

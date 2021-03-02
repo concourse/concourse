@@ -129,7 +129,7 @@ var _ = Describe("StreamableArtifactSource", func() {
 
 		fakeDestVolume.WorkerNameReturns("dest-worker")
 		fakeDestVolume.HandleReturns("dest-handle")
-		fakeDestination.VolumeReturns(fakeDestVolume)
+		fakeDestination.InitializeResourceCacheReturns(nil)
 
 		enabledP2pStreaming = false
 		p2pStreamingTimeout = 15 * time.Minute

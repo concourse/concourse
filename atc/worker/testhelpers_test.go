@@ -15,6 +15,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/baggageclaim"
+	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 	"github.com/onsi/gomega/format"
@@ -90,11 +91,8 @@ func (f FakeDestination) GetStreamInP2pUrl(ctx context.Context, path string) (st
 	panic("unimplemented")
 }
 
-func (f FakeDestination) Volume() worker.Volume {
-	fakeVolume := new(workerfakes.FakeVolume)
-	fakeVolume.WorkerNameReturns("some-worker")
-	fakeVolume.HandleReturns("some-handle")
-	return fakeVolume
+func (f FakeDestination) InitializeResourceCache(cache db.UsedResourceCache) error {
+	return nil
 }
 
 func BeStreamableWithContent(content content) types.GomegaMatcher {
