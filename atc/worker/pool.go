@@ -13,6 +13,8 @@ import (
 	"github.com/concourse/concourse/atc/db"
 )
 
+const workerPollingInterval = 5 * time.Second
+
 var (
 	ErrNoWorkers             = errors.New("no workers")
 	ErrFailedAcquirePoolLock = errors.New("failed to acquire pool lock")
@@ -42,6 +44,14 @@ type Pool interface {
 		WorkerSpec,
 		ContainerPlacementStrategy,
 	) (Client, error)
+
+	WaitForWorker(
+		context.Context,
+		db.ContainerOwner,
+		ContainerSpec,
+		WorkerSpec,
+		ContainerPlacementStrategy,
+	) (Client, time.Duration, error)
 }
 
 //go:generate counterfeiter . VolumeFinder
@@ -208,6 +218,39 @@ dance:
 		}
 	}
 	return NewClient(worker), nil
+}
+
+func (pool *pool) WaitForWorker(
+	ctx context.Context,
+	owner db.ContainerOwner,
+	containerSpec ContainerSpec,
+	workerSpec WorkerSpec,
+	strategy ContainerPlacementStrategy,
+) (Client, time.Duration, error) {
+
+	started := time.Now()
+	pollingTicker := time.NewTicker(workerPollingInterval)
+	defer pollingTicker.Stop()
+
+	var worker Client
+	for {
+		worker, err := pool.SelectWorker(ctx, owner, containerSpec, workerSpec, strategy)
+
+		if err != nil {
+			return nil, 0, err
+		}
+
+		if worker != nil {
+			break
+		}
+
+		select {
+		case <-pollingTicker.C:
+			break
+		}
+	}
+
+	return worker, time.Since(started), nil
 }
 
 func (pool *pool) chooseRandomWorkerForVolume(

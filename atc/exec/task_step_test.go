@@ -78,9 +78,11 @@ var _ = Describe("TaskStep", func() {
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()
 
-		fakePool = new(workerfakes.FakePool)
 		fakeClient = new(workerfakes.FakeClient)
 		fakeClient.NameReturns("some-worker")
+		fakePool = new(workerfakes.FakePool)
+		fakePool.WaitForWorkerReturns(fakeClient, 0, nil)
+
 		fakeArtifactStreamer = new(workerfakes.FakeArtifactStreamer)
 		fakeArtifactSourcer = new(workerfakes.FakeArtifactSourcer)
 		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
@@ -88,7 +90,6 @@ var _ = Describe("TaskStep", func() {
 		fakeDelegate = new(execfakes.FakeTaskDelegate)
 		fakeDelegate.StdoutReturns(stdoutBuf)
 		fakeDelegate.StderrReturns(stderrBuf)
-		fakeDelegate.SelectWorkerReturns(fakeClient, nil)
 
 		spanCtx = context.Background()
 		fakeDelegate.StartSpanReturns(spanCtx, trace.NoopSpan{})
@@ -156,8 +157,8 @@ var _ = Describe("TaskStep", func() {
 	var startEventDelegate runtime.StartingEventDelegate
 
 	expectWorkerSpecResourceTypeUnset := func() {
-		Expect(fakeDelegate.SelectWorkerCallCount()).To(Equal(1))
-		_, _, _, _, workerSpec, _, _, _ := fakeDelegate.SelectWorkerArgsForCall(0)
+		Expect(fakePool.WaitForWorkerCallCount()).To(Equal(1))
+		_, _, _, workerSpec, _ := fakePool.WaitForWorkerArgsForCall(0)
 		Expect(workerSpec.ResourceType).To(Equal(""))
 	}
 
@@ -208,8 +209,8 @@ var _ = Describe("TaskStep", func() {
 			var workerSpec worker.WorkerSpec
 
 			JustBeforeEach(func() {
-				Expect(fakeDelegate.SelectWorkerCallCount()).To(Equal(1))
-				_, _, _, _, workerSpec, _, _, _ = fakeDelegate.SelectWorkerArgsForCall(0)
+				Expect(fakePool.WaitForWorkerCallCount()).To(Equal(1))
+				_, _, _, workerSpec, _ = fakePool.WaitForWorkerArgsForCall(0)
 			})
 
 			It("emits a SelectedWorker event", func() {
@@ -230,7 +231,7 @@ var _ = Describe("TaskStep", func() {
 
 			Context("when selecting a worker fails", func() {
 				BeforeEach(func() {
-					fakeDelegate.SelectWorkerReturns(nil, errors.New("nope"))
+					fakePool.WaitForWorkerReturns(nil, 0, errors.New("nope"))
 					shouldRunTaskStep = false
 				})
 

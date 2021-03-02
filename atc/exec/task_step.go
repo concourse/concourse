@@ -22,9 +22,6 @@ import (
 	"go.opentelemetry.io/otel/api/trace"
 )
 
-const workerAvailabilityPollingInterval = 5 * time.Second
-const workerStatusPublishInterval = 1 * time.Minute
-
 // MissingInputsError is returned when any of the task's required inputs are
 // missing.
 type MissingInputsError struct {
@@ -75,7 +72,6 @@ type TaskDelegate interface {
 	Initializing(lager.Logger)
 	Starting(lager.Logger)
 	Finished(lager.Logger, ExitStatus, worker.ContainerPlacementStrategy, worker.Client)
-	SelectWorker(context.Context, worker.Pool, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, worker.ContainerPlacementStrategy, time.Duration, time.Duration) (worker.Client, error)
 	SelectedWorker(lager.Logger, string)
 	Errored(lager.Logger, string)
 }
@@ -258,14 +254,12 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 		defer cancel()
 	}
 
-	chosenWorker, err := delegate.SelectWorker(
+	chosenWorker, _, err := step.workerPool.WaitForWorker(
 		lagerctx.NewContext(processCtx, logger),
-		step.workerPool,
 		owner,
 		containerSpec,
 		step.workerSpec(config),
 		step.strategy,
-		workerAvailabilityPollingInterval, workerStatusPublishInterval,
 	)
 	if err != nil {
 		return false, err

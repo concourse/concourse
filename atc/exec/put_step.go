@@ -219,7 +219,7 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 
 	defer cancel()
 
-	worker, err := step.workerPool.SelectWorker(
+	worker, _, err := step.workerPool.WaitForWorker(
 		lagerctx.NewContext(processCtx, logger),
 		owner,
 		containerSpec,

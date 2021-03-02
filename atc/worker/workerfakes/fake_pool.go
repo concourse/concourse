@@ -4,6 +4,7 @@ package workerfakes
 import (
 	"context"
 	"sync"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
@@ -92,6 +93,25 @@ type FakePool struct {
 	selectWorkerReturnsOnCall map[int]struct {
 		result1 worker.Client
 		result2 error
+	}
+	WaitForWorkerStub        func(context.Context, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, worker.ContainerPlacementStrategy) (worker.Client, time.Duration, error)
+	waitForWorkerMutex       sync.RWMutex
+	waitForWorkerArgsForCall []struct {
+		arg1 context.Context
+		arg2 db.ContainerOwner
+		arg3 worker.ContainerSpec
+		arg4 worker.WorkerSpec
+		arg5 worker.ContainerPlacementStrategy
+	}
+	waitForWorkerReturns struct {
+		result1 worker.Client
+		result2 time.Duration
+		result3 error
+	}
+	waitForWorkerReturnsOnCall map[int]struct {
+		result1 worker.Client
+		result2 time.Duration
+		result3 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -436,6 +456,77 @@ func (fake *FakePool) SelectWorkerReturnsOnCall(i int, result1 worker.Client, re
 	}{result1, result2}
 }
 
+func (fake *FakePool) WaitForWorker(arg1 context.Context, arg2 db.ContainerOwner, arg3 worker.ContainerSpec, arg4 worker.WorkerSpec, arg5 worker.ContainerPlacementStrategy) (worker.Client, time.Duration, error) {
+	fake.waitForWorkerMutex.Lock()
+	ret, specificReturn := fake.waitForWorkerReturnsOnCall[len(fake.waitForWorkerArgsForCall)]
+	fake.waitForWorkerArgsForCall = append(fake.waitForWorkerArgsForCall, struct {
+		arg1 context.Context
+		arg2 db.ContainerOwner
+		arg3 worker.ContainerSpec
+		arg4 worker.WorkerSpec
+		arg5 worker.ContainerPlacementStrategy
+	}{arg1, arg2, arg3, arg4, arg5})
+	stub := fake.WaitForWorkerStub
+	fakeReturns := fake.waitForWorkerReturns
+	fake.recordInvocation("WaitForWorker", []interface{}{arg1, arg2, arg3, arg4, arg5})
+	fake.waitForWorkerMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4, arg5)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+}
+
+func (fake *FakePool) WaitForWorkerCallCount() int {
+	fake.waitForWorkerMutex.RLock()
+	defer fake.waitForWorkerMutex.RUnlock()
+	return len(fake.waitForWorkerArgsForCall)
+}
+
+func (fake *FakePool) WaitForWorkerCalls(stub func(context.Context, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, worker.ContainerPlacementStrategy) (worker.Client, time.Duration, error)) {
+	fake.waitForWorkerMutex.Lock()
+	defer fake.waitForWorkerMutex.Unlock()
+	fake.WaitForWorkerStub = stub
+}
+
+func (fake *FakePool) WaitForWorkerArgsForCall(i int) (context.Context, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, worker.ContainerPlacementStrategy) {
+	fake.waitForWorkerMutex.RLock()
+	defer fake.waitForWorkerMutex.RUnlock()
+	argsForCall := fake.waitForWorkerArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5
+}
+
+func (fake *FakePool) WaitForWorkerReturns(result1 worker.Client, result2 time.Duration, result3 error) {
+	fake.waitForWorkerMutex.Lock()
+	defer fake.waitForWorkerMutex.Unlock()
+	fake.WaitForWorkerStub = nil
+	fake.waitForWorkerReturns = struct {
+		result1 worker.Client
+		result2 time.Duration
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakePool) WaitForWorkerReturnsOnCall(i int, result1 worker.Client, result2 time.Duration, result3 error) {
+	fake.waitForWorkerMutex.Lock()
+	defer fake.waitForWorkerMutex.Unlock()
+	fake.WaitForWorkerStub = nil
+	if fake.waitForWorkerReturnsOnCall == nil {
+		fake.waitForWorkerReturnsOnCall = make(map[int]struct {
+			result1 worker.Client
+			result2 time.Duration
+			result3 error
+		})
+	}
+	fake.waitForWorkerReturnsOnCall[i] = struct {
+		result1 worker.Client
+		result2 time.Duration
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakePool) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -449,6 +540,8 @@ func (fake *FakePool) Invocations() map[string][][]interface{} {
 	defer fake.findVolumeMutex.RUnlock()
 	fake.selectWorkerMutex.RLock()
 	defer fake.selectWorkerMutex.RUnlock()
+	fake.waitForWorkerMutex.RLock()
+	defer fake.waitForWorkerMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
