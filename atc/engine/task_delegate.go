@@ -2,7 +2,6 @@ package engine
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"strconv"
@@ -20,7 +19,6 @@ import (
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/atc/worker"
-	"github.com/hashicorp/go-multierror"
 )
 
 func NewTaskDelegate(
@@ -84,28 +82,8 @@ func (d *taskDelegate) SelectWorker(
 		Platform:   workerSpec.Platform,
 	}
 
-	trySelectWorker := func() (worker.Client, error) {
-		var (
-			activeTasksLock lock.Lock
-			lockAcquired    bool
-			err             error
-		)
-		if strategy.ModifiesActiveTasks() {
-			for {
-				activeTasksLock, lockAcquired, err = d.lockFactory.Acquire(logger, lock.NewActiveTasksLockID())
-				if err != nil {
-					return nil, err
-				}
-
-				if lockAcquired {
-					defer activeTasksLock.Release()
-					break
-				}
-				// retry after a delay
-				time.Sleep(time.Second)
-			}
-		}
-
+	var elapsed time.Duration
+	for {
 		chosenWorker, err := pool.SelectWorker(
 			ctx,
 			owner,
@@ -113,52 +91,11 @@ func (d *taskDelegate) SelectWorker(
 			workerSpec,
 			strategy,
 		)
-		if err != nil {
-			// only the limit-active-tasks placement strategy waits for a
-			// worker to become available. All others should error out for now
-			allWorkersFullError := worker.NoWorkerFitContainerPlacementStrategyError{Strategy: "limit-active-tasks"}
-			if !errors.Is(err, allWorkersFullError) {
-				return nil, err
-			}
-		}
 
-		if !strategy.ModifiesActiveTasks() {
-			return chosenWorker, nil
-		}
-
-		select {
-		case <-ctx.Done():
-			logger.Info("aborted-waiting-worker")
-			e := multierror.Append(err, activeTasksLock.Release(), ctx.Err())
-			return nil, e
-		default:
-		}
-
-		if chosenWorker == nil {
-			return nil, nil
-		}
-
-		err = d.increaseActiveTasks(
-			logger,
-			activeTasksLock,
-			pool,
-			chosenWorker,
-			owner,
-			workerSpec,
-		)
-		if err != nil {
-			logger.Error("failed-to-increase-active-tasks", err)
-		}
-
-		return chosenWorker, err
-	}
-
-	var elapsed time.Duration
-	for {
-		chosenWorker, err := trySelectWorker()
 		if err != nil {
 			return nil, err
 		}
+
 		if chosenWorker != nil {
 			if elapsed > 0 {
 				message := fmt.Sprintf("Found a free worker after waiting %s.\n", elapsed.Round(1*time.Second))
@@ -170,6 +107,7 @@ func (d *taskDelegate) SelectWorker(
 			}
 			return chosenWorker, nil
 		}
+
 		// Increase task waiting only once
 		if elapsed == 0 {
 			_, ok := metric.Metrics.TasksWaiting[tasksWaitingLabels]
@@ -187,40 +125,6 @@ func (d *taskDelegate) SelectWorker(
 			started,
 		)
 	}
-}
-
-func (d taskDelegate) increaseActiveTasks(
-	logger lager.Logger,
-	activeTasksLock lock.Lock,
-	pool worker.Pool,
-	chosenWorker worker.Client,
-	owner db.ContainerOwner,
-	workerSpec worker.WorkerSpec,
-) error {
-	var existingContainer bool
-	existingContainer, err := pool.ContainerInWorker(logger, owner, workerSpec)
-	if err != nil {
-		return err
-	}
-
-	if existingContainer {
-		return nil
-	}
-
-	dbWorker, err := d.findDBWorker(chosenWorker.Name())
-	if err != nil {
-		return err
-	}
-
-	return dbWorker.IncreaseActiveTasks()
-}
-
-func (d taskDelegate) decreaseActiveTasks(chosenWorker worker.Client) error {
-	dbWorker, err := d.findDBWorker(chosenWorker.Name())
-	if err != nil {
-		return err
-	}
-	return dbWorker.DecreaseActiveTasks()
 }
 
 func (d taskDelegate) findDBWorker(name string) (db.Worker, error) {
@@ -304,12 +208,6 @@ func (d *taskDelegate) Finished(
 	if err != nil {
 		logger.Error("failed-to-save-finish-event", err)
 		return
-	}
-
-	if strategy.ModifiesActiveTasks() {
-		if err := d.decreaseActiveTasks(chosenWorker); err != nil {
-			logger.Error("failed-to-decrease-active-tasks", err)
-		}
 	}
 
 	logger.Info("finished", lager.Data{"exit-status": exitStatus})
