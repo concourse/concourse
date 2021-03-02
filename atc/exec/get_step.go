@@ -308,7 +308,6 @@ func (step *GetStep) getFromLocalCache(
 	}
 	metadata, err := resourceCache.LoadVersionMetadata()
 	if err != nil {
-		logger.Error("EVAN:failed to load version metadata", err)
 		return worker.GetResult{}, false, err
 	}
 	return worker.GetResult{

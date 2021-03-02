@@ -1,6 +1,7 @@
 package db_test
 
 import (
+	"context"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -154,6 +155,61 @@ var _ = Describe("ResourceCache", func() {
 			It("returns the same used resource cache", func() {
 				Expect(urc.ID()).To(Equal(existingResourceCache.ID()))
 			})
+		})
+	})
+
+	Describe("version and metadata", func() {
+		var urc db.UsedResourceCache
+		var expectedMetadata = db.ResourceConfigMetadataFields{
+			db.ResourceConfigMetadataField{
+				Name:  "n1",
+				Value: "v1",
+			},
+			db.ResourceConfigMetadataField{
+				Name:  "n2",
+				Value: "v2",
+			},
+		}
+
+		BeforeEach(func() {
+			build, err := defaultTeam.CreateOneOffBuild()
+			Expect(err).ToNot(HaveOccurred())
+
+			urc, err = resourceCacheFactory.FindOrCreateResourceCache(
+				db.ForBuild(build.ID()),
+				"some-worker-resource-type",
+				atc.Version{"some": "version"},
+				atc.Source{
+					"some": "source",
+				},
+				atc.Params{"some": "params"},
+				atc.VersionedResourceTypes{},
+			)
+			Expect(err).ToNot(HaveOccurred())
+
+			rcs, err := urc.ResourceConfig().FindOrCreateScope(defaultResource)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = defaultResource.SetResourceConfigScope(rcs)
+			Expect(err).ToNot(HaveOccurred())
+			_, err = defaultResource.Reload()
+			Expect(err).ToNot(HaveOccurred())
+
+			err = rcs.SaveVersions(db.NewSpanContext(context.Background()), []atc.Version{urc.Version()})
+			Expect(err).ToNot(HaveOccurred())
+
+			err = defaultResource.SetResourceConfigScope(rcs)
+			Expect(err).ToNot(HaveOccurred())
+
+			found, err := defaultResource.UpdateMetadata(urc.Version(), expectedMetadata)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+		})
+
+		It("should load the metadata", func() {
+			metadata, err := urc.LoadVersionMetadata()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(metadata).To(Equal(expectedMetadata.ToATCMetadata()))
 		})
 	})
 })
