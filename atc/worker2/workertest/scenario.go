@@ -80,6 +80,12 @@ func WithBasicJob() SetupFunc {
 	}
 }
 
+func WithTeam(team string) SetupFunc {
+	return func(s *Scenario) {
+		s.DB.Run(s.DBBuilder.WithTeam(team))
+	}
+}
+
 func WithWorkers(workers ...Worker) SetupFunc {
 	return func(s *Scenario) {
 		for _, worker := range workers {
@@ -90,6 +96,13 @@ func WithWorkers(workers ...Worker) SetupFunc {
 			s.Factory.Workers = append(s.Factory.Workers, worker)
 		}
 	}
+}
+
+func (s *Scenario) Team(name string) db.Team {
+	team, found, err := s.DBBuilder.TeamFactory.FindTeam(name)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(found).To(BeTrue())
+	return team
 }
 
 func (s *Scenario) Worker(name string) runtime.Worker {

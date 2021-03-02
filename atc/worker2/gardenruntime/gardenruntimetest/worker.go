@@ -24,12 +24,14 @@ const (
 )
 
 type SetupFunc func(*Worker, *workertest.Scenario)
+type WorkerSetupFunc func(*atc.Worker)
 
 type Worker struct {
-	WorkerName string
-	Containers []*Container
-	Volumes    []*Volume
-	SetupFuncs []SetupFunc
+	WorkerName       string
+	Containers       []*Container
+	Volumes          []*Volume
+	SetupFuncs       []SetupFunc
+	WorkerSetupFuncs []WorkerSetupFunc
 }
 
 func NewWorker(name string) *Worker {
@@ -44,6 +46,10 @@ func (w *Worker) Setup(s *workertest.Scenario) {
 	atcWorker := dbtest.BaseWorker(w.Name())
 	atcWorker.ActiveContainers = len(w.Containers)
 	atcWorker.ActiveVolumes = len(w.Volumes)
+
+	for _, f := range w.WorkerSetupFuncs {
+		f(&atcWorker)
+	}
 
 	s.DB.Run(s.DBBuilder.WithWorker(atcWorker))
 
@@ -79,7 +85,7 @@ func (w Worker) WithBaggageclaimVolumes(volumes ...*Volume) *Worker {
 	return &w2
 }
 
-func (w Worker) WithWorkerSetup(setup ...SetupFunc) *Worker {
+func (w Worker) WithMutableSetup(setup ...SetupFunc) *Worker {
 	w2 := w
 	w2.SetupFuncs = make([]SetupFunc, len(w.SetupFuncs)+len(setup))
 	copy(w2.SetupFuncs, w.SetupFuncs)
@@ -92,7 +98,15 @@ func (w Worker) WithSetup(setup ...workertest.SetupFunc) *Worker {
 	for i, f := range setup {
 		workerSetup[i] = func(_ *Worker, s *workertest.Scenario) { f(s) }
 	}
-	return w.WithWorkerSetup(workerSetup...)
+	return w.WithMutableSetup(workerSetup...)
+}
+
+func (w Worker) WithWorkerSetup(setup ...WorkerSetupFunc) *Worker {
+	w2 := w
+	w2.WorkerSetupFuncs = make([]WorkerSetupFunc, len(w.WorkerSetupFuncs)+len(setup))
+	copy(w2.WorkerSetupFuncs, w.WorkerSetupFuncs)
+	copy(w2.WorkerSetupFuncs[len(w.WorkerSetupFuncs):], setup)
+	return &w2
 }
 
 func (w Worker) WithDBContainerVolumesInState(state DBState, containerHandle string, paths ...string) *Worker {
@@ -144,7 +158,7 @@ func (w Worker) WithDBVolumesInState(state DBState, handles ...string) *Worker {
 }
 
 func (w *Worker) WithCachedPaths(cachedPaths ...string) *Worker {
-	return w.WithWorkerSetup(func(w *Worker, s *workertest.Scenario) {
+	return w.WithMutableSetup(func(w *Worker, s *workertest.Scenario) {
 		for _, cachePath := range cachedPaths {
 			s.DB.Run(s.DBBuilder.WithTaskCacheOnWorker(s.TeamID, w.Name(), s.JobID, s.StepName, cachePath))
 			cacheVolume := s.WorkerTaskCacheVolume(w.Name(), cachePath)
@@ -196,6 +210,30 @@ func (w Worker) WithActiveTasks(activeTasks int) *Worker {
 			err := worker.IncreaseActiveTasks()
 			Expect(err).ToNot(HaveOccurred())
 		}
+	})
+}
+
+func (w Worker) WithTeam(team string) *Worker {
+	return w.WithWorkerSetup(func(w *atc.Worker) {
+		w.Team = team
+	})
+}
+
+func (w Worker) WithTags(tags ...string) *Worker {
+	return w.WithWorkerSetup(func(w *atc.Worker) {
+		w.Tags = append(w.Tags, tags...)
+	})
+}
+
+func (w Worker) WithPlatform(platform string) *Worker {
+	return w.WithWorkerSetup(func(w *atc.Worker) {
+		w.Platform = platform
+	})
+}
+
+func (w Worker) WithVersion(version string) *Worker {
+	return w.WithWorkerSetup(func(w *atc.Worker) {
+		w.Version = version
 	})
 }
 

@@ -1,7 +1,10 @@
 package worker2
 
 import (
+	"context"
+
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/cppforlife/go-semi-semantic/version"
@@ -12,6 +15,46 @@ type Pool struct {
 	DB DB
 
 	WorkerVersion version.Version
+}
+
+func (pool Pool) FindOrSelectWorker(
+	ctx context.Context,
+	owner db.ContainerOwner,
+	containerSpec runtime.ContainerSpec,
+	workerSpec Spec,
+	strategy PlacementStrategy,
+) (runtime.Worker, error) {
+	logger := lagerctx.FromContext(ctx)
+
+	workersWithContainer, err := pool.DB.WorkerFactory.FindWorkersForContainerByOwner(owner)
+	if err != nil {
+		return nil, err
+	}
+
+	compatibleWorkers, err := pool.allCompatible(logger, workerSpec)
+	if err != nil {
+		return nil, err
+	}
+
+	var worker db.Worker
+dance:
+	for _, w := range workersWithContainer {
+		for _, c := range compatibleWorkers {
+			if w.Name() == c.Name() {
+				worker = c
+				break dance
+			}
+		}
+	}
+
+	if worker == nil {
+		worker, err = strategy.Choose(logger, pool, compatibleWorkers, containerSpec)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return pool.Factory.NewWorker(logger, pool, worker), nil
 }
 
 func (pool Pool) FindWorker(logger lager.Logger, name string) (runtime.Worker, bool, error) {
@@ -61,6 +104,45 @@ func (pool Pool) LocateVolume(logger lager.Logger, teamID int, handle string) (r
 	return volume, worker, true, nil
 }
 
+func (pool Pool) allCompatible(logger lager.Logger, spec Spec) ([]db.Worker, error) {
+	workers, err := pool.DB.WorkerFactory.Workers()
+	if err != nil {
+		return nil, err
+	}
+
+	if len(workers) == 0 {
+		return nil, ErrNoWorkers
+	}
+
+	var compatibleTeamWorkers []db.Worker
+	var compatibleGeneralWorkers []db.Worker
+	for _, worker := range workers {
+		compatible := pool.isWorkerCompatible(logger, worker, spec)
+		if compatible {
+			if worker.TeamID() != 0 {
+				compatibleTeamWorkers = append(compatibleTeamWorkers, worker)
+			} else {
+				compatibleGeneralWorkers = append(compatibleGeneralWorkers, worker)
+			}
+		}
+	}
+
+	if len(compatibleTeamWorkers) != 0 {
+		// XXX(aoldershaw): if there is a team worker that is compatible but is
+		// rejected by the strategy, shouldn't we fallback to general workers?
+		return compatibleTeamWorkers, nil
+	}
+
+	if len(compatibleGeneralWorkers) != 0 {
+		return compatibleGeneralWorkers, nil
+	}
+
+	return nil, NoCompatibleWorkersError{
+		Spec:          spec,
+		WorkerVersion: pool.WorkerVersion,
+	}
+}
+
 func (pool Pool) isWorkerVersionCompatible(logger lager.Logger, dbWorker db.Worker) bool {
 	workerVersion := dbWorker.Version()
 	logger = logger.Session("check-version", lager.Data{
@@ -91,4 +173,64 @@ func (pool Pool) isWorkerVersionCompatible(logger lager.Logger, dbWorker db.Work
 
 		return false
 	}
+}
+
+func (pool Pool) isWorkerCompatible(logger lager.Logger, worker db.Worker, spec Spec) bool {
+	if !pool.isWorkerVersionCompatible(logger, worker) {
+		return false
+	}
+
+	if worker.TeamID() != 0 {
+		if spec.TeamID != worker.TeamID() {
+			return false
+		}
+	}
+
+	if spec.ResourceType != "" {
+		matchedType := false
+		for _, t := range worker.ResourceTypes() {
+			if t.Type == spec.ResourceType {
+				matchedType = true
+				break
+			}
+		}
+
+		if !matchedType {
+			return false
+		}
+	}
+
+	if spec.Platform != "" {
+		if spec.Platform != worker.Platform() {
+			return false
+		}
+	}
+
+	if !tagsMatch(worker, spec.Tags) {
+		return false
+	}
+
+	return true
+}
+
+func tagsMatch(worker db.Worker, tags []string) bool {
+	if len(worker.Tags()) > 0 && len(tags) == 0 {
+		return false
+	}
+
+	hasTag := func(tag string) bool {
+		for _, wtag := range worker.Tags() {
+			if wtag == tag {
+				return true
+			}
+		}
+		return false
+	}
+
+	for _, tag := range tags {
+		if !hasTag(tag) {
+			return false
+		}
+	}
+	return true
 }
