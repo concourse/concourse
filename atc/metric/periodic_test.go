@@ -140,7 +140,36 @@ var _ = Describe("Periodic emission of metrics", func() {
 		})
 	})
 
-	Context("limit-active-tasks metrics", func() {
+	Context("waiting steps metrics", func() {
+		labels := metric.StepsWaitingLabels{
+			TeamId:     "42",
+			WorkerTags: "tester",
+			Platform:   "darwin",
+		}
+
+		BeforeEach(func() {
+			gauge := &metric.Gauge{}
+			gauge.Set(123)
+			monitor.StepsWaiting[labels] = gauge
+		})
+		It("emits", func() {
+			Eventually(events).Should(
+				ContainElement(
+					MatchFields(IgnoreExtras, Fields{
+						"Name":  Equal("steps waiting"),
+						"Value": Equal(float64(123)),
+						"Attributes": Equal(map[string]string{
+							"teamId":     labels.TeamId,
+							"workerTags": labels.WorkerTags,
+							"platform":   labels.Platform,
+						}),
+					}),
+				),
+			)
+		})
+	})
+
+	Context("waiting tasks metrics", func() {
 		labels := metric.TasksWaitingLabels{
 			TeamId:     "42",
 			WorkerTags: "tester",

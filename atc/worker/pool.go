@@ -5,12 +5,15 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"strconv"
+	"strings"
 	"time"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/metric"
 )
 
 const workerPollingInterval = 5 * time.Second
@@ -227,12 +230,20 @@ func (pool *pool) WaitForWorker(
 	workerSpec WorkerSpec,
 	strategy ContainerPlacementStrategy,
 ) (Client, time.Duration, error) {
+	logger := lagerctx.FromContext(ctx)
 
 	started := time.Now()
 	pollingTicker := time.NewTicker(workerPollingInterval)
 	defer pollingTicker.Stop()
 
+	labels := metric.StepsWaitingLabels{
+		TeamId:     strconv.Itoa(workerSpec.TeamID),
+		WorkerTags: strings.Join(workerSpec.Tags, "_"),
+		Platform:   workerSpec.Platform,
+	}
+
 	var worker Client
+	var waiting bool = false
 	for {
 		worker, err := pool.SelectWorker(ctx, owner, containerSpec, workerSpec, strategy)
 
@@ -244,13 +255,34 @@ func (pool *pool) WaitForWorker(
 			break
 		}
 
+		if !waiting {
+			_, ok := metric.Metrics.StepsWaiting[labels]
+			if !ok {
+				metric.Metrics.StepsWaiting[labels] = &metric.Gauge{}
+			}
+
+			metric.Metrics.StepsWaiting[labels].Inc()
+			defer metric.Metrics.StepsWaiting[labels].Dec()
+
+			waiting = true
+		}
+
 		select {
+		case <-ctx.Done():
+			logger.Info("aborted-waiting-worker")
+			return nil, 0, ctx.Err()
 		case <-pollingTicker.C:
 			break
 		}
 	}
 
-	return worker, time.Since(started), nil
+	elapsed := time.Since(started)
+	metric.StepsWaitingDuration{
+		Labels:   labels,
+		Duration: elapsed,
+	}.Emit(logger)
+
+	return worker, elapsed, nil
 }
 
 func (pool *pool) chooseRandomWorkerForVolume(
