@@ -1,6 +1,10 @@
 package spec
 
-import "github.com/opencontainers/runtime-spec/specs-go"
+import (
+	"os"
+
+	"github.com/opencontainers/runtime-spec/specs-go"
+)
 
 var (
 	PrivilegedContainerNamespaces = []specs.LinuxNamespace{
@@ -13,9 +17,12 @@ var (
 
 	UnprivilegedContainerNamespaces = append(PrivilegedContainerNamespaces,
 		specs.LinuxNamespace{Type: specs.UserNamespace},
-		specs.LinuxNamespace{Type: specs.CgroupNamespace},
 	)
 )
+
+func init() {
+	cgroupNamespacesEnabled()
+}
 
 func OciNamespaces(privileged bool) []specs.LinuxNamespace {
 	if !privileged {
@@ -23,4 +30,13 @@ func OciNamespaces(privileged bool) []specs.LinuxNamespace {
 	}
 
 	return PrivilegedContainerNamespaces
+}
+
+func cgroupNamespacesEnabled() {
+	if _, err := os.Stat("/proc/self/ns/cgroup"); os.IsNotExist(err) {
+		return
+	}
+
+	UnprivilegedContainerNamespaces = append(UnprivilegedContainerNamespaces,
+		specs.LinuxNamespace{Type: specs.CgroupNamespace})
 }
