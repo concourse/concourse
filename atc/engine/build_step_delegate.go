@@ -332,7 +332,7 @@ func (delegate *buildStepDelegate) FetchImage(
 		return worker.ImageSpec{}, fmt.Errorf("save image version: %w", err)
 	}
 
-	art, found := fetchState.ArtifactRepository().ArtifactFor(build.ArtifactName(imageName))
+	art, found := fetchState.ArtifactRepository().ArtifactFor(build.ArtifactName(getPlan.Get.Name))
 	if !found {
 		return worker.ImageSpec{}, fmt.Errorf("fetched artifact not found")
 	}
