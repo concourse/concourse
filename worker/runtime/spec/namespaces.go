@@ -1,6 +1,7 @@
 package spec
 
 import (
+	"errors"
 	"os"
 
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -37,5 +38,8 @@ func OciNamespaces(privileged bool) []specs.LinuxNamespace {
 
 func cgroupNamespacesSupported() bool {
 	_, err := os.Stat("/proc/self/ns/cgroup")
-	return !os.IsNotExist(err)
+	if err != nil {
+		return !errors.Is(err, os.ErrNotExist)
+	}
+	return true
 }
