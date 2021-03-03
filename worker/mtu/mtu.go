@@ -3,18 +3,18 @@ package mtu
 import (
 	"fmt"
 	"net"
-	"strings"
 )
 
 func MTU(ipAddr string) (int, error) {
-	networkIface, err := findNetworkInterface(ipAddr)
+	ip := net.ParseIP(ipAddr)
+	networkIface, err := findNetworkInterface(ip)
 	if err != nil {
 		return 0, err
 	}
 	return networkIface.MTU, nil
 }
 
-func findNetworkInterface(ipAddr string) (net.Interface, error) {
+func findNetworkInterface(ip net.IP) (net.Interface, error) {
 	networkIfaces, err := net.Interfaces()
 	if err != nil {
 		return net.Interface{}, err
@@ -24,16 +24,20 @@ func findNetworkInterface(ipAddr string) (net.Interface, error) {
 		if err != nil {
 			return net.Interface{}, err
 		}
-		if contains(addrs, ipAddr) {
+		if contains(addrs, ip) {
 			return networkIface, nil
 		}
 	}
-	return net.Interface{}, fmt.Errorf("no interface found for address %s", ipAddr)
+	return net.Interface{}, fmt.Errorf("no interface found for address %s", ip)
 }
 
-func contains(addresses []net.Addr, ip string) bool {
+func contains(addresses []net.Addr, ip net.IP) bool {
 	for _, address := range addresses {
-		if strings.HasPrefix(address.String(), ip+"/") {
+		_, cidr, err := net.ParseCIDR(address.String())
+		if err != nil {
+			continue
+		}
+		if cidr.Contains(ip) {
 			return true
 		}
 	}
