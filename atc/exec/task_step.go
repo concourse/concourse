@@ -74,6 +74,9 @@ type TaskDelegate interface {
 	Finished(lager.Logger, ExitStatus, worker.ContainerPlacementStrategy, worker.Client)
 	SelectedWorker(lager.Logger, string)
 	Errored(lager.Logger, string)
+
+	IncreaseActiveTasks(worker.Client) error
+	DecreaseActiveTasks(worker.Client) error
 }
 
 // TaskStep executes a TaskConfig, whose inputs will be fetched from the
@@ -266,6 +269,18 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 	}
 	delegate.SelectedWorker(logger, chosenWorker.Name())
 
+	err = delegate.IncreaseActiveTasks(chosenWorker)
+	if err != nil {
+		logger.Error("failed-to-increase-active-tasks", err)
+	}
+
+	defer func() {
+		err = delegate.DecreaseActiveTasks(chosenWorker)
+		if err != nil {
+			logger.Error("failed-to-decrease-active-tasks", err)
+		}
+	}()
+
 	result, runErr := chosenWorker.RunTaskStep(
 		lagerctx.NewContext(processCtx, logger),
 		owner,
@@ -294,6 +309,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 	}
 
 	delegate.Finished(logger, ExitStatus(result.ExitStatus), step.strategy, chosenWorker)
+
 	return result.ExitStatus == 0, nil
 }
 

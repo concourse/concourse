@@ -219,6 +219,18 @@ var _ = Describe("TaskStep", func() {
 				Expect(workerName).To(Equal("some-worker"))
 			})
 
+			It("increases active tasks", func() {
+				Expect(fakeDelegate.IncreaseActiveTasksCallCount()).To(Equal(1))
+				workerName := fakeDelegate.IncreaseActiveTasksArgsForCall(0)
+				Expect(workerName).To(Equal("some-worker"))
+			})
+
+			It("decreases active tasks", func() {
+				Expect(fakeDelegate.DecreaseActiveTasksCallCount()).To(Equal(1))
+				workerName := fakeDelegate.DecreaseActiveTasksArgsForCall(0)
+				Expect(workerName).To(Equal("some-worker"))
+			})
+
 			Context("when tags are configured", func() {
 				BeforeEach(func() {
 					taskPlan.Tags = atc.Tags{"plan", "tags"}

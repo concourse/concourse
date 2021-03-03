@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"fmt"
 	"io"
 
 	"code.cloudfoundry.org/clock"
@@ -101,4 +102,33 @@ func (d *taskDelegate) Finished(
 	}
 
 	logger.Info("finished", lager.Data{"exit-status": exitStatus})
+}
+
+func (d *taskDelegate) IncreaseActiveTasks(worker worker.Client) error {
+	dbWorker, err := d.findDBWorker(worker.Name())
+	if err != nil {
+		return err
+	}
+
+	return dbWorker.IncreaseActiveTasks()
+}
+
+func (d *taskDelegate) DecreaseActiveTasks(worker worker.Client) error {
+	dbWorker, err := d.findDBWorker(worker.Name())
+	if err != nil {
+		return err
+	}
+
+	return dbWorker.DecreaseActiveTasks()
+}
+
+func (d taskDelegate) findDBWorker(name string) (db.Worker, error) {
+	dbWorker, found, err := d.dbWorkerFactory.GetWorker(name)
+	if err != nil {
+		return nil, err
+	}
+	if !found {
+		return nil, fmt.Errorf("chosen worker %s is no longer available", name)
+	}
+	return dbWorker, nil
 }

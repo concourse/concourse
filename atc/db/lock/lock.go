@@ -19,7 +19,6 @@ const (
 	LockTypeVolumeCreating
 	LockTypeContainerCreating
 	LockTypeDatabaseMigration
-	LockTypeActiveTasks
 	LockTypeResourceScanning
 	LockTypeJobScheduling
 )
@@ -44,10 +43,6 @@ func NewVolumeCreatingLockID(volumeID int) LockID {
 
 func NewDatabaseMigrationLockID() LockID {
 	return LockID{LockTypeDatabaseMigration}
-}
-
-func NewActiveTasksLockID() LockID {
-	return LockID{LockTypeActiveTasks}
 }
 
 func NewResourceScanningLockID() LockID {
