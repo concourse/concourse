@@ -1,9 +1,51 @@
 package flag
 
 import (
+	"fmt"
 	"net/url"
 	"strings"
 )
+
+type URLs []URL
+
+// Can be removed once flags are deprecated
+func (u *URLs) Set(value string) error {
+	unparsedURLs := strings.Split(value, ",")
+
+	var parsedURLs URLs
+	for _, unparsedURL := range unparsedURLs {
+		value = strings.TrimRight(unparsedURL, "/")
+		parsedURL, err := url.Parse(value)
+		if err != nil {
+			return err
+		}
+
+		parsedURLs = append(parsedURLs, URL{parsedURL})
+	}
+
+	u = &parsedURLs
+
+	return nil
+}
+
+// Can be removed once flags are deprecated
+func (u *URLs) String() string {
+	if u == nil {
+		return ""
+	}
+
+	var urlsString string
+	for _, parsedURL := range *u {
+		urlsString = fmt.Sprintf("%s,%s", urlsString, parsedURL.String())
+	}
+
+	return urlsString
+}
+
+// Can be removed once flags are deprecated
+func (u *URLs) Type() string {
+	return "URLs"
+}
 
 type URL struct {
 	*url.URL

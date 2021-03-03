@@ -499,3 +499,41 @@ func (t *StreamingArtifactsCompressionTest) TestStreamingArtifactsCompressionVal
 		s.Contains(fmt.Sprintf("%v", err.(validator.ValidationErrors).Translate(trans.trans)), atccmd.ValidationErrSAC)
 	}
 }
+
+type LogLevelsTest struct {
+	Title    string
+	LogLevel string
+	Valid    bool
+}
+
+var LogLevelsTests = []LogLevelsTest{
+	{
+		Title:    "log level valid choice",
+		LogLevel: "debug",
+		Valid:    true,
+	},
+	{
+		Title:    "log level invalid choice",
+		LogLevel: "invalid-log-level",
+		Valid:    false,
+	},
+}
+
+func (t *LogLevelsTest) TestLogLevelValidator(s *ValidatorTestSuite, trans transHelper) {
+	testStruct := struct {
+		LogLevel string `validate:"log_level"`
+	}{
+		LogLevel: t.LogLevel,
+	}
+
+	validate := validator.New()
+	validate.RegisterValidation("log_level", atccmd.ValidateLogLevel)
+	trans.RegisterTranslation(validate, "log_level", atccmd.ValidationErrLogLevel)
+
+	err := validate.Struct(testStruct)
+	if t.Valid {
+		s.Assert().NoError(err)
+	} else {
+		s.Contains(fmt.Sprintf("%v", err.(validator.ValidationErrors).Translate(trans.trans)), atccmd.ValidationErrLogLevel)
+	}
+}

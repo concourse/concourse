@@ -22,8 +22,6 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/flag"
 	"github.com/concourse/concourse/tsa"
-	cflag "github.com/concourse/flag"
-	"github.com/dgrijalva/jwt-go"
 	"github.com/spf13/cobra"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
@@ -34,38 +32,48 @@ import (
 	"golang.org/x/oauth2/clientcredentials"
 )
 
+// IMPORTANT! The env tags are only added for backwards compatibility sake. Any
+// new fields do NOT require the env tag
 type TSACommand struct {
-	Logger cflag.Lager
+	Logger flag.Lager
 
-	BindIP      flag.IP `yaml:"bind_ip"`
-	PeerAddress string  `yaml:"peer_address"`
-	BindPort    uint16  `yaml:"bind_port"`
+	BindIP      flag.IP `yaml:"bind_ip" env:"CONCOURSE_WORKER_GATEWAY_BIND_IP,CONCOURSE_TSA_BIND_IP"`
+	PeerAddress string  `yaml:"peer_address" env:"CONCOURSE_WORKER_GATEWAY_PEER_ADDRESS,CONCOURSE_TSA_PEER_ADDRESS"`
+	BindPort    uint16  `yaml:"bind_port" env:"CONCOURSE_WORKER_GATEWAY_BIND_PORT,CONCOURSE_TSA_BIND_PORT"`
 
-	Debug struct {
-		BindIP   flag.IP `yaml:"bind_ip"`
-		BindPort uint16  `yaml:"bind_port"`
-	} `yaml:"debug"`
+	Debug DebugConfig `yaml:"debug"`
 
-	HostKey                *flag.PrivateKey  `yaml:"host_key" validate:"required"`
-	AuthorizedKeys         string            `yaml:"authorized_keys"`
-	TeamAuthorizedKeys     map[string]string `yaml:"team_authorized_keys"`
-	TeamAuthorizedKeysFile string            `yaml:"team_authorized_keys_file" validate:"file"`
+	HostKey                *flag.PrivateKey       `yaml:"host_key" validate:"required" env:"CONCOURSE_WORKER_GATEWAY_HOST_KEY,CONCOURSE_TSA_HOST_KEY"`
+	AuthorizedKeys         flag.AuthorizedKeys    `yaml:"authorized_keys" env:"CONCOURSE_WORKER_GATEWAY_AUTHORIZED_KEYS,CONCOURSE_TSA_AUTHORIZED_KEYS"`
+	TeamAuthorizedKeys     flag.AuthorizedKeysMap `yaml:"team_authorized_keys" env:"CONCOURSE_WORKER_GATEWAY_TEAM_AUTHORIZED_KEYS,CONCOURSE_TSA_TEAM_AUTHORIZED_KEYS"`
+	TeamAuthorizedKeysFile flag.File              `yaml:"team_authorized_keys_file" env:"CONCOURSE_WORKER_GATEWAY_TEAM_AUTHORIZED_KEYS_FILE,CONCOURSE_TSA_TEAM_AUTHORIZED_KEYS_FILE"`
 
-	ATCURLs []string `yaml:"atc_url" validate:"dive,url"`
+	ATCURLs flag.URLs `yaml:"atc_url" env:"CONCOURSE_WORKER_GATEWAY_ATC_URL,CONCOURSE_TSA_ATC_URL"`
 
-	ClientID     string   `yaml:"client_id"`
-	ClientSecret string   `yaml:"client_secret"`
-	TokenURL     string   `yaml:"token_url" validate:"url"`
-	Scopes       []string `yaml:"scope"`
+	ClientID     string   `yaml:"client_id" env:"CONCOURSE_WORKER_GATEWAY_CLIENT_ID,CONCOURSE_TSA_CLIENT_ID"`
+	ClientSecret string   `yaml:"client_secret" env:"CONCOURSE_WORKER_GATEWAY_CLIENT_SECRET,CONCOURSE_TSA_CLIENT_SECRET"`
+	TokenURL     flag.URL `yaml:"token_url" env:"CONCOURSE_WORKER_GATEWAY_TOKEN_URL,CONCOURSE_TSA_TOKEN_URL"`
+	Scopes       []string `yaml:"scope" env:"CONCOURSE_WORKER_GATEWAY_SCOPE,CONCOURSE_TSA_SCOPE"`
 
-	HeartbeatInterval    time.Duration `yaml:"heartbeat_interval"`
-	GardenRequestTimeout time.Duration `long:"garden-request-timeout" default:"5m" description:"How long to wait for requests to Garden to complete. 0 means no timeout."`
+	HeartbeatInterval    time.Duration `yaml:"heartbeat_interval" env:"CONCOURSE_WORKER_GATEWAY_HEARTBEAT_INTERVAL,CONCOURSE_TSA_HEARTBEAT_INTERVAL"`
+	GardenRequestTimeout time.Duration `yaml:"garden_request_timeout" env:"CONCOURSE_WORKER_GATEWAY_GARDEN_REQUEST_TIMEOUT,CONCOURSE_TSA_GARDEN_REQUEST_TIMEOUT"`
 
-	ClusterName    string `yaml:"cluster_name"`
-	LogClusterName bool   `yaml:"log_cluster_name"`
+	ClusterName    string `yaml:"cluster_name" env:"CONCOURSE_WORKER_GATEWAY_CLUSTER_NAME,CONCOURSE_TSA_CLUSTER_NAME"`
+	LogClusterName bool   `yaml:"log_cluster_name" env:"CONCOURSE_WORKER_GATEWAY_LOG_CLUSTER_NAME,CONCOURSE_TSA_LOG_CLUSTER_NAME"`
 }
 
+type DebugConfig struct {
+	BindIP   flag.IP `yaml:"bind_ip" env:"CONCOURSE_WORKER_GATEWAY_DEBUG_BIND_IP,CONCOURSE_TSA_DEBUG_BIND_IP"`
+	BindPort uint16  `yaml:"bind_port" env:"CONCOURSE_WORKER_GATEWAY_DEBUG_BIND_PORT,CONCOURSE_TSA_DEBUG_BIND_PORT"`
+}
+
+// These flags can be deleted once we fully deprecate flags.
+//
+// IMPORTANT!! No new config fields need to be added to this! These are only
+// for backwards compatibility.
 func InitializeFlagsDEPRECATED(c *cobra.Command, flags *TSACommand) {
+	c.Flags().StringVar(&flags.Logger.LogLevel, "tsa-log-level", "info", "Minimum level of logs to see.")
+
 	c.Flags().Var(&flags.BindIP, "tsa-bind-ip", "IP address on which to listen for SSH.")
 	c.Flags().Uint16Var(&flags.BindPort, "tsa-bind-port", 2222, "Port on which to listen for SSH.")
 	c.Flags().StringVar(&flags.PeerAddress, "tsa-peer-address", "127.0.0.1", "Network address of this web node, reachable by other web nodes. Used for forwarded worker addresses.")
@@ -74,63 +82,39 @@ func InitializeFlagsDEPRECATED(c *cobra.Command, flags *TSACommand) {
 	c.Flags().Uint16Var(&flags.Debug.BindPort, "tsa-debug-bind-port", 2221, "Port on which to listen for the pprof debugger endpoints.")
 
 	c.Flags().Var(flags.HostKey, "tsa-host-key", "Path to private key to use for the SSH server.")
-	c.Flags().StringVar(&flags.AuthorizedKeys, "tsa-authorized-keys", "", "Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line).")
-	c.Flags().StringToStringVar(&flags.TeamAuthorizedKeys, "tsa-team-authorized-keys", nil, "Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line).")
-	c.Flags().StringVar(&flags.TeamAuthorizedKeysFile, "tsa-team-authorized-keys-file", "", "Path to file containing a YAML array of teams and their authorized SSH keys, e.g. [{team:foo,ssh_keys:[key1,key2]}].")
+	c.Flags().Var(&flags.AuthorizedKeys, "tsa-authorized-keys", "Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line).")
+	c.Flags().Var(&flags.TeamAuthorizedKeys, "tsa-team-authorized-keys", "Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line).")
+	c.Flags().Var(&flags.TeamAuthorizedKeysFile, "tsa-team-authorized-keys-file", "Path to file containing a YAML array of teams and their authorized SSH keys, e.g. [{team:foo,ssh_keys:[key1,key2]}].")
 
-	c.Flags().StringArrayVar(&flags.ATCURLs, "tsa-atc-url", nil, "ATC API endpoints to which workers will be registered.")
+	c.Flags().Var(&flags.ATCURLs, "tsa-atc-url", "ATC API endpoints to which workers will be registered.")
 
 	c.Flags().StringVar(&flags.ClientID, "tsa-client-id", "concourse-worker", "Client used to fetch a token from the auth server. NOTE: if you change this value you will also need to change the --system-claim-value flag so the atc knows to allow requests from this client.")
 	c.Flags().StringVar(&flags.ClientSecret, "tsa-client-secret", "", "Client used to fetch a token from the auth server")
-	c.Flags().StringVar(&flags.TokenURL, "tsa-token-url", "", "Token endpoint of the auth server")
+	c.Flags().Var(&flags.TokenURL, "tsa-token-url", "Token endpoint of the auth server")
 	c.Flags().StringArrayVar(&flags.Scopes, "tsa-scope", nil, "Scopes to request from the auth server")
 
 	c.Flags().DurationVar(&flags.HeartbeatInterval, "tsa-heartbeat-interval", 30*time.Second, "interval on which to heartbeat workers to the ATC")
+	c.Flags().DurationVar(&flags.GardenRequestTimeout, "garden-request-timeout", 5*time.Minute, "How long to wait for requests to Garden to complete. 0 means no timeout.")
 
 	c.Flags().StringVar(&flags.ClusterName, "tsa-cluster-name", "", "A name for this Concourse cluster, to be displayed on the dashboard page.")
 	c.Flags().BoolVar(&flags.LogClusterName, "tsa-log-cluster-name", false, "Log cluster name.")
 }
 
-func SetDefaults(cmd *TSACommand) {
-	cmd.BindIP = flag.IP{net.ParseIP("0.0.0.0")}
-	cmd.PeerAddress = "127.0.0.1"
-	cmd.BindPort = 2222
+var CmdDefaults = TSACommand{
+	BindIP:      flag.IP{net.ParseIP("0.0.0.0")},
+	PeerAddress: "127.0.0.1",
+	BindPort:    2222,
 
-	cmd.Debug.BindIP = flag.IP{net.ParseIP("127.0.0.1")}
-	cmd.Debug.BindPort = 2221
+	Debug: DebugConfig{
+		BindIP:   flag.IP{net.ParseIP("127.0.0.1")},
+		BindPort: 2221,
+	},
 
-	cmd.ClientID = "concourse-worker"
+	ClientID: "concourse-worker",
 
-	cmd.HeartbeatInterval = 30 * time.Second
+	HeartbeatInterval:    30 * time.Second,
+	GardenRequestTimeout: 5 * time.Minute,
 }
-
-// type TSACommand struct {
-// 	Logger flag.Lager
-
-// 	BindIP      flag.IP `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for SSH."`
-// 	PeerAddress string  `long:"peer-address" default:"127.0.0.1" description:"Network address of this web node, reachable by other web nodes. Used for forwarded worker addresses."`
-// 	BindPort    uint16  `long:"bind-port" default:"2222"    description:"Port on which to listen for SSH."`
-
-// 	DebugBindIP   flag.IP `long:"debug-bind-ip"   default:"127.0.0.1" description:"IP address on which to listen for the pprof debugger endpoints."`
-// 	DebugBindPort uint16  `long:"debug-bind-port" default:"2221"      description:"Port on which to listen for the pprof debugger endpoints."`
-
-// 	HostKey                *flag.PrivateKey               `long:"host-key"        required:"true" description:"Path to private key to use for the SSH server."`
-// 	AuthorizedKeys         flag.AuthorizedKeys            `long:"authorized-keys" description:"Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line)."`
-// 	TeamAuthorizedKeys     map[string]flag.AuthorizedKeys `long:"team-authorized-keys" value-name:"NAME:PATH" description:"Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line)."`
-// TeamAuthorizedKeysFile flag.File                      `long:"team-authorized-keys-file" description:"Path to file containing a YAML array of teams and their authorized SSH keys, e.g. [{team:foo,ssh_keys:[key1,key2]}]."`
-
-// 	ATCURLs []flag.URL `long:"atc-url" required:"true" description:"ATC API endpoints to which workers will be registered."`
-
-// 	ClientID     string   `long:"client-id" default:"concourse-worker" description:"Client used to fetch a token from the auth server. NOTE: if you change this value you will also need to change the --system-claim-value flag so the atc knows to allow requests from this client."`
-// 	ClientSecret string   `long:"client-secret" required:"true" description:"Client used to fetch a token from the auth server"`
-// 	TokenURL     flag.URL `long:"token-url" required:"true" description:"Token endpoint of the auth server"`
-// 	Scopes       []string `long:"scope" description:"Scopes to request from the auth server"`
-
-// 	HeartbeatInterval time.Duration `long:"heartbeat-interval" default:"30s" description:"interval on which to heartbeat workers to the ATC"`
-
-// 	ClusterName    string `long:"cluster-name" description:"A name for this Concourse cluster, to be displayed on the dashboard page."`
-// 	LogClusterName bool   `long:"log-cluster-name" description:"Log cluster name."`
-// }
 
 type TeamAuthKeys struct {
 	Team     string
@@ -282,7 +266,7 @@ func (cmd *TSACommand) loadTeamAuthorizedKeys() ([]TeamAuthKeys, error) {
 
 	// load TeamAuthorizedKeysFile
 	if cmd.TeamAuthorizedKeysFile != "" {
-		teamAuthorizedKeysAbs, err := filepath.Abs(cmd.TeamAuthorizedKeysFile)
+		teamAuthorizedKeysAbs, err := filepath.Abs(cmd.TeamAuthorizedKeysFile.Path())
 		if err != nil {
 			return nil, fmt.Errorf("failed to get absolute path from team authorized keys file: %s", err)
 		}
@@ -354,17 +338,7 @@ func (cmd *TSACommand) configureSSHServer(sessionAuthTeam *sessionTeam, authoriz
 		},
 	}
 
-	rsaKeyBlob, err := ioutil.ReadFile(cmd.HostKey)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read private key file (%s): %s", cmd.HostKey, err)
-	}
-
-	hostKey, err := jwt.ParseRSAPrivateKeyFromPEM(rsaKeyBlob)
-	if err != nil {
-		return nil, err
-	}
-
-	signer, err := ssh.NewSignerFromKey(hostKey)
+	signer, err := ssh.NewSignerFromKey(cmd.HostKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create signer from host key: %s", err)
 	}

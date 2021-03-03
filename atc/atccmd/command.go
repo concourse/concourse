@@ -168,6 +168,8 @@ type TLSConfig struct {
 	CaCert   flag.File `yaml:"ca_cert,omitempty"`
 }
 
+// IMPORTANT! The env tags are only added for backwards compatibility sake. Any
+// new fields do NOT require the env tag
 type LetsEncryptConfig struct {
 	Enable  bool     `yaml:"enable,omitempty" env:"CONCOURSE_ENABLE_LETS_ENCRYPT,CONCOURSE_LETS_ENCRYPT_ENABLE"`
 	ACMEURL flag.URL `yaml:"acme_url,omitempty"`
@@ -200,6 +202,8 @@ type DebugConfig struct {
 	BindPort uint16 `yaml:"bind_port,omitempty"`
 }
 
+// IMPORTANT! The env tags are only added for backwards compatibility sake. Any
+// new fields do NOT require the env tag
 type ResourceCheckingConfig struct {
 	ScannerInterval            time.Duration `yaml:"scanner_interval,omitempty" env:"CONCOURSE_RESOURCE_CHECKING_SCANNER_INTERVAL,CONCOURSE_LIDAR_SCANNER_INTERVAL"`
 	Timeout                    time.Duration `yaml:"timeout,omitempty" env:"CONCOURSE_RESOURCE_CHECKING_TIMEOUT,CONCOURSE_GLOBAL_RESOURCE_CHECK_TIMEOUT"`
@@ -221,6 +225,8 @@ type RuntimeConfig struct {
 	GardenRequestTimeout              time.Duration `yaml:"garden_request_timeout,omitempty"`
 }
 
+// IMPORTANT! The env tags are only added for backwards compatibility sake. Any
+// new fields do NOT require the env tag
 type MetricsConfig struct {
 	HostName            string            `yaml:"host_name,omitempty"`
 	Attributes          map[string]string `yaml:"attributes,omitempty"`
@@ -242,6 +248,8 @@ type PolicyCheckersConfig struct {
 	Filter policy.Filter `yaml:"filter,omitempty"`
 }
 
+// IMPORTANT! The env tags are only added for backwards compatibility sake. Any
+// new fields do NOT require the env tag
 type ServerConfig struct {
 	XFrameOptions string `yaml:"x_frame_options,omitempty" env:"CONCOURSE_WEB_SERVER_X_FRAME_OPTIONS,CONCOURSE_X_FRAME_OPTIONS"`
 	ClusterName   string `yaml:"cluster_name,omitempty" env:"CONCOURSE_WEB_SERVER_CLUSTER_NAME,CONCOURSE_CLUSTER_NAME"`
@@ -265,6 +273,8 @@ type GCConfig struct {
 	VarSourceRecyclePeriod time.Duration `yaml:"var_source_recycle_period,omitempty"`
 }
 
+// IMPORTANT! The env tags are only added for backwards compatibility sake. Any
+// new fields do NOT require the env tag
 type BuildLogRetentionConfig struct {
 	Default uint64 `yaml:"default,omitempty" env:"CONCOURSE_BUILD_LOG_RETENTION_DEFAULT,CONCOURSE_DEFAULT_BUILD_LOGS_TO_RETAIN"`
 	Max     uint64 `yaml:"max,omitempty" env:"CONCOURSE_BUILD_LOG_RETENTION_MAX,CONCOURSE_MAX_BUILD_LOGS_TO_RETAIN"`
@@ -273,6 +283,8 @@ type BuildLogRetentionConfig struct {
 	MaxDays     uint64 `yaml:"max_days,omitempty" env:"CONCOURSE_BUILD_LOG_RETENTION_MAX_DAYS,CONCOURSE_MAX_DAYS_TO_RETAIN_BUILD_LOGS"`
 }
 
+// IMPORTANT! The env tags are only added for backwards compatibility sake. Any
+// new fields do NOT require the env tag
 type AuditorConfig struct {
 	EnableBuildAuditLog     bool `yaml:"enable_build,omitempty" env:"CONCOURSE_AUDITING_ENABLE_BUILD,CONCOURSE_ENABLE_BUILD_AUDITING"`
 	EnableContainerAuditLog bool `yaml:"enable_container,omitempty" env:"CONCOURSE_AUDITING_ENABLE_CONTAINER,CONCOURSE_ENABLE_CONTAINER_AUDITING"`

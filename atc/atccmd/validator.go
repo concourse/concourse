@@ -18,32 +18,29 @@ import (
 )
 
 var (
-	ValidationErrParseURL     = "url is invalid"
-	ValidationErrLimitedRoute = fmt.Sprintf("Not a valid route to limit. Valid routes include %v.", wrappa.SupportedActions)
-
+	ValidationErrParseURL          = "url is invalid"
+	ValidationErrLimitedRoute      = fmt.Sprintf("Not a valid route to limit. Valid routes include %v.", wrappa.SupportedActions)
 	ValidationErrEmptyTLSBindPort  = "must specify tls.bind_port to use TLS"
 	ValidationErrEnableLetsEncrypt = "cannot specify lets_encrypt.enable if tls.cert or tls.key are set"
 	ValidationErrTLSCertKey        = "must specify HTTPS external-url to use TLS"
 	ValidationErrTLS               = "must specify tls.cert and tls.key, or lets_encrypt.enable to use TLS"
-
-	ValidationErrRBAC = "unknown rbac role or action defined in the config rbac file provided"
-
-	ValidationErrCPS = fmt.Sprintf("Not a valid list of container placement strategies. Valid strategies include %v.", atc.ValidContainerPlacementStrategies)
-	ValidationErrSAC = fmt.Sprintf("Not a valid streaming artifacts compression. Valid options include %v.", atc.ValidStreamingArtifactsCompressions)
+	ValidationErrRBAC              = "unknown rbac role or action defined in the config rbac file provided"
+	ValidationErrCPS               = fmt.Sprintf("Not a valid list of container placement strategies. Valid strategies include %v.", atc.ValidContainerPlacementStrategies)
+	ValidationErrSAC               = fmt.Sprintf("Not a valid streaming artifacts compression. Valid options include %v.", atc.ValidStreamingArtifactsCompressions)
+	ValidationErrLogLevel          = fmt.Sprintf("Not a valid log level. Valid options include %v.", flag.ValidLogLevels)
 )
 
 func NewValidator(trans ut.Translator) *validator.Validate {
 	validate := validator.New()
-
 	en_translations.RegisterDefaultTranslations(validate, trans)
 
-	// XXX: Can we have better error messages for these?
 	validate.RegisterStructValidation(ValidateURL, flag.URL{})
 	validate.RegisterStructValidation(ValidateTLSOrLetsEncrypt, TLSConfig{})
 	validate.RegisterValidation("limited_route", ValidateLimitedRoute)
 	validate.RegisterValidation("rbac", ValidateRBAC)
 	validate.RegisterValidation("cps", ValidateContainerPlacementStrategy)
 	validate.RegisterValidation("sac", ValidateStreamingArtifactsCompression)
+	validate.RegisterValidation("log_level", ValidateLogLevel)
 
 	ve := NewValidatorErrors(validate, trans)
 	ve.SetupErrorMessages()
@@ -64,8 +61,6 @@ func NewValidatorErrors(validate *validator.Validate, trans ut.Translator) *vali
 }
 
 func (v *validatorErrors) SetupErrorMessages() {
-	// TODO: REGISTER ERROR MESSAGE FO EACH TAG
-	// XXX: TEST THIS
 	v.RegisterTranslation("parseurl", ValidationErrParseURL)
 	v.RegisterTranslation("limited_route", ValidationErrLimitedRoute)
 	v.RegisterTranslation("tlsemptybindport", ValidationErrEmptyTLSBindPort)
@@ -73,6 +68,9 @@ func (v *validatorErrors) SetupErrorMessages() {
 	v.RegisterTranslation("tlsexternalurl", ValidationErrTLSCertKey)
 	v.RegisterTranslation("tlsorletsencrypt", ValidationErrTLS)
 	v.RegisterTranslation("rbac", ValidationErrRBAC)
+	v.RegisterTranslation("cps", ValidationErrCPS)
+	v.RegisterTranslation("sac", ValidationErrSAC)
+	v.RegisterTranslation("log_level", ValidationErrLogLevel)
 }
 
 func (v *validatorErrors) RegisterTranslation(validationName string, errorString string) {
@@ -213,6 +211,17 @@ func ValidateContainerPlacementStrategy(field validator.FieldLevel) bool {
 func ValidateStreamingArtifactsCompression(field validator.FieldLevel) bool {
 	value := field.Field().String()
 	for _, validChoice := range atc.ValidStreamingArtifactsCompressions {
+		if value == string(validChoice) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func ValidateLogLevel(field validator.FieldLevel) bool {
+	value := field.Field().String()
+	for _, validChoice := range flag.ValidLogLevels {
 		if value == string(validChoice) {
 			return true
 		}

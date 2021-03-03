@@ -28,12 +28,6 @@ import (
 var configFile string
 var webCmd Web
 
-// type WebCommand struct {
-// 	PeerAddress string `long:"peer-address" default:"127.0.0.1" description:"Network address of this web node, reachable by other web nodes. Used for forwarded worker addresses."`
-
-// 	*atccmd.RunConfig
-// 	*tsacmd.TSACommand `group:"TSA Configuration" namespace:"tsa"`
-// }
 var WebCommand = &cobra.Command{
 	Use:   "web",
 	Short: "TODO",
