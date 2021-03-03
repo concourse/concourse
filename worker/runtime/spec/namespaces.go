@@ -21,7 +21,10 @@ var (
 )
 
 func init() {
-	cgroupNamespacesEnabled()
+	if cgroupNamespacesSupported() {
+		UnprivilegedContainerNamespaces = append(UnprivilegedContainerNamespaces,
+			specs.LinuxNamespace{Type: specs.CgroupNamespace})
+	}
 }
 
 func OciNamespaces(privileged bool) []specs.LinuxNamespace {
@@ -32,11 +35,7 @@ func OciNamespaces(privileged bool) []specs.LinuxNamespace {
 	return PrivilegedContainerNamespaces
 }
 
-func cgroupNamespacesEnabled() {
-	if _, err := os.Stat("/proc/self/ns/cgroup"); os.IsNotExist(err) {
-		return
-	}
-
-	UnprivilegedContainerNamespaces = append(UnprivilegedContainerNamespaces,
-		specs.LinuxNamespace{Type: specs.CgroupNamespace})
+func cgroupNamespacesSupported() bool {
+	_, err := os.Stat("/proc/self/ns/cgroup")
+	return !os.IsNotExist(err)
 }
