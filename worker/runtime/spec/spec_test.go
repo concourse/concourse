@@ -362,6 +362,9 @@ func (s *SpecSuite) TestContainerSpec() {
 				s.Equal([]string{"/tmp/gdn-init"}, oci.Process.Args)
 				s.Equal(oci.Mounts, spec.ContainerMounts(false, spec.DefaultInitBinPath))
 
+				s.Equal("/tmp/gdn-init", oci.Mounts[len(oci.Mounts)-1].Destination,
+					"gdn-init mount should be mounted after all the other default mounts")
+
 				s.Equal(minimalContainerSpec.Handle, oci.Hostname)
 				s.Equal(spec.AnyContainerDevices, oci.Linux.Resources.Devices)
 			},
@@ -377,12 +380,6 @@ func (s *SpecSuite) TestContainerSpec() {
 					Destination: "/sys",
 					Type:        "sysfs",
 					Source:      "sysfs",
-					Options:     []string{"nosuid", "noexec", "nodev"},
-				})
-				s.Contains(oci.Mounts, specs.Mount{
-					Destination: "/sys/fs/cgroup",
-					Type:        "cgroup",
-					Source:      "cgroup",
 					Options:     []string{"nosuid", "noexec", "nodev"},
 				})
 				s.Contains(oci.Mounts, specs.Mount{
