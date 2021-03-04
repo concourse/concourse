@@ -18,6 +18,15 @@ import (
 	"github.com/hashicorp/go-multierror"
 )
 
+type ErrStreamingResourceCacheNotFound struct {
+	Handle          string
+	ResourceCacheId int
+}
+
+func (e ErrStreamingResourceCacheNotFound) Error() string {
+	return fmt.Sprintf("resource cache not found, id %d, volume handle %s", e.ResourceCacheId, e.Handle)
+}
+
 //go:generate counterfeiter . ArtifactSourcer
 
 type ArtifactSourcer interface {
@@ -171,24 +180,30 @@ func (source *artifactSource) StreamTo(
 	// Inc counter if no error occurred.
 	metric.Metrics.VolumesStreamed.Inc()
 
-	usedResourceCache, found, err := source.resourceCacheFactory.FindResourceCacheByID(source.volume.GetResourceCacheID())
-	if err != nil {
-		logger.Error("artifactSource-StreamTo-failed-to-find-resource-cache", err)
-		return nil
-	}
-	if !found {
-		logger.Info("artifactSource.StreamTo-not-find-resource-cache, this should not happen",
-			lager.Data{"rcId": source.volume.GetResourceCacheID(), "volumeHandle": source.volume.Handle()})
-		return nil
-	}
+	// If the source volume is a resource cache, then mark dest volume as a resource cache too.
+	if source.volume.GetResourceCacheID() > 0 {
+		usedResourceCache, found, err := source.resourceCacheFactory.FindResourceCacheByID(source.volume.GetResourceCacheID())
+		if err != nil {
+			logger.Error("stream-to-failed-to-find-resource-cache", err)
+			return err
+		}
+		if !found {
+			logger.Info("stream-to-not-find-resource-cache--should-not-happen",
+				lager.Data{"rcId": source.volume.GetResourceCacheID(), "volumeHandle": source.volume.Handle()})
+			return ErrStreamingResourceCacheNotFound{
+				Handle:          source.volume.Handle(),
+				ResourceCacheId: source.volume.GetResourceCacheID(),
+			}
+		}
 
-	err = destination.InitializeResourceCache(usedResourceCache)
-	if err != nil {
-		logger.Error("artifactSource.StreamTo-failed-init-resource-cache-on-dest-worker", err)
-		return nil
-	}
+		err = destination.InitializeResourceCache(usedResourceCache)
+		if err != nil {
+			logger.Error("stream-to-failed-init-resource-cache-on-dest-worker", err)
+			return err
+		}
 
-	metric.Metrics.StreamedResourceCaches.Inc()
+		metric.Metrics.StreamedResourceCaches.Inc()
+	}
 
 	return nil
 }
@@ -203,7 +218,6 @@ func (source *artifactSource) streamTo(
 	})
 	defer outSpan.End()
 	out, err := source.volume.StreamOut(ctx, ".", source.compression.Encoding())
-
 	if err != nil {
 		tracing.End(outSpan, err)
 		return err

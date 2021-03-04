@@ -127,6 +127,9 @@ var _ = Describe("StreamableArtifactSource", func() {
 		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 		comp = compression.NewGzipCompression()
 
+		fakeVolume.GetResourceCacheIDReturns(0)
+		fakeVolume.HandleReturns("some-volume-handle")
+
 		fakeDestVolume.WorkerNameReturns("dest-worker")
 		fakeDestVolume.HandleReturns("dest-handle")
 		fakeDestination.InitializeResourceCacheReturns(nil)
@@ -257,6 +260,93 @@ var _ = Describe("StreamableArtifactSource", func() {
 				Context("StreamP2pOut succeeds", func() {
 					It("does not return an err", func() {
 						Expect(streamToErr).ToNot(HaveOccurred())
+					})
+				})
+			})
+		})
+
+		Context("when successfully streamed the volume", func() {
+			BeforeEach(func() {
+				outStream := gbytes.NewBuffer()
+				fakeVolume.StreamOutReturns(outStream, nil)
+			})
+
+			Context("when source volume is not a resource cache", func() {
+				It("should not mark dest volume as resource cache", func() {
+					Expect(fakeResourceCacheFactory.FindResourceCacheByIDCallCount()).To(Equal(0))
+					Expect(fakeDestination.InitializeResourceCacheCallCount()).To(Equal(0))
+				})
+			})
+
+			Context("when source volume is a resource cache", func() {
+				BeforeEach(func() {
+					fakeVolume.GetResourceCacheIDReturns(1234)
+				})
+
+				It("should look for source resource cache", func() {
+					Expect(fakeResourceCacheFactory.FindResourceCacheByIDCallCount()).To(Equal(1))
+					Expect(fakeResourceCacheFactory.FindResourceCacheByIDArgsForCall(0)).To(Equal(1234))
+				})
+
+				Context("when fail to find source resource cache", func() {
+					BeforeEach(func() {
+						fakeResourceCacheFactory.FindResourceCacheByIDReturns(nil, false, disaster)
+					})
+
+					It("should fail with same error", func() {
+						Expect(streamToErr).To(HaveOccurred())
+						Expect(streamToErr).To(Equal(disaster))
+						Expect(fakeDestination.InitializeResourceCacheCallCount()).To(Equal(0))
+					})
+				})
+
+				Context("when source resource cache not found", func() {
+					BeforeEach(func() {
+						fakeResourceCacheFactory.FindResourceCacheByIDReturns(nil, false, nil)
+					})
+
+					It("should fail with same error", func() {
+						Expect(streamToErr).To(HaveOccurred())
+						Expect(streamToErr).To(Equal(worker.ErrStreamingResourceCacheNotFound{
+							Handle:          fakeVolume.Handle(),
+							ResourceCacheId: 1234,
+						}))
+						Expect(fakeDestination.InitializeResourceCacheCallCount()).To(Equal(0))
+					})
+				})
+
+				Context("when source resource cache is found", func() {
+					var fakeUrc *dbfakes.FakeUsedResourceCache
+
+					BeforeEach(func() {
+						fakeUrc = new(dbfakes.FakeUsedResourceCache)
+						fakeResourceCacheFactory.FindResourceCacheByIDReturns(fakeUrc, true, nil)
+					})
+
+					It("should mark dest volume as resource cache", func() {
+						Expect(fakeDestination.InitializeResourceCacheCallCount()).To(Equal(1))
+						Expect(fakeDestination.InitializeResourceCacheArgsForCall(0)).To(Equal(fakeUrc))
+					})
+
+					Context("fails to update destination as resource cache", func() {
+						BeforeEach(func() {
+							fakeDestination.InitializeResourceCacheReturns(disaster)
+						})
+
+						It("should fail with same error", func() {
+							Expect(streamToErr).To(HaveOccurred())
+							Expect(streamToErr).To(Equal(disaster))
+						})
+					})
+
+					Context("succeeds to update destination as resource cache", func() {
+						BeforeEach(func() {
+							fakeDestination.InitializeResourceCacheReturns(nil)
+						})
+
+						It("should fail with same error", func() {
+							Expect(streamToErr).ToNot(HaveOccurred())
+						})
 					})
 				})
 			})

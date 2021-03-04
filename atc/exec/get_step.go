@@ -192,7 +192,10 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 		return false, err
 	}
 
-	getResult, found, err := step.getFromLocalCache(ctx, logger, step.metadata.TeamID, resourceCache, workerSpec)
+	getResult, found, err := step.getFromLocalCache(logger, step.metadata.TeamID, resourceCache, workerSpec)
+	if err != nil {
+		return false, err
+	}
 	if found {
 		fmt.Fprintln(delegate.Stderr(), "\x1b[1;36mINFO: found resouce cache from local cache\x1b[0m")
 		fmt.Fprintln(delegate.Stderr(), "")
@@ -294,17 +297,13 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 }
 
 func (step *GetStep) getFromLocalCache(
-	ctx context.Context,
 	logger lager.Logger,
 	teamId int,
 	resourceCache db.UsedResourceCache,
 	workerSpec worker.WorkerSpec) (worker.GetResult, bool, error) {
-	volume, found, err := step.findResourceCache(logger, teamId, resourceCache, workerSpec)
-	if err != nil {
-		return worker.GetResult{}, false, err
-	}
+	volume, found := step.findResourceCache(logger, teamId, resourceCache, workerSpec)
 	if !found {
-		return worker.GetResult{}, false, err
+		return worker.GetResult{}, false, nil
 	}
 	metadata, err := resourceCache.LoadVersionMetadata()
 	if err != nil {
@@ -324,23 +323,23 @@ func (step *GetStep) findResourceCache(
 	logger lager.Logger,
 	teamId int,
 	resourceCache db.UsedResourceCache,
-	workerSpec worker.WorkerSpec) (worker.Volume, bool, error) {
+	workerSpec worker.WorkerSpec) (worker.Volume, bool) {
 	workers, err := step.workerPool.FindWorkersForResourceCache(logger, teamId, resourceCache.ID(), workerSpec)
 	if err != nil {
-		return nil, false, err
+		return nil, false
 	}
 
 	for _, sourceWorker := range workers {
 		volume, found, err := sourceWorker.FindVolumeForResourceCache(logger, resourceCache)
 		if err != nil {
-			logger.Error("ignore-error", err)
+			logger.Debug("ignore-error", lager.Data{"error": err})
 			continue
 		}
 		if !found {
 			continue
 		}
-		return volume, true, nil
+		return volume, true
 	}
 
-	return nil, false, nil
+	return nil, false
 }

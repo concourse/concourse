@@ -291,10 +291,12 @@ var _ = Describe("GetStep", func() {
 			Context("when load metadata fails", func() {
 				BeforeEach(func() {
 					fakeResourceCache.LoadVersionMetadataReturns(nil, errors.New("some-error"))
-					shouldRunGetStep = true
+					shouldRunGetStep = false
 				})
-				It("the error should be ignore, and run normal get step", func() {
-					// Do nothing here, JustBeforeEach() will check shouldRunGetStep
+
+				It("returns an err", func() {
+					Expect(stepErr).To(MatchError(ContainSubstring("some-error")))
+					Expect(stepOk).To(BeFalse())
 				})
 			})
 
