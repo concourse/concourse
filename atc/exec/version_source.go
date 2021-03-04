@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/runtime"
 )
 
 func NewVersionSourceFromPlan(getPlan *atc.GetPlan) VersionSource {
@@ -40,12 +39,12 @@ type DynamicVersionSource struct {
 }
 
 func (p *DynamicVersionSource) Version(state RunState) (atc.Version, error) {
-	var info runtime.VersionResult
-	if !state.Result(p.planID, &info) {
+	var version atc.Version
+	if !state.Result(p.planID, &version) {
 		return atc.Version{}, ErrResultMissing
 	}
 
-	return info.Version, nil
+	return version, nil
 }
 
 type EmptyVersionSource struct{}

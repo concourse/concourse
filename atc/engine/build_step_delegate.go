@@ -75,20 +75,6 @@ func (delegate *buildStepDelegate) StartSpan(
 	return tracing.StartSpan(ctx, component, attrs)
 }
 
-type credVarsIterator struct {
-	line string
-}
-
-func (it *credVarsIterator) YieldCred(name, value string) {
-	for _, lineValue := range strings.Split(value, "\n") {
-		lineValue = strings.TrimSpace(lineValue)
-		// Don't consider a single char as a secret.
-		if len(lineValue) > 1 {
-			it.line = strings.Replace(it.line, lineValue, "((redacted))", -1)
-		}
-	}
-}
-
 func (delegate *buildStepDelegate) Stdout() io.Writer {
 	if delegate.stdout != nil {
 		return delegate.stdout
@@ -483,4 +469,18 @@ func (delegate *buildStepDelegate) redactImageSource(source atc.Source) (atc.Sou
 		return source, err
 	}
 	return newSource, nil
+}
+
+type credVarsIterator struct {
+	line string
+}
+
+func (it *credVarsIterator) YieldCred(name, value string) {
+	for _, lineValue := range strings.Split(value, "\n") {
+		lineValue = strings.TrimSpace(lineValue)
+		// Don't consider a single char as a secret.
+		if len(lineValue) > 1 {
+			it.line = strings.Replace(it.line, lineValue, "((redacted))", -1)
+		}
+	}
 }

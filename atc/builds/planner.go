@@ -107,8 +107,8 @@ func (visitor *planVisitor) VisitGet(step *atc.GetStep) error {
 
 	var plan atc.PlanConfig
 	var imageFetchPlan atc.Plan
-	imageFetchPlan, getPlan.ImageSpecFrom, getPlan.BaseImageType = fetchImagePlan(visitor.planFactory, resource.Type, visitor.resourceTypes, step.Tags)
-	if getPlan.ImageSpecFrom != nil {
+	imageFetchPlan, getPlan.ImageFrom, getPlan.BaseImageType = fetchImagePlan(visitor.planFactory, resource.Type, visitor.resourceTypes, step.Tags)
+	if getPlan.ImageFrom != nil {
 		plan = atc.OnSuccessPlan{
 			Step: imageFetchPlan,
 			Next: visitor.planFactory.NewPlan(getPlan),
@@ -150,11 +150,11 @@ func (visitor *planVisitor) VisitPut(step *atc.PutStep) error {
 
 	var plan atc.Plan
 	var imageFetchPlan atc.Plan
-	imageFetchPlan, atcPutPlan.ImageSpecFrom, atcPutPlan.BaseImageType = fetchImagePlan(visitor.planFactory, resource.Type, visitor.resourceTypes, step.Tags)
+	imageFetchPlan, atcPutPlan.ImageFrom, atcPutPlan.BaseImageType = fetchImagePlan(visitor.planFactory, resource.Type, visitor.resourceTypes, step.Tags)
 
 	putPlan := visitor.planFactory.NewPlan(atcPutPlan)
 
-	if atcPutPlan.ImageSpecFrom != nil {
+	if atcPutPlan.ImageFrom != nil {
 		plan = visitor.planFactory.NewPlan(atc.OnSuccessPlan{
 			Step: imageFetchPlan,
 			Next: putPlan,
@@ -169,7 +169,7 @@ func (visitor *planVisitor) VisitPut(step *atc.PutStep) error {
 		Resource:    resourceName,
 		VersionFrom: &putPlan.ID,
 
-		ImageSpecFrom: putPlan.Put.ImageSpecFrom,
+		ImageFrom:     putPlan.Put.ImageFrom,
 		BaseImageType: putPlan.Put.BaseImageType,
 
 		Params: step.GetParams,
@@ -490,8 +490,8 @@ func (c *CheckPlanner) Create(checkable db.Checkable, versionedResourceTypes atc
 
 	var plan atc.Plan
 	var imageFetchPlan atc.Plan
-	imageFetchPlan, checkPlan.ImageSpecFrom, checkPlan.BaseImageType = fetchImagePlan(c.planFactory, checkable.Type(), checkPlan.VersionedResourceTypes, checkable.Tags())
-	if checkPlan.ImageSpecFrom != nil {
+	imageFetchPlan, checkPlan.ImageFrom, checkPlan.BaseImageType = fetchImagePlan(c.planFactory, checkable.Type(), checkPlan.VersionedResourceTypes, checkable.Tags())
+	if checkPlan.ImageFrom != nil {
 		plan = c.planFactory.NewPlan(atc.OnSuccessPlan{
 			Step: imageFetchPlan,
 			Next: c.planFactory.NewPlan(checkPlan),
@@ -525,7 +525,7 @@ func fetchImagePlan(planFactory atc.PlanFactory, resourceTypeName string, resour
 			Source: parentResourceType.Source,
 			Params: parentResourceType.Params,
 
-			ImageSpecFrom: subPlanID,
+			ImageFrom:     subPlanID,
 			BaseImageType: subBaseImageType,
 
 			VersionedResourceTypes: trimmedResourceTypes,
@@ -542,7 +542,7 @@ func fetchImagePlan(planFactory atc.PlanFactory, resourceTypeName string, resour
 				Type:   parentResourceType.Type,
 				Source: parentResourceType.Source,
 
-				ImageSpecFrom: subPlanID,
+				ImageFrom:     subPlanID,
 				BaseImageType: subBaseImageType,
 
 				VersionedResourceTypes: trimmedResourceTypes,

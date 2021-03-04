@@ -371,7 +371,7 @@ type GetPlan struct {
 
 	// Image of the container. One of these must be specified.
 	BaseImageType *string `json:"base_image_type,omitempty"`
-	ImageSpecFrom *PlanID `json:"image_spec_from,omitempty"`
+	ImageFrom     *PlanID `json:"image_from,omitempty"`
 
 	// The version of the resource to fetch. One of these must be specified.
 	Version     *Version `json:"version,omitempty"`
@@ -398,7 +398,7 @@ type PutPlan struct {
 
 	// Image of the container. One of these must be specified.
 	BaseImageType *string `json:"base_image_type,omitempty"`
-	ImageSpecFrom *PlanID `json:"image_spec_from,omitempty"`
+	ImageFrom     *PlanID `json:"image_from,omitempty"`
 
 	// Params to pass to the put operation.
 	Params Params `json:"params,omitempty"`
@@ -424,7 +424,7 @@ type CheckPlan struct {
 
 	// Image of the container. One of these must be specified.
 	BaseImageType *string `json:"base_image_type,omitempty"`
-	ImageSpecFrom *PlanID `json:"image_spec_from,omitempty"`
+	ImageFrom     *PlanID `json:"image_from,omitempty"`
 
 	// The version to check from. If not specified, defaults to the latest
 	// version of the config.
