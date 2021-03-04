@@ -40,6 +40,10 @@ func Render(dst io.Writer, src eventstream.EventStream, options RenderOptions) i
 			dstImpl.SetTimestamp(e.Time)
 			fmt.Fprintf(dstImpl, "%s", e.Payload)
 
+		case event.WaitingForWorker:
+			dstImpl.SetTimestamp(e.Time)
+			fmt.Fprintf(dstImpl, "\x1b[1mno suitable workers found, waiting for worker...\x1b[0m\n")
+
 		case event.SelectedWorker:
 			dstImpl.SetTimestamp(e.Time)
 			fmt.Fprintf(dstImpl, "\x1b[1mselected worker:\x1b[0m %s\n", e.WorkerName)

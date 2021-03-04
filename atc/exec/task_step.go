@@ -72,8 +72,10 @@ type TaskDelegate interface {
 	Initializing(lager.Logger)
 	Starting(lager.Logger)
 	Finished(lager.Logger, ExitStatus, worker.ContainerPlacementStrategy, worker.Client)
-	SelectedWorker(lager.Logger, string)
 	Errored(lager.Logger, string)
+
+	WaitingForWorker(lager.Logger)
+	SelectedWorker(lager.Logger, string)
 
 	IncreaseActiveTasks(worker.Client) error
 	DecreaseActiveTasks(worker.Client) error
@@ -263,6 +265,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 		containerSpec,
 		step.workerSpec(config),
 		step.strategy,
+		delegate,
 	)
 	if err != nil {
 		return false, err

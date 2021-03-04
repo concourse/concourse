@@ -54,7 +54,14 @@ type Pool interface {
 		ContainerSpec,
 		WorkerSpec,
 		ContainerPlacementStrategy,
+		PoolWaitCallbacks,
 	) (Client, time.Duration, error)
+}
+
+//go:generate counterfeiter . PoolWaitCallbacks
+
+type PoolWaitCallbacks interface {
+	WaitingForWorker(lager.Logger)
 }
 
 //go:generate counterfeiter . VolumeFinder
@@ -216,10 +223,12 @@ dance:
 
 	if worker == nil {
 		worker, err = strategy.Choose(logger, compatibleWorkers, containerSpec)
+
 		if err != nil {
 			return nil, err
 		}
 	}
+
 	return NewClient(worker), nil
 }
 
@@ -229,6 +238,7 @@ func (pool *pool) WaitForWorker(
 	containerSpec ContainerSpec,
 	workerSpec WorkerSpec,
 	strategy ContainerPlacementStrategy,
+	callbacks PoolWaitCallbacks,
 ) (Client, time.Duration, error) {
 	logger := lagerctx.FromContext(ctx)
 
@@ -245,10 +255,19 @@ func (pool *pool) WaitForWorker(
 	var worker Client
 	var waiting bool = false
 	for {
-		worker, err := pool.SelectWorker(ctx, owner, containerSpec, workerSpec, strategy)
+		var err error
+		worker, err = pool.SelectWorker(ctx, owner, containerSpec, workerSpec, strategy)
 
 		if err != nil {
-			return nil, 0, err
+			if errors.Is(err, ErrNoWorkers) {
+				// Could use these blocks to notify caller of the reason we're waiting
+			} else if errors.As(err, &NoCompatibleWorkersError{}) {
+				//
+			} else if errors.As(err, &NoWorkerFitContainerPlacementStrategyError{}) {
+				//
+			} else {
+				return nil, 0, err
+			}
 		}
 
 		if worker != nil {
@@ -263,6 +282,10 @@ func (pool *pool) WaitForWorker(
 
 			metric.Metrics.StepsWaiting[labels].Inc()
 			defer metric.Metrics.StepsWaiting[labels].Dec()
+
+			if callbacks != nil {
+				callbacks.WaitingForWorker(logger)
+			}
 
 			waiting = true
 		}

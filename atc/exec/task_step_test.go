@@ -158,7 +158,7 @@ var _ = Describe("TaskStep", func() {
 
 	expectWorkerSpecResourceTypeUnset := func() {
 		Expect(fakePool.WaitForWorkerCallCount()).To(Equal(1))
-		_, _, _, workerSpec, _ := fakePool.WaitForWorkerArgsForCall(0)
+		_, _, _, workerSpec, _, _ := fakePool.WaitForWorkerArgsForCall(0)
 		Expect(workerSpec.ResourceType).To(Equal(""))
 	}
 
@@ -210,7 +210,7 @@ var _ = Describe("TaskStep", func() {
 
 			JustBeforeEach(func() {
 				Expect(fakePool.WaitForWorkerCallCount()).To(Equal(1))
-				_, _, _, workerSpec, _ = fakePool.WaitForWorkerArgsForCall(0)
+				_, _, _, workerSpec, _, _ = fakePool.WaitForWorkerArgsForCall(0)
 			})
 
 			It("emits a SelectedWorker event", func() {

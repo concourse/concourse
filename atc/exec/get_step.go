@@ -54,8 +54,10 @@ type GetDelegate interface {
 	Initializing(lager.Logger)
 	Starting(lager.Logger)
 	Finished(lager.Logger, ExitStatus, runtime.VersionResult)
-	SelectedWorker(lager.Logger, string)
 	Errored(lager.Logger, string)
+
+	WaitingForWorker(lager.Logger)
+	SelectedWorker(lager.Logger, string)
 
 	UpdateVersion(lager.Logger, atc.GetPlan, runtime.VersionResult)
 }
@@ -219,6 +221,7 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 		containerSpec,
 		workerSpec,
 		step.strategy,
+		delegate,
 	)
 	if err != nil {
 		return false, err

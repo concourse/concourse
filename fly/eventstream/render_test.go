@@ -296,6 +296,28 @@ var _ = Describe("V1.0 Renderer", func() {
 		})
 	})
 
+	Context("when a WaitingForWorker event is received", func() {
+		BeforeEach(func() {
+			receivedEvents <- event.WaitingForWorker{
+				Time: time.Now().Unix(),
+			}
+		})
+
+		It("prints the build's run script", func() {
+			Expect(out.Contents()).To(ContainSubstring("\x1b[1mno suitable workers found, waiting for worker...\x1b[1m\n"))
+		})
+
+		Context("and time configuration enabled", func() {
+			BeforeEach(func() {
+				options.ShowTimestamp = true
+			})
+
+			It("timestamp is prefixed", func() {
+				Expect(out).To(gbytes.Say(`\d{2}\:\d{2}\:\d{2}\s{2}\w*`))
+			})
+		})
+	})
+
 	Context("when a SelectedWorker event is received", func() {
 		BeforeEach(func() {
 			receivedEvents <- event.SelectedWorker{

@@ -36,8 +36,10 @@ type PutDelegate interface {
 	Initializing(lager.Logger)
 	Starting(lager.Logger)
 	Finished(lager.Logger, ExitStatus, runtime.VersionResult)
-	SelectedWorker(lager.Logger, string)
 	Errored(lager.Logger, string)
+
+	WaitingForWorker(lager.Logger)
+	SelectedWorker(lager.Logger, string)
 
 	SaveOutput(lager.Logger, atc.PutPlan, atc.Source, atc.VersionedResourceTypes, runtime.VersionResult)
 }
@@ -225,6 +227,7 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 		containerSpec,
 		workerSpec,
 		step.strategy,
+		delegate,
 	)
 	if err != nil {
 		return false, err

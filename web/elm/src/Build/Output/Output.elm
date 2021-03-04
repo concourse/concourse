@@ -146,6 +146,11 @@ handleEvent event ( model, effects ) =
             , effects
             )
 
+        WaitingForWorker origin time ->
+            ( updateStep origin.id (setRunning << appendStepLog "\u{001B}[1mno suitable workers found, waiting for worker...\u{001B}[0m\n" time) model
+            , effects
+            )
+
         SelectedWorker origin output time ->
             ( updateStep origin.id (setRunning << appendStepLog ("\u{001B}[1mselected worker: \u{001B}[0m" ++ output ++ "\n") time) model
             , effects

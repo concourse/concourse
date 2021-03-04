@@ -271,7 +271,7 @@ var _ = Describe("GetStep", func() {
 
 		JustBeforeEach(func() {
 			Expect(fakePool.WaitForWorkerCallCount()).To(Equal(1))
-			_, _, _, workerSpec, _ = fakePool.WaitForWorkerArgsForCall(0)
+			_, _, _, workerSpec, _, _ = fakePool.WaitForWorkerArgsForCall(0)
 		})
 
 		It("calls WaitForWorker with the correct WorkerSpec", func() {
@@ -443,7 +443,7 @@ var _ = Describe("GetStep", func() {
 
 		It("sets the bottom-most type in the worker spec", func() {
 			Expect(fakePool.WaitForWorkerCallCount()).To(Equal(1))
-			_, _, _, workerSpec, _ := fakePool.WaitForWorkerArgsForCall(0)
+			_, _, _, workerSpec, _, _ := fakePool.WaitForWorkerArgsForCall(0)
 
 			Expect(workerSpec).To(Equal(
 				worker.WorkerSpec{

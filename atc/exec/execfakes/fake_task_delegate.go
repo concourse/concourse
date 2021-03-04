@@ -123,6 +123,11 @@ type FakeTaskDelegate struct {
 	stdoutReturnsOnCall map[int]struct {
 		result1 io.Writer
 	}
+	WaitingForWorkerStub        func(lager.Logger)
+	waitingForWorkerMutex       sync.RWMutex
+	waitingForWorkerArgsForCall []struct {
+		arg1 lager.Logger
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -685,6 +690,38 @@ func (fake *FakeTaskDelegate) StdoutReturnsOnCall(i int, result1 io.Writer) {
 	}{result1}
 }
 
+func (fake *FakeTaskDelegate) WaitingForWorker(arg1 lager.Logger) {
+	fake.waitingForWorkerMutex.Lock()
+	fake.waitingForWorkerArgsForCall = append(fake.waitingForWorkerArgsForCall, struct {
+		arg1 lager.Logger
+	}{arg1})
+	stub := fake.WaitingForWorkerStub
+	fake.recordInvocation("WaitingForWorker", []interface{}{arg1})
+	fake.waitingForWorkerMutex.Unlock()
+	if stub != nil {
+		fake.WaitingForWorkerStub(arg1)
+	}
+}
+
+func (fake *FakeTaskDelegate) WaitingForWorkerCallCount() int {
+	fake.waitingForWorkerMutex.RLock()
+	defer fake.waitingForWorkerMutex.RUnlock()
+	return len(fake.waitingForWorkerArgsForCall)
+}
+
+func (fake *FakeTaskDelegate) WaitingForWorkerCalls(stub func(lager.Logger)) {
+	fake.waitingForWorkerMutex.Lock()
+	defer fake.waitingForWorkerMutex.Unlock()
+	fake.WaitingForWorkerStub = stub
+}
+
+func (fake *FakeTaskDelegate) WaitingForWorkerArgsForCall(i int) lager.Logger {
+	fake.waitingForWorkerMutex.RLock()
+	defer fake.waitingForWorkerMutex.RUnlock()
+	argsForCall := fake.waitingForWorkerArgsForCall[i]
+	return argsForCall.arg1
+}
+
 func (fake *FakeTaskDelegate) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -712,6 +749,8 @@ func (fake *FakeTaskDelegate) Invocations() map[string][][]interface{} {
 	defer fake.stderrMutex.RUnlock()
 	fake.stdoutMutex.RLock()
 	defer fake.stdoutMutex.RUnlock()
+	fake.waitingForWorkerMutex.RLock()
+	defer fake.waitingForWorkerMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

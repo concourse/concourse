@@ -311,6 +311,7 @@ func (step *CheckStep) runCheck(
 		containerSpec,
 		workerSpec,
 		step.strategy,
+		delegate,
 	)
 	if err != nil {
 		return worker.CheckResult{}, err
