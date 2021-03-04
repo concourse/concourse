@@ -799,7 +799,7 @@ func (cmd *RunCommand) constructAPIMembers(
 		cmd.GardenRequestTimeout,
 	)
 
-	pool := worker.NewPool(workerProvider)
+	pool := worker.NewPool(workerProvider, lockFactory)
 
 	credsManagers := cmd.CredentialManagers
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
@@ -1057,7 +1057,7 @@ func (cmd *RunCommand) backendComponents(
 		cmd.GardenRequestTimeout,
 	)
 
-	pool := worker.NewPool(workerProvider)
+	pool := worker.NewPool(workerProvider, lockFactory)
 	artifactStreamer := worker.NewArtifactStreamer(pool, compressionLib)
 	artifactSourcer := worker.NewArtifactSourcer(compressionLib, pool, cmd.FeatureFlags.EnableP2PVolumeStreaming, cmd.P2pVolumeStreamingTimeout)
 

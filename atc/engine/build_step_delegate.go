@@ -197,14 +197,15 @@ func (delegate *buildStepDelegate) WaitingForWorker(logger lager.Logger) {
 	}
 }
 
-func (delegate *buildStepDelegate) SelectedWorker(logger lager.Logger, workerName string) {
+func (delegate *buildStepDelegate) SelectedWorker(logger lager.Logger, worker worker.Worker) {
 	err := delegate.build.SaveEvent(event.SelectedWorker{
 		Time: time.Now().Unix(),
 		Origin: event.Origin{
 			ID: event.OriginID(delegate.planID),
 		},
-		WorkerName: workerName,
+		WorkerName: worker.Name(),
 	})
+
 	if err != nil {
 		logger.Error("failed-to-save-selected-worker-event", err)
 		return

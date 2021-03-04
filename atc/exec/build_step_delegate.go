@@ -34,7 +34,7 @@ type BuildStepDelegate interface {
 	Errored(lager.Logger, string)
 
 	WaitingForWorker(lager.Logger)
-	SelectedWorker(lager.Logger, string)
+	SelectedWorker(lager.Logger, worker.Worker)
 }
 
 //go:generate counterfeiter . SetPipelineStepDelegateFactory

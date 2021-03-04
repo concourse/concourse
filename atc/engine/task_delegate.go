@@ -104,7 +104,12 @@ func (d *taskDelegate) Finished(
 	logger.Info("finished", lager.Data{"exit-status": exitStatus})
 }
 
-func (d *taskDelegate) IncreaseActiveTasks(worker worker.Client) error {
+func (d *taskDelegate) SelectedWorker(logger lager.Logger, worker worker.Worker) {
+	d.BuildStepDelegate.SelectedWorker(logger, worker)
+	d.IncreaseActiveTasks(worker)
+}
+
+func (d *taskDelegate) IncreaseActiveTasks(worker worker.Worker) error {
 	dbWorker, err := d.findDBWorker(worker.Name())
 	if err != nil {
 		return err
@@ -113,7 +118,7 @@ func (d *taskDelegate) IncreaseActiveTasks(worker worker.Client) error {
 	return dbWorker.IncreaseActiveTasks()
 }
 
-func (d *taskDelegate) DecreaseActiveTasks(worker worker.Client) error {
+func (d *taskDelegate) DecreaseActiveTasks(worker worker.Worker) error {
 	dbWorker, err := d.findDBWorker(worker.Name())
 	if err != nil {
 		return err

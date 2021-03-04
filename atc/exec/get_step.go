@@ -57,7 +57,7 @@ type GetDelegate interface {
 	Errored(lager.Logger, string)
 
 	WaitingForWorker(lager.Logger)
-	SelectedWorker(lager.Logger, string)
+	SelectedWorker(lager.Logger, worker.Client)
 
 	UpdateVersion(lager.Logger, atc.GetPlan, runtime.VersionResult)
 }
@@ -226,7 +226,6 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 	if err != nil {
 		return false, err
 	}
-	delegate.SelectedWorker(logger, worker.Name())
 
 	getResult, err := worker.RunGetStep(
 		lagerctx.NewContext(processCtx, logger),

@@ -316,7 +316,6 @@ func (step *CheckStep) runCheck(
 	if err != nil {
 		return worker.CheckResult{}, err
 	}
-	delegate.SelectedWorker(logger, chosenWorker.Name())
 
 	return chosenWorker.RunCheckStep(
 		lagerctx.NewContext(processCtx, logger),

@@ -13,14 +13,16 @@ import (
 	"code.cloudfoundry.org/lager/lagerctx"
 
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/metric"
 )
 
 const workerPollingInterval = 5 * time.Second
 
 var (
-	ErrNoWorkers             = errors.New("no workers")
-	ErrFailedAcquirePoolLock = errors.New("failed to acquire pool lock")
+	ErrNoWorkers           = errors.New("no workers")
+	ErrFailedToAcquireLock = errors.New("failed to acquire lock")
+	ErrFailedToPickWorker  = errors.New("failed to pick worker")
 )
 
 type NoCompatibleWorkersError struct {
@@ -46,6 +48,7 @@ type Pool interface {
 		ContainerSpec,
 		WorkerSpec,
 		ContainerPlacementStrategy,
+		PoolCallbacks,
 	) (Client, error)
 
 	WaitForWorker(
@@ -54,14 +57,15 @@ type Pool interface {
 		ContainerSpec,
 		WorkerSpec,
 		ContainerPlacementStrategy,
-		PoolWaitCallbacks,
+		PoolCallbacks,
 	) (Client, time.Duration, error)
 }
 
-//go:generate counterfeiter . PoolWaitCallbacks
+//go:generate counterfeiter . PoolCallbacks
 
-type PoolWaitCallbacks interface {
+type PoolCallbacks interface {
 	WaitingForWorker(lager.Logger)
+	SelectedWorker(lager.Logger, Worker)
 }
 
 //go:generate counterfeiter . VolumeFinder
@@ -71,14 +75,18 @@ type VolumeFinder interface {
 }
 
 type pool struct {
-	provider WorkerProvider
-	rand     *rand.Rand
+	provider    WorkerProvider
+	lockFactory lock.LockFactory
+
+	rand *rand.Rand
 }
 
-func NewPool(provider WorkerProvider) Pool {
+func NewPool(provider WorkerProvider, lockFactory lock.LockFactory) Pool {
 	return &pool{
-		provider: provider,
-		rand:     rand.New(rand.NewSource(time.Now().UnixNano())),
+		provider:    provider,
+		lockFactory: lockFactory,
+
+		rand: rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
 
@@ -194,6 +202,7 @@ func (pool *pool) SelectWorker(
 	containerSpec ContainerSpec,
 	workerSpec WorkerSpec,
 	strategy ContainerPlacementStrategy,
+	callbacks PoolCallbacks,
 ) (Client, error) {
 	logger := lagerctx.FromContext(ctx)
 
@@ -221,14 +230,45 @@ dance:
 		}
 	}
 
+	// Lock required to protect call to strategy.Pick and callbacks.SelectedWorker
+	//
+	// strategy.Pick may rely on worker metrics (such as active task, container, and
+	// volume counts) that may be modified by callbacks.SelectedWorker
+	lock, lockAcquired, err := pool.lockFactory.Acquire(logger, lock.NewPlacementStrategyLockID())
+	if err != nil {
+		return nil, err
+	}
+
+	if !lockAcquired {
+		return nil, ErrFailedToAcquireLock
+	}
+
+	defer lock.Release()
+
 	if worker == nil {
-		worker, err = strategy.Choose(logger, compatibleWorkers, containerSpec)
+		candidates, err := strategy.Candidates(logger, compatibleWorkers, containerSpec)
 
 		if err != nil {
 			return nil, err
 		}
+
+		for _, candidate := range candidates {
+			err := strategy.Pick(logger, candidate, containerSpec)
+
+			if err != nil {
+				logger.Error("Candidate worker rejected due to error", err)
+			} else {
+				worker = candidate
+				break
+			}
+		}
+
+		if worker == nil {
+			return nil, ErrFailedToPickWorker
+		}
 	}
 
+	callbacks.SelectedWorker(logger, worker)
 	return NewClient(worker), nil
 }
 
@@ -238,7 +278,7 @@ func (pool *pool) WaitForWorker(
 	containerSpec ContainerSpec,
 	workerSpec WorkerSpec,
 	strategy ContainerPlacementStrategy,
-	callbacks PoolWaitCallbacks,
+	callbacks PoolCallbacks,
 ) (Client, time.Duration, error) {
 	logger := lagerctx.FromContext(ctx)
 
@@ -256,11 +296,15 @@ func (pool *pool) WaitForWorker(
 	var waiting bool = false
 	for {
 		var err error
-		worker, err = pool.SelectWorker(ctx, owner, containerSpec, workerSpec, strategy)
+		worker, err = pool.SelectWorker(ctx, owner, containerSpec, workerSpec, strategy, callbacks)
 
 		if err != nil {
 			if errors.Is(err, ErrNoWorkers) {
 				// Could use these blocks to notify caller of the reason we're waiting
+			} else if errors.Is(err, ErrFailedToAcquireLock) {
+				//
+			} else if errors.Is(err, ErrFailedToPickWorker) {
+				//
 			} else if errors.As(err, &NoCompatibleWorkersError{}) {
 				//
 			} else if errors.As(err, &NoWorkerFitContainerPlacementStrategyError{}) {
