@@ -510,7 +510,10 @@ var _ = Describe("GetStep", func() {
 			Expect(fakeState.StoreResultCallCount()).To(Equal(1))
 			key, val := fakeState.StoreResultArgsForCall(0)
 			Expect(key).To(Equal(atc.PlanID(planID)))
-			Expect(val).To(Equal(fakeResourceCache))
+			Expect(val).To(Equal(exec.GetResult{
+				Name:          getPlan.Name,
+				ResourceCache: fakeResourceCache,
+			}))
 		})
 
 		It("marks the step as succeeded", func() {

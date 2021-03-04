@@ -274,6 +274,125 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 	return result.ExitStatus == 0, nil
 }
 
+// func (delegate *buildStepDelegate) FetchImage(
+// 	ctx context.Context,
+// 	image atc.ImageResource,
+// 	types atc.VersionedResourceTypes,
+// 	privileged bool,
+// ) (worker.ImageSpec, error) {
+// 	err := delegate.checkImagePolicy(image, privileged)
+// 	if err != nil {
+// 		return worker.ImageSpec{}, err
+// 	}
+
+// 	// XXX: Can this not be on a child scope?
+// 	fetchState := delegate.state.NewScope()
+
+// 	imageName := defaultImageName
+// 	if image.Name != "" {
+// 		imageName = image.Name
+// 	}
+
+// 	version := image.Version
+// 	if version == nil {
+// 		checkID := delegate.planID + "/image-check"
+
+// 		checkPlan := atc.Plan{
+// 			ID: checkID,
+// 			Check: &atc.CheckPlan{
+// 				Name:   imageName,
+// 				Type:   image.Type,
+// 				Source: image.Source,
+
+// 				VersionedResourceTypes: types,
+
+// 				Tags: image.Tags,
+// 			},
+// 		}
+
+// 		err := delegate.build.SaveEvent(event.ImageCheck{
+// 			Time: delegate.clock.Now().Unix(),
+// 			Origin: event.Origin{
+// 				ID: event.OriginID(delegate.planID),
+// 			},
+// 			PublicPlan: checkPlan.Public(),
+// 		})
+// 		if err != nil {
+// 			return worker.ImageSpec{}, fmt.Errorf("save image check event: %w", err)
+// 		}
+
+// 		ok, err := fetchState.Run(ctx, checkPlan)
+// 		if err != nil {
+// 			return worker.ImageSpec{}, err
+// 		}
+
+// 		if !ok {
+// 			return worker.ImageSpec{}, fmt.Errorf("image check failed")
+// 		}
+
+// 		if !fetchState.Result(checkID, &version) {
+// 			return worker.ImageSpec{}, fmt.Errorf("check did not return a version")
+// 		}
+// 	}
+
+// 	getID := delegate.planID + "/image-get"
+
+// 	getPlan := atc.Plan{
+// 		ID: getID,
+// 		Get: &atc.GetPlan{
+// 			Name:    imageName,
+// 			Type:    image.Type,
+// 			Source:  image.Source,
+// 			Version: &version,
+// 			Params:  image.Params,
+
+// 			VersionedResourceTypes: types,
+
+// 			Tags: image.Tags,
+// 		},
+// 	}
+
+// 	err = delegate.build.SaveEvent(event.ImageGet{
+// 		Time: delegate.clock.Now().Unix(),
+// 		Origin: event.Origin{
+// 			ID: event.OriginID(delegate.planID),
+// 		},
+// 		PublicPlan: getPlan.Public(),
+// 	})
+// 	if err != nil {
+// 		return worker.ImageSpec{}, fmt.Errorf("save image get event: %w", err)
+// 	}
+
+// 	ok, err := fetchState.Run(ctx, getPlan)
+// 	if err != nil {
+// 		return worker.ImageSpec{}, err
+// 	}
+
+// 	if !ok {
+// 		return worker.ImageSpec{}, fmt.Errorf("image fetching failed")
+// 	}
+
+// 	var result exec.GetResult
+// 	if !fetchState.Result(getID, &result) {
+// 		return worker.ImageSpec{}, fmt.Errorf("get did not return a result")
+// 	}
+
+// 	err = delegate.build.SaveImageResourceVersion(result.ResourceCache)
+// 	if err != nil {
+// 		return worker.ImageSpec{}, fmt.Errorf("save image version: %w", err)
+// 	}
+
+// 	art, found := fetchState.ArtifactRepository().ArtifactFor(build.ArtifactName(result.Name))
+// 	if !found {
+// 		return worker.ImageSpec{}, fmt.Errorf("fetched artifact not found")
+// 	}
+
+// 	return worker.ImageSpec{
+// 		ImageArtifact: art,
+// 		Privileged:    privileged,
+// 	}, nil
+// }
+
 func (step *TaskStep) imageSpec(ctx context.Context, state RunState, delegate TaskDelegate, config atc.TaskConfig) (worker.ImageSpec, error) {
 	imageSpec := worker.ImageSpec{
 		Privileged: bool(step.plan.Privileged),

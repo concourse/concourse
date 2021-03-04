@@ -558,9 +558,9 @@ var _ = Describe("PutStep", func() {
 
 		It("stores the version result as the step result", func() {
 			Expect(state.StoreResultCallCount()).To(Equal(1))
-			sID, sVal := state.StoreResultArgsForCall(0)
+			sID, sVersion := state.StoreResultArgsForCall(0)
 			Expect(sID).To(Equal(planID))
-			Expect(sVal).To(Equal(versionResult))
+			Expect(sVersion).To(Equal(versionResult.Version))
 		})
 
 		It("is successful", func() {
