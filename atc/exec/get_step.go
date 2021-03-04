@@ -207,6 +207,10 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 			getResult.GetArtifact,
 		)
 
+		if step.plan.Resource != "" {
+			delegate.UpdateVersion(logger, step.plan, getResult.VersionResult)
+		}
+
 		delegate.Finished(
 			logger,
 			ExitStatus(getResult.ExitStatus),
