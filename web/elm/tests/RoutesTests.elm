@@ -277,4 +277,22 @@ all =
                     |> Url.fromString
                     |> Maybe.andThen Routes.parsePath
                     |> Expect.equal (Just <| Routes.FlySuccess True Nothing)
+        , test "resources" <|
+            \_ ->
+                "http://example.com/teams/team/pipelines/pipeline/resources/resource?version={\"version\":\"v1\"}"
+                    |> Url.fromString
+                    |> Maybe.andThen Routes.parsePath
+                    |> Expect.equal
+                        (Just <|
+                            Routes.Resource
+                                { id =
+                                    { teamName = "team"
+                                    , pipelineName = "pipeline"
+                                    , pipelineInstanceVars = Dict.empty
+                                    , resourceName = "resource"
+                                    }
+                                , page = Nothing
+                                , version = Just <| Dict.fromList [ ( "version", "v1" ) ]
+                                }
+                        )
         ]

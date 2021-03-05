@@ -343,8 +343,6 @@ resourceRoute r =
             , resourceName = r.name
             }
         , page = Nothing
-
-        --- XXX: is this funciton actually used?
         , version = Nothing
         }
 

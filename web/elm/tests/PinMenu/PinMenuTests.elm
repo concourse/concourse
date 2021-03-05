@@ -153,6 +153,7 @@ all =
                                                 Routes.Resource
                                                     { id = Data.resourceId |> Data.withResourceName "test"
                                                     , page = Nothing
+                                                    , version = Nothing
                                                     }
                                       }
                                     ]
@@ -200,6 +201,7 @@ all =
                                                 Routes.Resource
                                                     { id = Data.resourceId |> Data.withResourceName "test"
                                                     , page = Nothing
+                                                    , version = Nothing
                                                     }
                                       }
                                     ]
