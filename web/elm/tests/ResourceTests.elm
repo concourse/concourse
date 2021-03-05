@@ -294,7 +294,7 @@ all =
         , describe "when the url contains a version" <|
             let
                 initWithVersion =
-                    initQuery "version={\"version\":\"v2\"}"
+                    initQuery "filter=version:v2"
             in
             [ describe "when the version is valid"
                 [ test "it navigates to that page" <|

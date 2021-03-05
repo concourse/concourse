@@ -61,47 +61,48 @@ import Views.Spinner as Spinner
 
 
 init :
-    Highlight
+    Maybe Concourse.JobBuildIdentifier
+    -> Highlight
     -> Concourse.BuildResources
     -> Concourse.BuildPlan
     -> StepTreeModel
-init hl resources plan =
+init buildId hl resources plan =
     let
         step =
             constructStep plan
     in
     case plan.step of
         Concourse.BuildStepTask _ ->
-            step |> initBottom hl resources plan Task
+            step |> initBottom buildId hl resources plan Task
 
         Concourse.BuildStepCheck _ ->
-            step |> initBottom hl resources plan Check
+            step |> initBottom buildId hl resources plan Check
 
         Concourse.BuildStepGet name version ->
             step
                 |> setupGetStep resources name version
-                |> initBottom hl resources plan Get
+                |> initBottom buildId hl resources plan Get
 
         Concourse.BuildStepPut _ ->
-            step |> initBottom hl resources plan Put
+            step |> initBottom buildId hl resources plan Put
 
         Concourse.BuildStepArtifactInput _ ->
-            step |> initBottom hl resources plan ArtifactInput
+            step |> initBottom buildId hl resources plan ArtifactInput
 
         Concourse.BuildStepArtifactOutput _ ->
-            step |> initBottom hl resources plan ArtifactOutput
+            step |> initBottom buildId hl resources plan ArtifactOutput
 
         Concourse.BuildStepSetPipeline _ _ ->
-            step |> initBottom hl resources plan SetPipeline
+            step |> initBottom buildId hl resources plan SetPipeline
 
         Concourse.BuildStepLoadVar _ ->
-            step |> initBottom hl resources plan LoadVar
+            step |> initBottom buildId hl resources plan LoadVar
 
         Concourse.BuildStepInParallel plans ->
-            initMultiStep hl resources plan.id InParallel plans Nothing
+            initMultiStep buildId hl resources plan.id InParallel plans Nothing
 
         Concourse.BuildStepDo plans ->
-            initMultiStep hl resources plan.id Do plans Nothing
+            initMultiStep buildId hl resources plan.id Do plans Nothing
 
         Concourse.BuildStepAcross { vars, steps } ->
             let
@@ -119,7 +120,7 @@ init hl resources plan =
                         }
                    )
                 |> Just
-                |> initMultiStep hl resources plan.id (Across plan.id vars values) (Array.fromList plans)
+                |> initMultiStep buildId hl resources plan.id (Across plan.id vars values) (Array.fromList plans)
                 |> (\model ->
                         List.foldl
                             (\plan_ ->
@@ -133,35 +134,35 @@ init hl resources plan =
             step
                 |> (\s -> { s | tabFocus = startingTab hl (Array.toList plans) })
                 |> Just
-                |> initMultiStep hl resources plan.id (Retry plan.id) plans
+                |> initMultiStep buildId hl resources plan.id (Retry plan.id) plans
 
         Concourse.BuildStepOnSuccess hookedPlan ->
-            initHookedStep hl resources OnSuccess hookedPlan
+            initHookedStep buildId hl resources OnSuccess hookedPlan
 
         Concourse.BuildStepOnFailure hookedPlan ->
-            initHookedStep hl resources OnFailure hookedPlan
+            initHookedStep buildId hl resources OnFailure hookedPlan
 
         Concourse.BuildStepOnAbort hookedPlan ->
-            initHookedStep hl resources OnAbort hookedPlan
+            initHookedStep buildId hl resources OnAbort hookedPlan
 
         Concourse.BuildStepOnError hookedPlan ->
-            initHookedStep hl resources OnError hookedPlan
+            initHookedStep buildId hl resources OnError hookedPlan
 
         Concourse.BuildStepEnsure hookedPlan ->
-            initHookedStep hl resources Ensure hookedPlan
+            initHookedStep buildId hl resources Ensure hookedPlan
 
         Concourse.BuildStepTry subPlan ->
-            initWrappedStep hl resources Try subPlan
+            initWrappedStep buildId hl resources Try subPlan
 
         Concourse.BuildStepTimeout subPlan ->
-            initWrappedStep hl resources Timeout subPlan
+            initWrappedStep buildId hl resources Timeout subPlan
 
 
-setImageCheck : StepID -> Concourse.BuildPlan -> StepTreeModel -> StepTreeModel
-setImageCheck stepId subPlan model =
+setImageCheck : Maybe Concourse.JobBuildIdentifier -> StepID -> Concourse.BuildPlan -> StepTreeModel -> StepTreeModel
+setImageCheck buildId stepId subPlan model =
     let
         sub =
-            init model.highlight model.resources subPlan
+            init buildId model.highlight model.resources subPlan
     in
     { model
         | steps =
@@ -170,11 +171,11 @@ setImageCheck stepId subPlan model =
     }
 
 
-setImageGet : StepID -> Concourse.BuildPlan -> StepTreeModel -> StepTreeModel
-setImageGet stepId subPlan model =
+setImageGet : Maybe Concourse.JobBuildIdentifier -> StepID -> Concourse.BuildPlan -> StepTreeModel -> StepTreeModel
+setImageGet buildId stepId subPlan model =
     let
         sub =
-            init model.highlight model.resources subPlan
+            init buildId model.highlight model.resources subPlan
     in
     { model
         | steps =
@@ -223,27 +224,29 @@ startingTab hl plans =
             Manual tab
 
 
-initBottom : Highlight -> Concourse.BuildResources -> Concourse.BuildPlan -> (StepID -> StepTree) -> Step -> StepTreeModel
-initBottom hl resources plan construct step =
+initBottom : Maybe Concourse.JobBuildIdentifier -> Highlight -> Concourse.BuildResources -> Concourse.BuildPlan -> (StepID -> StepTree) -> Step -> StepTreeModel
+initBottom buildId hl resources plan construct step =
     { tree = construct plan.id
     , steps = Dict.singleton plan.id (expand plan hl step)
     , highlight = hl
     , resources = resources
+    , buildId = buildId
     }
 
 
 initMultiStep :
-    Highlight
+    Maybe Concourse.JobBuildIdentifier
+    -> Highlight
     -> Concourse.BuildResources
     -> StepID
     -> (Array StepTree -> StepTree)
     -> Array Concourse.BuildPlan
     -> Maybe Step
     -> StepTreeModel
-initMultiStep hl resources stepId constructor plans rootStep =
+initMultiStep buildId hl resources stepId constructor plans rootStep =
     let
         inited =
-            Array.map (init hl resources) plans
+            Array.map (init buildId hl resources) plans
 
         trees =
             Array.map .tree inited
@@ -263,6 +266,7 @@ initMultiStep hl resources stepId constructor plans rootStep =
             |> Array.foldr Dict.union selfFoci
     , highlight = hl
     , resources = resources
+    , buildId = buildId
     }
 
 
@@ -306,41 +310,45 @@ expand plan hl step =
 
 
 initWrappedStep :
-    Highlight
+    Maybe Concourse.JobBuildIdentifier
+    -> Highlight
     -> Concourse.BuildResources
     -> (StepTree -> StepTree)
     -> Concourse.BuildPlan
     -> StepTreeModel
-initWrappedStep hl resources create plan =
+initWrappedStep buildId hl resources create plan =
     let
         { tree, steps } =
-            init hl resources plan
+            init buildId hl resources plan
     in
     { tree = create tree
     , steps = steps
     , highlight = hl
     , resources = resources
+    , buildId = buildId
     }
 
 
 initHookedStep :
-    Highlight
+    Maybe Concourse.JobBuildIdentifier
+    -> Highlight
     -> Concourse.BuildResources
     -> (HookedStep -> StepTree)
     -> Concourse.HookedPlan
     -> StepTreeModel
-initHookedStep hl resources create hookedPlan =
+initHookedStep buildId hl resources create hookedPlan =
     let
         stepModel =
-            init hl resources hookedPlan.step
+            init buildId hl resources hookedPlan.step
 
         hookModel =
-            init hl resources hookedPlan.hook
+            init buildId hl resources hookedPlan.hook
     in
     { tree = create { step = stepModel.tree, hook = hookModel.tree }
     , steps = Dict.union stepModel.steps hookModel.steps
     , highlight = hl
     , resources = resources
+    , buildId = buildId
     }
 
 
@@ -754,7 +762,7 @@ viewStepWithBody model session depth step body =
             [ viewStepHeader step
             , Html.div
                 [ style "display" "flex" ]
-                [ viewVersion step.version
+                [ viewVersion step model.buildId <| stepName step.buildStep
                 , case Maybe.Extra.or step.imageCheck step.imageGet of
                     Just _ ->
                         viewInitializationToggle step
@@ -947,11 +955,48 @@ viewTimestamp { id, lineNo, date, timeZone } =
         ]
 
 
-viewVersion : Maybe Version -> Html Message
-viewVersion version =
-    Maybe.withDefault Dict.empty version
-        |> Dict.map (always Html.text)
-        |> DictView.view []
+viewVersion :
+    Step
+    ->
+        Maybe
+            { r
+                | teamName : Concourse.TeamName
+                , pipelineName : Concourse.PipelineName
+                , pipelineInstanceVars : Concourse.InstanceVars
+            }
+    -> Maybe String
+    -> Html Message
+viewVersion step pipelineId name =
+    let
+        domId =
+            StepVersion step.id
+    in
+    case ( step.version, pipelineId, name ) of
+        ( Just version, Just pid, Just stepname ) ->
+            Html.a
+                [ href <|
+                    Routes.toString <|
+                        Routes.Resource
+                            { id =
+                                { teamName = pid.teamName
+                                , pipelineName = pid.pipelineName
+                                , pipelineInstanceVars = pid.pipelineInstanceVars
+                                , resourceName = stepname
+                                }
+                            , page = Nothing
+                            , version = Just version
+                            }
+                , onMouseLeave <| Hover Nothing
+                , onMouseEnter <| Hover (Just domId)
+                , id (toHtmlID domId)
+                ]
+                [ DictView.view
+                    []
+                    (Dict.map (always Html.text) version)
+                ]
+
+        _ ->
+            Html.text ""
 
 
 viewMetadata : List MetadataField -> Html Message
@@ -1273,6 +1318,20 @@ tooltip model { hovered } =
         HoverState.Tooltip (StepState id) _ ->
             Dict.get id model.steps
                 |> Maybe.map stepDurationTooltip
+
+        HoverState.Tooltip (StepVersion _) _ ->
+            Just
+                { body =
+                    Html.div
+                        Styles.changedStepTooltip
+                        [ Html.text "view in resources page" ]
+                , attachPosition =
+                    { direction = Tooltip.Top
+                    , alignment = Tooltip.End
+                    }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
 
         _ ->
             Nothing

@@ -48,7 +48,6 @@ import Set exposing (Set)
 import SideBar.State exposing (SideBarState, encodeSideBarState)
 import Task
 import Time
-import Url.Builder
 import Views.Styles
 
 
@@ -243,7 +242,7 @@ runEffect effect key csrfToken =
             Api.paginatedGet
                 (Endpoints.ResourceVersionsList |> Endpoints.Resource id)
                 Nothing
-                (List.map (\q -> Url.Builder.string "filter" q) (Concourse.versionQuery version))
+                (Routes.versionQueryParams version)
                 Concourse.decodeVersionedResource
                 |> Api.request
                 |> Task.map (\b -> List.head b.content)
@@ -803,6 +802,9 @@ toHtmlID domId =
 
         StepInitialization stepID ->
             stepID ++ "_image"
+
+        StepVersion stepID ->
+            stepID ++ "_version"
 
         SideBarIcon ->
             "sidebar-icon"

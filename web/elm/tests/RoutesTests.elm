@@ -279,7 +279,7 @@ all =
                     |> Expect.equal (Just <| Routes.FlySuccess True Nothing)
         , test "resources" <|
             \_ ->
-                "http://example.com/teams/team/pipelines/pipeline/resources/resource?version={\"version\":\"v1\"}"
+                "http://example.com/teams/team/pipelines/pipeline/resources/resource?filter=version:v1"
                     |> Url.fromString
                     |> Maybe.andThen Routes.parsePath
                     |> Expect.equal

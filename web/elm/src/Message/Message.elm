@@ -86,6 +86,7 @@ type DomID
     | StepHeader String
     | StepSubHeader String Int
     | StepInitialization String
+    | StepVersion String
     | ShowSearchButton
     | ClearSearchButton
     | LoginButton

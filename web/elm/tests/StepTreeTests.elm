@@ -92,7 +92,8 @@ initTask : Test
 initTask =
     let
         { tree, steps } =
-            StepTree.init Routes.HighlightNothing
+            StepTree.init Nothing
+                Routes.HighlightNothing
                 emptyResources
                 { id = "some-id"
                 , step = task "some-name"
@@ -117,7 +118,8 @@ initSetPipeline =
             BuildStepSetPipeline "some-name" Dict.empty
 
         { tree, steps } =
-            StepTree.init Routes.HighlightNothing
+            StepTree.init Nothing
+                Routes.HighlightNothing
                 emptyResources
                 { id = "some-id"
                 , step = step
@@ -140,7 +142,8 @@ initLoadVar =
             BuildStepLoadVar "some-name"
 
         { tree, steps } =
-            StepTree.init Routes.HighlightNothing
+            StepTree.init Nothing
+                Routes.HighlightNothing
                 emptyResources
                 { id = "some-id"
                 , step = step
@@ -163,7 +166,8 @@ initCheck =
             BuildStepCheck "some-name"
 
         { tree, steps } =
-            StepTree.init Routes.HighlightNothing
+            StepTree.init Nothing
+                Routes.HighlightNothing
                 emptyResources
                 { id = "some-id"
                 , step = step
@@ -189,7 +193,8 @@ initGet =
             BuildStepGet "some-name" (Just version)
 
         { tree, steps } =
-            StepTree.init Routes.HighlightNothing
+            StepTree.init Nothing
+                Routes.HighlightNothing
                 emptyResources
                 { id = "some-id"
                 , step = step
@@ -212,7 +217,8 @@ initPut =
             BuildStepPut "some-name"
 
         { tree, steps } =
-            StepTree.init Routes.HighlightNothing
+            StepTree.init Nothing
+                Routes.HighlightNothing
                 emptyResources
                 { id = "some-id"
                 , step = step
@@ -245,7 +251,8 @@ initAcross =
                 }
 
         { tree, steps } =
-            StepTree.init Routes.HighlightNothing
+            StepTree.init Nothing
+                Routes.HighlightNothing
                 emptyResources
                 { id = "across-id"
                 , step = rootStep
@@ -305,7 +312,8 @@ initAcrossNested =
                 }
 
         { tree, steps } =
-            StepTree.init Routes.HighlightNothing
+            StepTree.init Nothing
+                Routes.HighlightNothing
                 emptyResources
                 { id = "across-id"
                 , step = rootAcross
@@ -366,7 +374,8 @@ initAcrossWithDo =
                 }
 
         { tree, steps } =
-            StepTree.init Routes.HighlightNothing
+            StepTree.init Nothing
+                Routes.HighlightNothing
                 emptyResources
                 { id = "across-id"
                 , step = across
@@ -412,7 +421,8 @@ initInParallel =
                 ]
 
         { tree, steps } =
-            StepTree.init Routes.HighlightNothing
+            StepTree.init Nothing
+                Routes.HighlightNothing
                 emptyResources
                 { id = "parallel-id"
                 , step = step
@@ -444,7 +454,8 @@ initInParallelNested : Test
 initInParallelNested =
     let
         { tree, steps } =
-            StepTree.init Routes.HighlightNothing
+            StepTree.init Nothing
+                Routes.HighlightNothing
                 emptyResources
                 { id = "parallel-id"
                 , step =
@@ -499,7 +510,8 @@ initOnSuccess : Test
 initOnSuccess =
     let
         { tree, steps } =
-            StepTree.init Routes.HighlightNothing
+            StepTree.init Nothing
+                Routes.HighlightNothing
                 emptyResources
                 { id = "on-success-id"
                 , step =
@@ -533,7 +545,8 @@ initOnFailure : Test
 initOnFailure =
     let
         { tree, steps } =
-            StepTree.init Routes.HighlightNothing
+            StepTree.init Nothing
+                Routes.HighlightNothing
                 emptyResources
                 { id = "on-success-id"
                 , step =
@@ -567,7 +580,8 @@ initEnsure : Test
 initEnsure =
     let
         { tree, steps } =
-            StepTree.init Routes.HighlightNothing
+            StepTree.init Nothing
+                Routes.HighlightNothing
                 emptyResources
                 { id = "on-success-id"
                 , step =
@@ -601,7 +615,8 @@ initTry : Test
 initTry =
     let
         { tree, steps } =
-            StepTree.init Routes.HighlightNothing
+            StepTree.init Nothing
+                Routes.HighlightNothing
                 emptyResources
                 { id = "on-success-id"
                 , step =
@@ -626,7 +641,8 @@ initTimeout : Test
 initTimeout =
     let
         { tree, steps } =
-            StepTree.init Routes.HighlightNothing
+            StepTree.init Nothing
+                Routes.HighlightNothing
                 emptyResources
                 { id = "on-success-id"
                 , step =
