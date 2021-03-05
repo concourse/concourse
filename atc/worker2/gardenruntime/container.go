@@ -6,7 +6,6 @@ import (
 	"strconv"
 
 	"code.cloudfoundry.org/garden"
-	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker/gclient"
 	"github.com/hashicorp/go-multierror"
@@ -17,17 +16,16 @@ const userPropertyName = "user"
 const exitStatusPropertyName = "concourse:exit-status"
 
 type Container struct {
-	dbContainer     db.CreatedContainer
-	gardenContainer gclient.Container
-	volumeMounts    []runtime.VolumeMount
+	GardenContainer gclient.Container
+	Mounts          []runtime.VolumeMount
 }
 
 func (c Container) Run(ctx context.Context, spec runtime.ProcessSpec, io runtime.ProcessIO) (runtime.ProcessResult, error) {
-	properties, err := c.gardenContainer.Properties()
+	properties, err := c.GardenContainer.Properties()
 	if err != nil {
 		return runtime.ProcessResult{}, fmt.Errorf("get properties: %w", err)
 	}
-	process, err := c.gardenContainer.Run(ctx, toGardenProcessSpec(spec, properties), toGardenProcessIO(io))
+	process, err := c.GardenContainer.Run(ctx, toGardenProcessSpec(spec, properties), toGardenProcessIO(io))
 	if err != nil {
 		return runtime.ProcessResult{}, fmt.Errorf("start process: %w", err)
 	}
@@ -36,7 +34,7 @@ func (c Container) Run(ctx context.Context, spec runtime.ProcessSpec, io runtime
 }
 
 func (c Container) Attach(ctx context.Context, spec runtime.ProcessSpec, io runtime.ProcessIO) (runtime.ProcessResult, error) {
-	properties, _ := c.gardenContainer.Properties()
+	properties, _ := c.GardenContainer.Properties()
 	statusStr, ok := properties[exitStatusPropertyName]
 	if ok {
 		if status, err := strconv.Atoi(statusStr); err == nil {
@@ -44,7 +42,7 @@ func (c Container) Attach(ctx context.Context, spec runtime.ProcessSpec, io runt
 		}
 	}
 
-	process, err := c.gardenContainer.Attach(ctx, strconv.Itoa(spec.ID()), toGardenProcessIO(io))
+	process, err := c.GardenContainer.Attach(ctx, strconv.Itoa(spec.ID()), toGardenProcessIO(io))
 	if err != nil {
 		return runtime.ProcessResult{}, fmt.Errorf("start process: %w", err)
 	}
@@ -66,7 +64,7 @@ func (c Container) waitForProcessCompletion(ctx context.Context, process garden.
 
 	select {
 	case <-ctx.Done():
-		err := c.gardenContainer.Stop(false)
+		err := c.GardenContainer.Stop(false)
 		// TODO: forcibly stop after timeout?
 		<-waitResult
 		return runtime.ProcessResult{}, multierror.Append(ctx.Err(), err)
@@ -76,13 +74,13 @@ func (c Container) waitForProcessCompletion(ctx context.Context, process garden.
 		}
 		// TODO: for resources, we also want to store the stdout result. this
 		// should happen externally, though
-		c.gardenContainer.SetProperty(exitStatusPropertyName, strconv.Itoa(r.exitStatus))
+		c.GardenContainer.SetProperty(exitStatusPropertyName, strconv.Itoa(r.exitStatus))
 		return runtime.ProcessResult{ExitStatus: r.exitStatus}, nil
 	}
 }
 
 func (c Container) VolumeMounts() []runtime.VolumeMount {
-	return c.volumeMounts
+	return c.Mounts
 }
 
 func toGardenProcessSpec(spec runtime.ProcessSpec, properties garden.Properties) garden.ProcessSpec {
@@ -111,9 +109,4 @@ func toGardenProcessIO(io runtime.ProcessIO) garden.ProcessIO {
 		Stdout: io.Stdout,
 		Stderr: io.Stderr,
 	}
-}
-
-// for testing
-func (c Container) GardenContainer() gclient.Container {
-	return c.gardenContainer
 }

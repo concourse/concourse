@@ -298,9 +298,8 @@ func (worker *Worker) constructContainer(
 		}
 	}
 	return Container{
-		gardenContainer: gardenContainer,
-		dbContainer:     createdContainer,
-		volumeMounts:    volumeMounts,
+		GardenContainer: gardenContainer,
+		Mounts:          volumeMounts,
 	}, nil
 }
 

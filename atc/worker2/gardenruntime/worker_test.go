@@ -1004,7 +1004,7 @@ func bindMount(container runtime.Container, path string) garden.BindMount {
 func gardenContainer(container runtime.Container) *grt.Container {
 	gardenRuntimeContainer, ok := container.(gardenruntime.Container)
 	Expect(ok).To(BeTrue(), "must be called on a gardenruntime.Container")
-	return gardenRuntimeContainer.GardenContainer().(*grt.Container)
+	return gardenRuntimeContainer.GardenContainer.(*grt.Container)
 }
 
 func gardenServer(worker runtime.Worker) *grt.Garden {
