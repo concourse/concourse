@@ -11,26 +11,18 @@ import (
 	"strings"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/compression"
 	"github.com/concourse/concourse/atc/db"
 )
-
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
 
 const (
 	ResourceResultPropertyName = "concourse:resource-result"
 	ResourceProcessID          = "resource"
 )
 
-//counterfeiter:generate . StartingEventDelegate
+//go:generate counterfeiter . StartingEventDelegate
 type StartingEventDelegate interface {
 	Starting(lager.Logger)
-}
-
-type VersionResult struct {
-	Version  atc.Version         `json:"version"`
-	Metadata []atc.MetadataField `json:"metadata,omitempty"`
 }
 
 //go:generate counterfeiter . Artifact
@@ -66,22 +58,6 @@ func (art TaskArtifact) ID() string {
 	return art.VolumeHandle
 }
 
-// TODO (runtime/#4910): consider a different name as this is close to "Runnable" in atc/engine/engine
-//go:generate counterfeiter . Runner
-
-// TODO: get rid of this in favour of Container
-type Runner interface {
-	RunScript(
-		ctx context.Context,
-		path string,
-		args []string,
-		input []byte,
-		output interface{},
-		logDest io.Writer,
-		recoverable bool,
-	) error
-}
-
 /////////////////
 
 type Worker interface {
@@ -93,6 +69,9 @@ type Worker interface {
 type Container interface {
 	Run(context.Context, ProcessSpec, ProcessIO) (ProcessResult, error)
 	Attach(context.Context, ProcessSpec, ProcessIO) (ProcessResult, error)
+
+	Properties() (map[string]string, error)
+	SetProperty(name string, value string) error
 
 	VolumeMounts() []VolumeMount
 }

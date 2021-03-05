@@ -50,6 +50,14 @@ func (c Container) Attach(ctx context.Context, spec runtime.ProcessSpec, io runt
 	return c.waitForProcessCompletion(ctx, process)
 }
 
+func (c Container) SetProperty(name string, value string) error {
+	return c.GardenContainer.SetProperty(name, value)
+}
+
+func (c Container) Properties() (map[string]string, error) {
+	return c.GardenContainer.Properties()
+}
+
 func (c Container) waitForProcessCompletion(ctx context.Context, process garden.Process) (runtime.ProcessResult, error) {
 	type result struct {
 		exitStatus int
@@ -72,8 +80,6 @@ func (c Container) waitForProcessCompletion(ctx context.Context, process garden.
 		if r.err != nil {
 			return runtime.ProcessResult{}, fmt.Errorf("wait for process completion: %w", r.err)
 		}
-		// TODO: for resources, we also want to store the stdout result. this
-		// should happen externally, though
 		c.GardenContainer.SetProperty(exitStatusPropertyName, strconv.Itoa(r.exitStatus))
 		return runtime.ProcessResult{ExitStatus: r.exitStatus}, nil
 	}
