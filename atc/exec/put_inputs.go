@@ -2,6 +2,7 @@ package exec
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/concourse/concourse/atc"
@@ -19,7 +20,7 @@ func (e PutInputNotFoundError) Error() string {
 }
 
 type PutInputs interface {
-	FindAll(*build.Repository) (map[string]runtime.Artifact, error)
+	FindAll(*build.Repository) ([]runtime.Input, error)
 }
 
 type allInputs struct{}
@@ -28,16 +29,12 @@ func NewAllInputs() PutInputs {
 	return &allInputs{}
 }
 
-func (i allInputs) FindAll(artifacts *build.Repository) (map[string]runtime.Artifact, error) {
-	inputs := map[string]runtime.Artifact{}
+func (i allInputs) FindAll(artifacts *build.Repository) ([]runtime.Input, error) {
+	artifactsMap := artifacts.AsMap()
 
-	for name, artifact := range artifacts.AsMap() {
-		pi := putInput{
-			name:     name,
-			artifact: artifact,
-		}
-
-		inputs[pi.DestinationPath()] = pi.Artifact()
+	inputs := make([]runtime.Input, 0, len(artifactsMap))
+	for name, vol := range artifactsMap {
+		inputs = append(inputs, putInput(name, vol))
 	}
 
 	return inputs, nil
@@ -53,23 +50,16 @@ func NewSpecificInputs(inputs []string) PutInputs {
 	}
 }
 
-func (i specificInputs) FindAll(artifacts *build.Repository) (map[string]runtime.Artifact, error) {
+func (i specificInputs) FindAll(artifacts *build.Repository) ([]runtime.Input, error) {
 	artifactsMap := artifacts.AsMap()
 
-	inputs := map[string]runtime.Artifact{}
-
-	for _, i := range i.inputs {
-		artifact, found := artifactsMap[build.ArtifactName(i)]
+	inputs := make([]runtime.Input, len(i.inputs))
+	for i, name := range i.inputs {
+		vol, found := artifactsMap[build.ArtifactName(name)]
 		if !found {
-			return nil, PutInputNotFoundError{Input: i}
+			return nil, PutInputNotFoundError{Input: name}
 		}
-
-		pi := putInput{
-			name:     build.ArtifactName(i),
-			artifact: artifact,
-		}
-
-		inputs[pi.DestinationPath()] = pi.Artifact()
+		inputs[i] = putInput(build.ArtifactName(name), vol)
 	}
 
 	return inputs, nil
@@ -116,35 +106,25 @@ func NewDetectInputs(params atc.Params) PutInputs {
 	}
 }
 
-func (i detectInputs) FindAll(artifacts *build.Repository) (map[string]runtime.Artifact, error) {
+func (i detectInputs) FindAll(artifacts *build.Repository) ([]runtime.Input, error) {
 	artifactsMap := artifacts.AsMap()
 
-	inputs := map[string]runtime.Artifact{}
+	inputs := []runtime.Input{}
 	for _, name := range i.guessedNames {
-		artifact, found := artifactsMap[name]
+		vol, found := artifactsMap[name]
 		if !found {
 			// false positive; not an artifact
 			continue
 		}
-
-		pi := putInput{
-			name:     name,
-			artifact: artifact,
-		}
-
-		inputs[pi.DestinationPath()] = pi.Artifact()
+		inputs = append(inputs, putInput(name, vol))
 	}
 
 	return inputs, nil
 }
 
-type putInput struct {
-	name     build.ArtifactName
-	artifact runtime.Artifact
-}
-
-func (input putInput) Artifact() runtime.Artifact { return input.artifact }
-
-func (input putInput) DestinationPath() string {
-	return resource.ResourcesDir("put/" + string(input.name))
+func putInput(name build.ArtifactName, volume runtime.Volume) runtime.Input {
+	return runtime.Input{
+		VolumeHandle:    volume.Handle(),
+		DestinationPath: filepath.Join(resource.ResourcesDir("put"), string(name)),
+	}
 }

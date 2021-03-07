@@ -21,37 +21,31 @@ type ArtifactName string
 // execution.
 //
 type Repository struct {
-	repo  map[ArtifactName]runtime.Artifact
+	repo  map[ArtifactName]runtime.Volume
 	repoL sync.RWMutex
 
 	parent *Repository
 }
 
-// NewArtifactRepository constructs a new repository.
+// NewRepository constructs a new repository.
 func NewRepository() *Repository {
 	return &Repository{
-		repo: make(map[ArtifactName]runtime.Artifact),
+		repo: make(map[ArtifactName]runtime.Volume),
 	}
 }
 
-//counterfeiter:generate . RegisterableArtifact
-// A RegisterableArtifact is an Artifact which can be added to the registry
-type RegisterableArtifact interface {
-	runtime.Artifact
-}
-
-// RegisterArtifact inserts an RegisterableArtifact into the map under the given
+// RegisterArtifact inserts an artifact Volume into the map under the given
 // ArtifactName. Producers of artifacts, e.g. the Get step and the Task step,
 // will call this after they've successfully produced their artifact(s).
-func (repo *Repository) RegisterArtifact(name ArtifactName, artifact RegisterableArtifact) {
+func (repo *Repository) RegisterArtifact(name ArtifactName, volume runtime.Volume) {
 	repo.repoL.Lock()
-	repo.repo[name] = artifact
+	repo.repo[name] = volume
 	repo.repoL.Unlock()
 }
 
 // SourceFor looks up a Source for the given ArtifactName. Consumers of
 // artifacts, e.g. the Task step, will call this to locate their dependencies.
-func (repo *Repository) ArtifactFor(name ArtifactName) (runtime.Artifact, bool) {
+func (repo *Repository) ArtifactFor(name ArtifactName) (runtime.Volume, bool) {
 	repo.repoL.RLock()
 	artifact, found := repo.repo[name]
 	repo.repoL.RUnlock()
@@ -64,8 +58,8 @@ func (repo *Repository) ArtifactFor(name ArtifactName) (runtime.Artifact, bool) 
 // AsMap extracts the current contents of the ArtifactRepository into a new map
 // and returns it. Changes to the returned map or the ArtifactRepository will not
 // affect each other.
-func (repo *Repository) AsMap() map[ArtifactName]runtime.Artifact {
-	result := make(map[ArtifactName]runtime.Artifact)
+func (repo *Repository) AsMap() map[ArtifactName]runtime.Volume {
+	result := make(map[ArtifactName]runtime.Volume)
 
 	if repo.parent != nil {
 		for name, artifact := range repo.parent.AsMap() {
