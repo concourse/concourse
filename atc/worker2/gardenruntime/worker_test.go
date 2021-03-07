@@ -37,7 +37,7 @@ var _ = Describe("Garden Worker", func() {
 		)
 		worker := scenario.Worker("worker")
 
-		container, err := worker.FindOrCreateContainer(
+		container, volumeMounts, err := worker.FindOrCreateContainer(
 			ctx,
 			db.NewFixedHandleContainerOwner("my-handle"),
 			db.ContainerMetadata{},
@@ -80,10 +80,12 @@ var _ = Describe("Garden Worker", func() {
 		})
 
 		By("validating the default created volumes", func() {
-			Expect(mountedVolumes(worker, container)).To(consistOfMap(expectMap{
+			Expect(volumeMountMap(volumeMounts)).To(consistOfMap(expectMap{
 				"/scratch": grt.HaveStrategy(baggageclaim.EmptyStrategy{}),
 				"/workdir": grt.HaveStrategy(baggageclaim.EmptyStrategy{}),
 			}))
+
+			Expect(bindMountVolumes(worker, container)).To(Equal(volumeMountMap(volumeMounts)))
 		})
 	})
 
@@ -98,7 +100,7 @@ var _ = Describe("Garden Worker", func() {
 		)
 		worker := scenario.Worker("worker")
 
-		_, err := worker.FindOrCreateContainer(
+		_, _, err := worker.FindOrCreateContainer(
 			ctx,
 			db.NewFixedHandleContainerOwner("existing-container"),
 			db.ContainerMetadata{},
@@ -128,7 +130,7 @@ var _ = Describe("Garden Worker", func() {
 		)
 		worker := scenario.Worker("worker")
 
-		container, err := worker.FindOrCreateContainer(
+		container, _, err := worker.FindOrCreateContainer(
 			ctx,
 			db.NewFixedHandleContainerOwner("my-handle"),
 			db.ContainerMetadata{},
@@ -190,7 +192,7 @@ var _ = Describe("Garden Worker", func() {
 		)
 		worker := scenario.Worker("worker")
 
-		_, err := worker.FindOrCreateContainer(
+		_, _, err := worker.FindOrCreateContainer(
 			ctx,
 			db.NewFixedHandleContainerOwner("not-yet-in-garden"),
 			db.ContainerMetadata{},
@@ -222,7 +224,7 @@ var _ = Describe("Garden Worker", func() {
 		)
 		worker := scenario.Worker("worker")
 
-		_, err := worker.FindOrCreateContainer(
+		_, _, err := worker.FindOrCreateContainer(
 			ctx,
 			db.NewFixedHandleContainerOwner("not-in-garden"),
 			db.ContainerMetadata{},
@@ -252,7 +254,7 @@ var _ = Describe("Garden Worker", func() {
 		)
 		worker := scenario.Worker("worker")
 
-		container, err := worker.FindOrCreateContainer(
+		container, _, err := worker.FindOrCreateContainer(
 			ctx,
 			db.NewFixedHandleContainerOwner("my-handle"),
 			db.ContainerMetadata{},
@@ -332,7 +334,7 @@ var _ = Describe("Garden Worker", func() {
 		)
 		worker := scenario.Worker("worker1")
 
-		container, err := worker.FindOrCreateContainer(
+		container, _, err := worker.FindOrCreateContainer(
 			ctx,
 			db.NewFixedHandleContainerOwner("container1"),
 			db.ContainerMetadata{},
@@ -380,7 +382,7 @@ var _ = Describe("Garden Worker", func() {
 		)
 		worker := scenario.Worker("worker1")
 
-		container, err := worker.FindOrCreateContainer(
+		container, _, err := worker.FindOrCreateContainer(
 			ctx,
 			db.NewFixedHandleContainerOwner("my-handle"),
 			db.ContainerMetadata{},
@@ -415,7 +417,7 @@ var _ = Describe("Garden Worker", func() {
 		)
 		worker := scenario.Worker("worker")
 
-		container, err := worker.FindOrCreateContainer(
+		container, _, err := worker.FindOrCreateContainer(
 			ctx,
 			db.NewFixedHandleContainerOwner("my-handle"),
 			db.ContainerMetadata{},
@@ -456,7 +458,7 @@ var _ = Describe("Garden Worker", func() {
 		)
 		worker := scenario.Worker("worker1")
 
-		container, err := worker.FindOrCreateContainer(
+		_, volumeMounts, err := worker.FindOrCreateContainer(
 			ctx,
 			db.NewFixedHandleContainerOwner("my-handle"),
 			db.ContainerMetadata{},
@@ -482,7 +484,7 @@ var _ = Describe("Garden Worker", func() {
 		)
 		Expect(err).ToNot(HaveOccurred())
 
-		Expect(mountedVolumes(worker, container)).To(consistOfMap(expectMap{
+		Expect(volumeMountMap(volumeMounts)).To(consistOfMap(expectMap{
 			"/scratch":     grt.HaveStrategy(baggageclaim.EmptyStrategy{}),
 			"/workdir":     grt.HaveStrategy(baggageclaim.EmptyStrategy{}),
 			"/local-input": grt.HaveStrategy(baggageclaim.COWStrategy{Parent: localInputVolume}),
@@ -513,7 +515,7 @@ var _ = Describe("Garden Worker", func() {
 		)
 		worker := scenario.Worker("worker1")
 
-		_, err := worker.FindOrCreateContainer(
+		_, _, err := worker.FindOrCreateContainer(
 			ctx,
 			db.NewFixedHandleContainerOwner("my-handle"),
 			db.ContainerMetadata{},
@@ -551,7 +553,7 @@ var _ = Describe("Garden Worker", func() {
 		)
 		worker := scenario.Worker("worker")
 
-		container, err := worker.FindOrCreateContainer(
+		_, volumeMounts, err := worker.FindOrCreateContainer(
 			ctx,
 			db.NewFixedHandleContainerOwner("my-handle"),
 			db.ContainerMetadata{},
@@ -573,7 +575,7 @@ var _ = Describe("Garden Worker", func() {
 		)
 		Expect(err).ToNot(HaveOccurred())
 
-		Expect(mountedVolumes(worker, container)).To(consistOfMap(expectMap{
+		Expect(volumeMountMap(volumeMounts)).To(consistOfMap(expectMap{
 			"/scratch": grt.HaveStrategy(baggageclaim.EmptyStrategy{}),
 			"/workdir": grt.HaveStrategy(baggageclaim.COWStrategy{Parent: localInputVolume}),
 		}))
@@ -594,7 +596,7 @@ var _ = Describe("Garden Worker", func() {
 		origWorkdirCacheVol, ok := cacheVolume(scenario, worker, "/workdir")
 		Expect(ok).To(BeTrue())
 
-		container, err := worker.FindOrCreateContainer(
+		_, volumeMounts, err := worker.FindOrCreateContainer(
 			ctx,
 			db.NewFixedHandleContainerOwner("my-handle"),
 			db.ContainerMetadata{},
@@ -616,7 +618,7 @@ var _ = Describe("Garden Worker", func() {
 		)
 		Expect(err).ToNot(HaveOccurred())
 
-		Expect(mountedVolumes(worker, container)).To(consistOfMap(expectMap{
+		Expect(volumeMountMap(volumeMounts)).To(consistOfMap(expectMap{
 			"/scratch":    grt.HaveStrategy(baggageclaim.EmptyStrategy{}),
 			"/workdir":    grt.HaveStrategy(baggageclaim.COWStrategy{Parent: origWorkdirCacheVol}),
 			"/cache-hit":  grt.HaveStrategy(baggageclaim.COWStrategy{Parent: origCacheHitVol}),
@@ -632,7 +634,7 @@ var _ = Describe("Garden Worker", func() {
 		)
 		worker := scenario.Worker("worker")
 
-		container, err := worker.FindOrCreateContainer(
+		container, _, err := worker.FindOrCreateContainer(
 			ctx,
 			db.NewFixedHandleContainerOwner("my-handle"),
 			db.ContainerMetadata{},
@@ -646,7 +648,7 @@ var _ = Describe("Garden Worker", func() {
 		)
 		Expect(err).ToNot(HaveOccurred())
 
-		Expect(mountedVolumes(worker, container)).To(consistOfMap(expectMap{
+		Expect(bindMountVolumes(worker, container)).To(consistOfMap(expectMap{
 			"/scratch": grt.HaveStrategy(baggageclaim.EmptyStrategy{}),
 			"/workdir": grt.HaveStrategy(baggageclaim.EmptyStrategy{}),
 			"/etc/ssl/certs": grt.HaveStrategy(baggageclaim.ImportStrategy{
@@ -681,7 +683,7 @@ var _ = Describe("Garden Worker", func() {
 		)
 		worker := scenario.Worker("worker")
 
-		container, err := worker.FindOrCreateContainer(
+		container, _, err := worker.FindOrCreateContainer(
 			ctx,
 			db.NewFixedHandleContainerOwner("my-handle"),
 			db.ContainerMetadata{},
@@ -718,7 +720,7 @@ var _ = Describe("Garden Worker", func() {
 		})
 
 		By("validating the container mounts are privileged", func() {
-			Expect(mountedVolumes(worker, container)).To(consistOfMap(expectMap{
+			Expect(bindMountVolumes(worker, container)).To(consistOfMap(expectMap{
 				"/scratch": grt.BePrivileged(),
 				"/workdir": grt.BePrivileged(),
 				"/input":   grt.BePrivileged(),
@@ -747,7 +749,7 @@ var _ = Describe("Garden Worker", func() {
 		)
 		worker := scenario.Worker("worker")
 
-		container, err := worker.FindOrCreateContainer(
+		container, _, err := worker.FindOrCreateContainer(
 			ctx,
 			db.NewFixedHandleContainerOwner("my-handle"),
 			db.ContainerMetadata{},
@@ -784,7 +786,7 @@ var _ = Describe("Garden Worker", func() {
 		})
 
 		By("validating the container mounts are unprivileged", func() {
-			Expect(mountedVolumes(worker, container)).To(consistOfMap(expectMap{
+			Expect(bindMountVolumes(worker, container)).To(consistOfMap(expectMap{
 				"/scratch":       Not(grt.BePrivileged()),
 				"/workdir":       Not(grt.BePrivileged()),
 				"/input":         Not(grt.BePrivileged()),
@@ -803,7 +805,7 @@ var _ = Describe("Garden Worker", func() {
 		)
 		worker := scenario.Worker("worker")
 
-		_, err := worker.FindOrCreateContainer(
+		_, _, err := worker.FindOrCreateContainer(
 			ctx,
 			db.NewFixedHandleContainerOwner("my-handle"),
 			db.ContainerMetadata{},
@@ -834,7 +836,7 @@ var _ = Describe("Garden Worker", func() {
 		)
 		worker := scenario.Worker("worker")
 
-		container, err := worker.FindOrCreateContainer(
+		_, volumeMounts, err := worker.FindOrCreateContainer(
 			ctx,
 			db.NewFixedHandleContainerOwner("my-container"),
 			db.ContainerMetadata{},
@@ -849,7 +851,7 @@ var _ = Describe("Garden Worker", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		By("validating the container was created", func() {
-			_, ok := mountedVolumes(worker, container)["/scratch"]
+			_, ok := volumeMountMap(volumeMounts)["/scratch"]
 			Expect(ok).To(BeTrue())
 		})
 	})
@@ -865,7 +867,7 @@ var _ = Describe("Garden Worker", func() {
 		)
 		worker := scenario.Worker("worker")
 
-		_, err := worker.FindOrCreateContainer(
+		_, _, err := worker.FindOrCreateContainer(
 			ctx,
 			db.NewFixedHandleContainerOwner("my-container"),
 			db.ContainerMetadata{},
@@ -906,7 +908,7 @@ var _ = Describe("Garden Worker", func() {
 
 		done := make(chan error, 1)
 		go func() {
-			_, err := worker.FindOrCreateContainer(
+			_, _, err := worker.FindOrCreateContainer(
 				ctx,
 				db.NewFixedHandleContainerOwner("my-container"),
 				db.ContainerMetadata{},
@@ -948,7 +950,7 @@ var _ = Describe("Garden Worker", func() {
 		worker := scenario.Worker("worker")
 
 		containerOwner := db.NewFixedHandleContainerOwner("fail-to-create")
-		_, err := worker.FindOrCreateContainer(
+		_, _, err := worker.FindOrCreateContainer(
 			ctx,
 			containerOwner,
 			db.ContainerMetadata{},
@@ -979,12 +981,10 @@ func consistOfMap(expect expectMap) types.GomegaMatcher {
 	return SatisfyAll(matchers...)
 }
 
-func mountedVolumes(worker runtime.Worker, container runtime.Container) map[string]*grt.Volume {
+func volumeMountMap(volumeMounts []runtime.VolumeMount) map[string]*grt.Volume {
 	mounts := make(map[string]*grt.Volume)
-	for _, mnt := range gardenContainer(container).Spec.BindMounts {
-		bcVolume, ok := findVolumeBy(worker, grt.PathEq(mnt.SrcPath))
-		Expect(ok).To(BeTrue(), "bind mount volume not found in baggageclaim")
-		mounts[mnt.DstPath] = bcVolume
+	for _, mnt := range volumeMounts {
+		mounts[mnt.MountPath] = mnt.Volume.(gardenruntime.Volume).BaggageclaimVolume().(*grt.Volume)
 	}
 
 	return mounts
@@ -999,6 +999,16 @@ func bindMount(container runtime.Container, path string) garden.BindMount {
 
 	Fail("missing mount " + path)
 	panic("unreachable")
+}
+
+func bindMountVolumes(worker runtime.Worker, container runtime.Container) map[string]*grt.Volume {
+	bindMounts := make(map[string]*grt.Volume)
+	for _, mnt := range gardenContainer(container).Spec.BindMounts {
+		bcVolume, ok := findVolumeBy(worker, grt.PathEq(mnt.SrcPath))
+		Expect(ok).To(BeTrue(), "bind mount volume not found in baggageclaim")
+		bindMounts[mnt.DstPath] = bcVolume
+	}
+	return bindMounts
 }
 
 func gardenContainer(container runtime.Container) *grt.Container {

@@ -73,10 +73,6 @@ func (c Container) SetProperty(name string, value string) error {
 	return nil
 }
 
-func (c Container) VolumeMounts() []runtime.VolumeMount {
-	return nil
-}
-
 func cloneProcs(m map[int]ProcessStub) map[int]ProcessStub {
 	m2 := make(map[int]ProcessStub, len(m))
 	for k, v := range m {

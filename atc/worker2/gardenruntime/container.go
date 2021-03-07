@@ -17,7 +17,6 @@ const exitStatusPropertyName = "concourse:exit-status"
 
 type Container struct {
 	GardenContainer gclient.Container
-	Mounts          []runtime.VolumeMount
 }
 
 func (c Container) Run(ctx context.Context, spec runtime.ProcessSpec, io runtime.ProcessIO) (runtime.ProcessResult, error) {
@@ -83,10 +82,6 @@ func (c Container) waitForProcessCompletion(ctx context.Context, process garden.
 		c.GardenContainer.SetProperty(exitStatusPropertyName, strconv.Itoa(r.exitStatus))
 		return runtime.ProcessResult{ExitStatus: r.exitStatus}, nil
 	}
-}
-
-func (c Container) VolumeMounts() []runtime.VolumeMount {
-	return c.Mounts
 }
 
 func toGardenProcessSpec(spec runtime.ProcessSpec, properties garden.Properties) garden.ProcessSpec {

@@ -2,6 +2,7 @@ package gardenruntime
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -70,13 +71,13 @@ func (worker *Worker) FindOrCreateContainer(
 	owner db.ContainerOwner,
 	metadata db.ContainerMetadata,
 	containerSpec runtime.ContainerSpec,
-) (runtime.Container, error) {
+) (runtime.Container, []runtime.VolumeMount, error) {
 	logger := lagerctx.FromContext(ctx)
-	c, err := worker.findOrCreateContainer(ctx, logger, owner, metadata, containerSpec)
+	c, mounts, err := worker.findOrCreateContainer(ctx, logger, owner, metadata, containerSpec)
 	if err != nil {
-		return c, fmt.Errorf("find or create container on worker %s: %w", worker.Name(), err)
+		return nil, nil, fmt.Errorf("find or create container on worker %s: %w", worker.Name(), err)
 	}
-	return c, err
+	return c, mounts, err
 }
 
 func (worker *Worker) findOrCreateContainer(
@@ -85,7 +86,7 @@ func (worker *Worker) findOrCreateContainer(
 	owner db.ContainerOwner,
 	metadata db.ContainerMetadata,
 	containerSpec runtime.ContainerSpec,
-) (runtime.Container, error) {
+) (runtime.Container, []runtime.VolumeMount, error) {
 	var (
 		gardenContainer   gclient.Container
 		createdContainer  db.CreatedContainer
@@ -96,7 +97,7 @@ func (worker *Worker) findOrCreateContainer(
 
 	creatingContainer, createdContainer, err = worker.dbWorker.FindContainer(owner)
 	if err != nil {
-		return nil, fmt.Errorf("find in db: %w", err)
+		return nil, nil, fmt.Errorf("find in db: %w", err)
 	}
 
 	// ensure either creatingContainer or createdContainer exists
@@ -113,10 +114,10 @@ func (worker *Worker) findOrCreateContainer(
 		if err != nil {
 			logger.Error("failed-to-create-container-in-db", err)
 			if _, ok := err.(db.ContainerOwnerDisappearedError); ok {
-				return nil, ErrResourceConfigCheckSessionExpired
+				return nil, nil, ErrResourceConfigCheckSessionExpired
 			}
 
-			return nil, fmt.Errorf("create container: %w", err)
+			return nil, nil, fmt.Errorf("create container: %w", err)
 		}
 		logger.Debug("created-creating-container-in-db")
 		containerHandle = creatingContainer.Handle()
@@ -126,9 +127,9 @@ func (worker *Worker) findOrCreateContainer(
 
 	gardenContainer, err = worker.gardenClient.Lookup(containerHandle)
 	if err != nil {
-		if _, ok := err.(garden.ContainerNotFoundError); !ok {
+		if !errors.As(err, &garden.ContainerNotFoundError{}) {
 			logger.Error("failed-to-lookup-creating-container-in-garden", err)
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
@@ -138,7 +139,7 @@ func (worker *Worker) findOrCreateContainer(
 		logger.Debug("found-created-container-in-db")
 
 		if gardenContainer == nil {
-			return nil, garden.ContainerNotFoundError{Handle: containerHandle}
+			return nil, nil, garden.ContainerNotFoundError{Handle: containerHandle}
 		}
 		return worker.constructContainer(
 			logger,
@@ -155,7 +156,7 @@ func (worker *Worker) findOrCreateContainer(
 		if err != nil {
 			logger.Error("failed-to-create-container-in-garden", err)
 			markContainerAsFailed(logger, creatingContainer)
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
@@ -165,7 +166,7 @@ func (worker *Worker) findOrCreateContainer(
 	if err != nil {
 		logger.Error("failed-to-mark-container-as-created", err)
 		_ = worker.gardenClient.Destroy(containerHandle)
-		return nil, err
+		return nil, nil, err
 	}
 
 	logger.Debug("created-container-in-db")
@@ -256,7 +257,7 @@ func (worker *Worker) constructContainer(
 	logger lager.Logger,
 	createdContainer db.CreatedContainer,
 	gardenContainer gclient.Container,
-) (Container, error) {
+) (Container, []runtime.VolumeMount, error) {
 	logger = logger.WithData(
 		lager.Data{
 			"container": createdContainer.Handle(),
@@ -267,7 +268,7 @@ func (worker *Worker) constructContainer(
 	createdVolumes, err := worker.db.VolumeRepo.FindVolumesForContainer(createdContainer)
 	if err != nil {
 		logger.Error("failed-to-find-container-volumes", err)
-		return Container{}, err
+		return Container{}, nil, err
 	}
 
 	volumeMounts := make([]runtime.VolumeMount, len(createdVolumes))
@@ -280,7 +281,7 @@ func (worker *Worker) constructContainer(
 		volume, found, err := worker.LookupVolume(logger, dbVolume.Handle())
 		if err != nil {
 			volumeLogger.Error("failed-to-lookup-volume", err)
-			return Container{}, err
+			return Container{}, nil, err
 		}
 
 		if !found {
@@ -289,7 +290,7 @@ func (worker *Worker) constructContainer(
 				WorkerName: worker.Name(),
 			}
 			volumeLogger.Error("volume-is-missing-on-worker", err, lager.Data{"handle": dbVolume.Handle()})
-			return Container{}, err
+			return Container{}, nil, err
 		}
 
 		volumeMounts[i] = runtime.VolumeMount{
@@ -297,10 +298,7 @@ func (worker *Worker) constructContainer(
 			MountPath: dbVolume.Path(),
 		}
 	}
-	return Container{
-		GardenContainer: gardenContainer,
-		Mounts:          volumeMounts,
-	}, nil
+	return Container{GardenContainer: gardenContainer}, volumeMounts, nil
 }
 
 // creates volumes required to run any step:
