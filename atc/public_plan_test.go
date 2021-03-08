@@ -30,7 +30,6 @@ var _ = Describe("Plan", func() {
 								},
 							},
 						},
-
 						{
 							ID: "3",
 							Get: &atc.GetPlan{
@@ -41,9 +40,25 @@ var _ = Describe("Plan", func() {
 								Params:   atc.Params{"some": "params"},
 								Version:  &atc.Version{"some": "version"},
 								Tags:     atc.Tags{"tags"},
+								ImageGetPlan: &atc.Plan{
+									ID: "3/1",
+									Get: &atc.GetPlan{
+										Type:          "some-base-type",
+										Name:          "name",
+										Source:        atc.Source{"some": "source"},
+										BaseImageType: "some-base-type",
+									},
+								},
+								ImageCheckPlan: &atc.Plan{
+									ID: "3/2",
+									Check: &atc.CheckPlan{
+										Type:   "some-base-type",
+										Name:   "name",
+										Source: atc.Source{"some": "source"},
+									},
+								},
 							},
 						},
-
 						{
 							ID: "4",
 							Put: &atc.PutPlan{
@@ -53,9 +68,25 @@ var _ = Describe("Plan", func() {
 								Source:   atc.Source{"some": "source"},
 								Params:   atc.Params{"some": "params"},
 								Tags:     atc.Tags{"tags"},
+								ImageGetPlan: &atc.Plan{
+									ID: "4/1",
+									Get: &atc.GetPlan{
+										Type:          "some-base-type",
+										Name:          "name",
+										Source:        atc.Source{"some": "source"},
+										BaseImageType: "some-base-type",
+									},
+								},
+								ImageCheckPlan: &atc.Plan{
+									ID: "4/2",
+									Check: &atc.CheckPlan{
+										Type:   "some-base-type",
+										Name:   "name",
+										Source: atc.Source{"some": "source"},
+									},
+								},
 							},
 						},
-
 						{
 							ID: "4.2",
 							Check: &atc.CheckPlan{
@@ -63,6 +94,23 @@ var _ = Describe("Plan", func() {
 								Name:   "name",
 								Source: atc.Source{"some": "source"},
 								Tags:   atc.Tags{"tags"},
+								ImageGetPlan: &atc.Plan{
+									ID: "4.2/1",
+									Get: &atc.GetPlan{
+										Type:          "some-base-type",
+										Name:          "name",
+										Source:        atc.Source{"some": "source"},
+										BaseImageType: "some-base-type",
+									},
+								},
+								ImageCheckPlan: &atc.Plan{
+									ID: "4.2/2",
+									Check: &atc.CheckPlan{
+										Type:   "some-base-type",
+										Name:   "name",
+										Source: atc.Source{"some": "source"},
+									},
+								},
 							},
 						},
 
@@ -429,7 +477,21 @@ var _ = Describe("Plan", func() {
           "resource": "resource",
           "version": {
             "some": "version"
-          }
+          },
+	    		"image_get_plan": {
+	    			"id": "3/1",
+	    			"get": {
+	    				"type": "some-base-type",
+	    				"name": "name"
+	    			}
+	    		},
+	    		"image_check_plan": {
+	    			"id": "3/2",
+	    			"check": {
+	    				"type": "some-base-type",
+	    				"name": "name"
+	    			}
+	    		}
         }
       },
       {
@@ -437,14 +499,42 @@ var _ = Describe("Plan", func() {
         "put": {
           "type": "type",
           "name": "name",
-          "resource": "resource"
+          "resource": "resource",
+	    		"image_get_plan": {
+	    			"id": "4/1",
+	    			"get": {
+	    				"type": "some-base-type",
+	    				"name": "name"
+	    			}
+	    		},
+	    		"image_check_plan": {
+	    			"id": "4/2",
+	    			"check": {
+	    				"type": "some-base-type",
+	    				"name": "name"
+	    			}
+	    		}
         }
       },
       {
         "id": "4.2",
         "check": {
           "type": "type",
-          "name": "name"
+          "name": "name",
+	    		"image_get_plan": {
+	    			"id": "4.2/1",
+	    			"get": {
+	    				"type": "some-base-type",
+	    				"name": "name"
+	    			}
+	    		},
+	    		"image_check_plan": {
+	    			"id": "4.2/2",
+	    			"check": {
+	    				"type": "some-base-type",
+	    				"name": "name"
+	    			}
+	    		}
         }
       },
       {
