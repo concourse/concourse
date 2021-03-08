@@ -89,48 +89,42 @@ var factoryTests = []PlannerTest{
 		},
 		CompareIDs: true,
 		PlanJSON: `{
-			"id": "3",
-			"on_success": {
-				"step": {
+			"id": "2",
+			"get": {
+				"name": "some-name",
+				"type": "some-resource-type",
+				"resource": "some-resource",
+				"source": {"some":"source","default-key":"default-value"},
+				"params": {"some":"params"},
+				"version": {"some":"version"},
+				"tags": ["tag-1", "tag-2"],
+				"image_get_plan": {
 					"id": "1",
 					"get": {
 						"name": "some-resource-type",
 						"type": "some-base-resource-type",
 						"source": {
-						   "some": "type-source"
+							 "some": "type-source"
 						},
 						"base_image_type": "some-base-resource-type",
 						"version": {
-						   "some": "type-version"
+							 "some": "type-version"
 						},
 						"tags": [
-						   "tag-1",
-						   "tag-2"
+							 "tag-1",
+							 "tag-2"
 						]
 					}
 				},
-				"on_success": {
-					"id": "2",
-					"get": {
-						"name": "some-name",
-						"type": "some-resource-type",
-						"resource": "some-resource",
-						"source": {"some":"source","default-key":"default-value"},
-						"params": {"some":"params"},
-						"version": {"some":"version"},
-						"tags": ["tag-1", "tag-2"],
-						"image_spec_from": "1",
-						"resource_types": [
-							{
-								"name": "some-resource-type",
-								"type": "some-base-resource-type",
-								"source": {"some": "type-source"},
-								"defaults": {"default-key":"default-value"},
-								"version": {"some": "type-version"}
-							}
-						]
+				"resource_types": [
+					{
+						"name": "some-resource-type",
+						"type": "some-base-resource-type",
+						"source": {"some": "type-source"},
+						"defaults": {"default-key":"default-value"},
+						"version": {"some": "type-version"}
 					}
-				}
+				]
 			}
 		}`,
 	},
@@ -169,12 +163,24 @@ var factoryTests = []PlannerTest{
 			},
 		},
 		PlanJSON: `{
-			"id": "5",
-			"on_success": {
-				"step": {
-					"id": "3",
-					"on_success": {
-						"step": {
+			"id": "3",
+			"get": {
+				"name": "some-name",
+				"type": "some-child-resource-type",
+				"resource": "some-child-resource",
+				"source": {"some":"child-source"},
+				"params": {"some":"params"},
+				"version": {"some":"version"},
+				"tags": ["tag-1", "tag-2"],
+				"image_get_plan": {
+					"id": "2",
+					"get": {
+						"name": "some-child-resource-type",
+						"type": "some-resource-type",
+						"source": {
+							 "some": "child-source"
+						},
+						"image_get_plan": {
 							"id": "1",
 							"get": {
 								"name": "some-resource-type",
@@ -192,52 +198,14 @@ var factoryTests = []PlannerTest{
 								]
 							}
 						},
-						"on_success": {
-							"id": "2",
-							"get": {
-								"name": "some-child-resource-type",
-								"type": "some-resource-type",
-								"source": {
-									 "some": "child-source"
-								},
-								"image_spec_from": "1",
-								"version": {
-									 "some": "child-version"
-								},
-								"tags": [
-									 "tag-1",
-									 "tag-2"
-								],
-								"resource_types": [
-									{
-										"name": "some-resource-type",
-										"type": "some-base-resource-type",
-										"source": {"some": "type-source"},
-										"version": {"some": "type-version"}
-									}
-								]
-							}
-						}
-					}
-				},
-				"on_success": {
-					"id": "4",
-					"get": {
-						"name": "some-name",
-						"type": "some-child-resource-type",
-						"resource": "some-child-resource",
-						"source": {"some":"child-source"},
-						"params": {"some":"params"},
-						"version": {"some":"version"},
-						"tags": ["tag-1", "tag-2"],
-						"image_spec_from": "2",
+						"version": {
+							 "some": "child-version"
+						},
+						"tags": [
+							 "tag-1",
+							 "tag-2"
+						],
 						"resource_types": [
-							{
-								"name": "some-child-resource-type",
-								"type": "some-resource-type",
-								"source": {"some": "child-source"},
-								"version": {"some": "child-version"}
-							},
 							{
 								"name": "some-resource-type",
 								"type": "some-base-resource-type",
@@ -246,7 +214,21 @@ var factoryTests = []PlannerTest{
 							}
 						]
 					}
-				}
+				},
+				"resource_types": [
+					{
+						"name": "some-child-resource-type",
+						"type": "some-resource-type",
+						"source": {"some": "child-source"},
+						"version": {"some": "child-version"}
+					},
+					{
+						"name": "some-resource-type",
+						"type": "some-base-resource-type",
+						"source": {"some": "type-source"},
+						"version": {"some": "type-version"}
+					}
+				]
 			}
 		}`,
 	},
@@ -276,65 +258,54 @@ var factoryTests = []PlannerTest{
 			},
 		},
 		PlanJSON: `{
-			"id": "5",
-			"on_success": {
-				"step": {
-					"id": "3",
-					"on_success": {
-						"step": {
-							"id": "1",
-							"check": {
-								"name": "some-resource-type",
-								"type": "some-base-resource-type",
-								"source": {
-									 "some": "type-source"
-								},
-								"base_image_type": "some-base-resource-type",
-								"tags": [
-									 "tag-1",
-									 "tag-2"
-								]
-							}
+			"id": "3",
+			"get": {
+				"name": "some-name",
+				"type": "some-resource-type",
+				"resource": "some-resource",
+				"source": {"some":"source"},
+				"params": {"some":"params"},
+				"version": {"some":"version"},
+				"tags": ["tag-1", "tag-2"],
+				"image_check_plan": {
+					"id": "1",
+					"check": {
+						"name": "some-resource-type",
+						"type": "some-base-resource-type",
+						"source": {
+							 "some": "type-source"
 						},
-						"on_success": {
-							"id": "2",
-							"get": {
-								"name": "some-resource-type",
-								"type": "some-base-resource-type",
-								"source": {
-									 "some": "type-source"
-								},
-								"base_image_type": "some-base-resource-type",
-								"version_from": "1",
-								"tags": [
-									 "tag-1",
-									 "tag-2"
-								]
-							}
-						}
-					}
-				},
-				"on_success": {
-					"id": "4",
-					"get": {
-						"name": "some-name",
-						"type": "some-resource-type",
-						"resource": "some-resource",
-						"source": {"some":"source"},
-						"params": {"some":"params"},
-						"version": {"some":"version"},
-						"tags": ["tag-1", "tag-2"],
-						"image_spec_from": "2",
-						"resource_types": [
-							{
-								"name": "some-resource-type",
-								"type": "some-base-resource-type",
-								"source": {"some": "type-source"},
-								"version": null
-							}
+						"base_image_type": "some-base-resource-type",
+						"tags": [
+							 "tag-1",
+							 "tag-2"
 						]
 					}
-				}
+				},
+				"image_get_plan": {
+					"id": "2",
+					"get": {
+						"name": "some-resource-type",
+						"type": "some-base-resource-type",
+						"source": {
+							 "some": "type-source"
+						},
+						"base_image_type": "some-base-resource-type",
+						"version_from": "1",
+						"tags": [
+							 "tag-1",
+							 "tag-2"
+						]
+					}
+				},
+				"resource_types": [
+					{
+						"name": "some-resource-type",
+						"type": "some-base-resource-type",
+						"source": {"some": "type-source"},
+						"version": null
+					}
+				]
 			}
 		}`,
 	},
@@ -465,7 +436,7 @@ var factoryTests = []PlannerTest{
 		Title: "put step with nested resource type",
 		Config: &atc.PutStep{
 			Name:      "some-name",
-			Resource:  "some-child-resource",
+			Resource:  "some-resource",
 			Params:    atc.Params{"some": "params"},
 			Tags:      atc.Tags{"tag-1", "tag-2"},
 			Inputs:    &atc.InputsConfig{All: true},
@@ -478,130 +449,84 @@ var factoryTests = []PlannerTest{
 			},
 		},
 		CompareIDs: true,
-		OverwriteResourceTypes: atc.VersionedResourceTypes{
-			{
-				ResourceType: atc.ResourceType{
-					Name:   "some-child-resource-type",
-					Type:   "some-resource-type",
-					Source: atc.Source{"some": "child-source"},
-				},
-				Version: atc.Version{"some": "child-version"},
-			},
-			{
-				ResourceType: atc.ResourceType{
-					Name:   "some-resource-type",
-					Type:   "some-base-resource-type",
-					Source: atc.Source{"some": "type-source"},
-				},
-				Version: atc.Version{"some": "type-version"},
-			},
-		},
 		PlanJSON: `{
-			"id": "7",
+			"id": "5",
 			"on_success": {
 				"step": {
-					"id": "5",
-					"on_success": {
-						"step": {
-							"id": "3",
-							"on_success": {
-								"step": {
-									"id": "1",
-									"get": {
-										"name": "some-resource-type",
-										"type": "some-base-resource-type",
-										"source": {
-											 "some": "type-source"
-										},
-										"base_image_type": "some-base-resource-type",
-										"version": {
-											 "some": "type-version"
-										},
-										"tags": [
-											 "tag-1",
-											 "tag-2"
-										]
-									}
-								},
-								"on_success": {
-									"id": "2",
-									"get": {
-										"name": "some-child-resource-type",
-										"type": "some-resource-type",
-										"source": {
-											 "some": "child-source"
-										},
-										"image_spec_from": "1",
-										"version": {
-											 "some": "child-version"
-										},
-										"tags": [
-											 "tag-1",
-											 "tag-2"
-										],
-										"resource_types": [
-											{
-												"name": "some-resource-type",
-												"type": "some-base-resource-type",
-												"source": {"some": "type-source"},
-												"version": {"some": "type-version"}
-											}
-										]
-									}
-								}
-							}
+					"id": "2",
+					"put": {
+						"name": "some-name",
+						"type": "some-resource-type",
+						"resource": "some-resource",
+						"source": {
+							 "some": "source",
+							 "default-key": "default-value"
 						},
-						"on_success": {
-							"id": "4",
-							"put": {
-								"name": "some-name",
-								"type": "some-child-resource-type",
-								"resource": "some-child-resource",
-								"source": {"some":"child-source"},
-								"params": {"some":"params"},
-								"tags": ["tag-1", "tag-2"],
-								"inputs": "all",
-								"image_spec_from": "2",
-								"resource_types": [
-									{
-										"name": "some-child-resource-type",
-										"type": "some-resource-type",
-										"source": {"some": "child-source"},
-										"version": {"some": "child-version"}
-									},
-									{
-										"name": "some-resource-type",
-										"type": "some-base-resource-type",
-										"source": {"some": "type-source"},
-										"version": {"some": "type-version"}
-									}
+						"params": {"some":"params"},
+						"tags": ["tag-1", "tag-2"],
+						"inputs": "all",
+						"image_get_plan": {
+							"id": "1",
+							"get": {
+								"name": "some-resource-type",
+								"type": "some-base-resource-type",
+								"source": { "some": "type-source" },
+								"base_image_type": "some-base-resource-type",
+								"version": {
+									 "some": "type-version"
+								},
+								"tags": [
+									 "tag-1",
+									 "tag-2"
 								]
 							}
-						}
-					}
-				},
-				"on_success": {
-					"id": "6",
-					"get": {
-						"name": "some-name",
-						"type": "some-child-resource-type",
-						"resource": "some-child-resource",
-						"source": {"some":"child-source"},
-						"params": {"some":"get-params"},
-						"tags": ["tag-1", "tag-2"],
-						"version_from": "4",
-						"image_spec_from": "2",
+						},
 						"resource_types": [
-							{
-								"name": "some-child-resource-type",
-								"type": "some-resource-type",
-								"source": {"some": "child-source"},
-								"version": {"some": "child-version"}
-							},
 							{
 								"name": "some-resource-type",
 								"type": "some-base-resource-type",
 								"source": {"some": "type-source"},
+								"defaults": {"default-key":"default-value"},
+								"version": {"some": "type-version"}
+							}
+						]
+					}
+				},
+				"on_success": {
+					"id": "4",
+					"get": {
+						"name": "some-name",
+						"type": "some-resource-type",
+						"resource": "some-resource",
+						"source": {
+							 "some": "source",
+							 "default-key": "default-value"
+						},
+						"params": {"some":"get-params"},
+						"tags": ["tag-1", "tag-2"],
+						"version_from": "2",
+						"image_get_plan": {
+							"id": "3",
+							"get": {
+								"name": "some-resource-type",
+								"type": "some-base-resource-type",
+								"source": { "some": "type-source" },
+								"base_image_type": "some-base-resource-type",
+								"version": {
+									 "some": "type-version"
+								},
+								"tags": [
+									 "tag-1",
+									 "tag-2"
+								]
+							}
+						},
+						"resource_types": [
+							{
+								"name": "some-resource-type",
+								"type": "some-base-resource-type",
+								"source": {"some": "type-source"},
+								"defaults": {"default-key":"default-value"},
 								"version": {"some": "type-version"}
 							}
 						]
@@ -1304,64 +1229,53 @@ var checkTests = []CheckPlannerTest{
 		Interval: 5 * time.Minute,
 
 		PlanJSON: `{
-			"id": "5",
-			"on_success": {
-				"step": {
-					"id": "3",
-					"on_success": {
-						"step": {
-							"id": "1",
-							"check": {
-								"name": "some-resource-type",
-								"type": "some-base-resource-type",
-								"source": {
-									 "some": "type-source"
-								},
-								"base_image_type": "some-base-resource-type",
-								"tags": [
-									 "tag"
-								]
-							}
-						},
-						"on_success": {
-							"id": "2",
-							"get": {
-								"name": "some-resource-type",
-								"type": "some-base-resource-type",
-								"source": {
-									 "some": "type-source"
-								},
-								"base_image_type": "some-base-resource-type",
-								"version_from": "1",
-								"tags": [
-									 "tag"
-								]
-							}
-						}
-					}
-				},
-				"on_success": {
-					"id": "4",
+			"id": "3",
+			"check": {
+				"name": "some-resource",
+				"type": "some-resource-type",
+				"resource": "some-resource",
+				"source": {"some":"source"},
+				"from_version": {"some": "version"},
+				"tags": ["tag"],
+				"image_check_plan": {
+					"id": "1",
 					"check": {
-						"name": "some-resource",
-						"type": "some-resource-type",
-						"resource": "some-resource",
-						"source": {"some":"source"},
-						"from_version": {"some": "version"},
-						"tags": ["tag"],
-						"image_spec_from": "2",
-						"interval": "5m0s",
-						"timeout":"1h",
-						"resource_types": [
-							{
-								"name": "some-resource-type",
-								"type": "some-base-resource-type",
-								"source": {"some": "type-source"},
-								"version": null
-							}
+						"name": "some-resource-type",
+						"type": "some-base-resource-type",
+						"source": {
+							 "some": "type-source"
+						},
+						"base_image_type": "some-base-resource-type",
+						"tags": [
+							 "tag"
 						]
 					}
-				}
+				},
+				"image_get_plan": {
+					"id": "2",
+					"get": {
+						"name": "some-resource-type",
+						"type": "some-base-resource-type",
+						"source": {
+							 "some": "type-source"
+						},
+						"base_image_type": "some-base-resource-type",
+						"version_from": "1",
+						"tags": [
+							 "tag"
+						]
+					}
+				},
+				"interval": "5m0s",
+				"timeout":"1h",
+				"resource_types": [
+					{
+						"name": "some-resource-type",
+						"type": "some-base-resource-type",
+						"source": {"some": "type-source"},
+						"version": null
+					}
+				]
 			}
 		}`,
 	},

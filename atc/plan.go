@@ -74,6 +74,102 @@ package atc
 // 	}
 // }
 
+// resource_types:
+// - name: a
+// 	type: registry-image
+
+// resources:
+// - name: b
+// 	type: a
+
+// jobs:
+// - name: foo
+// 	plan:
+// 		- get: b
+
+// Plan: {
+// 	Get: {
+// 		Name: b
+// 		ImageCheckPlan: {
+// 			OnSuccess: {
+//				ID: 0
+// 				Step: Check {
+// 					ID: 1
+// 					Name: a
+// 					BaseImageType: registry-image
+// 				}
+// 				Next: Get {
+// 					ID: 2
+// 					Name: a
+// 					BaseImageType: registry-image
+// 					VersionFrom: 1
+// 				}
+// 			}
+// 		}
+// 	}
+// }
+
+// resource_types:
+// - name: a
+// 	type: registry-image
+// - name: b
+// 	type: a
+
+// resources:
+// - name: c
+// 	type: b
+
+// jobs:
+// - name: foo
+// 	plan:
+// 		- get: c
+
+// Plan: {
+// 	Get: {
+// 		Name: c
+// 		ImageCheckPlan: {
+//				ID: 0
+// 				Check {
+// 					Name: b
+// 					ImageCheckPlan: {
+// 						ID:
+// 						Check: {
+//							Name: a
+//							BaseImageType: registry-image
+//						}
+// 					}
+// 					ImageGetPlan: {
+// 						ID:
+// 						Get: {
+//							Name: a
+//							BaseImageType: registry-image
+//						}
+// 					}
+// 				}
+// 			}
+// 		ImageGetPlan: {
+//				ID: 0
+// 				Get {
+// 					Name: b
+// 					ImageCheckPlan: {
+// 						ID:
+// 						Check: {
+//							Name: a
+//							BaseImageType: registry-image
+//						}
+// 					}
+// 					ImageGetPlan: {
+// 						ID:
+// 						Get: {
+//							Name: a
+//							BaseImageType: registry-image
+//						}
+// 					}
+// 				}
+// 			}
+// 		}
+// 	}
+
 // Plan: {
 // 	Check {
 // 		Name: a-check
@@ -370,8 +466,9 @@ type GetPlan struct {
 	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
 
 	// Image of the container. One of these must be specified.
-	BaseImageType *string `json:"base_image_type,omitempty"`
-	ImageFrom     *PlanID `json:"image_from,omitempty"`
+	BaseImageType  string `json:"base_image_type,omitempty"`
+	ImageCheckPlan *Plan  `json:"image_check_plan,omitempty"`
+	ImageGetPlan   *Plan  `json:"image_get_plan,omitempty"`
 
 	// The version of the resource to fetch. One of these must be specified.
 	Version     *Version `json:"version,omitempty"`
@@ -397,8 +494,9 @@ type PutPlan struct {
 	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
 
 	// Image of the container. One of these must be specified.
-	BaseImageType *string `json:"base_image_type,omitempty"`
-	ImageFrom     *PlanID `json:"image_from,omitempty"`
+	BaseImageType  string `json:"base_image_type,omitempty"`
+	ImageCheckPlan *Plan  `json:"image_check_plan,omitempty"`
+	ImageGetPlan   *Plan  `json:"image_get_plan,omitempty"`
 
 	// Params to pass to the put operation.
 	Params Params `json:"params,omitempty"`
@@ -423,8 +521,9 @@ type CheckPlan struct {
 	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
 
 	// Image of the container. One of these must be specified.
-	BaseImageType *string `json:"base_image_type,omitempty"`
-	ImageFrom     *PlanID `json:"image_from,omitempty"`
+	BaseImageType  string `json:"base_image_type,omitempty"`
+	ImageCheckPlan *Plan  `json:"image_check_plan,omitempty"`
+	ImageGetPlan   *Plan  `json:"image_get_plan,omitempty"`
 
 	// The version to check from. If not specified, defaults to the latest
 	// version of the config.

@@ -92,7 +92,7 @@ func (visitor *planVisitor) VisitGet(step *atc.GetStep) error {
 
 	resource.ApplySourceDefaults(visitor.resourceTypes)
 
-	getPlan := atc.GetPlan{
+	plan := atc.GetPlan{
 		Name: step.Name,
 
 		Type:     resource.Type,
@@ -105,18 +105,7 @@ func (visitor *planVisitor) VisitGet(step *atc.GetStep) error {
 		VersionedResourceTypes: visitor.resourceTypes,
 	}
 
-	var plan atc.PlanConfig
-	var imageFetchPlan atc.Plan
-	imageFetchPlan, getPlan.ImageFrom, getPlan.BaseImageType = fetchImagePlan(visitor.planFactory, resource.Type, visitor.resourceTypes, step.Tags)
-	if getPlan.ImageFrom != nil {
-		plan = atc.OnSuccessPlan{
-			Step: imageFetchPlan,
-			Next: visitor.planFactory.NewPlan(getPlan),
-		}
-	} else {
-		plan = getPlan
-	}
-
+	plan.ImageCheckPlan, plan.ImageGetPlan, plan.BaseImageType = fetchImagePlan(visitor.planFactory, resource.Type, visitor.resourceTypes, step.Tags)
 	visitor.plan = visitor.planFactory.NewPlan(plan)
 	return nil
 }
@@ -136,7 +125,7 @@ func (visitor *planVisitor) VisitPut(step *atc.PutStep) error {
 
 	resource.ApplySourceDefaults(visitor.resourceTypes)
 
-	atcPutPlan := atc.PutPlan{
+	putPlan := atc.PutPlan{
 		Type:     resource.Type,
 		Name:     logicalName,
 		Resource: resourceName,
@@ -148,40 +137,28 @@ func (visitor *planVisitor) VisitPut(step *atc.PutStep) error {
 		VersionedResourceTypes: visitor.resourceTypes,
 	}
 
-	var plan atc.Plan
-	var imageFetchPlan atc.Plan
-	imageFetchPlan, atcPutPlan.ImageFrom, atcPutPlan.BaseImageType = fetchImagePlan(visitor.planFactory, resource.Type, visitor.resourceTypes, step.Tags)
+	putPlan.ImageCheckPlan, putPlan.ImageGetPlan, putPlan.BaseImageType = fetchImagePlan(visitor.planFactory, resource.Type, visitor.resourceTypes, step.Tags)
+	plan := visitor.planFactory.NewPlan(putPlan)
 
-	putPlan := visitor.planFactory.NewPlan(atcPutPlan)
-
-	if atcPutPlan.ImageFrom != nil {
-		plan = visitor.planFactory.NewPlan(atc.OnSuccessPlan{
-			Step: imageFetchPlan,
-			Next: putPlan,
-		})
-	} else {
-		plan = putPlan
-	}
-
-	dependentGetPlan := visitor.planFactory.NewPlan(atc.GetPlan{
+	dependentGetPlan := atc.GetPlan{
 		Type:        resource.Type,
 		Name:        logicalName,
 		Resource:    resourceName,
-		VersionFrom: &putPlan.ID,
-
-		ImageFrom:     putPlan.Put.ImageFrom,
-		BaseImageType: putPlan.Put.BaseImageType,
+		VersionFrom: &plan.ID,
 
 		Params: step.GetParams,
 		Tags:   step.Tags,
 		Source: resource.Source,
 
 		VersionedResourceTypes: visitor.resourceTypes,
-	})
+	}
+	// We cannot reuse the image check/get plans from the put plan because they
+	// must have different plan ids
+	dependentGetPlan.ImageCheckPlan, dependentGetPlan.ImageGetPlan, dependentGetPlan.BaseImageType = fetchImagePlan(visitor.planFactory, resource.Type, visitor.resourceTypes, step.Tags)
 
 	visitor.plan = visitor.planFactory.NewPlan(atc.OnSuccessPlan{
 		Step: plan,
-		Next: dependentGetPlan,
+		Next: visitor.planFactory.NewPlan(dependentGetPlan),
 	})
 
 	return nil
@@ -475,7 +452,7 @@ func NewCheckPlanner(planFactory atc.PlanFactory) *CheckPlanner {
 }
 
 func (c *CheckPlanner) Create(checkable db.Checkable, versionedResourceTypes atc.VersionedResourceTypes, from atc.Version, sourceDefaults atc.Source, interval time.Duration) atc.Plan {
-	checkPlan := atc.CheckPlan{
+	plan := atc.CheckPlan{
 		Name:    checkable.Name(),
 		Type:    checkable.Type(),
 		Source:  sourceDefaults.Merge(checkable.Source()),
@@ -488,98 +465,70 @@ func (c *CheckPlanner) Create(checkable db.Checkable, versionedResourceTypes atc
 		Resource:               checkable.Name(),
 	}
 
-	var plan atc.Plan
-	var imageFetchPlan atc.Plan
-	imageFetchPlan, checkPlan.ImageFrom, checkPlan.BaseImageType = fetchImagePlan(c.planFactory, checkable.Type(), checkPlan.VersionedResourceTypes, checkable.Tags())
-	if checkPlan.ImageFrom != nil {
-		plan = c.planFactory.NewPlan(atc.OnSuccessPlan{
-			Step: imageFetchPlan,
-			Next: c.planFactory.NewPlan(checkPlan),
-		})
-	} else {
-		plan = c.planFactory.NewPlan(checkPlan)
-	}
-
-	return plan
+	plan.ImageCheckPlan, plan.ImageGetPlan, plan.BaseImageType = fetchImagePlan(c.planFactory, checkable.Type(), versionedResourceTypes, checkable.Tags())
+	return c.planFactory.NewPlan(plan)
 }
 
-func fetchImagePlan(planFactory atc.PlanFactory, resourceTypeName string, resourceTypes atc.VersionedResourceTypes, stepTags atc.Tags) (atc.Plan, *atc.PlanID, *string) {
+func fetchImagePlan(planFactory atc.PlanFactory, resourceTypeName string, resourceTypes atc.VersionedResourceTypes, stepTags atc.Tags) (*atc.Plan, *atc.Plan, string) {
 	// Check if the resource type is a custom resource type
 	parentResourceType, found := resourceTypes.Lookup(resourceTypeName)
-	if found {
-		trimmedResourceTypes := resourceTypes.Without(resourceTypeName)
+	if !found {
+		// This resource type is a base type, no need to fetch image
+		return nil, nil, resourceTypeName
+	}
 
-		// If resource type is a custom type, recurse in order to resolve nested resource types
-		subPlan, subPlanID, subBaseImageType := fetchImagePlan(planFactory, parentResourceType.Type, trimmedResourceTypes, stepTags)
+	trimmedResourceTypes := resourceTypes.Without(resourceTypeName)
 
-		tags := parentResourceType.Tags
-		if len(parentResourceType.Tags) == 0 {
-			tags = stepTags
-		}
+	// If resource type is a custom type, recurse in order to resolve nested resource types
+	subCheckPlan, subGetPlan, subBaseImageType := fetchImagePlan(planFactory, parentResourceType.Type, trimmedResourceTypes, stepTags)
 
-		// Construct get plan for image
-		var imageFetchPlan atc.Plan
-		imageGetConfig := atc.GetPlan{
+	tags := parentResourceType.Tags
+	if len(parentResourceType.Tags) == 0 {
+		tags = stepTags
+	}
+
+	// Construct get plan for image
+	imageGetConfig := atc.GetPlan{
+		Name:   parentResourceType.Name,
+		Type:   parentResourceType.Type,
+		Source: parentResourceType.Source,
+		Params: parentResourceType.Params,
+
+		ImageCheckPlan: subCheckPlan,
+		ImageGetPlan:   subGetPlan,
+		BaseImageType:  subBaseImageType,
+
+		VersionedResourceTypes: trimmedResourceTypes,
+
+		Tags: tags,
+	}
+
+	resourceTypeVersion := parentResourceType.Version
+	var maybeCheckPlan *atc.Plan
+	if resourceTypeVersion == nil {
+		// don't know the version, need to do a Check before the Get
+		checkPlan := planFactory.NewPlan(atc.CheckPlan{
 			Name:   parentResourceType.Name,
 			Type:   parentResourceType.Type,
 			Source: parentResourceType.Source,
-			Params: parentResourceType.Params,
 
-			ImageFrom:     subPlanID,
-			BaseImageType: subBaseImageType,
+			ImageCheckPlan: subCheckPlan,
+			ImageGetPlan:   subGetPlan,
+			BaseImageType:  subBaseImageType,
 
 			VersionedResourceTypes: trimmedResourceTypes,
 
 			Tags: tags,
-		}
+		})
+		maybeCheckPlan = &checkPlan
 
-		var imageGetPlan atc.Plan
-		resourceTypeVersion := parentResourceType.Version
-		if resourceTypeVersion == nil {
-			// don't know the version, need to do a Check before the Get
-			checkPlan := planFactory.NewPlan(atc.CheckPlan{
-				Name:   parentResourceType.Name,
-				Type:   parentResourceType.Type,
-				Source: parentResourceType.Source,
-
-				ImageFrom:     subPlanID,
-				BaseImageType: subBaseImageType,
-
-				VersionedResourceTypes: trimmedResourceTypes,
-
-				Tags: tags,
-			})
-
-			imageGetConfig.VersionFrom = &checkPlan.ID
-			imageGetPlan = planFactory.NewPlan(imageGetConfig)
-
-			// Build plan for running the check and then the get for the image
-			imageFetchPlan = planFactory.NewPlan(atc.OnSuccessPlan{
-				Step: checkPlan,
-				Next: imageGetPlan,
-			})
-		} else {
-			// version is already provided, only need to do Get step
-			imageGetConfig.Version = &resourceTypeVersion
-			imageGetPlan = planFactory.NewPlan(imageGetConfig)
-
-			imageFetchPlan = imageGetPlan
-		}
-
-		if subBaseImageType == nil {
-			// If the parent of this resource type is a custom type,
-			// we have nested resource-types and need to run substeps first
-			return planFactory.NewPlan(atc.OnSuccessPlan{
-				Step: subPlan,
-				Next: imageFetchPlan,
-			}), &imageGetPlan.ID, nil
-		} else {
-			// The parent of this resource type is a base type so we don't need to
-			// run any substeps first
-			return imageFetchPlan, &imageGetPlan.ID, nil
-		}
+		imageGetConfig.VersionFrom = &checkPlan.ID
 	} else {
-		// This resource type is a base type, no need to fetch image
-		return atc.Plan{}, nil, &resourceTypeName
+		// version is already provided, only need to do Get step
+		imageGetConfig.Version = &resourceTypeVersion
 	}
+
+	imageGetPlan := planFactory.NewPlan(imageGetConfig)
+
+	return maybeCheckPlan, &imageGetPlan, ""
 }
