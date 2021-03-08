@@ -318,7 +318,7 @@ func (worker *Worker) createVolumes(
 
 	scratchVolume, err := worker.findOrCreateVolumeForContainer(
 		logger,
-		runtime.VolumeSpec{
+		baggageclaim.VolumeSpec{
 			Strategy:   baggageclaim.EmptyStrategy{},
 			Privileged: privileged,
 		},
@@ -364,7 +364,7 @@ func (worker *Worker) createVolumes(
 	if !anyMountTo(spec.Dir, volumeMounts) {
 		workdirVolume, err := worker.findOrCreateVolumeForContainer(
 			logger,
-			runtime.VolumeSpec{
+			baggageclaim.VolumeSpec{
 				Strategy:   baggageclaim.EmptyStrategy{},
 				Privileged: privileged,
 			},
@@ -505,7 +505,7 @@ func (worker *Worker) cloneRemoteInputVolumes(
 
 		inputVolume, err := worker.findOrCreateVolumeForContainer(
 			logger,
-			runtime.VolumeSpec{
+			baggageclaim.VolumeSpec{
 				Strategy:   baggageclaim.EmptyStrategy{},
 				Privileged: privileged,
 			},
@@ -555,7 +555,7 @@ func (worker *Worker) createOutputVolumes(
 
 		outVolume, err := worker.findOrCreateVolumeForContainer(
 			logger,
-			runtime.VolumeSpec{
+			baggageclaim.VolumeSpec{
 				Strategy:   baggageclaim.EmptyStrategy{},
 				Privileged: privileged,
 			},
@@ -612,7 +612,7 @@ func (worker *Worker) cloneCacheVolumes(
 			// builds
 			mountedVolume, err = worker.findOrCreateVolumeForContainer(
 				logger,
-				runtime.VolumeSpec{
+				baggageclaim.VolumeSpec{
 					Strategy:   baggageclaim.EmptyStrategy{},
 					Privileged: privileged,
 				},

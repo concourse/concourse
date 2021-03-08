@@ -83,7 +83,7 @@ func (worker Worker) LookupVolume(logger lager.Logger, handle string) (runtime.V
 
 func (worker *Worker) findOrCreateVolumeForContainer(
 	logger lager.Logger,
-	volumeSpec runtime.VolumeSpec,
+	volumeSpec baggageclaim.VolumeSpec,
 	container db.CreatingContainer,
 	teamID int,
 	mountPath string,
@@ -110,7 +110,7 @@ func (worker *Worker) findOrCreateCOWVolumeForContainer(
 ) (Volume, error) {
 	return worker.findOrCreateVolume(
 		logger.Session("find-or-create-cow-volume-for-container"),
-		runtime.VolumeSpec{
+		baggageclaim.VolumeSpec{
 			Strategy:   parent.COWStrategy(),
 			Privileged: privileged,
 		},
@@ -125,7 +125,7 @@ func (worker *Worker) findOrCreateCOWVolumeForContainer(
 
 func (worker *Worker) findOrCreateVolumeForBaseResourceType(
 	logger lager.Logger,
-	volumeSpec runtime.VolumeSpec,
+	volumeSpec baggageclaim.VolumeSpec,
 	teamID int,
 	resourceTypeName string,
 ) (Volume, error) {
@@ -270,7 +270,7 @@ func (worker *Worker) findOrCreateVolumeForResourceCerts(logger lager.Logger) (V
 
 	volume, err := worker.findOrCreateVolume(
 		logger.Session("find-or-create-volume-for-resource-certs"),
-		runtime.VolumeSpec{
+		baggageclaim.VolumeSpec{
 			Strategy: baggageclaim.ImportStrategy{
 				Path:           *certsPath,
 				FollowSymlinks: true,
@@ -289,7 +289,7 @@ func (worker *Worker) findOrCreateVolumeForResourceCerts(logger lager.Logger) (V
 
 func (worker *Worker) findOrCreateVolume(
 	logger lager.Logger,
-	volumeSpec runtime.VolumeSpec,
+	volumeSpec baggageclaim.VolumeSpec,
 	findVolumeFunc func() (db.CreatingVolume, db.CreatedVolume, error),
 	createVolumeFunc func() (db.CreatingVolume, error),
 ) (Volume, error) {
@@ -356,7 +356,7 @@ func (worker *Worker) findOrCreateVolume(
 		bcVolume, err = worker.bcClient.CreateVolume(
 			logger.Session("create-volume"),
 			creatingVolume.Handle(),
-			toBaggageclaimVolumeSpec(volumeSpec),
+			volumeSpec,
 		)
 		if err != nil {
 			logger.Error("failed-to-create-volume-in-baggageclaim", err)
@@ -383,14 +383,6 @@ func (worker *Worker) findOrCreateVolume(
 	logger.Debug("created")
 
 	return Volume{bcVolume: bcVolume, dbVolume: createdVolume}, nil
-}
-
-func toBaggageclaimVolumeSpec(spec runtime.VolumeSpec) baggageclaim.VolumeSpec {
-	return baggageclaim.VolumeSpec{
-		Strategy:   spec.Strategy,
-		Privileged: spec.Privileged,
-		Properties: baggageclaim.VolumeProperties(spec.Properties),
-	}
 }
 
 type byMountPath []runtime.VolumeMount

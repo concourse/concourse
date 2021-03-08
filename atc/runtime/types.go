@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/gob"
-	"encoding/json"
 	"hash/adler32"
 	"io"
 	"strings"
@@ -156,16 +155,6 @@ type P2PVolume interface {
 	Handle() string
 	GetStreamInP2PURL(ctx context.Context, path string) (string, error)
 	StreamP2POut(ctx context.Context, path string, destURL string, compression compression.Compression) error
-}
-
-type VolumeSpec struct {
-	Strategy   VolumeStrategy
-	Properties map[string]string
-	Privileged bool
-}
-
-type VolumeStrategy interface {
-	Encode() *json.RawMessage
 }
 
 type VolumeMount struct {

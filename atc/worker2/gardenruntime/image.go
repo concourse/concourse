@@ -129,7 +129,7 @@ func (worker *Worker) imageProvidedByPreviousStepOnDifferentWorker(
 ) (FetchedImage, error) {
 	imageVolume, err := worker.findOrCreateVolumeForContainer(
 		logger,
-		runtime.VolumeSpec{
+		baggageclaim.VolumeSpec{
 			Strategy:   baggageclaim.EmptyStrategy{},
 			Privileged: privileged,
 		},
@@ -181,7 +181,7 @@ func (worker *Worker) imageFromBaseResourceType(
 ) (FetchedImage, error) {
 	importVolume, err := worker.findOrCreateVolumeForBaseResourceType(
 		logger,
-		runtime.VolumeSpec{
+		baggageclaim.VolumeSpec{
 			Strategy:   baggageclaim.ImportStrategy{Path: resourceType.Image},
 			Privileged: resourceType.Privileged,
 		},
