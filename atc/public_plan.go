@@ -2,7 +2,11 @@ package atc
 
 import "encoding/json"
 
-func (plan Plan) Public() *json.RawMessage {
+func (plan *Plan) Public() *json.RawMessage {
+	if plan == nil {
+		return nil
+	}
+
 	var public struct {
 		ID PlanID `json:"id"`
 
@@ -15,6 +19,7 @@ func (plan Plan) Public() *json.RawMessage {
 		Check          *json.RawMessage `json:"check,omitempty"`
 		Task           *json.RawMessage `json:"task,omitempty"`
 		SetPipeline    *json.RawMessage `json:"set_pipeline,omitempty"`
+		GetVar         *json.RawMessage `json:"get_var,omitempty"`
 		LoadVar        *json.RawMessage `json:"load_var,omitempty"`
 		OnAbort        *json.RawMessage `json:"on_abort,omitempty"`
 		OnError        *json.RawMessage `json:"on_error,omitempty"`
@@ -65,6 +70,10 @@ func (plan Plan) Public() *json.RawMessage {
 
 	if plan.SetPipeline != nil {
 		public.SetPipeline = plan.SetPipeline.Public()
+	}
+
+	if plan.GetVar != nil {
+		public.GetVar = plan.GetVar.Public()
 	}
 
 	if plan.LoadVar != nil {
@@ -193,15 +202,19 @@ func (plan EnsurePlan) Public() *json.RawMessage {
 
 func (plan GetPlan) Public() *json.RawMessage {
 	return enc(struct {
-		Name     string   `json:"name"`
-		Type     string   `json:"type"`
-		Resource string   `json:"resource,omitempty"`
-		Version  *Version `json:"version,omitempty"`
+		Name           string           `json:"name"`
+		Type           string           `json:"type"`
+		Resource       string           `json:"resource,omitempty"`
+		Version        *Version         `json:"version,omitempty"`
+		ImageGetPlan   *json.RawMessage `json:"image_get_plan,omitempty"`
+		ImageCheckPlan *json.RawMessage `json:"image_check_plan,omitempty"`
 	}{
-		Type:     plan.Type,
-		Name:     plan.Name,
-		Resource: plan.Resource,
-		Version:  plan.Version,
+		Type:           plan.Type,
+		Name:           plan.Name,
+		Resource:       plan.Resource,
+		Version:        plan.Version,
+		ImageGetPlan:   plan.ImageGetPlan.Public(),
+		ImageCheckPlan: plan.ImageCheckPlan.Public(),
 	})
 }
 
@@ -259,23 +272,31 @@ func (plan OnSuccessPlan) Public() *json.RawMessage {
 
 func (plan PutPlan) Public() *json.RawMessage {
 	return enc(struct {
-		Name     string `json:"name"`
-		Type     string `json:"type"`
-		Resource string `json:"resource,omitempty"`
+		Name           string           `json:"name"`
+		Type           string           `json:"type"`
+		Resource       string           `json:"resource,omitempty"`
+		ImageGetPlan   *json.RawMessage `json:"image_get_plan,omitempty"`
+		ImageCheckPlan *json.RawMessage `json:"image_check_plan,omitempty"`
 	}{
-		Type:     plan.Type,
-		Name:     plan.Name,
-		Resource: plan.Resource,
+		Type:           plan.Type,
+		Name:           plan.Name,
+		Resource:       plan.Resource,
+		ImageGetPlan:   plan.ImageGetPlan.Public(),
+		ImageCheckPlan: plan.ImageCheckPlan.Public(),
 	})
 }
 
 func (plan CheckPlan) Public() *json.RawMessage {
 	return enc(struct {
-		Name string `json:"name"`
-		Type string `json:"type"`
+		Name           string           `json:"name"`
+		Type           string           `json:"type"`
+		ImageGetPlan   *json.RawMessage `json:"image_get_plan,omitempty"`
+		ImageCheckPlan *json.RawMessage `json:"image_check_plan,omitempty"`
 	}{
-		Type: plan.Type,
-		Name: plan.Name,
+		Type:           plan.Type,
+		Name:           plan.Name,
+		ImageGetPlan:   plan.ImageGetPlan.Public(),
+		ImageCheckPlan: plan.ImageCheckPlan.Public(),
 	})
 }
 
@@ -298,6 +319,18 @@ func (plan SetPipelinePlan) Public() *json.RawMessage {
 		Name:         plan.Name,
 		Team:         plan.Team,
 		InstanceVars: plan.InstanceVars,
+	})
+}
+
+func (plan GetVarPlan) Public() *json.RawMessage {
+	return enc(struct {
+		Name   string   `json:"name"`
+		Path   string   `json:"path"`
+		Fields []string `json:"fields"`
+	}{
+		Name:   plan.Name,
+		Path:   plan.Path,
+		Fields: plan.Fields,
 	})
 }
 
