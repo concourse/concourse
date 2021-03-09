@@ -4,14 +4,14 @@ import (
 	"archive/tar"
 	"context"
 	"fmt"
-	"github.com/concourse/concourse/atc/db"
 	"io"
 	"time"
 
+	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 
-	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/compression"
+	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/tracing"
@@ -102,9 +102,6 @@ type ArtifactSource interface {
 	// given worker. If a volume can be found, it will be used directly. If not,
 	// `StreamTo` will be used to copy the data to the destination instead.
 	ExistsOn(lager.Logger, Worker) (Volume, bool, error)
-
-	// TODO: EVAN, for debug, delete it before merge the PR
-	Handle() string
 }
 
 //go:generate counterfeiter . StreamableArtifactSource
@@ -148,11 +145,6 @@ func NewStreamableArtifactSource(
 		p2pStreamingTimeout:  p2pStreamingTimeout,
 		resourceCacheFactory: resourceCacheFactory,
 	}
-}
-
-// TODO: EVAN, delete it before merge the PR
-func (source *artifactSource) Handle() string {
-	return source.volume.Handle()
 }
 
 func (source *artifactSource) StreamTo(
@@ -313,11 +305,6 @@ type cacheArtifactSource struct {
 
 func NewCacheArtifactSource(artifact runtime.CacheArtifact) ArtifactSource {
 	return &cacheArtifactSource{artifact}
-}
-
-// TODO: EVAN, delete it before merge the PR
-func (source *cacheArtifactSource) Handle() string {
-	return "cacheArtifactSource-na"
 }
 
 func (source *cacheArtifactSource) ExistsOn(logger lager.Logger, worker Worker) (Volume, bool, error) {
