@@ -100,8 +100,13 @@ with the following schema.
   \optional-attribute{tags}{[string]}{
     \italic{Default \code{[]}.} A list of tags to determine which workers the
     checks will be performed on. You'll want to specify this if the source is
-    internal to a worker's network, for example. See also
-    \reference{schema.step.tags}.
+    internal to a worker's network, for example.
+
+    \warn{
+      This does not apply tags to all \reference{get-step}{get steps} or
+      \reference{put-step}{put steps} that use the resource. If you want these steps
+      to use tags, you must set \reference{schema.step.tags} for each step.
+    }
   }
 
   \optional-attribute{public}{boolean}{
