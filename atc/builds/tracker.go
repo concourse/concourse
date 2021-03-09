@@ -6,14 +6,27 @@ import (
 
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/engine"
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/util"
 )
 
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+
+//go:generate counterfeiter . Engine
+type Engine interface {
+	NewBuild(db.Build) Runnable
+
+	Drain(context.Context)
+}
+
+//go:generate counterfeiter . Runnable
+type Runnable interface {
+	Run(context.Context)
+}
+
 func NewTracker(
 	buildFactory db.BuildFactory,
-	engine engine.Engine,
+	engine Engine,
 ) *Tracker {
 	return &Tracker{
 		buildFactory: buildFactory,
@@ -24,7 +37,7 @@ func NewTracker(
 
 type Tracker struct {
 	buildFactory db.BuildFactory
-	engine       engine.Engine
+	engine       Engine
 
 	running *sync.Map
 }
