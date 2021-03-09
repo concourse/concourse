@@ -19,25 +19,11 @@ import (
 	"github.com/concourse/concourse/tracing"
 )
 
-//go:generate counterfeiter . Engine
-
-type Engine interface {
-	NewBuild(db.Build) Runnable
-
-	Drain(context.Context)
-}
-
-//go:generate counterfeiter . Runnable
-
-type Runnable interface {
-	Run(context.Context)
-}
-
 func NewEngine(
 	stepperFactory StepperFactory,
 	varSourcePool creds.VarSourcePool,
 ) Engine {
-	return &engine{
+	return Engine{
 		stepperFactory: stepperFactory,
 		release:        make(chan bool),
 		trackedStates:  new(sync.Map),
@@ -47,7 +33,7 @@ func NewEngine(
 	}
 }
 
-type engine struct {
+type Engine struct {
 	stepperFactory StepperFactory
 	release        chan bool
 	trackedStates  *sync.Map
@@ -56,7 +42,7 @@ type engine struct {
 	varSourcePool creds.VarSourcePool
 }
 
-func (engine *engine) Drain(ctx context.Context) {
+func (engine Engine) Drain(ctx context.Context) {
 	logger := lagerctx.FromContext(ctx)
 
 	logger.Info("start")
@@ -69,7 +55,7 @@ func (engine *engine) Drain(ctx context.Context) {
 	engine.waitGroup.Wait()
 }
 
-func (engine *engine) NewBuild(build db.Build) Runnable {
+func (engine Engine) NewBuild(build db.Build) builds.Runnable {
 	return NewBuild(
 		build,
 		engine.stepperFactory,
@@ -87,7 +73,7 @@ func NewBuild(
 	release chan bool,
 	trackedStates *sync.Map,
 	waitGroup *sync.WaitGroup,
-) Runnable {
+) builds.Runnable {
 	return &engineBuild{
 		build:   build,
 		builder: builder,
