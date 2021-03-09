@@ -185,6 +185,7 @@ var _ = Describe("PutStep", func() {
 			Name:                   "some-name",
 			Resource:               "some-resource",
 			Type:                   "some-resource-type",
+			BaseImageType:          "some-resource-type",
 			Source:                 atc.Source{"some": "((source-var))"},
 			Params:                 atc.Params{"some": "((params-var))"},
 			VersionedResourceTypes: uninterpolatedResourceTypes,
@@ -455,7 +456,27 @@ var _ = Describe("PutStep", func() {
 		var fakeImageSpec worker.ImageSpec
 
 		BeforeEach(func() {
+			putPlan.ImageGetPlan = &atc.Plan{
+				ID: "1/image-get",
+				Get: &atc.GetPlan{
+					Name:   "some-custom-type",
+					Type:   "another-custom-type",
+					Source: atc.Source{"some-custom": "((source-var))"},
+					Params: atc.Params{"some-custom": "((params-var))"},
+				},
+			}
+
+			putPlan.ImageCheckPlan = &atc.Plan{
+				ID: "1/image-check",
+				Check: &atc.CheckPlan{
+					Name:   "some-custom-type",
+					Type:   "another-custom-type",
+					Source: atc.Source{"some-custom": "((source-var))"},
+				},
+			}
+
 			putPlan.Type = "some-custom-type"
+			putPlan.BaseImageType = ""
 
 			fakeImageSpec = worker.ImageSpec{
 				ImageArtifactSource: new(workerfakes.FakeStreamableArtifactSource),
@@ -466,32 +487,9 @@ var _ = Describe("PutStep", func() {
 
 		It("fetches the resource type image and uses it for the container", func() {
 			Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
-
-			_, imageResource, types, privileged := fakeDelegate.FetchImageArgsForCall(0)
-
-			By("fetching the type image")
-			Expect(imageResource).To(Equal(atc.ImageResource{
-				Name:    "some-custom-type",
-				Type:    "another-custom-type",
-				Source:  atc.Source{"some-custom": "((source-var))"},
-				Params:  atc.Params{"some-custom": "((params-var))"},
-				Version: atc.Version{"some-custom": "version"},
-			}))
-
-			By("excluding the type from the FetchImage call")
-			Expect(types).To(Equal(atc.VersionedResourceTypes{
-				{
-					ResourceType: atc.ResourceType{
-						Name:       "another-custom-type",
-						Type:       "registry-image",
-						Source:     atc.Source{"another-custom": "((source-var))"},
-						Privileged: true,
-					},
-					Version: atc.Version{"another-custom": "version"},
-				},
-			}))
-
-			By("not being privileged")
+			_, actualGetImagePlan, actualCheckImagePlan, privileged := fakeDelegate.FetchImageArgsForCall(0)
+			Expect(actualGetImagePlan).To(Equal(*putPlan.ImageGetPlan))
+			Expect(actualCheckImagePlan).To(Equal(putPlan.ImageCheckPlan))
 			Expect(privileged).To(BeFalse())
 		})
 
@@ -511,57 +509,13 @@ var _ = Describe("PutStep", func() {
 
 		Context("when the resource type is privileged", func() {
 			BeforeEach(func() {
-				putPlan.Type = "another-custom-type"
+				putPlan.Privileged = true
 			})
 
 			It("fetches the image with privileged", func() {
 				Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
 				_, _, _, privileged := fakeDelegate.FetchImageArgsForCall(0)
 				Expect(privileged).To(BeTrue())
-			})
-		})
-
-		Context("when the plan configures tags", func() {
-			BeforeEach(func() {
-				putPlan.Tags = atc.Tags{"plan", "tags"}
-			})
-
-			It("fetches using the tags", func() {
-				Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
-				_, imageResource, _, _ := fakeDelegate.FetchImageArgsForCall(0)
-				Expect(imageResource.Tags).To(Equal(atc.Tags{"plan", "tags"}))
-			})
-		})
-
-		Context("when the resource type configures tags", func() {
-			BeforeEach(func() {
-				taggedType, found := putPlan.VersionedResourceTypes.Lookup("some-custom-type")
-				Expect(found).To(BeTrue())
-
-				taggedType.Tags = atc.Tags{"type", "tags"}
-
-				newTypes := putPlan.VersionedResourceTypes.Without("some-custom-type")
-				newTypes = append(newTypes, taggedType)
-
-				putPlan.VersionedResourceTypes = newTypes
-			})
-
-			It("fetches using the type tags", func() {
-				Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
-				_, imageResource, _, _ := fakeDelegate.FetchImageArgsForCall(0)
-				Expect(imageResource.Tags).To(Equal(atc.Tags{"type", "tags"}))
-			})
-
-			Context("when the plan ALSO configures tags", func() {
-				BeforeEach(func() {
-					putPlan.Tags = atc.Tags{"plan", "tags"}
-				})
-
-				It("fetches using only the type tags", func() {
-					Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
-					_, imageResource, _, _ := fakeDelegate.FetchImageArgsForCall(0)
-					Expect(imageResource.Tags).To(Equal(atc.Tags{"type", "tags"}))
-				})
 			})
 		})
 	})

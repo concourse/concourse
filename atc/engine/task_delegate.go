@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"context"
 	"io"
 
 	"code.cloudfoundry.org/clock"
@@ -101,4 +102,42 @@ func (d *taskDelegate) Finished(
 	}
 
 	logger.Info("finished", lager.Data{"exit-status": exitStatus})
+}
+
+func (d *taskDelegate) FetchImage(
+	ctx context.Context,
+	image atc.ImageResource,
+	types atc.VersionedResourceTypes,
+	privileged bool,
+	stepTags atc.Tags,
+) (worker.ImageSpec, error) {
+	image.Name = "image"
+
+	checkPlan, getPlan := builds.FetchImagePlan(d.planID, image, types, stepTags)
+
+	if checkPlan != nil {
+		err := d.build.SaveEvent(event.ImageCheck{
+			Time: d.clock.Now().Unix(),
+			Origin: event.Origin{
+				ID: event.OriginID(d.planID),
+			},
+			PublicPlan: checkPlan.Public(),
+		})
+		if err != nil {
+			return worker.ImageSpec{}, err
+		}
+	}
+
+	err := d.build.SaveEvent(event.ImageGet{
+		Time: d.clock.Now().Unix(),
+		Origin: event.Origin{
+			ID: event.OriginID(d.planID),
+		},
+		PublicPlan: getPlan.Public(),
+	})
+	if err != nil {
+		return worker.ImageSpec{}, err
+	}
+
+	return d.BuildStepDelegate.FetchImage(ctx, getPlan, checkPlan, types, privileged)
 }

@@ -850,6 +850,7 @@ var _ = Describe("TaskStep", func() {
 						Args: []string{"some", "args"},
 					},
 				}
+				taskPlan.Tags = atc.Tags{"some", "tags"}
 
 				fakeImageSpec = worker.ImageSpec{
 					ImageArtifactSource: new(workerfakes.FakeStreamableArtifactSource),
@@ -865,7 +866,7 @@ var _ = Describe("TaskStep", func() {
 
 			It("fetches the image", func() {
 				Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
-				_, imageResource, types, privileged := fakeDelegate.FetchImageArgsForCall(0)
+				_, imageResource, types, privileged, tags := fakeDelegate.FetchImageArgsForCall(0)
 				Expect(imageResource).To(Equal(atc.ImageResource{
 					Type:   "docker",
 					Source: atc.Source{"some": "super-secret-source"},
@@ -873,46 +874,11 @@ var _ = Describe("TaskStep", func() {
 				}))
 				Expect(types).To(Equal(taskPlan.VersionedResourceTypes))
 				Expect(privileged).To(BeFalse())
+				Expect(tags).To(Equal(atc.Tags{"some", "tags"}))
 			})
 
 			It("creates the specs with the image artifact", func() {
 				Expect(containerSpec.ImageSpec).To(Equal(fakeImageSpec))
-			})
-
-			Context("when tags are specified on the task plan", func() {
-				BeforeEach(func() {
-					taskPlan.Tags = atc.Tags{"plan", "tags"}
-				})
-
-				It("fetches the image with the same tags", func() {
-					Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
-					_, imageResource, _, _ := fakeDelegate.FetchImageArgsForCall(0)
-					Expect(imageResource.Tags).To(Equal(atc.Tags{"plan", "tags"}))
-				})
-			})
-
-			Context("when tags are specified on the image resource", func() {
-				BeforeEach(func() {
-					taskPlan.Config.ImageResource.Tags = atc.Tags{"image", "tags"}
-				})
-
-				It("fetches the image with the same tags", func() {
-					Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
-					_, imageResource, _, _ := fakeDelegate.FetchImageArgsForCall(0)
-					Expect(imageResource.Tags).To(Equal(atc.Tags{"image", "tags"}))
-				})
-
-				Context("when tags are ALSO specified on the task plan", func() {
-					BeforeEach(func() {
-						taskPlan.Tags = atc.Tags{"plan", "tags"}
-					})
-
-					It("fetches the image using only the image tags", func() {
-						Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
-						_, imageResource, _, _ := fakeDelegate.FetchImageArgsForCall(0)
-						Expect(imageResource.Tags).To(Equal(atc.Tags{"image", "tags"}))
-					})
-				})
 			})
 
 			Context("when privileged", func() {
@@ -922,7 +888,7 @@ var _ = Describe("TaskStep", func() {
 
 				It("fetches a privileged image", func() {
 					Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
-					_, _, _, privileged := fakeDelegate.FetchImageArgsForCall(0)
+					_, _, _, privileged, _ := fakeDelegate.FetchImageArgsForCall(0)
 					Expect(privileged).To(BeTrue())
 				})
 			})
