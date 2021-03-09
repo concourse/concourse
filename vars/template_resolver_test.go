@@ -270,6 +270,28 @@ jobs:
 		Expect(result).To(Equal([]byte(`"foo"="foo"`)))
 	})
 
+	It("ignores values referencing local var sources", func() {
+		byteSlice := []byte("((key))=((.:key))")
+		variables := vars.StaticVariables{
+			"key": "foo",
+		}
+
+		result, err := vars.NewTemplateResolver(byteSlice, []vars.Variables{variables}).Resolve(false, true)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(result)).To(Equal("foo=((.:key))\n"))
+	})
+
+	It("ignores values referencing var sources", func() {
+		byteSlice := []byte("((key))=((source:key))")
+		variables := vars.StaticVariables{
+			"key": "foo",
+		}
+
+		result, err := vars.NewTemplateResolver(byteSlice, []vars.Variables{variables}).Resolve(false, true)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(result)).To(Equal("foo=((source:key))\n"))
+	})
+
 	It("can template values with strange newlines", func() {
 		byteSlice := []byte("{{key}}")
 		variables := vars.StaticVariables{
