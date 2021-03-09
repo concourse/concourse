@@ -93,24 +93,42 @@ var _ = Describe("BuildStepDelegate", func() {
 	})
 
 	Describe("FetchImage", func() {
+		var delegate exec.BuildStepDelegate
+
+		var expectedCheckPlan, expectedGetPlan *atc.Plan
 		var fakeArtifact *runtimefakes.FakeArtifact
 		var fakeSource *workerfakes.FakeStreamableArtifactSource
 		var fakeResourceCache *dbfakes.FakeUsedResourceCache
 
 		var imageResource atc.ImageResource
+		var types atc.VersionedResourceTypes
 		var privileged bool
 
 		var imageSpec worker.ImageSpec
 		var fetchErr error
-		var getPlanID = "1"
+
+		var runPlans []atc.Plan
+		var stepper exec.Stepper
 
 		BeforeEach(func() {
-			repo := build.NewRepository()
-			runState.ArtifactRepositoryReturns(repo)
+			runPlans = nil
+			stepper = func(p atc.Plan) exec.Step {
+				runPlans = append(runPlans, p)
 
-			fakeArtifact = new(runtimefakes.FakeArtifact)
-			runState.ArtifactRepositoryReturns(repo.NewScope())
-			runState.ArtifactRepository().RegisterArtifact("some-get", fakeArtifact)
+				fakeResourceCache = new(dbfakes.FakeUsedResourceCache)
+				fakeArtifact = new(runtimefakes.FakeArtifact)
+
+				step := new(execfakes.FakeStep)
+				step.RunStub = func(_ context.Context, state exec.RunState) (bool, error) {
+					state.ArtifactRepository().RegisterArtifact("image", fakeArtifact)
+					state.StoreResult(expectedGetPlan.ID, fakeResourceCache)
+					return true, nil
+				}
+				return step
+			}
+
+			runState := exec.NewRunState(stepper, nil, false)
+			delegate = engine.NewBuildStepDelegate(fakeBuild, planID, runState, fakeClock, fakePolicyChecker, fakeSecrets)
 
 			imageResource = atc.ImageResource{
 				Type:   "docker",
@@ -119,21 +137,49 @@ var _ = Describe("BuildStepDelegate", func() {
 				Tags:   atc.Tags{"some", "tags"},
 			}
 
-			fakeResourceCache = new(dbfakes.FakeUsedResourceCache)
+			types = atc.VersionedResourceTypes{
+				{
+					ResourceType: atc.ResourceType{
+						Name:   "some-custom-type",
+						Type:   "another-custom-type",
+						Source: atc.Source{"some-custom": "((source-var))"},
+						Params: atc.Params{"some-custom": "((params-var))"},
+					},
+					Version: atc.Version{"some-custom": "version"},
+				},
+				{
+					ResourceType: atc.ResourceType{
+						Name:       "another-custom-type",
+						Type:       "registry-image",
+						Source:     atc.Source{"another-custom": "((source-var))"},
+						Privileged: true,
+					},
+					Version: atc.Version{"another-custom": "version"},
+				},
+			}
 
-			runState.ResultStub = func(planID atc.PlanID, to interface{}) bool {
-				Expect(planID).To(Equal(getPlanID))
-				switch x := to.(type) {
-				case *exec.GetResult:
-					*x = exec.GetResult{
-						Name:          "some-get",
-						ResourceCache: fakeResourceCache,
-					}
-				default:
-					Fail("unexpected target type")
-				}
+			expectedCheckPlan = &atc.Plan{
+				ID: planID + "/image-check",
+				Check: &atc.CheckPlan{
+					Name:                   "image",
+					Type:                   "docker",
+					Source:                 atc.Source{"some": "((source-var))"},
+					VersionedResourceTypes: types,
+					Tags:                   atc.Tags{"some", "tags"},
+				},
+			}
 
-				return true
+			expectedGetPlan = &atc.Plan{
+				ID: planID + "/image-get",
+				Get: &atc.GetPlan{
+					Name:                   "image",
+					Type:                   "docker",
+					Source:                 atc.Source{"some": "((source-var))"},
+					Version:                &atc.Version{"some": "version"},
+					Params:                 atc.Params{"some": "((params-var))"},
+					VersionedResourceTypes: types,
+					Tags:                   atc.Tags{"some", "tags"},
+				},
 			}
 
 			privileged = false
@@ -145,7 +191,7 @@ var _ = Describe("BuildStepDelegate", func() {
 		})
 
 		JustBeforeEach(func() {
-			imageSpec, fetchErr = delegate.FetchImage(context.TODO(), imageResource, getPlanID, privileged)
+			imageSpec, fetchErr = delegate.FetchImage(context.TODO(), *expectedGetPlan, expectedCheckPlan, privileged)
 		})
 
 		It("succeeds", func() {
@@ -156,6 +202,13 @@ var _ = Describe("BuildStepDelegate", func() {
 			Expect(imageSpec).To(Equal(worker.ImageSpec{
 				ImageArtifactSource: fakeSource,
 				Privileged:          false,
+			}))
+		})
+
+		It("runs both check and get plans using the child state", func() {
+			Expect(runPlans).To(Equal([]atc.Plan{
+				*expectedCheckPlan,
+				*expectedGetPlan,
 			}))
 		})
 
@@ -286,6 +339,18 @@ var _ = Describe("BuildStepDelegate", func() {
 						})
 					})
 				})
+			})
+		})
+
+		Context("when there is no check plan", func() {
+			BeforeEach(func() {
+				expectedCheckPlan = nil
+			})
+
+			It("does not run a CheckPlan", func() {
+				Expect(runPlans).To(Equal([]atc.Plan{
+					*expectedGetPlan,
+				}))
 			})
 		})
 	})

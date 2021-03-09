@@ -475,6 +475,9 @@ type GetPlan struct {
 	// A timeout to enforce on the resource `get` process. Note that fetching the
 	// resource's image does not count towards the timeout.
 	Timeout string `json:"timeout,omitempty"`
+
+	// Privileged indicates whether the parent resource type is privileged.
+	Privileged bool `json:"privileged,omitempty"`
 }
 
 type PutPlan struct {
@@ -509,6 +512,9 @@ type PutPlan struct {
 
 	// If or not expose BUILD_CREATED_BY to build metadata
 	ExposeBuildCreatedBy bool `json:"expose_build_created_by,omitempty"`
+
+	// Privileged indicates whether the parent resource type is privileged.
+	Privileged bool `json:"privileged,omitempty"`
 }
 
 type CheckPlan struct {
@@ -544,6 +550,9 @@ type CheckPlan struct {
 
 	// Worker tags to influence placement of the container.
 	Tags Tags `json:"tags,omitempty"`
+
+	// Privileged indicates whether the parent resource type is privileged.
+	Privileged bool `json:"privileged,omitempty"`
 }
 
 func (plan CheckPlan) IsPeriodic() bool {

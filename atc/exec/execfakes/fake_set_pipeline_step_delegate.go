@@ -21,12 +21,12 @@ type FakeSetPipelineStepDelegate struct {
 		arg1 lager.Logger
 		arg2 string
 	}
-	FetchImageStub        func(context.Context, atc.ImageResource, atc.VersionedResourceTypes, bool) (worker.ImageSpec, error)
+	FetchImageStub        func(context.Context, atc.Plan, *atc.Plan, bool) (worker.ImageSpec, error)
 	fetchImageMutex       sync.RWMutex
 	fetchImageArgsForCall []struct {
 		arg1 context.Context
-		arg2 atc.ImageResource
-		arg3 atc.VersionedResourceTypes
+		arg2 atc.Plan
+		arg3 *atc.Plan
 		arg4 bool
 	}
 	fetchImageReturns struct {
@@ -142,13 +142,13 @@ func (fake *FakeSetPipelineStepDelegate) ErroredArgsForCall(i int) (lager.Logger
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeSetPipelineStepDelegate) FetchImage(arg1 context.Context, arg2 atc.ImageResource, arg3 atc.VersionedResourceTypes, arg4 bool) (worker.ImageSpec, error) {
+func (fake *FakeSetPipelineStepDelegate) FetchImage(arg1 context.Context, arg2 atc.Plan, arg3 *atc.Plan, arg4 bool) (worker.ImageSpec, error) {
 	fake.fetchImageMutex.Lock()
 	ret, specificReturn := fake.fetchImageReturnsOnCall[len(fake.fetchImageArgsForCall)]
 	fake.fetchImageArgsForCall = append(fake.fetchImageArgsForCall, struct {
 		arg1 context.Context
-		arg2 atc.ImageResource
-		arg3 atc.VersionedResourceTypes
+		arg2 atc.Plan
+		arg3 *atc.Plan
 		arg4 bool
 	}{arg1, arg2, arg3, arg4})
 	stub := fake.FetchImageStub
@@ -170,13 +170,13 @@ func (fake *FakeSetPipelineStepDelegate) FetchImageCallCount() int {
 	return len(fake.fetchImageArgsForCall)
 }
 
-func (fake *FakeSetPipelineStepDelegate) FetchImageCalls(stub func(context.Context, atc.ImageResource, atc.VersionedResourceTypes, bool) (worker.ImageSpec, error)) {
+func (fake *FakeSetPipelineStepDelegate) FetchImageCalls(stub func(context.Context, atc.Plan, *atc.Plan, bool) (worker.ImageSpec, error)) {
 	fake.fetchImageMutex.Lock()
 	defer fake.fetchImageMutex.Unlock()
 	fake.FetchImageStub = stub
 }
 
-func (fake *FakeSetPipelineStepDelegate) FetchImageArgsForCall(i int) (context.Context, atc.ImageResource, atc.VersionedResourceTypes, bool) {
+func (fake *FakeSetPipelineStepDelegate) FetchImageArgsForCall(i int) (context.Context, atc.Plan, *atc.Plan, bool) {
 	fake.fetchImageMutex.RLock()
 	defer fake.fetchImageMutex.RUnlock()
 	argsForCall := fake.fetchImageArgsForCall[i]

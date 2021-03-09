@@ -213,51 +213,19 @@ func (delegate *buildStepDelegate) Errored(logger lager.Logger, message string) 
 
 func (delegate *buildStepDelegate) FetchImage(
 	ctx context.Context,
-	image atc.ImageResource,
-	types atc.VersionedResourceTypes,
+	getPlan atc.Plan,
+	checkPlan *atc.Plan,
 	privileged bool,
 ) (worker.ImageSpec, error) {
-	err := delegate.checkImagePolicy(image, privileged)
+	err := delegate.checkImagePolicy(getPlan.Get.Source, getPlan.Get.Type, privileged)
 	if err != nil {
 		return worker.ImageSpec{}, err
 	}
 
 	fetchState := delegate.state.NewLocalScope()
 
-	imageName := "image"
-	if image.Name != "" {
-		imageName = image.Name
-	}
-
-	version := image.Version
-	if version == nil {
-		checkID := delegate.planID + "/image-check"
-
-		checkPlan := atc.Plan{
-			ID: checkID,
-			Check: &atc.CheckPlan{
-				Name:   imageName,
-				Type:   image.Type,
-				Source: image.Source,
-
-				VersionedResourceTypes: types,
-
-				Tags: image.Tags,
-			},
-		}
-
-		err := delegate.build.SaveEvent(event.ImageCheck{
-			Time: delegate.clock.Now().Unix(),
-			Origin: event.Origin{
-				ID: event.OriginID(delegate.planID),
-			},
-			PublicPlan: checkPlan.Public(),
-		})
-		if err != nil {
-			return worker.ImageSpec{}, fmt.Errorf("save image check event: %w", err)
-		}
-
-		ok, err := fetchState.Run(ctx, checkPlan)
+	if checkPlan != nil {
+		ok, err := fetchState.Run(ctx, *checkPlan)
 		if err != nil {
 			return worker.ImageSpec{}, err
 		}
@@ -265,38 +233,6 @@ func (delegate *buildStepDelegate) FetchImage(
 		if !ok {
 			return worker.ImageSpec{}, fmt.Errorf("image check failed")
 		}
-
-		if !fetchState.Result(checkID, &version) {
-			return worker.ImageSpec{}, fmt.Errorf("check did not return a version")
-		}
-	}
-
-	getID := delegate.planID + "/image-get"
-
-	getPlan := atc.Plan{
-		ID: getID,
-		Get: &atc.GetPlan{
-			Name:    imageName,
-			Type:    image.Type,
-			Source:  image.Source,
-			Version: &version,
-			Params:  image.Params,
-
-			VersionedResourceTypes: types,
-
-			Tags: image.Tags,
-		},
-	}
-
-	err = delegate.build.SaveEvent(event.ImageGet{
-		Time: delegate.clock.Now().Unix(),
-		Origin: event.Origin{
-			ID: event.OriginID(delegate.planID),
-		},
-		PublicPlan: getPlan.Public(),
-	})
-	if err != nil {
-		return worker.ImageSpec{}, fmt.Errorf("save image get event: %w", err)
 	}
 
 	ok, err := fetchState.Run(ctx, getPlan)
@@ -309,7 +245,7 @@ func (delegate *buildStepDelegate) FetchImage(
 	}
 
 	var result exec.GetResult
-	if !fetchState.Result(getID, &result) {
+	if !fetchState.Result(getPlan.ID, &result) {
 		return worker.ImageSpec{}, fmt.Errorf("get did not return a result")
 	}
 
@@ -334,44 +270,12 @@ func (delegate *buildStepDelegate) FetchImage(
 	}, nil
 }
 
-//func (delegate *buildStepDelegate) FetchImage(
-//	ctx context.Context,
-//	image atc.ImageResource,
-//	imageGetPlanID atc.PlanID,
-//	privileged bool,
-//) (worker.ImageSpec, error) {
-//	err := delegate.checkImagePolicy(image, privileged)
-//	if err != nil {
-//		return worker.ImageSpec{}, err
-//	}
-//
-//	var result exec.GetResult
-//	if !delegate.state.Result(imageGetPlanID, &result) {
-//		return worker.ImageSpec{}, fmt.Errorf("get did not return a result")
-//	}
-//
-//	err = delegate.build.SaveImageResourceVersion(result.ResourceCache)
-//	if err != nil {
-//		return worker.ImageSpec{}, fmt.Errorf("save image version: %w", err)
-//	}
-//
-//	art, found := delegate.state.ArtifactRepository().ArtifactFor(build.ArtifactName(result.Name))
-//	if !found {
-//		return worker.ImageSpec{}, fmt.Errorf("fetched artifact not found")
-//	}
-//
-//	return worker.ImageSpec{
-//		ImageArtifact: art,
-//		Privileged:    privileged,
-//	}, nil
-//}
-
-func (delegate *buildStepDelegate) checkImagePolicy(image atc.ImageResource, privileged bool) error {
+func (delegate *buildStepDelegate) checkImagePolicy(imageSource atc.Source, imageType string, privileged bool) error {
 	if !delegate.policyChecker.ShouldCheckAction(policy.ActionUseImage) {
 		return nil
 	}
 
-	redactedSource, err := delegate.redactImageSource(image.Source)
+	redactedSource, err := delegate.redactImageSource(imageSource)
 	if err != nil {
 		return fmt.Errorf("redact source: %w", err)
 	}
@@ -381,7 +285,7 @@ func (delegate *buildStepDelegate) checkImagePolicy(image atc.ImageResource, pri
 		Team:     delegate.build.TeamName(),
 		Pipeline: delegate.build.PipelineName(),
 		Data: map[string]interface{}{
-			"image_type":   image.Type,
+			"image_type":   imageType,
 			"image_source": redactedSource,
 			"privileged":   privileged,
 		},

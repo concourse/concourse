@@ -246,29 +246,14 @@ func (step *CheckStep) runCheck(
 	}
 
 	var imageSpec worker.ImageSpec
-	resourceType, found := step.plan.VersionedResourceTypes.Lookup(step.plan.Type)
-	if found {
-		image := atc.ImageResource{
-			Name:    resourceType.Name,
-			Type:    resourceType.Type,
-			Source:  resourceType.Source,
-			Params:  resourceType.Params,
-			Version: resourceType.Version,
-			Tags:    resourceType.Tags,
-		}
-		if len(image.Tags) == 0 {
-			image.Tags = step.plan.Tags
-		}
-
-		types := step.plan.VersionedResourceTypes.Without(step.plan.Type)
-
+	if step.plan.ImageGetPlan != nil {
 		var err error
-		imageSpec, err = delegate.FetchImage(ctx, image, types, resourceType.Privileged)
+		imageSpec, err = delegate.FetchImage(ctx, *step.plan.ImageGetPlan, step.plan.ImageCheckPlan, step.plan.Privileged)
 		if err != nil {
 			return worker.CheckResult{}, err
 		}
 	} else {
-		imageSpec.ResourceType = step.plan.Type
+		imageSpec.ResourceType = step.plan.BaseImageType
 	}
 
 	containerSpec := worker.ContainerSpec{
