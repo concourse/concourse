@@ -2,6 +2,7 @@ package spec
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -150,7 +151,9 @@ func OciResources(limits garden.Limits) *specs.LinuxResources {
 	if memoryLimit > 0 {
 		memoryResources = &specs.LinuxMemory{
 			Limit: &memoryLimit,
-			Swap:  &memoryLimit,
+		}
+		if swapLimitEnabled() {
+			memoryResources.Swap = &memoryLimit
 		}
 	}
 
@@ -169,6 +172,17 @@ func OciResources(limits garden.Limits) *specs.LinuxResources {
 		Memory: memoryResources,
 		Pids:   pidLimit,
 	}
+}
+
+var SwapLimitFile string
+
+func init() {
+	SwapLimitFile = "/sys/fs/cgroup/memory/memory.memsw.limit_in_bytes"
+}
+
+func swapLimitEnabled() bool {
+	_, err := os.Stat(SwapLimitFile)
+	return err == nil
 }
 
 func OciCgroupsPath(basePath, handle string, privileged bool) string {
