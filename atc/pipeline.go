@@ -12,16 +12,18 @@ import (
 )
 
 type Pipeline struct {
-	ID           int            `json:"id"`
-	Name         string         `json:"name"`
-	InstanceVars InstanceVars   `json:"instance_vars,omitempty"`
-	Paused       bool           `json:"paused"`
-	Public       bool           `json:"public"`
-	Archived     bool           `json:"archived"`
-	Groups       GroupConfigs   `json:"groups,omitempty"`
-	TeamName     string         `json:"team_name"`
-	Display      *DisplayConfig `json:"display,omitempty"`
-	LastUpdated  int64          `json:"last_updated,omitempty"`
+	ID            int            `json:"id"`
+	Name          string         `json:"name"`
+	InstanceVars  InstanceVars   `json:"instance_vars,omitempty"`
+	Paused        bool           `json:"paused"`
+	Public        bool           `json:"public"`
+	Archived      bool           `json:"archived"`
+	Groups        GroupConfigs   `json:"groups,omitempty"`
+	TeamName      string         `json:"team_name"`
+	Display       *DisplayConfig `json:"display,omitempty"`
+	ParentBuildID int            `json:"parent_build_id,omitempty"`
+	ParentJobID   int            `json:"parent_job_id,omitempty"`
+	LastUpdated   int64          `json:"last_updated,omitempty"`
 }
 
 func (p Pipeline) Ref() PipelineRef {
