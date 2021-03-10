@@ -148,6 +148,8 @@ type Volume interface {
 	StreamIn(ctx context.Context, path string, compression compression.Compression, reader io.Reader) error
 	StreamOut(ctx context.Context, path string, compression compression.Compression) (io.ReadCloser, error)
 
+	InitializeResourceCache(lager.Logger, db.UsedResourceCache) error
+
 	DBVolume() db.CreatedVolume
 }
 

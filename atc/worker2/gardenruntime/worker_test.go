@@ -23,6 +23,7 @@ import (
 )
 
 var _ = Describe("Garden Worker", func() {
+	logger := lagertest.NewTestLogger("dummy")
 	var ctx context.Context
 
 	BeforeEach(func() {
@@ -321,17 +322,24 @@ var _ = Describe("Garden Worker", func() {
 					WithVolumesCreatedInDBAndBaggageclaim(
 						grt.NewVolume("locally-cached-volume").
 							WithContent(imageContent),
-					).
-					WithResourceCacheOnVolume("container1", "locally-cached-volume", "some-resource"),
+					),
 				grt.NewWorker("worker2").
 					WithDBContainersInState(grt.Creating, "container2").
 					WithVolumesCreatedInDBAndBaggageclaim(
 						grt.NewVolume("remote-volume").
 							WithContent(imageContent),
-					).
-					WithResourceCacheOnVolume("container2", "remote-volume", "some-resource"),
+					),
 			),
 		)
+
+		resourceCache1 := scenario.FindOrCreateResourceCache("worker1", "container1")
+		err := scenario.WorkerVolume("worker1", "locally-cached-volume").InitializeResourceCache(logger, resourceCache1)
+		Expect(err).ToNot(HaveOccurred())
+
+		resourceCache2 := scenario.FindOrCreateResourceCache("worker2", "container2")
+		err = scenario.WorkerVolume("worker2", "remote-volume").InitializeResourceCache(logger, resourceCache2)
+		Expect(err).ToNot(HaveOccurred())
+
 		worker := scenario.Worker("worker1")
 
 		container, _, err := worker.FindOrCreateContainer(
@@ -503,19 +511,26 @@ var _ = Describe("Garden Worker", func() {
 					WithDBContainersInState(grt.Creating, "container1").
 					WithVolumesCreatedInDBAndBaggageclaim(
 						grt.NewVolume("locally-cached-volume"),
-					).
-					WithResourceCacheOnVolume("container1", "locally-cached-volume", "some-resource"),
+					),
 				grt.NewWorker("worker2").
 					WithDBContainersInState(grt.Creating, "container2").
 					WithVolumesCreatedInDBAndBaggageclaim(
 						grt.NewVolume("remote-volume"),
-					).
-					WithResourceCacheOnVolume("container2", "remote-volume", "some-resource"),
+					),
 			),
 		)
+
+		resourceCache1 := scenario.FindOrCreateResourceCache("worker1", "container1")
+		err := scenario.WorkerVolume("worker1", "locally-cached-volume").InitializeResourceCache(logger, resourceCache1)
+		Expect(err).ToNot(HaveOccurred())
+
+		resourceCache2 := scenario.FindOrCreateResourceCache("worker2", "container2")
+		err = scenario.WorkerVolume("worker2", "remote-volume").InitializeResourceCache(logger, resourceCache2)
+		Expect(err).ToNot(HaveOccurred())
+
 		worker := scenario.Worker("worker1")
 
-		_, _, err := worker.FindOrCreateContainer(
+		_, _, err = worker.FindOrCreateContainer(
 			ctx,
 			db.NewFixedHandleContainerOwner("my-handle"),
 			db.ContainerMetadata{},
@@ -896,8 +911,6 @@ var _ = Describe("Garden Worker", func() {
 		var volumeLock lock.Lock
 		By("acquiring the volume creating lock", func() {
 			scratchDBVolume, _ = scenario.ContainerVolume(worker.Name(), "my-container", "/scratch")
-
-			logger := lagertest.NewTestLogger("dummy")
 
 			var acquired bool
 			var err error

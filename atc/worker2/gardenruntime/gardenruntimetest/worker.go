@@ -167,34 +167,6 @@ func (w *Worker) WithCachedPaths(cachedPaths ...string) *Worker {
 	})
 }
 
-func (w *Worker) WithResourceCacheOnVolume(containerHandle string, volumeHandle string, resourceTypeName string) *Worker {
-	return w.WithSetup(func(s *workertest.Scenario) {
-		container := s.DB.Container(w.Name(), db.NewFixedHandleContainerOwner(containerHandle))
-		cache, err := s.DBBuilder.ResourceCacheFactory.FindOrCreateResourceCache(
-			db.ForContainer(container.ID()),
-			resourceTypeName,
-			atc.Version{},
-			atc.Source{},
-			atc.Params{},
-			atc.VersionedResourceTypes{
-				{
-					ResourceType: atc.ResourceType{
-						Name: resourceTypeName,
-						Type: dbtest.BaseResourceType,
-					},
-				},
-			},
-		)
-		Expect(err).ToNot(HaveOccurred())
-
-		_, volume, err := s.DBBuilder.VolumeRepo.FindVolume(volumeHandle)
-		Expect(err).ToNot(HaveOccurred())
-
-		err = volume.InitializeResourceCache(cache)
-		Expect(err).ToNot(HaveOccurred())
-	})
-}
-
 func (w Worker) WithContainersCreatedInDBAndGarden(containers ...*Container) *Worker {
 	return w.WithGardenContainers(containers...).WithDBContainersInState(Created, containerHandles(containers)...)
 }

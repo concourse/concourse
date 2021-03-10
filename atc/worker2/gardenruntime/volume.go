@@ -33,6 +33,18 @@ func (v Volume) DBVolume() db.CreatedVolume {
 	return v.dbVolume
 }
 
+func (v Volume) InitializeResourceCache(logger lager.Logger, cache db.UsedResourceCache) error {
+	if err := v.bcVolume.SetPrivileged(false); err != nil {
+		logger.Error("failed-to-set-unprivileged", err)
+		return err
+	}
+	if err := v.dbVolume.InitializeResourceCache(cache); err != nil {
+		logger.Error("failed-to-initialize-resource-cache", err)
+		return err
+	}
+	return nil
+}
+
 func (v Volume) COWStrategy() baggageclaim.COWStrategy {
 	return baggageclaim.COWStrategy{
 		Parent: v.bcVolume,

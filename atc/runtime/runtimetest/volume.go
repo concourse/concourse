@@ -4,17 +4,24 @@ import (
 	"context"
 	"io"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/compression"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/dbfakes"
 )
 
 type Volume struct {
-	VolumeHandle string
+	VolumeHandle             string
+	ResourceCacheInitialized bool
+	DBVolume_                *dbfakes.FakeCreatedVolume
 }
 
-func NewVolume(handle string) Volume {
-	return Volume{
+func NewVolume(handle string) *Volume {
+	dbVolume := new(dbfakes.FakeCreatedVolume)
+	dbVolume.HandleReturns(handle)
+	return &Volume{
 		VolumeHandle: handle,
+		DBVolume_:    dbVolume,
 	}
 }
 
@@ -30,6 +37,11 @@ func (v Volume) StreamOut(ctx context.Context, path string, compression compress
 	panic("unimplemented")
 }
 
+func (v *Volume) InitializeResourceCache(_ lager.Logger, _ db.UsedResourceCache) error {
+	v.ResourceCacheInitialized = true
+	return nil
+}
+
 func (v Volume) DBVolume() db.CreatedVolume {
-	panic("unimplemented")
+	return v.DBVolume_
 }
