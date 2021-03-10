@@ -152,7 +152,7 @@ func OciResources(limits garden.Limits) *specs.LinuxResources {
 		memoryResources = &specs.LinuxMemory{
 			Limit: &memoryLimit,
 		}
-		if swapLimitEnabled() {
+		if IsSwapLimitEnabled {
 			memoryResources.Swap = &memoryLimit
 		}
 	}
@@ -174,14 +174,15 @@ func OciResources(limits garden.Limits) *specs.LinuxResources {
 	}
 }
 
-var SwapLimitFile string
+var IsSwapLimitEnabled bool
 
 func init() {
-	SwapLimitFile = "/sys/fs/cgroup/memory/memory.memsw.limit_in_bytes"
+	IsSwapLimitEnabled = swapLimitEnabled()
 }
 
 func swapLimitEnabled() bool {
-	_, err := os.Stat(SwapLimitFile)
+	swapLimitFile := "/sys/fs/cgroup/memory/memory.memsw.limit_in_bytes"
+	_, err := os.Stat(swapLimitFile)
 	return err == nil
 }
 

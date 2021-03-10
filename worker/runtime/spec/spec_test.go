@@ -330,11 +330,7 @@ func (s *SpecSuite) TestOciResourceLimits() {
 		},
 	} {
 		s.T().Run(tc.desc, func(t *testing.T) {
-			if tc.swapEnabled {
-				spec.SwapLimitFile = "/tmp"
-			} else {
-				spec.SwapLimitFile = "/not/a/file"
-			}
+			spec.IsSwapLimitEnabled = tc.swapEnabled
 			s.Equal(tc.expected, spec.OciResources(tc.limits))
 		})
 	}
