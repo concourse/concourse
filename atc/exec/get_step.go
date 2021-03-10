@@ -200,6 +200,7 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 		fmt.Fprintln(delegate.Stderr(), "\x1b[1;36mINFO: found resouce cache from local cache\x1b[0m")
 		fmt.Fprintln(delegate.Stderr(), "")
 
+		delegate.Starting(logger)
 		state.StoreResult(step.planID, resourceCache)
 
 		state.ArtifactRepository().RegisterArtifact(
