@@ -261,38 +261,6 @@ func (delegate *buildStepDelegate) FetchImage(
 	}, nil
 }
 
-//func (delegate *buildStepDelegate) FetchImage(
-//	ctx context.Context,
-//	image atc.ImageResource,
-//	imageGetPlanID atc.PlanID,
-//	privileged bool,
-//) (worker.ImageSpec, error) {
-//	err := delegate.checkImagePolicy(image, privileged)
-//	if err != nil {
-//		return worker.ImageSpec{}, err
-//	}
-//
-//	var result exec.GetResult
-//	if !delegate.state.Result(imageGetPlanID, &result) {
-//		return worker.ImageSpec{}, fmt.Errorf("get did not return a result")
-//	}
-//
-//	err = delegate.build.SaveImageResourceVersion(result.ResourceCache)
-//	if err != nil {
-//		return worker.ImageSpec{}, fmt.Errorf("save image version: %w", err)
-//	}
-//
-//	art, found := delegate.state.ArtifactRepository().ArtifactFor(build.ArtifactName(result.Name))
-//	if !found {
-//		return worker.ImageSpec{}, fmt.Errorf("fetched artifact not found")
-//	}
-//
-//	return worker.ImageSpec{
-//		ImageArtifact: art,
-//		Privileged:    privileged,
-//	}, nil
-//}
-
 // The var source configs that are passed in will eventually be used to
 // overwrite the var source configs on the child state created for running a
 // get var substep. This is done this way so that steps can pass a modified

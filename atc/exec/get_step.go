@@ -52,7 +52,7 @@ type GetDelegate interface {
 	StartSpan(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
 
 	Variables(context.Context, atc.VarSourceConfigs) vars.Variables
-	FetchImage(context.Context, atc.ImageResource, bool) (worker.ImageSpec, error)
+	FetchImage(context.Context, atc.Plan, *atc.Plan, bool) (worker.ImageSpec, error)
 
 	Stdout() io.Writer
 	Stderr() io.Writer
@@ -142,15 +142,14 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 	}
 
 	var imageSpec worker.ImageSpec
-	//resourceType, found := step.plan.VersionedResourceTypes.Lookup(step.plan.Type)
-	if found {
+	if step.plan.ImageGetPlan != nil {
 		var err error
-		imageSpec, err = delegate.FetchImage(ctx, step.plan.ImageGetPlan, step.plan.ImageCheckPlan, resourceType.Privileged)
+		imageSpec, err = delegate.FetchImage(ctx, *step.plan.ImageGetPlan, step.plan.ImageCheckPlan, step.plan.Privileged)
 		if err != nil {
 			return false, err
 		}
 	} else {
-		imageSpec.ResourceType = step.plan.Type
+		imageSpec.ResourceType = step.plan.BaseImageType
 	}
 
 	resourceTypes, err := creds.NewVersionedResourceTypes(delegate.Variables(ctx, state.VarSourceConfigs()), step.plan.VersionedResourceTypes).Evaluate()
