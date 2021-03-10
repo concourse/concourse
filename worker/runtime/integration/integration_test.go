@@ -3,7 +3,6 @@ package integration_test
 import (
 	"bytes"
 	"fmt"
-	"github.com/concourse/concourse/worker/workercmd"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -14,6 +13,7 @@ import (
 	"code.cloudfoundry.org/garden"
 	"github.com/concourse/concourse/worker/runtime"
 	"github.com/concourse/concourse/worker/runtime/libcontainerd"
+	"github.com/concourse/concourse/worker/workercmd"
 	"github.com/containerd/containerd"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -588,4 +588,27 @@ func (s *IntegrationSuite) TestMaxContainers() {
 	})
 	s.Error(err)
 	s.Contains(err.Error(), "max containers reached")
+}
+
+func (s *IntegrationSuite) TestRequestTimeoutZero() {
+	namespace := "test-requesTimeout-zero"
+	requestTimeout := time.Duration(0)
+
+	customBackend, err := runtime.NewGardenBackend(
+		libcontainerd.New(
+			s.containerdSocket(),
+			namespace,
+			requestTimeout,
+		),
+	)
+	s.NoError(err)
+
+	s.NoError(customBackend.Start())
+
+	_, err = customBackend.Containers(garden.Properties{})
+	s.NoError(err)
+
+	defer func() {
+		customBackend.Stop()
+	}()
 }
