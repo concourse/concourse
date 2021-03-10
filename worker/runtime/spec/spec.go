@@ -18,6 +18,18 @@ const (
 
 const baseCgroupsPath = "garden"
 
+var isSwapLimitEnabled bool
+
+func init() {
+	isSwapLimitEnabled = swapLimitEnabled()
+}
+
+func swapLimitEnabled() bool {
+	swapLimitFile := "/sys/fs/cgroup/memory/memory.memsw.limit_in_bytes"
+	_, err := os.Stat(swapLimitFile)
+	return err == nil
+}
+
 // OciSpec converts a given `garden` container specification to an OCI spec.
 //
 func OciSpec(initBinPath string, gdn garden.ContainerSpec, maxUid, maxGid uint32) (oci *specs.Spec, err error) {
@@ -42,7 +54,7 @@ func OciSpec(initBinPath string, gdn garden.ContainerSpec, maxUid, maxGid uint32
 		return
 	}
 
-	resources := OciResources(gdn.Limits)
+	resources := OciResources(gdn.Limits, isSwapLimitEnabled)
 	cgroupsPath := OciCgroupsPath(baseCgroupsPath, gdn.Handle, gdn.Privileged)
 
 	oci = merge(
@@ -130,7 +142,7 @@ func OciIDMappings(privileged bool, max uint32) []specs.LinuxIDMapping {
 	}
 }
 
-func OciResources(limits garden.Limits) *specs.LinuxResources {
+func OciResources(limits garden.Limits, swapLimitEnabled bool) *specs.LinuxResources {
 	var (
 		cpuResources    *specs.LinuxCPU
 		memoryResources *specs.LinuxMemory
@@ -152,7 +164,7 @@ func OciResources(limits garden.Limits) *specs.LinuxResources {
 		memoryResources = &specs.LinuxMemory{
 			Limit: &memoryLimit,
 		}
-		if IsSwapLimitEnabled {
+		if swapLimitEnabled {
 			memoryResources.Swap = &memoryLimit
 		}
 	}
@@ -172,18 +184,6 @@ func OciResources(limits garden.Limits) *specs.LinuxResources {
 		Memory: memoryResources,
 		Pids:   pidLimit,
 	}
-}
-
-var IsSwapLimitEnabled bool
-
-func init() {
-	IsSwapLimitEnabled = swapLimitEnabled()
-}
-
-func swapLimitEnabled() bool {
-	swapLimitFile := "/sys/fs/cgroup/memory/memory.memsw.limit_in_bytes"
-	_, err := os.Stat(swapLimitFile)
-	return err == nil
 }
 
 func OciCgroupsPath(basePath, handle string, privileged bool) string {

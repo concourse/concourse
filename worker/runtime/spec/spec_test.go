@@ -296,7 +296,7 @@ func (s *SpecSuite) TestOciResourceLimits() {
 			swapEnabled: true,
 		},
 		{
-			desc: "Swap disabled",
+			desc: "Swap memory limit disabled",
 			limits: garden.Limits{
 				Memory: garden.MemoryLimits{
 					LimitInBytes: 10000,
@@ -330,8 +330,7 @@ func (s *SpecSuite) TestOciResourceLimits() {
 		},
 	} {
 		s.T().Run(tc.desc, func(t *testing.T) {
-			spec.IsSwapLimitEnabled = tc.swapEnabled
-			s.Equal(tc.expected, spec.OciResources(tc.limits))
+			s.Equal(tc.expected, spec.OciResources(tc.limits, tc.swapEnabled))
 		})
 	}
 }
