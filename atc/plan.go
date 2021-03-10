@@ -455,9 +455,11 @@ type GetPlan struct {
 	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
 
 	// Image of the container. One of these must be specified.
-	BaseImageType  string `json:"base_image_type,omitempty"`
-	ImageCheckPlan *Plan  `json:"image_check_plan,omitempty"`
-	ImageGetPlan   *Plan  `json:"image_get_plan,omitempty"`
+	ImageCheckPlan *Plan `json:"image_check_plan,omitempty"`
+	ImageGetPlan   *Plan `json:"image_get_plan,omitempty"`
+
+	// TODO:
+	BaseType string `json:"base_type,omitempty"`
 
 	// The version of the resource to fetch. One of these must be specified.
 	Version     *Version `json:"version,omitempty"`
@@ -489,10 +491,12 @@ type PutPlan struct {
 	Source                 Source                 `json:"source"`
 	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
 
+	// TODO:
+	BaseType string `json:"base_type,omitempty"`
+
 	// Image of the container. One of these must be specified.
-	BaseImageType  string `json:"base_image_type,omitempty"`
-	ImageCheckPlan *Plan  `json:"image_check_plan,omitempty"`
-	ImageGetPlan   *Plan  `json:"image_get_plan,omitempty"`
+	ImageCheckPlan *Plan `json:"image_check_plan,omitempty"`
+	ImageGetPlan   *Plan `json:"image_get_plan,omitempty"`
 
 	// Params to pass to the put operation.
 	Params Params `json:"params,omitempty"`
@@ -526,10 +530,12 @@ type CheckPlan struct {
 	Source                 Source                 `json:"source"`
 	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
 
+	// TODO:
+	BaseType string `json:"base_type,omitempty"`
+
 	// Image of the container. One of these must be specified.
-	BaseImageType  string `json:"base_image_type,omitempty"`
-	ImageCheckPlan *Plan  `json:"image_check_plan,omitempty"`
-	ImageGetPlan   *Plan  `json:"image_get_plan,omitempty"`
+	ImageCheckPlan *Plan `json:"image_check_plan,omitempty"`
+	ImageGetPlan   *Plan `json:"image_get_plan,omitempty"`
 
 	// The version to check from. If not specified, defaults to the latest
 	// version of the config.
