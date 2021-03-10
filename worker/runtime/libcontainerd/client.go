@@ -117,7 +117,7 @@ func (c *client) NewContainer(
 ) (
 	containerd.Container, error,
 ) {
-	ctx, cancel := context.WithTimeout(ctx, c.requestTimeout)
+	ctx, cancel := createTimeoutContext(ctx, c.requestTimeout)
 	defer cancel()
 
 	return c.containerd.NewContainer(ctx, id,
@@ -131,14 +131,14 @@ func (c *client) Containers(
 ) (
 	[]containerd.Container, error,
 ) {
-	ctx, cancel := context.WithTimeout(ctx, c.requestTimeout)
+	ctx, cancel := createTimeoutContext(ctx, c.requestTimeout)
 	defer cancel()
 
 	return c.containerd.Containers(ctx, labels...)
 }
 
 func (c *client) GetContainer(ctx context.Context, handle string) (containerd.Container, error) {
-	ctx, cancel := context.WithTimeout(ctx, c.requestTimeout)
+	ctx, cancel := createTimeoutContext(ctx, c.requestTimeout)
 	defer cancel()
 
 	cont, err := c.containerd.LoadContainer(ctx, handle)
@@ -153,14 +153,14 @@ func (c *client) GetContainer(ctx context.Context, handle string) (containerd.Co
 }
 
 func (c *client) Version(ctx context.Context) (err error) {
-	ctx, cancel := context.WithTimeout(ctx, c.requestTimeout)
+	ctx, cancel := createTimeoutContext(ctx, c.requestTimeout)
 	defer cancel()
 
 	_, err = c.containerd.Version(ctx)
 	return
 }
 func (c *client) Destroy(ctx context.Context, handle string) error {
-	ctx, cancel := context.WithTimeout(ctx, c.requestTimeout)
+	ctx, cancel := createTimeoutContext(ctx, c.requestTimeout)
 	defer cancel()
 
 	container, err := c.GetContainer(ctx, handle)

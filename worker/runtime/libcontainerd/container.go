@@ -31,21 +31,21 @@ func (c *container) Delete(ctx context.Context, opts ...containerd.DeleteOpts) e
 }
 
 func (c *container) NewTask(ctx context.Context, creator cio.Creator, opts ...containerd.NewTaskOpts) (containerd.Task, error) {
-	ctx, cancel := context.WithTimeout(ctx, c.requestTimeout)
+	ctx, cancel := createTimeoutContext(ctx, c.requestTimeout)
 	defer cancel()
 
 	return c.container.NewTask(ctx, creator, opts...)
 }
 
 func (c *container) Spec(ctx context.Context) (*oci.Spec, error) {
-	ctx, cancel := context.WithTimeout(ctx, c.requestTimeout)
+	ctx, cancel := createTimeoutContext(ctx, c.requestTimeout)
 	defer cancel()
 
 	return c.container.Spec(ctx)
 }
 
 func (c *container) Task(ctx context.Context, opt cio.Attach) (containerd.Task, error) {
-	ctx, cancel := context.WithTimeout(ctx, c.requestTimeout)
+	ctx, cancel := createTimeoutContext(ctx, c.requestTimeout)
 	defer cancel()
 
 	return c.container.Task(ctx, opt)
