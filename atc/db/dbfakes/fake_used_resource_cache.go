@@ -42,18 +42,6 @@ type FakeUsedResourceCache struct {
 	iDReturnsOnCall map[int]struct {
 		result1 int
 	}
-	LoadVersionMetadataStub        func() ([]atc.MetadataField, error)
-	loadVersionMetadataMutex       sync.RWMutex
-	loadVersionMetadataArgsForCall []struct {
-	}
-	loadVersionMetadataReturns struct {
-		result1 []atc.MetadataField
-		result2 error
-	}
-	loadVersionMetadataReturnsOnCall map[int]struct {
-		result1 []atc.MetadataField
-		result2 error
-	}
 	ResourceConfigStub        func() db.ResourceConfig
 	resourceConfigMutex       sync.RWMutex
 	resourceConfigArgsForCall []struct {
@@ -248,62 +236,6 @@ func (fake *FakeUsedResourceCache) IDReturnsOnCall(i int, result1 int) {
 	}{result1}
 }
 
-func (fake *FakeUsedResourceCache) LoadVersionMetadata() ([]atc.MetadataField, error) {
-	fake.loadVersionMetadataMutex.Lock()
-	ret, specificReturn := fake.loadVersionMetadataReturnsOnCall[len(fake.loadVersionMetadataArgsForCall)]
-	fake.loadVersionMetadataArgsForCall = append(fake.loadVersionMetadataArgsForCall, struct {
-	}{})
-	stub := fake.LoadVersionMetadataStub
-	fakeReturns := fake.loadVersionMetadataReturns
-	fake.recordInvocation("LoadVersionMetadata", []interface{}{})
-	fake.loadVersionMetadataMutex.Unlock()
-	if stub != nil {
-		return stub()
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fakeReturns.result1, fakeReturns.result2
-}
-
-func (fake *FakeUsedResourceCache) LoadVersionMetadataCallCount() int {
-	fake.loadVersionMetadataMutex.RLock()
-	defer fake.loadVersionMetadataMutex.RUnlock()
-	return len(fake.loadVersionMetadataArgsForCall)
-}
-
-func (fake *FakeUsedResourceCache) LoadVersionMetadataCalls(stub func() ([]atc.MetadataField, error)) {
-	fake.loadVersionMetadataMutex.Lock()
-	defer fake.loadVersionMetadataMutex.Unlock()
-	fake.LoadVersionMetadataStub = stub
-}
-
-func (fake *FakeUsedResourceCache) LoadVersionMetadataReturns(result1 []atc.MetadataField, result2 error) {
-	fake.loadVersionMetadataMutex.Lock()
-	defer fake.loadVersionMetadataMutex.Unlock()
-	fake.LoadVersionMetadataStub = nil
-	fake.loadVersionMetadataReturns = struct {
-		result1 []atc.MetadataField
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeUsedResourceCache) LoadVersionMetadataReturnsOnCall(i int, result1 []atc.MetadataField, result2 error) {
-	fake.loadVersionMetadataMutex.Lock()
-	defer fake.loadVersionMetadataMutex.Unlock()
-	fake.LoadVersionMetadataStub = nil
-	if fake.loadVersionMetadataReturnsOnCall == nil {
-		fake.loadVersionMetadataReturnsOnCall = make(map[int]struct {
-			result1 []atc.MetadataField
-			result2 error
-		})
-	}
-	fake.loadVersionMetadataReturnsOnCall[i] = struct {
-		result1 []atc.MetadataField
-		result2 error
-	}{result1, result2}
-}
-
 func (fake *FakeUsedResourceCache) ResourceConfig() db.ResourceConfig {
 	fake.resourceConfigMutex.Lock()
 	ret, specificReturn := fake.resourceConfigReturnsOnCall[len(fake.resourceConfigArgsForCall)]
@@ -419,8 +351,6 @@ func (fake *FakeUsedResourceCache) Invocations() map[string][][]interface{} {
 	defer fake.destroyMutex.RUnlock()
 	fake.iDMutex.RLock()
 	defer fake.iDMutex.RUnlock()
-	fake.loadVersionMetadataMutex.RLock()
-	defer fake.loadVersionMetadataMutex.RUnlock()
 	fake.resourceConfigMutex.RLock()
 	defer fake.resourceConfigMutex.RUnlock()
 	fake.versionMutex.RLock()

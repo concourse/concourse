@@ -309,7 +309,7 @@ func (step *GetStep) getFromLocalCache(
 	if !found {
 		return worker.GetResult{}, false, nil
 	}
-	metadata, err := resourceCache.LoadVersionMetadata()
+	metadata, err := step.resourceCacheFactory.ResourceCacheMetadata(resourceCache)
 	if err != nil {
 		return worker.GetResult{}, false, err
 	}
@@ -317,7 +317,7 @@ func (step *GetStep) getFromLocalCache(
 		ExitStatus: 0,
 		VersionResult: runtime.VersionResult{
 			Version:  resourceCache.Version(),
-			Metadata: metadata,
+			Metadata: metadata.ToATCMetadata(),
 		},
 		GetArtifact: runtime.GetArtifact{volume.Handle()},
 	}, true, nil
