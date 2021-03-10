@@ -290,7 +290,7 @@ var _ = Describe("GetStep", func() {
 
 			Context("when load metadata fails", func() {
 				BeforeEach(func() {
-					fakeResourceCache.LoadVersionMetadataReturns(nil, errors.New("some-error"))
+					fakeResourceCacheFactory.ResourceCacheMetadataReturns(nil, errors.New("some-error"))
 					shouldRunGetStep = false
 				})
 
@@ -302,7 +302,12 @@ var _ = Describe("GetStep", func() {
 
 			Context("when load metadata succeeds", func() {
 				BeforeEach(func() {
-					fakeResourceCache.LoadVersionMetadataReturns([]atc.MetadataField{{Name: "some", Value: "metadata"}}, nil)
+					fakeResourceCacheFactory.ResourceCacheMetadataReturns(db.ResourceConfigMetadataFields{
+						{
+							Name:  "some",
+							Value: "metadata",
+						},
+					}, nil)
 					shouldRunGetStep = false
 				})
 
