@@ -1059,7 +1059,7 @@ func (cmd *RunCommand) backendComponents(
 
 	pool := worker.NewPool(workerProvider)
 	artifactStreamer := worker.NewArtifactStreamer(pool, compressionLib)
-	artifactSourcer := worker.NewArtifactSourcer(compressionLib, pool, cmd.FeatureFlags.EnableP2PVolumeStreaming, cmd.P2pVolumeStreamingTimeout)
+	artifactSourcer := worker.NewArtifactSourcer(compressionLib, pool, cmd.FeatureFlags.EnableP2PVolumeStreaming, cmd.P2pVolumeStreamingTimeout, dbResourceCacheFactory)
 
 	defaultLimits, err := cmd.parseDefaultLimits()
 	if err != nil {

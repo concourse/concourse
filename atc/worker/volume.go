@@ -38,6 +38,8 @@ type Volume interface {
 
 	WorkerName() string
 	Destroy() error
+
+	Volume() Volume
 }
 
 type VolumeMount struct {
@@ -178,4 +180,8 @@ func (v *volume) InitializeTaskCache(
 
 func (v *volume) CreateChildForContainer(creatingContainer db.CreatingContainer, mountPath string) (db.CreatingVolume, error) {
 	return v.dbVolume.CreateChildForContainer(creatingContainer, mountPath)
+}
+
+func (v *volume) Volume() Volume {
+	return v
 }
