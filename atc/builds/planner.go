@@ -92,15 +92,22 @@ func (visitor *planVisitor) VisitGet(step *atc.GetStep) error {
 
 	resource.ApplySourceDefaults(visitor.resourceTypes)
 
+	var privileged bool
+	parentResourceType, found := visitor.resourceTypes.Lookup(resource.Type)
+	if found {
+		privileged = parentResourceType.Privileged
+	}
+
 	plan := visitor.planFactory.NewPlan(atc.GetPlan{
 		Name: step.Name,
 
-		Type:     resource.Type,
-		Resource: resourceName,
-		Source:   resource.Source,
-		Params:   step.Params,
-		Version:  &version,
-		Tags:     step.Tags,
+		Type:       resource.Type,
+		Resource:   resourceName,
+		Source:     resource.Source,
+		Params:     step.Params,
+		Version:    &version,
+		Tags:       step.Tags,
+		Privileged: privileged,
 
 		VersionedResourceTypes: visitor.resourceTypes,
 	})
@@ -125,14 +132,21 @@ func (visitor *planVisitor) VisitPut(step *atc.PutStep) error {
 
 	resource.ApplySourceDefaults(visitor.resourceTypes)
 
+	var privileged bool
+	parentResourceType, found := visitor.resourceTypes.Lookup(resource.Type)
+	if found {
+		privileged = parentResourceType.Privileged
+	}
+
 	plan := visitor.planFactory.NewPlan(atc.PutPlan{
-		Type:     resource.Type,
-		Name:     logicalName,
-		Resource: resourceName,
-		Source:   resource.Source,
-		Params:   step.Params,
-		Tags:     step.Tags,
-		Inputs:   step.Inputs,
+		Type:       resource.Type,
+		Name:       logicalName,
+		Resource:   resourceName,
+		Source:     resource.Source,
+		Params:     step.Params,
+		Tags:       step.Tags,
+		Inputs:     step.Inputs,
+		Privileged: privileged,
 
 		VersionedResourceTypes: visitor.resourceTypes,
 	})
@@ -145,9 +159,10 @@ func (visitor *planVisitor) VisitPut(step *atc.PutStep) error {
 		Resource:    resourceName,
 		VersionFrom: &plan.ID,
 
-		Params: step.GetParams,
-		Tags:   step.Tags,
-		Source: resource.Source,
+		Params:     step.GetParams,
+		Tags:       step.Tags,
+		Source:     resource.Source,
+		Privileged: privileged,
 
 		VersionedResourceTypes: visitor.resourceTypes,
 	})
@@ -449,6 +464,12 @@ func NewCheckPlanner(planFactory atc.PlanFactory) *CheckPlanner {
 }
 
 func (c *CheckPlanner) Create(checkable db.Checkable, versionedResourceTypes atc.VersionedResourceTypes, from atc.Version, sourceDefaults atc.Source, interval time.Duration) atc.Plan {
+	var privileged bool
+	parentResourceType, found := versionedResourceTypes.Lookup(checkable.Type())
+	if found {
+		privileged = parentResourceType.Privileged
+	}
+
 	plan := c.planFactory.NewPlan(atc.CheckPlan{
 		Name:    checkable.Name(),
 		Type:    checkable.Type(),
@@ -460,6 +481,7 @@ func (c *CheckPlanner) Create(checkable db.Checkable, versionedResourceTypes atc
 		Interval:               interval.String(),
 		VersionedResourceTypes: versionedResourceTypes,
 		Resource:               checkable.Name(),
+		Privileged:             privileged,
 	})
 
 	plan.Check.ImageCheckPlan, plan.Check.ImageGetPlan, plan.Check.BaseImageType = imageStrategy(plan.ID, checkable.Type(), versionedResourceTypes, checkable.Tags())
@@ -501,6 +523,12 @@ func FetchImagePlan(planID atc.PlanID, image atc.ImageResource, resourceTypes at
 		tags = stepTags
 	}
 
+	parentResourceType, found := resourceTypes.Lookup(image.Type)
+	var privileged bool
+	if found {
+		privileged = parentResourceType.Privileged
+	}
+
 	// Construct get plan for image
 	imageGetPlan := atc.Plan{
 		ID: getPlanID,
@@ -517,6 +545,8 @@ func FetchImagePlan(planID atc.PlanID, image atc.ImageResource, resourceTypes at
 			VersionedResourceTypes: resourceTypes,
 
 			Tags: tags,
+
+			Privileged: privileged,
 		},
 	}
 
@@ -540,6 +570,8 @@ func FetchImagePlan(planID atc.PlanID, image atc.ImageResource, resourceTypes at
 				VersionedResourceTypes: resourceTypes,
 
 				Tags: tags,
+
+				Privileged: privileged,
 			},
 		}
 		maybeCheckPlan = &checkPlan

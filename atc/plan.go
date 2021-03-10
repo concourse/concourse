@@ -482,6 +482,9 @@ type GetPlan struct {
 
 	// Worker tags to influence placement of the container.
 	Tags Tags `json:"tags,omitempty"`
+
+	// Privileged indicates whether the parent resource type is privileged.
+	Privileged bool `json:"privileged,omitempty"`
 }
 
 type PutPlan struct {
@@ -509,6 +512,9 @@ type PutPlan struct {
 
 	// Worker tags to influence placement of the container.
 	Tags Tags `json:"tags,omitempty"`
+
+	// Privileged indicates whether the parent resource type is privileged.
+	Privileged bool `json:"privileged,omitempty"`
 }
 
 type CheckPlan struct {
@@ -543,6 +549,9 @@ type CheckPlan struct {
 
 	// Worker tags to influence placement of the container.
 	Tags Tags `json:"tags,omitempty"`
+
+	// Privileged indicates whether the parent resource type is privileged.
+	Privileged bool `json:"privileged,omitempty"`
 }
 
 type TaskPlan struct {
