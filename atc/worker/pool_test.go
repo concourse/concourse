@@ -2,6 +2,7 @@ package worker_test
 
 import (
 	"code.cloudfoundry.org/lager/lagertest"
+
 	"context"
 	"errors"
 
@@ -485,115 +486,6 @@ var _ = Describe("Pool", func() {
 						Expect(chooseErr).To(Equal(strategyError))
 					})
 				})
-			})
-		})
-	})
-
-	Describe("FindWorkersForResourceCache", func() {
-		var (
-			workerSpec WorkerSpec
-
-			chosenWorkers []Worker
-			chooseErr     error
-
-			incompatibleWorker *workerfakes.FakeWorker
-			compatibleWorker   *workerfakes.FakeWorker
-		)
-
-		BeforeEach(func() {
-			workerSpec = WorkerSpec{
-				ResourceType: "some-type",
-				TeamID:       4567,
-				Tags:         atc.Tags{"some-tag"},
-			}
-
-			incompatibleWorker = new(workerfakes.FakeWorker)
-			incompatibleWorker.SatisfiesReturns(false)
-
-			compatibleWorker = new(workerfakes.FakeWorker)
-			compatibleWorker.SatisfiesReturns(true)
-		})
-
-		JustBeforeEach(func() {
-			chosenWorkers, chooseErr = pool.FindWorkersForResourceCache(
-				logger,
-				4567,
-				1234,
-				workerSpec,
-			)
-		})
-
-		Context("when workers are found with the resource cache", func() {
-			var (
-				workerA *workerfakes.FakeWorker
-				workerB *workerfakes.FakeWorker
-				workerC *workerfakes.FakeWorker
-			)
-
-			BeforeEach(func() {
-				workerA = new(workerfakes.FakeWorker)
-				workerA.NameReturns("workerA")
-				workerB = new(workerfakes.FakeWorker)
-				workerB.NameReturns("workerB")
-				workerC = new(workerfakes.FakeWorker)
-				workerC.NameReturns("workerC")
-
-				fakeProvider.FindWorkersForResourceCacheReturns([]Worker{workerA, workerB, workerC}, nil)
-			})
-
-			Context("when one of the workers satisfy the spec", func() {
-				BeforeEach(func() {
-					workerA.SatisfiesReturns(true)
-					workerB.SatisfiesReturns(false)
-					workerC.SatisfiesReturns(false)
-				})
-
-				It("succeeds and returns the compatible worker with the resource cache", func() {
-					Expect(chooseErr).NotTo(HaveOccurred())
-					Expect(len(chosenWorkers)).To(Equal(1))
-					Expect(chosenWorkers[0].Name()).To(Equal(workerA.Name()))
-				})
-			})
-
-			Context("when multiple workers satisfy the spec", func() {
-				BeforeEach(func() {
-					workerA.SatisfiesReturns(true)
-					workerB.SatisfiesReturns(true)
-					workerC.SatisfiesReturns(false)
-				})
-
-				It("succeeds and returns the first compatible worker with the container", func() {
-					Expect(chooseErr).NotTo(HaveOccurred())
-					Expect(len(chosenWorkers)).To(Equal(2))
-					Expect(chosenWorkers[0].Name()).To(Equal(workerA.Name()))
-					Expect(chosenWorkers[1].Name()).To(Equal(workerB.Name()))
-				})
-			})
-
-			Context("when the worker that has the resource cache does not satisfy the spec", func() {
-				BeforeEach(func() {
-					workerA.SatisfiesReturns(true)
-					workerB.SatisfiesReturns(true)
-					workerC.SatisfiesReturns(false)
-
-					fakeProvider.FindWorkersForResourceCacheReturns([]Worker{workerC}, nil)
-				})
-
-				It("returns NoCompatibleWorkersError", func() {
-					Expect(chooseErr).To(Equal(NoCompatibleWorkersError{
-						Spec: workerSpec,
-					}))
-				})
-			})
-		})
-
-		Context("when no worker is found with the resource cache", func() {
-			BeforeEach(func() {
-				fakeProvider.FindWorkersForResourceCacheReturns(nil, nil)
-			})
-
-			It("returns NoCompatibleWorkersError", func() {
-				Expect(chooseErr).To(Equal(ErrNoWorkers))
 			})
 		})
 	})

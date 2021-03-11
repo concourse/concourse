@@ -58,21 +58,6 @@ type FakeWorkerProvider struct {
 		result1 []worker.Worker
 		result2 error
 	}
-	FindWorkersForResourceCacheStub        func(lager.Logger, int, int) ([]worker.Worker, error)
-	findWorkersForResourceCacheMutex       sync.RWMutex
-	findWorkersForResourceCacheArgsForCall []struct {
-		arg1 lager.Logger
-		arg2 int
-		arg3 int
-	}
-	findWorkersForResourceCacheReturns struct {
-		result1 []worker.Worker
-		result2 error
-	}
-	findWorkersForResourceCacheReturnsOnCall map[int]struct {
-		result1 []worker.Worker
-		result2 error
-	}
 	NewGardenWorkerStub        func(lager.Logger, db.Worker, int) worker.Worker
 	newGardenWorkerMutex       sync.RWMutex
 	newGardenWorkerArgsForCall []struct {
@@ -306,72 +291,6 @@ func (fake *FakeWorkerProvider) FindWorkersForContainerByOwnerReturnsOnCall(i in
 	}{result1, result2}
 }
 
-func (fake *FakeWorkerProvider) FindWorkersForResourceCache(arg1 lager.Logger, arg2 int, arg3 int) ([]worker.Worker, error) {
-	fake.findWorkersForResourceCacheMutex.Lock()
-	ret, specificReturn := fake.findWorkersForResourceCacheReturnsOnCall[len(fake.findWorkersForResourceCacheArgsForCall)]
-	fake.findWorkersForResourceCacheArgsForCall = append(fake.findWorkersForResourceCacheArgsForCall, struct {
-		arg1 lager.Logger
-		arg2 int
-		arg3 int
-	}{arg1, arg2, arg3})
-	stub := fake.FindWorkersForResourceCacheStub
-	fakeReturns := fake.findWorkersForResourceCacheReturns
-	fake.recordInvocation("FindWorkersForResourceCache", []interface{}{arg1, arg2, arg3})
-	fake.findWorkersForResourceCacheMutex.Unlock()
-	if stub != nil {
-		return stub(arg1, arg2, arg3)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fakeReturns.result1, fakeReturns.result2
-}
-
-func (fake *FakeWorkerProvider) FindWorkersForResourceCacheCallCount() int {
-	fake.findWorkersForResourceCacheMutex.RLock()
-	defer fake.findWorkersForResourceCacheMutex.RUnlock()
-	return len(fake.findWorkersForResourceCacheArgsForCall)
-}
-
-func (fake *FakeWorkerProvider) FindWorkersForResourceCacheCalls(stub func(lager.Logger, int, int) ([]worker.Worker, error)) {
-	fake.findWorkersForResourceCacheMutex.Lock()
-	defer fake.findWorkersForResourceCacheMutex.Unlock()
-	fake.FindWorkersForResourceCacheStub = stub
-}
-
-func (fake *FakeWorkerProvider) FindWorkersForResourceCacheArgsForCall(i int) (lager.Logger, int, int) {
-	fake.findWorkersForResourceCacheMutex.RLock()
-	defer fake.findWorkersForResourceCacheMutex.RUnlock()
-	argsForCall := fake.findWorkersForResourceCacheArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
-}
-
-func (fake *FakeWorkerProvider) FindWorkersForResourceCacheReturns(result1 []worker.Worker, result2 error) {
-	fake.findWorkersForResourceCacheMutex.Lock()
-	defer fake.findWorkersForResourceCacheMutex.Unlock()
-	fake.FindWorkersForResourceCacheStub = nil
-	fake.findWorkersForResourceCacheReturns = struct {
-		result1 []worker.Worker
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeWorkerProvider) FindWorkersForResourceCacheReturnsOnCall(i int, result1 []worker.Worker, result2 error) {
-	fake.findWorkersForResourceCacheMutex.Lock()
-	defer fake.findWorkersForResourceCacheMutex.Unlock()
-	fake.FindWorkersForResourceCacheStub = nil
-	if fake.findWorkersForResourceCacheReturnsOnCall == nil {
-		fake.findWorkersForResourceCacheReturnsOnCall = make(map[int]struct {
-			result1 []worker.Worker
-			result2 error
-		})
-	}
-	fake.findWorkersForResourceCacheReturnsOnCall[i] = struct {
-		result1 []worker.Worker
-		result2 error
-	}{result1, result2}
-}
-
 func (fake *FakeWorkerProvider) NewGardenWorker(arg1 lager.Logger, arg2 db.Worker, arg3 int) worker.Worker {
 	fake.newGardenWorkerMutex.Lock()
 	ret, specificReturn := fake.newGardenWorkerReturnsOnCall[len(fake.newGardenWorkerArgsForCall)]
@@ -508,8 +427,6 @@ func (fake *FakeWorkerProvider) Invocations() map[string][][]interface{} {
 	defer fake.findWorkerForVolumeMutex.RUnlock()
 	fake.findWorkersForContainerByOwnerMutex.RLock()
 	defer fake.findWorkersForContainerByOwnerMutex.RUnlock()
-	fake.findWorkersForResourceCacheMutex.RLock()
-	defer fake.findWorkersForResourceCacheMutex.RUnlock()
 	fake.newGardenWorkerMutex.RLock()
 	defer fake.newGardenWorkerMutex.RUnlock()
 	fake.runningWorkersMutex.RLock()

@@ -497,26 +497,6 @@ func (worker *gardenWorker) createVolumes(
 		}
 	}
 
-	// stream remote volumes to local.
-	streamedMounts, err := worker.cloneRemoteVolumes(
-		ctx,
-		logger,
-		spec.TeamID,
-		isPrivileged,
-		creatingContainer,
-		nonlocalInputs,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, streamedMount := range streamedMounts {
-		localInputs = append(localInputs, mountableLocalInput{
-			desiredCOWParent: streamedMount.Volume,
-			desiredMountPath: streamedMount.MountPath,
-		})
-	}
-
 	// we create COW volumes for task caches too, in case multiple builds
 	// are running the same task
 	cowMounts, err := worker.cloneLocalVolumes(
@@ -530,7 +510,20 @@ func (worker *gardenWorker) createVolumes(
 		return nil, err
 	}
 
+	streamedMounts, err := worker.cloneRemoteVolumes(
+		ctx,
+		logger,
+		spec.TeamID,
+		isPrivileged,
+		creatingContainer,
+		nonlocalInputs,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	ioVolumeMounts = append(ioVolumeMounts, cowMounts...)
+	ioVolumeMounts = append(ioVolumeMounts, streamedMounts...)
 
 	for _, outputPath := range spec.Outputs {
 		cleanedOutputPath := filepath.Clean(outputPath)
@@ -630,7 +623,7 @@ func (worker *gardenWorker) cloneRemoteVolumes(
 			},
 			container,
 			teamID,
-			"",
+			nonLocalInput.desiredMountPath,
 		)
 		if err != nil {
 			return []VolumeMount{}, err
