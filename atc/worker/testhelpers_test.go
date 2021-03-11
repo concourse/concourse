@@ -15,7 +15,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/baggageclaim"
-	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 	"github.com/onsi/gomega/format"
@@ -89,10 +88,6 @@ func (f FakeDestination) StreamIn(ctx context.Context, path string, enc baggagec
 
 func (f FakeDestination) GetStreamInP2pUrl(ctx context.Context, path string) (string, error) {
 	panic("unimplemented")
-}
-
-func (f FakeDestination) InitializeResourceCache(cache db.UsedResourceCache) error {
-	return nil
 }
 
 func BeStreamableWithContent(content content) types.GomegaMatcher {
