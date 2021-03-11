@@ -147,6 +147,22 @@ func tick(logger lager.Logger, m *Monitor) {
 		},
 	)
 
+	m.emit(
+		logger.Session("check-builds-started"),
+		Event{
+			Name:  "check builds started",
+			Value: m.CheckBuildsStarted.Delta(),
+		},
+	)
+
+	m.emit(
+		logger.Session("check-builds-running"),
+		Event{
+			Name:  "check builds running",
+			Value: m.CheckBuildsRunning.Max(),
+		},
+	)
+
 	for action, gauge := range m.ConcurrentRequests {
 		m.emit(
 			logger.Session("concurrent-requests"),
