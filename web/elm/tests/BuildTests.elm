@@ -4,9 +4,7 @@ import Application.Application as Application
 import Array
 import Assets
 import Build.Build as Build
-import Build.Models as Models
 import Build.StepTree.Models as STModels
-import Char
 import Colors
 import Common
     exposing
@@ -19,12 +17,11 @@ import Common
 import Concourse exposing (BuildPrepStatus(..))
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.Pagination exposing (Direction(..))
-import DashboardTests exposing (iconSelector, middleGrey)
+import DashboardTests exposing (iconSelector)
 import Data
 import Dict
 import Expect
 import Html.Attributes as Attr
-import Http
 import Json.Encode as Encode
 import Keyboard
 import Message.Callback as Callback
@@ -50,16 +47,12 @@ import Test.Html.Selector
         )
 import Time
 import Url
-import UserState
 
 
 all : Test
 all =
     describe "build page" <|
         let
-            buildId =
-                Data.jobBuildId
-
             flags =
                 { turbulenceImgSrc = ""
                 , notFoundImgSrc = ""
@@ -3138,6 +3131,46 @@ all =
                         >> Query.children []
                         >> Query.index -1
                         >> Query.has [ text "v3.1.4" ]
+                , test "get step resource version links to resource page" <|
+                    fetchPlanWithGetStep
+                        >> Application.handleDelivery
+                            (EventsReceived <|
+                                Ok <|
+                                    [ { url = eventsUrl
+                                      , data =
+                                            STModels.FinishGet
+                                                { source = "stdout", id = "plan" }
+                                                0
+                                                (Dict.fromList [ ( "version", "v3.1.4" ) ])
+                                                []
+                                                Nothing
+                                      }
+                                    ]
+                            )
+                        >> Tuple.first
+                        >> Common.queryView
+                        >> Query.find [ id "plan_version" ]
+                        >> Query.has [ attribute <| Attr.href "/teams/team/pipelines/p/resources/step?filter=version%3Av3.1.4" ]
+                , test "put step resource version links to resource page" <|
+                    fetchPlanWithPutStep
+                        >> Application.handleDelivery
+                            (EventsReceived <|
+                                Ok <|
+                                    [ { url = eventsUrl
+                                      , data =
+                                            STModels.FinishPut
+                                                { source = "stdout", id = "plan" }
+                                                0
+                                                (Dict.fromList [ ( "version", "v3.1.4" ) ])
+                                                []
+                                                Nothing
+                                      }
+                                    ]
+                            )
+                        >> Tuple.first
+                        >> Common.queryView
+                        >> Query.find [ id "plan_version" ]
+                        >> Query.has [ attribute <| Attr.href "/teams/team/pipelines/p/resources/step?filter=version%3Av3.1.4" ]
                 , test "one tick after hovering step state, GetElement fires" <|
                     fetchPlanWithGetStep
                         >> Application.handleDelivery
