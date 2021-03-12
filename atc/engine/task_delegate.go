@@ -11,7 +11,8 @@ import (
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/policy"
-	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/atc/runtime"
+	worker "github.com/concourse/concourse/atc/worker2"
 )
 
 func NewTaskDelegate(
@@ -20,12 +21,11 @@ func NewTaskDelegate(
 	state exec.RunState,
 	clock clock.Clock,
 	policyChecker policy.Checker,
-	artifactSourcer worker.ArtifactSourcer,
 	dbWorkerFactory db.WorkerFactory,
 	lockFactory lock.LockFactory,
 ) exec.TaskDelegate {
 	return &taskDelegate{
-		BuildStepDelegate: NewBuildStepDelegate(build, planID, state, clock, policyChecker, artifactSourcer),
+		BuildStepDelegate: NewBuildStepDelegate(build, planID, state, clock, policyChecker),
 
 		eventOrigin: event.Origin{ID: event.OriginID(planID)},
 		build:       build,
@@ -83,8 +83,8 @@ func (d *taskDelegate) Starting(logger lager.Logger) {
 func (d *taskDelegate) Finished(
 	logger lager.Logger,
 	exitStatus exec.ExitStatus,
-	strategy worker.ContainerPlacementStrategy,
-	chosenWorker worker.Client,
+	strategy worker.PlacementStrategy,
+	chosenWorker runtime.Worker,
 ) {
 	// PR#4398: close to flush stdout and stderr
 	d.Stdout().(io.Closer).Close()

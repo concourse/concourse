@@ -74,6 +74,15 @@ func (strategy PlacementStrategy) Choose(logger lager.Logger, pool Pool, workers
 	return workers[r.Intn(len(workers))], nil
 }
 
+func (strategy PlacementStrategy) ModifiesActiveTasks() bool {
+	for _, s := range strategy {
+		if _, ok := s.(limitActiveTasksStrategy); ok {
+			return true
+		}
+	}
+	return false
+}
+
 type placementStrategy interface {
 	Name() string
 	Filter(lager.Logger, Pool, []db.Worker, runtime.ContainerSpec) ([]db.Worker, error)

@@ -12,7 +12,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/runtime"
-	"github.com/concourse/concourse/atc/worker"
+	worker "github.com/concourse/concourse/atc/worker2"
 	"github.com/concourse/concourse/tracing"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -26,20 +26,20 @@ type PutDelegateFactory interface {
 type PutDelegate interface {
 	StartSpan(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
 
-	FetchImage(context.Context, atc.ImageResource, atc.VersionedResourceTypes, bool) (worker.ImageSpec, error)
+	FetchImage(context.Context, atc.ImageResource, atc.VersionedResourceTypes, bool) (runtime.ImageSpec, error)
 
 	Stdout() io.Writer
 	Stderr() io.Writer
 
 	Initializing(lager.Logger)
 	Starting(lager.Logger)
-	Finished(lager.Logger, ExitStatus, runtime.VersionResult)
+	Finished(lager.Logger, ExitStatus, resource.VersionResult)
 	Errored(lager.Logger, string)
 
 	WaitingForWorker(lager.Logger)
 	SelectedWorker(lager.Logger, string)
 
-	SaveOutput(lager.Logger, atc.PutPlan, atc.Source, atc.VersionedResourceTypes, runtime.VersionResult)
+	SaveOutput(lager.Logger, atc.PutPlan, atc.Source, atc.VersionedResourceTypes, resource.VersionResult)
 }
 
 // PutStep produces a resource version using preconfigured params and any data
@@ -49,11 +49,9 @@ type PutStep struct {
 	plan                  atc.PutPlan
 	metadata              StepMetadata
 	containerMetadata     db.ContainerMetadata
-	resourceFactory       resource.ResourceFactory
 	resourceConfigFactory db.ResourceConfigFactory
-	strategy              worker.ContainerPlacementStrategy
-	workerPool            worker.Pool
-	artifactSourcer       worker.ArtifactSourcer
+	strategy              worker.PlacementStrategy
+	workerPool            Pool
 	delegateFactory       PutDelegateFactory
 }
 
@@ -62,11 +60,9 @@ func NewPutStep(
 	plan atc.PutPlan,
 	metadata StepMetadata,
 	containerMetadata db.ContainerMetadata,
-	resourceFactory resource.ResourceFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
-	strategy worker.ContainerPlacementStrategy,
-	workerPool worker.Pool,
-	artifactSourcer worker.ArtifactSourcer,
+	strategy worker.PlacementStrategy,
+	workerPool Pool,
 	delegateFactory PutDelegateFactory,
 ) Step {
 	return &PutStep{
@@ -74,10 +70,8 @@ func NewPutStep(
 		plan:                  plan,
 		metadata:              metadata,
 		containerMetadata:     containerMetadata,
-		resourceFactory:       resourceFactory,
 		resourceConfigFactory: resourceConfigFactory,
 		workerPool:            workerPool,
-		artifactSourcer:       artifactSourcer,
 		strategy:              strategy,
 		delegateFactory:       delegateFactory,
 	}
@@ -143,23 +137,18 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 		putInputs = NewSpecificInputs(step.plan.Inputs.Specified)
 	}
 
-	inputsMap, err := putInputs.FindAll(state.ArtifactRepository())
+	containerInputs, err := putInputs.FindAll(state.ArtifactRepository())
 	if err != nil {
 		return false, err
 	}
 
-	containerInputs, err := step.artifactSourcer.SourceInputsAndCaches(logger, step.metadata.TeamID, inputsMap)
-	if err != nil {
-		return false, err
-	}
-
-	workerSpec := worker.WorkerSpec{
+	workerSpec := worker.Spec{
 		Tags:         step.plan.Tags,
 		TeamID:       step.metadata.TeamID,
 		ResourceType: step.plan.VersionedResourceTypes.Base(step.plan.Type),
 	}
 
-	var imageSpec worker.ImageSpec
+	var imageSpec runtime.ImageSpec
 	resourceType, found := step.plan.VersionedResourceTypes.Lookup(step.plan.Type)
 	if found {
 		image := atc.ImageResource{
@@ -185,42 +174,27 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 		imageSpec.ResourceType = step.plan.Type
 	}
 
-	containerSpec := worker.ContainerSpec{
+	containerSpec := runtime.ContainerSpec{
+		TeamID:   step.metadata.TeamID,
+		TeamName: step.metadata.TeamName,
+		JobID:    step.metadata.JobID,
+
 		ImageSpec: imageSpec,
-		TeamID:    step.metadata.TeamID,
-		TeamName:  step.metadata.TeamName,
-		Type:      step.containerMetadata.Type,
+
+		Env:  step.metadata.Env(),
+		Type: db.ContainerTypePut,
 
 		Dir: step.containerMetadata.WorkingDirectory,
-		Env: step.metadata.Env(),
 
 		Inputs: containerInputs,
+
+		CertsBindMount: true,
 	}
 	tracing.Inject(ctx, &containerSpec)
 
 	owner := db.NewBuildStepContainerOwner(step.metadata.BuildID, step.planID, step.metadata.TeamID)
 
-	containerSpec.BindMounts = []worker.BindMountSource{
-		&worker.CertsVolumeMount{Logger: logger},
-	}
-
-	processSpec := runtime.ProcessSpec{
-		Path:         "/opt/resource/out",
-		Args:         []string{resource.ResourcesDir("put")},
-		StdoutWriter: delegate.Stdout(),
-		StderrWriter: delegate.Stderr(),
-	}
-
-	resourceToPut := step.resourceFactory.NewResource(source, params, nil)
-
-	worker, _, err := step.workerPool.SelectWorker(
-		lagerctx.NewContext(ctx, logger),
-		owner,
-		containerSpec,
-		workerSpec,
-		step.strategy,
-		delegate,
-	)
+	worker, err := step.workerPool.FindOrSelectWorker(ctx, owner, containerSpec, workerSpec, step.strategy, delegate)
 	if err != nil {
 		return false, err
 	}
@@ -229,7 +203,7 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 
 	defer func() {
 		step.workerPool.ReleaseWorker(
-			lagerctx.NewContext(ctx, logger),
+			logger,
 			containerSpec,
 			worker,
 			step.strategy,
@@ -240,18 +214,20 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 	if err != nil {
 		return false, err
 	}
+	processCtx = lagerctx.NewContext(processCtx, logger)
 
 	defer cancel()
 
-	result, err := worker.RunPutStep(
-		lagerctx.NewContext(processCtx, logger),
-		owner,
-		containerSpec,
-		step.containerMetadata,
-		processSpec,
-		delegate,
-		resourceToPut,
-	)
+	container, _, err := worker.FindOrCreateContainer(processCtx, owner, step.containerMetadata, containerSpec)
+	if err != nil {
+		return false, err
+	}
+
+	delegate.Starting(logger)
+	versionResult, processResult, err := resource.Resource{
+		Source: source,
+		Params: params,
+	}.Put(processCtx, container, delegate.Stderr())
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			delegate.Errored(logger, TimeoutLogMessage)
@@ -261,12 +237,11 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 		return false, err
 	}
 
-	if result.ExitStatus != 0 {
-		delegate.Finished(logger, ExitStatus(result.ExitStatus), runtime.VersionResult{})
+	if processResult.ExitStatus != 0 {
+		delegate.Finished(logger, ExitStatus(processResult.ExitStatus), resource.VersionResult{})
 		return false, nil
 	}
 
-	versionResult := result.VersionResult
 	// step.plan.Resource maps to an actual resource that may have been used outside of a pipeline context.
 	// Hence, if it was used outside the pipeline context, we don't want to save the output.
 	if step.plan.Resource != "" {

@@ -9,7 +9,6 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec/build"
-	"github.com/concourse/concourse/atc/worker"
 )
 
 type ArtifactNotFoundError struct {
@@ -23,10 +22,10 @@ func (e ArtifactNotFoundError) Error() string {
 type ArtifactOutputStep struct {
 	plan       atc.Plan
 	build      db.Build
-	workerPool worker.Pool
+	workerPool Pool
 }
 
-func NewArtifactOutputStep(plan atc.Plan, build db.Build, workerPool worker.Pool) Step {
+func NewArtifactOutputStep(plan atc.Plan, build db.Build, workerPool Pool) Step {
 	return &ArtifactOutputStep{
 		plan:       plan,
 		build:      build,
@@ -41,23 +40,12 @@ func (step *ArtifactOutputStep) Run(ctx context.Context, state RunState) (bool, 
 
 	outputName := step.plan.ArtifactOutput.Name
 
-	buildArtifact, found := state.ArtifactRepository().ArtifactFor(build.ArtifactName(outputName))
+	volume, found := state.ArtifactRepository().ArtifactFor(build.ArtifactName(outputName))
 	if !found {
 		return false, ArtifactNotFoundError{outputName}
 	}
 
-	// TODO (Runtime/#3607): step shouldn't know about volumes,
-	//  	use the artifactRepo and artifact interface
-	volume, found, err := step.workerPool.FindVolume(logger, step.build.TeamID(), buildArtifact.ID())
-	if err != nil {
-		return false, err
-	}
-
-	if !found {
-		return false, ArtifactNotFoundError{outputName}
-	}
-
-	dbWorkerArtifact, err := volume.InitializeArtifact(outputName, step.build.ID())
+	dbWorkerArtifact, err := volume.DBVolume().InitializeArtifact(outputName, step.build.ID())
 	if err != nil {
 		return false, err
 	}

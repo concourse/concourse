@@ -4,8 +4,12 @@ import (
 	"context"
 	"io"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec/build"
+	"github.com/concourse/concourse/atc/runtime"
+	worker "github.com/concourse/concourse/atc/worker2"
 	"github.com/concourse/concourse/vars"
 )
 
@@ -64,3 +68,18 @@ type Privileged bool
 
 type InputHandler func(io.ReadCloser) error
 type OutputHandler func(io.Writer) error
+
+//go:generate counterfeiter . Pool
+
+type Pool interface {
+	FindOrSelectWorker(context.Context, db.ContainerOwner, runtime.ContainerSpec, worker.Spec, worker.PlacementStrategy, worker.PoolCallback) (runtime.Worker, error)
+	ReleaseWorker(lager.Logger, runtime.ContainerSpec, runtime.Worker, worker.PlacementStrategy)
+	FindWorkerForContainer(lager.Logger, db.ContainerOwner, worker.Spec) (runtime.Worker, bool, error)
+	LocateVolume(logger lager.Logger, teamID int, handle string) (runtime.Volume, runtime.Worker, bool, error)
+}
+
+//go:generate counterfeiter . Streamer
+
+type Streamer interface {
+	StreamFile(ctx context.Context, volume runtime.Volume, path string) (io.ReadCloser, error)
+}

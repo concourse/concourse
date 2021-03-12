@@ -15,7 +15,7 @@ import (
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/runtime"
-	"github.com/concourse/concourse/atc/worker"
+	worker "github.com/concourse/concourse/atc/worker2"
 	"github.com/concourse/concourse/tracing"
 )
 
@@ -24,11 +24,10 @@ type CheckStep struct {
 	plan                  atc.CheckPlan
 	metadata              StepMetadata
 	containerMetadata     db.ContainerMetadata
-	resourceFactory       resource.ResourceFactory
 	resourceConfigFactory db.ResourceConfigFactory
-	strategy              worker.ContainerPlacementStrategy
+	strategy              worker.PlacementStrategy
 	delegateFactory       CheckDelegateFactory
-	workerPool            worker.Pool
+	workerPool            Pool
 	defaultCheckTimeout   time.Duration
 }
 
@@ -50,11 +49,10 @@ func NewCheckStep(
 	planID atc.PlanID,
 	plan atc.CheckPlan,
 	metadata StepMetadata,
-	resourceFactory resource.ResourceFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
 	containerMetadata db.ContainerMetadata,
-	strategy worker.ContainerPlacementStrategy,
-	pool worker.Pool,
+	strategy worker.PlacementStrategy,
+	pool Pool,
 	delegateFactory CheckDelegateFactory,
 	defaultCheckTimeout time.Duration,
 ) Step {
@@ -62,7 +60,6 @@ func NewCheckStep(
 		planID:                planID,
 		plan:                  plan,
 		metadata:              metadata,
-		resourceFactory:       resourceFactory,
 		resourceConfigFactory: resourceConfigFactory,
 		containerMetadata:     containerMetadata,
 		workerPool:            pool,
@@ -168,7 +165,7 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 			return false, fmt.Errorf("update check end time: %w", err)
 		}
 
-		result, runErr := step.runCheck(ctx, logger, delegate, timeout, resourceConfig, source, resourceTypes, fromVersion)
+		versions, processResult, runErr := step.runCheck(ctx, logger, delegate, timeout, resourceConfig, source, resourceTypes, fromVersion)
 		if runErr != nil {
 			metric.Metrics.ChecksFinishedWithError.Inc()
 
@@ -185,23 +182,23 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 				return false, nil
 			}
 
-			if errors.As(runErr, &runtime.ErrResourceScriptFailed{}) {
-				delegate.Finished(logger, false)
-				return false, nil
-			}
-
 			return false, fmt.Errorf("run check: %w", runErr)
+		}
+
+		if processResult.ExitStatus != 0 {
+			delegate.Finished(logger, false)
+			return false, nil
 		}
 
 		metric.Metrics.ChecksFinishedWithSuccess.Inc()
 
-		err = scope.SaveVersions(db.NewSpanContext(ctx), result.Versions)
+		err = scope.SaveVersions(db.NewSpanContext(ctx), versions)
 		if err != nil {
 			return false, fmt.Errorf("save versions: %w", err)
 		}
 
-		if len(result.Versions) > 0 {
-			state.StoreResult(step.planID, result.Versions[len(result.Versions)-1])
+		if len(versions) > 0 {
+			state.StoreResult(step.planID, versions[len(versions)-1])
 		}
 
 		_, err = scope.UpdateLastCheckEndTime(true)
@@ -238,14 +235,14 @@ func (step *CheckStep) runCheck(
 	source atc.Source,
 	resourceTypes atc.VersionedResourceTypes,
 	fromVersion atc.Version,
-) (worker.CheckResult, error) {
-	workerSpec := worker.WorkerSpec{
+) ([]atc.Version, runtime.ProcessResult, error) {
+	workerSpec := worker.Spec{
 		Tags:         step.plan.Tags,
 		TeamID:       step.metadata.TeamID,
 		ResourceType: step.plan.VersionedResourceTypes.Base(step.plan.Type),
 	}
 
-	var imageSpec worker.ImageSpec
+	var imageSpec runtime.ImageSpec
 	resourceType, found := step.plan.VersionedResourceTypes.Lookup(step.plan.Type)
 	if found {
 		image := atc.ImageResource{
@@ -265,76 +262,62 @@ func (step *CheckStep) runCheck(
 		var err error
 		imageSpec, err = delegate.FetchImage(ctx, image, types, resourceType.Privileged)
 		if err != nil {
-			return worker.CheckResult{}, err
+			return nil, runtime.ProcessResult{}, err
 		}
 	} else {
 		imageSpec.ResourceType = step.plan.Type
 	}
 
-	containerSpec := worker.ContainerSpec{
-		ImageSpec: imageSpec,
-		TeamID:    step.metadata.TeamID,
-		TeamName:  step.metadata.TeamName,
-		Type:      step.containerMetadata.Type,
+	containerSpec := runtime.ContainerSpec{
+		TeamID:   step.metadata.TeamID,
+		TeamName: step.metadata.TeamName,
+		JobID:    step.metadata.JobID,
 
-		BindMounts: []worker.BindMountSource{
-			&worker.CertsVolumeMount{Logger: logger},
-		},
-		Env: step.metadata.Env(),
+		ImageSpec: imageSpec,
+		Env:       step.metadata.Env(),
+		Type:      db.ContainerTypeCheck,
+
+		Dir: step.containerMetadata.WorkingDirectory,
+
+		CertsBindMount: true,
 	}
 	tracing.Inject(ctx, &containerSpec)
 
-	checkable := step.resourceFactory.NewResource(
-		source,
-		nil,
-		fromVersion,
-	)
-
-	processSpec := runtime.ProcessSpec{
-		Path:         "/opt/resource/check",
-		StdoutWriter: delegate.Stdout(),
-		StderrWriter: delegate.Stderr(),
-	}
-
-	chosenWorker, _, err := step.workerPool.SelectWorker(
-		lagerctx.NewContext(ctx, logger),
-		step.containerOwner(resourceConfig),
-		containerSpec,
-		workerSpec,
-		step.strategy,
-		delegate,
-	)
+	containerOwner := step.containerOwner(resourceConfig)
+	worker, err := step.workerPool.FindOrSelectWorker(ctx, containerOwner, containerSpec, workerSpec, step.strategy, delegate)
 	if err != nil {
-		return worker.CheckResult{}, err
+		return nil, runtime.ProcessResult{}, err
 	}
 
-	delegate.SelectedWorker(logger, chosenWorker.Name())
+	delegate.SelectedWorker(logger, worker.Name())
 
 	defer func() {
 		step.workerPool.ReleaseWorker(
-			lagerctx.NewContext(ctx, logger),
+			logger,
 			containerSpec,
-			chosenWorker,
+			worker,
 			step.strategy,
 		)
 	}()
 
 	processCtx, cancel, err := MaybeTimeout(ctx, step.plan.Timeout)
 	if err != nil {
-		return worker.CheckResult{}, err
+		return nil, runtime.ProcessResult{}, err
 	}
+	processCtx = lagerctx.NewContext(processCtx, logger)
 
 	defer cancel()
 
-	return chosenWorker.RunCheckStep(
-		lagerctx.NewContext(processCtx, logger),
-		step.containerOwner(resourceConfig),
-		containerSpec,
-		step.containerMetadata,
-		processSpec,
-		delegate,
-		checkable,
-	)
+	container, _, err := worker.FindOrCreateContainer(processCtx, containerOwner, step.containerMetadata, containerSpec)
+	if err != nil {
+		return nil, runtime.ProcessResult{}, err
+	}
+
+	delegate.Starting(logger)
+	return resource.Resource{
+		Source:  source,
+		Version: fromVersion,
+	}.Check(ctx, container, delegate.Stderr())
 }
 
 func (step *CheckStep) containerOwner(resourceConfig db.ResourceConfig) db.ContainerOwner {

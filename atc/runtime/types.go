@@ -13,18 +13,6 @@ import (
 	"github.com/concourse/concourse/atc/db"
 )
 
-const (
-	ResourceResultPropertyName = "concourse:resource-result"
-	ResourceProcessID          = "resource"
-)
-
-//go:generate counterfeiter . StartingEventDelegate
-type StartingEventDelegate interface {
-	Starting(lager.Logger)
-}
-
-/////////////////
-
 type Worker interface {
 	Name() string
 	FindOrCreateContainer(context.Context, db.ContainerOwner, db.ContainerMetadata, ContainerSpec) (Container, []VolumeMount, error)
@@ -41,6 +29,7 @@ type Container interface {
 
 type ContainerSpec struct {
 	TeamID   int
+	TeamName string
 	JobID    int
 	StepName string
 

@@ -6,6 +6,28 @@ import (
 	"github.com/concourse/concourse/atc/worker2/gardenruntime"
 )
 
+func NewDB(
+	workerFactory db.WorkerFactory,
+	teamFactory db.TeamFactory,
+	volumeRepo db.VolumeRepository,
+	taskCacheFactory db.TaskCacheFactory,
+	workerTaskCacheFactory db.WorkerTaskCacheFactory,
+	resourceCacheFactory db.ResourceCacheFactory,
+	workerBaseResourceTypeFactory db.WorkerBaseResourceTypeFactory,
+	lockFactory lock.LockFactory,
+) DB {
+	return DB{
+		WorkerFactory:                 workerFactory,
+		TeamFactory:                   teamFactory,
+		VolumeRepo:                    volumeRepo,
+		TaskCacheFactory:              taskCacheFactory,
+		WorkerTaskCacheFactory:        workerTaskCacheFactory,
+		ResourceCacheFactory:          resourceCacheFactory,
+		WorkerBaseResourceTypeFactory: workerBaseResourceTypeFactory,
+		LockFactory:                   lockFactory,
+	}
+}
+
 type DB struct {
 	WorkerFactory                 db.WorkerFactory
 	TeamFactory                   db.TeamFactory

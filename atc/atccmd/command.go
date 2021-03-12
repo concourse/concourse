@@ -47,8 +47,7 @@ import (
 	"github.com/concourse/concourse/atc/scheduler"
 	"github.com/concourse/concourse/atc/scheduler/algorithm"
 	"github.com/concourse/concourse/atc/syslog"
-	"github.com/concourse/concourse/atc/worker"
-	"github.com/concourse/concourse/atc/worker/image"
+	worker "github.com/concourse/concourse/atc/worker2"
 	"github.com/concourse/concourse/atc/wrappa"
 	"github.com/concourse/concourse/skymarshal/dexserver"
 	"github.com/concourse/concourse/skymarshal/legacyserver"
@@ -59,7 +58,6 @@ import (
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/web"
 	"github.com/concourse/flag"
-	"github.com/concourse/retryhttp"
 	"gopkg.in/square/go-jose.v2/jwt"
 
 	"github.com/cppforlife/go-semi-semantic/version"
@@ -153,7 +151,7 @@ type RunCommand struct {
 	ResourceWithWebhookCheckingInterval time.Duration `long:"resource-with-webhook-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources that has webhook defined."`
 	MaxChecksPerSecond                  int           `long:"max-checks-per-second" description:"Maximum number of checks that can be started per second. If not specified, this will be calculated as (# of resources)/(resource checking interval). -1 value will remove this maximum limit of checks per second."`
 
-	ContainerPlacementStrategyOptions worker.ContainerPlacementStrategyOptions `group:"Container Placement Strategy"`
+	ContainerPlacementStrategyOptions worker.PlacementOptions `group:"Container Placement Strategy"`
 
 	BaggageclaimResponseHeaderTimeout time.Duration `long:"baggageclaim-response-header-timeout" default:"1m" description:"How long to wait for Baggageclaim to send the response header."`
 	StreamingArtifactsCompression     string        `long:"streaming-artifacts-compression" default:"gzip" choice:"gzip" choice:"zstd" description:"Compression algorithm for internal streaming."`
@@ -777,46 +775,22 @@ func (cmd *RunCommand) constructAPIMembers(
 
 	userFactory := db.NewUserFactory(dbConn)
 
-	dbResourceCacheFactory := db.NewResourceCacheFactory(dbConn, lockFactory)
-	fetchSourceFactory := worker.NewFetchSourceFactory(dbResourceCacheFactory)
-	resourceFetcher := worker.NewFetcher(clock.NewClock(), lockFactory, fetchSourceFactory)
 	dbResourceConfigFactory := db.NewResourceConfigFactory(dbConn, lockFactory)
 
-	dbWorkerBaseResourceTypeFactory := db.NewWorkerBaseResourceTypeFactory(dbConn)
-	dbWorkerTaskCacheFactory := db.NewWorkerTaskCacheFactory(dbConn)
-	dbTaskCacheFactory := db.NewTaskCacheFactory(dbConn)
-	dbVolumeRepository := db.NewVolumeRepository(dbConn)
-	dbWorkerFactory := db.NewWorkerFactory(workerConn, workerCache)
-	workerVersion, err := workerVersion()
+	pool, err := cmd.constructPool(dbConn, lockFactory, workerCache)
 	if err != nil {
 		return nil, err
 	}
 
-	workerProvider := worker.NewDBWorkerProvider(
-		lockFactory,
-		retryhttp.NewExponentialBackOffFactory(5*time.Minute),
-		resourceFetcher,
-		image.NewImageFactory(),
-		dbResourceCacheFactory,
-		dbResourceConfigFactory,
-		dbWorkerBaseResourceTypeFactory,
-		dbTaskCacheFactory,
-		dbWorkerTaskCacheFactory,
-		dbVolumeRepository,
-		teamFactory,
-		dbWorkerFactory,
-		workerVersion,
-		cmd.BaggageclaimResponseHeaderTimeout,
-		cmd.GardenRequestTimeout,
-	)
-
-	pool := worker.NewPool(workerProvider)
+	// The worker factory has its own connection pool (for worker registration)
+	dbWorkerFactory := db.NewWorkerFactory(workerConn)
 
 	credsManagers := cmd.CredentialManagers
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
 	dbJobFactory := db.NewJobFactory(dbConn, lockFactory)
 	dbResourceFactory := db.NewResourceFactory(dbConn, lockFactory)
 	dbContainerRepository := db.NewContainerRepository(dbConn)
+	dbVolumeRepository := db.NewVolumeRepository(dbConn)
 	gcContainerDestroyer := gc.NewDestroyer(logger, dbContainerRepository, dbVolumeRepository)
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod, cmd.GC.FailedGracePeriod)
 	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.varSourcePool, db.CheckDurations{
@@ -1017,10 +991,7 @@ func (cmd *RunCommand) backendComponents(
 
 	teamFactory := db.NewTeamFactory(dbConn, lockFactory)
 
-	resourceFactory := resource.NewResourceFactory()
 	dbResourceCacheFactory := db.NewResourceCacheFactory(dbConn, lockFactory)
-	fetchSourceFactory := worker.NewFetchSourceFactory(dbResourceCacheFactory)
-	resourceFetcher := worker.NewFetcher(clock.NewClock(), lockFactory, fetchSourceFactory)
 	dbResourceConfigFactory := db.NewResourceConfigFactory(dbConn, lockFactory)
 
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod, cmd.GC.FailedGracePeriod)
@@ -1033,45 +1004,24 @@ func (cmd *RunCommand) backendComponents(
 	dbJobFactory := db.NewJobFactory(dbConn, lockFactory)
 	dbPipelineLifecycle := db.NewPipelineLifecycle(dbConn, lockFactory)
 
+	dbVolumeRepository := db.NewVolumeRepository(dbConn)
+	resourceGetter := resource.NewGetter(lockFactory, clock.NewClock(), dbResourceCacheFactory, dbVolumeRepository)
+
+	dbWorkerFactory := db.NewWorkerFactory(dbConn, workerCache)
+
 	alg := algorithm.New(db.NewVersionsDB(dbConn, algorithmLimitRows, schedulerCache))
 
-	dbWorkerBaseResourceTypeFactory := db.NewWorkerBaseResourceTypeFactory(dbConn)
-	dbTaskCacheFactory := db.NewTaskCacheFactory(dbConn)
-	dbWorkerTaskCacheFactory := db.NewWorkerTaskCacheFactory(dbConn)
-	dbVolumeRepository := db.NewVolumeRepository(dbConn)
-	dbWorkerFactory := db.NewWorkerFactory(dbConn, workerCache)
-	workerVersion, err := workerVersion()
+	pool, err := cmd.constructPool(dbConn, lockFactory, workerCache)
 	if err != nil {
 		return nil, err
 	}
 
-	var compressionLib compression.Compression
-	if cmd.StreamingArtifactsCompression == "zstd" {
-		compressionLib = compression.NewZstdCompression()
-	} else {
-		compressionLib = compression.NewGzipCompression()
-	}
-	workerProvider := worker.NewDBWorkerProvider(
-		lockFactory,
-		retryhttp.NewExponentialBackOffFactory(5*time.Minute),
-		resourceFetcher,
-		image.NewImageFactory(),
-		dbResourceCacheFactory,
-		dbResourceConfigFactory,
-		dbWorkerBaseResourceTypeFactory,
-		dbTaskCacheFactory,
-		dbWorkerTaskCacheFactory,
-		dbVolumeRepository,
-		teamFactory,
-		dbWorkerFactory,
-		workerVersion,
-		cmd.BaggageclaimResponseHeaderTimeout,
-		cmd.GardenRequestTimeout,
-	)
+	streamer := worker.Streamer{
+		Compression: cmd.compression(),
 
-	pool := worker.NewPool(workerProvider)
-	artifactStreamer := worker.NewArtifactStreamer(pool, compressionLib)
-	artifactSourcer := worker.NewArtifactSourcer(compressionLib, pool, cmd.FeatureFlags.EnableP2PVolumeStreaming, cmd.P2pVolumeStreamingTimeout, dbResourceCacheFactory)
+		EnableP2PStreaming:  cmd.FeatureFlags.EnableP2PVolumeStreaming,
+		P2PStreamingTimeout: cmd.P2pVolumeStreamingTimeout,
+	}
 
 	defaultLimits, err := cmd.parseDefaultLimits()
 	if err != nil {
@@ -1094,9 +1044,8 @@ func (cmd *RunCommand) backendComponents(
 
 	engine := cmd.constructEngine(
 		pool,
-		artifactStreamer,
-		artifactSourcer,
-		resourceFactory,
+		streamer,
+		resourceGetter,
 		dbWorkerFactory,
 		teamFactory,
 		dbBuildFactory,
@@ -1195,6 +1144,49 @@ func (cmd *RunCommand) backendComponents(
 	}
 
 	return components, err
+}
+
+func (cmd *RunCommand) compression() compression.Compression {
+	if cmd.StreamingArtifactsCompression == "zstd" {
+		return compression.NewZstdCompression()
+	} else {
+		return compression.NewGzipCompression()
+	}
+}
+
+func (cmd *RunCommand) constructPool(dbConn db.Conn, lockFactory lock.LockFactory, workerCache *db.WorkerCache) (worker.Pool, error) {
+	dbResourceCacheFactory := db.NewResourceCacheFactory(dbConn, lockFactory)
+	dbWorkerBaseResourceTypeFactory := db.NewWorkerBaseResourceTypeFactory(dbConn)
+	dbTaskCacheFactory := db.NewTaskCacheFactory(dbConn)
+	dbWorkerTaskCacheFactory := db.NewWorkerTaskCacheFactory(dbConn)
+	dbVolumeRepository := db.NewVolumeRepository(dbConn)
+	dbWorkerFactory := db.NewWorkerFactory(dbConn, workerCache)
+	dbTeamFactory := db.NewTeamFactory(dbConn, lockFactory)
+
+	workerVersion, err := workerVersion()
+	if err != nil {
+		return worker.Pool{}, err
+	}
+
+	return worker.Pool{
+		Factory: worker.DefaultFactory{
+			GardenRequestTimeout:              cmd.GardenRequestTimeout,
+			BaggageclaimResponseHeaderTimeout: cmd.BaggageclaimResponseHeaderTimeout,
+			HTTPRetryTimeout:                  5 * time.Minute,
+			Compression:                       cmd.compression(),
+		},
+		DB: worker.NewDB(
+			dbWorkerFactory,
+			dbTeamFactory,
+			dbVolumeRepository,
+			dbTaskCacheFactory,
+			dbWorkerTaskCacheFactory,
+			dbResourceCacheFactory,
+			dbWorkerBaseResourceTypeFactory,
+			lockFactory,
+		),
+		WorkerVersion: workerVersion,
+	}, nil
 }
 
 func (cmd *RunCommand) gcComponents(
@@ -1645,8 +1637,8 @@ func constructLockConn(driverName, connectionString string) (*sql.DB, error) {
 	return dbConn, nil
 }
 
-func (cmd *RunCommand) chooseBuildContainerStrategy() (worker.ContainerPlacementStrategy, error) {
-	return worker.NewChainPlacementStrategy(cmd.ContainerPlacementStrategyOptions)
+func (cmd *RunCommand) chooseBuildContainerStrategy() (worker.PlacementStrategy, error) {
+	return worker.NewPlacementStrategy(cmd.ContainerPlacementStrategyOptions)
 }
 
 func (cmd *RunCommand) configureAuthForDefaultTeam(teamFactory db.TeamFactory) error {
@@ -1674,9 +1666,8 @@ func (cmd *RunCommand) configureAuthForDefaultTeam(teamFactory db.TeamFactory) e
 
 func (cmd *RunCommand) constructEngine(
 	workerPool worker.Pool,
-	artifactStreamer worker.ArtifactStreamer,
-	artifactSourcer worker.ArtifactSourcer,
-	resourceFactory resource.ResourceFactory,
+	streamer worker.Streamer,
+	resourceGetter resource.Getter,
 	workerFactory db.WorkerFactory,
 	teamFactory db.TeamFactory,
 	buildFactory db.BuildFactory,
@@ -1684,7 +1675,7 @@ func (cmd *RunCommand) constructEngine(
 	resourceConfigFactory db.ResourceConfigFactory,
 	secretManager creds.Secrets,
 	defaultLimits atc.ContainerLimits,
-	strategy worker.ContainerPlacementStrategy,
+	strategy worker.PlacementStrategy,
 	lockFactory lock.LockFactory,
 	rateLimiter engine.RateLimiter,
 	policyChecker policy.Checker,
@@ -1693,9 +1684,8 @@ func (cmd *RunCommand) constructEngine(
 		engine.NewStepperFactory(
 			engine.NewCoreStepFactory(
 				workerPool,
-				artifactStreamer,
-				artifactSourcer,
-				resourceFactory,
+				streamer,
+				resourceGetter,
 				teamFactory,
 				buildFactory,
 				resourceCacheFactory,
@@ -1707,7 +1697,6 @@ func (cmd *RunCommand) constructEngine(
 			cmd.ExternalURL.String(),
 			rateLimiter,
 			policyChecker,
-			artifactSourcer,
 			workerFactory,
 			lockFactory,
 		),

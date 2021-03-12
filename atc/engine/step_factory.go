@@ -10,41 +10,38 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/resource"
-	"github.com/concourse/concourse/atc/worker"
+	worker "github.com/concourse/concourse/atc/worker2"
 )
 
 type coreStepFactory struct {
 	pool                  worker.Pool
-	artifactStreamer      worker.ArtifactStreamer
-	artifactSourcer       worker.ArtifactSourcer
-	resourceFactory       resource.ResourceFactory
+	streamer              worker.Streamer
+	resourceGetter        resource.Getter
 	teamFactory           db.TeamFactory
 	buildFactory          db.BuildFactory
 	resourceCacheFactory  db.ResourceCacheFactory
 	resourceConfigFactory db.ResourceConfigFactory
 	defaultLimits         atc.ContainerLimits
-	strategy              worker.ContainerPlacementStrategy
+	strategy              worker.PlacementStrategy
 	defaultCheckTimeout   time.Duration
 }
 
 func NewCoreStepFactory(
 	pool worker.Pool,
-	artifactStreamer worker.ArtifactStreamer,
-	artifactSourcer worker.ArtifactSourcer,
-	resourceFactory resource.ResourceFactory,
+	streamer worker.Streamer,
+	resourceGetter resource.Getter,
 	teamFactory db.TeamFactory,
 	buildFactory db.BuildFactory,
 	resourceCacheFactory db.ResourceCacheFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
 	defaultLimits atc.ContainerLimits,
-	strategy worker.ContainerPlacementStrategy,
+	strategy worker.PlacementStrategy,
 	defaultCheckTimeout time.Duration,
 ) CoreStepFactory {
 	return &coreStepFactory{
 		pool:                  pool,
-		artifactStreamer:      artifactStreamer,
-		artifactSourcer:       artifactSourcer,
-		resourceFactory:       resourceFactory,
+		streamer:              streamer,
+		resourceGetter:        resourceGetter,
 		teamFactory:           teamFactory,
 		buildFactory:          buildFactory,
 		resourceCacheFactory:  resourceCacheFactory,
@@ -68,7 +65,7 @@ func (factory *coreStepFactory) GetStep(
 		*plan.Get,
 		stepMetadata,
 		containerMetadata,
-		factory.resourceFactory,
+		factory.resourceGetter,
 		factory.resourceCacheFactory,
 		factory.strategy,
 		delegateFactory,
@@ -95,11 +92,9 @@ func (factory *coreStepFactory) PutStep(
 		*plan.Put,
 		stepMetadata,
 		containerMetadata,
-		factory.resourceFactory,
 		factory.resourceConfigFactory,
 		factory.strategy,
 		factory.pool,
-		factory.artifactSourcer,
 		delegateFactory,
 	)
 
@@ -122,10 +117,9 @@ func (factory *coreStepFactory) CheckStep(
 		plan.ID,
 		*plan.Check,
 		stepMetadata,
-		factory.resourceFactory,
 		factory.resourceConfigFactory,
 		containerMetadata,
-		worker.NewRandomPlacementStrategy(),
+		nil,
 		factory.pool,
 		delegateFactory,
 		factory.defaultCheckTimeout,
@@ -176,8 +170,7 @@ func (factory *coreStepFactory) TaskStep(
 		containerMetadata,
 		factory.strategy,
 		factory.pool,
-		factory.artifactStreamer,
-		factory.artifactSourcer,
+		factory.streamer,
 		delegateFactory,
 	)
 
@@ -200,7 +193,7 @@ func (factory *coreStepFactory) SetPipelineStep(
 		delegateFactory,
 		factory.teamFactory,
 		factory.buildFactory,
-		factory.artifactStreamer,
+		factory.streamer,
 	)
 
 	spStep = exec.LogError(spStep, delegateFactory)
@@ -220,7 +213,7 @@ func (factory *coreStepFactory) LoadVarStep(
 		*plan.LoadVar,
 		stepMetadata,
 		delegateFactory,
-		factory.artifactStreamer,
+		factory.streamer,
 	)
 
 	loadVarStep = exec.LogError(loadVarStep, delegateFactory)

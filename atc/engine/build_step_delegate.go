@@ -10,14 +10,13 @@ import (
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/policy"
-	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
 	"go.opentelemetry.io/otel/trace"
@@ -25,14 +24,13 @@ import (
 )
 
 type buildStepDelegate struct {
-	build           db.Build
-	planID          atc.PlanID
-	clock           clock.Clock
-	state           exec.RunState
-	stderr          io.Writer
-	stdout          io.Writer
-	policyChecker   policy.Checker
-	artifactSourcer worker.ArtifactSourcer
+	build         db.Build
+	planID        atc.PlanID
+	clock         clock.Clock
+	state         exec.RunState
+	stderr        io.Writer
+	stdout        io.Writer
+	policyChecker policy.Checker
 }
 
 func NewBuildStepDelegate(
@@ -41,17 +39,15 @@ func NewBuildStepDelegate(
 	state exec.RunState,
 	clock clock.Clock,
 	policyChecker policy.Checker,
-	artifactSourcer worker.ArtifactSourcer,
 ) *buildStepDelegate {
 	return &buildStepDelegate{
-		build:           build,
-		planID:          planID,
-		clock:           clock,
-		state:           state,
-		stdout:          nil,
-		stderr:          nil,
-		policyChecker:   policyChecker,
-		artifactSourcer: artifactSourcer,
+		build:         build,
+		planID:        planID,
+		clock:         clock,
+		state:         state,
+		stdout:        nil,
+		stderr:        nil,
+		policyChecker: policyChecker,
 	}
 }
 
@@ -236,10 +232,10 @@ func (delegate *buildStepDelegate) FetchImage(
 	image atc.ImageResource,
 	types atc.VersionedResourceTypes,
 	privileged bool,
-) (worker.ImageSpec, error) {
+) (runtime.ImageSpec, error) {
 	err := delegate.checkImagePolicy(image, privileged)
 	if err != nil {
-		return worker.ImageSpec{}, err
+		return runtime.ImageSpec{}, err
 	}
 
 	fetchState := delegate.state.NewLocalScope()
@@ -274,20 +270,20 @@ func (delegate *buildStepDelegate) FetchImage(
 			PublicPlan: checkPlan.Public(),
 		})
 		if err != nil {
-			return worker.ImageSpec{}, fmt.Errorf("save image check event: %w", err)
+			return runtime.ImageSpec{}, fmt.Errorf("save image check event: %w", err)
 		}
 
 		ok, err := fetchState.Run(ctx, checkPlan)
 		if err != nil {
-			return worker.ImageSpec{}, err
+			return runtime.ImageSpec{}, err
 		}
 
 		if !ok {
-			return worker.ImageSpec{}, fmt.Errorf("image check failed")
+			return runtime.ImageSpec{}, fmt.Errorf("image check failed")
 		}
 
 		if !fetchState.Result(checkID, &version) {
-			return worker.ImageSpec{}, fmt.Errorf("check did not return a version")
+			return runtime.ImageSpec{}, fmt.Errorf("check did not return a version")
 		}
 	}
 
@@ -316,41 +312,36 @@ func (delegate *buildStepDelegate) FetchImage(
 		PublicPlan: getPlan.Public(),
 	})
 	if err != nil {
-		return worker.ImageSpec{}, fmt.Errorf("save image get event: %w", err)
+		return runtime.ImageSpec{}, fmt.Errorf("save image get event: %w", err)
 	}
 
 	ok, err := fetchState.Run(ctx, getPlan)
 	if err != nil {
-		return worker.ImageSpec{}, err
+		return runtime.ImageSpec{}, err
 	}
 
 	if !ok {
-		return worker.ImageSpec{}, fmt.Errorf("image fetching failed")
+		return runtime.ImageSpec{}, fmt.Errorf("image fetching failed")
 	}
 
 	var cache db.UsedResourceCache
 	if !fetchState.Result(getID, &cache) {
-		return worker.ImageSpec{}, fmt.Errorf("get did not return a cache")
+		return runtime.ImageSpec{}, fmt.Errorf("get did not return a cache")
 	}
 
 	err = delegate.build.SaveImageResourceVersion(cache)
 	if err != nil {
-		return worker.ImageSpec{}, fmt.Errorf("save image version: %w", err)
+		return runtime.ImageSpec{}, fmt.Errorf("save image version: %w", err)
 	}
 
 	art, found := fetchState.ArtifactRepository().ArtifactFor(build.ArtifactName(imageName))
 	if !found {
-		return worker.ImageSpec{}, fmt.Errorf("fetched artifact not found")
+		return runtime.ImageSpec{}, fmt.Errorf("fetched artifact not found")
 	}
 
-	source, err := delegate.artifactSourcer.SourceImage(lagerctx.FromContext(ctx), art)
-	if err != nil {
-		return worker.ImageSpec{}, fmt.Errorf("wire image: %w", err)
-	}
-
-	return worker.ImageSpec{
-		ImageArtifactSource: source,
-		Privileged:          privileged,
+	return runtime.ImageSpec{
+		ImageVolume: art.Handle(),
+		Privileged:  privileged,
 	}, nil
 }
 

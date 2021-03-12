@@ -1,10 +1,7 @@
 package worker2
 
 import (
-	"context"
-
 	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/cppforlife/go-semi-semantic/version"
@@ -17,37 +14,24 @@ type Pool struct {
 	WorkerVersion version.Version
 }
 
+// TODO: re-implement #6635 (wait for worker matching strategy)
+type PoolCallback interface {
+	WaitingForWorker(lager.Logger)
+}
+
 func (pool Pool) FindOrSelectWorker(
-	ctx context.Context,
+	logger lager.Logger,
 	owner db.ContainerOwner,
 	containerSpec runtime.ContainerSpec,
 	workerSpec Spec,
 	strategy PlacementStrategy,
+	callback PoolCallback,
 ) (runtime.Worker, error) {
-	logger := lagerctx.FromContext(ctx)
-
-	workersWithContainer, err := pool.DB.WorkerFactory.FindWorkersForContainerByOwner(owner)
+	worker, compatibleWorkers, found, err := pool.findWorkerForContainer(logger, owner, workerSpec)
 	if err != nil {
 		return nil, err
 	}
-
-	compatibleWorkers, err := pool.allCompatible(logger, workerSpec)
-	if err != nil {
-		return nil, err
-	}
-
-	var worker db.Worker
-dance:
-	for _, w := range workersWithContainer {
-		for _, c := range compatibleWorkers {
-			if w.Name() == c.Name() {
-				worker = c
-				break dance
-			}
-		}
-	}
-
-	if worker == nil {
+	if !found {
 		worker, err = strategy.Choose(logger, pool, compatibleWorkers, containerSpec)
 		if err != nil {
 			return nil, err
@@ -55,6 +39,42 @@ dance:
 	}
 
 	return pool.Factory.NewWorker(logger, pool, worker), nil
+}
+
+func (pool Pool) ReleaseWorker(logger lager.Logger, containerSpec runtime.ContainerSpec, worker runtime.Worker, strategy PlacementStrategy) {
+}
+
+func (pool Pool) FindWorkerForContainer(logger lager.Logger, owner db.ContainerOwner, workerSpec Spec) (runtime.Worker, bool, error) {
+	worker, _, found, err := pool.findWorkerForContainer(logger, owner, workerSpec)
+	if err != nil {
+		return nil, false, err
+	}
+	if !found {
+		return nil, false, nil
+	}
+	return pool.Factory.NewWorker(logger, pool, worker), true, nil
+}
+
+func (pool Pool) findWorkerForContainer(logger lager.Logger, owner db.ContainerOwner, workerSpec Spec) (db.Worker, []db.Worker, bool, error) {
+	workersWithContainer, err := pool.DB.WorkerFactory.FindWorkersForContainerByOwner(owner)
+	if err != nil {
+		return nil, nil, false, err
+	}
+
+	compatibleWorkers, err := pool.allCompatible(logger, workerSpec)
+	if err != nil {
+		return nil, nil, false, err
+	}
+
+	for _, w := range workersWithContainer {
+		for _, c := range compatibleWorkers {
+			if w.Name() == c.Name() {
+				return w, compatibleWorkers, true, nil
+			}
+		}
+	}
+
+	return nil, compatibleWorkers, false, nil
 }
 
 func (pool Pool) FindWorker(logger lager.Logger, name string) (runtime.Worker, bool, error) {
