@@ -16,6 +16,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
+	"github.com/concourse/concourse/atc/runtime"
 	. "github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/gclient/gclientfakes"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
@@ -55,6 +56,9 @@ var _ = Describe("Worker", func() {
 		fakeRemoteInput   *workerfakes.FakeInputSource
 		fakeRemoteInputAS *workerfakes.FakeStreamableArtifactSource
 
+		fakeCacheInput    *workerfakes.FakeInputSource
+		fakeCacheArtifact runtime.CacheArtifact
+
 		fakeBindMount *workerfakes.FakeBindMountSource
 
 		fakeRemoteInputContainerVolume *workerfakes.FakeVolume
@@ -62,6 +66,7 @@ var _ = Describe("Worker", func() {
 		fakeLocalVolume                *workerfakes.FakeVolume
 		fakeOutputVolume               *workerfakes.FakeVolume
 		fakeLocalCOWVolume             *workerfakes.FakeVolume
+		fakeCacheVolume                *workerfakes.FakeVolume
 
 		ctx                context.Context
 		fakeContainerOwner *dbfakes.FakeContainerOwner
@@ -124,6 +129,16 @@ var _ = Describe("Worker", func() {
 		fakeLocalInputAS.ExistsOnReturns(fakeLocalVolume, true, nil)
 		fakeLocalInput.SourceReturns(fakeLocalInputAS)
 
+		fakeCacheInput = new(workerfakes.FakeInputSource)
+		fakeCacheInput.DestinationPathReturns("/some/work-dir/cache")
+		fakeCacheArtifact = runtime.CacheArtifact{
+			TeamID:   17,
+			JobID:    18,
+			StepName: "some-task",
+			Path:     "/some/work-dir/cache",
+		}
+		fakeCacheInput.SourceReturns(&CacheArtifactSource{fakeCacheArtifact})
+
 		fakeBindMount = new(workerfakes.FakeBindMountSource)
 		fakeBindMount.VolumeOnReturns(garden.BindMount{
 			SrcPath: "some/source",
@@ -155,6 +170,9 @@ var _ = Describe("Worker", func() {
 		fakeRemoteInputCOWVolume = new(workerfakes.FakeVolume)
 		fakeRemoteInputCOWVolume.PathReturns("/fake/remote/input/container/cow/volume")
 
+		fakeCacheVolume = new(workerfakes.FakeVolume)
+		fakeCacheVolume.PathReturns("/fake/cache/volume")
+
 		stubbedVolumes = map[string]*workerfakes.FakeVolume{
 			"/scratch":                    fakeScratchVolume,
 			"/some/work-dir":              fakeWorkdirVolume,
@@ -162,6 +180,7 @@ var _ = Describe("Worker", func() {
 			"":                            fakeRemoteInputContainerVolume,
 			"/some/work-dir/remote-input": fakeRemoteInputCOWVolume,
 			"/some/work-dir/output":       fakeOutputVolume,
+			"/some/work-dir/cache":        fakeCacheVolume,
 		}
 
 		volumeSpecs = map[string]VolumeSpec{}
@@ -782,6 +801,7 @@ var _ = Describe("Worker", func() {
 				Inputs: []InputSource{
 					fakeLocalInput,
 					fakeRemoteInput,
+					fakeCacheInput,
 				},
 
 				Outputs: OutputPaths{
@@ -871,6 +891,11 @@ var _ = Describe("Worker", func() {
 							{
 								SrcPath: "/fake/work-dir/volume",
 								DstPath: "/some/work-dir",
+								Mode:    garden.BindMountModeRW,
+							},
+							{
+								SrcPath: "/fake/cache/volume",
+								DstPath: "/some/work-dir/cache",
 								Mode:    garden.BindMountModeRW,
 							},
 							{
@@ -1265,6 +1290,7 @@ var _ = Describe("Worker", func() {
 						"/some/work-dir/output":       {Strategy: baggageclaim.EmptyStrategy{}},
 						"/some/work-dir/local-input":  {Strategy: fakeLocalVolume.COWStrategy()},
 						"/some/work-dir/remote-input": {Strategy: fakeRemoteInputContainerVolume.COWStrategy()},
+						"/some/work-dir/cache":        {Strategy: baggageclaim.EmptyStrategy{}},
 					}))
 				})
 
@@ -1312,6 +1338,7 @@ var _ = Describe("Worker", func() {
 							"/some/work-dir/output":       {Privileged: true, Strategy: baggageclaim.EmptyStrategy{}},
 							"/some/work-dir/local-input":  {Privileged: true, Strategy: fakeLocalVolume.COWStrategy()},
 							"/some/work-dir/remote-input": {Privileged: true, Strategy: fakeRemoteInputContainerVolume.COWStrategy()},
+							"/some/work-dir/cache":        {Privileged: true, Strategy: baggageclaim.EmptyStrategy{}},
 						}))
 					})
 
@@ -1342,6 +1369,11 @@ var _ = Describe("Worker", func() {
 							{
 								SrcPath: "/fake/local/cow/volume",
 								DstPath: "/some/work-dir",
+								Mode:    garden.BindMountModeRW,
+							},
+							{
+								SrcPath: "/fake/cache/volume",
+								DstPath: "/some/work-dir/cache",
 								Mode:    garden.BindMountModeRW,
 							},
 							{

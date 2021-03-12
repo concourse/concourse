@@ -535,7 +535,7 @@ var _ = Describe("CacheArtifactSource", func() {
 
 			fakeWorker.FindVolumeForTaskCacheReturns(fakeVolume, true, disaster)
 
-			testLogger = lager.NewLogger("cacheArtifactSource")
+			testLogger = lager.NewLogger("CacheArtifactSource")
 
 			cacheArtifact = runtime.CacheArtifact{
 				TeamID:   5,

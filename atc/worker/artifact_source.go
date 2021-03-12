@@ -301,15 +301,15 @@ func (source *artifactSource) ExistsOn(logger lager.Logger, worker Worker) (Volu
 
 }
 
-type cacheArtifactSource struct {
+type CacheArtifactSource struct {
 	runtime.CacheArtifact
 }
 
 func NewCacheArtifactSource(artifact runtime.CacheArtifact) ArtifactSource {
-	return &cacheArtifactSource{artifact}
+	return &CacheArtifactSource{artifact}
 }
 
-func (source *cacheArtifactSource) ExistsOn(logger lager.Logger, worker Worker) (Volume, bool, error) {
+func (source *CacheArtifactSource) ExistsOn(logger lager.Logger, worker Worker) (Volume, bool, error) {
 	return worker.FindVolumeForTaskCache(logger, source.TeamID, source.JobID, source.StepName, source.Path)
 }
 
