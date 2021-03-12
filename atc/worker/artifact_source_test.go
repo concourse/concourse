@@ -329,13 +329,25 @@ var _ = Describe("StreamableArtifactSource", func() {
 					})
 
 					Context("fails to update destination as resource cache", func() {
-						BeforeEach(func() {
-							fakeDestination.InitializeResourceCacheReturns(disaster)
+						Context("when error is ErrWorkerBaseResourceTypeDisappeared", func() {
+							BeforeEach(func() {
+								fakeDestination.InitializeResourceCacheReturns(db.ErrWorkerBaseResourceTypeDisappeared)
+							})
+
+							It("should discard the error", func() {
+								Expect(streamToErr).ToNot(HaveOccurred())
+							})
 						})
 
-						It("should fail with same error", func() {
-							Expect(streamToErr).To(HaveOccurred())
-							Expect(streamToErr).To(Equal(disaster))
+						Context("when other error occurs", func() {
+							BeforeEach(func() {
+								fakeDestination.InitializeResourceCacheReturns(disaster)
+							})
+
+							It("should fail with same error", func() {
+								Expect(streamToErr).To(HaveOccurred())
+								Expect(streamToErr).To(Equal(disaster))
+							})
 						})
 					})
 

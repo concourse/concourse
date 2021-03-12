@@ -188,6 +188,10 @@ func (source *artifactSource) StreamTo(
 
 		err = destination.InitializeResourceCache(usedResourceCache)
 		if err != nil {
+			// Non-Linux may not contain base resource types, so silently discard the error.
+			if err == db.ErrWorkerBaseResourceTypeDisappeared {
+				return nil
+			}
 			logger.Error("stream-to-failed-init-resource-cache-on-dest-worker", err)
 			return err
 		}
