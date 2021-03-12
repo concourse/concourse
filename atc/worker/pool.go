@@ -41,6 +41,13 @@ type Pool interface {
 		PoolCallbacks,
 	) (Client, time.Duration, error)
 
+	FindWorkersForResourceCache(
+		lager.Logger,
+		int,
+		int,
+		WorkerSpec,
+	) ([]Worker, error)
+
 	ReleaseWorker(
 		context.Context,
 		ContainerSpec,
@@ -77,13 +84,17 @@ func (pool *pool) allSatisfying(logger lager.Logger, spec WorkerSpec) ([]Worker,
 		return nil, err
 	}
 
-	if len(workers) == 0 {
-		return workers, nil
+	return pool.compatibleWorkers(logger, workers, spec)
+}
+
+func (pool *pool) compatibleWorkers(logger lager.Logger, candidateWorkers []Worker, spec WorkerSpec) ([]Worker, error) {
+	if len(candidateWorkers) == 0 {
+		return candidateWorkers, nil
 	}
 
 	compatibleTeamWorkers := []Worker{}
 	compatibleGeneralWorkers := []Worker{}
-	for _, worker := range workers {
+	for _, worker := range candidateWorkers {
 		compatible := worker.Satisfies(logger, spec)
 		if compatible {
 			if worker.IsOwnedByTeam() {
@@ -245,6 +256,40 @@ func (pool *pool) CreateVolume(logger lager.Logger, volumeSpec VolumeSpec, worke
 	}
 
 	return worker.CreateVolume(logger, volumeSpec, workerSpec.TeamID, volumeType)
+}
+
+func (pool *pool) FindWorkersForResourceCache(logger lager.Logger, teamId int, rcId int, workerSpec WorkerSpec) ([]Worker, error) {
+	workers, err := pool.provider.FindWorkersForResourceCache(logger, teamId, rcId)
+	if err != nil {
+		return nil, err
+	}
+
+	return pool.compatibleWorkers(logger, workers, workerSpec)
+}
+
+func (pool *pool) ContainerInWorker(logger lager.Logger, owner db.ContainerOwner, workerSpec WorkerSpec) (bool, error) {
+	workersWithContainer, err := pool.provider.FindWorkersForContainerByOwner(
+		logger.Session("find-worker"),
+		owner,
+	)
+	if err != nil {
+		return false, err
+	}
+
+	compatibleWorkers, err := pool.allSatisfying(logger, workerSpec)
+	if err != nil {
+		return false, err
+	}
+
+	for _, w := range workersWithContainer {
+		for _, c := range compatibleWorkers {
+			if w.Name() == c.Name() {
+				return true, nil
+			}
+		}
+	}
+
+	return false, nil
 }
 
 func (pool *pool) SelectWorker(
