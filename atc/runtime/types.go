@@ -20,8 +20,8 @@ type Worker interface {
 }
 
 type Container interface {
-	Run(context.Context, ProcessSpec, ProcessIO) (ProcessResult, error)
-	Attach(context.Context, ProcessSpec, ProcessIO) (ProcessResult, error)
+	Run(context.Context, ProcessSpec, ProcessIO) (Process, error)
+	Attach(context.Context, ProcessSpec, ProcessIO) (Process, error)
 
 	Properties() (map[string]string, error)
 	SetProperty(name string, value string) error
@@ -106,6 +106,10 @@ type ProcessIO struct {
 	Stdin  io.Reader
 	Stdout io.Writer
 	Stderr io.Writer
+}
+
+type Process interface {
+	Wait(context.Context) (ProcessResult, error)
 }
 
 type ProcessResult struct {

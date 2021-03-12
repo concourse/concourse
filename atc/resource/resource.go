@@ -110,6 +110,15 @@ func (resource Resource) Put(ctx context.Context, container runtime.Container, s
 	return versionResult, processResult, nil
 }
 
+func attachOrRun(ctx context.Context, container runtime.Container, spec runtime.ProcessSpec, io runtime.ProcessIO) (runtime.Process, error) {
+	process, err := container.Attach(ctx, spec, io)
+	if err == nil {
+		return process, nil
+	}
+
+	return container.Run(ctx, spec, io)
+}
+
 func (resource Resource) run(ctx context.Context, container runtime.Container, spec runtime.ProcessSpec, stderr io.Writer, attach bool, output interface{}) (runtime.ProcessResult, error) {
 	input, err := resource.Signature()
 	if err != nil {
@@ -123,21 +132,17 @@ func (resource Resource) run(ctx context.Context, container runtime.Container, s
 		Stderr: stderr,
 	}
 
-	var result runtime.ProcessResult
+	var process runtime.Process
 	if attach {
-		result, err = container.Attach(ctx, spec, io)
-		if err == nil {
-			goto finished_execution
-		}
-		buf.Reset()
+		process, err = attachOrRun(ctx, container, spec, io)
+	} else {
+		process, err = container.Run(ctx, spec, io)
 	}
-
-	result, err = container.Run(ctx, spec, io)
 	if err != nil {
 		return runtime.ProcessResult{}, err
 	}
 
-finished_execution:
+	result, err := process.Wait(ctx)
 	if result.ExitStatus != 0 {
 		return result, nil
 	}

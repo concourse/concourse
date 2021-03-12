@@ -2,66 +2,49 @@ package runtimetest
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"fmt"
 
 	"github.com/concourse/concourse/atc/runtime"
 )
 
 type Container struct {
-	ProcessStubs map[int]ProcessStub
-	Props        map[string]string
-}
-
-type ProcessStub struct {
-	Attachable bool
-	Output     interface{}
-	Stderr     string
-	ExitStatus int
-	Err        string
+	Processes map[int]ProcessStub
+	Props     map[string]string
 }
 
 func NewContainer() Container {
 	return Container{
-		ProcessStubs: make(map[int]ProcessStub),
-		Props:        make(map[string]string),
+		Processes: make(map[int]ProcessStub),
+		Props:     make(map[string]string),
 	}
 }
 
 func (c Container) WithProcess(spec runtime.ProcessSpec, stub ProcessStub) Container {
-	stubs := cloneProcs(c.ProcessStubs)
+	stubs := cloneProcs(c.Processes)
 	stubs[spec.ID()] = stub
 	return Container{
-		ProcessStubs: stubs,
-		Props:        cloneProps(c.Props),
+		Processes: stubs,
+		Props:     cloneProps(c.Props),
 	}
 }
 
-func (c Container) Run(ctx context.Context, spec runtime.ProcessSpec, io runtime.ProcessIO) (runtime.ProcessResult, error) {
-	p, ok := c.ProcessStubs[spec.ID()]
+func (c Container) Run(ctx context.Context, spec runtime.ProcessSpec, io runtime.ProcessIO) (runtime.Process, error) {
+	p, ok := c.Processes[spec.ID()]
 	if !ok {
-		return runtime.ProcessResult{}, fmt.Errorf("must setup a ProcessStub for process %+v", spec)
+		return nil, fmt.Errorf("must setup a ProcessStub for process %+v", spec)
 	}
-	if p.Err != "" {
-		return runtime.ProcessResult{}, errors.New(p.Err)
-	}
-	if p.Stderr != "" {
-		fmt.Fprint(io.Stderr, p.Stderr)
-	}
-	if p.ExitStatus != 0 {
-		return runtime.ProcessResult{ExitStatus: p.ExitStatus}, nil
-	}
-	json.NewEncoder(io.Stdout).Encode(p.Output)
-	return runtime.ProcessResult{ExitStatus: 0}, nil
+	return Process{ProcessStub: p, io: io}, nil
 }
 
-func (c Container) Attach(ctx context.Context, spec runtime.ProcessSpec, io runtime.ProcessIO) (runtime.ProcessResult, error) {
-	p := c.ProcessStubs[spec.ID()]
-	if p.Attachable {
-		return c.Run(ctx, spec, io)
+func (c Container) Attach(ctx context.Context, spec runtime.ProcessSpec, io runtime.ProcessIO) (runtime.Process, error) {
+	p, ok := c.Processes[spec.ID()]
+	if !ok {
+		return nil, fmt.Errorf("must setup a ProcessStub for process %+v", spec)
 	}
-	return runtime.ProcessResult{}, fmt.Errorf("cannot attach to process %+v because Attachable was not set to true in the ProcessStub", spec)
+	if p.Attachable {
+		return Process{ProcessStub: p, io: io}, nil
+	}
+	return nil, fmt.Errorf("cannot attach to process %+v because Attachable was not set to true in the ProcessStub", spec)
 }
 
 func (c Container) Properties() (map[string]string, error) {

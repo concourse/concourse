@@ -1,8 +1,6 @@
 package worker2_test
 
 import (
-	"context"
-
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker2"
@@ -24,9 +22,8 @@ var _ = Describe("Pool", func() {
 				),
 			)
 
-			ctx := context.Background()
 			worker, err := scenario.Pool.FindOrSelectWorker(
-				ctx,
+				logger,
 				db.NewFixedHandleContainerOwner("my-container"),
 				runtime.ContainerSpec{},
 				worker2.Spec{},
@@ -46,9 +43,8 @@ var _ = Describe("Pool", func() {
 				),
 			)
 
-			ctx := context.Background()
 			worker, err := scenario.Pool.FindOrSelectWorker(
-				ctx,
+				logger,
 				db.NewFixedHandleContainerOwner("no-worker-for-this-container-yet"),
 				runtime.ContainerSpec{},
 				worker2.Spec{},
@@ -80,9 +76,8 @@ var _ = Describe("Pool", func() {
 			})
 			Expect(err).ToNot(HaveOccurred())
 
-			ctx := context.Background()
 			worker, err := scenario.Pool.FindOrSelectWorker(
-				ctx,
+				logger,
 				db.NewFixedHandleContainerOwner("no-worker-for-this-container-yet"),
 				runtime.ContainerSpec{},
 				worker2.Spec{},
@@ -105,9 +100,8 @@ var _ = Describe("Pool", func() {
 				),
 			)
 
-			ctx := context.Background()
 			worker, err := scenario.Pool.FindOrSelectWorker(
-				ctx,
+				logger,
 				db.NewFixedHandleContainerOwner("my-container"),
 				runtime.ContainerSpec{},
 				worker2.Spec{},
@@ -126,9 +120,8 @@ var _ = Describe("Pool", func() {
 				),
 			)
 
-			ctx := context.Background()
 			_, err := scenario.Pool.FindOrSelectWorker(
-				ctx,
+				logger,
 				db.NewFixedHandleContainerOwner("my-container"),
 				runtime.ContainerSpec{},
 				worker2.Spec{
@@ -147,9 +140,8 @@ var _ = Describe("Pool", func() {
 				),
 			)
 
-			ctx := context.Background()
 			_, err := scenario.Pool.FindOrSelectWorker(
-				ctx,
+				logger,
 				db.NewFixedHandleContainerOwner("my-container"),
 				runtime.ContainerSpec{},
 				worker2.Spec{
@@ -169,9 +161,8 @@ var _ = Describe("Pool", func() {
 				),
 			)
 
-			ctx := context.Background()
 			_, err := scenario.Pool.FindOrSelectWorker(
-				ctx,
+				logger,
 				db.NewFixedHandleContainerOwner("my-container"),
 				runtime.ContainerSpec{},
 				worker2.Spec{
@@ -192,9 +183,8 @@ var _ = Describe("Pool", func() {
 				),
 			)
 
-			ctx := context.Background()
 			worker, err := scenario.Pool.FindOrSelectWorker(
-				ctx,
+				logger,
 				db.NewFixedHandleContainerOwner("my-container"),
 				runtime.ContainerSpec{},
 				worker2.Spec{
@@ -217,9 +207,8 @@ var _ = Describe("Pool", func() {
 				),
 			)
 
-			ctx := context.Background()
 			worker, err := scenario.Pool.FindOrSelectWorker(
-				ctx,
+				logger,
 				db.NewFixedHandleContainerOwner("my-container"),
 				runtime.ContainerSpec{},
 				worker2.Spec{
@@ -255,9 +244,8 @@ var _ = Describe("Pool", func() {
 			})
 			Expect(err).ToNot(HaveOccurred())
 
-			ctx := context.Background()
 			_, err = scenario.Pool.FindOrSelectWorker(
-				ctx,
+				logger,
 				db.NewFixedHandleContainerOwner("my-container"),
 				runtime.ContainerSpec{},
 				worker2.Spec{},

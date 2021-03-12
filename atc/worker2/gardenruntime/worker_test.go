@@ -53,7 +53,7 @@ var _ = Describe("Garden Worker", func() {
 
 		By("running a process on that container", func() {
 			buf := new(bytes.Buffer)
-			result, err := container.Run(
+			process, err := container.Run(
 				ctx,
 				runtime.ProcessSpec{
 					Path: "echo",
@@ -63,6 +63,9 @@ var _ = Describe("Garden Worker", func() {
 					Stdout: buf,
 				},
 			)
+			Expect(err).ToNot(HaveOccurred())
+
+			result, err := process.Wait(ctx)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(result.ExitStatus).To(Equal(0))
 
@@ -149,25 +152,25 @@ var _ = Describe("Garden Worker", func() {
 			Args: []string{"200ms", "hello world"},
 		}
 		By("running a process on that container", func() {
-			runResultCh := make(chan runtime.ProcessResult, 1)
 			runBuf := new(bytes.Buffer)
 
-			go func() {
-				defer GinkgoRecover()
-				result, err := container.Run(ctx, processSpec, runtime.ProcessIO{Stdout: runBuf})
-				Expect(err).ToNot(HaveOccurred())
-				runResultCh <- result
-			}()
+			runProcess, err := container.Run(ctx, processSpec, runtime.ProcessIO{Stdout: runBuf})
+			Expect(err).ToNot(HaveOccurred())
 
 			Eventually(gardenContainer(container).NumProcesses).Should(Equal(1))
 
 			By("attaching to the running process", func() {
 				attachBuf := new(bytes.Buffer)
-				result, err := container.Attach(ctx, processSpec, runtime.ProcessIO{Stdout: attachBuf})
+				attachProcess, err := container.Attach(ctx, processSpec, runtime.ProcessIO{Stdout: attachBuf})
 				Expect(err).ToNot(HaveOccurred())
 
-				Expect(result.ExitStatus).To(Equal(0))
-				Expect((<-runResultCh).ExitStatus).To(Equal(0))
+				runResult, err := runProcess.Wait(ctx)
+				Expect(err).ToNot(HaveOccurred())
+				attachResult, err := attachProcess.Wait(ctx)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(runResult.ExitStatus).To(Equal(0))
+				Expect(attachResult.ExitStatus).To(Equal(0))
 
 				Expect(runBuf.String()).To(Equal("hello world\n"))
 				Expect(attachBuf.String()).To(Equal("hello world\n"))
@@ -176,7 +179,10 @@ var _ = Describe("Garden Worker", func() {
 
 		By("attaching to that process after it's exited", func() {
 			attachBuf := new(bytes.Buffer)
-			result, err := container.Attach(ctx, processSpec, runtime.ProcessIO{Stdout: attachBuf})
+			process, err := container.Attach(ctx, processSpec, runtime.ProcessIO{Stdout: attachBuf})
+			Expect(err).ToNot(HaveOccurred())
+
+			result, err := process.Wait(ctx)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(result.ExitStatus).To(Equal(0))

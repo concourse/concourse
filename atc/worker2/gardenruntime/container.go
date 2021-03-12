@@ -8,7 +8,6 @@ import (
 	"code.cloudfoundry.org/garden"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker/gclient"
-	"github.com/hashicorp/go-multierror"
 )
 
 const userPropertyName = "user"
@@ -19,34 +18,34 @@ type Container struct {
 	GardenContainer gclient.Container
 }
 
-func (c Container) Run(ctx context.Context, spec runtime.ProcessSpec, io runtime.ProcessIO) (runtime.ProcessResult, error) {
+func (c Container) Run(ctx context.Context, spec runtime.ProcessSpec, io runtime.ProcessIO) (runtime.Process, error) {
 	properties, err := c.GardenContainer.Properties()
 	if err != nil {
-		return runtime.ProcessResult{}, fmt.Errorf("get properties: %w", err)
+		return nil, fmt.Errorf("get properties: %w", err)
 	}
 	process, err := c.GardenContainer.Run(ctx, toGardenProcessSpec(spec, properties), toGardenProcessIO(io))
 	if err != nil {
-		return runtime.ProcessResult{}, fmt.Errorf("start process: %w", err)
+		return nil, fmt.Errorf("start process: %w", err)
 	}
 
-	return c.waitForProcessCompletion(ctx, process)
+	return Process{GardenContainer: c.GardenContainer, GardenProcess: process}, nil
 }
 
-func (c Container) Attach(ctx context.Context, spec runtime.ProcessSpec, io runtime.ProcessIO) (runtime.ProcessResult, error) {
+func (c Container) Attach(ctx context.Context, spec runtime.ProcessSpec, io runtime.ProcessIO) (runtime.Process, error) {
 	properties, _ := c.GardenContainer.Properties()
 	statusStr, ok := properties[exitStatusPropertyName]
 	if ok {
 		if status, err := strconv.Atoi(statusStr); err == nil {
-			return runtime.ProcessResult{ExitStatus: status}, nil
+			return ExitedProcess{Result: runtime.ProcessResult{ExitStatus: status}}, nil
 		}
 	}
 
 	process, err := c.GardenContainer.Attach(ctx, strconv.Itoa(spec.ID()), toGardenProcessIO(io))
 	if err != nil {
-		return runtime.ProcessResult{}, fmt.Errorf("start process: %w", err)
+		return nil, fmt.Errorf("start process: %w", err)
 	}
 
-	return c.waitForProcessCompletion(ctx, process)
+	return Process{GardenContainer: c.GardenContainer, GardenProcess: process}, nil
 }
 
 func (c Container) SetProperty(name string, value string) error {
@@ -55,33 +54,6 @@ func (c Container) SetProperty(name string, value string) error {
 
 func (c Container) Properties() (map[string]string, error) {
 	return c.GardenContainer.Properties()
-}
-
-func (c Container) waitForProcessCompletion(ctx context.Context, process garden.Process) (runtime.ProcessResult, error) {
-	type result struct {
-		exitStatus int
-		err        error
-	}
-	waitResult := make(chan result, 1)
-
-	go func() {
-		exitStatus, err := process.Wait()
-		waitResult <- result{exitStatus: exitStatus, err: err}
-	}()
-
-	select {
-	case <-ctx.Done():
-		err := c.GardenContainer.Stop(false)
-		// TODO: forcibly stop after timeout?
-		<-waitResult
-		return runtime.ProcessResult{}, multierror.Append(ctx.Err(), err)
-	case r := <-waitResult:
-		if r.err != nil {
-			return runtime.ProcessResult{}, fmt.Errorf("wait for process completion: %w", r.err)
-		}
-		c.GardenContainer.SetProperty(exitStatusPropertyName, strconv.Itoa(r.exitStatus))
-		return runtime.ProcessResult{ExitStatus: r.exitStatus}, nil
-	}
 }
 
 func toGardenProcessSpec(spec runtime.ProcessSpec, properties garden.Properties) garden.ProcessSpec {

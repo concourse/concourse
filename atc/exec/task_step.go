@@ -275,7 +275,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 	}
 
 	delegate.Starting(logger)
-	result, runErr := attachOrRun(
+	process, err := attachOrRun(
 		processCtx,
 		container,
 		runtime.ProcessSpec{
@@ -289,6 +289,11 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 			Stderr: delegate.Stderr(),
 		},
 	)
+	if err != nil {
+		return false, err
+	}
+
+	result, runErr := process.Wait(ctx)
 
 	step.registerOutputs(logger, repository, config, volumeMounts, step.containerMetadata)
 
@@ -312,10 +317,10 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 	return result.ExitStatus == 0, nil
 }
 
-func attachOrRun(ctx context.Context, container runtime.Container, spec runtime.ProcessSpec, io runtime.ProcessIO) (runtime.ProcessResult, error) {
-	result, err := container.Attach(ctx, spec, io)
+func attachOrRun(ctx context.Context, container runtime.Container, spec runtime.ProcessSpec, io runtime.ProcessIO) (runtime.Process, error) {
+	process, err := container.Attach(ctx, spec, io)
 	if err == nil {
-		return result, nil
+		return process, nil
 	}
 	return container.Run(ctx, spec, io)
 }
