@@ -39,6 +39,7 @@ func Setup(dbConn db.Conn, lockFactory lock.LockFactory, setup ...SetupFunc) *Sc
 				VolumeRepo:                    db.NewVolumeRepository(dbConn),
 				ResourceCacheFactory:          db.NewResourceCacheFactory(dbConn, lockFactory),
 				TaskCacheFactory:              db.NewTaskCacheFactory(dbConn),
+				WorkerTaskCacheFactory:        db.NewWorkerTaskCacheFactory(dbConn),
 				WorkerBaseResourceTypeFactory: db.NewWorkerBaseResourceTypeFactory(dbConn),
 				LockFactory:                   lockFactory,
 			},
@@ -120,16 +121,25 @@ func (s *Scenario) WorkerVolume(workerName string, handle string) runtime.Volume
 	return volume
 }
 
-func (s *Scenario) WorkerTaskCacheVolume(workerName string, path string) db.CreatedVolume {
-	utc, found, err := s.DBBuilder.TaskCacheFactory.Find(s.JobID, s.StepName, path)
+func (s *Scenario) FindOrCreateResourceCache(workerName string, containerHandle string) db.UsedResourceCache {
+	container := s.DB.Container(workerName, db.NewFixedHandleContainerOwner(containerHandle))
+	cache, err := s.DBBuilder.ResourceCacheFactory.FindOrCreateResourceCache(
+		db.ForContainer(container.ID()),
+		"some-resource",
+		atc.Version{},
+		atc.Source{},
+		atc.Params{},
+		atc.VersionedResourceTypes{
+			{
+				ResourceType: atc.ResourceType{
+					Name: "some-resource",
+					Type: dbtest.BaseResourceType,
+				},
+			},
+		},
+	)
 	Expect(err).ToNot(HaveOccurred())
-	Expect(found).To(BeTrue())
-
-	volume, found, err := s.DBBuilder.VolumeRepo.FindTaskCacheVolume(s.TeamID, workerName, utc)
-	Expect(err).ToNot(HaveOccurred())
-	Expect(found).To(BeTrue())
-
-	return volume
+	return cache
 }
 
 func (s *Scenario) ContainerVolume(workerName string, containerHandle string, mountPath string) (db.CreatingVolume, db.CreatedVolume) {

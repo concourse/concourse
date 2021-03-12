@@ -149,6 +149,7 @@ type Volume interface {
 	StreamOut(ctx context.Context, path string, compression compression.Compression) (io.ReadCloser, error)
 
 	InitializeResourceCache(lager.Logger, db.UsedResourceCache) error
+	InitializeTaskCache(logger lager.Logger, jobID int, stepName string, path string, privileged bool) error
 
 	DBVolume() db.CreatedVolume
 }

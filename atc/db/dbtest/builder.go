@@ -859,28 +859,6 @@ func (builder Builder) WithBaseResourceType(dbConn db.Conn, resourceTypeName str
 	}
 }
 
-func (builder Builder) WithTaskCacheOnWorker(teamID int, workerName string, jobID int, stepName string, path string) SetupFunc {
-	return func(scenario *Scenario) error {
-		utc, err := builder.TaskCacheFactory.FindOrCreate(jobID, stepName, path)
-		if err != nil {
-			return err
-		}
-		uwtc, err := builder.WorkerTaskCacheFactory.FindOrCreate(db.WorkerTaskCache{
-			WorkerName: workerName,
-			TaskCache:  utc,
-		})
-		if err != nil {
-			return err
-		}
-		volume, err := builder.VolumeRepo.CreateTaskCacheVolume(teamID, uwtc)
-		if err != nil {
-			return err
-		}
-		_, err = volume.Created()
-		return err
-	}
-}
-
 func unique(kind string) string {
 	id, err := uuid.NewV4()
 	if err != nil {

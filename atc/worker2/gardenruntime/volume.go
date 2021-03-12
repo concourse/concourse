@@ -19,6 +19,7 @@ const creatingVolumeRetryDelay = 1 * time.Second
 type Volume struct {
 	dbVolume db.CreatedVolume
 	bcVolume baggageclaim.Volume
+	worker   *Worker
 }
 
 func (v Volume) Handle() string {
@@ -45,6 +46,29 @@ func (v Volume) InitializeResourceCache(logger lager.Logger, cache db.UsedResour
 	return nil
 }
 
+func (v Volume) InitializeTaskCache(logger lager.Logger, jobID int, stepName string, path string, privileged bool) error {
+	if v.dbVolume.ParentHandle() == "" {
+		return v.dbVolume.InitializeTaskCache(jobID, stepName, path)
+	}
+
+	logger.Debug("creating-an-import-volume", lager.Data{"path": v.bcVolume.Path()})
+	importVolume, err := v.worker.createVolumeForTaskCache(
+		logger,
+		v,
+		privileged,
+		v.dbVolume.TeamID(),
+		jobID,
+		stepName,
+		path,
+	)
+	if err != nil {
+		logger.Error("failed-to-create-import-volume", err, lager.Data{"path": v.bcVolume.Path()})
+		return err
+	}
+
+	return importVolume.InitializeTaskCache(logger, jobID, stepName, path, privileged)
+}
+
 func (v Volume) COWStrategy() baggageclaim.COWStrategy {
 	return baggageclaim.COWStrategy{
 		Parent: v.bcVolume,
@@ -69,7 +93,11 @@ func (v Volume) StreamP2POut(ctx context.Context, path string, destURL string, c
 
 var _ runtime.P2PVolume = Volume{}
 
-func (worker Worker) LookupVolume(logger lager.Logger, handle string) (runtime.Volume, bool, error) {
+func (worker *Worker) newVolume(bcVolume baggageclaim.Volume, dbVolume db.CreatedVolume) Volume {
+	return Volume{bcVolume: bcVolume, dbVolume: dbVolume, worker: worker}
+}
+
+func (worker *Worker) LookupVolume(logger lager.Logger, handle string) (runtime.Volume, bool, error) {
 	_, createdVolume, err := worker.db.VolumeRepo.FindVolume(handle)
 	if err != nil {
 		logger.Error("failed-to-lookup-volume-in-db", err)
@@ -90,7 +118,7 @@ func (worker Worker) LookupVolume(logger lager.Logger, handle string) (runtime.V
 		return Volume{}, false, nil
 	}
 
-	return Volume{bcVolume: bcVolume, dbVolume: createdVolume}, true, nil
+	return worker.newVolume(bcVolume, createdVolume), true, nil
 }
 
 func (worker *Worker) findOrCreateVolumeForContainer(
@@ -200,9 +228,49 @@ func (worker *Worker) findVolumeForTaskCache(
 		return Volume{}, false, nil
 	}
 
-	return Volume{bcVolume: bcVolume, dbVolume: dbVolume}, true, nil
+	return worker.newVolume(bcVolume, dbVolume), true, nil
 }
 
+func (worker *Worker) createVolumeForTaskCache(
+	logger lager.Logger,
+	importFromVolume Volume,
+	privileged bool,
+	teamID int,
+	jobID int,
+	stepName string,
+	path string,
+) (Volume, error) {
+	usedTaskCache, err := worker.db.TaskCacheFactory.FindOrCreate(jobID, stepName, path)
+	if err != nil {
+		logger.Error("failed-to-find-or-create-task-cache-in-db", err)
+		return Volume{}, err
+	}
+
+	workerTaskCache := db.WorkerTaskCache{
+		WorkerName: worker.Name(),
+		TaskCache:  usedTaskCache,
+	}
+
+	usedWorkerTaskCache, err := worker.db.WorkerTaskCacheFactory.FindOrCreate(workerTaskCache)
+	if err != nil {
+		logger.Error("failed-to-find-or-create-worker-task-cache-in-db", err)
+		return Volume{}, err
+	}
+
+	return worker.findOrCreateVolume(
+		logger.Session("create-volume-for-task-cache"),
+		baggageclaim.VolumeSpec{
+			Strategy:   baggageclaim.ImportStrategy{Path: importFromVolume.Path()},
+			Privileged: privileged,
+		},
+		func() (db.CreatingVolume, db.CreatedVolume, error) {
+			return nil, nil, nil
+		},
+		func() (db.CreatingVolume, error) {
+			return worker.db.VolumeRepo.CreateTaskCacheVolume(teamID, usedWorkerTaskCache)
+		},
+	)
+}
 func (worker *Worker) locateVolumeOrLocalResourceCache(
 	logger lager.Logger,
 	teamID int,
@@ -259,7 +327,7 @@ func (worker *Worker) locateVolumeOrLocalResourceCache(
 		return volume, srcWorker, true, nil
 	}
 
-	return Volume{bcVolume: bcCacheVolume, dbVolume: dbCacheVolume}, worker, true, nil
+	return worker.newVolume(bcCacheVolume, dbCacheVolume), worker, true, nil
 }
 
 func (worker *Worker) findOrCreateVolumeForResourceCerts(logger lager.Logger) (Volume, bool, error) {
@@ -325,7 +393,7 @@ func (worker *Worker) findOrCreateVolume(
 		}
 
 		logger.Debug("found-created-volume")
-		return Volume{bcVolume: bcVolume, dbVolume: createdVolume}, nil
+		return worker.newVolume(bcVolume, createdVolume), nil
 	}
 
 	if creatingVolume != nil {
@@ -394,7 +462,7 @@ func (worker *Worker) findOrCreateVolume(
 
 	logger.Debug("created")
 
-	return Volume{bcVolume: bcVolume, dbVolume: createdVolume}, nil
+	return worker.newVolume(bcVolume, createdVolume), nil
 }
 
 type byMountPath []runtime.VolumeMount

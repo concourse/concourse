@@ -596,49 +596,99 @@ var _ = Describe("Garden Worker", func() {
 		}))
 	})
 
-	Test("cached paths", func() {
+	Test("task caches", func() {
 		scenario := Setup(
 			workertest.WithBasicJob(),
 			workertest.WithWorkers(
 				grt.NewWorker("worker").
-					WithCachedPaths("/cache-hit", "/workdir"),
+					WithVolumesCreatedInDBAndBaggageclaim(
+						grt.NewVolume("previous-cache-1"),
+						grt.NewVolume("previous-cache-2"),
+					),
 			),
 		)
+
+		origCacheHitVol := scenario.WorkerVolume("worker", "previous-cache-1").(gardenruntime.Volume)
+		err := origCacheHitVol.InitializeTaskCache(logger, scenario.JobID, scenario.StepName, "/cache-hit", false)
+		Expect(err).ToNot(HaveOccurred())
+
+		origWorkdirCacheVol := scenario.WorkerVolume("worker", "previous-cache-2").(gardenruntime.Volume)
+		err = origWorkdirCacheVol.InitializeTaskCache(logger, scenario.JobID, scenario.StepName, "/workdir", false)
+		Expect(err).ToNot(HaveOccurred())
+
 		worker := scenario.Worker("worker")
 
-		origCacheHitVol, ok := cacheVolume(scenario, worker, "/cache-hit")
-		Expect(ok).To(BeTrue())
-		origWorkdirCacheVol, ok := cacheVolume(scenario, worker, "/workdir")
-		Expect(ok).To(BeTrue())
+		spec := runtime.ContainerSpec{
+			TeamID:   scenario.TeamID,
+			JobID:    scenario.JobID,
+			StepName: scenario.StepName,
 
-		_, volumeMounts, err := worker.FindOrCreateContainer(
-			ctx,
-			db.NewFixedHandleContainerOwner("my-handle"),
-			db.ContainerMetadata{},
-			runtime.ContainerSpec{
-				TeamID:   scenario.TeamID,
-				JobID:    scenario.JobID,
-				StepName: scenario.StepName,
-
-				ImageSpec: runtime.ImageSpec{
-					ImageURL: "raw:///img/rootfs",
-				},
-				Dir: "/workdir",
-				Caches: []string{
-					"/cache-hit",
-					"/cache-miss",
-					"/workdir",
-				},
+			ImageSpec: runtime.ImageSpec{
+				ImageURL: "raw:///img/rootfs",
 			},
-		)
+			Dir: "/workdir",
+			Caches: []string{
+				"/cache-hit",
+				"/cache-miss",
+				"/workdir",
+			},
+		}
+
+		_, volumeMounts, err := worker.FindOrCreateContainer(ctx, db.NewFixedHandleContainerOwner("my-handle"), db.ContainerMetadata{}, spec)
 		Expect(err).ToNot(HaveOccurred())
 
 		Expect(volumeMountMap(volumeMounts)).To(consistOfMap(expectMap{
 			"/scratch":    grt.HaveStrategy(baggageclaim.EmptyStrategy{}),
-			"/workdir":    grt.HaveStrategy(baggageclaim.COWStrategy{Parent: origWorkdirCacheVol}),
-			"/cache-hit":  grt.HaveStrategy(baggageclaim.COWStrategy{Parent: origCacheHitVol}),
+			"/workdir":    grt.HaveStrategy(baggageclaim.COWStrategy{Parent: origWorkdirCacheVol.BaggageclaimVolume()}),
+			"/cache-hit":  grt.HaveStrategy(baggageclaim.COWStrategy{Parent: origCacheHitVol.BaggageclaimVolume()}),
 			"/cache-miss": grt.HaveStrategy(baggageclaim.EmptyStrategy{}),
 		}))
+
+		var newCacheHitVol *grt.Volume
+		var newCacheMissVol *grt.Volume
+		var newWorkdirVol *grt.Volume
+		By("re-initializing the cache volumes", func() {
+			cacheHitVol := volumeMount(volumeMounts, "/cache-hit").Volume.(gardenruntime.Volume)
+			err := cacheHitVol.InitializeTaskCache(logger, scenario.JobID, scenario.StepName, "/cache-hit", false)
+			Expect(err).ToNot(HaveOccurred())
+
+			workdirVol := volumeMount(volumeMounts, "/workdir").Volume.(gardenruntime.Volume)
+			err = workdirVol.InitializeTaskCache(logger, scenario.JobID, scenario.StepName, "/workdir", false)
+			Expect(err).ToNot(HaveOccurred())
+
+			cacheMissVol := volumeMount(volumeMounts, "/cache-miss").Volume.(gardenruntime.Volume)
+			err = cacheMissVol.InitializeTaskCache(logger, scenario.JobID, scenario.StepName, "/cache-miss", false)
+			Expect(err).ToNot(HaveOccurred())
+
+			By("validating an import volume was created only when the cache already existed", func() {
+				var ok bool
+				newCacheHitVol, ok = findVolumeBy(worker, grt.StrategyEq(baggageclaim.ImportStrategy{Path: cacheHitVol.Path()}))
+				Expect(ok).To(BeTrue())
+
+				newWorkdirVol, ok = findVolumeBy(worker, grt.StrategyEq(baggageclaim.ImportStrategy{Path: workdirVol.Path()}))
+				Expect(ok).To(BeTrue())
+
+				_, ok = findVolumeBy(worker, grt.StrategyEq(baggageclaim.ImportStrategy{Path: cacheMissVol.Path()}))
+				// since it was a cache miss before, the "new" volume is the
+				// empty volume that was created
+				Expect(ok).To(BeFalse())
+				newCacheMissVol = volumeMount(volumeMounts, "/cache-miss").
+					Volume.(gardenruntime.Volume).
+					BaggageclaimVolume().(*grt.Volume)
+			})
+		})
+
+		By("creating a new container and validating that the newly initialized cache volumes are used", func() {
+			_, volumeMounts, err := worker.FindOrCreateContainer(ctx, db.NewFixedHandleContainerOwner("new-container"), db.ContainerMetadata{}, spec)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(volumeMountMap(volumeMounts)).To(consistOfMap(expectMap{
+				"/scratch":    grt.HaveStrategy(baggageclaim.EmptyStrategy{}),
+				"/workdir":    grt.HaveStrategy(baggageclaim.COWStrategy{Parent: newWorkdirVol}),
+				"/cache-hit":  grt.HaveStrategy(baggageclaim.COWStrategy{Parent: newCacheHitVol}),
+				"/cache-miss": grt.HaveStrategy(baggageclaim.COWStrategy{Parent: newCacheMissVol}),
+			}))
+		})
 	})
 
 	Test("certs bind mount", func() {
@@ -1003,6 +1053,17 @@ func volumeMountMap(volumeMounts []runtime.VolumeMount) map[string]*grt.Volume {
 	return mounts
 }
 
+func volumeMount(mounts []runtime.VolumeMount, path string) runtime.VolumeMount {
+	for _, mnt := range mounts {
+		if mnt.MountPath == path {
+			return mnt
+		}
+	}
+
+	Fail("missing mount " + path)
+	panic("unreachable")
+}
+
 func bindMount(container runtime.Container, path string) garden.BindMount {
 	for _, mnt := range gardenContainer(container).Spec.BindMounts {
 		if mnt.DstPath == path {
@@ -1055,9 +1116,4 @@ func findVolumeBy(worker runtime.Worker, pred func(*grt.Volume) bool) (*grt.Volu
 	}
 	Expect(volumes).To(HaveLen(1), "volume not uniquely specified")
 	return volumes[0], true
-}
-
-func cacheVolume(scenario *workertest.Scenario, worker runtime.Worker, path string) (*grt.Volume, bool) {
-	cacheDBVolume := scenario.WorkerTaskCacheVolume(worker.Name(), path)
-	return findVolumeBy(worker, grt.HandleEq(cacheDBVolume.Handle()))
 }

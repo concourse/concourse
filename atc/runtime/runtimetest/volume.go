@@ -13,6 +13,7 @@ import (
 type Volume struct {
 	VolumeHandle             string
 	ResourceCacheInitialized bool
+	TaskCacheInitialized     bool
 	DBVolume_                *dbfakes.FakeCreatedVolume
 }
 
@@ -39,6 +40,11 @@ func (v Volume) StreamOut(ctx context.Context, path string, compression compress
 
 func (v *Volume) InitializeResourceCache(_ lager.Logger, _ db.UsedResourceCache) error {
 	v.ResourceCacheInitialized = true
+	return nil
+}
+
+func (v *Volume) InitializeTaskCache(_ lager.Logger, _ int, _, _ string, _ bool) error {
+	v.TaskCacheInitialized = true
 	return nil
 }
 

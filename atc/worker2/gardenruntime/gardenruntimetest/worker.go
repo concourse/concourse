@@ -147,22 +147,12 @@ func (w Worker) WithDBVolumesInState(state DBState, handles ...string) *Worker {
 		for _, handle := range handles {
 			switch state {
 			case Creating:
-				s.DB.Run(s.DBBuilder.WithCreatingVolume(0, w.Name(), db.VolumeTypeContainer, handle))
+				s.DB.Run(s.DBBuilder.WithCreatingVolume(s.TeamID, w.Name(), db.VolumeTypeContainer, handle))
 			case Created:
-				s.DB.Run(s.DBBuilder.WithCreatedVolume(0, w.Name(), db.VolumeTypeContainer, handle))
+				s.DB.Run(s.DBBuilder.WithCreatedVolume(s.TeamID, w.Name(), db.VolumeTypeContainer, handle))
 			default:
 				panic("invalid state " + strconv.Itoa(int(state)))
 			}
-		}
-	})
-}
-
-func (w *Worker) WithCachedPaths(cachedPaths ...string) *Worker {
-	return w.WithMutableSetup(func(w *Worker, s *workertest.Scenario) {
-		for _, cachePath := range cachedPaths {
-			s.DB.Run(s.DBBuilder.WithTaskCacheOnWorker(s.TeamID, w.Name(), s.JobID, s.StepName, cachePath))
-			cacheVolume := s.WorkerTaskCacheVolume(w.Name(), cachePath)
-			w.Volumes = append(w.Volumes, NewVolume(cacheVolume.Handle()))
 		}
 	})
 }

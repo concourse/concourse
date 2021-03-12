@@ -44,6 +44,7 @@ type Worker struct {
 type DB struct {
 	VolumeRepo                    db.VolumeRepository
 	TaskCacheFactory              db.TaskCacheFactory
+	WorkerTaskCacheFactory        db.WorkerTaskCacheFactory
 	ResourceCacheFactory          db.ResourceCacheFactory
 	WorkerBaseResourceTypeFactory db.WorkerBaseResourceTypeFactory
 	LockFactory                   lock.LockFactory
