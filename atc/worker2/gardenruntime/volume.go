@@ -121,6 +121,36 @@ func (worker *Worker) LookupVolume(logger lager.Logger, handle string) (runtime.
 	return worker.newVolume(bcVolume, createdVolume), true, nil
 }
 
+func (worker *Worker) CreateVolumeForArtifact(logger lager.Logger, teamID int) (runtime.Volume, db.WorkerArtifact, error) {
+	creatingVolume, err := worker.db.VolumeRepo.CreateVolume(teamID, worker.Name(), db.VolumeTypeArtifact)
+	if err != nil {
+		logger.Error("failed-to-create-volume-in-db", err)
+		return nil, nil, err
+	}
+
+	workerArtifact, err := creatingVolume.InitializeArtifact()
+	if err != nil {
+		logger.Error("failed-to-initialize-artifact", err)
+		return nil, nil, err
+	}
+
+	bcVolume, err := worker.bcClient.CreateVolume(logger, creatingVolume.Handle(), baggageclaim.VolumeSpec{
+		Strategy: baggageclaim.EmptyStrategy{},
+	})
+	if err != nil {
+		logger.Error("failed-to-create-volume-in-bc", err)
+		return nil, nil, err
+	}
+
+	createdVolume, err := creatingVolume.Created()
+	if err != nil {
+		logger.Error("failed-to-mark-volume-as-created", err)
+		return nil, nil, err
+	}
+
+	return worker.newVolume(bcVolume, createdVolume), workerArtifact, nil
+}
+
 func (worker *Worker) findOrCreateVolumeForContainer(
 	logger lager.Logger,
 	volumeSpec baggageclaim.VolumeSpec,

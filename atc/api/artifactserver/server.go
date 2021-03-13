@@ -2,17 +2,24 @@ package artifactserver
 
 import (
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/runtime"
+	worker "github.com/concourse/concourse/atc/worker2"
 )
+
+type Pool interface {
+	LocateVolume(logger lager.Logger, teamID int, handle string) (runtime.Volume, runtime.Worker, bool, error)
+	CreateVolumeForArtifact(logger lager.Logger, spec worker.Spec) (runtime.Volume, db.WorkerArtifact, error)
+}
 
 type Server struct {
 	logger     lager.Logger
-	workerPool worker.Pool
+	workerPool Pool
 }
 
 func NewServer(
 	logger lager.Logger,
-	workerPool worker.Pool,
+	workerPool Pool,
 ) *Server {
 	return &Server{
 		logger:     logger,

@@ -16,6 +16,7 @@ import (
 type Worker interface {
 	Name() string
 	FindOrCreateContainer(context.Context, db.ContainerOwner, db.ContainerMetadata, ContainerSpec) (Container, []VolumeMount, error)
+	CreateVolumeForArtifact(logger lager.Logger, teamID int) (Volume, db.WorkerArtifact, error)
 
 	LookupContainer(logger lager.Logger, handle string) (Container, bool, error)
 	LookupVolume(logger lager.Logger, handle string) (Volume, bool, error)

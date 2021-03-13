@@ -29,7 +29,15 @@ func (w Worker) Name() string {
 	return w.WorkerName
 }
 
+func (w Worker) CreateVolumeForArtifact(logger lager.Logger, teamID int) (runtime.Volume, db.WorkerArtifact, error) {
+	panic("unimplemented")
+}
+
 func (w Worker) FindOrCreateContainer(ctx context.Context, owner db.ContainerOwner, metadata db.ContainerMetadata, spec runtime.ContainerSpec) (runtime.Container, []runtime.VolumeMount, error) {
+	panic("unimplemented")
+}
+
+func (w Worker) LookupContainer(logger lager.Logger, handle string) (runtime.Container, bool, error) {
 	panic("unimplemented")
 }
 

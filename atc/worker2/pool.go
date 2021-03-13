@@ -1,6 +1,8 @@
 package worker2
 
 import (
+	"math/rand"
+
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/runtime"
@@ -156,6 +158,16 @@ func (pool Pool) LocateContainer(logger lager.Logger, teamID int, handle string)
 	}
 
 	return container, worker, true, nil
+}
+
+func (pool Pool) CreateVolumeForArtifact(logger lager.Logger, spec Spec) (runtime.Volume, db.WorkerArtifact, error) {
+	compatibleWorkers, err := pool.allCompatible(logger, spec)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	worker := pool.Factory.NewWorker(logger, pool, compatibleWorkers[rand.Intn(len(compatibleWorkers))])
+	return worker.CreateVolumeForArtifact(logger, spec.TeamID)
 }
 
 func (pool Pool) allCompatible(logger lager.Logger, spec Spec) ([]db.Worker, error) {
