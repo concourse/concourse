@@ -299,7 +299,7 @@ func (worker *Worker) constructContainer(
 			MountPath: dbVolume.Path(),
 		}
 	}
-	return Container{GardenContainer: gardenContainer}, volumeMounts, nil
+	return Container{GardenContainer: gardenContainer, DBContainer_: createdContainer}, volumeMounts, nil
 }
 
 // creates volumes required to run any step:

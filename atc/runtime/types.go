@@ -16,6 +16,8 @@ import (
 type Worker interface {
 	Name() string
 	FindOrCreateContainer(context.Context, db.ContainerOwner, db.ContainerMetadata, ContainerSpec) (Container, []VolumeMount, error)
+
+	LookupContainer(logger lager.Logger, handle string) (Container, bool, error)
 	LookupVolume(logger lager.Logger, handle string) (Volume, bool, error)
 }
 
@@ -25,6 +27,8 @@ type Container interface {
 
 	Properties() (map[string]string, error)
 	SetProperty(name string, value string) error
+
+	DBContainer() db.CreatedContainer
 }
 
 type ContainerSpec struct {
@@ -89,6 +93,7 @@ func (cs *ContainerSpec) Set(key string, value string) {
 type ProcessSpec struct {
 	Path string
 	Args []string
+	Env  []string
 	Dir  string
 	User string
 	TTY  *TTYSpec

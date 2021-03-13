@@ -8,13 +8,17 @@ import (
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/gc"
-	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/atc/runtime"
 )
+
+type Pool interface {
+	LocateContainer(logger lager.Logger, teamID int, handle string) (runtime.Container, runtime.Worker, bool, error)
+}
 
 type Server struct {
 	logger lager.Logger
 
-	workerPool              worker.Pool
+	workerPool              Pool
 	secretManager           creds.Secrets
 	varSourcePool           creds.VarSourcePool
 	interceptTimeoutFactory InterceptTimeoutFactory
@@ -26,7 +30,7 @@ type Server struct {
 
 func NewServer(
 	logger lager.Logger,
-	workerPool worker.Pool,
+	workerPool Pool,
 	secretManager creds.Secrets,
 	varSourcePool creds.VarSourcePool,
 	interceptTimeoutFactory InterceptTimeoutFactory,

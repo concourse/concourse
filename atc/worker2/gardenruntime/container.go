@@ -2,10 +2,13 @@ package gardenruntime
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 
 	"code.cloudfoundry.org/garden"
+	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker/gclient"
 )
@@ -15,7 +18,34 @@ const userPropertyName = "user"
 const exitStatusPropertyName = "concourse:exit-status"
 
 type Container struct {
+	DBContainer_    db.CreatedContainer
 	GardenContainer gclient.Container
+}
+
+func (worker *Worker) LookupContainer(logger lager.Logger, handle string) (runtime.Container, bool, error) {
+	logger = logger.Session("lookup-container", lager.Data{"handle": handle, "worker": worker.Name()})
+
+	_, createdContainer, err := worker.dbWorker.FindContainer(db.NewFixedHandleContainerOwner(handle))
+	if err != nil {
+		logger.Error("failed-to-lookup-container-in-db", err)
+		return Container{}, false, err
+	}
+
+	if createdContainer == nil {
+		return Container{}, false, nil
+	}
+
+	gardenContainer, err := worker.gardenClient.Lookup(handle)
+	if err != nil {
+		if errors.As(err, &garden.ContainerNotFoundError{}) {
+			logger.Debug("garden-container-not-found")
+			return Container{}, false, nil
+		}
+		logger.Error("failed-to-lookup-garden-container", err)
+		return Container{}, false, err
+	}
+
+	return Container{GardenContainer: gardenContainer, DBContainer_: createdContainer}, true, nil
 }
 
 func (c Container) Run(ctx context.Context, spec runtime.ProcessSpec, io runtime.ProcessIO) (runtime.Process, error) {
@@ -70,6 +100,7 @@ func toGardenProcessSpec(spec runtime.ProcessSpec, properties garden.Properties)
 		ID:   strconv.Itoa(spec.ID()),
 		Path: spec.Path,
 		Args: spec.Args,
+		Env:  spec.Env,
 		Dir:  spec.Dir,
 		User: user,
 		TTY:  tty,
@@ -91,4 +122,8 @@ func toGardenProcessIO(io runtime.ProcessIO) garden.ProcessIO {
 		Stdout: io.Stdout,
 		Stderr: io.Stderr,
 	}
+}
+
+func (c Container) DBContainer() db.CreatedContainer {
+	return c.DBContainer_
 }

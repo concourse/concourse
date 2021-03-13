@@ -12,7 +12,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/atc/runtime"
 	"github.com/gorilla/websocket"
 )
 
@@ -89,7 +89,7 @@ func (s *Server) HijackContainer(team db.Team) http.Handler {
 			"handle": handle,
 		})
 
-		container, found, err := s.workerPool.FindContainer(hLog, team.ID(), handle)
+		container, _, found, err := s.workerPool.LocateContainer(hLog, team.ID(), handle)
 		if err != nil {
 			hLog.Error("failed-to-find-container", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -154,12 +154,12 @@ func (s *Server) HijackContainer(team db.Team) http.Handler {
 			Process:   processSpec,
 		}
 
-		s.hijack(hLog, conn, hijackRequest)
+		s.hijack(r.Context(), hLog, conn, hijackRequest)
 	})
 }
 
 type hijackRequest struct {
-	Container worker.Container
+	Container runtime.Container
 	Process   atc.HijackProcessSpec
 }
 
@@ -175,9 +175,9 @@ func closeWithErr(log lager.Logger, conn *websocket.Conn, code int, reason strin
 	}
 }
 
-func (s *Server) hijack(hLog lager.Logger, conn *websocket.Conn, request hijackRequest) {
+func (s *Server) hijack(ctx context.Context, hLog lager.Logger, conn *websocket.Conn, request hijackRequest) {
 	hLog = hLog.Session("hijack", lager.Data{
-		"handle":  request.Container.Handle(),
+		"handle":  request.Container.DBContainer().Handle(),
 		"process": request.Process,
 	})
 
@@ -189,32 +189,32 @@ func (s *Server) hijack(hLog lager.Logger, conn *websocket.Conn, request hijackR
 	exited := make(chan int, 1)
 	errs := make(chan error, 1)
 
-	cleanup := make(chan struct{})
-	defer close(cleanup)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 
 	outW := &stdoutWriter{
 		outputs: outputs,
-		done:    cleanup,
+		done:    ctx.Done(),
 	}
 
 	errW := &stderrWriter{
 		outputs: outputs,
-		done:    cleanup,
+		done:    ctx.Done(),
 	}
 
-	var tty *garden.TTYSpec
+	var tty *runtime.TTYSpec
 	var idle InterceptTimeout
 
 	if request.Process.TTY != nil {
-		tty = &garden.TTYSpec{
-			WindowSize: &garden.WindowSize{
+		tty = &runtime.TTYSpec{
+			WindowSize: runtime.WindowSize{
 				Columns: request.Process.TTY.WindowSize.Columns,
 				Rows:    request.Process.TTY.WindowSize.Rows,
 			},
 		}
 	}
 
-	process, err := request.Container.Run(context.Background(), garden.ProcessSpec{
+	process, err := request.Container.Run(ctx, runtime.ProcessSpec{
 		Path: request.Process.Path,
 		Args: request.Process.Args,
 		Env:  request.Process.Env,
@@ -223,7 +223,7 @@ func (s *Server) hijack(hLog lager.Logger, conn *websocket.Conn, request hijackR
 		User: request.Process.User,
 
 		TTY: tty,
-	}, garden.ProcessIO{
+	}, runtime.ProcessIO{
 		Stdin:  stdinR,
 		Stdout: outW,
 		Stderr: errW,
@@ -244,7 +244,7 @@ func (s *Server) hijack(hLog lager.Logger, conn *websocket.Conn, request hijackR
 		return
 	}
 
-	err = request.Container.UpdateLastHijack()
+	err = request.Container.DBContainer().UpdateLastHijack()
 	if err != nil {
 		hLog.Error("failed-to-update-container-hijack-time", err)
 		return
@@ -254,13 +254,13 @@ func (s *Server) hijack(hLog lager.Logger, conn *websocket.Conn, request hijackR
 		for {
 			select {
 			case <-s.clock.After(s.interceptUpdateInterval):
-				err = request.Container.UpdateLastHijack()
+				err = request.Container.DBContainer().UpdateLastHijack()
 				if err != nil {
 					hLog.Error("failed-to-update-container-hijack-time", err)
 					return
 				}
 
-			case <-cleanup:
+			case <-ctx.Done():
 				return
 			}
 		}
@@ -278,18 +278,18 @@ func (s *Server) hijack(hLog lager.Logger, conn *websocket.Conn, request hijackR
 
 			select {
 			case inputs <- input:
-			case <-cleanup:
+			case <-ctx.Done():
 				return
 			}
 		}
 	}()
 
 	go func() {
-		status, err := process.Wait()
+		result, err := process.Wait(ctx)
 		if err != nil {
 			errs <- err
 		} else {
-			exited <- status
+			exited <- result.ExitStatus
 		}
 	}()
 
@@ -303,8 +303,8 @@ func (s *Server) hijack(hLog lager.Logger, conn *websocket.Conn, request hijackR
 			if input.Closed {
 				_ = stdinW.Close()
 			} else if input.TTYSpec != nil {
-				err := process.SetTTY(garden.TTYSpec{
-					WindowSize: &garden.WindowSize{
+				err := process.SetTTY(runtime.TTYSpec{
+					WindowSize: runtime.WindowSize{
 						Columns: input.TTYSpec.WindowSize.Columns,
 						Rows:    input.TTYSpec.WindowSize.Rows,
 					},
@@ -346,7 +346,7 @@ func (s *Server) hijack(hLog lager.Logger, conn *websocket.Conn, request hijackR
 
 type stdoutWriter struct {
 	outputs chan<- atc.HijackOutput
-	done    chan struct{}
+	done    <-chan struct{}
 }
 
 func (writer *stdoutWriter) Write(b []byte) (int, error) {
@@ -365,14 +365,9 @@ func (writer *stdoutWriter) Write(b []byte) (int, error) {
 	return len(b), nil
 }
 
-func (writer *stdoutWriter) Close() error {
-	close(writer.done)
-	return nil
-}
-
 type stderrWriter struct {
 	outputs chan<- atc.HijackOutput
-	done    chan struct{}
+	done    <-chan struct{}
 }
 
 func (writer *stderrWriter) Write(b []byte) (int, error) {
@@ -389,9 +384,4 @@ func (writer *stderrWriter) Write(b []byte) (int, error) {
 	}
 
 	return len(b), nil
-}
-
-func (writer *stderrWriter) Close() error {
-	close(writer.done)
-	return nil
 }

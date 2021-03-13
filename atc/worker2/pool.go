@@ -124,6 +124,40 @@ func (pool Pool) LocateVolume(logger lager.Logger, teamID int, handle string) (r
 	return volume, worker, true, nil
 }
 
+func (pool Pool) LocateContainer(logger lager.Logger, teamID int, handle string) (runtime.Container, runtime.Worker, bool, error) {
+	logger = logger.Session("worker-for-container", lager.Data{"handle": handle, "team-id": teamID})
+	team := pool.DB.TeamFactory.GetByID(teamID)
+
+	dbWorker, found, err := team.FindWorkerForContainer(handle)
+	if err != nil {
+		logger.Error("failed-to-find-worker", err)
+		return nil, nil, false, err
+	}
+	if !found {
+		return nil, nil, false, nil
+	}
+	if !pool.isWorkerVersionCompatible(logger, dbWorker) {
+		return nil, nil, false, nil
+	}
+
+	logger = logger.WithData(lager.Data{"worker": dbWorker.Name()})
+	logger.Debug("found-volume-on-worker")
+
+	worker := pool.NewWorker(logger, pool, dbWorker)
+
+	container, found, err := worker.LookupContainer(logger, handle)
+	if err != nil {
+		logger.Error("failed-to-lookup-container", err)
+		return nil, nil, false, err
+	}
+	if !found {
+		logger.Info("container-disappeared-from-worker")
+		return nil, nil, false, nil
+	}
+
+	return container, worker, true, nil
+}
+
 func (pool Pool) allCompatible(logger lager.Logger, spec Spec) ([]db.Worker, error) {
 	workers, err := pool.DB.WorkerFactory.Workers()
 	if err != nil {

@@ -4,18 +4,23 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/runtime"
 )
 
 type Container struct {
-	Processes map[int]ProcessStub
-	Props     map[string]string
+	Processes    map[int]ProcessStub
+	Props        map[string]string
+	DBContainer_ *dbfakes.FakeCreatedContainer
 }
 
 func NewContainer() Container {
+	dbContainer := new(dbfakes.FakeCreatedContainer)
 	return Container{
-		Processes: make(map[int]ProcessStub),
-		Props:     make(map[string]string),
+		Processes:    make(map[int]ProcessStub),
+		Props:        make(map[string]string),
+		DBContainer_: dbContainer,
 	}
 }
 
@@ -54,6 +59,10 @@ func (c Container) Properties() (map[string]string, error) {
 func (c Container) SetProperty(name string, value string) error {
 	c.Props[name] = value
 	return nil
+}
+
+func (c Container) DBContainer() db.CreatedContainer {
+	return c.DBContainer_
 }
 
 func cloneProcs(m map[int]ProcessStub) map[int]ProcessStub {
