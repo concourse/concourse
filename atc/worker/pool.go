@@ -13,7 +13,6 @@ import (
 	"code.cloudfoundry.org/lager/lagerctx"
 
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/metric"
 )
 
@@ -51,6 +50,12 @@ type Pool interface {
 		PoolCallbacks,
 	) (Client, error)
 
+	ReleaseWorker(
+		context.Context,
+		Client,
+		ContainerPlacementStrategy,
+	)
+
 	WaitForWorker(
 		context.Context,
 		db.ContainerOwner,
@@ -65,7 +70,6 @@ type Pool interface {
 
 type PoolCallbacks interface {
 	WaitingForWorker(lager.Logger)
-	SelectedWorker(lager.Logger, Worker)
 }
 
 //go:generate counterfeiter . VolumeFinder
@@ -75,18 +79,12 @@ type VolumeFinder interface {
 }
 
 type pool struct {
-	provider    WorkerProvider
-	lockFactory lock.LockFactory
-
-	rand *rand.Rand
+	provider WorkerProvider
 }
 
-func NewPool(provider WorkerProvider, lockFactory lock.LockFactory) Pool {
+func NewPool(provider WorkerProvider) Pool {
 	return &pool{
-		provider:    provider,
-		lockFactory: lockFactory,
-
-		rand: rand.New(rand.NewSource(time.Now().UnixNano())),
+		provider: provider,
 	}
 }
 
@@ -230,23 +228,8 @@ dance:
 		}
 	}
 
-	// Lock required to protect call to strategy.Pick and callbacks.SelectedWorker
-	//
-	// strategy.Pick may rely on worker metrics (such as active task, container, and
-	// volume counts) that may be modified by callbacks.SelectedWorker
-	lock, lockAcquired, err := pool.lockFactory.Acquire(logger, lock.NewPlacementStrategyLockID())
-	if err != nil {
-		return nil, err
-	}
-
-	if !lockAcquired {
-		return nil, ErrFailedToAcquireLock
-	}
-
-	defer lock.Release()
-
 	if worker == nil {
-		candidates, err := strategy.Candidates(logger, compatibleWorkers, containerSpec)
+		candidates, err := strategy.Order(logger, compatibleWorkers, containerSpec)
 
 		if err != nil {
 			return nil, err
@@ -256,7 +239,7 @@ dance:
 			err := strategy.Pick(logger, candidate, containerSpec)
 
 			if err != nil {
-				logger.Error("Candidate worker rejected due to error", err)
+				logger.Debug("Candidate worker rejected during selection", lager.Data{"reason": err.Error()})
 			} else {
 				worker = candidate
 				break
@@ -268,8 +251,16 @@ dance:
 		}
 	}
 
-	callbacks.SelectedWorker(logger, worker)
 	return NewClient(worker), nil
+}
+
+func (pool *pool) ReleaseWorker(
+	ctx context.Context,
+	client Client,
+	strategy ContainerPlacementStrategy,
+) {
+	logger := lagerctx.FromContext(ctx)
+	strategy.Release(logger, client.Worker())
 }
 
 func (pool *pool) WaitForWorker(

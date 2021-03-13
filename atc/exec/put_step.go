@@ -39,7 +39,7 @@ type PutDelegate interface {
 	Errored(lager.Logger, string)
 
 	WaitingForWorker(lager.Logger)
-	SelectedWorker(lager.Logger, worker.Client)
+	SelectedWorker(lager.Logger, string)
 
 	SaveOutput(lager.Logger, atc.PutPlan, atc.Source, atc.VersionedResourceTypes, runtime.VersionResult)
 }
@@ -232,6 +232,16 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 	if err != nil {
 		return false, err
 	}
+
+	delegate.SelectedWorker(logger, worker.Name())
+
+	defer func() {
+		step.workerPool.ReleaseWorker(
+			lagerctx.NewContext(processCtx, logger),
+			worker,
+			step.strategy,
+		)
+	}()
 
 	result, err := worker.RunPutStep(
 		lagerctx.NewContext(processCtx, logger),

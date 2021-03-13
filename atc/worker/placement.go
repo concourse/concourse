@@ -3,7 +3,10 @@ package worker
 import (
 	"errors"
 	"fmt"
+	"math/rand"
+	"sort"
 	"strings"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
@@ -29,70 +32,111 @@ func (err NoWorkerFitContainerPlacementStrategyError) Error() string {
 }
 
 type ContainerPlacementStrategy interface {
-	//TODO: Don't pass around container metadata since it's not guaranteed to be deterministic.
+	// TODO: Don't pass around container metadata since it's not guaranteed to be deterministic.
 	// Change this after check containers stop being reused
-	Candidates(lager.Logger, []Worker, ContainerSpec) ([]Worker, error)
+
+	// Orders the list of candidate workers based off the configured strategies
+	Order(lager.Logger, []Worker, ContainerSpec) ([]Worker, error)
+
+	// Attempts to pick the given worker to run the specified container
 	Pick(lager.Logger, Worker, ContainerSpec) error
+
+	// Releases any resources acquired by any configured strategies as part of
+	// picking the candidate worker
+	Release(lager.Logger, Worker)
 }
 
 type ContainerPlacementStrategyChainNode interface {
-	Candidates(lager.Logger, []Worker, ContainerSpec) ([]Worker, error)
+	// Orders candidate workers based on the specific strategy. Sorting must be stable to preserve
+	// the sorting applied by previous strategies in the chain
+	Order(lager.Logger, []Worker, ContainerSpec) ([]Worker, error)
+
+	// Attempts to pick the candidate worker to schedule the container on. Strategies can perform
+	// final validation of the worker and reject the worker if it violates any configured limits
 	Pick(lager.Logger, Worker, ContainerSpec) error
+
+	// Releases any resources acquired as part of picking the candidate worker
+	Release(lager.Logger, Worker)
 
 	StrategyName() string
 }
 
 type containerPlacementStrategy struct {
+	rng   *rand.Rand
 	nodes []ContainerPlacementStrategyChainNode
 }
 
 func NewContainerPlacementStrategy(opts ContainerPlacementStrategyOptions) (*containerPlacementStrategy, error) {
-	cps := &containerPlacementStrategy{nodes: []ContainerPlacementStrategyChainNode{}}
+	cps := &containerPlacementStrategy{
+		rng:   rand.New(rand.NewSource(time.Now().UnixNano())),
+		nodes: []ContainerPlacementStrategyChainNode{},
+	}
+
 	for _, strategy := range opts.ContainerPlacementStrategy {
 		strategy := strings.TrimSpace(strategy)
 		switch strategy {
 		case "random":
 			// Add nothing. Because an empty strategy chain equals to random strategy.
+
 		case "fewest-build-containers":
 			cps.nodes = append(cps.nodes, newFewestBuildContainersPlacementStrategy(strategy))
+
 		case "limit-active-tasks":
 			if opts.MaxActiveTasksPerWorker < 0 {
 				return nil, errors.New("max-active-tasks-per-worker must be greater or equal than 0")
 			}
 			cps.nodes = append(cps.nodes, newLimitActiveTasksPlacementStrategy(strategy, opts.MaxActiveTasksPerWorker))
+
 		case "limit-active-containers":
 			if opts.MaxActiveContainersPerWorker < 0 {
 				return nil, errors.New("max-active-containers-per-worker must be greater or equal than 0")
 			}
 			cps.nodes = append(cps.nodes, newLimitActiveContainersPlacementStrategy(strategy, opts.MaxActiveContainersPerWorker))
+
 		case "limit-active-volumes":
 			if opts.MaxActiveVolumesPerWorker < 0 {
 				return nil, errors.New("max-active-volumes-per-worker must be greater or equal than 0")
 			}
 			cps.nodes = append(cps.nodes, newLimitActiveVolumesPlacementStrategy(strategy, opts.MaxActiveVolumesPerWorker))
+
 		case "volume-locality":
 			cps.nodes = append(cps.nodes, newVolumeLocalityPlacementStrategyNode(strategy))
+
 		default:
 			return nil, fmt.Errorf("invalid container placement strategy %s", strategy)
 		}
 	}
+
 	return cps, nil
 }
 
-func (strategy *containerPlacementStrategy) Candidates(logger lager.Logger, workers []Worker, spec ContainerSpec) ([]Worker, error) {
+func (strategy *containerPlacementStrategy) Order(logger lager.Logger, workers []Worker, spec ContainerSpec) ([]Worker, error) {
+	candidates := append([]Worker(nil), workers...)
+
+	// Pre-shuffle the candidate workers to ensure slightly different ordering
+	// for workers which are "equal" in the eyes of the configured strategies (eg.
+	// have same container counts)
+	//
+	// Should hopefully prevent a burst of builds from being scheduled on the
+	// same worker
+	for i := range candidates {
+		j := rand.Intn(i + 1)
+		candidates[i], candidates[j] = candidates[j], candidates[i]
+	}
+
 	var err error
 	for _, node := range strategy.nodes {
-		workers, err = node.Candidates(logger, workers, spec)
+		candidates, err = node.Order(logger, candidates, spec)
 		if err != nil {
 			return nil, err
 		}
 
-		if len(workers) == 0 {
+		if len(candidates) == 0 {
 			return nil, NoWorkerFitContainerPlacementStrategyError{Strategy: node.StrategyName()}
 		}
 	}
 
-	return workers, nil
+	return candidates, nil
 }
 
 func (strategy *containerPlacementStrategy) Pick(logger lager.Logger, worker Worker, spec ContainerSpec) error {
@@ -107,11 +151,19 @@ func (strategy *containerPlacementStrategy) Pick(logger lager.Logger, worker Wor
 	return nil
 }
 
+func (strategy *containerPlacementStrategy) Release(logger lager.Logger, worker Worker) {
+	for _, node := range strategy.nodes {
+		node.Release(logger, worker)
+	}
+}
+
 func NewRandomPlacementStrategy() ContainerPlacementStrategy {
 	s, _ := NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{ContainerPlacementStrategy: []string{"random"}})
 	return s
 }
 
+// Strategy which orders candidate workers based off the number of volumes which alread
+// exist on them
 type VolumeLocalityPlacementStrategyNode struct {
 	GivenName string
 }
@@ -120,46 +172,48 @@ func newVolumeLocalityPlacementStrategyNode(name string) ContainerPlacementStrat
 	return &VolumeLocalityPlacementStrategyNode{name}
 }
 
-func (strategy *VolumeLocalityPlacementStrategyNode) Candidates(logger lager.Logger, workers []Worker, spec ContainerSpec) ([]Worker, error) {
-	candidates := map[int][]Worker{}
-	var highestCount int
+func (strategy *VolumeLocalityPlacementStrategyNode) Order(logger lager.Logger, workers []Worker, spec ContainerSpec) ([]Worker, error) {
+	candidates := append([]Worker(nil), workers...)
+	volumeCounts := []int{}
 
 	for _, w := range workers {
-		candidateInputCount := 0
+		inputCount := 0
 
 		for _, inputSource := range spec.Inputs {
 			_, found, err := inputSource.Source().ExistsOn(logger, w)
+
 			if err != nil {
 				return nil, err
 			}
 
 			if found {
-				candidateInputCount++
+				inputCount++
 			}
 		}
 
-		candidates[candidateInputCount] = append(candidates[candidateInputCount], w)
-
-		if candidateInputCount >= highestCount {
-			highestCount = candidateInputCount
-		}
+		volumeCounts = append(volumeCounts, inputCount)
 	}
 
-	if len(candidates) == 0 {
-		return []Worker{}, nil
-	}
+	sort.SliceStable(candidates, func(i, j int) bool { return volumeCounts[i] > volumeCounts[j] })
 
-	return candidates[highestCount], nil
+	return candidates, nil
 }
 
 func (strategy *VolumeLocalityPlacementStrategyNode) Pick(logger lager.Logger, worker Worker, spec ContainerSpec) error {
+	// This strategy doesn't have any requirements on the number of volumes which must exist
+	// on a worker for the container to be scheduled on it
 	return nil
+}
+
+func (strategy *VolumeLocalityPlacementStrategyNode) Release(logger lager.Logger, worker Worker) {
 }
 
 func (strategy *VolumeLocalityPlacementStrategyNode) StrategyName() string {
 	return strategy.GivenName
 }
 
+// Strategy which orders candidate workers based off the number of build containers which
+// are already running on them
 type FewestBuildContainersPlacementStrategyNode struct {
 	GivenName string
 }
@@ -168,28 +222,24 @@ func newFewestBuildContainersPlacementStrategy(name string) ContainerPlacementSt
 	return &FewestBuildContainersPlacementStrategyNode{name}
 }
 
-func (strategy *FewestBuildContainersPlacementStrategyNode) Candidates(logger lager.Logger, workers []Worker, spec ContainerSpec) ([]Worker, error) {
-	candidates := map[int][]Worker{}
-	var minWork int
+func (strategy *FewestBuildContainersPlacementStrategyNode) Order(logger lager.Logger, workers []Worker, spec ContainerSpec) ([]Worker, error) {
+	candidates := append([]Worker(nil), workers...)
+	containerCounts := []int{}
 
-	for i, w := range workers {
-		work := w.BuildContainers()
-		candidates[work] = append(candidates[work], w)
-
-		if i == 0 || work < minWork {
-			minWork = work
-		}
+	for _, w := range workers {
+		containerCounts = append(containerCounts, w.BuildContainers())
 	}
 
-	if len(candidates) == 0 {
-		return []Worker{}, nil
-	}
+	sort.SliceStable(candidates, func(i, j int) bool { return containerCounts[i] > containerCounts[j] })
 
-	return candidates[minWork], nil
+	return candidates, nil
 }
 
 func (strategy *FewestBuildContainersPlacementStrategyNode) Pick(logger lager.Logger, worker Worker, spec ContainerSpec) error {
 	return nil
+}
+
+func (strategy *FewestBuildContainersPlacementStrategyNode) Release(logger lager.Logger, worker Worker) {
 }
 
 func (strategy *FewestBuildContainersPlacementStrategyNode) StrategyName() string {
@@ -208,36 +258,51 @@ func newLimitActiveTasksPlacementStrategy(name string, maxTasks int) ContainerPl
 	}
 }
 
-func (strategy *LimitActiveTasksPlacementStrategyNode) Candidates(logger lager.Logger, workers []Worker, spec ContainerSpec) ([]Worker, error) {
-	candidates := []Worker{}
+func (strategy *LimitActiveTasksPlacementStrategyNode) Order(logger lager.Logger, workers []Worker, spec ContainerSpec) ([]Worker, error) {
+	candidates := append([]Worker(nil), workers...)
+	taskCounts := []int{}
 
 	for _, w := range workers {
 		activeTasks, err := w.ActiveTasks()
+
 		if err != nil {
 			logger.Error("Cannot retrieve active tasks on worker. Skipping.", err)
 			continue
 		}
 
-		// If maxTasks == 0 or the step is not a task, ignore the number of active tasks and distribute the work evenly
-		if spec.Type == db.ContainerTypeTask && (strategy.maxTasks == 0 || activeTasks <= strategy.maxTasks) {
-			candidates = append(candidates, w)
-		}
+		taskCounts = append(taskCounts, activeTasks)
 	}
+
+	sort.SliceStable(candidates, func(i, j int) bool { return taskCounts[i] > taskCounts[j] })
 
 	return candidates, nil
 }
 
 func (strategy *LimitActiveTasksPlacementStrategyNode) Pick(logger lager.Logger, worker Worker, spec ContainerSpec) error {
-	activeTasks, err := worker.ActiveTasks()
+	activeTasks, err := worker.IncreaseActiveTasks()
+
 	if err != nil {
 		return err
 	}
 
-	if spec.Type == db.ContainerTypeTask && (strategy.maxTasks == 0 || activeTasks <= strategy.maxTasks) {
+	// If the step is not a task or maxTasks == 0, ignore the number of active tasks and distribute the work evenly
+	if spec.Type == db.ContainerTypeTask && (strategy.maxTasks == 0 || activeTasks < strategy.maxTasks) {
+		_, err := worker.DecreaseActiveTasks()
+		if err != nil {
+			logger.Error("failed-to-decrease-active-tasks", err)
+		}
+
 		return errors.New("active tasks on worker over configured limit")
 	}
 
 	return nil
+}
+
+func (strategy *LimitActiveTasksPlacementStrategyNode) Release(logger lager.Logger, worker Worker) {
+	_, err := worker.DecreaseActiveTasks()
+	if err != nil {
+		logger.Error("failed-to-decrease-active-tasks", err)
+	}
 }
 
 func (strategy *LimitActiveTasksPlacementStrategyNode) StrategyName() string {
@@ -256,20 +321,30 @@ func newLimitActiveContainersPlacementStrategy(name string, maxContainers int) C
 	}
 }
 
-func (strategy *LimitActiveContainersPlacementStrategyNode) Candidates(logger lager.Logger, workers []Worker, spec ContainerSpec) ([]Worker, error) {
-	candidates := []Worker{}
+func (strategy *LimitActiveContainersPlacementStrategyNode) Order(logger lager.Logger, workers []Worker, spec ContainerSpec) ([]Worker, error) {
+	candidates := append([]Worker(nil), workers...)
+	containerCounts := []int{}
 
 	for _, w := range workers {
-		if strategy.maxContainers == 0 || w.ActiveContainers() <= strategy.maxContainers {
-			candidates = append(candidates, w)
-		}
+		containerCounts = append(containerCounts, w.ActiveContainers())
 	}
+
+	sort.SliceStable(candidates, func(i, j int) bool { return containerCounts[i] > containerCounts[j] })
 
 	return candidates, nil
 }
 
 func (strategy *LimitActiveContainersPlacementStrategyNode) Pick(logger lager.Logger, worker Worker, spec ContainerSpec) error {
+	containers := worker.ActiveContainers()
+
+	if strategy.maxContainers == 0 || containers <= strategy.maxContainers {
+		return errors.New("active containers on worker over configured limit")
+	}
+
 	return nil
+}
+
+func (strategy *LimitActiveContainersPlacementStrategyNode) Release(logger lager.Logger, worker Worker) {
 }
 
 func (strategy *LimitActiveContainersPlacementStrategyNode) StrategyName() string {
@@ -288,20 +363,30 @@ func newLimitActiveVolumesPlacementStrategy(name string, maxVolumes int) Contain
 	}
 }
 
-func (strategy *LimitActiveVolumesPlacementStrategyNode) Candidates(logger lager.Logger, workers []Worker, spec ContainerSpec) ([]Worker, error) {
-	candidates := []Worker{}
+func (strategy *LimitActiveVolumesPlacementStrategyNode) Order(logger lager.Logger, workers []Worker, spec ContainerSpec) ([]Worker, error) {
+	candidates := append([]Worker(nil), workers...)
+	volumeCounts := []int{}
 
 	for _, w := range workers {
-		if strategy.maxVolumes == 0 || w.ActiveVolumes() <= strategy.maxVolumes {
-			candidates = append(candidates, w)
-		}
+		volumeCounts = append(volumeCounts, w.ActiveVolumes())
 	}
+
+	sort.SliceStable(candidates, func(i, j int) bool { return volumeCounts[i] > volumeCounts[j] })
 
 	return candidates, nil
 }
 
 func (strategy *LimitActiveVolumesPlacementStrategyNode) Pick(logger lager.Logger, worker Worker, spec ContainerSpec) error {
+	volumes := worker.ActiveVolumes()
+
+	if strategy.maxVolumes == 0 || volumes <= strategy.maxVolumes {
+		return errors.New("active volumes on worker over configured limit")
+	}
+
 	return nil
+}
+
+func (strategy *LimitActiveVolumesPlacementStrategyNode) Release(logger lager.Logger, worker Worker) {
 }
 
 func (strategy *LimitActiveVolumesPlacementStrategyNode) StrategyName() string {

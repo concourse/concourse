@@ -75,10 +75,7 @@ type TaskDelegate interface {
 	Errored(lager.Logger, string)
 
 	WaitingForWorker(lager.Logger)
-	SelectedWorker(lager.Logger, worker.Worker)
-
-	IncreaseActiveTasks(worker.Worker) error
-	DecreaseActiveTasks(worker.Worker) error
+	SelectedWorker(lager.Logger, string)
 }
 
 // TaskStep executes a TaskConfig, whose inputs will be fetched from the
@@ -271,11 +268,14 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 		return false, err
 	}
 
+	delegate.SelectedWorker(logger, chosenWorker.Name())
+
 	defer func() {
-		err = delegate.DecreaseActiveTasks(chosenWorker.Worker())
-		if err != nil {
-			logger.Error("failed-to-decrease-active-tasks", err)
-		}
+		step.workerPool.ReleaseWorker(
+			lagerctx.NewContext(processCtx, logger),
+			chosenWorker,
+			step.strategy,
+		)
 	}()
 
 	result, runErr := chosenWorker.RunTaskStep(

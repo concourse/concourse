@@ -77,7 +77,10 @@ type Worker interface {
 	CreateVolume(logger lager.Logger, spec VolumeSpec, teamID int, volumeType db.VolumeType) (Volume, error)
 
 	GardenClient() gclient.Client
+
 	ActiveTasks() (int, error)
+	IncreaseActiveTasks() (int, error)
+	DecreaseActiveTasks() (int, error)
 
 	ActiveContainers() int
 	ActiveVolumes() int
@@ -782,10 +785,11 @@ insert_coin:
 func (worker *gardenWorker) ActiveTasks() (int, error) {
 	return worker.dbWorker.ActiveTasks()
 }
-func (worker *gardenWorker) IncreaseActiveTasks() error {
+
+func (worker *gardenWorker) IncreaseActiveTasks() (int, error) {
 	return worker.dbWorker.IncreaseActiveTasks()
 }
-func (worker *gardenWorker) DecreaseActiveTasks() error {
+func (worker *gardenWorker) DecreaseActiveTasks() (int, error) {
 	return worker.dbWorker.DecreaseActiveTasks()
 }
 

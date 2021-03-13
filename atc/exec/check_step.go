@@ -317,6 +317,16 @@ func (step *CheckStep) runCheck(
 		return worker.CheckResult{}, err
 	}
 
+	delegate.SelectedWorker(logger, chosenWorker.Name())
+
+	defer func() {
+		step.workerPool.ReleaseWorker(
+			lagerctx.NewContext(processCtx, logger),
+			chosenWorker,
+			step.strategy,
+		)
+	}()
+
 	return chosenWorker.RunCheckStep(
 		lagerctx.NewContext(processCtx, logger),
 		step.containerOwner(resourceConfig),
