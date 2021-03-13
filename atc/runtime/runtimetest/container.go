@@ -33,7 +33,7 @@ func (c Container) Run(ctx context.Context, spec runtime.ProcessSpec, io runtime
 	if !ok {
 		return nil, fmt.Errorf("must setup a ProcessStub for process %+v", spec)
 	}
-	return Process{ProcessStub: p, io: io}, nil
+	return &Process{ProcessStub: p, TTY: spec.TTY, io: io}, nil
 }
 
 func (c Container) Attach(ctx context.Context, spec runtime.ProcessSpec, io runtime.ProcessIO) (runtime.Process, error) {
@@ -42,7 +42,7 @@ func (c Container) Attach(ctx context.Context, spec runtime.ProcessSpec, io runt
 		return nil, fmt.Errorf("must setup a ProcessStub for process %+v", spec)
 	}
 	if p.Attachable {
-		return Process{ProcessStub: p, io: io}, nil
+		return &Process{ProcessStub: p, TTY: spec.TTY, io: io}, nil
 	}
 	return nil, fmt.Errorf("cannot attach to process %+v because Attachable was not set to true in the ProcessStub", spec)
 }

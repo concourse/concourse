@@ -43,10 +43,18 @@ func (p Process) Wait(ctx context.Context) (runtime.ProcessResult, error) {
 	}
 }
 
+func (p Process) SetTTY(tty runtime.TTYSpec) error {
+	return p.GardenProcess.SetTTY(toGardenTTYSpec(tty))
+}
+
 type ExitedProcess struct {
 	Result runtime.ProcessResult
 }
 
 func (p ExitedProcess) Wait(ctx context.Context) (runtime.ProcessResult, error) {
 	return p.Result, nil
+}
+
+func (p ExitedProcess) SetTTY(tty runtime.TTYSpec) error {
+	return nil
 }

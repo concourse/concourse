@@ -65,6 +65,17 @@ var _ = Describe("Garden Worker", func() {
 			)
 			Expect(err).ToNot(HaveOccurred())
 
+			By("validating the TTY can be overwritten at runtime", func() {
+				Expect(getTTY(process)).To(BeNil())
+				err := process.SetTTY(runtime.TTYSpec{
+					WindowSize: runtime.WindowSize{Columns: 100, Rows: 200},
+				})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(getTTY(process)).To(Equal(&garden.TTYSpec{
+					WindowSize: &garden.WindowSize{Columns: 100, Rows: 200},
+				}))
+			})
+
 			result, err := process.Wait(ctx)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(result.ExitStatus).To(Equal(0))
@@ -1122,4 +1133,8 @@ func findVolumeBy(worker runtime.Worker, pred func(*grt.Volume) bool) (*grt.Volu
 	}
 	Expect(volumes).To(HaveLen(1), "volume not uniquely specified")
 	return volumes[0], true
+}
+
+func getTTY(process runtime.Process) *garden.TTYSpec {
+	return process.(gardenruntime.Process).GardenProcess.(*grt.Process).Spec.TTY
 }

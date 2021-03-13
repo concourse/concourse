@@ -19,10 +19,11 @@ type ProcessStub struct {
 
 type Process struct {
 	ProcessStub
-	io runtime.ProcessIO
+	TTY *runtime.TTYSpec
+	io  runtime.ProcessIO
 }
 
-func (p Process) Wait(ctx context.Context) (runtime.ProcessResult, error) {
+func (p *Process) Wait(ctx context.Context) (runtime.ProcessResult, error) {
 	if p.Err != "" {
 		return runtime.ProcessResult{}, errors.New(p.Err)
 	}
@@ -34,4 +35,9 @@ func (p Process) Wait(ctx context.Context) (runtime.ProcessResult, error) {
 	}
 	json.NewEncoder(p.io.Stdout).Encode(p.Output)
 	return runtime.ProcessResult{ExitStatus: 0}, nil
+}
+
+func (p *Process) SetTTY(tty runtime.TTYSpec) error {
+	p.TTY = &tty
+	return nil
 }

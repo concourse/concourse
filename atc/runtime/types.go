@@ -91,6 +91,7 @@ type ProcessSpec struct {
 	Args []string
 	Dir  string
 	User string
+	TTY  *TTYSpec
 }
 
 func (p ProcessSpec) ID() int {
@@ -102,6 +103,15 @@ func (p ProcessSpec) ID() int {
 	return int(adler32.Checksum(buf.Bytes()))
 }
 
+type TTYSpec struct {
+	WindowSize WindowSize
+}
+
+type WindowSize struct {
+	Columns int
+	Rows    int
+}
+
 type ProcessIO struct {
 	Stdin  io.Reader
 	Stdout io.Writer
@@ -110,6 +120,7 @@ type ProcessIO struct {
 
 type Process interface {
 	Wait(context.Context) (ProcessResult, error)
+	SetTTY(tty TTYSpec) error
 }
 
 type ProcessResult struct {

@@ -296,7 +296,10 @@ func (p *Process) WriteStdout(data []byte) {
 		io.Stdout.Write(data)
 	}
 }
-func (p Process) SetTTY(_ garden.TTYSpec) error { return nil }
+func (p *Process) SetTTY(tty garden.TTYSpec) error {
+	p.Spec.TTY = &tty
+	return nil
+}
 func (p *Process) Signal(sig garden.Signal) error {
 	p.StopSignal = &sig
 	return nil

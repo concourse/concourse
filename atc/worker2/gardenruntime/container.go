@@ -61,17 +61,26 @@ func toGardenProcessSpec(spec runtime.ProcessSpec, properties garden.Properties)
 	if user == "" {
 		user = properties[userPropertyName]
 	}
+	var tty *garden.TTYSpec
+	if spec.TTY != nil {
+		spec := toGardenTTYSpec(*spec.TTY)
+		tty = &spec
+	}
 	return garden.ProcessSpec{
 		ID:   strconv.Itoa(spec.ID()),
 		Path: spec.Path,
 		Args: spec.Args,
 		Dir:  spec.Dir,
 		User: user,
+		TTY:  tty,
+	}
+}
 
-		// Guardian sets the default TTY window size to width: 80, height: 24,
-		// which creates ANSI control sequences that do not work with other window sizes
-		TTY: &garden.TTYSpec{
-			WindowSize: &garden.WindowSize{Columns: 500, Rows: 500},
+func toGardenTTYSpec(tty runtime.TTYSpec) garden.TTYSpec {
+	return garden.TTYSpec{
+		WindowSize: &garden.WindowSize{
+			Columns: tty.WindowSize.Columns,
+			Rows:    tty.WindowSize.Rows,
 		},
 	}
 }

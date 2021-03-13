@@ -283,6 +283,14 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 			Args: config.Run.Args,
 			Dir:  config.Run.Dir,
 			User: config.Run.User,
+			// Guardian sets the default TTY window size to width: 80, height: 24,
+			// which creates ANSI control sequences that do not work with other window sizes
+			TTY: &runtime.TTYSpec{
+				WindowSize: runtime.WindowSize{
+					Columns: 500,
+					Rows:    500,
+				},
+			},
 		},
 		runtime.ProcessIO{
 			Stdout: delegate.Stdout(),
