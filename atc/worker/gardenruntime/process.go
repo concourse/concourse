@@ -16,6 +16,10 @@ type Process struct {
 	GardenProcess   garden.Process
 }
 
+func (p Process) ID() string {
+	return p.GardenProcess.ID()
+}
+
 func (p Process) Wait(ctx context.Context) (runtime.ProcessResult, error) {
 	type result struct {
 		exitStatus int
@@ -48,7 +52,12 @@ func (p Process) SetTTY(tty runtime.TTYSpec) error {
 }
 
 type ExitedProcess struct {
+	id     string
 	Result runtime.ProcessResult
+}
+
+func (p ExitedProcess) ID() string {
+	return p.id
 }
 
 func (p ExitedProcess) Wait(ctx context.Context) (runtime.ProcessResult, error) {

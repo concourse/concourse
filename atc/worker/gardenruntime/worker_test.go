@@ -160,6 +160,7 @@ var _ = Describe("Garden Worker", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		processSpec := runtime.ProcessSpec{
+			ID:   "process",
 			Path: "sleep-and-echo",
 			Args: []string{"200ms", "hello world"},
 		}
@@ -168,12 +169,13 @@ var _ = Describe("Garden Worker", func() {
 
 			runProcess, err := container.Run(ctx, processSpec, runtime.ProcessIO{Stdout: runBuf})
 			Expect(err).ToNot(HaveOccurred())
+			Expect(runProcess.ID()).To(Equal("process"))
 
 			Eventually(gardenContainer(container).NumProcesses).Should(Equal(1))
 
 			By("attaching to the running process", func() {
 				attachBuf := new(bytes.Buffer)
-				attachProcess, err := container.Attach(ctx, processSpec, runtime.ProcessIO{Stdout: attachBuf})
+				attachProcess, err := container.Attach(ctx, "process", runtime.ProcessIO{Stdout: attachBuf})
 				Expect(err).ToNot(HaveOccurred())
 
 				runResult, err := runProcess.Wait(ctx)
@@ -191,7 +193,7 @@ var _ = Describe("Garden Worker", func() {
 
 		By("attaching to that process after it's exited", func() {
 			attachBuf := new(bytes.Buffer)
-			process, err := container.Attach(ctx, processSpec, runtime.ProcessIO{Stdout: attachBuf})
+			process, err := container.Attach(ctx, "process", runtime.ProcessIO{Stdout: attachBuf})
 			Expect(err).ToNot(HaveOccurred())
 
 			result, err := process.Wait(ctx)

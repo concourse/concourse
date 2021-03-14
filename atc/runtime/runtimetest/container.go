@@ -10,7 +10,7 @@ import (
 )
 
 type Container struct {
-	Processes    map[int]ProcessStub
+	Processes    map[string]ProcessStub
 	Props        map[string]string
 	DBContainer_ *dbfakes.FakeCreatedContainer
 }
@@ -18,7 +18,7 @@ type Container struct {
 func NewContainer() Container {
 	dbContainer := new(dbfakes.FakeCreatedContainer)
 	return Container{
-		Processes:    make(map[int]ProcessStub),
+		Processes:    make(map[string]ProcessStub),
 		Props:        make(map[string]string),
 		DBContainer_: dbContainer,
 	}
@@ -26,7 +26,7 @@ func NewContainer() Container {
 
 func (c Container) WithProcess(spec runtime.ProcessSpec, stub ProcessStub) Container {
 	stubs := cloneProcs(c.Processes)
-	stubs[spec.ID()] = stub
+	stubs[spec.ID] = stub
 	return Container{
 		Processes: stubs,
 		Props:     cloneProps(c.Props),
@@ -34,22 +34,22 @@ func (c Container) WithProcess(spec runtime.ProcessSpec, stub ProcessStub) Conta
 }
 
 func (c Container) Run(ctx context.Context, spec runtime.ProcessSpec, io runtime.ProcessIO) (runtime.Process, error) {
-	p, ok := c.Processes[spec.ID()]
+	p, ok := c.Processes[spec.ID]
 	if !ok {
-		return nil, fmt.Errorf("must setup a ProcessStub for process %+v", spec)
+		return nil, fmt.Errorf("must setup a ProcessStub for process %q (%+v)", spec.ID, spec)
 	}
-	return &Process{ProcessStub: p, TTY: spec.TTY, io: io}, nil
+	return &Process{id: spec.ID, ProcessStub: p, TTY: spec.TTY, io: io}, nil
 }
 
-func (c Container) Attach(ctx context.Context, spec runtime.ProcessSpec, io runtime.ProcessIO) (runtime.Process, error) {
-	p, ok := c.Processes[spec.ID()]
+func (c Container) Attach(ctx context.Context, id string, io runtime.ProcessIO) (runtime.Process, error) {
+	p, ok := c.Processes[id]
 	if !ok {
-		return nil, fmt.Errorf("must setup a ProcessStub for process %+v", spec)
+		return nil, fmt.Errorf("must setup a ProcessStub for process %q", id)
 	}
 	if p.Attachable {
-		return &Process{ProcessStub: p, TTY: spec.TTY, io: io}, nil
+		return &Process{ProcessStub: p, io: io}, nil
 	}
-	return nil, fmt.Errorf("cannot attach to process %+v because Attachable was not set to true in the ProcessStub", spec)
+	return nil, fmt.Errorf("cannot attach to process %q because Attachable was not set to true in the ProcessStub", id)
 }
 
 func (c Container) Properties() (map[string]string, error) {
@@ -65,8 +65,8 @@ func (c Container) DBContainer() db.CreatedContainer {
 	return c.DBContainer_
 }
 
-func cloneProcs(m map[int]ProcessStub) map[int]ProcessStub {
-	m2 := make(map[int]ProcessStub, len(m))
+func cloneProcs(m map[string]ProcessStub) map[string]ProcessStub {
+	m2 := make(map[string]ProcessStub, len(m))
 	for k, v := range m {
 		m2[k] = v
 	}

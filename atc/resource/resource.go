@@ -13,6 +13,7 @@ import (
 	"github.com/concourse/concourse/atc/runtime"
 )
 
+const resourceProcessID = "resource"
 const resultCachePropertyName = "concourse:resource-result"
 
 type VersionResult struct {
@@ -59,6 +60,7 @@ func (resource Resource) Get(ctx context.Context, container runtime.Container, s
 	}
 
 	spec := runtime.ProcessSpec{
+		ID:   resourceProcessID,
 		Path: "/opt/resource/in",
 		Args: []string{ResourcesDir("get")},
 	}
@@ -91,6 +93,7 @@ func (resource Resource) Put(ctx context.Context, container runtime.Container, s
 	}
 
 	spec := runtime.ProcessSpec{
+		ID:   resourceProcessID,
 		Path: "/opt/resource/out",
 		Args: []string{ResourcesDir("put")},
 	}
@@ -111,7 +114,7 @@ func (resource Resource) Put(ctx context.Context, container runtime.Container, s
 }
 
 func attachOrRun(ctx context.Context, container runtime.Container, spec runtime.ProcessSpec, io runtime.ProcessIO) (runtime.Process, error) {
-	process, err := container.Attach(ctx, spec, io)
+	process, err := container.Attach(ctx, spec.ID, io)
 	if err == nil {
 		return process, nil
 	}

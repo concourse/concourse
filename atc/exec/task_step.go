@@ -21,6 +21,8 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+const taskProcessID = "task"
+
 // MissingInputsError is returned when any of the task's required inputs are
 // missing.
 type MissingInputsError struct {
@@ -278,6 +280,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 		ctx,
 		container,
 		runtime.ProcessSpec{
+			ID:   taskProcessID,
 			Path: config.Run.Path,
 			Args: config.Run.Args,
 			Dir:  resolvePath(step.containerMetadata.WorkingDirectory, config.Run.Dir),
@@ -325,7 +328,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 }
 
 func attachOrRun(ctx context.Context, container runtime.Container, spec runtime.ProcessSpec, io runtime.ProcessIO) (runtime.Process, error) {
-	process, err := container.Attach(ctx, spec, io)
+	process, err := container.Attach(ctx, taskProcessID, io)
 	if err == nil {
 		return process, nil
 	}

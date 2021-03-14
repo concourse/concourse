@@ -78,6 +78,7 @@ func TestResourceGet(t *testing.T) {
 	}
 	ctx := context.Background()
 	expectedSpec := runtime.ProcessSpec{
+		ID:   "resource",
 		Path: "/opt/resource/in",
 		Args: []string{"/tmp/build/get"},
 	}
@@ -205,6 +206,7 @@ func TestResourcePut(t *testing.T) {
 	}
 	ctx := context.Background()
 	expectedSpec := runtime.ProcessSpec{
+		ID:   resourceProcessID,
 		Path: "/opt/resource/out",
 		Args: []string{"/tmp/build/put"},
 	}

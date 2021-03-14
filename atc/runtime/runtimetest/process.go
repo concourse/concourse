@@ -19,8 +19,13 @@ type ProcessStub struct {
 
 type Process struct {
 	ProcessStub
+	id  string
 	TTY *runtime.TTYSpec
 	io  runtime.ProcessIO
+}
+
+func (p Process) ID() string {
+	return p.id
 }
 
 func (p *Process) Wait(ctx context.Context) (runtime.ProcessResult, error) {

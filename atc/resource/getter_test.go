@@ -185,6 +185,7 @@ func containerFactory(process runtimetest.ProcessStub) (func(context.Context) (r
 		return runtimetest.NewContainer().
 				WithProcess(
 					runtime.ProcessSpec{
+						ID:   "resource",
 						Path: "/opt/resource/in",
 						Args: []string{"/tmp/build/get"},
 					},

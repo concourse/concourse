@@ -65,16 +65,16 @@ func (c Container) Run(ctx context.Context, spec runtime.ProcessSpec, io runtime
 	return Process{GardenContainer: c.GardenContainer, GardenProcess: process}, nil
 }
 
-func (c Container) Attach(ctx context.Context, spec runtime.ProcessSpec, io runtime.ProcessIO) (runtime.Process, error) {
+func (c Container) Attach(ctx context.Context, id string, io runtime.ProcessIO) (runtime.Process, error) {
 	properties, _ := c.GardenContainer.Properties()
 	statusStr, ok := properties[exitStatusPropertyName]
 	if ok {
 		if status, err := strconv.Atoi(statusStr); err == nil {
-			return ExitedProcess{Result: runtime.ProcessResult{ExitStatus: status}}, nil
+			return ExitedProcess{id: id, Result: runtime.ProcessResult{ExitStatus: status}}, nil
 		}
 	}
 
-	process, err := c.GardenContainer.Attach(ctx, strconv.Itoa(spec.ID()), toGardenProcessIO(io))
+	process, err := c.GardenContainer.Attach(ctx, id, toGardenProcessIO(io))
 	if err != nil {
 		return nil, fmt.Errorf("start process: %w", err)
 	}
@@ -101,7 +101,7 @@ func toGardenProcessSpec(spec runtime.ProcessSpec, properties garden.Properties)
 		tty = &spec
 	}
 	return garden.ProcessSpec{
-		ID:   strconv.Itoa(spec.ID()),
+		ID:   spec.ID,
 		Path: spec.Path,
 		Args: spec.Args,
 		Env:  spec.Env,

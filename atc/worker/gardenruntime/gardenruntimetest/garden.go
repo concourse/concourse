@@ -11,6 +11,7 @@ import (
 
 	"code.cloudfoundry.org/garden"
 	"github.com/concourse/concourse/atc/worker/gclient"
+	uuid "github.com/nu7hatch/gouuid"
 )
 
 type Garden struct {
@@ -166,7 +167,13 @@ func (c *Container) Run(ctx context.Context, spec garden.ProcessSpec, io garden.
 	defer c.processMtx.Unlock()
 
 	if spec.ID == "" {
-		return nil, errors.New("spec.ID should be set (deterministically), but was unset")
+		spec.ID = generateID()
+	}
+
+	for _, proc := range c.Processes {
+		if proc.ID() == spec.ID {
+			return nil, fmt.Errorf("process ID already in use: %q", spec.ID)
+		}
 	}
 
 	if spec.Path == "exe-not-found" {
@@ -307,4 +314,12 @@ func (p *Process) SetTTY(tty garden.TTYSpec) error {
 func (p *Process) Signal(sig garden.Signal) error {
 	p.StopSignal = &sig
 	return nil
+}
+
+func generateID() string {
+	uuid, err := uuid.NewV4()
+	if err != nil {
+		panic(err)
+	}
+	return uuid.String()
 }
