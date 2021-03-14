@@ -234,7 +234,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 	owner := db.NewBuildStepContainerOwner(step.metadata.BuildID, step.planID, step.metadata.TeamID)
 
 	worker, err := step.workerPool.FindOrSelectWorker(
-		processCtx,
+		ctx,
 		owner,
 		containerSpec,
 		step.workerSpec(config),
@@ -254,7 +254,6 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 		)
 	}()
 
-	processCtx := ctx
 	if step.plan.Timeout != "" {
 		timeout, err := time.ParseDuration(step.plan.Timeout)
 		if err != nil {
@@ -262,21 +261,21 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 		}
 
 		var cancel func()
-		processCtx, cancel = context.WithTimeout(ctx, timeout)
+		ctx, cancel = context.WithTimeout(ctx, timeout)
 		defer cancel()
 	}
-	processCtx = lagerctx.NewContext(processCtx, logger)
+	ctx = lagerctx.NewContext(ctx, logger)
 
 	delegate.SelectedWorker(logger, worker.Name())
 
-	container, volumeMounts, err := worker.FindOrCreateContainer(processCtx, owner, step.containerMetadata, containerSpec)
+	container, volumeMounts, err := worker.FindOrCreateContainer(ctx, owner, step.containerMetadata, containerSpec)
 	if err != nil {
 		return false, err
 	}
 
 	delegate.Starting(logger)
 	process, err := attachOrRun(
-		processCtx,
+		ctx,
 		container,
 		runtime.ProcessSpec{
 			Path: config.Run.Path,
