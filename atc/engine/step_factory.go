@@ -10,7 +10,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/resource"
-	worker "github.com/concourse/concourse/atc/worker2"
+	"github.com/concourse/concourse/atc/worker"
 )
 
 type coreStepFactory struct {

@@ -4,7 +4,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/runtime"
-	worker "github.com/concourse/concourse/atc/worker2"
+	"github.com/concourse/concourse/atc/worker"
 )
 
 type Pool interface {

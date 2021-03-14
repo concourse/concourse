@@ -15,7 +15,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/runtime"
-	worker "github.com/concourse/concourse/atc/worker2"
+	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
 	"go.opentelemetry.io/otel/trace"

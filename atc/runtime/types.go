@@ -11,6 +11,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/compression"
 	"github.com/concourse/concourse/atc/db"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 type Worker interface {
@@ -72,8 +73,10 @@ type ContainerSpec struct {
 	CertsBindMount bool
 }
 
-// The below methods cause ContainerSpec to fulfill the
-// go.opentelemetry.io/otel/api/propagation.HTTPSupplier interface
+// ContainerSpec must implement propagation.TextMapCarrier so that it can be
+// used to pass tracing metadata to the containers via env vars (specifically,
+// the TRACEPARENT var)
+var _ propagation.TextMapCarrier = new(ContainerSpec)
 
 func (cs *ContainerSpec) Get(key string) string {
 	for _, env := range cs.Env {
@@ -95,6 +98,20 @@ func (cs *ContainerSpec) Set(key string, value string) {
 		}
 	}
 	cs.Env = append(cs.Env, envVar)
+}
+
+func (cs *ContainerSpec) Keys() []string {
+	// this implementation isn't technically correct - it gives all environment
+	// vars as the list of keys (rather than just those set by Set), and it
+	// assumes the original keys were all lowercased). from what I can tell,
+	// though, this Keys method isn't currently even used, so this doesn't
+	// matter right now (but may in the future...)
+	keys := make([]string, len(cs.Env))
+	for i, env := range cs.Env {
+		envName := strings.SplitN("=", env, 2)[0]
+		keys[i] = strings.ToLower(envName)
+	}
+	return keys
 }
 
 type ProcessSpec struct {

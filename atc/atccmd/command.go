@@ -47,7 +47,7 @@ import (
 	"github.com/concourse/concourse/atc/scheduler"
 	"github.com/concourse/concourse/atc/scheduler/algorithm"
 	"github.com/concourse/concourse/atc/syslog"
-	worker "github.com/concourse/concourse/atc/worker2"
+	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/wrappa"
 	"github.com/concourse/concourse/skymarshal/dexserver"
 	"github.com/concourse/concourse/skymarshal/legacyserver"

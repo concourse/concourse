@@ -15,7 +15,7 @@ import (
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/runtime"
-	worker "github.com/concourse/concourse/atc/worker2"
+	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"
 )
 

@@ -29,7 +29,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/gc"
 	"github.com/concourse/concourse/atc/mainredirect"
-	worker "github.com/concourse/concourse/atc/worker2"
+	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/wrappa"
 	"github.com/tedsuo/rata"
 )

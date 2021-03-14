@@ -7,7 +7,7 @@ import (
 	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/compression"
 	"github.com/concourse/concourse/atc/db"
-	worker "github.com/concourse/concourse/atc/worker2"
+	"github.com/concourse/concourse/atc/worker"
 )
 
 func (s *Server) CreateArtifact(team db.Team) http.Handler {
