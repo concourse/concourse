@@ -469,21 +469,22 @@ var _ = Describe("Garden Worker", func() {
 	})
 
 	Test("input and output volumes", func() {
-		localInputVolume := grt.NewVolume("local-input")
+		localInputVolume1 := grt.NewVolume("local-input1")
+		localInputVolume2 := grt.NewVolume("local-input2")
 		remoteInputVolume := grt.NewVolume("remote-input").WithContent(fstest.MapFS{
 			"file1": {Data: []byte("content")},
 		})
 		scenario := Setup(
 			workertest.WithWorkers(
 				grt.NewWorker("worker1").
-					WithVolumesCreatedInDBAndBaggageclaim(localInputVolume),
+					WithVolumesCreatedInDBAndBaggageclaim(localInputVolume1, localInputVolume2),
 				grt.NewWorker("worker2").
 					WithVolumesCreatedInDBAndBaggageclaim(remoteInputVolume),
 			),
 		)
 		worker := scenario.Worker("worker1")
 
-		_, volumeMounts, err := worker.FindOrCreateContainer(
+		container, volumeMounts, err := worker.FindOrCreateContainer(
 			ctx,
 			db.NewFixedHandleContainerOwner("my-handle"),
 			db.ContainerMetadata{},
@@ -494,8 +495,12 @@ var _ = Describe("Garden Worker", func() {
 				Dir: "/workdir",
 				Inputs: []runtime.Input{
 					{
-						VolumeHandle:    localInputVolume.Handle(),
+						VolumeHandle:    localInputVolume1.Handle(),
 						DestinationPath: "/local-input",
+					},
+					{
+						VolumeHandle:    localInputVolume2.Handle(),
+						DestinationPath: "/local-input/sub-input",
 					},
 					{
 						VolumeHandle:    remoteInputVolume.Handle(),
@@ -509,16 +514,33 @@ var _ = Describe("Garden Worker", func() {
 		)
 		Expect(err).ToNot(HaveOccurred())
 
-		Expect(volumeMountMap(volumeMounts)).To(consistOfMap(expectMap{
-			"/scratch":     grt.HaveStrategy(baggageclaim.EmptyStrategy{}),
-			"/workdir":     grt.HaveStrategy(baggageclaim.EmptyStrategy{}),
-			"/local-input": grt.HaveStrategy(baggageclaim.COWStrategy{Parent: localInputVolume}),
+		volumeMountMap := volumeMountMap(volumeMounts)
+		Expect(volumeMountMap).To(consistOfMap(expectMap{
+			"/scratch":               grt.HaveStrategy(baggageclaim.EmptyStrategy{}),
+			"/workdir":               grt.HaveStrategy(baggageclaim.EmptyStrategy{}),
+			"/local-input":           grt.HaveStrategy(baggageclaim.COWStrategy{Parent: localInputVolume1}),
+			"/local-input/sub-input": grt.HaveStrategy(baggageclaim.COWStrategy{Parent: localInputVolume2}),
 			"/remote-input": SatisfyAll(
 				grt.HaveStrategy(baggageclaim.EmptyStrategy{}),
 				grt.HaveContent(remoteInputVolume.Content),
 			),
 			"/output": grt.HaveStrategy(baggageclaim.EmptyStrategy{}),
 		}))
+
+		By("validating the IO mounts are sorted by path and appear after the scratch/workdir mounts", func() {
+			var bindMountPaths []string
+			for _, mnt := range gardenContainer(container).Spec.BindMounts {
+				bindMountPaths = append(bindMountPaths, mnt.DstPath)
+			}
+			Expect(bindMountPaths).To(Equal([]string{
+				"/scratch",
+				"/workdir",
+				"/local-input",
+				"/local-input/sub-input",
+				"/output",
+				"/remote-input",
+			}))
+		})
 	})
 
 	Test("input volume from resource cache on same worker", func() {

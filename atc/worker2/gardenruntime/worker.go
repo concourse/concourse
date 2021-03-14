@@ -356,13 +356,9 @@ func (worker *Worker) createVolumes(
 	ioVolumeMounts := append(inputVolumeMounts, outputVolumeMounts...)
 	ioVolumeMounts = append(ioVolumeMounts, cacheVolumeMounts...)
 
-	sort.Sort(byMountPath(ioVolumeMounts))
-
-	volumeMounts = append(volumeMounts, ioVolumeMounts...)
-
 	// if the working dir is already mounted, we can just re-use that volume.
 	// otherwise, we must create a new empty volume
-	if !anyMountTo(spec.Dir, volumeMounts) {
+	if !anyMountTo(spec.Dir, ioVolumeMounts) {
 		workdirVolume, err := worker.findOrCreateVolumeForContainer(
 			logger,
 			baggageclaim.VolumeSpec{
@@ -382,6 +378,9 @@ func (worker *Worker) createVolumes(
 			MountPath: spec.Dir,
 		})
 	}
+
+	sort.Sort(byMountPath(ioVolumeMounts))
+	volumeMounts = append(volumeMounts, ioVolumeMounts...)
 
 	return volumeMounts, nil
 }
