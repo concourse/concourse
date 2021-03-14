@@ -18,6 +18,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
+	"github.com/concourse/concourse/atc/runtime"
 	. "github.com/concourse/concourse/atc/testhelpers"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 	"github.com/gorilla/websocket"
@@ -734,6 +735,27 @@ var _ = Describe("Containers API", func() {
 
 								expectedHijackOutput := atc.HijackOutput{
 									Error: containerRunError.Error(),
+								}
+
+								var hijackOutput atc.HijackOutput
+								err := conn.ReadJSON(&hijackOutput)
+								Expect(err).ToNot(HaveOccurred())
+								Expect(hijackOutput).To(Equal(expectedHijackOutput))
+							})
+						})
+
+						Context("when running the process fails because the executable is not found", func() {
+							var containerRunError = fmt.Errorf("failed to run process: %w", runtime.ExecutableNotFoundError{})
+
+							BeforeEach(func() {
+								fakeContainer.RunReturns(nil, containerRunError)
+							})
+
+							It("indicates the executable was not found", func() {
+								Eventually(fakeContainer.RunCallCount).Should(Equal(1))
+
+								expectedHijackOutput := atc.HijackOutput{
+									ExecutableNotFound: true,
 								}
 
 								var hijackOutput atc.HijackOutput

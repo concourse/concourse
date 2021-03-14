@@ -2,12 +2,12 @@ package containerserver
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"time"
 
-	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor"
@@ -229,7 +229,7 @@ func (s *Server) hijack(ctx context.Context, hLog lager.Logger, conn *websocket.
 		Stderr: errW,
 	})
 	if err != nil {
-		if _, ok := err.(garden.ExecutableNotFoundError); ok {
+		if errors.As(err, &runtime.ExecutableNotFoundError{}) {
 			hLog.Info("executable-not-found")
 
 			_ = conn.WriteJSON(atc.HijackOutput{

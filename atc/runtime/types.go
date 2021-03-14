@@ -23,7 +23,12 @@ type Worker interface {
 }
 
 type Container interface {
+	// Run starts a Process on the Container. If the executable (defined in
+	// ProcessSpec) does not exist, an ExecutableNotFound error must be
+	// returned.
 	Run(context.Context, ProcessSpec, ProcessIO) (Process, error)
+	// Attach attempts to attach to an existing process that was defined by the
+	// ProcessSpec.
 	Attach(context.Context, ProcessSpec, ProcessIO) (Process, error)
 
 	Properties() (map[string]string, error)

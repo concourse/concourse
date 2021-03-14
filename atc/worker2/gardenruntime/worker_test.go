@@ -3,6 +3,7 @@ package gardenruntime_test
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"testing/fstest"
 	"time"
@@ -198,6 +199,39 @@ var _ = Describe("Garden Worker", func() {
 
 			Expect(result.ExitStatus).To(Equal(0))
 			Expect(attachBuf.Len()).To(Equal(0))
+		})
+	})
+
+	Test("reports executable not found error", func() {
+		scenario := Setup(
+			workertest.WithWorkers(
+				grt.NewWorker("worker"),
+			),
+		)
+		worker := scenario.Worker("worker")
+
+		container, _, err := worker.FindOrCreateContainer(
+			ctx,
+			db.NewFixedHandleContainerOwner("my-handle"),
+			db.ContainerMetadata{},
+			runtime.ContainerSpec{
+				Dir: "/workdir",
+				ImageSpec: runtime.ImageSpec{
+					ImageURL: "raw:///img/rootfs",
+				},
+			},
+		)
+		Expect(err).ToNot(HaveOccurred())
+
+		By("running a process on that container with a missing executable", func() {
+			_, err := container.Run(
+				ctx,
+				runtime.ProcessSpec{
+					Path: "exe-not-found",
+				},
+				runtime.ProcessIO{},
+			)
+			Expect(errors.As(err, &runtime.ExecutableNotFoundError{})).To(BeTrue())
 		})
 	})
 

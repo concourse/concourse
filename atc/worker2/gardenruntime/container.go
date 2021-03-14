@@ -55,6 +55,10 @@ func (c Container) Run(ctx context.Context, spec runtime.ProcessSpec, io runtime
 	}
 	process, err := c.GardenContainer.Run(ctx, toGardenProcessSpec(spec, properties), toGardenProcessIO(io))
 	if err != nil {
+		var exeNotFound garden.ExecutableNotFoundError
+		if errors.As(err, &exeNotFound) {
+			return nil, runtime.ExecutableNotFoundError{Message: exeNotFound.Message}
+		}
 		return nil, fmt.Errorf("start process: %w", err)
 	}
 

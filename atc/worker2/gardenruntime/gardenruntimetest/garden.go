@@ -169,6 +169,10 @@ func (c *Container) Run(ctx context.Context, spec garden.ProcessSpec, io garden.
 		return nil, errors.New("spec.ID should be set (deterministically), but was unset")
 	}
 
+	if spec.Path == "exe-not-found" {
+		return nil, garden.ExecutableNotFoundError{Message: "exe not found (because Path was 'exe-not-found')"}
+	}
+
 	proc := NewProcess(spec.ID, spec)
 	proc.AddIO(io)
 
