@@ -53,7 +53,7 @@ func TestResourceCheck(t *testing.T) {
 				},
 			)
 		_, _, err := resource.Check(ctx, container, new(bytes.Buffer))
-		require.Error(t, err)
+		require.EqualError(t, err, "failed")
 	})
 
 	t.Run("non-zero exit status", func(t *testing.T) {
@@ -164,7 +164,7 @@ func TestResourceGet(t *testing.T) {
 				},
 			)
 		_, _, err := resource.Get(ctx, container, new(bytes.Buffer))
-		require.Error(t, err)
+		require.EqualError(t, err, "failed")
 	})
 
 	t.Run("non-zero exit status", func(t *testing.T) {
@@ -304,7 +304,7 @@ func TestResourcePut(t *testing.T) {
 				},
 			)
 		_, _, err := resource.Put(ctx, container, new(bytes.Buffer))
-		require.Error(t, err)
+		require.EqualError(t, err, "failed")
 	})
 
 	t.Run("non-zero exit status", func(t *testing.T) {

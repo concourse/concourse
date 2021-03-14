@@ -146,6 +146,9 @@ func (resource Resource) run(ctx context.Context, container runtime.Container, s
 	}
 
 	result, err := process.Wait(ctx)
+	if err != nil {
+		return runtime.ProcessResult{}, err
+	}
 	if result.ExitStatus != 0 {
 		return result, nil
 	}
