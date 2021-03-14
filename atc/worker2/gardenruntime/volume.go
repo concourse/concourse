@@ -3,6 +3,7 @@ package gardenruntime
 import (
 	"context"
 	"io"
+	"path/filepath"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -47,6 +48,8 @@ func (v Volume) InitializeResourceCache(logger lager.Logger, cache db.UsedResour
 }
 
 func (v Volume) InitializeTaskCache(logger lager.Logger, jobID int, stepName string, path string, privileged bool) error {
+	path = filepath.Clean(path)
+
 	if v.dbVolume.ParentHandle() == "" {
 		return v.dbVolume.InitializeTaskCache(jobID, stepName, path)
 	}

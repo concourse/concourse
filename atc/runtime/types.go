@@ -42,7 +42,7 @@ type ContainerSpec struct {
 	Env       []string
 	Type      db.ContainerType
 
-	// Working directory for processes run in the container.
+	// Working directory for processes run in the container. Must be an absolute path.
 	Dir string
 
 	// Inputs to provide to the container. Inputs with a volume local to the
@@ -50,9 +50,10 @@ type ContainerSpec struct {
 	// streamed.
 	Inputs []Input
 
-	// List cached container paths to mount to the volume if already present on
-	// the worker.
-	// TODO: This should replace exec.TaskStep.registerCaches.
+	// List of cached container paths to re-mount to the volume. If the cached
+	// volume doesn't yet exist, an empty volume should be mounted.
+	//
+	// Paths may be relative (to Dir) or absolute.
 	Caches []string
 
 	// Outputs for which volumes should be created and mounted into the container.

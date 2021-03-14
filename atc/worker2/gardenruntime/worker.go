@@ -586,10 +586,17 @@ func (worker *Worker) cloneCacheVolumes(
 	mounts := make([]runtime.VolumeMount, len(spec.Caches))
 
 	for i, cachePath := range spec.Caches {
+		cachePath = filepath.Clean(cachePath)
+
 		// TODO: skip over cache if path already used?
 		volume, found, err := worker.findVolumeForTaskCache(logger, spec.TeamID, spec.JobID, spec.StepName, cachePath)
 		if err != nil {
 			return nil, err
+		}
+
+		mountPath := cachePath
+		if !filepath.IsAbs(cachePath) {
+			mountPath = filepath.Join(spec.Dir, cachePath)
 		}
 
 		var mountedVolume Volume
@@ -602,7 +609,7 @@ func (worker *Worker) cloneCacheVolumes(
 				container,
 				volume,
 				spec.TeamID,
-				cachePath,
+				mountPath,
 			)
 			if err != nil {
 				return nil, err
@@ -619,7 +626,7 @@ func (worker *Worker) cloneCacheVolumes(
 				},
 				container,
 				spec.TeamID,
-				cachePath,
+				mountPath,
 			)
 			if err != nil {
 				return nil, err
@@ -627,7 +634,7 @@ func (worker *Worker) cloneCacheVolumes(
 		}
 
 		mounts[i] = runtime.VolumeMount{
-			MountPath: cachePath,
+			MountPath: mountPath,
 			Volume:    mountedVolume,
 		}
 	}

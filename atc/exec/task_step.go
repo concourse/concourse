@@ -281,7 +281,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 		runtime.ProcessSpec{
 			Path: config.Run.Path,
 			Args: config.Run.Args,
-			Dir:  config.Run.Dir,
+			Dir:  resolvePath(step.containerMetadata.WorkingDirectory, config.Run.Dir),
 			User: config.Run.User,
 			// Guardian sets the default TTY window size to width: 80, height: 24,
 			// which creates ANSI control sequences that do not work with other window sizes
@@ -468,8 +468,8 @@ func (step *TaskStep) registerOutputs(logger lager.Logger, repository *build.Rep
 func (step *TaskStep) registerCaches(logger lager.Logger, repository *build.Repository, config atc.TaskConfig, volumeMounts []runtime.VolumeMount, metadata db.ContainerMetadata) error {
 	for _, cacheConfig := range config.Caches {
 		for _, volumeMount := range volumeMounts {
-			cachePath := filepath.Join(metadata.WorkingDirectory, cacheConfig.Path)
-			if filepath.Clean(volumeMount.MountPath) == filepath.Clean(cachePath) {
+			mountPath := resolvePath(metadata.WorkingDirectory, cacheConfig.Path)
+			if filepath.Clean(volumeMount.MountPath) == mountPath {
 				logger.Debug("initializing-cache", lager.Data{
 					"cache": cacheConfig.Path,
 				})
@@ -492,11 +492,18 @@ func (step *TaskStep) registerCaches(logger lager.Logger, repository *build.Repo
 	return nil
 }
 
-func artifactPath(artifactsRoot string, name string, path string) string {
+func artifactPath(workingDir string, name string, path string) string {
 	subdir := path
 	if path == "" {
 		subdir = name
 	}
 
-	return filepath.Join(artifactsRoot, subdir)
+	return resolvePath(workingDir, subdir)
+}
+
+func resolvePath(workingDir string, path string) string {
+	if filepath.IsAbs(path) {
+		return path
+	}
+	return filepath.Join(workingDir, path)
 }

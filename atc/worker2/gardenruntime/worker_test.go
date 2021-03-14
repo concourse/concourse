@@ -626,11 +626,11 @@ var _ = Describe("Garden Worker", func() {
 		)
 
 		origCacheHitVol := scenario.WorkerVolume("worker", "previous-cache-1").(gardenruntime.Volume)
-		err := origCacheHitVol.InitializeTaskCache(logger, scenario.JobID, scenario.StepName, "/cache-hit", false)
+		err := origCacheHitVol.InitializeTaskCache(logger, scenario.JobID, scenario.StepName, "cache-hit", false)
 		Expect(err).ToNot(HaveOccurred())
 
 		origWorkdirCacheVol := scenario.WorkerVolume("worker", "previous-cache-2").(gardenruntime.Volume)
-		err = origWorkdirCacheVol.InitializeTaskCache(logger, scenario.JobID, scenario.StepName, "/workdir", false)
+		err = origWorkdirCacheVol.InitializeTaskCache(logger, scenario.JobID, scenario.StepName, ".", false)
 		Expect(err).ToNot(HaveOccurred())
 
 		worker := scenario.Worker("worker")
@@ -645,9 +645,9 @@ var _ = Describe("Garden Worker", func() {
 			},
 			Dir: "/workdir",
 			Caches: []string{
-				"/cache-hit",
+				"./cache-hit",
 				"/cache-miss",
-				"/workdir",
+				".",
 			},
 		}
 
@@ -655,22 +655,22 @@ var _ = Describe("Garden Worker", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		Expect(volumeMountMap(volumeMounts)).To(consistOfMap(expectMap{
-			"/scratch":    grt.HaveStrategy(baggageclaim.EmptyStrategy{}),
-			"/workdir":    grt.HaveStrategy(baggageclaim.COWStrategy{Parent: origWorkdirCacheVol.BaggageclaimVolume()}),
-			"/cache-hit":  grt.HaveStrategy(baggageclaim.COWStrategy{Parent: origCacheHitVol.BaggageclaimVolume()}),
-			"/cache-miss": grt.HaveStrategy(baggageclaim.EmptyStrategy{}),
+			"/scratch":           grt.HaveStrategy(baggageclaim.EmptyStrategy{}),
+			"/workdir":           grt.HaveStrategy(baggageclaim.COWStrategy{Parent: origWorkdirCacheVol.BaggageclaimVolume()}),
+			"/workdir/cache-hit": grt.HaveStrategy(baggageclaim.COWStrategy{Parent: origCacheHitVol.BaggageclaimVolume()}),
+			"/cache-miss":        grt.HaveStrategy(baggageclaim.EmptyStrategy{}),
 		}))
 
 		var newCacheHitVol *grt.Volume
 		var newCacheMissVol *grt.Volume
 		var newWorkdirVol *grt.Volume
 		By("re-initializing the cache volumes", func() {
-			cacheHitVol := volumeMount(volumeMounts, "/cache-hit").Volume.(gardenruntime.Volume)
-			err := cacheHitVol.InitializeTaskCache(logger, scenario.JobID, scenario.StepName, "/cache-hit", false)
+			cacheHitVol := volumeMount(volumeMounts, "/workdir/cache-hit").Volume.(gardenruntime.Volume)
+			err := cacheHitVol.InitializeTaskCache(logger, scenario.JobID, scenario.StepName, "./cache-hit", false)
 			Expect(err).ToNot(HaveOccurred())
 
 			workdirVol := volumeMount(volumeMounts, "/workdir").Volume.(gardenruntime.Volume)
-			err = workdirVol.InitializeTaskCache(logger, scenario.JobID, scenario.StepName, "/workdir", false)
+			err = workdirVol.InitializeTaskCache(logger, scenario.JobID, scenario.StepName, ".", false)
 			Expect(err).ToNot(HaveOccurred())
 
 			cacheMissVol := volumeMount(volumeMounts, "/cache-miss").Volume.(gardenruntime.Volume)
@@ -700,10 +700,10 @@ var _ = Describe("Garden Worker", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(volumeMountMap(volumeMounts)).To(consistOfMap(expectMap{
-				"/scratch":    grt.HaveStrategy(baggageclaim.EmptyStrategy{}),
-				"/workdir":    grt.HaveStrategy(baggageclaim.COWStrategy{Parent: newWorkdirVol}),
-				"/cache-hit":  grt.HaveStrategy(baggageclaim.COWStrategy{Parent: newCacheHitVol}),
-				"/cache-miss": grt.HaveStrategy(baggageclaim.COWStrategy{Parent: newCacheMissVol}),
+				"/scratch":           grt.HaveStrategy(baggageclaim.EmptyStrategy{}),
+				"/workdir":           grt.HaveStrategy(baggageclaim.COWStrategy{Parent: newWorkdirVol}),
+				"/workdir/cache-hit": grt.HaveStrategy(baggageclaim.COWStrategy{Parent: newCacheHitVol}),
+				"/cache-miss":        grt.HaveStrategy(baggageclaim.COWStrategy{Parent: newCacheMissVol}),
 			}))
 		})
 	})
