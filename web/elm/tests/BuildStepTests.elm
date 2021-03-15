@@ -312,11 +312,6 @@ all =
                             >> given theAcrossStepIsExpanded
                             >> when iAmLookingAtTheFirstAcrossSubHeader
                             >> then_ iSeeTheObjectKeyValuePairs
-                    , test "displays array fields with index notation" <|
-                        given iVisitABuildWithAnAcrossStepWithComplexValues
-                            >> given theAcrossStepIsExpanded
-                            >> when iAmLookingAtTheSecondAcrossSubHeader
-                            >> then_ iSeeTheArrayKeyValuePairs
                     ]
                 ]
             ]
@@ -369,6 +364,21 @@ all =
                     >> given theSetPipelineStepIsExpanded
                     >> when iAmLookingAtTheStepBody
                     >> then_ iSeeThePipelineName
+            , test "should show instance vars when they exist" <|
+                given iVisitABuildWithASetPipelineStepWithInstanceVars
+                    >> given theSetPipelineStepIsExpanded
+                    >> when iAmLookingAtTheStepBody
+                    >> then_ iSeeTheInstanceVars
+            , test "should show a separator when there are instance vars" <|
+                given iVisitABuildWithASetPipelineStepWithInstanceVars
+                    >> given theSetPipelineStepIsExpanded
+                    >> when iAmLookingAtTheStepBody
+                    >> then_ iSeeASeparator
+            , test "should not show a separator when there are no instance vars" <|
+                given iVisitABuildWithASetPipelineStep
+                    >> given theSetPipelineStepIsExpanded
+                    >> when iAmLookingAtTheStepBody
+                    >> then_ iDoNotSeeASeparator
             ]
         , describe "load_var step"
             [ test "should show var name" <|
@@ -525,6 +535,12 @@ iVisitABuildWithASetPipelineStep =
     iOpenTheBuildPage
         >> myBrowserFetchedTheBuild
         >> thePlanContainsASetPipelineStep
+
+
+iVisitABuildWithASetPipelineStepWithInstanceVars =
+    iOpenTheBuildPage
+        >> myBrowserFetchedTheBuild
+        >> thePlanContainsASetPipelineStepWithInstanceVars
 
 
 iVisitABuildWithACheckStep =
@@ -707,11 +723,7 @@ thePlanContainsAnAcrossStepWithComplexValues =
                                                 "taskName"
                                         }
                                       )
-                                    , ( [ JsonArray
-                                            [ JsonString "v1"
-                                            , JsonNumber 1
-                                            ]
-                                        ]
+                                    , ( [ JsonString "test" ]
                                       , { id = "task2Id"
                                         , step =
                                             Concourse.BuildStepTask
@@ -761,7 +773,25 @@ thePlanContainsASetPipelineStep =
             (Callback.PlanAndResourcesFetched 1 <|
                 Ok
                     ( { id = setPipelineStepId
-                      , step = Concourse.BuildStepSetPipeline "pipeline-name"
+                      , step = Concourse.BuildStepSetPipeline "pipeline-name" Dict.empty
+                      }
+                    , { inputs = []
+                      , outputs = []
+                      }
+                    )
+            )
+
+
+thePlanContainsASetPipelineStepWithInstanceVars =
+    Tuple.first
+        >> Application.handleCallback
+            (Callback.PlanAndResourcesFetched 1 <|
+                Ok
+                    ( { id = setPipelineStepId
+                      , step =
+                            Concourse.BuildStepSetPipeline "pipeline-name" <|
+                                Dict.fromList
+                                    [ ( "foo", JsonString "bar" ), ( "a", JsonObject [ ( "b", JsonNumber 1 ) ] ) ]
                       }
                     , { inputs = []
                       , outputs = []
@@ -981,13 +1011,6 @@ iSeeTheObjectKeyValuePairs =
         )
 
 
-iSeeTheArrayKeyValuePairs =
-    Query.has
-        (kvPair "var1[0]" "v1"
-            ++ kvPair "var1[1]" "1"
-        )
-
-
 iAmLookingAtTheFirstAcrossSubHeader =
     iAmLookingAtTheAcrossSubHeaders >> Query.first
 
@@ -1112,6 +1135,23 @@ iSeeATimestamp =
 
 iSeeThePipelineName =
     Query.has [ text "pipeline-name" ]
+
+
+iSeeTheInstanceVars =
+    Expect.all
+        [ Query.has [ text "foo" ]
+        , Query.has [ text "bar" ]
+        , Query.has [ text "a.b" ]
+        , Query.has [ text "1" ]
+        ]
+
+
+iSeeASeparator =
+    Query.has [ text "/" ]
+
+
+iDoNotSeeASeparator =
+    Query.hasNot [ text "/" ]
 
 
 iSeeTheResourceName =

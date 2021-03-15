@@ -57,15 +57,16 @@ func (fake *FakeResourceFactory) AllResources() ([]db.Resource, error) {
 	ret, specificReturn := fake.allResourcesReturnsOnCall[len(fake.allResourcesArgsForCall)]
 	fake.allResourcesArgsForCall = append(fake.allResourcesArgsForCall, struct {
 	}{})
+	stub := fake.AllResourcesStub
+	fakeReturns := fake.allResourcesReturns
 	fake.recordInvocation("AllResources", []interface{}{})
 	fake.allResourcesMutex.Unlock()
-	if fake.AllResourcesStub != nil {
-		return fake.AllResourcesStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.allResourcesReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -113,15 +114,16 @@ func (fake *FakeResourceFactory) Resource(arg1 int) (db.Resource, bool, error) {
 	fake.resourceArgsForCall = append(fake.resourceArgsForCall, struct {
 		arg1 int
 	}{arg1})
+	stub := fake.ResourceStub
+	fakeReturns := fake.resourceReturns
 	fake.recordInvocation("Resource", []interface{}{arg1})
 	fake.resourceMutex.Unlock()
-	if fake.ResourceStub != nil {
-		return fake.ResourceStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.resourceReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -184,15 +186,16 @@ func (fake *FakeResourceFactory) VisibleResources(arg1 []string) ([]db.Resource,
 	fake.visibleResourcesArgsForCall = append(fake.visibleResourcesArgsForCall, struct {
 		arg1 []string
 	}{arg1Copy})
+	stub := fake.VisibleResourcesStub
+	fakeReturns := fake.visibleResourcesReturns
 	fake.recordInvocation("VisibleResources", []interface{}{arg1Copy})
 	fake.visibleResourcesMutex.Unlock()
-	if fake.VisibleResourcesStub != nil {
-		return fake.VisibleResourcesStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.visibleResourcesReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

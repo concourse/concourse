@@ -42,15 +42,16 @@ func (fake *FakeCompression) Encoding() baggageclaim.Encoding {
 	ret, specificReturn := fake.encodingReturnsOnCall[len(fake.encodingArgsForCall)]
 	fake.encodingArgsForCall = append(fake.encodingArgsForCall, struct {
 	}{})
+	stub := fake.EncodingStub
+	fakeReturns := fake.encodingReturns
 	fake.recordInvocation("Encoding", []interface{}{})
 	fake.encodingMutex.Unlock()
-	if fake.EncodingStub != nil {
-		return fake.EncodingStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.encodingReturns
 	return fakeReturns.result1
 }
 
@@ -95,15 +96,16 @@ func (fake *FakeCompression) NewReader(arg1 io.ReadCloser) (io.ReadCloser, error
 	fake.newReaderArgsForCall = append(fake.newReaderArgsForCall, struct {
 		arg1 io.ReadCloser
 	}{arg1})
+	stub := fake.NewReaderStub
+	fakeReturns := fake.newReaderReturns
 	fake.recordInvocation("NewReader", []interface{}{arg1})
 	fake.newReaderMutex.Unlock()
-	if fake.NewReaderStub != nil {
-		return fake.NewReaderStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.newReaderReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

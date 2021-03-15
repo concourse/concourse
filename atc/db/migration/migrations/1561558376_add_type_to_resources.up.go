@@ -5,14 +5,14 @@ import (
 	"encoding/json"
 )
 
-func (self *migrations) Up_1561558376() error {
+func (m *migrations) Up_1561558376() error {
 	type resource struct {
 		id     int
 		config string
 		nonce  sql.NullString
 	}
 
-	tx, err := self.DB.Begin()
+	tx, err := m.DB.Begin()
 	if err != nil {
 		return err
 	}
@@ -47,7 +47,7 @@ func (self *migrations) Up_1561558376() error {
 			noncense = &resource.nonce.String
 		}
 
-		decrypted, err := self.Strategy.Decrypt(resource.config, noncense)
+		decrypted, err := m.Strategy.Decrypt(resource.config, noncense)
 		if err != nil {
 			return err
 		}

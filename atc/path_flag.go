@@ -70,5 +70,5 @@ func (path *PathFlag) Complete(match string) []flags.Completion {
 }
 
 func (path *PathFlag) FromStdin() bool {
-	return *path == "/dev/stdin" || strings.Index(string(*path), tempFilePattern) >= 0
+	return *path == "/dev/stdin" || strings.Contains(string(*path), tempFilePattern)
 }

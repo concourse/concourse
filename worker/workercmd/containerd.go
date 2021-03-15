@@ -5,6 +5,7 @@ package workercmd
 import (
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -14,15 +15,16 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/localip"
 	concourseCmd "github.com/concourse/concourse/cmd"
+	"github.com/concourse/concourse/worker/mtu"
 	"github.com/concourse/concourse/worker/runtime"
 	"github.com/concourse/concourse/worker/runtime/libcontainerd"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 )
 
-// writeDefaultContainerdConfig writes a default containerd configuration file
+// WriteDefaultContainerdConfig writes a default containerd configuration file
 // to a destination.
-func writeDefaultContainerdConfig(dest string) error {
+func WriteDefaultContainerdConfig(dest string) error {
 	// disable plugins we don't use:
 	//
 	// - CRI: we're not supposed to be targetted by a kubelet, so there's no
@@ -33,8 +35,10 @@ func writeDefaultContainerdConfig(dest string) error {
 	//                   on a single snapshotter implementation we can better
 	//                   reason about potential problems down the road.
 	//
-	const config = `disabled_plugins = ["cri", "aufs", "btrfs", "zfs"]`
-
+	const config = `
+oom_score = -999
+disabled_plugins = ["cri", "aufs", "btrfs", "zfs"]
+`
 	err := ioutil.WriteFile(dest, []byte(config), 0755)
 	if err != nil {
 		return fmt.Errorf("write file %s: %w", dest, err)
@@ -62,18 +66,20 @@ func (cmd *WorkerCommand) containerdGardenServerRunner(
 		networkOpts = append(networkOpts, runtime.WithNameServers(dnsServers))
 	}
 
-	if len(cmd.Containerd.RestrictedNetworks) > 0 {
-		networkOpts = append(networkOpts, runtime.WithRestrictedNetworks(cmd.Containerd.RestrictedNetworks))
+	if len(cmd.Containerd.Network.RestrictedNetworks) > 0 {
+		networkOpts = append(networkOpts, runtime.WithRestrictedNetworks(cmd.Containerd.Network.RestrictedNetworks))
 	}
 
-	if cmd.Containerd.NetworkPool != "" {
-		networkOpts = append(networkOpts, runtime.WithCNINetworkConfig(
-			runtime.CNINetworkConfig{
-				BridgeName:  "concourse0",
-				NetworkName: "concourse",
-				Subnet:      cmd.Containerd.NetworkPool,
-			}))
+	networkConfig := runtime.DefaultCNINetworkConfig
+	if cmd.Containerd.Network.Pool != "" {
+		networkConfig.Subnet = cmd.Containerd.Network.Pool
 	}
+	var err error
+	networkConfig.MTU, err = cmd.Containerd.mtu()
+	if err != nil {
+		return nil, fmt.Errorf("container MTU: %w", err)
+	}
+	networkOpts = append(networkOpts, runtime.WithCNINetworkConfig(networkConfig))
 
 	cniNetwork, err := runtime.NewCNINetwork(networkOpts...)
 	if err != nil {
@@ -123,7 +129,7 @@ func (cmd *WorkerCommand) containerdRunner(logger lager.Logger) (ifrit.Runner, e
 	if cmd.Containerd.Config.Path() != "" {
 		config = cmd.Containerd.Config.Path()
 	} else {
-		err := writeDefaultContainerdConfig(config)
+		err := WriteDefaultContainerdConfig(config)
 		if err != nil {
 			return nil, fmt.Errorf("write default containerd config: %w", err)
 		}
@@ -147,8 +153,8 @@ func (cmd *WorkerCommand) containerdRunner(logger lager.Logger) (ifrit.Runner, e
 
 	members := grouper.Members{}
 
-	dnsServers := cmd.Containerd.DNSServers
-	if cmd.Containerd.DNS.Enable {
+	dnsServers := cmd.Containerd.Network.DNSServers
+	if cmd.Containerd.Network.DNS.Enable {
 		dnsProxyRunner, err := cmd.dnsProxyRunner(logger.Session("dns-proxy"))
 		if err != nil {
 			return nil, err
@@ -192,4 +198,29 @@ func (cmd *WorkerCommand) containerdRunner(logger lager.Logger) (ifrit.Runner, e
 
 	// Using the Ordered strategy to ensure containerd is up before the garden server is started
 	return grouper.NewOrdered(os.Interrupt, members), nil
+}
+
+func (cmd ContainerdRuntime) externalIP() (net.IP, error) {
+	if cmd.Network.ExternalIP.IP != nil {
+		return cmd.Network.ExternalIP.IP, nil
+	}
+
+	localIP, err := localip.LocalIP()
+	if err != nil {
+		return nil, fmt.Errorf("Couldn't determine local IP to use for --external-ip parameter. You can use the --external-ip flag to pass an external IP explicitly.")
+	}
+
+	return net.ParseIP(localIP), nil
+}
+
+func (cmd ContainerdRuntime) mtu() (int, error) {
+	if cmd.Network.MTU != 0 {
+		return cmd.Network.MTU, nil
+	}
+	externalIP, err := cmd.externalIP()
+	if err != nil {
+		return 0, err
+	}
+
+	return mtu.MTU(externalIP.String())
 }

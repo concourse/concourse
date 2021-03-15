@@ -46,9 +46,10 @@ func (fake *FakeVarSourcePool) Close() {
 	fake.closeMutex.Lock()
 	fake.closeArgsForCall = append(fake.closeArgsForCall, struct {
 	}{})
+	stub := fake.CloseStub
 	fake.recordInvocation("Close", []interface{}{})
 	fake.closeMutex.Unlock()
-	if fake.CloseStub != nil {
+	if stub != nil {
 		fake.CloseStub()
 	}
 }
@@ -73,15 +74,16 @@ func (fake *FakeVarSourcePool) FindOrCreate(arg1 lager.Logger, arg2 map[string]i
 		arg2 map[string]interface{}
 		arg3 creds.ManagerFactory
 	}{arg1, arg2, arg3})
+	stub := fake.FindOrCreateStub
+	fakeReturns := fake.findOrCreateReturns
 	fake.recordInvocation("FindOrCreate", []interface{}{arg1, arg2, arg3})
 	fake.findOrCreateMutex.Unlock()
-	if fake.FindOrCreateStub != nil {
-		return fake.FindOrCreateStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.findOrCreateReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -135,15 +137,16 @@ func (fake *FakeVarSourcePool) Size() int {
 	ret, specificReturn := fake.sizeReturnsOnCall[len(fake.sizeArgsForCall)]
 	fake.sizeArgsForCall = append(fake.sizeArgsForCall, struct {
 	}{})
+	stub := fake.SizeStub
+	fakeReturns := fake.sizeReturns
 	fake.recordInvocation("Size", []interface{}{})
 	fake.sizeMutex.Unlock()
-	if fake.SizeStub != nil {
-		return fake.SizeStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.sizeReturns
 	return fakeReturns.result1
 }
 

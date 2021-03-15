@@ -20,7 +20,6 @@ import Dashboard.Models
 import EffectTransformer exposing (ET)
 import FlySuccess.FlySuccess as FlySuccess
 import FlySuccess.Models
-import HoverState
 import Html exposing (Html)
 import Job.Job as Job
 import Login.Login as Login
@@ -219,14 +218,14 @@ handleLoggedOut ( m, effs ) =
     )
 
 
-handleDelivery : { a | hovered : HoverState.HoverState } -> Delivery -> ET Model
+handleDelivery : Session -> Delivery -> ET Model
 handleDelivery session delivery =
     genericUpdate
         (Build.handleDelivery session delivery)
         (Job.handleDelivery delivery)
         (Resource.handleDelivery session delivery)
         (Pipeline.handleDelivery delivery)
-        (Dashboard.handleDelivery delivery)
+        (Dashboard.handleDelivery session delivery)
         (NotFound.handleDelivery delivery)
         (FlySuccess.handleDelivery delivery)
 
@@ -313,14 +312,8 @@ urlUpdate routes =
                 identity
         )
         (case routes.to of
-            Routes.Dashboard { searchType, dashboardView } ->
-                Tuple.mapFirst
-                    (\dm ->
-                        { dm
-                            | highDensity = searchType == Routes.HighDensity
-                            , dashboardView = dashboardView
-                        }
-                    )
+            Routes.Dashboard f ->
+                Dashboard.changeRoute f
 
             _ ->
                 identity
@@ -383,8 +376,8 @@ tooltip mdl =
         ResourceModel model ->
             Resource.tooltip model
 
-        DashboardModel model ->
-            Dashboard.tooltip model
+        DashboardModel _ ->
+            Dashboard.tooltip
 
         NotFoundModel model ->
             NotFound.tooltip model

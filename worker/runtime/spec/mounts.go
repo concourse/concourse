@@ -28,7 +28,7 @@ var (
 			Destination: "/dev/shm",
 			Type:        "tmpfs",
 			Source:      "shm",
-			Options:     []string{"nosuid", "noexec", "nodev", "mode=1777", "size=65536k"},
+			Options:     []string{"nosuid", "noexec", "nodev", "mode=1777"},
 		},
 		{
 			Destination: "/dev/mqueue",
@@ -44,29 +44,39 @@ var (
 		},
 		{
 			Destination: "/sys/fs/cgroup",
-			Type: "cgroup",
-			Source: "cgroup",
-			Options: []string{"ro", "nosuid", "noexec", "nodev"},
-		},
-		{
-			Destination: "/run",
-			Type:        "tmpfs",
-			Source:      "tmpfs",
-			Options:     []string{"nosuid", "strictatime", "mode=755", "size=65536k"},
+			Type:        "cgroup",
+			Source:      "cgroup",
+			Options:     []string{"ro", "nosuid", "noexec", "nodev"},
 		},
 	}
 )
 
-func AnyContainerMounts(initBinPath string) []specs.Mount {
-	return append(
-		[]specs.Mount{
-			{
-				Source:      initBinPath,
-				Destination: "/tmp/gdn-init",
-				Type:        "bind",
-				Options:     []string{"bind"},
-			},
-		},
-		DefaultContainerMounts...,
-	)
+func ContainerMounts(privileged bool, initBinPath string) []specs.Mount {
+	mounts := make([]specs.Mount, 0, len(DefaultContainerMounts)+1)
+	mounts = append(mounts, DefaultContainerMounts...)
+	mounts = append(mounts, specs.Mount{
+		Source:      initBinPath,
+		Destination: "/tmp/gdn-init",
+		Type:        "bind",
+		Options:     []string{"bind"},
+	})
+	// Following the current behaviour for privileged containers in Docker
+	if privileged {
+		for i, ociMount := range mounts {
+			if ociMount.Destination == "/sys" || ociMount.Type == "cgroup" {
+				clearReadOnly(&mounts[i])
+			}
+		}
+	}
+	return mounts
+}
+
+func clearReadOnly(m *specs.Mount) {
+	var opt []string
+	for _, o := range m.Options {
+		if o != "ro" {
+			opt = append(opt, o)
+		}
+	}
+	m.Options = opt
 }

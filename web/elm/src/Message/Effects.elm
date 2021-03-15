@@ -32,13 +32,12 @@ import Message.ScrollDirection exposing (ScrollDirection(..))
 import Message.Storage
     exposing
         ( deleteFromLocalStorage
+        , favoritedInstanceGroupsKey
         , favoritedPipelinesKey
         , jobsKey
         , loadFromLocalStorage
-        , loadFromSessionStorage
         , pipelinesKey
         , saveToLocalStorage
-        , saveToSessionStorage
         , sideBarStateKey
         , teamsKey
         , tokenKey
@@ -56,12 +55,6 @@ port renderPipeline : ( Json.Encode.Value, Json.Encode.Value ) -> Cmd msg
 
 
 port pinTeamNames : StickyHeaderConfig -> Cmd msg
-
-
-port tooltip : ( String, String ) -> Cmd msg
-
-
-port tooltipHd : ( String, String ) -> Cmd msg
 
 
 port resetPipelineFocus : () -> Cmd msg
@@ -166,8 +159,6 @@ type Effect
     | SetPinComment Concourse.ResourceIdentifier String
     | SendTokenToFly String Int
     | SendTogglePipelineRequest Concourse.PipelineIdentifier Bool
-    | ShowTooltip ( String, String )
-    | ShowTooltipHd ( String, String )
     | SendOrderPipelinesRequest String (List String)
     | SendLogOutRequest
     | GetScreenSize
@@ -200,6 +191,8 @@ type Effect
     | SyncStickyBuildLogHeaders
     | SaveFavoritedPipelines (Set DatabaseID)
     | LoadFavoritedPipelines
+    | SaveFavoritedInstanceGroups (Set ( Concourse.TeamName, Concourse.PipelineName ))
+    | LoadFavoritedInstanceGroups
 
 
 type alias VersionId =
@@ -458,12 +451,6 @@ runEffect effect key csrfToken =
                 |> Api.request
                 |> Task.attempt (PipelineToggled id)
 
-        ShowTooltip ( teamName, pipelineName ) ->
-            tooltip ( teamName, pipelineName )
-
-        ShowTooltipHd ( teamName, pipelineName ) ->
-            tooltipHd ( teamName, pipelineName )
-
         SendOrderPipelinesRequest teamName pipelineNames ->
             Api.put
                 (Endpoints.OrderTeamPipelines |> Endpoints.Team teamName)
@@ -608,10 +595,10 @@ runEffect effect key csrfToken =
             loadFromLocalStorage tokenKey
 
         SaveSideBarState state ->
-            saveToSessionStorage ( sideBarStateKey, encodeSideBarState state )
+            saveToLocalStorage ( sideBarStateKey, encodeSideBarState state )
 
         LoadSideBarState ->
-            loadFromSessionStorage sideBarStateKey
+            loadFromLocalStorage sideBarStateKey
 
         SaveCachedJobs jobs ->
             saveToLocalStorage ( jobsKey, jobs |> Json.Encode.list encodeJob )
@@ -639,6 +626,19 @@ runEffect effect key csrfToken =
 
         LoadFavoritedPipelines ->
             loadFromLocalStorage favoritedPipelinesKey
+
+        SaveFavoritedInstanceGroups igs ->
+            saveToLocalStorage
+                ( favoritedInstanceGroupsKey
+                , igs
+                    |> Json.Encode.set
+                        (\( teamName, name ) ->
+                            Concourse.encodeInstanceGroupId { teamName = teamName, name = name }
+                        )
+                )
+
+        LoadFavoritedInstanceGroups ->
+            loadFromLocalStorage favoritedInstanceGroupsKey
 
         SaveCachedTeams teams ->
             saveToLocalStorage ( teamsKey, teams |> Json.Encode.list encodeTeam )
@@ -680,24 +680,105 @@ toHtmlID domId =
         SideBarTeam section t ->
             pipelinesSectionName section ++ "_" ++ Base64.encode t
 
-        SideBarPipeline section p ->
-            pipelinesSectionName section ++ "_" ++ Base64.encode p.teamName ++ "_" ++ Base64.encode p.pipelineName
+        SideBarPipeline section id ->
+            pipelinesSectionName section ++ "_" ++ String.fromInt id
+
+        SideBarInstancedPipeline section id ->
+            -- This can be the same as SideBarPipeline because they are
+            -- mutually exclusive
+            pipelinesSectionName section ++ "_" ++ String.fromInt id
+
+        SideBarInstanceGroup section teamName groupName ->
+            pipelinesSectionName section
+                ++ "_"
+                ++ Base64.encode teamName
+                ++ "_"
+                ++ Base64.encode groupName
 
         PipelineStatusIcon section p ->
             pipelinesSectionName section
                 ++ "_"
-                ++ Base64.encode p.teamName
-                ++ "_"
-                ++ Base64.encode p.pipelineName
+                ++ encodePipelineId p
                 ++ "_status"
 
         VisibilityButton section p ->
             pipelinesSectionName section
                 ++ "_"
-                ++ Base64.encode p.teamName
-                ++ "_"
-                ++ Base64.encode p.pipelineName
+                ++ encodePipelineId p
                 ++ "_visibility"
+
+        PipelineCardFavoritedIcon section p ->
+            pipelinesSectionName section
+                ++ "_"
+                ++ encodePipelineId p
+                ++ "_favorite"
+
+        InstanceGroupCardFavoritedIcon section { teamName, name } ->
+            pipelinesSectionName section
+                ++ "_"
+                ++ Base64.encode teamName
+                ++ "_"
+                ++ Base64.encode name
+                ++ "_favorite"
+
+        PipelineCardPauseToggle section p ->
+            pipelinesSectionName section
+                ++ "_"
+                ++ encodePipelineId p
+                ++ "_toggle_pause"
+
+        PipelineCardName section p ->
+            pipelinesSectionName section
+                ++ "_"
+                ++ encodePipelineId p
+                ++ "_name"
+
+        PipelineCardNameHD p ->
+            "HD_"
+                ++ encodePipelineId p
+                ++ "_name"
+
+        InstanceGroupCardName section teamName groupName ->
+            pipelinesSectionName section
+                ++ "_"
+                ++ Base64.encode teamName
+                ++ "_"
+                ++ Base64.encode groupName
+                ++ "_name"
+
+        InstanceGroupCardNameHD teamName groupName ->
+            "HD_"
+                ++ Base64.encode teamName
+                ++ "_"
+                ++ Base64.encode groupName
+                ++ "_name"
+
+        PipelineCardInstanceVar section p varName _ ->
+            pipelinesSectionName section
+                ++ "_"
+                ++ encodePipelineId p
+                ++ "_var_"
+                ++ Base64.encode varName
+
+        PipelineCardInstanceVars section p _ ->
+            pipelinesSectionName section
+                ++ "_"
+                ++ encodePipelineId p
+                ++ "_vars"
+
+        PipelinePreview section p ->
+            "pipeline_preview_"
+                ++ pipelinesSectionName section
+                ++ "_"
+                ++ encodePipelineId p
+
+        JobPreview section p jobName ->
+            "job_preview_"
+                ++ pipelinesSectionName section
+                ++ "_"
+                ++ encodePipelineId p
+                ++ "_jobs_"
+                ++ jobName
 
         ChangedStepLabel stepID _ ->
             stepID ++ "_changed"
@@ -707,6 +788,9 @@ toHtmlID domId =
 
         StepInitialization stepID ->
             stepID ++ "_image"
+
+        SideBarIcon ->
+            "sidebar-icon"
 
         Dashboard ->
             "dashboard"
@@ -720,8 +804,61 @@ toHtmlID domId =
         TopBarFavoritedIcon _ ->
             "top-bar-favorited-icon"
 
+        TopBarPauseToggle _ ->
+            "top-bar-pause-toggle"
+
+        TopBarPinIcon ->
+            "top-bar-pin-icon"
+
+        AbortBuildButton ->
+            "abort-build-button"
+
+        RerunBuildButton ->
+            "rerun-build-button"
+
+        TriggerBuildButton ->
+            "trigger-build-button"
+
+        ToggleJobButton ->
+            "toggle-job-button"
+
+        CheckButton _ ->
+            "check-button"
+
+        PinIcon ->
+            "pin-icon"
+
+        EditButton ->
+            "edit-button"
+
+        PinButton id ->
+            "pin-button_" ++ String.fromInt id.versionID
+
+        VersionToggle id ->
+            "version-toggle_" ++ String.fromInt id.versionID
+
+        PinBar ->
+            "pin-bar"
+
+        JobName ->
+            "job-name"
+
+        JobBuildLink name ->
+            "job-build-" ++ Base64.encode name
+
+        NextPageButton ->
+            "next-page"
+
+        PreviousPageButton ->
+            "previous-page"
+
         _ ->
             ""
+
+
+encodePipelineId : Concourse.DatabaseID -> String
+encodePipelineId id =
+    String.fromInt id
 
 
 scroll : ScrollDirection -> String -> Cmd Callback

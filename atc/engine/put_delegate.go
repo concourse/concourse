@@ -13,6 +13,7 @@ import (
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/atc/runtime"
+	"github.com/concourse/concourse/atc/worker"
 )
 
 func NewPutDelegate(
@@ -22,9 +23,10 @@ func NewPutDelegate(
 	clock clock.Clock,
 	policyChecker policy.Checker,
 	globalSecrets creds.Secrets,
+	artifactSourcer worker.ArtifactSourcer,
 ) exec.PutDelegate {
 	return &putDelegate{
-		BuildStepDelegate: NewBuildStepDelegate(build, planID, state, clock, policyChecker, globalSecrets),
+		BuildStepDelegate: NewBuildStepDelegate(build, planID, state, clock, policyChecker, globalSecrets, artifactSourcer),
 
 		eventOrigin: event.Origin{ID: event.OriginID(planID)},
 		build:       build,

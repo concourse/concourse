@@ -20,15 +20,18 @@ import (
 	"github.com/concourse/concourse/atc/engine/enginefakes"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/policy/policyfakes"
+	"github.com/concourse/concourse/atc/worker/workerfakes"
+	"github.com/concourse/concourse/vars"
 )
 
 var _ = Describe("CheckDelegate", func() {
 	var (
-		fakeBuild         *dbfakes.FakeBuild
-		fakeClock         *fakeclock.FakeClock
-		fakeRateLimiter   *enginefakes.FakeRateLimiter
-		fakePolicyChecker *policyfakes.FakeChecker
-		fakeSecrets       *credsfakes.FakeSecrets
+		fakeBuild           *dbfakes.FakeBuild
+		fakeClock           *fakeclock.FakeClock
+		fakeRateLimiter     *enginefakes.FakeRateLimiter
+		fakePolicyChecker   *policyfakes.FakeChecker
+		fakeSecrets         *credsfakes.FakeSecrets
+		fakeArtifactSourcer *workerfakes.FakeArtifactSourcer
 
 		state exec.RunState
 
@@ -45,6 +48,7 @@ var _ = Describe("CheckDelegate", func() {
 		fakeBuild = new(dbfakes.FakeBuild)
 		fakeClock = fakeclock.NewFakeClock(now)
 		fakeRateLimiter = new(enginefakes.FakeRateLimiter)
+		fakeArtifactSourcer = new(workerfakes.FakeArtifactSourcer)
 		state = exec.NewRunState(noopStepper, nil, true)
 
 		plan = atc.Plan{
@@ -55,7 +59,7 @@ var _ = Describe("CheckDelegate", func() {
 		fakePolicyChecker = new(policyfakes.FakeChecker)
 		fakeSecrets = new(credsfakes.FakeSecrets)
 
-		delegate = engine.NewCheckDelegate(fakeBuild, plan, state, fakeClock, fakeRateLimiter, fakePolicyChecker, fakeSecrets)
+		delegate = engine.NewCheckDelegate(fakeBuild, plan, state, fakeClock, fakeRateLimiter, fakePolicyChecker, fakeSecrets, fakeArtifactSourcer)
 
 		fakeResourceConfig = new(dbfakes.FakeResourceConfig)
 		fakeResourceConfigScope = new(dbfakes.FakeResourceConfigScope)

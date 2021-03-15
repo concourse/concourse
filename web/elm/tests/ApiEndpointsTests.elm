@@ -1,7 +1,9 @@
 module ApiEndpointsTests exposing (testEndpoints, testToString)
 
 import Api.Endpoints as E exposing (Endpoint(..), toString)
+import Concourse exposing (JsonValue(..))
 import Data
+import Dict
 import Expect
 import Test exposing (Test, describe, test)
 import Url.Builder
@@ -67,6 +69,20 @@ testEndpoints =
                         |> toPath
                         |> Expect.equal "/api/v1/teams/team/pipelines/pipeline/resources"
             ]
+        , test "Pipeline with instance vars" <|
+            \_ ->
+                E.BasePipeline
+                    |> Pipeline
+                        (Data.pipelineId
+                            |> Data.withPipelineInstanceVars
+                                (Dict.fromList
+                                    [ ( "k", JsonString "v" )
+                                    , ( "foo", JsonObject [ ( "bar", JsonNumber 123 ) ] )
+                                    ]
+                                )
+                        )
+                    |> toPath
+                    |> Expect.equal "/api/v1/teams/team/pipelines/pipeline?vars.foo.bar=123&vars.k=%22v%22"
         , test "JobsList" <|
             \_ ->
                 JobsList

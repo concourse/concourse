@@ -27,7 +27,7 @@ type Team interface {
 	UnpausePipeline(pipelineRef atc.PipelineRef) (bool, error)
 	ExposePipeline(pipelineRef atc.PipelineRef) (bool, error)
 	HidePipeline(pipelineRef atc.PipelineRef) (bool, error)
-	RenamePipeline(pipelineRef atc.PipelineRef, name string) (bool, []ConfigWarning, error)
+	RenamePipeline(oldName, newName string) (bool, []ConfigWarning, error)
 	ListPipelines() ([]atc.Pipeline, error)
 	PipelineConfig(pipelineRef atc.PipelineRef) (atc.Config, string, bool, error)
 	CreateOrUpdatePipelineConfig(pipelineRef atc.PipelineRef, configVersion string, passedConfig []byte, checkCredentials bool) (bool, bool, []ConfigWarning, error)
@@ -70,7 +70,7 @@ type Team interface {
 	ListVolumes() ([]atc.Volume, error)
 	CreateBuild(plan atc.Plan) (atc.Build, error)
 	Builds(page Page) ([]atc.Build, Pagination, error)
-	OrderingPipelines(pipelineRefs atc.OrderPipelinesRequest) error
+	OrderingPipelines(pipelineNames []string) error
 
 	CreateArtifact(io.Reader, string, []string) (atc.WorkerArtifact, error)
 	GetArtifact(int) (io.ReadCloser, error)

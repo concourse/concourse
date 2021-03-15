@@ -21,12 +21,12 @@ var _ = Describe("ArtifactOutputStep", func() {
 
 		state exec.RunState
 
-		step             exec.Step
-		stepOk           bool
-		stepErr          error
-		plan             atc.Plan
-		fakeBuild        *dbfakes.FakeBuild
-		fakeWorkerClient *workerfakes.FakeClient
+		step           exec.Step
+		stepOk         bool
+		stepErr        error
+		plan           atc.Plan
+		fakeBuild      *dbfakes.FakeBuild
+		fakeWorkerPool *workerfakes.FakePool
 
 		artifactName string
 	)
@@ -39,7 +39,7 @@ var _ = Describe("ArtifactOutputStep", func() {
 		fakeBuild = new(dbfakes.FakeBuild)
 		fakeBuild.TeamIDReturns(4)
 
-		fakeWorkerClient = new(workerfakes.FakeClient)
+		fakeWorkerPool = new(workerfakes.FakePool)
 
 		artifactName = "some-artifact-name"
 	})
@@ -51,7 +51,7 @@ var _ = Describe("ArtifactOutputStep", func() {
 	JustBeforeEach(func() {
 		plan = atc.Plan{ArtifactOutput: &atc.ArtifactOutputPlan{Name: artifactName}}
 
-		step = exec.NewArtifactOutputStep(plan, fakeBuild, fakeWorkerClient)
+		step = exec.NewArtifactOutputStep(plan, fakeBuild, fakeWorkerPool)
 		stepOk, stepErr = step.Run(ctx, state)
 	})
 
@@ -83,7 +83,7 @@ var _ = Describe("ArtifactOutputStep", func() {
 				fakeArtifact = new(runtimefakes.FakeArtifact)
 				fakeArtifact.IDReturns("some-artifact-id")
 
-				fakeWorkerClient.FindVolumeReturns(fakeWorkerVolume, true, nil)
+				fakeWorkerPool.FindVolumeReturns(fakeWorkerVolume, true, nil)
 
 				state.ArtifactRepository().RegisterArtifact(build.ArtifactName(artifactName), fakeArtifact)
 			})
@@ -108,7 +108,7 @@ var _ = Describe("ArtifactOutputStep", func() {
 				})
 
 				It("calls workerClient -> FindVolume with the correct arguments", func() {
-					_, actualTeamId, actualBuildArtifactID := fakeWorkerClient.FindVolumeArgsForCall(0)
+					_, actualTeamId, actualBuildArtifactID := fakeWorkerPool.FindVolumeArgsForCall(0)
 					Expect(actualTeamId).To(Equal(4))
 					Expect(actualBuildArtifactID).To(Equal("some-artifact-id"))
 				})

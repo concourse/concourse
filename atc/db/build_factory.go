@@ -273,7 +273,7 @@ func getBuildsWithPagination(buildsQuery, minMaxIdQuery sq.SelectBuilder, page P
 			OrderBy("COALESCE(b.rerun_of, b.id) DESC, b.id DESC")
 	} else if page.From != nil && page.To != nil { // both
 		if *page.From > *page.To {
-			return nil, Pagination{}, fmt.Errorf("Invalid range boundaries")
+			return nil, Pagination{}, fmt.Errorf("invalid range boundaries")
 		}
 
 		buildsQuery = buildsQuery.Where(

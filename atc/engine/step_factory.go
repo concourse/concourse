@@ -9,7 +9,6 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/worker"
@@ -18,7 +17,8 @@ import (
 
 type coreStepFactory struct {
 	pool                  worker.Pool
-	client                worker.Client
+	artifactStreamer      worker.ArtifactStreamer
+	artifactSourcer       worker.ArtifactSourcer
 	resourceFactory       resource.ResourceFactory
 	teamFactory           db.TeamFactory
 	buildFactory          db.BuildFactory
@@ -26,7 +26,6 @@ type coreStepFactory struct {
 	resourceConfigFactory db.ResourceConfigFactory
 	defaultLimits         atc.ContainerLimits
 	strategy              worker.ContainerPlacementStrategy
-	lockFactory           lock.LockFactory
 	defaultCheckTimeout   time.Duration
 	varSourcePool         creds.VarSourcePool
 	varsCache             *gocache.Cache
@@ -35,7 +34,8 @@ type coreStepFactory struct {
 
 func NewCoreStepFactory(
 	pool worker.Pool,
-	client worker.Client,
+	artifactStreamer worker.ArtifactStreamer,
+	artifactSourcer worker.ArtifactSourcer,
 	resourceFactory resource.ResourceFactory,
 	teamFactory db.TeamFactory,
 	buildFactory db.BuildFactory,
@@ -43,7 +43,6 @@ func NewCoreStepFactory(
 	resourceConfigFactory db.ResourceConfigFactory,
 	defaultLimits atc.ContainerLimits,
 	strategy worker.ContainerPlacementStrategy,
-	lockFactory lock.LockFactory,
 	defaultCheckTimeout time.Duration,
 	varSourcePool creds.VarSourcePool,
 	varsCache *gocache.Cache,
@@ -51,7 +50,8 @@ func NewCoreStepFactory(
 ) CoreStepFactory {
 	return &coreStepFactory{
 		pool:                  pool,
-		client:                client,
+		artifactStreamer:      artifactStreamer,
+		artifactSourcer:       artifactSourcer,
 		resourceFactory:       resourceFactory,
 		teamFactory:           teamFactory,
 		buildFactory:          buildFactory,
@@ -59,7 +59,6 @@ func NewCoreStepFactory(
 		resourceConfigFactory: resourceConfigFactory,
 		defaultLimits:         defaultLimits,
 		strategy:              strategy,
-		lockFactory:           lockFactory,
 		defaultCheckTimeout:   defaultCheckTimeout,
 		varSourcePool:         varSourcePool,
 		varsCache:             varsCache,
@@ -84,7 +83,7 @@ func (factory *coreStepFactory) GetStep(
 		factory.resourceCacheFactory,
 		factory.strategy,
 		delegateFactory,
-		factory.client,
+		factory.pool,
 	)
 
 	getStep = exec.LogError(getStep, delegateFactory)
@@ -110,7 +109,8 @@ func (factory *coreStepFactory) PutStep(
 		factory.resourceFactory,
 		factory.resourceConfigFactory,
 		factory.strategy,
-		factory.client,
+		factory.pool,
+		factory.artifactSourcer,
 		delegateFactory,
 	)
 
@@ -139,7 +139,6 @@ func (factory *coreStepFactory) CheckStep(
 		worker.NewRandomPlacementStrategy(),
 		factory.pool,
 		delegateFactory,
-		factory.client,
 		factory.defaultCheckTimeout,
 	)
 
@@ -166,9 +165,10 @@ func (factory *coreStepFactory) TaskStep(
 		stepMetadata,
 		containerMetadata,
 		factory.strategy,
-		factory.client,
+		factory.pool,
+		factory.artifactStreamer,
+		factory.artifactSourcer,
 		delegateFactory,
-		factory.lockFactory,
 	)
 
 	taskStep = exec.LogError(taskStep, delegateFactory)
@@ -190,7 +190,8 @@ func (factory *coreStepFactory) SetPipelineStep(
 		delegateFactory,
 		factory.teamFactory,
 		factory.buildFactory,
-		factory.client,
+		factory.artifactStreamer,
+		delegateFactory.policyChecker,
 	)
 
 	spStep = exec.LogError(spStep, delegateFactory)
@@ -233,7 +234,7 @@ func (factory *coreStepFactory) LoadVarStep(
 		*plan.LoadVar,
 		stepMetadata,
 		delegateFactory,
-		factory.client,
+		factory.artifactStreamer,
 	)
 
 	loadVarStep = exec.LogError(loadVarStep, delegateFactory)
@@ -247,12 +248,12 @@ func (factory *coreStepFactory) ArtifactInputStep(
 	plan atc.Plan,
 	build db.Build,
 ) exec.Step {
-	return exec.NewArtifactInputStep(plan, build, factory.client)
+	return exec.NewArtifactInputStep(plan, build, factory.pool)
 }
 
 func (factory *coreStepFactory) ArtifactOutputStep(
 	plan atc.Plan,
 	build db.Build,
 ) exec.Step {
-	return exec.NewArtifactOutputStep(plan, build, factory.client)
+	return exec.NewArtifactOutputStep(plan, build, factory.pool)
 }

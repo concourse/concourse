@@ -31,15 +31,16 @@ func (fake *FakeUserNamespace) MaxValidIds() (uint32, uint32, error) {
 	ret, specificReturn := fake.maxValidIdsReturnsOnCall[len(fake.maxValidIdsArgsForCall)]
 	fake.maxValidIdsArgsForCall = append(fake.maxValidIdsArgsForCall, struct {
 	}{})
+	stub := fake.MaxValidIdsStub
+	fakeReturns := fake.maxValidIdsReturns
 	fake.recordInvocation("MaxValidIds", []interface{}{})
 	fake.maxValidIdsMutex.Unlock()
-	if fake.MaxValidIdsStub != nil {
-		return fake.MaxValidIdsStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.maxValidIdsReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 

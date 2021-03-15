@@ -5,6 +5,10 @@ type StaticVariables map[string]interface{}
 var _ Variables = StaticVariables{}
 
 func (v StaticVariables) Get(ref Reference) (interface{}, bool, error) {
+	if ref.Source != "" {
+		return nil, false, nil
+	}
+
 	val, found := v[ref.Path]
 	if !found {
 		return nil, false, nil
@@ -95,9 +99,9 @@ type KVPair struct {
 
 type KVPairs []KVPair
 
-func (f KVPairs) Expand() StaticVariables {
-	out := map[string]interface{}{}
-	for _, pair := range f {
+func (p KVPairs) Expand() StaticVariables {
+	out := make(map[string]interface{}, len(p))
+	for _, pair := range p {
 		upsert(out, pair.Ref.Path, pair.Ref.Fields, pair.Value)
 	}
 	return out

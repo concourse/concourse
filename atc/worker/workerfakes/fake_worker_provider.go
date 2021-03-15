@@ -96,15 +96,16 @@ func (fake *FakeWorkerProvider) FindWorkerForContainer(arg1 lager.Logger, arg2 i
 		arg2 int
 		arg3 string
 	}{arg1, arg2, arg3})
+	stub := fake.FindWorkerForContainerStub
+	fakeReturns := fake.findWorkerForContainerReturns
 	fake.recordInvocation("FindWorkerForContainer", []interface{}{arg1, arg2, arg3})
 	fake.findWorkerForContainerMutex.Unlock()
-	if fake.FindWorkerForContainerStub != nil {
-		return fake.FindWorkerForContainerStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.findWorkerForContainerReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -164,15 +165,16 @@ func (fake *FakeWorkerProvider) FindWorkerForVolume(arg1 lager.Logger, arg2 int,
 		arg2 int
 		arg3 string
 	}{arg1, arg2, arg3})
+	stub := fake.FindWorkerForVolumeStub
+	fakeReturns := fake.findWorkerForVolumeReturns
 	fake.recordInvocation("FindWorkerForVolume", []interface{}{arg1, arg2, arg3})
 	fake.findWorkerForVolumeMutex.Unlock()
-	if fake.FindWorkerForVolumeStub != nil {
-		return fake.FindWorkerForVolumeStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.findWorkerForVolumeReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -231,15 +233,16 @@ func (fake *FakeWorkerProvider) FindWorkersForContainerByOwner(arg1 lager.Logger
 		arg1 lager.Logger
 		arg2 db.ContainerOwner
 	}{arg1, arg2})
+	stub := fake.FindWorkersForContainerByOwnerStub
+	fakeReturns := fake.findWorkersForContainerByOwnerReturns
 	fake.recordInvocation("FindWorkersForContainerByOwner", []interface{}{arg1, arg2})
 	fake.findWorkersForContainerByOwnerMutex.Unlock()
-	if fake.FindWorkersForContainerByOwnerStub != nil {
-		return fake.FindWorkersForContainerByOwnerStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.findWorkersForContainerByOwnerReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -296,15 +299,16 @@ func (fake *FakeWorkerProvider) NewGardenWorker(arg1 lager.Logger, arg2 db.Worke
 		arg2 db.Worker
 		arg3 int
 	}{arg1, arg2, arg3})
+	stub := fake.NewGardenWorkerStub
+	fakeReturns := fake.newGardenWorkerReturns
 	fake.recordInvocation("NewGardenWorker", []interface{}{arg1, arg2, arg3})
 	fake.newGardenWorkerMutex.Unlock()
-	if fake.NewGardenWorkerStub != nil {
-		return fake.NewGardenWorkerStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.newGardenWorkerReturns
 	return fakeReturns.result1
 }
 
@@ -356,15 +360,16 @@ func (fake *FakeWorkerProvider) RunningWorkers(arg1 lager.Logger) ([]worker.Work
 	fake.runningWorkersArgsForCall = append(fake.runningWorkersArgsForCall, struct {
 		arg1 lager.Logger
 	}{arg1})
+	stub := fake.RunningWorkersStub
+	fakeReturns := fake.runningWorkersReturns
 	fake.recordInvocation("RunningWorkers", []interface{}{arg1})
 	fake.runningWorkersMutex.Unlock()
-	if fake.RunningWorkersStub != nil {
-		return fake.RunningWorkersStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.runningWorkersReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

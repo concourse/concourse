@@ -51,7 +51,6 @@ type StepTree
     | LoadVar StepID
     | ArtifactInput StepID
     | ArtifactOutput StepID
-    | Aggregate (Array StepTree)
     | InParallel (Array StepTree)
     | Across StepID (List String) (List (List Concourse.JsonValue)) (Array StepTree)
     | Retry StepID (Array StepTree)
@@ -77,7 +76,7 @@ type alias StepFocus =
 
 type alias Step =
     { id : StepID
-    , name : StepName
+    , buildStep : Concourse.BuildStep
     , state : StepState
     , log : Ansi.Log.Model
     , error : Maybe String
@@ -271,9 +270,6 @@ activeStepIds model tree =
 
         LoadVar stepId ->
             [ stepId ]
-
-        Aggregate trees ->
-            List.concatMap (activeStepIds model) (Array.toList trees)
 
         InParallel trees ->
             List.concatMap (activeStepIds model) (Array.toList trees)

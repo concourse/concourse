@@ -37,7 +37,7 @@ type ResourceType interface {
 	Defaults() atc.Source
 	Params() atc.Params
 	Tags() atc.Tags
-	CheckEvery() string
+	CheckEvery() *atc.CheckEvery
 	CheckTimeout() string
 	LastCheckStartTime() time.Time
 	LastCheckEndTime() time.Time
@@ -159,7 +159,7 @@ var resourceTypesQuery = psql.Select(
 	LeftJoin(`LATERAL (
 		SELECT rcv.*
 		FROM resource_config_versions rcv
-		WHERE rcv.resource_config_scope_id = ro.id AND rcv.check_order != 0
+		WHERE rcv.resource_config_scope_id = ro.id
 		ORDER BY rcv.check_order DESC
 		LIMIT 1
 	) AS rcv ON true`).
@@ -180,7 +180,7 @@ type resourceType struct {
 	params                atc.Params
 	tags                  atc.Tags
 	version               atc.Version
-	checkEvery            string
+	checkEvery            *atc.CheckEvery
 	lastCheckStartTime    time.Time
 	lastCheckEndTime      time.Time
 }
@@ -191,7 +191,7 @@ func (t *resourceType) TeamName() string              { return t.teamName }
 func (t *resourceType) Name() string                  { return t.name }
 func (t *resourceType) Type() string                  { return t.type_ }
 func (t *resourceType) Privileged() bool              { return t.privileged }
-func (t *resourceType) CheckEvery() string            { return t.checkEvery }
+func (t *resourceType) CheckEvery() *atc.CheckEvery   { return t.checkEvery }
 func (t *resourceType) CheckTimeout() string          { return "" }
 func (r *resourceType) LastCheckStartTime() time.Time { return r.lastCheckStartTime }
 func (r *resourceType) LastCheckEndTime() time.Time   { return r.lastCheckEndTime }
@@ -280,29 +280,6 @@ func (r *resourceType) CreateBuild(ctx context.Context, manuallyTriggered bool, 
 		if !noBuild && !completed {
 			// a build is already running; leave it be
 			return nil, false, nil
-		}
-
-		if completed {
-			// previous build finished; clear it out
-			_, err = psql.Delete("builds").
-				Where(sq.Eq{
-					"resource_type_id": r.id,
-					"completed":        true,
-				}).
-				RunWith(tx).
-				Exec()
-			if err != nil {
-				return nil, false, fmt.Errorf("delete previous build: %w", err)
-			}
-			_, err = psql.Delete("build_events").
-				Where(sq.Eq{
-					"build_id": buildID,
-				}).
-				RunWith(tx).
-				Exec()
-			if err != nil {
-				return nil, false, fmt.Errorf("delete previous build events: %w", err)
-			}
 		}
 	}
 

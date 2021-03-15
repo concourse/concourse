@@ -214,12 +214,12 @@ func (emitter *NewRelicEmitter) emitBatch(logger lager.Logger, payload []NewReli
 	}
 
 	resp, err := emitter.Client.Do(req)
-	defer resp.Body.Close()
 	if err != nil {
 		logger.Error("failed-to-send-request",
 			errors.Wrap(metric.ErrFailedToEmit, err.Error()))
 		return
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
 		bodyBytes, err := ioutil.ReadAll(resp.Body)

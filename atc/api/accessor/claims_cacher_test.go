@@ -29,11 +29,26 @@ var _ = Describe("ClaimsCacher", func() {
 	})
 
 	It("fetches claims from the DB", func() {
-		claimsCacher.GetAccessToken("token")
+		expectedToken := db.AccessToken{Claims: db.Claims{Username: "foo"}}
+		fakeAccessTokenFetcher.GetAccessTokenReturns(expectedToken, true, nil)
+
+		token, found, err := claimsCacher.GetAccessToken("token")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(found).To(BeTrue())
+		Expect(token).To(Equal(expectedToken))
+
 		Expect(fakeAccessTokenFetcher.GetAccessTokenCallCount()).To(Equal(1), "did not fetch from DB")
 	})
 
+	It("returns not found if the token isn't found", func() {
+		fakeAccessTokenFetcher.GetAccessTokenReturns(db.AccessToken{}, false, nil)
+		_, found, err := claimsCacher.GetAccessToken("token")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(found).To(BeFalse())
+	})
+
 	It("doesn't fetch from the DB when the result is cached", func() {
+		fakeAccessTokenFetcher.GetAccessTokenReturns(db.AccessToken{}, true, nil)
 		claimsCacher.GetAccessToken("token")
 		claimsCacher.GetAccessToken("token")
 		Expect(fakeAccessTokenFetcher.GetAccessTokenCallCount()).To(Equal(1), "did not cache claims")

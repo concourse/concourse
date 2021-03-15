@@ -122,15 +122,16 @@ func (fake *FakeClient) BulkInfo(arg1 []string) (map[string]garden.ContainerInfo
 	fake.bulkInfoArgsForCall = append(fake.bulkInfoArgsForCall, struct {
 		arg1 []string
 	}{arg1Copy})
+	stub := fake.BulkInfoStub
+	fakeReturns := fake.bulkInfoReturns
 	fake.recordInvocation("BulkInfo", []interface{}{arg1Copy})
 	fake.bulkInfoMutex.Unlock()
-	if fake.BulkInfoStub != nil {
-		return fake.BulkInfoStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.bulkInfoReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -190,15 +191,16 @@ func (fake *FakeClient) BulkMetrics(arg1 []string) (map[string]garden.ContainerM
 	fake.bulkMetricsArgsForCall = append(fake.bulkMetricsArgsForCall, struct {
 		arg1 []string
 	}{arg1Copy})
+	stub := fake.BulkMetricsStub
+	fakeReturns := fake.bulkMetricsReturns
 	fake.recordInvocation("BulkMetrics", []interface{}{arg1Copy})
 	fake.bulkMetricsMutex.Unlock()
-	if fake.BulkMetricsStub != nil {
-		return fake.BulkMetricsStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.bulkMetricsReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -252,15 +254,16 @@ func (fake *FakeClient) Capacity() (garden.Capacity, error) {
 	ret, specificReturn := fake.capacityReturnsOnCall[len(fake.capacityArgsForCall)]
 	fake.capacityArgsForCall = append(fake.capacityArgsForCall, struct {
 	}{})
+	stub := fake.CapacityStub
+	fakeReturns := fake.capacityReturns
 	fake.recordInvocation("Capacity", []interface{}{})
 	fake.capacityMutex.Unlock()
-	if fake.CapacityStub != nil {
-		return fake.CapacityStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.capacityReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -308,15 +311,16 @@ func (fake *FakeClient) Containers(arg1 garden.Properties) ([]gclient.Container,
 	fake.containersArgsForCall = append(fake.containersArgsForCall, struct {
 		arg1 garden.Properties
 	}{arg1})
+	stub := fake.ContainersStub
+	fakeReturns := fake.containersReturns
 	fake.recordInvocation("Containers", []interface{}{arg1})
 	fake.containersMutex.Unlock()
-	if fake.ContainersStub != nil {
-		return fake.ContainersStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.containersReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -371,15 +375,16 @@ func (fake *FakeClient) Create(arg1 garden.ContainerSpec) (gclient.Container, er
 	fake.createArgsForCall = append(fake.createArgsForCall, struct {
 		arg1 garden.ContainerSpec
 	}{arg1})
+	stub := fake.CreateStub
+	fakeReturns := fake.createReturns
 	fake.recordInvocation("Create", []interface{}{arg1})
 	fake.createMutex.Unlock()
-	if fake.CreateStub != nil {
-		return fake.CreateStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.createReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -434,15 +439,16 @@ func (fake *FakeClient) Destroy(arg1 string) error {
 	fake.destroyArgsForCall = append(fake.destroyArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.DestroyStub
+	fakeReturns := fake.destroyReturns
 	fake.recordInvocation("Destroy", []interface{}{arg1})
 	fake.destroyMutex.Unlock()
-	if fake.DestroyStub != nil {
-		return fake.DestroyStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.destroyReturns
 	return fakeReturns.result1
 }
 
@@ -494,15 +500,16 @@ func (fake *FakeClient) Lookup(arg1 string) (gclient.Container, error) {
 	fake.lookupArgsForCall = append(fake.lookupArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.LookupStub
+	fakeReturns := fake.lookupReturns
 	fake.recordInvocation("Lookup", []interface{}{arg1})
 	fake.lookupMutex.Unlock()
-	if fake.LookupStub != nil {
-		return fake.LookupStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.lookupReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -556,15 +563,16 @@ func (fake *FakeClient) Ping() error {
 	ret, specificReturn := fake.pingReturnsOnCall[len(fake.pingArgsForCall)]
 	fake.pingArgsForCall = append(fake.pingArgsForCall, struct {
 	}{})
+	stub := fake.PingStub
+	fakeReturns := fake.pingReturns
 	fake.recordInvocation("Ping", []interface{}{})
 	fake.pingMutex.Unlock()
-	if fake.PingStub != nil {
-		return fake.PingStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.pingReturns
 	return fakeReturns.result1
 }
 

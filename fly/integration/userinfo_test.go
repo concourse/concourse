@@ -39,6 +39,8 @@ var _ = Describe("Fly CLI", func() {
 								"other_team": {"owner"},
 								"test_team":  {"owner", "viewer"},
 							},
+							"connector": "some-connector",
+							"display_user_id": "test_id",
 						}),
 					),
 				)
@@ -55,7 +57,7 @@ var _ = Describe("Fly CLI", func() {
 						{Contents: "team/role", Color: color.New(color.Bold)},
 					},
 					Data: []ui.TableRow{
-						{{Contents: "test_user"}, {Contents: "other_team/owner,test_team/owner,test_team/viewer"}},
+						{{Contents: "test_id"}, {Contents: "other_team/owner,test_team/owner,test_team/viewer"}},
 					},
 				}))
 			})
@@ -81,7 +83,9 @@ var _ = Describe("Fly CLI", func() {
 							"teams": {
 								"other_team": ["owner"],
 								"test_team": ["owner", "viewer"]
-							}
+							},
+							"connector": "some-connector",
+							"display_user_id": "test_id"
 					}`))
 				})
 			})

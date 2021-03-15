@@ -83,7 +83,7 @@ func saveWorkerArtifact(tx Tx, conn Conn, atcArtifact atc.WorkerArtifact) (Worke
 	}
 
 	if !found {
-		return nil, errors.New("Not found")
+		return nil, errors.New("not found")
 	}
 
 	return artifact, nil

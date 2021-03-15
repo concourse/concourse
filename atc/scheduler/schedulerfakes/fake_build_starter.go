@@ -37,15 +37,16 @@ func (fake *FakeBuildStarter) TryStartPendingBuildsForJob(arg1 lager.Logger, arg
 		arg2 db.SchedulerJob
 		arg3 db.InputConfigs
 	}{arg1, arg2, arg3})
+	stub := fake.TryStartPendingBuildsForJobStub
+	fakeReturns := fake.tryStartPendingBuildsForJobReturns
 	fake.recordInvocation("TryStartPendingBuildsForJob", []interface{}{arg1, arg2, arg3})
 	fake.tryStartPendingBuildsForJobMutex.Unlock()
-	if fake.TryStartPendingBuildsForJobStub != nil {
-		return fake.TryStartPendingBuildsForJobStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.tryStartPendingBuildsForJobReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

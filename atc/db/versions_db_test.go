@@ -44,7 +44,7 @@ var _ = Describe("VersionsDB", func() {
 
 			BeforeEach(func() {
 				var err error
-				build, err = defaultJob.CreateBuild()
+				build, err = defaultJob.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 
 				err = build.Finish(db.BuildStatusSucceeded)
@@ -71,7 +71,7 @@ var _ = Describe("VersionsDB", func() {
 				builds = []db.Build{}
 
 				for i := 0; i < pageLimit; i++ {
-					build, err := defaultJob.CreateBuild()
+					build, err := defaultJob.CreateBuild(defaultBuildCreatedBy)
 					Expect(err).ToNot(HaveOccurred())
 
 					err = build.Finish(db.BuildStatusSucceeded)
@@ -107,38 +107,38 @@ var _ = Describe("VersionsDB", func() {
 
 			BeforeEach(func() {
 				var err error
-				build1Succeeded, err = defaultJob.CreateBuild()
+				build1Succeeded, err = defaultJob.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 				err = build1Succeeded.Finish(db.BuildStatusSucceeded)
 				Expect(err).ToNot(HaveOccurred())
 
-				build2Failed, err = defaultJob.CreateBuild()
+				build2Failed, err = defaultJob.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 				err = build2Failed.Finish(db.BuildStatusFailed)
 				Expect(err).ToNot(HaveOccurred())
 
-				build3Succeeded, err = defaultJob.CreateBuild()
+				build3Succeeded, err = defaultJob.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 				err = build3Succeeded.Finish(db.BuildStatusSucceeded)
 				Expect(err).ToNot(HaveOccurred())
 
-				build4Rerun2Succeeded, err = defaultJob.RerunBuild(build2Failed)
+				build4Rerun2Succeeded, err = defaultJob.RerunBuild(build2Failed, defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 				err = build4Rerun2Succeeded.Finish(db.BuildStatusSucceeded)
 				Expect(err).ToNot(HaveOccurred())
 
-				build5Rerun2Succeeded, err = defaultJob.RerunBuild(build2Failed)
+				build5Rerun2Succeeded, err = defaultJob.RerunBuild(build2Failed, defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 				err = build5Rerun2Succeeded.Finish(db.BuildStatusSucceeded)
 				Expect(err).ToNot(HaveOccurred())
 
-				build6Succeeded, err = defaultJob.CreateBuild()
+				build6Succeeded, err = defaultJob.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 				err = build6Succeeded.Finish(db.BuildStatusSucceeded)
 				Expect(err).ToNot(HaveOccurred())
 
 				for i := 0; i < pageLimit; i++ {
-					build, err := defaultJob.CreateBuild()
+					build, err := defaultJob.CreateBuild(defaultBuildCreatedBy)
 					Expect(err).ToNot(HaveOccurred())
 
 					err = build.Finish(db.BuildStatusSucceeded)
@@ -198,32 +198,32 @@ var _ = Describe("VersionsDB", func() {
 
 			BeforeEach(func() {
 				var err error
-				build1Succeeded, err = defaultJob.CreateBuild()
+				build1Succeeded, err = defaultJob.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 				err = build1Succeeded.Finish(db.BuildStatusSucceeded)
 				Expect(err).ToNot(HaveOccurred())
 
-				build2Failed, err = defaultJob.CreateBuild()
+				build2Failed, err = defaultJob.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 				err = build2Failed.Finish(db.BuildStatusFailed)
 				Expect(err).ToNot(HaveOccurred())
 
-				build3Succeeded, err = defaultJob.CreateBuild()
+				build3Succeeded, err = defaultJob.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 				err = build3Succeeded.Finish(db.BuildStatusSucceeded)
 				Expect(err).ToNot(HaveOccurred())
 
-				build4Rerun2Succeeded, err = defaultJob.RerunBuild(build2Failed)
+				build4Rerun2Succeeded, err = defaultJob.RerunBuild(build2Failed, defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 				err = build4Rerun2Succeeded.Finish(db.BuildStatusSucceeded)
 				Expect(err).ToNot(HaveOccurred())
 
-				build5Rerun2Succeeded, err = defaultJob.RerunBuild(build2Failed)
+				build5Rerun2Succeeded, err = defaultJob.RerunBuild(build2Failed, defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 				err = build5Rerun2Succeeded.Finish(db.BuildStatusSucceeded)
 				Expect(err).ToNot(HaveOccurred())
 
-				build6Succeeded, err = defaultJob.CreateBuild()
+				build6Succeeded, err = defaultJob.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 				err = build6Succeeded.Finish(db.BuildStatusSucceeded)
 				Expect(err).ToNot(HaveOccurred())
@@ -269,7 +269,7 @@ var _ = Describe("VersionsDB", func() {
 
 			BeforeEach(func() {
 				var err error
-				build1Failed, err = defaultJob.CreateBuild()
+				build1Failed, err = defaultJob.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 				err = build1Failed.Finish(db.BuildStatusFailed)
 				Expect(err).ToNot(HaveOccurred())
@@ -277,7 +277,7 @@ var _ = Describe("VersionsDB", func() {
 				fillerBuilds = []db.Build{}
 
 				for i := 0; i < pageLimit-1; i++ {
-					build, err := defaultJob.CreateBuild()
+					build, err := defaultJob.CreateBuild(defaultBuildCreatedBy)
 					Expect(err).ToNot(HaveOccurred())
 
 					err = build.Finish(db.BuildStatusSucceeded)
@@ -286,7 +286,7 @@ var _ = Describe("VersionsDB", func() {
 					fillerBuilds = append(fillerBuilds, build)
 				}
 
-				build6Rerun1Succeeded, err = defaultJob.RerunBuild(build1Failed)
+				build6Rerun1Succeeded, err = defaultJob.RerunBuild(build1Failed, defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 				err = build6Rerun1Succeeded.Finish(db.BuildStatusSucceeded)
 				Expect(err).ToNot(HaveOccurred())
@@ -319,7 +319,7 @@ var _ = Describe("VersionsDB", func() {
 
 			BeforeEach(func() {
 				var err error
-				build1Succeeded, err = defaultJob.CreateBuild()
+				build1Succeeded, err = defaultJob.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 				err = build1Succeeded.Finish(db.BuildStatusSucceeded)
 				Expect(err).ToNot(HaveOccurred())
@@ -327,7 +327,7 @@ var _ = Describe("VersionsDB", func() {
 				fillerBuilds = []db.Build{}
 
 				for i := 0; i < pageLimit-1; i++ {
-					build, err := defaultJob.CreateBuild()
+					build, err := defaultJob.CreateBuild(defaultBuildCreatedBy)
 					Expect(err).ToNot(HaveOccurred())
 
 					err = build.Finish(db.BuildStatusSucceeded)
@@ -336,7 +336,7 @@ var _ = Describe("VersionsDB", func() {
 					fillerBuilds = append(fillerBuilds, build)
 				}
 
-				build6Rerun1Succeeded, err = defaultJob.RerunBuild(build1Succeeded)
+				build6Rerun1Succeeded, err = defaultJob.RerunBuild(build1Succeeded, defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 				err = build6Rerun1Succeeded.Finish(db.BuildStatusSucceeded)
 				Expect(err).ToNot(HaveOccurred())
@@ -376,7 +376,7 @@ var _ = Describe("VersionsDB", func() {
 
 			BeforeEach(func() {
 				var err error
-				build1Failed, err = defaultJob.CreateBuild()
+				build1Failed, err = defaultJob.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 				err = build1Failed.Finish(db.BuildStatusFailed)
 				Expect(err).ToNot(HaveOccurred())
@@ -384,7 +384,7 @@ var _ = Describe("VersionsDB", func() {
 				fillerBuilds = []db.Build{}
 
 				for i := 0; i < pageLimit-1; i++ {
-					build, err := defaultJob.CreateBuild()
+					build, err := defaultJob.CreateBuild(defaultBuildCreatedBy)
 					Expect(err).ToNot(HaveOccurred())
 
 					err = build.Finish(db.BuildStatusSucceeded)
@@ -393,17 +393,17 @@ var _ = Describe("VersionsDB", func() {
 					fillerBuilds = append(fillerBuilds, build)
 				}
 
-				build6Rerun1Succeeded, err = defaultJob.RerunBuild(build1Failed)
+				build6Rerun1Succeeded, err = defaultJob.RerunBuild(build1Failed, defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 				err = build6Rerun1Succeeded.Finish(db.BuildStatusSucceeded)
 				Expect(err).ToNot(HaveOccurred())
 
-				build7Rerun1Succeeded, err = defaultJob.RerunBuild(build1Failed)
+				build7Rerun1Succeeded, err = defaultJob.RerunBuild(build1Failed, defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 				err = build7Rerun1Succeeded.Finish(db.BuildStatusSucceeded)
 				Expect(err).ToNot(HaveOccurred())
 
-				build8Rerun1Succeeded, err = defaultJob.RerunBuild(build1Failed)
+				build8Rerun1Succeeded, err = defaultJob.RerunBuild(build1Failed, defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 				err = build8Rerun1Succeeded.Finish(db.BuildStatusSucceeded)
 				Expect(err).ToNot(HaveOccurred())
@@ -459,7 +459,7 @@ var _ = Describe("VersionsDB", func() {
 
 			BeforeEach(func() {
 				var err error
-				cursorBuild, err = defaultJob.CreateBuild()
+				cursorBuild, err = defaultJob.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 
 				err = cursorBuild.Finish(db.BuildStatusSucceeded)
@@ -491,7 +491,7 @@ var _ = Describe("VersionsDB", func() {
 			BeforeEach(func() {
 				olderBuilds = []db.Build{}
 				for i := 0; i < pageLimit; i++ {
-					build, err := defaultJob.CreateBuild()
+					build, err := defaultJob.CreateBuild(defaultBuildCreatedBy)
 					Expect(err).ToNot(HaveOccurred())
 
 					err = build.Finish(db.BuildStatusSucceeded)
@@ -501,7 +501,7 @@ var _ = Describe("VersionsDB", func() {
 				}
 
 				var err error
-				cursorBuild, err = defaultJob.CreateBuild()
+				cursorBuild, err = defaultJob.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 
 				err = cursorBuild.Finish(db.BuildStatusSucceeded)
@@ -513,7 +513,7 @@ var _ = Describe("VersionsDB", func() {
 
 				newerBuilds = []db.Build{}
 				for i := 0; i < pageLimit; i++ {
-					build, err := defaultJob.CreateBuild()
+					build, err := defaultJob.CreateBuild(defaultBuildCreatedBy)
 					Expect(err).ToNot(HaveOccurred())
 
 					err = build.Finish(db.BuildStatusSucceeded)
@@ -559,7 +559,7 @@ var _ = Describe("VersionsDB", func() {
 			BeforeEach(func() {
 				olderBuilds = []db.Build{}
 				for i := 0; i < pageLimit; i++ {
-					build, err := defaultJob.CreateBuild()
+					build, err := defaultJob.CreateBuild(defaultBuildCreatedBy)
 					Expect(err).ToNot(HaveOccurred())
 
 					err = build.Finish(db.BuildStatusSucceeded)
@@ -569,7 +569,7 @@ var _ = Describe("VersionsDB", func() {
 				}
 
 				var err error
-				cursorBuild, err = defaultJob.CreateBuild()
+				cursorBuild, err = defaultJob.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 
 				err = cursorBuild.Finish(db.BuildStatusSucceeded)
@@ -581,7 +581,7 @@ var _ = Describe("VersionsDB", func() {
 
 				newerBuilds = []db.Build{}
 				for i := 0; i < pageLimit; i++ {
-					build, err := defaultJob.CreateBuild()
+					build, err := defaultJob.CreateBuild(defaultBuildCreatedBy)
 					Expect(err).ToNot(HaveOccurred())
 
 					err = build.Finish(db.BuildStatusSucceeded)
@@ -592,7 +592,7 @@ var _ = Describe("VersionsDB", func() {
 
 				rerunBuilds = []db.Build{}
 				for i := 0; i < pageLimit; i++ {
-					build, err := defaultJob.RerunBuild(cursorBuild)
+					build, err := defaultJob.RerunBuild(cursorBuild, defaultBuildCreatedBy)
 					Expect(err).ToNot(HaveOccurred())
 
 					err = build.Finish(db.BuildStatusSucceeded)
@@ -647,27 +647,27 @@ var _ = Describe("VersionsDB", func() {
 
 			BeforeEach(func() {
 				var err error
-				build1Succeeded, err = defaultJob.CreateBuild()
+				build1Succeeded, err = defaultJob.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 				err = build1Succeeded.Finish(db.BuildStatusSucceeded)
 				Expect(err).ToNot(HaveOccurred())
 
-				build2Failed, err = defaultJob.CreateBuild()
+				build2Failed, err = defaultJob.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 				err = build2Failed.Finish(db.BuildStatusFailed)
 				Expect(err).ToNot(HaveOccurred())
 
-				build3Succeeded, err = defaultJob.CreateBuild()
+				build3Succeeded, err = defaultJob.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 				err = build3Succeeded.Finish(db.BuildStatusSucceeded)
 				Expect(err).ToNot(HaveOccurred())
 
-				build4Rerun2Succeeded, err = defaultJob.RerunBuild(build2Failed)
+				build4Rerun2Succeeded, err = defaultJob.RerunBuild(build2Failed, defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 				err = build4Rerun2Succeeded.Finish(db.BuildStatusSucceeded)
 				Expect(err).ToNot(HaveOccurred())
 
-				build5Rerun2Succeeded, err = defaultJob.RerunBuild(build2Failed)
+				build5Rerun2Succeeded, err = defaultJob.RerunBuild(build2Failed, defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 				err = build5Rerun2Succeeded.Finish(db.BuildStatusSucceeded)
 				Expect(err).ToNot(HaveOccurred())
@@ -680,12 +680,12 @@ var _ = Describe("VersionsDB", func() {
 					},
 				}
 
-				build6Rerun2Succeeded, err = defaultJob.RerunBuild(build2Failed)
+				build6Rerun2Succeeded, err = defaultJob.RerunBuild(build2Failed, defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 				err = build6Rerun2Succeeded.Finish(db.BuildStatusSucceeded)
 				Expect(err).ToNot(HaveOccurred())
 
-				build7Succeeded, err = defaultJob.CreateBuild()
+				build7Succeeded, err = defaultJob.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 				err = build7Succeeded.Finish(db.BuildStatusSucceeded)
 				Expect(err).ToNot(HaveOccurred())

@@ -91,11 +91,12 @@ run:
 
 		expectedPlan = planFactory.NewPlan(atc.EnsurePlan{
 			Step: planFactory.NewPlan(atc.DoPlan{
-				planFactory.NewPlan(atc.AggregatePlan{
-					planFactory.NewPlan(atc.ArtifactInputPlan{
-						Name:       filepath.Base(buildDir),
-						ArtifactID: 125,
-					}),
+				planFactory.NewPlan(atc.InParallelPlan{
+					Steps: []atc.Plan{
+						planFactory.NewPlan(atc.ArtifactInputPlan{
+							Name:       filepath.Base(buildDir),
+							ArtifactID: 125,
+						})},
 				}),
 				planFactory.NewPlan(atc.TaskPlan{
 					Name: "one-off",
@@ -125,10 +126,12 @@ run:
 					},
 				}),
 			}),
-			Next: planFactory.NewPlan(atc.AggregatePlan{
-				planFactory.NewPlan(atc.ArtifactOutputPlan{
-					Name: "some-dir",
-				}),
+			Next: planFactory.NewPlan(atc.InParallelPlan{
+				Steps: []atc.Plan{
+					planFactory.NewPlan(atc.ArtifactOutputPlan{
+						Name: "some-dir",
+					}),
+				},
 			}),
 		})
 	})
@@ -240,7 +243,7 @@ run:
 				Expect(err).NotTo(HaveOccurred())
 
 				// sync with after create
-				Eventually(streaming).Should(BeClosed())
+				<-streaming
 
 				close(events)
 
@@ -267,10 +270,9 @@ run:
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				Eventually(sess.Err).Should(gbytes.Say("error: unknown output 'wrong-output'"))
-
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(1))
+				Expect(sess.Err).To(gbytes.Say("error: unknown output 'wrong-output'"))
 			})
 		})
 	})

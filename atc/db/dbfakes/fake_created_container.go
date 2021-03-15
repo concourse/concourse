@@ -100,15 +100,16 @@ func (fake *FakeCreatedContainer) Destroying() (db.DestroyingContainer, error) {
 	ret, specificReturn := fake.destroyingReturnsOnCall[len(fake.destroyingArgsForCall)]
 	fake.destroyingArgsForCall = append(fake.destroyingArgsForCall, struct {
 	}{})
+	stub := fake.DestroyingStub
+	fakeReturns := fake.destroyingReturns
 	fake.recordInvocation("Destroying", []interface{}{})
 	fake.destroyingMutex.Unlock()
-	if fake.DestroyingStub != nil {
-		return fake.DestroyingStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.destroyingReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -155,15 +156,16 @@ func (fake *FakeCreatedContainer) Handle() string {
 	ret, specificReturn := fake.handleReturnsOnCall[len(fake.handleArgsForCall)]
 	fake.handleArgsForCall = append(fake.handleArgsForCall, struct {
 	}{})
+	stub := fake.HandleStub
+	fakeReturns := fake.handleReturns
 	fake.recordInvocation("Handle", []interface{}{})
 	fake.handleMutex.Unlock()
-	if fake.HandleStub != nil {
-		return fake.HandleStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.handleReturns
 	return fakeReturns.result1
 }
 
@@ -207,15 +209,16 @@ func (fake *FakeCreatedContainer) ID() int {
 	ret, specificReturn := fake.iDReturnsOnCall[len(fake.iDArgsForCall)]
 	fake.iDArgsForCall = append(fake.iDArgsForCall, struct {
 	}{})
+	stub := fake.IDStub
+	fakeReturns := fake.iDReturns
 	fake.recordInvocation("ID", []interface{}{})
 	fake.iDMutex.Unlock()
-	if fake.IDStub != nil {
-		return fake.IDStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.iDReturns
 	return fakeReturns.result1
 }
 
@@ -259,15 +262,16 @@ func (fake *FakeCreatedContainer) LastHijack() time.Time {
 	ret, specificReturn := fake.lastHijackReturnsOnCall[len(fake.lastHijackArgsForCall)]
 	fake.lastHijackArgsForCall = append(fake.lastHijackArgsForCall, struct {
 	}{})
+	stub := fake.LastHijackStub
+	fakeReturns := fake.lastHijackReturns
 	fake.recordInvocation("LastHijack", []interface{}{})
 	fake.lastHijackMutex.Unlock()
-	if fake.LastHijackStub != nil {
-		return fake.LastHijackStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.lastHijackReturns
 	return fakeReturns.result1
 }
 
@@ -311,15 +315,16 @@ func (fake *FakeCreatedContainer) Metadata() db.ContainerMetadata {
 	ret, specificReturn := fake.metadataReturnsOnCall[len(fake.metadataArgsForCall)]
 	fake.metadataArgsForCall = append(fake.metadataArgsForCall, struct {
 	}{})
+	stub := fake.MetadataStub
+	fakeReturns := fake.metadataReturns
 	fake.recordInvocation("Metadata", []interface{}{})
 	fake.metadataMutex.Unlock()
-	if fake.MetadataStub != nil {
-		return fake.MetadataStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.metadataReturns
 	return fakeReturns.result1
 }
 
@@ -363,15 +368,16 @@ func (fake *FakeCreatedContainer) State() string {
 	ret, specificReturn := fake.stateReturnsOnCall[len(fake.stateArgsForCall)]
 	fake.stateArgsForCall = append(fake.stateArgsForCall, struct {
 	}{})
+	stub := fake.StateStub
+	fakeReturns := fake.stateReturns
 	fake.recordInvocation("State", []interface{}{})
 	fake.stateMutex.Unlock()
-	if fake.StateStub != nil {
-		return fake.StateStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.stateReturns
 	return fakeReturns.result1
 }
 
@@ -415,15 +421,16 @@ func (fake *FakeCreatedContainer) UpdateLastHijack() error {
 	ret, specificReturn := fake.updateLastHijackReturnsOnCall[len(fake.updateLastHijackArgsForCall)]
 	fake.updateLastHijackArgsForCall = append(fake.updateLastHijackArgsForCall, struct {
 	}{})
+	stub := fake.UpdateLastHijackStub
+	fakeReturns := fake.updateLastHijackReturns
 	fake.recordInvocation("UpdateLastHijack", []interface{}{})
 	fake.updateLastHijackMutex.Unlock()
-	if fake.UpdateLastHijackStub != nil {
-		return fake.UpdateLastHijackStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.updateLastHijackReturns
 	return fakeReturns.result1
 }
 
@@ -467,15 +474,16 @@ func (fake *FakeCreatedContainer) WorkerName() string {
 	ret, specificReturn := fake.workerNameReturnsOnCall[len(fake.workerNameArgsForCall)]
 	fake.workerNameArgsForCall = append(fake.workerNameArgsForCall, struct {
 	}{})
+	stub := fake.WorkerNameStub
+	fakeReturns := fake.workerNameReturns
 	fake.recordInvocation("WorkerName", []interface{}{})
 	fake.workerNameMutex.Unlock()
-	if fake.WorkerNameStub != nil {
-		return fake.WorkerNameStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.workerNameReturns
 	return fakeReturns.result1
 }
 

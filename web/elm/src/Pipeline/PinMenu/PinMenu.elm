@@ -2,10 +2,12 @@ module Pipeline.PinMenu.PinMenu exposing
     ( TableRow
     , View
     , pinMenu
+    , tooltip
     , update
     , viewPinMenu
     )
 
+import Application.Models exposing (Session)
 import Colors
 import Concourse
 import Dict
@@ -14,11 +16,13 @@ import HoverState
 import Html exposing (Html)
 import Html.Attributes exposing (id, style)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
+import Message.Effects exposing (toHtmlID)
 import Message.Message exposing (DomID(..), Message(..))
 import Pipeline.PinMenu.Styles as Styles
 import Pipeline.PinMenu.Views as Views
 import Routes
 import SideBar.Styles as SS
+import Tooltip
 import Views.Styles
 
 
@@ -31,8 +35,7 @@ type alias Model b =
 
 
 type alias View =
-    { hoverable : Bool
-    , clickable : Bool
+    { clickable : Bool
     , background : Views.Background
     , opacity : SS.Opacity
     , badge : Maybe Badge
@@ -81,13 +84,42 @@ type alias TableRow =
 update : Message -> ET (Model b)
 update message ( model, effects ) =
     case message of
-        Click PinIcon ->
+        Click TopBarPinIcon ->
             ( { model | pinMenuExpanded = not model.pinMenuExpanded }
             , effects
             )
 
         _ ->
             ( model, effects )
+
+
+tooltip : Model b -> Session -> Maybe Tooltip.Tooltip
+tooltip model session =
+    case session.hovered of
+        HoverState.Tooltip TopBarPinIcon _ ->
+            let
+                pinnedResources =
+                    getPinnedResources model.fetchedResources
+            in
+            if model.pinMenuExpanded then
+                Nothing
+
+            else
+                Just
+                    { body =
+                        Html.text <|
+                            if List.isEmpty pinnedResources then
+                                "no pinned resources"
+
+                            else
+                                "view pinned resources"
+                    , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
+                    , arrow = Just 5
+                    , containerAttrs = Nothing
+                    }
+
+        _ ->
+            Nothing
 
 
 pinMenu :
@@ -109,12 +141,11 @@ pinMenu { hovered } model =
             pinCount > 0
 
         isHovered =
-            hovered == HoverState.Hovered PinIcon
+            hovered == HoverState.Hovered TopBarPinIcon
     in
-    { hoverable = hasPinnedResources
-    , clickable = hasPinnedResources
+    { clickable = hasPinnedResources
     , opacity =
-        if isHovered || model.pinMenuExpanded then
+        if hasPinnedResources && (isHovered || model.pinMenuExpanded) then
             SS.Bright
 
         else if hasPinnedResources then
@@ -180,6 +211,7 @@ pinMenu { hovered } model =
                                         { id =
                                             { teamName = pipeline.teamName
                                             , pipelineName = pipeline.pipelineName
+                                            , pipelineInstanceVars = pipeline.pipelineInstanceVars
                                             , resourceName = resourceName
                                             }
                                         , page = Nothing
@@ -220,10 +252,9 @@ getPinnedResources fetchedResources =
 viewView : View -> Html Message
 viewView view =
     Html.div
-        (([ ( id "pin-icon", True )
-          , ( onMouseEnter <| Hover <| Just PinIcon, view.hoverable )
-          , ( onMouseLeave <| Hover Nothing, view.hoverable )
-          , ( onClick <| Click PinIcon, view.clickable )
+        (([ ( onMouseEnter <| Hover <| Just TopBarPinIcon, True )
+          , ( onMouseLeave <| Hover Nothing, True )
+          , ( onClick <| Click TopBarPinIcon, view.clickable )
           ]
             |> List.filter Tuple.second
             |> List.map Tuple.first
@@ -231,7 +262,7 @@ viewView view =
             ++ Styles.pinIconBackground view
         )
         (Html.div
-            (Styles.pinIcon view)
+            (id (toHtmlID TopBarPinIcon) :: Styles.pinIcon view)
             []
             :: ([ Maybe.map viewBadge view.badge
                 , Maybe.map viewDropdown view.dropdown

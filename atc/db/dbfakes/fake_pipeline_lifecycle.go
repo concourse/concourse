@@ -37,15 +37,16 @@ func (fake *FakePipelineLifecycle) ArchiveAbandonedPipelines() error {
 	ret, specificReturn := fake.archiveAbandonedPipelinesReturnsOnCall[len(fake.archiveAbandonedPipelinesArgsForCall)]
 	fake.archiveAbandonedPipelinesArgsForCall = append(fake.archiveAbandonedPipelinesArgsForCall, struct {
 	}{})
+	stub := fake.ArchiveAbandonedPipelinesStub
+	fakeReturns := fake.archiveAbandonedPipelinesReturns
 	fake.recordInvocation("ArchiveAbandonedPipelines", []interface{}{})
 	fake.archiveAbandonedPipelinesMutex.Unlock()
-	if fake.ArchiveAbandonedPipelinesStub != nil {
-		return fake.ArchiveAbandonedPipelinesStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.archiveAbandonedPipelinesReturns
 	return fakeReturns.result1
 }
 
@@ -89,15 +90,16 @@ func (fake *FakePipelineLifecycle) RemoveBuildEventsForDeletedPipelines() error 
 	ret, specificReturn := fake.removeBuildEventsForDeletedPipelinesReturnsOnCall[len(fake.removeBuildEventsForDeletedPipelinesArgsForCall)]
 	fake.removeBuildEventsForDeletedPipelinesArgsForCall = append(fake.removeBuildEventsForDeletedPipelinesArgsForCall, struct {
 	}{})
+	stub := fake.RemoveBuildEventsForDeletedPipelinesStub
+	fakeReturns := fake.removeBuildEventsForDeletedPipelinesReturns
 	fake.recordInvocation("RemoveBuildEventsForDeletedPipelines", []interface{}{})
 	fake.removeBuildEventsForDeletedPipelinesMutex.Unlock()
-	if fake.RemoveBuildEventsForDeletedPipelinesStub != nil {
-		return fake.RemoveBuildEventsForDeletedPipelinesStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.removeBuildEventsForDeletedPipelinesReturns
 	return fakeReturns.result1
 }
 

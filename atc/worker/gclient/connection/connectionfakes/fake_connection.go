@@ -363,15 +363,16 @@ func (fake *FakeConnection) Attach(arg1 context.Context, arg2 string, arg3 strin
 		arg3 string
 		arg4 garden.ProcessIO
 	}{arg1, arg2, arg3, arg4})
+	stub := fake.AttachStub
+	fakeReturns := fake.attachReturns
 	fake.recordInvocation("Attach", []interface{}{arg1, arg2, arg3, arg4})
 	fake.attachMutex.Unlock()
-	if fake.AttachStub != nil {
-		return fake.AttachStub(arg1, arg2, arg3, arg4)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.attachReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -431,15 +432,16 @@ func (fake *FakeConnection) BulkInfo(arg1 []string) (map[string]garden.Container
 	fake.bulkInfoArgsForCall = append(fake.bulkInfoArgsForCall, struct {
 		arg1 []string
 	}{arg1Copy})
+	stub := fake.BulkInfoStub
+	fakeReturns := fake.bulkInfoReturns
 	fake.recordInvocation("BulkInfo", []interface{}{arg1Copy})
 	fake.bulkInfoMutex.Unlock()
-	if fake.BulkInfoStub != nil {
-		return fake.BulkInfoStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.bulkInfoReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -499,15 +501,16 @@ func (fake *FakeConnection) BulkMetrics(arg1 []string) (map[string]garden.Contai
 	fake.bulkMetricsArgsForCall = append(fake.bulkMetricsArgsForCall, struct {
 		arg1 []string
 	}{arg1Copy})
+	stub := fake.BulkMetricsStub
+	fakeReturns := fake.bulkMetricsReturns
 	fake.recordInvocation("BulkMetrics", []interface{}{arg1Copy})
 	fake.bulkMetricsMutex.Unlock()
-	if fake.BulkMetricsStub != nil {
-		return fake.BulkMetricsStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.bulkMetricsReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -568,15 +571,16 @@ func (fake *FakeConnection) BulkNetOut(arg1 string, arg2 []garden.NetOutRule) er
 		arg1 string
 		arg2 []garden.NetOutRule
 	}{arg1, arg2Copy})
+	stub := fake.BulkNetOutStub
+	fakeReturns := fake.bulkNetOutReturns
 	fake.recordInvocation("BulkNetOut", []interface{}{arg1, arg2Copy})
 	fake.bulkNetOutMutex.Unlock()
-	if fake.BulkNetOutStub != nil {
-		return fake.BulkNetOutStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.bulkNetOutReturns
 	return fakeReturns.result1
 }
 
@@ -627,15 +631,16 @@ func (fake *FakeConnection) Capacity() (garden.Capacity, error) {
 	ret, specificReturn := fake.capacityReturnsOnCall[len(fake.capacityArgsForCall)]
 	fake.capacityArgsForCall = append(fake.capacityArgsForCall, struct {
 	}{})
+	stub := fake.CapacityStub
+	fakeReturns := fake.capacityReturns
 	fake.recordInvocation("Capacity", []interface{}{})
 	fake.capacityMutex.Unlock()
-	if fake.CapacityStub != nil {
-		return fake.CapacityStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.capacityReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -683,15 +688,16 @@ func (fake *FakeConnection) Create(arg1 garden.ContainerSpec) (string, error) {
 	fake.createArgsForCall = append(fake.createArgsForCall, struct {
 		arg1 garden.ContainerSpec
 	}{arg1})
+	stub := fake.CreateStub
+	fakeReturns := fake.createReturns
 	fake.recordInvocation("Create", []interface{}{arg1})
 	fake.createMutex.Unlock()
-	if fake.CreateStub != nil {
-		return fake.CreateStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.createReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -746,15 +752,16 @@ func (fake *FakeConnection) CurrentBandwidthLimits(arg1 string) (garden.Bandwidt
 	fake.currentBandwidthLimitsArgsForCall = append(fake.currentBandwidthLimitsArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.CurrentBandwidthLimitsStub
+	fakeReturns := fake.currentBandwidthLimitsReturns
 	fake.recordInvocation("CurrentBandwidthLimits", []interface{}{arg1})
 	fake.currentBandwidthLimitsMutex.Unlock()
-	if fake.CurrentBandwidthLimitsStub != nil {
-		return fake.CurrentBandwidthLimitsStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.currentBandwidthLimitsReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -809,15 +816,16 @@ func (fake *FakeConnection) CurrentCPULimits(arg1 string) (garden.CPULimits, err
 	fake.currentCPULimitsArgsForCall = append(fake.currentCPULimitsArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.CurrentCPULimitsStub
+	fakeReturns := fake.currentCPULimitsReturns
 	fake.recordInvocation("CurrentCPULimits", []interface{}{arg1})
 	fake.currentCPULimitsMutex.Unlock()
-	if fake.CurrentCPULimitsStub != nil {
-		return fake.CurrentCPULimitsStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.currentCPULimitsReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -872,15 +880,16 @@ func (fake *FakeConnection) CurrentDiskLimits(arg1 string) (garden.DiskLimits, e
 	fake.currentDiskLimitsArgsForCall = append(fake.currentDiskLimitsArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.CurrentDiskLimitsStub
+	fakeReturns := fake.currentDiskLimitsReturns
 	fake.recordInvocation("CurrentDiskLimits", []interface{}{arg1})
 	fake.currentDiskLimitsMutex.Unlock()
-	if fake.CurrentDiskLimitsStub != nil {
-		return fake.CurrentDiskLimitsStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.currentDiskLimitsReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -935,15 +944,16 @@ func (fake *FakeConnection) CurrentMemoryLimits(arg1 string) (garden.MemoryLimit
 	fake.currentMemoryLimitsArgsForCall = append(fake.currentMemoryLimitsArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.CurrentMemoryLimitsStub
+	fakeReturns := fake.currentMemoryLimitsReturns
 	fake.recordInvocation("CurrentMemoryLimits", []interface{}{arg1})
 	fake.currentMemoryLimitsMutex.Unlock()
-	if fake.CurrentMemoryLimitsStub != nil {
-		return fake.CurrentMemoryLimitsStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.currentMemoryLimitsReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -998,15 +1008,16 @@ func (fake *FakeConnection) Destroy(arg1 string) error {
 	fake.destroyArgsForCall = append(fake.destroyArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.DestroyStub
+	fakeReturns := fake.destroyReturns
 	fake.recordInvocation("Destroy", []interface{}{arg1})
 	fake.destroyMutex.Unlock()
-	if fake.DestroyStub != nil {
-		return fake.DestroyStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.destroyReturns
 	return fakeReturns.result1
 }
 
@@ -1058,15 +1069,16 @@ func (fake *FakeConnection) Info(arg1 string) (garden.ContainerInfo, error) {
 	fake.infoArgsForCall = append(fake.infoArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.InfoStub
+	fakeReturns := fake.infoReturns
 	fake.recordInvocation("Info", []interface{}{arg1})
 	fake.infoMutex.Unlock()
-	if fake.InfoStub != nil {
-		return fake.InfoStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.infoReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -1121,15 +1133,16 @@ func (fake *FakeConnection) List(arg1 garden.Properties) ([]string, error) {
 	fake.listArgsForCall = append(fake.listArgsForCall, struct {
 		arg1 garden.Properties
 	}{arg1})
+	stub := fake.ListStub
+	fakeReturns := fake.listReturns
 	fake.recordInvocation("List", []interface{}{arg1})
 	fake.listMutex.Unlock()
-	if fake.ListStub != nil {
-		return fake.ListStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.listReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -1184,15 +1197,16 @@ func (fake *FakeConnection) Metrics(arg1 string) (garden.Metrics, error) {
 	fake.metricsArgsForCall = append(fake.metricsArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.MetricsStub
+	fakeReturns := fake.metricsReturns
 	fake.recordInvocation("Metrics", []interface{}{arg1})
 	fake.metricsMutex.Unlock()
-	if fake.MetricsStub != nil {
-		return fake.MetricsStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.metricsReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -1249,15 +1263,16 @@ func (fake *FakeConnection) NetIn(arg1 string, arg2 uint32, arg3 uint32) (uint32
 		arg2 uint32
 		arg3 uint32
 	}{arg1, arg2, arg3})
+	stub := fake.NetInStub
+	fakeReturns := fake.netInReturns
 	fake.recordInvocation("NetIn", []interface{}{arg1, arg2, arg3})
 	fake.netInMutex.Unlock()
-	if fake.NetInStub != nil {
-		return fake.NetInStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.netInReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -1316,15 +1331,16 @@ func (fake *FakeConnection) NetOut(arg1 string, arg2 garden.NetOutRule) error {
 		arg1 string
 		arg2 garden.NetOutRule
 	}{arg1, arg2})
+	stub := fake.NetOutStub
+	fakeReturns := fake.netOutReturns
 	fake.recordInvocation("NetOut", []interface{}{arg1, arg2})
 	fake.netOutMutex.Unlock()
-	if fake.NetOutStub != nil {
-		return fake.NetOutStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.netOutReturns
 	return fakeReturns.result1
 }
 
@@ -1375,15 +1391,16 @@ func (fake *FakeConnection) Ping() error {
 	ret, specificReturn := fake.pingReturnsOnCall[len(fake.pingArgsForCall)]
 	fake.pingArgsForCall = append(fake.pingArgsForCall, struct {
 	}{})
+	stub := fake.PingStub
+	fakeReturns := fake.pingReturns
 	fake.recordInvocation("Ping", []interface{}{})
 	fake.pingMutex.Unlock()
-	if fake.PingStub != nil {
-		return fake.PingStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.pingReturns
 	return fakeReturns.result1
 }
 
@@ -1428,15 +1445,16 @@ func (fake *FakeConnection) Properties(arg1 string) (garden.Properties, error) {
 	fake.propertiesArgsForCall = append(fake.propertiesArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.PropertiesStub
+	fakeReturns := fake.propertiesReturns
 	fake.recordInvocation("Properties", []interface{}{arg1})
 	fake.propertiesMutex.Unlock()
-	if fake.PropertiesStub != nil {
-		return fake.PropertiesStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.propertiesReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -1492,15 +1510,16 @@ func (fake *FakeConnection) Property(arg1 string, arg2 string) (string, error) {
 		arg1 string
 		arg2 string
 	}{arg1, arg2})
+	stub := fake.PropertyStub
+	fakeReturns := fake.propertyReturns
 	fake.recordInvocation("Property", []interface{}{arg1, arg2})
 	fake.propertyMutex.Unlock()
-	if fake.PropertyStub != nil {
-		return fake.PropertyStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.propertyReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -1556,15 +1575,16 @@ func (fake *FakeConnection) RemoveProperty(arg1 string, arg2 string) error {
 		arg1 string
 		arg2 string
 	}{arg1, arg2})
+	stub := fake.RemovePropertyStub
+	fakeReturns := fake.removePropertyReturns
 	fake.recordInvocation("RemoveProperty", []interface{}{arg1, arg2})
 	fake.removePropertyMutex.Unlock()
-	if fake.RemovePropertyStub != nil {
-		return fake.RemovePropertyStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.removePropertyReturns
 	return fakeReturns.result1
 }
 
@@ -1619,15 +1639,16 @@ func (fake *FakeConnection) Run(arg1 context.Context, arg2 string, arg3 garden.P
 		arg3 garden.ProcessSpec
 		arg4 garden.ProcessIO
 	}{arg1, arg2, arg3, arg4})
+	stub := fake.RunStub
+	fakeReturns := fake.runReturns
 	fake.recordInvocation("Run", []interface{}{arg1, arg2, arg3, arg4})
 	fake.runMutex.Unlock()
-	if fake.RunStub != nil {
-		return fake.RunStub(arg1, arg2, arg3, arg4)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.runReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -1683,15 +1704,16 @@ func (fake *FakeConnection) SetGraceTime(arg1 string, arg2 time.Duration) error 
 		arg1 string
 		arg2 time.Duration
 	}{arg1, arg2})
+	stub := fake.SetGraceTimeStub
+	fakeReturns := fake.setGraceTimeReturns
 	fake.recordInvocation("SetGraceTime", []interface{}{arg1, arg2})
 	fake.setGraceTimeMutex.Unlock()
-	if fake.SetGraceTimeStub != nil {
-		return fake.SetGraceTimeStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.setGraceTimeReturns
 	return fakeReturns.result1
 }
 
@@ -1745,15 +1767,16 @@ func (fake *FakeConnection) SetProperty(arg1 string, arg2 string, arg3 string) e
 		arg2 string
 		arg3 string
 	}{arg1, arg2, arg3})
+	stub := fake.SetPropertyStub
+	fakeReturns := fake.setPropertyReturns
 	fake.recordInvocation("SetProperty", []interface{}{arg1, arg2, arg3})
 	fake.setPropertyMutex.Unlock()
-	if fake.SetPropertyStub != nil {
-		return fake.SetPropertyStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.setPropertyReturns
 	return fakeReturns.result1
 }
 
@@ -1806,15 +1829,16 @@ func (fake *FakeConnection) Stop(arg1 string, arg2 bool) error {
 		arg1 string
 		arg2 bool
 	}{arg1, arg2})
+	stub := fake.StopStub
+	fakeReturns := fake.stopReturns
 	fake.recordInvocation("Stop", []interface{}{arg1, arg2})
 	fake.stopMutex.Unlock()
-	if fake.StopStub != nil {
-		return fake.StopStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.stopReturns
 	return fakeReturns.result1
 }
 
@@ -1867,15 +1891,16 @@ func (fake *FakeConnection) StreamIn(arg1 string, arg2 garden.StreamInSpec) erro
 		arg1 string
 		arg2 garden.StreamInSpec
 	}{arg1, arg2})
+	stub := fake.StreamInStub
+	fakeReturns := fake.streamInReturns
 	fake.recordInvocation("StreamIn", []interface{}{arg1, arg2})
 	fake.streamInMutex.Unlock()
-	if fake.StreamInStub != nil {
-		return fake.StreamInStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.streamInReturns
 	return fakeReturns.result1
 }
 
@@ -1928,15 +1953,16 @@ func (fake *FakeConnection) StreamOut(arg1 string, arg2 garden.StreamOutSpec) (i
 		arg1 string
 		arg2 garden.StreamOutSpec
 	}{arg1, arg2})
+	stub := fake.StreamOutStub
+	fakeReturns := fake.streamOutReturns
 	fake.recordInvocation("StreamOut", []interface{}{arg1, arg2})
 	fake.streamOutMutex.Unlock()
-	if fake.StreamOutStub != nil {
-		return fake.StreamOutStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.streamOutReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

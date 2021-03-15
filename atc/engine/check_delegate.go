@@ -14,6 +14,7 @@ import (
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/policy"
+	"github.com/concourse/concourse/atc/worker"
 )
 
 //go:generate counterfeiter . RateLimiter
@@ -30,9 +31,10 @@ func NewCheckDelegate(
 	limiter RateLimiter,
 	policyChecker policy.Checker,
 	globalSecrets creds.Secrets,
+	artifactSourcer worker.ArtifactSourcer,
 ) exec.CheckDelegate {
 	return &checkDelegate{
-		BuildStepDelegate: NewBuildStepDelegate(build, plan.ID, state, clock, policyChecker, globalSecrets),
+		BuildStepDelegate: NewBuildStepDelegate(build, plan.ID, state, clock, policyChecker, globalSecrets, artifactSourcer),
 
 		build:       build,
 		plan:        plan.Check,
@@ -130,18 +132,17 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 	} else if !d.clock.Now().Before(runAt) {
 		// run if we're past the last check end time
 		shouldRun = true
-	} else {
-		// XXX(check-refactor): we could potentially sleep here until runAt is
-		// reached.
-		//
-		// then the check build queueing logic is to just make sure there's a build
-		// running for every resource, without having to check if intervals have
-		// elapsed.
-		//
-		// this could be expanded upon to short-circuit the waiting with events
-		// triggered by webhooks so that webhooks are super responsive: rather than
-		// queueing a build, it would just wake up a goroutine.
 	}
+	// XXX(check-refactor): we could add an else{} case and potentially sleep
+	// here until runAt is reached.
+	//
+	// then the check build queueing logic is to just make sure there's a build
+	// running for every resource, without having to check if intervals have
+	// elapsed.
+	//
+	// this could be expanded upon to short-circuit the waiting with events
+	// triggered by webhooks so that webhooks are super responsive: rather than
+	// queueing a build, it would just wake up a goroutine.
 
 	if !shouldRun {
 		err := lock.Release()

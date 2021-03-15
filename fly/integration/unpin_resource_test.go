@@ -25,7 +25,7 @@ var _ = Describe("Fly CLI", func() {
 			resourceName        = "resource"
 			pipelineRef         = atc.PipelineRef{Name: pipelineName, InstanceVars: atc.InstanceVars{"branch": "master"}}
 			pipelineResource    = fmt.Sprintf("%s/%s", pipelineRef.String(), resourceName)
-			expectedQueryParams = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+			expectedQueryParams = "vars.branch=%22master%22"
 		)
 
 		BeforeEach(func() {

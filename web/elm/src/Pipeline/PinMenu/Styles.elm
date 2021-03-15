@@ -27,7 +27,6 @@ pinIconBackground :
 pinIconBackground { background, clickable } =
     [ style "position" "relative"
     , style "border-left" <| "1px solid " ++ Colors.background
-    , style "border-bottom" <| "1px solid " ++ Colors.frame
     , style "width" "54px"
     , style "height" "54px"
     , style "display" "flex"
@@ -54,8 +53,8 @@ pinIcon { opacity } =
     [ style "background-image" <|
         Assets.backgroundImage <|
             Just Assets.PinIconWhite
-    , style "width" "18px"
-    , style "height" "18px"
+    , style "width" "20px"
+    , style "height" "20px"
     , style "background-repeat" "no-repeat"
     , style "background-position" "50% 50%"
     , style "background-size" "contain"

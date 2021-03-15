@@ -196,7 +196,6 @@ type StepVisitor interface {
 	VisitTry(*TryStep) error
 	VisitDo(*DoStep) error
 	VisitInParallel(*InParallelStep) error
-	VisitAggregate(*AggregateStep) error
 	VisitAcross(*AcrossStep) error
 	VisitTimeout(*TimeoutStep) error
 	VisitRetry(*RetryStep) error
@@ -251,10 +250,6 @@ var StepPrecedence = []StepDetector{
 		New: func() StepConfig { return &RetryStep{} },
 	},
 	{
-		Key: "timeout",
-		New: func() StepConfig { return &TimeoutStep{} },
-	},
-	{
 		Key: "task",
 		New: func() StepConfig { return &TaskStep{} },
 	},
@@ -265,6 +260,10 @@ var StepPrecedence = []StepDetector{
 	{
 		Key: "get",
 		New: func() StepConfig { return &GetStep{} },
+	},
+	{
+		Key: "timeout",
+		New: func() StepConfig { return &TimeoutStep{} },
 	},
 	{
 		Key: "set_pipeline",
@@ -286,10 +285,6 @@ var StepPrecedence = []StepDetector{
 		Key: "in_parallel",
 		New: func() StepConfig { return &InParallelStep{} },
 	},
-	{
-		Key: "aggregate",
-		New: func() StepConfig { return &AggregateStep{} },
-	},
 }
 
 type GetStep struct {
@@ -300,6 +295,7 @@ type GetStep struct {
 	Passed   []string       `json:"passed,omitempty"`
 	Trigger  bool           `json:"trigger,omitempty"`
 	Tags     Tags           `json:"tags,omitempty"`
+	Timeout  string         `json:"timeout,omitempty"`
 }
 
 func (step *GetStep) ResourceName() string {
@@ -321,6 +317,7 @@ type PutStep struct {
 	Inputs    *InputsConfig `json:"inputs,omitempty"`
 	Tags      Tags          `json:"tags,omitempty"`
 	GetParams Params        `json:"get_params,omitempty"`
+	Timeout   string        `json:"timeout,omitempty"`
 }
 
 func (step *PutStep) ResourceName() string {
@@ -346,6 +343,7 @@ type TaskStep struct {
 	InputMapping      map[string]string `json:"input_mapping,omitempty"`
 	OutputMapping     map[string]string `json:"output_mapping,omitempty"`
 	ImageArtifactName string            `json:"image,omitempty"`
+	Timeout           string            `json:"timeout,omitempty"`
 }
 
 func (step *TaskStep) Visit(v StepVisitor) error {
@@ -390,14 +388,6 @@ type DoStep struct {
 
 func (step *DoStep) Visit(v StepVisitor) error {
 	return v.VisitDo(step)
-}
-
-type AggregateStep struct {
-	Steps []Step `json:"aggregate"`
-}
-
-func (step *AggregateStep) Visit(v StepVisitor) error {
-	return v.VisitAggregate(step)
 }
 
 type InParallelStep struct {

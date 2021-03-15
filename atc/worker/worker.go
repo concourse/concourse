@@ -30,7 +30,7 @@ import (
 
 const userPropertyName = "user"
 
-var ResourceConfigCheckSessionExpiredError = errors.New("no db container was found for owner")
+var ErrResourceConfigCheckSessionExpired = errors.New("no db container was found for owner")
 
 //go:generate counterfeiter . Worker
 
@@ -78,8 +78,9 @@ type Worker interface {
 
 	GardenClient() gclient.Client
 	ActiveTasks() (int, error)
-	IncreaseActiveTasks() error
-	DecreaseActiveTasks() error
+
+	ActiveContainers() int
+	ActiveVolumes() int
 }
 
 type gardenWorker struct {
@@ -254,7 +255,7 @@ func (worker *gardenWorker) findOrCreateContainer(
 		if err != nil {
 			logger.Error("failed-to-create-container-in-db", err)
 			if _, ok := err.(db.ContainerOwnerDisappearedError); ok {
-				return nil, ResourceConfigCheckSessionExpiredError
+				return nil, ErrResourceConfigCheckSessionExpired
 			}
 
 			return nil, fmt.Errorf("create container: %w", err)
@@ -786,4 +787,12 @@ func (worker *gardenWorker) IncreaseActiveTasks() error {
 }
 func (worker *gardenWorker) DecreaseActiveTasks() error {
 	return worker.dbWorker.DecreaseActiveTasks()
+}
+
+func (worker *gardenWorker) ActiveContainers() int {
+	return worker.dbWorker.ActiveContainers()
+}
+
+func (worker *gardenWorker) ActiveVolumes() int {
+	return worker.dbWorker.ActiveVolumes()
 }

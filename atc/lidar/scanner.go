@@ -93,6 +93,10 @@ func (s *scanner) check(ctx context.Context, checkable db.Checkable, resourceTyp
 
 	version := checkable.CurrentPinnedVersion()
 
+	if checkable.CheckEvery() != nil && checkable.CheckEvery().Never {
+		return
+	}
+
 	checkPlanner := builds.NewCheckPlanner(s.planFactory)
 	_, created, err := s.checkFactory.TryCreateCheck(lagerctx.NewContext(spanCtx, logger), checkPlanner, checkable, resourceTypes, version, false)
 	if err != nil {
@@ -105,6 +109,4 @@ func (s *scanner) check(ctx context.Context, checkable db.Checkable, resourceTyp
 	} else {
 		metric.Metrics.ChecksEnqueued.Inc()
 	}
-
-	return
 }

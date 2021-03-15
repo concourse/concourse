@@ -42,15 +42,16 @@ func (fake *FakeInterceptTimeout) Channel() <-chan time.Time {
 	ret, specificReturn := fake.channelReturnsOnCall[len(fake.channelArgsForCall)]
 	fake.channelArgsForCall = append(fake.channelArgsForCall, struct {
 	}{})
+	stub := fake.ChannelStub
+	fakeReturns := fake.channelReturns
 	fake.recordInvocation("Channel", []interface{}{})
 	fake.channelMutex.Unlock()
-	if fake.ChannelStub != nil {
-		return fake.ChannelStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.channelReturns
 	return fakeReturns.result1
 }
 
@@ -94,15 +95,16 @@ func (fake *FakeInterceptTimeout) Error() error {
 	ret, specificReturn := fake.errorReturnsOnCall[len(fake.errorArgsForCall)]
 	fake.errorArgsForCall = append(fake.errorArgsForCall, struct {
 	}{})
+	stub := fake.ErrorStub
+	fakeReturns := fake.errorReturns
 	fake.recordInvocation("Error", []interface{}{})
 	fake.errorMutex.Unlock()
-	if fake.ErrorStub != nil {
-		return fake.ErrorStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.errorReturns
 	return fakeReturns.result1
 }
 
@@ -145,9 +147,10 @@ func (fake *FakeInterceptTimeout) Reset() {
 	fake.resetMutex.Lock()
 	fake.resetArgsForCall = append(fake.resetArgsForCall, struct {
 	}{})
+	stub := fake.ResetStub
 	fake.recordInvocation("Reset", []interface{}{})
 	fake.resetMutex.Unlock()
-	if fake.ResetStub != nil {
+	if stub != nil {
 		fake.ResetStub()
 	}
 }

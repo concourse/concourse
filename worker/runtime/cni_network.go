@@ -31,6 +31,10 @@ type CNINetworkConfig struct {
 	// added to.
 	//
 	Subnet string
+
+	// MTU is the MTU of the bridge network interface.
+	//
+	MTU int
 }
 
 const (
@@ -48,10 +52,10 @@ const (
 )
 
 var (
-	// defaultCNINetworkConfig is the default configuration for the CNI network
+	// DefaultCNINetworkConfig is the default configuration for the CNI network
 	// created to put concourse containers into.
 	//
-	defaultCNINetworkConfig = CNINetworkConfig{
+	DefaultCNINetworkConfig = CNINetworkConfig{
 		BridgeName:  "concourse0",
 		NetworkName: "concourse",
 		Subnet:      "10.80.0.0/16",
@@ -59,7 +63,12 @@ var (
 )
 
 func (c CNINetworkConfig) ToJSON() string {
-	const networksConfListFormat = `{
+	var mtu string
+	if c.MTU != 0 {
+		mtu = fmt.Sprintf(`
+      "mtu": %d,`, c.MTU)
+	}
+	networksConfListFormat := `{
   "cniVersion": "0.4.0",
   "name": "%s",
   "plugins": [
@@ -67,7 +76,8 @@ func (c CNINetworkConfig) ToJSON() string {
       "type": "bridge",
       "bridge": "%s",
       "isGateway": true,
-      "ipMasq": true,
+      "ipMasq": true,` +
+		mtu + `
       "ipam": {
         "type": "host-local",
         "subnet": "%s",
@@ -174,7 +184,7 @@ func NewCNINetwork(opts ...CNINetworkOpt) (*cniNetwork, error) {
 	var err error
 
 	n := &cniNetwork{
-		config:      defaultCNINetworkConfig,
+		config: DefaultCNINetworkConfig,
 	}
 
 	for _, opt := range opts {

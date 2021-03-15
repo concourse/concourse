@@ -50,15 +50,16 @@ func (fake *FakeArtifactDestination) GetStreamInP2pUrl(arg1 context.Context, arg
 		arg1 context.Context
 		arg2 string
 	}{arg1, arg2})
+	stub := fake.GetStreamInP2pUrlStub
+	fakeReturns := fake.getStreamInP2pUrlReturns
 	fake.recordInvocation("GetStreamInP2pUrl", []interface{}{arg1, arg2})
 	fake.getStreamInP2pUrlMutex.Unlock()
-	if fake.GetStreamInP2pUrlStub != nil {
-		return fake.GetStreamInP2pUrlStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getStreamInP2pUrlReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -116,15 +117,16 @@ func (fake *FakeArtifactDestination) StreamIn(arg1 context.Context, arg2 string,
 		arg3 baggageclaim.Encoding
 		arg4 io.Reader
 	}{arg1, arg2, arg3, arg4})
+	stub := fake.StreamInStub
+	fakeReturns := fake.streamInReturns
 	fake.recordInvocation("StreamIn", []interface{}{arg1, arg2, arg3, arg4})
 	fake.streamInMutex.Unlock()
-	if fake.StreamInStub != nil {
-		return fake.StreamInStub(arg1, arg2, arg3, arg4)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.streamInReturns
 	return fakeReturns.result1
 }
 

@@ -208,11 +208,6 @@ func defaultGardenOciSpec(initBinPath string, privileged bool, maxUid, maxGid ui
 		capabilities = OciCapabilities(privileged)
 	)
 
-	devices := AnyContainerDevices
-	if privileged {
-		devices = append(PrivilegedOnlyDevices, devices...)
-	}
-
 	spec := &specs.Spec{
 		Process: &specs.Process{
 			Args:         []string{"/tmp/gdn-init"},
@@ -222,12 +217,12 @@ func defaultGardenOciSpec(initBinPath string, privileged bool, maxUid, maxGid ui
 		Linux: &specs.Linux{
 			Namespaces: namespaces,
 			Resources: &specs.LinuxResources{
-				Devices: devices,
+				Devices: AnyContainerDevices,
 			},
 			UIDMappings: OciIDMappings(privileged, maxUid),
 			GIDMappings: OciIDMappings(privileged, maxGid),
 		},
-		Mounts: AnyContainerMounts(initBinPath),
+		Mounts: ContainerMounts(privileged, initBinPath),
 	}
 
 	if !privileged {

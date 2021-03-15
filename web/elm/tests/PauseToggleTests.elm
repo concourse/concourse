@@ -40,7 +40,7 @@ all =
                         , margin = ""
                         , userState = userState
                         , tooltipPosition = Styles.Above
-                        , domID = PipelineCardPauseToggle AllPipelinesSection pipeline
+                        , domID = PipelineCardPauseToggle AllPipelinesSection 1
                         }
                         |> Query.fromHtml
                         |> Query.has [ style "opacity" "0.2" ]
@@ -54,7 +54,7 @@ all =
                         , margin = ""
                         , userState = userState
                         , tooltipPosition = Styles.Above
-                        , domID = PipelineCardPauseToggle AllPipelinesSection pipeline
+                        , domID = PipelineCardPauseToggle AllPipelinesSection 1
                         }
                         |> Query.fromHtml
                         |> Query.has
@@ -82,7 +82,7 @@ all =
                         , margin = ""
                         , userState = userState
                         , tooltipPosition = Styles.Below
-                        , domID = PipelineCardPauseToggle AllPipelinesSection pipeline
+                        , domID = PipelineCardPauseToggle AllPipelinesSection 1
                         }
                         |> Query.fromHtml
                         |> Query.has

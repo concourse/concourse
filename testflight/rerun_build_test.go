@@ -46,7 +46,7 @@ var _ = Describe("Rerunning a build", func() {
 				fly("rerun-build", "-j", inPipeline("some-passing-job"), "-b", "1", "-w")
 			})
 
-			It("creats a rerun of the first build", func() {
+			It("creates a rerun of the first build", func() {
 				By("watching the job without specifying a build name")
 				watch := waitForBuildAndWatch("some-passing-job")
 				Eventually(watch).Should(gbytes.Say("second-version"))
@@ -65,7 +65,7 @@ var _ = Describe("Rerunning a build", func() {
 					fly("rerun-build", "-j", inPipeline("some-passing-job"), "-b", "1.1", "-w")
 				})
 
-				It("creats a rerun of the first build", func() {
+				It("creates a rerun of the first build", func() {
 					By("watching the job with rerun build's name")
 					watch := waitForBuildAndWatch("some-passing-job", "1.2")
 					Eventually(watch).Should(gbytes.Say("first-version"))

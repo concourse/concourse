@@ -2,7 +2,6 @@ package gc_test
 
 import (
 	"context"
-	"os"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -17,7 +16,6 @@ import (
 	"github.com/concourse/concourse/atc/postgresrunner"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/tedsuo/ifrit"
 
 	"testing"
 )
@@ -35,7 +33,6 @@ var psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 var (
 	postgresRunner postgresrunner.Runner
-	dbProcess      ifrit.Process
 
 	dbConn                 db.Conn
 	err                    error
@@ -62,18 +59,10 @@ var (
 	fakeLogFunc = func(logger lager.Logger, id lock.LockID) {}
 )
 
-var _ = BeforeSuite(func() {
-	postgresRunner = postgresrunner.Runner{
-		Port: 5433 + GinkgoParallelNode(),
-	}
-
-	dbProcess = ifrit.Invoke(postgresRunner)
-
-	postgresRunner.CreateTestDB()
-})
+var _ = postgresrunner.GinkgoRunner(&postgresRunner)
 
 var _ = BeforeEach(func() {
-	postgresRunner.Truncate()
+	postgresRunner.CreateTestDBFromTemplate()
 
 	dbConn = postgresRunner.OpenConn()
 
@@ -153,9 +142,5 @@ var _ = BeforeEach(func() {
 
 var _ = AfterEach(func() {
 	Expect(dbConn.Close()).To(Succeed())
-})
-
-var _ = AfterSuite(func() {
-	dbProcess.Signal(os.Interrupt)
-	Eventually(dbProcess.Wait(), 10*time.Second).Should(Receive())
+	postgresRunner.DropTestDB()
 })

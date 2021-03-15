@@ -27,6 +27,24 @@ var _ = Describe("StaticVariables", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 
+		It("returns nil and not found if source is from local vars", func() {
+			a := StaticVariables{"a": "foo"}
+
+			val, found, err := a.Get(Reference{Source: ".", Path: "a"})
+			Expect(val).To(BeNil())
+			Expect(found).To(BeFalse())
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("returns nil and not found if source is from var source", func() {
+			a := StaticVariables{"a": "foo"}
+
+			val, found, err := a.Get(Reference{Source: "some-var-source", Path: "a"})
+			Expect(val).To(BeNil())
+			Expect(found).To(BeFalse())
+			Expect(err).ToNot(HaveOccurred())
+		})
+
 		It("follows fields", func() {
 			v := StaticVariables{
 				"a": map[string]interface{}{

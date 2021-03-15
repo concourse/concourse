@@ -118,7 +118,7 @@ func Initialize(logger lager.Logger, cluster string, version string, filter Filt
 		}
 	}
 	if len(checkerDescriptions) > 1 {
-		return nil, fmt.Errorf("Multiple policy checker configured: %s", strings.Join(checkerDescriptions, ", "))
+		return nil, fmt.Errorf("multiple policy checker configured: %s", strings.Join(checkerDescriptions, ", "))
 	}
 
 	for _, factory := range agentFactories {

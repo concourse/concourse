@@ -80,6 +80,9 @@ func (builder Builder) WithWorker(worker atc.Worker) SetupFunc {
 			}
 
 			w, err = team.SaveWorker(worker, 0)
+			if err != nil {
+				return err
+			}
 		} else {
 			w, err = builder.WorkerFactory.SaveWorker(worker, 0)
 		}
@@ -291,7 +294,7 @@ func (builder Builder) WithPendingJobBuild(assign *db.Build, jobName string) Set
 			return fmt.Errorf("job '%s' not configured in pipeline", jobName)
 		}
 
-		build, err := job.CreateBuild()
+		build, err := job.CreateBuild("some-user")
 		if err != nil {
 			return fmt.Errorf("create build: %w", err)
 		}
@@ -518,17 +521,7 @@ func (builder Builder) WithVersionMetadata(resourceName string, version atc.Vers
 			return fmt.Errorf("resource '%s' not configured in pipeline", resourceName)
 		}
 
-		rc, found, err := builder.ResourceConfigFactory.FindResourceConfigByID(resource.ResourceConfigID())
-		if err != nil {
-			return err
-		}
-
-		if !found {
-			return fmt.Errorf("resource config not found for resource '%s'", resourceName)
-		}
-
-		// save metadata for v1
-		_, err = resource.SaveUncheckedVersion(version, metadata, rc)
+		_, err = resource.UpdateMetadata(version, metadata)
 		if err != nil {
 			return err
 		}

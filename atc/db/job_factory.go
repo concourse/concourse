@@ -46,9 +46,10 @@ type SchedulerJob struct {
 type SchedulerResources []SchedulerResource
 
 type SchedulerResource struct {
-	Name   string
-	Type   string
-	Source atc.Source
+	Name                 string
+	Type                 string
+	Source               atc.Source
+	ExposeBuildCreatedBy bool
 }
 
 func (r *SchedulerResource) ApplySourceDefaults(resourceTypes atc.VersionedResourceTypes) {
@@ -146,9 +147,10 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 			}
 
 			schedulerResources = append(schedulerResources, SchedulerResource{
-				Name:   name,
-				Type:   type_,
-				Source: config.Source,
+				Name:                 name,
+				Type:                 type_,
+				Source:               config.Source,
+				ExposeBuildCreatedBy: config.ExposeBuildCreatedBy,
 			})
 		}
 
@@ -303,7 +305,6 @@ func (d dashboardFactory) constructJobsForDashboard() ([]atc.JobSummary, error) 
 	type nullableBuild struct {
 		id        sql.NullInt64
 		name      sql.NullString
-		jobName   sql.NullString
 		status    sql.NullString
 		startTime pq.NullTime
 		endTime   pq.NullTime
@@ -470,17 +471,13 @@ func (d dashboardFactory) fetchJobOutputs() (map[int][]atc.JobOutputSummary, err
 func (d dashboardFactory) combineJobInputsAndOutputsWithDashboardJobs(dashboard []atc.JobSummary, jobInputs map[int][]atc.JobInputSummary, jobOutputs map[int][]atc.JobOutputSummary) []atc.JobSummary {
 	var finalDashboard []atc.JobSummary
 	for _, job := range dashboard {
-		for _, input := range jobInputs[job.ID] {
-			job.Inputs = append(job.Inputs, input)
-		}
+		job.Inputs = append(job.Inputs, jobInputs[job.ID]...)
 
 		sort.Slice(job.Inputs, func(p, q int) bool {
 			return job.Inputs[p].Name < job.Inputs[q].Name
 		})
 
-		for _, output := range jobOutputs[job.ID] {
-			job.Outputs = append(job.Outputs, output)
-		}
+		job.Outputs = append(job.Outputs, jobOutputs[job.ID]...)
 
 		sort.Slice(job.Outputs, func(p, q int) bool {
 			return job.Outputs[p].Name < job.Outputs[q].Name

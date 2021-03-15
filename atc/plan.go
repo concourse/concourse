@@ -287,7 +287,6 @@ type Plan struct {
 
 	Do         *DoPlan         `json:"do,omitempty"`
 	InParallel *InParallelPlan `json:"in_parallel,omitempty"`
-	Aggregate  *AggregatePlan  `json:"aggregate,omitempty"`
 	Across     *AcrossPlan     `json:"across,omitempty"`
 
 	OnSuccess *OnSuccessPlan `json:"on_success,omitempty"`
@@ -322,13 +321,6 @@ func (plan *Plan) Each(f func(*Plan)) {
 		for i, p := range plan.InParallel.Steps {
 			p.Each(f)
 			plan.InParallel.Steps[i] = p
-		}
-	}
-
-	if plan.Aggregate != nil {
-		for i, p := range *plan.Aggregate {
-			p.Each(f)
-			(*plan.Aggregate)[i] = p
 		}
 	}
 
@@ -429,8 +421,6 @@ type TryPlan struct {
 	Step Plan `json:"step"`
 }
 
-type AggregatePlan []Plan
-
 type InParallelPlan struct {
 	Steps    []Plan `json:"steps"`
 	Limit    int    `json:"limit,omitempty"`
@@ -485,6 +475,10 @@ type GetPlan struct {
 	// Worker tags to influence placement of the container.
 	Tags Tags `json:"tags,omitempty"`
 
+	// A timeout to enforce on the resource `get` process. Note that fetching the
+	// resource's image does not count towards the timeout.
+	Timeout string `json:"timeout,omitempty"`
+
 	// Privileged indicates whether the parent resource type is privileged.
 	Privileged bool `json:"privileged,omitempty"`
 }
@@ -516,6 +510,13 @@ type PutPlan struct {
 
 	// Worker tags to influence placement of the container.
 	Tags Tags `json:"tags,omitempty"`
+
+	// A timeout to enforce on the resource `put` process. Note that fetching the
+	// resource's image does not count towards the timeout.
+	Timeout string `json:"timeout,omitempty"`
+
+	// If or not expose BUILD_CREATED_BY to build metadata
+	ExposeBuildCreatedBy bool `json:"expose_build_created_by,omitempty"`
 
 	// Privileged indicates whether the parent resource type is privileged.
 	Privileged bool `json:"privileged,omitempty"`
@@ -550,7 +551,8 @@ type CheckPlan struct {
 	// will be skipped.
 	Interval string `json:"interval,omitempty"`
 
-	// A timeout to enforce on the check operation.
+	// A timeout to enforce on the resource `check` process. Note that fetching
+	// the resource's image does not count towards the timeout.
 	Timeout string `json:"timeout,omitempty"`
 
 	// Worker tags to influence placement of the container.
@@ -597,6 +599,11 @@ type TaskPlan struct {
 	// file.
 	// Var source configs for evaluating vars
 	VarSourceConfigs VarSourceConfigs `json:"var_source_configs,omitempty"`
+
+	// A timeout to enforce on the task's process. Note that etching the task's
+	// image does not count towards the timeout.
+	Timeout string `json:"timeout,omitempty"`
+
 	// Resource types to have available for use when fetching the task's image.
 	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
 }

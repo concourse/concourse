@@ -107,15 +107,16 @@ func (fake *FakeMiddleware) GetAuthToken(arg1 *http.Request) string {
 	fake.getAuthTokenArgsForCall = append(fake.getAuthTokenArgsForCall, struct {
 		arg1 *http.Request
 	}{arg1})
+	stub := fake.GetAuthTokenStub
+	fakeReturns := fake.getAuthTokenReturns
 	fake.recordInvocation("GetAuthToken", []interface{}{arg1})
 	fake.getAuthTokenMutex.Unlock()
-	if fake.GetAuthTokenStub != nil {
-		return fake.GetAuthTokenStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.getAuthTokenReturns
 	return fakeReturns.result1
 }
 
@@ -167,15 +168,16 @@ func (fake *FakeMiddleware) GetCSRFToken(arg1 *http.Request) string {
 	fake.getCSRFTokenArgsForCall = append(fake.getCSRFTokenArgsForCall, struct {
 		arg1 *http.Request
 	}{arg1})
+	stub := fake.GetCSRFTokenStub
+	fakeReturns := fake.getCSRFTokenReturns
 	fake.recordInvocation("GetCSRFToken", []interface{}{arg1})
 	fake.getCSRFTokenMutex.Unlock()
-	if fake.GetCSRFTokenStub != nil {
-		return fake.GetCSRFTokenStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.getCSRFTokenReturns
 	return fakeReturns.result1
 }
 
@@ -227,15 +229,16 @@ func (fake *FakeMiddleware) GetStateToken(arg1 *http.Request) string {
 	fake.getStateTokenArgsForCall = append(fake.getStateTokenArgsForCall, struct {
 		arg1 *http.Request
 	}{arg1})
+	stub := fake.GetStateTokenStub
+	fakeReturns := fake.getStateTokenReturns
 	fake.recordInvocation("GetStateToken", []interface{}{arg1})
 	fake.getStateTokenMutex.Unlock()
-	if fake.GetStateTokenStub != nil {
-		return fake.GetStateTokenStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.getStateTokenReturns
 	return fakeReturns.result1
 }
 
@@ -289,15 +292,16 @@ func (fake *FakeMiddleware) SetAuthToken(arg1 http.ResponseWriter, arg2 string, 
 		arg2 string
 		arg3 time.Time
 	}{arg1, arg2, arg3})
+	stub := fake.SetAuthTokenStub
+	fakeReturns := fake.setAuthTokenReturns
 	fake.recordInvocation("SetAuthToken", []interface{}{arg1, arg2, arg3})
 	fake.setAuthTokenMutex.Unlock()
-	if fake.SetAuthTokenStub != nil {
-		return fake.SetAuthTokenStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.setAuthTokenReturns
 	return fakeReturns.result1
 }
 
@@ -351,15 +355,16 @@ func (fake *FakeMiddleware) SetCSRFToken(arg1 http.ResponseWriter, arg2 string, 
 		arg2 string
 		arg3 time.Time
 	}{arg1, arg2, arg3})
+	stub := fake.SetCSRFTokenStub
+	fakeReturns := fake.setCSRFTokenReturns
 	fake.recordInvocation("SetCSRFToken", []interface{}{arg1, arg2, arg3})
 	fake.setCSRFTokenMutex.Unlock()
-	if fake.SetCSRFTokenStub != nil {
-		return fake.SetCSRFTokenStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.setCSRFTokenReturns
 	return fakeReturns.result1
 }
 
@@ -413,15 +418,16 @@ func (fake *FakeMiddleware) SetStateToken(arg1 http.ResponseWriter, arg2 string,
 		arg2 string
 		arg3 time.Time
 	}{arg1, arg2, arg3})
+	stub := fake.SetStateTokenStub
+	fakeReturns := fake.setStateTokenReturns
 	fake.recordInvocation("SetStateToken", []interface{}{arg1, arg2, arg3})
 	fake.setStateTokenMutex.Unlock()
-	if fake.SetStateTokenStub != nil {
-		return fake.SetStateTokenStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.setStateTokenReturns
 	return fakeReturns.result1
 }
 
@@ -472,9 +478,10 @@ func (fake *FakeMiddleware) UnsetAuthToken(arg1 http.ResponseWriter) {
 	fake.unsetAuthTokenArgsForCall = append(fake.unsetAuthTokenArgsForCall, struct {
 		arg1 http.ResponseWriter
 	}{arg1})
+	stub := fake.UnsetAuthTokenStub
 	fake.recordInvocation("UnsetAuthToken", []interface{}{arg1})
 	fake.unsetAuthTokenMutex.Unlock()
-	if fake.UnsetAuthTokenStub != nil {
+	if stub != nil {
 		fake.UnsetAuthTokenStub(arg1)
 	}
 }
@@ -503,9 +510,10 @@ func (fake *FakeMiddleware) UnsetCSRFToken(arg1 http.ResponseWriter) {
 	fake.unsetCSRFTokenArgsForCall = append(fake.unsetCSRFTokenArgsForCall, struct {
 		arg1 http.ResponseWriter
 	}{arg1})
+	stub := fake.UnsetCSRFTokenStub
 	fake.recordInvocation("UnsetCSRFToken", []interface{}{arg1})
 	fake.unsetCSRFTokenMutex.Unlock()
-	if fake.UnsetCSRFTokenStub != nil {
+	if stub != nil {
 		fake.UnsetCSRFTokenStub(arg1)
 	}
 }
@@ -534,9 +542,10 @@ func (fake *FakeMiddleware) UnsetStateToken(arg1 http.ResponseWriter) {
 	fake.unsetStateTokenArgsForCall = append(fake.unsetStateTokenArgsForCall, struct {
 		arg1 http.ResponseWriter
 	}{arg1})
+	stub := fake.UnsetStateTokenStub
 	fake.recordInvocation("UnsetStateToken", []interface{}{arg1})
 	fake.unsetStateTokenMutex.Unlock()
-	if fake.UnsetStateTokenStub != nil {
+	if stub != nil {
 		fake.UnsetStateTokenStub(arg1)
 	}
 }

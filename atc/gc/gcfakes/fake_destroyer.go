@@ -61,15 +61,16 @@ func (fake *FakeDestroyer) DestroyContainers(arg1 string, arg2 []string) error {
 		arg1 string
 		arg2 []string
 	}{arg1, arg2Copy})
+	stub := fake.DestroyContainersStub
+	fakeReturns := fake.destroyContainersReturns
 	fake.recordInvocation("DestroyContainers", []interface{}{arg1, arg2Copy})
 	fake.destroyContainersMutex.Unlock()
-	if fake.DestroyContainersStub != nil {
-		return fake.DestroyContainersStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.destroyContainersReturns
 	return fakeReturns.result1
 }
 
@@ -127,15 +128,16 @@ func (fake *FakeDestroyer) DestroyVolumes(arg1 string, arg2 []string) error {
 		arg1 string
 		arg2 []string
 	}{arg1, arg2Copy})
+	stub := fake.DestroyVolumesStub
+	fakeReturns := fake.destroyVolumesReturns
 	fake.recordInvocation("DestroyVolumes", []interface{}{arg1, arg2Copy})
 	fake.destroyVolumesMutex.Unlock()
-	if fake.DestroyVolumesStub != nil {
-		return fake.DestroyVolumesStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.destroyVolumesReturns
 	return fakeReturns.result1
 }
 
@@ -187,15 +189,16 @@ func (fake *FakeDestroyer) FindDestroyingVolumesForGc(arg1 string) ([]string, er
 	fake.findDestroyingVolumesForGcArgsForCall = append(fake.findDestroyingVolumesForGcArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.FindDestroyingVolumesForGcStub
+	fakeReturns := fake.findDestroyingVolumesForGcReturns
 	fake.recordInvocation("FindDestroyingVolumesForGc", []interface{}{arg1})
 	fake.findDestroyingVolumesForGcMutex.Unlock()
-	if fake.FindDestroyingVolumesForGcStub != nil {
-		return fake.FindDestroyingVolumesForGcStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.findDestroyingVolumesForGcReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

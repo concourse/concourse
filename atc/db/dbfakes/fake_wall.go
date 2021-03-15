@@ -51,15 +51,16 @@ func (fake *FakeWall) Clear() error {
 	ret, specificReturn := fake.clearReturnsOnCall[len(fake.clearArgsForCall)]
 	fake.clearArgsForCall = append(fake.clearArgsForCall, struct {
 	}{})
+	stub := fake.ClearStub
+	fakeReturns := fake.clearReturns
 	fake.recordInvocation("Clear", []interface{}{})
 	fake.clearMutex.Unlock()
-	if fake.ClearStub != nil {
-		return fake.ClearStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.clearReturns
 	return fakeReturns.result1
 }
 
@@ -103,15 +104,16 @@ func (fake *FakeWall) GetWall() (atc.Wall, error) {
 	ret, specificReturn := fake.getWallReturnsOnCall[len(fake.getWallArgsForCall)]
 	fake.getWallArgsForCall = append(fake.getWallArgsForCall, struct {
 	}{})
+	stub := fake.GetWallStub
+	fakeReturns := fake.getWallReturns
 	fake.recordInvocation("GetWall", []interface{}{})
 	fake.getWallMutex.Unlock()
-	if fake.GetWallStub != nil {
-		return fake.GetWallStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getWallReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -159,15 +161,16 @@ func (fake *FakeWall) SetWall(arg1 atc.Wall) error {
 	fake.setWallArgsForCall = append(fake.setWallArgsForCall, struct {
 		arg1 atc.Wall
 	}{arg1})
+	stub := fake.SetWallStub
+	fakeReturns := fake.setWallReturns
 	fake.recordInvocation("SetWall", []interface{}{arg1})
 	fake.setWallMutex.Unlock()
-	if fake.SetWallStub != nil {
-		return fake.SetWallStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.setWallReturns
 	return fakeReturns.result1
 }
 

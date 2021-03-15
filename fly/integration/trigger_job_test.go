@@ -35,7 +35,7 @@ var _ = Describe("Fly CLI", func() {
 			otherRandomPath, err = atc.Routes.CreatePathForRoute(atc.CreateJobBuild, rata.Params{"pipeline_name": "awesome-pipeline", "job_name": "awesome-job", "team_name": "random-team"})
 			Expect(err).NotTo(HaveOccurred())
 
-			queryParams = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+			queryParams = "vars.branch=%22master%22"
 		})
 
 		Context("when the pipeline and job name are specified", func() {

@@ -30,7 +30,7 @@ func (f *resourceCacheLifecycle) CleanBuildImageResourceCaches(logger lager.Logg
 	_, err := sq.Delete("build_image_resource_caches birc USING builds b").
 		Where("birc.build_id = b.id").
 		Where(sq.Expr("((now() - b.end_time) > '24 HOURS'::INTERVAL)")).
-		Where(sq.Eq{"job_id": nil}).
+		Where(sq.Eq{"birc.job_id": nil}).
 		RunWith(f.conn).
 		Exec()
 	return err

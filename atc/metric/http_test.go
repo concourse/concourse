@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/metric/metricfakes"
 
 	. "github.com/concourse/concourse/atc/metric"
@@ -22,19 +21,18 @@ func noopHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(404)
-	return
 }
 
 var _ = Describe("MetricsHandler", func() {
 	var (
 		ts      *httptest.Server
 		emitter *metricfakes.FakeEmitter
-		monitor *metric.Monitor
+		monitor *Monitor
 	)
 
 	BeforeEach(func() {
 		emitter = &metricfakes.FakeEmitter{}
-		monitor = metric.NewMonitor()
+		monitor = NewMonitor()
 
 		emitterFactory := &metricfakes.FakeEmitterFactory{}
 		emitterFactory.IsConfiguredReturns(true)
@@ -60,7 +58,7 @@ var _ = Describe("MetricsHandler", func() {
 	Context("when serving requests", func() {
 		var (
 			endpoint = "/"
-			event    metric.Event
+			event    Event
 		)
 
 		JustBeforeEach(func() {

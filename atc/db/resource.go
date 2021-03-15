@@ -32,7 +32,7 @@ type Resource interface {
 	TeamName() string
 	Type() string
 	Source() atc.Source
-	CheckEvery() string
+	CheckEvery() *atc.CheckEvery
 	CheckTimeout() string
 	LastCheckStartTime() time.Time
 	LastCheckEndTime() time.Time
@@ -55,7 +55,6 @@ type Resource interface {
 
 	Versions(page Page, versionFilter atc.Version) ([]atc.ResourceVersion, Pagination, bool, error)
 	FindVersion(filter atc.Version) (ResourceConfigVersion, bool, error) // Only used in tests!!
-	SaveUncheckedVersion(atc.Version, ResourceConfigMetadataFields, ResourceConfig) (bool, error)
 	UpdateMetadata(atc.Version, ResourceConfigMetadataFields) (bool, error)
 
 	EnableVersion(rcvID int) error
@@ -73,37 +72,39 @@ type Resource interface {
 	Reload() (bool, error)
 }
 
-var resourcesQuery = psql.Select(
-	"r.id",
-	"r.name",
-	"r.type",
-	"r.config",
-	"rs.last_check_start_time",
-	"rs.last_check_end_time",
-	"r.pipeline_id",
-	"r.nonce",
-	"r.resource_config_id",
-	"r.resource_config_scope_id",
-	"p.name",
-	"p.instance_vars",
-	"t.id",
-	"t.name",
-	"rp.version",
-	"rp.comment_text",
-	"rp.config",
-	"b.id",
-	"b.name",
-	"b.status",
-	"b.start_time",
-	"b.end_time",
-).
-	From("resources r").
-	Join("pipelines p ON p.id = r.pipeline_id").
-	Join("teams t ON t.id = p.team_id").
-	LeftJoin("builds b ON b.id = r.build_id").
-	LeftJoin("resource_config_scopes rs ON r.resource_config_scope_id = rs.id").
-	LeftJoin("resource_pins rp ON rp.resource_id = r.id").
-	Where(sq.Eq{"r.active": true})
+var (
+	resourcesQuery = psql.Select(
+		"r.id",
+		"r.name",
+		"r.type",
+		"r.config",
+		"rs.last_check_start_time",
+		"rs.last_check_end_time",
+		"r.pipeline_id",
+		"r.nonce",
+		"r.resource_config_id",
+		"r.resource_config_scope_id",
+		"p.name",
+		"p.instance_vars",
+		"t.id",
+		"t.name",
+		"rp.version",
+		"rp.comment_text",
+		"rp.config",
+		"b.id",
+		"b.name",
+		"b.status",
+		"b.start_time",
+		"b.end_time",
+	).
+		From("resources r").
+		Join("pipelines p ON p.id = r.pipeline_id").
+		Join("teams t ON t.id = p.team_id").
+		LeftJoin("builds b ON b.id = r.build_id").
+		LeftJoin("resource_config_scopes rs ON r.resource_config_scope_id = rs.id").
+		LeftJoin("resource_pins rp ON rp.resource_id = r.id").
+		Where(sq.Eq{"r.active": true})
+)
 
 type resource struct {
 	pipelineRef
@@ -163,7 +164,7 @@ func (r *resource) TeamID() int                      { return r.teamID }
 func (r *resource) TeamName() string                 { return r.teamName }
 func (r *resource) Type() string                     { return r.type_ }
 func (r *resource) Source() atc.Source               { return r.config.Source }
-func (r *resource) CheckEvery() string               { return r.config.CheckEvery }
+func (r *resource) CheckEvery() *atc.CheckEvery      { return r.config.CheckEvery }
 func (r *resource) CheckTimeout() string             { return r.config.CheckTimeout }
 func (r *resource) LastCheckStartTime() time.Time    { return r.lastCheckStartTime }
 func (r *resource) LastCheckEndTime() time.Time      { return r.lastCheckEndTime }
@@ -207,6 +208,20 @@ func (r *resource) SetResourceConfigScope(scope ResourceConfigScope) error {
 
 	defer Rollback(tx)
 
+	err = r.setResourceConfigScopeInTransaction(tx, scope)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *resource) setResourceConfigScopeInTransaction(tx Tx, scope ResourceConfigScope) error {
 	results, err := psql.Update("resources").
 		Set("resource_config_id", scope.ResourceConfig().ID()).
 		Set("resource_config_scope_id", scope.ID()).
@@ -235,11 +250,6 @@ func (r *resource) SetResourceConfigScope(scope ResourceConfigScope) error {
 		}
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -257,14 +267,13 @@ func (r *resource) CreateBuild(ctx context.Context, manuallyTriggered bool, plan
 	defer Rollback(tx)
 
 	if !manuallyTriggered {
-		var buildID int
 		var completed, noBuild bool
-		err = psql.Select("id", "completed").
+		err = psql.Select("completed").
 			From("builds").
 			Where(sq.Eq{"resource_id": r.id}).
 			RunWith(tx).
 			QueryRow().
-			Scan(&buildID, &completed)
+			Scan(&completed)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				noBuild = true
@@ -276,29 +285,6 @@ func (r *resource) CreateBuild(ctx context.Context, manuallyTriggered bool, plan
 		if !noBuild && !completed {
 			// a build is already running; leave it be
 			return nil, false, nil
-		}
-
-		if completed {
-			// previous build finished; clear it out
-			_, err = psql.Delete("builds").
-				Where(sq.Eq{
-					"resource_id": r.id,
-					"completed":   true,
-				}).
-				RunWith(tx).
-				Exec()
-			if err != nil {
-				return nil, false, fmt.Errorf("delete previous build: %w", err)
-			}
-			_, err = psql.Delete("build_events").
-				Where(sq.Eq{
-					"build_id": buildID,
-				}).
-				RunWith(tx).
-				Exec()
-			if err != nil {
-				return nil, false, fmt.Errorf("delete previous build events: %w", err)
-			}
 		}
 	}
 
@@ -346,28 +332,6 @@ func (r *resource) CreateBuild(ctx context.Context, manuallyTriggered bool, plan
 	}
 
 	return build, true, nil
-}
-
-// XXX: only used for tests
-func (r *resource) SaveUncheckedVersion(version atc.Version, metadata ResourceConfigMetadataFields, resourceConfig ResourceConfig) (bool, error) {
-	tx, err := r.conn.Begin()
-	if err != nil {
-		return false, err
-	}
-
-	defer Rollback(tx)
-
-	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, r.conn, r.lockFactory, resourceConfig, r)
-	if err != nil {
-		return false, err
-	}
-
-	newVersion, err := saveResourceVersion(tx, resourceConfigScope.ID(), version, metadata, nil)
-	if err != nil {
-		return false, err
-	}
-
-	return newVersion, tx.Commit()
 }
 
 func (r *resource) UpdateMetadata(version atc.Version, metadata ResourceConfigMetadataFields) (bool, error) {
@@ -476,7 +440,7 @@ func (r *resource) Versions(page Page, versionFilter atc.Version) ([]atc.Resourc
 				AND r.id = d.resource_id
 			)
 		FROM resource_config_versions v, resources r
-		WHERE r.id = $1 AND r.resource_config_scope_id = v.resource_config_scope_id AND v.check_order != 0
+		WHERE r.id = $1 AND r.resource_config_scope_id = v.resource_config_scope_id
 	`
 
 	filterJSON := "{}"

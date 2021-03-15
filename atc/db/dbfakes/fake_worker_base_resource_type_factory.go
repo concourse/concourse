@@ -35,15 +35,16 @@ func (fake *FakeWorkerBaseResourceTypeFactory) Find(arg1 string, arg2 db.Worker)
 		arg1 string
 		arg2 db.Worker
 	}{arg1, arg2})
+	stub := fake.FindStub
+	fakeReturns := fake.findReturns
 	fake.recordInvocation("Find", []interface{}{arg1, arg2})
 	fake.findMutex.Unlock()
-	if fake.FindStub != nil {
-		return fake.FindStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.findReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 

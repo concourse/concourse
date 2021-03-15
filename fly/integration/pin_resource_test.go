@@ -59,7 +59,7 @@ var _ = Describe("Fly CLI", func() {
 			})
 			Expect(err).NotTo(HaveOccurred())
 			expectedQueryParams = []string{
-				"instance_vars=%7B%22branch%22%3A%22master%22%7D",
+				"vars.branch=%22master%22",
 				"filter=some:value",
 			}
 		})
@@ -83,7 +83,6 @@ var _ = Describe("Fly CLI", func() {
 			Expect(sess.Err).To(gbytes.Say("error: the required flag `" + osFlag("v", "version") + "' was not specified"))
 		})
 
-
 		Context("when a version is specified", func() {
 			JustBeforeEach(func() {
 				atcServer.AppendHandlers(
@@ -92,7 +91,7 @@ var _ = Describe("Fly CLI", func() {
 						ghttp.RespondWithJSONEncoded(listVersionsStatus, []atc.ResourceVersion{versionToPin}),
 					),
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("PUT", pinVersionPath, "instance_vars=%7B%22branch%22%3A%22master%22%7D"),
+						ghttp.VerifyRequest("PUT", pinVersionPath, "vars.branch=%22master%22"),
 						ghttp.RespondWith(pinVersionStatus, nil),
 					),
 				)
@@ -165,7 +164,7 @@ var _ = Describe("Fly CLI", func() {
 						ghttp.RespondWithJSONEncoded(listVersionsStatus, []atc.ResourceVersion{versionToPin}),
 					),
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("PUT", pinVersionPath, "instance_vars=%7B%22branch%22%3A%22master%22%7D"),
+						ghttp.VerifyRequest("PUT", pinVersionPath, "vars.branch=%22master%22"),
 						ghttp.RespondWith(pinVersionStatus, nil),
 					),
 					ghttp.CombineHandlers(

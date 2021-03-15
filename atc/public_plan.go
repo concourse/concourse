@@ -10,7 +10,6 @@ func (plan *Plan) Public() *json.RawMessage {
 	var public struct {
 		ID PlanID `json:"id"`
 
-		Aggregate      *json.RawMessage `json:"aggregate,omitempty"`
 		InParallel     *json.RawMessage `json:"in_parallel,omitempty"`
 		Across         *json.RawMessage `json:"across,omitempty"`
 		Do             *json.RawMessage `json:"do,omitempty"`
@@ -35,10 +34,6 @@ func (plan *Plan) Public() *json.RawMessage {
 	}
 
 	public.ID = plan.ID
-
-	if plan.Aggregate != nil {
-		public.Aggregate = plan.Aggregate.Public()
-	}
 
 	if plan.InParallel != nil {
 		public.InParallel = plan.InParallel.Public()
@@ -122,16 +117,6 @@ func (plan *Plan) Public() *json.RawMessage {
 
 	if plan.DependentGet != nil {
 		public.DependentGet = plan.DependentGet.Public()
-	}
-
-	return enc(public)
-}
-
-func (plan AggregatePlan) Public() *json.RawMessage {
-	public := make([]*json.RawMessage, len(plan))
-
-	for i := 0; i < len(plan); i++ {
-		public[i] = plan[i].Public()
 	}
 
 	return enc(public)

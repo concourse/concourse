@@ -2,7 +2,6 @@ package engine
 
 import (
 	"encoding/json"
-
 	"errors"
 	"strconv"
 	"strings"
@@ -10,8 +9,10 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/policy"
+	"github.com/concourse/concourse/atc/worker"
 )
 
 const supportedSchema = "exec.v2"
@@ -42,22 +43,31 @@ func NewStepperFactory(
 	rateLimiter RateLimiter,
 	policyChecker policy.Checker,
 	globalSecrets creds.Secrets,
+	artifactSourcer worker.ArtifactSourcer,
+	dbWorkerFactory db.WorkerFactory,
+	lockFactory lock.LockFactory,
 ) StepperFactory {
 	return &stepperFactory{
-		coreFactory:   coreFactory,
-		externalURL:   externalURL,
-		rateLimiter:   rateLimiter,
-		policyChecker: policyChecker,
-		globalSecrets: globalSecrets,
+		coreFactory:     coreFactory,
+		externalURL:     externalURL,
+		rateLimiter:     rateLimiter,
+		policyChecker:   policyChecker,
+		globalSecrets:   globalSecrets,
+		artifactSourcer: artifactSourcer,
+		dbWorkerFactory: dbWorkerFactory,
+		lockFactory:     lockFactory,
 	}
 }
 
 type stepperFactory struct {
-	coreFactory   CoreStepFactory
-	externalURL   string
-	rateLimiter   RateLimiter
-	policyChecker policy.Checker
-	globalSecrets creds.Secrets
+	coreFactory     CoreStepFactory
+	externalURL     string
+	rateLimiter     RateLimiter
+	policyChecker   policy.Checker
+	globalSecrets   creds.Secrets
+	artifactSourcer worker.ArtifactSourcer
+	dbWorkerFactory db.WorkerFactory
+	lockFactory     lock.LockFactory
 }
 
 func (factory *stepperFactory) StepperForBuild(build db.Build) (exec.Stepper, error) {
@@ -70,11 +80,20 @@ func (factory *stepperFactory) StepperForBuild(build db.Build) (exec.Stepper, er
 	}, nil
 }
 
-func (factory *stepperFactory) buildStep(build db.Build, plan atc.Plan) exec.Step {
-	if plan.Aggregate != nil {
-		return factory.buildAggregateStep(build, plan)
+func (factory *stepperFactory) buildDelegateFactory(build db.Build, plan atc.Plan) DelegateFactory {
+	return DelegateFactory{
+		build:           build,
+		plan:            plan,
+		rateLimiter:     factory.rateLimiter,
+		policyChecker:   factory.policyChecker,
+		globalSecrets:   factory.globalSecrets,
+		artifactSourcer: factory.artifactSourcer,
+		dbWorkerFactory: factory.dbWorkerFactory,
+		lockFactory:     factory.lockFactory,
 	}
+}
 
+func (factory *stepperFactory) buildStep(build db.Build, plan atc.Plan) exec.Step {
 	if plan.InParallel != nil {
 		return factory.buildParallelStep(build, plan)
 	}
@@ -158,19 +177,6 @@ func (factory *stepperFactory) buildStep(build db.Build, plan atc.Plan) exec.Ste
 	return exec.IdentityStep{}
 }
 
-func (factory *stepperFactory) buildAggregateStep(build db.Build, plan atc.Plan) exec.Step {
-
-	agg := exec.AggregateStep{}
-
-	for _, innerPlan := range *plan.Aggregate {
-		innerPlan.Attempts = plan.Attempts
-		step := factory.buildStep(build, innerPlan)
-		agg = append(agg, step)
-	}
-
-	return agg
-}
-
 func (factory *stepperFactory) buildParallelStep(build db.Build, plan atc.Plan) exec.Step {
 
 	var steps []exec.Step
@@ -188,6 +194,7 @@ func (factory *stepperFactory) buildAcrossStep(build db.Build, plan atc.Plan) ex
 	stepMetadata := factory.stepMetadata(
 		build,
 		factory.externalURL,
+		false,
 	)
 
 	steps := make([]exec.ScopedStep, len(plan.Across.Steps))
@@ -202,7 +209,7 @@ func (factory *stepperFactory) buildAcrossStep(build db.Build, plan atc.Plan) ex
 		plan.Across.Vars,
 		steps,
 		plan.Across.FailFast,
-		buildDelegateFactory(build, plan, factory.rateLimiter, factory.policyChecker, factory.globalSecrets),
+		factory.buildDelegateFactory(build, plan),
 		stepMetadata,
 	)
 }
@@ -299,13 +306,14 @@ func (factory *stepperFactory) buildGetStep(build db.Build, plan atc.Plan) exec.
 	stepMetadata := factory.stepMetadata(
 		build,
 		factory.externalURL,
+		false,
 	)
 
 	return factory.coreFactory.GetStep(
 		plan,
 		stepMetadata,
 		containerMetadata,
-		buildDelegateFactory(build, plan, factory.rateLimiter, factory.policyChecker, factory.globalSecrets),
+		factory.buildDelegateFactory(build, plan),
 	)
 }
 
@@ -321,13 +329,14 @@ func (factory *stepperFactory) buildPutStep(build db.Build, plan atc.Plan) exec.
 	stepMetadata := factory.stepMetadata(
 		build,
 		factory.externalURL,
+		plan.Put.ExposeBuildCreatedBy,
 	)
 
 	return factory.coreFactory.PutStep(
 		plan,
 		stepMetadata,
 		containerMetadata,
-		buildDelegateFactory(build, plan, factory.rateLimiter, factory.policyChecker, factory.globalSecrets),
+		factory.buildDelegateFactory(build, plan),
 	)
 }
 
@@ -342,13 +351,14 @@ func (factory *stepperFactory) buildCheckStep(build db.Build, plan atc.Plan) exe
 	stepMetadata := factory.stepMetadata(
 		build,
 		factory.externalURL,
+		false,
 	)
 
 	return factory.coreFactory.CheckStep(
 		plan,
 		stepMetadata,
 		containerMetadata,
-		buildDelegateFactory(build, plan, factory.rateLimiter, factory.policyChecker, factory.globalSecrets),
+		factory.buildDelegateFactory(build, plan),
 	)
 }
 
@@ -364,13 +374,14 @@ func (factory *stepperFactory) buildTaskStep(build db.Build, plan atc.Plan) exec
 	stepMetadata := factory.stepMetadata(
 		build,
 		factory.externalURL,
+		false,
 	)
 
 	return factory.coreFactory.TaskStep(
 		plan,
 		stepMetadata,
 		containerMetadata,
-		buildDelegateFactory(build, plan, factory.rateLimiter, factory.policyChecker, factory.globalSecrets),
+		factory.buildDelegateFactory(build, plan),
 	)
 }
 
@@ -379,12 +390,13 @@ func (factory *stepperFactory) buildSetPipelineStep(build db.Build, plan atc.Pla
 	stepMetadata := factory.stepMetadata(
 		build,
 		factory.externalURL,
+		false,
 	)
 
 	return factory.coreFactory.SetPipelineStep(
 		plan,
 		stepMetadata,
-		buildDelegateFactory(build, plan, factory.rateLimiter, factory.policyChecker, factory.globalSecrets),
+		factory.buildDelegateFactory(build, plan),
 	)
 }
 
@@ -397,7 +409,7 @@ func (factory *stepperFactory) buildGetVarStep(build db.Build, plan atc.Plan) ex
 	return factory.coreFactory.GetVarStep(
 		plan,
 		stepMetadata,
-		buildDelegateFactory(build, plan, factory.rateLimiter, factory.policyChecker, factory.globalSecrets),
+		factory.buildDelegateFactory(build, plan),
 	)
 }
 
@@ -406,12 +418,13 @@ func (factory *stepperFactory) buildLoadVarStep(build db.Build, plan atc.Plan) e
 	stepMetadata := factory.stepMetadata(
 		build,
 		factory.externalURL,
+		false,
 	)
 
 	return factory.coreFactory.LoadVarStep(
 		plan,
 		stepMetadata,
-		buildDelegateFactory(build, plan, factory.rateLimiter, factory.policyChecker, factory.globalSecrets),
+		factory.buildDelegateFactory(build, plan),
 	)
 }
 
@@ -466,8 +479,9 @@ func (factory *stepperFactory) containerMetadata(
 func (factory *stepperFactory) stepMetadata(
 	build db.Build,
 	externalURL string,
+	exposeBuildCreatedBy bool,
 ) exec.StepMetadata {
-	return exec.StepMetadata{
+	meta := exec.StepMetadata{
 		BuildID:              build.ID(),
 		BuildName:            build.Name(),
 		TeamID:               build.TeamID(),
@@ -479,4 +493,8 @@ func (factory *stepperFactory) stepMetadata(
 		PipelineInstanceVars: build.PipelineInstanceVars(),
 		ExternalURL:          externalURL,
 	}
+	if exposeBuildCreatedBy && build.CreatedBy() != nil {
+		meta.CreatedBy = *build.CreatedBy()
+	}
+	return meta
 }

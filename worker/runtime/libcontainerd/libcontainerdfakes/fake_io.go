@@ -44,9 +44,10 @@ func (fake *FakeIO) Cancel() {
 	fake.cancelMutex.Lock()
 	fake.cancelArgsForCall = append(fake.cancelArgsForCall, struct {
 	}{})
+	stub := fake.CancelStub
 	fake.recordInvocation("Cancel", []interface{}{})
 	fake.cancelMutex.Unlock()
-	if fake.CancelStub != nil {
+	if stub != nil {
 		fake.CancelStub()
 	}
 }
@@ -68,15 +69,16 @@ func (fake *FakeIO) Close() error {
 	ret, specificReturn := fake.closeReturnsOnCall[len(fake.closeArgsForCall)]
 	fake.closeArgsForCall = append(fake.closeArgsForCall, struct {
 	}{})
+	stub := fake.CloseStub
+	fakeReturns := fake.closeReturns
 	fake.recordInvocation("Close", []interface{}{})
 	fake.closeMutex.Unlock()
-	if fake.CloseStub != nil {
-		return fake.CloseStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.closeReturns
 	return fakeReturns.result1
 }
 
@@ -120,15 +122,16 @@ func (fake *FakeIO) Config() cio.Config {
 	ret, specificReturn := fake.configReturnsOnCall[len(fake.configArgsForCall)]
 	fake.configArgsForCall = append(fake.configArgsForCall, struct {
 	}{})
+	stub := fake.ConfigStub
+	fakeReturns := fake.configReturns
 	fake.recordInvocation("Config", []interface{}{})
 	fake.configMutex.Unlock()
-	if fake.ConfigStub != nil {
-		return fake.ConfigStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.configReturns
 	return fakeReturns.result1
 }
 
@@ -171,9 +174,10 @@ func (fake *FakeIO) Wait() {
 	fake.waitMutex.Lock()
 	fake.waitArgsForCall = append(fake.waitArgsForCall, struct {
 	}{})
+	stub := fake.WaitStub
 	fake.recordInvocation("Wait", []interface{}{})
 	fake.waitMutex.Unlock()
-	if fake.WaitStub != nil {
+	if stub != nil {
 		fake.WaitStub()
 	}
 }

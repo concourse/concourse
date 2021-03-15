@@ -24,7 +24,7 @@ type csrfValidationHandler struct {
 }
 
 func (h csrfValidationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	logger, ok := r.Context().Value("logger").(lager.Logger)
+	logger, ok := r.Context().Value(LoggerContextKey).(lager.Logger)
 	if !ok {
 		panic("logger is not set in request context for csrf validation handler")
 	}

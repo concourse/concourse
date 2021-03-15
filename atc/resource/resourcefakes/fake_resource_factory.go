@@ -34,15 +34,16 @@ func (fake *FakeResourceFactory) NewResource(arg1 atc.Source, arg2 atc.Params, a
 		arg2 atc.Params
 		arg3 atc.Version
 	}{arg1, arg2, arg3})
+	stub := fake.NewResourceStub
+	fakeReturns := fake.newResourceReturns
 	fake.recordInvocation("NewResource", []interface{}{arg1, arg2, arg3})
 	fake.newResourceMutex.Unlock()
-	if fake.NewResourceStub != nil {
-		return fake.NewResourceStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.newResourceReturns
 	return fakeReturns.result1
 }
 

@@ -112,15 +112,16 @@ func (fake *FakeWorkerFactory) BuildContainersCountPerWorker() (map[string]int, 
 	ret, specificReturn := fake.buildContainersCountPerWorkerReturnsOnCall[len(fake.buildContainersCountPerWorkerArgsForCall)]
 	fake.buildContainersCountPerWorkerArgsForCall = append(fake.buildContainersCountPerWorkerArgsForCall, struct {
 	}{})
+	stub := fake.BuildContainersCountPerWorkerStub
+	fakeReturns := fake.buildContainersCountPerWorkerReturns
 	fake.recordInvocation("BuildContainersCountPerWorker", []interface{}{})
 	fake.buildContainersCountPerWorkerMutex.Unlock()
-	if fake.BuildContainersCountPerWorkerStub != nil {
-		return fake.BuildContainersCountPerWorkerStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.buildContainersCountPerWorkerReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -168,15 +169,16 @@ func (fake *FakeWorkerFactory) FindWorkersForContainerByOwner(arg1 db.ContainerO
 	fake.findWorkersForContainerByOwnerArgsForCall = append(fake.findWorkersForContainerByOwnerArgsForCall, struct {
 		arg1 db.ContainerOwner
 	}{arg1})
+	stub := fake.FindWorkersForContainerByOwnerStub
+	fakeReturns := fake.findWorkersForContainerByOwnerReturns
 	fake.recordInvocation("FindWorkersForContainerByOwner", []interface{}{arg1})
 	fake.findWorkersForContainerByOwnerMutex.Unlock()
-	if fake.FindWorkersForContainerByOwnerStub != nil {
-		return fake.FindWorkersForContainerByOwnerStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.findWorkersForContainerByOwnerReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -231,15 +233,16 @@ func (fake *FakeWorkerFactory) GetWorker(arg1 string) (db.Worker, bool, error) {
 	fake.getWorkerArgsForCall = append(fake.getWorkerArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.GetWorkerStub
+	fakeReturns := fake.getWorkerReturns
 	fake.recordInvocation("GetWorker", []interface{}{arg1})
 	fake.getWorkerMutex.Unlock()
-	if fake.GetWorkerStub != nil {
-		return fake.GetWorkerStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.getWorkerReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -298,15 +301,16 @@ func (fake *FakeWorkerFactory) HeartbeatWorker(arg1 atc.Worker, arg2 time.Durati
 		arg1 atc.Worker
 		arg2 time.Duration
 	}{arg1, arg2})
+	stub := fake.HeartbeatWorkerStub
+	fakeReturns := fake.heartbeatWorkerReturns
 	fake.recordInvocation("HeartbeatWorker", []interface{}{arg1, arg2})
 	fake.heartbeatWorkerMutex.Unlock()
-	if fake.HeartbeatWorkerStub != nil {
-		return fake.HeartbeatWorkerStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.heartbeatWorkerReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -362,15 +366,16 @@ func (fake *FakeWorkerFactory) SaveWorker(arg1 atc.Worker, arg2 time.Duration) (
 		arg1 atc.Worker
 		arg2 time.Duration
 	}{arg1, arg2})
+	stub := fake.SaveWorkerStub
+	fakeReturns := fake.saveWorkerReturns
 	fake.recordInvocation("SaveWorker", []interface{}{arg1, arg2})
 	fake.saveWorkerMutex.Unlock()
-	if fake.SaveWorkerStub != nil {
-		return fake.SaveWorkerStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.saveWorkerReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -430,15 +435,16 @@ func (fake *FakeWorkerFactory) VisibleWorkers(arg1 []string) ([]db.Worker, error
 	fake.visibleWorkersArgsForCall = append(fake.visibleWorkersArgsForCall, struct {
 		arg1 []string
 	}{arg1Copy})
+	stub := fake.VisibleWorkersStub
+	fakeReturns := fake.visibleWorkersReturns
 	fake.recordInvocation("VisibleWorkers", []interface{}{arg1Copy})
 	fake.visibleWorkersMutex.Unlock()
-	if fake.VisibleWorkersStub != nil {
-		return fake.VisibleWorkersStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.visibleWorkersReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -492,15 +498,16 @@ func (fake *FakeWorkerFactory) Workers() ([]db.Worker, error) {
 	ret, specificReturn := fake.workersReturnsOnCall[len(fake.workersArgsForCall)]
 	fake.workersArgsForCall = append(fake.workersArgsForCall, struct {
 	}{})
+	stub := fake.WorkersStub
+	fakeReturns := fake.workersReturns
 	fake.recordInvocation("Workers", []interface{}{})
 	fake.workersMutex.Unlock()
-	if fake.WorkersStub != nil {
-		return fake.WorkersStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.workersReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

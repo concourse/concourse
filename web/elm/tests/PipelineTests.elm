@@ -16,7 +16,7 @@ import Json.Encode
 import Keyboard
 import Message.Callback as Callback
 import Message.Effects as Effects
-import Message.Message exposing (Message(..))
+import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import Message.Subscription as Subscription
     exposing
         ( Delivery(..)
@@ -63,6 +63,13 @@ flags =
     , authToken = ""
     , pipelineRunningKeyframes = ""
     }
+
+
+pipelineFetched pipeline =
+    Application.handleCallback (Callback.PipelineFetched (Ok <| pipeline))
+        >> Tuple.first
+        >> Application.handleCallback (Callback.AllPipelinesFetched (Ok <| [ pipeline ]))
+        >> Tuple.first
 
 
 all : Test
@@ -306,11 +313,11 @@ all =
                     |> Expect.equal "pipelineName - Concourse"
         , test "pipeline background should be set from display config" <|
             \_ ->
-                Common.init "/teams/team/pipelines/pipelineName"
+                Common.init "/teams/team/pipelines/pipeline"
                     |> Application.handleCallback
                         (Callback.PipelineFetched
                             (Ok <|
-                                (Data.pipeline "team" 0
+                                (Data.pipeline "team" 1
                                     |> Data.withName "pipeline"
                                     |> Data.withBackgroundImage "some-background.jpg"
                                 )
@@ -478,7 +485,7 @@ all =
                 [ it "shows a pin icon on top bar" <|
                     Common.queryView
                         >> Query.find [ id "top-bar-app" ]
-                        >> Query.has [ id "pin-icon" ]
+                        >> Query.has [ id "top-bar-pin-icon" ]
                 , it "shows a star icon on top bar" <|
                     Common.queryView
                         >> Query.find [ id "top-bar-app" ]
@@ -604,6 +611,7 @@ all =
             , test "breadcrumb list is laid out horizontally" <|
                 \_ ->
                     Common.init "/teams/team/pipelines/pipeline"
+                        |> pipelineFetched (Data.pipeline "team" 1 |> Data.withName "pipeline")
                         |> Common.queryView
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.find [ id "breadcrumbs" ]
@@ -614,6 +622,7 @@ all =
             , test "pipeline breadcrumb is laid out horizontally" <|
                 \_ ->
                     Common.init "/teams/team/pipelines/pipeline"
+                        |> pipelineFetched (Data.pipeline "team" 1 |> Data.withName "pipeline")
                         |> Common.queryView
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.find [ id "breadcrumb-pipeline" ]
@@ -621,6 +630,7 @@ all =
             , test "top bar has pipeline breadcrumb with icon rendered first" <|
                 \_ ->
                     Common.init "/teams/team/pipelines/pipeline"
+                        |> pipelineFetched (Data.pipeline "team" 1 |> Data.withName "pipeline")
                         |> Common.queryView
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.find [ id "breadcrumb-pipeline" ]
@@ -630,6 +640,7 @@ all =
             , test "top bar has pipeline name after pipeline icon" <|
                 \_ ->
                     Common.init "/teams/team/pipelines/pipeline"
+                        |> pipelineFetched (Data.pipeline "team" 1 |> Data.withName "pipeline")
                         |> Common.queryView
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.find [ id "breadcrumb-pipeline" ]
@@ -667,11 +678,7 @@ all =
                 [ defineHoverBehaviour
                     { name = "star icon"
                     , setup = Common.init "teams/t/pipelines/p"
-                    , query =
-                        queryView
-                            >> Query.find [ id "top-bar-favorited-icon" ]
-                            >> Query.children []
-                            >> Query.first
+                    , query = queryView >> Query.find [ id "top-bar-favorited-icon" ]
                     , unhoveredSelector =
                         { description = "faded star icon"
                         , selector =
@@ -702,8 +709,6 @@ all =
                             |> Tuple.first
                             |> queryView
                             |> Query.find [ id "top-bar-favorited-icon" ]
-                            |> Query.children []
-                            |> Query.first
                             |> Event.simulate Event.click
                             |> Event.expect favMsg
                 , test "click has FavoritedPipeline effect" <|
@@ -781,7 +786,7 @@ givenPinnedResource =
     Application.handleCallback
         (Callback.ResourcesFetched <|
             Ok
-                [ Data.resource "v1" ]
+                [ Data.resource (Just "v1") ]
         )
         >> Tuple.first
 
@@ -791,8 +796,8 @@ givenMultiplePinnedResources =
     Application.handleCallback
         (Callback.ResourcesFetched <|
             Ok
-                [ Data.resource "v1"
-                , Data.resource "v2"
+                [ Data.resource (Just "v1")
+                , Data.resource (Just "v2")
                 ]
         )
         >> Tuple.first

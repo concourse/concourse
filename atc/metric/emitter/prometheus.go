@@ -187,7 +187,7 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 		Subsystem: "tasks",
 		Name:      "wait_duration",
 		Help:      "Elapsed time waiting for execution",
-		Buckets:   []float64{1, 15, 30, 60, 120, 180, 240, 300, 600, 1200},
+		Buckets:   []float64{30, 60, 120, 300, 600, 1200, 1800, 2400, 3000, 3600},
 	}, []string{"teamId", "workerTags", "platform"})
 	prometheus.MustRegister(tasksWaitingDuration)
 
@@ -631,7 +631,7 @@ func (emitter *PrometheusEmitter) workerContainersMetric(logger lager.Logger, ev
 		logger.Error("failed-to-find-team-name-in-event", fmt.Errorf("expected team_name to exist in event.Attributes"))
 		return
 	}
-	tags, _ := event.Attributes["tags"]
+	tags := event.Attributes["tags"]
 
 	labels := prometheus.Labels{
 		"worker":   worker,
@@ -692,7 +692,7 @@ func (emitter *PrometheusEmitter) workerVolumesMetric(logger lager.Logger, event
 		logger.Error("failed-to-find-team-name-in-event", fmt.Errorf("expected team_name to exist in event.Attributes"))
 		return
 	}
-	tags, _ := event.Attributes["tags"]
+	tags := event.Attributes["tags"]
 
 	labels := prometheus.Labels{
 		"worker":   worker,

@@ -1,7 +1,7 @@
 package migrations
 
-func (self *migrations) Down_1574452410() error {
-	tx, err := self.DB.Begin()
+func (m *migrations) Down_1574452410() error {
+	tx, err := m.DB.Begin()
 	if err != nil {
 		return err
 	}

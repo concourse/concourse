@@ -56,8 +56,13 @@ var _ = Describe("Build", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(found).To(BeTrue())
 
-		build, err = job.CreateBuild()
+		build, err = job.CreateBuild(defaultBuildCreatedBy)
 		Expect(err).NotTo(HaveOccurred())
+	})
+
+	It("created_by should be set", func() {
+		Expect(build.CreatedBy()).ToNot(BeNil())
+		Expect(*build.CreatedBy()).To(Equal(defaultBuildCreatedBy))
 	})
 
 	It("has no plan on creation", func() {
@@ -94,8 +99,10 @@ var _ = Describe("Build", func() {
 		Context("for a job build", func() {
 			BeforeEach(func() {
 				var err error
-				build, err = defaultJob.CreateBuild()
+				build, err = defaultJob.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
+				Expect(build.CreatedBy()).ToNot(BeNil())
+				Expect(*build.CreatedBy()).To(Equal(defaultBuildCreatedBy))
 			})
 
 			It("includes build, team, pipeline, and job info", func() {
@@ -175,7 +182,7 @@ var _ = Describe("Build", func() {
 		Context("for a job build", func() {
 			BeforeEach(func() {
 				var err error
-				build, err = defaultJob.CreateBuild()
+				build, err = defaultJob.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -231,9 +238,9 @@ var _ = Describe("Build", func() {
 
 			It("includes build and team info", func() {
 				Expect(attrs).To(Equal(tracing.Attrs{
-					"build_id": strconv.Itoa(build.ID()),
-					"build":    build.Name(),
-					"team":     team.Name(),
+					"build_id":  strconv.Itoa(build.ID()),
+					"build":     build.Name(),
+					"team_name": team.Name(),
 				}))
 			})
 		})
@@ -241,17 +248,17 @@ var _ = Describe("Build", func() {
 		Context("for a job build", func() {
 			BeforeEach(func() {
 				var err error
-				build, err = defaultJob.CreateBuild()
+				build, err = defaultJob.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
 			It("includes build, team, pipeline, and job info", func() {
 				Expect(attrs).To(Equal(tracing.Attrs{
-					"build_id": strconv.Itoa(build.ID()),
-					"build":    build.Name(),
-					"team":     build.TeamName(),
-					"pipeline": build.PipelineName(),
-					"job":      defaultJob.Name(),
+					"build_id":  strconv.Itoa(build.ID()),
+					"build":     build.Name(),
+					"team_name": build.TeamName(),
+					"pipeline":  build.PipelineName(),
+					"job":       defaultJob.Name(),
 				}))
 			})
 		})
@@ -267,11 +274,11 @@ var _ = Describe("Build", func() {
 
 			It("includes build, team, and pipeline", func() {
 				Expect(attrs).To(Equal(tracing.Attrs{
-					"build_id": strconv.Itoa(build.ID()),
-					"build":    build.Name(),
-					"team":     build.TeamName(),
-					"pipeline": build.PipelineName(),
-					"resource": defaultResource.Name(),
+					"build_id":  strconv.Itoa(build.ID()),
+					"build":     build.Name(),
+					"team_name": build.TeamName(),
+					"pipeline":  build.PipelineName(),
+					"resource":  defaultResource.Name(),
 				}))
 			})
 		})
@@ -289,7 +296,7 @@ var _ = Describe("Build", func() {
 				Expect(attrs).To(Equal(tracing.Attrs{
 					"build_id":      strconv.Itoa(build.ID()),
 					"build":         build.Name(),
-					"team":          build.TeamName(),
+					"team_name":     build.TeamName(),
 					"pipeline":      build.PipelineName(),
 					"resource_type": defaultResourceType.Name(),
 				}))
@@ -634,14 +641,19 @@ var _ = Describe("Build", func() {
 
 			Context("when there is a pending build that is not a rerun", func() {
 				BeforeEach(func() {
-					pdBuild, err = job.CreateBuild()
+					pdBuild, err = job.CreateBuild(defaultBuildCreatedBy)
 					Expect(err).NotTo(HaveOccurred())
 				})
 
 				Context("when rerunning the latest completed build", func() {
 					BeforeEach(func() {
-						rrBuild, err = job.RerunBuild(build)
+						rrBuild, err = job.RerunBuild(build, defaultBuildCreatedBy)
 						Expect(err).NotTo(HaveOccurred())
+					})
+
+					It("created_by should be set", func() {
+						Expect(rrBuild.CreatedBy()).ToNot(BeNil())
+						Expect(*rrBuild.CreatedBy()).To(Equal(defaultBuildCreatedBy))
 					})
 
 					Context("when the rerun finishes and status changed", func() {
@@ -665,7 +677,7 @@ var _ = Describe("Build", func() {
 
 					Context("when there is another pending build that is not a rerun and the first pending build finishes", func() {
 						BeforeEach(func() {
-							pdBuild2, err = job.CreateBuild()
+							pdBuild2, err = job.CreateBuild(defaultBuildCreatedBy)
 							Expect(err).NotTo(HaveOccurred())
 
 							err = pdBuild.Finish(db.BuildStatusSucceeded)
@@ -684,7 +696,7 @@ var _ = Describe("Build", func() {
 
 				Context("when rerunning the pending build and the pending build finished", func() {
 					BeforeEach(func() {
-						rrBuild, err = job.RerunBuild(pdBuild)
+						rrBuild, err = job.RerunBuild(pdBuild, defaultBuildCreatedBy)
 						Expect(err).NotTo(HaveOccurred())
 
 						err = pdBuild.Finish(db.BuildStatusSucceeded)
@@ -699,6 +711,11 @@ var _ = Describe("Build", func() {
 						Expect(getJobBuildID(latestCompletedBuildCol, job.ID())).To(Equal(pdBuild.ID()))
 					})
 
+					It("created_by should be set", func() {
+						Expect(rrBuild.CreatedBy()).ToNot(BeNil())
+						Expect(*rrBuild.CreatedBy()).To(Equal(defaultBuildCreatedBy))
+					})
+
 					Context("when rerunning the rerun build", func() {
 						var rrBuild2 db.Build
 
@@ -706,7 +723,7 @@ var _ = Describe("Build", func() {
 							err = rrBuild.Finish(db.BuildStatusSucceeded)
 							Expect(err).NotTo(HaveOccurred())
 
-							rrBuild2, err = job.RerunBuild(rrBuild)
+							rrBuild2, err = job.RerunBuild(rrBuild, defaultBuildCreatedBy)
 							Expect(err).NotTo(HaveOccurred())
 						})
 
@@ -725,7 +742,7 @@ var _ = Describe("Build", func() {
 						err = pdBuild.Finish(db.BuildStatusErrored)
 						Expect(err).NotTo(HaveOccurred())
 
-						rrBuild, err = job.RerunBuild(build)
+						rrBuild, err = job.RerunBuild(build, defaultBuildCreatedBy)
 						Expect(err).NotTo(HaveOccurred())
 
 						err = rrBuild.Finish(db.BuildStatusSucceeded)
@@ -745,6 +762,11 @@ var _ = Describe("Build", func() {
 					It("does not updates transition build id", func() {
 						Expect(getJobBuildID(transitionBuildCol, job.ID())).To(Equal(pdBuild.ID()))
 					})
+
+					It("created_by should be set", func() {
+						Expect(rrBuild.CreatedBy()).ToNot(BeNil())
+						Expect(*rrBuild.CreatedBy()).To(Equal(defaultBuildCreatedBy))
+					})
 				})
 			})
 		})
@@ -754,8 +776,10 @@ var _ = Describe("Build", func() {
 				job := scenario.Job("some-job")
 				downstreamJob := scenario.Job("downstream-job")
 
-				newBuild, err := job.CreateBuild()
+				newBuild, err := job.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).NotTo(HaveOccurred())
+				Expect(newBuild.CreatedBy()).ToNot(BeNil())
+				Expect(*newBuild.CreatedBy()).To(Equal(defaultBuildCreatedBy))
 
 				requestedSchedule := downstreamJob.ScheduleRequestedTime()
 
@@ -773,8 +797,10 @@ var _ = Describe("Build", func() {
 				job := scenario.Job("some-job")
 				noRequestJob := scenario.Job("no-request-job")
 
-				newBuild, err := job.CreateBuild()
+				newBuild, err := job.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).NotTo(HaveOccurred())
+				Expect(newBuild.CreatedBy()).ToNot(BeNil())
+				Expect(*newBuild.CreatedBy()).To(Equal(defaultBuildCreatedBy))
 
 				requestedSchedule := noRequestJob.ScheduleRequestedTime()
 
@@ -794,7 +820,7 @@ var _ = Describe("Build", func() {
 
 			BeforeEach(func() {
 				By("creating a child pipeline")
-				build, _ := defaultJob.CreateBuild()
+				build, _ := defaultJob.CreateBuild(defaultBuildCreatedBy)
 				childPipeline, _, _ = build.SavePipeline(atc.PipelineRef{Name: "child1-pipeline"}, defaultTeam.ID(), defaultPipelineConfig, db.ConfigVersion(0), false)
 				build.Finish(db.BuildStatusSucceeded)
 
@@ -805,7 +831,7 @@ var _ = Describe("Build", func() {
 			Context("build is successful", func() {
 				It("archives pipelines no longer set by the job", func() {
 					By("no longer setting the child pipeline")
-					build2, _ := defaultJob.CreateBuild()
+					build2, _ := defaultJob.CreateBuild(defaultBuildCreatedBy)
 					build2.Finish(db.BuildStatusSucceeded)
 
 					childPipeline.Reload()
@@ -819,14 +845,14 @@ var _ = Describe("Build", func() {
 						By("creating a chain of pipelines, previous pipeline setting the next pipeline")
 						for i := 0; i < 5; i++ {
 							job, _, _ := childPipeline.Job("some-job")
-							build, _ := job.CreateBuild()
+							build, _ := job.CreateBuild(defaultBuildCreatedBy)
 							childPipeline, _, _ = build.SavePipeline(atc.PipelineRef{Name: "child-pipeline-" + strconv.Itoa(i)}, defaultTeam.ID(), defaultPipelineConfig, db.ConfigVersion(0), false)
 							build.Finish(db.BuildStatusSucceeded)
 							childPipelines = append(childPipelines, childPipeline)
 						}
 
 						By("parent pipeline no longer sets child pipeline in most recent build")
-						build, _ := defaultJob.CreateBuild()
+						build, _ := defaultJob.CreateBuild(defaultBuildCreatedBy)
 						build.Finish(db.BuildStatusSucceeded)
 
 						for _, pipeline := range childPipelines {
@@ -839,7 +865,7 @@ var _ = Describe("Build", func() {
 
 				Context("when the pipeline is not set by build", func() {
 					It("never gets archived", func() {
-						build, _ := defaultJob.CreateBuild()
+						build, _ := defaultJob.CreateBuild(defaultBuildCreatedBy)
 						teamPipeline, _, _ := defaultTeam.SavePipeline(atc.PipelineRef{Name: "team-pipeline"}, defaultPipelineConfig, db.ConfigVersion(0), false)
 						build.Finish(db.BuildStatusSucceeded)
 
@@ -851,7 +877,7 @@ var _ = Describe("Build", func() {
 			Context("build is not successful", func() {
 				It("does not archive pipelines", func() {
 					By("no longer setting the child pipeline")
-					build2, _ := defaultJob.CreateBuild()
+					build2, _ := defaultJob.CreateBuild(defaultBuildCreatedBy)
 					build2.Finish(db.BuildStatusFailed)
 
 					childPipeline.Reload()
@@ -902,7 +928,7 @@ var _ = Describe("Build", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				build, err = job.CreateBuild()
+				build, err = job.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -1006,6 +1032,28 @@ var _ = Describe("Build", func() {
 			By("ending the stream when finished")
 			_, err = events.Next()
 			Expect(err).To(Equal(db.ErrEndOfBuildEventStream))
+		})
+
+		It("emits pre-bigint migration events", func() {
+			started, err := build.Start(atc.Plan{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(started).To(BeTrue())
+
+			found, err := build.Reload()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			_, err = dbConn.Exec(`UPDATE build_events SET build_id_old = build_id, build_id = NULL WHERE build_id = $1`, build.ID())
+			Expect(err).NotTo(HaveOccurred())
+
+			events, err := build.Events(0)
+			Expect(err).NotTo(HaveOccurred())
+
+			defer db.Close(events)
+			Expect(events.Next()).To(Equal(envelope(event.Status{
+				Status: atc.StatusStarted,
+				Time:   build.StartTime().Unix(),
+			})))
 		})
 	})
 
@@ -1168,6 +1216,13 @@ var _ = Describe("Build", func() {
 
 		AfterEach(func() {
 			atc.EnableGlobalResources = false
+		})
+
+		It("should set the resource's config scope", func() {
+			resource, found, err := scenario.Pipeline.Resource("some-resource")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(resource.ResourceConfigScopeID()).ToNot(BeZero())
 		})
 
 		Context("when the version does not exist", func() {
@@ -1352,6 +1407,10 @@ var _ = Describe("Build", func() {
 					Name:    "some-resource",
 					Version: atc.Version{"ver": "2"},
 				},
+				{
+					Name:    "some-other-resource",
+					Version: atc.Version{"ver": "not-checked"},
+				},
 			}))
 		})
 
@@ -1411,6 +1470,8 @@ var _ = Describe("Build", func() {
 						}).
 						RunWith(dbConn).
 						Exec()
+					Expect(err).NotTo(HaveOccurred())
+
 					rows, err := res.RowsAffected()
 					Expect(err).NotTo(HaveOccurred())
 					Expect(rows).To(Equal(int64(1)))
@@ -1462,7 +1523,7 @@ var _ = Describe("Build", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				build, err = job.CreateBuild()
+				build, err = job.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -2078,8 +2139,10 @@ var _ = Describe("Build", func() {
 			)
 
 			var err error
-			retriggerBuild, err = job.RerunBuild(downstreamBuild)
+			retriggerBuild, err = job.RerunBuild(downstreamBuild, defaultBuildCreatedBy)
 			Expect(err).ToNot(HaveOccurred())
+			Expect(retriggerBuild.CreatedBy()).NotTo(BeNil())
+			Expect(*retriggerBuild.CreatedBy()).To(Equal(defaultBuildCreatedBy))
 		})
 
 		JustBeforeEach(func() {
@@ -2156,6 +2219,13 @@ var _ = Describe("Build", func() {
 
 				It("fails to adopt", func() {
 					Expect(adoptFound).To(BeFalse())
+				})
+
+				It("aborts the build", func() {
+					reloaded, err := retriggerBuild.Reload()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(reloaded).To(BeTrue())
+					Expect(retriggerBuild.IsAborted()).To(BeTrue())
 				})
 			})
 		})
@@ -2272,7 +2342,7 @@ var _ = Describe("Build", func() {
 	Describe("SavePipeline", func() {
 		It("saves the parent job and build ids", func() {
 			By("creating a build")
-			build, err := defaultJob.CreateBuild()
+			build, err := defaultJob.CreateBuild(defaultBuildCreatedBy)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("saving a pipeline with the build")
@@ -2308,9 +2378,9 @@ var _ = Describe("Build", func() {
 
 		It("only saves the pipeline if it is the latest build", func() {
 			By("creating two builds")
-			buildOne, err := defaultJob.CreateBuild()
+			buildOne, err := defaultJob.CreateBuild(defaultBuildCreatedBy)
 			Expect(err).ToNot(HaveOccurred())
-			buildTwo, err := defaultJob.CreateBuild()
+			buildTwo, err := defaultJob.CreateBuild(defaultBuildCreatedBy)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("saving a pipeline with the second build")
@@ -2344,7 +2414,7 @@ var _ = Describe("Build", func() {
 			Expect(pipeline.ParentBuildID()).To(Equal(buildTwo.ID()))
 
 			By("saving a pipeline with the first build")
-			pipeline, _, err = buildOne.SavePipeline(atc.PipelineRef{Name: "other-pipeline"}, buildOne.TeamID(), atc.Config{
+			_, _, err = buildOne.SavePipeline(atc.PipelineRef{Name: "other-pipeline"}, buildOne.TeamID(), atc.Config{
 				Jobs: atc.JobConfigs{
 					{
 						Name: "some-job",
@@ -2375,7 +2445,7 @@ var _ = Describe("Build", func() {
 		Context("a pipeline is previously saved by team.SavePipeline", func() {
 			It("the parent job and build ID are updated", func() {
 				By("creating a build")
-				build, err := defaultJob.CreateBuild()
+				build, err := defaultJob.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 
 				By("re-saving the default pipeline with the build")

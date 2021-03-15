@@ -2,6 +2,7 @@ package exec
 
 import (
 	"context"
+	"errors"
 	"io"
 
 	"code.cloudfoundry.org/lager"
@@ -53,9 +54,9 @@ type PutStep struct {
 	resourceFactory       resource.ResourceFactory
 	resourceConfigFactory db.ResourceConfigFactory
 	strategy              worker.ContainerPlacementStrategy
-	workerClient          worker.Client
+	workerPool            worker.Pool
+	artifactSourcer       worker.ArtifactSourcer
 	delegateFactory       PutDelegateFactory
-	succeeded             bool
 }
 
 func NewPutStep(
@@ -66,7 +67,8 @@ func NewPutStep(
 	resourceFactory resource.ResourceFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
 	strategy worker.ContainerPlacementStrategy,
-	workerClient worker.Client,
+	workerPool worker.Pool,
+	artifactSourcer worker.ArtifactSourcer,
 	delegateFactory PutDelegateFactory,
 ) Step {
 	return &PutStep{
@@ -76,7 +78,8 @@ func NewPutStep(
 		containerMetadata:     containerMetadata,
 		resourceFactory:       resourceFactory,
 		resourceConfigFactory: resourceConfigFactory,
-		workerClient:          workerClient,
+		workerPool:            workerPool,
+		artifactSourcer:       artifactSourcer,
 		strategy:              strategy,
 		delegateFactory:       delegateFactory,
 	}
@@ -142,7 +145,12 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 		putInputs = NewSpecificInputs(step.plan.Inputs.Specified)
 	}
 
-	containerInputs, err := putInputs.FindAll(state.ArtifactRepository())
+	inputsMap, err := putInputs.FindAll(state.ArtifactRepository())
+	if err != nil {
+		return false, err
+	}
+
+	containerInputs, err := step.artifactSourcer.SourceInputsAndCaches(logger, step.metadata.TeamID, inputsMap)
 	if err != nil {
 		return false, err
 	}
@@ -171,7 +179,7 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 
 		Env: step.metadata.Env(),
 
-		ArtifactByPath: containerInputs,
+		Inputs: containerInputs,
 	}
 	tracing.Inject(ctx, &containerSpec)
 
@@ -190,20 +198,40 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 
 	resourceToPut := step.resourceFactory.NewResource(source, params, nil)
 
-	result, err := step.workerClient.RunPutStep(
-		ctx,
-		logger,
+	processCtx, cancel, err := MaybeTimeout(ctx, step.plan.Timeout)
+	if err != nil {
+		return false, err
+	}
+
+	defer cancel()
+
+	worker, err := step.workerPool.SelectWorker(
+		lagerctx.NewContext(processCtx, logger),
 		owner,
 		containerSpec,
 		workerSpec,
 		step.strategy,
+	)
+	if err != nil {
+		return false, err
+	}
+	delegate.SelectedWorker(logger, worker.Name())
+
+	result, err := worker.RunPutStep(
+		lagerctx.NewContext(processCtx, logger),
+		owner,
+		containerSpec,
 		step.containerMetadata,
 		processSpec,
 		delegate,
 		resourceToPut,
 	)
 	if err != nil {
-		logger.Error("failed-to-put-resource", err)
+		if errors.Is(err, context.DeadlineExceeded) {
+			delegate.Errored(logger, TimeoutLogMessage)
+			return false, nil
+		}
+
 		return false, err
 	}
 

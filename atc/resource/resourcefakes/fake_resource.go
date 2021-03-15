@@ -80,15 +80,16 @@ func (fake *FakeResource) Check(arg1 context.Context, arg2 runtime.ProcessSpec, 
 		arg2 runtime.ProcessSpec
 		arg3 runtime.Runner
 	}{arg1, arg2, arg3})
+	stub := fake.CheckStub
+	fakeReturns := fake.checkReturns
 	fake.recordInvocation("Check", []interface{}{arg1, arg2, arg3})
 	fake.checkMutex.Unlock()
-	if fake.CheckStub != nil {
-		return fake.CheckStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.checkReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -145,15 +146,16 @@ func (fake *FakeResource) Get(arg1 context.Context, arg2 runtime.ProcessSpec, ar
 		arg2 runtime.ProcessSpec
 		arg3 runtime.Runner
 	}{arg1, arg2, arg3})
+	stub := fake.GetStub
+	fakeReturns := fake.getReturns
 	fake.recordInvocation("Get", []interface{}{arg1, arg2, arg3})
 	fake.getMutex.Unlock()
-	if fake.GetStub != nil {
-		return fake.GetStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -210,15 +212,16 @@ func (fake *FakeResource) Put(arg1 context.Context, arg2 runtime.ProcessSpec, ar
 		arg2 runtime.ProcessSpec
 		arg3 runtime.Runner
 	}{arg1, arg2, arg3})
+	stub := fake.PutStub
+	fakeReturns := fake.putReturns
 	fake.recordInvocation("Put", []interface{}{arg1, arg2, arg3})
 	fake.putMutex.Unlock()
-	if fake.PutStub != nil {
-		return fake.PutStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.putReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -272,15 +275,16 @@ func (fake *FakeResource) Signature() ([]byte, error) {
 	ret, specificReturn := fake.signatureReturnsOnCall[len(fake.signatureArgsForCall)]
 	fake.signatureArgsForCall = append(fake.signatureArgsForCall, struct {
 	}{})
+	stub := fake.SignatureStub
+	fakeReturns := fake.signatureReturns
 	fake.recordInvocation("Signature", []interface{}{})
 	fake.signatureMutex.Unlock()
-	if fake.SignatureStub != nil {
-		return fake.SignatureStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.signatureReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

@@ -93,7 +93,6 @@ type Pipeline interface {
 	Archive() error
 
 	Destroy() error
-	Rename(string) error
 
 	Variables(lager.Logger, creds.Secrets, creds.VarSourcePool) (vars.Variables, error)
 
@@ -714,18 +713,6 @@ func (p *pipeline) Expose() error {
 	return err
 }
 
-func (p *pipeline) Rename(name string) error {
-	_, err := psql.Update("pipelines").
-		Set("name", name).
-		Where(sq.Eq{
-			"id": p.id,
-		}).
-		RunWith(p.conn).
-		Exec()
-
-	return err
-}
-
 func (p *pipeline) Destroy() error {
 	tx, err := p.conn.Begin()
 	if err != nil {
@@ -782,9 +769,6 @@ func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
 		Join("resources r ON r.id = o.resource_id").
 		Where(sq.Expr("r.resource_config_scope_id = v.resource_config_scope_id")).
 		Where(sq.Expr("(r.id, v.version_md5) NOT IN (SELECT resource_id, version_md5 from resource_disabled_versions)")).
-		Where(sq.NotEq{
-			"v.check_order": 0,
-		}).
 		Where(sq.Eq{
 			"b.status":      BuildStatusSucceeded,
 			"r.pipeline_id": p.id,
@@ -817,9 +801,6 @@ func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
 		Join("resources r ON r.id = i.resource_id").
 		Where(sq.Expr("r.resource_config_scope_id = v.resource_config_scope_id")).
 		Where(sq.Expr("(r.id, v.version_md5) NOT IN (SELECT resource_id, version_md5 from resource_disabled_versions)")).
-		Where(sq.NotEq{
-			"v.check_order": 0,
-		}).
 		Where(sq.Eq{
 			"r.pipeline_id": p.id,
 			"r.active":      true,
@@ -859,9 +840,6 @@ func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
 		From("resource_config_versions v").
 		Join("resources r ON r.resource_config_scope_id = v.resource_config_scope_id").
 		LeftJoin("resource_disabled_versions d ON d.resource_id = r.id AND d.version_md5 = v.version_md5").
-		Where(sq.NotEq{
-			"v.check_order": 0,
-		}).
 		Where(sq.Eq{
 			"r.pipeline_id": p.id,
 			"r.active":      true,
@@ -1102,33 +1080,6 @@ func (p *pipeline) CreateStartedBuild(plan atc.Plan) (Build, error) {
 	}
 
 	return build, nil
-}
-
-func (p *pipeline) getBuildsFrom(tx Tx, col string) (map[string]Build, error) {
-	rows, err := buildsQuery.
-		Where(sq.Eq{
-			"b.pipeline_id": p.id,
-		}).
-		Where(sq.Expr("j." + col + " = b.id")).
-		RunWith(tx).Query()
-	if err != nil {
-		return nil, err
-	}
-
-	defer Close(rows)
-
-	nextBuilds := make(map[string]Build)
-
-	for rows.Next() {
-		build := newEmptyBuild(p.conn, p.lockFactory)
-		err := scanBuild(build, rows, p.conn.EncryptionStrategy())
-		if err != nil {
-			return nil, err
-		}
-		nextBuilds[build.JobName()] = build
-	}
-
-	return nextBuilds, nil
 }
 
 // Variables creates variables for this pipeline. If this pipeline has its own

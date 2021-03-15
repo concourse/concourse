@@ -89,7 +89,7 @@ func (s *Server) HijackContainer(team db.Team) http.Handler {
 			"handle": handle,
 		})
 
-		container, found, err := s.workerClient.FindContainer(hLog, team.ID(), handle)
+		container, found, err := s.workerPool.FindContainer(hLog, team.ID(), handle)
 		if err != nil {
 			hLog.Error("failed-to-find-container", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -145,7 +145,7 @@ func (s *Server) HijackContainer(team db.Team) http.Handler {
 		err = conn.ReadJSON(&processSpec)
 		if err != nil {
 			hLog.Error("malformed-process-spec", err)
-			closeWithErr(hLog, conn, websocket.CloseUnsupportedData, fmt.Sprintf("malformed process spec"))
+			closeWithErr(hLog, conn, websocket.CloseUnsupportedData, "malformed process spec")
 			return
 		}
 

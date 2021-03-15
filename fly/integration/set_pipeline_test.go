@@ -37,14 +37,17 @@ var _ = Describe("Fly CLI", func() {
 			fmt.Fprintf(stdin, "n\n")
 		}
 
-		expectSaveConfig := func(config atc.Config) {
-			path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+		expectSaveConfigWithRef := func(ref atc.PipelineRef, config atc.Config) {
+			path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": ref.Name, "team_name": "main"})
 			Expect(err).NotTo(HaveOccurred())
 
 			atcServer.RouteToHandler("PUT", path,
 				ghttp.CombineHandlers(
 					ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
 					func(w http.ResponseWriter, r *http.Request) {
+						for k, v := range ref.QueryParams() {
+							Expect(r.URL.Query()[k]).To(Equal(v))
+						}
 						bodyConfig := getConfig(r)
 
 						receivedConfig := atc.Config{}
@@ -59,12 +62,16 @@ var _ = Describe("Fly CLI", func() {
 				),
 			)
 
-			path_get, err := atc.Routes.CreatePathForRoute(atc.GetPipeline, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+			path_get, err := atc.Routes.CreatePathForRoute(atc.GetPipeline, rata.Params{"pipeline_name": ref.Name, "team_name": "main"})
 			Expect(err).NotTo(HaveOccurred())
 
 			atcServer.RouteToHandler("GET", path_get,
-				ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Pipeline{Name: "awesome-pipeline", Paused: false, TeamName: "main"}),
+				ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Pipeline{Name: ref.Name, InstanceVars: ref.InstanceVars, Paused: false, TeamName: "main"}),
 			)
+		}
+
+		expectSaveConfig := func(config atc.Config) {
+			expectSaveConfigWithRef(atc.PipelineRef{Name: "awesome-pipeline"}, config)
 		}
 
 		BeforeEach(func() {
@@ -182,10 +189,17 @@ var _ = Describe("Fly CLI", func() {
 				path, err := atc.Routes.CreatePathForRoute(atc.GetConfig, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 				Expect(err).NotTo(HaveOccurred())
 
+				path_get, err := atc.Routes.CreatePathForRoute(atc.GetPipeline, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+				Expect(err).NotTo(HaveOccurred())
+
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", path),
 						ghttp.RespondWithJSONEncoded(http.StatusOK, atc.ConfigResponse{Config: config}, http.Header{atc.ConfigVersionHeader: {"42"}}),
+					),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", path_get),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Pipeline{Name: "awesome-pipeline", Paused: false, TeamName: "main"}),
 					),
 				)
 			})
@@ -286,7 +300,7 @@ var _ = Describe("Fly CLI", func() {
 						Expect(sess.ExitCode()).To(Equal(0))
 					}).To(Change(func() int {
 						return len(atcServer.ReceivedRequests())
-					}).By(4))
+					}).By(5))
 				})
 
 				Context("when a non-stringy var is specified with -v", func() {
@@ -354,7 +368,7 @@ var _ = Describe("Fly CLI", func() {
 							Expect(sess.ExitCode()).To(Equal(0))
 						}).To(Change(func() int {
 							return len(atcServer.ReceivedRequests())
-						}).By(4))
+						}).By(5))
 					})
 				})
 
@@ -381,7 +395,7 @@ var _ = Describe("Fly CLI", func() {
 
 						}).To(Change(func() int {
 							return len(atcServer.ReceivedRequests())
-						}).By(4))
+						}).By(5))
 					})
 				})
 			})
@@ -441,7 +455,7 @@ this is super secure
 						Expect(sess.ExitCode()).To(Equal(0))
 					}).To(Change(func() int {
 						return len(atcServer.ReceivedRequests())
-					}).By(4))
+					}).By(5))
 				})
 			})
 
@@ -503,7 +517,69 @@ this is super secure
 						Expect(sess.ExitCode()).To(Equal(0))
 					}).To(Change(func() int {
 						return len(atcServer.ReceivedRequests())
-					}).By(4))
+					}).By(5))
+				})
+			})
+
+			Context("when an instance var is specified with -i", func() {
+				BeforeEach(func() {
+					expectSaveConfigWithRef(atc.PipelineRef{
+						Name:         "awesome-pipeline",
+						InstanceVars: atc.InstanceVars{"param-b": "some-param-b-via-i"},
+					}, atc.Config{
+						Resources: atc.ResourceConfigs{
+							{
+								Name: "some-resource",
+								Type: "some-type",
+								Tags: atc.Tags{"val-1", "val-2"},
+								Source: atc.Source{
+									"private_key": `-----BEGIN SOME KEY-----
+this is super secure
+-----END SOME KEY-----
+`,
+									"config-a": "some-param-a",
+									"config-b": "some-param-b-via-i",
+									"bool":     true,
+									"number":   1.23,
+								},
+							},
+						},
+
+						Jobs: atc.JobConfigs{
+							{
+								Name: "some-job",
+								PlanSequence: []atc.Step{
+									{
+										Config: &atc.GetStep{
+											Name: "some-resource",
+										},
+									},
+								},
+							},
+						},
+					})
+				})
+
+				It("succeeds", func() {
+					Expect(func() {
+						flyCmd := exec.Command(
+							flyPath, "-t", targetName,
+							"set-pipeline",
+							"-n",
+							"--pipeline", "awesome-pipeline",
+							"-c", "fixtures/vars-pipeline.yml",
+							"-l", "fixtures/vars-pipeline-params-a.yml",
+							"-l", "fixtures/vars-pipeline-params-types.yml",
+							"-i", "param-b=some-param-b-via-i",
+						)
+
+						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+						Expect(err).NotTo(HaveOccurred())
+						<-sess.Exited
+						Expect(sess.ExitCode()).To(Equal(0))
+					}).To(Change(func() int {
+						return len(atcServer.ReceivedRequests())
+					}).By(5))
 				})
 			})
 
@@ -556,7 +632,7 @@ this is super secure
 						Expect(sess.ExitCode()).To(Equal(0))
 					}).To(Change(func() int {
 						return len(atcServer.ReceivedRequests())
-					}).By(4))
+					}).By(5))
 				})
 			})
 
@@ -615,7 +691,7 @@ this is super secure
 						Expect(sess.ExitCode()).To(Equal(0))
 					}).To(Change(func() int {
 						return len(atcServer.ReceivedRequests())
-					}).By(4))
+					}).By(5))
 				})
 
 				Context("when the --check-creds option is used", func() {
@@ -639,7 +715,7 @@ this is super secure
 								Expect(sess.ExitCode()).To(Equal(0))
 							}).To(Change(func() int {
 								return len(atcServer.ReceivedRequests())
-							}).By(4))
+							}).By(5))
 						})
 					})
 
@@ -689,7 +765,7 @@ this is super secure
 								Expect(sess.ExitCode()).NotTo(Equal(0))
 							}).To(Change(func() int {
 								return len(atcServer.ReceivedRequests())
-							}).By(3))
+							}).By(4))
 						})
 					})
 				})
@@ -842,7 +918,7 @@ this is super secure
 
 					}).To(Change(func() int {
 						return len(atcServer.ReceivedRequests())
-					}).By(4))
+					}).By(5))
 				})
 			})
 
@@ -942,6 +1018,10 @@ this is super secure
 						Eventually(sess).Should(gbytes.Say("job some-new-job has been added"))
 						Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("name: some-new-job", "green")))
 
+						Eventually(sess).Should(gbytes.Say("pipeline name:"))
+						Eventually(sess).Should(gbytes.Say("awesome-pipeline"))
+						Consistently(sess).ShouldNot(gbytes.Say("pipeline instance vars:"))
+
 						Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
 						yes(stdin)
 
@@ -956,7 +1036,7 @@ this is super secure
 
 					}).To(Change(func() int {
 						return len(atcServer.ReceivedRequests())
-					}).By(4))
+					}).By(5))
 				})
 
 				It("bails if the user rejects the diff", func() {
@@ -976,7 +1056,7 @@ this is super secure
 						Expect(sess.ExitCode()).To(Equal(0))
 					}).To(Change(func() int {
 						return len(atcServer.ReceivedRequests())
-					}).By(2))
+					}).By(3))
 				})
 
 				It("parses the config from stdin and sends it to the ATC", func() {
@@ -1035,7 +1115,7 @@ this is super secure
 						Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("name: some-new-job", "green")))
 
 						// When read pipeline configure from stdin, it should do non-interactive mode.
-						Eventually(sess).ShouldNot(gbytes.Say(`apply configuration\? \[yN\]: `))
+						Consistently(sess).ShouldNot(gbytes.Say(`apply configuration\? \[yN\]: `))
 
 						Eventually(sess).Should(gbytes.Say("configuration updated"))
 
@@ -1047,7 +1127,22 @@ this is super secure
 						Expect(sess.Out.Contents()).ToNot(ContainSubstring("some-unchanged-job"))
 					}).To(Change(func() int {
 						return len(atcServer.ReceivedRequests())
-					}).By(4))
+					}).By(5))
+				})
+
+				Context("when setting an instanced pipeline", func() {
+					It("prints the instance vars as YAML", func() {
+						flyCmd := exec.Command(flyPath, "-t", targetName, "set-pipeline", "-p", "awesome-pipeline", "-i", "version=1.2.3", "-c", configFile.Name())
+
+						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+						Expect(err).NotTo(HaveOccurred())
+
+						Eventually(sess).Should(gbytes.Say("pipeline name:"))
+						Eventually(sess).Should(gbytes.Say("awesome-pipeline"))
+
+						Eventually(sess).Should(gbytes.Say("pipeline instance vars:"))
+						Eventually(sess).Should(gbytes.Say("  version: 1.2.3"))
+					})
 				})
 			})
 
@@ -1064,6 +1159,12 @@ this is super secure
 							ghttp.VerifyRequest("GET", "/api/v1/teams/other-team/pipelines/awesome-pipeline/config"),
 							ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{
 								Name: "other-team",
+							}),
+						),
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", "/api/v1/teams/other-team/pipelines/awesome-pipeline"),
+							ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Pipeline{
+								Name: "awesome-pipeline",
 							}),
 						),
 						ghttp.CombineHandlers(
@@ -1101,7 +1202,7 @@ this is super secure
 
 					}).To(Change(func() int {
 						return len(atcServer.ReceivedRequests())
-					}).By(5))
+					}).By(6))
 				})
 
 				It("bails if the user rejects the configuration", func() {
@@ -1122,7 +1223,7 @@ this is super secure
 						Expect(sess.ExitCode()).To(Equal(0))
 					}).To(Change(func() int {
 						return len(atcServer.ReceivedRequests())
-					}).By(3))
+					}).By(4))
 				})
 			})
 
@@ -1157,9 +1258,55 @@ this is super secure
 				})
 			})
 
+			Context("when updating a pipeline that has been configured through the 'set_pipeline' step", func() {
+				BeforeEach(func() {
+					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+					Expect(err).NotTo(HaveOccurred())
+
+					path_get, err := atc.Routes.CreatePathForRoute(atc.GetPipeline, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+					Expect(err).NotTo(HaveOccurred())
+
+					atcServer.RouteToHandler("PUT", path, ghttp.CombineHandlers(
+						ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
+						func(w http.ResponseWriter, r *http.Request) {
+							config := getConfig(r)
+							Expect(config).To(MatchYAML(payload))
+						},
+						ghttp.RespondWith(http.StatusCreated, "{}"),
+					))
+
+					atcServer.RouteToHandler("GET", path_get, ghttp.RespondWithJSONEncoded(http.StatusOK,
+					  atc.Pipeline{ID: 1, Name: "awesome-pipeline", Paused: false, TeamName: "main", ParentBuildID: 321, ParentJobID: 123}))
+
+					config.Jobs[0].Name = "updated-name"
+				})
+
+				It("succeeds and prints a warning message", func() {
+					Expect(func() {
+						flyCmd := exec.Command(flyPath, "-t", targetName, "set-pipeline", "-p", "awesome-pipeline", "-c", configFile.Name())
+
+						stdin, err := flyCmd.StdinPipe()
+						Expect(err).NotTo(HaveOccurred())
+
+						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+						Expect(err).NotTo(HaveOccurred())
+
+						Eventually(sess).Should(gbytes.Say("WARNING: pipeline has been configured through the 'set_pipeline' step, your changes may be overwritten on the next 'set_pipeline' step execution"))
+
+						Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
+						yes(stdin)
+
+						<-sess.Exited
+						Expect(sess.ExitCode()).To(Equal(0))
+					}).To(Change(func() int {
+						return len(atcServer.ReceivedRequests())
+					}).By(5))
+				})
+			})
+
 			Context("when the pipeline is paused", func() {
 				AssertSuccessWithPausedPipelineHelp := func(expectCreationMessage bool) {
-					It("succeeds and prints an error message to help the user", func() {
+					It("succeeds and prints a message to help the user", func() {
 						Expect(func() {
 							flyCmd := exec.Command(flyPath, "-t", targetName, "set-pipeline", "-p", "awesome-pipeline", "-c", configFile.Name())
 
@@ -1188,7 +1335,7 @@ this is super secure
 							Expect(sess.ExitCode()).To(Equal(0))
 						}).To(Change(func() int {
 							return len(atcServer.ReceivedRequests())
-						}).By(4))
+						}).By(5))
 					})
 				}
 
@@ -1210,7 +1357,7 @@ this is super secure
 						))
 
 						atcServer.RouteToHandler("GET", path_get, ghttp.RespondWithJSONEncoded(http.StatusOK,
-							atc.Pipeline{Name: "awesome-pipeline", Paused: true, TeamName: "main"}))
+							atc.Pipeline{ID: 1, Name: "awesome-pipeline", Paused: true, TeamName: "main"}))
 
 						config.Resources[0].Name = "updated-name"
 					})
@@ -1236,7 +1383,7 @@ this is super secure
 						))
 
 						atcServer.RouteToHandler("GET", path_get, ghttp.RespondWithJSONEncoded(http.StatusOK,
-							atc.Pipeline{Name: "awesome-pipeline", Paused: true, TeamName: "main"}))
+							atc.Pipeline{ID: 1, Name: "awesome-pipeline", Paused: true, TeamName: "main"}))
 
 						config.Resources[0].Name = "updated-name"
 					})
@@ -1286,7 +1433,7 @@ this is super secure
 						Expect(sess.ExitCode()).To(Equal(0))
 					}).To(Change(func() int {
 						return len(atcServer.ReceivedRequests())
-					}).By(4))
+					}).By(5))
 				})
 			})
 
@@ -1297,7 +1444,8 @@ this is super secure
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
 
-					Eventually(sess).ShouldNot(gbytes.Say(`apply configuration\? \[yN\]: `))
+					Consistently(sess).ShouldNot(gbytes.Say("pipeline name:"))
+					Consistently(sess).ShouldNot(gbytes.Say(`apply configuration\? \[yN\]: `))
 
 					Eventually(sess).Should(gbytes.Say("no changes to apply"))
 

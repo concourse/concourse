@@ -2,6 +2,7 @@ package accessor_test
 
 import (
 	"errors"
+	"github.com/concourse/concourse/atc/atcfakes"
 	"net/http"
 
 	"github.com/concourse/concourse/atc"
@@ -23,6 +24,8 @@ var _ = Describe("AccessorFactory", func() {
 		fakeTeamFetcher   *accessorfakes.FakeTeamFetcher
 		dummyRequest      *http.Request
 
+		fakeDisplayUserIdGenerator *atcfakes.FakeDisplayUserIdGenerator
+
 		role string
 	)
 
@@ -33,6 +36,8 @@ var _ = Describe("AccessorFactory", func() {
 		fakeTokenVerifier = new(accessorfakes.FakeTokenVerifier)
 		fakeTeamFetcher = new(accessorfakes.FakeTeamFetcher)
 		dummyRequest, _ = http.NewRequest("GET", "/", nil)
+
+		fakeDisplayUserIdGenerator = new(atcfakes.FakeDisplayUserIdGenerator)
 
 		role = "viewer"
 	})
@@ -45,7 +50,7 @@ var _ = Describe("AccessorFactory", func() {
 		)
 
 		JustBeforeEach(func() {
-			factory := accessor.NewAccessFactory(fakeTokenVerifier, fakeTeamFetcher, systemClaimKey, systemClaimValues)
+			factory := accessor.NewAccessFactory(fakeTokenVerifier, fakeTeamFetcher, systemClaimKey, systemClaimValues, fakeDisplayUserIdGenerator)
 			access, err = factory.Create(dummyRequest, role)
 		})
 

@@ -68,6 +68,7 @@ var _ = Describe("Fly CLI", func() {
 				{Contents: "end", Color: color.New(color.Bold)},
 				{Contents: "duration", Color: color.New(color.Bold)},
 				{Contents: "team", Color: color.New(color.Bold)},
+				{Contents: "created by", Color: color.New(color.Bold)},
 			}
 		})
 
@@ -89,6 +90,8 @@ var _ = Describe("Fly CLI", func() {
 			BeforeEach(func() {
 				expectedURL = "/api/v1/builds"
 				queryParams = []string{"limit=50"}
+
+				buildCreatedBy := "someone"
 
 				returnedStatusCode = http.StatusOK
 				returnedBuilds = []atc.Build{
@@ -149,6 +152,7 @@ var _ = Describe("Fly CLI", func() {
 						StartTime: 0,
 						EndTime:   0,
 						TeamName:  "team1",
+						CreatedBy: &buildCreatedBy,
 					},
 				}
 			})
@@ -221,7 +225,8 @@ var _ = Describe("Fly CLI", func() {
                 "team_name": "team1",
                 "name": "one-off",
                 "status": "pending",
-                "api_url": ""
+                "api_url": "",
+                "created_by": "someone"
               }
             ]`))
 				})
@@ -247,6 +252,7 @@ var _ = Describe("Fly CLI", func() {
 								}.String(),
 							},
 							{Contents: "team1"},
+							{Contents: "system"},
 						},
 						{
 							{Contents: "999"},
@@ -256,6 +262,7 @@ var _ = Describe("Fly CLI", func() {
 							{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
 							{Contents: "1h15m0s"},
 							{Contents: "some-team"},
+							{Contents: "system"},
 						},
 						{
 							{Contents: "3"},
@@ -265,6 +272,7 @@ var _ = Describe("Fly CLI", func() {
 							{Contents: pendingBuildEndTime.Local().Format(timeDateLayout)},
 							{Contents: "1h15m0s"},
 							{Contents: "team1"},
+							{Contents: "system"},
 						},
 						{
 							{Contents: "1000001"},
@@ -274,6 +282,7 @@ var _ = Describe("Fly CLI", func() {
 							{Contents: erroredBuildEndTime.Local().Format(timeDateLayout)},
 							{Contents: "2h45m0s"},
 							{Contents: "team1"},
+							{Contents: "system"},
 						},
 						{
 							{Contents: "1002"},
@@ -283,6 +292,7 @@ var _ = Describe("Fly CLI", func() {
 							{Contents: abortedBuildEndTime.Local().Format(timeDateLayout)},
 							{Contents: "n/a"},
 							{Contents: "team1"},
+							{Contents: "system"},
 						},
 						{
 							{Contents: "39"},
@@ -292,6 +302,7 @@ var _ = Describe("Fly CLI", func() {
 							{Contents: "n/a"},
 							{Contents: "n/a"},
 							{Contents: "team1"},
+							{Contents: "someone"},
 						},
 					},
 				}))
@@ -384,6 +395,7 @@ var _ = Describe("Fly CLI", func() {
 							{Contents: "n/a"},
 							{Contents: "n/a"},
 							{Contents: "n/a"},
+							{Contents: "system"},
 						},
 					},
 				}))
@@ -397,6 +409,7 @@ var _ = Describe("Fly CLI", func() {
 							{Contents: "n/a"},
 							{Contents: "n/a"},
 							{Contents: "n/a"},
+							{Contents: "system"},
 						},
 					},
 				}))
@@ -437,6 +450,8 @@ var _ = Describe("Fly CLI", func() {
 							{Contents: succeededBuildStartTime.Local().Format(timeDateLayout)},
 							{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
 							{Contents: "1h15m0s"},
+							{Contents: ""},
+							{Contents: "system"},
 						},
 					},
 				}))
@@ -516,6 +531,8 @@ var _ = Describe("Fly CLI", func() {
 								{Contents: succeededBuildStartTime.Local().Format(timeDateLayout)},
 								{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
 								{Contents: "1h15m0s"},
+								{Contents: ""},
+								{Contents: "system"},
 							},
 						},
 					}))
@@ -555,6 +572,8 @@ var _ = Describe("Fly CLI", func() {
 							{Contents: succeededBuildStartTime.Local().Format(timeDateLayout)},
 							{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
 							{Contents: "1h15m0s"},
+							{Contents: ""},
+							{Contents: "system"},
 						},
 					},
 				}))
@@ -603,6 +622,8 @@ var _ = Describe("Fly CLI", func() {
 								{Contents: succeededBuildStartTime.Local().Format(timeDateLayout)},
 								{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
 								{Contents: "1h15m0s"},
+								{Contents: ""},
+								{Contents: "system"},
 							},
 						},
 					}))
@@ -646,6 +667,7 @@ var _ = Describe("Fly CLI", func() {
 								{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
 								{Contents: "1h15m0s"},
 								{Contents: "team1"},
+								{Contents: "system"},
 							},
 						},
 					}))
@@ -713,6 +735,7 @@ var _ = Describe("Fly CLI", func() {
 								{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
 								{Contents: "1h15m0s"},
 								{Contents: "team1"},
+								{Contents: "system"},
 							},
 
 							{
@@ -723,6 +746,7 @@ var _ = Describe("Fly CLI", func() {
 								{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
 								{Contents: "1h15m0s"},
 								{Contents: "team2"},
+								{Contents: "system"},
 							},
 						},
 					}))
@@ -810,6 +834,7 @@ var _ = Describe("Fly CLI", func() {
 							{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
 							{Contents: "1h15m0s"},
 							{Contents: "team1"},
+							{Contents: "system"},
 						},
 						{
 							{Contents: "4"},
@@ -819,6 +844,7 @@ var _ = Describe("Fly CLI", func() {
 							{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
 							{Contents: "1h15m0s"},
 							{Contents: "team2"},
+							{Contents: "system"},
 						},
 					},
 				}))
@@ -869,6 +895,7 @@ var _ = Describe("Fly CLI", func() {
 							{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
 							{Contents: "1h15m0s"},
 							{Contents: "team1"},
+							{Contents: "system"},
 						},
 					},
 				}))
@@ -882,7 +909,7 @@ var _ = Describe("Fly CLI", func() {
 				cmdArgs = append(cmdArgs, "some-pipeline/branch:master")
 
 				expectedURL = "/api/v1/teams/main/pipelines/some-pipeline/builds"
-				queryParams = []string{"instance_vars=%7B%22branch%22%3A%22master%22%7D", "limit=50"}
+				queryParams = []string{"vars.branch=%22master%22", "limit=50"}
 				returnedStatusCode = http.StatusOK
 				returnedBuilds = []atc.Build{
 					{
@@ -909,6 +936,8 @@ var _ = Describe("Fly CLI", func() {
 							{Contents: succeededBuildStartTime.Local().Format(timeDateLayout)},
 							{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
 							{Contents: "1h15m0s"},
+							{Contents: ""},
+							{Contents: "system"},
 						},
 					},
 				}))
@@ -942,7 +971,7 @@ var _ = Describe("Fly CLI", func() {
 					cmdArgs = append(cmdArgs, "-c")
 					cmdArgs = append(cmdArgs, "98")
 
-					queryParams = []string{"instance_vars=%7B%22branch%22%3A%22master%22%7D", "limit=98"}
+					queryParams = []string{"vars.branch=%22master%22", "limit=98"}
 					returnedStatusCode = http.StatusOK
 					returnedBuilds = []atc.Build{
 						{
@@ -969,6 +998,8 @@ var _ = Describe("Fly CLI", func() {
 								{Contents: succeededBuildStartTime.Local().Format(timeDateLayout)},
 								{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
 								{Contents: "1h15m0s"},
+								{Contents: ""},
+								{Contents: "system"},
 							},
 						},
 					}))
@@ -986,7 +1017,7 @@ var _ = Describe("Fly CLI", func() {
 					cmdArgs = append(cmdArgs, "--since", since.Format(timeLayout))
 					cmdArgs = append(cmdArgs, "--until", until.Format(timeLayout))
 
-					queryParams = []string{"instance_vars=%7B%22branch%22%3A%22master%22%7D", "limit=50", fmt.Sprintf("from=%d", since.Unix()), fmt.Sprintf("to=%d", until.Unix()), "timestamps=true"}
+					queryParams = []string{"vars.branch=%22master%22", "limit=50", fmt.Sprintf("from=%d", since.Unix()), fmt.Sprintf("to=%d", until.Unix()), "timestamps=true"}
 				})
 
 				It("returns the builds correctly", func() {

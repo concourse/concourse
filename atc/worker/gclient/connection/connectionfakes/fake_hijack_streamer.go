@@ -66,15 +66,16 @@ func (fake *FakeHijackStreamer) Hijack(arg1 context.Context, arg2 string, arg3 i
 		arg5 url.Values
 		arg6 string
 	}{arg1, arg2, arg3, arg4, arg5, arg6})
+	stub := fake.HijackStub
+	fakeReturns := fake.hijackReturns
 	fake.recordInvocation("Hijack", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6})
 	fake.hijackMutex.Unlock()
-	if fake.HijackStub != nil {
-		return fake.HijackStub(arg1, arg2, arg3, arg4, arg5, arg6)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4, arg5, arg6)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.hijackReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -136,15 +137,16 @@ func (fake *FakeHijackStreamer) Stream(arg1 string, arg2 io.Reader, arg3 rata.Pa
 		arg4 url.Values
 		arg5 string
 	}{arg1, arg2, arg3, arg4, arg5})
+	stub := fake.StreamStub
+	fakeReturns := fake.streamReturns
 	fake.recordInvocation("Stream", []interface{}{arg1, arg2, arg3, arg4, arg5})
 	fake.streamMutex.Unlock()
-	if fake.StreamStub != nil {
-		return fake.StreamStub(arg1, arg2, arg3, arg4, arg5)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4, arg5)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.streamReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

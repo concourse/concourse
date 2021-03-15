@@ -8,38 +8,10 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 
 	"github.com/concourse/concourse/atc/db"
 )
-
-//go:generate counterfeiter . WorkerProvider
-
-type WorkerProvider interface {
-	RunningWorkers(lager.Logger) ([]Worker, error)
-
-	FindWorkerForContainer(
-		logger lager.Logger,
-		teamID int,
-		handle string,
-	) (Worker, bool, error)
-
-	FindWorkerForVolume(
-		logger lager.Logger,
-		teamID int,
-		handle string,
-	) (Worker, bool, error)
-
-	FindWorkersForContainerByOwner(
-		logger lager.Logger,
-		owner db.ContainerOwner,
-	) ([]Worker, error)
-
-	NewGardenWorker(
-		logger lager.Logger,
-		savedWorker db.Worker,
-		numBuildWorkers int,
-	) Worker
-}
 
 var (
 	ErrNoWorkers             = errors.New("no workers")
@@ -57,25 +29,25 @@ func (err NoCompatibleWorkersError) Error() string {
 //go:generate counterfeiter . Pool
 
 type Pool interface {
-	FindOrChooseWorker(
-		lager.Logger,
-		WorkerSpec,
-	) (Worker, error)
+	FindContainer(lager.Logger, int, string) (Container, bool, error)
+	VolumeFinder
+	CreateVolume(lager.Logger, VolumeSpec, WorkerSpec, db.VolumeType) (Volume, error)
 
-	ContainerInWorker(
-		lager.Logger,
-		db.ContainerOwner,
-		WorkerSpec,
-	) (bool, error)
+	ContainerInWorker(lager.Logger, db.ContainerOwner, WorkerSpec) (bool, error)
 
-	FindOrChooseWorkerForContainer(
+	SelectWorker(
 		context.Context,
-		lager.Logger,
 		db.ContainerOwner,
 		ContainerSpec,
 		WorkerSpec,
 		ContainerPlacementStrategy,
-	) (Worker, error)
+	) (Client, error)
+}
+
+//go:generate counterfeiter . VolumeFinder
+
+type VolumeFinder interface {
+	FindVolume(lager.Logger, int, string) (Volume, bool, error)
 }
 
 type pool struct {
@@ -83,9 +55,7 @@ type pool struct {
 	rand     *rand.Rand
 }
 
-func NewPool(
-	provider WorkerProvider,
-) Pool {
+func NewPool(provider WorkerProvider) Pool {
 	return &pool{
 		provider: provider,
 		rand:     rand.New(rand.NewSource(time.Now().UnixNano())),
@@ -116,6 +86,8 @@ func (pool *pool) allSatisfying(logger lager.Logger, spec WorkerSpec) ([]Worker,
 	}
 
 	if len(compatibleTeamWorkers) != 0 {
+		// XXX(aoldershaw): if there is a team worker that is compatible but is
+		// rejected by the strategy, shouldn't we fallback to general workers?
 		return compatibleTeamWorkers, nil
 	}
 
@@ -126,6 +98,49 @@ func (pool *pool) allSatisfying(logger lager.Logger, spec WorkerSpec) ([]Worker,
 	return nil, NoCompatibleWorkersError{
 		Spec: spec,
 	}
+}
+
+func (pool *pool) FindContainer(logger lager.Logger, teamID int, handle string) (Container, bool, error) {
+	worker, found, err := pool.provider.FindWorkerForContainer(
+		logger.Session("find-worker"),
+		teamID,
+		handle,
+	)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !found {
+		return nil, false, nil
+	}
+
+	return worker.FindContainerByHandle(logger, teamID, handle)
+}
+
+func (pool *pool) FindVolume(logger lager.Logger, teamID int, handle string) (Volume, bool, error) {
+	worker, found, err := pool.provider.FindWorkerForVolume(
+		logger.Session("find-worker"),
+		teamID,
+		handle,
+	)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !found {
+		return nil, false, nil
+	}
+
+	return worker.LookupVolume(logger, handle)
+}
+
+func (pool *pool) CreateVolume(logger lager.Logger, volumeSpec VolumeSpec, workerSpec WorkerSpec, volumeType db.VolumeType) (Volume, error) {
+	worker, err := pool.chooseRandomWorkerForVolume(logger, workerSpec)
+	if err != nil {
+		return nil, err
+	}
+
+	return worker.CreateVolume(logger, volumeSpec, workerSpec.TeamID, volumeType)
 }
 
 func (pool *pool) ContainerInWorker(logger lager.Logger, owner db.ContainerOwner, workerSpec WorkerSpec) (bool, error) {
@@ -153,14 +168,15 @@ func (pool *pool) ContainerInWorker(logger lager.Logger, owner db.ContainerOwner
 	return false, nil
 }
 
-func (pool *pool) FindOrChooseWorkerForContainer(
+func (pool *pool) SelectWorker(
 	ctx context.Context,
-	logger lager.Logger,
 	owner db.ContainerOwner,
 	containerSpec ContainerSpec,
 	workerSpec WorkerSpec,
 	strategy ContainerPlacementStrategy,
-) (Worker, error) {
+) (Client, error) {
+	logger := lagerctx.FromContext(ctx)
+
 	workersWithContainer, err := pool.provider.FindWorkersForContainerByOwner(
 		logger.Session("find-worker"),
 		owner,
@@ -191,11 +207,10 @@ dance:
 			return nil, err
 		}
 	}
-
-	return worker, nil
+	return NewClient(worker), nil
 }
 
-func (pool *pool) FindOrChooseWorker(
+func (pool *pool) chooseRandomWorkerForVolume(
 	logger lager.Logger,
 	workerSpec WorkerSpec,
 ) (Worker, error) {

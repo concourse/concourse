@@ -2,8 +2,9 @@ module Views.FavoritedIcon exposing (view)
 
 import Assets
 import Html exposing (Html)
-import Html.Attributes exposing (style)
+import Html.Attributes exposing (id, style)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
+import Message.Effects exposing (toHtmlID)
 import Message.Message exposing (DomID(..), Message(..))
 import Views.Icon as Icon
 
@@ -29,6 +30,7 @@ view params attrs =
          , onClick <| Click <| params.domID
          , onMouseEnter <| Hover <| Just <| params.domID
          , onMouseLeave <| Hover Nothing
+         , id <| toHtmlID params.domID
          ]
             ++ attrs
         )

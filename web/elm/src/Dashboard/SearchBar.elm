@@ -6,30 +6,27 @@ module Dashboard.SearchBar exposing
     )
 
 import Application.Models exposing (Session)
-import Array
-import Concourse
 import Concourse.PipelineStatus
     exposing
         ( PipelineStatus(..)
         , StatusDetails(..)
         )
-import Dashboard.Group.Models exposing (Pipeline)
+import Dashboard.Filter as Filter
 import Dashboard.Models exposing (Dropdown(..), Model)
 import Dashboard.Styles as Styles
-import Dict exposing (Dict)
+import Dict
 import EffectTransformer exposing (ET)
-import FetchResult exposing (FetchResult)
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, id, placeholder, value)
 import Html.Events exposing (onBlur, onClick, onFocus, onInput, onMouseDown)
 import Keyboard
+import List.Extra
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
 import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription exposing (Delivery(..))
 import Routes
 import ScreenSize exposing (ScreenSize)
-import Set
 
 
 searchInputId : String
@@ -118,8 +115,8 @@ screenResize width model =
             model
 
 
-handleDelivery : Delivery -> ET Model
-handleDelivery delivery ( model, effects ) =
+handleDelivery : Session -> Delivery -> ET Model
+handleDelivery session delivery ( model, effects ) =
     case delivery of
         WindowResized width _ ->
             ( screenResize width model, effects )
@@ -127,7 +124,7 @@ handleDelivery delivery ( model, effects ) =
         KeyDown keyEvent ->
             let
                 options =
-                    dropdownOptions model
+                    Filter.suggestions (Filter.filterTeams session model) model.query
             in
             case keyEvent.code of
                 Keyboard.ArrowUp ->
@@ -152,10 +149,9 @@ handleDelivery delivery ( model, effects ) =
                             let
                                 selectedItem =
                                     options
-                                        |> Array.fromList
-                                        |> Array.get idx
-                                        |> Maybe.withDefault
-                                            model.query
+                                        |> List.Extra.getAt idx
+                                        |> Maybe.map (\{ prev, cur } -> prev ++ cur)
+                                        |> Maybe.withDefault model.query
                             in
                             ( { model
                                 | dropdown = Shown Nothing
@@ -196,55 +192,60 @@ handleDelivery delivery ( model, effects ) =
             ( model, effects )
 
 
+ignoreEmpty : (List a -> b -> b) -> List a -> b -> b
+ignoreEmpty fn l =
+    if List.isEmpty l then
+        identity
+
+    else
+        fn l
+
+
 arrowUp : List a -> Dropdown -> Dropdown
-arrowUp options dropdown =
-    case dropdown of
-        Shown Nothing ->
-            let
-                lastItem =
-                    List.length options - 1
-            in
-            Shown (Just lastItem)
+arrowUp =
+    ignoreEmpty
+        (\options dropdown ->
+            case dropdown of
+                Shown Nothing ->
+                    let
+                        lastItem =
+                            List.length options - 1
+                    in
+                    Shown (Just lastItem)
 
-        Shown (Just idx) ->
-            let
-                newSelection =
-                    modBy (List.length options) (idx - 1)
-            in
-            Shown (Just newSelection)
+                Shown (Just idx) ->
+                    let
+                        newSelection =
+                            modBy (List.length options) (idx - 1)
+                    in
+                    Shown (Just newSelection)
 
-        Hidden ->
-            Hidden
+                Hidden ->
+                    Hidden
+        )
 
 
 arrowDown : List a -> Dropdown -> Dropdown
-arrowDown options dropdown =
-    case dropdown of
-        Shown Nothing ->
-            Shown (Just 0)
+arrowDown =
+    ignoreEmpty
+        (\options dropdown ->
+            case dropdown of
+                Shown Nothing ->
+                    Shown (Just 0)
 
-        Shown (Just idx) ->
-            let
-                newSelection =
-                    modBy (List.length options) (idx + 1)
-            in
-            Shown (Just newSelection)
+                Shown (Just idx) ->
+                    let
+                        newSelection =
+                            modBy (List.length options) (idx + 1)
+                    in
+                    Shown (Just newSelection)
 
-        Hidden ->
-            Hidden
+                Hidden ->
+                    Hidden
+        )
 
 
-view :
-    { a | screenSize : ScreenSize }
-    ->
-        { b
-            | query : String
-            , dropdown : Dropdown
-            , teams : FetchResult (List Concourse.Team)
-            , highDensity : Bool
-            , pipelines : Maybe (Dict String (List Pipeline))
-        }
-    -> Html Message
+view : Session -> Model -> Html Message
 view session ({ query, dropdown, pipelines } as params) =
     let
         isDropDownHidden =
@@ -314,78 +315,28 @@ view session ({ query, dropdown, pipelines } as params) =
             )
 
 
-viewDropdownItems :
-    { a
-        | screenSize : ScreenSize
-    }
-    ->
-        { b
-            | query : String
-            , dropdown : Dropdown
-            , teams : FetchResult (List Concourse.Team)
-            , pipelines : Maybe (Dict String (List Pipeline))
-        }
-    -> List (Html Message)
-viewDropdownItems { screenSize } ({ dropdown, query } as model) =
-    case dropdown of
+viewDropdownItems : Session -> Model -> List (Html Message)
+viewDropdownItems session model =
+    case model.dropdown of
         Hidden ->
             []
 
         Shown selectedIdx ->
             let
-                dropdownItem : Int -> String -> Html Message
-                dropdownItem idx text =
+                dropdownItem : Int -> Filter.Suggestion -> Html Message
+                dropdownItem idx { prev, cur } =
                     Html.li
-                        (onMouseDown (FilterMsg text)
+                        (onMouseDown (FilterMsg <| prev ++ cur)
                             :: Styles.dropdownItem
                                 (Just idx == selectedIdx)
-                                (String.length query > 0)
+                                (String.length model.query > 0)
                         )
-                        [ Html.text text ]
+                        [ Html.text cur ]
+
+                filteredTeams =
+                    Filter.filterTeams session model
             in
             [ Html.ul
-                (id "search-dropdown" :: Styles.dropdownContainer screenSize)
-                (List.indexedMap dropdownItem (dropdownOptions model))
+                (id "search-dropdown" :: Styles.dropdownContainer session.screenSize)
+                (List.indexedMap dropdownItem (Filter.suggestions filteredTeams model.query))
             ]
-
-
-dropdownOptions :
-    { a
-        | query : String
-        , teams : FetchResult (List Concourse.Team)
-        , pipelines : Maybe (Dict String (List Pipeline))
-    }
-    -> List String
-dropdownOptions { query, teams, pipelines } =
-    case String.trim query of
-        "" ->
-            [ "status: ", "team: " ]
-
-        "status:" ->
-            [ "status: paused"
-            , "status: pending"
-            , "status: failed"
-            , "status: errored"
-            , "status: aborted"
-            , "status: running"
-            , "status: succeeded"
-            ]
-
-        "team:" ->
-            Set.union
-                (teams
-                    |> FetchResult.withDefault []
-                    |> List.map .name
-                    |> Set.fromList
-                )
-                (pipelines
-                    |> Maybe.withDefault Dict.empty
-                    |> Dict.keys
-                    |> Set.fromList
-                )
-                |> Set.toList
-                |> List.take 10
-                |> List.map (\teamName -> "team: " ++ teamName)
-
-        _ ->
-            []

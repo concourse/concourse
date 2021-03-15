@@ -51,17 +51,19 @@ type planVisitor struct {
 
 func (visitor *planVisitor) VisitTask(step *atc.TaskStep) error {
 	visitor.plan = visitor.planFactory.NewPlan(atc.TaskPlan{
-		Name:                   step.Name,
-		Privileged:             step.Privileged,
-		Config:                 step.Config,
-		ConfigPath:             step.ConfigPath,
+		Name:              step.Name,
+		Privileged:        step.Privileged,
+		Config:            step.Config,
+		ConfigPath:        step.ConfigPath,
+		Vars:              step.Vars,
+		Tags:              step.Tags,
+		Params:            step.Params,
+		InputMapping:      step.InputMapping,
+		OutputMapping:     step.OutputMapping,
+		ImageArtifactName: step.ImageArtifactName,
+		Timeout:           step.Timeout,
+
 		VersionedResourceTypes: visitor.resourceTypes,
-		Vars:                   step.Vars,
-		Tags:                   step.Tags,
-		Params:                 step.Params,
-		InputMapping:           step.InputMapping,
-		OutputMapping:          step.OutputMapping,
-		ImageArtifactName:      step.ImageArtifactName,
 	})
 
 	return nil
@@ -107,6 +109,7 @@ func (visitor *planVisitor) VisitGet(step *atc.GetStep) error {
 		Params:     step.Params,
 		Version:    &version,
 		Tags:       step.Tags,
+		Timeout:    step.Timeout,
 		Privileged: privileged,
 
 		VersionedResourceTypes: visitor.resourceTypes,
@@ -146,22 +149,25 @@ func (visitor *planVisitor) VisitPut(step *atc.PutStep) error {
 		Params:     step.Params,
 		Tags:       step.Tags,
 		Inputs:     step.Inputs,
+		Timeout:    step.Timeout,
 		Privileged: privileged,
 
+		ExposeBuildCreatedBy:   resource.ExposeBuildCreatedBy,
 		VersionedResourceTypes: visitor.resourceTypes,
 	})
 
 	plan.Put.ImageCheckPlan, plan.Put.ImageGetPlan, plan.Put.BaseType = imageStrategy(plan.ID, resource.Type, visitor.resourceTypes, step.Tags)
 
 	dependentGetPlan := visitor.planFactory.NewPlan(atc.GetPlan{
-		Type:        resource.Type,
 		Name:        logicalName,
 		Resource:    resourceName,
+		Type:        resource.Type,
+		Source:      resource.Source,
 		VersionFrom: &plan.ID,
 
 		Params:     step.GetParams,
 		Tags:       step.Tags,
-		Source:     resource.Source,
+		Timeout:    step.Timeout,
 		Privileged: privileged,
 
 		VersionedResourceTypes: visitor.resourceTypes,
@@ -181,23 +187,6 @@ func (visitor *planVisitor) VisitDo(step *atc.DoStep) error {
 
 	for _, step := range step.Steps {
 		err := step.Config.Visit(visitor)
-		if err != nil {
-			return err
-		}
-
-		do = append(do, visitor.plan)
-	}
-
-	visitor.plan = visitor.planFactory.NewPlan(do)
-
-	return nil
-}
-
-func (visitor *planVisitor) VisitAggregate(step *atc.AggregateStep) error {
-	do := atc.AggregatePlan{}
-
-	for _, sub := range step.Steps {
-		err := sub.Config.Visit(visitor)
 		if err != nil {
 			return err
 		}
@@ -234,11 +223,7 @@ func (visitor *planVisitor) VisitInParallel(step *atc.InParallelStep) error {
 func (visitor *planVisitor) VisitAcross(step *atc.AcrossStep) error {
 	vars := make([]atc.AcrossVar, len(step.Vars))
 	for i, v := range step.Vars {
-		vars[i] = atc.AcrossVar{
-			Var:         v.Var,
-			Values:      v.Values,
-			MaxInFlight: v.MaxInFlight,
-		}
+		vars[i] = atc.AcrossVar(v)
 	}
 
 	acrossPlan := atc.AcrossPlan{

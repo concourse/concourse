@@ -23,6 +23,7 @@ type Claims struct {
 	RawClaims         map[string]interface{} `json:"-"`
 	Username          string                 `json:"name"`
 	PreferredUsername string                 `json:"preferred_username"`
+	Email             string                 `json:"email"`
 }
 
 type FederatedClaims struct {

@@ -24,7 +24,7 @@ type Checkable interface {
 	Type() string
 	Source() atc.Source
 	Tags() atc.Tags
-	CheckEvery() string
+	CheckEvery() *atc.CheckEvery
 	CheckTimeout() string
 	LastCheckEndTime() time.Time
 	CurrentPinnedVersion() atc.Version
@@ -109,11 +109,8 @@ func (c *checkFactory) TryCreateCheck(ctx context.Context, checkPlanner CheckPla
 	if checkable.HasWebhook() {
 		interval = c.defaultWithWebhookCheckInterval
 	}
-	if every := checkable.CheckEvery(); every != "" {
-		interval, err = time.ParseDuration(every)
-		if err != nil {
-			return nil, false, fmt.Errorf("check interval: %s", err)
-		}
+	if checkable.CheckEvery() != nil && !checkable.CheckEvery().Never {
+		interval = checkable.CheckEvery().Interval
 	}
 
 	if !manuallyTriggered && time.Now().Before(checkable.LastCheckEndTime().Add(interval)) {
@@ -141,7 +138,22 @@ func (c *checkFactory) Resources() ([]Resource, error) {
 	var resources []Resource
 
 	rows, err := resourcesQuery.
-		Where(sq.Eq{"p.paused": false}).
+		LeftJoin("(select DISTINCT(resource_id) FROM job_inputs) ji ON ji.resource_id = r.id").
+		LeftJoin("(select DISTINCT(resource_id) FROM job_outputs) jo ON jo.resource_id = r.id").
+		Where(sq.And{
+			sq.Eq{"p.paused": false},
+		}).
+		Where(sq.Or{
+			sq.And{
+				// find all resources that are inputs to jobs
+				sq.NotEq{"ji.resource_id": nil},
+			},
+			sq.And{
+				// find put-only resources that have errored
+				sq.Expr("b.status IN ('aborted','failed','errored')"),
+				sq.Eq{"ji.resource_id": nil},
+			},
+		}).
 		RunWith(c.conn).
 		Query()
 

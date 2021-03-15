@@ -72,6 +72,23 @@ var _ = Describe("Scanner", func() {
 				})
 			})
 
+			Context("when CheckEvery is never", func() {
+				BeforeEach(func() {
+					fakeResource.CheckEveryReturns(&atc.CheckEvery{Never: true})
+
+					fakeResource.TypeReturns("parent")
+					fakeResource.PipelineIDReturns(1)
+					fakeResourceType := new(dbfakes.FakeResourceType)
+					fakeResourceType.NameReturns("parent")
+					fakeResourceType.PipelineIDReturns(1)
+					fakeCheckFactory.ResourceTypesReturns([]db.ResourceType{fakeResourceType}, nil)
+				})
+
+				It("does not check the resource but still checks the parent", func() {
+					Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
+				})
+			})
+
 			Context("when fetching resources types succeeds", func() {
 				var fakeResourceType *dbfakes.FakeResourceType
 

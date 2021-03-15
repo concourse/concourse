@@ -1,0 +1,36 @@
+# saml.yml - a docker-compose override that adds a SAML auth to the stack
+#
+# Once running, head to `localhost:8000/simplesaml/` to get access to the IDP
+#
+# There are 2 users and an admin account:
+# user1:user1pass
+# user2:user2pass
+# admin:secret
+#
+# ref: https://hub.docker.com/r/kristophjunge/test-saml-idp/
+# ref: https://docs.docker.com/compose/extends/
+#
+version: '3'
+
+services:
+  web:
+    environment:
+      # CONCOURSE_MAIN_TEAM_SAML_USER: user1@example.com
+      CONCOURSE_MAIN_TEAM_SAML_GROUP: group2
+
+      CONCOURSE_SAML_SSO_URL: http://localhost:8000/simplesaml/saml2/idp/SSOService.php
+      CONCOURSE_SAML_ENTITY_ISSUER: concourse
+      CONCOURSE_SAML_USERNAME_ATTR: email
+      CONCOURSE_SAML_GROUPS_ATTR: eduPersonAffiliation
+      CONCOURSE_SAML_SKIP_SSL_VALIDATION: "true"
+      # still need to specify file even if we skip tls
+      CONCOURSE_SAML_CA_CERT: /bin/sh
+
+  saml:
+    image: kristophjunge/test-saml-idp
+    ports:
+    - 8000:8080
+    environment:
+      SIMPLESAMLPHP_SP_ENTITY_ID: concourse
+      SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE: http://localhost:8080/sky/issuer/callback
+

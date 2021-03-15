@@ -32,15 +32,16 @@ func (fake *FakeGenerator) GenerateAccessToken(arg1 db.Claims) (string, error) {
 	fake.generateAccessTokenArgsForCall = append(fake.generateAccessTokenArgsForCall, struct {
 		arg1 db.Claims
 	}{arg1})
+	stub := fake.GenerateAccessTokenStub
+	fakeReturns := fake.generateAccessTokenReturns
 	fake.recordInvocation("GenerateAccessToken", []interface{}{arg1})
 	fake.generateAccessTokenMutex.Unlock()
-	if fake.GenerateAccessTokenStub != nil {
-		return fake.GenerateAccessTokenStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.generateAccessTokenReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

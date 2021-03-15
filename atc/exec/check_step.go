@@ -27,9 +27,8 @@ type CheckStep struct {
 	resourceFactory       resource.ResourceFactory
 	resourceConfigFactory db.ResourceConfigFactory
 	strategy              worker.ContainerPlacementStrategy
-	pool                  worker.Pool
 	delegateFactory       CheckDelegateFactory
-	workerClient          worker.Client
+	workerPool            worker.Pool
 	defaultCheckTimeout   time.Duration
 }
 
@@ -59,7 +58,6 @@ func NewCheckStep(
 	strategy worker.ContainerPlacementStrategy,
 	pool worker.Pool,
 	delegateFactory CheckDelegateFactory,
-	client worker.Client,
 	defaultCheckTimeout time.Duration,
 ) Step {
 	return &CheckStep{
@@ -69,10 +67,9 @@ func NewCheckStep(
 		resourceFactory:       resourceFactory,
 		resourceConfigFactory: resourceConfigFactory,
 		containerMetadata:     containerMetadata,
-		pool:                  pool,
+		workerPool:            pool,
 		strategy:              strategy,
 		delegateFactory:       delegateFactory,
-		workerClient:          client,
 		defaultCheckTimeout:   defaultCheckTimeout,
 	}
 }
@@ -173,25 +170,29 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 			return false, fmt.Errorf("update check end time: %w", err)
 		}
 
-		result, err := step.runCheck(ctx, logger, delegate, timeout, resourceConfig, source, resourceTypes, fromVersion)
-		if err != nil {
+		result, runErr := step.runCheck(ctx, logger, delegate, timeout, resourceConfig, source, resourceTypes, fromVersion)
+		if runErr != nil {
 			metric.Metrics.ChecksFinishedWithError.Inc()
 
-			if _, updateErr := scope.UpdateLastCheckEndTime(); updateErr != nil {
-				return false, fmt.Errorf("update check end time: %w", updateErr)
+			if _, err := scope.UpdateLastCheckEndTime(); err != nil {
+				return false, fmt.Errorf("update check end time: %w", err)
 			}
 
-			if pointErr := delegate.PointToCheckedConfig(scope); pointErr != nil {
-				return false, fmt.Errorf("update resource config scope: %w", pointErr)
+			if err := delegate.PointToCheckedConfig(scope); err != nil {
+				return false, fmt.Errorf("update resource config scope: %w", err)
 			}
 
-			var scriptErr runtime.ErrResourceScriptFailed
-			if errors.As(err, &scriptErr) {
+			if errors.Is(runErr, context.DeadlineExceeded) {
+				delegate.Errored(logger, TimeoutLogMessage)
+				return false, nil
+			}
+
+			if errors.As(runErr, &runtime.ErrResourceScriptFailed{}) {
 				delegate.Finished(logger, false)
 				return false, nil
 			}
 
-			return false, fmt.Errorf("run check: %w", err)
+			return false, fmt.Errorf("run check: %w", runErr)
 		}
 
 		metric.Metrics.ChecksFinishedWithSuccess.Inc()
@@ -279,18 +280,33 @@ func (step *CheckStep) runCheck(
 		StderrWriter: delegate.Stderr(),
 	}
 
-	return step.workerClient.RunCheckStep(
-		ctx,
-		logger,
+	processCtx, cancel, err := MaybeTimeout(ctx, step.plan.Timeout)
+	if err != nil {
+		return worker.CheckResult{}, err
+	}
+
+	defer cancel()
+
+	chosenWorker, err := step.workerPool.SelectWorker(
+		lagerctx.NewContext(processCtx, logger),
 		step.containerOwner(resourceConfig),
 		containerSpec,
 		workerSpec,
 		step.strategy,
+	)
+	if err != nil {
+		return worker.CheckResult{}, err
+	}
+	delegate.SelectedWorker(logger, chosenWorker.Name())
+
+	return chosenWorker.RunCheckStep(
+		lagerctx.NewContext(processCtx, logger),
+		step.containerOwner(resourceConfig),
+		containerSpec,
 		step.containerMetadata,
 		processSpec,
 		delegate,
 		checkable,
-		timeout,
 	)
 }
 

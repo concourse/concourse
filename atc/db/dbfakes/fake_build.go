@@ -97,6 +97,16 @@ type FakeBuild struct {
 		result1 []db.WorkerArtifact
 		result2 error
 	}
+	CreatedByStub        func() *string
+	createdByMutex       sync.RWMutex
+	createdByArgsForCall []struct {
+	}
+	createdByReturns struct {
+		result1 *string
+	}
+	createdByReturnsOnCall map[int]struct {
+		result1 *string
+	}
 	DeleteStub        func() (bool, error)
 	deleteMutex       sync.RWMutex
 	deleteArgsForCall []struct {
@@ -1062,6 +1072,59 @@ func (fake *FakeBuild) ArtifactsReturnsOnCall(i int, result1 []db.WorkerArtifact
 		result1 []db.WorkerArtifact
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeBuild) CreatedBy() *string {
+	fake.createdByMutex.Lock()
+	ret, specificReturn := fake.createdByReturnsOnCall[len(fake.createdByArgsForCall)]
+	fake.createdByArgsForCall = append(fake.createdByArgsForCall, struct {
+	}{})
+	stub := fake.CreatedByStub
+	fakeReturns := fake.createdByReturns
+	fake.recordInvocation("CreatedBy", []interface{}{})
+	fake.createdByMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeBuild) CreatedByCallCount() int {
+	fake.createdByMutex.RLock()
+	defer fake.createdByMutex.RUnlock()
+	return len(fake.createdByArgsForCall)
+}
+
+func (fake *FakeBuild) CreatedByCalls(stub func() *string) {
+	fake.createdByMutex.Lock()
+	defer fake.createdByMutex.Unlock()
+	fake.CreatedByStub = stub
+}
+
+func (fake *FakeBuild) CreatedByReturns(result1 *string) {
+	fake.createdByMutex.Lock()
+	defer fake.createdByMutex.Unlock()
+	fake.CreatedByStub = nil
+	fake.createdByReturns = struct {
+		result1 *string
+	}{result1}
+}
+
+func (fake *FakeBuild) CreatedByReturnsOnCall(i int, result1 *string) {
+	fake.createdByMutex.Lock()
+	defer fake.createdByMutex.Unlock()
+	fake.CreatedByStub = nil
+	if fake.createdByReturnsOnCall == nil {
+		fake.createdByReturnsOnCall = make(map[int]struct {
+			result1 *string
+		})
+	}
+	fake.createdByReturnsOnCall[i] = struct {
+		result1 *string
+	}{result1}
 }
 
 func (fake *FakeBuild) Delete() (bool, error) {
@@ -4137,6 +4200,8 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.artifactMutex.RUnlock()
 	fake.artifactsMutex.RLock()
 	defer fake.artifactsMutex.RUnlock()
+	fake.createdByMutex.RLock()
+	defer fake.createdByMutex.RUnlock()
 	fake.deleteMutex.RLock()
 	defer fake.deleteMutex.RUnlock()
 	fake.endTimeMutex.RLock()

@@ -64,7 +64,10 @@ func (validator *StepValidator) VisitTask(plan *TaskStep) error {
 	validator.pushContext(fmt.Sprintf(".task(%s)", plan.Name))
 	defer validator.popContext()
 
-	warning := ValidateIdentifier(plan.Name, validator.context...)
+	warning, err := ValidateIdentifier(plan.Name, validator.context...)
+	if err != nil {
+		validator.recordError(err.Error())
+	}
 	if warning != nil {
 		validator.recordWarning(*warning)
 	}
@@ -107,7 +110,10 @@ func (validator *StepValidator) VisitGet(step *GetStep) error {
 	validator.pushContext(fmt.Sprintf(".get(%s)", step.Name))
 	defer validator.popContext()
 
-	warning := ValidateIdentifier(step.Name, validator.context...)
+	warning, err := ValidateIdentifier(step.Name, validator.context...)
+	if err != nil {
+		validator.recordError(err.Error())
+	}
 	if warning != nil {
 		validator.recordWarning(*warning)
 	}
@@ -165,7 +171,10 @@ func (validator *StepValidator) VisitPut(step *PutStep) error {
 	validator.pushContext(".put(%s)", step.Name)
 	defer validator.popContext()
 
-	warning := ValidateIdentifier(step.Name, validator.context...)
+	warning, err := ValidateIdentifier(step.Name, validator.context...)
+	if err != nil {
+		validator.recordError(err.Error())
+	}
 	if warning != nil {
 		validator.recordWarning(*warning)
 	}
@@ -184,7 +193,10 @@ func (validator *StepValidator) VisitSetPipeline(step *SetPipelineStep) error {
 	validator.pushContext(".set_pipeline(%s)", step.Name)
 	defer validator.popContext()
 
-	warning := ValidateIdentifier(step.Name, validator.context...)
+	warning, err := ValidateIdentifier(step.Name, validator.context...)
+	if err != nil {
+		validator.recordError(err.Error())
+	}
 	if warning != nil {
 		validator.recordWarning(*warning)
 	}
@@ -200,7 +212,10 @@ func (validator *StepValidator) VisitLoadVar(step *LoadVarStep) error {
 	validator.pushContext(".load_var(%s)", step.Name)
 	defer validator.popContext()
 
-	warning := ValidateIdentifier(step.Name, validator.context...)
+	warning, err := ValidateIdentifier(step.Name, validator.context...)
+	if err != nil {
+		validator.recordError(err.Error())
+	}
 	if warning != nil {
 		validator.recordWarning(*warning)
 	}
@@ -245,29 +260,6 @@ func (validator *StepValidator) VisitInParallel(step *InParallelStep) error {
 
 	for i, sub := range step.Config.Steps {
 		validator.pushContext(".steps[%d]", i)
-
-		err := validator.Validate(sub)
-		if err != nil {
-			return err
-		}
-
-		validator.popContext()
-	}
-
-	return nil
-}
-
-func (validator *StepValidator) VisitAggregate(step *AggregateStep) error {
-	validator.pushContext(".aggregate")
-	defer validator.popContext()
-
-	validator.recordWarning(ConfigWarning{
-		Type:    "pipeline",
-		Message: validator.annotate("the aggregate step is deprecated and will be removed in a future version"),
-	})
-
-	for i, sub := range step.Steps {
-		validator.pushContext("[%d]", i)
 
 		err := validator.Validate(sub)
 		if err != nil {

@@ -1,0 +1,59 @@
+version: '3'
+
+services:
+  db:
+    image: ${TEST_POSTGRES_IMAGE:-postgres}
+    shm_size: 1gb
+    ports: [5432]
+    environment:
+      POSTGRES_DB: concourse
+      POSTGRES_USER: dev
+      POSTGRES_PASSWORD: dev
+
+  web:
+    image: ${TEST_CONCOURSE_DEV_IMAGE:-concourse/concourse:local}
+    command: web
+    depends_on: [db]
+    ports: [8080]
+    volumes:
+    - ..:/src
+    - ../hack/keys:/concourse-keys
+    environment:
+      CONCOURSE_SESSION_SIGNING_KEY: /concourse-keys/session_signing_key
+      CONCOURSE_TSA_AUTHORIZED_KEYS: /concourse-keys/authorized_worker_keys
+      CONCOURSE_TSA_HOST_KEY: /concourse-keys/tsa_host_key
+
+      CONCOURSE_LOG_LEVEL: debug
+      CONCOURSE_POSTGRES_HOST: db
+      CONCOURSE_POSTGRES_USER: dev
+      CONCOURSE_POSTGRES_PASSWORD: dev
+      CONCOURSE_POSTGRES_DATABASE: concourse
+      CONCOURSE_EXTERNAL_URL: http://localhost:8080
+      CONCOURSE_ADD_LOCAL_USER: test:test,guest:guest
+      CONCOURSE_MAIN_TEAM_LOCAL_USER: test
+      CONCOURSE_CLUSTER_NAME: test
+      CONCOURSE_ENABLE_PIPELINE_INSTANCES: "true"
+      CONCOURSE_ENABLE_ACROSS_STEP: "true"
+
+  worker:
+    image: ${TEST_CONCOURSE_DEV_IMAGE:-concourse/concourse:local}
+    command: worker
+    privileged: true
+    depends_on: [web]
+    ports: [7777, 7788]
+    volumes: ["../hack/keys:/concourse-keys"]
+    stop_signal: SIGUSR2
+    environment:
+      CONCOURSE_RUNTIME: containerd
+
+      CONCOURSE_TSA_PUBLIC_KEY: /concourse-keys/tsa_host_key.pub
+      CONCOURSE_TSA_WORKER_PRIVATE_KEY: /concourse-keys/worker_key
+
+      CONCOURSE_LOG_LEVEL: debug
+      CONCOURSE_TSA_HOST: web:2222
+
+      # avoid using loopbacks
+      CONCOURSE_BAGGAGECLAIM_DRIVER: overlay
+
+      # work with docker-compose's dns
+      CONCOURSE_CONTAINERD_DNS_PROXY_ENABLE: "true"

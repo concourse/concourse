@@ -70,6 +70,7 @@ var buildsQuery = psql.Select(`
 		b.team_id,
 		b.status,
 		b.manually_triggered,
+		b.created_by,
 		b.scheduled,
 		b.schema,
 		b.private_plan,
@@ -147,6 +148,7 @@ type Build interface {
 	RerunOf() int
 	RerunOfName() string
 	RerunNumber() int
+	CreatedBy() *string
 
 	LagerData() lager.Data
 	TracingAttrs() tracing.Attrs
@@ -223,6 +225,8 @@ type build struct {
 	resourceTypeName string
 
 	isManuallyTriggered bool
+
+	createdBy *string
 
 	rerunOf     int
 	rerunOfName string
@@ -313,13 +317,14 @@ func (b *build) LagerData() lager.Data {
 	return data
 }
 
-// TracingAttrs returns attributes which are to be emitted in spans and
-// metrics pertaining to the build.
+// TracingAttrs returns attributes which are to be emitted in spans and metrics
+// pertaining to the build. Metrics emitters may depend on specific attribute
+// names being set.
 func (b *build) TracingAttrs() tracing.Attrs {
 	data := tracing.Attrs{
-		"build_id": strconv.Itoa(b.id),
-		"build":    b.name,
-		"team":     b.teamName,
+		"build_id":  strconv.Itoa(b.id),
+		"build":     b.name,
+		"team_name": b.teamName,
 	}
 
 	if b.pipelineID != 0 {
@@ -372,6 +377,7 @@ func (b *build) InputsReady() bool    { return b.inputsReady }
 func (b *build) RerunOf() int         { return b.rerunOf }
 func (b *build) RerunOfName() string  { return b.rerunOfName }
 func (b *build) RerunNumber() int     { return b.rerunNumber }
+func (b *build) CreatedBy() *string   { return b.createdBy }
 
 func (b *build) Reload() (bool, error) {
 	row := buildsQuery.Where(sq.Eq{"b.id": b.id}).
@@ -576,16 +582,17 @@ func (b *build) Finish(status BuildStatus) error {
 	}
 
 	if b.jobID != 0 && status == BuildStatusSucceeded {
-		_, err = tx.Exec(`WITH caches AS (
-			SELECT resource_cache_id, build_id
-			FROM build_image_resource_caches brc
-			JOIN builds b ON b.id = brc.build_id
-			WHERE b.job_id = $1
-		)
-		DELETE FROM build_image_resource_caches birc
-		USING caches c
-		WHERE c.build_id = birc.build_id AND birc.build_id < $2`,
-			b.jobID, b.id)
+		_, err = psql.Delete("build_image_resource_caches").
+			Where(sq.And{
+				sq.Eq{
+					"job_id": b.jobID,
+				},
+				sq.Lt{
+					"build_id": b.id,
+				},
+			}).
+			RunWith(tx).
+			Exec()
 		if err != nil {
 			return err
 		}
@@ -858,9 +865,14 @@ func (b *build) AbortNotifier() (Notifier, error) {
 }
 
 func (b *build) SaveImageResourceVersion(rc UsedResourceCache) error {
+	var jobID sql.NullInt64
+	if b.jobID != 0 {
+		jobID = newNullInt64(b.jobID)
+	}
+
 	_, err := psql.Insert("build_image_resource_caches").
-		Columns("resource_cache_id", "build_id").
-		Values(rc.ID(), b.id).
+		Columns("resource_cache_id", "build_id", "job_id").
+		Values(rc.ID(), b.id, jobID).
 		RunWith(b.conn).
 		Exec()
 	if err != nil {
@@ -1059,14 +1071,9 @@ func (b *build) Events(from uint) (EventSource, error) {
 		return nil, err
 	}
 
-	table := fmt.Sprintf("team_build_events_%d", b.teamID)
-	if b.pipelineID != 0 {
-		table = fmt.Sprintf("pipeline_build_events_%d", b.pipelineID)
-	}
-
 	return newBuildEventSource(
 		b.id,
-		table,
+		b.eventsTable(),
 		b.conn,
 		notifier,
 		from,
@@ -1169,7 +1176,7 @@ func (b *build) SaveOutput(
 		return ErrBuildHasNoPipeline
 	}
 
-	resource, found, err := pipeline.Resource(resourceName)
+	theResource, found, err := pipeline.Resource(resourceName)
 	if err != nil {
 		return err
 	}
@@ -1195,7 +1202,7 @@ func (b *build) SaveOutput(
 		return err
 	}
 
-	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, b.conn, b.lockFactory, resourceConfig, resource)
+	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, b.conn, b.lockFactory, resourceConfig, theResource)
 	if err != nil {
 		return err
 	}
@@ -1219,9 +1226,14 @@ func (b *build) SaveOutput(
 		}
 	}
 
+	err = theResource.(*resource).setResourceConfigScopeInTransaction(tx, resourceConfigScope)
+	if err != nil {
+		return err
+	}
+
 	_, err = psql.Insert("build_resource_config_version_outputs").
 		Columns("resource_id", "build_id", "version_md5", "name").
-		Values(resource.ID(), strconv.Itoa(b.id), sq.Expr("md5(?)", versionJSON), outputName).
+		Values(theResource.ID(), strconv.Itoa(b.id), sq.Expr("md5(?)", versionJSON), outputName).
 		Suffix("ON CONFLICT DO NOTHING").
 		RunWith(tx).
 		Exec()
@@ -1500,6 +1512,14 @@ func (b *build) AdoptRerunInputsAndPipes() ([]BuildInput, bool, error) {
 					}).
 					RunWith(b.conn).
 					Exec()
+				if err != nil {
+					return nil, false, err
+				}
+
+				err = b.MarkAsAborted()
+				if err != nil {
+					return nil, false, err
+				}
 			}
 
 			return nil, false, err
@@ -1582,7 +1602,6 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 		))`).
 		From("resource_config_versions versions, build_resource_config_version_inputs inputs, builds, resources").
 		Where(sq.Eq{"builds.id": b.id}).
-		Where(sq.NotEq{"versions.check_order": 0}).
 		Where(sq.Expr("inputs.build_id = builds.id")).
 		Where(sq.Expr("inputs.version_md5 = versions.version_md5")).
 		Where(sq.Expr("resources.resource_config_scope_id = versions.resource_config_scope_id")).
@@ -1633,7 +1652,6 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 	rows, err = psql.Select("outputs.name", "versions.version").
 		From("resource_config_versions versions, build_resource_config_version_outputs outputs, builds, resources").
 		Where(sq.Eq{"builds.id": b.id}).
-		Where(sq.NotEq{"versions.check_order": 0}).
 		Where(sq.Expr("outputs.build_id = builds.id")).
 		Where(sq.Expr("outputs.version_md5 = versions.version_md5")).
 		Where(sq.Expr("outputs.resource_id = resources.id")).
@@ -1746,7 +1764,7 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 		jobID, resourceID, resourceTypeID, pipelineID, rerunOf, rerunNumber                                 sql.NullInt64
 		schema, privatePlan, jobName, resourceName, resourceTypeName, pipelineName, publicPlan, rerunOfName sql.NullString
 		createTime, startTime, endTime, reapTime                                                            pq.NullTime
-		nonce, spanContext                                                                                  sql.NullString
+		nonce, spanContext, createdBy                                                                       sql.NullString
 		drained, aborted, completed                                                                         bool
 		status                                                                                              string
 		pipelineInstanceVars                                                                                sql.NullString
@@ -1761,6 +1779,7 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 		&b.teamID,
 		&status,
 		&b.isManuallyTriggered,
+		&createdBy,
 		&b.scheduled,
 		&schema,
 		&privatePlan,
@@ -1854,6 +1873,10 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 		}
 	}
 
+	if createdBy.Valid {
+		b.createdBy = &createdBy.String
+	}
+
 	return nil
 }
 
@@ -1863,16 +1886,26 @@ func (b *build) saveEvent(tx Tx, event atc.Event) error {
 		return err
 	}
 
-	table := fmt.Sprintf("team_build_events_%d", b.teamID)
-	if b.pipelineID != 0 {
-		table = fmt.Sprintf("pipeline_build_events_%d", b.pipelineID)
-	}
-	_, err = psql.Insert(table).
+	_, err = psql.Insert(b.eventsTable()).
 		Columns("event_id", "build_id", "type", "version", "payload").
 		Values(sq.Expr("nextval('"+buildEventSeq(b.id)+"')"), b.id, string(event.EventType()), string(event.Version()), payload).
 		RunWith(tx).
 		Exec()
 	return err
+}
+
+func (b *build) isForCheck() bool {
+	return b.resourceTypeID != 0 || b.resourceID != 0
+}
+
+func (b *build) eventsTable() string {
+	if b.isForCheck() {
+		return "check_build_events"
+	}
+	if b.pipelineID != 0 {
+		return fmt.Sprintf("pipeline_build_events_%d", b.pipelineID)
+	}
+	return fmt.Sprintf("team_build_events_%d", b.teamID)
 }
 
 func createBuild(tx Tx, build *build, vals map[string]interface{}) error {

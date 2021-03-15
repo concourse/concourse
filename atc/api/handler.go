@@ -47,6 +47,7 @@ func NewHandler(
 	dbJobFactory db.JobFactory,
 	dbResourceFactory db.ResourceFactory,
 	dbWorkerFactory db.WorkerFactory,
+	workerTeamFactory db.TeamFactory,
 	volumeRepository db.VolumeRepository,
 	containerRepository db.ContainerRepository,
 	destroyer gc.Destroyer,
@@ -57,7 +58,7 @@ func NewHandler(
 
 	eventHandlerFactory buildserver.EventHandlerFactory,
 
-	workerClient worker.Client,
+	workerPool worker.Pool,
 
 	sink *lager.ReconfigurableSink,
 
@@ -92,14 +93,14 @@ func NewHandler(
 	pipelineServer := pipelineserver.NewServer(logger, dbTeamFactory, dbPipelineFactory, externalURL)
 	configServer := configserver.NewServer(logger, dbTeamFactory, secretManager)
 	ccServer := ccserver.NewServer(logger, dbTeamFactory, externalURL)
-	workerServer := workerserver.NewServer(logger, dbTeamFactory, dbWorkerFactory)
+	workerServer := workerserver.NewServer(logger, workerTeamFactory, dbWorkerFactory)
 	logLevelServer := loglevelserver.NewServer(logger, sink)
 	cliServer := cliserver.NewServer(logger, absCLIDownloadsDir)
-	containerServer := containerserver.NewServer(logger, workerClient, secretManager, varSourcePool, interceptTimeoutFactory, interceptUpdateInterval, containerRepository, destroyer, clock)
+	containerServer := containerserver.NewServer(logger, workerPool, secretManager, varSourcePool, interceptTimeoutFactory, interceptUpdateInterval, containerRepository, destroyer, clock)
 	volumesServer := volumeserver.NewServer(logger, volumeRepository, destroyer)
 	teamServer := teamserver.NewServer(logger, dbTeamFactory, externalURL)
 	infoServer := infoserver.NewServer(logger, version, workerVersion, externalURL, clusterName, credsManagers)
-	artifactServer := artifactserver.NewServer(logger, workerClient)
+	artifactServer := artifactserver.NewServer(logger, workerPool)
 	usersServer := usersserver.NewServer(logger, dbUserFactory)
 	wallServer := wallserver.NewServer(dbWall, logger)
 
@@ -149,7 +150,7 @@ func NewHandler(
 		atc.ExposePipeline:      pipelineHandlerFactory.HandlerFor(pipelineServer.ExposePipeline),
 		atc.HidePipeline:        pipelineHandlerFactory.HandlerFor(pipelineServer.HidePipeline),
 		atc.GetVersionsDB:       pipelineHandlerFactory.HandlerFor(pipelineServer.GetVersionsDB),
-		atc.RenamePipeline:      pipelineHandlerFactory.HandlerFor(pipelineServer.RenamePipeline),
+		atc.RenamePipeline:      teamHandlerFactory.HandlerFor(pipelineServer.RenamePipeline),
 		atc.ListPipelineBuilds:  pipelineHandlerFactory.HandlerFor(pipelineServer.ListPipelineBuilds),
 		atc.CreatePipelineBuild: pipelineHandlerFactory.HandlerFor(pipelineServer.CreateBuild),
 		atc.PipelineBadge:       pipelineHandlerFactory.HandlerFor(pipelineServer.PipelineBadge),
@@ -202,11 +203,11 @@ func NewHandler(
 		atc.ReportWorkerVolumes:   http.HandlerFunc(volumesServer.ReportWorkerVolumes),
 
 		atc.ListTeams:      http.HandlerFunc(teamServer.ListTeams),
-		atc.GetTeam:        http.HandlerFunc(teamServer.GetTeam),
+		atc.GetTeam:        teamHandlerFactory.HandlerFor(teamServer.GetTeam),
 		atc.SetTeam:        http.HandlerFunc(teamServer.SetTeam),
-		atc.RenameTeam:     http.HandlerFunc(teamServer.RenameTeam),
-		atc.DestroyTeam:    http.HandlerFunc(teamServer.DestroyTeam),
-		atc.ListTeamBuilds: http.HandlerFunc(teamServer.ListTeamBuilds),
+		atc.RenameTeam:     teamHandlerFactory.HandlerFor(teamServer.RenameTeam),
+		atc.DestroyTeam:    teamHandlerFactory.HandlerFor(teamServer.DestroyTeam),
+		atc.ListTeamBuilds: teamHandlerFactory.HandlerFor(teamServer.ListTeamBuilds),
 
 		atc.CreateArtifact: teamHandlerFactory.HandlerFor(artifactServer.CreateArtifact),
 		atc.GetArtifact:    teamHandlerFactory.HandlerFor(artifactServer.GetArtifact),

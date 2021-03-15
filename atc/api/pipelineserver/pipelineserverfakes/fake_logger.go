@@ -82,9 +82,10 @@ func (fake *FakeLogger) Debug(arg1 string, arg2 ...lager.Data) {
 		arg1 string
 		arg2 []lager.Data
 	}{arg1, arg2})
+	stub := fake.DebugStub
 	fake.recordInvocation("Debug", []interface{}{arg1, arg2})
 	fake.debugMutex.Unlock()
-	if fake.DebugStub != nil {
+	if stub != nil {
 		fake.DebugStub(arg1, arg2...)
 	}
 }
@@ -115,9 +116,10 @@ func (fake *FakeLogger) Error(arg1 string, arg2 error, arg3 ...lager.Data) {
 		arg2 error
 		arg3 []lager.Data
 	}{arg1, arg2, arg3})
+	stub := fake.ErrorStub
 	fake.recordInvocation("Error", []interface{}{arg1, arg2, arg3})
 	fake.errorMutex.Unlock()
-	if fake.ErrorStub != nil {
+	if stub != nil {
 		fake.ErrorStub(arg1, arg2, arg3...)
 	}
 }
@@ -148,9 +150,10 @@ func (fake *FakeLogger) Fatal(arg1 string, arg2 error, arg3 ...lager.Data) {
 		arg2 error
 		arg3 []lager.Data
 	}{arg1, arg2, arg3})
+	stub := fake.FatalStub
 	fake.recordInvocation("Fatal", []interface{}{arg1, arg2, arg3})
 	fake.fatalMutex.Unlock()
-	if fake.FatalStub != nil {
+	if stub != nil {
 		fake.FatalStub(arg1, arg2, arg3...)
 	}
 }
@@ -180,9 +183,10 @@ func (fake *FakeLogger) Info(arg1 string, arg2 ...lager.Data) {
 		arg1 string
 		arg2 []lager.Data
 	}{arg1, arg2})
+	stub := fake.InfoStub
 	fake.recordInvocation("Info", []interface{}{arg1, arg2})
 	fake.infoMutex.Unlock()
-	if fake.InfoStub != nil {
+	if stub != nil {
 		fake.InfoStub(arg1, arg2...)
 	}
 }
@@ -211,9 +215,10 @@ func (fake *FakeLogger) RegisterSink(arg1 lager.Sink) {
 	fake.registerSinkArgsForCall = append(fake.registerSinkArgsForCall, struct {
 		arg1 lager.Sink
 	}{arg1})
+	stub := fake.RegisterSinkStub
 	fake.recordInvocation("RegisterSink", []interface{}{arg1})
 	fake.registerSinkMutex.Unlock()
-	if fake.RegisterSinkStub != nil {
+	if stub != nil {
 		fake.RegisterSinkStub(arg1)
 	}
 }
@@ -244,15 +249,16 @@ func (fake *FakeLogger) Session(arg1 string, arg2 ...lager.Data) lager.Logger {
 		arg1 string
 		arg2 []lager.Data
 	}{arg1, arg2})
+	stub := fake.SessionStub
+	fakeReturns := fake.sessionReturns
 	fake.recordInvocation("Session", []interface{}{arg1, arg2})
 	fake.sessionMutex.Unlock()
-	if fake.SessionStub != nil {
-		return fake.SessionStub(arg1, arg2...)
+	if stub != nil {
+		return stub(arg1, arg2...)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.sessionReturns
 	return fakeReturns.result1
 }
 
@@ -303,15 +309,16 @@ func (fake *FakeLogger) SessionName() string {
 	ret, specificReturn := fake.sessionNameReturnsOnCall[len(fake.sessionNameArgsForCall)]
 	fake.sessionNameArgsForCall = append(fake.sessionNameArgsForCall, struct {
 	}{})
+	stub := fake.SessionNameStub
+	fakeReturns := fake.sessionNameReturns
 	fake.recordInvocation("SessionName", []interface{}{})
 	fake.sessionNameMutex.Unlock()
-	if fake.SessionNameStub != nil {
-		return fake.SessionNameStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.sessionNameReturns
 	return fakeReturns.result1
 }
 
@@ -356,15 +363,16 @@ func (fake *FakeLogger) WithData(arg1 lager.Data) lager.Logger {
 	fake.withDataArgsForCall = append(fake.withDataArgsForCall, struct {
 		arg1 lager.Data
 	}{arg1})
+	stub := fake.WithDataStub
+	fakeReturns := fake.withDataReturns
 	fake.recordInvocation("WithData", []interface{}{arg1})
 	fake.withDataMutex.Unlock()
-	if fake.WithDataStub != nil {
-		return fake.WithDataStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.withDataReturns
 	return fakeReturns.result1
 }
 

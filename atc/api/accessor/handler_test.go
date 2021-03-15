@@ -23,7 +23,7 @@ var _ = Describe("Handler", func() {
 		fakeAccessorFactory *accessorfakes.FakeAccessFactory
 		fakeAuditor         *auditorfakes.FakeAuditor
 
-		createAccessError   error
+		createAccessError error
 
 		action      string
 		customRoles map[string]string

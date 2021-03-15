@@ -27,9 +27,10 @@ func (fake *FakeAuditor) Audit(arg1 string, arg2 string, arg3 *http.Request) {
 		arg2 string
 		arg3 *http.Request
 	}{arg1, arg2, arg3})
+	stub := fake.AuditStub
 	fake.recordInvocation("Audit", []interface{}{arg1, arg2, arg3})
 	fake.auditMutex.Unlock()
-	if fake.AuditStub != nil {
+	if stub != nil {
 		fake.AuditStub(arg1, arg2, arg3)
 	}
 }

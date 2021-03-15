@@ -8,6 +8,7 @@ module StrictEvents exposing
     , onLeftClickStopPropagation
     , onLeftMouseDown
     , onLeftMouseDownCapturing
+    , onMouseEnterStopPropagation
     , onScroll
     , onWheel
     )
@@ -35,6 +36,11 @@ type DeltaMode
     = DeltaModePixel
     | DeltaModeLine
     | DeltaModePage
+
+
+onMouseEnterStopPropagation : msg -> Html.Attribute msg
+onMouseEnterStopPropagation msg =
+    Html.Events.stopPropagationOn "mouseenter" (Json.Decode.succeed ( msg, True ))
 
 
 onLeftClick : msg -> Html.Attribute msg

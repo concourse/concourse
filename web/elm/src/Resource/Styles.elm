@@ -20,10 +20,8 @@ module Resource.Styles exposing
     , headerResourceName
     , pagination
     , pinBar
-    , pinBarTooltip
     , pinBarViewVersion
     , pinButton
-    , pinButtonTooltip
     , pinIcon
     , pinTools
     , versionHeader
@@ -91,17 +89,6 @@ pinIcon { clickable, hover } =
     , style "background-origin" "content-box"
     , style "min-width" "14px"
     , style "min-height" "14px"
-    ]
-
-
-pinBarTooltip : List (Html.Attribute msg)
-pinBarTooltip =
-    [ style "position" "absolute"
-    , style "top" "-10px"
-    , style "left" "30px"
-    , style "background-color" Colors.tooltipBackground
-    , style "padding" "5px"
-    , style "z-index" "2"
     ]
 
 
@@ -180,7 +167,7 @@ pinButton pinState =
             Pinned.NotThePinnedVersion ->
                 "pointer"
 
-            Pinned.PinnedStatically _ ->
+            Pinned.PinnedStatically ->
                 "default"
 
             Pinned.Disabled ->
@@ -199,22 +186,11 @@ pinButton pinState =
     ]
 
 
-pinButtonTooltip : List (Html.Attribute msg)
-pinButtonTooltip =
-    [ style "position" "absolute"
-    , style "bottom" "25px"
-    , style "background-color" Colors.tooltipBackground
-    , style "z-index" "2"
-    , style "padding" "5px"
-    , style "width" "170px"
-    ]
-
-
 versionHeader : Pinned.VersionPinState -> List (Html.Attribute msg)
 versionHeader pinnedState =
     [ style "background-color" Colors.sectionHeader
     , style "border" <| "1px solid " ++ borderColor pinnedState
-    , style "padding-left" "10px"
+    , style "padding" "5px 0 5px 10px"
     , style "cursor" "pointer"
     , style "flex-grow" "1"
     , style "display" "flex"
@@ -230,7 +206,7 @@ pinBarViewVersion =
 borderColor : Pinned.VersionPinState -> String
 borderColor pinnedState =
     case pinnedState of
-        Pinned.PinnedStatically _ ->
+        Pinned.PinnedStatically ->
             Colors.pinned
 
         Pinned.PinnedDynamically ->

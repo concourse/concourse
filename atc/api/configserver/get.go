@@ -16,13 +16,12 @@ func (s *Server) GetConfig(w http.ResponseWriter, r *http.Request) {
 	teamName := rata.Param(r, "team_name")
 	pipelineName := rata.Param(r, "pipeline_name")
 	pipelineRef := atc.PipelineRef{Name: pipelineName}
-	if instanceVars := r.URL.Query().Get("instance_vars"); instanceVars != "" {
-		err := json.Unmarshal([]byte(instanceVars), &pipelineRef.InstanceVars)
-		if err != nil {
-			logger.Error("malformed-instance-vars", err)
-			s.handleBadRequest(w, fmt.Sprintf("instance_vars is malformed: %s", err))
-			return
-		}
+	var err error
+	pipelineRef.InstanceVars, err = atc.InstanceVarsFromQueryParams(r.URL.Query())
+	if err != nil {
+		logger.Error("malformed-instance-vars", err)
+		s.handleBadRequest(w, fmt.Sprintf("instance vars are malformed: %v", err))
+		return
 	}
 
 	team, found, err := s.teamFactory.FindTeam(teamName)

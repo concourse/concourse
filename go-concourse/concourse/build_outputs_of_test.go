@@ -12,7 +12,7 @@ import (
 var _ = Describe("ATC Handler Build Outputs", func() {
 	Describe("BuildsWithVersionAsOutput", func() {
 		expectedURL := "/api/v1/teams/some-team/pipelines/some-pipeline/resources/myresource/versions/2/output_of"
-		queryParams := "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+		queryParams := "vars.branch=%22master%22"
 		pipelineRef := atc.PipelineRef{Name: "some-pipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}
 
 		var expectedBuilds []atc.Build

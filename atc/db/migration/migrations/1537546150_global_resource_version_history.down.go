@@ -23,8 +23,8 @@ type Params map[string]interface{}
 
 type Version map[string]string
 
-func (self *migrations) Down_1537546150() error {
-	tx, err := self.DB.Begin()
+func (m *migrations) Down_1537546150() error {
+	tx, err := m.DB.Begin()
 	if err != nil {
 		return err
 	}
@@ -56,7 +56,7 @@ func (self *migrations) Down_1537546150() error {
 			noncense = &nonce.String
 		}
 
-		decryptedConfig, err := self.Decrypt(string(configBlob), noncense)
+		decryptedConfig, err := m.Decrypt(string(configBlob), noncense)
 		if err != nil {
 			return err
 		}

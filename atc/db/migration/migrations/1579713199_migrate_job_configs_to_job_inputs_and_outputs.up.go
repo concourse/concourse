@@ -182,8 +182,8 @@ type V5PlanConfig struct {
 	Version    *V5VersionConfig    `json:"version,omitempty"`
 }
 
-func (self *migrations) Up_1574452410() error {
-	tx, err := self.DB.Begin()
+func (m *migrations) Up_1574452410() error {
+	tx, err := m.DB.Begin()
 	if err != nil {
 		return err
 	}
@@ -211,7 +211,7 @@ func (self *migrations) Up_1574452410() error {
 			noncense = &nonce.String
 		}
 
-		decrypted, err := self.Strategy.Decrypt(string(configBlob), noncense)
+		decrypted, err := m.Strategy.Decrypt(string(configBlob), noncense)
 		if err != nil {
 			return err
 		}

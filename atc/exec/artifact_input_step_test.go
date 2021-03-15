@@ -20,12 +20,12 @@ var _ = Describe("ArtifactInputStep", func() {
 
 		state exec.RunState
 
-		step             exec.Step
-		stepOk           bool
-		stepErr          error
-		plan             atc.Plan
-		fakeBuild        *dbfakes.FakeBuild
-		fakeWorkerClient *workerfakes.FakeClient
+		step           exec.Step
+		stepOk         bool
+		stepErr        error
+		plan           atc.Plan
+		fakeBuild      *dbfakes.FakeBuild
+		fakeWorkerPool *workerfakes.FakePool
 	)
 
 	BeforeEach(func() {
@@ -34,10 +34,10 @@ var _ = Describe("ArtifactInputStep", func() {
 		state = exec.NewRunState(noopStepper, nil, false)
 
 		fakeBuild = new(dbfakes.FakeBuild)
-		fakeWorkerClient = new(workerfakes.FakeClient)
+		fakeWorkerPool = new(workerfakes.FakePool)
 
 		plan = atc.Plan{ArtifactInput: &atc.ArtifactInputPlan{34, "some-input-artifact-name"}}
-		step = exec.NewArtifactInputStep(plan, fakeBuild, fakeWorkerClient)
+		step = exec.NewArtifactInputStep(plan, fakeBuild, fakeWorkerPool)
 	})
 
 	AfterEach(func() {
@@ -93,7 +93,7 @@ var _ = Describe("ArtifactInputStep", func() {
 
 			Context("when looking up the worker volume fails", func() {
 				BeforeEach(func() {
-					fakeWorkerClient.FindVolumeReturns(nil, false, errors.New("nope"))
+					fakeWorkerPool.FindVolumeReturns(nil, false, errors.New("nope"))
 				})
 				It("returns the error", func() {
 					Expect(stepErr).To(HaveOccurred())
@@ -102,7 +102,7 @@ var _ = Describe("ArtifactInputStep", func() {
 
 			Context("when the worker volume does not exist", func() {
 				BeforeEach(func() {
-					fakeWorkerClient.FindVolumeReturns(nil, false, nil)
+					fakeWorkerPool.FindVolumeReturns(nil, false, nil)
 				})
 				It("returns the error", func() {
 					Expect(stepErr).To(HaveOccurred())
@@ -116,7 +116,7 @@ var _ = Describe("ArtifactInputStep", func() {
 
 				BeforeEach(func() {
 					fakeWorkerVolume = new(workerfakes.FakeVolume)
-					fakeWorkerClient.FindVolumeReturns(fakeWorkerVolume, true, nil)
+					fakeWorkerPool.FindVolumeReturns(fakeWorkerVolume, true, nil)
 
 					fakeDBWorkerArtifact = new(dbfakes.FakeWorkerArtifact)
 					fakeDBCreatedVolume = new(dbfakes.FakeCreatedVolume)

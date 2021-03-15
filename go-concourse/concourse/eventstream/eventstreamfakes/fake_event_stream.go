@@ -40,15 +40,16 @@ func (fake *FakeEventStream) Close() error {
 	ret, specificReturn := fake.closeReturnsOnCall[len(fake.closeArgsForCall)]
 	fake.closeArgsForCall = append(fake.closeArgsForCall, struct {
 	}{})
+	stub := fake.CloseStub
+	fakeReturns := fake.closeReturns
 	fake.recordInvocation("Close", []interface{}{})
 	fake.closeMutex.Unlock()
-	if fake.CloseStub != nil {
-		return fake.CloseStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.closeReturns
 	return fakeReturns.result1
 }
 
@@ -92,15 +93,16 @@ func (fake *FakeEventStream) NextEvent() (atc.Event, error) {
 	ret, specificReturn := fake.nextEventReturnsOnCall[len(fake.nextEventArgsForCall)]
 	fake.nextEventArgsForCall = append(fake.nextEventArgsForCall, struct {
 	}{})
+	stub := fake.NextEventStub
+	fakeReturns := fake.nextEventReturns
 	fake.recordInvocation("NextEvent", []interface{}{})
 	fake.nextEventMutex.Unlock()
-	if fake.NextEventStub != nil {
-		return fake.NextEventStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.nextEventReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

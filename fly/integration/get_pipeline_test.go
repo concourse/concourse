@@ -126,7 +126,7 @@ var _ = Describe("Fly CLI", func() {
 					path, err = atc.Routes.CreatePathForRoute(atc.GetConfig, rata.Params{"pipeline_name": "some-pipeline", "team_name": "main"})
 					Expect(err).NotTo(HaveOccurred())
 
-					queryParams = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+					queryParams = "vars.branch=%22master%22"
 				})
 
 				Context("when specifying pipeline vars", func() {
@@ -251,7 +251,7 @@ var _ = Describe("Fly CLI", func() {
 						path, err = atc.Routes.CreatePathForRoute(atc.GetConfig, rata.Params{"pipeline_name": "some-pipeline", "team_name": team})
 						Expect(err).NotTo(HaveOccurred())
 
-						queryParams = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+						queryParams = "vars.branch=%22master%22"
 					})
 
 					Context("when specifying pipeline vars", func() {

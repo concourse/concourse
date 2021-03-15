@@ -74,42 +74,6 @@ app.ports.requestLoginRedirect.subscribe(function (message) {
   document.location.href = loginUrl;
 });
 
-
-app.ports.tooltip.subscribe(function (pipelineInfo) {
-  const pipelineName = pipelineInfo[0];
-  const pipelineTeamName = pipelineInfo[1];
-
-  const team = document.getElementById(pipelineTeamName);
-  if (team === null) {
-    return;
-  }
-  const card = team.querySelector(`.card[data-pipeline-name="${pipelineName}"]`);
-  if (card === null) {
-    return;
-  }
-  const title = card.querySelector('.dashboard-pipeline-name');
-  if(title === null || title.offsetWidth >= title.scrollWidth) {
-    return;
-  }
-  title.parentNode.setAttribute('data-tooltip', pipelineName);
-});
-
-app.ports.tooltipHd.subscribe(function (pipelineInfo) {
-  var pipelineName = pipelineInfo[0];
-  var pipelineTeamName = pipelineInfo[1];
-
-  const card = document.querySelector(`.card[data-pipeline-name="${pipelineName}"][data-team-name="${pipelineTeamName}"]`);
-  if (card === null) {
-    return;
-  }
-  const title = card.querySelector('.dashboardhd-pipeline-name');
-
-  if(title === null || title.offsetWidth >= title.scrollWidth){
-    return;
-  }
-  title.parentNode.setAttribute('data-tooltip', pipelineName);
-});
-
 app.ports.saveToLocalStorage.subscribe(function(params) {
   if (!params || params.length !== 2) {
     return;
@@ -117,18 +81,6 @@ app.ports.saveToLocalStorage.subscribe(function(params) {
   const [key, value] = params;
   try {
     localStorage.setItem(key, JSON.stringify(value));
-  } catch(err) {
-    console.error(err);
-  }
-});
-
-app.ports.saveToSessionStorage.subscribe(function(params) {
-  if (!params || params.length !== 2) {
-    return;
-  }
-  const [key, value] = params;
-  try {
-    sessionStorage.setItem(key, JSON.stringify(value));
   } catch(err) {
     console.error(err);
   }
@@ -144,16 +96,6 @@ app.ports.loadFromLocalStorage.subscribe(function(key) {
   }, 0);
 });
 
-app.ports.loadFromSessionStorage.subscribe(function(key) {
-  const value = sessionStorage.getItem(key);
-  if (value === null) {
-    return;
-  }
-  setTimeout(function() {
-    app.ports.receivedFromSessionStorage.send([key, value]);
-  }, 0);
-});
-
 app.ports.deleteFromLocalStorage.subscribe(function(key) {
   localStorage.removeItem(key);
 });
@@ -161,8 +103,9 @@ app.ports.deleteFromLocalStorage.subscribe(function(key) {
 
 const csrfTokenKey = "csrf_token";
 const favoritedPipelinesKey = "favorited_pipelines";
+const favoritedInstanceGroupsKey = "favorited_instance_groups";
 window.addEventListener('storage', function(event) {
-  if (event.key === csrfTokenKey || event.key === favoritedPipelinesKey) {
+  if (event.key === csrfTokenKey || event.key === favoritedPipelinesKey || event.key === favoritedInstanceGroupsKey) {
     const value = localStorage.getItem(event.key);
     setTimeout(function() {
       app.ports.receivedFromLocalStorage.send([event.key, value]);

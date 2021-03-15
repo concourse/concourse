@@ -47,15 +47,16 @@ func (fake *FakeComponentFactory) CreateOrUpdate(arg1 atc.Component) (db.Compone
 	fake.createOrUpdateArgsForCall = append(fake.createOrUpdateArgsForCall, struct {
 		arg1 atc.Component
 	}{arg1})
+	stub := fake.CreateOrUpdateStub
+	fakeReturns := fake.createOrUpdateReturns
 	fake.recordInvocation("CreateOrUpdate", []interface{}{arg1})
 	fake.createOrUpdateMutex.Unlock()
-	if fake.CreateOrUpdateStub != nil {
-		return fake.CreateOrUpdateStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.createOrUpdateReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -110,15 +111,16 @@ func (fake *FakeComponentFactory) Find(arg1 string) (db.Component, bool, error) 
 	fake.findArgsForCall = append(fake.findArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.FindStub
+	fakeReturns := fake.findReturns
 	fake.recordInvocation("Find", []interface{}{arg1})
 	fake.findMutex.Unlock()
-	if fake.FindStub != nil {
-		return fake.FindStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.findReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 

@@ -31,7 +31,7 @@ var _ = Describe("ValidateConfig", func() {
 				},
 				{
 					Name: "some-other-group",
-					Jobs: []string{"some-empty-job"},
+					Jobs: []string{"some-empty-*"},
 				},
 			},
 
@@ -74,7 +74,7 @@ var _ = Describe("ValidateConfig", func() {
 						},
 						{
 							Config: &atc.LoadVarStep{
-								Name: "some-var",
+								Name: "some_var",
 								File: "some-input/some-file.json",
 							},
 						},
@@ -139,7 +139,7 @@ var _ = Describe("ValidateConfig", func() {
 		Context("when a resource has an invalid identifier", func() {
 			BeforeEach(func() {
 				config.Resources = append(config.Resources, atc.ResourceConfig{
-					Name: "some_resource",
+					Name: "_some-resource",
 					Type: "some-type",
 					Source: atc.Source{
 						"source-config": "some-value",
@@ -149,7 +149,7 @@ var _ = Describe("ValidateConfig", func() {
 
 			It("returns a warning", func() {
 				Expect(warnings).To(HaveLen(1))
-				Expect(warnings[0].Message).To(ContainSubstring("'some_resource' is not a valid identifier"))
+				Expect(warnings[0].Message).To(ContainSubstring("'_some-resource' is not a valid identifier"))
 			})
 		})
 
@@ -262,14 +262,14 @@ var _ = Describe("ValidateConfig", func() {
 			BeforeEach(func() {
 				config.Groups = append(config.Groups, atc.GroupConfig{
 					Name: "bogus",
-					Jobs: []string{"bogus-job"},
+					Jobs: []string{"bogus-*"},
 				})
 			})
 
 			It("returns an error", func() {
 				Expect(errorMessages).To(HaveLen(1))
 				Expect(errorMessages[0]).To(ContainSubstring("invalid groups:"))
-				Expect(errorMessages[0]).To(ContainSubstring("unknown job 'bogus-job'"))
+				Expect(errorMessages[0]).To(ContainSubstring("no jobs match 'bogus-*' for group 'bogus'"))
 			})
 		})
 
@@ -324,6 +324,21 @@ var _ = Describe("ValidateConfig", func() {
 				Expect(errorLines).To(HaveLen(2))
 				Expect(errorLines[0]).To(ContainSubstring("invalid groups:"))
 				Expect(errorLines[1]).To(ContainSubstring("group 'some-group' appears 4 times. Duplicate names are not allowed."))
+			})
+		})
+
+		Context("when a group has and invalid glob expression", func() {
+			BeforeEach(func() {
+				config.Groups = append(config.Groups, atc.GroupConfig{
+					Name: "a-group",
+					Jobs: []string{"some-bad-glob-[0-9"},
+				})
+			})
+
+			It("returns an error", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("invalid groups:"))
+				Expect(errorMessages[0]).To(ContainSubstring("invalid glob expression 'some-bad-glob-[0-9' for group 'a-group'"))
 			})
 		})
 	})
@@ -546,10 +561,6 @@ var _ = Describe("ValidateConfig", func() {
 						Type: "some-type",
 					},
 					{
-						Name: "aggregate",
-						Type: "some-type",
-					},
-					{
 						Name: "parallel",
 						Type: "some-type",
 					},
@@ -615,17 +626,6 @@ var _ = Describe("ValidateConfig", func() {
 										{
 											Config: &atc.GetStep{
 												Name: "do",
-											},
-										},
-									},
-								},
-							},
-							{
-								Config: &atc.AggregateStep{
-									Steps: []atc.Step{
-										{
-											Config: &atc.GetStep{
-												Name: "aggregate",
 											},
 										},
 									},
@@ -938,12 +938,10 @@ var _ = Describe("ValidateConfig", func() {
 		})
 
 		Describe("plans", func() {
-			Context("when a task plan has neither a config or a path set", func() {
+			Context("when a task plan has neither a config, path, or name set set", func() {
 				BeforeEach(func() {
 					job.PlanSequence = append(job.PlanSequence, atc.Step{
-						Config: &atc.TaskStep{
-							Name: "lol",
-						},
+						Config: &atc.TaskStep{},
 					})
 
 					config.Jobs = append(config.Jobs, job)
@@ -952,7 +950,8 @@ var _ = Describe("ValidateConfig", func() {
 				It("returns an error", func() {
 					Expect(errorMessages).To(HaveLen(1))
 					Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].task(lol): must specify either `file:` or `config:`"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].task(): must specify either `file:` or `config:`"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].task(): identifier cannot be an empty string"))
 				})
 			})
 
@@ -1642,12 +1641,10 @@ var _ = Describe("ValidateConfig", func() {
 				})
 			})
 
-			Context("when a set_pipeline step has no file configured", func() {
+			Context("when a set_pipeline step has no name or file configured", func() {
 				BeforeEach(func() {
 					job.PlanSequence = append(job.PlanSequence, atc.Step{
-						Config: &atc.SetPipelineStep{
-							Name: "other-pipeline",
-						},
+						Config: &atc.SetPipelineStep{},
 					})
 
 					config.Jobs = append(config.Jobs, job)
@@ -1655,7 +1652,8 @@ var _ = Describe("ValidateConfig", func() {
 
 				It("does return an error", func() {
 					Expect(errorMessages).To(HaveLen(1))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].set_pipeline(other-pipeline): no file specified"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].set_pipeline(): no file specified"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].set_pipeline(): identifier cannot be an empty string"))
 				})
 			})
 
@@ -1754,12 +1752,10 @@ var _ = Describe("ValidateConfig", func() {
 				})
 			})
 
-			Context("when a load_var has not defined 'File'", func() {
+			Context("when a load_var has no name or file defined", func() {
 				BeforeEach(func() {
 					job.PlanSequence = append(job.PlanSequence, atc.Step{
-						Config: &atc.LoadVarStep{
-							Name: "a-var",
-						},
+						Config: &atc.LoadVarStep{},
 					})
 
 					config.Jobs = append(config.Jobs, job)
@@ -1767,7 +1763,8 @@ var _ = Describe("ValidateConfig", func() {
 
 				It("returns an error", func() {
 					Expect(errorMessages).To(HaveLen(1))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].load_var(a-var): no file specified"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].load_var(): no file specified"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].load_var(): identifier cannot be an empty string"))
 				})
 			})
 

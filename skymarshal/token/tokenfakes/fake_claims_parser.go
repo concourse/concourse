@@ -32,15 +32,16 @@ func (fake *FakeClaimsParser) ParseClaims(arg1 string) (db.Claims, error) {
 	fake.parseClaimsArgsForCall = append(fake.parseClaimsArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.ParseClaimsStub
+	fakeReturns := fake.parseClaimsReturns
 	fake.recordInvocation("ParseClaims", []interface{}{arg1})
 	fake.parseClaimsMutex.Unlock()
-	if fake.ParseClaimsStub != nil {
-		return fake.ParseClaimsStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.parseClaimsReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

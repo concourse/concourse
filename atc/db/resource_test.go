@@ -8,6 +8,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbtest"
+	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/tracing"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -52,7 +53,7 @@ var _ = Describe("Resource", func() {
 						Name:         "some-resource-custom-check",
 						Type:         "git",
 						Source:       atc.Source{"some": "some-repository"},
-						CheckEvery:   "10ms",
+						CheckEvery:   &atc.CheckEvery{Interval: 10 * time.Millisecond},
 						CheckTimeout: "1m",
 					},
 				},
@@ -114,7 +115,7 @@ var _ = Describe("Resource", func() {
 				case "some-resource-custom-check":
 					Expect(r.Type()).To(Equal("git"))
 					Expect(r.Source()).To(Equal(atc.Source{"some": "some-repository"}))
-					Expect(r.CheckEvery()).To(Equal("10ms"))
+					Expect(r.CheckEvery().Interval.String()).To(Equal("10ms"))
 					Expect(r.CheckTimeout()).To(Equal("1m"))
 					Expect(r.HasWebhook()).To(BeFalse())
 				}
@@ -473,6 +474,13 @@ var _ = Describe("Resource", func() {
 			}))
 		})
 
+		It("logs to the check_build_events partition", func() {
+			err := build.SaveEvent(event.Log{Payload: "log"})
+			Expect(err).ToNot(HaveOccurred())
+			// created + log events
+			Expect(numBuildEventsForCheck(build)).To(Equal(2))
+		})
+
 		Context("when tracing is configured", func() {
 			var span trace.Span
 
@@ -546,23 +554,6 @@ var _ = Describe("Resource", func() {
 				It("creates the build", func() {
 					Expect(created).To(BeTrue())
 					Expect(build.ResourceID()).To(Equal(defaultResource.ID()))
-				})
-
-				It("deletes the previous build", func() {
-					found, err := prevBuild.Reload()
-					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeFalse())
-				})
-
-				It("deletes the previous build's events", func() {
-					var exists bool
-					err := dbConn.QueryRow(`SELECT EXISTS (
-						SELECT 1
-						FROM build_events
-						WHERE build_id = $1
-					)`, prevBuild.ID()).Scan(&exists)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(exists).To(BeFalse())
 				})
 			})
 		})
@@ -956,32 +947,6 @@ var _ = Describe("Resource", func() {
 					Expect(pagination.Newer).To(Equal(&db.Page{From: db.NewIntPtr(resourceVersions[3].ID), Limit: 2}))
 					Expect(pagination.Older).To(Equal(&db.Page{To: db.NewIntPtr(resourceVersions[0].ID), Limit: 2}))
 				})
-			})
-		})
-
-		Context("when resource has a version with check order of 0", func() {
-			BeforeEach(func() {
-				scenario = dbtest.Setup(
-					builder.WithPipeline(atc.Config{
-						Resources: atc.ResourceConfigs{
-							{
-								Name:   "some-resource",
-								Type:   "some-base-resource-type",
-								Source: atc.Source{"some": "repository"},
-							},
-						},
-					}),
-					builder.WithResourceVersions("some-resource"),
-					builder.WithVersionMetadata("some-resource", atc.Version{"version": "not-returned"}, nil), // save unchecked version
-				)
-			})
-
-			It("does not return the version", func() {
-				historyPage, pagination, found, err := scenario.Resource("some-resource").Versions(db.Page{Limit: 2}, nil)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(historyPage).To(BeNil())
-				Expect(pagination).To(Equal(db.Pagination{Newer: nil, Older: nil}))
 			})
 		})
 	})

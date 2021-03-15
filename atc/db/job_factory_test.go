@@ -203,7 +203,7 @@ var _ = Describe("JobFactory", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				transitionBuild, err := job.CreateBuild()
+				transitionBuild, err := job.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 
 				err = transitionBuild.Finish(db.BuildStatusSucceeded)
@@ -213,7 +213,7 @@ var _ = Describe("JobFactory", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				finishedBuild, err := job.CreateBuild()
+				finishedBuild, err := job.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 
 				err = finishedBuild.Finish(db.BuildStatusSucceeded)
@@ -223,7 +223,7 @@ var _ = Describe("JobFactory", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				nextBuild, err := job.CreateBuild()
+				nextBuild, err := job.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 
 				visibleJobs, err := jobFactory.VisibleJobs([]string{"default-team"})
@@ -1078,6 +1078,7 @@ var _ = Context("SchedulerResource", func() {
 			Source: atc.Source{
 				"some-key": "some-value",
 			},
+			ExposeBuildCreatedBy: true,
 		}
 	})
 
@@ -1107,6 +1108,7 @@ var _ = Context("SchedulerResource", func() {
 					"some-key":    "some-value",
 					"default-key": "default-value",
 				},
+				ExposeBuildCreatedBy: true,
 			}))
 		})
 
@@ -1130,6 +1132,7 @@ var _ = Context("SchedulerResource", func() {
 						"some-key":    "some-value",
 						"default-key": "default-value",
 					},
+					ExposeBuildCreatedBy: true,
 				}))
 			})
 		})

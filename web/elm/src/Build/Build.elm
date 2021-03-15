@@ -640,9 +640,9 @@ view session model =
         (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
         [ Html.div
             (id "top-bar-app" :: Views.Styles.topBar False)
-            [ SideBar.hamburgerMenu session
+            [ SideBar.sideBarIcon session
             , TopBar.concourseLogo
-            , breadcrumbs model
+            , breadcrumbs session model
             , Login.view session.userState model
             ]
         , Html.div
@@ -652,6 +652,7 @@ view session model =
                     |> Maybe.map
                         (\j ->
                             { pipelineName = j.pipelineName
+                            , pipelineInstanceVars = j.pipelineInstanceVars
                             , teamName = j.teamName
                             }
                         )
@@ -661,26 +662,44 @@ view session model =
         ]
 
 
-tooltip : Model -> { a | hovered : HoverState.HoverState } -> Maybe Tooltip.Tooltip
+tooltip : Model -> Session -> Maybe Tooltip.Tooltip
 tooltip model session =
-    model.output
-        |> toMaybe
-        |> Maybe.andThen .steps
-        |> Maybe.andThen (\steps -> StepTree.tooltip steps session)
+    tryAll
+        [ model.output
+            |> toMaybe
+            |> Maybe.andThen .steps
+            |> Maybe.andThen (\steps -> StepTree.tooltip steps session)
+        , Header.tooltip model session
+        ]
 
 
-breadcrumbs : Model -> Html Message
-breadcrumbs model =
+tryAll : List (Maybe a) -> Maybe a
+tryAll maybes =
+    List.foldl
+        (\prev cur ->
+            case prev of
+                Nothing ->
+                    cur
+
+                _ ->
+                    prev
+        )
+        Nothing
+        maybes
+
+
+breadcrumbs : Session -> Model -> Html Message
+breadcrumbs session model =
     case ( model.job, model.page ) of
         ( Just jobId, _ ) ->
-            TopBar.breadcrumbs <|
+            TopBar.breadcrumbs session <|
                 Routes.Job
                     { id = jobId
                     , page = Nothing
                     }
 
         ( _, JobBuildPage buildId ) ->
-            TopBar.breadcrumbs <|
+            TopBar.breadcrumbs session <|
                 Routes.Build
                     { id = buildId
                     , highlight = model.highlight
@@ -813,7 +832,7 @@ tombstone timeZone model =
                 [ class "explanation" ]
                 [ Html.text "This log has been "
                 , Html.a
-                    [ Html.Attributes.href "https://concourse-ci.org/jobs.html#job-build-log-retention" ]
+                    [ Html.Attributes.href "https://concourse-ci.org/concourse-web.html#build-log-retention" ]
                     [ Html.text "reaped." ]
                 ]
             ]

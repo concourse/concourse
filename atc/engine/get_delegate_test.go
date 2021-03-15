@@ -18,17 +18,20 @@ import (
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/policy/policyfakes"
 	"github.com/concourse/concourse/atc/runtime"
+	"github.com/concourse/concourse/atc/worker/workerfakes"
+	"github.com/concourse/concourse/vars"
 )
 
 var _ = Describe("GetDelegate", func() {
 	var (
-		logger            *lagertest.TestLogger
-		fakeBuild         *dbfakes.FakeBuild
-		fakePipeline      *dbfakes.FakePipeline
-		fakeResource      *dbfakes.FakeResource
-		fakeClock         *fakeclock.FakeClock
-		fakePolicyChecker *policyfakes.FakeChecker
-		fakeSecrets       *credsfakes.FakeSecrets
+		logger              *lagertest.TestLogger
+		fakeBuild           *dbfakes.FakeBuild
+		fakePipeline        *dbfakes.FakePipeline
+		fakeResource        *dbfakes.FakeResource
+		fakeClock           *fakeclock.FakeClock
+		fakePolicyChecker   *policyfakes.FakeChecker
+		fakeSecrets         *credsfakes.FakeSecrets
+		fakeArtifactSourcer *workerfakes.FakeArtifactSourcer
 
 		state exec.RunState
 
@@ -54,8 +57,9 @@ var _ = Describe("GetDelegate", func() {
 
 		fakePolicyChecker = new(policyfakes.FakeChecker)
 		fakeSecrets = new(credsfakes.FakeSecrets)
+		fakeArtifactSourcer = new(workerfakes.FakeArtifactSourcer)
 
-		delegate = engine.NewGetDelegate(fakeBuild, "some-plan-id", state, fakeClock, fakePolicyChecker, fakeSecrets)
+		delegate = engine.NewGetDelegate(fakeBuild, "some-plan-id", state, fakeClock, fakePolicyChecker, fakeSecrets, fakeArtifactSourcer)
 	})
 
 	Describe("Finished", func() {

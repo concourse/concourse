@@ -10,7 +10,6 @@ module DashboardTests exposing
     , darkGrey
     , fadedGreen
     , givenDataAndUser
-    , givenDataUnauthenticated
     , green
     , iconSelector
     , job
@@ -33,6 +32,7 @@ import ColorValues
 import Common
     exposing
         ( defineHoverBehaviour
+        , givenDataUnauthenticated
         , isColorWithStripes
         , pipelineRunningKeyframes
         )
@@ -445,6 +445,17 @@ all =
                     |> Common.queryView
                     |> Query.find [ id "top-bar-app" ]
                     |> Query.has [ style "height" "54px" ]
+        , test "hovering over dashboard clears tooltip" <|
+            \_ ->
+                Common.init "/"
+                    |> givenDataAndUser
+                        (apiData [ ( "team", [] ) ])
+                        (userWithRoles [])
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.find [ id "dashboard" ]
+                    |> Event.simulate Event.mouseEnter
+                    |> Event.expect (ApplicationMsgs.Update <| Msgs.Hover <| Just Msgs.Dashboard)
         , describe "loading section" <|
             [ test "has a loading section when awaiting API data" <|
                 \_ ->
@@ -699,26 +710,15 @@ all =
                     |> Application.handleCallback
                         (Callback.AllJobsFetched <|
                             Ok
-                                [ { name = "job"
-                                  , pipelineName = "pipeline"
-                                  , teamName = "team"
-                                  , nextBuild = Nothing
-                                  , finishedBuild =
-                                        Just
-                                            { id = 0
-                                            , name = "1"
-                                            , job = Just Data.jobId
-                                            , status = BuildStatusSucceeded
-                                            , duration = { startedAt = Nothing, finishedAt = Nothing }
-                                            , reapTime = Nothing
-                                            }
-                                  , transitionBuild = Nothing
-                                  , paused = False
-                                  , disableManualTrigger = False
-                                  , inputs = []
-                                  , outputs = []
-                                  , groups = []
-                                  }
+                                [ Data.job 1
+                                    |> Data.withPipelineName "pipeline"
+                                    |> Data.withTeamName "team"
+                                    |> Data.withFinishedBuild
+                                        (Data.jobBuild BuildStatusSucceeded
+                                            |> Data.withTeamName "team"
+                                            |> Data.withJob (Just Data.jobId)
+                                            |> Just
+                                        )
                                 ]
                         )
                     |> Tuple.first
@@ -727,7 +727,7 @@ all =
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
                             Ok
-                                [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                         )
                     |> Tuple.first
                     |> Common.queryView
@@ -735,12 +735,9 @@ all =
                         [ class "dashboard-team-group"
                         , attribute <| Attr.attribute "data-team-name" "team"
                         ]
-                    |> Query.find
-                        [ attribute <| Attr.attribute "data-tooltip" "job" ]
-                    |> Query.find
-                        [ tag "a" ]
                     |> Query.has
-                        [ attribute <|
+                        [ tag "a"
+                        , attribute <|
                             Attr.href "/teams/team/pipelines/pipeline/jobs/job/builds/1"
                         ]
         , test "HD view redirects to no pipelines view when there are no pipelines" <|
@@ -1058,7 +1055,7 @@ all =
                                 , style "align-items" "center"
                                 ]
                             )
-            , test "team headers have a bottom margin of 25px" <|
+            , test "team headers have a bottom margin of 32px" <|
                 \_ ->
                     whenOnDashboard { highDensity = False }
                         |> givenDataUnauthenticated (apiData [ ( "team", [] ) ])
@@ -1072,7 +1069,7 @@ all =
                         |> Common.queryView
                         |> Query.findAll teamHeaderSelector
                         |> Query.each
-                            (Query.has [ style "margin-bottom" "25px" ])
+                            (Query.has [ style "margin-bottom" "32px" ])
             , test "on HD view, there is space between the list of pipelines and the role pill" <|
                 \_ ->
                     whenOnDashboard { highDensity = True }
@@ -1270,7 +1267,7 @@ all =
                                             >> Query.has
                                                 (iconSelector
                                                     { size = "20px"
-                                                    , image = PipelineStatusPending True |> Assets.PipelineStatusIcon
+                                                    , image = Assets.PipelineStatusIconPending
                                                     }
                                                 )
                                         , Query.index 1
@@ -1285,7 +1282,7 @@ all =
                                             >> Query.has
                                                 (iconSelector
                                                     { size = "20px"
-                                                    , image = PipelineStatusPaused |> Assets.PipelineStatusIcon
+                                                    , image = Assets.PipelineStatusIconPaused
                                                     }
                                                 )
                                         , Query.index 1
@@ -2003,7 +2000,7 @@ all =
                         (Callback.AllJobsFetched <| Ok [])
                     |> Tuple.first
                     |> Application.update
-                        (ApplicationMsgs.Update <| Msgs.DragStart "team" "pipeline")
+                        (ApplicationMsgs.Update <| Msgs.DragStart "team" "1")
                     |> Tuple.first
                     |> Application.handleDelivery
                         (ClockTicked FiveSeconds <|
@@ -2121,22 +2118,7 @@ whenOnDashboard { highDensity } =
          else
             "/"
         )
-        |> Application.handleCallback
-            (Callback.GotViewport Msgs.Dashboard <|
-                Ok <|
-                    { scene =
-                        { width = 600
-                        , height = 600
-                        }
-                    , viewport =
-                        { width = 600
-                        , height = 600
-                        , x = 0
-                        , y = 0
-                        }
-                    }
-            )
-        |> Tuple.first
+        |> Common.withAllPipelinesVisible
 
 
 whenOnDashboardViewingAllPipelines : { highDensity : Bool } -> Application.Model
@@ -2181,18 +2163,6 @@ userWithRoles roles =
     }
 
 
-givenDataUnauthenticated :
-    List Concourse.Team
-    -> Application.Model
-    -> ( Application.Model, List Effects.Effect )
-givenDataUnauthenticated data =
-    Application.handleCallback
-        (Callback.AllTeamsFetched <| Ok data)
-        >> Tuple.first
-        >> Application.handleCallback
-            (Callback.UserFetched <| Data.httpUnauthorized)
-
-
 givenClusterInfo :
     String
     -> String
@@ -2211,21 +2181,8 @@ apiData pipelines =
 
 
 running : Concourse.Job -> Concourse.Job
-running j =
-    { j
-        | nextBuild =
-            Just
-                { id = 1
-                , name = "1"
-                , job = Just Data.jobId
-                , status = BuildStatusStarted
-                , duration =
-                    { startedAt = Nothing
-                    , finishedAt = Nothing
-                    }
-                , reapTime = Nothing
-                }
-    }
+running =
+    Data.withNextBuild (Data.jobBuild BuildStatusStarted |> Just)
 
 
 otherJob : BuildStatus -> Concourse.Job
@@ -2241,13 +2198,16 @@ job =
 jobWithNameTransitionedAt : String -> Maybe Time.Posix -> BuildStatus -> Concourse.Job
 jobWithNameTransitionedAt jobName transitionedAt status =
     { name = jobName
+    , pipelineId = 1
     , pipelineName = "pipeline"
+    , pipelineInstanceVars = Dict.empty
     , teamName = "team"
     , nextBuild = Nothing
     , finishedBuild =
         Just
             { id = 0
             , name = "0"
+            , teamName = "team"
             , job = Just Data.jobId
             , status = status
             , duration =
@@ -2262,6 +2222,7 @@ jobWithNameTransitionedAt jobName transitionedAt status =
                 (\t ->
                     { id = 1
                     , name = "1"
+                    , teamName = "team"
                     , job = Just Data.jobId
                     , status = status
                     , duration =
@@ -2282,13 +2243,16 @@ jobWithNameTransitionedAt jobName transitionedAt status =
 circularJobs : List Concourse.Job
 circularJobs =
     [ { name = "jobA"
+      , pipelineId = 1
       , pipelineName = "pipeline"
+      , pipelineInstanceVars = Dict.empty
       , teamName = "team"
       , nextBuild = Nothing
       , finishedBuild =
             Just
                 { id = 0
                 , name = "0"
+                , teamName = "team"
                 , job = Just (Data.jobId |> Data.withJobName "jobA")
                 , status = BuildStatusSucceeded
                 , duration =
@@ -2301,6 +2265,7 @@ circularJobs =
             Just
                 { id = 1
                 , name = "1"
+                , teamName = "team"
                 , job = Just (Data.jobId |> Data.withJobName "jobA")
                 , status = BuildStatusSucceeded
                 , duration =
@@ -2322,13 +2287,16 @@ circularJobs =
       , groups = []
       }
     , { name = "jobB"
+      , pipelineId = 1
       , pipelineName = "pipeline"
+      , pipelineInstanceVars = Dict.empty
       , teamName = "team"
       , nextBuild = Nothing
       , finishedBuild =
             Just
                 { id = 0
                 , name = "0"
+                , teamName = "team"
                 , job = Just (Data.jobId |> Data.withJobName "jobB")
                 , status = BuildStatusSucceeded
                 , duration =
@@ -2341,6 +2309,7 @@ circularJobs =
             Just
                 { id = 1
                 , name = "1"
+                , teamName = "team"
                 , job = Just (Data.jobId |> Data.withJobName "jobB")
                 , status = BuildStatusSucceeded
                 , duration =

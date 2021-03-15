@@ -2,6 +2,7 @@ package db_test
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/concourse/concourse/atc"
@@ -13,14 +14,13 @@ import (
 
 var _ = Describe("CheckFactory", func() {
 	var (
-		err error
+		err     error
+		created bool
+		build   db.Build
 	)
 
 	Describe("TryCreateCheck", func() {
 		var (
-			created bool
-			build   db.Build
-
 			fakeResource      *dbfakes.FakeResource
 			fakeResourceType  *dbfakes.FakeResourceType
 			fakeResourceTypes db.ResourceTypes
@@ -157,7 +157,7 @@ var _ = Describe("CheckFactory", func() {
 
 		Context("when an interval is specified", func() {
 			BeforeEach(func() {
-				fakeResource.CheckEveryReturns("42s")
+				fakeResource.CheckEveryReturns(&atc.CheckEvery{Interval: 42 * time.Second})
 			})
 
 			It("sets it in the check plan", func() {
@@ -171,13 +171,13 @@ var _ = Describe("CheckFactory", func() {
 			})
 		})
 
-		Context("when the interval is not parseable", func() {
+		Context("when CheckEvery is never", func() {
 			BeforeEach(func() {
-				fakeResource.CheckEveryReturns("not-a-duration")
+				fakeResource.CheckEveryReturns(&atc.CheckEvery{Never: true})
 			})
 
-			It("errors", func() {
-				Expect(err).To(HaveOccurred())
+			It("does not try parsing the interval", func() {
+				Expect(err).ToNot(HaveOccurred())
 			})
 		})
 
@@ -252,15 +252,72 @@ var _ = Describe("CheckFactory", func() {
 
 	Describe("Resources", func() {
 		var (
-			resources []db.Resource
+			resources       []db.Resource
+			putOnlyResource db.Resource
 		)
+
+		BeforeEach(func() {
+			defaultPipelineConfig = atc.Config{
+				Jobs: atc.JobConfigs{
+					{
+						Name: "some-job",
+						PlanSequence: []atc.Step{
+							{
+								Config: &atc.GetStep{
+									Name: "some-resource",
+								},
+							},
+							{
+								Config: &atc.PutStep{
+									Name: "some-put-only-resource",
+								},
+							},
+						},
+					},
+				},
+				Resources: atc.ResourceConfigs{
+					{
+						Name: "some-resource",
+						Type: "some-base-resource-type",
+						Source: atc.Source{
+							"some": "source",
+						},
+					},
+					{
+						Name: "some-put-only-resource",
+						Type: "some-base-resource-type",
+						Source: atc.Source{
+							"some": "source",
+						},
+					},
+				},
+				ResourceTypes: atc.ResourceTypes{
+					{
+						Name: "some-type",
+						Type: "some-base-resource-type",
+						Source: atc.Source{
+							"some-type": "source",
+						},
+					},
+				},
+			}
+
+			defaultPipelineRef = atc.PipelineRef{Name: "default-pipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}
+			defaultPipeline, _, err = defaultTeam.SavePipeline(defaultPipelineRef, defaultPipelineConfig, db.ConfigVersion(1), false)
+			Expect(err).NotTo(HaveOccurred())
+
+			var found bool
+			putOnlyResource, found, err = defaultPipeline.Resource("some-put-only-resource")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+		})
 
 		JustBeforeEach(func() {
 			resources, err = checkFactory.Resources()
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("include resources in return", func() {
+		It("include only resources-in-use in return", func() {
 			Expect(resources).To(HaveLen(1))
 			Expect(resources[0].Name()).To(Equal("some-resource"))
 		})
@@ -284,6 +341,33 @@ var _ = Describe("CheckFactory", func() {
 
 			It("does not return the resource", func() {
 				Expect(resources).To(HaveLen(0))
+			})
+		})
+
+		Context("when a put-only resource", func() {
+			for _, status := range []db.BuildStatus{db.BuildStatusAborted, db.BuildStatusErrored, db.BuildStatusFailed} {
+				Context(fmt.Sprintf("has a build that %s", status), func() {
+					BeforeEach(func() {
+						By("creating a failed build for the put-only resource")
+						build, created, err = putOnlyResource.CreateBuild(context.TODO(), false, atc.Plan{})
+						Expect(err).ToNot(HaveOccurred())
+						Expect(build.Finish(status)).To(Succeed())
+					})
+					It("returns the resource", func() {
+						Expect(resources).To(HaveLen(2))
+					})
+				})
+			}
+			Context("has NOT errored", func() {
+				BeforeEach(func() {
+					By("creating a successful build for the put-only resource")
+					build, created, err = putOnlyResource.CreateBuild(context.TODO(), false, atc.Plan{})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(build.Finish(db.BuildStatusSucceeded)).To(Succeed())
+				})
+				It("returns does not return the resource", func() {
+					Expect(resources).To(HaveLen(1))
+				})
 			})
 		})
 	})

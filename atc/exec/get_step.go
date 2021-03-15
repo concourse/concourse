@@ -2,6 +2,7 @@ package exec
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 
@@ -76,7 +77,7 @@ type GetStep struct {
 	resourceFactory      resource.ResourceFactory
 	resourceCacheFactory db.ResourceCacheFactory
 	strategy             worker.ContainerPlacementStrategy
-	workerClient         worker.Client
+	workerPool           worker.Pool
 	delegateFactory      GetDelegateFactory
 }
 
@@ -89,7 +90,7 @@ func NewGetStep(
 	resourceCacheFactory db.ResourceCacheFactory,
 	strategy worker.ContainerPlacementStrategy,
 	delegateFactory GetDelegateFactory,
-	client worker.Client,
+	pool worker.Pool,
 ) Step {
 	return &GetStep{
 		planID:               planID,
@@ -100,7 +101,7 @@ func NewGetStep(
 		resourceCacheFactory: resourceCacheFactory,
 		strategy:             strategy,
 		delegateFactory:      delegateFactory,
-		workerClient:         client,
+		workerPool:           pool,
 	}
 }
 
@@ -197,13 +198,29 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 
 	containerOwner := db.NewBuildStepContainerOwner(step.metadata.BuildID, step.planID, step.metadata.TeamID)
 
-	getResult, err := step.workerClient.RunGetStep(
-		ctx,
-		logger,
+	processCtx, cancel, err := MaybeTimeout(ctx, step.plan.Timeout)
+	if err != nil {
+		return false, err
+	}
+
+	defer cancel()
+
+	worker, err := step.workerPool.SelectWorker(
+		lagerctx.NewContext(processCtx, logger),
 		containerOwner,
 		containerSpec,
 		workerSpec,
 		step.strategy,
+	)
+	if err != nil {
+		return false, err
+	}
+	delegate.SelectedWorker(logger, worker.Name())
+
+	getResult, err := worker.RunGetStep(
+		lagerctx.NewContext(processCtx, logger),
+		containerOwner,
+		containerSpec,
 		step.containerMetadata,
 		processSpec,
 		delegate,
@@ -211,6 +228,11 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 		resourceToGet,
 	)
 	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			delegate.Errored(logger, TimeoutLogMessage)
+			return false, nil
+		}
+
 		return false, err
 	}
 

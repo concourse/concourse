@@ -72,7 +72,7 @@ var _ = Describe("ArtifactRepository API", func() {
 
 			Context("when creating a volume fails", func() {
 				BeforeEach(func() {
-					fakeWorkerClient.CreateVolumeReturns(nil, errors.New("nope"))
+					fakeWorkerPool.CreateVolumeReturns(nil, errors.New("nope"))
 				})
 
 				It("returns 500 InternalServerError", func() {
@@ -87,13 +87,13 @@ var _ = Describe("ArtifactRepository API", func() {
 					fakeVolume = new(workerfakes.FakeVolume)
 					fakeVolume.InitializeArtifactReturns(nil, errors.New("nope"))
 
-					fakeWorkerClient.CreateVolumeReturns(fakeVolume, nil)
+					fakeWorkerPool.CreateVolumeReturns(fakeVolume, nil)
 				})
 
 				It("creates the volume using the worker client", func() {
-					Expect(fakeWorkerClient.CreateVolumeCallCount()).To(Equal(1))
+					Expect(fakeWorkerPool.CreateVolumeCallCount()).To(Equal(1))
 
-					_, volumeSpec, workerSpec, volumeType := fakeWorkerClient.CreateVolumeArgsForCall(0)
+					_, volumeSpec, workerSpec, volumeType := fakeWorkerPool.CreateVolumeArgsForCall(0)
 					Expect(volumeSpec.Strategy).To(Equal(baggageclaim.EmptyStrategy{}))
 					Expect(workerSpec).To(Equal(worker.WorkerSpec{
 						TeamID:   734,
@@ -269,16 +269,16 @@ var _ = Describe("ArtifactRepository API", func() {
 				})
 
 				It("uses the volume handle to lookup the worker volume", func() {
-					Expect(fakeWorkerClient.FindVolumeCallCount()).To(Equal(1))
+					Expect(fakeWorkerPool.FindVolumeCallCount()).To(Equal(1))
 
-					_, teamID, handle := fakeWorkerClient.FindVolumeArgsForCall(0)
+					_, teamID, handle := fakeWorkerPool.FindVolumeArgsForCall(0)
 					Expect(handle).To(Equal("some-handle"))
 					Expect(teamID).To(Equal(734))
 				})
 
 				Context("when the worker client errors", func() {
 					BeforeEach(func() {
-						fakeWorkerClient.FindVolumeReturns(nil, false, errors.New("nope"))
+						fakeWorkerPool.FindVolumeReturns(nil, false, errors.New("nope"))
 					})
 
 					It("returns 500", func() {
@@ -288,7 +288,7 @@ var _ = Describe("ArtifactRepository API", func() {
 
 				Context("when the worker client can't find the volume", func() {
 					BeforeEach(func() {
-						fakeWorkerClient.FindVolumeReturns(nil, false, nil)
+						fakeWorkerPool.FindVolumeReturns(nil, false, nil)
 					})
 
 					It("returns 404", func() {
@@ -305,7 +305,7 @@ var _ = Describe("ArtifactRepository API", func() {
 						fakeWorkerVolume = new(workerfakes.FakeVolume)
 						fakeWorkerVolume.StreamOutReturns(reader, nil)
 
-						fakeWorkerClient.FindVolumeReturns(fakeWorkerVolume, true, nil)
+						fakeWorkerPool.FindVolumeReturns(fakeWorkerVolume, true, nil)
 					})
 
 					It("streams out the contents of the volume from the root path", func() {

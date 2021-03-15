@@ -10,6 +10,7 @@ import (
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
@@ -32,14 +33,15 @@ func (e ErrNoMatchingVarSource) Error() string {
 }
 
 type buildStepDelegate struct {
-	build         db.Build
-	planID        atc.PlanID
-	clock         clock.Clock
-	state         exec.RunState
-	stderr        io.Writer
-	stdout        io.Writer
-	policyChecker policy.Checker
-	globalSecrets creds.Secrets
+	build           db.Build
+	planID          atc.PlanID
+	clock           clock.Clock
+	state           exec.RunState
+	stderr          io.Writer
+	stdout          io.Writer
+	policyChecker   policy.Checker
+	globalSecrets   creds.Secrets
+	artifactSourcer worker.ArtifactSourcer
 }
 
 func NewBuildStepDelegate(
@@ -48,18 +50,18 @@ func NewBuildStepDelegate(
 	state exec.RunState,
 	clock clock.Clock,
 	policyChecker policy.Checker,
-	globalSecrets creds.Secrets,
+	artifactSourcer worker.ArtifactSourcer,
 ) *buildStepDelegate {
 	return &buildStepDelegate{
-		build:         build,
-		planID:        planID,
-		clock:         clock,
-		state:         state,
-		stdout:        nil,
-		stderr:        nil,
-		policyChecker: policyChecker,
-		globalSecrets: globalSecrets,
-	}
+		build:           build,
+		planID:          planID,
+		clock:           clock,
+		state:           state,
+		stdout:          nil,
+		stderr:          nil,
+		policyChecker:   policyChecker,
+		globalSecrets:   globalSecrets,
+		artifactSourcer: artifactSourcer,
 }
 
 func (delegate *buildStepDelegate) StartSpan(
@@ -255,9 +257,14 @@ func (delegate *buildStepDelegate) FetchImage(
 		return worker.ImageSpec{}, fmt.Errorf("fetched artifact not found")
 	}
 
+	source, err := delegate.artifactSourcer.SourceImage(lagerctx.FromContext(ctx), art)
+	if err != nil {
+		return worker.ImageSpec{}, fmt.Errorf("wire image: %w", err)
+	}
+
 	return worker.ImageSpec{
-		ImageArtifact: art,
-		Privileged:    privileged,
+		ImageArtifactSource: source,
+		Privileged:          privileged,
 	}, nil
 }
 

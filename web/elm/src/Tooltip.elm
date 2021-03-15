@@ -3,31 +3,29 @@ module Tooltip exposing
     , Direction(..)
     , Model
     , Tooltip
+    , colors
     , handleCallback
     , handleDelivery
+    , hoverAttrs
     , view
     )
 
 import Browser.Dom
+import Colors
 import EffectTransformer exposing (ET)
 import HoverState exposing (TooltipPosition(..))
 import Html exposing (Html)
 import Html.Attributes exposing (id, style)
+import Html.Events exposing (onMouseLeave)
 import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects
-import Message.Message exposing (DomID(..), Message)
+import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription exposing (Delivery(..), Interval(..))
+import StrictEvents
 
 
 type alias Model m =
     { m | hovered : HoverState.HoverState }
-
-
-type alias Tooltip =
-    { body : Html Message
-    , arrow : Maybe Arrow
-    , attachPosition : AttachPosition
-    }
 
 
 
@@ -37,9 +35,11 @@ type alias Tooltip =
 -- predominating.
 
 
-type alias Arrow =
-    { size : Float
-    , color : String
+type alias Tooltip =
+    { body : Html Message
+    , arrow : Maybe Float
+    , containerAttrs : Maybe (List (Html.Attribute Message))
+    , attachPosition : AttachPosition
     }
 
 
@@ -57,6 +57,7 @@ type alias AttachPosition =
 type Direction
     = Top
     | Right Float
+    | Bottom
 
 
 type Alignment
@@ -65,13 +66,45 @@ type Alignment
     | End
 
 
+hoverAttrs : DomID -> List (Html.Attribute Message)
+hoverAttrs domID =
+    [ id (Effects.toHtmlID domID)
+    , StrictEvents.onMouseEnterStopPropagation <| Hover <| Just domID
+    , onMouseLeave <| Hover Nothing
+    ]
+
+
 policy : DomID -> TooltipCondition
 policy domID =
     case domID of
         SideBarPipeline _ _ ->
             OnlyShowWhenOverflowing
 
+        SideBarInstancedPipeline _ _ ->
+            OnlyShowWhenOverflowing
+
         SideBarTeam _ _ ->
+            OnlyShowWhenOverflowing
+
+        SideBarInstanceGroup _ _ _ ->
+            OnlyShowWhenOverflowing
+
+        PipelineCardName _ _ ->
+            OnlyShowWhenOverflowing
+
+        InstanceGroupCardName _ _ _ ->
+            OnlyShowWhenOverflowing
+
+        PipelineCardNameHD _ ->
+            OnlyShowWhenOverflowing
+
+        InstanceGroupCardNameHD _ _ ->
+            OnlyShowWhenOverflowing
+
+        PipelineCardInstanceVar _ _ _ _ ->
+            OnlyShowWhenOverflowing
+
+        PipelineCardInstanceVars _ _ _ ->
             OnlyShowWhenOverflowing
 
         _ ->
@@ -98,6 +131,10 @@ position { direction, alignment } { element, viewport } =
                 ( Right _, End ) ->
                     [ style "bottom" <| String.fromFloat (viewport.height - target.y - target.height) ++ "px" ]
 
+                ( Bottom, _ ) ->
+                    -- Bottom needs a little padding to be further from the pointer cursor
+                    [ style "top" <| String.fromFloat (target.y + target.height + 8) ++ "px" ]
+
         horizontal =
             case ( direction, alignment ) of
                 ( Top, Start ) ->
@@ -111,8 +148,17 @@ position { direction, alignment } { element, viewport } =
 
                 ( Right offset, _ ) ->
                     [ style "left" <| String.fromFloat (target.x + target.width + offset) ++ "px" ]
+
+                ( Bottom, Start ) ->
+                    [ style "left" <| String.fromFloat target.x ++ "px" ]
+
+                ( Bottom, Middle width ) ->
+                    [ style "left" <| String.fromFloat (target.x + (target.width - width) / 2) ++ "px" ]
+
+                ( Bottom, End ) ->
+                    [ style "right" <| String.fromFloat (viewport.width - target.x - target.width) ++ "px" ]
     in
-    [ style "position" "fixed", style "z-index" "100" ] ++ vertical ++ horizontal
+    [ style "position" "fixed", style "z-index" "10000" ] ++ vertical ++ horizontal
 
 
 handleCallback : Callback -> ET (Model m)
@@ -149,8 +195,12 @@ handleCallback callback ( model, effects ) =
             ( model, effects )
 
 
-arrowView : AttachPosition -> Browser.Dom.Element -> Arrow -> Html Message
-arrowView { direction } target { size, color } =
+arrowView : AttachPosition -> Browser.Dom.Element -> Float -> Html Message
+arrowView { direction } target size =
+    let
+        color =
+            Colors.tooltipBackground
+    in
     Html.div
         ((case direction of
             Top ->
@@ -166,6 +216,13 @@ arrowView { direction } target { size, color } =
                 , style "border-bottom" <| String.fromFloat size ++ "px solid transparent"
                 , style "margin-left" <| "-" ++ String.fromFloat size ++ "px"
                 ]
+
+            Bottom ->
+                [ style "border-bottom" <| String.fromFloat size ++ "px solid " ++ color
+                , style "border-left" <| String.fromFloat size ++ "px solid transparent"
+                , style "border-right" <| String.fromFloat size ++ "px solid transparent"
+                , style "margin-top" <| "-" ++ String.fromFloat size ++ "px"
+                ]
          )
             ++ position
                 { direction = direction, alignment = Middle (2 * size) }
@@ -175,12 +232,17 @@ arrowView { direction } target { size, color } =
 
 
 view : Model m -> Tooltip -> Html Message
-view { hovered } { body, attachPosition, arrow } =
+view { hovered } { body, attachPosition, arrow, containerAttrs } =
     case ( hovered, arrow ) of
         ( HoverState.Tooltip _ target, a ) ->
-            Html.div (id "tooltips" :: position attachPosition target)
+            let
+                attrs =
+                    Maybe.withDefault defaultTooltipStyle containerAttrs
+            in
+            Html.div
+                (id "tooltips" :: style "pointer-events" "none" :: position attachPosition target)
                 [ Maybe.map (arrowView attachPosition target) a |> Maybe.withDefault (Html.text "")
-                , body
+                , Html.div attrs [ body ]
                 ]
 
         _ ->
@@ -205,3 +267,15 @@ handleDelivery session delivery ( model, effects ) =
 
         _ ->
             ( model, effects )
+
+
+colors : List (Html.Attribute msg)
+colors =
+    [ style "background-color" Colors.tooltipBackground
+    , style "color" Colors.tooltipText
+    ]
+
+
+defaultTooltipStyle : List (Html.Attribute msg)
+defaultTooltipStyle =
+    style "padding" "5px" :: colors

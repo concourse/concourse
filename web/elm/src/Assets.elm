@@ -3,6 +3,7 @@ module Assets exposing
     , CircleOutlineIcon(..)
     , ComponentType(..)
     , backgroundImage
+    , pipelineStatusIcon
     , toString
     )
 
@@ -38,7 +39,12 @@ type Asset
     | SuccessCheckIcon
     | FailureTimesIcon
     | ExclamationTriangleIcon
-    | PipelineStatusIcon PipelineStatus
+    | PipelineStatusIconPaused
+    | PipelineStatusIconPending
+    | PipelineStatusIconSucceeded
+    | PipelineStatusIconFailed
+    | PipelineStatusIconAborted
+    | PipelineStatusIconErrored
     | PipelineStatusIconStale
     | PipelineStatusIconJobsDisabled
     | ClippyIcon
@@ -46,7 +52,10 @@ type Asset
     | DownArrow
     | RefreshIcon
     | MessageIcon
-    | HamburgerMenuIcon
+    | SideBarIconClosedGrey
+    | SideBarIconOpenedGrey
+    | SideBarIconClosedWhite
+    | SideBarIconOpenedWhite
     | PeopleIcon
     | PipelineIconGrey
     | PipelineIconLightGrey
@@ -254,29 +263,23 @@ toPath asset =
         ExclamationTriangleIcon ->
             basePath ++ [ "ic-exclamation-triangle.svg" ]
 
-        PipelineStatusIcon status ->
-            let
-                imageName =
-                    case status of
-                        PipelineStatusPaused ->
-                            "ic-pause-blue.svg"
+        PipelineStatusIconPaused ->
+            basePath ++ [ "ic-pause-blue.svg" ]
 
-                        PipelineStatusPending _ ->
-                            "ic-pending-grey.svg"
+        PipelineStatusIconPending ->
+            basePath ++ [ "ic-pending-grey.svg" ]
 
-                        PipelineStatusSucceeded _ ->
-                            "ic-running-green.svg"
+        PipelineStatusIconSucceeded ->
+            basePath ++ [ "ic-running-green.svg" ]
 
-                        PipelineStatusFailed _ ->
-                            "ic-failing-red.svg"
+        PipelineStatusIconFailed ->
+            basePath ++ [ "ic-failing-red.svg" ]
 
-                        PipelineStatusAborted _ ->
-                            "ic-aborted-brown.svg"
+        PipelineStatusIconAborted ->
+            basePath ++ [ "ic-aborted-brown.svg" ]
 
-                        PipelineStatusErrored _ ->
-                            "ic-error-orange.svg"
-            in
-            basePath ++ [ imageName ]
+        PipelineStatusIconErrored ->
+            basePath ++ [ "ic-error-orange.svg" ]
 
         PipelineStatusIconStale ->
             basePath ++ [ "ic-cached-grey.svg" ]
@@ -299,8 +302,17 @@ toPath asset =
         MessageIcon ->
             basePath ++ [ "baseline-message.svg" ]
 
-        HamburgerMenuIcon ->
-            basePath ++ [ "baseline-menu.svg" ]
+        SideBarIconClosedGrey ->
+            basePath ++ [ "baseline-sidebar-closed-grey.svg" ]
+
+        SideBarIconOpenedGrey ->
+            basePath ++ [ "baseline-sidebar-opened-grey.svg" ]
+
+        SideBarIconClosedWhite ->
+            basePath ++ [ "baseline-sidebar-closed-white.svg" ]
+
+        SideBarIconOpenedWhite ->
+            basePath ++ [ "baseline-sidebar-opened-white.svg" ]
 
         PeopleIcon ->
             basePath ++ [ "baseline-people.svg" ]
@@ -334,3 +346,28 @@ toPath asset =
 
         CloseIcon ->
             basePath ++ [ "ic-close-white.svg" ]
+
+
+pipelineStatusIcon : PipelineStatus -> Maybe Asset
+pipelineStatusIcon s =
+    case s of
+        PipelineStatusPaused ->
+            Just PipelineStatusIconPaused
+
+        PipelineStatusSucceeded _ ->
+            Just PipelineStatusIconSucceeded
+
+        PipelineStatusPending _ ->
+            Just PipelineStatusIconPending
+
+        PipelineStatusFailed _ ->
+            Just PipelineStatusIconFailed
+
+        PipelineStatusErrored _ ->
+            Just PipelineStatusIconErrored
+
+        PipelineStatusAborted _ ->
+            Just PipelineStatusIconAborted
+
+        PipelineStatusArchived ->
+            Nothing

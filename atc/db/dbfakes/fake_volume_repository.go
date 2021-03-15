@@ -304,15 +304,16 @@ func (fake *FakeVolumeRepository) CreateBaseResourceTypeVolume(arg1 *db.UsedWork
 	fake.createBaseResourceTypeVolumeArgsForCall = append(fake.createBaseResourceTypeVolumeArgsForCall, struct {
 		arg1 *db.UsedWorkerBaseResourceType
 	}{arg1})
+	stub := fake.CreateBaseResourceTypeVolumeStub
+	fakeReturns := fake.createBaseResourceTypeVolumeReturns
 	fake.recordInvocation("CreateBaseResourceTypeVolume", []interface{}{arg1})
 	fake.createBaseResourceTypeVolumeMutex.Unlock()
-	if fake.CreateBaseResourceTypeVolumeStub != nil {
-		return fake.CreateBaseResourceTypeVolumeStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.createBaseResourceTypeVolumeReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -370,15 +371,16 @@ func (fake *FakeVolumeRepository) CreateContainerVolume(arg1 int, arg2 string, a
 		arg3 db.CreatingContainer
 		arg4 string
 	}{arg1, arg2, arg3, arg4})
+	stub := fake.CreateContainerVolumeStub
+	fakeReturns := fake.createContainerVolumeReturns
 	fake.recordInvocation("CreateContainerVolume", []interface{}{arg1, arg2, arg3, arg4})
 	fake.createContainerVolumeMutex.Unlock()
-	if fake.CreateContainerVolumeStub != nil {
-		return fake.CreateContainerVolumeStub(arg1, arg2, arg3, arg4)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.createContainerVolumeReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -434,15 +436,16 @@ func (fake *FakeVolumeRepository) CreateResourceCertsVolume(arg1 string, arg2 *d
 		arg1 string
 		arg2 *db.UsedWorkerResourceCerts
 	}{arg1, arg2})
+	stub := fake.CreateResourceCertsVolumeStub
+	fakeReturns := fake.createResourceCertsVolumeReturns
 	fake.recordInvocation("CreateResourceCertsVolume", []interface{}{arg1, arg2})
 	fake.createResourceCertsVolumeMutex.Unlock()
-	if fake.CreateResourceCertsVolumeStub != nil {
-		return fake.CreateResourceCertsVolumeStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.createResourceCertsVolumeReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -498,15 +501,16 @@ func (fake *FakeVolumeRepository) CreateTaskCacheVolume(arg1 int, arg2 *db.UsedW
 		arg1 int
 		arg2 *db.UsedWorkerTaskCache
 	}{arg1, arg2})
+	stub := fake.CreateTaskCacheVolumeStub
+	fakeReturns := fake.createTaskCacheVolumeReturns
 	fake.recordInvocation("CreateTaskCacheVolume", []interface{}{arg1, arg2})
 	fake.createTaskCacheVolumeMutex.Unlock()
-	if fake.CreateTaskCacheVolumeStub != nil {
-		return fake.CreateTaskCacheVolumeStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.createTaskCacheVolumeReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -563,15 +567,16 @@ func (fake *FakeVolumeRepository) CreateVolume(arg1 int, arg2 string, arg3 db.Vo
 		arg2 string
 		arg3 db.VolumeType
 	}{arg1, arg2, arg3})
+	stub := fake.CreateVolumeStub
+	fakeReturns := fake.createVolumeReturns
 	fake.recordInvocation("CreateVolume", []interface{}{arg1, arg2, arg3})
 	fake.createVolumeMutex.Unlock()
-	if fake.CreateVolumeStub != nil {
-		return fake.CreateVolumeStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.createVolumeReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -625,15 +630,16 @@ func (fake *FakeVolumeRepository) DestroyFailedVolumes() (int, error) {
 	ret, specificReturn := fake.destroyFailedVolumesReturnsOnCall[len(fake.destroyFailedVolumesArgsForCall)]
 	fake.destroyFailedVolumesArgsForCall = append(fake.destroyFailedVolumesArgsForCall, struct {
 	}{})
+	stub := fake.DestroyFailedVolumesStub
+	fakeReturns := fake.destroyFailedVolumesReturns
 	fake.recordInvocation("DestroyFailedVolumes", []interface{}{})
 	fake.destroyFailedVolumesMutex.Unlock()
-	if fake.DestroyFailedVolumesStub != nil {
-		return fake.DestroyFailedVolumesStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.destroyFailedVolumesReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -687,15 +693,16 @@ func (fake *FakeVolumeRepository) DestroyUnknownVolumes(arg1 string, arg2 []stri
 		arg1 string
 		arg2 []string
 	}{arg1, arg2Copy})
+	stub := fake.DestroyUnknownVolumesStub
+	fakeReturns := fake.destroyUnknownVolumesReturns
 	fake.recordInvocation("DestroyUnknownVolumes", []interface{}{arg1, arg2Copy})
 	fake.destroyUnknownVolumesMutex.Unlock()
-	if fake.DestroyUnknownVolumesStub != nil {
-		return fake.DestroyUnknownVolumesStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.destroyUnknownVolumesReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -750,15 +757,16 @@ func (fake *FakeVolumeRepository) FindBaseResourceTypeVolume(arg1 *db.UsedWorker
 	fake.findBaseResourceTypeVolumeArgsForCall = append(fake.findBaseResourceTypeVolumeArgsForCall, struct {
 		arg1 *db.UsedWorkerBaseResourceType
 	}{arg1})
+	stub := fake.FindBaseResourceTypeVolumeStub
+	fakeReturns := fake.findBaseResourceTypeVolumeReturns
 	fake.recordInvocation("FindBaseResourceTypeVolume", []interface{}{arg1})
 	fake.findBaseResourceTypeVolumeMutex.Unlock()
-	if fake.FindBaseResourceTypeVolumeStub != nil {
-		return fake.FindBaseResourceTypeVolumeStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.findBaseResourceTypeVolumeReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -819,15 +827,16 @@ func (fake *FakeVolumeRepository) FindContainerVolume(arg1 int, arg2 string, arg
 		arg3 db.CreatingContainer
 		arg4 string
 	}{arg1, arg2, arg3, arg4})
+	stub := fake.FindContainerVolumeStub
+	fakeReturns := fake.findContainerVolumeReturns
 	fake.recordInvocation("FindContainerVolume", []interface{}{arg1, arg2, arg3, arg4})
 	fake.findContainerVolumeMutex.Unlock()
-	if fake.FindContainerVolumeStub != nil {
-		return fake.FindContainerVolumeStub(arg1, arg2, arg3, arg4)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.findContainerVolumeReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -885,15 +894,16 @@ func (fake *FakeVolumeRepository) FindCreatedVolume(arg1 string) (db.CreatedVolu
 	fake.findCreatedVolumeArgsForCall = append(fake.findCreatedVolumeArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.FindCreatedVolumeStub
+	fakeReturns := fake.findCreatedVolumeReturns
 	fake.recordInvocation("FindCreatedVolume", []interface{}{arg1})
 	fake.findCreatedVolumeMutex.Unlock()
-	if fake.FindCreatedVolumeStub != nil {
-		return fake.FindCreatedVolumeStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.findCreatedVolumeReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -952,15 +962,16 @@ func (fake *FakeVolumeRepository) FindResourceCacheVolume(arg1 string, arg2 db.U
 		arg1 string
 		arg2 db.UsedResourceCache
 	}{arg1, arg2})
+	stub := fake.FindResourceCacheVolumeStub
+	fakeReturns := fake.findResourceCacheVolumeReturns
 	fake.recordInvocation("FindResourceCacheVolume", []interface{}{arg1, arg2})
 	fake.findResourceCacheVolumeMutex.Unlock()
-	if fake.FindResourceCacheVolumeStub != nil {
-		return fake.FindResourceCacheVolumeStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.findResourceCacheVolumeReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -1019,15 +1030,16 @@ func (fake *FakeVolumeRepository) FindResourceCertsVolume(arg1 string, arg2 *db.
 		arg1 string
 		arg2 *db.UsedWorkerResourceCerts
 	}{arg1, arg2})
+	stub := fake.FindResourceCertsVolumeStub
+	fakeReturns := fake.findResourceCertsVolumeReturns
 	fake.recordInvocation("FindResourceCertsVolume", []interface{}{arg1, arg2})
 	fake.findResourceCertsVolumeMutex.Unlock()
-	if fake.FindResourceCertsVolumeStub != nil {
-		return fake.FindResourceCertsVolumeStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.findResourceCertsVolumeReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -1087,15 +1099,16 @@ func (fake *FakeVolumeRepository) FindTaskCacheVolume(arg1 int, arg2 string, arg
 		arg2 string
 		arg3 db.UsedTaskCache
 	}{arg1, arg2, arg3})
+	stub := fake.FindTaskCacheVolumeStub
+	fakeReturns := fake.findTaskCacheVolumeReturns
 	fake.recordInvocation("FindTaskCacheVolume", []interface{}{arg1, arg2, arg3})
 	fake.findTaskCacheVolumeMutex.Unlock()
-	if fake.FindTaskCacheVolumeStub != nil {
-		return fake.FindTaskCacheVolumeStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.findTaskCacheVolumeReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -1153,15 +1166,16 @@ func (fake *FakeVolumeRepository) FindVolumesForContainer(arg1 db.CreatedContain
 	fake.findVolumesForContainerArgsForCall = append(fake.findVolumesForContainerArgsForCall, struct {
 		arg1 db.CreatedContainer
 	}{arg1})
+	stub := fake.FindVolumesForContainerStub
+	fakeReturns := fake.findVolumesForContainerReturns
 	fake.recordInvocation("FindVolumesForContainer", []interface{}{arg1})
 	fake.findVolumesForContainerMutex.Unlock()
-	if fake.FindVolumesForContainerStub != nil {
-		return fake.FindVolumesForContainerStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.findVolumesForContainerReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -1216,15 +1230,16 @@ func (fake *FakeVolumeRepository) GetDestroyingVolumes(arg1 string) ([]string, e
 	fake.getDestroyingVolumesArgsForCall = append(fake.getDestroyingVolumesArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.GetDestroyingVolumesStub
+	fakeReturns := fake.getDestroyingVolumesReturns
 	fake.recordInvocation("GetDestroyingVolumes", []interface{}{arg1})
 	fake.getDestroyingVolumesMutex.Unlock()
-	if fake.GetDestroyingVolumesStub != nil {
-		return fake.GetDestroyingVolumesStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getDestroyingVolumesReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -1278,15 +1293,16 @@ func (fake *FakeVolumeRepository) GetOrphanedVolumes() ([]db.CreatedVolume, erro
 	ret, specificReturn := fake.getOrphanedVolumesReturnsOnCall[len(fake.getOrphanedVolumesArgsForCall)]
 	fake.getOrphanedVolumesArgsForCall = append(fake.getOrphanedVolumesArgsForCall, struct {
 	}{})
+	stub := fake.GetOrphanedVolumesStub
+	fakeReturns := fake.getOrphanedVolumesReturns
 	fake.recordInvocation("GetOrphanedVolumes", []interface{}{})
 	fake.getOrphanedVolumesMutex.Unlock()
-	if fake.GetOrphanedVolumesStub != nil {
-		return fake.GetOrphanedVolumesStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getOrphanedVolumesReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -1334,15 +1350,16 @@ func (fake *FakeVolumeRepository) GetTeamVolumes(arg1 int) ([]db.CreatedVolume, 
 	fake.getTeamVolumesArgsForCall = append(fake.getTeamVolumesArgsForCall, struct {
 		arg1 int
 	}{arg1})
+	stub := fake.GetTeamVolumesStub
+	fakeReturns := fake.getTeamVolumesReturns
 	fake.recordInvocation("GetTeamVolumes", []interface{}{arg1})
 	fake.getTeamVolumesMutex.Unlock()
-	if fake.GetTeamVolumesStub != nil {
-		return fake.GetTeamVolumesStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getTeamVolumesReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -1403,15 +1420,16 @@ func (fake *FakeVolumeRepository) RemoveDestroyingVolumes(arg1 string, arg2 []st
 		arg1 string
 		arg2 []string
 	}{arg1, arg2Copy})
+	stub := fake.RemoveDestroyingVolumesStub
+	fakeReturns := fake.removeDestroyingVolumesReturns
 	fake.recordInvocation("RemoveDestroyingVolumes", []interface{}{arg1, arg2Copy})
 	fake.removeDestroyingVolumesMutex.Unlock()
-	if fake.RemoveDestroyingVolumesStub != nil {
-		return fake.RemoveDestroyingVolumesStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.removeDestroyingVolumesReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -1466,15 +1484,16 @@ func (fake *FakeVolumeRepository) RemoveMissingVolumes(arg1 time.Duration) (int,
 	fake.removeMissingVolumesArgsForCall = append(fake.removeMissingVolumesArgsForCall, struct {
 		arg1 time.Duration
 	}{arg1})
+	stub := fake.RemoveMissingVolumesStub
+	fakeReturns := fake.removeMissingVolumesReturns
 	fake.recordInvocation("RemoveMissingVolumes", []interface{}{arg1})
 	fake.removeMissingVolumesMutex.Unlock()
-	if fake.RemoveMissingVolumesStub != nil {
-		return fake.RemoveMissingVolumesStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.removeMissingVolumesReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -1535,15 +1554,16 @@ func (fake *FakeVolumeRepository) UpdateVolumesMissingSince(arg1 string, arg2 []
 		arg1 string
 		arg2 []string
 	}{arg1, arg2Copy})
+	stub := fake.UpdateVolumesMissingSinceStub
+	fakeReturns := fake.updateVolumesMissingSinceReturns
 	fake.recordInvocation("UpdateVolumesMissingSince", []interface{}{arg1, arg2Copy})
 	fake.updateVolumesMissingSinceMutex.Unlock()
-	if fake.UpdateVolumesMissingSinceStub != nil {
-		return fake.UpdateVolumesMissingSinceStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.updateVolumesMissingSinceReturns
 	return fakeReturns.result1
 }
 

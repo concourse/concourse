@@ -4,13 +4,13 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"database/sql"
+	"fmt"
 
 	"code.cloudfoundry.org/lager"
 
 	"github.com/concourse/concourse/atc/db/encryption"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/migration"
-	"github.com/concourse/concourse/atc/db/migration/migrationfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -22,7 +22,6 @@ var _ = Describe("Encryption", func() {
 		db          *sql.DB
 		lockDB      *sql.DB
 		lockFactory lock.LockFactory
-		bindata     *migrationfakes.FakeBindata
 		fakeLogFunc = func(logger lager.Logger, id lock.LockID) {}
 	)
 
@@ -34,9 +33,6 @@ var _ = Describe("Encryption", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		lockFactory = lock.NewLockFactory(lockDB, fakeLogFunc, fakeLogFunc)
-
-		bindata = new(migrationfakes.FakeBindata)
-		bindata.AssetStub = asset
 	})
 
 	AfterEach(func() {
@@ -186,7 +182,11 @@ var _ = Describe("Encryption", func() {
 func insertIntoEncryptedColumnLegacy(db *sql.DB, strategy encryption.Strategy, name string) {
 	ciphertext, nonce, err := strategy.Encrypt([]byte("{}"))
 	Expect(err).ToNot(HaveOccurred())
-	_, err = db.Exec(`INSERT INTO teams(name, auth, nonce) VALUES($1, $2, $3)`, name, ciphertext, nonce)
+	var teamID int
+	err = db.QueryRow(`INSERT INTO teams(name, auth, nonce) VALUES($1, $2, $3) RETURNING id`, name, ciphertext, nonce).Scan(&teamID)
+	Expect(err).ToNot(HaveOccurred())
+
+	_, err = db.Exec(fmt.Sprintf(`CREATE TABLE team_build_events_%d () INHERITS (build_events)`, teamID))
 	Expect(err).ToNot(HaveOccurred())
 }
 

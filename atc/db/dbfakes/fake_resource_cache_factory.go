@@ -82,15 +82,16 @@ func (fake *FakeResourceCacheFactory) FindOrCreateResourceCache(arg1 db.Resource
 		arg5 atc.Params
 		arg6 atc.VersionedResourceTypes
 	}{arg1, arg2, arg3, arg4, arg5, arg6})
+	stub := fake.FindOrCreateResourceCacheStub
+	fakeReturns := fake.findOrCreateResourceCacheReturns
 	fake.recordInvocation("FindOrCreateResourceCache", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6})
 	fake.findOrCreateResourceCacheMutex.Unlock()
-	if fake.FindOrCreateResourceCacheStub != nil {
-		return fake.FindOrCreateResourceCacheStub(arg1, arg2, arg3, arg4, arg5, arg6)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4, arg5, arg6)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.findOrCreateResourceCacheReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -145,15 +146,16 @@ func (fake *FakeResourceCacheFactory) FindResourceCacheByID(arg1 int) (db.UsedRe
 	fake.findResourceCacheByIDArgsForCall = append(fake.findResourceCacheByIDArgsForCall, struct {
 		arg1 int
 	}{arg1})
+	stub := fake.FindResourceCacheByIDStub
+	fakeReturns := fake.findResourceCacheByIDReturns
 	fake.recordInvocation("FindResourceCacheByID", []interface{}{arg1})
 	fake.findResourceCacheByIDMutex.Unlock()
-	if fake.FindResourceCacheByIDStub != nil {
-		return fake.FindResourceCacheByIDStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.findResourceCacheByIDReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -211,15 +213,16 @@ func (fake *FakeResourceCacheFactory) ResourceCacheMetadata(arg1 db.UsedResource
 	fake.resourceCacheMetadataArgsForCall = append(fake.resourceCacheMetadataArgsForCall, struct {
 		arg1 db.UsedResourceCache
 	}{arg1})
+	stub := fake.ResourceCacheMetadataStub
+	fakeReturns := fake.resourceCacheMetadataReturns
 	fake.recordInvocation("ResourceCacheMetadata", []interface{}{arg1})
 	fake.resourceCacheMetadataMutex.Unlock()
-	if fake.ResourceCacheMetadataStub != nil {
-		return fake.ResourceCacheMetadataStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.resourceCacheMetadataReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -280,15 +283,16 @@ func (fake *FakeResourceCacheFactory) UpdateResourceCacheMetadata(arg1 db.UsedRe
 		arg1 db.UsedResourceCache
 		arg2 []atc.MetadataField
 	}{arg1, arg2Copy})
+	stub := fake.UpdateResourceCacheMetadataStub
+	fakeReturns := fake.updateResourceCacheMetadataReturns
 	fake.recordInvocation("UpdateResourceCacheMetadata", []interface{}{arg1, arg2Copy})
 	fake.updateResourceCacheMetadataMutex.Unlock()
-	if fake.UpdateResourceCacheMetadataStub != nil {
-		return fake.UpdateResourceCacheMetadataStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.updateResourceCacheMetadataReturns
 	return fakeReturns.result1
 }
 

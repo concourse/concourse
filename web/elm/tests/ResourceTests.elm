@@ -5,8 +5,8 @@ import Application.Models exposing (Session)
 import Assets
 import Build.StepTree.Models as STModels
 import ColorValues
-import Common exposing (defineHoverBehaviour, queryView)
-import Concourse
+import Common exposing (defineHoverBehaviour, expectNoTooltip, expectTooltip, queryView)
+import Concourse exposing (JsonValue(..))
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.Pagination exposing (Direction(..), Page, Pagination)
 import DashboardTests
@@ -115,11 +115,6 @@ purpleHex =
 lightGreyHex : String
 lightGreyHex =
     "#3d3c3c"
-
-
-tooltipGreyHex : String
-tooltipGreyHex =
-    "#9b9b9b"
 
 
 darkGreyHex : String
@@ -258,16 +253,9 @@ all =
                         (Callback.InputToFetched
                             (Ok
                                 ( versionID
-                                , [ { id = 0
-                                    , name = "some-build"
-                                    , job = Just Data.jobId
-                                    , status = BuildStatusSucceeded
-                                    , duration =
-                                        { startedAt = Nothing
-                                        , finishedAt = Nothing
-                                        }
-                                    , reapTime = Nothing
-                                    }
+                                , [ Data.jobBuild BuildStatusSucceeded
+                                        |> Data.withTeamName teamName
+                                        |> Data.withName "some-build"
                                   ]
                                 )
                             )
@@ -291,16 +279,9 @@ all =
                         (Callback.OutputOfFetched
                             (Ok
                                 ( versionID
-                                , [ { id = 0
-                                    , name = "some-build"
-                                    , job = Just Data.jobId
-                                    , status = BuildStatusSucceeded
-                                    , duration =
-                                        { startedAt = Nothing
-                                        , finishedAt = Nothing
-                                        }
-                                    , reapTime = Nothing
-                                    }
+                                , [ Data.jobBuild BuildStatusSucceeded
+                                        |> Data.withTeamName teamName
+                                        |> Data.withName "some-build"
                                   ]
                                 )
                             )
@@ -570,10 +551,7 @@ all =
                                 |> Tuple.second
                                 |> Common.contains
                                     (Effects.FetchVersionedResources
-                                        { teamName = teamName
-                                        , pipelineName = pipelineName
-                                        , resourceName = resourceName
-                                        }
+                                        Data.resourceId
                                         Resource.startingPage
                                     )
                     ]
@@ -877,7 +855,7 @@ all =
                             |> Query.find (versionSelector version)
                             |> findLast [ tag "div", containing [ text version ] ]
                             |> Query.has purpleOutlineSelector
-                , test "mousing over pin bar sends TogglePinBarTooltip message" <|
+                , test "mousing over pin bar sends Hover message" <|
                     \_ ->
                         init
                             |> givenResourcePinnedStatically
@@ -886,60 +864,6 @@ all =
                             |> Event.simulate Event.mouseEnter
                             |> Event.expect
                                 (Msgs.Update <| Message.Message.Hover <| Just Message.Message.PinBar)
-                , test "TogglePinBarTooltip causes tooltip to appear" <|
-                    \_ ->
-                        init
-                            |> givenResourcePinnedStatically
-                            |> hoverOverPinBar
-                            |> queryView
-                            |> Query.has pinBarTooltipSelector
-                , test "pin bar tooltip has text 'pinned in pipeline config'" <|
-                    \_ ->
-                        init
-                            |> givenResourcePinnedStatically
-                            |> hoverOverPinBar
-                            |> queryView
-                            |> Query.find pinBarTooltipSelector
-                            |> Query.has [ text "pinned in pipeline config" ]
-                , test "pin bar tooltip is positioned above and near the left of the pin bar" <|
-                    \_ ->
-                        init
-                            |> givenResourcePinnedStatically
-                            |> hoverOverPinBar
-                            |> queryView
-                            |> Query.find pinBarTooltipSelector
-                            |> Query.has
-                                [ style "position" "absolute"
-                                , style "top" "-10px"
-                                , style "left" "30px"
-                                ]
-                , test "pin bar tooltip is light grey" <|
-                    \_ ->
-                        init
-                            |> givenResourcePinnedStatically
-                            |> hoverOverPinBar
-                            |> queryView
-                            |> Query.find pinBarTooltipSelector
-                            |> Query.has
-                                [ style "background-color" ColorValues.grey20 ]
-                , test "pin bar tooltip has a bit of padding around text" <|
-                    \_ ->
-                        init
-                            |> givenResourcePinnedStatically
-                            |> hoverOverPinBar
-                            |> queryView
-                            |> Query.find pinBarTooltipSelector
-                            |> Query.has
-                                [ style "padding" "5px" ]
-                , test "pin bar tooltip appears above other elements in the DOM" <|
-                    \_ ->
-                        init
-                            |> givenResourcePinnedStatically
-                            |> hoverOverPinBar
-                            |> queryView
-                            |> Query.find pinBarTooltipSelector
-                            |> Query.has
-                                [ style "z-index" "2" ]
                 , test "mousing out of pin bar sends Hover Nothing message" <|
                     \_ ->
                         init
@@ -950,15 +874,6 @@ all =
                             |> Event.simulate Event.mouseLeave
                             |> Event.expect
                                 (Msgs.Update <| Message.Message.Hover Nothing)
-                , test "when mousing off pin bar, tooltip disappears" <|
-                    \_ ->
-                        init
-                            |> givenResourcePinnedStatically
-                            |> hoverOverPinBar
-                            |> update (Message.Message.Hover Nothing)
-                            |> Tuple.first
-                            |> queryView
-                            |> Query.hasNot pinBarTooltipSelector
                 ]
             , describe "per-version pin buttons"
                 [ test "unpinned versions are lower opacity" <|
@@ -984,36 +899,6 @@ all =
                                         Just <|
                                             Message.Message.PinButton versionID
                                 )
-                , test "mousing over an unpinned version's pin button doesn't send any msg" <|
-                    \_ ->
-                        init
-                            |> givenResourcePinnedStatically
-                            |> givenVersionsWithoutPagination
-                            |> queryView
-                            |> Query.find (versionSelector otherVersion)
-                            |> Query.find pinButtonSelector
-                            |> Event.simulate Event.mouseOver
-                            |> Event.toResult
-                            |> Expect.err
-                , test "shows tooltip on the pinned version's pin button on ToggleVersionTooltip" <|
-                    \_ ->
-                        init
-                            |> givenResourcePinnedStatically
-                            |> givenVersionsWithoutPagination
-                            |> hoverOverPinButton
-                            |> queryView
-                            |> Query.find (versionSelector version)
-                            |> Query.has versionTooltipSelector
-                , test "keeps tooltip on the pinned version's pin button on autorefresh" <|
-                    \_ ->
-                        init
-                            |> givenResourcePinnedStatically
-                            |> givenVersionsWithoutPagination
-                            |> hoverOverPinButton
-                            |> givenVersionsWithoutPagination
-                            |> queryView
-                            |> Query.find (versionSelector version)
-                            |> Query.has versionTooltipSelector
                 , test "mousing off the pinned version's pin button sends Hover Nothing" <|
                     \_ ->
                         init
@@ -1026,29 +911,6 @@ all =
                             |> Event.simulate Event.mouseOut
                             |> Event.expect
                                 (Msgs.Update <| Message.Message.Hover Nothing)
-                , test "mousing off an unpinned version's pin button doesn't send any msg" <|
-                    \_ ->
-                        init
-                            |> givenResourcePinnedStatically
-                            |> givenVersionsWithoutPagination
-                            |> hoverOverPinButton
-                            |> queryView
-                            |> Query.find (versionSelector otherVersion)
-                            |> Query.find pinButtonSelector
-                            |> Event.simulate Event.mouseOut
-                            |> Event.toResult
-                            |> Expect.err
-                , test "hides tooltip on the pinned version's pin button on ToggleVersionTooltip" <|
-                    \_ ->
-                        init
-                            |> givenResourcePinnedStatically
-                            |> givenVersionsWithoutPagination
-                            |> hoverOverPinButton
-                            |> update (Message.Message.Hover Nothing)
-                            |> Tuple.first
-                            |> queryView
-                            |> Query.find (versionSelector version)
-                            |> Query.hasNot versionTooltipSelector
                 , test "clicking on pin button on pinned version doesn't send any msg" <|
                     \_ ->
                         init
@@ -1097,13 +959,7 @@ all =
                             |> queryView
                             |> Query.find [ id "pin-bar" ]
                 in
-                [ test "when mousing over pin bar, tooltip does not appear" <|
-                    \_ ->
-                        pinBar
-                            |> Event.simulate Event.mouseEnter
-                            |> Event.toResult
-                            |> Expect.err
-                , test "aligns its children on top left" <|
+                [ test "aligns its children on top left" <|
                     \_ ->
                         pinBar
                             |> Query.has [ style "align-items" "flex-start" ]
@@ -1260,17 +1116,7 @@ all =
                             }
                             |> Resource.handleCallback
                                 (Callback.ResourceFetched <|
-                                    Ok
-                                        { teamName = teamName
-                                        , pipelineName = pipelineName
-                                        , name = resourceName
-                                        , lastChecked = Nothing
-                                        , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
-                                        , pinnedInConfig = False
-                                        , pinComment = Nothing
-                                        , icon = Nothing
-                                        , build = Nothing
-                                        }
+                                    Ok (Data.resource (Just version))
                                 )
                                 session
                             |> Resource.handleCallback
@@ -1279,17 +1125,17 @@ all =
                                         ( Resource.startingPage
                                         , { content =
                                                 [ { id = versionID.versionID
-                                                  , version = Dict.fromList [ ( "version", version ) ]
+                                                  , version = Data.version version
                                                   , metadata = []
                                                   , enabled = True
                                                   }
                                                 , { id = otherVersionID.versionID
-                                                  , version = Dict.fromList [ ( "version", otherVersion ) ]
+                                                  , version = Data.version otherVersion
                                                   , metadata = []
                                                   , enabled = True
                                                   }
                                                 , { id = disabledVersionID.versionID
-                                                  , version = Dict.fromList [ ( "version", disabledVersion ) ]
+                                                  , version = Data.version disabledVersion
                                                   , metadata = []
                                                   , enabled = False
                                                   }
@@ -1315,17 +1161,7 @@ all =
                             }
                             |> Resource.handleCallback
                                 (Callback.ResourceFetched <|
-                                    Ok
-                                        { teamName = teamName
-                                        , pipelineName = pipelineName
-                                        , name = resourceName
-                                        , lastChecked = Nothing
-                                        , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
-                                        , pinnedInConfig = False
-                                        , pinComment = Nothing
-                                        , icon = Nothing
-                                        , build = Nothing
-                                        }
+                                    Ok (Data.resource (Just version))
                                 )
                                 session
                             |> Resource.handleCallback
@@ -1334,17 +1170,17 @@ all =
                                         ( Resource.startingPage
                                         , { content =
                                                 [ { id = versionID.versionID
-                                                  , version = Dict.fromList [ ( "version", version ) ]
+                                                  , version = Data.version version
                                                   , metadata = []
                                                   , enabled = True
                                                   }
                                                 , { id = otherVersionID.versionID
-                                                  , version = Dict.fromList [ ( "version", otherVersion ) ]
+                                                  , version = Data.version otherVersion
                                                   , metadata = []
                                                   , enabled = True
                                                   }
                                                 , { id = disabledVersionID.versionID
-                                                  , version = Dict.fromList [ ( "version", disabledVersion ) ]
+                                                  , version = Data.version disabledVersion
                                                   , metadata = []
                                                   , enabled = False
                                                   }
@@ -1372,17 +1208,7 @@ all =
                             |> Resource.handleDelivery session (ClockTicked OneSecond (Time.millisToPosix 1000))
                             |> Resource.handleCallback
                                 (Callback.ResourceFetched <|
-                                    Ok
-                                        { teamName = teamName
-                                        , pipelineName = pipelineName
-                                        , name = resourceName
-                                        , lastChecked = Nothing
-                                        , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
-                                        , pinnedInConfig = False
-                                        , pinComment = Nothing
-                                        , icon = Nothing
-                                        , build = Nothing
-                                        }
+                                    Ok (Data.resource (Just version))
                                 )
                                 session
                             |> Resource.handleCallback
@@ -1391,17 +1217,17 @@ all =
                                         ( Resource.startingPage
                                         , { content =
                                                 [ { id = versionID.versionID
-                                                  , version = Dict.fromList [ ( "version", version ) ]
+                                                  , version = Data.version version
                                                   , metadata = []
                                                   , enabled = True
                                                   }
                                                 , { id = otherVersionID.versionID
-                                                  , version = Dict.fromList [ ( "version", otherVersion ) ]
+                                                  , version = Data.version otherVersion
                                                   , metadata = []
                                                   , enabled = True
                                                   }
                                                 , { id = disabledVersionID.versionID
-                                                  , version = Dict.fromList [ ( "version", disabledVersion ) ]
+                                                  , version = Data.version disabledVersion
                                                   , metadata = []
                                                   , enabled = False
                                                   }
@@ -1432,17 +1258,7 @@ all =
                             |> Resource.handleDelivery session (ClockTicked OneSecond (Time.millisToPosix 1000))
                             |> Resource.handleCallback
                                 (Callback.ResourceFetched <|
-                                    Ok
-                                        { teamName = teamName
-                                        , pipelineName = pipelineName
-                                        , name = resourceName
-                                        , lastChecked = Nothing
-                                        , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
-                                        , pinnedInConfig = False
-                                        , pinComment = Nothing
-                                        , icon = Nothing
-                                        , build = Nothing
-                                        }
+                                    Ok (Data.resource (Just version))
                                 )
                                 session
                             |> Resource.handleCallback
@@ -1451,17 +1267,17 @@ all =
                                         ( Resource.startingPage
                                         , { content =
                                                 [ { id = versionID.versionID
-                                                  , version = Dict.fromList [ ( "version", version ) ]
+                                                  , version = Data.version version
                                                   , metadata = []
                                                   , enabled = True
                                                   }
                                                 , { id = otherVersionID.versionID
-                                                  , version = Dict.fromList [ ( "version", otherVersion ) ]
+                                                  , version = Data.version otherVersion
                                                   , metadata = []
                                                   , enabled = True
                                                   }
                                                 , { id = disabledVersionID.versionID
-                                                  , version = Dict.fromList [ ( "version", disabledVersion ) ]
+                                                  , version = Data.version disabledVersion
                                                   , metadata = []
                                                   , enabled = False
                                                   }
@@ -1474,17 +1290,7 @@ all =
                             |> Resource.update (Click <| PinButton otherVersionID)
                             |> Resource.handleCallback
                                 (Callback.ResourceFetched <|
-                                    Ok
-                                        { teamName = teamName
-                                        , pipelineName = pipelineName
-                                        , name = resourceName
-                                        , lastChecked = Nothing
-                                        , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
-                                        , pinnedInConfig = False
-                                        , pinComment = Nothing
-                                        , icon = Nothing
-                                        , build = Nothing
-                                        }
+                                    Ok (Data.resource (Just version))
                                 )
                                 session
                             |> Tuple.first
@@ -1579,15 +1385,6 @@ all =
                                     Assets.backgroundImage <|
                                         Just Assets.PinIconWhite
                                 ]
-                , test "does not show tooltip on the pin button on ToggleVersionTooltip" <|
-                    \_ ->
-                        init
-                            |> givenResourcePinnedDynamically
-                            |> givenVersionsWithoutPagination
-                            |> hoverOverPinButton
-                            |> queryView
-                            |> Query.find (versionSelector version)
-                            |> Query.hasNot versionTooltipSelector
                 , test "unpinned versions are lower opacity" <|
                     \_ ->
                         init
@@ -1610,19 +1407,35 @@ all =
                                 )
                 , describe "when the pipeline is archived" <|
                     let
-                        setup =
-                            init
-                                |> givenResourceIsNotPinned
+                        regularPipelineResource =
+                            Data.resource Nothing
+
+                        instancedPipelineResource =
+                            regularPipelineResource
+                                |> Data.withPipelineInstanceVars (Dict.fromList [ ( "foo", JsonNumber 1 ) ])
+
+                        setup resource =
+                            Common.initRoute (Routes.resourceRoute resource)
+                                |> givenAResourceIsNotPinned resource
                                 |> givenVersionsWithoutPagination
                                 |> givenThePipelineIsArchived
                                 |> queryView
                     in
                     [ test "has no pin button" <|
                         \_ ->
-                            setup |> Query.hasNot pinButtonSelector
+                            setup regularPipelineResource
+                                |> Query.hasNot pinButtonSelector
                     , test "has no enable checkbox" <|
                         \_ ->
-                            setup |> Query.hasNot checkboxSelector
+                            setup regularPipelineResource
+                                |> Query.hasNot checkboxSelector
+                    , test "pipeline lookup considers instance vars" <|
+                        \_ ->
+                            setup instancedPipelineResource
+                                |> Expect.all
+                                    [ Query.has pinButtonSelector
+                                    , Query.has checkboxSelector
+                                    ]
                     ]
                 ]
             , test "resource refreshes on successful VersionUnpinned msg" <|
@@ -2370,16 +2183,6 @@ all =
                                     , style "background-position" "50% 50%"
                                     ]
                             )
-                , test "pin buttons are positioned to anchor their tooltips" <|
-                    allVersions
-                        >> Query.each
-                            (Query.children []
-                                >> Query.first
-                                >> Query.children []
-                                >> Query.index 1
-                                >> Query.has
-                                    [ style "position" "relative" ]
-                            )
                 , test "version headers lay out horizontally, centering" <|
                     allVersions
                         >> Query.each
@@ -2412,16 +2215,6 @@ all =
                                 >> Query.has
                                     [ style "cursor" "pointer" ]
                             )
-                , test "version headers have contents offset from the left" <|
-                    allVersions
-                        >> Query.each
-                            (Query.children []
-                                >> Query.first
-                                >> Query.children []
-                                >> Query.index 2
-                                >> Query.has
-                                    [ style "padding-left" "10px" ]
-                            )
                 ]
             , test "clicking pin icon on pin bar does nothing" <|
                 \_ ->
@@ -2441,15 +2234,6 @@ all =
                         |> Event.simulate Event.mouseEnter
                         |> Event.toResult
                         |> Expect.err
-            , test "does not show tooltip on the pin icon on ToggleVersionTooltip" <|
-                \_ ->
-                    init
-                        |> givenResourceIsNotPinned
-                        |> givenVersionsWithoutPagination
-                        |> hoverOverPinButton
-                        |> queryView
-                        |> Query.find (versionSelector version)
-                        |> Query.hasNot versionTooltipSelector
             , test "all pin buttons have pointer cursor" <|
                 \_ ->
                     init
@@ -3016,16 +2800,9 @@ all =
                             |> Application.handleCallback
                                 (Callback.ResourceFetched <|
                                     Ok
-                                        { teamName = teamName
-                                        , pipelineName = pipelineName
-                                        , name = resourceName
-                                        , lastChecked = Just (Time.millisToPosix 0)
-                                        , pinnedVersion = Nothing
-                                        , pinnedInConfig = False
-                                        , pinComment = Nothing
-                                        , icon = Nothing
-                                        , build = Nothing
-                                        }
+                                        (Data.resource Nothing
+                                            |> Data.withLastChecked (Just (Time.millisToPosix 0))
+                                        )
                                 )
                             |> Tuple.first
                             |> Application.update
@@ -3043,18 +2820,9 @@ all =
                             |> Application.handleCallback
                                 (Callback.ResourceFetched <|
                                     Ok
-                                        { teamName = teamName
-                                        , pipelineName = pipelineName
-                                        , name = resourceName
-                                        , lastChecked =
-                                            Just
-                                                (Time.millisToPosix 0)
-                                        , pinnedVersion = Nothing
-                                        , pinnedInConfig = False
-                                        , pinComment = Nothing
-                                        , icon = Nothing
-                                        , build = Nothing
-                                        }
+                                        (Data.resource Nothing
+                                            |> Data.withLastChecked (Just (Time.millisToPosix 0))
+                                        )
                                 )
                             |> Tuple.first
                             |> Application.handleCallback
@@ -3082,16 +2850,7 @@ all =
                     Data.build Concourse.BuildStatus.BuildStatusFailed
 
                 resource =
-                    { teamName = teamName
-                    , pipelineName = pipelineName
-                    , name = resourceName
-                    , lastChecked = Nothing
-                    , pinnedVersion = Nothing
-                    , pinnedInConfig = False
-                    , pinComment = Nothing
-                    , icon = Nothing
-                    , build = Just baseBuild
-                    }
+                    Data.resource Nothing |> Data.withBuild (Just baseBuild)
             in
             [ test "check with build fetches build plan" <|
                 \_ ->
@@ -3538,6 +3297,79 @@ all =
                                 (Effects.GetViewportOf <| Message.Message.StepState "plan")
                 ]
             ]
+        , describe "tooltips" <|
+            [ test "manual check button" <|
+                \_ ->
+                    init
+                        |> givenResourceIsNotPinned
+                        |> expectTooltip (CheckButton False) "trigger manual check"
+            , test "pin icon" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedDynamically
+                        |> expectTooltip PinIcon "unpin version"
+            , test "edit button" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedDynamically
+                        |> expectTooltip EditButton "edit pin comment"
+            , test "version pin button, no pin" <|
+                \_ ->
+                    init
+                        |> givenResourceIsNotPinned
+                        |> givenVersionsWithoutPagination
+                        |> expectTooltip (PinButton versionID) "pin version"
+            , test "version pin button, other version pinned" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedDynamically
+                        |> givenVersionsWithoutPagination
+                        |> expectTooltip (PinButton otherVersionID) "pin version"
+            , test "version pin button, current version pinned" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedDynamically
+                        |> givenVersionsWithoutPagination
+                        |> expectTooltip (PinButton versionID) "unpin version"
+            , test "version pin button, static pin" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedStatically
+                        |> givenVersionsWithoutPagination
+                        |> expectTooltip (PinButton otherVersionID) "version is pinned in the pipeline config"
+            , test "enable version toggle button, enabled" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedDynamically
+                        |> givenVersionsWithoutPagination
+                        |> expectTooltip (VersionToggle otherVersionID) "disable version"
+            , test "enable version toggle button, disabled" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedDynamically
+                        |> givenVersionsWithoutPagination
+                        |> expectTooltip (VersionToggle disabledVersionID) "enable version"
+            , test "pin bar, dynamic pin" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedDynamically
+                        |> expectNoTooltip PinBar
+            , test "pin bar, static pin" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedStatically
+                        |> expectTooltip PinBar "version is pinned in the pipeline config"
+            , test "next page button" <|
+                \_ ->
+                    init
+                        |> givenVersionsWithPagination
+                        |> expectTooltip NextPageButton "view next page"
+            , test "previous page button" <|
+                \_ ->
+                    init
+                        |> givenVersionsWithPagination
+                        |> expectTooltip PreviousPageButton "view previous page"
+            ]
         ]
 
 
@@ -3600,16 +3432,9 @@ givenResourcePinnedStatically =
     Application.handleCallback
         (Callback.ResourceFetched <|
             Ok
-                { teamName = teamName
-                , pipelineName = pipelineName
-                , name = resourceName
-                , lastChecked = Nothing
-                , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
-                , pinnedInConfig = True
-                , pinComment = Nothing
-                , icon = Nothing
-                , build = Nothing
-                }
+                (Data.resource (Just version)
+                    |> Data.withPinnedInConfig True
+                )
         )
         >> Tuple.first
 
@@ -3619,16 +3444,9 @@ givenResourcePinnedDynamically =
     Application.handleCallback
         (Callback.ResourceFetched <|
             Ok
-                { teamName = teamName
-                , pipelineName = pipelineName
-                , name = resourceName
-                , lastChecked = Nothing
-                , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
-                , pinnedInConfig = False
-                , pinComment = Nothing
-                , icon = Nothing
-                , build = Nothing
-                }
+                (Data.resource (Just version)
+                    |> Data.withPinnedInConfig False
+                )
         )
         >> Tuple.first
 
@@ -3638,17 +3456,9 @@ whenResourceLoadsWithPinnedComment =
     Application.handleCallback
         (Callback.ResourceFetched <|
             Ok
-                { teamName = teamName
-                , pipelineName = pipelineName
-                , name = resourceName
-                , lastChecked = Nothing
-                , pinnedVersion =
-                    Just (Dict.fromList [ ( "version", version ) ])
-                , pinnedInConfig = False
-                , pinComment = Just "some pin comment"
-                , icon = Nothing
-                , build = Nothing
-                }
+                (Data.resource (Just version)
+                    |> Data.withPinComment (Just "some pin comment")
+                )
         )
 
 
@@ -3657,23 +3467,21 @@ givenResourcePinnedWithComment =
     whenResourceLoadsWithPinnedComment >> Tuple.first
 
 
-givenResourceIsNotPinned : Application.Model -> Application.Model
-givenResourceIsNotPinned =
+givenAResourceIsNotPinned : Concourse.Resource -> Application.Model -> Application.Model
+givenAResourceIsNotPinned resource =
     Application.handleCallback
         (Callback.ResourceFetched <|
             Ok
-                { teamName = teamName
-                , pipelineName = pipelineName
-                , name = resourceName
-                , lastChecked = Just (Time.millisToPosix 0)
-                , pinnedVersion = Nothing
-                , pinnedInConfig = False
-                , pinComment = Nothing
-                , icon = Nothing
-                , build = Nothing
-                }
+                (resource
+                    |> Data.withLastChecked (Just (Time.millisToPosix 0))
+                )
         )
         >> Tuple.first
+
+
+givenResourceIsNotPinned : Application.Model -> Application.Model
+givenResourceIsNotPinned =
+    givenAResourceIsNotPinned (Data.resource Nothing)
 
 
 givenResourceHasIcon : Application.Model -> Application.Model
@@ -3681,16 +3489,10 @@ givenResourceHasIcon =
     Application.handleCallback
         (Callback.ResourceFetched <|
             Ok
-                { teamName = teamName
-                , pipelineName = pipelineName
-                , name = resourceName
-                , lastChecked = Just (Time.millisToPosix 0)
-                , pinnedVersion = Nothing
-                , pinnedInConfig = False
-                , pinComment = Nothing
-                , icon = Just resourceIcon
-                , build = Nothing
-                }
+                (Data.resource (Just version)
+                    |> Data.withLastChecked (Just (Time.millisToPosix 0))
+                    |> Data.withIcon (Just resourceIcon)
+                )
         )
         >> Tuple.first
 
@@ -3822,6 +3624,10 @@ givenThePipelineIsArchived =
                 [ Data.pipeline teamName 0
                     |> Data.withName pipelineName
                     |> Data.withArchived True
+                , Data.pipeline teamName 1
+                    |> Data.withName pipelineName
+                    |> Data.withInstanceVars (Dict.fromList [ ( "foo", JsonNumber 1 ) ])
+                    |> Data.withArchived False
                 ]
         )
         >> Tuple.first
@@ -3936,23 +3742,6 @@ purpleOutlineSelector =
 findLast : List Selector -> Query.Single msg -> Query.Single msg
 findLast selectors =
     Query.findAll selectors >> Query.index -1
-
-
-pinBarTooltipSelector : List Selector
-pinBarTooltipSelector =
-    [ id "pin-bar-tooltip" ]
-
-
-versionTooltipSelector : List Selector
-versionTooltipSelector =
-    [ style "position" "absolute"
-    , style "bottom" "25px"
-    , style "background-color" ColorValues.grey20
-    , style "z-index" "2"
-    , style "padding" "5px"
-    , style "width" "170px"
-    , containing [ text "enable via pipeline config" ]
-    ]
 
 
 pinButtonHasTransitionState : Query.Single msg -> Expectation
@@ -4090,6 +3879,8 @@ session =
         }
     , draggingSideBar = False
     , favoritedPipelines = Set.empty
+    , favoritedInstanceGroups = Set.empty
     , screenSize = ScreenSize.Desktop
     , timeZone = Time.utc
+    , route = Routes.Resource { id = Data.resourceId, page = Nothing }
     }
