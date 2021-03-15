@@ -736,6 +736,7 @@ sampleOldModel =
                     , eventSourceOpened = True
                     , eventStreamUrlPath = Nothing
                     , highlight = Routes.HighlightNothing
+                    , buildId = Nothing
                     }
             }
     , autoScroll = True
@@ -772,6 +773,7 @@ sampleModel =
             , eventSourceOpened = True
             , eventStreamUrlPath = Nothing
             , highlight = Routes.HighlightNothing
+            , buildId = Nothing
             }
     , autoScroll = True
     , isScrollToIdInProgress = False
@@ -859,6 +861,7 @@ stepsModel =
         , steps = steps
         , highlight = Routes.HighlightNothing
         , resources = { inputs = [], outputs = [] }
+        , buildId = Nothing
         }
 
 
