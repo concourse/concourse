@@ -183,7 +183,7 @@ func (c *Container) Run(ctx context.Context, spec garden.ProcessSpec, io garden.
 	proc := NewProcess(spec.ID, spec)
 	proc.AddIO(io)
 
-	go proc.Run()
+	go proc.Run(ctx)
 
 	c.Processes = append(c.Processes, proc)
 	return proc, nil
@@ -272,7 +272,7 @@ func (p *Process) AddIO(io garden.ProcessIO) {
 	p.io = append(p.io, io)
 }
 
-func (p *Process) Run() {
+func (p *Process) Run(ctx context.Context) {
 	defer close(p.wait)
 
 	switch p.Spec.Path {
@@ -284,9 +284,13 @@ func (p *Process) Run() {
 		if err != nil {
 			panic(fmt.Sprintf("invalid duration: %v", err))
 		}
-		time.Sleep(duration)
-		p.WriteStdout([]byte(strings.Join(p.Spec.Args[1:], " ") + "\n"))
-		p.exitCode = 0
+		select {
+		case <-ctx.Done():
+			p.exitCode = 1
+		case <-time.After(duration):
+			p.WriteStdout([]byte(strings.Join(p.Spec.Args[1:], " ") + "\n"))
+			p.exitCode = 0
+		}
 	case "noop":
 		p.exitCode = 0
 	default:

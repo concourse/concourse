@@ -48,12 +48,16 @@ func (worker *Worker) LookupContainer(logger lager.Logger, handle string) (runti
 	return Container{GardenContainer: gardenContainer, DBContainer_: createdContainer}, true, nil
 }
 
-func (c Container) Run(ctx context.Context, spec runtime.ProcessSpec, io runtime.ProcessIO) (runtime.Process, error) {
+func (c Container) Run(_ context.Context, spec runtime.ProcessSpec, io runtime.ProcessIO) (runtime.Process, error) {
 	properties, err := c.GardenContainer.Properties()
 	if err != nil {
 		return nil, fmt.Errorf("get properties: %w", err)
 	}
-	process, err := c.GardenContainer.Run(ctx, toGardenProcessSpec(spec, properties), toGardenProcessIO(io))
+	// Using context.Background() since GardenContainer.Run uses the passed in
+	// ctx to stream the process output. Since we send a SIGTERM on ctx
+	// cancellation, using the same ctx for streaming results in those logs not
+	// showing up.
+	process, err := c.GardenContainer.Run(context.Background(), toGardenProcessSpec(spec, properties), toGardenProcessIO(io))
 	if err != nil {
 		var exeNotFound garden.ExecutableNotFoundError
 		if errors.As(err, &exeNotFound) {
@@ -65,7 +69,7 @@ func (c Container) Run(ctx context.Context, spec runtime.ProcessSpec, io runtime
 	return Process{GardenContainer: c.GardenContainer, GardenProcess: process}, nil
 }
 
-func (c Container) Attach(ctx context.Context, id string, io runtime.ProcessIO) (runtime.Process, error) {
+func (c Container) Attach(_ context.Context, id string, io runtime.ProcessIO) (runtime.Process, error) {
 	properties, _ := c.GardenContainer.Properties()
 	statusStr, ok := properties[exitStatusPropertyName]
 	if ok {
@@ -74,7 +78,11 @@ func (c Container) Attach(ctx context.Context, id string, io runtime.ProcessIO) 
 		}
 	}
 
-	process, err := c.GardenContainer.Attach(ctx, id, toGardenProcessIO(io))
+	// Using context.Background() since GardenContainer.Attach uses the passed
+	// in ctx to stream the process output. Since we send a SIGTERM on ctx
+	// cancellation, using the same ctx for streaming results in those logs not
+	// showing up.
+	process, err := c.GardenContainer.Attach(context.Background(), id, toGardenProcessIO(io))
 	if err != nil {
 		return nil, fmt.Errorf("start process: %w", err)
 	}

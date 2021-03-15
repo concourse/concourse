@@ -25,11 +25,7 @@ import (
 
 var _ = Describe("Garden Worker", func() {
 	logger := lagertest.NewTestLogger("dummy")
-	var ctx context.Context
-
-	BeforeEach(func() {
-		ctx = context.Background()
-	})
+	ctx := context.Background()
 
 	Test("running a process on a newly created container", func() {
 		scenario := Setup(
@@ -1105,6 +1101,60 @@ var _ = Describe("Garden Worker", func() {
 			// failed containers aren't returned by db.Worker.FindContainer
 			_, isDBContainerFound := scenario.DB.FindContainer(worker.Name(), containerOwner)
 			Expect(isDBContainerFound).To(BeFalse())
+		})
+	})
+
+	Test("run/attach process context cancellation", func() {
+		scenario := Setup(
+			workertest.WithWorkers(
+				grt.NewWorker("worker"),
+			),
+		)
+		worker := scenario.Worker("worker")
+
+		container, _, err := worker.FindOrCreateContainer(
+			ctx,
+			db.NewFixedHandleContainerOwner("container"),
+			db.ContainerMetadata{},
+			runtime.ContainerSpec{
+				ImageSpec: runtime.ImageSpec{
+					ImageURL: "raw:///img/rootfs",
+				},
+				Dir: "/workdir",
+			},
+		)
+		Expect(err).ToNot(HaveOccurred())
+
+		cancelCtx, cancel := context.WithCancel(ctx)
+		runBuf := new(bytes.Buffer)
+		runProcess, err := container.Run(cancelCtx, runtime.ProcessSpec{
+			Path: "sleep-and-echo",
+			Args: []string{"200ms", "hello world"},
+		}, runtime.ProcessIO{
+			Stdout: runBuf,
+		})
+		Expect(err).ToNot(HaveOccurred())
+
+		attachBuf := new(bytes.Buffer)
+		attachProcess, err := container.Attach(cancelCtx, runProcess.ID(), runtime.ProcessIO{
+			Stdout: attachBuf,
+		})
+		Expect(err).ToNot(HaveOccurred())
+
+		By("cancelling the context used to start the process", func() {
+			cancel()
+		})
+
+		By("successfully waiting for the process on the container using the non-cancelled context", func() {
+			result, err := runProcess.Wait(ctx)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result.ExitStatus).To(Equal(0))
+			Expect(runBuf.String()).To(Equal("hello world\n"))
+
+			result, err = attachProcess.Wait(ctx)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result.ExitStatus).To(Equal(0))
+			Expect(runBuf.String()).To(Equal("hello world\n"))
 		})
 	})
 })

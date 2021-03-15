@@ -328,7 +328,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 }
 
 func attachOrRun(ctx context.Context, container runtime.Container, spec runtime.ProcessSpec, io runtime.ProcessIO) (runtime.Process, error) {
-	process, err := container.Attach(ctx, taskProcessID, io)
+	process, err := container.Attach(ctx, spec.ID, io)
 	if err == nil {
 		return process, nil
 	}

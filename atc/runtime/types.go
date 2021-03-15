@@ -24,8 +24,16 @@ type Container interface {
 	// Run starts a Process on the Container. If the executable (defined in
 	// ProcessSpec) does not exist, an ExecutableNotFound error must be
 	// returned.
+	//
+	// The passed in Context only applies to the request to start the Process,
+	// so cancelling the Context should not cancel the Process. To cancel the
+	// Process, use the Context passed into Process.Wait.
 	Run(context.Context, ProcessSpec, ProcessIO) (Process, error)
 	// Attach attempts to attach to an existing process by its ID.
+	//
+	// The passed in Context only applies to the request to attach to the
+	// Process, so cancelling the Context should not cancel the Process. To
+	// cancel the Process, use the Context passed into Process.Wait.
 	Attach(context.Context, string, ProcessIO) (Process, error)
 
 	Properties() (map[string]string, error)
