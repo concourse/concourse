@@ -50,9 +50,9 @@ func (v *Variables) NewScope(tracker *vars.Tracker) *Variables {
 }
 
 func (v *Variables) SetVar(source, name string, val interface{}, redact bool) {
-	v.lock.RLock()
+	v.lock.Lock()
 	v.localVars[name] = val
-	v.lock.RUnlock()
+	v.lock.Unlock()
 
 	if redact {
 		v.tracker.Track(vars.Reference{Source: source, Path: name}, val)
