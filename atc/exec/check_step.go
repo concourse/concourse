@@ -255,7 +255,7 @@ func (step *CheckStep) runCheck(
 			return worker.CheckResult{}, err
 		}
 	} else {
-		imageSpec.ResourceType = step.plan.BaseImageType
+		imageSpec.ResourceType = step.plan.BaseType
 	}
 
 	containerSpec := worker.ContainerSpec{

@@ -168,7 +168,7 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 			return false, err
 		}
 	} else {
-		imageSpec.ResourceType = step.plan.BaseImageType
+		imageSpec.ResourceType = step.plan.BaseType
 	}
 
 	containerSpec := worker.ContainerSpec{

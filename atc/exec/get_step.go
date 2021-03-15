@@ -150,7 +150,7 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 			return false, err
 		}
 	} else {
-		imageSpec.ResourceType = step.plan.BaseImageType
+		imageSpec.ResourceType = step.plan.BaseType
 	}
 
 	resourceTypes, err := creds.NewVersionedResourceTypes(delegate.Variables(ctx, state.VarSourceConfigs()), step.plan.VersionedResourceTypes).Evaluate()

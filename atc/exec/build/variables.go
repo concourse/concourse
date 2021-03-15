@@ -1,6 +1,8 @@
 package build
 
 import (
+	"sync"
+
 	"github.com/concourse/concourse/vars"
 )
 
@@ -8,6 +10,7 @@ type Variables struct {
 	parentScope vars.Variables
 	localVars   vars.StaticVariables
 	tracker     *vars.Tracker
+	lock        sync.RWMutex
 }
 
 func NewVariables(tracker *vars.Tracker) *Variables {
@@ -19,7 +22,9 @@ func NewVariables(tracker *vars.Tracker) *Variables {
 
 func (v *Variables) Get(ref vars.Reference) (interface{}, bool, error) {
 	if ref.Source == "." {
+		v.lock.RLock()
 		val, found, err := v.localVars.Get(ref)
+		v.lock.RUnlock()
 		if found || err != nil {
 			return val, found, err
 		}
@@ -44,7 +49,9 @@ func (v *Variables) NewScope(tracker *vars.Tracker) *Variables {
 }
 
 func (v *Variables) SetVar(source, name string, val interface{}, redact bool) {
+	v.lock.Lock()
 	v.localVars[name] = val
+	v.lock.Unlock()
 
 	if redact {
 		v.tracker.Track(vars.Reference{Source: source, Path: name}, val)
