@@ -283,6 +283,10 @@ var _ = Describe("RunScript", func() {
 					Expect(runScriptErr).To(HaveOccurred())
 					Expect(runScriptErr.Error()).To(ContainSubstring("exit status 9"))
 				})
+
+				It("updates the exit code of the container", func() {
+					Expect(fakeCreatedContainer.UpdateExitCodeArgsForCall(0)).To(Equal(scriptExitStatus))
+				})
 			})
 
 		})
@@ -315,6 +319,10 @@ var _ = Describe("RunScript", func() {
 				"params": {"some":"params"},
 				"version": {"some":"version"}
 			}`))
+			})
+
+			It("updates the exit code of the container", func() {
+				Expect(fakeCreatedContainer.UpdateExitCodeArgsForCall(0)).To(Equal(scriptExitStatus))
 			})
 
 			Context("when process prints the response", func() {
@@ -376,6 +384,10 @@ var _ = Describe("RunScript", func() {
 				It("returns an err containing stdout/stderr of the process", func() {
 					Expect(runScriptErr).To(HaveOccurred())
 					Expect(runScriptErr.Error()).To(ContainSubstring("exit status 9"))
+				})
+
+				It("updates the exit code of the container", func() {
+					Expect(fakeCreatedContainer.UpdateExitCodeArgsForCall(0)).To(Equal(scriptExitStatus))
 				})
 			})
 

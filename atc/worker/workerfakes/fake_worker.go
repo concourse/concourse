@@ -523,15 +523,16 @@ func (fake *FakeWorker) AllocatableMemory() *atc.MemoryLimit {
 	ret, specificReturn := fake.allocatableMemoryReturnsOnCall[len(fake.allocatableMemoryArgsForCall)]
 	fake.allocatableMemoryArgsForCall = append(fake.allocatableMemoryArgsForCall, struct {
 	}{})
+	stub := fake.AllocatableMemoryStub
+	fakeReturns := fake.allocatableMemoryReturns
 	fake.recordInvocation("AllocatableMemory", []interface{}{})
 	fake.allocatableMemoryMutex.Unlock()
-	if fake.AllocatableMemoryStub != nil {
-		return fake.AllocatableMemoryStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.allocatableMemoryReturns
 	return fakeReturns.result1
 }
 

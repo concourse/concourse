@@ -236,12 +236,25 @@ func (client *client) RunTaskStep(
 		}
 
 		status := <-exitStatusChan
+		err := container.UpdateExitCode(status.processStatus)
+		if err != nil {
+			return TaskResult{
+				ExitStatus: status.processStatus,
+			}, err
+		}
 		return TaskResult{
 			ExitStatus:   status.processStatus,
 			VolumeMounts: container.VolumeMounts(),
 		}, ctx.Err()
 
 	case status := <-exitStatusChan:
+		err := container.UpdateExitCode(status.processStatus)
+		if err != nil {
+			return TaskResult{
+				ExitStatus: status.processStatus,
+			}, err
+		}
+
 		if status.processErr != nil {
 			return TaskResult{
 				ExitStatus: status.processStatus,

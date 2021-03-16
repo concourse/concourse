@@ -299,7 +299,7 @@ func (repository *containerRepository) FindOrphanedContainers() ([]CreatingConta
 func (repository *containerRepository) GetActiveContainerMemoryAllocation(workerName string) (atc.MemoryLimit, error) {
 	var totalMemory uint64
 	err := repository.conn.QueryRow(
-		"SELECT COALESCE(SUM(meta_memory_limit), 0) FROM containers WHERE worker_name = $1",
+		"SELECT COALESCE(SUM(meta_memory_limit), 0) FROM containers WHERE worker_name = $1 AND exit_code IS NULL",
 		workerName,
 	).Scan(&totalMemory)
 	if err != nil {

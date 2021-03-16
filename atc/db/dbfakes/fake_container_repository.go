@@ -379,15 +379,16 @@ func (fake *FakeContainerRepository) GetActiveContainerMemoryAllocation(arg1 str
 	fake.getActiveContainerMemoryAllocationArgsForCall = append(fake.getActiveContainerMemoryAllocationArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.GetActiveContainerMemoryAllocationStub
+	fakeReturns := fake.getActiveContainerMemoryAllocationReturns
 	fake.recordInvocation("GetActiveContainerMemoryAllocation", []interface{}{arg1})
 	fake.getActiveContainerMemoryAllocationMutex.Unlock()
-	if fake.GetActiveContainerMemoryAllocationStub != nil {
-		return fake.GetActiveContainerMemoryAllocationStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getActiveContainerMemoryAllocationReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
