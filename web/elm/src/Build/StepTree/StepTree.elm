@@ -78,12 +78,12 @@ init buildId hl resources plan =
         Concourse.BuildStepCheck _ ->
             step |> initBottom buildId hl resources plan Check
 
-        Concourse.BuildStepGet name version ->
+        Concourse.BuildStepGet name _ version ->
             step
                 |> setupGetStep resources name version
                 |> initBottom buildId hl resources plan Get
 
-        Concourse.BuildStepPut _ ->
+        Concourse.BuildStepPut _ _ ->
             step |> initBottom buildId hl resources plan Put
 
         Concourse.BuildStepArtifactInput _ ->
@@ -762,7 +762,7 @@ viewStepWithBody model session depth step body =
             [ viewStepHeader step
             , Html.div
                 [ style "display" "flex" ]
-                [ viewVersion step model.buildId <| stepName step.buildStep
+                [ viewVersion step model.buildId <| resourceName step.buildStep
                 , case Maybe.Extra.or step.imageCheck step.imageGet of
                     Just _ ->
                         viewInitializationToggle step
@@ -968,28 +968,36 @@ viewVersion :
     -> Html Message
 viewVersion step pipelineId name =
     let
+        viewVersionContainer =
+            case ( step.version, pipelineId, name ) of
+                ( Just version, Just pid, Just resource ) ->
+                    Html.a
+                        [ href <|
+                            Routes.toString <|
+                                Routes.Resource
+                                    { id =
+                                        { teamName = pid.teamName
+                                        , pipelineName = pid.pipelineName
+                                        , pipelineInstanceVars = pid.pipelineInstanceVars
+                                        , resourceName = resource
+                                        }
+                                    , page = Nothing
+                                    , version = Just version
+                                    }
+                        , onMouseLeave <| Hover Nothing
+                        , onMouseEnter <| Hover (Just domId)
+                        , id (toHtmlID domId)
+                        ]
+
+                _ ->
+                    Html.div []
+
         domId =
             StepVersion step.id
     in
-    case ( step.version, pipelineId, name ) of
-        ( Just version, Just pid, Just stepname ) ->
-            Html.a
-                [ href <|
-                    Routes.toString <|
-                        Routes.Resource
-                            { id =
-                                { teamName = pid.teamName
-                                , pipelineName = pid.pipelineName
-                                , pipelineInstanceVars = pid.pipelineInstanceVars
-                                , resourceName = stepname
-                                }
-                            , page = Nothing
-                            , version = Just version
-                            }
-                , onMouseLeave <| Hover Nothing
-                , onMouseEnter <| Hover (Just domId)
-                , id (toHtmlID domId)
-                ]
+    case step.version of
+        Just version ->
+            viewVersionContainer
                 [ DictView.view
                     []
                     (Dict.map (always Html.text) version)
@@ -1156,10 +1164,10 @@ viewStepHeader step =
         Concourse.BuildStepCheck name ->
             simpleHeader "check:" Nothing name
 
-        Concourse.BuildStepGet name _ ->
+        Concourse.BuildStepGet name _ _ ->
             simpleHeader "get:" (Just "new version") name
 
-        Concourse.BuildStepPut name ->
+        Concourse.BuildStepPut name _ ->
             simpleHeader "put:" Nothing name
 
         Concourse.BuildStepArtifactInput name ->
@@ -1223,10 +1231,10 @@ stepName header =
         Concourse.BuildStepCheck name ->
             Just name
 
-        Concourse.BuildStepGet name _ ->
+        Concourse.BuildStepGet name _ _ ->
             Just name
 
-        Concourse.BuildStepPut name ->
+        Concourse.BuildStepPut name _ ->
             Just name
 
         Concourse.BuildStepAcross { vars } ->
@@ -1260,6 +1268,19 @@ stepName header =
             Nothing
 
         Concourse.BuildStepTimeout _ ->
+            Nothing
+
+
+resourceName : Concourse.BuildStep -> Maybe String
+resourceName step =
+    case step of
+        Concourse.BuildStepGet _ resource _ ->
+            resource
+
+        Concourse.BuildStepPut _ resource ->
+            resource
+
+        _ ->
             Nothing
 
 
@@ -1329,7 +1350,7 @@ tooltip model { hovered } =
                     { direction = Tooltip.Top
                     , alignment = Tooltip.End
                     }
-                , arrow = Just 5
+                , arrow = Nothing
                 , containerAttrs = Nothing
                 }
 

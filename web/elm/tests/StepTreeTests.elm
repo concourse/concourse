@@ -190,7 +190,7 @@ initGet =
             Dict.fromList [ ( "some", "version" ) ]
 
         step =
-            BuildStepGet "some-name" (Just version)
+            BuildStepGet "some-name" (Just "some-resource") (Just version)
 
         { tree, steps } =
             StepTree.init Nothing
@@ -214,7 +214,7 @@ initPut : Test
 initPut =
     let
         step =
-            BuildStepPut "some-name"
+            BuildStepPut "some-name" (Just "some-resource")
 
         { tree, steps } =
             StepTree.init Nothing
