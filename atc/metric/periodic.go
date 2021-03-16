@@ -68,14 +68,6 @@ func tick(logger lager.Logger, m *Monitor) {
 	)
 
 	m.emit(
-		logger.Session("checks-deleted"),
-		Event{
-			Name:  "checks deleted",
-			Value: m.ChecksDeleted.Delta(),
-		},
-	)
-
-	m.emit(
 		logger.Session("volumes-streamed"),
 		Event{
 			Name:  "volumes streamed",

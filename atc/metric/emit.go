@@ -49,7 +49,6 @@ type Monitor struct {
 
 	ContainersDeleted Counter
 	VolumesDeleted    Counter
-	ChecksDeleted     Counter
 
 	JobsScheduled  Counter
 	JobsScheduling Gauge

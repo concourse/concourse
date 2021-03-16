@@ -58,17 +58,11 @@ func (bt *Tracker) Run(ctx context.Context) error {
 
 				if build.Name() == db.CheckBuildName {
 					metric.Metrics.CheckBuildsRunning.Inc()
+					defer metric.Metrics.CheckBuildsRunning.Dec()
 				} else {
 					metric.Metrics.BuildsRunning.Inc()
+					defer metric.Metrics.BuildsRunning.Dec()
 				}
-
-				defer func(build db.Build) {
-					if build.Name() == db.CheckBuildName {
-						metric.Metrics.CheckBuildsRunning.Dec()
-					} else {
-						metric.Metrics.BuildsRunning.Dec()
-					}
-				}(build)
 
 				bt.engine.NewBuild(build).Run(
 					lagerctx.NewContext(

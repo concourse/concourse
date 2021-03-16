@@ -423,7 +423,7 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 			Namespace: "concourse",
 			Subsystem: "lidar",
 			Name:      "checks_finished_total",
-			Help:      "Total number of checks finished",
+			Help:      "Total number of checks finished. DEPRECATED: use concourse_builds_check_finished_total instead.",
 		},
 		[]string{"status"},
 	)
@@ -434,7 +434,7 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 			Namespace: "concourse",
 			Subsystem: "lidar",
 			Name:      "checks_started_total",
-			Help:      "Total number of checks started",
+			Help:      "Total number of checks started. DEPRECATED: use concourse_builds_check_started_total instead.",
 		},
 	)
 	prometheus.MustRegister(checksStarted)
