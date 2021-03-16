@@ -3,6 +3,8 @@ package runtime
 import (
 	"context"
 	"fmt"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"syscall"
 	"time"
 
@@ -52,7 +54,7 @@ func (p processKiller) Kill(
 	waitCtx, cancel := context.WithTimeout(ctx, waitPeriod)
 	defer cancel()
 
-	statusC, err := proc.Wait(waitCtx)
+	procWaitStatus, err := proc.Wait(waitCtx)
 	if err != nil {
 		return fmt.Errorf("proc wait: %w", err)
 	}
@@ -62,6 +64,8 @@ func (p processKiller) Kill(
 		return fmt.Errorf("proc kill w/ signal %d: %w", signal, err)
 	}
 
+	// Note: because the wait context is the same for both channels if the timeout expires
+	// the choice of which case to run is nondeterministic
 	select {
 	case <-waitCtx.Done():
 		err = waitCtx.Err()
@@ -70,10 +74,18 @@ func (p processKiller) Kill(
 		}
 
 		return fmt.Errorf("waitctx done: %w", err)
-	case status := <-statusC:
-		err = status.Error()
+	case exitStatus := <-procWaitStatus:
+		err = exitStatus.Error()
 		if err != nil {
-			return fmt.Errorf("waiting for exit status: %w", err)
+			grpcErr := status.Convert(err)
+			// grpc error is passed back as a string so we can't do the regular errors.Is() check
+			// but if we convert the error to an RPC Status object we get a standard status code
+			// to check against
+
+			if grpcErr.Code() == codes.DeadlineExceeded {
+				return ErrGracePeriodTimeout
+			}
+			return fmt.Errorf("waiting for exit status from grpc: %w", err)
 		}
 	}
 
