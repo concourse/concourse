@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rsa"
 	"embed"
+	"errors"
 	"io/fs"
 	"strings"
 	"time"
@@ -18,14 +19,15 @@ import (
 )
 
 type DexConfig struct {
-	Logger      lager.Logger
-	IssuerURL   string
-	SigningKey  *rsa.PrivateKey
-	Expiration  time.Duration
-	Clients     map[string]string
-	Users       map[string]string
-	RedirectURL string
-	Storage     s.Storage
+	Logger            lager.Logger
+	IssuerURL         string
+	SigningKey        *rsa.PrivateKey
+	Expiration        time.Duration
+	Clients           map[string]string
+	Users             map[string]string
+	PasswordConnector string
+	RedirectURL       string
+	Storage           s.Storage
 }
 
 //go:embed web
@@ -57,6 +59,9 @@ func NewDexServerConfig(config *DexConfig) (server.Config, error) {
 	}
 
 	if len(passwords) > 0 {
+		if config.PasswordConnector != "local" {
+			return server.Config{}, errors.New("cannot only set --add-local-user with --password-connector=local")
+		}
 		connectors = append(connectors, storage.Connector{
 			ID:   "local",
 			Type: "local",
@@ -110,7 +115,7 @@ func NewDexServerConfig(config *DexConfig) (server.Config, error) {
 	}
 
 	return server.Config{
-		PasswordConnector:      "local",
+		PasswordConnector:      config.PasswordConnector,
 		SupportedResponseTypes: []string{"code", "token", "id_token"},
 		SkipApprovalScreen:     true,
 		IDTokensValidFor:       config.Expiration,
