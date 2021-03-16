@@ -68,14 +68,6 @@ func tick(logger lager.Logger, m *Monitor) {
 	)
 
 	m.emit(
-		logger.Session("checks-deleted"),
-		Event{
-			Name:  "checks deleted",
-			Value: m.ChecksDeleted.Delta(),
-		},
-	)
-
-	m.emit(
 		logger.Session("volumes-streamed"),
 		Event{
 			Name:  "volumes streamed",
@@ -144,6 +136,22 @@ func tick(logger lager.Logger, m *Monitor) {
 		Event{
 			Name:  "builds running",
 			Value: m.BuildsRunning.Max(),
+		},
+	)
+
+	m.emit(
+		logger.Session("check-builds-started"),
+		Event{
+			Name:  "check builds started",
+			Value: m.CheckBuildsStarted.Delta(),
+		},
+	)
+
+	m.emit(
+		logger.Session("check-builds-running"),
+		Event{
+			Name:  "check builds running",
+			Value: m.CheckBuildsRunning.Max(),
 		},
 	)
 

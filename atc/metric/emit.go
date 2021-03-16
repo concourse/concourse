@@ -49,7 +49,6 @@ type Monitor struct {
 
 	ContainersDeleted Counter
 	VolumesDeleted    Counter
-	ChecksDeleted     Counter
 
 	JobsScheduled  Counter
 	JobsScheduling Gauge
@@ -57,12 +56,19 @@ type Monitor struct {
 	BuildsStarted Counter
 	BuildsRunning Gauge
 
+	CheckBuildsStarted Counter
+	CheckBuildsRunning Gauge
+
 	TasksWaiting map[TasksWaitingLabels]*Gauge
 
+	// TODO: deprecate, replaced with CheckBuildFinished
 	ChecksFinishedWithError   Counter
 	ChecksFinishedWithSuccess Counter
-	ChecksStarted             Counter
-	ChecksEnqueued            Counter
+
+	// TODO: deprecate, replaced with CheckBuildsStarted and CheckBuildStarted
+	ChecksStarted Counter
+
+	ChecksEnqueued Counter
 
 	ConcurrentRequests         map[string]*Gauge
 	ConcurrentRequestsLimitHit map[string]*Counter

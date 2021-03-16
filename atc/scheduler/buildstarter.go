@@ -230,7 +230,12 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		}, nil
 	}
 
-	metric.Metrics.BuildsStarted.Inc()
+	// To avoid breaking existing dashboards, don't count check builds into BuildsStarted.
+	if nextPendingBuild.Name() == db.CheckBuildName {
+		metric.Metrics.CheckBuildsStarted.Inc()
+	} else {
+		metric.Metrics.BuildsStarted.Inc()
+	}
 
 	return startResults{
 		finished: true,
