@@ -1777,7 +1777,6 @@ func (cmd *RunCommand) constructAuthHandler(
 		Expiration:  cmd.Auth.AuthFlags.Expiration,
 		IssuerURL:   issuerURL.String(),
 		RedirectURL: redirectURL.String(),
-		WebHostURL:  "/sky/issuer",
 		SigningKey:  cmd.Auth.AuthFlags.SigningKey.PrivateKey,
 		Storage:     storage,
 	})
