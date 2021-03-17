@@ -48,27 +48,50 @@
 
 .theme-panel {
   background-color: #1E1D1D;
-  padding: 30px;
+  padding: 16px;
   border: 1px solid #484747;
 }
 
-.theme-btn-provider, .theme-btn--primary {
+.dex-btn {
   width: 230px;
   height: 38px;
-  border: 1px solid #196AC8;
   box-shadow: none;
   border-radius: 0;
-  background-color: #1E1D1D;
   font-size: 14px;
 }
 
+.theme-btn-provider {
+  border: 1px solid #196AC8;
+  background-color: #1E1D1D;
+}
+
+.theme-btn-login {
+  margin: 8px 0 16px;
+}
+
 .theme-btn--primary {
-  margin: 20px 0;
+  color: #F2F2F2;
+  background-color: #0969AB;
 }
 
 .theme-btn--primary:hover {
-  background-color: #196AC8;
   color: white;
+  background-color: #1586D1;
+}
+
+.theme-btn-cancel {
+  margin-bottom: 16px;
+}
+
+.theme-btn--danger {
+  color: #F2F2F2;
+  background-color: inherit;
+  border: 1px solid #912617;
+}
+
+.theme-btn--danger:hover {
+  color: white;
+  background-color: #912617;
 }
 
 .theme-btn-provider {
@@ -98,7 +121,7 @@
 
 .theme-form-row {
   display: block;
-  margin:  0 auto 15px;
+  margin:  0 auto 12px;
 }
 
 .theme-form-input {
@@ -122,18 +145,7 @@
   font-size: 14px;
   letter-spacing: 0.05em;
   width: 230px;
-  margin: 0 auto 5px;
+  margin: 0 auto 8px;
   position: relative;
   text-align: left;
-  padding: 5px;
-}
-
-.theme-link-back {
-  font-size: 16px;
-  margin: 4px 0 10px;
-  text-align: center;
-}
-
-.theme-link-back a {
-  text-decoration: none;
 }
