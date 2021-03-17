@@ -1,7 +1,7 @@
 @font-face {
   font-family: 'Inconsolata';
   font-style: normal;
-  font-weight: 400;
+  font-weight: 600;
   src: url("../static/fonts/Inconsolata-Regular.ttf");
 }
 
@@ -16,7 +16,7 @@
 * {
   font-family: "Inconsolata", monospace;
   font-weight: normal;
-  color: #ccc;
+  color: #E2E2E2;
 }
 
 .theme-body {
@@ -42,55 +42,50 @@
 }
 
 .theme-heading {
-  font-size: 18px;
-  margin: 20px 0 40px;
+  font-size: 28px;
+  letter-spacing: 0.01em;
+}
+
+h2 {
+  margin-top: 0;
+  margin-bottom: 32px;
 }
 
 .theme-panel {
-  background-color: #1E1D1D;
-  padding: 16px;
-  border: 1px solid #484747;
+  background-color: #151515;
+  padding: 32px;
 }
 
-.dex-btn {
-  width: 230px;
-  height: 38px;
+.theme-btn-wrapper {
+  padding-top: 16px;
+}
+.theme-btn-provider, .theme-btn-primary, .theme-btn-cancel {
+  width: 390px;
+  height: 52px;
   box-shadow: none;
   border-radius: 0;
-  font-size: 14px;
+  font-size: 20px;
+  line-height: 21px;
+  letter-spacing: 0.13em;
+  color: #F2F2F2;
 }
 
 .theme-btn-provider {
-  border: 1px solid #196AC8;
-  background-color: #1E1D1D;
+  background-color: #151515;
+  border: 1px solid #0969AB;
 }
 
-.theme-btn-login {
-  margin: 8px 0 16px;
-}
-
-.theme-btn--primary {
-  color: #F2F2F2;
+.theme-btn-primary {
   background-color: #0969AB;
 }
 
-.theme-btn--primary:hover {
-  color: white;
-  background-color: #1586D1;
-}
-
-.theme-btn-cancel {
-  margin-bottom: 16px;
-}
-
-.theme-btn--danger {
-  color: #F2F2F2;
-  background-color: inherit;
+.theme-btn-cancel{
+  background-color: #151515;
   border: 1px solid #912617;
+  box-sizing: border-box;
 }
 
-.theme-btn--danger:hover {
-  color: white;
+.theme-btn-cancel:hover{
   background-color: #912617;
 }
 
@@ -119,33 +114,34 @@
   background-color: #196AC8;
 }
 
-.theme-form-row {
+.theme-form-row:not(:last-child) {
   display: block;
-  margin:  0 auto 12px;
+  margin:  0 auto 16px;
 }
 
 .theme-form-input {
-  border: 1px solid #6D6D6D;
+  border: 1px solid #A4A4A4;
   display: block;
-  width: 230px;
-  height: 38px;
-  margin: 0 auto;
-  padding: 6px 12px;
+  width: 390px;
+  height: 52px;
+  padding: 16px;
   background-color: #1E1D1D;
-  font-size: 16px;
-}
-
-.theme-form-input:focus,
-.theme-form-input:active {
-  border-color: white;
+  font-size: 20px;
+  letter-spacing: 0.13em;
   outline: none;
+  box-sizing: border-box;
 }
 
 .theme-form-label {
-  font-size: 14px;
-  letter-spacing: 0.05em;
-  width: 230px;
+  font-size: 20px;
+  letter-spacing: 0.13em;
   margin: 0 auto 8px;
   position: relative;
   text-align: left;
+  line-height: 21px;
+}
+
+.theme-message {
+  font-size: 20px;
+  margin: 0;
 }
