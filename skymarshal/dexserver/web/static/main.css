@@ -1,0 +1,102 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+.dex-container {
+  color: #333;
+  margin: 50px auto;
+  width: 330px;
+  text-align: center;
+}
+
+.dex-btn {
+  border: 0;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0;
+}
+
+.dex-btn:focus {
+  outline: none;
+}
+
+.dex-btn:active {
+  outline: none;
+}
+
+.dex-btn-icon {
+  background-image: url(../static/img/default-icon.svg);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 45%;
+  float: left;
+  height: 36px;
+  margin-right: 5px;
+  width: 36px;
+}
+
+.dex-btn-text {
+  font-weight: 600;
+  line-height: 36px;
+  padding: 6px 12px;
+  text-align: center;
+}
+
+.dex-subtle-text {
+  color: #999;
+  font-size: 12px;
+}
+
+.dex-separator {
+  color: #999;
+}
+
+.dex-list {
+  color: #999;
+  display: inline-block;
+  font-size: 12px;
+  list-style: circle;
+  text-align: left;
+}
+
+.dex-error-box {
+  color: #E74C3C;
+  font-size: 14px;
+  font-weight: normal;
+  max-width: 320px;
+  padding: 4px 0;
+  margin: 20px auto 0;
+}
+
+.dex-btn-icon--cf {
+  background-image: url(../static/img/cf-icon.svg);
+}
+
+.dex-btn-icon--local {
+  background-image: url(../static/img/username-icon.svg);
+}
+
+.dex-btn-icon--github {
+  background-size: 50%;
+  background-image: url(../static/img/github-icon.svg);
+}
+
+.dex-btn-icon--gitlab {
+  background-image: url(../static/img/gitlab-icon.svg);
+}
+
+.dex-btn-icon--bitbucket {
+  background-image: url(../static/img/bitbucket-icon.svg);
+}
+
+.dex-btn-icon--linkedin {
+  background-image: url(../static/img/linkedin-icon.svg);
+}
+
+.dex-btn-icon--microsoft {
+  background-image: url(../static/img/microsoft-icon.svg);
+}
