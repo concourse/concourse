@@ -1,16 +1,2 @@
-.github/           @concourse/maintainers
+*                  @concourse/maintainers
 CODE_OF_CONDUCT.md @concourse/community
-CONTRIBUTING.md    @concourse/maintainers
-web/               @concourse/maintainers
-package.json       @concourse/maintainers
-yarn.lock          @concourse/maintainers
-fly/               @concourse/maintainers
-go-concourse/      @concourse/maintainers
-atc/               @concourse/maintainers
-skymarshal/        @concourse/maintainers
-vars/              @concourse/maintainers
-atc/exec/          @concourse/maintainers
-atc/worker/        @concourse/maintainers
-atc/runtime/       @concourse/maintainers
-worker/            @concourse/maintainers
-tsa/               @concourse/maintainers
