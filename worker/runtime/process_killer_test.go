@@ -57,14 +57,6 @@ func (s *ProcessKillerSuite) TestKillWaitError() {
 	s.True(errors.Is(err, expectedErr))
 }
 
-func (s *ProcessKillerSuite) TestKillKillError() {
-	expectedErr := errors.New("kill-err")
-	s.proc.KillReturns(expectedErr)
-
-	err := s.killer.Kill(context.Background(), s.proc, s.signal, s.goodEnoughTimeout)
-	s.True(errors.Is(err, expectedErr))
-}
-
 func (s *ProcessKillerSuite) TestKillWaitContextDeadlineReached() {
 	err := s.killer.Kill(context.Background(), s.proc, s.signal, s.notEnoughTimeout)
 	s.True(errors.Is(err, runtime.ErrGracePeriodTimeout))
