@@ -5,17 +5,6 @@
   </head>
   <body class="index">
     {{template "top.tmpl" .}}
-
-    <div class="splash">
-      <div class="splash-content">
-        {{.Partial "Splash" | render}}
-      </div>
-    </div>
-
-    <div class="page-body">
-      <div class="page-content">
-        {{template "section.tmpl" .}}
-      </div>
-    </div>
+    {{template "section.tmpl" .}}
   </body>
 </html>

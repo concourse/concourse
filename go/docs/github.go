@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"github.com/blang/semver"
-	"github.com/google/go-github/github"
 	"github.com/lucasb-eyer/go-colorful"
+	"github.com/shurcooL/githubv4"
 	"github.com/vito/booklit"
 	"golang.org/x/oauth2"
 )
@@ -99,17 +99,42 @@ func (p *Plugin) DownloadLinks() (booklit.Content, error) {
 
 	client := p.githubClient(ctx)
 
-	var latestRelease *github.RepositoryRelease
-	var latestVersion semver.Version
-	releases, _, err := client.Repositories.ListReleases(ctx, "concourse", "concourse", nil)
-	if err != nil {
-		return nil, err
+	type GitHubRelease struct {
+		Name         string
+		TagName      *string
+		IsDraft      bool
+		IsPrerelease bool
+		Url          string
+		Assets       struct {
+			Nodes []struct {
+				Name        string
+				DownloadUrl string
+			}
+		} `graphql:"releaseAssets(first: 20)"`
 	}
+
+	var releasesQuery struct {
+		Repository struct {
+			Releases struct {
+				Nodes []GitHubRelease
+			} `graphql:"releases(first: 10, orderBy: {field: CREATED_AT, direction: DESC})"`
+		} `graphql:"repository(owner: \"concourse\", name: \"concourse\")"`
+	}
+
+	err := client.Query(ctx, &releasesQuery, nil)
+	if err != nil {
+		return nil, fmt.Errorf("fetch releases: %w", err)
+	}
+
+	releases := releasesQuery.Repository.Releases.Nodes
+
+	var latestRelease *GitHubRelease
+	var latestVersion semver.Version
 	if len(releases) == 0 {
 		return nil, errors.New("no releases found!")
 	}
 	for _, release := range releases {
-		if release.GetPrerelease() {
+		if release.IsPrerelease {
 			continue
 		}
 
@@ -120,39 +145,40 @@ func (p *Plugin) DownloadLinks() (booklit.Content, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		if latestRelease == nil || version.GT(latestVersion) {
-			latestRelease = release
+			latestRelease = &release
 			latestVersion = version
 		}
 	}
 
 	var linuxURL, darwinURL, windowsURL string
 	var flyLinuxURL, flyDarwinURL, flyWindowsURL string
-	for _, asset := range latestRelease.Assets {
-		name := asset.GetName()
+	for _, asset := range latestRelease.Assets.Nodes {
+		name := asset.Name
 
 		if strings.Contains(name, "concourse") && strings.Contains(name, "linux") && strings.HasSuffix(name, ".tgz") {
-			linuxURL = asset.GetBrowserDownloadURL()
+			linuxURL = asset.DownloadUrl
 		}
 
 		if strings.Contains(name, "concourse") && strings.Contains(name, "darwin") && strings.HasSuffix(name, ".tgz") {
-			darwinURL = asset.GetBrowserDownloadURL()
+			darwinURL = asset.DownloadUrl
 		}
 
 		if strings.Contains(name, "concourse") && strings.Contains(name, "windows") && strings.HasSuffix(name, ".zip") {
-			windowsURL = asset.GetBrowserDownloadURL()
+			windowsURL = asset.DownloadUrl
 		}
 
 		if strings.Contains(name, "fly") && strings.Contains(name, "linux") && strings.HasSuffix(name, ".tgz") {
-			flyLinuxURL = asset.GetBrowserDownloadURL()
+			flyLinuxURL = asset.DownloadUrl
 		}
 
 		if strings.Contains(name, "fly") && strings.Contains(name, "darwin") && strings.HasSuffix(name, ".tgz") {
-			flyDarwinURL = asset.GetBrowserDownloadURL()
+			flyDarwinURL = asset.DownloadUrl
 		}
 
 		if strings.Contains(name, "fly") && strings.Contains(name, "windows") && strings.HasSuffix(name, ".zip") {
-			flyWindowsURL = asset.GetBrowserDownloadURL()
+			flyWindowsURL = asset.DownloadUrl
 		}
 	}
 
@@ -160,12 +186,12 @@ func (p *Plugin) DownloadLinks() (booklit.Content, error) {
 		Style: "download-links",
 		Block: true,
 		Content: booklit.Link{
-			Target:  latestRelease.GetHTMLURL(),
-			Content: booklit.String(latestRelease.GetName()),
+			Target:  latestRelease.Url,
+			Content: booklit.String(latestRelease.Name),
 		},
 		Partials: booklit.Partials{
-			"Version":         booklit.String(latestRelease.GetName()),
-			"ReleaseNotesURL": booklit.String(latestRelease.GetHTMLURL()),
+			"Version":         booklit.String(latestRelease.Name),
+			"ReleaseNotesURL": booklit.String(latestRelease.Url),
 			"LinuxURL":        booklit.String(linuxURL),
 			"DarwinURL":       booklit.String(darwinURL),
 			"WindowsURL":      booklit.String(windowsURL),
@@ -176,7 +202,7 @@ func (p *Plugin) DownloadLinks() (booklit.Content, error) {
 	}, nil
 }
 
-func (p *Plugin) githubClient(ctx context.Context) *github.Client {
+func (p *Plugin) githubClient(ctx context.Context) *githubv4.Client {
 	var tc *http.Client
 	var githubToken = os.Getenv("GITHUB_TOKEN")
 
@@ -188,5 +214,5 @@ func (p *Plugin) githubClient(ctx context.Context) *github.Client {
 		tc = oauth2.NewClient(ctx, ts)
 	}
 
-	return github.NewClient(tc)
+	return githubv4.NewClient(tc)
 }

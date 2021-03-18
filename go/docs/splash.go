@@ -2,20 +2,31 @@ package docs
 
 import "github.com/vito/booklit"
 
-func (p Plugin) SplashIntro(intro, downloads booklit.Content) {
-	p.section.SetPartial(
-		"Splash",
-		booklit.Styled{
-			Style: "splash-intro",
-			Block: true,
+func (p Plugin) SplashIntro(intro, downloads booklit.Content) booklit.Content {
+	return booklit.Styled{
+		Style: "splash-intro",
+		Block: true,
 
-			Content: intro,
+		Content: intro,
 
-			Partials: booklit.Partials{
-				"Downloads": downloads,
-			},
+		Partials: booklit.Partials{
+			"Downloads": downloads,
 		},
-	)
+	}
+}
+
+func (p Plugin) PageRegion(style, title, content booklit.Content) booklit.Content {
+	return booklit.Styled{
+		Style: "page-region",
+		Block: true,
+
+		Content: content,
+
+		Partials: booklit.Partials{
+			"Style": style,
+			"Title": title,
+		},
+	}
 }
 
 func (p Plugin) QuickStart(content booklit.Content) booklit.Content {
