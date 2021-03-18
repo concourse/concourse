@@ -266,7 +266,7 @@ h3 {
 .page-content tr:first-child {
   font-family: 'Roboto Slab', serif;
   font-weight: 500;
-  border-bottom: 2px solid black;
+  border-bottom: 2px solid #2a2929;
 }
 .page-content td {
   padding: 0.3em 1em 0.3em 0;
