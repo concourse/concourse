@@ -17,7 +17,7 @@
             "elm/svg": "1.0.1",
             "elm/time": "1.0.0",
             "elm/url": "1.0.0",
-            "elm-community/json-extra": "4.0.0",
+            "elm-community/json-extra": "4.3.0",
             "elm-community/list-extra": "8.1.0",
             "elm-community/maybe-extra": "5.0.0",
             "elm-explorations/benchmark": "1.0.2",
