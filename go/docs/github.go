@@ -10,6 +10,7 @@ import (
 
 	"github.com/blang/semver"
 	"github.com/google/go-github/github"
+	"github.com/lucasb-eyer/go-colorful"
 	"github.com/vito/booklit"
 	"golang.org/x/oauth2"
 )
@@ -67,6 +68,30 @@ func (p Plugin) Ghissue(number string, optionalRepo ...string) booklit.Content {
 			"Repo":  booklit.String(repo),
 		},
 	}
+}
+
+func (p Plugin) Ghlabel(name booklit.Content, colorHex string) (booklit.Content, error) {
+	color, err := colorful.Hex(colorHex)
+	if err != nil {
+		return nil, err
+	}
+
+	lightContrastRating := contrast(color, white)
+	darkContrastRating := contrast(color, color.BlendRgb(black, 0.8))
+
+	class := "dark-label"
+	if lightContrastRating > darkContrastRating {
+		class = "light-label"
+	}
+
+	return booklit.Styled{
+		Style:   "label",
+		Content: name,
+		Partials: booklit.Partials{
+			"Color": booklit.String(colorHex),
+			"Class": booklit.String(class),
+		},
+	}, nil
 }
 
 func (p *Plugin) DownloadLinks() (booklit.Content, error) {
