@@ -1,25 +1,29 @@
-<nav class="top-nav">
-  <a class="top-link logo-link" href="/"><img src="images/logo-white.svg" />Concourse</a>
-  {{range .Top.Children}}
-  <a class="top-link{{if .Contains $}} active{{end}}" href="{{.PrimaryTag | url}}">{{.Title | stripAux | render}}</a>
-  {{end}}
-  <a class="top-link" href="https://resource-types.concourse-ci.org">Resource Types</a>
-  <a class="top-link" href="https://blog.concourse-ci.org">blog</a>
-  <a class="top-link" href="https://github.com/concourse/concourse/discussions">discuss</a>
+{{template "survey-banner.tmpl"}}
 
-  <div id="search"></div>
+<div class="page-top">
+  <nav class="top-nav">
+    <a class="top-link logo-link" href="/"><img src="images/logo-white.svg" />Concourse</a>
+    {{range .Top.Children}}
+    <a class="top-link{{if .Contains $}} active{{end}}" href="{{.PrimaryTag | url}}">{{.Title | stripAux | render}}</a>
+    {{end}}
+    <a class="top-link" href="https://resource-types.concourse-ci.org">Resource Types</a>
+    <a class="top-link" href="https://blog.concourse-ci.org">blog</a>
+    <a class="top-link" href="https://github.com/concourse/concourse/discussions">discuss</a>
 
-  <script type="text/javascript">
-    var app = Elm.Main.init({
-      node: document.getElementById('search')
-    });
+    <div id="search"></div>
 
-    app.ports.emitSearchTerm.subscribe(function(term) {
-      goatcounter.count({
-        path: "search:" + term,
-        title: "user searched: " + term,
-        event: true
+    <script type="text/javascript">
+      var app = Elm.Main.init({
+        node: document.getElementById('search')
       });
-    });
-  </script>
-</nav>
+
+      app.ports.emitSearchTerm.subscribe(function(term) {
+        goatcounter.count({
+          path: "search:" + term,
+          title: "user searched: " + term,
+          event: true
+        });
+      });
+    </script>
+  </nav>
+</div>

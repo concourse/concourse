@@ -420,3 +420,28 @@ a.github-user {
 .dim {
   opacity: 0.5;
 }
+
+.top-banner {
+  background-color: @darkest-grey;
+  color: white;
+  font-family: 'Roboto Slab', serif;
+
+  .banner-text {
+    max-width: @page-width;
+    margin: 0 auto;
+    padding: 10px 0;
+    text-align: center;
+  }
+
+  a {
+    font-weight: bold;
+
+    &, &:visited {
+      color: @offest-white;
+    }
+
+    &:hover {
+      color: white;
+    }
+  }
+}
