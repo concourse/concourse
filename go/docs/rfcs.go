@@ -216,7 +216,10 @@ var reactionEmoji = map[string]string{
 }
 
 func (p *Plugin) fetchRFCs(ctx context.Context) ([]PullRequest, error) {
-	client := p.githubClient(ctx)
+	client, ok := p.githubClient(ctx)
+	if !ok {
+		return fillerRFCs, nil
+	}
 
 	type repoId struct {
 		Name  string
@@ -424,4 +427,23 @@ func (by prsBy) Less(i, j int) bool {
 	b := ret[0].Interface().(int)
 
 	return a < b
+}
+
+var fillerRFCs = []PullRequest{
+	{
+		URL:    "https://example.com",
+		Number: 42,
+		Title:  "Fake RFC",
+
+		ProposalURL:       "https://example.com/#proposal",
+		QuestionsURL:      "https://example.com/#questions",
+		OpenQuestionCount: 3,
+
+		Reactions: []GitHubReaction{
+			{
+				Emoji: reactionEmoji["ROCKET"],
+				Count: 12,
+			},
+		},
+	},
 }

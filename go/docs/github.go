@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 	"os"
 	"strings"
 
@@ -97,7 +96,10 @@ func (p Plugin) Ghlabel(name booklit.Content, colorHex string) (booklit.Content,
 func (p *Plugin) DownloadLinks() (booklit.Content, error) {
 	ctx := context.Background()
 
-	client := p.githubClient(ctx)
+	client, ok := p.githubClient(ctx)
+	if !ok {
+		return fillerDownloads, nil
+	}
 
 	type GitHubRelease struct {
 		Name         string
@@ -202,17 +204,34 @@ func (p *Plugin) DownloadLinks() (booklit.Content, error) {
 	}, nil
 }
 
-func (p *Plugin) githubClient(ctx context.Context) *githubv4.Client {
-	var tc *http.Client
-	var githubToken = os.Getenv("GITHUB_TOKEN")
-
-	if githubToken != "" {
-		ts := oauth2.StaticTokenSource(
-			&oauth2.Token{AccessToken: githubToken},
-		)
-
-		tc = oauth2.NewClient(ctx, ts)
+func (p *Plugin) githubClient(ctx context.Context) (*githubv4.Client, bool) {
+	githubToken := os.Getenv("GITHUB_TOKEN")
+	if githubToken == "" {
+		return nil, false
 	}
 
-	return githubv4.NewClient(tc)
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: githubToken},
+	)
+
+	return githubv4.NewClient(oauth2.NewClient(ctx, ts)), true
+}
+
+var fillerDownloads = booklit.Styled{
+	Style: "download-links",
+	Block: true,
+	Content: booklit.Link{
+		Target:  "https://github.com/concourse/concourse/releases/latest",
+		Content: booklit.String("vX.X.X"),
+	},
+	Partials: booklit.Partials{
+		"Version":         booklit.String("vX.X.X"),
+		"ReleaseNotesURL": booklit.String("https://github.com/concourse/concourse/releases/latest"),
+		"LinuxURL":        booklit.String("https://example.com/#linux"),
+		"DarwinURL":       booklit.String("https://example.com/#darwin"),
+		"WindowsURL":      booklit.String("https://example.com/#windows"),
+		"FlyLinuxURL":     booklit.String("https://example.com/#fly-linux"),
+		"FlyDarwinURL":    booklit.String("https://example.com/#fly-darwin"),
+		"FlyWindowsURL":   booklit.String("https://example.com/#fly-windows"),
+	},
 }
