@@ -16,7 +16,7 @@ type RuntimeConfiguration struct {
 }
 
 type GuardianRuntime struct {
-	RequestTimeout time.Duration `long:"request-timeout" default:"5m" description:"How long to wait for requests to the Garden server to complete. 0 means no timeout."`
+	RequestTimeout time.Duration `yaml:"request_timeout,omitempty"`
 }
 
 type ContainerdRuntime struct {

@@ -7,17 +7,17 @@ import (
 )
 
 type WorkerConfig struct {
-	Name     string   `long:"name"  description:"The name to set for the worker during registration. If not specified, the hostname will be used."`
-	Tags     []string `long:"tag"   description:"A tag to set during registration. Can be specified multiple times."`
-	TeamName string   `long:"team"  description:"The name of the team that this worker will be assigned to."`
+	Name     string   `yaml:"name,omitempty"`
+	Tags     []string `yaml:"tag,omitempty"`
+	TeamName string   `yaml:"team,omitempty"`
 
-	HTTPProxy  string `long:"http-proxy"  env:"http_proxy"                  description:"HTTP proxy endpoint to use for containers."`
-	HTTPSProxy string `long:"https-proxy" env:"https_proxy"                 description:"HTTPS proxy endpoint to use for containers."`
-	NoProxy    string `long:"no-proxy"    env:"no_proxy"                    description:"Blacklist of addresses to skip the proxy when reaching."`
+	HTTPProxy  string `yaml:"http_proxy,omitempty"`
+	HTTPSProxy string `yaml:"https_proxy,omitempty"`
+	NoProxy    string `yaml:"no_proxy,omitempty"`
 
-	Ephemeral bool `long:"ephemeral" description:"If set, the worker will be immediately removed upon stalling."`
+	Ephemeral bool `yaml:"ephemeral,omitempty"`
 
-	Version string `long:"version" hidden:"true" description:"Version of the worker. This is normally baked in to the binary, so this flag is hidden."`
+	Version string `yaml:"version,omitempty"`
 }
 
 func (c WorkerConfig) Worker() atc.Worker {

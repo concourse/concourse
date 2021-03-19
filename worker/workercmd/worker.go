@@ -2,6 +2,7 @@ package workercmd
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -13,8 +14,8 @@ import (
 	"github.com/concourse/concourse"
 	"github.com/concourse/concourse/atc/worker/gclient"
 	concourseCmd "github.com/concourse/concourse/cmd"
+	"github.com/concourse/concourse/flag"
 	"github.com/concourse/concourse/worker"
-	"github.com/concourse/flag"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"
@@ -24,45 +25,104 @@ import (
 type WorkerCommand struct {
 	Worker WorkerConfig
 
-	TSA worker.TSAConfig `group:"TSA Configuration" namespace:"tsa"`
+	TSA worker.TSAConfig `yaml:"tsa,omitempty"`
 
 	Certs Certs
 
-	WorkDir flag.Dir `long:"work-dir" required:"true" description:"Directory in which to place container data."`
+	WorkDir flag.Dir `yaml:"work_dir,omitempty" validate:"required"`
 
-	BindIP   flag.IP `long:"bind-ip"   default:"127.0.0.1" description:"IP address on which to listen for the Garden server."`
-	BindPort uint16  `long:"bind-port" default:"7777"      description:"Port on which to listen for the Garden server."`
+	BindIP   net.IP `yaml:"bind_ip,omitempty"`
+	BindPort uint16 `yaml:"bind_port,omitempty"`
 
-	DebugBindIP   flag.IP `long:"debug-bind-ip"   default:"127.0.0.1" description:"IP address on which to listen for the pprof debugger endpoints."`
-	DebugBindPort uint16  `long:"debug-bind-port" default:"7776"      description:"Port on which to listen for the pprof debugger endpoints."`
+	Debug DebugConfig `yaml:"debug,omitempty"`
 
-	HealthcheckBindIP   flag.IP       `long:"healthcheck-bind-ip"    default:"0.0.0.0"  description:"IP address on which to listen for health checking requests."`
-	HealthcheckBindPort uint16        `long:"healthcheck-bind-port"  default:"8888"     description:"Port on which to listen for health checking requests."`
-	HealthCheckTimeout  time.Duration `long:"healthcheck-timeout"    default:"5s"       description:"HTTP timeout for the full duration of health checking."`
+	Healthcheck HealthcheckConfig `yaml:"healthcheck,omitempty"`
 
-	SweepInterval               time.Duration `long:"sweep-interval" default:"30s" description:"Interval on which containers and volumes will be garbage collected from the worker."`
-	VolumeSweeperMaxInFlight    uint16        `long:"volume-sweeper-max-in-flight" default:"3" description:"Maximum number of volumes which can be swept in parallel."`
-	ContainerSweeperMaxInFlight uint16        `long:"container-sweeper-max-in-flight" default:"5" description:"Maximum number of containers which can be swept in parallel."`
+	SweepInterval               time.Duration `yaml:"sweep_interval,omitempty"`
+	VolumeSweeperMaxInFlight    uint16        `yaml:"volume_sweeper_max_in_flight,omitempty"`
+	ContainerSweeperMaxInFlight uint16        `yaml:"container_sweeper_max_in_flight,omitempty"`
 
-	RebalanceInterval time.Duration `long:"rebalance-interval" default:"4h" description:"Duration after which the registration should be swapped to another random SSH gateway."`
+	RebalanceInterval time.Duration `yaml:"rebalance_interval,omitempty"`
 
-	ConnectionDrainTimeout time.Duration `long:"connection-drain-timeout" default:"1h" description:"Duration after which a worker should give up draining forwarded connections on shutdown."`
+	ConnectionDrainTimeout time.Duration `yaml:"connection_drain_timeout,omitempty"`
 
-	RuntimeConfiguration `group:"Runtime Configuration"`
+	RuntimeConfiguration
 
 	// This refers to flags relevant to the operation of the Guardian runtime.
 	// For historical reasons it is namespaced under "garden" i.e. CONCOURSE_GARDEN instead of "guardian" i.e. CONCOURSE_GUARDIAN
-	Guardian GuardianRuntime `group:"Guardian Configuration" namespace:"garden"`
+	Guardian GuardianRuntime `yaml:"garden,omitempty"`
 
-	Containerd ContainerdRuntime `group:"Containerd Configuration" namespace:"containerd"`
+	Containerd ContainerdRuntime `yaml:"containerd,omitempty"`
 
-	ExternalGardenURL flag.URL `long:"external-garden-url" description:"API endpoint of an externally managed Garden server to use instead of running the embedded Garden server."`
+	ExternalGardenURL flag.URL `yaml:"external_garden_url,omitempty"`
 
-	Baggageclaim baggageclaimcmd.BaggageclaimCommand `group:"Baggageclaim Configuration" namespace:"baggageclaim"`
+	Baggageclaim baggageclaimcmd.BaggageclaimCommand `yaml:"baggageclaim,omitempty"`
 
-	ResourceTypes flag.Dir `long:"resource-types" description:"Path to directory containing resource types the worker should advertise."`
+	ResourceTypes flag.Dir `yaml:"resource_types,omitempty"`
 
 	Logger flag.Lager
+}
+
+type DebugConfig struct {
+	BindIP   net.IP `yaml:"bind_ip,omitempty"`
+	BindPort uint16 `yaml:"bind_port,omitempty"`
+}
+
+type HealthcheckConfig struct {
+	BindIP   net.IP        `yaml:"bind_ip,omitempty"`
+	BindPort uint16        `yaml:"bind_port,omitempty"`
+	Timeout  time.Duration `yaml:"timeout,omitempty"`
+}
+
+var CmdDefaults = WorkerCommand{
+	BindIP:   net.IPv4(127, 0, 0, 1),
+	BindPort: 7777,
+
+	TSA: worker.TSAConfig{
+		Hosts: []string{"127.0.0.1:2222"},
+	},
+
+	Debug: DebugConfig{
+		BindIP:   net.IPv4(127, 0, 0, 1),
+		BindPort: 7776,
+	},
+
+	Healthcheck: HealthcheckConfig{
+		BindIP:   net.IPv4(0, 0, 0, 0),
+		BindPort: 8888,
+		Timeout:  5 * time.Second,
+	},
+
+	SweepInterval:               30 * time.Second,
+	VolumeSweeperMaxInFlight:    3,
+	ContainerSweeperMaxInFlight: 5,
+
+	RebalanceInterval:      4 * time.Hour,
+	ConnectionDrainTimeout: 1 * time.Hour,
+
+	Guardian: GuardianRuntime{
+		RequestTimeout: 5 * time.Minute,
+	},
+
+	Baggageclaim: baggageclaimcmd.BaggageclaimCommand{
+		BindIP:   net.IPv4(127, 0, 0, 1),
+		BindPort: 7788,
+
+		Debug: baggageclaimcmd.DebugConfig{
+			BindIP:   net.IPv4(127, 0, 0, 1),
+			BindPort: 7787,
+		},
+
+		P2p: baggageclaimcmd.P2pConfig{
+			InterfaceNamePattern: "eth0",
+			InterfaceFamily:      4,
+		},
+
+		Driver: "detect",
+
+		BtrfsBin: "btrfs",
+		MkfsBin:  "mkfs.btrfs",
+	},
 }
 
 func (cmd *WorkerCommand) Execute(args []string) error {
@@ -97,7 +157,7 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 		logger.Session("healthchecker"),
 		cmd.baggageclaimURL(),
 		cmd.gardenURL(),
-		cmd.HealthCheckTimeout,
+		cmd.Healthcheck.Timeout,
 	)
 
 	tsaClient := cmd.TSA.Client(atcWorker)
@@ -172,7 +232,7 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 			Runner: concourseCmd.NewLoggingRunner(
 				logger.Session("debug-runner"),
 				http_server.New(
-					fmt.Sprintf("%s:%d", cmd.DebugBindIP.IP, cmd.DebugBindPort),
+					fmt.Sprintf("%s:%d", cmd.Debug.BindIP, cmd.Debug.BindPort),
 					http.DefaultServeMux,
 				),
 			),
@@ -182,7 +242,7 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 			Runner: concourseCmd.NewLoggingRunner(
 				logger.Session("healthcheck-runner"),
 				http_server.New(
-					fmt.Sprintf("%s:%d", cmd.HealthcheckBindIP.IP, cmd.HealthcheckBindPort),
+					fmt.Sprintf("%s:%d", cmd.Healthcheck.BindIP, cmd.Healthcheck.BindPort),
 					http.HandlerFunc(healthChecker.CheckHealth),
 				),
 			),
