@@ -967,11 +967,11 @@ body.index .page-content h2:first-child {
   display: inline-block;
 }
 .rfcs .reaction .emoji {
-  font-size: 16px;
+  font-size: 14px;
 }
 .rfcs .reaction .count {
   margin-left: 5px;
-  font-size: 16px;
+  font-size: 14px;
 }
 .rfcs .rfc-col {
   width: 150px;
