@@ -25,15 +25,17 @@ var MigrateCmd = &cobra.Command{
 var MigrateConfig Migration
 
 type Migration struct {
-	lockFactory lock.LockFactory
+	Postgres flag.PostgresConfig
 
-	Postgres               flag.PostgresConfig `group:"PostgreSQL Configuration" namespace:"postgres"`
-	EncryptionKey          flag.Cipher         `long:"encryption-key"     description:"A 16 or 32 length key used to encrypt sensitive information before storing it in the database."`
-	OldEncryptionKey       flag.Cipher         `long:"old-encryption-key" description:"Encryption key previously used for encrypting sensitive information. If provided without a new key, data is decrypted. If provided with a new key, data is re-encrypted."`
-	CurrentDBVersion       bool                `long:"current-db-version" description:"Print the current database version and exit"`
-	SupportedDBVersion     bool                `long:"supported-db-version" description:"Print the max supported database version and exit"`
-	MigrateDBToVersion     int                 `long:"migrate-db-to-version" description:"Migrate to the specified database version and exit"`
-	MigrateToLatestVersion bool                `long:"migrate-to-latest-version" description:"Migrate to the latest migration version and exit"`
+	EncryptionKey    flag.Cipher
+	OldEncryptionKey flag.Cipher
+
+	CurrentDBVersion       bool
+	SupportedDBVersion     bool
+	MigrateDBToVersion     int
+	MigrateToLatestVersion bool
+
+	lockFactory lock.LockFactory
 }
 
 func init() {
@@ -54,6 +56,7 @@ func (m *Migration) ExecuteMigration(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+
 	defer lockConn.Close()
 
 	m.lockFactory = lock.NewLockFactory(lockConn, metric.LogLockAcquired, metric.LogLockReleased)
@@ -61,18 +64,23 @@ func (m *Migration) ExecuteMigration(cmd *cobra.Command, args []string) error {
 	if m.MigrateToLatestVersion {
 		return m.migrateToLatestVersion()
 	}
+
 	if m.CurrentDBVersion {
 		return m.currentDBVersion()
 	}
+
 	if m.SupportedDBVersion {
 		return m.supportedDBVersion()
 	}
+
 	if m.MigrateDBToVersion > 0 {
 		return m.migrateDBToVersion()
 	}
+
 	if m.OldEncryptionKey.AEAD != nil {
 		return m.rotateEncryptionKey()
 	}
+
 	return errors.New("must specify one of `--migrate-to-latest-version`, `--current-db-version`, `--supported-db-version`, `--migrate-db-to-version`, or `--old-encryption-key`")
 }
 

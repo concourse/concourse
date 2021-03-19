@@ -11,11 +11,13 @@ import (
 
 	"github.com/clarafu/envstruct"
 	concourseCmd "github.com/concourse/concourse/cmd"
+	v "github.com/concourse/concourse/cmd/concourse/validator"
 	"github.com/concourse/concourse/flag"
 	"github.com/concourse/concourse/tsa/tsacmd"
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
+	"github.com/hashicorp/go-multierror"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 
@@ -25,32 +27,42 @@ import (
 	"github.com/tedsuo/ifrit/sigmon"
 )
 
-var configFile string
-var webCmd Web
+var webCmd WebConfig
 
 var WebCommand = &cobra.Command{
 	Use:   "web",
-	Short: "TODO",
-	Long:  `TODO`,
-	RunE:  InitializeWeb,
+	Short: "Start up web component of Concourse",
+	Long: `Concourse relies on the web component to start up the ATC
+	and the TSA.`,
+	RunE: InitializeWeb,
 }
 
 func init() {
-	WebCommand.Flags().StringVar(&configFile, "config", "", "config file (default is $HOME/.cobra.yaml)")
+	WebCommand.Flags().Var(&webCmd.configFile, "config", "config file (default is $HOME/.cobra.yaml)")
 
 	WebCommand.Flags().StringVar(&webCmd.PeerAddress, "peer-address", "127.0.0.1", "Network address of this web node, reachable by other web nodes. Used for forwarded worker addresses.")
 
-	*webCmd.RunConfig = atccmd.CmdDefaults
+	webCmd.RunConfig = &atccmd.CmdDefaults
+	webCmd.TSACommand = &tsacmd.CmdDefaults
 
-	// XXX: Can be removed when flags no longer supported
+	// IMPORTANT!: Can be removed when flags no longer supported
 	atccmd.InitializeATCFlagsDEPRECATED(WebCommand, webCmd.RunConfig)
 	tsacmd.InitializeFlagsDEPRECATED(WebCommand, webCmd.TSACommand)
 
 	// TODO: Mark all flags as deprecated
 }
 
+type WebConfig struct {
+	configFile flag.File
+
+	PeerAddress string `yaml:"peer_address"`
+
+	*atccmd.RunConfig  `yaml:"web" ignore_env:"true"`
+	*tsacmd.TSACommand `yaml:"worker_gateway"`
+}
+
 func InitializeWeb(cmd *cobra.Command, args []string) error {
-	// XXX: This can be removed after we completely deprecate flags
+	// IMPORTANT! This can be removed after we completely deprecate flags
 	fixupFlagDefaults(cmd, &webCmd)
 
 	// Fetch out env values
@@ -73,8 +85,8 @@ func InitializeWeb(cmd *cobra.Command, args []string) error {
 
 	// Fetch out the values set from the config file and overwrite the flag
 	// values
-	if configFile != "" {
-		file, err := os.Open(configFile)
+	if webCmd.configFile != "" {
+		file, err := os.Open(string(webCmd.configFile))
 		if err != nil {
 			return fmt.Errorf("open file: %s", err)
 		}
@@ -91,19 +103,21 @@ func InitializeWeb(cmd *cobra.Command, args []string) error {
 	uni := ut.New(en, en)
 	trans, _ := uni.GetTranslator("en")
 
-	webValidator := atccmd.NewValidator(trans)
+	webValidator := v.NewValidator(trans)
 
 	err = webValidator.Struct(webCmd)
 	if err != nil {
 		validationErrors := err.(validator.ValidationErrors)
 
-		// TODO: FIX ERROR HANDLING
-		var errOuts []string
-		for _, err := range validationErrors {
-			errOuts = append(errOuts, err.Translate(trans))
+		var errs *multierror.Error
+		for _, validationErr := range validationErrors {
+			errs = multierror.Append(
+				errs,
+				errors.New(validationErr.Translate(trans)),
+			)
 		}
 
-		return fmt.Errorf(`TODO`)
+		return errs.ErrorOrNil()
 	}
 
 	err = webCmd.Execute(cmd, args)
@@ -114,7 +128,7 @@ func InitializeWeb(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func fixupFlagDefaults(cmd *cobra.Command, web *Web) {
+func fixupFlagDefaults(cmd *cobra.Command, web *WebConfig) {
 	// XXX: TEST THIS
 	if !cmd.Flags().Changed("default-task-cpu-limit") {
 		web.DefaultCpuLimit = nil
@@ -125,14 +139,7 @@ func fixupFlagDefaults(cmd *cobra.Command, web *Web) {
 	}
 }
 
-type Web struct {
-	PeerAddress string `yaml:"peer_address"`
-
-	*atccmd.RunConfig
-	*tsacmd.TSACommand `yaml:"worker_gateway"`
-}
-
-func (w *Web) Execute(cmd *cobra.Command, args []string) error {
+func (w *WebConfig) Execute(cmd *cobra.Command, args []string) error {
 	runner, err := w.Runner(args)
 	if err != nil {
 		return err
@@ -141,7 +148,7 @@ func (w *Web) Execute(cmd *cobra.Command, args []string) error {
 	return <-ifrit.Invoke(sigmon.New(runner)).Wait()
 }
 
-func (w *Web) Runner(args []string) (ifrit.Runner, error) {
+func (w *WebConfig) Runner(args []string) (ifrit.Runner, error) {
 	if w.RunConfig.CLIArtifactsDir == "" {
 		w.RunConfig.CLIArtifactsDir = flag.Dir(concourseCmd.DiscoverAsset("fly-assets"))
 	}
@@ -174,7 +181,7 @@ func (w *Web) Runner(args []string) (ifrit.Runner, error) {
 	}), nil
 }
 
-func (w *Web) populateSharedFlags() error {
+func (w *WebConfig) populateSharedFlags() error {
 	var signingKey *rsa.PrivateKey
 	if w.RunConfig.Auth.AuthFlags.SigningKey == nil || w.RunConfig.Auth.AuthFlags.SigningKey.PrivateKey == nil {
 		var err error
@@ -191,12 +198,12 @@ func (w *Web) populateSharedFlags() error {
 	w.TSACommand.PeerAddress = w.PeerAddress
 
 	if len(w.TSACommand.ATCURLs) == 0 {
-		w.TSACommand.ATCURLs = []string{w.RunConfig.DefaultURL().URL.String()}
+		w.TSACommand.ATCURLs = flag.URLs{w.RunConfig.DefaultURL()}
 	}
 
-	if w.TSACommand.TokenURL == "" {
+	if w.TSACommand.TokenURL.URL == nil {
 		tokenPath, _ := url.Parse("/sky/issuer/token")
-		w.TSACommand.TokenURL = w.RunConfig.DefaultURL().ResolveReference(tokenPath).String()
+		w.TSACommand.TokenURL.URL = w.RunConfig.DefaultURL().URL.ResolveReference(tokenPath)
 	}
 
 	if w.TSACommand.ClientSecret == "" {
@@ -234,7 +241,7 @@ func (w *Web) populateSharedFlags() error {
 	return nil
 }
 
-func (w *Web) validateSystemClaimValues() error {
+func (w *WebConfig) validateSystemClaimValues() error {
 	found := false
 	for _, val := range w.RunConfig.SystemClaim.Values {
 		if val == w.TSACommand.ClientID {
