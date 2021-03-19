@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 type File string
@@ -59,4 +60,34 @@ func (f *File) Type() string {
 
 func (f *File) Path() string {
 	return string(*f)
+}
+
+type Files []File
+
+// Can be removed once flags are deprecated
+func (f *Files) Set(value string) error {
+	unparsedFiles := strings.Split(value, ",")
+
+	var parsedFiles Files
+	for _, unparsedFile := range unparsedFiles {
+		var file File
+		err := file.Set(strings.TrimSpace(unparsedFile))
+		if err != nil {
+			return err
+		}
+
+		parsedFiles = append(parsedFiles, file)
+	}
+
+	return nil
+}
+
+// Can be removed once flags are deprecated
+func (f *Files) String() string {
+	return fmt.Sprintf("%v", *f)
+}
+
+// Can be removed once flags are deprecated
+func (f *Files) Type() string {
+	return "Files"
 }

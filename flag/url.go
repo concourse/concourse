@@ -14,8 +14,8 @@ func (u *URLs) Set(value string) error {
 
 	var parsedURLs URLs
 	for _, unparsedURL := range unparsedURLs {
-		value = strings.TrimRight(unparsedURL, "/")
-		parsedURL, err := url.Parse(value)
+		urlVal := strings.TrimRight(strings.TrimSpace(unparsedURL), "/")
+		parsedURL, err := url.Parse(urlVal)
 		if err != nil {
 			return err
 		}

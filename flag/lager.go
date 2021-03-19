@@ -23,7 +23,7 @@ var ValidLogLevels = []string{
 }
 
 type Lager struct {
-	LogLevel   string `yaml:"log_level" validate:"log_level" env:"CONCOURSE_WORKER_GATEWAY_LOG_LEVEL,CONCOURSE_TSA_LOG_LEVEL"`
+	LogLevel   string `yaml:"log_level,omitempty" validate:"log_level" env:"CONCOURSE_WORKER_GATEWAY_LOG_LEVEL,CONCOURSE_TSA_LOG_LEVEL"`
 	writerSink io.Writer
 }
 

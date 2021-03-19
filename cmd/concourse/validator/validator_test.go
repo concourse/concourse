@@ -1,4 +1,4 @@
-package atccmd_test
+package validator_test
 
 import (
 	"fmt"
@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/concourse/concourse/atc/atccmd"
+	v "github.com/concourse/concourse/cmd/concourse/validator"
 	"github.com/concourse/concourse/flag"
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
@@ -126,7 +127,7 @@ func (t *URLTest) TestURLValidator(s *ValidatorTestSuite, trans transHelper) {
 	}
 
 	validate := validator.New()
-	validate.RegisterStructValidation(atccmd.ValidateURL, flag.URL{})
+	validate.RegisterStructValidation(v.ValidateURL, flag.URL{})
 
 	err = validate.Struct(testStruct)
 	if t.Valid {
@@ -168,14 +169,14 @@ func (t *LimitedRouteTest) TestLimitedRouteValidator(s *ValidatorTestSuite, tran
 	}
 
 	validate := validator.New()
-	validate.RegisterValidation("limited_route", atccmd.ValidateLimitedRoute)
-	trans.RegisterTranslation(validate, "limited_route", atccmd.ValidationErrLimitedRoute)
+	validate.RegisterValidation("limited_route", v.ValidateLimitedRoute)
+	trans.RegisterTranslation(validate, "limited_route", v.ValidationErrLimitedRoute)
 
 	err := validate.Struct(testStruct)
 	if t.Valid {
 		s.Assert().NoError(err)
 	} else {
-		s.Contains(fmt.Sprintf("%v", err.(validator.ValidationErrors).Translate(trans.trans)), atccmd.ValidationErrLimitedRoute)
+		s.Contains(fmt.Sprintf("%v", err.(validator.ValidationErrors).Translate(trans.trans)), v.ValidationErrLimitedRoute)
 	}
 }
 
@@ -208,7 +209,7 @@ var TLSOrLetsEncryptTests = []TLSOrLetsEncryptTest{
 		},
 
 		Valid:        false,
-		ErrorMessage: atccmd.ValidationErrEmptyTLSBindPort,
+		ErrorMessage: v.ValidationErrEmptyTLSBindPort,
 	},
 	{
 		Title: "empty tls bind port with key configured",
@@ -218,7 +219,7 @@ var TLSOrLetsEncryptTests = []TLSOrLetsEncryptTest{
 		},
 
 		Valid:        false,
-		ErrorMessage: atccmd.ValidationErrEmptyTLSBindPort,
+		ErrorMessage: v.ValidationErrEmptyTLSBindPort,
 	},
 	{
 		Title: "empty tls bind port with lets encrypt enabled",
@@ -228,7 +229,7 @@ var TLSOrLetsEncryptTests = []TLSOrLetsEncryptTest{
 		},
 
 		Valid:        false,
-		ErrorMessage: atccmd.ValidationErrEmptyTLSBindPort,
+		ErrorMessage: v.ValidationErrEmptyTLSBindPort,
 	},
 	{
 		Title: "lets encrypt enabled with no tls cert or key configured",
@@ -254,7 +255,7 @@ var TLSOrLetsEncryptTests = []TLSOrLetsEncryptTest{
 		},
 
 		Valid:        false,
-		ErrorMessage: atccmd.ValidationErrEnableLetsEncrypt,
+		ErrorMessage: v.ValidationErrEnableLetsEncrypt,
 	},
 	{
 		Title: "lets encrypt enabled with tls key configured",
@@ -268,7 +269,7 @@ var TLSOrLetsEncryptTests = []TLSOrLetsEncryptTest{
 		},
 
 		Valid:        false,
-		ErrorMessage: atccmd.ValidationErrEnableLetsEncrypt,
+		ErrorMessage: v.ValidationErrEnableLetsEncrypt,
 	},
 	{
 		Title: "tls cert and key configured with valid https external url",
@@ -292,7 +293,7 @@ var TLSOrLetsEncryptTests = []TLSOrLetsEncryptTest{
 		},
 
 		Valid:        false,
-		ErrorMessage: atccmd.ValidationErrTLSCertKey,
+		ErrorMessage: v.ValidationErrTLSCertKey,
 	},
 	{
 		Title: "tls cert and key configured without https within external url",
@@ -305,7 +306,7 @@ var TLSOrLetsEncryptTests = []TLSOrLetsEncryptTest{
 		ExternalURL: "http://localhost",
 
 		Valid:        false,
-		ErrorMessage: atccmd.ValidationErrTLSCertKey,
+		ErrorMessage: v.ValidationErrTLSCertKey,
 	},
 	{
 		Title: "neither tls or lets encrypt enabled",
@@ -315,7 +316,7 @@ var TLSOrLetsEncryptTests = []TLSOrLetsEncryptTest{
 		},
 
 		Valid:        false,
-		ErrorMessage: atccmd.ValidationErrTLS,
+		ErrorMessage: v.ValidationErrTLS,
 	},
 }
 
@@ -333,12 +334,12 @@ func (t *TLSOrLetsEncryptTest) TestTLSOrLetsEncryptValidator(s *ValidatorTestSui
 	}
 
 	validate := validator.New()
-	validate.RegisterStructValidation(atccmd.ValidateTLSOrLetsEncrypt, atccmd.TLSConfig{})
+	validate.RegisterStructValidation(v.ValidateTLSOrLetsEncrypt, atccmd.TLSConfig{})
 
-	trans.RegisterTranslation(validate, "tlsemptybindport", atccmd.ValidationErrEmptyTLSBindPort)
-	trans.RegisterTranslation(validate, "letsencryptenable", atccmd.ValidationErrEnableLetsEncrypt)
-	trans.RegisterTranslation(validate, "tlsexternalurl", atccmd.ValidationErrTLSCertKey)
-	trans.RegisterTranslation(validate, "tlsorletsencrypt", atccmd.ValidationErrTLS)
+	trans.RegisterTranslation(validate, "tlsemptybindport", v.ValidationErrEmptyTLSBindPort)
+	trans.RegisterTranslation(validate, "letsencryptenable", v.ValidationErrEnableLetsEncrypt)
+	trans.RegisterTranslation(validate, "tlsexternalurl", v.ValidationErrTLSCertKey)
+	trans.RegisterTranslation(validate, "tlsorletsencrypt", v.ValidationErrTLS)
 
 	err := validate.Struct(testStruct)
 	if t.Valid {
@@ -403,14 +404,14 @@ func (t *RBACTest) TestRBACValidator(s *ValidatorTestSuite, trans transHelper) {
 	}
 
 	validate := validator.New()
-	validate.RegisterValidation("rbac", atccmd.ValidateRBAC)
-	trans.RegisterTranslation(validate, "rbac", atccmd.ValidationErrRBAC)
+	validate.RegisterValidation("rbac", v.ValidateRBAC)
+	trans.RegisterTranslation(validate, "rbac", v.ValidationErrRBAC)
 
 	err := validate.Struct(testStruct)
 	if t.Valid {
 		s.Assert().NoError(err)
 	} else {
-		s.Contains(fmt.Sprintf("%v", err.(validator.ValidationErrors).Translate(trans.trans)), atccmd.ValidationErrRBAC)
+		s.Contains(fmt.Sprintf("%v", err.(validator.ValidationErrors).Translate(trans.trans)), v.ValidationErrRBAC)
 	}
 }
 
@@ -451,14 +452,14 @@ func (t *ContainerPlacementStrategyTest) TestContainerPlacementStrategyValidator
 	}
 
 	validate := validator.New()
-	validate.RegisterValidation("cps", atccmd.ValidateContainerPlacementStrategy)
-	trans.RegisterTranslation(validate, "cps", atccmd.ValidationErrCPS)
+	validate.RegisterValidation("cps", v.ValidateContainerPlacementStrategy)
+	trans.RegisterTranslation(validate, "cps", v.ValidationErrCPS)
 
 	err := validate.Struct(testStruct)
 	if t.Valid {
 		s.Assert().NoError(err)
 	} else {
-		s.Contains(fmt.Sprintf("%v", err.(validator.ValidationErrors).Translate(trans.trans)), atccmd.ValidationErrCPS)
+		s.Contains(fmt.Sprintf("%v", err.(validator.ValidationErrors).Translate(trans.trans)), v.ValidationErrCPS)
 	}
 }
 
@@ -489,14 +490,14 @@ func (t *StreamingArtifactsCompressionTest) TestStreamingArtifactsCompressionVal
 	}
 
 	validate := validator.New()
-	validate.RegisterValidation("sac", atccmd.ValidateStreamingArtifactsCompression)
-	trans.RegisterTranslation(validate, "sac", atccmd.ValidationErrSAC)
+	validate.RegisterValidation("sac", v.ValidateStreamingArtifactsCompression)
+	trans.RegisterTranslation(validate, "sac", v.ValidationErrSAC)
 
 	err := validate.Struct(testStruct)
 	if t.Valid {
 		s.Assert().NoError(err)
 	} else {
-		s.Contains(fmt.Sprintf("%v", err.(validator.ValidationErrors).Translate(trans.trans)), atccmd.ValidationErrSAC)
+		s.Contains(fmt.Sprintf("%v", err.(validator.ValidationErrors).Translate(trans.trans)), v.ValidationErrSAC)
 	}
 }
 
@@ -527,13 +528,94 @@ func (t *LogLevelsTest) TestLogLevelValidator(s *ValidatorTestSuite, trans trans
 	}
 
 	validate := validator.New()
-	validate.RegisterValidation("log_level", atccmd.ValidateLogLevel)
-	trans.RegisterTranslation(validate, "log_level", atccmd.ValidationErrLogLevel)
+	validate.RegisterValidation("log_level", v.ValidateLogLevel)
+	trans.RegisterTranslation(validate, "log_level", v.ValidationErrLogLevel)
 
 	err := validate.Struct(testStruct)
 	if t.Valid {
 		s.Assert().NoError(err)
 	} else {
-		s.Contains(fmt.Sprintf("%v", err.(validator.ValidationErrors).Translate(trans.trans)), atccmd.ValidationErrLogLevel)
+		s.Contains(fmt.Sprintf("%v", err.(validator.ValidationErrors).Translate(trans.trans)), v.ValidationErrLogLevel)
+	}
+}
+
+type IPVersionsTest struct {
+	Title     string
+	IPVersion string
+	Valid     bool
+}
+
+var IPVersionsTests = []IPVersionsTest{
+	{
+		Title:     "ip versions valid choice 4",
+		IPVersion: "4",
+		Valid:     true,
+	},
+	{
+		Title:     "log level valid choice 6",
+		IPVersion: "6",
+		Valid:     true,
+	},
+	{
+		Title:     "log level invalid choice",
+		IPVersion: "3",
+		Valid:     false,
+	},
+}
+
+func (t *IPVersionsTest) TestIPVersionsValidator(s *ValidatorTestSuite, trans transHelper) {
+	testStruct := struct {
+		IPVersion string `validate:"ip_version"`
+	}{
+		IPVersion: t.IPVersion,
+	}
+
+	validate := validator.New()
+	validate.RegisterValidation("ip_version", v.ValidateIPVersion)
+	trans.RegisterTranslation(validate, "ip_version", v.ValidationErrIPVersion)
+
+	err := validate.Struct(testStruct)
+	if t.Valid {
+		s.Assert().NoError(err)
+	} else {
+		s.Contains(fmt.Sprintf("%v", err.(validator.ValidationErrors).Translate(trans.trans)), v.ValidationErrIPVersion)
+	}
+}
+
+type BaggageclaimDriverTest struct {
+	Title  string
+	Driver string
+	Valid  bool
+}
+
+var BaggageclaimDriverTests = []BaggageclaimDriverTest{
+	{
+		Title:  "baggageclaim driver valid choice",
+		Driver: "overlay",
+		Valid:  true,
+	},
+	{
+		Title:  "baggageclaim driver invalid choice",
+		Driver: "unknown-driver",
+		Valid:  false,
+	},
+}
+
+func (t *BaggageclaimDriverTest) TestBaggageclaimDriverValidator(s *ValidatorTestSuite, trans transHelper) {
+	testStruct := struct {
+		Driver string `validate:"baggageclaim_driver"`
+	}{
+		Driver: t.Driver,
+	}
+
+	validate := validator.New()
+	validate.RegisterValidation("baggageclaim_driver", v.ValidateBaggageclaimDriver)
+	trans.RegisterTranslation(validate, "baggageclaim_driver", v.ValidationErrBaggageclaimDriver)
+
+	err := validate.Struct(testStruct)
+	if t.Valid {
+		s.Assert().NoError(err)
+	} else {
+		s.Contains(fmt.Sprintf("%v", err.(validator.ValidationErrors).Translate(trans.trans)), v.ValidateBaggageclaimDriver)
 	}
 }
