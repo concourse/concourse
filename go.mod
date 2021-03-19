@@ -70,7 +70,7 @@ require (
 	github.com/peterhellberg/link v1.0.0
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/term v0.0.0-20190109203006-aa71e9d9e942
-	github.com/prometheus/client_golang v1.7.1
+	github.com/prometheus/client_golang v1.10.0
 	github.com/racksec/srslog v0.0.0-20180709174129-a4725f04ec91
 	github.com/sirupsen/logrus v1.6.0
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
@@ -91,8 +91,7 @@ require (
 	go.opentelemetry.io/otel/sdk v0.11.0
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/oauth2 v0.0.0-20200902213428-5d25da1a8d43
-	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
-	golang.org/x/sys v0.0.0-20210223212115-eede4237b368 // indirect
+	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
 	google.golang.org/api v0.32.0 // indirect
 	google.golang.org/grpc v1.32.0
