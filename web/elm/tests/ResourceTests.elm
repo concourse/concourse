@@ -2881,6 +2881,18 @@ all =
                             )
                         |> Tuple.second
                         |> Common.contains (Effects.FetchBuildPlan 2)
+            , test "check with build closes build event stream when build changes" <|
+                \_ ->
+                    init
+                        |> Application.handleCallback
+                            (Callback.ResourceFetched <| Ok resource)
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.ResourceFetched <|
+                                Ok { resource | build = Just { baseBuild | id = 2 } }
+                            )
+                        |> Tuple.second
+                        |> Common.contains (Effects.CloseBuildEventStream)
             , describe "build events subscription" <|
                 [ test "after build plan is received, opens event stream" <|
                     \_ ->

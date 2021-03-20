@@ -195,7 +195,7 @@ initBuild mbuild ( model, effects ) =
                         Build.Output.Output.init model.highlight build
                 in
                 ( { model | build = Just build, output = Just output }
-                , effects ++ outputCmd
+                , effects ++ [ CloseBuildEventStream ] ++ outputCmd
                 )
 
 
