@@ -313,7 +313,6 @@ var _ = Describe("Pool", func() {
 					})
 
 					It("returns the error", func() {
-						logger.Debug("xxx")
 						Expect(selectErr).To(Equal(disaster))
 					})
 				})

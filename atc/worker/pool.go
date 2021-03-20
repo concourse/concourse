@@ -180,7 +180,6 @@ func (pool *pool) findWorker(
 		return nil, nil
 	}
 
-	logger.Debug("a")
 	worker, err := pool.findWorkerWithContainer(
 		logger,
 		compatibleWorkers,
@@ -193,7 +192,6 @@ func (pool *pool) findWorker(
 	}
 
 	if worker == nil {
-		logger.Debug("b")
 		worker, err = pool.findWorkerFromStrategy(
 			logger,
 			compatibleWorkers,
@@ -209,7 +207,6 @@ func (pool *pool) findWorker(
 		return nil, nil
 	}
 
-	logger.Debug("c", lager.Data{"worker": worker.Name()})
 	return NewClient(worker), nil
 }
 
