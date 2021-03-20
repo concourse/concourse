@@ -305,7 +305,7 @@ func (step *CheckStep) runCheck(
 
 	defer cancel()
 
-	chosenWorker, _, err := step.workerPool.WaitForWorker(
+	chosenWorker, _, err := step.workerPool.SelectWorker(
 		lagerctx.NewContext(processCtx, logger),
 		step.containerOwner(resourceConfig),
 		containerSpec,
@@ -322,6 +322,7 @@ func (step *CheckStep) runCheck(
 	defer func() {
 		step.workerPool.ReleaseWorker(
 			lagerctx.NewContext(processCtx, logger),
+			containerSpec,
 			chosenWorker,
 			step.strategy,
 		)

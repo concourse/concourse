@@ -2,7 +2,6 @@ package worker
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"math/rand"
 	"strconv"
@@ -16,13 +15,9 @@ import (
 	"github.com/concourse/concourse/atc/metric"
 )
 
-const workerPollingInterval = 5 * time.Second
+const WorkerPollingInterval = 5 * time.Second
 
-var (
-	ErrNoWorkers           = errors.New("no workers")
-	ErrFailedToAcquireLock = errors.New("failed to acquire lock")
-	ErrFailedToPickWorker  = errors.New("failed to pick worker")
-)
+//go:generate counterfeiter . Pool
 
 type NoCompatibleWorkersError struct {
 	Spec WorkerSpec
@@ -31,8 +26,6 @@ type NoCompatibleWorkersError struct {
 func (err NoCompatibleWorkersError) Error() string {
 	return fmt.Sprintf("no workers satisfying: %s", err.Spec.Description())
 }
-
-//go:generate counterfeiter . Pool
 
 type Pool interface {
 	FindContainer(lager.Logger, int, string) (Container, bool, error)
@@ -48,22 +41,14 @@ type Pool interface {
 		WorkerSpec,
 		ContainerPlacementStrategy,
 		PoolCallbacks,
-	) (Client, error)
+	) (Client, time.Duration, error)
 
 	ReleaseWorker(
 		context.Context,
+		ContainerSpec,
 		Client,
 		ContainerPlacementStrategy,
 	)
-
-	WaitForWorker(
-		context.Context,
-		db.ContainerOwner,
-		ContainerSpec,
-		WorkerSpec,
-		ContainerPlacementStrategy,
-		PoolCallbacks,
-	) (Client, time.Duration, error)
 }
 
 //go:generate counterfeiter . PoolCallbacks
@@ -95,7 +80,7 @@ func (pool *pool) allSatisfying(logger lager.Logger, spec WorkerSpec) ([]Worker,
 	}
 
 	if len(workers) == 0 {
-		return nil, ErrNoWorkers
+		return workers, nil
 	}
 
 	compatibleTeamWorkers := []Worker{}
@@ -117,13 +102,115 @@ func (pool *pool) allSatisfying(logger lager.Logger, spec WorkerSpec) ([]Worker,
 		return compatibleTeamWorkers, nil
 	}
 
-	if len(compatibleGeneralWorkers) != 0 {
-		return compatibleGeneralWorkers, nil
+	return compatibleGeneralWorkers, nil
+}
+
+func (pool *pool) findWorkerWithContainer(
+	logger lager.Logger,
+	compatible []Worker,
+	owner db.ContainerOwner,
+	containerSpec ContainerSpec,
+	strategy ContainerPlacementStrategy,
+) (Worker, error) {
+	workersWithContainer, err := pool.provider.FindWorkersForContainerByOwner(
+		logger.Session("find-worker"),
+		owner,
+	)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, NoCompatibleWorkersError{
-		Spec: spec,
+	for _, worker := range compatible {
+		for _, c := range workersWithContainer {
+			if worker.Name() == c.Name() {
+				err := strategy.Pick(logger, c, containerSpec)
+
+				if err != nil {
+					logger.Debug("worker-with-container-rejected-during-selection", lager.Data{"reason": err.Error()})
+				} else {
+					return worker, nil
+				}
+			}
+		}
 	}
+
+	return nil, nil
+}
+
+func (pool *pool) findWorkerFromStrategy(
+	logger lager.Logger,
+	compatible []Worker,
+	containerSpec ContainerSpec,
+	strategy ContainerPlacementStrategy,
+) (Worker, error) {
+	orderedWorkers, err := strategy.Order(logger, compatible, containerSpec)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, candidate := range orderedWorkers {
+		err := strategy.Pick(logger, candidate, containerSpec)
+
+		if err != nil {
+			logger.Debug("candidate-worker-rejected-during-selection", lager.Data{"reason": err.Error()})
+		} else {
+			return candidate, nil
+		}
+	}
+
+	return nil, nil
+}
+
+func (pool *pool) findWorker(
+	ctx context.Context,
+	containerOwner db.ContainerOwner,
+	containerSpec ContainerSpec,
+	workerSpec WorkerSpec,
+	strategy ContainerPlacementStrategy,
+) (Client, error) {
+	logger := lagerctx.FromContext(ctx)
+
+	compatibleWorkers, err := pool.allSatisfying(logger, workerSpec)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(compatibleWorkers) == 0 {
+		return nil, nil
+	}
+
+	logger.Debug("a")
+	worker, err := pool.findWorkerWithContainer(
+		logger,
+		compatibleWorkers,
+		containerOwner,
+		containerSpec,
+		strategy,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if worker == nil {
+		logger.Debug("b")
+		worker, err = pool.findWorkerFromStrategy(
+			logger,
+			compatibleWorkers,
+			containerSpec,
+			strategy,
+		)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if worker == nil {
+		return nil, nil
+	}
+
+	logger.Debug("c", lager.Data{"worker": worker.Name()})
+	return NewClient(worker), nil
 }
 
 func (pool *pool) FindContainer(logger lager.Logger, teamID int, handle string) (Container, bool, error) {
@@ -201,115 +288,37 @@ func (pool *pool) SelectWorker(
 	workerSpec WorkerSpec,
 	strategy ContainerPlacementStrategy,
 	callbacks PoolCallbacks,
-) (Client, error) {
-	logger := lagerctx.FromContext(ctx)
-
-	workersWithContainer, err := pool.provider.FindWorkersForContainerByOwner(
-		logger.Session("find-worker"),
-		owner,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	compatibleWorkers, err := pool.allSatisfying(logger, workerSpec)
-	if err != nil {
-		return nil, err
-	}
-
-	var worker Worker
-dance:
-	for _, w := range workersWithContainer {
-		for _, c := range compatibleWorkers {
-			if w.Name() == c.Name() {
-				worker = c
-				break dance
-			}
-		}
-	}
-
-	if worker == nil {
-		candidates, err := strategy.Order(logger, compatibleWorkers, containerSpec)
-
-		if err != nil {
-			return nil, err
-		}
-
-		for _, candidate := range candidates {
-			err := strategy.Pick(logger, candidate, containerSpec)
-
-			if err != nil {
-				logger.Debug("Candidate worker rejected during selection", lager.Data{"reason": err.Error()})
-			} else {
-				worker = candidate
-				break
-			}
-		}
-
-		if worker == nil {
-			return nil, ErrFailedToPickWorker
-		}
-	}
-
-	return NewClient(worker), nil
-}
-
-func (pool *pool) ReleaseWorker(
-	ctx context.Context,
-	client Client,
-	strategy ContainerPlacementStrategy,
-) {
-	logger := lagerctx.FromContext(ctx)
-	strategy.Release(logger, client.Worker())
-}
-
-func (pool *pool) WaitForWorker(
-	ctx context.Context,
-	owner db.ContainerOwner,
-	containerSpec ContainerSpec,
-	workerSpec WorkerSpec,
-	strategy ContainerPlacementStrategy,
-	callbacks PoolCallbacks,
 ) (Client, time.Duration, error) {
 	logger := lagerctx.FromContext(ctx)
 
 	started := time.Now()
-	pollingTicker := time.NewTicker(workerPollingInterval)
-	defer pollingTicker.Stop()
-
 	labels := metric.StepsWaitingLabels{
-		TeamId:     strconv.Itoa(workerSpec.TeamID),
-		WorkerTags: strings.Join(workerSpec.Tags, "_"),
 		Platform:   workerSpec.Platform,
+		TeamId:     strconv.Itoa(workerSpec.TeamID),
+		Type:       string(containerSpec.Type),
+		WorkerTags: strings.Join(workerSpec.Tags, "_"),
 	}
 
 	var worker Client
-	var waiting bool = false
+	var pollingTicker *time.Ticker
 	for {
 		var err error
-		worker, err = pool.SelectWorker(ctx, owner, containerSpec, workerSpec, strategy, callbacks)
+		worker, err = pool.findWorker(ctx, owner, containerSpec, workerSpec, strategy)
 
 		if err != nil {
-			if errors.Is(err, ErrNoWorkers) {
-				// Could use these blocks to notify caller of the reason we're waiting
-			} else if errors.Is(err, ErrFailedToAcquireLock) {
-				//
-			} else if errors.Is(err, ErrFailedToPickWorker) {
-				//
-			} else if errors.As(err, &NoCompatibleWorkersError{}) {
-				//
-			} else if errors.As(err, &NoWorkerFitContainerPlacementStrategyError{}) {
-				//
-			} else {
-				return nil, 0, err
-			}
+			return nil, 0, err
 		}
 
 		if worker != nil {
 			break
 		}
 
-		if !waiting {
+		if pollingTicker == nil {
+			pollingTicker = time.NewTicker(WorkerPollingInterval)
+			defer pollingTicker.Stop()
+
+			logger.Debug("waiting-for-available-worker")
+
 			_, ok := metric.Metrics.StepsWaiting[labels]
 			if !ok {
 				metric.Metrics.StepsWaiting[labels] = &metric.Gauge{}
@@ -321,13 +330,11 @@ func (pool *pool) WaitForWorker(
 			if callbacks != nil {
 				callbacks.WaitingForWorker(logger)
 			}
-
-			waiting = true
 		}
 
 		select {
 		case <-ctx.Done():
-			logger.Info("aborted-waiting-worker")
+			logger.Info("aborted-waiting-for-worker")
 			return nil, 0, ctx.Err()
 		case <-pollingTicker.C:
 			break
@@ -343,6 +350,16 @@ func (pool *pool) WaitForWorker(
 	return worker, elapsed, nil
 }
 
+func (pool *pool) ReleaseWorker(
+	ctx context.Context,
+	containerSpec ContainerSpec,
+	client Client,
+	strategy ContainerPlacementStrategy,
+) {
+	logger := lagerctx.FromContext(ctx)
+	strategy.Release(logger, client.Worker(), containerSpec)
+}
+
 func (pool *pool) chooseRandomWorkerForVolume(
 	logger lager.Logger,
 	workerSpec WorkerSpec,
@@ -350,6 +367,10 @@ func (pool *pool) chooseRandomWorkerForVolume(
 	workers, err := pool.allSatisfying(logger, workerSpec)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(workers) == 0 {
+		return nil, NoCompatibleWorkersError{Spec: workerSpec}
 	}
 
 	return workers[rand.Intn(len(workers))], nil

@@ -2,10 +2,11 @@ package worker_test
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/concourse/concourse/atc/db"
 	. "github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 
@@ -15,798 +16,761 @@ import (
 
 //go:generate counterfeiter . ContainerPlacementStrategy
 
-var (
-	strategy ContainerPlacementStrategy
+var _ = Describe("x", func() {
 
-	spec     ContainerSpec
-	metadata db.ContainerMetadata
-	workers  []Worker
+	var (
+		logger      *lagertest.TestLogger
+		strategy    ContainerPlacementStrategy
+		strategyErr error
 
-	chosenWorker Worker
-	chooseErr    error
+		containerSpec ContainerSpec
+		workerFakes   []*workerfakes.FakeWorker
+		workers       []Worker
 
-	newStrategyError error
+		orderedWorkers []Worker
+		orderErr       error
 
-	compatibleWorkerOneCache1 *workerfakes.FakeWorker
-	compatibleWorkerOneCache2 *workerfakes.FakeWorker
-	compatibleWorkerTwoCaches *workerfakes.FakeWorker
-	compatibleWorkerNoCaches1 *workerfakes.FakeWorker
-	compatibleWorkerNoCaches2 *workerfakes.FakeWorker
+		pickedWorker Worker
+		pickErr      error
+	)
 
-	logger *lagertest.TestLogger
-)
+	printWorkers := func(format string, workers []Worker) {
+		names := make([]string, len(workers))
+		for i, worker := range workers {
+			names[i] = worker.Name()
+		}
 
-var _ = Describe("FewestBuildContainersPlacementStrategy", func() {
-	Describe("Choose", func() {
-		var compatibleWorker1 *workerfakes.FakeWorker
-		var compatibleWorker2 *workerfakes.FakeWorker
-		var compatibleWorker3 *workerfakes.FakeWorker
+		fmt.Fprintln(GinkgoWriter, fmt.Sprintf(format, strings.Join(names, ", ")))
+	}
+
+	updateWorkersFromFakes := func() {
+		workers = make([]Worker, len(workerFakes))
+		for i, fake := range workerFakes {
+			workers[i] = Worker(fake)
+		}
+	}
+
+	makeFakeInput := func(workersWithInput ...Worker) InputSource {
+		artifactSource := new(workerfakes.FakeArtifactSource)
+		artifactSource.ExistsOnStub = func(logger lager.Logger, worker Worker) (Volume, bool, error) {
+			for _, hasInput := range workersWithInput {
+				if worker == hasInput {
+					return new(workerfakes.FakeVolume), true, nil
+				}
+			}
+
+			return nil, false, nil
+		}
+
+		input := new(workerfakes.FakeInputSource)
+		input.SourceReturns(artifactSource)
+
+		return input
+	}
+
+	order := func(assertErr bool) []Worker {
+		printWorkers("inital workers: %s", workers)
+		orderedWorkers, orderErr = strategy.Order(logger, append([]Worker(nil), workers...), containerSpec)
+
+		if assertErr {
+			Expect(orderErr).ToNot(HaveOccurred())
+		}
+
+		printWorkers("ordered workers: %s", orderedWorkers)
+		return orderedWorkers
+	}
+
+	pickAndRelease := func() Worker {
+		pickedWorker = nil
+
+		for _, worker := range orderedWorkers {
+			pickErr = strategy.Pick(logger, worker, containerSpec)
+
+			if pickErr == nil {
+				pickedWorker = worker
+				break
+			}
+		}
+
+		if pickedWorker != nil {
+			fmt.Fprintln(GinkgoWriter, fmt.Sprintf("picked worker: %s", pickedWorker.Name()))
+			strategy.Release(logger, pickedWorker, containerSpec)
+		}
+
+		return pickedWorker
+	}
+
+	BeforeEach(func() {
+		logger = lagertest.NewTestLogger("placement-tests")
+
+		containerSpec = ContainerSpec{
+			ImageSpec: ImageSpec{ResourceType: "some-type"},
+			TeamID:    4567,
+			Inputs:    []InputSource{},
+		}
+
+		workerFakes = []*workerfakes.FakeWorker{
+			new(workerfakes.FakeWorker),
+			new(workerfakes.FakeWorker),
+			new(workerfakes.FakeWorker),
+		}
+		for i, worker := range workerFakes {
+			worker.NameReturns(fmt.Sprintf("worker-%d", i))
+		}
+
+		updateWorkersFromFakes()
+		fmt.Fprintln(GinkgoWriter, "init-complete")
+	})
+
+	Describe("No strategy", func() {
 
 		BeforeEach(func() {
-			logger = lagertest.NewTestLogger("build-containers-equal-placement-test")
-			strategy, newStrategyError = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{ContainerPlacementStrategy: []string{"fewest-build-containers"}})
-			Expect(newStrategyError).ToNot(HaveOccurred())
-			compatibleWorker1 = new(workerfakes.FakeWorker)
-			compatibleWorker1.NameReturns("compatibleWorker1")
-			compatibleWorker2 = new(workerfakes.FakeWorker)
-			compatibleWorker2.NameReturns("compatibleWorker2")
-			compatibleWorker3 = new(workerfakes.FakeWorker)
-			compatibleWorker3.NameReturns("compatibleWorker3")
+			strategy, strategyErr = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{
+				ContainerPlacementStrategy: []string{},
+			})
+			Expect(strategyErr).ToNot(HaveOccurred())
 
-			spec = ContainerSpec{
-				ImageSpec: ImageSpec{ResourceType: "some-type"},
-
-				TeamID: 4567,
-
-				Inputs: []InputSource{},
-			}
 		})
 
-		Context("when there is only one worker", func() {
-			BeforeEach(func() {
-				workers = []Worker{compatibleWorker1}
-				compatibleWorker1.BuildContainersReturns(20)
-			})
-
-			It("picks that worker", func() {
-				chosenWorker, chooseErr = strategy.Choose(
-					logger,
-					workers,
-					spec,
-				)
-				Expect(chooseErr).ToNot(HaveOccurred())
-				Expect(chosenWorker).To(Equal(compatibleWorker1))
+		Describe("strategy.Order", func() {
+			It("orders candidates randomly", func() {
+				Consistently(func() []Worker {
+					return order(true)
+				}).Should(SatisfyAny(
+					Equal([]Worker{workers[0], workers[1], workers[2]}),
+					Equal([]Worker{workers[0], workers[2], workers[1]}),
+					Equal([]Worker{workers[1], workers[0], workers[2]}),
+					Equal([]Worker{workers[1], workers[2], workers[0]}),
+					Equal([]Worker{workers[2], workers[0], workers[1]}),
+					Equal([]Worker{workers[2], workers[1], workers[0]}),
+				))
 			})
 		})
+	})
 
-		Context("when there are multiple workers", func() {
-			BeforeEach(func() {
-				workers = []Worker{compatibleWorker1, compatibleWorker2, compatibleWorker3}
+	Describe("fewest-build-containers", func() {
+		JustBeforeEach(func() {
+			strategy, strategyErr = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{
+				ContainerPlacementStrategy: []string{"fewest-build-containers"},
+			})
+			Expect(strategyErr).ToNot(HaveOccurred())
+		})
 
-				compatibleWorker1.BuildContainersReturns(30)
-				compatibleWorker2.BuildContainersReturns(20)
-				compatibleWorker3.BuildContainersReturns(10)
+		Describe("strategy.Order", func() {
+			JustBeforeEach(func() {
+				order(true)
 			})
 
-			Context("when the container is not of type 'check'", func() {
-				It("picks the one with least amount of containers", func() {
-					Consistently(func() Worker {
-						chosenWorker, chooseErr = strategy.Choose(
-							logger,
-							workers,
-							spec,
-						)
-						Expect(chooseErr).ToNot(HaveOccurred())
-						return chosenWorker
-					}).Should(Equal(compatibleWorker3))
+			Context("with multiple workers", func() {
+				BeforeEach(func() {
+					workerFakes[0].BuildContainersReturns(20)
+					workerFakes[1].BuildContainersReturns(30)
+					workerFakes[2].BuildContainersReturns(10)
 				})
 
-				Context("when there is more than one worker with the same number of build containers", func() {
+				It("orders workers by build container count", func() {
+					Expect(orderedWorkers).To(Equal([]Worker{workers[2], workers[0], workers[1]}))
+				})
+
+				Context("when multiple have the same number of build containers", func() {
 					BeforeEach(func() {
-						workers = []Worker{compatibleWorker1, compatibleWorker2, compatibleWorker3}
-						compatibleWorker1.BuildContainersReturns(10)
+						workerFakes[1].BuildContainersReturns(10)
 					})
 
-					It("picks any of them", func() {
-						Consistently(func() Worker {
-							chosenWorker, chooseErr = strategy.Choose(
-								logger,
-								workers,
-								spec,
-							)
-							Expect(chooseErr).ToNot(HaveOccurred())
-							return chosenWorker
-						}).Should(Or(Equal(compatibleWorker1), Equal(compatibleWorker3)))
+					It("orders workers with same counts randomly", func() {
+						Consistently(func() []Worker {
+							return order(true)
+						}).Should(SatisfyAny(
+							Equal([]Worker{workers[1], workers[2], workers[0]}),
+							Equal([]Worker{workers[2], workers[1], workers[0]}),
+						))
 					})
 				})
-
 			})
 		})
 	})
-})
 
-var _ = Describe("VolumeLocalityPlacementStrategy", func() {
-	Describe("Choose", func() {
+	Describe("volume-locality", func() {
 		JustBeforeEach(func() {
-			chosenWorker, chooseErr = strategy.Choose(
-				logger,
-				workers,
-				spec,
-			)
+			strategy, strategyErr = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{
+				ContainerPlacementStrategy: []string{"volume-locality"},
+			})
+			Expect(strategyErr).ToNot(HaveOccurred())
 		})
+
+		Describe("strategy.Order", func() {
+			JustBeforeEach(func() {
+				order(true)
+			})
+
+			BeforeEach(func() {
+				extraFake := new(workerfakes.FakeWorker)
+				extraFake.NameReturns("extra-fake-1")
+
+				workerFakes = append(workerFakes, extraFake)
+				updateWorkersFromFakes()
+			})
+
+			Context("with multiple workers", func() {
+				BeforeEach(func() {
+					fakeInput1 := makeFakeInput(workers[0], workers[1])
+					fakeInput2 := makeFakeInput(workers[0], workers[3])
+
+					containerSpec.Inputs = []InputSource{
+						fakeInput1,
+						fakeInput2,
+					}
+				})
+
+				It("orders workers by existing volume count", func() {
+					Consistently(func() []Worker {
+						return order(true)
+					}).Should(SatisfyAny(
+						Equal([]Worker{workers[0], workers[1], workers[3], workers[2]}),
+						Equal([]Worker{workers[0], workers[3], workers[1], workers[2]}),
+					))
+				})
+
+				Context("when multiple have same volume count", func() {
+					BeforeEach(func() {
+						fakeInput1 := makeFakeInput(workers[0], workers[1])
+						fakeInput2 := makeFakeInput(workers[0], workers[1], workers[2])
+
+						containerSpec.Inputs = []InputSource{
+							fakeInput1,
+							fakeInput2,
+						}
+					})
+
+					It("orders workers with same count randomly", func() {
+						Consistently(func() []Worker {
+							return order(true)
+						}).Should(SatisfyAny(
+							Equal([]Worker{workers[0], workers[1], workers[2], workers[3]}),
+							Equal([]Worker{workers[1], workers[0], workers[2], workers[3]}),
+						))
+					})
+				})
+			})
+
+			Context("when no worker having any volumes", func() {
+				BeforeEach(func() {
+					fakeInput1 := makeFakeInput()
+					fakeInput2 := makeFakeInput()
+
+					containerSpec.Inputs = []InputSource{
+						fakeInput1,
+						fakeInput2,
+					}
+
+					workerFakes = workerFakes[:2]
+					updateWorkersFromFakes()
+				})
+
+				It("orders all workers randomly", func() {
+					Consistently(func() []Worker {
+						return order(true)
+					}).Should(SatisfyAny(
+						Equal([]Worker{workers[0], workers[1]}),
+						Equal([]Worker{workers[1], workers[0]}),
+					))
+				})
+			})
+		})
+	})
+
+	Describe("limit-active-tasks", func() {
+		var limit int
+		var shouldError bool
 
 		BeforeEach(func() {
-			logger = lagertest.NewTestLogger("volume-locality-placement-test")
-			strategy, newStrategyError = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{ContainerPlacementStrategy: []string{"volume-locality"}})
-			Expect(newStrategyError).ToNot(HaveOccurred())
-
-			fakeInput1 := new(workerfakes.FakeInputSource)
-			fakeInput1AS := new(workerfakes.FakeArtifactSource)
-			fakeInput1AS.ExistsOnStub = func(logger lager.Logger, worker Worker) (Volume, bool, error) {
-				switch worker {
-				case compatibleWorkerOneCache1, compatibleWorkerOneCache2, compatibleWorkerTwoCaches:
-					return new(workerfakes.FakeVolume), true, nil
-				default:
-					return nil, false, nil
-				}
-			}
-			fakeInput1.SourceReturns(fakeInput1AS)
-
-			fakeInput2 := new(workerfakes.FakeInputSource)
-			fakeInput2AS := new(workerfakes.FakeArtifactSource)
-			fakeInput2AS.ExistsOnStub = func(logger lager.Logger, worker Worker) (Volume, bool, error) {
-				switch worker {
-				case compatibleWorkerTwoCaches:
-					return new(workerfakes.FakeVolume), true, nil
-				default:
-					return nil, false, nil
-				}
-			}
-			fakeInput2.SourceReturns(fakeInput2AS)
-
-			spec = ContainerSpec{
-				ImageSpec: ImageSpec{ResourceType: "some-type"},
-
-				TeamID: 4567,
-
-				Inputs: []InputSource{
-					fakeInput1,
-					fakeInput2,
-				},
-			}
-
-			compatibleWorkerOneCache1 = new(workerfakes.FakeWorker)
-			compatibleWorkerOneCache1.SatisfiesReturns(true)
-			compatibleWorkerOneCache1.NameReturns("compatibleWorkerOneCache1")
-
-			compatibleWorkerOneCache2 = new(workerfakes.FakeWorker)
-			compatibleWorkerOneCache2.SatisfiesReturns(true)
-			compatibleWorkerOneCache2.NameReturns("compatibleWorkerOneCache2")
-
-			compatibleWorkerTwoCaches = new(workerfakes.FakeWorker)
-			compatibleWorkerTwoCaches.SatisfiesReturns(true)
-			compatibleWorkerTwoCaches.NameReturns("compatibleWorkerTwoCaches")
-
-			compatibleWorkerNoCaches1 = new(workerfakes.FakeWorker)
-			compatibleWorkerNoCaches1.SatisfiesReturns(true)
-			compatibleWorkerNoCaches1.NameReturns("compatibleWorkerNoCaches1")
-
-			compatibleWorkerNoCaches2 = new(workerfakes.FakeWorker)
-			compatibleWorkerNoCaches2.SatisfiesReturns(true)
-			compatibleWorkerNoCaches2.NameReturns("compatibleWorkerNoCaches2")
+			limit = -1
+			shouldError = true
 		})
 
-		Context("with one having the most local caches", func() {
-			BeforeEach(func() {
-				workers = []Worker{
-					compatibleWorkerOneCache1,
-					compatibleWorkerTwoCaches,
-					compatibleWorkerNoCaches1,
-					compatibleWorkerNoCaches2,
-				}
-			})
-
-			It("creates it on the worker with the most caches", func() {
-				Expect(chooseErr).ToNot(HaveOccurred())
-				Expect(chosenWorker).To(Equal(compatibleWorkerTwoCaches))
-			})
-		})
-
-		Context("with multiple with the same amount of local caches", func() {
-			BeforeEach(func() {
-				workers = []Worker{
-					compatibleWorkerOneCache1,
-					compatibleWorkerOneCache2,
-					compatibleWorkerNoCaches1,
-					compatibleWorkerNoCaches2,
-				}
-			})
-
-			It("creates it on a random one of the two", func() {
-				Expect(chooseErr).ToNot(HaveOccurred())
-				Expect(chosenWorker).To(SatisfyAny(Equal(compatibleWorkerOneCache1), Equal(compatibleWorkerOneCache2)))
-
-				workerChoiceCounts := map[Worker]int{}
-
-				for i := 0; i < 100; i++ {
-					worker, err := strategy.Choose(
-						logger,
-						workers,
-						spec,
-					)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(chosenWorker).To(SatisfyAny(Equal(compatibleWorkerOneCache1), Equal(compatibleWorkerOneCache2)))
-					workerChoiceCounts[worker]++
-				}
-
-				Expect(workerChoiceCounts[compatibleWorkerOneCache1]).ToNot(BeZero())
-				Expect(workerChoiceCounts[compatibleWorkerOneCache2]).ToNot(BeZero())
-				Expect(workerChoiceCounts[compatibleWorkerNoCaches1]).To(BeZero())
-				Expect(workerChoiceCounts[compatibleWorkerNoCaches2]).To(BeZero())
-			})
-		})
-
-		Context("with none having any local caches", func() {
-			BeforeEach(func() {
-				workers = []Worker{
-					compatibleWorkerNoCaches1,
-					compatibleWorkerNoCaches2,
-				}
-			})
-
-			It("creates it on a random one of them", func() {
-				Expect(chooseErr).ToNot(HaveOccurred())
-				Expect(chosenWorker).To(SatisfyAny(Equal(compatibleWorkerNoCaches1), Equal(compatibleWorkerNoCaches2)))
-
-				workerChoiceCounts := map[Worker]int{}
-
-				for i := 0; i < 100; i++ {
-					worker, err := strategy.Choose(
-						logger,
-						workers,
-						spec,
-					)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(chosenWorker).To(SatisfyAny(Equal(compatibleWorkerNoCaches1), Equal(compatibleWorkerNoCaches2)))
-					workerChoiceCounts[worker]++
-				}
-
-				Expect(workerChoiceCounts[compatibleWorkerNoCaches1]).ToNot(BeZero())
-				Expect(workerChoiceCounts[compatibleWorkerNoCaches2]).ToNot(BeZero())
-			})
-		})
-	})
-})
-
-var _ = Describe("No strategy should equal to random strategy", func() {
-	Describe("Choose", func() {
 		JustBeforeEach(func() {
-			chosenWorker, chooseErr = strategy.Choose(
-				logger,
-				workers,
-				spec,
-			)
-		})
+			fmt.Fprintln(GinkgoWriter, fmt.Sprintf("limit: %d, should error: %t", limit, shouldError))
 
-		BeforeEach(func() {
-			strategy = NewRandomPlacementStrategy()
-
-			workers = []Worker{
-				compatibleWorkerNoCaches1,
-				compatibleWorkerNoCaches2,
-			}
-		})
-
-		It("creates it on a random one of them", func() {
-			Expect(chooseErr).ToNot(HaveOccurred())
-			Expect(chosenWorker).To(SatisfyAny(Equal(compatibleWorkerNoCaches1), Equal(compatibleWorkerNoCaches2)))
-
-			workerChoiceCounts := map[Worker]int{}
-
-			for i := 0; i < 100; i++ {
-				worker, err := strategy.Choose(
-					logger,
-					workers,
-					spec,
-				)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(chosenWorker).To(SatisfyAny(Equal(compatibleWorkerNoCaches1), Equal(compatibleWorkerNoCaches2)))
-				workerChoiceCounts[worker]++
-			}
-
-			Expect(workerChoiceCounts[compatibleWorkerNoCaches1]).ToNot(BeZero())
-			Expect(workerChoiceCounts[compatibleWorkerNoCaches2]).ToNot(BeZero())
-		})
-	})
-})
-
-var _ = Describe("LimitActiveTasksPlacementStrategy", func() {
-	Describe("Choose", func() {
-		var compatibleWorker1 *workerfakes.FakeWorker
-		var compatibleWorker2 *workerfakes.FakeWorker
-		var compatibleWorker3 *workerfakes.FakeWorker
-
-		Context("when MaxActiveTasksPerWorker less than 0", func() {
-			BeforeEach(func() {
-				logger = lagertest.NewTestLogger("active-tasks-equal-placement-test")
-				strategy, newStrategyError = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{ContainerPlacementStrategy: []string{"limit-active-tasks"}, MaxActiveTasksPerWorker: -1})
+			strategy, strategyErr = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{
+				ContainerPlacementStrategy: []string{"limit-active-tasks"},
+				MaxActiveTasksPerWorker:    limit,
 			})
 
+			if !shouldError {
+				Expect(strategyErr).ToNot(HaveOccurred())
+			} else {
+				Expect(strategyErr).To(HaveOccurred())
+			}
+
+			containerSpec.Type = "task"
+		})
+
+		Context("when max-tasks-per-worker less than 0", func() {
 			It("should fail", func() {
-				Expect(newStrategyError).To(HaveOccurred())
-				Expect(newStrategyError).To(Equal(errors.New("max-active-tasks-per-worker must be greater or equal than 0")))
+				Expect(strategyErr).To(Equal(errors.New("max-active-tasks-per-worker must be greater or equal than 0")))
 				Expect(strategy).To(BeNil())
 			})
 		})
 
-		Context("when MaxActiveTasksPerWorker is 0", func() {
+		Context("when max-tasks-per-worker is configured correctly", func() {
 			BeforeEach(func() {
-				logger = lagertest.NewTestLogger("active-tasks-equal-placement-test")
-				strategy, newStrategyError = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{ContainerPlacementStrategy: []string{"limit-active-tasks"}, MaxActiveTasksPerWorker: 0})
-				Expect(newStrategyError).ToNot(HaveOccurred())
-
-				compatibleWorker1 = new(workerfakes.FakeWorker)
-				compatibleWorker1.NameReturns("compatibleWorker1")
-				compatibleWorker2 = new(workerfakes.FakeWorker)
-				compatibleWorker2.NameReturns("compatibleWorker2")
-				compatibleWorker3 = new(workerfakes.FakeWorker)
-				compatibleWorker3.NameReturns("compatibleWorker3")
-
-				spec = ContainerSpec{
-					ImageSpec: ImageSpec{ResourceType: "some-type"},
-					Type:      "task",
-					TeamID:    4567,
-					Inputs:    []InputSource{},
-				}
+				limit = 0
+				shouldError = false
 			})
 
-			Context("when there is only one worker with any amount of running tasks", func() {
-				BeforeEach(func() {
-					workers = []Worker{compatibleWorker1}
-					compatibleWorker1.ActiveTasksReturns(42, nil)
+			Describe("strategy.Order", func() {
+				JustBeforeEach(func() {
+					order(true)
 				})
 
-				It("picks that worker", func() {
-					chosenWorker, chooseErr = strategy.Choose(
-						logger,
-						workers,
-						spec,
-					)
-					Expect(chooseErr).ToNot(HaveOccurred())
-					Expect(chosenWorker).To(Equal(compatibleWorker1))
-				})
-			})
-
-			Context("when there are multiple workers", func() {
-				BeforeEach(func() {
-					workers = []Worker{compatibleWorker1, compatibleWorker2, compatibleWorker3}
-
-					compatibleWorker1.ActiveTasksReturns(2, nil)
-					compatibleWorker2.ActiveTasksReturns(1, nil)
-					compatibleWorker3.ActiveTasksReturns(2, nil)
-				})
-
-				It("a task picks the one with least amount of active tasks", func() {
-					Consistently(func() Worker {
-						chosenWorker, chooseErr = strategy.Choose(
-							logger,
-							workers,
-							spec,
-						)
-						Expect(chooseErr).ToNot(HaveOccurred())
-						return chosenWorker
-					}).Should(Equal(compatibleWorker2))
-				})
-
-				Context("when all the workers have the same number of active tasks", func() {
+				Context("when only one worker has running tasks", func() {
 					BeforeEach(func() {
-						workers = []Worker{compatibleWorker1, compatibleWorker2, compatibleWorker3}
-						compatibleWorker1.ActiveTasksReturns(1, nil)
-						compatibleWorker2.ActiveTasksReturns(1, nil)
-						compatibleWorker3.ActiveTasksReturns(1, nil)
+						workerFakes[1].ActiveTasksReturns(42, nil)
 					})
 
-					It("a task picks any of them", func() {
-						Consistently(func() Worker {
-							chosenWorker, chooseErr = strategy.Choose(
-								logger,
-								workers,
-								spec,
-							)
-							Expect(chooseErr).ToNot(HaveOccurred())
-							return chosenWorker
-						}).Should(Or(Equal(compatibleWorker1), Equal(compatibleWorker2), Equal(compatibleWorker3)))
+					It("returns that worker last", func() {
+						Consistently(func() []Worker {
+							return order(true)
+						}).Should(SatisfyAny(
+							Equal([]Worker{workers[0], workers[2], workers[1]}),
+							Equal([]Worker{workers[2], workers[0], workers[1]}),
+						))
 					})
 				})
-			})
 
-			Context("when max-tasks-per-worker is set to 1", func() {
-				BeforeEach(func() {
-					strategy, newStrategyError = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{ContainerPlacementStrategy: []string{"limit-active-tasks"}, MaxActiveTasksPerWorker: 1})
-					Expect(newStrategyError).ToNot(HaveOccurred())
-				})
-
-				Context("when there are multiple workers", func() {
+				Context("with multiple workers", func() {
 					BeforeEach(func() {
-						workers = []Worker{compatibleWorker1, compatibleWorker2, compatibleWorker3}
-
-						compatibleWorker1.ActiveTasksReturns(1, nil)
-						compatibleWorker2.ActiveTasksReturns(0, nil)
-						compatibleWorker3.ActiveTasksReturns(1, nil)
+						workerFakes[0].ActiveTasksReturns(3, nil)
+						workerFakes[1].ActiveTasksReturns(1, nil)
+						workerFakes[2].ActiveTasksReturns(2, nil)
 					})
 
-					It("picks the worker with no active tasks", func() {
-						chosenWorker, chooseErr = strategy.Choose(
-							logger,
-							workers,
-							spec,
-						)
-						Expect(chooseErr).ToNot(HaveOccurred())
-						Expect(chosenWorker).To(Equal(compatibleWorker2))
-					})
-				})
-
-				Context("when all workers have active tasks", func() {
-					BeforeEach(func() {
-						workers = []Worker{compatibleWorker1, compatibleWorker2, compatibleWorker3}
-
-						compatibleWorker1.ActiveTasksReturns(1, nil)
-						compatibleWorker2.ActiveTasksReturns(1, nil)
-						compatibleWorker3.ActiveTasksReturns(1, nil)
+					It("orders workers by active task count", func() {
+						Expect(orderedWorkers).To(Equal([]Worker{workers[1], workers[2], workers[0]}))
 					})
 
-					It("picks no worker", func() {
-						chosenWorker, chooseErr = strategy.Choose(
-							logger,
-							workers,
-							spec,
-						)
-						Expect(chooseErr).To(HaveOccurred())
-						Expect(chooseErr).To(Equal(NoWorkerFitContainerPlacementStrategyError{Strategy: "limit-active-tasks"}))
-						Expect(chosenWorker).To(BeNil())
-					})
-
-					Context("when the container is not of type 'task'", func() {
+					Context("when multiple have the same number of build containers", func() {
 						BeforeEach(func() {
-							spec.Type = ""
+							workerFakes[1].ActiveTasksReturns(2, nil)
 						})
 
-						It("picks any worker", func() {
-							Consistently(func() Worker {
-								chosenWorker, chooseErr = strategy.Choose(
-									logger,
-									workers,
-									spec,
-								)
-								Expect(chooseErr).ToNot(HaveOccurred())
-								return chosenWorker
-							}).Should(Or(Equal(compatibleWorker1), Equal(compatibleWorker2), Equal(compatibleWorker3)))
+						It("orders workers with same counts randomly", func() {
+							Consistently(func() []Worker {
+								return order(true)
+							}).Should(SatisfyAny(
+								Equal([]Worker{workers[1], workers[2], workers[0]}),
+								Equal([]Worker{workers[2], workers[1], workers[0]}),
+							))
 						})
+					})
+
+					Context("when there is an error getting the active task count", func() {
+						BeforeEach(func() {
+							workerFakes[2].ActiveTasksReturns(0, errors.New("unable-to-get-task-count"))
+						})
+
+						It("ignores the failed worker", func() {
+							Expect(orderedWorkers).To(Equal([]Worker{workers[1], workers[0]}))
+						})
+					})
+
+					Context("and a non-zero limit", func() {
+						BeforeEach(func() {
+							limit = 3
+						})
+
+						It("still returns all workers, even those beyond the limit", func() {
+							Expect(orderedWorkers).To(Equal([]Worker{workers[1], workers[2], workers[0]}))
+						})
+					})
+
+					Context("and a non-task step", func() {
+						BeforeEach(func() {
+							limit = 1
+							containerSpec.Type = "check"
+
+							workerFakes = workerFakes[:2]
+							updateWorkersFromFakes()
+						})
+
+						It("returns workers in a random order", func() {
+							Consistently(func() []Worker {
+								return order(true)
+							}).Should(SatisfyAny(
+								Equal([]Worker{workers[0], workers[1]}),
+								Equal([]Worker{workers[1], workers[0]}),
+							))
+						})
+					})
+				})
+			})
+
+			Describe("strategy.Pick and strategy.Release", func() {
+				JustBeforeEach(func() {
+					pickAndRelease()
+				})
+
+				BeforeEach(func() {
+					workerFakes[0].IncreaseActiveTasksReturns(4, nil)
+					workerFakes[1].IncreaseActiveTasksReturns(2, nil)
+					workerFakes[2].IncreaseActiveTasksReturns(3, nil)
+
+					orderedWorkers = workers
+				})
+
+				Context("when limit is zero", func() {
+					It("is able to pick and release the first worker, regardless of active tasks", func() {
+						Expect(pickedWorker).To(Equal(workers[0]))
+					})
+
+					It("doesn't increments or decrements active tasks for picked worker", func() {
+						Expect(workerFakes[0].IncreaseActiveTasksCallCount()).To(Equal(0))
+						Expect(workerFakes[0].DecreaseActiveTasksCallCount()).To(Equal(0))
+					})
+				})
+
+				Context("when limit is non-zero", func() {
+					BeforeEach(func() {
+						limit = 2
+					})
+
+					It("fails to pick workers with an equal or higher number of tasks", func() {
+						Expect(pickedWorker).To(Equal(workers[1]))
+					})
+
+					It("increments or decrements active tasks for picked worker", func() {
+						Expect(workerFakes[1].IncreaseActiveTasksCallCount()).To(Equal(1))
+						Expect(workerFakes[1].DecreaseActiveTasksCallCount()).To(Equal(1))
+					})
+				})
+
+				Context("when no workers are under the limit", func() {
+					BeforeEach(func() {
+						limit = 1
+					})
+
+					It("fails to pick workers with an equal or higher number of tasks", func() {
+						Expect(pickedWorker).To(BeNil())
+						Expect(pickErr).To(Equal(ErrTooManyActiveTasks))
 					})
 				})
 			})
 		})
 	})
-})
 
-var _ = Describe("LimitActiveContainersPlacementStrategyNode", func() {
-	Describe("Choose", func() {
-		var compatibleWorker1 *workerfakes.FakeWorker
-		var compatibleWorker2 *workerfakes.FakeWorker
-		var compatibleWorker3 *workerfakes.FakeWorker
-		var activeContainerLimit int
+	Describe("limit-active-containers", func() {
+		var limit int
+		var shouldError bool
 
 		BeforeEach(func() {
-			logger = lagertest.NewTestLogger("build-containers-equal-placement-test")
-			compatibleWorker1 = new(workerfakes.FakeWorker)
-			compatibleWorker1.NameReturns("compatibleWorker1")
-			compatibleWorker2 = new(workerfakes.FakeWorker)
-			compatibleWorker2.NameReturns("compatibleWorker2")
-			compatibleWorker3 = new(workerfakes.FakeWorker)
-			compatibleWorker3.NameReturns("compatibleWorker3")
-			activeContainerLimit = 0
-
-			compatibleWorker1.ActiveContainersReturns(20)
-			compatibleWorker2.ActiveContainersReturns(200)
-			compatibleWorker3.ActiveContainersReturns(200000000000)
-			workers = []Worker{compatibleWorker1, compatibleWorker2, compatibleWorker3}
-
-			spec = ContainerSpec{
-				ImageSpec: ImageSpec{ResourceType: "some-type"},
-				TeamID:    4567,
-				Inputs:    []InputSource{},
-			}
+			limit = -1
+			shouldError = true
 		})
 
 		JustBeforeEach(func() {
-			strategy, newStrategyError = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{
+			fmt.Fprintln(GinkgoWriter, fmt.Sprintf("limit: %d, should error: %t", limit, shouldError))
+
+			strategy, strategyErr = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{
 				ContainerPlacementStrategy:   []string{"limit-active-containers"},
-				MaxActiveContainersPerWorker: activeContainerLimit,
-			},
-			)
-			Expect(newStrategyError).ToNot(HaveOccurred())
+				MaxActiveContainersPerWorker: limit,
+			})
+
+			if !shouldError {
+				Expect(strategyErr).ToNot(HaveOccurred())
+			} else {
+				Expect(strategyErr).To(HaveOccurred())
+			}
+
+			containerSpec.Type = "task"
 		})
 
-		Context("when there is no limit", func() {
+		Context("when max-active-containers-per-worker less than 0", func() {
+			It("should fail", func() {
+				Expect(strategyErr).To(Equal(errors.New("max-active-containers-per-worker must be greater or equal than 0")))
+				Expect(strategy).To(BeNil())
+			})
+		})
+
+		Describe("strategy.Order", func() {
+			JustBeforeEach(func() {
+				order(true)
+			})
+
 			BeforeEach(func() {
-				activeContainerLimit = 0
+				workerFakes[0].ActiveContainersReturns(200)
+				workerFakes[1].ActiveContainersReturns(20)
+				workerFakes[2].ActiveContainersReturns(20000)
+
+				shouldError = false
 			})
 
-			It("return all workers", func() {
-				Consistently(func() Worker {
-					chosenWorker, chooseErr = strategy.Choose(
-						logger,
-						workers,
-						spec,
-					)
-					Expect(chooseErr).ToNot(HaveOccurred())
-					return chosenWorker
-				}).Should(Or(Equal(compatibleWorker1), Equal(compatibleWorker2), Equal(compatibleWorker3)))
+			Context("when the limit is zero", func() {
+				BeforeEach(func() {
+					limit = 0
+				})
+
+				It("orders workers by active container count", func() {
+					Expect(orderedWorkers).To(Equal([]Worker{workers[1], workers[0], workers[2]}))
+				})
+
+				Context("when multiple have the same number of build containers", func() {
+					BeforeEach(func() {
+						workerFakes[0].ActiveContainersReturns(20)
+					})
+
+					It("orders workers with same counts randomly", func() {
+						Consistently(func() []Worker {
+							return order(true)
+						}).Should(SatisfyAny(
+							Equal([]Worker{workers[0], workers[1], workers[2]}),
+							Equal([]Worker{workers[1], workers[0], workers[2]}),
+						))
+					})
+				})
+			})
+
+			Context("when the limit is non-zero", func() {
+				BeforeEach(func() {
+					limit = 100
+				})
+
+				It("still returns all workers, even those beyond the limit", func() {
+					Expect(orderedWorkers).To(Equal([]Worker{workers[1], workers[0], workers[2]}))
+				})
 			})
 		})
 
-		Context("when there is a limit", func() {
-			Context("when the limit is 20", func() {
+		Describe("strategy.Pick and strategy.Release", func() {
+			JustBeforeEach(func() {
+				pickAndRelease()
+			})
+
+			BeforeEach(func() {
+				workerFakes[0].ActiveContainersReturns(200)
+				workerFakes[1].ActiveContainersReturns(20)
+				workerFakes[2].ActiveContainersReturns(20000)
+
+				orderedWorkers = workers
+				shouldError = false
+			})
+
+			Context("when limit is zero", func() {
 				BeforeEach(func() {
-					activeContainerLimit = 20
+					limit = 0
 				})
 
-				It("picks worker1", func() {
-					Consistently(func() Worker {
-						chosenWorker, chooseErr = strategy.Choose(
-							logger,
-							workers,
-							spec,
-						)
-						Expect(chooseErr).ToNot(HaveOccurred())
-						return chosenWorker
-					}).Should(Equal(compatibleWorker1))
+				It("is able to pick and release the first worker, regardless of active containers", func() {
+					Expect(pickedWorker).To(Equal(workers[0]))
+				})
+			})
+
+			Context("when limit is non-zero", func() {
+				BeforeEach(func() {
+					limit = 100
 				})
 
-				Context("when the limit is 200", func() {
-					BeforeEach(func() {
-						activeContainerLimit = 200
-					})
+				It("fails to pick workers with an equal or higher number of containers", func() {
+					Expect(pickedWorker).To(Equal(workers[1]))
+				})
+			})
 
-					It("picks worker1 or worker2", func() {
-						Consistently(func() Worker {
-							chosenWorker, chooseErr = strategy.Choose(
-								logger,
-								workers,
-								spec,
-							)
-							Expect(chooseErr).ToNot(HaveOccurred())
-							return chosenWorker
-						}).Should(Or(Equal(compatibleWorker1), Equal(compatibleWorker2)))
-					})
+			Context("when no workers are under the limit", func() {
+				BeforeEach(func() {
+					limit = 10
 				})
 
-				Context("when the limit is too low", func() {
-					BeforeEach(func() {
-						activeContainerLimit = 1
-					})
-
-					It("return no worker", func() {
-						chosenWorker, chooseErr = strategy.Choose(
-							logger,
-							workers,
-							spec,
-						)
-						Expect(chooseErr).To(HaveOccurred())
-						Expect(chooseErr).To(Equal(NoWorkerFitContainerPlacementStrategyError{Strategy: "limit-active-containers"}))
-						Expect(chosenWorker).To(BeNil())
-					})
+				It("fails to pick workers with an equal or higher number of tasks", func() {
+					Expect(pickedWorker).To(BeNil())
+					Expect(pickErr).To(Equal(ErrTooManyContainers))
 				})
 			})
 		})
 	})
-})
 
-var _ = Describe("LimitActiveVolumesPlacementStrategyNode", func() {
-	Describe("Choose", func() {
-		var compatibleWorker1 *workerfakes.FakeWorker
-		var compatibleWorker2 *workerfakes.FakeWorker
-		var compatibleWorker3 *workerfakes.FakeWorker
-		var activeVolumeLimit int
+	Describe("limit-active-volumes", func() {
+		var limit int
+		var shouldError bool
 
 		BeforeEach(func() {
-			logger = lagertest.NewTestLogger("build-containers-equal-placement-test")
-			compatibleWorker1 = new(workerfakes.FakeWorker)
-			compatibleWorker1.NameReturns("compatibleWorker1")
-			compatibleWorker2 = new(workerfakes.FakeWorker)
-			compatibleWorker2.NameReturns("compatibleWorker2")
-			compatibleWorker3 = new(workerfakes.FakeWorker)
-			compatibleWorker3.NameReturns("compatibleWorker3")
-			activeVolumeLimit = 0
-
-			compatibleWorker1.ActiveVolumesReturns(20)
-			compatibleWorker2.ActiveVolumesReturns(200)
-			compatibleWorker3.ActiveVolumesReturns(200000000000)
-			workers = []Worker{compatibleWorker1, compatibleWorker2, compatibleWorker3}
-
-			spec = ContainerSpec{
-				ImageSpec: ImageSpec{ResourceType: "some-type"},
-				TeamID:    4567,
-				Inputs:    []InputSource{},
-			}
+			limit = -1
+			shouldError = true
 		})
 
 		JustBeforeEach(func() {
-			strategy, newStrategyError = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{
+			fmt.Fprintln(GinkgoWriter, fmt.Sprintf("limit: %d, should error: %t", limit, shouldError))
+
+			strategy, strategyErr = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{
 				ContainerPlacementStrategy: []string{"limit-active-volumes"},
-				MaxActiveVolumesPerWorker:  activeVolumeLimit,
-			},
-			)
-			Expect(newStrategyError).ToNot(HaveOccurred())
+				MaxActiveVolumesPerWorker:  limit,
+			})
+
+			if !shouldError {
+				Expect(strategyErr).ToNot(HaveOccurred())
+			} else {
+				Expect(strategyErr).To(HaveOccurred())
+			}
+
+			containerSpec.Type = "task"
 		})
 
-		Context("when there is no limit", func() {
+		Context("when max-active-volumes-per-worker less than 0", func() {
+			It("should fail", func() {
+				Expect(strategyErr).To(Equal(errors.New("max-active-volumes-per-worker must be greater or equal than 0")))
+				Expect(strategy).To(BeNil())
+			})
+		})
+
+		Describe("strategy.Order", func() {
+			JustBeforeEach(func() {
+				order(true)
+			})
+
 			BeforeEach(func() {
-				activeVolumeLimit = 0
+				workerFakes[0].ActiveVolumesReturns(200)
+				workerFakes[1].ActiveVolumesReturns(20000)
+				workerFakes[2].ActiveVolumesReturns(20)
+
+				shouldError = false
 			})
 
-			It("return all workers", func() {
-				Consistently(func() Worker {
-					chosenWorker, chooseErr = strategy.Choose(
-						logger,
-						workers,
-						spec,
-					)
-					Expect(chooseErr).ToNot(HaveOccurred())
-					return chosenWorker
-				}).Should(Or(Equal(compatibleWorker1), Equal(compatibleWorker2), Equal(compatibleWorker3)))
-			})
-		})
-
-		Context("when there is a limit", func() {
-			Context("when the limit is 20", func() {
+			Context("when the limit is zero", func() {
 				BeforeEach(func() {
-					activeVolumeLimit = 20
+					limit = 0
 				})
 
-				It("picks worker1", func() {
-					Consistently(func() Worker {
-						chosenWorker, chooseErr = strategy.Choose(
-							logger,
-							workers,
-							spec,
-						)
-						Expect(chooseErr).ToNot(HaveOccurred())
-						return chosenWorker
-					}).Should(Equal(compatibleWorker1))
+				It("orders workers by active container count", func() {
+					Expect(orderedWorkers).To(Equal([]Worker{workers[2], workers[0], workers[1]}))
 				})
 
-				Context("when the limit is 200", func() {
+				Context("when multiple have the same number of build volumes", func() {
 					BeforeEach(func() {
-						activeVolumeLimit = 200
+						workerFakes[0].ActiveVolumesReturns(20)
 					})
 
-					It("picks worker1 or worker2", func() {
-						Consistently(func() Worker {
-							chosenWorker, chooseErr = strategy.Choose(
-								logger,
-								workers,
-								spec,
-							)
-							Expect(chooseErr).ToNot(HaveOccurred())
-							return chosenWorker
-						}).Should(Or(Equal(compatibleWorker1), Equal(compatibleWorker2)))
-					})
-				})
-
-				Context("when the limit is too low", func() {
-					BeforeEach(func() {
-						activeVolumeLimit = 1
-					})
-
-					It("return no worker", func() {
-						chosenWorker, chooseErr = strategy.Choose(
-							logger,
-							workers,
-							spec,
-						)
-						Expect(chooseErr).To(HaveOccurred())
-						Expect(chooseErr).To(Equal(NoWorkerFitContainerPlacementStrategyError{Strategy: "limit-active-volumes"}))
-						Expect(chosenWorker).To(BeNil())
+					It("orders workers with same counts randomly", func() {
+						Consistently(func() []Worker {
+							return order(true)
+						}).Should(SatisfyAny(
+							Equal([]Worker{workers[0], workers[2], workers[1]}),
+							Equal([]Worker{workers[2], workers[0], workers[1]}),
+						))
 					})
 				})
 			})
-		})
-	})
-})
 
-var _ = Describe("ChainedPlacementStrategy #Choose", func() {
+			Context("when the limit is non-zero", func() {
+				BeforeEach(func() {
+					limit = 100
+				})
 
-	var someWorker1 *workerfakes.FakeWorker
-	var someWorker2 *workerfakes.FakeWorker
-	var someWorker3 *workerfakes.FakeWorker
-
-	BeforeEach(func() {
-		logger = lagertest.NewTestLogger("build-containers-equal-placement-test")
-		strategy, newStrategyError = NewContainerPlacementStrategy(
-			ContainerPlacementStrategyOptions{
-				ContainerPlacementStrategy: []string{"fewest-build-containers", "volume-locality"},
+				It("still returns all workers, even those beyond the limit", func() {
+					Expect(orderedWorkers).To(Equal([]Worker{workers[2], workers[0], workers[1]}))
+				})
 			})
-		Expect(newStrategyError).ToNot(HaveOccurred())
-		someWorker1 = new(workerfakes.FakeWorker)
-		someWorker1.NameReturns("worker1")
-		someWorker2 = new(workerfakes.FakeWorker)
-		someWorker2.NameReturns("worker2")
-		someWorker3 = new(workerfakes.FakeWorker)
-		someWorker3.NameReturns("worker3")
-
-		spec = ContainerSpec{
-			ImageSpec: ImageSpec{ResourceType: "some-type"},
-
-			TeamID: 4567,
-
-			Inputs: []InputSource{},
-		}
-	})
-
-	Context("when there are multiple workers", func() {
-		BeforeEach(func() {
-			workers = []Worker{someWorker1, someWorker2, someWorker3}
-
-			someWorker1.BuildContainersReturns(30)
-			someWorker2.BuildContainersReturns(20)
-			someWorker3.BuildContainersReturns(10)
 		})
 
-		It("picks the one with least amount of containers", func() {
-			Consistently(func() Worker {
-				chosenWorker, chooseErr = strategy.Choose(
-					logger,
-					workers,
-					spec,
-				)
-				Expect(chooseErr).ToNot(HaveOccurred())
-				return chosenWorker
-			}).Should(Equal(someWorker3))
-		})
+		Describe("strategy.Pick and strategy.Release", func() {
+			JustBeforeEach(func() {
+				pickAndRelease()
+			})
 
-		Context("when there is more than one worker with the same number of build containers", func() {
 			BeforeEach(func() {
-				workers = []Worker{someWorker1, someWorker2, someWorker3}
-				someWorker1.BuildContainersReturns(10)
-				someWorker2.BuildContainersReturns(20)
-				someWorker3.BuildContainersReturns(10)
+				workerFakes[0].ActiveVolumesReturns(200)
+				workerFakes[1].ActiveVolumesReturns(20000)
+				workerFakes[2].ActiveVolumesReturns(20)
 
-				fakeInput1 := new(workerfakes.FakeInputSource)
-				fakeInput1AS := new(workerfakes.FakeArtifactSource)
-				fakeInput1AS.ExistsOnStub = func(logger lager.Logger, worker Worker) (Volume, bool, error) {
-					switch worker {
-					case someWorker3:
-						return new(workerfakes.FakeVolume), true, nil
-					default:
-						return nil, false, nil
-					}
-				}
-				fakeInput1.SourceReturns(fakeInput1AS)
-
-				spec = ContainerSpec{
-					ImageSpec: ImageSpec{ResourceType: "some-type"},
-
-					TeamID: 4567,
-
-					Inputs: []InputSource{
-						fakeInput1,
-					},
-				}
+				orderedWorkers = workers
+				shouldError = false
 			})
-			It("picks the one with the most volumes", func() {
-				Consistently(func() Worker {
-					cWorker, cErr := strategy.Choose(
-						logger,
-						workers,
-						spec,
-					)
-					Expect(cErr).ToNot(HaveOccurred())
-					return cWorker
-				}).Should(Equal(someWorker3))
 
+			Context("when limit is zero", func() {
+				BeforeEach(func() {
+					limit = 0
+				})
+
+				It("is able to pick and release the first worker, regardless of active containers", func() {
+					Expect(pickedWorker).To(Equal(workers[0]))
+				})
+			})
+
+			Context("when limit is non-zero", func() {
+				BeforeEach(func() {
+					limit = 100
+				})
+
+				It("fails to pick workers with an equal or higher number of containers", func() {
+					Expect(pickedWorker).To(Equal(workers[2]))
+				})
+			})
+
+			Context("when no workers are under the limit", func() {
+				BeforeEach(func() {
+					limit = 10
+				})
+
+				It("fails to pick workers with an equal or higher number of tasks", func() {
+					Expect(pickedWorker).To(BeNil())
+					Expect(pickErr).To(Equal(ErrTooManyVolumes))
+				})
 			})
 		})
+	})
 
+	Describe("Chained placement strategy", func() {
+		Describe("strategy.Order", func() {
+			Context("fewest-build-containers,volume-locality", func() {
+				JustBeforeEach(func() {
+					strategy, strategyErr = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{
+						ContainerPlacementStrategy: []string{"fewest-build-containers", "volume-locality"},
+					})
+					Expect(strategyErr).ToNot(HaveOccurred())
+
+					order(true)
+				})
+
+				BeforeEach(func() {
+					workerFakes[0].BuildContainersReturns(30)
+					workerFakes[1].BuildContainersReturns(20)
+					workerFakes[2].BuildContainersReturns(10)
+
+					fakeInput1 := makeFakeInput(workers[0], workers[1])
+					fakeInput2 := makeFakeInput(workers[0], workers[2])
+
+					containerSpec.Inputs = []InputSource{
+						fakeInput1,
+						fakeInput2,
+					}
+				})
+
+				It("orders by build containers first", func() {
+					Expect(orderedWorkers).To(Equal([]Worker{workers[2], workers[1], workers[0]}))
+				})
+
+				Context("when two workers have the same number of build containers", func() {
+					BeforeEach(func() {
+						workerFakes[0].BuildContainersReturns(10)
+					})
+
+					It("breaks ties using volume-locality strategy", func() {
+						Expect(orderedWorkers).To(Equal([]Worker{workers[0], workers[2], workers[1]}))
+					})
+				})
+
+				Context("when two workers have same order", func() {
+					BeforeEach(func() {
+						workerFakes[1].BuildContainersReturns(10)
+					})
+
+					It("orders them randomly", func() {
+						Consistently(func() []Worker {
+							return order(true)
+						}).Should(SatisfyAny(
+							Equal([]Worker{workers[1], workers[2], workers[0]}),
+							Equal([]Worker{workers[2], workers[1], workers[0]}),
+						))
+					})
+				})
+			})
+		})
 	})
 })

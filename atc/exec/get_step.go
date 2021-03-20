@@ -215,7 +215,7 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 
 	defer cancel()
 
-	worker, _, err := step.workerPool.WaitForWorker(
+	worker, _, err := step.workerPool.SelectWorker(
 		lagerctx.NewContext(processCtx, logger),
 		containerOwner,
 		containerSpec,
@@ -232,6 +232,7 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 	defer func() {
 		step.workerPool.ReleaseWorker(
 			lagerctx.NewContext(processCtx, logger),
+			containerSpec,
 			worker,
 			step.strategy,
 		)

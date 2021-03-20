@@ -12,15 +12,10 @@ import (
 )
 
 type StepsWaitingLabels struct {
-	TeamId     string
-	WorkerTags string
 	Platform   string
-}
-
-type TasksWaitingLabels struct {
 	TeamId     string
+	Type       string
 	WorkerTags string
-	Platform   string
 }
 
 type StepsWaitingDuration struct {
@@ -35,9 +30,10 @@ func (event StepsWaitingDuration) Emit(logger lager.Logger) {
 			Name:  "steps waiting duration",
 			Value: event.Duration.Seconds(),
 			Attributes: map[string]string{
-				"teamId":     event.Labels.TeamId,
-				"workerTags": event.Labels.WorkerTags,
 				"platform":   event.Labels.Platform,
+				"teamId":     event.Labels.TeamId,
+				"type":       event.Labels.Type,
+				"workerTags": event.Labels.WorkerTags,
 			},
 		},
 	)

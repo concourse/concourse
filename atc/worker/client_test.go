@@ -11,13 +11,13 @@ import (
 	"code.cloudfoundry.org/garden/gardenfakes"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/runtime/runtimefakes"
 	"github.com/onsi/gomega/gbytes"
 
-	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 
@@ -28,7 +28,9 @@ import (
 var _ = Describe("Client", func() {
 	var (
 		fakeWorker *workerfakes.FakeWorker
-		client     worker.Client
+
+		metadata db.ContainerMetadata
+		client   worker.Client
 	)
 
 	BeforeEach(func() {

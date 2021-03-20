@@ -98,6 +98,16 @@ type FakeClient struct {
 		result1 worker.TaskResult
 		result2 error
 	}
+	WorkerStub        func() worker.Worker
+	workerMutex       sync.RWMutex
+	workerArgsForCall []struct {
+	}
+	workerReturns struct {
+		result1 worker.Worker
+	}
+	workerReturnsOnCall map[int]struct {
+		result1 worker.Worker
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -435,6 +445,59 @@ func (fake *FakeClient) RunTaskStepReturnsOnCall(i int, result1 worker.TaskResul
 	}{result1, result2}
 }
 
+func (fake *FakeClient) Worker() worker.Worker {
+	fake.workerMutex.Lock()
+	ret, specificReturn := fake.workerReturnsOnCall[len(fake.workerArgsForCall)]
+	fake.workerArgsForCall = append(fake.workerArgsForCall, struct {
+	}{})
+	stub := fake.WorkerStub
+	fakeReturns := fake.workerReturns
+	fake.recordInvocation("Worker", []interface{}{})
+	fake.workerMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeClient) WorkerCallCount() int {
+	fake.workerMutex.RLock()
+	defer fake.workerMutex.RUnlock()
+	return len(fake.workerArgsForCall)
+}
+
+func (fake *FakeClient) WorkerCalls(stub func() worker.Worker) {
+	fake.workerMutex.Lock()
+	defer fake.workerMutex.Unlock()
+	fake.WorkerStub = stub
+}
+
+func (fake *FakeClient) WorkerReturns(result1 worker.Worker) {
+	fake.workerMutex.Lock()
+	defer fake.workerMutex.Unlock()
+	fake.WorkerStub = nil
+	fake.workerReturns = struct {
+		result1 worker.Worker
+	}{result1}
+}
+
+func (fake *FakeClient) WorkerReturnsOnCall(i int, result1 worker.Worker) {
+	fake.workerMutex.Lock()
+	defer fake.workerMutex.Unlock()
+	fake.WorkerStub = nil
+	if fake.workerReturnsOnCall == nil {
+		fake.workerReturnsOnCall = make(map[int]struct {
+			result1 worker.Worker
+		})
+	}
+	fake.workerReturnsOnCall[i] = struct {
+		result1 worker.Worker
+	}{result1}
+}
+
 func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -448,6 +511,8 @@ func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	defer fake.runPutStepMutex.RUnlock()
 	fake.runTaskStepMutex.RLock()
 	defer fake.runTaskStepMutex.RUnlock()
+	fake.workerMutex.RLock()
+	defer fake.workerMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

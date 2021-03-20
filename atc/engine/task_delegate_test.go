@@ -196,13 +196,13 @@ func workerStub() *dbfakes.FakeWorker {
 	fakeWorker.NameReturns("some-worker")
 
 	activeTasks := 0
-	fakeWorker.IncreaseActiveTasksStub = func() error {
+	fakeWorker.IncreaseActiveTasksStub = func() (int, error) {
 		activeTasks++
-		return nil
+		return activeTasks, nil
 	}
-	fakeWorker.DecreaseActiveTasksStub = func() error {
+	fakeWorker.DecreaseActiveTasksStub = func() (int, error) {
 		activeTasks--
-		return nil
+		return activeTasks, nil
 	}
 	fakeWorker.ActiveTasksStub = func() (int, error) {
 		return activeTasks, nil

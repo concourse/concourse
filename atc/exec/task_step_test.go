@@ -81,7 +81,7 @@ var _ = Describe("TaskStep", func() {
 		fakeClient = new(workerfakes.FakeClient)
 		fakeClient.NameReturns("some-worker")
 		fakePool = new(workerfakes.FakePool)
-		fakePool.WaitForWorkerReturns(fakeClient, 0, nil)
+		fakePool.SelectWorkerReturns(fakeClient, 0, nil)
 
 		fakeArtifactStreamer = new(workerfakes.FakeArtifactStreamer)
 		fakeArtifactSourcer = new(workerfakes.FakeArtifactSourcer)
@@ -157,8 +157,8 @@ var _ = Describe("TaskStep", func() {
 	var startEventDelegate runtime.StartingEventDelegate
 
 	expectWorkerSpecResourceTypeUnset := func() {
-		Expect(fakePool.WaitForWorkerCallCount()).To(Equal(1))
-		_, _, _, workerSpec, _, _ := fakePool.WaitForWorkerArgsForCall(0)
+		Expect(fakePool.SelectWorkerCallCount()).To(Equal(1))
+		_, _, _, workerSpec, _, _ := fakePool.SelectWorkerArgsForCall(0)
 		Expect(workerSpec.ResourceType).To(Equal(""))
 	}
 
@@ -209,25 +209,13 @@ var _ = Describe("TaskStep", func() {
 			var workerSpec worker.WorkerSpec
 
 			JustBeforeEach(func() {
-				Expect(fakePool.WaitForWorkerCallCount()).To(Equal(1))
-				_, _, _, workerSpec, _, _ = fakePool.WaitForWorkerArgsForCall(0)
+				Expect(fakePool.SelectWorkerCallCount()).To(Equal(1))
+				_, _, _, workerSpec, _, _ = fakePool.SelectWorkerArgsForCall(0)
 			})
 
 			It("emits a SelectedWorker event", func() {
 				Expect(fakeDelegate.SelectedWorkerCallCount()).To(Equal(1))
 				_, workerName := fakeDelegate.SelectedWorkerArgsForCall(0)
-				Expect(workerName).To(Equal("some-worker"))
-			})
-
-			It("increases active tasks", func() {
-				Expect(fakeDelegate.IncreaseActiveTasksCallCount()).To(Equal(1))
-				workerName := fakeDelegate.IncreaseActiveTasksArgsForCall(0)
-				Expect(workerName).To(Equal("some-worker"))
-			})
-
-			It("decreases active tasks", func() {
-				Expect(fakeDelegate.DecreaseActiveTasksCallCount()).To(Equal(1))
-				workerName := fakeDelegate.DecreaseActiveTasksArgsForCall(0)
 				Expect(workerName).To(Equal("some-worker"))
 			})
 
@@ -243,7 +231,7 @@ var _ = Describe("TaskStep", func() {
 
 			Context("when selecting a worker fails", func() {
 				BeforeEach(func() {
-					fakePool.WaitForWorkerReturns(nil, 0, errors.New("nope"))
+					fakePool.SelectWorkerReturns(nil, 0, errors.New("nope"))
 					shouldRunTaskStep = false
 				})
 

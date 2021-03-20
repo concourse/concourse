@@ -60,7 +60,6 @@ type Monitor struct {
 	CheckBuildsRunning Gauge
 
 	StepsWaiting map[StepsWaitingLabels]*Gauge
-	TasksWaiting map[TasksWaitingLabels]*Gauge
 
 	// TODO: deprecate, replaced with CheckBuildFinished
 	ChecksFinishedWithError   Counter
@@ -82,7 +81,6 @@ var Metrics = NewMonitor()
 func NewMonitor() *Monitor {
 	return &Monitor{
 		StepsWaiting:               map[StepsWaitingLabels]*Gauge{},
-		TasksWaiting:               map[TasksWaitingLabels]*Gauge{},
 		ConcurrentRequests:         map[string]*Gauge{},
 		ConcurrentRequestsLimitHit: map[string]*Counter{},
 	}

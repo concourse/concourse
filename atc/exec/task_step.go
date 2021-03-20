@@ -256,7 +256,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 		defer cancel()
 	}
 
-	chosenWorker, _, err := step.workerPool.WaitForWorker(
+	chosenWorker, _, err := step.workerPool.SelectWorker(
 		lagerctx.NewContext(processCtx, logger),
 		owner,
 		containerSpec,
@@ -273,6 +273,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 	defer func() {
 		step.workerPool.ReleaseWorker(
 			lagerctx.NewContext(processCtx, logger),
+			containerSpec,
 			chosenWorker,
 			step.strategy,
 		)

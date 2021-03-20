@@ -8,7 +8,7 @@ import (
 	"github.com/concourse/concourse/atc/worker"
 )
 
-type FakePoolWaitCallbacks struct {
+type FakePoolCallbacks struct {
 	WaitingForWorkerStub        func(lager.Logger)
 	waitingForWorkerMutex       sync.RWMutex
 	waitingForWorkerArgsForCall []struct {
@@ -18,7 +18,7 @@ type FakePoolWaitCallbacks struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakePoolWaitCallbacks) WaitingForWorker(arg1 lager.Logger) {
+func (fake *FakePoolCallbacks) WaitingForWorker(arg1 lager.Logger) {
 	fake.waitingForWorkerMutex.Lock()
 	fake.waitingForWorkerArgsForCall = append(fake.waitingForWorkerArgsForCall, struct {
 		arg1 lager.Logger
@@ -31,26 +31,26 @@ func (fake *FakePoolWaitCallbacks) WaitingForWorker(arg1 lager.Logger) {
 	}
 }
 
-func (fake *FakePoolWaitCallbacks) WaitingForWorkerCallCount() int {
+func (fake *FakePoolCallbacks) WaitingForWorkerCallCount() int {
 	fake.waitingForWorkerMutex.RLock()
 	defer fake.waitingForWorkerMutex.RUnlock()
 	return len(fake.waitingForWorkerArgsForCall)
 }
 
-func (fake *FakePoolWaitCallbacks) WaitingForWorkerCalls(stub func(lager.Logger)) {
+func (fake *FakePoolCallbacks) WaitingForWorkerCalls(stub func(lager.Logger)) {
 	fake.waitingForWorkerMutex.Lock()
 	defer fake.waitingForWorkerMutex.Unlock()
 	fake.WaitingForWorkerStub = stub
 }
 
-func (fake *FakePoolWaitCallbacks) WaitingForWorkerArgsForCall(i int) lager.Logger {
+func (fake *FakePoolCallbacks) WaitingForWorkerArgsForCall(i int) lager.Logger {
 	fake.waitingForWorkerMutex.RLock()
 	defer fake.waitingForWorkerMutex.RUnlock()
 	argsForCall := fake.waitingForWorkerArgsForCall[i]
 	return argsForCall.arg1
 }
 
-func (fake *FakePoolWaitCallbacks) Invocations() map[string][][]interface{} {
+func (fake *FakePoolCallbacks) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.waitingForWorkerMutex.RLock()
@@ -62,7 +62,7 @@ func (fake *FakePoolWaitCallbacks) Invocations() map[string][][]interface{} {
 	return copiedInvocations
 }
 
-func (fake *FakePoolWaitCallbacks) recordInvocation(key string, args []interface{}) {
+func (fake *FakePoolCallbacks) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
@@ -74,4 +74,4 @@ func (fake *FakePoolWaitCallbacks) recordInvocation(key string, args []interface
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ worker.PoolWaitCallbacks = new(FakePoolWaitCallbacks)
+var _ worker.PoolCallbacks = new(FakePoolCallbacks)
