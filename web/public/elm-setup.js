@@ -242,9 +242,11 @@ app.ports.openEventStream.subscribe(function(config) {
   config.eventTypes.forEach(function(eventType) {
     es.addEventListener(eventType, dispatchEvent);
   });
-  app.ports.closeEventStream.subscribe(function() {
+  let closeFunc = function() {
     es.close();
-  });
+    app.ports.closeEventStream.unsubscribe(closeFunc);
+  }
+  app.ports.closeEventStream.subscribe(closeFunc);
   setInterval(flush, 200);
 });
 
