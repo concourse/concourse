@@ -65,11 +65,13 @@ type VolumeFinder interface {
 
 type pool struct {
 	provider WorkerProvider
+	waker    chan bool
 }
 
 func NewPool(provider WorkerProvider) Pool {
 	return &pool{
 		provider: provider,
+		waker:    make(chan bool),
 	}
 }
 
@@ -334,6 +336,7 @@ func (pool *pool) SelectWorker(
 			logger.Info("aborted-waiting-for-worker")
 			return nil, 0, ctx.Err()
 		case <-pollingTicker.C:
+		case <-pool.waker:
 			break
 		}
 	}
@@ -355,6 +358,14 @@ func (pool *pool) ReleaseWorker(
 ) {
 	logger := lagerctx.FromContext(ctx)
 	strategy.Release(logger, client.Worker(), containerSpec)
+
+	// Attempt to wake a random waiting step to see if it can be
+	// scheduled on the recently released worker.
+	select {
+	case pool.waker <- true:
+		logger.Debug("attempted-to-wake-waiting-step")
+	default:
+	}
 }
 
 func (pool *pool) chooseRandomWorkerForVolume(
