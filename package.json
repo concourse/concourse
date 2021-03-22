@@ -17,7 +17,7 @@
     "clean-css-cli": "^4.3.0",
     "elm": "^0.19.1",
     "elm-analyse": "stil4m/elm-analyse#701b8b4013a4f057b9382d368e42adc6fe08e14e",
-    "elm-format": "0.8.2",
+    "elm-format": "0.8.5",
     "elm-test": "^0.19.1-revision6",
     "less": "^4.1.1",
     "less-plugin-autoprefix": "^2.0.0",
