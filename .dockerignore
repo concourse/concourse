@@ -1,4 +1,7 @@
 .git
+.dockerignore
+Dockerfile
+docker-compose.yml
 node_modules
 web/wats/node_modules
 web/elm/elm-stuff
