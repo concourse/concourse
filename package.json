@@ -24,7 +24,7 @@
     "puppeteer": "^1.20.0",
     "uglify-js": "^3.6.3",
     "webpack": "^4.41.6",
-    "webpack-cli": "^3.3.11"
+    "webpack-cli": "^4.5.0"
   },
   "resolutions": {
     "less/request": "^2.86.0"
