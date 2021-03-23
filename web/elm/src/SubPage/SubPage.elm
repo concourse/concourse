@@ -67,10 +67,11 @@ init session route =
                 }
                 |> Tuple.mapFirst BuildModel
 
-        Routes.Resource { id, page } ->
+        Routes.Resource { id, page, version } ->
             Resource.init
                 { resourceId = id
                 , paging = page
+                , highlightVersion = version
                 }
                 |> Tuple.mapFirst ResourceModel
 
@@ -295,8 +296,8 @@ urlUpdate routes =
                 identity
         )
         (case routes.to of
-            Routes.Resource { id, page } ->
-                Resource.changeToResource { resourceId = id, paging = page }
+            Routes.Resource { id, page, version } ->
+                Resource.changeToResource { resourceId = id, paging = page, highlightVersion = version }
 
             _ ->
                 identity

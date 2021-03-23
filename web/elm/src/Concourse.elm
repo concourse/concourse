@@ -81,6 +81,7 @@ module Concourse exposing
     , retrieveCSRFToken
     , toInstanceGroupId
     , toPipelineId
+    , versionQuery
     )
 
 import Array exposing (Array)
@@ -377,13 +378,13 @@ mapBuildPlan fn plan =
                 BuildStepArtifactInput _ ->
                     []
 
-                BuildStepPut _ ->
+                BuildStepPut _ _ ->
                     []
 
                 BuildStepCheck _ ->
                     []
 
-                BuildStepGet _ _ ->
+                BuildStepGet _ _ _ ->
                     []
 
                 BuildStepArtifactOutput _ ->
@@ -429,15 +430,19 @@ type alias StepName =
     String
 
 
+type alias ResourceName =
+    String
+
+
 type BuildStep
     = BuildStepTask StepName
     | BuildStepSetPipeline StepName InstanceVars
     | BuildStepLoadVar StepName
     | BuildStepArtifactInput StepName
     | BuildStepCheck StepName
-    | BuildStepGet StepName (Maybe Version)
+    | BuildStepGet StepName (Maybe ResourceName) (Maybe Version)
     | BuildStepArtifactOutput StepName
-    | BuildStepPut StepName
+    | BuildStepPut StepName (Maybe ResourceName)
     | BuildStepInParallel (Array BuildPlan)
     | BuildStepAcross AcrossPlan
     | BuildStepDo (Array BuildPlan)
@@ -666,6 +671,7 @@ decodeBuildStepGet : Json.Decode.Decoder BuildStep
 decodeBuildStepGet =
     Json.Decode.succeed BuildStepGet
         |> andMap (Json.Decode.field "name" Json.Decode.string)
+        |> andMap (Json.Decode.maybe <| Json.Decode.field "resource" Json.Decode.string)
         |> andMap (Json.Decode.maybe <| Json.Decode.field "version" decodeVersion)
 
 
@@ -685,6 +691,7 @@ decodeBuildStepPut : Json.Decode.Decoder BuildStep
 decodeBuildStepPut =
     Json.Decode.succeed BuildStepPut
         |> andMap (Json.Decode.field "name" Json.Decode.string)
+        |> andMap (Json.Decode.maybe <| Json.Decode.field "resource" Json.Decode.string)
 
 
 decodeBuildStepInParallel : Json.Decode.Decoder BuildStep
@@ -1170,6 +1177,11 @@ decodeVersion =
 encodeVersion : Version -> Json.Encode.Value
 encodeVersion =
     Json.Encode.dict identity Json.Encode.string
+
+
+versionQuery : Version -> List String
+versionQuery v =
+    List.map (\kv -> Tuple.first kv ++ ":" ++ Tuple.second kv) <| Dict.toList v
 
 
 

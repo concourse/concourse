@@ -107,6 +107,7 @@ import Views.TopBar as TopBar
 type alias Flags =
     { resourceId : Concourse.ResourceIdentifier
     , paging : Maybe Concourse.Pagination.Page
+    , highlightVersion : Maybe Concourse.Version
     }
 
 
@@ -125,6 +126,14 @@ init flags =
     let
         page =
             flags.paging |> Maybe.withDefault startingPage
+
+        fetchVersionedResource =
+            case flags.highlightVersion of
+                Just v ->
+                    FetchVersionedResourceId flags.resourceId v
+
+                Nothing ->
+                    FetchVersionedResources flags.resourceId page
 
         model =
             { resourceIdentifier = flags.resourceId
@@ -147,11 +156,12 @@ init flags =
             , authorized = True
             , output = Nothing
             , highlight = Routes.HighlightNothing
+            , highlightVersion = flags.highlightVersion
             }
     in
     ( model
     , [ FetchResource flags.resourceId
-      , FetchVersionedResources flags.resourceId page
+      , fetchVersionedResource
       , GetCurrentTimeZone
       , FetchAllPipelines
       , SyncTextareaHeight ResourceCommentTextarea
@@ -164,6 +174,14 @@ changeToResource flags ( model, effects ) =
     let
         page =
             flags.paging |> Maybe.withDefault startingPage
+
+        fetchVersionedResource =
+            case flags.highlightVersion of
+                Just v ->
+                    FetchVersionedResourceId model.resourceIdentifier v
+
+                Nothing ->
+                    FetchVersionedResources model.resourceIdentifier page
     in
     ( { model
         | currentPage = page
@@ -173,7 +191,7 @@ changeToResource flags ( model, effects ) =
             }
       }
     , effects
-        ++ [ FetchVersionedResources model.resourceIdentifier page
+        ++ [ fetchVersionedResource
            , SyncTextareaHeight ResourceCommentTextarea
            ]
     )
@@ -346,6 +364,24 @@ handleCallback callback session ( model, effects ) =
                 _ ->
                     ( model, effects )
 
+        VersionedResourceIdFetched (Ok versionedResource) ->
+            let
+                page =
+                    case versionedResource of
+                        Just vr ->
+                            { direction = To vr.id
+                            , limit = model.currentPage.limit
+                            }
+
+                        Nothing ->
+                            startingPage
+            in
+            ( { model | currentPage = page }
+            , effects
+                ++ [ FetchVersionedResources model.resourceIdentifier page
+                   ]
+            )
+
         VersionedResourcesFetched (Ok ( requestedPage, paginated )) ->
             let
                 resourceVersions =
@@ -370,6 +406,14 @@ handleCallback callback session ( model, effects ) =
 
                                             else
                                                 Models.Disabled
+
+                                        expanded =
+                                            case model.highlightVersion of
+                                                Just v ->
+                                                    vr.version == v
+
+                                                Nothing ->
+                                                    False
                                     in
                                     case existingVersion of
                                         Just ev ->
@@ -393,7 +437,7 @@ handleCallback callback session ( model, effects ) =
                                             , version = vr.version
                                             , metadata = vr.metadata
                                             , enabled = enabledStateAccordingToServer
-                                            , expanded = False
+                                            , expanded = expanded
                                             , inputTo = []
                                             , outputOf = []
                                             }
@@ -422,6 +466,7 @@ handleCallback callback session ( model, effects ) =
                                     Routes.Resource
                                         { id = model.resourceIdentifier
                                         , page = Just startingPage
+                                        , version = Nothing
                                         }
                            ]
 
@@ -672,6 +717,7 @@ update msg ( model, effects ) =
                             Routes.Resource
                                 { id = model.resourceIdentifier
                                 , page = Just page
+                                , version = Nothing
                                 }
                    ]
             )
@@ -938,6 +984,7 @@ view session model =
             Routes.Resource
                 { id = model.resourceIdentifier
                 , page = Nothing
+                , version = Nothing
                 }
     in
     Html.div
@@ -1245,6 +1292,7 @@ paginationMenu { hovered } model =
                                 Routes.Resource
                                     { id = model.resourceIdentifier
                                     , page = Just page
+                                    , version = Nothing
                                     }
                          , attribute "aria-label" "Previous Page"
                          , id <| toHtmlID PreviousPageButton
@@ -1283,6 +1331,7 @@ paginationMenu { hovered } model =
                                 Routes.Resource
                                     { id = model.resourceIdentifier
                                     , page = Just page
+                                    , version = Nothing
                                     }
                          , attribute "aria-label" "Next Page"
                          , id <| toHtmlID NextPageButton

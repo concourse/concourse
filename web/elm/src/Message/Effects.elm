@@ -120,6 +120,7 @@ type Effect
     | FetchResource Concourse.ResourceIdentifier
     | FetchCheck Int
     | FetchVersionedResources Concourse.ResourceIdentifier Page
+    | FetchVersionedResourceId Concourse.ResourceIdentifier Concourse.Version
     | FetchResources Concourse.PipelineIdentifier
     | FetchBuildResources Concourse.BuildId
     | FetchPipeline Concourse.PipelineIdentifier
@@ -219,6 +220,7 @@ runEffect effect key csrfToken =
             Api.paginatedGet
                 (Endpoints.JobBuildsList |> Endpoints.Job id)
                 (Just page)
+                []
                 Concourse.decodeBuild
                 |> Api.request
                 |> Task.map (\b -> ( page, b ))
@@ -236,10 +238,21 @@ runEffect effect key csrfToken =
                 |> Api.request
                 |> Task.attempt Checked
 
+        FetchVersionedResourceId id version ->
+            Api.paginatedGet
+                (Endpoints.ResourceVersionsList |> Endpoints.Resource id)
+                Nothing
+                (Routes.versionQueryParams version)
+                Concourse.decodeVersionedResource
+                |> Api.request
+                |> Task.map (\b -> List.head b.content)
+                |> Task.attempt VersionedResourceIdFetched
+
         FetchVersionedResources id page ->
             Api.paginatedGet
                 (Endpoints.ResourceVersionsList |> Endpoints.Resource id)
                 (Just page)
+                []
                 Concourse.decodeVersionedResource
                 |> Api.request
                 |> Task.map (\b -> ( page, b ))
@@ -498,6 +511,7 @@ runEffect effect key csrfToken =
             Api.paginatedGet
                 (Endpoints.JobBuildsList |> Endpoints.Job job)
                 page
+                []
                 Concourse.decodeBuild
                 |> Api.request
                 |> Task.attempt BuildHistoryFetched
@@ -788,6 +802,9 @@ toHtmlID domId =
 
         StepInitialization stepID ->
             stepID ++ "_image"
+
+        StepVersion stepID ->
+            stepID ++ "_version"
 
         SideBarIcon ->
             "sidebar-icon"

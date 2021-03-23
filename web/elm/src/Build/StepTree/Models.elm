@@ -39,6 +39,7 @@ type alias StepTreeModel =
     , steps : Dict StepID Step
     , highlight : Highlight
     , resources : Concourse.BuildResources
+    , buildId : Maybe Concourse.JobBuildIdentifier
     }
 
 

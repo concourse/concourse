@@ -56,12 +56,12 @@ get endpoint =
     }
 
 
-paginatedGet : Endpoint -> Maybe Page -> Decoder a -> Request (Paginated a)
-paginatedGet endpoint page decoder =
+paginatedGet : Endpoint -> Maybe Page -> List Url.Builder.QueryParameter -> Decoder a -> Request (Paginated a)
+paginatedGet endpoint page additionalQueries decoder =
     { method = "GET"
     , headers = []
     , endpoint = endpoint
-    , query = Api.Pagination.params page
+    , query = Api.Pagination.params page ++ additionalQueries
     , body = Http.emptyBody
     , expect = Http.expectStringResponse (parsePagination decoder)
     }

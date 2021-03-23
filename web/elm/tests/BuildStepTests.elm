@@ -25,7 +25,6 @@ import Message.Effects as Effects
 import Message.Message as Message exposing (DomID(..))
 import Message.Subscription exposing (Delivery(..), Interval(..))
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
-import Routes
 import Test exposing (Test, describe, test)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -855,6 +854,7 @@ thePlanContainsAGetStep =
                       , step =
                             Concourse.BuildStepGet
                                 "the-git-resource"
+                                (Just "the-git-resource")
                                 (Just (Dict.fromList [ ( "ref", "abc123" ) ]))
                       }
                     , { inputs = []
@@ -1329,7 +1329,7 @@ thereIsAnImageGetStep stepId =
                                 { source = ""
                                 , id = stepId
                                 }
-                                (Concourse.BuildPlan imageGetStepId (Concourse.BuildStepGet "image" Nothing))
+                                (Concourse.BuildPlan imageGetStepId (Concourse.BuildStepGet "image" Nothing Nothing))
                       , url = "http://localhost:8080/api/v1/builds/1/events"
                       }
                     ]

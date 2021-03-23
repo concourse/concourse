@@ -16,6 +16,7 @@ module Routes exposing
     , showHighlight
     , toString
     , tokenToFlyRoute
+    , versionQueryParams
     )
 
 import Api.Pagination
@@ -47,7 +48,7 @@ import Url.Parser.Query as Query
 
 type Route
     = Build { id : Concourse.JobBuildIdentifier, highlight : Highlight }
-    | Resource { id : Concourse.ResourceIdentifier, page : Maybe Pagination.Page }
+    | Resource { id : Concourse.ResourceIdentifier, page : Maybe Pagination.Page, version : Maybe Concourse.Version }
     | Job { id : Concourse.JobIdentifier, page : Maybe Pagination.Page }
     | OneOffBuild { id : Concourse.BuildId, highlight : Highlight }
     | Pipeline { id : Concourse.PipelineIdentifier, groups : List String }
@@ -169,7 +170,7 @@ parsePage from to limit =
 resource : Parser ((InstanceVars -> Route) -> a) a
 resource =
     let
-        resourceHelper { teamName, pipelineName } resourceName from to limit =
+        resourceHelper { teamName, pipelineName } resourceName from to limit version =
             \iv ->
                 Resource
                     { id =
@@ -179,6 +180,7 @@ resource =
                         , resourceName = resourceName
                         }
                     , page = parsePage from to limit
+                    , version = version
                     }
     in
     map resourceHelper
@@ -188,7 +190,32 @@ resource =
             <?> Query.int "from"
             <?> Query.int "to"
             <?> Query.int "limit"
+            <?> resourceVersion "filter"
         )
+
+
+resourceVersion : String -> Query.Parser (Maybe Concourse.Version)
+resourceVersion key =
+    let
+        split s =
+            case String.split ":" s of
+                x :: xs ->
+                    Just ( x, String.join ":" xs )
+
+                _ ->
+                    Nothing
+
+        parse queries =
+            List.map split queries |> Maybe.Extra.values |> Dict.fromList
+
+        clean queries =
+            if Dict.isEmpty <| parse queries then
+                Nothing
+
+            else
+                Just <| parse queries
+    in
+    Query.custom key clean
 
 
 job : Parser ((InstanceVars -> Route) -> a) a
@@ -318,6 +345,7 @@ resourceRoute r =
             , resourceName = r.name
             }
         , page = Nothing
+        , version = Nothing
         }
 
 
@@ -421,10 +449,11 @@ toString route =
                 |> appendQuery (Api.Pagination.params page)
                 |> RouteBuilder.build
 
-        Resource { id, page } ->
+        Resource { id, page, version } ->
             pipelineIdBuilder id
                 |> appendPath [ "resources", id.resourceName ]
                 |> appendQuery (Api.Pagination.params page)
+                |> appendQuery (Maybe.withDefault Dict.empty version |> versionQueryParams)
                 |> RouteBuilder.build
 
         OneOffBuild { id, highlight } ->
@@ -549,6 +578,12 @@ extractQuery route =
 searchQueryParams : String -> List Builder.QueryParameter
 searchQueryParams q =
     [ Builder.string "search" q ]
+
+
+versionQueryParams : Concourse.Version -> List Builder.QueryParameter
+versionQueryParams version =
+    Concourse.versionQuery version
+        |> List.map (\q -> Builder.string "filter" q)
 
 
 pipelineIdBuilder : { r | teamName : String, pipelineName : String, pipelineInstanceVars : Concourse.InstanceVars } -> RouteBuilder
