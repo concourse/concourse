@@ -1,7 +1,7 @@
 'use strict';
 
 const { exec, spawn } = require('child-process-promise');
-const uuidv4 = require('uuid/v4');
+const { v4: uuidv4 } = require('uuid');
 const tmp = require('tmp-promise');
 
 class Fly {
