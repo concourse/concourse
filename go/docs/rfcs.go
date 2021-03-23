@@ -20,29 +20,33 @@ const resolutionMerge = "resolution/merge"
 const resolutionPostpone = "resolution/postpone"
 const resolutionClose = "resolution/close"
 
-var cachedRFCs []PullRequest
+var cachedRFCs []RFC
 var cacheOnce = new(sync.Once)
 
-type PullRequest struct {
-	URL     string
-	Number  int
-	Title   string
-	IsDraft bool
-
+type RFC struct {
+	URL       string
+	Number    int
+	Title     string
+	IsDraft   bool
 	CreatedAt time.Time
-
-	ProposalURL       string
-	QuestionsURL      string
-	OpenQuestionCount int
 
 	Labels    []GitHubLabel
 	Reactions []GitHubReaction
 
 	CommentCount int
 	ReviewCount  int
+
+	Proposal Proposal
 }
 
-func (pr PullRequest) ByTotalReactions() int {
+type Proposal struct {
+	URL string
+
+	QuestionsURL  string
+	QuestionCount int
+}
+
+func (pr RFC) ByTotalReactions() int {
 	var s int
 	for _, reaction := range pr.Reactions {
 		s += reaction.Count
@@ -51,25 +55,25 @@ func (pr PullRequest) ByTotalReactions() int {
 	return s
 }
 
-func (pr PullRequest) ByOpenQuestions() int {
-	return pr.OpenQuestionCount
+func (pr RFC) ByOpenQuestions() int {
+	return pr.Proposal.QuestionCount
 }
 
-func (pr PullRequest) ByCreatedAt() int {
+func (pr RFC) ByCreatedAt() int {
 	return int(pr.CreatedAt.Unix())
 }
 
-func (pr PullRequest) ByReviews() int {
+func (pr RFC) ByReviews() int {
 	return pr.ReviewCount
 }
 
-func (pr PullRequest) Resolving() bool {
+func (pr RFC) Resolving() bool {
 	return pr.HasLabel(resolutionMerge) ||
 		pr.HasLabel(resolutionPostpone) ||
 		pr.HasLabel(resolutionClose)
 }
 
-func (pr PullRequest) HasLabel(name string) bool {
+func (pr RFC) HasLabel(name string) bool {
 	for _, label := range pr.Labels {
 		if label.Name == name {
 			return true
@@ -104,7 +108,7 @@ func (p *Plugin) RfcsTable(countStr string, sortBy string) (booklit.Content, err
 		return nil, err
 	}
 
-	rfcPRs := make([]PullRequest, len(cachedRFCs))
+	rfcPRs := make([]RFC, len(cachedRFCs))
 	copy(rfcPRs, cachedRFCs)
 
 	sorter := prsBy{sortBy, rfcPRs}
@@ -126,7 +130,7 @@ func (p *Plugin) RfcsTable(countStr string, sortBy string) (booklit.Content, err
 	}, nil
 }
 
-func rfcRow(rfc PullRequest) booklit.Content {
+func rfcRow(rfc RFC) booklit.Content {
 	var status booklit.Content
 	switch {
 	case rfc.HasLabel(resolutionMerge):
@@ -178,12 +182,12 @@ func rfcRow(rfc PullRequest) booklit.Content {
 	}
 
 	var questions booklit.Content = booklit.Empty
-	if rfc.OpenQuestionCount > 0 {
+	if rfc.Proposal.QuestionCount > 0 {
 		questions = booklit.Styled{
 			Style:   "rfc-questions",
-			Content: booklit.String(strconv.Itoa(rfc.OpenQuestionCount)),
+			Content: booklit.String(strconv.Itoa(rfc.Proposal.QuestionCount)),
 			Partials: booklit.Partials{
-				"QuestionsURL": booklit.String(rfc.QuestionsURL),
+				"QuestionsURL": booklit.String(rfc.Proposal.QuestionsURL),
 			},
 		}
 	}
@@ -199,7 +203,7 @@ func rfcRow(rfc PullRequest) booklit.Content {
 			"Status":      status,
 			"Reactions":   reactions,
 			"Questions":   questions,
-			"ProposalURL": booklit.String(rfc.ProposalURL),
+			"ProposalURL": booklit.String(rfc.Proposal.URL),
 		},
 	}
 }
@@ -215,7 +219,7 @@ var reactionEmoji = map[string]string{
 	"EYES":        "👀",
 }
 
-func (p *Plugin) fetchRFCs(ctx context.Context) ([]PullRequest, error) {
+func (p *Plugin) fetchRFCs(ctx context.Context) ([]RFC, error) {
 	client, ok := p.githubClient(ctx)
 	if !ok {
 		return fillerRFCs, nil
@@ -279,7 +283,7 @@ func (p *Plugin) fetchRFCs(ctx context.Context) ([]PullRequest, error) {
 		return nil, fmt.Errorf("fetch rfcs: %w", err)
 	}
 
-	pulls := []PullRequest{}
+	pulls := []RFC{}
 	for _, node := range prsQuery.Repository.PullRequests.Nodes {
 		if node.IsDraft {
 			// don't put drafts on the website; they're not ready for public
@@ -326,12 +330,16 @@ func (p *Plugin) fetchRFCs(ctx context.Context) ([]PullRequest, error) {
 			proposalPath,
 		)
 
-		questionsURL, totalQuestions, err := countQuestions(proposalURL)
+		proposal, found, err := fetchProposal(proposalURL)
 		if err != nil {
 			return nil, fmt.Errorf("count open questions: %w", err)
 		}
 
-		pulls = append(pulls, PullRequest{
+		if !found {
+			continue
+		}
+
+		pulls = append(pulls, RFC{
 			URL:       node.Url,
 			Number:    node.Number,
 			CreatedAt: node.CreatedAt,
@@ -339,9 +347,7 @@ func (p *Plugin) fetchRFCs(ctx context.Context) ([]PullRequest, error) {
 			IsDraft:   node.IsDraft,
 			Labels:    node.Labels.Nodes,
 
-			ProposalURL:       proposalURL,
-			QuestionsURL:      questionsURL,
-			OpenQuestionCount: totalQuestions,
+			Proposal: proposal,
 
 			Reactions:    reactions,
 			CommentCount: node.Comments.TotalCount,
@@ -352,29 +358,37 @@ func (p *Plugin) fetchRFCs(ctx context.Context) ([]PullRequest, error) {
 	return pulls, nil
 }
 
-func countQuestions(proposalURL string) (string, int, error) {
+func fetchProposal(proposalURL string) (Proposal, bool, error) {
 	resp, err := http.Get(proposalURL)
 	if err != nil {
-		return "", 0, fmt.Errorf("get %s: %w", proposalURL, err)
+		return Proposal{}, false, fmt.Errorf("get %s: %w", proposalURL, err)
+	}
+
+	if resp.StatusCode == http.StatusNotFound {
+		resp.Body.Close()
+		return Proposal{}, false, nil
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return "", 0, fmt.Errorf("bad response for %s: %s", proposalURL, resp.Status)
+		resp.Body.Close()
+		return Proposal{}, false, fmt.Errorf("bad response for %s: %s", proposalURL, resp.Status)
 	}
 
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
-		return "", 0, fmt.Errorf("query HTML: %w", err)
+		return Proposal{}, false, fmt.Errorf("query HTML: %w", err)
 	}
 
-	var questionsURL string
-	var totalQuestions int
+	proposal := Proposal{
+		URL: proposalURL,
+	}
+
 	doc.Find("#readme").Find("h1").Each(func(i int, sel *goquery.Selection) {
 		if sel.Text() == "Open Questions" {
 			anchor, found := sel.Find("a.anchor").Attr("href")
 			if found {
-				questionsURL = proposalURL + anchor
-				logrus.Debugf("open questions: %s", questionsURL)
+				proposal.QuestionsURL = proposalURL + anchor
+				logrus.Debugf("open questions: %s", proposal.QuestionsURL)
 			}
 
 			questions := sel.NextUntil("h1")
@@ -385,7 +399,7 @@ func countQuestions(proposalURL string) (string, int, error) {
 						"question": sel.Text(),
 					}).Debug("found question")
 
-					totalQuestions++
+					proposal.QuestionCount++
 				}
 			}
 
@@ -393,16 +407,16 @@ func countQuestions(proposalURL string) (string, int, error) {
 			questions.Find("li").Each(countQuestion)
 			questions.Find("p").Each(countQuestion)
 
-			logrus.Infof("total questions: %d", totalQuestions)
+			logrus.Infof("total questions: %d", proposal.QuestionCount)
 		}
 	})
 
-	return questionsURL, totalQuestions, nil
+	return proposal, true, nil
 }
 
 type prsBy struct {
 	Method string
-	PRs    []PullRequest
+	PRs    []RFC
 }
 
 func (by prsBy) Len() int      { return len(by.PRs) }
@@ -429,15 +443,17 @@ func (by prsBy) Less(i, j int) bool {
 	return a < b
 }
 
-var fillerRFCs = []PullRequest{
+var fillerRFCs = []RFC{
 	{
 		URL:    "https://example.com",
 		Number: 42,
 		Title:  "Fake RFC",
 
-		ProposalURL:       "https://example.com/#proposal",
-		QuestionsURL:      "https://example.com/#questions",
-		OpenQuestionCount: 3,
+		Proposal: Proposal{
+			URL:           "https://example.com/#proposal",
+			QuestionsURL:  "https://example.com/#questions",
+			QuestionCount: 3,
+		},
 
 		Reactions: []GitHubReaction{
 			{
