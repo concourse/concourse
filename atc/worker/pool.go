@@ -337,7 +337,6 @@ func (pool *pool) SelectWorker(
 			return nil, 0, ctx.Err()
 		case <-pollingTicker.C:
 		case <-pool.waker:
-			break
 		}
 	}
 

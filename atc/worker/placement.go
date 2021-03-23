@@ -330,7 +330,7 @@ func (strategy *LimitActiveTasksPlacementStrategyNode) Order(logger lager.Logger
 }
 
 func (strategy *LimitActiveTasksPlacementStrategyNode) Pick(logger lager.Logger, worker Worker, spec ContainerSpec) error {
-	if spec.Type != db.ContainerTypeTask || strategy.maxTasks == 0 {
+	if spec.Type != db.ContainerTypeTask {
 		return nil
 	}
 
@@ -340,7 +340,7 @@ func (strategy *LimitActiveTasksPlacementStrategyNode) Pick(logger lager.Logger,
 		return err
 	}
 
-	if activeTasks > strategy.maxTasks {
+	if strategy.maxTasks > 0 && activeTasks > strategy.maxTasks {
 		_, err := worker.DecreaseActiveTasks()
 		if err != nil {
 			logger.Error("failed-to-decrease-active-tasks", err)
@@ -353,7 +353,7 @@ func (strategy *LimitActiveTasksPlacementStrategyNode) Pick(logger lager.Logger,
 }
 
 func (strategy *LimitActiveTasksPlacementStrategyNode) Release(logger lager.Logger, worker Worker, spec ContainerSpec) {
-	if spec.Type != db.ContainerTypeTask || strategy.maxTasks == 0 {
+	if spec.Type != db.ContainerTypeTask {
 		return
 	}
 

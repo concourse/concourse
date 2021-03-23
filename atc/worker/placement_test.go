@@ -16,7 +16,7 @@ import (
 
 //go:generate counterfeiter . ContainerPlacementStrategy
 
-var _ = Describe("x", func() {
+var _ = Describe("ContainerPlacementStrategy", func() {
 
 	var (
 		logger      *lagertest.TestLogger
@@ -438,7 +438,7 @@ var _ = Describe("x", func() {
 						Expect(pickedWorker).To(Equal(workers[1]))
 					})
 
-					It("increments or decrements active tasks for picked worker", func() {
+					It("increments and decrements active tasks for picked worker", func() {
 						Expect(workerFakes[1].IncreaseActiveTasksCallCount()).To(Equal(1))
 						Expect(workerFakes[1].DecreaseActiveTasksCallCount()).To(Equal(1))
 					})
