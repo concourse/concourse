@@ -45,11 +45,13 @@ func (i allInputs) FindAll(artifacts *build.Repository) (map[string]runtime.Arti
 
 type specificInputs struct {
 	inputs []string
+	params atc.Params
 }
 
-func NewSpecificInputs(inputs []string) PutInputs {
+func NewSpecificInputs(inputs []string, params atc.Params) PutInputs {
 	return &specificInputs{
 		inputs: inputs,
+		params: params,
 	}
 }
 
@@ -58,14 +60,27 @@ func (i specificInputs) FindAll(artifacts *build.Repository) (map[string]runtime
 
 	inputs := map[string]runtime.Artifact{}
 
-	for _, i := range i.inputs {
-		artifact, found := artifactsMap[build.ArtifactName(i)]
+	for _, input := range i.inputs {
+		if input == atc.InputsDetect {
+			detectedInputs, err := NewDetectInputs(i.params).FindAll(artifacts)
+			if err != nil {
+				return nil, err
+			}
+
+			for k, v := range detectedInputs {
+				inputs[k] = v
+			}
+
+			continue
+		}
+
+		artifact, found := artifactsMap[build.ArtifactName(input)]
 		if !found {
-			return nil, PutInputNotFoundError{Input: i}
+			return nil, PutInputNotFoundError{Input: input}
 		}
 
 		pi := putInput{
-			name:     build.ArtifactName(i),
+			name:     build.ArtifactName(input),
 			artifact: artifact,
 		}
 
