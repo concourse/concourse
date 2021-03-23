@@ -112,12 +112,12 @@ var _ = Describe("GetStep", func() {
 		fakeDelegateFactory.GetDelegateReturns(fakeDelegate)
 
 		getPlan = &atc.GetPlan{
-			Name:          "some-name",
-			Type:          "some-base-type",
-			BaseImageType: "some-base-type",
-			Source:        atc.Source{"some": "((source-var))"},
-			Params:        atc.Params{"some": "((params-var))"},
-			Version:       &atc.Version{"some": "version"},
+			Name:     "some-name",
+			Type:     "some-base-type",
+			BaseType: "some-base-type",
+			Source:   atc.Source{"some": "((source-var))"},
+			Params:   atc.Params{"some": "((params-var))"},
+			Version:  &atc.Version{"some": "version"},
 			VersionedResourceTypes: atc.VersionedResourceTypes{
 				{
 					ResourceType: atc.ResourceType{
@@ -251,6 +251,10 @@ var _ = Describe("GetStep", func() {
 		})
 
 		Context("when the version does not exist in the build results", func() {
+			BeforeEach(func() {
+				shouldRunGetStep = false
+			})
+
 			It("can't resolve version and errors", func() {
 				Expect(stepErr).To(Equal(exec.ErrResultMissing))
 			})
@@ -529,7 +533,7 @@ var _ = Describe("GetStep", func() {
 			}
 
 			getPlan.Type = "some-custom-type"
-			getPlan.BaseImageType = ""
+			getPlan.BaseType = "registry-image"
 
 			fakeImageSpec = worker.ImageSpec{
 				ImageArtifactSource: new(workerfakes.FakeStreamableArtifactSource),

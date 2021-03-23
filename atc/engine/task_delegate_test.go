@@ -15,13 +15,13 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
+	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/policy/policyfakes"
 	"github.com/concourse/concourse/atc/runtime/runtimefakes"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
-	"github.com/concourse/concourse/vars"
 )
 
 var noopStepper exec.Stepper = func(atc.Plan) exec.Step {
@@ -165,6 +165,8 @@ var _ = Describe("TaskDelegate", func() {
 		var imageResource atc.ImageResource
 
 		var fakeArtifact *runtimefakes.FakeArtifact
+		var fakeSource *workerfakes.FakeStreamableArtifactSource
+		var fakeResourceCache *dbfakes.FakeUsedResourceCache
 
 		var runPlans []atc.Plan
 		var stepper exec.Stepper
@@ -183,9 +185,14 @@ var _ = Describe("TaskDelegate", func() {
 				runPlans = append(runPlans, p)
 
 				step := new(execfakes.FakeStep)
+				fakeResourceCache = new(dbfakes.FakeUsedResourceCache)
 				step.RunStub = func(_ context.Context, state exec.RunState) (bool, error) {
 					if p.Get != nil {
 						state.ArtifactRepository().RegisterArtifact("image", fakeArtifact)
+						state.StoreResult(expectedGetPlan.ID, exec.GetResult{
+							Name:          "image",
+							ResourceCache: fakeResourceCache,
+						})
 					}
 					return true, nil
 				}
@@ -193,7 +200,10 @@ var _ = Describe("TaskDelegate", func() {
 			}
 
 			runState := exec.NewRunState(stepper, nil, false)
-			delegate = engine.NewTaskDelegate(fakeBuild, planID, runState, fakeClock, fakePolicyChecker, fakeSecrets)
+			delegate = NewTaskDelegate(fakeBuild, planID, runState, fakeClock, fakePolicyChecker, fakeSecrets, fakeArtifactSourcer, fakeWorkerFactory, fakeLockFactory)
+
+			fakeSource = new(workerfakes.FakeStreamableArtifactSource)
+			fakeArtifactSourcer.SourceImageReturns(fakeSource, nil)
 
 			imageResource = atc.ImageResource{
 				Type:   "docker",
@@ -229,6 +239,7 @@ var _ = Describe("TaskDelegate", func() {
 					Name:                   "image",
 					Type:                   "docker",
 					Source:                 atc.Source{"some": "((source-var))"},
+					BaseType:               "docker",
 					VersionedResourceTypes: types,
 					Tags:                   atc.Tags{"some", "tags"},
 				},
@@ -240,6 +251,7 @@ var _ = Describe("TaskDelegate", func() {
 					Name:                   "image",
 					Type:                   "docker",
 					Source:                 atc.Source{"some": "((source-var))"},
+					BaseType:               "docker",
 					VersionFrom:            &expectedCheckPlan.ID,
 					Params:                 atc.Params{"some": "((params-var))"},
 					VersionedResourceTypes: types,
@@ -256,11 +268,58 @@ var _ = Describe("TaskDelegate", func() {
 			Expect(fetchErr).ToNot(HaveOccurred())
 		})
 
+		It("returns an image spec containing the artifact", func() {
+			Expect(imageSpec).To(Equal(worker.ImageSpec{
+				ImageArtifactSource: fakeSource,
+				Privileged:          false,
+			}))
+		})
+
 		It("generates and runs a check and get plan", func() {
 			Expect(runPlans).To(Equal([]atc.Plan{
 				expectedCheckPlan,
 				expectedGetPlan,
 			}))
+		})
+
+		It("sends events for image check and get", func() {
+			Expect(fakeBuild.SaveEventCallCount()).To(Equal(2))
+			e := fakeBuild.SaveEventArgsForCall(0)
+			Expect(e).To(Equal(event.ImageCheck{
+				Time: 675927000,
+				Origin: event.Origin{
+					ID: event.OriginID(planID),
+				},
+				PublicPlan: expectedCheckPlan.Public(),
+			}))
+
+			e = fakeBuild.SaveEventArgsForCall(1)
+			Expect(e).To(Equal(event.ImageGet{
+				Time: 675927000,
+				Origin: event.Origin{
+					ID: event.OriginID(planID),
+				},
+				PublicPlan: expectedGetPlan.Public(),
+			}))
+		})
+
+		Context("when the check plan is nil", func() {
+			BeforeEach(func() {
+				imageResource.Version = atc.Version{"some": "version"}
+				expectedGetPlan.Get.Version = &atc.Version{"some": "version"}
+			})
+
+			It("only saves an ImageGet event", func() {
+				Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
+				e := fakeBuild.SaveEventArgsForCall(0)
+				Expect(e).To(Equal(event.ImageGet{
+					Time: 675927000,
+					Origin: event.Origin{
+						ID: event.OriginID(planID),
+					},
+					PublicPlan: expectedGetPlan.Public(),
+				}))
+			})
 		})
 	})
 })
