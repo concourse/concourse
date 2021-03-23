@@ -199,8 +199,8 @@ resourceVersion key =
     let
         split s =
             case String.split ":" s of
-                [ k, v ] ->
-                    Just ( k, v )
+                x :: xs ->
+                    Just ( x, String.join ":" xs )
 
                 _ ->
                     Nothing

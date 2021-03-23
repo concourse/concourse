@@ -1348,9 +1348,9 @@ tooltip model { hovered } =
                         [ Html.text "view in resources page" ]
                 , attachPosition =
                     { direction = Tooltip.Top
-                    , alignment = Tooltip.End
+                    , alignment = Tooltip.Middle 150
                     }
-                , arrow = Nothing
+                , arrow = Just 5
                 , containerAttrs = Nothing
                 }
 
