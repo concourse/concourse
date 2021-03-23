@@ -8,6 +8,7 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/worker"
@@ -20,6 +21,7 @@ type coreStepFactory struct {
 	resourceFactory       resource.ResourceFactory
 	teamFactory           db.TeamFactory
 	buildFactory          db.BuildFactory
+	lockFactory           lock.LockFactory
 	resourceCacheFactory  db.ResourceCacheFactory
 	resourceConfigFactory db.ResourceConfigFactory
 	defaultLimits         atc.ContainerLimits
@@ -34,6 +36,7 @@ func NewCoreStepFactory(
 	resourceFactory resource.ResourceFactory,
 	teamFactory db.TeamFactory,
 	buildFactory db.BuildFactory,
+	lockFactory lock.LockFactory,
 	resourceCacheFactory db.ResourceCacheFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
 	defaultLimits atc.ContainerLimits,
@@ -47,6 +50,7 @@ func NewCoreStepFactory(
 		resourceFactory:       resourceFactory,
 		teamFactory:           teamFactory,
 		buildFactory:          buildFactory,
+		lockFactory:           lockFactory,
 		resourceCacheFactory:  resourceCacheFactory,
 		resourceConfigFactory: resourceConfigFactory,
 		defaultLimits:         defaultLimits,

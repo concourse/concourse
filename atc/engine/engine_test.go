@@ -11,6 +11,7 @@ import (
 	"code.cloudfoundry.org/lager/lagerctx"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/builds"
 	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
@@ -47,7 +48,7 @@ var _ = Describe("Engine", func() {
 
 	Describe("NewBuild", func() {
 		var (
-			build  Runnable
+			build  builds.Runnable
 			engine Engine
 		)
 
@@ -66,7 +67,7 @@ var _ = Describe("Engine", func() {
 
 	Describe("Build", func() {
 		var (
-			build     Runnable
+			build     builds.Runnable
 			release   chan bool
 			waitGroup *sync.WaitGroup
 		)

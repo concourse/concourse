@@ -7,6 +7,7 @@ import (
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/builds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/event"
@@ -29,6 +30,7 @@ func NewTaskDelegate(
 		BuildStepDelegate: NewBuildStepDelegate(build, planID, state, clock, policyChecker, artifactSourcer),
 
 		eventOrigin: event.Origin{ID: event.OriginID(planID)},
+		planID:      planID,
 		build:       build,
 		clock:       clock,
 
@@ -40,6 +42,7 @@ func NewTaskDelegate(
 type taskDelegate struct {
 	exec.BuildStepDelegate
 
+	planID      atc.PlanID
 	config      atc.TaskConfig
 	build       db.Build
 	eventOrigin event.Origin
@@ -113,7 +116,7 @@ func (d *taskDelegate) FetchImage(
 ) (worker.ImageSpec, error) {
 	image.Name = "image"
 
-	checkPlan, getPlan := builds.FetchImagePlan(d.planID, image, types, stepTags)
+	checkPlan, getPlan, _ := builds.FetchImagePlan(d.planID, image, types, stepTags)
 
 	if checkPlan != nil {
 		err := d.build.SaveEvent(event.ImageCheck{
@@ -139,5 +142,5 @@ func (d *taskDelegate) FetchImage(
 		return worker.ImageSpec{}, err
 	}
 
-	return d.BuildStepDelegate.FetchImage(ctx, getPlan, checkPlan, types, privileged)
+	return d.BuildStepDelegate.FetchImage(ctx, getPlan, checkPlan, privileged)
 }

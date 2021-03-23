@@ -17,7 +17,6 @@ import (
 	"github.com/concourse/concourse/atc/policy/policyfakes"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
-	"github.com/concourse/concourse/vars"
 )
 
 var _ = Describe("PutDelegate", func() {
