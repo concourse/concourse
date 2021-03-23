@@ -2,7 +2,7 @@
 
 const puppeteer = require('puppeteer');
 const { exec } = require('child-process-promise');
-const uuidv4 = require('uuid/v4');
+const { v4: uuidv4 } = require('uuid');
 
 class Web {
   constructor(url, username, password) {
