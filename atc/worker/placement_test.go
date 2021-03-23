@@ -17,7 +17,6 @@ import (
 //go:generate counterfeiter . ContainerPlacementStrategy
 
 var _ = Describe("ContainerPlacementStrategy", func() {
-
 	var (
 		logger      *lagertest.TestLogger
 		strategy    ContainerPlacementStrategy
@@ -422,11 +421,6 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 					It("is able to pick and release the first worker, regardless of active tasks", func() {
 						Expect(pickedWorker).To(Equal(workers[0]))
 					})
-
-					It("doesn't increments or decrements active tasks for picked worker", func() {
-						Expect(workerFakes[0].IncreaseActiveTasksCallCount()).To(Equal(0))
-						Expect(workerFakes[0].DecreaseActiveTasksCallCount()).To(Equal(0))
-					})
 				})
 
 				Context("when limit is non-zero", func() {
@@ -480,8 +474,6 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 			} else {
 				Expect(strategyErr).To(HaveOccurred())
 			}
-
-			containerSpec.Type = "task"
 		})
 
 		Context("when max-active-containers-per-worker less than 0", func() {
@@ -609,8 +601,6 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 			} else {
 				Expect(strategyErr).To(HaveOccurred())
 			}
-
-			containerSpec.Type = "task"
 		})
 
 		Context("when max-active-volumes-per-worker less than 0", func() {
@@ -768,6 +758,50 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 							Equal([]Worker{workers[1], workers[2], workers[0]}),
 							Equal([]Worker{workers[2], workers[1], workers[0]}),
 						))
+					})
+				})
+			})
+		})
+
+		Describe("strategy.Pick and strategy.Release", func() {
+			Context("limit-active-containers,limit-active-tasks", func() {
+				JustBeforeEach(func() {
+					strategy, strategyErr = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{
+						ContainerPlacementStrategy:   []string{"limit-active-containers", "limit-active-tasks"},
+						MaxActiveTasksPerWorker:      1,
+						MaxActiveContainersPerWorker: 1,
+					})
+
+					Expect(strategyErr).ToNot(HaveOccurred())
+
+					containerSpec.Type = "task"
+					orderedWorkers = workers[:1]
+
+					pickAndRelease()
+				})
+
+				It("calls .Pick and .Release on chained strategies", func() {
+					// From "limit-active-containers" strategy
+					Expect(workerFakes[0].ActiveContainersCallCount()).To(Equal(1))
+
+					// From "limit-active-tasks" strategy
+					Expect(workerFakes[0].IncreaseActiveTasksCallCount()).To(Equal(1))
+					Expect(workerFakes[0].DecreaseActiveTasksCallCount()).To(Equal(1))
+				})
+
+				Context("when first strategy rejects worker", func() {
+					BeforeEach(func() {
+						// Causes "limit-active-containers" strategy to fail in .Pick
+						workerFakes[0].ActiveContainersReturns(2)
+					})
+
+					It("exits early and doesn't call .Pick on later strategies", func() {
+						// From "limit-active-containers" strategy
+						Expect(workerFakes[0].ActiveContainersCallCount()).To(Equal(1))
+
+						// From "limit-active-tasks" strategy
+						Expect(workerFakes[0].IncreaseActiveTasksCallCount()).To(Equal(0))
+						Expect(workerFakes[0].DecreaseActiveTasksCallCount()).To(Equal(0))
 					})
 				})
 			})
