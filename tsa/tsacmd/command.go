@@ -22,7 +22,6 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/flag"
 	"github.com/concourse/concourse/tsa"
-	"github.com/spf13/cobra"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"
@@ -37,76 +36,47 @@ import (
 type TSACommand struct {
 	Logger flag.Lager
 
-	BindIP      flag.IP `yaml:"bind_ip" env:"CONCOURSE_WORKER_GATEWAY_BIND_IP,CONCOURSE_TSA_BIND_IP"`
-	PeerAddress string  `yaml:"peer_address" env:"CONCOURSE_WORKER_GATEWAY_PEER_ADDRESS,CONCOURSE_TSA_PEER_ADDRESS"`
-	BindPort    uint16  `yaml:"bind_port" env:"CONCOURSE_WORKER_GATEWAY_BIND_PORT,CONCOURSE_TSA_BIND_PORT"`
+	BindIP      net.IP `yaml:"bind_ip,omitempty" env:"CONCOURSE_WORKER_GATEWAY_BIND_IP,CONCOURSE_TSA_BIND_IP"`
+	PeerAddress string `yaml:"peer_address,omitempty" env:"CONCOURSE_WORKER_GATEWAY_PEER_ADDRESS,CONCOURSE_TSA_PEER_ADDRESS"`
+	BindPort    uint16 `yaml:"bind_port,omitempty" env:"CONCOURSE_WORKER_GATEWAY_BIND_PORT,CONCOURSE_TSA_BIND_PORT"`
 
-	Debug DebugConfig `yaml:"debug"`
+	Debug DebugConfig `yaml:"debug,omitempty"`
 
-	HostKey                *flag.PrivateKey       `yaml:"host_key" validate:"required" env:"CONCOURSE_WORKER_GATEWAY_HOST_KEY,CONCOURSE_TSA_HOST_KEY"`
-	AuthorizedKeys         flag.AuthorizedKeys    `yaml:"authorized_keys" env:"CONCOURSE_WORKER_GATEWAY_AUTHORIZED_KEYS,CONCOURSE_TSA_AUTHORIZED_KEYS"`
-	TeamAuthorizedKeys     flag.AuthorizedKeysMap `yaml:"team_authorized_keys" env:"CONCOURSE_WORKER_GATEWAY_TEAM_AUTHORIZED_KEYS,CONCOURSE_TSA_TEAM_AUTHORIZED_KEYS"`
-	TeamAuthorizedKeysFile flag.File              `yaml:"team_authorized_keys_file" env:"CONCOURSE_WORKER_GATEWAY_TEAM_AUTHORIZED_KEYS_FILE,CONCOURSE_TSA_TEAM_AUTHORIZED_KEYS_FILE"`
+	HostKey                *flag.PrivateKey       `yaml:"host_key,omitempty" validate:"required" env:"CONCOURSE_WORKER_GATEWAY_HOST_KEY,CONCOURSE_TSA_HOST_KEY"`
+	AuthorizedKeys         flag.AuthorizedKeys    `yaml:"authorized_keys,omitempty" env:"CONCOURSE_WORKER_GATEWAY_AUTHORIZED_KEYS,CONCOURSE_TSA_AUTHORIZED_KEYS"`
+	TeamAuthorizedKeys     flag.AuthorizedKeysMap `yaml:"team_authorized_keys,omitempty" env:"CONCOURSE_WORKER_GATEWAY_TEAM_AUTHORIZED_KEYS,CONCOURSE_TSA_TEAM_AUTHORIZED_KEYS"`
+	TeamAuthorizedKeysFile flag.File              `yaml:"team_authorized_keys_file,omitempty" env:"CONCOURSE_WORKER_GATEWAY_TEAM_AUTHORIZED_KEYS_FILE,CONCOURSE_TSA_TEAM_AUTHORIZED_KEYS_FILE"`
 
-	ATCURLs flag.URLs `yaml:"atc_url" env:"CONCOURSE_WORKER_GATEWAY_ATC_URL,CONCOURSE_TSA_ATC_URL"`
+	ATCURLs flag.URLs `yaml:"atc_url,omitempty" env:"CONCOURSE_WORKER_GATEWAY_ATC_URL,CONCOURSE_TSA_ATC_URL"`
 
-	ClientID     string   `yaml:"client_id" env:"CONCOURSE_WORKER_GATEWAY_CLIENT_ID,CONCOURSE_TSA_CLIENT_ID"`
-	ClientSecret string   `yaml:"client_secret" env:"CONCOURSE_WORKER_GATEWAY_CLIENT_SECRET,CONCOURSE_TSA_CLIENT_SECRET"`
-	TokenURL     flag.URL `yaml:"token_url" env:"CONCOURSE_WORKER_GATEWAY_TOKEN_URL,CONCOURSE_TSA_TOKEN_URL"`
-	Scopes       []string `yaml:"scope" env:"CONCOURSE_WORKER_GATEWAY_SCOPE,CONCOURSE_TSA_SCOPE"`
+	ClientID     string   `yaml:"client_id,omitempty" env:"CONCOURSE_WORKER_GATEWAY_CLIENT_ID,CONCOURSE_TSA_CLIENT_ID"`
+	ClientSecret string   `yaml:"client_secret,omitempty" env:"CONCOURSE_WORKER_GATEWAY_CLIENT_SECRET,CONCOURSE_TSA_CLIENT_SECRET"`
+	TokenURL     flag.URL `yaml:"token_url,omitempty" env:"CONCOURSE_WORKER_GATEWAY_TOKEN_URL,CONCOURSE_TSA_TOKEN_URL"`
+	Scopes       []string `yaml:"scope,omitempty" env:"CONCOURSE_WORKER_GATEWAY_SCOPE,CONCOURSE_TSA_SCOPE"`
 
-	HeartbeatInterval    time.Duration `yaml:"heartbeat_interval" env:"CONCOURSE_WORKER_GATEWAY_HEARTBEAT_INTERVAL,CONCOURSE_TSA_HEARTBEAT_INTERVAL"`
-	GardenRequestTimeout time.Duration `yaml:"garden_request_timeout" env:"CONCOURSE_WORKER_GATEWAY_GARDEN_REQUEST_TIMEOUT,CONCOURSE_TSA_GARDEN_REQUEST_TIMEOUT"`
+	HeartbeatInterval    time.Duration `yaml:"heartbeat_interval,omitempty" env:"CONCOURSE_WORKER_GATEWAY_HEARTBEAT_INTERVAL,CONCOURSE_TSA_HEARTBEAT_INTERVAL"`
+	GardenRequestTimeout time.Duration `yaml:"garden_request_timeout,omitempty" env:"CONCOURSE_WORKER_GATEWAY_GARDEN_REQUEST_TIMEOUT,CONCOURSE_TSA_GARDEN_REQUEST_TIMEOUT"`
 
-	ClusterName    string `yaml:"cluster_name" env:"CONCOURSE_WORKER_GATEWAY_CLUSTER_NAME,CONCOURSE_TSA_CLUSTER_NAME"`
-	LogClusterName bool   `yaml:"log_cluster_name" env:"CONCOURSE_WORKER_GATEWAY_LOG_CLUSTER_NAME,CONCOURSE_TSA_LOG_CLUSTER_NAME"`
+	ClusterName    string `yaml:"cluster_name,omitempty" env:"CONCOURSE_WORKER_GATEWAY_CLUSTER_NAME,CONCOURSE_TSA_CLUSTER_NAME"`
+	LogClusterName bool   `yaml:"log_cluster_name,omitempty" env:"CONCOURSE_WORKER_GATEWAY_LOG_CLUSTER_NAME,CONCOURSE_TSA_LOG_CLUSTER_NAME"`
 }
 
 type DebugConfig struct {
-	BindIP   flag.IP `yaml:"bind_ip" env:"CONCOURSE_WORKER_GATEWAY_DEBUG_BIND_IP,CONCOURSE_TSA_DEBUG_BIND_IP"`
-	BindPort uint16  `yaml:"bind_port" env:"CONCOURSE_WORKER_GATEWAY_DEBUG_BIND_PORT,CONCOURSE_TSA_DEBUG_BIND_PORT"`
-}
-
-// These flags can be deleted once we fully deprecate flags.
-//
-// IMPORTANT!! No new config fields need to be added to this! These are only
-// for backwards compatibility.
-func InitializeFlagsDEPRECATED(c *cobra.Command, flags *TSACommand) {
-	c.Flags().StringVar(&flags.Logger.LogLevel, "tsa-log-level", "info", "Minimum level of logs to see.")
-
-	c.Flags().Var(&flags.BindIP, "tsa-bind-ip", "IP address on which to listen for SSH.")
-	c.Flags().Uint16Var(&flags.BindPort, "tsa-bind-port", 2222, "Port on which to listen for SSH.")
-	c.Flags().StringVar(&flags.PeerAddress, "tsa-peer-address", "127.0.0.1", "Network address of this web node, reachable by other web nodes. Used for forwarded worker addresses.")
-
-	c.Flags().Var(&flags.Debug.BindIP, "tsa-debug-bind-ip", "IP address on which to listen for the pprof debugger endpoints.")
-	c.Flags().Uint16Var(&flags.Debug.BindPort, "tsa-debug-bind-port", 2221, "Port on which to listen for the pprof debugger endpoints.")
-
-	c.Flags().Var(flags.HostKey, "tsa-host-key", "Path to private key to use for the SSH server.")
-	c.Flags().Var(&flags.AuthorizedKeys, "tsa-authorized-keys", "Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line).")
-	c.Flags().Var(&flags.TeamAuthorizedKeys, "tsa-team-authorized-keys", "Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line).")
-	c.Flags().Var(&flags.TeamAuthorizedKeysFile, "tsa-team-authorized-keys-file", "Path to file containing a YAML array of teams and their authorized SSH keys, e.g. [{team:foo,ssh_keys:[key1,key2]}].")
-
-	c.Flags().Var(&flags.ATCURLs, "tsa-atc-url", "ATC API endpoints to which workers will be registered.")
-
-	c.Flags().StringVar(&flags.ClientID, "tsa-client-id", "concourse-worker", "Client used to fetch a token from the auth server. NOTE: if you change this value you will also need to change the --system-claim-value flag so the atc knows to allow requests from this client.")
-	c.Flags().StringVar(&flags.ClientSecret, "tsa-client-secret", "", "Client used to fetch a token from the auth server")
-	c.Flags().Var(&flags.TokenURL, "tsa-token-url", "Token endpoint of the auth server")
-	c.Flags().StringArrayVar(&flags.Scopes, "tsa-scope", nil, "Scopes to request from the auth server")
-
-	c.Flags().DurationVar(&flags.HeartbeatInterval, "tsa-heartbeat-interval", 30*time.Second, "interval on which to heartbeat workers to the ATC")
-	c.Flags().DurationVar(&flags.GardenRequestTimeout, "garden-request-timeout", 5*time.Minute, "How long to wait for requests to Garden to complete. 0 means no timeout.")
-
-	c.Flags().StringVar(&flags.ClusterName, "tsa-cluster-name", "", "A name for this Concourse cluster, to be displayed on the dashboard page.")
-	c.Flags().BoolVar(&flags.LogClusterName, "tsa-log-cluster-name", false, "Log cluster name.")
+	BindIP   net.IP `yaml:"bind_ip,omitempty" env:"CONCOURSE_WORKER_GATEWAY_DEBUG_BIND_IP,CONCOURSE_TSA_DEBUG_BIND_IP"`
+	BindPort uint16 `yaml:"bind_port,omitempty" env:"CONCOURSE_WORKER_GATEWAY_DEBUG_BIND_PORT,CONCOURSE_TSA_DEBUG_BIND_PORT"`
 }
 
 var CmdDefaults = TSACommand{
-	BindIP:      flag.IP{net.ParseIP("0.0.0.0")},
+	Logger: flag.Lager{
+		LogLevel: "info",
+	},
+
+	BindIP:      net.ParseIP("0.0.0.0"),
 	PeerAddress: "127.0.0.1",
 	BindPort:    2222,
 
 	Debug: DebugConfig{
-		BindIP:   flag.IP{net.ParseIP("127.0.0.1")},
+		BindIP:   net.ParseIP("127.0.0.1"),
 		BindPort: 2221,
 	},
 

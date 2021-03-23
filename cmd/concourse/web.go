@@ -46,8 +46,8 @@ func init() {
 	webCmd.TSACommand = &tsacmd.CmdDefaults
 
 	// IMPORTANT!: Can be removed when flags no longer supported
-	atccmd.InitializeATCFlagsDEPRECATED(WebCommand, webCmd.RunConfig)
-	tsacmd.InitializeFlagsDEPRECATED(WebCommand, webCmd.TSACommand)
+	InitializeATCFlagsDEPRECATED(WebCommand, webCmd.RunConfig)
+	InitializeFlagsDEPRECATED(WebCommand, webCmd.TSACommand)
 
 	// TODO: Mark all flags as deprecated
 }
