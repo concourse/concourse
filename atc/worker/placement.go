@@ -202,7 +202,7 @@ func NewRandomPlacementStrategy() ContainerPlacementStrategy {
 	return s
 }
 
-// Strategy which orders candidate workers based off the number of volumes which alread
+// Strategy which orders candidate workers based off the number of volumes which already
 // exist on them
 type VolumeLocalityPlacementStrategyNode struct {
 	GivenName string

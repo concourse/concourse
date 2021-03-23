@@ -579,7 +579,7 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 					limit = 10
 				})
 
-				It("fails to pick workers with an equal or higher number of tasks", func() {
+				It("fails to pick workers with an equal or higher number of containers", func() {
 					Expect(pickedWorker).To(BeNil())
 					Expect(pickErr).To(Equal(ErrTooManyContainers))
 				})
@@ -638,7 +638,7 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 					limit = 0
 				})
 
-				It("orders workers by active container count", func() {
+				It("orders workers by active volume count", func() {
 					Expect(orderedWorkers).To(Equal([]Worker{workers[2], workers[0], workers[1]}))
 				})
 
@@ -688,7 +688,7 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 					limit = 0
 				})
 
-				It("is able to pick and release the first worker, regardless of active containers", func() {
+				It("is able to pick and release the first worker, regardless of active volumes", func() {
 					Expect(pickedWorker).To(Equal(workers[0]))
 				})
 			})
@@ -698,7 +698,7 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 					limit = 100
 				})
 
-				It("fails to pick workers with an equal or higher number of containers", func() {
+				It("fails to pick workers with an equal or higher number of volumes", func() {
 					Expect(pickedWorker).To(Equal(workers[2]))
 				})
 			})
@@ -708,7 +708,7 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 					limit = 10
 				})
 
-				It("fails to pick workers with an equal or higher number of tasks", func() {
+				It("fails to pick workers with an equal or higher number of volumes", func() {
 					Expect(pickedWorker).To(BeNil())
 					Expect(pickErr).To(Equal(ErrTooManyVolumes))
 				})
