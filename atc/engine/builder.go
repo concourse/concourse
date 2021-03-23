@@ -404,6 +404,7 @@ func (factory *stepperFactory) buildGetVarStep(build db.Build, plan atc.Plan) ex
 	stepMetadata := factory.stepMetadata(
 		build,
 		factory.externalURL,
+		false,
 	)
 
 	return factory.coreFactory.GetVarStep(

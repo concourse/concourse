@@ -50,6 +50,7 @@ func NewBuildStepDelegate(
 	state exec.RunState,
 	clock clock.Clock,
 	policyChecker policy.Checker,
+	globalSecrets creds.Secrets,
 	artifactSourcer worker.ArtifactSourcer,
 ) *buildStepDelegate {
 	return &buildStepDelegate{
@@ -62,6 +63,7 @@ func NewBuildStepDelegate(
 		policyChecker:   policyChecker,
 		globalSecrets:   globalSecrets,
 		artifactSourcer: artifactSourcer,
+	}
 }
 
 func (delegate *buildStepDelegate) StartSpan(

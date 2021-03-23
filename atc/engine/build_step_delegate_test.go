@@ -40,8 +40,6 @@ var _ = Describe("BuildStepDelegate", func() {
 		fakeSecrets         *credsfakes.FakeSecrets
 		fakeArtifactSourcer *workerfakes.FakeArtifactSourcer
 
-		credVars vars.StaticVariables
-
 		now = time.Date(1991, 6, 3, 5, 30, 0, 0, time.UTC)
 
 		delegate exec.BuildStepDelegate
@@ -100,7 +98,6 @@ var _ = Describe("BuildStepDelegate", func() {
 		var fakeSource *workerfakes.FakeStreamableArtifactSource
 		var fakeResourceCache *dbfakes.FakeUsedResourceCache
 
-		var imageResource atc.ImageResource
 		var types atc.VersionedResourceTypes
 		var privileged bool
 
@@ -109,54 +106,10 @@ var _ = Describe("BuildStepDelegate", func() {
 
 		var runPlans []atc.Plan
 		var stepper exec.Stepper
+		var parentRunState exec.RunState
 
 		BeforeEach(func() {
 			runPlans = nil
-			stepper = func(p atc.Plan) exec.Step {
-				runPlans = append(runPlans, p)
-
-				fakeResourceCache = new(dbfakes.FakeUsedResourceCache)
-				fakeArtifact = new(runtimefakes.FakeArtifact)
-
-				step := new(execfakes.FakeStep)
-				step.RunStub = func(_ context.Context, state exec.RunState) (bool, error) {
-					state.ArtifactRepository().RegisterArtifact("image", fakeArtifact)
-					state.StoreResult(expectedGetPlan.ID, fakeResourceCache)
-					return true, nil
-				}
-				return step
-			}
-
-			runState := exec.NewRunState(stepper, nil, false)
-			delegate = engine.NewBuildStepDelegate(fakeBuild, planID, runState, fakeClock, fakePolicyChecker, fakeSecrets)
-
-			imageResource = atc.ImageResource{
-				Type:   "docker",
-				Source: atc.Source{"some": "((source-var))"},
-				Params: atc.Params{"some": "((params-var))"},
-				Tags:   atc.Tags{"some", "tags"},
-			}
-
-			types = atc.VersionedResourceTypes{
-				{
-					ResourceType: atc.ResourceType{
-						Name:   "some-custom-type",
-						Type:   "another-custom-type",
-						Source: atc.Source{"some-custom": "((source-var))"},
-						Params: atc.Params{"some-custom": "((params-var))"},
-					},
-					Version: atc.Version{"some-custom": "version"},
-				},
-				{
-					ResourceType: atc.ResourceType{
-						Name:       "another-custom-type",
-						Type:       "registry-image",
-						Source:     atc.Source{"another-custom": "((source-var))"},
-						Privileged: true,
-					},
-					Version: atc.Version{"another-custom": "version"},
-				},
-			}
 
 			expectedCheckPlan = &atc.Plan{
 				ID: planID + "/image-check",
@@ -182,6 +135,47 @@ var _ = Describe("BuildStepDelegate", func() {
 				},
 			}
 
+			stepper = func(p atc.Plan) exec.Step {
+				runPlans = append(runPlans, p)
+
+				fakeResourceCache = new(dbfakes.FakeUsedResourceCache)
+				fakeArtifact = new(runtimefakes.FakeArtifact)
+
+				step := new(execfakes.FakeStep)
+				step.RunStub = func(_ context.Context, state exec.RunState) (bool, error) {
+					state.ArtifactRepository().RegisterArtifact("image", fakeArtifact)
+					state.StoreResult(expectedGetPlan.ID, exec.GetResult{
+						Name:          "image",
+						ResourceCache: fakeResourceCache,
+					})
+					return true, nil
+				}
+				return step
+			}
+
+			parentRunState = exec.NewRunState(stepper, nil, true)
+
+			types = atc.VersionedResourceTypes{
+				{
+					ResourceType: atc.ResourceType{
+						Name:   "some-custom-type",
+						Type:   "another-custom-type",
+						Source: atc.Source{"some-custom": "((source-var))"},
+						Params: atc.Params{"some-custom": "((params-var))"},
+					},
+					Version: atc.Version{"some-custom": "version"},
+				},
+				{
+					ResourceType: atc.ResourceType{
+						Name:       "another-custom-type",
+						Type:       "registry-image",
+						Source:     atc.Source{"another-custom": "((source-var))"},
+						Privileged: true,
+					},
+					Version: atc.Version{"another-custom": "version"},
+				},
+			}
+
 			privileged = false
 
 			fakeSource = new(workerfakes.FakeStreamableArtifactSource)
@@ -189,6 +183,7 @@ var _ = Describe("BuildStepDelegate", func() {
 		})
 
 		JustBeforeEach(func() {
+			delegate = engine.NewBuildStepDelegate(fakeBuild, planID, parentRunState, fakeClock, fakePolicyChecker, fakeSecrets, fakeArtifactSourcer)
 			imageSpec, fetchErr = delegate.FetchImage(context.TODO(), *expectedGetPlan, expectedCheckPlan, privileged)
 		})
 
@@ -293,11 +288,9 @@ var _ = Describe("BuildStepDelegate", func() {
 
 					Context("when the image source contains credentials", func() {
 						BeforeEach(func() {
-							imageResource.Source = atc.Source{"some": "super-secret-source"}
+							expectedGetPlan.Get.Source = atc.Source{"some": "super-secret-source"}
 
-							runState.IterateInterpolatedCredsStub = func(iter vars.TrackedVarsIterator) {
-								iter.YieldCred("source-var", "super-secret-source")
-							}
+							parentRunState.Track(vars.Reference{Path: "source-var"}, "super-secret-source")
 						})
 
 						It("redacts the value prior to checking", func() {

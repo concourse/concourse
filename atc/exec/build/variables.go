@@ -23,7 +23,7 @@ func NewVariables(tracker *vars.Tracker) *Variables {
 func (v *Variables) Get(ref vars.Reference) (interface{}, bool, error) {
 	if ref.Source == "." {
 		v.lock.RLock()
-		val, found, err := v.localVars.Get(ref)
+		val, found, err := v.localVars.Get(ref.WithoutSource())
 		v.lock.RUnlock()
 		if found || err != nil {
 			return val, found, err
