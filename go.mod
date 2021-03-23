@@ -9,7 +9,7 @@ require (
 	code.cloudfoundry.org/urljoiner v0.0.0-20170223060717-5cabba6c0a50
 	github.com/DataDog/datadog-go v3.2.0+incompatible
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace v0.11.0
-	github.com/Masterminds/squirrel v1.1.0
+	github.com/Masterminds/squirrel v1.5.0
 	github.com/Microsoft/go-winio v0.4.17-0.20210211115548-6eac466e5fa3 // indirect
 	github.com/Microsoft/hcsshim v0.8.7 // indirect
 	github.com/NYTimes/gziphandler v1.1.1
