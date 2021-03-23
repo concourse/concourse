@@ -8,21 +8,9 @@ import (
 	"github.com/hashicorp/go-multierror"
 )
 
-func init() {
-	RegisterConnector(&Connector{
-		id:         "bitbucket-cloud",
-		config:     &BitbucketCloudFlags{},
-		teamConfig: &BitbucketCloudTeamFlags{},
-	})
-}
-
 type BitbucketCloudFlags struct {
-	ClientID     string `long:"client-id" description:"(Required) Client id"`
-	ClientSecret string `long:"client-secret" description:"(Required) Client secret"`
-}
-
-func (flag *BitbucketCloudFlags) Name() string {
-	return "Bitbucket Cloud"
+	ClientID     string `yaml:"client_id,omitempty"`
+	ClientSecret string `yaml:"client_secret,omitempty"`
 }
 
 func (flag *BitbucketCloudFlags) Validate() error {
@@ -53,8 +41,12 @@ func (flag *BitbucketCloudFlags) Serialize(redirectURI string) ([]byte, error) {
 }
 
 type BitbucketCloudTeamFlags struct {
-	Users []string `long:"user" description:"A whitelisted Bitbucket Cloud user" value-name:"USERNAME"`
-	Teams []string `long:"team" description:"A whitelisted Bitbucket Cloud team" value-name:"TEAM_NAME"`
+	Users []string `yaml:"users" env:"CONCOURSE_MAIN_TEAM_BITBUCKET_CLOUD_USERS,CONCOURSE_MAIN_TEAM_BITBUCKET_CLOUD_USER" long:"user" description:"A whitelisted Bitbucket Cloud user" value-name:"USERNAME"`
+	Teams []string `yaml:"teams" env:"CONCOURSE_MAIN_TEAM_BITBUCKET_CLOUD_TEAMS,CONCOURSE_MAIN_TEAM_BITBUCKET_CLOUD_TEAM" long:"team" description:"A whitelisted Bitbucket Cloud team" value-name:"TEAM_NAME"`
+}
+
+func (flag *BitbucketCloudTeamFlags) ID() string {
+	return BitbucketCloudConnectorID
 }
 
 func (flag *BitbucketCloudTeamFlags) GetUsers() []string {

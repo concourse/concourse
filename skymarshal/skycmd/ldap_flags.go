@@ -4,54 +4,42 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/concourse/concourse/flag"
 	"github.com/concourse/dex/connector/ldap"
-	"github.com/concourse/flag"
 	multierror "github.com/hashicorp/go-multierror"
 )
 
-func init() {
-	RegisterConnector(&Connector{
-		id:         "ldap",
-		config:     &LDAPFlags{},
-		teamConfig: &LDAPTeamFlags{},
-	})
-}
-
 type LDAPFlags struct {
-	DisplayName        string    `long:"display-name" description:"The auth provider name displayed to users on the login page"`
-	Host               string    `long:"host" description:"(Required) The host and optional port of the LDAP server. If port isn't supplied, it will be guessed based on the TLS configuration. 389 or 636."`
-	BindDN             string    `long:"bind-dn" description:"(Required) Bind DN for searching LDAP users and groups. Typically this is a read-only user."`
-	BindPW             string    `long:"bind-pw" description:"(Required) Bind Password for the user specified by 'bind-dn'"`
-	InsecureNoSSL      bool      `long:"insecure-no-ssl" description:"Required if LDAP host does not use TLS."`
-	InsecureSkipVerify bool      `long:"insecure-skip-verify" description:"Skip certificate verification"`
-	StartTLS           bool      `long:"start-tls" description:"Start on insecure port, then negotiate TLS"`
-	CACert             flag.File `long:"ca-cert" description:"CA certificate"`
+	Host               string    `yaml:"host,omitempty"`
+	BindDN             string    `yaml:"bind_dn,omitempty"`
+	BindPW             string    `yaml:"bind_pw,omitempty"`
+	InsecureNoSSL      bool      `yaml:"insecure_no_ssl,omitempty"`
+	InsecureSkipVerify bool      `yaml:"insecure_skip_verify,omitempty"`
+	StartTLS           bool      `yaml:"start_tls,omitempty"`
+	CACert             flag.File `yaml:"ca_cert,omitempty"`
 
-	UserSearch struct {
-		BaseDN    string `long:"user-search-base-dn" description:"BaseDN to start the search from. For example 'cn=users,dc=example,dc=com'"`
-		Filter    string `long:"user-search-filter" description:"Optional filter to apply when searching the directory. For example '(objectClass=person)'"`
-		Username  string `long:"user-search-username" description:"Attribute to match against the inputted username. This will be translated and combined with the other filter as '(<attr>=<username>)'."`
-		Scope     string `long:"user-search-scope" description:"Can either be: 'sub' - search the whole sub tree or 'one' - only search one level. Defaults to 'sub'."`
-		IDAttr    string `long:"user-search-id-attr" description:"A mapping of attributes on the user entry to claims. Defaults to 'uid'."`
-		EmailAttr string `long:"user-search-email-attr" description:"A mapping of attributes on the user entry to claims. Defaults to 'mail'."`
-		NameAttr  string `long:"user-search-name-attr" description:"A mapping of attributes on the user entry to claims."`
-	}
+	UserSearch UserSearchConfig `yaml:"user_search,omitempty"`
 
-	GroupSearch struct {
-		BaseDN    string `long:"group-search-base-dn" description:"BaseDN to start the search from. For example 'cn=groups,dc=example,dc=com'"`
-		Filter    string `long:"group-search-filter" description:"Optional filter to apply when searching the directory. For example '(objectClass=posixGroup)'"`
-		Scope     string `long:"group-search-scope" description:"Can either be: 'sub' - search the whole sub tree or 'one' - only search one level. Defaults to 'sub'."`
-		UserAttr  string `long:"group-search-user-attr" description:"Adds an additional requirement to the filter that an attribute in the group match the user's attribute value. The exact filter being added is: (<groupAttr>=<userAttr value>)"`
-		GroupAttr string `long:"group-search-group-attr" description:"Adds an additional requirement to the filter that an attribute in the group match the user's attribute value. The exact filter being added is: (<groupAttr>=<userAttr value>)"`
-		NameAttr  string `long:"group-search-name-attr" description:"The attribute of the group that represents its name."`
-	}
+	GroupSearch GroupSearchConfig `yaml:"group_search,omitempty"`
 }
 
-func (flag *LDAPFlags) Name() string {
-	if flag.DisplayName != "" {
-		return flag.DisplayName
-	}
-	return "LDAP"
+type UserSearchConfig struct {
+	BaseDN    string `yaml:"base_dn,omitempty"`
+	Filter    string `yaml:"filter,omitempty"`
+	Username  string `yaml:"username,omitempty"`
+	Scope     string `yaml:"scope,omitempty"`
+	IDAttr    string `yaml:"id_attr,omitempty"`
+	EmailAttr string `yaml:"email_attr,omitempty"`
+	NameAttr  string `yaml:"name_attr,omitempty"`
+}
+
+type GroupSearchConfig struct {
+	BaseDN    string `yaml:"base_dn,omitempty"`
+	Filter    string `yaml:"filter,omitempty"`
+	Scope     string `yaml:"scope,omitempty"`
+	UserAttr  string `yaml:"user_attr,omitempty"`
+	GroupAttr string `yaml:"group_attr,omitempty"`
+	NameAttr  string `yaml:"name_attr,omitempty"`
 }
 
 func (flag *LDAPFlags) Validate() error {
@@ -106,8 +94,12 @@ func (flag *LDAPFlags) Serialize(redirectURI string) ([]byte, error) {
 }
 
 type LDAPTeamFlags struct {
-	Users  []string `json:"users" long:"user" description:"A whitelisted LDAP user" value-name:"USERNAME"`
-	Groups []string `json:"groups" long:"group" description:"A whitelisted LDAP group" value-name:"GROUP_NAME"`
+	Users  []string `yaml:"users" env:"CONCOURSE_MAIN_TEAM_LDAP_USERS,CONCOURSE_MAIN_TEAM_LDAP_USER" json:"users" long:"user" description:"A whitelisted LDAP user" value-name:"USERNAME"`
+	Groups []string `yaml:"groups" env:"CONCOURSE_MAIN_TEAM_LDAP_GROUPS,CONCOURSE_MAIN_TEAM_LDAP_GROUP" json:"groups" long:"group" description:"A whitelisted LDAP group" value-name:"GROUP_NAME"`
+}
+
+func (flag *LDAPTeamFlags) ID() string {
+	return LDAPConnectorID
 }
 
 func (flag *LDAPTeamFlags) GetUsers() []string {

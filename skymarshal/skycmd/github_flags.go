@@ -4,28 +4,16 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/concourse/concourse/flag"
 	"github.com/concourse/dex/connector/github"
-	"github.com/concourse/flag"
 	multierror "github.com/hashicorp/go-multierror"
 )
 
-func init() {
-	RegisterConnector(&Connector{
-		id:         "github",
-		config:     &GithubFlags{},
-		teamConfig: &GithubTeamFlags{},
-	})
-}
-
 type GithubFlags struct {
-	ClientID     string    `long:"client-id" description:"(Required) Client id"`
-	ClientSecret string    `long:"client-secret" description:"(Required) Client secret"`
-	Host         string    `long:"host" description:"Hostname of GitHub Enterprise deployment (No scheme, No trailing slash)"`
-	CACert       flag.File `long:"ca-cert" description:"CA certificate of GitHub Enterprise deployment"`
-}
-
-func (flag *GithubFlags) Name() string {
-	return "GitHub"
+	ClientID     string    `yaml:"client_id,omitempty"`
+	ClientSecret string    `yaml:"client_secret,omitempty"`
+	Host         string    `yaml:"host,omitempty"`
+	CACert       flag.File `yaml:"ca_cert,omitempty"`
 }
 
 func (flag *GithubFlags) Validate() error {
@@ -59,9 +47,13 @@ func (flag *GithubFlags) Serialize(redirectURI string) ([]byte, error) {
 }
 
 type GithubTeamFlags struct {
-	Users []string `long:"user" description:"A whitelisted GitHub user" value-name:"USERNAME"`
-	Orgs  []string `long:"org" description:"A whitelisted GitHub org" value-name:"ORG_NAME"`
-	Teams []string `long:"team" description:"A whitelisted GitHub team" value-name:"ORG_NAME:TEAM_NAME"`
+	Users []string `yaml:"users" env:"CONCOURSE_MAIN_TEAM_GITHUB_USERS,CONCOURSE_MAIN_TEAM_GITHUB_USER" long:"user" description:"A whitelisted GitHub user" value-name:"USERNAME"`
+	Orgs  []string `yaml:"orgs" env:"CONCOURSE_MAIN_TEAM_GITHUB_ORGS,CONCOURSE_MAIN_TEAM_GITHUB_ORG" long:"org" description:"A whitelisted GitHub org" value-name:"ORG_NAME"`
+	Teams []string `yaml:"teams" env:"CONCOURSE_MAIN_TEAM_GITHUB_TEAMS,CONCOURSE_MAIN_TEAM_GITHUB_TEAM" long:"team" description:"A whitelisted GitHub team" value-name:"ORG_NAME:TEAM_NAME"`
+}
+
+func (flag *GithubTeamFlags) ID() string {
+	return GithubConnectorID
 }
 
 func (flag *GithubTeamFlags) GetUsers() []string {

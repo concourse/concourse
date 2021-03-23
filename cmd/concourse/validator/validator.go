@@ -13,6 +13,7 @@ import (
 	"github.com/concourse/concourse/atc/atccmd"
 	"github.com/concourse/concourse/atc/wrappa"
 	"github.com/concourse/concourse/flag"
+	"github.com/concourse/concourse/skymarshal/skycmd"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
 	en_translations "github.com/go-playground/validator/v10/translations/en"
@@ -33,6 +34,7 @@ var (
 	ValidationErrLogLevel           = fmt.Sprintf("Not a valid log level. Valid options include %v.", flag.ValidLogLevels)
 	ValidationErrIPVersion          = fmt.Sprintf("Not a valid IP version. Valid options include 4 for IPv4 or 6 for IPv6.")
 	ValidationErrBaggageclaimDriver = fmt.Sprintf("Not a valid baggageclaim driver. Valid options include %v.", baggageclaim.ValidDrivers)
+	ValidationErrConnectors         = fmt.Sprintf("Not a valid auth connector. Valid options include %v.", skycmd.ConnectorIDs)
 )
 
 func NewValidator(trans ut.Translator) *validator.Validate {
@@ -48,6 +50,7 @@ func NewValidator(trans ut.Translator) *validator.Validate {
 	validate.RegisterValidation("log_level", ValidateLogLevel)
 	validate.RegisterValidation("ip_version", ValidateIPVersion)
 	validate.RegisterValidation("baggageclaim_driver", ValidateBaggageclaimDriver)
+	validate.RegisterValidation("connectors", ValidateConnectors)
 
 	ve := NewValidatorErrors(validate, trans)
 	ve.SetupErrorMessages()
@@ -80,6 +83,7 @@ func (v *validatorErrors) SetupErrorMessages() {
 	v.RegisterTranslation("log_level", ValidationErrLogLevel)
 	v.RegisterTranslation("ip_version", ValidationErrIPVersion)
 	v.RegisterTranslation("baggageclaim_driver", ValidationErrBaggageclaimDriver)
+	v.RegisterTranslation("connectors", ValidationErrConnectors)
 }
 
 func (v *validatorErrors) RegisterTranslation(validationName string, errorString string) {
@@ -258,6 +262,36 @@ func ValidateBaggageclaimDriver(field validator.FieldLevel) bool {
 	}
 
 	return false
+}
+
+func ValidateConnectors(field validator.FieldLevel) bool {
+	userIDPerConnector := field.Field().Interface().(map[string]string)
+
+	for connectorId, fieldName := range userIDPerConnector {
+		valid := false
+		if connectorId == "local" {
+			valid = true
+		} else {
+			for _, connector := range skycmd.ConnectorIDs {
+				if connector == connectorId {
+					valid = true
+					break
+				}
+			}
+		}
+
+		if !valid {
+			return false
+		}
+
+		switch fieldName {
+		case "user_id", "name", "username", "email":
+		default:
+			return false
+		}
+	}
+
+	return true
 }
 
 func normalizeURL(urlIn string) string {

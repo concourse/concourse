@@ -8,24 +8,12 @@ import (
 	multierror "github.com/hashicorp/go-multierror"
 )
 
-func init() {
-	RegisterConnector(&Connector{
-		id:         "microsoft",
-		config:     &MicrosoftFlags{},
-		teamConfig: &MicrosoftTeamFlags{},
-	})
-}
-
 type MicrosoftFlags struct {
-	ClientID           string   `long:"client-id" description:"(Required) Client id"`
-	ClientSecret       string   `long:"client-secret" description:"(Required) Client secret"`
-	Tenant             string   `long:"tenant" description:"Microsoft Tenant limitation (common, consumers, organizations, tenant name or tenant uuid)"`
-	Groups             []string `long:"groups" description:"Allowed Active Directory Groups"`
-	OnlySecurityGroups bool     `long:"only-security-groups" description:"Only fetch security groups"`
-}
-
-func (flag *MicrosoftFlags) Name() string {
-	return "Microsoft"
+	ClientID           string   `yaml:"client_id,omitempty"`
+	ClientSecret       string   `yaml:"client_secret,omitempty"`
+	Tenant             string   `yaml:"tenant,omitempty"`
+	Groups             []string `yaml:"groups,omitempty"`
+	OnlySecurityGroups bool     `yaml:"only_security_groups,omitempty"`
 }
 
 func (flag *MicrosoftFlags) Validate() error {
@@ -58,8 +46,12 @@ func (flag *MicrosoftFlags) Serialize(redirectURI string) ([]byte, error) {
 }
 
 type MicrosoftTeamFlags struct {
-	Users  []string `long:"user" description:"A whitelisted Microsoft user" value-name:"USERNAME"`
-	Groups []string `long:"group" description:"A whitelisted Microsoft group" value-name:"GROUP_NAME"`
+	Users  []string `yaml:"users" env:"CONCOURSE_MAIN_TEAM_MICROSOFT_USERS,CONCOURSE_MAIN_TEAM_MICROSOFT_USER" long:"user" description:"A whitelisted Microsoft user" value-name:"USERNAME"`
+	Groups []string `yaml:"groups" env:"CONCOURSE_MAIN_TEAM_MICROSOFT_GROUPS,CONCOURSE_MAIN_TEAM_MICROSOFT_GROUP" long:"group" description:"A whitelisted Microsoft group" value-name:"GROUP_NAME"`
+}
+
+func (flag *MicrosoftTeamFlags) ID() string {
+	return MicrosoftConnectorID
 }
 
 func (flag *MicrosoftTeamFlags) GetUsers() []string {

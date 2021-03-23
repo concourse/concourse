@@ -4,38 +4,22 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/concourse/concourse/flag"
 	"github.com/concourse/dex/connector/saml"
-	"github.com/concourse/flag"
 	multierror "github.com/hashicorp/go-multierror"
 )
 
-func init() {
-	RegisterConnector(&Connector{
-		id:         "saml",
-		config:     &SAMLFlags{},
-		teamConfig: &SAMLTeamFlags{},
-	})
-}
-
 type SAMLFlags struct {
-	DisplayName        string      `long:"display-name" description:"The auth provider name displayed to users on the login page"`
-	SsoURL             string      `long:"sso-url" description:"(Required) SSO URL used for POST value"`
-	CACert             flag.File   `long:"ca-cert" description:"(Required) CA Certificate"`
-	EntityIssuer       string      `long:"entity-issuer" description:"Manually specify dex's Issuer value."`
-	SsoIssuer          string      `long:"sso-issuer" description:"Issuer value expected in the SAML response."`
-	UsernameAttr       string      `long:"username-attr" default:"name" description:"The user name indicates which claim to use to map an external user name to a Concourse user name."`
-	EmailAttr          string      `long:"email-attr" default:"email" description:"The email indicates which claim to use to map an external user email to a Concourse user email."`
-	GroupsAttr         string      `long:"groups-attr" default:"groups" description:"The groups key indicates which attribute to use to map external groups to Concourse teams."`
-	GroupsDelim        string      `long:"groups-delim" description:"If specified, groups are returned as string, this delimiter will be used to split the group string."`
-	NameIDPolicyFormat string      `long:"name-id-policy-format" description:"Requested format of the NameID. The NameID value is is mapped to the ID Token 'sub' claim."`
-	InsecureSkipVerify bool        `long:"skip-ssl-validation" description:"Skip SSL validation"`
-}
-
-func (flag *SAMLFlags) Name() string {
-	if flag.DisplayName != "" {
-		return flag.DisplayName
-	}
-	return "SAML"
+	SsoURL             string    `yaml:"sso_url,omitempty"`
+	CACert             flag.File `yaml:"ca_cert,omitempty"`
+	EntityIssuer       string    `yaml:"entity_issuer,omitempty"`
+	SsoIssuer          string    `yaml:"sso_issuer,omitempty"`
+	UsernameAttr       string    `yaml:"username_attr,omitempty"`
+	EmailAttr          string    `yaml:"email_attr,omitempty"`
+	GroupsAttr         string    `yaml:"groups_attr,omitempty"`
+	GroupsDelim        string    `yaml:"groups_delim,omitempty"`
+	NameIDPolicyFormat string    `yaml:"name_id_policy_format,omitempty"`
+	InsecureSkipVerify bool      `yaml:"skip_ssl_validation,omitempty"`
 }
 
 func (flag *SAMLFlags) Validate() error {
@@ -73,8 +57,12 @@ func (flag *SAMLFlags) Serialize(redirectURI string) ([]byte, error) {
 }
 
 type SAMLTeamFlags struct {
-	Users  []string `json:"users" long:"user" description:"A whitelisted SAML user" value-name:"USERNAME"`
-	Groups []string `json:"groups" long:"group" description:"A whitelisted SAML group" value-name:"GROUP_NAME"`
+	Users  []string `yaml:"users" env:"CONCOURSE_MAIN_TEAM_SAML_USERS,CONCOURSE_MAIN_TEAM_SAML_USER" json:"users" long:"user" description:"A whitelisted SAML user" value-name:"USERNAME"`
+	Groups []string `yaml:"groups" env:"CONCOURSE_MAIN_TEAM_SAML_GROUPS,CONCOURSE_MAIN_TEAM_SAML_GROUP" json:"groups" long:"group" description:"A whitelisted SAML group" value-name:"GROUP_NAME"`
+}
+
+func (flag *SAMLTeamFlags) ID() string {
+	return SAMLConnectorID
 }
 
 func (flag *SAMLTeamFlags) GetUsers() []string {

@@ -4,39 +4,23 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/concourse/concourse/flag"
 	"github.com/concourse/dex/connector/oidc"
-	"github.com/concourse/flag"
 	"github.com/hashicorp/go-multierror"
 )
 
-func init() {
-	RegisterConnector(&Connector{
-		id:         "oidc",
-		config:     &OIDCFlags{},
-		teamConfig: &OIDCTeamFlags{},
-	})
-}
-
 type OIDCFlags struct {
-	DisplayName               string      `long:"display-name" description:"The auth provider name displayed to users on the login page"`
-	Issuer                    string      `long:"issuer" description:"(Required) An OIDC issuer URL that will be used to discover provider configuration using the .well-known/openid-configuration"`
-	ClientID                  string      `long:"client-id" description:"(Required) Client id"`
-	ClientSecret              string      `long:"client-secret" description:"(Required) Client secret"`
-	Scopes                    []string    `long:"scope" description:"Any additional scopes of [openid] that need to be requested during authorization. Default to [openid, profile, email]."`
-	GroupsKey                 string      `long:"groups-key" default:"groups" description:"The groups key indicates which claim to use to map external groups to Concourse teams."`
-	UserNameKey               string      `long:"user-name-key" default:"username" description:"The user name key indicates which claim to use to map an external user name to a Concourse user name."`
-	HostedDomains             []string    `long:"hosted-domains" description:"List of whitelisted domains when using Google, only users from a listed domain will be allowed to log in"`
-	CACerts                   []flag.File `long:"ca-cert" description:"CA Certificate"`
-	InsecureSkipVerify        bool        `long:"skip-ssl-validation" description:"Skip SSL validation"`
-	DisableGroups             bool        `long:"disable-groups" description:"Disable OIDC groups claims"`
-	InsecureSkipEmailVerified bool        `long:"skip-email-verified-validation" description:"Ignore the email_verified claim from the upstream provider, treating all users as if email_verified were true."`
-}
-
-func (flag *OIDCFlags) Name() string {
-	if flag.DisplayName != "" {
-		return flag.DisplayName
-	}
-	return "OIDC"
+	Issuer                    string     `yaml:"issuer,omitempty"`
+	ClientID                  string     `yaml:"client_id,omitempty"`
+	ClientSecret              string     `yaml:"client_secret,omitempty"`
+	Scopes                    []string   `yaml:"scope,omitempty"`
+	GroupsKey                 string     `yaml:"groups_key,omitempty"`
+	UserNameKey               string     `yaml:"user_name_key,omitempty"`
+	HostedDomains             []string   `yaml:"hosted_domains,omitempty"`
+	CACerts                   flag.Files `yaml:"ca_cert,omitempty"`
+	InsecureSkipVerify        bool       `yaml:"skip_ssl_validation,omitempty"`
+	DisableGroups             bool       `yaml:"disable_groups,omitempty"`
+	InsecureSkipEmailVerified bool       `yaml:"skip_email_verified_validation,omitempty"`
 }
 
 func (flag *OIDCFlags) Validate() error {
@@ -88,8 +72,12 @@ func (flag *OIDCFlags) Serialize(redirectURI string) ([]byte, error) {
 }
 
 type OIDCTeamFlags struct {
-	Users  []string `json:"users" long:"user" description:"A whitelisted OIDC user" value-name:"USERNAME"`
-	Groups []string `json:"groups" long:"group" description:"A whitelisted OIDC group" value-name:"GROUP_NAME"`
+	Users  []string `yaml:"users" env:"CONCOURSE_MAIN_TEAM_OIDC_USERS,CONCOURSE_MAIN_TEAM_OIDC_USER" json:"users" long:"user" description:"A whitelisted OIDC user" value-name:"USERNAME"`
+	Groups []string `yaml:"groups" env:"CONCOURSE_MAIN_TEAM_OIDC_GROUPS,CONCOURSE_MAIN_TEAM_OIDC_GROUP" json:"groups" long:"group" description:"A whitelisted OIDC group" value-name:"GROUP_NAME"`
+}
+
+func (flag *OIDCTeamFlags) ID() string {
+	return OIDCConnectorID
 }
 
 func (flag *OIDCTeamFlags) GetUsers() []string {

@@ -4,39 +4,23 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/concourse/concourse/flag"
 	"github.com/concourse/dex/connector/oauth"
-	"github.com/concourse/flag"
 	multierror "github.com/hashicorp/go-multierror"
 )
 
-func init() {
-	RegisterConnector(&Connector{
-		id:         "oauth",
-		config:     &OAuthFlags{},
-		teamConfig: &OAuthTeamFlags{},
-	})
-}
-
 type OAuthFlags struct {
-	DisplayName        string      `long:"display-name" description:"The auth provider name displayed to users on the login page"`
-	ClientID           string      `long:"client-id" description:"(Required) Client id"`
-	ClientSecret       string      `long:"client-secret" description:"(Required) Client secret"`
-	AuthURL            string      `long:"auth-url" description:"(Required) Authorization URL"`
-	TokenURL           string      `long:"token-url" description:"(Required) Token URL"`
-	UserInfoURL        string      `long:"userinfo-url" description:"(Required) UserInfo URL"`
-	Scopes             []string    `long:"scope" description:"Any additional scopes that need to be requested during authorization"`
-	GroupsKey          string      `long:"groups-key" default:"groups" description:"The groups key indicates which claim to use to map external groups to Concourse teams."`
-	UserIDKey          string      `long:"user-id-key" default:"user_id" description:"The user id key indicates which claim to use to map an external user id to a Concourse user id."`
-	UserNameKey        string      `long:"user-name-key" default:"user_name" description:"The user name key indicates which claim to use to map an external user name to a Concourse user name."`
-	CACerts            []flag.File `long:"ca-cert" description:"CA Certificate"`
-	InsecureSkipVerify bool        `long:"skip-ssl-validation" description:"Skip SSL validation"`
-}
-
-func (flag *OAuthFlags) Name() string {
-	if flag.DisplayName != "" {
-		return flag.DisplayName
-	}
-	return "OAuth2"
+	ClientID           string     `yaml:"client_id,omitempty"`
+	ClientSecret       string     `yaml:"client_secret,omitempty"`
+	AuthURL            string     `yaml:"auth_url,omitempty"`
+	TokenURL           string     `yaml:"token_url,omitempty"`
+	UserInfoURL        string     `yaml:"userinfo_url,omitempty"`
+	Scopes             []string   `yaml:"scope,omitempty"`
+	GroupsKey          string     `yaml:"groups_key,omitempty"`
+	UserIDKey          string     `yaml:"user_id_key,omitempty"`
+	UserNameKey        string     `yaml:"user_name_key,omitempty"`
+	CACerts            flag.Files `yaml:"ca_cert,omitempty"`
+	InsecureSkipVerify bool       `yaml:"skip_ssl_validation,omitempty"`
 }
 
 func (flag *OAuthFlags) Validate() error {
@@ -96,8 +80,12 @@ func (flag *OAuthFlags) Serialize(redirectURI string) ([]byte, error) {
 }
 
 type OAuthTeamFlags struct {
-	Users  []string `json:"users" long:"user" description:"A whitelisted OAuth2 user" value-name:"USERNAME"`
-	Groups []string `json:"groups" long:"group" description:"A whitelisted OAuth2 group" value-name:"GROUP_NAME"`
+	Users  []string `yaml:"users" env:"CONCOURSE_MAIN_TEAM_OAUTH_USERS,CONCOURSE_MAIN_TEAM_OAUTH_USER" json:"users" long:"user" description:"A whitelisted OAuth2 user" value-name:"USERNAME"`
+	Groups []string `yaml:"groups" env:"CONCOURSE_MAIN_TEAM_OAUTH_GROUPS,CONCOURSE_MAIN_TEAM_OAUTH_GROUP" json:"groups" long:"group" description:"A whitelisted OAuth2 group" value-name:"GROUP_NAME"`
+}
+
+func (flag *OAuthTeamFlags) ID() string {
+	return OAuthConnectorID
 }
 
 func (flag *OAuthTeamFlags) GetUsers() []string {

@@ -146,7 +146,7 @@ type MetricsEmitterConfig struct {
 	Prometheus *emitter.PrometheusConfig `yaml:"prometheus,omitempty"`
 }
 
-func (e MetricsEmitterConfig) configuredEmitter() (metric.EmitterFactory, error) {
+func (e MetricsEmitterConfig) ConfiguredEmitter() (metric.EmitterFactory, error) {
 	var configuredEmitters []metric.EmitterFactory
 
 	if e.Datadog.IsConfigured() {

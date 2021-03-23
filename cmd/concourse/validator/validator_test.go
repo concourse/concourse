@@ -71,6 +71,30 @@ func (v *ValidatorTestSuite) TestValidatorSuite() {
 			test.TestStreamingArtifactsCompressionValidator(v, transHelper)
 		})
 	}
+
+	for _, test := range LogLevelsTests {
+		v.Run(test.Title, func() {
+			test.TestLogLevelValidator(v, transHelper)
+		})
+	}
+
+	for _, test := range IPVersionsTests {
+		v.Run(test.Title, func() {
+			test.TestIPVersionsValidator(v, transHelper)
+		})
+	}
+
+	for _, test := range BaggageclaimDriverTests {
+		v.Run(test.Title, func() {
+			test.TestBaggageclaimDriverValidator(v, transHelper)
+		})
+	}
+
+	for _, test := range ConnectorTests {
+		v.Run(test.Title, func() {
+			test.TestConnectorValidator(v, transHelper)
+		})
+	}
 }
 
 type transHelper struct {
@@ -616,6 +640,77 @@ func (t *BaggageclaimDriverTest) TestBaggageclaimDriverValidator(s *ValidatorTes
 	if t.Valid {
 		s.Assert().NoError(err)
 	} else {
-		s.Contains(fmt.Sprintf("%v", err.(validator.ValidationErrors).Translate(trans.trans)), v.ValidateBaggageclaimDriver)
+		s.Contains(fmt.Sprintf("%v", err.(validator.ValidationErrors).Translate(trans.trans)), v.ValidationErrBaggageclaimDriver)
+	}
+}
+
+type ConnectorTest struct {
+	Title      string
+	Connectors map[string]string
+	Valid      bool
+}
+
+var ConnectorTests = []ConnectorTest{
+	{
+		Title: "connector valid connector choice",
+		Connectors: map[string]string{
+			"cf": "name",
+		},
+		Valid: true,
+	},
+	{
+		Title: "connector valid local choice",
+		Connectors: map[string]string{
+			"local": "name",
+		},
+		Valid: true,
+	},
+	{
+		Title: "connector multiple valid choices",
+		Connectors: map[string]string{
+			"oauth":           "user_id",
+			"ldap":            "name",
+			"microsoft":       "username",
+			"bitbucket-cloud": "email",
+			"saml":            "user_id",
+		},
+		Valid: true,
+	},
+	{
+		Title: "connector invalid choice",
+		Connectors: map[string]string{
+			"oauth":        "user_id",
+			"invalid-auth": "name",
+			"microsoft":    "username",
+		},
+		Valid: false,
+	},
+	{
+		Title: "connector invalid field name",
+		Connectors: map[string]string{
+			"oauth":     "user_id",
+			"ldap":      "invalid-fieldname",
+			"microsoft": "username",
+		},
+		Valid: false,
+	},
+}
+
+func (t *ConnectorTest) TestConnectorValidator(s *ValidatorTestSuite, trans transHelper) {
+	testStruct := struct {
+		Connectors map[string]string `validate:"connectors"`
+	}{
+		Connectors: t.Connectors,
+	}
+
+	validate := validator.New()
+	validate.RegisterValidation("connectors", v.ValidateConnectors)
+	trans.RegisterTranslation(validate, "connectors", v.ValidationErrConnectors)
+
+	err := validate.Struct(testStruct)
+	if t.Valid {
+		s.Assert().NoError(err)
+	} else {
+		s.Contains(fmt.Sprintf("%v", err.(validator.ValidationErrors).Translate(trans.trans)), v.ValidationErrConnectors)
 	}
 }

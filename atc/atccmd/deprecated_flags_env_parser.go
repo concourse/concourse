@@ -90,6 +90,142 @@ func InitializePostgresFlags(c *cobra.Command, flags *flag.PostgresConfig) {
 	c.Flags().StringVar(&flags.Database, "postgres-database", CmdDefaults.Database.Postgres.Database, "The name of the database to use.")
 }
 
+func InitializeConnectorFlags(c *cobra.Command, flags *RunConfig) {
+	// Bitbucket Cloud
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.BitbucketCloud.ClientID, "bitbucket-cloud-client-id", "", "(Required) Client id")
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.BitbucketCloud.ClientSecret, "bitbucket-cloud-client-secret", "", "(Required) Client secret")
+
+	// CF
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.CF.ClientID, "cf-client-id", "", "(Required) Client id")
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.CF.ClientSecret, "cf-client-secret", "", "(Required) Client secret")
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.CF.APIURL, "cf-api-url", "", "(Required) The base API URL of your CF deployment. It will use this information to discover information about the authentication provider.")
+	c.Flags().Var(&flags.Auth.AuthFlags.Connectors.CF.CACerts, "cf-ca-cert", "CA Certificate")
+	c.Flags().BoolVar(&flags.Auth.AuthFlags.Connectors.CF.InsecureSkipVerify, "cf-skip-ssl-validation", false, "Skip SSL validation")
+
+	// Github
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.Github.ClientID, "github-client-id", "", "(Required) Client id")
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.Github.ClientSecret, "github-client-secret", "", "(Required) Client secret")
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.Github.Host, "github-host", "", "Hostname of GitHub Enterprise deployment (No scheme, No trailing slash)")
+	c.Flags().Var(&flags.Auth.AuthFlags.Connectors.Github.CACert, "github-ca-cert", "CA certificate of GitHub Enterprise deployment")
+
+	// Gitlab
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.Gitlab.ClientID, "gitlab-client-id", "", "(Required) Client id")
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.Gitlab.ClientSecret, "gitlab-client-secret", "", "(Required) Client secret")
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.Gitlab.Host, "gitlab-host", "", "Hostname of Gitlab Enterprise deployment (Include scheme, No trailing slash)")
+
+	// LDAP
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.LDAP.Host, "ldap-host", "", "(Required) The host and optional port of the LDAP server. If port isn't supplied, it will be guessed based on the TLS configuration. 389 or 636.")
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.LDAP.BindDN, "ldap-bind-dn", "", "(Required) Bind DN for searching LDAP users and groups. Typically this is a read-only user.")
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.LDAP.BindPW, "ldap-bind-pw", "", "(Required) Bind Password for the user specified by 'bind-dn'")
+	c.Flags().BoolVar(&flags.Auth.AuthFlags.Connectors.LDAP.InsecureNoSSL, "ldap-insecure-no-ssl", false, "Required if LDAP host does not use TLS.")
+	c.Flags().BoolVar(&flags.Auth.AuthFlags.Connectors.LDAP.InsecureSkipVerify, "ldap-insecure-skip-verify", false, "Skip certificate verification")
+	c.Flags().BoolVar(&flags.Auth.AuthFlags.Connectors.LDAP.StartTLS, "ldap-start-tls", false, "Start on insecure port, then negotiate TLS")
+	c.Flags().Var(&flags.Auth.AuthFlags.Connectors.LDAP.CACert, "ldap-ca-cert", "CA certificate")
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.LDAP.UserSearch.BaseDN, "ldap-user-search-base-dn", "", "BaseDN to start the search from. For example 'cn=users,dc=example,dc=com'")
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.LDAP.UserSearch.Filter, "ldap-user-search-filter", "", "Optional filter to apply when searching the directory. For example '(objectClass=person)'")
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.LDAP.UserSearch.Username, "ldap-user-search-username", "", "Attribute to match against the inputted username. This will be translated and combined with the other filter as '(<attr>=<username>)'.")
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.LDAP.UserSearch.Scope, "ldap-user-search-scope", "", "Can either be: 'sub' - search the whole sub tree or 'one' - only search one level. Defaults to 'sub'.")
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.LDAP.UserSearch.IDAttr, "ldap-user-search-id-attr", "", "A mapping of attributes on the user entry to claims. Defaults to 'uid'.")
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.LDAP.UserSearch.EmailAttr, "ldap-user-search-email-attr", "", "A mapping of attributes on the user entry to claims. Defaults to 'mail'.")
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.LDAP.UserSearch.NameAttr, "ldap-user-search-name-attr", "", "A mapping of attributes on the user entry to claims.")
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.LDAP.UserSearch.BaseDN, "ldap-group-search-base-dn", "", "BaseDN to start the search from. For example 'cn=groups,dc=example,dc=com'")
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.LDAP.GroupSearch.Filter, "ldap-group-search-filter", "", "Optional filter to apply when searching the directory. For example '(objectClass=posixGroup)'")
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.LDAP.GroupSearch.Scope, "ldap-group-search-scope", "", "Can either be: 'sub' - search the whole sub tree or 'one' - only search one level. Defaults to 'sub'.")
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.LDAP.GroupSearch.UserAttr, "ldap-group-search-user-attr", "", "Adds an additional requirement to the filter that an attribute in the group match the user's attribute value. The exact filter being added is: (<groupAttr>=<userAttr value>)")
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.LDAP.GroupSearch.GroupAttr, "ldap-group-search-group-attr", "", "Adds an additional requirement to the filter that an attribute in the group match the user's attribute value. The exact filter being added is: (<groupAttr>=<userAttr value>)")
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.LDAP.GroupSearch.NameAttr, "ldap-group-search-name-attr", "", "The attribute of the group that represents its name.")
+
+	// Microsoft
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.Microsoft.ClientID, "microsoft-client-id", "", "(Required) Client id")
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.Microsoft.ClientSecret, "microsoft-client-secret", "", "(Required) Client secret")
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.Microsoft.Tenant, "microsoft-tenant", "", "Microsoft Tenant limitation (common, consumers, organizations, tenant name or tenant uuid)")
+	c.Flags().StringSliceVar(&flags.Auth.AuthFlags.Connectors.Microsoft.Groups, "microsoft-groups", nil, "Allowed Active Directory Groups")
+	c.Flags().BoolVar(&flags.Auth.AuthFlags.Connectors.Microsoft.OnlySecurityGroups, "microsoft-only-security-groups", false, "Only fetch security groups")
+
+	// OAuth
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.OAuth.ClientID, "oauth-client-id", "", "(Required) Client id")
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.OAuth.ClientSecret, "oauth-client-secret", "", "(Required) Client secret")
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.OAuth.AuthURL, "oauth-auth-url", "", "(Required) Authorization URL")
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.OAuth.TokenURL, "oauth-token-url", "", "(Required) Token URL")
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.OAuth.UserInfoURL, "oauth-userinfo-url", "", "(Required) UserInfo URL")
+	c.Flags().StringSliceVar(&flags.Auth.AuthFlags.Connectors.OAuth.Scopes, "oauth-scope", nil, "Any additional scopes that need to be requested during authorization")
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.OAuth.GroupsKey, "oauth-groups-key", CmdDefaults.Auth.AuthFlags.Connectors.OAuth.GroupsKey, "The groups key indicates which claim to use to map external groups to Concourse teams.")
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.OAuth.UserIDKey, "oauth-user-id-key", CmdDefaults.Auth.AuthFlags.Connectors.OAuth.UserIDKey, "The user id key indicates which claim to use to map an external user id to a Concourse user id.")
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.OAuth.UserNameKey, "oauth-user-name-key", CmdDefaults.Auth.AuthFlags.Connectors.OAuth.UserNameKey, "The user name key indicates which claim to use to map an external user name to a Concourse user name.")
+	c.Flags().Var(&flags.Auth.AuthFlags.Connectors.OAuth.CACerts, "oauth-ca-cert", "CA Certificate")
+	c.Flags().BoolVar(&flags.Auth.AuthFlags.Connectors.OAuth.InsecureSkipVerify, "oauth-skip-ssl-validation", false, "Skip SSL validation")
+
+	// OIDC
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.OIDC.Issuer, "oidc-issuer", "", "(Required) An OIDC issuer URL that will be used to discover provider configuration using the .well-known/openid-configuration")
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.OIDC.ClientID, "oidc-client-id", "", "(Required) Client id")
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.OIDC.ClientSecret, "oidc-client-secret", "", "(Required) Client secret")
+	c.Flags().StringSliceVar(&flags.Auth.AuthFlags.Connectors.OIDC.Scopes, "oidc-scope", nil, "Any additional scopes of [openid] that need to be requested during authorization. Default to [openid, profile, email].")
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.OIDC.GroupsKey, "oidc-groups-key", CmdDefaults.Auth.AuthFlags.Connectors.OIDC.GroupsKey, "The groups key indicates which claim to use to map external groups to Concourse teams.")
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.OIDC.UserNameKey, "oidc-user-name-key", CmdDefaults.Auth.AuthFlags.Connectors.OIDC.UserNameKey, "The user name key indicates which claim to use to map an external user name to a Concourse user name.")
+	c.Flags().StringSliceVar(&flags.Auth.AuthFlags.Connectors.OIDC.HostedDomains, "oidc-hosted-domains", nil, "List of whitelisted domains when using Google, only users from a listed domain will be allowed to log in")
+	c.Flags().Var(&flags.Auth.AuthFlags.Connectors.OIDC.CACerts, "oidc-ca-cert", "CA Certificate")
+	c.Flags().BoolVar(&flags.Auth.AuthFlags.Connectors.OIDC.InsecureSkipVerify, "oidc-skip-ssl-validation", false, "Skip SSL validation")
+	c.Flags().BoolVar(&flags.Auth.AuthFlags.Connectors.OIDC.DisableGroups, "oidc-disable-groups", false, "Disable OIDC groups claims")
+	c.Flags().BoolVar(&flags.Auth.AuthFlags.Connectors.OIDC.InsecureSkipEmailVerified, "oidc-skip-email-verified-validation", false, "Ignore the email_verified claim from the upstream provider, treating all users as if email_verified were true.")
+
+	// SAML
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.SAML.SsoURL, "saml-sso-url", "", "(Required) SSO URL used for POST value")
+	c.Flags().Var(&flags.Auth.AuthFlags.Connectors.SAML.CACert, "saml-ca-cert", "(Required) CA Certificate")
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.SAML.EntityIssuer, "saml-entity-issuer", "", "Manually specify dex's Issuer value.")
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.SAML.SsoIssuer, "saml-sso-issuer", "", "Issuer value expected in the SAML response.")
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.SAML.UsernameAttr, "saml-username-attr", CmdDefaults.Auth.AuthFlags.Connectors.SAML.UsernameAttr, "The user name indicates which claim to use to map an external user name to a Concourse user name.")
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.SAML.EmailAttr, "saml-email-attr", CmdDefaults.Auth.AuthFlags.Connectors.SAML.EmailAttr, "The email indicates which claim to use to map an external user email to a Concourse user email.")
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.SAML.GroupsAttr, "saml-groups-attr", CmdDefaults.Auth.AuthFlags.Connectors.SAML.GroupsAttr, "The groups key indicates which attribute to use to map external groups to Concourse teams.")
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.SAML.GroupsDelim, "saml-groups-delim", "", "If specified, groups are returned as string, this delimiter will be used to split the group string.")
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.SAML.NameIDPolicyFormat, "saml-name-id-policy-format", "", "Requested format of the NameID. The NameID value is is mapped to the ID Token 'sub' claim.")
+	c.Flags().BoolVar(&flags.Auth.AuthFlags.Connectors.SAML.InsecureSkipVerify, "saml-skip-ssl-validation", false, "Skip SSL validation")
+}
+
+func InitializeTeamConnectorsFlags(c *cobra.Command, flags *RunConfig) {
+	// Bitbucket
+	c.Flags().StringSliceVar(&flags.Auth.MainTeamFlags.TeamConnectors.BitbucketCloud.Users, "main-team-bitbucket-cloud-user", nil, "A whitelisted Bitbucket Cloud user, ex.USERNAME")
+	c.Flags().StringSliceVar(&flags.Auth.MainTeamFlags.TeamConnectors.BitbucketCloud.Teams, "main-team-bitbucket-cloud-team", nil, "A whitelisted Bitbucket Cloud team, ex.TEAM_NAME")
+
+	// CF
+	c.Flags().StringSliceVar(&flags.Auth.MainTeamFlags.TeamConnectors.CF.Users, "main-team-cf-user", nil, "A whitelisted CloudFoundry user ex.USERNAME")
+	c.Flags().StringSliceVar(&flags.Auth.MainTeamFlags.TeamConnectors.CF.Orgs, "main-team-cf-org", nil, "A whitelisted CloudFoundry org, ex.ORG_NAME")
+	c.Flags().StringSliceVar(&flags.Auth.MainTeamFlags.TeamConnectors.CF.Spaces, "main-team-cf-space", nil, "(Deprecated) A whitelisted CloudFoundry space for users with the 'developer' role, ex.ORG_NAME:SPACE_NAME")
+	c.Flags().StringSliceVar(&flags.Auth.MainTeamFlags.TeamConnectors.CF.SpacesAll, "main-team-cf-space-with-any-role", nil, "A whitelisted CloudFoundry space for users with any role, ex.ORG_NAME:SPACE_NAME")
+	c.Flags().StringSliceVar(&flags.Auth.MainTeamFlags.TeamConnectors.CF.SpacesDeveloper, "main-team-cf-space-with-developer-role", nil, "A whitelisted CloudFoundry space for users with the 'developer' role, ex.ORG_NAME:SPACE_NAME")
+	c.Flags().StringSliceVar(&flags.Auth.MainTeamFlags.TeamConnectors.CF.SpacesAuditor, "main-team-cf-space-with-auditor-role", nil, "A whitelisted CloudFoundry space for users with the 'auditor' role, ex.ORG_NAME:SPACE_NAME")
+	c.Flags().StringSliceVar(&flags.Auth.MainTeamFlags.TeamConnectors.CF.SpacesManager, "main-team-cf-space-with-manager-role", nil, "A whitelisted CloudFoundry space for users with the 'manager' role, ex.ORG_NAME:SPACE_NAME")
+	c.Flags().StringSliceVar(&flags.Auth.MainTeamFlags.TeamConnectors.CF.SpaceGuids, "main-team-cf-space-guid", nil, "A whitelisted CloudFoundry space guid, ex.SPACE_GUID")
+
+	// Github
+	c.Flags().StringSliceVar(&flags.Auth.MainTeamFlags.TeamConnectors.Github.Users, "main-team-github-user", nil, "A whitelisted GitHub user, ex.USERNAME")
+	c.Flags().StringSliceVar(&flags.Auth.MainTeamFlags.TeamConnectors.Github.Orgs, "main-team-github-org", nil, "A whitelisted GitHub org, ex.ORG_NAME")
+	c.Flags().StringSliceVar(&flags.Auth.MainTeamFlags.TeamConnectors.Github.Teams, "main-team-github-team", nil, "A whitelisted GitHub team,  ex.ORG_NAME:TEAM_NAME")
+
+	// Gitlab
+	c.Flags().StringSliceVar(&flags.Auth.MainTeamFlags.TeamConnectors.Gitlab.Users, "main-team-gitlab-user", nil, "A whitelisted GitLab user, ex.USERNAME")
+	c.Flags().StringSliceVar(&flags.Auth.MainTeamFlags.TeamConnectors.Gitlab.Groups, "main-team-gitlab-group", nil, "A whitelisted GitLab group, ex.GROUP_NAME")
+
+	// LDAP
+	c.Flags().StringSliceVar(&flags.Auth.MainTeamFlags.TeamConnectors.LDAP.Users, "main-team-ldap-user", nil, "A whitelisted LDAP user, ex.USERNAME")
+	c.Flags().StringSliceVar(&flags.Auth.MainTeamFlags.TeamConnectors.LDAP.Groups, "main-team-ldap-group", nil, "A whitelisted LDAP group, ex.GROUP_NAME")
+
+	// Microsoft
+	c.Flags().StringSliceVar(&flags.Auth.MainTeamFlags.TeamConnectors.Microsoft.Users, "main-team-microsoft-user", nil, "A whitelisted Microsoft user, ex.USERNAME")
+	c.Flags().StringSliceVar(&flags.Auth.MainTeamFlags.TeamConnectors.Microsoft.Groups, "main-team-microsoft-group", nil, "A whitelisted Microsoft group, ex.GROUP_NAME")
+
+	// OAuth
+	c.Flags().StringSliceVar(&flags.Auth.MainTeamFlags.TeamConnectors.OAuth.Users, "main-team-oauth-user", nil, "A whitelisted OAuth2 user, ex.USERNAME")
+	c.Flags().StringSliceVar(&flags.Auth.MainTeamFlags.TeamConnectors.OAuth.Groups, "main-team-oauth-group", nil, "A whitelisted OAuth2 group, ex.GROUP_NAME")
+
+	// OIDC
+	c.Flags().StringSliceVar(&flags.Auth.MainTeamFlags.TeamConnectors.OIDC.Users, "main-team-oidc-user", nil, "A whitelisted OIDC user, ex.USERNAME")
+	c.Flags().StringSliceVar(&flags.Auth.MainTeamFlags.TeamConnectors.OIDC.Groups, "main-team-oidc-group", nil, "A whitelisted OIDC group, ex.GROUP_NAME")
+
+	// SAML
+	c.Flags().StringSliceVar(&flags.Auth.MainTeamFlags.TeamConnectors.SAML.Users, "main-team-saml-user", nil, "A whitelisted SAML user, ex.USERNAME")
+	c.Flags().StringSliceVar(&flags.Auth.MainTeamFlags.TeamConnectors.SAML.Groups, "main-team-saml-group", nil, "A whitelisted SAML group, ex.GROUP_NAME")
+}
+
 func InitializeDatabaseFlags(c *cobra.Command, flags *RunConfig) {
 	InitializePostgresFlags(c, &flags.Database.Postgres)
 
@@ -335,10 +471,12 @@ func InitializeAuthFlags(c *cobra.Command, flags *RunConfig) {
 	c.Flags().Var(flags.Auth.AuthFlags.SigningKey, "session-signing-key", "File containing an RSA private key, used to sign auth tokens.")
 	c.Flags().StringToStringVar(&flags.Auth.AuthFlags.LocalUsers, "add-local-user", nil, "List of username:password combinations for all your local users. The password can be bcrypted - if so, it must have a minimum cost of 10. Ex. USERNAME:PASSWORD")
 	c.Flags().StringToStringVar(&flags.Auth.AuthFlags.Clients, "add-client", nil, "List of client_id:client_secret combinations. Ex. CLIENT_ID:CLIENT_SECRET")
+	InitializeConnectorFlags(c, flags)
 
 	// Main Team Flags
 	c.Flags().StringSliceVar(&flags.Auth.MainTeamFlags.LocalUsers, "main-team-local-user", nil, "A whitelisted local concourse user. These are the users you've added at web startup with the --add-local-user flag. Ex. USERNAME")
 	c.Flags().VarP(&flags.Auth.MainTeamFlags.Config, "main-team-config", "c", "Configuration file for specifying team params")
+	InitializeTeamConnectorsFlags(c, flags)
 }
 
 func InitializeSystemClaimFlags(c *cobra.Command, flags *RunConfig) {

@@ -120,7 +120,7 @@ type RunConfig struct {
 	LetsEncrypt               LetsEncryptConfig    `yaml:"lets_encrypt,omitempty"`
 	ConfigRBAC                flag.File            `yaml:"config_rbac,omitempty" validate:"rbac"`
 	PolicyCheckers            PolicyCheckersConfig `yaml:"policy_check,omitempty"`
-	DisplayUserIdPerConnector map[string]string    `yaml:"display_user_id_per_connector,omitempty"`
+	DisplayUserIdPerConnector map[string]string    `yaml:"display_user_id_per_connector,omitempty" validate:"connectors"`
 
 	Database DatabaseConfig `yaml:"database,omitempty" ignore_env:"true"`
 
@@ -141,9 +141,8 @@ type RunConfig struct {
 	Log     LogConfig      `yaml:"log,omitempty"`
 	Metrics MetricsConfig  `yaml:"metrics,omitempty"`
 	Tracing tracing.Config `yaml:"tracing,omitempty"`
-	// XXX: How to structure this?
-	Auditor AuditorConfig `yaml:"auditing,omitempty"`
-	Syslog  SyslogConfig  `yaml:"syslog,omitempty"`
+	Auditor AuditorConfig  `yaml:"auditing,omitempty"`
+	Syslog  SyslogConfig   `yaml:"syslog,omitempty"`
 
 	DefaultCpuLimit      *int          `yaml:"default_task_cpu_limit,omitempty"`
 	DefaultMemoryLimit   *string       `yaml:"default_task_memory_limit,omitempty"`
@@ -167,6 +166,24 @@ var CmdDefaults RunConfig = RunConfig{
 	Auth: AuthConfig{
 		AuthFlags: skycmd.AuthFlags{
 			Expiration: 24 * time.Hour,
+			Connectors: skycmd.ConnectorsConfig{
+				OAuth: &skycmd.OAuthFlags{
+					GroupsKey:   "groups",
+					UserIDKey:   "user_id",
+					UserNameKey: "user_name",
+				},
+
+				OIDC: &skycmd.OIDCFlags{
+					GroupsKey:   "groups",
+					UserNameKey: "username",
+				},
+
+				SAML: &skycmd.SAMLFlags{
+					UsernameAttr: "name",
+					EmailAttr:    "email",
+					GroupsAttr:   "groups",
+				},
+			},
 		},
 	},
 
@@ -665,10 +682,7 @@ func (cmd *RunConfig) constructAPIMembers(
 		time.Minute,
 	)
 
-	displayUserIdGenerator, err := skycmd.NewSkyDisplayUserIdGenerator(cmd.DisplayUserIdPerConnector)
-	if err != nil {
-		return nil, err
-	}
+	displayUserIdGenerator := skycmd.NewSkyDisplayUserIdGenerator(cmd.DisplayUserIdPerConnector)
 
 	accessFactory := accessor.NewAccessFactory(
 		tokenVerifier,
