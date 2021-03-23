@@ -101,7 +101,7 @@ func (p *Plugin) DownloadLinks() (booklit.Content, error) {
 		return fillerDownloads, nil
 	}
 
-	type GitHubRelease struct {
+	type release struct {
 		Name         string
 		TagName      *string
 		IsDraft      bool
@@ -118,7 +118,7 @@ func (p *Plugin) DownloadLinks() (booklit.Content, error) {
 	var releasesQuery struct {
 		Repository struct {
 			Releases struct {
-				Nodes []GitHubRelease
+				Nodes []release
 			} `graphql:"releases(first: 10, orderBy: {field: CREATED_AT, direction: DESC})"`
 		} `graphql:"repository(owner: \"concourse\", name: \"concourse\")"`
 	}
@@ -130,28 +130,30 @@ func (p *Plugin) DownloadLinks() (booklit.Content, error) {
 
 	releases := releasesQuery.Repository.Releases.Nodes
 
-	var latestRelease *GitHubRelease
+	var latestRelease release
 	var latestVersion semver.Version
-	if len(releases) == 0 {
-		return nil, errors.New("no releases found!")
-	}
 	for _, release := range releases {
-		if release.IsPrerelease {
+		if release.IsPrerelease || release.IsDraft {
 			continue
 		}
 
 		if release.TagName == nil {
 			return nil, fmt.Errorf("no tag name for release %v", release)
 		}
+
 		version, err := semver.ParseTolerant(*release.TagName)
 		if err != nil {
 			return nil, err
 		}
 
-		if latestRelease == nil || version.GT(latestVersion) {
-			latestRelease = &release
+		if version.GT(latestVersion) {
+			latestRelease = release
 			latestVersion = version
 		}
+	}
+
+	if latestRelease.Url == "" {
+		return nil, errors.New("no releases found!")
 	}
 
 	var linuxURL, darwinURL, windowsURL string
