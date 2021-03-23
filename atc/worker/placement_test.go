@@ -124,7 +124,7 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 	Describe("No strategy", func() {
 
 		BeforeEach(func() {
-			strategy, strategyErr = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{
+			strategy, strategyErr = NewChainPlacementStrategy(ContainerPlacementStrategyOptions{
 				ContainerPlacementStrategy: []string{},
 			})
 			Expect(strategyErr).ToNot(HaveOccurred())
@@ -149,7 +149,7 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 
 	Describe("fewest-build-containers", func() {
 		JustBeforeEach(func() {
-			strategy, strategyErr = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{
+			strategy, strategyErr = NewChainPlacementStrategy(ContainerPlacementStrategyOptions{
 				ContainerPlacementStrategy: []string{"fewest-build-containers"},
 			})
 			Expect(strategyErr).ToNot(HaveOccurred())
@@ -191,7 +191,7 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 
 	Describe("volume-locality", func() {
 		JustBeforeEach(func() {
-			strategy, strategyErr = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{
+			strategy, strategyErr = NewChainPlacementStrategy(ContainerPlacementStrategyOptions{
 				ContainerPlacementStrategy: []string{"volume-locality"},
 			})
 			Expect(strategyErr).ToNot(HaveOccurred())
@@ -290,7 +290,7 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 		JustBeforeEach(func() {
 			fmt.Fprintln(GinkgoWriter, fmt.Sprintf("limit: %d, should error: %t", limit, shouldError))
 
-			strategy, strategyErr = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{
+			strategy, strategyErr = NewChainPlacementStrategy(ContainerPlacementStrategyOptions{
 				ContainerPlacementStrategy: []string{"limit-active-tasks"},
 				MaxActiveTasksPerWorker:    limit,
 			})
@@ -464,7 +464,7 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 		JustBeforeEach(func() {
 			fmt.Fprintln(GinkgoWriter, fmt.Sprintf("limit: %d, should error: %t", limit, shouldError))
 
-			strategy, strategyErr = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{
+			strategy, strategyErr = NewChainPlacementStrategy(ContainerPlacementStrategyOptions{
 				ContainerPlacementStrategy:   []string{"limit-active-containers"},
 				MaxActiveContainersPerWorker: limit,
 			})
@@ -591,7 +591,7 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 		JustBeforeEach(func() {
 			fmt.Fprintln(GinkgoWriter, fmt.Sprintf("limit: %d, should error: %t", limit, shouldError))
 
-			strategy, strategyErr = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{
+			strategy, strategyErr = NewChainPlacementStrategy(ContainerPlacementStrategyOptions{
 				ContainerPlacementStrategy: []string{"limit-active-volumes"},
 				MaxActiveVolumesPerWorker:  limit,
 			})
@@ -710,7 +710,7 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 		Describe("strategy.Order", func() {
 			Context("fewest-build-containers,volume-locality", func() {
 				JustBeforeEach(func() {
-					strategy, strategyErr = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{
+					strategy, strategyErr = NewChainPlacementStrategy(ContainerPlacementStrategyOptions{
 						ContainerPlacementStrategy: []string{"fewest-build-containers", "volume-locality"},
 					})
 					Expect(strategyErr).ToNot(HaveOccurred())
@@ -766,7 +766,7 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 		Describe("strategy.Pick and strategy.Release", func() {
 			Context("limit-active-containers,limit-active-tasks", func() {
 				JustBeforeEach(func() {
-					strategy, strategyErr = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{
+					strategy, strategyErr = NewChainPlacementStrategy(ContainerPlacementStrategyOptions{
 						ContainerPlacementStrategy:   []string{"limit-active-containers", "limit-active-tasks"},
 						MaxActiveTasksPerWorker:      1,
 						MaxActiveContainersPerWorker: 1,

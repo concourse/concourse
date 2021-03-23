@@ -413,13 +413,14 @@ func (step *TaskStep) containerSpec(logger lager.Logger, state RunState, imageSp
 	}
 
 	containerSpec := worker.ContainerSpec{
-		TeamID:    step.metadata.TeamID,
 		ImageSpec: imageSpec,
-		Limits:    limits,
-		User:      config.Run.User,
-		Dir:       metadata.WorkingDirectory,
-		Env:       config.Params.Env(),
+		TeamID:    step.metadata.TeamID,
 		Type:      metadata.Type,
+
+		Dir:    metadata.WorkingDirectory,
+		Env:    config.Params.Env(),
+		Limits: limits,
+		User:   config.Run.User,
 
 		Outputs: worker.OutputPaths{},
 	}

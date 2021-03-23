@@ -326,10 +326,7 @@ var _ = Describe("Pool", func() {
 
 					It("succeeds and returns the compatible worker with the container", func() {
 						Expect(fakeStrategy.OrderCallCount()).To(Equal(0))
-						Expect(fakeStrategy.PickCallCount()).To(Equal(1))
-
-						_, pickedWorker, _ := fakeStrategy.PickArgsForCall(0)
-						Expect(pickedWorker.Name()).To(Equal(workers[0].Name()))
+						Expect(fakeStrategy.PickCallCount()).To(Equal(0))
 
 						Expect(selectErr).NotTo(HaveOccurred())
 						Expect(selectedWorker.Name()).To(Equal(workers[0].Name()))
@@ -345,33 +342,10 @@ var _ = Describe("Pool", func() {
 
 					It("succeeds and returns the first compatible worker with the container", func() {
 						Expect(fakeStrategy.OrderCallCount()).To(Equal(0))
-						Expect(fakeStrategy.PickCallCount()).To(Equal(1))
-
-						_, pickedWorker, _ := fakeStrategy.PickArgsForCall(0)
-						Expect(pickedWorker.Name()).To(Equal(workers[0].Name()))
+						Expect(fakeStrategy.PickCallCount()).To(Equal(0))
 
 						Expect(selectErr).NotTo(HaveOccurred())
 						Expect(selectedWorker.Name()).To(Equal(workers[0].Name()))
-					})
-
-					Context("when picking the first worker fails", func() {
-						BeforeEach(func() {
-							fakeStrategy.PickReturnsOnCall(0, errors.New("cannot-pick-for-arbitrary-reason"))
-						})
-
-						It("succeeds and picks the next worker", func() {
-							Expect(fakeStrategy.OrderCallCount()).To(Equal(0))
-							Expect(fakeStrategy.PickCallCount()).To(Equal(2))
-
-							_, pickedWorkerA, _ := fakeStrategy.PickArgsForCall(0)
-							Expect(pickedWorkerA.Name()).To(Equal(workers[0].Name()))
-
-							_, pickedWorkerB, _ := fakeStrategy.PickArgsForCall(1)
-							Expect(pickedWorkerB.Name()).To(Equal(workers[1].Name()))
-
-							Expect(selectErr).NotTo(HaveOccurred())
-							Expect(selectedWorker.Name()).To(Equal(workers[1].Name()))
-						})
 					})
 				})
 

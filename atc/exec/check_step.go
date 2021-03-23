@@ -278,11 +278,13 @@ func (step *CheckStep) runCheck(
 
 	containerSpec := worker.ContainerSpec{
 		ImageSpec: imageSpec,
+		TeamID:    step.metadata.TeamID,
+		Type:      step.containerMetadata.Type,
+
 		BindMounts: []worker.BindMountSource{
 			&worker.CertsVolumeMount{Logger: logger},
 		},
-		TeamID: step.metadata.TeamID,
-		Env:    step.metadata.Env(),
+		Env: step.metadata.Env(),
 	}
 	tracing.Inject(ctx, &containerSpec)
 

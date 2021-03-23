@@ -190,9 +190,9 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 	containerSpec := worker.ContainerSpec{
 		ImageSpec: imageSpec,
 		TeamID:    step.metadata.TeamID,
+		Type:      step.containerMetadata.Type,
 
 		Dir: step.containerMetadata.WorkingDirectory,
-
 		Env: step.metadata.Env(),
 
 		Inputs: containerInputs,

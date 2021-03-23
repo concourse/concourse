@@ -1633,7 +1633,7 @@ func constructLockConn(driverName, connectionString string) (*sql.DB, error) {
 }
 
 func (cmd *RunCommand) chooseBuildContainerStrategy() (worker.ContainerPlacementStrategy, error) {
-	return worker.NewContainerPlacementStrategy(cmd.ContainerPlacementStrategyOptions)
+	return worker.NewChainPlacementStrategy(cmd.ContainerPlacementStrategyOptions)
 }
 
 func (cmd *RunCommand) configureAuthForDefaultTeam(teamFactory db.TeamFactory) error {

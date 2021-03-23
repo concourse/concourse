@@ -32,8 +32,6 @@ type Pool interface {
 	VolumeFinder
 	CreateVolume(lager.Logger, VolumeSpec, WorkerSpec, db.VolumeType) (Volume, error)
 
-	ContainerInWorker(lager.Logger, db.ContainerOwner, WorkerSpec) (bool, error)
-
 	SelectWorker(
 		context.Context,
 		db.ContainerOwner,
@@ -111,8 +109,6 @@ func (pool *pool) findWorkerWithContainer(
 	logger lager.Logger,
 	compatible []Worker,
 	owner db.ContainerOwner,
-	containerSpec ContainerSpec,
-	strategy ContainerPlacementStrategy,
 ) (Worker, error) {
 	workersWithContainer, err := pool.provider.FindWorkersForContainerByOwner(
 		logger.Session("find-worker"),
@@ -125,13 +121,8 @@ func (pool *pool) findWorkerWithContainer(
 	for _, worker := range compatible {
 		for _, c := range workersWithContainer {
 			if worker.Name() == c.Name() {
-				err := strategy.Pick(logger, c, containerSpec)
-
-				if err != nil {
-					logger.Debug("worker-with-container-rejected-during-selection", lager.Data{"reason": err.Error()})
-				} else {
-					return worker, nil
-				}
+				logger.Debug("found-existing-container-on-worker", lager.Data{"worker": worker.Name()})
+				return worker, nil
 			}
 		}
 	}
@@ -151,16 +142,23 @@ func (pool *pool) findWorkerFromStrategy(
 		return nil, err
 	}
 
+	var combinedError error
 	for _, candidate := range orderedWorkers {
 		err := strategy.Pick(logger, candidate, containerSpec)
 
-		if err != nil {
-			logger.Debug("candidate-worker-rejected-during-selection", lager.Data{"reason": err.Error()})
-		} else {
+		if err == nil {
 			return candidate, nil
+		}
+
+		formattedError := fmt.Errorf("worker: %s, error: %v", candidate.Name(), err)
+		if combinedError == nil {
+			combinedError = formattedError
+		} else {
+			combinedError = fmt.Errorf("%v\n%v", combinedError, formattedError)
 		}
 	}
 
+	logger.Debug("all-candidate-workers-rejected-during-selection", lager.Data{"reason": combinedError.Error()})
 	return nil, nil
 }
 
@@ -186,8 +184,6 @@ func (pool *pool) findWorker(
 		logger,
 		compatibleWorkers,
 		containerOwner,
-		containerSpec,
-		strategy,
 	)
 	if err != nil {
 		return nil, err
@@ -253,31 +249,6 @@ func (pool *pool) CreateVolume(logger lager.Logger, volumeSpec VolumeSpec, worke
 	}
 
 	return worker.CreateVolume(logger, volumeSpec, workerSpec.TeamID, volumeType)
-}
-
-func (pool *pool) ContainerInWorker(logger lager.Logger, owner db.ContainerOwner, workerSpec WorkerSpec) (bool, error) {
-	workersWithContainer, err := pool.provider.FindWorkersForContainerByOwner(
-		logger.Session("find-worker"),
-		owner,
-	)
-	if err != nil {
-		return false, err
-	}
-
-	compatibleWorkers, err := pool.allSatisfying(logger, workerSpec)
-	if err != nil {
-		return false, err
-	}
-
-	for _, w := range workersWithContainer {
-		for _, c := range compatibleWorkers {
-			if w.Name() == c.Name() {
-				return true, nil
-			}
-		}
-	}
-
-	return false, nil
 }
 
 func (pool *pool) SelectWorker(
