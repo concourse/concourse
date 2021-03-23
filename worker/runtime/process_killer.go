@@ -3,8 +3,7 @@ package runtime
 import (
 	"context"
 	"fmt"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+	"strings"
 	"syscall"
 	"time"
 
@@ -77,12 +76,7 @@ func (p processKiller) Kill(
 	case exitStatus := <-procWaitStatus:
 		err = exitStatus.Error()
 		if err != nil {
-			grpcErr := status.Convert(err)
-			// grpc error is passed back as a string so we can't do the regular errors.Is() check
-			// but if we convert the error to an RPC Status object we get a standard status code
-			// to check against
-
-			if grpcErr.Code() == codes.DeadlineExceeded {
+			if strings.Contains(err.Error(), "context deadline exceeded") {
 				return ErrGracePeriodTimeout
 			}
 			return fmt.Errorf("waiting for exit status from grpc: %w", err)
