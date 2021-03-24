@@ -106,11 +106,10 @@ var _ = Describe("CheckStep", func() {
 		fakeDelegateFactory.CheckDelegateReturns(fakeDelegate)
 
 		checkPlan = atc.CheckPlan{
-			Name:          "some-name",
-			Type:          "some-base-type",
-			Source:        atc.Source{"some": "((source-var))"},
-			BaseImageType: "some-base-type",
-			Timeout:       "10s",
+			Name:     "some-name",
+			Type:     "some-base-type",
+			Source:   atc.Source{"some": "((source-var))"},
+			BaseType: "some-base-type",
 			VersionedResourceTypes: atc.VersionedResourceTypes{
 				{
 					ResourceType: atc.ResourceType{
@@ -463,7 +462,7 @@ var _ = Describe("CheckStep", func() {
 						}
 
 						checkPlan.Type = "some-custom-type"
-						checkPlan.BaseImageType = ""
+						checkPlan.BaseType = "registry-image"
 
 						fakeImageSpec = worker.ImageSpec{
 							ImageArtifactSource: new(workerfakes.FakeStreamableArtifactSource),

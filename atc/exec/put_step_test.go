@@ -185,7 +185,7 @@ var _ = Describe("PutStep", func() {
 			Name:                   "some-name",
 			Resource:               "some-resource",
 			Type:                   "some-resource-type",
-			BaseImageType:          "some-resource-type",
+			BaseType:               "some-resource-type",
 			Source:                 atc.Source{"some": "((source-var))"},
 			Params:                 atc.Params{"some": "((params-var))"},
 			VersionedResourceTypes: uninterpolatedResourceTypes,
@@ -435,7 +435,7 @@ var _ = Describe("PutStep", func() {
 			}
 
 			putPlan.Type = "some-custom-type"
-			putPlan.BaseImageType = ""
+			putPlan.BaseType = "registry-image"
 
 			fakeImageSpec = worker.ImageSpec{
 				ImageArtifactSource: new(workerfakes.FakeStreamableArtifactSource),
