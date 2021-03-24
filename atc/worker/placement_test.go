@@ -501,23 +501,8 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 					limit = 0
 				})
 
-				It("orders workers by active container count", func() {
-					Expect(orderedWorkers).To(Equal([]Worker{workers[1], workers[0], workers[2]}))
-				})
-
-				Context("when multiple have the same number of build containers", func() {
-					BeforeEach(func() {
-						workerFakes[0].ActiveContainersReturns(20)
-					})
-
-					It("orders workers with same counts randomly", func() {
-						Consistently(func() []Worker {
-							return order(true)
-						}).Should(SatisfyAny(
-							Equal([]Worker{workers[0], workers[1], workers[2]}),
-							Equal([]Worker{workers[1], workers[0], workers[2]}),
-						))
-					})
+				It("returns all workers in a random order", func() {
+					Expect(orderedWorkers).To(ConsistOf([]Worker{workers[0], workers[1], workers[2]}))
 				})
 			})
 
@@ -526,8 +511,8 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 					limit = 100
 				})
 
-				It("still returns all workers, even those beyond the limit", func() {
-					Expect(orderedWorkers).To(Equal([]Worker{workers[1], workers[0], workers[2]}))
+				It("still returns all workers in a random order", func() {
+					Expect(orderedWorkers).To(ConsistOf([]Worker{workers[0], workers[1], workers[2]}))
 				})
 			})
 		})
@@ -628,23 +613,8 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 					limit = 0
 				})
 
-				It("orders workers by active volume count", func() {
-					Expect(orderedWorkers).To(Equal([]Worker{workers[2], workers[0], workers[1]}))
-				})
-
-				Context("when multiple have the same number of build volumes", func() {
-					BeforeEach(func() {
-						workerFakes[0].ActiveVolumesReturns(20)
-					})
-
-					It("orders workers with same counts randomly", func() {
-						Consistently(func() []Worker {
-							return order(true)
-						}).Should(SatisfyAny(
-							Equal([]Worker{workers[0], workers[2], workers[1]}),
-							Equal([]Worker{workers[2], workers[0], workers[1]}),
-						))
-					})
+				It("returns all workers in a random order", func() {
+					Expect(orderedWorkers).To(ConsistOf([]Worker{workers[0], workers[1], workers[2]}))
 				})
 			})
 
@@ -653,8 +623,8 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 					limit = 100
 				})
 
-				It("still returns all workers, even those beyond the limit", func() {
-					Expect(orderedWorkers).To(Equal([]Worker{workers[2], workers[0], workers[1]}))
+				It("returns all workers in a random order", func() {
+					Expect(orderedWorkers).To(ConsistOf([]Worker{workers[0], workers[1], workers[2]}))
 				})
 			})
 		})
@@ -759,6 +729,41 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 							Equal([]Worker{workers[2], workers[1], workers[0]}),
 						))
 					})
+				})
+			})
+
+			Context("limit-active-containers,volume-locality", func() {
+				JustBeforeEach(func() {
+					strategy, strategyErr = NewChainPlacementStrategy(ContainerPlacementStrategyOptions{
+						ContainerPlacementStrategy:   []string{"limit-active-containers", "volume-locality"},
+						MaxActiveContainersPerWorker: 0,
+					})
+					Expect(strategyErr).ToNot(HaveOccurred())
+
+					order(true)
+				})
+
+				BeforeEach(func() {
+					workerFakes[0].ActiveContainersReturns(30)
+					workerFakes[1].ActiveContainersReturns(20)
+					workerFakes[2].ActiveContainersReturns(10)
+
+					fakeInput1 := makeFakeInput(workers[0], workers[1])
+					fakeInput2 := makeFakeInput(workers[0], workers[2])
+
+					containerSpec.Inputs = []InputSource{
+						fakeInput1,
+						fakeInput2,
+					}
+				})
+
+				It("orders only by volume locality and not active container count", func() {
+					Consistently(func() []Worker {
+						return order(true)
+					}).Should(SatisfyAny(
+						Equal([]Worker{workers[0], workers[1], workers[2]}),
+						Equal([]Worker{workers[0], workers[2], workers[1]}),
+					))
 				})
 			})
 		})
