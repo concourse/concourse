@@ -53,4 +53,6 @@ BEGIN;
     RETURN NULL;
   END;
   $$ LANGUAGE plpgsql;
+
+  INSERT INTO migrations_history (version, tstamp, direction, status, dirty) VALUES (1606068653, current_timestamp, 'up', 'passed', false)
 COMMIT;

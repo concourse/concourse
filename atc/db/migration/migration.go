@@ -412,7 +412,6 @@ func (m *migrator) runMigration(migration migration, strategy encryption.Strateg
 		}
 	}
 
-	_, err = m.db.Exec("INSERT INTO migrations_history (version, tstamp, direction, status, dirty) VALUES ($1, current_timestamp, $2, 'passed', false)", migration.Version, migration.Direction)
 	return err
 }
 
