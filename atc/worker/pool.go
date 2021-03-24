@@ -13,6 +13,7 @@ import (
 
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/metric"
+	"github.com/hashicorp/go-multierror"
 )
 
 const WorkerPollingInterval = 5 * time.Second
@@ -142,7 +143,7 @@ func (pool *pool) findWorkerFromStrategy(
 		return nil, err
 	}
 
-	var combinedError error
+	var strategyError error
 	for _, candidate := range orderedWorkers {
 		err := strategy.Pick(logger, candidate, containerSpec)
 
@@ -150,15 +151,13 @@ func (pool *pool) findWorkerFromStrategy(
 			return candidate, nil
 		}
 
-		formattedError := fmt.Errorf("worker: %s, error: %v", candidate.Name(), err)
-		if combinedError == nil {
-			combinedError = formattedError
-		} else {
-			combinedError = fmt.Errorf("%v\n%v", combinedError, formattedError)
-		}
+		strategyError = multierror.Append(
+			strategyError,
+			fmt.Errorf("worker: %s, error: %v", candidate.Name(), err),
+		)
 	}
 
-	logger.Debug("all-candidate-workers-rejected-during-selection", lager.Data{"reason": combinedError.Error()})
+	logger.Debug("all-candidate-workers-rejected-during-selection", lager.Data{"reason": strategyError.Error()})
 	return nil, nil
 }
 
