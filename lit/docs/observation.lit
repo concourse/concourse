@@ -23,9 +23,6 @@ your pipelines.
   \code{{{
   /api/v1/teams/{team}/cc.xml
   }}}
-
-  For example: \link{the \code{main} team
-  \code{cc.xml}}{http://ci.concourse-ci.org/api/v1/teams/main/cc.xml}.
 }
 
 \section{
