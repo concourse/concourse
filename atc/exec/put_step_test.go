@@ -96,7 +96,7 @@ var _ = Describe("PutStep", func() {
 		fakeClient = new(workerfakes.FakeClient)
 		fakeClient.NameReturns("some-worker")
 		fakePool = new(workerfakes.FakePool)
-		fakePool.SelectWorkerReturns(fakeClient, nil)
+		fakePool.SelectWorkerReturns(fakeClient, 0, nil)
 
 		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
 		fakeArtifactSourcer = new(workerfakes.FakeArtifactSourcer)
@@ -256,7 +256,7 @@ var _ = Describe("PutStep", func() {
 
 		JustBeforeEach(func() {
 			Expect(fakePool.SelectWorkerCallCount()).To(Equal(1))
-			_, _, _, workerSpec, _ = fakePool.SelectWorkerArgsForCall(0)
+			_, _, _, workerSpec, _, _ = fakePool.SelectWorkerArgsForCall(0)
 		})
 
 		It("calls SelectWorker with the correct WorkerSpec", func() {
@@ -286,7 +286,7 @@ var _ = Describe("PutStep", func() {
 
 		Context("when selecting a worker fails", func() {
 			BeforeEach(func() {
-				fakePool.SelectWorkerReturns(nil, errors.New("nope"))
+				fakePool.SelectWorkerReturns(nil, 0, errors.New("nope"))
 				shouldRunPutStep = false
 			})
 
@@ -456,7 +456,7 @@ var _ = Describe("PutStep", func() {
 
 		It("sets the bottom-most type in the worker spec", func() {
 			Expect(fakePool.SelectWorkerCallCount()).To(Equal(1))
-			_, _, _, workerSpec, _ := fakePool.SelectWorkerArgsForCall(0)
+			_, _, _, workerSpec, _, _ := fakePool.SelectWorkerArgsForCall(0)
 
 			Expect(workerSpec).To(Equal(worker.WorkerSpec{
 				TeamID:       stepMetadata.TeamID,

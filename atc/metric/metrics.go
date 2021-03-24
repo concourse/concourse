@@ -11,27 +11,29 @@ import (
 	"github.com/concourse/concourse/atc/db"
 )
 
-type TasksWaitingLabels struct {
-	TeamId     string
-	WorkerTags string
+type StepsWaitingLabels struct {
 	Platform   string
+	TeamId     string
+	Type       string
+	WorkerTags string
 }
 
-type TasksWaitingDuration struct {
-	Labels   TasksWaitingLabels
+type StepsWaitingDuration struct {
+	Labels   StepsWaitingLabels
 	Duration time.Duration
 }
 
-func (event TasksWaitingDuration) Emit(logger lager.Logger) {
+func (event StepsWaitingDuration) Emit(logger lager.Logger) {
 	Metrics.emit(
-		logger.Session("tasks-waiting-duration"),
+		logger.Session("steps-waiting-duration"),
 		Event{
-			Name:  "tasks waiting duration",
+			Name:  "steps waiting duration",
 			Value: event.Duration.Seconds(),
 			Attributes: map[string]string{
-				"teamId":     event.Labels.TeamId,
-				"workerTags": event.Labels.WorkerTags,
 				"platform":   event.Labels.Platform,
+				"teamId":     event.Labels.TeamId,
+				"type":       event.Labels.Type,
+				"workerTags": event.Labels.WorkerTags,
 			},
 		},
 	)
@@ -546,7 +548,6 @@ var lockTypeNames = map[int]string{
 	lock.LockTypeVolumeCreating:         "VolumeCreating",
 	lock.LockTypeContainerCreating:      "ContainerCreating",
 	lock.LockTypeDatabaseMigration:      "DatabaseMigration",
-	lock.LockTypeActiveTasks:            "ActiveTasks",
 	lock.LockTypeResourceScanning:       "ResourceScanning",
 }
 

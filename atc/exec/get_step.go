@@ -54,8 +54,10 @@ type GetDelegate interface {
 	Initializing(lager.Logger)
 	Starting(lager.Logger)
 	Finished(lager.Logger, ExitStatus, runtime.VersionResult)
-	SelectedWorker(lager.Logger, string)
 	Errored(lager.Logger, string)
+
+	WaitingForWorker(lager.Logger)
+	SelectedWorker(lager.Logger, string)
 
 	UpdateVersion(lager.Logger, atc.GetPlan, runtime.VersionResult)
 }
@@ -174,7 +176,9 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 	containerSpec := worker.ContainerSpec{
 		ImageSpec: imageSpec,
 		TeamID:    step.metadata.TeamID,
-		Env:       step.metadata.Env(),
+		Type:      step.containerMetadata.Type,
+
+		Env: step.metadata.Env(),
 	}
 	tracing.Inject(ctx, &containerSpec)
 
@@ -213,17 +217,28 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 
 	defer cancel()
 
-	worker, err := step.workerPool.SelectWorker(
+	worker, _, err := step.workerPool.SelectWorker(
 		lagerctx.NewContext(processCtx, logger),
 		containerOwner,
 		containerSpec,
 		workerSpec,
 		step.strategy,
+		delegate,
 	)
 	if err != nil {
 		return false, err
 	}
+
 	delegate.SelectedWorker(logger, worker.Name())
+
+	defer func() {
+		step.workerPool.ReleaseWorker(
+			lagerctx.NewContext(processCtx, logger),
+			containerSpec,
+			worker,
+			step.strategy,
+		)
+	}()
 
 	getResult, err := worker.RunGetStep(
 		lagerctx.NewContext(processCtx, logger),

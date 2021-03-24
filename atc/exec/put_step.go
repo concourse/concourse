@@ -36,8 +36,10 @@ type PutDelegate interface {
 	Initializing(lager.Logger)
 	Starting(lager.Logger)
 	Finished(lager.Logger, ExitStatus, runtime.VersionResult)
-	SelectedWorker(lager.Logger, string)
 	Errored(lager.Logger, string)
+
+	WaitingForWorker(lager.Logger)
+	SelectedWorker(lager.Logger, string)
 
 	SaveOutput(lager.Logger, atc.PutPlan, atc.Source, atc.VersionedResourceTypes, runtime.VersionResult)
 }
@@ -188,9 +190,9 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 	containerSpec := worker.ContainerSpec{
 		ImageSpec: imageSpec,
 		TeamID:    step.metadata.TeamID,
+		Type:      step.containerMetadata.Type,
 
 		Dir: step.containerMetadata.WorkingDirectory,
-
 		Env: step.metadata.Env(),
 
 		Inputs: containerInputs,
@@ -219,17 +221,28 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 
 	defer cancel()
 
-	worker, err := step.workerPool.SelectWorker(
+	worker, _, err := step.workerPool.SelectWorker(
 		lagerctx.NewContext(processCtx, logger),
 		owner,
 		containerSpec,
 		workerSpec,
 		step.strategy,
+		delegate,
 	)
 	if err != nil {
 		return false, err
 	}
+
 	delegate.SelectedWorker(logger, worker.Name())
+
+	defer func() {
+		step.workerPool.ReleaseWorker(
+			lagerctx.NewContext(processCtx, logger),
+			containerSpec,
+			worker,
+			step.strategy,
+		)
+	}()
 
 	result, err := worker.RunPutStep(
 		lagerctx.NewContext(processCtx, logger),

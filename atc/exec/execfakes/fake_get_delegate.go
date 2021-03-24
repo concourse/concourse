@@ -103,6 +103,11 @@ type FakeGetDelegate struct {
 		arg2 atc.GetPlan
 		arg3 runtime.VersionResult
 	}
+	WaitingForWorkerStub        func(lager.Logger)
+	waitingForWorkerMutex       sync.RWMutex
+	waitingForWorkerArgsForCall []struct {
+		arg1 lager.Logger
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -544,6 +549,38 @@ func (fake *FakeGetDelegate) UpdateVersionArgsForCall(i int) (lager.Logger, atc.
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
+func (fake *FakeGetDelegate) WaitingForWorker(arg1 lager.Logger) {
+	fake.waitingForWorkerMutex.Lock()
+	fake.waitingForWorkerArgsForCall = append(fake.waitingForWorkerArgsForCall, struct {
+		arg1 lager.Logger
+	}{arg1})
+	stub := fake.WaitingForWorkerStub
+	fake.recordInvocation("WaitingForWorker", []interface{}{arg1})
+	fake.waitingForWorkerMutex.Unlock()
+	if stub != nil {
+		fake.WaitingForWorkerStub(arg1)
+	}
+}
+
+func (fake *FakeGetDelegate) WaitingForWorkerCallCount() int {
+	fake.waitingForWorkerMutex.RLock()
+	defer fake.waitingForWorkerMutex.RUnlock()
+	return len(fake.waitingForWorkerArgsForCall)
+}
+
+func (fake *FakeGetDelegate) WaitingForWorkerCalls(stub func(lager.Logger)) {
+	fake.waitingForWorkerMutex.Lock()
+	defer fake.waitingForWorkerMutex.Unlock()
+	fake.WaitingForWorkerStub = stub
+}
+
+func (fake *FakeGetDelegate) WaitingForWorkerArgsForCall(i int) lager.Logger {
+	fake.waitingForWorkerMutex.RLock()
+	defer fake.waitingForWorkerMutex.RUnlock()
+	argsForCall := fake.waitingForWorkerArgsForCall[i]
+	return argsForCall.arg1
+}
+
 func (fake *FakeGetDelegate) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -567,6 +604,8 @@ func (fake *FakeGetDelegate) Invocations() map[string][][]interface{} {
 	defer fake.stdoutMutex.RUnlock()
 	fake.updateVersionMutex.RLock()
 	defer fake.updateVersionMutex.RUnlock()
+	fake.waitingForWorkerMutex.RLock()
+	defer fake.waitingForWorkerMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

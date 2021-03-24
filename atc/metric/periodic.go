@@ -181,16 +181,17 @@ func tick(logger lager.Logger, m *Monitor) {
 		)
 	}
 
-	for labels, gauge := range m.TasksWaiting {
+	for labels, gauge := range m.StepsWaiting {
 		m.emit(
-			logger.Session("tasks-waiting"),
+			logger.Session("steps-waiting"),
 			Event{
-				Name:  "tasks waiting",
+				Name:  "steps waiting",
 				Value: gauge.Max(),
 				Attributes: map[string]string{
-					"teamId":     labels.TeamId,
-					"workerTags": labels.WorkerTags,
 					"platform":   labels.Platform,
+					"teamId":     labels.TeamId,
+					"type":       labels.Type,
+					"workerTags": labels.WorkerTags,
 				},
 			},
 		)

@@ -5,11 +5,9 @@ import (
 	"context"
 	"io"
 	"sync"
-	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"
@@ -51,26 +49,6 @@ type FakeTaskDelegate struct {
 	initializingMutex       sync.RWMutex
 	initializingArgsForCall []struct {
 		arg1 lager.Logger
-	}
-	SelectWorkerStub        func(context.Context, worker.Pool, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, worker.ContainerPlacementStrategy, time.Duration, time.Duration) (worker.Client, error)
-	selectWorkerMutex       sync.RWMutex
-	selectWorkerArgsForCall []struct {
-		arg1 context.Context
-		arg2 worker.Pool
-		arg3 db.ContainerOwner
-		arg4 worker.ContainerSpec
-		arg5 worker.WorkerSpec
-		arg6 worker.ContainerPlacementStrategy
-		arg7 time.Duration
-		arg8 time.Duration
-	}
-	selectWorkerReturns struct {
-		result1 worker.Client
-		result2 error
-	}
-	selectWorkerReturnsOnCall map[int]struct {
-		result1 worker.Client
-		result2 error
 	}
 	SelectedWorkerStub        func(lager.Logger, string)
 	selectedWorkerMutex       sync.RWMutex
@@ -122,6 +100,11 @@ type FakeTaskDelegate struct {
 	}
 	stdoutReturnsOnCall map[int]struct {
 		result1 io.Writer
+	}
+	WaitingForWorkerStub        func(lager.Logger)
+	waitingForWorkerMutex       sync.RWMutex
+	waitingForWorkerArgsForCall []struct {
+		arg1 lager.Logger
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -292,77 +275,6 @@ func (fake *FakeTaskDelegate) InitializingArgsForCall(i int) lager.Logger {
 	defer fake.initializingMutex.RUnlock()
 	argsForCall := fake.initializingArgsForCall[i]
 	return argsForCall.arg1
-}
-
-func (fake *FakeTaskDelegate) SelectWorker(arg1 context.Context, arg2 worker.Pool, arg3 db.ContainerOwner, arg4 worker.ContainerSpec, arg5 worker.WorkerSpec, arg6 worker.ContainerPlacementStrategy, arg7 time.Duration, arg8 time.Duration) (worker.Client, error) {
-	fake.selectWorkerMutex.Lock()
-	ret, specificReturn := fake.selectWorkerReturnsOnCall[len(fake.selectWorkerArgsForCall)]
-	fake.selectWorkerArgsForCall = append(fake.selectWorkerArgsForCall, struct {
-		arg1 context.Context
-		arg2 worker.Pool
-		arg3 db.ContainerOwner
-		arg4 worker.ContainerSpec
-		arg5 worker.WorkerSpec
-		arg6 worker.ContainerPlacementStrategy
-		arg7 time.Duration
-		arg8 time.Duration
-	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8})
-	stub := fake.SelectWorkerStub
-	fakeReturns := fake.selectWorkerReturns
-	fake.recordInvocation("SelectWorker", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8})
-	fake.selectWorkerMutex.Unlock()
-	if stub != nil {
-		return stub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fakeReturns.result1, fakeReturns.result2
-}
-
-func (fake *FakeTaskDelegate) SelectWorkerCallCount() int {
-	fake.selectWorkerMutex.RLock()
-	defer fake.selectWorkerMutex.RUnlock()
-	return len(fake.selectWorkerArgsForCall)
-}
-
-func (fake *FakeTaskDelegate) SelectWorkerCalls(stub func(context.Context, worker.Pool, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, worker.ContainerPlacementStrategy, time.Duration, time.Duration) (worker.Client, error)) {
-	fake.selectWorkerMutex.Lock()
-	defer fake.selectWorkerMutex.Unlock()
-	fake.SelectWorkerStub = stub
-}
-
-func (fake *FakeTaskDelegate) SelectWorkerArgsForCall(i int) (context.Context, worker.Pool, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, worker.ContainerPlacementStrategy, time.Duration, time.Duration) {
-	fake.selectWorkerMutex.RLock()
-	defer fake.selectWorkerMutex.RUnlock()
-	argsForCall := fake.selectWorkerArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6, argsForCall.arg7, argsForCall.arg8
-}
-
-func (fake *FakeTaskDelegate) SelectWorkerReturns(result1 worker.Client, result2 error) {
-	fake.selectWorkerMutex.Lock()
-	defer fake.selectWorkerMutex.Unlock()
-	fake.SelectWorkerStub = nil
-	fake.selectWorkerReturns = struct {
-		result1 worker.Client
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeTaskDelegate) SelectWorkerReturnsOnCall(i int, result1 worker.Client, result2 error) {
-	fake.selectWorkerMutex.Lock()
-	defer fake.selectWorkerMutex.Unlock()
-	fake.SelectWorkerStub = nil
-	if fake.selectWorkerReturnsOnCall == nil {
-		fake.selectWorkerReturnsOnCall = make(map[int]struct {
-			result1 worker.Client
-			result2 error
-		})
-	}
-	fake.selectWorkerReturnsOnCall[i] = struct {
-		result1 worker.Client
-		result2 error
-	}{result1, result2}
 }
 
 func (fake *FakeTaskDelegate) SelectedWorker(arg1 lager.Logger, arg2 string) {
@@ -634,6 +546,38 @@ func (fake *FakeTaskDelegate) StdoutReturnsOnCall(i int, result1 io.Writer) {
 	}{result1}
 }
 
+func (fake *FakeTaskDelegate) WaitingForWorker(arg1 lager.Logger) {
+	fake.waitingForWorkerMutex.Lock()
+	fake.waitingForWorkerArgsForCall = append(fake.waitingForWorkerArgsForCall, struct {
+		arg1 lager.Logger
+	}{arg1})
+	stub := fake.WaitingForWorkerStub
+	fake.recordInvocation("WaitingForWorker", []interface{}{arg1})
+	fake.waitingForWorkerMutex.Unlock()
+	if stub != nil {
+		fake.WaitingForWorkerStub(arg1)
+	}
+}
+
+func (fake *FakeTaskDelegate) WaitingForWorkerCallCount() int {
+	fake.waitingForWorkerMutex.RLock()
+	defer fake.waitingForWorkerMutex.RUnlock()
+	return len(fake.waitingForWorkerArgsForCall)
+}
+
+func (fake *FakeTaskDelegate) WaitingForWorkerCalls(stub func(lager.Logger)) {
+	fake.waitingForWorkerMutex.Lock()
+	defer fake.waitingForWorkerMutex.Unlock()
+	fake.WaitingForWorkerStub = stub
+}
+
+func (fake *FakeTaskDelegate) WaitingForWorkerArgsForCall(i int) lager.Logger {
+	fake.waitingForWorkerMutex.RLock()
+	defer fake.waitingForWorkerMutex.RUnlock()
+	argsForCall := fake.waitingForWorkerArgsForCall[i]
+	return argsForCall.arg1
+}
+
 func (fake *FakeTaskDelegate) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -645,8 +589,6 @@ func (fake *FakeTaskDelegate) Invocations() map[string][][]interface{} {
 	defer fake.finishedMutex.RUnlock()
 	fake.initializingMutex.RLock()
 	defer fake.initializingMutex.RUnlock()
-	fake.selectWorkerMutex.RLock()
-	defer fake.selectWorkerMutex.RUnlock()
 	fake.selectedWorkerMutex.RLock()
 	defer fake.selectedWorkerMutex.RUnlock()
 	fake.setTaskConfigMutex.RLock()
@@ -659,6 +601,8 @@ func (fake *FakeTaskDelegate) Invocations() map[string][][]interface{} {
 	defer fake.stderrMutex.RUnlock()
 	fake.stdoutMutex.RLock()
 	defer fake.stdoutMutex.RUnlock()
+	fake.waitingForWorkerMutex.RLock()
+	defer fake.waitingForWorkerMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
