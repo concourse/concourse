@@ -41,7 +41,6 @@ func (m *migrations) Up_1516643303() error {
 
 		decryptedAuth, err := m.Strategy.Decrypt(string(team.auth), noncense)
 		if err != nil {
-			tx.Rollback()
 			return err
 		}
 

@@ -91,10 +91,5 @@ func (m *migrations) Down_1516643303() error {
 		}
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
