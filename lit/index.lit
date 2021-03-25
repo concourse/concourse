@@ -17,16 +17,16 @@
 }
 
 \page-region{light}{Built in the open}{
-  Concourse's \link{RFC process}{https://github.com/concourse/rfcs} welcomes
-  anyone to submit ideas and feedback to influence the project roadmap.
+  Concourse's \link{RFC process}{https://github.com/concourse/rfcs} and
+  \link{governance model}{https://github.com/concourse/governance} invite
+  anyone to become a contributor, developing the project roadmap by
+  collaborating in the open.
 
   \rfcs-table{10}{ByTotalReactions}
 
-  Help shape Concourse into a tool that meets your needs by \link{submitting
-  feedback}{https://github.com/concourse/rfcs/#providing-feedback-on-an-rfc}!
-  The above RFCs are ranked by their total GitHub reactions, with the aim being
-  to focus feedback on popular RFCs so that they reach resolution, making room
-  for more on the table.
+  Help shape Concourse into a tool that fits your needs by \link{submitting
+  feedback}{https://github.com/concourse/rfcs/#reviewing-rfcs} on the RFCs
+  listed above!
 }
 
 \page-region{light}{Key features}{
