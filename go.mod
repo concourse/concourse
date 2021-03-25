@@ -64,7 +64,7 @@ require (
 	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.3.0
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b
-	github.com/miekg/dns v1.1.31
+	github.com/miekg/dns v1.1.41
 	github.com/mitchellh/mapstructure v1.4.1
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d
 	github.com/onsi/ginkgo v1.14.2
@@ -73,7 +73,7 @@ require (
 	github.com/opencontainers/runtime-spec v1.0.2
 	github.com/opencontainers/selinux v1.8.0 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible
-	github.com/peterhellberg/link v1.0.0
+	github.com/peterhellberg/link v1.1.0
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/term v0.0.0-20190109203006-aa71e9d9e942
 	github.com/prometheus/client_golang v1.10.0
@@ -98,7 +98,7 @@ require (
 	go.opentelemetry.io/otel/sdk v0.11.0
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	golang.org/x/oauth2 v0.0.0-20200902213428-5d25da1a8d43
-	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
 	google.golang.org/api v0.32.0 // indirect
 	google.golang.org/genproto v0.0.0-20201110150050-8816d57aaa9a // indirect
