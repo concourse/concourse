@@ -14,11 +14,7 @@ func (m *migrations) Up_1516643303() error {
 		nonce     sql.NullString
 	}
 
-	tx, err := m.DB.Begin()
-	if err != nil {
-		return err
-	}
-
+	tx := m.Tx
 	rows, err := tx.Query("SELECT id, basic_auth, auth, nonce FROM teams")
 	if err != nil {
 		return err
@@ -81,28 +77,23 @@ func (m *migrations) Up_1516643303() error {
 
 		newAuth, err := json.Marshal(authConfig)
 		if err != nil {
-			return rollback(tx, err)
+			return err
 		}
 
 		encryptedAuth, noncense, err := m.Strategy.Encrypt(newAuth)
 		if err != nil {
-			return rollback(tx, err)
+			return err
 		}
 
 		_, err = tx.Exec("UPDATE teams SET auth = $1, nonce = $2 WHERE id = $3", encryptedAuth, noncense, team.id)
 		if err != nil {
-			return rollback(tx, err)
+			return err
 		}
 	}
 
 	_, err = tx.Exec("ALTER TABLE teams DROP COLUMN IF EXISTS basic_auth")
 	if err != nil {
-		return rollback(tx, err)
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return rollback(tx, err)
+		return err
 	}
 
 	return nil
