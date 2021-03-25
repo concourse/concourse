@@ -10,7 +10,7 @@ your pipelines.
 
   The dashboard, available at the default route (\code{/}), provides a
   bird's-eye view of the Concourse cluster. All visible pipelines across all
-  teams are listed here. A "HD view" is available at \code{/hd}.
+  teams are listed here. A high-density (HD) view is available at \code{/hd}.
 }
 
 \section{
@@ -44,12 +44,12 @@ your pipelines.
   This can be used to annotate your READMEs with a build status badge like so:
 
   \codeblock{md}{{{
-  ![CI](https://wings.pivotal.io/api/v1/teams/vito/pipelines/booklit/jobs/unit/badge)]
+  ![CI](https://ci.concourse-ci.org/api/v1/teams/main/pipelines/booklit/jobs/unit/badge)]
   }}}
 
   ...which should render the following:
 
-  \image{https://wings.pivotal.io/api/v1/teams/vito/pipelines/booklit/jobs/unit/badge}
+  \image{https://ci.concourse-ci.org/api/v1/teams/main/pipelines/booklit/jobs/unit/badge}
 }
 
 \section{
