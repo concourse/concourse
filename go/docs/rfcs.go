@@ -222,8 +222,11 @@ var reactionEmoji = map[string]string{
 func (p *Plugin) fetchRFCs(ctx context.Context) ([]RFC, error) {
 	client, ok := p.githubClient(ctx)
 	if !ok {
+		logrus.Warn("no $GITHUB_TOKEN set; using filler RFCs")
 		return fillerRFCs, nil
 	}
+
+	logrus.Info("fetching RFCs")
 
 	type repoId struct {
 		Name  string
@@ -407,7 +410,7 @@ func fetchProposal(proposalURL string) (Proposal, bool, error) {
 			questions.Find("li").Each(countQuestion)
 			questions.Find("p").Each(countQuestion)
 
-			logrus.Infof("total questions: %d", proposal.QuestionCount)
+			logrus.Debugf("total questions: %d", proposal.QuestionCount)
 		}
 	})
 
@@ -447,7 +450,7 @@ var fillerRFCs = []RFC{
 	{
 		URL:    "https://example.com",
 		Number: 42,
-		Title:  "Fake RFC",
+		Title:  "Open RFC",
 
 		Proposal: Proposal{
 			URL:           "https://example.com/#proposal",
@@ -458,7 +461,100 @@ var fillerRFCs = []RFC{
 		Reactions: []GitHubReaction{
 			{
 				Emoji: reactionEmoji["ROCKET"],
+				Count: 5,
+			},
+		},
+	},
+	{
+		URL:    "https://example.com",
+		Number: 42,
+		Title:  "Another Open RFC",
+
+		Proposal: Proposal{
+			URL:           "https://example.com/#proposal",
+			QuestionsURL:  "https://example.com/#questions",
+			QuestionCount: 3,
+		},
+
+		Reactions: []GitHubReaction{
+			{
+				Emoji: reactionEmoji["THUMBS_UP"],
 				Count: 12,
+			},
+		},
+	},
+	{
+		URL:    "https://example.com",
+		Number: 43,
+		Title:  "Merging RFC",
+
+		Proposal: Proposal{
+			URL:           "https://example.com/#proposal",
+			QuestionsURL:  "https://example.com/#questions",
+			QuestionCount: 0,
+		},
+
+		Labels: []GitHubLabel{
+			{
+				Name:  resolutionMerge,
+				Color: "#ff00ff",
+			},
+		},
+
+		Reactions: []GitHubReaction{
+			{
+				Emoji: reactionEmoji["ROCKET"],
+				Count: 10,
+			},
+		},
+	},
+	{
+		URL:    "https://example.com",
+		Number: 12,
+		Title:  "Closing RFC",
+
+		Proposal: Proposal{
+			URL:           "https://example.com/#proposal",
+			QuestionsURL:  "https://example.com/#questions",
+			QuestionCount: 1,
+		},
+
+		Labels: []GitHubLabel{
+			{
+				Name:  resolutionClose,
+				Color: "#ff00ff",
+			},
+		},
+
+		Reactions: []GitHubReaction{
+			{
+				Emoji: reactionEmoji["THUMBS_DOWN"],
+				Count: 1,
+			},
+		},
+	},
+	{
+		URL:    "https://example.com",
+		Number: 2,
+		Title:  "Postponing RFC",
+
+		Proposal: Proposal{
+			URL:           "https://example.com/#proposal",
+			QuestionsURL:  "https://example.com/#questions",
+			QuestionCount: 3,
+		},
+
+		Labels: []GitHubLabel{
+			{
+				Name:  resolutionPostpone,
+				Color: "#ff00ff",
+			},
+		},
+
+		Reactions: []GitHubReaction{
+			{
+				Emoji: reactionEmoji["CONFUSED"],
+				Count: 2,
 			},
 		},
 	},

@@ -10,6 +10,7 @@ import (
 	"github.com/blang/semver"
 	"github.com/lucasb-eyer/go-colorful"
 	"github.com/shurcooL/githubv4"
+	"github.com/sirupsen/logrus"
 	"github.com/vito/booklit"
 	"golang.org/x/oauth2"
 )
@@ -98,6 +99,7 @@ func (p *Plugin) DownloadLinks() (booklit.Content, error) {
 
 	client, ok := p.githubClient(ctx)
 	if !ok {
+		logrus.Warn("no $GITHUB_TOKEN set; using filler download links")
 		return fillerDownloads, nil
 	}
 
