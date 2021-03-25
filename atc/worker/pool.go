@@ -267,31 +267,6 @@ func (pool *pool) FindWorkersForResourceCache(logger lager.Logger, teamId int, r
 	return pool.compatibleWorkers(logger, workers, workerSpec)
 }
 
-func (pool *pool) ContainerInWorker(logger lager.Logger, owner db.ContainerOwner, workerSpec WorkerSpec) (bool, error) {
-	workersWithContainer, err := pool.provider.FindWorkersForContainerByOwner(
-		logger.Session("find-worker"),
-		owner,
-	)
-	if err != nil {
-		return false, err
-	}
-
-	compatibleWorkers, err := pool.allSatisfying(logger, workerSpec)
-	if err != nil {
-		return false, err
-	}
-
-	for _, w := range workersWithContainer {
-		for _, c := range compatibleWorkers {
-			if w.Name() == c.Name() {
-				return true, nil
-			}
-		}
-	}
-
-	return false, nil
-}
-
 func (pool *pool) SelectWorker(
 	ctx context.Context,
 	owner db.ContainerOwner,
