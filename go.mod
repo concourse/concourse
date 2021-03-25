@@ -59,7 +59,7 @@ require (
 	github.com/klauspost/compress v1.9.7
 	github.com/kr/pty v1.1.8
 	github.com/krishicks/yaml-patch v0.0.10
-	github.com/lib/pq v1.3.0
+	github.com/lib/pq v1.10.0
 	github.com/markbates/pkger v0.17.1
 	github.com/mattn/go-colorable v0.1.8
 	github.com/mattn/go-isatty v0.0.12
