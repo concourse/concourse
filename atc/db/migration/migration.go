@@ -389,14 +389,14 @@ func (m *migrator) runMigration(migration migration, strategy encryption.Strateg
 		if err != nil {
 			err = m.recordMigrationFailure(
 				migration,
-				err,
+				fmt.Errorf("migration '%s' failed and was rolled back: %w", migration.Name, err),
 				false,
 			)
-		}
 
-		rbErr := tx.Rollback()
-		if rbErr != nil {
-			err = multierror.Append(err, fmt.Errorf("rollback failed: %w", rbErr))
+			rbErr := tx.Rollback()
+			if rbErr != nil {
+				err = multierror.Append(err, fmt.Errorf("rollback failed: %w", rbErr))
+			}
 		}
 	}()
 
