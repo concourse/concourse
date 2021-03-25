@@ -379,40 +379,46 @@ func (m *migrator) recordMigrationFailure(migration migration, migrationErr erro
 	return migrationErr
 }
 
-func (m *migrator) runMigration(migration migration, strategy encryption.Strategy) error {
-	var err error
+func (m *migrator) runMigration(migration migration, strategy encryption.Strategy) (err error) {
+	tx, err := m.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		if err != nil {
+			err = m.recordMigrationFailure(
+				migration,
+				err,
+				false,
+			)
+		}
+
+		rbErr := tx.Rollback()
+		if rbErr != nil {
+			err = multierror.Append(err, fmt.Errorf("rollback failed: %w", rbErr))
+		}
+	}()
 
 	switch migration.Strategy {
 	case GoMigration:
-		err = migrations.NewMigrations(m.db, strategy).Run(migration.Name)
+		err = migrations.NewMigrations(tx, strategy).Run(migration.Name)
 		if err != nil {
-			return m.recordMigrationFailure(
-				migration,
-				fmt.Errorf("migration '%s' failed: %w", migration.Name, err),
-				false,
-			)
+			return err
 		}
 	case SQLMigration:
-		_, err = m.db.Exec(migration.Statements)
+		_, err = tx.Exec(migration.Statements)
 		if err != nil {
-			// rollback in case the migration was BEGIN ... COMMIT and failed
-			//
-			// note that this succeeds and does a no-op (with a warning) if no
-			// transaction was opened; we're just OK with that
-			_, rbErr := m.db.Exec(`ROLLBACK`)
-			if rbErr != nil {
-				return multierror.Append(err, fmt.Errorf("rollback failed: %w", rbErr))
-			}
-
-			return m.recordMigrationFailure(
-				migration,
-				fmt.Errorf("migration '%s' failed and was rolled back: %w", migration.Name, err),
-				false,
-			)
+			return err
 		}
 	}
 
-	return err
+	_, err = tx.Exec("INSERT INTO migrations_history (version, tstamp, direction, status, dirty) VALUES ($1, current_timestamp, $2, 'passed', false)", migration.Version, migration.Direction)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }
 
 func (helper *migrator) Up(newKey, oldKey *encryption.Key) error {
