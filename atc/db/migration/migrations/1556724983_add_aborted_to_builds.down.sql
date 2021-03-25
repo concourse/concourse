@@ -1,5 +1,5 @@
-BEGIN;
 
-  ALTER TABLE builds DROP COLUMN aborted;
 
-COMMIT;
+ALTER TABLE builds DROP COLUMN aborted;
+
+

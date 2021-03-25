@@ -1,4 +1,4 @@
-BEGIN;
-  ALTER TABLE builds
-    DROP COLUMN inputs_ready;
-COMMIT;
+
+ALTER TABLE builds
+  DROP COLUMN inputs_ready;
+

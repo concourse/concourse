@@ -1,5 +1,5 @@
-BEGIN;
 
-  DROP TABLE IF EXISTS components;
 
-COMMIT;
+DROP TABLE IF EXISTS components;
+
+

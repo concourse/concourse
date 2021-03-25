@@ -1,3 +1,3 @@
-BEGIN;
-    DROP TABLE IF EXISTS access_tokens;
-COMMIT;
+
+  DROP TABLE IF EXISTS access_tokens;
+

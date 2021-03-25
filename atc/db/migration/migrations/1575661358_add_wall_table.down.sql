@@ -1,5 +1,5 @@
-BEGIN;
 
-  DROP TABLE IF EXISTS wall;
 
-COMMIT;
+DROP TABLE IF EXISTS wall;
+
+

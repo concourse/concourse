@@ -1,3 +1,3 @@
-BEGIN;
-  DROP TABLE independent_build_inputs;
-COMMIT;
+
+DROP TABLE independent_build_inputs;
+

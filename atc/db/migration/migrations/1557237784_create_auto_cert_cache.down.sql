@@ -1,3 +1,3 @@
-BEGIN;
-  DROP TABLE cert_cache;
-COMMIT;
+
+DROP TABLE cert_cache;
+
