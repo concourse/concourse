@@ -670,10 +670,9 @@ var _ = Describe("Pool", func() {
 					fakeProvider.FindWorkersForResourceCacheReturns([]Worker{workerC}, nil)
 				})
 
-				It("returns NoCompatibleWorkersError", func() {
-					Expect(chooseErr).To(Equal(NoCompatibleWorkersError{
-						Spec: workerSpec,
-					}))
+				It("returns empty worker list", func() {
+					Expect(chooseErr).ToNot(HaveOccurred())
+					Expect(chosenWorkers).To(BeEmpty())
 				})
 			})
 		})
