@@ -73,7 +73,7 @@ require (
 	github.com/opencontainers/runtime-spec v1.0.2
 	github.com/opencontainers/selinux v1.8.0 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible
-	github.com/peterhellberg/link v1.0.0
+	github.com/peterhellberg/link v1.1.0
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/term v0.0.0-20190109203006-aa71e9d9e942
 	github.com/prometheus/client_golang v1.10.0
