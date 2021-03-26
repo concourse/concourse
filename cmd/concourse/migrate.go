@@ -17,7 +17,7 @@ var defaultDriverName = "postgres"
 
 var MigrateCmd = &cobra.Command{
 	Use:   "migrate",
-	Short: "TODO",
+	Short: "Run database migrations",
 	Long:  `TODO`,
 	RunE:  MigrateConfig.ExecuteMigration,
 }

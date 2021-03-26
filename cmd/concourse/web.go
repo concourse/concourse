@@ -31,7 +31,7 @@ var webCmd WebConfig
 
 var WebCommand = &cobra.Command{
 	Use:   "web",
-	Short: "Start up web component of Concourse",
+	Short: "Run the web UI and build scheduler",
 	Long: `Concourse relies on the web component to start up the ATC
 	and the TSA.`,
 	RunE: InitializeWeb,

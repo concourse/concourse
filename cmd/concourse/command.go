@@ -6,7 +6,7 @@ var (
 	ConcourseCmd = &cobra.Command{
 		Use:   "concourse",
 		Short: "c",
-		Long:  `TODO`, // XXX: CONOCURSE DESC
+		Long:  `TODO`,
 	}
 )
 
@@ -16,12 +16,12 @@ func Execute() error {
 
 func init() {
 	ConcourseCmd.AddCommand(WebCommand)
-	// ConcourseCmd.AddCommand(workerCmd)
+	ConcourseCmd.AddCommand(WorkerCommand)
 	ConcourseCmd.AddCommand(MigrateCmd)
-	// ConcourseCmd.AddCommand(quickstartCmd)
-	// ConcourseCmd.AddCommand(landWorkerCmd)
-	// ConcourseCmd.AddCommand(retireWorkerCmd)
-	// ConcourseCmd.AddCommand(generateKeyCmd)
+	ConcourseCmd.AddCommand(QuickstartCommand)
+	ConcourseCmd.AddCommand(LandWorkerCommand)
+	ConcourseCmd.AddCommand(RetireWorkerCommand)
+	ConcourseCmd.AddCommand(GenerateKeyCommand)
 }
 
 // type ConcourseCommand struct {

@@ -21,7 +21,7 @@ var workerCmd WorkerConfig
 
 var WorkerCommand = &cobra.Command{
 	Use:   "worker",
-	Short: "Start up web component of Concourse",
+	Short: "Run and register a worker",
 	Long: `Concourse relies on the web component to start up the ATC
 	and the TSA.`,
 	RunE: InitializeWorker,

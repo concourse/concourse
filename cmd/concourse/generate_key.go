@@ -8,18 +8,56 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/spf13/cobra"
 	"golang.org/x/crypto/ssh"
 )
 
-type GenerateKeyCommand struct {
-	Type string `short:"t"  long:"type"  default:"rsa"  choice:"rsa"  choice:"ssh"  description:"The type of key to generate."`
+var generateKeyCmd GenerateKeyConfig
 
-	FilePath string `short:"f"  long:"filename"  required:"true"  description:"File path where the key shall be created. When generating ssh keys, the public key will be stored in a file with the same name but with '.pub' appended."`
-	Bits     int    `short:"b"  long:"bits"      default:"4096"   description:"The number of bits in the key to create."`
+var GenerateKeyCommand = &cobra.Command{
+	Use:   "generate-key",
+	Short: "Generate RSA key for use with Concourse components",
+	Long:  `TODO`,
+	RunE:  ExecuteGenerateKey,
 }
 
-func (cmd *GenerateKeyCommand) Execute(args []string) error {
-	key, err := rsa.GenerateKey(rand.Reader, cmd.Bits)
+func init() {
+	GenerateKeyCommand.Flags().StringVarP(&generateKeyCmd.Type, "type", "t", string(RSAKeyType), "The type of key to generate.")
+	GenerateKeyCommand.Flags().StringVarP(&generateKeyCmd.FilePath, "filename", "f", "", "File path where the key shall be created. When generating ssh keys, the public key will be stored in a file with the same name but with '.pub' appended.")
+	GenerateKeyCommand.Flags().IntVarP(&generateKeyCmd.Bits, "bits", "b", 4096, "The number of bits in the key to create.")
+
+	GenerateKeyCommand.MarkFlagRequired("filename")
+}
+
+type GenerateKeyConfig struct {
+	Type string
+
+	FilePath string
+	Bits     int
+}
+
+type ValidKeyTypes string
+
+const (
+	RSAKeyType ValidKeyTypes = "rsa"
+	SSHKeyType ValidKeyTypes = "ssh"
+)
+
+func (g GenerateKeyConfig) Validate() error {
+	if g.Type != string(RSAKeyType) || g.Type != string(SSHKeyType) {
+		return fmt.Errorf("generate key type %s is not valid. Valid types include %s and %s", g.Type, RSAKeyType, SSHKeyType)
+	}
+
+	return nil
+}
+
+func ExecuteGenerateKey(cmd *cobra.Command, args []string) error {
+	err := generateKeyCmd.Validate()
+	if err != nil {
+		return fmt.Errorf("validate: %w", err)
+	}
+
+	key, err := rsa.GenerateKey(rand.Reader, generateKeyCmd.Bits)
 	if err != nil {
 		return fmt.Errorf("failed to generate key: %s", err)
 	}
@@ -29,7 +67,7 @@ func (cmd *GenerateKeyCommand) Execute(args []string) error {
 		Bytes: x509.MarshalPKCS1PrivateKey(key),
 	}
 
-	keyFile, err := os.Create(cmd.FilePath)
+	keyFile, err := os.Create(generateKeyCmd.FilePath)
 	if err != nil {
 		return fmt.Errorf("failed to create key file: %s", err)
 	}
@@ -44,10 +82,10 @@ func (cmd *GenerateKeyCommand) Execute(args []string) error {
 		return fmt.Errorf("failed to close key file: %s", err)
 	}
 
-	fmt.Println("wrote private key to", cmd.FilePath)
+	fmt.Println("wrote private key to", generateKeyCmd.FilePath)
 
-	if cmd.Type == "ssh" {
-		pubFilePath := cmd.FilePath + ".pub"
+	if generateKeyCmd.Type == "ssh" {
+		pubFilePath := generateKeyCmd.FilePath + ".pub"
 
 		pubKeyFile, err := os.Create(pubFilePath)
 		if err != nil {
