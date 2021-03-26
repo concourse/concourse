@@ -418,25 +418,6 @@ var _ = Describe("PutStep", func() {
 				})
 			})
 		})
-
-		Context("when the inputs are detected and specified", func() {
-			BeforeEach(func() {
-				putPlan.Inputs = &atc.InputsConfig{
-					Specified: []string{atc.InputsDetect, "some-mounted-source"},
-				}
-
-				putPlan.Params = atc.Params{
-					"some-param": "some-source/source",
-				}
-			})
-
-			It("calls RunPutStep with detected inputs and specified inputs", func() {
-				_, _, inputMap := fakeArtifactSourcer.SourceInputsAndCachesArgsForCall(0)
-				Expect(inputMap).To(HaveLen(2))
-				Expect(inputMap["/tmp/build/put/some-mounted-source"]).To(Equal(fakeMountedArtifact))
-				Expect(inputMap["/tmp/build/put/some-source"]).To(Equal(fakeArtifact))
-			})
-		})
 	})
 
 	It("calls workerClient -> RunPutStep with the appropriate arguments", func() {
