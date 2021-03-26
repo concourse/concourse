@@ -134,11 +134,13 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 		putInputs = NewAllInputs()
 	} else if step.plan.Inputs.All {
 		putInputs = NewAllInputs()
+	} else if step.plan.Inputs.Detect {
+		putInputs = NewDetectInputs(step.plan.Params)
 	} else {
 		// Covers both cases where inputs are specified and when there are no
 		// inputs specified and "all" field is given a false boolean, which will
 		// result in no inputs attached
-		putInputs = NewSpecificInputs(step.plan.Inputs.Specified, step.plan.Params)
+		putInputs = NewSpecificInputs(step.plan.Inputs.Specified)
 	}
 
 	inputsMap, err := putInputs.FindAll(state.ArtifactRepository())

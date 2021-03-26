@@ -359,7 +359,7 @@ var _ = Describe("PutStep", func() {
 		Context("when the inputs are detected", func() {
 			BeforeEach(func() {
 				putPlan.Inputs = &atc.InputsConfig{
-					Specified: []string{atc.InputsDetect},
+					Detect: true,
 				}
 			})
 

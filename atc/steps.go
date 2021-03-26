@@ -703,13 +703,11 @@ func (c *VersionConfig) MarshalJSON() ([]byte, error) {
 	return json.Marshal("")
 }
 
-const InputsAll = "all"
-const InputsDetect = "detect"
-
 // A InputsConfig represents the choice to include every artifact within the
 // job as an input to the put step or specific ones.
 type InputsConfig struct {
 	All       bool
+	Detect    bool
 	Specified []string
 }
 
@@ -723,13 +721,8 @@ func (c *InputsConfig) UnmarshalJSON(inputs []byte) error {
 
 	switch actual := data.(type) {
 	case string:
-		if actual == InputsAll {
-			c.All = true
-		} else if actual == InputsDetect {
-			c.Specified = []string{InputsDetect}
-		} else {
-			return fmt.Errorf("unknown for put inputs %s", actual)
-		}
+		c.All = actual == "all"
+		c.Detect = actual == "detect"
 	case []interface{}:
 		inputs := []string{}
 
@@ -750,9 +743,16 @@ func (c *InputsConfig) UnmarshalJSON(inputs []byte) error {
 	return nil
 }
 
+const InputsAll = "all"
+const InputsDetect = "detect"
+
 func (c InputsConfig) MarshalJSON() ([]byte, error) {
 	if c.All {
 		return json.Marshal(InputsAll)
+	}
+
+	if c.Detect {
+		return json.Marshal(InputsDetect)
 	}
 
 	if c.Specified != nil {
