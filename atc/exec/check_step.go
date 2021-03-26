@@ -300,15 +300,8 @@ func (step *CheckStep) runCheck(
 		StderrWriter: delegate.Stderr(),
 	}
 
-	processCtx, cancel, err := MaybeTimeout(ctx, step.plan.Timeout)
-	if err != nil {
-		return worker.CheckResult{}, err
-	}
-
-	defer cancel()
-
 	chosenWorker, _, err := step.workerPool.SelectWorker(
-		lagerctx.NewContext(processCtx, logger),
+		lagerctx.NewContext(ctx, logger),
 		step.containerOwner(resourceConfig),
 		containerSpec,
 		workerSpec,
@@ -323,12 +316,19 @@ func (step *CheckStep) runCheck(
 
 	defer func() {
 		step.workerPool.ReleaseWorker(
-			lagerctx.NewContext(processCtx, logger),
+			lagerctx.NewContext(ctx, logger),
 			containerSpec,
 			chosenWorker,
 			step.strategy,
 		)
 	}()
+
+	processCtx, cancel, err := MaybeTimeout(ctx, step.plan.Timeout)
+	if err != nil {
+		return worker.CheckResult{}, err
+	}
+
+	defer cancel()
 
 	return chosenWorker.RunCheckStep(
 		lagerctx.NewContext(processCtx, logger),

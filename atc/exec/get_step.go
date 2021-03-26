@@ -210,15 +210,8 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 
 	containerOwner := db.NewBuildStepContainerOwner(step.metadata.BuildID, step.planID, step.metadata.TeamID)
 
-	processCtx, cancel, err := MaybeTimeout(ctx, step.plan.Timeout)
-	if err != nil {
-		return false, err
-	}
-
-	defer cancel()
-
 	worker, _, err := step.workerPool.SelectWorker(
-		lagerctx.NewContext(processCtx, logger),
+		lagerctx.NewContext(ctx, logger),
 		containerOwner,
 		containerSpec,
 		workerSpec,
@@ -233,12 +226,19 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 
 	defer func() {
 		step.workerPool.ReleaseWorker(
-			lagerctx.NewContext(processCtx, logger),
+			lagerctx.NewContext(ctx, logger),
 			containerSpec,
 			worker,
 			step.strategy,
 		)
 	}()
+
+	processCtx, cancel, err := MaybeTimeout(ctx, step.plan.Timeout)
+	if err != nil {
+		return false, err
+	}
+
+	defer cancel()
 
 	getResult, err := worker.RunGetStep(
 		lagerctx.NewContext(processCtx, logger),

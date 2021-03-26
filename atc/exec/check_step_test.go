@@ -253,11 +253,17 @@ var _ = Describe("CheckStep", func() {
 			})
 
 			Describe("worker selection", func() {
+				var ctx context.Context
 				var workerSpec worker.WorkerSpec
 
 				JustBeforeEach(func() {
 					Expect(fakePool.SelectWorkerCallCount()).To(Equal(1))
-					_, _, _, workerSpec, _, _ = fakePool.SelectWorkerArgsForCall(0)
+					ctx, _, _, workerSpec, _, _ = fakePool.SelectWorkerArgsForCall(0)
+				})
+
+				It("doesn't enforce a timeout", func() {
+					_, ok := ctx.Deadline()
+					Expect(ok).To(BeFalse())
 				})
 
 				Describe("calls SelectWorker with the correct WorkerSpec", func() {

@@ -214,15 +214,8 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 
 	resourceToPut := step.resourceFactory.NewResource(source, params, nil)
 
-	processCtx, cancel, err := MaybeTimeout(ctx, step.plan.Timeout)
-	if err != nil {
-		return false, err
-	}
-
-	defer cancel()
-
 	worker, _, err := step.workerPool.SelectWorker(
-		lagerctx.NewContext(processCtx, logger),
+		lagerctx.NewContext(ctx, logger),
 		owner,
 		containerSpec,
 		workerSpec,
@@ -237,12 +230,19 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 
 	defer func() {
 		step.workerPool.ReleaseWorker(
-			lagerctx.NewContext(processCtx, logger),
+			lagerctx.NewContext(ctx, logger),
 			containerSpec,
 			worker,
 			step.strategy,
 		)
 	}()
+
+	processCtx, cancel, err := MaybeTimeout(ctx, step.plan.Timeout)
+	if err != nil {
+		return false, err
+	}
+
+	defer cancel()
 
 	result, err := worker.RunPutStep(
 		lagerctx.NewContext(processCtx, logger),
