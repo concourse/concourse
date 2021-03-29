@@ -183,12 +183,7 @@ type V5PlanConfig struct {
 }
 
 func (m *migrations) Up_1574452410() error {
-	tx, err := m.DB.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer tx.Rollback()
+	tx := m.Tx
 
 	rows, err := tx.Query("SELECT pipeline_id, config, nonce FROM jobs WHERE active = true")
 	if err != nil {
@@ -312,7 +307,7 @@ func (m *migrations) Up_1574452410() error {
 		}
 	}
 
-	return tx.Commit()
+	return nil
 }
 
 func insertJobInput(tx *sql.Tx, plan V5PlanConfig, jobName string, resourceNameToID map[string]int, jobNameToID map[string]int) error {

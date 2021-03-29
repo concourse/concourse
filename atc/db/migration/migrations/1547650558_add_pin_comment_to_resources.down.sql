@@ -1,4 +1,4 @@
-BEGIN;
-  ALTER TABLE resources
-    DROP COLUMN pin_comment;
-COMMIT;
+
+ALTER TABLE resources
+  DROP COLUMN pin_comment;
+

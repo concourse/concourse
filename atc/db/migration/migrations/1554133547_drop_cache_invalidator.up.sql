@@ -1,3 +1,3 @@
-BEGIN;
-  DROP TABLE cache_invalidator;
-COMMIT;
+
+DROP TABLE cache_invalidator;
+

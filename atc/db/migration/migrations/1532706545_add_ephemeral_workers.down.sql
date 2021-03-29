@@ -1,4 +1,4 @@
-BEGIN;
-  ALTER TABLE "workers" DROP COLUMN "ephemeral";
-COMMIT;
+
+ALTER TABLE "workers" DROP COLUMN "ephemeral";
+
 

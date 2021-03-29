@@ -1,3 +1,3 @@
-BEGIN;
-  ALTER TABLE resources DROP COLUMN type;
-COMMIT;
+
+ALTER TABLE resources DROP COLUMN type;
+

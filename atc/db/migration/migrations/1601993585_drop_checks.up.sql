@@ -1,3 +1,3 @@
-BEGIN;
-  DROP TABLE checks;
-COMMIT;
+
+DROP TABLE checks;
+

@@ -197,9 +197,7 @@ var _ = Describe("Migration", func() {
 				migrator := migration.NewMigratorForMigrations(db, lockFactory, fstest.MapFS{
 					"1000_test_table_created.up.sql": &fstest.MapFile{
 						Data: []byte(`
-							BEGIN;
 							CREATE TABLE some_table (id integer);
-							COMMIT;
 						`),
 					},
 				})
@@ -227,9 +225,7 @@ var _ = Describe("Migration", func() {
 				migrator := migration.NewMigratorForMigrations(db, lockFactory, fstest.MapFS{
 					"1000_test_table_created.up.sql": &fstest.MapFile{
 						Data: []byte(`
-							BEGIN;
 							CREATE TABLE some_table (id integer);
-							COMMIT;
 						`),
 					},
 				})
@@ -248,16 +244,12 @@ var _ = Describe("Migration", func() {
 				migrator := migration.NewMigratorForMigrations(db, lockFactory, fstest.MapFS{
 					"1000_test_table_created.up.sql": &fstest.MapFile{
 						Data: []byte(`
-							BEGIN;
 							CREATE TABLE some_table (id integer);
-							COMMIT;
 						`),
 					},
 					"1001_test_table_created.up.sql": &fstest.MapFile{
 						Data: []byte(`
-							BEGIN;
 							DROP TABLE some_table;
-							COMMIT;
 						`),
 					},
 				})
@@ -271,23 +263,17 @@ var _ = Describe("Migration", func() {
 					migrator := migration.NewMigratorForMigrations(db, lockFactory, fstest.MapFS{
 						"1000_test_table_created.up.sql": &fstest.MapFile{
 							Data: []byte(`
-								BEGIN;
 								CREATE TABLE some_table (id integer);
-								COMMIT;
 							`),
 						},
 						"1000_test_table_created.down.sql": &fstest.MapFile{
 							Data: []byte(`
-								BEGIN;
 								DROP TABLE some_table;
-								COMMIT;
 							`),
 						},
 						"1001_drop_bogus_table.up.sql": &fstest.MapFile{
 							Data: []byte(`
-								BEGIN;
 								DROP TABLE some_bogus_table;
-								COMMIT;
 							`),
 						},
 					})
@@ -304,9 +290,7 @@ var _ = Describe("Migration", func() {
 				migrator := migration.NewMigratorForMigrations(db, lockFactory, fstest.MapFS{
 					"1000_test_table_created.up.sql": &fstest.MapFile{
 						Data: []byte(`
-							BEGIN;
 							CREATE TABLE some_table (id integer);
-							COMMIT;
 						`),
 					},
 				})
@@ -325,9 +309,7 @@ var _ = Describe("Migration", func() {
 				migrator := migration.NewMigratorForMigrations(db, lockFactory, fstest.MapFS{
 					"1000_test_table_created.up.sql": &fstest.MapFile{
 						Data: []byte(`
-							BEGIN;
 							CREATE TABLE some_table (id integer);
-							COMMIT;
 						`),
 					},
 				})

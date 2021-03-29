@@ -1,5 +1,5 @@
-BEGIN;
 
-   DROP INDEX resource_config_versions_version;
 
-COMMIT;
+ DROP INDEX resource_config_versions_version;
+
+

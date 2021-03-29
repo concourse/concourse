@@ -12,14 +12,9 @@ func (m *migrations) Up_1561558376() error {
 		nonce  sql.NullString
 	}
 
-	tx, err := m.DB.Begin()
-	if err != nil {
-		return err
-	}
+	tx := m.Tx
 
-	defer tx.Rollback()
-
-	_, err = tx.Exec("ALTER TABLE resources ADD COLUMN type text")
+	_, err := tx.Exec("ALTER TABLE resources ADD COLUMN type text")
 	if err != nil {
 		return err
 	}
@@ -72,5 +67,5 @@ func (m *migrations) Up_1561558376() error {
 		return err
 	}
 
-	return tx.Commit()
+	return nil
 }

@@ -1,14 +1,9 @@
 package migrations
 
 func (m *migrations) Down_1574452410() error {
-	tx, err := m.DB.Begin()
-	if err != nil {
-		return err
-	}
+	tx := m.Tx
 
-	defer tx.Rollback()
-
-	_, err = tx.Exec("TRUNCATE TABLE job_inputs")
+	_, err := tx.Exec("TRUNCATE TABLE job_inputs")
 	if err != nil {
 		return err
 	}
@@ -18,5 +13,5 @@ func (m *migrations) Down_1574452410() error {
 		return err
 	}
 
-	return tx.Commit()
+	return nil
 }
