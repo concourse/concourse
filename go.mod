@@ -33,7 +33,7 @@ require (
 	github.com/containerd/go-runc v0.0.0-20200220073739-7016d3ce2328 // indirect
 	github.com/containerd/ttrpc v1.0.2 // indirect
 	github.com/containerd/typeurl v1.0.1
-	github.com/coreos/go-iptables v0.4.5
+	github.com/coreos/go-iptables v0.5.0
 	github.com/cppforlife/go-semi-semantic v0.0.0-20160921010311-576b6af77ae4
 	github.com/cyberark/conjur-api-go v0.7.1
 	github.com/docker/go-events v0.0.0-20190806004212-e31b211e4f1c // indirect
@@ -102,12 +102,12 @@ require (
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
 	google.golang.org/api v0.32.0 // indirect
 	google.golang.org/genproto v0.0.0-20201110150050-8816d57aaa9a // indirect
-	google.golang.org/grpc v1.32.0
+	google.golang.org/grpc v1.36.1
 	gopkg.in/square/go-jose.v2 v2.5.1
 	gopkg.in/yaml.v2 v2.4.0
 	gotest.tools/v3 v3.0.2 // indirect
 	k8s.io/api v0.20.1
-	k8s.io/apimachinery v0.20.1
+	k8s.io/apimachinery v0.20.5
 	k8s.io/client-go v0.20.1
 	sigs.k8s.io/yaml v1.2.0
 )
