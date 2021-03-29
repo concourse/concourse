@@ -28,9 +28,10 @@ var quickStart QuickstartConfig
 
 var QuickstartCommand = &cobra.Command{
 	Use:   "quickstart",
-	Short: "Run both 'web' and 'worker' together, auto-wired. Not recommended for production",
-	Long:  `TBD`,
-	RunE:  InitializeQuickstart,
+	Short: "TODO",
+	Long: `Run both 'web' and 'worker' together, auto-wired.
+	Not recommended for productionTBD`,
+	RunE: InitializeQuickstart,
 }
 
 func init() {
