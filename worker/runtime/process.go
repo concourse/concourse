@@ -41,12 +41,12 @@ func (p *Process) Wait() (int, error) {
 		return 0, fmt.Errorf("waiting for exit status: %w", err)
 	}
 
+	p.process.IO().Wait()
+
 	_, err = p.process.Delete(context.Background())
 	if err != nil {
 		return 0, fmt.Errorf("delete process: %w", err)
 	}
-
-	p.process.IO().Wait()
 
 	return int(status.ExitCode()), nil
 }

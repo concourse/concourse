@@ -48,6 +48,7 @@ func (s *ProcessSuite) TestWaitStatusErr() {
 
 func (s *ProcessSuite) TestProcessWaitDeleteError() {
 	s.ch <- *containerd.NewExitStatus(0, time.Now(), nil)
+	s.containerdProcess.IOReturns(s.io)
 
 	expectedErr := errors.New("status-err")
 	s.containerdProcess.DeleteReturns(nil, expectedErr)
@@ -59,6 +60,11 @@ func (s *ProcessSuite) TestProcessWaitDeleteError() {
 func (s *ProcessSuite) TestProcessWaitBlocksUntilIOFinishes() {
 	s.ch <- *containerd.NewExitStatus(0, time.Now(), nil)
 	s.containerdProcess.IOReturns(s.io)
+
+	s.io.WaitStub = func() {
+		// ensure Wait() is called before Delete() which cancels IO
+		s.Equal(0, s.containerdProcess.DeleteCallCount())
+	}
 
 	_, err := s.process.Wait()
 	s.NoError(err)
