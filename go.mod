@@ -33,7 +33,7 @@ require (
 	github.com/containerd/go-runc v0.0.0-20200220073739-7016d3ce2328 // indirect
 	github.com/containerd/ttrpc v1.0.2 // indirect
 	github.com/containerd/typeurl v1.0.1
-	github.com/coreos/go-iptables v0.4.5
+	github.com/coreos/go-iptables v0.5.0
 	github.com/cppforlife/go-semi-semantic v0.0.0-20160921010311-576b6af77ae4
 	github.com/cyberark/conjur-api-go v0.7.1
 	github.com/docker/go-events v0.0.0-20190806004212-e31b211e4f1c // indirect
