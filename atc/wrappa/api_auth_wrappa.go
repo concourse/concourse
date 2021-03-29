@@ -141,6 +141,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.GetVersionsDB,
 			atc.ListJobInputs,
 			atc.OrderPipelines,
+			atc.OrderPipelinesWithinGroup,
 			atc.PauseJob,
 			atc.PausePipeline,
 			atc.RenamePipeline,
