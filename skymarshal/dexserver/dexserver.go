@@ -26,6 +26,7 @@ type DexConfig struct {
 	Users       map[string]string
 	RedirectURL string
 	Storage     s.Storage
+	Connectors  skycmd.ConnectorsConfig
 }
 
 func NewDexServer(config *DexConfig) (*server.Server, error) {
@@ -63,7 +64,7 @@ func NewDexServerConfig(config *DexConfig) (server.Config, error) {
 
 	redirectURI := strings.TrimRight(config.IssuerURL, "/") + "/callback"
 
-	for _, connector := range skycmd.GetConnectors() {
+	for _, connector := range config.Connectors.ConfiguredConnectors() {
 		if c, err := connector.Serialize(redirectURI); err == nil {
 			connectors = append(connectors, storage.Connector{
 				ID:     connector.ID(),

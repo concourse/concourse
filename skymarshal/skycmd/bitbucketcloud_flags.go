@@ -13,6 +13,14 @@ type BitbucketCloudFlags struct {
 	ClientSecret string `yaml:"client_secret,omitempty"`
 }
 
+func (flag *BitbucketCloudFlags) ID() string {
+	return BitbucketCloudConnectorID
+}
+
+func (flag *BitbucketCloudFlags) Name() string {
+	return "Bitbucket Cloud"
+}
+
 func (flag *BitbucketCloudFlags) Validate() error {
 	var errs *multierror.Error
 
@@ -41,8 +49,8 @@ func (flag *BitbucketCloudFlags) Serialize(redirectURI string) ([]byte, error) {
 }
 
 type BitbucketCloudTeamFlags struct {
-	Users []string `yaml:"users" env:"CONCOURSE_MAIN_TEAM_BITBUCKET_CLOUD_USERS,CONCOURSE_MAIN_TEAM_BITBUCKET_CLOUD_USER" long:"user" description:"A whitelisted Bitbucket Cloud user" value-name:"USERNAME"`
-	Teams []string `yaml:"teams" env:"CONCOURSE_MAIN_TEAM_BITBUCKET_CLOUD_TEAMS,CONCOURSE_MAIN_TEAM_BITBUCKET_CLOUD_TEAM" long:"team" description:"A whitelisted Bitbucket Cloud team" value-name:"TEAM_NAME"`
+	Users []string `yaml:"users,omitempty" env:"CONCOURSE_MAIN_TEAM_BITBUCKET_CLOUD_USERS,CONCOURSE_MAIN_TEAM_BITBUCKET_CLOUD_USER" long:"user" description:"A whitelisted Bitbucket Cloud user" value-name:"USERNAME"`
+	Teams []string `yaml:"teams,omitempty" env:"CONCOURSE_MAIN_TEAM_BITBUCKET_CLOUD_TEAMS,CONCOURSE_MAIN_TEAM_BITBUCKET_CLOUD_TEAM" long:"team" description:"A whitelisted Bitbucket Cloud team" value-name:"TEAM_NAME"`
 }
 
 func (flag *BitbucketCloudTeamFlags) ID() string {

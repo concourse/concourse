@@ -1571,6 +1571,7 @@ func (cmd *RunConfig) constructAuthHandler(
 		WebHostURL:  "/sky/issuer",
 		SigningKey:  cmd.Auth.AuthFlags.SigningKey.PrivateKey,
 		Storage:     storage,
+		Connectors:  cmd.Auth.AuthFlags.Connectors,
 	})
 	if err != nil {
 		return nil, err

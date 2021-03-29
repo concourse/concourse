@@ -14,6 +14,14 @@ type GitlabFlags struct {
 	Host         string `yaml:"host,omitempty"`
 }
 
+func (flag *GitlabFlags) ID() string {
+	return GitlabConnectorID
+}
+
+func (flag *GitlabFlags) Name() string {
+	return "GitLab"
+}
+
 func (flag *GitlabFlags) Validate() error {
 	var errs *multierror.Error
 
@@ -42,8 +50,8 @@ func (flag *GitlabFlags) Serialize(redirectURI string) ([]byte, error) {
 }
 
 type GitlabTeamFlags struct {
-	Users  []string `yaml:"users" env:"CONCOURSE_MAIN_TEAM_GITLAB_USERS,CONCOURSE_MAIN_TEAM_GITLAB_USER" long:"user" description:"A whitelisted GitLab user" value-name:"USERNAME"`
-	Groups []string `yaml:"groups" env:"CONCOURSE_MAIN_TEAM_GITLAB_GROUPS,CONCOURSE_MAIN_TEAM_GITLAB_GROUP" long:"group" description:"A whitelisted GitLab group" value-name:"GROUP_NAME"`
+	Users  []string `yaml:"users,omitempty" env:"CONCOURSE_MAIN_TEAM_GITLAB_USERS,CONCOURSE_MAIN_TEAM_GITLAB_USER" long:"user" description:"A whitelisted GitLab user" value-name:"USERNAME"`
+	Groups []string `yaml:"groups,omitempty" env:"CONCOURSE_MAIN_TEAM_GITLAB_GROUPS,CONCOURSE_MAIN_TEAM_GITLAB_GROUP" long:"group" description:"A whitelisted GitLab group" value-name:"GROUP_NAME"`
 }
 
 func (flag *GitlabTeamFlags) ID() string {

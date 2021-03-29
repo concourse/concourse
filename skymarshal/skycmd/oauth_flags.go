@@ -10,6 +10,7 @@ import (
 )
 
 type OAuthFlags struct {
+	DisplayName        string     `yaml:"display_name,omitempty"`
 	ClientID           string     `yaml:"client_id,omitempty"`
 	ClientSecret       string     `yaml:"client_secret,omitempty"`
 	AuthURL            string     `yaml:"auth_url,omitempty"`
@@ -21,6 +22,17 @@ type OAuthFlags struct {
 	UserNameKey        string     `yaml:"user_name_key,omitempty"`
 	CACerts            flag.Files `yaml:"ca_cert,omitempty"`
 	InsecureSkipVerify bool       `yaml:"skip_ssl_validation,omitempty"`
+}
+
+func (flag *OAuthFlags) ID() string {
+	return OAuthConnectorID
+}
+
+func (flag *OAuthFlags) Name() string {
+	if flag.DisplayName != "" {
+		return flag.DisplayName
+	}
+	return "OAuth2"
 }
 
 func (flag *OAuthFlags) Validate() error {
@@ -80,8 +92,8 @@ func (flag *OAuthFlags) Serialize(redirectURI string) ([]byte, error) {
 }
 
 type OAuthTeamFlags struct {
-	Users  []string `yaml:"users" env:"CONCOURSE_MAIN_TEAM_OAUTH_USERS,CONCOURSE_MAIN_TEAM_OAUTH_USER" json:"users" long:"user" description:"A whitelisted OAuth2 user" value-name:"USERNAME"`
-	Groups []string `yaml:"groups" env:"CONCOURSE_MAIN_TEAM_OAUTH_GROUPS,CONCOURSE_MAIN_TEAM_OAUTH_GROUP" json:"groups" long:"group" description:"A whitelisted OAuth2 group" value-name:"GROUP_NAME"`
+	Users  []string `yaml:"users,omitempty" env:"CONCOURSE_MAIN_TEAM_OAUTH_USERS,CONCOURSE_MAIN_TEAM_OAUTH_USER" json:"users" long:"user" description:"A whitelisted OAuth2 user" value-name:"USERNAME"`
+	Groups []string `yaml:"groups,omitempty" env:"CONCOURSE_MAIN_TEAM_OAUTH_GROUPS,CONCOURSE_MAIN_TEAM_OAUTH_GROUP" json:"groups" long:"group" description:"A whitelisted OAuth2 group" value-name:"GROUP_NAME"`
 }
 
 func (flag *OAuthTeamFlags) ID() string {

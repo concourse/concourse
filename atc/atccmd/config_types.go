@@ -59,31 +59,31 @@ type CredentialManagersConfig struct {
 func (c CredentialManagersConfig) ConfiguredCredentialManager() (creds.Manager, error) {
 	var configuredManagers []creds.Manager
 
-	if c.Conjur.IsConfigured() {
+	if c.Conjur != nil && c.Conjur.IsConfigured() {
 		configuredManagers = append(configuredManagers, c.Conjur)
 	}
 
-	if c.CredHub.IsConfigured() {
+	if c.CredHub != nil && c.CredHub.IsConfigured() {
 		configuredManagers = append(configuredManagers, c.CredHub)
 	}
 
-	if c.Dummy.IsConfigured() {
+	if c.Dummy != nil && c.Dummy.IsConfigured() {
 		configuredManagers = append(configuredManagers, c.Dummy)
 	}
 
-	if c.Kubernetes.IsConfigured() {
+	if c.Kubernetes != nil && c.Kubernetes.IsConfigured() {
 		configuredManagers = append(configuredManagers, c.Kubernetes)
 	}
 
-	if c.SecretsManager.IsConfigured() {
+	if c.SecretsManager != nil && c.SecretsManager.IsConfigured() {
 		configuredManagers = append(configuredManagers, c.SecretsManager)
 	}
 
-	if c.SSM.IsConfigured() {
+	if c.SSM != nil && c.SSM.IsConfigured() {
 		configuredManagers = append(configuredManagers, c.SSM)
 	}
 
-	if c.Vault.IsConfigured() {
+	if c.Vault != nil && c.Vault.IsConfigured() {
 		configuredManagers = append(configuredManagers, c.Vault)
 	}
 
@@ -149,23 +149,23 @@ type MetricsEmitterConfig struct {
 func (e MetricsEmitterConfig) ConfiguredEmitter() (metric.EmitterFactory, error) {
 	var configuredEmitters []metric.EmitterFactory
 
-	if e.Datadog.IsConfigured() {
+	if e.Datadog != nil && e.Datadog.IsConfigured() {
 		configuredEmitters = append(configuredEmitters, e.Datadog)
 	}
 
-	if e.InfluxDB.IsConfigured() {
+	if e.InfluxDB != nil && e.InfluxDB.IsConfigured() {
 		configuredEmitters = append(configuredEmitters, e.InfluxDB)
 	}
 
-	if e.Lager.IsConfigured() {
+	if e.Lager != nil && e.Lager.IsConfigured() {
 		configuredEmitters = append(configuredEmitters, e.Lager)
 	}
 
-	if e.NewRelic.IsConfigured() {
+	if e.NewRelic != nil && e.NewRelic.IsConfigured() {
 		configuredEmitters = append(configuredEmitters, e.NewRelic)
 	}
 
-	if e.Prometheus.IsConfigured() {
+	if e.Prometheus != nil && e.Prometheus.IsConfigured() {
 		configuredEmitters = append(configuredEmitters, e.Prometheus)
 	}
 

@@ -10,6 +10,7 @@ import (
 )
 
 type LDAPFlags struct {
+	DisplayName        string    `yaml:"display_name,omitempty"`
 	Host               string    `yaml:"host,omitempty"`
 	BindDN             string    `yaml:"bind_dn,omitempty"`
 	BindPW             string    `yaml:"bind_pw,omitempty"`
@@ -40,6 +41,17 @@ type GroupSearchConfig struct {
 	UserAttr  string `yaml:"user_attr,omitempty"`
 	GroupAttr string `yaml:"group_attr,omitempty"`
 	NameAttr  string `yaml:"name_attr,omitempty"`
+}
+
+func (flag *LDAPFlags) ID() string {
+	return LDAPConnectorID
+}
+
+func (flag *LDAPFlags) Name() string {
+	if flag.DisplayName != "" {
+		return flag.DisplayName
+	}
+	return "LDAP"
 }
 
 func (flag *LDAPFlags) Validate() error {
@@ -94,8 +106,8 @@ func (flag *LDAPFlags) Serialize(redirectURI string) ([]byte, error) {
 }
 
 type LDAPTeamFlags struct {
-	Users  []string `yaml:"users" env:"CONCOURSE_MAIN_TEAM_LDAP_USERS,CONCOURSE_MAIN_TEAM_LDAP_USER" json:"users" long:"user" description:"A whitelisted LDAP user" value-name:"USERNAME"`
-	Groups []string `yaml:"groups" env:"CONCOURSE_MAIN_TEAM_LDAP_GROUPS,CONCOURSE_MAIN_TEAM_LDAP_GROUP" json:"groups" long:"group" description:"A whitelisted LDAP group" value-name:"GROUP_NAME"`
+	Users  []string `yaml:"users,omitempty" env:"CONCOURSE_MAIN_TEAM_LDAP_USERS,CONCOURSE_MAIN_TEAM_LDAP_USER" json:"users" long:"user" description:"A whitelisted LDAP user" value-name:"USERNAME"`
+	Groups []string `yaml:"groups,omitempty" env:"CONCOURSE_MAIN_TEAM_LDAP_GROUPS,CONCOURSE_MAIN_TEAM_LDAP_GROUP" json:"groups" long:"group" description:"A whitelisted LDAP group" value-name:"GROUP_NAME"`
 }
 
 func (flag *LDAPTeamFlags) ID() string {

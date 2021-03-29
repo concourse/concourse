@@ -10,6 +10,7 @@ import (
 )
 
 type SAMLFlags struct {
+	DisplayName        string    `yaml:"display_name,omitempty"`
 	SsoURL             string    `yaml:"sso_url,omitempty"`
 	CACert             flag.File `yaml:"ca_cert,omitempty"`
 	EntityIssuer       string    `yaml:"entity_issuer,omitempty"`
@@ -20,6 +21,17 @@ type SAMLFlags struct {
 	GroupsDelim        string    `yaml:"groups_delim,omitempty"`
 	NameIDPolicyFormat string    `yaml:"name_id_policy_format,omitempty"`
 	InsecureSkipVerify bool      `yaml:"skip_ssl_validation,omitempty"`
+}
+
+func (flag *SAMLFlags) ID() string {
+	return SAMLConnectorID
+}
+
+func (flag *SAMLFlags) Name() string {
+	if flag.DisplayName != "" {
+		return flag.DisplayName
+	}
+	return "SAML"
 }
 
 func (flag *SAMLFlags) Validate() error {
@@ -57,8 +69,8 @@ func (flag *SAMLFlags) Serialize(redirectURI string) ([]byte, error) {
 }
 
 type SAMLTeamFlags struct {
-	Users  []string `yaml:"users" env:"CONCOURSE_MAIN_TEAM_SAML_USERS,CONCOURSE_MAIN_TEAM_SAML_USER" json:"users" long:"user" description:"A whitelisted SAML user" value-name:"USERNAME"`
-	Groups []string `yaml:"groups" env:"CONCOURSE_MAIN_TEAM_SAML_GROUPS,CONCOURSE_MAIN_TEAM_SAML_GROUP" json:"groups" long:"group" description:"A whitelisted SAML group" value-name:"GROUP_NAME"`
+	Users  []string `yaml:"users,omitempty" env:"CONCOURSE_MAIN_TEAM_SAML_USERS,CONCOURSE_MAIN_TEAM_SAML_USER" json:"users" long:"user" description:"A whitelisted SAML user" value-name:"USERNAME"`
+	Groups []string `yaml:"groups,omitempty" env:"CONCOURSE_MAIN_TEAM_SAML_GROUPS,CONCOURSE_MAIN_TEAM_SAML_GROUP" json:"groups" long:"group" description:"A whitelisted SAML group" value-name:"GROUP_NAME"`
 }
 
 func (flag *SAMLTeamFlags) ID() string {

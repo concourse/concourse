@@ -145,6 +145,7 @@ func InitializeConnectorFlags(c *cobra.Command, flags *atccmd.RunConfig) {
 	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.Gitlab.Host, "gitlab-host", "", "Hostname of Gitlab Enterprise deployment (Include scheme, No trailing slash)")
 
 	// LDAP
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.LDAP.DisplayName, "ldap-display-name", "", "The auth provider name displayed to users on the login page")
 	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.LDAP.Host, "ldap-host", "", "(Required) The host and optional port of the LDAP server. If port isn't supplied, it will be guessed based on the TLS configuration. 389 or 636.")
 	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.LDAP.BindDN, "ldap-bind-dn", "", "(Required) Bind DN for searching LDAP users and groups. Typically this is a read-only user.")
 	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.LDAP.BindPW, "ldap-bind-pw", "", "(Required) Bind Password for the user specified by 'bind-dn'")
@@ -174,6 +175,7 @@ func InitializeConnectorFlags(c *cobra.Command, flags *atccmd.RunConfig) {
 	c.Flags().BoolVar(&flags.Auth.AuthFlags.Connectors.Microsoft.OnlySecurityGroups, "microsoft-only-security-groups", false, "Only fetch security groups")
 
 	// OAuth
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.OAuth.DisplayName, "oauth-display-name", "", "The auth provider name displayed to users on the login page")
 	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.OAuth.ClientID, "oauth-client-id", "", "(Required) Client id")
 	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.OAuth.ClientSecret, "oauth-client-secret", "", "(Required) Client secret")
 	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.OAuth.AuthURL, "oauth-auth-url", "", "(Required) Authorization URL")
@@ -187,6 +189,7 @@ func InitializeConnectorFlags(c *cobra.Command, flags *atccmd.RunConfig) {
 	c.Flags().BoolVar(&flags.Auth.AuthFlags.Connectors.OAuth.InsecureSkipVerify, "oauth-skip-ssl-validation", false, "Skip SSL validation")
 
 	// OIDC
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.OIDC.DisplayName, "oidc-display-name", "", "The auth provider name displayed to users on the login page")
 	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.OIDC.Issuer, "oidc-issuer", "", "(Required) An OIDC issuer URL that will be used to discover provider configuration using the .well-known/openid-configuration")
 	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.OIDC.ClientID, "oidc-client-id", "", "(Required) Client id")
 	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.OIDC.ClientSecret, "oidc-client-secret", "", "(Required) Client secret")
@@ -200,6 +203,7 @@ func InitializeConnectorFlags(c *cobra.Command, flags *atccmd.RunConfig) {
 	c.Flags().BoolVar(&flags.Auth.AuthFlags.Connectors.OIDC.InsecureSkipEmailVerified, "oidc-skip-email-verified-validation", false, "Ignore the email_verified claim from the upstream provider, treating all users as if email_verified were true.")
 
 	// SAML
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.SAML.DisplayName, "saml-display-name", "", "The auth provider name displayed to users on the login page")
 	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.SAML.SsoURL, "saml-sso-url", "", "(Required) SSO URL used for POST value")
 	c.Flags().Var(&flags.Auth.AuthFlags.Connectors.SAML.CACert, "saml-ca-cert", "(Required) CA Certificate")
 	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.SAML.EntityIssuer, "saml-entity-issuer", "", "Manually specify dex's Issuer value.")

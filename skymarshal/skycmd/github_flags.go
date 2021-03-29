@@ -16,6 +16,14 @@ type GithubFlags struct {
 	CACert       flag.File `yaml:"ca_cert,omitempty"`
 }
 
+func (flag *GithubFlags) ID() string {
+	return GithubConnectorID
+}
+
+func (flag *GithubFlags) Name() string {
+	return "GitHub"
+}
+
 func (flag *GithubFlags) Validate() error {
 	var errs *multierror.Error
 
@@ -47,9 +55,9 @@ func (flag *GithubFlags) Serialize(redirectURI string) ([]byte, error) {
 }
 
 type GithubTeamFlags struct {
-	Users []string `yaml:"users" env:"CONCOURSE_MAIN_TEAM_GITHUB_USERS,CONCOURSE_MAIN_TEAM_GITHUB_USER" long:"user" description:"A whitelisted GitHub user" value-name:"USERNAME"`
-	Orgs  []string `yaml:"orgs" env:"CONCOURSE_MAIN_TEAM_GITHUB_ORGS,CONCOURSE_MAIN_TEAM_GITHUB_ORG" long:"org" description:"A whitelisted GitHub org" value-name:"ORG_NAME"`
-	Teams []string `yaml:"teams" env:"CONCOURSE_MAIN_TEAM_GITHUB_TEAMS,CONCOURSE_MAIN_TEAM_GITHUB_TEAM" long:"team" description:"A whitelisted GitHub team" value-name:"ORG_NAME:TEAM_NAME"`
+	Users []string `yaml:"users,omitempty" env:"CONCOURSE_MAIN_TEAM_GITHUB_USERS,CONCOURSE_MAIN_TEAM_GITHUB_USER" long:"user" description:"A whitelisted GitHub user" value-name:"USERNAME"`
+	Orgs  []string `yaml:"orgs,omitempty" env:"CONCOURSE_MAIN_TEAM_GITHUB_ORGS,CONCOURSE_MAIN_TEAM_GITHUB_ORG" long:"org" description:"A whitelisted GitHub org" value-name:"ORG_NAME"`
+	Teams []string `yaml:"teams,omitempty" env:"CONCOURSE_MAIN_TEAM_GITHUB_TEAMS,CONCOURSE_MAIN_TEAM_GITHUB_TEAM" long:"team" description:"A whitelisted GitHub team" value-name:"ORG_NAME:TEAM_NAME"`
 }
 
 func (flag *GithubTeamFlags) ID() string {

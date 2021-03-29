@@ -67,6 +67,47 @@ type ConnectorsConfig struct {
 	SAML           *SAMLFlags           `yaml:"saml,omitempty"`
 }
 
+func (c ConnectorsConfig) ConfiguredConnectors() []Config {
+	var configuredConnectors []Config
+	if c.BitbucketCloud != nil {
+		configuredConnectors = append(configuredConnectors, c.BitbucketCloud)
+	}
+
+	if c.CF != nil {
+		configuredConnectors = append(configuredConnectors, c.CF)
+	}
+
+	if c.Github != nil {
+		configuredConnectors = append(configuredConnectors, c.Github)
+	}
+
+	if c.Gitlab != nil {
+		configuredConnectors = append(configuredConnectors, c.Gitlab)
+	}
+
+	if c.LDAP != nil {
+		configuredConnectors = append(configuredConnectors, c.LDAP)
+	}
+
+	if c.Microsoft != nil {
+		configuredConnectors = append(configuredConnectors, c.Microsoft)
+	}
+
+	if c.OAuth != nil {
+		configuredConnectors = append(configuredConnectors, c.OAuth)
+	}
+
+	if c.OIDC != nil {
+		configuredConnectors = append(configuredConnectors, c.OIDC)
+	}
+
+	if c.SAML != nil {
+		configuredConnectors = append(configuredConnectors, c.SAML)
+	}
+
+	return configuredConnectors
+}
+
 type TeamConnectorsConfig struct {
 	BitbucketCloud *BitbucketCloudTeamFlags `yaml:"bitbucket_cloud,omitempty" group:"Authentication (Bitbucket Cloud)" namespace:"bitbucket-cloud"`
 	CF             *CFTeamFlags             `yaml:"cf,omitempty" group:"Authentication (CloudFoundry)" namespace:"cf"`
@@ -118,6 +159,18 @@ func (c TeamConnectorsConfig) ConfiguredConnectors() []TeamConfig {
 	}
 
 	return configuredConnectors
+}
+
+type Config interface {
+	ID() string
+	Name() string
+	Serialize(redirectURI string) ([]byte, error)
+}
+
+type TeamConfig interface {
+	ID() string
+	GetUsers() []string
+	GetGroups() []string
 }
 
 func (flag *AuthTeamFlags) Format() (atc.TeamAuth, error) {
@@ -244,17 +297,6 @@ func (flag *AuthTeamFlags) formatFromFlags() (atc.TeamAuth, error) {
 			"groups": groups,
 		},
 	}, nil
-}
-
-type Config interface {
-	Name() string
-	Serialize(redirectURI string) ([]byte, error)
-}
-
-type TeamConfig interface {
-	ID() string
-	GetUsers() []string
-	GetGroups() []string
 }
 
 type skyDisplayUserIdGenerator struct {

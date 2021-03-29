@@ -16,6 +16,14 @@ type MicrosoftFlags struct {
 	OnlySecurityGroups bool     `yaml:"only_security_groups,omitempty"`
 }
 
+func (flag *MicrosoftFlags) ID() string {
+	return MicrosoftConnectorID
+}
+
+func (flag *MicrosoftFlags) Name() string {
+	return "Microsoft"
+}
+
 func (flag *MicrosoftFlags) Validate() error {
 	var errs *multierror.Error
 
@@ -46,8 +54,8 @@ func (flag *MicrosoftFlags) Serialize(redirectURI string) ([]byte, error) {
 }
 
 type MicrosoftTeamFlags struct {
-	Users  []string `yaml:"users" env:"CONCOURSE_MAIN_TEAM_MICROSOFT_USERS,CONCOURSE_MAIN_TEAM_MICROSOFT_USER" long:"user" description:"A whitelisted Microsoft user" value-name:"USERNAME"`
-	Groups []string `yaml:"groups" env:"CONCOURSE_MAIN_TEAM_MICROSOFT_GROUPS,CONCOURSE_MAIN_TEAM_MICROSOFT_GROUP" long:"group" description:"A whitelisted Microsoft group" value-name:"GROUP_NAME"`
+	Users  []string `yaml:"users,omitempty" env:"CONCOURSE_MAIN_TEAM_MICROSOFT_USERS,CONCOURSE_MAIN_TEAM_MICROSOFT_USER" long:"user" description:"A whitelisted Microsoft user" value-name:"USERNAME"`
+	Groups []string `yaml:"groups,omitempty" env:"CONCOURSE_MAIN_TEAM_MICROSOFT_GROUPS,CONCOURSE_MAIN_TEAM_MICROSOFT_GROUP" long:"group" description:"A whitelisted Microsoft group" value-name:"GROUP_NAME"`
 }
 
 func (flag *MicrosoftTeamFlags) ID() string {

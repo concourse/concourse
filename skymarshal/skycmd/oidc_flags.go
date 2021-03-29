@@ -10,6 +10,7 @@ import (
 )
 
 type OIDCFlags struct {
+	DisplayName               string     `yaml:"display_name,omitempty"`
 	Issuer                    string     `yaml:"issuer,omitempty"`
 	ClientID                  string     `yaml:"client_id,omitempty"`
 	ClientSecret              string     `yaml:"client_secret,omitempty"`
@@ -21,6 +22,17 @@ type OIDCFlags struct {
 	InsecureSkipVerify        bool       `yaml:"skip_ssl_validation,omitempty"`
 	DisableGroups             bool       `yaml:"disable_groups,omitempty"`
 	InsecureSkipEmailVerified bool       `yaml:"skip_email_verified_validation,omitempty"`
+}
+
+func (flag *OIDCFlags) ID() string {
+	return OIDCConnectorID
+}
+
+func (flag *OIDCFlags) Name() string {
+	if flag.DisplayName != "" {
+		return flag.DisplayName
+	}
+	return "OIDC"
 }
 
 func (flag *OIDCFlags) Validate() error {
@@ -72,8 +84,8 @@ func (flag *OIDCFlags) Serialize(redirectURI string) ([]byte, error) {
 }
 
 type OIDCTeamFlags struct {
-	Users  []string `yaml:"users" env:"CONCOURSE_MAIN_TEAM_OIDC_USERS,CONCOURSE_MAIN_TEAM_OIDC_USER" json:"users" long:"user" description:"A whitelisted OIDC user" value-name:"USERNAME"`
-	Groups []string `yaml:"groups" env:"CONCOURSE_MAIN_TEAM_OIDC_GROUPS,CONCOURSE_MAIN_TEAM_OIDC_GROUP" json:"groups" long:"group" description:"A whitelisted OIDC group" value-name:"GROUP_NAME"`
+	Users  []string `yaml:"users,omitempty" env:"CONCOURSE_MAIN_TEAM_OIDC_USERS,CONCOURSE_MAIN_TEAM_OIDC_USER" json:"users" long:"user" description:"A whitelisted OIDC user" value-name:"USERNAME"`
+	Groups []string `yaml:"groups,omitempty" env:"CONCOURSE_MAIN_TEAM_OIDC_GROUPS,CONCOURSE_MAIN_TEAM_OIDC_GROUP" json:"groups" long:"group" description:"A whitelisted OIDC group" value-name:"GROUP_NAME"`
 }
 
 func (flag *OIDCTeamFlags) ID() string {
