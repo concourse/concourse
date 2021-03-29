@@ -33,7 +33,7 @@ require (
 	github.com/containerd/go-runc v0.0.0-20200220073739-7016d3ce2328 // indirect
 	github.com/containerd/ttrpc v1.0.2 // indirect
 	github.com/containerd/typeurl v1.0.1
-	github.com/coreos/go-iptables v0.4.5
+	github.com/coreos/go-iptables v0.5.0
 	github.com/cppforlife/go-semi-semantic v0.0.0-20160921010311-576b6af77ae4
 	github.com/cyberark/conjur-api-go v0.7.1
 	github.com/docker/go-events v0.0.0-20190806004212-e31b211e4f1c // indirect
@@ -46,7 +46,7 @@ require (
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e
 	github.com/google/jsonapi v0.0.0-20180618021926-5d047c6bc66b
 	github.com/gorilla/websocket v1.4.2
-	github.com/hashicorp/go-multierror v1.1.0
+	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-rootcerts v1.0.2
 	github.com/hashicorp/vault/api v1.0.5-0.20191108163347-bdd38fca2cff
 	github.com/hashicorp/vault/sdk v0.1.14-0.20191112033314-390e96e22eb2 // indirect
