@@ -29,7 +29,7 @@ type Callback
     | PipelineFetched (Fetched Concourse.Pipeline)
     | PipelinesFetched (Fetched (List Concourse.Pipeline))
     | PipelineToggled Concourse.PipelineIdentifier (Fetched ())
-    | PipelinesOrdered String (Fetched ())
+    | PipelinesOrdered Concourse.TeamName (Fetched ())
     | UserFetched (Fetched Concourse.User)
     | ResourcesFetched (Fetched (List Concourse.Resource))
     | BuildResourcesFetched (Fetched ( Int, Concourse.BuildResources ))

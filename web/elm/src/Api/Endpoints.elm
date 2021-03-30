@@ -1,6 +1,7 @@
 module Api.Endpoints exposing
     ( BuildEndpoint(..)
     , Endpoint(..)
+    , InstanceGroupEndpoint(..)
     , JobEndpoint(..)
     , PipelineEndpoint(..)
     , ResourceEndpoint(..)
@@ -30,6 +31,7 @@ type Endpoint
     | Cli
     | UserInfo
     | Logout
+    | InstanceGroup Concourse.InstanceGroupIdentifier InstanceGroupEndpoint
 
 
 type PipelineEndpoint
@@ -77,6 +79,10 @@ type ResourceVersionEndpoint
 type TeamEndpoint
     = TeamPipelinesList
     | OrderTeamPipelines
+
+
+type InstanceGroupEndpoint
+    = OrderInstanceGroupPipelines
 
 
 base : RouteBuilder
@@ -174,6 +180,12 @@ builder endpoint =
 
         Logout ->
             baseSky |> appendPath [ "logout" ]
+
+        InstanceGroup { teamName, name } subEndpoint ->
+            base
+                |> appendPath [ "teams", teamName ]
+                |> appendPath [ "pipelines", name ]
+                |> append (instanceGroupEndpoint subEndpoint)
 
 
 pipelineEndpoint : PipelineEndpoint -> RouteBuilder
@@ -295,5 +307,14 @@ teamEndpoint endpoint =
 
         OrderTeamPipelines ->
             [ "pipelines", "ordering" ]
+    , []
+    )
+
+
+instanceGroupEndpoint : InstanceGroupEndpoint -> RouteBuilder
+instanceGroupEndpoint endpoint =
+    ( case endpoint of
+        OrderInstanceGroupPipelines ->
+            [ "ordering" ]
     , []
     )
