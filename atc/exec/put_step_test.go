@@ -232,6 +232,9 @@ var _ = Describe("PutStep", func() {
 		)
 
 		stepOk, stepErr = putStep.Run(ctx, state)
+		if stepErr != nil {
+			testLogger.Error("putStep.Run-failed", stepErr)
+		}
 	})
 
 	var runCtx context.Context
@@ -340,6 +343,19 @@ var _ = Describe("PutStep", func() {
 			})
 		})
 
+		Context("when only empty list of inputs are specified ", func() {
+			BeforeEach(func() {
+				putPlan.Inputs = &atc.InputsConfig{
+					Specified: []string{},
+				}
+			})
+
+			It("calls RunPutStep with specified inputs", func() {
+				_, _, inputMap := fakeArtifactSourcer.SourceInputsAndCachesArgsForCall(0)
+				Expect(inputMap).To(HaveLen(0))
+			})
+		})
+
 		Context("when the inputs are detected", func() {
 			BeforeEach(func() {
 				putPlan.Inputs = &atc.InputsConfig{
@@ -381,6 +397,24 @@ var _ = Describe("PutStep", func() {
 					Expect(inputMap).To(HaveLen(2))
 					Expect(inputMap["/tmp/build/put/some-other-source"]).To(Equal(fakeOtherArtifact))
 					Expect(inputMap["/tmp/build/put/some-source"]).To(Equal(fakeArtifact))
+				})
+			})
+
+			Context("when the params contains . and ..", func() {
+				BeforeEach(func() {
+					putPlan.Params = atc.Params{
+						"some-param": "./some-source/source",
+						"some-map": map[string]interface{}{
+							"key": "../some-other-source/source",
+						},
+					}
+				})
+
+				It("calls RunPutStep with detected inputs", func() {
+					_, _, inputMap := fakeArtifactSourcer.SourceInputsAndCachesArgsForCall(0)
+					Expect(inputMap).To(HaveLen(2))
+					Expect(inputMap["/tmp/build/put/some-source"]).To(Equal(fakeArtifact))
+					Expect(inputMap["/tmp/build/put/some-other-source"]).To(Equal(fakeOtherArtifact))
 				})
 			})
 		})
