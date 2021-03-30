@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/concourse/concourse/flag"
+	"github.com/concourse/flag"
 	"github.com/concourse/dex/connector/cf"
 	multierror "github.com/hashicorp/go-multierror"
 )

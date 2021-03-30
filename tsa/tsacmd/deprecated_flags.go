@@ -1,7 +1,7 @@
 package tsacmd
 
 import (
-	"github.com/concourse/concourse/flag"
+	"github.com/concourse/flag"
 	"github.com/spf13/cobra"
 )
 

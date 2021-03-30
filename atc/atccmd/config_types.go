@@ -17,7 +17,7 @@ import (
 	"github.com/concourse/concourse/atc/metric/emitter"
 	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/atc/worker"
-	"github.com/concourse/concourse/flag"
+	"github.com/concourse/flag"
 	"github.com/concourse/concourse/skymarshal/skycmd"
 )
 

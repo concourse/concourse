@@ -10,7 +10,7 @@ import (
 	"github.com/clarafu/envstruct"
 	concourseCmd "github.com/concourse/concourse/cmd"
 	v "github.com/concourse/concourse/cmd/concourse/validator"
-	"github.com/concourse/concourse/flag"
+	"github.com/concourse/flag"
 	"github.com/concourse/concourse/worker/workercmd"
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"

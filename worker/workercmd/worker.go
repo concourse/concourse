@@ -14,7 +14,7 @@ import (
 	"github.com/concourse/concourse"
 	"github.com/concourse/concourse/atc/worker/gclient"
 	concourseCmd "github.com/concourse/concourse/cmd"
-	"github.com/concourse/concourse/flag"
+	"github.com/concourse/flag"
 	"github.com/concourse/concourse/worker"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"

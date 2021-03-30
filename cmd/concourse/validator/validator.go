@@ -12,7 +12,7 @@ import (
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/atccmd"
 	"github.com/concourse/concourse/atc/wrappa"
-	"github.com/concourse/concourse/flag"
+	"github.com/concourse/flag"
 	"github.com/concourse/concourse/skymarshal/skycmd"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"

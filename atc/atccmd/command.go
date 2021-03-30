@@ -54,8 +54,7 @@ import (
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/image"
 	"github.com/concourse/concourse/atc/wrappa"
-	"github.com/concourse/concourse/flag"
-	clager "github.com/concourse/concourse/lager"
+	"github.com/concourse/flag"
 	"github.com/concourse/concourse/skymarshal/dexserver"
 	"github.com/concourse/concourse/skymarshal/legacyserver"
 	"github.com/concourse/concourse/skymarshal/skycmd"
@@ -106,7 +105,7 @@ var flyClientID = "fly"
 var flyClientSecret = "Zmx5"
 
 type RunConfig struct {
-	Logger        clager.Lager
+	Logger        flag.Lager
 	varSourcePool creds.VarSourcePool
 
 	BindIP      net.IP    `yaml:"bind_ip,omitempty"`

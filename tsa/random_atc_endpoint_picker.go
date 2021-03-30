@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/flag"
+	"github.com/concourse/flag"
 	"github.com/tedsuo/rata"
 )
 

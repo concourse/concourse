@@ -7,7 +7,7 @@ import (
 
 	"github.com/clarafu/envstruct"
 	v "github.com/concourse/concourse/cmd/concourse/validator"
-	"github.com/concourse/concourse/flag"
+	"github.com/concourse/flag"
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
 	val "github.com/go-playground/validator/v10"

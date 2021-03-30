@@ -9,7 +9,7 @@ import (
 
 	"github.com/concourse/concourse/atc/atccmd"
 	v "github.com/concourse/concourse/cmd/concourse/validator"
-	"github.com/concourse/concourse/flag"
+	"github.com/concourse/flag"
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"

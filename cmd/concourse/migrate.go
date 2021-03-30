@@ -9,7 +9,7 @@ import (
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/migration"
 	"github.com/concourse/concourse/atc/metric"
-	"github.com/concourse/concourse/flag"
+	"github.com/concourse/flag"
 	"github.com/spf13/cobra"
 )
 

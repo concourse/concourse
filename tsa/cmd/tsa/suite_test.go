@@ -19,7 +19,7 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"code.cloudfoundry.org/localip"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/flag"
+	"github.com/concourse/flag"
 	"github.com/concourse/concourse/tsa"
 	"github.com/concourse/concourse/tsa/tsacmd"
 	. "github.com/onsi/ginkgo"

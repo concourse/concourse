@@ -7,8 +7,8 @@ import (
 
 	"github.com/clarafu/envstruct"
 	v "github.com/concourse/concourse/cmd/concourse/validator"
-	"github.com/concourse/concourse/flag"
 	"github.com/concourse/concourse/worker/workercmd"
+	"github.com/concourse/flag"
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
@@ -22,9 +22,8 @@ var workerCmd WorkerConfig
 var WorkerCommand = &cobra.Command{
 	Use:   "worker",
 	Short: "Run and register a worker",
-	Long: `Concourse relies on the web component to start up the ATC
-	and the TSA.`,
-	RunE: InitializeWorker,
+	Long:  `TODO`,
+	RunE:  InitializeWorker,
 }
 
 type WorkerConfig struct {
