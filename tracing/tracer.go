@@ -3,20 +3,16 @@ package tracing
 import (
 	"context"
 
-	"go.opentelemetry.io/collector/translator/conventions"
-	"go.opentelemetry.io/otel/api/global"
-	"go.opentelemetry.io/otel/api/propagation"
-	"go.opentelemetry.io/otel/api/trace"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/label"
+	"go.opentelemetry.io/otel/propagation"
 	export "go.opentelemetry.io/otel/sdk/export/trace"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/semconv"
+	"go.opentelemetry.io/otel/trace"
 )
-
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 go.opentelemetry.io/otel/api/trace.Tracer
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 go.opentelemetry.io/otel/api/trace.Provider
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 go.opentelemetry.io/otel/api/trace.Span
 
 // Configured indicates whether tracing has been configured or not.
 //
@@ -36,29 +32,27 @@ type Config struct {
 }
 
 func (c Config) resource() *resource.Resource {
-	attributes := []label.KeyValue{
-		label.String(conventions.AttributeTelemetrySDKName, "opentelemetry"),
-		label.String(conventions.AttributeTelemetrySDKLanguage, "go"),
-		label.String(conventions.AttributeServiceName, c.ServiceName),
+	attributes := []attribute.KeyValue{
+		semconv.TelemetrySDKNameKey.String("opentelemetry"),
+		semconv.TelemetrySDKLanguageKey.String("go"),
+		semconv.ServiceNameKey.String(c.ServiceName),
 	}
 
 	for key, value := range c.Attributes {
-		attributes = append(attributes, label.String(key, value))
+		attributes = append(attributes, attribute.String(key, value))
 	}
 
-	return resource.New(attributes...)
+	return resource.NewWithAttributes(attributes...)
 }
 
-func (c Config) TraceProvider(exporter func() (export.SpanSyncer, error)) (trace.Provider, error) {
+func (c Config) TraceProvider(exporter func() (export.SpanExporter, error)) (trace.TracerProvider, error) {
 	exp, err := exporter()
 	if err != nil {
 		return nil, err
 	}
 
-	provider, err := sdktrace.NewProvider(sdktrace.WithConfig(
-		sdktrace.Config{
-			DefaultSampler: sdktrace.AlwaysSample(),
-		}),
+	provider := sdktrace.NewTracerProvider(
+		sdktrace.WithSampler(sdktrace.AlwaysSample()),
 		sdktrace.WithSyncer(exp),
 		sdktrace.WithResource(c.resource()),
 	)
@@ -70,7 +64,7 @@ func (c Config) TraceProvider(exporter func() (export.SpanSyncer, error)) (trace
 }
 
 func (c Config) Prepare() error {
-	var provider trace.Provider
+	var provider trace.TracerProvider
 	var err error
 
 	switch {
@@ -139,12 +133,12 @@ func FromContext(ctx context.Context) trace.Span {
 	return trace.SpanFromContext(ctx)
 }
 
-func Inject(ctx context.Context, supplier propagation.HTTPSupplier) {
-	trace.TraceContext{}.Inject(ctx, supplier)
+func Inject(ctx context.Context, carrier propagation.TextMapCarrier) {
+	propagation.TraceContext{}.Inject(ctx, carrier)
 }
 
 type WithSpanContext interface {
-	SpanContext() propagation.HTTPSupplier
+	SpanContext() propagation.TextMapCarrier
 }
 
 func StartSpanFollowing(
@@ -154,7 +148,7 @@ func StartSpanFollowing(
 	attrs Attrs,
 ) (context.Context, trace.Span) {
 	if supplier := following.SpanContext(); supplier != nil {
-		ctx = trace.TraceContext{}.Extract(ctx, supplier)
+		ctx = propagation.TraceContext{}.Extract(ctx, supplier)
 	}
 
 	return startSpan(ctx, component, attrs)
@@ -168,7 +162,7 @@ func StartSpanLinkedToFollowing(
 ) (context.Context, trace.Span) {
 	ctx := context.Background()
 	if supplier := following.SpanContext(); supplier != nil {
-		ctx = trace.TraceContext{}.Extract(ctx, supplier)
+		ctx = propagation.TraceContext{}.Extract(ctx, supplier)
 	}
 	linkedSpanContext := trace.SpanFromContext(linked).SpanContext()
 
@@ -176,7 +170,7 @@ func StartSpanLinkedToFollowing(
 		ctx,
 		component,
 		attrs,
-		trace.LinkedTo(linkedSpanContext),
+		trace.WithLinks(trace.Link{SpanContext: linkedSpanContext}),
 	)
 }
 
@@ -184,13 +178,13 @@ func startSpan(
 	ctx context.Context,
 	component string,
 	attrs Attrs,
-	opts ...trace.StartOption,
+	opts ...trace.SpanOption,
 ) (context.Context, trace.Span) {
 	if !Configured {
-		return ctx, trace.NoopSpan{}
+		return ctx, NoopSpan
 	}
 
-	ctx, span := global.TraceProvider().Tracer("concourse").Start(
+	ctx, span := otel.GetTracerProvider().Tracer("concourse").Start(
 		ctx,
 		component,
 		opts...,
@@ -209,9 +203,9 @@ func End(span trace.Span, err error) {
 	}
 
 	if err != nil {
-		span.SetStatus(codes.Internal, "")
+		span.SetStatus(codes.Error, "")
 		span.SetAttributes(
-			label.String("error-message", err.Error()),
+			attribute.String("error-message", err.Error()),
 		)
 	}
 
@@ -223,7 +217,7 @@ func End(span trace.Span, err error) {
 // By default, a noop tracer is registered, thus, it's safe to call StartSpan
 // and other related methods even before `ConfigureTracer` it called.
 //
-func ConfigureTraceProvider(tp trace.Provider) {
-	global.SetTraceProvider(tp)
+func ConfigureTraceProvider(tp trace.TracerProvider) {
+	otel.SetTracerProvider(tp)
 	Configured = true
 }
