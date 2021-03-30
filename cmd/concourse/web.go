@@ -43,11 +43,11 @@ func init() {
 	WebCommand.Flags().StringVar(&webCmd.PeerAddress, "peer-address", "127.0.0.1", "Network address of this web node, reachable by other web nodes. Used for forwarded worker addresses.")
 
 	webCmd.RunConfig = &atccmd.CmdDefaults
-	webCmd.TSACommand = &tsacmd.CmdDefaults
+	webCmd.TSAConfig = &tsacmd.CmdDefaults
 
 	// IMPORTANT!: Can be removed when flags no longer supported
-	InitializeATCFlagsDEPRECATED(WebCommand, webCmd.RunConfig)
-	InitializeFlagsDEPRECATED(WebCommand, webCmd.TSACommand)
+	atccmd.InitializeATCFlagsDEPRECATED(WebCommand, webCmd.RunConfig)
+	tsacmd.InitializeTSAFlagsDEPRECATED(WebCommand, webCmd.TSAConfig)
 
 	// TODO: Mark all flags as deprecated
 }
@@ -57,8 +57,8 @@ type WebConfig struct {
 
 	PeerAddress string `yaml:"peer_address"`
 
-	*atccmd.RunConfig  `yaml:"web" ignore_env:"true"`
-	*tsacmd.TSACommand `yaml:"worker_gateway"`
+	*atccmd.RunConfig `yaml:"web" ignore_env:"true"`
+	*tsacmd.TSAConfig `yaml:"worker_gateway"`
 }
 
 func InitializeWeb(cmd *cobra.Command, args []string) error {
@@ -163,7 +163,7 @@ func (w *WebConfig) Runner(args []string) (ifrit.Runner, error) {
 		return nil, err
 	}
 
-	tsaRunner, err := w.TSACommand.Runner(args)
+	tsaRunner, err := w.TSAConfig.Runner(args)
 	if err != nil {
 		return nil, err
 	}
@@ -195,26 +195,26 @@ func (w *WebConfig) populateSharedFlags() error {
 		signingKey = w.RunConfig.Auth.AuthFlags.SigningKey.PrivateKey
 	}
 
-	w.TSACommand.PeerAddress = w.PeerAddress
+	w.TSAConfig.PeerAddress = w.PeerAddress
 
-	if len(w.TSACommand.ATCURLs) == 0 {
-		w.TSACommand.ATCURLs = flag.URLs{w.RunConfig.DefaultURL()}
+	if len(w.TSAConfig.ATCURLs) == 0 {
+		w.TSAConfig.ATCURLs = flag.URLs{w.RunConfig.DefaultURL()}
 	}
 
-	if w.TSACommand.TokenURL.URL == nil {
+	if w.TSAConfig.TokenURL.URL == nil {
 		tokenPath, _ := url.Parse("/sky/issuer/token")
-		w.TSACommand.TokenURL.URL = w.RunConfig.DefaultURL().URL.ResolveReference(tokenPath)
+		w.TSAConfig.TokenURL.URL = w.RunConfig.DefaultURL().URL.ResolveReference(tokenPath)
 	}
 
-	if w.TSACommand.ClientSecret == "" {
-		w.TSACommand.ClientSecret = derivedCredential(signingKey, w.TSACommand.ClientID)
+	if w.TSAConfig.ClientSecret == "" {
+		w.TSAConfig.ClientSecret = derivedCredential(signingKey, w.TSAConfig.ClientID)
 	}
 
 	if w.RunConfig.Server.ClientSecret == "" {
 		w.RunConfig.Server.ClientSecret = derivedCredential(signingKey, w.RunConfig.Server.ClientID)
 	}
 
-	w.RunConfig.Auth.AuthFlags.Clients[w.TSACommand.ClientID] = w.TSACommand.ClientSecret
+	w.RunConfig.Auth.AuthFlags.Clients[w.TSAConfig.ClientID] = w.TSAConfig.ClientSecret
 	w.RunConfig.Auth.AuthFlags.Clients[w.RunConfig.Server.ClientID] = w.RunConfig.Server.ClientSecret
 
 	// if we're using the 'aud' as the SystemClaimKey then we want to validate
@@ -226,7 +226,7 @@ func (w *WebConfig) populateSharedFlags() error {
 		// to make sure they include the TSA ClientID
 		if len(w.RunConfig.SystemClaim.Values) == 1 {
 			if w.RunConfig.SystemClaim.Values[0] == "concourse-worker" {
-				w.RunConfig.SystemClaim.Values = []string{w.TSACommand.ClientID}
+				w.RunConfig.SystemClaim.Values = []string{w.TSAConfig.ClientID}
 			}
 		}
 
@@ -235,8 +235,8 @@ func (w *WebConfig) populateSharedFlags() error {
 		}
 	}
 
-	w.TSACommand.ClusterName = w.RunConfig.Server.ClusterName
-	w.TSACommand.LogClusterName = w.RunConfig.Log.ClusterName
+	w.TSAConfig.ClusterName = w.RunConfig.Server.ClusterName
+	w.TSAConfig.LogClusterName = w.RunConfig.Log.ClusterName
 
 	return nil
 }
@@ -244,7 +244,7 @@ func (w *WebConfig) populateSharedFlags() error {
 func (w *WebConfig) validateSystemClaimValues() error {
 	found := false
 	for _, val := range w.RunConfig.SystemClaim.Values {
-		if val == w.TSACommand.ClientID {
+		if val == w.TSAConfig.ClientID {
 			found = true
 		}
 	}

@@ -10,28 +10,28 @@ import (
 
 type AuthorizedKeysMap map[string]AuthorizedKeys
 
-func (a AuthorizedKeysMap) MarshalYAML() (interface{}, error) {
-	return a.convertToString()
-}
+// func (a AuthorizedKeysMap) MarshalYAML() (interface{}, error) {
+// 	return a.convertToString()
+// }
 
 // XXX: Should have tests to ensure that the value-name=NAME:PATH will be unmarshalled correctly
-func (a *AuthorizedKeysMap) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	var authorizedKeyPaths map[string]string
-	err := unmarshal(&authorizedKeyPaths)
-	if err != nil {
-		return err
-	}
+// func (a *AuthorizedKeysMap) UnmarshalYAML(unmarshal func(interface{}) error) error {
+// 	authorizedKeyPaths := make(map[string]string)
+// 	err := unmarshal(&authorizedKeyPaths)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	if authorizedKeyPaths != nil {
-		return a.set(authorizedKeyPaths)
-	}
+// 	if authorizedKeyPaths != nil {
+// 		return a.set(authorizedKeyPaths)
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 // Can be removed once flags are deprecated
-func (a *AuthorizedKeysMap) Set(value string) error {
-	var authorizedKeyPaths map[string]string
+func (a AuthorizedKeysMap) Set(value string) error {
+	authorizedKeyPaths := make(map[string]string)
 	err := yaml.Unmarshal([]byte(value), &authorizedKeyPaths)
 	if err != nil {
 		return err
@@ -45,18 +45,18 @@ func (a *AuthorizedKeysMap) Set(value string) error {
 }
 
 // Can be removed once flags are deprecated
-func (a *AuthorizedKeysMap) String() string {
+func (a AuthorizedKeysMap) String() string {
 	authorizedKeysString, _ := a.convertToString()
 	return authorizedKeysString
 }
 
 // Can be removed once flags are deprecated
-func (a *AuthorizedKeysMap) Type() string {
+func (a AuthorizedKeysMap) Type() string {
 	return "AuthorizedKeysMap"
 }
 
 func (a AuthorizedKeysMap) convertToString() (string, error) {
-	var authorizedKeysPaths map[string]string
+	authorizedKeysPaths := make(map[string]string)
 	for key, authorizedKey := range a {
 		authorizedKeysPaths[key] = authorizedKey.File
 	}
@@ -70,7 +70,7 @@ func (a AuthorizedKeysMap) convertToString() (string, error) {
 }
 
 func (a *AuthorizedKeysMap) set(value map[string]string) error {
-	var authorizedKeysMap AuthorizedKeysMap
+	authorizedKeysMap := make(AuthorizedKeysMap)
 	for key, authorizedKeyPath := range value {
 		var authorizedKeys AuthorizedKeys
 		err := authorizedKeys.Set(authorizedKeyPath)

@@ -9,7 +9,6 @@ import (
 	"io/ioutil"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"testing"
 	"time"
 
@@ -20,7 +19,9 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"code.cloudfoundry.org/localip"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/flag"
 	"github.com/concourse/concourse/tsa"
+	"github.com/concourse/concourse/tsa/tsacmd"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -28,6 +29,7 @@ import (
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/ginkgomon"
 	"golang.org/x/crypto/ssh"
+	"gopkg.in/yaml.v2"
 )
 
 func TestIntegration(t *testing.T) {
@@ -147,28 +149,72 @@ var _ = BeforeEach(func() {
 	forwardHost, err = localip.LocalIP()
 	Expect(err).NotTo(HaveOccurred())
 
+	hostPrivateKeyField := flag.PrivateKey{}
+	err = hostPrivateKeyField.Set(hostKeyFile)
+	Expect(err).NotTo(HaveOccurred())
+
+	authorizedKeysField := flag.AuthorizedKeys{}
+	err = authorizedKeysField.Set(authorizedKeysFile)
+	Expect(err).NotTo(HaveOccurred())
+
+	teamPubKeyField := flag.AuthorizedKeys{}
+	err = teamPubKeyField.Set(teamPubKeyFile)
+	Expect(err).NotTo(HaveOccurred())
+
+	otherTeamPubKeyField := flag.AuthorizedKeys{}
+	err = otherTeamPubKeyField.Set(otherTeamPubKeyFile)
+	Expect(err).NotTo(HaveOccurred())
+
+	authTokenURL := flag.URL{}
+	err = authTokenURL.Set(fmt.Sprintf("%s/token", authServer.URL()))
+	Expect(err).NotTo(HaveOccurred())
+
+	atcServerURL := flag.URL{}
+	err = atcServerURL.Set(atcServer.URL())
+	Expect(err).NotTo(HaveOccurred())
+
+	tsaConfig := tsacmd.TSAConfig{
+		BindPort:    uint16(tsaPort),
+		PeerAddress: forwardHost,
+		Debug: tsacmd.DebugConfig{
+			BindPort: uint16(tsaDebugPort),
+		},
+		HostKey:        &hostPrivateKeyField,
+		AuthorizedKeys: authorizedKeysField,
+		TeamAuthorizedKeys: flag.AuthorizedKeysMap{
+			"some-team":       teamPubKeyField,
+			"some-other-team": otherTeamPubKeyField,
+		},
+		ClientID:             "some-client",
+		ClientSecret:         "some-client-secret",
+		TokenURL:             authTokenURL,
+		ATCURLs:              flag.URLs{atcServerURL},
+		GardenRequestTimeout: gardenRequestTimeout,
+		HeartbeatInterval:    heartbeatInterval,
+	}
+
+	config, err := yaml.Marshal(tsaConfig)
+	Expect(err).NotTo(HaveOccurred())
+
+	configFile, err := ioutil.TempFile("", "config.yml")
+	Expect(err).NotTo(HaveOccurred())
+
+	defer configFile.Close()
+
+	_, err = configFile.Write(config)
+	Expect(err).NotTo(HaveOccurred())
+
 	tsaCommand := exec.Command(
 		tsaPath,
-		"--bind-port", strconv.Itoa(tsaPort),
-		"--peer-address", forwardHost,
-		"--debug-bind-port", strconv.Itoa(tsaDebugPort),
-		"--host-key", hostKeyFile,
-		"--authorized-keys", authorizedKeysFile,
-		"--team-authorized-keys", "some-team:"+teamPubKeyFile,
-		"--team-authorized-keys", "some-other-team:"+otherTeamPubKeyFile,
-		"--client-id", "some-client",
-		"--client-secret", "some-client-secret",
-		"--token-url", authServer.URL()+"/token",
-		"--atc-url", atcServer.URL(),
-		"--garden-request-timeout", gardenRequestTimeout.String(),
-		"--heartbeat-interval", heartbeatInterval.String(),
+		"--config", configFile.Name(),
 	)
 
 	tsaRunner = ginkgomon.New(ginkgomon.Config{
-		Command:       tsaCommand,
-		Name:          "tsa",
-		StartCheck:    "tsa.listening",
-		AnsiColorCode: "32m",
+		Command:           tsaCommand,
+		Name:              "tsa",
+		StartCheck:        "tsa.listening",
+		StartCheckTimeout: 1 * time.Minute,
+		AnsiColorCode:     "32m",
 	})
 
 	tsaClient = &tsa.Client{
