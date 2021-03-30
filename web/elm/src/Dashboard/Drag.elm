@@ -15,14 +15,14 @@ insertAt idx x xs =
             x :: xs
 
 
-dragCardIndices : String -> DropTarget -> List Card -> Maybe ( Int, Int )
-dragCardIndices cardId target cards =
+dragCardIndices : Card -> DropTarget -> List Card -> Maybe ( Int, Int )
+dragCardIndices card target cards =
     let
-        cardIndex id =
-            cards |> List.Extra.findIndex (cardIdentifier >> (==) id)
+        cardIndex c =
+            List.Extra.findIndex (cardIdentifier >> (==) (cardIdentifier c)) cards
 
         fromIndex =
-            cardIndex cardId
+            cardIndex card
 
         toIndex =
             (case target of

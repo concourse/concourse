@@ -22,7 +22,7 @@ import Dashboard.Footer as Footer
 import Dashboard.Grid as Grid
 import Dashboard.Grid.Constants as GridConstants
 import Dashboard.Group as Group
-import Dashboard.Group.Models exposing (Card(..), Pipeline, cardName)
+import Dashboard.Group.Models exposing (Card(..), Pipeline, cardName, cardTeamName)
 import Dashboard.Models as Models
     exposing
         ( DragState(..)
@@ -675,16 +675,19 @@ update session msg =
 updateBody : Session -> Message -> ET Model
 updateBody session msg ( model, effects ) =
     case msg of
-        DragStart teamName cardId ->
-            ( { model | dragState = Models.Dragging teamName cardId }, effects )
+        DragStart card ->
+            ( { model | dragState = Models.Dragging card }, effects )
 
         DragOver target ->
             ( { model | dropState = Models.Dropping target }, effects )
 
         DragEnd ->
             case ( model.dragState, model.dropState ) of
-                ( Dragging teamName identifier, Dropping target ) ->
+                ( Dragging card, Dropping target ) ->
                     let
+                        teamName =
+                            cardTeamName card
+
                         teamCards =
                             model.pipelines
                                 |> Maybe.andThen (Dict.get teamName)
@@ -692,7 +695,7 @@ updateBody session msg ( model, effects ) =
                                 |> groupCardsWithinTeam
                                 |> (\cards ->
                                         cards
-                                            |> (case Drag.dragCardIndices identifier target cards of
+                                            |> (case Drag.dragCardIndices card target cards of
                                                     Just ( from, to ) ->
                                                         Drag.drag from to
 
@@ -708,8 +711,8 @@ updateBody session msg ( model, effects ) =
                                     (always <|
                                         Just <|
                                             List.concatMap
-                                                (\card ->
-                                                    case card of
+                                                (\c ->
+                                                    case c of
                                                         PipelineCard p ->
                                                             [ p ]
 

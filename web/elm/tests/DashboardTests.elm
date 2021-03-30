@@ -40,6 +40,7 @@ import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.Cli as Cli
 import Concourse.PipelineStatus exposing (PipelineStatus(..))
+import Dashboard.Group.Models exposing (Card(..))
 import Data
 import Dict
 import Expect exposing (Expectation)
@@ -2000,7 +2001,11 @@ all =
                         (Callback.AllJobsFetched <| Ok [])
                     |> Tuple.first
                     |> Application.update
-                        (ApplicationMsgs.Update <| Msgs.DragStart "team" "1")
+                        (ApplicationMsgs.Update <|
+                            Msgs.DragStart <|
+                                PipelineCard <|
+                                    Data.dashboardPipeline "team" 1
+                        )
                     |> Tuple.first
                     |> Application.handleDelivery
                         (ClockTicked FiveSeconds <|

@@ -11,7 +11,7 @@ import Application.Models exposing (Session)
 import Concourse
 import Dashboard.Grid as Grid
 import Dashboard.Grid.Constants as GridConstants
-import Dashboard.Group.Models exposing (Card(..), Pipeline, cardIdentifier)
+import Dashboard.Group.Models exposing (Card(..), Pipeline, cardIdentifier, cardTeamName)
 import Dashboard.Group.Tag as Tag
 import Dashboard.InstanceGroup as InstanceGroup
 import Dashboard.Models exposing (DragState(..), DropState(..))
@@ -406,21 +406,27 @@ pipelineCardView session params section { bounds, headerHeight, pipeline, inInst
                             "event.dataTransfer.setData('text/plain', '');"
                         , draggable "true"
                         , on "dragstart"
-                            (Json.Decode.succeed (DragStart pipeline.teamName <| cardIdentifier <| PipelineCard pipeline))
+                            -- TODO: also handle InstancedPipelineCard
+                            (Json.Decode.succeed (DragStart <| PipelineCard pipeline))
                         , on "dragend" (Json.Decode.succeed DragEnd)
                         ]
 
                     else
                         []
                    )
-                ++ (if params.dragState == Dragging pipeline.teamName (cardIdentifier <| PipelineCard pipeline) then
-                        [ style "width" "0"
-                        , style "margin" "0 12.5px"
-                        , style "overflow" "hidden"
-                        ]
+                ++ (case params.dragState of
+                        Dragging card ->
+                            if cardIdentifier card == cardIdentifier (PipelineCard pipeline) then
+                                [ style "width" "0"
+                                , style "margin" "0 12.5px"
+                                , style "overflow" "hidden"
+                                ]
 
-                    else
-                        []
+                            else
+                                []
+
+                        _ ->
+                            []
                    )
                 ++ (if params.dropState == DroppingWhileApiRequestInFlight teamName then
                         [ style "opacity" "0.45", style "pointer-events" "none" ]
@@ -507,21 +513,26 @@ instanceGroupCardView session params section { bounds, headerHeight } p ps =
                             "event.dataTransfer.setData('text/plain', '');"
                         , draggable "true"
                         , on "dragstart"
-                            (Json.Decode.succeed (DragStart p.teamName <| cardIdentifier <| InstanceGroupCard p ps))
+                            (Json.Decode.succeed (DragStart <| InstanceGroupCard p ps))
                         , on "dragend" (Json.Decode.succeed DragEnd)
                         ]
 
                     else
                         []
                    )
-                ++ (if params.dragState == Dragging p.teamName (cardIdentifier <| InstanceGroupCard p ps) then
-                        [ style "width" "0"
-                        , style "margin" "0 12.5px"
-                        , style "overflow" "hidden"
-                        ]
+                ++ (case params.dragState of
+                        Dragging card ->
+                            if cardIdentifier card == cardIdentifier (InstanceGroupCard p ps) then
+                                [ style "width" "0"
+                                , style "margin" "0 12.5px"
+                                , style "overflow" "hidden"
+                                ]
 
-                    else
-                        []
+                            else
+                                []
+
+                        _ ->
+                            []
                    )
                 ++ (if params.dropState == DroppingWhileApiRequestInFlight p.teamName then
                         [ style "opacity" "0.45", style "pointer-events" "none" ]
@@ -556,8 +567,8 @@ pipelineDropAreaView dragState name { x, y, width, height } target =
     let
         active =
             case dragState of
-                Dragging team _ ->
-                    team == name
+                Dragging card ->
+                    cardTeamName card == name
 
                 _ ->
                     False

@@ -3,6 +3,7 @@ module DragAndDropTests exposing (all)
 import Application.Application as Application
 import Common exposing (given, then_, when)
 import Concourse exposing (JsonValue(..))
+import Dashboard.Group.Models exposing (Card(..))
 import DashboardTests exposing (whenOnDashboard)
 import Data
 import Dict exposing (Dict)
@@ -29,12 +30,12 @@ all =
             given iVisitedTheDashboard
                 >> given myBrowserFetchedOnePipeline
                 >> when iAmLookingAtTheFirstPipelineCard
-                >> then_ (itListensForDragStartWithId "1")
+                >> then_ (itListensForDragStartWithCard firstPipelineCard)
         , test "instance group card has drag start listener with id independent of the visible instances" <|
             given iVisitedTheDashboard
                 >> given myBrowserFetchedPipelinesWithInstanceVars
                 >> when iAmLookingAtTheInstanceGroupCard
-                >> then_ (itListensForDragStartWithId "team/other-pipeline")
+                >> then_ (itListensForDragStartWithCard instanceGroupCard)
         , test "pipeline card disappears when dragging starts" <|
             given iVisitedTheDashboard
                 >> given myBrowserFetchedOnePipeline
@@ -209,6 +210,10 @@ myBrowserFetchedOnePipeline =
         )
 
 
+firstPipelineCard =
+    PipelineCard <| (Data.dashboardPipeline "team" 1 |> Data.withName "pipeline")
+
+
 myBrowserFetchedTwoPipelines =
     Application.handleCallback
         (Callback.AllPipelinesFetched <|
@@ -230,6 +235,16 @@ myBrowserFetchedPipelinesWithInstanceVars =
                     |> Data.withInstanceVars (Dict.fromList [ ( "hello", JsonString "world" ) ])
                 ]
         )
+
+
+instanceGroupCard =
+    -- pipeline 2 is not included because it's archived and we aren't viewing archived pipelines
+    InstanceGroupCard
+        (Data.dashboardPipeline "team" 3
+            |> Data.withName "other-pipeline"
+            |> Data.withInstanceVars (Dict.fromList [ ( "hello", JsonString "world" ) ])
+        )
+        []
 
 
 myBrowserFetchedPipelinesFromMultipleTeams =
@@ -277,23 +292,23 @@ iAmLookingAtAllPipelineCardsOfThatTeam =
         >> Query.findAll [ class "card" ]
 
 
-itListensForDragStartWithId : String -> Query.Single TopLevelMessage -> Expectation
-itListensForDragStartWithId id =
+itListensForDragStartWithCard : Card -> Query.Single TopLevelMessage -> Expectation
+itListensForDragStartWithCard card =
     Event.simulate (Event.custom "dragstart" (Encode.object []))
         >> Event.expect
-            (TopLevelMessage.Update <| Message.DragStart "team" id)
+            (TopLevelMessage.Update <| Message.DragStart card)
 
 
 iAmDraggingTheFirstPipelineCard =
     Tuple.first
         >> Application.update
-            (TopLevelMessage.Update <| Message.DragStart "team" "1")
+            (TopLevelMessage.Update <| Message.DragStart firstPipelineCard)
 
 
 iAmDraggingTheInstanceGroupCard =
     Tuple.first
         >> Application.update
-            (TopLevelMessage.Update <| Message.DragStart "team" "team/other-pipeline")
+            (TopLevelMessage.Update <| Message.DragStart instanceGroupCard)
 
 
 itIsInvisible =
@@ -354,7 +369,7 @@ itListensForDragOverPreventingDefault =
 iAmDraggingOverTheFirstDropArea =
     Tuple.first
         >> Application.update
-            (TopLevelMessage.Update <| Message.DragOver <| Before "1")
+            (TopLevelMessage.Update <| Message.DragOver <| Before firstPipelineCard)
 
 
 iAmDraggingOverTheThirdDropArea =

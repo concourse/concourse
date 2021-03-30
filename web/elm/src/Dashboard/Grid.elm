@@ -87,9 +87,9 @@ computeLayout params teamName cards =
     let
         dragIndices =
             case ( params.dragState, params.dropState ) of
-                ( Dragging team cardId, Dropping target ) ->
-                    if teamName == team then
-                        Drag.dragCardIndices cardId target cards
+                ( Dragging card, Dropping target ) ->
+                    if teamName == cardTeamName card then
+                        Drag.dragCardIndices card target cards
 
                     else
                         Nothing
@@ -149,7 +149,7 @@ computeLayout params teamName cards =
                                         dropAreaBounds bounds
 
                             curDropArea =
-                                { bounds = curBounds, target = Before <| cardIdentifier origCard }
+                                { bounds = curBounds, target = Before origCard }
                         in
                         ( curDropArea :: dropAreas, Just curCard )
                     )
