@@ -46,7 +46,7 @@ require (
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e
 	github.com/google/jsonapi v0.0.0-20180618021926-5d047c6bc66b
 	github.com/gorilla/websocket v1.4.2
-	github.com/hashicorp/go-multierror v1.1.0
+	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-rootcerts v1.0.2
 	github.com/hashicorp/vault/api v1.0.5-0.20191108163347-bdd38fca2cff
 	github.com/hashicorp/vault/sdk v0.1.14-0.20191112033314-390e96e22eb2 // indirect
