@@ -27,6 +27,14 @@ func (m *buffer) String() string {
 	return m.content
 }
 
+type reader struct {
+	err error
+}
+
+func (r *reader) Read(p []byte) (int, error) {
+	return 0, r.err
+}
+
 func uuid() string {
 	u4, err := gouuid.NewV4()
 	if err != nil {

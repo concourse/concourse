@@ -353,6 +353,52 @@ func (s *IntegrationSuite) runToCompletion(privileged bool) {
 
 }
 
+// TestRunWithTerminalStdinClosed validates that when running a process with
+// TTY enabled, if the stdin of of that process is closed (i.e. network flake),
+// the process does not exit.
+//
+// Note that only (Concourse) tasks has TTY enabled
+//
+func (s *IntegrationSuite) TestRunWithTerminalStdinClosed() {
+	handle := uuid()
+	container, err := s.gardenBackend.Create(garden.ContainerSpec{
+		Handle:     handle,
+		RootFSPath: "raw://" + s.rootfs,
+		Privileged: true,
+	})
+	s.NoError(err)
+
+	stdin := &reader{fmt.Errorf("Connection closed")}
+	buf := new(buffer)
+
+	proc, err := container.Run(
+		garden.ProcessSpec{
+			Path: "/executable",
+			Args: []string{
+				"-sleep=5s",
+			},
+			TTY: &garden.TTYSpec{
+				WindowSize: &garden.WindowSize{Columns: 500, Rows: 500},
+			},
+		},
+		garden.ProcessIO{
+			Stdin:  stdin,
+			Stdout: buf,
+			Stderr: buf,
+		},
+	)
+	s.NoError(err)
+
+	exitCode, err := proc.Wait()
+	s.NoError(err)
+
+	s.Equal(exitCode, 0)
+	s.Contains(buf.String(), "slept for 5s")
+
+	err = s.gardenBackend.Destroy(container.Handle())
+	s.NoError(err)
+}
+
 // TestAttachToUnknownProc verifies that trying to attach to a process that does
 // not exist lead to an error.
 //

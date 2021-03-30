@@ -27,7 +27,7 @@ func (s *ProcessSuite) SetupTest() {
 	s.containerdProcess = new(libcontainerdfakes.FakeProcess)
 	s.ch = make(chan containerd.ExitStatus, 1)
 
-	s.process = runtime.NewProcess(s.containerdProcess, s.ch)
+	s.process = runtime.NewProcess(s.containerdProcess, s.ch, nil)
 }
 
 func (s *ProcessSuite) TestID() {

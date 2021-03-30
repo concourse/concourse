@@ -18,6 +18,7 @@ var (
 	flagHttpGet       = flag.String("http-get", "", "website to perform an HTTP GET request against")
 	flagWriteTenTimes = flag.String("write-many-times", "", "writes a string to stdout many times")
 	flagCatFile       = flag.String("cat", "", "writes contents of file to stdout")
+	flagSleep         = flag.String("sleep", "", "sleep for given numbeer of seconds")
 
 	signals = map[string]os.Signal{
 		"sighup":  syscall.SIGHUP,
@@ -77,6 +78,16 @@ func catFile(pathToFile string) {
 	fmt.Print(string(bytes))
 }
 
+func sleep(duration string) {
+	d, err := time.ParseDuration(duration)
+	if err != nil {
+		log.Fatal("failed to parse duration ", err)
+	}
+	time.Sleep(d)
+
+	fmt.Println("slept for", d.String())
+}
+
 func main() {
 	flag.Parse()
 
@@ -89,6 +100,8 @@ func main() {
 		writeTenTimes(*flagWriteTenTimes)
 	case *flagCatFile != "":
 		catFile(*flagCatFile)
+	case *flagSleep != "":
+		sleep(*flagSleep)
 	default:
 		fmt.Println(defaultMessage)
 	}
