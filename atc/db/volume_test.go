@@ -193,6 +193,17 @@ var _ = Describe("Volume", func() {
 			build, err = defaultTeam.CreateOneOffBuild()
 			Expect(err).ToNot(HaveOccurred())
 
+			resourceTypeCache, err := resourceCacheFactory.FindOrCreateResourceCache(
+				db.ForBuild(build.ID()),
+				"some-base-resource-type",
+				atc.Version{"some-type": "version"},
+				atc.Source{
+					"some-type": "source",
+				},
+				nil,
+				nil,
+			)
+
 			resourceCache, err = resourceCacheFactory.FindOrCreateResourceCache(
 				db.ForBuild(build.ID()),
 				"some-type",
@@ -201,18 +212,7 @@ var _ = Describe("Volume", func() {
 					"some": "source",
 				},
 				atc.Params{"some": "params"},
-				atc.VersionedResourceTypes{
-					atc.VersionedResourceType{
-						ResourceType: atc.ResourceType{
-							Name: "some-type",
-							Type: "some-base-resource-type",
-							Source: atc.Source{
-								"some-type": "source",
-							},
-						},
-						Version: atc.Version{"some-type": "version"},
-					},
-				},
+				resourceTypeCache,
 			)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -435,22 +435,23 @@ var _ = Describe("Volume", func() {
 			build, err := scenario.Team.CreateOneOffBuild()
 			Expect(err).ToNot(HaveOccurred())
 
+			resourceTypeCache, err := resourceCacheFactory.FindOrCreateResourceCache(
+				db.ForBuild(build.ID()),
+				"some-base-resource-type",
+				atc.Version{"some-custom-type": "version"},
+				atc.Source{"some-type": "((source-param))"},
+				nil,
+				nil,
+			)
+			Expect(err).ToNot(HaveOccurred())
+
 			resourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
 				db.ForBuild(build.ID()),
 				"some-type",
 				atc.Version{"some": "version"},
 				atc.Source{"some": "source"},
 				atc.Params{"some": "params"},
-				atc.VersionedResourceTypes{
-					{
-						ResourceType: atc.ResourceType{
-							Name:   "some-type",
-							Type:   "some-base-resource-type",
-							Source: atc.Source{"some-type": "((source-param))"},
-						},
-						Version: atc.Version{"some-custom-type": "version"},
-					},
-				},
+				resourceTypeCache,
 			)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -562,22 +563,23 @@ var _ = Describe("Volume", func() {
 			})
 			Expect(err).ToNot(HaveOccurred())
 
+			resourceTypeCache, err := resourceCacheFactory.FindOrCreateResourceCache(
+				db.ForBuild(build.ID()),
+				"some-base-resource-type",
+				atc.Version{"some-custom-type": "version"},
+				atc.Source{"some-type": "source"},
+				nil,
+				nil,
+			)
+			Expect(err).ToNot(HaveOccurred())
+
 			usedResourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
 				db.ForBuild(build.ID()),
 				"some-type",
 				atc.Version{"some": "version"},
 				atc.Source{"some": "source"},
 				atc.Params{"some": "params"},
-				atc.VersionedResourceTypes{
-					{
-						ResourceType: atc.ResourceType{
-							Name:   "some-type",
-							Type:   "some-base-resource-type",
-							Source: atc.Source{"some-type": "source"},
-						},
-						Version: atc.Version{"some-custom-type": "version"},
-					},
-				},
+				resourceTypeCache,
 			)
 			Expect(err).ToNot(HaveOccurred())
 

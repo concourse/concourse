@@ -47,7 +47,7 @@ var _ = Describe("ResourceCache", func() {
 					"some": "source",
 				},
 				atc.Params{"some": "params"},
-				atc.VersionedResourceTypes{},
+				nil,
 			)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(urc.ID()).ToNot(BeZero())
@@ -71,7 +71,7 @@ var _ = Describe("ResourceCache", func() {
 						"some": "source",
 					},
 					atc.Params{"some": "params"},
-					atc.VersionedResourceTypes{},
+					nil,
 				)
 				Expect(err).ToNot(HaveOccurred())
 			})
@@ -85,7 +85,7 @@ var _ = Describe("ResourceCache", func() {
 						"some": "source",
 					},
 					atc.Params{"some": "params"},
-					atc.VersionedResourceTypes{},
+					nil,
 				)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(urc.ID()).To(Equal(existingResourceCache.ID()))
@@ -120,7 +120,7 @@ var _ = Describe("ResourceCache", func() {
 					"cache": "source",
 				},
 				atc.Params{"some": "params"},
-				atc.VersionedResourceTypes{},
+				nil,
 			)
 			Expect(err).NotTo(HaveOccurred())
 		})
@@ -146,7 +146,7 @@ var _ = Describe("ResourceCache", func() {
 						"cache": "source",
 					},
 					atc.Params{"some": "params"},
-					atc.VersionedResourceTypes{},
+					nil,
 				)
 				Expect(err).NotTo(HaveOccurred())
 			})

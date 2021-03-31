@@ -431,7 +431,7 @@ func createResourceCacheWithUser(resourceCacheUser db.ResourceCacheUser) db.Used
 			"some": "source",
 		},
 		atc.Params{"some": fmt.Sprintf("param-%d", time.Now().UnixNano())},
-		atc.VersionedResourceTypes{},
+		nil,
 	)
 	Expect(err).ToNot(HaveOccurred())
 

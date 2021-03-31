@@ -9,7 +9,7 @@ import (
 )
 
 type FakeResourceCacheFactory struct {
-	FindOrCreateResourceCacheStub        func(db.ResourceCacheUser, string, atc.Version, atc.Source, atc.Params, atc.VersionedResourceTypes) (db.UsedResourceCache, error)
+	FindOrCreateResourceCacheStub        func(db.ResourceCacheUser, string, atc.Version, atc.Source, atc.Params, db.UsedResourceCache) (db.UsedResourceCache, error)
 	findOrCreateResourceCacheMutex       sync.RWMutex
 	findOrCreateResourceCacheArgsForCall []struct {
 		arg1 db.ResourceCacheUser
@@ -17,7 +17,7 @@ type FakeResourceCacheFactory struct {
 		arg3 atc.Version
 		arg4 atc.Source
 		arg5 atc.Params
-		arg6 atc.VersionedResourceTypes
+		arg6 db.UsedResourceCache
 	}
 	findOrCreateResourceCacheReturns struct {
 		result1 db.UsedResourceCache
@@ -71,7 +71,7 @@ type FakeResourceCacheFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeResourceCacheFactory) FindOrCreateResourceCache(arg1 db.ResourceCacheUser, arg2 string, arg3 atc.Version, arg4 atc.Source, arg5 atc.Params, arg6 atc.VersionedResourceTypes) (db.UsedResourceCache, error) {
+func (fake *FakeResourceCacheFactory) FindOrCreateResourceCache(arg1 db.ResourceCacheUser, arg2 string, arg3 atc.Version, arg4 atc.Source, arg5 atc.Params, arg6 db.UsedResourceCache) (db.UsedResourceCache, error) {
 	fake.findOrCreateResourceCacheMutex.Lock()
 	ret, specificReturn := fake.findOrCreateResourceCacheReturnsOnCall[len(fake.findOrCreateResourceCacheArgsForCall)]
 	fake.findOrCreateResourceCacheArgsForCall = append(fake.findOrCreateResourceCacheArgsForCall, struct {
@@ -80,7 +80,7 @@ func (fake *FakeResourceCacheFactory) FindOrCreateResourceCache(arg1 db.Resource
 		arg3 atc.Version
 		arg4 atc.Source
 		arg5 atc.Params
-		arg6 atc.VersionedResourceTypes
+		arg6 db.UsedResourceCache
 	}{arg1, arg2, arg3, arg4, arg5, arg6})
 	stub := fake.FindOrCreateResourceCacheStub
 	fakeReturns := fake.findOrCreateResourceCacheReturns
@@ -101,13 +101,13 @@ func (fake *FakeResourceCacheFactory) FindOrCreateResourceCacheCallCount() int {
 	return len(fake.findOrCreateResourceCacheArgsForCall)
 }
 
-func (fake *FakeResourceCacheFactory) FindOrCreateResourceCacheCalls(stub func(db.ResourceCacheUser, string, atc.Version, atc.Source, atc.Params, atc.VersionedResourceTypes) (db.UsedResourceCache, error)) {
+func (fake *FakeResourceCacheFactory) FindOrCreateResourceCacheCalls(stub func(db.ResourceCacheUser, string, atc.Version, atc.Source, atc.Params, db.UsedResourceCache) (db.UsedResourceCache, error)) {
 	fake.findOrCreateResourceCacheMutex.Lock()
 	defer fake.findOrCreateResourceCacheMutex.Unlock()
 	fake.FindOrCreateResourceCacheStub = stub
 }
 
-func (fake *FakeResourceCacheFactory) FindOrCreateResourceCacheArgsForCall(i int) (db.ResourceCacheUser, string, atc.Version, atc.Source, atc.Params, atc.VersionedResourceTypes) {
+func (fake *FakeResourceCacheFactory) FindOrCreateResourceCacheArgsForCall(i int) (db.ResourceCacheUser, string, atc.Version, atc.Source, atc.Params, db.UsedResourceCache) {
 	fake.findOrCreateResourceCacheMutex.RLock()
 	defer fake.findOrCreateResourceCacheMutex.RUnlock()
 	argsForCall := fake.findOrCreateResourceCacheArgsForCall[i]

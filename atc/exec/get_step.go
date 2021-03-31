@@ -137,9 +137,12 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 	}
 
 	workerSpec := worker.WorkerSpec{
-		Tags:         step.plan.Tags,
-		TeamID:       step.metadata.TeamID,
-		ResourceType: step.plan.VersionedResourceTypes.Base(step.plan.Type),
+		Tags:   step.plan.Tags,
+		TeamID: step.metadata.TeamID,
+
+		// Used to filter out non-Linux workers, simply because they don't support
+		// base resource types
+		ResourceType: step.plan.BaseType,
 	}
 
 	var imageSpec worker.ImageSpec

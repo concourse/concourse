@@ -18,7 +18,7 @@ type ResourceCacheFactory interface {
 		version atc.Version,
 		source atc.Source,
 		params atc.Params,
-		resourceTypes atc.VersionedResourceTypes,
+		customTypeResourceCache UsedResourceCache,
 	) (UsedResourceCache, error)
 
 	// changing resource cache to interface to allow updates on object is not feasible.
@@ -49,34 +49,165 @@ func (f *resourceCacheFactory) FindOrCreateResourceCache(
 	version atc.Version,
 	source atc.Source,
 	params atc.Params,
-	resourceTypes atc.VersionedResourceTypes,
+	customTypeResourceCache UsedResourceCache,
 ) (UsedResourceCache, error) {
-	resourceConfigDescriptor, err := constructResourceConfigDescriptor(resourceTypeName, source, resourceTypes)
-	if err != nil {
-		return nil, err
-	}
-
-	resourceCache := ResourceCacheDescriptor{
-		ResourceConfigDescriptor: resourceConfigDescriptor,
-		Version:                  version,
-		Params:                   params,
+	rc := &resourceConfig{
+		lockFactory: f.lockFactory,
+		conn:        f.conn,
 	}
 
 	tx, err := f.conn.Begin()
 	if err != nil {
 		return nil, err
 	}
-
 	defer Rollback(tx)
 
-	usedResourceCache, err := resourceCache.findOrCreate(tx, f.lockFactory, f.conn)
-	if err != nil {
-		return nil, err
+	var parentID int
+	var parentColumnName string
+	if customTypeResourceCache != nil {
+		parentColumnName = "resource_cache_id"
+		rc.createdByResourceCache = customTypeResourceCache
+		parentID = rc.createdByResourceCache.ID()
+	} else {
+		// Uses a base resource type
+		parentColumnName = "base_resource_type_id"
+		var err error
+		var found bool
+		rc.createdByBaseResourceType, found, err = BaseResourceType{Name: resourceTypeName}.Find(tx)
+		if err != nil {
+			return nil, err
+		}
+
+		if !found {
+			return nil, BaseResourceTypeNotFoundError{Name: resourceTypeName}
+		}
+
+		parentID = rc.CreatedByBaseResourceType().ID
 	}
 
-	err = resourceCache.use(tx, usedResourceCache, resourceCacheUser)
+	found := true
+	err = psql.Select("id", "last_referenced").
+		From("resource_configs").
+		Where(sq.Eq{
+			parentColumnName: parentID,
+			"source_hash":    mapHash(source),
+		}).
+		Suffix("FOR UPDATE").
+		RunWith(tx).
+		QueryRow().
+		Scan(&rc.id, &rc.lastReferenced)
 	if err != nil {
-		return nil, err
+		if err == sql.ErrNoRows {
+			found = false
+		} else {
+			return nil, err
+		}
+	}
+
+	if !found {
+		hash := mapHash(source)
+
+		err := psql.Insert("resource_configs").
+			Columns(
+				parentColumnName,
+				"source_hash",
+			).
+			Values(
+				parentID,
+				hash,
+			).
+			Suffix(`
+				ON CONFLICT (`+parentColumnName+`, source_hash) DO UPDATE SET
+					`+parentColumnName+` = ?,
+					source_hash = ?
+				RETURNING id, last_referenced
+			`, parentID, hash).
+			RunWith(tx).
+			QueryRow().
+			Scan(&rc.id, &rc.lastReferenced)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	marshaledVersion, _ := json.Marshal(version)
+	cacheVersion := string(marshaledVersion)
+
+	found = true
+	var id int
+	err = psql.Select("id").
+		From("resource_caches").
+		Where(sq.Eq{
+			"resource_config_id": rc.id,
+			"params_hash":        paramsHash(params),
+		}).
+		Where(sq.Expr("version_md5 = md5(?)", cacheVersion)).
+		Suffix("FOR SHARE").
+		RunWith(tx).
+		QueryRow().
+		Scan(&id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			found = false
+		} else {
+			return nil, err
+		}
+	}
+
+	if !found {
+		err = psql.Insert("resource_caches").
+			Columns(
+				"resource_config_id",
+				"version",
+				"version_md5",
+				"params_hash",
+			).
+			Values(
+				rc.id,
+				cacheVersion,
+				sq.Expr("md5(?)", cacheVersion),
+				paramsHash(params),
+			).
+			Suffix(`
+				ON CONFLICT (resource_config_id, version_md5, params_hash) DO UPDATE SET
+				resource_config_id = EXCLUDED.resource_config_id,
+				version = EXCLUDED.version,
+				version_md5 = EXCLUDED.version_md5,
+				params_hash = EXCLUDED.params_hash
+				RETURNING id
+			`).
+			RunWith(tx).
+			QueryRow().
+			Scan(&id)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	cols := resourceCacheUser.SQLMap()
+	cols["resource_cache_id"] = id
+
+	found = true
+	var resourceCacheUseExists int
+	err = psql.Select("1").
+		From("resource_cache_uses").
+		Where(sq.Eq(cols)).
+		RunWith(tx).
+		QueryRow().
+		Scan(&resourceCacheUseExists)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			found = false
+		} else {
+			return nil, err
+		}
+	}
+
+	if !found {
+		_, err = psql.Insert("resource_cache_uses").
+			SetMap(cols).
+			RunWith(tx).
+			Exec()
 	}
 
 	err = tx.Commit()
@@ -84,7 +215,14 @@ func (f *resourceCacheFactory) FindOrCreateResourceCache(
 		return nil, err
 	}
 
-	return usedResourceCache, nil
+	return &usedResourceCache{
+		id:             id,
+		resourceConfig: rc,
+		version:        version,
+
+		lockFactory: f.lockFactory,
+		conn:        f.conn,
+	}, nil
 }
 
 func (f *resourceCacheFactory) UpdateResourceCacheMetadata(resourceCache UsedResourceCache, metadata []atc.MetadataField) error {

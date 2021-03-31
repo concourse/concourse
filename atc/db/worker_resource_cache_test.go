@@ -22,7 +22,7 @@ var _ = Describe("WorkerResourceCache", func() {
 				atc.Version{"some": "version"},
 				atc.Source{"some": "source"},
 				atc.Params{},
-				atc.VersionedResourceTypes{},
+				nil,
 			)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -85,7 +85,7 @@ var _ = Describe("WorkerResourceCache", func() {
 				atc.Version{"some": "version"},
 				atc.Source{"some": "source"},
 				atc.Params{},
-				atc.VersionedResourceTypes{},
+				nil,
 			)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -135,7 +135,7 @@ var _ = Describe("WorkerResourceCache", func() {
 					atc.Version{"some": "version"},
 					atc.Source{"some": "source"},
 					atc.Params{},
-					atc.VersionedResourceTypes{},
+					nil,
 				)
 				Expect(err).ToNot(HaveOccurred())
 

@@ -459,7 +459,7 @@ type GetPlan struct {
 	ImageCheckPlan *Plan `json:"image_check_plan,omitempty"`
 	ImageGetPlan   *Plan `json:"image_get_plan,omitempty"`
 
-	// TODO:
+	// The bottom-most resource type that this get step relies on.
 	BaseType string `json:"base_type,omitempty"`
 
 	// The version of the resource to fetch. One of these must be specified.
@@ -492,7 +492,7 @@ type PutPlan struct {
 	Source                 Source                 `json:"source"`
 	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
 
-	// TODO:
+	// The bottom-most resource type that this get step relies on.
 	BaseType string `json:"base_type,omitempty"`
 
 	// Image of the container. One of these must be specified.
@@ -531,7 +531,7 @@ type CheckPlan struct {
 	Source                 Source                 `json:"source"`
 	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
 
-	// TODO:
+	// The bottom-most resource type that this get step relies on.
 	BaseType string `json:"base_type,omitempty"`
 
 	// Image of the container. One of these must be specified.
