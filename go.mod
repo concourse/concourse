@@ -14,7 +14,7 @@ require (
 	github.com/Microsoft/hcsshim v0.8.7 // indirect
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/aryann/difflib v0.0.0-20170710044230-e206f873d14a
-	github.com/aws/aws-sdk-go v1.38.8
+	github.com/aws/aws-sdk-go v1.38.9
 	github.com/caarlos0/env v3.5.0+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e // indirect
@@ -51,7 +51,7 @@ require (
 	github.com/hashicorp/vault/api v1.0.5-0.20191108163347-bdd38fca2cff
 	github.com/hashicorp/vault/sdk v0.1.14-0.20191112033314-390e96e22eb2 // indirect
 	github.com/honeycombio/opentelemetry-exporter-go v0.11.0
-	github.com/imdario/mergo v0.3.10
+	github.com/imdario/mergo v0.3.12
 	github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf
 	github.com/influxdata/influxdb1-client v0.0.0-20191209144304-8bf82d3c094d
 	github.com/jessevdk/go-flags v1.4.1-0.20200711081900-c17162fe8fd7
