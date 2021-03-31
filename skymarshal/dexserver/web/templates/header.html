@@ -6,11 +6,12 @@
     <title>{{ issuer }}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script type="text/javascript">
+      history.pushState({}, '', document.URL);
       window.onpopstate = function(event) {
-        const url = new URL(window.location);
+        const url = new URL(document.URL);
         url.searchParams.set('req', '');
-        window.history.pushState({}, '', url);
-        window.history.back();
+        history.pushState({}, '', url);
+        history.go(-2);
       };
     </script>
     <link href="{{ url .ReqPath "static/main.css" }}" rel="stylesheet">
