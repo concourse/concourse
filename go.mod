@@ -40,7 +40,7 @@ require (
 	github.com/fatih/color v1.10.0
 	github.com/felixge/httpsnoop v1.0.1
 	github.com/gobwas/glob v0.2.3
-	github.com/goccy/go-yaml v1.8.3
+	github.com/goccy/go-yaml v1.8.9
 	github.com/gogo/googleapis v1.4.0 // indirect
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e
