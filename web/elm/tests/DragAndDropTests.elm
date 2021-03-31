@@ -12,9 +12,9 @@ import Http
 import Json.Encode as Encode
 import Message.Callback as Callback
 import Message.Effects as Effects
-import Message.Message as Message exposing (DropTarget(..))
+import Message.Message as Message exposing (DropTarget(..), Message(..))
 import Message.Subscription exposing (Delivery(..), Interval(..))
-import Message.TopLevelMessage as TopLevelMessage exposing (TopLevelMessage)
+import Message.TopLevelMessage as TopLevelMessage exposing (TopLevelMessage(..))
 import Test exposing (Test, describe, test)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -29,7 +29,7 @@ all =
         [ test "pipeline card has dragstart listener" <|
             given iVisitedTheDashboard
                 >> given myBrowserFetchedOnePipeline
-                >> when iAmLookingAtTheFirstPipelineCard
+                >> when iAmLookingAtTheFirstCard
                 >> then_ (itListensForDragStartWithCard firstPipelineCard)
         , test "instance group card has drag start listener with id independent of the visible instances" <|
             given iVisitedTheDashboard
@@ -40,7 +40,7 @@ all =
             given iVisitedTheDashboard
                 >> given myBrowserFetchedOnePipeline
                 >> given iAmDraggingTheFirstPipelineCard
-                >> when iAmLookingAtTheFirstPipelineCard
+                >> when iAmLookingAtTheFirstCard
                 >> then_ itIsInvisible
         , test "pipeline cards wrappers transition their transform when dragging" <|
             given iVisitedTheDashboard
@@ -62,14 +62,14 @@ all =
             given iVisitedTheDashboard
                 >> given myBrowserFetchedOnePipeline
                 >> given iAmDraggingTheFirstPipelineCard
-                >> when iAmLookingAtTheFirstPipelineCard
+                >> when iAmLookingAtTheFirstCard
                 >> then_ itListensForDragEnd
         , test "pipeline card becomes visible when it is dropped" <|
             given iVisitedTheDashboard
                 >> given myBrowserFetchedOnePipeline
                 >> given iAmDraggingTheFirstPipelineCard
                 >> given iDropThePipelineCard
-                >> when iAmLookingAtTheFirstPipelineCard
+                >> when iAmLookingAtTheFirstCard
                 >> then_ itIsVisible
         , test "dropping first pipeline card on final drop area rearranges cards" <|
             given iVisitedTheDashboard
@@ -77,7 +77,7 @@ all =
                 >> given iAmDraggingTheFirstPipelineCard
                 >> given iAmDraggingOverTheThirdDropArea
                 >> given iDropThePipelineCard
-                >> when iAmLookingAtTheFirstPipelineCard
+                >> when iAmLookingAtTheFirstCard
                 >> then_ itIsTheOtherPipelineCard
         , test "dropping first pipeline card on final drop area makes API call" <|
             given iVisitedTheDashboard
@@ -114,6 +114,20 @@ all =
                 >> given iAmDraggingOverTheFirstDropArea
                 >> when iDropTheCard
                 >> then_ myBrowserMakesTheOrderPipelinesAPICall
+        , test "instanced pipelines can be reordered" <|
+            given iVisitedTheDashboard
+                >> given myBrowserFetchedPipelinesWithInstanceVars
+                >> given iAmViewingTheInstanceGroup
+                >> given iAmDraggingTheFirstInstancedPipelineCard
+                >> given iAmDraggingOverTheThirdDropArea
+                >> when iDropTheCard
+                >> then_ myBrowserMakesTheOrderPipelinesWithinGroupAPICall
+        , test "instanced pipeline card has dragstart listener" <|
+            given iVisitedTheDashboard
+                >> given myBrowserFetchedPipelinesWithInstanceVars
+                >> given iAmViewingTheInstanceGroup
+                >> when iAmLookingAtTheFirstCard
+                >> then_ (itListensForDragStartWithCard firstInstancedPipelineCard)
         , test "dashboard does not auto-refresh during dragging" <|
             given iVisitedTheDashboard
                 >> given myBrowserFetchedPipelinesFromMultipleTeams
@@ -233,7 +247,18 @@ myBrowserFetchedPipelinesWithInstanceVars =
                 , Data.pipeline "team" 3
                     |> Data.withName "other-pipeline"
                     |> Data.withInstanceVars (Dict.fromList [ ( "hello", JsonString "world" ) ])
+                , Data.pipeline "team" 4
+                    |> Data.withName "other-pipeline"
+                    |> Data.withInstanceVars (Dict.fromList [ ( "brach", JsonString "world-1" ) ])
                 ]
+        )
+
+
+firstInstancedPipelineCard =
+    InstancedPipelineCard <|
+        (Data.dashboardPipeline "team" 3
+            |> Data.withName "other-pipeline"
+            |> Data.withInstanceVars (Dict.fromList [ ( "hello", JsonString "world" ) ])
         )
 
 
@@ -244,7 +269,18 @@ instanceGroupCard =
             |> Data.withName "other-pipeline"
             |> Data.withInstanceVars (Dict.fromList [ ( "hello", JsonString "world" ) ])
         )
-        []
+        [ Data.dashboardPipeline "team" 4
+            |> Data.withName "other-pipeline"
+            |> Data.withInstanceVars (Dict.fromList [ ( "brach", JsonString "world-1" ) ])
+        ]
+
+
+iAmViewingTheInstanceGroup =
+    Tuple.first
+        >> Application.update
+            (Update <|
+                FilterMsg "group:\"other-pipeline\""
+            )
 
 
 myBrowserFetchedPipelinesFromMultipleTeams =
@@ -258,7 +294,7 @@ myBrowserFetchedPipelinesFromMultipleTeams =
         )
 
 
-iAmLookingAtTheFirstPipelineCard =
+iAmLookingAtTheFirstCard =
     Tuple.first
         >> Common.queryView
         >> Query.findAll [ class "card" ]
@@ -303,6 +339,12 @@ iAmDraggingTheFirstPipelineCard =
     Tuple.first
         >> Application.update
             (TopLevelMessage.Update <| Message.DragStart firstPipelineCard)
+
+
+iAmDraggingTheFirstInstancedPipelineCard =
+    Tuple.first
+        >> Application.update
+            (TopLevelMessage.Update <| Message.DragStart firstInstancedPipelineCard)
 
 
 iAmDraggingTheInstanceGroupCard =
@@ -438,6 +480,17 @@ myBrowserMakesTheOrderPipelinesAPICall =
         >> Common.contains
             (Effects.SendOrderPipelinesRequest "team"
                 [ "other-pipeline", "pipeline" ]
+            )
+
+
+myBrowserMakesTheOrderPipelinesWithinGroupAPICall =
+    Tuple.second
+        >> Common.contains
+            (Effects.SendOrderPipelinesWithinGroupRequest { teamName = "team", name = "other-pipeline" }
+                [ Dict.empty
+                , Dict.fromList [ ( "brach", JsonString "world-1" ) ]
+                , Dict.fromList [ ( "hello", JsonString "world" ) ]
+                ]
             )
 
 
