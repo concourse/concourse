@@ -205,20 +205,8 @@ var _ = Describe("CheckFactory", func() {
 					fakeResourceType.VersionReturns(atc.Version{"some": "version"})
 				})
 
-				Context("when the parent type's interval has not elapsed", func() {
+				Context("when the checkable's interval has elapsed", func() {
 					BeforeEach(func() {
-						fakeResourceType.LastCheckEndTimeReturns(time.Now().Add(defaultCheckInterval))
-					})
-
-					It("does not create a build for the parent type", func() {
-						Expect(fakeCheckPlanner.CreateCallCount()).To(Equal(0))
-						Expect(fakeResourceType.CreateBuildCallCount()).To(Equal(0))
-					})
-				})
-
-				Context("when the parent type's interval has elapsed", func() {
-					BeforeEach(func() {
-						fakeResourceType.LastCheckEndTimeReturns(time.Now().Add(-defaultCheckInterval))
 						fakeResource.LastCheckEndTimeReturns(time.Now().Add(-defaultCheckInterval))
 					})
 
@@ -228,7 +216,20 @@ var _ = Describe("CheckFactory", func() {
 						Expect(checkable.Name()).To(Equal(fakeResource.Name()))
 						Expect(version).To(Equal(atc.Version{"from": "version"}))
 						Expect(interval).To(Equal(defaultCheckInterval))
-						Expect(types).To(Equal(fakeResourceTypes))
+						Expect(types).To(Equal(atc.VersionedResourceTypes{
+							atc.VersionedResourceType{
+								ResourceType: atc.ResourceType{
+									Name:   "custom-type",
+									Type:   "some-base-type",
+									Tags:   atc.Tags{"some-tag"},
+									Source: atc.Source{"some": "type-source"},
+									Defaults: atc.Source{
+										"sdk": "sdk",
+									},
+								},
+								Version: atc.Version{"some": "version"},
+							},
+						}))
 						Expect(defaults).To(Equal(atc.Source{"sdk": "sdk"}))
 					})
 
@@ -243,7 +244,7 @@ var _ = Describe("CheckFactory", func() {
 						_, manuallyTriggered, plan := fakeResource.CreateBuildArgsForCall(0)
 						Expect(manuallyTriggered).To(BeFalse())
 						Expect(plan.ID).ToNot(BeEmpty())
-						Expect(plan.Check).To(Equal(&checkPlan))
+						Expect(plan.Check).To(Equal(checkPlan.Check))
 					})
 				})
 			})

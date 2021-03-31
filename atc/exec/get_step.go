@@ -39,7 +39,7 @@ func (e ErrResourceNotFound) Error() string {
 
 type GetResult struct {
 	Name          string
-	ResourceCache db.UsedResourceCache
+	ResourceCache db.ResourceCache
 }
 
 //go:generate counterfeiter . GetDelegateFactory
@@ -51,7 +51,7 @@ type GetDelegateFactory interface {
 type GetDelegate interface {
 	StartSpan(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
 
-	FetchImage(context.Context, atc.Plan, *atc.Plan, bool) (worker.ImageSpec, error)
+	FetchImage(context.Context, atc.Plan, *atc.Plan, bool) (worker.ImageSpec, db.ResourceCache, error)
 
 	Stdout() io.Writer
 	Stderr() io.Writer
@@ -137,25 +137,26 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 	}
 
 	workerSpec := worker.WorkerSpec{
-		Tags:         step.plan.Tags,
-		TeamID:       step.metadata.TeamID,
-		ResourceType: step.plan.VersionedResourceTypes.Base(step.plan.Type),
+		Tags:   step.plan.Tags,
+		TeamID: step.metadata.TeamID,
+
+		// Used to filter out non-Linux workers, simply because they don't support
+		// base resource types
+		ResourceType: step.plan.BaseType,
 	}
 
-	var imageSpec worker.ImageSpec
+	var (
+		imageSpec          worker.ImageSpec
+		imageResourceCache db.ResourceCache
+	)
 	if step.plan.ImageGetPlan != nil {
 		var err error
-		imageSpec, err = delegate.FetchImage(ctx, *step.plan.ImageGetPlan, step.plan.ImageCheckPlan, step.plan.Privileged)
+		imageSpec, imageResourceCache, err = delegate.FetchImage(ctx, *step.plan.ImageGetPlan, step.plan.ImageCheckPlan, step.plan.Privileged)
 		if err != nil {
 			return false, err
 		}
 	} else {
 		imageSpec.ResourceType = step.plan.BaseImageType
-	}
-
-	resourceTypes, err := creds.NewVersionedResourceTypes(state, step.plan.VersionedResourceTypes).Evaluate()
-	if err != nil {
-		return false, err
 	}
 
 	version, err := NewVersionSourceFromPlan(&step.plan).Version(state)
@@ -179,7 +180,7 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 		version,
 		source,
 		params,
-		resourceTypes,
+		imageResourceCache,
 	)
 	if err != nil {
 		logger.Error("failed-to-create-resource-cache", err)
@@ -317,7 +318,7 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 func (step *GetStep) getFromLocalCache(
 	logger lager.Logger,
 	teamId int,
-	resourceCache db.UsedResourceCache,
+	resourceCache db.ResourceCache,
 	workerSpec worker.WorkerSpec) (worker.GetResult, bool, error) {
 	volume, found := step.findResourceCache(logger, teamId, resourceCache, workerSpec)
 	if !found {
@@ -340,7 +341,7 @@ func (step *GetStep) getFromLocalCache(
 func (step *GetStep) findResourceCache(
 	logger lager.Logger,
 	teamId int,
-	resourceCache db.UsedResourceCache,
+	resourceCache db.ResourceCache,
 	workerSpec worker.WorkerSpec) (worker.Volume, bool) {
 	workers, err := step.workerPool.FindWorkersForResourceCache(logger, teamId, resourceCache.ID(), workerSpec)
 	if err != nil {

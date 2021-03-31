@@ -832,7 +832,7 @@ var _ = Describe("TaskStep", func() {
 			})
 		})
 
-		Context("when the image_resource is specified (even if RootfsURI is configured)", func() {
+		Context("when the image_resource is specified", func() {
 			var fakeImageSpec worker.ImageSpec
 
 			BeforeEach(func() {
@@ -856,7 +856,7 @@ var _ = Describe("TaskStep", func() {
 					ImageArtifactSource: new(workerfakes.FakeStreamableArtifactSource),
 				}
 
-				fakeDelegate.FetchImageReturns(fakeImageSpec, nil)
+				fakeDelegate.FetchImageReturns(fakeImageSpec, nil, nil)
 			})
 
 			It("succeeds", func() {

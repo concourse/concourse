@@ -1759,18 +1759,6 @@ var _ = Describe("Pipeline", func() {
 					Params:   atc.Params{"some": "params"},
 					Version:  &atc.Version{"some": "version"},
 					Tags:     atc.Tags{"some-tags"},
-					VersionedResourceTypes: atc.VersionedResourceTypes{
-						{
-							ResourceType: atc.ResourceType{
-								Name:       "some-name",
-								Source:     atc.Source{"some": "source"},
-								Type:       "some-type",
-								Privileged: true,
-								Tags:       atc.Tags{"some-tags"},
-							},
-							Version: atc.Version{"some-resource-type": "version"},
-						},
-					},
 				},
 			}
 

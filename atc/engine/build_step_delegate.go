@@ -220,10 +220,10 @@ func (delegate *buildStepDelegate) FetchImage(
 	getPlan atc.Plan,
 	checkPlan *atc.Plan,
 	privileged bool,
-) (worker.ImageSpec, error) {
+) (worker.ImageSpec, db.ResourceCache, error) {
 	err := delegate.checkImagePolicy(getPlan.Get.Source, getPlan.Get.Type, privileged)
 	if err != nil {
-		return worker.ImageSpec{}, err
+		return worker.ImageSpec{}, nil, err
 	}
 
 	fetchState := delegate.state.NewLocalScope()
@@ -231,47 +231,47 @@ func (delegate *buildStepDelegate) FetchImage(
 	if checkPlan != nil {
 		ok, err := fetchState.Run(ctx, *checkPlan)
 		if err != nil {
-			return worker.ImageSpec{}, err
+			return worker.ImageSpec{}, nil, err
 		}
 
 		if !ok {
-			return worker.ImageSpec{}, fmt.Errorf("image check failed")
+			return worker.ImageSpec{}, nil, fmt.Errorf("image check failed")
 		}
 	}
 
 	ok, err := fetchState.Run(ctx, getPlan)
 	if err != nil {
-		return worker.ImageSpec{}, err
+		return worker.ImageSpec{}, nil, err
 	}
 
 	if !ok {
-		return worker.ImageSpec{}, fmt.Errorf("image fetching failed")
+		return worker.ImageSpec{}, nil, fmt.Errorf("image fetching failed")
 	}
 
 	var result exec.GetResult
 	if !fetchState.Result(getPlan.ID, &result) {
-		return worker.ImageSpec{}, fmt.Errorf("get did not return a result")
+		return worker.ImageSpec{}, nil, fmt.Errorf("get did not return a result")
 	}
 
 	err = delegate.build.SaveImageResourceVersion(result.ResourceCache)
 	if err != nil {
-		return worker.ImageSpec{}, fmt.Errorf("save image version: %w", err)
+		return worker.ImageSpec{}, nil, fmt.Errorf("save image version: %w", err)
 	}
 
 	art, found := fetchState.ArtifactRepository().ArtifactFor(build.ArtifactName(result.Name))
 	if !found {
-		return worker.ImageSpec{}, fmt.Errorf("fetched artifact not found")
+		return worker.ImageSpec{}, nil, fmt.Errorf("fetched artifact not found")
 	}
 
 	source, err := delegate.artifactSourcer.SourceImage(lagerctx.FromContext(ctx), art)
 	if err != nil {
-		return worker.ImageSpec{}, fmt.Errorf("wire image: %w", err)
+		return worker.ImageSpec{}, nil, fmt.Errorf("wire image: %w", err)
 	}
 
 	return worker.ImageSpec{
 		ImageArtifactSource: source,
 		Privileged:          privileged,
-	}, nil
+	}, result.ResourceCache, nil
 }
 
 func (delegate *buildStepDelegate) ConstructAcrossSubsteps(templateBytes []byte, acrossVars []atc.AcrossVar, valueCombinations [][]interface{}) ([]atc.VarScopedPlan, error) {

@@ -26,7 +26,7 @@ type PutDelegateFactory interface {
 type PutDelegate interface {
 	StartSpan(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
 
-	FetchImage(context.Context, atc.Plan, *atc.Plan, bool) (worker.ImageSpec, error)
+	FetchImage(context.Context, atc.Plan, *atc.Plan, bool) (worker.ImageSpec, db.ResourceCache, error)
 
 	Stdout() io.Writer
 	Stderr() io.Writer
@@ -39,7 +39,7 @@ type PutDelegate interface {
 	WaitingForWorker(lager.Logger)
 	SelectedWorker(lager.Logger, string)
 
-	SaveOutput(lager.Logger, atc.PutPlan, atc.Source, atc.VersionedResourceTypes, runtime.VersionResult)
+	SaveOutput(lager.Logger, atc.PutPlan, atc.Source, db.ResourceCache, runtime.VersionResult)
 }
 
 // PutStep produces a resource version using preconfigured params and any data
@@ -123,11 +123,6 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 		return false, err
 	}
 
-	resourceTypes, err := creds.NewVersionedResourceTypes(state, step.plan.VersionedResourceTypes).Evaluate()
-	if err != nil {
-		return false, err
-	}
-
 	var putInputs PutInputs
 	if step.plan.Inputs == nil {
 		// Put step defaults to all inputs if not specified
@@ -154,14 +149,18 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 	}
 
 	workerSpec := worker.WorkerSpec{
-		Tags:         step.plan.Tags,
-		TeamID:       step.metadata.TeamID,
-		ResourceType: step.plan.VersionedResourceTypes.Base(step.plan.Type),
+		Tags:   step.plan.Tags,
+		TeamID: step.metadata.TeamID,
+
+		// Used to filter out non-Linux workers, simply because they don't support
+		// base resource types
+		ResourceType: step.plan.BaseType,
 	}
 
 	var imageSpec worker.ImageSpec
+	var imageResourceCache db.ResourceCache
 	if step.plan.ImageGetPlan != nil {
-		imageSpec, err = delegate.FetchImage(ctx, *step.plan.ImageGetPlan, step.plan.ImageCheckPlan, step.plan.Privileged)
+		imageSpec, imageResourceCache, err = delegate.FetchImage(ctx, *step.plan.ImageGetPlan, step.plan.ImageCheckPlan, step.plan.Privileged)
 		if err != nil {
 			return false, err
 		}
@@ -254,7 +253,7 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 	// step.plan.Resource maps to an actual resource that may have been used outside of a pipeline context.
 	// Hence, if it was used outside the pipeline context, we don't want to save the output.
 	if step.plan.Resource != "" {
-		delegate.SaveOutput(logger, step.plan, source, resourceTypes, versionResult)
+		delegate.SaveOutput(logger, step.plan, source, imageResourceCache, versionResult)
 	}
 
 	state.StoreResult(step.planID, versionResult.Version)

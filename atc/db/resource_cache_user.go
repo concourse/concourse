@@ -20,6 +20,7 @@ func (user forBuild) SQLMap() map[string]interface{} {
 	}
 }
 
+// XXX: This is only used in tests!! Remove them
 type forContainer struct {
 	ContainerID int
 }

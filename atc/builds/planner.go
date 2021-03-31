@@ -478,11 +478,14 @@ func (c *CheckPlanner) Create(checkable db.Checkable, versionedResourceTypes atc
 		Tags:    checkable.Tags(),
 		Timeout: checkable.CheckTimeout(),
 
-		FromVersion:            from,
-		Interval:               interval.String(),
-		VersionedResourceTypes: versionedResourceTypes,
-		Resource:               checkable.Name(),
-		Privileged:             privileged,
+		FromVersion: from,
+		Interval:    interval.String(),
+		Privileged:  privileged,
+
+		// TODO: this needs to be ResourceType for resource types
+		//
+		// maybe split out from CheckPlan into SetResourceConfigScopePlan???
+		Resource: checkable.Name(),
 	})
 
 	plan.Check.ImageCheckPlan, plan.Check.ImageGetPlan, plan.Check.BaseType = imageStrategy(plan.ID, checkable.Type(), versionedResourceTypes, checkable.Tags())
@@ -540,8 +543,6 @@ func FetchImagePlan(planID atc.PlanID, image atc.ImageResource, resourceTypes at
 			ImageGetPlan:   subGetPlan,
 			BaseType:       baseType,
 
-			VersionedResourceTypes: resourceTypes,
-
 			Tags: tags,
 
 			Privileged: privileged,
@@ -564,8 +565,6 @@ func FetchImagePlan(planID atc.PlanID, image atc.ImageResource, resourceTypes at
 				ImageCheckPlan: subCheckPlan,
 				ImageGetPlan:   subGetPlan,
 				BaseType:       baseType,
-
-				VersionedResourceTypes: resourceTypes,
 
 				Tags: tags,
 
