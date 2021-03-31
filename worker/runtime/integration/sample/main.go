@@ -18,7 +18,7 @@ var (
 	flagHttpGet       = flag.String("http-get", "", "website to perform an HTTP GET request against")
 	flagWriteTenTimes = flag.String("write-many-times", "", "writes a string to stdout many times")
 	flagCatFile       = flag.String("cat", "", "writes contents of file to stdout")
-	flagSleep         = flag.String("sleep", "", "sleep for given numbeer of seconds")
+	flagSleep         = flag.String("sleep", "", "sleep for given golang duration")
 
 	signals = map[string]os.Signal{
 		"sighup":  syscall.SIGHUP,

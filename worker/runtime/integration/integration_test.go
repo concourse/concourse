@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"syscall"
+	"testing/iotest"
 	"time"
 
 	"code.cloudfoundry.org/garden"
@@ -368,7 +369,7 @@ func (s *IntegrationSuite) TestRunWithTerminalStdinClosed() {
 	})
 	s.NoError(err)
 
-	stdin := &reader{fmt.Errorf("Connection closed")}
+	stdin := iotest.ErrReader(fmt.Errorf("Connection closed"))
 	buf := new(buffer)
 
 	proc, err := container.Run(
