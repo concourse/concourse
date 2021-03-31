@@ -14,7 +14,7 @@ require (
 	github.com/Microsoft/hcsshim v0.8.7 // indirect
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/aryann/difflib v0.0.0-20170710044230-e206f873d14a
-	github.com/aws/aws-sdk-go v1.38.8
+	github.com/aws/aws-sdk-go v1.38.9
 	github.com/caarlos0/env v3.5.0+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e // indirect
@@ -92,10 +92,10 @@ require (
 	github.com/vito/twentythousandtonnesofcrudeoil v0.0.0-20180305154709-3b21ad808fcb
 	go.etcd.io/bbolt v1.3.5 // indirect
 	go.opentelemetry.io/collector v0.23.0
-	go.opentelemetry.io/otel v0.11.0
+	go.opentelemetry.io/otel v0.19.0
 	go.opentelemetry.io/otel/exporters/otlp v0.11.0
 	go.opentelemetry.io/otel/exporters/trace/jaeger v0.11.0
-	go.opentelemetry.io/otel/sdk v0.11.0
+	go.opentelemetry.io/otel/sdk v0.19.0
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	golang.org/x/oauth2 v0.0.0-20210210192628-66670185b0cd
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
