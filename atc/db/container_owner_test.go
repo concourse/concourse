@@ -45,7 +45,7 @@ var _ = Describe("ContainerOwner", func() {
 				atc.Source{
 					"some-type": "source",
 				},
-				atc.VersionedResourceTypes{},
+				nil,
 			)
 			Expect(err).ToNot(HaveOccurred())
 		})

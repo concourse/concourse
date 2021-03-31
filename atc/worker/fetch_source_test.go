@@ -29,7 +29,7 @@ var _ = Describe("FetchSource", func() {
 		fakeVolume               *workerfakes.FakeVolume
 		fakeWorker               *workerfakes.FakeWorker
 		fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
-		fakeUsedResourceCache    *dbfakes.FakeUsedResourceCache
+		fakeResourceCache    *dbfakes.FakeResourceCache
 		fakeResource             *resourcefakes.FakeResource
 		metadata                 db.ContainerMetadata
 		owner                    db.ContainerOwner
@@ -73,9 +73,9 @@ var _ = Describe("FetchSource", func() {
 		fakeWorker.FindOrCreateContainerReturns(fakeContainer, nil)
 
 		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
-		fakeUsedResourceCache = new(dbfakes.FakeUsedResourceCache)
-		fakeUsedResourceCache.IDReturns(42)
-		fakeResourceCacheFactory.FindOrCreateResourceCacheReturns(fakeUsedResourceCache, nil)
+		fakeResourceCache = new(dbfakes.FakeResourceCache)
+		fakeResourceCache.IDReturns(42)
+		fakeResourceCacheFactory.FindOrCreateResourceCacheReturns(fakeResourceCache, nil)
 
 		owner = db.NewBuildStepContainerOwner(43, atc.PlanID("some-plan-id"), 42)
 		metadata = db.ContainerMetadata{Type: db.ContainerTypeGet}
@@ -97,7 +97,7 @@ var _ = Describe("FetchSource", func() {
 			logger,
 			fakeWorker,
 			owner,
-			fakeUsedResourceCache,
+			fakeResourceCache,
 			fakeResource,
 			worker.ContainerSpec{
 				TeamID: 42,
@@ -235,13 +235,13 @@ var _ = Describe("FetchSource", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(fakeVolume.InitializeResourceCacheCallCount()).To(Equal(1))
 				rc := fakeVolume.InitializeResourceCacheArgsForCall(0)
-				Expect(rc).To(Equal(fakeUsedResourceCache))
+				Expect(rc).To(Equal(fakeResourceCache))
 			})
 
 			It("updates resource cache metadata", func() {
 				Expect(fakeResourceCacheFactory.UpdateResourceCacheMetadataCallCount()).To(Equal(1))
 				passedResourceCache, versionResultMetadata := fakeResourceCacheFactory.UpdateResourceCacheMetadataArgsForCall(0)
-				Expect(passedResourceCache).To(Equal(fakeUsedResourceCache))
+				Expect(passedResourceCache).To(Equal(fakeResourceCache))
 				Expect(versionResultMetadata).To(Equal(atcMetadata))
 			})
 

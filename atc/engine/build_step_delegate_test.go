@@ -96,7 +96,7 @@ var _ = Describe("BuildStepDelegate", func() {
 		var expectedCheckPlan, expectedGetPlan *atc.Plan
 		var fakeArtifact *runtimefakes.FakeArtifact
 		var fakeSource *workerfakes.FakeStreamableArtifactSource
-		var fakeResourceCache *dbfakes.FakeUsedResourceCache
+		var fakeResourceCache *dbfakes.FakeResourceCache
 
 		var types atc.VersionedResourceTypes
 		var privileged bool
@@ -138,7 +138,7 @@ var _ = Describe("BuildStepDelegate", func() {
 			stepper = func(p atc.Plan) exec.Step {
 				runPlans = append(runPlans, p)
 
-				fakeResourceCache = new(dbfakes.FakeUsedResourceCache)
+				fakeResourceCache = new(dbfakes.FakeResourceCache)
 				fakeArtifact = new(runtimefakes.FakeArtifact)
 
 				step := new(execfakes.FakeStep)

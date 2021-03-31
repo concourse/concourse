@@ -163,7 +163,7 @@ var _ = Describe("Client", func() {
 			fakeEventDelegate     *runtimefakes.FakeStartingEventDelegate
 			fakeProcessSpec       runtime.ProcessSpec
 			fakeResource          *resourcefakes.FakeResource
-			fakeUsedResourceCache *dbfakes.FakeUsedResourceCache
+			fakeResourceCache *dbfakes.FakeResourceCache
 
 			err error
 
@@ -191,7 +191,7 @@ var _ = Describe("Client", func() {
 				StdoutWriter: stdout,
 				StderrWriter: stderr,
 			}
-			fakeUsedResourceCache = new(dbfakes.FakeUsedResourceCache)
+			fakeResourceCache = new(dbfakes.FakeResourceCache)
 		})
 
 		JustBeforeEach(func() {
@@ -202,7 +202,7 @@ var _ = Describe("Client", func() {
 				metadata,
 				fakeProcessSpec,
 				fakeEventDelegate,
-				fakeUsedResourceCache,
+				fakeResourceCache,
 				fakeResource,
 			)
 		})
@@ -240,7 +240,7 @@ var _ = Describe("Client", func() {
 				Expect(actualProcessSpec).To(Equal(fakeProcessSpec))
 				Expect(actualResource).To(Equal(fakeResource))
 				Expect(actualOwner).To(Equal(owner))
-				Expect(actualResourceCache).To(Equal(fakeUsedResourceCache))
+				Expect(actualResourceCache).To(Equal(fakeResourceCache))
 				// Computed SHA
 				Expect(actualLockName).To(Equal("18c3de3f8ea112ba52e01f279b6cc62335b4bec2f359b9be7636a5ad7bf98f8c"))
 			})

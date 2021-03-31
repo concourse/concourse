@@ -41,7 +41,7 @@ var _ = Describe("GetStep", func() {
 		fakeResourceFactory      *resourcefakes.FakeResourceFactory
 		fakeResource             *resourcefakes.FakeResource
 		fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
-		fakeResourceCache        *dbfakes.FakeUsedResourceCache
+		fakeResourceCache        *dbfakes.FakeResourceCache
 
 		fakeDelegate        *execfakes.FakeGetDelegate
 		fakeDelegateFactory *execfakes.FakeGetDelegateFactory
@@ -90,7 +90,7 @@ var _ = Describe("GetStep", func() {
 		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
 		fakeResource = new(resourcefakes.FakeResource)
 		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
-		fakeResourceCache = new(dbfakes.FakeUsedResourceCache)
+		fakeResourceCache = new(dbfakes.FakeResourceCache)
 
 		artifactRepository = build.NewRepository()
 		fakeState = new(execfakes.FakeRunState)
@@ -118,26 +118,6 @@ var _ = Describe("GetStep", func() {
 			Source:   atc.Source{"some": "((source-var))"},
 			Params:   atc.Params{"some": "((params-var))"},
 			Version:  &atc.Version{"some": "version"},
-			VersionedResourceTypes: atc.VersionedResourceTypes{
-				{
-					ResourceType: atc.ResourceType{
-						Name:   "some-custom-type",
-						Type:   "another-custom-type",
-						Source: atc.Source{"some-custom": "((source-var))"},
-						Params: atc.Params{"some-custom": "((params-var))"},
-					},
-					Version: atc.Version{"some-custom": "version"},
-				},
-				{
-					ResourceType: atc.ResourceType{
-						Name:       "another-custom-type",
-						Type:       "registry-image",
-						Source:     atc.Source{"another-custom": "((source-var))"},
-						Privileged: true,
-					},
-					Version: atc.Version{"another-custom": "version"},
-				},
-			},
 		}
 
 		shouldRunGetStep = true
@@ -177,7 +157,7 @@ var _ = Describe("GetStep", func() {
 	var metadata db.ContainerMetadata
 	var processSpec runtime.ProcessSpec
 	var startEventDelegate runtime.StartingEventDelegate
-	var resourceCache db.UsedResourceCache
+	var resourceCache db.ResourceCache
 	var runResource resource.Resource
 
 	JustBeforeEach(func() {
@@ -194,34 +174,12 @@ var _ = Describe("GetStep", func() {
 	})
 
 	It("constructs the resource cache correctly", func() {
-		_, typ, ver, source, params, types := fakeResourceCacheFactory.FindOrCreateResourceCacheArgsForCall(0)
+		_, typ, ver, source, params, imageResourceCache := fakeResourceCacheFactory.FindOrCreateResourceCacheArgsForCall(0)
 		Expect(typ).To(Equal("some-base-type"))
 		Expect(ver).To(Equal(atc.Version{"some": "version"}))
 		Expect(source).To(Equal(atc.Source{"some": "super-secret-source"}))
 		Expect(params).To(Equal(atc.Params{"some": "super-secret-params"}))
-		Expect(types).To(Equal(atc.VersionedResourceTypes{
-			{
-				ResourceType: atc.ResourceType{
-					Name:   "some-custom-type",
-					Type:   "another-custom-type",
-					Source: atc.Source{"some-custom": "super-secret-source"},
-
-					// params don't need to be interpolated because it's used for
-					// fetching, not constructing the resource config
-					Params: atc.Params{"some-custom": "((params-var))"},
-				},
-				Version: atc.Version{"some-custom": "version"},
-			},
-			{
-				ResourceType: atc.ResourceType{
-					Name:       "another-custom-type",
-					Type:       "registry-image",
-					Source:     atc.Source{"another-custom": "super-secret-source"},
-					Privileged: true,
-				},
-				Version: atc.Version{"another-custom": "version"},
-			},
-		}))
+		Expect(imageResourceCache).To(BeNil())
 	})
 
 	Context("when using a dynamic version source", func() {
@@ -509,7 +467,10 @@ var _ = Describe("GetStep", func() {
 	})
 
 	Context("when using a custom resource type", func() {
-		var fakeImageSpec worker.ImageSpec
+		var (
+			fakeImageSpec          worker.ImageSpec
+			fakeImageResourceCache *dbfakes.FakeResourceCache
+		)
 
 		BeforeEach(func() {
 			getPlan.ImageGetPlan = &atc.Plan{
@@ -538,7 +499,15 @@ var _ = Describe("GetStep", func() {
 				ImageArtifactSource: new(workerfakes.FakeStreamableArtifactSource),
 			}
 
-			fakeDelegate.FetchImageReturns(fakeImageSpec, nil)
+			fakeImageResourceCache = new(dbfakes.FakeResourceCache)
+			fakeImageResourceCache.IDReturns(123)
+
+			fakeDelegate.FetchImageReturns(fakeImageSpec, fakeImageResourceCache, nil)
+		})
+
+		It("uses the same imageResourceCache to create the resourceCache", func() {
+			_, _, _, _, _, rc := fakeResourceCacheFactory.FindOrCreateResourceCacheArgsForCall(0)
+			Expect(rc.ID()).To(Equal(123))
 		})
 
 		It("fetches the resource type image and uses it for the container", func() {

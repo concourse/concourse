@@ -30,8 +30,8 @@ var _ = Describe("ResourceCacheCollector", func() {
 			var oneOffBuild db.Build
 			var jobBuild db.Build
 
-			var oneOffCache db.UsedResourceCache
-			var jobCache db.UsedResourceCache
+			var oneOffCache db.ResourceCache
+			var jobCache db.ResourceCache
 
 			var scenario *dbtest.Scenario
 
@@ -90,7 +90,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 				Expect(err).NotTo(HaveOccurred())
 			})
 
-			resourceCacheExists := func(resourceCache db.UsedResourceCache) bool {
+			resourceCacheExists := func(resourceCache db.ResourceCache) bool {
 				var count int
 				err = psql.Select("COUNT(*)").
 					From("resource_caches").
@@ -175,7 +175,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 
 					Context("when another build of the same job exists with a different image cache", func() {
 						var secondJobBuild db.Build
-						var secondJobCache db.UsedResourceCache
+						var secondJobCache db.ResourceCache
 
 						BeforeEach(func() {
 							secondJobBuild, err = scenario.Job("some-job").CreateBuild("someone")
@@ -221,7 +221,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 
 					Context("when another build of a different job exists with a different image cache", func() {
 						var secondJobBuild db.Build
-						var secondJobCache db.UsedResourceCache
+						var secondJobCache db.ResourceCache
 
 						BeforeEach(func() {
 							secondJobBuild, err = scenario.Job("some-other-job").CreateBuild("someone")

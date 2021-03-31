@@ -116,12 +116,19 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 		return false, fmt.Errorf("resource config creds evaluation: %w", err)
 	}
 
-	resourceTypes, err := creds.NewVersionedResourceTypes(state, step.plan.VersionedResourceTypes).Evaluate()
-	if err != nil {
-		return false, fmt.Errorf("resource types creds evaluation: %w", err)
+	var imageSpec worker.ImageSpec
+	var imageResourceCache db.ResourceCache
+	if step.plan.ImageGetPlan != nil {
+		var err error
+		imageSpec, imageResourceCache, err = delegate.FetchImage(ctx, *step.plan.ImageGetPlan, step.plan.ImageCheckPlan, step.plan.Privileged)
+		if err != nil {
+			return false, err
+		}
+	} else {
+		imageSpec.ResourceType = step.plan.BaseType
 	}
 
-	resourceConfig, err := step.resourceConfigFactory.FindOrCreateResourceConfig(step.plan.Type, source, resourceTypes)
+	resourceConfig, err := step.resourceConfigFactory.FindOrCreateResourceConfig(step.plan.Type, source, imageResourceCache)
 	if err != nil {
 		return false, fmt.Errorf("create resource config: %w", err)
 	}
@@ -165,10 +172,10 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 
 		_, err = scope.UpdateLastCheckStartTime()
 		if err != nil {
-			return false, fmt.Errorf("update check end time: %w", err)
+			return false, fmt.Errorf("update check start time: %w", err)
 		}
 
-		result, runErr := step.runCheck(ctx, logger, delegate, timeout, resourceConfig, source, resourceTypes, fromVersion)
+		result, runErr := step.runCheck(ctx, logger, delegate, timeout, imageSpec, resourceConfig, source, fromVersion)
 		if runErr != nil {
 			metric.Metrics.ChecksFinishedWithError.Inc()
 
@@ -234,26 +241,18 @@ func (step *CheckStep) runCheck(
 	logger lager.Logger,
 	delegate CheckDelegate,
 	timeout time.Duration,
+	imageSpec worker.ImageSpec,
 	resourceConfig db.ResourceConfig,
 	source atc.Source,
-	resourceTypes atc.VersionedResourceTypes,
 	fromVersion atc.Version,
 ) (worker.CheckResult, error) {
 	workerSpec := worker.WorkerSpec{
-		Tags:         step.plan.Tags,
-		TeamID:       step.metadata.TeamID,
-		ResourceType: step.plan.VersionedResourceTypes.Base(step.plan.Type),
-	}
+		Tags:   step.plan.Tags,
+		TeamID: step.metadata.TeamID,
 
-	var imageSpec worker.ImageSpec
-	if step.plan.ImageGetPlan != nil {
-		var err error
-		imageSpec, err = delegate.FetchImage(ctx, *step.plan.ImageGetPlan, step.plan.ImageCheckPlan, step.plan.Privileged)
-		if err != nil {
-			return worker.CheckResult{}, err
-		}
-	} else {
-		imageSpec.ResourceType = step.plan.BaseImageType
+		// Used to filter out non-Linux workers, simply because they don't support
+		// base resource types
+		ResourceType: step.plan.BaseType,
 	}
 
 	containerSpec := worker.ContainerSpec{

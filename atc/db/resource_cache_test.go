@@ -47,7 +47,7 @@ var _ = Describe("ResourceCache", func() {
 					"some": "source",
 				},
 				atc.Params{"some": "params"},
-				atc.VersionedResourceTypes{},
+				nil,
 			)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(urc.ID()).ToNot(BeZero())
@@ -59,7 +59,7 @@ var _ = Describe("ResourceCache", func() {
 		})
 
 		Context("when it already exists", func() {
-			var existingResourceCache db.UsedResourceCache
+			var existingResourceCache db.ResourceCache
 
 			BeforeEach(func() {
 				var err error
@@ -71,7 +71,7 @@ var _ = Describe("ResourceCache", func() {
 						"some": "source",
 					},
 					atc.Params{"some": "params"},
-					atc.VersionedResourceTypes{},
+					nil,
 				)
 				Expect(err).ToNot(HaveOccurred())
 			})
@@ -85,7 +85,7 @@ var _ = Describe("ResourceCache", func() {
 						"some": "source",
 					},
 					atc.Params{"some": "params"},
-					atc.VersionedResourceTypes{},
+					nil,
 				)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(urc.ID()).To(Equal(existingResourceCache.ID()))
@@ -95,7 +95,7 @@ var _ = Describe("ResourceCache", func() {
 
 	Describe("creating for a container", func() {
 		var container db.CreatingContainer
-		var urc db.UsedResourceCache
+		var urc db.ResourceCache
 
 		BeforeEach(func() {
 			worker, err := defaultTeam.SaveWorker(atc.Worker{
@@ -120,7 +120,7 @@ var _ = Describe("ResourceCache", func() {
 					"cache": "source",
 				},
 				atc.Params{"some": "params"},
-				atc.VersionedResourceTypes{},
+				nil,
 			)
 			Expect(err).NotTo(HaveOccurred())
 		})
@@ -134,7 +134,7 @@ var _ = Describe("ResourceCache", func() {
 		})
 
 		Context("when it already exists", func() {
-			var existingResourceCache db.UsedResourceCache
+			var existingResourceCache db.ResourceCache
 
 			BeforeEach(func() {
 				var err error
@@ -146,7 +146,7 @@ var _ = Describe("ResourceCache", func() {
 						"cache": "source",
 					},
 					atc.Params{"some": "params"},
-					atc.VersionedResourceTypes{},
+					nil,
 				)
 				Expect(err).NotTo(HaveOccurred())
 			})

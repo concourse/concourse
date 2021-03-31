@@ -56,6 +56,7 @@ type ResourceType interface {
 
 type ResourceTypes []ResourceType
 
+// XXX: TODO Can remove the bool
 func (resourceTypes ResourceTypes) Parent(checkable Checkable) (ResourceType, bool) {
 	for _, t := range resourceTypes {
 		if t.PipelineID() == checkable.PipelineID() {
@@ -132,6 +133,17 @@ func (resourceTypes ResourceTypes) Configs() atc.ResourceTypes {
 	}
 
 	return configs
+}
+
+func (resourceTypes ResourceTypes) Without(name string) ResourceTypes {
+	newTypes := ResourceTypes{}
+	for _, t := range resourceTypes {
+		if t.Name() != name {
+			newTypes = append(newTypes, t)
+		}
+	}
+
+	return newTypes
 }
 
 var resourceTypesQuery = psql.Select(

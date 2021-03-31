@@ -179,12 +179,12 @@ type Build interface {
 	Artifacts() ([]WorkerArtifact, error)
 	Artifact(artifactID int) (WorkerArtifact, error)
 
-	SaveOutput(string, atc.Source, atc.VersionedResourceTypes, atc.Version, ResourceConfigMetadataFields, string, string) error
+	SaveOutput(string, ResourceCache, atc.Source, atc.Version, ResourceConfigMetadataFields, string, string) error
 	AdoptInputsAndPipes() ([]BuildInput, bool, error)
 	AdoptRerunInputsAndPipes() ([]BuildInput, bool, error)
 
 	Resources() ([]BuildInput, []BuildOutput, error)
-	SaveImageResourceVersion(UsedResourceCache) error
+	SaveImageResourceVersion(ResourceCache) error
 
 	Delete() (bool, error)
 	MarkAsAborted() error
@@ -868,7 +868,7 @@ func (b *build) AbortNotifier() (Notifier, error) {
 	})
 }
 
-func (b *build) SaveImageResourceVersion(rc UsedResourceCache) error {
+func (b *build) SaveImageResourceVersion(rc ResourceCache) error {
 	var jobID sql.NullInt64
 	if b.jobID != 0 {
 		jobID = newNullInt64(b.jobID)
@@ -1157,8 +1157,8 @@ func (b *build) Artifacts() ([]WorkerArtifact, error) {
 
 func (b *build) SaveOutput(
 	resourceType string,
+	imageResourceCache ResourceCache,
 	source atc.Source,
-	resourceTypes atc.VersionedResourceTypes,
 	version atc.Version,
 	metadata ResourceConfigMetadataFields,
 	outputName string,
@@ -1196,17 +1196,17 @@ func (b *build) SaveOutput(
 
 	defer Rollback(tx)
 
-	resourceConfigDescriptor, err := constructResourceConfigDescriptor(resourceType, source, resourceTypes)
+	rc := &resourceConfig{
+		lockFactory: b.lockFactory,
+		conn:        b.conn,
+	}
+
+	err = findOrCreateResourceConfig(tx, rc, resourceType, source, imageResourceCache, false)
 	if err != nil {
 		return err
 	}
 
-	resourceConfig, err := resourceConfigDescriptor.findOrCreate(tx, b.lockFactory, b.conn, false)
-	if err != nil {
-		return err
-	}
-
-	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, b.conn, b.lockFactory, resourceConfig, theResource)
+	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, b.conn, b.lockFactory, rc, theResource)
 	if err != nil {
 		return err
 	}

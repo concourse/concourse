@@ -150,8 +150,8 @@ type CreatedVolume interface {
 	Destroying() (DestroyingVolume, error)
 	WorkerName() string
 
-	InitializeResourceCache(UsedResourceCache) error
-	InitializeStreamedResourceCache(UsedResourceCache, string) error
+	InitializeResourceCache(ResourceCache) error
+	InitializeStreamedResourceCache(ResourceCache, string) error
 	GetResourceCacheID() int
 	InitializeArtifact(name string, buildID int) (WorkerArtifact, error)
 	InitializeTaskCache(jobID int, stepName string, path string) error
@@ -353,7 +353,7 @@ func (volume *createdVolume) findWorkerBaseResourceTypeByBaseResourceTypeID() (*
 	}, nil
 }
 
-func (volume *createdVolume) InitializeResourceCache(resourceCache UsedResourceCache) error {
+func (volume *createdVolume) InitializeResourceCache(resourceCache ResourceCache) error {
 	tx, err := volume.conn.Begin()
 	if err != nil {
 		return err
@@ -384,7 +384,7 @@ func (volume *createdVolume) InitializeResourceCache(resourceCache UsedResourceC
 	return tx.Commit()
 }
 
-func (volume *createdVolume) InitializeStreamedResourceCache(resourceCache UsedResourceCache, sourceWorkerName string) error {
+func (volume *createdVolume) InitializeStreamedResourceCache(resourceCache ResourceCache, sourceWorkerName string) error {
 	tx, err := volume.conn.Begin()
 	if err != nil {
 		return err
@@ -422,7 +422,7 @@ func (volume *createdVolume) InitializeStreamedResourceCache(resourceCache UsedR
 // initializeResourceCache creates a worker resource cache and point current volume's
 // worker_resource_cache_id to the cache. When initializing a local generated resource
 // cache, then source worker is just the volume's worker.
-func (volume *createdVolume) initializeResourceCache(tx Tx, resourceCache UsedResourceCache, workerBaseResourceTypeID int) (bool, error) {
+func (volume *createdVolume) initializeResourceCache(tx Tx, resourceCache ResourceCache, workerBaseResourceTypeID int) (bool, error) {
 	workerResourceCache, valid, err := WorkerResourceCache{
 		WorkerName:    volume.WorkerName(),
 		ResourceCache: resourceCache,

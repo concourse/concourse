@@ -2,6 +2,7 @@ package db_test
 
 import (
 	"context"
+	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -461,7 +462,7 @@ var _ = Describe("ResourceType", func() {
 		BeforeEach(func() {
 			resourceType = defaultResourceType
 
-			resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(resourceType.Type(), resourceType.Source(), atc.VersionedResourceTypes{})
+			resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(resourceType.Type(), resourceType.Source(), nil)
 			Expect(err).ToNot(HaveOccurred())
 
 			scope, err = resourceConfig.FindOrCreateScope(nil)

@@ -22,17 +22,6 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 
 	Describe("CleanUpInvalidCaches", func() {
 		Context("the resource cache is used by a build", func() {
-			resourceCacheForOneOffBuild := func() (db.UsedResourceCache, db.Build) {
-				build, err := defaultTeam.CreateOneOffBuild()
-				Expect(err).ToNot(HaveOccurred())
-				return createResourceCacheWithUser(db.ForBuild(build.ID())), build
-			}
-
-			resourceCacheForJobBuild := func() (db.UsedResourceCache, db.Build) {
-				build, err := defaultJob.CreateBuild(defaultBuildCreatedBy)
-				Expect(err).ToNot(HaveOccurred())
-				return createResourceCacheWithUser(db.ForBuild(build.ID())), build
-			}
 
 			Context("when its a one off build", func() {
 				It("doesn't delete the resource cache", func() {
@@ -106,7 +95,7 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 
 			Context("when its a build of a job in a pipeline", func() {
 				Context("when the cache is for a saved image resource version for a finished build", func() {
-					setBuildStatus := func(a db.BuildStatus) (db.UsedResourceCache, db.Build) {
+					setBuildStatus := func(a db.BuildStatus) (db.ResourceCache, db.Build) {
 						resourceCache, build := resourceCacheForJobBuild()
 						Expect(build.JobID()).ToNot(BeZero())
 
@@ -224,7 +213,7 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 					atc.Source{
 						"some": "source",
 					},
-					atc.VersionedResourceTypes{},
+					nil,
 				)
 				Expect(err).ToNot(HaveOccurred())
 
@@ -274,23 +263,21 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 
 		Context("when the cache is for a custom resource type", func() {
 			It("does not remove the cache if the type is still configured", func() {
-				_, err := resourceConfigFactory.FindOrCreateResourceConfig(
+				imageResourceCache, build := resourceCacheForJobBuild()
+
+				err := build.SetInterceptible(false)
+				Expect(err).ToNot(HaveOccurred())
+
+				By("removing the resource cache use for the build id")
+				err = resourceCacheLifecycle.CleanUsesForFinishedBuilds(logger)
+				Expect(err).ToNot(HaveOccurred())
+
+				_, err = resourceConfigFactory.FindOrCreateResourceConfig(
 					"some-type",
 					atc.Source{
 						"some": "source",
 					},
-					atc.VersionedResourceTypes{
-						atc.VersionedResourceType{
-							ResourceType: atc.ResourceType{
-								Name: "some-type",
-								Type: "some-base-resource-type",
-								Source: atc.Source{
-									"some": "source",
-								},
-							},
-							Version: atc.Version{"showme": "whatyougot"},
-						},
-					},
+					imageResourceCache,
 				)
 				Expect(err).ToNot(HaveOccurred())
 
@@ -302,23 +289,21 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 			})
 
 			It("removes the cache if the type is no longer configured", func() {
-				_, err := resourceConfigFactory.FindOrCreateResourceConfig(
+				imageResourceCache, build := resourceCacheForJobBuild()
+
+				err := build.SetInterceptible(false)
+				Expect(err).ToNot(HaveOccurred())
+
+				By("removing the resource cache use for the build id")
+				err = resourceCacheLifecycle.CleanUsesForFinishedBuilds(logger)
+				Expect(err).ToNot(HaveOccurred())
+
+				_, err = resourceConfigFactory.FindOrCreateResourceConfig(
 					"some-type",
 					atc.Source{
 						"some": "source",
 					},
-					atc.VersionedResourceTypes{
-						atc.VersionedResourceType{
-							ResourceType: atc.ResourceType{
-								Name: "some-type",
-								Type: "some-base-resource-type",
-								Source: atc.Source{
-									"some": "source",
-								},
-							},
-							Version: atc.Version{"showme": "whatyougot"},
-						},
-					},
+					imageResourceCache,
 				)
 				Expect(err).ToNot(HaveOccurred())
 
@@ -409,6 +394,18 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 	})
 })
 
+func resourceCacheForOneOffBuild() (db.ResourceCache, db.Build) {
+	build, err := defaultTeam.CreateOneOffBuild()
+	Expect(err).ToNot(HaveOccurred())
+	return createResourceCacheWithUser(db.ForBuild(build.ID())), build
+}
+
+func resourceCacheForJobBuild() (db.ResourceCache, db.Build) {
+	build, err := defaultJob.CreateBuild(defaultBuildCreatedBy)
+	Expect(err).ToNot(HaveOccurred())
+	return createResourceCacheWithUser(db.ForBuild(build.ID())), build
+}
+
 func countResourceCaches() int {
 	var result int
 	err := psql.Select("count(*)").
@@ -422,7 +419,7 @@ func countResourceCaches() int {
 
 }
 
-func createResourceCacheWithUser(resourceCacheUser db.ResourceCacheUser) db.UsedResourceCache {
+func createResourceCacheWithUser(resourceCacheUser db.ResourceCacheUser) db.ResourceCache {
 	usedResourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
 		resourceCacheUser,
 		"some-base-resource-type",
@@ -431,7 +428,7 @@ func createResourceCacheWithUser(resourceCacheUser db.ResourceCacheUser) db.Used
 			"some": "source",
 		},
 		atc.Params{"some": fmt.Sprintf("param-%d", time.Now().UnixNano())},
-		atc.VersionedResourceTypes{},
+		nil,
 	)
 	Expect(err).ToNot(HaveOccurred())
 
