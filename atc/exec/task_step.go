@@ -244,20 +244,8 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 
 	owner := db.NewBuildStepContainerOwner(step.metadata.BuildID, step.planID, step.metadata.TeamID)
 
-	processCtx := ctx
-	if step.plan.Timeout != "" {
-		timeout, err := time.ParseDuration(step.plan.Timeout)
-		if err != nil {
-			return false, fmt.Errorf("parse timeout: %w", err)
-		}
-
-		var cancel func()
-		processCtx, cancel = context.WithTimeout(ctx, timeout)
-		defer cancel()
-	}
-
 	chosenWorker, _, err := step.workerPool.SelectWorker(
-		lagerctx.NewContext(processCtx, logger),
+		lagerctx.NewContext(ctx, logger),
 		owner,
 		containerSpec,
 		step.workerSpec(config),
@@ -272,12 +260,24 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 
 	defer func() {
 		step.workerPool.ReleaseWorker(
-			lagerctx.NewContext(processCtx, logger),
+			lagerctx.NewContext(ctx, logger),
 			containerSpec,
 			chosenWorker,
 			step.strategy,
 		)
 	}()
+
+	processCtx := ctx
+	if step.plan.Timeout != "" {
+		timeout, err := time.ParseDuration(step.plan.Timeout)
+		if err != nil {
+			return false, fmt.Errorf("parse timeout: %w", err)
+		}
+
+		var cancel func()
+		processCtx, cancel = context.WithTimeout(ctx, timeout)
+		defer cancel()
+	}
 
 	result, runErr := chosenWorker.RunTaskStep(
 		lagerctx.NewContext(processCtx, logger),
