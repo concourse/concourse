@@ -54,7 +54,6 @@ import (
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/image"
 	"github.com/concourse/concourse/atc/wrappa"
-	"github.com/concourse/flag"
 	"github.com/concourse/concourse/skymarshal/dexserver"
 	"github.com/concourse/concourse/skymarshal/legacyserver"
 	"github.com/concourse/concourse/skymarshal/skycmd"
@@ -63,6 +62,7 @@ import (
 	"github.com/concourse/concourse/skymarshal/token"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/web"
+	"github.com/concourse/flag"
 	"github.com/concourse/retryhttp"
 	"gopkg.in/square/go-jose.v2/jwt"
 
@@ -158,6 +158,10 @@ type RunConfig struct {
 }
 
 var CmdDefaults RunConfig = RunConfig{
+	Logger: flag.Lager{
+		LogLevel: "info",
+	},
+
 	BindIP:   net.IPv4(0, 0, 0, 0),
 	BindPort: 8080,
 

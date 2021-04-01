@@ -32,6 +32,8 @@ var TSACommand = &cobra.Command{
 func init() {
 	TSACommand.Flags().Var(&configFile, "config", "config file (default is $HOME/.cobra.yaml)")
 
+	tsaCmd = CmdDefaults
+
 	InitializeTSAFlagsDEPRECATED(TSACommand, &tsaCmd)
 }
 

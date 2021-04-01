@@ -12,8 +12,8 @@ import (
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/atccmd"
 	"github.com/concourse/concourse/atc/wrappa"
-	"github.com/concourse/flag"
 	"github.com/concourse/concourse/skymarshal/skycmd"
+	"github.com/concourse/flag"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
 	en_translations "github.com/go-playground/validator/v10/translations/en"
@@ -22,19 +22,17 @@ import (
 
 // All the possible custom error messages for each tag validation
 var (
-	ValidationErrParseURL           = "url is invalid"
-	ValidationErrLimitedRoute       = fmt.Sprintf("Not a valid route to limit. Valid routes include %v.", wrappa.SupportedActions)
-	ValidationErrEmptyTLSBindPort   = "must specify tls.bind_port to use TLS"
-	ValidationErrEnableLetsEncrypt  = "cannot specify lets_encrypt.enable if tls.cert or tls.key are set"
-	ValidationErrTLSCertKey         = "must specify HTTPS external-url to use TLS"
-	ValidationErrTLS                = "must specify tls.cert and tls.key, or lets_encrypt.enable to use TLS"
-	ValidationErrRBAC               = "unknown rbac role or action defined in the config rbac file provided"
-	ValidationErrCPS                = fmt.Sprintf("Not a valid list of container placement strategies. Valid strategies include %v.", atc.ValidContainerPlacementStrategies)
-	ValidationErrSAC                = fmt.Sprintf("Not a valid streaming artifacts compression. Valid options include %v.", atc.ValidStreamingArtifactsCompressions)
-	ValidationErrLogLevel           = fmt.Sprintf("Not a valid log level. Valid options include %v.", flag.ValidLogLevels)
-	ValidationErrIPVersion          = fmt.Sprintf("Not a valid IP version. Valid options include 4 for IPv4 or 6 for IPv6.")
-	ValidationErrBaggageclaimDriver = fmt.Sprintf("Not a valid baggageclaim driver. Valid options include %v.", baggageclaim.ValidDrivers)
-	ValidationErrConnectors         = fmt.Sprintf("Not a valid auth connector. Valid options include %v.", skycmd.ConnectorIDs)
+	ValidationErrParseURL          = "url is invalid"
+	ValidationErrLimitedRoute      = fmt.Sprintf("Not a valid route to limit. Valid routes include %v.", wrappa.SupportedActions)
+	ValidationErrEmptyTLSBindPort  = "must specify tls.bind_port to use TLS"
+	ValidationErrEnableLetsEncrypt = "cannot specify lets_encrypt.enable if tls.cert or tls.key are set"
+	ValidationErrTLSCertKey        = "must specify HTTPS external-url to use TLS"
+	ValidationErrTLS               = "must specify tls.cert and tls.key, or lets_encrypt.enable to use TLS"
+	ValidationErrRBAC              = "unknown rbac role or action defined in the config rbac file provided"
+	ValidationErrCPS               = fmt.Sprintf("Not a valid list of container placement strategies. Valid strategies include %v.", atc.ValidContainerPlacementStrategies)
+	ValidationErrSAC               = fmt.Sprintf("Not a valid streaming artifacts compression. Valid options include %v.", atc.ValidStreamingArtifactsCompressions)
+	ValidationErrLogLevel          = fmt.Sprintf("Not a valid log level. Valid options include %v.", flag.ValidLogLevels)
+	ValidationErrConnectors        = fmt.Sprintf("Not a valid auth connector. Valid options include %v.", skycmd.ConnectorIDs)
 )
 
 func NewValidator(trans ut.Translator) *validator.Validate {
@@ -48,8 +46,8 @@ func NewValidator(trans ut.Translator) *validator.Validate {
 	validate.RegisterValidation("cps", ValidateContainerPlacementStrategy)
 	validate.RegisterValidation("sac", ValidateStreamingArtifactsCompression)
 	validate.RegisterValidation("log_level", ValidateLogLevel)
-	validate.RegisterValidation("ip_version", ValidateIPVersion)
-	validate.RegisterValidation("baggageclaim_driver", ValidateBaggageclaimDriver)
+	validate.RegisterValidation("ip_version", baggageclaimcmd.ValidateIPVersion)
+	validate.RegisterValidation("baggageclaim_driver", baggageclaimcmd.ValidateBaggageclaimDriver)
 	validate.RegisterValidation("connectors", ValidateConnectors)
 
 	ve := NewValidatorErrors(validate, trans)
@@ -81,8 +79,8 @@ func (v *validatorErrors) SetupErrorMessages() {
 	v.RegisterTranslation("cps", ValidationErrCPS)
 	v.RegisterTranslation("sac", ValidationErrSAC)
 	v.RegisterTranslation("log_level", ValidationErrLogLevel)
-	v.RegisterTranslation("ip_version", ValidationErrIPVersion)
-	v.RegisterTranslation("baggageclaim_driver", ValidationErrBaggageclaimDriver)
+	v.RegisterTranslation("ip_version", baggageclaimcmd.ValidationErrIPVersion)
+	v.RegisterTranslation("baggageclaim_driver", baggageclaimcmd.ValidationErrBaggageclaimDriver)
 	v.RegisterTranslation("connectors", ValidationErrConnectors)
 }
 
@@ -235,27 +233,6 @@ func ValidateStreamingArtifactsCompression(field validator.FieldLevel) bool {
 func ValidateLogLevel(field validator.FieldLevel) bool {
 	value := field.Field().String()
 	for _, validChoice := range flag.ValidLogLevels {
-		if value == string(validChoice) {
-			return true
-		}
-	}
-
-	return false
-}
-
-func ValidateIPVersion(field validator.FieldLevel) bool {
-	value := field.Field().String()
-
-	if value == "4" || value == "6" {
-		return true
-	} else {
-		return false
-	}
-}
-
-func ValidateBaggageclaimDriver(field validator.FieldLevel) bool {
-	value := field.Field().String()
-	for _, validChoice := range baggageclaim.ValidDrivers {
 		if value == string(validChoice) {
 			return true
 		}

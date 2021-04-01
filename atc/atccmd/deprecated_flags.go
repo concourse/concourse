@@ -13,6 +13,7 @@ import (
 // support new fields as flags.
 
 func InitializeATCFlagsDEPRECATED(c *cobra.Command, flags *RunConfig) {
+	c.Flags().StringVar(&flags.Logger.LogLevel, "log-level", CmdDefaults.Logger.LogLevel, "Minimum level of logs to see.")
 	c.Flags().IPVar(&flags.BindIP, "bind-ip", CmdDefaults.BindIP, "IP address on which to listen for web traffic.")
 	c.Flags().Uint16Var(&flags.BindPort, "bind-port", CmdDefaults.BindPort, "Port on which to listen for HTTP traffic.")
 	c.Flags().Var(&flags.ExternalURL, "external-url", "URL used to reach any ATC from the outside world.")

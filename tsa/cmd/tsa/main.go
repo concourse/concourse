@@ -7,5 +7,10 @@ import (
 )
 
 func main() {
-	tsacmd.TSACommand.Execute()
+	err := tsacmd.TSACommand.Execute()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
 }

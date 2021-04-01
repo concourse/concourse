@@ -14,8 +14,8 @@ import (
 	"github.com/concourse/concourse"
 	"github.com/concourse/concourse/atc/worker/gclient"
 	concourseCmd "github.com/concourse/concourse/cmd"
-	"github.com/concourse/flag"
 	"github.com/concourse/concourse/worker"
+	"github.com/concourse/flag"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"
@@ -56,7 +56,7 @@ type WorkerCommand struct {
 
 	ExternalGardenURL flag.URL `yaml:"external_garden_url,omitempty"`
 
-	Baggageclaim baggageclaimcmd.BaggageclaimCommand `yaml:"baggageclaim,omitempty"`
+	Baggageclaim baggageclaimcmd.BaggageclaimConfig `yaml:"baggageclaim,omitempty"`
 
 	ResourceTypes flag.Dir `yaml:"resource_types,omitempty"`
 
@@ -104,24 +104,10 @@ var CmdDefaults = WorkerCommand{
 		RequestTimeout: 5 * time.Minute,
 	},
 
-	Baggageclaim: baggageclaimcmd.BaggageclaimCommand{
-		BindIP:   net.IPv4(127, 0, 0, 1),
-		BindPort: 7788,
+	Baggageclaim: baggageclaimcmd.CmdDefaults,
 
-		Debug: baggageclaimcmd.DebugConfig{
-			BindIP:   net.IPv4(127, 0, 0, 1),
-			BindPort: 7787,
-		},
-
-		P2p: baggageclaimcmd.P2pConfig{
-			InterfaceNamePattern: "eth0",
-			InterfaceFamily:      4,
-		},
-
-		Driver: "detect",
-
-		BtrfsBin: "btrfs",
-		MkfsBin:  "mkfs.btrfs",
+	Logger: flag.Lager{
+		LogLevel: "info",
 	},
 }
 
