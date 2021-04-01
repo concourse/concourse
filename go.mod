@@ -62,7 +62,7 @@ require (
 	github.com/mattn/go-colorable v0.1.8
 	github.com/mattn/go-isatty v0.0.12
 	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
-	github.com/maxbrunsfeld/counterfeiter/v6 v6.3.0
+	github.com/maxbrunsfeld/counterfeiter/v6 v6.4.0
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b
 	github.com/miekg/dns v1.1.41
 	github.com/mitchellh/mapstructure v1.4.1
