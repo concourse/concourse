@@ -216,8 +216,8 @@ github.com/cockroachdb/datadriven v0.0.0-20190809214429-80d97fb3cbaa/go.mod h1:z
 github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd/go.mod h1:sE/e/2PUdi/liOCUjSTXgM1o87ZssimdTWN964YiIeI=
 github.com/concourse/baggageclaim v1.11.0 h1:/2WtecK6KZ0Zw3zyc3MApTZIxUh1568aKW+dKT3OeOU=
 github.com/concourse/baggageclaim v1.11.0/go.mod h1:UdvVE2W8LgXcCz0ZdKBwUbpKZ0KN4Fx1OeY1xtZOUvY=
-github.com/concourse/dex v0.5.0 h1:PaRLhaASNJO5iWZfscB/Ku764mh6ZHoYWU8+F1l7MYM=
-github.com/concourse/dex v0.5.0/go.mod h1:bkH7clreyLOrHOjWN0N2Hdobk0p5TNn3GEf7K2RxFZg=
+github.com/concourse/dex v0.7.0 h1:yiX8wLFdXBocLIPpHCHf5nyFUffpTzDixkC2hWLtkOo=
+github.com/concourse/dex v0.7.0/go.mod h1:bkH7clreyLOrHOjWN0N2Hdobk0p5TNn3GEf7K2RxFZg=
 github.com/concourse/flag v0.0.0-20180907155614-cb47f24fff1c/go.mod h1:ngs845OZCESOe8vgeK5fsCNIiS0vUSqB8MGQMS9+4og=
 github.com/concourse/flag v1.1.0 h1:d2l91vIK6lwfIC7uNLb3i51tZtaWCTokh80VoE6T/RU=
 github.com/concourse/flag v1.1.0/go.mod h1:ngs845OZCESOe8vgeK5fsCNIiS0vUSqB8MGQMS9+4og=
