@@ -276,7 +276,6 @@ func helmDeploy(releaseName, namespace, chartDir string, args ...string) *gexec.
 	helmArgs := []string{
 		"upgrade",
 		"--install",
-		"--force",
 		"--namespace", namespace,
 		"--create-namespace",
 	}
