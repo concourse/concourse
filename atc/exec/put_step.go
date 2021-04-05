@@ -30,7 +30,7 @@ type PutDelegate interface {
 	StartSpan(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
 
 	Variables(context.Context, atc.VarSourceConfigs) vars.Variables
-	FetchImage(context.Context, atc.Plan, *atc.Plan, bool) (worker.ImageSpec, error)
+	FetchImage(context.Context, atc.Plan, *atc.Plan, bool) (worker.ImageSpec, db.UsedResourceCache, error)
 
 	Stdout() io.Writer
 	Stderr() io.Writer
@@ -166,7 +166,7 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 
 	var imageSpec worker.ImageSpec
 	if step.plan.ImageGetPlan != nil {
-		imageSpec, err = delegate.FetchImage(ctx, *step.plan.ImageGetPlan, step.plan.ImageCheckPlan, step.plan.Privileged)
+		imageSpec, _, err = delegate.FetchImage(ctx, *step.plan.ImageGetPlan, step.plan.ImageCheckPlan, step.plan.Privileged)
 		if err != nil {
 			return false, err
 		}

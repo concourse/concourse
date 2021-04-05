@@ -451,9 +451,8 @@ type GetPlan struct {
 	Name string `json:"name,omitempty"`
 
 	// The resource config to fetch from.
-	Type                   string                 `json:"type"`
-	Source                 Source                 `json:"source"`
-	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
+	Type   string `json:"type"`
+	Source Source `json:"source"`
 
 	// Image of the container. One of these must be specified.
 	ImageCheckPlan *Plan `json:"image_check_plan,omitempty"`

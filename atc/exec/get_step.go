@@ -53,7 +53,7 @@ type GetDelegate interface {
 	StartSpan(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
 
 	Variables(context.Context, atc.VarSourceConfigs) vars.Variables
-	FetchImage(context.Context, atc.Plan, *atc.Plan, bool) (worker.ImageSpec, error)
+	FetchImage(context.Context, atc.Plan, *atc.Plan, bool) (worker.ImageSpec, db.UsedResourceCache, error)
 
 	Stdout() io.Writer
 	Stderr() io.Writer
@@ -145,20 +145,18 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 		ResourceType: step.plan.BaseType,
 	}
 
-	var imageSpec worker.ImageSpec
+	var (
+		imageSpec          worker.ImageSpec
+		imageResourceCache db.UsedResourceCache
+	)
 	if step.plan.ImageGetPlan != nil {
 		var err error
-		imageSpec, err = delegate.FetchImage(ctx, *step.plan.ImageGetPlan, step.plan.ImageCheckPlan, step.plan.Privileged)
+		imageSpec, imageResourceCache, err = delegate.FetchImage(ctx, *step.plan.ImageGetPlan, step.plan.ImageCheckPlan, step.plan.Privileged)
 		if err != nil {
 			return false, err
 		}
 	} else {
 		imageSpec.ResourceType = step.plan.BaseType
-	}
-
-	resourceTypes, err := creds.NewVersionedResourceTypes(delegate.Variables(ctx, state.VarSourceConfigs()), step.plan.VersionedResourceTypes).Evaluate()
-	if err != nil {
-		return false, err
 	}
 
 	version, err := NewVersionSourceFromPlan(&step.plan).Version(state)
@@ -179,7 +177,7 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 		version,
 		source,
 		params,
-		resourceTypes,
+		imageResourceCache,
 	)
 	if err != nil {
 		logger.Error("failed-to-create-resource-cache", err)

@@ -253,7 +253,7 @@ func (step *CheckStep) runCheck(
 	var imageSpec worker.ImageSpec
 	if step.plan.ImageGetPlan != nil {
 		var err error
-		imageSpec, err = delegate.FetchImage(ctx, *step.plan.ImageGetPlan, step.plan.ImageCheckPlan, step.plan.Privileged)
+		imageSpec, _, err = delegate.FetchImage(ctx, *step.plan.ImageGetPlan, step.plan.ImageCheckPlan, step.plan.Privileged)
 		if err != nil {
 			return worker.CheckResult{}, err
 		}

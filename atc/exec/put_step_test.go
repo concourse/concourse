@@ -412,7 +412,10 @@ var _ = Describe("PutStep", func() {
 	})
 
 	Context("when using a custom resource type", func() {
-		var fakeImageSpec worker.ImageSpec
+		var (
+			fakeImageSpec          worker.ImageSpec
+			fakeImageResourceCache *dbfakes.FakeUsedResourceCache
+		)
 
 		BeforeEach(func() {
 			putPlan.ImageGetPlan = &atc.Plan{
@@ -441,7 +444,10 @@ var _ = Describe("PutStep", func() {
 				ImageArtifactSource: new(workerfakes.FakeStreamableArtifactSource),
 			}
 
-			fakeDelegate.FetchImageReturns(fakeImageSpec, nil)
+			fakeImageResourceCache = new(dbfakes.FakeUsedResourceCache)
+			fakeImageResourceCache.IDReturns(123)
+
+			fakeDelegate.FetchImageReturns(fakeImageSpec, fakeImageResourceCache, nil)
 		})
 
 		It("fetches the resource type image and uses it for the container", func() {

@@ -829,7 +829,8 @@ var _ = Describe("TaskStep", func() {
 					ImageArtifactSource: new(workerfakes.FakeStreamableArtifactSource),
 				}
 
-				fakeDelegate.FetchImageReturns(fakeImageSpec, nil)
+				fakeDelegate.FetchImageReturns(fakeImageSpec, nil, nil)
+				Fail("TODO: use fake resource cache")
 			})
 
 			It("succeeds", func() {

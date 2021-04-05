@@ -66,7 +66,7 @@ type TaskDelegate interface {
 	StartSpan(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
 
 	Variables(context.Context, atc.VarSourceConfigs) vars.Variables
-	FetchImage(context.Context, atc.ImageResource, atc.VersionedResourceTypes, bool, atc.Tags) (worker.ImageSpec, error)
+	FetchImage(context.Context, atc.ImageResource, atc.VersionedResourceTypes, bool, atc.Tags) (worker.ImageSpec, db.UsedResourceCache, error)
 
 	Stdout() io.Writer
 	Stderr() io.Writer
@@ -324,13 +324,14 @@ func (step *TaskStep) imageSpec(ctx context.Context, logger lager.Logger, state 
 
 		//an image_resource
 	} else if config.ImageResource != nil {
-		return delegate.FetchImage(
+		imageSpec, _, err := delegate.FetchImage(
 			ctx,
 			*config.ImageResource,
 			step.plan.VersionedResourceTypes,
 			step.plan.Privileged,
 			step.plan.Tags,
 		)
+		return imageSpec, err
 
 		// a rootfs_uri
 	} else if config.RootfsURI != "" {
