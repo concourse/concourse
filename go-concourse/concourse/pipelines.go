@@ -3,6 +3,7 @@ package concourse
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -49,6 +50,41 @@ func (team *team) OrderingPipelines(pipelineNames []string) error {
 
 	return team.connection.Send(internal.Request{
 		RequestName: atc.OrderPipelines,
+		Params:      params,
+		Body:        buffer,
+		Header: http.Header{
+			"Content-Type": {"application/json"},
+		},
+	}, &internal.Response{})
+}
+
+func (team *team) OrderingPipelinesWithinGroup(pipelineRefs []atc.PipelineRef) error {
+	if len(pipelineRefs) == 0 {
+		return errors.New("no pipelines given")
+	}
+	pipelineName := pipelineRefs[0].Name
+	var instanceVars []atc.InstanceVars
+
+	for _, pipelineRef := range pipelineRefs {
+		if pipelineRef.Name != pipelineName {
+			return fmt.Errorf("All given instance pipelines must belong to the same pipeline: %s did not match %s", pipelineRef.Name, pipelineName)
+		}
+		instanceVars = append(instanceVars, pipelineRef.InstanceVars)
+	}
+
+	params := rata.Params{
+		"team_name":     team.Name(),
+		"pipeline_name": pipelineName,
+	}
+
+	buffer := &bytes.Buffer{}
+	err := json.NewEncoder(buffer).Encode(instanceVars)
+	if err != nil {
+		return fmt.Errorf("Unable to marshal pipeline names: %s", err)
+	}
+
+	return team.connection.Send(internal.Request{
+		RequestName: atc.OrderPipelinesWithinGroup,
 		Params:      params,
 		Body:        buffer,
 		Header: http.Header{
