@@ -27,8 +27,13 @@ decide much on its own.
   }{
     Windows/Darwin: no special requirements (that we know of).
 
-    Note that containerization is fairly primitive on these two platforms, so
-    don't expect great support for multi-tenancy.
+    \aside{
+      \bold{NOTE:} Windows containers are currently not supported and Darwin does not
+      have native containers. Steps will run inside a temporary directory on the
+      Windows/Darwin worker. Any dependencies needed for your tasks (e.g. git,
+      .NET, golang, ssh) should be pre-installed on the worker. Windows/Darwin
+      workers do not come with any resource types.
+    }
   }
 }
 

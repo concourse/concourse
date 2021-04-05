@@ -45,6 +45,16 @@ A task's configuration specifies the following:
     \reference{schema.step.task-step.image} on the \reference{task-step}
     instead.
 
+    \aside{
+      \bold{NOTE:} This field is only required for tasks targeting the
+      \reference{schema.task.platform}{Linux platform}. This field will be
+      ignored for Windows and Darwin workers. Windows containers are currently
+      not supported and Darwin does not have native containers. The task will
+      run inside a clean temporary directory on the Windows/Darwin worker with
+      any inputs and outputs copied into the same directory. Any dependencies
+      should be pre-installed on the worker.
+    }
+
     \example-toggle{Using the \code{golang} Docker image}{
       The following task config will use the \link{\code{golang} Docker
       image}{https://hub.docker.com/_/golang} to run \code{go version}:
