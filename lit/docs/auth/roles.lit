@@ -81,6 +81,7 @@ and viewers cannot.
   - CreateBuild
   - DeletePipeline
   - OrderPipelines
+  - OrderPipelinesWithinGroup
   - ExposePipeline
   - HidePipeline
   - RenamePipeline
@@ -196,96 +197,97 @@ and viewers cannot.
   have no effect on its permissions.
 
   \better-table{
-    \table-row{Action                       }{\code{fly} commands affected                                      }{UI actions affected                    }{can be performed unauthenticated?}{customizable}
-    \table-row{GetBuild                     }{n/a                                                               }{view one-off build page                }{✓                                }{✓           }
-    \table-row{BuildResources               }{n/a                                                               }{view build page                        }{✓                                }{✓           }
-    \table-row{GetBuildPreparation          }{n/a                                                               }{view build page                        }{✓                                }{✓           }
-    \table-row{BuildEvents                  }{\reference{fly-watch},\reference{fly-execute}                     }{view build page                        }{✓                                }{✓           }
-    \table-row{GetBuildPlan                 }{n/a                                                               }{view build page                        }{✓                                }{✓           }
-    \table-row{ListBuildArtifacts           }{n/a                                                               }{n/a                                    }{✓                                }{✓           }
-    \table-row{AbortBuild                   }{\reference{fly-abort-build}                                       }{abort button on build page             }{✘                                }{✓           }
-    \table-row{PruneWorker                  }{\reference{fly-prune-worker}                                      }{n/a                                    }{✘                                }{✓           }
-    \table-row{LandWorker                   }{\reference{fly-land-worker}                                       }{n/a                                    }{✘                                }{✓           }
-    \table-row{RetireWorker                 }{n/a                                                               }{n/a                                    }{✘                                }{✘           }
-    \table-row{ListDestroyingVolumes        }{n/a                                                               }{n/a                                    }{✘                                }{✘           }
-    \table-row{ListDestroyingContainers     }{n/a                                                               }{n/a                                    }{✘                                }{✘           }
-    \table-row{ReportWorkerContainers       }{n/a                                                               }{n/a                                    }{✘                                }{✘           }
-    \table-row{ReportWorkerVolumes          }{n/a                                                               }{n/a                                    }{✘                                }{✘           }
-    \table-row{GetPipeline                  }{n/a                                                               }{view pipeline page                     }{✓                                }{✓           }
-    \table-row{GetJobBuild                  }{n/a                                                               }{view build page                        }{✓                                }{✓           }
-    \table-row{PipelineBadge                }{n/a                                                               }{n/a                                    }{✓                                }{✓           }
-    \table-row{JobBadge                     }{n/a                                                               }{n/a                                    }{✓                                }{✓           }
-    \table-row{ListJobs                     }{\reference{fly-jobs}                                              }{view pipeline page                     }{✓                                }{✓           }
-    \table-row{GetJob                       }{n/a                                                               }{view job page                          }{✓                                }{✓           }
-    \table-row{ListJobBuilds                }{\reference{fly-builds}                                            }{view job page                          }{✓                                }{✓           }
-    \table-row{ListPipelineBuilds           }{\reference{fly-builds}                                            }{n/a                                    }{✓                                }{✓           }
-    \table-row{GetResource                  }{n/a                                                               }{view resource page                     }{✓                                }{✓           }
-    \table-row{ListBuildsWithVersionAsInput }{n/a                                                               }{expand version on resource page        }{✓                                }{✓           }
-    \table-row{ListBuildsWithVersionAsOutput}{n/a                                                               }{expand version on resource page        }{✓                                }{✓           }
-    \table-row{GetResourceCausality         }{n/a                                                               }{n/a                                    }{✓                                }{✓           }
-    \table-row{GetResourceVersion           }{n/a                                                               }{n/a                                    }{✓                                }{✓           }
-    \table-row{ListResources                }{\code{fly resources}                                              }{view pipeline page                     }{✓                                }{✓           }
-    \table-row{ListResourceTypes            }{n/a                                                               }{n/a                                    }{✓                                }{✓           }
-    \table-row{ListResourceVersions         }{\code{fly resource-versions},\reference{fly-pin-resource}         }{view resource page                     }{✓                                }{✓           }
-    \table-row{CreateBuild                  }{\reference{fly-execute}                                           }{n/a                                    }{✘                                }{✓           }
-    \table-row{GetContainer                 }{n/a                                                               }{n/a                                    }{✘                                }{✓           }
-    \table-row{HijackContainer              }{\reference{fly-intercept}                                         }{n/a                                    }{✘                                }{✓           }
-    \table-row{ListContainers               }{\reference{fly-containers}                                        }{n/a                                    }{✘                                }{✓           }
-    \table-row{ListWorkers                  }{\reference{fly-workers}                                           }{n/a                                    }{✘                                }{✓           }
-    \table-row{RegisterWorker               }{n/a                                                               }{n/a                                    }{✘                                }{✘           }
-    \table-row{HeartbeatWorker              }{n/a                                                               }{n/a                                    }{✘                                }{✘           }
-    \table-row{DeleteWorker                 }{n/a                                                               }{n/a                                    }{✘                                }{✘           }
-    \table-row{GetTeam                      }{\reference{fly-get-team}                                          }{n/a                                    }{✘                                }{✓           }
-    \table-row{SetTeam                      }{\reference{fly-set-team}                                          }{n/a                                    }{✘                                }{✓           }
-    \table-row{ListTeamBuilds               }{\reference{fly-builds}                                            }{n/a                                    }{✘                                }{✓           }
-    \table-row{RenameTeam                   }{\reference{fly-rename-team}                                       }{n/a                                    }{✘                                }{✓           }
-    \table-row{DestroyTeam                  }{\reference{fly-destroy-team}                                      }{n/a                                    }{✘                                }{✓           }
-    \table-row{ListVolumes                  }{\reference{fly-volumes}                                           }{n/a                                    }{✘                                }{✓           }
-    \table-row{DownloadCLI                  }{\reference{fly-sync}                                              }{icons on dashboard and pipeline pages  }{✓                                }{✘           }
-    \table-row{CheckResourceWebHook         }{n/a                                                               }{n/a                                    }{✓                                }{✘           }
-    \table-row{GetInfo                      }{n/a                                                               }{n/a                                    }{✓                                }{✘           }
-    \table-row{GetCheck                     }{\reference{fly-check-resource},\reference{fly-check-resource-type}}{check button on resource page          }{✘                                }{✓           }
-    \table-row{ListTeams                    }{\reference{fly-teams}                                             }{view dashboard page                    }{✓                                }{✘           }
-    \table-row{ListAllPipelines             }{n/a                                                               }{view dashboard page                    }{✓                                }{✘           }
-    \table-row{ListPipelines                }{\reference{fly-pipelines}                                         }{n/a                                    }{✓                                }{✓           }
-    \table-row{ListAllJobs                  }{\reference{fly-teams}                                             }{view dashboard page                    }{✓                                }{✘           }
-    \table-row{ListAllResources             }{n/a                                                               }{view dashboard page                    }{✓                                }{✘           }
-    \table-row{ListBuilds                   }{\reference{fly-builds}                                            }{n/a                                    }{✓                                }{✘           }
-    \table-row{MainJobBadge                 }{n/a                                                               }{n/a                                    }{✓                                }{✘           }
-    \table-row{GetLogLevel                  }{n/a                                                               }{n/a                                    }{✘                                }{✘           }
-    \table-row{SetLogLevel                  }{n/a                                                               }{n/a                                    }{✘                                }{✘           }
-    \table-row{GetWall                      }{n/a                                                               }{n/a                                    }{✓                                }{✘           }
-    \table-row{SetWall                      }{n/a                                                               }{n/a                                    }{✘                                }{✘           }
-    \table-row{ClearWall                    }{n/a                                                               }{n/a                                    }{✘                                }{✘           }
-    \table-row{ListActiveUsersSince         }{\reference{fly-active-users}                                      }{n/a                                    }{✘                                }{✘           }
-    \table-row{GetInfoCreds                 }{n/a                                                               }{n/a                                    }{✘                                }{✘           }
-    \table-row{CheckResource                }{\reference{fly-check-resource}                                    }{check button on resource page          }{✘                                }{✓           }
-    \table-row{CheckResourceType            }{\reference{fly-check-resource-type}                               }{n/a                                    }{✘                                }{✓           }
-    \table-row{CreateJobBuild               }{\reference{fly-trigger-job}                                       }{trigger button on job and build pages  }{✘                                }{✓           }
-    \table-row{RerunJobBuild                }{\reference{fly-rerun-build}                                       }{rerun button on build page             }{✘                                }{✓           }
-    \table-row{CreatePipelineBuild          }{\reference{fly-execute}                                           }{n/a                                    }{✘                                }{✓           }
-    \table-row{DeletePipeline               }{\reference{fly-destroy-pipeline}                                  }{n/a                                    }{✘                                }{✓           }
-    \table-row{DisableResourceVersion       }{\reference{fly-disable-resource-version}                          }{version disable widget on resource page}{✘                                }{✓           }
-    \table-row{EnableResourceVersion        }{\reference{fly-enable-resource-version}                           }{version enable widget on resource page }{✘                                }{✓           }
-    \table-row{PinResourceVersion           }{\reference{fly-pin-resource}                                      }{pin buttons on resource page           }{✘                                }{✓           }
-    \table-row{UnpinResource                }{\code{fly unpin-resource}                                         }{pin buttons on resource page           }{✘                                }{✓           }
-    \table-row{SetPinCommentOnResource      }{\reference{fly-pin-resource}                                      }{comment overlay on resource page       }{✘                                }{✓           }
-    \table-row{GetConfig                    }{\reference{fly-get-pipeline}                                      }{n/a                                    }{✘                                }{✓           }
-    \table-row{GetCC                        }{n/a                                                               }{n/a                                    }{✘                                }{✓           }
-    \table-row{GetVersionsDB                }{n/a                                                               }{n/a                                    }{✘                                }{✓           }
-    \table-row{ListJobInputs                }{n/a                                                               }{n/a                                    }{✘                                }{✓           }
-    \table-row{OrderPipelines               }{\reference{fly-order-pipelines}                                   }{drag and drop on dashboard             }{✘                                }{✓           }
-    \table-row{PauseJob                     }{\reference{fly-pause-job}                                         }{pause button on job page               }{✘                                }{✓           }
-    \table-row{PausePipeline                }{\reference{fly-pause-pipeline}                                    }{pause button on pipeline or dashboard  }{✘                                }{✓           }
-    \table-row{RenamePipeline               }{\reference{fly-rename-pipeline}                                   }{n/a                                    }{✘                                }{✓           }
-    \table-row{UnpauseJob                   }{\reference{fly-unpause-job}                                       }{play button on job page                }{✘                                }{✓           }
-    \table-row{UnpausePipeline              }{\reference{fly-unpause-pipeline}                                  }{play button on pipeline or dashboard   }{✘                                }{✓           }
-    \table-row{ExposePipeline               }{\reference{fly-expose-pipeline}                                   }{eyeball button on dashboard            }{✘                                }{✓           }
-    \table-row{HidePipeline                 }{\reference{fly-hide-pipeline}                                     }{slashed eyeball button on dashboard    }{✘                                }{✓           }
-    \table-row{SaveConfig                   }{\reference{fly-set-pipeline}                                      }{n/a                                    }{✘                                }{✓           }
-    \table-row{ClearTaskCache               }{\reference{fly-clear-task-cache}                                  }{n/a                                    }{✘                                }{✓           }
-    \table-row{CreateArtifact               }{\reference{fly-execute}                                           }{n/a                                    }{✘                                }{✓           }
-    \table-row{GetArtifact                  }{\reference{fly-execute}                                           }{n/a                                    }{✘                                }{✓           }
+    \table-row{Action                       }{\code{fly} commands affected                                      }{UI actions affected                             }{can be performed unauthenticated?}{customizable}
+    \table-row{GetBuild                     }{n/a                                                               }{view one-off build page                         }{✓                                }{✓           }
+    \table-row{BuildResources               }{n/a                                                               }{view build page                                 }{✓                                }{✓           }
+    \table-row{GetBuildPreparation          }{n/a                                                               }{view build page                                 }{✓                                }{✓           }
+    \table-row{BuildEvents                  }{\reference{fly-watch},\reference{fly-execute}                     }{view build page                                 }{✓                                }{✓           }
+    \table-row{GetBuildPlan                 }{n/a                                                               }{view build page                                 }{✓                                }{✓           }
+    \table-row{ListBuildArtifacts           }{n/a                                                               }{n/a                                             }{✓                                }{✓           }
+    \table-row{AbortBuild                   }{\reference{fly-abort-build}                                       }{abort button on build page                      }{✘                                }{✓           }
+    \table-row{PruneWorker                  }{\reference{fly-prune-worker}                                      }{n/a                                             }{✘                                }{✓           }
+    \table-row{LandWorker                   }{\reference{fly-land-worker}                                       }{n/a                                             }{✘                                }{✓           }
+    \table-row{RetireWorker                 }{n/a                                                               }{n/a                                             }{✘                                }{✘           }
+    \table-row{ListDestroyingVolumes        }{n/a                                                               }{n/a                                             }{✘                                }{✘           }
+    \table-row{ListDestroyingContainers     }{n/a                                                               }{n/a                                             }{✘                                }{✘           }
+    \table-row{ReportWorkerContainers       }{n/a                                                               }{n/a                                             }{✘                                }{✘           }
+    \table-row{ReportWorkerVolumes          }{n/a                                                               }{n/a                                             }{✘                                }{✘           }
+    \table-row{GetPipeline                  }{n/a                                                               }{view pipeline page                              }{✓                                }{✓           }
+    \table-row{GetJobBuild                  }{n/a                                                               }{view build page                                 }{✓                                }{✓           }
+    \table-row{PipelineBadge                }{n/a                                                               }{n/a                                             }{✓                                }{✓           }
+    \table-row{JobBadge                     }{n/a                                                               }{n/a                                             }{✓                                }{✓           }
+    \table-row{ListJobs                     }{\reference{fly-jobs}                                              }{view pipeline page                              }{✓                                }{✓           }
+    \table-row{GetJob                       }{n/a                                                               }{view job page                                   }{✓                                }{✓           }
+    \table-row{ListJobBuilds                }{\reference{fly-builds}                                            }{view job page                                   }{✓                                }{✓           }
+    \table-row{ListPipelineBuilds           }{\reference{fly-builds}                                            }{n/a                                             }{✓                                }{✓           }
+    \table-row{GetResource                  }{n/a                                                               }{view resource page                              }{✓                                }{✓           }
+    \table-row{ListBuildsWithVersionAsInput }{n/a                                                               }{expand version on resource page                 }{✓                                }{✓           }
+    \table-row{ListBuildsWithVersionAsOutput}{n/a                                                               }{expand version on resource page                 }{✓                                }{✓           }
+    \table-row{GetResourceCausality         }{n/a                                                               }{n/a                                             }{✓                                }{✓           }
+    \table-row{GetResourceVersion           }{n/a                                                               }{n/a                                             }{✓                                }{✓           }
+    \table-row{ListResources                }{\code{fly resources}                                              }{view pipeline page                              }{✓                                }{✓           }
+    \table-row{ListResourceTypes            }{n/a                                                               }{n/a                                             }{✓                                }{✓           }
+    \table-row{ListResourceVersions         }{\code{fly resource-versions},\reference{fly-pin-resource}         }{view resource page                              }{✓                                }{✓           }
+    \table-row{CreateBuild                  }{\reference{fly-execute}                                           }{n/a                                             }{✘                                }{✓           }
+    \table-row{GetContainer                 }{n/a                                                               }{n/a                                             }{✘                                }{✓           }
+    \table-row{HijackContainer              }{\reference{fly-intercept}                                         }{n/a                                             }{✘                                }{✓           }
+    \table-row{ListContainers               }{\reference{fly-containers}                                        }{n/a                                             }{✘                                }{✓           }
+    \table-row{ListWorkers                  }{\reference{fly-workers}                                           }{n/a                                             }{✘                                }{✓           }
+    \table-row{RegisterWorker               }{n/a                                                               }{n/a                                             }{✘                                }{✘           }
+    \table-row{HeartbeatWorker              }{n/a                                                               }{n/a                                             }{✘                                }{✘           }
+    \table-row{DeleteWorker                 }{n/a                                                               }{n/a                                             }{✘                                }{✘           }
+    \table-row{GetTeam                      }{\reference{fly-get-team}                                          }{n/a                                             }{✘                                }{✓           }
+    \table-row{SetTeam                      }{\reference{fly-set-team}                                          }{n/a                                             }{✘                                }{✓           }
+    \table-row{ListTeamBuilds               }{\reference{fly-builds}                                            }{n/a                                             }{✘                                }{✓           }
+    \table-row{RenameTeam                   }{\reference{fly-rename-team}                                       }{n/a                                             }{✘                                }{✓           }
+    \table-row{DestroyTeam                  }{\reference{fly-destroy-team}                                      }{n/a                                             }{✘                                }{✓           }
+    \table-row{ListVolumes                  }{\reference{fly-volumes}                                           }{n/a                                             }{✘                                }{✓           }
+    \table-row{DownloadCLI                  }{\reference{fly-sync}                                              }{icons on dashboard and pipeline pages           }{✓                                }{✘           }
+    \table-row{CheckResourceWebHook         }{n/a                                                               }{n/a                                             }{✓                                }{✘           }
+    \table-row{GetInfo                      }{n/a                                                               }{n/a                                             }{✓                                }{✘           }
+    \table-row{GetCheck                     }{\reference{fly-check-resource},\reference{fly-check-resource-type}}{check button on resource page                   }{✘                                }{✓           }
+    \table-row{ListTeams                    }{\reference{fly-teams}                                             }{view dashboard page                             }{✓                                }{✘           }
+    \table-row{ListAllPipelines             }{n/a                                                               }{view dashboard page                             }{✓                                }{✘           }
+    \table-row{ListPipelines                }{\reference{fly-pipelines}                                         }{n/a                                             }{✓                                }{✓           }
+    \table-row{ListAllJobs                  }{\reference{fly-teams}                                             }{view dashboard page                             }{✓                                }{✘           }
+    \table-row{ListAllResources             }{n/a                                                               }{view dashboard page                             }{✓                                }{✘           }
+    \table-row{ListBuilds                   }{\reference{fly-builds}                                            }{n/a                                             }{✓                                }{✘           }
+    \table-row{MainJobBadge                 }{n/a                                                               }{n/a                                             }{✓                                }{✘           }
+    \table-row{GetLogLevel                  }{n/a                                                               }{n/a                                             }{✘                                }{✘           }
+    \table-row{SetLogLevel                  }{n/a                                                               }{n/a                                             }{✘                                }{✘           }
+    \table-row{GetWall                      }{n/a                                                               }{n/a                                             }{✓                                }{✘           }
+    \table-row{SetWall                      }{n/a                                                               }{n/a                                             }{✘                                }{✘           }
+    \table-row{ClearWall                    }{n/a                                                               }{n/a                                             }{✘                                }{✘           }
+    \table-row{ListActiveUsersSince         }{\reference{fly-active-users}                                      }{n/a                                             }{✘                                }{✘           }
+    \table-row{GetInfoCreds                 }{n/a                                                               }{n/a                                             }{✘                                }{✘           }
+    \table-row{CheckResource                }{\reference{fly-check-resource}                                    }{check button on resource page                   }{✘                                }{✓           }
+    \table-row{CheckResourceType            }{\reference{fly-check-resource-type}                               }{n/a                                             }{✘                                }{✓           }
+    \table-row{CreateJobBuild               }{\reference{fly-trigger-job}                                       }{trigger button on job and build pages           }{✘                                }{✓           }
+    \table-row{RerunJobBuild                }{\reference{fly-rerun-build}                                       }{rerun button on build page                      }{✘                                }{✓           }
+    \table-row{CreatePipelineBuild          }{\reference{fly-execute}                                           }{n/a                                             }{✘                                }{✓           }
+    \table-row{DeletePipeline               }{\reference{fly-destroy-pipeline}                                  }{n/a                                             }{✘                                }{✓           }
+    \table-row{DisableResourceVersion       }{\reference{fly-disable-resource-version}                          }{version disable widget on resource page         }{✘                                }{✓           }
+    \table-row{EnableResourceVersion        }{\reference{fly-enable-resource-version}                           }{version enable widget on resource page          }{✘                                }{✓           }
+    \table-row{PinResourceVersion           }{\reference{fly-pin-resource}                                      }{pin buttons on resource page                    }{✘                                }{✓           }
+    \table-row{UnpinResource                }{\code{fly unpin-resource}                                         }{pin buttons on resource page                    }{✘                                }{✓           }
+    \table-row{SetPinCommentOnResource      }{\reference{fly-pin-resource}                                      }{comment overlay on resource page                }{✘                                }{✓           }
+    \table-row{GetConfig                    }{\reference{fly-get-pipeline}                                      }{n/a                                             }{✘                                }{✓           }
+    \table-row{GetCC                        }{n/a                                                               }{n/a                                             }{✘                                }{✓           }
+    \table-row{GetVersionsDB                }{n/a                                                               }{n/a                                             }{✘                                }{✓           }
+    \table-row{ListJobInputs                }{n/a                                                               }{n/a                                             }{✘                                }{✓           }
+    \table-row{OrderPipelines               }{\reference{fly-order-pipelines}                                   }{drag and drop on dashboard                      }{✘                                }{✓           }
+    \table-row{OrderPipelinesWithinGroup    }{\reference{fly-order-instanced-pipelines}                         }{drag and drop within instance group on dashboard}{✘                                }{✓           }
+    \table-row{PauseJob                     }{\reference{fly-pause-job}                                         }{pause button on job page                        }{✘                                }{✓           }
+    \table-row{PausePipeline                }{\reference{fly-pause-pipeline}                                    }{pause button on pipeline or dashboard           }{✘                                }{✓           }
+    \table-row{RenamePipeline               }{\reference{fly-rename-pipeline}                                   }{n/a                                             }{✘                                }{✓           }
+    \table-row{UnpauseJob                   }{\reference{fly-unpause-job}                                       }{play button on job page                         }{✘                                }{✓           }
+    \table-row{UnpausePipeline              }{\reference{fly-unpause-pipeline}                                  }{play button on pipeline or dashboard            }{✘                                }{✓           }
+    \table-row{ExposePipeline               }{\reference{fly-expose-pipeline}                                   }{eyeball button on dashboard                     }{✘                                }{✓           }
+    \table-row{HidePipeline                 }{\reference{fly-hide-pipeline}                                     }{slashed eyeball button on dashboard             }{✘                                }{✓           }
+    \table-row{SaveConfig                   }{\reference{fly-set-pipeline}                                      }{n/a                                             }{✘                                }{✓           }
+    \table-row{ClearTaskCache               }{\reference{fly-clear-task-cache}                                  }{n/a                                             }{✘                                }{✓           }
+    \table-row{CreateArtifact               }{\reference{fly-execute}                                           }{n/a                                             }{✘                                }{✓           }
+    \table-row{GetArtifact                  }{\reference{fly-execute}                                           }{n/a                                             }{✘                                }{✓           }
   }
 }
 
