@@ -13,6 +13,7 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/exec/build/buildfakes"
 	"github.com/concourse/concourse/atc/exec/execfakes"
@@ -360,6 +361,27 @@ var _ = Describe("LoadVarStep", func() {
 			It("step should fail", func() {
 				Expect(stepErr).To(HaveOccurred())
 				Expect(stepErr).To(MatchError(ContainSubstring("failed to parse some-resource/a.yaml in format yaml")))
+			})
+		})
+
+		Context("when file path artifact is not registered", func() {
+			BeforeEach(func() {
+				loadVarPlan = &atc.LoadVarPlan{
+					Name: "some-var",
+					File: "some-resource-not-in-the-registry/a.json",
+				}
+
+				fakeArtifactStreamer.StreamFileFromArtifactReturns(&fakeReadCloser{str: plainString}, nil)
+			})
+
+			It("step should fail", func() {
+				Expect(stepErr).To(HaveOccurred())
+				Expect(stepErr).To(
+					Equal(artifact.UnknownArtifactSourceError{
+						Name: "some-resource-not-in-the-registry",
+						Path: "a.json",
+					}))
+				Expect(stepErr).To(MatchError("unknown artifact source: 'some-resource-not-in-the-registry' in file path 'a.json'"))
 			})
 		})
 	})
