@@ -14,9 +14,9 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-var _ = Describe("Fly CLI", func() {
-	Describe("ordering-instance-pipeline", func() {
-		Context("when pipeline names are specified", func() {
+var _ = FDescribe("Fly CLI", func() {
+	Describe("order-instanced-pipelines", func() {
+		Context("when pipelines are specified", func() {
 			var (
 				path string
 				err  error
@@ -48,14 +48,14 @@ var _ = Describe("Fly CLI", func() {
 
 				It("orders the instance pipelines", func() {
 					Expect(func() {
-						flyCmd := exec.Command(flyPath, "-t", targetName, "order-instance-pipelines", "-p", "awesome-pipeline/branch:main", "-p", "awesome-pipeline/branch:test")
+						flyCmd := exec.Command(flyPath, "-t", targetName, "order-instanced-pipelines", "-g", "awesome-pipeline", "-p", "branch:main", "-p", "branch:test")
 
 						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 						Expect(err).NotTo(HaveOccurred())
 
 						<-sess.Exited
 						Expect(sess.ExitCode()).To(Equal(0))
-						Eventually(sess).Should(gbytes.Say(`ordered instance pipelines`))
+						Eventually(sess).Should(gbytes.Say(`ordered instanced pipelines`))
 						Eventually(sess).Should(gbytes.Say(`  - branch:main`))
 						Eventually(sess).Should(gbytes.Say(`  - branch:test`))
 
@@ -66,14 +66,14 @@ var _ = Describe("Fly CLI", func() {
 
 				It("orders the instance pipeline with alias", func() {
 					Expect(func() {
-						flyCmd := exec.Command(flyPath, "-t", targetName, "oip", "-p", "awesome-pipeline/branch:main", "-p", "awesome-pipeline/branch:test")
+						flyCmd := exec.Command(flyPath, "-t", targetName, "oip", "-g", "awesome-pipeline", "-p", "branch:main", "-p", "branch:test")
 
 						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 						Expect(err).NotTo(HaveOccurred())
 
 						<-sess.Exited
 						Expect(sess.ExitCode()).To(Equal(0))
-						Eventually(sess).Should(gbytes.Say(`ordered instance pipelines`))
+						Eventually(sess).Should(gbytes.Say(`ordered instanced pipelines`))
 						Eventually(sess).Should(gbytes.Say(`  - branch:main`))
 						Eventually(sess).Should(gbytes.Say(`  - branch:test`))
 
@@ -83,7 +83,7 @@ var _ = Describe("Fly CLI", func() {
 				})
 			})
 
-			Context("when the pipeline doesn't exist", func() {
+			Context("when ordering fails", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
@@ -95,14 +95,14 @@ var _ = Describe("Fly CLI", func() {
 
 				It("prints error message", func() {
 					Expect(func() {
-						flyCmd := exec.Command(flyPath, "-t", targetName, "order-instance-pipelines", "-p", "awesome-pipeline/branch:main")
+						flyCmd := exec.Command(flyPath, "-t", targetName, "order-instanced-pipelines", "-g", "awesome-pipeline", "-p", "branch:main")
 
 						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 						Expect(err).NotTo(HaveOccurred())
 
 						<-sess.Exited
 						Expect(sess.ExitCode()).To(Equal(1))
-						Eventually(sess.Err).Should(gbytes.Say(`failed to order instance pipelines`))
+						Eventually(sess.Err).Should(gbytes.Say(`failed to order instanced pipelines`))
 
 					}).To(Change(func() int {
 						return len(atcServer.ReceivedRequests())
@@ -114,14 +114,14 @@ var _ = Describe("Fly CLI", func() {
 		Context("when the pipeline name is not specified", func() {
 			It("errors", func() {
 				Expect(func() {
-					flyCmd := exec.Command(flyPath, "-t", targetName, "order-instance-pipelines")
+					flyCmd := exec.Command(flyPath, "-t", targetName, "order-instanced-pipelines")
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
 
 					<-sess.Exited
 					Expect(sess.ExitCode()).To(Equal(1))
-					Expect(sess.Err).Should(gbytes.Say("error: the required flag `-p, --pipeline' was not specified"))
+					Expect(sess.Err).Should(gbytes.Say("error: the required flags `-g, --group' and `-p, --pipeline' were not specified"))
 				}).To(Change(func() int {
 					return len(atcServer.ReceivedRequests())
 				}).By(0))

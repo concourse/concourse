@@ -3,12 +3,12 @@ package commands
 import (
 	"errors"
 	"fmt"
-	"github.com/concourse/concourse/go-concourse/concourse"
 	"sort"
 	"strings"
 
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/rc"
+	"github.com/concourse/concourse/go-concourse/concourse"
 )
 
 var ErrMissingPipelineName = errors.New("Need to specify at least one pipeline name")

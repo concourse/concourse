@@ -258,31 +258,26 @@ var _ = Describe("ATC Handler Pipelines", func() {
 	})
 
 	Describe("OrderingInstancePipelines", func() {
-		orderedInstancePipelinesRef := []atc.PipelineRef{
-			{Name: "my-pipeline", InstanceVars: atc.InstanceVars{"branch": "main"}},
-			{Name: "my-pipeline", InstanceVars: atc.InstanceVars{"branch": "test"}},
+		instanceVars := []atc.InstanceVars{
+			{"branch": "main"},
+			{"branch": "test"},
 		}
 
 		Context("when the API call succeeds", func() {
-			expectedInstanceVars := []atc.InstanceVars{
-				{"branch": "main"},
-				{"branch": "test"},
-			}
-
 			BeforeEach(func() {
 				expectedURL := "/api/v1/teams/some-team/pipelines/my-pipeline/ordering"
 
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("PUT", expectedURL),
-						ghttp.VerifyJSONRepresenting(expectedInstanceVars),
+						ghttp.VerifyJSONRepresenting(instanceVars),
 						ghttp.RespondWith(http.StatusOK, ""),
 					),
 				)
 			})
 
 			It("return no error", func() {
-				err := team.OrderingPipelinesWithinGroup(orderedInstancePipelinesRef)
+				err := team.OrderingPipelinesWithinGroup("my-pipeline", instanceVars)
 				Expect(err).NotTo(HaveOccurred())
 			})
 		})
@@ -298,7 +293,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 				)
 			})
 			It("returns error", func() {
-				err := team.OrderingPipelinesWithinGroup(orderedInstancePipelinesRef)
+				err := team.OrderingPipelinesWithinGroup("my-pipeline", instanceVars)
 				Expect(err).To(HaveOccurred())
 			})
 		})
