@@ -6,13 +6,9 @@
     <title>{{ issuer }}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script type="text/javascript">
-      history.pushState({}, '', document.URL);
-      window.onpopstate = function(event) {
-        const url = new URL(document.URL);
-        url.searchParams.set('req', '');
-        history.pushState({}, '', url);
-        history.go(-2);
-      };
+      if (String(performance.getEntriesByType("navigation")[0].type) === "back_forward") {
+        location.reload()
+      }
     </script>
     <link href="{{ url .ReqPath "static/main.css" }}" rel="stylesheet">
     <link href="{{ url .ReqPath "theme/styles.css" }}" rel="stylesheet">
