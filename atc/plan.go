@@ -275,6 +275,9 @@ type TaskPlan struct {
 	ConfigPath string      `json:"config_path,omitempty"`
 	Config     *TaskConfig `json:"config,omitempty"`
 
+	// Limits to set on the Task Container
+	Limits *ContainerLimits `json:"container_limits,omitempty"`
+
 	// An artifact in the build plan to use as the task's image. Overrides any
 	// image set in the task's config.
 	ImageArtifactName string `json:"image,omitempty"`

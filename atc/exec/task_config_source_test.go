@@ -319,6 +319,112 @@ run: {path: a/file}
 		})
 	})
 
+	Describe("OverrideContainerLimitsSource", func() {
+		var (
+			config         atc.TaskConfig
+			noLimitsConfig atc.TaskConfig
+			configSource   TaskConfigSource
+
+			overrideLimits atc.ContainerLimits
+
+			fetchedConfig atc.TaskConfig
+			fetchErr      error
+		)
+
+		BeforeEach(func() {
+			config = atc.TaskConfig{
+				Platform:  "some-platform",
+				RootfsURI: "some-image",
+				Limits:    &atc.ContainerLimits{CPU: newCPULimit(1024), Memory: newMemoryLimit(209715200)},
+				Run: atc.TaskRunConfig{
+					Path: "echo",
+					Args: []string{"bananapants"},
+				},
+			}
+
+			noLimitsConfig = atc.TaskConfig{
+				Platform:  "some-platform",
+				RootfsURI: "some-image",
+				Run: atc.TaskRunConfig{
+					Path: "echo",
+					Args: []string{"bananapants"},
+				},
+			}
+
+			overrideLimits = atc.ContainerLimits{CPU: newCPULimit(2048), Memory: newMemoryLimit(209715200)}
+		})
+
+		Context("when there are no container limits to override", func() {
+			BeforeEach(func() {
+				configSource = &OverrideContainerLimitsSource{
+					ConfigSource: StaticConfigSource{Config: &config},
+				}
+			})
+
+			JustBeforeEach(func() {
+				fetchedConfig, fetchErr = configSource.FetchConfig(context.TODO(), logger, repo)
+			})
+
+			It("succeeds", func() {
+				Expect(fetchErr).NotTo(HaveOccurred())
+			})
+
+			It("returns the same config", func() {
+				Expect(fetchedConfig).To(Equal(config))
+			})
+		})
+
+		Context("when override container limits are specified but no configuration container limits", func() {
+			BeforeEach(func() {
+				configSource = &OverrideContainerLimitsSource{
+					ConfigSource: StaticConfigSource{Config: &noLimitsConfig},
+					Limits:       &overrideLimits,
+				}
+			})
+
+			JustBeforeEach(func() {
+				fetchedConfig, fetchErr = configSource.FetchConfig(context.TODO(), logger, repo)
+			})
+
+			It("succeeds", func() {
+				Expect(fetchErr).NotTo(HaveOccurred())
+			})
+
+			It("returns the config with overridden limits", func() {
+				Expect(fetchedConfig).NotTo(BeNil())
+				Expect(*fetchedConfig.Limits).To(Equal(atc.ContainerLimits{
+					CPU:    newCPULimit(2048),
+					Memory: newMemoryLimit(209715200),
+				}))
+			})
+		})
+
+		Context("when override container limits are specified", func() {
+			BeforeEach(func() {
+				configSource = &OverrideContainerLimitsSource{
+					ConfigSource: StaticConfigSource{Config: &config},
+					Limits:       &overrideLimits,
+				}
+			})
+
+			JustBeforeEach(func() {
+				fetchedConfig, fetchErr = configSource.FetchConfig(context.TODO(), logger, repo)
+			})
+
+			It("succeeds", func() {
+				Expect(fetchErr).NotTo(HaveOccurred())
+			})
+
+			It("returns the config with overridden limits", func() {
+				Expect(fetchedConfig).NotTo(BeNil())
+				Expect(*fetchedConfig.Limits).To(Equal(atc.ContainerLimits{
+					CPU:    newCPULimit(2048),
+					Memory: newMemoryLimit(209715200),
+				}))
+			})
+		})
+	})
+
 	Describe("ValidatingConfigSource", func() {
 		var (
 			fakeConfigSource *execfakes.FakeTaskConfigSource
@@ -518,3 +624,13 @@ run: {path: a/file}
 		})
 	})
 })
+
+func newCPULimit(cpuLimit uint64) *atc.CPULimit {
+	limit := atc.CPULimit(cpuLimit)
+	return &limit
+}
+
+func newMemoryLimit(memoryLimit uint64) *atc.MemoryLimit {
+	limit := atc.MemoryLimit(memoryLimit)
+	return &limit
+}
