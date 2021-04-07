@@ -266,7 +266,7 @@ h3 {
 .page-content tr:first-child {
   font-family: 'Roboto Slab', serif;
   font-weight: 500;
-  border-bottom: 2px solid black;
+  border-bottom: 2px solid #2a2929;
 }
 .page-content td {
   padding: 0.3em 1em 0.3em 0;
@@ -680,10 +680,12 @@ a.github-user:hover {
   text-decoration: underline;
 }
 body.index {
-  background: #f6f5f5;
+  background: url('../images/concourse-pattern.svg') center center no-repeat;
+  background-size: cover;
+  background-attachment: fixed;
 }
 body.index .page-content p {
-  font-size: 16px;
+  font-size: 18px;
 }
 body.index .page-content a {
   color: #1e1d1d;
@@ -699,11 +701,11 @@ body.index .page-content a {
   background: #3d3c3c;
 }
 .splash {
-  background: url('../images/concourse-pattern.svg') center center / cover no-repeat;
   color: white;
 }
 .splash .splash-content {
-  padding: 70px;
+  padding: 140px 70px;
+  background: rgba(255, 255, 255, 0.1);
   max-width: 1100px;
   margin: 0 auto;
 }
@@ -725,10 +727,10 @@ body.index .page-content h2 {
   margin-bottom: 14px;
   font-size: 19px;
   border: 0;
-  margin-top: 64px;
+  margin-top: 100px;
 }
 body.index .page-content h2:first-child {
-  margin-top: 0;
+  margin-top: 50px;
 }
 .splash-intro,
 .splash-downloads {
@@ -786,7 +788,6 @@ body.index .page-content h2:first-child {
 }
 .splash-downloads {
   background: #2a2929;
-  border: 2px solid #3d3c3c;
   justify-self: stretch;
   position: relative;
 }
@@ -885,12 +886,15 @@ body.index .page-content h2:first-child {
 .side-by-side {
   display: grid;
   margin-bottom: 1em;
-  grid-template-columns: 50% 50%;
-  grid-gap: 0 30px;
+  grid-template-columns: 48% 48%;
+  grid-gap: 0 4%;
 }
 .side-by-side .segment {
   display: flex;
   flex-direction: column;
+}
+.side-by-side .segment.example {
+  margin: 0;
 }
 .side-by-side .segment.example pre,
 .side-by-side .segment.example p {
@@ -904,6 +908,124 @@ body.index .page-content h2:first-child {
     grid-template-columns: 100%;
     grid-gap: 30px 0;
   }
+}
+.rfcs {
+  width: 100%;
+  font-size: 18px;
+}
+.rfcs a {
+  text-decoration: none;
+}
+.rfcs a:hover {
+  text-decoration: underline;
+}
+.rfcs tr:nth-child(odd) {
+  background: #f6f5f5;
+}
+.rfcs tr:nth-child(odd).header {
+  background: transparent;
+}
+.rfcs .rfc-number,
+.rfcs .rfc-status,
+.rfcs .rfc-questions {
+  padding: 3px 5px;
+  color: white;
+}
+.rfcs .rfc-number,
+.rfcs .rfc-questions {
+  font-family: 'Iosevka', monospace;
+  background: #3d3c3c;
+  color: white !important;
+}
+.rfcs .rfc-status a {
+  color: white !important;
+}
+.rfcs .rfc-status.no-reviews {
+  background: #5a5555;
+}
+.rfcs .rfc-status.open {
+  background: #4a90e2;
+}
+.rfcs .rfc-status.pending-merge {
+  background: #11c560;
+}
+.rfcs .rfc-status.pending-close {
+  background: #ed4b35;
+}
+.rfcs .rfc-status.pending-postpone {
+  background: #f5a623;
+}
+.rfcs .rfc-questions {
+  background: #f5a623;
+  color: white !important;
+}
+.rfcs .reaction {
+  padding: 3px 5px;
+  line-height: 18px;
+  border-radius: 5px;
+  width: 50px;
+  display: inline-block;
+}
+.rfcs .reaction .emoji {
+  font-size: 14px;
+}
+.rfcs .reaction .count {
+  margin-left: 5px;
+  font-size: 14px;
+}
+.rfcs .rfc-col {
+  width: 150px;
+}
+.rfcs .status-col {
+  width: 150px;
+}
+.rfcs .reactions-col {
+  width: 150px;
+}
+.rfcs tr.footer {
+  background: transparent;
+}
+.rfcs .view-all-col a {
+  text-align: center;
+  line-height: 40px;
+  font-family: 'Roboto Slab', serif;
+  font-size: 18px;
+  color: white !important;
+  background: #3d3c3c;
+  display: block;
+}
+.rfcs .view-all-col a:hover {
+  text-decoration: none;
+  background: #2a2929;
+}
+.page-region p {
+  font-size: 18px;
+}
+.page-region .page-content {
+  padding: 70px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.page-region .page-content h1 {
+  border: 0;
+  padding-top: 0;
+}
+.page-region.dark {
+  background: #2a2929;
+  color: white;
+}
+.page-region.dark .page-content {
+  background: #3d3c3c;
+}
+.page-region.dark .page-content a {
+  color: white;
+}
+.page-region.dark .page-content a code {
+  color: white;
+  background: #2a2929;
+}
+.page-region + .page-region .page-content {
+  border-top: 2px dashed #e6e5e5;
 }
 .schema {
   margin: 1.5em 0;

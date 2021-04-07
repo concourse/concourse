@@ -1,9 +1,11 @@
 body.index {
-  background: @off-white;
+  background: url('../images/concourse-pattern.svg') center center no-repeat;
+  background-size: cover;
+  background-attachment: fixed;
 
   .page-content {
     p {
-      font-size: 16px;
+      font-size: 18px;
     }
 
     a {
@@ -25,11 +27,11 @@ body.index {
 }
 
 .splash {
-  background: url('../images/concourse-pattern.svg') center center / cover no-repeat;
   color: white;
 
   .splash-content {
-    padding: 70px;
+    padding: 140px 70px;
+    background: fade(white, 10%);
     max-width: @page-width;
     margin: 0 auto;
   }
@@ -59,10 +61,10 @@ body.index .page-content h2 {
   font-size: 19px;
   border: 0;
 
-  margin-top: 64px;
+  margin-top: 100px;
 
   &:first-child {
-    margin-top: 0;
+    margin-top: 50px;
   }
 }
 
@@ -142,7 +144,6 @@ body.index .page-content h2 {
 
 .splash-downloads {
   background: @darker-grey;
-  border: 2px solid @dark-grey;
   justify-self: stretch;
   position: relative;
 
@@ -263,8 +264,8 @@ body.index .page-content h2 {
 .side-by-side {
   display: grid;
   margin-bottom: 1em;
-  grid-template-columns: 50% 50%;
-  grid-gap: 0 30px;
+  grid-template-columns: 48% 48%;
+  grid-gap: 0 4%;
 
   .segment {
     display: flex;
@@ -272,6 +273,8 @@ body.index .page-content h2 {
   }
 
   .segment.example {
+    margin: 0;
+
     pre, p {
       margin: 0;
     }
@@ -286,5 +289,157 @@ body.index .page-content h2 {
   .side-by-side {
     grid-template-columns: 100%;
     grid-gap: 30px 0;
+  }
+}
+
+.rfcs {
+  width: 100%;
+  font-size: 18px;
+
+  a {
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  tr:nth-child(odd) {
+    background: @off-white;
+
+    &.header {
+      background: transparent;
+    }
+  }
+
+  .rfc-number, .rfc-status, .rfc-questions {
+    padding: 3px 5px;
+    color: white;
+  }
+
+  .rfc-number, .rfc-questions {
+    font-family: 'Iosevka', monospace;
+    background: @dark-grey;
+    color: white !important;
+  }
+
+  .rfc-status {
+    a {
+      color: white !important;
+    }
+
+    &.no-reviews {
+      background: @light-grey;
+    }
+
+    &.open {
+      background: @blue-primary;
+    }
+
+    &.pending-merge {
+      background: @green-primary;
+    }
+
+    &.pending-close {
+      background: @red-primary;
+    }
+
+    &.pending-postpone {
+      background: @amber-primary;
+    }
+  }
+
+  .rfc-questions {
+    background: @amber-primary;
+    color: white !important;
+  }
+
+  .reaction {
+    padding: 3px 5px;
+    line-height: 18px;
+    border-radius: 5px;
+    width: 50px;
+    display: inline-block;
+
+    .emoji {
+      font-size: 14px;
+    }
+
+    .count {
+      margin-left: 5px;
+      font-size: 14px;
+    }
+  }
+
+  .rfc-col {
+    width: 150px;
+  }
+
+  .status-col {
+    width: 150px;
+  }
+
+  .reactions-col {
+    width: 150px;
+  }
+
+  tr.footer {
+    background: transparent;
+  }
+
+  .view-all-col a {
+    text-align: center;
+    line-height: 40px;
+    font-family: 'Roboto Slab', serif;
+    font-size: 18px;
+    color: white !important;
+    background: @dark-grey;
+    display: block;
+
+    &:hover {
+      text-decoration: none;
+      background: @darker-grey;
+    }
+  }
+}
+
+.page-region {
+  p {
+    font-size: 18px;
+  }
+
+  .page-content {
+    padding: 70px;
+    max-width: @page-width;
+    margin: 0 auto;
+
+    h1 {
+      border: 0;
+      padding-top: 0;
+    }
+  }
+
+  &.dark {
+    background: @darker-grey;
+    color: white;
+
+    .page-content {
+      background: @dark-grey;
+
+      a {
+        color: white;
+
+        code {
+          color: white;
+          background: @darker-grey;
+        }
+      }
+    }
+  }
+}
+
+.page-region + .page-region {
+  .page-content {
+    border-top: 2px dashed @offest-white;
   }
 }
