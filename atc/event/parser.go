@@ -97,6 +97,7 @@ type Envelope struct {
 	Data    *json.RawMessage `json:"data"`
 	Event   atc.EventType    `json:"event"`
 	Version atc.EventVersion `json:"version"`
+	EventID string           `json:"event_id"`
 }
 
 func (m Message) MarshalJSON() ([]byte, error) {
