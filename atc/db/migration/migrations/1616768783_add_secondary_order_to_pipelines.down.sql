@@ -1,4 +1,1 @@
-BEGIN;
-  ALTER TABLE pipelines DROP COLUMN secondary_ordering;
-COMMIT;
-
+ALTER TABLE pipelines DROP COLUMN secondary_ordering;
