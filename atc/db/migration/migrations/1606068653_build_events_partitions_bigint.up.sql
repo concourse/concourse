@@ -7,12 +7,17 @@ BEGIN
 FOR pipeline IN
   SELECT id, name FROM pipelines
 LOOP
-  RAISE NOTICE 'renaming old indexes for pipeline % (%)', pipeline.id, pipeline.name;
-  EXECUTE format('DROP INDEX pipeline_build_events_%s_build_id', pipeline.id);
-  EXECUTE format('ALTER INDEX pipeline_build_events_%s_build_id_event_id RENAME TO pipeline_build_events_%s_build_id_old_event_id', pipeline.id, pipeline.id);
+  BEGIN
+    RAISE NOTICE 'renaming old indexes for pipeline % (%)', pipeline.id, pipeline.name;
+    EXECUTE format('DROP INDEX IF EXISTS pipeline_build_events_%s_build_id', pipeline.id);
+    EXECUTE format('ALTER INDEX IF EXISTS pipeline_build_events_%s_build_id_event_id RENAME TO pipeline_build_events_%s_build_id_old_event_id', pipeline.id, pipeline.id);
 
-  RAISE NOTICE 'creating new indexes for pipeline % (%)', pipeline.id, pipeline.name;
-  EXECUTE format('CREATE UNIQUE INDEX pipeline_build_events_%s_build_id_event_id ON pipeline_build_events_%s (build_id, event_id)', pipeline.id, pipeline.id);
+    RAISE NOTICE 'creating new indexes for pipeline % (%)', pipeline.id, pipeline.name;
+    EXECUTE format('CREATE UNIQUE INDEX IF NOT EXISTS pipeline_build_events_%s_build_id_event_id ON pipeline_build_events_%s (build_id, event_id)', pipeline.id, pipeline.id);
+  EXCEPTION
+  WHEN undefined_table then
+    RAISE NOTICE '%', SQLERRM;
+  END;
 END LOOP;
 END;
 $$ LANGUAGE plpgsql;
