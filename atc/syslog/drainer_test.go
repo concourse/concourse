@@ -37,7 +37,14 @@ func newFakeBuild(id int) db.Build {
 		EventID: "3",
 	}, nil)
 
-	fakeEventSource.NextReturnsOnCall(3, event.Envelope{}, db.ErrEndOfBuildEventStream)
+	msg4 := json.RawMessage(`{"time":1533744538,"selected_worker":"example-worker"}`)
+	fakeEventSource.NextReturnsOnCall(3, event.Envelope{
+		Data:    &msg4,
+		Event:   "selected-worker",
+		EventID: "4",
+	}, nil)
+
+	fakeEventSource.NextReturnsOnCall(4, event.Envelope{}, db.ErrEndOfBuildEventStream)
 
 	fakeEventSource.NextReturns(event.Envelope{}, db.ErrEndOfBuildEventStream)
 
@@ -75,9 +82,10 @@ var _ = Describe("Drainer", func() {
 				got := <-server.Messages
 				Expect(got).To(ContainSubstring("build 123 log"))
 				Expect(got).To(ContainSubstring("build 345 log"))
-				Expect(got).To(ContainSubstring("{\"version\": {\"version\":\"0.0.1\"}, \"metadata\":[{\"name\":\"version\",\"value\":\"0.0.1\"}]}"))
-				Expect(got).NotTo(ContainSubstring("build 123 status"))
-				Expect(got).NotTo(ContainSubstring("build 345 status"))
+				Expect(got).To(ContainSubstring(`{"version": {"version":"0.0.1"}, "metadata": [{"name":"version","value":"0.0.1"}]`))
+				Expect(got).To(ContainSubstring("build 123 status"))
+				Expect(got).To(ContainSubstring("build 345 status"))
+				Expect(got).To(ContainSubstring("selected worker: example-worker"))
 			}, 0.2)
 		})
 
