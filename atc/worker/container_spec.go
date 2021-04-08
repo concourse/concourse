@@ -43,6 +43,11 @@ type ContainerSpec struct {
 	User string
 }
 
+// ContainerSpec must implement propagation.TextMapCarrier so that it can be
+// used to pass tracing metadata to the containers via env vars (specifically,
+// the TRACEPARENT var)
+var _ propagation.TextMapCarrier = new(ContainerSpec)
+
 func (cs *ContainerSpec) Get(key string) string {
 	for _, env := range cs.Env {
 		assignment := strings.SplitN("=", env, 2)
@@ -78,8 +83,6 @@ func (cs *ContainerSpec) Keys() []string {
 	}
 	return keys
 }
-
-var _ propagation.TextMapCarrier = new(ContainerSpec)
 
 //go:generate counterfeiter . InputSource
 
