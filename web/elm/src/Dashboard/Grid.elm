@@ -21,7 +21,6 @@ import Dashboard.Grid.Layout as Layout
 import Dashboard.Group.Models as Models
     exposing
         ( Card(..)
-        , cardIdentifier
         , cardName
         , cardTeamName
         )
