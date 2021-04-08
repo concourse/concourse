@@ -1,6 +1,6 @@
 ---
 name: 🛩 Ship a patch release
-about: Checklist for the major/minor release process
+about: Create an issue for tracking a patch release.
 title: 'Release X.X.X'
 assignees: ''
 
