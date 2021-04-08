@@ -20,12 +20,13 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func fakeEvent(payload string) event.Envelope {
+func fakeEvent(payload string, eventID string) event.Envelope {
 	msg := json.RawMessage(payload)
 	return event.Envelope{
 		Data:    &msg,
 		Event:   "fake",
 		Version: "42.0",
+		EventID: eventID,
 	}
 }
 
@@ -61,9 +62,9 @@ var _ = Describe("Handler", func() {
 
 			BeforeEach(func() {
 				returnedEvents = []event.Envelope{
-					fakeEvent(`{"event":1}`),
-					fakeEvent(`{"event":2}`),
-					fakeEvent(`{"event":3}`),
+					fakeEvent(`{"event":1}`, "1"),
+					fakeEvent(`{"event":2}`, "2"),
+					fakeEvent(`{"event":3}`, "3"),
 				}
 
 				fakeEventSource = new(dbfakes.FakeEventSource)
@@ -123,7 +124,7 @@ var _ = Describe("Handler", func() {
 				Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 
 				expectedHeaderEntries = map[string]string{
-					"Connection":        "keep-alive",
+					"Connection": "keep-alive",
 				}
 				Expect(response).ShouldNot(IncludeHeaderEntries(expectedHeaderEntries))
 
@@ -144,19 +145,19 @@ var _ = Describe("Handler", func() {
 				Expect(reader.Next()).To(Equal(sse.Event{
 					ID:   "0",
 					Name: "event",
-					Data: []byte(`{"data":{"event":1},"event":"fake","version":"42.0"}`),
+					Data: []byte(`{"data":{"event":1},"event":"fake","version":"42.0","event_id":"1"}`),
 				}))
 
 				Expect(reader.Next()).To(Equal(sse.Event{
 					ID:   "1",
 					Name: "event",
-					Data: []byte(`{"data":{"event":2},"event":"fake","version":"42.0"}`),
+					Data: []byte(`{"data":{"event":2},"event":"fake","version":"42.0","event_id":"2"}`),
 				}))
 
 				Expect(reader.Next()).To(Equal(sse.Event{
 					ID:   "2",
 					Name: "event",
-					Data: []byte(`{"data":{"event":3},"event":"fake","version":"42.0"}`),
+					Data: []byte(`{"data":{"event":3},"event":"fake","version":"42.0","event_id":"3"}`),
 				}))
 
 				Expect(reader.Next()).To(Equal(sse.Event{
@@ -198,7 +199,7 @@ var _ = Describe("Handler", func() {
 					from++
 
 					if from == 1 {
-						return fakeEvent(`{"event":1}`), nil
+						return fakeEvent(`{"event":1}`, "1"), nil
 					} else {
 						return event.Envelope{}, disaster
 					}
@@ -227,7 +228,7 @@ var _ = Describe("Handler", func() {
 				Expect(reader.Next()).To(Equal(sse.Event{
 					ID:   "0",
 					Name: "event",
-					Data: []byte(`{"data":{"event":1},"event":"fake","version":"42.0"}`),
+					Data: []byte(`{"data":{"event":1},"event":"fake","version":"42.0","event_id":"1"}`),
 				}))
 
 				_, err := reader.Next()
@@ -240,7 +241,7 @@ var _ = Describe("Handler", func() {
 			var fakeEventSource *dbfakes.FakeEventSource
 			BeforeEach(func() {
 				fakeEventSource = new(dbfakes.FakeEventSource)
-				fakeEventSource.NextReturns(fakeEvent(`{"event":1}`), nil)
+				fakeEventSource.NextReturns(fakeEvent(`{"event":1}`, "1"), nil)
 				build.EventsReturns(fakeEventSource, nil)
 			})
 

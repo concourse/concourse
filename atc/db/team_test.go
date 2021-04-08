@@ -1199,7 +1199,7 @@ var _ = Describe("Team", func() {
 			Expect(events.Next()).To(Equal(envelope(event.Status{
 				Status: atc.StatusStarted,
 				Time:   startedBuild.StartTime().Unix(),
-			})))
+			}, "0")))
 		})
 	})
 

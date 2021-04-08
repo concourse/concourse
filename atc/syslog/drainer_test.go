@@ -17,20 +17,27 @@ func newFakeBuild(id int) db.Build {
 	fakeEventSource := new(dbfakes.FakeEventSource)
 
 	msg1 := json.RawMessage(`{"time":1533744538,"payload":"build ` + strconv.Itoa(id) + ` log"}`)
-
 	fakeEventSource.NextReturnsOnCall(0, event.Envelope{
-		Data:  &msg1,
-		Event: "log",
+		Data:    &msg1,
+		Event:   "log",
+		EventID: "1",
 	}, nil)
 
-	msg2 := json.RawMessage(`{"time":1533744538,"payload":"build ` + strconv.Itoa(id) + ` status"}`)
-
+	msg2 := json.RawMessage(`{"time":1533744538,"status":"build ` + strconv.Itoa(id) + ` status"}`)
 	fakeEventSource.NextReturnsOnCall(1, event.Envelope{
-		Data:  &msg2,
-		Event: "status",
+		Data:    &msg2,
+		Event:   "status",
+		EventID: "2",
 	}, nil)
 
-	fakeEventSource.NextReturnsOnCall(2, event.Envelope{}, db.ErrEndOfBuildEventStream)
+	msg3 := json.RawMessage(`{"time":1533744538,"version":{"version":"0.0.1"},"metadata":[{"name":"version","value":"0.0.1"}]}`)
+	fakeEventSource.NextReturnsOnCall(2, event.Envelope{
+		Data:    &msg3,
+		Event:   "finish-get",
+		EventID: "3",
+	}, nil)
+
+	fakeEventSource.NextReturnsOnCall(3, event.Envelope{}, db.ErrEndOfBuildEventStream)
 
 	fakeEventSource.NextReturns(event.Envelope{}, db.ErrEndOfBuildEventStream)
 
@@ -68,6 +75,7 @@ var _ = Describe("Drainer", func() {
 				got := <-server.Messages
 				Expect(got).To(ContainSubstring("build 123 log"))
 				Expect(got).To(ContainSubstring("build 345 log"))
+				Expect(got).To(ContainSubstring("{\"version\": {\"version\":\"0.0.1\"}, \"metadata\":[{\"name\":\"version\",\"value\":\"0.0.1\"}]}"))
 				Expect(got).NotTo(ContainSubstring("build 123 status"))
 				Expect(got).NotTo(ContainSubstring("build 345 status"))
 			}, 0.2)

@@ -1328,7 +1328,7 @@ var _ = Describe("Pipeline", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(build2Event1).To(Equal(envelope(event.Log{
 				Payload: "log 2",
-			})))
+			}, "0")))
 
 			_, err = events2.Next() // finish event
 			Expect(err).ToNot(HaveOccurred())
@@ -1782,7 +1782,7 @@ var _ = Describe("Pipeline", func() {
 			Expect(events.Next()).To(Equal(envelope(event.Status{
 				Status: atc.StatusStarted,
 				Time:   startedBuild.StartTime().Unix(),
-			})))
+			}, "0")))
 		})
 	})
 

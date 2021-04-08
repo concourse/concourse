@@ -65,7 +65,7 @@ func Dial(transport, address string, caCerts []string) (*Syslog, error) {
 	}, nil
 }
 
-func (s *Syslog) Write(hostname, tag string, ts time.Time, msg, eventID string) error {
+func (s *Syslog) Write(hostname, tag string, ts time.Time, msg string, eventID string) error {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	if s.writer == nil {
@@ -94,7 +94,7 @@ func (s *Syslog) Close() error {
 }
 
 // generate custom formatter based on hostname and tag
-func getSyslogFormatter(hostname string, ts time.Time, tag, eventID string) sl.Formatter {
+func getSyslogFormatter(hostname string, ts time.Time, tag string, eventID string) sl.Formatter {
 	return func(priority sl.Priority, _, _, content string) string {
 		// strip whitespaces
 		s := strings.Replace(content, "\n", " ", -1)
