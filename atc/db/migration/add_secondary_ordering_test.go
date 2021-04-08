@@ -24,6 +24,7 @@ var _ = Describe("Add secondary ordering column", func() {
 					(1, 'team1'),
 					(2, 'team2')
 					`)
+			Expect(err).NotTo(HaveOccurred())
 
 			_, err = db.Exec(`
 					INSERT INTO pipelines(id, team_id, name, instance_vars) VALUES
