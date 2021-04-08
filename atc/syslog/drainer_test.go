@@ -44,7 +44,14 @@ func newFakeBuild(id int) db.Build {
 		EventID: "4",
 	}, nil)
 
-	fakeEventSource.NextReturnsOnCall(4, event.Envelope{}, db.ErrEndOfBuildEventStream)
+	msg5 := json.RawMessage(`{"time":1533744538}`)
+	fakeEventSource.NextReturnsOnCall(4, event.Envelope{
+		Data:    &msg5,
+		Event:   "initialize-task",
+		EventID: "5",
+	}, nil)
+
+	fakeEventSource.NextReturnsOnCall(5, event.Envelope{}, db.ErrEndOfBuildEventStream)
 
 	fakeEventSource.NextReturns(event.Envelope{}, db.ErrEndOfBuildEventStream)
 
@@ -86,6 +93,7 @@ var _ = Describe("Drainer", func() {
 				Expect(got).To(ContainSubstring("build 123 status"))
 				Expect(got).To(ContainSubstring("build 345 status"))
 				Expect(got).To(ContainSubstring("selected worker: example-worker"))
+				Expect(got).To(ContainSubstring("task initializing"))
 			}, 0.2)
 		})
 

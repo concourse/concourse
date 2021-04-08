@@ -112,6 +112,46 @@ func (d *drainer) sendEvent(logger lager.Logger, build db.Build, syslog *Syslog,
 	)
 
 	switch ev.Event {
+	case event.EventTypeInitialize:
+		var initEvent event.Initialize
+		err := json.Unmarshal(*ev.Data, &initEvent)
+		if err != nil {
+			logger.Error("failed-to-unmarshal", err)
+			return err
+		}
+		ts = time.Unix(initEvent.Time, 0)
+		tag = build.SyslogTag(initEvent.Origin.ID)
+		message = fmt.Sprintf("initializing")
+	case event.EventTypeInitializeGet:
+		var initGetEvent event.InitializeGet
+		err := json.Unmarshal(*ev.Data, &initGetEvent)
+		if err != nil {
+			logger.Error("failed-to-unmarshal", err)
+			return err
+		}
+		ts = time.Unix(initGetEvent.Time, 0)
+		tag = build.SyslogTag(initGetEvent.Origin.ID)
+		message = fmt.Sprintf("get initializing")
+	case event.EventTypeInitializePut:
+		var initPutEvent event.InitializePut
+		err := json.Unmarshal(*ev.Data, &initPutEvent)
+		if err != nil {
+			logger.Error("failed-to-unmarshal", err)
+			return err
+		}
+		ts = time.Unix(initPutEvent.Time, 0)
+		tag = build.SyslogTag(initPutEvent.Origin.ID)
+		message = fmt.Sprintf("put initializing")
+	case event.EventTypeInitializeTask:
+		var initTaskEvent event.InitializeTask
+		err := json.Unmarshal(*ev.Data, &initTaskEvent)
+		if err != nil {
+			logger.Error("failed-to-unmarshal", err)
+			return err
+		}
+		ts = time.Unix(initTaskEvent.Time, 0)
+		tag = build.SyslogTag(initTaskEvent.Origin.ID)
+		message = fmt.Sprintf("task initializing")
 	case event.EventTypeSelectedWorker:
 		var selectedWorkerEvent event.SelectedWorker
 		err := json.Unmarshal(*ev.Data, &selectedWorkerEvent)
