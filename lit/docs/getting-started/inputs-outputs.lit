@@ -41,20 +41,21 @@
         outputs:
         - name: the-output
         run:
-          # Change the command to `ls -l .` to see what the task sees
+          # Change the command to `ls -lF` to see
+          # what the task sees in its pwd
           path: ls
-          args: ["-l"]
+          args: ["-lF"]
   }}
 
   Update the pipeline and trigger the job:
   \codeblock{}{{
   $ fly -t tutorial set-pipeline -p hello-world -c hello-world.yml
   $ fly -t tutorial trigger-job --job hello-world/hello-world-job --watch
-
+  ...
   selected worker: 57d7419112ca
-  running ls -l .
+  running ls -lF
   total 4
-  drwxr-xr-x    2 root     root          4096 Feb 26 17:10 the-output
+  drwxr-xr-x    2 root     root          4096 Apr  8 16:42 the-output/
   succeeded
   }}
 
@@ -67,10 +68,12 @@
 
 \section{
   \title{Passing outputs to another task}
-  Let's update the pipeline to do the following:
+  To pass artifacts from one task to another, the first task must declare the
+  artifact as an output. The second task must then declare the same artifact as
+  an input. Let's update the pipeline to do the following:
 
   \list{
-  Create a file inside \code{the-output}
+  Have the first task create a file inside \code{the-output}
   }{
   Create a second task to read the file inside \code{the-output} from the
   previous step
@@ -174,13 +177,11 @@
   }
 
   This covers the most common scenario of passing artifacts between
-  \reference{steps}{steps} in a \reference{jobs}{job}. There are plenty of other
-  interesting scenarios related to artifacts that you're sure to encounter. The
-  blog post, \link{Introduction to Task Inputs and
+  \reference{steps}{steps} in a \reference{jobs}{job}. There are plenty of
+  other interesting scenarios related to artifacts that you're sure to
+  encounter. The blog post, \link{Introduction to Task Inputs and
   outputs}{https://blog.concourse-ci.org/introduction-to-task-inputs-and-outputs/},
-  goes over some other examples.
+  goes over some other examples and interesting cases.
 
   The next section will introduce you to the concept of \reference{resources}.
-
-  TODO: copy the blog post content to this section.
 }

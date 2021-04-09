@@ -154,7 +154,8 @@
   \title{Run the pipeline}
 
   That's the whole pipeline! You can now set it, unpause, and trigger it using
-  the \reference{fly}{fly cli}.
+  the \reference{fly}{fly cli}. You can then view it from the \link{web
+  ui}{http://localhost:8080/teams/main/pipelines/hello-world/jobs/hello-world-job}.
 
   \codeblock{bash}{{
   $ fly -t tutorial set-pipeline -p hello-world -c hello-world.yml
@@ -163,8 +164,8 @@
   $ fly -t tutorial trigger-job --job hello-world/hello-world-job --watch
   }}
 
-  You'll see extra output than what we're showing below, mainly the image being
-  downloaded, but the last four lines will be the task executing.
+  You'll see extra output than what we're showing below (the busybox image being
+  downloaded) but the last four lines will be the task executing.
 
   \codeblock{}{{
   selected worker: 701785fa43a1
@@ -173,9 +174,7 @@
   succeeded
   }}
 
-  Congratulations on building your first Concourse pipeline! If you want to see
-  your pipeline you can visit the web interface at
-  \link{http://localhost:8080/}{http://localhost:8080}.
+  Congratulations on building your first Concourse pipeline!
 
   In the next section we will build upon what we have learned about tasks and
   introduce inputs and outputs, which allow you to pass files between tasks.
