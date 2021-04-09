@@ -16,7 +16,8 @@ import (
 const managerName = "credhub"
 
 type CredHubManager struct {
-	URL string `yaml:"url,omitempty"`
+	Enabled bool   `yaml:"enabled,omitempty"`
+	URL     string `yaml:"url,omitempty"`
 
 	PathPrefix string `yaml:"path_prefix,omitempty"`
 
@@ -96,15 +97,6 @@ func (manager *CredHubManager) Init(log lager.Logger) error {
 	manager.Client = newLazyCredhub(manager.URL, options)
 
 	return nil
-}
-
-func (manager CredHubManager) IsConfigured() bool {
-	return manager.URL != "" ||
-		manager.UAA.ClientId != "" ||
-		manager.UAA.ClientSecret != "" ||
-		len(manager.TLS.CACerts) != 0 ||
-		manager.TLS.ClientCert != "" ||
-		manager.TLS.ClientKey != ""
 }
 
 func (manager CredHubManager) Validate() error {

@@ -20,6 +20,7 @@ const DefaultPipelineSecretTemplate = "/concourse/{{.Team}}/{{.Pipeline}}/{{.Sec
 const DefaultTeamSecretTemplate = "/concourse/{{.Team}}/{{.Secret}}"
 
 type SsmManager struct {
+	Enabled                bool   `yaml:"enabled,omitempty"`
 	AwsAccessKeyID         string `yaml:"access_key,omitempty"`
 	AwsSecretAccessKey     string `yaml:"secret_key,omitempty"`
 	AwsSessionToken        string `yaml:"session_token,omitempty"`
@@ -101,11 +102,11 @@ func (manager *SsmManager) Health() (*creds.HealthResponse, error) {
 	return health, nil
 }
 
-func (manager *SsmManager) IsConfigured() bool {
-	return manager.AwsRegion != ""
-}
-
 func (manager *SsmManager) Validate() error {
+	if manager.AwsRegion == "" {
+		return errors.New("must provide aws region")
+	}
+
 	if _, err := creds.BuildSecretTemplate("pipeline-secret-template", manager.PipelineSecretTemplate); err != nil {
 		return err
 	}

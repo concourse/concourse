@@ -17,7 +17,8 @@ import (
 const managerName = "vault"
 
 type VaultManager struct {
-	URL string `yaml:"url"`
+	Enabled bool   `yaml:"enabled,omitempty"`
+	URL     string `yaml:"url,omitempty"`
 
 	PathPrefix      string        `yaml:"path_prefix,omitempty"`
 	LookupTemplates []string      `yaml:"lookup_templates,omitempty"`
@@ -132,11 +133,11 @@ func (manager *VaultManager) ApplyConfig(config interface{}) error {
 	return nil
 }
 
-func (manager VaultManager) IsConfigured() bool {
-	return manager.URL != ""
-}
-
 func (manager VaultManager) Validate() error {
+	if manager.URL == "" {
+		return errors.New("must provide vault url")
+	}
+
 	_, err := url.Parse(manager.URL)
 	if err != nil {
 		return fmt.Errorf("invalid URL: %s", err)

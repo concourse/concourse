@@ -230,26 +230,26 @@ var CmdDefaults RunConfig = RunConfig{
 	},
 
 	CredentialManagers: CredentialManagersConfig{
-		Conjur: &conjur.Manager{
+		Conjur: conjur.Manager{
 			PipelineSecretTemplate: conjur.DefaultPipelineSecretTemplate,
 			TeamSecretTemplate:     conjur.DefaultTeamSecretTemplate,
 			SecretTemplate:         "vaultName/{{.Secret}}",
 		},
-		CredHub: &credhub.CredHubManager{
+		CredHub: credhub.CredHubManager{
 			PathPrefix: "/concourse",
 		},
-		Kubernetes: &kubernetes.KubernetesManager{
+		Kubernetes: kubernetes.KubernetesManager{
 			NamespacePrefix: "concourse-",
 		},
-		SecretsManager: &secretsmanager.Manager{
+		SecretsManager: secretsmanager.Manager{
 			PipelineSecretTemplate: "/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}",
 			TeamSecretTemplate:     "/concourse/{{.Team}}/{{.Secret}}",
 		},
-		SSM: &ssm.SsmManager{
+		SSM: ssm.SsmManager{
 			PipelineSecretTemplate: "/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}",
 			TeamSecretTemplate:     "/concourse/{{.Team}}/{{.Secret}}",
 		},
-		Vault: &vault.VaultManager{
+		Vault: vault.VaultManager{
 			PathPrefix:      "/concourse",
 			LookupTemplates: []string{"/{{.Team}}/{{.Pipeline}}/{{.Secret}}", "/{{.Team}}/{{.Secret}}"},
 			LoginTimeout:    60 * time.Second,

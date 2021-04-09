@@ -18,6 +18,7 @@ const DefaultPipelineSecretTemplate = "/concourse/{{.Team}}/{{.Pipeline}}/{{.Sec
 const DefaultTeamSecretTemplate = "/concourse/{{.Team}}/{{.Secret}}"
 
 type Manager struct {
+	Enabled                bool   `yaml:"enabled,omitempty"`
 	AwsAccessKeyID         string `yaml:"access_key,omitempty"`
 	AwsSecretAccessKey     string `yaml:"secret_key,omitempty"`
 	AwsSessionToken        string `yaml:"session_token,omitempty"`
@@ -86,11 +87,11 @@ func (manager *Manager) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func (manager *Manager) IsConfigured() bool {
-	return manager.AwsRegion != ""
-}
-
 func (manager *Manager) Validate() error {
+	if manager.AwsRegion == "" {
+		return errors.New("must provide aws region")
+	}
+
 	if _, err := creds.BuildSecretTemplate("pipeline-secret-template", manager.PipelineSecretTemplate); err != nil {
 		return err
 	}

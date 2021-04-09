@@ -10,7 +10,6 @@ type Manager interface {
 	Name() string
 	Config() interface{}
 
-	IsConfigured() bool
 	Validate() error
 	Health() (*HealthResponse, error)
 	Init(lager.Logger) error

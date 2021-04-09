@@ -15,6 +15,7 @@ import (
 const managerName = "kubernetes"
 
 type KubernetesManager struct {
+	Enabled         bool   `yaml:"enabled,omitempty"`
 	InClusterConfig bool   `yaml:"in_cluster,omitempty"`
 	ConfigPath      string `yaml:"config_path,omitempty"`
 	NamespacePrefix string `yaml:"namespace_prefix,omitempty"`
@@ -41,10 +42,6 @@ func (manager KubernetesManager) Init(log lager.Logger) error {
 	return nil
 }
 
-func (manager KubernetesManager) IsConfigured() bool {
-	return manager.InClusterConfig || manager.ConfigPath != ""
-}
-
 func (manager KubernetesManager) buildConfig() (*rest.Config, error) {
 	if manager.InClusterConfig {
 		return rest.InClusterConfig()
@@ -58,6 +55,10 @@ func (manager KubernetesManager) Health() (*creds.HealthResponse, error) {
 }
 
 func (manager KubernetesManager) Validate() error {
+	if !manager.InClusterConfig && manager.ConfigPath == "" {
+		return errors.New("Either in_cluster or config_path needs to be configured")
+	}
+
 	if manager.InClusterConfig && manager.ConfigPath != "" {
 		return errors.New("Either in-cluster or config-path can be used, not both.")
 	}

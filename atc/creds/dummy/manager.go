@@ -11,7 +11,8 @@ import (
 const managerName = "dummy"
 
 type Manager struct {
-	Vars VarFlags `yaml:"var,omitempty"`
+	Enabled bool     `yaml:"enabled,omitempty"`
+	Vars    VarFlags `yaml:"var,omitempty"`
 }
 
 func (manager *Manager) Name() string {
@@ -35,10 +36,6 @@ func (manager *Manager) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&map[string]interface{}{
 		"health": health,
 	})
-}
-
-func (manager Manager) IsConfigured() bool {
-	return len(manager.Vars) > 0
 }
 
 func (manager Manager) Validate() error {

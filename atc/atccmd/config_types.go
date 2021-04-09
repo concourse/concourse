@@ -17,8 +17,8 @@ import (
 	"github.com/concourse/concourse/atc/metric/emitter"
 	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/atc/worker"
-	"github.com/concourse/flag"
 	"github.com/concourse/concourse/skymarshal/skycmd"
+	"github.com/concourse/flag"
 )
 
 type TLSConfig struct {
@@ -47,44 +47,44 @@ type DatabaseConfig struct {
 }
 
 type CredentialManagersConfig struct {
-	Conjur         *conjur.Manager               `yaml:"conjur,omitempty"`
-	CredHub        *credhub.CredHubManager       `yaml:"credhub,omitempty"`
-	Dummy          *dummy.Manager                `yaml:"dummy_creds,omitempty"`
-	Kubernetes     *kubernetes.KubernetesManager `yaml:"kubernetes,omitempty"`
-	SecretsManager *secretsmanager.Manager       `yaml:"aws_secretsmanager,omitempty"`
-	SSM            *ssm.SsmManager               `yaml:"aws_ssm,omitempty"`
-	Vault          *vault.VaultManager           `yaml:"vault,omitempty"`
+	Conjur         conjur.Manager               `yaml:"conjur,omitempty"`
+	CredHub        credhub.CredHubManager       `yaml:"credhub,omitempty"`
+	Dummy          dummy.Manager                `yaml:"dummy_creds,omitempty"`
+	Kubernetes     kubernetes.KubernetesManager `yaml:"kubernetes,omitempty"`
+	SecretsManager secretsmanager.Manager       `yaml:"aws_secretsmanager,omitempty"`
+	SSM            ssm.SsmManager               `yaml:"aws_ssm,omitempty"`
+	Vault          vault.VaultManager           `yaml:"vault,omitempty"`
 }
 
 func (c CredentialManagersConfig) ConfiguredCredentialManager() (creds.Manager, error) {
 	var configuredManagers []creds.Manager
 
-	if c.Conjur != nil && c.Conjur.IsConfigured() {
-		configuredManagers = append(configuredManagers, c.Conjur)
+	if c.Conjur.Enabled {
+		configuredManagers = append(configuredManagers, &c.Conjur)
 	}
 
-	if c.CredHub != nil && c.CredHub.IsConfigured() {
-		configuredManagers = append(configuredManagers, c.CredHub)
+	if c.CredHub.Enabled {
+		configuredManagers = append(configuredManagers, &c.CredHub)
 	}
 
-	if c.Dummy != nil && c.Dummy.IsConfigured() {
-		configuredManagers = append(configuredManagers, c.Dummy)
+	if c.Dummy.Enabled {
+		configuredManagers = append(configuredManagers, &c.Dummy)
 	}
 
-	if c.Kubernetes != nil && c.Kubernetes.IsConfigured() {
-		configuredManagers = append(configuredManagers, c.Kubernetes)
+	if c.Kubernetes.Enabled {
+		configuredManagers = append(configuredManagers, &c.Kubernetes)
 	}
 
-	if c.SecretsManager != nil && c.SecretsManager.IsConfigured() {
-		configuredManagers = append(configuredManagers, c.SecretsManager)
+	if c.SecretsManager.Enabled {
+		configuredManagers = append(configuredManagers, &c.SecretsManager)
 	}
 
-	if c.SSM != nil && c.SSM.IsConfigured() {
-		configuredManagers = append(configuredManagers, c.SSM)
+	if c.SSM.Enabled {
+		configuredManagers = append(configuredManagers, &c.SSM)
 	}
 
-	if c.Vault != nil && c.Vault.IsConfigured() {
-		configuredManagers = append(configuredManagers, c.Vault)
+	if c.Vault.Enabled {
+		configuredManagers = append(configuredManagers, &c.Vault)
 	}
 
 	var configuredManager creds.Manager
