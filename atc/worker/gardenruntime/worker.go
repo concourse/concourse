@@ -704,6 +704,10 @@ func markContainerAsFailed(logger lager.Logger, container db.CreatingContainer) 
 	metric.Metrics.FailedContainers.Inc()
 }
 
+func (worker *Worker) DBWorker() db.Worker {
+	return worker.dbWorker
+}
+
 // For testing
 func (worker *Worker) GardenClient() gclient.Client {
 	return worker.gardenClient

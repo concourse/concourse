@@ -5,16 +5,20 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/runtime"
 )
 
 type Worker struct {
 	WorkerName string
 	Volumes    []*Volume
+	DBWorker_  *dbfakes.FakeWorker
 }
 
 func NewWorker(name string) Worker {
-	return Worker{WorkerName: name}
+	dbWorker := new(dbfakes.FakeWorker)
+	dbWorker.NameReturns(name)
+	return Worker{WorkerName: name, DBWorker_: dbWorker}
 }
 
 func (w Worker) WithVolumes(volumes ...*Volume) Worker {
@@ -48,4 +52,8 @@ func (w Worker) LookupVolume(logger lager.Logger, handle string) (runtime.Volume
 		}
 	}
 	return nil, false, nil
+}
+
+func (w Worker) DBWorker() db.Worker {
+	return w.DBWorker_
 }

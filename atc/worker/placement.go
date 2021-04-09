@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"sort"
 	"strings"
-	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
@@ -18,6 +18,12 @@ type PlacementOptions struct {
 	MaxActiveContainersPerWorker int      `long:"max-active-containers-per-worker" default:"0" description:"Maximum allowed number of active containers per worker. Has effect only when used with limit-active-containers placement strategy. 0 means no limit."`
 	MaxActiveVolumesPerWorker    int      `long:"max-active-volumes-per-worker" default:"0" description:"Maximum allowed number of active volumes per worker. Has effect only when used with limit-active-volumes placement strategy. 0 means no limit."`
 }
+
+var (
+	ErrTooManyActiveTasks = errors.New("worker has too many active tasks")
+	ErrTooManyContainers  = errors.New("worker has too many containers")
+	ErrTooManyVolumes     = errors.New("worker has too many volumes")
+)
 
 func NewPlacementStrategy(options PlacementOptions) (PlacementStrategy, error) {
 	var strategy PlacementStrategy
@@ -54,65 +60,85 @@ func NewPlacementStrategy(options PlacementOptions) (PlacementStrategy, error) {
 
 type PlacementStrategy []placementStrategy
 
-func (strategy PlacementStrategy) Choose(logger lager.Logger, pool Pool, workers []db.Worker, spec runtime.ContainerSpec) (db.Worker, error) {
-	for _, s := range strategy {
+type placementStrategy interface {
+	// Orders the list of candidate workers based off the configured
+	// strategies. Should not remove candidate workers - filtering should
+	// be left to Pick.
+	Order(lager.Logger, Pool, []db.Worker, runtime.ContainerSpec) ([]db.Worker, error)
+
+	// Attempts to pick the given worker to run the specified container,
+	// checking the worker abides by the conditions of the specific strategy.
+	Pick(lager.Logger, db.Worker, runtime.ContainerSpec) error
+
+	// Releases any resources acquired by any configured strategies as part of
+	// picking the candidate worker.
+	Release(lager.Logger, db.Worker, runtime.ContainerSpec)
+}
+
+func (strategy PlacementStrategy) Order(logger lager.Logger, pool Pool, workers []db.Worker, spec runtime.ContainerSpec) ([]db.Worker, error) {
+	candidates := cloneWorkers(workers)
+
+	// Pre-shuffle the candidate workers to ensure slightly different ordering
+	// for workers which are "equal" in the eyes of the configured strategies (eg.
+	// have same container counts)
+	//
+	// Should hopefully prevent a burst of builds from being scheduled on the
+	// same worker
+	rand.Shuffle(len(candidates), func(i, j int) {
+		candidates[i], candidates[j] = candidates[j], candidates[i]
+	})
+
+	// We iterate nodes in reverse so the correct ordering is applied
+	//
+	// For example, if the user specifies "fewest-build-containers,volume-locality" then
+	// they should expect candidates to be sorted by those with the fewest build containers,
+	// and ties with the number of build containers are broken by the number of volumes
+	// which already exists on the worker.
+	for i := len(strategy) - 1; i >= 0; i-- {
 		var err error
-		workers, err = s.Filter(logger, pool, workers, spec)
+		candidates, err = strategy[i].Order(logger, pool, candidates, spec)
 		if err != nil {
 			return nil, err
 		}
-		if len(workers) == 0 {
-			return nil, NoWorkerFitContainerPlacementStrategyError{Strategy: s.Name()}
+	}
+
+	return candidates, nil
+}
+
+func (strategy PlacementStrategy) Pick(logger lager.Logger, worker db.Worker, spec runtime.ContainerSpec) error {
+	var err error
+	var i int
+
+	for i = 0; i < len(strategy); i++ {
+		err = strategy[i].Pick(logger, worker, spec)
+
+		if err != nil {
+			// Rollback the stages which successfully passed Pick (i.e. don't include i)
+			strategy[:i].Release(logger, worker, spec)
+			return err
 		}
 	}
-	if len(workers) == 1 {
-		return workers[0], nil
+
+	return nil
+}
+
+func (strategy PlacementStrategy) Release(logger lager.Logger, worker db.Worker, spec runtime.ContainerSpec) {
+	for i := len(strategy) - 1; i >= 0; i-- {
+		strategy[i].Release(logger, worker, spec)
 	}
-
-	// If there are still multiple candidate, choose a random one.
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	return workers[r.Intn(len(workers))], nil
 }
 
-func (strategy PlacementStrategy) ModifiesActiveTasks() bool {
-	for _, s := range strategy {
-		if _, ok := s.(limitActiveTasksStrategy); ok {
-			return true
-		}
-	}
-	return false
-}
+// ------------------------------------------------------
+// --------- Individual placement strategies ------------
+// ------------------------------------------------------
 
-type placementStrategy interface {
-	Name() string
-	Filter(lager.Logger, Pool, []db.Worker, runtime.ContainerSpec) ([]db.Worker, error)
-}
+// volume-locality
 
 type volumeLocalityStrategy struct{}
 
-func (volumeLocalityStrategy) Name() string { return "volume-locality" }
+func (strategy volumeLocalityStrategy) Order(logger lager.Logger, pool Pool, workers []db.Worker, spec runtime.ContainerSpec) ([]db.Worker, error) {
+	counts := make(map[string]int, len(workers))
 
-func (strategy volumeLocalityStrategy) Filter(logger lager.Logger, pool Pool, workers []db.Worker, spec runtime.ContainerSpec) ([]db.Worker, error) {
-	workerByName := make(map[string]db.Worker, len(workers))
-	countByWorker := make(map[string]int, len(workers))
-	for _, worker := range workers {
-		workerByName[worker.Name()] = worker
-		countByWorker[worker.Name()] = 0
-	}
-
-	var highestCount int
-	increment := func(workerName string) {
-		curCount, ok := countByWorker[workerName]
-		if !ok {
-			// only consider workers that aren't yet filtered out
-			return
-		}
-		newCount := curCount + 1
-		countByWorker[workerName] = newCount
-		if newCount > highestCount {
-			highestCount = newCount
-		}
-	}
 	for _, input := range spec.Inputs {
 		logger := logger.WithData(lager.Data{
 			"handle": input.VolumeHandle,
@@ -127,7 +153,7 @@ func (strategy volumeLocalityStrategy) Filter(logger lager.Logger, pool Pool, wo
 			logger.Info("input-volume-not-found")
 			continue
 		}
-		increment(srcWorker.Name())
+		counts[srcWorker.Name()]++
 
 		resourceCacheID := volume.DBVolume().GetResourceCacheID()
 		if resourceCacheID == 0 {
@@ -153,7 +179,7 @@ func (strategy volumeLocalityStrategy) Filter(logger lager.Logger, pool Pool, wo
 				return nil, err
 			}
 			if found {
-				increment(worker.Name())
+				counts[worker.Name()]++
 			}
 		}
 	}
@@ -177,113 +203,195 @@ func (strategy volumeLocalityStrategy) Filter(logger lager.Logger, pool Pool, wo
 				return nil, err
 			}
 			if found {
-				increment(worker.Name())
+				counts[worker.Name()]++
 			}
 		}
 	}
 
-	if highestCount == 0 {
-		return workers, nil
-	}
+	sortedWorkers := cloneWorkers(workers)
+	sort.SliceStable(sortedWorkers, func(i, j int) bool {
+		return counts[sortedWorkers[i].Name()] > counts[sortedWorkers[j].Name()]
+	})
 
-	var optimalWorkers []db.Worker
-	for worker, count := range countByWorker {
-		if count == highestCount {
-			optimalWorkers = append(optimalWorkers, workerByName[worker])
-		}
-	}
-
-	return optimalWorkers, nil
+	return sortedWorkers, nil
 }
+
+func (volumeLocalityStrategy) Pick(lager.Logger, db.Worker, runtime.ContainerSpec) error {
+	return nil
+}
+
+func (volumeLocalityStrategy) Release(lager.Logger, db.Worker, runtime.ContainerSpec) {}
+
+// fewest-build-containers
 
 type fewestBuildContainersStrategy struct{}
 
-func (fewestBuildContainersStrategy) Name() string { return "fewest-build-containers" }
-
-func (strategy fewestBuildContainersStrategy) Filter(logger lager.Logger, pool Pool, workers []db.Worker, spec runtime.ContainerSpec) ([]db.Worker, error) {
-	workersByWork := map[int][]db.Worker{}
-	var minWork int
-
-	for i, w := range workers {
-		work := w.ActiveContainers()
-		workersByWork[work] = append(workersByWork[work], w)
-		if i == 0 || work < minWork {
-			minWork = work
-		}
+func (strategy fewestBuildContainersStrategy) Order(logger lager.Logger, pool Pool, workers []db.Worker, spec runtime.ContainerSpec) ([]db.Worker, error) {
+	counts := make(map[db.Worker]int, len(workers))
+	for _, worker := range workers {
+		counts[worker] = worker.ActiveContainers()
 	}
 
-	return workersByWork[minWork], nil
+	sortedWorkers := cloneWorkers(workers)
+	sort.SliceStable(sortedWorkers, func(i, j int) bool {
+		return counts[sortedWorkers[i]] < counts[sortedWorkers[j]]
+	})
+
+	return sortedWorkers, nil
 }
+
+func (fewestBuildContainersStrategy) Pick(lager.Logger, db.Worker, runtime.ContainerSpec) error {
+	return nil
+}
+
+func (fewestBuildContainersStrategy) Release(lager.Logger, db.Worker, runtime.ContainerSpec) {}
+
+// limit-active-tasks
 
 type limitActiveTasksStrategy struct {
 	MaxTasks int
 }
 
-func (limitActiveTasksStrategy) Name() string { return "limit-active-tasks" }
+func (strategy limitActiveTasksStrategy) Order(logger lager.Logger, pool Pool, workers []db.Worker, spec runtime.ContainerSpec) ([]db.Worker, error) {
+	if spec.Type != db.ContainerTypeTask {
+		return workers, nil
+	}
 
-func (strategy limitActiveTasksStrategy) Filter(logger lager.Logger, pool Pool, workers []db.Worker, spec runtime.ContainerSpec) ([]db.Worker, error) {
-	workersByWork := map[int][]db.Worker{}
-	var minActiveTasks int
+	taskCounts := make(map[db.Worker]int, len(workers))
+	candidates := make([]db.Worker, 0, len(workers))
 
-	for i, w := range workers {
-		logger := logger.WithData(lager.Data{"worker": w.Name()})
-		activeTasks, err := w.ActiveTasks()
+	for _, worker := range workers {
+		logger := logger.WithData(lager.Data{"worker": worker.Name()})
+		activeTasks, err := worker.ActiveTasks()
 		if err != nil {
+			// just skip this worker
 			logger.Error("retrieve-active-tasks-on-worker", err)
 			continue
 		}
 
-		// If MaxTasks == 0 or the step is not a task, ignore the number of active tasks and distribute the work evenly
-		if strategy.MaxTasks > 0 && activeTasks >= strategy.MaxTasks && spec.Type == db.ContainerTypeTask {
-			logger.Info("worker-busy")
-			continue
-		}
-
-		workersByWork[activeTasks] = append(workersByWork[activeTasks], w)
-		if i == 0 || activeTasks < minActiveTasks {
-			minActiveTasks = activeTasks
-		}
+		candidates = append(candidates, worker)
+		taskCounts[worker] = activeTasks
 	}
 
-	return workersByWork[minActiveTasks], nil
+	sort.SliceStable(candidates, func(i, j int) bool {
+		return taskCounts[candidates[i]] < taskCounts[candidates[j]]
+	})
+
+	return candidates, nil
 }
+
+func (strategy limitActiveTasksStrategy) Pick(logger lager.Logger, worker db.Worker, spec runtime.ContainerSpec) error {
+	if spec.Type != db.ContainerTypeTask {
+		return nil
+	}
+
+	activeTasks, err := worker.IncreaseActiveTasks()
+	if err != nil {
+		return err
+	}
+
+	if strategy.MaxTasks > 0 && activeTasks > strategy.MaxTasks {
+		_, err := worker.DecreaseActiveTasks()
+		if err != nil {
+			logger.Error("failed-to-decrease-active-tasks", err)
+		}
+
+		return ErrTooManyActiveTasks
+	}
+
+	return nil
+}
+
+func (strategy limitActiveTasksStrategy) Release(logger lager.Logger, worker db.Worker, spec runtime.ContainerSpec) {
+	if spec.Type != db.ContainerTypeTask {
+		return
+	}
+
+	_, err := worker.DecreaseActiveTasks()
+	if err != nil {
+		logger.Error("failed-to-decrease-active-tasks", err)
+	}
+}
+
+// limit-active-containers
 
 type limitActiveContainersStrategy struct {
 	MaxContainers int
 }
 
-func (limitActiveContainersStrategy) Name() string { return "limit-active-containers" }
-
-func (strategy limitActiveContainersStrategy) Filter(logger lager.Logger, pool Pool, workers []db.Worker, spec runtime.ContainerSpec) ([]db.Worker, error) {
-	if strategy.MaxContainers == 0 {
-		return workers, nil
-	}
-
-	candidates := []db.Worker{}
-	for _, w := range workers {
-		if w.ActiveContainers() < strategy.MaxContainers {
-			candidates = append(candidates, w)
-		}
-	}
-	return candidates, nil
+func (strategy limitActiveContainersStrategy) Order(logger lager.Logger, pool Pool, workers []db.Worker, spec runtime.ContainerSpec) ([]db.Worker, error) {
+	return partitionWorkersBy(workers, strategy.workerSatisfies), nil
 }
+
+func (strategy limitActiveContainersStrategy) workerSatisfies(worker db.Worker) bool {
+	if strategy.MaxContainers == 0 {
+		return true
+	}
+
+	return worker.ActiveContainers() < strategy.MaxContainers
+}
+
+func (strategy limitActiveContainersStrategy) Pick(_ lager.Logger, worker db.Worker, _ runtime.ContainerSpec) error {
+	if !strategy.workerSatisfies(worker) {
+		return ErrTooManyContainers
+	}
+
+	return nil
+}
+
+func (strategy limitActiveContainersStrategy) Release(lager.Logger, db.Worker, runtime.ContainerSpec) {
+}
+
+// limit-active-volumes
 
 type limitActiveVolumesStrategy struct {
 	MaxVolumes int
 }
 
-func (limitActiveVolumesStrategy) Name() string { return "limit-active-volumes" }
+func (strategy limitActiveVolumesStrategy) Order(logger lager.Logger, pool Pool, workers []db.Worker, spec runtime.ContainerSpec) ([]db.Worker, error) {
+	return partitionWorkersBy(workers, strategy.workerSatisfies), nil
+}
 
-func (strategy limitActiveVolumesStrategy) Filter(logger lager.Logger, pool Pool, workers []db.Worker, spec runtime.ContainerSpec) ([]db.Worker, error) {
+func (strategy limitActiveVolumesStrategy) workerSatisfies(worker db.Worker) bool {
 	if strategy.MaxVolumes == 0 {
-		return workers, nil
+		return true
 	}
 
-	candidates := []db.Worker{}
-	for _, w := range workers {
-		if w.ActiveVolumes() < strategy.MaxVolumes {
-			candidates = append(candidates, w)
+	return worker.ActiveVolumes() < strategy.MaxVolumes
+}
+
+func (strategy limitActiveVolumesStrategy) Pick(_ lager.Logger, worker db.Worker, _ runtime.ContainerSpec) error {
+	if !strategy.workerSatisfies(worker) {
+		return ErrTooManyVolumes
+	}
+
+	return nil
+}
+
+func (strategy limitActiveVolumesStrategy) Release(lager.Logger, db.Worker, runtime.ContainerSpec) {
+}
+
+// helpers
+
+func cloneWorkers(workers []db.Worker) []db.Worker {
+	clone := make([]db.Worker, len(workers))
+	copy(clone, workers)
+	return clone
+}
+
+func partitionWorkersBy(workers []db.Worker, pred func(db.Worker) bool) []db.Worker {
+	partitionGroup := func(worker db.Worker) int {
+		if pred(worker) {
+			return 0
+		} else {
+			return 1
 		}
 	}
-	return candidates, nil
+
+	sorted := cloneWorkers(workers)
+	sort.SliceStable(sorted, func(i, j int) bool {
+		return partitionGroup(sorted[i]) < partitionGroup(sorted[j])
+	})
+
+	return sorted
 }

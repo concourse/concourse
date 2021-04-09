@@ -1,6 +1,7 @@
 package worker_test
 
 import (
+	"context"
 	"testing"
 
 	"code.cloudfoundry.org/lager"
@@ -20,6 +21,7 @@ var (
 )
 
 var logger = lagertest.NewTestLogger("dummy")
+var ctx = context.Background()
 
 var _ = postgresrunner.GinkgoRunner(&postgresRunner)
 

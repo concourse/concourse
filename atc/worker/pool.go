@@ -1,49 +1,155 @@
 package worker
 
 import (
+	"context"
+	"fmt"
 	"math/rand"
+	"strconv"
+	"strings"
+	"time"
 
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/cppforlife/go-semi-semantic/version"
+	"github.com/hashicorp/go-multierror"
 )
+
+var PollingInterval = 5 * time.Second
 
 type Pool struct {
 	Factory
 	DB DB
 
 	WorkerVersion version.Version
+
+	waker chan struct{}
 }
 
-// TODO: re-implement #6635 (wait for worker matching strategy)
+func NewPool(factory Factory, db DB, workerVersion version.Version) Pool {
+	return Pool{
+		Factory:       factory,
+		DB:            db,
+		WorkerVersion: workerVersion,
+
+		waker: make(chan struct{}),
+	}
+}
+
 type PoolCallback interface {
 	WaitingForWorker(lager.Logger)
 }
 
 func (pool Pool) FindOrSelectWorker(
-	logger lager.Logger,
+	ctx context.Context,
 	owner db.ContainerOwner,
 	containerSpec runtime.ContainerSpec,
 	workerSpec Spec,
 	strategy PlacementStrategy,
 	callback PoolCallback,
 ) (runtime.Worker, error) {
-	worker, compatibleWorkers, found, err := pool.findWorkerForContainer(logger, owner, workerSpec)
-	if err != nil {
-		return nil, err
+	logger := lagerctx.FromContext(ctx)
+
+	started := time.Now()
+	labels := metric.StepsWaitingLabels{
+		Platform:   workerSpec.Platform,
+		TeamId:     strconv.Itoa(workerSpec.TeamID),
+		Type:       string(containerSpec.Type),
+		WorkerTags: strings.Join(workerSpec.Tags, "_"),
 	}
-	if !found {
-		worker, err = strategy.Choose(logger, pool, compatibleWorkers, containerSpec)
+	var worker db.Worker
+	var pollingTicker *time.Ticker
+	for {
+		var err error
+		worker, err = pool.findOrSelectWorker(logger, owner, containerSpec, workerSpec, strategy)
 		if err != nil {
 			return nil, err
 		}
+		if worker != nil {
+			break
+		}
+
+		if pollingTicker == nil {
+			pollingTicker = time.NewTicker(PollingInterval)
+			defer pollingTicker.Stop()
+
+			logger.Debug("waiting-for-available-worker")
+
+			_, ok := metric.Metrics.StepsWaiting[labels]
+			if !ok {
+				metric.Metrics.StepsWaiting[labels] = &metric.Gauge{}
+			}
+
+			metric.Metrics.StepsWaiting[labels].Inc()
+			defer metric.Metrics.StepsWaiting[labels].Dec()
+
+			if callback != nil {
+				callback.WaitingForWorker(logger)
+			}
+		}
+
+		select {
+		case <-ctx.Done():
+			logger.Info("aborted-waiting-for-worker")
+			return nil, ctx.Err()
+		case <-pollingTicker.C:
+		case <-pool.waker:
+		}
 	}
+
+	elapsed := time.Since(started)
+	metric.StepsWaitingDuration{
+		Labels:   labels,
+		Duration: elapsed,
+	}.Emit(logger)
 
 	return pool.Factory.NewWorker(logger, pool, worker), nil
 }
 
+func (pool Pool) findOrSelectWorker(logger lager.Logger, owner db.ContainerOwner, containerSpec runtime.ContainerSpec, workerSpec Spec, strategy PlacementStrategy) (db.Worker, error) {
+	worker, compatibleWorkers, found, err := pool.findWorkerForContainer(logger, owner, workerSpec)
+	if err != nil {
+		return nil, err
+	}
+	if found {
+		return worker, nil
+	}
+	orderedWorkers, err := strategy.Order(logger, pool, compatibleWorkers, containerSpec)
+	if err != nil {
+		return nil, err
+	}
+
+	var strategyError error
+	for _, candidate := range orderedWorkers {
+		err := strategy.Pick(logger, candidate, containerSpec)
+
+		if err == nil {
+			return candidate, nil
+		}
+
+		strategyError = multierror.Append(
+			strategyError,
+			fmt.Errorf("worker: %s, error: %v", candidate.Name(), err),
+		)
+	}
+
+	logger.Debug("all-candidate-workers-rejected-during-selection", lager.Data{"reason": strategyError.Error()})
+
+	return nil, nil
+}
+
 func (pool Pool) ReleaseWorker(logger lager.Logger, containerSpec runtime.ContainerSpec, worker runtime.Worker, strategy PlacementStrategy) {
+	strategy.Release(logger, worker.DBWorker(), containerSpec)
+
+	// Attempt to wake a random waiting step to see if it can be
+	// scheduled on the recently released worker.
+	select {
+	case pool.waker <- struct{}{}:
+		logger.Debug("attempted-to-wake-waiting-step")
+	default:
+	}
 }
 
 func (pool Pool) FindWorkerForContainer(logger lager.Logger, owner db.ContainerOwner, workerSpec Spec) (runtime.Worker, bool, error) {

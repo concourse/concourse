@@ -21,7 +21,7 @@ var _ = Describe("Container Placement Strategies", func() {
 			return strategy
 		}
 
-		Test("selects the worker with the most inputs locally", func() {
+		Test("sorts the workers by number of local inputs", func() {
 			scenario := Setup(
 				workertest.WithBasicJob(),
 				workertest.WithWorkers(
@@ -34,10 +34,11 @@ var _ = Describe("Container Placement Strategies", func() {
 						WithVolumesCreatedInDBAndBaggageclaim(
 							grt.NewVolume("input2"),
 						),
+					grt.NewWorker("worker3"),
 				),
 			)
 
-			worker, err := volumeLocalityStrategy().Choose(logger, scenario.Pool, scenario.DB.Workers, runtime.ContainerSpec{
+			workers, err := volumeLocalityStrategy().Order(logger, scenario.Pool, scenario.DB.Workers, runtime.ContainerSpec{
 				TeamID:   scenario.TeamID,
 				JobID:    scenario.JobID,
 				StepName: scenario.StepName,
@@ -58,7 +59,7 @@ var _ = Describe("Container Placement Strategies", func() {
 				},
 			})
 			Expect(err).ToNot(HaveOccurred())
-			Expect(worker.Name()).To(Equal("worker1"))
+			Expect(workerNames(workers)).To(Equal([]string{"worker1", "worker2", "worker3"}))
 		})
 
 		Test("includes all workers in the case of a tie", func() {
@@ -73,10 +74,11 @@ var _ = Describe("Container Placement Strategies", func() {
 						WithVolumesCreatedInDBAndBaggageclaim(
 							grt.NewVolume("input2"),
 						),
+					grt.NewWorker("worker3"),
 				),
 			)
 
-			worker, err := volumeLocalityStrategy().Choose(logger, scenario.Pool, scenario.DB.Workers, runtime.ContainerSpec{
+			workers, err := volumeLocalityStrategy().Order(logger, scenario.Pool, scenario.DB.Workers, runtime.ContainerSpec{
 				TeamID:   scenario.TeamID,
 				JobID:    scenario.JobID,
 				StepName: scenario.StepName,
@@ -93,7 +95,10 @@ var _ = Describe("Container Placement Strategies", func() {
 				},
 			})
 			Expect(err).ToNot(HaveOccurred())
-			Expect(worker.Name()).To(BeOneOf("worker1", "worker2"))
+			Expect(workerNames(workers)).To(BeOneOf(
+				[]string{"worker1", "worker2", "worker3"},
+				[]string{"worker2", "worker1", "worker3"},
+			))
 		})
 
 		Test("considers resource caches", func() {
@@ -121,7 +126,7 @@ var _ = Describe("Container Placement Strategies", func() {
 			err = scenario.WorkerVolume("worker2", "input2").InitializeResourceCache(logger, resourceCache2)
 			Expect(err).ToNot(HaveOccurred())
 
-			worker, err := volumeLocalityStrategy().Choose(logger, scenario.Pool, scenario.DB.Workers, runtime.ContainerSpec{
+			workers, err := volumeLocalityStrategy().Order(logger, scenario.Pool, scenario.DB.Workers, runtime.ContainerSpec{
 				TeamID:   scenario.TeamID,
 				JobID:    scenario.JobID,
 				StepName: scenario.StepName,
@@ -138,7 +143,7 @@ var _ = Describe("Container Placement Strategies", func() {
 				},
 			})
 			Expect(err).ToNot(HaveOccurred())
-			Expect(worker.Name()).To(Equal("worker1"))
+			Expect(workerNames(workers)).To(Equal([]string{"worker1", "worker2"}))
 		})
 
 		Test("considers task caches", func() {
@@ -169,7 +174,7 @@ var _ = Describe("Container Placement Strategies", func() {
 				InitializeTaskCache(logger, scenario.JobID, scenario.StepName, "/cache1", false)
 			Expect(err).ToNot(HaveOccurred())
 
-			worker, err := volumeLocalityStrategy().Choose(logger, scenario.Pool, scenario.DB.Workers, runtime.ContainerSpec{
+			workers, err := volumeLocalityStrategy().Order(logger, scenario.Pool, scenario.DB.Workers, runtime.ContainerSpec{
 				TeamID:   scenario.TeamID,
 				JobID:    scenario.JobID,
 				StepName: scenario.StepName,
@@ -188,7 +193,7 @@ var _ = Describe("Container Placement Strategies", func() {
 				Caches: []string{"/cache1", "/cache2"},
 			})
 			Expect(err).ToNot(HaveOccurred())
-			Expect(worker.Name()).To(Equal("worker1"))
+			Expect(workerNames(workers)).To(Equal([]string{"worker1", "worker2"}))
 		})
 
 		Test("does not consider workers that have been filtered out", func() {
@@ -203,7 +208,7 @@ var _ = Describe("Container Placement Strategies", func() {
 				),
 			)
 
-			worker, err := volumeLocalityStrategy().Choose(
+			workers, err := volumeLocalityStrategy().Order(
 				logger,
 				scenario.Pool,
 				filterWorkers(scenario.DB.Workers, "worker1"),
@@ -221,7 +226,7 @@ var _ = Describe("Container Placement Strategies", func() {
 				},
 			)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(worker.Name()).To(Equal("worker1"))
+			Expect(workerNames(workers)).To(Equal([]string{"worker1"}))
 		})
 	})
 
@@ -254,13 +259,16 @@ var _ = Describe("Container Placement Strategies", func() {
 				),
 			)
 
-			worker, err := fewestBuildContainersStrategy().Choose(logger, scenario.Pool, scenario.DB.Workers, runtime.ContainerSpec{
+			workers, err := fewestBuildContainersStrategy().Order(logger, scenario.Pool, scenario.DB.Workers, runtime.ContainerSpec{
 				TeamID:   scenario.TeamID,
 				JobID:    scenario.JobID,
 				StepName: scenario.StepName,
 			})
 			Expect(err).ToNot(HaveOccurred())
-			Expect(worker.Name()).To(BeOneOf("worker1", "worker3"))
+			Expect(workerNames(workers)).To(BeOneOf(
+				[]string{"worker1", "worker3", "worker2"},
+				[]string{"worker3", "worker1", "worker2"},
+			))
 		})
 	})
 
@@ -287,13 +295,18 @@ var _ = Describe("Container Placement Strategies", func() {
 				),
 			)
 
-			worker, err := limitActiveTasksStrategy(0).Choose(logger, scenario.Pool, scenario.DB.Workers, runtime.ContainerSpec{
+			workers, err := limitActiveTasksStrategy(0).Order(logger, scenario.Pool, scenario.DB.Workers, runtime.ContainerSpec{
 				TeamID:   scenario.TeamID,
 				JobID:    scenario.JobID,
 				StepName: scenario.StepName,
+
+				Type: db.ContainerTypeTask,
 			})
 			Expect(err).ToNot(HaveOccurred())
-			Expect(worker.Name()).To(BeOneOf("worker1", "worker3"))
+			Expect(workerNames(workers)).To(BeOneOf(
+				[]string{"worker1", "worker3", "worker2"},
+				[]string{"worker3", "worker1", "worker2"},
+			))
 		})
 
 		Test("allows setting a limit on the number of active tasks", func() {
@@ -309,38 +322,30 @@ var _ = Describe("Container Placement Strategies", func() {
 				),
 			)
 
-			_, err := limitActiveTasksStrategy(10).Choose(logger, scenario.Pool, scenario.DB.Workers, runtime.ContainerSpec{
+			strategy := limitActiveTasksStrategy(10)
+			spec := runtime.ContainerSpec{
 				TeamID:   scenario.TeamID,
 				JobID:    scenario.JobID,
 				StepName: scenario.StepName,
 
 				Type: db.ContainerTypeTask,
-			})
-			Expect(err).To(MatchError("no worker fit container placement strategy: limit-active-tasks"))
-		})
+			}
 
-		Test("limit only applies to task containers", func() {
-			scenario := Setup(
-				workertest.WithBasicJob(),
-				workertest.WithWorkers(
-					grt.NewWorker("worker1").
-						WithActiveTasks(10),
-					grt.NewWorker("worker2").
-						WithActiveTasks(20),
-					grt.NewWorker("worker3").
-						WithActiveTasks(10),
-				),
-			)
-
-			worker, err := limitActiveTasksStrategy(10).Choose(logger, scenario.Pool, scenario.DB.Workers, runtime.ContainerSpec{
-				TeamID:   scenario.TeamID,
-				JobID:    scenario.JobID,
-				StepName: scenario.StepName,
-
-				Type: db.ContainerTypeCheck,
-			})
+			workers, err := strategy.Order(logger, scenario.Pool, scenario.DB.Workers, spec)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(worker.Name()).To(BeOneOf("worker1", "worker3"))
+
+			err = strategy.Pick(logger, workers[0], spec)
+			Expect(err).To(MatchError(worker.ErrTooManyActiveTasks))
+
+			By("validating the limit only applies to task containers", func() {
+				spec.Type = db.ContainerTypeCheck
+
+				workers, err := strategy.Order(logger, scenario.Pool, scenario.DB.Workers, spec)
+				Expect(err).ToNot(HaveOccurred())
+
+				err = strategy.Pick(logger, workers[0], spec)
+				Expect(err).ToNot(HaveOccurred())
+			})
 		})
 	})
 
@@ -354,7 +359,7 @@ var _ = Describe("Container Placement Strategies", func() {
 			return strategy
 		}
 
-		Test("removes workers with too many active containers", func() {
+		Test("disallows workers with too many active containers", func() {
 			scenario := Setup(
 				workertest.WithBasicJob(),
 				workertest.WithWorkers(
@@ -374,13 +379,25 @@ var _ = Describe("Container Placement Strategies", func() {
 				),
 			)
 
-			worker, err := limitActiveContainersStrategy(2).Choose(logger, scenario.Pool, scenario.DB.Workers, runtime.ContainerSpec{
+			strategy := limitActiveContainersStrategy(2)
+			spec := runtime.ContainerSpec{
 				TeamID:   scenario.TeamID,
 				JobID:    scenario.JobID,
 				StepName: scenario.StepName,
-			})
+			}
+
+			workers, err := strategy.Order(logger, scenario.Pool, scenario.DB.Workers, spec)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(worker.Name()).To(BeOneOf("worker1", "worker3"))
+			Expect(workerNames(workers)).To(BeOneOf(
+				[]string{"worker1", "worker3", "worker2"},
+				[]string{"worker3", "worker1", "worker2"},
+			))
+
+			err = strategy.Pick(logger, workers[0], spec)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = strategy.Pick(logger, workers[2], spec)
+			Expect(err).To(MatchError(worker.ErrTooManyContainers))
 		})
 
 		Test("noop if limit is unset", func() {
@@ -403,13 +420,20 @@ var _ = Describe("Container Placement Strategies", func() {
 				),
 			)
 
-			worker, err := limitActiveContainersStrategy(0).Choose(logger, scenario.Pool, scenario.DB.Workers, runtime.ContainerSpec{
+			strategy := limitActiveContainersStrategy(0)
+			spec := runtime.ContainerSpec{
 				TeamID:   scenario.TeamID,
 				JobID:    scenario.JobID,
 				StepName: scenario.StepName,
-			})
+			}
+
+			workers, err := strategy.Order(logger, scenario.Pool, scenario.DB.Workers, spec)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(worker.Name()).To(BeOneOf("worker1", "worker2", "worker3"))
+
+			for _, worker := range workers {
+				err := strategy.Pick(logger, worker, spec)
+				Expect(err).ToNot(HaveOccurred())
+			}
 		})
 	})
 
@@ -443,13 +467,25 @@ var _ = Describe("Container Placement Strategies", func() {
 				),
 			)
 
-			worker, err := limitActiveVolumesStrategy(2).Choose(logger, scenario.Pool, scenario.DB.Workers, runtime.ContainerSpec{
+			strategy := limitActiveVolumesStrategy(2)
+			spec := runtime.ContainerSpec{
 				TeamID:   scenario.TeamID,
 				JobID:    scenario.JobID,
 				StepName: scenario.StepName,
-			})
+			}
+
+			workers, err := strategy.Order(logger, scenario.Pool, scenario.DB.Workers, spec)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(worker.Name()).To(BeOneOf("worker1", "worker3"))
+			Expect(workerNames(workers)).To(BeOneOf(
+				[]string{"worker1", "worker3", "worker2"},
+				[]string{"worker3", "worker1", "worker2"},
+			))
+
+			err = strategy.Pick(logger, workers[0], spec)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = strategy.Pick(logger, workers[2], spec)
+			Expect(err).To(MatchError(worker.ErrTooManyVolumes))
 		})
 
 		Test("noop if limit is unset", func() {
@@ -472,13 +508,20 @@ var _ = Describe("Container Placement Strategies", func() {
 				),
 			)
 
-			worker, err := limitActiveVolumesStrategy(0).Choose(logger, scenario.Pool, scenario.DB.Workers, runtime.ContainerSpec{
+			strategy := limitActiveVolumesStrategy(0)
+			spec := runtime.ContainerSpec{
 				TeamID:   scenario.TeamID,
 				JobID:    scenario.JobID,
 				StepName: scenario.StepName,
-			})
+			}
+
+			workers, err := strategy.Order(logger, scenario.Pool, scenario.DB.Workers, spec)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(worker.Name()).To(BeOneOf("worker1", "worker2", "worker3"))
+
+			for _, worker := range workers {
+				err := strategy.Pick(logger, worker, spec)
+				Expect(err).ToNot(HaveOccurred())
+			}
 		})
 	})
 })
@@ -489,6 +532,14 @@ func BeOneOf(vals ...interface{}) types.GomegaMatcher {
 		matchers[i] = Equal(v)
 	}
 	return SatisfyAny(matchers...)
+}
+
+func workerNames(workers []db.Worker) []string {
+	names := make([]string, len(workers))
+	for i, worker := range workers {
+		names[i] = worker.Name()
+	}
+	return names
 }
 
 func filterWorkers(allWorkers []db.Worker, namesToKeep ...string) []db.Worker {

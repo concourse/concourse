@@ -1,8 +1,12 @@
 package worker_test
 
 import (
+	"time"
+
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
 	grt "github.com/concourse/concourse/atc/worker/gardenruntime/gardenruntimetest"
@@ -25,7 +29,7 @@ var _ = Describe("Pool", func() {
 			)
 
 			worker, err := scenario.Pool.FindOrSelectWorker(
-				logger,
+				ctx,
 				db.NewFixedHandleContainerOwner("my-container"),
 				runtime.ContainerSpec{},
 				worker.Spec{},
@@ -47,7 +51,7 @@ var _ = Describe("Pool", func() {
 			)
 
 			worker, err := scenario.Pool.FindOrSelectWorker(
-				logger,
+				ctx,
 				db.NewFixedHandleContainerOwner("no-worker-for-this-container-yet"),
 				runtime.ContainerSpec{},
 				worker.Spec{},
@@ -81,7 +85,7 @@ var _ = Describe("Pool", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			worker, err := scenario.Pool.FindOrSelectWorker(
-				logger,
+				ctx,
 				db.NewFixedHandleContainerOwner("no-worker-for-this-container-yet"),
 				runtime.ContainerSpec{},
 				worker.Spec{},
@@ -106,7 +110,7 @@ var _ = Describe("Pool", func() {
 			)
 
 			worker, err := scenario.Pool.FindOrSelectWorker(
-				logger,
+				ctx,
 				db.NewFixedHandleContainerOwner("my-container"),
 				runtime.ContainerSpec{},
 				worker.Spec{},
@@ -127,7 +131,7 @@ var _ = Describe("Pool", func() {
 			)
 
 			_, err := scenario.Pool.FindOrSelectWorker(
-				logger,
+				ctx,
 				db.NewFixedHandleContainerOwner("my-container"),
 				runtime.ContainerSpec{},
 				worker.Spec{
@@ -148,7 +152,7 @@ var _ = Describe("Pool", func() {
 			)
 
 			_, err := scenario.Pool.FindOrSelectWorker(
-				logger,
+				ctx,
 				db.NewFixedHandleContainerOwner("my-container"),
 				runtime.ContainerSpec{},
 				worker.Spec{
@@ -170,7 +174,7 @@ var _ = Describe("Pool", func() {
 			)
 
 			_, err := scenario.Pool.FindOrSelectWorker(
-				logger,
+				ctx,
 				db.NewFixedHandleContainerOwner("my-container"),
 				runtime.ContainerSpec{},
 				worker.Spec{
@@ -193,7 +197,7 @@ var _ = Describe("Pool", func() {
 			)
 
 			worker, err := scenario.Pool.FindOrSelectWorker(
-				logger,
+				ctx,
 				db.NewFixedHandleContainerOwner("my-container"),
 				runtime.ContainerSpec{},
 				worker.Spec{
@@ -218,7 +222,7 @@ var _ = Describe("Pool", func() {
 			)
 
 			worker, err := scenario.Pool.FindOrSelectWorker(
-				logger,
+				ctx,
 				db.NewFixedHandleContainerOwner("my-container"),
 				runtime.ContainerSpec{},
 				worker.Spec{
@@ -237,33 +241,70 @@ var _ = Describe("Pool", func() {
 			scenario := Setup(
 				workertest.WithWorkers(
 					grt.NewWorker("worker1").
-						WithContainersCreatedInDBAndGarden(
-							grt.NewContainer("c1"),
-							grt.NewContainer("c2"),
-						),
+						WithActiveTasks(1),
 					grt.NewWorker("worker2").
-						WithContainersCreatedInDBAndGarden(
-							grt.NewContainer("c3"),
-							grt.NewContainer("c4"),
-						),
+						WithActiveTasks(1),
 				),
 			)
 
 			strategy, err := worker.NewPlacementStrategy(worker.PlacementOptions{
-				Strategies:                   []string{"limit-active-containers"},
-				MaxActiveContainersPerWorker: 1,
+				Strategies:              []string{"limit-active-tasks"},
+				MaxActiveTasksPerWorker: 1,
 			})
 			Expect(err).ToNot(HaveOccurred())
 
-			_, err = scenario.Pool.FindOrSelectWorker(
-				logger,
-				db.NewFixedHandleContainerOwner("my-container"),
-				runtime.ContainerSpec{},
-				worker.Spec{},
-				strategy,
-				nil,
-			)
-			Expect(err).To(MatchError("no worker fit container placement strategy: limit-active-containers"))
+			taskSpec := runtime.ContainerSpec{Type: db.ContainerTypeTask}
+
+			workerCh := make(chan runtime.Worker)
+
+			var callbackInvocations int
+			callback := PoolCallback{
+				waitingForWorker: func() { callbackInvocations++ },
+			}
+
+			By("selecting a worker when there are no satisfiable workers", func() {
+				worker.PollingInterval = 10 * time.Millisecond
+
+				go func() {
+					defer GinkgoRecover()
+
+					worker, err := scenario.Pool.FindOrSelectWorker(
+						ctx,
+						db.NewFixedHandleContainerOwner("my-container"),
+						taskSpec,
+						worker.Spec{TeamID: 123},
+						strategy,
+						callback,
+					)
+					Expect(err).ToNot(HaveOccurred())
+
+					workerCh <- worker
+				}()
+			})
+
+			By("validating that the step is marked as waiting", func() {
+				callbackCount := func() int { return callbackInvocations }
+				metricCount := func() float64 {
+					labels := metric.StepsWaitingLabels{
+						TeamId: "123",
+						Type:   string(db.ContainerTypeTask),
+					}
+					return metric.Metrics.StepsWaiting[labels].Max()
+				}
+				Eventually(callbackCount).Should(Equal(1))
+				Eventually(metricCount).Should(BeNumerically("~", 1))
+
+				By("validating the step is only marked once", func() {
+					Consistently(callbackCount).Should(Equal(1))
+					Consistently(metricCount).Should(BeNumerically("~", 1))
+				})
+			})
+
+			By("freeing up a worker", func() {
+				strategy.Release(logger, scenario.Worker("worker1").DBWorker(), taskSpec)
+				worker := <-workerCh
+				Expect(worker.Name()).To(Equal("worker1"))
+			})
 		})
 	})
 
@@ -365,3 +406,11 @@ var _ = Describe("Pool", func() {
 		})
 	})
 })
+
+type PoolCallback struct {
+	waitingForWorker func()
+}
+
+func (p PoolCallback) WaitingForWorker(_ lager.Logger) {
+	p.waitingForWorker()
+}

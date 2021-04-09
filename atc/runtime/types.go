@@ -18,6 +18,8 @@ type Worker interface {
 
 	LookupContainer(logger lager.Logger, handle string) (Container, bool, error)
 	LookupVolume(logger lager.Logger, handle string) (Volume, bool, error)
+
+	DBWorker() db.Worker
 }
 
 type Container interface {
