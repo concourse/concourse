@@ -61,12 +61,18 @@ type Monitor struct {
 
 	StepsWaiting map[StepsWaitingLabels]*Gauge
 
-	// TODO: deprecate, replaced with CheckBuildFinished
+	// When global resource is not enabled, ChecksStarted should equal to CheckBuildsStarted.
+	// But with global resource enabled, ChecksStarted measures how many checks really run.
+	// For example, there are 10 resources having exact same config, so they belong to the same
+	// resource configure scope. In each check period, 10 check builds will be created,
+	// CheckBuildsStarted should be 10. But only 1 check build should run real check, rest 9 check
+	// builds should reuse the first check's result, thus ChecksStarted will be 1.
+	// The bigger diff between ChecksStarted and CheckBuildsStarted, the more global resource benefits.
+	ChecksStarted Counter
+
+	// ChecksFinishedWithError+ChecksFinishedWithSuccess should equal to ChecksStarted.
 	ChecksFinishedWithError   Counter
 	ChecksFinishedWithSuccess Counter
-
-	// TODO: deprecate, replaced with CheckBuildsStarted and CheckBuildStarted
-	ChecksStarted Counter
 
 	ChecksEnqueued Counter
 
