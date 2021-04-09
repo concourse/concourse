@@ -38,5 +38,10 @@ logging in to team 'main'
 target saved
 }}
 
-Once you've confirmed everything is up and running, you can move onto the next
-section.
+You'll notice that every \code{fly} command has to have the
+\reference{fly-targets}{target} specified. This is annoying when you only have
+one Concourse to target, but it helps ensure you don't trigger a job on the
+wrong Concourse instance. It will save you from hurting yourself.
+
+Once you've confirmed everything is up and running by checking out the
+\link{web ui}{http://localhost:8080}, you can move onto the next section.
