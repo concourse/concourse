@@ -1,3 +1,47 @@
 \title{Resources}{tutorial-resources}
 
 \use-plugin{concourse-docs}
+
+\section{
+    \title{The Heart of Concourse}
+
+    Resources are the heart of Concourse. Resources make Concourse tick and are
+    the source of automation within all Concourse pipelines. Resources are how
+    Concourse interacts with the outside world. Here's a short list of some
+    things that resources can do:
+
+    \list{
+        You want something to run every five minutes? \link{Time resource}{https://github.com/concourse/time-resource/}.
+    }{
+        You want to run tests on every new commit to the main branch? \link{Git resource}{https://github.com/concourse/git-resource}.
+    }{
+        Run unit tests on new PR's? \link{Github-PR resource}{https://github.com/telia-oss/github-pr-resource}.
+    }{
+        Delpoy the latest image of your app? \link{Registry-image resource}{https://github.com/concourse/registry-image-resource/}
+    }
+
+    Resources can do a lot of things! The main goal of resources is to
+    represent some external system or object in your pipeline. That external
+    thing can then be used as a trigger for your \reference{jobs} or your
+    \reference{jobs} can push back and modify the external system or object. It
+    all depends on the resource you use and what features its author has
+    implemented. Let's start breaking down how resources work.
+}
+
+\section{
+    \title{Components of Resources}
+
+    Resources are \link{container
+    images}{https://en.wikipedia.org/wiki/List_of_Linux_containers} that
+    contain three executables. Each executable is run by a different
+    \reference{steps}{step}:
+
+    \list{
+        \code{/opt/resource/check} - implicitly ran when a
+        \reference{jobs}{job} contains a \reference{get-step}{get step}
+    }{
+        \code{/opt/resource/in} - run in a \reference{get-step}{get step}
+    }{
+        \code{/opt/resource/out} - run in a \reference{put-step}{put step}
+    }
+}
