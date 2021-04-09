@@ -10,8 +10,8 @@ import (
 	"github.com/clarafu/envstruct"
 	concourseCmd "github.com/concourse/concourse/cmd"
 	v "github.com/concourse/concourse/cmd/concourse/validator"
-	"github.com/concourse/flag"
 	"github.com/concourse/concourse/worker/workercmd"
+	"github.com/concourse/flag"
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
@@ -35,11 +35,11 @@ var QuickstartCommand = &cobra.Command{
 }
 
 func init() {
-	WebCommand.Flags().StringVar(&quickStart.configFile, "config", "", "path to the config file that will be used to quickstart the concourse cluster")
+	QuickstartCommand.Flags().StringVar(&quickStart.ConfigFile, "config", "", "path to the config file that will be used to quickstart the concourse cluster")
 }
 
 type QuickstartConfig struct {
-	configFile string
+	ConfigFile string `env:"QUICKSTART_CONFIG_FILE"`
 
 	*WebConfig               `yaml:"web" ignore_env:"true"`
 	*workercmd.WorkerCommand `yaml:"worker"`
@@ -62,15 +62,15 @@ func InitializeQuickstart(cmd *cobra.Command, args []string) error {
 		},
 	}
 
-	err := env.FetchEnv(quickStart)
+	err := env.FetchEnv(&quickStart)
 	if err != nil {
 		return fmt.Errorf("fetch env: %s", err)
 	}
 
 	// Fetch out the values set from the config file and overwrite the flag
 	// values
-	if quickStart.configFile != "" {
-		file, err := os.Open(quickStart.configFile)
+	if quickStart.ConfigFile != "" {
+		file, err := os.Open(quickStart.ConfigFile)
 		if err != nil {
 			return fmt.Errorf("open file: %s", err)
 		}
@@ -159,7 +159,7 @@ func (cmd *QuickstartConfig) Runner(args []string) (ifrit.Runner, error) {
 }
 
 func (cmd *QuickstartConfig) PopulateFields() error {
-	if checkNilKeys(cmd.WebConfig.TSACommand.HostKey) {
+	if checkNilKeys(cmd.WebConfig.TSAConfig.HostKey) {
 		tsaHostKey, err := rsa.GenerateKey(rand.Reader, 2048)
 		if err != nil {
 			return fmt.Errorf("failed to generate tsa host key: %s", err)
@@ -170,7 +170,7 @@ func (cmd *QuickstartConfig) PopulateFields() error {
 			return fmt.Errorf("failed to create worker authorized key: %s", err)
 		}
 
-		cmd.WebConfig.TSACommand.HostKey = &flag.PrivateKey{PrivateKey: tsaHostKey}
+		cmd.WebConfig.TSAConfig.HostKey = &flag.PrivateKey{PrivateKey: tsaHostKey}
 		cmd.WorkerCommand.TSA.PublicKey.Keys =
 			append(cmd.WorkerCommand.TSA.PublicKey.Keys, tsaHostPublicKey)
 	}
@@ -187,8 +187,8 @@ func (cmd *QuickstartConfig) PopulateFields() error {
 		}
 
 		cmd.WorkerCommand.TSA.WorkerPrivateKey = &flag.PrivateKey{PrivateKey: workerKey}
-		cmd.WebConfig.TSACommand.AuthorizedKeys.Keys =
-			append(cmd.WebConfig.TSACommand.AuthorizedKeys.Keys, workerPublicKey)
+		cmd.WebConfig.TSAConfig.AuthorizedKeys.Keys =
+			append(cmd.WebConfig.TSAConfig.AuthorizedKeys.Keys, workerPublicKey)
 	}
 
 	return nil

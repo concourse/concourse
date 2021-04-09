@@ -51,8 +51,14 @@ func InitializeATCFlagsDEPRECATED(c *cobra.Command, flags *RunConfig) {
 	InitializeAuditorFlags(c, flags)
 	InitializeSyslogFlags(c, flags)
 
-	c.Flags().IntVar(flags.DefaultCpuLimit, "default-task-cpu-limit", 0, "Default max number of cpu shares per task, 0 means unlimited")
-	c.Flags().StringVar(flags.DefaultMemoryLimit, "default-task-memory-limit", "", "Default maximum memory per task, 0 means unlimited")
+	var defaultCPULimit int
+	c.Flags().IntVar(&defaultCPULimit, "default-task-cpu-limit", 0, "Default max number of cpu shares per task, 0 means unlimited")
+	flags.DefaultCpuLimit = &defaultCPULimit
+
+	var defaultMemoryLimit string
+	c.Flags().StringVar(&defaultMemoryLimit, "default-task-memory-limit", "", "Default maximum memory per task, 0 means unlimited")
+	flags.DefaultMemoryLimit = &defaultMemoryLimit
+
 	c.Flags().DurationVar(&flags.InterceptIdleTimeout, "intercept-idle-timeout", CmdDefaults.InterceptIdleTimeout, "Length of time for a intercepted session to be idle before terminating.")
 
 	c.Flags().Var(&flags.CLIArtifactsDir, "cli-artifacts-dir", "Directory containing downloadable CLI binaries.")

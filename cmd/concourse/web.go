@@ -12,8 +12,8 @@ import (
 	"github.com/clarafu/envstruct"
 	concourseCmd "github.com/concourse/concourse/cmd"
 	v "github.com/concourse/concourse/cmd/concourse/validator"
-	"github.com/concourse/flag"
 	"github.com/concourse/concourse/tsa/tsacmd"
+	"github.com/concourse/flag"
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
@@ -38,7 +38,7 @@ var WebCommand = &cobra.Command{
 }
 
 func init() {
-	WebCommand.Flags().Var(&webCmd.configFile, "config", "config file (default is $HOME/.cobra.yaml)")
+	WebCommand.Flags().Var(&webCmd.ConfigFile, "config", "config file (default is $HOME/.cobra.yaml)")
 
 	WebCommand.Flags().StringVar(&webCmd.PeerAddress, "peer-address", "127.0.0.1", "Network address of this web node, reachable by other web nodes. Used for forwarded worker addresses.")
 
@@ -53,7 +53,7 @@ func init() {
 }
 
 type WebConfig struct {
-	configFile flag.File
+	ConfigFile flag.File `env:"CONCOURSE_CONFIG_FILE"`
 
 	PeerAddress string `yaml:"peer_address"`
 
@@ -78,15 +78,15 @@ func InitializeWeb(cmd *cobra.Command, args []string) error {
 		},
 	}
 
-	err := env.FetchEnv(webCmd)
+	err := env.FetchEnv(&webCmd)
 	if err != nil {
 		return fmt.Errorf("fetch env: %s", err)
 	}
 
 	// Fetch out the values set from the config file and overwrite the flag
 	// values
-	if webCmd.configFile != "" {
-		file, err := os.Open(string(webCmd.configFile))
+	if webCmd.ConfigFile != "" {
+		file, err := os.Open(string(webCmd.ConfigFile))
 		if err != nil {
 			return fmt.Errorf("open file: %s", err)
 		}
@@ -212,6 +212,10 @@ func (w *WebConfig) populateSharedFlags() error {
 
 	if w.RunConfig.Server.ClientSecret == "" {
 		w.RunConfig.Server.ClientSecret = derivedCredential(signingKey, w.RunConfig.Server.ClientID)
+	}
+
+	if w.RunConfig.Auth.AuthFlags.Clients == nil {
+		w.RunConfig.Auth.AuthFlags.Clients = make(map[string]string)
 	}
 
 	w.RunConfig.Auth.AuthFlags.Clients[w.TSAConfig.ClientID] = w.TSAConfig.ClientSecret

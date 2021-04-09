@@ -2,12 +2,11 @@ package validator
 
 import (
 	"fmt"
-	"net"
 	"net/url"
 	"os"
 	"strings"
 
-	"github.com/concourse/baggageclaim"
+	"github.com/concourse/baggageclaim/baggageclaimcmd"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/atccmd"
@@ -32,8 +31,19 @@ var (
 	ValidationErrCPS               = fmt.Sprintf("Not a valid list of container placement strategies. Valid strategies include %v.", atc.ValidContainerPlacementStrategies)
 	ValidationErrSAC               = fmt.Sprintf("Not a valid streaming artifacts compression. Valid options include %v.", atc.ValidStreamingArtifactsCompressions)
 	ValidationErrLogLevel          = fmt.Sprintf("Not a valid log level. Valid options include %v.", flag.ValidLogLevels)
-	ValidationErrConnectors        = fmt.Sprintf("Not a valid auth connector. Valid options include %v.", skycmd.ConnectorIDs)
 )
+
+type ValidationConnectorsError struct {
+	TeamConnectorConfigs skycmd.TeamConnectorsConfig
+}
+
+func (e ValidationConnectorsError) Error() string {
+	var connectorIDs []string
+	for _, c := range e.TeamConnectorConfigs.AllConnectors() {
+		connectorIDs = append(connectorIDs, c.ID())
+	}
+	return fmt.Sprintf("Not a valid auth connector. Valid options include %v.", connectorIDs)
+}
 
 func NewValidator(trans ut.Translator) *validator.Validate {
 	validate := validator.New()
@@ -81,7 +91,7 @@ func (v *validatorErrors) SetupErrorMessages() {
 	v.RegisterTranslation("log_level", ValidationErrLogLevel)
 	v.RegisterTranslation("ip_version", baggageclaimcmd.ValidationErrIPVersion)
 	v.RegisterTranslation("baggageclaim_driver", baggageclaimcmd.ValidationErrBaggageclaimDriver)
-	v.RegisterTranslation("connectors", ValidationErrConnectors)
+	v.RegisterTranslation("connectors", ValidationConnectorsError{skycmd.TeamConnectorsConfig{}}.Error())
 }
 
 func (v *validatorErrors) RegisterTranslation(validationName string, errorString string) {
@@ -94,13 +104,12 @@ value: %s=%s`, t, fe.Field(), fe.Value())
 	})
 }
 
-func ValidateRequired(field validator.FieldLevel) bool {
-	parsedIP := net.ParseIP(field.Field().String())
-	return parsedIP != nil
-}
-
 func ValidateURL(sl validator.StructLevel) {
 	flagURL := sl.Current().Interface().(flag.URL)
+	if flagURL.URL == nil {
+		return
+	}
+
 	value := normalizeURL(flagURL.String())
 	parsedURL, err := url.Parse(value)
 	if err != nil {
@@ -249,8 +258,9 @@ func ValidateConnectors(field validator.FieldLevel) bool {
 		if connectorId == "local" {
 			valid = true
 		} else {
-			for _, connector := range skycmd.ConnectorIDs {
-				if connector == connectorId {
+			teamConnectors := skycmd.TeamConnectorsConfig{}
+			for _, connector := range teamConnectors.AllConnectors() {
+				if connector.ID() == connectorId {
 					valid = true
 					break
 				}

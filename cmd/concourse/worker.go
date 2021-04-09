@@ -27,7 +27,7 @@ var WorkerCommand = &cobra.Command{
 }
 
 type WorkerConfig struct {
-	configFile flag.File
+	ConfigFile flag.File `env:"WORKER_CONFIG_FILE"`
 
 	*workercmd.WorkerCommand `yaml:"worker" ignore_env:"true"`
 }
@@ -35,7 +35,7 @@ type WorkerConfig struct {
 func init() {
 	workerCmd.WorkerCommand = &workercmd.CmdDefaults
 
-	WorkerCommand.Flags().Var(&workerCmd.configFile, "config", "config file (default is $HOME/.cobra.yaml)")
+	WorkerCommand.Flags().Var(&workerCmd.ConfigFile, "config", "config file (default is $HOME/.cobra.yaml)")
 }
 
 func InitializeWorker(cmd *cobra.Command, args []string) error {
@@ -52,21 +52,21 @@ func InitializeWorker(cmd *cobra.Command, args []string) error {
 		},
 	}
 
-	err := env.FetchEnv(workerCmd)
+	err := env.FetchEnv(&workerCmd)
 	if err != nil {
 		return fmt.Errorf("fetch env: %s", err)
 	}
 
 	// Fetch out the values set from the config file and overwrite the flag
 	// values
-	if workerCmd.configFile != "" {
-		file, err := os.Open(string(workerCmd.configFile))
+	if workerCmd.ConfigFile != "" {
+		file, err := os.Open(string(workerCmd.ConfigFile))
 		if err != nil {
 			return fmt.Errorf("open file: %s", err)
 		}
 
 		decoder := yaml.NewDecoder(file)
-		err = decoder.Decode(&webCmd)
+		err = decoder.Decode(&workerCmd)
 		if err != nil {
 			return fmt.Errorf("decode config: %s", err)
 		}

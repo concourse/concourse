@@ -2,6 +2,11 @@
 
 package main
 
+import (
+	"fmt"
+	"os"
+)
+
 func main() {
 	err := ConcourseCommand.Execute()
 	if err != nil {
