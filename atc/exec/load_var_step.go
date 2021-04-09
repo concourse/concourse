@@ -131,10 +131,7 @@ func (step *LoadVarStep) fetchVars(
 
 	art, found := state.ArtifactRepository().ArtifactFor(build.ArtifactName(artifactName))
 	if !found {
-		return nil, artifact.UnknownArtifactSourceError{
-			Name: artifactName,
-			Path: filePath,
-		}
+		return nil, UnknownArtifactSourceError{build.ArtifactName(artifactName), filePath}
 	}
 
 	stream, err := step.streamer.StreamFile(lagerctx.NewContext(ctx, logger), art, filePath)

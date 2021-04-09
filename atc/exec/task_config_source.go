@@ -269,7 +269,7 @@ type UnknownArtifactSourceError struct {
 
 // Error returns a human-friendly error message.
 func (err UnknownArtifactSourceError) Error() string {
-	return fmt.Sprintf("unknown artifact source: '%s' in task config file path '%s'", err.SourceName, err.ConfigPath)
+	return fmt.Sprintf("unknown artifact source: '%s' in file path '%s'", err.SourceName, err.ConfigPath)
 }
 
 // UnspecifiedArtifactSourceError is returned when the specified path is of a
