@@ -1,9 +1,7 @@
 package workercmd
 
 import (
-	"net"
-	"time"
-
+	"github.com/concourse/baggageclaim/baggageclaimcmd"
 	"github.com/spf13/cobra"
 )
 
@@ -30,7 +28,7 @@ func InitializeWorkerFlagsDEPRECATED(c *cobra.Command, flags *WorkerCommand) {
 
 	c.Flags().Var(&flags.ExternalGardenURL, "external-garden-url", "API endpoint of an externally managed Garden server to use instead of running the embedded Garden server.")
 
-	baggageclaimcmd.InitializeBaggageclaimFlags(c, flags)
+	baggageclaimcmd.InitializeBaggageclaimFlags(c, &flags.Baggageclaim)
 
 	c.Flags().Var(&flags.ResourceTypes, "resource-types", "Path to directory containing resource types the worker should advertise.")
 

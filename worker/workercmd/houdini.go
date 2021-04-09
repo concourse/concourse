@@ -33,5 +33,5 @@ func (cmd *WorkerCommand) houdiniRunner(logger lager.Logger) (ifrit.Runner, erro
 }
 
 func (cmd *WorkerCommand) bindAddr() string {
-	return fmt.Sprintf("%s:%d", cmd.BindIP.IP, cmd.BindPort)
+	return fmt.Sprintf("%s:%d", cmd.BindIP, cmd.BindPort)
 }

@@ -16,8 +16,7 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-var tsaCmd TSAConfig
-var configFile flag.File
+var tsaCmd TSACommandFlags
 
 // TSA command is only used for when the user wants to run the tsa
 // independently from the web command. This is not included in the concourse
@@ -30,11 +29,17 @@ var TSACommand = &cobra.Command{
 }
 
 func init() {
-	TSACommand.Flags().Var(&configFile, "config", "config file (default is $HOME/.cobra.yaml)")
+	TSACommand.Flags().Var(&tsaCmd.ConfigFile, "config", "config file (default is $HOME/.cobra.yaml)")
 
-	tsaCmd = CmdDefaults
+	tsaCmd.TSAConfig = CmdDefaults
 
-	InitializeTSAFlagsDEPRECATED(TSACommand, &tsaCmd)
+	InitializeTSAFlagsDEPRECATED(TSACommand, &tsaCmd.TSAConfig)
+}
+
+type TSACommandFlags struct {
+	ConfigFile flag.File `env:"TSA_CONFIG_FILE"`
+
+	TSAConfig
 }
 
 func InitializeTSA(cmd *cobra.Command, args []string) error {
@@ -58,8 +63,8 @@ func InitializeTSA(cmd *cobra.Command, args []string) error {
 
 	// Fetch out the values set from the config file and overwrite the flag
 	// values
-	if configFile != "" {
-		file, err := os.Open(string(configFile))
+	if tsaCmd.ConfigFile != "" {
+		file, err := os.Open(string(tsaCmd.ConfigFile))
 		if err != nil {
 			return fmt.Errorf("open file: %s", err)
 		}

@@ -67,7 +67,7 @@ func (cmd *WorkerCommand) guardianRunner(logger lager.Logger) (ifrit.Runner, err
 	}
 
 	gdnServerFlags := []string{
-		"--bind-ip", cmd.BindIP.IP.String(),
+		"--bind-ip", cmd.BindIP.String(),
 		"--bind-port", fmt.Sprintf("%d", cmd.BindPort),
 
 		"--depot", depotDir,
@@ -190,7 +190,7 @@ func flagify(env string) string {
 
 func getGdnFlagsFromConfig(configPath string) (GdnBinaryFlags, error) {
 	var configFlags GdnBinaryFlags
-	parser := flags.NewParser(&configFlags, flags.Default | flags.IgnoreUnknown)
+	parser := flags.NewParser(&configFlags, flags.Default|flags.IgnoreUnknown)
 	parser.NamespaceDelimiter = "-"
 
 	iniParser := flags.NewIniParser(parser)

@@ -38,7 +38,7 @@ func InitializeTSAFlagsDEPRECATED(c *cobra.Command, flags *TSAConfig) {
 	c.Flags().StringArrayVar(&flags.Scopes, "tsa-scope", nil, "Scopes to request from the auth server")
 
 	c.Flags().DurationVar(&flags.HeartbeatInterval, "tsa-heartbeat-interval", CmdDefaults.HeartbeatInterval, "interval on which to heartbeat workers to the ATC")
-	c.Flags().DurationVar(&flags.GardenRequestTimeout, "garden-request-timeout", CmdDefaults.GardenRequestTimeout, "How long to wait for requests to Garden to complete. 0 means no timeout.")
+	c.Flags().DurationVar(&flags.GardenRequestTimeout, "tsa-garden-request-timeout", CmdDefaults.GardenRequestTimeout, "How long to wait for requests to Garden to complete. 0 means no timeout.")
 
 	c.Flags().StringVar(&flags.ClusterName, "tsa-cluster-name", "", "A name for this Concourse cluster, to be displayed on the dashboard page.")
 	c.Flags().BoolVar(&flags.LogClusterName, "tsa-log-cluster-name", false, "Log cluster name.")
