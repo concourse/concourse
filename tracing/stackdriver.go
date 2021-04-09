@@ -1,6 +1,7 @@
 package tracing
 
 import (
+	"errors"
 	"fmt"
 
 	texporter "github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace"
@@ -8,11 +9,20 @@ import (
 )
 
 type Stackdriver struct {
+	Enabled   bool   `yaml:"enabled,omitempty"`
 	ProjectID string `yaml:"projectid,omitempty"`
 }
 
-func (s Stackdriver) IsConfigured() bool {
-	return s.ProjectID != ""
+func (s Stackdriver) ID() string {
+	return "stackdriver"
+}
+
+func (s Stackdriver) Validate() error {
+	if s.ProjectID == "" {
+		return errors.New("project ID is missing")
+	}
+
+	return nil
 }
 
 func (s Stackdriver) Exporter() (export.SpanSyncer, error) {

@@ -1,6 +1,7 @@
 package tracing
 
 import (
+	"errors"
 	"fmt"
 
 	"go.opentelemetry.io/otel/exporters/trace/jaeger"
@@ -9,14 +10,23 @@ import (
 
 // Jaeger service to export traces to
 type Jaeger struct {
+	Enabled  bool              `yaml:"enabled,omitempty"`
 	Endpoint string            `yaml:"endpoint,omitempty"`
 	Tags     map[string]string `yaml:"tags,omitempty"`
 	Service  string            `yaml:"service,omitempty"`
 }
 
-// IsConfigured identifies if an endpoint has been set
-func (j Jaeger) IsConfigured() bool {
-	return j.Endpoint != ""
+func (j Jaeger) ID() string {
+	return "jaeger"
+}
+
+// Validate identifies if an endpoint has been set
+func (j Jaeger) Validate() error {
+	if j.Endpoint == "" {
+		return errors.New("endpoint is missing")
+	}
+
+	return nil
 }
 
 // Exporter returns a SpanExporter to sync spans to Jaeger

@@ -1,6 +1,8 @@
 package tracing
 
 import (
+	"errors"
+
 	"go.opentelemetry.io/otel/exporters/otlp"
 	export "go.opentelemetry.io/otel/sdk/export/trace"
 	"google.golang.org/grpc/credentials"
@@ -8,14 +10,23 @@ import (
 
 // OTLP service to export traces to
 type OTLP struct {
+	Enabled bool              `yaml:"enabled,omitempty"`
 	Address string            `yaml:"address,omitempty"`
 	Headers map[string]string `yaml:"header,omitempty"`
 	UseTLS  bool              `yaml:"use_tls,omitempty"`
 }
 
-// IsConfigured identifies if an Address has been set
-func (s OTLP) IsConfigured() bool {
-	return s.Address != ""
+func (s OTLP) ID() string {
+	return "otlp"
+}
+
+// Validate identifies if an Address has been set
+func (s OTLP) Validate() error {
+	if s.Address == "" {
+		return errors.New("address is missing")
+	}
+
+	return nil
 }
 
 func (s OTLP) security() otlp.ExporterOption {

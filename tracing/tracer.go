@@ -24,6 +24,12 @@ import (
 // tracing hasn't been configured.
 //
 //
+type Service interface {
+	ID() string
+	Validate() error
+	Exporter() (export.SpanSyncer, error)
+}
+
 var Configured bool
 
 type Config struct {
@@ -34,6 +40,35 @@ type Config struct {
 	Jaeger      Jaeger      `yaml:"jaeger,omitempty"`
 	Stackdriver Stackdriver `yaml:"stackdriver,omitempty"`
 	OTLP        OTLP        `yaml:"otlp,omitempty"`
+}
+
+func (c Config) Prepare() error {
+	var configuredService Service
+	switch {
+	case c.Honeycomb.Enabled:
+		configuredService = c.Honeycomb
+	case c.Jaeger.Enabled:
+		configuredService = c.Jaeger
+	case c.OTLP.Enabled:
+		configuredService = c.OTLP
+	case c.Stackdriver.Enabled:
+		configuredService = c.Stackdriver
+	}
+
+	if configuredService != nil {
+		err := configuredService.Validate()
+		if err != nil {
+			return err
+		}
+
+		var provider trace.Provider
+		provider, err = c.TraceProvider(configuredService.Exporter)
+		if provider != nil {
+			ConfigureTraceProvider(provider)
+		}
+	}
+
+	return nil
 }
 
 func (c Config) resource() *resource.Resource {
@@ -68,31 +103,6 @@ func (c Config) TraceProvider(exporter func() (export.SpanSyncer, error)) (trace
 	}
 
 	return provider, nil
-}
-
-func (c Config) Prepare() error {
-	var provider trace.Provider
-	var err error
-
-	switch {
-	case c.Honeycomb.IsConfigured():
-		provider, err = c.TraceProvider(c.Honeycomb.Exporter)
-	case c.Jaeger.IsConfigured():
-		provider, err = c.TraceProvider(c.Jaeger.Exporter)
-	case c.OTLP.IsConfigured():
-		provider, err = c.TraceProvider(c.OTLP.Exporter)
-	case c.Stackdriver.IsConfigured():
-		provider, err = c.TraceProvider(c.Stackdriver.Exporter)
-	}
-	if err != nil {
-		return err
-	}
-
-	if provider != nil {
-		ConfigureTraceProvider(provider)
-	}
-
-	return nil
 }
 
 // StartSpan creates a span, giving back a context that has itself added as the
