@@ -139,34 +139,34 @@ type MetricsConfig struct {
 }
 
 type MetricsEmitterConfig struct {
-	Datadog    *emitter.DogstatsDBConfig `yaml:"datadog,omitempty"`
-	InfluxDB   *emitter.InfluxDBConfig   `yaml:"influxdb,omitempty"`
-	Lager      *emitter.LagerConfig      `yaml:"lager,omitempty"`
-	NewRelic   *emitter.NewRelicConfig   `yaml:"newrelic,omitempty"`
-	Prometheus *emitter.PrometheusConfig `yaml:"prometheus,omitempty"`
+	Datadog    emitter.DogstatsDBConfig `yaml:"datadog,omitempty"`
+	InfluxDB   emitter.InfluxDBConfig   `yaml:"influxdb,omitempty"`
+	Lager      emitter.LagerConfig      `yaml:"lager,omitempty"`
+	NewRelic   emitter.NewRelicConfig   `yaml:"newrelic,omitempty"`
+	Prometheus emitter.PrometheusConfig `yaml:"prometheus,omitempty"`
 }
 
 func (e MetricsEmitterConfig) ConfiguredEmitter() (metric.EmitterFactory, error) {
 	var configuredEmitters []metric.EmitterFactory
 
-	if e.Datadog != nil && e.Datadog.IsConfigured() {
-		configuredEmitters = append(configuredEmitters, e.Datadog)
+	if e.Datadog.Enabled {
+		configuredEmitters = append(configuredEmitters, &e.Datadog)
 	}
 
-	if e.InfluxDB != nil && e.InfluxDB.IsConfigured() {
-		configuredEmitters = append(configuredEmitters, e.InfluxDB)
+	if e.InfluxDB.Enabled {
+		configuredEmitters = append(configuredEmitters, &e.InfluxDB)
 	}
 
-	if e.Lager != nil && e.Lager.IsConfigured() {
-		configuredEmitters = append(configuredEmitters, e.Lager)
+	if e.Lager.Enabled {
+		configuredEmitters = append(configuredEmitters, &e.Lager)
 	}
 
-	if e.NewRelic != nil && e.NewRelic.IsConfigured() {
-		configuredEmitters = append(configuredEmitters, e.NewRelic)
+	if e.NewRelic.Enabled {
+		configuredEmitters = append(configuredEmitters, &e.NewRelic)
 	}
 
-	if e.Prometheus != nil && e.Prometheus.IsConfigured() {
-		configuredEmitters = append(configuredEmitters, e.Prometheus)
+	if e.Prometheus.Enabled {
+		configuredEmitters = append(configuredEmitters, &e.Prometheus)
 	}
 
 	var configuredEmitter metric.EmitterFactory

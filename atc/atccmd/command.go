@@ -307,11 +307,11 @@ var CmdDefaults RunConfig = RunConfig{
 		BufferSize: 1000,
 
 		Emitter: MetricsEmitterConfig{
-			InfluxDB: &emitter.InfluxDBConfig{
+			InfluxDB: emitter.InfluxDBConfig{
 				BatchSize:     5000,
 				BatchDuration: 300 * time.Second,
 			},
-			NewRelic: &emitter.NewRelicConfig{
+			NewRelic: emitter.NewRelicConfig{
 				Url:           "https://insights-collector.newrelic.com",
 				ServicePrefix: "",
 				BatchSize:     2000,
@@ -1384,7 +1384,12 @@ func (cmd *RunConfig) configureMetrics(logger lager.Logger) error {
 	}
 
 	if configuredEmitter != nil {
-		err := metric.Metrics.Initialize(logger.Session("metrics"), configuredEmitter, host, cmd.Metrics.Attributes, cmd.Metrics.BufferSize)
+		err = configuredEmitter.Validate()
+		if err != nil {
+			return fmt.Errorf("validate emitter %s: %w", configuredEmitter.Description(), err)
+		}
+
+		err = metric.Metrics.Initialize(logger.Session("metrics"), configuredEmitter, host, cmd.Metrics.Attributes, cmd.Metrics.BufferSize)
 		if err != nil {
 			return err
 		}

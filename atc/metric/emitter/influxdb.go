@@ -18,7 +18,8 @@ type InfluxDBEmitter struct {
 }
 
 type InfluxDBConfig struct {
-	URL string `yaml:"url,omitempty"`
+	Enabled bool   `yaml:"enabled,omitempty"`
+	URL     string `yaml:"url,omitempty"`
 
 	Database string `yaml:"database,omitempty"`
 
@@ -42,7 +43,13 @@ func init() {
 }
 
 func (config *InfluxDBConfig) Description() string { return "InfluxDB" }
-func (config *InfluxDBConfig) IsConfigured() bool  { return config.URL != "" }
+func (config *InfluxDBConfig) Validate() error {
+	if config.URL == "" {
+		return errors.New("url is missing")
+	}
+
+	return nil
+}
 
 func (config *InfluxDBConfig) NewEmitter() (metric.Emitter, error) {
 	client, err := influxclient.NewHTTPClient(influxclient.HTTPConfig{

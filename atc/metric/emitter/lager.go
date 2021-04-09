@@ -10,11 +10,13 @@ import (
 type LagerEmitter struct{}
 
 type LagerConfig struct {
-	Enabled bool `yaml:"enable,omitempty" env:"CONCOURSE_LAGER_ENABLE,CONCOURSE_EMIT_TO_LOGS"`
+	Enabled bool `yaml:"enabled,omitempty" env:"CONCOURSE_LAGER_ENABLE,CONCOURSE_EMIT_TO_LOGS"`
 }
 
 func (config *LagerConfig) Description() string { return "Lager" }
-func (config *LagerConfig) IsConfigured() bool  { return config.Enabled }
+func (config *LagerConfig) Validate() error {
+	return nil
+}
 
 func (config *LagerConfig) NewEmitter() (metric.Emitter, error) {
 	return &LagerEmitter{}, nil

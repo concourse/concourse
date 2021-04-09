@@ -13,6 +13,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/metric"
+	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 )
 
@@ -38,6 +39,7 @@ type (
 	}
 
 	NewRelicConfig struct {
+		Enabled            bool          `yaml:"enabled,omitempty"`
 		AccountID          string        `yaml:"account_id,omitempty"`
 		APIKey             string        `yaml:"api_key,omitempty"`
 		Url                string        `yaml:"insights_api_url,omitempty"`
@@ -51,8 +53,18 @@ type (
 )
 
 func (config *NewRelicConfig) Description() string { return "NewRelic" }
-func (config *NewRelicConfig) IsConfigured() bool {
-	return config.AccountID != "" && config.APIKey != ""
+func (config *NewRelicConfig) Validate() error {
+	var errs *multierror.Error
+
+	if config.AccountID == "" {
+		errs = multierror.Append(errs, errors.New("account ID is missing"))
+	}
+
+	if config.APIKey == "" {
+		errs = multierror.Append(errs, errors.New("api key is missing"))
+	}
+
+	return errs.ErrorOrNil()
 }
 
 func (config *NewRelicConfig) NewEmitter() (metric.Emitter, error) {

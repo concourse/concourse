@@ -24,7 +24,7 @@ type Emitter interface {
 //go:generate counterfeiter . EmitterFactory
 type EmitterFactory interface {
 	Description() string
-	IsConfigured() bool
+	Validate() error
 	NewEmitter() (Emitter, error)
 }
 
