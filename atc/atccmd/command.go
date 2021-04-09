@@ -170,18 +170,18 @@ var CmdDefaults RunConfig = RunConfig{
 		AuthFlags: skycmd.AuthFlags{
 			Expiration: 24 * time.Hour,
 			Connectors: skycmd.ConnectorsConfig{
-				OAuth: &skycmd.OAuthFlags{
+				OAuth: skycmd.OAuthFlags{
 					GroupsKey:   "groups",
 					UserIDKey:   "user_id",
 					UserNameKey: "user_name",
 				},
 
-				OIDC: &skycmd.OIDCFlags{
+				OIDC: skycmd.OIDCFlags{
 					GroupsKey:   "groups",
 					UserNameKey: "username",
 				},
 
-				SAML: &skycmd.SAMLFlags{
+				SAML: skycmd.SAMLFlags{
 					UsernameAttr: "name",
 					EmailAttr:    "email",
 					GroupsAttr:   "groups",

@@ -8,7 +8,10 @@ import (
 	multierror "github.com/hashicorp/go-multierror"
 )
 
+const MicrosoftConnectorID = "microsoft"
+
 type MicrosoftFlags struct {
+	Enabled            bool     `yaml:"enabled,omitempty"`
 	ClientID           string   `yaml:"client_id,omitempty"`
 	ClientSecret       string   `yaml:"client_secret,omitempty"`
 	Tenant             string   `yaml:"tenant,omitempty"`

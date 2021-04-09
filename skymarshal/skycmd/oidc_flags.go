@@ -4,12 +4,15 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/concourse/flag"
 	"github.com/concourse/dex/connector/oidc"
+	"github.com/concourse/flag"
 	"github.com/hashicorp/go-multierror"
 )
 
+const OIDCConnectorID = "oidc"
+
 type OIDCFlags struct {
+	Enabled                   bool       `yaml:"enabled,omitempty"`
 	DisplayName               string     `yaml:"display_name,omitempty"`
 	Issuer                    string     `yaml:"issuer,omitempty"`
 	ClientID                  string     `yaml:"client_id,omitempty"`

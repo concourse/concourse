@@ -8,7 +8,10 @@ import (
 	"github.com/hashicorp/go-multierror"
 )
 
+const BitbucketCloudConnectorID = "bitbucket-cloud"
+
 type BitbucketCloudFlags struct {
+	Enabled      bool   `yaml:"enabled,omitempty"`
 	ClientID     string `yaml:"client_id,omitempty"`
 	ClientSecret string `yaml:"client_secret,omitempty"`
 }

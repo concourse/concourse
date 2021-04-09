@@ -4,12 +4,15 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/concourse/flag"
 	"github.com/concourse/dex/connector/saml"
+	"github.com/concourse/flag"
 	multierror "github.com/hashicorp/go-multierror"
 )
 
+const SAMLConnectorID = "saml"
+
 type SAMLFlags struct {
+	Enabled            bool      `yaml:"enabled,omitempty"`
 	DisplayName        string    `yaml:"display_name,omitempty"`
 	SsoURL             string    `yaml:"sso_url,omitempty"`
 	CACert             flag.File `yaml:"ca_cert,omitempty"`

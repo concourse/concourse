@@ -29,32 +29,32 @@ func (s *ConnectorsSuite) TestConfiguredConnectors() {
 	}
 
 	connectors := skycmd.ConnectorsConfig{
-		BitbucketCloud: &skycmd.BitbucketCloudFlags{
-			ClientID: "bitbucket-id",
+		BitbucketCloud: skycmd.BitbucketCloudFlags{
+			Enabled: true,
 		},
-		CF: &skycmd.CFFlags{
-			ClientID: "cf-id",
+		CF: skycmd.CFFlags{
+			Enabled: true,
 		},
-		Github: &skycmd.GithubFlags{
-			ClientID: "github-id",
+		Github: skycmd.GithubFlags{
+			Enabled: true,
 		},
-		Gitlab: &skycmd.GitlabFlags{
-			ClientID: "gitlab-id",
+		Gitlab: skycmd.GitlabFlags{
+			Enabled: true,
 		},
-		LDAP: &skycmd.LDAPFlags{
-			Host: "ldap-host",
+		LDAP: skycmd.LDAPFlags{
+			Enabled: true,
 		},
-		Microsoft: &skycmd.MicrosoftFlags{
-			ClientID: "microsoft-id",
+		Microsoft: skycmd.MicrosoftFlags{
+			Enabled: true,
 		},
-		OAuth: &skycmd.OAuthFlags{
-			ClientID: "oauth-id",
+		OAuth: skycmd.OAuthFlags{
+			Enabled: true,
 		},
-		OIDC: &skycmd.OIDCFlags{
-			ClientID: "oidc-id",
+		OIDC: skycmd.OIDCFlags{
+			Enabled: true,
 		},
-		SAML: &skycmd.SAMLFlags{
-			SsoURL: "sso-url",
+		SAML: skycmd.SAMLFlags{
+			Enabled: true,
 		},
 	}.ConfiguredConnectors()
 
@@ -74,38 +74,9 @@ func (s *ConnectorsSuite) TestConfiguredTeamConnectors() {
 		expectedTeamConnectors = append(expectedTeamConnectors, teamConnector.ID())
 	}
 
-	teamConnectors := skycmd.TeamConnectorsConfig{
-		BitbucketCloud: &skycmd.BitbucketCloudTeamFlags{
-			Users: []string{"bitbucket-user"},
-		},
-		CF: &skycmd.CFTeamFlags{
-			Users: []string{"cf-user"},
-		},
-		Github: &skycmd.GithubTeamFlags{
-			Users: []string{"github-user"},
-		},
-		Gitlab: &skycmd.GitlabTeamFlags{
-			Users: []string{"gitlab-user"},
-		},
-		LDAP: &skycmd.LDAPTeamFlags{
-			Users: []string{"ldap-user"},
-		},
-		Microsoft: &skycmd.MicrosoftTeamFlags{
-			Users: []string{"microsoft-user"},
-		},
-		OAuth: &skycmd.OAuthTeamFlags{
-			Users: []string{"oauth-user"},
-		},
-		OIDC: &skycmd.OIDCTeamFlags{
-			Users: []string{"oidc-user"},
-		},
-		SAML: &skycmd.SAMLTeamFlags{
-			Users: []string{"saml-user"},
-		},
-	}.ConfiguredConnectors()
-
 	var actualTeamConnectors []string
-	for _, teamConnector := range teamConnectors {
+	teamConnectorsConfig := skycmd.TeamConnectorsConfig{}
+	for _, teamConnector := range teamConnectorsConfig.AllConnectors() {
 		actualTeamConnectors = append(actualTeamConnectors, teamConnector.ID())
 	}
 

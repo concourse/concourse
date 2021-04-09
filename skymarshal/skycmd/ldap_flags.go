@@ -4,12 +4,15 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/concourse/flag"
 	"github.com/concourse/dex/connector/ldap"
+	"github.com/concourse/flag"
 	multierror "github.com/hashicorp/go-multierror"
 )
 
+const LDAPConnectorID = "ldap"
+
 type LDAPFlags struct {
+	Enabled            bool      `yaml:"enabled,omitempty"`
 	DisplayName        string    `yaml:"display_name,omitempty"`
 	Host               string    `yaml:"host,omitempty"`
 	BindDN             string    `yaml:"bind_dn,omitempty"`

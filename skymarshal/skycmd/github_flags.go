@@ -4,12 +4,15 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/concourse/flag"
 	"github.com/concourse/dex/connector/github"
+	"github.com/concourse/flag"
 	multierror "github.com/hashicorp/go-multierror"
 )
 
+const GithubConnectorID = "github"
+
 type GithubFlags struct {
+	Enabled      bool      `yaml:"enabled,omitempty"`
 	ClientID     string    `yaml:"client_id,omitempty"`
 	ClientSecret string    `yaml:"client_secret,omitempty"`
 	Host         string    `yaml:"host,omitempty"`

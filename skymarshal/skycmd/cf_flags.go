@@ -5,12 +5,15 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/concourse/flag"
 	"github.com/concourse/dex/connector/cf"
+	"github.com/concourse/flag"
 	multierror "github.com/hashicorp/go-multierror"
 )
 
+const CFConnectorID = "cf"
+
 type CFFlags struct {
+	Enabled            bool       `yaml:"enabled,omitempty"`
 	ClientID           string     `yaml:"client_id,omitempty"`
 	ClientSecret       string     `yaml:"client_secret,omitempty"`
 	APIURL             string     `yaml:"api_url,omitempty"`

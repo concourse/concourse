@@ -4,12 +4,15 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/concourse/flag"
 	"github.com/concourse/dex/connector/oauth"
+	"github.com/concourse/flag"
 	multierror "github.com/hashicorp/go-multierror"
 )
 
+const OAuthConnectorID = "oauth"
+
 type OAuthFlags struct {
+	Enabled            bool       `yaml:"enabled,omitempty"`
 	DisplayName        string     `yaml:"display_name,omitempty"`
 	ClientID           string     `yaml:"client_id,omitempty"`
 	ClientSecret       string     `yaml:"client_secret,omitempty"`

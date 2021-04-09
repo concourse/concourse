@@ -11,30 +11,6 @@ import (
 	"github.com/concourse/flag"
 )
 
-const (
-	BitbucketCloudConnectorID = "bitbucket-cloud"
-	CFConnectorID             = "cf"
-	GithubConnectorID         = "github"
-	GitlabConnectorID         = "gitlab"
-	LDAPConnectorID           = "ldap"
-	MicrosoftConnectorID      = "microsoft"
-	OAuthConnectorID          = "oauth"
-	OIDCConnectorID           = "oidc"
-	SAMLConnectorID           = "saml"
-)
-
-var ConnectorIDs = []string{
-	BitbucketCloudConnectorID,
-	CFConnectorID,
-	GithubConnectorID,
-	GitlabConnectorID,
-	LDAPConnectorID,
-	MicrosoftConnectorID,
-	OAuthConnectorID,
-	OIDCConnectorID,
-	SAMLConnectorID,
-}
-
 type AuthFlags struct {
 	SecureCookies bool              `yaml:"cookie_secure,omitempty"`
 	Expiration    time.Duration     `yaml:"auth_duration,omitempty"`
@@ -56,109 +32,82 @@ type AuthTeamFlags struct {
 }
 
 type ConnectorsConfig struct {
-	BitbucketCloud *BitbucketCloudFlags `yaml:"bitbucket_cloud,omitempty"`
-	CF             *CFFlags             `yaml:"cf,omitempty"`
-	Github         *GithubFlags         `yaml:"github,omitempty"`
-	Gitlab         *GitlabFlags         `yaml:"gitlab,omitempty"`
-	LDAP           *LDAPFlags           `yaml:"ldap,omitempty"`
-	Microsoft      *MicrosoftFlags      `yaml:"microsoft,omitempty"`
-	OAuth          *OAuthFlags          `yaml:"oauth,omitempty"`
-	OIDC           *OIDCFlags           `yaml:"oidc,omitempty"`
-	SAML           *SAMLFlags           `yaml:"saml,omitempty"`
+	BitbucketCloud BitbucketCloudFlags `yaml:"bitbucket_cloud,omitempty"`
+	CF             CFFlags             `yaml:"cf,omitempty"`
+	Github         GithubFlags         `yaml:"github,omitempty"`
+	Gitlab         GitlabFlags         `yaml:"gitlab,omitempty"`
+	LDAP           LDAPFlags           `yaml:"ldap,omitempty"`
+	Microsoft      MicrosoftFlags      `yaml:"microsoft,omitempty"`
+	OAuth          OAuthFlags          `yaml:"oauth,omitempty"`
+	OIDC           OIDCFlags           `yaml:"oidc,omitempty"`
+	SAML           SAMLFlags           `yaml:"saml,omitempty"`
 }
 
 func (c ConnectorsConfig) ConfiguredConnectors() []Config {
 	var configuredConnectors []Config
-	if c.BitbucketCloud != nil {
-		configuredConnectors = append(configuredConnectors, c.BitbucketCloud)
+	if c.BitbucketCloud.Enabled {
+		configuredConnectors = append(configuredConnectors, &c.BitbucketCloud)
 	}
 
-	if c.CF != nil {
-		configuredConnectors = append(configuredConnectors, c.CF)
+	if c.CF.Enabled {
+		configuredConnectors = append(configuredConnectors, &c.CF)
 	}
 
-	if c.Github != nil {
-		configuredConnectors = append(configuredConnectors, c.Github)
+	if c.Github.Enabled {
+		configuredConnectors = append(configuredConnectors, &c.Github)
 	}
 
-	if c.Gitlab != nil {
-		configuredConnectors = append(configuredConnectors, c.Gitlab)
+	if c.Gitlab.Enabled {
+		configuredConnectors = append(configuredConnectors, &c.Gitlab)
 	}
 
-	if c.LDAP != nil {
-		configuredConnectors = append(configuredConnectors, c.LDAP)
+	if c.LDAP.Enabled {
+		configuredConnectors = append(configuredConnectors, &c.LDAP)
 	}
 
-	if c.Microsoft != nil {
-		configuredConnectors = append(configuredConnectors, c.Microsoft)
+	if c.Microsoft.Enabled {
+		configuredConnectors = append(configuredConnectors, &c.Microsoft)
 	}
 
-	if c.OAuth != nil {
-		configuredConnectors = append(configuredConnectors, c.OAuth)
+	if c.OAuth.Enabled {
+		configuredConnectors = append(configuredConnectors, &c.OAuth)
 	}
 
-	if c.OIDC != nil {
-		configuredConnectors = append(configuredConnectors, c.OIDC)
+	if c.OIDC.Enabled {
+		configuredConnectors = append(configuredConnectors, &c.OIDC)
 	}
 
-	if c.SAML != nil {
-		configuredConnectors = append(configuredConnectors, c.SAML)
+	if c.SAML.Enabled {
+		configuredConnectors = append(configuredConnectors, &c.SAML)
 	}
 
 	return configuredConnectors
 }
 
 type TeamConnectorsConfig struct {
-	BitbucketCloud *BitbucketCloudTeamFlags `yaml:"bitbucket_cloud,omitempty" group:"Authentication (Bitbucket Cloud)" namespace:"bitbucket-cloud"`
-	CF             *CFTeamFlags             `yaml:"cf,omitempty" group:"Authentication (CloudFoundry)" namespace:"cf"`
-	Github         *GithubTeamFlags         `yaml:"github,omitempty" group:"Authentication (GitHub)" namespace:"github"`
-	Gitlab         *GitlabTeamFlags         `yaml:"gitlab,omitempty" group:"Authentication (GitLab)" namespace:"gitlab"`
-	LDAP           *LDAPTeamFlags           `yaml:"ldap,omitempty" group:"Authentication (LDAP)" namespace:"ldap"`
-	Microsoft      *MicrosoftTeamFlags      `yaml:"microsoft,omitempty" group:"Authentication (Microsoft)" namespace:"microsoft"`
-	OAuth          *OAuthTeamFlags          `yaml:"oauth,omitempty" group:"Authentication (OAuth2)" namespace:"oauth"`
-	OIDC           *OIDCTeamFlags           `yaml:"oidc,omitempty" group:"Authentication (OIDC)" namespace:"oidc"`
-	SAML           *SAMLTeamFlags           `yaml:"saml,omitempty" group:"Authentication (SAML)" namespace:"saml"`
+	BitbucketCloud BitbucketCloudTeamFlags `yaml:"bitbucket_cloud,omitempty" group:"Authentication (Bitbucket Cloud)" namespace:"bitbucket-cloud"`
+	CF             CFTeamFlags             `yaml:"cf,omitempty" group:"Authentication (CloudFoundry)" namespace:"cf"`
+	Github         GithubTeamFlags         `yaml:"github,omitempty" group:"Authentication (GitHub)" namespace:"github"`
+	Gitlab         GitlabTeamFlags         `yaml:"gitlab,omitempty" group:"Authentication (GitLab)" namespace:"gitlab"`
+	LDAP           LDAPTeamFlags           `yaml:"ldap,omitempty" group:"Authentication (LDAP)" namespace:"ldap"`
+	Microsoft      MicrosoftTeamFlags      `yaml:"microsoft,omitempty" group:"Authentication (Microsoft)" namespace:"microsoft"`
+	OAuth          OAuthTeamFlags          `yaml:"oauth,omitempty" group:"Authentication (OAuth2)" namespace:"oauth"`
+	OIDC           OIDCTeamFlags           `yaml:"oidc,omitempty" group:"Authentication (OIDC)" namespace:"oidc"`
+	SAML           SAMLTeamFlags           `yaml:"saml,omitempty" group:"Authentication (SAML)" namespace:"saml"`
 }
 
-func (c TeamConnectorsConfig) ConfiguredConnectors() []TeamConfig {
-	var configuredConnectors []TeamConfig
-	if c.BitbucketCloud != nil {
-		configuredConnectors = append(configuredConnectors, c.BitbucketCloud)
+func (c TeamConnectorsConfig) AllConnectors() []TeamConfig {
+	return []TeamConfig{
+		&c.BitbucketCloud,
+		&c.CF,
+		&c.Github,
+		&c.Gitlab,
+		&c.LDAP,
+		&c.Microsoft,
+		&c.OAuth,
+		&c.OIDC,
+		&c.SAML,
 	}
-
-	if c.CF != nil {
-		configuredConnectors = append(configuredConnectors, c.CF)
-	}
-
-	if c.Github != nil {
-		configuredConnectors = append(configuredConnectors, c.Github)
-	}
-
-	if c.Gitlab != nil {
-		configuredConnectors = append(configuredConnectors, c.Gitlab)
-	}
-
-	if c.LDAP != nil {
-		configuredConnectors = append(configuredConnectors, c.LDAP)
-	}
-
-	if c.Microsoft != nil {
-		configuredConnectors = append(configuredConnectors, c.Microsoft)
-	}
-
-	if c.OAuth != nil {
-		configuredConnectors = append(configuredConnectors, c.OAuth)
-	}
-
-	if c.OIDC != nil {
-		configuredConnectors = append(configuredConnectors, c.OIDC)
-	}
-
-	if c.SAML != nil {
-		configuredConnectors = append(configuredConnectors, c.SAML)
-	}
-
-	return configuredConnectors
 }
 
 type Config interface {
@@ -219,7 +168,7 @@ func (flag *AuthTeamFlags) formatFromFile() (atc.TeamAuth, error) {
 		users := []string{}
 		groups := []string{}
 
-		teamConfigs := role.TeamConnectorsConfig.ConfiguredConnectors()
+		teamConfigs := role.TeamConnectorsConfig.AllConnectors()
 		for _, teamConfig := range teamConfigs {
 			for _, user := range teamConfig.GetUsers() {
 				if user != "" {
@@ -266,7 +215,7 @@ func (flag *AuthTeamFlags) formatFromFlags() (atc.TeamAuth, error) {
 	users := []string{}
 	groups := []string{}
 
-	teamConfigs := flag.TeamConnectors.ConfiguredConnectors()
+	teamConfigs := flag.TeamConnectors.AllConnectors()
 	for _, teamConfig := range teamConfigs {
 		for _, user := range teamConfig.GetUsers() {
 			if user != "" {
