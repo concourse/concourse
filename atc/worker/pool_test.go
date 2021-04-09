@@ -122,6 +122,31 @@ var _ = Describe("Pool", func() {
 			Expect(worker.Name()).To(Equal("worker1"))
 		})
 
+		Test("selects a new worker when owning worker is not running", func() {
+			scenario := Setup(
+				workertest.WithWorkers(
+					grt.NewWorker("worker1"),
+					grt.NewWorker("worker2").
+						WithContainersCreatedInDBAndGarden(
+							grt.NewContainer("my-container"),
+						).
+						WithState(db.WorkerStateStalled),
+				),
+			)
+
+			worker, err := scenario.Pool.FindOrSelectWorker(
+				ctx,
+				db.NewFixedHandleContainerOwner("my-container"),
+				runtime.ContainerSpec{},
+				worker.Spec{},
+				nil,
+				nil,
+			)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(worker.Name()).To(Equal("worker1"))
+		})
+
 		Test("filters out incompatible workers by resource type", func() {
 			scenario := Setup(
 				workertest.WithWorkers(

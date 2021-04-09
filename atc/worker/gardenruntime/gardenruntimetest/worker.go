@@ -181,6 +181,12 @@ func (w Worker) WithTeam(team string) *Worker {
 	})
 }
 
+func (w Worker) WithState(state db.WorkerState) *Worker {
+	return w.WithWorkerSetup(func(w *atc.Worker) {
+		w.State = string(state)
+	})
+}
+
 func (w Worker) WithTags(tags ...string) *Worker {
 	return w.WithWorkerSetup(func(w *atc.Worker) {
 		w.Tags = append(w.Tags, tags...)

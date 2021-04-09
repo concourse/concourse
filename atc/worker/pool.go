@@ -290,7 +290,7 @@ func (pool Pool) allCompatible(logger lager.Logger, spec Spec) ([]db.Worker, err
 	var compatibleGeneralWorkers []db.Worker
 	for _, worker := range workers {
 		compatible := pool.isWorkerCompatible(logger, worker, spec)
-		if compatible {
+		if worker.State() == db.WorkerStateRunning && compatible {
 			if worker.TeamID() != 0 {
 				compatibleTeamWorkers = append(compatibleTeamWorkers, worker)
 			} else {
