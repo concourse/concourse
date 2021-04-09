@@ -1,14 +1,10 @@
 // dashboard.less
 
-@banner-height: 14px;
-@footer-padding: 27px;
-@name-padding: 25px;
-
 .dashboard {
   .pipeline-grid {
     float: none;
     display: flex;
-    padding: 40px*@scale 72px*@scale;
+    padding: 32px*@scale 72px*@scale;
   }
 
   .pipeline-grid > * {
@@ -62,14 +58,13 @@
     background: @grey80;
     z-index: 2;
     opacity: 0.9;
-    padding-top: (35px * @scale);
-    padding-bottom: (35px * @scale);
-    padding-left: ((50px + @name-padding) * @scale);
+    padding-left: 64px * @scale;
     width: 100%;
+    line-height: 25px;
   }
 
   .dashboard-team-name {
-    font-size: (36px * @scale);
+    font-size: 36px * @scale;
     padding-right: 0.5rem;
   }
 

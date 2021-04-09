@@ -4,7 +4,6 @@ import (
 	"context"
 	"sync"
 
-	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/engine"
@@ -24,8 +23,6 @@ func NewTracker(
 }
 
 type Tracker struct {
-	logger lager.Logger
-
 	buildFactory db.BuildFactory
 	engine       engine.Engine
 
@@ -59,8 +56,13 @@ func (bt *Tracker) Run(ctx context.Context) error {
 
 				defer bt.running.Delete(build.ID())
 
-				metric.Metrics.BuildsRunning.Inc()
-				defer metric.Metrics.BuildsRunning.Dec()
+				if build.Name() == db.CheckBuildName {
+					metric.Metrics.CheckBuildsRunning.Inc()
+					defer metric.Metrics.CheckBuildsRunning.Dec()
+				} else {
+					metric.Metrics.BuildsRunning.Inc()
+					defer metric.Metrics.BuildsRunning.Dec()
+				}
 
 				bt.engine.NewBuild(build).Run(
 					lagerctx.NewContext(

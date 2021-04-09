@@ -4,9 +4,7 @@ import Application.Application as Application
 import Array
 import Assets
 import Build.Build as Build
-import Build.Models as Models
 import Build.StepTree.Models as STModels
-import Char
 import Colors
 import Common
     exposing
@@ -19,12 +17,11 @@ import Common
 import Concourse exposing (BuildPrepStatus(..))
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.Pagination exposing (Direction(..))
-import DashboardTests exposing (iconSelector, middleGrey)
+import DashboardTests exposing (iconSelector)
 import Data
 import Dict
 import Expect
 import Html.Attributes as Attr
-import Http
 import Json.Encode as Encode
 import Keyboard
 import Message.Callback as Callback
@@ -50,16 +47,12 @@ import Test.Html.Selector
         )
 import Time
 import Url
-import UserState
 
 
 all : Test
 all =
     describe "build page" <|
         let
-            buildId =
-                Data.jobBuildId
-
             flags =
                 { turbulenceImgSrc = ""
                 , notFoundImgSrc = ""
@@ -2519,6 +2512,7 @@ all =
                                       , step =
                                             Concourse.BuildStepGet
                                                 "step"
+                                                (Just "step")
                                                 Nothing
                                       }
                                     , { inputs = [], outputs = [] }
@@ -2577,6 +2571,7 @@ all =
                                       , step =
                                             Concourse.BuildStepGet
                                                 "step"
+                                                (Just "step")
                                                 Nothing
                                       }
                                     , { inputs = [], outputs = [] }
@@ -2621,6 +2616,7 @@ all =
                                           , step =
                                                 Concourse.BuildStepGet
                                                     "step"
+                                                    (Just "step")
                                                     Nothing
                                           }
                                         , { inputs = [], outputs = [] }
@@ -2666,6 +2662,7 @@ all =
                                                         , step =
                                                             Concourse.BuildStepGet
                                                                 "step"
+                                                                (Just "step")
                                                                 Nothing
                                                         }
                                                     }
@@ -2755,6 +2752,7 @@ all =
                                           , step =
                                                 Concourse.BuildStepPut
                                                     "step"
+                                                    (Just "step")
                                           }
                                         , { inputs = [], outputs = [] }
                                         )
@@ -2776,16 +2774,19 @@ all =
                                         [ { id = "foo"
                                           , step =
                                                 Concourse.BuildStepGet "step"
+                                                    (Just "step")
                                                     (Just version)
                                           }
                                         , { id = "bar"
                                           , step =
                                                 Concourse.BuildStepGet "step2"
+                                                    (Just "step2")
                                                     (Just version)
                                           }
                                         , { id = "baz"
                                           , step =
                                                 Concourse.BuildStepGet "step3"
+                                                    (Just "step3")
                                                     (Just version)
                                           }
                                         ]
@@ -3138,6 +3139,111 @@ all =
                         >> Query.children []
                         >> Query.index -1
                         >> Query.has [ text "v3.1.4" ]
+                , describe "step version links to resource page" <|
+                    [ describe "get step" <|
+                        let
+                            fetchPlanWithGetStepWithVersion stepName resourceName =
+                                givenBuildStarted
+                                    >> Tuple.first
+                                    >> Application.handleCallback
+                                        (Callback.PlanAndResourcesFetched 1 <|
+                                            Ok <|
+                                                ( { id = "plan"
+                                                  , step =
+                                                        Concourse.BuildStepGet
+                                                            stepName
+                                                            resourceName
+                                                            Nothing
+                                                  }
+                                                , { inputs = [], outputs = [] }
+                                                )
+                                        )
+                                    >> Tuple.first
+                                    >> Application.handleDelivery
+                                        (EventsReceived <|
+                                            Ok <|
+                                                [ { url = eventsUrl
+                                                  , data =
+                                                        STModels.FinishGet
+                                                            { source = "stdout", id = "plan" }
+                                                            0
+                                                            (Dict.fromList [ ( "version", "v3.1.4" ) ])
+                                                            []
+                                                            Nothing
+                                                  }
+                                                ]
+                                        )
+                        in
+                        [ test "version links to resource page" <|
+                            fetchPlanWithGetStepWithVersion "step" (Just "step")
+                                >> Tuple.first
+                                >> Common.queryView
+                                >> Query.find [ id "plan_version" ]
+                                >> Query.has [ attribute <| Attr.href "/teams/team/pipelines/p/resources/step?filter=version%3Av3.1.4" ]
+                        , test "link uses resource name" <|
+                            fetchPlanWithGetStepWithVersion "step" (Just "resource")
+                                >> Tuple.first
+                                >> Common.queryView
+                                >> Query.find [ id "plan_version" ]
+                                >> Query.has [ attribute <| Attr.href "/teams/team/pipelines/p/resources/resource?filter=version%3Av3.1.4" ]
+                        , test "anonymous get step has no link" <|
+                            fetchPlanWithGetStepWithVersion "step" Nothing
+                                >> Tuple.first
+                                >> Common.queryView
+                                >> Query.find [ id "plan_version" ]
+                                >> Query.hasNot
+                                    [ tag "a"
+                                    , attribute <| Attr.href "/teams/team/pipelines/p/resources/step?filter=version%3Av3.1.4"
+                                    ]
+                        ]
+                    , describe "put step" <|
+                        let
+                            fetchPlanWithPutStepWithVersion stepName resourceName =
+                                givenBuildStarted
+                                    >> Tuple.first
+                                    >> Application.handleCallback
+                                        (Callback.PlanAndResourcesFetched 1 <|
+                                            Ok <|
+                                                ( { id = "plan"
+                                                  , step =
+                                                        Concourse.BuildStepGet
+                                                            stepName
+                                                            resourceName
+                                                            Nothing
+                                                  }
+                                                , { inputs = [], outputs = [] }
+                                                )
+                                        )
+                                    >> Tuple.first
+                                    >> Application.handleDelivery
+                                        (EventsReceived <|
+                                            Ok <|
+                                                [ { url = eventsUrl
+                                                  , data =
+                                                        STModels.FinishPut
+                                                            { source = "stdout", id = "plan" }
+                                                            0
+                                                            (Dict.fromList [ ( "version", "v3.1.4" ) ])
+                                                            []
+                                                            Nothing
+                                                  }
+                                                ]
+                                        )
+                        in
+                        [ test "version links to resource page" <|
+                            fetchPlanWithPutStepWithVersion "step" (Just "step")
+                                >> Tuple.first
+                                >> Common.queryView
+                                >> Query.find [ id "plan_version" ]
+                                >> Query.has [ attribute <| Attr.href "/teams/team/pipelines/p/resources/step?filter=version%3Av3.1.4" ]
+                        , test "link uses resource name" <|
+                            fetchPlanWithPutStepWithVersion "step" (Just "resource")
+                                >> Tuple.first
+                                >> Common.queryView
+                                >> Query.find [ id "plan_version" ]
+                                >> Query.has [ attribute <| Attr.href "/teams/team/pipelines/p/resources/resource?filter=version%3Av3.1.4" ]
+                        ]
+                    ]
                 , test "one tick after hovering step state, GetElement fires" <|
                     fetchPlanWithGetStep
                         >> Application.handleDelivery
@@ -3631,6 +3737,7 @@ all =
                                           , step =
                                                 Concourse.BuildStepGet
                                                     "step"
+                                                    (Just "step")
                                                     (Just <| Dict.fromList [ ( "version", "1" ) ])
                                           }
                                         , { inputs = [], outputs = [] }

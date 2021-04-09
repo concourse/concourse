@@ -67,6 +67,7 @@ var _ = Describe("ParseEvent", func() {
 		Entry("FinishPut", event.FinishPut{}),
 		Entry("SetPipelineChanged", event.SetPipelineChanged{}),
 		Entry("Status", event.Status{}),
+		Entry("WaitingForWorker", event.WaitingForWorker{}),
 		Entry("SelectedWorker", event.SelectedWorker{}),
 		Entry("Log", event.Log{}),
 		Entry("Error", event.Error{}),

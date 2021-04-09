@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/concourse/concourse/atc"
-	. "github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/gobwas/glob"
 )
@@ -23,8 +22,8 @@ func formatErr(groupName string, err error) string {
 	return fmt.Sprintf("invalid %s:\n%s\n", groupName, strings.Join(indented, "\n"))
 }
 
-func Validate(c Config) ([]ConfigWarning, []string) {
-	warnings := []ConfigWarning{}
+func Validate(c atc.Config) ([]atc.ConfigWarning, []string) {
+	warnings := []atc.ConfigWarning{}
 	errorMessages := []string{}
 
 	groupsWarnings, groupsErr := validateGroups(c)
@@ -66,8 +65,8 @@ func Validate(c Config) ([]ConfigWarning, []string) {
 	return warnings, errorMessages
 }
 
-func validateGroups(c Config) ([]ConfigWarning, error) {
-	var warnings []ConfigWarning
+func validateGroups(c atc.Config) ([]atc.ConfigWarning, error) {
+	var warnings []atc.ConfigWarning
 	var errorMessages []string
 
 	jobsGrouped := make(map[string]bool)
@@ -85,7 +84,7 @@ func validateGroups(c Config) ([]ConfigWarning, error) {
 			identifier = fmt.Sprintf("groups.%s", group.Name)
 		}
 
-		warning, err := ValidateIdentifier(group.Name, identifier)
+		warning, err := atc.ValidateIdentifier(group.Name, identifier)
 		if err != nil {
 			errorMessages = append(errorMessages, err.Error())
 		}
@@ -147,8 +146,8 @@ func validateGroups(c Config) ([]ConfigWarning, error) {
 	return warnings, compositeErr(errorMessages)
 }
 
-func validateResources(c Config) ([]ConfigWarning, error) {
-	var warnings []ConfigWarning
+func validateResources(c atc.Config) ([]atc.ConfigWarning, error) {
+	var warnings []atc.ConfigWarning
 	var errorMessages []string
 
 	names := map[string]int{}
@@ -161,7 +160,7 @@ func validateResources(c Config) ([]ConfigWarning, error) {
 			identifier = fmt.Sprintf("resources.%s", resource.Name)
 		}
 
-		warning, err := ValidateIdentifier(resource.Name, identifier)
+		warning, err := atc.ValidateIdentifier(resource.Name, identifier)
 		if err != nil {
 			errorMessages = append(errorMessages, err.Error())
 		}
@@ -192,8 +191,8 @@ func validateResources(c Config) ([]ConfigWarning, error) {
 	return warnings, compositeErr(errorMessages)
 }
 
-func validateResourceTypes(c Config) ([]ConfigWarning, error) {
-	var warnings []ConfigWarning
+func validateResourceTypes(c atc.Config) ([]atc.ConfigWarning, error) {
+	var warnings []atc.ConfigWarning
 	var errorMessages []string
 
 	names := map[string]int{}
@@ -206,7 +205,7 @@ func validateResourceTypes(c Config) ([]ConfigWarning, error) {
 			identifier = fmt.Sprintf("resource_types.%s", resourceType.Name)
 		}
 
-		warning, err := ValidateIdentifier(resourceType.Name, identifier)
+		warning, err := atc.ValidateIdentifier(resourceType.Name, identifier)
 		if err != nil {
 			errorMessages = append(errorMessages, err.Error())
 		}
@@ -235,7 +234,7 @@ func validateResourceTypes(c Config) ([]ConfigWarning, error) {
 	return warnings, compositeErr(errorMessages)
 }
 
-func validateResourcesUnused(c Config) []string {
+func validateResourcesUnused(c atc.Config) []string {
 	usedResources := usedResources(c)
 
 	var errorMessages []string
@@ -249,16 +248,16 @@ func validateResourcesUnused(c Config) []string {
 	return errorMessages
 }
 
-func usedResources(c Config) map[string]bool {
+func usedResources(c atc.Config) map[string]bool {
 	usedResources := make(map[string]bool)
 
 	for _, job := range c.Jobs {
 		_ = job.StepConfig().Visit(atc.StepRecursor{
-			OnGet: func(step *GetStep) error {
+			OnGet: func(step *atc.GetStep) error {
 				usedResources[step.ResourceName()] = true
 				return nil
 			},
-			OnPut: func(step *PutStep) error {
+			OnPut: func(step *atc.PutStep) error {
 				usedResources[step.ResourceName()] = true
 				return nil
 			},
@@ -268,9 +267,9 @@ func usedResources(c Config) map[string]bool {
 	return usedResources
 }
 
-func validateJobs(c Config) ([]ConfigWarning, error) {
+func validateJobs(c atc.Config) ([]atc.ConfigWarning, error) {
 	var errorMessages []string
-	var warnings []ConfigWarning
+	var warnings []atc.ConfigWarning
 
 	names := map[string]int{}
 
@@ -287,7 +286,7 @@ func validateJobs(c Config) ([]ConfigWarning, error) {
 			identifier = fmt.Sprintf("jobs.%s", job.Name)
 		}
 
-		warning, err := ValidateIdentifier(job.Name, identifier)
+		warning, err := atc.ValidateIdentifier(job.Name, identifier)
 		if err != nil {
 			errorMessages = append(errorMessages, err.Error())
 		}
@@ -311,7 +310,7 @@ func validateJobs(c Config) ([]ConfigWarning, error) {
 		if job.BuildLogRetention != nil && job.BuildLogsToRetain != 0 {
 			errorMessages = append(
 				errorMessages,
-				identifier+fmt.Sprintf(" can't use both build_log_retention and build_logs_to_retain"),
+				fmt.Sprintf("%s can't use both build_log_retention and build_logs_to_retain", identifier),
 			)
 		} else if job.BuildLogsToRetain < 0 {
 			errorMessages = append(
@@ -369,8 +368,8 @@ func compositeErr(errorMessages []string) error {
 	return errors.New(strings.Join(errorMessages, "\n"))
 }
 
-func validateVarSources(c Config) ([]ConfigWarning, error) {
-	var warnings []ConfigWarning
+func validateVarSources(c atc.Config) ([]atc.ConfigWarning, error) {
+	var warnings []atc.ConfigWarning
 	var errorMessages []string
 
 	names := map[string]interface{}{}
@@ -383,7 +382,7 @@ func validateVarSources(c Config) ([]ConfigWarning, error) {
 			identifier = fmt.Sprintf("var_sources.%s", cm.Name)
 		}
 
-		warning, err := ValidateIdentifier(cm.Name, identifier)
+		warning, err := atc.ValidateIdentifier(cm.Name, identifier)
 		if err != nil {
 			errorMessages = append(errorMessages, err.Error())
 		}
@@ -425,8 +424,8 @@ func validateVarSources(c Config) ([]ConfigWarning, error) {
 	return warnings, compositeErr(errorMessages)
 }
 
-func validateDisplay(c Config) ([]ConfigWarning, error) {
-	var warnings []ConfigWarning
+func validateDisplay(c atc.Config) ([]atc.ConfigWarning, error) {
+	var warnings []atc.ConfigWarning
 
 	if c.Display == nil {
 		return warnings, nil

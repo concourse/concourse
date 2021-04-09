@@ -3,6 +3,8 @@ package dexserver
 import (
 	"context"
 	"crypto/rsa"
+	"embed"
+	"io/fs"
 	"strings"
 	"time"
 
@@ -12,14 +14,12 @@ import (
 	s "github.com/concourse/concourse/skymarshal/storage"
 	"github.com/concourse/dex/server"
 	"github.com/concourse/dex/storage"
-	"github.com/markbates/pkger"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type DexConfig struct {
 	Logger      lager.Logger
 	IssuerURL   string
-	WebHostURL  string
 	SigningKey  *rsa.PrivateKey
 	Expiration  time.Duration
 	Clients     map[string]string
@@ -28,6 +28,9 @@ type DexConfig struct {
 	Storage     s.Storage
 	Connectors  skycmd.ConnectorsConfig
 }
+
+//go:embed web
+var webFS embed.FS
 
 func NewDexServer(config *DexConfig) (*server.Server, error) {
 
@@ -95,12 +98,16 @@ func NewDexServerConfig(config *DexConfig) (server.Config, error) {
 		return server.Config{}, err
 	}
 
+	webFS, err := fs.Sub(webFS, "web")
+	if err != nil {
+		return server.Config{}, err
+	}
+
 	webConfig := server.WebConfig{
-		LogoURL: strings.TrimRight(config.WebHostURL, "/") + "/themes/concourse/logo.svg",
-		HostURL: config.WebHostURL,
+		LogoURL: "theme/logo.svg",
+		WebFS:   webFS,
 		Theme:   "concourse",
 		Issuer:  "Concourse",
-		Dir:     pkger.Include("/skymarshal/web"),
 	}
 
 	return server.Config{

@@ -1,5 +1,6 @@
 module SideBar.Views exposing
-    ( InstanceGroup
+    ( Icon(..)
+    , InstanceGroup
     , Pipeline
     , Team
     , TeamListItem(..)
@@ -67,8 +68,13 @@ type TeamListItem
     | InstanceGroupListItem InstanceGroup
 
 
+type Icon
+    = AssetIcon Assets.Asset
+    | TextIcon String
+
+
 type alias Pipeline =
-    { icon : Assets.Asset
+    { icon : Icon
     , name :
         { color : Styles.SidebarElementColor
         , text : String
@@ -99,6 +105,11 @@ type alias InstanceGroup =
         { count : Int
         , color : Styles.SidebarElementColor
         }
+    , starIcon :
+        { filled : Bool
+        , isBright : Bool
+        }
+    , id : Concourse.InstanceGroupIdentifier
     }
 
 
@@ -111,17 +122,24 @@ viewPipeline p =
                , onMouseLeave <| Hover Nothing
                ]
         )
-        [ Html.div
-            (Styles.pipelineIcon p.icon)
-            []
+        [ case p.icon of
+            AssetIcon asset ->
+                Html.div
+                    (Styles.pipelineIcon asset)
+                    []
+
+            TextIcon s ->
+                Html.div
+                    Styles.pipelineTextIcon
+                    [ Html.text s ]
         , Html.div
             (id (toHtmlID p.domID)
                 :: Styles.pipelineName p.name
             )
             [ Html.text p.name.text ]
         , Html.div
-            (Styles.pipelineFavorite p.starIcon
-                ++ [ onLeftClickStopPropagation <| Click <| SideBarFavoritedIcon p.databaseID ]
+            (Styles.favoriteIcon p.starIcon
+                ++ [ onLeftClickStopPropagation <| Click <| SideBarPipelineFavoritedIcon p.databaseID ]
             )
             []
         ]
@@ -142,6 +160,11 @@ viewInstanceGroup ig =
                 :: Styles.pipelineName ig.name
             )
             [ Html.text ig.name.text ]
+        , Html.div
+            (Styles.favoriteIcon ig.starIcon
+                ++ [ onLeftClickStopPropagation <| Click <| SideBarInstanceGroupFavoritedIcon ig.id ]
+            )
+            []
         ]
 
 

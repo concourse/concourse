@@ -84,7 +84,7 @@ var _ = Describe("GetStep", func() {
 		fakeClient = new(workerfakes.FakeClient)
 		fakeClient.NameReturns("some-worker")
 		fakePool = new(workerfakes.FakePool)
-		fakePool.SelectWorkerReturns(fakeClient, nil)
+		fakePool.SelectWorkerReturns(fakeClient, 0, nil)
 		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
 
 		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
@@ -261,17 +261,24 @@ var _ = Describe("GetStep", func() {
 					ResourceType: "some-base-type",
 				},
 				TeamID: stepMetadata.TeamID,
+				Type:   containerMetadata.Type,
 				Env:    stepMetadata.Env(),
 			},
 		))
 	})
 
 	Describe("worker selection", func() {
+		var ctx context.Context
 		var workerSpec worker.WorkerSpec
 
 		JustBeforeEach(func() {
 			Expect(fakePool.SelectWorkerCallCount()).To(Equal(1))
-			_, _, _, workerSpec, _ = fakePool.SelectWorkerArgsForCall(0)
+			ctx, _, _, workerSpec, _, _ = fakePool.SelectWorkerArgsForCall(0)
+		})
+
+		It("doesn't enforce a timeout", func() {
+			_, ok := ctx.Deadline()
+			Expect(ok).To(BeFalse())
 		})
 
 		It("calls SelectWorker with the correct WorkerSpec", func() {
@@ -301,7 +308,7 @@ var _ = Describe("GetStep", func() {
 
 		Context("when selecting a worker fails", func() {
 			BeforeEach(func() {
-				fakePool.SelectWorkerReturns(nil, errors.New("nope"))
+				fakePool.SelectWorkerReturns(nil, 0, errors.New("nope"))
 				shouldRunGetStep = false
 			})
 
@@ -443,7 +450,7 @@ var _ = Describe("GetStep", func() {
 
 		It("sets the bottom-most type in the worker spec", func() {
 			Expect(fakePool.SelectWorkerCallCount()).To(Equal(1))
-			_, _, _, workerSpec, _ := fakePool.SelectWorkerArgsForCall(0)
+			_, _, _, workerSpec, _, _ := fakePool.SelectWorkerArgsForCall(0)
 
 			Expect(workerSpec).To(Equal(
 				worker.WorkerSpec{

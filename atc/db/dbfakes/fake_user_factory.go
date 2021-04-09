@@ -59,15 +59,16 @@ func (fake *FakeUserFactory) CreateOrUpdateUser(arg1 string, arg2 string, arg3 s
 		arg2 string
 		arg3 string
 	}{arg1, arg2, arg3})
+	stub := fake.CreateOrUpdateUserStub
+	fakeReturns := fake.createOrUpdateUserReturns
 	fake.recordInvocation("CreateOrUpdateUser", []interface{}{arg1, arg2, arg3})
 	fake.createOrUpdateUserMutex.Unlock()
-	if fake.CreateOrUpdateUserStub != nil {
-		return fake.CreateOrUpdateUserStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.createOrUpdateUserReturns
 	return fakeReturns.result1
 }
 
@@ -118,15 +119,16 @@ func (fake *FakeUserFactory) GetAllUsers() ([]db.User, error) {
 	ret, specificReturn := fake.getAllUsersReturnsOnCall[len(fake.getAllUsersArgsForCall)]
 	fake.getAllUsersArgsForCall = append(fake.getAllUsersArgsForCall, struct {
 	}{})
+	stub := fake.GetAllUsersStub
+	fakeReturns := fake.getAllUsersReturns
 	fake.recordInvocation("GetAllUsers", []interface{}{})
 	fake.getAllUsersMutex.Unlock()
-	if fake.GetAllUsersStub != nil {
-		return fake.GetAllUsersStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getAllUsersReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -174,15 +176,16 @@ func (fake *FakeUserFactory) GetAllUsersByLoginDate(arg1 time.Time) ([]db.User, 
 	fake.getAllUsersByLoginDateArgsForCall = append(fake.getAllUsersByLoginDateArgsForCall, struct {
 		arg1 time.Time
 	}{arg1})
+	stub := fake.GetAllUsersByLoginDateStub
+	fakeReturns := fake.getAllUsersByLoginDateReturns
 	fake.recordInvocation("GetAllUsersByLoginDate", []interface{}{arg1})
 	fake.getAllUsersByLoginDateMutex.Unlock()
-	if fake.GetAllUsersByLoginDateStub != nil {
-		return fake.GetAllUsersByLoginDateStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getAllUsersByLoginDateReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

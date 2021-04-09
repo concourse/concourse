@@ -173,7 +173,7 @@ tooltip model session =
             Just
                 { body = Html.text "view job builds"
                 , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.Start }
-                , arrow = Just 5
+                , arrow = Nothing
                 , containerAttrs = Nothing
                 }
 

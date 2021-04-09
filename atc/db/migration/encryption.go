@@ -24,10 +24,10 @@ type encryptedColumn struct {
 	PrimaryKey string
 }
 
-func (self migrator) encryptPlaintext(key *encryption.Key) error {
-	logger := self.logger.Session("encrypt")
+func (m migrator) encryptPlaintext(key *encryption.Key) error {
+	logger := m.logger.Session("encrypt")
 	for _, ec := range encryptedColumns {
-		rows, err := self.db.Query(`
+		rows, err := m.db.Query(`
 			SELECT ` + ec.PrimaryKey + `, ` + ec.Column + `
 			FROM ` + ec.Table + `
 			WHERE nonce IS NULL
@@ -69,7 +69,7 @@ func (self migrator) encryptPlaintext(key *encryption.Key) error {
 				return err
 			}
 
-			_, err = self.db.Exec(`
+			_, err = m.db.Exec(`
 				UPDATE `+ec.Table+`
 				SET `+ec.Column+` = $1, nonce = $2
 				WHERE `+ec.PrimaryKey+` = $3
@@ -92,10 +92,10 @@ func (self migrator) encryptPlaintext(key *encryption.Key) error {
 	return nil
 }
 
-func (self migrator) decryptToPlaintext(oldKey *encryption.Key) error {
-	logger := self.logger.Session("decrypt")
+func (m migrator) decryptToPlaintext(oldKey *encryption.Key) error {
+	logger := m.logger.Session("decrypt")
 	for _, ec := range encryptedColumns {
-		rows, err := self.db.Query(`
+		rows, err := m.db.Query(`
 			SELECT ` + ec.PrimaryKey + `, nonce, ` + ec.Column + `
 			FROM ` + ec.Table + `
 			WHERE nonce IS NOT NULL
@@ -132,7 +132,7 @@ func (self migrator) decryptToPlaintext(oldKey *encryption.Key) error {
 				return err
 			}
 
-			_, err = self.db.Exec(`
+			_, err = m.db.Exec(`
 				UPDATE `+ec.Table+`
 				SET `+ec.Column+` = $1, nonce = NULL
 				WHERE `+ec.PrimaryKey+` = $2
@@ -157,10 +157,10 @@ func (self migrator) decryptToPlaintext(oldKey *encryption.Key) error {
 
 var ErrEncryptedWithUnknownKey = errors.New("row encrypted with neither old nor new key")
 
-func (self migrator) encryptWithNewKey(newKey *encryption.Key, oldKey *encryption.Key) error {
-	logger := self.logger.Session("rotate")
+func (m migrator) encryptWithNewKey(newKey *encryption.Key, oldKey *encryption.Key) error {
+	logger := m.logger.Session("rotate")
 	for _, ec := range encryptedColumns {
-		rows, err := self.db.Query(`
+		rows, err := m.db.Query(`
 			SELECT ` + ec.PrimaryKey + `, nonce, ` + ec.Column + `
 			FROM ` + ec.Table + `
 			WHERE nonce IS NOT NULL
@@ -209,7 +209,7 @@ func (self migrator) encryptWithNewKey(newKey *encryption.Key, oldKey *encryptio
 				return err
 			}
 
-			_, err = self.db.Exec(`
+			_, err = m.db.Exec(`
 				UPDATE `+ec.Table+`
 				SET `+ec.Column+` = $1, nonce = $2
 				WHERE `+ec.PrimaryKey+` = $3

@@ -11,12 +11,14 @@ module Dashboard.Styles exposing
     , infoBar
     , infoCliIcon
     , infoItem
+    , inlineInstanceVar
     , instanceGroupCard
     , instanceGroupCardBadge
     , instanceGroupCardBanner
     , instanceGroupCardBannerHd
     , instanceGroupCardBody
     , instanceGroupCardBodyHd
+    , instanceGroupCardFooter
     , instanceGroupCardHd
     , instanceGroupCardHeader
     , instanceGroupCardNameHd
@@ -208,44 +210,41 @@ noPipelineCardHeader =
     ]
 
 
-cardHeaderCommon : Float -> List (Html.Attribute msg)
-cardHeaderCommon height =
+pipelineCardHeader : Float -> List (Html.Attribute msg)
+pipelineCardHeader height =
     [ style "background-color" Colors.card
     , style "color" Colors.dashboardPipelineHeaderText
     , style "font-size" "1.5em"
     , style "letter-spacing" "0.1em"
-    , style "padding" "10px 12.5px"
+    , style "padding" <| String.fromInt GridConstants.cardHeaderPadding ++ "px"
     , style "height" <| String.fromFloat height ++ "px"
     , style "box-sizing" "border-box"
     ]
 
 
-pipelineCardHeader : Float -> List (Html.Attribute msg)
-pipelineCardHeader height =
-    cardHeaderCommon height
-
-
 instanceGroupCardHeader : Float -> List (Html.Attribute msg)
-instanceGroupCardHeader height =
-    cardHeaderCommon height
-        ++ [ style "display" "flex"
-           , style "align-items" "center"
-           ]
+instanceGroupCardHeader =
+    pipelineCardHeader
 
 
 pipelineName : List (Html.Attribute msg)
 pipelineName =
-    [ style "width" "245px"
+    [ style "width" "240px"
+    , style "line-height" <| String.fromInt GridConstants.cardHeaderRowLineHeight ++ "px"
     , style "white-space" "nowrap"
     , style "overflow" "hidden"
     , style "text-overflow" "ellipsis"
-    , style "padding" "2.5px 0"
     ]
 
 
 instanceVar : List (Html.Attribute msg)
 instanceVar =
     pipelineName ++ [ style "letter-spacing" "0.05em" ]
+
+
+inlineInstanceVar : List (Html.Attribute msg)
+inlineInstanceVar =
+    [ style "padding-right" "8px" ]
 
 
 noInstanceVars : List (Html.Attribute msg)
@@ -256,6 +255,9 @@ noInstanceVars =
 instanceGroupName : List (Html.Attribute msg)
 instanceGroupName =
     pipelineName
+        ++ [ style "display" "flex"
+           , style "align-items" "center"
+           ]
 
 
 emptyCardBody : List (Html.Attribute msg)
@@ -297,7 +299,7 @@ instanceGroupCardBody : List (Html.Attribute msg)
 instanceGroupCardBody =
     [ style "background-color" Colors.card
     , style "padding" "20px 36px"
-    , style "margin" "2px 0 0 0"
+    , style "margin" "2px 0"
     , style "flex-grow" "1"
     , style "display" "flex"
     , style "flex-direction" "column"
@@ -515,9 +517,18 @@ texture pipelineRunningKeyframes isRunning color =
 
 pipelineCardFooter : List (Html.Attribute msg)
 pipelineCardFooter =
-    [ style "padding" "13.5px"
+    [ style "padding" <| String.fromInt GridConstants.cardHeaderPadding ++ "px"
     , style "display" "flex"
     , style "justify-content" "space-between"
+    , style "background-color" Colors.card
+    ]
+
+
+instanceGroupCardFooter : List (Html.Attribute msg)
+instanceGroupCardFooter =
+    [ style "padding" "13.5px"
+    , style "display" "flex"
+    , style "justify-content" "flex-end"
     , style "background-color" Colors.card
     ]
 
@@ -1020,5 +1031,5 @@ pipelineSectionHeader : List (Html.Attribute msg)
 pipelineSectionHeader =
     [ style "font-size" "22px"
     , style "font-weight" Views.Styles.fontWeightBold
-    , style "padding" "30px 0 10px 37.5px"
+    , style "padding" <| String.fromInt GridConstants.padding ++ "px"
     ]

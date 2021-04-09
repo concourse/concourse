@@ -29,22 +29,21 @@ func (src Source) MarshalJSON() ([]byte, error) {
 // Merge returns a new Source that merged other into src. The original src is
 // not updated.
 func (src Source) Merge(other Source) Source {
-	if src == nil && other == nil {
+	if len(src) == 0 && other == nil {
 		return nil
 	}
 
 	newSource := Source{}
-	if src != nil {
-		for k, v := range src {
-			newSource[k] = v
-		}
+	// if src is nil or empty, range will not loop
+	for k, v := range src {
+		newSource[k] = v
 	}
-	if other == nil {
-		return newSource
-	}
+
+	// if other is nil or empty, range will not loop
 	for k, v := range other {
 		newSource[k] = v
 	}
+
 	return newSource
 }
 

@@ -65,6 +65,10 @@ func (br *buildLogCollector) Run(ctx context.Context) error {
 		}
 
 		for _, job := range jobs {
+			if job.Paused() {
+				continue
+			}
+
 			err = br.reapLogsOfJob(pipeline, job, logger)
 			if err != nil {
 				return err

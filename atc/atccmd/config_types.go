@@ -171,7 +171,7 @@ func (e MetricsEmitterConfig) ConfiguredEmitter() (metric.EmitterFactory, error)
 
 	var configuredEmitter metric.EmitterFactory
 	if len(configuredEmitters) > 1 {
-		return nil, fmt.Errorf("Multiple emitters configured: %v", configuredEmitters)
+		return nil, fmt.Errorf("multiple emitters configured: %s", strings.Join(configuredEmitters.Description, ", "))
 	}
 
 	if configuredEmitters != nil {

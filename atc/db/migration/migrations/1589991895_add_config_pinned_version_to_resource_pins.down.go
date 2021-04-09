@@ -1,14 +1,9 @@
 package migrations
 
-func (self *migrations) Down_1585079293() error {
-	tx, err := self.DB.Begin()
-	if err != nil {
-		return err
-	}
+func (m *migrations) Down_1585079293() error {
+	tx := m.Tx
 
-	defer tx.Rollback()
-
-	_, err = tx.Exec("DELETE FROM resource_pins WHERE config = true")
+	_, err := tx.Exec("DELETE FROM resource_pins WHERE config = true")
 	if err != nil {
 		return err
 	}
@@ -18,6 +13,5 @@ func (self *migrations) Down_1585079293() error {
 		return err
 	}
 
-	return tx.Commit()
+	return nil
 }
-

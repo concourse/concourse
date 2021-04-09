@@ -32,15 +32,16 @@ func (fake *FakeAccessTokenLifecycle) RemoveExpiredAccessTokens(arg1 time.Durati
 	fake.removeExpiredAccessTokensArgsForCall = append(fake.removeExpiredAccessTokensArgsForCall, struct {
 		arg1 time.Duration
 	}{arg1})
+	stub := fake.RemoveExpiredAccessTokensStub
+	fakeReturns := fake.removeExpiredAccessTokensReturns
 	fake.recordInvocation("RemoveExpiredAccessTokens", []interface{}{arg1})
 	fake.removeExpiredAccessTokensMutex.Unlock()
-	if fake.RemoveExpiredAccessTokensStub != nil {
-		return fake.RemoveExpiredAccessTokensStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.removeExpiredAccessTokensReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

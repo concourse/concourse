@@ -203,6 +203,7 @@ var _ = Describe("Container", func() {
 				User: "deandra",
 				Path: "from",
 			})
+			Ω(err).ShouldNot(HaveOccurred())
 			bytes, err := ioutil.ReadAll(reader)
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(string(bytes)).Should(Equal("kewl"))

@@ -44,6 +44,7 @@ var _ = Describe("Add resource pinned version", func() {
 			(3, 2, 2, '{"version": "2"}', 'null', 'git'),
 			(4, 3, 1, '{"version": "1"}', 'null', 'git')
 			`)
+		Expect(err).NotTo(HaveOccurred())
 	}
 
 	Context("Up", func() {

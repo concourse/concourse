@@ -23,12 +23,8 @@ type Params map[string]interface{}
 
 type Version map[string]string
 
-func (self *migrations) Down_1537546150() error {
-	tx, err := self.DB.Begin()
-	if err != nil {
-		return err
-	}
-
+func (m *migrations) Down_1537546150() error {
+	tx := m.Tx
 	rows, err := tx.Query(`SELECT id, config, nonce FROM resources`)
 	if err != nil {
 		return err
@@ -56,7 +52,7 @@ func (self *migrations) Down_1537546150() error {
 			noncense = &nonce.String
 		}
 
-		decryptedConfig, err := self.Decrypt(string(configBlob), noncense)
+		decryptedConfig, err := m.Decrypt(string(configBlob), noncense)
 		if err != nil {
 			return err
 		}
@@ -84,7 +80,6 @@ func (self *migrations) Down_1537546150() error {
 		enabled = EXCLUDED.enabled
 	 `, r.id, r.type_)
 		if err != nil {
-			tx.Rollback()
 			return err
 		}
 	}
@@ -94,7 +89,6 @@ func (self *migrations) Down_1537546150() error {
 		DROP CONSTRAINT resources_resource_config_id_fkey,
     ADD CONSTRAINT resources_resource_config_id_fkey FOREIGN KEY (resource_config_id) REFERENCES resource_configs(id) ON DELETE SET NULL`)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
@@ -102,38 +96,32 @@ func (self *migrations) Down_1537546150() error {
     ADD COLUMN last_checked timestamp with time zone DEFAULT '1970-01-01 00:00:00' NOT NULL,
 		ADD COLUMN version text`)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	_, err = tx.Exec(`ALTER TABLE resource_configs DROP COLUMN last_checked,
 		DROP COLUMN check_error`)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	_, err = tx.Exec(`ALTER TABLE resource_types DROP COLUMN check_error`)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	_, err = tx.Exec(`DROP TABLE build_resource_config_version_inputs`)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	_, err = tx.Exec(`DROP TABLE build_resource_config_version_outputs`)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	_, err = tx.Exec(`TRUNCATE TABLE next_build_inputs`)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
@@ -141,107 +129,85 @@ func (self *migrations) Down_1537546150() error {
 		DROP COLUMN resource_id,
 		ADD COLUMN version_id integer NOT NULL`)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	_, err = tx.Exec(`CREATE INDEX next_build_inputs_version_id ON next_build_inputs USING btree (version_id)`)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	_, err = tx.Exec(`ALTER TABLE ONLY next_build_inputs
       ADD CONSTRAINT next_build_inputs_version_id_fkey FOREIGN KEY (version_id) REFERENCES versioned_resources(id) ON DELETE CASCADE`)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	_, err = tx.Exec(`TRUNCATE TABLE independent_build_inputs`)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	_, err = tx.Exec(`ALTER TABLE independent_build_inputs DROP COLUMN resource_config_version_id, DROP COLUMN resource_id, ADD COLUMN version_id integer NOT NULL`)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	_, err = tx.Exec(`CREATE INDEX independent_build_inputs_version_id ON independent_build_inputs USING btree (version_id)`)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	_, err = tx.Exec(`ALTER TABLE ONLY independent_build_inputs
       ADD CONSTRAINT independent_build_inputs_version_id_fkey FOREIGN KEY (version_id) REFERENCES versioned_resources(id) ON DELETE CASCADE`)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	_, err = tx.Exec(`DROP TABLE resource_config_versions`)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	_, err = tx.Exec(`DROP TABLE resource_disabled_versions`)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	_, err = tx.Exec(`DROP INDEX resource_caches_resource_config_id_version_params_hash_uniq`)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	_, err = tx.Exec(`ALTER TABLE resource_caches ALTER COLUMN version TYPE text USING version::text`)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	_, err = tx.Exec(`CREATE UNIQUE INDEX resource_caches_resource_config_id_version_params_hash_key ON resource_caches (resource_config_id, md5(version), params_hash)`)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	_, err = tx.Exec(`ALTER TABLE worker_resource_config_check_sessions ADD COLUMN team_id integer`)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	_, err = tx.Exec(`ALTER TABLE ONLY worker_resource_config_check_sessions
     ADD CONSTRAINT worker_resource_config_check_sessions_team_id_fkey FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE`)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	_, err = tx.Exec(`DROP INDEX worker_resource_config_check_sessions_uniq`)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	_, err = tx.Exec(`CREATE UNIQUE INDEX worker_resource_config_check_sessions_uniq
   ON worker_resource_config_check_sessions (resource_config_check_session_id, worker_base_resource_type_id, team_id)`)
 	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		tx.Rollback()
 		return err
 	}
 

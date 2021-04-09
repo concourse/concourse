@@ -27,19 +27,6 @@ type ResourceCacheDescriptor struct {
 	Params                   atc.Params               // The params used when fetching the version.
 }
 
-func (cache *ResourceCacheDescriptor) find(tx Tx, lockFactory lock.LockFactory, conn Conn) (UsedResourceCache, bool, error) {
-	resourceConfig, found, err := cache.ResourceConfigDescriptor.find(tx, lockFactory, conn)
-	if err != nil {
-		return nil, false, err
-	}
-
-	if !found {
-		return nil, false, nil
-	}
-
-	return cache.findWithResourceConfig(tx, resourceConfig, lockFactory, conn)
-}
-
 func (cache *ResourceCacheDescriptor) findOrCreate(
 	tx Tx,
 	lockFactory lock.LockFactory,

@@ -50,6 +50,7 @@ all =
                                 (Routes.Resource
                                     { id = Data.shortResourceId
                                     , page = Nothing
+                                    , version = Nothing
                                     }
                                 )
                             )

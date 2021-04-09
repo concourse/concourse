@@ -66,9 +66,7 @@ func (c *teamsCacher) waitForNotifications() {
 	defer c.notifications.Unlisten(atc.TeamCacheChannel, notifier)
 
 	for {
-		select {
-		case <-notifier:
-			c.cache.Delete(atc.TeamCacheName)
-		}
+		<-notifier
+		c.cache.Delete(atc.TeamCacheName)
 	}
 }

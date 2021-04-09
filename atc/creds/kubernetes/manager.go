@@ -60,7 +60,7 @@ func (manager KubernetesManager) Validate() error {
 	}
 
 	if manager.InClusterConfig && manager.ConfigPath != "" {
-		return errors.New("Either in-cluster or config-path can be used, not both.")
+		return errors.New("either in-cluster or config-path can be used, not both")
 	}
 	_, err := manager.buildConfig()
 	return err

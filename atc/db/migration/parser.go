@@ -2,6 +2,7 @@ package migration
 
 import (
 	"errors"
+	"io/fs"
 	"regexp"
 	"strconv"
 	"strings"
@@ -13,12 +14,12 @@ var goMigrationFuncName = regexp.MustCompile(`(Up|Down)_[0-9]*`)
 var ErrCouldNotParseDirection = errors.New("could not parse direction for migration")
 
 type Parser struct {
-	bindata Bindata
+	migrationsFS fs.FS
 }
 
-func NewParser(bindata Bindata) *Parser {
+func NewParser(migrationsFS fs.FS) *Parser {
 	return &Parser{
-		bindata: bindata,
+		migrationsFS: migrationsFS,
 	}
 }
 
@@ -49,7 +50,7 @@ func (p *Parser) ParseFileToMigration(migrationName string) (migration, error) {
 		return migration, err
 	}
 
-	migrationBytes, err := p.bindata.Asset(migrationName)
+	migrationBytes, err := fs.ReadFile(p.migrationsFS, migrationName)
 	if err != nil {
 		return migration, err
 	}
@@ -69,7 +70,7 @@ func (p *Parser) ParseFileToMigration(migrationName string) (migration, error) {
 }
 
 func schemaVersion(assetName string) (int, error) {
-	regex := regexp.MustCompile("(\\d+)")
+	regex := regexp.MustCompile(`(\d+)`)
 	match := regex.FindStringSubmatch(assetName)
 	return strconv.Atoi(match[1])
 }

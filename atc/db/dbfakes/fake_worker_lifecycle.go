@@ -77,15 +77,16 @@ func (fake *FakeWorkerLifecycle) DeleteFinishedRetiringWorkers() ([]string, erro
 	ret, specificReturn := fake.deleteFinishedRetiringWorkersReturnsOnCall[len(fake.deleteFinishedRetiringWorkersArgsForCall)]
 	fake.deleteFinishedRetiringWorkersArgsForCall = append(fake.deleteFinishedRetiringWorkersArgsForCall, struct {
 	}{})
+	stub := fake.DeleteFinishedRetiringWorkersStub
+	fakeReturns := fake.deleteFinishedRetiringWorkersReturns
 	fake.recordInvocation("DeleteFinishedRetiringWorkers", []interface{}{})
 	fake.deleteFinishedRetiringWorkersMutex.Unlock()
-	if fake.DeleteFinishedRetiringWorkersStub != nil {
-		return fake.DeleteFinishedRetiringWorkersStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.deleteFinishedRetiringWorkersReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -132,15 +133,16 @@ func (fake *FakeWorkerLifecycle) DeleteUnresponsiveEphemeralWorkers() ([]string,
 	ret, specificReturn := fake.deleteUnresponsiveEphemeralWorkersReturnsOnCall[len(fake.deleteUnresponsiveEphemeralWorkersArgsForCall)]
 	fake.deleteUnresponsiveEphemeralWorkersArgsForCall = append(fake.deleteUnresponsiveEphemeralWorkersArgsForCall, struct {
 	}{})
+	stub := fake.DeleteUnresponsiveEphemeralWorkersStub
+	fakeReturns := fake.deleteUnresponsiveEphemeralWorkersReturns
 	fake.recordInvocation("DeleteUnresponsiveEphemeralWorkers", []interface{}{})
 	fake.deleteUnresponsiveEphemeralWorkersMutex.Unlock()
-	if fake.DeleteUnresponsiveEphemeralWorkersStub != nil {
-		return fake.DeleteUnresponsiveEphemeralWorkersStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.deleteUnresponsiveEphemeralWorkersReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -187,15 +189,16 @@ func (fake *FakeWorkerLifecycle) GetWorkerStateByName() (map[string]db.WorkerSta
 	ret, specificReturn := fake.getWorkerStateByNameReturnsOnCall[len(fake.getWorkerStateByNameArgsForCall)]
 	fake.getWorkerStateByNameArgsForCall = append(fake.getWorkerStateByNameArgsForCall, struct {
 	}{})
+	stub := fake.GetWorkerStateByNameStub
+	fakeReturns := fake.getWorkerStateByNameReturns
 	fake.recordInvocation("GetWorkerStateByName", []interface{}{})
 	fake.getWorkerStateByNameMutex.Unlock()
-	if fake.GetWorkerStateByNameStub != nil {
-		return fake.GetWorkerStateByNameStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getWorkerStateByNameReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -242,15 +245,16 @@ func (fake *FakeWorkerLifecycle) LandFinishedLandingWorkers() ([]string, error) 
 	ret, specificReturn := fake.landFinishedLandingWorkersReturnsOnCall[len(fake.landFinishedLandingWorkersArgsForCall)]
 	fake.landFinishedLandingWorkersArgsForCall = append(fake.landFinishedLandingWorkersArgsForCall, struct {
 	}{})
+	stub := fake.LandFinishedLandingWorkersStub
+	fakeReturns := fake.landFinishedLandingWorkersReturns
 	fake.recordInvocation("LandFinishedLandingWorkers", []interface{}{})
 	fake.landFinishedLandingWorkersMutex.Unlock()
-	if fake.LandFinishedLandingWorkersStub != nil {
-		return fake.LandFinishedLandingWorkersStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.landFinishedLandingWorkersReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -297,15 +301,16 @@ func (fake *FakeWorkerLifecycle) StallUnresponsiveWorkers() ([]string, error) {
 	ret, specificReturn := fake.stallUnresponsiveWorkersReturnsOnCall[len(fake.stallUnresponsiveWorkersArgsForCall)]
 	fake.stallUnresponsiveWorkersArgsForCall = append(fake.stallUnresponsiveWorkersArgsForCall, struct {
 	}{})
+	stub := fake.StallUnresponsiveWorkersStub
+	fakeReturns := fake.stallUnresponsiveWorkersReturns
 	fake.recordInvocation("StallUnresponsiveWorkers", []interface{}{})
 	fake.stallUnresponsiveWorkersMutex.Unlock()
-	if fake.StallUnresponsiveWorkersStub != nil {
-		return fake.StallUnresponsiveWorkersStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.stallUnresponsiveWorkersReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

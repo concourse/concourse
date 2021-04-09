@@ -83,8 +83,14 @@ func detectInputsFromParam(value interface{}) []build.ArtifactName {
 	switch actual := value.(type) {
 	case string:
 		input := actual
-		if idx := strings.IndexByte(actual, '/'); idx >= 0 {
-			input = actual[:idx]
+		if parts := strings.Split(actual, "/"); len(parts) > 1 {
+			for _, part := range parts {
+				if part == "." || part == ".." {
+					continue
+				}
+				input = part
+				break
+			}
 		}
 		return []build.ArtifactName{build.ArtifactName(input)}
 	case map[string]interface{}:

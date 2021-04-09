@@ -3,6 +3,8 @@ package dbtest
 import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+
+	//lint:ignore ST1001 this is used for tests
 	. "github.com/onsi/gomega"
 )
 

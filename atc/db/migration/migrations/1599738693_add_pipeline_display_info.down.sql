@@ -1,3 +1,2 @@
-BEGIN;
-    ALTER TABLE pipelines DROP COLUMN display;
-COMMIT;
+
+  ALTER TABLE pipelines DROP COLUMN display;

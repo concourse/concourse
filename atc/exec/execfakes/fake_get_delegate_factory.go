@@ -29,15 +29,16 @@ func (fake *FakeGetDelegateFactory) GetDelegate(arg1 exec.RunState) exec.GetDele
 	fake.getDelegateArgsForCall = append(fake.getDelegateArgsForCall, struct {
 		arg1 exec.RunState
 	}{arg1})
+	stub := fake.GetDelegateStub
+	fakeReturns := fake.getDelegateReturns
 	fake.recordInvocation("GetDelegate", []interface{}{arg1})
 	fake.getDelegateMutex.Unlock()
-	if fake.GetDelegateStub != nil {
-		return fake.GetDelegateStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.getDelegateReturns
 	return fakeReturns.result1
 }
 

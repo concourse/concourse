@@ -399,6 +399,7 @@ session =
     , pipelineRunningKeyframes = ""
     , timeZone = Time.utc
     , favoritedPipelines = Set.empty
+    , favoritedInstanceGroups = Set.empty
     , route = Routes.Build { id = Data.jobBuildId, highlight = Routes.HighlightNothing }
     }
 

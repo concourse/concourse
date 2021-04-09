@@ -58,7 +58,7 @@ var _ = Describe("ConcourseVersionWrappa", func() {
 		})
 
 		It("wraps every single handler with a version reporting handler", func() {
-			for name, _ := range inputHandlers {
+			for name := range inputHandlers {
 				Expect(descriptiveRoute{
 					route:   name,
 					handler: wrappedHandlers[name],

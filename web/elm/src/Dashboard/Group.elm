@@ -11,7 +11,7 @@ import Application.Models exposing (Session)
 import Concourse
 import Dashboard.Grid as Grid
 import Dashboard.Grid.Constants as GridConstants
-import Dashboard.Group.Models exposing (Card(..), Pipeline)
+import Dashboard.Group.Models exposing (Card(..), Pipeline, cardIdentifier)
 import Dashboard.Group.Tag as Tag
 import Dashboard.InstanceGroup as InstanceGroup
 import Dashboard.Models exposing (DragState(..), DropState(..))
@@ -59,7 +59,7 @@ view :
         , jobs : Dict ( Concourse.DatabaseID, Concourse.JobName ) Concourse.Job
         , dashboardView : Routes.DashboardView
         , query : String
-        , inInstanceGroupView : Bool
+        , viewingInstanceGroups : Bool
         }
     -> Concourse.TeamName
     -> List Grid.Card
@@ -82,6 +82,19 @@ view session params teamName cards =
                                         { bounds = bounds
                                         , headerHeight = headerHeight
                                         , pipeline = pipeline
+                                        , inInstanceGroup = False
+                                        }
+                                        teamName
+                                        |> (\html -> ( String.fromInt pipeline.id, html ))
+
+                                InstancedPipelineCard pipeline ->
+                                    pipelineCardView session
+                                        params
+                                        AllPipelinesSection
+                                        { bounds = bounds
+                                        , headerHeight = headerHeight
+                                        , pipeline = pipeline
+                                        , inInstanceGroup = True
                                         }
                                         teamName
                                         |> (\html -> ( String.fromInt pipeline.id, html ))
@@ -153,7 +166,7 @@ viewFavoritePipelines :
         , jobs : Dict ( Concourse.DatabaseID, Concourse.JobName ) Concourse.Job
         , dashboardView : Routes.DashboardView
         , query : String
-        , inInstanceGroupView : Bool
+        , viewingInstanceGroups : Bool
         }
     -> List Grid.Header
     -> List Grid.Card
@@ -172,6 +185,19 @@ viewFavoritePipelines session params headers cards =
                                     { bounds = bounds
                                     , pipeline = pipeline
                                     , headerHeight = headerHeight
+                                    , inInstanceGroup = False
+                                    }
+                                    pipeline.teamName
+                                    |> (\html -> ( String.fromInt pipeline.id, html ))
+
+                            InstancedPipelineCard pipeline ->
+                                pipelineCardView session
+                                    params
+                                    FavoritesSection
+                                    { bounds = bounds
+                                    , pipeline = pipeline
+                                    , headerHeight = headerHeight
+                                    , inInstanceGroup = True
                                     }
                                     pipeline.teamName
                                     |> (\html -> ( String.fromInt pipeline.id, html ))
@@ -263,6 +289,20 @@ hdView { pipelinesWithResourceErrors, pipelineJobs, jobs, dashboardView, query }
                                                 |> List.filterMap (\j -> Dict.get ( p.id, j ) jobs)
                                         }
 
+                                InstancedPipelineCard p ->
+                                    Pipeline.hdPipelineView
+                                        session
+                                        { pipeline = p
+                                        , resourceError =
+                                            pipelinesWithResourceErrors
+                                                |> Set.member p.id
+                                        , existingJobs =
+                                            pipelineJobs
+                                                |> Dict.get p.id
+                                                |> Maybe.withDefault []
+                                                |> List.filterMap (\j -> Dict.get ( p.id, j ) jobs)
+                                        }
+
                                 InstanceGroupCard p ps ->
                                     InstanceGroup.hdCardView
                                         { pipeline = p
@@ -315,17 +355,18 @@ pipelineCardView :
             , pipelineLayers : Dict Concourse.DatabaseID (List (List Concourse.JobName))
             , pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobName)
             , jobs : Dict ( Concourse.DatabaseID, Concourse.JobName ) Concourse.Job
-            , inInstanceGroupView : Bool
+            , viewingInstanceGroups : Bool
         }
     -> PipelinesSection
     ->
         { bounds : Grid.Bounds
         , pipeline : Pipeline
         , headerHeight : Float
+        , inInstanceGroup : Bool
         }
     -> String
     -> Html Message
-pipelineCardView session params section { bounds, headerHeight, pipeline } teamName =
+pipelineCardView session params section { bounds, headerHeight, pipeline, inInstanceGroup } teamName =
     Html.div
         ([ class "card-wrapper"
          , style "position" "absolute"
@@ -359,20 +400,20 @@ pipelineCardView session params section { bounds, headerHeight, pipeline } teamN
              , style "height" "100%"
              , attribute "data-pipeline-name" pipeline.name
              ]
-                ++ (if section == AllPipelinesSection && not pipeline.stale && not params.inInstanceGroupView then
+                ++ (if section == AllPipelinesSection && not pipeline.stale && not params.viewingInstanceGroups then
                         [ attribute
                             "ondragstart"
                             "event.dataTransfer.setData('text/plain', '');"
                         , draggable "true"
                         , on "dragstart"
-                            (Json.Decode.succeed (DragStart pipeline.teamName pipeline.id))
+                            (Json.Decode.succeed (DragStart pipeline.teamName <| cardIdentifier <| PipelineCard pipeline))
                         , on "dragend" (Json.Decode.succeed DragEnd)
                         ]
 
                     else
                         []
                    )
-                ++ (if params.dragState == Dragging pipeline.teamName pipeline.id then
+                ++ (if params.dragState == Dragging pipeline.teamName (cardIdentifier <| PipelineCard pipeline) then
                         [ style "width" "0"
                         , style "margin" "0 12.5px"
                         , style "overflow" "hidden"
@@ -408,7 +449,8 @@ pipelineCardView session params section { bounds, headerHeight, pipeline } teamN
                 , headerHeight = headerHeight
                 , hovered = session.hovered
                 , section = section
-                , inInstanceGroupView = params.inInstanceGroupView
+                , viewingInstanceGroups = params.viewingInstanceGroups
+                , inInstanceGroup = inInstanceGroup
                 }
             ]
         ]
@@ -465,14 +507,14 @@ instanceGroupCardView session params section { bounds, headerHeight } p ps =
                             "event.dataTransfer.setData('text/plain', '');"
                         , draggable "true"
                         , on "dragstart"
-                            (Json.Decode.succeed (DragStart p.teamName p.id))
+                            (Json.Decode.succeed (DragStart p.teamName <| cardIdentifier <| InstanceGroupCard p ps))
                         , on "dragend" (Json.Decode.succeed DragEnd)
                         ]
 
                     else
                         []
                    )
-                ++ (if params.dragState == Dragging p.teamName p.id then
+                ++ (if params.dragState == Dragging p.teamName (cardIdentifier <| InstanceGroupCard p ps) then
                         [ style "width" "0"
                         , style "margin" "0 12.5px"
                         , style "overflow" "hidden"
@@ -489,6 +531,7 @@ instanceGroupCardView session params section { bounds, headerHeight } p ps =
                    )
             )
             [ InstanceGroup.cardView
+                session
                 { pipeline = p
                 , pipelines = ps
                 , resourceError =
@@ -499,8 +542,6 @@ instanceGroupCardView session params section { bounds, headerHeight } p ps =
                         (p :: ps)
                 , pipelineJobs = params.pipelineJobs
                 , jobs = params.jobs
-                , hovered = session.hovered
-                , pipelineRunningKeyframes = session.pipelineRunningKeyframes
                 , section = section
                 , headerHeight = headerHeight
                 , dashboardView = params.dashboardView
@@ -559,8 +600,6 @@ headerView { x, y, width, height } header =
         , style "width" <| String.fromFloat width ++ "px"
         , style "height" <| String.fromFloat height ++ "px"
         , style "font-size" "18px"
-        , style "padding-left" "12.5px"
-        , style "padding-top" "17.5px"
         , style "box-sizing" "border-box"
         , style "text-overflow" "ellipsis"
         , style "overflow" "hidden"

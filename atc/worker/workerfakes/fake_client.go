@@ -98,6 +98,16 @@ type FakeClient struct {
 		result1 worker.TaskResult
 		result2 error
 	}
+	WorkerStub        func() worker.Worker
+	workerMutex       sync.RWMutex
+	workerArgsForCall []struct {
+	}
+	workerReturns struct {
+		result1 worker.Worker
+	}
+	workerReturnsOnCall map[int]struct {
+		result1 worker.Worker
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -107,15 +117,16 @@ func (fake *FakeClient) Name() string {
 	ret, specificReturn := fake.nameReturnsOnCall[len(fake.nameArgsForCall)]
 	fake.nameArgsForCall = append(fake.nameArgsForCall, struct {
 	}{})
+	stub := fake.NameStub
+	fakeReturns := fake.nameReturns
 	fake.recordInvocation("Name", []interface{}{})
 	fake.nameMutex.Unlock()
-	if fake.NameStub != nil {
-		return fake.NameStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.nameReturns
 	return fakeReturns.result1
 }
 
@@ -166,15 +177,16 @@ func (fake *FakeClient) RunCheckStep(arg1 context.Context, arg2 db.ContainerOwne
 		arg6 runtime.StartingEventDelegate
 		arg7 resource.Resource
 	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
+	stub := fake.RunCheckStepStub
+	fakeReturns := fake.runCheckStepReturns
 	fake.recordInvocation("RunCheckStep", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
 	fake.runCheckStepMutex.Unlock()
-	if fake.RunCheckStepStub != nil {
-		return fake.RunCheckStepStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4, arg5, arg6, arg7)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.runCheckStepReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -236,15 +248,16 @@ func (fake *FakeClient) RunGetStep(arg1 context.Context, arg2 db.ContainerOwner,
 		arg7 db.UsedResourceCache
 		arg8 resource.Resource
 	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8})
+	stub := fake.RunGetStepStub
+	fakeReturns := fake.runGetStepReturns
 	fake.recordInvocation("RunGetStep", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8})
 	fake.runGetStepMutex.Unlock()
-	if fake.RunGetStepStub != nil {
-		return fake.RunGetStepStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.runGetStepReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -305,15 +318,16 @@ func (fake *FakeClient) RunPutStep(arg1 context.Context, arg2 db.ContainerOwner,
 		arg6 runtime.StartingEventDelegate
 		arg7 resource.Resource
 	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
+	stub := fake.RunPutStepStub
+	fakeReturns := fake.runPutStepReturns
 	fake.recordInvocation("RunPutStep", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
 	fake.runPutStepMutex.Unlock()
-	if fake.RunPutStepStub != nil {
-		return fake.RunPutStepStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4, arg5, arg6, arg7)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.runPutStepReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -373,15 +387,16 @@ func (fake *FakeClient) RunTaskStep(arg1 context.Context, arg2 db.ContainerOwner
 		arg5 runtime.ProcessSpec
 		arg6 runtime.StartingEventDelegate
 	}{arg1, arg2, arg3, arg4, arg5, arg6})
+	stub := fake.RunTaskStepStub
+	fakeReturns := fake.runTaskStepReturns
 	fake.recordInvocation("RunTaskStep", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6})
 	fake.runTaskStepMutex.Unlock()
-	if fake.RunTaskStepStub != nil {
-		return fake.RunTaskStepStub(arg1, arg2, arg3, arg4, arg5, arg6)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4, arg5, arg6)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.runTaskStepReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -430,6 +445,59 @@ func (fake *FakeClient) RunTaskStepReturnsOnCall(i int, result1 worker.TaskResul
 	}{result1, result2}
 }
 
+func (fake *FakeClient) Worker() worker.Worker {
+	fake.workerMutex.Lock()
+	ret, specificReturn := fake.workerReturnsOnCall[len(fake.workerArgsForCall)]
+	fake.workerArgsForCall = append(fake.workerArgsForCall, struct {
+	}{})
+	stub := fake.WorkerStub
+	fakeReturns := fake.workerReturns
+	fake.recordInvocation("Worker", []interface{}{})
+	fake.workerMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeClient) WorkerCallCount() int {
+	fake.workerMutex.RLock()
+	defer fake.workerMutex.RUnlock()
+	return len(fake.workerArgsForCall)
+}
+
+func (fake *FakeClient) WorkerCalls(stub func() worker.Worker) {
+	fake.workerMutex.Lock()
+	defer fake.workerMutex.Unlock()
+	fake.WorkerStub = stub
+}
+
+func (fake *FakeClient) WorkerReturns(result1 worker.Worker) {
+	fake.workerMutex.Lock()
+	defer fake.workerMutex.Unlock()
+	fake.WorkerStub = nil
+	fake.workerReturns = struct {
+		result1 worker.Worker
+	}{result1}
+}
+
+func (fake *FakeClient) WorkerReturnsOnCall(i int, result1 worker.Worker) {
+	fake.workerMutex.Lock()
+	defer fake.workerMutex.Unlock()
+	fake.WorkerStub = nil
+	if fake.workerReturnsOnCall == nil {
+		fake.workerReturnsOnCall = make(map[int]struct {
+			result1 worker.Worker
+		})
+	}
+	fake.workerReturnsOnCall[i] = struct {
+		result1 worker.Worker
+	}{result1}
+}
+
 func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -443,6 +511,8 @@ func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	defer fake.runPutStepMutex.RUnlock()
 	fake.runTaskStepMutex.RLock()
 	defer fake.runTaskStepMutex.RUnlock()
+	fake.workerMutex.RLock()
+	defer fake.workerMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

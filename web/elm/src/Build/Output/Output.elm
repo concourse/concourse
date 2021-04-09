@@ -43,12 +43,25 @@ init highlight build =
             else
                 StepsLoading
 
+        buildId =
+            Maybe.map
+                (\job ->
+                    { buildName = build.name
+                    , teamName = build.teamName
+                    , pipelineName = job.pipelineName
+                    , pipelineInstanceVars = job.pipelineInstanceVars
+                    , jobName = job.jobName
+                    }
+                )
+                build.job
+
         model =
             { steps = Nothing
             , state = outputState
             , eventStreamUrlPath = Nothing
             , eventSourceOpened = False
             , highlight = highlight
+            , buildId = buildId
             }
 
         fetch =
@@ -94,6 +107,7 @@ planAndResourcesFetched buildId ( plan, resources ) model =
         | steps =
             Just
                 (Build.StepTree.StepTree.init
+                    model.buildId
                     model.highlight
                     resources
                     plan
@@ -143,6 +157,11 @@ handleEvent event ( model, effects ) =
 
         Log origin output time ->
             ( updateStep origin.id (setRunning << appendStepLog output time) model
+            , effects
+            )
+
+        WaitingForWorker origin time ->
+            ( updateStep origin.id (setRunning << appendStepLog "\u{001B}[1mno suitable workers found, waiting for worker...\u{001B}[0m\n" time) model
             , effects
             )
 
@@ -237,12 +256,12 @@ handleEvent event ( model, effects ) =
             ( { model | steps = newSt }, effects )
 
         ImageCheck { id } plan ->
-            ( { model | steps = Maybe.map (Build.StepTree.StepTree.setImageCheck id plan) model.steps }
+            ( { model | steps = Maybe.map (Build.StepTree.StepTree.setImageCheck model.buildId id plan) model.steps }
             , effects
             )
 
         ImageGet { id } plan ->
-            ( { model | steps = Maybe.map (Build.StepTree.StepTree.setImageGet id plan) model.steps }
+            ( { model | steps = Maybe.map (Build.StepTree.StepTree.setImageGet model.buildId id plan) model.steps }
             , effects
             )
 

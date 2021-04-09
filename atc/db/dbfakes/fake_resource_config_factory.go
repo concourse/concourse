@@ -61,15 +61,16 @@ func (fake *FakeResourceConfigFactory) CleanUnreferencedConfigs(arg1 time.Durati
 	fake.cleanUnreferencedConfigsArgsForCall = append(fake.cleanUnreferencedConfigsArgsForCall, struct {
 		arg1 time.Duration
 	}{arg1})
+	stub := fake.CleanUnreferencedConfigsStub
+	fakeReturns := fake.cleanUnreferencedConfigsReturns
 	fake.recordInvocation("CleanUnreferencedConfigs", []interface{}{arg1})
 	fake.cleanUnreferencedConfigsMutex.Unlock()
-	if fake.CleanUnreferencedConfigsStub != nil {
-		return fake.CleanUnreferencedConfigsStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.cleanUnreferencedConfigsReturns
 	return fakeReturns.result1
 }
 
@@ -123,15 +124,16 @@ func (fake *FakeResourceConfigFactory) FindOrCreateResourceConfig(arg1 string, a
 		arg2 atc.Source
 		arg3 atc.VersionedResourceTypes
 	}{arg1, arg2, arg3})
+	stub := fake.FindOrCreateResourceConfigStub
+	fakeReturns := fake.findOrCreateResourceConfigReturns
 	fake.recordInvocation("FindOrCreateResourceConfig", []interface{}{arg1, arg2, arg3})
 	fake.findOrCreateResourceConfigMutex.Unlock()
-	if fake.FindOrCreateResourceConfigStub != nil {
-		return fake.FindOrCreateResourceConfigStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.findOrCreateResourceConfigReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -186,15 +188,16 @@ func (fake *FakeResourceConfigFactory) FindResourceConfigByID(arg1 int) (db.Reso
 	fake.findResourceConfigByIDArgsForCall = append(fake.findResourceConfigByIDArgsForCall, struct {
 		arg1 int
 	}{arg1})
+	stub := fake.FindResourceConfigByIDStub
+	fakeReturns := fake.findResourceConfigByIDReturns
 	fake.recordInvocation("FindResourceConfigByID", []interface{}{arg1})
 	fake.findResourceConfigByIDMutex.Unlock()
-	if fake.FindResourceConfigByIDStub != nil {
-		return fake.FindResourceConfigByIDStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.findResourceConfigByIDReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 

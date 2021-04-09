@@ -32,7 +32,7 @@ func newBuildVariables(credVars vars.Variables, enableRedaction bool) *buildVari
 func (b *buildVariables) Get(ref vars.Reference) (interface{}, bool, error) {
 	if ref.Source == "." {
 		b.lock.RLock()
-		val, found, err := b.localVars.Get(ref)
+		val, found, err := b.localVars.Get(ref.WithoutSource())
 		b.lock.RUnlock()
 		if found || err != nil {
 			return val, found, err

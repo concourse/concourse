@@ -18,6 +18,13 @@ type Reference struct {
 	Fields []string
 }
 
+func (r Reference) WithoutSource() Reference {
+	return Reference{
+		Path:   r.Path,
+		Fields: r.Fields,
+	}
+}
+
 func ParseReference(name string) (Reference, error) {
 	var ref Reference
 

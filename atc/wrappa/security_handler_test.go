@@ -44,7 +44,7 @@ var _ = Describe("SecurityHandler", func() {
 
 	Context("when the X-Frame-Options is empty", func() {
 		It("does not set the X-Frame-Options", func() {
-			Expect(rw.HeaderMap).NotTo(HaveKey("X-Frame-Options"))
+			Expect(rw.Result().Header).NotTo(HaveKey("X-Frame-Options"))
 		})
 	})
 

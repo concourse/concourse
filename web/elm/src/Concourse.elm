@@ -51,6 +51,7 @@ module Concourse exposing
     , decodeBuildResources
     , decodeCause
     , decodeInfo
+    , decodeInstanceGroupId
     , decodeInstanceVars
     , decodeJob
     , decodeJsonValue
@@ -63,6 +64,7 @@ module Concourse exposing
     , decodeVersionedResource
     , emptyBuildResources
     , encodeBuild
+    , encodeInstanceGroupId
     , encodeInstanceVars
     , encodeJob
     , encodeJsonValue
@@ -70,13 +72,16 @@ module Concourse exposing
     , encodeResource
     , encodeTeam
     , flattenJson
-    , groupPipelines
+    , groupPipelinesWithinTeam
     , hyphenNotation
+    , isInInstanceGroup
     , isInstanceGroup
     , mapBuildPlan
     , pipelineId
     , retrieveCSRFToken
+    , toInstanceGroupId
     , toPipelineId
+    , versionQuery
     )
 
 import Array exposing (Array)
@@ -373,13 +378,13 @@ mapBuildPlan fn plan =
                 BuildStepArtifactInput _ ->
                     []
 
-                BuildStepPut _ ->
+                BuildStepPut _ _ ->
                     []
 
                 BuildStepCheck _ ->
                     []
 
-                BuildStepGet _ _ ->
+                BuildStepGet _ _ _ ->
                     []
 
                 BuildStepArtifactOutput _ ->
@@ -425,15 +430,19 @@ type alias StepName =
     String
 
 
+type alias ResourceName =
+    String
+
+
 type BuildStep
     = BuildStepTask StepName
     | BuildStepSetPipeline StepName InstanceVars
     | BuildStepLoadVar StepName
     | BuildStepArtifactInput StepName
     | BuildStepCheck StepName
-    | BuildStepGet StepName (Maybe Version)
+    | BuildStepGet StepName (Maybe ResourceName) (Maybe Version)
     | BuildStepArtifactOutput StepName
-    | BuildStepPut StepName
+    | BuildStepPut StepName (Maybe ResourceName)
     | BuildStepInParallel (Array BuildPlan)
     | BuildStepAcross AcrossPlan
     | BuildStepDo (Array BuildPlan)
@@ -544,10 +553,10 @@ type PipelineGrouping pipeline
     | InstanceGroup pipeline (List pipeline)
 
 
-groupPipelines :
+groupPipelinesWithinTeam :
     List { p | name : String, instanceVars : InstanceVars }
     -> List (PipelineGrouping { p | name : String, instanceVars : InstanceVars })
-groupPipelines =
+groupPipelinesWithinTeam =
     List.Extra.gatherEqualsBy .name
         >> List.map
             (\( p, ps ) ->
@@ -559,7 +568,7 @@ groupPipelines =
             )
 
 
-isInstanceGroup : List { p | name : String, instanceVars : InstanceVars } -> Bool
+isInstanceGroup : List { p | instanceVars : InstanceVars } -> Bool
 isInstanceGroup pipelines =
     case pipelines of
         p :: ps ->
@@ -567,6 +576,21 @@ isInstanceGroup pipelines =
 
         _ ->
             False
+
+
+isInInstanceGroup :
+    List { a | id : DatabaseID, name : String, teamName : String, instanceVars : InstanceVars }
+    -> { b | id : DatabaseID, name : String, teamName : String, instanceVars : InstanceVars }
+    -> Bool
+isInInstanceGroup allPipelines p =
+    not (Dict.isEmpty p.instanceVars)
+        || List.any
+            (\p2 ->
+                (p.name == p2.name)
+                    && (p.teamName == p2.teamName)
+                    && (p.id /= p2.id)
+            )
+            allPipelines
 
 
 type alias AcrossPlan =
@@ -647,6 +671,7 @@ decodeBuildStepGet : Json.Decode.Decoder BuildStep
 decodeBuildStepGet =
     Json.Decode.succeed BuildStepGet
         |> andMap (Json.Decode.field "name" Json.Decode.string)
+        |> andMap (Json.Decode.maybe <| Json.Decode.field "resource" Json.Decode.string)
         |> andMap (Json.Decode.maybe <| Json.Decode.field "version" decodeVersion)
 
 
@@ -666,6 +691,7 @@ decodeBuildStepPut : Json.Decode.Decoder BuildStep
 decodeBuildStepPut =
     Json.Decode.succeed BuildStepPut
         |> andMap (Json.Decode.field "name" Json.Decode.string)
+        |> andMap (Json.Decode.maybe <| Json.Decode.field "resource" Json.Decode.string)
 
 
 decodeBuildStepInParallel : Json.Decode.Decoder BuildStep
@@ -1027,6 +1053,26 @@ type alias InstanceGroupIdentifier =
     }
 
 
+toInstanceGroupId : { p | teamName : TeamName, name : PipelineName } -> InstanceGroupIdentifier
+toInstanceGroupId { teamName, name } =
+    { teamName = teamName, name = name }
+
+
+encodeInstanceGroupId : InstanceGroupIdentifier -> Json.Encode.Value
+encodeInstanceGroupId { teamName, name } =
+    Json.Encode.object
+        [ ( "team_name", Json.Encode.string teamName )
+        , ( "name", Json.Encode.string name )
+        ]
+
+
+decodeInstanceGroupId : Json.Decode.Decoder InstanceGroupIdentifier
+decodeInstanceGroupId =
+    Json.Decode.succeed InstanceGroupIdentifier
+        |> andMap (Json.Decode.field "team_name" Json.Decode.string)
+        |> andMap (Json.Decode.field "name" Json.Decode.string)
+
+
 
 -- Resource
 
@@ -1131,6 +1177,11 @@ decodeVersion =
 encodeVersion : Version -> Json.Encode.Value
 encodeVersion =
     Json.Encode.dict identity Json.Encode.string
+
+
+versionQuery : Version -> List String
+versionQuery v =
+    List.map (\kv -> Tuple.first kv ++ ":" ++ Tuple.second kv) <| Dict.toList v
 
 
 

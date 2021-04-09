@@ -1272,20 +1272,6 @@ func checkIfRowsUpdated(tx Tx, query string, params ...interface{}) (bool, error
 	return true, nil
 }
 
-func swallowUniqueiolation(err error) error {
-	if err != nil {
-		if pgErr, ok := err.(*pq.Error); ok {
-			if pgErr.Code.Class().Name() == "integrity_constraint_violation" {
-				return nil
-			}
-		}
-
-		return err
-	}
-
-	return nil
-}
-
 func (t *team) findContainer(whereClause sq.Sqlizer) (CreatingContainer, CreatedContainer, error) {
 	creating, created, destroying, _, err := scanContainer(
 		selectContainers().

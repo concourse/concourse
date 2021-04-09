@@ -102,7 +102,7 @@ func (h *WorkerHijackStreamer) Hijack(ctx context.Context, handler string, body 
 
 		errRespBytes, err := ioutil.ReadAll(httpResp.Body)
 		if err != nil {
-			return nil, nil, fmt.Errorf("Backend error: Exit status: %d, error reading response body: %s", httpResp.StatusCode, err)
+			return nil, nil, fmt.Errorf("backend error: Exit status: %d, error reading response body: %s", httpResp.StatusCode, err)
 		}
 		var gerr garden.Error
 		if err := gerr.UnmarshalJSON(errRespBytes); err == nil {
@@ -111,7 +111,7 @@ func (h *WorkerHijackStreamer) Hijack(ctx context.Context, handler string, body 
 			}
 		}
 
-		return nil, nil, fmt.Errorf("Backend error: Exit status: %d, message: %s", httpResp.StatusCode, errRespBytes)
+		return nil, nil, fmt.Errorf("backend error: Exit status: %d, message: %s", httpResp.StatusCode, errRespBytes)
 	}
 
 	hijackedConn, hijackedResponseReader := hijackCloser.Hijack()

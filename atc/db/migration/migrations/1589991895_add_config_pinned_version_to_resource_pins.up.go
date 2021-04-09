@@ -10,15 +10,10 @@ type V6ResourceConfigVersion struct {
 	Version map[string]string `json:"version,omitempty"`
 }
 
-func (self *migrations) Up_1585079293() error {
-	tx, err := self.DB.Begin()
-	if err != nil {
-		return err
-	}
+func (m *migrations) Up_1585079293() error {
+	tx := m.Tx
 
-	defer tx.Rollback()
-
-	_, err = tx.Exec("ALTER TABLE resource_pins ADD COLUMN config boolean NOT NULL DEFAULT false")
+	_, err := tx.Exec("ALTER TABLE resource_pins ADD COLUMN config boolean NOT NULL DEFAULT false")
 	if err != nil {
 		return err
 	}
@@ -44,7 +39,7 @@ func (self *migrations) Up_1585079293() error {
 			noncense = &nonce.String
 		}
 
-		decrypted, err := self.Strategy.Decrypt(string(configBlob), noncense)
+		decrypted, err := m.Strategy.Decrypt(string(configBlob), noncense)
 		if err != nil {
 			return err
 		}
@@ -75,6 +70,5 @@ func (self *migrations) Up_1585079293() error {
 		}
 	}
 
-	return tx.Commit()
+	return nil
 }
-

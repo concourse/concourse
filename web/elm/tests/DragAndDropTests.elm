@@ -17,7 +17,7 @@ import Message.TopLevelMessage as TopLevelMessage exposing (TopLevelMessage)
 import Test exposing (Test, describe, test)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (class, id, style, text)
+import Test.Html.Selector exposing (class, containing, id, style, text)
 import Time
 import Url
 
@@ -29,7 +29,12 @@ all =
             given iVisitedTheDashboard
                 >> given myBrowserFetchedOnePipeline
                 >> when iAmLookingAtTheFirstPipelineCard
-                >> then_ itListensForDragStart
+                >> then_ (itListensForDragStartWithId "1")
+        , test "instance group card has drag start listener with id independent of the visible instances" <|
+            given iVisitedTheDashboard
+                >> given myBrowserFetchedPipelinesWithInstanceVars
+                >> when iAmLookingAtTheInstanceGroupCard
+                >> then_ (itListensForDragStartWithId "team/other-pipeline")
         , test "pipeline card disappears when dragging starts" <|
             given iVisitedTheDashboard
                 >> given myBrowserFetchedOnePipeline
@@ -93,6 +98,20 @@ all =
                 >> given iAmDraggingTheFirstPipelineCard
                 >> given iAmDraggingOverTheThirdDropArea
                 >> when iDropThePipelineCard
+                >> then_ myBrowserMakesTheOrderPipelinesAPICall
+        , test "dragging an instance group card uses an identifier independent of what instances are visible" <|
+            given iVisitedTheDashboard
+                >> given myBrowserFetchedPipelinesWithInstanceVars
+                >> given iAmDraggingTheInstanceGroupCard
+                >> given iAmDraggingOverTheFirstDropArea
+                >> when iDropTheCard
+                >> then_ myBrowserMakesTheOrderPipelinesAPICall
+        , test "instance group can be reordered" <|
+            given iVisitedTheDashboard
+                >> given myBrowserFetchedPipelinesWithInstanceVars
+                >> given iAmDraggingTheInstanceGroupCard
+                >> given iAmDraggingOverTheFirstDropArea
+                >> when iDropTheCard
                 >> then_ myBrowserMakesTheOrderPipelinesAPICall
         , test "dashboard does not auto-refresh during dragging" <|
             given iVisitedTheDashboard
@@ -205,7 +224,7 @@ myBrowserFetchedPipelinesWithInstanceVars =
         (Callback.AllPipelinesFetched <|
             Ok
                 [ Data.pipeline "team" 1 |> Data.withName "pipeline"
-                , Data.pipeline "team" 2 |> Data.withName "other-pipeline"
+                , Data.pipeline "team" 2 |> Data.withName "other-pipeline" |> Data.withArchived True
                 , Data.pipeline "team" 3
                     |> Data.withName "other-pipeline"
                     |> Data.withInstanceVars (Dict.fromList [ ( "hello", JsonString "world" ) ])
@@ -231,6 +250,12 @@ iAmLookingAtTheFirstPipelineCard =
         >> Query.first
 
 
+iAmLookingAtTheInstanceGroupCard =
+    Tuple.first
+        >> Common.queryView
+        >> Query.find [ class "card", containing [ text "other-pipeline" ] ]
+
+
 iAmLookingAtTheFirstPipelineCardWrapper =
     Tuple.first
         >> Common.queryView
@@ -252,17 +277,23 @@ iAmLookingAtAllPipelineCardsOfThatTeam =
         >> Query.findAll [ class "card" ]
 
 
-itListensForDragStart : Query.Single TopLevelMessage -> Expectation
-itListensForDragStart =
+itListensForDragStartWithId : String -> Query.Single TopLevelMessage -> Expectation
+itListensForDragStartWithId id =
     Event.simulate (Event.custom "dragstart" (Encode.object []))
         >> Event.expect
-            (TopLevelMessage.Update <| Message.DragStart "team" 1)
+            (TopLevelMessage.Update <| Message.DragStart "team" id)
 
 
 iAmDraggingTheFirstPipelineCard =
     Tuple.first
         >> Application.update
-            (TopLevelMessage.Update <| Message.DragStart "team" 1)
+            (TopLevelMessage.Update <| Message.DragStart "team" "1")
+
+
+iAmDraggingTheInstanceGroupCard =
+    Tuple.first
+        >> Application.update
+            (TopLevelMessage.Update <| Message.DragStart "team" "team/other-pipeline")
 
 
 itIsInvisible =
@@ -323,7 +354,7 @@ itListensForDragOverPreventingDefault =
 iAmDraggingOverTheFirstDropArea =
     Tuple.first
         >> Application.update
-            (TopLevelMessage.Update <| Message.DragOver <| Before 0)
+            (TopLevelMessage.Update <| Message.DragOver <| Before "1")
 
 
 iAmDraggingOverTheThirdDropArea =

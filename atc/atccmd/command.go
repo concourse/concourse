@@ -370,7 +370,7 @@ func (cmd *RunConfig) Runner(positionalArguments []string) (ifrit.Runner, error)
 
 	commandSession.Info("start")
 	defer commandSession.Info("finish", lager.Data{
-		"duration": time.Now().Sub(startTime),
+		"duration": time.Since(startTime),
 	})
 
 	atc.EnableGlobalResources = cmd.FeatureFlags.EnableGlobalResources
@@ -1185,7 +1185,7 @@ func (cmd *RunConfig) oldKey() *encryption.Key {
 }
 
 func (cmd *RunConfig) constructWebHandler(logger lager.Logger) (http.Handler, error) {
-	webHandler, err := web.NewHandler(logger)
+	webHandler, err := web.NewHandler(logger, cmd.WebPublicDir.Path())
 	if err != nil {
 		return nil, err
 	}
@@ -1257,8 +1257,7 @@ func (tripper mitmRoundTripper) RoundTrip(req *http.Request) (*http.Response, er
 }
 
 func (cmd *RunConfig) tlsConfig(logger lager.Logger, dbConn db.Conn) (*tls.Config, error) {
-	var tlsConfig *tls.Config
-	tlsConfig = atc.DefaultTLSConfig()
+	tlsConfig := atc.DefaultTLSConfig()
 
 	if cmd.isTLSEnabled() {
 		tlsLogger := logger.Session("tls-enabled")
@@ -1432,7 +1431,7 @@ type Closer interface {
 }
 
 func (cmd *RunConfig) chooseBuildContainerStrategy() (worker.ContainerPlacementStrategy, error) {
-	return worker.NewContainerPlacementStrategy(cmd.Runtime.ContainerPlacementStrategyOptions)
+	return worker.NewChainPlacementStrategy(cmd.ContainerPlacementStrategyOptions)
 }
 
 func (cmd *RunConfig) configureAuthForDefaultTeam(teamFactory db.TeamFactory) error {
@@ -1576,7 +1575,6 @@ func (cmd *RunConfig) constructAuthHandler(
 		Expiration:  cmd.Auth.AuthFlags.Expiration,
 		IssuerURL:   issuerURL.String(),
 		RedirectURL: redirectURL.String(),
-		WebHostURL:  "/sky/issuer",
 		SigningKey:  cmd.Auth.AuthFlags.SigningKey.PrivateKey,
 		Storage:     storage,
 		Connectors:  cmd.Auth.AuthFlags.Connectors,

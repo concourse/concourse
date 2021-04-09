@@ -136,6 +136,11 @@ type FakeCheckDelegate struct {
 		result2 bool
 		result3 error
 	}
+	WaitingForWorkerStub        func(lager.Logger)
+	waitingForWorkerMutex       sync.RWMutex
+	waitingForWorkerArgsForCall []struct {
+		arg1 lager.Logger
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -146,9 +151,10 @@ func (fake *FakeCheckDelegate) Errored(arg1 lager.Logger, arg2 string) {
 		arg1 lager.Logger
 		arg2 string
 	}{arg1, arg2})
+	stub := fake.ErroredStub
 	fake.recordInvocation("Errored", []interface{}{arg1, arg2})
 	fake.erroredMutex.Unlock()
-	if fake.ErroredStub != nil {
+	if stub != nil {
 		fake.ErroredStub(arg1, arg2)
 	}
 }
@@ -181,15 +187,16 @@ func (fake *FakeCheckDelegate) FetchImage(arg1 context.Context, arg2 atc.ImageRe
 		arg3 atc.VersionedResourceTypes
 		arg4 bool
 	}{arg1, arg2, arg3, arg4})
+	stub := fake.FetchImageStub
+	fakeReturns := fake.fetchImageReturns
 	fake.recordInvocation("FetchImage", []interface{}{arg1, arg2, arg3, arg4})
 	fake.fetchImageMutex.Unlock()
-	if fake.FetchImageStub != nil {
-		return fake.FetchImageStub(arg1, arg2, arg3, arg4)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.fetchImageReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -244,15 +251,16 @@ func (fake *FakeCheckDelegate) FindOrCreateScope(arg1 db.ResourceConfig) (db.Res
 	fake.findOrCreateScopeArgsForCall = append(fake.findOrCreateScopeArgsForCall, struct {
 		arg1 db.ResourceConfig
 	}{arg1})
+	stub := fake.FindOrCreateScopeStub
+	fakeReturns := fake.findOrCreateScopeReturns
 	fake.recordInvocation("FindOrCreateScope", []interface{}{arg1})
 	fake.findOrCreateScopeMutex.Unlock()
-	if fake.FindOrCreateScopeStub != nil {
-		return fake.FindOrCreateScopeStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.findOrCreateScopeReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -307,9 +315,10 @@ func (fake *FakeCheckDelegate) Finished(arg1 lager.Logger, arg2 bool) {
 		arg1 lager.Logger
 		arg2 bool
 	}{arg1, arg2})
+	stub := fake.FinishedStub
 	fake.recordInvocation("Finished", []interface{}{arg1, arg2})
 	fake.finishedMutex.Unlock()
-	if fake.FinishedStub != nil {
+	if stub != nil {
 		fake.FinishedStub(arg1, arg2)
 	}
 }
@@ -338,9 +347,10 @@ func (fake *FakeCheckDelegate) Initializing(arg1 lager.Logger) {
 	fake.initializingArgsForCall = append(fake.initializingArgsForCall, struct {
 		arg1 lager.Logger
 	}{arg1})
+	stub := fake.InitializingStub
 	fake.recordInvocation("Initializing", []interface{}{arg1})
 	fake.initializingMutex.Unlock()
-	if fake.InitializingStub != nil {
+	if stub != nil {
 		fake.InitializingStub(arg1)
 	}
 }
@@ -370,15 +380,16 @@ func (fake *FakeCheckDelegate) PointToCheckedConfig(arg1 db.ResourceConfigScope)
 	fake.pointToCheckedConfigArgsForCall = append(fake.pointToCheckedConfigArgsForCall, struct {
 		arg1 db.ResourceConfigScope
 	}{arg1})
+	stub := fake.PointToCheckedConfigStub
+	fakeReturns := fake.pointToCheckedConfigReturns
 	fake.recordInvocation("PointToCheckedConfig", []interface{}{arg1})
 	fake.pointToCheckedConfigMutex.Unlock()
-	if fake.PointToCheckedConfigStub != nil {
-		return fake.PointToCheckedConfigStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.pointToCheckedConfigReturns
 	return fakeReturns.result1
 }
 
@@ -430,9 +441,10 @@ func (fake *FakeCheckDelegate) SelectedWorker(arg1 lager.Logger, arg2 string) {
 		arg1 lager.Logger
 		arg2 string
 	}{arg1, arg2})
+	stub := fake.SelectedWorkerStub
 	fake.recordInvocation("SelectedWorker", []interface{}{arg1, arg2})
 	fake.selectedWorkerMutex.Unlock()
-	if fake.SelectedWorkerStub != nil {
+	if stub != nil {
 		fake.SelectedWorkerStub(arg1, arg2)
 	}
 }
@@ -464,15 +476,16 @@ func (fake *FakeCheckDelegate) StartSpan(arg1 context.Context, arg2 string, arg3
 		arg2 string
 		arg3 tracing.Attrs
 	}{arg1, arg2, arg3})
+	stub := fake.StartSpanStub
+	fakeReturns := fake.startSpanReturns
 	fake.recordInvocation("StartSpan", []interface{}{arg1, arg2, arg3})
 	fake.startSpanMutex.Unlock()
-	if fake.StartSpanStub != nil {
-		return fake.StartSpanStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.startSpanReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -526,9 +539,10 @@ func (fake *FakeCheckDelegate) Starting(arg1 lager.Logger) {
 	fake.startingArgsForCall = append(fake.startingArgsForCall, struct {
 		arg1 lager.Logger
 	}{arg1})
+	stub := fake.StartingStub
 	fake.recordInvocation("Starting", []interface{}{arg1})
 	fake.startingMutex.Unlock()
-	if fake.StartingStub != nil {
+	if stub != nil {
 		fake.StartingStub(arg1)
 	}
 }
@@ -557,15 +571,16 @@ func (fake *FakeCheckDelegate) Stderr() io.Writer {
 	ret, specificReturn := fake.stderrReturnsOnCall[len(fake.stderrArgsForCall)]
 	fake.stderrArgsForCall = append(fake.stderrArgsForCall, struct {
 	}{})
+	stub := fake.StderrStub
+	fakeReturns := fake.stderrReturns
 	fake.recordInvocation("Stderr", []interface{}{})
 	fake.stderrMutex.Unlock()
-	if fake.StderrStub != nil {
-		return fake.StderrStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.stderrReturns
 	return fakeReturns.result1
 }
 
@@ -609,15 +624,16 @@ func (fake *FakeCheckDelegate) Stdout() io.Writer {
 	ret, specificReturn := fake.stdoutReturnsOnCall[len(fake.stdoutArgsForCall)]
 	fake.stdoutArgsForCall = append(fake.stdoutArgsForCall, struct {
 	}{})
+	stub := fake.StdoutStub
+	fakeReturns := fake.stdoutReturns
 	fake.recordInvocation("Stdout", []interface{}{})
 	fake.stdoutMutex.Unlock()
-	if fake.StdoutStub != nil {
-		return fake.StdoutStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.stdoutReturns
 	return fakeReturns.result1
 }
 
@@ -663,15 +679,16 @@ func (fake *FakeCheckDelegate) WaitToRun(arg1 context.Context, arg2 db.ResourceC
 		arg1 context.Context
 		arg2 db.ResourceConfigScope
 	}{arg1, arg2})
+	stub := fake.WaitToRunStub
+	fakeReturns := fake.waitToRunReturns
 	fake.recordInvocation("WaitToRun", []interface{}{arg1, arg2})
 	fake.waitToRunMutex.Unlock()
-	if fake.WaitToRunStub != nil {
-		return fake.WaitToRunStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.waitToRunReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -723,6 +740,38 @@ func (fake *FakeCheckDelegate) WaitToRunReturnsOnCall(i int, result1 lock.Lock, 
 	}{result1, result2, result3}
 }
 
+func (fake *FakeCheckDelegate) WaitingForWorker(arg1 lager.Logger) {
+	fake.waitingForWorkerMutex.Lock()
+	fake.waitingForWorkerArgsForCall = append(fake.waitingForWorkerArgsForCall, struct {
+		arg1 lager.Logger
+	}{arg1})
+	stub := fake.WaitingForWorkerStub
+	fake.recordInvocation("WaitingForWorker", []interface{}{arg1})
+	fake.waitingForWorkerMutex.Unlock()
+	if stub != nil {
+		fake.WaitingForWorkerStub(arg1)
+	}
+}
+
+func (fake *FakeCheckDelegate) WaitingForWorkerCallCount() int {
+	fake.waitingForWorkerMutex.RLock()
+	defer fake.waitingForWorkerMutex.RUnlock()
+	return len(fake.waitingForWorkerArgsForCall)
+}
+
+func (fake *FakeCheckDelegate) WaitingForWorkerCalls(stub func(lager.Logger)) {
+	fake.waitingForWorkerMutex.Lock()
+	defer fake.waitingForWorkerMutex.Unlock()
+	fake.WaitingForWorkerStub = stub
+}
+
+func (fake *FakeCheckDelegate) WaitingForWorkerArgsForCall(i int) lager.Logger {
+	fake.waitingForWorkerMutex.RLock()
+	defer fake.waitingForWorkerMutex.RUnlock()
+	argsForCall := fake.waitingForWorkerArgsForCall[i]
+	return argsForCall.arg1
+}
+
 func (fake *FakeCheckDelegate) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -750,6 +799,8 @@ func (fake *FakeCheckDelegate) Invocations() map[string][][]interface{} {
 	defer fake.stdoutMutex.RUnlock()
 	fake.waitToRunMutex.RLock()
 	defer fake.waitToRunMutex.RUnlock()
+	fake.waitingForWorkerMutex.RLock()
+	defer fake.waitingForWorkerMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

@@ -89,6 +89,7 @@ init flags url =
             , screenSize = ScreenSize.Desktop
             , timeZone = Time.utc
             , favoritedPipelines = Set.empty
+            , favoritedInstanceGroups = Set.empty
             , route = route
             }
 
@@ -116,6 +117,7 @@ init flags url =
       , GetScreenSize
       , LoadSideBarState
       , LoadFavoritedPipelines
+      , LoadFavoritedInstanceGroups
       , FetchClusterInfo
       ]
         ++ handleTokenEffect
@@ -456,9 +458,7 @@ view model =
 subscriptions : Model -> List Subscription
 subscriptions model =
     [ OnNonHrefLinkClicked
-    , OnTokenReceived
-    , OnSideBarStateReceived
-    , OnFavoritedPipelinesReceived
+    , OnLocalStorageReceived
     , OnWindowResize
     ]
         ++ (if model.session.draggingSideBar then

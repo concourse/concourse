@@ -69,15 +69,16 @@ func (fake *FakeNetwork) Add(arg1 context.Context, arg2 containerd.Task) error {
 		arg1 context.Context
 		arg2 containerd.Task
 	}{arg1, arg2})
+	stub := fake.AddStub
+	fakeReturns := fake.addReturns
 	fake.recordInvocation("Add", []interface{}{arg1, arg2})
 	fake.addMutex.Unlock()
-	if fake.AddStub != nil {
-		return fake.AddStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.addReturns
 	return fakeReturns.result1
 }
 
@@ -130,15 +131,16 @@ func (fake *FakeNetwork) Remove(arg1 context.Context, arg2 containerd.Task) erro
 		arg1 context.Context
 		arg2 containerd.Task
 	}{arg1, arg2})
+	stub := fake.RemoveStub
+	fakeReturns := fake.removeReturns
 	fake.recordInvocation("Remove", []interface{}{arg1, arg2})
 	fake.removeMutex.Unlock()
-	if fake.RemoveStub != nil {
-		return fake.RemoveStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.removeReturns
 	return fakeReturns.result1
 }
 
@@ -190,15 +192,16 @@ func (fake *FakeNetwork) SetupMounts(arg1 string) ([]specs.Mount, error) {
 	fake.setupMountsArgsForCall = append(fake.setupMountsArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.SetupMountsStub
+	fakeReturns := fake.setupMountsReturns
 	fake.recordInvocation("SetupMounts", []interface{}{arg1})
 	fake.setupMountsMutex.Unlock()
-	if fake.SetupMountsStub != nil {
-		return fake.SetupMountsStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.setupMountsReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -252,15 +255,16 @@ func (fake *FakeNetwork) SetupRestrictedNetworks() error {
 	ret, specificReturn := fake.setupRestrictedNetworksReturnsOnCall[len(fake.setupRestrictedNetworksArgsForCall)]
 	fake.setupRestrictedNetworksArgsForCall = append(fake.setupRestrictedNetworksArgsForCall, struct {
 	}{})
+	stub := fake.SetupRestrictedNetworksStub
+	fakeReturns := fake.setupRestrictedNetworksReturns
 	fake.recordInvocation("SetupRestrictedNetworks", []interface{}{})
 	fake.setupRestrictedNetworksMutex.Unlock()
-	if fake.SetupRestrictedNetworksStub != nil {
-		return fake.SetupRestrictedNetworksStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.setupRestrictedNetworksReturns
 	return fakeReturns.result1
 }
 

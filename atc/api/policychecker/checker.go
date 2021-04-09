@@ -59,7 +59,7 @@ func (c *checker) Check(action string, acc accessor.Access, req *http.Request) (
 		body, err := ioutil.ReadAll(req.Body)
 		if err != nil {
 			return policy.FailedPolicyCheck(), err
-		} else if body != nil && len(body) > 0 {
+		} else if len(body) > 0 {
 			if ct == "application/json" {
 				err = json.Unmarshal(body, &input.Data)
 			} else {

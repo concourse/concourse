@@ -143,6 +143,7 @@ buildView session model =
                     |> Maybe.map
                         (\j ->
                             { pipelineName = j.pipelineName
+                            , pipelineInstanceVars = j.pipelineInstanceVars
                             , teamName = j.teamName
                             }
                         )
@@ -683,6 +684,7 @@ sampleSession =
     , expandedTeamsInAllPipelines = Set.empty
     , collapsedTeamsInFavorites = Set.empty
     , favoritedPipelines = Set.empty
+    , favoritedInstanceGroups = Set.empty
     , hovered = HoverState.NoHover
     , sideBarState =
         { isOpen = False
@@ -734,6 +736,7 @@ sampleOldModel =
                     , eventSourceOpened = True
                     , eventStreamUrlPath = Nothing
                     , highlight = Routes.HighlightNothing
+                    , buildId = Nothing
                     }
             }
     , autoScroll = True
@@ -770,6 +773,7 @@ sampleModel =
             , eventSourceOpened = True
             , eventStreamUrlPath = Nothing
             , highlight = Routes.HighlightNothing
+            , buildId = Nothing
             }
     , autoScroll = True
     , isScrollToIdInProgress = False
@@ -857,6 +861,7 @@ stepsModel =
         , steps = steps
         , highlight = Routes.HighlightNothing
         , resources = { inputs = [], outputs = [] }
+        , buildId = Nothing
         }
 
 

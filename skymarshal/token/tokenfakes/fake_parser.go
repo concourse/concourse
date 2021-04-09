@@ -32,15 +32,16 @@ func (fake *FakeParser) ParseExpiry(arg1 string) (time.Time, error) {
 	fake.parseExpiryArgsForCall = append(fake.parseExpiryArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.ParseExpiryStub
+	fakeReturns := fake.parseExpiryReturns
 	fake.recordInvocation("ParseExpiry", []interface{}{arg1})
 	fake.parseExpiryMutex.Unlock()
-	if fake.ParseExpiryStub != nil {
-		return fake.ParseExpiryStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.parseExpiryReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

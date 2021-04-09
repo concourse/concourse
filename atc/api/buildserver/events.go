@@ -16,8 +16,6 @@ func (s *Server) BuildEvents(build db.Build) http.Handler {
 			s.eventHandlerFactory(s.logger, build).ServeHTTP(w, r)
 		}()
 
-		select {
-		case <-streamDone:
-		}
+		<-streamDone
 	})
 }

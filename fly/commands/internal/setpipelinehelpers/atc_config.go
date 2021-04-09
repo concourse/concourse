@@ -92,6 +92,15 @@ func (atcConfig ATCConfig) Set(yamlTemplateWithParams templatehelpers.YamlTempla
 	}
 	fmt.Println()
 
+	pipeline, _, err := atcConfig.Team.Pipeline(atcConfig.PipelineRef)
+	if err != nil {
+		return err
+	}
+	if pipeline.ParentJobID != 0 && pipeline.ParentBuildID != 0 {
+		fmt.Println("\x1b[1;33mWARNING: pipeline has been configured through the 'set_pipeline' step, your changes may be overwritten on the next 'set_pipeline' step execution\x1b[0m")
+		fmt.Println()
+	}
+
 	if !atcConfig.ApplyConfigInteraction() {
 		fmt.Println("bailing out")
 		return nil

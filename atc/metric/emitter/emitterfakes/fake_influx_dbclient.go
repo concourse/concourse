@@ -81,15 +81,16 @@ func (fake *FakeInfluxDBClient) Close() error {
 	ret, specificReturn := fake.closeReturnsOnCall[len(fake.closeArgsForCall)]
 	fake.closeArgsForCall = append(fake.closeArgsForCall, struct {
 	}{})
+	stub := fake.CloseStub
+	fakeReturns := fake.closeReturns
 	fake.recordInvocation("Close", []interface{}{})
 	fake.closeMutex.Unlock()
-	if fake.CloseStub != nil {
-		return fake.CloseStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.closeReturns
 	return fakeReturns.result1
 }
 
@@ -134,15 +135,16 @@ func (fake *FakeInfluxDBClient) Ping(arg1 time.Duration) (time.Duration, string,
 	fake.pingArgsForCall = append(fake.pingArgsForCall, struct {
 		arg1 time.Duration
 	}{arg1})
+	stub := fake.PingStub
+	fakeReturns := fake.pingReturns
 	fake.recordInvocation("Ping", []interface{}{arg1})
 	fake.pingMutex.Unlock()
-	if fake.PingStub != nil {
-		return fake.PingStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.pingReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -200,15 +202,16 @@ func (fake *FakeInfluxDBClient) Query(arg1 client.Query) (*client.Response, erro
 	fake.queryArgsForCall = append(fake.queryArgsForCall, struct {
 		arg1 client.Query
 	}{arg1})
+	stub := fake.QueryStub
+	fakeReturns := fake.queryReturns
 	fake.recordInvocation("Query", []interface{}{arg1})
 	fake.queryMutex.Unlock()
-	if fake.QueryStub != nil {
-		return fake.QueryStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.queryReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -263,15 +266,16 @@ func (fake *FakeInfluxDBClient) QueryAsChunk(arg1 client.Query) (*client.Chunked
 	fake.queryAsChunkArgsForCall = append(fake.queryAsChunkArgsForCall, struct {
 		arg1 client.Query
 	}{arg1})
+	stub := fake.QueryAsChunkStub
+	fakeReturns := fake.queryAsChunkReturns
 	fake.recordInvocation("QueryAsChunk", []interface{}{arg1})
 	fake.queryAsChunkMutex.Unlock()
-	if fake.QueryAsChunkStub != nil {
-		return fake.QueryAsChunkStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.queryAsChunkReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -326,15 +330,16 @@ func (fake *FakeInfluxDBClient) Write(arg1 client.BatchPoints) error {
 	fake.writeArgsForCall = append(fake.writeArgsForCall, struct {
 		arg1 client.BatchPoints
 	}{arg1})
+	stub := fake.WriteStub
+	fakeReturns := fake.writeReturns
 	fake.recordInvocation("Write", []interface{}{arg1})
 	fake.writeMutex.Unlock()
-	if fake.WriteStub != nil {
-		return fake.WriteStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.writeReturns
 	return fakeReturns.result1
 }
 

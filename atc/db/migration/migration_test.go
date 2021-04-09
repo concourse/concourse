@@ -2,18 +2,21 @@ package migration_test
 
 import (
 	"database/sql"
+	"io/fs"
 	"io/ioutil"
 	"math/rand"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
+	"testing/fstest"
 	"time"
 
 	"code.cloudfoundry.org/lager"
 
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/migration"
-	"github.com/concourse/concourse/atc/db/migration/migrationfakes"
 	"github.com/lib/pq"
 
 	. "github.com/onsi/ginkgo"
@@ -29,7 +32,6 @@ var _ = Describe("Migration", func() {
 		db          *sql.DB
 		lockDB      *sql.DB
 		lockFactory lock.LockFactory
-		bindata     *migrationfakes.FakeBindata
 		fakeLogFunc = func(logger lager.Logger, id lock.LockID) {}
 	)
 
@@ -41,9 +43,6 @@ var _ = Describe("Migration", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		lockFactory = lock.NewLockFactory(lockDB, fakeLogFunc, fakeLogFunc)
-
-		bindata = new(migrationfakes.FakeBindata)
-		bindata.AssetStub = asset
 	})
 
 	AfterEach(func() {
@@ -62,26 +61,16 @@ var _ = Describe("Migration", func() {
 
 	Context("Version Check", func() {
 		It("CurrentVersion reports the current version stored in the database", func() {
-			bindata.AssetNamesReturns([]string{
-				"1000_some_migration.up.sql",
-				"1510262030_initial_schema.up.sql",
-				"1510670987_update_unique_constraint_for_resource_caches.up.sql",
-				"2000000000_latest_migration_does_not_matter.up.sql",
-			})
-			bindata.AssetStub = func(name string) ([]byte, error) {
-				if name == "1000_some_migration.up.sql" {
-					return []byte{}, nil
-				} else if name == "2000000000_latest_migration_does_not_matter.up.sql" {
-					return []byte{}, nil
-				}
-				return asset(name)
-			}
-
 			myDatabaseVersion := 1234567890
 
 			SetupMigrationsHistoryTableToExistAtVersion(db, myDatabaseVersion)
 
-			migrator := migration.NewMigratorForMigrations(db, lockFactory, bindata)
+			migrator := migration.NewMigratorForMigrations(db, lockFactory, fstest.MapFS{
+				"1000_some_migration.up.sql":                                     &fstest.MapFile{},
+				"1510262030_initial_schema.up.sql":                               &fstest.MapFile{},
+				"1510670987_update_unique_constraint_for_resource_caches.up.sql": &fstest.MapFile{},
+				"2000000000_latest_migration_does_not_matter.up.sql":             &fstest.MapFile{},
+			})
 
 			version, err := migrator.CurrentVersion()
 			Expect(err).NotTo(HaveOccurred())
@@ -89,17 +78,15 @@ var _ = Describe("Migration", func() {
 		})
 
 		It("SupportedVersion reports the highest supported migration version", func() {
-
 			SetupMigrationsHistoryTableToExistAtVersion(db, initialSchemaVersion)
 
-			bindata.AssetNamesReturns([]string{
-				"1000_some_migration.up.sql",
-				"1510262030_initial_schema.up.sql",
-				"1510670987_update_unique_constraint_for_resource_caches.up.sql",
-				"300000_this_is_to_prove_we_dont_use_string_sort.up.sql",
-				"2000000000_latest_migration.up.sql",
+			migrator := migration.NewMigratorForMigrations(db, lockFactory, fstest.MapFS{
+				"1000_some_migration.up.sql":                                     &fstest.MapFile{},
+				"1510262030_initial_schema.up.sql":                               &fstest.MapFile{},
+				"1510670987_update_unique_constraint_for_resource_caches.up.sql": &fstest.MapFile{},
+				"300000_this_is_to_prove_we_dont_use_string_sort.up.sql":         &fstest.MapFile{},
+				"2000000000_latest_migration.up.sql":                             &fstest.MapFile{},
 			})
-			migrator := migration.NewMigratorForMigrations(db, lockFactory, bindata)
 
 			version, err := migrator.SupportedVersion()
 			Expect(err).NotTo(HaveOccurred())
@@ -107,18 +94,16 @@ var _ = Describe("Migration", func() {
 		})
 
 		It("Ignores files it can't parse", func() {
-
 			SetupMigrationsHistoryTableToExistAtVersion(db, initialSchemaVersion)
 
-			bindata.AssetNamesReturns([]string{
-				"1000_some_migration.up.sql",
-				"1510262030_initial_schema.up.sql",
-				"1510670987_update_unique_constraint_for_resource_caches.up.sql",
-				"300000_this_is_to_prove_we_dont_use_string_sort.up.sql",
-				"2000000000_latest_migration.up.sql",
-				"migrations.go",
+			migrator := migration.NewMigratorForMigrations(db, lockFactory, fstest.MapFS{
+				"1000_some_migration.up.sql":                                     &fstest.MapFile{},
+				"1510262030_initial_schema.up.sql":                               &fstest.MapFile{},
+				"1510670987_update_unique_constraint_for_resource_caches.up.sql": &fstest.MapFile{},
+				"300000_this_is_to_prove_we_dont_use_string_sort.up.sql":         &fstest.MapFile{},
+				"2000000000_latest_migration.up.sql":                             &fstest.MapFile{},
+				"migrations.go":                                                  &fstest.MapFile{},
 			})
-			migrator := migration.NewMigratorForMigrations(db, lockFactory, bindata)
 
 			version, err := migrator.SupportedVersion()
 			Expect(err).NotTo(HaveOccurred())
@@ -197,6 +182,7 @@ var _ = Describe("Migration", func() {
 						var numRows = 0
 						for rows.Next() {
 							err = rows.Scan(&timeStamp)
+							Expect(err).NotTo(HaveOccurred())
 							numRows++
 						}
 						Expect(numRows).To(Equal(1))
@@ -208,18 +194,13 @@ var _ = Describe("Migration", func() {
 
 		Context("sql migrations", func() {
 			It("runs a migration", func() {
-				simpleMigrationFilename := "1000_test_table_created.up.sql"
-				bindata.AssetReturns([]byte(`
-						BEGIN;
-						CREATE TABLE some_table (id integer);
-						COMMIT;
-						`), nil)
-
-				bindata.AssetNamesReturns([]string{
-					simpleMigrationFilename,
+				migrator := migration.NewMigratorForMigrations(db, lockFactory, fstest.MapFS{
+					"1000_test_table_created.up.sql": &fstest.MapFile{
+						Data: []byte(`
+							CREATE TABLE some_table (id integer);
+						`),
+					},
 				})
-
-				migrator := migration.NewMigratorForMigrations(db, lockFactory, bindata)
 
 				migrations, err := migrator.Migrations()
 				Expect(err).NotTo(HaveOccurred())
@@ -241,22 +222,14 @@ var _ = Describe("Migration", func() {
 			It("ignores migrations before the current version", func() {
 				SetupMigrationsHistoryTableToExistAtVersion(db, 1000)
 
-				simpleMigrationFilename := "1000_test_table_created.up.sql"
-				bindata.AssetStub = func(name string) ([]byte, error) {
-					if name == simpleMigrationFilename {
-						return []byte(`
-						BEGIN;
-						CREATE TABLE some_table (id integer);
-						COMMIT;
-						`), nil
-					}
-					return asset(name)
-				}
-				bindata.AssetNamesReturns([]string{
-					simpleMigrationFilename,
+				migrator := migration.NewMigratorForMigrations(db, lockFactory, fstest.MapFS{
+					"1000_test_table_created.up.sql": &fstest.MapFile{
+						Data: []byte(`
+							CREATE TABLE some_table (id integer);
+						`),
+					},
 				})
 
-				migrator := migration.NewMigratorForMigrations(db, lockFactory, bindata)
 				err := migrator.Up(nil, nil)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -268,90 +241,85 @@ var _ = Describe("Migration", func() {
 			})
 
 			It("runs the up migrations in ascending order", func() {
-				addTableMigrationFilename := "1000_test_table_created.up.sql"
-				removeTableMigrationFilename := "1001_test_table_created.up.sql"
-
-				bindata.AssetStub = func(name string) ([]byte, error) {
-					if name == addTableMigrationFilename {
-						return []byte(`
-						BEGIN;
-						CREATE TABLE some_table (id integer);
-						COMMIT;
-						`), nil
-					} else if name == removeTableMigrationFilename {
-						return []byte(`
-						BEGIN;
-						DROP TABLE some_table;
-						COMMIT;
-						`), nil
-					}
-					return asset(name)
-				}
-
-				bindata.AssetNamesReturns([]string{
-					removeTableMigrationFilename,
-					addTableMigrationFilename,
+				migrator := migration.NewMigratorForMigrations(db, lockFactory, fstest.MapFS{
+					"1000_test_table_created.up.sql": &fstest.MapFile{
+						Data: []byte(`
+							CREATE TABLE some_table (id integer);
+						`),
+					},
+					"1001_test_table_created.up.sql": &fstest.MapFile{
+						Data: []byte(`
+							DROP TABLE some_table;
+						`),
+					},
 				})
 
-				migrator := migration.NewMigratorForMigrations(db, lockFactory, bindata)
 				err := migrator.Up(nil, nil)
 				Expect(err).NotTo(HaveOccurred())
-
 			})
 
 			Context("when sql migrations fail", func() {
-				BeforeEach(func() {
-					bindata.AssetNamesReturns([]string{
-						"1510262030_initial_schema.up.sql",
-						"1525724789_drop_reaper_addr_from_workers.up.sql",
-					})
-				})
-
 				It("rolls back and leaves the database clean", func() {
-					migrator := migration.NewMigratorForMigrations(db, lockFactory, bindata)
+					migrator := migration.NewMigratorForMigrations(db, lockFactory, fstest.MapFS{
+						"1000_test_table_created.up.sql": &fstest.MapFile{
+							Data: []byte(`
+								CREATE TABLE some_table (id integer);
+							`),
+						},
+						"1000_test_table_created.down.sql": &fstest.MapFile{
+							Data: []byte(`
+								DROP TABLE some_table;
+							`),
+						},
+						"1001_drop_bogus_table.up.sql": &fstest.MapFile{
+							Data: []byte(`
+								DROP TABLE some_bogus_table;
+							`),
+						},
+					})
+
 					err := migrator.Up(nil, nil)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("failed and was rolled back"))
-					ExpectDatabaseMigrationVersionToEqual(migrator, initialSchemaVersion)
-					ExpectMigrationToHaveFailed(db, 1525724789, false)
+					ExpectDatabaseMigrationVersionToEqual(migrator, 1000)
+					ExpectMigrationToHaveFailed(db, 1001, false)
 				})
 			})
 
 			It("Doesn't fail if there are no migrations to run", func() {
-				bindata.AssetNamesReturns([]string{
-					"1510262030_initial_schema.up.sql",
+				migrator := migration.NewMigratorForMigrations(db, lockFactory, fstest.MapFS{
+					"1000_test_table_created.up.sql": &fstest.MapFile{
+						Data: []byte(`
+							CREATE TABLE some_table (id integer);
+						`),
+					},
 				})
 
-				migrator := migration.NewMigratorForMigrations(db, lockFactory, bindata)
 				err := migrator.Up(nil, nil)
 				Expect(err).NotTo(HaveOccurred())
 
 				err = migrator.Up(nil, nil)
 				Expect(err).NotTo(HaveOccurred())
 
-				ExpectDatabaseMigrationVersionToEqual(migrator, initialSchemaVersion)
-
+				ExpectDatabaseMigrationVersionToEqual(migrator, 1000)
 				ExpectMigrationVersionTableNotToExist(db)
-
-				ExpectToBeAbleToInsertData(db)
 			})
 
 			It("Locks the database so multiple ATCs don't all run migrations at the same time", func() {
-				SetupMigrationsHistoryTableToExistAtVersion(db, 1510262030)
-
-				SetupSchemaFromFile(db, "migrations/1510262030_initial_schema.up.sql")
-
-				bindata.AssetNamesReturns([]string{
-					"1510262030_initial_schema.up.sql",
+				migrator := migration.NewMigratorForMigrations(db, lockFactory, fstest.MapFS{
+					"1000_test_table_created.up.sql": &fstest.MapFile{
+						Data: []byte(`
+							CREATE TABLE some_table (id integer);
+						`),
+					},
 				})
-				migrator := migration.NewMigratorForMigrations(db, lockFactory, bindata)
 
 				var wg sync.WaitGroup
 				wg.Add(3)
 
-				go TryRunUpAndVerifyResult(db, migrator, &wg)
-				go TryRunUpAndVerifyResult(db, migrator, &wg)
-				go TryRunUpAndVerifyResult(db, migrator, &wg)
+				go TryRunUpAndVerifyResult(db, migrator, 1000, &wg)
+				go TryRunUpAndVerifyResult(db, migrator, 1000, &wg)
+				go TryRunUpAndVerifyResult(db, migrator, 1000, &wg)
 
 				wg.Wait()
 			})
@@ -359,15 +327,14 @@ var _ = Describe("Migration", func() {
 
 		Context("golang migrations", func() {
 			It("runs a migration with Migrate", func() {
-
-				migrator := migration.NewMigratorForMigrations(db, lockFactory, bindata)
-				bindata.AssetNamesReturns([]string{
+				migrator := migration.NewMigratorForMigrations(db, lockFactory, hackyRealMigrationsFS(
 					"1510262030_initial_schema.up.sql",
 					"1516643303_update_auth_providers.up.go",
-				})
+				))
 
 				By("applying the initial migration")
 				err := migrator.Migrate(nil, nil, 1510262030)
+				Expect(err).NotTo(HaveOccurred())
 				var columnExists string
 				err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM information_schema.columns where table_name = 'teams' AND column_name='basic_auth')").Scan(&columnExists)
 				Expect(err).NotTo(HaveOccurred())
@@ -386,12 +353,10 @@ var _ = Describe("Migration", func() {
 			})
 
 			It("runs a migration with Up", func() {
-
-				migrator := migration.NewMigratorForMigrations(db, lockFactory, bindata)
-				bindata.AssetNamesReturns([]string{
+				migrator := migration.NewMigratorForMigrations(db, lockFactory, hackyRealMigrationsFS(
 					"1510262030_initial_schema.up.sql",
 					"1516643303_update_auth_providers.up.go",
-				})
+				))
 
 				err := migrator.Up(nil, nil)
 				Expect(err).NotTo(HaveOccurred())
@@ -411,12 +376,11 @@ var _ = Describe("Migration", func() {
 	Context("Downgrade", func() {
 		Context("Downgrades to a version that uses the old mattes/migrate schema_migrations table", func() {
 			It("Downgrades to a given version and write it to a new created schema_migrations table", func() {
-				bindata.AssetNamesReturns([]string{
+				migrator := migration.NewMigratorForMigrations(db, lockFactory, hackyRealMigrationsFS(
 					"1510262030_initial_schema.up.sql",
 					"1510670987_update_unique_constraint_for_resource_caches.up.sql",
 					"1510670987_update_unique_constraint_for_resource_caches.down.sql",
-				})
-				migrator := migration.NewMigratorForMigrations(db, lockFactory, bindata)
+				))
 
 				err := migrator.Up(nil, nil)
 				Expect(err).NotTo(HaveOccurred())
@@ -438,13 +402,11 @@ var _ = Describe("Migration", func() {
 			})
 
 			It("Downgrades to a given version and write it to the existing schema_migrations table with dirty true", func() {
-
-				bindata.AssetNamesReturns([]string{
+				migrator := migration.NewMigratorForMigrations(db, lockFactory, hackyRealMigrationsFS(
 					"1510262030_initial_schema.up.sql",
 					"1510670987_update_unique_constraint_for_resource_caches.up.sql",
 					"1510670987_update_unique_constraint_for_resource_caches.down.sql",
-				})
-				migrator := migration.NewMigratorForMigrations(db, lockFactory, bindata)
+				))
 
 				err := migrator.Up(nil, nil)
 				Expect(err).NotTo(HaveOccurred())
@@ -470,12 +432,11 @@ var _ = Describe("Migration", func() {
 
 		Context("Downgrades to a version with new migrations_history table", func() {
 			It("Downgrades to a given version", func() {
-				bindata.AssetNamesReturns([]string{
+				migrator := migration.NewMigratorForMigrations(db, lockFactory, hackyRealMigrationsFS(
 					"1510262030_initial_schema.up.sql",
 					"1510670987_update_unique_constraint_for_resource_caches.up.sql",
 					"1510670987_update_unique_constraint_for_resource_caches.down.sql",
-				})
-				migrator := migration.NewMigratorForMigrations(db, lockFactory, bindata)
+				))
 
 				err := migrator.Up(nil, nil)
 				Expect(err).NotTo(HaveOccurred())
@@ -495,11 +456,10 @@ var _ = Describe("Migration", func() {
 			})
 
 			It("Doesn't fail if already at the requested version", func() {
-				bindata.AssetNamesReturns([]string{
+				migrator := migration.NewMigratorForMigrations(db, lockFactory, hackyRealMigrationsFS(
 					"1510262030_initial_schema.up.sql",
 					"1510670987_update_unique_constraint_for_resource_caches.up.sql",
-				})
-				migrator := migration.NewMigratorForMigrations(db, lockFactory, bindata)
+				))
 
 				err := migrator.Migrate(nil, nil, upgradedSchemaVersion)
 				Expect(err).NotTo(HaveOccurred())
@@ -519,12 +479,11 @@ var _ = Describe("Migration", func() {
 			})
 
 			It("Locks the database so multiple consumers don't run downgrade at the same time", func() {
-				migrator := migration.NewMigratorForMigrations(db, lockFactory, bindata)
-				bindata.AssetNamesReturns([]string{
+				migrator := migration.NewMigratorForMigrations(db, lockFactory, hackyRealMigrationsFS(
 					"1510262030_initial_schema.up.sql",
 					"1510670987_update_unique_constraint_for_resource_caches.up.sql",
 					"1510670987_update_unique_constraint_for_resource_caches.down.sql",
-				})
+				))
 
 				err := migrator.Up(nil, nil)
 				Expect(err).NotTo(HaveOccurred())
@@ -543,16 +502,32 @@ var _ = Describe("Migration", func() {
 
 })
 
-func TryRunUpAndVerifyResult(db *sql.DB, migrator migration.Migrator, wg *sync.WaitGroup) {
+// this is pretty awful; anything using it relies on our real-live migrations,
+// making these tests tightly coupled to Concourse instead of being a generic
+// migration package
+func hackyRealMigrationsFS(migrations ...string) fs.FS {
+	fs := fstest.MapFS{}
+
+	for _, m := range migrations {
+		content, err := os.ReadFile(filepath.Join("migrations", m))
+		Expect(err).ToNot(HaveOccurred())
+
+		fs[m] = &fstest.MapFile{
+			Data: content,
+		}
+	}
+
+	return fs
+}
+
+func TryRunUpAndVerifyResult(db *sql.DB, migrator migration.Migrator, version int, wg *sync.WaitGroup) {
 	defer GinkgoRecover()
 	defer wg.Done()
 
 	err := migrator.Up(nil, nil)
 	Expect(err).NotTo(HaveOccurred())
 
-	ExpectDatabaseMigrationVersionToEqual(migrator, initialSchemaVersion)
-
-	ExpectToBeAbleToInsertData(db)
+	ExpectDatabaseMigrationVersionToEqual(migrator, version)
 }
 
 func TryRunMigrateAndVerifyResult(db *sql.DB, migrator migration.Migrator, version int, wg *sync.WaitGroup) {

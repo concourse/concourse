@@ -1,5 +1,6 @@
 module Dashboard.InstanceGroup exposing (cardView, hdCardView)
 
+import Application.Models exposing (Session)
 import ColorValues
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
@@ -8,6 +9,7 @@ import Dashboard.Group.Models exposing (Pipeline)
 import Dashboard.Pipeline exposing (pipelineStatus)
 import Dashboard.Styles as Styles
 import Dict exposing (Dict)
+import Favorites
 import HoverState
 import Html exposing (Html)
 import Html.Attributes
@@ -23,6 +25,7 @@ import List.Extra
 import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import Routes
 import Tooltip
+import Views.FavoritedIcon
 import Views.InstanceGroupBadge as InstanceGroupBadge
 
 
@@ -94,20 +97,20 @@ hdCardView { pipeline, pipelines, resourceError, dashboardView, query } =
 
 
 cardView :
-    { pipeline : Pipeline
-    , pipelines : List Pipeline
-    , hovered : HoverState.HoverState
-    , pipelineRunningKeyframes : String
-    , resourceError : Bool
-    , pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobName)
-    , jobs : Dict ( Concourse.DatabaseID, String ) Concourse.Job
-    , section : PipelinesSection
-    , dashboardView : Routes.DashboardView
-    , query : String
-    , headerHeight : Float
-    }
+    Session
+    ->
+        { pipeline : Pipeline
+        , pipelines : List Pipeline
+        , resourceError : Bool
+        , pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobName)
+        , jobs : Dict ( Concourse.DatabaseID, String ) Concourse.Job
+        , section : PipelinesSection
+        , dashboardView : Routes.DashboardView
+        , query : String
+        , headerHeight : Float
+        }
     -> Html Message
-cardView { pipeline, pipelines, hovered, pipelineRunningKeyframes, resourceError, pipelineJobs, jobs, section, dashboardView, query, headerHeight } =
+cardView session { pipeline, pipelines, resourceError, pipelineJobs, jobs, section, dashboardView, query, headerHeight } =
     Html.div
         (Styles.instanceGroupCard
             ++ (if section == AllPipelinesSection && not pipeline.stale then
@@ -125,7 +128,8 @@ cardView { pipeline, pipelines, hovered, pipelineRunningKeyframes, resourceError
         )
         [ Html.div (class "banner" :: Styles.instanceGroupCardBanner) []
         , headerView section dashboardView query pipeline pipelines resourceError headerHeight
-        , bodyView pipelineRunningKeyframes section hovered (pipeline :: pipelines) pipelineJobs jobs
+        , bodyView session section (pipeline :: pipelines) pipelineJobs jobs
+        , footerView session pipeline section
         ]
 
 
@@ -143,13 +147,13 @@ headerView section dashboardView query pipeline pipelines resourceError headerHe
         ]
         [ Html.div
             (class "card-header" :: Styles.instanceGroupCardHeader headerHeight)
-            [ InstanceGroupBadge.view ColorValues.grey20 <| List.length (pipeline :: pipelines)
-            , Html.div
+            [ Html.div
                 (class "dashboard-group-name"
                     :: Styles.instanceGroupName
                     ++ Tooltip.hoverAttrs (InstanceGroupCardName section pipeline.teamName pipeline.name)
                 )
-                [ Html.text pipeline.name
+                [ InstanceGroupBadge.view ColorValues.grey20 <| List.length (pipeline :: pipelines)
+                , Html.text pipeline.name
                 ]
             , Html.div
                 [ classList [ ( "dashboard-resource-error", resourceError ) ] ]
@@ -159,17 +163,16 @@ headerView section dashboardView query pipeline pipelines resourceError headerHe
 
 
 bodyView :
-    String
+    Session
     -> PipelinesSection
-    -> HoverState.HoverState
     -> List Pipeline
     -> Dict Concourse.DatabaseID (List Concourse.JobName)
     -> Dict ( Concourse.DatabaseID, Concourse.JobName ) Concourse.Job
     -> Html Message
-bodyView pipelineRunningKeyframes section hovered pipelines pipelineJobs jobs =
+bodyView session section pipelines pipelineJobs jobs =
     let
         cols =
-            floor <| sqrt <| toFloat <| List.length pipelines
+            ceiling <| sqrt <| toFloat <| List.length pipelines
 
         padRow row =
             let
@@ -197,10 +200,10 @@ bodyView pipelineRunningKeyframes section hovered pipelines pipelineJobs jobs =
             in
             Html.div
                 (Styles.instanceGroupCardPipelineBox
-                    pipelineRunningKeyframes
+                    session.pipelineRunningKeyframes
                     (HoverState.isHovered
                         (PipelinePreview section p.id)
-                        hovered
+                        session.hovered
                     )
                     (pipelineStatus curPipelineJobs p)
                     ++ Tooltip.hoverAttrs (PipelinePreview section p.id)
@@ -240,3 +243,28 @@ bodyView pipelineRunningKeyframes section hovered pipelines pipelineJobs jobs =
                         (viewRow paddedRow)
                 )
         )
+
+
+footerView :
+    Session
+    -> Pipeline
+    -> PipelinesSection
+    -> Html Message
+footerView session pipeline section =
+    let
+        groupID =
+            Concourse.toInstanceGroupId pipeline
+
+        domID =
+            InstanceGroupCardFavoritedIcon section groupID
+
+        favoritedIcon =
+            Views.FavoritedIcon.view
+                { isFavorited = Favorites.isInstanceGroupFavorited session groupID
+                , isHovered = HoverState.isHovered domID session.hovered
+                , isSideBar = False
+                , domID = domID
+                }
+                []
+    in
+    Html.div (class "card-footer" :: Styles.instanceGroupCardFooter) [ favoritedIcon ]

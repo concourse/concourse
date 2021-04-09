@@ -80,6 +80,9 @@ func (builder Builder) WithWorker(worker atc.Worker) SetupFunc {
 			}
 
 			w, err = team.SaveWorker(worker, 0)
+			if err != nil {
+				return err
+			}
 		} else {
 			w, err = builder.WorkerFactory.SaveWorker(worker, 0)
 		}

@@ -1,7 +1,7 @@
 package testflight_test
 
 import (
-	"strings"
+	"regexp"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -16,7 +16,11 @@ var _ = Describe("A job with a task that has container limits", func() {
 		watch := spawnFly("trigger-job", "-j", inPipeline("container-limits-job"), "-w")
 		<-watch.Exited
 
-		if strings.Contains(string(watch.Out.Contents()), "memsw.limit_in_bytes: permission denied") {
+		match, _ := regexp.MatchString(`open /sys/fs/cgroup/memory/.*/memory\.memsw\.limit_in_bytes: (permission denied)?(no such file or directory)?`,
+			string(watch.Out.Contents()))
+
+		// Guardian runtime will always fail this test unless it's explicitly told not to set the swap limit
+		if match {
 			Skip("swap limits not enabled; skipping")
 		}
 
@@ -30,7 +34,11 @@ var _ = Describe("A job with a task that has container limits", func() {
 		watch := spawnFly("trigger-job", "-j", inPipeline("container-limits-failing-job"), "-w")
 		<-watch.Exited
 
-		if strings.Contains(string(watch.Out.Contents()), "memsw.limit_in_bytes: permission denied") {
+		match, _ := regexp.MatchString(`open /sys/fs/cgroup/memory/.*/memory\.memsw\.limit_in_bytes: (permission denied)?(no such file or directory)?`,
+			string(watch.Out.Contents()))
+
+		// Guardian runtime will always fail this test unless it's explicitly told not to set the swap limit
+		if match {
 			Skip("swap limits not enabled; skipping")
 		}
 
@@ -44,7 +52,7 @@ var _ = Describe("A job with a task that has container limits", func() {
 			"-s", "task-with-container-limits",
 			"--",
 			"cat",
-			"/sys/fs/cgroup/memory/memory.memsw.limit_in_bytes",
+			"/sys/fs/cgroup/memory/memory.limit_in_bytes",
 		)
 		Expect(interceptS).To(gbytes.Say("1073741824"))
 

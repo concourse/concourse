@@ -31,15 +31,16 @@ func (fake *FakeProvider) Tracer(arg1 string, arg2 ...trace.TracerOption) trace.
 		arg1 string
 		arg2 []trace.TracerOption
 	}{arg1, arg2})
+	stub := fake.TracerStub
+	fakeReturns := fake.tracerReturns
 	fake.recordInvocation("Tracer", []interface{}{arg1, arg2})
 	fake.tracerMutex.Unlock()
-	if fake.TracerStub != nil {
-		return fake.TracerStub(arg1, arg2...)
+	if stub != nil {
+		return stub(arg1, arg2...)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.tracerReturns
 	return fakeReturns.result1
 }
 

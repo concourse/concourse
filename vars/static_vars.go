@@ -5,6 +5,10 @@ type StaticVariables map[string]interface{}
 var _ Variables = StaticVariables{}
 
 func (v StaticVariables) Get(ref Reference) (interface{}, bool, error) {
+	if ref.Source != "" {
+		return nil, false, nil
+	}
+
 	val, found := v[ref.Path]
 	if !found {
 		return nil, false, nil

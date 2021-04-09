@@ -11,23 +11,30 @@ import Concourse
 
 type Card
     = PipelineCard Pipeline
+    | InstancedPipelineCard Pipeline
     | InstanceGroupCard Pipeline (List Pipeline)
 
 
-cardIdentifier : Card -> Int
+cardIdentifier : Card -> String
 cardIdentifier c =
     case c of
         PipelineCard p ->
-            p.id
+            String.fromInt p.id
+
+        InstancedPipelineCard p ->
+            String.fromInt p.id
 
         InstanceGroupCard p _ ->
-            p.id
+            p.teamName ++ "/" ++ p.name
 
 
 cardName : Card -> String
 cardName c =
     case c of
         PipelineCard p ->
+            p.name
+
+        InstancedPipelineCard p ->
             p.name
 
         InstanceGroupCard p _ ->
@@ -38,6 +45,9 @@ cardTeamName : Card -> String
 cardTeamName c =
     case c of
         PipelineCard p ->
+            p.teamName
+
+        InstancedPipelineCard p ->
             p.teamName
 
         InstanceGroupCard p _ ->

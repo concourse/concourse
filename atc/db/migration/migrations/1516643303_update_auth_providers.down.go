@@ -4,11 +4,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-
-	"github.com/hashicorp/go-multierror"
 )
 
-func (self *migrations) Down_1516643303() error {
+func (m *migrations) Down_1516643303() error {
 
 	type team struct {
 		id    int64
@@ -16,11 +14,7 @@ func (self *migrations) Down_1516643303() error {
 		nonce sql.NullString
 	}
 
-	tx, err := self.DB.Begin()
-	if err != nil {
-		return err
-	}
-
+	tx := m.Tx
 	rows, err := tx.Query("SELECT id, auth, nonce FROM teams")
 	if err != nil {
 		return err
@@ -40,7 +34,7 @@ func (self *migrations) Down_1516643303() error {
 
 	_, err = tx.Exec("ALTER TABLE teams ADD COLUMN basic_auth json")
 	if err != nil {
-		return rollback(tx, err)
+		return err
 	}
 
 	for _, team := range teams {
@@ -50,15 +44,15 @@ func (self *migrations) Down_1516643303() error {
 			noncense = &team.nonce.String
 		}
 
-		decryptedAuth, err := self.Strategy.Decrypt(string(team.auth), noncense)
+		decryptedAuth, err := m.Strategy.Decrypt(string(team.auth), noncense)
 		if err != nil {
-			return rollback(tx, err)
+			return err
 		}
 
 		var authConfig map[string]interface{}
 		err = json.Unmarshal(decryptedAuth, &authConfig)
 		if err != nil {
-			return rollback(tx, err)
+			return err
 		}
 
 		var basicAuthConfig map[string]string
@@ -69,7 +63,7 @@ func (self *migrations) Down_1516643303() error {
 				basicAuthConfig["basic_auth_username"] = configMap["username"].(string)
 				basicAuthConfig["basic_auth_password"] = configMap["password"].(string)
 			} else {
-				rollback(tx, errors.New("malformed basicauth provider"))
+				return errors.New("malformed basicauth provider")
 			}
 		}
 
@@ -83,34 +77,19 @@ func (self *migrations) Down_1516643303() error {
 
 		newBasicAuth, err := json.Marshal(basicAuthConfig)
 		if err != nil {
-			rollback(tx, err)
 			return err
 		}
 
-		encryptedAuth, noncense, err := self.Strategy.Encrypt(newAuth)
+		encryptedAuth, noncense, err := m.Strategy.Encrypt(newAuth)
 		if err != nil {
-			rollback(tx, err)
 			return err
 		}
 
 		_, err = tx.Exec("UPDATE teams SET basic_auth = $1, auth = $2, nonce = $3 WHERE id = $4", newBasicAuth, encryptedAuth, noncense, team.id)
 		if err != nil {
-			return rollback(tx, err)
+			return err
 		}
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		return rollback(tx, err)
-	}
-
 	return nil
-}
-
-func rollback(tx *sql.Tx, err error) error {
-	txErr := tx.Rollback()
-	if txErr != nil {
-		err = multierror.Append(err, txErr)
-	}
-	return err
 }

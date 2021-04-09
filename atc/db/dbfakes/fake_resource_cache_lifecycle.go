@@ -52,15 +52,16 @@ func (fake *FakeResourceCacheLifecycle) CleanBuildImageResourceCaches(arg1 lager
 	fake.cleanBuildImageResourceCachesArgsForCall = append(fake.cleanBuildImageResourceCachesArgsForCall, struct {
 		arg1 lager.Logger
 	}{arg1})
+	stub := fake.CleanBuildImageResourceCachesStub
+	fakeReturns := fake.cleanBuildImageResourceCachesReturns
 	fake.recordInvocation("CleanBuildImageResourceCaches", []interface{}{arg1})
 	fake.cleanBuildImageResourceCachesMutex.Unlock()
-	if fake.CleanBuildImageResourceCachesStub != nil {
-		return fake.CleanBuildImageResourceCachesStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.cleanBuildImageResourceCachesReturns
 	return fakeReturns.result1
 }
 
@@ -112,15 +113,16 @@ func (fake *FakeResourceCacheLifecycle) CleanUpInvalidCaches(arg1 lager.Logger) 
 	fake.cleanUpInvalidCachesArgsForCall = append(fake.cleanUpInvalidCachesArgsForCall, struct {
 		arg1 lager.Logger
 	}{arg1})
+	stub := fake.CleanUpInvalidCachesStub
+	fakeReturns := fake.cleanUpInvalidCachesReturns
 	fake.recordInvocation("CleanUpInvalidCaches", []interface{}{arg1})
 	fake.cleanUpInvalidCachesMutex.Unlock()
-	if fake.CleanUpInvalidCachesStub != nil {
-		return fake.CleanUpInvalidCachesStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.cleanUpInvalidCachesReturns
 	return fakeReturns.result1
 }
 
@@ -172,15 +174,16 @@ func (fake *FakeResourceCacheLifecycle) CleanUsesForFinishedBuilds(arg1 lager.Lo
 	fake.cleanUsesForFinishedBuildsArgsForCall = append(fake.cleanUsesForFinishedBuildsArgsForCall, struct {
 		arg1 lager.Logger
 	}{arg1})
+	stub := fake.CleanUsesForFinishedBuildsStub
+	fakeReturns := fake.cleanUsesForFinishedBuildsReturns
 	fake.recordInvocation("CleanUsesForFinishedBuilds", []interface{}{arg1})
 	fake.cleanUsesForFinishedBuildsMutex.Unlock()
-	if fake.CleanUsesForFinishedBuildsStub != nil {
-		return fake.CleanUsesForFinishedBuildsStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.cleanUsesForFinishedBuildsReturns
 	return fakeReturns.result1
 }
 

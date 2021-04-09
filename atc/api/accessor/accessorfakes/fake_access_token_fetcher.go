@@ -34,15 +34,16 @@ func (fake *FakeAccessTokenFetcher) GetAccessToken(arg1 string) (db.AccessToken,
 	fake.getAccessTokenArgsForCall = append(fake.getAccessTokenArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.GetAccessTokenStub
+	fakeReturns := fake.getAccessTokenReturns
 	fake.recordInvocation("GetAccessToken", []interface{}{arg1})
 	fake.getAccessTokenMutex.Unlock()
-	if fake.GetAccessTokenStub != nil {
-		return fake.GetAccessTokenStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.getAccessTokenReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 

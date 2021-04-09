@@ -18,16 +18,8 @@ type Pipeline struct {
 	Groups GroupConfigs
 }
 
-func (self *migrations) Up_1522178770() error {
-	tx, err := self.DB.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer func() {
-		_ = tx.Rollback()
-	}()
-
+func (m *migrations) Up_1522178770() error {
+	tx := m.Tx
 	rows, err := tx.Query("SELECT id, groups FROM pipelines")
 	if err != nil {
 		return err
@@ -79,5 +71,5 @@ func (self *migrations) Up_1522178770() error {
 		}
 	}
 
-	return tx.Commit()
+	return nil
 }

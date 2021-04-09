@@ -2,9 +2,11 @@ module SideBar.InstanceGroup exposing (instanceGroup)
 
 import Concourse
 import Dashboard.FilterBuilder exposing (instanceGroupFilter)
+import Favorites
 import HoverState
 import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import Routes
+import Set exposing (Set)
 import SideBar.Styles as Styles
 import SideBar.Views as Views
 
@@ -20,6 +22,7 @@ instanceGroup :
     { a
         | hovered : HoverState.HoverState
         , currentPipeline : Maybe (PipelineScoped b)
+        , favoritedInstanceGroups : Set ( Concourse.TeamName, Concourse.PipelineName )
         , isFavoritesSection : Bool
     }
     -> Concourse.Pipeline
@@ -52,6 +55,12 @@ instanceGroup params p ps =
 
         isHovered =
             HoverState.isHovered domID params.hovered
+
+        id =
+            Concourse.toInstanceGroupId p
+
+        isFavorited =
+            Favorites.isInstanceGroupFavorited params id
 
         color =
             if isHovered then
@@ -93,4 +102,9 @@ instanceGroup params p ps =
         { count = List.length (p :: ps)
         , color = color
         }
+    , starIcon =
+        { filled = isFavorited
+        , isBright = isHovered || isCurrent
+        }
+    , id = id
     }

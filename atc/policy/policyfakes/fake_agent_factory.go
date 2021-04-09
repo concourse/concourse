@@ -51,15 +51,16 @@ func (fake *FakeAgentFactory) Description() string {
 	ret, specificReturn := fake.descriptionReturnsOnCall[len(fake.descriptionArgsForCall)]
 	fake.descriptionArgsForCall = append(fake.descriptionArgsForCall, struct {
 	}{})
+	stub := fake.DescriptionStub
+	fakeReturns := fake.descriptionReturns
 	fake.recordInvocation("Description", []interface{}{})
 	fake.descriptionMutex.Unlock()
-	if fake.DescriptionStub != nil {
-		return fake.DescriptionStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.descriptionReturns
 	return fakeReturns.result1
 }
 
@@ -103,15 +104,16 @@ func (fake *FakeAgentFactory) IsConfigured() bool {
 	ret, specificReturn := fake.isConfiguredReturnsOnCall[len(fake.isConfiguredArgsForCall)]
 	fake.isConfiguredArgsForCall = append(fake.isConfiguredArgsForCall, struct {
 	}{})
+	stub := fake.IsConfiguredStub
+	fakeReturns := fake.isConfiguredReturns
 	fake.recordInvocation("IsConfigured", []interface{}{})
 	fake.isConfiguredMutex.Unlock()
-	if fake.IsConfiguredStub != nil {
-		return fake.IsConfiguredStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.isConfiguredReturns
 	return fakeReturns.result1
 }
 
@@ -156,15 +158,16 @@ func (fake *FakeAgentFactory) NewAgent(arg1 lager.Logger) (policy.Agent, error) 
 	fake.newAgentArgsForCall = append(fake.newAgentArgsForCall, struct {
 		arg1 lager.Logger
 	}{arg1})
+	stub := fake.NewAgentStub
+	fakeReturns := fake.newAgentReturns
 	fake.recordInvocation("NewAgent", []interface{}{arg1})
 	fake.newAgentMutex.Unlock()
-	if fake.NewAgentStub != nil {
-		return fake.NewAgentStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.newAgentReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

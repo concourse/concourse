@@ -1,30 +1,35 @@
 package web
 
 import (
+	"embed"
+	"fmt"
+	"io/fs"
 	"net/http"
+	"os"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/web/indexhandler"
-	"github.com/concourse/concourse/web/publichandler"
-	"github.com/concourse/concourse/web/robotshandler"
 )
 
-func NewHandler(logger lager.Logger) (http.Handler, error) {
-	indexHandler, err := indexhandler.NewHandler(logger)
-	if err != nil {
-		return nil, err
-	}
+//go:embed public
+var publicEmbed embed.FS
 
-	publicHandler, err := publichandler.NewHandler()
-	if err != nil {
-		return nil, err
+func NewHandler(logger lager.Logger, livePublicDir string) (http.Handler, error) {
+	var publicFS fs.FS
+	if livePublicDir != "" {
+		publicFS = os.DirFS(livePublicDir)
+	} else {
+		var err error
+		publicFS, err = fs.Sub(publicEmbed, "public")
+		if err != nil {
+			return nil, fmt.Errorf("public fs sub: %w", err)
+		}
 	}
-
-	robotsHandler := robotshandler.NewHandler()
 
 	webMux := http.NewServeMux()
-	webMux.Handle("/public/", publicHandler)
-	webMux.Handle("/robots.txt", robotsHandler)
-	webMux.Handle("/", indexHandler)
+
+	webMux.Handle("/public/", PublicHandler(publicFS))
+	webMux.Handle("/robots.txt", RobotsHandler)
+	webMux.Handle("/", IndexHandler(logger, publicFS))
+
 	return webMux, nil
 }

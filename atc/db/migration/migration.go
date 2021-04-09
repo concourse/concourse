@@ -2,8 +2,10 @@ package migration
 
 import (
 	"database/sql"
+	"embed"
 	"errors"
 	"fmt"
+	"io/fs"
 	"sort"
 	"time"
 
@@ -11,7 +13,6 @@ import (
 	"github.com/concourse/concourse/atc/db/encryption"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/migration/migrations"
-	"github.com/gobuffalo/packr"
 	multierror "github.com/hashicorp/go-multierror"
 	_ "github.com/lib/pq"
 )
@@ -122,7 +123,7 @@ func (helper *OpenHelper) migrateFromMigrationVersion(db *sql.DB) error {
 	}
 
 	if dbVersion != oldMigrationLastVersion {
-		return fmt.Errorf("Must upgrade from db version %d (concourse 3.6.0), current db version: %d", oldMigrationLastVersion, dbVersion)
+		return fmt.Errorf("must upgrade from db version %d (concourse 3.6.0), current db version: %d", oldMigrationLastVersion, dbVersion)
 	}
 
 	if _, err = db.Exec("DROP TABLE IF EXISTS migration_version"); err != nil {
@@ -150,39 +151,74 @@ type Migrator interface {
 	Migrations() ([]migration, error)
 }
 
+//go:embed migrations
+var migrationsEmbed embed.FS
+
 func NewMigrator(db *sql.DB, lockFactory lock.LockFactory) Migrator {
-	return NewMigratorForMigrations(db, lockFactory, &packrSource{packr.NewBox("./migrations")})
+	migrationsFS, err := fs.Sub(migrationsEmbed, "migrations")
+	if err != nil {
+		// impossible due to const value arg
+		panic(err)
+	}
+
+	return NewMigratorForMigrations(db, lockFactory, migrationsFS)
 }
 
-func NewMigratorForMigrations(db *sql.DB, lockFactory lock.LockFactory, bindata Bindata) Migrator {
+func NewMigratorForMigrations(db *sql.DB, lockFactory lock.LockFactory, migrationsFS fs.FS) Migrator {
 	return &migrator{
 		db,
 		lockFactory,
 		lager.NewLogger("migrations"),
-		bindata,
+		migrationsFS,
 	}
 }
 
 type migrator struct {
-	db          *sql.DB
-	lockFactory lock.LockFactory
-	logger      lager.Logger
-	bindata     Bindata
+	db           *sql.DB
+	lockFactory  lock.LockFactory
+	logger       lager.Logger
+	migrationsFS fs.FS
+}
+
+func (helper *migrator) Migrations() ([]migration, error) {
+	migrationList := []migration{}
+
+	assets, err := fs.ReadDir(helper.migrationsFS, ".")
+	if err != nil {
+		return nil, err
+	}
+
+	var parser = NewParser(helper.migrationsFS)
+	for _, asset := range assets {
+		if asset.Name() == "migrations.go" {
+			// special file declaring type for Go migrations
+			continue
+		}
+
+		parsedMigration, err := parser.ParseFileToMigration(asset.Name())
+		if err != nil {
+			return nil, fmt.Errorf("parse migration filename %s: %w", asset.Name(), err)
+		}
+
+		migrationList = append(migrationList, parsedMigration)
+	}
+
+	sortMigrations(migrationList)
+
+	return migrationList, nil
 }
 
 func (m *migrator) SupportedVersion() (int, error) {
-	matches := []migration{}
-
-	assets := m.bindata.AssetNames()
-
-	var parser = NewParser(m.bindata)
-	for _, match := range assets {
-		if migration, err := parser.ParseMigrationFilename(match); err == nil {
-			matches = append(matches, migration)
-		}
+	migrations, err := m.Migrations()
+	if err != nil {
+		return 0, fmt.Errorf("list migrations: %w", err)
 	}
-	sortMigrations(matches)
-	return matches[len(matches)-1].Version, nil
+
+	if len(migrations) == 0 {
+		return 0, fmt.Errorf("no migrations")
+	}
+
+	return migrations[len(migrations)-1].Version, nil
 }
 
 func (helper *migrator) CurrentVersion() (int, error) {
@@ -343,58 +379,46 @@ func (m *migrator) recordMigrationFailure(migration migration, migrationErr erro
 	return migrationErr
 }
 
-func (m *migrator) runMigration(migration migration, strategy encryption.Strategy) error {
-	var err error
+func (m *migrator) runMigration(migration migration, strategy encryption.Strategy) (err error) {
+	tx, err := m.db.Begin()
+	if err != nil {
+		return err
+	}
 
-	switch migration.Strategy {
-	case GoMigration:
-		err = migrations.NewMigrations(m.db, strategy).Run(migration.Name)
+	defer func() {
 		if err != nil {
-			return m.recordMigrationFailure(
-				migration,
-				fmt.Errorf("migration '%s' failed: %w", migration.Name, err),
-				false,
-			)
-		}
-	case SQLMigration:
-		_, err = m.db.Exec(migration.Statements)
-		if err != nil {
-			// rollback in case the migration was BEGIN ... COMMIT and failed
-			//
-			// note that this succeeds and does a no-op (with a warning) if no
-			// transaction was opened; we're just OK with that
-			_, rbErr := m.db.Exec(`ROLLBACK`)
-			if rbErr != nil {
-				return multierror.Append(err, fmt.Errorf("rollback failed: %w", rbErr))
-			}
-
-			return m.recordMigrationFailure(
+			err = m.recordMigrationFailure(
 				migration,
 				fmt.Errorf("migration '%s' failed and was rolled back: %w", migration.Name, err),
 				false,
 			)
+
+			rbErr := tx.Rollback()
+			if rbErr != nil {
+				err = multierror.Append(err, fmt.Errorf("rollback failed: %w", rbErr))
+			}
 		}
-	}
+	}()
 
-	_, err = m.db.Exec("INSERT INTO migrations_history (version, tstamp, direction, status, dirty) VALUES ($1, current_timestamp, $2, 'passed', false)", migration.Version, migration.Direction)
-	return err
-}
-
-func (helper *migrator) Migrations() ([]migration, error) {
-	migrationList := []migration{}
-	assets := helper.bindata.AssetNames()
-	var parser = NewParser(helper.bindata)
-	for _, assetName := range assets {
-		parsedMigration, err := parser.ParseFileToMigration(assetName)
+	switch migration.Strategy {
+	case GoMigration:
+		err = migrations.NewMigrations(tx, strategy).Run(migration.Name)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		migrationList = append(migrationList, parsedMigration)
+	case SQLMigration:
+		_, err = tx.Exec(migration.Statements)
+		if err != nil {
+			return err
+		}
 	}
 
-	sortMigrations(migrationList)
+	_, err = tx.Exec("INSERT INTO migrations_history (version, tstamp, direction, status, dirty) VALUES ($1, current_timestamp, $2, 'passed', false)", migration.Version, migration.Direction)
+	if err != nil {
+		return err
+	}
 
-	return migrationList, nil
+	return tx.Commit()
 }
 
 func (helper *migrator) Up(newKey, oldKey *encryption.Key) error {

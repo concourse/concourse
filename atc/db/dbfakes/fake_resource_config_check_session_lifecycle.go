@@ -37,15 +37,16 @@ func (fake *FakeResourceConfigCheckSessionLifecycle) CleanExpiredResourceConfigC
 	ret, specificReturn := fake.cleanExpiredResourceConfigCheckSessionsReturnsOnCall[len(fake.cleanExpiredResourceConfigCheckSessionsArgsForCall)]
 	fake.cleanExpiredResourceConfigCheckSessionsArgsForCall = append(fake.cleanExpiredResourceConfigCheckSessionsArgsForCall, struct {
 	}{})
+	stub := fake.CleanExpiredResourceConfigCheckSessionsStub
+	fakeReturns := fake.cleanExpiredResourceConfigCheckSessionsReturns
 	fake.recordInvocation("CleanExpiredResourceConfigCheckSessions", []interface{}{})
 	fake.cleanExpiredResourceConfigCheckSessionsMutex.Unlock()
-	if fake.CleanExpiredResourceConfigCheckSessionsStub != nil {
-		return fake.CleanExpiredResourceConfigCheckSessionsStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.cleanExpiredResourceConfigCheckSessionsReturns
 	return fakeReturns.result1
 }
 
@@ -89,15 +90,16 @@ func (fake *FakeResourceConfigCheckSessionLifecycle) CleanInactiveResourceConfig
 	ret, specificReturn := fake.cleanInactiveResourceConfigCheckSessionsReturnsOnCall[len(fake.cleanInactiveResourceConfigCheckSessionsArgsForCall)]
 	fake.cleanInactiveResourceConfigCheckSessionsArgsForCall = append(fake.cleanInactiveResourceConfigCheckSessionsArgsForCall, struct {
 	}{})
+	stub := fake.CleanInactiveResourceConfigCheckSessionsStub
+	fakeReturns := fake.cleanInactiveResourceConfigCheckSessionsReturns
 	fake.recordInvocation("CleanInactiveResourceConfigCheckSessions", []interface{}{})
 	fake.cleanInactiveResourceConfigCheckSessionsMutex.Unlock()
-	if fake.CleanInactiveResourceConfigCheckSessionsStub != nil {
-		return fake.CleanInactiveResourceConfigCheckSessionsStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.cleanInactiveResourceConfigCheckSessionsReturns
 	return fakeReturns.result1
 }
 

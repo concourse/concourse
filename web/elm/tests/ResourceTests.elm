@@ -291,6 +291,78 @@ all =
                     |> queryView
                     |> Query.find (versionSelector version)
                     |> Query.has [ text "some-build" ]
+        , describe "when the url contains a version" <|
+            let
+                initWithVersion =
+                    initQuery "filter=version:v2"
+            in
+            [ describe "when the version is valid"
+                [ test "it navigates to that page" <|
+                    \_ ->
+                        initWithVersion
+                            |> Application.handleCallback
+                                (Callback.VersionedResourceIdFetched
+                                    (Ok
+                                        (Just <| Data.versionedResource otherVersion 42)
+                                    )
+                                )
+                            |> Tuple.second
+                            |> Common.contains
+                                (Effects.FetchVersionedResources Data.resourceId
+                                    { direction = To 42
+                                    , limit = 100
+                                    }
+                                )
+                , test "it expands the correct version" <|
+                    let
+                        givenVersionIsValid =
+                            Application.handleCallback
+                                (Callback.VersionedResourceIdFetched
+                                    (Ok
+                                        (Just <| Data.versionedResource otherVersion 42)
+                                    )
+                                )
+                                >> Tuple.first
+                    in
+                    \_ ->
+                        initWithVersion
+                            |> givenResourceIsNotPinned
+                            |> givenVersionIsValid
+                            |> Application.handleCallback
+                                (Callback.VersionedResourcesFetched
+                                    (Ok
+                                        ( { direction = To 42
+                                          , limit = 100
+                                          }
+                                        , { content = [ Data.versionedResource otherVersion 42 ]
+                                          , pagination = { previousPage = Nothing, nextPage = Nothing }
+                                          }
+                                        )
+                                    )
+                                )
+                            |> Tuple.first
+                            |> queryView
+                            |> Query.find (versionSelector otherVersion)
+                            |> Query.has [ text "metadata" ]
+                ]
+            , describe "when the version is invalid" <|
+                [ test "it defaults to the most recent versions" <|
+                    let
+                        givenVersionIsInvalid =
+                            Application.handleCallback
+                                (Callback.VersionedResourceIdFetched
+                                    (Ok Nothing)
+                                )
+                    in
+                    \_ ->
+                        initWithVersion
+                            |> givenResourceIsNotPinned
+                            |> givenVersionIsInvalid
+                            |> Tuple.second
+                            |> Common.contains
+                                (Effects.FetchVersionedResources Data.resourceId Resource.startingPage)
+                ]
+            ]
         , describe "page header with icon" <|
             let
                 pageHeader =
@@ -1113,6 +1185,7 @@ all =
                         Resource.init
                             { resourceId = Data.resourceId
                             , paging = Nothing
+                            , highlightVersion = Nothing
                             }
                             |> Resource.handleCallback
                                 (Callback.ResourceFetched <|
@@ -1158,6 +1231,7 @@ all =
                         Resource.init
                             { resourceId = Data.resourceId
                             , paging = Nothing
+                            , highlightVersion = Nothing
                             }
                             |> Resource.handleCallback
                                 (Callback.ResourceFetched <|
@@ -1204,6 +1278,7 @@ all =
                         Resource.init
                             { resourceId = Data.resourceId
                             , paging = Nothing
+                            , highlightVersion = Nothing
                             }
                             |> Resource.handleDelivery session (ClockTicked OneSecond (Time.millisToPosix 1000))
                             |> Resource.handleCallback
@@ -1254,6 +1329,7 @@ all =
                         Resource.init
                             { resourceId = Data.resourceId
                             , paging = Nothing
+                            , highlightVersion = Nothing
                             }
                             |> Resource.handleDelivery session (ClockTicked OneSecond (Time.millisToPosix 1000))
                             |> Resource.handleCallback
@@ -2881,6 +2957,18 @@ all =
                             )
                         |> Tuple.second
                         |> Common.contains (Effects.FetchBuildPlan 2)
+            , test "check with build closes build event stream when build changes" <|
+                \_ ->
+                    init
+                        |> Application.handleCallback
+                            (Callback.ResourceFetched <| Ok resource)
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.ResourceFetched <|
+                                Ok { resource | build = Just { baseBuild | id = 2 } }
+                            )
+                        |> Tuple.second
+                        |> Common.contains (Effects.CloseBuildEventStream)
             , describe "build events subscription" <|
                 [ test "after build plan is received, opens event stream" <|
                     \_ ->
@@ -3388,6 +3476,19 @@ flags =
     }
 
 
+initQuery : String -> Application.Model
+initQuery query =
+    Common.initQuery
+        ("/teams/"
+            ++ teamName
+            ++ "/pipelines/"
+            ++ pipelineName
+            ++ "/resources/"
+            ++ resourceName
+        )
+        (Just query)
+
+
 init : Application.Model
 init =
     Common.init
@@ -3879,7 +3980,8 @@ session =
         }
     , draggingSideBar = False
     , favoritedPipelines = Set.empty
+    , favoritedInstanceGroups = Set.empty
     , screenSize = ScreenSize.Desktop
     , timeZone = Time.utc
-    , route = Routes.Resource { id = Data.resourceId, page = Nothing }
+    , route = Routes.Resource { id = Data.resourceId, page = Nothing, version = Nothing }
     }

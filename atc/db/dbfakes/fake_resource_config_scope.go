@@ -144,15 +144,16 @@ func (fake *FakeResourceConfigScope) AcquireResourceCheckingLock(arg1 lager.Logg
 	fake.acquireResourceCheckingLockArgsForCall = append(fake.acquireResourceCheckingLockArgsForCall, struct {
 		arg1 lager.Logger
 	}{arg1})
+	stub := fake.AcquireResourceCheckingLockStub
+	fakeReturns := fake.acquireResourceCheckingLockReturns
 	fake.recordInvocation("AcquireResourceCheckingLock", []interface{}{arg1})
 	fake.acquireResourceCheckingLockMutex.Unlock()
-	if fake.AcquireResourceCheckingLockStub != nil {
-		return fake.AcquireResourceCheckingLockStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.acquireResourceCheckingLockReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -210,15 +211,16 @@ func (fake *FakeResourceConfigScope) FindVersion(arg1 atc.Version) (db.ResourceC
 	fake.findVersionArgsForCall = append(fake.findVersionArgsForCall, struct {
 		arg1 atc.Version
 	}{arg1})
+	stub := fake.FindVersionStub
+	fakeReturns := fake.findVersionReturns
 	fake.recordInvocation("FindVersion", []interface{}{arg1})
 	fake.findVersionMutex.Unlock()
-	if fake.FindVersionStub != nil {
-		return fake.FindVersionStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.findVersionReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -275,15 +277,16 @@ func (fake *FakeResourceConfigScope) ID() int {
 	ret, specificReturn := fake.iDReturnsOnCall[len(fake.iDArgsForCall)]
 	fake.iDArgsForCall = append(fake.iDArgsForCall, struct {
 	}{})
+	stub := fake.IDStub
+	fakeReturns := fake.iDReturns
 	fake.recordInvocation("ID", []interface{}{})
 	fake.iDMutex.Unlock()
-	if fake.IDStub != nil {
-		return fake.IDStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.iDReturns
 	return fakeReturns.result1
 }
 
@@ -327,15 +330,16 @@ func (fake *FakeResourceConfigScope) LastCheckEndTime() (time.Time, error) {
 	ret, specificReturn := fake.lastCheckEndTimeReturnsOnCall[len(fake.lastCheckEndTimeArgsForCall)]
 	fake.lastCheckEndTimeArgsForCall = append(fake.lastCheckEndTimeArgsForCall, struct {
 	}{})
+	stub := fake.LastCheckEndTimeStub
+	fakeReturns := fake.lastCheckEndTimeReturns
 	fake.recordInvocation("LastCheckEndTime", []interface{}{})
 	fake.lastCheckEndTimeMutex.Unlock()
-	if fake.LastCheckEndTimeStub != nil {
-		return fake.LastCheckEndTimeStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.lastCheckEndTimeReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -382,15 +386,16 @@ func (fake *FakeResourceConfigScope) LatestVersion() (db.ResourceConfigVersion, 
 	ret, specificReturn := fake.latestVersionReturnsOnCall[len(fake.latestVersionArgsForCall)]
 	fake.latestVersionArgsForCall = append(fake.latestVersionArgsForCall, struct {
 	}{})
+	stub := fake.LatestVersionStub
+	fakeReturns := fake.latestVersionReturns
 	fake.recordInvocation("LatestVersion", []interface{}{})
 	fake.latestVersionMutex.Unlock()
-	if fake.LatestVersionStub != nil {
-		return fake.LatestVersionStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.latestVersionReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -440,15 +445,16 @@ func (fake *FakeResourceConfigScope) Resource() db.Resource {
 	ret, specificReturn := fake.resourceReturnsOnCall[len(fake.resourceArgsForCall)]
 	fake.resourceArgsForCall = append(fake.resourceArgsForCall, struct {
 	}{})
+	stub := fake.ResourceStub
+	fakeReturns := fake.resourceReturns
 	fake.recordInvocation("Resource", []interface{}{})
 	fake.resourceMutex.Unlock()
-	if fake.ResourceStub != nil {
-		return fake.ResourceStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.resourceReturns
 	return fakeReturns.result1
 }
 
@@ -492,15 +498,16 @@ func (fake *FakeResourceConfigScope) ResourceConfig() db.ResourceConfig {
 	ret, specificReturn := fake.resourceConfigReturnsOnCall[len(fake.resourceConfigArgsForCall)]
 	fake.resourceConfigArgsForCall = append(fake.resourceConfigArgsForCall, struct {
 	}{})
+	stub := fake.ResourceConfigStub
+	fakeReturns := fake.resourceConfigReturns
 	fake.recordInvocation("ResourceConfig", []interface{}{})
 	fake.resourceConfigMutex.Unlock()
-	if fake.ResourceConfigStub != nil {
-		return fake.ResourceConfigStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.resourceConfigReturns
 	return fakeReturns.result1
 }
 
@@ -551,15 +558,16 @@ func (fake *FakeResourceConfigScope) SaveVersions(arg1 db.SpanContext, arg2 []at
 		arg1 db.SpanContext
 		arg2 []atc.Version
 	}{arg1, arg2Copy})
+	stub := fake.SaveVersionsStub
+	fakeReturns := fake.saveVersionsReturns
 	fake.recordInvocation("SaveVersions", []interface{}{arg1, arg2Copy})
 	fake.saveVersionsMutex.Unlock()
-	if fake.SaveVersionsStub != nil {
-		return fake.SaveVersionsStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.saveVersionsReturns
 	return fakeReturns.result1
 }
 
@@ -610,15 +618,16 @@ func (fake *FakeResourceConfigScope) UpdateLastCheckEndTime() (bool, error) {
 	ret, specificReturn := fake.updateLastCheckEndTimeReturnsOnCall[len(fake.updateLastCheckEndTimeArgsForCall)]
 	fake.updateLastCheckEndTimeArgsForCall = append(fake.updateLastCheckEndTimeArgsForCall, struct {
 	}{})
+	stub := fake.UpdateLastCheckEndTimeStub
+	fakeReturns := fake.updateLastCheckEndTimeReturns
 	fake.recordInvocation("UpdateLastCheckEndTime", []interface{}{})
 	fake.updateLastCheckEndTimeMutex.Unlock()
-	if fake.UpdateLastCheckEndTimeStub != nil {
-		return fake.UpdateLastCheckEndTimeStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.updateLastCheckEndTimeReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -665,15 +674,16 @@ func (fake *FakeResourceConfigScope) UpdateLastCheckStartTime() (bool, error) {
 	ret, specificReturn := fake.updateLastCheckStartTimeReturnsOnCall[len(fake.updateLastCheckStartTimeArgsForCall)]
 	fake.updateLastCheckStartTimeArgsForCall = append(fake.updateLastCheckStartTimeArgsForCall, struct {
 	}{})
+	stub := fake.UpdateLastCheckStartTimeStub
+	fakeReturns := fake.updateLastCheckStartTimeReturns
 	fake.recordInvocation("UpdateLastCheckStartTime", []interface{}{})
 	fake.updateLastCheckStartTimeMutex.Unlock()
-	if fake.UpdateLastCheckStartTimeStub != nil {
-		return fake.UpdateLastCheckStartTimeStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.updateLastCheckStartTimeReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

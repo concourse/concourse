@@ -100,6 +100,11 @@ type FakeSetPipelineStepDelegate struct {
 	stdoutReturnsOnCall map[int]struct {
 		result1 io.Writer
 	}
+	WaitingForWorkerStub        func(lager.Logger)
+	waitingForWorkerMutex       sync.RWMutex
+	waitingForWorkerArgsForCall []struct {
+		arg1 lager.Logger
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -110,9 +115,10 @@ func (fake *FakeSetPipelineStepDelegate) Errored(arg1 lager.Logger, arg2 string)
 		arg1 lager.Logger
 		arg2 string
 	}{arg1, arg2})
+	stub := fake.ErroredStub
 	fake.recordInvocation("Errored", []interface{}{arg1, arg2})
 	fake.erroredMutex.Unlock()
-	if fake.ErroredStub != nil {
+	if stub != nil {
 		fake.ErroredStub(arg1, arg2)
 	}
 }
@@ -145,15 +151,16 @@ func (fake *FakeSetPipelineStepDelegate) FetchImage(arg1 context.Context, arg2 a
 		arg3 atc.VersionedResourceTypes
 		arg4 bool
 	}{arg1, arg2, arg3, arg4})
+	stub := fake.FetchImageStub
+	fakeReturns := fake.fetchImageReturns
 	fake.recordInvocation("FetchImage", []interface{}{arg1, arg2, arg3, arg4})
 	fake.fetchImageMutex.Unlock()
-	if fake.FetchImageStub != nil {
-		return fake.FetchImageStub(arg1, arg2, arg3, arg4)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.fetchImageReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -208,9 +215,10 @@ func (fake *FakeSetPipelineStepDelegate) Finished(arg1 lager.Logger, arg2 bool) 
 		arg1 lager.Logger
 		arg2 bool
 	}{arg1, arg2})
+	stub := fake.FinishedStub
 	fake.recordInvocation("Finished", []interface{}{arg1, arg2})
 	fake.finishedMutex.Unlock()
-	if fake.FinishedStub != nil {
+	if stub != nil {
 		fake.FinishedStub(arg1, arg2)
 	}
 }
@@ -239,9 +247,10 @@ func (fake *FakeSetPipelineStepDelegate) Initializing(arg1 lager.Logger) {
 	fake.initializingArgsForCall = append(fake.initializingArgsForCall, struct {
 		arg1 lager.Logger
 	}{arg1})
+	stub := fake.InitializingStub
 	fake.recordInvocation("Initializing", []interface{}{arg1})
 	fake.initializingMutex.Unlock()
-	if fake.InitializingStub != nil {
+	if stub != nil {
 		fake.InitializingStub(arg1)
 	}
 }
@@ -271,9 +280,10 @@ func (fake *FakeSetPipelineStepDelegate) SelectedWorker(arg1 lager.Logger, arg2 
 		arg1 lager.Logger
 		arg2 string
 	}{arg1, arg2})
+	stub := fake.SelectedWorkerStub
 	fake.recordInvocation("SelectedWorker", []interface{}{arg1, arg2})
 	fake.selectedWorkerMutex.Unlock()
-	if fake.SelectedWorkerStub != nil {
+	if stub != nil {
 		fake.SelectedWorkerStub(arg1, arg2)
 	}
 }
@@ -303,9 +313,10 @@ func (fake *FakeSetPipelineStepDelegate) SetPipelineChanged(arg1 lager.Logger, a
 		arg1 lager.Logger
 		arg2 bool
 	}{arg1, arg2})
+	stub := fake.SetPipelineChangedStub
 	fake.recordInvocation("SetPipelineChanged", []interface{}{arg1, arg2})
 	fake.setPipelineChangedMutex.Unlock()
-	if fake.SetPipelineChangedStub != nil {
+	if stub != nil {
 		fake.SetPipelineChangedStub(arg1, arg2)
 	}
 }
@@ -337,15 +348,16 @@ func (fake *FakeSetPipelineStepDelegate) StartSpan(arg1 context.Context, arg2 st
 		arg2 string
 		arg3 tracing.Attrs
 	}{arg1, arg2, arg3})
+	stub := fake.StartSpanStub
+	fakeReturns := fake.startSpanReturns
 	fake.recordInvocation("StartSpan", []interface{}{arg1, arg2, arg3})
 	fake.startSpanMutex.Unlock()
-	if fake.StartSpanStub != nil {
-		return fake.StartSpanStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.startSpanReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -399,9 +411,10 @@ func (fake *FakeSetPipelineStepDelegate) Starting(arg1 lager.Logger) {
 	fake.startingArgsForCall = append(fake.startingArgsForCall, struct {
 		arg1 lager.Logger
 	}{arg1})
+	stub := fake.StartingStub
 	fake.recordInvocation("Starting", []interface{}{arg1})
 	fake.startingMutex.Unlock()
-	if fake.StartingStub != nil {
+	if stub != nil {
 		fake.StartingStub(arg1)
 	}
 }
@@ -430,15 +443,16 @@ func (fake *FakeSetPipelineStepDelegate) Stderr() io.Writer {
 	ret, specificReturn := fake.stderrReturnsOnCall[len(fake.stderrArgsForCall)]
 	fake.stderrArgsForCall = append(fake.stderrArgsForCall, struct {
 	}{})
+	stub := fake.StderrStub
+	fakeReturns := fake.stderrReturns
 	fake.recordInvocation("Stderr", []interface{}{})
 	fake.stderrMutex.Unlock()
-	if fake.StderrStub != nil {
-		return fake.StderrStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.stderrReturns
 	return fakeReturns.result1
 }
 
@@ -482,15 +496,16 @@ func (fake *FakeSetPipelineStepDelegate) Stdout() io.Writer {
 	ret, specificReturn := fake.stdoutReturnsOnCall[len(fake.stdoutArgsForCall)]
 	fake.stdoutArgsForCall = append(fake.stdoutArgsForCall, struct {
 	}{})
+	stub := fake.StdoutStub
+	fakeReturns := fake.stdoutReturns
 	fake.recordInvocation("Stdout", []interface{}{})
 	fake.stdoutMutex.Unlock()
-	if fake.StdoutStub != nil {
-		return fake.StdoutStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.stdoutReturns
 	return fakeReturns.result1
 }
 
@@ -529,6 +544,38 @@ func (fake *FakeSetPipelineStepDelegate) StdoutReturnsOnCall(i int, result1 io.W
 	}{result1}
 }
 
+func (fake *FakeSetPipelineStepDelegate) WaitingForWorker(arg1 lager.Logger) {
+	fake.waitingForWorkerMutex.Lock()
+	fake.waitingForWorkerArgsForCall = append(fake.waitingForWorkerArgsForCall, struct {
+		arg1 lager.Logger
+	}{arg1})
+	stub := fake.WaitingForWorkerStub
+	fake.recordInvocation("WaitingForWorker", []interface{}{arg1})
+	fake.waitingForWorkerMutex.Unlock()
+	if stub != nil {
+		fake.WaitingForWorkerStub(arg1)
+	}
+}
+
+func (fake *FakeSetPipelineStepDelegate) WaitingForWorkerCallCount() int {
+	fake.waitingForWorkerMutex.RLock()
+	defer fake.waitingForWorkerMutex.RUnlock()
+	return len(fake.waitingForWorkerArgsForCall)
+}
+
+func (fake *FakeSetPipelineStepDelegate) WaitingForWorkerCalls(stub func(lager.Logger)) {
+	fake.waitingForWorkerMutex.Lock()
+	defer fake.waitingForWorkerMutex.Unlock()
+	fake.WaitingForWorkerStub = stub
+}
+
+func (fake *FakeSetPipelineStepDelegate) WaitingForWorkerArgsForCall(i int) lager.Logger {
+	fake.waitingForWorkerMutex.RLock()
+	defer fake.waitingForWorkerMutex.RUnlock()
+	argsForCall := fake.waitingForWorkerArgsForCall[i]
+	return argsForCall.arg1
+}
+
 func (fake *FakeSetPipelineStepDelegate) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -552,6 +599,8 @@ func (fake *FakeSetPipelineStepDelegate) Invocations() map[string][][]interface{
 	defer fake.stderrMutex.RUnlock()
 	fake.stdoutMutex.RLock()
 	defer fake.stdoutMutex.RUnlock()
+	fake.waitingForWorkerMutex.RLock()
+	defer fake.waitingForWorkerMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

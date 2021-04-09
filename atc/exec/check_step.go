@@ -163,6 +163,7 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 			}
 		}
 
+		// TODO: deprecate it.
 		metric.Metrics.ChecksStarted.Inc()
 
 		_, err = scope.UpdateLastCheckStartTime()
@@ -172,6 +173,7 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 
 		result, runErr := step.runCheck(ctx, logger, delegate, timeout, resourceConfig, source, resourceTypes, fromVersion)
 		if runErr != nil {
+			// TODO: deprecate it.
 			metric.Metrics.ChecksFinishedWithError.Inc()
 
 			if _, err := scope.UpdateLastCheckEndTime(); err != nil {
@@ -195,6 +197,7 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 			return false, fmt.Errorf("run check: %w", runErr)
 		}
 
+		// TODO: deprecate it.
 		metric.Metrics.ChecksFinishedWithSuccess.Inc()
 
 		err = scope.SaveVersions(db.NewSpanContext(ctx), result.Versions)
@@ -275,11 +278,13 @@ func (step *CheckStep) runCheck(
 
 	containerSpec := worker.ContainerSpec{
 		ImageSpec: imageSpec,
+		TeamID:    step.metadata.TeamID,
+		Type:      step.containerMetadata.Type,
+
 		BindMounts: []worker.BindMountSource{
 			&worker.CertsVolumeMount{Logger: logger},
 		},
-		TeamID: step.metadata.TeamID,
-		Env:    step.metadata.Env(),
+		Env: step.metadata.Env(),
 	}
 	tracing.Inject(ctx, &containerSpec)
 
@@ -295,24 +300,35 @@ func (step *CheckStep) runCheck(
 		StderrWriter: delegate.Stderr(),
 	}
 
+	chosenWorker, _, err := step.workerPool.SelectWorker(
+		lagerctx.NewContext(ctx, logger),
+		step.containerOwner(resourceConfig),
+		containerSpec,
+		workerSpec,
+		step.strategy,
+		delegate,
+	)
+	if err != nil {
+		return worker.CheckResult{}, err
+	}
+
+	delegate.SelectedWorker(logger, chosenWorker.Name())
+
+	defer func() {
+		step.workerPool.ReleaseWorker(
+			lagerctx.NewContext(ctx, logger),
+			containerSpec,
+			chosenWorker,
+			step.strategy,
+		)
+	}()
+
 	processCtx, cancel, err := MaybeTimeout(ctx, step.plan.Timeout)
 	if err != nil {
 		return worker.CheckResult{}, err
 	}
 
 	defer cancel()
-
-	chosenWorker, err := step.workerPool.SelectWorker(
-		lagerctx.NewContext(processCtx, logger),
-		step.containerOwner(resourceConfig),
-		containerSpec,
-		workerSpec,
-		step.strategy,
-	)
-	if err != nil {
-		return worker.CheckResult{}, err
-	}
-	delegate.SelectedWorker(logger, chosenWorker.Name())
 
 	return chosenWorker.RunCheckStep(
 		lagerctx.NewContext(processCtx, logger),

@@ -97,8 +97,10 @@ func (emitter *NewRelicEmitter) Emit(logger lager.Logger, event metric.Event) {
 	// These are the simple ones that only need a small name transformation
 	case "build started",
 		"build finished",
-		"checks finished",
-		"checks started",
+		"check build started",
+		"check build finished",
+		"checks finished", // TODO: deprecate, use "check build finished" instead.
+		"checks started",  // TODO: deprecate, use "check build started" instead.
 		"checks enqueued",
 		"checks queue size",
 		"worker containers",
@@ -118,8 +120,6 @@ func (emitter *NewRelicEmitter) Emit(logger lager.Logger, event metric.Event) {
 	// periodic list, so we should have a coherent view). We do this because
 	// new relic has a hard limit on the total number of metrics in a 24h
 	// period, so batching similar data where possible makes sense.
-	case "checks deleted":
-		emitter.checks.deleted = event.Value
 	case "containers deleted":
 		emitter.containers.deleted = event.Value
 	case "containers created":
@@ -222,12 +222,12 @@ func (emitter *NewRelicEmitter) emitBatch(logger lager.Logger, payload []NewReli
 	}
 
 	resp, err := emitter.Client.Do(req)
-	defer resp.Body.Close()
 	if err != nil {
 		logger.Error("failed-to-send-request",
 			errors.Wrap(metric.ErrFailedToEmit, err.Error()))
 		return
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
 		bodyBytes, err := ioutil.ReadAll(resp.Body)

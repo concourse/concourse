@@ -56,7 +56,6 @@ all =
                             Tooltip
                                 (PipelineCardFavoritedIcon AllPipelinesSection 1)
                                 Data.elementPosition
-                        , pipelines = Success [ Data.pipeline "team" 1 ]
                     }
                     |> Maybe.map .body
                     |> Maybe.withDefault (Html.text "")
@@ -70,8 +69,36 @@ all =
                             Tooltip
                                 (PipelineCardFavoritedIcon AllPipelinesSection 1)
                                 Data.elementPosition
-                        , pipelines = Success [ Data.pipeline "team" 1 ]
                         , favoritedPipelines = Set.singleton 1
+                    }
+                    |> Maybe.map .body
+                    |> Maybe.withDefault (Html.text "")
+                    |> Query.fromHtml
+                    |> Query.has [ text "unfavorite" ]
+        , test "says 'favorite' when an unfavorited instance group is hovered" <|
+            \_ ->
+                Dashboard.tooltip
+                    { session
+                        | hovered =
+                            Tooltip
+                                (InstanceGroupCardFavoritedIcon AllPipelinesSection { teamName = "team", name = "group" })
+                                Data.elementPosition
+                        , pipelines = Success [ Data.pipeline "team" 1 ]
+                    }
+                    |> Maybe.map .body
+                    |> Maybe.withDefault (Html.text "")
+                    |> Query.fromHtml
+                    |> Query.has [ text "favorite" ]
+        , test "says 'unfavorite' when a favorited instance group is hovered" <|
+            \_ ->
+                Dashboard.tooltip
+                    { session
+                        | hovered =
+                            Tooltip
+                                (InstanceGroupCardFavoritedIcon AllPipelinesSection { teamName = "team", name = "group" })
+                                Data.elementPosition
+                        , pipelines = Success [ Data.pipeline "team" 1 ]
+                        , favoritedInstanceGroups = Set.singleton ( "team", "group" )
                     }
                     |> Maybe.map .body
                     |> Maybe.withDefault (Html.text "")
@@ -235,6 +262,24 @@ all =
                     |> Maybe.withDefault (Html.text "")
                     |> Query.fromHtml
                     |> Query.has [ text "foo.bar: some-value" ]
+        , test "displays instance var key: value when hovering over pipeline card instance vars in favorites" <|
+            \_ ->
+                Dashboard.tooltip
+                    { session
+                        | hovered =
+                            Tooltip
+                                (PipelineCardInstanceVars AllPipelinesSection 1 <|
+                                    Dict.fromList
+                                        [ ( "foo", JsonString "bar" )
+                                        , ( "baz", JsonObject [ ( "qux", JsonNumber 123 ) ] )
+                                        ]
+                                )
+                                Data.elementPosition
+                    }
+                    |> Maybe.map .body
+                    |> Maybe.withDefault (Html.text "")
+                    |> Query.fromHtml
+                    |> Query.has [ text "baz.qux:123, foo:bar" ]
         ]
 
 

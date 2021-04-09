@@ -68,14 +68,6 @@ func tick(logger lager.Logger, m *Monitor) {
 	)
 
 	m.emit(
-		logger.Session("checks-deleted"),
-		Event{
-			Name:  "checks deleted",
-			Value: m.ChecksDeleted.Delta(),
-		},
-	)
-
-	m.emit(
 		logger.Session("volumes-streamed"),
 		Event{
 			Name:  "volumes streamed",
@@ -147,6 +139,22 @@ func tick(logger lager.Logger, m *Monitor) {
 		},
 	)
 
+	m.emit(
+		logger.Session("check-builds-started"),
+		Event{
+			Name:  "check builds started",
+			Value: m.CheckBuildsStarted.Delta(),
+		},
+	)
+
+	m.emit(
+		logger.Session("check-builds-running"),
+		Event{
+			Name:  "check builds running",
+			Value: m.CheckBuildsRunning.Max(),
+		},
+	)
+
 	for action, gauge := range m.ConcurrentRequests {
 		m.emit(
 			logger.Session("concurrent-requests"),
@@ -173,16 +181,17 @@ func tick(logger lager.Logger, m *Monitor) {
 		)
 	}
 
-	for labels, gauge := range m.TasksWaiting {
+	for labels, gauge := range m.StepsWaiting {
 		m.emit(
-			logger.Session("tasks-waiting"),
+			logger.Session("steps-waiting"),
 			Event{
-				Name:  "tasks waiting",
+				Name:  "steps waiting",
 				Value: gauge.Max(),
 				Attributes: map[string]string{
-					"teamId":     labels.TeamId,
-					"workerTags": labels.WorkerTags,
 					"platform":   labels.Platform,
+					"teamId":     labels.TeamId,
+					"type":       labels.Type,
+					"workerTags": labels.WorkerTags,
 				},
 			},
 		)

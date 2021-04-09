@@ -27,15 +27,16 @@ func (fake *FakeInterceptTimeoutFactory) NewInterceptTimeout() containerserver.I
 	ret, specificReturn := fake.newInterceptTimeoutReturnsOnCall[len(fake.newInterceptTimeoutArgsForCall)]
 	fake.newInterceptTimeoutArgsForCall = append(fake.newInterceptTimeoutArgsForCall, struct {
 	}{})
+	stub := fake.NewInterceptTimeoutStub
+	fakeReturns := fake.newInterceptTimeoutReturns
 	fake.recordInvocation("NewInterceptTimeout", []interface{}{})
 	fake.newInterceptTimeoutMutex.Unlock()
-	if fake.NewInterceptTimeoutStub != nil {
-		return fake.NewInterceptTimeoutStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.newInterceptTimeoutReturns
 	return fakeReturns.result1
 }
 

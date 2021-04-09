@@ -30,7 +30,7 @@ import (
 
 const userPropertyName = "user"
 
-var ResourceConfigCheckSessionExpiredError = errors.New("no db container was found for owner")
+var ErrResourceConfigCheckSessionExpired = errors.New("no db container was found for owner")
 
 //go:generate counterfeiter . Worker
 
@@ -77,7 +77,10 @@ type Worker interface {
 	CreateVolume(logger lager.Logger, spec VolumeSpec, teamID int, volumeType db.VolumeType) (Volume, error)
 
 	GardenClient() gclient.Client
+
 	ActiveTasks() (int, error)
+	IncreaseActiveTasks() (int, error)
+	DecreaseActiveTasks() (int, error)
 
 	ActiveContainers() int
 	ActiveVolumes() int
@@ -255,7 +258,7 @@ func (worker *gardenWorker) findOrCreateContainer(
 		if err != nil {
 			logger.Error("failed-to-create-container-in-db", err)
 			if _, ok := err.(db.ContainerOwnerDisappearedError); ok {
-				return nil, ResourceConfigCheckSessionExpiredError
+				return nil, ErrResourceConfigCheckSessionExpired
 			}
 
 			return nil, fmt.Errorf("create container: %w", err)
@@ -782,10 +785,11 @@ insert_coin:
 func (worker *gardenWorker) ActiveTasks() (int, error) {
 	return worker.dbWorker.ActiveTasks()
 }
-func (worker *gardenWorker) IncreaseActiveTasks() error {
+
+func (worker *gardenWorker) IncreaseActiveTasks() (int, error) {
 	return worker.dbWorker.IncreaseActiveTasks()
 }
-func (worker *gardenWorker) DecreaseActiveTasks() error {
+func (worker *gardenWorker) DecreaseActiveTasks() (int, error) {
 	return worker.dbWorker.DecreaseActiveTasks()
 }
 

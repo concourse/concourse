@@ -49,6 +49,11 @@ func (s *Server) CheckResourceWebHook(dbPipeline db.Pipeline) http.Handler {
 			return
 		}
 		token, err := creds.NewString(variables, dbResource.WebhookToken()).Evaluate()
+		if err != nil {
+			logger.Error("failed-to-evaluate-webhook-token", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 		if token != webhookToken {
 			logger.Info("invalid-token", lager.Data{"token": webhookToken})
 			w.WriteHeader(http.StatusUnauthorized)

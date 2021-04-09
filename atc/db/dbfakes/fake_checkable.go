@@ -225,15 +225,16 @@ func (fake *FakeCheckable) CheckEvery() *atc.CheckEvery {
 	ret, specificReturn := fake.checkEveryReturnsOnCall[len(fake.checkEveryArgsForCall)]
 	fake.checkEveryArgsForCall = append(fake.checkEveryArgsForCall, struct {
 	}{})
+	stub := fake.CheckEveryStub
+	fakeReturns := fake.checkEveryReturns
 	fake.recordInvocation("CheckEvery", []interface{}{})
 	fake.checkEveryMutex.Unlock()
-	if fake.CheckEveryStub != nil {
-		return fake.CheckEveryStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.checkEveryReturns
 	return fakeReturns.result1
 }
 
@@ -281,15 +282,16 @@ func (fake *FakeCheckable) CheckPlan(arg1 atc.Version, arg2 time.Duration, arg3 
 		arg3 db.ResourceTypes
 		arg4 atc.Source
 	}{arg1, arg2, arg3, arg4})
+	stub := fake.CheckPlanStub
+	fakeReturns := fake.checkPlanReturns
 	fake.recordInvocation("CheckPlan", []interface{}{arg1, arg2, arg3, arg4})
 	fake.checkPlanMutex.Unlock()
-	if fake.CheckPlanStub != nil {
-		return fake.CheckPlanStub(arg1, arg2, arg3, arg4)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.checkPlanReturns
 	return fakeReturns.result1
 }
 
@@ -340,15 +342,16 @@ func (fake *FakeCheckable) CheckTimeout() string {
 	ret, specificReturn := fake.checkTimeoutReturnsOnCall[len(fake.checkTimeoutArgsForCall)]
 	fake.checkTimeoutArgsForCall = append(fake.checkTimeoutArgsForCall, struct {
 	}{})
+	stub := fake.CheckTimeoutStub
+	fakeReturns := fake.checkTimeoutReturns
 	fake.recordInvocation("CheckTimeout", []interface{}{})
 	fake.checkTimeoutMutex.Unlock()
-	if fake.CheckTimeoutStub != nil {
-		return fake.CheckTimeoutStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.checkTimeoutReturns
 	return fakeReturns.result1
 }
 
@@ -395,15 +398,16 @@ func (fake *FakeCheckable) CreateBuild(arg1 context.Context, arg2 bool, arg3 atc
 		arg2 bool
 		arg3 atc.Plan
 	}{arg1, arg2, arg3})
+	stub := fake.CreateBuildStub
+	fakeReturns := fake.createBuildReturns
 	fake.recordInvocation("CreateBuild", []interface{}{arg1, arg2, arg3})
 	fake.createBuildMutex.Unlock()
-	if fake.CreateBuildStub != nil {
-		return fake.CreateBuildStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.createBuildReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -460,15 +464,16 @@ func (fake *FakeCheckable) CurrentPinnedVersion() atc.Version {
 	ret, specificReturn := fake.currentPinnedVersionReturnsOnCall[len(fake.currentPinnedVersionArgsForCall)]
 	fake.currentPinnedVersionArgsForCall = append(fake.currentPinnedVersionArgsForCall, struct {
 	}{})
+	stub := fake.CurrentPinnedVersionStub
+	fakeReturns := fake.currentPinnedVersionReturns
 	fake.recordInvocation("CurrentPinnedVersion", []interface{}{})
 	fake.currentPinnedVersionMutex.Unlock()
-	if fake.CurrentPinnedVersionStub != nil {
-		return fake.CurrentPinnedVersionStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.currentPinnedVersionReturns
 	return fakeReturns.result1
 }
 
@@ -512,15 +517,16 @@ func (fake *FakeCheckable) HasWebhook() bool {
 	ret, specificReturn := fake.hasWebhookReturnsOnCall[len(fake.hasWebhookArgsForCall)]
 	fake.hasWebhookArgsForCall = append(fake.hasWebhookArgsForCall, struct {
 	}{})
+	stub := fake.HasWebhookStub
+	fakeReturns := fake.hasWebhookReturns
 	fake.recordInvocation("HasWebhook", []interface{}{})
 	fake.hasWebhookMutex.Unlock()
-	if fake.HasWebhookStub != nil {
-		return fake.HasWebhookStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.hasWebhookReturns
 	return fakeReturns.result1
 }
 
@@ -564,15 +570,16 @@ func (fake *FakeCheckable) LastCheckEndTime() time.Time {
 	ret, specificReturn := fake.lastCheckEndTimeReturnsOnCall[len(fake.lastCheckEndTimeArgsForCall)]
 	fake.lastCheckEndTimeArgsForCall = append(fake.lastCheckEndTimeArgsForCall, struct {
 	}{})
+	stub := fake.LastCheckEndTimeStub
+	fakeReturns := fake.lastCheckEndTimeReturns
 	fake.recordInvocation("LastCheckEndTime", []interface{}{})
 	fake.lastCheckEndTimeMutex.Unlock()
-	if fake.LastCheckEndTimeStub != nil {
-		return fake.LastCheckEndTimeStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.lastCheckEndTimeReturns
 	return fakeReturns.result1
 }
 
@@ -616,15 +623,16 @@ func (fake *FakeCheckable) Name() string {
 	ret, specificReturn := fake.nameReturnsOnCall[len(fake.nameArgsForCall)]
 	fake.nameArgsForCall = append(fake.nameArgsForCall, struct {
 	}{})
+	stub := fake.NameStub
+	fakeReturns := fake.nameReturns
 	fake.recordInvocation("Name", []interface{}{})
 	fake.nameMutex.Unlock()
-	if fake.NameStub != nil {
-		return fake.NameStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.nameReturns
 	return fakeReturns.result1
 }
 
@@ -668,15 +676,16 @@ func (fake *FakeCheckable) Pipeline() (db.Pipeline, bool, error) {
 	ret, specificReturn := fake.pipelineReturnsOnCall[len(fake.pipelineArgsForCall)]
 	fake.pipelineArgsForCall = append(fake.pipelineArgsForCall, struct {
 	}{})
+	stub := fake.PipelineStub
+	fakeReturns := fake.pipelineReturns
 	fake.recordInvocation("Pipeline", []interface{}{})
 	fake.pipelineMutex.Unlock()
-	if fake.PipelineStub != nil {
-		return fake.PipelineStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.pipelineReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -726,15 +735,16 @@ func (fake *FakeCheckable) PipelineID() int {
 	ret, specificReturn := fake.pipelineIDReturnsOnCall[len(fake.pipelineIDArgsForCall)]
 	fake.pipelineIDArgsForCall = append(fake.pipelineIDArgsForCall, struct {
 	}{})
+	stub := fake.PipelineIDStub
+	fakeReturns := fake.pipelineIDReturns
 	fake.recordInvocation("PipelineID", []interface{}{})
 	fake.pipelineIDMutex.Unlock()
-	if fake.PipelineIDStub != nil {
-		return fake.PipelineIDStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.pipelineIDReturns
 	return fakeReturns.result1
 }
 
@@ -778,15 +788,16 @@ func (fake *FakeCheckable) PipelineInstanceVars() atc.InstanceVars {
 	ret, specificReturn := fake.pipelineInstanceVarsReturnsOnCall[len(fake.pipelineInstanceVarsArgsForCall)]
 	fake.pipelineInstanceVarsArgsForCall = append(fake.pipelineInstanceVarsArgsForCall, struct {
 	}{})
+	stub := fake.PipelineInstanceVarsStub
+	fakeReturns := fake.pipelineInstanceVarsReturns
 	fake.recordInvocation("PipelineInstanceVars", []interface{}{})
 	fake.pipelineInstanceVarsMutex.Unlock()
-	if fake.PipelineInstanceVarsStub != nil {
-		return fake.PipelineInstanceVarsStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.pipelineInstanceVarsReturns
 	return fakeReturns.result1
 }
 
@@ -830,15 +841,16 @@ func (fake *FakeCheckable) PipelineName() string {
 	ret, specificReturn := fake.pipelineNameReturnsOnCall[len(fake.pipelineNameArgsForCall)]
 	fake.pipelineNameArgsForCall = append(fake.pipelineNameArgsForCall, struct {
 	}{})
+	stub := fake.PipelineNameStub
+	fakeReturns := fake.pipelineNameReturns
 	fake.recordInvocation("PipelineName", []interface{}{})
 	fake.pipelineNameMutex.Unlock()
-	if fake.PipelineNameStub != nil {
-		return fake.PipelineNameStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.pipelineNameReturns
 	return fakeReturns.result1
 }
 
@@ -882,15 +894,16 @@ func (fake *FakeCheckable) PipelineRef() atc.PipelineRef {
 	ret, specificReturn := fake.pipelineRefReturnsOnCall[len(fake.pipelineRefArgsForCall)]
 	fake.pipelineRefArgsForCall = append(fake.pipelineRefArgsForCall, struct {
 	}{})
+	stub := fake.PipelineRefStub
+	fakeReturns := fake.pipelineRefReturns
 	fake.recordInvocation("PipelineRef", []interface{}{})
 	fake.pipelineRefMutex.Unlock()
-	if fake.PipelineRefStub != nil {
-		return fake.PipelineRefStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.pipelineRefReturns
 	return fakeReturns.result1
 }
 
@@ -934,15 +947,16 @@ func (fake *FakeCheckable) ResourceConfigScopeID() int {
 	ret, specificReturn := fake.resourceConfigScopeIDReturnsOnCall[len(fake.resourceConfigScopeIDArgsForCall)]
 	fake.resourceConfigScopeIDArgsForCall = append(fake.resourceConfigScopeIDArgsForCall, struct {
 	}{})
+	stub := fake.ResourceConfigScopeIDStub
+	fakeReturns := fake.resourceConfigScopeIDReturns
 	fake.recordInvocation("ResourceConfigScopeID", []interface{}{})
 	fake.resourceConfigScopeIDMutex.Unlock()
-	if fake.ResourceConfigScopeIDStub != nil {
-		return fake.ResourceConfigScopeIDStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.resourceConfigScopeIDReturns
 	return fakeReturns.result1
 }
 
@@ -986,15 +1000,16 @@ func (fake *FakeCheckable) Source() atc.Source {
 	ret, specificReturn := fake.sourceReturnsOnCall[len(fake.sourceArgsForCall)]
 	fake.sourceArgsForCall = append(fake.sourceArgsForCall, struct {
 	}{})
+	stub := fake.SourceStub
+	fakeReturns := fake.sourceReturns
 	fake.recordInvocation("Source", []interface{}{})
 	fake.sourceMutex.Unlock()
-	if fake.SourceStub != nil {
-		return fake.SourceStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.sourceReturns
 	return fakeReturns.result1
 }
 
@@ -1038,15 +1053,16 @@ func (fake *FakeCheckable) Tags() atc.Tags {
 	ret, specificReturn := fake.tagsReturnsOnCall[len(fake.tagsArgsForCall)]
 	fake.tagsArgsForCall = append(fake.tagsArgsForCall, struct {
 	}{})
+	stub := fake.TagsStub
+	fakeReturns := fake.tagsReturns
 	fake.recordInvocation("Tags", []interface{}{})
 	fake.tagsMutex.Unlock()
-	if fake.TagsStub != nil {
-		return fake.TagsStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.tagsReturns
 	return fakeReturns.result1
 }
 
@@ -1090,15 +1106,16 @@ func (fake *FakeCheckable) TeamID() int {
 	ret, specificReturn := fake.teamIDReturnsOnCall[len(fake.teamIDArgsForCall)]
 	fake.teamIDArgsForCall = append(fake.teamIDArgsForCall, struct {
 	}{})
+	stub := fake.TeamIDStub
+	fakeReturns := fake.teamIDReturns
 	fake.recordInvocation("TeamID", []interface{}{})
 	fake.teamIDMutex.Unlock()
-	if fake.TeamIDStub != nil {
-		return fake.TeamIDStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.teamIDReturns
 	return fakeReturns.result1
 }
 
@@ -1142,15 +1159,16 @@ func (fake *FakeCheckable) TeamName() string {
 	ret, specificReturn := fake.teamNameReturnsOnCall[len(fake.teamNameArgsForCall)]
 	fake.teamNameArgsForCall = append(fake.teamNameArgsForCall, struct {
 	}{})
+	stub := fake.TeamNameStub
+	fakeReturns := fake.teamNameReturns
 	fake.recordInvocation("TeamName", []interface{}{})
 	fake.teamNameMutex.Unlock()
-	if fake.TeamNameStub != nil {
-		return fake.TeamNameStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.teamNameReturns
 	return fakeReturns.result1
 }
 
@@ -1194,15 +1212,16 @@ func (fake *FakeCheckable) Type() string {
 	ret, specificReturn := fake.typeReturnsOnCall[len(fake.typeArgsForCall)]
 	fake.typeArgsForCall = append(fake.typeArgsForCall, struct {
 	}{})
+	stub := fake.TypeStub
+	fakeReturns := fake.typeReturns
 	fake.recordInvocation("Type", []interface{}{})
 	fake.typeMutex.Unlock()
-	if fake.TypeStub != nil {
-		return fake.TypeStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.typeReturns
 	return fakeReturns.result1
 }
 

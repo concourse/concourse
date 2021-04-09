@@ -29,15 +29,16 @@ func (fake *FakeSetPipelineStepDelegateFactory) SetPipelineStepDelegate(arg1 exe
 	fake.setPipelineStepDelegateArgsForCall = append(fake.setPipelineStepDelegateArgsForCall, struct {
 		arg1 exec.RunState
 	}{arg1})
+	stub := fake.SetPipelineStepDelegateStub
+	fakeReturns := fake.setPipelineStepDelegateReturns
 	fake.recordInvocation("SetPipelineStepDelegate", []interface{}{arg1})
 	fake.setPipelineStepDelegateMutex.Unlock()
-	if fake.SetPipelineStepDelegateStub != nil {
-		return fake.SetPipelineStepDelegateStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.setPipelineStepDelegateReturns
 	return fakeReturns.result1
 }
 

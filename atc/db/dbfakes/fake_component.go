@@ -100,15 +100,16 @@ func (fake *FakeComponent) ID() int {
 	ret, specificReturn := fake.iDReturnsOnCall[len(fake.iDArgsForCall)]
 	fake.iDArgsForCall = append(fake.iDArgsForCall, struct {
 	}{})
+	stub := fake.IDStub
+	fakeReturns := fake.iDReturns
 	fake.recordInvocation("ID", []interface{}{})
 	fake.iDMutex.Unlock()
-	if fake.IDStub != nil {
-		return fake.IDStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.iDReturns
 	return fakeReturns.result1
 }
 
@@ -152,15 +153,16 @@ func (fake *FakeComponent) Interval() time.Duration {
 	ret, specificReturn := fake.intervalReturnsOnCall[len(fake.intervalArgsForCall)]
 	fake.intervalArgsForCall = append(fake.intervalArgsForCall, struct {
 	}{})
+	stub := fake.IntervalStub
+	fakeReturns := fake.intervalReturns
 	fake.recordInvocation("Interval", []interface{}{})
 	fake.intervalMutex.Unlock()
-	if fake.IntervalStub != nil {
-		return fake.IntervalStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.intervalReturns
 	return fakeReturns.result1
 }
 
@@ -204,15 +206,16 @@ func (fake *FakeComponent) IntervalElapsed() bool {
 	ret, specificReturn := fake.intervalElapsedReturnsOnCall[len(fake.intervalElapsedArgsForCall)]
 	fake.intervalElapsedArgsForCall = append(fake.intervalElapsedArgsForCall, struct {
 	}{})
+	stub := fake.IntervalElapsedStub
+	fakeReturns := fake.intervalElapsedReturns
 	fake.recordInvocation("IntervalElapsed", []interface{}{})
 	fake.intervalElapsedMutex.Unlock()
-	if fake.IntervalElapsedStub != nil {
-		return fake.IntervalElapsedStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.intervalElapsedReturns
 	return fakeReturns.result1
 }
 
@@ -256,15 +259,16 @@ func (fake *FakeComponent) LastRan() time.Time {
 	ret, specificReturn := fake.lastRanReturnsOnCall[len(fake.lastRanArgsForCall)]
 	fake.lastRanArgsForCall = append(fake.lastRanArgsForCall, struct {
 	}{})
+	stub := fake.LastRanStub
+	fakeReturns := fake.lastRanReturns
 	fake.recordInvocation("LastRan", []interface{}{})
 	fake.lastRanMutex.Unlock()
-	if fake.LastRanStub != nil {
-		return fake.LastRanStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.lastRanReturns
 	return fakeReturns.result1
 }
 
@@ -308,15 +312,16 @@ func (fake *FakeComponent) Name() string {
 	ret, specificReturn := fake.nameReturnsOnCall[len(fake.nameArgsForCall)]
 	fake.nameArgsForCall = append(fake.nameArgsForCall, struct {
 	}{})
+	stub := fake.NameStub
+	fakeReturns := fake.nameReturns
 	fake.recordInvocation("Name", []interface{}{})
 	fake.nameMutex.Unlock()
-	if fake.NameStub != nil {
-		return fake.NameStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.nameReturns
 	return fakeReturns.result1
 }
 
@@ -360,15 +365,16 @@ func (fake *FakeComponent) Paused() bool {
 	ret, specificReturn := fake.pausedReturnsOnCall[len(fake.pausedArgsForCall)]
 	fake.pausedArgsForCall = append(fake.pausedArgsForCall, struct {
 	}{})
+	stub := fake.PausedStub
+	fakeReturns := fake.pausedReturns
 	fake.recordInvocation("Paused", []interface{}{})
 	fake.pausedMutex.Unlock()
-	if fake.PausedStub != nil {
-		return fake.PausedStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.pausedReturns
 	return fakeReturns.result1
 }
 
@@ -412,15 +418,16 @@ func (fake *FakeComponent) Reload() (bool, error) {
 	ret, specificReturn := fake.reloadReturnsOnCall[len(fake.reloadArgsForCall)]
 	fake.reloadArgsForCall = append(fake.reloadArgsForCall, struct {
 	}{})
+	stub := fake.ReloadStub
+	fakeReturns := fake.reloadReturns
 	fake.recordInvocation("Reload", []interface{}{})
 	fake.reloadMutex.Unlock()
-	if fake.ReloadStub != nil {
-		return fake.ReloadStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.reloadReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -467,15 +474,16 @@ func (fake *FakeComponent) UpdateLastRan() error {
 	ret, specificReturn := fake.updateLastRanReturnsOnCall[len(fake.updateLastRanArgsForCall)]
 	fake.updateLastRanArgsForCall = append(fake.updateLastRanArgsForCall, struct {
 	}{})
+	stub := fake.UpdateLastRanStub
+	fakeReturns := fake.updateLastRanReturns
 	fake.recordInvocation("UpdateLastRan", []interface{}{})
 	fake.updateLastRanMutex.Unlock()
-	if fake.UpdateLastRanStub != nil {
-		return fake.UpdateLastRanStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.updateLastRanReturns
 	return fakeReturns.result1
 }
 

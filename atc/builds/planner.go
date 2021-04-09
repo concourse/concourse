@@ -205,11 +205,7 @@ func (visitor *planVisitor) VisitInParallel(step *atc.InParallelStep) error {
 func (visitor *planVisitor) VisitAcross(step *atc.AcrossStep) error {
 	vars := make([]atc.AcrossVar, len(step.Vars))
 	for i, v := range step.Vars {
-		vars[i] = atc.AcrossVar{
-			Var:         v.Var,
-			Values:      v.Values,
-			MaxInFlight: v.MaxInFlight,
-		}
+		vars[i] = atc.AcrossVar(v)
 	}
 
 	acrossPlan := atc.AcrossPlan{

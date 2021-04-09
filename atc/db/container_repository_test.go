@@ -55,6 +55,7 @@ var _ = Describe("ContainerRepository", func() {
 					var rccsID int
 					err := psql.Select("id").From("resource_config_check_sessions").
 						Where(sq.Eq{"resource_config_id": resourceConfig.ID()}).RunWith(dbConn).QueryRow().Scan(&rccsID)
+					Expect(err).NotTo(HaveOccurred())
 
 					_, err = psql.Update("resource_config_check_sessions").
 						Set("expires_at", sq.Expr("NOW() - '1 second'::INTERVAL")).
@@ -117,6 +118,7 @@ var _ = Describe("ContainerRepository", func() {
 					var rccsID int
 					err := psql.Select("id").From("resource_config_check_sessions").
 						Where(sq.Eq{"resource_config_id": resourceConfig.ID()}).RunWith(dbConn).QueryRow().Scan(&rccsID)
+					Expect(err).NotTo(HaveOccurred())
 
 					_, err = psql.Update("resource_config_check_sessions").
 						Set("expires_at", sq.Expr("NOW() + '1 hour'::INTERVAL")).

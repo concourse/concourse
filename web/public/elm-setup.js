@@ -86,18 +86,6 @@ app.ports.saveToLocalStorage.subscribe(function(params) {
   }
 });
 
-app.ports.saveToSessionStorage.subscribe(function(params) {
-  if (!params || params.length !== 2) {
-    return;
-  }
-  const [key, value] = params;
-  try {
-    sessionStorage.setItem(key, JSON.stringify(value));
-  } catch(err) {
-    console.error(err);
-  }
-});
-
 app.ports.loadFromLocalStorage.subscribe(function(key) {
   const value = localStorage.getItem(key);
   if (value === null) {
@@ -108,16 +96,6 @@ app.ports.loadFromLocalStorage.subscribe(function(key) {
   }, 0);
 });
 
-app.ports.loadFromSessionStorage.subscribe(function(key) {
-  const value = sessionStorage.getItem(key);
-  if (value === null) {
-    return;
-  }
-  setTimeout(function() {
-    app.ports.receivedFromSessionStorage.send([key, value]);
-  }, 0);
-});
-
 app.ports.deleteFromLocalStorage.subscribe(function(key) {
   localStorage.removeItem(key);
 });
@@ -125,8 +103,9 @@ app.ports.deleteFromLocalStorage.subscribe(function(key) {
 
 const csrfTokenKey = "csrf_token";
 const favoritedPipelinesKey = "favorited_pipelines";
+const favoritedInstanceGroupsKey = "favorited_instance_groups";
 window.addEventListener('storage', function(event) {
-  if (event.key === csrfTokenKey || event.key === favoritedPipelinesKey) {
+  if (event.key === csrfTokenKey || event.key === favoritedPipelinesKey || event.key === favoritedInstanceGroupsKey) {
     const value = localStorage.getItem(event.key);
     setTimeout(function() {
       app.ports.receivedFromLocalStorage.send([event.key, value]);
@@ -263,9 +242,11 @@ app.ports.openEventStream.subscribe(function(config) {
   config.eventTypes.forEach(function(eventType) {
     es.addEventListener(eventType, dispatchEvent);
   });
-  app.ports.closeEventStream.subscribe(function() {
+  let closeFunc = function() {
     es.close();
-  });
+    app.ports.closeEventStream.unsubscribe(closeFunc);
+  }
+  app.ports.closeEventStream.subscribe(closeFunc);
   setInterval(flush, 200);
 });
 

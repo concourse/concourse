@@ -1,3 +1,3 @@
-BEGIN;
-  ALTER TABLE checks DROP COLUMN span_context;
-COMMIT;
+
+ALTER TABLE checks DROP COLUMN span_context;
+

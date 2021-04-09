@@ -49,15 +49,16 @@ func (fake *FakeSecrets) Get(arg1 string) (interface{}, *time.Time, bool, error)
 	fake.getArgsForCall = append(fake.getArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.GetStub
+	fakeReturns := fake.getReturns
 	fake.recordInvocation("Get", []interface{}{arg1})
 	fake.getMutex.Unlock()
-	if fake.GetStub != nil {
-		return fake.GetStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3, ret.result4
 	}
-	fakeReturns := fake.getReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3, fakeReturns.result4
 }
 
@@ -120,15 +121,16 @@ func (fake *FakeSecrets) NewSecretLookupPaths(arg1 string, arg2 string, arg3 boo
 		arg2 string
 		arg3 bool
 	}{arg1, arg2, arg3})
+	stub := fake.NewSecretLookupPathsStub
+	fakeReturns := fake.newSecretLookupPathsReturns
 	fake.recordInvocation("NewSecretLookupPaths", []interface{}{arg1, arg2, arg3})
 	fake.newSecretLookupPathsMutex.Unlock()
-	if fake.NewSecretLookupPathsStub != nil {
-		return fake.NewSecretLookupPathsStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.newSecretLookupPathsReturns
 	return fakeReturns.result1
 }
 

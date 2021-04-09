@@ -38,15 +38,16 @@ func (fake *FakePolicyChecker) Check(arg1 string, arg2 accessor.Access, arg3 *ht
 		arg2 accessor.Access
 		arg3 *http.Request
 	}{arg1, arg2, arg3})
+	stub := fake.CheckStub
+	fakeReturns := fake.checkReturns
 	fake.recordInvocation("Check", []interface{}{arg1, arg2, arg3})
 	fake.checkMutex.Unlock()
-	if fake.CheckStub != nil {
-		return fake.CheckStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.checkReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

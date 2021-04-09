@@ -238,15 +238,16 @@ func (fake *FakeConn) Begin() (db.Tx, error) {
 	ret, specificReturn := fake.beginReturnsOnCall[len(fake.beginArgsForCall)]
 	fake.beginArgsForCall = append(fake.beginArgsForCall, struct {
 	}{})
+	stub := fake.BeginStub
+	fakeReturns := fake.beginReturns
 	fake.recordInvocation("Begin", []interface{}{})
 	fake.beginMutex.Unlock()
-	if fake.BeginStub != nil {
-		return fake.BeginStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.beginReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -295,15 +296,16 @@ func (fake *FakeConn) BeginTx(arg1 context.Context, arg2 *sql.TxOptions) (db.Tx,
 		arg1 context.Context
 		arg2 *sql.TxOptions
 	}{arg1, arg2})
+	stub := fake.BeginTxStub
+	fakeReturns := fake.beginTxReturns
 	fake.recordInvocation("BeginTx", []interface{}{arg1, arg2})
 	fake.beginTxMutex.Unlock()
-	if fake.BeginTxStub != nil {
-		return fake.BeginTxStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.beginTxReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -357,15 +359,16 @@ func (fake *FakeConn) Bus() db.NotificationsBus {
 	ret, specificReturn := fake.busReturnsOnCall[len(fake.busArgsForCall)]
 	fake.busArgsForCall = append(fake.busArgsForCall, struct {
 	}{})
+	stub := fake.BusStub
+	fakeReturns := fake.busReturns
 	fake.recordInvocation("Bus", []interface{}{})
 	fake.busMutex.Unlock()
-	if fake.BusStub != nil {
-		return fake.BusStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.busReturns
 	return fakeReturns.result1
 }
 
@@ -409,15 +412,16 @@ func (fake *FakeConn) Close() error {
 	ret, specificReturn := fake.closeReturnsOnCall[len(fake.closeArgsForCall)]
 	fake.closeArgsForCall = append(fake.closeArgsForCall, struct {
 	}{})
+	stub := fake.CloseStub
+	fakeReturns := fake.closeReturns
 	fake.recordInvocation("Close", []interface{}{})
 	fake.closeMutex.Unlock()
-	if fake.CloseStub != nil {
-		return fake.CloseStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.closeReturns
 	return fakeReturns.result1
 }
 
@@ -461,15 +465,16 @@ func (fake *FakeConn) Driver() driver.Driver {
 	ret, specificReturn := fake.driverReturnsOnCall[len(fake.driverArgsForCall)]
 	fake.driverArgsForCall = append(fake.driverArgsForCall, struct {
 	}{})
+	stub := fake.DriverStub
+	fakeReturns := fake.driverReturns
 	fake.recordInvocation("Driver", []interface{}{})
 	fake.driverMutex.Unlock()
-	if fake.DriverStub != nil {
-		return fake.DriverStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.driverReturns
 	return fakeReturns.result1
 }
 
@@ -513,15 +518,16 @@ func (fake *FakeConn) EncryptionStrategy() encryption.Strategy {
 	ret, specificReturn := fake.encryptionStrategyReturnsOnCall[len(fake.encryptionStrategyArgsForCall)]
 	fake.encryptionStrategyArgsForCall = append(fake.encryptionStrategyArgsForCall, struct {
 	}{})
+	stub := fake.EncryptionStrategyStub
+	fakeReturns := fake.encryptionStrategyReturns
 	fake.recordInvocation("EncryptionStrategy", []interface{}{})
 	fake.encryptionStrategyMutex.Unlock()
-	if fake.EncryptionStrategyStub != nil {
-		return fake.EncryptionStrategyStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.encryptionStrategyReturns
 	return fakeReturns.result1
 }
 
@@ -567,15 +573,16 @@ func (fake *FakeConn) Exec(arg1 string, arg2 ...interface{}) (sql.Result, error)
 		arg1 string
 		arg2 []interface{}
 	}{arg1, arg2})
+	stub := fake.ExecStub
+	fakeReturns := fake.execReturns
 	fake.recordInvocation("Exec", []interface{}{arg1, arg2})
 	fake.execMutex.Unlock()
-	if fake.ExecStub != nil {
-		return fake.ExecStub(arg1, arg2...)
+	if stub != nil {
+		return stub(arg1, arg2...)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.execReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -632,15 +639,16 @@ func (fake *FakeConn) ExecContext(arg1 context.Context, arg2 string, arg3 ...int
 		arg2 string
 		arg3 []interface{}
 	}{arg1, arg2, arg3})
+	stub := fake.ExecContextStub
+	fakeReturns := fake.execContextReturns
 	fake.recordInvocation("ExecContext", []interface{}{arg1, arg2, arg3})
 	fake.execContextMutex.Unlock()
-	if fake.ExecContextStub != nil {
-		return fake.ExecContextStub(arg1, arg2, arg3...)
+	if stub != nil {
+		return stub(arg1, arg2, arg3...)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.execContextReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -694,15 +702,16 @@ func (fake *FakeConn) Name() string {
 	ret, specificReturn := fake.nameReturnsOnCall[len(fake.nameArgsForCall)]
 	fake.nameArgsForCall = append(fake.nameArgsForCall, struct {
 	}{})
+	stub := fake.NameStub
+	fakeReturns := fake.nameReturns
 	fake.recordInvocation("Name", []interface{}{})
 	fake.nameMutex.Unlock()
-	if fake.NameStub != nil {
-		return fake.NameStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.nameReturns
 	return fakeReturns.result1
 }
 
@@ -746,15 +755,16 @@ func (fake *FakeConn) Ping() error {
 	ret, specificReturn := fake.pingReturnsOnCall[len(fake.pingArgsForCall)]
 	fake.pingArgsForCall = append(fake.pingArgsForCall, struct {
 	}{})
+	stub := fake.PingStub
+	fakeReturns := fake.pingReturns
 	fake.recordInvocation("Ping", []interface{}{})
 	fake.pingMutex.Unlock()
-	if fake.PingStub != nil {
-		return fake.PingStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.pingReturns
 	return fakeReturns.result1
 }
 
@@ -799,15 +809,16 @@ func (fake *FakeConn) Prepare(arg1 string) (*sql.Stmt, error) {
 	fake.prepareArgsForCall = append(fake.prepareArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.PrepareStub
+	fakeReturns := fake.prepareReturns
 	fake.recordInvocation("Prepare", []interface{}{arg1})
 	fake.prepareMutex.Unlock()
-	if fake.PrepareStub != nil {
-		return fake.PrepareStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.prepareReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -863,15 +874,16 @@ func (fake *FakeConn) PrepareContext(arg1 context.Context, arg2 string) (*sql.St
 		arg1 context.Context
 		arg2 string
 	}{arg1, arg2})
+	stub := fake.PrepareContextStub
+	fakeReturns := fake.prepareContextReturns
 	fake.recordInvocation("PrepareContext", []interface{}{arg1, arg2})
 	fake.prepareContextMutex.Unlock()
-	if fake.PrepareContextStub != nil {
-		return fake.PrepareContextStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.prepareContextReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -927,15 +939,16 @@ func (fake *FakeConn) Query(arg1 string, arg2 ...interface{}) (*sql.Rows, error)
 		arg1 string
 		arg2 []interface{}
 	}{arg1, arg2})
+	stub := fake.QueryStub
+	fakeReturns := fake.queryReturns
 	fake.recordInvocation("Query", []interface{}{arg1, arg2})
 	fake.queryMutex.Unlock()
-	if fake.QueryStub != nil {
-		return fake.QueryStub(arg1, arg2...)
+	if stub != nil {
+		return stub(arg1, arg2...)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.queryReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -992,15 +1005,16 @@ func (fake *FakeConn) QueryContext(arg1 context.Context, arg2 string, arg3 ...in
 		arg2 string
 		arg3 []interface{}
 	}{arg1, arg2, arg3})
+	stub := fake.QueryContextStub
+	fakeReturns := fake.queryContextReturns
 	fake.recordInvocation("QueryContext", []interface{}{arg1, arg2, arg3})
 	fake.queryContextMutex.Unlock()
-	if fake.QueryContextStub != nil {
-		return fake.QueryContextStub(arg1, arg2, arg3...)
+	if stub != nil {
+		return stub(arg1, arg2, arg3...)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.queryContextReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -1056,15 +1070,16 @@ func (fake *FakeConn) QueryRow(arg1 string, arg2 ...interface{}) squirrel.RowSca
 		arg1 string
 		arg2 []interface{}
 	}{arg1, arg2})
+	stub := fake.QueryRowStub
+	fakeReturns := fake.queryRowReturns
 	fake.recordInvocation("QueryRow", []interface{}{arg1, arg2})
 	fake.queryRowMutex.Unlock()
-	if fake.QueryRowStub != nil {
-		return fake.QueryRowStub(arg1, arg2...)
+	if stub != nil {
+		return stub(arg1, arg2...)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.queryRowReturns
 	return fakeReturns.result1
 }
 
@@ -1118,15 +1133,16 @@ func (fake *FakeConn) QueryRowContext(arg1 context.Context, arg2 string, arg3 ..
 		arg2 string
 		arg3 []interface{}
 	}{arg1, arg2, arg3})
+	stub := fake.QueryRowContextStub
+	fakeReturns := fake.queryRowContextReturns
 	fake.recordInvocation("QueryRowContext", []interface{}{arg1, arg2, arg3})
 	fake.queryRowContextMutex.Unlock()
-	if fake.QueryRowContextStub != nil {
-		return fake.QueryRowContextStub(arg1, arg2, arg3...)
+	if stub != nil {
+		return stub(arg1, arg2, arg3...)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.queryRowContextReturns
 	return fakeReturns.result1
 }
 
@@ -1177,9 +1193,10 @@ func (fake *FakeConn) SetMaxIdleConns(arg1 int) {
 	fake.setMaxIdleConnsArgsForCall = append(fake.setMaxIdleConnsArgsForCall, struct {
 		arg1 int
 	}{arg1})
+	stub := fake.SetMaxIdleConnsStub
 	fake.recordInvocation("SetMaxIdleConns", []interface{}{arg1})
 	fake.setMaxIdleConnsMutex.Unlock()
-	if fake.SetMaxIdleConnsStub != nil {
+	if stub != nil {
 		fake.SetMaxIdleConnsStub(arg1)
 	}
 }
@@ -1208,9 +1225,10 @@ func (fake *FakeConn) SetMaxOpenConns(arg1 int) {
 	fake.setMaxOpenConnsArgsForCall = append(fake.setMaxOpenConnsArgsForCall, struct {
 		arg1 int
 	}{arg1})
+	stub := fake.SetMaxOpenConnsStub
 	fake.recordInvocation("SetMaxOpenConns", []interface{}{arg1})
 	fake.setMaxOpenConnsMutex.Unlock()
-	if fake.SetMaxOpenConnsStub != nil {
+	if stub != nil {
 		fake.SetMaxOpenConnsStub(arg1)
 	}
 }
@@ -1239,15 +1257,16 @@ func (fake *FakeConn) Stats() sql.DBStats {
 	ret, specificReturn := fake.statsReturnsOnCall[len(fake.statsArgsForCall)]
 	fake.statsArgsForCall = append(fake.statsArgsForCall, struct {
 	}{})
+	stub := fake.StatsStub
+	fakeReturns := fake.statsReturns
 	fake.recordInvocation("Stats", []interface{}{})
 	fake.statsMutex.Unlock()
-	if fake.StatsStub != nil {
-		return fake.StatsStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.statsReturns
 	return fakeReturns.result1
 }
 

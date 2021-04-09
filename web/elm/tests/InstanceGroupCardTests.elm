@@ -67,12 +67,23 @@ all : Test
 all =
     describe "instance group cards" <|
         let
+            findTeamSection =
+                Query.find [ class "dashboard-team-group" ]
+
+            findFavoritesSection =
+                Query.find [ id "dashboard-favorite-pipelines" ]
+
+            cardSelector =
+                [ class "card"
+                , containing
+                    [ text "group" ]
+                ]
+
+            hasCard =
+                Query.has cardSelector
+
             findCard =
-                Query.find
-                    [ class "card"
-                    , containing
-                        [ text "group" ]
-                    ]
+                Query.find cardSelector
 
             findHeader =
                 findCard
@@ -175,7 +186,7 @@ all =
                         |> Common.queryView
                         |> findHeader
                         |> Query.has
-                            [ style "width" "245px"
+                            [ style "width" "240px"
                             , style "white-space" "nowrap"
                             , style "overflow" "hidden"
                             , style "text-overflow" "ellipsis"
@@ -285,8 +296,8 @@ all =
             , test "pads the last row if there's not enough boxes" <|
                 \_ ->
                     let
-                        thirdRow =
-                            Query.index 2 >> Query.children []
+                        secondRow =
+                            Query.index 1 >> Query.children []
 
                         lastCol =
                             Query.index -1
@@ -302,7 +313,7 @@ all =
                         |> Common.queryView
                         |> findBody
                         |> rows
-                        |> thirdRow
+                        |> secondRow
                         |> lastCol
                         |> Expect.all
                             [ Query.has [ style "flex-grow" "1" ]
@@ -509,27 +520,128 @@ all =
                                 ]
                 ]
             ]
-        , describe "when pipeline instances are favorited" <|
-            [ test "only the favorited instances are shown in the favorites section" <|
-                \_ ->
+        , describe "favoriting" <|
+            let
+                instance =
+                    pipelineInstance BuildStatusSucceeded False 1
+
+                groupId =
+                    Concourse.toInstanceGroupId (Tuple.first instance)
+
+                setup =
                     whenOnDashboard { highDensity = False }
                         |> gotPipelines
-                            [ pipelineInstance BuildStatusSucceeded False 1
-                            , pipelineInstance BuildStatusSucceeded False 2
-                            ]
-                        |> Application.handleDelivery
-                            (FavoritedPipelinesReceived <|
-                                Ok <|
-                                    Set.singleton 1
-                            )
-                        |> Tuple.first
+                            [ pipelineInstance BuildStatusSucceeded False 1 ]
+
+                groupIsFavorited =
+                    Application.handleDelivery
+                        (FavoritedInstanceGroupsReceived <|
+                            Ok <|
+                                Set.singleton ( groupId.teamName, groupId.name )
+                        )
+                        >> Tuple.first
+
+                instanceIsFavorited =
+                    Application.handleDelivery
+                        (FavoritedPipelinesReceived <|
+                            Ok <|
+                                Set.singleton 1
+                        )
+                        >> Tuple.first
+
+                footer =
+                    Common.queryView
+                        >> Query.find [ class "card-footer" ]
+                        >> Query.children []
+                        >> Query.first
+
+                unfilledFavoritedIcon =
+                    iconSelector
+                        { size = "20px"
+                        , image = Assets.FavoritedToggleIcon { isFavorited = False, isHovered = False, isSideBar = False }
+                        }
+
+                unfilledBrightFavoritedIcon =
+                    iconSelector
+                        { size = "20px"
+                        , image = Assets.FavoritedToggleIcon { isFavorited = False, isHovered = True, isSideBar = False }
+                        }
+
+                filledFavoritedIcon =
+                    iconSelector
+                        { size = "20px"
+                        , image = Assets.FavoritedToggleIcon { isFavorited = True, isHovered = False, isSideBar = False }
+                        }
+            in
+            [ test "renders a footer with a favorite icon" <|
+                \_ ->
+                    setup
                         |> Common.queryView
-                        |> Query.find [ id "dashboard-favorite-pipelines" ]
-                        |> findBody
-                        |> rows
+                        |> findCard
+                        |> Query.find [ class "card-footer" ]
+                        |> Query.has unfilledFavoritedIcon
+            , defineHoverBehaviour
+                { name = "favorited icon toggle"
+                , setup = setup
+                , query = footer
+                , unhoveredSelector =
+                    { description = "faded star icon"
+                    , selector =
+                        unfilledFavoritedIcon
+                            ++ [ style "cursor" "pointer" ]
+                    }
+                , hoverable =
+                    Msgs.InstanceGroupCardFavoritedIcon AllPipelinesSection groupId
+                , hoveredSelector =
+                    { description = "bright star icon"
+                    , selector =
+                        unfilledBrightFavoritedIcon
+                            ++ [ style "cursor" "pointer" ]
+                    }
+                }
+            , test "clicking the favorite icon favorites the group" <|
+                \_ ->
+                    setup
+                        |> Application.update
+                            (ApplicationMsgs.Update <|
+                                Msgs.Click <|
+                                    InstanceGroupCardFavoritedIcon AllPipelinesSection groupId
+                            )
                         |> Expect.all
-                            [ Query.count (Expect.equal 1)
-                            , firstRow >> Query.count (Expect.equal 1)
+                            [ Tuple.second
+                                >> Common.contains
+                                    (Effects.SaveFavoritedInstanceGroups <|
+                                        Set.singleton ( groupId.teamName, groupId.name )
+                                    )
+                            , Tuple.first
+                                >> Common.queryView
+                                >> findTeamSection
+                                >> findCard
+                                >> Query.has filledFavoritedIcon
                             ]
+            , test "favorited instance groups are loaded from storage" <|
+                \_ ->
+                    setup
+                        |> groupIsFavorited
+                        |> Common.queryView
+                        |> findTeamSection
+                        |> findCard
+                        |> Query.has filledFavoritedIcon
+            , test "favorited instance groups are rendered in favorite section" <|
+                \_ ->
+                    setup
+                        |> groupIsFavorited
+                        |> Common.queryView
+                        |> findFavoritesSection
+                        |> hasCard
+            , test "both favorited instance groups and favorited instances in the group are rendered in favorite section" <|
+                \_ ->
+                    setup
+                        |> groupIsFavorited
+                        |> instanceIsFavorited
+                        |> Common.queryView
+                        |> findFavoritesSection
+                        |> Query.findAll cardSelector
+                        |> Query.count (Expect.equal 2)
             ]
         ]

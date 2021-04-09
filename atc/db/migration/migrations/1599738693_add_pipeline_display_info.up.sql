@@ -1,3 +1,2 @@
-BEGIN;
-    ALTER TABLE pipelines ADD COLUMN display jsonb;
-COMMIT;
+
+  ALTER TABLE pipelines ADD COLUMN display jsonb;

@@ -211,7 +211,7 @@ func (example Example) importVersionsDB(ctx context.Context, setup setupDB, cach
 
 	var debugDB atc.DebugVersionsDB
 	err = func(ctx context.Context) error {
-		ctx, span = tracing.StartSpan(ctx, "Decode", tracing.Attrs{})
+		_, span = tracing.StartSpan(ctx, "Decode", tracing.Attrs{})
 		defer span.End()
 		return json.NewDecoder(gr).Decode(&debugDB)
 	}(ctx)
@@ -269,7 +269,7 @@ func (example Example) importVersionsDB(ctx context.Context, setup setupDB, cach
 	}
 
 	err = func(ctx context.Context) error {
-		ctx, span = tracing.StartSpan(ctx, "import versions", tracing.Attrs{})
+		_, span = tracing.StartSpan(ctx, "import versions", tracing.Attrs{})
 		defer span.End()
 
 		tx, err := dbConn.Begin()
@@ -306,7 +306,7 @@ func (example Example) importVersionsDB(ctx context.Context, setup setupDB, cach
 	Expect(err).ToNot(HaveOccurred())
 
 	err = func(ctx context.Context) error {
-		ctx, span = tracing.StartSpan(ctx, "import builds", tracing.Attrs{})
+		_, span = tracing.StartSpan(ctx, "import builds", tracing.Attrs{})
 		defer span.End()
 
 		tx, err := dbConn.Begin()
@@ -381,7 +381,7 @@ func (example Example) importVersionsDB(ctx context.Context, setup setupDB, cach
 	Expect(err).ToNot(HaveOccurred())
 
 	err = func(ctx context.Context) error {
-		ctx, span = tracing.StartSpan(ctx, "import inputs", tracing.Attrs{})
+		_, span = tracing.StartSpan(ctx, "import inputs", tracing.Attrs{})
 		defer span.End()
 
 		tx, err := dbConn.Begin()
@@ -409,7 +409,7 @@ func (example Example) importVersionsDB(ctx context.Context, setup setupDB, cach
 	Expect(err).ToNot(HaveOccurred())
 
 	err = func(ctx context.Context) error {
-		ctx, span = tracing.StartSpan(ctx, "import outputs", tracing.Attrs{})
+		_, span = tracing.StartSpan(ctx, "import outputs", tracing.Attrs{})
 		defer span.End()
 
 		tx, err := dbConn.Begin()
@@ -440,7 +440,7 @@ func (example Example) importVersionsDB(ctx context.Context, setup setupDB, cach
 }
 
 func (example Example) setupVersionsDB(ctx context.Context, setup setupDB, cache *gocache.Cache, resources map[string]atc.ResourceConfig) db.VersionsDB {
-	ctx, span := tracing.StartSpan(ctx, "setupVersionsDB", tracing.Attrs{})
+	_, span := tracing.StartSpan(ctx, "setupVersionsDB", tracing.Attrs{})
 	defer span.End()
 
 	versionsDB := db.NewVersionsDB(dbConn, 2, cache)
@@ -649,6 +649,7 @@ func (example Example) assert(
 
 				buildOutputs := map[int][]string{}
 				err = json.Unmarshal([]byte(outputs), &buildOutputs)
+				Expect(err).ToNot(HaveOccurred())
 				actualMigrated[buildID] = buildOutputs
 
 				jobToBuilds[buildID] = jobID

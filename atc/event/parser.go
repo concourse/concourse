@@ -45,6 +45,7 @@ func init() {
 	RegisterEvent(FinishPut{})
 	RegisterEvent(SetPipelineChanged{})
 	RegisterEvent(Status{})
+	RegisterEvent(WaitingForWorker{})
 	RegisterEvent(SelectedWorker{})
 	RegisterEvent(Log{})
 	RegisterEvent(Error{})

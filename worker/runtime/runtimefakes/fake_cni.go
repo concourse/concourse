@@ -79,15 +79,16 @@ func (fake *FakeCNI) GetConfig() *cni.ConfigResult {
 	ret, specificReturn := fake.getConfigReturnsOnCall[len(fake.getConfigArgsForCall)]
 	fake.getConfigArgsForCall = append(fake.getConfigArgsForCall, struct {
 	}{})
+	stub := fake.GetConfigStub
+	fakeReturns := fake.getConfigReturns
 	fake.recordInvocation("GetConfig", []interface{}{})
 	fake.getConfigMutex.Unlock()
-	if fake.GetConfigStub != nil {
-		return fake.GetConfigStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.getConfigReturns
 	return fakeReturns.result1
 }
 
@@ -132,15 +133,16 @@ func (fake *FakeCNI) Load(arg1 ...cni.CNIOpt) error {
 	fake.loadArgsForCall = append(fake.loadArgsForCall, struct {
 		arg1 []cni.CNIOpt
 	}{arg1})
+	stub := fake.LoadStub
+	fakeReturns := fake.loadReturns
 	fake.recordInvocation("Load", []interface{}{arg1})
 	fake.loadMutex.Unlock()
-	if fake.LoadStub != nil {
-		return fake.LoadStub(arg1...)
+	if stub != nil {
+		return stub(arg1...)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.loadReturns
 	return fakeReturns.result1
 }
 
@@ -195,15 +197,16 @@ func (fake *FakeCNI) Remove(arg1 context.Context, arg2 string, arg3 string, arg4
 		arg3 string
 		arg4 []cni.NamespaceOpts
 	}{arg1, arg2, arg3, arg4})
+	stub := fake.RemoveStub
+	fakeReturns := fake.removeReturns
 	fake.recordInvocation("Remove", []interface{}{arg1, arg2, arg3, arg4})
 	fake.removeMutex.Unlock()
-	if fake.RemoveStub != nil {
-		return fake.RemoveStub(arg1, arg2, arg3, arg4...)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4...)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.removeReturns
 	return fakeReturns.result1
 }
 
@@ -258,15 +261,16 @@ func (fake *FakeCNI) Setup(arg1 context.Context, arg2 string, arg3 string, arg4 
 		arg3 string
 		arg4 []cni.NamespaceOpts
 	}{arg1, arg2, arg3, arg4})
+	stub := fake.SetupStub
+	fakeReturns := fake.setupReturns
 	fake.recordInvocation("Setup", []interface{}{arg1, arg2, arg3, arg4})
 	fake.setupMutex.Unlock()
-	if fake.SetupStub != nil {
-		return fake.SetupStub(arg1, arg2, arg3, arg4...)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4...)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.setupReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -320,15 +324,16 @@ func (fake *FakeCNI) Status() error {
 	ret, specificReturn := fake.statusReturnsOnCall[len(fake.statusArgsForCall)]
 	fake.statusArgsForCall = append(fake.statusArgsForCall, struct {
 	}{})
+	stub := fake.StatusStub
+	fakeReturns := fake.statusReturns
 	fake.recordInvocation("Status", []interface{}{})
 	fake.statusMutex.Unlock()
-	if fake.StatusStub != nil {
-		return fake.StatusStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.statusReturns
 	return fakeReturns.result1
 }
 

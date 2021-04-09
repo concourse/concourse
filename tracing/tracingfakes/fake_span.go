@@ -102,9 +102,10 @@ func (fake *FakeSpan) AddEvent(arg1 context.Context, arg2 string, arg3 ...label.
 		arg2 string
 		arg3 []label.KeyValue
 	}{arg1, arg2, arg3})
+	stub := fake.AddEventStub
 	fake.recordInvocation("AddEvent", []interface{}{arg1, arg2, arg3})
 	fake.addEventMutex.Unlock()
-	if fake.AddEventStub != nil {
+	if stub != nil {
 		fake.AddEventStub(arg1, arg2, arg3...)
 	}
 }
@@ -136,9 +137,10 @@ func (fake *FakeSpan) AddEventWithTimestamp(arg1 context.Context, arg2 time.Time
 		arg3 string
 		arg4 []label.KeyValue
 	}{arg1, arg2, arg3, arg4})
+	stub := fake.AddEventWithTimestampStub
 	fake.recordInvocation("AddEventWithTimestamp", []interface{}{arg1, arg2, arg3, arg4})
 	fake.addEventWithTimestampMutex.Unlock()
-	if fake.AddEventWithTimestampStub != nil {
+	if stub != nil {
 		fake.AddEventWithTimestampStub(arg1, arg2, arg3, arg4...)
 	}
 }
@@ -167,9 +169,10 @@ func (fake *FakeSpan) End(arg1 ...trace.EndOption) {
 	fake.endArgsForCall = append(fake.endArgsForCall, struct {
 		arg1 []trace.EndOption
 	}{arg1})
+	stub := fake.EndStub
 	fake.recordInvocation("End", []interface{}{arg1})
 	fake.endMutex.Unlock()
-	if fake.EndStub != nil {
+	if stub != nil {
 		fake.EndStub(arg1...)
 	}
 }
@@ -198,15 +201,16 @@ func (fake *FakeSpan) IsRecording() bool {
 	ret, specificReturn := fake.isRecordingReturnsOnCall[len(fake.isRecordingArgsForCall)]
 	fake.isRecordingArgsForCall = append(fake.isRecordingArgsForCall, struct {
 	}{})
+	stub := fake.IsRecordingStub
+	fakeReturns := fake.isRecordingReturns
 	fake.recordInvocation("IsRecording", []interface{}{})
 	fake.isRecordingMutex.Unlock()
-	if fake.IsRecordingStub != nil {
-		return fake.IsRecordingStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.isRecordingReturns
 	return fakeReturns.result1
 }
 
@@ -252,9 +256,10 @@ func (fake *FakeSpan) RecordError(arg1 context.Context, arg2 error, arg3 ...trac
 		arg2 error
 		arg3 []trace.ErrorOption
 	}{arg1, arg2, arg3})
+	stub := fake.RecordErrorStub
 	fake.recordInvocation("RecordError", []interface{}{arg1, arg2, arg3})
 	fake.recordErrorMutex.Unlock()
-	if fake.RecordErrorStub != nil {
+	if stub != nil {
 		fake.RecordErrorStub(arg1, arg2, arg3...)
 	}
 }
@@ -284,9 +289,10 @@ func (fake *FakeSpan) SetAttribute(arg1 string, arg2 interface{}) {
 		arg1 string
 		arg2 interface{}
 	}{arg1, arg2})
+	stub := fake.SetAttributeStub
 	fake.recordInvocation("SetAttribute", []interface{}{arg1, arg2})
 	fake.setAttributeMutex.Unlock()
-	if fake.SetAttributeStub != nil {
+	if stub != nil {
 		fake.SetAttributeStub(arg1, arg2)
 	}
 }
@@ -315,9 +321,10 @@ func (fake *FakeSpan) SetAttributes(arg1 ...label.KeyValue) {
 	fake.setAttributesArgsForCall = append(fake.setAttributesArgsForCall, struct {
 		arg1 []label.KeyValue
 	}{arg1})
+	stub := fake.SetAttributesStub
 	fake.recordInvocation("SetAttributes", []interface{}{arg1})
 	fake.setAttributesMutex.Unlock()
-	if fake.SetAttributesStub != nil {
+	if stub != nil {
 		fake.SetAttributesStub(arg1...)
 	}
 }
@@ -346,9 +353,10 @@ func (fake *FakeSpan) SetName(arg1 string) {
 	fake.setNameArgsForCall = append(fake.setNameArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.SetNameStub
 	fake.recordInvocation("SetName", []interface{}{arg1})
 	fake.setNameMutex.Unlock()
-	if fake.SetNameStub != nil {
+	if stub != nil {
 		fake.SetNameStub(arg1)
 	}
 }
@@ -378,9 +386,10 @@ func (fake *FakeSpan) SetStatus(arg1 codes.Code, arg2 string) {
 		arg1 codes.Code
 		arg2 string
 	}{arg1, arg2})
+	stub := fake.SetStatusStub
 	fake.recordInvocation("SetStatus", []interface{}{arg1, arg2})
 	fake.setStatusMutex.Unlock()
-	if fake.SetStatusStub != nil {
+	if stub != nil {
 		fake.SetStatusStub(arg1, arg2)
 	}
 }
@@ -409,15 +418,16 @@ func (fake *FakeSpan) SpanContext() trace.SpanContext {
 	ret, specificReturn := fake.spanContextReturnsOnCall[len(fake.spanContextArgsForCall)]
 	fake.spanContextArgsForCall = append(fake.spanContextArgsForCall, struct {
 	}{})
+	stub := fake.SpanContextStub
+	fakeReturns := fake.spanContextReturns
 	fake.recordInvocation("SpanContext", []interface{}{})
 	fake.spanContextMutex.Unlock()
-	if fake.SpanContextStub != nil {
-		return fake.SpanContextStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.spanContextReturns
 	return fakeReturns.result1
 }
 
@@ -461,15 +471,16 @@ func (fake *FakeSpan) Tracer() trace.Tracer {
 	ret, specificReturn := fake.tracerReturnsOnCall[len(fake.tracerArgsForCall)]
 	fake.tracerArgsForCall = append(fake.tracerArgsForCall, struct {
 	}{})
+	stub := fake.TracerStub
+	fakeReturns := fake.tracerReturns
 	fake.recordInvocation("Tracer", []interface{}{})
 	fake.tracerMutex.Unlock()
-	if fake.TracerStub != nil {
-		return fake.TracerStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.tracerReturns
 	return fakeReturns.result1
 }
 

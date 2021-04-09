@@ -232,9 +232,10 @@ func (s *SpecSuite) TestOciCapabilities() {
 
 func (s *SpecSuite) TestOciResourceLimits() {
 	for _, tc := range []struct {
-		desc     string
-		limits   garden.Limits
-		expected *specs.LinuxResources
+		desc        string
+		limits      garden.Limits
+		expected    *specs.LinuxResources
+		swapEnabled bool
 	}{
 		{
 			desc: "CPU limit in weight",
@@ -248,6 +249,7 @@ func (s *SpecSuite) TestOciResourceLimits() {
 					Shares: uint64Ptr(512),
 				},
 			},
+			swapEnabled: true,
 		},
 		{
 			desc: "CPU limit in shares",
@@ -261,6 +263,7 @@ func (s *SpecSuite) TestOciResourceLimits() {
 					Shares: uint64Ptr(512),
 				},
 			},
+			swapEnabled: true,
 		},
 		{
 			desc: "CPU limit prefers weight",
@@ -275,6 +278,7 @@ func (s *SpecSuite) TestOciResourceLimits() {
 					Shares: uint64Ptr(1024),
 				},
 			},
+			swapEnabled: true,
 		},
 		{
 			desc: "Memory limit",
@@ -289,6 +293,21 @@ func (s *SpecSuite) TestOciResourceLimits() {
 					Swap:  int64Ptr(10000),
 				},
 			},
+			swapEnabled: true,
+		},
+		{
+			desc: "Swap memory limit disabled",
+			limits: garden.Limits{
+				Memory: garden.MemoryLimits{
+					LimitInBytes: 10000,
+				},
+			},
+			expected: &specs.LinuxResources{
+				Memory: &specs.LinuxMemory{
+					Limit: int64Ptr(10000),
+				},
+			},
+			swapEnabled: false,
 		},
 		{
 			desc: "PID limit",
@@ -302,6 +321,7 @@ func (s *SpecSuite) TestOciResourceLimits() {
 					Limit: 1000,
 				},
 			},
+			swapEnabled: true,
 		},
 		{
 			desc:     "No limits specified",
@@ -310,7 +330,7 @@ func (s *SpecSuite) TestOciResourceLimits() {
 		},
 	} {
 		s.T().Run(tc.desc, func(t *testing.T) {
-			s.Equal(tc.expected, spec.OciResources(tc.limits))
+			s.Equal(tc.expected, spec.OciResources(tc.limits, tc.swapEnabled))
 		})
 	}
 }
@@ -362,6 +382,9 @@ func (s *SpecSuite) TestContainerSpec() {
 				s.Equal([]string{"/tmp/gdn-init"}, oci.Process.Args)
 				s.Equal(oci.Mounts, spec.ContainerMounts(false, spec.DefaultInitBinPath))
 
+				s.Equal("/tmp/gdn-init", oci.Mounts[len(oci.Mounts)-1].Destination,
+					"gdn-init mount should be mounted after all the other default mounts")
+
 				s.Equal(minimalContainerSpec.Handle, oci.Hostname)
 				s.Equal(spec.AnyContainerDevices, oci.Linux.Resources.Devices)
 			},
@@ -377,12 +400,6 @@ func (s *SpecSuite) TestContainerSpec() {
 					Destination: "/sys",
 					Type:        "sysfs",
 					Source:      "sysfs",
-					Options:     []string{"nosuid", "noexec", "nodev"},
-				})
-				s.Contains(oci.Mounts, specs.Mount{
-					Destination: "/sys/fs/cgroup",
-					Type:        "cgroup",
-					Source:      "cgroup",
 					Options:     []string{"nosuid", "noexec", "nodev"},
 				})
 				s.Contains(oci.Mounts, specs.Mount{

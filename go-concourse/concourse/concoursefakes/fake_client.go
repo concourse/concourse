@@ -300,15 +300,16 @@ func (fake *FakeClient) AbortBuild(arg1 string) error {
 	fake.abortBuildArgsForCall = append(fake.abortBuildArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.AbortBuildStub
+	fakeReturns := fake.abortBuildReturns
 	fake.recordInvocation("AbortBuild", []interface{}{arg1})
 	fake.abortBuildMutex.Unlock()
-	if fake.AbortBuildStub != nil {
-		return fake.AbortBuildStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.abortBuildReturns
 	return fakeReturns.result1
 }
 
@@ -360,15 +361,16 @@ func (fake *FakeClient) Build(arg1 string) (atc.Build, bool, error) {
 	fake.buildArgsForCall = append(fake.buildArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.BuildStub
+	fakeReturns := fake.buildReturns
 	fake.recordInvocation("Build", []interface{}{arg1})
 	fake.buildMutex.Unlock()
-	if fake.BuildStub != nil {
-		return fake.BuildStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.buildReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -426,15 +428,16 @@ func (fake *FakeClient) BuildEvents(arg1 string) (concourse.Events, error) {
 	fake.buildEventsArgsForCall = append(fake.buildEventsArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.BuildEventsStub
+	fakeReturns := fake.buildEventsReturns
 	fake.recordInvocation("BuildEvents", []interface{}{arg1})
 	fake.buildEventsMutex.Unlock()
-	if fake.BuildEventsStub != nil {
-		return fake.BuildEventsStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.buildEventsReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -489,15 +492,16 @@ func (fake *FakeClient) BuildPlan(arg1 int) (atc.PublicBuildPlan, bool, error) {
 	fake.buildPlanArgsForCall = append(fake.buildPlanArgsForCall, struct {
 		arg1 int
 	}{arg1})
+	stub := fake.BuildPlanStub
+	fakeReturns := fake.buildPlanReturns
 	fake.recordInvocation("BuildPlan", []interface{}{arg1})
 	fake.buildPlanMutex.Unlock()
-	if fake.BuildPlanStub != nil {
-		return fake.BuildPlanStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.buildPlanReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -555,15 +559,16 @@ func (fake *FakeClient) BuildResources(arg1 int) (atc.BuildInputsOutputs, bool, 
 	fake.buildResourcesArgsForCall = append(fake.buildResourcesArgsForCall, struct {
 		arg1 int
 	}{arg1})
+	stub := fake.BuildResourcesStub
+	fakeReturns := fake.buildResourcesReturns
 	fake.recordInvocation("BuildResources", []interface{}{arg1})
 	fake.buildResourcesMutex.Unlock()
-	if fake.BuildResourcesStub != nil {
-		return fake.BuildResourcesStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.buildResourcesReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -621,15 +626,16 @@ func (fake *FakeClient) Builds(arg1 concourse.Page) ([]atc.Build, concourse.Pagi
 	fake.buildsArgsForCall = append(fake.buildsArgsForCall, struct {
 		arg1 concourse.Page
 	}{arg1})
+	stub := fake.BuildsStub
+	fakeReturns := fake.buildsReturns
 	fake.recordInvocation("Builds", []interface{}{arg1})
 	fake.buildsMutex.Unlock()
-	if fake.BuildsStub != nil {
-		return fake.BuildsStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.buildsReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -687,15 +693,16 @@ func (fake *FakeClient) FindTeam(arg1 string) (concourse.Team, error) {
 	fake.findTeamArgsForCall = append(fake.findTeamArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.FindTeamStub
+	fakeReturns := fake.findTeamReturns
 	fake.recordInvocation("FindTeam", []interface{}{arg1})
 	fake.findTeamMutex.Unlock()
-	if fake.FindTeamStub != nil {
-		return fake.FindTeamStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.findTeamReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -751,15 +758,16 @@ func (fake *FakeClient) GetCLIReader(arg1 string, arg2 string) (io.ReadCloser, h
 		arg1 string
 		arg2 string
 	}{arg1, arg2})
+	stub := fake.GetCLIReaderStub
+	fakeReturns := fake.getCLIReaderReturns
 	fake.recordInvocation("GetCLIReader", []interface{}{arg1, arg2})
 	fake.getCLIReaderMutex.Unlock()
-	if fake.GetCLIReaderStub != nil {
-		return fake.GetCLIReaderStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.getCLIReaderReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -816,15 +824,16 @@ func (fake *FakeClient) GetInfo() (atc.Info, error) {
 	ret, specificReturn := fake.getInfoReturnsOnCall[len(fake.getInfoArgsForCall)]
 	fake.getInfoArgsForCall = append(fake.getInfoArgsForCall, struct {
 	}{})
+	stub := fake.GetInfoStub
+	fakeReturns := fake.getInfoReturns
 	fake.recordInvocation("GetInfo", []interface{}{})
 	fake.getInfoMutex.Unlock()
-	if fake.GetInfoStub != nil {
-		return fake.GetInfoStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getInfoReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -871,15 +880,16 @@ func (fake *FakeClient) HTTPClient() *http.Client {
 	ret, specificReturn := fake.hTTPClientReturnsOnCall[len(fake.hTTPClientArgsForCall)]
 	fake.hTTPClientArgsForCall = append(fake.hTTPClientArgsForCall, struct {
 	}{})
+	stub := fake.HTTPClientStub
+	fakeReturns := fake.hTTPClientReturns
 	fake.recordInvocation("HTTPClient", []interface{}{})
 	fake.hTTPClientMutex.Unlock()
-	if fake.HTTPClientStub != nil {
-		return fake.HTTPClientStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.hTTPClientReturns
 	return fakeReturns.result1
 }
 
@@ -924,15 +934,16 @@ func (fake *FakeClient) LandWorker(arg1 string) error {
 	fake.landWorkerArgsForCall = append(fake.landWorkerArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.LandWorkerStub
+	fakeReturns := fake.landWorkerReturns
 	fake.recordInvocation("LandWorker", []interface{}{arg1})
 	fake.landWorkerMutex.Unlock()
-	if fake.LandWorkerStub != nil {
-		return fake.LandWorkerStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.landWorkerReturns
 	return fakeReturns.result1
 }
 
@@ -984,15 +995,16 @@ func (fake *FakeClient) ListActiveUsersSince(arg1 time.Time) ([]atc.User, error)
 	fake.listActiveUsersSinceArgsForCall = append(fake.listActiveUsersSinceArgsForCall, struct {
 		arg1 time.Time
 	}{arg1})
+	stub := fake.ListActiveUsersSinceStub
+	fakeReturns := fake.listActiveUsersSinceReturns
 	fake.recordInvocation("ListActiveUsersSince", []interface{}{arg1})
 	fake.listActiveUsersSinceMutex.Unlock()
-	if fake.ListActiveUsersSinceStub != nil {
-		return fake.ListActiveUsersSinceStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.listActiveUsersSinceReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -1046,15 +1058,16 @@ func (fake *FakeClient) ListAllJobs() ([]atc.Job, error) {
 	ret, specificReturn := fake.listAllJobsReturnsOnCall[len(fake.listAllJobsArgsForCall)]
 	fake.listAllJobsArgsForCall = append(fake.listAllJobsArgsForCall, struct {
 	}{})
+	stub := fake.ListAllJobsStub
+	fakeReturns := fake.listAllJobsReturns
 	fake.recordInvocation("ListAllJobs", []interface{}{})
 	fake.listAllJobsMutex.Unlock()
-	if fake.ListAllJobsStub != nil {
-		return fake.ListAllJobsStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.listAllJobsReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -1102,15 +1115,16 @@ func (fake *FakeClient) ListBuildArtifacts(arg1 string) ([]atc.WorkerArtifact, e
 	fake.listBuildArtifactsArgsForCall = append(fake.listBuildArtifactsArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.ListBuildArtifactsStub
+	fakeReturns := fake.listBuildArtifactsReturns
 	fake.recordInvocation("ListBuildArtifacts", []interface{}{arg1})
 	fake.listBuildArtifactsMutex.Unlock()
-	if fake.ListBuildArtifactsStub != nil {
-		return fake.ListBuildArtifactsStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.listBuildArtifactsReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -1164,15 +1178,16 @@ func (fake *FakeClient) ListPipelines() ([]atc.Pipeline, error) {
 	ret, specificReturn := fake.listPipelinesReturnsOnCall[len(fake.listPipelinesArgsForCall)]
 	fake.listPipelinesArgsForCall = append(fake.listPipelinesArgsForCall, struct {
 	}{})
+	stub := fake.ListPipelinesStub
+	fakeReturns := fake.listPipelinesReturns
 	fake.recordInvocation("ListPipelines", []interface{}{})
 	fake.listPipelinesMutex.Unlock()
-	if fake.ListPipelinesStub != nil {
-		return fake.ListPipelinesStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.listPipelinesReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -1219,15 +1234,16 @@ func (fake *FakeClient) ListTeams() ([]atc.Team, error) {
 	ret, specificReturn := fake.listTeamsReturnsOnCall[len(fake.listTeamsArgsForCall)]
 	fake.listTeamsArgsForCall = append(fake.listTeamsArgsForCall, struct {
 	}{})
+	stub := fake.ListTeamsStub
+	fakeReturns := fake.listTeamsReturns
 	fake.recordInvocation("ListTeams", []interface{}{})
 	fake.listTeamsMutex.Unlock()
-	if fake.ListTeamsStub != nil {
-		return fake.ListTeamsStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.listTeamsReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -1274,15 +1290,16 @@ func (fake *FakeClient) ListWorkers() ([]atc.Worker, error) {
 	ret, specificReturn := fake.listWorkersReturnsOnCall[len(fake.listWorkersArgsForCall)]
 	fake.listWorkersArgsForCall = append(fake.listWorkersArgsForCall, struct {
 	}{})
+	stub := fake.ListWorkersStub
+	fakeReturns := fake.listWorkersReturns
 	fake.recordInvocation("ListWorkers", []interface{}{})
 	fake.listWorkersMutex.Unlock()
-	if fake.ListWorkersStub != nil {
-		return fake.ListWorkersStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.listWorkersReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -1330,15 +1347,16 @@ func (fake *FakeClient) PruneWorker(arg1 string) error {
 	fake.pruneWorkerArgsForCall = append(fake.pruneWorkerArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.PruneWorkerStub
+	fakeReturns := fake.pruneWorkerReturns
 	fake.recordInvocation("PruneWorker", []interface{}{arg1})
 	fake.pruneWorkerMutex.Unlock()
-	if fake.PruneWorkerStub != nil {
-		return fake.PruneWorkerStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.pruneWorkerReturns
 	return fakeReturns.result1
 }
 
@@ -1391,15 +1409,16 @@ func (fake *FakeClient) SaveWorker(arg1 atc.Worker, arg2 *time.Duration) (*atc.W
 		arg1 atc.Worker
 		arg2 *time.Duration
 	}{arg1, arg2})
+	stub := fake.SaveWorkerStub
+	fakeReturns := fake.saveWorkerReturns
 	fake.recordInvocation("SaveWorker", []interface{}{arg1, arg2})
 	fake.saveWorkerMutex.Unlock()
-	if fake.SaveWorkerStub != nil {
-		return fake.SaveWorkerStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.saveWorkerReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -1454,15 +1473,16 @@ func (fake *FakeClient) Team(arg1 string) concourse.Team {
 	fake.teamArgsForCall = append(fake.teamArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.TeamStub
+	fakeReturns := fake.teamReturns
 	fake.recordInvocation("Team", []interface{}{arg1})
 	fake.teamMutex.Unlock()
-	if fake.TeamStub != nil {
-		return fake.TeamStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.teamReturns
 	return fakeReturns.result1
 }
 
@@ -1513,15 +1533,16 @@ func (fake *FakeClient) URL() string {
 	ret, specificReturn := fake.uRLReturnsOnCall[len(fake.uRLArgsForCall)]
 	fake.uRLArgsForCall = append(fake.uRLArgsForCall, struct {
 	}{})
+	stub := fake.URLStub
+	fakeReturns := fake.uRLReturns
 	fake.recordInvocation("URL", []interface{}{})
 	fake.uRLMutex.Unlock()
-	if fake.URLStub != nil {
-		return fake.URLStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.uRLReturns
 	return fakeReturns.result1
 }
 
@@ -1565,15 +1586,16 @@ func (fake *FakeClient) UserInfo() (atc.UserInfo, error) {
 	ret, specificReturn := fake.userInfoReturnsOnCall[len(fake.userInfoArgsForCall)]
 	fake.userInfoArgsForCall = append(fake.userInfoArgsForCall, struct {
 	}{})
+	stub := fake.UserInfoStub
+	fakeReturns := fake.userInfoReturns
 	fake.recordInvocation("UserInfo", []interface{}{})
 	fake.userInfoMutex.Unlock()
-	if fake.UserInfoStub != nil {
-		return fake.UserInfoStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.userInfoReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

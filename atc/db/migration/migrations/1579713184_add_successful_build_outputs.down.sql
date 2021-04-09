@@ -1,3 +1,3 @@
-BEGIN;
-  DROP TABLE successful_build_outputs;
-COMMIT;
+
+DROP TABLE successful_build_outputs;
+

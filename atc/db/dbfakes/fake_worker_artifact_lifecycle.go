@@ -27,15 +27,16 @@ func (fake *FakeWorkerArtifactLifecycle) RemoveExpiredArtifacts() error {
 	ret, specificReturn := fake.removeExpiredArtifactsReturnsOnCall[len(fake.removeExpiredArtifactsArgsForCall)]
 	fake.removeExpiredArtifactsArgsForCall = append(fake.removeExpiredArtifactsArgsForCall, struct {
 	}{})
+	stub := fake.RemoveExpiredArtifactsStub
+	fakeReturns := fake.removeExpiredArtifactsReturns
 	fake.recordInvocation("RemoveExpiredArtifacts", []interface{}{})
 	fake.removeExpiredArtifactsMutex.Unlock()
-	if fake.RemoveExpiredArtifactsStub != nil {
-		return fake.RemoveExpiredArtifactsStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.removeExpiredArtifactsReturns
 	return fakeReturns.result1
 }
 

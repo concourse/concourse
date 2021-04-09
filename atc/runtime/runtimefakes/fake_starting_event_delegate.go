@@ -9,12 +9,6 @@ import (
 )
 
 type FakeStartingEventDelegate struct {
-	SelectedWorkerStub        func(lager.Logger, string)
-	selectedWorkerMutex       sync.RWMutex
-	selectedWorkerArgsForCall []struct {
-		arg1 lager.Logger
-		arg2 string
-	}
 	StartingStub        func(lager.Logger)
 	startingMutex       sync.RWMutex
 	startingArgsForCall []struct {
@@ -24,46 +18,15 @@ type FakeStartingEventDelegate struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeStartingEventDelegate) SelectedWorker(arg1 lager.Logger, arg2 string) {
-	fake.selectedWorkerMutex.Lock()
-	fake.selectedWorkerArgsForCall = append(fake.selectedWorkerArgsForCall, struct {
-		arg1 lager.Logger
-		arg2 string
-	}{arg1, arg2})
-	fake.recordInvocation("SelectedWorker", []interface{}{arg1, arg2})
-	fake.selectedWorkerMutex.Unlock()
-	if fake.SelectedWorkerStub != nil {
-		fake.SelectedWorkerStub(arg1, arg2)
-	}
-}
-
-func (fake *FakeStartingEventDelegate) SelectedWorkerCallCount() int {
-	fake.selectedWorkerMutex.RLock()
-	defer fake.selectedWorkerMutex.RUnlock()
-	return len(fake.selectedWorkerArgsForCall)
-}
-
-func (fake *FakeStartingEventDelegate) SelectedWorkerCalls(stub func(lager.Logger, string)) {
-	fake.selectedWorkerMutex.Lock()
-	defer fake.selectedWorkerMutex.Unlock()
-	fake.SelectedWorkerStub = stub
-}
-
-func (fake *FakeStartingEventDelegate) SelectedWorkerArgsForCall(i int) (lager.Logger, string) {
-	fake.selectedWorkerMutex.RLock()
-	defer fake.selectedWorkerMutex.RUnlock()
-	argsForCall := fake.selectedWorkerArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
-}
-
 func (fake *FakeStartingEventDelegate) Starting(arg1 lager.Logger) {
 	fake.startingMutex.Lock()
 	fake.startingArgsForCall = append(fake.startingArgsForCall, struct {
 		arg1 lager.Logger
 	}{arg1})
+	stub := fake.StartingStub
 	fake.recordInvocation("Starting", []interface{}{arg1})
 	fake.startingMutex.Unlock()
-	if fake.StartingStub != nil {
+	if stub != nil {
 		fake.StartingStub(arg1)
 	}
 }
@@ -90,8 +53,6 @@ func (fake *FakeStartingEventDelegate) StartingArgsForCall(i int) lager.Logger {
 func (fake *FakeStartingEventDelegate) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.selectedWorkerMutex.RLock()
-	defer fake.selectedWorkerMutex.RUnlock()
 	fake.startingMutex.RLock()
 	defer fake.startingMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

@@ -32,13 +32,12 @@ import Message.ScrollDirection exposing (ScrollDirection(..))
 import Message.Storage
     exposing
         ( deleteFromLocalStorage
+        , favoritedInstanceGroupsKey
         , favoritedPipelinesKey
         , jobsKey
         , loadFromLocalStorage
-        , loadFromSessionStorage
         , pipelinesKey
         , saveToLocalStorage
-        , saveToSessionStorage
         , sideBarStateKey
         , teamsKey
         , tokenKey
@@ -121,6 +120,7 @@ type Effect
     | FetchResource Concourse.ResourceIdentifier
     | FetchCheck Int
     | FetchVersionedResources Concourse.ResourceIdentifier Page
+    | FetchVersionedResourceId Concourse.ResourceIdentifier Concourse.Version
     | FetchResources Concourse.PipelineIdentifier
     | FetchBuildResources Concourse.BuildId
     | FetchPipeline Concourse.PipelineIdentifier
@@ -192,6 +192,8 @@ type Effect
     | SyncStickyBuildLogHeaders
     | SaveFavoritedPipelines (Set DatabaseID)
     | LoadFavoritedPipelines
+    | SaveFavoritedInstanceGroups (Set ( Concourse.TeamName, Concourse.PipelineName ))
+    | LoadFavoritedInstanceGroups
 
 
 type alias VersionId =
@@ -218,6 +220,7 @@ runEffect effect key csrfToken =
             Api.paginatedGet
                 (Endpoints.JobBuildsList |> Endpoints.Job id)
                 (Just page)
+                []
                 Concourse.decodeBuild
                 |> Api.request
                 |> Task.map (\b -> ( page, b ))
@@ -235,10 +238,21 @@ runEffect effect key csrfToken =
                 |> Api.request
                 |> Task.attempt Checked
 
+        FetchVersionedResourceId id version ->
+            Api.paginatedGet
+                (Endpoints.ResourceVersionsList |> Endpoints.Resource id)
+                Nothing
+                (Routes.versionQueryParams version)
+                Concourse.decodeVersionedResource
+                |> Api.request
+                |> Task.map (\b -> List.head b.content)
+                |> Task.attempt VersionedResourceIdFetched
+
         FetchVersionedResources id page ->
             Api.paginatedGet
                 (Endpoints.ResourceVersionsList |> Endpoints.Resource id)
                 (Just page)
+                []
                 Concourse.decodeVersionedResource
                 |> Api.request
                 |> Task.map (\b -> ( page, b ))
@@ -497,6 +511,7 @@ runEffect effect key csrfToken =
             Api.paginatedGet
                 (Endpoints.JobBuildsList |> Endpoints.Job job)
                 page
+                []
                 Concourse.decodeBuild
                 |> Api.request
                 |> Task.attempt BuildHistoryFetched
@@ -594,10 +609,10 @@ runEffect effect key csrfToken =
             loadFromLocalStorage tokenKey
 
         SaveSideBarState state ->
-            saveToSessionStorage ( sideBarStateKey, encodeSideBarState state )
+            saveToLocalStorage ( sideBarStateKey, encodeSideBarState state )
 
         LoadSideBarState ->
-            loadFromSessionStorage sideBarStateKey
+            loadFromLocalStorage sideBarStateKey
 
         SaveCachedJobs jobs ->
             saveToLocalStorage ( jobsKey, jobs |> Json.Encode.list encodeJob )
@@ -625,6 +640,19 @@ runEffect effect key csrfToken =
 
         LoadFavoritedPipelines ->
             loadFromLocalStorage favoritedPipelinesKey
+
+        SaveFavoritedInstanceGroups igs ->
+            saveToLocalStorage
+                ( favoritedInstanceGroupsKey
+                , igs
+                    |> Json.Encode.set
+                        (\( teamName, name ) ->
+                            Concourse.encodeInstanceGroupId { teamName = teamName, name = name }
+                        )
+                )
+
+        LoadFavoritedInstanceGroups ->
+            loadFromLocalStorage favoritedInstanceGroupsKey
 
         SaveCachedTeams teams ->
             saveToLocalStorage ( teamsKey, teams |> Json.Encode.list encodeTeam )
@@ -666,8 +694,13 @@ toHtmlID domId =
         SideBarTeam section t ->
             pipelinesSectionName section ++ "_" ++ Base64.encode t
 
-        SideBarPipeline section p ->
-            pipelinesSectionName section ++ "_" ++ Base64.encode p.teamName ++ "_" ++ Base64.encode p.pipelineName
+        SideBarPipeline section id ->
+            pipelinesSectionName section ++ "_" ++ String.fromInt id
+
+        SideBarInstancedPipeline section id ->
+            -- This can be the same as SideBarPipeline because they are
+            -- mutually exclusive
+            pipelinesSectionName section ++ "_" ++ String.fromInt id
 
         SideBarInstanceGroup section teamName groupName ->
             pipelinesSectionName section
@@ -692,6 +725,14 @@ toHtmlID domId =
             pipelinesSectionName section
                 ++ "_"
                 ++ encodePipelineId p
+                ++ "_favorite"
+
+        InstanceGroupCardFavoritedIcon section { teamName, name } ->
+            pipelinesSectionName section
+                ++ "_"
+                ++ Base64.encode teamName
+                ++ "_"
+                ++ Base64.encode name
                 ++ "_favorite"
 
         PipelineCardPauseToggle section p ->
@@ -733,6 +774,12 @@ toHtmlID domId =
                 ++ "_var_"
                 ++ Base64.encode varName
 
+        PipelineCardInstanceVars section p _ ->
+            pipelinesSectionName section
+                ++ "_"
+                ++ encodePipelineId p
+                ++ "_vars"
+
         PipelinePreview section p ->
             "pipeline_preview_"
                 ++ pipelinesSectionName section
@@ -755,6 +802,9 @@ toHtmlID domId =
 
         StepInitialization stepID ->
             stepID ++ "_image"
+
+        StepVersion stepID ->
+            stepID ++ "_version"
 
         SideBarIcon ->
             "sidebar-icon"

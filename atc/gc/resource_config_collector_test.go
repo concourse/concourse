@@ -124,6 +124,7 @@ var _ = Describe("ResourceConfigCollector", func() {
 					Expect(err).NotTo(HaveOccurred())
 					defer tx.Rollback()
 					_, err = psql.Delete("resource_cache_uses").RunWith(tx).Exec()
+					Expect(err).NotTo(HaveOccurred())
 					_, err = psql.Delete("resource_caches").RunWith(tx).Exec()
 					Expect(err).NotTo(HaveOccurred())
 					Expect(tx.Commit()).To(Succeed())

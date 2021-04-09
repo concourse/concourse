@@ -191,15 +191,16 @@ func (fake *FakeTarget) CACert() string {
 	ret, specificReturn := fake.cACertReturnsOnCall[len(fake.cACertArgsForCall)]
 	fake.cACertArgsForCall = append(fake.cACertArgsForCall, struct {
 	}{})
+	stub := fake.CACertStub
+	fakeReturns := fake.cACertReturns
 	fake.recordInvocation("CACert", []interface{}{})
 	fake.cACertMutex.Unlock()
-	if fake.CACertStub != nil {
-		return fake.CACertStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.cACertReturns
 	return fakeReturns.result1
 }
 
@@ -243,15 +244,16 @@ func (fake *FakeTarget) Client() concourse.Client {
 	ret, specificReturn := fake.clientReturnsOnCall[len(fake.clientArgsForCall)]
 	fake.clientArgsForCall = append(fake.clientArgsForCall, struct {
 	}{})
+	stub := fake.ClientStub
+	fakeReturns := fake.clientReturns
 	fake.recordInvocation("Client", []interface{}{})
 	fake.clientMutex.Unlock()
-	if fake.ClientStub != nil {
-		return fake.ClientStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.clientReturns
 	return fakeReturns.result1
 }
 
@@ -295,15 +297,16 @@ func (fake *FakeTarget) ClientCertPath() string {
 	ret, specificReturn := fake.clientCertPathReturnsOnCall[len(fake.clientCertPathArgsForCall)]
 	fake.clientCertPathArgsForCall = append(fake.clientCertPathArgsForCall, struct {
 	}{})
+	stub := fake.ClientCertPathStub
+	fakeReturns := fake.clientCertPathReturns
 	fake.recordInvocation("ClientCertPath", []interface{}{})
 	fake.clientCertPathMutex.Unlock()
-	if fake.ClientCertPathStub != nil {
-		return fake.ClientCertPathStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.clientCertPathReturns
 	return fakeReturns.result1
 }
 
@@ -347,15 +350,16 @@ func (fake *FakeTarget) ClientCertificate() []tls.Certificate {
 	ret, specificReturn := fake.clientCertificateReturnsOnCall[len(fake.clientCertificateArgsForCall)]
 	fake.clientCertificateArgsForCall = append(fake.clientCertificateArgsForCall, struct {
 	}{})
+	stub := fake.ClientCertificateStub
+	fakeReturns := fake.clientCertificateReturns
 	fake.recordInvocation("ClientCertificate", []interface{}{})
 	fake.clientCertificateMutex.Unlock()
-	if fake.ClientCertificateStub != nil {
-		return fake.ClientCertificateStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.clientCertificateReturns
 	return fakeReturns.result1
 }
 
@@ -399,15 +403,16 @@ func (fake *FakeTarget) ClientKeyPath() string {
 	ret, specificReturn := fake.clientKeyPathReturnsOnCall[len(fake.clientKeyPathArgsForCall)]
 	fake.clientKeyPathArgsForCall = append(fake.clientKeyPathArgsForCall, struct {
 	}{})
+	stub := fake.ClientKeyPathStub
+	fakeReturns := fake.clientKeyPathReturns
 	fake.recordInvocation("ClientKeyPath", []interface{}{})
 	fake.clientKeyPathMutex.Unlock()
-	if fake.ClientKeyPathStub != nil {
-		return fake.ClientKeyPathStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.clientKeyPathReturns
 	return fakeReturns.result1
 }
 
@@ -452,15 +457,16 @@ func (fake *FakeTarget) FindTeam(arg1 string) (concourse.Team, error) {
 	fake.findTeamArgsForCall = append(fake.findTeamArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.FindTeamStub
+	fakeReturns := fake.findTeamReturns
 	fake.recordInvocation("FindTeam", []interface{}{arg1})
 	fake.findTeamMutex.Unlock()
-	if fake.FindTeamStub != nil {
-		return fake.FindTeamStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.findTeamReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -515,15 +521,16 @@ func (fake *FakeTarget) IsWorkerVersionCompatible(arg1 string) (bool, error) {
 	fake.isWorkerVersionCompatibleArgsForCall = append(fake.isWorkerVersionCompatibleArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.IsWorkerVersionCompatibleStub
+	fakeReturns := fake.isWorkerVersionCompatibleReturns
 	fake.recordInvocation("IsWorkerVersionCompatible", []interface{}{arg1})
 	fake.isWorkerVersionCompatibleMutex.Unlock()
-	if fake.IsWorkerVersionCompatibleStub != nil {
-		return fake.IsWorkerVersionCompatibleStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.isWorkerVersionCompatibleReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -577,15 +584,16 @@ func (fake *FakeTarget) TLSConfig() *tls.Config {
 	ret, specificReturn := fake.tLSConfigReturnsOnCall[len(fake.tLSConfigArgsForCall)]
 	fake.tLSConfigArgsForCall = append(fake.tLSConfigArgsForCall, struct {
 	}{})
+	stub := fake.TLSConfigStub
+	fakeReturns := fake.tLSConfigReturns
 	fake.recordInvocation("TLSConfig", []interface{}{})
 	fake.tLSConfigMutex.Unlock()
-	if fake.TLSConfigStub != nil {
-		return fake.TLSConfigStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.tLSConfigReturns
 	return fakeReturns.result1
 }
 
@@ -629,15 +637,16 @@ func (fake *FakeTarget) Team() concourse.Team {
 	ret, specificReturn := fake.teamReturnsOnCall[len(fake.teamArgsForCall)]
 	fake.teamArgsForCall = append(fake.teamArgsForCall, struct {
 	}{})
+	stub := fake.TeamStub
+	fakeReturns := fake.teamReturns
 	fake.recordInvocation("Team", []interface{}{})
 	fake.teamMutex.Unlock()
-	if fake.TeamStub != nil {
-		return fake.TeamStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.teamReturns
 	return fakeReturns.result1
 }
 
@@ -681,15 +690,16 @@ func (fake *FakeTarget) Token() *rc.TargetToken {
 	ret, specificReturn := fake.tokenReturnsOnCall[len(fake.tokenArgsForCall)]
 	fake.tokenArgsForCall = append(fake.tokenArgsForCall, struct {
 	}{})
+	stub := fake.TokenStub
+	fakeReturns := fake.tokenReturns
 	fake.recordInvocation("Token", []interface{}{})
 	fake.tokenMutex.Unlock()
-	if fake.TokenStub != nil {
-		return fake.TokenStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.tokenReturns
 	return fakeReturns.result1
 }
 
@@ -733,15 +743,16 @@ func (fake *FakeTarget) TokenAuthorization() (string, bool) {
 	ret, specificReturn := fake.tokenAuthorizationReturnsOnCall[len(fake.tokenAuthorizationArgsForCall)]
 	fake.tokenAuthorizationArgsForCall = append(fake.tokenAuthorizationArgsForCall, struct {
 	}{})
+	stub := fake.TokenAuthorizationStub
+	fakeReturns := fake.tokenAuthorizationReturns
 	fake.recordInvocation("TokenAuthorization", []interface{}{})
 	fake.tokenAuthorizationMutex.Unlock()
-	if fake.TokenAuthorizationStub != nil {
-		return fake.TokenAuthorizationStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.tokenAuthorizationReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -788,15 +799,16 @@ func (fake *FakeTarget) URL() string {
 	ret, specificReturn := fake.uRLReturnsOnCall[len(fake.uRLArgsForCall)]
 	fake.uRLArgsForCall = append(fake.uRLArgsForCall, struct {
 	}{})
+	stub := fake.URLStub
+	fakeReturns := fake.uRLReturns
 	fake.recordInvocation("URL", []interface{}{})
 	fake.uRLMutex.Unlock()
-	if fake.URLStub != nil {
-		return fake.URLStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.uRLReturns
 	return fakeReturns.result1
 }
 
@@ -840,15 +852,16 @@ func (fake *FakeTarget) Validate() error {
 	ret, specificReturn := fake.validateReturnsOnCall[len(fake.validateArgsForCall)]
 	fake.validateArgsForCall = append(fake.validateArgsForCall, struct {
 	}{})
+	stub := fake.ValidateStub
+	fakeReturns := fake.validateReturns
 	fake.recordInvocation("Validate", []interface{}{})
 	fake.validateMutex.Unlock()
-	if fake.ValidateStub != nil {
-		return fake.ValidateStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.validateReturns
 	return fakeReturns.result1
 }
 
@@ -892,15 +905,16 @@ func (fake *FakeTarget) ValidateWithWarningOnly() error {
 	ret, specificReturn := fake.validateWithWarningOnlyReturnsOnCall[len(fake.validateWithWarningOnlyArgsForCall)]
 	fake.validateWithWarningOnlyArgsForCall = append(fake.validateWithWarningOnlyArgsForCall, struct {
 	}{})
+	stub := fake.ValidateWithWarningOnlyStub
+	fakeReturns := fake.validateWithWarningOnlyReturns
 	fake.recordInvocation("ValidateWithWarningOnly", []interface{}{})
 	fake.validateWithWarningOnlyMutex.Unlock()
-	if fake.ValidateWithWarningOnlyStub != nil {
-		return fake.ValidateWithWarningOnlyStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.validateWithWarningOnlyReturns
 	return fakeReturns.result1
 }
 
@@ -944,15 +958,16 @@ func (fake *FakeTarget) Version() (string, error) {
 	ret, specificReturn := fake.versionReturnsOnCall[len(fake.versionArgsForCall)]
 	fake.versionArgsForCall = append(fake.versionArgsForCall, struct {
 	}{})
+	stub := fake.VersionStub
+	fakeReturns := fake.versionReturns
 	fake.recordInvocation("Version", []interface{}{})
 	fake.versionMutex.Unlock()
-	if fake.VersionStub != nil {
-		return fake.VersionStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.versionReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -999,15 +1014,16 @@ func (fake *FakeTarget) WorkerVersion() (string, error) {
 	ret, specificReturn := fake.workerVersionReturnsOnCall[len(fake.workerVersionArgsForCall)]
 	fake.workerVersionArgsForCall = append(fake.workerVersionArgsForCall, struct {
 	}{})
+	stub := fake.WorkerVersionStub
+	fakeReturns := fake.workerVersionReturns
 	fake.recordInvocation("WorkerVersion", []interface{}{})
 	fake.workerVersionMutex.Unlock()
-	if fake.WorkerVersionStub != nil {
-		return fake.WorkerVersionStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.workerVersionReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

@@ -1,3 +1,3 @@
-BEGIN;
-  DROP INDEX resources_build_id_idx;
-COMMIT;
+
+DROP INDEX resources_build_id_idx;
+

@@ -215,6 +215,7 @@ pinMenu { hovered } model =
                                             , resourceName = resourceName
                                             }
                                         , page = Nothing
+                                        , version = Nothing
                                         }
                             }
                         )

@@ -23,9 +23,10 @@ func (fake *FakeHandler) ServeHTTP(arg1 http.ResponseWriter, arg2 *http.Request)
 		arg1 http.ResponseWriter
 		arg2 *http.Request
 	}{arg1, arg2})
+	stub := fake.ServeHTTPStub
 	fake.recordInvocation("ServeHTTP", []interface{}{arg1, arg2})
 	fake.serveHTTPMutex.Unlock()
-	if fake.ServeHTTPStub != nil {
+	if stub != nil {
 		fake.ServeHTTPStub(arg1, arg2)
 	}
 }

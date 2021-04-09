@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/concourse/concourse/atc/exec"
 	. "github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/exec/execfakes"
@@ -282,7 +281,7 @@ var _ = Describe("Parallel", func() {
 		Context("when one step panics", func() {
 			BeforeEach(func() {
 				fakeStepA.RunReturns(false, nil)
-				fakeStepB.RunStub = func(context.Context, exec.RunState) (bool, error) {
+				fakeStepB.RunStub = func(context.Context, RunState) (bool, error) {
 					panic("something went wrong")
 				}
 			})

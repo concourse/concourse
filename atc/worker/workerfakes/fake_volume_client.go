@@ -176,15 +176,16 @@ func (fake *FakeVolumeClient) CreateVolume(arg1 lager.Logger, arg2 worker.Volume
 		arg4 string
 		arg5 db.VolumeType
 	}{arg1, arg2, arg3, arg4, arg5})
+	stub := fake.CreateVolumeStub
+	fakeReturns := fake.createVolumeReturns
 	fake.recordInvocation("CreateVolume", []interface{}{arg1, arg2, arg3, arg4, arg5})
 	fake.createVolumeMutex.Unlock()
-	if fake.CreateVolumeStub != nil {
-		return fake.CreateVolumeStub(arg1, arg2, arg3, arg4, arg5)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4, arg5)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.createVolumeReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -244,15 +245,16 @@ func (fake *FakeVolumeClient) CreateVolumeForTaskCache(arg1 lager.Logger, arg2 w
 		arg5 string
 		arg6 string
 	}{arg1, arg2, arg3, arg4, arg5, arg6})
+	stub := fake.CreateVolumeForTaskCacheStub
+	fakeReturns := fake.createVolumeForTaskCacheReturns
 	fake.recordInvocation("CreateVolumeForTaskCache", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6})
 	fake.createVolumeForTaskCacheMutex.Unlock()
-	if fake.CreateVolumeForTaskCacheStub != nil {
-		return fake.CreateVolumeForTaskCacheStub(arg1, arg2, arg3, arg4, arg5, arg6)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4, arg5, arg6)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.createVolumeForTaskCacheReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -312,15 +314,16 @@ func (fake *FakeVolumeClient) FindOrCreateCOWVolumeForContainer(arg1 lager.Logge
 		arg5 int
 		arg6 string
 	}{arg1, arg2, arg3, arg4, arg5, arg6})
+	stub := fake.FindOrCreateCOWVolumeForContainerStub
+	fakeReturns := fake.findOrCreateCOWVolumeForContainerReturns
 	fake.recordInvocation("FindOrCreateCOWVolumeForContainer", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6})
 	fake.findOrCreateCOWVolumeForContainerMutex.Unlock()
-	if fake.FindOrCreateCOWVolumeForContainerStub != nil {
-		return fake.FindOrCreateCOWVolumeForContainerStub(arg1, arg2, arg3, arg4, arg5, arg6)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4, arg5, arg6)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.findOrCreateCOWVolumeForContainerReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -378,15 +381,16 @@ func (fake *FakeVolumeClient) FindOrCreateVolumeForBaseResourceType(arg1 lager.L
 		arg3 int
 		arg4 string
 	}{arg1, arg2, arg3, arg4})
+	stub := fake.FindOrCreateVolumeForBaseResourceTypeStub
+	fakeReturns := fake.findOrCreateVolumeForBaseResourceTypeReturns
 	fake.recordInvocation("FindOrCreateVolumeForBaseResourceType", []interface{}{arg1, arg2, arg3, arg4})
 	fake.findOrCreateVolumeForBaseResourceTypeMutex.Unlock()
-	if fake.FindOrCreateVolumeForBaseResourceTypeStub != nil {
-		return fake.FindOrCreateVolumeForBaseResourceTypeStub(arg1, arg2, arg3, arg4)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.findOrCreateVolumeForBaseResourceTypeReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -445,15 +449,16 @@ func (fake *FakeVolumeClient) FindOrCreateVolumeForContainer(arg1 lager.Logger, 
 		arg4 int
 		arg5 string
 	}{arg1, arg2, arg3, arg4, arg5})
+	stub := fake.FindOrCreateVolumeForContainerStub
+	fakeReturns := fake.findOrCreateVolumeForContainerReturns
 	fake.recordInvocation("FindOrCreateVolumeForContainer", []interface{}{arg1, arg2, arg3, arg4, arg5})
 	fake.findOrCreateVolumeForContainerMutex.Unlock()
-	if fake.FindOrCreateVolumeForContainerStub != nil {
-		return fake.FindOrCreateVolumeForContainerStub(arg1, arg2, arg3, arg4, arg5)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4, arg5)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.findOrCreateVolumeForContainerReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -508,15 +513,16 @@ func (fake *FakeVolumeClient) FindOrCreateVolumeForResourceCerts(arg1 lager.Logg
 	fake.findOrCreateVolumeForResourceCertsArgsForCall = append(fake.findOrCreateVolumeForResourceCertsArgsForCall, struct {
 		arg1 lager.Logger
 	}{arg1})
+	stub := fake.FindOrCreateVolumeForResourceCertsStub
+	fakeReturns := fake.findOrCreateVolumeForResourceCertsReturns
 	fake.recordInvocation("FindOrCreateVolumeForResourceCerts", []interface{}{arg1})
 	fake.findOrCreateVolumeForResourceCertsMutex.Unlock()
-	if fake.FindOrCreateVolumeForResourceCertsStub != nil {
-		return fake.FindOrCreateVolumeForResourceCertsStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.findOrCreateVolumeForResourceCertsReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -575,15 +581,16 @@ func (fake *FakeVolumeClient) FindVolumeForResourceCache(arg1 lager.Logger, arg2
 		arg1 lager.Logger
 		arg2 db.UsedResourceCache
 	}{arg1, arg2})
+	stub := fake.FindVolumeForResourceCacheStub
+	fakeReturns := fake.findVolumeForResourceCacheReturns
 	fake.recordInvocation("FindVolumeForResourceCache", []interface{}{arg1, arg2})
 	fake.findVolumeForResourceCacheMutex.Unlock()
-	if fake.FindVolumeForResourceCacheStub != nil {
-		return fake.FindVolumeForResourceCacheStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.findVolumeForResourceCacheReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -645,15 +652,16 @@ func (fake *FakeVolumeClient) FindVolumeForTaskCache(arg1 lager.Logger, arg2 int
 		arg4 string
 		arg5 string
 	}{arg1, arg2, arg3, arg4, arg5})
+	stub := fake.FindVolumeForTaskCacheStub
+	fakeReturns := fake.findVolumeForTaskCacheReturns
 	fake.recordInvocation("FindVolumeForTaskCache", []interface{}{arg1, arg2, arg3, arg4, arg5})
 	fake.findVolumeForTaskCacheMutex.Unlock()
-	if fake.FindVolumeForTaskCacheStub != nil {
-		return fake.FindVolumeForTaskCacheStub(arg1, arg2, arg3, arg4, arg5)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4, arg5)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.findVolumeForTaskCacheReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -712,15 +720,16 @@ func (fake *FakeVolumeClient) LookupVolume(arg1 lager.Logger, arg2 string) (work
 		arg1 lager.Logger
 		arg2 string
 	}{arg1, arg2})
+	stub := fake.LookupVolumeStub
+	fakeReturns := fake.lookupVolumeReturns
 	fake.recordInvocation("LookupVolume", []interface{}{arg1, arg2})
 	fake.lookupVolumeMutex.Unlock()
-	if fake.LookupVolumeStub != nil {
-		return fake.LookupVolumeStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.lookupVolumeReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 

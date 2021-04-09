@@ -1,7 +1,6 @@
 package build_test
 
 import (
-	"github.com/concourse/concourse/atc/exec/build"
 	. "github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/runtime/runtimefakes"
@@ -49,7 +48,7 @@ var _ = Describe("ArtifactRepository", func() {
 		})
 
 		Describe("NewLocalScope", func() {
-			var child *build.Repository
+			var child *Repository
 
 			BeforeEach(func() {
 				child = repo.NewLocalScope()
@@ -74,12 +73,12 @@ var _ = Describe("ArtifactRepository", func() {
 				})
 
 				It("is present in the child but not the parent", func() {
-					Expect(child.AsMap()).To(Equal(map[build.ArtifactName]runtime.Artifact{
+					Expect(child.AsMap()).To(Equal(map[ArtifactName]runtime.Artifact{
 						"first-artifact":  firstArtifact,
 						"second-artifact": secondArtifact,
 					}))
 
-					Expect(repo.AsMap()).To(Equal(map[build.ArtifactName]runtime.Artifact{
+					Expect(repo.AsMap()).To(Equal(map[ArtifactName]runtime.Artifact{
 						"first-artifact": firstArtifact,
 					}))
 				})
@@ -96,11 +95,11 @@ var _ = Describe("ArtifactRepository", func() {
 				})
 
 				It("is overridden in the child but not the parent", func() {
-					Expect(child.AsMap()).To(Equal(map[build.ArtifactName]runtime.Artifact{
+					Expect(child.AsMap()).To(Equal(map[ArtifactName]runtime.Artifact{
 						"first-artifact": firstPrimeArtifact,
 					}))
 
-					Expect(repo.AsMap()).To(Equal(map[build.ArtifactName]runtime.Artifact{
+					Expect(repo.AsMap()).To(Equal(map[ArtifactName]runtime.Artifact{
 						"first-artifact": firstArtifact,
 					}))
 				})
@@ -119,7 +118,7 @@ var _ = Describe("ArtifactRepository", func() {
 
 			Describe("AsMap", func() {
 				It("returns all artifacts", func() {
-					Expect(repo.AsMap()).To(Equal(map[build.ArtifactName]runtime.Artifact{
+					Expect(repo.AsMap()).To(Equal(map[ArtifactName]runtime.Artifact{
 						"first-artifact":  firstArtifact,
 						"second-artifact": secondArtifact,
 					}))

@@ -35,15 +35,16 @@ func (fake *FakeKiller) Kill(arg1 context.Context, arg2 containerd.Task, arg3 ru
 		arg2 containerd.Task
 		arg3 runtime.KillBehaviour
 	}{arg1, arg2, arg3})
+	stub := fake.KillStub
+	fakeReturns := fake.killReturns
 	fake.recordInvocation("Kill", []interface{}{arg1, arg2, arg3})
 	fake.killMutex.Unlock()
-	if fake.KillStub != nil {
-		return fake.KillStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.killReturns
 	return fakeReturns.result1
 }
 
