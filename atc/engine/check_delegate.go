@@ -124,8 +124,16 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 
 	shouldRun := false
 	if d.build.IsManuallyTriggered() {
-		// ignore interval for manually triggered builds
-		shouldRun = true
+		// ignore interval for manually triggered builds.
+		lastCheckStartTime, err := scope.LastCheckStartTime()
+		if err != nil {
+			return nil, false, err
+		}
+		if d.build.CreateTime().Before(lastCheckStartTime) || d.build.CreateTime().Equal(lastCheckStartTime) {
+			shouldRun = false
+		} else {
+			shouldRun = true
+		}
 	} else if !d.clock.Now().Before(runAt) {
 		// run if we're past the last check end time
 		shouldRun = true

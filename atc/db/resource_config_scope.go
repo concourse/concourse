@@ -33,6 +33,7 @@ type ResourceConfigScope interface {
 		logger lager.Logger,
 	) (lock.Lock, bool, error)
 
+	LastCheckStartTime() (time.Time, error)
 	UpdateLastCheckStartTime() (bool, error)
 
 	LastCheckEndTime() (time.Time, error)
@@ -51,6 +52,21 @@ type resourceConfigScope struct {
 func (r *resourceConfigScope) ID() int                        { return r.id }
 func (r *resourceConfigScope) Resource() Resource             { return r.resource }
 func (r *resourceConfigScope) ResourceConfig() ResourceConfig { return r.resourceConfig }
+
+func (r *resourceConfigScope) LastCheckStartTime() (time.Time, error) {
+	var lastCheckStartTime time.Time
+	err := psql.Select("last_check_start_time").
+		From("resource_config_scopes").
+		Where(sq.Eq{"id": r.id}).
+		RunWith(r.conn).
+		QueryRow().
+		Scan(&lastCheckStartTime)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	return lastCheckStartTime, nil
+}
 
 func (r *resourceConfigScope) LastCheckEndTime() (time.Time, error) {
 	var lastCheckEndTime time.Time
