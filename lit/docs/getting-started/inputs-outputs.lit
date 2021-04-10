@@ -3,7 +3,7 @@
 \use-plugin{concourse-docs}
 
 \section{
-  \title{Intro}
+  \title{Overview}
 
   This section is going to go over how to pass data between different
   \reference{steps}{steps} in a \reference{jobs}{job}. We'll continue building
