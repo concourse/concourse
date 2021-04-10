@@ -2,48 +2,57 @@
 
 \use-plugin{concourse-docs}
 
-Concourse is distributed as a single \code{concourse} binary, making it easy to
-run just about anywhere, especially with Docker.
+\section{
+    \title{Docker Compose Concourse}
 
-If you'd like to get Concourse running somewhere quickly so you can start to
-kick the tires, the easiest way is to use the Docker Compose quick-start:
+    Concourse is distributed as a single \code{concourse} binary, making it easy to
+    run just about anywhere, especially with Docker.
 
-\codeblock{bash}{{
-$ wget https://concourse-ci.org/docker-compose.yml
-$ docker-compose up -d
-Creating docs_concourse-db_1 ...
-Creating docs_concourse-db_1 ... done
-Creating docs_concourse_1 ...
-Creating docs_concourse_1 ... done
-}}
+    If you'd like to get Concourse running somewhere quickly so you can start to
+    kick the tires, the easiest way is to use the Docker Compose quick-start:
 
-Concourse will be running at \link{localhost:8080}{http://localhost:8080} on
-your machine. You can log in with the username/password as
-\code{test}/\code{test}.
+    \codeblock{bash}{{
+    $ curl -O https://concourse-ci.org/docker-compose.yml
+    $ docker-compose up -d
+    Creating docs_concourse-db_1 ...
+    Creating docs_concourse-db_1 ... done
+    Creating docs_concourse_1 ...
+    Creating docs_concourse_1 ... done
+    }}
 
-Next, install the \reference{fly-cli} by downloading it from the web UI and
-\reference{fly-login}{login} to your local Concourse as the \code{test} user:
+    Concourse will be running at \link{localhost:8080}{http://localhost:8080} on
+    your machine. You can log in with the username/password as
+    \code{test}/\code{test}.
+}
 
-\codeblock{bash}{{
-# MacOS
-$ curl http://localhost:8080/api/v1/cli?arch=amd64&platform=darwin -o fly \\
-    && chmod +x ./fly && mv ./fly /usr/local/bin/
-# Linux
-$ curl http://localhost:8080/api/v1/cli?arch=amd64&platform=linux -o fly \\
-    && chmod +x ./fly && mv ./fly /usr/local/bin/
+\section{
+    \title{Install Fly}
 
-$ fly -t tutorial login -c http://localhost:8080 -u test -p test
-logging in to team 'main'
+    Next, install the \reference{fly-cli} by downloading it from the web UI and
+    \reference{fly-login}{login} to your local Concourse as the \code{test} user:
 
-target saved
-}}
+    \codeblock{bash}{{
+    # MacOS
+    $ curl http://localhost:8080/api/v1/cli?arch=amd64&platform=darwin -o fly \\
+        && chmod +x ./fly && mv ./fly /usr/local/bin/
+    # Linux
+    $ curl http://localhost:8080/api/v1/cli?arch=amd64&platform=linux -o fly \\
+        && chmod +x ./fly && mv ./fly /usr/local/bin/
+    # TODO Windows powershell. How to PATH on windows???
 
-You'll notice that every \code{fly} command in this tutorial has to have the
-\reference{fly-targets}{target (\code{-t tutorial})} specified. This is
-annoying when you only have one Concourse to target, but it helps ensure you
-don't trigger a job on the wrong Concourse instance. It will save you from
-hurting yourself!
+    $ fly -t tutorial login -c http://localhost:8080 -u test -p test
+    logging in to team 'main'
 
-Once you've confirmed everything is up and running by logging in through fly
-and the \link{web UI}{http://localhost:8080}, you can move onto the next
-section.
+    target saved
+    }}
+
+    You'll notice that every \code{fly} command in this tutorial has to have the
+    \reference{fly-targets}{target (\code{-t tutorial})} specified. This is
+    annoying when you only have one Concourse to target, but it helps ensure you
+    don't trigger a job on the wrong Concourse instance. It will save you from
+    hurting yourself!
+
+    Once you've confirmed everything is up and running by logging in through fly
+    and the \link{web UI}{http://localhost:8080}, you can move onto the next
+    section.
+}
