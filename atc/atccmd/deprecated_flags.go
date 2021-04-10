@@ -62,6 +62,7 @@ func InitializeATCFlagsDEPRECATED(c *cobra.Command, flags *RunConfig) {
 	c.Flags().DurationVar(&flags.InterceptIdleTimeout, "intercept-idle-timeout", CmdDefaults.InterceptIdleTimeout, "Length of time for a intercepted session to be idle before terminating.")
 
 	c.Flags().Var(&flags.CLIArtifactsDir, "cli-artifacts-dir", "Directory containing downloadable CLI binaries.")
+	c.Flags().Var(&flags.WebPublicDir, "web-public-dir", "Web public/ directory to serve live for local development.")
 
 	c.Flags().Var(&flags.BaseResourceTypeDefaults, "base-resource-type-defaults", "Base resource type defaults")
 

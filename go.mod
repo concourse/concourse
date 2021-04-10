@@ -1,5 +1,9 @@
 module github.com/concourse/concourse
 
+replace github.com/concourse/baggageclaim => ./baggageclaim
+
+replace github.com/concourse/flag => ./flag
+
 require (
 	code.cloudfoundry.org/clock v0.0.0-20180518195852-02e53af36e6c
 	code.cloudfoundry.org/credhub-cli v0.0.0-20190415201820-e3951663d25c
@@ -100,7 +104,7 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp v0.11.0
 	go.opentelemetry.io/otel/exporters/trace/jaeger v0.11.0
 	go.opentelemetry.io/otel/sdk v0.11.0
-	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83
+	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
 	golang.org/x/oauth2 v0.0.0-20210210192628-66670185b0cd
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba

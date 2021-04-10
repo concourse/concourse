@@ -148,6 +148,7 @@ type RunConfig struct {
 	InterceptIdleTimeout time.Duration `yaml:"intercept_idle_timeout,omitempty"`
 
 	CLIArtifactsDir flag.Dir `yaml:"cli_artifacts_dir,omitempty"`
+	WebPublicDir    flag.Dir `yaml:"web_public_dir"`
 
 	BaseResourceTypeDefaults flag.File `yaml:"base_resource_type_defaults,omitempty"`
 
@@ -1431,7 +1432,7 @@ type Closer interface {
 }
 
 func (cmd *RunConfig) chooseBuildContainerStrategy() (worker.ContainerPlacementStrategy, error) {
-	return worker.NewChainPlacementStrategy(cmd.ContainerPlacementStrategyOptions)
+	return worker.NewChainPlacementStrategy(cmd.Runtime.ContainerPlacementStrategyOptions)
 }
 
 func (cmd *RunConfig) configureAuthForDefaultTeam(teamFactory db.TeamFactory) error {

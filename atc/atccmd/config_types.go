@@ -171,7 +171,11 @@ func (e MetricsEmitterConfig) ConfiguredEmitter() (metric.EmitterFactory, error)
 
 	var configuredEmitter metric.EmitterFactory
 	if len(configuredEmitters) > 1 {
-		return nil, fmt.Errorf("multiple emitters configured: %s", strings.Join(configuredEmitters.Description, ", "))
+		var emittersString string
+		for _, emitter := range configuredEmitters {
+			emittersString = fmt.Sprintf("%s, %s", emittersString, emitter.Description())
+		}
+		return nil, fmt.Errorf("multiple emitters configured: %s", emittersString)
 	}
 
 	if configuredEmitters != nil {

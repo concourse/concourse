@@ -72,19 +72,19 @@ func NewChainPlacementStrategy(opts ContainerPlacementStrategyOptions) (*ChainPl
 		case atc.ContainerPlacementRandom:
 			// Add nothing. Because an empty strategy chain equals to random strategy.
 		case atc.ContainerPlacementFewestBuildContainers:
-			cps.nodes = append(cps.nodes, newFewestBuildContainersPlacementStrategy(strategy))
+			cps.nodes = append(cps.nodes, newFewestBuildContainersStrategy(strategy))
 
 		case atc.ContainerPlacementLimitActiveTasks:
 			if opts.MaxActiveTasksPerWorker < 0 {
 				return nil, errors.New("max-active-tasks-per-worker must be greater or equal than 0")
 			}
-			cps.nodes = append(cps.nodes, newLimitActiveTasksPlacementStrategy(strategy, opts.MaxActiveTasksPerWorker))
+			cps.nodes = append(cps.nodes, newLimitActiveTasksStrategy(strategy, opts.MaxActiveTasksPerWorker))
 
 		case atc.ContainerPlacementLimitActiveContainers:
 			if opts.MaxActiveContainersPerWorker < 0 {
 				return nil, errors.New("max-active-containers-per-worker must be greater or equal than 0")
 			}
-			cps.nodes = append(cps.nodes, newLimitActiveContainersPlacementStrategy(strategy, opts.MaxActiveContainersPerWorker))
+			cps.nodes = append(cps.nodes, newLimitActiveContainersStrategy(strategy, opts.MaxActiveContainersPerWorker))
 
 		case atc.ContainerPlacementLimitActiveVolumes:
 			if opts.MaxActiveVolumesPerWorker < 0 {
@@ -93,7 +93,7 @@ func NewChainPlacementStrategy(opts ContainerPlacementStrategyOptions) (*ChainPl
 			cps.nodes = append(cps.nodes, newLimitActiveVolumesPlacementStrategy(strategy, opts.MaxActiveVolumesPerWorker))
 
 		case atc.ContainerPlacementVolumeLocality:
-			cps.nodes = append(cps.nodes, newVolumeLocalityPlacementStrategyNode(strategy))
+			cps.nodes = append(cps.nodes, newVolumeLocalityStrategy(strategy))
 
 		default:
 			return nil, fmt.Errorf("invalid container placement strategy %s", strategy)
