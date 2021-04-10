@@ -361,3 +361,45 @@
     The job should finish successfully and print out the content from
     \code{every-1min/input} which is a json string.
 }
+
+\section{
+  \title{Checks}
+
+  As mentioned during the overview of the resource interface, the
+  \code{/opt/resource/check} is implicitly ran whenever a job contains a
+  \reference{get-step} and are how resources find new versions of an
+  external system or object. In order to find any new versions, Concourse has
+  to run the \code{check} scripts for all resources across all pipelines. By
+  default, all resources have a
+  \reference{schema.resource.check_every}{\code{check_every} interval} of one
+  minute.
+
+  The default \code{check_every} interval helps keep Concourse feeling snappy
+  and responsive to changes in external systems. The negative side-effect of
+  this is that if you have a lot of resources all hitting the same system (e.g.
+  an internal Gitlab instance) you may end up
+  \link{DDOS'ing}{https://en.wikipedia.org/wiki/Denial-of-service_attack} your
+  external system! In these cases you may want to increase the
+  \code{check_every} interval of your resource or disable it and use
+  \reference{schema.resource.webhook_token}{webhooks} instead.
+
+  To see the results of the last check that ran, go to the \link{resource's
+  page in the
+  pipeline}{http://localhost:8080/teams/main/pipelines/hello-world/resources/every-1min}
+  and expand the top line that starts with \code{check: <resource-name>}.
+
+  If your resource is having trouble finding new versions or is configured
+  incorrectly the resource will print a message that will be visible on it's
+  resource page for you to debug.
+
+  You can also use \code{fly} by running \code{fly builds} and filtering for
+  \code{check}'s to see the result of the last check.
+
+  \codeblock{}{{
+  $ fly -t tutorial builds | grep check
+  id   name                            status     start
+  106  hello-world/every-1min/check    succeeded  2021-04-10@12:00:20-0400
+  }}
+
+
+}
