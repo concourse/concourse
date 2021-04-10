@@ -122,7 +122,24 @@
 }
 
 \section{
-  \title{Back to our Hello World pipeline}
+  \title{Fill in the Task Config}
+
+  Let's answer the previous three questions for our \code{hello-world-task}:
+
+  \list{
+  \bold{What type of \reference{worker-node}{worker} to run the task on (linux/windows/darwin)}
+
+  Linux, because our docker-composed Concourse only has one linux worker.
+  You can verify this by running \code{fly -t tutorial workers}
+  }{
+  \bold{What container image to use \italic{(Linux only)}}
+
+  We'll use the super small \link{busybox image}{https://hub.docker.com/_/busybox}
+  }{
+  \bold{What command to run inside the container}
+
+  \code{echo "Hello world!"}
+  }
 
   You can view the \reference{tasks}{task documentation} to see all configurable
   options for tasks. For now, you can add the following
@@ -141,7 +158,7 @@
         image_resource:
           type: registry-image
           source:
-            repository: busybox
+            repository: busybox # images are pulled from docker hub by default
         # The command Concourse will run inside the container
         # echo "Hello world!"
         run:
@@ -159,6 +176,7 @@
 
   \codeblock{bash}{{
   $ fly -t tutorial set-pipeline -p hello-world -c hello-world.yml
+  # pipelines are paused when first created
   $ fly -t tutorial unpause-pipeline -p hello-world
   # trigger the job and watch it run to completion
   $ fly -t tutorial trigger-job --job hello-world/hello-world-job --watch
