@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -15,54 +16,76 @@ import (
 	"github.com/concourse/concourse/atc"
 	concourseCmd "github.com/concourse/concourse/cmd"
 	"github.com/concourse/flag"
-	"github.com/jessevdk/go-flags"
 	"github.com/tedsuo/ifrit"
 )
 
 type Certs struct {
-	Dir string `long:"certs-dir" description:"Directory to use when creating the resource certificates volume."`
+	Dir string `yaml:"certs_dir"`
 }
 
 type RuntimeConfiguration struct {
-	Runtime string `long:"runtime" default:"guardian" choice:"guardian" choice:"containerd" choice:"houdini" description:"Runtime to use with the worker. Please note that Houdini is insecure and doesn't run 'tasks' in containers."`
+	Runtime string `yaml:"runtime" validate:"runtime"`
 }
 
 type GuardianRuntime struct {
-	Bin            string        `long:"bin"        description:"Path to a garden server executable (non-absolute names get resolved from $PATH)."`
-	DNS            DNSConfig     `group:"DNS Proxy Configuration" namespace:"dns-proxy"`
-	RequestTimeout time.Duration `long:"request-timeout" default:"5m" description:"How long to wait for requests to the Garden server to complete. 0 means no timeout."`
+	Bin            string        `yaml:"bin"`
+	DNS            DNSConfig     `yaml:"dns_proxy"`
+	RequestTimeout time.Duration `yaml:"request_timeout"`
 
-	Config      flag.File `long:"config"     description:"Path to a config file to use for the Garden backend. e.g. 'foo-bar=a,b' for '--foo-bar a --foo-bar b'."`
+	Config      flag.File `yaml:"config"`
 	BinaryFlags GdnBinaryFlags
 }
 
 type ContainerdRuntime struct {
-	Config         flag.File     `long:"config"     description:"Path to a config file to use for the Containerd daemon."`
-	Bin            string        `long:"bin"        description:"Path to a containerd executable (non-absolute names get resolved from $PATH)."`
-	InitBin        string        `long:"init-bin"   default:"/usr/local/concourse/bin/init" description:"Path to an init executable (non-absolute names get resolved from $PATH)."`
-	CNIPluginsDir  string        `long:"cni-plugins-dir" default:"/usr/local/concourse/bin" description:"Path to CNI network plugins."`
-	RequestTimeout time.Duration `long:"request-timeout" default:"5m" description:"How long to wait for requests to Containerd to complete. 0 means no timeout."`
+	Config         flag.File     `yaml:"config"`
+	Bin            string        `yaml:"bin"`
+	InitBin        string        `yaml:"init_bin"`
+	CNIPluginsDir  string        `yaml:"cni_plugins_dir"`
+	RequestTimeout time.Duration `yaml:"request_timeout"`
 
-	Network struct {
-		ExternalIP flag.IP `long:"external-ip" description:"IP address to use to reach container's mapped ports. Autodetected if not specified."`
-		//TODO can DNSConfig be simplifed to just a bool rather than struct with a bool?
-		DNS                DNSConfig `group:"DNS Proxy Configuration" namespace:"dns-proxy"`
-		DNSServers         []string  `long:"dns-server" description:"DNS server IP address to use instead of automatically determined servers. Can be specified multiple times."`
-		RestrictedNetworks []string  `long:"restricted-network" description:"Network ranges to which traffic from containers will be restricted. Can be specified multiple times."`
-		Pool               string    `long:"network-pool" default:"10.80.0.0/16" description:"Network range to use for dynamically allocated container subnets."`
-		MTU                int       `long:"mtu" description:"MTU size for container network interfaces. Defaults to the MTU of the interface used for outbound access by the host."`
-	} `group:"Container Networking"`
+	Network ContainerdNetwork `yaml:"network" ignore_env:"true"`
 
-	MaxContainers int `long:"max-containers" default:"250" description:"Max container capacity. 0 means no limit."`
+	MaxContainers int `yaml:"max_containers"`
 }
 
-const containerdRuntime = "containerd"
-const guardianRuntime = "guardian"
-const houdiniRuntime = "houdini"
+type ContainerdNetwork struct {
+	ExternalIP net.IP `yaml:"external_ip"`
+	//TODO can DNSConfig be simplifed to just a bool rather than struct with a bool?
+	DNS                DNSConfig `yaml:"dns_proxy"`
+	DNSServers         []string  `yaml:"dns_server"`
+	RestrictedNetworks []string  `yaml:"restricted_network"`
+	Pool               string    `yaml:"network_pool"`
+	MTU                int       `yaml:"mtu"`
+}
 
-func (cmd WorkerCommand) LessenRequirements(prefix string, command *flags.Command) {
-	// configured as work-dir/volumes
-	command.FindOptionByLongName(prefix + "baggageclaim-volumes").Required = false
+var RuntimeDefaults = RuntimeConfiguration{
+	Runtime: "guardian",
+}
+
+var GuardianDefaults = GuardianRuntime{
+	RequestTimeout: 5 * time.Minute,
+}
+
+var ContainerdDefaults = ContainerdRuntime{
+	InitBin:        "/usr/local/concourse/bin/init",
+	CNIPluginsDir:  "/usr/local/concourse/bin",
+	RequestTimeout: 5 * time.Minute,
+	Network: ContainerdNetwork{
+		Pool: "10.80.0.0/16",
+	},
+	MaxContainers: 250,
+}
+
+const (
+	containerdRuntime = "containerd"
+	guardianRuntime   = "guardian"
+	houdiniRuntime    = "houdini"
+)
+
+var ValidRuntimes = []string{
+	containerdRuntime,
+	guardianRuntime,
+	houdiniRuntime,
 }
 
 // Chooses the appropriate runtime based on CONCOURSE_RUNTIME_TYPE.

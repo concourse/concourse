@@ -7,7 +7,7 @@ import (
 )
 
 type DNSConfig struct {
-	Enable bool `long:"enable" description:"Enable proxy DNS server."`
+	Enable bool `yaml:"enable"`
 }
 
 func (config DNSConfig) Server() (*dns.Server, error) {

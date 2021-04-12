@@ -12,12 +12,52 @@ import (
 	"github.com/concourse/concourse/atc/atccmd"
 	"github.com/concourse/concourse/atc/wrappa"
 	"github.com/concourse/concourse/skymarshal/skycmd"
+	"github.com/concourse/concourse/worker/workercmd"
 	"github.com/concourse/flag"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
 	en_translations "github.com/go-playground/validator/v10/translations/en"
 	"gopkg.in/yaml.v2"
 )
+
+// NewValidator constructs a new validator that contains all the default and
+// custom validations that are necessary to run against the concourse config
+// fields. These include validations on the atc, tsa, worker and baggageclaim
+// fields.
+func NewValidator(trans ut.Translator) *validator.Validate {
+	validate := validator.New()
+	en_translations.RegisterDefaultTranslations(validate, trans)
+
+	// Register the validations that will be run against any field that is of the
+	// type struct that is registered
+	validate.RegisterStructValidation(ValidateURL, flag.URL{})
+	validate.RegisterStructValidation(ValidateTLSOrLetsEncrypt, atccmd.TLSConfig{})
+
+	// Construct list of all custom validations that will be performed on an
+	// individual field that contains that tag value
+	validations := map[string]validator.Func{
+		"limited_route":       ValidateLimitedRoute,
+		"rbac":                ValidateRBAC,
+		"cps":                 ValidateContainerPlacementStrategy,
+		"sac":                 ValidateStreamingArtifactsCompression,
+		"log_level":           ValidateLogLevel,
+		"connectors":          ValidateConnectors,
+		"ip_version":          baggageclaimcmd.ValidateIPVersion,
+		"baggageclaim_driver": baggageclaimcmd.ValidateBaggageclaimDriver,
+		"runtime":             ValidateRuntime,
+	}
+
+	// Loop over each validation and register them with the validator
+	for validationTag, validationFunc := range validations {
+		validate.RegisterValidation(validationTag, validationFunc)
+	}
+
+	// Register all the custom error messages for each validation
+	ve := NewValidatorErrors(validate, trans)
+	ve.SetupErrorMessages()
+
+	return validate
+}
 
 // All the possible custom error messages for each tag validation
 var (
@@ -31,6 +71,7 @@ var (
 	ValidationErrCPS               = fmt.Sprintf("Not a valid list of container placement strategies. Valid strategies include %v.", atc.ValidContainerPlacementStrategies)
 	ValidationErrSAC               = fmt.Sprintf("Not a valid streaming artifacts compression. Valid options include %v.", atc.ValidStreamingArtifactsCompressions)
 	ValidationErrLogLevel          = fmt.Sprintf("Not a valid log level. Valid options include %v.", flag.ValidLogLevels)
+	ValidationErrRuntime           = fmt.Sprintf("Not a valid runtime. Valid options include %v.", workercmd.ValidRuntimes)
 )
 
 type ValidationConnectorsError struct {
@@ -45,27 +86,6 @@ func (e ValidationConnectorsError) Error() string {
 	return fmt.Sprintf("Not a valid auth connector. Valid options include %v.", connectorIDs)
 }
 
-func NewValidator(trans ut.Translator) *validator.Validate {
-	validate := validator.New()
-	en_translations.RegisterDefaultTranslations(validate, trans)
-
-	validate.RegisterStructValidation(ValidateURL, flag.URL{})
-	validate.RegisterStructValidation(ValidateTLSOrLetsEncrypt, atccmd.TLSConfig{})
-	validate.RegisterValidation("limited_route", ValidateLimitedRoute)
-	validate.RegisterValidation("rbac", ValidateRBAC)
-	validate.RegisterValidation("cps", ValidateContainerPlacementStrategy)
-	validate.RegisterValidation("sac", ValidateStreamingArtifactsCompression)
-	validate.RegisterValidation("log_level", ValidateLogLevel)
-	validate.RegisterValidation("ip_version", baggageclaimcmd.ValidateIPVersion)
-	validate.RegisterValidation("baggageclaim_driver", baggageclaimcmd.ValidateBaggageclaimDriver)
-	validate.RegisterValidation("connectors", ValidateConnectors)
-
-	ve := NewValidatorErrors(validate, trans)
-	ve.SetupErrorMessages()
-
-	return validate
-}
-
 type validatorErrors struct {
 	validate *validator.Validate
 	trans    ut.Translator
@@ -78,20 +98,29 @@ func NewValidatorErrors(validate *validator.Validate, trans ut.Translator) *vali
 	}
 }
 
+// SetupErrorMessages registers all the custom error messages that will be
+// returned to the user when the validation fails
 func (v *validatorErrors) SetupErrorMessages() {
-	v.RegisterTranslation("parseurl", ValidationErrParseURL)
-	v.RegisterTranslation("limited_route", ValidationErrLimitedRoute)
-	v.RegisterTranslation("tlsemptybindport", ValidationErrEmptyTLSBindPort)
-	v.RegisterTranslation("letsencryptenable", ValidationErrEnableLetsEncrypt)
-	v.RegisterTranslation("tlsexternalurl", ValidationErrTLSCertKey)
-	v.RegisterTranslation("tlsorletsencrypt", ValidationErrTLS)
-	v.RegisterTranslation("rbac", ValidationErrRBAC)
-	v.RegisterTranslation("cps", ValidationErrCPS)
-	v.RegisterTranslation("sac", ValidationErrSAC)
-	v.RegisterTranslation("log_level", ValidationErrLogLevel)
-	v.RegisterTranslation("ip_version", baggageclaimcmd.ValidationErrIPVersion)
-	v.RegisterTranslation("baggageclaim_driver", baggageclaimcmd.ValidationErrBaggageclaimDriver)
-	v.RegisterTranslation("connectors", ValidationConnectorsError{skycmd.TeamConnectorsConfig{}}.Error())
+	validationErrorMessages := map[string]string{
+		"parseurl":            ValidationErrParseURL,
+		"limited_route":       ValidationErrLimitedRoute,
+		"tlsemptybindport":    ValidationErrEmptyTLSBindPort,
+		"letsencryptenable":   ValidationErrEnableLetsEncrypt,
+		"tlsexternalurl":      ValidationErrTLSCertKey,
+		"tlsorletsencrypt":    ValidationErrTLS,
+		"rbac":                ValidationErrRBAC,
+		"cps":                 ValidationErrCPS,
+		"sac":                 ValidationErrSAC,
+		"log_level":           ValidationErrLogLevel,
+		"ip_version":          baggageclaimcmd.ValidationErrIPVersion,
+		"baggageclaim_driver": baggageclaimcmd.ValidationErrBaggageclaimDriver,
+		"connectors":          ValidationConnectorsError{skycmd.TeamConnectorsConfig{}}.Error(),
+		"runtime":             ValidationErrRuntime,
+	}
+
+	for errorTag, errorMessage := range validationErrorMessages {
+		v.RegisterTranslation(errorTag, errorMessage)
+	}
 }
 
 func (v *validatorErrors) RegisterTranslation(validationName string, errorString string) {
@@ -279,6 +308,18 @@ func ValidateConnectors(field validator.FieldLevel) bool {
 	}
 
 	return true
+}
+
+// Not sure how to test this because it is within the worker_linux file
+func ValidateRuntime(field validator.FieldLevel) bool {
+	value := field.Field().String()
+	for _, validChoice := range workercmd.ValidRuntimes {
+		if value == string(validChoice) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func normalizeURL(urlIn string) string {

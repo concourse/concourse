@@ -9,6 +9,7 @@ import (
 
 	"github.com/concourse/concourse/atc/atccmd"
 	v "github.com/concourse/concourse/cmd/concourse/validator"
+	"github.com/concourse/concourse/skymarshal/skycmd"
 	"github.com/concourse/flag"
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
@@ -75,18 +76,6 @@ func (v *ValidatorTestSuite) TestValidatorSuite() {
 	for _, test := range LogLevelsTests {
 		v.Run(test.Title, func() {
 			test.TestLogLevelValidator(v, transHelper)
-		})
-	}
-
-	for _, test := range IPVersionsTests {
-		v.Run(test.Title, func() {
-			test.TestIPVersionsValidator(v, transHelper)
-		})
-	}
-
-	for _, test := range BaggageclaimDriverTests {
-		v.Run(test.Title, func() {
-			test.TestBaggageclaimDriverValidator(v, transHelper)
 		})
 	}
 
@@ -624,12 +613,12 @@ func (t *ConnectorTest) TestConnectorValidator(s *ValidatorTestSuite, trans tran
 
 	validate := validator.New()
 	validate.RegisterValidation("connectors", v.ValidateConnectors)
-	trans.RegisterTranslation(validate, "connectors", v.ValidationErrConnectors)
+	trans.RegisterTranslation(validate, "connectors", v.ValidationConnectorsError{skycmd.TeamConnectorsConfig{}}.Error())
 
 	err := validate.Struct(testStruct)
 	if t.Valid {
 		s.Assert().NoError(err)
 	} else {
-		s.Contains(fmt.Sprintf("%v", err.(validator.ValidationErrors).Translate(trans.trans)), v.ValidationErrConnectors)
+		s.Contains(fmt.Sprintf("%v", err.(validator.ValidationErrors).Translate(trans.trans)), v.ValidationConnectorsError{skycmd.TeamConnectorsConfig{}}.Error())
 	}
 }

@@ -100,9 +100,9 @@ var CmdDefaults = WorkerCommand{
 	RebalanceInterval:      4 * time.Hour,
 	ConnectionDrainTimeout: 1 * time.Hour,
 
-	Guardian: GuardianRuntime{
-		RequestTimeout: 5 * time.Minute,
-	},
+	RuntimeConfiguration: RuntimeDefaults,
+	Guardian:             GuardianDefaults,
+	Containerd:           ContainerdDefaults,
 
 	Baggageclaim: baggageclaimcmd.CmdDefaults,
 

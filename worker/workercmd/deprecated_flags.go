@@ -24,7 +24,7 @@ func InitializeWorkerFlagsDEPRECATED(c *cobra.Command, flags *WorkerCommand) {
 	c.Flags().DurationVar(&flags.RebalanceInterval, "rebalance-interval", CmdDefaults.RebalanceInterval, "Duration after which the registration should be swapped to another random SSH gateway.")
 	c.Flags().DurationVar(&flags.ConnectionDrainTimeout, "connection-drain-timeout", CmdDefaults.ConnectionDrainTimeout, "Duration after which a worker should give up draining forwarded connections on shutdown.")
 
-	InitializeGuardianRuntimeFlags(c, flags)
+	InitializeRuntimeFlagsDEPRECATED(c, flags)
 
 	c.Flags().Var(&flags.ExternalGardenURL, "external-garden-url", "API endpoint of an externally managed Garden server to use instead of running the embedded Garden server.")
 
@@ -62,8 +62,4 @@ func InitializeHealthcheckConfigFlags(c *cobra.Command, flags *WorkerCommand) {
 	c.Flags().IPVar(&flags.Healthcheck.BindIP, "healthcheck-bind-ip", CmdDefaults.Healthcheck.BindIP, "IP address on which to listen for health checking requests.")
 	c.Flags().Uint16Var(&flags.Healthcheck.BindPort, "healthcheck-bind-port", CmdDefaults.Healthcheck.BindPort, "Port on which to listen for health checking requests.")
 	c.Flags().DurationVar(&flags.Healthcheck.Timeout, "healthcheck-timeout", CmdDefaults.Healthcheck.Timeout, "HTTP timeout for the full duration of health checking.")
-}
-
-func InitializeGuardianRuntimeFlags(c *cobra.Command, flags *WorkerCommand) {
-	c.Flags().DurationVar(&flags.Guardian.RequestTimeout, "garden-request-timeout", CmdDefaults.Guardian.RequestTimeout, "How long to wait for requests to the Garden server to complete. 0 means no timeout.")
 }

@@ -8,7 +8,6 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
-	"github.com/jessevdk/go-flags"
 	"github.com/tedsuo/ifrit"
 )
 
@@ -24,10 +23,15 @@ type ContainerdRuntime struct {
 
 type Certs struct{}
 
-func (cmd WorkerCommand) LessenRequirements(prefix string, command *flags.Command) {
-	// created in the work-dir
-	command.FindOptionByLongName(prefix + "baggageclaim-volumes").Required = false
+var ValidRuntimes = []string{}
+
+var RuntimeDefaults = RuntimeConfiguration{}
+
+var GuardianDefaults = GuardianRuntime{
+	RequestTimeout: 5 * time.Minute,
 }
+
+var ContainerdDefaults = ContainerdRuntime{}
 
 func (cmd *WorkerCommand) gardenServerRunner(logger lager.Logger) (atc.Worker, ifrit.Runner, error) {
 	worker := cmd.Worker.Worker()
