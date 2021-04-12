@@ -563,9 +563,40 @@ var _ = Describe("Worker", func() {
 				})
 			})
 
-			Context("when the worker has no tags", func() {
+			Context("when no tags are specified", func() {
+				BeforeEach(func() {
+					spec.Tags = []string{}
+				})
+
+				It("returns true", func() {
+					Expect(satisfies).To(BeFalse())
+				})
+			})
+
+			Context("when empty tags are specified", func() {
+				BeforeEach(func() {
+					spec.Tags = []string{""}
+				})
+
+				It("returns true", func() {
+					Expect(satisfies).To(BeFalse())
+				})
+			})
+
+			Context("when the worker has no tags and no requested tags", func() {
 				BeforeEach(func() {
 					tags = []string{}
+					spec.Tags = []string{}
+				})
+
+				It("returns true", func() {
+					Expect(satisfies).To(BeTrue())
+				})
+			})
+
+			Context("when the worker has an empty tag and no requested tags", func() {
+				BeforeEach(func() {
+					tags = []string{""}
 					spec.Tags = []string{}
 				})
 
