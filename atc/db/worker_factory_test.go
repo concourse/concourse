@@ -21,14 +21,14 @@ var _ = Describe("WorkerFactory", func() {
 
 	BeforeEach(func() {
 		atcWorker = atc.Worker{
-			GardenAddr:       "some-garden-addr",
-			BaggageclaimURL:  "some-bc-url",
-			HTTPProxyURL:     "some-http-proxy-url",
-			HTTPSProxyURL:    "some-https-proxy-url",
-			NoProxy:          "some-no-proxy",
-			Ephemeral:        true,
-			ActiveContainers: 140,
-			ActiveVolumes:    550,
+			GardenAddr:         "some-garden-addr",
+			BaggageclaimURL:    "some-bc-url",
+			HTTPProxyURL:       "some-http-proxy-url",
+			HTTPSProxyURL:      "some-https-proxy-url",
+			NoProxy:            "some-no-proxy",
+			Ephemeral:          true,
+			ExpectedContainers: 140,
+			ActiveVolumes:      550,
 			ResourceTypes: []atc.WorkerResourceType{
 				{
 					Type:       "some-resource-type",
@@ -226,7 +226,7 @@ var _ = Describe("WorkerFactory", func() {
 				Expect(foundWorker.HTTPSProxyURL()).To(Equal("some-https-proxy-url"))
 				Expect(foundWorker.NoProxy()).To(Equal("some-no-proxy"))
 				Expect(foundWorker.Ephemeral()).To(Equal(true))
-				Expect(foundWorker.ActiveContainers()).To(Equal(140))
+				Expect(foundWorker.ExpectedContainers()).To(Equal(140))
 				Expect(foundWorker.ActiveVolumes()).To(Equal(550))
 				Expect(foundWorker.ResourceTypes()).To(Equal([]atc.WorkerResourceType{
 					{
@@ -403,7 +403,7 @@ var _ = Describe("WorkerFactory", func() {
 			activeContainers = 0
 			activeVolumes = 0
 
-			atcWorker.ActiveContainers = activeContainers
+			atcWorker.ExpectedContainers = activeContainers
 			atcWorker.ActiveVolumes = activeVolumes
 		})
 
@@ -414,7 +414,7 @@ var _ = Describe("WorkerFactory", func() {
 			})
 
 			It("updates the expires field, and the number of active containers and volumes", func() {
-				atcWorker.ActiveContainers = 1
+				atcWorker.ExpectedContainers = 1
 				atcWorker.ActiveVolumes = 3
 
 				now := time.Now()
@@ -430,7 +430,7 @@ var _ = Describe("WorkerFactory", func() {
 
 				Expect(foundWorker.Name()).To(Equal(atcWorker.Name))
 				Expect(foundWorker.ExpiresAt()).To(BeTemporally("~", later, epsilon))
-				Expect(foundWorker.ActiveContainers()).To(And(Not(Equal(activeContainers)), Equal(1)))
+				Expect(foundWorker.ExpectedContainers()).To(And(Not(Equal(activeContainers)), Equal(1)))
 				Expect(foundWorker.ActiveVolumes()).To(And(Not(Equal(activeVolumes)), Equal(3)))
 				Expect(*foundWorker.GardenAddr()).To(Equal("some-garden-addr"))
 				Expect(*foundWorker.BaggageclaimURL()).To(Equal("some-bc-url"))

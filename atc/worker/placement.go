@@ -364,7 +364,7 @@ func (strategy *LimitActiveContainersStrategy) Order(logger lager.Logger, worker
 }
 
 func (strategy *LimitActiveContainersStrategy) Pick(logger lager.Logger, worker Worker, spec ContainerSpec) error {
-	if strategy.maxContainers > 0 && worker.ActiveContainers() > strategy.maxContainers {
+	if strategy.maxContainers > 0 && worker.ExpectedContainers() > strategy.maxContainers {
 		return ErrTooManyContainers
 	}
 

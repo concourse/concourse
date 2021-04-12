@@ -90,12 +90,12 @@ var _ = Describe("Team", func() {
 			otherTeam, err = teamFactory.CreateTeam(atc.Team{Name: "some-other-team"})
 			Expect(err).ToNot(HaveOccurred())
 			atcWorker = atc.Worker{
-				GardenAddr:       "some-garden-addr",
-				BaggageclaimURL:  "some-bc-url",
-				HTTPProxyURL:     "some-http-proxy-url",
-				HTTPSProxyURL:    "some-https-proxy-url",
-				NoProxy:          "some-no-proxy",
-				ActiveContainers: 140,
+				GardenAddr:         "some-garden-addr",
+				BaggageclaimURL:    "some-bc-url",
+				HTTPProxyURL:       "some-http-proxy-url",
+				HTTPSProxyURL:      "some-https-proxy-url",
+				NoProxy:            "some-no-proxy",
+				ExpectedContainers: 140,
 				ResourceTypes: []atc.WorkerResourceType{
 					{
 						Type:    "some-resource-type",
@@ -161,12 +161,12 @@ var _ = Describe("Team", func() {
 			otherTeam, err = teamFactory.CreateTeam(atc.Team{Name: "some-other-team"})
 			Expect(err).ToNot(HaveOccurred())
 			atcWorker = atc.Worker{
-				GardenAddr:       "some-garden-addr",
-				BaggageclaimURL:  "some-bc-url",
-				HTTPProxyURL:     "some-http-proxy-url",
-				HTTPSProxyURL:    "some-https-proxy-url",
-				NoProxy:          "some-no-proxy",
-				ActiveContainers: 140,
+				GardenAddr:         "some-garden-addr",
+				BaggageclaimURL:    "some-bc-url",
+				HTTPProxyURL:       "some-http-proxy-url",
+				HTTPSProxyURL:      "some-https-proxy-url",
+				NoProxy:            "some-no-proxy",
+				ExpectedContainers: 140,
 				ResourceTypes: []atc.WorkerResourceType{
 					{
 						Type:    "some-resource-type",

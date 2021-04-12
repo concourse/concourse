@@ -250,7 +250,7 @@ var _ = Describe("Register", func() {
 			expectedWorkerPayload := tsaClient.Worker
 			expectedWorkerPayload.GardenAddr = registration.worker.GardenAddr
 			expectedWorkerPayload.BaggageclaimURL = registration.worker.BaggageclaimURL
-			expectedWorkerPayload.ActiveContainers = 3
+			expectedWorkerPayload.ExpectedContainers = 3
 			expectedWorkerPayload.ActiveVolumes = 2
 
 			By("registering a forwarded garden address")
@@ -274,7 +274,7 @@ var _ = Describe("Register", func() {
 			expectedWorkerPayload = tsaClient.Worker
 			expectedWorkerPayload.GardenAddr = registration.worker.GardenAddr
 			expectedWorkerPayload.BaggageclaimURL = registration.worker.BaggageclaimURL
-			expectedWorkerPayload.ActiveContainers = 2
+			expectedWorkerPayload.ExpectedContainers = 2
 			expectedWorkerPayload.ActiveVolumes = 1
 			Expect(registration.worker).To(Equal(expectedWorkerPayload))
 
@@ -305,7 +305,7 @@ var _ = Describe("Register", func() {
 			expectedWorkerPayload = tsaClient.Worker
 			expectedWorkerPayload.GardenAddr = registration.worker.GardenAddr
 			expectedWorkerPayload.BaggageclaimURL = registration.worker.BaggageclaimURL
-			expectedWorkerPayload.ActiveContainers = 1
+			expectedWorkerPayload.ExpectedContainers = 1
 			expectedWorkerPayload.ActiveVolumes = 0
 			Expect(registration.worker).To(Equal(expectedWorkerPayload))
 
