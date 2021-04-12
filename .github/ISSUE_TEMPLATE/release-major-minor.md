@@ -1,6 +1,6 @@
 ---
 name: 🚀 Ship a major or minor release
-about: Checklist for the major/minor release process
+about: Create an issue for tracking a major or minor release.
 title: 'Release X.X.X'
 assignees: ''
 
