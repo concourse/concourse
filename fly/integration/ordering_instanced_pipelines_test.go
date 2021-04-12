@@ -14,7 +14,7 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-var _ = FDescribe("Fly CLI", func() {
+var _ = Describe("Fly CLI", func() {
 	Describe("order-instanced-pipelines", func() {
 		Context("when pipelines are specified", func() {
 			var (
