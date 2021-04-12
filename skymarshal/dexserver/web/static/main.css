@@ -8,8 +8,8 @@ body {
 
 .dex-container {
   color: #333;
-  margin: 32px auto;
-  width: 454px;
+  margin: 50px auto;
+  width: 330px;
   text-align: center;
 }
 
@@ -34,14 +34,15 @@ body {
   background-repeat: no-repeat;
   background-size: 45%;
   float: left;
-  height: 50px;
-  width: 52px;
+  height: 36px;
+  margin-right: 5px;
+  width: 36px;
 }
 
 .dex-btn-text {
   font-weight: 600;
-  line-height: 50px;
-  padding: 15px 16px;
+  line-height: 36px;
+  padding: 6px 12px;
   text-align: center;
 }
 
@@ -64,10 +65,11 @@ body {
 
 .dex-error-box {
   color: #912617;
-  font-size: 20px;
+  font-size: 14px;
   font-weight: normal;
   max-width: 320px;
-  margin: 0 auto;
+  padding: 4px 0;
+  margin: 20px auto 0;
 }
 
 .dex-btn-icon--cf {

@@ -1,7 +1,7 @@
 @font-face {
   font-family: 'Inconsolata';
   font-style: normal;
-  font-weight: 600;
+  font-weight: 400;
   src: url("../static/fonts/Inconsolata-Regular.ttf");
 }
 
@@ -42,31 +42,24 @@
 }
 
 .theme-heading {
-  font-size: 28px;
-  letter-spacing: 0.01em;
-}
-
-h2 {
-  margin-top: 0;
-  margin-bottom: 32px;
+  font-size: 18px;
+  margin: 20px 0 40px;
 }
 
 .theme-panel {
   background-color: #151515;
-  padding: 32px;
+  padding: 30px;
 }
 
 .theme-btn-wrapper {
-  padding-top: 16px;
+  padding-top: 20px;
 }
 .theme-btn-provider, .theme-btn-primary, .theme-btn-cancel {
-  width: 390px;
-  height: 52px;
+  width: 230px;
+  height: 38px;
   box-shadow: none;
   border-radius: 0;
-  font-size: 20px;
-  line-height: 21px;
-  letter-spacing: 0.13em;
+  font-size: 14px;
   color: #F2F2F2;
 }
 
@@ -116,32 +109,33 @@ h2 {
 
 .theme-form-row:not(:last-child) {
   display: block;
-  margin:  0 auto 16px;
+  margin:  0 auto 15px;
 }
 
 .theme-form-input {
   border: 1px solid #A4A4A4;
   display: block;
-  width: 390px;
-  height: 52px;
-  padding: 16px;
+  width: 230px;
+  height: 38px;
+  margin: 0 auto;
+  padding: 6px 12px;
   background-color: #1E1D1D;
-  font-size: 20px;
-  letter-spacing: 0.13em;
+  font-size: 16px;
   outline: none;
   box-sizing: border-box;
 }
 
 .theme-form-label {
-  font-size: 20px;
-  letter-spacing: 0.13em;
-  margin: 0 auto 8px;
+  font-size: 14px;
+  letter-spacing: 0.05em;
+  width: 230px;
+  margin: 0 auto 5px;
   position: relative;
   text-align: left;
-  line-height: 21px;
+  padding: 5px;
 }
 
 .theme-message {
-  font-size: 20px;
+  font-size: 14px;
   margin: 0;
 }
