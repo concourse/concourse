@@ -4,7 +4,8 @@
 
 Each \reference{steps}{step} in a build is executed inside a container. The
 \reference{web-node} distributes containers across the worker cluster depending
-on the configured strategy.
+on the configured strategy. If no workers satisfies the configured strategy, the
+\reference{steps}{step} will block until a worker becomes available.
 
 \section{
   \title{\aux{The }\code{volume-locality} strategy}{volume-locality-strategy}
