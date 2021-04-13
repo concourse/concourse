@@ -3,6 +3,7 @@ package db
 import (
 	"encoding/json"
 	"errors"
+	"strconv"
 	"sync"
 
 	"github.com/concourse/concourse/atc"
@@ -81,10 +82,13 @@ func (source *buildEventSource) Close() error {
 	return source.notifier.Close()
 }
 
-func (source *buildEventSource) collectEvents(cursor uint) {
+func (source *buildEventSource) collectEvents(from uint) {
 	defer source.wg.Done()
 
-	var batchSize = cap(source.events)
+	batchSize := cap(source.events)
+	// cursor points to the last emitted event, so subtract 1
+	// (the first event is fetched using cursor == -1)
+	cursor := int(from) - 1
 
 	for {
 		select {
@@ -116,11 +120,11 @@ func (source *buildEventSource) collectEvents(cursor uint) {
 		}
 
 		rows, err := tx.Query(`
-			SELECT type, version, payload, event_id
+			SELECT event_id, type, version, payload
 			FROM `+source.table+`
-			WHERE build_id = $1 OR build_id_old = $1
+			WHERE (build_id = $1 OR build_id_old = $1)
+			AND event_id > $2
 			ORDER BY event_id ASC
-			OFFSET $2
 			LIMIT $3
 		`, source.buildID, cursor, batchSize)
 		if err != nil {
@@ -134,10 +138,8 @@ func (source *buildEventSource) collectEvents(cursor uint) {
 		for rows.Next() {
 			rowsReturned++
 
-			cursor++
-
-			var t, v, p, eid string
-			err := rows.Scan(&t, &v, &p, &eid)
+			var t, v, p string
+			err := rows.Scan(&cursor, &t, &v, &p)
 			if err != nil {
 				_ = rows.Close()
 
@@ -152,7 +154,7 @@ func (source *buildEventSource) collectEvents(cursor uint) {
 				Data:    &data,
 				Event:   atc.EventType(t),
 				Version: atc.EventVersion(v),
-				EventID: eid,
+				EventID: strconv.Itoa(cursor),
 			}
 
 			select {
