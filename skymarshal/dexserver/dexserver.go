@@ -68,14 +68,17 @@ func NewDexServerConfig(config *DexConfig) (server.Config, error) {
 	redirectURI := strings.TrimRight(config.IssuerURL, "/") + "/callback"
 
 	for _, connector := range config.Connectors.ConfiguredConnectors() {
-		if c, err := connector.Serialize(redirectURI); err == nil {
-			connectors = append(connectors, storage.Connector{
-				ID:     connector.ID(),
-				Type:   connector.ID(),
-				Name:   connector.Name(),
-				Config: c,
-			})
+		c, err := connector.Serialize(redirectURI)
+		if err != nil {
+			return server.Config{}, err
 		}
+
+		connectors = append(connectors, storage.Connector{
+			ID:     connector.ID(),
+			Type:   connector.ID(),
+			Name:   connector.Name(),
+			Config: c,
+		})
 	}
 
 	for clientId, clientSecret := range newLocalClients(config) {
