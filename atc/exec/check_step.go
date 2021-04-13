@@ -163,7 +163,6 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 			}
 		}
 
-		// TODO: deprecate it.
 		metric.Metrics.ChecksStarted.Inc()
 
 		_, err = scope.UpdateLastCheckStartTime()
@@ -173,7 +172,6 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 
 		result, runErr := step.runCheck(ctx, logger, delegate, timeout, resourceConfig, source, resourceTypes, fromVersion)
 		if runErr != nil {
-			// TODO: deprecate it.
 			metric.Metrics.ChecksFinishedWithError.Inc()
 
 			if _, err := scope.UpdateLastCheckEndTime(); err != nil {
@@ -197,7 +195,6 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 			return false, fmt.Errorf("run check: %w", runErr)
 		}
 
-		// TODO: deprecate it.
 		metric.Metrics.ChecksFinishedWithSuccess.Inc()
 
 		err = scope.SaveVersions(db.NewSpanContext(ctx), result.Versions)

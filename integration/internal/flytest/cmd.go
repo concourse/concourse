@@ -21,7 +21,7 @@ type Cmd struct {
 	cmdtest.Cmd
 }
 
-func Init(t *testing.T, dc dctest.Cmd) Cmd {
+func InitUnauthenticated(t *testing.T, dc dctest.Cmd) (Cmd, string) {
 	webAddr := dc.Addr(t, "web", 8080)
 
 	webURL := "http://" + webAddr
@@ -57,9 +57,13 @@ func Init(t *testing.T, dc dctest.Cmd) Cmd {
 
 	cmd.Path = flyPath
 
-	fly := Cmd{
+	return Cmd{
 		Cmd: cmd,
-	}
+	}, webURL
+}
+
+func Init(t *testing.T, dc dctest.Cmd) Cmd {
+	fly, webURL := InitUnauthenticated(t, dc)
 
 	fly.Run(t, "login", "-c", webURL, "-u", "test", "-p", "test")
 

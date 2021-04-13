@@ -10,7 +10,7 @@ dn: ou=People,dc=example,dc=org
 objectClass: organizationalUnit
 ou: People
 
-dn: cn=jane,ou=People,dc=example,dc=org
+dn: cn=john,ou=People,dc=example,dc=org
 objectClass: person
 objectClass: inetOrgPerson
 sn: smith
@@ -18,7 +18,7 @@ cn: john
 mail: user1@example.com
 userpassword: user1pass
 
-dn: cn=john,ou=People,dc=example,dc=org
+dn: cn=jane,ou=People,dc=example,dc=org
 objectClass: person
 objectClass: inetOrgPerson
 sn: doe

@@ -1944,6 +1944,66 @@ func createBuild(tx Tx, build *build, vals map[string]interface{}) error {
 	return createBuildEventSeq(tx, buildID)
 }
 
+type startedBuildArgs struct {
+	Name              string
+	PipelineID        int
+	TeamID            int
+	Plan              atc.Plan
+	ManuallyTriggered bool
+	SpanContext       SpanContext
+	ExtraValues       map[string]interface{}
+}
+
+func createStartedBuild(tx Tx, build *build, args startedBuildArgs) error {
+	spanContext, err := json.Marshal(args.SpanContext)
+	if err != nil {
+		return err
+	}
+
+	plan, err := json.Marshal(args.Plan)
+	if err != nil {
+		return err
+	}
+
+	encryptedPlan, nonce, err := build.conn.EncryptionStrategy().Encrypt(plan)
+	if err != nil {
+		return err
+	}
+
+	buildVals := make(map[string]interface{})
+	buildVals["name"] = args.Name
+	buildVals["pipeline_id"] = args.PipelineID
+	buildVals["team_id"] = args.TeamID
+	buildVals["manually_triggered"] = args.ManuallyTriggered
+	buildVals["private_plan"] = encryptedPlan
+	buildVals["public_plan"] = args.Plan.Public()
+	buildVals["nonce"] = nonce
+	buildVals["span_context"] = string(spanContext)
+
+	buildVals["status"] = BuildStatusStarted
+	buildVals["start_time"] = sq.Expr("now()")
+	buildVals["schema"] = schema
+
+	for name, value := range args.ExtraValues {
+		buildVals[name] = value
+	}
+
+	err = createBuild(tx, build, buildVals)
+	if err != nil {
+		return err
+	}
+
+	err = build.saveEvent(tx, event.Status{
+		Status: atc.StatusStarted,
+		Time:   build.StartTime().Unix(),
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func buildStartedChannel() string {
 	return atc.ComponentBuildTracker
 }

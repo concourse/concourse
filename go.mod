@@ -67,7 +67,7 @@ require (
 	github.com/miekg/dns v1.1.41
 	github.com/mitchellh/mapstructure v1.4.1
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d
-	github.com/onsi/ginkgo v1.16.0
+	github.com/onsi/ginkgo v1.16.1
 	github.com/onsi/gomega v1.11.0
 	github.com/opencontainers/runc v1.0.0-rc90 // indirect
 	github.com/opencontainers/runtime-spec v1.0.2
@@ -91,21 +91,21 @@ require (
 	github.com/vito/houdini v1.1.1
 	github.com/vito/twentythousandtonnesofcrudeoil v0.0.0-20180305154709-3b21ad808fcb
 	go.etcd.io/bbolt v1.3.5 // indirect
-	go.opentelemetry.io/collector v0.23.0
+	go.opentelemetry.io/collector v0.24.0
 	go.opentelemetry.io/otel v0.11.0
 	go.opentelemetry.io/otel/exporters/otlp v0.11.0
 	go.opentelemetry.io/otel/exporters/trace/jaeger v0.11.0
 	go.opentelemetry.io/otel/sdk v0.11.0
-	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
+	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83
 	golang.org/x/oauth2 v0.0.0-20210210192628-66670185b0cd
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/time v0.0.0-20201208040808-7e3f01d25324
-	google.golang.org/grpc v1.36.1
+	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba
+	google.golang.org/grpc v1.37.0
 	gopkg.in/square/go-jose.v2 v2.5.1
 	gopkg.in/yaml.v2 v2.4.0
-	k8s.io/api v0.20.5
-	k8s.io/apimachinery v0.20.5
-	k8s.io/client-go v0.20.5
+	k8s.io/api v0.21.0
+	k8s.io/apimachinery v0.21.0
+	k8s.io/client-go v0.21.0
 	sigs.k8s.io/yaml v1.2.0
 )
 

@@ -1771,14 +1771,15 @@ func (cmd *RunCommand) constructAuthHandler(
 	cmd.Auth.AuthFlags.Clients[flyClientID] = flyClientSecret
 
 	dexServer, err := dexserver.NewDexServer(&dexserver.DexConfig{
-		Logger:      logger.Session("dex"),
-		Users:       cmd.Auth.AuthFlags.LocalUsers,
-		Clients:     cmd.Auth.AuthFlags.Clients,
-		Expiration:  cmd.Auth.AuthFlags.Expiration,
-		IssuerURL:   issuerURL.String(),
-		RedirectURL: redirectURL.String(),
-		SigningKey:  cmd.Auth.AuthFlags.SigningKey.PrivateKey,
-		Storage:     storage,
+		Logger:            logger.Session("dex"),
+		PasswordConnector: cmd.Auth.AuthFlags.PasswordConnector,
+		Users:             cmd.Auth.AuthFlags.LocalUsers,
+		Clients:           cmd.Auth.AuthFlags.Clients,
+		Expiration:        cmd.Auth.AuthFlags.Expiration,
+		IssuerURL:         issuerURL.String(),
+		RedirectURL:       redirectURL.String(),
+		SigningKey:        cmd.Auth.AuthFlags.SigningKey.PrivateKey,
+		Storage:           storage,
 	})
 	if err != nil {
 		return nil, err
