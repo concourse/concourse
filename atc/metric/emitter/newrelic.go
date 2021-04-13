@@ -91,8 +91,8 @@ func (emitter *NewRelicEmitter) Emit(logger lager.Logger, event metric.Event) {
 		"build finished",
 		"check build started",
 		"check build finished",
-		"checks finished", // TODO: deprecate, use "check build finished" instead.
-		"checks started",  // TODO: deprecate, use "check build started" instead.
+		"checks finished",
+		"checks started",
 		"checks enqueued",
 		"checks queue size",
 		"worker containers",
