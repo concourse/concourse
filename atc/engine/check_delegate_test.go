@@ -183,20 +183,20 @@ var _ = Describe("CheckDelegate", func() {
 				fakeBuild.IsManuallyTriggeredReturns(true)
 			})
 
-			Context("when fail to get scope last start time", func(){
-				BeforeEach(func(){
+			Context("when fail to get scope last start time", func() {
+				BeforeEach(func() {
 					fakeResourceConfigScope.LastCheckStartTimeReturns(time.Now(), errors.New("some-error"))
 				})
 
-				It("return the error", func(){
+				It("return the error", func() {
 					Expect(runErr).To(HaveOccurred())
 					Expect(runErr).To(Equal(errors.New("some-error")))
 				})
 			})
 
-			Context("when the build create time earlier than last build start time", func(){
-				BeforeEach(func(){
-					fakeBuild.CreateTimeReturns(time.Now().Add(-5*time.Second))
+			Context("when the build create time earlier than last check start time", func() {
+				BeforeEach(func() {
+					fakeBuild.CreateTimeReturns(time.Now().Add(-5 * time.Second))
 					fakeResourceConfigScope.LastCheckStartTimeReturns(time.Now(), nil)
 				})
 
@@ -205,9 +205,9 @@ var _ = Describe("CheckDelegate", func() {
 				})
 			})
 
-			Context("when the build create time earlier than last build start time", func(){
-				BeforeEach(func(){
-					fakeBuild.CreateTimeReturns(time.Now().Add(5*time.Second))
+			Context("when the build create time after last check start time", func() {
+				BeforeEach(func() {
+					fakeBuild.CreateTimeReturns(time.Now().Add(5 * time.Second))
 					fakeResourceConfigScope.LastCheckStartTimeReturns(time.Now(), nil)
 				})
 

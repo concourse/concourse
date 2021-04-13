@@ -129,11 +129,8 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 		if err != nil {
 			return nil, false, err
 		}
-		if d.build.CreateTime().Before(lastCheckStartTime) || d.build.CreateTime().Equal(lastCheckStartTime) {
-			shouldRun = false
-		} else {
-			shouldRun = true
-		}
+		// avoid running redundant checks
+		shouldRun = d.build.CreateTime().After(lastCheckStartTime)
 	} else if !d.clock.Now().Before(runAt) {
 		// run if we're past the last check end time
 		shouldRun = true
