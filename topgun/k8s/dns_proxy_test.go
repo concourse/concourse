@@ -112,7 +112,13 @@ var _ = Describe("DNS Resolution", func() {
 				addressFunction: fullAddress,
 				shouldWork:      false,
 			}),
-			Entry("Adding extra dns server, with Proxy Enabled and full address", Case{
+			// Skipping this test as it frequently fails - it asserts that the
+			// lookup of an internal k8s address should fail when 8.8.8.8 is
+			// provided as the DNS server, but when we generate the
+			// /etc/resolv.conf in containers, we add both 8.8.8.8 AND the
+			// local DNS proxy as nameservers, so it seems like the DNS
+			// resolution should work.
+			XEntry("Adding extra dns server, with Proxy Enabled and full address", Case{
 				enableDnsProxy:  "true",
 				dnsServer:       "8.8.8.8",
 				addressFunction: fullAddress,
