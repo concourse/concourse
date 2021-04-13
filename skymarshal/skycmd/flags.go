@@ -1,6 +1,7 @@
 package skycmd
 
 import (
+	"fmt"
 	"io/ioutil"
 	"strings"
 	"time"
@@ -10,6 +11,17 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/flag"
 )
+
+type ValidationConnectorsError struct{}
+
+func (e ValidationConnectorsError) Error() string {
+	var connectorIDs []string
+	connectors := TeamConnectorsConfig{}
+	for _, c := range connectors.AllConnectors() {
+		connectorIDs = append(connectorIDs, c.ID())
+	}
+	return fmt.Sprintf("Not a valid auth connector. Valid options include %v.", connectorIDs)
+}
 
 type AuthFlags struct {
 	SecureCookies bool              `yaml:"cookie_secure,omitempty"`

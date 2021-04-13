@@ -7,7 +7,7 @@ import (
 )
 
 type DNSConfig struct {
-	Enable bool `yaml:"enable"`
+	Enable bool `yaml:"enable,omitempty"`
 }
 
 func (config DNSConfig) Server() (*dns.Server, error) {

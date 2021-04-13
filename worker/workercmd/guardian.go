@@ -27,11 +27,11 @@ import (
 type GdnBinaryFlags struct {
 	Server struct {
 		Network struct {
-			Pool string `yaml:"pool"`
-		} `yaml:"network"`
+			Pool string `yaml:"pool,omitempty"`
+		} `yaml:"network,omitempty"`
 
 		Limits struct {
-			MaxContainers string `yaml:"max_containers"`
+			MaxContainers string `yaml:"max_containers,omitempty"`
 		}
 	}
 }

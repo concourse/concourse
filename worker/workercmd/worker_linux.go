@@ -20,42 +20,42 @@ import (
 )
 
 type Certs struct {
-	Dir string `yaml:"certs_dir"`
+	Dir string `yaml:"certs_dir,omitempty"`
 }
 
 type RuntimeConfiguration struct {
-	Runtime string `yaml:"runtime" validate:"runtime"`
+	Runtime string `yaml:"runtime,omitempty" validate:"runtime"`
 }
 
 type GuardianRuntime struct {
-	Bin            string        `yaml:"bin"`
-	DNS            DNSConfig     `yaml:"dns_proxy"`
-	RequestTimeout time.Duration `yaml:"request_timeout"`
+	Bin            string        `yaml:"bin,omitempty"`
+	DNS            DNSConfig     `yaml:"dns_proxy,omitempty"`
+	RequestTimeout time.Duration `yaml:"request_timeout,omitempty"`
 
-	Config      flag.File `yaml:"config"`
+	Config      flag.File `yaml:"config,omitempty"`
 	BinaryFlags GdnBinaryFlags
 }
 
 type ContainerdRuntime struct {
-	Config         flag.File     `yaml:"config"`
-	Bin            string        `yaml:"bin"`
-	InitBin        string        `yaml:"init_bin"`
-	CNIPluginsDir  string        `yaml:"cni_plugins_dir"`
-	RequestTimeout time.Duration `yaml:"request_timeout"`
+	Config         flag.File     `yaml:"config,omitempty"`
+	Bin            string        `yaml:"bin,omitempty"`
+	InitBin        string        `yaml:"init_bin,omitempty"`
+	CNIPluginsDir  string        `yaml:"cni_plugins_dir,omitempty"`
+	RequestTimeout time.Duration `yaml:"request_timeout,omitempty"`
 
-	Network ContainerdNetwork `yaml:"network" ignore_env:"true"`
+	Network ContainerdNetwork `yaml:"network,omitempty" ignore_env:"true"`
 
-	MaxContainers int `yaml:"max_containers"`
+	MaxContainers int `yaml:"max_containers,omitempty"`
 }
 
 type ContainerdNetwork struct {
-	ExternalIP net.IP `yaml:"external_ip"`
+	ExternalIP net.IP `yaml:"external_ip,omitempty"`
 	//TODO can DNSConfig be simplifed to just a bool rather than struct with a bool?
-	DNS                DNSConfig `yaml:"dns_proxy"`
-	DNSServers         []string  `yaml:"dns_server"`
-	RestrictedNetworks []string  `yaml:"restricted_network"`
-	Pool               string    `yaml:"network_pool"`
-	MTU                int       `yaml:"mtu"`
+	DNS                DNSConfig `yaml:"dns_proxy,omitempty"`
+	DNSServers         []string  `yaml:"dns_server,omitempty"`
+	RestrictedNetworks []string  `yaml:"restricted_network,omitempty"`
+	Pool               string    `yaml:"network_pool,omitempty"`
+	MTU                int       `yaml:"mtu,omitempty"`
 }
 
 var RuntimeDefaults = RuntimeConfiguration{

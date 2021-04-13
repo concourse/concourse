@@ -325,12 +325,14 @@ var CmdDefaults RunConfig = RunConfig{
 	Tracing: tracing.Config{
 		ServiceName: "concourse-web",
 
-		Honeycomb: tracing.Honeycomb{
-			ServiceName: "concourse",
-		},
+		Providers: tracing.ProvidersConfig{
+			Honeycomb: tracing.Honeycomb{
+				ServiceName: "concourse",
+			},
 
-		Jaeger: tracing.Jaeger{
-			Service: "web",
+			Jaeger: tracing.Jaeger{
+				Service: "web",
+			},
 		},
 	},
 

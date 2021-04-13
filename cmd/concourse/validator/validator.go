@@ -79,17 +79,6 @@ var (
 	ValidationErrRuntime           = fmt.Sprintf("Not a valid runtime. Valid options include %v.", workercmd.ValidRuntimes)
 )
 
-type ValidationConnectorsError struct{}
-
-func (e ValidationConnectorsError) Error() string {
-	var connectorIDs []string
-	connectors := skycmd.TeamConnectorsConfig{}
-	for _, c := range connectors.AllConnectors() {
-		connectorIDs = append(connectorIDs, c.ID())
-	}
-	return fmt.Sprintf("Not a valid auth connector. Valid options include %v.", connectorIDs)
-}
-
 type ValidationCredsManagerError struct{}
 
 func (e ValidationCredsManagerError) Error() string {
@@ -145,7 +134,7 @@ func (v *validatorErrors) SetupErrorMessages() {
 		"baggageclaim_driver": baggageclaimcmd.ValidationErrBaggageclaimDriver,
 		"runtime":             ValidationErrRuntime,
 
-		"connectors":       ValidationConnectorsError{}.Error(),
+		"connectors":       skycmd.ValidationConnectorsError{}.Error(),
 		"creds_manager":    ValidationCredsManagerError{}.Error(),
 		"metrics_emitter":  ValidationMetricsEmitterError{}.Error(),
 		"tracing_provider": tracing.ValidationTracingProviderError{}.Error(),

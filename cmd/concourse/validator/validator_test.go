@@ -9,6 +9,7 @@ import (
 
 	"github.com/concourse/concourse/atc/atccmd"
 	v "github.com/concourse/concourse/cmd/concourse/validator"
+	"github.com/concourse/concourse/skymarshal/skycmd"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/flag"
 	"github.com/go-playground/locales/en"
@@ -625,13 +626,13 @@ func (t *ConnectorTest) TestConnectorValidator(s *ValidatorTestSuite, trans tran
 
 	validate := validator.New()
 	validate.RegisterValidation("connectors", v.ValidateConnectors)
-	trans.RegisterTranslation(validate, "connectors", v.ValidationConnectorsError{}.Error())
+	trans.RegisterTranslation(validate, "connectors", skycmd.ValidationConnectorsError{}.Error())
 
 	err := validate.Struct(testStruct)
 	if t.Valid {
 		s.Assert().NoError(err)
 	} else {
-		s.Contains(fmt.Sprintf("%v", err.(validator.ValidationErrors).Translate(trans.trans)), v.ValidationConnectorsError{}.Error())
+		s.Contains(fmt.Sprintf("%v", err.(validator.ValidationErrors).Translate(trans.trans)), skycmd.ValidationConnectorsError{}.Error())
 	}
 }
 

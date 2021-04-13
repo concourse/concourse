@@ -287,34 +287,34 @@ func InitializeMetricsFlags(c *cobra.Command, flags *RunConfig) {
 
 func InitializeMetricsEmitterFlags(c *cobra.Command, flags *RunConfig) {
 	// Datadog
-	c.Flags().StringVar(&flags.Metrics.Emitter.Datadog.Host, "datadog-agent-host", "", "Datadog agent host to expose dogstatsd metrics")
-	c.Flags().StringVar(&flags.Metrics.Emitter.Datadog.Port, "datadog-agent-port", "", "Datadog agent port to expose dogstatsd metrics")
-	c.Flags().StringVar(&flags.Metrics.Emitter.Datadog.Prefix, "datadog-prefix", "", "Prefix for all metrics to easily find them in Datadog")
+	c.Flags().StringVar(&flags.Metrics.Emitters.Datadog.Host, "datadog-agent-host", "", "Datadog agent host to expose dogstatsd metrics")
+	c.Flags().StringVar(&flags.Metrics.Emitters.Datadog.Port, "datadog-agent-port", "", "Datadog agent port to expose dogstatsd metrics")
+	c.Flags().StringVar(&flags.Metrics.Emitters.Datadog.Prefix, "datadog-prefix", "", "Prefix for all metrics to easily find them in Datadog")
 
 	// InfluxDB
-	c.Flags().StringVar(&flags.Metrics.Emitter.InfluxDB.URL, "influxdb-url", "", "InfluxDB server address to emit points to.")
-	c.Flags().StringVar(&flags.Metrics.Emitter.InfluxDB.Database, "influxdb-database", "", "InfluxDB database to write points to.")
-	c.Flags().StringVar(&flags.Metrics.Emitter.InfluxDB.Username, "influxdb-username", "", "InfluxDB server username.")
-	c.Flags().StringVar(&flags.Metrics.Emitter.InfluxDB.Password, "influxdb-password", "", "InfluxDB server password.")
-	c.Flags().BoolVar(&flags.Metrics.Emitter.InfluxDB.InsecureSkipVerify, "influxdb-insecure-skip-verify", false, "Skip SSL verification when emitting to InfluxDB.")
-	c.Flags().Uint32Var(&flags.Metrics.Emitter.InfluxDB.BatchSize, "influxdb-batch-size", 5000, "Number of points to batch together when emitting to InfluxDB.")
-	c.Flags().DurationVar(&flags.Metrics.Emitter.InfluxDB.BatchDuration, "influxdb-batch-duration", 300*time.Second, "The duration to wait before emitting a batch of points to InfluxDB, disregarding influxdb-batch-size.")
+	c.Flags().StringVar(&flags.Metrics.Emitters.InfluxDB.URL, "influxdb-url", "", "InfluxDB server address to emit points to.")
+	c.Flags().StringVar(&flags.Metrics.Emitters.InfluxDB.Database, "influxdb-database", "", "InfluxDB database to write points to.")
+	c.Flags().StringVar(&flags.Metrics.Emitters.InfluxDB.Username, "influxdb-username", "", "InfluxDB server username.")
+	c.Flags().StringVar(&flags.Metrics.Emitters.InfluxDB.Password, "influxdb-password", "", "InfluxDB server password.")
+	c.Flags().BoolVar(&flags.Metrics.Emitters.InfluxDB.InsecureSkipVerify, "influxdb-insecure-skip-verify", false, "Skip SSL verification when emitting to InfluxDB.")
+	c.Flags().Uint32Var(&flags.Metrics.Emitters.InfluxDB.BatchSize, "influxdb-batch-size", 5000, "Number of points to batch together when emitting to InfluxDB.")
+	c.Flags().DurationVar(&flags.Metrics.Emitters.InfluxDB.BatchDuration, "influxdb-batch-duration", 300*time.Second, "The duration to wait before emitting a batch of points to InfluxDB, disregarding influxdb-batch-size.")
 
 	// Lager
-	c.Flags().BoolVar(&flags.Metrics.Emitter.Lager.Enabled, "emit-to-logs", false, "Emit metrics to logs.")
+	c.Flags().BoolVar(&flags.Metrics.Emitters.Lager.Enabled, "emit-to-logs", false, "Emit metrics to logs.")
 
 	// NewRelic
-	c.Flags().StringVar(&flags.Metrics.Emitter.NewRelic.AccountID, "newrelic-account-id", "", "New Relic Account ID")
-	c.Flags().StringVar(&flags.Metrics.Emitter.NewRelic.APIKey, "newrelic-api-key", "", "New Relic Insights API Key")
-	c.Flags().StringVar(&flags.Metrics.Emitter.NewRelic.Url, "newrelic-insights-api-url", "https://insights-collector.newrelic.com", "Base Url for insights Insert API")
-	c.Flags().StringVar(&flags.Metrics.Emitter.NewRelic.ServicePrefix, "newrelic-service-prefix", "", "An optional prefix for emitted New Relic events")
-	c.Flags().Uint64Var(&flags.Metrics.Emitter.NewRelic.BatchSize, "newrelic-batch-size", 2000, "Number of events to batch together before emitting")
-	c.Flags().DurationVar(&flags.Metrics.Emitter.NewRelic.BatchDuration, "newrelic-batch-duration", 60*time.Second, "Length of time to wait between emitting until all currently batched events are emitted")
-	c.Flags().BoolVar(&flags.Metrics.Emitter.NewRelic.DisableCompression, "newrelic-batch-disable-compression", false, "Disables compression of the batch before sending it")
+	c.Flags().StringVar(&flags.Metrics.Emitters.NewRelic.AccountID, "newrelic-account-id", "", "New Relic Account ID")
+	c.Flags().StringVar(&flags.Metrics.Emitters.NewRelic.APIKey, "newrelic-api-key", "", "New Relic Insights API Key")
+	c.Flags().StringVar(&flags.Metrics.Emitters.NewRelic.Url, "newrelic-insights-api-url", "https://insights-collector.newrelic.com", "Base Url for insights Insert API")
+	c.Flags().StringVar(&flags.Metrics.Emitters.NewRelic.ServicePrefix, "newrelic-service-prefix", "", "An optional prefix for emitted New Relic events")
+	c.Flags().Uint64Var(&flags.Metrics.Emitters.NewRelic.BatchSize, "newrelic-batch-size", 2000, "Number of events to batch together before emitting")
+	c.Flags().DurationVar(&flags.Metrics.Emitters.NewRelic.BatchDuration, "newrelic-batch-duration", 60*time.Second, "Length of time to wait between emitting until all currently batched events are emitted")
+	c.Flags().BoolVar(&flags.Metrics.Emitters.NewRelic.DisableCompression, "newrelic-batch-disable-compression", false, "Disables compression of the batch before sending it")
 
 	// Prometheus
-	c.Flags().StringVar(&flags.Metrics.Emitter.Prometheus.BindIP, "prometheus-bind-ip", "", "IP to listen on to expose Prometheus metrics.")
-	c.Flags().StringVar(&flags.Metrics.Emitter.Prometheus.BindPort, "prometheus-bind-port", "", "Port to listen on to expose Prometheus metrics.")
+	c.Flags().StringVar(&flags.Metrics.Emitters.Prometheus.BindIP, "prometheus-bind-ip", "", "IP to listen on to expose Prometheus metrics.")
+	c.Flags().StringVar(&flags.Metrics.Emitters.Prometheus.BindPort, "prometheus-bind-port", "", "Port to listen on to expose Prometheus metrics.")
 }
 
 func InitializeSecretRetryFlags(c *cobra.Command, flags *RunConfig) {
@@ -402,22 +402,22 @@ func InitializeTracingFlags(c *cobra.Command, flags *RunConfig) {
 	c.Flags().StringToStringVar(&flags.Tracing.Attributes, "tracing-attribute", nil, "attributes to attach to traces as metadata")
 
 	// Honeycomb
-	c.Flags().StringVar(&flags.Tracing.Honeycomb.APIKey, "tracing-honeycomb-api-key", "", "honeycomb.io api key")
-	c.Flags().StringVar(&flags.Tracing.Honeycomb.Dataset, "tracing-honeycomb-dataset", "", "honeycomb.io dataset name")
-	c.Flags().StringVar(&flags.Tracing.Honeycomb.ServiceName, "tracing-honeycomb-service-name", "concourse", "honeycomb.io service name")
+	c.Flags().StringVar(&flags.Tracing.Providers.Honeycomb.APIKey, "tracing-honeycomb-api-key", "", "honeycomb.io api key")
+	c.Flags().StringVar(&flags.Tracing.Providers.Honeycomb.Dataset, "tracing-honeycomb-dataset", "", "honeycomb.io dataset name")
+	c.Flags().StringVar(&flags.Tracing.Providers.Honeycomb.ServiceName, "tracing-honeycomb-service-name", "concourse", "honeycomb.io service name")
 
 	// Jaeger
-	c.Flags().StringVar(&flags.Tracing.Jaeger.Endpoint, "tracing-jaeger-endpoint", "", "jaeger http-based thrift collector")
-	c.Flags().StringToStringVar(&flags.Tracing.Jaeger.Tags, "tracing-jaeger-tags", nil, "tags to add to the components")
-	c.Flags().StringVar(&flags.Tracing.Jaeger.Service, "tracing-jaeger-service", CmdDefaults.Tracing.Jaeger.Service, "jaeger process service name")
+	c.Flags().StringVar(&flags.Tracing.Providers.Jaeger.Endpoint, "tracing-jaeger-endpoint", "", "jaeger http-based thrift collector")
+	c.Flags().StringToStringVar(&flags.Tracing.Providers.Jaeger.Tags, "tracing-jaeger-tags", nil, "tags to add to the components")
+	c.Flags().StringVar(&flags.Tracing.Providers.Jaeger.Service, "tracing-jaeger-service", CmdDefaults.Tracing.Providers.Jaeger.Service, "jaeger process service name")
 
 	// Stackdriver
-	c.Flags().StringVar(&flags.Tracing.Stackdriver.ProjectID, "tracing-stackdriver-projectid", "", "GCP's Project ID")
+	c.Flags().StringVar(&flags.Tracing.Providers.Stackdriver.ProjectID, "tracing-stackdriver-projectid", "", "GCP's Project ID")
 
 	// OTLP
-	c.Flags().StringVar(&flags.Tracing.OTLP.Address, "tracing-otlp-address", "", "otlp address to send traces to")
-	c.Flags().StringToStringVar(&flags.Tracing.OTLP.Headers, "tracing-otlp-header", nil, "headers to attach to each tracing message")
-	c.Flags().BoolVar(&flags.Tracing.OTLP.UseTLS, "tracing-otlp-use-tls", false, "whether to use tls or not")
+	c.Flags().StringVar(&flags.Tracing.Providers.OTLP.Address, "tracing-otlp-address", "", "otlp address to send traces to")
+	c.Flags().StringToStringVar(&flags.Tracing.Providers.OTLP.Headers, "tracing-otlp-header", nil, "headers to attach to each tracing message")
+	c.Flags().BoolVar(&flags.Tracing.Providers.OTLP.UseTLS, "tracing-otlp-use-tls", false, "whether to use tls or not")
 }
 
 func InitializePolicyFlags(c *cobra.Command, flags *RunConfig) {
