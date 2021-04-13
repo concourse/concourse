@@ -14,6 +14,8 @@ version: '3'
 services:
   web:
     environment:
+      CONCOURSE_PASSWORD_CONNECTOR: ldap
+      CONCOURSE_ADD_LOCAL_USER: ~
       CONCOURSE_MAIN_TEAM_LDAP_USER: john
       # CONCOURSE_MAIN_TEAM_LDAP_GROUP: group1
 
@@ -21,7 +23,6 @@ services:
       CONCOURSE_LDAP_BIND_DN: cn=admin,dc=example,dc=org
       CONCOURSE_LDAP_BIND_PW: admin
       CONCOURSE_LDAP_INSECURE_NO_SSL: "true"
-      CONCOURSE_LDAP_USERNAME_PROMPT: Email
 
       CONCOURSE_LDAP_USER_SEARCH_BASE_DN: ou=People,dc=example,dc=org
       CONCOURSE_LDAP_USER_SEARCH_FILTER: "(objectClass=person)"
@@ -45,4 +46,4 @@ services:
     # Option 1: Add custom seed file -> mount to         /container/service/slapd/assets/config/bootstrap/ldif/custom/
     # Option 2: Overwrite default seed file -> mount to  /container/service/slapd/assets/config/bootstrap/ldif/
     volumes:
-    - ./hack/ldap/:/container/service/slapd/assets/config/bootstrap/ldif/custom/
+    - ../hack/ldap/:/container/service/slapd/assets/config/bootstrap/ldif/custom/
