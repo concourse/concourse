@@ -20,7 +20,6 @@ const DefaultPipelineSecretTemplate = "/concourse/{{.Team}}/{{.Pipeline}}/{{.Sec
 const DefaultTeamSecretTemplate = "/concourse/{{.Team}}/{{.Secret}}"
 
 type SsmManager struct {
-	Enabled                bool   `yaml:"enabled,omitempty"`
 	AwsAccessKeyID         string `yaml:"access_key,omitempty"`
 	AwsSecretAccessKey     string `yaml:"secret_key,omitempty"`
 	AwsSessionToken        string `yaml:"session_token,omitempty"`

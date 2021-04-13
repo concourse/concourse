@@ -124,7 +124,8 @@ type RunConfig struct {
 	Database DatabaseConfig `yaml:"database,omitempty" ignore_env:"true"`
 
 	CredentialManagement creds.CredentialManagementConfig `yaml:"credential_management,omitempty"`
-	CredentialManagers   CredentialManagersConfig         `yaml:"credential_managers,omitempty"`
+	CredentialManager    string                           `yaml:"credential_manager,omitempty" validate:"creds_manager"`
+	CredentialManagers   CredentialManagersConfig
 
 	ComponentRunnerInterval time.Duration `yaml:"component_runner_interval,omitempty"`
 	BuildTrackerInterval    time.Duration `yaml:"build_tracker_interval,omitempty"`
@@ -697,11 +698,7 @@ func (cmd *RunConfig) constructAPIMembers(
 	)
 
 	middleware := token.NewMiddleware(cmd.Auth.AuthFlags.SecureCookies)
-
-	credsManager, err := cmd.CredentialManagers.ConfiguredCredentialManager()
-	if err != nil {
-		return nil, err
-	}
+	credsManager := cmd.configuredCredentialManager()
 
 	apiHandler, err := cmd.constructAPIHandler(
 		logger,
@@ -1134,10 +1131,7 @@ func workerVersion() (version.Version, error) {
 
 func (cmd *RunConfig) secretManager(logger lager.Logger) (creds.Secrets, error) {
 	var secretsFactory creds.SecretsFactory = noop.NewNoopFactory()
-	manager, err := cmd.CredentialManagers.ConfiguredCredentialManager()
-	if err != nil {
-		return nil, err
-	}
+	manager := cmd.configuredCredentialManager()
 
 	if manager == nil {
 		return nil, nil
@@ -1149,7 +1143,7 @@ func (cmd *RunConfig) secretManager(logger lager.Logger) (creds.Secrets, error) 
 
 	credsLogger.Info("configured credentials manager")
 
-	err = manager.Init(credsLogger)
+	err := manager.Init(credsLogger)
 	if err != nil {
 		return nil, err
 	}
@@ -1392,6 +1386,20 @@ func (cmd *RunConfig) configureMetrics(logger lager.Logger) error {
 		err = metric.Metrics.Initialize(logger.Session("metrics"), configuredEmitter, host, cmd.Metrics.Attributes, cmd.Metrics.BufferSize)
 		if err != nil {
 			return err
+		}
+	}
+
+	return nil
+}
+
+func (cmd *RunConfig) configuredCredentialManager() creds.Manager {
+	if cmd.CredentialManager == "" {
+		return nil
+	}
+
+	for name, manager := range cmd.CredentialManagers.All() {
+		if cmd.CredentialManager == name {
+			return manager
 		}
 	}
 

@@ -16,8 +16,7 @@ import (
 const managerName = "credhub"
 
 type CredHubManager struct {
-	Enabled bool   `yaml:"enabled,omitempty"`
-	URL     string `yaml:"url,omitempty"`
+	URL string `yaml:"url,omitempty"`
 
 	PathPrefix string `yaml:"path_prefix,omitempty"`
 

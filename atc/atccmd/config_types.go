@@ -46,6 +46,8 @@ type DatabaseConfig struct {
 	OldEncryptionKey flag.Cipher `yaml:"old_encryption_key,omitempty"`
 }
 
+// When adding a new credential manager, be sure to add it into the map within
+// the All method
 type CredentialManagersConfig struct {
 	Conjur         conjur.Manager               `yaml:"conjur,omitempty"`
 	CredHub        credhub.CredHubManager       `yaml:"credhub,omitempty"`
@@ -56,47 +58,16 @@ type CredentialManagersConfig struct {
 	Vault          vault.VaultManager           `yaml:"vault,omitempty"`
 }
 
-func (c CredentialManagersConfig) ConfiguredCredentialManager() (creds.Manager, error) {
-	var configuredManagers []creds.Manager
-
-	if c.Conjur.Enabled {
-		configuredManagers = append(configuredManagers, &c.Conjur)
+func (c CredentialManagersConfig) All() map[string]creds.Manager {
+	return map[string]creds.Manager{
+		c.Conjur.Name():         &c.Conjur,
+		c.CredHub.Name():        &c.CredHub,
+		c.Dummy.Name():          &c.Dummy,
+		c.Kubernetes.Name():     &c.Kubernetes,
+		c.SecretsManager.Name(): &c.SecretsManager,
+		c.SSM.Name():            &c.SSM,
+		c.Vault.Name():          &c.Vault,
 	}
-
-	if c.CredHub.Enabled {
-		configuredManagers = append(configuredManagers, &c.CredHub)
-	}
-
-	if c.Dummy.Enabled {
-		configuredManagers = append(configuredManagers, &c.Dummy)
-	}
-
-	if c.Kubernetes.Enabled {
-		configuredManagers = append(configuredManagers, &c.Kubernetes)
-	}
-
-	if c.SecretsManager.Enabled {
-		configuredManagers = append(configuredManagers, &c.SecretsManager)
-	}
-
-	if c.SSM.Enabled {
-		configuredManagers = append(configuredManagers, &c.SSM)
-	}
-
-	if c.Vault.Enabled {
-		configuredManagers = append(configuredManagers, &c.Vault)
-	}
-
-	var configuredManager creds.Manager
-	if len(configuredManagers) > 1 {
-		return nil, fmt.Errorf("Multiple credential managers configured: %v", configuredManagers)
-	}
-
-	if configuredManagers != nil {
-		configuredManager = configuredManagers[0]
-	}
-
-	return configuredManager, nil
 }
 
 type DebugConfig struct {

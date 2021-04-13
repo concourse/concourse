@@ -19,7 +19,6 @@ const DefaultPipelineSecretTemplate = "concourse/{{.Team}}/{{.Pipeline}}/{{.Secr
 const DefaultTeamSecretTemplate = "concourse/{{.Team}}/{{.Secret}}"
 
 type Manager struct {
-	Enabled                bool   `yaml:"enabled,omitempty"`
 	ConjurApplianceUrl     string `yaml:"appliance_url,omitempty"`
 	ConjurAccount          string `yaml:"account,omitempty"`
 	ConjurCertFile         string `yaml:"cert_file,omitempty"`

@@ -6,13 +6,6 @@ import (
 
 	"github.com/concourse/concourse/atc/atccmd"
 	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/atc/creds/conjur"
-	"github.com/concourse/concourse/atc/creds/credhub"
-	"github.com/concourse/concourse/atc/creds/dummy"
-	"github.com/concourse/concourse/atc/creds/kubernetes"
-	"github.com/concourse/concourse/atc/creds/secretsmanager"
-	"github.com/concourse/concourse/atc/creds/ssm"
-	"github.com/concourse/concourse/atc/creds/vault"
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/metric/emitter"
 	"github.com/stretchr/testify/require"
@@ -32,58 +25,19 @@ func TestConfigTypes(t *testing.T) {
 
 func (s *ConfigTypesSuite) TestConfiguredCredentialManagers() {
 	var expectedCredsManagers []string
-	v := reflect.ValueOf(atccmd.CredentialManagersConfig{})
+	credsManagerConfig := atccmd.CredentialManagersConfig{}
+	v := reflect.ValueOf(credsManagerConfig)
 	for i := 0; i < v.NumField(); i++ {
 		manager := v.Field(i).Interface().(creds.Manager)
 		expectedCredsManagers = append(expectedCredsManagers, manager.Name())
 	}
 
-	checkCredentialManager := func(managers []string, managerName string, managersConfig atccmd.CredentialManagersConfig) []string {
-		manager, err := managersConfig.ConfiguredCredentialManager()
-		s.NoError(err)
-		s.Assert().Equal(managerName, manager.Name())
-
-		return append(managers, manager.Name())
+	var actualCredsManagers []string
+	for name, _ := range credsManagerConfig.All() {
+		actualCredsManagers = append(actualCredsManagers, name)
 	}
 
-	var actualCredsManagers []string
-	actualCredsManagers = checkCredentialManager(actualCredsManagers, "conjur", atccmd.CredentialManagersConfig{
-		Conjur: &conjur.Manager{
-			ConjurApplianceUrl: "some-url",
-		},
-	})
-	actualCredsManagers = checkCredentialManager(actualCredsManagers, "credhub", atccmd.CredentialManagersConfig{
-		CredHub: &credhub.CredHubManager{
-			URL: "some-url",
-		},
-	})
-	actualCredsManagers = checkCredentialManager(actualCredsManagers, "dummy", atccmd.CredentialManagersConfig{
-		Dummy: &dummy.Manager{
-			Vars: dummy.VarFlags{{Name: "some-var", Value: "some-value"}},
-		},
-	})
-	actualCredsManagers = checkCredentialManager(actualCredsManagers, "kubernetes", atccmd.CredentialManagersConfig{
-		Kubernetes: &kubernetes.KubernetesManager{
-			InClusterConfig: true,
-		},
-	})
-	actualCredsManagers = checkCredentialManager(actualCredsManagers, "secretsmanager", atccmd.CredentialManagersConfig{
-		SecretsManager: &secretsmanager.Manager{
-			AwsRegion: "some-region",
-		},
-	})
-	actualCredsManagers = checkCredentialManager(actualCredsManagers, "ssm", atccmd.CredentialManagersConfig{
-		SSM: &ssm.SsmManager{
-			AwsRegion: "some-region",
-		},
-	})
-	actualCredsManagers = checkCredentialManager(actualCredsManagers, "vault", atccmd.CredentialManagersConfig{
-		Vault: &vault.VaultManager{
-			URL: "some-url",
-		},
-	})
-
-	s.Assert().ElementsMatch(expectedCredsManagers, actualCredsManagers, "list of credential managers within atccmd.CredentialManagersConfig does not match managers that are configured in ConfiguredCredentialManager()")
+	s.Assert().ElementsMatch(expectedCredsManagers, actualCredsManagers, "list of credential managers within atccmd.CredentialManagersConfig does not match managers that are configured in All()")
 }
 
 func (s *ConfigTypesSuite) TestConfiguredMetricsEmitter() {

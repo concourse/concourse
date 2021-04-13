@@ -17,8 +17,7 @@ import (
 const managerName = "vault"
 
 type VaultManager struct {
-	Enabled bool   `yaml:"enabled,omitempty"`
-	URL     string `yaml:"url,omitempty"`
+	URL string `yaml:"url,omitempty"`
 
 	PathPrefix      string        `yaml:"path_prefix,omitempty"`
 	LookupTemplates []string      `yaml:"lookup_templates,omitempty"`

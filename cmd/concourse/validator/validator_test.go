@@ -9,7 +9,6 @@ import (
 
 	"github.com/concourse/concourse/atc/atccmd"
 	v "github.com/concourse/concourse/cmd/concourse/validator"
-	"github.com/concourse/concourse/skymarshal/skycmd"
 	"github.com/concourse/flag"
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
@@ -613,12 +612,50 @@ func (t *ConnectorTest) TestConnectorValidator(s *ValidatorTestSuite, trans tran
 
 	validate := validator.New()
 	validate.RegisterValidation("connectors", v.ValidateConnectors)
-	trans.RegisterTranslation(validate, "connectors", v.ValidationConnectorsError{skycmd.TeamConnectorsConfig{}}.Error())
+	trans.RegisterTranslation(validate, "connectors", v.ValidationConnectorsError{}.Error())
 
 	err := validate.Struct(testStruct)
 	if t.Valid {
 		s.Assert().NoError(err)
 	} else {
-		s.Contains(fmt.Sprintf("%v", err.(validator.ValidationErrors).Translate(trans.trans)), v.ValidationConnectorsError{skycmd.TeamConnectorsConfig{}}.Error())
+		s.Contains(fmt.Sprintf("%v", err.(validator.ValidationErrors).Translate(trans.trans)), v.ValidationConnectorsError{}.Error())
+	}
+}
+
+type CredsManagerTest struct {
+	Title             string
+	CredentialManager string
+	Valid             bool
+}
+
+var CredsManagerTests = []CredsManagerTest{
+	{
+		Title:             "credential manager valid choice",
+		CredentialManager: "vault",
+		Valid:             true,
+	},
+	{
+		Title:             "connector invalid choice",
+		CredentialManager: "invalid-choice",
+		Valid:             false,
+	},
+}
+
+func (t *CredsManagerTest) TestCredentialManagerValidator(s *ValidatorTestSuite, trans transHelper) {
+	testStruct := struct {
+		CredentialManager string `validate:"creds_manager"`
+	}{
+		CredentialManager: t.CredentialManager,
+	}
+
+	validate := validator.New()
+	validate.RegisterValidation("creds_manager", v.ValidateCredentialManager)
+	trans.RegisterTranslation(validate, "creds_manager", v.ValidationCredsManagerError{}.Error())
+
+	err := validate.Struct(testStruct)
+	if t.Valid {
+		s.Assert().NoError(err)
+	} else {
+		s.Contains(fmt.Sprintf("%v", err.(validator.ValidationErrors).Translate(trans.trans)), v.ValidationCredsManagerError{}.Error())
 	}
 }

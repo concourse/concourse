@@ -45,6 +45,7 @@ func NewValidator(trans ut.Translator) *validator.Validate {
 		"ip_version":          baggageclaimcmd.ValidateIPVersion,
 		"baggageclaim_driver": baggageclaimcmd.ValidateBaggageclaimDriver,
 		"runtime":             ValidateRuntime,
+		"creds_manager":       ValidateCredentialManager,
 	}
 
 	// Loop over each validation and register them with the validator
@@ -74,16 +75,26 @@ var (
 	ValidationErrRuntime           = fmt.Sprintf("Not a valid runtime. Valid options include %v.", workercmd.ValidRuntimes)
 )
 
-type ValidationConnectorsError struct {
-	TeamConnectorConfigs skycmd.TeamConnectorsConfig
-}
+type ValidationConnectorsError struct{}
 
 func (e ValidationConnectorsError) Error() string {
 	var connectorIDs []string
-	for _, c := range e.TeamConnectorConfigs.AllConnectors() {
+	connectors := skycmd.TeamConnectorsConfig{}
+	for _, c := range connectors.AllConnectors() {
 		connectorIDs = append(connectorIDs, c.ID())
 	}
 	return fmt.Sprintf("Not a valid auth connector. Valid options include %v.", connectorIDs)
+}
+
+type ValidationCredsManagerError struct{}
+
+func (e ValidationCredsManagerError) Error() string {
+	var credsNames []string
+	credsManagers := atccmd.CredentialManagersConfig{}
+	for name, _ := range credsManagers.All() {
+		credsNames = append(credsNames, name)
+	}
+	return fmt.Sprintf("Not a valid creds manager. Valid options include %v.", credsNames)
 }
 
 type validatorErrors struct {
@@ -114,8 +125,9 @@ func (v *validatorErrors) SetupErrorMessages() {
 		"log_level":           ValidationErrLogLevel,
 		"ip_version":          baggageclaimcmd.ValidationErrIPVersion,
 		"baggageclaim_driver": baggageclaimcmd.ValidationErrBaggageclaimDriver,
-		"connectors":          ValidationConnectorsError{skycmd.TeamConnectorsConfig{}}.Error(),
+		"connectors":          ValidationConnectorsError{}.Error(),
 		"runtime":             ValidationErrRuntime,
+		"creds_manager":       ValidationCredsManagerError{}.Error(),
 	}
 
 	for errorTag, errorMessage := range validationErrorMessages {
@@ -315,6 +327,22 @@ func ValidateRuntime(field validator.FieldLevel) bool {
 	value := field.Field().String()
 	for _, validChoice := range workercmd.ValidRuntimes {
 		if value == string(validChoice) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func ValidateCredentialManager(field validator.FieldLevel) bool {
+	value := field.Field().String()
+	if value == "" {
+		return true
+	}
+
+	credsManagers := atccmd.CredentialManagersConfig{}
+	for name, _ := range credsManagers.All() {
+		if value == name {
 			return true
 		}
 	}

@@ -15,7 +15,6 @@ import (
 const managerName = "kubernetes"
 
 type KubernetesManager struct {
-	Enabled         bool   `yaml:"enabled,omitempty"`
 	InClusterConfig bool   `yaml:"in_cluster,omitempty"`
 	ConfigPath      string `yaml:"config_path,omitempty"`
 	NamespacePrefix string `yaml:"namespace_prefix,omitempty"`
