@@ -2,6 +2,7 @@ package tracing_test
 
 import (
 	"context"
+	"reflect"
 
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/tracing/tracingfakes"
@@ -82,8 +83,11 @@ var _ = Describe("Tracer", func() {
 
 		It("configures tracing if jaeger flags are provided", func() {
 			c := tracing.Config{
-				Jaeger: tracing.Jaeger{
-					Endpoint: "http://jaeger:14268/api/traces",
+				Provider: "jaeger",
+				Providers: tracing.ProvidersConfig{
+					Jaeger: tracing.Jaeger{
+						Endpoint: "http://jaeger:14268/api/traces",
+					},
 				},
 			}
 			c.Prepare()
@@ -92,9 +96,12 @@ var _ = Describe("Tracer", func() {
 
 		It("configures tracing if otlp flags are provided", func() {
 			c := tracing.Config{
-				OTLP: tracing.OTLP{
-					Address: "ingest.example.com:443",
-					Headers: map[string]string{"access-token": "mytoken"},
+				Provider: "otlp",
+				Providers: tracing.ProvidersConfig{
+					OTLP: tracing.OTLP{
+						Address: "ingest.example.com:443",
+						Headers: map[string]string{"access-token": "mytoken"},
+					},
 				},
 			}
 			c.Prepare()
@@ -105,6 +112,30 @@ var _ = Describe("Tracer", func() {
 			c := tracing.Config{}
 			c.Prepare()
 			Expect(tracing.Configured).To(BeFalse())
+		})
+	})
+
+	Describe("All", func() {
+		var (
+			expectedTracingProviders []string
+			actualTracingProviders   []string
+		)
+
+		BeforeEach(func() {
+			tracingProviders := tracing.ProvidersConfig{}
+			v := reflect.ValueOf(tracingProviders)
+			for i := 0; i < v.NumField(); i++ {
+				provider := v.Field(i).Interface().(tracing.Service)
+				expectedTracingProviders = append(expectedTracingProviders, provider.ID())
+			}
+
+			for name := range tracingProviders.All() {
+				actualTracingProviders = append(actualTracingProviders, name)
+			}
+		})
+
+		It("represents all the tracing providers that are included in ProvidersConfig", func() {
+			Expect(actualTracingProviders).Should(ConsistOf(expectedTracingProviders))
 		})
 	})
 })

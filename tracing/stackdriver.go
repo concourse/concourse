@@ -9,7 +9,6 @@ import (
 )
 
 type Stackdriver struct {
-	Enabled   bool   `yaml:"enabled,omitempty"`
 	ProjectID string `yaml:"projectid,omitempty"`
 }
 

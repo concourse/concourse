@@ -9,6 +9,7 @@ import (
 
 	"github.com/concourse/concourse/atc/atccmd"
 	v "github.com/concourse/concourse/cmd/concourse/validator"
+	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/flag"
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
@@ -707,5 +708,48 @@ func (t *MetricsEmitterTest) TestMetricsEmitterValidator(s *ValidatorTestSuite, 
 		s.Assert().NoError(err)
 	} else {
 		s.Contains(fmt.Sprintf("%v", err.(validator.ValidationErrors).Translate(trans.trans)), v.ValidationMetricsEmitterError{}.Error())
+	}
+}
+
+type TracingProviderTest struct {
+	Title           string
+	TracingProvider string
+	Valid           bool
+}
+
+var TracingProviderTests = []TracingProviderTest{
+	{
+		Title:           "tracing provider valid choice",
+		TracingProvider: "jaeger",
+		Valid:           true,
+	},
+	{
+		Title:           "tracing provider empty choice",
+		TracingProvider: "",
+		Valid:           true,
+	},
+	{
+		Title:           "tracing provider invalid choice",
+		TracingProvider: "invalid-choice",
+		Valid:           false,
+	},
+}
+
+func (t *TracingProviderTest) TestTracingProviderValidator(s *ValidatorTestSuite, trans transHelper) {
+	testStruct := struct {
+		TracingProvider string `validate:"tracing_provider"`
+	}{
+		TracingProvider: t.TracingProvider,
+	}
+
+	validate := validator.New()
+	validate.RegisterValidation("tracing_provider", v.ValidateTracingProvider)
+	trans.RegisterTranslation(validate, "tracing_provider", tracing.ValidationTracingProviderError{}.Error())
+
+	err := validate.Struct(testStruct)
+	if t.Valid {
+		s.Assert().NoError(err)
+	} else {
+		s.Contains(fmt.Sprintf("%v", err.(validator.ValidationErrors).Translate(trans.trans)), tracing.ValidationTracingProviderError{}.Error())
 	}
 }

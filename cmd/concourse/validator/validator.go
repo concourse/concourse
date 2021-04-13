@@ -12,6 +12,7 @@ import (
 	"github.com/concourse/concourse/atc/atccmd"
 	"github.com/concourse/concourse/atc/wrappa"
 	"github.com/concourse/concourse/skymarshal/skycmd"
+	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/worker/workercmd"
 	"github.com/concourse/flag"
 	ut "github.com/go-playground/universal-translator"
@@ -47,6 +48,7 @@ func NewValidator(trans ut.Translator) *validator.Validate {
 		"runtime":             ValidateRuntime,
 		"creds_manager":       ValidateCredentialManager,
 		"metrics_emitter":     ValidateMetricsEmitter,
+		"tracing_provider":    ValidateTracingProvider,
 	}
 
 	// Loop over each validation and register them with the validator
@@ -143,9 +145,10 @@ func (v *validatorErrors) SetupErrorMessages() {
 		"baggageclaim_driver": baggageclaimcmd.ValidationErrBaggageclaimDriver,
 		"runtime":             ValidationErrRuntime,
 
-		"connectors":      ValidationConnectorsError{}.Error(),
-		"creds_manager":   ValidationCredsManagerError{}.Error(),
-		"metrics_emitter": ValidationMetricsEmitterError{}.Error(),
+		"connectors":       ValidationConnectorsError{}.Error(),
+		"creds_manager":    ValidationCredsManagerError{}.Error(),
+		"metrics_emitter":  ValidationMetricsEmitterError{}.Error(),
+		"tracing_provider": tracing.ValidationTracingProviderError{}.Error(),
 	}
 
 	for errorTag, errorMessage := range validationErrorMessages {
@@ -376,6 +379,22 @@ func ValidateMetricsEmitter(field validator.FieldLevel) bool {
 
 	metricsEmitters := atccmd.MetricsEmitterConfig{}
 	for name := range metricsEmitters.All() {
+		if value == name {
+			return true
+		}
+	}
+
+	return false
+}
+
+func ValidateTracingProvider(field validator.FieldLevel) bool {
+	value := field.Field().String()
+	if value == "" {
+		return true
+	}
+
+	tracingProviders := tracing.ProvidersConfig{}
+	for name := range tracingProviders.All() {
 		if value == name {
 			return true
 		}

@@ -10,7 +10,6 @@ import (
 )
 
 type Honeycomb struct {
-	Enabled     bool   `yaml:"enabled,omitempty"`
 	APIKey      string `yaml:"api_key,omitempty"`
 	Dataset     string `yaml:"dataset,omitempty"`
 	ServiceName string `yaml:"service_name,omitempty"`

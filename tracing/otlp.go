@@ -10,7 +10,6 @@ import (
 
 // OTLP service to export traces to
 type OTLP struct {
-	Enabled bool              `yaml:"enabled,omitempty"`
 	Address string            `yaml:"address,omitempty"`
 	Headers map[string]string `yaml:"header,omitempty"`
 	UseTLS  bool              `yaml:"use_tls,omitempty"`

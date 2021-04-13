@@ -10,7 +10,6 @@ import (
 
 // Jaeger service to export traces to
 type Jaeger struct {
-	Enabled  bool              `yaml:"enabled,omitempty"`
 	Endpoint string            `yaml:"endpoint,omitempty"`
 	Tags     map[string]string `yaml:"tags,omitempty"`
 	Service  string            `yaml:"service,omitempty"`

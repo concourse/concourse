@@ -2,6 +2,7 @@ package tracing
 
 import (
 	"context"
+	"fmt"
 
 	"go.opentelemetry.io/collector/translator/conventions"
 	"go.opentelemetry.io/otel/api/global"
@@ -36,23 +37,43 @@ type Config struct {
 	ServiceName string            `yaml:"service_name,omitempty"`
 	Attributes  map[string]string `yaml:"attribute,omitempty"`
 
+	Provider  string `yaml:"provider,omitempty" validate:"tracing_provider"`
+	Providers ProvidersConfig
+}
+
+type ProvidersConfig struct {
 	Honeycomb   Honeycomb   `yaml:"honeycomb,omitempty"`
 	Jaeger      Jaeger      `yaml:"jaeger,omitempty"`
 	Stackdriver Stackdriver `yaml:"stackdriver,omitempty"`
 	OTLP        OTLP        `yaml:"otlp,omitempty"`
 }
 
+func (p ProvidersConfig) All() map[string]Service {
+	return map[string]Service{
+		p.Honeycomb.ID():   &p.Honeycomb,
+		p.Jaeger.ID():      &p.Jaeger,
+		p.OTLP.ID():        &p.OTLP,
+		p.Stackdriver.ID(): &p.Stackdriver,
+	}
+}
+
+type ValidationTracingProviderError struct{}
+
+func (e ValidationTracingProviderError) Error() string {
+	var providers []string
+	providersConfig := ProvidersConfig{}
+	for name := range providersConfig.All() {
+		providers = append(providers, name)
+	}
+	return fmt.Sprintf("Not a valid tracing provider. Valid options include %v.", providers)
+}
+
 func (c Config) Prepare() error {
 	var configuredService Service
-	switch {
-	case c.Honeycomb.Enabled:
-		configuredService = c.Honeycomb
-	case c.Jaeger.Enabled:
-		configuredService = c.Jaeger
-	case c.OTLP.Enabled:
-		configuredService = c.OTLP
-	case c.Stackdriver.Enabled:
-		configuredService = c.Stackdriver
+	for name, service := range c.Providers.All() {
+		if c.Provider == name {
+			configuredService = service
+		}
 	}
 
 	if configuredService != nil {
