@@ -23,6 +23,7 @@ type Emitter interface {
 
 //go:generate counterfeiter . EmitterFactory
 type EmitterFactory interface {
+	ID() string
 	Description() string
 	Validate() error
 	NewEmitter() (Emitter, error)

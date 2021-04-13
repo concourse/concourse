@@ -39,7 +39,6 @@ type (
 	}
 
 	NewRelicConfig struct {
-		Enabled            bool          `yaml:"enabled,omitempty"`
 		AccountID          string        `yaml:"account_id,omitempty"`
 		APIKey             string        `yaml:"api_key,omitempty"`
 		Url                string        `yaml:"insights_api_url,omitempty"`
@@ -52,6 +51,7 @@ type (
 	NewRelicEvent map[string]interface{}
 )
 
+func (config *NewRelicConfig) ID() string          { return "newrelic" }
 func (config *NewRelicConfig) Description() string { return "NewRelic" }
 func (config *NewRelicConfig) Validate() error {
 	var errs *multierror.Error

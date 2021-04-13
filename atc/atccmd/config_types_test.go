@@ -7,7 +7,6 @@ import (
 	"github.com/concourse/concourse/atc/atccmd"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/metric"
-	"github.com/concourse/concourse/atc/metric/emitter"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -33,7 +32,7 @@ func (s *ConfigTypesSuite) TestConfiguredCredentialManagers() {
 	}
 
 	var actualCredsManagers []string
-	for name, _ := range credsManagerConfig.All() {
+	for name := range credsManagerConfig.All() {
 		actualCredsManagers = append(actualCredsManagers, name)
 	}
 
@@ -42,49 +41,17 @@ func (s *ConfigTypesSuite) TestConfiguredCredentialManagers() {
 
 func (s *ConfigTypesSuite) TestConfiguredMetricsEmitter() {
 	var expectedEmitters []string
-	v := reflect.ValueOf(atccmd.MetricsEmitterConfig{})
+	metricsEmitterConfig := atccmd.MetricsEmitterConfig{}
+	v := reflect.ValueOf(metricsEmitterConfig)
 	for i := 0; i < v.NumField(); i++ {
 		emitter := v.Field(i).Interface().(metric.EmitterFactory)
 		expectedEmitters = append(expectedEmitters, emitter.Description())
 	}
 
-	checkMetricEmitter := func(emitters []string, description string, emitterConfig atccmd.MetricsEmitterConfig) []string {
-		emitter, err := emitterConfig.ConfiguredEmitter()
-		s.NoError(err)
-		s.Assert().Equal(description, emitter.Description())
-
-		return append(emitters, emitter.Description())
+	var actualMetricsEmitter []string
+	for name := range metricsEmitterConfig.All() {
+		actualMetricsEmitter = append(actualMetricsEmitter, name)
 	}
 
-	var actualMetricsEmitter []string
-	actualMetricsEmitter = checkMetricEmitter(actualMetricsEmitter, "Datadog", atccmd.MetricsEmitterConfig{
-		Datadog: &emitter.DogstatsDBConfig{
-			Host: "host",
-			Port: "port",
-		},
-	})
-	actualMetricsEmitter = checkMetricEmitter(actualMetricsEmitter, "InfluxDB", atccmd.MetricsEmitterConfig{
-		InfluxDB: &emitter.InfluxDBConfig{
-			URL: "some-url",
-		},
-	})
-	actualMetricsEmitter = checkMetricEmitter(actualMetricsEmitter, "Lager", atccmd.MetricsEmitterConfig{
-		Lager: &emitter.LagerConfig{
-			Enabled: true,
-		},
-	})
-	actualMetricsEmitter = checkMetricEmitter(actualMetricsEmitter, "NewRelic", atccmd.MetricsEmitterConfig{
-		NewRelic: &emitter.NewRelicConfig{
-			AccountID: "account",
-			APIKey:    "key",
-		},
-	})
-	actualMetricsEmitter = checkMetricEmitter(actualMetricsEmitter, "Prometheus", atccmd.MetricsEmitterConfig{
-		Prometheus: &emitter.PrometheusConfig{
-			BindPort: "port",
-			BindIP:   "ip",
-		},
-	})
-
-	s.Assert().ElementsMatch(expectedEmitters, actualMetricsEmitter, "list of metrics emitters within atccmd.MetricsEmitterConfig does not match emitters that are checked in ConfiguredEmitter()")
+	s.Assert().ElementsMatch(expectedEmitters, actualMetricsEmitter, "list of metrics emitters within atccmd.MetricsEmitterConfig does not match emitters that are checked in All()")
 }

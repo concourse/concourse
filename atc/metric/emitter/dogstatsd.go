@@ -18,14 +18,13 @@ type DogstatsdEmitter struct {
 }
 
 type DogstatsDBConfig struct {
-	Enabled bool   `yaml:"enabled,omitempty"`
-	Host    string `yaml:"agent_host,omitempty"`
-	Port    string `yaml:"agent_port,omitempty"`
-	Prefix  string `yaml:"prefix,omitempty"`
+	Host   string `yaml:"agent_host,omitempty"`
+	Port   string `yaml:"agent_port,omitempty"`
+	Prefix string `yaml:"prefix,omitempty"`
 }
 
+func (config *DogstatsDBConfig) ID() string          { return "datadog" }
 func (config *DogstatsDBConfig) Description() string { return "Datadog" }
-
 func (config *DogstatsDBConfig) Validate() error {
 	var errs *multierror.Error
 

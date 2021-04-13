@@ -1,7 +1,6 @@
 package atccmd
 
 import (
-	"fmt"
 	"net"
 	"time"
 
@@ -106,7 +105,8 @@ type MetricsConfig struct {
 	BufferSize          uint32            `yaml:"buffer_size,omitempty"`
 	CaptureErrorMetrics bool              `yaml:"capture_errors,omitempty" env:"CONCOURSE_METRICS_CAPTURE_ERRORS,CONCOURSE_CAPTURE_ERROR_METRICS"`
 
-	Emitter MetricsEmitterConfig `yaml:"emitter,omitempty" ignore_env:"true"`
+	Emitter  string `yaml:"emitter,omitempty" validate:"metrics_emitter"`
+	Emitters MetricsEmitterConfig
 }
 
 type MetricsEmitterConfig struct {
@@ -117,43 +117,14 @@ type MetricsEmitterConfig struct {
 	Prometheus emitter.PrometheusConfig `yaml:"prometheus,omitempty"`
 }
 
-func (e MetricsEmitterConfig) ConfiguredEmitter() (metric.EmitterFactory, error) {
-	var configuredEmitters []metric.EmitterFactory
-
-	if e.Datadog.Enabled {
-		configuredEmitters = append(configuredEmitters, &e.Datadog)
+func (e MetricsEmitterConfig) All() map[string]metric.EmitterFactory {
+	return map[string]metric.EmitterFactory{
+		e.Datadog.ID():    &e.Datadog,
+		e.InfluxDB.ID():   &e.InfluxDB,
+		e.Lager.ID():      &e.Lager,
+		e.NewRelic.ID():   &e.NewRelic,
+		e.Prometheus.ID(): &e.Prometheus,
 	}
-
-	if e.InfluxDB.Enabled {
-		configuredEmitters = append(configuredEmitters, &e.InfluxDB)
-	}
-
-	if e.Lager.Enabled {
-		configuredEmitters = append(configuredEmitters, &e.Lager)
-	}
-
-	if e.NewRelic.Enabled {
-		configuredEmitters = append(configuredEmitters, &e.NewRelic)
-	}
-
-	if e.Prometheus.Enabled {
-		configuredEmitters = append(configuredEmitters, &e.Prometheus)
-	}
-
-	var configuredEmitter metric.EmitterFactory
-	if len(configuredEmitters) > 1 {
-		var emittersString string
-		for _, emitter := range configuredEmitters {
-			emittersString = fmt.Sprintf("%s, %s", emittersString, emitter.Description())
-		}
-		return nil, fmt.Errorf("multiple emitters configured: %s", emittersString)
-	}
-
-	if configuredEmitters != nil {
-		configuredEmitter = configuredEmitters[0]
-	}
-
-	return configuredEmitter, nil
 }
 
 type PolicyCheckersConfig struct {

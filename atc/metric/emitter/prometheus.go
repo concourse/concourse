@@ -81,7 +81,6 @@ type PrometheusEmitter struct {
 }
 
 type PrometheusConfig struct {
-	Enabled  bool   `yaml:"enabled,omitempty"`
 	BindIP   string `yaml:"bind_ip,omitempty"`
 	BindPort string `yaml:"bind_port,omitempty"`
 }
@@ -105,6 +104,7 @@ func serializeLabels(labels *prometheus.Labels) string {
 	return key
 }
 
+func (config *PrometheusConfig) ID() string          { return "prometheus" }
 func (config *PrometheusConfig) Description() string { return "Prometheus" }
 func (config *PrometheusConfig) Validate() error {
 	var errs *multierror.Error

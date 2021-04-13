@@ -46,6 +46,7 @@ func NewValidator(trans ut.Translator) *validator.Validate {
 		"baggageclaim_driver": baggageclaimcmd.ValidateBaggageclaimDriver,
 		"runtime":             ValidateRuntime,
 		"creds_manager":       ValidateCredentialManager,
+		"metrics_emitter":     ValidateMetricsEmitter,
 	}
 
 	// Loop over each validation and register them with the validator
@@ -53,7 +54,8 @@ func NewValidator(trans ut.Translator) *validator.Validate {
 		validate.RegisterValidation(validationTag, validationFunc)
 	}
 
-	// Register all the custom error messages for each validation
+	// Register all the custom error messages for each validation. Most custom
+	// validations have their own error message.
 	ve := NewValidatorErrors(validate, trans)
 	ve.SetupErrorMessages()
 
@@ -91,10 +93,21 @@ type ValidationCredsManagerError struct{}
 func (e ValidationCredsManagerError) Error() string {
 	var credsNames []string
 	credsManagers := atccmd.CredentialManagersConfig{}
-	for name, _ := range credsManagers.All() {
+	for name := range credsManagers.All() {
 		credsNames = append(credsNames, name)
 	}
 	return fmt.Sprintf("Not a valid creds manager. Valid options include %v.", credsNames)
+}
+
+type ValidationMetricsEmitterError struct{}
+
+func (e ValidationMetricsEmitterError) Error() string {
+	var emitters []string
+	metricsEmitters := atccmd.MetricsEmitterConfig{}
+	for name := range metricsEmitters.All() {
+		emitters = append(emitters, name)
+	}
+	return fmt.Sprintf("Not a valid metrics emitter. Valid options include %v.", emitters)
 }
 
 type validatorErrors struct {
@@ -113,21 +126,26 @@ func NewValidatorErrors(validate *validator.Validate, trans ut.Translator) *vali
 // returned to the user when the validation fails
 func (v *validatorErrors) SetupErrorMessages() {
 	validationErrorMessages := map[string]string{
-		"parseurl":            ValidationErrParseURL,
-		"limited_route":       ValidationErrLimitedRoute,
-		"tlsemptybindport":    ValidationErrEmptyTLSBindPort,
-		"letsencryptenable":   ValidationErrEnableLetsEncrypt,
-		"tlsexternalurl":      ValidationErrTLSCertKey,
-		"tlsorletsencrypt":    ValidationErrTLS,
-		"rbac":                ValidationErrRBAC,
-		"cps":                 ValidationErrCPS,
-		"sac":                 ValidationErrSAC,
-		"log_level":           ValidationErrLogLevel,
+		"parseurl":      ValidationErrParseURL,
+		"limited_route": ValidationErrLimitedRoute,
+
+		"tlsemptybindport":  ValidationErrEmptyTLSBindPort,
+		"letsencryptenable": ValidationErrEnableLetsEncrypt,
+		"tlsexternalurl":    ValidationErrTLSCertKey,
+		"tlsorletsencrypt":  ValidationErrTLS,
+
+		"rbac":      ValidationErrRBAC,
+		"cps":       ValidationErrCPS,
+		"sac":       ValidationErrSAC,
+		"log_level": ValidationErrLogLevel,
+
 		"ip_version":          baggageclaimcmd.ValidationErrIPVersion,
 		"baggageclaim_driver": baggageclaimcmd.ValidationErrBaggageclaimDriver,
-		"connectors":          ValidationConnectorsError{}.Error(),
 		"runtime":             ValidationErrRuntime,
-		"creds_manager":       ValidationCredsManagerError{}.Error(),
+
+		"connectors":      ValidationConnectorsError{}.Error(),
+		"creds_manager":   ValidationCredsManagerError{}.Error(),
+		"metrics_emitter": ValidationMetricsEmitterError{}.Error(),
 	}
 
 	for errorTag, errorMessage := range validationErrorMessages {
@@ -341,7 +359,23 @@ func ValidateCredentialManager(field validator.FieldLevel) bool {
 	}
 
 	credsManagers := atccmd.CredentialManagersConfig{}
-	for name, _ := range credsManagers.All() {
+	for name := range credsManagers.All() {
+		if value == name {
+			return true
+		}
+	}
+
+	return false
+}
+
+func ValidateMetricsEmitter(field validator.FieldLevel) bool {
+	value := field.Field().String()
+	if value == "" {
+		return true
+	}
+
+	metricsEmitters := atccmd.MetricsEmitterConfig{}
+	for name := range metricsEmitters.All() {
 		if value == name {
 			return true
 		}

@@ -18,8 +18,7 @@ type InfluxDBEmitter struct {
 }
 
 type InfluxDBConfig struct {
-	Enabled bool   `yaml:"enabled,omitempty"`
-	URL     string `yaml:"url,omitempty"`
+	URL string `yaml:"url,omitempty"`
 
 	Database string `yaml:"database,omitempty"`
 
@@ -42,6 +41,7 @@ func init() {
 	lastBatchTime = time.Now()
 }
 
+func (config *InfluxDBConfig) ID() string          { return "influxdb" }
 func (config *InfluxDBConfig) Description() string { return "InfluxDB" }
 func (config *InfluxDBConfig) Validate() error {
 	if config.URL == "" {

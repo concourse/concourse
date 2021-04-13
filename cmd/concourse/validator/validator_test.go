@@ -83,6 +83,18 @@ func (v *ValidatorTestSuite) TestValidatorSuite() {
 			test.TestConnectorValidator(v, transHelper)
 		})
 	}
+
+	for _, test := range CredsManagerTests {
+		v.Run(test.Title, func() {
+			test.TestCredentialManagerValidator(v, transHelper)
+		})
+	}
+
+	for _, test := range MetricsEmitterTests {
+		v.Run(test.Title, func() {
+			test.TestMetricsEmitterValidator(v, transHelper)
+		})
+	}
 }
 
 type transHelper struct {
@@ -635,7 +647,7 @@ var CredsManagerTests = []CredsManagerTest{
 		Valid:             true,
 	},
 	{
-		Title:             "connector invalid choice",
+		Title:             "credential manager invalid choice",
 		CredentialManager: "invalid-choice",
 		Valid:             false,
 	},
@@ -657,5 +669,43 @@ func (t *CredsManagerTest) TestCredentialManagerValidator(s *ValidatorTestSuite,
 		s.Assert().NoError(err)
 	} else {
 		s.Contains(fmt.Sprintf("%v", err.(validator.ValidationErrors).Translate(trans.trans)), v.ValidationCredsManagerError{}.Error())
+	}
+}
+
+type MetricsEmitterTest struct {
+	Title          string
+	MetricsEmitter string
+	Valid          bool
+}
+
+var MetricsEmitterTests = []MetricsEmitterTest{
+	{
+		Title:          "metrics emitter valid choice",
+		MetricsEmitter: "datadog",
+		Valid:          true,
+	},
+	{
+		Title:          "metrics emitter invalid choice",
+		MetricsEmitter: "invalid-choice",
+		Valid:          false,
+	},
+}
+
+func (t *MetricsEmitterTest) TestMetricsEmitterValidator(s *ValidatorTestSuite, trans transHelper) {
+	testStruct := struct {
+		MetricsEmitter string `validate:"metrics_emitter"`
+	}{
+		MetricsEmitter: t.MetricsEmitter,
+	}
+
+	validate := validator.New()
+	validate.RegisterValidation("metrics_emitter", v.ValidateMetricsEmitter)
+	trans.RegisterTranslation(validate, "metrics_emitter", v.ValidationMetricsEmitterError{}.Error())
+
+	err := validate.Struct(testStruct)
+	if t.Valid {
+		s.Assert().NoError(err)
+	} else {
+		s.Contains(fmt.Sprintf("%v", err.(validator.ValidationErrors).Translate(trans.trans)), v.ValidationMetricsEmitterError{}.Error())
 	}
 }

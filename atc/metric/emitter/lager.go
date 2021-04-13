@@ -5,6 +5,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/metric"
+	"github.com/pkg/errors"
 )
 
 type LagerEmitter struct{}
@@ -13,8 +14,13 @@ type LagerConfig struct {
 	Enabled bool `yaml:"enabled,omitempty" env:"CONCOURSE_LAGER_ENABLE,CONCOURSE_EMIT_TO_LOGS"`
 }
 
+func (config *LagerConfig) ID() string          { return "lager" }
 func (config *LagerConfig) Description() string { return "Lager" }
 func (config *LagerConfig) Validate() error {
+	if !config.Enabled {
+		return errors.New("enabled needs to be true")
+	}
+
 	return nil
 }
 

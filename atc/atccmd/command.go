@@ -308,7 +308,7 @@ var CmdDefaults RunConfig = RunConfig{
 	Metrics: MetricsConfig{
 		BufferSize: 1000,
 
-		Emitter: MetricsEmitterConfig{
+		Emitters: MetricsEmitterConfig{
 			InfluxDB: emitter.InfluxDBConfig{
 				BatchSize:     5000,
 				BatchDuration: 300 * time.Second,
@@ -1372,13 +1372,15 @@ func (cmd *RunConfig) configureMetrics(logger lager.Logger) error {
 		host, _ = os.Hostname()
 	}
 
-	configuredEmitter, err := cmd.Metrics.Emitter.ConfiguredEmitter()
-	if err != nil {
-		return err
+	var configuredEmitter metric.EmitterFactory
+	for name, emitter := range cmd.Metrics.Emitters.All() {
+		if cmd.Metrics.Emitter == name {
+			configuredEmitter = emitter
+		}
 	}
 
 	if configuredEmitter != nil {
-		err = configuredEmitter.Validate()
+		err := configuredEmitter.Validate()
 		if err != nil {
 			return fmt.Errorf("validate emitter %s: %w", configuredEmitter.Description(), err)
 		}
