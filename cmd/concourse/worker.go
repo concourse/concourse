@@ -27,15 +27,16 @@ var WorkerCommand = &cobra.Command{
 }
 
 type WorkerConfig struct {
-	ConfigFile flag.File `env:"WORKER_CONFIG_FILE"`
+	ConfigFile flag.File `env:"CONCOURSE_WORKER_CONFIG_FILE"`
 
-	*workercmd.WorkerCommand `yaml:"worker" ignore_env:"true"`
+	workercmd.WorkerCommand `yaml:"worker" ignore_env:"true"`
 }
 
 func init() {
-	workerCmd.WorkerCommand = &workercmd.CmdDefaults
-
 	WorkerCommand.Flags().Var(&workerCmd.ConfigFile, "config", "config file (default is $HOME/.cobra.yaml)")
+
+	workerCmd.WorkerCommand = workercmd.CmdDefaults
+	workercmd.InitializeWorkerFlagsDEPRECATED(WorkerCommand, &workerCmd.WorkerCommand, "")
 }
 
 func InitializeWorker(cmd *cobra.Command, args []string) error {
@@ -45,6 +46,7 @@ func InitializeWorker(cmd *cobra.Command, args []string) error {
 		TagName:       "yaml",
 		OverrideName:  "env",
 		IgnoreTagName: "ignore_env",
+		StripValue:    true,
 
 		Parser: envstruct.Parser{
 			Delimiter:   ",",

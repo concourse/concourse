@@ -21,7 +21,7 @@ require (
 	github.com/aws/aws-sdk-go v1.38.9
 	github.com/caarlos0/env v3.5.0+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible
-	github.com/clarafu/envstruct v0.0.0-20210217164029-cb472d46e597
+	github.com/clarafu/envstruct v0.0.0-20210414180622-62f3047362cf
 	github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e // indirect
 	github.com/cloudfoundry/socks5-proxy v0.0.0-20180530211953-3659db090cb2 // indirect
 	github.com/concourse/baggageclaim v1.11.0

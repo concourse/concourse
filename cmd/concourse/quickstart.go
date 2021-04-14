@@ -8,8 +8,10 @@ import (
 	"os"
 
 	"github.com/clarafu/envstruct"
+	"github.com/concourse/concourse/atc/atccmd"
 	concourseCmd "github.com/concourse/concourse/cmd"
 	v "github.com/concourse/concourse/cmd/concourse/validator"
+	"github.com/concourse/concourse/tsa/tsacmd"
 	"github.com/concourse/concourse/worker/workercmd"
 	"github.com/concourse/flag"
 	"github.com/go-playground/locales/en"
@@ -36,18 +38,27 @@ var QuickstartCommand = &cobra.Command{
 
 func init() {
 	QuickstartCommand.Flags().StringVar(&quickStart.ConfigFile, "config", "", "path to the config file that will be used to quickstart the concourse cluster")
+
+	quickStart.WebConfig.RunConfig = atccmd.CmdDefaults
+	quickStart.WebConfig.TSAConfig = tsacmd.CmdDefaults
+	quickStart.WorkerCommand = workercmd.CmdDefaults
+
+	// IMPORTANT!: Can be removed when flags no longer supported
+	atccmd.InitializeATCFlagsDEPRECATED(QuickstartCommand, &quickStart.WebConfig.RunConfig)
+	tsacmd.InitializeTSAFlagsDEPRECATED(QuickstartCommand, &quickStart.WebConfig.TSAConfig)
+	workercmd.InitializeWorkerFlagsDEPRECATED(QuickstartCommand, &quickStart.WorkerCommand, "worker-")
 }
 
 type QuickstartConfig struct {
 	ConfigFile string `env:"QUICKSTART_CONFIG_FILE"`
 
-	*WebConfig               `yaml:"web" ignore_env:"true"`
-	*workercmd.WorkerCommand `yaml:"worker"`
+	WebConfig               `yaml:"web" ignore_env:"true"`
+	workercmd.WorkerCommand `yaml:"worker"`
 }
 
 func InitializeQuickstart(cmd *cobra.Command, args []string) error {
 	// IMPORTANT! This can be removed after we completely deprecate flags
-	fixupFlagDefaults(cmd, quickStart.WebConfig)
+	fixupFlagDefaults(cmd, &quickStart.WebConfig)
 
 	// Fetch out env values
 	env := envstruct.Envstruct{
@@ -55,6 +66,7 @@ func InitializeQuickstart(cmd *cobra.Command, args []string) error {
 		TagName:       "yaml",
 		OverrideName:  "env",
 		IgnoreTagName: "ignore_env",
+		StripValue:    true,
 
 		Parser: envstruct.Parser{
 			Delimiter:   ",",

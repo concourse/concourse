@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	_ "net/http/pprof"
+	"os"
 
 	"github.com/concourse/concourse/tsa/tsacmd"
 )
@@ -12,5 +14,4 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-
 }

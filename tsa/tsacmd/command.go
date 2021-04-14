@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/clarafu/envstruct"
 	v "github.com/concourse/concourse/cmd/concourse/validator"
 	"github.com/concourse/flag"
 	"github.com/go-playground/locales/en"
@@ -43,24 +42,6 @@ type TSACommandFlags struct {
 }
 
 func InitializeTSA(cmd *cobra.Command, args []string) error {
-	// Fetch out env values
-	env := envstruct.Envstruct{
-		Prefix:        "CONCOURSE",
-		TagName:       "yaml",
-		OverrideName:  "env",
-		IgnoreTagName: "ignore_env",
-
-		Parser: envstruct.Parser{
-			Delimiter:   ",",
-			Unmarshaler: yaml.Unmarshal,
-		},
-	}
-
-	err := env.FetchEnv(&tsaCmd)
-	if err != nil {
-		return fmt.Errorf("fetch env: %s", err)
-	}
-
 	// Fetch out the values set from the config file and overwrite the flag
 	// values
 	if tsaCmd.ConfigFile != "" {
@@ -83,7 +64,7 @@ func InitializeTSA(cmd *cobra.Command, args []string) error {
 
 	validator := v.NewValidator(trans)
 
-	err = validator.Struct(tsaCmd)
+	err := validator.Struct(tsaCmd)
 	if err != nil {
 		validationErrors := err.(val.ValidationErrors)
 

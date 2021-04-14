@@ -42,12 +42,12 @@ func init() {
 
 	WebCommand.Flags().StringVar(&webCmd.PeerAddress, "peer-address", "127.0.0.1", "Network address of this web node, reachable by other web nodes. Used for forwarded worker addresses.")
 
-	webCmd.RunConfig = &atccmd.CmdDefaults
-	webCmd.TSAConfig = &tsacmd.CmdDefaults
+	webCmd.RunConfig = atccmd.CmdDefaults
+	webCmd.TSAConfig = tsacmd.CmdDefaults
 
 	// IMPORTANT!: Can be removed when flags no longer supported
-	atccmd.InitializeATCFlagsDEPRECATED(WebCommand, webCmd.RunConfig)
-	tsacmd.InitializeTSAFlagsDEPRECATED(WebCommand, webCmd.TSAConfig)
+	atccmd.InitializeATCFlagsDEPRECATED(WebCommand, &webCmd.RunConfig)
+	tsacmd.InitializeTSAFlagsDEPRECATED(WebCommand, &webCmd.TSAConfig)
 
 	// TODO: Mark all flags as deprecated
 }
@@ -57,8 +57,8 @@ type WebConfig struct {
 
 	PeerAddress string `yaml:"peer_address"`
 
-	*atccmd.RunConfig `yaml:"web" ignore_env:"true"`
-	*tsacmd.TSAConfig `yaml:"worker_gateway"`
+	atccmd.RunConfig `yaml:"web" ignore_env:"true"`
+	tsacmd.TSAConfig `yaml:"worker_gateway"`
 }
 
 func InitializeWeb(cmd *cobra.Command, args []string) error {
@@ -71,6 +71,7 @@ func InitializeWeb(cmd *cobra.Command, args []string) error {
 		TagName:       "yaml",
 		OverrideName:  "env",
 		IgnoreTagName: "ignore_env",
+		StripValue:    true,
 
 		Parser: envstruct.Parser{
 			Delimiter:   ",",

@@ -43,7 +43,6 @@ func NewDexServer(config *DexConfig) (*server.Server, error) {
 }
 
 func NewDexServerConfig(config *DexConfig) (server.Config, error) {
-
 	var clients []storage.Client
 	var connectors []storage.Connector
 	var passwords []storage.Password
