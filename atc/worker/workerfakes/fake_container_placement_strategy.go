@@ -9,6 +9,19 @@ import (
 )
 
 type FakeContainerPlacementStrategy struct {
+	ApproveStub        func(lager.Logger, worker.Worker, worker.ContainerSpec) error
+	approveMutex       sync.RWMutex
+	approveArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 worker.Worker
+		arg3 worker.ContainerSpec
+	}
+	approveReturns struct {
+		result1 error
+	}
+	approveReturnsOnCall map[int]struct {
+		result1 error
+	}
 	NameStub        func() string
 	nameMutex       sync.RWMutex
 	nameArgsForCall []struct {
@@ -34,19 +47,6 @@ type FakeContainerPlacementStrategy struct {
 		result1 []worker.Worker
 		result2 error
 	}
-	PickStub        func(lager.Logger, worker.Worker, worker.ContainerSpec) error
-	pickMutex       sync.RWMutex
-	pickArgsForCall []struct {
-		arg1 lager.Logger
-		arg2 worker.Worker
-		arg3 worker.ContainerSpec
-	}
-	pickReturns struct {
-		result1 error
-	}
-	pickReturnsOnCall map[int]struct {
-		result1 error
-	}
 	ReleaseStub        func(lager.Logger, worker.Worker, worker.ContainerSpec)
 	releaseMutex       sync.RWMutex
 	releaseArgsForCall []struct {
@@ -56,6 +56,69 @@ type FakeContainerPlacementStrategy struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeContainerPlacementStrategy) Approve(arg1 lager.Logger, arg2 worker.Worker, arg3 worker.ContainerSpec) error {
+	fake.approveMutex.Lock()
+	ret, specificReturn := fake.approveReturnsOnCall[len(fake.approveArgsForCall)]
+	fake.approveArgsForCall = append(fake.approveArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 worker.Worker
+		arg3 worker.ContainerSpec
+	}{arg1, arg2, arg3})
+	stub := fake.ApproveStub
+	fakeReturns := fake.approveReturns
+	fake.recordInvocation("Approve", []interface{}{arg1, arg2, arg3})
+	fake.approveMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeContainerPlacementStrategy) ApproveCallCount() int {
+	fake.approveMutex.RLock()
+	defer fake.approveMutex.RUnlock()
+	return len(fake.approveArgsForCall)
+}
+
+func (fake *FakeContainerPlacementStrategy) ApproveCalls(stub func(lager.Logger, worker.Worker, worker.ContainerSpec) error) {
+	fake.approveMutex.Lock()
+	defer fake.approveMutex.Unlock()
+	fake.ApproveStub = stub
+}
+
+func (fake *FakeContainerPlacementStrategy) ApproveArgsForCall(i int) (lager.Logger, worker.Worker, worker.ContainerSpec) {
+	fake.approveMutex.RLock()
+	defer fake.approveMutex.RUnlock()
+	argsForCall := fake.approveArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeContainerPlacementStrategy) ApproveReturns(result1 error) {
+	fake.approveMutex.Lock()
+	defer fake.approveMutex.Unlock()
+	fake.ApproveStub = nil
+	fake.approveReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeContainerPlacementStrategy) ApproveReturnsOnCall(i int, result1 error) {
+	fake.approveMutex.Lock()
+	defer fake.approveMutex.Unlock()
+	fake.ApproveStub = nil
+	if fake.approveReturnsOnCall == nil {
+		fake.approveReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.approveReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeContainerPlacementStrategy) Name() string {
@@ -182,69 +245,6 @@ func (fake *FakeContainerPlacementStrategy) OrderReturnsOnCall(i int, result1 []
 	}{result1, result2}
 }
 
-func (fake *FakeContainerPlacementStrategy) Pick(arg1 lager.Logger, arg2 worker.Worker, arg3 worker.ContainerSpec) error {
-	fake.pickMutex.Lock()
-	ret, specificReturn := fake.pickReturnsOnCall[len(fake.pickArgsForCall)]
-	fake.pickArgsForCall = append(fake.pickArgsForCall, struct {
-		arg1 lager.Logger
-		arg2 worker.Worker
-		arg3 worker.ContainerSpec
-	}{arg1, arg2, arg3})
-	stub := fake.PickStub
-	fakeReturns := fake.pickReturns
-	fake.recordInvocation("Pick", []interface{}{arg1, arg2, arg3})
-	fake.pickMutex.Unlock()
-	if stub != nil {
-		return stub(arg1, arg2, arg3)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fakeReturns.result1
-}
-
-func (fake *FakeContainerPlacementStrategy) PickCallCount() int {
-	fake.pickMutex.RLock()
-	defer fake.pickMutex.RUnlock()
-	return len(fake.pickArgsForCall)
-}
-
-func (fake *FakeContainerPlacementStrategy) PickCalls(stub func(lager.Logger, worker.Worker, worker.ContainerSpec) error) {
-	fake.pickMutex.Lock()
-	defer fake.pickMutex.Unlock()
-	fake.PickStub = stub
-}
-
-func (fake *FakeContainerPlacementStrategy) PickArgsForCall(i int) (lager.Logger, worker.Worker, worker.ContainerSpec) {
-	fake.pickMutex.RLock()
-	defer fake.pickMutex.RUnlock()
-	argsForCall := fake.pickArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
-}
-
-func (fake *FakeContainerPlacementStrategy) PickReturns(result1 error) {
-	fake.pickMutex.Lock()
-	defer fake.pickMutex.Unlock()
-	fake.PickStub = nil
-	fake.pickReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeContainerPlacementStrategy) PickReturnsOnCall(i int, result1 error) {
-	fake.pickMutex.Lock()
-	defer fake.pickMutex.Unlock()
-	fake.PickStub = nil
-	if fake.pickReturnsOnCall == nil {
-		fake.pickReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.pickReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
 func (fake *FakeContainerPlacementStrategy) Release(arg1 lager.Logger, arg2 worker.Worker, arg3 worker.ContainerSpec) {
 	fake.releaseMutex.Lock()
 	fake.releaseArgsForCall = append(fake.releaseArgsForCall, struct {
@@ -282,12 +282,12 @@ func (fake *FakeContainerPlacementStrategy) ReleaseArgsForCall(i int) (lager.Log
 func (fake *FakeContainerPlacementStrategy) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.approveMutex.RLock()
+	defer fake.approveMutex.RUnlock()
 	fake.nameMutex.RLock()
 	defer fake.nameMutex.RUnlock()
 	fake.orderMutex.RLock()
 	defer fake.orderMutex.RUnlock()
-	fake.pickMutex.RLock()
-	defer fake.pickMutex.RUnlock()
 	fake.releaseMutex.RLock()
 	defer fake.releaseMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
