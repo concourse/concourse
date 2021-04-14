@@ -29,7 +29,7 @@ require (
 	github.com/containerd/containerd v1.4.4
 	github.com/containerd/continuity v0.0.0-20201208142359-180525291bb7 // indirect
 	github.com/containerd/fifo v0.0.0-20201026212402-0724c46b320c // indirect
-	github.com/containerd/go-cni v1.0.1
+	github.com/containerd/go-cni v1.0.2
 	github.com/containerd/go-runc v0.0.0-20200220073739-7016d3ce2328 // indirect
 	github.com/containerd/ttrpc v1.0.2 // indirect
 	github.com/containerd/typeurl v1.0.1
