@@ -1,0 +1,44 @@
+---
+web:
+  auth:
+    main_team:
+      local_user:
+      - test
+    session_signing_key: /concourse-keys/session_signing_key
+    add_local_user:
+      test: test
+      guest: guest
+  database:
+    postgres:
+      host: db
+      user: dev
+      password: dev
+      database: concourse
+  log_level: debug
+  external_url: http://localhost:8080
+  web_server:
+    cluster_name: dev
+  feature_flags:
+    enable_pipeline_instances: true
+    enable_across_step: true
+
+worker_gateway:
+  authorized_keys: /concourse-keys/authorized_worker_keys
+  host_key: /concourse-keys/tsa_host_key
+
+worker:
+  runtime: containerd
+  containerd:
+    network:
+      dns-proxy:
+        enable: true
+  tsa:
+    host:
+    - web:2222
+    public_key: /concourse-keys/tsa_host_key.pub
+    worker_private_key: /concourse-keys/worker_key
+  log_level: debug
+  bind_ip: 0.0.0.0
+  baggageclaim:
+    bind_ip: 0.0.0.0
+    driver: overlay
