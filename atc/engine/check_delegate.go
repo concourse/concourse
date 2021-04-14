@@ -123,17 +123,22 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 	runAt := end.Add(interval)
 
 	shouldRun := false
-	if d.build.IsManuallyTriggered() {
-		// ignore interval for manually triggered builds.
-		lastCheckStartTime, err := scope.LastCheckStartTime()
-		if err != nil {
-			return nil, false, err
-		}
-		// avoid running redundant checks
-		shouldRun = d.build.CreateTime().After(lastCheckStartTime)
-	} else if !d.clock.Now().Before(runAt) {
-		// run if we're past the last check end time
+	if d.build.Name() != db.CheckBuildName {
+		// always run for get/put/task step embedded check
 		shouldRun = true
+	} else {
+		if d.build.IsManuallyTriggered() {
+			// ignore interval for manually triggered builds.
+			lastCheckStartTime, err := scope.LastCheckStartTime()
+			if err != nil {
+				return nil, false, err
+			}
+			// avoid running redundant checks
+			shouldRun = lastCheckStartTime.IsZero() || d.build.CreateTime().After(lastCheckStartTime)
+		} else if !d.clock.Now().Before(runAt) {
+			// run if we're past the last check end time
+			shouldRun = true
+		}
 	}
 	// XXX(check-refactor): we could add an else{} case and potentially sleep
 	// here until runAt is reached.
