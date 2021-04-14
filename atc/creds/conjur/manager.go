@@ -19,16 +19,16 @@ const DefaultPipelineSecretTemplate = "concourse/{{.Team}}/{{.Pipeline}}/{{.Secr
 const DefaultTeamSecretTemplate = "concourse/{{.Team}}/{{.Secret}}"
 
 type Manager struct {
-	ConjurApplianceUrl     string `yaml:"appliance_url,omitempty"`
-	ConjurAccount          string `yaml:"account,omitempty"`
-	ConjurCertFile         string `yaml:"cert_file,omitempty"`
-	ConjurAuthnLogin       string `yaml:"authn_login,omitempty"`
-	ConjurAuthnApiKey      string `yaml:"authn_api_key,omitempty"`
-	ConjurAuthnTokenFile   string `yaml:"authn_token_file,omitempty"`
-	PipelineSecretTemplate string `yaml:"pipeline_secret_template,omitempty"`
-	TeamSecretTemplate     string `yaml:"team_secret_template,omitempty"`
-	SecretTemplate         string `yaml:"secret_template,omitempty"`
-	Conjur                 *Conjur
+	ConjurApplianceUrl     string  `yaml:"appliance_url,omitempty"`
+	ConjurAccount          string  `yaml:"account,omitempty"`
+	ConjurCertFile         string  `yaml:"cert_file,omitempty"`
+	ConjurAuthnLogin       string  `yaml:"authn_login,omitempty"`
+	ConjurAuthnApiKey      string  `yaml:"authn_api_key,omitempty"`
+	ConjurAuthnTokenFile   string  `yaml:"authn_token_file,omitempty"`
+	PipelineSecretTemplate string  `yaml:"pipeline_secret_template,omitempty"`
+	TeamSecretTemplate     string  `yaml:"team_secret_template,omitempty"`
+	SecretTemplate         string  `yaml:"secret_template,omitempty"`
+	Conjur                 *Conjur `yaml:",omitempty"`
 }
 
 func newConjurClient(manager *Manager) (*conjurapi.Client, error) {

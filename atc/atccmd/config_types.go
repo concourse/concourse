@@ -89,8 +89,8 @@ type JobSchedulingConfig struct {
 }
 
 type RuntimeConfig struct {
-	ContainerPlacementStrategyOptions worker.ContainerPlacementStrategyOptions
-	StreamingArtifactsCompression     string `yaml:"streaming_artifacts_compression,omitempty" validate:"sac"`
+	ContainerPlacementStrategyOptions worker.ContainerPlacementStrategyOptions `yaml:",inline"`
+	StreamingArtifactsCompression     string                                   `yaml:"streaming_artifacts_compression,omitempty" validate:"sac"`
 
 	BaggageclaimResponseHeaderTimeout time.Duration `yaml:"baggageclaim_response_header_timeout,omitempty"`
 	P2pVolumeStreamingTimeout         time.Duration `yaml:"p2p_volume_streaming_timeout,omitempty"`
@@ -105,8 +105,8 @@ type MetricsConfig struct {
 	BufferSize          uint32            `yaml:"buffer_size,omitempty"`
 	CaptureErrorMetrics bool              `yaml:"capture_errors,omitempty" env:"CONCOURSE_METRICS_CAPTURE_ERRORS,CONCOURSE_CAPTURE_ERROR_METRICS"`
 
-	Emitter  string `yaml:"emitter,omitempty" validate:"metrics_emitter"`
-	Emitters MetricsEmitterConfig
+	Emitter  string               `yaml:"emitter,omitempty" validate:"metrics_emitter"`
+	Emitters MetricsEmitterConfig `yaml:",inline"`
 }
 
 type MetricsEmitterConfig struct {
@@ -189,7 +189,7 @@ type SyslogConfig struct {
 }
 
 type AuthConfig struct {
-	AuthFlags     skycmd.AuthFlags
+	AuthFlags     skycmd.AuthFlags     `yaml:",inline"`
 	MainTeamFlags skycmd.AuthTeamFlags `yaml:"main_team,omitempty"`
 }
 

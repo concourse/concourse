@@ -23,11 +23,11 @@ import (
 )
 
 type WorkerCommand struct {
-	Worker WorkerConfig
+	Worker WorkerConfig `yaml:",inline"`
 
 	TSA worker.TSAConfig `yaml:"tsa,omitempty"`
 
-	Certs Certs
+	Certs Certs `yaml:",inline"`
 
 	WorkDir flag.Dir `yaml:"work_dir,omitempty" validate:"required"`
 
@@ -46,7 +46,7 @@ type WorkerCommand struct {
 
 	ConnectionDrainTimeout time.Duration `yaml:"connection_drain_timeout,omitempty"`
 
-	RuntimeConfiguration
+	RuntimeConfiguration `yaml:",inline"`
 
 	// This refers to flags relevant to the operation of the Guardian runtime.
 	// For historical reasons it is namespaced under "garden" i.e. CONCOURSE_GARDEN instead of "guardian" i.e. CONCOURSE_GUARDIAN
@@ -60,7 +60,7 @@ type WorkerCommand struct {
 
 	ResourceTypes flag.Dir `yaml:"resource_types,omitempty"`
 
-	Logger flag.Lager
+	Logger flag.Lager `yaml:",inline"`
 }
 
 type DebugConfig struct {

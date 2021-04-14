@@ -34,7 +34,7 @@ import (
 // IMPORTANT! The env tags are only added for backwards compatibility sake. Any
 // new fields do NOT require the env tag
 type TSAConfig struct {
-	Logger flag.Lager
+	Logger flag.Lager `yaml:",inline"`
 
 	BindIP      net.IP `yaml:"bind_ip,omitempty" env:"CONCOURSE_WORKER_GATEWAY_BIND_IP,CONCOURSE_TSA_BIND_IP"`
 	PeerAddress string `yaml:"peer_address,omitempty" env:"CONCOURSE_WORKER_GATEWAY_PEER_ADDRESS,CONCOURSE_TSA_PEER_ADDRESS"`

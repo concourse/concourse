@@ -105,7 +105,7 @@ var flyClientID = "fly"
 var flyClientSecret = "Zmx5"
 
 type RunConfig struct {
-	Logger        flag.Lager
+	Logger        flag.Lager `yaml:",inline"`
 	varSourcePool creds.VarSourcePool
 
 	BindIP      net.IP    `yaml:"bind_ip,omitempty"`
@@ -125,7 +125,7 @@ type RunConfig struct {
 
 	CredentialManagement creds.CredentialManagementConfig `yaml:"credential_management,omitempty"`
 	CredentialManager    string                           `yaml:"credential_manager,omitempty" validate:"creds_manager"`
-	CredentialManagers   CredentialManagersConfig
+	CredentialManagers   CredentialManagersConfig         `yaml:",inline"`
 
 	ComponentRunnerInterval time.Duration `yaml:"component_runner_interval,omitempty"`
 	BuildTrackerInterval    time.Duration `yaml:"build_tracker_interval,omitempty"`

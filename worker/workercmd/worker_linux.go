@@ -32,8 +32,8 @@ type GuardianRuntime struct {
 	DNS            DNSConfig     `yaml:"dns_proxy,omitempty"`
 	RequestTimeout time.Duration `yaml:"request_timeout,omitempty"`
 
-	Config      flag.File `yaml:"config,omitempty"`
-	BinaryFlags GdnBinaryFlags
+	Config      flag.File      `yaml:"config,omitempty"`
+	BinaryFlags GdnBinaryFlags `yaml:",inline"`
 }
 
 type ContainerdRuntime struct {

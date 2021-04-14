@@ -20,9 +20,9 @@ type CredHubManager struct {
 
 	PathPrefix string `yaml:"path_prefix,omitempty"`
 
-	TLS    TLS
-	UAA    UAA
-	Client *LazyCredhub
+	TLS    TLS          `yaml:",inline"`
+	UAA    UAA          `yaml:",inline"`
+	Client *LazyCredhub `yaml:",omitempty"`
 }
 
 type TLS struct {

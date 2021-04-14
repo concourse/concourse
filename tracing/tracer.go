@@ -37,8 +37,8 @@ type Config struct {
 	ServiceName string            `yaml:"service_name,omitempty"`
 	Attributes  map[string]string `yaml:"attribute,omitempty"`
 
-	Provider  string `yaml:"provider,omitempty" validate:"tracing_provider"`
-	Providers ProvidersConfig
+	Provider  string          `yaml:"provider,omitempty" validate:"tracing_provider"`
+	Providers ProvidersConfig `yaml:",inline"`
 }
 
 type ProvidersConfig struct {

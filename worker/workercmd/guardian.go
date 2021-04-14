@@ -32,7 +32,7 @@ type GdnBinaryFlags struct {
 
 		Limits struct {
 			MaxContainers string `yaml:"max_containers,omitempty"`
-		}
+		} `yaml:",inline"`
 	}
 }
 
