@@ -714,35 +714,14 @@ func (p *pipeline) Expose() error {
 }
 
 func (p *pipeline) Destroy() error {
-	tx, err := p.conn.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer tx.Rollback()
-
-	_, err = psql.Delete("pipelines").
+	_, err := psql.Delete("pipelines").
 		Where(sq.Eq{
 			"id": p.id,
 		}).
-		RunWith(tx).
+		RunWith(p.conn).
 		Exec()
 
-	if err != nil {
-		return err
-	}
-
-	_, err = psql.Insert("deleted_pipelines").
-		Columns("id").
-		Values(p.id).
-		RunWith(tx).
-		Exec()
-
-	if err != nil {
-		return err
-	}
-
-	return tx.Commit()
+	return err
 }
 
 func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
