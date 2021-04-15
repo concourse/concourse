@@ -262,7 +262,7 @@ var _ = Describe("Pool", func() {
 			fakeStrategy.OrderCalls(func(_ lager.Logger, workers []Worker, _ ContainerSpec) ([]Worker, error) {
 				return append([]Worker(nil), workers...), nil
 			})
-			fakeStrategy.PickReturns(nil)
+			fakeStrategy.ApproveReturns(nil)
 
 			fmt.Fprintln(GinkgoWriter, "init-complete")
 		})
@@ -326,7 +326,7 @@ var _ = Describe("Pool", func() {
 
 					It("succeeds and returns the compatible worker with the container", func() {
 						Expect(fakeStrategy.OrderCallCount()).To(Equal(0))
-						Expect(fakeStrategy.PickCallCount()).To(Equal(0))
+						Expect(fakeStrategy.ApproveCallCount()).To(Equal(0))
 
 						Expect(selectErr).NotTo(HaveOccurred())
 						Expect(selectedWorker.Name()).To(Equal(workers[0].Name()))
@@ -342,7 +342,7 @@ var _ = Describe("Pool", func() {
 
 					It("succeeds and returns the first compatible worker with the container", func() {
 						Expect(fakeStrategy.OrderCallCount()).To(Equal(0))
-						Expect(fakeStrategy.PickCallCount()).To(Equal(0))
+						Expect(fakeStrategy.ApproveCallCount()).To(Equal(0))
 
 						Expect(selectErr).NotTo(HaveOccurred())
 						Expect(selectedWorker.Name()).To(Equal(workers[0].Name()))
@@ -360,9 +360,9 @@ var _ = Describe("Pool", func() {
 
 					It("chooses a satisfying worker", func() {
 						Expect(fakeStrategy.OrderCallCount()).To(Equal(1))
-						Expect(fakeStrategy.PickCallCount()).To(Equal(1))
+						Expect(fakeStrategy.ApproveCallCount()).To(Equal(1))
 
-						_, pickedWorker, _ := fakeStrategy.PickArgsForCall(0)
+						_, pickedWorker, _ := fakeStrategy.ApproveArgsForCall(0)
 						Expect(pickedWorker.Name()).To(Equal(workers[1].Name()))
 
 						Expect(selectErr).NotTo(HaveOccurred())
@@ -502,7 +502,7 @@ var _ = Describe("Pool", func() {
 						It("chooses first worker", func() {
 							Expect(fakeStrategy.OrderCallCount()).To(Equal(1))
 
-							_, pickedWorker, _ := fakeStrategy.PickArgsForCall(0)
+							_, pickedWorker, _ := fakeStrategy.ApproveArgsForCall(0)
 							Expect(pickedWorker.Name()).To(Equal(workers[2].Name()))
 
 							Expect(selectErr).ToNot(HaveOccurred())
@@ -512,16 +512,16 @@ var _ = Describe("Pool", func() {
 
 					Context("when picking the first worker errors", func() {
 						BeforeEach(func() {
-							fakeStrategy.PickReturnsOnCall(0, errors.New("cannot-pick-for-arbitrary-reason"))
+							fakeStrategy.ApproveReturnsOnCall(0, errors.New("cannot-pick-for-arbitrary-reason"))
 						})
 
 						It("succeeds and picks the next worker", func() {
-							Expect(fakeStrategy.PickCallCount()).To(Equal(2))
+							Expect(fakeStrategy.ApproveCallCount()).To(Equal(2))
 
-							_, pickedWorkerA, _ := fakeStrategy.PickArgsForCall(0)
+							_, pickedWorkerA, _ := fakeStrategy.ApproveArgsForCall(0)
 							Expect(pickedWorkerA.Name()).To(Equal(workers[0].Name()))
 
-							_, pickedWorkerB, _ := fakeStrategy.PickArgsForCall(1)
+							_, pickedWorkerB, _ := fakeStrategy.ApproveArgsForCall(1)
 							Expect(pickedWorkerB.Name()).To(Equal(workers[1].Name()))
 
 							Expect(selectErr).NotTo(HaveOccurred())
