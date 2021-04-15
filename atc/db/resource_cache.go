@@ -2,7 +2,6 @@ package db
 
 import (
 	"crypto/sha256"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -21,144 +20,6 @@ var ErrResourceCacheDisappeared = errors.New("resource-cache-disappeared")
 // type in a pipeline.
 //
 // ResourceCaches are garbage-collected by gc.ResourceCacheCollector.
-type ResourceCacheDescriptor struct {
-	ResourceConfigDescriptor ResourceConfigDescriptor // The resource configuration.
-	Version                  atc.Version              // The version of the resource.
-	Params                   atc.Params               // The params used when fetching the version.
-}
-
-func (cache *ResourceCacheDescriptor) findOrCreate(
-	tx Tx,
-	lockFactory lock.LockFactory,
-	conn Conn,
-) (UsedResourceCache, error) {
-	resourceConfig, err := cache.ResourceConfigDescriptor.findOrCreate(tx, lockFactory, conn)
-	if err != nil {
-		return nil, err
-	}
-
-	rc, found, err := cache.findWithResourceConfig(tx, resourceConfig, lockFactory, conn)
-	if err != nil {
-		return nil, err
-	}
-
-	if !found {
-		var id int
-		err = psql.Insert("resource_caches").
-			Columns(
-				"resource_config_id",
-				"version",
-				"version_md5",
-				"params_hash",
-			).
-			Values(
-				resourceConfig.ID(),
-				cache.version(),
-				sq.Expr("md5(?)", cache.version()),
-				paramsHash(cache.Params),
-			).
-			Suffix(`
-				ON CONFLICT (resource_config_id, version_md5, params_hash) DO UPDATE SET
-				resource_config_id = EXCLUDED.resource_config_id,
-				version = EXCLUDED.version,
-				version_md5 = EXCLUDED.version_md5,
-				params_hash = EXCLUDED.params_hash
-				RETURNING id
-			`).
-			RunWith(tx).
-			QueryRow().
-			Scan(&id)
-		if err != nil {
-			return nil, err
-		}
-
-		rc = &usedResourceCache{
-			id:             id,
-			version:        cache.Version,
-			resourceConfig: resourceConfig,
-			lockFactory:    lockFactory,
-			conn:           conn,
-		}
-	}
-
-	return rc, nil
-}
-
-func (cache *ResourceCacheDescriptor) use(
-	tx Tx,
-	rc UsedResourceCache,
-	user ResourceCacheUser,
-) error {
-	cols := user.SQLMap()
-	cols["resource_cache_id"] = rc.ID()
-
-	var resourceCacheUseExists int
-	err := psql.Select("1").
-		From("resource_cache_uses").
-		Where(sq.Eq(cols)).
-		RunWith(tx).
-		QueryRow().
-		Scan(&resourceCacheUseExists)
-	if err != nil {
-		if err != sql.ErrNoRows {
-			return err
-		}
-	}
-
-	if err == nil {
-		// use already exists
-		return nil
-	}
-
-	_, err = psql.Insert("resource_cache_uses").
-		SetMap(cols).
-		RunWith(tx).
-		Exec()
-	return err
-}
-
-func (cache *ResourceCacheDescriptor) findWithResourceConfig(tx Tx, resourceConfig ResourceConfig, lockFactory lock.LockFactory, conn Conn) (UsedResourceCache, bool, error) {
-	var id int
-	err := psql.Select("id").
-		From("resource_caches").
-		Where(sq.Eq{
-			"resource_config_id": resourceConfig.ID(),
-			"params_hash":        paramsHash(cache.Params),
-		}).
-		Where(sq.Expr("version_md5 = md5(?)", cache.version())).
-		Suffix("FOR SHARE").
-		RunWith(tx).
-		QueryRow().
-		Scan(&id)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, false, nil
-		}
-
-		return nil, false, err
-	}
-
-	return &usedResourceCache{
-		id:             id,
-		version:        cache.Version,
-		resourceConfig: resourceConfig,
-		lockFactory:    lockFactory,
-		conn:           conn,
-	}, true, nil
-}
-
-func (cache *ResourceCacheDescriptor) version() string {
-	j, _ := json.Marshal(cache.Version)
-	return string(j)
-}
-
-func paramsHash(p atc.Params) string {
-	if p != nil {
-		return mapHash(p)
-	}
-
-	return mapHash(atc.Params{})
-}
 
 // UsedResourceCache is created whenever a ResourceCache is Created and/or
 // Used.
@@ -232,3 +93,12 @@ func mapHash(m map[string]interface{}) string {
 	j, _ := json.Marshal(m)
 	return fmt.Sprintf("%x", sha256.Sum256(j))
 }
+
+func paramsHash(p atc.Params) string {
+	if p != nil {
+		return mapHash(p)
+	}
+
+	return mapHash(atc.Params{})
+}
+

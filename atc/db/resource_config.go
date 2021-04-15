@@ -1,7 +1,6 @@
 package db
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
 	"time"
@@ -24,23 +23,6 @@ var ErrResourceConfigDisappeared = errors.New("resource config disappeared")
 var ErrResourceConfigParentDisappeared = errors.New("resource config parent disappeared")
 var ErrResourceConfigHasNoType = errors.New("resource config has no type")
 
-// ResourceConfig represents a resource type and config source.
-//
-// Resources in a pipeline, resource types in a pipeline, and `image_resource`
-// fields in a task all result in a reference to a ResourceConfig.
-//
-// ResourceConfigs are garbage-collected by gc.ResourceConfigCollector.
-type ResourceConfigDescriptor struct {
-	// A resource type provided by a resource.
-	CreatedByResourceCache *ResourceCacheDescriptor
-
-	// A resource type provided by a worker.
-	CreatedByBaseResourceType *BaseResourceType
-
-	// The resource's source configuration.
-	Source atc.Source
-}
-
 //go:generate counterfeiter . ResourceConfig
 
 type ResourceConfig interface {
@@ -54,6 +36,12 @@ type ResourceConfig interface {
 	FindOrCreateScope(Resource) (ResourceConfigScope, error)
 }
 
+// ResourceConfig represents a resource type and config source.
+//
+// Resources in a pipeline, resource types in a pipeline, and `image_resource`
+// fields in a task all result in a reference to a ResourceConfig.
+//
+// ResourceConfigs are garbage-collected by gc.ResourceConfigCollector.
 type resourceConfig struct {
 	id                        int
 	lastReferenced            time.Time
@@ -121,100 +109,6 @@ func (r *resourceConfig) updateLastReferenced(tx Tx) error {
 		RunWith(tx).
 		QueryRow().
 		Scan(&r.lastReferenced)
-}
-
-func (r *ResourceConfigDescriptor) findOrCreate(tx Tx, lockFactory lock.LockFactory, conn Conn) (*resourceConfig, error) {
-	rc := &resourceConfig{
-		lockFactory: lockFactory,
-		conn:        conn,
-	}
-
-	var parentID int
-	var parentColumnName string
-	if r.CreatedByResourceCache != nil {
-		parentColumnName = "resource_cache_id"
-
-		resourceCache, err := r.CreatedByResourceCache.findOrCreate(tx, lockFactory, conn)
-		if err != nil {
-			return nil, err
-		}
-
-		parentID = resourceCache.ID()
-
-		rc.createdByResourceCache = resourceCache
-	}
-
-	if r.CreatedByBaseResourceType != nil {
-		parentColumnName = "base_resource_type_id"
-
-		var err error
-		var found bool
-		rc.createdByBaseResourceType, found, err = r.CreatedByBaseResourceType.Find(tx)
-		if err != nil {
-			return nil, err
-		}
-
-		if !found {
-			return nil, BaseResourceTypeNotFoundError{Name: r.CreatedByBaseResourceType.Name}
-		}
-
-		parentID = rc.CreatedByBaseResourceType().ID
-	}
-
-	found, err := r.findWithParentID(tx, rc, parentColumnName, parentID)
-	if err != nil {
-		return nil, err
-	}
-
-	if !found {
-		hash := mapHash(r.Source)
-
-		err := psql.Insert("resource_configs").
-			Columns(
-				parentColumnName,
-				"source_hash",
-			).
-			Values(
-				parentID,
-				hash,
-			).
-			Suffix(`
-				ON CONFLICT (`+parentColumnName+`, source_hash) DO UPDATE SET
-					`+parentColumnName+` = ?,
-					source_hash = ?
-				RETURNING id, last_referenced
-			`, parentID, hash).
-			RunWith(tx).
-			QueryRow().
-			Scan(&rc.id, &rc.lastReferenced)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return rc, nil
-}
-
-func (r *ResourceConfigDescriptor) findWithParentID(tx Tx, rc *resourceConfig, parentColumnName string, parentID int) (bool, error) {
-	err := psql.Select("id", "last_referenced").
-		From("resource_configs").
-		Where(sq.Eq{
-			parentColumnName: parentID,
-			"source_hash":    mapHash(r.Source),
-		}).
-		Suffix("FOR UPDATE").
-		RunWith(tx).
-		QueryRow().
-		Scan(&rc.id, &rc.lastReferenced)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return false, nil
-		}
-
-		return false, err
-	}
-
-	return true, nil
 }
 
 func findOrCreateResourceConfigScope(
