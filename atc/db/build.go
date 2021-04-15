@@ -14,7 +14,7 @@ import (
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/vars"
 	"github.com/lib/pq"
-	"go.opentelemetry.io/otel/api/propagation"
+	"go.opentelemetry.io/otel/propagation"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/encryption"
@@ -39,7 +39,7 @@ type BuildInput struct {
 	Context SpanContext
 }
 
-func (bi BuildInput) SpanContext() propagation.HTTPSupplier {
+func (bi BuildInput) SpanContext() propagation.TextMapCarrier {
 	return bi.Context
 }
 
@@ -194,7 +194,7 @@ type Build interface {
 	IsDrained() bool
 	SetDrained(bool) error
 
-	SpanContext() propagation.HTTPSupplier
+	SpanContext() propagation.TextMapCarrier
 
 	SavePipeline(
 		pipelineRef atc.PipelineRef,
@@ -1699,7 +1699,7 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 	return inputs, outputs, nil
 }
 
-func (b *build) SpanContext() propagation.HTTPSupplier {
+func (b *build) SpanContext() propagation.TextMapCarrier {
 	return b.spanContext
 }
 

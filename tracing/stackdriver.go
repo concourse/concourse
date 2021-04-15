@@ -15,7 +15,7 @@ func (s Stackdriver) IsConfigured() bool {
 	return s.ProjectID != ""
 }
 
-func (s Stackdriver) Exporter() (export.SpanSyncer, error) {
+func (s Stackdriver) Exporter() (export.SpanExporter, error) {
 	exporter, err := texporter.NewExporter(texporter.WithProjectID(s.ProjectID))
 	if err != nil {
 		err = fmt.Errorf("failed to create stackdriver exporter: %w", err)
