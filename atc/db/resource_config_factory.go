@@ -26,7 +26,7 @@ type ResourceConfigFactory interface {
 	FindOrCreateResourceConfig(
 		resourceType string,
 		source atc.Source,
-		resourceTypes atc.VersionedResourceTypes,
+		customTypeResourceCache UsedResourceCache,
 	) (ResourceConfig, error)
 
 	FindResourceConfigByID(int) (ResourceConfig, bool, error)
@@ -69,29 +69,109 @@ func (f *resourceConfigFactory) FindResourceConfigByID(resourceConfigID int) (Re
 
 	return resourceConfig, true, nil
 }
+func findOrCreateResourceConfig(
+	tx Tx,
+	rc *resourceConfig,
+	resourceType string,
+	source atc.Source,
+	customTypeResourceCache UsedResourceCache,
+) error {
+
+	var (
+		parentID         int
+		parentColumnName string
+		err              error
+		found            bool
+	)
+
+	if customTypeResourceCache != nil {
+		parentColumnName = "resource_cache_id"
+		rc.createdByResourceCache = customTypeResourceCache
+		parentID = rc.createdByResourceCache.ID()
+	} else {
+		parentColumnName = "base_resource_type_id"
+		rc.createdByBaseResourceType, found, err = BaseResourceType{Name: resourceType}.Find(tx)
+		if err != nil {
+			return err
+		}
+
+		if !found {
+			return BaseResourceTypeNotFoundError{Name: resourceType}
+		}
+
+		parentID = rc.CreatedByBaseResourceType().ID
+	}
+
+	found = true
+	err = psql.Select("id", "last_referenced").
+		From("resource_configs").
+		Where(sq.Eq{
+			parentColumnName: parentID,
+			"source_hash":    mapHash(source),
+		}).
+		Suffix("FOR UPDATE").
+		RunWith(tx).
+		QueryRow().
+		Scan(&rc.id, &rc.lastReferenced)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			found = false
+		} else {
+			return err
+		}
+	}
+
+	if !found {
+		hash := mapHash(source)
+
+		err := psql.Insert("resource_configs").
+			Columns(
+				parentColumnName,
+				"source_hash",
+			).
+			Values(
+				parentID,
+				hash,
+			).
+			Suffix(`
+				ON CONFLICT (`+parentColumnName+`, source_hash) DO UPDATE SET
+				  `+parentColumnName+` = ?,
+					source_hash = ?
+				RETURNING id, last_referenced
+			`, parentID, hash).
+			RunWith(tx).
+			QueryRow().
+			Scan(&rc.id, &rc.lastReferenced)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
 
 func (f *resourceConfigFactory) FindOrCreateResourceConfig(
 	resourceType string,
 	source atc.Source,
-	resourceTypes atc.VersionedResourceTypes,
+	customTypeResourceCache UsedResourceCache,
 ) (ResourceConfig, error) {
-	resourceConfigDescriptor, err := constructResourceConfigDescriptor(resourceType, source, resourceTypes)
-	if err != nil {
-		return nil, err
-	}
-
 	tx, err := f.conn.Begin()
 	if err != nil {
 		return nil, err
 	}
 	defer Rollback(tx)
 
-	resourceConfig, err := resourceConfigDescriptor.findOrCreate(tx, f.lockFactory, f.conn)
+	rc := &resourceConfig{
+		lockFactory: f.lockFactory,
+		conn:        f.conn,
+	}
+	err = findOrCreateResourceConfig(tx, rc, resourceType, source, customTypeResourceCache)
 	if err != nil {
 		return nil, err
 	}
 
-	err = resourceConfig.updateLastReferenced(tx)
+	err = rc.updateLastReferenced(tx)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +181,7 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfig(
 		return nil, err
 	}
 
-	return resourceConfig, nil
+	return rc, nil
 }
 
 // constructResourceConfig cannot be called for constructing a resource type's

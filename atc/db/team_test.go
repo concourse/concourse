@@ -1141,6 +1141,8 @@ var _ = Describe("Team", func() {
 		)
 
 		BeforeEach(func() {
+			imageCheckPlanID := atc.PlanID("image-check")
+
 			plan = atc.Plan{
 				ID: atc.PlanID("56"),
 				Get: &atc.GetPlan{
@@ -1151,16 +1153,27 @@ var _ = Describe("Team", func() {
 					Params:   atc.Params{"some": "params"},
 					Version:  &atc.Version{"some": "version"},
 					Tags:     atc.Tags{"some-tags"},
-					VersionedResourceTypes: atc.VersionedResourceTypes{
-						{
-							ResourceType: atc.ResourceType{
-								Name:       "some-name",
-								Source:     atc.Source{"some": "source"},
-								Type:       "some-type",
-								Privileged: true,
-								Tags:       atc.Tags{"some-tags"},
-							},
-							Version: atc.Version{"some-resource-type": "version"},
+					ImageCheckPlan: &atc.Plan{
+						ID: imageCheckPlanID,
+						Check: &atc.CheckPlan{
+							Name:       "some-name",
+							Source:     atc.Source{"some": "source"},
+							Type:       "some-type",
+							BaseType:   "some-type",
+							Tags:       atc.Tags{"some-tags"},
+							Privileged: true,
+						},
+					},
+					ImageGetPlan: &atc.Plan{
+						ID: "image-get",
+						Get: &atc.GetPlan{
+							Name:        "some-name",
+							Source:      atc.Source{"some": "source"},
+							Type:        "some-type",
+							BaseType:    "some-type",
+							Tags:        atc.Tags{"some-tags"},
+							Privileged:  true,
+							VersionFrom: &imageCheckPlanID,
 						},
 					},
 				},
@@ -3416,13 +3429,11 @@ var _ = Describe("Team", func() {
 					var resourceConfig db.ResourceConfig
 
 					BeforeEach(func() {
-						pipelineResourceTypes, err := defaultPipeline.ResourceTypes()
-						Expect(err).ToNot(HaveOccurred())
-
+						var err error
 						resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(
 							defaultResource.Type(),
 							defaultResource.Source(),
-							pipelineResourceTypes.Deserialize(),
+							nil,
 						)
 						Expect(err).ToNot(HaveOccurred())
 
@@ -3478,7 +3489,7 @@ var _ = Describe("Team", func() {
 							resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(
 								otherResource.Type(),
 								otherResource.Source(),
-								atc.VersionedResourceTypes{},
+								nil,
 							)
 							Expect(err).ToNot(HaveOccurred())
 

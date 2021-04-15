@@ -59,7 +59,7 @@ var _ = Describe("ResourceCheckRateLimiter", func() {
 		config, err := resourceConfigFactory.FindOrCreateResourceConfig(
 			defaultWorkerResourceType.Type,
 			atc.Source{"some": "source", "count": checkableCount},
-			atc.VersionedResourceTypes{},
+			nil,
 		)
 		Expect(err).ToNot(HaveOccurred())
 

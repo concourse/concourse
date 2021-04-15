@@ -253,6 +253,11 @@ func (r *resource) setResourceConfigScopeInTransaction(tx Tx, scope ResourceConf
 	return nil
 }
 
+// CreateBuild creates a check build for this resource. It returns back the
+// build that was created, whether or not it was successful and any errors.
+//
+// If a build is already running for this resource, a new build will not be
+// created unless manuallTriggered is true.
 func (r *resource) CreateBuild(ctx context.Context, manuallyTriggered bool, plan atc.Plan) (Build, bool, error) {
 	spanContextJSON, err := json.Marshal(NewSpanContext(ctx))
 	if err != nil {

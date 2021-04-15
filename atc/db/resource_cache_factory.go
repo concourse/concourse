@@ -62,78 +62,15 @@ func (f *resourceCacheFactory) FindOrCreateResourceCache(
 	}
 	defer Rollback(tx)
 
-	var parentID int
-	var parentColumnName string
-	if customTypeResourceCache != nil {
-		parentColumnName = "resource_cache_id"
-		rc.createdByResourceCache = customTypeResourceCache
-		parentID = rc.createdByResourceCache.ID()
-	} else {
-		// Uses a base resource type
-		parentColumnName = "base_resource_type_id"
-		var err error
-		var found bool
-		rc.createdByBaseResourceType, found, err = BaseResourceType{Name: resourceTypeName}.Find(tx)
-		if err != nil {
-			return nil, err
-		}
-
-		if !found {
-			return nil, BaseResourceTypeNotFoundError{Name: resourceTypeName}
-		}
-
-		parentID = rc.CreatedByBaseResourceType().ID
-	}
-
-	found := true
-	err = psql.Select("id", "last_referenced").
-		From("resource_configs").
-		Where(sq.Eq{
-			parentColumnName: parentID,
-			"source_hash":    mapHash(source),
-		}).
-		Suffix("FOR UPDATE").
-		RunWith(tx).
-		QueryRow().
-		Scan(&rc.id, &rc.lastReferenced)
+	err = findOrCreateResourceConfig(tx, rc, resourceTypeName, source, customTypeResourceCache)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			found = false
-		} else {
-			return nil, err
-		}
-	}
-
-	if !found {
-		hash := mapHash(source)
-
-		err := psql.Insert("resource_configs").
-			Columns(
-				parentColumnName,
-				"source_hash",
-			).
-			Values(
-				parentID,
-				hash,
-			).
-			Suffix(`
-				ON CONFLICT (`+parentColumnName+`, source_hash) DO UPDATE SET
-					`+parentColumnName+` = ?,
-					source_hash = ?
-				RETURNING id, last_referenced
-			`, parentID, hash).
-			RunWith(tx).
-			QueryRow().
-			Scan(&rc.id, &rc.lastReferenced)
-		if err != nil {
-			return nil, err
-		}
+		return nil, err
 	}
 
 	marshaledVersion, _ := json.Marshal(version)
 	cacheVersion := string(marshaledVersion)
 
-	found = true
+	found := true
 	var id int
 	err = psql.Select("id").
 		From("resource_caches").

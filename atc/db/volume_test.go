@@ -20,7 +20,7 @@ var _ = Describe("Volume", func() {
 			Max: 1 * time.Hour,
 		}
 
-		resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig("some-base-resource-type", atc.Source{}, atc.VersionedResourceTypes{})
+		resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig("some-base-resource-type", atc.Source{}, nil)
 		Expect(err).ToNot(HaveOccurred())
 
 		defaultCreatingContainer, err = defaultWorker.CreateContainer(

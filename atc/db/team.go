@@ -895,33 +895,37 @@ func (t *team) FindCheckContainers(logger lager.Logger, pipelineRef atc.Pipeline
 		return nil, nil, nil
 	}
 
-	pipelineResourceTypes, err := pipeline.ResourceTypes()
-	if err != nil {
-		return nil, nil, err
-	}
+	// find any builds that have resource_id = resource.id
+	// Find any containers that have build_id ^
+
+	// XXX: THIS DOES NOT WORK!
+	// pipelineResourceTypes, err := pipeline.ResourceTypes()
+	// if err != nil {
+	// 	return nil, nil, err
+	// }
 
 	variables, err := pipeline.Variables(logger, secretManager, varSourcePool)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	versionedResourceTypes := pipelineResourceTypes.Deserialize()
+	// versionedResourceTypes := pipelineResourceTypes.Deserialize()
 
 	source, err := creds.NewSource(variables, resource.Source()).Evaluate()
 	if err != nil {
 		return nil, nil, err
 	}
 
-	resourceTypes, err := creds.NewVersionedResourceTypes(variables, versionedResourceTypes).Evaluate()
-	if err != nil {
-		return nil, nil, err
-	}
+	// resourceTypes, err := creds.NewVersionedResourceTypes(variables, versionedResourceTypes).Evaluate()
+	// if err != nil {
+	// 	return nil, nil, err
+	// }
 
 	resourceConfigFactory := NewResourceConfigFactory(t.conn, t.lockFactory)
 	resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(
 		resource.Type(),
 		source,
-		resourceTypes,
+		nil,
 	)
 	if err != nil {
 		return nil, nil, err

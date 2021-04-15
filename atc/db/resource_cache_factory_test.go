@@ -341,7 +341,6 @@ var _ = Describe("ResourceCacheFactory", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 	})
-
 })
 
 type resourceCache struct {
