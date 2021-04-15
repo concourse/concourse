@@ -544,12 +544,12 @@ type FakeBuild struct {
 	saveImageResourceVersionReturnsOnCall map[int]struct {
 		result1 error
 	}
-	SaveOutputStub        func(string, atc.Source, atc.VersionedResourceTypes, atc.Version, db.ResourceConfigMetadataFields, string, string) error
+	SaveOutputStub        func(string, db.UsedResourceCache, atc.Source, atc.Version, db.ResourceConfigMetadataFields, string, string) error
 	saveOutputMutex       sync.RWMutex
 	saveOutputArgsForCall []struct {
 		arg1 string
-		arg2 atc.Source
-		arg3 atc.VersionedResourceTypes
+		arg2 db.UsedResourceCache
+		arg3 atc.Source
 		arg4 atc.Version
 		arg5 db.ResourceConfigMetadataFields
 		arg6 string
@@ -3373,13 +3373,13 @@ func (fake *FakeBuild) SaveImageResourceVersionReturnsOnCall(i int, result1 erro
 	}{result1}
 }
 
-func (fake *FakeBuild) SaveOutput(arg1 string, arg2 atc.Source, arg3 atc.VersionedResourceTypes, arg4 atc.Version, arg5 db.ResourceConfigMetadataFields, arg6 string, arg7 string) error {
+func (fake *FakeBuild) SaveOutput(arg1 string, arg2 db.UsedResourceCache, arg3 atc.Source, arg4 atc.Version, arg5 db.ResourceConfigMetadataFields, arg6 string, arg7 string) error {
 	fake.saveOutputMutex.Lock()
 	ret, specificReturn := fake.saveOutputReturnsOnCall[len(fake.saveOutputArgsForCall)]
 	fake.saveOutputArgsForCall = append(fake.saveOutputArgsForCall, struct {
 		arg1 string
-		arg2 atc.Source
-		arg3 atc.VersionedResourceTypes
+		arg2 db.UsedResourceCache
+		arg3 atc.Source
 		arg4 atc.Version
 		arg5 db.ResourceConfigMetadataFields
 		arg6 string
@@ -3404,13 +3404,13 @@ func (fake *FakeBuild) SaveOutputCallCount() int {
 	return len(fake.saveOutputArgsForCall)
 }
 
-func (fake *FakeBuild) SaveOutputCalls(stub func(string, atc.Source, atc.VersionedResourceTypes, atc.Version, db.ResourceConfigMetadataFields, string, string) error) {
+func (fake *FakeBuild) SaveOutputCalls(stub func(string, db.UsedResourceCache, atc.Source, atc.Version, db.ResourceConfigMetadataFields, string, string) error) {
 	fake.saveOutputMutex.Lock()
 	defer fake.saveOutputMutex.Unlock()
 	fake.SaveOutputStub = stub
 }
 
-func (fake *FakeBuild) SaveOutputArgsForCall(i int) (string, atc.Source, atc.VersionedResourceTypes, atc.Version, db.ResourceConfigMetadataFields, string, string) {
+func (fake *FakeBuild) SaveOutputArgsForCall(i int) (string, db.UsedResourceCache, atc.Source, atc.Version, db.ResourceConfigMetadataFields, string, string) {
 	fake.saveOutputMutex.RLock()
 	defer fake.saveOutputMutex.RUnlock()
 	argsForCall := fake.saveOutputArgsForCall[i]

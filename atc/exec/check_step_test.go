@@ -110,26 +110,6 @@ var _ = Describe("CheckStep", func() {
 			Type:     "some-base-type",
 			Source:   atc.Source{"some": "((source-var))"},
 			BaseType: "some-base-type",
-			VersionedResourceTypes: atc.VersionedResourceTypes{
-				{
-					ResourceType: atc.ResourceType{
-						Name:   "some-custom-type",
-						Type:   "another-custom-type",
-						Source: atc.Source{"some-custom": "((source-var))"},
-						Params: atc.Params{"some-custom": "((params-var))"},
-					},
-					Version: atc.Version{"some-custom": "version"},
-				},
-				{
-					ResourceType: atc.ResourceType{
-						Name:       "another-custom-type",
-						Type:       "registry-image",
-						Source:     atc.Source{"another-custom": "((source-var))"},
-						Privileged: true,
-					},
-					Version: atc.Version{"another-custom": "version"},
-				},
-			},
 		}
 
 		containerMetadata = db.ContainerMetadata{
@@ -323,6 +303,77 @@ var _ = Describe("CheckStep", func() {
 					Expect(owner).To(Equal(expected))
 				})
 
+				Context("when using a custom resource type", func() {
+					var (
+						fakeImageSpec          worker.ImageSpec
+						fakeImageResourceCache *dbfakes.FakeUsedResourceCache
+					)
+
+					BeforeEach(func() {
+						checkPlan.ImageGetPlan = &atc.Plan{
+							ID: "1/image-get",
+							Get: &atc.GetPlan{
+								Name:   "some-custom-type",
+								Type:   "another-custom-type",
+								Source: atc.Source{"some-custom": "((source-var))"},
+								Params: atc.Params{"some-custom": "((params-var))"},
+							},
+						}
+
+						checkPlan.ImageCheckPlan = &atc.Plan{
+							ID: "1/image-check",
+							Check: &atc.CheckPlan{
+								Name:   "some-custom-type",
+								Type:   "another-custom-type",
+								Source: atc.Source{"some-custom": "((source-var))"},
+							},
+						}
+
+						checkPlan.Type = "some-custom-type"
+
+						fakeImageSpec = worker.ImageSpec{
+							ImageArtifactSource: new(workerfakes.FakeStreamableArtifactSource),
+						}
+
+						fakeImageResourceCache = new(dbfakes.FakeUsedResourceCache)
+						fakeImageResourceCache.IDReturns(123)
+
+						fakeDelegate.FetchImageReturns(fakeImageSpec, fakeImageResourceCache, nil)
+					})
+
+					It("fetches the resource type image", func() {
+						Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
+						_, actualGetImagePlan, actualCheckImagePlan, privileged := fakeDelegate.FetchImageArgsForCall(0)
+						Expect(actualGetImagePlan).To(Equal(*checkPlan.ImageGetPlan))
+						Expect(actualCheckImagePlan).To(Equal(checkPlan.ImageCheckPlan))
+						Expect(privileged).To(BeFalse())
+					})
+
+					It("sets the image spec in the container spec", func() {
+						Expect(containerSpec.ImageSpec).To(Equal(fakeImageSpec))
+					})
+
+					It("creates the resource config using the image resource cache", func() {
+						Expect(fakeResourceConfigFactory.FindOrCreateResourceConfigCallCount()).To(Equal(1))
+						type_, source, irc := fakeResourceConfigFactory.FindOrCreateResourceConfigArgsForCall(0)
+						Expect(type_).To(Equal("some-custom-type"))
+						Expect(source).To(Equal(atc.Source{"some": "super-secret-source"}))
+						Expect(irc).To(Equal(fakeImageResourceCache))
+					})
+
+					Context("when the resource type is privileged", func() {
+						BeforeEach(func() {
+							checkPlan.Privileged = true
+						})
+
+						It("fetches the image with privileged", func() {
+							Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
+							_, _, _, privileged := fakeDelegate.FetchImageArgsForCall(0)
+							Expect(privileged).To(BeTrue())
+						})
+					})
+				})
+
 				Context("when the plan is for a resource", func() {
 					BeforeEach(func() {
 						checkPlan.Resource = "some-resource"
@@ -437,80 +488,6 @@ var _ = Describe("CheckStep", func() {
 				It("uses the resource created", func() {
 					Expect(resource).To(Equal(fakeResource))
 				})
-
-				Context("when using a custom resource type", func() {
-					var (
-						fakeImageSpec          worker.ImageSpec
-						fakeImageResourceCache *dbfakes.FakeUsedResourceCache
-					)
-
-					BeforeEach(func() {
-						checkPlan.ImageGetPlan = &atc.Plan{
-							ID: "1/image-get",
-							Get: &atc.GetPlan{
-								Name:   "some-custom-type",
-								Type:   "another-custom-type",
-								Source: atc.Source{"some-custom": "((source-var))"},
-								Params: atc.Params{"some-custom": "((params-var))"},
-							},
-						}
-
-						checkPlan.ImageCheckPlan = &atc.Plan{
-							ID: "1/image-check",
-							Check: &atc.CheckPlan{
-								Name:   "some-custom-type",
-								Type:   "another-custom-type",
-								Source: atc.Source{"some-custom": "((source-var))"},
-							},
-						}
-
-						checkPlan.Type = "some-custom-type"
-						checkPlan.BaseType = "registry-image"
-
-						fakeImageSpec = worker.ImageSpec{
-							ImageArtifactSource: new(workerfakes.FakeStreamableArtifactSource),
-						}
-
-						fakeImageResourceCache = new(dbfakes.FakeUsedResourceCache)
-						fakeImageResourceCache.IDReturns(123)
-
-						fakeDelegate.FetchImageReturns(fakeImageSpec, fakeImageResourceCache, nil)
-					})
-
-					It("fetches the resource type image and uses it for the container", func() {
-						Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
-						_, actualGetImagePlan, actualCheckImagePlan, privileged := fakeDelegate.FetchImageArgsForCall(0)
-						Expect(actualGetImagePlan).To(Equal(*checkPlan.ImageGetPlan))
-						Expect(actualCheckImagePlan).To(Equal(checkPlan.ImageCheckPlan))
-						Expect(privileged).To(BeFalse())
-					})
-
-					It("sets the bottom-most type in the worker spec", func() {
-						Expect(fakePool.SelectWorkerCallCount()).To(Equal(1))
-						_, _, _, workerSpec, _ := fakePool.SelectWorkerArgsForCall(0)
-
-						Expect(workerSpec).To(Equal(worker.WorkerSpec{
-							TeamID:       stepMetadata.TeamID,
-							ResourceType: "registry-image",
-						}))
-					})
-
-					It("sets the image spec in the container spec", func() {
-						Expect(containerSpec.ImageSpec).To(Equal(fakeImageSpec))
-					})
-
-					Context("when the resource type is privileged", func() {
-						BeforeEach(func() {
-							checkPlan.Privileged = true
-						})
-
-						It("fetches the image with privileged", func() {
-							Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
-							_, _, _, privileged := fakeDelegate.FetchImageArgsForCall(0)
-							Expect(privileged).To(BeTrue())
-						})
-					})
-				})
 			})
 
 			Context("with tracing configured", func() {
@@ -552,32 +529,10 @@ var _ = Describe("CheckStep", func() {
 
 				It("saves the versions to the config scope", func() {
 					Expect(fakeResourceConfigFactory.FindOrCreateResourceConfigCallCount()).To(Equal(1))
-					type_, source, types := fakeResourceConfigFactory.FindOrCreateResourceConfigArgsForCall(0)
+					type_, source, irc := fakeResourceConfigFactory.FindOrCreateResourceConfigArgsForCall(0)
 					Expect(type_).To(Equal("some-base-type"))
 					Expect(source).To(Equal(atc.Source{"some": "super-secret-source"}))
-					Expect(types).To(Equal(atc.VersionedResourceTypes{
-						{
-							ResourceType: atc.ResourceType{
-								Name:   "some-custom-type",
-								Type:   "another-custom-type",
-								Source: atc.Source{"some-custom": "super-secret-source"},
-
-								// params don't need to be interpolated because it's used for
-								// fetching, not constructing the resource config
-								Params: atc.Params{"some-custom": "((params-var))"},
-							},
-							Version: atc.Version{"some-custom": "version"},
-						},
-						{
-							ResourceType: atc.ResourceType{
-								Name:       "another-custom-type",
-								Type:       "registry-image",
-								Source:     atc.Source{"another-custom": "super-secret-source"},
-								Privileged: true,
-							},
-							Version: atc.Version{"another-custom": "version"},
-						},
-					}))
+					Expect(irc).To(BeNil())
 
 					Expect(fakeDelegate.FindOrCreateScopeCallCount()).To(Equal(1))
 					config := fakeDelegate.FindOrCreateScopeArgsForCall(0)
@@ -746,40 +701,6 @@ var _ = Describe("CheckStep", func() {
 	Context("having credentials in the config", func() {
 		BeforeEach(func() {
 			checkPlan.Source = atc.Source{"some": "((super-secret-source))"}
-		})
-
-		Context("having cred evaluation failing", func() {
-			var fakeVariables *varsfakes.FakeVariables
-			var expectedErr error
-
-			BeforeEach(func() {
-				fakeVariables = new(varsfakes.FakeVariables)
-				fakeDelegate.VariablesReturns(fakeVariables)
-
-				expectedErr = errors.New("creds-err")
-				fakeVariables.GetReturns(nil, false, expectedErr)
-			})
-
-			It("errors", func() {
-				Expect(stepErr).To(HaveOccurred())
-				Expect(errors.Is(stepErr, expectedErr)).To(BeTrue())
-			})
-		})
-	})
-
-	Context("having credentials in a resource type", func() {
-		BeforeEach(func() {
-			resTypes := atc.VersionedResourceTypes{
-				{
-					ResourceType: atc.ResourceType{
-						Source: atc.Source{
-							"some-custom": "((super-secret-source))",
-						},
-					},
-				},
-			}
-
-			checkPlan.VersionedResourceTypes = resTypes
 		})
 
 		Context("having cred evaluation failing", func() {

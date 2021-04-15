@@ -487,9 +487,8 @@ type PutPlan struct {
 	Name string `json:"name"`
 
 	// The resource config to push to.
-	Type                   string                 `json:"type"`
-	Source                 Source                 `json:"source"`
-	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
+	Type   string `json:"type"`
+	Source Source `json:"source"`
 
 	// The bottom-most resource type that this get step relies on.
 	BaseType string `json:"base_type,omitempty"`
@@ -526,9 +525,8 @@ type CheckPlan struct {
 	Name string `json:"name"`
 
 	// The resource config to check.
-	Type                   string                 `json:"type"`
-	Source                 Source                 `json:"source"`
-	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
+	Type   string `json:"type"`
+	Source Source `json:"source"`
 
 	// The bottom-most resource type that this get step relies on.
 	BaseType string `json:"base_type,omitempty"`

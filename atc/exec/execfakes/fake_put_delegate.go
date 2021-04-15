@@ -54,13 +54,13 @@ type FakePutDelegate struct {
 	initializingArgsForCall []struct {
 		arg1 lager.Logger
 	}
-	SaveOutputStub        func(lager.Logger, atc.PutPlan, atc.Source, atc.VersionedResourceTypes, runtime.VersionResult)
+	SaveOutputStub        func(lager.Logger, atc.PutPlan, atc.Source, db.UsedResourceCache, runtime.VersionResult)
 	saveOutputMutex       sync.RWMutex
 	saveOutputArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 atc.PutPlan
 		arg3 atc.Source
-		arg4 atc.VersionedResourceTypes
+		arg4 db.UsedResourceCache
 		arg5 runtime.VersionResult
 	}
 	SelectedWorkerStub        func(lager.Logger, string)
@@ -294,13 +294,13 @@ func (fake *FakePutDelegate) InitializingArgsForCall(i int) lager.Logger {
 	return argsForCall.arg1
 }
 
-func (fake *FakePutDelegate) SaveOutput(arg1 lager.Logger, arg2 atc.PutPlan, arg3 atc.Source, arg4 atc.VersionedResourceTypes, arg5 runtime.VersionResult) {
+func (fake *FakePutDelegate) SaveOutput(arg1 lager.Logger, arg2 atc.PutPlan, arg3 atc.Source, arg4 db.UsedResourceCache, arg5 runtime.VersionResult) {
 	fake.saveOutputMutex.Lock()
 	fake.saveOutputArgsForCall = append(fake.saveOutputArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 atc.PutPlan
 		arg3 atc.Source
-		arg4 atc.VersionedResourceTypes
+		arg4 db.UsedResourceCache
 		arg5 runtime.VersionResult
 	}{arg1, arg2, arg3, arg4, arg5})
 	stub := fake.SaveOutputStub
@@ -317,13 +317,13 @@ func (fake *FakePutDelegate) SaveOutputCallCount() int {
 	return len(fake.saveOutputArgsForCall)
 }
 
-func (fake *FakePutDelegate) SaveOutputCalls(stub func(lager.Logger, atc.PutPlan, atc.Source, atc.VersionedResourceTypes, runtime.VersionResult)) {
+func (fake *FakePutDelegate) SaveOutputCalls(stub func(lager.Logger, atc.PutPlan, atc.Source, db.UsedResourceCache, runtime.VersionResult)) {
 	fake.saveOutputMutex.Lock()
 	defer fake.saveOutputMutex.Unlock()
 	fake.SaveOutputStub = stub
 }
 
-func (fake *FakePutDelegate) SaveOutputArgsForCall(i int) (lager.Logger, atc.PutPlan, atc.Source, atc.VersionedResourceTypes, runtime.VersionResult) {
+func (fake *FakePutDelegate) SaveOutputArgsForCall(i int) (lager.Logger, atc.PutPlan, atc.Source, db.UsedResourceCache, runtime.VersionResult) {
 	fake.saveOutputMutex.RLock()
 	defer fake.saveOutputMutex.RUnlock()
 	argsForCall := fake.saveOutputArgsForCall[i]

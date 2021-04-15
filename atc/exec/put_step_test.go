@@ -54,8 +54,6 @@ var _ = Describe("PutStep", func() {
 		fakeOtherArtifact   *runtimefakes.FakeArtifact
 		fakeMountedArtifact *runtimefakes.FakeArtifact
 
-		interpolatedResourceTypes atc.VersionedResourceTypes
-
 		containerMetadata = db.ContainerMetadata{
 			WorkingDirectory: resource.ResourcesDir("put"),
 			Type:             db.ContainerTypePut,
@@ -136,59 +134,13 @@ var _ = Describe("PutStep", func() {
 			"params-var": "super-secret-params",
 		})
 
-		uninterpolatedResourceTypes := atc.VersionedResourceTypes{
-			{
-				ResourceType: atc.ResourceType{
-					Name:   "some-custom-type",
-					Type:   "another-custom-type",
-					Source: atc.Source{"some-custom": "((source-var))"},
-					Params: atc.Params{"some-custom": "((params-var))"},
-				},
-				Version: atc.Version{"some-custom": "version"},
-			},
-			{
-				ResourceType: atc.ResourceType{
-					Name:       "another-custom-type",
-					Type:       "registry-image",
-					Source:     atc.Source{"another-custom": "((source-var))"},
-					Privileged: true,
-				},
-				Version: atc.Version{"another-custom": "version"},
-			},
-		}
-
-		interpolatedResourceTypes = atc.VersionedResourceTypes{
-			{
-				ResourceType: atc.ResourceType{
-					Name:   "some-custom-type",
-					Type:   "another-custom-type",
-					Source: atc.Source{"some-custom": "super-secret-source"},
-
-					// params don't need to be interpolated because it's used for
-					// fetching, not constructing the resource config
-					Params: atc.Params{"some-custom": "((params-var))"},
-				},
-				Version: atc.Version{"some-custom": "version"},
-			},
-			{
-				ResourceType: atc.ResourceType{
-					Name:       "another-custom-type",
-					Type:       "registry-image",
-					Source:     atc.Source{"another-custom": "super-secret-source"},
-					Privileged: true,
-				},
-				Version: atc.Version{"another-custom": "version"},
-			},
-		}
-
 		putPlan = &atc.PutPlan{
-			Name:                   "some-name",
-			Resource:               "some-resource",
-			Type:                   "some-resource-type",
-			BaseType:               "some-resource-type",
-			Source:                 atc.Source{"some": "((source-var))"},
-			Params:                 atc.Params{"some": "((params-var))"},
-			VersionedResourceTypes: uninterpolatedResourceTypes,
+			Name:     "some-name",
+			Resource: "some-resource",
+			Type:     "some-resource-type",
+			BaseType: "some-resource-type",
+			Source:   atc.Source{"some": "((source-var))"},
+			Params:   atc.Params{"some": "((params-var))"},
 		}
 
 		fakeArtifact = new(runtimefakes.FakeArtifact)
@@ -411,6 +363,19 @@ var _ = Describe("PutStep", func() {
 		Expect(runResource).To(Equal(fakeResource))
 	})
 
+	It("saves the build output", func() {
+		Expect(fakeDelegate.SaveOutputCallCount()).To(Equal(1))
+
+		_, plan, actualSource, irc, info := fakeDelegate.SaveOutputArgsForCall(0)
+		Expect(plan.Name).To(Equal("some-name"))
+		Expect(plan.Type).To(Equal("some-resource-type"))
+		Expect(plan.Resource).To(Equal("some-resource"))
+		Expect(actualSource).To(Equal(atc.Source{"some": "super-secret-source"}))
+		Expect(irc).To(BeNil())
+		Expect(info.Version).To(Equal(atc.Version{"some": "version"}))
+		Expect(info.Metadata).To(Equal([]atc.MetadataField{{Name: "some", Value: "metadata"}}))
+	})
+
 	Context("when using a custom resource type", func() {
 		var (
 			fakeImageSpec          worker.ImageSpec
@@ -470,6 +435,13 @@ var _ = Describe("PutStep", func() {
 
 		It("sets the image spec in the container spec", func() {
 			Expect(containerSpec.ImageSpec).To(Equal(fakeImageSpec))
+		})
+
+		It("saves the build output using the custom type's resource cache", func() {
+			Expect(fakeDelegate.SaveOutputCallCount()).To(Equal(1))
+
+			_, _, _, irc, _ := fakeDelegate.SaveOutputArgsForCall(0)
+			Expect(irc).To(Equal(fakeImageResourceCache))
 		})
 
 		Context("when the resource type is privileged", func() {
@@ -573,19 +545,6 @@ var _ = Describe("PutStep", func() {
 			Expect(runResource).To(Equal(fakeResource))
 		})
 
-	})
-
-	It("saves the build output", func() {
-		Expect(fakeDelegate.SaveOutputCallCount()).To(Equal(1))
-
-		_, plan, actualSource, actualResourceTypes, info := fakeDelegate.SaveOutputArgsForCall(0)
-		Expect(plan.Name).To(Equal("some-name"))
-		Expect(plan.Type).To(Equal("some-resource-type"))
-		Expect(plan.Resource).To(Equal("some-resource"))
-		Expect(actualSource).To(Equal(atc.Source{"some": "super-secret-source"}))
-		Expect(actualResourceTypes).To(Equal(interpolatedResourceTypes))
-		Expect(info.Version).To(Equal(atc.Version{"some": "version"}))
-		Expect(info.Metadata).To(Equal([]atc.MetadataField{{Name: "some", Value: "metadata"}}))
 	})
 
 	Context("when the step.Plan.Resource is blank", func() {

@@ -805,7 +805,7 @@ var _ = Describe("TaskStep", func() {
 			})
 		})
 
-		Context("when the image_resource is specified (even if RootfsURI is configured)", func() {
+		Context("when the image_resource is specified", func() {
 			var fakeImageSpec worker.ImageSpec
 
 			BeforeEach(func() {
@@ -830,7 +830,6 @@ var _ = Describe("TaskStep", func() {
 				}
 
 				fakeDelegate.FetchImageReturns(fakeImageSpec, nil, nil)
-				Fail("TODO: use fake resource cache")
 			})
 
 			It("succeeds", func() {
