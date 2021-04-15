@@ -30,7 +30,7 @@ type PutDelegate interface {
 	StartSpan(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
 
 	Variables(context.Context, atc.VarSourceConfigs) vars.Variables
-	FetchImage(context.Context, atc.Plan, *atc.Plan, bool) (worker.ImageSpec, db.UsedResourceCache, error)
+	FetchImage(context.Context, atc.Plan, *atc.Plan, bool) (worker.ImageSpec, db.ResourceCache, error)
 
 	Stdout() io.Writer
 	Stderr() io.Writer
@@ -41,7 +41,7 @@ type PutDelegate interface {
 	SelectedWorker(lager.Logger, string)
 	Errored(lager.Logger, string)
 
-	SaveOutput(lager.Logger, atc.PutPlan, atc.Source, db.UsedResourceCache, runtime.VersionResult)
+	SaveOutput(lager.Logger, atc.PutPlan, atc.Source, db.ResourceCache, runtime.VersionResult)
 }
 
 // PutStep produces a resource version using preconfigured params and any data
@@ -160,7 +160,7 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 	}
 
 	var imageSpec worker.ImageSpec
-	var imageResourceCache db.UsedResourceCache
+	var imageResourceCache db.ResourceCache
 	if step.plan.ImageGetPlan != nil {
 		imageSpec, imageResourceCache, err = delegate.FetchImage(ctx, *step.plan.ImageGetPlan, step.plan.ImageCheckPlan, step.plan.Privileged)
 		if err != nil {

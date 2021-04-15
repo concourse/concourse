@@ -18,17 +18,17 @@ type ResourceCacheFactory interface {
 		version atc.Version,
 		source atc.Source,
 		params atc.Params,
-		customTypeResourceCache UsedResourceCache,
-	) (UsedResourceCache, error)
+		customTypeResourceCache ResourceCache,
+	) (ResourceCache, error)
 
 	// changing resource cache to interface to allow updates on object is not feasible.
 	// Since we need to pass it recursively in ResourceConfig.
 	// Also, metadata will be available to us before we create resource cache so this
 	// method can be removed at that point. See  https://github.com/concourse/concourse/issues/534
-	UpdateResourceCacheMetadata(UsedResourceCache, []atc.MetadataField) error
-	ResourceCacheMetadata(UsedResourceCache) (ResourceConfigMetadataFields, error)
+	UpdateResourceCacheMetadata(ResourceCache, []atc.MetadataField) error
+	ResourceCacheMetadata(ResourceCache) (ResourceConfigMetadataFields, error)
 
-	FindResourceCacheByID(id int) (UsedResourceCache, bool, error)
+	FindResourceCacheByID(id int) (ResourceCache, bool, error)
 }
 
 type resourceCacheFactory struct {
@@ -49,8 +49,8 @@ func (f *resourceCacheFactory) FindOrCreateResourceCache(
 	version atc.Version,
 	source atc.Source,
 	params atc.Params,
-	customTypeResourceCache UsedResourceCache,
-) (UsedResourceCache, error) {
+	customTypeResourceCache ResourceCache,
+) (ResourceCache, error) {
 	rc := &resourceConfig{
 		lockFactory: f.lockFactory,
 		conn:        f.conn,
@@ -152,7 +152,7 @@ func (f *resourceCacheFactory) FindOrCreateResourceCache(
 		return nil, err
 	}
 
-	return &usedResourceCache{
+	return &resourceCache{
 		id:             id,
 		resourceConfig: rc,
 		version:        version,
@@ -162,7 +162,7 @@ func (f *resourceCacheFactory) FindOrCreateResourceCache(
 	}, nil
 }
 
-func (f *resourceCacheFactory) UpdateResourceCacheMetadata(resourceCache UsedResourceCache, metadata []atc.MetadataField) error {
+func (f *resourceCacheFactory) UpdateResourceCacheMetadata(resourceCache ResourceCache, metadata []atc.MetadataField) error {
 	metadataJSON, err := json.Marshal(metadata)
 	if err != nil {
 		return err
@@ -175,7 +175,7 @@ func (f *resourceCacheFactory) UpdateResourceCacheMetadata(resourceCache UsedRes
 	return err
 }
 
-func (f *resourceCacheFactory) ResourceCacheMetadata(resourceCache UsedResourceCache) (ResourceConfigMetadataFields, error) {
+func (f *resourceCacheFactory) ResourceCacheMetadata(resourceCache ResourceCache) (ResourceConfigMetadataFields, error) {
 	var metadataJSON sql.NullString
 	err := psql.Select("metadata").
 		From("resource_caches").
@@ -198,7 +198,7 @@ func (f *resourceCacheFactory) ResourceCacheMetadata(resourceCache UsedResourceC
 	return metadata, nil
 }
 
-func (f *resourceCacheFactory) FindResourceCacheByID(id int) (UsedResourceCache, bool, error) {
+func (f *resourceCacheFactory) FindResourceCacheByID(id int) (ResourceCache, bool, error) {
 	tx, err := f.conn.Begin()
 	if err != nil {
 		return nil, false, err
@@ -209,7 +209,7 @@ func (f *resourceCacheFactory) FindResourceCacheByID(id int) (UsedResourceCache,
 	return findResourceCacheByID(tx, id, f.lockFactory, f.conn)
 }
 
-func findResourceCacheByID(tx Tx, resourceCacheID int, lock lock.LockFactory, conn Conn) (UsedResourceCache, bool, error) {
+func findResourceCacheByID(tx Tx, resourceCacheID int, lock lock.LockFactory, conn Conn) (ResourceCache, bool, error) {
 	var rcID int
 	var versionBytes string
 
@@ -242,7 +242,7 @@ func findResourceCacheByID(tx Tx, resourceCacheID int, lock lock.LockFactory, co
 		return nil, false, nil
 	}
 
-	usedResourceCache := &usedResourceCache{
+	usedResourceCache := &resourceCache{
 		id:             resourceCacheID,
 		version:        version,
 		resourceConfig: rc,

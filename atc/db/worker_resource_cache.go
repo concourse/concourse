@@ -9,7 +9,7 @@ import (
 
 type WorkerResourceCache struct {
 	WorkerName    string
-	ResourceCache UsedResourceCache
+	ResourceCache ResourceCache
 }
 
 type UsedWorkerResourceCache struct {

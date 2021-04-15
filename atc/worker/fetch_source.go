@@ -27,7 +27,7 @@ type FetchSourceFactory interface {
 		logger lager.Logger,
 		worker Worker,
 		owner db.ContainerOwner,
-		cache db.UsedResourceCache,
+		cache db.ResourceCache,
 		resource resource.Resource,
 		containerSpec ContainerSpec,
 		processSpec runtime.ProcessSpec,
@@ -51,7 +51,7 @@ func (r *fetchSourceFactory) NewFetchSource(
 	logger lager.Logger,
 	worker Worker,
 	owner db.ContainerOwner,
-	cache db.UsedResourceCache,
+	cache db.ResourceCache,
 	resource resource.Resource,
 	containerSpec ContainerSpec,
 	processSpec runtime.ProcessSpec,
@@ -74,7 +74,7 @@ type fetchSource struct {
 	logger                 lager.Logger
 	worker                 Worker
 	owner                  db.ContainerOwner
-	cache                  db.UsedResourceCache
+	cache                  db.ResourceCache
 	resource               resource.Resource
 	containerSpec          ContainerSpec
 	processSpec            runtime.ProcessSpec

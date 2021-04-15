@@ -359,7 +359,7 @@ var _ = Describe("StreamableArtifactSource", func() {
 				fakeVolume.WorkerNameReturns("some-other-foo-worker-name")
 			})
 			Context("when the volume has a resource cache", func() {
-				var fakeResourceCache db.UsedResourceCache
+				var fakeResourceCache db.ResourceCache
 
 				BeforeEach(func() {
 					fakeResourceCache = new(dbfakes.FakeUsedResourceCache)

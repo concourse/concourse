@@ -28,7 +28,7 @@ var ErrResourceConfigHasNoType = errors.New("resource config has no type")
 type ResourceConfig interface {
 	ID() int
 	LastReferenced() time.Time
-	CreatedByResourceCache() UsedResourceCache
+	CreatedByResourceCache() ResourceCache
 	CreatedByBaseResourceType() *UsedBaseResourceType
 
 	OriginBaseResourceType() *UsedBaseResourceType
@@ -45,7 +45,7 @@ type ResourceConfig interface {
 type resourceConfig struct {
 	id                        int
 	lastReferenced            time.Time
-	createdByResourceCache    UsedResourceCache
+	createdByResourceCache    ResourceCache
 	createdByBaseResourceType *UsedBaseResourceType
 	lockFactory               lock.LockFactory
 	conn                      Conn
@@ -59,7 +59,7 @@ func (r *resourceConfig) LastReferenced() time.Time {
 	return r.lastReferenced
 }
 
-func (r *resourceConfig) CreatedByResourceCache() UsedResourceCache {
+func (r *resourceConfig) CreatedByResourceCache() ResourceCache {
 	return r.createdByResourceCache
 }
 

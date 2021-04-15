@@ -2,8 +2,9 @@ package worker
 
 import (
 	"context"
-	"github.com/concourse/concourse/tracing"
 	"io"
+
+	"github.com/concourse/concourse/tracing"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/baggageclaim"
@@ -29,7 +30,7 @@ type Volume interface {
 
 	COWStrategy() baggageclaim.COWStrategy
 
-	InitializeResourceCache(db.UsedResourceCache) error
+	InitializeResourceCache(db.ResourceCache) error
 	GetResourceCacheID() int
 	InitializeTaskCache(logger lager.Logger, jobID int, stepName string, path string, privileged bool) error
 	InitializeArtifact(name string, buildID int) (db.WorkerArtifact, error)
@@ -131,7 +132,7 @@ func (v *volume) COWStrategy() baggageclaim.COWStrategy {
 	}
 }
 
-func (v *volume) InitializeResourceCache(urc db.UsedResourceCache) error {
+func (v *volume) InitializeResourceCache(urc db.ResourceCache) error {
 	return v.dbVolume.InitializeResourceCache(urc)
 }
 

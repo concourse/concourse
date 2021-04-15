@@ -24,7 +24,7 @@ type FakeGetDelegate struct {
 		arg1 lager.Logger
 		arg2 string
 	}
-	FetchImageStub        func(context.Context, atc.Plan, *atc.Plan, bool) (worker.ImageSpec, db.UsedResourceCache, error)
+	FetchImageStub        func(context.Context, atc.Plan, *atc.Plan, bool) (worker.ImageSpec, db.ResourceCache, error)
 	fetchImageMutex       sync.RWMutex
 	fetchImageArgsForCall []struct {
 		arg1 context.Context
@@ -34,12 +34,12 @@ type FakeGetDelegate struct {
 	}
 	fetchImageReturns struct {
 		result1 worker.ImageSpec
-		result2 db.UsedResourceCache
+		result2 db.ResourceCache
 		result3 error
 	}
 	fetchImageReturnsOnCall map[int]struct {
 		result1 worker.ImageSpec
-		result2 db.UsedResourceCache
+		result2 db.ResourceCache
 		result3 error
 	}
 	FinishedStub        func(lager.Logger, exec.ExitStatus, runtime.VersionResult)
@@ -156,7 +156,7 @@ func (fake *FakeGetDelegate) ErroredArgsForCall(i int) (lager.Logger, string) {
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeGetDelegate) FetchImage(arg1 context.Context, arg2 atc.Plan, arg3 *atc.Plan, arg4 bool) (worker.ImageSpec, db.UsedResourceCache, error) {
+func (fake *FakeGetDelegate) FetchImage(arg1 context.Context, arg2 atc.Plan, arg3 *atc.Plan, arg4 bool) (worker.ImageSpec, db.ResourceCache, error) {
 	fake.fetchImageMutex.Lock()
 	ret, specificReturn := fake.fetchImageReturnsOnCall[len(fake.fetchImageArgsForCall)]
 	fake.fetchImageArgsForCall = append(fake.fetchImageArgsForCall, struct {
@@ -184,7 +184,7 @@ func (fake *FakeGetDelegate) FetchImageCallCount() int {
 	return len(fake.fetchImageArgsForCall)
 }
 
-func (fake *FakeGetDelegate) FetchImageCalls(stub func(context.Context, atc.Plan, *atc.Plan, bool) (worker.ImageSpec, db.UsedResourceCache, error)) {
+func (fake *FakeGetDelegate) FetchImageCalls(stub func(context.Context, atc.Plan, *atc.Plan, bool) (worker.ImageSpec, db.ResourceCache, error)) {
 	fake.fetchImageMutex.Lock()
 	defer fake.fetchImageMutex.Unlock()
 	fake.FetchImageStub = stub
@@ -197,31 +197,31 @@ func (fake *FakeGetDelegate) FetchImageArgsForCall(i int) (context.Context, atc.
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
-func (fake *FakeGetDelegate) FetchImageReturns(result1 worker.ImageSpec, result2 db.UsedResourceCache, result3 error) {
+func (fake *FakeGetDelegate) FetchImageReturns(result1 worker.ImageSpec, result2 db.ResourceCache, result3 error) {
 	fake.fetchImageMutex.Lock()
 	defer fake.fetchImageMutex.Unlock()
 	fake.FetchImageStub = nil
 	fake.fetchImageReturns = struct {
 		result1 worker.ImageSpec
-		result2 db.UsedResourceCache
+		result2 db.ResourceCache
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakeGetDelegate) FetchImageReturnsOnCall(i int, result1 worker.ImageSpec, result2 db.UsedResourceCache, result3 error) {
+func (fake *FakeGetDelegate) FetchImageReturnsOnCall(i int, result1 worker.ImageSpec, result2 db.ResourceCache, result3 error) {
 	fake.fetchImageMutex.Lock()
 	defer fake.fetchImageMutex.Unlock()
 	fake.FetchImageStub = nil
 	if fake.fetchImageReturnsOnCall == nil {
 		fake.fetchImageReturnsOnCall = make(map[int]struct {
 			result1 worker.ImageSpec
-			result2 db.UsedResourceCache
+			result2 db.ResourceCache
 			result3 error
 		})
 	}
 	fake.fetchImageReturnsOnCall[i] = struct {
 		result1 worker.ImageSpec
-		result2 db.UsedResourceCache
+		result2 db.ResourceCache
 		result3 error
 	}{result1, result2, result3}
 }

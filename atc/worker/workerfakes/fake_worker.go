@@ -110,7 +110,7 @@ type FakeWorker struct {
 	ephemeralReturnsOnCall map[int]struct {
 		result1 bool
 	}
-	FetchStub        func(context.Context, lager.Logger, db.ContainerMetadata, worker.Worker, worker.ContainerSpec, runtime.ProcessSpec, resource.Resource, db.ContainerOwner, db.UsedResourceCache, string) (worker.GetResult, worker.Volume, error)
+	FetchStub        func(context.Context, lager.Logger, db.ContainerMetadata, worker.Worker, worker.ContainerSpec, runtime.ProcessSpec, resource.Resource, db.ContainerOwner, db.ResourceCache, string) (worker.GetResult, worker.Volume, error)
 	fetchMutex       sync.RWMutex
 	fetchArgsForCall []struct {
 		arg1  context.Context
@@ -121,7 +121,7 @@ type FakeWorker struct {
 		arg6  runtime.ProcessSpec
 		arg7  resource.Resource
 		arg8  db.ContainerOwner
-		arg9  db.UsedResourceCache
+		arg9  db.ResourceCache
 		arg10 string
 	}
 	fetchReturns struct {
@@ -168,26 +168,26 @@ type FakeWorker struct {
 		result1 worker.Container
 		result2 error
 	}
-	FindResourceCacheForVolumeStub        func(worker.Volume) (db.UsedResourceCache, bool, error)
+	FindResourceCacheForVolumeStub        func(worker.Volume) (db.ResourceCache, bool, error)
 	findResourceCacheForVolumeMutex       sync.RWMutex
 	findResourceCacheForVolumeArgsForCall []struct {
 		arg1 worker.Volume
 	}
 	findResourceCacheForVolumeReturns struct {
-		result1 db.UsedResourceCache
+		result1 db.ResourceCache
 		result2 bool
 		result3 error
 	}
 	findResourceCacheForVolumeReturnsOnCall map[int]struct {
-		result1 db.UsedResourceCache
+		result1 db.ResourceCache
 		result2 bool
 		result3 error
 	}
-	FindVolumeForResourceCacheStub        func(lager.Logger, db.UsedResourceCache) (worker.Volume, bool, error)
+	FindVolumeForResourceCacheStub        func(lager.Logger, db.ResourceCache) (worker.Volume, bool, error)
 	findVolumeForResourceCacheMutex       sync.RWMutex
 	findVolumeForResourceCacheArgsForCall []struct {
 		arg1 lager.Logger
-		arg2 db.UsedResourceCache
+		arg2 db.ResourceCache
 	}
 	findVolumeForResourceCacheReturns struct {
 		result1 worker.Volume
@@ -777,7 +777,7 @@ func (fake *FakeWorker) EphemeralReturnsOnCall(i int, result1 bool) {
 	}{result1}
 }
 
-func (fake *FakeWorker) Fetch(arg1 context.Context, arg2 lager.Logger, arg3 db.ContainerMetadata, arg4 worker.Worker, arg5 worker.ContainerSpec, arg6 runtime.ProcessSpec, arg7 resource.Resource, arg8 db.ContainerOwner, arg9 db.UsedResourceCache, arg10 string) (worker.GetResult, worker.Volume, error) {
+func (fake *FakeWorker) Fetch(arg1 context.Context, arg2 lager.Logger, arg3 db.ContainerMetadata, arg4 worker.Worker, arg5 worker.ContainerSpec, arg6 runtime.ProcessSpec, arg7 resource.Resource, arg8 db.ContainerOwner, arg9 db.ResourceCache, arg10 string) (worker.GetResult, worker.Volume, error) {
 	fake.fetchMutex.Lock()
 	ret, specificReturn := fake.fetchReturnsOnCall[len(fake.fetchArgsForCall)]
 	fake.fetchArgsForCall = append(fake.fetchArgsForCall, struct {
@@ -789,7 +789,7 @@ func (fake *FakeWorker) Fetch(arg1 context.Context, arg2 lager.Logger, arg3 db.C
 		arg6  runtime.ProcessSpec
 		arg7  resource.Resource
 		arg8  db.ContainerOwner
-		arg9  db.UsedResourceCache
+		arg9  db.ResourceCache
 		arg10 string
 	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10})
 	stub := fake.FetchStub
@@ -811,13 +811,13 @@ func (fake *FakeWorker) FetchCallCount() int {
 	return len(fake.fetchArgsForCall)
 }
 
-func (fake *FakeWorker) FetchCalls(stub func(context.Context, lager.Logger, db.ContainerMetadata, worker.Worker, worker.ContainerSpec, runtime.ProcessSpec, resource.Resource, db.ContainerOwner, db.UsedResourceCache, string) (worker.GetResult, worker.Volume, error)) {
+func (fake *FakeWorker) FetchCalls(stub func(context.Context, lager.Logger, db.ContainerMetadata, worker.Worker, worker.ContainerSpec, runtime.ProcessSpec, resource.Resource, db.ContainerOwner, db.ResourceCache, string) (worker.GetResult, worker.Volume, error)) {
 	fake.fetchMutex.Lock()
 	defer fake.fetchMutex.Unlock()
 	fake.FetchStub = stub
 }
 
-func (fake *FakeWorker) FetchArgsForCall(i int) (context.Context, lager.Logger, db.ContainerMetadata, worker.Worker, worker.ContainerSpec, runtime.ProcessSpec, resource.Resource, db.ContainerOwner, db.UsedResourceCache, string) {
+func (fake *FakeWorker) FetchArgsForCall(i int) (context.Context, lager.Logger, db.ContainerMetadata, worker.Worker, worker.ContainerSpec, runtime.ProcessSpec, resource.Resource, db.ContainerOwner, db.ResourceCache, string) {
 	fake.fetchMutex.RLock()
 	defer fake.fetchMutex.RUnlock()
 	argsForCall := fake.fetchArgsForCall[i]
@@ -990,7 +990,7 @@ func (fake *FakeWorker) FindOrCreateContainerReturnsOnCall(i int, result1 worker
 	}{result1, result2}
 }
 
-func (fake *FakeWorker) FindResourceCacheForVolume(arg1 worker.Volume) (db.UsedResourceCache, bool, error) {
+func (fake *FakeWorker) FindResourceCacheForVolume(arg1 worker.Volume) (db.ResourceCache, bool, error) {
 	fake.findResourceCacheForVolumeMutex.Lock()
 	ret, specificReturn := fake.findResourceCacheForVolumeReturnsOnCall[len(fake.findResourceCacheForVolumeArgsForCall)]
 	fake.findResourceCacheForVolumeArgsForCall = append(fake.findResourceCacheForVolumeArgsForCall, struct {
@@ -1015,7 +1015,7 @@ func (fake *FakeWorker) FindResourceCacheForVolumeCallCount() int {
 	return len(fake.findResourceCacheForVolumeArgsForCall)
 }
 
-func (fake *FakeWorker) FindResourceCacheForVolumeCalls(stub func(worker.Volume) (db.UsedResourceCache, bool, error)) {
+func (fake *FakeWorker) FindResourceCacheForVolumeCalls(stub func(worker.Volume) (db.ResourceCache, bool, error)) {
 	fake.findResourceCacheForVolumeMutex.Lock()
 	defer fake.findResourceCacheForVolumeMutex.Unlock()
 	fake.FindResourceCacheForVolumeStub = stub
@@ -1028,41 +1028,41 @@ func (fake *FakeWorker) FindResourceCacheForVolumeArgsForCall(i int) worker.Volu
 	return argsForCall.arg1
 }
 
-func (fake *FakeWorker) FindResourceCacheForVolumeReturns(result1 db.UsedResourceCache, result2 bool, result3 error) {
+func (fake *FakeWorker) FindResourceCacheForVolumeReturns(result1 db.ResourceCache, result2 bool, result3 error) {
 	fake.findResourceCacheForVolumeMutex.Lock()
 	defer fake.findResourceCacheForVolumeMutex.Unlock()
 	fake.FindResourceCacheForVolumeStub = nil
 	fake.findResourceCacheForVolumeReturns = struct {
-		result1 db.UsedResourceCache
+		result1 db.ResourceCache
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakeWorker) FindResourceCacheForVolumeReturnsOnCall(i int, result1 db.UsedResourceCache, result2 bool, result3 error) {
+func (fake *FakeWorker) FindResourceCacheForVolumeReturnsOnCall(i int, result1 db.ResourceCache, result2 bool, result3 error) {
 	fake.findResourceCacheForVolumeMutex.Lock()
 	defer fake.findResourceCacheForVolumeMutex.Unlock()
 	fake.FindResourceCacheForVolumeStub = nil
 	if fake.findResourceCacheForVolumeReturnsOnCall == nil {
 		fake.findResourceCacheForVolumeReturnsOnCall = make(map[int]struct {
-			result1 db.UsedResourceCache
+			result1 db.ResourceCache
 			result2 bool
 			result3 error
 		})
 	}
 	fake.findResourceCacheForVolumeReturnsOnCall[i] = struct {
-		result1 db.UsedResourceCache
+		result1 db.ResourceCache
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakeWorker) FindVolumeForResourceCache(arg1 lager.Logger, arg2 db.UsedResourceCache) (worker.Volume, bool, error) {
+func (fake *FakeWorker) FindVolumeForResourceCache(arg1 lager.Logger, arg2 db.ResourceCache) (worker.Volume, bool, error) {
 	fake.findVolumeForResourceCacheMutex.Lock()
 	ret, specificReturn := fake.findVolumeForResourceCacheReturnsOnCall[len(fake.findVolumeForResourceCacheArgsForCall)]
 	fake.findVolumeForResourceCacheArgsForCall = append(fake.findVolumeForResourceCacheArgsForCall, struct {
 		arg1 lager.Logger
-		arg2 db.UsedResourceCache
+		arg2 db.ResourceCache
 	}{arg1, arg2})
 	stub := fake.FindVolumeForResourceCacheStub
 	fakeReturns := fake.findVolumeForResourceCacheReturns
@@ -1083,13 +1083,13 @@ func (fake *FakeWorker) FindVolumeForResourceCacheCallCount() int {
 	return len(fake.findVolumeForResourceCacheArgsForCall)
 }
 
-func (fake *FakeWorker) FindVolumeForResourceCacheCalls(stub func(lager.Logger, db.UsedResourceCache) (worker.Volume, bool, error)) {
+func (fake *FakeWorker) FindVolumeForResourceCacheCalls(stub func(lager.Logger, db.ResourceCache) (worker.Volume, bool, error)) {
 	fake.findVolumeForResourceCacheMutex.Lock()
 	defer fake.findVolumeForResourceCacheMutex.Unlock()
 	fake.FindVolumeForResourceCacheStub = stub
 }
 
-func (fake *FakeWorker) FindVolumeForResourceCacheArgsForCall(i int) (lager.Logger, db.UsedResourceCache) {
+func (fake *FakeWorker) FindVolumeForResourceCacheArgsForCall(i int) (lager.Logger, db.ResourceCache) {
 	fake.findVolumeForResourceCacheMutex.RLock()
 	defer fake.findVolumeForResourceCacheMutex.RUnlock()
 	argsForCall := fake.findVolumeForResourceCacheArgsForCall[i]

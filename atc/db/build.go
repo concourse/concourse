@@ -177,12 +177,12 @@ type Build interface {
 	Artifacts() ([]WorkerArtifact, error)
 	Artifact(artifactID int) (WorkerArtifact, error)
 
-	SaveOutput(string, UsedResourceCache, atc.Source, atc.Version, ResourceConfigMetadataFields, string, string) error
+	SaveOutput(string, ResourceCache, atc.Source, atc.Version, ResourceConfigMetadataFields, string, string) error
 	AdoptInputsAndPipes() ([]BuildInput, bool, error)
 	AdoptRerunInputsAndPipes() ([]BuildInput, bool, error)
 
 	Resources() ([]BuildInput, []BuildOutput, error)
-	SaveImageResourceVersion(UsedResourceCache) error
+	SaveImageResourceVersion(ResourceCache) error
 
 	Delete() (bool, error)
 	MarkAsAborted() error
@@ -864,7 +864,7 @@ func (b *build) AbortNotifier() (Notifier, error) {
 	})
 }
 
-func (b *build) SaveImageResourceVersion(rc UsedResourceCache) error {
+func (b *build) SaveImageResourceVersion(rc ResourceCache) error {
 	var jobID sql.NullInt64
 	if b.jobID != 0 {
 		jobID = newNullInt64(b.jobID)
@@ -1153,7 +1153,7 @@ func (b *build) Artifacts() ([]WorkerArtifact, error) {
 
 func (b *build) SaveOutput(
 	resourceType string,
-	imageResourceCache UsedResourceCache,
+	imageResourceCache ResourceCache,
 	source atc.Source,
 	version atc.Version,
 	metadata ResourceConfigMetadataFields,

@@ -14,8 +14,8 @@ import (
 var _ = Describe("VolumeRepository", func() {
 	var (
 		team2             db.Team
-		resourceTypeCache db.UsedResourceCache
-		usedResourceCache db.UsedResourceCache
+		resourceTypeCache db.ResourceCache
+		usedResourceCache db.ResourceCache
 		build             db.Build
 	)
 
@@ -482,7 +482,7 @@ var _ = Describe("VolumeRepository", func() {
 	})
 
 	Describe("FindResourceCacheVolume", func() {
-		var usedResourceCache db.UsedResourceCache
+		var usedResourceCache db.ResourceCache
 
 		BeforeEach(func() {
 			build, err := defaultPipeline.CreateOneOffBuild()

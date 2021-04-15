@@ -66,7 +66,7 @@ type TaskDelegate interface {
 	StartSpan(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
 
 	Variables(context.Context, atc.VarSourceConfigs) vars.Variables
-	FetchImage(context.Context, atc.ImageResource, atc.VersionedResourceTypes, bool, atc.Tags) (worker.ImageSpec, db.UsedResourceCache, error)
+	FetchImage(context.Context, atc.ImageResource, atc.VersionedResourceTypes, bool, atc.Tags) (worker.ImageSpec, db.ResourceCache, error)
 
 	Stdout() io.Writer
 	Stderr() io.Writer

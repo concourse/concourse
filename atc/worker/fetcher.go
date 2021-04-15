@@ -29,7 +29,7 @@ type Fetcher interface {
 		processSpec runtime.ProcessSpec,
 		resource resource.Resource,
 		owner db.ContainerOwner,
-		cache db.UsedResourceCache,
+		cache db.ResourceCache,
 		lockName string,
 	) (GetResult, Volume, error)
 }
@@ -61,7 +61,7 @@ func (f *fetcher) Fetch(
 	processSpec runtime.ProcessSpec,
 	resource resource.Resource,
 	owner db.ContainerOwner,
-	cache db.UsedResourceCache,
+	cache db.ResourceCache,
 	lockName string,
 ) (GetResult, Volume, error) {
 	result := GetResult{}
@@ -127,7 +127,7 @@ func (f *fetcher) fetchUnderLock(
 	ctx context.Context,
 	logger lager.Logger,
 	source FetchSource,
-	cache db.UsedResourceCache,
+	cache db.ResourceCache,
 	lockName string,
 ) (GetResult, Volume, error) {
 	result := GetResult{}

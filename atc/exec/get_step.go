@@ -38,7 +38,7 @@ func (e ErrResourceNotFound) Error() string {
 
 type GetResult struct {
 	Name          string
-	ResourceCache db.UsedResourceCache
+	ResourceCache db.ResourceCache
 }
 
 //go:generate counterfeiter . GetDelegateFactory
@@ -53,7 +53,7 @@ type GetDelegate interface {
 	StartSpan(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
 
 	Variables(context.Context, atc.VarSourceConfigs) vars.Variables
-	FetchImage(context.Context, atc.Plan, *atc.Plan, bool) (worker.ImageSpec, db.UsedResourceCache, error)
+	FetchImage(context.Context, atc.Plan, *atc.Plan, bool) (worker.ImageSpec, db.ResourceCache, error)
 
 	Stdout() io.Writer
 	Stderr() io.Writer
@@ -147,7 +147,7 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 
 	var (
 		imageSpec          worker.ImageSpec
-		imageResourceCache db.UsedResourceCache
+		imageResourceCache db.ResourceCache
 	)
 	if step.plan.ImageGetPlan != nil {
 		var err error

@@ -95,7 +95,7 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 
 			Context("when its a build of a job in a pipeline", func() {
 				Context("when the cache is for a saved image resource version for a finished build", func() {
-					setBuildStatus := func(a db.BuildStatus) (db.UsedResourceCache, db.Build) {
+					setBuildStatus := func(a db.BuildStatus) (db.ResourceCache, db.Build) {
 						resourceCache, build := resourceCacheForJobBuild()
 						Expect(build.JobID()).ToNot(BeZero())
 
@@ -394,13 +394,13 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 	})
 })
 
-func resourceCacheForOneOffBuild() (db.UsedResourceCache, db.Build) {
+func resourceCacheForOneOffBuild() (db.ResourceCache, db.Build) {
 	build, err := defaultTeam.CreateOneOffBuild()
 	Expect(err).ToNot(HaveOccurred())
 	return createResourceCacheWithUser(db.ForBuild(build.ID())), build
 }
 
-func resourceCacheForJobBuild() (db.UsedResourceCache, db.Build) {
+func resourceCacheForJobBuild() (db.ResourceCache, db.Build) {
 	build, err := defaultJob.CreateBuild(defaultBuildCreatedBy)
 	Expect(err).ToNot(HaveOccurred())
 	return createResourceCacheWithUser(db.ForBuild(build.ID())), build
@@ -419,7 +419,7 @@ func countResourceCaches() int {
 
 }
 
-func createResourceCacheWithUser(resourceCacheUser db.ResourceCacheUser) db.UsedResourceCache {
+func createResourceCacheWithUser(resourceCacheUser db.ResourceCacheUser) db.ResourceCache {
 	usedResourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
 		resourceCacheUser,
 		"some-base-resource-type",

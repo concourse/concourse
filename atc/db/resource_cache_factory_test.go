@@ -23,8 +23,8 @@ var _ = Describe("ResourceCacheFactory", func() {
 
 		resourceCacheLifecycle db.ResourceCacheLifecycle
 
-		customTypeResourceCache1 db.UsedResourceCache
-		customTypeResourceCache2 db.UsedResourceCache
+		customTypeResourceCache1 db.ResourceCache
+		customTypeResourceCache2 db.ResourceCache
 
 		logger *lagertest.TestLogger
 		build  db.Build
@@ -184,7 +184,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 		})
 
 		Context("when there is a custom type overriding a base type", func() {
-			var customTypeOverridingBaseTypeCache db.UsedResourceCache
+			var customTypeOverridingBaseTypeCache db.ResourceCache
 			BeforeEach(func() {
 				customTypeOverridingBaseTypeCache, err = resourceCacheFactory.FindOrCreateResourceCache(
 					db.ForBuild(build.ID()),
@@ -276,8 +276,8 @@ var _ = Describe("ResourceCacheFactory", func() {
 
 	Describe("FindResourceCacheByID", func() {
 		var resourceCacheUser db.ResourceCacheUser
-		var someUsedResourceCacheFromBaseResource db.UsedResourceCache
-		var someUsedResourceCacheFromCustomResource db.UsedResourceCache
+		var someUsedResourceCacheFromBaseResource db.ResourceCache
+		var someUsedResourceCacheFromCustomResource db.ResourceCache
 		BeforeEach(func() {
 			resourceCacheUser = db.ForBuild(build.ID())
 

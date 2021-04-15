@@ -26,7 +26,7 @@ type ResourceConfigFactory interface {
 	FindOrCreateResourceConfig(
 		resourceType string,
 		source atc.Source,
-		customTypeResourceCache UsedResourceCache,
+		customTypeResourceCache ResourceCache,
 	) (ResourceConfig, error)
 
 	FindResourceConfigByID(int) (ResourceConfig, bool, error)
@@ -74,7 +74,7 @@ func findOrCreateResourceConfig(
 	rc *resourceConfig,
 	resourceType string,
 	source atc.Source,
-	customTypeResourceCache UsedResourceCache,
+	customTypeResourceCache ResourceCache,
 ) error {
 
 	var (
@@ -154,7 +154,7 @@ func findOrCreateResourceConfig(
 func (f *resourceConfigFactory) FindOrCreateResourceConfig(
 	resourceType string,
 	source atc.Source,
-	customTypeResourceCache UsedResourceCache,
+	customTypeResourceCache ResourceCache,
 ) (ResourceConfig, error) {
 	tx, err := f.conn.Begin()
 	if err != nil {
@@ -182,42 +182,6 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfig(
 	}
 
 	return rc, nil
-}
-
-// constructResourceConfig cannot be called for constructing a resource type's
-// resource config while also containing the same resource type in the list of
-// resource types, because that results in a circular dependency.
-func constructResourceConfigDescriptor(
-	resourceTypeName string,
-	source atc.Source,
-	resourceTypes atc.VersionedResourceTypes,
-) (ResourceConfigDescriptor, error) {
-	resourceConfigDescriptor := ResourceConfigDescriptor{
-		Source: source,
-	}
-
-	customType, found := resourceTypes.Lookup(resourceTypeName)
-	if found {
-		customTypeResourceConfig, err := constructResourceConfigDescriptor(
-			customType.Type,
-			customType.Source,
-			resourceTypes.Without(customType.Name),
-		)
-		if err != nil {
-			return ResourceConfigDescriptor{}, err
-		}
-
-		resourceConfigDescriptor.CreatedByResourceCache = &ResourceCacheDescriptor{
-			ResourceConfigDescriptor: customTypeResourceConfig,
-			Version:                  customType.Version,
-		}
-	} else {
-		resourceConfigDescriptor.CreatedByBaseResourceType = &BaseResourceType{
-			Name: resourceTypeName,
-		}
-	}
-
-	return resourceConfigDescriptor, nil
 }
 
 func (f *resourceConfigFactory) CleanUnreferencedConfigs(gracePeriod time.Duration) error {

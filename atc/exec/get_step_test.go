@@ -157,7 +157,7 @@ var _ = Describe("GetStep", func() {
 	var metadata db.ContainerMetadata
 	var processSpec runtime.ProcessSpec
 	var startEventDelegate runtime.StartingEventDelegate
-	var resourceCache db.UsedResourceCache
+	var resourceCache db.ResourceCache
 	var runResource resource.Resource
 
 	JustBeforeEach(func() {

@@ -151,7 +151,7 @@ type CreatedVolume interface {
 	Destroying() (DestroyingVolume, error)
 	WorkerName() string
 
-	InitializeResourceCache(UsedResourceCache) error
+	InitializeResourceCache(ResourceCache) error
 	GetResourceCacheID() int
 	InitializeArtifact(name string, buildID int) (WorkerArtifact, error)
 	InitializeTaskCache(jobID int, stepName string, path string) error
@@ -352,7 +352,7 @@ func (volume *createdVolume) findWorkerBaseResourceTypeByBaseResourceTypeID(base
 	}, nil
 }
 
-func (volume *createdVolume) InitializeResourceCache(resourceCache UsedResourceCache) error {
+func (volume *createdVolume) InitializeResourceCache(resourceCache ResourceCache) error {
 	tx, err := volume.conn.Begin()
 	if err != nil {
 		return err

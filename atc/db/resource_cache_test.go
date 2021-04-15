@@ -59,7 +59,7 @@ var _ = Describe("ResourceCache", func() {
 		})
 
 		Context("when it already exists", func() {
-			var existingResourceCache db.UsedResourceCache
+			var existingResourceCache db.ResourceCache
 
 			BeforeEach(func() {
 				var err error
@@ -95,7 +95,7 @@ var _ = Describe("ResourceCache", func() {
 
 	Describe("creating for a container", func() {
 		var container db.CreatingContainer
-		var urc db.UsedResourceCache
+		var urc db.ResourceCache
 
 		BeforeEach(func() {
 			worker, err := defaultTeam.SaveWorker(atc.Worker{
@@ -134,7 +134,7 @@ var _ = Describe("ResourceCache", func() {
 		})
 
 		Context("when it already exists", func() {
-			var existingResourceCache db.UsedResourceCache
+			var existingResourceCache db.ResourceCache
 
 			BeforeEach(func() {
 				var err error

@@ -21,21 +21,9 @@ var ErrResourceCacheDisappeared = errors.New("resource-cache-disappeared")
 //
 // ResourceCaches are garbage-collected by gc.ResourceCacheCollector.
 
-// UsedResourceCache is created whenever a ResourceCache is Created and/or
-// Used.
-//
-// So long as the UsedResourceCache exists, the underlying ResourceCache can
-// not be removed.
-//
-// UsedResourceCaches become unused by the gc.ResourceCacheCollector, which may
-// then lead to the ResourceCache being garbage-collected.
-//
-// See FindOrCreateForBuild, FindOrCreateForResource, and
-// FindOrCreateForResourceType for more information on when it becomes unused.
+//go:generate counterfeiter . ResourceCache
 
-//go:generate counterfeiter . UsedResourceCache
-
-type UsedResourceCache interface {
+type ResourceCache interface {
 	ID() int
 	Version() atc.Version
 
@@ -45,7 +33,7 @@ type UsedResourceCache interface {
 	BaseResourceType() *UsedBaseResourceType
 }
 
-type usedResourceCache struct {
+type resourceCache struct {
 	id             int
 	resourceConfig ResourceConfig
 	version        atc.Version
@@ -54,11 +42,11 @@ type usedResourceCache struct {
 	conn        Conn
 }
 
-func (cache *usedResourceCache) ID() int                        { return cache.id }
-func (cache *usedResourceCache) ResourceConfig() ResourceConfig { return cache.resourceConfig }
-func (cache *usedResourceCache) Version() atc.Version           { return cache.version }
+func (cache *resourceCache) ID() int                        { return cache.id }
+func (cache *resourceCache) ResourceConfig() ResourceConfig { return cache.resourceConfig }
+func (cache *resourceCache) Version() atc.Version           { return cache.version }
 
-func (cache *usedResourceCache) Destroy(tx Tx) (bool, error) {
+func (cache *resourceCache) Destroy(tx Tx) (bool, error) {
 	rows, err := psql.Delete("resource_caches").
 		Where(sq.Eq{
 			"id": cache.id,
@@ -81,7 +69,7 @@ func (cache *usedResourceCache) Destroy(tx Tx) (bool, error) {
 	return true, nil
 }
 
-func (cache *usedResourceCache) BaseResourceType() *UsedBaseResourceType {
+func (cache *resourceCache) BaseResourceType() *UsedBaseResourceType {
 	if cache.resourceConfig.CreatedByBaseResourceType() != nil {
 		return cache.resourceConfig.CreatedByBaseResourceType()
 	}

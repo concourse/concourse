@@ -200,7 +200,7 @@ func (builder Builder) WithResourceVersions(resourceName string, versions ...atc
 			return fmt.Errorf("get pipeline resource types: %w", err)
 		}
 
-		var imageResourceCache db.UsedResourceCache
+		var imageResourceCache db.ResourceCache
 		if resourceTypes != nil {
 			resourceType, _ := resourceTypes.Parent(resource)
 			if resourceType != nil {
@@ -298,7 +298,7 @@ func (builder Builder) WithResourceTypeVersions(resourceTypeName string, version
 			return fmt.Errorf("get pipeline resource types: %w", err)
 		}
 
-		var imageResourceCache db.UsedResourceCache
+		var imageResourceCache db.ResourceCache
 		if resourceTypes != nil {
 			resourceTypes = resourceTypes.Without(resourceType.Name())
 			parentResourceType, _ := resourceTypes.Parent(resourceType)
@@ -758,7 +758,7 @@ func md5Version(version atc.Version) string {
 	return hex.EncodeToString(hasher.Sum(nil))
 }
 
-func (builder Builder) createResourceCache(buildID int, resourceType db.ResourceType, resourceTypes db.ResourceTypes) (db.UsedResourceCache, error) {
+func (builder Builder) createResourceCache(buildID int, resourceType db.ResourceType, resourceTypes db.ResourceTypes) (db.ResourceCache, error) {
 	if len(resourceTypes) == 0 {
 		return nil, nil
 	}

@@ -119,7 +119,7 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 	}
 
 	var imageSpec worker.ImageSpec
-	var imageResourceCache db.UsedResourceCache
+	var imageResourceCache db.ResourceCache
 	if step.plan.ImageGetPlan != nil {
 		var err error
 		imageSpec, imageResourceCache, err = delegate.FetchImage(ctx, *step.plan.ImageGetPlan, step.plan.ImageCheckPlan, step.plan.Privileged)

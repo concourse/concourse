@@ -24,7 +24,7 @@ type FakePutDelegate struct {
 		arg1 lager.Logger
 		arg2 string
 	}
-	FetchImageStub        func(context.Context, atc.Plan, *atc.Plan, bool) (worker.ImageSpec, db.UsedResourceCache, error)
+	FetchImageStub        func(context.Context, atc.Plan, *atc.Plan, bool) (worker.ImageSpec, db.ResourceCache, error)
 	fetchImageMutex       sync.RWMutex
 	fetchImageArgsForCall []struct {
 		arg1 context.Context
@@ -34,12 +34,12 @@ type FakePutDelegate struct {
 	}
 	fetchImageReturns struct {
 		result1 worker.ImageSpec
-		result2 db.UsedResourceCache
+		result2 db.ResourceCache
 		result3 error
 	}
 	fetchImageReturnsOnCall map[int]struct {
 		result1 worker.ImageSpec
-		result2 db.UsedResourceCache
+		result2 db.ResourceCache
 		result3 error
 	}
 	FinishedStub        func(lager.Logger, exec.ExitStatus, runtime.VersionResult)
@@ -54,13 +54,13 @@ type FakePutDelegate struct {
 	initializingArgsForCall []struct {
 		arg1 lager.Logger
 	}
-	SaveOutputStub        func(lager.Logger, atc.PutPlan, atc.Source, db.UsedResourceCache, runtime.VersionResult)
+	SaveOutputStub        func(lager.Logger, atc.PutPlan, atc.Source, db.ResourceCache, runtime.VersionResult)
 	saveOutputMutex       sync.RWMutex
 	saveOutputArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 atc.PutPlan
 		arg3 atc.Source
-		arg4 db.UsedResourceCache
+		arg4 db.ResourceCache
 		arg5 runtime.VersionResult
 	}
 	SelectedWorkerStub        func(lager.Logger, string)
@@ -158,7 +158,7 @@ func (fake *FakePutDelegate) ErroredArgsForCall(i int) (lager.Logger, string) {
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakePutDelegate) FetchImage(arg1 context.Context, arg2 atc.Plan, arg3 *atc.Plan, arg4 bool) (worker.ImageSpec, db.UsedResourceCache, error) {
+func (fake *FakePutDelegate) FetchImage(arg1 context.Context, arg2 atc.Plan, arg3 *atc.Plan, arg4 bool) (worker.ImageSpec, db.ResourceCache, error) {
 	fake.fetchImageMutex.Lock()
 	ret, specificReturn := fake.fetchImageReturnsOnCall[len(fake.fetchImageArgsForCall)]
 	fake.fetchImageArgsForCall = append(fake.fetchImageArgsForCall, struct {
@@ -186,7 +186,7 @@ func (fake *FakePutDelegate) FetchImageCallCount() int {
 	return len(fake.fetchImageArgsForCall)
 }
 
-func (fake *FakePutDelegate) FetchImageCalls(stub func(context.Context, atc.Plan, *atc.Plan, bool) (worker.ImageSpec, db.UsedResourceCache, error)) {
+func (fake *FakePutDelegate) FetchImageCalls(stub func(context.Context, atc.Plan, *atc.Plan, bool) (worker.ImageSpec, db.ResourceCache, error)) {
 	fake.fetchImageMutex.Lock()
 	defer fake.fetchImageMutex.Unlock()
 	fake.FetchImageStub = stub
@@ -199,31 +199,31 @@ func (fake *FakePutDelegate) FetchImageArgsForCall(i int) (context.Context, atc.
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
-func (fake *FakePutDelegate) FetchImageReturns(result1 worker.ImageSpec, result2 db.UsedResourceCache, result3 error) {
+func (fake *FakePutDelegate) FetchImageReturns(result1 worker.ImageSpec, result2 db.ResourceCache, result3 error) {
 	fake.fetchImageMutex.Lock()
 	defer fake.fetchImageMutex.Unlock()
 	fake.FetchImageStub = nil
 	fake.fetchImageReturns = struct {
 		result1 worker.ImageSpec
-		result2 db.UsedResourceCache
+		result2 db.ResourceCache
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakePutDelegate) FetchImageReturnsOnCall(i int, result1 worker.ImageSpec, result2 db.UsedResourceCache, result3 error) {
+func (fake *FakePutDelegate) FetchImageReturnsOnCall(i int, result1 worker.ImageSpec, result2 db.ResourceCache, result3 error) {
 	fake.fetchImageMutex.Lock()
 	defer fake.fetchImageMutex.Unlock()
 	fake.FetchImageStub = nil
 	if fake.fetchImageReturnsOnCall == nil {
 		fake.fetchImageReturnsOnCall = make(map[int]struct {
 			result1 worker.ImageSpec
-			result2 db.UsedResourceCache
+			result2 db.ResourceCache
 			result3 error
 		})
 	}
 	fake.fetchImageReturnsOnCall[i] = struct {
 		result1 worker.ImageSpec
-		result2 db.UsedResourceCache
+		result2 db.ResourceCache
 		result3 error
 	}{result1, result2, result3}
 }
@@ -294,13 +294,13 @@ func (fake *FakePutDelegate) InitializingArgsForCall(i int) lager.Logger {
 	return argsForCall.arg1
 }
 
-func (fake *FakePutDelegate) SaveOutput(arg1 lager.Logger, arg2 atc.PutPlan, arg3 atc.Source, arg4 db.UsedResourceCache, arg5 runtime.VersionResult) {
+func (fake *FakePutDelegate) SaveOutput(arg1 lager.Logger, arg2 atc.PutPlan, arg3 atc.Source, arg4 db.ResourceCache, arg5 runtime.VersionResult) {
 	fake.saveOutputMutex.Lock()
 	fake.saveOutputArgsForCall = append(fake.saveOutputArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 atc.PutPlan
 		arg3 atc.Source
-		arg4 db.UsedResourceCache
+		arg4 db.ResourceCache
 		arg5 runtime.VersionResult
 	}{arg1, arg2, arg3, arg4, arg5})
 	stub := fake.SaveOutputStub
@@ -317,13 +317,13 @@ func (fake *FakePutDelegate) SaveOutputCallCount() int {
 	return len(fake.saveOutputArgsForCall)
 }
 
-func (fake *FakePutDelegate) SaveOutputCalls(stub func(lager.Logger, atc.PutPlan, atc.Source, db.UsedResourceCache, runtime.VersionResult)) {
+func (fake *FakePutDelegate) SaveOutputCalls(stub func(lager.Logger, atc.PutPlan, atc.Source, db.ResourceCache, runtime.VersionResult)) {
 	fake.saveOutputMutex.Lock()
 	defer fake.saveOutputMutex.Unlock()
 	fake.SaveOutputStub = stub
 }
 
-func (fake *FakePutDelegate) SaveOutputArgsForCall(i int) (lager.Logger, atc.PutPlan, atc.Source, db.UsedResourceCache, runtime.VersionResult) {
+func (fake *FakePutDelegate) SaveOutputArgsForCall(i int) (lager.Logger, atc.PutPlan, atc.Source, db.ResourceCache, runtime.VersionResult) {
 	fake.saveOutputMutex.RLock()
 	defer fake.saveOutputMutex.RUnlock()
 	argsForCall := fake.saveOutputArgsForCall[i]

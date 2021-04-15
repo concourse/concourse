@@ -185,7 +185,7 @@ var _ = Describe("Volume", func() {
 
 	Describe("createdVolume.InitializeResourceCache", func() {
 		var createdVolume db.CreatedVolume
-		var resourceCache db.UsedResourceCache
+		var resourceCache db.ResourceCache
 		var build db.Build
 
 		BeforeEach(func() {

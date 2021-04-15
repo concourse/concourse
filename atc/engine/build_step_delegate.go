@@ -215,7 +215,7 @@ func (delegate *buildStepDelegate) FetchImage(
 	getPlan atc.Plan,
 	checkPlan *atc.Plan,
 	privileged bool,
-) (worker.ImageSpec, db.UsedResourceCache, error) {
+) (worker.ImageSpec, db.ResourceCache, error) {
 	err := delegate.checkImagePolicy(getPlan.Get.Source, getPlan.Get.Type, privileged)
 	if err != nil {
 		return worker.ImageSpec{}, nil, err

@@ -23,7 +23,7 @@ type FakeSetPipelineStepDelegate struct {
 		arg1 lager.Logger
 		arg2 string
 	}
-	FetchImageStub        func(context.Context, atc.Plan, *atc.Plan, bool) (worker.ImageSpec, db.UsedResourceCache, error)
+	FetchImageStub        func(context.Context, atc.Plan, *atc.Plan, bool) (worker.ImageSpec, db.ResourceCache, error)
 	fetchImageMutex       sync.RWMutex
 	fetchImageArgsForCall []struct {
 		arg1 context.Context
@@ -33,12 +33,12 @@ type FakeSetPipelineStepDelegate struct {
 	}
 	fetchImageReturns struct {
 		result1 worker.ImageSpec
-		result2 db.UsedResourceCache
+		result2 db.ResourceCache
 		result3 error
 	}
 	fetchImageReturnsOnCall map[int]struct {
 		result1 worker.ImageSpec
-		result2 db.UsedResourceCache
+		result2 db.ResourceCache
 		result3 error
 	}
 	FinishedStub        func(lager.Logger, bool)
@@ -153,7 +153,7 @@ func (fake *FakeSetPipelineStepDelegate) ErroredArgsForCall(i int) (lager.Logger
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeSetPipelineStepDelegate) FetchImage(arg1 context.Context, arg2 atc.Plan, arg3 *atc.Plan, arg4 bool) (worker.ImageSpec, db.UsedResourceCache, error) {
+func (fake *FakeSetPipelineStepDelegate) FetchImage(arg1 context.Context, arg2 atc.Plan, arg3 *atc.Plan, arg4 bool) (worker.ImageSpec, db.ResourceCache, error) {
 	fake.fetchImageMutex.Lock()
 	ret, specificReturn := fake.fetchImageReturnsOnCall[len(fake.fetchImageArgsForCall)]
 	fake.fetchImageArgsForCall = append(fake.fetchImageArgsForCall, struct {
@@ -181,7 +181,7 @@ func (fake *FakeSetPipelineStepDelegate) FetchImageCallCount() int {
 	return len(fake.fetchImageArgsForCall)
 }
 
-func (fake *FakeSetPipelineStepDelegate) FetchImageCalls(stub func(context.Context, atc.Plan, *atc.Plan, bool) (worker.ImageSpec, db.UsedResourceCache, error)) {
+func (fake *FakeSetPipelineStepDelegate) FetchImageCalls(stub func(context.Context, atc.Plan, *atc.Plan, bool) (worker.ImageSpec, db.ResourceCache, error)) {
 	fake.fetchImageMutex.Lock()
 	defer fake.fetchImageMutex.Unlock()
 	fake.FetchImageStub = stub
@@ -194,31 +194,31 @@ func (fake *FakeSetPipelineStepDelegate) FetchImageArgsForCall(i int) (context.C
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
-func (fake *FakeSetPipelineStepDelegate) FetchImageReturns(result1 worker.ImageSpec, result2 db.UsedResourceCache, result3 error) {
+func (fake *FakeSetPipelineStepDelegate) FetchImageReturns(result1 worker.ImageSpec, result2 db.ResourceCache, result3 error) {
 	fake.fetchImageMutex.Lock()
 	defer fake.fetchImageMutex.Unlock()
 	fake.FetchImageStub = nil
 	fake.fetchImageReturns = struct {
 		result1 worker.ImageSpec
-		result2 db.UsedResourceCache
+		result2 db.ResourceCache
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakeSetPipelineStepDelegate) FetchImageReturnsOnCall(i int, result1 worker.ImageSpec, result2 db.UsedResourceCache, result3 error) {
+func (fake *FakeSetPipelineStepDelegate) FetchImageReturnsOnCall(i int, result1 worker.ImageSpec, result2 db.ResourceCache, result3 error) {
 	fake.fetchImageMutex.Lock()
 	defer fake.fetchImageMutex.Unlock()
 	fake.FetchImageStub = nil
 	if fake.fetchImageReturnsOnCall == nil {
 		fake.fetchImageReturnsOnCall = make(map[int]struct {
 			result1 worker.ImageSpec
-			result2 db.UsedResourceCache
+			result2 db.ResourceCache
 			result3 error
 		})
 	}
 	fake.fetchImageReturnsOnCall[i] = struct {
 		result1 worker.ImageSpec
-		result2 db.UsedResourceCache
+		result2 db.ResourceCache
 		result3 error
 	}{result1, result2, result3}
 }
