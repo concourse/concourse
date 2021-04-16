@@ -915,7 +915,7 @@ var _ = Describe("Team", func() {
 			createdVolume, err := creatingVolume.Created()
 			Expect(err).ToNot(HaveOccurred())
 
-			err = createdVolume.InitializeResourceCache(urc)
+			err = createdVolume.InitializeResourceCache(urc, "")
 			Expect(err).ToNot(HaveOccurred())
 		})
 

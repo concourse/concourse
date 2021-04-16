@@ -91,7 +91,7 @@ func (f FakeDestination) GetStreamInP2pUrl(ctx context.Context, path string) (st
 	panic("unimplemented")
 }
 
-func (f FakeDestination) InitializeResourceCache(cache db.UsedResourceCache) error {
+func (f FakeDestination) InitializeStreamedResourceCache(cache db.UsedResourceCache, sourceWorkerName string) error {
 	return nil
 }
 

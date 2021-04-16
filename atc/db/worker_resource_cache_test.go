@@ -27,8 +27,9 @@ var _ = Describe("WorkerResourceCache", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			workerResourceCache = db.WorkerResourceCache{
-				ResourceCache: resourceCache,
-				WorkerName:    defaultWorker.Name(),
+				ResourceCache:    resourceCache,
+				WorkerName:       defaultWorker.Name(),
+				SourceWorkerName: defaultWorker.Name(),
 			}
 		})
 
@@ -90,8 +91,9 @@ var _ = Describe("WorkerResourceCache", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			workerResourceCache = db.WorkerResourceCache{
-				ResourceCache: resourceCache,
-				WorkerName:    defaultWorker.Name(),
+				ResourceCache:    resourceCache,
+				WorkerName:       defaultWorker.Name(),
+				SourceWorkerName: defaultWorker.Name(),
 			}
 		})
 

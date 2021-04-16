@@ -150,7 +150,7 @@ type CreatedVolume interface {
 	Destroying() (DestroyingVolume, error)
 	WorkerName() string
 
-	InitializeResourceCache(UsedResourceCache) error
+	InitializeResourceCache(UsedResourceCache, string) error
 	GetResourceCacheID() int
 	InitializeArtifact(name string, buildID int) (WorkerArtifact, error)
 	InitializeTaskCache(jobID int, stepName string, path string) error
@@ -351,7 +351,10 @@ func (volume *createdVolume) findWorkerBaseResourceTypeByBaseResourceTypeID(base
 	}, nil
 }
 
-func (volume *createdVolume) InitializeResourceCache(resourceCache UsedResourceCache) error {
+// InitializeResourceCache creates a worker resource cache and point current volume's
+// worker_resource_cache_id to the cache. When initialize a resource cache that is
+// generated on current worker, then sourceWorkerName can be empty.
+func (volume *createdVolume) InitializeResourceCache(resourceCache UsedResourceCache, sourceWorkerName string) error {
 	tx, err := volume.conn.Begin()
 	if err != nil {
 		return err
@@ -359,9 +362,14 @@ func (volume *createdVolume) InitializeResourceCache(resourceCache UsedResourceC
 
 	defer tx.Rollback()
 
+	if sourceWorkerName == "" {
+		sourceWorkerName = volume.WorkerName()
+	}
+
 	workerResourceCache, err := WorkerResourceCache{
 		WorkerName:    volume.WorkerName(),
 		ResourceCache: resourceCache,
+		SourceWorkerName: sourceWorkerName,
 	}.FindOrCreate(tx)
 	if err != nil {
 		return err

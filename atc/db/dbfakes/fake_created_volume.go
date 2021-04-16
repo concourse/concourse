@@ -91,10 +91,11 @@ type FakeCreatedVolume struct {
 		result1 db.WorkerArtifact
 		result2 error
 	}
-	InitializeResourceCacheStub        func(db.UsedResourceCache) error
+	InitializeResourceCacheStub        func(db.UsedResourceCache, string) error
 	initializeResourceCacheMutex       sync.RWMutex
 	initializeResourceCacheArgsForCall []struct {
 		arg1 db.UsedResourceCache
+		arg2 string
 	}
 	initializeResourceCacheReturns struct {
 		result1 error
@@ -610,18 +611,19 @@ func (fake *FakeCreatedVolume) InitializeArtifactReturnsOnCall(i int, result1 db
 	}{result1, result2}
 }
 
-func (fake *FakeCreatedVolume) InitializeResourceCache(arg1 db.UsedResourceCache) error {
+func (fake *FakeCreatedVolume) InitializeResourceCache(arg1 db.UsedResourceCache, arg2 string) error {
 	fake.initializeResourceCacheMutex.Lock()
 	ret, specificReturn := fake.initializeResourceCacheReturnsOnCall[len(fake.initializeResourceCacheArgsForCall)]
 	fake.initializeResourceCacheArgsForCall = append(fake.initializeResourceCacheArgsForCall, struct {
 		arg1 db.UsedResourceCache
-	}{arg1})
+		arg2 string
+	}{arg1, arg2})
 	stub := fake.InitializeResourceCacheStub
 	fakeReturns := fake.initializeResourceCacheReturns
-	fake.recordInvocation("InitializeResourceCache", []interface{}{arg1})
+	fake.recordInvocation("InitializeResourceCache", []interface{}{arg1, arg2})
 	fake.initializeResourceCacheMutex.Unlock()
 	if stub != nil {
-		return stub(arg1)
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
@@ -635,17 +637,17 @@ func (fake *FakeCreatedVolume) InitializeResourceCacheCallCount() int {
 	return len(fake.initializeResourceCacheArgsForCall)
 }
 
-func (fake *FakeCreatedVolume) InitializeResourceCacheCalls(stub func(db.UsedResourceCache) error) {
+func (fake *FakeCreatedVolume) InitializeResourceCacheCalls(stub func(db.UsedResourceCache, string) error) {
 	fake.initializeResourceCacheMutex.Lock()
 	defer fake.initializeResourceCacheMutex.Unlock()
 	fake.InitializeResourceCacheStub = stub
 }
 
-func (fake *FakeCreatedVolume) InitializeResourceCacheArgsForCall(i int) db.UsedResourceCache {
+func (fake *FakeCreatedVolume) InitializeResourceCacheArgsForCall(i int) (db.UsedResourceCache, string) {
 	fake.initializeResourceCacheMutex.RLock()
 	defer fake.initializeResourceCacheMutex.RUnlock()
 	argsForCall := fake.initializeResourceCacheArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeCreatedVolume) InitializeResourceCacheReturns(result1 error) {

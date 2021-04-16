@@ -228,7 +228,7 @@ var _ = Describe("Volume", func() {
 			createdVolume, err = resourceCacheVolume.Created()
 			Expect(err).ToNot(HaveOccurred())
 
-			err = createdVolume.InitializeResourceCache(resourceCache)
+			err = createdVolume.InitializeResourceCache(resourceCache, "")
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -253,7 +253,7 @@ var _ = Describe("Volume", func() {
 				createdVolume, err = resourceCacheVolume.Created()
 				Expect(err).ToNot(HaveOccurred())
 
-				err = createdVolume.InitializeResourceCache(resourceCache)
+				err = createdVolume.InitializeResourceCache(resourceCache, "")
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(createdVolume.Type()).To(Equal(db.VolumeTypeContainer))
@@ -468,7 +468,7 @@ var _ = Describe("Volume", func() {
 
 			Expect(createdVolume.Type()).To(Equal(db.VolumeType(db.VolumeTypeContainer)))
 
-			err = createdVolume.InitializeResourceCache(resourceCache)
+			err = createdVolume.InitializeResourceCache(resourceCache, "")
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(createdVolume.Type()).To(Equal(db.VolumeType(db.VolumeTypeResource)))
@@ -593,7 +593,7 @@ var _ = Describe("Volume", func() {
 			parentVolume, err = creatingParentVolume.Created()
 			Expect(err).ToNot(HaveOccurred())
 
-			err = parentVolume.InitializeResourceCache(usedResourceCache)
+			err = parentVolume.InitializeResourceCache(usedResourceCache, "")
 			Expect(err).ToNot(HaveOccurred())
 		})
 

@@ -149,7 +149,7 @@ func (source *artifactSource) StreamTo(
 	ctx context.Context,
 	destination ArtifactDestination,
 ) error {
-	logger := lagerctx.FromContext(ctx).Session("stream-to")
+	logger := lagerctx.FromContext(ctx).Session("EVAN:stream-to")
 	logger.Info("start")
 	defer logger.Info("end")
 
@@ -172,6 +172,7 @@ func (source *artifactSource) StreamTo(
 
 	// If the source volume is a resource cache, then mark dest volume as a resource cache too.
 	if source.volume.GetResourceCacheID() > 0 {
+		logger.Info("start-to-initialize-resource-cache", lager.Data{"resourceCacheId": source.volume.GetResourceCacheID()})
 		usedResourceCache, found, err := source.resourceCacheFactory.FindResourceCacheByID(source.volume.GetResourceCacheID())
 		if err != nil {
 			logger.Error("stream-to-failed-to-find-resource-cache", err)
@@ -186,12 +187,8 @@ func (source *artifactSource) StreamTo(
 			}
 		}
 
-		err = destination.InitializeResourceCache(usedResourceCache)
+		err = destination.InitializeStreamedResourceCache(usedResourceCache, source.volume.WorkerName())
 		if err != nil {
-			// Non-Linux may not contain base resource types, so silently discard the error.
-			if err == db.ErrWorkerBaseResourceTypeDisappeared {
-				return nil
-			}
 			logger.Error("stream-to-failed-init-resource-cache-on-dest-worker", err)
 			return err
 		}

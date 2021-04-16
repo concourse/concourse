@@ -132,7 +132,7 @@ var _ = Describe("StreamableArtifactSource", func() {
 
 		fakeDestVolume.WorkerNameReturns("dest-worker")
 		fakeDestVolume.HandleReturns("dest-handle")
-		fakeDestination.InitializeResourceCacheReturns(nil)
+		fakeDestination.InitializeStreamedResourceCacheReturns(nil)
 
 		enabledP2pStreaming = false
 		p2pStreamingTimeout = 15 * time.Minute
@@ -274,7 +274,7 @@ var _ = Describe("StreamableArtifactSource", func() {
 			Context("when source volume is not a resource cache", func() {
 				It("should not mark dest volume as resource cache", func() {
 					Expect(fakeResourceCacheFactory.FindResourceCacheByIDCallCount()).To(Equal(0))
-					Expect(fakeDestination.InitializeResourceCacheCallCount()).To(Equal(0))
+					Expect(fakeDestination.InitializeStreamedResourceCacheCallCount()).To(Equal(0))
 				})
 			})
 
@@ -296,7 +296,7 @@ var _ = Describe("StreamableArtifactSource", func() {
 					It("should fail with same error", func() {
 						Expect(streamToErr).To(HaveOccurred())
 						Expect(streamToErr).To(Equal(disaster))
-						Expect(fakeDestination.InitializeResourceCacheCallCount()).To(Equal(0))
+						Expect(fakeDestination.InitializeStreamedResourceCacheCallCount()).To(Equal(0))
 					})
 				})
 
@@ -311,7 +311,7 @@ var _ = Describe("StreamableArtifactSource", func() {
 							Handle:          fakeVolume.Handle(),
 							ResourceCacheId: 1234,
 						}))
-						Expect(fakeDestination.InitializeResourceCacheCallCount()).To(Equal(0))
+						Expect(fakeDestination.InitializeStreamedResourceCacheCallCount()).To(Equal(0))
 					})
 				})
 
@@ -324,36 +324,24 @@ var _ = Describe("StreamableArtifactSource", func() {
 					})
 
 					It("should mark dest volume as resource cache", func() {
-						Expect(fakeDestination.InitializeResourceCacheCallCount()).To(Equal(1))
-						Expect(fakeDestination.InitializeResourceCacheArgsForCall(0)).To(Equal(fakeUrc))
+						Expect(fakeDestination.InitializeStreamedResourceCacheCallCount()).To(Equal(1))
+						Expect(fakeDestination.InitializeStreamedResourceCacheArgsForCall(0)).To(Equal(fakeUrc))
 					})
 
 					Context("fails to update destination as resource cache", func() {
-						Context("when error is ErrWorkerBaseResourceTypeDisappeared", func() {
-							BeforeEach(func() {
-								fakeDestination.InitializeResourceCacheReturns(db.ErrWorkerBaseResourceTypeDisappeared)
-							})
-
-							It("should discard the error", func() {
-								Expect(streamToErr).ToNot(HaveOccurred())
-							})
+						BeforeEach(func() {
+							fakeDestination.InitializeStreamedResourceCacheReturns(disaster)
 						})
 
-						Context("when other error occurs", func() {
-							BeforeEach(func() {
-								fakeDestination.InitializeResourceCacheReturns(disaster)
-							})
-
-							It("should fail with same error", func() {
-								Expect(streamToErr).To(HaveOccurred())
-								Expect(streamToErr).To(Equal(disaster))
-							})
+						It("should fail with same error", func() {
+							Expect(streamToErr).To(HaveOccurred())
+							Expect(streamToErr).To(Equal(disaster))
 						})
 					})
 
 					Context("succeeds to update destination as resource cache", func() {
 						BeforeEach(func() {
-							fakeDestination.InitializeResourceCacheReturns(nil)
+							fakeDestination.InitializeStreamedResourceCacheReturns(nil)
 						})
 
 						It("should fail with same error", func() {

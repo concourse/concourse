@@ -8,8 +8,9 @@ import (
 )
 
 type WorkerResourceCache struct {
-	WorkerName    string
-	ResourceCache UsedResourceCache
+	WorkerName       string
+	ResourceCache    UsedResourceCache
+	SourceWorkerName string // If source worker doesn't equal to worker, then this is a streamed resource cache.
 }
 
 type UsedWorkerResourceCache struct {
@@ -22,7 +23,7 @@ func (workerResourceCache WorkerResourceCache) FindOrCreate(tx Tx) (*UsedWorkerR
 	baseResourceType := workerResourceCache.ResourceCache.BaseResourceType()
 	usedWorkerBaseResourceType, found, err := WorkerBaseResourceType{
 		Name:       baseResourceType.Name,
-		WorkerName: workerResourceCache.WorkerName,
+		WorkerName: workerResourceCache.SourceWorkerName,
 	}.Find(tx)
 	if err != nil {
 		return nil, err
@@ -32,7 +33,7 @@ func (workerResourceCache WorkerResourceCache) FindOrCreate(tx Tx) (*UsedWorkerR
 		return nil, ErrWorkerBaseResourceTypeDisappeared
 	}
 
-	id, found, err := workerResourceCache.find(tx, usedWorkerBaseResourceType)
+	id, _, found, err := workerResourceCache.find(tx, workerResourceCache.WorkerName)
 	if err != nil {
 		return nil, err
 	}
@@ -47,17 +48,20 @@ func (workerResourceCache WorkerResourceCache) FindOrCreate(tx Tx) (*UsedWorkerR
 		Columns(
 			"resource_cache_id",
 			"worker_base_resource_type_id",
+			"worker_name",
 		).
 		Values(
 			workerResourceCache.ResourceCache.ID(),
 			usedWorkerBaseResourceType.ID,
+			workerResourceCache.WorkerName,
 		).
 		Suffix(`
-			ON CONFLICT (resource_cache_id, worker_base_resource_type_id) DO UPDATE SET
+			ON CONFLICT (resource_cache_id, worker_base_resource_type_id, worker_name) DO UPDATE SET
 				resource_cache_id = ?,
-				worker_base_resource_type_id = ?
+				worker_base_resource_type_id = ?,
+				worker_name = ? 
 			RETURNING id
-		`, workerResourceCache.ResourceCache.ID(), usedWorkerBaseResourceType.ID).
+		`, workerResourceCache.ResourceCache.ID(), usedWorkerBaseResourceType.ID, workerResourceCache.WorkerName).
 		RunWith(tx).
 		QueryRow().
 		Scan(&id)
@@ -71,11 +75,7 @@ func (workerResourceCache WorkerResourceCache) FindOrCreate(tx Tx) (*UsedWorkerR
 }
 
 func (workerResourceCache WorkerResourceCache) Find(runner sq.Runner) (*UsedWorkerResourceCache, bool, error) {
-	baseResourceType := workerResourceCache.ResourceCache.BaseResourceType()
-	usedWorkerBaseResourceType, found, err := WorkerBaseResourceType{
-		Name:       baseResourceType.Name,
-		WorkerName: workerResourceCache.WorkerName,
-	}.Find(runner)
+	id, workerBasedResourceTypeId, found, err := workerResourceCache.find(runner, workerResourceCache.WorkerName)
 	if err != nil {
 		return nil, false, err
 	}
@@ -84,40 +84,39 @@ func (workerResourceCache WorkerResourceCache) Find(runner sq.Runner) (*UsedWork
 		return nil, false, nil
 	}
 
-	id, found, err := workerResourceCache.find(runner, usedWorkerBaseResourceType)
+	// Verify worker base resource type
+	_, found, err = WorkerBaseResourceType{}.FindById(runner, workerBasedResourceTypeId)
 	if err != nil {
 		return nil, false, err
 	}
 
-	if found {
-		return &UsedWorkerResourceCache{
-			ID: id,
-		}, true, nil
+	if !found {
+		return nil, false, nil
 	}
 
-	return nil, false, nil
+	return &UsedWorkerResourceCache{ID: id}, true, nil
 }
 
-func (workerResourceCache WorkerResourceCache) find(runner sq.Runner, usedWorkerBaseResourceType *UsedWorkerBaseResourceType) (int, bool, error) {
-	var id int
+func (workerResourceCache WorkerResourceCache) find(runner sq.Runner, workerName string) (int, int, bool, error) {
+	var id, workerBasedResourceTypeId int
 
-	err := psql.Select("id").
+	err := psql.Select("id, worker_base_resource_type_id").
 		From("worker_resource_caches").
 		Where(sq.Eq{
-			"resource_cache_id":            workerResourceCache.ResourceCache.ID(),
-			"worker_base_resource_type_id": usedWorkerBaseResourceType.ID,
+			"resource_cache_id": workerResourceCache.ResourceCache.ID(),
+			"worker_name":       workerName,
 		}).
 		Suffix("FOR SHARE").
 		RunWith(runner).
 		QueryRow().
-		Scan(&id)
+		Scan(&id, &workerBasedResourceTypeId)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return 0, false, nil
+			return 0, 0, false, nil
 		}
 
-		return 0, false, err
+		return 0, 0, false, err
 	}
 
-	return id, true, nil
+	return id, workerBasedResourceTypeId, true, nil
 }
