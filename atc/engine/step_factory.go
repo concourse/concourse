@@ -92,7 +92,6 @@ func (factory *coreStepFactory) PutStep(
 		*plan.Put,
 		stepMetadata,
 		containerMetadata,
-		factory.resourceConfigFactory,
 		factory.strategy,
 		factory.pool,
 		delegateFactory,

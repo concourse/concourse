@@ -74,7 +74,6 @@ type OutputHandler func(io.Writer) error
 type Pool interface {
 	FindOrSelectWorker(context.Context, db.ContainerOwner, runtime.ContainerSpec, worker.Spec, worker.PlacementStrategy, worker.PoolCallback) (runtime.Worker, error)
 	ReleaseWorker(lager.Logger, runtime.ContainerSpec, runtime.Worker, worker.PlacementStrategy)
-	FindWorkerForContainer(lager.Logger, db.ContainerOwner, worker.Spec) (runtime.Worker, bool, error)
 	LocateVolume(logger lager.Logger, teamID int, handle string) (runtime.Volume, runtime.Worker, bool, error)
 }
 

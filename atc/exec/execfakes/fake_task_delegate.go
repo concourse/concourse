@@ -9,7 +9,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/exec"
-	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/tracing"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -21,7 +21,7 @@ type FakeTaskDelegate struct {
 		arg1 lager.Logger
 		arg2 string
 	}
-	FetchImageStub        func(context.Context, atc.ImageResource, atc.VersionedResourceTypes, bool) (worker.ImageSpec, error)
+	FetchImageStub        func(context.Context, atc.ImageResource, atc.VersionedResourceTypes, bool) (runtime.ImageSpec, error)
 	fetchImageMutex       sync.RWMutex
 	fetchImageArgsForCall []struct {
 		arg1 context.Context
@@ -30,20 +30,18 @@ type FakeTaskDelegate struct {
 		arg4 bool
 	}
 	fetchImageReturns struct {
-		result1 worker.ImageSpec
+		result1 runtime.ImageSpec
 		result2 error
 	}
 	fetchImageReturnsOnCall map[int]struct {
-		result1 worker.ImageSpec
+		result1 runtime.ImageSpec
 		result2 error
 	}
-	FinishedStub        func(lager.Logger, exec.ExitStatus, worker.ContainerPlacementStrategy, worker.Client)
+	FinishedStub        func(lager.Logger, exec.ExitStatus)
 	finishedMutex       sync.RWMutex
 	finishedArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 exec.ExitStatus
-		arg3 worker.ContainerPlacementStrategy
-		arg4 worker.Client
 	}
 	InitializingStub        func(lager.Logger)
 	initializingMutex       sync.RWMutex
@@ -143,7 +141,7 @@ func (fake *FakeTaskDelegate) ErroredArgsForCall(i int) (lager.Logger, string) {
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeTaskDelegate) FetchImage(arg1 context.Context, arg2 atc.ImageResource, arg3 atc.VersionedResourceTypes, arg4 bool) (worker.ImageSpec, error) {
+func (fake *FakeTaskDelegate) FetchImage(arg1 context.Context, arg2 atc.ImageResource, arg3 atc.VersionedResourceTypes, arg4 bool) (runtime.ImageSpec, error) {
 	fake.fetchImageMutex.Lock()
 	ret, specificReturn := fake.fetchImageReturnsOnCall[len(fake.fetchImageArgsForCall)]
 	fake.fetchImageArgsForCall = append(fake.fetchImageArgsForCall, struct {
@@ -171,7 +169,7 @@ func (fake *FakeTaskDelegate) FetchImageCallCount() int {
 	return len(fake.fetchImageArgsForCall)
 }
 
-func (fake *FakeTaskDelegate) FetchImageCalls(stub func(context.Context, atc.ImageResource, atc.VersionedResourceTypes, bool) (worker.ImageSpec, error)) {
+func (fake *FakeTaskDelegate) FetchImageCalls(stub func(context.Context, atc.ImageResource, atc.VersionedResourceTypes, bool) (runtime.ImageSpec, error)) {
 	fake.fetchImageMutex.Lock()
 	defer fake.fetchImageMutex.Unlock()
 	fake.FetchImageStub = stub
@@ -184,45 +182,43 @@ func (fake *FakeTaskDelegate) FetchImageArgsForCall(i int) (context.Context, atc
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
-func (fake *FakeTaskDelegate) FetchImageReturns(result1 worker.ImageSpec, result2 error) {
+func (fake *FakeTaskDelegate) FetchImageReturns(result1 runtime.ImageSpec, result2 error) {
 	fake.fetchImageMutex.Lock()
 	defer fake.fetchImageMutex.Unlock()
 	fake.FetchImageStub = nil
 	fake.fetchImageReturns = struct {
-		result1 worker.ImageSpec
+		result1 runtime.ImageSpec
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeTaskDelegate) FetchImageReturnsOnCall(i int, result1 worker.ImageSpec, result2 error) {
+func (fake *FakeTaskDelegate) FetchImageReturnsOnCall(i int, result1 runtime.ImageSpec, result2 error) {
 	fake.fetchImageMutex.Lock()
 	defer fake.fetchImageMutex.Unlock()
 	fake.FetchImageStub = nil
 	if fake.fetchImageReturnsOnCall == nil {
 		fake.fetchImageReturnsOnCall = make(map[int]struct {
-			result1 worker.ImageSpec
+			result1 runtime.ImageSpec
 			result2 error
 		})
 	}
 	fake.fetchImageReturnsOnCall[i] = struct {
-		result1 worker.ImageSpec
+		result1 runtime.ImageSpec
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeTaskDelegate) Finished(arg1 lager.Logger, arg2 exec.ExitStatus, arg3 worker.ContainerPlacementStrategy, arg4 worker.Client) {
+func (fake *FakeTaskDelegate) Finished(arg1 lager.Logger, arg2 exec.ExitStatus) {
 	fake.finishedMutex.Lock()
 	fake.finishedArgsForCall = append(fake.finishedArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 exec.ExitStatus
-		arg3 worker.ContainerPlacementStrategy
-		arg4 worker.Client
-	}{arg1, arg2, arg3, arg4})
+	}{arg1, arg2})
 	stub := fake.FinishedStub
-	fake.recordInvocation("Finished", []interface{}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("Finished", []interface{}{arg1, arg2})
 	fake.finishedMutex.Unlock()
 	if stub != nil {
-		fake.FinishedStub(arg1, arg2, arg3, arg4)
+		fake.FinishedStub(arg1, arg2)
 	}
 }
 
@@ -232,17 +228,17 @@ func (fake *FakeTaskDelegate) FinishedCallCount() int {
 	return len(fake.finishedArgsForCall)
 }
 
-func (fake *FakeTaskDelegate) FinishedCalls(stub func(lager.Logger, exec.ExitStatus, worker.ContainerPlacementStrategy, worker.Client)) {
+func (fake *FakeTaskDelegate) FinishedCalls(stub func(lager.Logger, exec.ExitStatus)) {
 	fake.finishedMutex.Lock()
 	defer fake.finishedMutex.Unlock()
 	fake.FinishedStub = stub
 }
 
-func (fake *FakeTaskDelegate) FinishedArgsForCall(i int) (lager.Logger, exec.ExitStatus, worker.ContainerPlacementStrategy, worker.Client) {
+func (fake *FakeTaskDelegate) FinishedArgsForCall(i int) (lager.Logger, exec.ExitStatus) {
 	fake.finishedMutex.RLock()
 	defer fake.finishedMutex.RUnlock()
 	argsForCall := fake.finishedArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeTaskDelegate) Initializing(arg1 lager.Logger) {

@@ -26,21 +26,19 @@ import (
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/atc/policy/policyfakes"
-	"github.com/concourse/concourse/atc/runtime/runtimefakes"
-	"github.com/concourse/concourse/atc/worker"
-	"github.com/concourse/concourse/atc/worker/workerfakes"
+	"github.com/concourse/concourse/atc/runtime"
+	"github.com/concourse/concourse/atc/runtime/runtimetest"
 	"github.com/concourse/concourse/vars"
 )
 
 var _ = Describe("BuildStepDelegate", func() {
 	var (
-		logger              *lagertest.TestLogger
-		fakeBuild           *dbfakes.FakeBuild
-		fakeClock           *fakeclock.FakeClock
-		planID              atc.PlanID
-		runState            *execfakes.FakeRunState
-		fakePolicyChecker   *policyfakes.FakeChecker
-		fakeArtifactSourcer *workerfakes.FakeArtifactSourcer
+		logger            *lagertest.TestLogger
+		fakeBuild         *dbfakes.FakeBuild
+		fakeClock         *fakeclock.FakeClock
+		planID            atc.PlanID
+		runState          *execfakes.FakeRunState
+		fakePolicyChecker *policyfakes.FakeChecker
 
 		credVars vars.StaticVariables
 
@@ -68,9 +66,7 @@ var _ = Describe("BuildStepDelegate", func() {
 
 		fakePolicyChecker = new(policyfakes.FakeChecker)
 
-		fakeArtifactSourcer = new(workerfakes.FakeArtifactSourcer)
-
-		delegate = engine.NewBuildStepDelegate(fakeBuild, planID, runState, fakeClock, fakePolicyChecker, fakeArtifactSourcer)
+		delegate = engine.NewBuildStepDelegate(fakeBuild, planID, runState, fakeClock, fakePolicyChecker)
 	})
 
 	Describe("Initializing", func() {
@@ -99,8 +95,7 @@ var _ = Describe("BuildStepDelegate", func() {
 
 	Describe("FetchImage", func() {
 		var expectedCheckPlan, expectedGetPlan atc.Plan
-		var fakeArtifact *runtimefakes.FakeArtifact
-		var fakeSource *workerfakes.FakeStreamableArtifactSource
+		var volume *runtimetest.Volume
 		var fakeResourceCache *dbfakes.FakeUsedResourceCache
 
 		var childState *execfakes.FakeRunState
@@ -108,7 +103,7 @@ var _ = Describe("BuildStepDelegate", func() {
 		var types atc.VersionedResourceTypes
 		var privileged bool
 
-		var imageSpec worker.ImageSpec
+		var imageSpec runtime.ImageSpec
 		var fetchErr error
 
 		BeforeEach(func() {
@@ -118,9 +113,9 @@ var _ = Describe("BuildStepDelegate", func() {
 			childState = new(execfakes.FakeRunState)
 			runState.NewLocalScopeReturns(childState)
 
-			fakeArtifact = new(runtimefakes.FakeArtifact)
+			volume = runtimetest.NewVolume("image-volume")
 			childState.ArtifactRepositoryReturns(repo.NewLocalScope())
-			childState.ArtifactRepository().RegisterArtifact("image", fakeArtifact)
+			childState.ArtifactRepository().RegisterArtifact("image", volume)
 
 			runState.GetStub = vars.StaticVariables{
 				"source-var": "super-secret-source",
@@ -207,9 +202,6 @@ var _ = Describe("BuildStepDelegate", func() {
 			privileged = false
 
 			childState.RunReturns(true, nil)
-
-			fakeSource = new(workerfakes.FakeStreamableArtifactSource)
-			fakeArtifactSourcer.SourceImageReturns(fakeSource, nil)
 		})
 
 		JustBeforeEach(func() {
@@ -221,9 +213,9 @@ var _ = Describe("BuildStepDelegate", func() {
 		})
 
 		It("returns an image spec containing the artifact", func() {
-			Expect(imageSpec).To(Equal(worker.ImageSpec{
-				ImageArtifactSource: fakeSource,
-				Privileged:          false,
+			Expect(imageSpec).To(Equal(runtime.ImageSpec{
+				ImageVolume: "image-volume",
+				Privileged:  false,
 			}))
 		})
 
@@ -242,21 +234,15 @@ var _ = Describe("BuildStepDelegate", func() {
 			Expect(fakeBuild.SaveImageResourceVersionArgsForCall(0)).To(Equal(fakeResourceCache))
 		})
 
-		It("converts the image artifact into a source", func() {
-			Expect(fakeArtifactSourcer.SourceImageCallCount()).To(Equal(1))
-			_, artifact := fakeArtifactSourcer.SourceImageArgsForCall(0)
-			Expect(artifact).To(Equal(fakeArtifact))
-		})
-
 		Context("when privileged", func() {
 			BeforeEach(func() {
 				privileged = true
 			})
 
 			It("returns a privileged image spec", func() {
-				Expect(imageSpec).To(Equal(worker.ImageSpec{
-					ImageArtifactSource: fakeSource,
-					Privileged:          true,
+				Expect(imageSpec).To(Equal(runtime.ImageSpec{
+					ImageVolume: "image-volume",
+					Privileged:  true,
 				}))
 			})
 		})
@@ -507,14 +493,14 @@ var _ = Describe("BuildStepDelegate", func() {
 		})
 
 		Context("when an image name is provided", func() {
-			var namedArtifact *runtimefakes.FakeArtifact
+			var namedArtifact *runtimetest.Volume
 
 			BeforeEach(func() {
 				imageResource.Name = "some-name"
 				expectedCheckPlan.Check.Name = "some-name"
 				expectedGetPlan.Get.Name = "some-name"
 
-				namedArtifact = new(runtimefakes.FakeArtifact)
+				namedArtifact = runtimetest.NewVolume("some-volume")
 				childState.ArtifactRepositoryReturns(runState.ArtifactRepository().NewLocalScope())
 				childState.ArtifactRepository().RegisterArtifact("some-name", namedArtifact)
 			})
@@ -526,8 +512,9 @@ var _ = Describe("BuildStepDelegate", func() {
 				_, plan = childState.RunArgsForCall(1)
 				Expect(plan.Get.Name).To(Equal("some-name"))
 
-				_, artifact := fakeArtifactSourcer.SourceImageArgsForCall(0)
-				Expect(artifact).To(Equal(namedArtifact))
+				Expect(imageSpec).To(Equal(runtime.ImageSpec{
+					ImageVolume: "some-volume",
+				}))
 			})
 		})
 
@@ -943,7 +930,7 @@ var _ = Describe("BuildStepDelegate", func() {
 		BeforeEach(func() {
 			credVars := vars.StaticVariables{}
 			runState = exec.NewRunState(noopStepper, credVars, false)
-			delegate = engine.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock, fakePolicyChecker, fakeArtifactSourcer)
+			delegate = engine.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock, fakePolicyChecker)
 		})
 
 		Context("Stdout", func() {
@@ -1043,7 +1030,7 @@ var _ = Describe("BuildStepDelegate", func() {
 
 		BeforeEach(func() {
 			runState = exec.NewRunState(noopStepper, credVars, true)
-			delegate = engine.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock, fakePolicyChecker, fakeArtifactSourcer)
+			delegate = engine.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock, fakePolicyChecker)
 
 			runState.Get(vars.Reference{Path: "source-param"})
 			runState.Get(vars.Reference{Path: "git-key"})

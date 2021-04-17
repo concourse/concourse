@@ -56,6 +56,7 @@ func (pool Pool) FindOrSelectWorker(
 	labels := metric.StepsWaitingLabels{
 		Platform:   workerSpec.Platform,
 		TeamId:     strconv.Itoa(workerSpec.TeamID),
+		TeamName:   containerSpec.TeamName,
 		Type:       string(containerSpec.Type),
 		WorkerTags: strings.Join(workerSpec.Tags, "_"),
 	}

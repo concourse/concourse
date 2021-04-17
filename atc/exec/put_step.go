@@ -45,14 +45,13 @@ type PutDelegate interface {
 // PutStep produces a resource version using preconfigured params and any data
 // available in the worker.ArtifactRepository.
 type PutStep struct {
-	planID                atc.PlanID
-	plan                  atc.PutPlan
-	metadata              StepMetadata
-	containerMetadata     db.ContainerMetadata
-	resourceConfigFactory db.ResourceConfigFactory
-	strategy              worker.PlacementStrategy
-	workerPool            Pool
-	delegateFactory       PutDelegateFactory
+	planID            atc.PlanID
+	plan              atc.PutPlan
+	metadata          StepMetadata
+	containerMetadata db.ContainerMetadata
+	strategy          worker.PlacementStrategy
+	workerPool        Pool
+	delegateFactory   PutDelegateFactory
 }
 
 func NewPutStep(
@@ -60,20 +59,18 @@ func NewPutStep(
 	plan atc.PutPlan,
 	metadata StepMetadata,
 	containerMetadata db.ContainerMetadata,
-	resourceConfigFactory db.ResourceConfigFactory,
 	strategy worker.PlacementStrategy,
 	workerPool Pool,
 	delegateFactory PutDelegateFactory,
 ) Step {
 	return &PutStep{
-		planID:                planID,
-		plan:                  plan,
-		metadata:              metadata,
-		containerMetadata:     containerMetadata,
-		resourceConfigFactory: resourceConfigFactory,
-		workerPool:            workerPool,
-		strategy:              strategy,
-		delegateFactory:       delegateFactory,
+		planID:            planID,
+		plan:              plan,
+		metadata:          metadata,
+		containerMetadata: containerMetadata,
+		workerPool:        workerPool,
+		strategy:          strategy,
+		delegateFactory:   delegateFactory,
 	}
 }
 

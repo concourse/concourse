@@ -8,7 +8,8 @@ import (
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/build"
-	"github.com/concourse/concourse/atc/worker/workerfakes"
+	"github.com/concourse/concourse/atc/exec/execfakes"
+	"github.com/concourse/concourse/atc/runtime/runtimetest"
 	"github.com/concourse/concourse/vars"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -26,7 +27,7 @@ var _ = Describe("ArtifactInputStep", func() {
 		stepErr        error
 		plan           atc.Plan
 		fakeBuild      *dbfakes.FakeBuild
-		fakeWorkerPool *workerfakes.FakePool
+		fakeWorkerPool *execfakes.FakePool
 	)
 
 	BeforeEach(func() {
@@ -35,7 +36,7 @@ var _ = Describe("ArtifactInputStep", func() {
 		state = exec.NewRunState(noopStepper, vars.StaticVariables{}, false)
 
 		fakeBuild = new(dbfakes.FakeBuild)
-		fakeWorkerPool = new(workerfakes.FakePool)
+		fakeWorkerPool = new(execfakes.FakePool)
 
 		plan = atc.Plan{ArtifactInput: &atc.ArtifactInputPlan{34, "some-input-artifact-name"}}
 		step = exec.NewArtifactInputStep(plan, fakeBuild, fakeWorkerPool)
@@ -94,7 +95,7 @@ var _ = Describe("ArtifactInputStep", func() {
 
 			Context("when looking up the worker volume fails", func() {
 				BeforeEach(func() {
-					fakeWorkerPool.FindVolumeReturns(nil, false, errors.New("nope"))
+					fakeWorkerPool.LocateVolumeReturns(nil, nil, false, errors.New("nope"))
 				})
 				It("returns the error", func() {
 					Expect(stepErr).To(HaveOccurred())
@@ -103,26 +104,23 @@ var _ = Describe("ArtifactInputStep", func() {
 
 			Context("when the worker volume does not exist", func() {
 				BeforeEach(func() {
-					fakeWorkerPool.FindVolumeReturns(nil, false, nil)
+					fakeWorkerPool.LocateVolumeReturns(nil, nil, false, nil)
 				})
-				It("returns the error", func() {
+				It("returns an error", func() {
 					Expect(stepErr).To(HaveOccurred())
 				})
 			})
 
 			Context("when the volume does exist", func() {
-				var fakeWorkerVolume *workerfakes.FakeVolume
+				var volume *runtimetest.Volume
 				var fakeDBWorkerArtifact *dbfakes.FakeWorkerArtifact
-				var fakeDBCreatedVolume *dbfakes.FakeCreatedVolume
 
 				BeforeEach(func() {
-					fakeWorkerVolume = new(workerfakes.FakeVolume)
-					fakeWorkerPool.FindVolumeReturns(fakeWorkerVolume, true, nil)
+					volume = runtimetest.NewVolume("some-volume")
+					fakeWorkerPool.LocateVolumeReturns(volume, runtimetest.NewWorker("worker"), true, nil)
 
 					fakeDBWorkerArtifact = new(dbfakes.FakeWorkerArtifact)
-					fakeDBCreatedVolume = new(dbfakes.FakeCreatedVolume)
-					fakeDBCreatedVolume.HandleReturns("some-volume-handle")
-					fakeDBWorkerArtifact.VolumeReturns(fakeDBCreatedVolume, true, nil)
+					fakeDBWorkerArtifact.VolumeReturns(volume.DBVolume(), true, nil)
 					fakeBuild.ArtifactReturns(fakeDBWorkerArtifact, nil)
 				})
 
@@ -132,7 +130,7 @@ var _ = Describe("ArtifactInputStep", func() {
 					Expect(stepErr).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 
-					Expect(artifact.ID()).To(Equal("some-volume-handle"))
+					Expect(artifact.Handle()).To(Equal("some-volume"))
 				})
 
 				It("succeeds", func() {

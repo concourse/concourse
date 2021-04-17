@@ -19,7 +19,6 @@ import (
 	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/atc/policy/policyfakes"
 	"github.com/concourse/concourse/atc/runtime/runtimetest"
-	"github.com/concourse/concourse/atc/worker/workerfakes"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
 	"github.com/onsi/gomega/gbytes"
@@ -95,9 +94,9 @@ jobs:
 		fakeDelegate        *execfakes.FakeSetPipelineStepDelegate
 		fakeDelegateFactory *execfakes.FakeSetPipelineStepDelegateFactory
 
-		fakeAgent   *policyfakes.FakeAgent
+		fakeAgent *policyfakes.FakeAgent
 
-		fakeArtifactStreamer *workerfakes.FakeArtifactStreamer
+		fakeStreamer *execfakes.FakeStreamer
 
 		spPlan             *atc.SetPipelinePlan
 		artifactRepository *build.Repository
@@ -178,7 +177,7 @@ jobs:
 		fakeAgent.CheckReturns(policy.PassedPolicyCheck(), nil)
 		fakePolicyAgentFactory.NewAgentReturns(fakeAgent, nil)
 
-		fakeArtifactStreamer = new(workerfakes.FakeArtifactStreamer)
+		fakeStreamer = new(execfakes.FakeStreamer)
 
 		spPlan = &atc.SetPipelinePlan{
 			Name:         "some-pipeline",
@@ -204,7 +203,7 @@ jobs:
 			fakeDelegateFactory,
 			fakeTeamFactory,
 			fakeBuildFactory,
-			fakeArtifactStreamer,
+			fakeStreamer,
 		)
 
 		stepOk, stepErr = spStep.Run(ctx, state)
@@ -226,18 +225,17 @@ jobs:
 	Context("when file is configured", func() {
 		Context("pipeline file not exist", func() {
 			BeforeEach(func() {
-				fakeArtifactStreamer.StreamFileFromArtifactReturns(nil, errors.New("file not found"))
+				fakeStreamer.StreamFileReturns(nil, errors.New("file not found"))
 			})
 
 			It("should fail with error of file not configured", func() {
-				Expect(stepErr).To(HaveOccurred())
-				Expect(stepErr.Error()).To(Equal("file not found"))
+				Expect(stepErr).To(MatchError("file not found"))
 			})
 		})
 
 		Context("when pipeline file exists but bad syntax", func() {
 			BeforeEach(func() {
-				fakeArtifactStreamer.StreamFileFromArtifactReturns(&fakeReadCloser{str: badPipelineContentWithInvalidSyntax}, nil)
+				fakeStreamer.StreamFileReturns(&fakeReadCloser{str: badPipelineContentWithInvalidSyntax}, nil)
 			})
 
 			It("should not return error", func() {
@@ -258,7 +256,7 @@ jobs:
 
 		Context("when pipeline file exists but is empty", func() {
 			BeforeEach(func() {
-				fakeArtifactStreamer.StreamFileFromArtifactReturns(&fakeReadCloser{str: badPipelineContentWithEmptyContent}, nil)
+				fakeStreamer.StreamFileReturns(&fakeReadCloser{str: badPipelineContentWithEmptyContent}, nil)
 			})
 
 			It("should return an error", func() {
@@ -276,7 +274,7 @@ jobs:
 
 		Context("when pipeline file is good", func() {
 			BeforeEach(func() {
-				fakeArtifactStreamer.StreamFileFromArtifactReturns(&fakeReadCloser{str: pipelineContent}, nil)
+				fakeStreamer.StreamFileReturns(&fakeReadCloser{str: pipelineContent}, nil)
 			})
 
 			Context("when get pipeline fails", func() {
@@ -358,8 +356,8 @@ jobs:
 					})
 				})
 
-				Context("when policy check fails", func(){
-					BeforeEach(func(){
+				Context("when policy check fails", func() {
+					BeforeEach(func() {
 						fakeDelegate.CheckRunSetPipelinePolicyReturns(errors.New("policy-check-error"))
 					})
 

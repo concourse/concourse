@@ -17,20 +17,7 @@ import (
 
 const GetResourceLockInterval = 5 * time.Second
 
-//go:generate counterfeiter . Getter
-
-type Getter interface {
-	Get(
-		context.Context,
-		runtime.Worker,
-		func(ctx context.Context) (runtime.Container, []runtime.VolumeMount, error),
-		Resource,
-		db.UsedResourceCache,
-		io.Writer,
-	) (VersionResult, runtime.ProcessResult, runtime.Volume, error)
-}
-
-type getter struct {
+type Getter struct {
 	lockFactory          lock.LockFactory
 	clock                clock.Clock
 	resourceCacheFactory db.ResourceCacheFactory
@@ -38,7 +25,7 @@ type getter struct {
 }
 
 func NewGetter(lockFactory lock.LockFactory, clock clock.Clock, resourceCacheFactory db.ResourceCacheFactory, volumeRepo db.VolumeRepository) Getter {
-	return getter{
+	return Getter{
 		lockFactory:          lockFactory,
 		clock:                clock,
 		resourceCacheFactory: resourceCacheFactory,
@@ -46,7 +33,7 @@ func NewGetter(lockFactory lock.LockFactory, clock clock.Clock, resourceCacheFac
 	}
 }
 
-func (g getter) Get(
+func (g Getter) Get(
 	ctx context.Context,
 	worker runtime.Worker,
 	containerFactory func(ctx context.Context) (runtime.Container, []runtime.VolumeMount, error),
@@ -84,7 +71,7 @@ func (g getter) Get(
 	}
 }
 
-func (g getter) getUnderLock(
+func (g Getter) getUnderLock(
 	ctx context.Context,
 	logger lager.Logger,
 	worker runtime.Worker,
@@ -126,7 +113,7 @@ func (g getter) getUnderLock(
 	return result, processResult, volume, true, nil
 }
 
-func (g getter) findCache(
+func (g Getter) findCache(
 	ctx context.Context,
 	logger lager.Logger,
 	worker runtime.Worker,
@@ -167,7 +154,7 @@ func (g getter) findCache(
 	return result, runtime.ProcessResult{ExitStatus: 0}, volume, true, nil
 }
 
-func (g getter) getAndCreateCache(
+func (g Getter) getAndCreateCache(
 	ctx context.Context,
 	logger lager.Logger,
 	worker runtime.Worker,

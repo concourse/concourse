@@ -99,11 +99,14 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 
 	delegate.Initializing(logger)
 
-	timeout := step.defaultCheckTimeout.String()
+	timeout := step.defaultCheckTimeout
 	if step.plan.Timeout != "" {
-		timeout = step.plan.Timeout
+		var err error
+		timeout, err = time.ParseDuration(step.plan.Timeout)
+		if err != nil {
+			return false, fmt.Errorf("parse timeout: %w", err)
+		}
 	}
-
 	source, err := creds.NewSource(state, step.plan.Source).Evaluate()
 	if err != nil {
 		return false, fmt.Errorf("resource config creds evaluation: %w", err)
@@ -162,7 +165,7 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 		}
 
 		versions, processResult, runErr := step.runCheck(ctx, logger, delegate, timeout, resourceConfig, source, resourceTypes, fromVersion)
-		if runErr != nil {
+		if runErr != nil || processResult.ExitStatus != 0 {
 			metric.Metrics.ChecksFinishedWithError.Inc()
 
 			if _, err := scope.UpdateLastCheckEndTime(false); err != nil {
@@ -178,12 +181,12 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 				return false, nil
 			}
 
-			return false, fmt.Errorf("run check: %w", runErr)
-		}
+			if processResult.ExitStatus != 0 {
+				delegate.Finished(logger, false)
+				return false, nil
+			}
 
-		if processResult.ExitStatus != 0 {
-			delegate.Finished(logger, false)
-			return false, nil
+			return false, fmt.Errorf("run check: %w", runErr)
 		}
 
 		metric.Metrics.ChecksFinishedWithSuccess.Inc()
@@ -226,7 +229,7 @@ func (step *CheckStep) runCheck(
 	ctx context.Context,
 	logger lager.Logger,
 	delegate CheckDelegate,
-	timeout string,
+	timeout time.Duration,
 	resourceConfig db.ResourceConfig,
 	source atc.Source,
 	resourceTypes atc.VersionedResourceTypes,
@@ -296,10 +299,7 @@ func (step *CheckStep) runCheck(
 		)
 	}()
 
-	ctx, cancel, err := MaybeTimeout(ctx, timeout)
-	if err != nil {
-		return nil, runtime.ProcessResult{}, err
-	}
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	ctx = lagerctx.NewContext(ctx, logger)
 
 	defer cancel()

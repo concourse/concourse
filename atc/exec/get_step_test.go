@@ -6,22 +6,22 @@ import (
 	"fmt"
 	"time"
 
+	"code.cloudfoundry.org/clock/fakeclock"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
+	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/resource"
-	"github.com/concourse/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/concourse/atc/runtime"
+	"github.com/concourse/concourse/atc/runtime/runtimetest"
 	"github.com/concourse/concourse/atc/worker"
-	"github.com/concourse/concourse/atc/worker/workerfakes"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
 	"github.com/onsi/gomega/gbytes"
 	"go.opentelemetry.io/otel/oteltest"
-	"go.opentelemetry.io/otel/trace"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -34,14 +34,15 @@ var _ = Describe("GetStep", func() {
 		stdoutBuf *gbytes.Buffer
 		stderrBuf *gbytes.Buffer
 
-		fakePool     *workerfakes.FakePool
-		fakeClient   *workerfakes.FakeClient
-		fakeStrategy *workerfakes.FakeContainerPlacementStrategy
+		fakePool        *execfakes.FakePool
+		chosenWorker    *runtimetest.Worker
+		chosenContainer *runtimetest.WorkerContainer
+		getVolume       *runtimetest.Volume
 
-		fakeResourceFactory      *resourcefakes.FakeResourceFactory
-		fakeResource             *resourcefakes.FakeResource
 		fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
 		fakeResourceCache        *dbfakes.FakeUsedResourceCache
+
+		resourceGetter resource.Getter
 
 		fakeDelegate        *execfakes.FakeGetDelegate
 		fakeDelegateFactory *execfakes.FakeGetDelegateFactory
@@ -50,8 +51,8 @@ var _ = Describe("GetStep", func() {
 
 		getPlan *atc.GetPlan
 
+		runState           exec.RunState
 		artifactRepository *build.Repository
-		fakeState          *execfakes.FakeRunState
 
 		getStep exec.Step
 		stepOk  bool
@@ -73,32 +74,51 @@ var _ = Describe("GetStep", func() {
 			PipelineName: "some-pipeline",
 		}
 
-		planID = "56"
+		planID = atc.PlanID("56")
 
-		shouldRunGetStep bool
+		expectedOwner = db.NewBuildStepContainerOwner(stepMetadata.BuildID, planID, stepMetadata.TeamID)
 	)
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithCancel(context.Background())
 
-		fakeClient = new(workerfakes.FakeClient)
-		fakeClient.NameReturns("some-worker")
-		fakePool = new(workerfakes.FakePool)
-		fakePool.SelectWorkerReturns(fakeClient, 0, nil)
-		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
+		chosenWorker = runtimetest.NewWorker("worker").
+			WithContainer(
+				expectedOwner,
+				runtimetest.NewContainer().WithProcess(
+					runtime.ProcessSpec{
+						ID:   "resource",
+						Path: "/opt/resource/in",
+						Args: []string{resource.ResourcesDir("get")},
+					},
+					runtimetest.ProcessStub{},
+				),
+				nil,
+			)
+		chosenContainer = chosenWorker.Containers[0]
+		getVolume = runtimetest.NewVolume("get-volume")
+		chosenContainer.Mounts = []runtime.VolumeMount{
+			{
+				Volume:    getVolume,
+				MountPath: resource.ResourcesDir("get"),
+			},
+		}
 
-		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
-		fakeResource = new(resourcefakes.FakeResource)
+		fakePool = new(execfakes.FakePool)
+		fakePool.FindOrSelectWorkerReturns(chosenWorker, nil)
+
 		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 		fakeResourceCache = new(dbfakes.FakeUsedResourceCache)
 
-		artifactRepository = build.NewRepository()
-		fakeState = new(execfakes.FakeRunState)
-		fakeState.ArtifactRepositoryReturns(artifactRepository)
-		fakeState.GetStub = vars.StaticVariables{
+		fakeClock := fakeclock.NewFakeClock(time.Unix(0, 123))
+		fakeVolumeRepo := new(dbfakes.FakeVolumeRepository)
+		resourceGetter = resource.NewGetter(lock.NewInMemoryFactory(), fakeClock, fakeResourceCacheFactory, fakeVolumeRepo)
+
+		runState = exec.NewRunState(noopStepper, vars.StaticVariables{
 			"source-var": "super-secret-source",
 			"params-var": "super-secret-params",
-		}.Get
+		}, false)
+		artifactRepository = runState.ArtifactRepository()
 
 		fakeDelegate = new(execfakes.FakeGetDelegate)
 		stdoutBuf = gbytes.NewBuffer()
@@ -138,8 +158,6 @@ var _ = Describe("GetStep", func() {
 				},
 			},
 		}
-
-		shouldRunGetStep = true
 	})
 
 	AfterEach(func() {
@@ -153,43 +171,20 @@ var _ = Describe("GetStep", func() {
 		}
 
 		fakeResourceCacheFactory.FindOrCreateResourceCacheReturns(fakeResourceCache, nil)
-		fakeResourceFactory.NewResourceReturns(fakeResource)
 
 		getStep = exec.NewGetStep(
 			plan.ID,
 			*plan.Get,
 			stepMetadata,
 			containerMetadata,
-			fakeResourceFactory,
+			resourceGetter,
 			fakeResourceCacheFactory,
-			fakeStrategy,
+			nil,
 			fakeDelegateFactory,
 			fakePool,
 		)
 
-		stepOk, stepErr = getStep.Run(ctx, fakeState)
-	})
-
-	var runCtx context.Context
-	var owner db.ContainerOwner
-	var containerSpec worker.ContainerSpec
-	var metadata db.ContainerMetadata
-	var processSpec runtime.ProcessSpec
-	var startEventDelegate runtime.StartingEventDelegate
-	var resourceCache db.UsedResourceCache
-	var runResource resource.Resource
-
-	JustBeforeEach(func() {
-		if shouldRunGetStep {
-			Expect(fakeClient.RunGetStepCallCount()).To(Equal(1), "get step should have run")
-			runCtx, owner, containerSpec, metadata, processSpec, startEventDelegate, resourceCache, runResource = fakeClient.RunGetStepArgsForCall(0)
-		} else {
-			Expect(fakeClient.RunGetStepCallCount()).To(Equal(0), "get step should NOT have run")
-		}
-	})
-
-	It("propagates span context to the worker client", func() {
-		Expect(runCtx).To(Equal(rewrapLogger(spanCtx)))
+		stepOk, stepErr = getStep.Run(ctx, runState)
 	})
 
 	It("constructs the resource cache correctly", func() {
@@ -224,166 +219,52 @@ var _ = Describe("GetStep", func() {
 	})
 
 	Context("when tracing is enabled", func() {
-		var buildSpan trace.Span
-
 		BeforeEach(func() {
 			tracing.ConfigureTraceProvider(oteltest.NewTracerProvider())
 
-			spanCtx, buildSpan = tracing.StartSpan(ctx, "build", nil)
+			spanCtx, buildSpan := tracing.StartSpan(ctx, "build", nil)
 			fakeDelegate.StartSpanReturns(spanCtx, buildSpan)
+
+			chosenContainer.ProcessDefs[0].Stub.Do = func(ctx context.Context, _ *runtimetest.Process) error {
+				defer GinkgoRecover()
+				// Properly propagates span context
+				Expect(tracing.FromContext(ctx)).To(Equal(buildSpan))
+				return nil
+			}
 		})
 
 		AfterEach(func() {
 			tracing.Configured = false
 		})
 
-		It("propagates span context to the worker client", func() {
-			Expect(runCtx).To(Equal(rewrapLogger(spanCtx)))
-		})
-
 		It("populates the TRACEPARENT env var", func() {
-			Expect(containerSpec.Env).To(ContainElement(MatchRegexp(`TRACEPARENT=.+`)))
+			Expect(chosenContainer.Spec.Env).To(ContainElement(MatchRegexp(`TRACEPARENT=.+`)))
 		})
 	})
 
-	Context("found from local cache", func() {
-		var (
-			fakeWorker *workerfakes.FakeWorker
-			fakeVolume *workerfakes.FakeVolume
-		)
-
-		BeforeEach(func() {
-			atc.EnableCacheStreamedVolumes = true
-			fakeWorker = new(workerfakes.FakeWorker)
-			fakeVolume = new(workerfakes.FakeVolume)
-			fakeWorker.FindVolumeForResourceCacheReturns(fakeVolume, true, nil)
-			fakeVolume.HandleReturns("some-cached-volume-handle")
-			fakeResourceCache.VersionReturns(atc.Version{"some": "version"})
-		})
-
-		Context("when FindWorkerForResourceCache fails", func() {
-			BeforeEach(func() {
-				fakePool.FindWorkersForResourceCacheReturns(nil, errors.New("some-error"))
-				shouldRunGetStep = true
-			})
-
-			It("the error should be ignored, and run normal get step", func() {
-				// Do nothing here, JustBeforeEach() will check shouldRunGetStep
-			})
-		})
-
-		Context("when FindWorkerForResourceCache returns no worker", func() {
-			BeforeEach(func() {
-				fakePool.FindWorkersForResourceCacheReturns([]worker.Worker{}, nil)
-				shouldRunGetStep = true
-			})
-
-			It("should run normal get step", func() {
-				// Do nothing here, JustBeforeEach() will check shouldRunGetStep
-			})
-		})
-
-		Context("when FindWorkerForResourceCache returns some workers", func() {
-			BeforeEach(func() {
-				fakePool.FindWorkersForResourceCacheReturns([]worker.Worker{fakeWorker}, nil)
-				shouldRunGetStep = false
-			})
-
-			Context("when load metadata fails", func() {
-				BeforeEach(func() {
-					fakeResourceCacheFactory.ResourceCacheMetadataReturns(nil, errors.New("some-error"))
-					shouldRunGetStep = false
-				})
-
-				It("returns an err", func() {
-					Expect(stepErr).To(MatchError(ContainSubstring("some-error")))
-					Expect(stepOk).To(BeFalse())
-				})
-			})
-
-			Context("when load metadata succeeds", func() {
-				BeforeEach(func() {
-					fakeResourceCacheFactory.ResourceCacheMetadataReturns(db.ResourceConfigMetadataFields{
-						{
-							Name:  "some",
-							Value: "metadata",
-						},
-					}, nil)
-					shouldRunGetStep = false
-				})
-
-				It("not return error", func() {
-					Expect(stepErr).ToNot(HaveOccurred())
-				})
-
-				It("marks the step as succeeded", func() {
-					Expect(stepOk).To(BeTrue())
-				})
-
-				It("registers the resulting artifact in the RunState.ArtifactRepository", func() {
-					artifact, found := artifactRepository.ArtifactFor(build.ArtifactName(getPlan.Name))
-					Expect(artifact).To(Equal(runtime.GetArtifact{VolumeHandle: "some-cached-volume-handle"}))
-					Expect(found).To(BeTrue())
-				})
-
-				It("stores the resource cache as the step result", func() {
-					Expect(fakeState.StoreResultCallCount()).To(Equal(1))
-					key, val := fakeState.StoreResultArgsForCall(0)
-					Expect(key).To(Equal(atc.PlanID(planID)))
-					Expect(val).To(Equal(fakeResourceCache))
-				})
-
-				It("finishes the step via the delegate", func() {
-					Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
-					_, status, info := fakeDelegate.FinishedArgsForCall(0)
-					Expect(status).To(Equal(exec.ExitStatus(0)))
-					Expect(info.Version).To(Equal(atc.Version{"some": "version"}))
-					Expect(info.Metadata).To(Equal([]atc.MetadataField{{Name: "some", Value: "metadata"}}))
-				})
-
-				Context("when EnableCacheStreamedVolumes is disabled", func() {
-					BeforeEach(func() {
-						atc.EnableCacheStreamedVolumes = false
-						shouldRunGetStep = true
-					})
-
-					It("should run normal get step", func() {
-						// Do nothing here, JustBeforeEach() will check shouldRunGetStep
-					})
-				})
-			})
-		})
-	})
-
-	It("calls RunGetStep with the correct ContainerOwner", func() {
-		Expect(owner).To(Equal(db.NewBuildStepContainerOwner(
-			stepMetadata.BuildID,
-			atc.PlanID(planID),
-			stepMetadata.TeamID,
-		)))
-	})
-
-	It("calls RunGetStep with the correct ContainerSpec", func() {
-		Expect(containerSpec).To(Equal(
-			worker.ContainerSpec{
-				ImageSpec: worker.ImageSpec{
+	It("runs with the correct ContainerSpec", func() {
+		Expect(chosenContainer.Spec).To(Equal(
+			&runtime.ContainerSpec{
+				ImageSpec: runtime.ImageSpec{
 					ResourceType: "some-base-type",
 				},
-				TeamID:   stepMetadata.TeamID,
-				TeamName: stepMetadata.TeamName,
-				Type:     containerMetadata.Type,
-				Env:      stepMetadata.Env(),
+				TeamID:         stepMetadata.TeamID,
+				TeamName:       stepMetadata.TeamName,
+				Type:           containerMetadata.Type,
+				Env:            stepMetadata.Env(),
+				Dir:            resource.ResourcesDir("get"),
+				CertsBindMount: true,
 			},
 		))
 	})
 
 	Describe("worker selection", func() {
 		var ctx context.Context
-		var workerSpec worker.WorkerSpec
+		var workerSpec worker.Spec
 
 		JustBeforeEach(func() {
-			Expect(fakePool.SelectWorkerCallCount()).To(Equal(1))
-			ctx, _, _, workerSpec, _, _ = fakePool.SelectWorkerArgsForCall(0)
+			Expect(fakePool.FindOrSelectWorkerCallCount()).To(Equal(1))
+			ctx, _, _, workerSpec, _, _ = fakePool.FindOrSelectWorkerArgsForCall(0)
 		})
 
 		It("doesn't enforce a timeout", func() {
@@ -393,7 +274,7 @@ var _ = Describe("GetStep", func() {
 
 		It("calls SelectWorker with the correct WorkerSpec", func() {
 			Expect(workerSpec).To(Equal(
-				worker.WorkerSpec{
+				worker.Spec{
 					ResourceType: "some-base-type",
 					TeamID:       stepMetadata.TeamID,
 				},
@@ -403,7 +284,7 @@ var _ = Describe("GetStep", func() {
 		It("emits a SelectedWorker event", func() {
 			Expect(fakeDelegate.SelectedWorkerCallCount()).To(Equal(1))
 			_, workerName := fakeDelegate.SelectedWorkerArgsForCall(0)
-			Expect(workerName).To(Equal("some-worker"))
+			Expect(workerName).To(Equal("worker"))
 		})
 
 		Context("when the plan specifies tags", func() {
@@ -418,8 +299,7 @@ var _ = Describe("GetStep", func() {
 
 		Context("when selecting a worker fails", func() {
 			BeforeEach(func() {
-				fakePool.SelectWorkerReturns(nil, 0, errors.New("nope"))
-				shouldRunGetStep = false
+				fakePool.FindOrSelectWorkerReturns(nil, errors.New("nope"))
 			})
 
 			It("returns an err", func() {
@@ -430,39 +310,32 @@ var _ = Describe("GetStep", func() {
 
 	Context("when the plan specifies a timeout", func() {
 		BeforeEach(func() {
-			getPlan.Timeout = "1h"
+			getPlan.Timeout = "1ms"
+
+			chosenContainer.ProcessDefs[0].Stub.Do = func(ctx context.Context, _ *runtimetest.Process) error {
+				select {
+				case <-ctx.Done():
+					return fmt.Errorf("wrapped: %w", ctx.Err())
+				case <-time.After(100 * time.Millisecond):
+					return nil
+				}
+			}
 		})
 
-		It("enforces it on the get", func() {
-			t, ok := runCtx.Deadline()
-			Expect(ok).To(BeTrue())
-			Expect(t).To(BeTemporally("~", time.Now().Add(time.Hour), time.Minute))
+		It("fails without error", func() {
+			Expect(stepOk).To(BeFalse())
+			Expect(stepErr).To(BeNil())
 		})
 
-		Context("when running times out", func() {
-			BeforeEach(func() {
-				fakeClient.RunGetStepReturns(
-					worker.GetResult{},
-					fmt.Errorf("wrapped: %w", context.DeadlineExceeded),
-				)
-			})
-
-			It("fails without error", func() {
-				Expect(stepOk).To(BeFalse())
-				Expect(stepErr).To(BeNil())
-			})
-
-			It("emits an Errored event", func() {
-				Expect(fakeDelegate.ErroredCallCount()).To(Equal(1))
-				_, status := fakeDelegate.ErroredArgsForCall(0)
-				Expect(status).To(Equal(exec.TimeoutLogMessage))
-			})
+		It("emits an Errored event", func() {
+			Expect(fakeDelegate.ErroredCallCount()).To(Equal(1))
+			_, status := fakeDelegate.ErroredArgsForCall(0)
+			Expect(status).To(Equal(exec.TimeoutLogMessage))
 		})
 
 		Context("when the timeout is bogus", func() {
 			BeforeEach(func() {
 				getPlan.Timeout = "bogus"
-				shouldRunGetStep = false
 			})
 
 			It("fails miserably", func() {
@@ -472,16 +345,16 @@ var _ = Describe("GetStep", func() {
 	})
 
 	Context("when using a custom resource type", func() {
-		var fakeImageSpec worker.ImageSpec
+		var fetchedImageSpec runtime.ImageSpec
 
 		BeforeEach(func() {
 			getPlan.Type = "some-custom-type"
 
-			fakeImageSpec = worker.ImageSpec{
-				ImageArtifactSource: new(workerfakes.FakeStreamableArtifactSource),
+			fetchedImageSpec = runtime.ImageSpec{
+				ImageVolume: "some-volume",
 			}
 
-			fakeDelegate.FetchImageReturns(fakeImageSpec, nil)
+			fakeDelegate.FetchImageReturns(fetchedImageSpec, nil)
 		})
 
 		It("fetches the resource type image and uses it for the container", func() {
@@ -559,19 +432,19 @@ var _ = Describe("GetStep", func() {
 		})
 
 		It("sets the bottom-most type in the worker spec", func() {
-			Expect(fakePool.SelectWorkerCallCount()).To(Equal(1))
-			_, _, _, workerSpec, _, _ := fakePool.SelectWorkerArgsForCall(0)
+			Expect(fakePool.FindOrSelectWorkerCallCount()).To(Equal(1))
+			_, _, _, workerSpec, _, _ := fakePool.FindOrSelectWorkerArgsForCall(0)
 
 			Expect(workerSpec).To(Equal(
-				worker.WorkerSpec{
+				worker.Spec{
 					TeamID:       stepMetadata.TeamID,
 					ResourceType: "registry-image",
 				},
 			))
 		})
 
-		It("calls RunGetStep with the correct ImageSpec", func() {
-			Expect(containerSpec.ImageSpec).To(Equal(fakeImageSpec))
+		It("runs with the correct ImageSpec", func() {
+			Expect(chosenContainer.Spec.ImageSpec).To(Equal(fetchedImageSpec))
 		})
 
 		Context("when the resource type is privileged", func() {
@@ -587,76 +460,37 @@ var _ = Describe("GetStep", func() {
 		})
 	})
 
-	It("calls RunGetStep with the correct ContainerMetadata", func() {
-		Expect(metadata).To(Equal(
-			db.ContainerMetadata{
-				PipelineID:       4567,
-				Type:             db.ContainerTypeGet,
-				StepName:         "some-step",
-				WorkingDirectory: "/tmp/build/get",
-			},
-		))
-	})
+	Context("when running the script returns an err", func() {
+		disaster := errors.New("oh no")
 
-	It("calls RunGetStep with the correct StartingEventDelegate", func() {
-		Expect(startEventDelegate).To(Equal(fakeDelegate))
-	})
-
-	It("calls RunGetStep with the correct ProcessSpec", func() {
-		Expect(processSpec).To(Equal(
-			runtime.ProcessSpec{
-				Path:         "/opt/resource/in",
-				Args:         []string{resource.ResourcesDir("get")},
-				StdoutWriter: fakeDelegate.Stdout(),
-				StderrWriter: fakeDelegate.Stderr(),
-			},
-		))
-	})
-
-	It("calls RunGetStep with the correct ResourceCache", func() {
-		Expect(resourceCache).To(Equal(fakeResourceCache))
-	})
-
-	It("calls RunGetStep with the correct Resource", func() {
-		Expect(runResource).To(Equal(fakeResource))
-	})
-
-	Context("when Client.RunGetStep returns an err", func() {
-		var disaster error
 		BeforeEach(func() {
-			disaster = errors.New("disaster")
-			fakeClient.RunGetStepReturns(worker.GetResult{}, disaster)
+			chosenContainer.ProcessDefs[0].Stub.Err = disaster.Error()
 		})
+
 		It("returns an err", func() {
-			Expect(fakeClient.RunGetStepCallCount()).To(Equal(1))
-			Expect(stepErr).To(HaveOccurred())
-			Expect(stepErr).To(Equal(disaster))
+			Expect(chosenContainer.Processes).To(HaveLen(1))
+			Expect(stepErr).To(MatchError(disaster))
+			Expect(stepOk).To(BeFalse())
 		})
 	})
 
-	Context("when Client.RunGetStep returns a Successful GetResult", func() {
+	Context("when the script succeeds", func() {
 		BeforeEach(func() {
-			fakeClient.RunGetStepReturns(
-				worker.GetResult{
-					ExitStatus: 0,
-					VersionResult: runtime.VersionResult{
-						Version:  atc.Version{"some": "version"},
-						Metadata: []atc.MetadataField{{Name: "some", Value: "metadata"}},
-					},
-					GetArtifact: runtime.GetArtifact{VolumeHandle: "some-volume-handle"},
-				}, nil)
+			chosenContainer.ProcessDefs[0].Stub.Output = resource.VersionResult{
+				Version:  atc.Version{"some": "version"},
+				Metadata: []atc.MetadataField{{Name: "some", Value: "metadata"}},
+			}
 		})
 
 		It("registers the resulting artifact in the RunState.ArtifactRepository", func() {
 			artifact, found := artifactRepository.ArtifactFor(build.ArtifactName(getPlan.Name))
-			Expect(artifact).To(Equal(runtime.GetArtifact{VolumeHandle: "some-volume-handle"}))
+			Expect(artifact).To(Equal(getVolume))
 			Expect(found).To(BeTrue())
 		})
 
 		It("stores the resource cache as the step result", func() {
-			Expect(fakeState.StoreResultCallCount()).To(Equal(1))
-			key, val := fakeState.StoreResultArgsForCall(0)
-			Expect(key).To(Equal(atc.PlanID(planID)))
+			var val interface{}
+			Expect(runState.Result(planID, &val)).To(BeTrue())
 			Expect(val).To(Equal(fakeResourceCache))
 		})
 
@@ -703,11 +537,7 @@ var _ = Describe("GetStep", func() {
 
 	Context("when Client.RunGetStep returns a Failed GetResult", func() {
 		BeforeEach(func() {
-			fakeClient.RunGetStepReturns(
-				worker.GetResult{
-					ExitStatus:    1,
-					VersionResult: runtime.VersionResult{},
-				}, nil)
+			chosenContainer.ProcessDefs[0].Stub.ExitStatus = 1
 		})
 
 		It("does NOT mark the step as succeeded", func() {
@@ -718,7 +548,7 @@ var _ = Describe("GetStep", func() {
 			Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
 			_, actualExitStatus, actualVersionResult := fakeDelegate.FinishedArgsForCall(0)
 			Expect(actualExitStatus).ToNot(Equal(exec.ExitStatus(0)))
-			Expect(actualVersionResult).To(Equal(runtime.VersionResult{}))
+			Expect(actualVersionResult).To(BeZero())
 		})
 
 		It("does not return an err", func() {

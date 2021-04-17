@@ -9,7 +9,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/exec"
-	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/tracing"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -47,7 +47,7 @@ type FakeSetPipelineStepDelegate struct {
 		arg1 lager.Logger
 		arg2 string
 	}
-	FetchImageStub        func(context.Context, atc.ImageResource, atc.VersionedResourceTypes, bool) (worker.ImageSpec, error)
+	FetchImageStub        func(context.Context, atc.ImageResource, atc.VersionedResourceTypes, bool) (runtime.ImageSpec, error)
 	fetchImageMutex       sync.RWMutex
 	fetchImageArgsForCall []struct {
 		arg1 context.Context
@@ -56,11 +56,11 @@ type FakeSetPipelineStepDelegate struct {
 		arg4 bool
 	}
 	fetchImageReturns struct {
-		result1 worker.ImageSpec
+		result1 runtime.ImageSpec
 		result2 error
 	}
 	fetchImageReturnsOnCall map[int]struct {
-		result1 worker.ImageSpec
+		result1 runtime.ImageSpec
 		result2 error
 	}
 	FinishedStub        func(lager.Logger, bool)
@@ -310,7 +310,7 @@ func (fake *FakeSetPipelineStepDelegate) ErroredArgsForCall(i int) (lager.Logger
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeSetPipelineStepDelegate) FetchImage(arg1 context.Context, arg2 atc.ImageResource, arg3 atc.VersionedResourceTypes, arg4 bool) (worker.ImageSpec, error) {
+func (fake *FakeSetPipelineStepDelegate) FetchImage(arg1 context.Context, arg2 atc.ImageResource, arg3 atc.VersionedResourceTypes, arg4 bool) (runtime.ImageSpec, error) {
 	fake.fetchImageMutex.Lock()
 	ret, specificReturn := fake.fetchImageReturnsOnCall[len(fake.fetchImageArgsForCall)]
 	fake.fetchImageArgsForCall = append(fake.fetchImageArgsForCall, struct {
@@ -338,7 +338,7 @@ func (fake *FakeSetPipelineStepDelegate) FetchImageCallCount() int {
 	return len(fake.fetchImageArgsForCall)
 }
 
-func (fake *FakeSetPipelineStepDelegate) FetchImageCalls(stub func(context.Context, atc.ImageResource, atc.VersionedResourceTypes, bool) (worker.ImageSpec, error)) {
+func (fake *FakeSetPipelineStepDelegate) FetchImageCalls(stub func(context.Context, atc.ImageResource, atc.VersionedResourceTypes, bool) (runtime.ImageSpec, error)) {
 	fake.fetchImageMutex.Lock()
 	defer fake.fetchImageMutex.Unlock()
 	fake.FetchImageStub = stub
@@ -351,28 +351,28 @@ func (fake *FakeSetPipelineStepDelegate) FetchImageArgsForCall(i int) (context.C
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
-func (fake *FakeSetPipelineStepDelegate) FetchImageReturns(result1 worker.ImageSpec, result2 error) {
+func (fake *FakeSetPipelineStepDelegate) FetchImageReturns(result1 runtime.ImageSpec, result2 error) {
 	fake.fetchImageMutex.Lock()
 	defer fake.fetchImageMutex.Unlock()
 	fake.FetchImageStub = nil
 	fake.fetchImageReturns = struct {
-		result1 worker.ImageSpec
+		result1 runtime.ImageSpec
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeSetPipelineStepDelegate) FetchImageReturnsOnCall(i int, result1 worker.ImageSpec, result2 error) {
+func (fake *FakeSetPipelineStepDelegate) FetchImageReturnsOnCall(i int, result1 runtime.ImageSpec, result2 error) {
 	fake.fetchImageMutex.Lock()
 	defer fake.fetchImageMutex.Unlock()
 	fake.FetchImageStub = nil
 	if fake.fetchImageReturnsOnCall == nil {
 		fake.fetchImageReturnsOnCall = make(map[int]struct {
-			result1 worker.ImageSpec
+			result1 runtime.ImageSpec
 			result2 error
 		})
 	}
 	fake.fetchImageReturnsOnCall[i] = struct {
-		result1 worker.ImageSpec
+		result1 runtime.ImageSpec
 		result2 error
 	}{result1, result2}
 }

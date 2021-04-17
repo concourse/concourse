@@ -11,7 +11,6 @@ import (
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/policy"
-	"github.com/concourse/concourse/atc/runtime"
 )
 
 func NewTaskDelegate(
@@ -82,7 +81,6 @@ func (d *taskDelegate) Starting(logger lager.Logger) {
 func (d *taskDelegate) Finished(
 	logger lager.Logger,
 	exitStatus exec.ExitStatus,
-	chosenWorker runtime.Worker,
 ) {
 	// PR#4398: close to flush stdout and stderr
 	d.Stdout().(io.Closer).Close()
