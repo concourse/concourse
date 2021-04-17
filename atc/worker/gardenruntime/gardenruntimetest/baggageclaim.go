@@ -1,21 +1,15 @@
 package gardenruntimetest
 
 import (
-	"archive/tar"
-	"bytes"
-	"compress/gzip"
 	"context"
-	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"net/http"
 	"net/http/httptest"
-	"path/filepath"
 	"strings"
-	"testing/fstest"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc/runtime/runtimetest"
 	"github.com/concourse/concourse/worker/baggageclaim"
 )
 
@@ -104,7 +98,7 @@ func NewVolume(handle string) *Volume {
 			Strategy:   baggageclaim.EmptyStrategy{},
 			Properties: baggageclaim.VolumeProperties{},
 		},
-		Content: fstest.MapFS{},
+		Content: runtimetest.VolumeContent{},
 	}
 }
 
@@ -113,11 +107,11 @@ type Volume struct {
 	path   string
 	Spec   baggageclaim.VolumeSpec
 
-	Content fstest.MapFS
+	Content runtimetest.VolumeContent
 }
 
-func (v Volume) WithContent(fs fstest.MapFS) *Volume {
-	v.Content = fs
+func (v Volume) WithContent(content runtimetest.VolumeContent) *Volume {
+	v.Content = content
 	return &v
 }
 
@@ -144,89 +138,11 @@ func (v *Volume) SetPrivileged(p bool) error {
 func (v Volume) GetPrivileged() (bool, error) { return v.Spec.Privileged, nil }
 
 func (v Volume) StreamIn(ctx context.Context, path string, encoding baggageclaim.Encoding, tarStream io.Reader) error {
-	if encoding != baggageclaim.GzipEncoding {
-		return errors.New("only gzip is supported for gardenruntimetest.Volume")
-	}
-
-	gzipReader, err := gzip.NewReader(tarStream)
-	if err != nil {
-		return err
-	}
-	defer gzipReader.Close()
-
-	tarReader := tar.NewReader(gzipReader)
-
-	for {
-		header, err := tarReader.Next()
-		if err == io.EOF {
-			return nil
-		}
-		if err != nil {
-			return err
-		}
-		switch header.Typeflag {
-		case tar.TypeDir:
-			continue
-		case tar.TypeReg:
-			filePath := filepath.Join(path, header.Name)
-			fileData := new(bytes.Buffer)
-			if _, err := io.Copy(fileData, tarReader); err != nil {
-				return err
-			}
-			v.Content[filePath] = &fstest.MapFile{Data: fileData.Bytes()}
-		default:
-			panic(fmt.Sprintf("unexpected tar type: %v", header.Typeflag))
-		}
-	}
+	return v.Content.StreamIn(ctx, path, encoding, tarStream)
 }
+
 func (v Volume) StreamOut(ctx context.Context, path string, encoding baggageclaim.Encoding) (io.ReadCloser, error) {
-	if encoding != baggageclaim.GzipEncoding {
-		return nil, errors.New("only gzip is supported for gardenruntimetest.Volume")
-	}
-
-	buf := new(bytes.Buffer)
-
-	gzipWriter := gzip.NewWriter(buf)
-	defer gzipWriter.Close()
-
-	tarWriter := tar.NewWriter(gzipWriter)
-	defer tarWriter.Close()
-
-	err := fs.WalkDir(v.Content, path, func(filePath string, dirEntry fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if dirEntry.IsDir() {
-			return nil
-		}
-		info, err := dirEntry.Info()
-		if err != nil {
-			return err
-		}
-		header, err := tar.FileInfoHeader(info, filePath)
-		if err != nil {
-			return err
-		}
-		header.Name = filePath
-		if err := tarWriter.WriteHeader(header); err != nil {
-			return err
-		}
-		file, err := v.Content.Open(filePath)
-		if err != nil {
-			return err
-		}
-		if _, err := io.Copy(tarWriter, file); err != nil {
-			return err
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	if err := tarWriter.Flush(); err != nil {
-		return nil, err
-	}
-	return noopCloser{buf}, nil
+	return v.Content.StreamOut(ctx, path, encoding)
 }
 
 func (v Volume) GetStreamInP2pUrl(_ context.Context, path string) (string, error) {
@@ -258,7 +174,3 @@ func (v Volume) StreamP2pOut(ctx context.Context, path string, streamInURL strin
 func (v Volume) Destroy() error {
 	return nil
 }
-
-type noopCloser struct{ io.Reader }
-
-func (noopCloser) Close() error { return nil }

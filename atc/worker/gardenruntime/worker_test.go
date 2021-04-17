@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"testing/fstest"
 	"time"
 
 	"code.cloudfoundry.org/garden"
@@ -14,6 +13,7 @@ import (
 	"github.com/concourse/concourse/atc/db/dbtest"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/runtime"
+	"github.com/concourse/concourse/atc/runtime/runtimetest"
 	"github.com/concourse/concourse/atc/worker/gardenruntime"
 	grt "github.com/concourse/concourse/atc/worker/gardenruntime/gardenruntimetest"
 	"github.com/concourse/concourse/atc/worker/workertest"
@@ -288,7 +288,7 @@ var _ = Describe("Garden Worker", func() {
 	})
 
 	Test("fetch image from volume on same worker", func() {
-		imageVolume := grt.NewVolume("local-image-volume").WithContent(fstest.MapFS{
+		imageVolume := grt.NewVolume("local-image-volume").WithContent(runtimetest.VolumeContent{
 			"metadata.json": grt.ImageMetadataFile(gardenruntime.ImageMetadata{
 				Env:  []string{"FOO=bar"},
 				User: "somebody",
@@ -358,7 +358,7 @@ var _ = Describe("Garden Worker", func() {
 	})
 
 	Test("fetch image from resource cache volume on same worker", func() {
-		imageContent := fstest.MapFS{
+		imageContent := runtimetest.VolumeContent{
 			"metadata.json": grt.ImageMetadataFile(gardenruntime.ImageMetadata{
 				Env:  []string{"FOO=bar"},
 				User: "somebody",
@@ -421,7 +421,7 @@ var _ = Describe("Garden Worker", func() {
 	})
 
 	Test("fetch image from volume on different worker", func() {
-		imageVolume := grt.NewVolume("remote-image-volume").WithContent(fstest.MapFS{
+		imageVolume := grt.NewVolume("remote-image-volume").WithContent(runtimetest.VolumeContent{
 			"metadata.json": grt.ImageMetadataFile(gardenruntime.ImageMetadata{
 				Env:  []string{"FOO=bar"},
 				User: "somebody",
@@ -503,7 +503,7 @@ var _ = Describe("Garden Worker", func() {
 	Test("input and output volumes", func() {
 		localInputVolume1 := grt.NewVolume("local-input1")
 		localInputVolume2 := grt.NewVolume("local-input2")
-		remoteInputVolume := grt.NewVolume("remote-input").WithContent(fstest.MapFS{
+		remoteInputVolume := grt.NewVolume("remote-input").WithContent(runtimetest.VolumeContent{
 			"file1": {Data: []byte("content")},
 		})
 		scenario := Setup(
@@ -803,7 +803,7 @@ var _ = Describe("Garden Worker", func() {
 	})
 
 	Test("privileged image produces privileged volumes", func() {
-		imageVolume := grt.NewVolume("image-volume").WithContent(fstest.MapFS{
+		imageVolume := grt.NewVolume("image-volume").WithContent(runtimetest.VolumeContent{
 			"metadata.json": grt.ImageMetadataFile(gardenruntime.ImageMetadata{}),
 		})
 		inputVolume := grt.NewVolume("input")
@@ -869,7 +869,7 @@ var _ = Describe("Garden Worker", func() {
 	})
 
 	Test("unprivileged image produces unprivileged volumes", func() {
-		imageVolume := grt.NewVolume("image-volume").WithContent(fstest.MapFS{
+		imageVolume := grt.NewVolume("image-volume").WithContent(runtimetest.VolumeContent{
 			"metadata.json": grt.ImageMetadataFile(gardenruntime.ImageMetadata{}),
 		})
 		inputVolume := grt.NewVolume("input")

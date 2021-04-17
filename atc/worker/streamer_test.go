@@ -2,10 +2,10 @@ package worker_test
 
 import (
 	"context"
-	"testing/fstest"
 
 	"github.com/concourse/concourse/atc/compression"
 	"github.com/concourse/concourse/atc/runtime"
+	"github.com/concourse/concourse/atc/runtime/runtimetest"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/gardenruntime"
 	grt "github.com/concourse/concourse/atc/worker/gardenruntime/gardenruntimetest"
@@ -16,7 +16,7 @@ import (
 
 var _ = Describe("Streamer", func() {
 	Test("stream through ATC", func() {
-		content := fstest.MapFS{
+		content := runtimetest.VolumeContent{
 			"file1":        {Data: []byte("content 1")},
 			"folder/file2": {Data: []byte("content 2")},
 		}
@@ -48,7 +48,7 @@ var _ = Describe("Streamer", func() {
 	})
 
 	Test("P2P stream between workers", func() {
-		content := fstest.MapFS{
+		content := runtimetest.VolumeContent{
 			"file1":        {Data: []byte("content 1")},
 			"folder/file2": {Data: []byte("content 2")},
 		}

@@ -2,8 +2,8 @@ package gardenruntimetest
 
 import (
 	"errors"
-	"testing/fstest"
 
+	"github.com/concourse/concourse/atc/runtime/runtimetest"
 	"github.com/concourse/concourse/worker/baggageclaim"
 	"github.com/onsi/gomega/format"
 	"github.com/onsi/gomega/types"
@@ -32,12 +32,12 @@ func (m haveStrategyMatcher) NegatedFailureMessage(actual interface{}) string {
 	return format.Message(actual, "not to have strategy", m.expected)
 }
 
-func HaveContent(content fstest.MapFS) types.GomegaMatcher {
+func HaveContent(content runtimetest.VolumeContent) types.GomegaMatcher {
 	return haveContentMatcher{content}
 }
 
 type haveContentMatcher struct {
-	expected fstest.MapFS
+	expected runtimetest.VolumeContent
 }
 
 func (m haveContentMatcher) Match(actual interface{}) (bool, error) {

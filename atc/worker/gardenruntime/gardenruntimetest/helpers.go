@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"testing/fstest"
 
+	"github.com/concourse/concourse/atc/runtime/runtimetest"
 	"github.com/concourse/concourse/atc/worker/gardenruntime"
 	"github.com/concourse/concourse/worker/baggageclaim"
 	. "github.com/onsi/gomega"
@@ -28,7 +29,7 @@ func PrivilegedEq(p bool) func(*Volume) bool {
 	}
 }
 
-func ContentEq(content fstest.MapFS) func(*Volume) bool {
+func ContentEq(content runtimetest.VolumeContent) func(*Volume) bool {
 	return func(v *Volume) bool {
 		return reflect.DeepEqual(v.Content, content)
 	}
