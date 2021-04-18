@@ -1,6 +1,7 @@
 package worker_test
 
 import (
+	"sync/atomic"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -282,9 +283,9 @@ var _ = Describe("Pool", func() {
 
 			workerCh := make(chan runtime.Worker)
 
-			var callbackInvocations int
+			var callbackInvocations int32
 			callback := PoolCallback{
-				waitingForWorker: func() { callbackInvocations++ },
+				waitingForWorker: func() { atomic.AddInt32(&callbackInvocations, 1) },
 			}
 
 			By("selecting a worker when there are no satisfiable workers", func() {
@@ -308,7 +309,7 @@ var _ = Describe("Pool", func() {
 			})
 
 			By("validating that the step is marked as waiting", func() {
-				callbackCount := func() int { return callbackInvocations }
+				callbackCount := func() int32 { return atomic.LoadInt32(&callbackInvocations) }
 				metricCount := func() float64 {
 					labels := metric.StepsWaitingLabels{
 						TeamId: "123",
@@ -316,11 +317,11 @@ var _ = Describe("Pool", func() {
 					}
 					return metric.Metrics.StepsWaiting[labels].Max()
 				}
-				Eventually(callbackCount).Should(Equal(1))
+				Eventually(callbackCount).Should(Equal(int32(1)))
 				Eventually(metricCount).Should(BeNumerically("~", 1))
 
 				By("validating the step is only marked once", func() {
-					Consistently(callbackCount).Should(Equal(1))
+					Consistently(callbackCount).Should(Equal(int32(1)))
 					Consistently(metricCount).Should(BeNumerically("~", 1))
 				})
 			})

@@ -39,9 +39,9 @@ var _ = AfterEach(func() {
 	postgresRunner.DropTestDB()
 })
 
-func TestWorker2(t *testing.T) {
+func TestWorker(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Worker2 Suite")
+	RunSpecs(t, "Worker Suite")
 }
 
 func Setup(setup ...workertest.SetupFunc) *workertest.Scenario {

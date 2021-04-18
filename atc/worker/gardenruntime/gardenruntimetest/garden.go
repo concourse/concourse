@@ -91,14 +91,17 @@ func (g *Garden) Lookup(handle string) (gclient.Container, error) {
 }
 
 func NewContainer(handle string) *Container {
-	return &Container{handle: handle}
+	return &Container{
+		handle:     handle,
+		processMtx: new(sync.Mutex),
+	}
 }
 
 type Container struct {
 	handle string
 	Spec   garden.ContainerSpec
 
-	processMtx sync.Mutex
+	processMtx *sync.Mutex
 	Processes  []*Process
 }
 
@@ -129,7 +132,7 @@ func (c Container) Stop(kill bool) error {
 	return nil
 }
 
-func (c Container) Info() (garden.ContainerInfo, error)      { panic("not implemented") }
+func (c *Container) Info() (garden.ContainerInfo, error)     { panic("not implemented") }
 func (c *Container) StreamIn(spec garden.StreamInSpec) error { panic("not implemented") }
 func (c *Container) StreamOut(spec garden.StreamOutSpec) (io.ReadCloser, error) {
 	panic("not implemented")
@@ -298,7 +301,7 @@ func (p *Process) Run(ctx context.Context) {
 	}
 }
 
-func (p Process) ID() string { return p.id }
+func (p *Process) ID() string { return p.id }
 func (p *Process) Wait() (int, error) {
 	<-p.wait
 	return p.exitCode, nil
