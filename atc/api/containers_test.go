@@ -3,6 +3,7 @@ package api_test
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,14 +14,12 @@ import (
 	"strconv"
 	"time"
 
-	"code.cloudfoundry.org/garden"
-	gfakes "code.cloudfoundry.org/garden/gardenfakes"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/runtime"
+	"github.com/concourse/concourse/atc/runtime/runtimetest"
 	. "github.com/concourse/concourse/atc/testhelpers"
-	"github.com/concourse/concourse/atc/worker/workerfakes"
 	"github.com/gorilla/websocket"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -584,19 +583,25 @@ var _ = Describe("Containers API", func() {
 				fakeAccess.IsAuthorizedReturns(true)
 			})
 
-			Context("and the worker client returns a container", func() {
+			Context("and the worker pool returns a container", func() {
 				var (
-					fakeDBContainer *dbfakes.FakeCreatedContainer
-					fakeContainer   *workerfakes.FakeContainer
+					container *runtimetest.Container
 				)
 
-				BeforeEach(func() {
-					fakeDBContainer = new(dbfakes.FakeCreatedContainer)
-					dbTeam.FindContainerByHandleReturns(fakeDBContainer, true, nil)
-					fakeDBContainer.HandleReturns("some-handle")
+				waitForHijack := func() *runtimetest.Process {
+					Eventually(container.RunningProcesses).Should(HaveLen(1))
+					return container.RunningProcesses()[0]
+				}
 
-					fakeContainer = new(workerfakes.FakeContainer)
-					fakeWorkerPool.FindContainerReturns(fakeContainer, true, nil)
+				BeforeEach(func() {
+					container = runtimetest.NewContainer().WithProcess(
+						runtime.ProcessSpec{
+							Path: "ls",
+							User: "snoopy",
+						},
+						runtimetest.ProcessStub{},
+					)
+					fakeWorkerPool.LocateContainerReturns(container, runtimetest.NewWorker("worker"), true, nil)
 				})
 
 				Context("when the container is a check container", func() {
@@ -634,23 +639,18 @@ var _ = Describe("Containers API", func() {
 						})
 
 						Context("when the container is within the team", func() {
-							var (
-								fakeProcess *gfakes.FakeProcess
-								processExit chan int
-							)
+							var processExit chan int
 
 							BeforeEach(func() {
 								dbTeam.IsContainerWithinTeamReturns(true, nil)
 
-								exit := make(chan int)
-								processExit = exit
+								processExit = make(chan int)
+								// capture in scope of Call to avoid data race
+								exit := processExit
 
-								fakeProcess = new(gfakes.FakeProcess)
-								fakeProcess.WaitStub = func() (int, error) {
-									return <-exit, nil
+								container.ProcessDefs[0].Stub.Call = func(_ context.Context, _ *runtimetest.Process) (runtime.ProcessResult, error) {
+									return runtime.ProcessResult{ExitStatus: <-exit}, nil
 								}
-
-								fakeContainer.RunReturns(fakeProcess, nil)
 							})
 
 							AfterEach(func() {
@@ -658,7 +658,7 @@ var _ = Describe("Containers API", func() {
 							})
 
 							It("should try to hijack the container", func() {
-								Eventually(fakeContainer.RunCallCount).Should(Equal(1))
+								waitForHijack()
 							})
 						})
 					})
@@ -690,7 +690,7 @@ var _ = Describe("Containers API", func() {
 							BeforeEach(func() {
 								expectBadHandshake = true
 
-								fakeWorkerPool.FindContainerReturns(nil, false, errors.New("nope"))
+								fakeWorkerPool.LocateContainerReturns(nil, nil, false, errors.New("nope"))
 							})
 
 							It("returns 500 internal error", func() {
@@ -702,7 +702,7 @@ var _ = Describe("Containers API", func() {
 							BeforeEach(func() {
 								expectBadHandshake = true
 
-								fakeWorkerPool.FindContainerReturns(nil, false, nil)
+								fakeWorkerPool.LocateContainerReturns(nil, nil, false, nil)
 							})
 
 							It("returns 404 Not Found", func() {
@@ -724,63 +724,30 @@ var _ = Describe("Containers API", func() {
 						})
 
 						Context("when running the process fails", func() {
-							var containerRunError = errors.New("container-run-error")
-
 							BeforeEach(func() {
-								fakeContainer.RunReturns(nil, containerRunError)
+								// unsetting the expected process means that running will fail
+								container.ProcessDefs = nil
 							})
 
 							It("receives the error in the output", func() {
-								Eventually(fakeContainer.RunCallCount).Should(Equal(1))
-
-								expectedHijackOutput := atc.HijackOutput{
-									Error: containerRunError.Error(),
-								}
-
 								var hijackOutput atc.HijackOutput
 								err := conn.ReadJSON(&hijackOutput)
 								Expect(err).ToNot(HaveOccurred())
-								Expect(hijackOutput).To(Equal(expectedHijackOutput))
-							})
-						})
-
-						Context("when running the process fails because the executable is not found", func() {
-							var containerRunError = fmt.Errorf("failed to run process: %w", runtime.ExecutableNotFoundError{})
-
-							BeforeEach(func() {
-								fakeContainer.RunReturns(nil, containerRunError)
-							})
-
-							It("indicates the executable was not found", func() {
-								Eventually(fakeContainer.RunCallCount).Should(Equal(1))
-
-								expectedHijackOutput := atc.HijackOutput{
-									ExecutableNotFound: true,
-								}
-
-								var hijackOutput atc.HijackOutput
-								err := conn.ReadJSON(&hijackOutput)
-								Expect(err).ToNot(HaveOccurred())
-								Expect(hijackOutput).To(Equal(expectedHijackOutput))
+								Expect(hijackOutput.Error).ToNot(BeEmpty())
 							})
 						})
 
 						Context("when running the process succeeds", func() {
-							var (
-								fakeProcess *gfakes.FakeProcess
-								processExit chan int
-							)
+							var processExit chan int
 
 							BeforeEach(func() {
-								exit := make(chan int)
-								processExit = exit
+								processExit = make(chan int)
+								// capture in scope of Call to avoid data race
+								exit := processExit
 
-								fakeProcess = new(gfakes.FakeProcess)
-								fakeProcess.WaitStub = func() (int, error) {
-									return <-exit, nil
+								container.ProcessDefs[0].Stub.Call = func(_ context.Context, _ *runtimetest.Process) (runtime.ProcessResult, error) {
+									return runtime.ProcessResult{ExitStatus: <-exit}, nil
 								}
-
-								fakeContainer.RunReturns(fakeProcess, nil)
 							})
 
 							AfterEach(func() {
@@ -792,27 +759,17 @@ var _ = Describe("Containers API", func() {
 							})
 
 							It("hijacks the build", func() {
-								Eventually(fakeContainer.RunCallCount).Should(Equal(1))
+								waitForHijack()
 
-								_, lookedUpTeamID, lookedUpHandle := fakeWorkerPool.FindContainerArgsForCall(0)
+								_, lookedUpTeamID, lookedUpHandle := fakeWorkerPool.LocateContainerArgsForCall(0)
 								Expect(lookedUpTeamID).To(Equal(734))
 								Expect(lookedUpHandle).To(Equal(handle))
-
-								_, spec, io := fakeContainer.RunArgsForCall(0)
-								Expect(spec).To(Equal(garden.ProcessSpec{
-									Path: "ls",
-									User: "snoopy",
-								}))
-
-								Expect(io.Stdin).NotTo(BeNil())
-								Expect(io.Stdout).NotTo(BeNil())
-								Expect(io.Stderr).NotTo(BeNil())
 							})
 
 							It("updates the last hijack value", func() {
-								Eventually(fakeContainer.RunCallCount).Should(Equal(1))
+								waitForHijack()
 
-								Expect(fakeContainer.UpdateLastHijackCallCount()).To(Equal(1))
+								Expect(container.DBContainer_.UpdateLastHijackCallCount()).To(Equal(1))
 							})
 
 							Context("when the hijack timer elapses", func() {
@@ -821,9 +778,7 @@ var _ = Describe("Containers API", func() {
 								})
 
 								It("updates the last hijack value again", func() {
-									Eventually(fakeContainer.RunCallCount).Should(Equal(1))
-
-									Eventually(fakeContainer.UpdateLastHijackCallCount).Should(Equal(2))
+									Eventually(container.DBContainer_.UpdateLastHijackCallCount).Should(Equal(2))
 								})
 							})
 
@@ -836,10 +791,11 @@ var _ = Describe("Containers API", func() {
 								})
 
 								It("forwards the payload to the process", func() {
-									Eventually(fakeContainer.RunCallCount).Should(Equal(1))
+									process := waitForHijack()
 
-									_, _, io := fakeContainer.RunArgsForCall(0)
-									Expect(bufio.NewReader(io.Stdin).ReadBytes('\n')).To(Equal([]byte("some stdin\n")))
+									receivedStdin, err := bufio.NewReader(process.Stdin()).ReadBytes('\n')
+									Expect(err).NotTo(HaveOccurred())
+									Expect(receivedStdin).To(Equal([]byte("some stdin\n")))
 
 									Expect(interceptTimeout.ResetCallCount()).To(Equal(1))
 								})
@@ -854,21 +810,17 @@ var _ = Describe("Containers API", func() {
 								})
 
 								It("closes the process's stdin", func() {
-									Eventually(fakeContainer.RunCallCount).Should(Equal(1))
+									process := waitForHijack()
 
-									_, _, ioConfig := fakeContainer.RunArgsForCall(0)
-									_, err := ioConfig.Stdin.Read(make([]byte, 10))
+									_, err := process.Stdin().Read(make([]byte, 10))
 									Expect(err).To(Equal(io.EOF))
 								})
 							})
 
 							Context("when the process prints to stdout", func() {
 								JustBeforeEach(func() {
-									Eventually(fakeContainer.RunCallCount).Should(Equal(1))
-
-									_, _, io := fakeContainer.RunArgsForCall(0)
-
-									_, err := fmt.Fprintf(io.Stdout, "some stdout\n")
+									process := waitForHijack()
+									_, err := fmt.Fprintf(process.Stdout(), "some stdout\n")
 									Expect(err).NotTo(HaveOccurred())
 								})
 
@@ -885,11 +837,9 @@ var _ = Describe("Containers API", func() {
 
 							Context("when the process prints to stderr", func() {
 								JustBeforeEach(func() {
-									Eventually(fakeContainer.RunCallCount).Should(Equal(1))
+									process := waitForHijack()
 
-									_, _, io := fakeContainer.RunArgsForCall(0)
-
-									_, err := fmt.Fprintf(io.Stderr, "some stderr\n")
+									_, err := fmt.Fprintf(process.Stderr(), "some stderr\n")
 									Expect(err).NotTo(HaveOccurred())
 								})
 
@@ -921,13 +871,13 @@ var _ = Describe("Containers API", func() {
 								})
 
 								It("closes the process' stdin pipe", func() {
-									_, _, io := fakeContainer.RunArgsForCall(0)
+									process := waitForHijack()
 
 									c := make(chan bool, 1)
 
 									go func() {
 										var b []byte
-										_, err := io.Stdin.Read(b)
+										_, err := process.Stdin().Read(b)
 										if err != nil {
 											c <- true
 										}
@@ -951,39 +901,26 @@ var _ = Describe("Containers API", func() {
 								})
 
 								It("forwards it to the process", func() {
-									Eventually(fakeProcess.SetTTYCallCount).Should(Equal(1))
+									process := waitForHijack()
 
-									Expect(fakeProcess.SetTTYArgsForCall(0)).To(Equal(garden.TTYSpec{
-										WindowSize: &garden.WindowSize{
+									Eventually(process.TTY).Should(Equal(&runtime.TTYSpec{
+										WindowSize: runtime.WindowSize{
 											Columns: 123,
 											Rows:    456,
 										},
 									}))
 								})
-
-								Context("and setting the TTY on the process fails", func() {
-									BeforeEach(func() {
-										fakeProcess.SetTTYReturns(errors.New("oh no!"))
-									})
-
-									It("forwards the error to the response", func() {
-										var hijackOutput atc.HijackOutput
-										err := conn.ReadJSON(&hijackOutput)
-										Expect(err).NotTo(HaveOccurred())
-
-										Expect(hijackOutput).To(Equal(atc.HijackOutput{
-											Error: "oh no!",
-										}))
-									})
-								})
 							})
 
 							Context("when waiting on the process fails", func() {
 								BeforeEach(func() {
-									fakeProcess.WaitReturns(0, errors.New("oh no!"))
+									container.ProcessDefs[0].Stub.Call = nil
+									container.ProcessDefs[0].Stub.Err = "oh no!"
 								})
 
 								It("forwards the error to the response", func() {
+									waitForHijack()
+
 									var hijackOutput atc.HijackOutput
 									err := conn.ReadJSON(&hijackOutput)
 									Expect(err).NotTo(HaveOccurred())

@@ -468,7 +468,7 @@ var _ = Describe("GetStep", func() {
 		})
 
 		It("returns an err", func() {
-			Expect(chosenContainer.Processes).To(HaveLen(1))
+			Expect(chosenContainer.RunningProcesses()).To(HaveLen(1))
 			Expect(stepErr).To(MatchError(disaster))
 			Expect(stepOk).To(BeFalse())
 		})

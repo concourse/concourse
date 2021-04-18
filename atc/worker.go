@@ -43,6 +43,10 @@ func (t *Tags) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
+	if dst == nil {
+		return nil
+	}
+
 	*t = make(Tags, 0, len(dst))
 	for _, s := range dst {
 		if s != "" {

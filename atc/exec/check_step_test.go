@@ -180,7 +180,7 @@ var _ = Describe("CheckStep", func() {
 				Expect(stepErr).ToNot(HaveOccurred())
 				Expect(stepOk).To(BeTrue())
 
-				Expect(chosenContainer.Processes).To(BeEmpty())
+				Expect(chosenContainer.RunningProcesses()).To(BeEmpty())
 			})
 
 			Context("when there is a latest version", func() {
@@ -336,7 +336,7 @@ var _ = Describe("CheckStep", func() {
 					})
 
 					It("uses ResourceConfigCheckSessionOwner", func() {
-						Expect(chosenContainer.Processes).To(HaveLen(1))
+						Expect(chosenContainer.RunningProcesses()).To(HaveLen(1))
 					})
 				})
 
@@ -625,14 +625,14 @@ var _ = Describe("CheckStep", func() {
 				Context("before running the check", func() {
 					BeforeEach(func() {
 						fakeResourceConfigScope.UpdateLastCheckStartTimeStub = func() (bool, error) {
-							Expect(chosenContainer.Processes).To(BeEmpty())
+							Expect(chosenContainer.RunningProcesses()).To(BeEmpty())
 							return true, nil
 						}
 					})
 
 					It("updates the scope's last check start time", func() {
 						Expect(fakeResourceConfigScope.UpdateLastCheckStartTimeCallCount()).To(Equal(1))
-						Expect(chosenContainer.Processes).To(HaveLen(1))
+						Expect(chosenContainer.RunningProcesses()).To(HaveLen(1))
 					})
 				})
 

@@ -14,6 +14,7 @@ import (
 type ProcessStub struct {
 	Attachable bool
 	Do         func(context.Context, *Process) error
+	Call       func(context.Context, *Process) (runtime.ProcessResult, error)
 	Output     interface{}
 	Stderr     string
 	ExitStatus int
@@ -22,10 +23,10 @@ type ProcessStub struct {
 
 type Process struct {
 	ProcessStub
-	Spec runtime.ProcessSpec
 
-	mtx sync.Mutex
-	io  []runtime.ProcessIO
+	mtx  sync.Mutex
+	io   []runtime.ProcessIO
+	Spec runtime.ProcessSpec
 }
 
 func (p *Process) ID() string {
@@ -37,6 +38,9 @@ func (p *Process) Wait(ctx context.Context) (runtime.ProcessResult, error) {
 		if err := p.Do(ctx, p); err != nil {
 			return runtime.ProcessResult{}, err
 		}
+	}
+	if p.Call != nil {
+		return p.Call(ctx, p)
 	}
 	if p.Err != "" {
 		return runtime.ProcessResult{}, errors.New(p.Err)
@@ -52,8 +56,18 @@ func (p *Process) Wait(ctx context.Context) (runtime.ProcessResult, error) {
 }
 
 func (p *Process) SetTTY(tty runtime.TTYSpec) error {
+	p.mtx.Lock()
+	defer p.mtx.Unlock()
+
 	p.Spec.TTY = &tty
 	return nil
+}
+
+func (p *Process) TTY() *runtime.TTYSpec {
+	p.mtx.Lock()
+	defer p.mtx.Unlock()
+
+	return p.Spec.TTY
 }
 
 func (p *Process) addIO(io runtime.ProcessIO) {

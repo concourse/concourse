@@ -10,6 +10,7 @@ import (
 	"io"
 	"io/fs"
 	"path/filepath"
+	"strings"
 	"testing/fstest"
 
 	"code.cloudfoundry.org/lager"
@@ -96,7 +97,7 @@ func (vc VolumeContent) StreamIn(ctx context.Context, path string, encoding bagg
 		case tar.TypeDir:
 			continue
 		case tar.TypeReg:
-			filePath := filepath.Join(path, header.Name)
+			filePath := filepath.Join(removeLeadingSlash(path), header.Name)
 			fileData := new(bytes.Buffer)
 			if _, err := io.Copy(fileData, tarReader); err != nil {
 				return err
@@ -121,7 +122,7 @@ func (vc VolumeContent) StreamOut(ctx context.Context, path string, encoding bag
 	tarWriter := tar.NewWriter(gzipWriter)
 	defer tarWriter.Close()
 
-	err := fs.WalkDir(fstest.MapFS(vc), path, func(filePath string, dirEntry fs.DirEntry, err error) error {
+	err := fs.WalkDir(fstest.MapFS(vc), removeLeadingSlash(path), func(filePath string, dirEntry fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -156,6 +157,14 @@ func (vc VolumeContent) StreamOut(ctx context.Context, path string, encoding bag
 		return nil, err
 	}
 	return noopCloser{buf}, nil
+}
+
+func removeLeadingSlash(path string) string {
+	path = strings.TrimPrefix(path, "/")
+	if path == "" {
+		return "."
+	}
+	return path
 }
 
 type noopCloser struct{ io.Reader }

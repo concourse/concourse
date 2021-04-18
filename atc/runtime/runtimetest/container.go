@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"sync"
 
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
@@ -17,9 +18,11 @@ type ProcessDefinition struct {
 
 type Container struct {
 	ProcessDefs  []ProcessDefinition
-	Processes    []*Process
 	Props        map[string]string
 	DBContainer_ *dbfakes.FakeCreatedContainer
+
+	mtx       *sync.Mutex
+	processes []*Process
 }
 
 func NewContainer() *Container {
@@ -27,11 +30,12 @@ func NewContainer() *Container {
 	return &Container{
 		Props:        make(map[string]string),
 		DBContainer_: dbContainer,
+		mtx:          new(sync.Mutex),
 	}
 }
 
-func (c Container) WithProcess(spec runtime.ProcessSpec, stub ProcessStub) *Container {
-	c2 := c
+func (c *Container) WithProcess(spec runtime.ProcessSpec, stub ProcessStub) *Container {
+	c2 := *c
 	c2.ProcessDefs = make([]ProcessDefinition, len(c.ProcessDefs)+1)
 	copy(c2.ProcessDefs, c.ProcessDefs)
 	c2.ProcessDefs[len(c2.ProcessDefs)-1] = ProcessDefinition{
@@ -50,15 +54,25 @@ func (c *Container) Run(ctx context.Context, spec runtime.ProcessSpec, io runtim
 			// setup a new process
 			p := &Process{Spec: pd.Spec, ProcessStub: pd.Stub}
 			p.addIO(io)
-			c.Processes = append(c.Processes, p)
+
+			c.mtx.Lock()
+			c.processes = append(c.processes, p)
+			c.mtx.Unlock()
 			return p, nil
 		}
 	}
 	return nil, fmt.Errorf("must setup a ProcessStub for process %q (%+v)", spec.ID, spec)
 }
 
-func (c Container) Attach(ctx context.Context, id string, io runtime.ProcessIO) (runtime.Process, error) {
-	for _, p := range c.Processes {
+func (c *Container) RunningProcesses() []*Process {
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
+
+	return c.processes
+}
+
+func (c *Container) Attach(ctx context.Context, id string, io runtime.ProcessIO) (runtime.Process, error) {
+	for _, p := range c.RunningProcesses() {
 		if p.Spec.ID == id {
 			if !p.Attachable {
 				return nil, fmt.Errorf("cannot attach to process %q because Attachable was not set to true in the ProcessStub", id)
@@ -70,7 +84,7 @@ func (c Container) Attach(ctx context.Context, id string, io runtime.ProcessIO) 
 	return nil, fmt.Errorf("must setup a ProcessStub for process %q", id)
 }
 
-func (c Container) Properties() (map[string]string, error) {
+func (c *Container) Properties() (map[string]string, error) {
 	return c.Props, nil
 }
 
@@ -80,7 +94,7 @@ func (c *Container) SetProperty(name string, value string) error {
 	return nil
 }
 
-func (c Container) DBContainer() db.CreatedContainer {
+func (c *Container) DBContainer() db.CreatedContainer {
 	return c.DBContainer_
 }
 
