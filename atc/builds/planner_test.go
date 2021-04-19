@@ -275,6 +275,60 @@ var factoryTests = []PlannerTest{
 		}`,
 	},
 	{
+		Title: "task step with top level container limits",
+
+		Config: &atc.TaskStep{
+			Name:       "some-task",
+			Privileged: true,
+			Config: &atc.TaskConfig{
+				Platform: "linux",
+				Run:      atc.TaskRunConfig{Path: "hello"},
+			},
+			Limits: &atc.ContainerLimits{
+				CPU:    newCPULimit(456),
+				Memory: newMemoryLimit(2048),
+			},
+			ConfigPath:        "some-task-file",
+			Vars:              atc.Params{"some": "vars"},
+			Params:            atc.TaskEnv{"SOME": "PARAMS"},
+			Tags:              atc.Tags{"tag-1", "tag-2"},
+			InputMapping:      map[string]string{"generic": "specific"},
+			OutputMapping:     map[string]string{"specific": "generic"},
+			ImageArtifactName: "some-image",
+			Timeout:           "1h",
+		},
+
+		PlanJSON: `{
+			"id": "(unique)",
+			"task": {
+				"name": "some-task",
+				"privileged": true,
+				"config": {
+					"platform": "linux",
+					"run": {"path": "hello"}
+				},
+				"config_path": "some-task-file",
+				"vars": {"some": "vars"},
+				"container_limits": {"cpu": 456, "memory": 2048},
+				"params": {"SOME": "PARAMS"},
+				"tags": ["tag-1", "tag-2"],
+				"input_mapping": {"generic": "specific"},
+				"output_mapping": {"specific": "generic"},
+				"image": "some-image",
+				"timeout": "1h",
+				"resource_types": [
+					{
+						"name": "some-resource-type",
+						"type": "some-base-resource-type",
+						"source": {"some": "type-source"},
+						"defaults": {"default-key":"default-value"},
+						"version": {"some": "type-version"}
+					}
+				]
+			}
+		}`,
+	},
+	{
 		Title: "set_pipeline step",
 
 		Config: &atc.SetPipelineStep{
@@ -798,4 +852,14 @@ func (s *PlannerSuite) TestFactory() {
 		})
 	}
 	atc.LoadBaseResourceTypeDefaults(map[string]atc.Source{})
+}
+
+func newCPULimit(cpuLimit uint64) *atc.CPULimit {
+	limit := atc.CPULimit(cpuLimit)
+	return &limit
+}
+
+func newMemoryLimit(memoryLimit uint64) *atc.MemoryLimit {
+	limit := atc.MemoryLimit(memoryLimit)
+	return &limit
 }

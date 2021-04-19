@@ -55,6 +55,8 @@ var _ = Describe("TaskStep", func() {
 		stepOk   bool
 		stepErr  error
 
+		cpuLimit          = atc.CPULimit(1024)
+		memoryLimit       = atc.MemoryLimit(1024)
 		containerMetadata = db.ContainerMetadata{
 			WorkingDirectory: "some-artifact-root",
 			Type:             db.ContainerTypeTask,
@@ -173,14 +175,11 @@ var _ = Describe("TaskStep", func() {
 
 	Context("when the plan has a config", func() {
 		BeforeEach(func() {
-			cpu := atc.CPULimit(1024)
-			memory := atc.MemoryLimit(1024)
-
 			taskPlan.Config = &atc.TaskConfig{
 				Platform: "some-platform",
 				Limits: &atc.ContainerLimits{
-					CPU:    &cpu,
-					Memory: &memory,
+					CPU:    &cpuLimit,
+					Memory: &memoryLimit,
 				},
 				Params: atc.TaskEnv{
 					"SECURE": "secret-task-param",
@@ -284,6 +283,27 @@ var _ = Describe("TaskStep", func() {
 
 			It("marks the container's image spec as privileged", func() {
 				Expect(containerSpec.ImageSpec.Privileged).To(BeTrue())
+			})
+		})
+
+		It("uses the correct container limits", func() {
+			Expect(atc.CPULimit(*containerSpec.Limits.CPU)).To(Equal(atc.CPULimit(1024)))
+			Expect(atc.MemoryLimit(*containerSpec.Limits.Memory)).To(Equal(atc.MemoryLimit(1024)))
+		})
+
+		Context("when toplevel limits are set", func() {
+			BeforeEach(func() {
+				cpu := atc.CPULimit(2048)
+				memory := atc.MemoryLimit(2048)
+				taskPlan.Limits = &atc.ContainerLimits{
+					CPU:    &cpu,
+					Memory: &memory,
+				}
+			})
+
+			It("overrides the limits from the config", func() {
+				Expect(atc.CPULimit(*containerSpec.Limits.CPU)).To(Equal(atc.CPULimit(2048)))
+				Expect(atc.MemoryLimit(*containerSpec.Limits.Memory)).To(Equal(atc.MemoryLimit(2048)))
 			})
 		})
 

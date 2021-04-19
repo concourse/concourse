@@ -127,6 +127,44 @@ func (configSource BaseResourceTypeDefaultsApplySource) Warnings() []string {
 	return []string{}
 }
 
+type OverrideContainerLimitsSource struct {
+	ConfigSource TaskConfigSource
+	Limits       *atc.ContainerLimits
+}
+
+// FetchConfig overrides container limits, allowing the user to set container limits required by a task loaded
+// from a file by providing them in static configuration.
+func (configSource *OverrideContainerLimitsSource) FetchConfig(ctx context.Context, logger lager.Logger, source *build.Repository) (atc.TaskConfig, error) {
+	taskConfig, err := configSource.ConfigSource.FetchConfig(ctx, logger, source)
+	if err != nil {
+		return atc.TaskConfig{}, err
+	}
+
+	if configSource.Limits == nil {
+		return taskConfig, nil
+	}
+
+	if taskConfig.Limits == nil {
+		taskConfig.Limits = &atc.ContainerLimits{}
+	}
+
+	if configSource.Limits.CPU != nil {
+		taskConfig.Limits.CPU = configSource.Limits.CPU
+	}
+
+	if configSource.Limits.Memory != nil {
+		taskConfig.Limits.Memory = configSource.Limits.Memory
+	}
+
+	return taskConfig, nil
+}
+
+func (configSource *OverrideContainerLimitsSource) Warnings() []string {
+	return make([]string, 0)
+}
+
+var _ TaskConfigSource = &OverrideContainerLimitsSource{}
+
 // OverrideParamsConfigSource is used to override params in a config source
 type OverrideParamsConfigSource struct {
 	ConfigSource TaskConfigSource
