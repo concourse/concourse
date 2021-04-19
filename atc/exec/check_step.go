@@ -32,14 +32,12 @@ type CheckStep struct {
 	defaultCheckTimeout   time.Duration
 }
 
-//go:generate counterfeiter . CheckDelegateFactory
-
+//counterfeiter:generate . CheckDelegateFactory
 type CheckDelegateFactory interface {
 	CheckDelegate(state RunState) CheckDelegate
 }
 
-//go:generate counterfeiter . CheckDelegate
-
+//counterfeiter:generate . CheckDelegate
 type CheckDelegate interface {
 	BuildStepDelegate
 

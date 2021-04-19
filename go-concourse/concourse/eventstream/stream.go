@@ -10,8 +10,9 @@ import (
 	"github.com/vito/go-sse/sse"
 )
 
-//go:generate counterfeiter . EventStream
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
 
+//counterfeiter:generate . EventStream
 type EventStream interface {
 	NextEvent() (atc.Event, error)
 	Close() error

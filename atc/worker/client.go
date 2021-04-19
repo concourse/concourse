@@ -19,8 +19,7 @@ import (
 const taskProcessID = "task"
 const taskExitStatusPropertyName = "concourse:exit-status"
 
-//go:generate counterfeiter . Client
-
+//counterfeiter:generate . Client
 type Client interface {
 	Name() string
 

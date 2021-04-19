@@ -29,8 +29,7 @@ func (e ErrPipelineNotFound) Error() string {
 	return fmt.Sprintf("pipeline '%s' not found", e.Name)
 }
 
-//go:generate counterfeiter . Team
-
+//counterfeiter:generate . Team
 type Team interface {
 	ID() int
 	Name() string

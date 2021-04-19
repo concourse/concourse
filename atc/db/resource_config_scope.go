@@ -11,7 +11,7 @@ import (
 	"github.com/concourse/concourse/atc/db/lock"
 )
 
-//go:generate counterfeiter . ResourceConfigScope
+//counterfeiter:generate . ResourceConfigScope
 
 // ResourceConfigScope represents the relationship between a possible pipeline resource and a resource config.
 // When a resource is specified to have a unique version history either through its base resource type or its custom

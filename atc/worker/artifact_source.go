@@ -17,8 +17,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 )
 
-//go:generate counterfeiter . ArtifactSourcer
-
+//counterfeiter:generate . ArtifactSourcer
 type ArtifactSourcer interface {
 	SourceInputsAndCaches(logger lager.Logger, teamID int, inputMap map[string]runtime.Artifact) ([]InputSource, error)
 	SourceImage(logger lager.Logger, imageArtifact runtime.Artifact) (StreamableArtifactSource, error)
@@ -82,8 +81,7 @@ func (w artifactSourcer) SourceImage(logger lager.Logger, imageArtifact runtime.
 	return NewStreamableArtifactSource(imageArtifact, artifactVolume, w.compression, w.enableP2PStreaming, w.p2pStreamingTimeout), nil
 }
 
-//go:generate counterfeiter . ArtifactSource
-
+//counterfeiter:generate . ArtifactSource
 type ArtifactSource interface {
 	// ExistsOn attempts to locate a volume equivalent to this source on the
 	// given worker. If a volume can be found, it will be used directly. If not,
@@ -91,7 +89,7 @@ type ArtifactSource interface {
 	ExistsOn(lager.Logger, Worker) (Volume, bool, error)
 }
 
-//go:generate counterfeiter . StreamableArtifactSource
+//counterfeiter:generate . StreamableArtifactSource
 
 // Source represents data produced by the steps, that can be transferred to
 // other steps.

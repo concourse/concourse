@@ -8,14 +8,12 @@ import (
 	"github.com/concourse/concourse/atc/db"
 )
 
-//go:generate counterfeiter . TokenVerifier
-
+//counterfeiter:generate . TokenVerifier
 type TokenVerifier interface {
 	Verify(req *http.Request) (map[string]interface{}, error)
 }
 
-//go:generate counterfeiter .  TeamFetcher
-
+//counterfeiter:generate . TeamFetcher
 type TeamFetcher interface {
 	GetTeams() ([]db.Team, error)
 }

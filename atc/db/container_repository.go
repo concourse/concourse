@@ -9,8 +9,7 @@ import (
 	"github.com/lib/pq"
 )
 
-//go:generate counterfeiter . ContainerRepository
-
+//counterfeiter:generate . ContainerRepository
 type ContainerRepository interface {
 	FindOrphanedContainers() ([]CreatingContainer, []CreatedContainer, []DestroyingContainer, error)
 	DestroyFailedContainers() (int, error)

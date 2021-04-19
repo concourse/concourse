@@ -20,10 +20,12 @@ import (
 	"github.com/tedsuo/rata"
 )
 
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+
 var ErrDisconnected = errors.New("disconnected")
 var ErrInvalidMessage = errors.New("invalid message payload")
 
-//go:generate counterfeiter . Connection
+//counterfeiter:generate . Connection
 type Connection interface {
 	Ping() error
 
@@ -71,7 +73,7 @@ type Connection interface {
 	RemoveProperty(handle string, name string) error
 }
 
-//go:generate counterfeiter . HijackStreamer
+//counterfeiter:generate . HijackStreamer
 type HijackStreamer interface {
 	Stream(handler string, body io.Reader, params rata.Params, query url.Values, contentType string) (io.ReadCloser, error)
 	Hijack(ctx context.Context, handler string, body io.Reader, params rata.Params, query url.Values, contentType string) (net.Conn, *bufio.Reader, error)

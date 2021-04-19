@@ -4,15 +4,13 @@ import (
 	"time"
 )
 
-//go:generate counterfeiter . SecretsFactory
-
+//counterfeiter:generate . SecretsFactory
 type SecretsFactory interface {
 	// NewSecrets returns an instance of a secret manager, capable of retrieving individual secrets
 	NewSecrets() Secrets
 }
 
-//go:generate counterfeiter . Secrets
-
+//counterfeiter:generate . Secrets
 type Secrets interface {
 	// Every credential manager needs to be able to return (secret, secret_expiration_time, exists, error) based on the secret path
 	Get(string) (interface{}, *time.Time, bool, error)

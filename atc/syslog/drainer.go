@@ -11,8 +11,9 @@ import (
 	"github.com/concourse/concourse/atc/event"
 )
 
-//go:generate counterfeiter . Drainer
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
 
+//counterfeiter:generate . Drainer
 type Drainer interface {
 	Run(context.Context) error
 }

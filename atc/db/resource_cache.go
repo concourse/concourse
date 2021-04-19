@@ -172,8 +172,7 @@ func paramsHash(p atc.Params) string {
 // See FindOrCreateForBuild, FindOrCreateForResource, and
 // FindOrCreateForResourceType for more information on when it becomes unused.
 
-//go:generate counterfeiter . UsedResourceCache
-
+//counterfeiter:generate . UsedResourceCache
 type UsedResourceCache interface {
 	ID() int
 	Version() atc.Version

@@ -12,14 +12,12 @@ import (
 	"github.com/concourse/concourse/tracing"
 )
 
-//go:generate counterfeiter . BuildStepDelegateFactory
-
+//counterfeiter:generate . BuildStepDelegateFactory
 type BuildStepDelegateFactory interface {
 	BuildStepDelegate(state RunState) BuildStepDelegate
 }
 
-//go:generate counterfeiter . BuildStepDelegate
-
+//counterfeiter:generate . BuildStepDelegate
 type BuildStepDelegate interface {
 	StartSpan(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
 
@@ -37,14 +35,12 @@ type BuildStepDelegate interface {
 	SelectedWorker(lager.Logger, string)
 }
 
-//go:generate counterfeiter . SetPipelineStepDelegateFactory
-
+//counterfeiter:generate . SetPipelineStepDelegateFactory
 type SetPipelineStepDelegateFactory interface {
 	SetPipelineStepDelegate(state RunState) SetPipelineStepDelegate
 }
 
-//go:generate counterfeiter . SetPipelineStepDelegate
-
+//counterfeiter:generate . SetPipelineStepDelegate
 type SetPipelineStepDelegate interface {
 	BuildStepDelegate
 	SetPipelineChanged(lager.Logger, bool)

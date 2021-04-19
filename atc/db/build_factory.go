@@ -10,8 +10,7 @@ import (
 	"github.com/concourse/concourse/atc/db/lock"
 )
 
-//go:generate counterfeiter . BuildFactory
-
+//counterfeiter:generate . BuildFactory
 type BuildFactory interface {
 	Build(int) (Build, bool, error)
 	VisibleBuilds([]string, Page) ([]Build, Pagination, error)

@@ -11,7 +11,7 @@ import (
 // counterfeiter is not able to resolve github.com/influxdata/influxdb1-client/v2/client.Client, possibly due to
 // the v2 in the package name.
 
-//go:generate counterfeiter . InfluxDBClient
+//counterfeiter:generate . InfluxDBClient
 // Client is a client interface for writing & querying the database.
 type InfluxDBClient interface {
 	// Ping checks that status of cluster, and will always return 0 time and no

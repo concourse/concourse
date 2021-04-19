@@ -28,12 +28,13 @@ import (
 	"github.com/concourse/concourse/tracing"
 )
 
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+
 const userPropertyName = "user"
 
 var ErrResourceConfigCheckSessionExpired = errors.New("no db container was found for owner")
 
-//go:generate counterfeiter . Worker
-
+//counterfeiter:generate . Worker
 type Worker interface {
 	BuildContainers() int
 

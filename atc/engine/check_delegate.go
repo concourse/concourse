@@ -16,8 +16,7 @@ import (
 	"github.com/concourse/concourse/atc/worker"
 )
 
-//go:generate counterfeiter . RateLimiter
-
+//counterfeiter:generate . RateLimiter
 type RateLimiter interface {
 	Wait(context.Context) error
 }

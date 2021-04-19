@@ -18,8 +18,7 @@ import (
 	"github.com/lib/pq"
 )
 
-//go:generate counterfeiter . Conn
-
+//counterfeiter:generate . Conn
 type Conn interface {
 	Bus() NotificationsBus
 	EncryptionStrategy() encryption.Strategy
@@ -47,8 +46,7 @@ type Conn interface {
 	Name() string
 }
 
-//go:generate counterfeiter . Tx
-
+//counterfeiter:generate . Tx
 type Tx interface {
 	Commit() error
 	Exec(string, ...interface{}) (sql.Result, error)

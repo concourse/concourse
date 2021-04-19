@@ -20,8 +20,7 @@ var ErrPinnedThroughConfig = errors.New("resource is pinned through config")
 
 const CheckBuildName = "check"
 
-//go:generate counterfeiter . Resource
-
+//counterfeiter:generate . Resource
 type Resource interface {
 	PipelineRef
 

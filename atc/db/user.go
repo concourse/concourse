@@ -12,8 +12,7 @@ type user struct {
 	lastLogin time.Time
 }
 
-//go:generate counterfeiter . User
-
+//counterfeiter:generate . User
 type User interface {
 	ID() int
 	Sub() string

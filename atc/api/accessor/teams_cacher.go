@@ -9,8 +9,7 @@ import (
 	"github.com/patrickmn/go-cache"
 )
 
-//go:generate counterfeiter . Notifications
-
+//counterfeiter:generate . Notifications
 type Notifications interface {
 	Listen(string) (chan bool, error)
 	Unlisten(string, chan bool) error

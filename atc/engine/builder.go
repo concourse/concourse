@@ -16,8 +16,7 @@ import (
 
 const supportedSchema = "exec.v2"
 
-//go:generate counterfeiter . CoreStepFactory
-
+//counterfeiter:generate . CoreStepFactory
 type CoreStepFactory interface {
 	GetStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, DelegateFactory) exec.Step
 	PutStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, DelegateFactory) exec.Step
@@ -29,8 +28,7 @@ type CoreStepFactory interface {
 	ArtifactOutputStep(atc.Plan, db.Build) exec.Step
 }
 
-//go:generate counterfeiter . StepperFactory
-
+//counterfeiter:generate . StepperFactory
 type StepperFactory interface {
 	StepperForBuild(db.Build) (exec.Stepper, error)
 }

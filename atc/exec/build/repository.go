@@ -6,6 +6,8 @@ import (
 	"github.com/concourse/concourse/atc/runtime"
 )
 
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+
 // ArtifactName is just a string, with its own type to make interfaces using it
 // more self-documenting.
 type ArtifactName string
@@ -32,7 +34,7 @@ func NewRepository() *Repository {
 	}
 }
 
-//go:generate counterfeiter . RegisterableArtifact
+//counterfeiter:generate . RegisterableArtifact
 // A RegisterableArtifact is an Artifact which can be added to the registry
 type RegisterableArtifact interface {
 	runtime.Artifact

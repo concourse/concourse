@@ -46,8 +46,7 @@ func AllWorkerStates() []WorkerState {
 	}
 }
 
-//go:generate counterfeiter . Worker
-
+//counterfeiter:generate . Worker
 type Worker interface {
 	Name() string
 	Version() *string

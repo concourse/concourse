@@ -17,6 +17,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+
 type PrometheusEmitter struct {
 	jobsScheduled  prometheus.Counter
 	jobsScheduling prometheus.Gauge
@@ -934,7 +936,7 @@ func DoGarbageCollection(emitter PrometheusGarbageCollectable, worker string) {
 	delete(emitter.WorkerTasksLabels(), worker)
 }
 
-//go:generate counterfeiter . PrometheusGarbageCollectable
+//counterfeiter:generate . PrometheusGarbageCollectable
 type PrometheusGarbageCollectable interface {
 	WorkerContainers() *prometheus.GaugeVec
 	WorkerVolumes() *prometheus.GaugeVec

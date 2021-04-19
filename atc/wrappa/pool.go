@@ -4,8 +4,7 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
-//go:generate counterfeiter . Pool
-
+//counterfeiter:generate . Pool
 type Pool interface {
 	Size() int
 	TryAcquire() bool

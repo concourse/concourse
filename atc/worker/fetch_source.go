@@ -13,15 +13,13 @@ import (
 	"github.com/concourse/concourse/atc/runtime"
 )
 
-//go:generate counterfeiter . FetchSource
-
+//counterfeiter:generate . FetchSource
 type FetchSource interface {
 	Find() (GetResult, Volume, bool, error)
 	Create(context.Context) (GetResult, Volume, error)
 }
 
-//go:generate counterfeiter . FetchSourceFactory
-
+//counterfeiter:generate . FetchSourceFactory
 type FetchSourceFactory interface {
 	NewFetchSource(
 		logger lager.Logger,

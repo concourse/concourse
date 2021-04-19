@@ -18,7 +18,9 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-//go:generate counterfeiter . EndpointPicker
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+
+//counterfeiter:generate . EndpointPicker
 type EndpointPicker interface {
 	Pick() *rata.RequestGenerator
 }

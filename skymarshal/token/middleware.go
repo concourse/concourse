@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-//go:generate counterfeiter . Middleware
+//counterfeiter:generate . Middleware
 type Middleware interface {
 	SetAuthToken(http.ResponseWriter, string, time.Time) error
 	UnsetAuthToken(http.ResponseWriter)

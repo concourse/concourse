@@ -9,8 +9,7 @@ import (
 	"github.com/concourse/concourse/atc/db/lock"
 )
 
-//go:generate counterfeiter . ResourceCacheFactory
-
+//counterfeiter:generate . ResourceCacheFactory
 type ResourceCacheFactory interface {
 	FindOrCreateResourceCache(
 		resourceCacheUser ResourceCacheUser,

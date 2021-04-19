@@ -113,8 +113,7 @@ var latestCompletedBuildQuery = psql.Select("max(id)").
 	From("builds").
 	Where(sq.Expr(`status NOT IN ('pending', 'started')`))
 
-//go:generate counterfeiter . Build
-
+//counterfeiter:generate . Build
 type Build interface {
 	PipelineRef
 

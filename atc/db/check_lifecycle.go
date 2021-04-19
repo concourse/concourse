@@ -1,7 +1,6 @@
 package db
 
-//go:generate counterfeiter . CheckLifecycle
-
+//counterfeiter:generate . CheckLifecycle
 type CheckLifecycle interface {
 	DeleteCompletedChecks() error
 }

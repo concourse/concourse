@@ -8,8 +8,7 @@ import (
 	"github.com/concourse/concourse/atc/db/lock"
 )
 
-//go:generate counterfeiter . PipelineLifecycle
-
+//counterfeiter:generate . PipelineLifecycle
 type PipelineLifecycle interface {
 	ArchiveAbandonedPipelines() error
 	RemoveBuildEventsForDeletedPipelines() error
