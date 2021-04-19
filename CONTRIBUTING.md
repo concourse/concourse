@@ -492,13 +492,7 @@ $ go get github.com/onsi/ginkgo/ginkgo
 
 We use [Counterfeiter](https://github.com/maxbrunsfeld/counterfeiter) to generate
 fakes for our unit tests. You may need to regenerate fakes if you add or modify an
-interface. To do so, you'll need to install `counterfeiter` as follows:
-
-```sh
-$ go get -u github.com/maxbrunsfeld/counterfeiter/v6
-```
-
-You can then generate the fakes by running
+interface. You can generate the fakes by running
 
 ```sh
 $ go generate ./...
