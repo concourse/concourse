@@ -13,7 +13,7 @@ import (
 
 type OrderInstancedPipelinesCommand struct {
 	Pipeline     string                         `short:"g" long:"group" required:"true" description:"Name of the instance group"`
-	InstanceVars []flaghelpers.InstanceVarsFlag `short:"p" long:"pipeline" required:"true" description:"Instance vars identifying pipeline to order"`
+	InstanceVars []flaghelpers.InstanceVarsFlag `short:"p" long:"pipeline" required:"true" description:"Instance vars identifying pipeline (can be specified multiple times to provide relative ordering)"`
 	Team         string                         `long:"team" description:"Name of the team to which the pipelines belong, if different from the target default"`
 }
 

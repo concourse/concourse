@@ -27,6 +27,7 @@ func (s *Server) OrderPipelinesWithinGroup(team db.Team) http.Handler {
 		err := team.OrderPipelinesWithinGroup(groupName, instanceVars)
 		if err != nil {
 			logger.Error("failed-to-order-pipelines", err, lager.Data{
+				"team_name":     team.Name(),
 				"pipeline_name": groupName,
 				"instance_vars": instanceVars,
 			})

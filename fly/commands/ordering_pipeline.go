@@ -15,7 +15,7 @@ var ErrMissingPipelineName = errors.New("Need to specify at least one pipeline n
 
 type OrderPipelinesCommand struct {
 	Alphabetical bool     `short:"a"  long:"alphabetical" description:"Order all pipelines alphabetically"`
-	Pipelines    []string `short:"p" long:"pipeline" description:"Name of pipelines to order"`
+	Pipelines    []string `short:"p" long:"pipeline" description:"Name of pipeline (can be specified multiple times to provide relative ordering)"`
 	Team         string   `long:"team" description:"Name of the team to which the pipelines belong, if different from the target default"`
 }
 

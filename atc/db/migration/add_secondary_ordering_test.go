@@ -9,7 +9,7 @@ import (
 
 var _ = Describe("Add secondary ordering column", func() {
 	const preMigrationVersion = 1616768782
-	const postMigrationVersion = 1616768783
+	const postMigrationVersion = 1618347807
 
 	var (
 		db *sql.DB
