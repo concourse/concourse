@@ -271,11 +271,6 @@ func (r *resource) CheckPlan(from atc.Version, interval time.Duration, resourceT
 }
 
 func (r *resource) CreateBuild(ctx context.Context, manuallyTriggered bool, plan atc.Plan) (Build, bool, error) {
-	spanContextJSON, err := json.Marshal(NewSpanContext(ctx))
-	if err != nil {
-		return nil, false, err
-	}
-
 	tx, err := r.conn.Begin()
 	if err != nil {
 		return nil, false, err
@@ -306,20 +301,17 @@ func (r *resource) CreateBuild(ctx context.Context, manuallyTriggered bool, plan
 	}
 
 	build := newEmptyBuild(r.conn, r.lockFactory)
-	err = createBuild(tx, build, map[string]interface{}{
-		"name":               CheckBuildName,
-		"pipeline_id":        r.pipelineID,
-		"team_id":            r.teamID,
-		"status":             BuildStatusPending,
-		"manually_triggered": manuallyTriggered,
-		"span_context":       string(spanContextJSON),
-		"resource_id":        r.id,
+	err = createStartedBuild(tx, build, startedBuildArgs{
+		Name:              CheckBuildName,
+		PipelineID:        r.pipelineID,
+		TeamID:            r.teamID,
+		Plan:              plan,
+		ManuallyTriggered: manuallyTriggered,
+		SpanContext:       NewSpanContext(ctx),
+		ExtraValues: map[string]interface{}{
+			"resource_id": r.id,
+		},
 	})
-	if err != nil {
-		return nil, false, err
-	}
-
-	_, err = build.start(tx, plan)
 	if err != nil {
 		return nil, false, err
 	}

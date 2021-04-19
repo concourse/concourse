@@ -25,8 +25,7 @@ var _ = Describe("Dex Server", func() {
 	var storage storage.Storage
 	var logger lager.Logger
 	var err error
-
-	successful := true
+	var expectErr bool
 
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("dex")
@@ -41,9 +40,12 @@ var _ = Describe("Dex Server", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		config = &dexserver.DexConfig{
-			Logger:  logger,
-			Storage: storage,
+			Logger:            logger,
+			Storage:           storage,
+			PasswordConnector: "local",
 		}
+
+		expectErr = false
 	})
 
 	AfterEach(func() {
@@ -52,7 +54,9 @@ var _ = Describe("Dex Server", func() {
 
 	JustBeforeEach(func() {
 		serverConfig, err = dexserver.NewDexServerConfig(config)
-		if successful {
+		if expectErr {
+			Expect(err).To(HaveOccurred())
+		} else {
 			Expect(err).ToNot(HaveOccurred())
 		}
 	})
@@ -74,7 +78,6 @@ var _ = Describe("Dex Server", func() {
 		})
 
 		Context("when local users are configured", func() {
-
 			ConfiguresUsersCorrectly := func() {
 				It("should configure local connector", func() {
 					connectors, err := storage.ListConnectors()
@@ -186,6 +189,21 @@ var _ = Describe("Dex Server", func() {
 					})
 				})
 			})
+
+			Context("when not using local connector", func() {
+				BeforeEach(func() {
+					config.PasswordConnector = "ldap"
+					config.Users = map[string]string{
+						"some-user-0": "some-password-0",
+					}
+
+					expectErr = true
+				})
+
+				It("errors", func() {
+					// error check happens in JustBeforeEach
+				})
+			})
 		})
 
 		Context("when auth provider is configured", func() {
@@ -200,7 +218,7 @@ var _ = Describe("Dex Server", func() {
 			Context("with invalid configuration", func() {
 				BeforeEach(func() {
 					config.Connectors.BitbucketCloud.ClientID = "client-id"
-					successful = false
+					expectErr = true
 				})
 
 				It("fails to create dexserver because of failed validation", func() {

@@ -11,7 +11,7 @@ import (
 	"github.com/concourse/concourse/tracing"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"go.opentelemetry.io/otel/api/trace/tracetest"
+	"go.opentelemetry.io/otel/oteltest"
 )
 
 var _ = Describe("Job", func() {
@@ -1941,7 +1941,7 @@ var _ = Describe("Job", func() {
 
 			Context("when tracing is configured", func() {
 				BeforeEach(func() {
-					tracing.ConfigureTraceProvider(tracetest.NewProvider())
+					tracing.ConfigureTraceProvider(oteltest.NewTracerProvider())
 				})
 
 				AfterEach(func() {
@@ -1950,7 +1950,7 @@ var _ = Describe("Job", func() {
 
 				It("propagates span context", func() {
 					ctx, span := tracing.StartSpan(context.Background(), "fake-operation", nil)
-					traceID := span.SpanContext().TraceID.String()
+					traceID := span.SpanContext().TraceID().String()
 
 					job.EnsurePendingBuildExists(ctx)
 

@@ -764,8 +764,14 @@ func (worker *gardenWorker) Uptime() time.Duration {
 
 func (worker *gardenWorker) tagsMatch(tags []string) bool {
 	workerTags := worker.dbWorker.Tags()
-	if len(workerTags) > 0 && len(tags) == 0 {
-		return false
+	if len(tags) == 0 {
+		// If worker only has an empty tag due to user specifying "" instead of []
+		if len(workerTags) == 1 && workerTags[0] == "" {
+			return true
+		}
+		if len(workerTags) > 0 {
+			return false
+		}
 	}
 
 insert_coin:

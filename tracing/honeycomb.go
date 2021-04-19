@@ -1,18 +1,12 @@
 package tracing
 
 import (
-	"errors"
-	"fmt"
-
-	"github.com/hashicorp/go-multierror"
-	"github.com/honeycombio/opentelemetry-exporter-go/honeycomb"
 	export "go.opentelemetry.io/otel/sdk/export/trace"
 )
 
 type Honeycomb struct {
-	APIKey      string `yaml:"api_key,omitempty"`
-	Dataset     string `yaml:"dataset,omitempty"`
-	ServiceName string `yaml:"service_name,omitempty"`
+	APIKey  string `yaml:"api_key,omitempty"`
+	Dataset string `yaml:"dataset,omitempty"`
 }
 
 func (h Honeycomb) ID() string {
@@ -33,18 +27,13 @@ func (h Honeycomb) Validate() error {
 	return errs.ErrorOrNil()
 }
 
-func (h Honeycomb) Exporter() (export.SpanSyncer, error) {
-	exporter, err := honeycomb.NewExporter(
-		honeycomb.Config{
-			APIKey: h.APIKey,
+func (h Honeycomb) Exporter() (export.SpanExporter, error) {
+	return OTLP{
+		Address: "api.honeycomb.io:443",
+		Headers: map[string]string{
+			"x-honeycomb-team":    h.APIKey,
+			"x-honeycomb-dataset": h.Dataset,
 		},
-		honeycomb.TargetingDataset(h.Dataset),
-		honeycomb.WithServiceName(h.ServiceName),
-	)
-	if err != nil {
-		err = fmt.Errorf("failed to create honeycomb exporter: %w", err)
-		return nil, err
-	}
-
-	return exporter, nil
+		UseTLS: true,
+	}.Exporter()
 }

@@ -14,7 +14,7 @@ import (
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
-	"go.opentelemetry.io/otel/api/propagation"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 type FakeBuild struct {
@@ -614,15 +614,15 @@ type FakeBuild struct {
 	setInterceptibleReturnsOnCall map[int]struct {
 		result1 error
 	}
-	SpanContextStub        func() propagation.HTTPSupplier
+	SpanContextStub        func() propagation.TextMapCarrier
 	spanContextMutex       sync.RWMutex
 	spanContextArgsForCall []struct {
 	}
 	spanContextReturns struct {
-		result1 propagation.HTTPSupplier
+		result1 propagation.TextMapCarrier
 	}
 	spanContextReturnsOnCall map[int]struct {
-		result1 propagation.HTTPSupplier
+		result1 propagation.TextMapCarrier
 	}
 	StartStub        func(atc.Plan) (bool, error)
 	startMutex       sync.RWMutex
@@ -3691,7 +3691,7 @@ func (fake *FakeBuild) SetInterceptibleReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeBuild) SpanContext() propagation.HTTPSupplier {
+func (fake *FakeBuild) SpanContext() propagation.TextMapCarrier {
 	fake.spanContextMutex.Lock()
 	ret, specificReturn := fake.spanContextReturnsOnCall[len(fake.spanContextArgsForCall)]
 	fake.spanContextArgsForCall = append(fake.spanContextArgsForCall, struct {
@@ -3715,32 +3715,32 @@ func (fake *FakeBuild) SpanContextCallCount() int {
 	return len(fake.spanContextArgsForCall)
 }
 
-func (fake *FakeBuild) SpanContextCalls(stub func() propagation.HTTPSupplier) {
+func (fake *FakeBuild) SpanContextCalls(stub func() propagation.TextMapCarrier) {
 	fake.spanContextMutex.Lock()
 	defer fake.spanContextMutex.Unlock()
 	fake.SpanContextStub = stub
 }
 
-func (fake *FakeBuild) SpanContextReturns(result1 propagation.HTTPSupplier) {
+func (fake *FakeBuild) SpanContextReturns(result1 propagation.TextMapCarrier) {
 	fake.spanContextMutex.Lock()
 	defer fake.spanContextMutex.Unlock()
 	fake.SpanContextStub = nil
 	fake.spanContextReturns = struct {
-		result1 propagation.HTTPSupplier
+		result1 propagation.TextMapCarrier
 	}{result1}
 }
 
-func (fake *FakeBuild) SpanContextReturnsOnCall(i int, result1 propagation.HTTPSupplier) {
+func (fake *FakeBuild) SpanContextReturnsOnCall(i int, result1 propagation.TextMapCarrier) {
 	fake.spanContextMutex.Lock()
 	defer fake.spanContextMutex.Unlock()
 	fake.SpanContextStub = nil
 	if fake.spanContextReturnsOnCall == nil {
 		fake.spanContextReturnsOnCall = make(map[int]struct {
-			result1 propagation.HTTPSupplier
+			result1 propagation.TextMapCarrier
 		})
 	}
 	fake.spanContextReturnsOnCall[i] = struct {
-		result1 propagation.HTTPSupplier
+		result1 propagation.TextMapCarrier
 	}{result1}
 }
 

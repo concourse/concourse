@@ -16,7 +16,7 @@ services:
       CONCOURSE_TRACING_OTLP_ADDRESS: otel-collector:55680
 
   otel-collector:
-    image: otel/opentelemetry-collector:0.11.0
+    image: otel/opentelemetry-collector
     volumes:
       - ./hack/otel-collector:/etc/config
     command:

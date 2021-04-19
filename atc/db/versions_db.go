@@ -13,8 +13,8 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/tracing"
 	gocache "github.com/patrickmn/go-cache"
-	"go.opentelemetry.io/otel/api/trace"
-	"go.opentelemetry.io/otel/label"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type VersionsDB struct {
@@ -583,7 +583,7 @@ func (versions VersionsDB) migrateSingle(ctx context.Context, buildID int) (stri
 	ctx, span := tracing.StartSpan(ctx, "VersionsDB.migrateSingle", tracing.Attrs{})
 	defer span.End()
 
-	span.SetAttributes(label.Int("buildID", buildID))
+	span.SetAttributes(attribute.Int("buildID", buildID))
 
 	var outputs string
 	err := versions.conn.QueryRowContext(ctx, `
@@ -622,7 +622,7 @@ func (versions VersionsDB) migrateSingle(ctx context.Context, buildID int) (stri
 		return "", err
 	}
 
-	span.AddEvent(ctx, "build migrated")
+	span.AddEvent("build migrated")
 
 	return outputs, nil
 }
@@ -745,7 +745,7 @@ func (bs *PaginatedBuilds) migrateLimit(ctx context.Context) (bool, error) {
 	ctx, span := tracing.StartSpan(ctx, "PaginatedBuilds.migrateLimit", tracing.Attrs{})
 	defer span.End()
 
-	span.SetAttributes(label.Int("jobID", bs.jobID))
+	span.SetAttributes(attribute.Int("jobID", bs.jobID))
 
 	buildsToMigrateQueryBuilder := psql.Select("id", "job_id", "rerun_of").
 		From("builds").
@@ -802,9 +802,8 @@ func (bs *PaginatedBuilds) migrateLimit(ctx context.Context) (bool, error) {
 	}
 
 	trace.SpanFromContext(ctx).AddEvent(
-		ctx,
 		"builds migrated",
-		label.Int64("rows", rowsAffected),
+		trace.WithAttributes(attribute.Int64("rows", rowsAffected)),
 	)
 
 	if rowsAffected == 0 {

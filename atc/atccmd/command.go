@@ -170,7 +170,8 @@ var CmdDefaults RunConfig = RunConfig{
 	TLS: TLSConfig{},
 	Auth: AuthConfig{
 		AuthFlags: skycmd.AuthFlags{
-			Expiration: 24 * time.Hour,
+			Expiration:        24 * time.Hour,
+			PasswordConnector: "local",
 			Connectors: skycmd.ConnectorsConfig{
 				OAuth: skycmd.OAuthFlags{
 					GroupsKey:   "groups",
@@ -1582,15 +1583,16 @@ func (cmd *RunConfig) constructAuthHandler(
 	cmd.Auth.AuthFlags.Clients[flyClientID] = flyClientSecret
 
 	dexServer, err := dexserver.NewDexServer(&dexserver.DexConfig{
-		Logger:      logger.Session("dex"),
-		Users:       cmd.Auth.AuthFlags.LocalUsers,
-		Clients:     cmd.Auth.AuthFlags.Clients,
-		Expiration:  cmd.Auth.AuthFlags.Expiration,
-		IssuerURL:   issuerURL.String(),
-		RedirectURL: redirectURL.String(),
-		SigningKey:  cmd.Auth.AuthFlags.SigningKey.PrivateKey,
-		Storage:     storage,
-		Connectors:  cmd.Auth.AuthFlags.Connectors,
+		Logger:            logger.Session("dex"),
+		PasswordConnector: cmd.Auth.AuthFlags.PasswordConnector,
+		Users:             cmd.Auth.AuthFlags.LocalUsers,
+		Clients:           cmd.Auth.AuthFlags.Clients,
+		Expiration:        cmd.Auth.AuthFlags.Expiration,
+		IssuerURL:         issuerURL.String(),
+		RedirectURL:       redirectURL.String(),
+		SigningKey:        cmd.Auth.AuthFlags.SigningKey.PrivateKey,
+		Storage:           storage,
+		Connectors:        cmd.Auth.AuthFlags.Connectors,
 	})
 	if err != nil {
 		return nil, err

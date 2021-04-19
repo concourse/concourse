@@ -130,6 +130,7 @@ func InitializeConnectorFlags(c *cobra.Command, flags *RunConfig) {
 	c.Flags().BoolVar(&flags.Auth.AuthFlags.Connectors.LDAP.InsecureSkipVerify, "ldap-insecure-skip-verify", false, "Skip certificate verification")
 	c.Flags().BoolVar(&flags.Auth.AuthFlags.Connectors.LDAP.StartTLS, "ldap-start-tls", false, "Start on insecure port, then negotiate TLS")
 	c.Flags().Var(&flags.Auth.AuthFlags.Connectors.LDAP.CACert, "ldap-ca-cert", "CA certificate")
+	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.LDAP.UsernamePrompt, "username-prompt", "", "The prompt when logging in through the UI when --password-connector=ldap. Defaults to 'Username'.")
 	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.LDAP.UserSearch.BaseDN, "ldap-user-search-base-dn", "", "BaseDN to start the search from. For example 'cn=users,dc=example,dc=com'")
 	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.LDAP.UserSearch.Filter, "ldap-user-search-filter", "", "Optional filter to apply when searching the directory. For example '(objectClass=person)'")
 	c.Flags().StringVar(&flags.Auth.AuthFlags.Connectors.LDAP.UserSearch.Username, "ldap-user-search-username", "", "Attribute to match against the inputted username. This will be translated and combined with the other filter as '(<attr>=<username>)'.")
@@ -404,7 +405,6 @@ func InitializeTracingFlags(c *cobra.Command, flags *RunConfig) {
 	// Honeycomb
 	c.Flags().StringVar(&flags.Tracing.Providers.Honeycomb.APIKey, "tracing-honeycomb-api-key", "", "honeycomb.io api key")
 	c.Flags().StringVar(&flags.Tracing.Providers.Honeycomb.Dataset, "tracing-honeycomb-dataset", "", "honeycomb.io dataset name")
-	c.Flags().StringVar(&flags.Tracing.Providers.Honeycomb.ServiceName, "tracing-honeycomb-service-name", "concourse", "honeycomb.io service name")
 
 	// Jaeger
 	c.Flags().StringVar(&flags.Tracing.Providers.Jaeger.Endpoint, "tracing-jaeger-endpoint", "", "jaeger http-based thrift collector")
@@ -483,6 +483,8 @@ func InitializeAuthFlags(c *cobra.Command, flags *RunConfig) {
 	c.Flags().Var(flags.Auth.AuthFlags.SigningKey, "session-signing-key", "File containing an RSA private key, used to sign auth tokens.")
 	c.Flags().StringToStringVar(&flags.Auth.AuthFlags.LocalUsers, "add-local-user", nil, "List of username:password combinations for all your local users. The password can be bcrypted - if so, it must have a minimum cost of 10. Ex. USERNAME:PASSWORD")
 	c.Flags().StringToStringVar(&flags.Auth.AuthFlags.Clients, "add-client", nil, "List of client_id:client_secret combinations. Ex. CLIENT_ID:CLIENT_SECRET")
+	c.Flags().StringVar(&flags.Auth.AuthFlags.PasswordConnector, "password-connector", CmdDefaults.Auth.AuthFlags.PasswordConnector, "Connector to use when authenticating via 'fly login -u ... -p ...'")
+
 	InitializeConnectorFlags(c, flags)
 
 	// Main Team Flags

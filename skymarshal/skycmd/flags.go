@@ -24,11 +24,12 @@ func (e ValidationConnectorsError) Error() string {
 }
 
 type AuthFlags struct {
-	SecureCookies bool              `yaml:"cookie_secure,omitempty"`
-	Expiration    time.Duration     `yaml:"auth_duration,omitempty"`
-	SigningKey    *flag.PrivateKey  `yaml:"session_signing_key,omitempty"`
-	LocalUsers    map[string]string `yaml:"add_local_user,omitempty"`
-	Clients       map[string]string `yaml:"add_client,omitempty"`
+	SecureCookies     bool              `yaml:"cookie_secure,omitempty"`
+	Expiration        time.Duration     `yaml:"auth_duration,omitempty"`
+	SigningKey        *flag.PrivateKey  `yaml:"session_signing_key,omitempty"`
+	LocalUsers        map[string]string `yaml:"add_local_user,omitempty"`
+	Clients           map[string]string `yaml:"add_client,omitempty"`
+	PasswordConnector string            `yaml:"password_connector,omitempty" validate:"oneof=local ldap"`
 
 	Connectors ConnectorsConfig `yaml:"connectors,omitempty" ignore_env:"true"`
 }

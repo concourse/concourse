@@ -432,7 +432,7 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 			Namespace: "concourse",
 			Subsystem: "lidar",
 			Name:      "checks_finished_total",
-			Help:      "Total number of checks finished. DEPRECATED: use concourse_builds_check_finished_total instead.",
+			Help:      "Total number of checks finished.",
 		},
 		[]string{"status"},
 	)
@@ -443,7 +443,7 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 			Namespace: "concourse",
 			Subsystem: "lidar",
 			Name:      "checks_started_total",
-			Help:      "Total number of checks started. DEPRECATED: use concourse_builds_check_started_total instead.",
+			Help:      "Total number of checks started. With global resource enabled, a check build may not really run a check, thus total checks started should be less than total check builds started.",
 		},
 	)
 	prometheus.MustRegister(checksStarted)

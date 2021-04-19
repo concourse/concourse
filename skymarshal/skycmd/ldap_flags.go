@@ -21,6 +21,7 @@ type LDAPFlags struct {
 	InsecureSkipVerify bool      `yaml:"insecure_skip_verify,omitempty"`
 	StartTLS           bool      `yaml:"start_tls,omitempty"`
 	CACert             flag.File `yaml:"ca_cert,omitempty"`
+	UsernamePrompt     string    `yaml:"username_prompt,omitempty"`
 
 	UserSearch UserSearchConfig `yaml:"user_search,omitempty"`
 
@@ -88,6 +89,7 @@ func (flag *LDAPFlags) Serialize(redirectURI string) ([]byte, error) {
 		InsecureSkipVerify: flag.InsecureSkipVerify,
 		StartTLS:           flag.StartTLS,
 		RootCA:             flag.CACert.Path(),
+		UsernamePrompt:     flag.UsernamePrompt,
 	}
 
 	ldapConfig.UserSearch.BaseDN = flag.UserSearch.BaseDN
