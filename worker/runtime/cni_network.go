@@ -298,7 +298,7 @@ func (n cniNetwork) generateResolvConfContents() ([]byte, error) {
 		resolvConfEntries, err = ParseHostResolveConf("/etc/resolv.conf")
 	}
 
-	contents = strings.Join(resolvConfEntries, "\n")
+	contents = strings.Join(resolvConfEntries, "\n") + "\n"
 
 	return []byte(contents), err
 }

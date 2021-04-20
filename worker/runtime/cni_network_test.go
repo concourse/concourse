@@ -117,7 +117,7 @@ func (s *CNINetworkSuite) TestSetupMountsCallsStoreWithNameServers() {
 	s.NoError(err)
 
 	_, resolvConfContents := s.store.CreateArgsForCall(1)
-	s.Equal(resolvConfContents, []byte("nameserver 6.6.7.7\nnameserver 1.2.3.4"))
+	s.Equal(resolvConfContents, []byte("nameserver 6.6.7.7\nnameserver 1.2.3.4\n"))
 }
 
 func (s *CNINetworkSuite) TestSetupMountsCallsStoreWithoutNameServers() {
@@ -133,7 +133,7 @@ func (s *CNINetworkSuite) TestSetupMountsCallsStoreWithoutNameServers() {
 	actualResolvContents, err := runtime.ParseHostResolveConf("/etc/resolv.conf")
 	s.NoError(err)
 
-	contents := strings.Join(actualResolvContents, "\n")
+	contents := strings.Join(actualResolvContents, "\n") + "\n"
 
 	_, resolvConfContents := s.store.CreateArgsForCall(1)
 	s.Equal(resolvConfContents, []byte(contents))
