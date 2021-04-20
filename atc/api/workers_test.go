@@ -178,6 +178,7 @@ var _ = Describe("Workers API", func() {
 				HTTPSProxyURL:      "https://example.com",
 				NoProxy:            "example.com,127.0.0.1,localhost",
 				ExpectedContainers: 2,
+				ReportedContainers: 2,
 				ActiveVolumes:      10,
 				ActiveTasks:        42,
 				ResourceTypes: []atc.WorkerResourceType{
@@ -221,6 +222,7 @@ var _ = Describe("Workers API", func() {
 					HTTPSProxyURL:      "https://example.com",
 					NoProxy:            "example.com,127.0.0.1,localhost",
 					ExpectedContainers: 2,
+					ReportedContainers: 2,
 					ActiveVolumes:      10,
 					ActiveTasks:        42,
 					ResourceTypes: []atc.WorkerResourceType{
@@ -313,6 +315,7 @@ var _ = Describe("Workers API", func() {
 						HTTPSProxyURL:      "https://example.com",
 						NoProxy:            "example.com,127.0.0.1,localhost",
 						ExpectedContainers: 2,
+						ReportedContainers: 2,
 						ActiveVolumes:      10,
 						ActiveTasks:        42,
 						ResourceTypes: []atc.WorkerResourceType{
@@ -345,6 +348,7 @@ var _ = Describe("Workers API", func() {
 						HTTPSProxyURL:      "https://example.com",
 						NoProxy:            "example.com,127.0.0.1,localhost",
 						ExpectedContainers: 2,
+						ReportedContainers: 2,
 						ActiveVolumes:      10,
 						ActiveTasks:        42,
 						ResourceTypes: []atc.WorkerResourceType{
@@ -378,6 +382,7 @@ var _ = Describe("Workers API", func() {
 						HTTPSProxyURL:      "https://example.com",
 						NoProxy:            "example.com,127.0.0.1,localhost",
 						ExpectedContainers: 2,
+						ReportedContainers: 2,
 						ActiveVolumes:      10,
 						ActiveTasks:        42,
 						ResourceTypes: []atc.WorkerResourceType{
@@ -788,6 +793,7 @@ var _ = Describe("Workers API", func() {
 			workerName = "some-name"
 			fakeWorker.NameReturns(workerName)
 			fakeWorker.ExpectedContainersReturns(2)
+			fakeWorker.ReportedContainersReturns(1)
 			fakeWorker.ActiveVolumesReturns(10)
 			fakeWorker.ActiveTasksReturns(42, nil)
 			fakeWorker.PlatformReturns("penguin")
@@ -803,6 +809,7 @@ var _ = Describe("Workers API", func() {
 			worker = atc.Worker{
 				Name:               workerName,
 				ExpectedContainers: 2,
+				ReportedContainers: 1,
 			}
 			fakeAccess.IsAuthenticatedReturns(true)
 			dbWorkerFactory.HeartbeatWorkerReturns(fakeWorker, nil)
@@ -840,6 +847,7 @@ var _ = Describe("Workers API", func() {
 				"addr": "",
 				"baggageclaim_url": "",
 				"expected_containers": 2,
+				"reported_containers": 1,
 				"active_volumes": 10,
 				"active_tasks": 42,
 				"resource_types": null,

@@ -17,6 +17,7 @@ type Worker struct {
 	NoProxy       string `json:"no_proxy,omitempty"`
 
 	ExpectedContainers int `json:"expected_containers"`
+	ReportedContainers int `json:"reported_containers"`
 	ActiveVolumes      int `json:"active_volumes"`
 	ActiveTasks        int `json:"active_tasks"`
 

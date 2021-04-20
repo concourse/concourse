@@ -29,6 +29,7 @@ var _ = Describe("Worker", func() {
 			NoProxy:            "some-no-proxy",
 			Ephemeral:          true,
 			ExpectedContainers: 140,
+			ReportedContainers: 130,
 			ResourceTypes: []atc.WorkerResourceType{
 				{
 					Type:    "some-resource-type",

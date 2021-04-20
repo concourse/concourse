@@ -209,8 +209,32 @@ var _ = Describe("WorkerFactory", func() {
 	Describe("GetWorker", func() {
 		Context("when the worker is present", func() {
 			BeforeEach(func() {
-				_, err := workerFactory.SaveWorker(atcWorker, 5*time.Minute)
+				worker, err := workerFactory.SaveWorker(atcWorker, 5*time.Minute)
 				Expect(err).NotTo(HaveOccurred())
+
+				build, err := defaultTeam.CreateOneOffBuild()
+				Expect(err).ToNot(HaveOccurred())
+
+				fakeOwner := new(dbfakes.FakeContainerOwner)
+				fakeOwner.FindReturns(sq.Eq{
+					"build_id": build.ID(),
+					"plan_id":  "simple-plan",
+					"team_id":  defaultTeam.ID(),
+				}, true, nil)
+				fakeOwner.CreateReturns(map[string]interface{}{
+					"build_id": build.ID(),
+					"plan_id":  "simple-plan",
+					"team_id":  defaultTeam.ID(),
+				}, nil)
+
+				creatingContainer, err := worker.CreateContainer(fakeOwner, db.ContainerMetadata{
+					Type:     "task",
+					StepName: "some-task",
+				})
+				Expect(err).ToNot(HaveOccurred())
+
+				_, err = creatingContainer.Created()
+				Expect(err).ToNot(HaveOccurred())
 			})
 
 			It("finds the worker", func() {
@@ -227,6 +251,7 @@ var _ = Describe("WorkerFactory", func() {
 				Expect(foundWorker.NoProxy()).To(Equal("some-no-proxy"))
 				Expect(foundWorker.Ephemeral()).To(Equal(true))
 				Expect(foundWorker.ExpectedContainers()).To(Equal(140))
+				Expect(foundWorker.ReportedContainers()).To(Equal(1))
 				Expect(foundWorker.ActiveVolumes()).To(Equal(550))
 				Expect(foundWorker.ResourceTypes()).To(Equal([]atc.WorkerResourceType{
 					{

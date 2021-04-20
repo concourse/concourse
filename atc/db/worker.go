@@ -60,6 +60,7 @@ type Worker interface {
 	HTTPSProxyURL() string
 	NoProxy() string
 	ExpectedContainers() int
+	ReportedContainers() int
 	ActiveVolumes() int
 	ResourceTypes() []atc.WorkerResourceType
 	Platform() string
@@ -97,6 +98,7 @@ type worker struct {
 	httpsProxyURL      string
 	noProxy            string
 	expectedContainers int
+	reportedContainers int
 	activeVolumes      int
 	activeTasks        int
 	resourceTypes      []atc.WorkerResourceType
@@ -121,6 +123,7 @@ func (worker *worker) HTTPProxyURL() string                    { return worker.h
 func (worker *worker) HTTPSProxyURL() string                   { return worker.httpsProxyURL }
 func (worker *worker) NoProxy() string                         { return worker.noProxy }
 func (worker *worker) ExpectedContainers() int                 { return worker.expectedContainers }
+func (worker *worker) ReportedContainers() int                 { return worker.reportedContainers }
 func (worker *worker) ActiveVolumes() int                      { return worker.activeVolumes }
 func (worker *worker) ResourceTypes() []atc.WorkerResourceType { return worker.resourceTypes }
 func (worker *worker) Platform() string                        { return worker.platform }

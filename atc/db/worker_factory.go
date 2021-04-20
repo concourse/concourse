@@ -46,6 +46,7 @@ var workersQuery = psql.Select(`
 		w.https_proxy_url,
 		w.no_proxy,
 		w.expected_containers,
+		cs.reported_containers,
 		w.active_volumes,
 		w.resource_types,
 		w.platform,
@@ -57,7 +58,8 @@ var workersQuery = psql.Select(`
 		w.ephemeral
 	`).
 	From("workers w").
-	LeftJoin("teams t ON w.team_id = t.id")
+	LeftJoin("teams t ON w.team_id = t.id").
+	LeftJoin("(SELECT worker_name, COUNT(handle) reported_containers FROM containers GROUP BY worker_name) cs ON w.name = cs.worker_name")
 
 func (f *workerFactory) GetWorker(name string) (Worker, bool, error) {
 	return getWorker(f.conn, workersQuery.Where(sq.Eq{"w.name": name}))
@@ -124,22 +126,23 @@ func getWorkers(conn Conn, query sq.SelectBuilder) ([]Worker, error) {
 
 func scanWorker(worker *worker, row scannable) error {
 	var (
-		version       sql.NullString
-		addStr        sql.NullString
-		state         string
-		bcURLStr      sql.NullString
-		certsPathStr  sql.NullString
-		httpProxyURL  sql.NullString
-		httpsProxyURL sql.NullString
-		noProxy       sql.NullString
-		resourceTypes []byte
-		platform      sql.NullString
-		tags          []byte
-		teamName      sql.NullString
-		teamID        sql.NullInt64
-		startTime     pq.NullTime
-		expiresAt     pq.NullTime
-		ephemeral     sql.NullBool
+		version            sql.NullString
+		addStr             sql.NullString
+		state              string
+		bcURLStr           sql.NullString
+		certsPathStr       sql.NullString
+		httpProxyURL       sql.NullString
+		httpsProxyURL      sql.NullString
+		noProxy            sql.NullString
+		reportedContainers sql.NullInt64
+		resourceTypes      []byte
+		platform           sql.NullString
+		tags               []byte
+		teamName           sql.NullString
+		teamID             sql.NullInt64
+		startTime          pq.NullTime
+		expiresAt          pq.NullTime
+		ephemeral          sql.NullBool
 	)
 
 	err := row.Scan(
@@ -153,6 +156,7 @@ func scanWorker(worker *worker, row scannable) error {
 		&httpsProxyURL,
 		&noProxy,
 		&worker.expectedContainers,
+		&reportedContainers,
 		&worker.activeVolumes,
 		&resourceTypes,
 		&platform,
@@ -197,6 +201,10 @@ func scanWorker(worker *worker, row scannable) error {
 
 	if noProxy.Valid {
 		worker.noProxy = noProxy.String
+	}
+
+	if reportedContainers.Valid {
+		worker.reportedContainers = int(reportedContainers.Int64)
 	}
 
 	if teamName.Valid {

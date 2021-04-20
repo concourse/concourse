@@ -237,6 +237,16 @@ type FakeWorker struct {
 		result1 bool
 		result2 error
 	}
+	ReportedContainersStub        func() int
+	reportedContainersMutex       sync.RWMutex
+	reportedContainersArgsForCall []struct {
+	}
+	reportedContainersReturns struct {
+		result1 int
+	}
+	reportedContainersReturnsOnCall map[int]struct {
+		result1 int
+	}
 	ResourceCertsStub        func() (*db.UsedWorkerResourceCerts, bool, error)
 	resourceCertsMutex       sync.RWMutex
 	resourceCertsArgsForCall []struct {
@@ -1486,6 +1496,59 @@ func (fake *FakeWorker) ReloadReturnsOnCall(i int, result1 bool, result2 error) 
 	}{result1, result2}
 }
 
+func (fake *FakeWorker) ReportedContainers() int {
+	fake.reportedContainersMutex.Lock()
+	ret, specificReturn := fake.reportedContainersReturnsOnCall[len(fake.reportedContainersArgsForCall)]
+	fake.reportedContainersArgsForCall = append(fake.reportedContainersArgsForCall, struct {
+	}{})
+	stub := fake.ReportedContainersStub
+	fakeReturns := fake.reportedContainersReturns
+	fake.recordInvocation("ReportedContainers", []interface{}{})
+	fake.reportedContainersMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeWorker) ReportedContainersCallCount() int {
+	fake.reportedContainersMutex.RLock()
+	defer fake.reportedContainersMutex.RUnlock()
+	return len(fake.reportedContainersArgsForCall)
+}
+
+func (fake *FakeWorker) ReportedContainersCalls(stub func() int) {
+	fake.reportedContainersMutex.Lock()
+	defer fake.reportedContainersMutex.Unlock()
+	fake.ReportedContainersStub = stub
+}
+
+func (fake *FakeWorker) ReportedContainersReturns(result1 int) {
+	fake.reportedContainersMutex.Lock()
+	defer fake.reportedContainersMutex.Unlock()
+	fake.ReportedContainersStub = nil
+	fake.reportedContainersReturns = struct {
+		result1 int
+	}{result1}
+}
+
+func (fake *FakeWorker) ReportedContainersReturnsOnCall(i int, result1 int) {
+	fake.reportedContainersMutex.Lock()
+	defer fake.reportedContainersMutex.Unlock()
+	fake.ReportedContainersStub = nil
+	if fake.reportedContainersReturnsOnCall == nil {
+		fake.reportedContainersReturnsOnCall = make(map[int]struct {
+			result1 int
+		})
+	}
+	fake.reportedContainersReturnsOnCall[i] = struct {
+		result1 int
+	}{result1}
+}
+
 func (fake *FakeWorker) ResourceCerts() (*db.UsedWorkerResourceCerts, bool, error) {
 	fake.resourceCertsMutex.Lock()
 	ret, specificReturn := fake.resourceCertsReturnsOnCall[len(fake.resourceCertsArgsForCall)]
@@ -2014,6 +2077,8 @@ func (fake *FakeWorker) Invocations() map[string][][]interface{} {
 	defer fake.pruneMutex.RUnlock()
 	fake.reloadMutex.RLock()
 	defer fake.reloadMutex.RUnlock()
+	fake.reportedContainersMutex.RLock()
+	defer fake.reportedContainersMutex.RUnlock()
 	fake.resourceCertsMutex.RLock()
 	defer fake.resourceCertsMutex.RUnlock()
 	fake.resourceTypesMutex.RLock()

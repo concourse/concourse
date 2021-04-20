@@ -25,6 +25,7 @@ var _ = Describe("Worker Lifecycle", func() {
 			HTTPSProxyURL:      "some-https-proxy-url",
 			NoProxy:            "some-no-proxy",
 			ExpectedContainers: 140,
+			ReportedContainers: 130,
 			ResourceTypes: []atc.WorkerResourceType{
 				{
 					Type:    "some-resource-type",

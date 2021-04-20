@@ -96,6 +96,7 @@ var _ = Describe("Team", func() {
 				HTTPSProxyURL:      "some-https-proxy-url",
 				NoProxy:            "some-no-proxy",
 				ExpectedContainers: 140,
+				ReportedContainers: 130,
 				ResourceTypes: []atc.WorkerResourceType{
 					{
 						Type:    "some-resource-type",
@@ -167,6 +168,7 @@ var _ = Describe("Team", func() {
 				HTTPSProxyURL:      "some-https-proxy-url",
 				NoProxy:            "some-no-proxy",
 				ExpectedContainers: 140,
+				ReportedContainers: 130,
 				ResourceTypes: []atc.WorkerResourceType{
 					{
 						Type:    "some-resource-type",
