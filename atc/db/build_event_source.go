@@ -117,7 +117,7 @@ func (source *buildEventSource) collectEvents(cursor uint) {
 		}
 
 		rows, err := tx.Query(`
-			SELECT type, version, payload
+			SELECT type, version, payload, event_id
 			FROM `+source.table+`
 			WHERE build_id = $1 OR build_id_old = $1
 			ORDER BY event_id ASC
@@ -137,8 +137,8 @@ func (source *buildEventSource) collectEvents(cursor uint) {
 
 			cursor++
 
-			var t, v, p string
-			err := rows.Scan(&t, &v, &p)
+			var t, v, p, eid string
+			err := rows.Scan(&t, &v, &p, &eid)
 			if err != nil {
 				_ = rows.Close()
 
@@ -153,6 +153,7 @@ func (source *buildEventSource) collectEvents(cursor uint) {
 				Data:    &data,
 				Event:   atc.EventType(t),
 				Version: atc.EventVersion(v),
+				EventID: eid,
 			}
 
 			select {
