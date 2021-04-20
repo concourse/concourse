@@ -44,10 +44,10 @@ var _ = Describe("Plan", func() {
 								ImageGetPlan: &atc.Plan{
 									ID: "3/1",
 									Get: &atc.GetPlan{
-										Type:          "some-base-type",
-										Name:          "name",
-										Source:        atc.Source{"some": "source"},
-										BaseImageType: "some-base-type",
+										Type:     "some-base-type",
+										Name:     "name",
+										Source:   atc.Source{"some": "source"},
+										BaseType: "some-base-type",
 									},
 								},
 								ImageCheckPlan: &atc.Plan{
@@ -73,10 +73,10 @@ var _ = Describe("Plan", func() {
 								ImageGetPlan: &atc.Plan{
 									ID: "4/1",
 									Get: &atc.GetPlan{
-										Type:          "some-base-type",
-										Name:          "name",
-										Source:        atc.Source{"some": "source"},
-										BaseImageType: "some-base-type",
+										Type:     "some-base-type",
+										Name:     "name",
+										Source:   atc.Source{"some": "source"},
+										BaseType: "some-base-type",
 									},
 								},
 								ImageCheckPlan: &atc.Plan{
@@ -100,10 +100,10 @@ var _ = Describe("Plan", func() {
 								ImageGetPlan: &atc.Plan{
 									ID: "4.2/1",
 									Get: &atc.GetPlan{
-										Type:          "some-base-type",
-										Name:          "name",
-										Source:        atc.Source{"some": "source"},
-										BaseImageType: "some-base-type",
+										Type:     "some-base-type",
+										Name:     "name",
+										Source:   atc.Source{"some": "source"},
+										BaseType: "some-base-type",
 									},
 								},
 								ImageCheckPlan: &atc.Plan{
@@ -448,26 +448,26 @@ var _ = Describe("Plan", func() {
 								FailFast: true,
 							},
 						},
-					},
-					atc.Plan{
-						ID: "41",
-						GetVar: &atc.GetVarPlan{
-							Name:   "some-source",
-							Path:   "some-path",
-							Type:   "some-type",
-							Fields: []string{"fields-1", "fields-2"},
-							Source: atc.Source{
-								"some": "source",
+						{
+							ID: "41",
+							GetVar: &atc.GetVarPlan{
+								Name:   "some-source",
+								Path:   "some-path",
+								Type:   "some-type",
+								Fields: []string{"fields-1", "fields-2"},
+								Source: atc.Source{
+									"some": "source",
+								},
 							},
 						},
-					},
-					atc.Plan{
-						ID: "42",
-						LoadVar: &atc.LoadVarPlan{
-							Name:   "some-name",
-							File:   "some-file",
-							Format: "some-format",
-							Reveal: true,
+						{
+							ID: "42",
+							LoadVar: &atc.LoadVarPlan{
+								Name:   "some-name",
+								File:   "some-file",
+								Format: "some-format",
+								Reveal: true,
+							},
 						},
 					},
 				},
