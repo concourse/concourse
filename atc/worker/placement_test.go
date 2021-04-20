@@ -83,7 +83,7 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 		pickedWorker = nil
 
 		for _, worker := range orderedWorkers {
-			pickErr = strategy.Pick(logger, worker, containerSpec)
+			pickErr = strategy.Approve(logger, worker, containerSpec)
 
 			if pickErr == nil {
 				pickedWorker = worker
@@ -404,7 +404,7 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 				})
 			})
 
-			Describe("strategy.Pick and strategy.Release", func() {
+			Describe("strategy.Approve and strategy.Release", func() {
 				JustBeforeEach(func() {
 					pickAndRelease()
 				})
@@ -517,7 +517,7 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 			})
 		})
 
-		Describe("strategy.Pick and strategy.Release", func() {
+		Describe("strategy.Approve and strategy.Release", func() {
 			JustBeforeEach(func() {
 				pickAndRelease()
 			})
@@ -629,7 +629,7 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 			})
 		})
 
-		Describe("strategy.Pick and strategy.Release", func() {
+		Describe("strategy.Approve and strategy.Release", func() {
 			JustBeforeEach(func() {
 				pickAndRelease()
 			})
@@ -768,7 +768,7 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 			})
 		})
 
-		Describe("strategy.Pick and strategy.Release", func() {
+		Describe("strategy.Approve and strategy.Release", func() {
 			Context("limit-active-containers,limit-active-tasks", func() {
 				JustBeforeEach(func() {
 					strategy, strategyErr = NewChainPlacementStrategy(ContainerPlacementStrategyOptions{
@@ -785,7 +785,7 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 					pickAndRelease()
 				})
 
-				It("calls .Pick and .Release on chained strategies", func() {
+				It("calls .Approve and .Release on chained strategies", func() {
 					// From "limit-active-containers" strategy
 					Expect(workerFakes[0].ActiveContainersCallCount()).To(Equal(1))
 
@@ -796,11 +796,11 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 
 				Context("when first strategy rejects worker", func() {
 					BeforeEach(func() {
-						// Causes "limit-active-containers" strategy to fail in .Pick
+						// Causes "limit-active-containers" strategy to fail in .Approve
 						workerFakes[0].ActiveContainersReturns(2)
 					})
 
-					It("exits early and doesn't call .Pick on later strategies", func() {
+					It("exits early and doesn't call .Approve on later strategies", func() {
 						// From "limit-active-containers" strategy
 						Expect(workerFakes[0].ActiveContainersCallCount()).To(Equal(1))
 

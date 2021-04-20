@@ -145,7 +145,7 @@ func (pool *pool) findWorkerFromStrategy(
 
 	var strategyError error
 	for _, candidate := range orderedWorkers {
-		err := strategy.Pick(logger, candidate, containerSpec)
+		err := strategy.Approve(logger, candidate, containerSpec)
 
 		if err == nil {
 			return candidate, nil
