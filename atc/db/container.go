@@ -138,6 +138,7 @@ type CreatedContainer interface {
 	Destroying() (DestroyingContainer, error)
 	LastHijack() time.Time
 	UpdateLastHijack() error
+	UpdateExitCode(int) error
 }
 
 type createdContainer struct {
@@ -216,6 +217,31 @@ func (container *createdContainer) UpdateLastHijack() error {
 
 	rows, err := psql.Update("containers").
 		Set("last_hijack", sq.Expr("now()")).
+		Where(sq.Eq{
+			"id":    container.id,
+			"state": atc.ContainerStateCreated,
+		}).
+		RunWith(container.conn).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	affected, err := rows.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if affected == 0 {
+		return ErrContainerDisappeared
+	}
+
+	return nil
+}
+
+func (container *createdContainer) UpdateExitCode(exitCode int) error {
+	rows, err := psql.Update("containers").
+		Set("exit_code", exitCode).
 		Where(sq.Eq{
 			"id":    container.id,
 			"state": atc.ContainerStateCreated,

@@ -48,6 +48,7 @@ var workersQuery = psql.Select(`
 		w.active_containers,
 		w.active_volumes,
 		w.resource_types,
+		w.allocatable_memory,
 		w.platform,
 		w.tags,
 		t.name,
@@ -124,22 +125,23 @@ func getWorkers(conn Conn, query sq.SelectBuilder) ([]Worker, error) {
 
 func scanWorker(worker *worker, row scannable) error {
 	var (
-		version       sql.NullString
-		addStr        sql.NullString
-		state         string
-		bcURLStr      sql.NullString
-		certsPathStr  sql.NullString
-		httpProxyURL  sql.NullString
-		httpsProxyURL sql.NullString
-		noProxy       sql.NullString
-		resourceTypes []byte
-		platform      sql.NullString
-		tags          []byte
-		teamName      sql.NullString
-		teamID        sql.NullInt64
-		startTime     pq.NullTime
-		expiresAt     pq.NullTime
-		ephemeral     sql.NullBool
+		version           sql.NullString
+		addStr            sql.NullString
+		state             string
+		bcURLStr          sql.NullString
+		certsPathStr      sql.NullString
+		httpProxyURL      sql.NullString
+		httpsProxyURL     sql.NullString
+		noProxy           sql.NullString
+		resourceTypes     []byte
+		allocatableMemory sql.NullInt64
+		platform          sql.NullString
+		tags              []byte
+		teamName          sql.NullString
+		teamID            sql.NullInt64
+		startTime         pq.NullTime
+		expiresAt         pq.NullTime
+		ephemeral         sql.NullBool
 	)
 
 	err := row.Scan(
@@ -155,6 +157,7 @@ func scanWorker(worker *worker, row scannable) error {
 		&worker.activeContainers,
 		&worker.activeVolumes,
 		&resourceTypes,
+		&allocatableMemory,
 		&platform,
 		&tags,
 		&teamName,
@@ -218,6 +221,11 @@ func scanWorker(worker *worker, row scannable) error {
 	err = json.Unmarshal(resourceTypes, &worker.resourceTypes)
 	if err != nil {
 		return err
+	}
+
+	if allocatableMemory.Valid {
+		memoryLimit := atc.MemoryLimit(allocatableMemory.Int64)
+		worker.allocatableMemory = &memoryLimit
 	}
 
 	return json.Unmarshal(tags, &worker.tags)
@@ -399,6 +407,7 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 		atcWorker.ActiveContainers,
 		atcWorker.ActiveVolumes,
 		resourceTypes,
+		atcWorker.AllocatableMemory,
 		tags,
 		atcWorker.Platform,
 		atcWorker.BaggageclaimURL,
@@ -430,6 +439,7 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 			"active_containers",
 			"active_volumes",
 			"resource_types",
+			"allocatable_memory",
 			"tags",
 			"platform",
 			"baggageclaim_url",
@@ -455,6 +465,7 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 				active_containers = ?,
 				active_volumes = ?,
 				resource_types = ?,
+				allocatable_memory = ?,
 				tags = ?,
 				platform = ?,
 				baggageclaim_url = ?,
@@ -491,25 +502,26 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 	}
 
 	savedWorker := &worker{
-		name:             atcWorker.Name,
-		version:          workerVersion,
-		state:            workerState,
-		gardenAddr:       &atcWorker.GardenAddr,
-		baggageclaimURL:  &atcWorker.BaggageclaimURL,
-		certsPath:        atcWorker.CertsPath,
-		httpProxyURL:     atcWorker.HTTPProxyURL,
-		httpsProxyURL:    atcWorker.HTTPSProxyURL,
-		noProxy:          atcWorker.NoProxy,
-		activeContainers: atcWorker.ActiveContainers,
-		activeVolumes:    atcWorker.ActiveVolumes,
-		resourceTypes:    atcWorker.ResourceTypes,
-		platform:         atcWorker.Platform,
-		tags:             atcWorker.Tags,
-		teamName:         atcWorker.Team,
-		teamID:           workerTeamID,
-		startTime:        time.Unix(atcWorker.StartTime, 0),
-		ephemeral:        atcWorker.Ephemeral,
-		conn:             conn,
+		name:              atcWorker.Name,
+		version:           workerVersion,
+		state:             workerState,
+		gardenAddr:        &atcWorker.GardenAddr,
+		baggageclaimURL:   &atcWorker.BaggageclaimURL,
+		certsPath:         atcWorker.CertsPath,
+		httpProxyURL:      atcWorker.HTTPProxyURL,
+		httpsProxyURL:     atcWorker.HTTPSProxyURL,
+		noProxy:           atcWorker.NoProxy,
+		activeContainers:  atcWorker.ActiveContainers,
+		activeVolumes:     atcWorker.ActiveVolumes,
+		resourceTypes:     atcWorker.ResourceTypes,
+		allocatableMemory: atcWorker.AllocatableMemory,
+		platform:          atcWorker.Platform,
+		tags:              atcWorker.Tags,
+		teamName:          atcWorker.Team,
+		teamID:            workerTeamID,
+		startTime:         time.Unix(atcWorker.StartTime, 0),
+		ephemeral:         atcWorker.Ephemeral,
+		conn:              conn,
 	}
 
 	workerBaseResourceTypeIDs := []int{}

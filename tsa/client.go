@@ -407,7 +407,6 @@ func (client *Client) checkHostKey(hostname string, remote net.Addr, remoteKey s
 	return errors.New("remote host public key mismatch")
 }
 
-
 func (client *Client) run(ctx context.Context, sshClient *ssh.Client, command string, stdout io.Writer) error {
 	argv := strings.Split(command, " ")
 	commandName := ""

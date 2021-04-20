@@ -71,6 +71,17 @@ type FakeCreatedContainer struct {
 	stateReturnsOnCall map[int]struct {
 		result1 string
 	}
+	UpdateExitCodeStub        func(int) error
+	updateExitCodeMutex       sync.RWMutex
+	updateExitCodeArgsForCall []struct {
+		arg1 int
+	}
+	updateExitCodeReturns struct {
+		result1 error
+	}
+	updateExitCodeReturnsOnCall map[int]struct {
+		result1 error
+	}
 	UpdateLastHijackStub        func() error
 	updateLastHijackMutex       sync.RWMutex
 	updateLastHijackArgsForCall []struct {
@@ -416,6 +427,67 @@ func (fake *FakeCreatedContainer) StateReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
+func (fake *FakeCreatedContainer) UpdateExitCode(arg1 int) error {
+	fake.updateExitCodeMutex.Lock()
+	ret, specificReturn := fake.updateExitCodeReturnsOnCall[len(fake.updateExitCodeArgsForCall)]
+	fake.updateExitCodeArgsForCall = append(fake.updateExitCodeArgsForCall, struct {
+		arg1 int
+	}{arg1})
+	stub := fake.UpdateExitCodeStub
+	fakeReturns := fake.updateExitCodeReturns
+	fake.recordInvocation("UpdateExitCode", []interface{}{arg1})
+	fake.updateExitCodeMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeCreatedContainer) UpdateExitCodeCallCount() int {
+	fake.updateExitCodeMutex.RLock()
+	defer fake.updateExitCodeMutex.RUnlock()
+	return len(fake.updateExitCodeArgsForCall)
+}
+
+func (fake *FakeCreatedContainer) UpdateExitCodeCalls(stub func(int) error) {
+	fake.updateExitCodeMutex.Lock()
+	defer fake.updateExitCodeMutex.Unlock()
+	fake.UpdateExitCodeStub = stub
+}
+
+func (fake *FakeCreatedContainer) UpdateExitCodeArgsForCall(i int) int {
+	fake.updateExitCodeMutex.RLock()
+	defer fake.updateExitCodeMutex.RUnlock()
+	argsForCall := fake.updateExitCodeArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeCreatedContainer) UpdateExitCodeReturns(result1 error) {
+	fake.updateExitCodeMutex.Lock()
+	defer fake.updateExitCodeMutex.Unlock()
+	fake.UpdateExitCodeStub = nil
+	fake.updateExitCodeReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeCreatedContainer) UpdateExitCodeReturnsOnCall(i int, result1 error) {
+	fake.updateExitCodeMutex.Lock()
+	defer fake.updateExitCodeMutex.Unlock()
+	fake.UpdateExitCodeStub = nil
+	if fake.updateExitCodeReturnsOnCall == nil {
+		fake.updateExitCodeReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.updateExitCodeReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeCreatedContainer) UpdateLastHijack() error {
 	fake.updateLastHijackMutex.Lock()
 	ret, specificReturn := fake.updateLastHijackReturnsOnCall[len(fake.updateLastHijackArgsForCall)]
@@ -537,6 +609,8 @@ func (fake *FakeCreatedContainer) Invocations() map[string][][]interface{} {
 	defer fake.metadataMutex.RUnlock()
 	fake.stateMutex.RLock()
 	defer fake.stateMutex.RUnlock()
+	fake.updateExitCodeMutex.RLock()
+	defer fake.updateExitCodeMutex.RUnlock()
 	fake.updateLastHijackMutex.RLock()
 	defer fake.updateLastHijackMutex.RUnlock()
 	fake.workerNameMutex.RLock()

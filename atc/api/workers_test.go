@@ -160,15 +160,17 @@ var _ = Describe("Workers API", func() {
 
 	Describe("POST /api/v1/workers", func() {
 		var (
-			worker    atc.Worker
-			ttl       string
-			certsPath string
+			worker            atc.Worker
+			ttl               string
+			certsPath         string
+			allocatableMemory atc.MemoryLimit
 
 			response *http.Response
 		)
 
 		BeforeEach(func() {
 			certsPath = "/some/certs/path"
+			allocatableMemory = atc.MemoryLimit(256000)
 			worker = atc.Worker{
 				Name:             "worker-name",
 				GardenAddr:       "1.2.3.4:7777",
@@ -183,9 +185,10 @@ var _ = Describe("Workers API", func() {
 				ResourceTypes: []atc.WorkerResourceType{
 					{Type: "some-resource", Image: "some-resource-image"},
 				},
-				Platform: "haiku",
-				Tags:     []string{"not", "a", "limerick"},
-				Version:  "1.2.3",
+				AllocatableMemory: &allocatableMemory,
+				Platform:          "haiku",
+				Tags:              []string{"not", "a", "limerick"},
+				Version:           "1.2.3",
 			}
 
 			ttl = "30s"
@@ -226,9 +229,10 @@ var _ = Describe("Workers API", func() {
 					ResourceTypes: []atc.WorkerResourceType{
 						{Type: "some-resource", Image: "some-resource-image"},
 					},
-					Platform: "haiku",
-					Tags:     []string{"not", "a", "limerick"},
-					Version:  "1.2.3",
+					AllocatableMemory: &allocatableMemory,
+					Platform:          "haiku",
+					Tags:              []string{"not", "a", "limerick"},
+					Version:           "1.2.3",
 				}))
 
 				Expect(savedTTL.String()).To(Equal(ttl))
@@ -318,9 +322,10 @@ var _ = Describe("Workers API", func() {
 						ResourceTypes: []atc.WorkerResourceType{
 							{Type: "some-resource", Image: "some-resource-image"},
 						},
-						Platform: "haiku",
-						Tags:     []string{"not", "a", "limerick"},
-						Version:  "1.2.3",
+						AllocatableMemory: &allocatableMemory,
+						Platform:          "haiku",
+						Tags:              []string{"not", "a", "limerick"},
+						Version:           "1.2.3",
 					}))
 
 					Expect(savedTTL.String()).To(Equal(ttl))
@@ -350,9 +355,10 @@ var _ = Describe("Workers API", func() {
 						ResourceTypes: []atc.WorkerResourceType{
 							{Type: "some-resource", Image: "some-resource-image"},
 						},
-						Platform: "haiku",
-						Tags:     []string{"not", "a", "limerick"},
-						Version:  "1.2.3",
+						AllocatableMemory: &allocatableMemory,
+						Platform:          "haiku",
+						Tags:              []string{"not", "a", "limerick"},
+						Version:           "1.2.3",
 					}))
 
 					Expect(savedTTL.String()).To(Equal(ttl))
@@ -383,9 +389,10 @@ var _ = Describe("Workers API", func() {
 						ResourceTypes: []atc.WorkerResourceType{
 							{Type: "some-resource", Image: "some-resource-image"},
 						},
-						Platform: "haiku",
-						Tags:     []string{"not", "a", "limerick"},
-						Version:  "1.2.3",
+						AllocatableMemory: &allocatableMemory,
+						Platform:          "haiku",
+						Tags:              []string{"not", "a", "limerick"},
+						Version:           "1.2.3",
 					}))
 
 					Expect(savedTTL.String()).To(Equal(ttl))
@@ -786,10 +793,12 @@ var _ = Describe("Workers API", func() {
 		BeforeEach(func() {
 			fakeWorker = new(dbfakes.FakeWorker)
 			workerName = "some-name"
+			memoryLimit := atc.MemoryLimit(256000)
 			fakeWorker.NameReturns(workerName)
 			fakeWorker.ActiveContainersReturns(2)
 			fakeWorker.ActiveVolumesReturns(10)
 			fakeWorker.ActiveTasksReturns(42, nil)
+			fakeWorker.AllocatableMemoryReturns(&memoryLimit)
 			fakeWorker.PlatformReturns("penguin")
 			fakeWorker.TagsReturns([]string{"some-tag"})
 			fakeWorker.StateReturns(db.WorkerStateRunning)
@@ -843,6 +852,7 @@ var _ = Describe("Workers API", func() {
 				"active_volumes": 10,
 				"active_tasks": 42,
 				"resource_types": null,
+				"allocatable_memory": 256000,
 				"platform": "penguin",
 				"ephemeral": true,
 				"tags": ["some-tag"],

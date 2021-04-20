@@ -32,6 +32,7 @@ type Container interface {
 	WorkerName() string
 
 	UpdateLastHijack() error
+	UpdateExitCode(int) error
 }
 
 type gardenWorkerContainer struct {
@@ -102,6 +103,10 @@ func (container *gardenWorkerContainer) WorkerName() string {
 
 func (container *gardenWorkerContainer) UpdateLastHijack() error {
 	return container.dbContainer.UpdateLastHijack()
+}
+
+func (container *gardenWorkerContainer) UpdateExitCode(exitCode int) error {
+	return container.dbContainer.UpdateExitCode(exitCode)
 }
 
 func (container *gardenWorkerContainer) Run(ctx context.Context, spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {
@@ -224,6 +229,11 @@ func (container *gardenWorkerContainer) RunScript(
 			return processErr
 		}
 
+		err := container.UpdateExitCode(processStatus)
+		if err != nil {
+			return err
+		}
+
 		if processStatus != 0 {
 			return runtime.ErrResourceScriptFailed{
 				Path:       path,
@@ -241,7 +251,7 @@ func (container *gardenWorkerContainer) RunScript(
 			}
 		}
 
-		err := json.Unmarshal(stdout.Bytes(), output)
+		err = json.Unmarshal(stdout.Bytes(), output)
 		if err != nil {
 			return fmt.Errorf("%s\n\nwhen parsing resource response:\n\n%s", err, stdout.String())
 		}

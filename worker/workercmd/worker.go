@@ -11,6 +11,7 @@ import (
 	"github.com/concourse/baggageclaim/baggageclaimcmd"
 	bclient "github.com/concourse/baggageclaim/client"
 	"github.com/concourse/concourse"
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/worker/gclient"
 	concourseCmd "github.com/concourse/concourse/cmd"
 	"github.com/concourse/concourse/worker"
@@ -62,6 +63,8 @@ type WorkerCommand struct {
 
 	ResourceTypes flag.Dir `long:"resource-types" description:"Path to directory containing resource types the worker should advertise."`
 
+	AllocatableMemory *string `long:"allocatable-memory" description:"Amount of allocatable memory. Measured in bytes or KB, MB, GB (e.g. 4GB)"`
+
 	Logger flag.Lager
 }
 
@@ -87,6 +90,14 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 	}
 
 	atcWorker.Version = concourse.WorkerVersion
+
+	if cmd.AllocatableMemory != nil {
+		memory, err := atc.ParseMemoryLimit(*cmd.AllocatableMemory)
+		if err != nil {
+			return nil, err
+		}
+		atcWorker.AllocatableMemory = &memory
+	}
 
 	baggageclaimRunner, err := cmd.baggageclaimRunner(logger.Session("baggageclaim"))
 	if err != nil {
