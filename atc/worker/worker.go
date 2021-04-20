@@ -82,7 +82,7 @@ type Worker interface {
 	IncreaseActiveTasks() (int, error)
 	DecreaseActiveTasks() (int, error)
 
-	ActiveContainers() int
+	ExpectedContainers() int
 	ActiveVolumes() int
 }
 
@@ -799,8 +799,8 @@ func (worker *gardenWorker) DecreaseActiveTasks() (int, error) {
 	return worker.dbWorker.DecreaseActiveTasks()
 }
 
-func (worker *gardenWorker) ActiveContainers() int {
-	return worker.dbWorker.ActiveContainers()
+func (worker *gardenWorker) ExpectedContainers() int {
+	return worker.dbWorker.ExpectedContainers()
 }
 
 func (worker *gardenWorker) ActiveVolumes() int {

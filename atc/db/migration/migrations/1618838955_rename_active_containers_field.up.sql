@@ -1,0 +1,1 @@
+ALTER TABLE workers RENAME COLUMN active_containers TO expected_containers;

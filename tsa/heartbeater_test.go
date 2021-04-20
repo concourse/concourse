@@ -248,7 +248,7 @@ var _ = Describe("Heartbeater", func() {
 				})
 
 				It("immediately registers", func() {
-					expectedWorker.ActiveContainers = 2
+					expectedWorker.ExpectedContainers = 2
 					expectedWorker.ActiveVolumes = 3
 					Eventually(registrations).Should(Receive(Equal(registration{expectedWorker, 2 * interval})))
 				})
@@ -257,7 +257,7 @@ var _ = Describe("Heartbeater", func() {
 					Eventually(registrations).Should(Receive())
 
 					fakeClock.WaitForWatcherAndIncrement(interval)
-					expectedWorker.ActiveContainers = 5
+					expectedWorker.ExpectedContainers = 5
 					expectedWorker.ActiveVolumes = 2
 					Eventually(heartbeats).Should(Receive(Equal(registration{expectedWorker, 2 * interval})))
 				})
@@ -333,7 +333,7 @@ var _ = Describe("Heartbeater", func() {
 				Eventually(heartbeats).Should(Receive())
 
 				fakeClock.WaitForWatcherAndIncrement(cprInterval)
-				expectedWorker.ActiveContainers = 4
+				expectedWorker.ExpectedContainers = 4
 				expectedWorker.ActiveVolumes = 1
 				Eventually(heartbeats).Should(Receive(Equal(registration{expectedWorker, 2 * interval})))
 			})
@@ -351,7 +351,7 @@ var _ = Describe("Heartbeater", func() {
 				Consistently(heartbeats).ShouldNot(Receive())
 
 				fakeClock.WaitForWatcherAndIncrement(interval - cprInterval)
-				expectedWorker.ActiveContainers = 3
+				expectedWorker.ExpectedContainers = 3
 				expectedWorker.ActiveVolumes = 0
 				Eventually(heartbeats).Should(Receive(Equal(registration{expectedWorker, 2 * interval})))
 			})

@@ -170,16 +170,17 @@ var _ = Describe("Workers API", func() {
 		BeforeEach(func() {
 			certsPath = "/some/certs/path"
 			worker = atc.Worker{
-				Name:             "worker-name",
-				GardenAddr:       "1.2.3.4:7777",
-				BaggageclaimURL:  "5.6.7.8:7788",
-				CertsPath:        &certsPath,
-				HTTPProxyURL:     "http://example.com",
-				HTTPSProxyURL:    "https://example.com",
-				NoProxy:          "example.com,127.0.0.1,localhost",
-				ActiveContainers: 2,
-				ActiveVolumes:    10,
-				ActiveTasks:      42,
+				Name:               "worker-name",
+				GardenAddr:         "1.2.3.4:7777",
+				BaggageclaimURL:    "5.6.7.8:7788",
+				CertsPath:          &certsPath,
+				HTTPProxyURL:       "http://example.com",
+				HTTPSProxyURL:      "https://example.com",
+				NoProxy:            "example.com,127.0.0.1,localhost",
+				ExpectedContainers: 2,
+				ReportedContainers: 2,
+				ActiveVolumes:      10,
+				ActiveTasks:        42,
 				ResourceTypes: []atc.WorkerResourceType{
 					{Type: "some-resource", Image: "some-resource-image"},
 				},
@@ -213,16 +214,17 @@ var _ = Describe("Workers API", func() {
 				Expect(dbWorkerFactory.SaveWorkerCallCount()).To(Equal(1))
 				savedWorker, savedTTL := dbWorkerFactory.SaveWorkerArgsForCall(0)
 				Expect(savedWorker).To(Equal(atc.Worker{
-					GardenAddr:       "1.2.3.4:7777",
-					Name:             "worker-name",
-					BaggageclaimURL:  "5.6.7.8:7788",
-					CertsPath:        &certsPath,
-					HTTPProxyURL:     "http://example.com",
-					HTTPSProxyURL:    "https://example.com",
-					NoProxy:          "example.com,127.0.0.1,localhost",
-					ActiveContainers: 2,
-					ActiveVolumes:    10,
-					ActiveTasks:      42,
+					GardenAddr:         "1.2.3.4:7777",
+					Name:               "worker-name",
+					BaggageclaimURL:    "5.6.7.8:7788",
+					CertsPath:          &certsPath,
+					HTTPProxyURL:       "http://example.com",
+					HTTPSProxyURL:      "https://example.com",
+					NoProxy:            "example.com,127.0.0.1,localhost",
+					ExpectedContainers: 2,
+					ReportedContainers: 2,
+					ActiveVolumes:      10,
+					ActiveTasks:        42,
 					ResourceTypes: []atc.WorkerResourceType{
 						{Type: "some-resource", Image: "some-resource-image"},
 					},
@@ -305,16 +307,17 @@ var _ = Describe("Workers API", func() {
 
 					savedInfo, savedTTL := dbWorkerFactory.SaveWorkerArgsForCall(0)
 					Expect(savedInfo).To(Equal(atc.Worker{
-						GardenAddr:       "1.2.3.4:7777",
-						Name:             "1.2.3.4:7777",
-						BaggageclaimURL:  "5.6.7.8:7788",
-						CertsPath:        &certsPath,
-						HTTPProxyURL:     "http://example.com",
-						HTTPSProxyURL:    "https://example.com",
-						NoProxy:          "example.com,127.0.0.1,localhost",
-						ActiveContainers: 2,
-						ActiveVolumes:    10,
-						ActiveTasks:      42,
+						GardenAddr:         "1.2.3.4:7777",
+						Name:               "1.2.3.4:7777",
+						BaggageclaimURL:    "5.6.7.8:7788",
+						CertsPath:          &certsPath,
+						HTTPProxyURL:       "http://example.com",
+						HTTPSProxyURL:      "https://example.com",
+						NoProxy:            "example.com,127.0.0.1,localhost",
+						ExpectedContainers: 2,
+						ReportedContainers: 2,
+						ActiveVolumes:      10,
+						ActiveTasks:        42,
 						ResourceTypes: []atc.WorkerResourceType{
 							{Type: "some-resource", Image: "some-resource-image"},
 						},
@@ -337,16 +340,17 @@ var _ = Describe("Workers API", func() {
 
 					savedInfo, savedTTL := dbWorkerFactory.SaveWorkerArgsForCall(0)
 					Expect(savedInfo).To(Equal(atc.Worker{
-						GardenAddr:       "1.2.3.4:7777",
-						Name:             "worker-name",
-						BaggageclaimURL:  "5.6.7.8:7788",
-						CertsPath:        nil,
-						HTTPProxyURL:     "http://example.com",
-						HTTPSProxyURL:    "https://example.com",
-						NoProxy:          "example.com,127.0.0.1,localhost",
-						ActiveContainers: 2,
-						ActiveVolumes:    10,
-						ActiveTasks:      42,
+						GardenAddr:         "1.2.3.4:7777",
+						Name:               "worker-name",
+						BaggageclaimURL:    "5.6.7.8:7788",
+						CertsPath:          nil,
+						HTTPProxyURL:       "http://example.com",
+						HTTPSProxyURL:      "https://example.com",
+						NoProxy:            "example.com,127.0.0.1,localhost",
+						ExpectedContainers: 2,
+						ReportedContainers: 2,
+						ActiveVolumes:      10,
+						ActiveTasks:        42,
 						ResourceTypes: []atc.WorkerResourceType{
 							{Type: "some-resource", Image: "some-resource-image"},
 						},
@@ -370,16 +374,17 @@ var _ = Describe("Workers API", func() {
 
 					savedInfo, savedTTL := dbWorkerFactory.SaveWorkerArgsForCall(0)
 					Expect(savedInfo).To(Equal(atc.Worker{
-						GardenAddr:       "1.2.3.4:7777",
-						Name:             "worker-name",
-						BaggageclaimURL:  "5.6.7.8:7788",
-						CertsPath:        nil,
-						HTTPProxyURL:     "http://example.com",
-						HTTPSProxyURL:    "https://example.com",
-						NoProxy:          "example.com,127.0.0.1,localhost",
-						ActiveContainers: 2,
-						ActiveVolumes:    10,
-						ActiveTasks:      42,
+						GardenAddr:         "1.2.3.4:7777",
+						Name:               "worker-name",
+						BaggageclaimURL:    "5.6.7.8:7788",
+						CertsPath:          nil,
+						HTTPProxyURL:       "http://example.com",
+						HTTPSProxyURL:      "https://example.com",
+						NoProxy:            "example.com,127.0.0.1,localhost",
+						ExpectedContainers: 2,
+						ReportedContainers: 2,
+						ActiveVolumes:      10,
+						ActiveTasks:        42,
 						ResourceTypes: []atc.WorkerResourceType{
 							{Type: "some-resource", Image: "some-resource-image"},
 						},
@@ -787,7 +792,8 @@ var _ = Describe("Workers API", func() {
 			fakeWorker = new(dbfakes.FakeWorker)
 			workerName = "some-name"
 			fakeWorker.NameReturns(workerName)
-			fakeWorker.ActiveContainersReturns(2)
+			fakeWorker.ExpectedContainersReturns(2)
+			fakeWorker.ReportedContainersReturns(1)
 			fakeWorker.ActiveVolumesReturns(10)
 			fakeWorker.ActiveTasksReturns(42, nil)
 			fakeWorker.PlatformReturns("penguin")
@@ -801,8 +807,9 @@ var _ = Describe("Workers API", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			worker = atc.Worker{
-				Name:             workerName,
-				ActiveContainers: 2,
+				Name:               workerName,
+				ExpectedContainers: 2,
+				ReportedContainers: 1,
 			}
 			fakeAccess.IsAuthenticatedReturns(true)
 			dbWorkerFactory.HeartbeatWorkerReturns(fakeWorker, nil)
@@ -839,7 +846,8 @@ var _ = Describe("Workers API", func() {
 				"state": "running",
 				"addr": "",
 				"baggageclaim_url": "",
-				"active_containers": 2,
+				"expected_containers": 2,
+				"reported_containers": 1,
 				"active_volumes": 10,
 				"active_tasks": 42,
 				"resource_types": null,

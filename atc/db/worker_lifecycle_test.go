@@ -19,12 +19,13 @@ var _ = Describe("Worker Lifecycle", func() {
 
 	BeforeEach(func() {
 		atcWorker = atc.Worker{
-			GardenAddr:       "some-garden-addr",
-			BaggageclaimURL:  "some-bc-url",
-			HTTPProxyURL:     "some-http-proxy-url",
-			HTTPSProxyURL:    "some-https-proxy-url",
-			NoProxy:          "some-no-proxy",
-			ActiveContainers: 140,
+			GardenAddr:         "some-garden-addr",
+			BaggageclaimURL:    "some-bc-url",
+			HTTPProxyURL:       "some-http-proxy-url",
+			HTTPSProxyURL:      "some-https-proxy-url",
+			NoProxy:            "some-no-proxy",
+			ExpectedContainers: 140,
+			ReportedContainers: 130,
 			ResourceTypes: []atc.WorkerResourceType{
 				{
 					Type:    "some-resource-type",

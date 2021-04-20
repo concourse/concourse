@@ -203,7 +203,7 @@ var _ = Describe("Worker", func() {
 	})
 
 	JustBeforeEach(func() {
-		fakeDBWorker.ActiveContainersReturns(activeContainers)
+		fakeDBWorker.ExpectedContainersReturns(activeContainers)
 		fakeDBWorker.ResourceTypesReturns(resourceTypes)
 		fakeDBWorker.PlatformReturns(platform)
 		fakeDBWorker.TagsReturns(tags)

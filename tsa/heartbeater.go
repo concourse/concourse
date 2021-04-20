@@ -279,7 +279,7 @@ func (heartbeater *Heartbeater) pingWorker(logger lager.Logger) (atc.Worker, boo
 		return atc.Worker{}, false
 	}
 
-	registration.ActiveContainers = len(containers)
+	registration.ExpectedContainers = len(containers)
 	registration.ActiveVolumes = len(volumes)
 
 	return registration, true

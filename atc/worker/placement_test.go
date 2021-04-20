@@ -489,9 +489,9 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 			})
 
 			BeforeEach(func() {
-				workerFakes[0].ActiveContainersReturns(200)
-				workerFakes[1].ActiveContainersReturns(20)
-				workerFakes[2].ActiveContainersReturns(20000)
+				workerFakes[0].ExpectedContainersReturns(200)
+				workerFakes[1].ExpectedContainersReturns(20)
+				workerFakes[2].ExpectedContainersReturns(20000)
 
 				shouldError = false
 			})
@@ -523,9 +523,9 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 			})
 
 			BeforeEach(func() {
-				workerFakes[0].ActiveContainersReturns(200)
-				workerFakes[1].ActiveContainersReturns(20)
-				workerFakes[2].ActiveContainersReturns(20000)
+				workerFakes[0].ExpectedContainersReturns(200)
+				workerFakes[1].ExpectedContainersReturns(20)
+				workerFakes[2].ExpectedContainersReturns(20000)
 
 				orderedWorkers = workers
 				shouldError = false
@@ -744,9 +744,9 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 				})
 
 				BeforeEach(func() {
-					workerFakes[0].ActiveContainersReturns(30)
-					workerFakes[1].ActiveContainersReturns(20)
-					workerFakes[2].ActiveContainersReturns(10)
+					workerFakes[0].ExpectedContainersReturns(30)
+					workerFakes[1].ExpectedContainersReturns(20)
+					workerFakes[2].ExpectedContainersReturns(10)
 
 					fakeInput1 := makeFakeInput(workers[0], workers[1])
 					fakeInput2 := makeFakeInput(workers[0], workers[2])
@@ -787,7 +787,7 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 
 				It("calls .Pick and .Release on chained strategies", func() {
 					// From "limit-active-containers" strategy
-					Expect(workerFakes[0].ActiveContainersCallCount()).To(Equal(1))
+					Expect(workerFakes[0].ExpectedContainersCallCount()).To(Equal(1))
 
 					// From "limit-active-tasks" strategy
 					Expect(workerFakes[0].IncreaseActiveTasksCallCount()).To(Equal(1))
@@ -797,12 +797,12 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 				Context("when first strategy rejects worker", func() {
 					BeforeEach(func() {
 						// Causes "limit-active-containers" strategy to fail in .Pick
-						workerFakes[0].ActiveContainersReturns(2)
+						workerFakes[0].ExpectedContainersReturns(2)
 					})
 
 					It("exits early and doesn't call .Pick on later strategies", func() {
 						// From "limit-active-containers" strategy
-						Expect(workerFakes[0].ActiveContainersCallCount()).To(Equal(1))
+						Expect(workerFakes[0].ExpectedContainersCallCount()).To(Equal(1))
 
 						// From "limit-active-tasks" strategy
 						Expect(workerFakes[0].IncreaseActiveTasksCallCount()).To(Equal(0))

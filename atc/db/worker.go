@@ -59,7 +59,8 @@ type Worker interface {
 	HTTPProxyURL() string
 	HTTPSProxyURL() string
 	NoProxy() string
-	ActiveContainers() int
+	ExpectedContainers() int
+	ReportedContainers() int
 	ActiveVolumes() int
 	ResourceTypes() []atc.WorkerResourceType
 	Platform() string
@@ -88,26 +89,27 @@ type Worker interface {
 type worker struct {
 	conn Conn
 
-	name             string
-	version          *string
-	state            WorkerState
-	gardenAddr       *string
-	baggageclaimURL  *string
-	httpProxyURL     string
-	httpsProxyURL    string
-	noProxy          string
-	activeContainers int
-	activeVolumes    int
-	activeTasks      int
-	resourceTypes    []atc.WorkerResourceType
-	platform         string
-	tags             []string
-	teamID           int
-	teamName         string
-	startTime        time.Time
-	expiresAt        time.Time
-	certsPath        *string
-	ephemeral        bool
+	name               string
+	version            *string
+	state              WorkerState
+	gardenAddr         *string
+	baggageclaimURL    *string
+	httpProxyURL       string
+	httpsProxyURL      string
+	noProxy            string
+	expectedContainers int
+	reportedContainers int
+	activeVolumes      int
+	activeTasks        int
+	resourceTypes      []atc.WorkerResourceType
+	platform           string
+	tags               []string
+	teamID             int
+	teamName           string
+	startTime          time.Time
+	expiresAt          time.Time
+	certsPath          *string
+	ephemeral          bool
 }
 
 func (worker *worker) Name() string             { return worker.name }
@@ -120,7 +122,8 @@ func (worker *worker) BaggageclaimURL() *string { return worker.baggageclaimURL 
 func (worker *worker) HTTPProxyURL() string                    { return worker.httpProxyURL }
 func (worker *worker) HTTPSProxyURL() string                   { return worker.httpsProxyURL }
 func (worker *worker) NoProxy() string                         { return worker.noProxy }
-func (worker *worker) ActiveContainers() int                   { return worker.activeContainers }
+func (worker *worker) ExpectedContainers() int                 { return worker.expectedContainers }
+func (worker *worker) ReportedContainers() int                 { return worker.reportedContainers }
 func (worker *worker) ActiveVolumes() int                      { return worker.activeVolumes }
 func (worker *worker) ResourceTypes() []atc.WorkerResourceType { return worker.resourceTypes }
 func (worker *worker) Platform() string                        { return worker.platform }

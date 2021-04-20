@@ -140,7 +140,7 @@ func (command *WorkersCommand) tableFor(workers []worker) ui.Table {
 	for _, w := range workers {
 		row := ui.TableRow{
 			{Contents: w.Name},
-			{Contents: strconv.Itoa(w.ActiveContainers)},
+			{Contents: strconv.Itoa(w.ExpectedContainers)},
 			{Contents: w.Platform},
 			stringOrDefault(strings.Join(w.Tags, ", ")),
 			stringOrDefault(w.Team),
