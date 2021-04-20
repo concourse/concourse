@@ -101,7 +101,7 @@ func getSyslogFormatter(hostname string, ts time.Time, tag string, eventID strin
 		s = strings.Replace(s, "\r", " ", -1)
 		s = strings.Replace(s, "\x00", " ", -1)
 
-		msg := fmt.Sprintf("<%d>1 %s %s %s - - [meta sequenceId=\"%s\"] %s\n",
+		msg := fmt.Sprintf("<%d>1 %s %s %s - - [concourse@0 eventId=\"%s\"] %s\n",
 			priority, ts.Format(rfc5424time), hostname, tag, eventID, s)
 		return msg
 	}

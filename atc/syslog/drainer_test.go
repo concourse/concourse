@@ -89,7 +89,7 @@ var _ = Describe("Drainer", func() {
 				got := <-server.Messages
 				Expect(got).To(ContainSubstring("build 123 log"))
 				Expect(got).To(ContainSubstring("build 345 log"))
-				Expect(got).To(ContainSubstring(`{"version": {"version":"0.0.1"}, "metadata": [{"name":"version","value":"0.0.1"}]`))
+				Expect(got).To(ContainSubstring(`get {"version": {"version":"0.0.1"}, "metadata": [{"name":"version","value":"0.0.1"}]`))
 				Expect(got).To(ContainSubstring("build 123 status"))
 				Expect(got).To(ContainSubstring("build 345 status"))
 				Expect(got).To(ContainSubstring("selected worker: example-worker"))

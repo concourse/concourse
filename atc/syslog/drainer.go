@@ -197,7 +197,7 @@ func (d *drainer) sendEvent(logger lager.Logger, build db.Build, syslog *Syslog,
 
 		version, _ := json.Marshal(finishGetEvent.FetchedVersion)
 		metadata, _ := json.Marshal(finishGetEvent.FetchedMetadata)
-		message = fmt.Sprintf("{\"version\": %s, \"metadata\": %s", string(version), string(metadata))
+		message = fmt.Sprintf("get {\"version\": %s, \"metadata\": %s", string(version), string(metadata))
 	case event.EventTypeFinishPut:
 		var finishPutEvent event.FinishPut
 		err := json.Unmarshal(*ev.Data, &finishPutEvent)
@@ -210,7 +210,7 @@ func (d *drainer) sendEvent(logger lager.Logger, build db.Build, syslog *Syslog,
 
 		version, _ := json.Marshal(finishPutEvent.CreatedVersion)
 		metadata, _ := json.Marshal(finishPutEvent.CreatedMetadata)
-		message = fmt.Sprintf("{\"version\": %s, \"metadata\": %s", string(version), string(metadata))
+		message = fmt.Sprintf("put {\"version\": %s, \"metadata\": %s", string(version), string(metadata))
 	case event.EventTypeError:
 		var errorEvent event.Error
 		err := json.Unmarshal(*ev.Data, &errorEvent)
