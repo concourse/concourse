@@ -12,8 +12,7 @@ import (
 	"github.com/lib/pq"
 )
 
-//go:generate counterfeiter . WorkerFactory
-
+//counterfeiter:generate . WorkerFactory
 type WorkerFactory interface {
 	GetWorker(name string) (Worker, bool, error)
 	SaveWorker(atcWorker atc.Worker, ttl time.Duration) (Worker, error)

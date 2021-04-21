@@ -6,8 +6,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 )
 
-//go:generate counterfeiter . WorkerLifecycle
-
+//counterfeiter:generate . WorkerLifecycle
 type WorkerLifecycle interface {
 	DeleteUnresponsiveEphemeralWorkers() ([]string, error)
 	StallUnresponsiveWorkers() ([]string, error)

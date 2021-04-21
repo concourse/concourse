@@ -19,10 +19,10 @@ type FakeCNI struct {
 	getConfigReturnsOnCall map[int]struct {
 		result1 *cni.ConfigResult
 	}
-	LoadStub        func(...cni.CNIOpt) error
+	LoadStub        func(...cni.Opt) error
 	loadMutex       sync.RWMutex
 	loadArgsForCall []struct {
-		arg1 []cni.CNIOpt
+		arg1 []cni.Opt
 	}
 	loadReturns struct {
 		result1 error
@@ -44,7 +44,7 @@ type FakeCNI struct {
 	removeReturnsOnCall map[int]struct {
 		result1 error
 	}
-	SetupStub        func(context.Context, string, string, ...cni.NamespaceOpts) (*cni.CNIResult, error)
+	SetupStub        func(context.Context, string, string, ...cni.NamespaceOpts) (*cni.Result, error)
 	setupMutex       sync.RWMutex
 	setupArgsForCall []struct {
 		arg1 context.Context
@@ -53,11 +53,11 @@ type FakeCNI struct {
 		arg4 []cni.NamespaceOpts
 	}
 	setupReturns struct {
-		result1 *cni.CNIResult
+		result1 *cni.Result
 		result2 error
 	}
 	setupReturnsOnCall map[int]struct {
-		result1 *cni.CNIResult
+		result1 *cni.Result
 		result2 error
 	}
 	StatusStub        func() error
@@ -127,11 +127,11 @@ func (fake *FakeCNI) GetConfigReturnsOnCall(i int, result1 *cni.ConfigResult) {
 	}{result1}
 }
 
-func (fake *FakeCNI) Load(arg1 ...cni.CNIOpt) error {
+func (fake *FakeCNI) Load(arg1 ...cni.Opt) error {
 	fake.loadMutex.Lock()
 	ret, specificReturn := fake.loadReturnsOnCall[len(fake.loadArgsForCall)]
 	fake.loadArgsForCall = append(fake.loadArgsForCall, struct {
-		arg1 []cni.CNIOpt
+		arg1 []cni.Opt
 	}{arg1})
 	stub := fake.LoadStub
 	fakeReturns := fake.loadReturns
@@ -152,13 +152,13 @@ func (fake *FakeCNI) LoadCallCount() int {
 	return len(fake.loadArgsForCall)
 }
 
-func (fake *FakeCNI) LoadCalls(stub func(...cni.CNIOpt) error) {
+func (fake *FakeCNI) LoadCalls(stub func(...cni.Opt) error) {
 	fake.loadMutex.Lock()
 	defer fake.loadMutex.Unlock()
 	fake.LoadStub = stub
 }
 
-func (fake *FakeCNI) LoadArgsForCall(i int) []cni.CNIOpt {
+func (fake *FakeCNI) LoadArgsForCall(i int) []cni.Opt {
 	fake.loadMutex.RLock()
 	defer fake.loadMutex.RUnlock()
 	argsForCall := fake.loadArgsForCall[i]
@@ -252,7 +252,7 @@ func (fake *FakeCNI) RemoveReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeCNI) Setup(arg1 context.Context, arg2 string, arg3 string, arg4 ...cni.NamespaceOpts) (*cni.CNIResult, error) {
+func (fake *FakeCNI) Setup(arg1 context.Context, arg2 string, arg3 string, arg4 ...cni.NamespaceOpts) (*cni.Result, error) {
 	fake.setupMutex.Lock()
 	ret, specificReturn := fake.setupReturnsOnCall[len(fake.setupArgsForCall)]
 	fake.setupArgsForCall = append(fake.setupArgsForCall, struct {
@@ -280,7 +280,7 @@ func (fake *FakeCNI) SetupCallCount() int {
 	return len(fake.setupArgsForCall)
 }
 
-func (fake *FakeCNI) SetupCalls(stub func(context.Context, string, string, ...cni.NamespaceOpts) (*cni.CNIResult, error)) {
+func (fake *FakeCNI) SetupCalls(stub func(context.Context, string, string, ...cni.NamespaceOpts) (*cni.Result, error)) {
 	fake.setupMutex.Lock()
 	defer fake.setupMutex.Unlock()
 	fake.SetupStub = stub
@@ -293,28 +293,28 @@ func (fake *FakeCNI) SetupArgsForCall(i int) (context.Context, string, string, [
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
-func (fake *FakeCNI) SetupReturns(result1 *cni.CNIResult, result2 error) {
+func (fake *FakeCNI) SetupReturns(result1 *cni.Result, result2 error) {
 	fake.setupMutex.Lock()
 	defer fake.setupMutex.Unlock()
 	fake.SetupStub = nil
 	fake.setupReturns = struct {
-		result1 *cni.CNIResult
+		result1 *cni.Result
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCNI) SetupReturnsOnCall(i int, result1 *cni.CNIResult, result2 error) {
+func (fake *FakeCNI) SetupReturnsOnCall(i int, result1 *cni.Result, result2 error) {
 	fake.setupMutex.Lock()
 	defer fake.setupMutex.Unlock()
 	fake.SetupStub = nil
 	if fake.setupReturnsOnCall == nil {
 		fake.setupReturnsOnCall = make(map[int]struct {
-			result1 *cni.CNIResult
+			result1 *cni.Result
 			result2 error
 		})
 	}
 	fake.setupReturnsOnCall[i] = struct {
-		result1 *cni.CNIResult
+		result1 *cni.Result
 		result2 error
 	}{result1, result2}
 }

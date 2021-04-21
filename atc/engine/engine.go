@@ -19,16 +19,16 @@ import (
 	"github.com/concourse/concourse/tracing"
 )
 
-//go:generate counterfeiter . Engine
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
 
+//counterfeiter:generate . Engine
 type Engine interface {
 	NewBuild(db.Build) Runnable
 
 	Drain(context.Context)
 }
 
-//go:generate counterfeiter . Runnable
-
+//counterfeiter:generate . Runnable
 type Runnable interface {
 	Run(context.Context)
 }

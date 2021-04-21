@@ -6,8 +6,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 )
 
-//go:generate counterfeiter . UserFactory
-
+//counterfeiter:generate . UserFactory
 type UserFactory interface {
 	CreateOrUpdateUser(username, connector, sub string) error
 	GetAllUsers() ([]User, error)

@@ -16,7 +16,7 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-//go:generate counterfeiter . TaskConfigSource
+//counterfeiter:generate . TaskConfigSource
 
 // TaskConfigSource is used to determine a Task step's TaskConfig.
 type TaskConfigSource interface {

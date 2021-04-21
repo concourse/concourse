@@ -19,20 +19,19 @@ import (
 	"gopkg.in/square/go-jose.v2/jwt"
 )
 
-//go:generate counterfeiter . Generator
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
 
+//counterfeiter:generate . Generator
 type Generator interface {
 	GenerateAccessToken(claims db.Claims) (string, error)
 }
 
-//go:generate counterfeiter . Parser
-
+//counterfeiter:generate . Parser
 type Parser interface {
 	ParseExpiry(raw string) (time.Time, error)
 }
 
-//go:generate counterfeiter . ClaimsParser
-
+//counterfeiter:generate . ClaimsParser
 type ClaimsParser interface {
 	ParseClaims(idToken string) (db.Claims, error)
 }

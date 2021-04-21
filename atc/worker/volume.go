@@ -2,16 +2,16 @@ package worker
 
 import (
 	"context"
-	"github.com/concourse/concourse/tracing"
 	"io"
+
+	"github.com/concourse/concourse/tracing"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc/db"
 )
 
-//go:generate counterfeiter . Volume
-
+//counterfeiter:generate . Volume
 type Volume interface {
 	Handle() string
 	Path() string

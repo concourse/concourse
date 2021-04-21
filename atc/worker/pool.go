@@ -18,8 +18,6 @@ import (
 
 const WorkerPollingInterval = 5 * time.Second
 
-//go:generate counterfeiter . Pool
-
 type NoCompatibleWorkersError struct {
 	Spec WorkerSpec
 }
@@ -28,6 +26,7 @@ func (err NoCompatibleWorkersError) Error() string {
 	return fmt.Sprintf("no workers satisfying: %s", err.Spec.Description())
 }
 
+//counterfeiter:generate . Pool
 type Pool interface {
 	FindContainer(lager.Logger, int, string) (Container, bool, error)
 	VolumeFinder
@@ -50,14 +49,12 @@ type Pool interface {
 	)
 }
 
-//go:generate counterfeiter . PoolCallbacks
-
+//counterfeiter:generate . PoolCallbacks
 type PoolCallbacks interface {
 	WaitingForWorker(lager.Logger)
 }
 
-//go:generate counterfeiter . VolumeFinder
-
+//counterfeiter:generate . VolumeFinder
 type VolumeFinder interface {
 	FindVolume(lager.Logger, int, string) (Volume, bool, error)
 }

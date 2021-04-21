@@ -10,7 +10,9 @@ import (
 	"github.com/concourse/concourse/atc"
 )
 
-//go:generate counterfeiter . ResourceFactory
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+
+//counterfeiter:generate . ResourceFactory
 type ResourceFactory interface {
 	NewResource(source atc.Source, params atc.Params, version atc.Version) Resource
 }
@@ -30,8 +32,7 @@ func (rf resourceFactory) NewResource(source atc.Source, params atc.Params, vers
 	}
 }
 
-//go:generate counterfeiter . Resource
-
+//counterfeiter:generate . Resource
 type Resource interface {
 	Get(context.Context, runtime.ProcessSpec, runtime.Runner) (runtime.VersionResult, error)
 	Put(context.Context, runtime.ProcessSpec, runtime.Runner) (runtime.VersionResult, error)

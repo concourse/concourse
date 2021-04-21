@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 )
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . FileStore
+//counterfeiter:generate . FileStore
 
 // FileStore is responsible for managing files associated with containers.
 //

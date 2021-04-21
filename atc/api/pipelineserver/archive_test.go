@@ -14,7 +14,8 @@ import (
 	"github.com/onsi/gomega/gstruct"
 )
 
-//go:generate counterfeiter code.cloudfoundry.org/lager.Logger
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+//counterfeiter:generate code.cloudfoundry.org/lager.Logger
 
 var _ = Describe("Archive Handler", func() {
 	var (

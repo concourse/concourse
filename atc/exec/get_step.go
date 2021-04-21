@@ -35,14 +35,12 @@ func (e ErrResourceNotFound) Error() string {
 	return fmt.Sprintf("resource '%s' not found", e.ResourceName)
 }
 
-//go:generate counterfeiter . GetDelegateFactory
-
+//counterfeiter:generate . GetDelegateFactory
 type GetDelegateFactory interface {
 	GetDelegate(state RunState) GetDelegate
 }
 
-//go:generate counterfeiter . GetDelegate
-
+//counterfeiter:generate . GetDelegate
 type GetDelegate interface {
 	StartSpan(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
 

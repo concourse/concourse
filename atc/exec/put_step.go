@@ -17,14 +17,12 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-//go:generate counterfeiter . PutDelegateFactory
-
+//counterfeiter:generate . PutDelegateFactory
 type PutDelegateFactory interface {
 	PutDelegate(state RunState) PutDelegate
 }
 
-//go:generate counterfeiter . PutDelegate
-
+//counterfeiter:generate . PutDelegate
 type PutDelegate interface {
 	StartSpan(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
 

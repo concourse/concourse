@@ -2,8 +2,7 @@ package db
 
 import "time"
 
-//go:generate counterfeiter . Notifier
-
+//counterfeiter:generate . Notifier
 type Notifier interface {
 	Notify() <-chan struct{}
 	Close() error

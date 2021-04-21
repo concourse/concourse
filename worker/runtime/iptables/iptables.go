@@ -4,8 +4,9 @@ import (
 	goiptables "github.com/coreos/go-iptables/iptables"
 )
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . Iptables
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
 
+//counterfeiter:generate . Iptables
 type Iptables interface {
 	CreateChainOrFlushIfExists(table string, chain string) error
 	AppendRule(table string, chain string, rulespec ...string) error

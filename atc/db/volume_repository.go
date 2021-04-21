@@ -9,8 +9,7 @@ import (
 	uuid "github.com/nu7hatch/gouuid"
 )
 
-//go:generate counterfeiter . VolumeRepository
-
+//counterfeiter:generate . VolumeRepository
 type VolumeRepository interface {
 	GetTeamVolumes(teamID int) ([]CreatedVolume, error)
 

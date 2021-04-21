@@ -9,7 +9,7 @@ import (
 	"github.com/concourse/concourse/atc/worker/gclient/connection"
 )
 
-//go:generate counterfeiter . Container
+//counterfeiter:generate . Container
 type Container interface {
 	Handle() string
 

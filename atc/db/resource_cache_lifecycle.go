@@ -8,8 +8,7 @@ import (
 	"github.com/lib/pq"
 )
 
-//go:generate counterfeiter . ResourceCacheLifecycle
-
+//counterfeiter:generate . ResourceCacheLifecycle
 type ResourceCacheLifecycle interface {
 	CleanUsesForFinishedBuilds(lager.Logger) error
 	CleanBuildImageResourceCaches(lager.Logger) error

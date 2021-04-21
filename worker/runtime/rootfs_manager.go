@@ -11,7 +11,7 @@ import (
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . RootfsManager
+//counterfeiter:generate . RootfsManager
 
 type InvalidUidError struct {
 	UID string

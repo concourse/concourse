@@ -7,8 +7,7 @@ import (
 	"github.com/concourse/concourse/go-concourse/concourse/internal"
 )
 
-//go:generate counterfeiter . Team
-
+//counterfeiter:generate . Team
 type Team interface {
 	Name() string
 	ID() int

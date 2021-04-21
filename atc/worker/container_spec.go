@@ -84,15 +84,13 @@ func (cs *ContainerSpec) Keys() []string {
 	return keys
 }
 
-//go:generate counterfeiter . InputSource
-
+//counterfeiter:generate . InputSource
 type InputSource interface {
 	Source() ArtifactSource
 	DestinationPath() string
 }
 
-//go:generate counterfeiter . BindMountSource
-
+//counterfeiter:generate . BindMountSource
 type BindMountSource interface {
 	VolumeOn(Worker) (garden.BindMount, bool, error)
 }

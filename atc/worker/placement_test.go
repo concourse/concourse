@@ -14,7 +14,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-//go:generate counterfeiter . ContainerPlacementStrategy
+//counterfeiter:generate . ContainerPlacementStrategy
 
 var _ = Describe("ContainerPlacementStrategy", func() {
 	var (

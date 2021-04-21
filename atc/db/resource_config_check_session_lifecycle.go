@@ -4,8 +4,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 )
 
-//go:generate counterfeiter . ResourceConfigCheckSessionLifecycle
-
+//counterfeiter:generate . ResourceConfigCheckSessionLifecycle
 type ResourceConfigCheckSessionLifecycle interface {
 	CleanInactiveResourceConfigCheckSessions() error
 	CleanExpiredResourceConfigCheckSessions() error

@@ -51,14 +51,12 @@ func (err TaskImageSourceParametersError) Error() string {
 	return fmt.Sprintf("failed to evaluate image resource parameters: %s", err.Err)
 }
 
-//go:generate counterfeiter . TaskDelegateFactory
-
+//counterfeiter:generate . TaskDelegateFactory
 type TaskDelegateFactory interface {
 	TaskDelegate(state RunState) TaskDelegate
 }
 
-//go:generate counterfeiter . TaskDelegate
-
+//counterfeiter:generate . TaskDelegate
 type TaskDelegate interface {
 	StartSpan(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
 

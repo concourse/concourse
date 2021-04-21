@@ -341,7 +341,7 @@ var _ = Describe("ResourceType", func() {
 
 			Context("when base resource type defaults is defined", func() {
 				BeforeEach(func() {
-					atc.LoadBaseResourceTypeDefaults(map[string]atc.Source{"s3": atc.Source{"default-s3-key": "some-value"}})
+					atc.LoadBaseResourceTypeDefaults(map[string]atc.Source{"s3": {"default-s3-key": "some-value"}})
 				})
 				AfterEach(func() {
 					atc.LoadBaseResourceTypeDefaults(map[string]atc.Source{})

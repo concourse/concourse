@@ -18,18 +18,18 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-//go:generate counterfeiter . TransportDB
+//counterfeiter:generate . TransportDB
 type TransportDB interface {
 	GetWorker(name string) (db.Worker, bool, error)
 }
 
-//go:generate counterfeiter . ReadCloser
+//counterfeiter:generate . ReadCloser
 type ReadCloser interface {
 	Read(p []byte) (n int, err error)
 	Close() error
 }
 
-//go:generate counterfeiter . RequestGenerator
+//counterfeiter:generate . RequestGenerator
 type RequestGenerator interface {
 	CreateRequest(name string, params rata.Params, body io.Reader) (*http.Request, error)
 }
