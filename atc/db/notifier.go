@@ -89,3 +89,22 @@ func (notifier *conditionNotifier) sendNotification() {
 	default:
 	}
 }
+
+func newNoopNotifier() Notifier {
+	return &noopNotifier{
+		notify: make(chan struct{}, 1),
+	}
+}
+
+type noopNotifier struct {
+	notify   chan struct{}
+}
+
+func (notifier *noopNotifier) Notify() <-chan struct{} {
+	return notifier.notify
+}
+
+func (notifier *noopNotifier) Close() error {
+	close(notifier.notify)
+	return nil
+}

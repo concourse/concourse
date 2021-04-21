@@ -42,6 +42,9 @@ type Prototype interface {
 	CheckPlan(planFactory atc.PlanFactory, imagePlanner atc.ImagePlanner, from atc.Version, interval atc.CheckEvery, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) atc.Plan
 	CreateBuild(context.Context, bool, atc.Plan) (Build, bool, error)
 
+	CreateInMemoryBuild(context.Context, atc.Plan) (Build, error)
+	CheckApiEndpoint() string
+
 	Version() atc.Version
 
 	Reload() (bool, error)
@@ -237,6 +240,14 @@ func (p *prototype) CreateBuild(ctx context.Context, manuallyTriggered bool, pla
 	}
 
 	return build, true, nil
+}
+
+func (p *prototype)  CreateInMemoryBuild(context.Context, atc.Plan) (Build, error) {
+	panic("not implemented")
+}
+
+func (p *prototype) CheckApiEndpoint() string {
+	panic("not implemented")
 }
 
 func scanPrototype(p *prototype, row scannable) error {

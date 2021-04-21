@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"strconv"
 	"time"
 
@@ -112,6 +113,9 @@ type Resource interface {
 	CheckPlan(planFactory atc.PlanFactory, imagePlanner atc.ImagePlanner, from atc.Version, interval atc.CheckEvery, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) atc.Plan
 	CreateBuild(context.Context, bool, atc.Plan) (Build, bool, error)
 
+	CreateInMemoryBuild(context.Context, atc.Plan) (Build, error)
+	CheckApiEndpoint() string
+
 	NotifyScan() error
 
 	ClearResourceCache(atc.Version) (int64, error)
@@ -127,6 +131,9 @@ var (
 		"r.config",
 		"rs.last_check_start_time",
 		"rs.last_check_end_time",
+		"rs.last_check_build_id",
+		"rs.last_check_succeeded",
+		"rs.last_check_build_plan",
 		"r.pipeline_id",
 		"r.nonce",
 		"r.resource_config_id",
@@ -138,16 +145,10 @@ var (
 		"rp.version",
 		"rp.comment_text",
 		"rp.config",
-		"b.id",
-		"b.name",
-		"b.status",
-		"b.start_time",
-		"b.end_time",
 	).
 		From("resources r").
 		Join("pipelines p ON p.id = r.pipeline_id").
 		Join("teams t ON t.id = p.team_id").
-		LeftJoin("builds b ON b.id = r.build_id").
 		LeftJoin("resource_config_scopes rs ON r.resource_config_scope_id = rs.id").
 		LeftJoin("resource_pins rp ON rp.resource_id = r.id").
 		Where(sq.Eq{"r.active": true})
@@ -361,14 +362,14 @@ func (r *resource) CreateBuild(ctx context.Context, manuallyTriggered bool, plan
 		return nil, false, err
 	}
 
-	_, err = psql.Update("resources").
-		Set("build_id", build.ID()).
-		Where(sq.Eq{"id": r.id}).
-		RunWith(tx).
-		Exec()
-	if err != nil {
-		return nil, false, err
-	}
+	//_, err = psql.Update("resources").
+	//	Set("build_id", build.ID()).
+	//	Where(sq.Eq{"id": r.id}).
+	//	RunWith(tx).
+	//	Exec()
+	//if err != nil {
+	//	return nil, false, err
+	//}
 
 	err = tx.Commit()
 	if err != nil {
@@ -386,6 +387,49 @@ func (r *resource) CreateBuild(ctx context.Context, manuallyTriggered bool, plan
 	}
 
 	return build, true, nil
+}
+
+func (r *resource) CreateInMemoryBuild(context context.Context, plan atc.Plan) (Build, error) {
+	tx, err := r.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer Rollback(tx)
+
+	var nextBuildId int
+	err = psql.Select("nextval('builds_id_seq'::regclass)").RunWith(tx).QueryRow().Scan(&nextBuildId)
+	if err != nil {
+		return nil, err
+	}
+
+	err = createBuildEventSeq(tx, nextBuildId)
+	if err != nil {
+		return nil, err
+	}
+
+	build := inMemoryCheckBuild{
+		id:           nextBuildId,
+		checkable:    r,
+		plan:         plan,
+		createTime:   time.Now(),
+		resourceId:   r.id,
+		resourceName: r.name,
+		conn:         r.conn,
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Fprintf(os.Stderr, "EVAN:create in memory check build\n")
+
+	return &build, nil
+}
+
+func (r *resource) CheckApiEndpoint() string {
+	return fmt.Sprintf("/api/v1/teams/%s/pipelines/%s/resources/%s/check?lidar=true", r.teamName, r.pipelineName, r.name)
 }
 
 func (r *resource) UpdateMetadata(version atc.Version, metadata ResourceConfigMetadataFields) (bool, error) {
@@ -842,19 +886,18 @@ func scanResource(r *resource, row scannable) error {
 		configBlob                                        sql.NullString
 		nonce, rcID, rcScopeID, pinnedVersion, pinComment sql.NullString
 		lastCheckStartTime, lastCheckEndTime              pq.NullTime
+		lastCheckBuildId                                  sql.NullInt64
+		lastCheckSucceeded                                sql.NullBool
+		lastCheckBuildPlan                                sql.NullString
 		pinnedThroughConfig                               sql.NullBool
 		pipelineInstanceVars                              sql.NullString
 	)
 
-	var build struct {
-		id        sql.NullInt64
-		name      sql.NullString
-		status    sql.NullString
-		startTime pq.NullTime
-		endTime   pq.NullTime
-	}
-
-	err := row.Scan(&r.id, &r.name, &r.type_, &configBlob, &lastCheckStartTime, &lastCheckEndTime, &r.pipelineID, &nonce, &rcID, &rcScopeID, &r.pipelineName, &pipelineInstanceVars, &r.teamID, &r.teamName, &pinnedVersion, &pinComment, &pinnedThroughConfig, &build.id, &build.name, &build.status, &build.startTime, &build.endTime)
+	err := row.Scan(&r.id, &r.name, &r.type_, &configBlob, &lastCheckStartTime,
+		&lastCheckEndTime, &lastCheckBuildId, &lastCheckSucceeded, &lastCheckBuildPlan,
+		&r.pipelineID, &nonce, &rcID, &rcScopeID,
+		&r.pipelineName, &pipelineInstanceVars, &r.teamID, &r.teamName,
+		&pinnedVersion, &pinComment, &pinnedThroughConfig)
 	if err != nil {
 		return err
 	}
@@ -929,12 +972,10 @@ func scanResource(r *resource, row scannable) error {
 		}
 	}
 
-	if build.id.Valid {
+	if lastCheckBuildId.Valid {
 		r.buildSummary = &atc.BuildSummary{
-			ID:   int(build.id.Int64),
-			Name: build.name.String,
-
-			Status: atc.BuildStatus(build.status.String),
+			ID:   int(lastCheckBuildId.Int64),
+			Name: CheckBuildName,
 
 			TeamName: r.teamName,
 
@@ -943,12 +984,28 @@ func scanResource(r *resource, row scannable) error {
 			PipelineInstanceVars: r.pipelineInstanceVars,
 		}
 
-		if build.startTime.Valid {
-			r.buildSummary.StartTime = build.startTime.Time.Unix()
+		if lastCheckStartTime.Valid {
+			r.buildSummary.StartTime = lastCheckStartTime.Time.Unix()
+
+			if lastCheckEndTime.Valid && lastCheckStartTime.Time.Before(lastCheckEndTime.Time) {
+				r.buildSummary.EndTime = lastCheckEndTime.Time.Unix()
+				if lastCheckSucceeded.Valid && lastCheckSucceeded.Bool {
+					r.buildSummary.Status = atc.StatusSucceeded
+				} else {
+					r.buildSummary.Status = atc.StatusFailed
+				}
+			} else {
+				r.buildSummary.Status = atc.StatusStarted
+			}
+		} else {
+			r.buildSummary.Status = atc.StatusPending
 		}
 
-		if build.endTime.Valid {
-			r.buildSummary.EndTime = build.endTime.Time.Unix()
+		if lastCheckBuildPlan.Valid {
+			err = json.Unmarshal([]byte(lastCheckBuildPlan.String), &r.buildSummary.PublicPlan)
+			if err != nil {
+				return err
+			}
 		}
 	}
 

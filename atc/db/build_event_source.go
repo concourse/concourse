@@ -1,8 +1,12 @@
 package db
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"github.com/lib/pq"
+	"os"
 	"strconv"
 	"sync"
 
@@ -26,6 +30,7 @@ func newBuildEventSource(
 	conn Conn,
 	notifier Notifier,
 	from uint,
+	inMemoryBuild bool,
 ) *buildEventSource {
 	wg := new(sync.WaitGroup)
 
@@ -40,6 +45,8 @@ func newBuildEventSource(
 		events: make(chan event.Envelope, 2000),
 		stop:   make(chan struct{}),
 		wg:     wg,
+
+		inMemoryBuild: inMemoryBuild,
 	}
 
 	wg.Add(1)
@@ -59,6 +66,8 @@ type buildEventSource struct {
 	stop   chan struct{}
 	err    error
 	wg     *sync.WaitGroup
+
+	inMemoryBuild bool
 }
 
 func (source *buildEventSource) Next() (event.Envelope, error) {
@@ -109,16 +118,42 @@ func (source *buildEventSource) collectEvents(from uint) {
 
 		defer Rollback(tx)
 
-		err = psql.Select("completed").
-			From("builds").
-			Where(sq.Eq{"id": source.buildID}).
-			RunWith(tx).
-			QueryRow().
-			Scan(&completed)
-		if err != nil {
-			source.err = err
-			close(source.events)
-			return
+		if source.inMemoryBuild {
+			var lastCheckStartTime, lastCheckEndTime pq.NullTime
+			err = psql.Select("last_check_start_time", "last_check_end_time").
+				From("resource_config_scopes").
+				Where(sq.Eq{"last_check_build_id": source.buildID}).
+				RunWith(tx).
+				QueryRow().
+				Scan(&lastCheckStartTime, &lastCheckEndTime)
+			if err != nil {
+				if err == sql.ErrNoRows {
+					fmt.Fprintf(os.Stderr, "EVAN:event complete, build id = %d\n", source.buildID)
+					completed = true
+				} else {
+					fmt.Fprintf(os.Stderr, "EVAN:event errored, build id = %d\n", source.buildID)
+					source.err = err
+					close(source.events)
+					return
+				}
+			}
+
+			if lastCheckStartTime.Valid && lastCheckEndTime.Valid && lastCheckStartTime.Time.Before(lastCheckEndTime.Time) {
+				completed = true
+				fmt.Fprintf(os.Stderr, "EVAN:event complete 222222, build id = %d\n", source.buildID)
+			}
+		} else {
+			err = psql.Select("completed").
+				From("builds").
+				Where(sq.Eq{"id": source.buildID}).
+				RunWith(tx).
+				QueryRow().
+				Scan(&completed)
+			if err != nil {
+				source.err = err
+				close(source.events)
+				return
+			}
 		}
 
 		rows, err := psql.Select("event_id", "type", "version", "payload").

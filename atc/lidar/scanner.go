@@ -1,14 +1,16 @@
 package lidar
 
 import (
+	"code.cloudfoundry.org/lager"
 	"context"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/metric"
 	"strconv"
 	"sync"
+	"time"
 
 	"code.cloudfoundry.org/lager/lagerctx"
-	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/util"
 	"github.com/concourse/concourse/tracing"
 )
@@ -55,6 +57,11 @@ func (s *scanner) scanResources(ctx context.Context, resources []db.Resource, re
 	logger := lagerctx.FromContext(ctx)
 	waitGroup := new(sync.WaitGroup)
 	for _, resource := range resources {
+		if resource.BuildSummary() != nil && resource.BuildSummary().Status == atc.StatusStarted && resource.BuildSummary().StartTime+60 > time.Now().Unix() {
+			logger.Info("EVAN:skip resource check", lager.Data{"resource": resource.Name(), "current_start": resource.BuildSummary().StartTime, "current_id": resource.BuildSummary().ID})
+			continue
+		}
+
 		waitGroup.Add(1)
 
 		resourceTypes := resourceTypesMap[resource.PipelineID()]
@@ -102,4 +109,22 @@ func (s *scanner) check(ctx context.Context, checkable db.Checkable, resourceTyp
 	} else {
 		metric.Metrics.ChecksEnqueued.Inc()
 	}
+
+	//requestBody := atc.CheckRequestBody{
+	//	From: version,
+	//}
+	//b, err := json.Marshal(&requestBody)
+	//
+	//url := fmt.Sprintf("%s/%s", s.atcExternalUrl, checkable.CheckApiEndpoint())
+	//logger.Info("EVAN:check posting to", lager.Data{"checkable": checkable.Name(), "url": url})
+	//resp, err := http.Post(url, "application/json", bytes.NewReader(b))
+	//if err != nil {
+	//	logger.Error("EVAN:failed-to-create-check", err)
+	//	return
+	//}
+	//if resp.StatusCode != http.StatusCreated {
+	//	logger.Error("EVAN:failed-to-post-check-api", fmt.Errorf("status: %d", resp.StatusCode), lager.Data{"url": url, "body": string(b)})
+	//	return
+	//}
+	//logger.Info("EVAN:post-lidar-check-to-api", lager.Data{"checkable": checkable.Name(), "from": version})
 }

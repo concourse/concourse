@@ -1,6 +1,7 @@
 package builds
 
 import (
+	"code.cloudfoundry.org/lager"
 	"context"
 	"sync"
 
@@ -27,17 +28,21 @@ type Runnable interface {
 func NewTracker(
 	buildFactory db.BuildFactory,
 	engine Engine,
+	checkBuildsChan <-chan db.Build,
 ) *Tracker {
 	return &Tracker{
-		buildFactory: buildFactory,
-		engine:       engine,
-		running:      &sync.Map{},
+		buildFactory:    buildFactory,
+		engine:          engine,
+		running:         &sync.Map{},
+		checkBuildsChan: checkBuildsChan,
 	}
 }
 
 type Tracker struct {
 	buildFactory db.BuildFactory
 	engine       Engine
+
+	checkBuildsChan <-chan db.Build
 
 	running *sync.Map
 }
@@ -51,8 +56,11 @@ func (bt *Tracker) Run(ctx context.Context) error {
 	builds, err := bt.buildFactory.GetAllStartedBuilds()
 	if err != nil {
 		logger.Error("failed-to-lookup-started-builds", err)
-		return err
+		builds = []db.Build{}
 	}
+
+	// TODO: maybe use a go routine to receive builds from ch.
+	builds = append(builds, bt.fetchInMemoryBuild(logger)...)
 
 	for _, b := range builds {
 		if _, exists := bt.running.LoadOrStore(b.ID(), true); !exists {
@@ -92,4 +100,20 @@ func (bt *Tracker) Run(ctx context.Context) error {
 
 func (bt *Tracker) Drain(ctx context.Context) {
 	bt.engine.Drain(ctx)
+}
+
+func (bt *Tracker) fetchInMemoryBuild(logger lager.Logger) []db.Build {
+	builds := []db.Build{}
+	hasMore := true
+	logger.Info("EVAN: tracker chan has", lager.Data{"len": len(bt.checkBuildsChan)})
+	for hasMore {
+		select {
+		case b := <-bt.checkBuildsChan:
+			logger.Info("EVAN-get-in-memory-build", lager.Data{"id": b.ID()})
+			builds = append(builds, b)
+		default:
+			hasMore = false
+		}
+	}
+	return builds
 }

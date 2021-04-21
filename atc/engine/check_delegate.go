@@ -221,6 +221,14 @@ func (d *checkDelegate) PointToCheckedConfig(scope db.ResourceConfigScope) error
 	return nil
 }
 
+func (d *checkDelegate) UpdateScopeLastCheckStartTime(scope db.ResourceConfigScope) (bool, error) {
+	return scope.UpdateLastCheckStartTime(d.build.ID(), d.build.PublicPlan())
+}
+
+func (d *checkDelegate) UpdateScopeLastCheckEndTime(scope db.ResourceConfigScope, succeeded bool) (bool, error) {
+	return scope.UpdateLastCheckEndTime(succeeded)
+}
+
 func (d *checkDelegate) pipeline() (db.Pipeline, error) {
 	if d.cachedPipeline != nil {
 		return d.cachedPipeline, nil

@@ -74,6 +74,7 @@ func (s *Server) CheckResourceWebHook(dbPipeline db.Pipeline) http.Handler {
 			nil,
 			true,
 			false,
+			true,
 		)
 		if err != nil {
 			logger.Error("failed-to-create-check", err)

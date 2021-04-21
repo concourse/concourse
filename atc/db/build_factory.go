@@ -48,7 +48,20 @@ func (f *buildFactory) Build(buildID int) (Build, bool, error) {
 	err := scanBuild(build, row, f.conn.EncryptionStrategy())
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, false, nil
+			resource, found, err := f.findResourceOfInMemoryCheckBuild(buildID)
+			if err != nil {
+				return nil, false, err
+			}
+
+			if !found {
+				return nil, false, nil
+			}
+
+			return &inMemoryCheckBuild{
+				conn:      f.conn,
+				id:        buildID,
+				checkable: resource,
+			}, true, nil
 		}
 		return nil, false, err
 	}
@@ -130,6 +143,22 @@ func (f *buildFactory) GetAllStartedBuilds() ([]Build, error) {
 	})
 
 	return getBuilds(query, f.conn, f.lockFactory)
+}
+
+func (f *buildFactory) findResourceOfInMemoryCheckBuild(buildId int) (Resource, bool, error) {
+	resource := newEmptyResource(f.conn, f.lockFactory)
+	row := resourcesQuery.
+		Where(sq.Eq{"rs.last_check_build_id": buildId}).
+		RunWith(f.conn).
+		QueryRow()
+	err := scanResource(resource, row)
+	if err == sql.ErrNoRows {
+		return nil, false, nil
+	}
+	if err != nil {
+		return nil, false, err
+	}
+	return resource, true, nil
 }
 
 func getBuilds(buildsQuery sq.SelectBuilder, conn Conn, lockFactory lock.LockFactory) ([]Build, error) {

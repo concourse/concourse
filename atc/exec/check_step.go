@@ -43,6 +43,8 @@ type CheckDelegate interface {
 	FindOrCreateScope(db.ResourceConfig) (db.ResourceConfigScope, error)
 	WaitToRun(context.Context, db.ResourceConfigScope) (lock.Lock, bool, error)
 	PointToCheckedConfig(db.ResourceConfigScope) error
+	UpdateScopeLastCheckStartTime(db.ResourceConfigScope) (bool, error)
+	UpdateScopeLastCheckEndTime(db.ResourceConfigScope, bool) (bool, error)
 }
 
 func NewCheckStep(
@@ -166,7 +168,7 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 
 		metric.Metrics.ChecksStarted.Inc()
 
-		_, err = scope.UpdateLastCheckStartTime()
+		_, err = delegate.UpdateScopeLastCheckStartTime(scope)
 		if err != nil {
 			return false, fmt.Errorf("update check start time: %w", err)
 		}
@@ -175,7 +177,7 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 		if runErr != nil || processResult.ExitStatus != 0 {
 			metric.Metrics.ChecksFinishedWithError.Inc()
 
-			if _, err := scope.UpdateLastCheckEndTime(false); err != nil {
+			if _, err := delegate.UpdateScopeLastCheckEndTime(scope, false); err != nil {
 				return false, fmt.Errorf("update check end time: %w", err)
 			}
 
@@ -207,11 +209,12 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 			state.StoreResult(step.planID, versions[len(versions)-1])
 		}
 
-		_, err = scope.UpdateLastCheckEndTime(true)
+		_, err = delegate.UpdateScopeLastCheckEndTime(scope, true)
 		if err != nil {
 			return false, fmt.Errorf("update check end time: %w", err)
 		}
 	} else {
+		logger.Info("EVAN:reuse check result")
 		latestVersion, found, err := scope.LatestVersion()
 		if err != nil {
 			return false, fmt.Errorf("get latest version: %w", err)

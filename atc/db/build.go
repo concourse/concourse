@@ -1108,6 +1108,7 @@ func (b *build) Events(from uint) (EventSource, error) {
 		b.conn,
 		notifier,
 		from,
+		false,
 	), nil
 }
 
