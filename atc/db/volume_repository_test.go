@@ -161,9 +161,10 @@ var _ = Describe("VolumeRepository", func() {
 
 	Describe("GetOrphanedVolumes", func() {
 		var (
-			expectedCreatedHandles    []string
-			expectedDestroyingHandles []string
-			certsVolumeHandle         string
+			expectedCreatedHandles      []string
+			expectedDestroyingHandles   []string
+			certsVolumeHandle           string
+			childVolume, createdVolume2 db.CreatedVolume
 		)
 
 		BeforeEach(func() {
@@ -183,9 +184,15 @@ var _ = Describe("VolumeRepository", func() {
 
 			creatingVolume2, err := volumeRepository.CreateContainerVolume(defaultTeam.ID(), defaultWorker.Name(), creatingContainer, "some-path-2")
 			Expect(err).NotTo(HaveOccurred())
-			createdVolume2, err := creatingVolume2.Created()
+			createdVolume2, err = creatingVolume2.Created()
 			Expect(err).NotTo(HaveOccurred())
-			expectedCreatedHandles = append(expectedCreatedHandles, createdVolume2.Handle())
+
+			// createdVolume2 is not expected to be returned as it has a child
+			creatingChildVolume, err := createdVolume2.CreateChildForContainer(creatingContainer, "some-chile-path-1")
+			Expect(err).NotTo(HaveOccurred())
+			childVolume, err = creatingChildVolume.Created()
+			Expect(err).NotTo(HaveOccurred())
+			expectedCreatedHandles = append(expectedCreatedHandles, childVolume.Handle())
 
 			creatingVolume3, err := volumeRepository.CreateContainerVolume(defaultTeam.ID(), defaultWorker.Name(), creatingContainer, "some-path-3")
 			Expect(err).NotTo(HaveOccurred())
@@ -283,6 +290,18 @@ var _ = Describe("VolumeRepository", func() {
 			}
 			Expect(createdHandles).To(ConsistOf(expectedCreatedHandles))
 			Expect(createdHandles).ToNot(ContainElement(certsVolumeHandle))
+		})
+
+		It("does not return volume with a child", func() {
+			createdVolumes, err := volumeRepository.GetOrphanedVolumes()
+			Expect(err).NotTo(HaveOccurred())
+			createdHandles := []string{}
+
+			for _, vol := range createdVolumes {
+				createdHandles = append(createdHandles, vol.Handle())
+			}
+			Expect(createdHandles).ToNot(ContainElement(createdVolume2.Handle()))
+			Expect(createdHandles).To(ContainElement(childVolume.Handle()))
 		})
 
 		Context("when worker is stalled", func() {
