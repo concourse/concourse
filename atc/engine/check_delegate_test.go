@@ -61,6 +61,7 @@ var _ = Describe("CheckDelegate", func() {
 		fakePolicyChecker = new(policyfakes.FakeChecker)
 
 		fakeBuild.NameReturns(db.CheckBuildName)
+		fakeBuild.ResourceIDReturns(88)
 
 		delegate = engine.NewCheckDelegate(fakeBuild, plan, state, fakeClock, fakeRateLimiter, fakePolicyChecker, fakeArtifactSourcer)
 
