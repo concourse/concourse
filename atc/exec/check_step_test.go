@@ -306,7 +306,7 @@ var _ = Describe("CheckStep", func() {
 				Context("when using a custom resource type", func() {
 					var (
 						fakeImageSpec          worker.ImageSpec
-						fakeImageResourceCache *dbfakes.FakeUsedResourceCache
+						fakeImageResourceCache *dbfakes.FakeResourceCache
 					)
 
 					BeforeEach(func() {
@@ -335,7 +335,7 @@ var _ = Describe("CheckStep", func() {
 							ImageArtifactSource: new(workerfakes.FakeStreamableArtifactSource),
 						}
 
-						fakeImageResourceCache = new(dbfakes.FakeUsedResourceCache)
+						fakeImageResourceCache = new(dbfakes.FakeResourceCache)
 						fakeImageResourceCache.IDReturns(123)
 
 						fakeDelegate.FetchImageReturns(fakeImageSpec, fakeImageResourceCache, nil)

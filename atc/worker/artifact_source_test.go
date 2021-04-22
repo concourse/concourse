@@ -362,7 +362,7 @@ var _ = Describe("StreamableArtifactSource", func() {
 				var fakeResourceCache db.ResourceCache
 
 				BeforeEach(func() {
-					fakeResourceCache = new(dbfakes.FakeUsedResourceCache)
+					fakeResourceCache = new(dbfakes.FakeResourceCache)
 					fakeWorker.FindResourceCacheForVolumeReturns(fakeResourceCache, true, nil)
 
 				})

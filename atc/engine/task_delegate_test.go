@@ -366,7 +366,7 @@ var _ = Describe("TaskDelegate", func() {
 
 		var fakeArtifact *runtimefakes.FakeArtifact
 		var fakeSource *workerfakes.FakeStreamableArtifactSource
-		var fakeResourceCache *dbfakes.FakeUsedResourceCache
+		var fakeResourceCache *dbfakes.FakeResourceCache
 
 		var runPlans []atc.Plan
 		var stepper exec.Stepper
@@ -385,7 +385,7 @@ var _ = Describe("TaskDelegate", func() {
 				runPlans = append(runPlans, p)
 
 				step := new(execfakes.FakeStep)
-				fakeResourceCache = new(dbfakes.FakeUsedResourceCache)
+				fakeResourceCache = new(dbfakes.FakeResourceCache)
 				step.RunStub = func(_ context.Context, state exec.RunState) (bool, error) {
 					if p.Get != nil {
 						state.ArtifactRepository().RegisterArtifact("image", fakeArtifact)
