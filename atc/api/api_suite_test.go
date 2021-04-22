@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"sync"
 	"testing"
 	"time"
@@ -246,6 +247,7 @@ var _ = BeforeEach(func() {
 })
 
 var _ = AfterEach(func() {
+	os.Remove(cliDownloadsDir)
 	server.Close()
 })
 
