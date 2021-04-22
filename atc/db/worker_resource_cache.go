@@ -1,9 +1,7 @@
 package db
 
 import (
-	"database/sql"
 	"errors"
-
 	sq "github.com/Masterminds/squirrel"
 )
 
@@ -20,6 +18,10 @@ type UsedWorkerResourceCache struct {
 var ErrWorkerBaseResourceTypeDisappeared = errors.New("worker base resource type disappeared")
 
 func (workerResourceCache WorkerResourceCache) FindOrCreate(tx Tx) (*UsedWorkerResourceCache, error) {
+	if workerResourceCache.SourceWorkerName == "" {
+		workerResourceCache.SourceWorkerName = workerResourceCache.WorkerName
+	}
+
 	baseResourceType := workerResourceCache.ResourceCache.BaseResourceType()
 	usedWorkerBaseResourceType, found, err := WorkerBaseResourceType{
 		Name:       baseResourceType.Name,
@@ -33,17 +35,22 @@ func (workerResourceCache WorkerResourceCache) FindOrCreate(tx Tx) (*UsedWorkerR
 		return nil, ErrWorkerBaseResourceTypeDisappeared
 	}
 
-	id, _, found, err := workerResourceCache.find(tx, workerResourceCache.WorkerName)
+	ids, workerBaseResourceTypeIds, found, err := workerResourceCache.find(tx, workerResourceCache.WorkerName)
 	if err != nil {
 		return nil, err
 	}
 
 	if found {
-		return &UsedWorkerResourceCache{
-			ID: id,
-		}, nil
+		for i, workerBaseResourceTypeId := range workerBaseResourceTypeIds {
+			if workerBaseResourceTypeId == usedWorkerBaseResourceType.ID {
+				return &UsedWorkerResourceCache{
+					ID: ids[i],
+				}, nil
+			}
+		}
 	}
 
+	var id int
 	err = psql.Insert("worker_resource_caches").
 		Columns(
 			"resource_cache_id",
@@ -74,33 +81,35 @@ func (workerResourceCache WorkerResourceCache) FindOrCreate(tx Tx) (*UsedWorkerR
 	}, nil
 }
 
+// Find looks for a worker resource cache by resource cache id and worker name. It may find multiple
+// worker resource caches, just return the first valid one.
+// Note: Find doesn't consider workerResourceCache.SourceWorker as a search condition.
 func (workerResourceCache WorkerResourceCache) Find(runner sq.Runner) (*UsedWorkerResourceCache, bool, error) {
-	id, workerBasedResourceTypeId, found, err := workerResourceCache.find(runner, workerResourceCache.WorkerName)
+	ids, workerBasedResourceTypeIds, found, err := workerResourceCache.find(runner, workerResourceCache.WorkerName)
 	if err != nil {
 		return nil, false, err
 	}
 
-	if !found {
-		return nil, false, nil
+	if found {
+		// Verify worker base resource type
+		for i, workerBasedResourceTypeId := range workerBasedResourceTypeIds {
+			_, foundBrt, err := WorkerBaseResourceType{}.FindById(runner, workerBasedResourceTypeId)
+			if err != nil {
+				return nil, false, err
+			}
+			if foundBrt {
+				return &UsedWorkerResourceCache{ID: ids[i]}, true, nil
+			}
+		}
 	}
 
-	// Verify worker base resource type
-	_, found, err = WorkerBaseResourceType{}.FindById(runner, workerBasedResourceTypeId)
-	if err != nil {
-		return nil, false, err
-	}
-
-	if !found {
-		return nil, false, nil
-	}
-
-	return &UsedWorkerResourceCache{ID: id}, true, nil
+	return nil, false, nil
 }
 
-func (workerResourceCache WorkerResourceCache) find(runner sq.Runner, workerName string) (int, int, bool, error) {
-	var id, workerBasedResourceTypeId int
+func (workerResourceCache WorkerResourceCache) find(runner sq.Runner, workerName string) ([]int, []int, bool, error) {
+	var ids, workerBasedResourceTypeIds []int
 
-	err := psql.Select("id, worker_base_resource_type_id").
+	rows, err := psql.Select("id, worker_base_resource_type_id").
 		From("worker_resource_caches").
 		Where(sq.Eq{
 			"resource_cache_id": workerResourceCache.ResourceCache.ID(),
@@ -108,15 +117,25 @@ func (workerResourceCache WorkerResourceCache) find(runner sq.Runner, workerName
 		}).
 		Suffix("FOR SHARE").
 		RunWith(runner).
-		QueryRow().
-		Scan(&id, &workerBasedResourceTypeId)
+		Query()
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return 0, 0, false, nil
-		}
+		return nil, nil, false, err
+	}
+	defer rows.Close()
 
-		return 0, 0, false, err
+	for rows.Next() {
+		var id, workerBasedResourceTypeId int
+		err := rows.Scan(&id, &workerBasedResourceTypeId)
+		if err != nil {
+			return nil, nil, false, err
+		}
+		ids = append(ids, id)
+		workerBasedResourceTypeIds = append(workerBasedResourceTypeIds, workerBasedResourceTypeId)
 	}
 
-	return id, workerBasedResourceTypeId, true, nil
+	if len(workerBasedResourceTypeIds) == 0 {
+		return nil, nil, false, nil
+	}
+
+	return ids, workerBasedResourceTypeIds, true, nil
 }
