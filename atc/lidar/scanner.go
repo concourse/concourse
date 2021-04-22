@@ -46,6 +46,17 @@ func (s *scanner) Run(ctx context.Context) error {
 	waitGroup := new(sync.WaitGroup)
 	resourceTypesChecked := &sync.Map{}
 
+	s.scanResources(spanCtx, resources, resourceTypes, waitGroup, resourceTypesChecked)
+	waitGroup.Wait()
+	s.scanUncheckedResourceTypes(spanCtx, resourceTypes, waitGroup, resourceTypesChecked)
+
+	waitGroup.Wait()
+
+	return nil
+}
+
+func (s *scanner) scanResources(ctx context.Context, resources []db.Resource, resourceTypes db.ResourceTypes, waitGroup *sync.WaitGroup, resourceTypesChecked *sync.Map) {
+	logger := lagerctx.FromContext(ctx)
 	for _, resource := range resources {
 		waitGroup.Add(1)
 
@@ -58,13 +69,30 @@ func (s *scanner) Run(ctx context.Context) error {
 			}()
 			defer waitGroup.Done()
 
-			s.check(spanCtx, resource, resourceTypes, resourceTypesChecked)
+			s.check(ctx, resource, resourceTypes, resourceTypesChecked)
 		}(resource, resourceTypes)
 	}
+}
 
-	waitGroup.Wait()
+func (s *scanner) scanUncheckedResourceTypes(ctx context.Context, resourceTypes db.ResourceTypes, waitGroup *sync.WaitGroup, resourceTypesChecked *sync.Map) {
+	logger := lagerctx.FromContext(ctx)
+	for _, resourceType := range resourceTypes {
+		waitGroup.Add(1)
 
-	return nil
+		go func(resourceType db.ResourceType, resourceTypes db.ResourceTypes) {
+			defer func() {
+				err := util.DumpPanic(recover(), "scanning resource type %d", resourceType.ID())
+				if err != nil {
+					logger.Error("panic-in-scanner-run", err)
+				}
+			}()
+			defer waitGroup.Done()
+			if _, exists := resourceTypesChecked.LoadOrStore(resourceType.ID(), true); !exists {
+				// only create a check for resource type if it has not been checked yet
+				s.check(ctx, resourceType, resourceTypes, resourceTypesChecked)
+			}
+		}(resourceType, resourceTypes)
+	}
 }
 
 func (s *scanner) check(ctx context.Context, checkable db.Checkable, resourceTypes db.ResourceTypes, resourceTypesChecked *sync.Map) {
