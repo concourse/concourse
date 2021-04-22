@@ -123,8 +123,9 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 	runAt := end.Add(interval)
 
 	shouldRun := false
-	if d.build.Name() != db.CheckBuildName {
-		// always run for get/put/task step embedded check
+	// check delegate holds current running build in the case of step embedded check.
+	// we should always run step embedded check.
+	if d.build.ResourceID() == 0 {
 		shouldRun = true
 	} else {
 		if d.build.IsManuallyTriggered() {
