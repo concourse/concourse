@@ -45,7 +45,7 @@ async function resetVersionsList(t) {
 
 async function unpinVersionUsingTopBar(t) {
   await goToResourcePage(t);
-  await t.context.web.page.waitFor(topBarPinIconSelector);
+  await t.context.web.page.waitForSelector(topBarPinIconSelector);
   await t.context.web.page.click(topBarPinIconSelector);
   await checkNoVersionInPinBar(t);
 }
@@ -62,9 +62,9 @@ async function goToResourcePage(t) {
 }
 
 async function checkNoVersionInPinBar(t) {
-  await t.context.web.page.waitFor(() => !document.querySelector('#pin-bar table'));
+  await t.context.web.page.waitForFunction(() => !document.querySelector('#pin-bar table'));
 }
 
 async function waitForPageLoad(t) {
-  await t.context.web.page.waitFor(pinButtonSelector);
+  await t.context.web.page.waitForSelector(pinButtonSelector);
 }

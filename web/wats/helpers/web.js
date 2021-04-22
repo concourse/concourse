@@ -49,7 +49,7 @@ class Web {
   }
 
   async waitForBackgroundColor(selector, backgroundColor, {timeout = 30000} = {}) {
-    await this.page.waitFor(({expectedBackground, selector}) => {
+    await this.page.waitForFunction(({expectedBackground, selector}) => {
       const elem = document.querySelector(selector);
       if (elem === null) return false;
       const background = elem.style.backgroundColor;
@@ -61,7 +61,7 @@ class Web {
   }
 
   async scrollIntoView(selector) {
-    await this.page.waitFor(selector);
+    await this.page.waitForSelector(selector);
     await this.page.evaluate(selector => {
       const elem = document.querySelector(selector);
       elem.scrollIntoView(true);
@@ -86,7 +86,7 @@ class Web {
   }
 
   async clickAndWait(clickSelector, waitSelector) {
-    await this.page.waitFor(clickSelector);
+    await this.page.waitForSelector(clickSelector);
     await this.page.click(clickSelector);
     await this.page.waitForSelector(waitSelector, {timeout: 90000});
   }
