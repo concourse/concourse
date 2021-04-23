@@ -199,7 +199,7 @@ func (builder Builder) WithResourceVersions(resourceName string, versions ...atc
 			return fmt.Errorf("save versions: %w", err)
 		}
 
-		_, err = scope.UpdateLastCheckEndTime()
+		_, err = scope.UpdateLastCheckEndTime(true)
 		if err != nil {
 			return fmt.Errorf("update last check end time: %w", err)
 		}

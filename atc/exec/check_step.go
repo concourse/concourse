@@ -172,7 +172,7 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 		if runErr != nil {
 			metric.Metrics.ChecksFinishedWithError.Inc()
 
-			if _, err := scope.UpdateLastCheckEndTime(); err != nil {
+			if _, err := scope.UpdateLastCheckEndTime(false); err != nil {
 				return false, fmt.Errorf("update check end time: %w", err)
 			}
 
@@ -204,7 +204,7 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 			state.StoreResult(step.planID, result.Versions[len(result.Versions)-1])
 		}
 
-		_, err = scope.UpdateLastCheckEndTime()
+		_, err = scope.UpdateLastCheckEndTime(true)
 		if err != nil {
 			return false, fmt.Errorf("update check end time: %w", err)
 		}
