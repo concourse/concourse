@@ -181,73 +181,6 @@ var _ = Describe("CheckDelegate", func() {
 			runLock, run, runErr = delegate.WaitToRun(context.TODO(), fakeResourceConfigScope)
 		})
 
-		Context("when the build is manually triggered", func() {
-			BeforeEach(func() {
-				fakeBuild.IsManuallyTriggeredReturns(true)
-			})
-
-			Context("when fail to get scope last start time", func() {
-				BeforeEach(func() {
-					fakeResourceConfigScope.LastCheckStartTimeReturns(time.Now(), errors.New("some-error"))
-				})
-
-				It("return the error", func() {
-					Expect(runErr).To(HaveOccurred())
-					Expect(runErr).To(Equal(errors.New("some-error")))
-				})
-			})
-
-			Context("when the build create time earlier than last check start time", func() {
-				BeforeEach(func() {
-					fakeBuild.CreateTimeReturns(time.Now().Add(-5 * time.Second))
-					fakeResourceConfigScope.LastCheckStartTimeReturns(time.Now(), nil)
-				})
-
-				It("returns false", func() {
-					Expect(run).To(BeFalse())
-				})
-			})
-
-			Context("when the build create time after last check start time", func() {
-				BeforeEach(func() {
-					fakeBuild.CreateTimeReturns(time.Now().Add(5 * time.Second))
-					fakeResourceConfigScope.LastCheckStartTimeReturns(time.Now(), nil)
-				})
-
-				It("returns true", func() {
-					Expect(run).To(BeTrue())
-				})
-			})
-		})
-
-		Context("with an interval configured", func() {
-			var interval time.Duration = time.Minute
-
-			BeforeEach(func() {
-				plan.Check.Interval = interval.String()
-			})
-
-			Context("when the interval has not elapsed since the last check", func() {
-				BeforeEach(func() {
-					fakeResourceConfigScope.LastCheckEndTimeReturns(now.Add(-(interval - 1)), nil)
-				})
-
-				It("returns false", func() {
-					Expect(run).To(BeFalse())
-				})
-			})
-
-			Context("when the interval has elapsed since the last check", func() {
-				BeforeEach(func() {
-					fakeResourceConfigScope.LastCheckEndTimeReturns(now.Add(-interval), nil)
-				})
-
-				It("returns true", func() {
-					Expect(run).To(BeTrue())
-				})
-			})
-		})
-
 		Context("when running for a resource", func() {
 			var fakeLock *lockfakes.FakeLock
 
@@ -283,11 +216,44 @@ var _ = Describe("CheckDelegate", func() {
 				It("does not rate limit", func() {
 					Expect(fakeRateLimiter.WaitCallCount()).To(Equal(0))
 				})
+
+				Context("when fail to get scope last start time", func() {
+					BeforeEach(func() {
+						fakeResourceConfigScope.LastCheckStartTimeReturns(time.Now(), false, errors.New("some-error"))
+					})
+
+					It("return the error", func() {
+						Expect(runErr).To(HaveOccurred())
+						Expect(runErr).To(Equal(errors.New("some-error")))
+					})
+				})
+
+				Context("when the build create time earlier than last check start time", func() {
+					BeforeEach(func() {
+						fakeBuild.CreateTimeReturns(time.Now().Add(-5 * time.Second))
+						fakeResourceConfigScope.LastCheckStartTimeReturns(time.Now(), true, nil)
+					})
+
+					It("returns false", func() {
+						Expect(run).To(BeFalse())
+					})
+				})
+
+				Context("when the build create time after last check start time", func() {
+					BeforeEach(func() {
+						fakeBuild.CreateTimeReturns(time.Now().Add(5 * time.Second))
+						fakeResourceConfigScope.LastCheckStartTimeReturns(time.Now(), true, nil)
+					})
+
+					It("returns true", func() {
+						Expect(run).To(BeTrue())
+					})
+				})
 			})
 
 			Context("when getting the last check end time errors", func() {
 				BeforeEach(func() {
-					fakeResourceConfigScope.LastCheckEndTimeReturns(time.Time{}, errors.New("oh no"))
+					fakeResourceConfigScope.LastCheckEndTimeReturns(time.Time{}, false, errors.New("oh no"))
 				})
 
 				It("returns an error", func() {
@@ -308,7 +274,7 @@ var _ = Describe("CheckDelegate", func() {
 
 				Context("when the interval has not elapsed since the last check", func() {
 					BeforeEach(func() {
-						fakeResourceConfigScope.LastCheckEndTimeReturns(now.Add(-(interval - 1)), nil)
+						fakeResourceConfigScope.LastCheckEndTimeReturns(now.Add(-(interval - 1)), true, nil)
 					})
 
 					It("returns false", func() {
@@ -317,6 +283,16 @@ var _ = Describe("CheckDelegate", func() {
 
 					It("releases the lock", func() {
 						Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
+					})
+				})
+
+				Context("when the interval has elapsed since the last check", func() {
+					BeforeEach(func() {
+						fakeResourceConfigScope.LastCheckEndTimeReturns(now.Add(-interval), true, nil)
+					})
+
+					It("returns true", func() {
+						Expect(run).To(BeTrue())
 					})
 				})
 			})
@@ -335,8 +311,45 @@ var _ = Describe("CheckDelegate", func() {
 				Expect(fakeResourceConfigScope.AcquireResourceCheckingLockCallCount()).To(Equal(0))
 			})
 
-			It("returns a no-op lock", func() {
-				Expect(runLock).To(Equal(lock.NoopLock{}))
+			Context("when last check starts before build start time", func() {
+				BeforeEach(func() {
+					fakeBuild.StartTimeReturns(now.Add(1))
+					fakeResourceConfigScope.LastCheckStartTimeReturns(now.Add(-1), true, nil)
+				})
+
+				It("returns a no-op lock", func() {
+					Expect(runLock).To(Equal(lock.NoopLock{}))
+				})
+
+				It("returns true", func() {
+					Expect(run).To(BeTrue())
+				})
+			})
+
+			Context("when last check fails", func() {
+				BeforeEach(func() {
+					fakeBuild.StartTimeReturns(now.Add(-1))
+					fakeResourceConfigScope.LastCheckStartTimeReturns(now.Add(1), false, nil)
+				})
+
+				It("returns a no-op lock", func() {
+					Expect(runLock).To(Equal(lock.NoopLock{}))
+				})
+
+				It("returns true", func() {
+					Expect(run).To(BeTrue())
+				})
+			})
+
+			Context("when last check starts after build start time", func() {
+				BeforeEach(func() {
+					fakeBuild.StartTimeReturns(now.Add(-1))
+					fakeResourceConfigScope.LastCheckStartTimeReturns(now.Add(1), true, nil)
+				})
+
+				It("returns false", func() {
+					Expect(run).To(BeFalse())
+				})
 			})
 		})
 	})

@@ -77,7 +77,7 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 
 	// rate limit periodic resource checks so worker load (plus load on external
 	// services) isn't too spiky
-	if !d.build.IsManuallyTriggered() && d.plan.Resource != "" {
+	if !d.build.IsManuallyTriggered() && (d.plan.Resource != "" || d.plan.ResourceType != "") {
 		err := d.limiter.Wait(ctx)
 		if err != nil {
 			return nil, false, fmt.Errorf("rate limit: %w", err)
@@ -111,34 +111,38 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 		}
 	}
 
-	end, _, err := scope.LastCheckEndTime()
+	lastCheckStartTime, lastCheckSucceeded, err := scope.LastCheckStartTime()
 	if err != nil {
-		if releaseErr := lock.Release(); releaseErr != nil {
-			logger.Error("failed-to-release-lock", releaseErr)
-		}
-
-		return nil, false, fmt.Errorf("get last check end time: %w", err)
+		return nil, false, err
 	}
 
-	runAt := end.Add(interval)
-
 	shouldRun := false
-	// check delegate holds current running build in the case of step embedded check.
-	// we should always run step embedded check.
-	if d.plan.Resource == "" {
-		shouldRun = true
+	if d.plan.Resource == "" && d.plan.ResourceType == "" {
+		// check delegate holds current running build in the case of step embedded check.
+		// we may run check only once for a scope during the build.
+		if !lastCheckSucceeded || lastCheckStartTime.Before(d.build.StartTime()) {
+			shouldRun = true
+		}
 	} else {
 		if d.build.IsManuallyTriggered() {
 			// ignore interval for manually triggered builds.
-			lastCheckStartTime, lastCheckSucceeded, err := scope.LastCheckStartTime()
-			if err != nil {
-				return nil, false, err
-			}
 			// avoid running redundant checks
 			shouldRun = !lastCheckSucceeded || lastCheckStartTime.IsZero() || d.build.CreateTime().After(lastCheckStartTime)
-		} else if !d.clock.Now().Before(runAt) {
-			// run if we're past the last check end time
-			shouldRun = true
+		} else {
+			end, _, err := scope.LastCheckEndTime()
+			if err != nil {
+				if releaseErr := lock.Release(); releaseErr != nil {
+					logger.Error("failed-to-release-lock", releaseErr)
+				}
+
+				return nil, false, fmt.Errorf("get last check end time: %w", err)
+			}
+
+			runAt := end.Add(interval)
+			if !d.clock.Now().Before(runAt) {
+				// run if we're past the last check end time
+				shouldRun = true
+			}
 		}
 	}
 	// XXX(check-refactor): we could add an else{} case and potentially sleep
