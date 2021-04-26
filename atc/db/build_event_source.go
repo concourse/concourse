@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"sync"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/event"
 )
@@ -108,25 +109,29 @@ func (source *buildEventSource) collectEvents(from uint) {
 
 		defer Rollback(tx)
 
-		err = tx.QueryRow(`
-			SELECT builds.completed
-			FROM builds
-			WHERE builds.id = $1
-		`, source.buildID).Scan(&completed)
+		err = psql.Select("completed").
+			From("builds").
+			Where(sq.Eq{"id": source.buildID}).
+			RunWith(tx).
+			QueryRow().
+			Scan(&completed)
 		if err != nil {
 			source.err = err
 			close(source.events)
 			return
 		}
 
-		rows, err := tx.Query(`
-			SELECT event_id, type, version, payload
-			FROM `+source.table+`
-			WHERE (build_id = $1 OR build_id_old = $1)
-			AND event_id > $2
-			ORDER BY event_id ASC
-			LIMIT $3
-		`, source.buildID, cursor, batchSize)
+		rows, err := psql.Select("event_id", "type", "version", "payload").
+			From(source.table).
+			Where(sq.Or{
+				sq.Eq{"build_id": source.buildID},
+				sq.Eq{"build_id_old": source.buildID},
+			}).
+			Where(sq.Gt{"event_id": cursor}).
+			OrderBy("event_id ASC").
+			Limit(uint64(batchSize)).
+			RunWith(tx).
+			Query()
 		if err != nil {
 			source.err = err
 			close(source.events)
