@@ -40,7 +40,7 @@ require (
 	github.com/cyberark/conjur-api-go v0.7.1
 	github.com/docker/go-events v0.0.0-20190806004212-e31b211e4f1c // indirect
 	github.com/fatih/color v1.10.0
-	github.com/felixge/httpsnoop v1.0.1
+	github.com/felixge/httpsnoop v1.0.2
 	github.com/frankban/quicktest v1.11.3 // indirect
 	github.com/gobwas/glob v0.2.3
 	github.com/goccy/go-yaml v1.8.9
