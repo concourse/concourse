@@ -212,7 +212,7 @@ silly air-traffic-themed names.
 | `/fly`          | The [`fly` CLI](https://concourse-ci.org/fly.html). |
 | `/testflight`   | The acceptance test suite, exercising pipeline and `fly` features. Runs against a single Concourse deployment. |
 | `/web`          | The Elm source code and other assets for the web UI, which gets built and then embedded into the `concourse` executable and served by the ATC's web server. |
-| `/go-concourse` | A Go client libary for using the ATC API, used internally by `fly`. |
+| `/go-concourse` | A Go client library for using the ATC API, used internally by `fly`. |
 | `/skymarshal`   | Adapts [Dex](https://github.com/dexidp/dex) into an embeddable auth component for the ATC, plus the auth flag specifications for `fly` and `concourse web`. |
 | `/tsa`          | A custom-built SSH server responsible for securely authenticating and registering workers. The other half of `concourse web`. |
 | `/worker`       | The `concourse worker` library code for registering with the TSA, periodically reaping containers/volumes, etc. |
