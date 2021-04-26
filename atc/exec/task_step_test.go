@@ -250,8 +250,8 @@ var _ = Describe("TaskStep", func() {
 		})
 
 		It("uses the correct container limits", func() {
-			Expect(atc.CPULimit(*containerSpec.Limits.CPU)).To(Equal(atc.CPULimit(1024)))
-			Expect(atc.MemoryLimit(*containerSpec.Limits.Memory)).To(Equal(atc.MemoryLimit(1024)))
+			Expect(atc.CPULimit(*chosenContainer.Spec.Limits.CPU)).To(Equal(atc.CPULimit(1024)))
+			Expect(atc.MemoryLimit(*chosenContainer.Spec.Limits.Memory)).To(Equal(atc.MemoryLimit(1024)))
 		})
 
 		Context("when toplevel limits are set", func() {
@@ -265,8 +265,8 @@ var _ = Describe("TaskStep", func() {
 			})
 
 			It("overrides the limits from the config", func() {
-				Expect(atc.CPULimit(*containerSpec.Limits.CPU)).To(Equal(atc.CPULimit(2048)))
-				Expect(atc.MemoryLimit(*containerSpec.Limits.Memory)).To(Equal(atc.MemoryLimit(2048)))
+				Expect(atc.CPULimit(*chosenContainer.Spec.Limits.CPU)).To(Equal(atc.CPULimit(2048)))
+				Expect(atc.MemoryLimit(*chosenContainer.Spec.Limits.Memory)).To(Equal(atc.MemoryLimit(2048)))
 			})
 		})
 
