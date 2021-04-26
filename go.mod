@@ -9,7 +9,7 @@ require (
 	code.cloudfoundry.org/urljoiner v0.0.0-20170223060717-5cabba6c0a50
 	github.com/Azure/go-autorest/autorest v0.11.18 // indirect
 	github.com/DataDog/datadog-go v3.7.2+incompatible
-	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace v0.19.0
+	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace v0.20.0
 	github.com/Masterminds/squirrel v1.5.0
 	github.com/Microsoft/go-winio v0.4.17-0.20210211115548-6eac466e5fa3 // indirect
 	github.com/Microsoft/hcsshim v0.8.7 // indirect
@@ -46,7 +46,7 @@ require (
 	github.com/goccy/go-yaml v1.8.9
 	github.com/gogo/googleapis v1.4.0 // indirect
 	github.com/gogo/protobuf v1.3.2
-	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e
+	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/jsonapi v0.0.0-20180618021926-5d047c6bc66b
 	github.com/google/uuid v1.2.0 // indirect
@@ -99,21 +99,26 @@ require (
 	github.com/vito/houdini v1.1.1
 	github.com/vito/twentythousandtonnesofcrudeoil v0.0.0-20180305154709-3b21ad808fcb
 	go.etcd.io/bbolt v1.3.5 // indirect
-	go.opentelemetry.io/otel v0.19.0
-	go.opentelemetry.io/otel/exporters/otlp v0.19.0
-	go.opentelemetry.io/otel/exporters/trace/jaeger v0.19.0
-	go.opentelemetry.io/otel/oteltest v0.19.0
-	go.opentelemetry.io/otel/sdk v0.19.0
-	go.opentelemetry.io/otel/trace v0.19.0
+	go.opentelemetry.io/otel v0.20.0
+	go.opentelemetry.io/otel/exporters/otlp v0.20.0
+	go.opentelemetry.io/otel/exporters/trace/jaeger v0.20.0
+	go.opentelemetry.io/otel/oteltest v0.20.0
+	go.opentelemetry.io/otel/sdk v0.20.0
+	go.opentelemetry.io/otel/trace v0.20.0
 	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83
-	golang.org/x/oauth2 v0.0.0-20210220000619-9bb904979d93
+	golang.org/x/net v0.0.0-20210427231257-85d9c07bbe3a // indirect
+	golang.org/x/oauth2 v0.0.0-20210427180440-81ed05c6b58c
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
+	golang.org/x/sys v0.0.0-20210426230700-d19ff857e887 // indirect
 	golang.org/x/text v0.3.6 // indirect
 	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba
+	google.golang.org/api v0.45.0 // indirect
+	google.golang.org/genproto v0.0.0-20210427215850-f767ed18ee4d // indirect
 	google.golang.org/grpc v1.37.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/square/go-jose.v2 v2.5.1
 	gopkg.in/yaml.v2 v2.4.0
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 	gotest.tools/v3 v3.0.3 // indirect
 	k8s.io/api v0.21.0
 	k8s.io/apimachinery v0.21.0
