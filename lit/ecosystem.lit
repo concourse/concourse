@@ -1,0 +1,110 @@
+\title{Ecosystem}{ecosystem}
+
+\use-plugin{concourse-docs}
+
+Concourse is used by a wide variety of businesses, governments, open source
+projects and non-profit organisations. The uses of Concourse are as diverse as
+its user base, and include CI/CD for apps, continuous delivery of
+infrastructure, release integration, automation of tests, and many more!
+
+If you use Concourse, or your business offers Concourse-related services, we'd
+love to hear from you. Please \link{raise a pull
+request}{https://github.com/concourse/docs/pulls} adding your organisation's
+name in lexicographical order to the list below, and help us let the world know
+how many people do things continuously with Concourse.
+
+\section{
+  \title{Who Uses Concourse?}{who-uses-concourse}
+
+  These organisations have either added themselves to this list, or whose usage of
+  Concourse is in the public domain. There are many more users of Concourse who
+  are unable to publicly share information about their tech stack (typically banks
+  and security companies).
+
+  \ordered-list{
+    \link{Altoros}{https://www.altoros.com}
+  }{
+    \link{Aptomi}{https://www.aptomi.io}
+  }{
+    \link{Armakuni}{https://www.armakuni.com}
+  }{
+    \link{Cerner}{https://www.cerner.com/}
+  }{
+    \link{cloud.gov}{https://cloud.gov/}
+  }{
+    \link{Cloud Foundry Foundation}{https://cloudfoundry.org/}
+  }{
+    \link{Comcast}{https://corporate.comcast.com/}
+  }{
+    \link{EngineerBetter}{https://www.engineerbetter.com}
+  }{
+    \link{Express Scripts}{https://www.express-scripts.com}
+  }{
+    \link{Fauna}{https://www.fauna.com}
+  }{
+    \link{Fidelity International}{https://www.fidelityinternational.com}
+  }{
+    \link{The Home Depot}{https://www.homedepot.com}
+  }{
+    \link{Nasdaq}{https://nasdaq.com/}
+  }{
+    \link{Nokogiri}{https://nokogiri.org/}
+  }{
+    \link{RabbitMQ}{https://www.rabbitmq.com}
+  }{
+    \link{Resilient Scale}{https://www.rscale.io}
+  }{
+    \link{Smarsh}{https://www.smarsh.com}
+  }{
+    \link{Springer Nature}{https://www.springernature.com}
+  }{
+    \link{Stark & Wayne}{https://www.starkandwayne.com}
+  }{
+    \link{SUSE}{https://www.suse.com}
+  }{
+    \link{SuperOrbital}{https://www.superorbital.io}
+  }{
+    \link{Unit 2 Games}{https://unit2games.com/}
+  }{
+    \link{United States Air Force - Kessel Run}{https://kesselrun.af.mil/}
+  }{
+    \link{Varian}{https://www.varian.com}
+  }{
+    \link{Verizon}{https://www.verizon.com}
+  }{
+    \link{VMware}{https://www.vmware.com}
+  }{
+    \link{Webfleet Solutions}{https://www.webfleet.com}
+  }{
+    \link{Yahoo!}{https://www.yahoo.co.jp}
+  }{
+    \link{Zipcar}{https://zipcar.com/}
+  }
+}
+
+\section{
+  \title{Service Providers}{service-providers}
+
+  The following organisations offer a range of Concourse-related services, such as
+  training, consultancy, support and managed offerings.
+
+  \list{
+    \link{Altoros}{https://www.altoros.com}
+  }{
+    \link{Armakuni}{https://www.armakuni.com}
+  }{
+    \link{EngineerBetter}{https://www.engineerbetter.com}
+  }{
+    \link{Gstack}{https://www.gstack.io}
+  }{
+    \link{Novatec}{https://www.novatec-gmbh.de}
+  }{
+    \link{Resilient Scale}{https://www.rscale.io}
+  }{
+    \link{Stark & Wayne}{https://www.starkandwayne.com}
+  }{
+    \link{SuperOrbital}{https://www.superorbital.io}
+  }{
+    \link{VMware Tanzu Labs}{https://tanzu.vmware.com/labs}
+  }
+}
