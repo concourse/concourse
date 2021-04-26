@@ -41,7 +41,7 @@ test('does not show team name when user is logged in another non-main team and h
   await web.page.goto(web.route('/'));
   const myGroup = `.dashboard-team-group[data-team-name="${t.context.guestTeamName}"]`;
   const otherGroup = `.dashboard-team-group[data-team-name="${t.context.teamName}"]`;
-  await web.page.waitFor(myGroup);
+  await web.page.waitForSelector(myGroup);
   const element = await web.page.$(otherGroup);
   t.falsy(element);
 })
@@ -59,7 +59,7 @@ test('shows pipelines in their correct order', async t => {
   const group = `.dashboard-team-group[data-team-name="${t.context.teamName}"]`;
   await t.context.web.page.setViewport({width: 1200, height: 900});
   await t.context.web.scrollIntoView(group);
-  await t.context.web.page.waitFor(`${group} .card-wrapper:nth-child(${pipelineOrder.length}) .card`);
+  await t.context.web.page.waitForSelector(`${group} .card-wrapper:nth-child(${pipelineOrder.length}) .card`);
 
   const names = await t.context.web.page.$$eval(`${group} .dashboard-pipeline-name`, nameElements => {
     var names = [];
@@ -80,7 +80,7 @@ test('auto-refreshes to reflect state changes', async t => {
 
   const group = `.dashboard-team-group[data-team-name="${t.context.teamName}"]`;
   await t.context.web.scrollIntoView(group);
-  await t.context.web.page.waitFor(`${group} .card`);
+  await t.context.web.page.waitForSelector(`${group} .card`);
   const pipeline = await t.context.web.page.$(`${group} .card`);
   const text = await t.context.web.text(pipeline);
 
@@ -97,7 +97,7 @@ test('picks up cluster name from configuration', async t => {
   await t.context.web.page.goto(t.context.web.route('/'));
 
   const clusterNameSelector = `#top-bar-app > div:nth-child(1)`;
-  await t.context.web.page.waitFor(({selector}) => {
+  await t.context.web.page.waitForFunction(({selector}) => {
     return document.querySelector(selector).innerText.length > 0;
   }, {timeout: 10000}, {
     selector: clusterNameSelector,
