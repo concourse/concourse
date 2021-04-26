@@ -287,6 +287,28 @@ var _ = Describe("Garden Worker", func() {
 		Expect(err).To(MatchError(garden.ContainerNotFoundError{Handle: "not-in-garden"}))
 	})
 
+	Test("fetch image with empty ImageSpec (e.g. for non-containerized platforms)", func() {
+		scenario := Setup(
+			workertest.WithWorkers(
+				grt.NewWorker("worker"),
+			),
+		)
+		worker := scenario.Worker("worker")
+
+		container, _, err := worker.FindOrCreateContainer(
+			ctx,
+			db.NewFixedHandleContainerOwner("some-handle"),
+			db.ContainerMetadata{},
+			runtime.ContainerSpec{
+				ImageSpec: runtime.ImageSpec{
+					ImageURL: "",
+				},
+			},
+		)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(gardenContainer(container).Spec.RootFSPath).To(Equal(""))
+	})
+
 	Test("fetch image from volume on same worker", func() {
 		imageVolume := grt.NewVolume("local-image-volume").WithContent(runtimetest.VolumeContent{
 			"metadata.json": grt.ImageMetadataFile(gardenruntime.ImageMetadata{

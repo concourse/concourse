@@ -10,7 +10,6 @@ import (
 var ErrResourceConfigCheckSessionExpired = errors.New("no db container was found for owner")
 var ErrMissingVolume = errors.New("volume mounted to container is missing")
 var ErrImageArtifactVolumeNotFound = errors.New("image artifact volume was not found")
-var ErrEmptyImageSpec = errors.New("image spec is empty")
 var ErrBaseResourceTypeNotFound = errors.New("base resource type not found")
 var ErrUnsupportedResourceType = errors.New("unsupported resource type")
 

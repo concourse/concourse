@@ -67,11 +67,7 @@ func (worker *Worker) fetchImageForContainer(
 		return FetchedImage{}, ErrUnsupportedResourceType
 	}
 
-	if imageSpec.ImageURL != "" {
-		return FetchedImage{URL: imageSpec.ImageURL}, nil
-	}
-
-	return FetchedImage{}, ErrEmptyImageSpec
+	return FetchedImage{URL: imageSpec.ImageURL}, nil
 }
 
 func (worker *Worker) imageProvidedByPreviousStepOnSameWorker(
