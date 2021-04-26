@@ -11,15 +11,18 @@ import (
 type Process struct {
 	process     containerd.Process
 	exitStatusC <-chan containerd.ExitStatus
+	stdin       *stdinWrapper
 }
 
 func NewProcess(
 	p containerd.Process,
 	ch <-chan containerd.ExitStatus,
+	in *stdinWrapper,
 ) *Process {
 	return &Process{
 		process:     p,
 		exitStatusC: ch,
+		stdin:       in,
 	}
 }
 
@@ -46,6 +49,10 @@ func (p *Process) Wait() (int, error) {
 	_, err = p.process.Delete(context.Background())
 	if err != nil {
 		return 0, fmt.Errorf("delete process: %w", err)
+	}
+
+	if p.stdin != nil {
+		p.stdin.Close()
 	}
 
 	return int(status.ExitCode()), nil
