@@ -1024,7 +1024,7 @@ by configuring \reference{schema.step.on_failure} or
     When exceeded, the step will be interrupted, with the same semantics as
     aborting the build (except the build will be \code{failed}, not
     \code{aborted}, to distinguish between human intervention and timeouts being
-    inforced).
+    enforced).
 
     \example-toggle{Giving up}{
       The following will run the \code{unit} task and cancel it if it takes
