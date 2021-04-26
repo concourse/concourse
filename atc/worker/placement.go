@@ -63,12 +63,12 @@ type PlacementStrategy []placementStrategy
 type placementStrategy interface {
 	// Orders the list of candidate workers based off the configured
 	// strategies. Should not remove candidate workers - filtering should
-	// be left to Pick.
+	// be left to Approve.
 	Order(lager.Logger, Pool, []db.Worker, runtime.ContainerSpec) ([]db.Worker, error)
 
 	// Attempts to pick the given worker to run the specified container,
 	// checking the worker abides by the conditions of the specific strategy.
-	Pick(lager.Logger, db.Worker, runtime.ContainerSpec) error
+	Approve(lager.Logger, db.Worker, runtime.ContainerSpec) error
 
 	// Releases any resources acquired by any configured strategies as part of
 	// picking the candidate worker.
@@ -105,15 +105,15 @@ func (strategy PlacementStrategy) Order(logger lager.Logger, pool Pool, workers 
 	return candidates, nil
 }
 
-func (strategy PlacementStrategy) Pick(logger lager.Logger, worker db.Worker, spec runtime.ContainerSpec) error {
+func (strategy PlacementStrategy) Approve(logger lager.Logger, worker db.Worker, spec runtime.ContainerSpec) error {
 	var err error
 	var i int
 
 	for i = 0; i < len(strategy); i++ {
-		err = strategy[i].Pick(logger, worker, spec)
+		err = strategy[i].Approve(logger, worker, spec)
 
 		if err != nil {
-			// Rollback the stages which successfully passed Pick (i.e. don't include i)
+			// Rollback the stages which successfully passed Approve (i.e. don't include i)
 			strategy[:i].Release(logger, worker, spec)
 			return err
 		}
@@ -216,7 +216,7 @@ func (strategy volumeLocalityStrategy) Order(logger lager.Logger, pool Pool, wor
 	return sortedWorkers, nil
 }
 
-func (volumeLocalityStrategy) Pick(lager.Logger, db.Worker, runtime.ContainerSpec) error {
+func (volumeLocalityStrategy) Approve(lager.Logger, db.Worker, runtime.ContainerSpec) error {
 	return nil
 }
 
@@ -240,7 +240,7 @@ func (strategy fewestBuildContainersStrategy) Order(logger lager.Logger, pool Po
 	return sortedWorkers, nil
 }
 
-func (fewestBuildContainersStrategy) Pick(lager.Logger, db.Worker, runtime.ContainerSpec) error {
+func (fewestBuildContainersStrategy) Approve(lager.Logger, db.Worker, runtime.ContainerSpec) error {
 	return nil
 }
 
@@ -280,7 +280,7 @@ func (strategy limitActiveTasksStrategy) Order(logger lager.Logger, pool Pool, w
 	return candidates, nil
 }
 
-func (strategy limitActiveTasksStrategy) Pick(logger lager.Logger, worker db.Worker, spec runtime.ContainerSpec) error {
+func (strategy limitActiveTasksStrategy) Approve(logger lager.Logger, worker db.Worker, spec runtime.ContainerSpec) error {
 	if spec.Type != db.ContainerTypeTask {
 		return nil
 	}
@@ -331,7 +331,7 @@ func (strategy limitActiveContainersStrategy) workerSatisfies(worker db.Worker) 
 	return worker.ActiveContainers() < strategy.MaxContainers
 }
 
-func (strategy limitActiveContainersStrategy) Pick(_ lager.Logger, worker db.Worker, _ runtime.ContainerSpec) error {
+func (strategy limitActiveContainersStrategy) Approve(_ lager.Logger, worker db.Worker, _ runtime.ContainerSpec) error {
 	if !strategy.workerSatisfies(worker) {
 		return ErrTooManyContainers
 	}
@@ -360,7 +360,7 @@ func (strategy limitActiveVolumesStrategy) workerSatisfies(worker db.Worker) boo
 	return worker.ActiveVolumes() < strategy.MaxVolumes
 }
 
-func (strategy limitActiveVolumesStrategy) Pick(_ lager.Logger, worker db.Worker, _ runtime.ContainerSpec) error {
+func (strategy limitActiveVolumesStrategy) Approve(_ lager.Logger, worker db.Worker, _ runtime.ContainerSpec) error {
 	if !strategy.workerSatisfies(worker) {
 		return ErrTooManyVolumes
 	}

@@ -334,7 +334,7 @@ var _ = Describe("Container Placement Strategies", func() {
 			workers, err := strategy.Order(logger, scenario.Pool, scenario.DB.Workers, spec)
 			Expect(err).ToNot(HaveOccurred())
 
-			err = strategy.Pick(logger, workers[0], spec)
+			err = strategy.Approve(logger, workers[0], spec)
 			Expect(err).To(MatchError(worker.ErrTooManyActiveTasks))
 
 			By("validating the limit only applies to task containers", func() {
@@ -343,7 +343,7 @@ var _ = Describe("Container Placement Strategies", func() {
 				workers, err := strategy.Order(logger, scenario.Pool, scenario.DB.Workers, spec)
 				Expect(err).ToNot(HaveOccurred())
 
-				err = strategy.Pick(logger, workers[0], spec)
+				err = strategy.Approve(logger, workers[0], spec)
 				Expect(err).ToNot(HaveOccurred())
 			})
 		})
@@ -393,10 +393,10 @@ var _ = Describe("Container Placement Strategies", func() {
 				[]string{"worker3", "worker1", "worker2"},
 			))
 
-			err = strategy.Pick(logger, workers[0], spec)
+			err = strategy.Approve(logger, workers[0], spec)
 			Expect(err).ToNot(HaveOccurred())
 
-			err = strategy.Pick(logger, workers[2], spec)
+			err = strategy.Approve(logger, workers[2], spec)
 			Expect(err).To(MatchError(worker.ErrTooManyContainers))
 		})
 
@@ -431,7 +431,7 @@ var _ = Describe("Container Placement Strategies", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			for _, worker := range workers {
-				err := strategy.Pick(logger, worker, spec)
+				err := strategy.Approve(logger, worker, spec)
 				Expect(err).ToNot(HaveOccurred())
 			}
 		})
@@ -481,10 +481,10 @@ var _ = Describe("Container Placement Strategies", func() {
 				[]string{"worker3", "worker1", "worker2"},
 			))
 
-			err = strategy.Pick(logger, workers[0], spec)
+			err = strategy.Approve(logger, workers[0], spec)
 			Expect(err).ToNot(HaveOccurred())
 
-			err = strategy.Pick(logger, workers[2], spec)
+			err = strategy.Approve(logger, workers[2], spec)
 			Expect(err).To(MatchError(worker.ErrTooManyVolumes))
 		})
 
@@ -519,7 +519,7 @@ var _ = Describe("Container Placement Strategies", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			for _, worker := range workers {
-				err := strategy.Pick(logger, worker, spec)
+				err := strategy.Approve(logger, worker, spec)
 				Expect(err).ToNot(HaveOccurred())
 			}
 		})
