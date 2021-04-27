@@ -311,45 +311,12 @@ var _ = Describe("CheckDelegate", func() {
 				Expect(fakeResourceConfigScope.AcquireResourceCheckingLockCallCount()).To(Equal(0))
 			})
 
-			Context("when last check starts before build start time", func() {
-				BeforeEach(func() {
-					fakeBuild.StartTimeReturns(now.Add(1))
-					fakeResourceConfigScope.LastCheckStartTimeReturns(now.Add(-1), true, nil)
-				})
-
-				It("returns a no-op lock", func() {
-					Expect(runLock).To(Equal(lock.NoopLock{}))
-				})
-
-				It("returns true", func() {
-					Expect(run).To(BeTrue())
-				})
+			It("returns a no-op lock", func() {
+				Expect(runLock).To(Equal(lock.NoopLock{}))
 			})
 
-			Context("when last check fails", func() {
-				BeforeEach(func() {
-					fakeBuild.StartTimeReturns(now.Add(-1))
-					fakeResourceConfigScope.LastCheckStartTimeReturns(now.Add(1), false, nil)
-				})
-
-				It("returns a no-op lock", func() {
-					Expect(runLock).To(Equal(lock.NoopLock{}))
-				})
-
-				It("returns true", func() {
-					Expect(run).To(BeTrue())
-				})
-			})
-
-			Context("when last check starts after build start time", func() {
-				BeforeEach(func() {
-					fakeBuild.StartTimeReturns(now.Add(-1))
-					fakeResourceConfigScope.LastCheckStartTimeReturns(now.Add(1), true, nil)
-				})
-
-				It("returns false", func() {
-					Expect(run).To(BeFalse())
-				})
+			It("returns true", func() {
+				Expect(run).To(BeTrue())
 			})
 		})
 	})

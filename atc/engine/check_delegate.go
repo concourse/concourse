@@ -95,7 +95,7 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 	}
 
 	var lock lock.Lock = lock.NoopLock{}
-	if d.plan.Resource != "" {
+	if d.plan.Resource != "" || d.plan.ResourceType != "" {
 		for {
 			var acquired bool
 			lock, acquired, err = scope.AcquireResourceCheckingLock(logger)
@@ -111,20 +111,19 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 		}
 	}
 
-	lastCheckStartTime, lastCheckSucceeded, err := scope.LastCheckStartTime()
-	if err != nil {
-		return nil, false, err
-	}
-
 	shouldRun := false
 	if d.plan.Resource == "" && d.plan.ResourceType == "" {
-		// check delegate holds current running build in the case of step embedded check.
-		// we may run check only once for a scope during the build.
-		if !lastCheckSucceeded || lastCheckStartTime.Before(d.build.StartTime()) {
-			shouldRun = true
-		}
+		shouldRun = true
 	} else {
 		if d.build.IsManuallyTriggered() {
+			lastCheckStartTime, lastCheckSucceeded, err := scope.LastCheckStartTime()
+			if err != nil {
+				if releaseErr := lock.Release(); releaseErr != nil {
+					logger.Error("failed-to-release-lock", releaseErr)
+				}
+				return nil, false, err
+			}
+
 			// ignore interval for manually triggered builds.
 			// avoid running redundant checks
 			shouldRun = !lastCheckSucceeded || lastCheckStartTime.IsZero() || d.build.CreateTime().After(lastCheckStartTime)
@@ -134,7 +133,6 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 				if releaseErr := lock.Release(); releaseErr != nil {
 					logger.Error("failed-to-release-lock", releaseErr)
 				}
-
 				return nil, false, fmt.Errorf("get last check end time: %w", err)
 			}
 
