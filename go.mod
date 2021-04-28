@@ -9,7 +9,7 @@ require (
 	code.cloudfoundry.org/urljoiner v0.0.0-20170223060717-5cabba6c0a50
 	github.com/Azure/go-autorest/autorest v0.11.18 // indirect
 	github.com/DataDog/datadog-go v3.7.2+incompatible
-	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace v0.19.0
+	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace v0.20.0
 	github.com/Masterminds/squirrel v1.5.0
 	github.com/Microsoft/go-winio v0.4.17-0.20210211115548-6eac466e5fa3 // indirect
 	github.com/Microsoft/hcsshim v0.8.7 // indirect
@@ -99,12 +99,12 @@ require (
 	github.com/vito/houdini v1.1.1
 	github.com/vito/twentythousandtonnesofcrudeoil v0.0.0-20180305154709-3b21ad808fcb
 	go.etcd.io/bbolt v1.3.5 // indirect
-	go.opentelemetry.io/otel v0.19.0
+	go.opentelemetry.io/otel v0.20.0
 	go.opentelemetry.io/otel/exporters/otlp v0.19.0
 	go.opentelemetry.io/otel/exporters/trace/jaeger v0.19.0
-	go.opentelemetry.io/otel/oteltest v0.19.0
-	go.opentelemetry.io/otel/sdk v0.19.0
-	go.opentelemetry.io/otel/trace v0.19.0
+	go.opentelemetry.io/otel/oteltest v0.20.0
+	go.opentelemetry.io/otel/sdk v0.20.0
+	go.opentelemetry.io/otel/trace v0.20.0
 	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83
 	golang.org/x/oauth2 v0.0.0-20210220000619-9bb904979d93
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
