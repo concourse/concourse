@@ -5,7 +5,6 @@ import (
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/trace/jaeger"
-	export "go.opentelemetry.io/otel/sdk/export/trace"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/semconv"
@@ -24,16 +23,18 @@ func (j Jaeger) IsConfigured() bool {
 }
 
 // Exporter returns a SpanExporter to sync spans to Jaeger
-func (j Jaeger) Exporter() (export.SpanExporter, error) {
+func (j Jaeger) Exporter() (sdktrace.SpanExporter, []sdktrace.TracerProviderOption, error) {
 	attributes := append([]attribute.KeyValue{semconv.ServiceNameKey.String(j.Service)}, keyValueSlice(j.Tags)...)
 	exporter, err := jaeger.NewRawExporter(
-		jaeger.WithCollectorEndpoint(j.Endpoint),
-		jaeger.WithSDKOptions(sdktrace.WithResource(resource.NewWithAttributes(attributes...))),
+		jaeger.WithCollectorEndpoint(jaeger.WithEndpoint(j.Endpoint)),
 	)
+	extraOptions := []sdktrace.TracerProviderOption{
+		sdktrace.WithResource(resource.NewWithAttributes(attributes...)),
+	}
 	if err != nil {
 		err = fmt.Errorf("failed to create jaeger exporter: %w", err)
-		return nil, err
+		return nil, nil, err
 	}
 
-	return exporter, nil
+	return exporter, extraOptions, nil
 }

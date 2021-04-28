@@ -7,7 +7,6 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/propagation"
-	export "go.opentelemetry.io/otel/sdk/export/trace"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/semconv"
@@ -45,17 +44,19 @@ func (c Config) resource() *resource.Resource {
 	return resource.NewWithAttributes(attributes...)
 }
 
-func (c Config) TraceProvider(exporter func() (export.SpanExporter, error)) (trace.TracerProvider, error) {
-	exp, err := exporter()
+func (c Config) TraceProvider(exporter func() (sdktrace.SpanExporter, []sdktrace.TracerProviderOption, error)) (trace.TracerProvider, error) {
+	exp, exporterOptions, err := exporter()
 	if err != nil {
 		return nil, err
 	}
 
-	provider := sdktrace.NewTracerProvider(
+	options := append([]sdktrace.TracerProviderOption{
 		sdktrace.WithSampler(sdktrace.AlwaysSample()),
 		sdktrace.WithSyncer(exp),
 		sdktrace.WithResource(c.resource()),
-	)
+	}, exporterOptions...)
+
+	provider := sdktrace.NewTracerProvider(options...)
 	if err != nil {
 		return nil, err
 	}
