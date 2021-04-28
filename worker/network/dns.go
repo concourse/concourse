@@ -1,4 +1,4 @@
-package workercmd
+package network
 
 import (
 	"fmt"
@@ -6,11 +6,7 @@ import (
 	"github.com/miekg/dns"
 )
 
-type DNSConfig struct {
-	Enable bool `long:"enable" description:"Enable proxy DNS server."`
-}
-
-func (config DNSConfig) Server() (*dns.Server, error) {
+func DNSServer() (*dns.Server, error) {
 	resolvConf, err := dns.ClientConfigFromFile("/etc/resolv.conf")
 	if err != nil {
 		return nil, err
