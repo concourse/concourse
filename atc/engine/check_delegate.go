@@ -132,7 +132,7 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 			shouldRun = !lastCheckSucceeded || d.build.CreateTime().After(lastCheckStartTime)
 		}
 	} else {
-		end, _, err := scope.LastCheckEndTime()
+		lastCheckEndTime, _, err := scope.LastCheckEndTime()
 		if err != nil {
 			if releaseErr := lock.Release(); releaseErr != nil {
 				logger.Error("failed-to-release-lock", releaseErr)
@@ -140,11 +140,7 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 			return nil, false, fmt.Errorf("get last check end time: %w", err)
 		}
 
-		runAt := end.Add(interval)
-		if !d.clock.Now().Before(runAt) {
-			// run if we're past the last check end time
-			shouldRun = true
-		}
+		shouldRun = !d.clock.Now().Before(lastCheckEndTime.Add(interval))
 	}
 
 	// XXX(check-refactor): we could add an else{} case and potentially sleep

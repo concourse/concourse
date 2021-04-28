@@ -228,6 +228,16 @@ var _ = Describe("CheckDelegate", func() {
 					})
 				})
 
+				Context("when from version is given", func() {
+					BeforeEach(func() {
+						plan.Check.FromVersion = atc.Version{"some": "version"}
+					})
+
+					It("returns true", func() {
+						Expect(run).To(BeTrue())
+					})
+				})
+
 				Context("when the build create time earlier than last check start time", func() {
 					BeforeEach(func() {
 						fakeBuild.CreateTimeReturns(time.Now().Add(-5 * time.Second))
