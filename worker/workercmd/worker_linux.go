@@ -14,6 +14,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	concourseCmd "github.com/concourse/concourse/cmd"
+	"github.com/concourse/concourse/worker/network"
 	"github.com/concourse/flag"
 	"github.com/jessevdk/go-flags"
 	"github.com/tedsuo/ifrit"
@@ -54,6 +55,10 @@ type ContainerdRuntime struct {
 	} `group:"Container Networking"`
 
 	MaxContainers int `long:"max-containers" default:"250" description:"Max container capacity. 0 means no limit."`
+}
+
+type DNSConfig struct {
+	Enable bool `long:"enable" description:"Enable proxy DNS server."`
 }
 
 const containerdRuntime = "containerd"
@@ -148,7 +153,7 @@ func (cmd *WorkerCommand) checkRoot() error {
 }
 
 func (cmd *WorkerCommand) dnsProxyRunner(logger lager.Logger) (ifrit.Runner, error) {
-	server, err := cmd.Guardian.DNS.Server()
+	server, err := network.DNSServer()
 	if err != nil {
 		return nil, err
 	}
