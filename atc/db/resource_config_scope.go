@@ -56,7 +56,7 @@ func (r *resourceConfigScope) ResourceConfig() ResourceConfig { return r.resourc
 func (r *resourceConfigScope) LastCheckStartTime() (time.Time, bool, error) {
 	var lastCheckStartTime time.Time
 	var lastCheckSucceeded bool
-	err := psql.Select("last_check_start_time, last_check_succeeded").
+	err := psql.Select("last_check_start_time", "last_check_succeeded").
 		From("resource_config_scopes").
 		Where(sq.Eq{"id": r.id}).
 		RunWith(r.conn).
@@ -72,7 +72,7 @@ func (r *resourceConfigScope) LastCheckStartTime() (time.Time, bool, error) {
 func (r *resourceConfigScope) LastCheckEndTime() (time.Time, bool, error) {
 	var lastCheckEndTime time.Time
 	var lastCheckSucceeded bool
-	err := psql.Select("last_check_end_time, last_check_succeeded").
+	err := psql.Select("last_check_end_time", "last_check_succeeded").
 		From("resource_config_scopes").
 		Where(sq.Eq{"id": r.id}).
 		RunWith(r.conn).
@@ -214,7 +214,7 @@ func (r *resourceConfigScope) UpdateLastCheckStartTime() (bool, error) {
 
 	updated, err := checkIfRowsUpdated(tx, `
 		UPDATE resource_config_scopes
-		SET last_check_start_time = now(), last_check_succeeded = false
+		SET last_check_start_time = now()
 		WHERE id = $1
 	`, r.id)
 	if err != nil {

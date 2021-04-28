@@ -77,7 +77,7 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 
 	// rate limit periodic resource checks so worker load (plus load on external
 	// services) isn't too spiky
-	if !d.build.IsManuallyTriggered() && (d.plan.Resource != "" || d.plan.ResourceType != "") {
+	if !d.build.IsManuallyTriggered() && d.plan.IsPeriodic() {
 		err := d.limiter.Wait(ctx)
 		if err != nil {
 			return nil, false, fmt.Errorf("rate limit: %w", err)
@@ -95,7 +95,7 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 	}
 
 	var lock lock.Lock = lock.NoopLock{}
-	if d.plan.Resource != "" || d.plan.ResourceType != "" {
+	if d.plan.IsPeriodic() {
 		for {
 			var acquired bool
 			lock, acquired, err = scope.AcquireResourceCheckingLock(logger)
@@ -112,37 +112,36 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 	}
 
 	shouldRun := false
-	if d.plan.Resource == "" && d.plan.ResourceType == "" {
+	if !d.plan.IsPeriodic() {
 		shouldRun = true
+	} else if d.build.IsManuallyTriggered() {
+		lastCheckStartTime, lastCheckSucceeded, err := scope.LastCheckStartTime()
+		if err != nil {
+			if releaseErr := lock.Release(); releaseErr != nil {
+				logger.Error("failed-to-release-lock", releaseErr)
+			}
+			return nil, false, err
+		}
+
+		// ignore interval for manually triggered builds.
+		// avoid running redundant checks
+		shouldRun = !lastCheckSucceeded || d.build.CreateTime().After(lastCheckStartTime)
 	} else {
-		if d.build.IsManuallyTriggered() {
-			lastCheckStartTime, lastCheckSucceeded, err := scope.LastCheckStartTime()
-			if err != nil {
-				if releaseErr := lock.Release(); releaseErr != nil {
-					logger.Error("failed-to-release-lock", releaseErr)
-				}
-				return nil, false, err
+		end, _, err := scope.LastCheckEndTime()
+		if err != nil {
+			if releaseErr := lock.Release(); releaseErr != nil {
+				logger.Error("failed-to-release-lock", releaseErr)
 			}
+			return nil, false, fmt.Errorf("get last check end time: %w", err)
+		}
 
-			// ignore interval for manually triggered builds.
-			// avoid running redundant checks
-			shouldRun = !lastCheckSucceeded || lastCheckStartTime.IsZero() || d.build.CreateTime().After(lastCheckStartTime)
-		} else {
-			end, _, err := scope.LastCheckEndTime()
-			if err != nil {
-				if releaseErr := lock.Release(); releaseErr != nil {
-					logger.Error("failed-to-release-lock", releaseErr)
-				}
-				return nil, false, fmt.Errorf("get last check end time: %w", err)
-			}
-
-			runAt := end.Add(interval)
-			if !d.clock.Now().Before(runAt) {
-				// run if we're past the last check end time
-				shouldRun = true
-			}
+		runAt := end.Add(interval)
+		if !d.clock.Now().Before(runAt) {
+			// run if we're past the last check end time
+			shouldRun = true
 		}
 	}
+
 	// XXX(check-refactor): we could add an else{} case and potentially sleep
 	// here until runAt is reached.
 	//
