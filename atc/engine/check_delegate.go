@@ -115,17 +115,22 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 	if !d.plan.IsPeriodic() {
 		shouldRun = true
 	} else if d.build.IsManuallyTriggered() {
-		lastCheckStartTime, lastCheckSucceeded, err := scope.LastCheckStartTime()
-		if err != nil {
-			if releaseErr := lock.Release(); releaseErr != nil {
-				logger.Error("failed-to-release-lock", releaseErr)
+		// If a manually triggered check takes a from version, then it should be run.
+		if d.plan.FromVersion != nil {
+			shouldRun = true
+		} else {
+			lastCheckStartTime, lastCheckSucceeded, err := scope.LastCheckStartTime()
+			if err != nil {
+				if releaseErr := lock.Release(); releaseErr != nil {
+					logger.Error("failed-to-release-lock", releaseErr)
+				}
+				return nil, false, err
 			}
-			return nil, false, err
-		}
 
-		// ignore interval for manually triggered builds.
-		// avoid running redundant checks
-		shouldRun = !lastCheckSucceeded || d.build.CreateTime().After(lastCheckStartTime)
+			// ignore interval for manually triggered builds.
+			// avoid running redundant checks
+			shouldRun = !lastCheckSucceeded || d.build.CreateTime().After(lastCheckStartTime)
+		}
 	} else {
 		end, _, err := scope.LastCheckEndTime()
 		if err != nil {
