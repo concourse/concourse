@@ -199,8 +199,8 @@ func (plan GetPlan) Public() *json.RawMessage {
 		Name:           plan.Name,
 		Resource:       plan.Resource,
 		Version:        plan.Version,
-		ImageGetPlan:   plan.ImageGetPlan.Public(),
-		ImageCheckPlan: plan.ImageCheckPlan.Public(),
+		ImageGetPlan:   plan.TypeImage.GetPlan.Public(),
+		ImageCheckPlan: plan.TypeImage.CheckPlan.Public(),
 	})
 }
 
@@ -267,8 +267,8 @@ func (plan PutPlan) Public() *json.RawMessage {
 		Type:           plan.Type,
 		Name:           plan.Name,
 		Resource:       plan.Resource,
-		ImageGetPlan:   plan.ImageGetPlan.Public(),
-		ImageCheckPlan: plan.ImageCheckPlan.Public(),
+		ImageGetPlan:   plan.TypeImage.GetPlan.Public(),
+		ImageCheckPlan: plan.TypeImage.CheckPlan.Public(),
 	})
 }
 
@@ -281,8 +281,8 @@ func (plan CheckPlan) Public() *json.RawMessage {
 	}{
 		Type:           plan.Type,
 		Name:           plan.Name,
-		ImageGetPlan:   plan.ImageGetPlan.Public(),
-		ImageCheckPlan: plan.ImageCheckPlan.Public(),
+		ImageGetPlan:   plan.TypeImage.GetPlan.Public(),
+		ImageCheckPlan: plan.TypeImage.CheckPlan.Public(),
 	})
 }
 

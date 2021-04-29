@@ -112,12 +112,14 @@ var _ = Describe("GetStep", func() {
 		fakeDelegateFactory.GetDelegateReturns(fakeDelegate)
 
 		getPlan = &atc.GetPlan{
-			Name:     "some-name",
-			Type:     "some-base-type",
-			BaseType: "some-base-type",
-			Source:   atc.Source{"some": "((source-var))"},
-			Params:   atc.Params{"some": "((params-var))"},
-			Version:  &atc.Version{"some": "version"},
+			Name: "some-name",
+			Type: "some-base-type",
+			TypeImage: atc.TypeImage{
+				BaseType: "some-base-type",
+			},
+			Source:  atc.Source{"some": "((source-var))"},
+			Params:  atc.Params{"some": "((params-var))"},
+			Version: &atc.Version{"some": "version"},
 		}
 
 		shouldRunGetStep = true
@@ -474,7 +476,7 @@ var _ = Describe("GetStep", func() {
 		)
 
 		BeforeEach(func() {
-			getPlan.ImageGetPlan = &atc.Plan{
+			getPlan.TypeImage.GetPlan = &atc.Plan{
 				ID: "1/image-get",
 				Get: &atc.GetPlan{
 					Name:   "some-custom-type",
@@ -484,7 +486,7 @@ var _ = Describe("GetStep", func() {
 				},
 			}
 
-			getPlan.ImageCheckPlan = &atc.Plan{
+			getPlan.TypeImage.CheckPlan = &atc.Plan{
 				ID: "1/image-check",
 				Check: &atc.CheckPlan{
 					Name:   "some-custom-type",
@@ -494,7 +496,7 @@ var _ = Describe("GetStep", func() {
 			}
 
 			getPlan.Type = "some-custom-type"
-			getPlan.BaseType = "registry-image"
+			getPlan.TypeImage.BaseType = "registry-image"
 
 			fakeImageSpec = worker.ImageSpec{
 				ImageArtifactSource: new(workerfakes.FakeStreamableArtifactSource),
@@ -514,8 +516,8 @@ var _ = Describe("GetStep", func() {
 		It("fetches the resource type image and uses it for the container", func() {
 			Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
 			_, actualGetImagePlan, actualCheckImagePlan, privileged := fakeDelegate.FetchImageArgsForCall(0)
-			Expect(actualGetImagePlan).To(Equal(*getPlan.ImageGetPlan))
-			Expect(actualCheckImagePlan).To(Equal(getPlan.ImageCheckPlan))
+			Expect(actualGetImagePlan).To(Equal(*getPlan.TypeImage.GetPlan))
+			Expect(actualCheckImagePlan).To(Equal(getPlan.TypeImage.CheckPlan))
 			Expect(privileged).To(BeFalse())
 		})
 
@@ -537,7 +539,7 @@ var _ = Describe("GetStep", func() {
 
 		Context("when the resource type is privileged", func() {
 			BeforeEach(func() {
-				getPlan.Privileged = true
+				getPlan.TypeImage.Privileged = true
 			})
 
 			It("fetches the image with privileged", func() {

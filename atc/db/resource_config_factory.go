@@ -68,6 +68,7 @@ func (f *resourceConfigFactory) FindResourceConfigByID(resourceConfigID int) (Re
 
 	return resourceConfig, true, nil
 }
+
 func findOrCreateResourceConfig(
 	tx Tx,
 	rc *resourceConfig,
