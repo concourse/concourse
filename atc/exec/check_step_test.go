@@ -106,10 +106,12 @@ var _ = Describe("CheckStep", func() {
 		fakeDelegateFactory.CheckDelegateReturns(fakeDelegate)
 
 		checkPlan = atc.CheckPlan{
-			Name:     "some-name",
-			Type:     "some-base-type",
-			Source:   atc.Source{"some": "((source-var))"},
-			BaseType: "some-base-type",
+			Name:   "some-name",
+			Type:   "some-base-type",
+			Source: atc.Source{"some": "((source-var))"},
+			TypeImage: atc.TypeImage{
+				BaseType: "some-base-type",
+			},
 		}
 
 		containerMetadata = db.ContainerMetadata{
@@ -310,7 +312,7 @@ var _ = Describe("CheckStep", func() {
 					)
 
 					BeforeEach(func() {
-						checkPlan.ImageGetPlan = &atc.Plan{
+						checkPlan.TypeImage.GetPlan = &atc.Plan{
 							ID: "1/image-get",
 							Get: &atc.GetPlan{
 								Name:   "some-custom-type",
@@ -320,7 +322,7 @@ var _ = Describe("CheckStep", func() {
 							},
 						}
 
-						checkPlan.ImageCheckPlan = &atc.Plan{
+						checkPlan.TypeImage.CheckPlan = &atc.Plan{
 							ID: "1/image-check",
 							Check: &atc.CheckPlan{
 								Name:   "some-custom-type",
@@ -344,8 +346,8 @@ var _ = Describe("CheckStep", func() {
 					It("fetches the resource type image", func() {
 						Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
 						_, actualGetImagePlan, actualCheckImagePlan, privileged := fakeDelegate.FetchImageArgsForCall(0)
-						Expect(actualGetImagePlan).To(Equal(*checkPlan.ImageGetPlan))
-						Expect(actualCheckImagePlan).To(Equal(checkPlan.ImageCheckPlan))
+						Expect(actualGetImagePlan).To(Equal(*checkPlan.TypeImage.GetPlan))
+						Expect(actualCheckImagePlan).To(Equal(checkPlan.TypeImage.CheckPlan))
 						Expect(privileged).To(BeFalse())
 					})
 
@@ -363,7 +365,7 @@ var _ = Describe("CheckStep", func() {
 
 					Context("when the resource type is privileged", func() {
 						BeforeEach(func() {
-							checkPlan.Privileged = true
+							checkPlan.TypeImage.Privileged = true
 						})
 
 						It("fetches the image with privileged", func() {

@@ -138,9 +138,11 @@ var _ = Describe("PutStep", func() {
 			Name:     "some-name",
 			Resource: "some-resource",
 			Type:     "some-resource-type",
-			BaseType: "some-resource-type",
-			Source:   atc.Source{"some": "((source-var))"},
-			Params:   atc.Params{"some": "((params-var))"},
+			TypeImage: atc.TypeImage{
+				BaseType: "some-resource-type",
+			},
+			Source: atc.Source{"some": "((source-var))"},
+			Params: atc.Params{"some": "((params-var))"},
 		}
 
 		fakeArtifact = new(runtimefakes.FakeArtifact)
@@ -383,7 +385,7 @@ var _ = Describe("PutStep", func() {
 		)
 
 		BeforeEach(func() {
-			putPlan.ImageGetPlan = &atc.Plan{
+			putPlan.TypeImage.GetPlan = &atc.Plan{
 				ID: "1/image-get",
 				Get: &atc.GetPlan{
 					Name:   "some-custom-type",
@@ -393,7 +395,7 @@ var _ = Describe("PutStep", func() {
 				},
 			}
 
-			putPlan.ImageCheckPlan = &atc.Plan{
+			putPlan.TypeImage.CheckPlan = &atc.Plan{
 				ID: "1/image-check",
 				Check: &atc.CheckPlan{
 					Name:   "some-custom-type",
@@ -403,7 +405,7 @@ var _ = Describe("PutStep", func() {
 			}
 
 			putPlan.Type = "some-custom-type"
-			putPlan.BaseType = "registry-image"
+			putPlan.TypeImage.BaseType = "registry-image"
 
 			fakeImageSpec = worker.ImageSpec{
 				ImageArtifactSource: new(workerfakes.FakeStreamableArtifactSource),
@@ -418,8 +420,8 @@ var _ = Describe("PutStep", func() {
 		It("fetches the resource type image and uses it for the container", func() {
 			Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
 			_, actualGetImagePlan, actualCheckImagePlan, privileged := fakeDelegate.FetchImageArgsForCall(0)
-			Expect(actualGetImagePlan).To(Equal(*putPlan.ImageGetPlan))
-			Expect(actualCheckImagePlan).To(Equal(putPlan.ImageCheckPlan))
+			Expect(actualGetImagePlan).To(Equal(*putPlan.TypeImage.GetPlan))
+			Expect(actualCheckImagePlan).To(Equal(putPlan.TypeImage.CheckPlan))
 			Expect(privileged).To(BeFalse())
 		})
 
@@ -446,7 +448,7 @@ var _ = Describe("PutStep", func() {
 
 		Context("when the resource type is privileged", func() {
 			BeforeEach(func() {
-				putPlan.Privileged = true
+				putPlan.TypeImage.Privileged = true
 			})
 
 			It("fetches the image with privileged", func() {

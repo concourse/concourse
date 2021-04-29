@@ -156,18 +156,18 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 
 		// Used to filter out non-Linux workers, simply because they don't support
 		// base resource types
-		ResourceType: step.plan.BaseType,
+		ResourceType: step.plan.TypeImage.BaseType,
 	}
 
 	var imageSpec worker.ImageSpec
 	var imageResourceCache db.ResourceCache
-	if step.plan.ImageGetPlan != nil {
-		imageSpec, imageResourceCache, err = delegate.FetchImage(ctx, *step.plan.ImageGetPlan, step.plan.ImageCheckPlan, step.plan.Privileged)
+	if step.plan.TypeImage.GetPlan != nil {
+		imageSpec, imageResourceCache, err = delegate.FetchImage(ctx, *step.plan.TypeImage.GetPlan, step.plan.TypeImage.CheckPlan, step.plan.TypeImage.Privileged)
 		if err != nil {
 			return false, err
 		}
 	} else {
-		imageSpec.ResourceType = step.plan.BaseType
+		imageSpec.ResourceType = step.plan.TypeImage.BaseType
 	}
 
 	containerSpec := worker.ContainerSpec{

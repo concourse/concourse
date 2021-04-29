@@ -123,7 +123,16 @@ func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, 
 		return nil, false, nil
 	}
 
-	plan := checkable.CheckPlan(c.planFactory, resourceTypes.Filter(checkable).Deserialize(), from, interval, sourceDefaults)
+	versionedResourceTypes := resourceTypes.Filter(checkable).Deserialize()
+	if versionedResourceTypes == nil {
+		// If there are no versioned resource types, set it to a zero length list
+		// of versioned resource types. The reason behind this is because we wrap
+		// the versioned resource types object in an ImagePlanner interface, and
+		// this will panic if the versioned resource types is nil.
+		versionedResourceTypes = atc.VersionedResourceTypes{}
+	}
+
+	plan := checkable.CheckPlan(c.planFactory, versionedResourceTypes, from, interval, sourceDefaults)
 	build, created, err := checkable.CreateBuild(ctx, manuallyTriggered, plan)
 	if err != nil {
 		return nil, false, fmt.Errorf("create build: %w", err)
