@@ -47,6 +47,7 @@ type ResourceType interface {
 
 	SetResourceConfigScope(ResourceConfigScope) error
 
+	CheckPlan(planFactory atc.PlanFactory, imagePlanner ImagePlanner, from atc.Version, interval time.Duration, sourceDefaults atc.Source) atc.Plan
 	CreateBuild(context.Context, bool, atc.Plan) (Build, bool, error)
 
 	Version() atc.Version
@@ -256,6 +257,23 @@ func (r *resourceType) SetResourceConfigScope(scope ResourceConfigScope) error {
 	}
 
 	return nil
+}
+
+func (r *resourceType) CheckPlan(planFactory atc.PlanFactory, imagePlanner ImagePlanner, from atc.Version, interval time.Duration, sourceDefaults atc.Source) atc.Plan {
+	plan := planFactory.NewPlan(atc.CheckPlan{
+		Name:   r.name,
+		Type:   r.type_,
+		Source: sourceDefaults.Merge(r.source),
+		Tags:   r.tags,
+
+		FromVersion: from,
+		Interval:    interval.String(),
+
+		ResourceType: r.name,
+	})
+
+	plan.Check.TypeImage = imagePlanner.ImageForType(plan.ID, r.type_, r.tags)
+	return plan
 }
 
 func (r *resourceType) CreateBuild(ctx context.Context, manuallyTriggered bool, plan atc.Plan) (Build, bool, error) {

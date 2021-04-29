@@ -21,6 +21,7 @@ type FakeCheckable struct {
 	checkEveryReturnsOnCall map[int]struct {
 		result1 *atc.CheckEvery
 	}
+<<<<<<< HEAD
 	CheckPlanStub        func(atc.Version, time.Duration, db.ResourceTypes, atc.Source) atc.CheckPlan
 	checkPlanMutex       sync.RWMutex
 	checkPlanArgsForCall []struct {
@@ -34,6 +35,22 @@ type FakeCheckable struct {
 	}
 	checkPlanReturnsOnCall map[int]struct {
 		result1 atc.CheckPlan
+=======
+	CheckPlanStub        func(atc.PlanFactory, db.ImagePlanner, atc.Version, time.Duration, atc.Source) atc.Plan
+	checkPlanMutex       sync.RWMutex
+	checkPlanArgsForCall []struct {
+		arg1 atc.PlanFactory
+		arg2 db.ImagePlanner
+		arg3 atc.Version
+		arg4 time.Duration
+		arg5 atc.Source
+	}
+	checkPlanReturns struct {
+		result1 atc.Plan
+	}
+	checkPlanReturnsOnCall map[int]struct {
+		result1 atc.Plan
+>>>>>>> adb4c547f... atc: remove check planner object
 	}
 	CheckTimeoutStub        func() string
 	checkTimeoutMutex       sync.RWMutex
@@ -273,6 +290,7 @@ func (fake *FakeCheckable) CheckEveryReturnsOnCall(i int, result1 *atc.CheckEver
 	}{result1}
 }
 
+<<<<<<< HEAD
 func (fake *FakeCheckable) CheckPlan(arg1 atc.Version, arg2 time.Duration, arg3 db.ResourceTypes, arg4 atc.Source) atc.CheckPlan {
 	fake.checkPlanMutex.Lock()
 	ret, specificReturn := fake.checkPlanReturnsOnCall[len(fake.checkPlanArgsForCall)]
@@ -288,6 +306,24 @@ func (fake *FakeCheckable) CheckPlan(arg1 atc.Version, arg2 time.Duration, arg3 
 	fake.checkPlanMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3, arg4)
+=======
+func (fake *FakeCheckable) CheckPlan(arg1 atc.PlanFactory, arg2 db.ImagePlanner, arg3 atc.Version, arg4 time.Duration, arg5 atc.Source) atc.Plan {
+	fake.checkPlanMutex.Lock()
+	ret, specificReturn := fake.checkPlanReturnsOnCall[len(fake.checkPlanArgsForCall)]
+	fake.checkPlanArgsForCall = append(fake.checkPlanArgsForCall, struct {
+		arg1 atc.PlanFactory
+		arg2 db.ImagePlanner
+		arg3 atc.Version
+		arg4 time.Duration
+		arg5 atc.Source
+	}{arg1, arg2, arg3, arg4, arg5})
+	stub := fake.CheckPlanStub
+	fakeReturns := fake.checkPlanReturns
+	fake.recordInvocation("CheckPlan", []interface{}{arg1, arg2, arg3, arg4, arg5})
+	fake.checkPlanMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4, arg5)
+>>>>>>> adb4c547f... atc: remove check planner object
 	}
 	if specificReturn {
 		return ret.result1
@@ -301,12 +337,17 @@ func (fake *FakeCheckable) CheckPlanCallCount() int {
 	return len(fake.checkPlanArgsForCall)
 }
 
+<<<<<<< HEAD
 func (fake *FakeCheckable) CheckPlanCalls(stub func(atc.Version, time.Duration, db.ResourceTypes, atc.Source) atc.CheckPlan) {
+=======
+func (fake *FakeCheckable) CheckPlanCalls(stub func(atc.PlanFactory, db.ImagePlanner, atc.Version, time.Duration, atc.Source) atc.Plan) {
+>>>>>>> adb4c547f... atc: remove check planner object
 	fake.checkPlanMutex.Lock()
 	defer fake.checkPlanMutex.Unlock()
 	fake.CheckPlanStub = stub
 }
 
+<<<<<<< HEAD
 func (fake *FakeCheckable) CheckPlanArgsForCall(i int) (atc.Version, time.Duration, db.ResourceTypes, atc.Source) {
 	fake.checkPlanMutex.RLock()
 	defer fake.checkPlanMutex.RUnlock()
@@ -315,25 +356,51 @@ func (fake *FakeCheckable) CheckPlanArgsForCall(i int) (atc.Version, time.Durati
 }
 
 func (fake *FakeCheckable) CheckPlanReturns(result1 atc.CheckPlan) {
+=======
+func (fake *FakeCheckable) CheckPlanArgsForCall(i int) (atc.PlanFactory, db.ImagePlanner, atc.Version, time.Duration, atc.Source) {
+	fake.checkPlanMutex.RLock()
+	defer fake.checkPlanMutex.RUnlock()
+	argsForCall := fake.checkPlanArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5
+}
+
+func (fake *FakeCheckable) CheckPlanReturns(result1 atc.Plan) {
+>>>>>>> adb4c547f... atc: remove check planner object
 	fake.checkPlanMutex.Lock()
 	defer fake.checkPlanMutex.Unlock()
 	fake.CheckPlanStub = nil
 	fake.checkPlanReturns = struct {
+<<<<<<< HEAD
 		result1 atc.CheckPlan
 	}{result1}
 }
 
 func (fake *FakeCheckable) CheckPlanReturnsOnCall(i int, result1 atc.CheckPlan) {
+=======
+		result1 atc.Plan
+	}{result1}
+}
+
+func (fake *FakeCheckable) CheckPlanReturnsOnCall(i int, result1 atc.Plan) {
+>>>>>>> adb4c547f... atc: remove check planner object
 	fake.checkPlanMutex.Lock()
 	defer fake.checkPlanMutex.Unlock()
 	fake.CheckPlanStub = nil
 	if fake.checkPlanReturnsOnCall == nil {
 		fake.checkPlanReturnsOnCall = make(map[int]struct {
+<<<<<<< HEAD
 			result1 atc.CheckPlan
 		})
 	}
 	fake.checkPlanReturnsOnCall[i] = struct {
 		result1 atc.CheckPlan
+=======
+			result1 atc.Plan
+		})
+	}
+	fake.checkPlanReturnsOnCall[i] = struct {
+		result1 atc.Plan
+>>>>>>> adb4c547f... atc: remove check planner object
 	}{result1}
 }
 

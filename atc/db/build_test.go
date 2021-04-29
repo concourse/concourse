@@ -1232,8 +1232,8 @@ var _ = Describe("Build", func() {
 		JustBeforeEach(func() {
 			err := build.SaveOutput(
 				dbtest.BaseResourceType,
+				nil,
 				atc.Source{"some": "source"},
-				atc.VersionedResourceTypes{},
 				outputVersion,
 				[]db.ResourceConfigMetadataField{
 					{

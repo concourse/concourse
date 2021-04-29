@@ -23,7 +23,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 	Describe("Run", func() {
 		Describe("cache uses", func() {
 			var (
-				versionedResourceType atc.VersionedResourceType
+				customResourceTypeCache db.ResourceCache
 			)
 
 			countResourceCacheUses := func() int {
@@ -44,21 +44,21 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 				return result
 			}
 
-			BeforeEach(func() {
-				versionedResourceType = atc.VersionedResourceType{
-					ResourceType: atc.ResourceType{
-						Name: "some-type",
-						Type: "some-base-type",
-						Source: atc.Source{
-							"some-type": "source-param",
-						},
-					},
-					Version: atc.Version{"some-type": "version"},
-				}
-			})
-
 			Describe("for one-off builds", func() {
 				BeforeEach(func() {
+					var err error
+					customResourceTypeCache, err = resourceCacheFactory.FindOrCreateResourceCache(
+						db.ForBuild(defaultBuild.ID()),
+						"some-base-type",
+						atc.Version{"some-type": "version"},
+						atc.Source{
+							"some-type": "source-param",
+						},
+						nil,
+						nil,
+					)
+					Expect(err).NotTo(HaveOccurred())
+
 					_, err = resourceCacheFactory.FindOrCreateResourceCache(
 						db.ForBuild(defaultBuild.ID()),
 						"some-type",
@@ -67,9 +67,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 							"some": "source",
 						},
 						atc.Params{"some": "params"},
-						atc.VersionedResourceTypes{
-							versionedResourceType,
-						},
+						customResourceTypeCache,
 					)
 					Expect(err).NotTo(HaveOccurred())
 				})
@@ -123,6 +121,18 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 					jobBuild, err = defaultJob.CreateBuild("someone")
 					Expect(err).ToNot(HaveOccurred())
 
+					customResourceTypeCache, err = resourceCacheFactory.FindOrCreateResourceCache(
+						db.ForBuild(jobBuild.ID()),
+						"some-base-type",
+						atc.Version{"some-type": "version"},
+						atc.Source{
+							"some-type": "source-param",
+						},
+						nil,
+						nil,
+					)
+					Expect(err).NotTo(HaveOccurred())
+
 					_, err = resourceCacheFactory.FindOrCreateResourceCache(
 						db.ForBuild(jobBuild.ID()),
 						"some-type",
@@ -131,9 +141,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 							"some": "source",
 						},
 						atc.Params{"some": "params"},
-						atc.VersionedResourceTypes{
-							versionedResourceType,
-						},
+						customResourceTypeCache,
 					)
 					Expect(err).NotTo(HaveOccurred())
 				})
@@ -164,9 +172,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 								"some": "source",
 							},
 							atc.Params{"some": "params"},
-							atc.VersionedResourceTypes{
-								versionedResourceType,
-							},
+							customResourceTypeCache,
 						)
 						Expect(err).NotTo(HaveOccurred())
 					})
@@ -202,6 +208,18 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 					)
 					Expect(err).ToNot(HaveOccurred())
 
+					customResourceTypeCache, err = resourceCacheFactory.FindOrCreateResourceCache(
+						db.ForContainer(container.ID()),
+						"some-base-type",
+						atc.Version{"some-type": "version"},
+						atc.Source{
+							"some-type": "source-param",
+						},
+						nil,
+						nil,
+					)
+					Expect(err).NotTo(HaveOccurred())
+
 					_, err = resourceCacheFactory.FindOrCreateResourceCache(
 						db.ForContainer(container.ID()),
 						"some-type",
@@ -210,9 +228,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 							"cache": "source",
 						},
 						atc.Params{"some": "params"},
-						atc.VersionedResourceTypes{
-							versionedResourceType,
-						},
+						customResourceTypeCache,
 					)
 					Expect(err).NotTo(HaveOccurred())
 				})

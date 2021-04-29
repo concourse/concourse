@@ -70,7 +70,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 						"some": "source",
 					},
 					nil,
-					atc.VersionedResourceTypes{},
+					nil,
 				)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -85,7 +85,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 						"some": "source",
 					},
 					nil,
-					atc.VersionedResourceTypes{},
+					nil,
 				)
 				Expect(err).NotTo(HaveOccurred())
 			})
@@ -189,7 +189,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 									"some": "source",
 								},
 								nil,
-								atc.VersionedResourceTypes{},
+								nil,
 							)
 							Expect(err).NotTo(HaveOccurred())
 
@@ -235,7 +235,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 									"some": "source",
 								},
 								nil,
-								atc.VersionedResourceTypes{},
+								nil,
 							)
 							Expect(err).NotTo(HaveOccurred())
 

@@ -479,10 +479,21 @@ func (builder Builder) WithJobBuild(assign *db.Build, jobName string, inputs Job
 				return fmt.Errorf("output '%s' refers to unknown resource '%s'", output.Name, output.Resource)
 			}
 
+			var imageResourceCache db.ResourceCache
+			if resourceTypes != nil {
+				resourceType, _ := resourceTypes.Parent(resource)
+				if resourceType != nil {
+					imageResourceCache, err = builder.createResourceCache(build.ID(), resourceType, resourceTypes.Without(resourceType.Name()))
+					if err != nil {
+						return fmt.Errorf("create resource cache: %w", err)
+					}
+				}
+			}
+
 			err = build.SaveOutput(
 				resource.Type(),
+				imageResourceCache,
 				resource.Source(),
-				resourceTypes.Deserialize(),
 				version,
 				nil, // metadata
 				output.Name,
