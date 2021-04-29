@@ -5,9 +5,10 @@ import (
 
 	"github.com/concourse/concourse/integration/internal/dctest"
 	"github.com/concourse/concourse/integration/internal/flytest"
+	"github.com/stretchr/testify/require"
 )
 
-func TestDNSProxyyEnabled(t *testing.T) {
+func TestDNSProxyEnabled(t *testing.T) {
 	t.Parallel()
 
 	dc := dctest.Init(t, "../docker-compose.yml", "overrides/enable_dns_proxy.yml")
@@ -17,10 +18,10 @@ func TestDNSProxyyEnabled(t *testing.T) {
 	})
 
 	fly := flytest.Init(t, dc)
-	fly.WithEnv("EXPECTED_EXIT_CODE=0").Run(t, "execute", "-c", "tasks/assert_web_is_reachable.yml")
+	fly.ExpectExit(0).Run(t, "execute", "-c", "tasks/resolve_web_dns.yml")
 }
 
-func TestDNSProxyyDisabled(t *testing.T) {
+func TestDNSProxyDisabled(t *testing.T) {
 	t.Parallel()
 
 	dc := dctest.Init(t, "../docker-compose.yml", "overrides/disable_dns_proxy.yml")
@@ -30,7 +31,7 @@ func TestDNSProxyyDisabled(t *testing.T) {
 	})
 
 	fly := flytest.Init(t, dc)
-	fly.WithEnv("EXPECTED_EXIT_CODE=1").Run(t, "execute", "-c", "tasks/assert_web_is_reachable.yml")
+	fly.ExpectExit(1).Run(t, "execute", "-c", "tasks/resolve_web_dns.yml")
 }
 
 func TestExtraDNSServersAreAdded(t *testing.T) {
@@ -43,5 +44,6 @@ func TestExtraDNSServersAreAdded(t *testing.T) {
 	})
 
 	fly := flytest.Init(t, dc)
-	fly.WithEnv("EXTRA_SERVER=1.1.1.1").Run(t, "execute", "-c", "tasks/assert_extra_dns_servers.yml")
+	output := fly.WithEnv("FILE=/etc/resolv.conf").Output(t, "execute", "-c", "tasks/cat_file.yml")
+	require.Contains(t, output, "nameserver 1.1.1.1")
 }

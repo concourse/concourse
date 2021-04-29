@@ -5,16 +5,11 @@ image_resource:
   source: {mirror_self: true}
 
 params:
-  EXPECTED_EXIT_CODE:
+  FILE:
 
 run:
   path: sh
   args:
   - -c
   - |
-    set -x
-
-    nslookup web
-    if [ $? -ne $EXPECTED_EXIT_CODE ]; then
-      exit 1
-    fi
+    cat $FILE
