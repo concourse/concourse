@@ -72,6 +72,13 @@ func (d *checkDelegate) FindOrCreateScope(config db.ResourceConfig) (db.Resource
 	return scope, nil
 }
 
+// WaitToRun decides if a check should really run or just reuse a previous result, and acquires
+// a check log accordingly. There are three types of checks, each reflects to a different behavior:
+// 1) A Lidar triggered checks should always run once reach to next check time;
+// 2) A manually triggered checks may reuse a previous result if the last check succeeded and began
+// later than the current check build's create time.
+// 3) A step embedded check may reuse a previous step if the last check succeeded and finished later
+// than the current build started.
 func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigScope) (lock.Lock, bool, error) {
 	logger := lagerctx.FromContext(ctx)
 
@@ -113,7 +120,25 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 
 	shouldRun := false
 	if !d.plan.IsPeriodic() {
-		shouldRun = true
+		lastCheckEndTime, lastCheckSucceeded, err := scope.LastCheckEndTime()
+		if err != nil {
+			if releaseErr := lock.Release(); releaseErr != nil {
+				logger.Error("failed-to-release-lock", releaseErr)
+			}
+			return nil, false, fmt.Errorf("get last check end time: %w", err)
+		}
+
+		if !lastCheckSucceeded || lastCheckEndTime.Before(d.build.StartTime()) {
+			shouldRun = true
+		} else {
+			_, found, err := scope.LatestVersion()
+			if err != nil {
+				return nil, false, err
+			}
+			if !found {
+				shouldRun = true
+			}
+		}
 	} else if d.build.IsManuallyTriggered() {
 		// If a manually triggered check takes a from version, then it should be run.
 		if d.plan.FromVersion != nil {

@@ -325,8 +325,52 @@ var _ = Describe("CheckDelegate", func() {
 				Expect(runLock).To(Equal(lock.NoopLock{}))
 			})
 
-			It("returns true", func() {
-				Expect(run).To(BeTrue())
+			Context("when last check failed", func() {
+				BeforeEach(func() {
+					fakeResourceConfigScope.LastCheckEndTimeReturns(now.Add(-time.Second), false, nil)
+				})
+
+				It("returns true", func() {
+					Expect(run).To(BeTrue())
+				})
+			})
+
+			Context("when last check ended before build start time", func() {
+				BeforeEach(func() {
+					fakeResourceConfigScope.LastCheckEndTimeReturns(now.Add(-time.Second), true, nil)
+					fakeBuild.StartTimeReturns(now.Add(time.Second))
+				})
+
+				It("returns true", func() {
+					Expect(run).To(BeTrue())
+				})
+			})
+
+			Context("when last check succeeds after build starts", func() {
+				BeforeEach(func() {
+					fakeResourceConfigScope.LastCheckEndTimeReturns(now.Add(time.Second), true, nil)
+					fakeBuild.StartTimeReturns(now.Add(-time.Second))
+				})
+
+				Context("when there is no version", func() {
+					BeforeEach(func() {
+						fakeResourceConfigScope.LatestVersionReturns(nil, false, nil)
+					})
+
+					It("returns true", func() {
+						Expect(run).To(BeTrue())
+					})
+				})
+
+				Context("when there is a version", func() {
+					BeforeEach(func() {
+						fakeResourceConfigScope.LatestVersionReturns(new(dbfakes.FakeResourceConfigVersion), true, nil)
+					})
+
+					It("returns false", func() {
+						Expect(run).To(BeFalse())
+					})
+				})
 			})
 		})
 	})
