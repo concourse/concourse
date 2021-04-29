@@ -177,10 +177,10 @@ var _ = Describe("Scanner", func() {
 					})
 
 					It("creates a check for only the parent and not the put-only resource", func() {
-						Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(2))
+						Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(2),
+							"two checks created; one for the fakeResourceType and the second for the unrelated fakeResource")
 
-						By("first check is for the default resource")
-						_, checkable, _, _, manuallyTriggered := fakeCheckFactory.TryCreateCheckArgsForCall(1)
+						_, checkable, _, _, manuallyTriggered := fakeCheckFactory.TryCreateCheckArgsForCall(0)
 						Expect(checkable).To(Equal(fakeResourceType))
 						Expect(manuallyTriggered).To(BeFalse())
 					})
