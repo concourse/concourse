@@ -65,6 +65,7 @@ type Resource interface {
 
 	SetResourceConfigScope(ResourceConfigScope) error
 
+	CheckPlan(planFactory atc.PlanFactory, imagePlanner ImagePlanner, from atc.Version, interval time.Duration, sourceDefaults atc.Source) atc.Plan
 	CreateBuild(context.Context, bool, atc.Plan) (Build, bool, error)
 
 	NotifyScan() error
@@ -251,6 +252,28 @@ func (r *resource) setResourceConfigScopeInTransaction(tx Tx, scope ResourceConf
 	}
 
 	return nil
+}
+
+type ImagePlanner interface {
+	ImageForType(planID atc.PlanID, resourceType string, stepTags atc.Tags) atc.TypeImage
+}
+
+func (r *resource) CheckPlan(planFactory atc.PlanFactory, imagePlanner ImagePlanner, from atc.Version, interval time.Duration, sourceDefaults atc.Source) atc.Plan {
+	plan := planFactory.NewPlan(atc.CheckPlan{
+		Name:    r.name,
+		Type:    r.type_,
+		Source:  sourceDefaults.Merge(r.config.Source),
+		Tags:    r.config.Tags,
+		Timeout: r.config.CheckTimeout,
+
+		FromVersion: from,
+		Interval:    interval.String(),
+
+		Resource: r.name,
+	})
+
+	plan.Check.TypeImage = imagePlanner.ImageForType(plan.ID, r.type_, r.config.Tags)
+	return plan
 }
 
 // CreateBuild creates a check build for this resource. It returns back the

@@ -1153,27 +1153,34 @@ var _ = Describe("Team", func() {
 					Params:   atc.Params{"some": "params"},
 					Version:  &atc.Version{"some": "version"},
 					Tags:     atc.Tags{"some-tags"},
-					ImageCheckPlan: &atc.Plan{
-						ID: imageCheckPlanID,
-						Check: &atc.CheckPlan{
-							Name:       "some-name",
-							Source:     atc.Source{"some": "source"},
-							Type:       "some-type",
-							BaseType:   "some-type",
-							Tags:       atc.Tags{"some-tags"},
-							Privileged: true,
+					TypeImage: atc.TypeImage{
+						BaseType: "some-type",
+						CheckPlan: &atc.Plan{
+							ID: imageCheckPlanID,
+							Check: &atc.CheckPlan{
+								Name:   "some-name",
+								Source: atc.Source{"some": "source"},
+								Type:   "some-type",
+								TypeImage: atc.TypeImage{
+									BaseType:   "some-type",
+									Privileged: true,
+								},
+								Tags: atc.Tags{"some-tags"},
+							},
 						},
-					},
-					ImageGetPlan: &atc.Plan{
-						ID: "image-get",
-						Get: &atc.GetPlan{
-							Name:        "some-name",
-							Source:      atc.Source{"some": "source"},
-							Type:        "some-type",
-							BaseType:    "some-type",
-							Tags:        atc.Tags{"some-tags"},
-							Privileged:  true,
-							VersionFrom: &imageCheckPlanID,
+						GetPlan: &atc.Plan{
+							ID: "image-get",
+							Get: &atc.GetPlan{
+								Name:   "some-name",
+								Source: atc.Source{"some": "source"},
+								Type:   "some-type",
+								TypeImage: atc.TypeImage{
+									BaseType:   "some-type",
+									Privileged: true,
+								},
+								Tags:        atc.Tags{"some-tags"},
+								VersionFrom: &imageCheckPlanID,
+							},
 						},
 					},
 				},

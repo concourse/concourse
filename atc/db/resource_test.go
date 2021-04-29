@@ -1183,4 +1183,247 @@ var _ = Describe("Resource", func() {
 			})
 		})
 	})
+
+	Describe("CheckPlan", func() {
+
+		Context("when there is a resource using a base type", func() {
+			var createdCheckPlan atc.Plan
+			var version atc.Version
+			var resource db.Resource
+
+			BeforeEach(func() {
+				pipeline, created, err := defaultTeam.SavePipeline(
+					atc.PipelineRef{Name: "pipeline-with-resource-base-type"},
+					atc.Config{
+						Resources: atc.ResourceConfigs{{
+							Name:         "some-resource",
+							Type:         "some-base-resource-type",
+							Tags:         []string{"tag"},
+							CheckTimeout: "1h",
+							Source: atc.Source{
+								"some": "source",
+							},
+						}},
+					},
+					0,
+					false,
+				)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(created).To(BeTrue())
+
+				var found bool
+				resource, found, err = pipeline.Resource("some-resource")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				planFactory := atc.NewPlanFactory(0)
+				version = atc.Version{"version": "from"}
+				sourceDefault := atc.Source{"source-test": "default"}
+				createdCheckPlan = resource.CheckPlan(planFactory, atc.VersionedResourceTypes{}, version, 1*time.Hour, sourceDefault)
+			})
+
+			It("produces a simple check plan", func() {
+				expectedPlan := atc.Plan{
+					ID: atc.PlanID("1"),
+					Check: &atc.CheckPlan{
+						Name: resource.Name(),
+						Type: resource.Type(),
+						Source: atc.Source{
+							"some":        "source",
+							"source-test": "default",
+						},
+						Tags:    resource.Tags(),
+						Timeout: resource.CheckTimeout(),
+						TypeImage: atc.TypeImage{
+							BaseType: resource.Type(),
+						},
+						FromVersion: version,
+						Resource:    resource.Name(),
+						Interval:    "1h0m0s",
+					},
+				}
+				Expect(createdCheckPlan).To(Equal(expectedPlan))
+			})
+		})
+
+		Context("when there is a resource using a custom type", func() {
+
+			var createdCheckPlan atc.Plan
+			var version atc.Version
+			var resource db.Resource
+
+			BeforeEach(func() {
+				pipeline, created, err := defaultTeam.SavePipeline(
+					atc.PipelineRef{Name: "pipeline-with-resource-custom-type"},
+					atc.Config{
+						Resources: atc.ResourceConfigs{{
+							Name:         "some-custom-resource",
+							Type:         "some-resource-type",
+							Tags:         []string{"tag"},
+							CheckTimeout: "1h",
+							Source: atc.Source{
+								"some": "source",
+							},
+						}},
+						ResourceTypes: atc.ResourceTypes{{
+							Name:   "some-resource-type",
+							Type:   "some-base-resource-type",
+							Source: atc.Source{"some": "type-source"},
+						}},
+					},
+					0,
+					false,
+				)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(created).To(BeTrue())
+
+				var found bool
+				resource, found, err = pipeline.Resource("some-custom-resource")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				planFactory := atc.NewPlanFactory(0)
+				version = atc.Version{"version": "from"}
+				createdCheckPlan = resource.CheckPlan(planFactory,
+					atc.VersionedResourceTypes{{
+						ResourceType: atc.ResourceType{
+							Name:   "some-resource-type",
+							Type:   "some-base-resource-type",
+							Source: atc.Source{"some": "type-source"},
+						},
+						Version: nil,
+					}}, version, 1*time.Hour, nil)
+			})
+
+			It("produces a check plan with nested image steps", func() {
+				checkPlanID := atc.PlanID("1/image-check")
+				expectedPlan := atc.Plan{
+					ID: atc.PlanID("1"),
+					Check: &atc.CheckPlan{
+						Name: resource.Name(),
+						Type: resource.Type(),
+						Source: atc.Source{
+							"some": "source",
+						},
+						Tags:    resource.Tags(),
+						Timeout: resource.CheckTimeout(),
+						TypeImage: atc.TypeImage{
+							BaseType: "some-base-resource-type",
+							CheckPlan: &atc.Plan{
+								ID: checkPlanID,
+								Check: &atc.CheckPlan{
+									Name:   "some-resource-type",
+									Type:   "some-base-resource-type",
+									Source: atc.Source{"some": "type-source"},
+									TypeImage: atc.TypeImage{
+										BaseType: "some-base-resource-type",
+									},
+									Tags: resource.Tags(),
+								},
+							},
+							GetPlan: &atc.Plan{
+								ID: atc.PlanID("1/image-get"),
+								Get: &atc.GetPlan{
+									Name:   "some-resource-type",
+									Type:   "some-base-resource-type",
+									Source: atc.Source{"some": "type-source"},
+									TypeImage: atc.TypeImage{
+										BaseType: "some-base-resource-type",
+									},
+									Tags:        resource.Tags(),
+									VersionFrom: &checkPlanID,
+								},
+							},
+						},
+						FromVersion: version,
+						Resource:    resource.Name(),
+						Interval:    "1h0m0s",
+					},
+				}
+				Expect(createdCheckPlan).To(Equal(expectedPlan))
+			})
+		})
+
+		Context("when there is a resource using a privileged custom type", func() {
+			var createdCheckPlan atc.Plan
+			var version atc.Version
+			var resource db.Resource
+
+			BeforeEach(func() {
+				pipeline, created, err := defaultTeam.SavePipeline(
+					atc.PipelineRef{Name: "pipeline-with-resource-custom-type"},
+					atc.Config{
+						Resources: atc.ResourceConfigs{{
+							Name: "some-custom-resource",
+							Type: "some-resource-type",
+							Source: atc.Source{
+								"some": "source",
+							},
+						}},
+						ResourceTypes: atc.ResourceTypes{{
+							Name:       "some-resource-type",
+							Type:       "some-base-resource-type",
+							Source:     atc.Source{"some": "type-source"},
+							Privileged: true,
+						}},
+					},
+					0,
+					false,
+				)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(created).To(BeTrue())
+
+				var found bool
+				resource, found, err = pipeline.Resource("some-custom-resource")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				planFactory := atc.NewPlanFactory(0)
+				version = atc.Version{"version": "from"}
+				createdCheckPlan = resource.CheckPlan(planFactory,
+					atc.VersionedResourceTypes{{
+						ResourceType: atc.ResourceType{
+							Name:       "some-resource-type",
+							Type:       "some-base-resource-type",
+							Source:     atc.Source{"some": "type-source"},
+							Privileged: true,
+						},
+						Version: atc.Version{"some": "version"},
+					}}, version, 1*time.Hour, nil)
+			})
+
+			It("produces a check plan with privileged", func() {
+				expectedPlan := atc.Plan{
+					ID: atc.PlanID("1"),
+					Check: &atc.CheckPlan{
+						Name: resource.Name(),
+						Type: resource.Type(),
+						Source: atc.Source{
+							"some": "source",
+						},
+						TypeImage: atc.TypeImage{
+							BaseType:   "some-base-resource-type",
+							Privileged: true,
+							GetPlan: &atc.Plan{
+								ID: atc.PlanID("1/image-get"),
+								Get: &atc.GetPlan{
+									Name:   "some-resource-type",
+									Type:   "some-base-resource-type",
+									Source: atc.Source{"some": "type-source"},
+									TypeImage: atc.TypeImage{
+										BaseType: "some-base-resource-type",
+									},
+									Version: &atc.Version{"some": "version"},
+								},
+							},
+						},
+						FromVersion: version,
+						Resource:    resource.Name(),
+						Interval:    "1h0m0s",
+					},
+				}
+				Expect(createdCheckPlan).To(Equal(expectedPlan))
+			})
+		})
+	})
 })

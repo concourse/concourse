@@ -378,6 +378,18 @@ func (id PlanID) String() string {
 	return string(id)
 }
 
+type TypeImage struct {
+	// Image of the container. One of these must be specified.
+	CheckPlan *Plan `json:"check_plan,omitempty"`
+	GetPlan   *Plan `json:"get_plan,omitempty"`
+
+	// The bottom-most resource type that this get step relies on.
+	BaseType string `json:"base_type,omitempty"`
+
+	// Privileged indicates whether the parent resource type is privileged.
+	Privileged bool `json:"privileged,omitempty"`
+}
+
 type ArtifactInputPlan struct {
 	ArtifactID int    `json:"artifact_id"`
 	Name       string `json:"name"`
@@ -454,12 +466,8 @@ type GetPlan struct {
 	Type   string `json:"type"`
 	Source Source `json:"source"`
 
-	// Image of the container. One of these must be specified.
-	ImageCheckPlan *Plan `json:"image_check_plan,omitempty"`
-	ImageGetPlan   *Plan `json:"image_get_plan,omitempty"`
-
-	// The bottom-most resource type that this get step relies on.
-	BaseType string `json:"base_type,omitempty"`
+	// Information needed for fetching the image
+	TypeImage TypeImage `json:"image"`
 
 	// The version of the resource to fetch. One of these must be specified.
 	Version     *Version `json:"version,omitempty"`
@@ -477,9 +485,6 @@ type GetPlan struct {
 	// A timeout to enforce on the resource `get` process. Note that fetching the
 	// resource's image does not count towards the timeout.
 	Timeout string `json:"timeout,omitempty"`
-
-	// Privileged indicates whether the parent resource type is privileged.
-	Privileged bool `json:"privileged,omitempty"`
 }
 
 type PutPlan struct {
@@ -490,12 +495,8 @@ type PutPlan struct {
 	Type   string `json:"type"`
 	Source Source `json:"source"`
 
-	// The bottom-most resource type that this get step relies on.
-	BaseType string `json:"base_type,omitempty"`
-
-	// Image of the container. One of these must be specified.
-	ImageCheckPlan *Plan `json:"image_check_plan,omitempty"`
-	ImageGetPlan   *Plan `json:"image_get_plan,omitempty"`
+	// Information needed for fetching the image
+	TypeImage TypeImage `json:"image"`
 
 	// Params to pass to the put operation.
 	Params Params `json:"params,omitempty"`
@@ -515,9 +516,6 @@ type PutPlan struct {
 
 	// If or not expose BUILD_CREATED_BY to build metadata
 	ExposeBuildCreatedBy bool `json:"expose_build_created_by,omitempty"`
-
-	// Privileged indicates whether the parent resource type is privileged.
-	Privileged bool `json:"privileged,omitempty"`
 }
 
 type CheckPlan struct {
@@ -528,12 +526,8 @@ type CheckPlan struct {
 	Type   string `json:"type"`
 	Source Source `json:"source"`
 
-	// The bottom-most resource type that this get step relies on.
-	BaseType string `json:"base_type,omitempty"`
-
-	// Image of the container. One of these must be specified.
-	ImageCheckPlan *Plan `json:"image_check_plan,omitempty"`
-	ImageGetPlan   *Plan `json:"image_get_plan,omitempty"`
+	// Information needed for fetching the image
+	TypeImage TypeImage `json:"image"`
 
 	// The version to check from. If not specified, defaults to the latest
 	// version of the config.
@@ -554,9 +548,6 @@ type CheckPlan struct {
 
 	// Worker tags to influence placement of the container.
 	Tags Tags `json:"tags,omitempty"`
-
-	// Privileged indicates whether the parent resource type is privileged.
-	Privileged bool `json:"privileged,omitempty"`
 }
 
 type TaskPlan struct {

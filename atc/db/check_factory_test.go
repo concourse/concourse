@@ -27,9 +27,8 @@ var _ = Describe("CheckFactory", func() {
 			fromVersion       atc.Version
 			manuallyTriggered bool
 
-			checkPlan        atc.Plan
-			fakeBuild        *dbfakes.FakeBuild
-			fakeCheckPlanner *dbfakes.FakeCheckPlanner
+			checkPlan atc.Plan
+			fakeBuild *dbfakes.FakeBuild
 		)
 
 		BeforeEach(func() {
@@ -49,12 +48,10 @@ var _ = Describe("CheckFactory", func() {
 			fakeResource.PipelineNameReturns(defaultPipeline.Name())
 			fakeResource.PipelineInstanceVarsReturns(defaultPipeline.InstanceVars())
 			fakeResource.PipelineReturns(defaultPipeline, true, nil)
+			fakeResource.CheckPlanReturns(checkPlan)
 
 			fakeBuild = new(dbfakes.FakeBuild)
 			fakeResource.CreateBuildReturns(fakeBuild, true, nil)
-
-			fakeCheckPlanner = new(dbfakes.FakeCheckPlanner)
-			fakeCheckPlanner.CreateReturns(checkPlan)
 
 			fakeResourceType = new(dbfakes.FakeResourceType)
 			fakeResourceType.NameReturns("some-type")
@@ -72,7 +69,7 @@ var _ = Describe("CheckFactory", func() {
 		})
 
 		JustBeforeEach(func() {
-			build, created, err = checkFactory.TryCreateCheck(context.TODO(), fakeCheckPlanner, fakeResource, fakeResourceTypes, fromVersion, manuallyTriggered)
+			build, created, err = checkFactory.TryCreateCheck(context.TODO(), fakeResource, fakeResourceTypes, fromVersion, manuallyTriggered)
 		})
 
 		Context("when the resource parent type is not a custom type", func() {
@@ -99,7 +96,7 @@ var _ = Describe("CheckFactory", func() {
 				})
 
 				It("does not create a build for the resource", func() {
-					Expect(fakeCheckPlanner.CreateCallCount()).To(Equal(0))
+					Expect(fakeResource.CheckPlanCallCount()).To(Equal(0))
 					Expect(fakeResource.CreateBuildCallCount()).To(Equal(0))
 				})
 
@@ -109,7 +106,7 @@ var _ = Describe("CheckFactory", func() {
 					})
 
 					It("creates the build anyway", func() {
-						Expect(fakeCheckPlanner.CreateCallCount()).To(Equal(1))
+						Expect(fakeResource.CheckPlanCallCount()).To(Equal(1))
 						Expect(fakeResource.CreateBuildCallCount()).To(Equal(1))
 					})
 				})
@@ -134,9 +131,8 @@ var _ = Describe("CheckFactory", func() {
 			})
 
 			It("creates a check plan with the default webhook interval", func() {
-				Expect(fakeCheckPlanner.CreateCallCount()).To(Equal(1))
-				checkable, types, version, defaults, interval := fakeCheckPlanner.CreateArgsForCall(0)
-				Expect(checkable.Name()).To(Equal(fakeResource.Name()))
+				Expect(fakeResource.CheckPlanCallCount()).To(Equal(1))
+				_, types, version, interval, defaults := fakeResource.CheckPlanArgsForCall(0)
 				Expect(version).To(Equal(atc.Version{"from": "version"}))
 				Expect(interval).To(Equal(defaultWebhookCheckInterval))
 				Expect(types).To(BeNil())
@@ -149,7 +145,7 @@ var _ = Describe("CheckFactory", func() {
 				})
 
 				It("does not create a build for the resource", func() {
-					Expect(fakeCheckPlanner.CreateCallCount()).To(Equal(0))
+					Expect(fakeResource.CheckPlanCallCount()).To(Equal(0))
 					Expect(fakeResource.CreateBuildCallCount()).To(Equal(0))
 				})
 			})
@@ -161,9 +157,8 @@ var _ = Describe("CheckFactory", func() {
 			})
 
 			It("sets it in the check plan", func() {
-				Expect(fakeCheckPlanner.CreateCallCount()).To(Equal(1))
-				checkable, types, version, defaults, interval := fakeCheckPlanner.CreateArgsForCall(0)
-				Expect(checkable.Name()).To(Equal(fakeResource.Name()))
+				Expect(fakeResource.CheckPlanCallCount()).To(Equal(1))
+				_, types, version, interval, defaults := fakeResource.CheckPlanArgsForCall(0)
 				Expect(version).To(Equal(atc.Version{"from": "version"}))
 				Expect(interval).To(Equal(42 * time.Second))
 				Expect(types).To(BeNil())
@@ -211,9 +206,8 @@ var _ = Describe("CheckFactory", func() {
 					})
 
 					It("creates a check plan", func() {
-						Expect(fakeCheckPlanner.CreateCallCount()).To(Equal(1))
-						checkable, types, version, defaults, interval := fakeCheckPlanner.CreateArgsForCall(0)
-						Expect(checkable.Name()).To(Equal(fakeResource.Name()))
+						Expect(fakeResource.CheckPlanCallCount()).To(Equal(1))
+						_, types, version, interval, defaults := fakeResource.CheckPlanArgsForCall(0)
 						Expect(version).To(Equal(atc.Version{"from": "version"}))
 						Expect(interval).To(Equal(defaultCheckInterval))
 						Expect(types).To(Equal(atc.VersionedResourceTypes{
