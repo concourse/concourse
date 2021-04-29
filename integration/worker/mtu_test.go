@@ -5,6 +5,7 @@ import (
 
 	"github.com/concourse/concourse/integration/internal/dctest"
 	"github.com/concourse/concourse/integration/internal/flytest"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMTU_Infer(t *testing.T) {
@@ -17,7 +18,8 @@ func TestMTU_Infer(t *testing.T) {
 	})
 
 	fly := flytest.Init(t, dc)
-	fly.WithEnv("EXPECTED_MTU=1480").Run(t, "execute", "-c", "tasks/assert_mtu.yml")
+	output := fly.WithEnv("FILE=/sys/class/net/eth0/mtu").Output(t, "execute", "-c", "tasks/cat_file.yml")
+	require.Contains(t, output, "1480")
 }
 
 func TestMTU_Manual(t *testing.T) {
@@ -30,5 +32,6 @@ func TestMTU_Manual(t *testing.T) {
 	})
 
 	fly := flytest.Init(t, dc)
-	fly.WithEnv("EXPECTED_MTU=1234").Run(t, "execute", "-c", "tasks/assert_mtu.yml")
+	output := fly.WithEnv("FILE=/sys/class/net/eth0/mtu").Output(t, "execute", "-c", "tasks/cat_file.yml")
+	require.Contains(t, output, "1234")
 }
