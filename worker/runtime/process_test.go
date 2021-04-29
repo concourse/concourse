@@ -2,12 +2,14 @@ package runtime_test
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"code.cloudfoundry.org/garden"
 	"github.com/concourse/concourse/worker/runtime"
 	"github.com/concourse/concourse/worker/runtime/libcontainerd/libcontainerdfakes"
 	"github.com/containerd/containerd"
+	"github.com/containerd/containerd/errdefs"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -55,6 +57,16 @@ func (s *ProcessSuite) TestProcessWaitDeleteError() {
 
 	_, err := s.process.Wait()
 	s.True(errors.Is(err, expectedErr))
+}
+
+func (s *ProcessSuite) TestProcessWaitProcessAlreadyDeleted() {
+	s.ch <- *containerd.NewExitStatus(0, time.Now(), nil)
+	s.containerdProcess.IOReturns(s.io)
+
+	s.containerdProcess.DeleteReturns(nil, fmt.Errorf("wrapped: %w", errdefs.ErrNotFound))
+
+	_, err := s.process.Wait()
+	s.NoError(err)
 }
 
 func (s *ProcessSuite) TestProcessWaitBlocksUntilIOFinishes() {
