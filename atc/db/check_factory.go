@@ -179,6 +179,9 @@ func (c *checkFactory) ResourceTypes() ([]ResourceType, error) {
 	var resourceTypes []ResourceType
 
 	rows, err := resourceTypesQuery.
+		Where(sq.And{
+			sq.Eq{"p.paused": false},
+		}).
 		RunWith(c.conn).
 		Query()
 
