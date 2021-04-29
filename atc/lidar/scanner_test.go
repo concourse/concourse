@@ -168,6 +168,23 @@ var _ = Describe("Scanner", func() {
 						Expect(manuallyTriggered).To(BeFalse())
 					})
 				})
+
+				Context("when a put-only resource has a parent-type", func() {
+					BeforeEach(func() {
+						By("checkFactory.Resources should not return any put-only resources")
+						fakeResourceType.NameReturns("put-only-custom-type")
+						fakeResourceType.PipelineIDReturns(1)
+					})
+
+					It("creates a check for only the parent and not the put-only resource", func() {
+						Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(2),
+							"two checks created; one for the fakeResourceType and the second for the unrelated fakeResource")
+
+						_, checkable, _, _, manuallyTriggered := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+						Expect(checkable).To(Equal(fakeResourceType))
+						Expect(manuallyTriggered).To(BeFalse())
+					})
+				})
 			})
 		})
 
