@@ -165,11 +165,9 @@ func (t *team) FindWorkerForVolume(handle string) (Worker, bool, error) {
 func (t *team) FindWorkersForResourceCache(rcId int) ([]Worker, error) {
 	return getWorkers(
 		t.conn, workersQuery.
-			Join("volumes v ON v.worker_name = w.name").
-			Join("worker_resource_caches wrc ON v.worker_resource_cache_id = wrc.id").
-			Join("resource_caches rc ON rc.id = wrc.resource_cache_id").
+			Join("worker_resource_caches wrc ON w.name = wrc.worker_name").
 			Where(sq.And{
-				sq.Eq{"rc.id": rcId},
+				sq.Eq{"wrc.resource_cache_id": rcId},
 				sq.Eq{"w.state": WorkerStateRunning},
 			}))
 }

@@ -3,6 +3,8 @@ package db
 import (
 	"errors"
 	sq "github.com/Masterminds/squirrel"
+	"math/rand"
+	"time"
 )
 
 type WorkerResourceCache struct {
@@ -85,25 +87,22 @@ func (workerResourceCache WorkerResourceCache) FindOrCreate(tx Tx) (*UsedWorkerR
 // worker resource caches, just return the first valid one.
 // Note: Find doesn't consider workerResourceCache.SourceWorker as a search condition.
 func (workerResourceCache WorkerResourceCache) Find(runner sq.Runner) (*UsedWorkerResourceCache, bool, error) {
-	ids, workerBasedResourceTypeIds, found, err := workerResourceCache.find(runner, workerResourceCache.WorkerName)
+	ids, _, found, err := workerResourceCache.find(runner, workerResourceCache.WorkerName)
 	if err != nil {
 		return nil, false, err
 	}
 
-	if found {
-		// Verify worker base resource type
-		for i, workerBasedResourceTypeId := range workerBasedResourceTypeIds {
-			_, foundBrt, err := WorkerBaseResourceType{}.FindById(runner, workerBasedResourceTypeId)
-			if err != nil {
-				return nil, false, err
-			}
-			if foundBrt {
-				return &UsedWorkerResourceCache{ID: ids[i]}, true, nil
-			}
-		}
+	if !found {
+		return nil, false, nil
 	}
 
-	return nil, false, nil
+	// If there are multiple workers found, choose a random one.
+	index := 0
+	if len(ids) > 1 {
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		index = r.Intn(len(ids))
+	}
+	return &UsedWorkerResourceCache{ID: ids[index]}, true, nil
 }
 
 func (workerResourceCache WorkerResourceCache) find(runner sq.Runner, workerName string) ([]int, []int, bool, error) {

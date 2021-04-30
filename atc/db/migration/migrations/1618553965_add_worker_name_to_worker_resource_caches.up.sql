@@ -4,7 +4,7 @@ ALTER TABLE worker_resource_caches
 DROP INDEX worker_resource_caches_uniq;
 
 CREATE UNIQUE INDEX worker_resource_caches_uniq
-    ON worker_resource_caches (resource_cache_id, worker_base_resource_type_id, worker_name);
+    ON worker_resource_caches (worker_name, resource_cache_id, worker_base_resource_type_id);
 
 -- populate worker-name for existing caches with current worker name
 UPDATE worker_resource_caches wrc

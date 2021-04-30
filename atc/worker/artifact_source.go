@@ -178,7 +178,7 @@ func (source *artifactSource) StreamTo(
 			return err
 		}
 		if !found {
-			logger.Info("stream-to-not-find-resource-cache--should-not-happen",
+			logger.Info("stream-to-not-find-resource-cache-should-not-happen",
 				lager.Data{"rcId": source.volume.GetResourceCacheID(), "volumeHandle": source.volume.Handle()})
 			return ErrStreamingResourceCacheNotFound{
 				Handle:          source.volume.Handle(),
