@@ -84,7 +84,7 @@ func (c Container) Attach(_ context.Context, id string, io runtime.ProcessIO) (r
 	// showing up.
 	process, err := c.GardenContainer.Attach(context.Background(), id, toGardenProcessIO(io))
 	if err != nil {
-		return nil, fmt.Errorf("start process: %w", err)
+		return nil, fmt.Errorf("attach to process: %w", err)
 	}
 
 	return Process{GardenContainer: c.GardenContainer, GardenProcess: process}, nil
