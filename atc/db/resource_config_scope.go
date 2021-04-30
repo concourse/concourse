@@ -11,6 +11,12 @@ import (
 	"github.com/concourse/concourse/atc/db/lock"
 )
 
+type LastCheck struct {
+	StartTime time.Time
+	EndTime   time.Time
+	Succeeded bool
+}
+
 //counterfeiter:generate . ResourceConfigScope
 
 // ResourceConfigScope represents the relationship between a possible pipeline resource and a resource config.
@@ -33,10 +39,8 @@ type ResourceConfigScope interface {
 		logger lager.Logger,
 	) (lock.Lock, bool, error)
 
-	LastCheckStartTime() (time.Time, bool, error)
+	LastCheck() (LastCheck, error)
 	UpdateLastCheckStartTime() (bool, error)
-
-	LastCheckEndTime() (time.Time, bool, error)
 	UpdateLastCheckEndTime(bool) (bool, error)
 }
 
@@ -53,36 +57,24 @@ func (r *resourceConfigScope) ID() int                        { return r.id }
 func (r *resourceConfigScope) Resource() Resource             { return r.resource }
 func (r *resourceConfigScope) ResourceConfig() ResourceConfig { return r.resourceConfig }
 
-func (r *resourceConfigScope) LastCheckStartTime() (time.Time, bool, error) {
-	var lastCheckStartTime time.Time
+func (r *resourceConfigScope) LastCheck() (LastCheck, error) {
+	var lastCheckStartTime, lastCheckEndTime time.Time
 	var lastCheckSucceeded bool
-	err := psql.Select("last_check_start_time", "last_check_succeeded").
+	err := psql.Select("last_check_start_time", "last_check_end_time", "last_check_succeeded").
 		From("resource_config_scopes").
 		Where(sq.Eq{"id": r.id}).
 		RunWith(r.conn).
 		QueryRow().
-		Scan(&lastCheckStartTime, &lastCheckSucceeded)
+		Scan(&lastCheckStartTime, &lastCheckEndTime, &lastCheckSucceeded)
 	if err != nil {
-		return time.Time{}, false, err
+		return LastCheck{}, err
 	}
 
-	return lastCheckStartTime, lastCheckSucceeded, nil
-}
-
-func (r *resourceConfigScope) LastCheckEndTime() (time.Time, bool, error) {
-	var lastCheckEndTime time.Time
-	var lastCheckSucceeded bool
-	err := psql.Select("last_check_end_time", "last_check_succeeded").
-		From("resource_config_scopes").
-		Where(sq.Eq{"id": r.id}).
-		RunWith(r.conn).
-		QueryRow().
-		Scan(&lastCheckEndTime, &lastCheckSucceeded)
-	if err != nil {
-		return time.Time{}, false, err
-	}
-
-	return lastCheckEndTime, lastCheckSucceeded, nil
+	return LastCheck{
+		StartTime: lastCheckStartTime,
+		EndTime:   lastCheckEndTime,
+		Succeeded: lastCheckSucceeded,
+	}, nil
 }
 
 // SaveVersions stores a list of version in the db for a resource config

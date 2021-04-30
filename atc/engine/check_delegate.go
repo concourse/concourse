@@ -73,7 +73,7 @@ func (d *checkDelegate) FindOrCreateScope(config db.ResourceConfig) (db.Resource
 }
 
 // WaitToRun decides if a check should really run or just reuse a previous result, and acquires
-// a check log accordingly. There are three types of checks, each reflects to a different behavior:
+// a check lock accordingly. There are three types of checks, each reflects to a different behavior:
 // 1) A Lidar triggered checks should always run once reach to next check time;
 // 2) A manually triggered checks may reuse a previous result if the last check succeeded and began
 // later than the current check build's create time.
@@ -118,54 +118,30 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 		}
 	}
 
+	lastCheck, err := scope.LastCheck()
+	if err != nil {
+		if releaseErr := lock.Release(); releaseErr != nil {
+			logger.Error("failed-to-release-lock", releaseErr)
+		}
+		return nil, false, err
+	}
+
 	shouldRun := false
 	if !d.plan.IsPeriodic() {
-		lastCheckEndTime, lastCheckSucceeded, err := scope.LastCheckEndTime()
-		if err != nil {
-			if releaseErr := lock.Release(); releaseErr != nil {
-				logger.Error("failed-to-release-lock", releaseErr)
-			}
-			return nil, false, fmt.Errorf("get last check end time: %w", err)
-		}
-
-		if !lastCheckSucceeded || lastCheckEndTime.Before(d.build.StartTime()) {
+		if !lastCheck.Succeeded || lastCheck.EndTime.Before(d.build.StartTime()) {
 			shouldRun = true
-		} else {
-			_, found, err := scope.LatestVersion()
-			if err != nil {
-				return nil, false, err
-			}
-			if !found {
-				shouldRun = true
-			}
 		}
 	} else if d.build.IsManuallyTriggered() {
 		// If a manually triggered check takes a from version, then it should be run.
 		if d.plan.FromVersion != nil {
 			shouldRun = true
 		} else {
-			lastCheckStartTime, lastCheckSucceeded, err := scope.LastCheckStartTime()
-			if err != nil {
-				if releaseErr := lock.Release(); releaseErr != nil {
-					logger.Error("failed-to-release-lock", releaseErr)
-				}
-				return nil, false, err
-			}
-
 			// ignore interval for manually triggered builds.
 			// avoid running redundant checks
-			shouldRun = !lastCheckSucceeded || d.build.CreateTime().After(lastCheckStartTime)
+			shouldRun = !lastCheck.Succeeded || d.build.CreateTime().After(lastCheck.StartTime)
 		}
 	} else {
-		lastCheckEndTime, _, err := scope.LastCheckEndTime()
-		if err != nil {
-			if releaseErr := lock.Release(); releaseErr != nil {
-				logger.Error("failed-to-release-lock", releaseErr)
-			}
-			return nil, false, fmt.Errorf("get last check end time: %w", err)
-		}
-
-		shouldRun = !d.clock.Now().Before(lastCheckEndTime.Add(interval))
+		shouldRun = !d.clock.Now().Before(lastCheck.EndTime.Add(interval))
 	}
 
 	// XXX(check-refactor): we could add an else{} case and potentially sleep

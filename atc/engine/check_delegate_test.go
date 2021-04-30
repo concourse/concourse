@@ -219,7 +219,7 @@ var _ = Describe("CheckDelegate", func() {
 
 				Context("when fail to get scope last start time", func() {
 					BeforeEach(func() {
-						fakeResourceConfigScope.LastCheckStartTimeReturns(time.Now(), false, errors.New("some-error"))
+						fakeResourceConfigScope.LastCheckReturns(db.LastCheck{}, errors.New("some-error"))
 					})
 
 					It("return the error", func() {
@@ -241,7 +241,10 @@ var _ = Describe("CheckDelegate", func() {
 				Context("when the build create time earlier than last check start time", func() {
 					BeforeEach(func() {
 						fakeBuild.CreateTimeReturns(time.Now().Add(-5 * time.Second))
-						fakeResourceConfigScope.LastCheckStartTimeReturns(time.Now(), true, nil)
+						fakeResourceConfigScope.LastCheckReturns(db.LastCheck{
+							StartTime: time.Now(),
+							Succeeded: true,
+						}, nil)
 					})
 
 					It("returns false", func() {
@@ -252,7 +255,10 @@ var _ = Describe("CheckDelegate", func() {
 				Context("when the build create time after last check start time", func() {
 					BeforeEach(func() {
 						fakeBuild.CreateTimeReturns(time.Now().Add(5 * time.Second))
-						fakeResourceConfigScope.LastCheckStartTimeReturns(time.Now(), true, nil)
+						fakeResourceConfigScope.LastCheckReturns(db.LastCheck{
+							StartTime: time.Now(),
+							Succeeded: true,
+						}, nil)
 					})
 
 					It("returns true", func() {
@@ -263,7 +269,7 @@ var _ = Describe("CheckDelegate", func() {
 
 			Context("when getting the last check end time errors", func() {
 				BeforeEach(func() {
-					fakeResourceConfigScope.LastCheckEndTimeReturns(time.Time{}, false, errors.New("oh no"))
+					fakeResourceConfigScope.LastCheckReturns(db.LastCheck{}, errors.New("oh no"))
 				})
 
 				It("returns an error", func() {
@@ -284,7 +290,11 @@ var _ = Describe("CheckDelegate", func() {
 
 				Context("when the interval has not elapsed since the last check", func() {
 					BeforeEach(func() {
-						fakeResourceConfigScope.LastCheckEndTimeReturns(now.Add(-(interval - 1)), true, nil)
+						fakeResourceConfigScope.LastCheckReturns(db.LastCheck{
+							StartTime: now.Add(-(interval + 10)),
+							EndTime:   now.Add(-(interval - 1)),
+							Succeeded: true,
+						}, nil)
 					})
 
 					It("returns false", func() {
@@ -298,7 +308,11 @@ var _ = Describe("CheckDelegate", func() {
 
 				Context("when the interval has elapsed since the last check", func() {
 					BeforeEach(func() {
-						fakeResourceConfigScope.LastCheckEndTimeReturns(now.Add(-interval), true, nil)
+						fakeResourceConfigScope.LastCheckReturns(db.LastCheck{
+							StartTime: now.Add(-(interval + 10)),
+							EndTime:   now.Add(-(interval + 1)),
+							Succeeded: true,
+						}, nil)
 					})
 
 					It("returns true", func() {
@@ -327,7 +341,11 @@ var _ = Describe("CheckDelegate", func() {
 
 			Context("when last check failed", func() {
 				BeforeEach(func() {
-					fakeResourceConfigScope.LastCheckEndTimeReturns(now.Add(-time.Second), false, nil)
+					fakeResourceConfigScope.LastCheckReturns(db.LastCheck{
+						StartTime: now.Add(-10),
+						EndTime:   now.Add(-1),
+						Succeeded: false,
+					}, nil)
 				})
 
 				It("returns true", func() {
@@ -337,7 +355,11 @@ var _ = Describe("CheckDelegate", func() {
 
 			Context("when last check ended before build start time", func() {
 				BeforeEach(func() {
-					fakeResourceConfigScope.LastCheckEndTimeReturns(now.Add(-time.Second), true, nil)
+					fakeResourceConfigScope.LastCheckReturns(db.LastCheck{
+						StartTime: now.Add(-10 * time.Second),
+						EndTime:   now.Add(-time.Second),
+						Succeeded: true,
+					}, nil)
 					fakeBuild.StartTimeReturns(now.Add(time.Second))
 				})
 
@@ -348,28 +370,16 @@ var _ = Describe("CheckDelegate", func() {
 
 			Context("when last check succeeds after build starts", func() {
 				BeforeEach(func() {
-					fakeResourceConfigScope.LastCheckEndTimeReturns(now.Add(time.Second), true, nil)
-					fakeBuild.StartTimeReturns(now.Add(-time.Second))
+					fakeResourceConfigScope.LastCheckReturns(db.LastCheck{
+						StartTime: now.Add(-10 * time.Second),
+						EndTime:   now.Add(-time.Second),
+						Succeeded: true,
+					}, nil)
+					fakeBuild.StartTimeReturns(now.Add(-5 * time.Second))
 				})
 
-				Context("when there is no version", func() {
-					BeforeEach(func() {
-						fakeResourceConfigScope.LatestVersionReturns(nil, false, nil)
-					})
-
-					It("returns true", func() {
-						Expect(run).To(BeTrue())
-					})
-				})
-
-				Context("when there is a version", func() {
-					BeforeEach(func() {
-						fakeResourceConfigScope.LatestVersionReturns(new(dbfakes.FakeResourceConfigVersion), true, nil)
-					})
-
-					It("returns false", func() {
-						Expect(run).To(BeFalse())
-					})
+				It("returns false", func() {
+					Expect(run).To(BeFalse())
 				})
 			})
 		})
