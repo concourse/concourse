@@ -658,7 +658,7 @@ func (worker *gardenWorker) cloneRemoteVolumes(
 			},
 			container,
 			teamID,
-			"",
+			filepath.Join("/streamed", nonLocalInput.desiredMountPath),
 		)
 		if err != nil {
 			return []VolumeMount{}, err
