@@ -1,5 +1,7 @@
 module github.com/concourse/concourse
 
+go 1.16
+
 require (
 	code.cloudfoundry.org/clock v0.0.0-20180518195852-02e53af36e6c
 	code.cloudfoundry.org/credhub-cli v0.0.0-20190415201820-e3951663d25c
@@ -103,7 +105,3 @@ require (
 	k8s.io/client-go v0.21.1
 	sigs.k8s.io/yaml v1.2.0
 )
-
-go 1.16
-
-replace github.com/docker/distribution v2.7.1+incompatible => github.com/docker/distribution v2.7.1-0.20190205005809-0d3efadf0154+incompatible

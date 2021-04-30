@@ -8,7 +8,8 @@ FROM ${base_image} AS base
 WORKDIR /src
 COPY go.mod .
 COPY go.sum .
-RUN grep '^replace' go.mod || go mod download
+# don't do go mod download if there's a replace directive pointing to local filepath (./, ../)
+RUN grep ' => (\.\/|\.\.\/)' go.mod || go mod download
 
 # build the init executable for containerd
 COPY ./cmd/init/init.c /tmp/init.c
