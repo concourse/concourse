@@ -235,9 +235,8 @@ var _ = Describe("Volume", func() {
 		Context("when initialize created resource cache", func() {
 			It("should find the worker resource cache", func() {
 				_, found, err := db.WorkerResourceCache{
-					WorkerName:       defaultWorker.Name(),
-					ResourceCache:    resourceCache,
-					SourceWorkerName: defaultWorker.Name(),
+					WorkerName:    defaultWorker.Name(),
+					ResourceCache: resourceCache,
 				}.Find(dbConn)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
@@ -294,9 +293,8 @@ var _ = Describe("Volume", func() {
 
 			It("should find the worker resource cache", func() {
 				_, found, err := db.WorkerResourceCache{
-					WorkerName:       otherWorker.Name(),
-					ResourceCache:    resourceCache,
-					SourceWorkerName: defaultWorker.Name(),
+					WorkerName:    otherWorker.Name(),
+					ResourceCache: resourceCache,
 				}.Find(dbConn)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
@@ -364,9 +362,8 @@ var _ = Describe("Volume", func() {
 
 				It("should find the worker resource cache", func() {
 					_, found, err := db.WorkerResourceCache{
-						WorkerName:       otherWorker.Name(),
-						ResourceCache:    resourceCache,
-						SourceWorkerName: thirdWorker.Name(),
+						WorkerName:    otherWorker.Name(),
+						ResourceCache: resourceCache,
 					}.Find(dbConn)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeTrue())

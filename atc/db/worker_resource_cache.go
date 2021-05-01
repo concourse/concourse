@@ -8,9 +8,8 @@ import (
 )
 
 type WorkerResourceCache struct {
-	WorkerName       string
-	ResourceCache    UsedResourceCache
-	SourceWorkerName string // If source worker doesn't equal to worker, then this is a streamed resource cache.
+	WorkerName    string
+	ResourceCache UsedResourceCache
 }
 
 type UsedWorkerResourceCache struct {
@@ -19,15 +18,15 @@ type UsedWorkerResourceCache struct {
 
 var ErrWorkerBaseResourceTypeDisappeared = errors.New("worker base resource type disappeared")
 
-func (workerResourceCache WorkerResourceCache) FindOrCreate(tx Tx) (*UsedWorkerResourceCache, error) {
-	if workerResourceCache.SourceWorkerName == "" {
-		workerResourceCache.SourceWorkerName = workerResourceCache.WorkerName
+func (workerResourceCache WorkerResourceCache) FindOrCreate(tx Tx, sourceWorker string) (*UsedWorkerResourceCache, error) {
+	if sourceWorker == "" {
+		sourceWorker = workerResourceCache.WorkerName
 	}
 
 	baseResourceType := workerResourceCache.ResourceCache.BaseResourceType()
 	usedWorkerBaseResourceType, found, err := WorkerBaseResourceType{
 		Name:       baseResourceType.Name,
-		WorkerName: workerResourceCache.SourceWorkerName,
+		WorkerName: sourceWorker,
 	}.Find(tx)
 	if err != nil {
 		return nil, err
@@ -37,7 +36,7 @@ func (workerResourceCache WorkerResourceCache) FindOrCreate(tx Tx) (*UsedWorkerR
 		return nil, ErrWorkerBaseResourceTypeDisappeared
 	}
 
-	ids, workerBaseResourceTypeIds, found, err := workerResourceCache.find(tx, workerResourceCache.WorkerName)
+	ids, workerBaseResourceTypeIds, found, err := workerResourceCache.find(tx)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +86,7 @@ func (workerResourceCache WorkerResourceCache) FindOrCreate(tx Tx) (*UsedWorkerR
 // worker resource caches, just return the first valid one.
 // Note: Find doesn't consider workerResourceCache.SourceWorker as a search condition.
 func (workerResourceCache WorkerResourceCache) Find(runner sq.Runner) (*UsedWorkerResourceCache, bool, error) {
-	ids, _, found, err := workerResourceCache.find(runner, workerResourceCache.WorkerName)
+	ids, _, found, err := workerResourceCache.find(runner)
 	if err != nil {
 		return nil, false, err
 	}
@@ -105,14 +104,14 @@ func (workerResourceCache WorkerResourceCache) Find(runner sq.Runner) (*UsedWork
 	return &UsedWorkerResourceCache{ID: ids[index]}, true, nil
 }
 
-func (workerResourceCache WorkerResourceCache) find(runner sq.Runner, workerName string) ([]int, []int, bool, error) {
+func (workerResourceCache WorkerResourceCache) find(runner sq.Runner) ([]int, []int, bool, error) {
 	var ids, workerBasedResourceTypeIds []int
 
 	rows, err := psql.Select("id, worker_base_resource_type_id").
 		From("worker_resource_caches").
 		Where(sq.Eq{
 			"resource_cache_id": workerResourceCache.ResourceCache.ID(),
-			"worker_name":       workerName,
+			"worker_name":       workerResourceCache.WorkerName,
 		}).
 		Suffix("FOR SHARE").
 		RunWith(runner).

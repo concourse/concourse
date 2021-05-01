@@ -369,8 +369,7 @@ func (volume *createdVolume) InitializeResourceCache(resourceCache UsedResourceC
 	workerResourceCache, err := WorkerResourceCache{
 		WorkerName:    volume.WorkerName(),
 		ResourceCache: resourceCache,
-		SourceWorkerName: sourceWorkerName,
-	}.FindOrCreate(tx)
+	}.FindOrCreate(tx, sourceWorkerName)
 	if err != nil {
 		return err
 	}

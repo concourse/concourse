@@ -350,7 +350,12 @@ func (step *GetStep) findResourceCache(
 	for _, sourceWorker := range workers {
 		volume, found, err := sourceWorker.FindVolumeForResourceCache(logger, resourceCache)
 		if err != nil {
-			logger.Debug("ignore-error", lager.Data{"error": err})
+			logger.Debug("ignore-find-volume-for-resource-cache-error",
+				lager.Data{
+					"error":           err,
+					"sourceWorker":    sourceWorker,
+					"resourceCacheId": resourceCache.ID(),
+				})
 			continue
 		}
 		if !found {
