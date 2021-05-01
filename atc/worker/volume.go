@@ -133,11 +133,11 @@ func (v *volume) COWStrategy() baggageclaim.COWStrategy {
 }
 
 func (v *volume) InitializeResourceCache(urc db.UsedResourceCache) error {
-	return v.dbVolume.InitializeResourceCache(urc, "")
+	return v.dbVolume.InitializeResourceCache(urc)
 }
 
 func (v *volume) InitializeStreamedResourceCache(urc db.UsedResourceCache, sourceWorkerName string) error {
-	return v.dbVolume.InitializeResourceCache(urc, sourceWorkerName)
+	return v.dbVolume.InitializeStreamedResourceCache(urc, sourceWorkerName)
 }
 
 func (v *volume) GetResourceCacheID() int {
