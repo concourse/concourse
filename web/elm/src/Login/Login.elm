@@ -95,7 +95,7 @@ viewLoginState userState isUserMenuExpanded =
 
 userDisplayName : Concourse.User -> String
 userDisplayName user =
-    Maybe.withDefault user.id <|
+    Maybe.withDefault user.displayUserId <|
         List.head <|
             List.filter
                 (not << String.isEmpty)

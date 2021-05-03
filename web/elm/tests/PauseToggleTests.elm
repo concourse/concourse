@@ -28,6 +28,7 @@ all =
                         , email = "test"
                         , isAdmin = False
                         , teams = Dict.fromList [ ( "team", [ "viewer" ] ) ]
+                        , displayUserId = "test"
                         }
             in
             [ test "has very low opacity" <|

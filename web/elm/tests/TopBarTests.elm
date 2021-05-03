@@ -856,6 +856,7 @@ all =
                                 , teams =
                                     Dict.fromList
                                         [ ( "t", [ "member" ] ) ]
+                                , displayUserId = "test"
                                 }
                         )
                         >> Tuple.first
@@ -872,6 +873,7 @@ all =
                                 , teams =
                                     Dict.fromList
                                         [ ( "s", [ "member" ] ) ]
+                                , displayUserId = "test"
                                 }
                         )
                         >> Tuple.first
@@ -1085,7 +1087,7 @@ eachHasStyle property value =
 
 sampleUser : Concourse.User
 sampleUser =
-    { id = "1", userName = "test", name = "Bob", isAdmin = False, email = "bob@bob.com", teams = Dict.empty }
+    { id = "1", userName = "test", name = "Bob", isAdmin = False, email = "bob@bob.com", teams = Dict.empty , displayUserId = "1" }
 
 
 pipelineBreadcrumbSelector : List Selector.Selector

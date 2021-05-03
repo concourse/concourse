@@ -1250,6 +1250,7 @@ type alias User =
     , email : String
     , isAdmin : Bool
     , teams : Dict String (List String)
+    , displayUserId : String
     }
 
 
@@ -1262,7 +1263,7 @@ decodeUser =
         |> andMap (Json.Decode.field "email" Json.Decode.string)
         |> andMap (Json.Decode.field "is_admin" Json.Decode.bool)
         |> andMap (Json.Decode.field "teams" (Json.Decode.dict (Json.Decode.list Json.Decode.string)))
-
+        |> andMap (Json.Decode.field "display_user_id" Json.Decode.string)
 
 
 -- Cause
