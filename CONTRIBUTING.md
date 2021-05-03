@@ -1,70 +1,64 @@
 # Contributing to Concourse
 
-It takes a lot of work from a lot of people to build a great CI system. We
-really appreciate any and all contributions we receive, and are dedicated to
-helping out anyone that wants to be a part of Concourse's development.
+It takes a lot of work from a lot of people to build a great CI system.
 
-This doc will go over the basics of developing Concourse and testing your
-changes.
+This document provides an outline for interacting with the Concourse community
+and its governance structure, as well as the nitty-gritty details how to write,
+test, and submit code changes.
 
-If you run into any trouble, feel free to hang out and ask for help in in
-[Discord][discord]! We'll grant you the `@contributors` role on request (just
-ask in `#introductions`), which will allow you to chat in the `#contributors`
-channel where you can ask for help or get feedback on something you're working
-on.
-
-
-## From ideas to implementation
-
-The Concourse project uses Issues for project backlog and bug reports,
-Discussions for support and ideation, and Pull Requests for accepting
-contributions.
-
-Bugs can be reported directly as [Issues on the `concourse`
-repo][concourse-issues], and questions and technical support can be requested as
-[Discussions on the `concourse` repo][concourse-discussions].
-
-The project backlog is maintained by the Concourse team at VMware. Instead of
-requesting features, we strongly encourage the use of [Discussions on the `rfcs`
-repo][rfcs-discussions] for incubating ideas, with a primary focus on forming a
-shared understanding the problem at hand; the context is more important than the
-solution itself.
-
-Our collective responsibility as the stewards of the Concourse product is to
-uphold its promise of being "automation that scales with your project." This
-promise is upheld by keeping the mental overhead small as the automation needs
-of your project expand. Thus, requests for core features fall under heavy
-scrutiny. Rather than addressing each individual request, we need to think of
-the product holistically, steering it carefully and refining or replacing
-existing concepts rather than introducing new ones all the time.
-
-While this may feel overkill for requests which seem small in scope, connections
-can often be made between features which seem unrelated at the surface. Once
-those connections are identified, a higher impact change can often be planned
-which satisfies many underlying needs at once while minimizing the amount of
-"stuff" that users need to internalize in order to be effective with Concourse.
-
-Once consensus is reached on a direction to take, a proposal can be submitted as
-a [Pull Request to the `rfcs` repo][rfcs-prs], following the [RFC
-process][rfcs-process], allowing the contributors to collaborate through PR
-review. A full blown RFC may not be necessary for smaller changes, but going
-through this process can reduce painful feedback cycles for larger code changes.
-
-[Pull Requests to the `concourse` repo][concourse-prs] may be submitted at any
-time. The rest of this document provides guidance on how to do just that. In the
-end, we are really grateful for any contribution made to the project - whether
-that's just chiming in on a discussion, helping others out in the community, or
-indeed submitting a code change. Cheers! 🍻
-
-[concourse-issues]: https://github.com/concourse/concourse/issues
-[concourse-prs]: https://github.com/concourse/concourse/pulls
-[concourse-discussions]: https://github.com/concourse/concourse/discussions
-[rfcs-prs]: https://github.com/concourse/rfcs/pulls
-[rfcs-discussions]: https://github.com/concourse/rfcs/discussions
-[rfcs-process]: https://github.com/concourse/rfcs/blob/master/README.md
+If you run into any trouble, feel free to hang out and ask for help in the
+[Discord][discord]!
 
 
 ## Contribution process
+
+The Concourse project follows an [open governance model][governance] which
+divides project responsibilities between self-organizing teams. You can find
+the list of teams under the [`teams/` directory][governance-teams] - each team
+describes its purpose and responsibilities.
+
+The [**maintainers** team][governance-maintainers] is responsible for the issue
+and pull request backlog and all code within this repository, working in
+harmony with the [**core** team][governance-core] through the [RFC
+process][rfcs] to keep the Concourse product aligned with its [design
+principles][rfc-design-principles].
+
+As a first step you can optionally [add yourself as a
+contributor][governance-register]. Doing so will grant you a few things:
+
+1. A shiny `@contributors` role in Discord, allowing you to chat in `#dev`.
+1. The ability to triage issues and pull requests in the Concourse repo.
+1. The ability to re-trigger builds that ran for your pull requests.
+
+If you are planning to implement a new feature, you may want to [submit an
+RFC][rfc-submit] first - it's not necessary for every change, but requesting
+feedback early can help save time and effort. See ["When the RFC process is
+necessary"][rfc-necessary] for more information.
+
+The rest of this document describes how to contribute code, but there are many
+other ways to contribute that are incredibly helpful: helping others or just
+passing time in [Discussions][concourse-discussions] and [Discord][discord],
+providing feedback on [RFCs][rfcs], triaging [Issues][concourse-issues],
+improving the [documentation][docs] - any little bit helps.
+
+Cheers! 🍻
+
+[concourse-discussions]: https://github.com/concourse/concourse/discussions
+[concourse-issues]: https://github.com/concourse/concourse/issues
+[concourse-prs]: https://github.com/concourse/concourse/pulls
+[docs]: https://github.com/concourse/docs
+[governance-core]: https://github.com/concourse/governance/blob/master/teams/core.yml
+[governance-maintainers]: https://github.com/concourse/governance/blob/master/teams/maintainers.yml
+[governance-register]: https://github.com/concourse/governance#individual-contributors
+[governance-teams]: https://github.com/concourse/governance/tree/master/teams
+[governance]: https://github.com/concourse/governance
+[rfc-design-principles]: https://github.com/concourse/rfcs/blob/master/DESIGN_PRINCIPLES.md
+[rfc-necessary]: https://github.com/concourse/rfcs#when-the-rfc-process-is-necessary
+[rfc-submit]: https://github.com/concourse/rfcs#submitting-an-rfc
+[rfcs]: https://github.com/concourse/rfcs
+
+
+## Development process
 
 * [Fork this repo][how-to-fork] into your GitHub account.
 
@@ -134,6 +128,7 @@ contiguous blocks.
 not unusual that you do some digging to uncover the motivation for a change,
 but if you don't mention it in the commit message the diff can feel pretty
 opaque.
+
 
 ## Development dependencies
 
@@ -311,7 +306,6 @@ After this is done, the final step is to connect your IDE to the debugger with t
 
 For GoLand you can do so by going to Run | Edit Configurations… | + | Go Remote and fill in the parameters.
 
-
 ### Trying out distributed tracing with Jaeger
 
 Under `./hack`, a docker-compose override file named `jaeger.yml` provides the
@@ -338,7 +332,6 @@ a Garden backend.
 
 [`containerd`]: https://containerd.io
 
-
 ### Running Vault locally
 
 1. Make sure you have [`certstrap`]
@@ -348,7 +341,6 @@ See more about in the section [The Vault credential manager].
 
 [The Vault credential Manager]: https://concourse-ci.org/vault-credential-manager.html
 [`certstrap`]: https://github.com/square/certstrap
-
 
 ### Running Prometheus locally
 
@@ -368,7 +360,6 @@ $ docker-compose \
 
 Now head to http://localhost:9090, and you'll be able to graph `concourse_`
 Prometheus metrics.
-
 
 ### Connecting to Postgres
 
@@ -447,6 +438,7 @@ Now that the migration files have been created in the right format, you can fill
 the database up and down migrations in these files. On startup, `concourse web`
 will look for any new migrations in `atc/db/migration/migrations` and will run
 them in order.
+
 
 ## Testing your changes
 
@@ -646,7 +638,6 @@ ginkgo -nodes=16 .
 [`kind`]: https://kind.sigs.k8s.io/
 [Tiller]: https://v2.helm.sh/docs/install/
 
-
 ### A note on `topgun`
 
 The `topgun/` suite is quite heavyweight and we don't currently expect most
@@ -694,7 +685,6 @@ BOSH_ENVIRONMENT=vbox ginkgo -v .
 ```
 
 ps.: you must have already installed the BOSH cli first.
-
 
 
 ## Signing your work
