@@ -1,4 +1,4 @@
-package mtu
+package network_test
 
 import (
 	"net"
@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/concourse/concourse/worker/network"
 	"github.com/stretchr/testify/require"
 )
 
@@ -31,7 +32,7 @@ func TestMTU(t *testing.T) {
 	require.NoError(t, err)
 	ipAddr := strings.Split(addrs[0].String(), "/")[0]
 
-	mtu, err := MTU(ipAddr)
+	mtu, err := network.MTU(ipAddr)
 	require.NoError(t, err)
 
 	require.Equal(t, expectMTU, mtu)

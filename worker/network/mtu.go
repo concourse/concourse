@@ -1,4 +1,4 @@
-package mtu
+package network
 
 import (
 	"fmt"
