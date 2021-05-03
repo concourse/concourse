@@ -74,7 +74,7 @@ var _ = Describe("JobFlag", func() {
 			{
 				desc: "malformed instance var",
 				flag: "some-pipeline/branch=master/some-job",
-				err:  "argument format should be <pipeline>/<key:value>/<job>",
+				err:  "instance vars should be formatted as <key1:value1>(,<key2:value2>)",
 			},
 		} {
 			tt := tt

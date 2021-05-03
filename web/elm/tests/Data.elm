@@ -158,7 +158,7 @@ resource pinnedVersion =
     }
 
 
-pipeline : String -> Int -> Concourse.Pipeline
+pipeline : Concourse.TeamName -> Int -> Concourse.Pipeline
 pipeline team id =
     { id = id
     , name = "pipeline-" ++ String.fromInt id
@@ -172,13 +172,13 @@ pipeline team id =
     }
 
 
-dashboardPipeline : Int -> Bool -> Dashboard.Group.Models.Pipeline
-dashboardPipeline id public =
+dashboardPipeline : Concourse.TeamName -> Int -> Dashboard.Group.Models.Pipeline
+dashboardPipeline team id =
     { id = id
-    , name = pipelineName
+    , name = "pipeline-" ++ String.fromInt id
     , instanceVars = Dict.empty
-    , teamName = teamName
-    , public = public
+    , teamName = team
+    , public = True
     , isToggleLoading = False
     , isVisibilityLoading = False
     , paused = False

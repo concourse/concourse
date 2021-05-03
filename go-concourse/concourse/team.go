@@ -70,6 +70,7 @@ type Team interface {
 	CreateBuild(plan atc.Plan) (atc.Build, error)
 	Builds(page Page) ([]atc.Build, Pagination, error)
 	OrderingPipelines(pipelineNames []string) error
+	OrderingPipelinesWithinGroup(groupName string, instanceVars []atc.InstanceVars) error
 
 	CreateArtifact(io.Reader, string, []string) (atc.WorkerArtifact, error)
 	GetArtifact(int) (io.ReadCloser, error)

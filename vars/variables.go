@@ -105,7 +105,7 @@ func (r Reference) String() string {
 }
 
 func refSegmentString(seg string) string {
-	if strings.ContainsAny(seg, ",.: ") {
+	if strings.ContainsAny(seg, ",.:/ ") {
 		return fmt.Sprintf("%q", seg)
 	}
 	return seg

@@ -34,7 +34,7 @@ func (f *pipelineFactory) VisiblePipelines(teamNames []string) ([]Pipeline, erro
 
 	rows, err := pipelinesQuery.
 		Where(sq.Eq{"t.name": teamNames}).
-		OrderBy("t.name ASC", "p.ordering ASC", "p.id ASC").
+		OrderBy("t.name ASC", "p.ordering ASC", "p.secondary_ordering ASC").
 		RunWith(tx).
 		Query()
 	if err != nil {
@@ -71,7 +71,7 @@ func (f *pipelineFactory) VisiblePipelines(teamNames []string) ([]Pipeline, erro
 
 func (f *pipelineFactory) AllPipelines() ([]Pipeline, error) {
 	rows, err := pipelinesQuery.
-		OrderBy("t.name ASC", "p.ordering ASC", "p.id ASC").
+		OrderBy("t.name ASC", "p.ordering ASC", "p.secondary_ordering ASC").
 		RunWith(f.conn).
 		Query()
 	if err != nil {

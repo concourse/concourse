@@ -1054,7 +1054,7 @@ run:
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(sess.Err).Should(gbytes.Say("argument format should be <pipeline>/<key:value>/<job>"))
+			Eventually(sess.Err).Should(gbytes.Say("instance vars should be formatted as <key1:value1>\\(,<key2:value2>\\)"))
 
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(1))

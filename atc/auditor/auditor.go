@@ -95,6 +95,7 @@ func (a *auditor) ValidateAction(action string) bool {
 		atc.GetPipeline,
 		atc.DeletePipeline,
 		atc.OrderPipelines,
+		atc.OrderPipelinesWithinGroup,
 		atc.PausePipeline,
 		atc.ArchivePipeline,
 		atc.UnpausePipeline,

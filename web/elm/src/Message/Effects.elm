@@ -160,7 +160,8 @@ type Effect
     | SetPinComment Concourse.ResourceIdentifier String
     | SendTokenToFly String Int
     | SendTogglePipelineRequest Concourse.PipelineIdentifier Bool
-    | SendOrderPipelinesRequest String (List String)
+    | SendOrderPipelinesRequest Concourse.TeamName (List Concourse.PipelineName)
+    | SendOrderPipelinesWithinGroupRequest Concourse.InstanceGroupIdentifier (List Concourse.InstanceVars)
     | SendLogOutRequest
     | GetScreenSize
     | PinTeamNames StickyHeaderConfig
@@ -472,6 +473,15 @@ runEffect effect key csrfToken =
                     (Json.Encode.list Json.Encode.string pipelineNames)
                 |> Api.request
                 |> Task.attempt (PipelinesOrdered teamName)
+
+        SendOrderPipelinesWithinGroupRequest id instanceVars ->
+            Api.put
+                (Endpoints.OrderInstanceGroupPipelines |> Endpoints.InstanceGroup id)
+                csrfToken
+                |> Api.withJsonBody
+                    (Json.Encode.list Concourse.encodeInstanceVars instanceVars)
+                |> Api.request
+                |> Task.attempt (PipelinesOrdered id.teamName)
 
         SendLogOutRequest ->
             Api.get Endpoints.Logout

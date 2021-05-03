@@ -8,7 +8,7 @@ module Dashboard.Models exposing
     )
 
 import Concourse
-import Dashboard.Group.Models
+import Dashboard.Group.Models as GroupModels
 import Dict exposing (Dict)
 import FetchResult exposing (FetchResult)
 import Login.Login as Login
@@ -54,7 +54,7 @@ type FetchError
 
 type DragState
     = NotDragging
-    | Dragging Concourse.TeamName String
+    | Dragging GroupModels.Card
 
 
 type DropState
@@ -68,7 +68,7 @@ type alias FooterModel r =
         | hideFooter : Bool
         , hideFooterCounter : Int
         , showHelp : Bool
-        , pipelines : Maybe (Dict String (List Dashboard.Group.Models.Pipeline))
+        , pipelines : Maybe (Dict String (List GroupModels.Pipeline))
         , dropdown : Dropdown
         , highDensity : Bool
         , dashboardView : Routes.DashboardView
