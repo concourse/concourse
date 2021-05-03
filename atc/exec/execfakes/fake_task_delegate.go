@@ -24,7 +24,7 @@ type FakeTaskDelegate struct {
 		arg1 lager.Logger
 		arg2 string
 	}
-	FetchImageStub        func(context.Context, atc.ImageResource, atc.VersionedResourceTypes, bool, atc.Tags) (worker.ImageSpec, db.ResourceCache, error)
+	FetchImageStub        func(context.Context, atc.ImageResource, atc.VersionedResourceTypes, bool, atc.Tags) (worker.ImageSpec, error)
 	fetchImageMutex       sync.RWMutex
 	fetchImageArgsForCall []struct {
 		arg1 context.Context
@@ -35,13 +35,11 @@ type FakeTaskDelegate struct {
 	}
 	fetchImageReturns struct {
 		result1 worker.ImageSpec
-		result2 db.ResourceCache
-		result3 error
+		result2 error
 	}
 	fetchImageReturnsOnCall map[int]struct {
 		result1 worker.ImageSpec
-		result2 db.ResourceCache
-		result3 error
+		result2 error
 	}
 	FinishedStub        func(lager.Logger, exec.ExitStatus, worker.ContainerPlacementStrategy, worker.Client)
 	finishedMutex       sync.RWMutex
@@ -176,7 +174,7 @@ func (fake *FakeTaskDelegate) ErroredArgsForCall(i int) (lager.Logger, string) {
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeTaskDelegate) FetchImage(arg1 context.Context, arg2 atc.ImageResource, arg3 atc.VersionedResourceTypes, arg4 bool, arg5 atc.Tags) (worker.ImageSpec, db.ResourceCache, error) {
+func (fake *FakeTaskDelegate) FetchImage(arg1 context.Context, arg2 atc.ImageResource, arg3 atc.VersionedResourceTypes, arg4 bool, arg5 atc.Tags) (worker.ImageSpec, error) {
 	fake.fetchImageMutex.Lock()
 	ret, specificReturn := fake.fetchImageReturnsOnCall[len(fake.fetchImageArgsForCall)]
 	fake.fetchImageArgsForCall = append(fake.fetchImageArgsForCall, struct {
@@ -194,9 +192,9 @@ func (fake *FakeTaskDelegate) FetchImage(arg1 context.Context, arg2 atc.ImageRes
 		return stub(arg1, arg2, arg3, arg4, arg5)
 	}
 	if specificReturn {
-		return ret.result1, ret.result2, ret.result3
+		return ret.result1, ret.result2
 	}
-	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeTaskDelegate) FetchImageCallCount() int {
@@ -205,7 +203,7 @@ func (fake *FakeTaskDelegate) FetchImageCallCount() int {
 	return len(fake.fetchImageArgsForCall)
 }
 
-func (fake *FakeTaskDelegate) FetchImageCalls(stub func(context.Context, atc.ImageResource, atc.VersionedResourceTypes, bool, atc.Tags) (worker.ImageSpec, db.ResourceCache, error)) {
+func (fake *FakeTaskDelegate) FetchImageCalls(stub func(context.Context, atc.ImageResource, atc.VersionedResourceTypes, bool, atc.Tags) (worker.ImageSpec, error)) {
 	fake.fetchImageMutex.Lock()
 	defer fake.fetchImageMutex.Unlock()
 	fake.FetchImageStub = stub
@@ -218,33 +216,30 @@ func (fake *FakeTaskDelegate) FetchImageArgsForCall(i int) (context.Context, atc
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5
 }
 
-func (fake *FakeTaskDelegate) FetchImageReturns(result1 worker.ImageSpec, result2 db.ResourceCache, result3 error) {
+func (fake *FakeTaskDelegate) FetchImageReturns(result1 worker.ImageSpec, result2 error) {
 	fake.fetchImageMutex.Lock()
 	defer fake.fetchImageMutex.Unlock()
 	fake.FetchImageStub = nil
 	fake.fetchImageReturns = struct {
 		result1 worker.ImageSpec
-		result2 db.ResourceCache
-		result3 error
-	}{result1, result2, result3}
+		result2 error
+	}{result1, result2}
 }
 
-func (fake *FakeTaskDelegate) FetchImageReturnsOnCall(i int, result1 worker.ImageSpec, result2 db.ResourceCache, result3 error) {
+func (fake *FakeTaskDelegate) FetchImageReturnsOnCall(i int, result1 worker.ImageSpec, result2 error) {
 	fake.fetchImageMutex.Lock()
 	defer fake.fetchImageMutex.Unlock()
 	fake.FetchImageStub = nil
 	if fake.fetchImageReturnsOnCall == nil {
 		fake.fetchImageReturnsOnCall = make(map[int]struct {
 			result1 worker.ImageSpec
-			result2 db.ResourceCache
-			result3 error
+			result2 error
 		})
 	}
 	fake.fetchImageReturnsOnCall[i] = struct {
 		result1 worker.ImageSpec
-		result2 db.ResourceCache
-		result3 error
-	}{result1, result2, result3}
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeTaskDelegate) Finished(arg1 lager.Logger, arg2 exec.ExitStatus, arg3 worker.ContainerPlacementStrategy, arg4 worker.Client) {

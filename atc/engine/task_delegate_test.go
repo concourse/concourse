@@ -436,26 +436,28 @@ var _ = Describe("TaskDelegate", func() {
 			expectedCheckPlan = atc.Plan{
 				ID: planID + "/image-check",
 				Check: &atc.CheckPlan{
-					Name:                   "image",
-					Type:                   "docker",
-					Source:                 atc.Source{"some": "((source-var))"},
-					BaseType:               "docker",
-					VersionedResourceTypes: types,
-					Tags:                   atc.Tags{"some", "tags"},
+					Name:   "image",
+					Type:   "docker",
+					Source: atc.Source{"some": "((source-var))"},
+					TypeImage: atc.TypeImage{
+						BaseType: "docker",
+					},
+					Tags: atc.Tags{"some", "tags"},
 				},
 			}
 
 			expectedGetPlan = atc.Plan{
 				ID: planID + "/image-get",
 				Get: &atc.GetPlan{
-					Name:                   "image",
-					Type:                   "docker",
-					Source:                 atc.Source{"some": "((source-var))"},
-					BaseType:               "docker",
-					VersionFrom:            &expectedCheckPlan.ID,
-					Params:                 atc.Params{"some": "((params-var))"},
-					VersionedResourceTypes: types,
-					Tags:                   atc.Tags{"some", "tags"},
+					Name:   "image",
+					Type:   "docker",
+					Source: atc.Source{"some": "((source-var))"},
+					TypeImage: atc.TypeImage{
+						BaseType: "docker",
+					},
+					VersionFrom: &expectedCheckPlan.ID,
+					Params:      atc.Params{"some": "((params-var))"},
+					Tags:        atc.Tags{"some", "tags"},
 				},
 			}
 		})

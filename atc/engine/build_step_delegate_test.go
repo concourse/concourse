@@ -15,6 +15,7 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds/credsfakes"
+	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/engine"
 	"github.com/concourse/concourse/atc/event"
@@ -98,11 +99,11 @@ var _ = Describe("BuildStepDelegate", func() {
 		var fakeSource *workerfakes.FakeStreamableArtifactSource
 		var fakeResourceCache *dbfakes.FakeResourceCache
 
-		var types atc.VersionedResourceTypes
 		var privileged bool
 
 		var imageSpec worker.ImageSpec
 		var fetchErr error
+		var resourceCache db.ResourceCache
 
 		var runPlans []atc.Plan
 		var stepper exec.Stepper
@@ -114,24 +115,22 @@ var _ = Describe("BuildStepDelegate", func() {
 			expectedCheckPlan = &atc.Plan{
 				ID: planID + "/image-check",
 				Check: &atc.CheckPlan{
-					Name:                   "image",
-					Type:                   "docker",
-					Source:                 atc.Source{"some": "((source-var))"},
-					VersionedResourceTypes: types,
-					Tags:                   atc.Tags{"some", "tags"},
+					Name:   "image",
+					Type:   "docker",
+					Source: atc.Source{"some": "((source-var))"},
+					Tags:   atc.Tags{"some", "tags"},
 				},
 			}
 
 			expectedGetPlan = &atc.Plan{
 				ID: planID + "/image-get",
 				Get: &atc.GetPlan{
-					Name:                   "image",
-					Type:                   "docker",
-					Source:                 atc.Source{"some": "((source-var))"},
-					Version:                &atc.Version{"some": "version"},
-					Params:                 atc.Params{"some": "((params-var))"},
-					VersionedResourceTypes: types,
-					Tags:                   atc.Tags{"some", "tags"},
+					Name:    "image",
+					Type:    "docker",
+					Source:  atc.Source{"some": "((source-var))"},
+					Version: &atc.Version{"some": "version"},
+					Params:  atc.Params{"some": "((params-var))"},
+					Tags:    atc.Tags{"some", "tags"},
 				},
 			}
 
@@ -139,6 +138,7 @@ var _ = Describe("BuildStepDelegate", func() {
 				runPlans = append(runPlans, p)
 
 				fakeResourceCache = new(dbfakes.FakeResourceCache)
+				fakeResourceCache.IDReturns(123)
 				fakeArtifact = new(runtimefakes.FakeArtifact)
 
 				step := new(execfakes.FakeStep)
@@ -155,27 +155,6 @@ var _ = Describe("BuildStepDelegate", func() {
 
 			parentRunState = exec.NewRunState(stepper, nil, true)
 
-			types = atc.VersionedResourceTypes{
-				{
-					ResourceType: atc.ResourceType{
-						Name:   "some-custom-type",
-						Type:   "another-custom-type",
-						Source: atc.Source{"some-custom": "((source-var))"},
-						Params: atc.Params{"some-custom": "((params-var))"},
-					},
-					Version: atc.Version{"some-custom": "version"},
-				},
-				{
-					ResourceType: atc.ResourceType{
-						Name:       "another-custom-type",
-						Type:       "registry-image",
-						Source:     atc.Source{"another-custom": "((source-var))"},
-						Privileged: true,
-					},
-					Version: atc.Version{"another-custom": "version"},
-				},
-			}
-
 			privileged = false
 
 			fakeSource = new(workerfakes.FakeStreamableArtifactSource)
@@ -184,7 +163,7 @@ var _ = Describe("BuildStepDelegate", func() {
 
 		JustBeforeEach(func() {
 			delegate = engine.NewBuildStepDelegate(fakeBuild, planID, parentRunState, fakeClock, fakePolicyChecker, fakeSecrets, fakeArtifactSourcer)
-			imageSpec, fetchErr = delegate.FetchImage(context.TODO(), *expectedGetPlan, expectedCheckPlan, privileged)
+			imageSpec, resourceCache, fetchErr = delegate.FetchImage(context.TODO(), *expectedGetPlan, expectedCheckPlan, privileged)
 		})
 
 		It("succeeds", func() {
@@ -196,6 +175,10 @@ var _ = Describe("BuildStepDelegate", func() {
 				ImageArtifactSource: fakeSource,
 				Privileged:          false,
 			}))
+		})
+
+		It("returns back the resource cache stored in the result", func() {
+			Expect(resourceCache.ID()).To(Equal(fakeResourceCache.ID()))
 		})
 
 		It("runs both check and get plans using the child state", func() {

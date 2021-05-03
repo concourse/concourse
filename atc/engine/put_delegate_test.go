@@ -77,7 +77,7 @@ var _ = Describe("PutDelegate", func() {
 	Describe("SaveOutput", func() {
 		var plan atc.PutPlan
 		var source atc.Source
-		var resourceTypes atc.VersionedResourceTypes
+		var resourceCache *dbfakes.FakeResourceCache
 
 		JustBeforeEach(func() {
 			plan = atc.PutPlan{
@@ -86,17 +86,18 @@ var _ = Describe("PutDelegate", func() {
 				Resource: "some-resource",
 			}
 			source = atc.Source{"some": "source"}
-			resourceTypes = atc.VersionedResourceTypes{}
+			resourceCache = new(dbfakes.FakeResourceCache)
+			resourceCache.IDReturns(123)
 
-			delegate.SaveOutput(logger, plan, source, resourceTypes, info)
+			delegate.SaveOutput(logger, plan, source, resourceCache, info)
 		})
 
 		It("saves the build output", func() {
 			Expect(fakeBuild.SaveOutputCallCount()).To(Equal(1))
-			resourceType, sourceArg, resourceTypesArg, version, metadata, name, resource := fakeBuild.SaveOutputArgsForCall(0)
+			resourceType, rc, sourceArg, version, metadata, name, resource := fakeBuild.SaveOutputArgsForCall(0)
 			Expect(resourceType).To(Equal(plan.Type))
 			Expect(sourceArg).To(Equal(source))
-			Expect(resourceTypesArg).To(Equal(resourceTypes))
+			Expect(rc.ID()).To(Equal(resourceCache.ID()))
 			Expect(version).To(Equal(info.Version))
 			Expect(metadata).To(Equal(db.NewResourceConfigMetadataFields(info.Metadata)))
 			Expect(name).To(Equal(plan.Name))

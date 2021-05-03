@@ -417,7 +417,7 @@ func (visitor *planVisitor) VisitEnsure(step *atc.EnsureStep) error {
 	return nil
 }
 
-func FetchImagePlan(planID atc.PlanID, image atc.ImageResource, resourceTypes atc.VersionedResourceTypes, stepTags atc.Tags) (*atc.Plan, atc.Plan) {
+func FetchImagePlan(planID atc.PlanID, image atc.ImageResource, resourceTypes atc.VersionedResourceTypes, stepTags atc.Tags) (atc.Plan, *atc.Plan) {
 	// If resource type is a custom type, recurse in order to resolve nested resource types
 	getPlanID := planID + "/image-get"
 
@@ -441,9 +441,8 @@ func FetchImagePlan(planID atc.PlanID, image atc.ImageResource, resourceTypes at
 		},
 	}
 
-	resourceTypeVersion := image.Version
 	var maybeCheckPlan *atc.Plan
-	if resourceTypeVersion == nil {
+	if image.Version == nil {
 		checkPlanID := planID + "/image-check"
 		// don't know the version, need to do a Check before the Get
 		checkPlan := atc.Plan{
@@ -463,8 +462,8 @@ func FetchImagePlan(planID atc.PlanID, image atc.ImageResource, resourceTypes at
 		imageGetPlan.Get.VersionFrom = &checkPlan.ID
 	} else {
 		// version is already provided, only need to do Get step
-		imageGetPlan.Get.Version = &resourceTypeVersion
+		imageGetPlan.Get.Version = &image.Version
 	}
 
-	return maybeCheckPlan, imageGetPlan
+	return imageGetPlan, maybeCheckPlan
 }
