@@ -75,6 +75,10 @@ var _ = Describe("Build", func() {
 		Expect(build.HasPlan()).To(BeFalse())
 	})
 
+	It("create_time is current time", func(){
+		Expect(build.CreateTime()).To(BeTemporally("<", time.Now(), 1*time.Second))
+	})
+
 	Describe("LagerData", func() {
 		var build db.Build
 

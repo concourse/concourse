@@ -72,12 +72,19 @@ func (d *checkDelegate) FindOrCreateScope(config db.ResourceConfig) (db.Resource
 	return scope, nil
 }
 
+// WaitToRun decides if a check should really run or just reuse a previous result, and acquires
+// a check lock accordingly. There are three types of checks, each reflects to a different behavior:
+// 1) A Lidar triggered checks should always run once reach to next check time;
+// 2) A manually triggered checks may reuse a previous result if the last check succeeded and began
+// later than the current check build's create time.
+// 3) A step embedded check may reuse a previous step if the last check succeeded and finished later
+// than the current build started.
 func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigScope) (lock.Lock, bool, error) {
 	logger := lagerctx.FromContext(ctx)
 
 	// rate limit periodic resource checks so worker load (plus load on external
 	// services) isn't too spiky
-	if !d.build.IsManuallyTriggered() && d.plan.Resource != "" {
+	if !d.build.IsManuallyTriggered() && d.plan.IsPeriodic() {
 		err := d.limiter.Wait(ctx)
 		if err != nil {
 			return nil, false, fmt.Errorf("rate limit: %w", err)
@@ -95,7 +102,7 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 	}
 
 	var lock lock.Lock = lock.NoopLock{}
-	if d.plan.Resource != "" {
+	if d.plan.IsPeriodic() {
 		for {
 			var acquired bool
 			lock, acquired, err = scope.AcquireResourceCheckingLock(logger)
@@ -111,25 +118,32 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 		}
 	}
 
-	end, err := scope.LastCheckEndTime()
+	lastCheck, err := scope.LastCheck()
 	if err != nil {
 		if releaseErr := lock.Release(); releaseErr != nil {
 			logger.Error("failed-to-release-lock", releaseErr)
 		}
-
-		return nil, false, fmt.Errorf("get last check end time: %w", err)
+		return nil, false, err
 	}
-
-	runAt := end.Add(interval)
 
 	shouldRun := false
-	if d.build.IsManuallyTriggered() {
-		// ignore interval for manually triggered builds
-		shouldRun = true
-	} else if !d.clock.Now().Before(runAt) {
-		// run if we're past the last check end time
-		shouldRun = true
+	if !d.plan.IsPeriodic() {
+		if !lastCheck.Succeeded || lastCheck.EndTime.Before(d.build.StartTime()) {
+			shouldRun = true
+		}
+	} else if d.build.IsManuallyTriggered() {
+		// If a manually triggered check takes a from version, then it should be run.
+		if d.plan.FromVersion != nil {
+			shouldRun = true
+		} else {
+			// ignore interval for manually triggered builds.
+			// avoid running redundant checks
+			shouldRun = !lastCheck.Succeeded || d.build.CreateTime().After(lastCheck.StartTime)
+		}
+	} else {
+		shouldRun = !d.clock.Now().Before(lastCheck.EndTime.Add(interval))
 	}
+
 	// XXX(check-refactor): we could add an else{} case and potentially sleep
 	// here until runAt is reached.
 	//

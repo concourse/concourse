@@ -11,6 +11,12 @@ import (
 	"github.com/concourse/concourse/atc/db/lock"
 )
 
+type LastCheck struct {
+	StartTime time.Time
+	EndTime   time.Time
+	Succeeded bool
+}
+
 //counterfeiter:generate . ResourceConfigScope
 
 // ResourceConfigScope represents the relationship between a possible pipeline resource and a resource config.
@@ -33,10 +39,9 @@ type ResourceConfigScope interface {
 		logger lager.Logger,
 	) (lock.Lock, bool, error)
 
+	LastCheck() (LastCheck, error)
 	UpdateLastCheckStartTime() (bool, error)
-
-	LastCheckEndTime() (time.Time, error)
-	UpdateLastCheckEndTime() (bool, error)
+	UpdateLastCheckEndTime(bool) (bool, error)
 }
 
 type resourceConfigScope struct {
@@ -52,19 +57,24 @@ func (r *resourceConfigScope) ID() int                        { return r.id }
 func (r *resourceConfigScope) Resource() Resource             { return r.resource }
 func (r *resourceConfigScope) ResourceConfig() ResourceConfig { return r.resourceConfig }
 
-func (r *resourceConfigScope) LastCheckEndTime() (time.Time, error) {
-	var lastCheckEndTime time.Time
-	err := psql.Select("last_check_end_time").
+func (r *resourceConfigScope) LastCheck() (LastCheck, error) {
+	var lastCheckStartTime, lastCheckEndTime time.Time
+	var lastCheckSucceeded bool
+	err := psql.Select("last_check_start_time", "last_check_end_time", "last_check_succeeded").
 		From("resource_config_scopes").
 		Where(sq.Eq{"id": r.id}).
 		RunWith(r.conn).
 		QueryRow().
-		Scan(&lastCheckEndTime)
+		Scan(&lastCheckStartTime, &lastCheckEndTime, &lastCheckSucceeded)
 	if err != nil {
-		return time.Time{}, err
+		return LastCheck{}, err
 	}
 
-	return lastCheckEndTime, nil
+	return LastCheck{
+		StartTime: lastCheckStartTime,
+		EndTime:   lastCheckEndTime,
+		Succeeded: lastCheckSucceeded,
+	}, nil
 }
 
 // SaveVersions stores a list of version in the db for a resource config
@@ -215,7 +225,7 @@ func (r *resourceConfigScope) UpdateLastCheckStartTime() (bool, error) {
 	return true, nil
 }
 
-func (r *resourceConfigScope) UpdateLastCheckEndTime() (bool, error) {
+func (r *resourceConfigScope) UpdateLastCheckEndTime(succeeded bool) (bool, error) {
 	tx, err := r.conn.Begin()
 	if err != nil {
 		return false, err
@@ -225,9 +235,9 @@ func (r *resourceConfigScope) UpdateLastCheckEndTime() (bool, error) {
 
 	updated, err := checkIfRowsUpdated(tx, `
 		UPDATE resource_config_scopes
-		SET last_check_end_time = now()
-		WHERE id = $1
-	`, r.id)
+		SET last_check_end_time = now(), last_check_succeeded = $1
+		WHERE id = $2
+	`, succeeded, r.id)
 	if err != nil {
 		return false, err
 	}

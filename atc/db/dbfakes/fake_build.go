@@ -99,6 +99,16 @@ type FakeBuild struct {
 		result1 []db.WorkerArtifact
 		result2 error
 	}
+	CreateTimeStub        func() time.Time
+	createTimeMutex       sync.RWMutex
+	createTimeArgsForCall []struct {
+	}
+	createTimeReturns struct {
+		result1 time.Time
+	}
+	createTimeReturnsOnCall map[int]struct {
+		result1 time.Time
+	}
 	CreatedByStub        func() *string
 	createdByMutex       sync.RWMutex
 	createdByArgsForCall []struct {
@@ -1077,6 +1087,59 @@ func (fake *FakeBuild) ArtifactsReturnsOnCall(i int, result1 []db.WorkerArtifact
 		result1 []db.WorkerArtifact
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeBuild) CreateTime() time.Time {
+	fake.createTimeMutex.Lock()
+	ret, specificReturn := fake.createTimeReturnsOnCall[len(fake.createTimeArgsForCall)]
+	fake.createTimeArgsForCall = append(fake.createTimeArgsForCall, struct {
+	}{})
+	stub := fake.CreateTimeStub
+	fakeReturns := fake.createTimeReturns
+	fake.recordInvocation("CreateTime", []interface{}{})
+	fake.createTimeMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeBuild) CreateTimeCallCount() int {
+	fake.createTimeMutex.RLock()
+	defer fake.createTimeMutex.RUnlock()
+	return len(fake.createTimeArgsForCall)
+}
+
+func (fake *FakeBuild) CreateTimeCalls(stub func() time.Time) {
+	fake.createTimeMutex.Lock()
+	defer fake.createTimeMutex.Unlock()
+	fake.CreateTimeStub = stub
+}
+
+func (fake *FakeBuild) CreateTimeReturns(result1 time.Time) {
+	fake.createTimeMutex.Lock()
+	defer fake.createTimeMutex.Unlock()
+	fake.CreateTimeStub = nil
+	fake.createTimeReturns = struct {
+		result1 time.Time
+	}{result1}
+}
+
+func (fake *FakeBuild) CreateTimeReturnsOnCall(i int, result1 time.Time) {
+	fake.createTimeMutex.Lock()
+	defer fake.createTimeMutex.Unlock()
+	fake.CreateTimeStub = nil
+	if fake.createTimeReturnsOnCall == nil {
+		fake.createTimeReturnsOnCall = make(map[int]struct {
+			result1 time.Time
+		})
+	}
+	fake.createTimeReturnsOnCall[i] = struct {
+		result1 time.Time
+	}{result1}
 }
 
 func (fake *FakeBuild) CreatedBy() *string {
@@ -4215,6 +4278,8 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.artifactMutex.RUnlock()
 	fake.artifactsMutex.RLock()
 	defer fake.artifactsMutex.RUnlock()
+	fake.createTimeMutex.RLock()
+	defer fake.createTimeMutex.RUnlock()
 	fake.createdByMutex.RLock()
 	defer fake.createdByMutex.RUnlock()
 	fake.deleteMutex.RLock()
