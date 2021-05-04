@@ -3,363 +3,363 @@
 \use-plugin{concourse-docs}
 
 \section{
-    \title{The Heart of Concourse}
+  \title{The Heart of Concourse}
 
-    Resources are the heart of Concourse. Resources make Concourse tick and are
-    the source of automation within all Concourse pipelines. Resources are how
-    Concourse interacts with the outside world. Here's a short list of some
-    things that resources can do:
+  Resources are the heart of Concourse. Resources make Concourse tick and are
+  the source of automation within all Concourse pipelines. Resources are how
+  Concourse interacts with the outside world. Here's a short list of some
+  things that resources can do:
 
-    \list{
-        You want something to run every five minutes? \link{Time resource}{https://github.com/concourse/time-resource/}.
-    }{
-        You want to run tests on every new commit to the main branch? \link{Git resource}{https://github.com/concourse/git-resource}.
-    }{
-        Run unit tests on new PR's? \link{Github-PR resource}{https://github.com/telia-oss/github-pr-resource}.
-    }{
-        Deploy the latest image of your app? \link{Registry-image resource}{https://github.com/concourse/registry-image-resource/}
-    }
+  \list{
+      You want something to run every five minutes? \link{Time resource}{https://github.com/concourse/time-resource/}.
+  }{
+      You want to run tests on every new commit to the main branch? \link{Git resource}{https://github.com/concourse/git-resource}.
+  }{
+      Run unit tests on new PR's? \link{Github-PR resource}{https://github.com/telia-oss/github-pr-resource}.
+  }{
+      Deploy the latest image of your app? \link{Registry-image resource}{https://github.com/concourse/registry-image-resource/}
+  }
 
-    Resources can do a lot of things! The main goal of resources is to
-    represent some external system or object in your pipeline. That external
-    thing can then be used as a trigger for your \reference{jobs} or your
-    \reference{jobs} can push back and modify the external system or object. It
-    all depends on the resource you use and what features its author has
-    implemented.
+  Resources can do a lot of things! The main goal of resources is to
+  represent some external system or object in your pipeline. That external
+  thing can then be used as a trigger for your \reference{jobs} or your
+  \reference{jobs} can push back and modify the external system or object. It
+  all depends on the resource you use and what features its author has
+  implemented.
 
-    Resources are also how Concourse tries to stay as technology agnostic as
-    possible. For example, Concourse doesn't care what \link{version control
-    system}{https://en.wikipedia.org/wiki/Version_control} store your code in,
-    if you deploy apps to a \link{Kubernetes cluster}{https://kubernetes.io/},
-    or what language your apps are built in.  If you can put your latest and
-    hottest tech behind the resource interface then Concourse can understand
-    your workflow.
+  Resources are also how Concourse tries to stay as technology agnostic as
+  possible. For example, Concourse doesn't care what \link{version control
+  system}{https://en.wikipedia.org/wiki/Version_control} store your code in,
+  if you deploy apps to a \link{Kubernetes cluster}{https://kubernetes.io/},
+  or what language your apps are built in.  If you can put your latest and
+  hottest tech behind the resource interface then Concourse can understand
+  your workflow.
 
-    The Concourse team bundles a few basic resource types that come with the
-    Linux tarball you can \link{download from
-    Github}{https://github.com/concourse/concourse/releases}. You'll notice
-    that the Linux tarball is much larger than the macOS or Windows tarball
-    because of all the bundled resources.
+  The Concourse team bundles a few basic resource types that come with the
+  Linux tarball you can \link{download from
+  Github}{https://github.com/concourse/concourse/releases}. You'll notice
+  that the Linux tarball is much larger than the macOS or Windows tarball
+  because of all the bundled resources.
 
-    \aside{
-        You can find out which resources a worker has by running:
-        \codeblock{}{{
-        $ fly -t tutorial workers --details
-        }}
-    }
+  \aside{
+      You can find out which resources a worker has by running:
+      \codeblock{}{{
+      $ fly -t tutorial workers --details
+      }}
+  }
 
-    Resources only run on Linux workers because resources are distributed as
-    Linux container images. There are currently no resources for macOS or
-    Windows. Only \reference{task-step}{task steps} can run on macOS or Windows
-    workers.
+  Resources only run on Linux workers because resources are distributed as
+  Linux container images. There are currently no resources for macOS or
+  Windows. Only \reference{task-step}{task steps} can run on macOS or Windows
+  workers.
 }
 
 \section{
-    \title{Versions}
+  \title{Versions}
 
-    Resources represent the external system or object to Concourse by emitting
-    \reference{schema.version}{\code{versions}}. When a new version is emitted
-    by a resource, that is how Concourse knows to start trigger jobs.
+  Resources represent the external system or object to Concourse by emitting
+  \reference{schema.version}{\code{versions}}. When a new version is emitted
+  by a resource, that is how Concourse knows to start trigger jobs.
 
-    A version is any way that a resource can uniquely identify the state of the
-    external system or object.
+  A version is any way that a resource can uniquely identify the state of the
+  external system or object.
 
-    For example, the git resource emits versions based on the SHA of the new
-    commit it finds. A single version from the git resource will look like this
-    to Concourse.
+  For example, the git resource emits versions based on the SHA of the new
+  commit it finds. A single version from the git resource will look like this
+  to Concourse.
 
-    \codeblock{json}{{{
-    { "ref": "04194bfc880c457a5b00f07db78d0532620414cc" }
-    }}}
+  \codeblock{json}{{{
+  { "ref": "04194bfc880c457a5b00f07db78d0532620414cc" }
+  }}}
 
-    Let's start digging into resources a bit more by going over the resource interface.
+  Let's start digging into resources a bit more by going over the resource interface.
 }
 
 \section{
-    \title{Resource Interface}
+  \title{Resource Interface}
 
-    Resources are \link{container
-    images}{https://en.wikipedia.org/wiki/List_of_Linux_containers} that
-    contain three executables. Each executable is run by a different
-    \reference{steps}{step} within a pipeline:
+  Resources are \link{container
+  images}{https://en.wikipedia.org/wiki/List_of_Linux_containers} that
+  contain three executables. Each executable is run by a different
+  \reference{steps}{step} within a pipeline:
 
-    \list{
-        \code{/opt/resource/check} - implicitly ran when a
-        \reference{jobs}{job} contains a \reference{get-step}{get step}.
-        Should return the latest version from the external system or object.
-        It's responsibility is to find new versions.
-    }{
-        \code{/opt/resource/in} - run in a \reference{get-step}{get step}.
-        \code{in} is given a specific version (generated by a \code{check} or
-        \reference{put-step}{\code{put} step}) and retrieves the files
-        representing that version from the external system or object.
-    }{
-        \code{/opt/resource/out} - run in a \reference{put-step}{put step}.
-        Generates a new version, usually based on some input generated by
-        another step in the job. Depending on the resource, this may mean
-        sending something to the external system. For the git resource, this
-        means pushing commits to the external git repository.
-    }
+  \list{
+      \code{/opt/resource/check} - implicitly ran when a
+      \reference{jobs}{job} contains a \reference{get-step}{get step}.
+      Should return the latest version from the external system or object.
+      It's responsibility is to find new versions.
+  }{
+      \code{/opt/resource/in} - run in a \reference{get-step}{get step}.
+      \code{in} is given a specific version (generated by a \code{check} or
+      \reference{put-step}{\code{put} step}) and retrieves the files
+      representing that version from the external system or object.
+  }{
+      \code{/opt/resource/out} - run in a \reference{put-step}{put step}.
+      Generates a new version, usually based on some input generated by
+      another step in the job. Depending on the resource, this may mean
+      sending something to the external system. For the git resource, this
+      means pushing commits to the external git repository.
+  }
 
-    That's a high-level overview of the resource interface. Next, we will learn
-    how to add resources to a pipeline.
+  That's a high-level overview of the resource interface. Next, we will learn
+  how to add resources to a pipeline.
 }
 
 \section{
-    \title{Get Steps}
+  \title{Get Steps}
 
-    Let's add some automation to our \code{hello-world.yml} pipeline and have
-    it \bold{trigger every one minute}. We will use the \link{time
-    resource}{https://github.com/concourse/time-resource/} to accomplish this.
+  Let's add some automation to our \code{hello-world.yml} pipeline and have
+  it \bold{trigger every one minute}. We will use the \link{time
+  resource}{https://github.com/concourse/time-resource/} to accomplish this.
 
-    First, let's go back to the one step version of the pipeline.
+  First, let's go back to the one step version of the pipeline.
 
-    \codeblock{yaml}{{
-    jobs:
-    - name: hello-world-job
-      plan:
-      - task: hello-world-task
-        config:
-          platform: linux
-          image_resource:
-            type: registry-image
-            source:
-              repository: busybox
-          run:
-            path: echo
-            args: ["Hello World!"]
-    }}
+  \codeblock{yaml}{{
+  jobs:
+  - name: hello-world-job
+    plan:
+    - task: hello-world-task
+      config:
+        platform: linux
+        image_resource:
+          type: registry-image
+          source:
+            repository: busybox
+        run:
+          path: echo
+          args: ["Hello World!"]
+  }}
 
-    Now let's add the \link{time
-    resource}{https://github.com/concourse/time-resource/} to the pipeline.
-    First we'll add the \reference{resources}{\code{resources}} key to the
-    top-level of our yaml.
+  Now let's add the \link{time
+  resource}{https://github.com/concourse/time-resource/} to the pipeline.
+  First we'll add the \reference{resources}{\code{resources}} key to the
+  top-level of our yaml.
 
-    \codeblock{yaml}{{
-    resources:
+  \codeblock{yaml}{{
+  resources:
 
-    jobs:
-    - name: hello-world-job
-      plan:
-      - task: hello-world-task
-        config:
-          platform: linux
-          image_resource:
-            type: registry-image
-            source:
-              repository: busybox
-          run:
-            path: echo
-            args: ["Hello World!"]
-    }}
+  jobs:
+  - name: hello-world-job
+    plan:
+    - task: hello-world-task
+      config:
+        platform: linux
+        image_resource:
+          type: registry-image
+          source:
+            repository: busybox
+        run:
+          path: echo
+          args: ["Hello World!"]
+  }}
 
-    The \reference{resources}{\code{resources}} key takes a list of resources.
-    In our case, we're going to add one item to that list. We will name the
-    resource \code{every-1min}. This is the name we'll use to refer to this
-    specific instance of the resource within our pipeline. We'll define the
-    \reference{schema.resource.type}{\code{type}} as \code{time}, which we got
-    from the output of \code{fly -t tutorial workers --details}.
+  The \reference{resources}{\code{resources}} key takes a list of resources.
+  In our case, we're going to add one item to that list. We will name the
+  resource \code{every-1min}. This is the name we'll use to refer to this
+  specific instance of the resource within our pipeline. We'll define the
+  \reference{schema.resource.type}{\code{type}} as \code{time}, which we got
+  from the output of \code{fly -t tutorial workers --details}.
 
-    \codeblock{yaml}{{
-    resources:
-    - name: every-1min
-      type: time
+  \codeblock{yaml}{{
+  resources:
+  - name: every-1min
+    type: time
 
-    jobs:
-    - name: hello-world-job
-      plan:
-      - task: hello-world-task
-        config:
-          platform: linux
-          image_resource:
-            type: registry-image
-            source:
-              repository: busybox
-          run:
-            path: echo
-            args: ["Hello World!"]
-    }}
+  jobs:
+  - name: hello-world-job
+    plan:
+    - task: hello-world-task
+      config:
+        platform: linux
+        image_resource:
+          type: registry-image
+          source:
+            repository: busybox
+        run:
+          path: echo
+          args: ["Hello World!"]
+  }}
 
-    There is one last field we need to fill out, the
-    \reference{schema.resource.source}{\code{source}} field.
+  There is one last field we need to fill out, the
+  \reference{schema.resource.source}{\code{source}} field.
 
-    The \code{source} field contains the configuration for this instance of the
-    resource. By convention, documentation for each resource type's
-    configuration is found in it's \code{README} of its git repository. The
-    \code{source} field will be different for every resource type, so you'll
-    need to refer to that resource's documentation to determine how to fill out
-    the \code{source} field.
+  The \code{source} field contains the configuration for this instance of the
+  resource. By convention, documentation for each resource type's
+  configuration is found in it's \code{README} of its git repository. The
+  \code{source} field will be different for every resource type, so you'll
+  need to refer to that resource's documentation to determine how to fill out
+  the \code{source} field.
 
-    If we look at the \link{\code{README} for the time
-    resource}{https://github.com/concourse/time-resource/#source-configuration}
-    we'll find that it accepts an \code{interval} field where we can specify
-    how often the time resource emits a new version. Let's add the
-    \code{interval} field and set it to \code{1m}.
+  If we look at the \link{\code{README} for the time
+  resource}{https://github.com/concourse/time-resource/#source-configuration}
+  we'll find that it accepts an \code{interval} field where we can specify
+  how often the time resource emits a new version. Let's add the
+  \code{interval} field and set it to \code{1m}.
 
-    \codeblock{yaml}{{
-    resources:
-    - name: every-1min
-      type: time
-      source:
-        interval: 1m
+  \codeblock{yaml}{{
+  resources:
+  - name: every-1min
+    type: time
+    source:
+      interval: 1m
 
-    jobs:
-    - name: hello-world-job
-      plan:
-      - task: hello-world-task
-        config:
-          platform: linux
-          image_resource:
-            type: registry-image
-            source:
-              repository: busybox
-          run:
-            path: echo
-            args: ["Hello World!"]
-    }}
+  jobs:
+  - name: hello-world-job
+    plan:
+    - task: hello-world-task
+      config:
+        platform: linux
+        image_resource:
+          type: registry-image
+          source:
+            repository: busybox
+        run:
+          path: echo
+          args: ["Hello World!"]
+  }}
 
-    Next we need to connect the \code{every-1min} resource to the
-    \code{hello-world-job}. We connect the two objects by adding a
-    \reference{get-step}{get step} to the job.
+  Next we need to connect the \code{every-1min} resource to the
+  \code{hello-world-job}. We connect the two objects by adding a
+  \reference{get-step}{get step} to the job.
 
-    \codeblock{yaml}{{
-    resources:
-    - name: every-1min
-      type: time
-      source:
-        interval: 1m
+  \codeblock{yaml}{{
+  resources:
+  - name: every-1min
+    type: time
+    source:
+      interval: 1m
 
-    jobs:
-    - name: hello-world-job
-      plan:
-      # Add a get step referencing the resource
-      - get: every-1min
-      - task: hello-world-task
-        config:
-          platform: linux
-          image_resource:
-            type: registry-image
-            source:
-              repository: busybox
-          run:
-            path: echo
-            args: ["Hello World!"]
-    }}
+  jobs:
+  - name: hello-world-job
+    plan:
+    # Add a get step referencing the resource
+    - get: every-1min
+    - task: hello-world-task
+      config:
+        platform: linux
+        image_resource:
+          type: registry-image
+          source:
+            repository: busybox
+        run:
+          path: echo
+          args: ["Hello World!"]
+  }}
 
-    The final piece is telling Concourse to trigger the \code{hello-world-job}
-    whenever the \code{every-1min} resource emits a new version. We can do that
-    by setting \reference{schema.step.get-step.trigger}{\code{trigger}} to
-    \code{true} for the \reference{get-step}{get step}.
+  The final piece is telling Concourse to trigger the \code{hello-world-job}
+  whenever the \code{every-1min} resource emits a new version. We can do that
+  by setting \reference{schema.step.get-step.trigger}{\code{trigger}} to
+  \code{true} for the \reference{get-step}{get step}.
 
-    \codeblock{yaml}{{
-    resources:
-    - name: every-1min
-      type: time
-      source:
-        interval: 1m
+  \codeblock{yaml}{{
+  resources:
+  - name: every-1min
+    type: time
+    source:
+      interval: 1m
 
-    jobs:
-    - name: hello-world-job
-      plan:
-      - get: every-1min
-        trigger: true   # tell Concourse to trigger this job when new versions are emitted
-      - task: hello-world-task
-        config:
-          platform: linux
-          image_resource:
-            type: registry-image
-            source:
-              repository: busybox
-          run:
-            path: echo
-            args: ["Hello World!"]
-    }}
+  jobs:
+  - name: hello-world-job
+    plan:
+    - get: every-1min
+      trigger: true   # tell Concourse to trigger this job when new versions are emitted
+    - task: hello-world-task
+      config:
+        platform: linux
+        image_resource:
+          type: registry-image
+          source:
+            repository: busybox
+        run:
+          path: echo
+          args: ["Hello World!"]
+  }}
 
-    Let's set our pipeline and watch it automatically trigger from the
-    \link{web UI}{http://localhost:8080/teams/main/pipelines/hello-world}.
+  Let's set our pipeline and watch it automatically trigger from the
+  \link{web UI}{http://localhost:8080/teams/main/pipelines/hello-world}.
 
-    \codeblock{}{{
-    $ fly -t tutorial set-pipeline -p hello-world -c hello-world.yml
-    }}
+  \codeblock{}{{
+  $ fly -t tutorial set-pipeline -p hello-world -c hello-world.yml
+  }}
 
-    \image{images/tutorial/hello-world-trigger-job.png}
+  \image{images/tutorial/hello-world-trigger-job.png}
 
-    If you \link{click the
-    resource}{http://localhost:8080/teams/main/pipelines/hello-world/resources/every-1min}
-    you'll see a list of the versions that it has emitted so far. You can
-    expand each version to see which build it was used in.
+  If you \link{click the
+  resource}{http://localhost:8080/teams/main/pipelines/hello-world/resources/every-1min}
+  you'll see a list of the versions that it has emitted so far. You can
+  expand each version to see which build it was used in.
 }
 
 \section{
-    \title{Get Steps and Inputs}
+  \title{Get Steps and Inputs}
 
-    Let's tie together two concepts that we've learned so far.
-    \reference{get-step}{Get steps} and \reference{schema.task.inputs}{task
-    inputs}.
+  Let's tie together two concepts that we've learned so far.
+  \reference{get-step}{Get steps} and \reference{schema.task.inputs}{task
+  inputs}.
 
-    In the previous section we learned that task steps can specify
-    \reference{schema.task.outputs}{outputs} that other task steps can then
-    consume as \reference{schema.task.inputs}{inputs}. \reference{get-step}{Get
-    steps} also generate outputs that can then be consumed by tasks as
-    \reference{schema.task.inputs}{inputs}. \reference{get-step}{Get
-    steps} \bold{always generate output artifacts} based on their name.
+  In the previous section we learned that task steps can specify
+  \reference{schema.task.outputs}{outputs} that other task steps can then
+  consume as \reference{schema.task.inputs}{inputs}. \reference{get-step}{Get
+  steps} also generate outputs that can then be consumed by tasks as
+  \reference{schema.task.inputs}{inputs}. \reference{get-step}{Get
+  steps} \bold{always generate output artifacts} based on their name.
 
-    To find out the structure of the artifact generated by a \reference{get-step}
-    you will have to refer to the resource's documentation, which is usually in
-    its \code{README} in its git repository. The documentation for the \link{time
-    resource}{https://github.com/concourse/time-resource/#in-report-the-given-time}
-    tells us that the \code{in} script will store the give timestamp in a file
-    called \code{input}.
+  To find out the structure of the artifact generated by a \reference{get-step}
+  you will have to refer to the resource's documentation, which is usually in
+  its \code{README} in its git repository. The documentation for the \link{time
+  resource}{https://github.com/concourse/time-resource/#in-report-the-given-time}
+  tells us that the \code{in} script will store the give timestamp in a file
+  called \code{input}.
 
-    Let's add \code{every-1min} as an input to the \code{hello-world-task}. Let's also update the command the task runs to instead print the contents of the input from \code{every-1min}.
+  Let's add \code{every-1min} as an input to the \code{hello-world-task}. Let's also update the command the task runs to instead print the contents of the input from \code{every-1min}.
 
-    {-
-    TODO: eventually change this to print every-1min/timestamp
-    Currently waiting for this PR to be merged and released: https://github.com/concourse/time-resource/pull/61
-    -}
+  {-
+  TODO: eventually change this to print every-1min/timestamp
+  Currently waiting for this PR to be merged and released: https://github.com/concourse/time-resource/pull/61
+  -}
 
-    \codeblock{yaml}{{
-    resources:
-    - name: every-1min
-      type: time
-      source:
-        interval: 1m
+  \codeblock{yaml}{{
+  resources:
+  - name: every-1min
+    type: time
+    source:
+      interval: 1m
 
-    jobs:
-    - name: hello-world-job
-      plan:
-      - get: every-1min
-        trigger: true
-      - task: hello-world-task
-        config:
-          platform: linux
-          image_resource:
-            type: registry-image
-            source:
-              repository: busybox
-          inputs: # add the get step as an input to this task
-          - name: every-1min
-          run: # read the file from the get step
-            path: cat
-            args: ["every-1min/input"]
-    }}
+  jobs:
+  - name: hello-world-job
+    plan:
+    - get: every-1min
+      trigger: true
+    - task: hello-world-task
+      config:
+        platform: linux
+        image_resource:
+          type: registry-image
+          source:
+            repository: busybox
+        inputs: # add the get step as an input to this task
+        - name: every-1min
+        run: # read the file from the get step
+          path: cat
+          args: ["every-1min/input"]
+  }}
 
-    Set the pipeline and we'll manually trigger the job.
+  Set the pipeline and we'll manually trigger the job.
 
-    \codeblock{}{{{
-    $ fly -t tutorial set-pipeline -p hello-world -c hello-world.yml
-    $ fly -t tutorial trigger-job --job hello-world/hello-world-job --watch
-    started hello-world/hello-world-job #44
+  \codeblock{}{{{
+  $ fly -t tutorial set-pipeline -p hello-world -c hello-world.yml
+  $ fly -t tutorial trigger-job --job hello-world/hello-world-job --watch
+  started hello-world/hello-world-job #44
 
-    initializing
-    selected worker: d032d4471e67
-    running cat every-1min/input
-    {"source":{"interval":"1m0s","start":null,"stop":null,"days":null,"location":null},"version":{"time":"2021-04-09T22:47:07.4684812Z"}}
-    succeeded
-    }}}
+  initializing
+  selected worker: d032d4471e67
+  running cat every-1min/input
+  {"source":{"interval":"1m0s","start":null,"stop":null,"days":null,"location":null},"version":{"time":"2021-04-09T22:47:07.4684812Z"}}
+  succeeded
+  }}}
 
-    The job should finish successfully and print out the content from
-    \code{every-1min/input} which is a json string.
+  The job should finish successfully and print out the content from
+  \code{every-1min/input} which is a json string.
 }
 
 \section{
@@ -400,6 +400,57 @@
   id   name                            status     start
   106  hello-world/every-1min/check    succeeded  2021-04-10@12:00:20-0400
   }}
+}
 
+\section{
+  \title{Put Steps}
 
+  The last piece of the resource interface is \reference{put-step}{put steps}.
+  Put steps are generally for pushing some change to the external system or
+  object the resource represents. What this means will vary by resource, so
+  again, you should carefully read the documentation for the specific resource
+  you are using. Each resource is basically its own little application.
+
+  Let's add a \reference{put-step} to our \code{hello-world.yml} pipeline.
+  \codeblock{yaml}{{
+  resources:
+  - name: every-1min
+    type: time
+    source:
+      interval: 1m
+
+  jobs:
+  - name: hello-world-job
+    plan:
+    - get: every-1min
+      trigger: true
+    - task: hello-world-task
+      config:
+        platform: linux
+        image_resource:
+          type: registry-image
+          source:
+            repository: busybox
+        inputs:
+        - name: every-1min
+        run:
+          path: cat
+          args: ["every-1min/input"]
+    # add a put step to the end of the job
+    - put: every-1min
+  }}
+
+  Set the pipeline and let's watch it trigger and run from the \link{web
+  UI}{http://localhost:8080/teams/main/pipelines/hello-world}
+
+  \codeblock{}{{
+  $ fly -t tutorial set-pipeline -p hello-world -c hello-world.yml
+  }}
+
+  You'll notice that now the \code{every-1min} resource appears on the left and
+  right sides of the \code{hello-world-job}. This is how Concourse represents
+  resources that are used in \reference{get-step}{get} and
+  \reference{put-step}{put} steps within a job.
+
+  huh weird, ended up in a loop where which put triggered a new build for the same job... I thought that wasn't possible?
 }
