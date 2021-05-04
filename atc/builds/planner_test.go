@@ -100,6 +100,23 @@ var factoryTests = []PlannerTest{
 				"timeout": "1h",
 				"image": {
 					"base_type": "some-base-resource-type",
+					"check_plan": {
+						"id": "1/image-check",
+						"check": {
+							"name": "some-resource-type",
+							"type": "some-base-resource-type",
+							"source": {
+								 "some": "type-source"
+							},
+							"image": {
+								"base_type": "some-base-resource-type"
+							},
+							"tags": [
+								 "tag-1",
+								 "tag-2"
+							]
+						}
+					},
 					"get_plan": {
 						"id": "1/image-get",
 						"get": {
@@ -111,9 +128,7 @@ var factoryTests = []PlannerTest{
 							"image": {
 								"base_type": "some-base-resource-type"
 							},
-							"version": {
-								 "some": "type-version"
-							},
+							"version_from": "1/image-check",
 							"tags": [
 								 "tag-1",
 								 "tag-2"
@@ -126,96 +141,6 @@ var factoryTests = []PlannerTest{
 	},
 	{
 		Title: "get step with nested resource type",
-		Config: &atc.GetStep{
-			Name:     "some-name",
-			Resource: "some-child-resource",
-			Params:   atc.Params{"some": "params"},
-			Version:  &atc.VersionConfig{Pinned: atc.Version{"doesnt": "matter"}},
-			Tags:     atc.Tags{"tag-1", "tag-2"},
-		},
-		Inputs: []db.BuildInput{
-			{
-				Name:    "some-name",
-				Version: atc.Version{"some": "version"},
-			},
-		},
-		CompareIDs: true,
-		OverwriteResourceTypes: atc.VersionedResourceTypes{
-			{
-				ResourceType: atc.ResourceType{
-					Name:   "some-child-resource-type",
-					Type:   "some-resource-type",
-					Source: atc.Source{"some": "child-source"},
-				},
-				Version: atc.Version{"some": "child-version"},
-			},
-			{
-				ResourceType: atc.ResourceType{
-					Name:   "some-resource-type",
-					Type:   "some-base-resource-type",
-					Source: atc.Source{"some": "type-source"},
-				},
-				Version: atc.Version{"some": "type-version"},
-			},
-		},
-		PlanJSON: `{
-			"id": "1",
-			"get": {
-				"name": "some-name",
-				"type": "some-child-resource-type",
-				"resource": "some-child-resource",
-				"source": {"some":"child-source"},
-				"params": {"some":"params"},
-				"version": {"some":"version"},
-				"tags": ["tag-1", "tag-2"],
-				"image": {
-					"base_type": "some-base-resource-type",
-					"get_plan": {
-						"id": "1/image-get",
-						"get": {
-							"name": "some-child-resource-type",
-							"type": "some-resource-type",
-							"source": {
-								 "some": "child-source"
-							},
-							"image": {
-								"base_type": "some-base-resource-type",
-								"get_plan": {
-									"id": "1/image-get/image-get",
-									"get": {
-										"name": "some-resource-type",
-										"type": "some-base-resource-type",
-										"source": {
-											 "some": "type-source"
-										},
-										"image": {
-											"base_type": "some-base-resource-type"
-										},
-										"version": {
-											 "some": "type-version"
-										},
-										"tags": [
-											 "tag-1",
-											 "tag-2"
-										]
-									}
-								}
-							},
-							"version": {
-								 "some": "child-version"
-							},
-							"tags": [
-								 "tag-1",
-								 "tag-2"
-							]
-						}
-					}
-				}
-			}
-		}`,
-	},
-	{
-		Title: "get step with nested resource type and no version",
 		Config: &atc.GetStep{
 			Name:     "some-name",
 			Resource: "some-child-resource",
@@ -280,8 +205,23 @@ var factoryTests = []PlannerTest{
 										"image": {
 											"base_type": "some-base-resource-type"
 										},
-										"version": {
-											 "some": "type-version"
+										"version_from": "1/image-check/image-check",
+										"tags": [
+											 "tag-1",
+											 "tag-2"
+										]
+									}
+								},
+								"check_plan": {
+									"id": "1/image-check/image-check",
+									"check": {
+										"name": "some-resource-type",
+										"type": "some-base-resource-type",
+										"source": {
+											"some": "type-source"
+										},
+										"image": {
+											"base_type": "some-base-resource-type"
 										},
 										"tags": [
 											 "tag-1",
@@ -306,6 +246,23 @@ var factoryTests = []PlannerTest{
 							},
 							"image": {
 								"base_type": "some-base-resource-type",
+								"check_plan": {
+									"id": "1/image-get/image-check",
+									"check": {
+										"name": "some-resource-type",
+										"type": "some-base-resource-type",
+										"source": {
+											"some": "type-source"
+										},
+										"image": {
+											"base_type": "some-base-resource-type"
+										},
+										"tags": [
+											 "tag-1",
+											 "tag-2"
+										]
+									}
+								},
 								"get_plan": {
 									"id": "1/image-get/image-get",
 									"get": {
@@ -317,9 +274,7 @@ var factoryTests = []PlannerTest{
 										"image": {
 											"base_type": "some-base-resource-type"
 										},
-										"version": {
-											 "some": "type-version"
-										},
+										"version_from": "1/image-get/image-check",
 										"tags": [
 											 "tag-1",
 											 "tag-2"
@@ -397,6 +352,23 @@ var factoryTests = []PlannerTest{
 							"image": {
 								"privileged": true,
 								"base_type": "some-base-resource-type",
+								"check_plan": {
+									"id": "1/image-check/image-check",
+									"check": {
+										"name": "some-resource-type",
+										"type": "some-base-resource-type",
+										"source": {
+											"some": "type-source"
+										},
+										"image": {
+											"base_type": "some-base-resource-type"
+										},
+										"tags": [
+											 "tag-1",
+											 "tag-2"
+										]
+									}
+								},
 								"get_plan": {
 									"id": "1/image-check/image-get",
 									"get": {
@@ -408,9 +380,7 @@ var factoryTests = []PlannerTest{
 										"image": {
 											"base_type": "some-base-resource-type"
 										},
-										"version": {
-											 "some": "type-version"
-										},
+										"version_from": "1/image-check/image-check",
 										"tags": [
 											 "tag-1",
 											 "tag-2"
@@ -435,6 +405,23 @@ var factoryTests = []PlannerTest{
 							"image": {
 								"privileged": true,
 								"base_type": "some-base-resource-type",
+								"check_plan": {
+									"id": "1/image-get/image-check",
+									"check": {
+										"name": "some-resource-type",
+										"type": "some-base-resource-type",
+										"source": {
+											"some": "type-source"
+										},
+										"image": {
+											"base_type": "some-base-resource-type"
+										},
+										"tags": [
+											 "tag-1",
+											 "tag-2"
+										]
+									}
+								},
 								"get_plan": {
 									"id": "1/image-get/image-get",
 									"get": {
@@ -446,91 +433,13 @@ var factoryTests = []PlannerTest{
 										"image": {
 											"base_type": "some-base-resource-type"
 										},
-										"version": {
-											 "some": "type-version"
-										},
+										"version_from": "1/image-get/image-check",
 										"tags": [
 											 "tag-1",
 											 "tag-2"
 										]
 									}
 								}
-							},
-							"version_from": "1/image-check",
-							"tags": [
-								 "tag-1",
-								 "tag-2"
-							]
-						}
-					}
-				}
-			}
-		}`,
-	},
-	{
-		Title: "get step with no version for custom resource type",
-		Config: &atc.GetStep{
-			Name:     "some-name",
-			Resource: "some-resource",
-			Params:   atc.Params{"some": "params"},
-			Version:  &atc.VersionConfig{Pinned: atc.Version{"doesnt": "matter"}},
-			Tags:     atc.Tags{"tag-1", "tag-2"},
-		},
-		Inputs: []db.BuildInput{
-			{
-				Name:    "some-name",
-				Version: atc.Version{"some": "version"},
-			},
-		},
-		CompareIDs: true,
-		OverwriteResourceTypes: atc.VersionedResourceTypes{
-			{
-				ResourceType: atc.ResourceType{
-					Name:   "some-resource-type",
-					Type:   "some-base-resource-type",
-					Source: atc.Source{"some": "type-source"},
-				},
-			},
-		},
-		PlanJSON: `{
-			"id": "1",
-			"get": {
-				"name": "some-name",
-				"type": "some-resource-type",
-				"resource": "some-resource",
-				"source": {"some":"source"},
-				"params": {"some":"params"},
-				"version": {"some":"version"},
-				"tags": ["tag-1", "tag-2"],
-				"image": {
-					"base_type": "some-base-resource-type",
-					"check_plan": {
-						"id": "1/image-check",
-						"check": {
-							"name": "some-resource-type",
-							"type": "some-base-resource-type",
-							"source": {
-								 "some": "type-source"
-							},
-							"image": {
-								"base_type": "some-base-resource-type"
-							},
-							"tags": [
-								 "tag-1",
-								 "tag-2"
-							]
-						}
-					},
-					"get_plan": {
-						"id": "1/image-get",
-						"get": {
-							"name": "some-resource-type",
-							"type": "some-base-resource-type",
-							"source": {
-								 "some": "type-source"
-							},
-							"image": {
-								"base_type": "some-base-resource-type"
 							},
 							"version_from": "1/image-check",
 							"tags": [
@@ -683,6 +592,21 @@ var factoryTests = []PlannerTest{
 						"inputs": "all",
 						"image": {
 							"base_type": "some-base-resource-type",
+							"check_plan": {
+								"id": "1/image-check",
+								"check": {
+									"name": "some-resource-type",
+									"type": "some-base-resource-type",
+									"source": { "some": "type-source" },
+									"image": {
+										"base_type": "some-base-resource-type"
+									},
+									"tags": [
+										 "tag-1",
+										 "tag-2"
+									]
+								}
+							},
 							"get_plan": {
 								"id": "1/image-get",
 								"get": {
@@ -692,9 +616,7 @@ var factoryTests = []PlannerTest{
 									"image": {
 										"base_type": "some-base-resource-type"
 									},
-									"version": {
-										 "some": "type-version"
-									},
+									"version_from": "1/image-check",
 									"tags": [
 										 "tag-1",
 										 "tag-2"
@@ -719,6 +641,21 @@ var factoryTests = []PlannerTest{
 						"version_from": "1",
 						"image": {
 							"base_type": "some-base-resource-type",
+							"check_plan": {
+								"id": "2/image-check",
+								"check": {
+									"name": "some-resource-type",
+									"type": "some-base-resource-type",
+									"source": { "some": "type-source" },
+									"image": {
+										"base_type": "some-base-resource-type"
+									},
+									"tags": [
+										 "tag-1",
+										 "tag-2"
+									]
+								}
+							},
 							"get_plan": {
 								"id": "2/image-get",
 								"get": {
@@ -728,9 +665,7 @@ var factoryTests = []PlannerTest{
 									"image": {
 										"base_type": "some-base-resource-type"
 									},
-									"version": {
-										 "some": "type-version"
-									},
+									"version_from": "2/image-check",
 									"tags": [
 										 "tag-1",
 										 "tag-2"
@@ -782,6 +717,17 @@ var factoryTests = []PlannerTest{
 						"image": {
 							"base_type": "some-base-resource-type",
 							"privileged": true,
+							"check_plan": {
+								"id": "1/image-check",
+								"check": {
+									"name": "some-resource-type",
+									"type": "some-base-resource-type",
+									"source": { "some": "type-source" },
+									"image": {
+										"base_type": "some-base-resource-type"
+									}
+								}
+							},
 							"get_plan": {
 								"id": "1/image-get",
 								"get": {
@@ -791,9 +737,7 @@ var factoryTests = []PlannerTest{
 									"image": {
 										"base_type": "some-base-resource-type"
 									},
-									"version": {
-										 "some": "type-version"
-									}
+									"version_from": "1/image-check"
 								}
 							}
 						}
@@ -812,6 +756,17 @@ var factoryTests = []PlannerTest{
 						"image": {
 							"base_type": "some-base-resource-type",
 							"privileged": true,
+							"check_plan": {
+								"id": "2/image-check",
+								"check": {
+									"name": "some-resource-type",
+									"type": "some-base-resource-type",
+									"source": { "some": "type-source" },
+									"image": {
+										"base_type": "some-base-resource-type"
+									}
+								}
+							},
 							"get_plan": {
 								"id": "2/image-get",
 								"get": {
@@ -821,9 +776,7 @@ var factoryTests = []PlannerTest{
 									"image": {
 										"base_type": "some-base-resource-type"
 									},
-									"version": {
-										 "some": "type-version"
-									}
+									"version_from": "2/image-check"
 								}
 							}
 						}

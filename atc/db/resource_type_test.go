@@ -797,6 +797,7 @@ var _ = Describe("ResourceType", func() {
 			})
 
 			It("produces a check plan with privileged", func() {
+				checkPlanID := atc.PlanID("1/image-check")
 				expectedPlan := atc.Plan{
 					ID: atc.PlanID("1"),
 					Check: &atc.CheckPlan{
@@ -808,6 +809,17 @@ var _ = Describe("ResourceType", func() {
 						TypeImage: atc.TypeImage{
 							BaseType:   "some-base-resource-type",
 							Privileged: true,
+							CheckPlan: &atc.Plan{
+								ID: checkPlanID,
+								Check: &atc.CheckPlan{
+									Name:   "some-resource-type",
+									Type:   "some-base-resource-type",
+									Source: atc.Source{"some": "type-source"},
+									TypeImage: atc.TypeImage{
+										BaseType: "some-base-resource-type",
+									},
+								},
+							},
 							GetPlan: &atc.Plan{
 								ID: atc.PlanID("1/image-get"),
 								Get: &atc.GetPlan{
@@ -817,7 +829,7 @@ var _ = Describe("ResourceType", func() {
 									TypeImage: atc.TypeImage{
 										BaseType: "some-base-resource-type",
 									},
-									Version: &atc.Version{"some": "version"},
+									VersionFrom: &checkPlanID,
 								},
 							},
 						},

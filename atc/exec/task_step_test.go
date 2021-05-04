@@ -829,7 +829,7 @@ var _ = Describe("TaskStep", func() {
 					ImageArtifactSource: new(workerfakes.FakeStreamableArtifactSource),
 				}
 
-				fakeDelegate.FetchImageReturns(fakeImageSpec, nil, nil)
+				fakeDelegate.FetchImageReturns(fakeImageSpec, nil)
 			})
 
 			It("succeeds", func() {

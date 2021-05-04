@@ -136,7 +136,7 @@ var _ = Describe("CheckFactory", func() {
 					_, types, version, interval, defaults := fakeResource.CheckPlanArgsForCall(0)
 					Expect(version).To(Equal(atc.Version{"from": "version"}))
 					Expect(interval).To(Equal(defaultWebhookCheckInterval))
-					Expect(types).To(BeNil())
+					Expect(types).To(HaveLen(0))
 					Expect(defaults).To(BeEmpty())
 				})
 
@@ -162,7 +162,7 @@ var _ = Describe("CheckFactory", func() {
 					_, types, version, interval, defaults := fakeResource.CheckPlanArgsForCall(0)
 					Expect(version).To(Equal(atc.Version{"from": "version"}))
 					Expect(interval).To(Equal(42 * time.Second))
-					Expect(types).To(BeNil())
+					Expect(types).To(HaveLen(0))
 					Expect(defaults).To(BeEmpty())
 				})
 			})
