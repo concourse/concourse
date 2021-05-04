@@ -177,6 +177,29 @@ in a different way.
   }
 
   \section{
+    \title{\code{fly order-instanced-pipelines}}{fly-order-instanced-pipelines}
+
+    To configure the ordering of instanced pipelines within an individual instance group, run:
+
+    \codeblock{bash}{{
+    $ fly -t example order-instanced-pipelines \\
+        --group group \\
+        --pipeline key1:value1 \\
+        --pipeline key2:value2 \\
+        --pipeline key3:value3
+    }}
+
+    Note that this command only ensures that the given pipelines are in the given
+    order. If there are other pipelines that you haven't included in the command,
+    they may appear in-between, before, or after the given set.
+
+    \warn{
+      If you want to reorder pipelines outside of an individual instance
+      group, you should use the \reference{fly-order-pipelines} command.
+    }
+  }
+
+  \section{
     \title{Managing Jobs and Resources}{jobs-and-resources-instanced-pipelines}
 
     \reference{managing-jobs} and \reference{managing-resources} walk you
