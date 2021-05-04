@@ -13,30 +13,21 @@ around the world.
   \title{Where is everything?}
 
   \list{
-    The \link{Concourse repo}{https://github.com/concourse/concourse}, owned by
-    the \link{\bold{@maintainers}
-    team}{https://github.com/concourse/governance/blob/master/teams/maintainers.yml},
-    is where the main code lives, where the backlog is planned, and where bugs
-    are reported.
+    The \link{Concourse repo}{https://github.com/concourse/concourse} is where
+    the main code lives, where the backlog is planned, and where bugs are
+    reported. It is managed by the \team{maintainers}.
   }{
-    The \link{RFCs repo}{https://github.com/concourse/rfcs}, owned by the
-    \link{\bold{@core}
-    team}{https://github.com/concourse/governance/blob/master/teams/core.yml},
-    is where shiny new features are designed through collaborating in the open
-    and collecting feedback.
+    The \link{RFCs repo}{https://github.com/concourse/rfcs} is where shiny new
+    features are designed through collaborating in the open and collecting
+    feedback. It is managed by the \team{core}.
   }{
-    The \link{Governance repo}{https://github.com/concourse/governance} holds the
-    source of truth for the project's permission structure and lays the
+    The \link{Docs repo}{https://github.com/concourse/docs} is the source for
+    the website you're reading now! It is managed by the \team{community}.
+  }{
+    The \link{Governance repo}{https://github.com/concourse/governance} holds
+    the source of truth for the project's permission structure and lays the
     foundation for self-governing teams. It is managed jointly by the
-    \link{\bold{@community}
-    team}{https://github.com/concourse/governance/blob/master/teams/community.yml}
-    and the \link{\bold{@infrastructure}
-    team}{https://github.com/concourse/governance/blob/master/teams/community.yml}.
-  }{
-    The \link{Docs repo}{https://github.com/concourse/docs}, owned by the
-    \link{\bold{@community}
-    team}{https://github.com/concourse/governance/blob/master/teams/community.yml},
-    is the source for the website you're reading now!
+    \team{community} and the \team{infrastructure}.
   }{
     \link{GitHub Discussions}{https://github.com/concourse/concourse/discussions}
     are used for support, announcements, sharing ideas, and general discussion.

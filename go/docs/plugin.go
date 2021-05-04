@@ -203,6 +203,19 @@ func (p Plugin) Resource(name string) booklit.Content {
 	}
 }
 
+func (p Plugin) Team(name string) booklit.Content {
+	return booklit.Link{
+		Target: fmt.Sprintf("https://github.com/concourse/governance/blob/master/teams/%s.yml", name),
+		Content: booklit.Sequence{
+			booklit.Styled{
+				Style:   booklit.StyleBold,
+				Content: booklit.String(name),
+			},
+			booklit.String(" team"),
+		},
+	}
+}
+
 func (p Plugin) Diagram(path string, width string) booklit.Content {
 	return booklit.Styled{
 		Style:   "diagram",
