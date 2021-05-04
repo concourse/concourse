@@ -1,86 +1,56 @@
 <!--
-Hi there! Thanks for submitting a pull request to Concourse!
+Thanks for submitting a pull request to Concourse!
 
-The title of your pull request will be used to generate the release notes.
-Please provide a brief sentence that describes the PR, using the [imperative
-mood]. Please refrain from adding prefixes like 'feature:', and don't include a
-period at the end.
+If you haven't already, feel free to [add yourself] as a contributor so that
+you can add labels to your PR and re-trigger its builds if they fail.
 
-Examples: "Add feature to doohickey", "Fix panic during spline reticulation"
-
-We will edit the title if needed so don't worry about getting it perfect!
-
-To help us review your PR, please fill in the following information.
+Also check the [PR requirements] if you haven't already!
 -->
 
-[imperative mood]: https://chris.beams.io/posts/git-commit/#imperative
+[add yourself]: https://github.com/concourse/governance#individual-contributors
+[PR requirements]: https://github.com/concourse/concourse/blob/master/CONTRIBUTING.md#pull-request-requirements
 
-## What does this PR accomplish?
+## Changes proposed by this PR
+
+closes # <!-- remove if no existing issue -->
+
 <!--
-Choose all that apply.
-Also, mention the linked issue here.
-This will magically close the issue once the PR is merged.
--->
-Bug Fix | Feature | Documentation
-
-closes # .
-
-## Changes proposed by this PR:
-<!--
-Tell the reviewer What changed, Why, and How were you able to accomplish that?
+Summarize your changes as a checklist, leaving any unfinished work as unchecked
+items. Please include reasoning and key decisions to help the reviewer
+understand the changes.
 -->
 
-## Notes to reviewer:
+* [x] done
+* [ ] todo
+
+## Notes to reviewer
+
 <!--
-Leave a message to whoever is going to review this PR.
-Mainly, pointers to review the PR, and how they can test it.
+If needed, leave any special pointers for reviewing or testing your PR.
 -->
 
 ## Release Note
-<!--
-If needed, you can leave a list of detailed descriptions here which will be
-used to generate the release note for the next version of Concourse. The title
-of the PR will also be pulled into the release note.
 
-Example:
+<!--
+Your PR title will be directly included in the release notes when it ships in
+the next Concourse release. It should briefly describe the PR in [imperative
+mood]. Please refrain from adding prefixes like 'feature:', and don't include a
+period at the end.
+
+Within this section you may supply a list of extra information to include in
+the release notes in addition to the pull request title.
+
+Example title: Introduce new pipeline UI algorithm
+
+Example notes:
+
 * Reticulating splines is the new process Concourse uses to create the network
   of lines between jobs.
 * Combines many short lines and curves into a network of splines.
+
+If there are no additional notes necessary you may remove this entire section.
 -->
 
-* <!-- Release note here. Delete section if not needed. -->
+* <!-- remove if no additional notes needed -->
 
-## Contributor Checklist
-<!--
-Most of the PRs should have the following added to them,
-this doesn't apply to all PRs, so it is helpful to tell us what you did.
--->
-- [ ] Followed [Code of conduct], [Contributing Guide] & avoided [Anti-patterns]
-- [ ] [Signed] all commits
-- [ ] Added tests (Unit and/or Integration)
-- [ ] Updated [Documentation]
-- [ ] Added release note (Optional)
-
-[Code of Conduct]: https://github.com/concourse/concourse/blob/master/CODE_OF_CONDUCT.md
-[Contributing Guide]: https://github.com/concourse/concourse/blob/master/CONTRIBUTING.md
-[Anti-patterns]: https://github.com/concourse/concourse/wiki/Anti-Patterns
-[Signed]: https://help.github.com/en/github/authenticating-to-github/signing-commits
-[Documentation]: https://github.com/concourse/docs
-
-## Reviewer Checklist
-<!--
-This section is intended for the reviewers only, to track review
-progress.
--->
-- [ ] Code reviewed
-- [ ] Tests reviewed
-- [ ] Documentation reviewed
-- [ ] Release notes reviewed
-- [ ] PR acceptance performed
-- [ ] New config flags added? Ensure that they are added to the
-  [BOSH](https://github.com/concourse/concourse-bosh-release) and
-  [Helm](https://github.com/concourse/helm) packaging; otherwise, ignored for
-  the [integration
-  tests](https://github.com/concourse/ci/tree/master/tasks/scripts/check-distribution-env)
-  (for example, if they are Garden configs that are not displayed in the
-  `--help` text).
+[imperative mood]: https://chris.beams.io/posts/git-commit/#imperative

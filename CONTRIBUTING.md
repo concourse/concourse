@@ -46,7 +46,6 @@ Cheers! 🍻
 [concourse-discussions]: https://github.com/concourse/concourse/discussions
 [concourse-issues]: https://github.com/concourse/concourse/issues
 [concourse-prs]: https://github.com/concourse/concourse/pulls
-[docs]: https://github.com/concourse/docs
 [governance-core]: https://github.com/concourse/governance/blob/master/teams/core.yml
 [governance-maintainers]: https://github.com/concourse/governance/blob/master/teams/maintainers.yml
 [governance-register]: https://github.com/concourse/governance#individual-contributors
@@ -56,7 +55,6 @@ Cheers! 🍻
 [rfc-necessary]: https://github.com/concourse/rfcs#when-the-rfc-process-is-necessary
 [rfc-submit]: https://github.com/concourse/rfcs#submitting-an-rfc
 [rfcs]: https://github.com/concourse/rfcs
-
 
 ## Development process
 
@@ -68,23 +66,12 @@ Cheers! 🍻
 
 * Commit your changes and push them to a branch on your fork.
 
-  * Don't forget to write tests; pull requests without tests are unlikely to be
-    merged. For instruction on writing and running the various test suites, see
-    [Testing your changes](#testing-your-changes).
+  * Run [`goimports`](https://pkg.go.dev/golang.org/x/tools/cmd/goimports) to
+    ensure your code follows our code style guidelines.
 
-  * All commits must have a signature certifying agreement to the [DCO][dco].
-    For more information, see [Signing your work](#signing-your-work).
+    * *Optional: check out our [Go style guide][style-guide]!*
 
-  * Write release notes by adding onto the `latest.md` file in the
-    `release-notes/` directory! For formatting and style examples,
-    see previous release notes in the same directory.
-
-  * Run [goimports](https://pkg.go.dev/golang.org/x/tools/cmd/goimports)
-    to ensure your code follows our code style guidelines.
-
-  * *Optional: check out our [Go style guide][style-guide]!*
-
-* Putting this all together, here is a sample anatomy of an ideal commit:
+* Here is a sample anatomy of an ideal commit:
 
     ```
      i       ii         iii
@@ -109,10 +96,23 @@ Cheers! 🍻
 
 * When you're ready, [submit a pull request][how-to-pr]!
 
-  * You will be invited to join `Contributors` team under `Concourse` org on
-    Github. Upon accepting the invite you will be able to login to our CI and
-    manage the build of your pull request in
-    [PRs pipeline](https://ci.concourse-ci.org/teams/contributor/pipelines/prs).
+
+### Pull request requirements
+
+* As with any community interaction, you must follow the [Code of
+  Conduct][coc].
+
+* All changes must have adequate test coverage. For instruction on writing and
+  running the various test suites, see [Testing your
+  changes](#testing-your-changes).
+
+* All commits must have a signature certifying agreement to the [DCO][dco].
+  For more information, see [Signing your work](#signing-your-work). A check
+  for this will run automatically and prevent merging if it fails.
+
+* The [documentation][docs] should be updated (in a separate, linked PR), but
+  if you're not confident in your technical writing you may skip this step.
+
 
 ### Structure and Behaviour
 
@@ -121,13 +121,15 @@ sometimes complex changes cannot be avoided. To ease PR reviews, there are a few
 practices we've found helpful:
 
 * Focus your commits so that they only change a single component at a time.
+
 * Isolate [structure changes from behaviour changes][sb-changes] and label the
-commits appropriately - even better, batch commits of the same type into
-contiguous blocks.
-* Give clear prose justifications for your changes in the commit messages - it's
-not unusual that you do some digging to uncover the motivation for a change,
-but if you don't mention it in the commit message the diff can feel pretty
-opaque.
+  commits appropriately - even better, batch commits of the same type into
+  contiguous blocks.
+
+* Give clear prose justifications for your changes in the commit messages -
+  it's not unusual that you do some digging to uncover the motivation for a
+  change, but if you don't mention it in the commit message the diff can feel
+  pretty opaque.
 
 
 ## Development dependencies
@@ -759,12 +761,14 @@ If you forgot to add the signature, you can run `git commit --amend -s`. Note
 that you will have to force-push (`push -f`) after amending if you've already
 pushed commits without the signature.
 
-[discord]: https://discord.gg/MeRxXKW
+[concourse-helm-chart]: https://github.com/concourse/concourse-chart/blob/master/README.md
 [dco]: https://developercertificate.org
-[style-guide]: https://github.com/concourse/concourse/wiki/Concourse-Go-Style-Guide
+[coc]: https://github.com/concourse/concourse/blob/master/CODE_OF_CONDUCT.md
+[discord]: https://discord.gg/MeRxXKW
+[docs]: https://github.com/concourse/docs
+[fav-commit]: https://dhwthompson.com/2019/my-favourite-git-commit
+[helm-charts]: https://github.com/helm/charts/blob/master/README.md
 [how-to-fork]: https://help.github.com/articles/fork-a-repo/
 [how-to-pr]: https://help.github.com/articles/creating-a-pull-request-from-a-fork/
-[concourse-helm-chart]: https://github.com/concourse/concourse-chart/blob/master/README.md
-[helm-charts]: https://github.com/helm/charts/blob/master/README.md
-[fav-commit]: https://dhwthompson.com/2019/my-favourite-git-commit
 [sb-changes]: https://medium.com/@kentbeck_7670/bs-changes-e574bc396aaa
+[style-guide]: https://github.com/concourse/concourse/wiki/Concourse-Go-Style-Guide
