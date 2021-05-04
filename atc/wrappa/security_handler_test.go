@@ -40,7 +40,7 @@ var _ = Describe("SecurityHandler", func() {
 		Expect(rw.Header().Get("X-XSS-Protection")).To(Equal("1; mode=block"))
 		Expect(rw.Header().Get("X-Content-Type-Options")).To(Equal("nosniff"))
 		Expect(rw.Header().Get("X-Download-Options")).To(Equal("noopen"))
-		Expect(rw.Header().Get("Cache-Control")).To(Equal("private"))
+		Expect(rw.Header().Get("Cache-Control")).To(Equal("no-store, private"))
 	})
 
 	Context("when the X-Frame-Options is empty", func() {
