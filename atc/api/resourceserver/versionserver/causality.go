@@ -3,34 +3,50 @@ package versionserver
 import (
 	"encoding/json"
 	"net/http"
-	"strconv"
+	"strings"
 
 	"code.cloudfoundry.org/lager"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 )
 
 // IMPORTANT: This is not yet tested because it is not being used
 func (s *Server) GetCausality(pipeline db.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		versionID, err := strconv.Atoi(r.FormValue(":resource_version_id"))
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			return
+		logger := s.logger.Session("causality")
+
+		resourceName := r.FormValue(":resource_name")
+
+		fields := r.Form["filter"]
+		versionFilter := make(atc.Version)
+		for _, field := range fields {
+			vs := strings.SplitN(field, ":", 2)
+			if len(vs) == 2 {
+				versionFilter[vs[0]] = vs[1]
+			}
 		}
 
-		hLog := s.logger.Session("causality", lager.Data{
-			"version": versionID,
-		})
-
-		causality, err := pipeline.Causality(versionID)
+		resource, found, err := pipeline.Resource(resourceName)
 		if err != nil {
-			hLog.Error("failed-to-fetch", err)
+			logger.Error("failed-to-get-resource", err, lager.Data{"resource-name": resourceName})
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		hLog.Debug("fetched", lager.Data{"length": len(causality)})
+		if !found {
+			logger.Info("resource-not-found", lager.Data{"resource-name": resourceName})
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		// causality, err := pipeline.Causality(versionID)
+		causality, err := pipeline.CausalityV2(resource.ID(), versionFilter)
+		if err != nil {
+			logger.Error("failed-to-fetch", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 
 		w.Header().Set("Content-Type", "application/json")
 
