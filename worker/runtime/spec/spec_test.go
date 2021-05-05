@@ -418,27 +418,6 @@ func (s *SpecSuite) TestContainerSpec() {
 			},
 		},
 		{
-			desc: "env + default path",
-			gdn: garden.ContainerSpec{
-				Handle: "handle", RootFSPath: "raw:///rootfs",
-				Env: []string{"foo=bar"},
-			},
-			check: func(oci *specs.Spec) {
-				s.Equal([]string{"foo=bar", spec.Path}, oci.Process.Env)
-			},
-		},
-		{
-			desc: "env + default root path",
-			gdn: garden.ContainerSpec{
-				Handle: "handle", RootFSPath: "raw:///rootfs",
-				Env:        []string{"foo=bar"},
-				Privileged: true,
-			},
-			check: func(oci *specs.Spec) {
-				s.Equal([]string{"foo=bar", spec.SuperuserPath}, oci.Process.Env)
-			},
-		},
-		{
 			desc: "env with path already configured",
 			gdn: garden.ContainerSpec{
 				Handle: "handle", RootFSPath: "raw:///rootfs",

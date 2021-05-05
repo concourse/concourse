@@ -14,7 +14,12 @@ import (
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
-const GraceTimeKey = "garden.grace-time"
+const (
+	SuperuserPath = "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+	Path          = "PATH=/usr/local/bin:/usr/bin:/bin"
+
+	GraceTimeKey = "garden.grace-time"
+)
 
 type UserNotFoundError struct {
 	User string
@@ -340,7 +345,6 @@ func (c *Container) setupContainerdProcSpec(gdnProcSpec garden.ProcessSpec, cont
 	procSpec := containerSpec.Process
 
 	procSpec.Args = append([]string{gdnProcSpec.Path}, gdnProcSpec.Args...)
-	procSpec.Env = append(procSpec.Env, gdnProcSpec.Env...)
 
 	cwd := gdnProcSpec.Dir
 	if cwd == "" {
@@ -374,7 +378,17 @@ func (c *Container) setupContainerdProcSpec(gdnProcSpec garden.ProcessSpec, cont
 		setUserEnv := fmt.Sprintf("USER=%s", gdnProcSpec.User)
 		procSpec.Env = append(procSpec.Env, setUserEnv)
 	}
+
+	procSpec.Env = append(procSpec.Env, usersPath(procSpec.User.UID))
 	return *procSpec, nil
+}
+
+func usersPath(uid uint32) string {
+	if uid == 0 {
+		return SuperuserPath
+	}
+
+	return Path
 }
 
 // stdinWrapper will normally transparently pass Reads through to the underlying
