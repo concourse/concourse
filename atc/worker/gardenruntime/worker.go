@@ -82,20 +82,13 @@ func (worker *Worker) findOrCreateContainer(
 	metadata db.ContainerMetadata,
 	containerSpec runtime.ContainerSpec,
 ) (runtime.Container, []runtime.VolumeMount, error) {
-	var (
-		gardenContainer   gclient.Container
-		createdContainer  db.CreatedContainer
-		creatingContainer db.CreatingContainer
-		containerHandle   string
-		err               error
-	)
-
-	creatingContainer, createdContainer, err = worker.dbWorker.FindContainer(owner)
+	creatingContainer, createdContainer, err := worker.dbWorker.FindContainer(owner)
 	if err != nil {
 		return nil, nil, fmt.Errorf("find in db: %w", err)
 	}
 
 	// ensure either creatingContainer or createdContainer exists
+	var containerHandle string
 	if creatingContainer != nil {
 		containerHandle = creatingContainer.Handle()
 	} else if createdContainer != nil {
@@ -120,7 +113,7 @@ func (worker *Worker) findOrCreateContainer(
 
 	logger = logger.WithData(lager.Data{"container": containerHandle})
 
-	gardenContainer, err = worker.gardenClient.Lookup(containerHandle)
+	gardenContainer, err := worker.gardenClient.Lookup(containerHandle)
 	if err != nil {
 		if !errors.As(err, &garden.ContainerNotFoundError{}) {
 			logger.Error("failed-to-lookup-creating-container-in-garden", err)
