@@ -101,10 +101,6 @@ func (worker *Worker) findOrCreateContainer(
 		)
 		if err != nil {
 			logger.Error("failed-to-create-container-in-db", err)
-			if _, ok := err.(db.ContainerOwnerDisappearedError); ok {
-				return nil, nil, ErrResourceConfigCheckSessionExpired
-			}
-
 			return nil, nil, fmt.Errorf("create container: %w", err)
 		}
 		logger.Debug("created-creating-container-in-db")

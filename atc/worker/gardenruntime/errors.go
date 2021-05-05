@@ -5,7 +5,6 @@ import (
 	"fmt"
 )
 
-var ErrResourceConfigCheckSessionExpired = errors.New("no db container was found for owner")
 var ErrMissingVolume = errors.New("volume mounted to container is missing")
 var ErrBaseResourceTypeNotFound = errors.New("base resource type not found")
 var ErrUnsupportedResourceType = errors.New("unsupported resource type")
