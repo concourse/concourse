@@ -2,6 +2,7 @@ package worker_test
 
 import (
 	"context"
+	"io/ioutil"
 
 	"github.com/concourse/concourse/atc/compression"
 	"github.com/concourse/concourse/atc/runtime"
@@ -78,6 +79,36 @@ var _ = Describe("Streamer", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		Expect(baggageclaimVolume(dst)).To(grt.HaveContent(content))
+	})
+
+	Test("stream file from artifact", func() {
+		content := runtimetest.VolumeContent{
+			"file":        {Data: []byte("content 1")},
+			"folder/file": {Data: []byte("content 2")},
+		}
+		scenario := Setup(
+			workertest.WithWorkers(
+				grt.NewWorker("src-worker").
+					WithVolumesCreatedInDBAndBaggageclaim(
+						grt.NewVolume("src").WithContent(content),
+					),
+			),
+		)
+
+		streamer := worker.Streamer{
+			Compression: compression.NewGzipCompression(),
+		}
+
+		ctx := context.Background()
+		src := scenario.WorkerVolume("src-worker", "src")
+
+		stream, err := streamer.StreamFile(ctx, src, "folder/file")
+		Expect(err).ToNot(HaveOccurred())
+
+		fileContent, err := ioutil.ReadAll(stream)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(fileContent).To(Equal([]byte("content 2")))
 	})
 })
 

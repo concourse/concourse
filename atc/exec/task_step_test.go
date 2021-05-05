@@ -344,12 +344,12 @@ var _ = Describe("TaskStep", func() {
 		})
 
 		Context("when the configuration specifies paths for inputs", func() {
-			var inputArtifact *runtimetest.Volume
-			var otherInputArtifact *runtimetest.Volume
+			var input1 *runtimetest.Volume
+			var input2 *runtimetest.Volume
 
 			BeforeEach(func() {
-				inputArtifact = runtimetest.NewVolume("input1")
-				otherInputArtifact = runtimetest.NewVolume("input2")
+				input1 = runtimetest.NewVolume("input1")
+				input2 = runtimetest.NewVolume("input2")
 
 				taskPlan.Config.Inputs = []atc.TaskInputConfig{
 					{Name: "some-input", Path: "some-input-configured-path"},
@@ -359,18 +359,18 @@ var _ = Describe("TaskStep", func() {
 
 			Context("when all inputs are present", func() {
 				BeforeEach(func() {
-					repo.RegisterArtifact("some-input", inputArtifact)
-					repo.RegisterArtifact("some-other-input", otherInputArtifact)
+					repo.RegisterArtifact("some-input", input1)
+					repo.RegisterArtifact("some-other-input", input2)
 				})
 
 				It("configures the inputs for the containerSpec correctly", func() {
 					Expect(chosenContainer.Spec.Inputs).To(ConsistOf([]runtime.Input{
 						{
-							VolumeHandle:    "input1",
+							Volume:          input1,
 							DestinationPath: "some-artifact-root/some-input-configured-path",
 						},
 						{
-							VolumeHandle:    "input2",
+							Volume:          input2,
 							DestinationPath: "some-artifact-root/some-other-input",
 						},
 					}))
@@ -380,7 +380,7 @@ var _ = Describe("TaskStep", func() {
 
 			Context("when any of the inputs are missing", func() {
 				BeforeEach(func() {
-					repo.RegisterArtifact("some-input", inputArtifact)
+					repo.RegisterArtifact("some-input", input1)
 				})
 
 				It("returns a MissingInputsError", func() {
@@ -409,7 +409,7 @@ var _ = Describe("TaskStep", func() {
 				It("uses remapped input", func() {
 					Expect(chosenContainer.Spec.Inputs).To(ConsistOf([]runtime.Input{
 						{
-							VolumeHandle:    "input1",
+							Volume:          remappedInputArtifact,
 							DestinationPath: "some-artifact-root/remapped-input",
 						},
 					}))
@@ -443,11 +443,11 @@ var _ = Describe("TaskStep", func() {
 				It("runs successfully without the optional input", func() {
 					Expect(chosenContainer.Spec.Inputs).To(ConsistOf([]runtime.Input{
 						{
-							VolumeHandle:    "required1",
+							Volume:          requiredInputArtifact,
 							DestinationPath: "some-artifact-root/required-input",
 						},
 						{
-							VolumeHandle:    "optional2",
+							Volume:          optionalInput2Artifact,
 							DestinationPath: "some-artifact-root/optional-input-2",
 						},
 					}))
@@ -638,7 +638,7 @@ var _ = Describe("TaskStep", func() {
 
 				It("configures it in the containerSpec's ImageSpec", func() {
 					Expect(chosenContainer.Spec.ImageSpec).To(Equal(runtime.ImageSpec{
-						ImageVolume: "image-volume",
+						ImageVolume: imageVolume,
 					}))
 
 					expectWorkerSpecResourceTypeUnset()
@@ -657,7 +657,7 @@ var _ = Describe("TaskStep", func() {
 
 							It("still uses the image artifact", func() {
 								Expect(chosenContainer.Spec.ImageSpec).To(Equal(runtime.ImageSpec{
-									ImageVolume: "image-volume",
+									ImageVolume: imageVolume,
 								}))
 								expectWorkerSpecResourceTypeUnset()
 							})
@@ -675,7 +675,7 @@ var _ = Describe("TaskStep", func() {
 
 							It("still uses the image artifact", func() {
 								Expect(chosenContainer.Spec.ImageSpec).To(Equal(runtime.ImageSpec{
-									ImageVolume: "image-volume",
+									ImageVolume: imageVolume,
 								}))
 								expectWorkerSpecResourceTypeUnset()
 							})
@@ -707,7 +707,7 @@ var _ = Describe("TaskStep", func() {
 				}
 
 				fetchedImageSpec = runtime.ImageSpec{
-					ImageVolume: "some-volume",
+					ImageVolume: runtimetest.NewVolume("some-volume"),
 				}
 
 				fakeDelegate.FetchImageReturns(fetchedImageSpec, nil)

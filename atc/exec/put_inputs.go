@@ -124,7 +124,7 @@ func (i detectInputs) FindAll(artifacts *build.Repository) ([]runtime.Input, err
 
 func putInput(name build.ArtifactName, volume runtime.Volume) runtime.Input {
 	return runtime.Input{
-		VolumeHandle:    volume.Handle(),
+		Volume:          volume,
 		DestinationPath: filepath.Join(resource.ResourcesDir("put"), string(name)),
 	}
 }

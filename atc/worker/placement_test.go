@@ -45,15 +45,15 @@ var _ = Describe("Container Placement Strategies", func() {
 
 				Inputs: []runtime.Input{
 					{
-						VolumeHandle:    "input1",
+						Volume:          scenario.WorkerVolume("worker1", "input1"),
 						DestinationPath: "/input1",
 					},
 					{
-						VolumeHandle:    "input2",
+						Volume:          scenario.WorkerVolume("worker2", "input2"),
 						DestinationPath: "/input2",
 					},
 					{
-						VolumeHandle:    "input3",
+						Volume:          scenario.WorkerVolume("worker1", "input3"),
 						DestinationPath: "/input3",
 					},
 				},
@@ -85,11 +85,11 @@ var _ = Describe("Container Placement Strategies", func() {
 
 				Inputs: []runtime.Input{
 					{
-						VolumeHandle:    "input1",
+						Volume:          scenario.WorkerVolume("worker1", "input1"),
 						DestinationPath: "/input1",
 					},
 					{
-						VolumeHandle:    "input2",
+						Volume:          scenario.WorkerVolume("worker2", "input2"),
 						DestinationPath: "/input2",
 					},
 				},
@@ -133,11 +133,11 @@ var _ = Describe("Container Placement Strategies", func() {
 
 				Inputs: []runtime.Input{
 					{
-						VolumeHandle:    "input1",
+						Volume:          scenario.WorkerVolume("worker1", "input1"),
 						DestinationPath: "/input1",
 					},
 					{
-						VolumeHandle:    "input2",
+						Volume:          scenario.WorkerVolume("worker2", "input2"),
 						DestinationPath: "/input2",
 					},
 				},
@@ -181,11 +181,11 @@ var _ = Describe("Container Placement Strategies", func() {
 
 				Inputs: []runtime.Input{
 					{
-						VolumeHandle:    "input1",
+						Volume:          scenario.WorkerVolume("worker1", "input1"),
 						DestinationPath: "/input1",
 					},
 					{
-						VolumeHandle:    "input2",
+						Volume:          scenario.WorkerVolume("worker2", "input2"),
 						DestinationPath: "/input2",
 					},
 				},
@@ -219,7 +219,7 @@ var _ = Describe("Container Placement Strategies", func() {
 
 					Inputs: []runtime.Input{
 						{
-							VolumeHandle:    "input1",
+							Volume:          scenario.WorkerVolume("worker2", "input1"),
 							DestinationPath: "/input1",
 						},
 					},

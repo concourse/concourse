@@ -30,34 +30,33 @@ type Scenario struct {
 type SetupFunc func(*Scenario)
 
 func Setup(dbConn db.Conn, lockFactory lock.LockFactory, setup ...SetupFunc) *Scenario {
-	poolFactory := func(factory worker.Factory) worker.Pool {
-		return worker.Pool{
-			Factory: factory,
-			DB: worker.DB{
-				WorkerFactory:                 db.NewWorkerFactory(dbConn),
-				TeamFactory:                   db.NewTeamFactory(dbConn, lockFactory),
-				VolumeRepo:                    db.NewVolumeRepository(dbConn),
-				ResourceCacheFactory:          db.NewResourceCacheFactory(dbConn, lockFactory),
-				TaskCacheFactory:              db.NewTaskCacheFactory(dbConn),
-				WorkerTaskCacheFactory:        db.NewWorkerTaskCacheFactory(dbConn),
-				WorkerBaseResourceTypeFactory: db.NewWorkerBaseResourceTypeFactory(dbConn),
-				LockFactory:                   lockFactory,
-			},
-			WorkerVersion: version.MustNewVersionFromString(concourse.WorkerVersion),
-		}
-	}
+	db := worker.NewDB(
+		db.NewWorkerFactory(dbConn),
+		db.NewTeamFactory(dbConn, lockFactory),
+		db.NewVolumeRepository(dbConn),
+		db.NewTaskCacheFactory(dbConn),
+		db.NewWorkerTaskCacheFactory(dbConn),
+		db.NewResourceCacheFactory(dbConn, lockFactory),
+		db.NewWorkerBaseResourceTypeFactory(dbConn),
+		lockFactory,
+	)
+	factory := &Factory{DB: db}
+	pool := worker.NewPool(
+		factory,
+		db,
+		version.MustNewVersionFromString(concourse.WorkerVersion),
+	)
 	builder := dbtest.NewBuilder(dbConn, lockFactory)
-	return SetupWithPool(poolFactory, builder, setup...)
+	return setupWithPool(pool, factory, builder, setup...)
 }
 
-func SetupWithPool(poolFactory PoolFactory, builder dbtest.Builder, setup ...SetupFunc) *Scenario {
+func setupWithPool(pool worker.Pool, factory *Factory, builder dbtest.Builder, setup ...SetupFunc) *Scenario {
 	scenario := &Scenario{
 		DB:        dbtest.Setup(),
 		DBBuilder: builder,
-
-		Factory: &Factory{},
+		Factory:   factory,
 	}
-	scenario.Pool = poolFactory(scenario.Factory)
+	scenario.Pool = pool
 	scenario.Run(setup...)
 	return scenario
 }
@@ -109,7 +108,7 @@ func (s *Scenario) Team(name string) db.Team {
 func (s *Scenario) Worker(name string) runtime.Worker {
 	worker, found, err := s.Pool.FindWorker(dummyLogger, name)
 	Expect(err).ToNot(HaveOccurred())
-	Expect(found).To(BeTrue())
+	Expect(found).To(BeTrue(), "missing worker %q", name)
 	return worker
 }
 
@@ -117,7 +116,7 @@ func (s *Scenario) WorkerVolume(workerName string, handle string) runtime.Volume
 	worker := s.Worker(workerName)
 	volume, found, err := worker.LookupVolume(dummyLogger, handle)
 	Expect(err).ToNot(HaveOccurred())
-	Expect(found).To(BeTrue())
+	Expect(found).To(BeTrue(), "missing volume %q on worker %q", handle, workerName)
 	return volume
 }
 

@@ -3,13 +3,10 @@ package gardenruntime
 import (
 	"errors"
 	"fmt"
-
-	"github.com/concourse/concourse/atc/runtime"
 )
 
 var ErrResourceConfigCheckSessionExpired = errors.New("no db container was found for owner")
 var ErrMissingVolume = errors.New("volume mounted to container is missing")
-var ErrImageArtifactVolumeNotFound = errors.New("image artifact volume was not found")
 var ErrBaseResourceTypeNotFound = errors.New("base resource type not found")
 var ErrUnsupportedResourceType = errors.New("unsupported resource type")
 
@@ -37,12 +34,4 @@ type MountedVolumeMissingFromWorker struct {
 
 func (e MountedVolumeMissingFromWorker) Error() string {
 	return fmt.Sprintf("volume mounted to container is missing '%s' from worker '%s'", e.Handle, e.WorkerName)
-}
-
-type InputNotFoundError struct {
-	Input runtime.Input
-}
-
-func (e InputNotFoundError) Error() string {
-	return fmt.Sprintf("input '%s' (volume '%s') not found", e.Input.DestinationPath, e.Input.VolumeHandle)
 }

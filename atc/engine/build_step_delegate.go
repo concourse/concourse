@@ -334,13 +334,13 @@ func (delegate *buildStepDelegate) FetchImage(
 		return runtime.ImageSpec{}, fmt.Errorf("save image version: %w", err)
 	}
 
-	art, found := fetchState.ArtifactRepository().ArtifactFor(build.ArtifactName(imageName))
+	volume, found := fetchState.ArtifactRepository().ArtifactFor(build.ArtifactName(imageName))
 	if !found {
 		return runtime.ImageSpec{}, fmt.Errorf("fetched artifact not found")
 	}
 
 	return runtime.ImageSpec{
-		ImageVolume: art.Handle(),
+		ImageVolume: volume,
 		Privileged:  privileged,
 	}, nil
 }

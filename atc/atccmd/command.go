@@ -1168,25 +1168,28 @@ func (cmd *RunCommand) constructPool(dbConn db.Conn, lockFactory lock.LockFactor
 		return worker.Pool{}, err
 	}
 
-	return worker.Pool{
-		Factory: worker.DefaultFactory{
+	db := worker.NewDB(
+		dbWorkerFactory,
+		dbTeamFactory,
+		dbVolumeRepository,
+		dbTaskCacheFactory,
+		dbWorkerTaskCacheFactory,
+		dbResourceCacheFactory,
+		dbWorkerBaseResourceTypeFactory,
+		lockFactory,
+	)
+
+	return worker.NewPool(
+		worker.DefaultFactory{
+			DB:                                db,
 			GardenRequestTimeout:              cmd.GardenRequestTimeout,
 			BaggageclaimResponseHeaderTimeout: cmd.BaggageclaimResponseHeaderTimeout,
 			HTTPRetryTimeout:                  5 * time.Minute,
 			Compression:                       cmd.compression(),
 		},
-		DB: worker.NewDB(
-			dbWorkerFactory,
-			dbTeamFactory,
-			dbVolumeRepository,
-			dbTaskCacheFactory,
-			dbWorkerTaskCacheFactory,
-			dbResourceCacheFactory,
-			dbWorkerBaseResourceTypeFactory,
-			lockFactory,
-		),
-		WorkerVersion: workerVersion,
-	}, nil
+		db,
+		workerVersion,
+	), nil
 }
 
 func (cmd *RunCommand) gcComponents(

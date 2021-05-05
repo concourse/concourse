@@ -304,63 +304,53 @@ func (worker *Worker) createVolumeForTaskCache(
 		},
 	)
 }
-func (worker *Worker) locateVolumeOrLocalResourceCache(
+func (worker *Worker) volumeOrLocalResourceCache(
 	logger lager.Logger,
 	teamID int,
-	handle string,
-) (runtime.Volume, runtime.Worker, bool, error) {
+	volume runtime.Volume,
+) (runtime.Volume, error) {
 	logger = logger.Session("locate-volume-or-resource-cache", lager.Data{"worker": worker.Name()})
 
-	volume, srcWorker, found, err := worker.pool.LocateVolume(logger, teamID, handle)
-	if err != nil {
-		logger.Error("failed-to-locate-volume", err, lager.Data{"handle": handle})
-		return nil, nil, false, err
-	}
-	if !found {
-		logger.Debug("volume-not-found", lager.Data{"handle": handle})
-		return nil, nil, false, nil
-	}
-
-	if worker.Name() == srcWorker.Name() {
-		return volume, worker, true, nil
+	if volume.DBVolume().WorkerName() == worker.Name() {
+		return volume, nil
 	}
 
 	resourceCacheID := volume.DBVolume().GetResourceCacheID()
 	if resourceCacheID == 0 {
-		return volume, srcWorker, true, nil
+		return volume, nil
 	}
 
 	resourceCache, found, err := worker.db.ResourceCacheFactory.FindResourceCacheByID(resourceCacheID)
 	if err != nil {
 		logger.Error("failed-to-find-resource-cache-by-id", err, lager.Data{"resource-cache": resourceCacheID})
-		return nil, nil, false, err
+		return nil, err
 	}
 	if !found {
 		logger.Debug("resource-cache-not-found", lager.Data{"resource-cache": resourceCacheID})
-		return volume, srcWorker, true, nil
+		return volume, nil
 	}
 
 	dbCacheVolume, found, err := worker.db.VolumeRepo.FindResourceCacheVolume(worker.Name(), resourceCache)
 	if err != nil {
 		logger.Error("failed-to-find-resource-cache-volume", err, lager.Data{"resource-cache": resourceCacheID})
-		return nil, nil, false, err
+		return nil, err
 	}
 	if !found {
 		logger.Info("resource-cache-volume-disappeared-from-worker", lager.Data{"resource-cache": resourceCacheID})
-		return volume, srcWorker, true, nil
+		return volume, nil
 	}
 
 	bcCacheVolume, found, err := worker.bcClient.LookupVolume(logger, dbCacheVolume.Handle())
 	if err != nil {
 		logger.Error("failed-to-lookup-volume-in-bc", err)
-		return nil, nil, false, err
+		return nil, err
 	}
 
 	if !found {
-		return volume, srcWorker, true, nil
+		return volume, nil
 	}
 
-	return worker.newVolume(bcCacheVolume, dbCacheVolume), worker, true, nil
+	return worker.newVolume(bcCacheVolume, dbCacheVolume), nil
 }
 
 func (worker *Worker) findOrCreateVolumeForResourceCerts(logger lager.Logger) (Volume, bool, error) {

@@ -16,6 +16,7 @@ import (
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/policy/policyfakes"
 	"github.com/concourse/concourse/atc/runtime"
+	"github.com/concourse/concourse/atc/runtime/runtimetest"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/vars"
 )
@@ -151,7 +152,7 @@ func containerSpecDummy() runtime.ContainerSpec {
 	return runtime.ContainerSpec{
 		TeamID: 123,
 		ImageSpec: runtime.ImageSpec{
-			ImageVolume: "some-volume",
+			ImageVolume: runtimetest.NewVolume("some-volume"),
 			Privileged:  false,
 		},
 		Limits: runtime.ContainerLimits{

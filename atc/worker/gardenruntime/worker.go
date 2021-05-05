@@ -21,17 +21,12 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-type Pool interface {
-	LocateVolume(logger lager.Logger, teamID int, handle string) (runtime.Volume, runtime.Worker, bool, error)
-}
-
 type Streamer interface {
 	Stream(ctx context.Context, srcWorker string, src runtime.Volume, dst runtime.Volume) error
 	StreamFile(ctx context.Context, src runtime.Volume, path string) (io.ReadCloser, error)
 }
 
 type Worker struct {
-	pool     Pool
 	streamer Streamer
 
 	dbWorker     db.Worker
@@ -50,9 +45,8 @@ type DB struct {
 	LockFactory                   lock.LockFactory
 }
 
-func NewWorker(dbWorker db.Worker, gardenClient gclient.Client, bcClient baggageclaim.Client, db DB, pool Pool, streamer Streamer) *Worker {
+func NewWorker(dbWorker db.Worker, gardenClient gclient.Client, bcClient baggageclaim.Client, db DB, streamer Streamer) *Worker {
 	return &Worker{
-		pool:     pool,
 		streamer: streamer,
 
 		dbWorker:     dbWorker,
@@ -409,18 +403,16 @@ func (worker *Worker) cloneInputVolumes(
 	var remoteInputs []mountableRemoteInput
 
 	for _, input := range spec.Inputs {
-		volume, srcWorker, found, err := worker.locateVolumeOrLocalResourceCache(logger, spec.TeamID, input.VolumeHandle)
+		volume, err := worker.volumeOrLocalResourceCache(logger, spec.TeamID, input.Volume)
 		if err != nil {
 			return nil, nil, err
-		}
-		if !found {
-			return nil, nil, InputNotFoundError{Input: input}
 		}
 
 		cleanedInputPath := filepath.Clean(input.DestinationPath)
 		inputDestinationPaths[cleanedInputPath] = true
 
-		if worker.Name() == srcWorker.Name() {
+		srcWorker := volume.DBVolume().WorkerName()
+		if srcWorker == worker.Name() {
 			localInputs = append(localInputs, mountableLocalInput{
 				cowParent: volume.(Volume),
 				mountPath: input.DestinationPath,
@@ -428,7 +420,7 @@ func (worker *Worker) cloneInputVolumes(
 		} else {
 			remoteInputs = append(remoteInputs, mountableRemoteInput{
 				volume:    volume,
-				srcWorker: srcWorker.Name(),
+				srcWorker: srcWorker,
 				mountPath: input.DestinationPath,
 			})
 		}
@@ -633,8 +625,8 @@ func (worker *Worker) cloneCacheVolumes(
 		}
 
 		mounts[i] = runtime.VolumeMount{
-			MountPath: mountPath,
 			Volume:    mountedVolume,
+			MountPath: mountPath,
 		}
 	}
 

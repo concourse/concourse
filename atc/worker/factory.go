@@ -16,23 +16,25 @@ import (
 )
 
 type Factory interface {
-	NewWorker(lager.Logger, Pool, db.Worker) runtime.Worker
+	NewWorker(lager.Logger, db.Worker) runtime.Worker
 }
 
 type DefaultFactory struct {
+	DB DB
+
 	GardenRequestTimeout              time.Duration
 	BaggageclaimResponseHeaderTimeout time.Duration
 	HTTPRetryTimeout                  time.Duration
 	Compression                       compression.Compression
 }
 
-func (f DefaultFactory) NewWorker(logger lager.Logger, pool Pool, dbWorker db.Worker) runtime.Worker {
-	return f.newGardenWorker(logger, pool, dbWorker)
+func (f DefaultFactory) NewWorker(logger lager.Logger, dbWorker db.Worker) runtime.Worker {
+	return f.newGardenWorker(logger, dbWorker)
 }
 
-func (f DefaultFactory) newGardenWorker(logger lager.Logger, pool Pool, dbWorker db.Worker) *gardenruntime.Worker {
+func (f DefaultFactory) newGardenWorker(logger lager.Logger, dbWorker db.Worker) *gardenruntime.Worker {
 	gcf := gclient.NewGardenClientFactory(
-		pool.DB.WorkerFactory,
+		f.DB.WorkerFactory,
 		logger.Session("garden-connection"),
 		dbWorker.Name(),
 		dbWorker.GardenAddr(),
@@ -43,7 +45,7 @@ func (f DefaultFactory) newGardenWorker(logger lager.Logger, pool Pool, dbWorker
 	bcClient := bclient.New("", transport.NewBaggageclaimRoundTripper(
 		dbWorker.Name(),
 		dbWorker.BaggageclaimURL(),
-		pool.DB.WorkerFactory,
+		f.DB.WorkerFactory,
 		&http.Transport{
 			DisableKeepAlives:     true,
 			ResponseHeaderTimeout: f.BaggageclaimResponseHeaderTimeout,
@@ -54,8 +56,7 @@ func (f DefaultFactory) newGardenWorker(logger lager.Logger, pool Pool, dbWorker
 		dbWorker,
 		gClient,
 		bcClient,
-		pool.DB.ToGardenRuntimeDB(),
-		pool,
+		f.DB.ToGardenRuntimeDB(),
 		Streamer{Compression: f.Compression},
 	)
 }

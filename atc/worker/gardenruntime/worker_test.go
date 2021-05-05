@@ -332,7 +332,7 @@ var _ = Describe("Garden Worker", func() {
 			db.ContainerMetadata{},
 			runtime.ContainerSpec{
 				ImageSpec: runtime.ImageSpec{
-					ImageVolume: imageVolume.Handle(),
+					ImageVolume: scenario.WorkerVolume("worker", imageVolume.Handle()),
 				},
 				Env: []string{"A=b"},
 			},
@@ -419,7 +419,7 @@ var _ = Describe("Garden Worker", func() {
 			db.ContainerMetadata{},
 			runtime.ContainerSpec{
 				ImageSpec: runtime.ImageSpec{
-					ImageVolume: "remote-volume",
+					ImageVolume: scenario.WorkerVolume("worker2", "remote-volume"),
 				},
 			},
 		)
@@ -467,7 +467,7 @@ var _ = Describe("Garden Worker", func() {
 			db.ContainerMetadata{},
 			runtime.ContainerSpec{
 				ImageSpec: runtime.ImageSpec{
-					ImageVolume: imageVolume.Handle(),
+					ImageVolume: scenario.WorkerVolume("worker2", imageVolume.Handle()),
 				},
 			},
 		)
@@ -549,15 +549,15 @@ var _ = Describe("Garden Worker", func() {
 				Dir: "/workdir",
 				Inputs: []runtime.Input{
 					{
-						VolumeHandle:    localInputVolume1.Handle(),
+						Volume:          scenario.WorkerVolume("worker1", localInputVolume1.Handle()),
 						DestinationPath: "/local-input",
 					},
 					{
-						VolumeHandle:    localInputVolume2.Handle(),
+						Volume:          scenario.WorkerVolume("worker1", localInputVolume2.Handle()),
 						DestinationPath: "/local-input/sub-input",
 					},
 					{
-						VolumeHandle:    remoteInputVolume.Handle(),
+						Volume:          scenario.WorkerVolume("worker2", remoteInputVolume.Handle()),
 						DestinationPath: "/remote-input",
 					},
 				},
@@ -634,7 +634,7 @@ var _ = Describe("Garden Worker", func() {
 				Dir: "/workdir",
 				Inputs: []runtime.Input{
 					{
-						VolumeHandle:    "remote-volume",
+						Volume:          scenario.WorkerVolume("worker2", "remote-volume"),
 						DestinationPath: "/input",
 					},
 				},
@@ -672,7 +672,7 @@ var _ = Describe("Garden Worker", func() {
 				Dir: "/workdir",
 				Inputs: []runtime.Input{
 					{
-						VolumeHandle:    localInputVolume.Handle(),
+						Volume:          scenario.WorkerVolume("worker", localInputVolume.Handle()),
 						DestinationPath: "/workdir",
 					},
 				},
@@ -852,12 +852,12 @@ var _ = Describe("Garden Worker", func() {
 
 				Dir: "/workdir",
 				ImageSpec: runtime.ImageSpec{
-					ImageVolume: imageVolume.Handle(),
+					ImageVolume: scenario.WorkerVolume("worker", imageVolume.Handle()),
 					Privileged:  true,
 				},
 				Inputs: []runtime.Input{
 					{
-						VolumeHandle:    inputVolume.Handle(),
+						Volume:          scenario.WorkerVolume("worker", inputVolume.Handle()),
 						DestinationPath: "/input",
 					},
 				},
@@ -918,12 +918,12 @@ var _ = Describe("Garden Worker", func() {
 
 				Dir: "/workdir",
 				ImageSpec: runtime.ImageSpec{
-					ImageVolume: imageVolume.Handle(),
+					ImageVolume: scenario.WorkerVolume("worker", imageVolume.Handle()),
 					Privileged:  false,
 				},
 				Inputs: []runtime.Input{
 					{
-						VolumeHandle:    inputVolume.Handle(),
+						Volume:          scenario.WorkerVolume("worker", inputVolume.Handle()),
 						DestinationPath: "/input",
 					},
 				},
@@ -953,34 +953,6 @@ var _ = Describe("Garden Worker", func() {
 				"/etc/ssl/certs": Not(grt.BePrivileged()),
 			}))
 		})
-	})
-
-	Test("missing input volume", func() {
-		scenario := Setup(
-			workertest.WithWorkers(
-				grt.NewWorker("worker"),
-			),
-		)
-		worker := scenario.Worker("worker")
-
-		_, _, err := worker.FindOrCreateContainer(
-			ctx,
-			db.NewFixedHandleContainerOwner("my-handle"),
-			db.ContainerMetadata{},
-			runtime.ContainerSpec{
-				ImageSpec: runtime.ImageSpec{
-					ImageURL: "raw:///img/rootfs",
-				},
-				Dir: "/workdir",
-				Inputs: []runtime.Input{
-					{
-						VolumeHandle:    "missing-volume",
-						DestinationPath: "/volume",
-					},
-				},
-			},
-		)
-		Expect(err).To(MatchError(MatchRegexp(`input .* not found`)))
 	})
 
 	Test("container volume creating, but not in baggageclaim", func() {

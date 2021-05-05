@@ -351,7 +351,7 @@ var _ = Describe("GetStep", func() {
 			getPlan.Type = "some-custom-type"
 
 			fetchedImageSpec = runtime.ImageSpec{
-				ImageVolume: "some-volume",
+				ImageVolume: runtimetest.NewVolume("some-volume"),
 			}
 
 			fakeDelegate.FetchImageReturns(fetchedImageSpec, nil)

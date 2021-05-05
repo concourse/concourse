@@ -141,26 +141,18 @@ func (strategy volumeLocalityStrategy) Order(logger lager.Logger, pool Pool, wor
 
 	for _, input := range spec.Inputs {
 		logger := logger.WithData(lager.Data{
-			"handle": input.VolumeHandle,
+			"handle": input.Volume.Handle(),
 			"path":   input.DestinationPath,
 		})
-		volume, srcWorker, found, err := pool.LocateVolume(logger, spec.TeamID, input.VolumeHandle)
-		if err != nil {
-			logger.Error("failed-to-locate-volume", err)
-			return nil, err
-		}
-		if !found {
-			logger.Info("input-volume-not-found")
-			continue
-		}
-		counts[srcWorker.Name()]++
+		srcWorker := input.Volume.DBVolume().WorkerName()
+		counts[srcWorker]++
 
-		resourceCacheID := volume.DBVolume().GetResourceCacheID()
+		resourceCacheID := input.Volume.DBVolume().GetResourceCacheID()
 		if resourceCacheID == 0 {
 			logger.Debug("resource-not-cached")
 			continue
 		}
-		resourceCache, found, err := pool.DB.ResourceCacheFactory.FindResourceCacheByID(resourceCacheID)
+		resourceCache, found, err := pool.db.ResourceCacheFactory.FindResourceCacheByID(resourceCacheID)
 		if err != nil {
 			logger.Error("failed-to-find-resource-cache", err)
 			return nil, err
@@ -170,10 +162,10 @@ func (strategy volumeLocalityStrategy) Order(logger lager.Logger, pool Pool, wor
 			continue
 		}
 		for _, worker := range workers {
-			if worker.Name() == srcWorker.Name() {
+			if worker.Name() == srcWorker {
 				continue
 			}
-			_, found, err := pool.DB.VolumeRepo.FindResourceCacheVolume(worker.Name(), resourceCache)
+			_, found, err := pool.db.VolumeRepo.FindResourceCacheVolume(worker.Name(), resourceCache)
 			if err != nil {
 				logger.Error("failed-to-find-resource-cache-volume", err)
 				return nil, err
@@ -186,7 +178,7 @@ func (strategy volumeLocalityStrategy) Order(logger lager.Logger, pool Pool, wor
 
 	for _, cachePath := range spec.Caches {
 		logger := logger.WithData(lager.Data{"cache": cachePath})
-		usedTaskCache, found, err := pool.DB.TaskCacheFactory.Find(spec.JobID, spec.StepName, cachePath)
+		usedTaskCache, found, err := pool.db.TaskCacheFactory.Find(spec.JobID, spec.StepName, cachePath)
 		if err != nil {
 			logger.Error("failed-to-find-task-cache", err)
 			return nil, err
@@ -197,7 +189,7 @@ func (strategy volumeLocalityStrategy) Order(logger lager.Logger, pool Pool, wor
 		}
 
 		for _, worker := range workers {
-			_, found, err := pool.DB.VolumeRepo.FindTaskCacheVolume(spec.TeamID, worker.Name(), usedTaskCache)
+			_, found, err := pool.db.VolumeRepo.FindTaskCacheVolume(spec.TeamID, worker.Name(), usedTaskCache)
 			if err != nil {
 				logger.Error("failed-to-find-task-cache-volume", err)
 				return nil, err

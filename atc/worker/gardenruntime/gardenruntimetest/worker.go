@@ -58,13 +58,12 @@ func (w *Worker) Setup(s *workertest.Scenario) {
 	}
 }
 
-func (w Worker) Build(pool worker.Pool, dbWorker db.Worker) runtime.Worker {
+func (w Worker) Build(db worker.DB, dbWorker db.Worker) runtime.Worker {
 	return gardenruntime.NewWorker(
 		dbWorker,
 		&Garden{ContainerList: w.Containers},
 		&Baggageclaim{Volumes: w.Volumes},
-		pool.DB.ToGardenRuntimeDB(),
-		pool,
+		db.ToGardenRuntimeDB(),
 		worker.Streamer{Compression: compression.NewGzipCompression()},
 	)
 }

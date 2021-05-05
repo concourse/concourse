@@ -14,18 +14,19 @@ type PoolFactory func(worker.Factory) worker.Pool
 type Worker interface {
 	Name() string
 	Setup(*Scenario)
-	Build(worker.Pool, db.Worker) runtime.Worker
+	Build(worker.DB, db.Worker) runtime.Worker
 }
 
 type Factory struct {
 	Workers []Worker
+	DB      worker.DB
 }
 
-func (f Factory) NewWorker(_ lager.Logger, pool worker.Pool, dbWorker db.Worker) runtime.Worker {
+func (f Factory) NewWorker(_ lager.Logger, dbWorker db.Worker) runtime.Worker {
 	worker, _, ok := f.FindWorker(dbWorker.Name())
 	Expect(ok).To(BeTrue(), "worker '%s' was not setup in the scenario", dbWorker.Name())
 
-	return worker.Build(pool, dbWorker)
+	return worker.Build(f.DB, dbWorker)
 }
 
 func (f Factory) FindWorker(name string) (Worker, int, bool) {

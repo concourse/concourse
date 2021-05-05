@@ -20,19 +20,18 @@ import (
 var PollingInterval = 5 * time.Second
 
 type Pool struct {
-	Factory
-	DB DB
-
-	WorkerVersion version.Version
+	factory       Factory
+	db            DB
+	workerVersion version.Version
 
 	waker chan struct{}
 }
 
 func NewPool(factory Factory, db DB, workerVersion version.Version) Pool {
 	return Pool{
-		Factory:       factory,
-		DB:            db,
-		WorkerVersion: workerVersion,
+		factory:       factory,
+		db:            db,
+		workerVersion: workerVersion,
 
 		waker: make(chan struct{}),
 	}
@@ -106,7 +105,7 @@ func (pool Pool) FindOrSelectWorker(
 		Duration: elapsed,
 	}.Emit(logger)
 
-	return pool.Factory.NewWorker(logger, pool, worker), nil
+	return pool.factory.NewWorker(logger, worker), nil
 }
 
 func (pool Pool) findOrSelectWorker(logger lager.Logger, owner db.ContainerOwner, containerSpec runtime.ContainerSpec, workerSpec Spec, strategy PlacementStrategy) (db.Worker, error) {
@@ -161,11 +160,11 @@ func (pool Pool) FindWorkerForContainer(logger lager.Logger, owner db.ContainerO
 	if !found {
 		return nil, false, nil
 	}
-	return pool.Factory.NewWorker(logger, pool, worker), true, nil
+	return pool.factory.NewWorker(logger, worker), true, nil
 }
 
 func (pool Pool) findWorkerForContainer(logger lager.Logger, owner db.ContainerOwner, workerSpec Spec) (db.Worker, []db.Worker, bool, error) {
-	workersWithContainer, err := pool.DB.WorkerFactory.FindWorkersForContainerByOwner(owner)
+	workersWithContainer, err := pool.db.WorkerFactory.FindWorkersForContainerByOwner(owner)
 	if err != nil {
 		return nil, nil, false, err
 	}
@@ -187,7 +186,7 @@ func (pool Pool) findWorkerForContainer(logger lager.Logger, owner db.ContainerO
 }
 
 func (pool Pool) FindWorker(logger lager.Logger, name string) (runtime.Worker, bool, error) {
-	worker, found, err := pool.DB.WorkerFactory.GetWorker(name)
+	worker, found, err := pool.db.WorkerFactory.GetWorker(name)
 	if err != nil {
 		logger.Error("failed-to-get-worker", err)
 		return nil, false, err
@@ -196,12 +195,12 @@ func (pool Pool) FindWorker(logger lager.Logger, name string) (runtime.Worker, b
 		logger.Info("worker-not-found", lager.Data{"worker": name})
 		return nil, false, nil
 	}
-	return pool.NewWorker(logger, pool, worker), true, nil
+	return pool.factory.NewWorker(logger, worker), true, nil
 }
 
 func (pool Pool) LocateVolume(logger lager.Logger, teamID int, handle string) (runtime.Volume, runtime.Worker, bool, error) {
 	logger = logger.Session("worker-for-volume", lager.Data{"handle": handle, "team-id": teamID})
-	team := pool.DB.TeamFactory.GetByID(teamID)
+	team := pool.db.TeamFactory.GetByID(teamID)
 
 	dbWorker, found, err := team.FindWorkerForVolume(handle)
 	if err != nil {
@@ -218,7 +217,7 @@ func (pool Pool) LocateVolume(logger lager.Logger, teamID int, handle string) (r
 	logger = logger.WithData(lager.Data{"worker": dbWorker.Name()})
 	logger.Debug("found-volume-on-worker")
 
-	worker := pool.NewWorker(logger, pool, dbWorker)
+	worker := pool.factory.NewWorker(logger, dbWorker)
 
 	volume, found, err := worker.LookupVolume(logger, handle)
 	if err != nil {
@@ -235,7 +234,7 @@ func (pool Pool) LocateVolume(logger lager.Logger, teamID int, handle string) (r
 
 func (pool Pool) LocateContainer(logger lager.Logger, teamID int, handle string) (runtime.Container, runtime.Worker, bool, error) {
 	logger = logger.Session("worker-for-container", lager.Data{"handle": handle, "team-id": teamID})
-	team := pool.DB.TeamFactory.GetByID(teamID)
+	team := pool.db.TeamFactory.GetByID(teamID)
 
 	dbWorker, found, err := team.FindWorkerForContainer(handle)
 	if err != nil {
@@ -252,7 +251,7 @@ func (pool Pool) LocateContainer(logger lager.Logger, teamID int, handle string)
 	logger = logger.WithData(lager.Data{"worker": dbWorker.Name()})
 	logger.Debug("found-volume-on-worker")
 
-	worker := pool.NewWorker(logger, pool, dbWorker)
+	worker := pool.factory.NewWorker(logger, dbWorker)
 
 	container, found, err := worker.LookupContainer(logger, handle)
 	if err != nil {
@@ -273,12 +272,12 @@ func (pool Pool) CreateVolumeForArtifact(logger lager.Logger, spec Spec) (runtim
 		return nil, nil, err
 	}
 
-	worker := pool.Factory.NewWorker(logger, pool, compatibleWorkers[rand.Intn(len(compatibleWorkers))])
+	worker := pool.factory.NewWorker(logger, compatibleWorkers[rand.Intn(len(compatibleWorkers))])
 	return worker.CreateVolumeForArtifact(logger, spec.TeamID)
 }
 
 func (pool Pool) allCompatible(logger lager.Logger, spec Spec) ([]db.Worker, error) {
-	workers, err := pool.DB.WorkerFactory.Workers()
+	workers, err := pool.db.WorkerFactory.Workers()
 	if err != nil {
 		return nil, err
 	}
@@ -312,14 +311,14 @@ func (pool Pool) allCompatible(logger lager.Logger, spec Spec) ([]db.Worker, err
 
 	return nil, NoCompatibleWorkersError{
 		Spec:          spec,
-		WorkerVersion: pool.WorkerVersion,
+		WorkerVersion: pool.workerVersion,
 	}
 }
 
 func (pool Pool) isWorkerVersionCompatible(logger lager.Logger, dbWorker db.Worker) bool {
 	workerVersion := dbWorker.Version()
 	logger = logger.Session("check-version", lager.Data{
-		"want-worker-version": pool.WorkerVersion.String(),
+		"want-worker-version": pool.workerVersion.String(),
 		"have-worker-version": workerVersion,
 	})
 
@@ -334,13 +333,13 @@ func (pool Pool) isWorkerVersionCompatible(logger lager.Logger, dbWorker db.Work
 		return false
 	}
 
-	switch v.Release.Compare(pool.WorkerVersion.Release) {
+	switch v.Release.Compare(pool.workerVersion.Release) {
 	case 0:
 		return true
 	case -1:
 		return false
 	default:
-		if v.Release.Components[0].Compare(pool.WorkerVersion.Release.Components[0]) == 0 {
+		if v.Release.Components[0].Compare(pool.workerVersion.Release.Components[0]) == 0 {
 			return true
 		}
 
