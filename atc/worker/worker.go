@@ -650,6 +650,10 @@ func (worker *gardenWorker) cloneRemoteVolumes(
 	for i, nonLocalInput := range nonLocals {
 		// this is to ensure each go func gets its own non changing copy of the iterator
 		i, nonLocalInput := i, nonLocalInput
+		// create an empty volume to stream-in the remote volume. this volume will only
+		// be used as a parent volume, it won't be directly mounted to a container.
+		// so that mount-path is only used as a search criteria in FindOrCreateVolumeForContainer
+		// to distinguish different streamed-in volumes.
 		inputVolume, err := worker.volumeClient.FindOrCreateVolumeForContainer(
 			logger,
 			VolumeSpec{
@@ -658,7 +662,7 @@ func (worker *gardenWorker) cloneRemoteVolumes(
 			},
 			container,
 			teamID,
-			filepath.Join("/streamed", nonLocalInput.desiredMountPath),
+			filepath.Join("streamed-no-mount:", nonLocalInput.desiredMountPath),
 		)
 		if err != nil {
 			return []VolumeMount{}, err
