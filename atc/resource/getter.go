@@ -146,10 +146,7 @@ func (g Getter) findCache(
 	}
 
 	result := VersionResult{Version: resourceCache.Version(), Metadata: metadata.ToATCMetadata()}
-	logger.Debug("found-initialized-versioned-source", lager.Data{
-		"version":  result.Version,
-		"metadata": result.Metadata,
-	})
+	logger.Debug("found-initialized-versioned-source", lager.Data{"version": result.Version})
 
 	return result, runtime.ProcessResult{ExitStatus: 0}, volume, true, nil
 }
