@@ -2,8 +2,11 @@ package runtime
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/concourse/concourse/worker/runtime/iptables"
@@ -225,6 +228,18 @@ func NewCNINetwork(opts ...CNINetworkOpt) (*cniNetwork, error) {
 	return n, nil
 }
 
+func (n cniNetwork) SetupHostNetwork() error  {
+	err := n.setupRestrictedNetworks()
+	if err != nil {
+		return err
+	}
+	err = n.restrictHostAccess()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (n cniNetwork) SetupMounts(handle string) ([]specs.Mount, error) {
 	if handle == "" {
 		return nil, ErrInvalidInput("empty handle")
@@ -266,22 +281,23 @@ func (n cniNetwork) SetupMounts(handle string) ([]specs.Mount, error) {
 	}, nil
 }
 
-func (n cniNetwork) SetupRestrictedNetworks() error {
-	const tableName = "filter"
-	err := n.ipt.CreateChainOrFlushIfExists(tableName, ipTablesAdminChainName)
+const filterTable = "filter"
+
+func (n cniNetwork) setupRestrictedNetworks() error {
+	err := n.ipt.CreateChainOrFlushIfExists(filterTable, ipTablesAdminChainName)
 	if err != nil {
 		return fmt.Errorf("create chain or flush if exists failed: %w", err)
 	}
 
 	// Optimization that allows packets of ESTABLISHED and RELATED connections to go through without further rule matching
-	err = n.ipt.AppendRule(tableName, ipTablesAdminChainName, "-m", "conntrack", "--ctstate", "RELATED,ESTABLISHED", "-j", "ACCEPT")
+	err = n.ipt.AppendRule(filterTable, ipTablesAdminChainName, "-m", "conntrack", "--ctstate", "RELATED,ESTABLISHED", "-j", "ACCEPT")
 	if err != nil {
 		return fmt.Errorf("appending accept rule for RELATED & ESTABLISHED connections failed: %w", err)
 	}
 
 	for _, restrictedNetwork := range n.restrictedNetworks {
 		// Create REJECT rule in admin chain
-		err = n.ipt.AppendRule(tableName, ipTablesAdminChainName, "-d", restrictedNetwork, "-j", "REJECT")
+		err = n.ipt.AppendRule(filterTable, ipTablesAdminChainName, "-d", restrictedNetwork, "-j", "REJECT")
 		if err != nil {
 			return fmt.Errorf("appending reject rule for restricted network %s failed: %w", restrictedNetwork, err)
 		}
@@ -301,6 +317,46 @@ func (n cniNetwork) generateResolvConfContents() ([]byte, error) {
 	contents = strings.Join(resolvConfEntries, "\n") + "\n"
 
 	return []byte(contents), err
+}
+
+func (n cniNetwork) restrictHostAccess() error {
+	err := n.ipt.CreateChainOrFlushIfExists(filterTable, "INPUT")
+	if err != nil {
+		return fmt.Errorf("create chain or flush if exists failed: %w", err)
+	}
+
+	hostIp, err := GetHostIp()
+	if err != nil {
+		return err
+	}
+	n.ipt.AppendRule(filterTable, "INPUT", "-i", n.config.BridgeName, "-d", hostIp, "-j", "DROP")
+
+	return nil
+}
+
+func GetHostIp() (string, error) {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return "", err
+	}
+	ethInterface := regexp.MustCompile("eth0")
+
+	for _, i := range ifaces {
+		if ethInterface.MatchString(i.Name) {
+			addrs, err := i.Addrs()
+			if err != nil {
+				return "", err
+			}
+			for _, address := range addrs {
+				if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+					if ipnet.IP.To4() != nil {
+						return ipnet.IP.String(), nil
+					}
+				}
+			}
+		}
+	}
+	return "", errors.New("unable to find host's IP")
 }
 
 func (n cniNetwork) Add(ctx context.Context, task containerd.Task) error {

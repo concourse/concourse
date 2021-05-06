@@ -488,7 +488,7 @@ func (s *BackendSuite) TestStartInitsClientAndSetsUpRestrictedNetworks() {
 	err := s.backend.Start()
 	s.NoError(err)
 	s.Equal(1, s.client.InitCallCount())
-	s.Equal(1, s.network.SetupRestrictedNetworksCallCount())
+	s.Equal(1, s.network.SetupHostNetworkCallCount())
 }
 
 func (s *BackendSuite) TestStartInitError() {

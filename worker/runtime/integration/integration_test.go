@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"net"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -289,6 +292,75 @@ func (s *IntegrationSuite) TestContainerNetworkEgressWithRestrictedNetworks() {
 
 	s.Equal(exitCode, 1, "Process in container should not be able to connect to restricted network")
 	s.Contains(buf.String(), "connect: connection refused")
+}
+
+// TestContainerBlocksHostAccess verifies that a process that we run in a
+// container is not able to reach the host but is able to reach the internet.
+//
+func (s *IntegrationSuite) TestContainerBlocksHostAccess() {
+	namespace := "test-block-host-access"
+	requestTimeout := 3 * time.Second
+
+	network, err := runtime.NewCNINetwork()
+
+	s.NoError(err)
+
+	networkOpt := runtime.WithNetwork(network)
+	customBackend, err := runtime.NewGardenBackend(
+		libcontainerd.New(
+			s.containerdSocket(),
+			namespace,
+			requestTimeout,
+		),
+		networkOpt,
+	)
+	s.NoError(err)
+
+	s.NoError(customBackend.Start())
+
+	handle := uuid()
+
+	container, err := customBackend.Create(garden.ContainerSpec{
+		Handle:     handle,
+		RootFSPath: "raw://" + s.rootfs,
+		Privileged: true,
+	})
+	s.NoError(err)
+
+	defer func() {
+		s.NoError(customBackend.Destroy(handle))
+		customBackend.Stop()
+	}()
+
+	hostIp, err := runtime.GetHostIp()
+	s.NoError(err)
+
+	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, "Hello, client")
+	}))
+	l, err := net.Listen("tcp", hostIp+":0")
+	ts.Listener = l
+	ts.Start()
+	defer ts.Close()
+
+	buf := new(buffer)
+	proc, err := container.Run(
+		garden.ProcessSpec{
+			Path: "/executable",
+			Args: []string{
+				"-http-get="+ts.URL,
+			},
+		},
+		garden.ProcessIO{
+			Stdout: buf,
+			Stderr: buf,
+		},
+	)
+	s.NoError(err)
+
+	exitCode, err := proc.Wait()
+	s.NoError(err)
+	s.Equal(exitCode, 1, "Process in container should not be able to connect to host network")
 }
 
 // TestRunPrivileged tests whether we're able to run a process in a privileged

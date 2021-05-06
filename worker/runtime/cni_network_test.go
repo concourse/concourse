@@ -139,13 +139,13 @@ func (s *CNINetworkSuite) TestSetupMountsCallsStoreWithoutNameServers() {
 	s.Equal(resolvConfContents, []byte(contents))
 }
 
-func (s *CNINetworkSuite) TestSetupRestrictedNetworksCreatesEmptyAdminChain() {
+func (s *CNINetworkSuite) TestSetupHostNetworkCreatesCorrectIptableRules() {
 	network, err := runtime.NewCNINetwork(
 		runtime.WithRestrictedNetworks([]string{"1.1.1.1", "8.8.8.8"}),
 		runtime.WithIptables(s.iptables),
 	)
 
-	err = network.SetupRestrictedNetworks()
+	err = network.SetupHostNetwork()
 	s.NoError(err)
 
 	tablename, chainName := s.iptables.CreateChainOrFlushIfExistsArgsForCall(0)
@@ -166,6 +166,17 @@ func (s *CNINetworkSuite) TestSetupRestrictedNetworksCreatesEmptyAdminChain() {
 	s.Equal(tablename, "filter")
 	s.Equal(chainName, "CONCOURSE-OPERATOR")
 	s.Equal(rulespec, []string{"-d", "8.8.8.8", "-j", "REJECT"})
+
+	tablename, chainName = s.iptables.CreateChainOrFlushIfExistsArgsForCall(1)
+	s.Equal(tablename, "filter")
+	s.Equal(chainName, "INPUT")
+
+	tablename, chainName, rulespec = s.iptables.AppendRuleArgsForCall(3)
+	s.Equal(tablename, "filter")
+	s.Equal(chainName, "INPUT")
+	hostIp, err := runtime.GetHostIp()
+	s.NoError(err)
+	s.Equal(rulespec, []string{"-i", "concourse0", "-d", hostIp, "-j", "DROP"})
 }
 
 func (s *CNINetworkSuite) TestAddNilTask() {

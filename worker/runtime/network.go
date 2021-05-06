@@ -9,15 +9,15 @@ import (
 
 //counterfeiter:generate . Network
 type Network interface {
+	// SetupHostNetwork sets up networking rules that
+	// affect all containers
+	//
+	SetupHostNetwork() (err error)
+
 	// SetupMounts prepares mounts that might be necessary for proper
 	// networking functionality.
 	//
 	SetupMounts(handle string) (mounts []specs.Mount, err error)
-
-	// SetupRestrictedNetworks sets up networking rules to prevent
-	// container access to specified network ranges
-	//
-	SetupRestrictedNetworks() (err error)
 
 	// Add adds a task to the network.
 	//

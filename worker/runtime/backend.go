@@ -159,9 +159,9 @@ func (b *GardenBackend) Start() (err error) {
 		return fmt.Errorf("client init: %w", err)
 	}
 
-	err = b.network.SetupRestrictedNetworks()
+	err = b.network.SetupHostNetwork()
 	if err != nil {
-		return fmt.Errorf("setup restricted networks failed: %w", err)
+		return fmt.Errorf("setup host network failed: %w", err)
 	}
 
 	return
