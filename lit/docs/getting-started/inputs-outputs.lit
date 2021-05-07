@@ -149,6 +149,10 @@
   With the above pipeline we can see that the file made in the first step is
   made available in the second step. You can view the same build output from
   the \link{web UI}{http://localhost:8080/teams/main/pipelines/hello-world}.
+  Click on the job tile to see the individual steps. Click on each step to
+  expand it and see the build logs.
+
+  \frame{http://localhost:8080/teams/main/pipelines/hello-world}{500px}
 }
 
 \section{
@@ -171,17 +175,97 @@
     \reference{schema.task.inputs}{input} \code{the-artifact}
 
     \aside{
-      Concourse looks up, in its list of artifacts for the job, for an artifact
-      named \code{the-artifact}, and mounts it inside the task container.
+      Concourse looks up, in its list of artifacts for the build, for an
+      artifact named \code{the-artifact}, and mounts it inside the task
+      container. If no input with that name is found then the build would fail.
     }
   }
 
-  This covers the most common scenario of passing artifacts between
-  \reference{steps}{steps} in a \reference{jobs}{job}. There are plenty of
-  other interesting scenarios related to artifacts that you're sure to
-  encounter. The blog post, \link{Introduction to Task Inputs and
-  outputs}{https://blog.concourse-ci.org/introduction-to-task-inputs-and-outputs/},
-  goes over some other examples and interesting cases.
+  Next we will look at some other ways to use and manipulate artifacts between steps.
 
+  # TODO: move meeeeeeeeeeeeeeeeeeeeeeeeee
   The next section will introduce you to the concept of \reference{resources}.
+}
+
+\section{
+ \title{Two tasks with the same output, who wins?}
+
+  This example is to satisfy the curiosity cat inside all of us. Never do this
+  in real life because you're definitely going to hurt yourself!
+
+  We are going to go over two versions of this example. The first one has three
+  steps. The first two steps run
+  \reference{schema.step.in-parallel-step.in_parallel}{\code{in_parallel}}.
+  This makes it unclear which step will finish first. Both steps have an output
+  with the same name, \code{artifact}. The third step tries to read
+  \code{file1} and \code{file2} from \code{artifact}. It will error because
+  only one of those files will exist. Whichever of the first two jobs finishes
+  last will have its \code{artifact} passed onto the third job. \bold{Last to
+  write wins!}
+
+  \codeblock{yaml}{{
+  busybox: &busybox #YAML anchor
+    type: registry-image
+    source: {repository: busybox}
+
+  jobs:
+  - name: writing-in-parallel
+    plan:
+    # running two tasks that output in parallel?!?
+    # who will win??
+    - in_parallel:
+      - task: create-the-output
+        config:
+          platform: linux
+          image_resource: *busybox
+          outputs:
+            - name: artifact
+          run:
+            path: /bin/sh
+            args:
+              - -cx
+              - |
+                ls -lah
+                date > ./artifact/file1
+      - task: also-create-the-output
+        config:
+          platform: linux
+          image_resource: *busybox
+          outputs:
+            - name: artifact
+          run:
+            path: /bin/sh
+            args:
+              - -cx
+              - |
+                ls -lah
+                date > ./artifact/file2
+    # run this job multiple times to see which
+    # previous task wins each time
+    - task: read-ouput-from-previous-step
+      config:
+        platform: linux
+        image_resource: *busybox
+        inputs:
+          - name: artifact
+        run:
+          path: /bin/sh
+          args:
+            - -cx
+            - |
+              ls -lah ./artifact
+              echo "Get ready to error!"
+              cat ./artifact/file1 ./artifact/file2
+  }}
+
+  Set and run this pipeline to see the results yourself. Save the pipeline in a
+  file called \code{artifact.yml}.
+
+  \codeblock{bash}{{
+  fly -t tutorial set-pipeline -p artifact -c artifacts.yml
+  fly -t tutorial unpause-pipeline -p artifact
+  fly -t tutorial trigger-job --job artifact/writing-in-parallel --watch
+  }}
+
+  \frame{http://localhost:8080/teams/main/pipelines/artifact/jobs/writing-in-parallel}{500px}
 }

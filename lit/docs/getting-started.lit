@@ -13,9 +13,11 @@ Before getting started you should have the following installed:
 }
 
 This tutorial assumes you understand what Linux containers are and how to work
-with them. If you're not familiar with Linux containers then you may want to
-\link{get started with Docker}{https://docs.docker.com/get-started/} first
-before diving into this tutorial.
+with them. If you know what Dockfile is and how to make your own then you're
+probably good to jump into this tutorial. If you're not familiar with Linux
+containers then you may want to \link{get started with
+Docker}{https://docs.docker.com/get-started/} first before diving into this
+tutorial.
 
 It will also help if you know how to read YAML. We have a quick
 \reference{intro-to-yaml} if you're not familiar with the syntax.

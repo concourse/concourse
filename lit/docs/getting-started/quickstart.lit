@@ -9,7 +9,7 @@
     run just about anywhere, especially with Docker.
 
     If you'd like to get Concourse running somewhere quickly so you can start to
-    kick the tires, the easiest way is to use the Docker Compose quick-start:
+    kick the tires, the easiest way is to use our \link{docker-compose.yml}{docker-compose.yml}:
 
     \codeblock{bash}{{
     $ curl -O https://concourse-ci.org/docker-compose.yml
@@ -54,5 +54,7 @@
 
     Once you've confirmed everything is up and running by logging in through fly
     and the \link{web UI}{http://localhost:8080}, you can move onto the next
-    section.
+    section. If you refresh this page you should see the web UI in the frame below.
+
+    \frame{http://localhost:8080}{500px}
 }

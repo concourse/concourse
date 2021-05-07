@@ -67,11 +67,11 @@
 \section{
   \title{Add a step}
 
-  Unlike \reference{jobs}{jobs}, the order of \reference{steps}{steps} \bold{does
-  matter!} Concourse will run the \reference{steps}{steps} in a
-  \reference{jobs}{job} in the order that they are listed. Let's
-  \italic{carefully} place a \reference{schema.step.task-step.task}{task step} as
-  the first (and only) step in our job.
+  Unlike \reference{jobs}{jobs}, the order of \reference{steps}{steps}
+  \bold{does matter!} Concourse will run the \reference{steps}{steps} in the
+  order that they are listed. Let's \italic{carefully} place a
+  \reference{schema.step.task-step.task}{task step} as the first (and only)
+  step in our job.
 
   \codeblock{yaml}{{
   jobs:
@@ -191,6 +191,8 @@
   Hello world!
   succeeded
   }}
+
+  \frame{http://localhost:8080/teams/main/pipelines/hello-world}{500px}
 
   Congratulations on building your first Concourse pipeline!
 
