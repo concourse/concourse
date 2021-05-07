@@ -14,6 +14,8 @@ module Concourse exposing
     , BuildResourcesOutput
     , BuildStep(..)
     , CSRFToken
+    , CausalityBuild(..)
+    , CausalityResourceVersion
     , Cause
     , ClusterInfo
     , DatabaseID
@@ -50,6 +52,7 @@ module Concourse exposing
     , decodeBuildPlanResponse
     , decodeBuildPrep
     , decodeBuildResources
+    , decodeCausalityResourceVersion
     , decodeCause
     , decodeInfo
     , decodeInstanceGroupId
@@ -1183,7 +1186,55 @@ decodeVersionedResource =
 
 
 
--- Version
+-- Causality
+
+
+type alias CausalityResourceVersion =
+    { resourceId : Int
+    , resourceName : String
+    , version : String
+    , inputTo : List CausalityBuild
+    }
+
+
+type CausalityBuild
+    = -- because resourceVersion and build are mutually recursive, one of them needs to be a concrete type
+      CausalityBuildVariant CausalityBuildFields
+
+
+type alias CausalityBuildFields =
+    { id : Int
+    , name : String
+    , jobId : Int
+    , jobName : String
+    , outputs : List CausalityResourceVersion
+    }
+
+
+decodeCausalityResourceVersion : Json.Decode.Decoder CausalityResourceVersion
+decodeCausalityResourceVersion =
+    Json.Decode.succeed CausalityResourceVersion
+        |> andMap (Json.Decode.field "resource_id" Json.Decode.int)
+        |> andMap (Json.Decode.field "resource_name" Json.Decode.string)
+        |> andMap (Json.Decode.field "version" Json.Decode.string)
+        |> andMap (defaultTo [] (Json.Decode.field "input_to" (Json.Decode.list decodeCausalityBuild)))
+
+
+decodeCausalityBuild : Json.Decode.Decoder CausalityBuild
+decodeCausalityBuild =
+    Json.Decode.succeed CausalityBuildFields
+        |> andMap (Json.Decode.field "id" Json.Decode.int)
+        |> andMap (Json.Decode.field "name" Json.Decode.string)
+        |> andMap (Json.Decode.field "job_id" Json.Decode.int)
+        |> andMap (Json.Decode.field "job_name" Json.Decode.string)
+        |> andMap
+            (defaultTo []
+                (Json.Decode.field "outputs" <|
+                    Json.Decode.list <|
+                        Json.Decode.lazy (\_ -> decodeCausalityResourceVersion)
+                )
+            )
+        |> Json.Decode.map CausalityBuildVariant
 
 
 type alias Version =

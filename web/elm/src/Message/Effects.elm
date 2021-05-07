@@ -129,6 +129,7 @@ type Effect
     | FetchClusterInfo
     | FetchInputTo Concourse.VersionedResourceIdentifier
     | FetchOutputOf Concourse.VersionedResourceIdentifier
+    | FetchCausality Concourse.VersionedResourceIdentifier
     | FetchAllTeams
     | FetchUser
     | FetchBuild Float Int
@@ -329,6 +330,14 @@ runEffect effect key csrfToken =
                 |> Api.request
                 |> Task.map (\b -> ( id, b ))
                 |> Task.attempt OutputOfFetched
+
+        FetchCausality id ->
+            Api.get
+                (Endpoints.Causality |> Endpoints.ResourceVersion id)
+                |> Api.expectJson Concourse.decodeCausalityResourceVersion
+                |> Api.request
+                |> Task.map (\b -> ( id, Just b ))
+                |> Task.attempt CausalityFetched
 
         FetchAllTeams ->
             Api.get Endpoints.TeamsList

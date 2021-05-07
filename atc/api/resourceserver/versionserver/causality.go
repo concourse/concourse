@@ -3,11 +3,10 @@ package versionserver
 import (
 	"encoding/json"
 	"net/http"
-	"strings"
+	"strconv"
 
 	"code.cloudfoundry.org/lager"
 
-	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 )
 
@@ -16,16 +15,20 @@ func (s *Server) GetCausality(pipeline db.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger := s.logger.Session("causality")
 
+		versionIDString := r.FormValue(":resource_config_version_id")
 		resourceName := r.FormValue(":resource_name")
+		versionID, _ := strconv.Atoi(versionIDString)
 
-		fields := r.Form["filter"]
-		versionFilter := make(atc.Version)
-		for _, field := range fields {
-			vs := strings.SplitN(field, ":", 2)
-			if len(vs) == 2 {
-				versionFilter[vs[0]] = vs[1]
-			}
-		}
+		// resourceName := r.FormValue(":resource_name")
+
+		// fields := r.Form["filter"]
+		// versionFilter := make(atc.Version)
+		// for _, field := range fields {
+		// 	vs := strings.SplitN(field, ":", 2)
+		// 	if len(vs) == 2 {
+		// 		versionFilter[vs[0]] = vs[1]
+		// 	}
+		// }
 
 		resource, found, err := pipeline.Resource(resourceName)
 		if err != nil {
@@ -41,7 +44,7 @@ func (s *Server) GetCausality(pipeline db.Pipeline) http.Handler {
 		}
 
 		// causality, err := pipeline.Causality(versionID)
-		causality, err := pipeline.CausalityV2(resource.ID(), versionFilter)
+		causality, err := pipeline.CausalityV2(resource.ID(), versionID)
 		if err != nil {
 			logger.Error("failed-to-fetch", err)
 			w.WriteHeader(http.StatusInternalServerError)

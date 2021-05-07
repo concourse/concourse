@@ -40,6 +40,7 @@ import DateFormat
 import Dict
 import Duration
 import EffectTransformer exposing (ET)
+import Graph exposing (Graph)
 import HoverState
 import Html exposing (Html)
 import Html.Attributes
@@ -86,6 +87,7 @@ import Message.Subscription as Subscription
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import Pinned exposing (ResourcePinState(..), VersionPinState(..))
 import RemoteData exposing (WebData)
+import Resource.Causality exposing (Entity, NodeType(..), buildGraph, viewCausality)
 import Resource.Models as Models exposing (Model)
 import Resource.Styles
 import Routes
@@ -440,6 +442,7 @@ handleCallback callback session ( model, effects ) =
                                             , expanded = expanded
                                             , inputTo = []
                                             , outputOf = []
+                                            , causality = Nothing
                                             }
                                 )
                     }
@@ -483,6 +486,16 @@ handleCallback callback session ( model, effects ) =
 
         OutputOfFetched (Ok ( versionID, builds )) ->
             ( updateVersion versionID (\v -> { v | outputOf = builds }) model
+            , effects
+            )
+
+        CausalityFetched (Ok ( versionID, causality )) ->
+            let
+                -- only render the graph once upon fetching the data and store that to display
+                graph =
+                    Maybe.map (\vr -> buildGraph vr) causality
+            in
+            ( updateVersion versionID (\v -> { v | causality = graph }) model
             , effects
             )
 
@@ -746,8 +759,7 @@ update msg ( model, effects ) =
                 model
             , if newExpandedState then
                 effects
-                    ++ [ FetchInputTo versionID
-                       , FetchOutputOf versionID
+                    ++ [ FetchCausality versionID
                        ]
 
               else
@@ -951,6 +963,7 @@ type alias VersionPresenter =
     , expanded : Bool
     , inputTo : List Concourse.Build
     , outputOf : List Concourse.Build
+    , causality : Maybe (Graph Entity ())
     , pinState : VersionPinState
     }
 
@@ -972,6 +985,7 @@ versions model =
                 , expanded = v.expanded
                 , inputTo = v.inputTo
                 , outputOf = v.outputOf
+                , causality = v.causality
                 , pinState = Pinned.pinState v.version v.id model.pinnedVersion
                 }
             )
@@ -1786,6 +1800,7 @@ viewVersionedResource { version, archived } =
                     [ viewVersionBody
                         { inputTo = version.inputTo
                         , outputOf = version.outputOf
+                        , causality = version.causality
                         , metadata = version.metadata
                         }
                     ]
@@ -1800,28 +1815,36 @@ viewVersionBody :
     { a
         | inputTo : List Concourse.Build
         , outputOf : List Concourse.Build
+        , causality : Maybe (Graph Entity ())
         , metadata : Concourse.Metadata
     }
     -> Html Message
-viewVersionBody { inputTo, outputOf, metadata } =
+viewVersionBody { inputTo, outputOf, causality, metadata } =
     Html.div
         [ style "display" "flex"
         , style "padding" "5px 10px"
         ]
-        [ Html.div [ class "vri" ] <|
-            List.concat
-                [ [ Html.div [ style "line-height" "25px" ] [ Html.text "inputs to" ] ]
-                , viewBuilds <| listToMap inputTo
-                ]
-        , Html.div [ class "vri" ] <|
-            List.concat
-                [ [ Html.div [ style "line-height" "25px" ] [ Html.text "outputs of" ] ]
-                , viewBuilds <| listToMap outputOf
-                ]
-        , Html.div [ class "vri metadata-container" ]
-            [ Html.div [ class "list-collapsable-title" ] [ Html.text "metadata" ]
-            , viewMetadata metadata
-            ]
+        [ case causality of
+            Just c ->
+                viewCausality c
+
+            Nothing ->
+                Html.text "no"
+
+        -- Html.div [ class "vri" ] <|
+        --   List.concat
+        --       [ [ Html.div [ style "line-height" "25px" ] [ Html.text "inputs to" ] ]
+        --       , viewBuilds <| listToMap inputTo
+        --       ]
+        -- , Html.div [ class "vri" ] <|
+        --   List.concat
+        --       [ [ Html.div [ style "line-height" "25px" ] [ Html.text "outputs of" ] ]
+        --       , viewBuilds <| listToMap outputOf
+        --       ]
+        -- , Html.div [ class "vri metadata-container" ]
+        --   [ Html.div [ class "list-collapsable-title" ] [ Html.text "metadata" ]
+        --   , viewMetadata metadata
+        --   ]
         ]
 
 

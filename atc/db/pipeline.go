@@ -75,7 +75,7 @@ type Pipeline interface {
 	Reload() (bool, error)
 
 	Causality(versionedResourceID int) ([]Cause, error)
-	CausalityV2(resourceId int, versionFilter atc.Version) (atc.CausalityResourceVersion, error)
+	CausalityV2(resourceId int, versionedResourceID int) (atc.CausalityResourceVersion, error)
 
 	ResourceVersion(resourceConfigVersionID int) (atc.ResourceVersion, bool, error)
 
@@ -242,28 +242,28 @@ func (p *pipeline) Causality(versionedResourceID int) ([]Cause, error) {
 	return causality, nil
 }
 
-func (p *pipeline) CausalityV2(resourceID int, versionFilter atc.Version) (atc.CausalityResourceVersion, error) {
+func (p *pipeline) CausalityV2(resourceID int, versionID int) (atc.CausalityResourceVersion, error) {
 	// the starting/root node of the tree
 	var result atc.CausalityResourceVersion
+	// filterJSON := "{}"
+	// if len(versionFilter) != 0 {
+	// 	filterBytes, err := json.Marshal(versionFilter)
+	// 	if err != nil {
+	// 		return result, err
+	// 	}
 
-	filterJSON := "{}"
-	if len(versionFilter) != 0 {
-		filterBytes, err := json.Marshal(versionFilter)
-		if err != nil {
-			return result, err
-		}
-
-		filterJSON = string(filterBytes)
-	}
+	// 	filterJSON = string(filterBytes)
+	// }
 
 	var rcvID int
 	var versionMD5 string
 	err := psql.Select("r.id", "rcv.id", "r.name", "rcv.version", "rcv.version_md5").
 		From("resource_config_versions rcv").
 		Join("resources r ON r.resource_config_scope_id = rcv.resource_config_scope_id").
-		Where(sq.Expr("rcv.version @> ?", filterJSON)).
+		// Where(sq.Expr("rcv.version @> ?", filterJSON)).
 		Where(sq.Eq{
-			"r.id": resourceID,
+			"r.id":   resourceID,
+			"rcv.id": versionID,
 		}).
 		RunWith(p.conn).
 		Scan(&result.ResourceID, &rcvID, &result.ResourceName, &result.Version, &versionMD5)
@@ -372,8 +372,7 @@ func (p *pipeline) CausalityV2(resourceID int, versionFilter atc.Version) (atc.C
 
 		if rv, found := resourceVersions[rcvID]; !found {
 			resourceVersions[rcvID] = &atc.CausalityResourceVersion{
-				ResourceID: rID,
-				// ResourceConfigVersionID: rcvID,
+				ResourceID:   rID,
 				ResourceName: rName,
 				Version:      version,
 				InputTo:      []*atc.CausalityBuild{builds[bID]},
@@ -410,8 +409,7 @@ func (p *pipeline) CausalityV2(resourceID int, versionFilter atc.Version) (atc.C
 		rv, found := resourceVersions[rcvID]
 		if !found {
 			rv = &atc.CausalityResourceVersion{
-				ResourceID: rID,
-				// ResourceConfigVersionID: rcvID,
+				ResourceID:   rID,
 				ResourceName: rName,
 				Version:      version,
 			}
