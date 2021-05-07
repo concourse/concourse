@@ -1,0 +1,32 @@
+version: '3'
+
+services:
+  worker:
+    environment:
+      CONCOURSE_NAME: worker1
+      CONCOURSE_TAG: tag1
+
+  worker2:
+    image: ${TEST_CONCOURSE_DEV_IMAGE:-concourse/concourse:local}
+    command: worker
+    privileged: true
+    depends_on: [web]
+    volumes: ["../hack/keys:/concourse-keys"]
+    stop_signal: SIGUSR2
+    environment:
+      CONCOURSE_RUNTIME: containerd
+
+      CONCOURSE_TSA_PUBLIC_KEY: /concourse-keys/tsa_host_key.pub
+      CONCOURSE_TSA_WORKER_PRIVATE_KEY: /concourse-keys/worker_key
+
+      CONCOURSE_LOG_LEVEL: debug
+      CONCOURSE_TSA_HOST: web:2222
+
+      # avoid using loopbacks
+      CONCOURSE_BAGGAGECLAIM_DRIVER: overlay
+
+      # work with docker-compose's dns
+      CONCOURSE_CONTAINERD_DNS_PROXY_ENABLE: "true"
+
+      CONCOURSE_NAME: worker2
+      CONCOURSE_TAG: tag2
