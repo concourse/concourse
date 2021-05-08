@@ -95,7 +95,7 @@ func (workerResourceCache WorkerResourceCache) Find(runner sq.Runner) (*UsedWork
 		return nil, false, nil
 	}
 
-	// If there are multiple workers found, choose a random one.
+	// If there are multiple worker resource caches found, choose a random one.
 	index := 0
 	if len(ids) > 1 {
 		r := rand.New(rand.NewSource(time.Now().UnixNano()))

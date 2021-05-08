@@ -199,7 +199,7 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 		return false, err
 	}
 	if found {
-		fmt.Fprintln(delegate.Stderr(), "\x1b[1;36mINFO: found resouce cache from local cache\x1b[0m")
+		fmt.Fprintln(delegate.Stderr(), "\x1b[1;36mINFO: found resource cache from local cache\x1b[0m")
 		fmt.Fprintln(delegate.Stderr(), "")
 
 		delegate.Starting(logger)
