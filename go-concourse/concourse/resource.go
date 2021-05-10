@@ -1,9 +1,12 @@
 package concourse
 
 import (
+	"encoding/json"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/go-concourse/concourse/internal"
 	"github.com/tedsuo/rata"
+	"net/http"
+	"net/url"
 )
 
 func (team *team) Resource(pipelineRef atc.PipelineRef, resourceName string) (atc.Resource, bool, error) {
@@ -47,4 +50,41 @@ func (team *team) ListResources(pipelineRef atc.PipelineRef) ([]atc.Resource, er
 	})
 
 	return resources, err
+}
+
+
+func (team *team) ClearResourceCache(pipelineRef atc.PipelineRef, ResourceName string, version atc.Version) (int64, error) {
+	params := rata.Params{
+		"team_name":     team.Name(),
+		"pipeline_name": pipelineRef.Name,
+		"resource_name": ResourceName,
+	}
+
+	queryParams := url.Values{}
+
+	if version != nil {
+		jsonBytes, err := json.Marshal(version)
+		if err != nil {
+			return 0, err
+		}
+		params["version"] = string(jsonBytes)
+	}
+
+	var crcResponse atc.ClearResourceCacheResponse
+	responseHeaders := http.Header{}
+	response := internal.Response{
+		Headers: &responseHeaders,
+		Result:  &crcResponse,
+	}
+	err := team.connection.Send(internal.Request{
+		RequestName: atc.ClearResourceCache,
+		Params:      params,
+		Query:       merge(queryParams, pipelineRef.QueryParams()),
+	}, &response)
+
+	if err != nil {
+		return 0, err
+	} else {
+		return crcResponse.CachesRemoved, nil
+	}
 }

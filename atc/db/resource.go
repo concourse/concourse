@@ -69,6 +69,8 @@ type Resource interface {
 
 	NotifyScan() error
 
+	ClearResourceCache(string) (int64, error)
+
 	Reload() (bool, error)
 }
 
@@ -745,6 +747,39 @@ func (r *resource) toggleVersion(rcvID int, enable bool) error {
 
 func (r *resource) NotifyScan() error {
 	return r.conn.Bus().Notify(fmt.Sprintf("resource_scan_%d", r.id))
+}
+
+func (r *resource) ClearResourceCache(version string) (int64, error) {
+	tx, err := r.conn.Begin()
+	if err != nil {
+		return 0, err
+	}
+
+	defer Rollback(tx)
+
+	deleteStatement := "DELETE FROM worker_resource_caches WHERE resource_cache_id in"
+	selectStatement := "SELECT id FROM resource_caches WHERE resource_config_id = $1"
+	var results sql.Result
+
+	if version != "" {
+		selectStatement += "AND version @> '$2'"
+		deleteStatement += "(" + selectStatement + ")"
+		results, err = tx.Exec(deleteStatement, r.id, version)
+	} else {
+		deleteStatement += "(" + selectStatement + ")"
+		results, err = tx.Exec(deleteStatement, r.id)
+	}
+
+	if err != nil {
+		return 0, err
+	}
+
+	rowsDeleted, err := results.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+
+	return rowsDeleted, tx.Commit()
 }
 
 func scanResource(r *resource, row scannable) error {

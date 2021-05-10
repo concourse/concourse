@@ -120,6 +120,7 @@ func (rw *RejectArchivedWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.CreatePipelineBuild,
 			atc.ClearTaskCache,
 			atc.CreateArtifact,
+			atc.ClearResourceCache,
 			atc.GetArtifact:
 
 		default:
