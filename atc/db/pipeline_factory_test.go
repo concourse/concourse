@@ -20,13 +20,14 @@ var _ = Describe("Pipeline Factory", func() {
 			pipeline2 db.Pipeline
 			pipeline3 db.Pipeline
 			pipeline4 db.Pipeline
+			team      db.Team
 		)
 
 		BeforeEach(func() {
 			err := defaultPipeline.Destroy()
 			Expect(err).ToNot(HaveOccurred())
 
-			team, err := teamFactory.CreateTeam(atc.Team{Name: "some-team"})
+			team, err = teamFactory.CreateTeam(atc.Team{Name: "some-team"})
 			Expect(err).ToNot(HaveOccurred())
 
 			pipeline1, _, err = team.SavePipeline(atc.PipelineRef{Name: "fake-pipeline"}, atc.Config{
@@ -66,36 +67,61 @@ var _ = Describe("Pipeline Factory", func() {
 		It("returns all pipelines visible for the given teams", func() {
 			pipelines, err := pipelineFactory.VisiblePipelines([]string{"some-team"})
 			Expect(err).ToNot(HaveOccurred())
-			Expect(len(pipelines)).To(Equal(3))
-			Expect(pipelines[0].Name()).To(Equal(pipeline1.Name()))
-			Expect(pipelines[1].Name()).To(Equal(pipeline4.Name()))
-			Expect(pipelines[2].Name()).To(Equal(pipeline3.Name()))
+			Expect(pipelineRefs(pipelines)).To(Equal([]atc.PipelineRef{
+				pipelineRef(pipeline1),
+				pipelineRef(pipeline4),
+				pipelineRef(pipeline3),
+			}))
 		})
 
 		It("returns all pipelines visible when empty team name provided", func() {
 			pipelines, err := pipelineFactory.VisiblePipelines([]string{""})
 			Expect(err).ToNot(HaveOccurred())
-			Expect(len(pipelines)).To(Equal(1))
-			Expect(pipelines[0].Name()).To(Equal(pipeline3.Name()))
+			Expect(pipelineRefs(pipelines)).To(Equal([]atc.PipelineRef{
+				pipelineRef(pipeline3),
+			}))
 		})
 
 		It("returns all pipelines visible when empty teams provided", func() {
 			pipelines, err := pipelineFactory.VisiblePipelines([]string{})
 			Expect(err).ToNot(HaveOccurred())
-			Expect(len(pipelines)).To(Equal(1))
-			Expect(pipelines[0].Name()).To(Equal(pipeline3.Name()))
+			Expect(pipelineRefs(pipelines)).To(Equal([]atc.PipelineRef{
+				pipelineRef(pipeline3),
+			}))
 		})
 
 		It("returns all pipelines visible when nil teams provided", func() {
 			pipelines, err := pipelineFactory.VisiblePipelines(nil)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(len(pipelines)).To(Equal(1))
-			Expect(pipelines[0].Name()).To(Equal(pipeline3.Name()))
+			Expect(pipelineRefs(pipelines)).To(Equal([]atc.PipelineRef{
+				pipelineRef(pipeline3),
+			}))
+		})
+
+		Describe("When instance pipeline ordered is change", func() {
+			BeforeEach(func() {
+				err := team.OrderPipelinesWithinGroup("fake-pipeline", []atc.InstanceVars{
+					{"branch": "master"},
+					{},
+				})
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("Should keep the right order", func() {
+				pipelines, err := pipelineFactory.VisiblePipelines([]string{"some-team"})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(pipelineRefs(pipelines)).To(Equal([]atc.PipelineRef{
+					pipelineRef(pipeline4),
+					pipelineRef(pipeline1),
+					pipelineRef(pipeline3),
+				}))
+			})
 		})
 	})
 
 	Describe("AllPipelines", func() {
 		var (
+			team      db.Team
 			pipeline1 db.Pipeline
 			pipeline2 db.Pipeline
 			pipeline3 db.Pipeline
@@ -106,7 +132,7 @@ var _ = Describe("Pipeline Factory", func() {
 			err := defaultPipeline.Destroy()
 			Expect(err).ToNot(HaveOccurred())
 
-			team, err := teamFactory.CreateTeam(atc.Team{Name: "some-team"})
+			team, err = teamFactory.CreateTeam(atc.Team{Name: "some-team"})
 			Expect(err).ToNot(HaveOccurred())
 
 			pipeline2, _, err = team.SavePipeline(atc.PipelineRef{Name: "fake-pipeline-two"}, atc.Config{
@@ -145,14 +171,48 @@ var _ = Describe("Pipeline Factory", func() {
 
 		})
 
-		It("returns all pipelines ordered by team id -> ordering -> pipeline id", func() {
+		It("returns all pipelines ordered by team id -> ordering -> secondary_ordering", func() {
 			pipelines, err := pipelineFactory.AllPipelines()
 			Expect(err).ToNot(HaveOccurred())
-			Expect(len(pipelines)).To(Equal(4))
-			Expect(pipelines[0].Name()).To(Equal(pipeline1.Name()))
-			Expect(pipelines[1].Name()).To(Equal(pipeline2.Name()))
-			Expect(pipelines[2].Name()).To(Equal(pipeline4.Name()))
-			Expect(pipelines[3].Name()).To(Equal(pipeline3.Name()))
+			Expect(pipelineRefs(pipelines)).To(Equal([]atc.PipelineRef{
+				pipelineRef(pipeline1),
+				pipelineRef(pipeline2),
+				pipelineRef(pipeline4),
+				pipelineRef(pipeline3),
+			}))
+		})
+
+		Describe("When instance pipeline ordered is change", func() {
+			BeforeEach(func() {
+				err := team.OrderPipelinesWithinGroup("fake-pipeline-two", []atc.InstanceVars{
+					{"branch": "master"},
+					{},
+				})
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("Should keep the right order", func() {
+				pipelines, err := pipelineFactory.AllPipelines()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(pipelineRefs(pipelines)).To(Equal([]atc.PipelineRef{
+					pipelineRef(pipeline1),
+					pipelineRef(pipeline4),
+					pipelineRef(pipeline2),
+					pipelineRef(pipeline3),
+				}))
+			})
 		})
 	})
 })
+
+func pipelineRef(pipeline db.Pipeline) atc.PipelineRef {
+	return atc.PipelineRef{Name: pipeline.Name(), InstanceVars: pipeline.InstanceVars()}
+}
+
+func pipelineRefs(pipelines []db.Pipeline) []atc.PipelineRef {
+	refs := make([]atc.PipelineRef, len(pipelines))
+	for i, p := range pipelines {
+		refs[i] = pipelineRef(p)
+	}
+	return refs
+}

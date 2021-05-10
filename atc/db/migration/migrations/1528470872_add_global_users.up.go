@@ -19,26 +19,19 @@ func (m *migrations) Up_1528470872() error {
 		nonce sql.NullString
 	}
 
-	tx, err := m.DB.Begin()
+	tx := m.Tx
+	_, err := tx.Exec("ALTER TABLE teams RENAME COLUMN auth TO legacy_auth")
 	if err != nil {
-		return err
-	}
-
-	_, err = tx.Exec("ALTER TABLE teams RENAME COLUMN auth TO legacy_auth")
-	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	_, err = tx.Exec("ALTER TABLE teams ADD COLUMN auth text")
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	rows, err := tx.Query("SELECT id, name, legacy_auth, nonce FROM teams")
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
@@ -48,7 +41,6 @@ func (m *migrations) Up_1528470872() error {
 		team := team{}
 
 		if err = rows.Scan(&team.id, &team.name, &team.auth, &team.nonce); err != nil {
-			tx.Rollback()
 			return err
 		}
 
@@ -96,13 +88,11 @@ func (m *migrations) Up_1528470872() error {
 
 		decryptedAuth, err := m.Strategy.Decrypt(string(team.auth), noncense)
 		if err != nil {
-			tx.Rollback()
 			return err
 		}
 
 		var authConfig map[string]interface{}
 		if err = json.Unmarshal(decryptedAuth, &authConfig); err != nil {
-			tx.Rollback()
 			return err
 		}
 
@@ -152,7 +142,6 @@ func (m *migrations) Up_1528470872() error {
 					Users []string `mapstructure:"users"`
 				}
 				if err = mapstructure.Decode(rawConfig, &config); err != nil {
-					tx.Rollback()
 					return err
 				}
 
@@ -171,7 +160,6 @@ func (m *migrations) Up_1528470872() error {
 					Username string `mapstructure:"username"`
 				}
 				if err = mapstructure.Decode(rawConfig, &config); err != nil {
-					tx.Rollback()
 					return err
 				}
 
@@ -182,7 +170,6 @@ func (m *migrations) Up_1528470872() error {
 					Spaces []string `mapstructure:"cf_spaces"`
 				}
 				if err = mapstructure.Decode(rawConfig, &config); err != nil {
-					tx.Rollback()
 					return err
 				}
 
@@ -195,7 +182,6 @@ func (m *migrations) Up_1528470872() error {
 					Groups []string `mapstructure:"groups"`
 				}
 				if err = mapstructure.Decode(rawConfig, &config); err != nil {
-					tx.Rollback()
 					return err
 				}
 
@@ -208,7 +194,6 @@ func (m *migrations) Up_1528470872() error {
 					Scope string `mapstructure:"scope"`
 				}
 				if err = mapstructure.Decode(rawConfig, &config); err != nil {
-					tx.Rollback()
 					return err
 				}
 
@@ -220,7 +205,6 @@ func (m *migrations) Up_1528470872() error {
 					Groups []string `mapstructure:"groups"`
 				}
 				if err = mapstructure.Decode(rawConfig, &config); err != nil {
-					tx.Rollback()
 					return err
 				}
 
@@ -232,7 +216,6 @@ func (m *migrations) Up_1528470872() error {
 				}
 
 			case "bitbucket-server", "bitbucket-cloud":
-				tx.Rollback()
 				return errors.New("bitbucket is no longer supported")
 			}
 		}
@@ -242,13 +225,11 @@ func (m *migrations) Up_1528470872() error {
 			"groups": newGroups,
 		})
 		if err != nil {
-			tx.Rollback()
 			return err
 		}
 
 		_, err = tx.Exec("UPDATE teams SET auth = $1 WHERE id = $2", newAuth, team.id)
 		if err != nil {
-			tx.Rollback()
 			return err
 		}
 	}
@@ -277,15 +258,7 @@ func (m *migrations) Up_1528470872() error {
 		}
 	}
 	if errorMessage != "" {
-		tx.Rollback()
 		return fmt.Errorf("problems in your database caused the migration to fail:\n\n%s", errorMessage)
 	}
-
-	err = tx.Commit()
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
 	return nil
 }

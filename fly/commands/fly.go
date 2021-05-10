@@ -45,19 +45,20 @@ type FlyCommand struct {
 	UnpauseJob  UnpauseJobCommand  `command:"unpause-job" alias:"uj" description:"Unpause a job"`
 	ScheduleJob ScheduleJobCommand `command:"schedule-job" alias:"sj" description:"Request the scheduler to run for a job. Introduced as a recovery command for the v6.0 scheduler."`
 
-	Pipelines        PipelinesCommand        `command:"pipelines"           alias:"ps"   description:"List the configured pipelines"`
-	DestroyPipeline  DestroyPipelineCommand  `command:"destroy-pipeline"    alias:"dp"   description:"Destroy a pipeline"`
-	GetPipeline      GetPipelineCommand      `command:"get-pipeline"        alias:"gp"   description:"Get a pipeline's current configuration"`
-	SetPipeline      SetPipelineCommand      `command:"set-pipeline"        alias:"sp"   description:"Create or update a pipeline's configuration"`
-	PausePipeline    PausePipelineCommand    `command:"pause-pipeline"      alias:"pp"   description:"Pause a pipeline"`
-	ArchivePipeline  ArchivePipelineCommand  `command:"archive-pipeline"    alias:"ap"   description:"Archive a pipeline"`
-	UnpausePipeline  UnpausePipelineCommand  `command:"unpause-pipeline"    alias:"up"   description:"Un-pause a pipeline"`
-	ExposePipeline   ExposePipelineCommand   `command:"expose-pipeline"     alias:"ep"   description:"Make a pipeline publicly viewable"`
-	HidePipeline     HidePipelineCommand     `command:"hide-pipeline"       alias:"hp"   description:"Hide a pipeline from the public"`
-	RenamePipeline   RenamePipelineCommand   `command:"rename-pipeline"     alias:"rp"   description:"Rename a pipeline"`
-	ValidatePipeline ValidatePipelineCommand `command:"validate-pipeline"   alias:"vp"   description:"Validate a pipeline config"`
-	FormatPipeline   FormatPipelineCommand   `command:"format-pipeline"     alias:"fp"   description:"Format a pipeline config"`
-	OrderPipelines   OrderPipelinesCommand   `command:"order-pipelines"     alias:"op"   description:"Orders pipelines"`
+	Pipelines                 PipelinesCommand               `command:"pipelines"                 alias:"ps"   description:"List the configured pipelines"`
+	DestroyPipeline           DestroyPipelineCommand         `command:"destroy-pipeline"          alias:"dp"   description:"Destroy a pipeline"`
+	GetPipeline               GetPipelineCommand             `command:"get-pipeline"              alias:"gp"   description:"Get a pipeline's current configuration"`
+	SetPipeline               SetPipelineCommand             `command:"set-pipeline"              alias:"sp"   description:"Create or update a pipeline's configuration"`
+	PausePipeline             PausePipelineCommand           `command:"pause-pipeline"            alias:"pp"   description:"Pause a pipeline"`
+	ArchivePipeline           ArchivePipelineCommand         `command:"archive-pipeline"          alias:"ap"   description:"Archive a pipeline"`
+	UnpausePipeline           UnpausePipelineCommand         `command:"unpause-pipeline"          alias:"up"   description:"Un-pause a pipeline"`
+	ExposePipeline            ExposePipelineCommand          `command:"expose-pipeline"           alias:"ep"   description:"Make a pipeline publicly viewable"`
+	HidePipeline              HidePipelineCommand            `command:"hide-pipeline"             alias:"hp"   description:"Hide a pipeline from the public"`
+	RenamePipeline            RenamePipelineCommand          `command:"rename-pipeline"           alias:"rp"   description:"Rename a pipeline"`
+	ValidatePipeline          ValidatePipelineCommand        `command:"validate-pipeline"         alias:"vp"   description:"Validate a pipeline config"`
+	FormatPipeline            FormatPipelineCommand          `command:"format-pipeline"           alias:"fp"   description:"Format a pipeline config"`
+	OrderPipelines            OrderPipelinesCommand          `command:"order-pipelines"           alias:"op"   description:"Orders pipelines"`
+	OrderPipelinesWithinGroup OrderInstancedPipelinesCommand `command:"order-instanced-pipelines" alias:"oip"  description:"Orders instanced pipelines within an instance group"`
 
 	Resources              ResourcesCommand              `command:"resources"                  alias:"rs"   description:"List the resources in the pipeline"`
 	ResourceVersions       ResourceVersionsCommand       `command:"resource-versions"          alias:"rvs"  description:"List the versions of a resource"`

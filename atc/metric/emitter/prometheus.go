@@ -17,6 +17,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+
 type PrometheusEmitter struct {
 	jobsScheduled  prometheus.Counter
 	jobsScheduling prometheus.Gauge
@@ -24,11 +26,14 @@ type PrometheusEmitter struct {
 	buildsStarted prometheus.Counter
 	buildsRunning prometheus.Gauge
 
+	checkBuildsStarted prometheus.Counter
+	checkBuildsRunning prometheus.Gauge
+
 	concurrentRequestsLimitHit *prometheus.CounterVec
 	concurrentRequests         *prometheus.GaugeVec
 
-	tasksWaiting         *prometheus.GaugeVec
-	tasksWaitingDuration *prometheus.HistogramVec
+	stepsWaiting         *prometheus.GaugeVec
+	stepsWaitingDuration *prometheus.HistogramVec
 
 	buildDurationsVec *prometheus.HistogramVec
 	buildsAborted     prometheus.Counter
@@ -37,6 +42,12 @@ type PrometheusEmitter struct {
 	buildsFinished    prometheus.Counter
 	buildsFinishedVec *prometheus.CounterVec
 	buildsSucceeded   prometheus.Counter
+
+	checkBuildsAborted   prometheus.Counter
+	checkBuildsErrored   prometheus.Counter
+	checkBuildsFailed    prometheus.Counter
+	checkBuildsFinished  prometheus.Counter
+	checkBuildsSucceeded prometheus.Counter
 
 	dbConnections  *prometheus.GaugeVec
 	dbQueriesTotal prometheus.Counter
@@ -47,10 +58,11 @@ type PrometheusEmitter struct {
 
 	locksHeld *prometheus.GaugeVec
 
-	checksFinished  *prometheus.CounterVec
-	checksQueueSize prometheus.Gauge
-	checksStarted   prometheus.Counter
-	checksEnqueued  prometheus.Counter
+	// TODO: deprecate
+	checksFinished *prometheus.CounterVec
+	checksStarted  prometheus.Counter
+
+	checksEnqueued prometheus.Counter
 
 	volumesStreamed prometheus.Counter
 
@@ -159,6 +171,22 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 	})
 	prometheus.MustRegister(buildsRunning)
 
+	checkBuildsStarted := prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: "concourse",
+		Subsystem: "builds",
+		Name:      "check_started_total",
+		Help:      "Total number of Concourse check builds started.",
+	})
+	prometheus.MustRegister(checkBuildsStarted)
+
+	checkBuildsRunning := prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "concourse",
+		Subsystem: "builds",
+		Name:      "check_running",
+		Help:      "Number of Concourse check builds currently running.",
+	})
+	prometheus.MustRegister(checkBuildsRunning)
+
 	concurrentRequestsLimitHit := prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "concourse",
 		Subsystem: "concurrent_requests",
@@ -174,22 +202,22 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 	}, []string{"action"})
 	prometheus.MustRegister(concurrentRequests)
 
-	tasksWaiting := prometheus.NewGaugeVec(prometheus.GaugeOpts{
+	stepsWaiting := prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "concourse",
-		Subsystem: "tasks",
+		Subsystem: "steps",
 		Name:      "waiting",
-		Help:      "Number of Concourse tasks currently waiting.",
-	}, []string{"teamId", "workerTags", "platform"})
-	prometheus.MustRegister(tasksWaiting)
+		Help:      "Number of Concourse build steps currently waiting.",
+	}, []string{"platform", "teamId", "type", "workerTags"})
+	prometheus.MustRegister(stepsWaiting)
 
-	tasksWaitingDuration := prometheus.NewHistogramVec(prometheus.HistogramOpts{
+	stepsWaitingDuration := prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Namespace: "concourse",
-		Subsystem: "tasks",
+		Subsystem: "steps",
 		Name:      "wait_duration",
 		Help:      "Elapsed time waiting for execution",
-		Buckets:   []float64{30, 60, 120, 300, 600, 1200, 1800, 2400, 3000, 3600},
-	}, []string{"teamId", "workerTags", "platform"})
-	prometheus.MustRegister(tasksWaitingDuration)
+		Buckets:   []float64{10, 30, 60, 120, 300, 600, 1800, 2400, 3000, 3600},
+	}, []string{"platform", "teamId", "type", "workerTags"})
+	prometheus.MustRegister(stepsWaitingDuration)
 
 	buildsFinished := prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: "concourse",
@@ -253,6 +281,46 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 		[]string{"team", "pipeline", "job"},
 	)
 	prometheus.MustRegister(buildDurationsVec)
+
+	checkBuildsFinished := prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: "concourse",
+		Subsystem: "builds",
+		Name:      "check_finished_total",
+		Help:      "Total number of Concourse check builds finished.",
+	})
+	prometheus.MustRegister(checkBuildsFinished)
+
+	checkBuildsSucceeded := prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: "concourse",
+		Subsystem: "builds",
+		Name:      "check_succeeded_total",
+		Help:      "Total number of Concourse check builds succeeded.",
+	})
+	prometheus.MustRegister(checkBuildsSucceeded)
+
+	checkBuildsErrored := prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: "concourse",
+		Subsystem: "builds",
+		Name:      "check_errored_total",
+		Help:      "Total number of Concourse check builds errored.",
+	})
+	prometheus.MustRegister(checkBuildsErrored)
+
+	checkBuildsFailed := prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: "concourse",
+		Subsystem: "builds",
+		Name:      "check_failed_total",
+		Help:      "Total number of Concourse check builds failed.",
+	})
+	prometheus.MustRegister(checkBuildsFailed)
+
+	checkBuildsAborted := prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: "concourse",
+		Subsystem: "builds",
+		Name:      "check_aborted_total",
+		Help:      "Total number of Concourse check builds aborted.",
+	})
+	prometheus.MustRegister(checkBuildsAborted)
 
 	// worker metrics
 	workerContainers := prometheus.NewGaugeVec(
@@ -357,28 +425,18 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 			Namespace: "concourse",
 			Subsystem: "lidar",
 			Name:      "checks_finished_total",
-			Help:      "Total number of checks finished",
+			Help:      "Total number of checks finished.",
 		},
 		[]string{"status"},
 	)
 	prometheus.MustRegister(checksFinished)
-
-	checksQueueSize := prometheus.NewGauge(
-		prometheus.GaugeOpts{
-			Namespace: "concourse",
-			Subsystem: "lidar",
-			Name:      "check_queue_size",
-			Help:      "The size of the checks queue",
-		},
-	)
-	prometheus.MustRegister(checksQueueSize)
 
 	checksStarted := prometheus.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "concourse",
 			Subsystem: "lidar",
 			Name:      "checks_started_total",
-			Help:      "Total number of checks started",
+			Help:      "Total number of checks started. With global resource enabled, a check build may not really run a check, thus total checks started should be less than total check builds started.",
 		},
 	)
 	prometheus.MustRegister(checksStarted)
@@ -417,11 +475,14 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 		buildsStarted: buildsStarted,
 		buildsRunning: buildsRunning,
 
+		checkBuildsStarted: checkBuildsStarted,
+		checkBuildsRunning: checkBuildsRunning,
+
 		concurrentRequestsLimitHit: concurrentRequestsLimitHit,
 		concurrentRequests:         concurrentRequests,
 
-		tasksWaiting:         tasksWaiting,
-		tasksWaitingDuration: tasksWaitingDuration,
+		stepsWaiting:         stepsWaiting,
+		stepsWaitingDuration: stepsWaitingDuration,
 
 		buildDurationsVec: buildDurationsVec,
 		buildsAborted:     buildsAborted,
@@ -430,6 +491,12 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 		buildsFinished:    buildsFinished,
 		buildsFinishedVec: buildsFinishedVec,
 		buildsSucceeded:   buildsSucceeded,
+
+		checkBuildsAborted:   checkBuildsAborted,
+		checkBuildsErrored:   checkBuildsErrored,
+		checkBuildsFailed:    checkBuildsFailed,
+		checkBuildsFinished:  checkBuildsFinished,
+		checkBuildsSucceeded: checkBuildsSucceeded,
 
 		dbConnections:  dbConnections,
 		dbQueriesTotal: dbQueriesTotal,
@@ -440,10 +507,11 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 
 		locksHeld: locksHeld,
 
-		checksFinished:  checksFinished,
-		checksQueueSize: checksQueueSize,
-		checksStarted:   checksStarted,
-		checksEnqueued:  checksEnqueued,
+		// TODO: deprecate
+		checksFinished: checksFinished,
+		checksStarted:  checksStarted,
+
+		checksEnqueued: checksEnqueued,
 
 		workerContainers:        workerContainers,
 		workersRegistered:       workersRegistered,
@@ -485,27 +553,35 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 		emitter.buildsStarted.Add(event.Value)
 	case "builds running":
 		emitter.buildsRunning.Set(event.Value)
+	case "check builds started":
+		emitter.checkBuildsStarted.Add(event.Value)
+	case "check builds running":
+		emitter.checkBuildsRunning.Set(event.Value)
 	case "concurrent requests limit hit":
 		emitter.concurrentRequestsLimitHit.WithLabelValues(event.Attributes["action"]).Add(event.Value)
 	case "concurrent requests":
 		emitter.concurrentRequests.
 			WithLabelValues(event.Attributes["action"]).Set(event.Value)
-	case "tasks waiting":
-		emitter.tasksWaiting.
+	case "steps waiting":
+		emitter.stepsWaiting.
 			WithLabelValues(
-				event.Attributes["teamId"],
-				event.Attributes["workerTags"],
 				event.Attributes["platform"],
+				event.Attributes["teamId"],
+				event.Attributes["type"],
+				event.Attributes["workerTags"],
 			).Set(event.Value)
-	case "tasks waiting duration":
-		emitter.tasksWaitingDuration.
+	case "steps waiting duration":
+		emitter.stepsWaitingDuration.
 			WithLabelValues(
-				event.Attributes["teamId"],
-				event.Attributes["workerTags"],
 				event.Attributes["platform"],
+				event.Attributes["teamId"],
+				event.Attributes["type"],
+				event.Attributes["workerTags"],
 			).Observe(event.Value)
 	case "build finished":
 		emitter.buildFinishedMetrics(logger, event)
+	case "check build finished":
+		emitter.checkBuildFinishedMetrics(logger, event)
 	case "worker containers":
 		emitter.workerContainersMetric(logger, event)
 	case "worker volumes":
@@ -524,14 +600,14 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 		emitter.databaseMetrics(logger, event)
 	case "database connections":
 		emitter.databaseMetrics(logger, event)
+	// TODO: deprecate
 	case "checks finished":
 		emitter.checksFinished.WithLabelValues(event.Attributes["status"]).Add(event.Value)
+	// TODO: deprecate
 	case "checks started":
 		emitter.checksStarted.Add(event.Value)
 	case "checks enqueued":
 		emitter.checksEnqueued.Add(event.Value)
-	case "checks queue size":
-		emitter.checksQueueSize.Set(event.Value)
 	case "volumes streamed":
 		emitter.volumesStreamed.Add(event.Value)
 	default:
@@ -613,6 +689,33 @@ func (emitter *PrometheusEmitter) buildFinishedMetrics(logger lager.Logger, even
 	// seconds are the standard prometheus base unit for time
 	duration := event.Value / 1000
 	emitter.buildDurationsVec.WithLabelValues(team, pipeline, job).Observe(duration)
+}
+
+func (emitter *PrometheusEmitter) checkBuildFinishedMetrics(logger lager.Logger, event metric.Event) {
+	// concourse_builds_finished_total
+	emitter.checkBuildsFinished.Inc()
+
+	buildStatus, exists := event.Attributes["build_status"]
+	if !exists {
+		logger.Error("failed-to-find-check-build_status-in-event", fmt.Errorf("expected build_status to exist in event.Attributes"))
+		return
+	}
+
+	// concourse_builds_(aborted|succeeded|failed|errored)_total
+	switch buildStatus {
+	case string(db.BuildStatusAborted):
+		// concourse_builds_check_aborted_total
+		emitter.checkBuildsAborted.Inc()
+	case string(db.BuildStatusSucceeded):
+		// concourse_builds_check_succeeded_total
+		emitter.checkBuildsSucceeded.Inc()
+	case string(db.BuildStatusFailed):
+		// concourse_builds_check_failed_total
+		emitter.checkBuildsFailed.Inc()
+	case string(db.BuildStatusErrored):
+		// concourse_builds_check_errored_total
+		emitter.checkBuildsErrored.Inc()
+	}
 }
 
 func (emitter *PrometheusEmitter) workerContainersMetric(logger lager.Logger, event metric.Event) {
@@ -833,7 +936,7 @@ func DoGarbageCollection(emitter PrometheusGarbageCollectable, worker string) {
 	delete(emitter.WorkerTasksLabels(), worker)
 }
 
-//go:generate counterfeiter . PrometheusGarbageCollectable
+//counterfeiter:generate . PrometheusGarbageCollectable
 type PrometheusGarbageCollectable interface {
 	WorkerContainers() *prometheus.GaugeVec
 	WorkerVolumes() *prometheus.GaugeVec

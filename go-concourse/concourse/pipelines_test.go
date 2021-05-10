@@ -257,6 +257,48 @@ var _ = Describe("ATC Handler Pipelines", func() {
 		})
 	})
 
+	Describe("OrderingInstancePipelines", func() {
+		instanceVars := []atc.InstanceVars{
+			{"branch": "main"},
+			{"branch": "test"},
+		}
+
+		Context("when the API call succeeds", func() {
+			BeforeEach(func() {
+				expectedURL := "/api/v1/teams/some-team/pipelines/my-pipeline/ordering"
+
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("PUT", expectedURL),
+						ghttp.VerifyJSONRepresenting(instanceVars),
+						ghttp.RespondWith(http.StatusOK, ""),
+					),
+				)
+			})
+
+			It("return no error", func() {
+				err := team.OrderingPipelinesWithinGroup("my-pipeline", instanceVars)
+				Expect(err).NotTo(HaveOccurred())
+			})
+		})
+
+		Context("when the API call errors", func() {
+			BeforeEach(func() {
+				expectedURL := "/api/v1/teams/some-team/pipelines/my-pipeline/ordering"
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("PUT", expectedURL),
+						ghttp.RespondWithJSONEncoded(http.StatusNotFound, ""),
+					),
+				)
+			})
+			It("returns error", func() {
+				err := team.OrderingPipelinesWithinGroup("my-pipeline", instanceVars)
+				Expect(err).To(HaveOccurred())
+			})
+		})
+	})
+
 	Describe("Pipeline", func() {
 		var expectedPipeline atc.Pipeline
 		expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline"

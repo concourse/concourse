@@ -1,5 +1,7 @@
 package atc
 
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+
 type User struct {
 	ID        int    `json:"id,omitempty"`
 	Username  string `json:"username,omitempty"`
@@ -21,8 +23,7 @@ type UserInfo struct {
 	DisplayUserId string              `json:"display_user_id"`
 }
 
-//go:generate counterfeiter . DisplayUserIdGenerator
-
+//counterfeiter:generate . DisplayUserIdGenerator
 type DisplayUserIdGenerator interface {
 	DisplayUserId(connector, userid, username, preferredUsername, email string) string
 }

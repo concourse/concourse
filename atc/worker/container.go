@@ -17,8 +17,7 @@ import (
 
 var ErrMissingVolume = errors.New("volume mounted to container is missing")
 
-//go:generate counterfeiter . Container
-
+//counterfeiter:generate . Container
 type Container interface {
 	gclient.Container
 	runtime.Runner

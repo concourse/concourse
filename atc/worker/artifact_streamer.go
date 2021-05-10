@@ -10,8 +10,7 @@ import (
 	"github.com/concourse/concourse/atc/runtime"
 )
 
-//go:generate counterfeiter . ArtifactStreamer
-
+//counterfeiter:generate . ArtifactStreamer
 type ArtifactStreamer interface {
 	StreamFileFromArtifact(context.Context, runtime.Artifact, string) (io.ReadCloser, error)
 }

@@ -15,8 +15,7 @@ import (
 
 const creatingVolumeRetryDelay = 1 * time.Second
 
-//go:generate counterfeiter . VolumeClient
-
+//counterfeiter:generate . VolumeClient
 type VolumeClient interface {
 	FindOrCreateVolumeForContainer(
 		lager.Logger,

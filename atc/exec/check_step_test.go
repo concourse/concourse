@@ -22,8 +22,8 @@ import (
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
 	"github.com/concourse/concourse/vars/varsfakes"
-	"go.opentelemetry.io/otel/api/trace"
-	"go.opentelemetry.io/otel/api/trace/tracetest"
+	"go.opentelemetry.io/otel/oteltest"
+	"go.opentelemetry.io/otel/trace"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -75,10 +75,10 @@ var _ = Describe("CheckStep", func() {
 		fakeClient = new(workerfakes.FakeClient)
 		fakeClient.NameReturns("some-worker")
 		fakePool = new(workerfakes.FakePool)
-		fakePool.SelectWorkerReturns(fakeClient, nil)
+		fakePool.SelectWorkerReturns(fakeClient, 0, nil)
 
 		spanCtx = context.Background()
-		fakeDelegate.StartSpanReturns(spanCtx, trace.NoopSpan{})
+		fakeDelegate.StartSpanReturns(spanCtx, tracing.NoopSpan)
 
 		fakeStdout = bytes.NewBufferString("out")
 		fakeDelegate.StdoutReturns(fakeStdout)
@@ -237,11 +237,17 @@ var _ = Describe("CheckStep", func() {
 			})
 
 			Describe("worker selection", func() {
+				var ctx context.Context
 				var workerSpec worker.WorkerSpec
 
 				JustBeforeEach(func() {
 					Expect(fakePool.SelectWorkerCallCount()).To(Equal(1))
-					_, _, _, workerSpec, _ = fakePool.SelectWorkerArgsForCall(0)
+					ctx, _, _, workerSpec, _, _ = fakePool.SelectWorkerArgsForCall(0)
+				})
+
+				It("doesn't enforce a timeout", func() {
+					_, ok := ctx.Deadline()
+					Expect(ok).To(BeFalse())
 				})
 
 				Describe("calls SelectWorker with the correct WorkerSpec", func() {
@@ -272,7 +278,7 @@ var _ = Describe("CheckStep", func() {
 
 				Context("when selecting a worker fails", func() {
 					BeforeEach(func() {
-						fakePool.SelectWorkerReturns(nil, errors.New("nope"))
+						fakePool.SelectWorkerReturns(nil, 0, errors.New("nope"))
 					})
 
 					It("returns an err", func() {
@@ -463,7 +469,7 @@ var _ = Describe("CheckStep", func() {
 						var buildSpan trace.Span
 
 						BeforeEach(func() {
-							tracing.ConfigureTraceProvider(tracetest.NewProvider())
+							tracing.ConfigureTraceProvider(oteltest.NewTracerProvider())
 
 							spanCtx, buildSpan = tracing.StartSpan(ctx, "build", nil)
 							fakeDelegate.StartSpanReturns(spanCtx, buildSpan)
@@ -496,7 +502,7 @@ var _ = Describe("CheckStep", func() {
 				var buildSpan trace.Span
 
 				BeforeEach(func() {
-					tracing.ConfigureTraceProvider(tracetest.NewProvider())
+					tracing.ConfigureTraceProvider(oteltest.NewTracerProvider())
 
 					spanCtx, buildSpan = tracing.StartSpan(context.Background(), "fake-operation", nil)
 					fakeDelegate.StartSpanReturns(spanCtx, buildSpan)
@@ -509,7 +515,7 @@ var _ = Describe("CheckStep", func() {
 				It("propagates span context to scope", func() {
 					Expect(fakeResourceConfigScope.SaveVersionsCallCount()).To(Equal(1))
 					spanContext, _ := fakeResourceConfigScope.SaveVersionsArgsForCall(0)
-					traceID := buildSpan.SpanContext().TraceID.String()
+					traceID := buildSpan.SpanContext().TraceID().String()
 					traceParent := spanContext.Get("traceparent")
 					Expect(traceParent).To(ContainSubstring(traceID))
 				})

@@ -11,6 +11,8 @@ import (
 	flags "github.com/jessevdk/go-flags"
 )
 
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+
 type Event struct {
 	Name       string
 	Value      float64
@@ -19,12 +21,12 @@ type Event struct {
 	Time       time.Time
 }
 
-//go:generate counterfeiter . Emitter
+//counterfeiter:generate . Emitter
 type Emitter interface {
 	Emit(lager.Logger, Event)
 }
 
-//go:generate counterfeiter . EmitterFactory
+//counterfeiter:generate . EmitterFactory
 type EmitterFactory interface {
 	Description() string
 	IsConfigured() bool
@@ -49,7 +51,6 @@ type Monitor struct {
 
 	ContainersDeleted Counter
 	VolumesDeleted    Counter
-	ChecksDeleted     Counter
 
 	JobsScheduled  Counter
 	JobsScheduling Gauge
@@ -57,12 +58,25 @@ type Monitor struct {
 	BuildsStarted Counter
 	BuildsRunning Gauge
 
-	TasksWaiting map[TasksWaitingLabels]*Gauge
+	CheckBuildsStarted Counter
+	CheckBuildsRunning Gauge
 
+	StepsWaiting map[StepsWaitingLabels]*Gauge
+
+	// When global resource is not enabled, ChecksStarted should equal to CheckBuildsStarted.
+	// But with global resource enabled, ChecksStarted measures how many checks really run.
+	// For example, there are 10 resources having exact same config, so they belong to the same
+	// resource configure scope. In each check period, 10 check builds will be created,
+	// CheckBuildsStarted should be 10. But only 1 check build should run real check, rest 9 check
+	// builds should reuse the first check's result, thus ChecksStarted will be 1.
+	// The bigger diff between ChecksStarted and CheckBuildsStarted, the more global resource benefits.
+	ChecksStarted Counter
+
+	// ChecksFinishedWithError+ChecksFinishedWithSuccess should equal to ChecksStarted.
 	ChecksFinishedWithError   Counter
 	ChecksFinishedWithSuccess Counter
-	ChecksStarted             Counter
-	ChecksEnqueued            Counter
+
+	ChecksEnqueued Counter
 
 	ConcurrentRequests         map[string]*Gauge
 	ConcurrentRequestsLimitHit map[string]*Counter
@@ -74,7 +88,7 @@ var Metrics = NewMonitor()
 
 func NewMonitor() *Monitor {
 	return &Monitor{
-		TasksWaiting:               map[TasksWaitingLabels]*Gauge{},
+		StepsWaiting:               map[StepsWaitingLabels]*Gauge{},
 		ConcurrentRequests:         map[string]*Gauge{},
 		ConcurrentRequestsLimitHit: map[string]*Counter{},
 	}

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/concourse/concourse/atc"
@@ -47,14 +48,80 @@ func (team *team) OrderingPipelines(pipelineNames []string) error {
 		return fmt.Errorf("Unable to marshal pipeline names: %s", err)
 	}
 
-	return team.connection.Send(internal.Request{
+	resp, err := team.httpAgent.Send(internal.Request{
 		RequestName: atc.OrderPipelines,
 		Params:      params,
 		Body:        buffer,
 		Header: http.Header{
 			"Content-Type": {"application/json"},
 		},
-	}, &internal.Response{})
+	})
+
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	switch resp.StatusCode {
+	case http.StatusOK:
+		return nil
+	case http.StatusForbidden:
+		return fmt.Errorf("you do not have a role on team '%s'", team.Name())
+	case http.StatusBadRequest:
+		body, _ := ioutil.ReadAll(resp.Body)
+		return fmt.Errorf(string(body))
+	default:
+		body, _ := ioutil.ReadAll(resp.Body)
+		return internal.UnexpectedResponseError{
+			StatusCode: resp.StatusCode,
+			Status:     resp.Status,
+			Body:       string(body),
+		}
+	}
+}
+
+func (team *team) OrderingPipelinesWithinGroup(groupName string, instanceVars []atc.InstanceVars) error {
+	params := rata.Params{
+		"team_name":     team.Name(),
+		"pipeline_name": groupName,
+	}
+
+	buffer := &bytes.Buffer{}
+	err := json.NewEncoder(buffer).Encode(instanceVars)
+	if err != nil {
+		return fmt.Errorf("Unable to marshal pipeline instance vars: %s", err)
+	}
+
+	resp, err := team.httpAgent.Send(internal.Request{
+		RequestName: atc.OrderPipelinesWithinGroup,
+		Params:      params,
+		Body:        buffer,
+		Header: http.Header{
+			"Content-Type": {"application/json"},
+		},
+	})
+
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	switch resp.StatusCode {
+	case http.StatusOK:
+		return nil
+	case http.StatusForbidden:
+		return fmt.Errorf("you do not have a role on team '%s'", team.Name())
+	case http.StatusBadRequest:
+		body, _ := ioutil.ReadAll(resp.Body)
+		return fmt.Errorf(string(body))
+	default:
+		body, _ := ioutil.ReadAll(resp.Body)
+		return internal.UnexpectedResponseError{
+			StatusCode: resp.StatusCode,
+			Status:     resp.Status,
+			Body:       string(body),
+		}
+	}
 }
 
 func (team *team) ListPipelines() ([]atc.Pipeline, error) {

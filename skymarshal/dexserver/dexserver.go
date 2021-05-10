@@ -3,6 +3,9 @@ package dexserver
 import (
 	"context"
 	"crypto/rsa"
+	"embed"
+	"errors"
+	"io/fs"
 	"strings"
 	"time"
 
@@ -12,21 +15,23 @@ import (
 	s "github.com/concourse/concourse/skymarshal/storage"
 	"github.com/concourse/dex/server"
 	"github.com/concourse/dex/storage"
-	"github.com/markbates/pkger"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type DexConfig struct {
-	Logger      lager.Logger
-	IssuerURL   string
-	WebHostURL  string
-	SigningKey  *rsa.PrivateKey
-	Expiration  time.Duration
-	Clients     map[string]string
-	Users       map[string]string
-	RedirectURL string
-	Storage     s.Storage
+	Logger            lager.Logger
+	IssuerURL         string
+	SigningKey        *rsa.PrivateKey
+	Expiration        time.Duration
+	Clients           map[string]string
+	Users             map[string]string
+	PasswordConnector string
+	RedirectURL       string
+	Storage           s.Storage
 }
+
+//go:embed web
+var webFS embed.FS
 
 func NewDexServer(config *DexConfig) (*server.Server, error) {
 
@@ -54,6 +59,9 @@ func NewDexServerConfig(config *DexConfig) (server.Config, error) {
 	}
 
 	if len(passwords) > 0 {
+		if config.PasswordConnector != "local" {
+			return server.Config{}, errors.New("can only set --add-local-user with --password-connector=local")
+		}
 		connectors = append(connectors, storage.Connector{
 			ID:   "local",
 			Type: "local",
@@ -94,16 +102,20 @@ func NewDexServerConfig(config *DexConfig) (server.Config, error) {
 		return server.Config{}, err
 	}
 
+	webFS, err := fs.Sub(webFS, "web")
+	if err != nil {
+		return server.Config{}, err
+	}
+
 	webConfig := server.WebConfig{
-		LogoURL: strings.TrimRight(config.WebHostURL, "/") + "/themes/concourse/logo.svg",
-		HostURL: config.WebHostURL,
+		LogoURL: "theme/logo.svg",
+		WebFS:   webFS,
 		Theme:   "concourse",
 		Issuer:  "Concourse",
-		Dir:     pkger.Include("/skymarshal/web"),
 	}
 
 	return server.Config{
-		PasswordConnector:      "local",
+		PasswordConnector:      config.PasswordConnector,
 		SupportedResponseTypes: []string{"code", "token", "id_token"},
 		SkipApprovalScreen:     true,
 		IDTokensValidFor:       config.Expiration,

@@ -19,11 +19,8 @@ import (
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
-	"go.opentelemetry.io/otel/api/trace"
+	"go.opentelemetry.io/otel/trace"
 )
-
-const workerAvailabilityPollingInterval = 5 * time.Second
-const workerStatusPublishInterval = 1 * time.Minute
 
 // MissingInputsError is returned when any of the task's required inputs are
 // missing.
@@ -54,14 +51,12 @@ func (err TaskImageSourceParametersError) Error() string {
 	return fmt.Sprintf("failed to evaluate image resource parameters: %s", err.Err)
 }
 
-//go:generate counterfeiter . TaskDelegateFactory
-
+//counterfeiter:generate . TaskDelegateFactory
 type TaskDelegateFactory interface {
 	TaskDelegate(state RunState) TaskDelegate
 }
 
-//go:generate counterfeiter . TaskDelegate
-
+//counterfeiter:generate . TaskDelegate
 type TaskDelegate interface {
 	StartSpan(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
 
@@ -76,9 +71,10 @@ type TaskDelegate interface {
 	Initializing(lager.Logger)
 	Starting(lager.Logger)
 	Finished(lager.Logger, ExitStatus, worker.ContainerPlacementStrategy, worker.Client)
-	SelectWorker(context.Context, worker.Pool, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, worker.ContainerPlacementStrategy, time.Duration, time.Duration) (worker.Client, error)
-	SelectedWorker(lager.Logger, string)
 	Errored(lager.Logger, string)
+
+	WaitingForWorker(lager.Logger)
+	SelectedWorker(lager.Logger, string)
 }
 
 // TaskStep executes a TaskConfig, whose inputs will be fetched from the
@@ -187,6 +183,9 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 		ResourceTypes: step.plan.ResourceTypes,
 	}
 
+	// override limits
+	taskConfigSource = &OverrideContainerLimitsSource{ConfigSource: taskConfigSource, Limits: step.plan.Limits}
+
 	// override params
 	taskConfigSource = &OverrideParamsConfigSource{ConfigSource: taskConfigSource, Params: step.plan.Params}
 
@@ -247,6 +246,29 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 
 	owner := db.NewBuildStepContainerOwner(step.metadata.BuildID, step.planID, step.metadata.TeamID)
 
+	chosenWorker, _, err := step.workerPool.SelectWorker(
+		lagerctx.NewContext(ctx, logger),
+		owner,
+		containerSpec,
+		step.workerSpec(config),
+		step.strategy,
+		delegate,
+	)
+	if err != nil {
+		return false, err
+	}
+
+	delegate.SelectedWorker(logger, chosenWorker.Name())
+
+	defer func() {
+		step.workerPool.ReleaseWorker(
+			lagerctx.NewContext(ctx, logger),
+			containerSpec,
+			chosenWorker,
+			step.strategy,
+		)
+	}()
+
 	processCtx := ctx
 	if step.plan.Timeout != "" {
 		timeout, err := time.ParseDuration(step.plan.Timeout)
@@ -258,20 +280,6 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 		processCtx, cancel = context.WithTimeout(ctx, timeout)
 		defer cancel()
 	}
-
-	chosenWorker, err := delegate.SelectWorker(
-		lagerctx.NewContext(processCtx, logger),
-		step.workerPool,
-		owner,
-		containerSpec,
-		step.workerSpec(config),
-		step.strategy,
-		workerAvailabilityPollingInterval, workerStatusPublishInterval,
-	)
-	if err != nil {
-		return false, err
-	}
-	delegate.SelectedWorker(logger, chosenWorker.Name())
 
 	result, runErr := chosenWorker.RunTaskStep(
 		lagerctx.NewContext(processCtx, logger),
@@ -301,6 +309,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 	}
 
 	delegate.Finished(logger, ExitStatus(result.ExitStatus), step.strategy, chosenWorker)
+
 	return result.ExitStatus == 0, nil
 }
 
@@ -403,13 +412,14 @@ func (step *TaskStep) containerSpec(logger lager.Logger, state RunState, imageSp
 	}
 
 	containerSpec := worker.ContainerSpec{
-		TeamID:    step.metadata.TeamID,
 		ImageSpec: imageSpec,
-		Limits:    limits,
-		User:      config.Run.User,
-		Dir:       metadata.WorkingDirectory,
-		Env:       config.Params.Env(),
+		TeamID:    step.metadata.TeamID,
 		Type:      metadata.Type,
+
+		Dir:    metadata.WorkingDirectory,
+		Env:    config.Params.Env(),
+		Limits: limits,
+		User:   config.Run.User,
 
 		Outputs: worker.OutputPaths{},
 	}

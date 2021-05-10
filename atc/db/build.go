@@ -12,7 +12,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
-	"go.opentelemetry.io/otel/api/propagation"
+	"go.opentelemetry.io/otel/propagation"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/encryption"
@@ -37,7 +37,7 @@ type BuildInput struct {
 	Context SpanContext
 }
 
-func (bi BuildInput) SpanContext() propagation.HTTPSupplier {
+func (bi BuildInput) SpanContext() propagation.TextMapCarrier {
 	return bi.Context
 }
 
@@ -111,8 +111,7 @@ var latestCompletedBuildQuery = psql.Select("max(id)").
 	From("builds").
 	Where(sq.Expr(`status NOT IN ('pending', 'started')`))
 
-//go:generate counterfeiter . Build
-
+//counterfeiter:generate . Build
 type Build interface {
 	PipelineRef
 
@@ -136,6 +135,7 @@ type Build interface {
 	PublicPlan() *json.RawMessage
 	HasPlan() bool
 	Status() BuildStatus
+	CreateTime() time.Time
 	StartTime() time.Time
 	IsNewerThanLastCheckOf(input Resource) bool
 	EndTime() time.Time
@@ -192,7 +192,7 @@ type Build interface {
 	IsDrained() bool
 	SetDrained(bool) error
 
-	SpanContext() propagation.HTTPSupplier
+	SpanContext() propagation.TextMapCarrier
 
 	SavePipeline(
 		pipelineRef atc.PipelineRef,
@@ -364,20 +364,21 @@ func (b *build) HasPlan() bool                { return string(*b.publicPlan) != 
 func (b *build) IsNewerThanLastCheckOf(input Resource) bool {
 	return b.createTime.After(input.LastCheckEndTime())
 }
-func (b *build) StartTime() time.Time { return b.startTime }
-func (b *build) EndTime() time.Time   { return b.endTime }
-func (b *build) ReapTime() time.Time  { return b.reapTime }
-func (b *build) Status() BuildStatus  { return b.status }
-func (b *build) IsScheduled() bool    { return b.scheduled }
-func (b *build) IsDrained() bool      { return b.drained }
-func (b *build) IsRunning() bool      { return !b.completed }
-func (b *build) IsAborted() bool      { return b.aborted }
-func (b *build) IsCompleted() bool    { return b.completed }
-func (b *build) InputsReady() bool    { return b.inputsReady }
-func (b *build) RerunOf() int         { return b.rerunOf }
-func (b *build) RerunOfName() string  { return b.rerunOfName }
-func (b *build) RerunNumber() int     { return b.rerunNumber }
-func (b *build) CreatedBy() *string   { return b.createdBy }
+func (b *build) CreateTime() time.Time { return b.createTime }
+func (b *build) StartTime() time.Time  { return b.startTime }
+func (b *build) EndTime() time.Time    { return b.endTime }
+func (b *build) ReapTime() time.Time   { return b.reapTime }
+func (b *build) Status() BuildStatus   { return b.status }
+func (b *build) IsScheduled() bool     { return b.scheduled }
+func (b *build) IsDrained() bool       { return b.drained }
+func (b *build) IsRunning() bool       { return !b.completed }
+func (b *build) IsAborted() bool       { return b.aborted }
+func (b *build) IsCompleted() bool     { return b.completed }
+func (b *build) InputsReady() bool     { return b.inputsReady }
+func (b *build) RerunOf() int          { return b.rerunOf }
+func (b *build) RerunOfName() string   { return b.rerunOfName }
+func (b *build) RerunNumber() int      { return b.rerunNumber }
+func (b *build) CreatedBy() *string    { return b.createdBy }
 
 func (b *build) Reload() (bool, error) {
 	row := buildsQuery.Where(sq.Eq{"b.id": b.id}).
@@ -1696,7 +1697,7 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 	return inputs, outputs, nil
 }
 
-func (b *build) SpanContext() propagation.HTTPSupplier {
+func (b *build) SpanContext() propagation.TextMapCarrier {
 	return b.spanContext
 }
 
@@ -1939,6 +1940,66 @@ func createBuild(tx Tx, build *build, vals map[string]interface{}) error {
 	}
 
 	return createBuildEventSeq(tx, buildID)
+}
+
+type startedBuildArgs struct {
+	Name              string
+	PipelineID        int
+	TeamID            int
+	Plan              atc.Plan
+	ManuallyTriggered bool
+	SpanContext       SpanContext
+	ExtraValues       map[string]interface{}
+}
+
+func createStartedBuild(tx Tx, build *build, args startedBuildArgs) error {
+	spanContext, err := json.Marshal(args.SpanContext)
+	if err != nil {
+		return err
+	}
+
+	plan, err := json.Marshal(args.Plan)
+	if err != nil {
+		return err
+	}
+
+	encryptedPlan, nonce, err := build.conn.EncryptionStrategy().Encrypt(plan)
+	if err != nil {
+		return err
+	}
+
+	buildVals := make(map[string]interface{})
+	buildVals["name"] = args.Name
+	buildVals["pipeline_id"] = args.PipelineID
+	buildVals["team_id"] = args.TeamID
+	buildVals["manually_triggered"] = args.ManuallyTriggered
+	buildVals["private_plan"] = encryptedPlan
+	buildVals["public_plan"] = args.Plan.Public()
+	buildVals["nonce"] = nonce
+	buildVals["span_context"] = string(spanContext)
+
+	buildVals["status"] = BuildStatusStarted
+	buildVals["start_time"] = sq.Expr("now()")
+	buildVals["schema"] = schema
+
+	for name, value := range args.ExtraValues {
+		buildVals[name] = value
+	}
+
+	err = createBuild(tx, build, buildVals)
+	if err != nil {
+		return err
+	}
+
+	err = build.saveEvent(tx, event.Status{
+		Status: atc.StatusStarted,
+		Time:   build.StartTime().Unix(),
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func buildStartedChannel() string {

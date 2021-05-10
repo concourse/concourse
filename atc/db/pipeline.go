@@ -28,8 +28,7 @@ func (e ErrResourceNotFound) Error() string {
 	return fmt.Sprintf("resource '%s' not found", e.Name)
 }
 
-//go:generate counterfeiter . Pipeline
-
+//counterfeiter:generate . Pipeline
 type Cause struct {
 	ResourceVersionID int `json:"resource_version_id"`
 	BuildID           int `json:"build_id"`
@@ -714,35 +713,14 @@ func (p *pipeline) Expose() error {
 }
 
 func (p *pipeline) Destroy() error {
-	tx, err := p.conn.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer tx.Rollback()
-
-	_, err = psql.Delete("pipelines").
+	_, err := psql.Delete("pipelines").
 		Where(sq.Eq{
 			"id": p.id,
 		}).
-		RunWith(tx).
+		RunWith(p.conn).
 		Exec()
 
-	if err != nil {
-		return err
-	}
-
-	_, err = psql.Insert("deleted_pipelines").
-		Columns("id").
-		Values(p.id).
-		RunWith(tx).
-		Exec()
-
-	if err != nil {
-		return err
-	}
-
-	return tx.Commit()
+	return err
 }
 
 func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {

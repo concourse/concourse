@@ -45,6 +45,7 @@ func init() {
 	RegisterEvent(FinishPut{})
 	RegisterEvent(SetPipelineChanged{})
 	RegisterEvent(Status{})
+	RegisterEvent(WaitingForWorker{})
 	RegisterEvent(SelectedWorker{})
 	RegisterEvent(Log{})
 	RegisterEvent(Error{})
@@ -96,6 +97,7 @@ type Envelope struct {
 	Data    *json.RawMessage `json:"data"`
 	Event   atc.EventType    `json:"event"`
 	Version atc.EventVersion `json:"version"`
+	EventID string           `json:"event_id"`
 }
 
 func (m Message) MarshalJSON() ([]byte, error) {

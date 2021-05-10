@@ -312,7 +312,7 @@ var _ = Describe("Resource Config Scope", func() {
 		It("updates last check end time", func() {
 			lastTime := scenario.Resource("some-resource").LastCheckEndTime()
 
-			updated, err := resourceScope.UpdateLastCheckEndTime()
+			updated, err := resourceScope.UpdateLastCheckEndTime(true)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(updated).To(BeTrue())
 

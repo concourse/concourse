@@ -5,7 +5,9 @@ import (
 	"github.com/concourse/concourse/atc/worker/gclient/connection"
 )
 
-//go:generate counterfeiter . Client
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+
+//counterfeiter:generate . Client
 type Client interface {
 	// Pings the garden server. Checks connectivity to the server. The server may, optionally, respond with specific
 	// errors indicating health issues.

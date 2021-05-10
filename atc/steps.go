@@ -336,6 +336,7 @@ type TaskStep struct {
 	Name              string            `json:"task"`
 	Privileged        bool              `json:"privileged,omitempty"`
 	ConfigPath        string            `json:"file,omitempty"`
+	Limits            *ContainerLimits  `json:"container_limits,omitempty"`
 	Config            *TaskConfig       `json:"config,omitempty"`
 	Params            TaskEnv           `json:"params,omitempty"`
 	Vars              Params            `json:"vars,omitempty"`
@@ -652,6 +653,9 @@ type VersionConfig struct {
 	Pinned Version
 }
 
+const VersionLatest = "latest"
+const VersionEvery = "every"
+
 func (c *VersionConfig) UnmarshalJSON(version []byte) error {
 	var data interface{}
 
@@ -662,8 +666,8 @@ func (c *VersionConfig) UnmarshalJSON(version []byte) error {
 
 	switch actual := data.(type) {
 	case string:
-		c.Every = actual == "every"
-		c.Latest = actual == "latest"
+		c.Every = actual == VersionEvery
+		c.Latest = actual == VersionLatest
 	case map[string]interface{}:
 		version := Version{}
 
@@ -684,9 +688,6 @@ func (c *VersionConfig) UnmarshalJSON(version []byte) error {
 	return nil
 }
 
-const VersionLatest = "latest"
-const VersionEvery = "every"
-
 func (c *VersionConfig) MarshalJSON() ([]byte, error) {
 	if c.Latest {
 		return json.Marshal(VersionLatest)
@@ -702,6 +703,9 @@ func (c *VersionConfig) MarshalJSON() ([]byte, error) {
 
 	return json.Marshal("")
 }
+
+const InputsAll = "all"
+const InputsDetect = "detect"
 
 // A InputsConfig represents the choice to include every artifact within the
 // job as an input to the put step or specific ones.
@@ -721,8 +725,8 @@ func (c *InputsConfig) UnmarshalJSON(inputs []byte) error {
 
 	switch actual := data.(type) {
 	case string:
-		c.All = actual == "all"
-		c.Detect = actual == "detect"
+		c.All = actual == InputsAll
+		c.Detect = actual == InputsDetect
 	case []interface{}:
 		inputs := []string{}
 
@@ -742,9 +746,6 @@ func (c *InputsConfig) UnmarshalJSON(inputs []byte) error {
 
 	return nil
 }
-
-const InputsAll = "all"
-const InputsDetect = "detect"
 
 func (c InputsConfig) MarshalJSON() ([]byte, error) {
 	if c.All {

@@ -86,6 +86,14 @@ decodeBuildEvent =
                                 (Json.Decode.maybe <| Json.Decode.field "time" <| Json.Decode.map dateFromSeconds Json.Decode.int)
                             )
 
+                    "waiting-for-worker" ->
+                        Json.Decode.field
+                            "data"
+                            (Json.Decode.map2 WaitingForWorker
+                                (Json.Decode.field "origin" <| Json.Decode.lazy (\_ -> decodeOrigin))
+                                (Json.Decode.maybe <| Json.Decode.field "time" <| Json.Decode.map dateFromSeconds Json.Decode.int)
+                            )
+
                     "selected-worker" ->
                         Json.Decode.field
                             "data"

@@ -15,17 +15,15 @@ import (
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
-	"go.opentelemetry.io/otel/api/trace"
+	"go.opentelemetry.io/otel/trace"
 )
 
-//go:generate counterfeiter . PutDelegateFactory
-
+//counterfeiter:generate . PutDelegateFactory
 type PutDelegateFactory interface {
 	PutDelegate(state RunState) PutDelegate
 }
 
-//go:generate counterfeiter . PutDelegate
-
+//counterfeiter:generate . PutDelegate
 type PutDelegate interface {
 	StartSpan(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
 
@@ -38,8 +36,10 @@ type PutDelegate interface {
 	Initializing(lager.Logger)
 	Starting(lager.Logger)
 	Finished(lager.Logger, ExitStatus, runtime.VersionResult)
-	SelectedWorker(lager.Logger, string)
 	Errored(lager.Logger, string)
+
+	WaitingForWorker(lager.Logger)
+	SelectedWorker(lager.Logger, string)
 
 	SaveOutput(lager.Logger, atc.PutPlan, atc.Source, db.ResourceCache, runtime.VersionResult)
 }
@@ -173,9 +173,9 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 	containerSpec := worker.ContainerSpec{
 		ImageSpec: imageSpec,
 		TeamID:    step.metadata.TeamID,
+		Type:      step.containerMetadata.Type,
 
 		Dir: step.containerMetadata.WorkingDirectory,
-
 		Env: step.metadata.Env(),
 
 		Inputs: containerInputs,
@@ -197,24 +197,35 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 
 	resourceToPut := step.resourceFactory.NewResource(source, params, nil)
 
+	worker, _, err := step.workerPool.SelectWorker(
+		lagerctx.NewContext(ctx, logger),
+		owner,
+		containerSpec,
+		workerSpec,
+		step.strategy,
+		delegate,
+	)
+	if err != nil {
+		return false, err
+	}
+
+	delegate.SelectedWorker(logger, worker.Name())
+
+	defer func() {
+		step.workerPool.ReleaseWorker(
+			lagerctx.NewContext(ctx, logger),
+			containerSpec,
+			worker,
+			step.strategy,
+		)
+	}()
+
 	processCtx, cancel, err := MaybeTimeout(ctx, step.plan.Timeout)
 	if err != nil {
 		return false, err
 	}
 
 	defer cancel()
-
-	worker, err := step.workerPool.SelectWorker(
-		lagerctx.NewContext(processCtx, logger),
-		owner,
-		containerSpec,
-		workerSpec,
-		step.strategy,
-	)
-	if err != nil {
-		return false, err
-	}
-	delegate.SelectedWorker(logger, worker.Name())
 
 	result, err := worker.RunPutStep(
 		lagerctx.NewContext(processCtx, logger),

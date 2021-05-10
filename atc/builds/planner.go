@@ -52,6 +52,7 @@ func (visitor *planVisitor) VisitTask(step *atc.TaskStep) error {
 		Name:              step.Name,
 		Privileged:        step.Privileged,
 		Config:            step.Config,
+		Limits:            step.Limits,
 		ConfigPath:        step.ConfigPath,
 		Vars:              step.Vars,
 		Tags:              step.Tags,

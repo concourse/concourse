@@ -11,14 +11,9 @@ type V6ResourceConfigVersion struct {
 }
 
 func (m *migrations) Up_1585079293() error {
-	tx, err := m.DB.Begin()
-	if err != nil {
-		return err
-	}
+	tx := m.Tx
 
-	defer tx.Rollback()
-
-	_, err = tx.Exec("ALTER TABLE resource_pins ADD COLUMN config boolean NOT NULL DEFAULT false")
+	_, err := tx.Exec("ALTER TABLE resource_pins ADD COLUMN config boolean NOT NULL DEFAULT false")
 	if err != nil {
 		return err
 	}
@@ -75,5 +70,5 @@ func (m *migrations) Up_1585079293() error {
 		}
 	}
 
-	return tx.Commit()
+	return nil
 }

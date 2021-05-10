@@ -11,11 +11,10 @@ import (
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/util"
 	"github.com/concourse/concourse/tracing"
-	"go.opentelemetry.io/otel/label"
+	"go.opentelemetry.io/otel/attribute"
 )
 
-//go:generate counterfeiter . BuildScheduler
-
+//counterfeiter:generate . BuildScheduler
 type BuildScheduler interface {
 	Schedule(
 		ctx context.Context,
@@ -143,7 +142,7 @@ func (s *Runner) scheduleJob(ctx context.Context, logger lager.Logger, job db.Sc
 		return fmt.Errorf("schedule job: %w", err)
 	}
 
-	span.SetAttributes(label.Bool("needs-retry", needsRetry))
+	span.SetAttributes(attribute.Bool("needs-retry", needsRetry))
 	if !needsRetry {
 		err = job.UpdateLastScheduled(requestedTime)
 		if err != nil {

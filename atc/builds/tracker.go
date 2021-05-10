@@ -10,16 +10,16 @@ import (
 	"github.com/concourse/concourse/atc/util"
 )
 
-//go:generate counterfeiter . Engine
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
 
+//counterfeiter:generate . Engine
 type Engine interface {
 	NewBuild(db.Build) Runnable
 
 	Drain(context.Context)
 }
 
-//go:generate counterfeiter . Runnable
-
+//counterfeiter:generate . Runnable
 type Runnable interface {
 	Run(context.Context)
 }
@@ -69,8 +69,13 @@ func (bt *Tracker) Run(ctx context.Context) error {
 
 				defer bt.running.Delete(build.ID())
 
-				metric.Metrics.BuildsRunning.Inc()
-				defer metric.Metrics.BuildsRunning.Dec()
+				if build.Name() == db.CheckBuildName {
+					metric.Metrics.CheckBuildsRunning.Inc()
+					defer metric.Metrics.CheckBuildsRunning.Dec()
+				} else {
+					metric.Metrics.BuildsRunning.Inc()
+					defer metric.Metrics.BuildsRunning.Dec()
+				}
 
 				bt.engine.NewBuild(build).Run(
 					lagerctx.NewContext(

@@ -20,8 +20,8 @@ import (
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
 	"github.com/onsi/gomega/gbytes"
-	"go.opentelemetry.io/otel/api/trace"
-	"go.opentelemetry.io/otel/api/trace/tracetest"
+	"go.opentelemetry.io/otel/oteltest"
+	"go.opentelemetry.io/otel/trace"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -84,7 +84,7 @@ var _ = Describe("GetStep", func() {
 		fakeClient = new(workerfakes.FakeClient)
 		fakeClient.NameReturns("some-worker")
 		fakePool = new(workerfakes.FakePool)
-		fakePool.SelectWorkerReturns(fakeClient, nil)
+		fakePool.SelectWorkerReturns(fakeClient, 0, nil)
 		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
 
 		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
@@ -106,7 +106,7 @@ var _ = Describe("GetStep", func() {
 		fakeDelegate.StdoutReturns(stdoutBuf)
 		fakeDelegate.StderrReturns(stderrBuf)
 		spanCtx = context.Background()
-		fakeDelegate.StartSpanReturns(spanCtx, trace.NoopSpan{})
+		fakeDelegate.StartSpanReturns(spanCtx, tracing.NoopSpan)
 
 		fakeDelegateFactory = new(execfakes.FakeGetDelegateFactory)
 		fakeDelegateFactory.GetDelegateReturns(fakeDelegate)
@@ -222,7 +222,7 @@ var _ = Describe("GetStep", func() {
 		var buildSpan trace.Span
 
 		BeforeEach(func() {
-			tracing.ConfigureTraceProvider(tracetest.NewProvider())
+			tracing.ConfigureTraceProvider(oteltest.NewTracerProvider())
 
 			spanCtx, buildSpan = tracing.StartSpan(ctx, "build", nil)
 			fakeDelegate.StartSpanReturns(spanCtx, buildSpan)
@@ -256,17 +256,24 @@ var _ = Describe("GetStep", func() {
 					ResourceType: "some-base-type",
 				},
 				TeamID: stepMetadata.TeamID,
+				Type:   containerMetadata.Type,
 				Env:    stepMetadata.Env(),
 			},
 		))
 	})
 
 	Describe("worker selection", func() {
+		var ctx context.Context
 		var workerSpec worker.WorkerSpec
 
 		JustBeforeEach(func() {
 			Expect(fakePool.SelectWorkerCallCount()).To(Equal(1))
-			_, _, _, workerSpec, _ = fakePool.SelectWorkerArgsForCall(0)
+			ctx, _, _, workerSpec, _, _ = fakePool.SelectWorkerArgsForCall(0)
+		})
+
+		It("doesn't enforce a timeout", func() {
+			_, ok := ctx.Deadline()
+			Expect(ok).To(BeFalse())
 		})
 
 		It("calls SelectWorker with the correct WorkerSpec", func() {
@@ -296,7 +303,7 @@ var _ = Describe("GetStep", func() {
 
 		Context("when selecting a worker fails", func() {
 			BeforeEach(func() {
-				fakePool.SelectWorkerReturns(nil, errors.New("nope"))
+				fakePool.SelectWorkerReturns(nil, 0, errors.New("nope"))
 				shouldRunGetStep = false
 			})
 
@@ -403,7 +410,7 @@ var _ = Describe("GetStep", func() {
 
 		It("sets the bottom-most type in the worker spec", func() {
 			Expect(fakePool.SelectWorkerCallCount()).To(Equal(1))
-			_, _, _, workerSpec, _ := fakePool.SelectWorkerArgsForCall(0)
+			_, _, _, workerSpec, _, _ := fakePool.SelectWorkerArgsForCall(0)
 
 			Expect(workerSpec).To(Equal(
 				worker.WorkerSpec{

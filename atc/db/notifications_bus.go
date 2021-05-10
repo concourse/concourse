@@ -7,8 +7,7 @@ import (
 	"github.com/lib/pq"
 )
 
-//go:generate counterfeiter . Listener
-
+//counterfeiter:generate . Listener
 type Listener interface {
 	Close() error
 	Listen(channel string) error
@@ -16,8 +15,7 @@ type Listener interface {
 	NotificationChannel() <-chan *pq.Notification
 }
 
-//go:generate counterfeiter . Executor
-
+//counterfeiter:generate . Executor
 type Executor interface {
 	Exec(statement string, args ...interface{}) (sql.Result, error)
 }

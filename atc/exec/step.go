@@ -9,7 +9,9 @@ import (
 	"github.com/concourse/concourse/vars"
 )
 
-//go:generate counterfeiter . Step
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+
+//counterfeiter:generate . Step
 
 // A Step is an object that can be executed, whose result (e.g. Success) can be
 // collected, and whose dependent resources (e.g. Containers, Volumes) can be
@@ -29,12 +31,10 @@ type Step interface {
 	Run(context.Context, RunState) (bool, error)
 }
 
-//go:generate counterfeiter . BuildStepDelegate
-
+//counterfeiter:generate . BuildStepDelegate
 type BuildOutputFilter func(text string) string
 
-//go:generate counterfeiter . RunState
-
+//counterfeiter:generate . RunState
 type RunState interface {
 	NewScope() RunState
 

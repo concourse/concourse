@@ -1,4 +1,4 @@
-BEGIN;
-  ALTER TABLE pipelines
-    DROP COLUMN IF EXISTS "archived";
-COMMIT;
+
+ALTER TABLE pipelines
+  DROP COLUMN IF EXISTS "archived";
+

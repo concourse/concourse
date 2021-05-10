@@ -178,10 +178,11 @@ type RunCommand struct {
 	} `group:"Policy Checking"`
 
 	Server struct {
-		XFrameOptions string `long:"x-frame-options" default:"deny" description:"The value to set for X-Frame-Options."`
-		ClusterName   string `long:"cluster-name" description:"A name for this Concourse cluster, to be displayed on the dashboard page."`
-		ClientID      string `long:"client-id" default:"concourse-web" description:"Client ID to use for login flow"`
-		ClientSecret  string `long:"client-secret" required:"true" description:"Client secret to use for login flow"`
+		XFrameOptions         string `long:"x-frame-options" default:"deny" description:"The value to set for the X-Frame-Options header."`
+		ContentSecurityPolicy string `long:"content-security-policy" default:"frame-ancestors 'none'" description:"The value to set for the Content-Security-Policy header."`
+		ClusterName           string `long:"cluster-name" description:"A name for this Concourse cluster, to be displayed on the dashboard page."`
+		ClientID              string `long:"client-id" default:"concourse-web" description:"Client ID to use for login flow"`
+		ClientSecret          string `long:"client-secret" required:"true" description:"Client secret to use for login flow"`
 	} `group:"Web Server"`
 
 	LogDBQueries   bool `long:"log-db-queries" description:"Log database queries."`
@@ -1639,7 +1640,7 @@ func constructLockConn(driverName, connectionString string) (*sql.DB, error) {
 }
 
 func (cmd *RunCommand) chooseBuildContainerStrategy() (worker.ContainerPlacementStrategy, error) {
-	return worker.NewContainerPlacementStrategy(cmd.ContainerPlacementStrategyOptions)
+	return worker.NewChainPlacementStrategy(cmd.ContainerPlacementStrategyOptions)
 }
 
 func (cmd *RunCommand) configureAuthForDefaultTeam(teamFactory db.TeamFactory) error {
@@ -1741,7 +1742,8 @@ func (cmd *RunCommand) constructHTTPHandler(
 		Logger: logger,
 
 		Handler: wrappa.SecurityHandler{
-			XFrameOptions: cmd.Server.XFrameOptions,
+			XFrameOptions:         cmd.Server.XFrameOptions,
+			ContentSecurityPolicy: cmd.Server.ContentSecurityPolicy,
 
 			// proxy Authorization header to/from auth cookie,
 			// to support auth from JS (EventSource) and custom JWT auth
@@ -1781,15 +1783,15 @@ func (cmd *RunCommand) constructAuthHandler(
 	cmd.Auth.AuthFlags.Clients[flyClientID] = flyClientSecret
 
 	dexServer, err := dexserver.NewDexServer(&dexserver.DexConfig{
-		Logger:      logger.Session("dex"),
-		Users:       cmd.Auth.AuthFlags.LocalUsers,
-		Clients:     cmd.Auth.AuthFlags.Clients,
-		Expiration:  cmd.Auth.AuthFlags.Expiration,
-		IssuerURL:   issuerURL.String(),
-		RedirectURL: redirectURL.String(),
-		WebHostURL:  "/sky/issuer",
-		SigningKey:  cmd.Auth.AuthFlags.SigningKey.PrivateKey,
-		Storage:     storage,
+		Logger:            logger.Session("dex"),
+		PasswordConnector: cmd.Auth.AuthFlags.PasswordConnector,
+		Users:             cmd.Auth.AuthFlags.LocalUsers,
+		Clients:           cmd.Auth.AuthFlags.Clients,
+		Expiration:        cmd.Auth.AuthFlags.Expiration,
+		IssuerURL:         issuerURL.String(),
+		RedirectURL:       redirectURL.String(),
+		SigningKey:        cmd.Auth.AuthFlags.SigningKey.PrivateKey,
+		Storage:           storage,
 	})
 	if err != nil {
 		return nil, err

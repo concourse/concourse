@@ -1,3 +1,3 @@
-BEGIN;
-  DROP TABLE pipes;
-COMMIT;
+
+DROP TABLE pipes;
+

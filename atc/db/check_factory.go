@@ -12,8 +12,7 @@ import (
 	"github.com/concourse/concourse/atc/db/lock"
 )
 
-//go:generate counterfeiter . Checkable
-
+//counterfeiter:generate . Checkable
 type Checkable interface {
 	PipelineRef
 
@@ -35,8 +34,7 @@ type Checkable interface {
 	CreateBuild(context.Context, bool, atc.Plan) (Build, bool, error)
 }
 
-//go:generate counterfeiter . CheckFactory
-
+//counterfeiter:generate . CheckFactory
 type CheckFactory interface {
 	TryCreateCheck(context.Context, Checkable, ResourceTypes, atc.Version, bool) (Build, bool, error)
 	Resources() ([]Resource, error)
@@ -184,6 +182,9 @@ func (c *checkFactory) ResourceTypes() ([]ResourceType, error) {
 	var resourceTypes []ResourceType
 
 	rows, err := resourceTypesQuery.
+		Where(sq.And{
+			sq.Eq{"p.paused": false},
+		}).
 		RunWith(c.conn).
 		Query()
 

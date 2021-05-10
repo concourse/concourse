@@ -104,6 +104,44 @@ var factoryTests = []StepTest{
 		},
 	},
 	{
+		Title: "task step with container limits",
+
+		ConfigYAML: `
+			task: some-task
+			privileged: true
+			config:
+			  platform: linux
+			  run: {path: hello}
+			file: some-task-file
+			vars: {some: vars}
+			container_limits: {cpu: 10, memory: 1024}
+			params: {SOME: PARAMS}
+			tags: [tag-1, tag-2]
+			input_mapping: {generic: specific}
+			output_mapping: {specific: generic}
+			image: some-image
+			timeout: 1h
+		`,
+
+		StepConfig: &atc.TaskStep{
+			Name:       "some-task",
+			Privileged: true,
+			Config: &atc.TaskConfig{
+				Platform: "linux",
+				Run:      atc.TaskRunConfig{Path: "hello"},
+			},
+			ConfigPath:        "some-task-file",
+			Vars:              atc.Params{"some": "vars"},
+			Params:            atc.TaskEnv{"SOME": "PARAMS"},
+			Limits:            &atc.ContainerLimits{CPU: newCPULimit(10), Memory: newMemoryLimit(1024)},
+			Tags:              []string{"tag-1", "tag-2"},
+			InputMapping:      map[string]string{"generic": "specific"},
+			OutputMapping:     map[string]string{"specific": "generic"},
+			ImageArtifactName: "some-image",
+			Timeout:           "1h",
+		},
+	},
+	{
 		Title: "task step with non-string params",
 
 		ConfigYAML: `
@@ -544,4 +582,14 @@ func (s *StepsSuite) TestFactory() {
 func rawMessage(s string) *json.RawMessage {
 	raw := json.RawMessage(s)
 	return &raw
+}
+
+func newCPULimit(cpuLimit uint64) *atc.CPULimit {
+	limit := atc.CPULimit(cpuLimit)
+	return &limit
+}
+
+func newMemoryLimit(memoryLimit uint64) *atc.MemoryLimit {
+	limit := atc.MemoryLimit(memoryLimit)
+	return &limit
 }

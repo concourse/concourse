@@ -1,10 +1,10 @@
-BEGIN;
-   DROP TABLE build_inputs;
 
-   DROP TABLE build_outputs;
+ DROP TABLE build_inputs;
 
-   DROP TABLE versioned_resources;
+ DROP TABLE build_outputs;
 
-   ALTER TABLE resources
-     DROP COLUMN paused;
-COMMIT;
+ DROP TABLE versioned_resources;
+
+ ALTER TABLE resources
+   DROP COLUMN paused;
+

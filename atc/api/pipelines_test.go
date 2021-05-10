@@ -1346,6 +1346,106 @@ var _ = Describe("Pipelines API", func() {
 		})
 	})
 
+	Describe("PUT /api/v1/teams/:team_name/pipelines/:pipeline_name/ordering", func() {
+		var response *http.Response
+		var instanceVars []atc.InstanceVars
+
+		BeforeEach(func() {
+			instanceVars = []atc.InstanceVars{
+				{"branch": "test"},
+				{},
+				{"branch": "test-2"},
+			}
+		})
+
+		JustBeforeEach(func() {
+			requestPayload, err := json.Marshal(instanceVars)
+			Expect(err).NotTo(HaveOccurred())
+
+			request, err := http.NewRequest("PUT", server.URL+"/api/v1/teams/a-team/pipelines/a-pipeline/ordering", bytes.NewBuffer(requestPayload))
+			Expect(err).NotTo(HaveOccurred())
+
+			response, err = client.Do(request)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("when authenticated", func() {
+			BeforeEach(func() {
+				fakeAccess.IsAuthenticatedReturns(true)
+			})
+
+			Context("when requester belongs to the team", func() {
+				BeforeEach(func() {
+					fakeAccess.IsAuthorizedReturns(true)
+					dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
+				})
+
+				It("constructs team with provided team name", func() {
+					Expect(dbTeamFactory.FindTeamCallCount()).To(Equal(1))
+					Expect(dbTeamFactory.FindTeamArgsForCall(0)).To(Equal("a-team"))
+				})
+
+				Context("when ordering the pipelines succeeds", func() {
+					BeforeEach(func() {
+						fakeTeam.OrderPipelinesWithinGroupReturns(nil)
+					})
+
+					It("orders the pipelines", func() {
+						Expect(fakeTeam.OrderPipelinesWithinGroupCallCount()).To(Equal(1))
+						groupName, actualInstanceVars := fakeTeam.OrderPipelinesWithinGroupArgsForCall(0)
+						Expect(groupName).To(Equal("a-pipeline"))
+						Expect(actualInstanceVars).To(Equal(instanceVars))
+					})
+
+					It("returns 200", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					})
+				})
+
+				Context("when a pipeline does not exist", func() {
+					BeforeEach(func() {
+						fakeTeam.OrderPipelinesWithinGroupReturns(db.ErrPipelineNotFound{Name: "a-pipeline"})
+					})
+
+					It("returns 400", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+						Expect(ioutil.ReadAll(response.Body)).To(ContainSubstring("pipeline 'a-pipeline' not found"))
+					})
+				})
+
+				Context("when ordering the pipelines fails", func() {
+					BeforeEach(func() {
+						fakeTeam.OrderPipelinesWithinGroupReturns(errors.New("welp"))
+					})
+
+					It("returns 500", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
+			})
+
+			Context("when requester does not belong to the team", func() {
+				BeforeEach(func() {
+					fakeAccess.IsAuthorizedReturns(false)
+				})
+
+				It("returns 403", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+				})
+			})
+		})
+
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				fakeAccess.IsAuthenticatedReturns(false)
+			})
+
+			It("returns 401 Unauthorized", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			})
+		})
+	})
+
 	Describe("GET /api/v1/teams/:team_name/pipelines/:pipeline_name/versions-db", func() {
 		var response *http.Response
 

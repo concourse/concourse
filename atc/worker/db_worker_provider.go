@@ -15,8 +15,7 @@ import (
 	"github.com/cppforlife/go-semi-semantic/version"
 )
 
-//go:generate counterfeiter . WorkerProvider
-
+//counterfeiter:generate . WorkerProvider
 type WorkerProvider interface {
 	RunningWorkers(lager.Logger) ([]Worker, error)
 

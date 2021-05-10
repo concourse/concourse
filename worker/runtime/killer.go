@@ -37,7 +37,7 @@ const (
 	KillUngracefully KillBehaviour = true
 )
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . Killer
+//counterfeiter:generate . Killer
 
 // Killer terminates tasks.
 //

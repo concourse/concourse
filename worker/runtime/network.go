@@ -7,8 +7,7 @@ import (
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . Network
-
+//counterfeiter:generate . Network
 type Network interface {
 	// SetupMounts prepares mounts that might be necessary for proper
 	// networking functionality.

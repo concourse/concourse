@@ -1,5 +1,5 @@
-BEGIN;
 
-  ALTER TABLE jobs DROP COLUMN tags;
 
-COMMIT;
+ALTER TABLE jobs DROP COLUMN tags;
+
+

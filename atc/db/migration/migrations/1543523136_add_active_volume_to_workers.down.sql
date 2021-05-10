@@ -1,3 +1,3 @@
-BEGIN;
-  ALTER TABLE workers DROP COLUMN active_volumes;
-COMMIT;
+
+ALTER TABLE workers DROP COLUMN active_volumes;
+

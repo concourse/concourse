@@ -60,6 +60,7 @@ var DefaultRoles = map[string]string{
 	atc.GetPipeline:                   ViewerRole,
 	atc.DeletePipeline:                MemberRole,
 	atc.OrderPipelines:                MemberRole,
+	atc.OrderPipelinesWithinGroup:     MemberRole,
 	atc.PausePipeline:                 OperatorRole,
 	atc.ArchivePipeline:               OwnerRole,
 	atc.UnpausePipeline:               OperatorRole,

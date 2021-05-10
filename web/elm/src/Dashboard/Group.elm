@@ -1,5 +1,6 @@
 module Dashboard.Group exposing
     ( PipelineIndex
+    , Section
     , hdView
     , ordering
     , pipelineNotSetView
@@ -11,7 +12,7 @@ import Application.Models exposing (Session)
 import Concourse
 import Dashboard.Grid as Grid
 import Dashboard.Grid.Constants as GridConstants
-import Dashboard.Group.Models exposing (Card(..), Pipeline, cardIdentifier)
+import Dashboard.Group.Models exposing (Card(..), Pipeline, cardIdentifier, cardTeamName)
 import Dashboard.Group.Tag as Tag
 import Dashboard.InstanceGroup as InstanceGroup
 import Dashboard.Models exposing (DragState(..), DropState(..))
@@ -45,6 +46,13 @@ type alias PipelineIndex =
     Int
 
 
+type alias Section card =
+    { teamName : String
+    , header : String
+    , cards : List card
+    }
+
+
 view :
     Session
     ->
@@ -61,10 +69,9 @@ view :
         , query : String
         , viewingInstanceGroups : Bool
         }
-    -> Concourse.TeamName
-    -> List Grid.Card
+    -> Section Grid.Card
     -> Html Message
-view session params teamName cards =
+view session params { header, teamName, cards } =
     let
         cardViews =
             if List.isEmpty cards then
@@ -117,9 +124,14 @@ view session params teamName cards =
                     (\{ bounds, target } ->
                         pipelineDropAreaView params.dragState teamName bounds target
                     )
+
+        -- we use the header as the ID so that instance groups have unique
+        -- IDs despite being in the same team
+        groupId =
+            header
     in
     Html.div
-        [ id <| Effects.toHtmlID <| DashboardGroup teamName
+        [ id <| Effects.toHtmlID <| DashboardGroup groupId
         , class "dashboard-team-group"
         , attribute "data-team-name" teamName
         ]
@@ -133,7 +145,7 @@ view session params teamName cards =
                 [ class "dashboard-team-name"
                 , style "font-weight" Views.Styles.fontWeightBold
                 ]
-                [ Html.text teamName ]
+                [ Html.text header ]
                 :: (Maybe.Extra.toList <|
                         Maybe.map (Tag.view False) (tag session teamName)
                    )
@@ -256,14 +268,14 @@ hdView :
     , query : String
     }
     -> { a | userState : UserState, pipelineRunningKeyframes : String }
-    -> ( Concourse.TeamName, List Card )
+    -> Section Card
     -> List (Html Message)
-hdView { pipelinesWithResourceErrors, pipelineJobs, jobs, dashboardView, query } session ( teamName, cards ) =
+hdView { pipelinesWithResourceErrors, pipelineJobs, jobs, dashboardView, query } session { teamName, cards, header } =
     let
-        header =
+        headerElement =
             Html.div
                 [ class "dashboard-team-name" ]
-                [ Html.text teamName ]
+                [ Html.text header ]
                 :: (Maybe.Extra.toList <| Maybe.map (Tag.view True) (tag session teamName))
 
         teamPipelines =
@@ -320,14 +332,14 @@ hdView { pipelinesWithResourceErrors, pipelineJobs, jobs, dashboardView, query }
     in
     case teamPipelines of
         [] ->
-            header
+            headerElement
 
         p :: ps ->
             -- Wrap the team name and the first pipeline together so
             -- the team name is not the last element in a column
             Html.div
                 (class "dashboard-team-name-wrapper" :: Styles.teamNameHd)
-                (header ++ [ p ])
+                (headerElement ++ [ p ])
                 :: ps
 
 
@@ -367,6 +379,14 @@ pipelineCardView :
     -> String
     -> Html Message
 pipelineCardView session params section { bounds, headerHeight, pipeline, inInstanceGroup } teamName =
+    let
+        card =
+            if inInstanceGroup then
+                InstancedPipelineCard pipeline
+
+            else
+                PipelineCard pipeline
+    in
     Html.div
         ([ class "card-wrapper"
          , style "position" "absolute"
@@ -400,27 +420,32 @@ pipelineCardView session params section { bounds, headerHeight, pipeline, inInst
              , style "height" "100%"
              , attribute "data-pipeline-name" pipeline.name
              ]
-                ++ (if section == AllPipelinesSection && not pipeline.stale && not params.viewingInstanceGroups then
+                ++ (if section == AllPipelinesSection && not pipeline.stale then
                         [ attribute
                             "ondragstart"
                             "event.dataTransfer.setData('text/plain', '');"
                         , draggable "true"
                         , on "dragstart"
-                            (Json.Decode.succeed (DragStart pipeline.teamName <| cardIdentifier <| PipelineCard pipeline))
+                            (Json.Decode.succeed (DragStart <| card))
                         , on "dragend" (Json.Decode.succeed DragEnd)
                         ]
 
                     else
                         []
                    )
-                ++ (if params.dragState == Dragging pipeline.teamName (cardIdentifier <| PipelineCard pipeline) then
-                        [ style "width" "0"
-                        , style "margin" "0 12.5px"
-                        , style "overflow" "hidden"
-                        ]
+                ++ (case params.dragState of
+                        Dragging currCard ->
+                            if cardIdentifier currCard == cardIdentifier card then
+                                [ style "width" "0"
+                                , style "margin" "0 12.5px"
+                                , style "overflow" "hidden"
+                                ]
 
-                    else
-                        []
+                            else
+                                []
+
+                        _ ->
+                            []
                    )
                 ++ (if params.dropState == DroppingWhileApiRequestInFlight teamName then
                         [ style "opacity" "0.45", style "pointer-events" "none" ]
@@ -507,21 +532,26 @@ instanceGroupCardView session params section { bounds, headerHeight } p ps =
                             "event.dataTransfer.setData('text/plain', '');"
                         , draggable "true"
                         , on "dragstart"
-                            (Json.Decode.succeed (DragStart p.teamName <| cardIdentifier <| InstanceGroupCard p ps))
+                            (Json.Decode.succeed (DragStart <| InstanceGroupCard p ps))
                         , on "dragend" (Json.Decode.succeed DragEnd)
                         ]
 
                     else
                         []
                    )
-                ++ (if params.dragState == Dragging p.teamName (cardIdentifier <| InstanceGroupCard p ps) then
-                        [ style "width" "0"
-                        , style "margin" "0 12.5px"
-                        , style "overflow" "hidden"
-                        ]
+                ++ (case params.dragState of
+                        Dragging card ->
+                            if cardIdentifier card == cardIdentifier (InstanceGroupCard p ps) then
+                                [ style "width" "0"
+                                , style "margin" "0 12.5px"
+                                , style "overflow" "hidden"
+                                ]
 
-                    else
-                        []
+                            else
+                                []
+
+                        _ ->
+                            []
                    )
                 ++ (if params.dropState == DroppingWhileApiRequestInFlight p.teamName then
                         [ style "opacity" "0.45", style "pointer-events" "none" ]
@@ -556,8 +586,8 @@ pipelineDropAreaView dragState name { x, y, width, height } target =
     let
         active =
             case dragState of
-                Dragging team _ ->
-                    team == name
+                Dragging card ->
+                    cardTeamName card == name
 
                 _ ->
                     False

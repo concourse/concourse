@@ -1,0 +1,6 @@
+version: '3'
+
+services:
+  worker:
+    environment:
+      CONCOURSE_CONTAINERD_DNS_SERVER: "1.1.1.1"

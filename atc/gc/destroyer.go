@@ -8,7 +8,9 @@ import (
 	"github.com/concourse/concourse/atc/metric"
 )
 
-//go:generate counterfeiter . Destroyer
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+
+//counterfeiter:generate . Destroyer
 
 // TODO : consider making this just a struct with methods on it,
 // we don't ever use the FakeDestroyer, so we don't even need the

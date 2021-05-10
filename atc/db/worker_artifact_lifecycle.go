@@ -4,8 +4,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 )
 
-//go:generate counterfeiter . WorkerArtifactLifecycle
-
+//counterfeiter:generate . WorkerArtifactLifecycle
 type WorkerArtifactLifecycle interface {
 	RemoveExpiredArtifacts() error
 }

@@ -6,7 +6,10 @@ image_resource:
   source: {mirror_self: true}
 
 run:
-  path: "wget"
+  path: "bash"
   args:
-  - "-O-"
-  - "((url))"
+  - -c
+  - |
+    cat /etc/resolv.conf
+
+    wget -O- ((url))

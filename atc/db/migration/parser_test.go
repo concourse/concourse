@@ -8,16 +8,14 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var basicSQLMigration = []byte(`BEGIN;
+var basicSQLMigration = []byte(`
 	-- create a table
 	CREATE TABLE some_table;
-COMMIT;
 `)
 
-var basicSQLDownMigration = []byte(`BEGIN;
+var basicSQLDownMigration = []byte(`
 	-- create a table
 	DROP TABLE some_table;
-COMMIT;
 `)
 
 var _ = Describe("Parser", func() {

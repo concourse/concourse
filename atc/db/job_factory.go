@@ -11,7 +11,7 @@ import (
 	"github.com/lib/pq"
 )
 
-//go:generate counterfeiter . JobFactory
+//counterfeiter:generate . JobFactory
 
 // XXX: This job factory object is not really a job factory anymore. It is
 // holding the responsibility for two very different things: constructing a

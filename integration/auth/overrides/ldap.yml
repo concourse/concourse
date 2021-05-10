@@ -1,0 +1,49 @@
+# ldap.yml - a docker-compose override that adds a LDAP auth to the stack
+#
+# This is basically ripped from dex's example directory
+#
+# There are 2 users and 2 groups
+# user1@example.com:user1pass;group1;admins
+# user2@example.com:user2pass;admins
+#
+# ref: https://github.com/dexidp/dex/blob/33e13c2aad9bb8a91abea6a2870dc178e3bd00de/examples/ldap/
+# ref: https://docs.docker.com/compose/extends/
+#
+version: '3'
+
+services:
+  web:
+    environment:
+      CONCOURSE_PASSWORD_CONNECTOR: ldap
+      CONCOURSE_ADD_LOCAL_USER: ~
+      CONCOURSE_MAIN_TEAM_LDAP_USER: john
+      # CONCOURSE_MAIN_TEAM_LDAP_GROUP: group1
+
+      CONCOURSE_LDAP_HOST: ldap:389
+      CONCOURSE_LDAP_BIND_DN: cn=admin,dc=example,dc=org
+      CONCOURSE_LDAP_BIND_PW: admin
+      CONCOURSE_LDAP_INSECURE_NO_SSL: "true"
+
+      CONCOURSE_LDAP_USER_SEARCH_BASE_DN: ou=People,dc=example,dc=org
+      CONCOURSE_LDAP_USER_SEARCH_FILTER: "(objectClass=person)"
+      CONCOURSE_LDAP_USER_SEARCH_USERNAME: mail
+      CONCOURSE_LDAP_USER_SEARCH_ID_ATTR: DN
+      CONCOURSE_LDAP_USER_SEARCH_EMAIL_ATTR: mail
+      CONCOURSE_LDAP_USER_SEARCH_NAME_ATTR: cn
+
+      CONCOURSE_LDAP_GROUP_SEARCH_BASE_DN: ou=Groups,dc=example,dc=org
+      CONCOURSE_LDAP_GROUP_SEARCH_FILTER: "(objectClass=groupOfNames)"
+      CONCOURSE_LDAP_GROUP_SEARCH_USER_ATTR: DN
+      CONCOURSE_LDAP_GROUP_SEARCH_GROUP_ATTR: member
+      CONCOURSE_LDAP_GROUP_SEARCH_NAME_ATTR: cn
+
+  ldap:
+    image: osixia/openldap:1.4.0
+    # Copying is required because the entrypoint modifies the *.ldif files.
+    # For verbose output, use:  command: ["--copy-service", "--loglevel", "debug"]
+    command: ["--copy-service"]
+    # https://github.com/osixia/docker-openldap#seed-ldap-database-with-ldif
+    # Option 1: Add custom seed file -> mount to         /container/service/slapd/assets/config/bootstrap/ldif/custom/
+    # Option 2: Overwrite default seed file -> mount to  /container/service/slapd/assets/config/bootstrap/ldif/
+    volumes:
+    - ../hack/ldap/:/container/service/slapd/assets/config/bootstrap/ldif/custom/

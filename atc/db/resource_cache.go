@@ -21,8 +21,7 @@ var ErrResourceCacheDisappeared = errors.New("resource-cache-disappeared")
 //
 // ResourceCaches are garbage-collected by gc.ResourceCacheCollector.
 
-//go:generate counterfeiter . ResourceCache
-
+//counterfeiter:generate . ResourceCache
 type ResourceCache interface {
 	ID() int
 	Version() atc.Version

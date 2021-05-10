@@ -131,7 +131,7 @@ var _ = Describe("Fly CLI", func() {
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("PUT", path),
-							ghttp.RespondWith(http.StatusInternalServerError, nil),
+							ghttp.RespondWith(http.StatusBadRequest, "pipeline 'awsome-pipeline' not found"),
 						),
 					)
 				})
@@ -146,6 +146,8 @@ var _ = Describe("Fly CLI", func() {
 						<-sess.Exited
 						Expect(sess.ExitCode()).To(Equal(1))
 						Eventually(sess.Err).Should(gbytes.Say(`failed to order pipelines`))
+
+						Consistently(sess.Err).ShouldNot(gbytes.Say(`Unexpected Response`))
 
 					}).To(Change(func() int {
 						return len(atcServer.ReceivedRequests())

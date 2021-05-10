@@ -1,6 +1,7 @@
 module Build.Output.Models exposing (OutputModel, OutputState(..))
 
 import Build.StepTree.Models exposing (StepTreeModel)
+import Concourse
 import Routes exposing (Highlight)
 
 
@@ -10,6 +11,7 @@ type alias OutputModel =
     , eventSourceOpened : Bool
     , eventStreamUrlPath : Maybe String
     , highlight : Highlight
+    , buildId : Maybe Concourse.JobBuildIdentifier
     }
 
 

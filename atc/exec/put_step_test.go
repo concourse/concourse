@@ -10,8 +10,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
-	"go.opentelemetry.io/otel/api/trace"
-	"go.opentelemetry.io/otel/api/trace/tracetest"
+	"go.opentelemetry.io/otel/oteltest"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -94,7 +94,7 @@ var _ = Describe("PutStep", func() {
 		fakeClient = new(workerfakes.FakeClient)
 		fakeClient.NameReturns("some-worker")
 		fakePool = new(workerfakes.FakePool)
-		fakePool.SelectWorkerReturns(fakeClient, nil)
+		fakePool.SelectWorkerReturns(fakeClient, 0, nil)
 
 		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
 		fakeArtifactSourcer = new(workerfakes.FakeArtifactSourcer)
@@ -115,7 +115,7 @@ var _ = Describe("PutStep", func() {
 		fakeDelegateFactory.PutDelegateReturns(fakeDelegate)
 
 		spanCtx = context.Background()
-		fakeDelegate.StartSpanReturns(spanCtx, trace.NoopSpan{})
+		fakeDelegate.StartSpanReturns(spanCtx, tracing.NoopSpan)
 
 		versionResult = runtime.VersionResult{
 			Version:  atc.Version{"some": "version"},
@@ -187,6 +187,9 @@ var _ = Describe("PutStep", func() {
 		)
 
 		stepOk, stepErr = putStep.Run(ctx, state)
+		if stepErr != nil {
+			testLogger.Error("putStep.Run-failed", stepErr)
+		}
 	})
 
 	var runCtx context.Context
@@ -207,11 +210,17 @@ var _ = Describe("PutStep", func() {
 	})
 
 	Describe("worker selection", func() {
+		var ctx context.Context
 		var workerSpec worker.WorkerSpec
 
 		JustBeforeEach(func() {
 			Expect(fakePool.SelectWorkerCallCount()).To(Equal(1))
-			_, _, _, workerSpec, _ = fakePool.SelectWorkerArgsForCall(0)
+			ctx, _, _, workerSpec, _, _ = fakePool.SelectWorkerArgsForCall(0)
+		})
+
+		It("doesn't enforce a timeout", func() {
+			_, ok := ctx.Deadline()
+			Expect(ok).To(BeFalse())
 		})
 
 		It("calls SelectWorker with the correct WorkerSpec", func() {
@@ -241,7 +250,7 @@ var _ = Describe("PutStep", func() {
 
 		Context("when selecting a worker fails", func() {
 			BeforeEach(func() {
-				fakePool.SelectWorkerReturns(nil, errors.New("nope"))
+				fakePool.SelectWorkerReturns(nil, 0, errors.New("nope"))
 				shouldRunPutStep = false
 			})
 
@@ -295,6 +304,19 @@ var _ = Describe("PutStep", func() {
 			})
 		})
 
+		Context("when only empty list of inputs are specified ", func() {
+			BeforeEach(func() {
+				putPlan.Inputs = &atc.InputsConfig{
+					Specified: []string{},
+				}
+			})
+
+			It("calls RunPutStep with specified inputs", func() {
+				_, _, inputMap := fakeArtifactSourcer.SourceInputsAndCachesArgsForCall(0)
+				Expect(inputMap).To(HaveLen(0))
+			})
+		})
+
 		Context("when the inputs are detected", func() {
 			BeforeEach(func() {
 				putPlan.Inputs = &atc.InputsConfig{
@@ -336,6 +358,24 @@ var _ = Describe("PutStep", func() {
 					Expect(inputMap).To(HaveLen(2))
 					Expect(inputMap["/tmp/build/put/some-other-source"]).To(Equal(fakeOtherArtifact))
 					Expect(inputMap["/tmp/build/put/some-source"]).To(Equal(fakeArtifact))
+				})
+			})
+
+			Context("when the params contains . and ..", func() {
+				BeforeEach(func() {
+					putPlan.Params = atc.Params{
+						"some-param": "./some-source/source",
+						"some-map": map[string]interface{}{
+							"key": "../some-other-source/source",
+						},
+					}
+				})
+
+				It("calls RunPutStep with detected inputs", func() {
+					_, _, inputMap := fakeArtifactSourcer.SourceInputsAndCachesArgsForCall(0)
+					Expect(inputMap).To(HaveLen(2))
+					Expect(inputMap["/tmp/build/put/some-source"]).To(Equal(fakeArtifact))
+					Expect(inputMap["/tmp/build/put/some-other-source"]).To(Equal(fakeOtherArtifact))
 				})
 			})
 		})
@@ -427,7 +467,7 @@ var _ = Describe("PutStep", func() {
 
 		It("sets the bottom-most type in the worker spec", func() {
 			Expect(fakePool.SelectWorkerCallCount()).To(Equal(1))
-			_, _, _, workerSpec, _ := fakePool.SelectWorkerArgsForCall(0)
+			_, _, _, workerSpec, _, _ := fakePool.SelectWorkerArgsForCall(0)
 
 			Expect(workerSpec).To(Equal(worker.WorkerSpec{
 				TeamID:       stepMetadata.TeamID,
@@ -506,7 +546,7 @@ var _ = Describe("PutStep", func() {
 		var buildSpan trace.Span
 
 		BeforeEach(func() {
-			tracing.ConfigureTraceProvider(tracetest.NewProvider())
+			tracing.ConfigureTraceProvider(oteltest.NewTracerProvider())
 
 			spanCtx, buildSpan = tracing.StartSpan(ctx, "build", nil)
 			fakeDelegate.StartSpanReturns(spanCtx, buildSpan)

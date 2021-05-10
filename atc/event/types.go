@@ -9,6 +9,9 @@ const (
 	// build status change (e.g. 'started', 'succeeded')
 	EventTypeStatus atc.EventType = "status"
 
+	// a step (get/put/task) is waiting for a worker
+	EventTypeWaitingForWorker atc.EventType = "waiting-for-worker"
+
 	// a step (get/put/task) selected worker
 	EventTypeSelectedWorker atc.EventType = "selected-worker"
 

@@ -11,8 +11,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 )
 
-//go:generate counterfeiter . Volume
-
+//counterfeiter:generate . Volume
 type Volume interface {
 	Handle() string
 	Path() string

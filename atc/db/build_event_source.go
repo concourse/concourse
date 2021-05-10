@@ -3,8 +3,10 @@ package db
 import (
 	"encoding/json"
 	"errors"
+	"strconv"
 	"sync"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/event"
 )
@@ -12,8 +14,7 @@ import (
 var ErrEndOfBuildEventStream = errors.New("end of build event stream")
 var ErrBuildEventStreamClosed = errors.New("build event stream closed")
 
-//go:generate counterfeiter . EventSource
-
+//counterfeiter:generate . EventSource
 type EventSource interface {
 	Next() (event.Envelope, error)
 	Close() error
@@ -82,10 +83,13 @@ func (source *buildEventSource) Close() error {
 	return source.notifier.Close()
 }
 
-func (source *buildEventSource) collectEvents(cursor uint) {
+func (source *buildEventSource) collectEvents(from uint) {
 	defer source.wg.Done()
 
-	var batchSize = cap(source.events)
+	batchSize := cap(source.events)
+	// cursor points to the last emitted event, so subtract 1
+	// (the first event is fetched using cursor == -1)
+	cursor := int(from) - 1
 
 	for {
 		select {
@@ -105,25 +109,29 @@ func (source *buildEventSource) collectEvents(cursor uint) {
 
 		defer Rollback(tx)
 
-		err = tx.QueryRow(`
-			SELECT builds.completed
-			FROM builds
-			WHERE builds.id = $1
-		`, source.buildID).Scan(&completed)
+		err = psql.Select("completed").
+			From("builds").
+			Where(sq.Eq{"id": source.buildID}).
+			RunWith(tx).
+			QueryRow().
+			Scan(&completed)
 		if err != nil {
 			source.err = err
 			close(source.events)
 			return
 		}
 
-		rows, err := tx.Query(`
-			SELECT type, version, payload
-			FROM `+source.table+`
-			WHERE build_id = $1 OR build_id_old = $1
-			ORDER BY event_id ASC
-			OFFSET $2
-			LIMIT $3
-		`, source.buildID, cursor, batchSize)
+		rows, err := psql.Select("event_id", "type", "version", "payload").
+			From(source.table).
+			Where(sq.Or{
+				sq.Eq{"build_id": source.buildID},
+				sq.Eq{"build_id_old": source.buildID},
+			}).
+			Where(sq.Gt{"event_id": cursor}).
+			OrderBy("event_id ASC").
+			Limit(uint64(batchSize)).
+			RunWith(tx).
+			Query()
 		if err != nil {
 			source.err = err
 			close(source.events)
@@ -135,10 +143,8 @@ func (source *buildEventSource) collectEvents(cursor uint) {
 		for rows.Next() {
 			rowsReturned++
 
-			cursor++
-
 			var t, v, p string
-			err := rows.Scan(&t, &v, &p)
+			err := rows.Scan(&cursor, &t, &v, &p)
 			if err != nil {
 				_ = rows.Close()
 
@@ -153,6 +159,7 @@ func (source *buildEventSource) collectEvents(cursor uint) {
 				Data:    &data,
 				Event:   atc.EventType(t),
 				Version: atc.EventVersion(v),
+				EventID: strconv.Itoa(cursor),
 			}
 
 			select {

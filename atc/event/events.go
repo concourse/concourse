@@ -92,6 +92,14 @@ type Status struct {
 func (Status) EventType() atc.EventType  { return EventTypeStatus }
 func (Status) Version() atc.EventVersion { return "1.0" }
 
+type WaitingForWorker struct {
+	Time   int64  `json:"time"`
+	Origin Origin `json:"origin"`
+}
+
+func (WaitingForWorker) EventType() atc.EventType  { return EventTypeWaitingForWorker }
+func (WaitingForWorker) Version() atc.EventVersion { return "1.0" }
+
 type SelectedWorker struct {
 	Time       int64  `json:"time"`
 	Origin     Origin `json:"origin"`

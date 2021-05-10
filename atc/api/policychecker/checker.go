@@ -12,8 +12,9 @@ import (
 	"github.com/concourse/concourse/atc/policy"
 )
 
-//go:generate counterfeiter . PolicyChecker
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
 
+//counterfeiter:generate . PolicyChecker
 type PolicyChecker interface {
 	Check(string, accessor.Access, *http.Request) (policy.PolicyCheckOutput, error)
 }

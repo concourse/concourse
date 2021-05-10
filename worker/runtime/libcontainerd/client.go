@@ -9,11 +9,13 @@ import (
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . Client
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 github.com/containerd/containerd.Container
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 github.com/containerd/containerd.Task
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 github.com/containerd/containerd.Process
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 github.com/containerd/containerd/cio.IO
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+
+//counterfeiter:generate . Client
+//counterfeiter:generate github.com/containerd/containerd.Container
+//counterfeiter:generate github.com/containerd/containerd.Task
+//counterfeiter:generate github.com/containerd/containerd.Process
+//counterfeiter:generate github.com/containerd/containerd/cio.IO
 
 // Client represents the minimum interface used to communicate with containerd
 // to manage containers.
@@ -117,7 +119,7 @@ func (c *client) NewContainer(
 ) (
 	containerd.Container, error,
 ) {
-	ctx, cancel := context.WithTimeout(ctx, c.requestTimeout)
+	ctx, cancel := createTimeoutContext(ctx, c.requestTimeout)
 	defer cancel()
 
 	return c.containerd.NewContainer(ctx, id,
@@ -131,14 +133,14 @@ func (c *client) Containers(
 ) (
 	[]containerd.Container, error,
 ) {
-	ctx, cancel := context.WithTimeout(ctx, c.requestTimeout)
+	ctx, cancel := createTimeoutContext(ctx, c.requestTimeout)
 	defer cancel()
 
 	return c.containerd.Containers(ctx, labels...)
 }
 
 func (c *client) GetContainer(ctx context.Context, handle string) (containerd.Container, error) {
-	ctx, cancel := context.WithTimeout(ctx, c.requestTimeout)
+	ctx, cancel := createTimeoutContext(ctx, c.requestTimeout)
 	defer cancel()
 
 	cont, err := c.containerd.LoadContainer(ctx, handle)
@@ -153,14 +155,14 @@ func (c *client) GetContainer(ctx context.Context, handle string) (containerd.Co
 }
 
 func (c *client) Version(ctx context.Context) (err error) {
-	ctx, cancel := context.WithTimeout(ctx, c.requestTimeout)
+	ctx, cancel := createTimeoutContext(ctx, c.requestTimeout)
 	defer cancel()
 
 	_, err = c.containerd.Version(ctx)
 	return
 }
 func (c *client) Destroy(ctx context.Context, handle string) error {
-	ctx, cancel := context.WithTimeout(ctx, c.requestTimeout)
+	ctx, cancel := createTimeoutContext(ctx, c.requestTimeout)
 	defer cancel()
 
 	container, err := c.GetContainer(ctx, handle)

@@ -10,8 +10,8 @@ import (
 	"github.com/concourse/concourse/tracing"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"go.opentelemetry.io/otel/api/trace"
-	"go.opentelemetry.io/otel/api/trace/tracetest"
+	"go.opentelemetry.io/otel/oteltest"
+	"go.opentelemetry.io/otel/trace"
 )
 
 var _ = Describe("ResourceType", func() {
@@ -329,7 +329,7 @@ var _ = Describe("ResourceType", func() {
 
 			Context("when base resource type defaults is defined", func() {
 				BeforeEach(func() {
-					atc.LoadBaseResourceTypeDefaults(map[string]atc.Source{"s3": atc.Source{"default-s3-key": "some-value"}})
+					atc.LoadBaseResourceTypeDefaults(map[string]atc.Source{"s3": {"default-s3-key": "some-value"}})
 				})
 				AfterEach(func() {
 					atc.LoadBaseResourceTypeDefaults(map[string]atc.Source{})
@@ -449,7 +449,7 @@ var _ = Describe("ResourceType", func() {
 			var span trace.Span
 
 			BeforeEach(func() {
-				tracing.ConfigureTraceProvider(tracetest.NewProvider())
+				tracing.ConfigureTraceProvider(oteltest.NewTracerProvider())
 
 				ctx, span = tracing.StartSpan(context.Background(), "fake-operation", nil)
 			})
@@ -459,7 +459,7 @@ var _ = Describe("ResourceType", func() {
 			})
 
 			It("propagates span context", func() {
-				traceID := span.SpanContext().TraceID.String()
+				traceID := span.SpanContext().TraceID().String()
 				buildContext := build.SpanContext()
 				traceParent := buildContext.Get("traceparent")
 				Expect(traceParent).To(ContainSubstring(traceID))

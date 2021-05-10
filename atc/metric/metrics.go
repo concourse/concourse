@@ -11,27 +11,29 @@ import (
 	"github.com/concourse/concourse/atc/db"
 )
 
-type TasksWaitingLabels struct {
-	TeamId     string
-	WorkerTags string
+type StepsWaitingLabels struct {
 	Platform   string
+	TeamId     string
+	Type       string
+	WorkerTags string
 }
 
-type TasksWaitingDuration struct {
-	Labels   TasksWaitingLabels
+type StepsWaitingDuration struct {
+	Labels   StepsWaitingLabels
 	Duration time.Duration
 }
 
-func (event TasksWaitingDuration) Emit(logger lager.Logger) {
+func (event StepsWaitingDuration) Emit(logger lager.Logger) {
 	Metrics.emit(
-		logger.Session("tasks-waiting-duration"),
+		logger.Session("steps-waiting-duration"),
 		Event{
-			Name:  "tasks waiting duration",
+			Name:  "steps waiting duration",
 			Value: event.Duration.Seconds(),
 			Attributes: map[string]string{
-				"teamId":     event.Labels.TeamId,
-				"workerTags": event.Labels.WorkerTags,
 				"platform":   event.Labels.Platform,
+				"teamId":     event.Labels.TeamId,
+				"type":       event.Labels.Type,
+				"workerTags": event.Labels.WorkerTags,
 			},
 		},
 	)
@@ -459,6 +461,39 @@ func (event BuildFinished) Emit(logger lager.Logger) {
 	)
 }
 
+type CheckBuildStarted struct {
+	Build db.Build
+}
+
+func (event CheckBuildStarted) Emit(logger lager.Logger) {
+	Metrics.emit(
+		logger.Session("check-build-started"),
+		Event{
+			Name:       "check build started",
+			Value:      float64(event.Build.ID()),
+			Attributes: event.Build.TracingAttrs(),
+		},
+	)
+}
+
+type CheckBuildFinished struct {
+	Build db.Build
+}
+
+func (event CheckBuildFinished) Emit(logger lager.Logger) {
+	attrs := event.Build.TracingAttrs()
+	attrs["build_status"] = event.Build.Status().String()
+
+	Metrics.emit(
+		logger.Session("check-build-finished"),
+		Event{
+			Name:       "check build finished",
+			Value:      ms(event.Build.EndTime().Sub(event.Build.StartTime())),
+			Attributes: attrs,
+		},
+	)
+}
+
 func ms(duration time.Duration) float64 {
 	return float64(duration) / 1000000
 }
@@ -513,7 +548,6 @@ var lockTypeNames = map[int]string{
 	lock.LockTypeVolumeCreating:         "VolumeCreating",
 	lock.LockTypeContainerCreating:      "ContainerCreating",
 	lock.LockTypeDatabaseMigration:      "DatabaseMigration",
-	lock.LockTypeActiveTasks:            "ActiveTasks",
 	lock.LockTypeResourceScanning:       "ResourceScanning",
 }
 

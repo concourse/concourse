@@ -7,8 +7,7 @@ import (
 	"github.com/concourse/concourse/atc/db/lock"
 )
 
-//go:generate counterfeiter . ResourceFactory
-
+//counterfeiter:generate . ResourceFactory
 type ResourceFactory interface {
 	Resource(int) (Resource, bool, error)
 	VisibleResources([]string) ([]Resource, error)

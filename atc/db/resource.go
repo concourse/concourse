@@ -20,8 +20,7 @@ var ErrPinnedThroughConfig = errors.New("resource is pinned through config")
 
 const CheckBuildName = "check"
 
-//go:generate counterfeiter . Resource
-
+//counterfeiter:generate . Resource
 type Resource interface {
 	PipelineRef
 
@@ -278,11 +277,6 @@ func (r *resource) CheckPlan(planFactory atc.PlanFactory, imagePlanner ImagePlan
 // If a build is already running for this resource, a new build will not be
 // created unless manuallTriggered is true.
 func (r *resource) CreateBuild(ctx context.Context, manuallyTriggered bool, plan atc.Plan) (Build, bool, error) {
-	spanContextJSON, err := json.Marshal(NewSpanContext(ctx))
-	if err != nil {
-		return nil, false, err
-	}
-
 	tx, err := r.conn.Begin()
 	if err != nil {
 		return nil, false, err
@@ -313,20 +307,17 @@ func (r *resource) CreateBuild(ctx context.Context, manuallyTriggered bool, plan
 	}
 
 	build := newEmptyBuild(r.conn, r.lockFactory)
-	err = createBuild(tx, build, map[string]interface{}{
-		"name":               CheckBuildName,
-		"pipeline_id":        r.pipelineID,
-		"team_id":            r.teamID,
-		"status":             BuildStatusPending,
-		"manually_triggered": manuallyTriggered,
-		"span_context":       string(spanContextJSON),
-		"resource_id":        r.id,
+	err = createStartedBuild(tx, build, startedBuildArgs{
+		Name:              CheckBuildName,
+		PipelineID:        r.pipelineID,
+		TeamID:            r.teamID,
+		Plan:              plan,
+		ManuallyTriggered: manuallyTriggered,
+		SpanContext:       NewSpanContext(ctx),
+		ExtraValues: map[string]interface{}{
+			"resource_id": r.id,
+		},
 	})
-	if err != nil {
-		return nil, false, err
-	}
-
-	_, err = build.start(tx, plan)
 	if err != nil {
 		return nil, false, err
 	}

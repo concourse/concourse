@@ -12,7 +12,7 @@ import (
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/tracing"
-	"go.opentelemetry.io/otel/api/propagation"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 type FakeBuild struct {
@@ -96,6 +96,16 @@ type FakeBuild struct {
 	artifactsReturnsOnCall map[int]struct {
 		result1 []db.WorkerArtifact
 		result2 error
+	}
+	CreateTimeStub        func() time.Time
+	createTimeMutex       sync.RWMutex
+	createTimeArgsForCall []struct {
+	}
+	createTimeReturns struct {
+		result1 time.Time
+	}
+	createTimeReturnsOnCall map[int]struct {
+		result1 time.Time
 	}
 	CreatedByStub        func() *string
 	createdByMutex       sync.RWMutex
@@ -612,15 +622,15 @@ type FakeBuild struct {
 	setInterceptibleReturnsOnCall map[int]struct {
 		result1 error
 	}
-	SpanContextStub        func() propagation.HTTPSupplier
+	SpanContextStub        func() propagation.TextMapCarrier
 	spanContextMutex       sync.RWMutex
 	spanContextArgsForCall []struct {
 	}
 	spanContextReturns struct {
-		result1 propagation.HTTPSupplier
+		result1 propagation.TextMapCarrier
 	}
 	spanContextReturnsOnCall map[int]struct {
-		result1 propagation.HTTPSupplier
+		result1 propagation.TextMapCarrier
 	}
 	StartStub        func(atc.Plan) (bool, error)
 	startMutex       sync.RWMutex
@@ -1072,6 +1082,59 @@ func (fake *FakeBuild) ArtifactsReturnsOnCall(i int, result1 []db.WorkerArtifact
 		result1 []db.WorkerArtifact
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeBuild) CreateTime() time.Time {
+	fake.createTimeMutex.Lock()
+	ret, specificReturn := fake.createTimeReturnsOnCall[len(fake.createTimeArgsForCall)]
+	fake.createTimeArgsForCall = append(fake.createTimeArgsForCall, struct {
+	}{})
+	stub := fake.CreateTimeStub
+	fakeReturns := fake.createTimeReturns
+	fake.recordInvocation("CreateTime", []interface{}{})
+	fake.createTimeMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeBuild) CreateTimeCallCount() int {
+	fake.createTimeMutex.RLock()
+	defer fake.createTimeMutex.RUnlock()
+	return len(fake.createTimeArgsForCall)
+}
+
+func (fake *FakeBuild) CreateTimeCalls(stub func() time.Time) {
+	fake.createTimeMutex.Lock()
+	defer fake.createTimeMutex.Unlock()
+	fake.CreateTimeStub = stub
+}
+
+func (fake *FakeBuild) CreateTimeReturns(result1 time.Time) {
+	fake.createTimeMutex.Lock()
+	defer fake.createTimeMutex.Unlock()
+	fake.CreateTimeStub = nil
+	fake.createTimeReturns = struct {
+		result1 time.Time
+	}{result1}
+}
+
+func (fake *FakeBuild) CreateTimeReturnsOnCall(i int, result1 time.Time) {
+	fake.createTimeMutex.Lock()
+	defer fake.createTimeMutex.Unlock()
+	fake.CreateTimeStub = nil
+	if fake.createTimeReturnsOnCall == nil {
+		fake.createTimeReturnsOnCall = make(map[int]struct {
+			result1 time.Time
+		})
+	}
+	fake.createTimeReturnsOnCall[i] = struct {
+		result1 time.Time
+	}{result1}
 }
 
 func (fake *FakeBuild) CreatedBy() *string {
@@ -3686,7 +3749,7 @@ func (fake *FakeBuild) SetInterceptibleReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeBuild) SpanContext() propagation.HTTPSupplier {
+func (fake *FakeBuild) SpanContext() propagation.TextMapCarrier {
 	fake.spanContextMutex.Lock()
 	ret, specificReturn := fake.spanContextReturnsOnCall[len(fake.spanContextArgsForCall)]
 	fake.spanContextArgsForCall = append(fake.spanContextArgsForCall, struct {
@@ -3710,32 +3773,32 @@ func (fake *FakeBuild) SpanContextCallCount() int {
 	return len(fake.spanContextArgsForCall)
 }
 
-func (fake *FakeBuild) SpanContextCalls(stub func() propagation.HTTPSupplier) {
+func (fake *FakeBuild) SpanContextCalls(stub func() propagation.TextMapCarrier) {
 	fake.spanContextMutex.Lock()
 	defer fake.spanContextMutex.Unlock()
 	fake.SpanContextStub = stub
 }
 
-func (fake *FakeBuild) SpanContextReturns(result1 propagation.HTTPSupplier) {
+func (fake *FakeBuild) SpanContextReturns(result1 propagation.TextMapCarrier) {
 	fake.spanContextMutex.Lock()
 	defer fake.spanContextMutex.Unlock()
 	fake.SpanContextStub = nil
 	fake.spanContextReturns = struct {
-		result1 propagation.HTTPSupplier
+		result1 propagation.TextMapCarrier
 	}{result1}
 }
 
-func (fake *FakeBuild) SpanContextReturnsOnCall(i int, result1 propagation.HTTPSupplier) {
+func (fake *FakeBuild) SpanContextReturnsOnCall(i int, result1 propagation.TextMapCarrier) {
 	fake.spanContextMutex.Lock()
 	defer fake.spanContextMutex.Unlock()
 	fake.SpanContextStub = nil
 	if fake.spanContextReturnsOnCall == nil {
 		fake.spanContextReturnsOnCall = make(map[int]struct {
-			result1 propagation.HTTPSupplier
+			result1 propagation.TextMapCarrier
 		})
 	}
 	fake.spanContextReturnsOnCall[i] = struct {
-		result1 propagation.HTTPSupplier
+		result1 propagation.TextMapCarrier
 	}{result1}
 }
 
@@ -4200,6 +4263,8 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.artifactMutex.RUnlock()
 	fake.artifactsMutex.RLock()
 	defer fake.artifactsMutex.RUnlock()
+	fake.createTimeMutex.RLock()
+	defer fake.createTimeMutex.RUnlock()
 	fake.createdByMutex.RLock()
 	defer fake.createdByMutex.RUnlock()
 	fake.deleteMutex.RLock()

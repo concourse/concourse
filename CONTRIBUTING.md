@@ -1,70 +1,62 @@
 # Contributing to Concourse
 
-It takes a lot of work from a lot of people to build a great CI system. We
-really appreciate any and all contributions we receive, and are dedicated to
-helping out anyone that wants to be a part of Concourse's development.
+It takes a lot of work from a lot of people to build a great CI system.
 
-This doc will go over the basics of developing Concourse and testing your
-changes.
+This document provides an outline for interacting with the Concourse community
+and its governance structure, as well as the nitty-gritty details how to write,
+test, and submit code changes.
 
-If you run into any trouble, feel free to hang out and ask for help in in
-[Discord][discord]! We'll grant you the `@contributors` role on request (just
-ask in `#introductions`), which will allow you to chat in the `#contributors`
-channel where you can ask for help or get feedback on something you're working
-on.
-
-
-## From ideas to implementation
-
-The Concourse project uses Issues for project backlog and bug reports,
-Discussions for support and ideation, and Pull Requests for accepting
-contributions.
-
-Bugs can be reported directly as [Issues on the `concourse`
-repo][concourse-issues], and questions and technical support can be requested as
-[Discussions on the `concourse` repo][concourse-discussions].
-
-The project backlog is maintained by the Concourse team at VMware. Instead of
-requesting features, we strongly encourage the use of [Discussions on the `rfcs`
-repo][rfcs-discussions] for incubating ideas, with a primary focus on forming a
-shared understanding the problem at hand; the context is more important than the
-solution itself.
-
-Our collective responsibility as the stewards of the Concourse product is to
-uphold its promise of being "automation that scales with your project." This
-promise is upheld by keeping the mental overhead small as the automation needs
-of your project expand. Thus, requests for core features fall under heavy
-scrutiny. Rather than addressing each individual request, we need to think of
-the product holistically, steering it carefully and refining or replacing
-existing concepts rather than introducing new ones all the time.
-
-While this may feel overkill for requests which seem small in scope, connections
-can often be made between features which seem unrelated at the surface. Once
-those connections are identified, a higher impact change can often be planned
-which satisfies many underlying needs at once while minimizing the amount of
-"stuff" that users need to internalize in order to be effective with Concourse.
-
-Once consensus is reached on a direction to take, a proposal can be submitted as
-a [Pull Request to the `rfcs` repo][rfcs-prs], following the [RFC
-process][rfcs-process], allowing the contributors to collaborate through PR
-review. A full blown RFC may not be necessary for smaller changes, but going
-through this process can reduce painful feedback cycles for larger code changes.
-
-[Pull Requests to the `concourse` repo][concourse-prs] may be submitted at any
-time. The rest of this document provides guidance on how to do just that. In the
-end, we are really grateful for any contribution made to the project - whether
-that's just chiming in on a discussion, helping others out in the community, or
-indeed submitting a code change. Cheers! 🍻
-
-[concourse-issues]: https://github.com/concourse/concourse/issues
-[concourse-prs]: https://github.com/concourse/concourse/pulls
-[concourse-discussions]: https://github.com/concourse/concourse/discussions
-[rfcs-prs]: https://github.com/concourse/rfcs/pulls
-[rfcs-discussions]: https://github.com/concourse/rfcs/discussions
-[rfcs-process]: https://github.com/concourse/rfcs/blob/master/README.md
+If you run into any trouble, feel free to hang out and ask for help in the
+[Discord][discord]!
 
 
 ## Contribution process
+
+The Concourse project follows an [open governance model][governance] which
+divides project responsibilities between self-organizing teams. You can find
+the list of teams under the [`teams/` directory][governance-teams] - each team
+describes its purpose and responsibilities.
+
+The [**maintainers** team][governance-maintainers] is responsible for the issue
+and pull request backlog and all code within this repository, working in
+harmony with the [**core** team][governance-core] through the [RFC
+process][rfcs] to keep the Concourse product aligned with its [design
+principles][rfc-design-principles].
+
+As a first step you can optionally [add yourself as a
+contributor][governance-register]. Doing so will grant you a few things:
+
+1. A shiny `@contributors` role in Discord, allowing you to chat in `#dev`.
+1. The ability to triage issues and pull requests in the Concourse repo.
+1. The ability to re-trigger builds that ran for your pull requests.
+
+If you are planning to implement a new feature, you may want to [submit an
+RFC][rfc-submit] first - it's not necessary for every change, but requesting
+feedback early can help save time and effort. See ["When the RFC process is
+necessary"][rfc-necessary] for more information.
+
+The rest of this document describes how to contribute code, but there are many
+other ways to contribute that are incredibly helpful: helping others or just
+passing time in [Discussions][concourse-discussions] and [Discord][discord],
+providing feedback on [RFCs][rfcs], triaging [Issues][concourse-issues],
+improving the [documentation][docs] - any little bit helps.
+
+Cheers! 🍻
+
+[concourse-discussions]: https://github.com/concourse/concourse/discussions
+[concourse-issues]: https://github.com/concourse/concourse/issues
+[concourse-prs]: https://github.com/concourse/concourse/pulls
+[governance-core]: https://github.com/concourse/governance/blob/master/teams/core.yml
+[governance-maintainers]: https://github.com/concourse/governance/blob/master/teams/maintainers.yml
+[governance-register]: https://github.com/concourse/governance#individual-contributors
+[governance-teams]: https://github.com/concourse/governance/tree/master/teams
+[governance]: https://github.com/concourse/governance
+[rfc-design-principles]: https://github.com/concourse/rfcs/blob/master/DESIGN_PRINCIPLES.md
+[rfc-necessary]: https://github.com/concourse/rfcs#when-the-rfc-process-is-necessary
+[rfc-submit]: https://github.com/concourse/rfcs#submitting-an-rfc
+[rfcs]: https://github.com/concourse/rfcs
+
+## Development process
 
 * [Fork this repo][how-to-fork] into your GitHub account.
 
@@ -74,23 +66,12 @@ indeed submitting a code change. Cheers! 🍻
 
 * Commit your changes and push them to a branch on your fork.
 
-  * Don't forget to write tests; pull requests without tests are unlikely to be
-    merged. For instruction on writing and running the various test suites, see
-    [Testing your changes](#testing-your-changes).
+  * Run [`goimports`](https://pkg.go.dev/golang.org/x/tools/cmd/goimports) to
+    ensure your code follows our code style guidelines.
 
-  * All commits must have a signature certifying agreement to the [DCO][dco].
-    For more information, see [Signing your work](#signing-your-work).
+    * *Optional: check out our [Go style guide][style-guide]!*
 
-  * Write release notes by adding onto the `latest.md` file in the
-    `release-notes/` directory! For formatting and style examples,
-    see previous release notes in the same directory.
-
-  * Run [goimports](https://pkg.go.dev/golang.org/x/tools/cmd/goimports)
-    to ensure your code follows our code style guidelines.
-
-  * *Optional: check out our [Go style guide][style-guide]!*
-
-* Putting this all together, here is a sample anatomy of an ideal commit:
+* Here is a sample anatomy of an ideal commit:
 
     ```
      i       ii         iii
@@ -115,10 +96,23 @@ indeed submitting a code change. Cheers! 🍻
 
 * When you're ready, [submit a pull request][how-to-pr]!
 
-  * You will be invited to join `Contributors` team under `Concourse` org on
-    Github. Upon accepting the invite you will be able to login to our CI and
-    manage the build of your pull request in
-    [PRs pipeline](https://ci.concourse-ci.org/teams/contributor/pipelines/prs).
+
+### Pull request requirements
+
+* As with any community interaction, you must follow the [Code of
+  Conduct][coc].
+
+* All changes must have adequate test coverage. For instruction on writing and
+  running the various test suites, see [Testing your
+  changes](#testing-your-changes).
+
+* All commits must have a signature certifying agreement to the [DCO][dco].
+  For more information, see [Signing your work](#signing-your-work). A check
+  for this will run automatically and prevent merging if it fails.
+
+* The [documentation][docs] should be updated (in a separate, linked PR), but
+  if you're not confident in your technical writing you may skip this step.
+
 
 ### Structure and Behaviour
 
@@ -127,13 +121,16 @@ sometimes complex changes cannot be avoided. To ease PR reviews, there are a few
 practices we've found helpful:
 
 * Focus your commits so that they only change a single component at a time.
+
 * Isolate [structure changes from behaviour changes][sb-changes] and label the
-commits appropriately - even better, batch commits of the same type into
-contiguous blocks.
-* Give clear prose justifications for your changes in the commit messages - it's
-not unusual that you do some digging to uncover the motivation for a change,
-but if you don't mention it in the commit message the diff can feel pretty
-opaque.
+  commits appropriately - even better, batch commits of the same type into
+  contiguous blocks.
+
+* Give clear prose justifications for your changes in the commit messages -
+  it's not unusual that you do some digging to uncover the motivation for a
+  change, but if you don't mention it in the commit message the diff can feel
+  pretty opaque.
+
 
 ## Development dependencies
 
@@ -212,7 +209,7 @@ silly air-traffic-themed names.
 | `/fly`          | The [`fly` CLI](https://concourse-ci.org/fly.html). |
 | `/testflight`   | The acceptance test suite, exercising pipeline and `fly` features. Runs against a single Concourse deployment. |
 | `/web`          | The Elm source code and other assets for the web UI, which gets built and then embedded into the `concourse` executable and served by the ATC's web server. |
-| `/go-concourse` | A Go client libary for using the ATC API, used internally by `fly`. |
+| `/go-concourse` | A Go client library for using the ATC API, used internally by `fly`. |
 | `/skymarshal`   | Adapts [Dex](https://github.com/dexidp/dex) into an embeddable auth component for the ATC, plus the auth flag specifications for `fly` and `concourse web`. |
 | `/tsa`          | A custom-built SSH server responsible for securely authenticating and registering workers. The other half of `concourse web`. |
 | `/worker`       | The `concourse worker` library code for registering with the TSA, periodically reaping containers/volumes, etc. |
@@ -311,7 +308,6 @@ After this is done, the final step is to connect your IDE to the debugger with t
 
 For GoLand you can do so by going to Run | Edit Configurations… | + | Go Remote and fill in the parameters.
 
-
 ### Trying out distributed tracing with Jaeger
 
 Under `./hack`, a docker-compose override file named `jaeger.yml` provides the
@@ -338,7 +334,6 @@ a Garden backend.
 
 [`containerd`]: https://containerd.io
 
-
 ### Running Vault locally
 
 1. Make sure you have [`certstrap`]
@@ -348,7 +343,6 @@ See more about in the section [The Vault credential manager].
 
 [The Vault credential Manager]: https://concourse-ci.org/vault-credential-manager.html
 [`certstrap`]: https://github.com/square/certstrap
-
 
 ### Running Prometheus locally
 
@@ -368,7 +362,6 @@ $ docker-compose \
 
 Now head to http://localhost:9090, and you'll be able to graph `concourse_`
 Prometheus metrics.
-
 
 ### Connecting to Postgres
 
@@ -448,6 +441,7 @@ the database up and down migrations in these files. On startup, `concourse web`
 will look for any new migrations in `atc/db/migration/migrations` and will run
 them in order.
 
+
 ## Testing your changes
 
 Any new feature or bug fix should have tests written for it. If there are no
@@ -492,13 +486,7 @@ $ go get github.com/onsi/ginkgo/ginkgo
 
 We use [Counterfeiter](https://github.com/maxbrunsfeld/counterfeiter) to generate
 fakes for our unit tests. You may need to regenerate fakes if you add or modify an
-interface. To do so, you'll need to install `counterfeiter` as follows:
-
-```sh
-$ go get -u github.com/maxbrunsfeld/counterfeiter/v6
-```
-
-You can then generate the fakes by running
+interface. You can generate the fakes by running
 
 ```sh
 $ go generate ./...
@@ -652,7 +640,6 @@ ginkgo -nodes=16 .
 [`kind`]: https://kind.sigs.k8s.io/
 [Tiller]: https://v2.helm.sh/docs/install/
 
-
 ### A note on `topgun`
 
 The `topgun/` suite is quite heavyweight and we don't currently expect most
@@ -700,7 +687,6 @@ BOSH_ENVIRONMENT=vbox ginkgo -v .
 ```
 
 ps.: you must have already installed the BOSH cli first.
-
 
 
 ## Signing your work
@@ -775,12 +761,14 @@ If you forgot to add the signature, you can run `git commit --amend -s`. Note
 that you will have to force-push (`push -f`) after amending if you've already
 pushed commits without the signature.
 
-[discord]: https://discord.gg/MeRxXKW
+[concourse-helm-chart]: https://github.com/concourse/concourse-chart/blob/master/README.md
 [dco]: https://developercertificate.org
-[style-guide]: https://github.com/concourse/concourse/wiki/Concourse-Go-Style-Guide
+[coc]: https://github.com/concourse/concourse/blob/master/CODE_OF_CONDUCT.md
+[discord]: https://discord.gg/MeRxXKW
+[docs]: https://github.com/concourse/docs
+[fav-commit]: https://dhwthompson.com/2019/my-favourite-git-commit
+[helm-charts]: https://github.com/helm/charts/blob/master/README.md
 [how-to-fork]: https://help.github.com/articles/fork-a-repo/
 [how-to-pr]: https://help.github.com/articles/creating-a-pull-request-from-a-fork/
-[concourse-helm-chart]: https://github.com/concourse/concourse-chart/blob/master/README.md
-[helm-charts]: https://github.com/helm/charts/blob/master/README.md
-[fav-commit]: https://dhwthompson.com/2019/my-favourite-git-commit
 [sb-changes]: https://medium.com/@kentbeck_7670/bs-changes-e574bc396aaa
+[style-guide]: https://github.com/concourse/concourse/wiki/Concourse-Go-Style-Guide

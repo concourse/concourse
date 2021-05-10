@@ -26,3 +26,14 @@ func (sc SpanContext) Set(key, value string) {
 		sc[key] = value
 	}
 }
+
+func (sc SpanContext) Keys() []string {
+	if sc == nil {
+		return nil
+	}
+	keys := make([]string, 0, len(sc))
+	for key := range sc {
+		keys = append(keys, key)
+	}
+	return keys
+}

@@ -56,8 +56,7 @@ const (
 	VolumeTypeUknown        VolumeType = "unknown" // for migration to life
 )
 
-//go:generate counterfeiter . CreatingVolume
-
+//counterfeiter:generate . CreatingVolume
 type CreatingVolume interface {
 	Handle() string
 	ID() int
@@ -139,7 +138,7 @@ func (volume *creatingVolume) Failed() (FailedVolume, error) {
 	}, nil
 }
 
-//go:generate counterfeiter . CreatedVolume
+//counterfeiter:generate . CreatedVolume
 // TODO-Later Consider separating CORE & Runtime concerns by breaking this abstraction up.
 type CreatedVolume interface {
 	Handle() string
@@ -614,7 +613,7 @@ func (volume *createdVolume) Destroying() (DestroyingVolume, error) {
 	}, nil
 }
 
-//go:generate counterfeiter . DestroyingVolume
+//counterfeiter:generate . DestroyingVolume
 type DestroyingVolume interface {
 	Handle() string
 	Destroy() (bool, error)

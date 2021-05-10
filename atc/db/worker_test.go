@@ -407,8 +407,9 @@ var _ = Describe("Worker", func() {
 
 		Context("when the active task is increased", func() {
 			BeforeEach(func() {
-				err := worker.IncreaseActiveTasks()
+				at, err := worker.IncreaseActiveTasks()
 				Expect(err).ToNot(HaveOccurred())
+				Expect(at).To(Equal(1))
 			})
 
 			It("increase the active tasks counter", func() {
@@ -416,11 +417,14 @@ var _ = Describe("Worker", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(at).To(Equal(1))
 			})
+
 			Context("when the active task is decreased", func() {
 				BeforeEach(func() {
-					err := worker.DecreaseActiveTasks()
+					at, err := worker.DecreaseActiveTasks()
 					Expect(err).ToNot(HaveOccurred())
+					Expect(at).To(Equal(0))
 				})
+
 				It("reset the active tasks to 0", func() {
 					at, err := worker.ActiveTasks()
 					Expect(err).ToNot(HaveOccurred())
@@ -431,8 +435,9 @@ var _ = Describe("Worker", func() {
 
 		Context("when the active task is decreased below 0", func() {
 			It("raise an error", func() {
-				err := worker.DecreaseActiveTasks()
+				at, err := worker.DecreaseActiveTasks()
 				Expect(err).To(HaveOccurred())
+				Expect(at).To(Equal(0))
 			})
 		})
 	})

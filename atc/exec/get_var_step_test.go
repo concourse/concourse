@@ -12,7 +12,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	gocache "github.com/patrickmn/go-cache"
-	"go.opentelemetry.io/otel/api/trace"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
@@ -21,6 +20,7 @@ import (
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/execfakes"
+	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
 	"github.com/concourse/concourse/vars/varsfakes"
 )
@@ -87,7 +87,7 @@ var _ = Describe("GetVarStep", func() {
 		fakeVarSourceVariables = new(varsfakes.FakeVariables)
 
 		spanCtx = context.Background()
-		fakeDelegate.StartSpanReturns(spanCtx, trace.NoopSpan{})
+		fakeDelegate.StartSpanReturns(spanCtx, tracing.NoopSpan)
 		fakeDelegate.VariablesReturns(fakeVarSourceVariables)
 
 		fakeDelegateFactory = new(execfakes.FakeBuildStepDelegateFactory)

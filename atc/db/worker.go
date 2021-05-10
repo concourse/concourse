@@ -46,8 +46,7 @@ func AllWorkerStates() []WorkerState {
 	}
 }
 
-//go:generate counterfeiter . Worker
-
+//counterfeiter:generate . Worker
 type Worker interface {
 	Name() string
 	Version() *string
@@ -78,8 +77,8 @@ type Worker interface {
 	Delete() error
 
 	ActiveTasks() (int, error)
-	IncreaseActiveTasks() error
-	DecreaseActiveTasks() error
+	IncreaseActiveTasks() (int, error)
+	DecreaseActiveTasks() (int, error)
 
 	FindContainer(owner ContainerOwner) (CreatingContainer, CreatedContainer, error)
 	CreateContainer(owner ContainerOwner, meta ContainerMetadata) (CreatingContainer, error)
@@ -385,46 +384,30 @@ func (worker *worker) ActiveTasks() (int, error) {
 	return worker.activeTasks, nil
 }
 
-func (worker *worker) IncreaseActiveTasks() error {
-	result, err := psql.Update("workers").
+func (worker *worker) IncreaseActiveTasks() (int, error) {
+	err := psql.Update("workers").
 		Set("active_tasks", sq.Expr("active_tasks+1")).
 		Where(sq.Eq{"name": worker.name}).
+		Suffix("RETURNING \"active_tasks\"").
 		RunWith(worker.conn).
-		Exec()
+		QueryRow().
+		Scan(&worker.activeTasks)
 	if err != nil {
-		return err
+		return 0, err
 	}
-
-	count, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if count == 0 {
-		return ErrWorkerNotPresent
-	}
-
-	return nil
+	return worker.activeTasks, nil
 }
 
-func (worker *worker) DecreaseActiveTasks() error {
-	result, err := psql.Update("workers").
+func (worker *worker) DecreaseActiveTasks() (int, error) {
+	err := psql.Update("workers").
 		Set("active_tasks", sq.Expr("active_tasks-1")).
 		Where(sq.Eq{"name": worker.name}).
+		Suffix("RETURNING \"active_tasks\"").
 		RunWith(worker.conn).
-		Exec()
+		QueryRow().
+		Scan(&worker.activeTasks)
 	if err != nil {
-		return err
+		return 0, err
 	}
-
-	count, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if count == 0 {
-		return ErrWorkerNotPresent
-	}
-
-	return nil
+	return worker.activeTasks, nil
 }

@@ -9,115 +9,127 @@ import (
 )
 
 type FakeContainerPlacementStrategy struct {
-	ChooseStub        func(lager.Logger, []worker.Worker, worker.ContainerSpec) (worker.Worker, error)
-	chooseMutex       sync.RWMutex
-	chooseArgsForCall []struct {
+	ApproveStub        func(lager.Logger, worker.Worker, worker.ContainerSpec) error
+	approveMutex       sync.RWMutex
+	approveArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 worker.Worker
+		arg3 worker.ContainerSpec
+	}
+	approveReturns struct {
+		result1 error
+	}
+	approveReturnsOnCall map[int]struct {
+		result1 error
+	}
+	NameStub        func() string
+	nameMutex       sync.RWMutex
+	nameArgsForCall []struct {
+	}
+	nameReturns struct {
+		result1 string
+	}
+	nameReturnsOnCall map[int]struct {
+		result1 string
+	}
+	OrderStub        func(lager.Logger, []worker.Worker, worker.ContainerSpec) ([]worker.Worker, error)
+	orderMutex       sync.RWMutex
+	orderArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 []worker.Worker
 		arg3 worker.ContainerSpec
 	}
-	chooseReturns struct {
-		result1 worker.Worker
+	orderReturns struct {
+		result1 []worker.Worker
 		result2 error
 	}
-	chooseReturnsOnCall map[int]struct {
-		result1 worker.Worker
+	orderReturnsOnCall map[int]struct {
+		result1 []worker.Worker
 		result2 error
 	}
-	ModifiesActiveTasksStub        func() bool
-	modifiesActiveTasksMutex       sync.RWMutex
-	modifiesActiveTasksArgsForCall []struct {
-	}
-	modifiesActiveTasksReturns struct {
-		result1 bool
-	}
-	modifiesActiveTasksReturnsOnCall map[int]struct {
-		result1 bool
+	ReleaseStub        func(lager.Logger, worker.Worker, worker.ContainerSpec)
+	releaseMutex       sync.RWMutex
+	releaseArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 worker.Worker
+		arg3 worker.ContainerSpec
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeContainerPlacementStrategy) Choose(arg1 lager.Logger, arg2 []worker.Worker, arg3 worker.ContainerSpec) (worker.Worker, error) {
-	var arg2Copy []worker.Worker
-	if arg2 != nil {
-		arg2Copy = make([]worker.Worker, len(arg2))
-		copy(arg2Copy, arg2)
-	}
-	fake.chooseMutex.Lock()
-	ret, specificReturn := fake.chooseReturnsOnCall[len(fake.chooseArgsForCall)]
-	fake.chooseArgsForCall = append(fake.chooseArgsForCall, struct {
+func (fake *FakeContainerPlacementStrategy) Approve(arg1 lager.Logger, arg2 worker.Worker, arg3 worker.ContainerSpec) error {
+	fake.approveMutex.Lock()
+	ret, specificReturn := fake.approveReturnsOnCall[len(fake.approveArgsForCall)]
+	fake.approveArgsForCall = append(fake.approveArgsForCall, struct {
 		arg1 lager.Logger
-		arg2 []worker.Worker
+		arg2 worker.Worker
 		arg3 worker.ContainerSpec
-	}{arg1, arg2Copy, arg3})
-	stub := fake.ChooseStub
-	fakeReturns := fake.chooseReturns
-	fake.recordInvocation("Choose", []interface{}{arg1, arg2Copy, arg3})
-	fake.chooseMutex.Unlock()
+	}{arg1, arg2, arg3})
+	stub := fake.ApproveStub
+	fakeReturns := fake.approveReturns
+	fake.recordInvocation("Approve", []interface{}{arg1, arg2, arg3})
+	fake.approveMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
-		return ret.result1, ret.result2
+		return ret.result1
 	}
-	return fakeReturns.result1, fakeReturns.result2
+	return fakeReturns.result1
 }
 
-func (fake *FakeContainerPlacementStrategy) ChooseCallCount() int {
-	fake.chooseMutex.RLock()
-	defer fake.chooseMutex.RUnlock()
-	return len(fake.chooseArgsForCall)
+func (fake *FakeContainerPlacementStrategy) ApproveCallCount() int {
+	fake.approveMutex.RLock()
+	defer fake.approveMutex.RUnlock()
+	return len(fake.approveArgsForCall)
 }
 
-func (fake *FakeContainerPlacementStrategy) ChooseCalls(stub func(lager.Logger, []worker.Worker, worker.ContainerSpec) (worker.Worker, error)) {
-	fake.chooseMutex.Lock()
-	defer fake.chooseMutex.Unlock()
-	fake.ChooseStub = stub
+func (fake *FakeContainerPlacementStrategy) ApproveCalls(stub func(lager.Logger, worker.Worker, worker.ContainerSpec) error) {
+	fake.approveMutex.Lock()
+	defer fake.approveMutex.Unlock()
+	fake.ApproveStub = stub
 }
 
-func (fake *FakeContainerPlacementStrategy) ChooseArgsForCall(i int) (lager.Logger, []worker.Worker, worker.ContainerSpec) {
-	fake.chooseMutex.RLock()
-	defer fake.chooseMutex.RUnlock()
-	argsForCall := fake.chooseArgsForCall[i]
+func (fake *FakeContainerPlacementStrategy) ApproveArgsForCall(i int) (lager.Logger, worker.Worker, worker.ContainerSpec) {
+	fake.approveMutex.RLock()
+	defer fake.approveMutex.RUnlock()
+	argsForCall := fake.approveArgsForCall[i]
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
-func (fake *FakeContainerPlacementStrategy) ChooseReturns(result1 worker.Worker, result2 error) {
-	fake.chooseMutex.Lock()
-	defer fake.chooseMutex.Unlock()
-	fake.ChooseStub = nil
-	fake.chooseReturns = struct {
-		result1 worker.Worker
-		result2 error
-	}{result1, result2}
+func (fake *FakeContainerPlacementStrategy) ApproveReturns(result1 error) {
+	fake.approveMutex.Lock()
+	defer fake.approveMutex.Unlock()
+	fake.ApproveStub = nil
+	fake.approveReturns = struct {
+		result1 error
+	}{result1}
 }
 
-func (fake *FakeContainerPlacementStrategy) ChooseReturnsOnCall(i int, result1 worker.Worker, result2 error) {
-	fake.chooseMutex.Lock()
-	defer fake.chooseMutex.Unlock()
-	fake.ChooseStub = nil
-	if fake.chooseReturnsOnCall == nil {
-		fake.chooseReturnsOnCall = make(map[int]struct {
-			result1 worker.Worker
-			result2 error
+func (fake *FakeContainerPlacementStrategy) ApproveReturnsOnCall(i int, result1 error) {
+	fake.approveMutex.Lock()
+	defer fake.approveMutex.Unlock()
+	fake.ApproveStub = nil
+	if fake.approveReturnsOnCall == nil {
+		fake.approveReturnsOnCall = make(map[int]struct {
+			result1 error
 		})
 	}
-	fake.chooseReturnsOnCall[i] = struct {
-		result1 worker.Worker
-		result2 error
-	}{result1, result2}
+	fake.approveReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
 }
 
-func (fake *FakeContainerPlacementStrategy) ModifiesActiveTasks() bool {
-	fake.modifiesActiveTasksMutex.Lock()
-	ret, specificReturn := fake.modifiesActiveTasksReturnsOnCall[len(fake.modifiesActiveTasksArgsForCall)]
-	fake.modifiesActiveTasksArgsForCall = append(fake.modifiesActiveTasksArgsForCall, struct {
+func (fake *FakeContainerPlacementStrategy) Name() string {
+	fake.nameMutex.Lock()
+	ret, specificReturn := fake.nameReturnsOnCall[len(fake.nameArgsForCall)]
+	fake.nameArgsForCall = append(fake.nameArgsForCall, struct {
 	}{})
-	stub := fake.ModifiesActiveTasksStub
-	fakeReturns := fake.modifiesActiveTasksReturns
-	fake.recordInvocation("ModifiesActiveTasks", []interface{}{})
-	fake.modifiesActiveTasksMutex.Unlock()
+	stub := fake.NameStub
+	fakeReturns := fake.nameReturns
+	fake.recordInvocation("Name", []interface{}{})
+	fake.nameMutex.Unlock()
 	if stub != nil {
 		return stub()
 	}
@@ -127,48 +139,157 @@ func (fake *FakeContainerPlacementStrategy) ModifiesActiveTasks() bool {
 	return fakeReturns.result1
 }
 
-func (fake *FakeContainerPlacementStrategy) ModifiesActiveTasksCallCount() int {
-	fake.modifiesActiveTasksMutex.RLock()
-	defer fake.modifiesActiveTasksMutex.RUnlock()
-	return len(fake.modifiesActiveTasksArgsForCall)
+func (fake *FakeContainerPlacementStrategy) NameCallCount() int {
+	fake.nameMutex.RLock()
+	defer fake.nameMutex.RUnlock()
+	return len(fake.nameArgsForCall)
 }
 
-func (fake *FakeContainerPlacementStrategy) ModifiesActiveTasksCalls(stub func() bool) {
-	fake.modifiesActiveTasksMutex.Lock()
-	defer fake.modifiesActiveTasksMutex.Unlock()
-	fake.ModifiesActiveTasksStub = stub
+func (fake *FakeContainerPlacementStrategy) NameCalls(stub func() string) {
+	fake.nameMutex.Lock()
+	defer fake.nameMutex.Unlock()
+	fake.NameStub = stub
 }
 
-func (fake *FakeContainerPlacementStrategy) ModifiesActiveTasksReturns(result1 bool) {
-	fake.modifiesActiveTasksMutex.Lock()
-	defer fake.modifiesActiveTasksMutex.Unlock()
-	fake.ModifiesActiveTasksStub = nil
-	fake.modifiesActiveTasksReturns = struct {
-		result1 bool
+func (fake *FakeContainerPlacementStrategy) NameReturns(result1 string) {
+	fake.nameMutex.Lock()
+	defer fake.nameMutex.Unlock()
+	fake.NameStub = nil
+	fake.nameReturns = struct {
+		result1 string
 	}{result1}
 }
 
-func (fake *FakeContainerPlacementStrategy) ModifiesActiveTasksReturnsOnCall(i int, result1 bool) {
-	fake.modifiesActiveTasksMutex.Lock()
-	defer fake.modifiesActiveTasksMutex.Unlock()
-	fake.ModifiesActiveTasksStub = nil
-	if fake.modifiesActiveTasksReturnsOnCall == nil {
-		fake.modifiesActiveTasksReturnsOnCall = make(map[int]struct {
-			result1 bool
+func (fake *FakeContainerPlacementStrategy) NameReturnsOnCall(i int, result1 string) {
+	fake.nameMutex.Lock()
+	defer fake.nameMutex.Unlock()
+	fake.NameStub = nil
+	if fake.nameReturnsOnCall == nil {
+		fake.nameReturnsOnCall = make(map[int]struct {
+			result1 string
 		})
 	}
-	fake.modifiesActiveTasksReturnsOnCall[i] = struct {
-		result1 bool
+	fake.nameReturnsOnCall[i] = struct {
+		result1 string
 	}{result1}
+}
+
+func (fake *FakeContainerPlacementStrategy) Order(arg1 lager.Logger, arg2 []worker.Worker, arg3 worker.ContainerSpec) ([]worker.Worker, error) {
+	var arg2Copy []worker.Worker
+	if arg2 != nil {
+		arg2Copy = make([]worker.Worker, len(arg2))
+		copy(arg2Copy, arg2)
+	}
+	fake.orderMutex.Lock()
+	ret, specificReturn := fake.orderReturnsOnCall[len(fake.orderArgsForCall)]
+	fake.orderArgsForCall = append(fake.orderArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 []worker.Worker
+		arg3 worker.ContainerSpec
+	}{arg1, arg2Copy, arg3})
+	stub := fake.OrderStub
+	fakeReturns := fake.orderReturns
+	fake.recordInvocation("Order", []interface{}{arg1, arg2Copy, arg3})
+	fake.orderMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeContainerPlacementStrategy) OrderCallCount() int {
+	fake.orderMutex.RLock()
+	defer fake.orderMutex.RUnlock()
+	return len(fake.orderArgsForCall)
+}
+
+func (fake *FakeContainerPlacementStrategy) OrderCalls(stub func(lager.Logger, []worker.Worker, worker.ContainerSpec) ([]worker.Worker, error)) {
+	fake.orderMutex.Lock()
+	defer fake.orderMutex.Unlock()
+	fake.OrderStub = stub
+}
+
+func (fake *FakeContainerPlacementStrategy) OrderArgsForCall(i int) (lager.Logger, []worker.Worker, worker.ContainerSpec) {
+	fake.orderMutex.RLock()
+	defer fake.orderMutex.RUnlock()
+	argsForCall := fake.orderArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeContainerPlacementStrategy) OrderReturns(result1 []worker.Worker, result2 error) {
+	fake.orderMutex.Lock()
+	defer fake.orderMutex.Unlock()
+	fake.OrderStub = nil
+	fake.orderReturns = struct {
+		result1 []worker.Worker
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeContainerPlacementStrategy) OrderReturnsOnCall(i int, result1 []worker.Worker, result2 error) {
+	fake.orderMutex.Lock()
+	defer fake.orderMutex.Unlock()
+	fake.OrderStub = nil
+	if fake.orderReturnsOnCall == nil {
+		fake.orderReturnsOnCall = make(map[int]struct {
+			result1 []worker.Worker
+			result2 error
+		})
+	}
+	fake.orderReturnsOnCall[i] = struct {
+		result1 []worker.Worker
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeContainerPlacementStrategy) Release(arg1 lager.Logger, arg2 worker.Worker, arg3 worker.ContainerSpec) {
+	fake.releaseMutex.Lock()
+	fake.releaseArgsForCall = append(fake.releaseArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 worker.Worker
+		arg3 worker.ContainerSpec
+	}{arg1, arg2, arg3})
+	stub := fake.ReleaseStub
+	fake.recordInvocation("Release", []interface{}{arg1, arg2, arg3})
+	fake.releaseMutex.Unlock()
+	if stub != nil {
+		fake.ReleaseStub(arg1, arg2, arg3)
+	}
+}
+
+func (fake *FakeContainerPlacementStrategy) ReleaseCallCount() int {
+	fake.releaseMutex.RLock()
+	defer fake.releaseMutex.RUnlock()
+	return len(fake.releaseArgsForCall)
+}
+
+func (fake *FakeContainerPlacementStrategy) ReleaseCalls(stub func(lager.Logger, worker.Worker, worker.ContainerSpec)) {
+	fake.releaseMutex.Lock()
+	defer fake.releaseMutex.Unlock()
+	fake.ReleaseStub = stub
+}
+
+func (fake *FakeContainerPlacementStrategy) ReleaseArgsForCall(i int) (lager.Logger, worker.Worker, worker.ContainerSpec) {
+	fake.releaseMutex.RLock()
+	defer fake.releaseMutex.RUnlock()
+	argsForCall := fake.releaseArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeContainerPlacementStrategy) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.chooseMutex.RLock()
-	defer fake.chooseMutex.RUnlock()
-	fake.modifiesActiveTasksMutex.RLock()
-	defer fake.modifiesActiveTasksMutex.RUnlock()
+	fake.approveMutex.RLock()
+	defer fake.approveMutex.RUnlock()
+	fake.nameMutex.RLock()
+	defer fake.nameMutex.RUnlock()
+	fake.orderMutex.RLock()
+	defer fake.orderMutex.RUnlock()
+	fake.releaseMutex.RLock()
+	defer fake.releaseMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

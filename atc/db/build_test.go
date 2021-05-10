@@ -71,6 +71,10 @@ var _ = Describe("Build", func() {
 		Expect(build.HasPlan()).To(BeFalse())
 	})
 
+	It("create_time is current time", func(){
+		Expect(build.CreateTime()).To(BeTemporally("<", time.Now(), 1*time.Second))
+	})
+
 	Describe("LagerData", func() {
 		var build db.Build
 
@@ -400,7 +404,7 @@ var _ = Describe("Build", func() {
 				Expect(events.Next()).To(Equal(envelope(event.Status{
 					Status: atc.StatusStarted,
 					Time:   build.StartTime().Unix(),
-				})))
+				}, "0")))
 			})
 
 			It("updates build status", func() {
@@ -578,7 +582,7 @@ var _ = Describe("Build", func() {
 			Expect(events.Next()).To(Equal(envelope(event.Status{
 				Status: atc.StatusSucceeded,
 				Time:   build.EndTime().Unix(),
-			})))
+			}, "0")))
 		})
 
 		It("updates build status", func() {
@@ -1002,7 +1006,7 @@ var _ = Describe("Build", func() {
 			Expect(events.Next()).To(Equal(envelope(event.Status{
 				Status: atc.StatusStarted,
 				Time:   build.StartTime().Unix(),
-			})))
+			}, "0")))
 
 			By("emitting a status event when finished")
 			err = build.Finish(db.BuildStatusSucceeded)
@@ -1015,7 +1019,7 @@ var _ = Describe("Build", func() {
 			Expect(events.Next()).To(Equal(envelope(event.Status{
 				Status: atc.StatusSucceeded,
 				Time:   build.EndTime().Unix(),
-			})))
+			}, "1")))
 
 			By("ending the stream when finished")
 			_, err = events.Next()
@@ -1041,7 +1045,7 @@ var _ = Describe("Build", func() {
 			Expect(events.Next()).To(Equal(envelope(event.Status{
 				Status: atc.StatusStarted,
 				Time:   build.StartTime().Unix(),
-			})))
+			}, "0")))
 		})
 	})
 
@@ -1061,7 +1065,7 @@ var _ = Describe("Build", func() {
 
 			Expect(events.Next()).To(Equal(envelope(event.Log{
 				Payload: "some ",
-			})))
+			}, "0")))
 
 			err = build.SaveEvent(event.Log{
 				Payload: "log",
@@ -1070,7 +1074,7 @@ var _ = Describe("Build", func() {
 
 			Expect(events.Next()).To(Equal(envelope(event.Log{
 				Payload: "log",
-			})))
+			}, "1")))
 
 			By("allowing you to subscribe from an offset")
 			eventsFrom1, err := build.Events(1)
@@ -1080,7 +1084,7 @@ var _ = Describe("Build", func() {
 
 			Expect(eventsFrom1.Next()).To(Equal(envelope(event.Log{
 				Payload: "log",
-			})))
+			}, "1")))
 
 			By("notifying those waiting on events as soon as they're saved")
 			nextEvent := make(chan event.Envelope)
@@ -1105,7 +1109,7 @@ var _ = Describe("Build", func() {
 
 			Eventually(nextEvent).Should(Receive(Equal(envelope(event.Log{
 				Payload: "log 2",
-			}))))
+			}, "2"))))
 
 			By("returning ErrBuildEventStreamClosed for Next calls after Close")
 			events3, err := build.Events(0)
@@ -2446,7 +2450,7 @@ var _ = Describe("Build", func() {
 	})
 })
 
-func envelope(ev atc.Event) event.Envelope {
+func envelope(ev atc.Event, eventID string) event.Envelope {
 	payload, err := json.Marshal(ev)
 	Expect(err).ToNot(HaveOccurred())
 
@@ -2456,6 +2460,7 @@ func envelope(ev atc.Event) event.Envelope {
 		Event:   ev.EventType(),
 		Version: ev.Version(),
 		Data:    &data,
+		EventID: eventID,
 	}
 }
 

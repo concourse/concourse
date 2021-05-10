@@ -7,8 +7,7 @@ import (
 	"github.com/concourse/concourse/go-concourse/concourse/internal"
 )
 
-//go:generate counterfeiter . Team
-
+//counterfeiter:generate . Team
 type Team interface {
 	Name() string
 	ID() int
@@ -71,6 +70,7 @@ type Team interface {
 	CreateBuild(plan atc.Plan) (atc.Build, error)
 	Builds(page Page) ([]atc.Build, Pagination, error)
 	OrderingPipelines(pipelineNames []string) error
+	OrderingPipelinesWithinGroup(groupName string, instanceVars []atc.InstanceVars) error
 
 	CreateArtifact(io.Reader, string, []string) (atc.WorkerArtifact, error)
 	GetArtifact(int) (io.ReadCloser, error)

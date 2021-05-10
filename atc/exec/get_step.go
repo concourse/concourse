@@ -17,7 +17,7 @@ import (
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
-	"go.opentelemetry.io/otel/api/trace"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type ErrPipelineNotFound struct {
@@ -41,14 +41,12 @@ type GetResult struct {
 	ResourceCache db.ResourceCache
 }
 
-//go:generate counterfeiter . GetDelegateFactory
-
+//counterfeiter:generate . GetDelegateFactory
 type GetDelegateFactory interface {
 	GetDelegate(state RunState) GetDelegate
 }
 
-//go:generate counterfeiter . GetDelegate
-
+//counterfeiter:generate . GetDelegate
 type GetDelegate interface {
 	StartSpan(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
 
@@ -61,8 +59,10 @@ type GetDelegate interface {
 	Initializing(lager.Logger)
 	Starting(lager.Logger)
 	Finished(lager.Logger, ExitStatus, runtime.VersionResult)
-	SelectedWorker(lager.Logger, string)
 	Errored(lager.Logger, string)
+
+	WaitingForWorker(lager.Logger)
+	SelectedWorker(lager.Logger, string)
 
 	UpdateVersion(lager.Logger, atc.GetPlan, runtime.VersionResult)
 }
@@ -167,7 +167,9 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 	containerSpec := worker.ContainerSpec{
 		ImageSpec: imageSpec,
 		TeamID:    step.metadata.TeamID,
-		Env:       step.metadata.Env(),
+		Type:      step.containerMetadata.Type,
+
+		Env: step.metadata.Env(),
 	}
 	tracing.Inject(ctx, &containerSpec)
 
@@ -199,24 +201,35 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 
 	containerOwner := db.NewBuildStepContainerOwner(step.metadata.BuildID, step.planID, step.metadata.TeamID)
 
+	worker, _, err := step.workerPool.SelectWorker(
+		lagerctx.NewContext(ctx, logger),
+		containerOwner,
+		containerSpec,
+		workerSpec,
+		step.strategy,
+		delegate,
+	)
+	if err != nil {
+		return false, err
+	}
+
+	delegate.SelectedWorker(logger, worker.Name())
+
+	defer func() {
+		step.workerPool.ReleaseWorker(
+			lagerctx.NewContext(ctx, logger),
+			containerSpec,
+			worker,
+			step.strategy,
+		)
+	}()
+
 	processCtx, cancel, err := MaybeTimeout(ctx, step.plan.Timeout)
 	if err != nil {
 		return false, err
 	}
 
 	defer cancel()
-
-	worker, err := step.workerPool.SelectWorker(
-		lagerctx.NewContext(processCtx, logger),
-		containerOwner,
-		containerSpec,
-		workerSpec,
-		step.strategy,
-	)
-	if err != nil {
-		return false, err
-	}
-	delegate.SelectedWorker(logger, worker.Name())
 
 	getResult, err := worker.RunGetStep(
 		lagerctx.NewContext(processCtx, logger),

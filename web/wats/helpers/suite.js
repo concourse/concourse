@@ -1,6 +1,6 @@
 const Fly = require('./fly');
 const Web = require('./web');
-const uuidv4 = require('uuid/v4');
+const { v4: uuidv4 } = require('uuid');
 
 // silence warning caused by starting many puppeteer
 process.setMaxListeners(Infinity);

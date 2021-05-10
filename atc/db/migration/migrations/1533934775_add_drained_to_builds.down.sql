@@ -1,3 +1,3 @@
-BEGIN;
-  ALTER TABLE builds DROP COLUMN drained;
-COMMIT;
+
+ALTER TABLE builds DROP COLUMN drained;
+

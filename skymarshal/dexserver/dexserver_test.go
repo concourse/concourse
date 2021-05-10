@@ -22,6 +22,7 @@ var _ = Describe("Dex Server", func() {
 	var storage storage.Storage
 	var logger lager.Logger
 	var err error
+	var expectErr bool
 
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("dex")
@@ -36,9 +37,12 @@ var _ = Describe("Dex Server", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		config = &dexserver.DexConfig{
-			Logger:  logger,
-			Storage: storage,
+			Logger:            logger,
+			Storage:           storage,
+			PasswordConnector: "local",
 		}
+
+		expectErr = false
 	})
 
 	AfterEach(func() {
@@ -47,7 +51,11 @@ var _ = Describe("Dex Server", func() {
 
 	JustBeforeEach(func() {
 		serverConfig, err = dexserver.NewDexServerConfig(config)
-		Expect(err).ToNot(HaveOccurred())
+		if expectErr {
+			Expect(err).To(HaveOccurred())
+		} else {
+			Expect(err).ToNot(HaveOccurred())
+		}
 	})
 
 	Describe("Configuration", func() {
@@ -67,7 +75,6 @@ var _ = Describe("Dex Server", func() {
 		})
 
 		Context("when local users are configured", func() {
-
 			ConfiguresUsersCorrectly := func() {
 				It("should configure local connector", func() {
 					connectors, err := storage.ListConnectors()
@@ -177,6 +184,21 @@ var _ = Describe("Dex Server", func() {
 						Expect(passwords[0].Email).To(Equal("some-user-0"))
 						Expect(bcrypt.CompareHashAndPassword(passwords[0].Hash, []byte("some-password-0"))).NotTo(HaveOccurred())
 					})
+				})
+			})
+
+			Context("when not using local connector", func() {
+				BeforeEach(func() {
+					config.PasswordConnector = "ldap"
+					config.Users = map[string]string{
+						"some-user-0": "some-password-0",
+					}
+
+					expectErr = true
+				})
+
+				It("errors", func() {
+					// error check happens in JustBeforeEach
 				})
 			})
 		})

@@ -7,7 +7,7 @@ import (
 	"github.com/concourse/baggageclaim"
 )
 
-//go:generate counterfeiter . ArtifactDestination
+//counterfeiter:generate . ArtifactDestination
 
 // Destination is the inverse of Source. This interface allows
 // the receiving end to determine the location of the data, e.g. based on a

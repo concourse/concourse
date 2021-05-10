@@ -22,8 +22,7 @@ func (e ResourceTypeNotFoundError) Error() string {
 	return fmt.Sprintf("resource type not found: %d", e.ID)
 }
 
-//go:generate counterfeiter . ResourceType
-
+//counterfeiter:generate . ResourceType
 type ResourceType interface {
 	PipelineRef
 
@@ -258,11 +257,6 @@ func (r *resourceType) CheckPlan(planFactory atc.PlanFactory, imagePlanner Image
 }
 
 func (r *resourceType) CreateBuild(ctx context.Context, manuallyTriggered bool, plan atc.Plan) (Build, bool, error) {
-	spanContextJSON, err := json.Marshal(NewSpanContext(ctx))
-	if err != nil {
-		return nil, false, err
-	}
-
 	tx, err := r.conn.Begin()
 	if err != nil {
 		return nil, false, err
@@ -294,20 +288,17 @@ func (r *resourceType) CreateBuild(ctx context.Context, manuallyTriggered bool, 
 	}
 
 	build := newEmptyBuild(r.conn, r.lockFactory)
-	err = createBuild(tx, build, map[string]interface{}{
-		"name":               CheckBuildName,
-		"team_id":            r.teamID,
-		"pipeline_id":        r.pipelineID,
-		"resource_type_id":   r.id,
-		"status":             BuildStatusPending,
-		"manually_triggered": manuallyTriggered,
-		"span_context":       string(spanContextJSON),
+	err = createStartedBuild(tx, build, startedBuildArgs{
+		Name:              CheckBuildName,
+		PipelineID:        r.pipelineID,
+		TeamID:            r.teamID,
+		Plan:              plan,
+		ManuallyTriggered: manuallyTriggered,
+		SpanContext:       NewSpanContext(ctx),
+		ExtraValues: map[string]interface{}{
+			"resource_type_id": r.id,
+		},
 	})
-	if err != nil {
-		return nil, false, err
-	}
-
-	_, err = build.start(tx, plan)
 	if err != nil {
 		return nil, false, err
 	}

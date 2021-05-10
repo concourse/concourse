@@ -191,14 +191,15 @@ var _ = Describe("PrometheusEmitter", func() {
 		prometheusEmitter, err = prometheusConfig.NewEmitter()
 	})
 
-	It("emits task waiting metric", func() {
+	It("emits step waiting metric", func() {
 		prometheusEmitter.Emit(logger, metric.Event{
-			Name:  "tasks waiting",
+			Name:  "steps waiting",
 			Value: 4,
 			Attributes: map[string]string{
-				"teamId":     "42",
-				"workerTags": "tester",
 				"platform":   "darwin",
+				"teamId":     "42",
+				"type":       "get",
+				"workerTags": "tester",
 			},
 		})
 
@@ -207,7 +208,7 @@ var _ = Describe("PrometheusEmitter", func() {
 		body, _ := ioutil.ReadAll(res.Body)
 
 		Expect(res.StatusCode).To(Equal(http.StatusOK))
-		Expect(string(body)).To(ContainSubstring("concourse_tasks_waiting{platform=\"darwin\",teamId=\"42\",workerTags=\"tester\"} 4"))
+		Expect(string(body)).To(ContainSubstring("concourse_steps_waiting{platform=\"darwin\",teamId=\"42\",type=\"get\",workerTags=\"tester\"} 4"))
 		Expect(err).To(BeNil())
 	})
 })

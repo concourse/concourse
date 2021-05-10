@@ -32,14 +32,12 @@ type CheckStep struct {
 	defaultCheckTimeout   time.Duration
 }
 
-//go:generate counterfeiter . CheckDelegateFactory
-
+//counterfeiter:generate . CheckDelegateFactory
 type CheckDelegateFactory interface {
 	CheckDelegate(state RunState) CheckDelegate
 }
 
-//go:generate counterfeiter . CheckDelegate
-
+//counterfeiter:generate . CheckDelegate
 type CheckDelegate interface {
 	BuildStepDelegate
 
@@ -181,7 +179,7 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 		if runErr != nil {
 			metric.Metrics.ChecksFinishedWithError.Inc()
 
-			if _, err := scope.UpdateLastCheckEndTime(); err != nil {
+			if _, err := scope.UpdateLastCheckEndTime(false); err != nil {
 				return false, fmt.Errorf("update check end time: %w", err)
 			}
 
@@ -213,7 +211,7 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 			state.StoreResult(step.planID, result.Versions[len(result.Versions)-1])
 		}
 
-		_, err = scope.UpdateLastCheckEndTime()
+		_, err = scope.UpdateLastCheckEndTime(true)
 		if err != nil {
 			return false, fmt.Errorf("update check end time: %w", err)
 		}
@@ -259,11 +257,13 @@ func (step *CheckStep) runCheck(
 
 	containerSpec := worker.ContainerSpec{
 		ImageSpec: imageSpec,
+		TeamID:    step.metadata.TeamID,
+		Type:      step.containerMetadata.Type,
+
 		BindMounts: []worker.BindMountSource{
 			&worker.CertsVolumeMount{Logger: logger},
 		},
-		TeamID: step.metadata.TeamID,
-		Env:    step.metadata.Env(),
+		Env: step.metadata.Env(),
 	}
 	tracing.Inject(ctx, &containerSpec)
 
@@ -279,24 +279,35 @@ func (step *CheckStep) runCheck(
 		StderrWriter: delegate.Stderr(),
 	}
 
+	chosenWorker, _, err := step.workerPool.SelectWorker(
+		lagerctx.NewContext(ctx, logger),
+		step.containerOwner(resourceConfig),
+		containerSpec,
+		workerSpec,
+		step.strategy,
+		delegate,
+	)
+	if err != nil {
+		return worker.CheckResult{}, err
+	}
+
+	delegate.SelectedWorker(logger, chosenWorker.Name())
+
+	defer func() {
+		step.workerPool.ReleaseWorker(
+			lagerctx.NewContext(ctx, logger),
+			containerSpec,
+			chosenWorker,
+			step.strategy,
+		)
+	}()
+
 	processCtx, cancel, err := MaybeTimeout(ctx, step.plan.Timeout)
 	if err != nil {
 		return worker.CheckResult{}, err
 	}
 
 	defer cancel()
-
-	chosenWorker, err := step.workerPool.SelectWorker(
-		lagerctx.NewContext(processCtx, logger),
-		step.containerOwner(resourceConfig),
-		containerSpec,
-		workerSpec,
-		step.strategy,
-	)
-	if err != nil {
-		return worker.CheckResult{}, err
-	}
-	delegate.SelectedWorker(logger, chosenWorker.Name())
 
 	return chosenWorker.RunCheckStep(
 		lagerctx.NewContext(processCtx, logger),

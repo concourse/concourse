@@ -1,0 +1,141 @@
+@font-face {
+  font-family: 'Inconsolata';
+  font-style: normal;
+  font-weight: 400;
+  src: url("../static/fonts/Inconsolata-Regular.ttf");
+}
+
+@font-face {
+  font-family: 'Inconsolata';
+  font-style: normal;
+  font-weight: 700;
+  src: url("../static/fonts/Inconsolata-Bold.ttf");
+}
+
+
+* {
+  font-family: "Inconsolata", monospace;
+  font-weight: normal;
+  color: #E2E2E2;
+}
+
+.theme-body {
+  background-color: #3D3C3C;
+  font-size: 14px;
+}
+
+.theme-navbar {
+  background-color: #1E1D1D;
+  height: 54px;
+}
+
+.theme-navbar__logo-wrap {
+  display: inline-block;
+  height: 100%;
+  overflow: hidden;
+  margin: 6px;
+}
+
+.theme-navbar__logo {
+  height: 42px;
+  width: 42px;
+}
+
+.theme-heading {
+  font-size: 18px;
+  margin: 20px 0 40px;
+}
+
+.theme-panel {
+  background-color: #151515;
+  padding: 30px;
+}
+
+.theme-btn-wrapper {
+  padding-top: 20px;
+}
+.theme-btn-provider, .theme-btn-primary, .theme-btn-cancel {
+  width: 230px;
+  height: 38px;
+  box-shadow: none;
+  border-radius: 0;
+  font-size: 14px;
+  color: #F2F2F2;
+}
+
+.theme-btn-provider {
+  background-color: #151515;
+  border: 1px solid #0969AB;
+}
+
+.theme-btn-primary {
+  background-color: #0969AB;
+}
+
+.theme-btn-cancel{
+  background-color: #151515;
+  border: 1px solid #912617;
+  box-sizing: border-box;
+}
+
+.theme-btn-cancel:hover{
+  background-color: #912617;
+}
+
+.theme-btn-provider {
+  text-align: left;
+}
+
+.theme-btn-provider .dex-btn-icon {
+  border-radius: 0;
+  background-color: #196AC8;
+}
+
+.theme-btn-provider .dex-btn-text {
+  font-weight: normal;
+}
+
+.theme-btn-provider:hover {
+  background-color: #196AC8;
+}
+
+.theme-btn-provider:hover .dex-btn-text {
+  color: white;
+}
+
+.theme-btn-provider:active {
+  background-color: #196AC8;
+}
+
+.theme-form-row:not(:last-child) {
+  display: block;
+  margin:  0 auto 15px;
+}
+
+.theme-form-input {
+  border: 1px solid #A4A4A4;
+  display: block;
+  width: 230px;
+  height: 38px;
+  margin: 0 auto;
+  padding: 6px 12px;
+  background-color: #1E1D1D;
+  font-size: 16px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.theme-form-label {
+  font-size: 14px;
+  letter-spacing: 0.05em;
+  width: 230px;
+  margin: 0 auto 5px;
+  position: relative;
+  text-align: left;
+  padding: 5px;
+}
+
+.theme-message {
+  font-size: 14px;
+  margin: 0;
+}

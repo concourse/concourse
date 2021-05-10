@@ -148,7 +148,7 @@ pipelineView session { now, pipeline, hovered, resourceError, existingJobs, laye
     in
     Html.div
         (Styles.pipelineCard
-            ++ (if section == AllPipelinesSection && not pipeline.stale && not viewingInstanceGroups then
+            ++ (if section == AllPipelinesSection && not pipeline.stale then
                     [ style "cursor" "move" ]
 
                 else

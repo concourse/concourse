@@ -19,8 +19,8 @@ import (
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
 	"github.com/onsi/gomega/gbytes"
-	"go.opentelemetry.io/otel/api/trace"
-	"go.opentelemetry.io/otel/api/trace/tracetest"
+	"go.opentelemetry.io/otel/oteltest"
+	"go.opentelemetry.io/otel/trace"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -55,6 +55,8 @@ var _ = Describe("TaskStep", func() {
 		stepOk   bool
 		stepErr  error
 
+		cpuLimit          = atc.CPULimit(1024)
+		memoryLimit       = atc.MemoryLimit(1024)
 		containerMetadata = db.ContainerMetadata{
 			WorkingDirectory: "some-artifact-root",
 			Type:             db.ContainerTypeTask,
@@ -78,9 +80,11 @@ var _ = Describe("TaskStep", func() {
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()
 
-		fakePool = new(workerfakes.FakePool)
 		fakeClient = new(workerfakes.FakeClient)
 		fakeClient.NameReturns("some-worker")
+		fakePool = new(workerfakes.FakePool)
+		fakePool.SelectWorkerReturns(fakeClient, 0, nil)
+
 		fakeArtifactStreamer = new(workerfakes.FakeArtifactStreamer)
 		fakeArtifactSourcer = new(workerfakes.FakeArtifactSourcer)
 		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
@@ -88,10 +92,9 @@ var _ = Describe("TaskStep", func() {
 		fakeDelegate = new(execfakes.FakeTaskDelegate)
 		fakeDelegate.StdoutReturns(stdoutBuf)
 		fakeDelegate.StderrReturns(stderrBuf)
-		fakeDelegate.SelectWorkerReturns(fakeClient, nil)
 
 		spanCtx = context.Background()
-		fakeDelegate.StartSpanReturns(spanCtx, trace.NoopSpan{})
+		fakeDelegate.StartSpanReturns(spanCtx, tracing.NoopSpan)
 
 		fakeDelegateFactory = new(execfakes.FakeTaskDelegateFactory)
 		fakeDelegateFactory.TaskDelegateReturns(fakeDelegate)
@@ -153,8 +156,8 @@ var _ = Describe("TaskStep", func() {
 	var startEventDelegate runtime.StartingEventDelegate
 
 	expectWorkerSpecResourceTypeUnset := func() {
-		Expect(fakeDelegate.SelectWorkerCallCount()).To(Equal(1))
-		_, _, _, _, workerSpec, _, _, _ := fakeDelegate.SelectWorkerArgsForCall(0)
+		Expect(fakePool.SelectWorkerCallCount()).To(Equal(1))
+		_, _, _, workerSpec, _, _ := fakePool.SelectWorkerArgsForCall(0)
 		Expect(workerSpec.ResourceType).To(Equal(""))
 	}
 
@@ -169,14 +172,11 @@ var _ = Describe("TaskStep", func() {
 
 	Context("when the plan has a config", func() {
 		BeforeEach(func() {
-			cpu := atc.CPULimit(1024)
-			memory := atc.MemoryLimit(1024)
-
 			taskPlan.Config = &atc.TaskConfig{
 				Platform: "some-platform",
 				Limits: &atc.ContainerLimits{
-					CPU:    &cpu,
-					Memory: &memory,
+					CPU:    &cpuLimit,
+					Memory: &memoryLimit,
 				},
 				Params: atc.TaskEnv{
 					"SECURE": "secret-task-param",
@@ -202,11 +202,17 @@ var _ = Describe("TaskStep", func() {
 		})
 
 		Describe("worker selection", func() {
+			var ctx context.Context
 			var workerSpec worker.WorkerSpec
 
 			JustBeforeEach(func() {
-				Expect(fakeDelegate.SelectWorkerCallCount()).To(Equal(1))
-				_, _, _, _, workerSpec, _, _, _ = fakeDelegate.SelectWorkerArgsForCall(0)
+				Expect(fakePool.SelectWorkerCallCount()).To(Equal(1))
+				ctx, _, _, workerSpec, _, _ = fakePool.SelectWorkerArgsForCall(0)
+			})
+
+			It("doesn't enforce a timeout", func() {
+				_, ok := ctx.Deadline()
+				Expect(ok).To(BeFalse())
 			})
 
 			It("emits a SelectedWorker event", func() {
@@ -227,7 +233,7 @@ var _ = Describe("TaskStep", func() {
 
 			Context("when selecting a worker fails", func() {
 				BeforeEach(func() {
-					fakeDelegate.SelectWorkerReturns(nil, errors.New("nope"))
+					fakePool.SelectWorkerReturns(nil, 0, errors.New("nope"))
 					shouldRunTaskStep = false
 				})
 
@@ -274,6 +280,27 @@ var _ = Describe("TaskStep", func() {
 
 			It("marks the container's image spec as privileged", func() {
 				Expect(containerSpec.ImageSpec.Privileged).To(BeTrue())
+			})
+		})
+
+		It("uses the correct container limits", func() {
+			Expect(atc.CPULimit(*containerSpec.Limits.CPU)).To(Equal(atc.CPULimit(1024)))
+			Expect(atc.MemoryLimit(*containerSpec.Limits.Memory)).To(Equal(atc.MemoryLimit(1024)))
+		})
+
+		Context("when toplevel limits are set", func() {
+			BeforeEach(func() {
+				cpu := atc.CPULimit(2048)
+				memory := atc.MemoryLimit(2048)
+				taskPlan.Limits = &atc.ContainerLimits{
+					CPU:    &cpu,
+					Memory: &memory,
+				}
+			})
+
+			It("overrides the limits from the config", func() {
+				Expect(atc.CPULimit(*containerSpec.Limits.CPU)).To(Equal(atc.CPULimit(2048)))
+				Expect(atc.MemoryLimit(*containerSpec.Limits.Memory)).To(Equal(atc.MemoryLimit(2048)))
 			})
 		})
 
@@ -337,7 +364,7 @@ var _ = Describe("TaskStep", func() {
 			var buildSpan trace.Span
 
 			BeforeEach(func() {
-				tracing.ConfigureTraceProvider(tracetest.NewProvider())
+				tracing.ConfigureTraceProvider(oteltest.NewTracerProvider())
 
 				spanCtx, buildSpan = tracing.StartSpan(ctx, "build", nil)
 				fakeDelegate.StartSpanReturns(spanCtx, buildSpan)

@@ -3,17 +3,18 @@ package integration_test
 import (
 	"bytes"
 	"fmt"
-	"github.com/concourse/concourse/worker/workercmd"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"syscall"
+	"testing/iotest"
 	"time"
 
 	"code.cloudfoundry.org/garden"
 	"github.com/concourse/concourse/worker/runtime"
 	"github.com/concourse/concourse/worker/runtime/libcontainerd"
+	"github.com/concourse/concourse/worker/workercmd"
 	"github.com/containerd/containerd"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -353,6 +354,52 @@ func (s *IntegrationSuite) runToCompletion(privileged bool) {
 
 }
 
+// TestRunWithTerminalStdinClosed validates that when running a process with
+// TTY enabled, if the stdin of of that process is closed (i.e. network flake),
+// the process does not exit.
+//
+// Note that only (Concourse) tasks has TTY enabled
+//
+func (s *IntegrationSuite) TestRunWithTerminalStdinClosed() {
+	handle := uuid()
+	container, err := s.gardenBackend.Create(garden.ContainerSpec{
+		Handle:     handle,
+		RootFSPath: "raw://" + s.rootfs,
+		Privileged: true,
+	})
+	s.NoError(err)
+
+	stdin := iotest.ErrReader(fmt.Errorf("Connection closed"))
+	buf := new(buffer)
+
+	proc, err := container.Run(
+		garden.ProcessSpec{
+			Path: "/executable",
+			Args: []string{
+				"-sleep=5s",
+			},
+			TTY: &garden.TTYSpec{
+				WindowSize: &garden.WindowSize{Columns: 500, Rows: 500},
+			},
+		},
+		garden.ProcessIO{
+			Stdin:  stdin,
+			Stdout: buf,
+			Stderr: buf,
+		},
+	)
+	s.NoError(err)
+
+	exitCode, err := proc.Wait()
+	s.NoError(err)
+
+	s.Equal(exitCode, 0)
+	s.Contains(buf.String(), "slept for 5s")
+
+	err = s.gardenBackend.Destroy(container.Handle())
+	s.NoError(err)
+}
+
 // TestAttachToUnknownProc verifies that trying to attach to a process that does
 // not exist lead to an error.
 //
@@ -497,7 +544,7 @@ func (s *IntegrationSuite) TestCustomDNS() {
 	s.NoError(err)
 
 	s.Equal(exitCode, 0)
-	expectedDNSServer := "nameserver 1.1.1.1\nnameserver 1.2.3.4"
+	expectedDNSServer := "nameserver 1.1.1.1\nnameserver 1.2.3.4\n"
 	s.Equal(expectedDNSServer, buf.String())
 }
 
@@ -588,4 +635,27 @@ func (s *IntegrationSuite) TestMaxContainers() {
 	})
 	s.Error(err)
 	s.Contains(err.Error(), "max containers reached")
+}
+
+func (s *IntegrationSuite) TestRequestTimeoutZero() {
+	namespace := "test-requesTimeout-zero"
+	requestTimeout := time.Duration(0)
+
+	customBackend, err := runtime.NewGardenBackend(
+		libcontainerd.New(
+			s.containerdSocket(),
+			namespace,
+			requestTimeout,
+		),
+	)
+	s.NoError(err)
+
+	s.NoError(customBackend.Start())
+
+	_, err = customBackend.Containers(garden.Properties{})
+	s.NoError(err)
+
+	defer func() {
+		customBackend.Stop()
+	}()
 }

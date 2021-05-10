@@ -28,12 +28,13 @@ import (
 	"github.com/concourse/concourse/tracing"
 )
 
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+
 const userPropertyName = "user"
 
 var ErrResourceConfigCheckSessionExpired = errors.New("no db container was found for owner")
 
-//go:generate counterfeiter . Worker
-
+//counterfeiter:generate . Worker
 type Worker interface {
 	BuildContainers() int
 
@@ -77,7 +78,10 @@ type Worker interface {
 	CreateVolume(logger lager.Logger, spec VolumeSpec, teamID int, volumeType db.VolumeType) (Volume, error)
 
 	GardenClient() gclient.Client
+
 	ActiveTasks() (int, error)
+	IncreaseActiveTasks() (int, error)
+	DecreaseActiveTasks() (int, error)
 
 	ActiveContainers() int
 	ActiveVolumes() int
@@ -761,8 +765,14 @@ func (worker *gardenWorker) Uptime() time.Duration {
 
 func (worker *gardenWorker) tagsMatch(tags []string) bool {
 	workerTags := worker.dbWorker.Tags()
-	if len(workerTags) > 0 && len(tags) == 0 {
-		return false
+	if len(tags) == 0 {
+		// If worker only has an empty tag due to user specifying "" instead of []
+		if len(workerTags) == 1 && workerTags[0] == "" {
+			return true
+		}
+		if len(workerTags) > 0 {
+			return false
+		}
 	}
 
 insert_coin:
@@ -782,10 +792,11 @@ insert_coin:
 func (worker *gardenWorker) ActiveTasks() (int, error) {
 	return worker.dbWorker.ActiveTasks()
 }
-func (worker *gardenWorker) IncreaseActiveTasks() error {
+
+func (worker *gardenWorker) IncreaseActiveTasks() (int, error) {
 	return worker.dbWorker.IncreaseActiveTasks()
 }
-func (worker *gardenWorker) DecreaseActiveTasks() error {
+func (worker *gardenWorker) DecreaseActiveTasks() (int, error) {
 	return worker.dbWorker.DecreaseActiveTasks()
 }
 

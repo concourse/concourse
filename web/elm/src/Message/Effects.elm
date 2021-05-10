@@ -120,6 +120,7 @@ type Effect
     | FetchResource Concourse.ResourceIdentifier
     | FetchCheck Int
     | FetchVersionedResources Concourse.ResourceIdentifier Page
+    | FetchVersionedResourceId Concourse.ResourceIdentifier Concourse.Version
     | FetchResources Concourse.PipelineIdentifier
     | FetchBuildResources Concourse.BuildId
     | FetchPipeline Concourse.PipelineIdentifier
@@ -159,7 +160,8 @@ type Effect
     | SetPinComment Concourse.ResourceIdentifier String
     | SendTokenToFly String Int
     | SendTogglePipelineRequest Concourse.PipelineIdentifier Bool
-    | SendOrderPipelinesRequest String (List String)
+    | SendOrderPipelinesRequest Concourse.TeamName (List Concourse.PipelineName)
+    | SendOrderPipelinesWithinGroupRequest Concourse.InstanceGroupIdentifier (List Concourse.InstanceVars)
     | SendLogOutRequest
     | GetScreenSize
     | PinTeamNames StickyHeaderConfig
@@ -219,6 +221,7 @@ runEffect effect key csrfToken =
             Api.paginatedGet
                 (Endpoints.JobBuildsList |> Endpoints.Job id)
                 (Just page)
+                []
                 Concourse.decodeBuild
                 |> Api.request
                 |> Task.map (\b -> ( page, b ))
@@ -236,10 +239,21 @@ runEffect effect key csrfToken =
                 |> Api.request
                 |> Task.attempt Checked
 
+        FetchVersionedResourceId id version ->
+            Api.paginatedGet
+                (Endpoints.ResourceVersionsList |> Endpoints.Resource id)
+                Nothing
+                (Routes.versionQueryParams version)
+                Concourse.decodeVersionedResource
+                |> Api.request
+                |> Task.map (\b -> List.head b.content)
+                |> Task.attempt VersionedResourceIdFetched
+
         FetchVersionedResources id page ->
             Api.paginatedGet
                 (Endpoints.ResourceVersionsList |> Endpoints.Resource id)
                 (Just page)
+                []
                 Concourse.decodeVersionedResource
                 |> Api.request
                 |> Task.map (\b -> ( page, b ))
@@ -460,6 +474,15 @@ runEffect effect key csrfToken =
                 |> Api.request
                 |> Task.attempt (PipelinesOrdered teamName)
 
+        SendOrderPipelinesWithinGroupRequest id instanceVars ->
+            Api.put
+                (Endpoints.OrderInstanceGroupPipelines |> Endpoints.InstanceGroup id)
+                csrfToken
+                |> Api.withJsonBody
+                    (Json.Encode.list Concourse.encodeInstanceVars instanceVars)
+                |> Api.request
+                |> Task.attempt (PipelinesOrdered id.teamName)
+
         SendLogOutRequest ->
             Api.get Endpoints.Logout
                 |> Api.request
@@ -498,6 +521,7 @@ runEffect effect key csrfToken =
             Api.paginatedGet
                 (Endpoints.JobBuildsList |> Endpoints.Job job)
                 page
+                []
                 Concourse.decodeBuild
                 |> Api.request
                 |> Task.attempt BuildHistoryFetched
@@ -788,6 +812,9 @@ toHtmlID domId =
 
         StepInitialization stepID ->
             stepID ++ "_image"
+
+        StepVersion stepID ->
+            stepID ++ "_version"
 
         SideBarIcon ->
             "sidebar-icon"

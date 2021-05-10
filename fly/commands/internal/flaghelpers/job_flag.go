@@ -39,7 +39,7 @@ func (flag *JobFlag) UnmarshalFlag(value string) error {
 		var err error
 		flag.PipelineRef.InstanceVars, err = unmarshalInstanceVars(vs[1])
 		if err != nil {
-			return errors.New(err.Error() + "/<job>")
+			return err
 		}
 	}
 

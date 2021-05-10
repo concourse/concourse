@@ -370,19 +370,6 @@ all =
                                 Effects.toHtmlID <|
                                     Msgs.PipelineCardInstanceVar Msgs.AllPipelinesSection 1 "a" "foo"
                             ]
-            , test "is not draggable" <|
-                \_ ->
-                    whenOnDashboardViewingInstanceGroup { dashboardView = ViewNonArchivedPipelines }
-                        |> gotPipelines
-                            [ pipelineInstanceWithVars 1
-                                [ ( "a", JsonString "foo" ) ]
-                            ]
-                        |> Common.queryView
-                        |> findCard
-                        |> Expect.all
-                            [ Query.hasNot [ attribute <| Attr.attribute "draggable" "true" ]
-                            , Query.hasNot [ style "cursor" "move" ]
-                            ]
             ]
         ]
 

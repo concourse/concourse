@@ -8,8 +8,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 )
 
-//go:generate counterfeiter . Wall
-
+//counterfeiter:generate . Wall
 type Wall interface {
 	SetWall(atc.Wall) error
 	GetWall() (atc.Wall, error)
@@ -23,7 +22,7 @@ type wall struct {
 
 func NewWall(conn Conn, clock Clock) Wall {
 	return &wall{
-		conn: conn,
+		conn:  conn,
 		clock: clock,
 	}
 }

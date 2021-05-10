@@ -3,6 +3,7 @@ module DashboardCacheTests exposing (all)
 import Application.Application as Application
 import Common
 import Concourse.BuildStatus exposing (BuildStatus(..))
+import Dashboard.Group.Models exposing (Card(..))
 import DashboardTests exposing (whenOnDashboard)
 import Data
 import Message.Callback exposing (Callback(..))
@@ -240,7 +241,7 @@ all =
                         )
                     |> Tuple.first
                     |> Application.update
-                        (TopLevelMessage.Update <| Message.DragStart "team" "1")
+                        (TopLevelMessage.Update <| Message.DragStart <| PipelineCard (Data.dashboardPipeline "team" 1 |> Data.withName "pipeline"))
                     |> Tuple.first
                     |> Application.update
                         (TopLevelMessage.Update <| Message.DragOver End)

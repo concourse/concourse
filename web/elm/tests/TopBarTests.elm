@@ -303,6 +303,7 @@ all =
                             (Routes.Resource
                                 { id = Data.shortResourceId
                                 , page = Nothing
+                                , version = Nothing
                                 }
                             )
                     )
@@ -313,6 +314,7 @@ all =
                                 Routes.Resource
                                     { id = Data.shortResourceId
                                     , page = Nothing
+                                    , version = Nothing
                                     }
                         ]
             , context "when pipeline is paused"
@@ -743,6 +745,7 @@ all =
                         , resourceName = "resource"
                         }
                     , page = Nothing
+                    , version = Nothing
                     }
                 )
                 |> Application.handleCallback

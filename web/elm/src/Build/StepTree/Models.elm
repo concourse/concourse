@@ -39,6 +39,7 @@ type alias StepTreeModel =
     , steps : Dict StepID Step
     , highlight : Highlight
     , resources : Concourse.BuildResources
+    , buildId : Maybe Concourse.JobBuildIdentifier
     }
 
 
@@ -200,6 +201,7 @@ type BuildEvent
     | FinishPut Origin Int Concourse.Version Concourse.Metadata (Maybe Time.Posix)
     | SetPipelineChanged Origin Bool
     | Log Origin String (Maybe Time.Posix)
+    | WaitingForWorker Origin (Maybe Time.Posix)
     | SelectedWorker Origin String (Maybe Time.Posix)
     | Error Origin String Time.Posix
     | ImageCheck Origin Concourse.BuildPlan

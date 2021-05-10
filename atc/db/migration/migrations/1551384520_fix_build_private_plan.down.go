@@ -13,12 +13,7 @@ func (m *migrations) Down_1550160079() error {
 		nonce sql.NullString
 	}
 
-	tx, err := m.DB.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer tx.Rollback()
+	tx := m.Tx
 
 	rows, err := tx.Query("SELECT id, private_plan, nonce FROM builds WHERE private_plan IS NOT NULL")
 	if err != nil {
@@ -72,5 +67,5 @@ func (m *migrations) Down_1550160079() error {
 		}
 	}
 
-	return tx.Commit()
+	return nil
 }

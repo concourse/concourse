@@ -1,6 +1,10 @@
 package worker_test
 
 import (
+	"fmt"
+
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"code.cloudfoundry.org/lager/lagertest"
 
 	"context"
@@ -19,8 +23,9 @@ import (
 var _ = Describe("Pool", func() {
 	var (
 		logger       *lagertest.TestLogger
-		pool         Pool
 		fakeProvider *workerfakes.FakeWorkerProvider
+
+		pool Pool
 	)
 
 	BeforeEach(func() {
@@ -204,24 +209,32 @@ var _ = Describe("Pool", func() {
 
 	Describe("SelectWorker", func() {
 		var (
-			spec       ContainerSpec
-			workerSpec WorkerSpec
-			fakeOwner  *dbfakes.FakeContainerOwner
+			fakeOwner     *dbfakes.FakeContainerOwner
+			containerSpec ContainerSpec
+			workerSpec    WorkerSpec
 
-			chosenWorker Client
-			chooseErr    error
+			fakeStrategy  *workerfakes.FakeContainerPlacementStrategy
+			fakeCallbacks *workerfakes.FakePoolCallbacks
 
-			incompatibleWorker *workerfakes.FakeWorker
-			compatibleWorker   *workerfakes.FakeWorker
-			fakeStrategy       *workerfakes.FakeContainerPlacementStrategy
+			workerFakes []*workerfakes.FakeWorker
+			workers     []Worker
+
+			selectedWorker Client
+			selectCtx      context.Context
+			selectErr      error
 		)
 
-		BeforeEach(func() {
-			fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
+		updateWorkersFromFakes := func() {
+			workers = make([]Worker, len(workerFakes))
+			for i, fake := range workerFakes {
+				workers[i] = Worker(fake)
+			}
+		}
 
+		BeforeEach(func() {
 			fakeOwner = new(dbfakes.FakeContainerOwner)
 
-			spec = ContainerSpec{
+			containerSpec = ContainerSpec{
 				ImageSpec: ImageSpec{ResourceType: "some-type"},
 				TeamID:    4567,
 			}
@@ -232,259 +245,337 @@ var _ = Describe("Pool", func() {
 				Tags:         atc.Tags{"some-tag"},
 			}
 
-			incompatibleWorker = new(workerfakes.FakeWorker)
-			incompatibleWorker.SatisfiesReturns(false)
+			fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
+			fakeCallbacks = new(workerfakes.FakePoolCallbacks)
 
-			compatibleWorker = new(workerfakes.FakeWorker)
-			compatibleWorker.SatisfiesReturns(true)
+			workerFakes = []*workerfakes.FakeWorker{
+				new(workerfakes.FakeWorker),
+				new(workerfakes.FakeWorker),
+				new(workerfakes.FakeWorker),
+			}
+			for i, worker := range workerFakes {
+				worker.NameReturns(fmt.Sprintf("worker-%d", i))
+			}
+
+			updateWorkersFromFakes()
+
+			fakeStrategy.OrderCalls(func(_ lager.Logger, workers []Worker, _ ContainerSpec) ([]Worker, error) {
+				return append([]Worker(nil), workers...), nil
+			})
+			fakeStrategy.ApproveReturns(nil)
+
+			fmt.Fprintln(GinkgoWriter, "init-complete")
 		})
 
-		JustBeforeEach(func() {
-			chosenWorker, chooseErr = pool.SelectWorker(
-				context.Background(),
-				fakeOwner,
-				spec,
-				workerSpec,
-				fakeStrategy,
-			)
+		Context("when it should return immediately", func() {
+			JustBeforeEach(func(done Done) {
+				selectCtx = lagerctx.NewContext(context.Background(), logger)
+
+				selectedWorker, _, selectErr = pool.SelectWorker(
+					selectCtx,
+					fakeOwner,
+					containerSpec,
+					workerSpec,
+					fakeStrategy,
+					fakeCallbacks,
+				)
+
+				close(done)
+			})
+
+			Context("when getting the workers fails", func() {
+				var disaster error
+
+				BeforeEach(func() {
+					disaster = errors.New("nope")
+					fakeProvider.RunningWorkersReturns(nil, disaster)
+				})
+
+				It("returns the error", func() {
+					Expect(selectErr).To(Equal(disaster))
+				})
+			})
+
+			Context("when workers are found with the container", func() {
+				BeforeEach(func() {
+					fakeProvider.RunningWorkersReturns(workers, nil)
+					fakeProvider.FindWorkersForContainerByOwnerReturns(workers, nil)
+				})
+
+				Context("when getting workers with container fails", func() {
+					var disaster error
+
+					BeforeEach(func() {
+						disaster = errors.New("nuh-uh")
+						workerFakes[0].SatisfiesReturns(true)
+
+						fakeProvider.FindWorkersForContainerByOwnerReturns(nil, disaster)
+					})
+
+					It("returns the error", func() {
+						Expect(selectErr).To(Equal(disaster))
+					})
+				})
+
+				Context("when one of the workers satisfy the spec", func() {
+					BeforeEach(func() {
+						workerFakes[0].SatisfiesReturns(true)
+						workerFakes[1].SatisfiesReturns(false)
+						workerFakes[2].SatisfiesReturns(false)
+					})
+
+					It("succeeds and returns the compatible worker with the container", func() {
+						Expect(fakeStrategy.OrderCallCount()).To(Equal(0))
+						Expect(fakeStrategy.ApproveCallCount()).To(Equal(0))
+
+						Expect(selectErr).NotTo(HaveOccurred())
+						Expect(selectedWorker.Name()).To(Equal(workers[0].Name()))
+					})
+				})
+
+				Context("when multiple workers satisfy the spec", func() {
+					BeforeEach(func() {
+						workerFakes[0].SatisfiesReturns(true)
+						workerFakes[1].SatisfiesReturns(true)
+						workerFakes[2].SatisfiesReturns(false)
+					})
+
+					It("succeeds and returns the first compatible worker with the container", func() {
+						Expect(fakeStrategy.OrderCallCount()).To(Equal(0))
+						Expect(fakeStrategy.ApproveCallCount()).To(Equal(0))
+
+						Expect(selectErr).NotTo(HaveOccurred())
+						Expect(selectedWorker.Name()).To(Equal(workers[0].Name()))
+					})
+				})
+
+				Context("when the worker that has the container does not satisfy the spec", func() {
+					BeforeEach(func() {
+						workerFakes[0].SatisfiesReturns(false)
+						workerFakes[1].SatisfiesReturns(true)
+						workerFakes[2].SatisfiesReturns(false)
+
+						fakeProvider.FindWorkersForContainerByOwnerReturns([]Worker{workers[2]}, nil)
+					})
+
+					It("chooses a satisfying worker", func() {
+						Expect(fakeStrategy.OrderCallCount()).To(Equal(1))
+						Expect(fakeStrategy.ApproveCallCount()).To(Equal(1))
+
+						_, pickedWorker, _ := fakeStrategy.ApproveArgsForCall(0)
+						Expect(pickedWorker.Name()).To(Equal(workers[1].Name()))
+
+						Expect(selectErr).NotTo(HaveOccurred())
+						Expect(selectedWorker.Name()).To(Equal(workers[1].Name()))
+					})
+				})
+			})
+
+			Context("when no worker is found with the container", func() {
+				BeforeEach(func() {
+					fakeProvider.FindWorkersForContainerByOwnerReturns(nil, nil)
+				})
+
+				Context("with multiple workers", func() {
+					BeforeEach(func() {
+						workerFakes[0].SatisfiesReturns(true)
+						workerFakes[1].SatisfiesReturns(true)
+						workerFakes[2].SatisfiesReturns(false)
+
+						fakeProvider.RunningWorkersReturns(workers, nil)
+					})
+
+					It("checks that the workers satisfy the given worker spec", func() {
+						Expect(workerFakes[0].SatisfiesCallCount()).To(Equal(1))
+						_, actualSpec := workerFakes[0].SatisfiesArgsForCall(0)
+						Expect(actualSpec).To(Equal(workerSpec))
+
+						Expect(workerFakes[1].SatisfiesCallCount()).To(Equal(1))
+						_, actualSpec = workerFakes[1].SatisfiesArgsForCall(0)
+						Expect(actualSpec).To(Equal(workerSpec))
+
+						Expect(workerFakes[2].SatisfiesCallCount()).To(Equal(1))
+						_, actualSpec = workerFakes[2].SatisfiesArgsForCall(0)
+						Expect(actualSpec).To(Equal(workerSpec))
+					})
+
+					It("returns all workers satisfying the spec", func() {
+						_, satisfyingWorkers, _ := fakeStrategy.OrderArgsForCall(0)
+						Expect(satisfyingWorkers).To(ConsistOf(workers[0], workers[1]))
+					})
+				})
+
+				Context("when team workers and general workers satisfy the spec", func() {
+					BeforeEach(func() {
+						extraFake := new(workerfakes.FakeWorker)
+						extraFake.NameReturns("extra-fake-1")
+
+						workerFakes = append(workerFakes, extraFake)
+						updateWorkersFromFakes()
+
+						workerFakes[0].SatisfiesReturns(true)
+						workerFakes[0].IsOwnedByTeamReturns(false)
+
+						workerFakes[1].SatisfiesReturns(true)
+						workerFakes[1].IsOwnedByTeamReturns(true)
+
+						workerFakes[2].SatisfiesReturns(true)
+						workerFakes[2].IsOwnedByTeamReturns(true)
+
+						workerFakes[3].SatisfiesReturns(false)
+
+						fakeProvider.RunningWorkersReturns(workers, nil)
+					})
+
+					It("returns only the team workers that satisfy the spec", func() {
+						_, satisfyingWorkers, _ := fakeStrategy.OrderArgsForCall(0)
+						Expect(satisfyingWorkers).To(ConsistOf(workerFakes[1], workerFakes[2]))
+					})
+				})
+
+				Context("when only general workers satisfy the spec", func() {
+					BeforeEach(func() {
+						workerFakes[0].SatisfiesReturns(false)
+
+						workerFakes[1].SatisfiesReturns(true)
+						workerFakes[1].IsOwnedByTeamReturns(false)
+
+						workerFakes[2].SatisfiesReturns(false)
+
+						fakeProvider.RunningWorkersReturns(workers, nil)
+					})
+
+					It("returns the general workers that satisfy the spec", func() {
+						_, satisfyingWorkers, _ := fakeStrategy.OrderArgsForCall(0)
+						Expect(satisfyingWorkers).To(ConsistOf(workerFakes[1]))
+					})
+				})
+
+				Context("with compatible workers available", func() {
+					BeforeEach(func() {
+						workerFakes[0].SatisfiesReturns(true)
+						workerFakes[1].SatisfiesReturns(true)
+						workerFakes[2].SatisfiesReturns(true)
+
+						fakeProvider.RunningWorkersReturns(workers, nil)
+					})
+
+					Context("when strategy errors", func() {
+						var strategyError error
+
+						BeforeEach(func() {
+							strategyError = errors.New("strategical explosion")
+							fakeStrategy.OrderReturns(nil, strategyError)
+						})
+
+						It("returns an error", func() {
+							Expect(selectErr).To(Equal(strategyError))
+						})
+					})
+
+					Context("when strategy returns a worker", func() {
+						BeforeEach(func() {
+							fakeStrategy.OrderReturns([]Worker{workers[0]}, nil)
+						})
+
+						It("chooses a worker", func() {
+							Expect(selectErr).ToNot(HaveOccurred())
+							Expect(fakeStrategy.OrderCallCount()).To(Equal(1))
+							Expect(selectedWorker.Name()).To(Equal(workers[0].Name()))
+						})
+					})
+
+					Context("when strategy returns multiple workers", func() {
+						BeforeEach(func() {
+							fakeStrategy.OrderCalls(func(_ lager.Logger, workers []Worker, _ ContainerSpec) ([]Worker, error) {
+								candidates := append([]Worker(nil), workers...)
+
+								// Reverse list to make sure it is properly selecting first worker in list
+								for i, j := 0, len(candidates)-1; i < j; i, j = i+1, j-1 {
+									candidates[i], candidates[j] = candidates[j], candidates[i]
+								}
+
+								return candidates, nil
+							})
+						})
+
+						It("chooses first worker", func() {
+							Expect(fakeStrategy.OrderCallCount()).To(Equal(1))
+
+							_, pickedWorker, _ := fakeStrategy.ApproveArgsForCall(0)
+							Expect(pickedWorker.Name()).To(Equal(workers[2].Name()))
+
+							Expect(selectErr).ToNot(HaveOccurred())
+							Expect(selectedWorker.Name()).To(Equal(workers[2].Name()))
+						})
+					})
+
+					Context("when picking the first worker errors", func() {
+						BeforeEach(func() {
+							fakeStrategy.ApproveReturnsOnCall(0, errors.New("cannot-pick-for-arbitrary-reason"))
+						})
+
+						It("succeeds and picks the next worker", func() {
+							Expect(fakeStrategy.ApproveCallCount()).To(Equal(2))
+
+							_, pickedWorkerA, _ := fakeStrategy.ApproveArgsForCall(0)
+							Expect(pickedWorkerA.Name()).To(Equal(workers[0].Name()))
+
+							_, pickedWorkerB, _ := fakeStrategy.ApproveArgsForCall(1)
+							Expect(pickedWorkerB.Name()).To(Equal(workers[1].Name()))
+
+							Expect(selectErr).NotTo(HaveOccurred())
+							Expect(selectedWorker.Name()).To(Equal(workers[1].Name()))
+						})
+					})
+				})
+			})
 		})
 
-		Context("when workers are found with the container", func() {
-			var (
-				workerA *workerfakes.FakeWorker
-				workerB *workerfakes.FakeWorker
-				workerC *workerfakes.FakeWorker
-			)
+		Context("when it should poll for workers", func() {
+			JustBeforeEach(func(done Done) {
+				selectCtx = lagerctx.NewContext(context.Background(), logger)
 
-			BeforeEach(func() {
-				workerA = new(workerfakes.FakeWorker)
-				workerA.NameReturns("workerA")
-				workerB = new(workerfakes.FakeWorker)
-				workerB.NameReturns("workerB")
-				workerC = new(workerfakes.FakeWorker)
-				workerC.NameReturns("workerC")
+				var cancel context.CancelFunc
+				selectCtx, cancel = context.WithTimeout(selectCtx, WorkerPollingInterval*3/2)
+				defer cancel()
 
-				fakeProvider.FindWorkersForContainerByOwnerReturns([]Worker{workerA, workerB, workerC}, nil)
-				fakeProvider.RunningWorkersReturns([]Worker{workerA, workerB, workerC}, nil)
-				fakeStrategy.ChooseReturns(workerA, nil)
-			})
-
-			Context("when one of the workers satisfy the spec", func() {
-				BeforeEach(func() {
-					workerA.SatisfiesReturns(true)
-					workerB.SatisfiesReturns(false)
-					workerC.SatisfiesReturns(false)
-				})
-
-				It("succeeds and returns the compatible worker with the container", func() {
-					Expect(fakeStrategy.ChooseCallCount()).To(Equal(0))
-
-					Expect(chooseErr).NotTo(HaveOccurred())
-					Expect(chosenWorker.Name()).To(Equal(workerA.Name()))
-				})
-			})
-
-			Context("when multiple workers satisfy the spec", func() {
-				BeforeEach(func() {
-					workerA.SatisfiesReturns(true)
-					workerB.SatisfiesReturns(true)
-					workerC.SatisfiesReturns(false)
-				})
-
-				It("succeeds and returns the first compatible worker with the container", func() {
-					Expect(fakeStrategy.ChooseCallCount()).To(Equal(0))
-
-					Expect(chooseErr).NotTo(HaveOccurred())
-					Expect(chosenWorker.Name()).To(Equal(workerA.Name()))
-				})
-			})
-
-			Context("when the worker that has the container does not satisfy the spec", func() {
-				BeforeEach(func() {
-					workerA.SatisfiesReturns(true)
-					workerB.SatisfiesReturns(true)
-					workerC.SatisfiesReturns(false)
-
-					fakeProvider.FindWorkersForContainerByOwnerReturns([]Worker{workerC}, nil)
-				})
-
-				It("chooses a satisfying worker", func() {
-					Expect(fakeStrategy.ChooseCallCount()).To(Equal(1))
-
-					Expect(chooseErr).NotTo(HaveOccurred())
-					Expect(chosenWorker.Name()).ToNot(Equal(workerC.Name()))
-				})
-			})
-		})
-
-		Context("when no worker is found with the container", func() {
-			BeforeEach(func() {
-				fakeProvider.FindWorkersForContainerByOwnerReturns(nil, nil)
-			})
-
-			Context("with multiple workers", func() {
-				var (
-					workerA *workerfakes.FakeWorker
-					workerB *workerfakes.FakeWorker
-					workerC *workerfakes.FakeWorker
+				selectedWorker, _, selectErr = pool.SelectWorker(
+					selectCtx,
+					fakeOwner,
+					containerSpec,
+					workerSpec,
+					fakeStrategy,
+					fakeCallbacks,
 				)
 
-				BeforeEach(func() {
-					workerA = new(workerfakes.FakeWorker)
-					workerB = new(workerfakes.FakeWorker)
-					workerC = new(workerfakes.FakeWorker)
-					workerA.NameReturns("workerA")
-
-					workerA.SatisfiesReturns(true)
-					workerB.SatisfiesReturns(true)
-					workerC.SatisfiesReturns(false)
-
-					fakeProvider.RunningWorkersReturns([]Worker{workerA, workerB, workerC}, nil)
-					fakeStrategy.ChooseReturns(workerA, nil)
-				})
-
-				It("checks that the workers satisfy the given worker spec", func() {
-					Expect(workerA.SatisfiesCallCount()).To(Equal(1))
-					_, actualSpec := workerA.SatisfiesArgsForCall(0)
-					Expect(actualSpec).To(Equal(workerSpec))
-
-					Expect(workerB.SatisfiesCallCount()).To(Equal(1))
-					_, actualSpec = workerB.SatisfiesArgsForCall(0)
-					Expect(actualSpec).To(Equal(workerSpec))
-
-					Expect(workerC.SatisfiesCallCount()).To(Equal(1))
-					_, actualSpec = workerC.SatisfiesArgsForCall(0)
-					Expect(actualSpec).To(Equal(workerSpec))
-				})
-
-				It("returns all workers satisfying the spec", func() {
-					_, satisfyingWorkers, _ := fakeStrategy.ChooseArgsForCall(0)
-					Expect(satisfyingWorkers).To(ConsistOf(workerA, workerB))
-				})
-			})
-
-			Context("when team workers and general workers satisfy the spec", func() {
-				var (
-					teamWorker1   *workerfakes.FakeWorker
-					teamWorker2   *workerfakes.FakeWorker
-					teamWorker3   *workerfakes.FakeWorker
-					generalWorker *workerfakes.FakeWorker
-				)
-
-				BeforeEach(func() {
-					teamWorker1 = new(workerfakes.FakeWorker)
-					teamWorker1.SatisfiesReturns(true)
-					teamWorker1.IsOwnedByTeamReturns(true)
-					teamWorker2 = new(workerfakes.FakeWorker)
-					teamWorker2.SatisfiesReturns(true)
-					teamWorker2.IsOwnedByTeamReturns(true)
-					teamWorker3 = new(workerfakes.FakeWorker)
-					teamWorker3.SatisfiesReturns(false)
-					generalWorker = new(workerfakes.FakeWorker)
-					generalWorker.SatisfiesReturns(true)
-					generalWorker.IsOwnedByTeamReturns(false)
-					fakeProvider.RunningWorkersReturns([]Worker{generalWorker, teamWorker1, teamWorker2, teamWorker3}, nil)
-					fakeStrategy.ChooseReturns(teamWorker1, nil)
-				})
-
-				It("returns only the team workers that satisfy the spec", func() {
-					_, satisfyingWorkers, _ := fakeStrategy.ChooseArgsForCall(0)
-					Expect(satisfyingWorkers).To(ConsistOf(teamWorker1, teamWorker2))
-				})
-			})
-
-			Context("when only general workers satisfy the spec", func() {
-				var (
-					teamWorker     *workerfakes.FakeWorker
-					generalWorker1 *workerfakes.FakeWorker
-					generalWorker2 *workerfakes.FakeWorker
-				)
-
-				BeforeEach(func() {
-					teamWorker = new(workerfakes.FakeWorker)
-					teamWorker.SatisfiesReturns(false)
-					generalWorker1 = new(workerfakes.FakeWorker)
-					generalWorker1.SatisfiesReturns(true)
-					generalWorker1.IsOwnedByTeamReturns(false)
-					generalWorker2 = new(workerfakes.FakeWorker)
-					generalWorker2.SatisfiesReturns(false)
-					fakeProvider.RunningWorkersReturns([]Worker{generalWorker1, generalWorker2, teamWorker}, nil)
-					fakeStrategy.ChooseReturns(generalWorker1, nil)
-				})
-
-				It("returns the general workers that satisfy the spec", func() {
-					_, satisfyingWorkers, _ := fakeStrategy.ChooseArgsForCall(0)
-					Expect(satisfyingWorkers).To(ConsistOf(generalWorker1))
-				})
-			})
+				close(done)
+			}, (WorkerPollingInterval * 2).Seconds())
 
 			Context("with no workers", func() {
 				BeforeEach(func() {
 					fakeProvider.RunningWorkersReturns([]Worker{}, nil)
 				})
 
-				It("returns ErrNoWorkers", func() {
-					Expect(chooseErr).To(Equal(ErrNoWorkers))
-				})
-			})
-
-			Context("when getting the workers fails", func() {
-				disaster := errors.New("nope")
-
-				BeforeEach(func() {
-					fakeProvider.RunningWorkersReturns(nil, disaster)
-				})
-
-				It("returns the error", func() {
-					Expect(chooseErr).To(Equal(disaster))
+				It("times out and returns an error", func() {
+					Expect(selectErr).To(Equal(selectCtx.Err()))
+					Expect(fakeProvider.RunningWorkersCallCount()).To(Equal(2))
 				})
 			})
 
 			Context("with no compatible workers available", func() {
 				BeforeEach(func() {
-					fakeProvider.RunningWorkersReturns([]Worker{incompatibleWorker}, nil)
+					workerFakes = workerFakes[:1]
+					updateWorkersFromFakes()
+
+					workerFakes[0].SatisfiesReturns(false)
+					fakeProvider.RunningWorkersReturns(workers, nil)
 				})
 
-				It("returns NoCompatibleWorkersError", func() {
-					Expect(chooseErr).To(Equal(NoCompatibleWorkersError{
-						Spec: workerSpec,
-					}))
-				})
-			})
-
-			Context("with compatible workers available", func() {
-				BeforeEach(func() {
-					fakeProvider.RunningWorkersReturns([]Worker{
-						incompatibleWorker,
-						compatibleWorker,
-					}, nil)
-				})
-
-				Context("when strategy returns a worker", func() {
-					BeforeEach(func() {
-						fakeStrategy.ChooseReturns(compatibleWorker, nil)
-					})
-
-					It("chooses a worker", func() {
-						Expect(chooseErr).ToNot(HaveOccurred())
-						Expect(fakeStrategy.ChooseCallCount()).To(Equal(1))
-						Expect(chosenWorker.Name()).To(Equal(compatibleWorker.Name()))
-					})
-				})
-
-				Context("when strategy errors", func() {
-					var (
-						strategyError error
-					)
-
-					BeforeEach(func() {
-						strategyError = errors.New("strategical explosion")
-						fakeStrategy.ChooseReturns(nil, strategyError)
-					})
-
-					It("returns an error", func() {
-						Expect(chooseErr).To(Equal(strategyError))
-					})
+				It("times out and returns an error", func() {
+					Expect(selectErr).To(Equal(selectCtx.Err()))
+					Expect(fakeProvider.RunningWorkersCallCount()).To(Equal(2))
+					Expect(workerFakes[0].SatisfiesCallCount()).To(Equal(2))
 				})
 			})
 		})

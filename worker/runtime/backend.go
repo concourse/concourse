@@ -18,6 +18,8 @@ import (
 	"github.com/containerd/containerd/errdefs"
 )
 
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+
 var _ garden.Backend = (*GardenBackend)(nil)
 
 // GardenBackend implements a Garden backend backed by `containerd`.
@@ -35,8 +37,7 @@ type GardenBackend struct {
 	createLock     TimeoutWithByPassLock
 }
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . UserNamespace
-
+//counterfeiter:generate . UserNamespace
 type UserNamespace interface {
 	MaxValidIds() (uid, gid uint32, err error)
 }

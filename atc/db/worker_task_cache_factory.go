@@ -1,7 +1,6 @@
 package db
 
-//go:generate counterfeiter . WorkerTaskCacheFactory
-
+//counterfeiter:generate . WorkerTaskCacheFactory
 type WorkerTaskCacheFactory interface {
 	FindOrCreate(WorkerTaskCache) (*UsedWorkerTaskCache, error)
 	Find(WorkerTaskCache) (*UsedWorkerTaskCache, bool, error)

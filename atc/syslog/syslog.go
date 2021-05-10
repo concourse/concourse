@@ -65,14 +65,14 @@ func Dial(transport, address string, caCerts []string) (*Syslog, error) {
 	}, nil
 }
 
-func (s *Syslog) Write(hostname, tag string, ts time.Time, msg string) error {
+func (s *Syslog) Write(hostname, tag string, ts time.Time, msg string, eventID string) error {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	if s.writer == nil {
 		return errors.New("connection already closed")
 	}
 
-	s.writer.SetFormatter(getSyslogFormatter(hostname, ts, tag))
+	s.writer.SetFormatter(getSyslogFormatter(hostname, ts, tag, eventID))
 	_, err := s.writer.Write([]byte(msg))
 	return err
 }
@@ -94,15 +94,15 @@ func (s *Syslog) Close() error {
 }
 
 // generate custom formatter based on hostname and tag
-func getSyslogFormatter(hostname string, ts time.Time, tag string) sl.Formatter {
+func getSyslogFormatter(hostname string, ts time.Time, tag string, eventID string) sl.Formatter {
 	return func(priority sl.Priority, _, _, content string) string {
 		// strip whitespaces
 		s := strings.Replace(content, "\n", " ", -1)
 		s = strings.Replace(s, "\r", " ", -1)
 		s = strings.Replace(s, "\x00", " ", -1)
 
-		msg := fmt.Sprintf("<%d>1 %s %s %s - - - %s\n",
-			priority, ts.Format(rfc5424time), hostname, tag, s)
+		msg := fmt.Sprintf("<%d>1 %s %s %s - - [concourse@0 eventId=\"%s\"] %s\n",
+			priority, ts.Format(rfc5424time), hostname, tag, eventID, s)
 		return msg
 	}
 }

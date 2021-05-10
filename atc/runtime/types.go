@@ -9,12 +9,14 @@ import (
 	"github.com/concourse/concourse/atc"
 )
 
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+
 const (
 	ResourceResultPropertyName = "concourse:resource-result"
 	ResourceProcessID          = "resource"
 )
 
-//go:generate counterfeiter . StartingEventDelegate
+//counterfeiter:generate . StartingEventDelegate
 type StartingEventDelegate interface {
 	Starting(lager.Logger)
 }
@@ -34,7 +36,7 @@ type GetRequest struct {
 	Params atc.Params `json:"params,omitempty"`
 }
 
-//go:generate counterfeiter . Artifact
+//counterfeiter:generate . Artifact
 type Artifact interface {
 	ID() string
 }
@@ -68,7 +70,7 @@ func (art TaskArtifact) ID() string {
 }
 
 // TODO (runtime/#4910): consider a different name as this is close to "Runnable" in atc/engine/engine
-//go:generate counterfeiter . Runner
+//counterfeiter:generate . Runner
 type Runner interface {
 	RunScript(
 		ctx context.Context,

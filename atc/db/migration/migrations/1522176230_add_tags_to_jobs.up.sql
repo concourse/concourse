@@ -1,5 +1,5 @@
-BEGIN;
 
-  ALTER TABLE jobs ADD COLUMN tags text[];
 
-COMMIT;
+ALTER TABLE jobs ADD COLUMN tags text[];
+
+
