@@ -401,11 +401,11 @@ run: {path: a/file}
 
 var _ = Context("ImageResource", func() {
 	var imageResource *ImageResource
-	var resourceTypes VersionedResourceTypes
+	var resourceTypes ResourceTypes
 
 	Context("ApplySourceDefaults", func() {
 		BeforeEach(func() {
-			resourceTypes = VersionedResourceTypes{}
+			resourceTypes = ResourceTypes{}
 		})
 
 		JustBeforeEach(func() {
@@ -457,12 +457,10 @@ var _ = Context("ImageResource", func() {
 
 			Context("resourceTypes contains image source type", func() {
 				BeforeEach(func() {
-					resourceTypes = VersionedResourceTypes{
-						{
-							ResourceType: ResourceType{
-								Name:     "docker",
-								Defaults: Source{"some-key": "some-value"},
-							},
+					resourceTypes = ResourceTypes{
+						ResourceType{
+							Name:     "docker",
+							Defaults: Source{"some-key": "some-value"},
 						},
 					}
 				})

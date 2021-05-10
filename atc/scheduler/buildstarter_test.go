@@ -45,14 +45,11 @@ var _ = Describe("BuildStarter", func() {
 		var createdBuild *dbfakes.FakeBuild
 		var job *dbfakes.FakeJob
 		var resources db.SchedulerResources
-		var versionedResourceTypes atc.VersionedResourceTypes
+		var resourceTypes atc.ResourceTypes
 
 		BeforeEach(func() {
-			versionedResourceTypes = atc.VersionedResourceTypes{
-				{
-					ResourceType: atc.ResourceType{Name: "some-resource-type"},
-					Version:      atc.Version{"some": "version"},
-				},
+			resourceTypes = atc.ResourceTypes{
+				atc.ResourceType{Name: "some-resource-type"},
 			}
 
 			resources = db.SchedulerResources{
@@ -118,7 +115,7 @@ var _ = Describe("BuildStarter", func() {
 						db.SchedulerJob{
 							Job:           job,
 							Resources:     resources,
-							ResourceTypes: versionedResourceTypes,
+							ResourceTypes: resourceTypes,
 						},
 						jobInputs,
 					)
@@ -442,12 +439,9 @@ var _ = Describe("BuildStarter", func() {
 						db.SchedulerJob{
 							Job:       job,
 							Resources: resources,
-							ResourceTypes: atc.VersionedResourceTypes{
-								{
-									ResourceType: atc.ResourceType{
-										Name: "some-resource-type",
-									},
-									Version: atc.Version{"some": "version"},
+							ResourceTypes: atc.ResourceTypes{
+								atc.ResourceType{
+									Name: "some-resource-type",
 								},
 							},
 						},
@@ -664,19 +658,19 @@ var _ = Describe("BuildStarter", func() {
 										actualPlanConfig, actualResourceConfigs, actualResourceTypes, actualBuildInputs := fakePlanner.CreateArgsForCall(0)
 										Expect(actualPlanConfig).To(Equal(&atc.DoStep{Steps: jobConfig.PlanSequence}))
 										Expect(actualResourceConfigs).To(Equal(db.SchedulerResources{{Name: "some-resource"}}))
-										Expect(actualResourceTypes).To(Equal(versionedResourceTypes))
+										Expect(actualResourceTypes).To(Equal(resourceTypes))
 										Expect(actualBuildInputs).To(Equal([]db.BuildInput{{Name: "some-input"}}))
 
 										actualPlanConfig, actualResourceConfigs, actualResourceTypes, actualBuildInputs = fakePlanner.CreateArgsForCall(1)
 										Expect(actualPlanConfig).To(Equal(&atc.DoStep{Steps: jobConfig.PlanSequence}))
 										Expect(actualResourceConfigs).To(Equal(db.SchedulerResources{{Name: "some-resource"}}))
-										Expect(actualResourceTypes).To(Equal(versionedResourceTypes))
+										Expect(actualResourceTypes).To(Equal(resourceTypes))
 										Expect(actualBuildInputs).To(Equal([]db.BuildInput{{Name: "some-input"}}))
 
 										actualPlanConfig, actualResourceConfigs, actualResourceTypes, actualBuildInputs = fakePlanner.CreateArgsForCall(2)
 										Expect(actualPlanConfig).To(Equal(&atc.DoStep{Steps: jobConfig.PlanSequence}))
 										Expect(actualResourceConfigs).To(Equal(db.SchedulerResources{{Name: "some-resource"}}))
-										Expect(actualResourceTypes).To(Equal(versionedResourceTypes))
+										Expect(actualResourceTypes).To(Equal(resourceTypes))
 										Expect(actualBuildInputs).To(Equal([]db.BuildInput{{Name: "some-input"}}))
 									})
 

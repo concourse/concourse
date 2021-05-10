@@ -32,7 +32,7 @@ func DetermineInputs(
 	includeIgnored bool,
 	platform string,
 	tags []string,
-) ([]Input, map[string]string, *atc.ImageResource, atc.VersionedResourceTypes, error) {
+) ([]Input, map[string]string, *atc.ImageResource, atc.ResourceTypes, error) {
 	inputMappings := ConvertInputMappings(userInputMappings)
 
 	err := CheckForUnknownInputMappings(localInputMappings, taskInputs)
@@ -204,7 +204,7 @@ func GenerateLocalInputs(
 	return inputs, nil
 }
 
-func FetchInputsFromJob(fact atc.PlanFactory, team concourse.Team, inputsFrom flaghelpers.JobFlag, imageName string) (map[string]Input, *atc.ImageResource, atc.VersionedResourceTypes, error) {
+func FetchInputsFromJob(fact atc.PlanFactory, team concourse.Team, inputsFrom flaghelpers.JobFlag, imageName string) (map[string]Input, *atc.ImageResource, atc.ResourceTypes, error) {
 	kvMap := map[string]Input{}
 
 	if inputsFrom.PipelineRef.Name == "" && inputsFrom.JobName == "" {
@@ -220,13 +220,13 @@ func FetchInputsFromJob(fact atc.PlanFactory, team concourse.Team, inputsFrom fl
 		return nil, nil, nil, fmt.Errorf("build inputs for %s/%s not found", inputsFrom.PipelineRef.String(), inputsFrom.JobName)
 	}
 
-	versionedResourceTypes, found, err := team.VersionedResourceTypes(inputsFrom.PipelineRef)
+	resourceTypes, found, err := team.ResourceTypes(inputsFrom.PipelineRef)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
 	if !found {
-		return nil, nil, nil, fmt.Errorf("versioned resource types of %s not found", inputsFrom.PipelineRef.String())
+		return nil, nil, nil, fmt.Errorf("resource types of %s not found", inputsFrom.PipelineRef.String())
 	}
 
 	var imageResource *atc.ImageResource
@@ -244,26 +244,26 @@ func FetchInputsFromJob(fact atc.PlanFactory, team concourse.Team, inputsFrom fl
 	for _, buildInput := range buildInputs {
 		version := buildInput.Version
 
+		plan := fact.NewPlan(atc.GetPlan{
+			Name:    buildInput.Name,
+			Type:    buildInput.Type,
+			Source:  buildInput.Source,
+			Version: &version,
+			Params:  buildInput.Params,
+			Tags:    buildInput.Tags,
+		})
+		plan.Get.TypeImage = resourceTypes.ImageForType(plan.ID, buildInput.Type, buildInput.Tags, false)
 		kvMap[buildInput.Name] = Input{
 			Name: buildInput.Name,
 
-			Plan: fact.NewPlan(atc.GetPlan{
-				Name:                   buildInput.Name,
-				Type:                   buildInput.Type,
-				Source:                 buildInput.Source,
-				Version:                &version,
-				Params:                 buildInput.Params,
-				Tags:                   buildInput.Tags,
-				VersionedResourceTypes: versionedResourceTypes,
-			}),
+			Plan: plan,
 		}
 	}
 
-	return kvMap, imageResource, versionedResourceTypes, nil
+	return kvMap, imageResource, resourceTypes, nil
 }
 
 func FetchImageResourceFromJobInputs(inputs []atc.BuildInput, imageName string) (*atc.ImageResource, bool, error) {
-
 	for _, input := range inputs {
 		if input.Name == imageName {
 			version := input.Version

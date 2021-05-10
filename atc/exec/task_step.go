@@ -61,7 +61,7 @@ type TaskDelegate interface {
 	StartSpan(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
 
 	Variables(context.Context, atc.VarSourceConfigs) vars.Variables
-	FetchImage(context.Context, atc.ImageResource, atc.VersionedResourceTypes, bool, atc.Tags) (worker.ImageSpec, error)
+	FetchImage(context.Context, atc.ImageResource, atc.ResourceTypes, bool, atc.Tags) (worker.ImageSpec, error)
 
 	Stdout() io.Writer
 	Stderr() io.Writer
@@ -180,7 +180,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 	// apply resource type defaults
 	taskConfigSource = BaseResourceTypeDefaultsApplySource{
 		ConfigSource:  taskConfigSource,
-		ResourceTypes: step.plan.VersionedResourceTypes,
+		ResourceTypes: step.plan.ResourceTypes,
 	}
 
 	// override limits
@@ -336,7 +336,7 @@ func (step *TaskStep) imageSpec(ctx context.Context, logger lager.Logger, state 
 		imageSpec, err := delegate.FetchImage(
 			ctx,
 			*config.ImageResource,
-			step.plan.VersionedResourceTypes,
+			step.plan.ResourceTypes,
 			step.plan.Privileged,
 			step.plan.Tags,
 		)

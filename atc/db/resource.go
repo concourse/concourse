@@ -64,7 +64,7 @@ type Resource interface {
 
 	SetResourceConfigScope(ResourceConfigScope) error
 
-	CheckPlan(planFactory atc.PlanFactory, imagePlanner ImagePlanner, from atc.Version, interval time.Duration, sourceDefaults atc.Source) atc.Plan
+	CheckPlan(planFactory atc.PlanFactory, imagePlanner ImagePlanner, from atc.Version, interval time.Duration, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) atc.Plan
 	CreateBuild(context.Context, bool, atc.Plan) (Build, bool, error)
 
 	NotifyScan() error
@@ -198,10 +198,6 @@ func (r *resource) Reload() (bool, error) {
 	return true, nil
 }
 
-func (r *resource) SetResourceConfig(atc.Source, atc.VersionedResourceTypes) (ResourceConfigScope, error) {
-	return nil, fmt.Errorf("not implemented")
-}
-
 func (r *resource) SetResourceConfigScope(scope ResourceConfigScope) error {
 	tx, err := r.conn.Begin()
 	if err != nil {
@@ -256,10 +252,10 @@ func (r *resource) setResourceConfigScopeInTransaction(tx Tx, scope ResourceConf
 }
 
 type ImagePlanner interface {
-	ImageForType(planID atc.PlanID, resourceType string, stepTags atc.Tags) atc.TypeImage
+	ImageForType(planID atc.PlanID, resourceType string, stepTags atc.Tags, skipInterval bool) atc.TypeImage
 }
 
-func (r *resource) CheckPlan(planFactory atc.PlanFactory, imagePlanner ImagePlanner, from atc.Version, interval time.Duration, sourceDefaults atc.Source) atc.Plan {
+func (r *resource) CheckPlan(planFactory atc.PlanFactory, imagePlanner ImagePlanner, from atc.Version, interval time.Duration, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) atc.Plan {
 	plan := planFactory.NewPlan(atc.CheckPlan{
 		Name:    r.name,
 		Type:    r.type_,
@@ -270,10 +266,12 @@ func (r *resource) CheckPlan(planFactory atc.PlanFactory, imagePlanner ImagePlan
 		FromVersion: from,
 		Interval:    interval.String(),
 
+		SkipInterval: skipInterval,
+
 		Resource: r.name,
 	})
 
-	plan.Check.TypeImage = imagePlanner.ImageForType(plan.ID, r.type_, r.config.Tags)
+	plan.Check.TypeImage = imagePlanner.ImageForType(plan.ID, r.type_, r.config.Tags, skipInterval && skipIntervalRecursively)
 	return plan
 }
 

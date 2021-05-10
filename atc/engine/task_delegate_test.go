@@ -161,7 +161,7 @@ var _ = Describe("TaskDelegate", func() {
 		var delegate exec.TaskDelegate
 
 		var expectedCheckPlan, expectedGetPlan atc.Plan
-		var types atc.VersionedResourceTypes
+		var types atc.ResourceTypes
 		var imageResource atc.ImageResource
 
 		var fakeArtifact *runtimefakes.FakeArtifact
@@ -212,24 +212,18 @@ var _ = Describe("TaskDelegate", func() {
 				Tags:   atc.Tags{"some", "tags"},
 			}
 
-			types = atc.VersionedResourceTypes{
+			types = atc.ResourceTypes{
 				{
-					ResourceType: atc.ResourceType{
-						Name:   "some-custom-type",
-						Type:   "another-custom-type",
-						Source: atc.Source{"some-custom": "((source-var))"},
-						Params: atc.Params{"some-custom": "((params-var))"},
-					},
-					Version: atc.Version{"some-custom": "version"},
+					Name:   "some-custom-type",
+					Type:   "another-custom-type",
+					Source: atc.Source{"some-custom": "((source-var))"},
+					Params: atc.Params{"some-custom": "((params-var))"},
 				},
 				{
-					ResourceType: atc.ResourceType{
-						Name:       "another-custom-type",
-						Type:       "registry-image",
-						Source:     atc.Source{"another-custom": "((source-var))"},
-						Privileged: true,
-					},
-					Version: atc.Version{"another-custom": "version"},
+					Name:       "another-custom-type",
+					Type:       "registry-image",
+					Source:     atc.Source{"another-custom": "((source-var))"},
+					Privileged: true,
 				},
 			}
 

@@ -70,7 +70,7 @@ var _ = Describe("CheckFactory", func() {
 
 		Context("when it is run on a resource", func() {
 			JustBeforeEach(func() {
-				build, created, err = checkFactory.TryCreateCheck(context.TODO(), fakeResource, fakeResourceTypes, fromVersion, manuallyTriggered)
+				build, created, err = checkFactory.TryCreateCheck(context.TODO(), fakeResource, fakeResourceTypes, fromVersion, manuallyTriggered, false)
 			})
 
 			Context("when the resource parent type is not a custom type", func() {
@@ -133,7 +133,7 @@ var _ = Describe("CheckFactory", func() {
 
 				It("creates a check plan with the default webhook interval", func() {
 					Expect(fakeResource.CheckPlanCallCount()).To(Equal(1))
-					_, types, version, interval, defaults := fakeResource.CheckPlanArgsForCall(0)
+					_, types, version, interval, defaults, _, _ := fakeResource.CheckPlanArgsForCall(0)
 					Expect(version).To(Equal(atc.Version{"from": "version"}))
 					Expect(interval).To(Equal(defaultWebhookCheckInterval))
 					Expect(types).To(HaveLen(0))
@@ -159,7 +159,7 @@ var _ = Describe("CheckFactory", func() {
 
 				It("sets it in the check plan", func() {
 					Expect(fakeResource.CheckPlanCallCount()).To(Equal(1))
-					_, types, version, interval, defaults := fakeResource.CheckPlanArgsForCall(0)
+					_, types, version, interval, defaults, _, _ := fakeResource.CheckPlanArgsForCall(0)
 					Expect(version).To(Equal(atc.Version{"from": "version"}))
 					Expect(interval).To(Equal(42 * time.Second))
 					Expect(types).To(HaveLen(0))
@@ -186,61 +186,42 @@ var _ = Describe("CheckFactory", func() {
 					fakeResourceType.DefaultsReturns(atc.Source{"sdk": "sdk"})
 				})
 
-				Context("when the parent type has no version", func() {
+				Context("when the checkable's interval has elapsed", func() {
 					BeforeEach(func() {
-						fakeResourceType.VersionReturns(nil)
+						fakeResource.LastCheckEndTimeReturns(time.Now().Add(-defaultCheckInterval))
 					})
 
-					It("errors", func() {
-						Expect(err).To(HaveOccurred())
-					})
-				})
-
-				Context("when the parent type has a version", func() {
-					BeforeEach(func() {
-						fakeResourceType.VersionReturns(atc.Version{"some": "version"})
-					})
-
-					Context("when the checkable's interval has elapsed", func() {
-						BeforeEach(func() {
-							fakeResource.LastCheckEndTimeReturns(time.Now().Add(-defaultCheckInterval))
-						})
-
-						It("creates a check plan", func() {
-							Expect(fakeResource.CheckPlanCallCount()).To(Equal(1))
-							_, types, version, interval, defaults := fakeResource.CheckPlanArgsForCall(0)
-							Expect(version).To(Equal(atc.Version{"from": "version"}))
-							Expect(interval).To(Equal(defaultCheckInterval))
-							Expect(types).To(Equal(atc.VersionedResourceTypes{
-								atc.VersionedResourceType{
-									ResourceType: atc.ResourceType{
-										Name:   "custom-type",
-										Type:   "some-base-type",
-										Tags:   atc.Tags{"some-tag"},
-										Source: atc.Source{"some": "type-source"},
-										Defaults: atc.Source{
-											"sdk": "sdk",
-										},
-									},
-									Version: atc.Version{"some": "version"},
+					It("creates a check plan", func() {
+						Expect(fakeResource.CheckPlanCallCount()).To(Equal(1))
+						_, types, version, interval, defaults, _, _ := fakeResource.CheckPlanArgsForCall(0)
+						Expect(version).To(Equal(atc.Version{"from": "version"}))
+						Expect(interval).To(Equal(defaultCheckInterval))
+						Expect(types).To(Equal(atc.ResourceTypes{
+							atc.ResourceType{
+								Name:   "custom-type",
+								Type:   "some-base-type",
+								Tags:   atc.Tags{"some-tag"},
+								Source: atc.Source{"some": "type-source"},
+								Defaults: atc.Source{
+									"sdk": "sdk",
 								},
-							}))
-							Expect(defaults).To(Equal(atc.Source{"sdk": "sdk"}))
-						})
+							},
+						}))
+						Expect(defaults).To(Equal(atc.Source{"sdk": "sdk"}))
+					})
 
-						It("returns the build", func() {
-							Expect(err).NotTo(HaveOccurred())
-							Expect(created).To(BeTrue())
-							Expect(build).To(Equal(fakeBuild))
-						})
+					It("returns the build", func() {
+						Expect(err).NotTo(HaveOccurred())
+						Expect(created).To(BeTrue())
+						Expect(build).To(Equal(fakeBuild))
+					})
 
-						It("starts the build with the check plan", func() {
-							Expect(fakeResource.CreateBuildCallCount()).To(Equal(1))
-							_, manuallyTriggered, plan := fakeResource.CreateBuildArgsForCall(0)
-							Expect(manuallyTriggered).To(BeFalse())
-							Expect(plan.ID).ToNot(BeEmpty())
-							Expect(plan.Check).To(Equal(checkPlan.Check))
-						})
+					It("starts the build with the check plan", func() {
+						Expect(fakeResource.CreateBuildCallCount()).To(Equal(1))
+						_, manuallyTriggered, plan := fakeResource.CreateBuildArgsForCall(0)
+						Expect(manuallyTriggered).To(BeFalse())
+						Expect(plan.ID).ToNot(BeEmpty())
+						Expect(plan.Check).To(Equal(checkPlan.Check))
 					})
 				})
 			})
@@ -253,15 +234,15 @@ var _ = Describe("CheckFactory", func() {
 			})
 
 			JustBeforeEach(func() {
-				build, created, err = checkFactory.TryCreateCheck(context.TODO(), fakeResourceType, fakeResourceTypes, fromVersion, manuallyTriggered)
+				build, created, err = checkFactory.TryCreateCheck(context.TODO(), fakeResourceType, fakeResourceTypes, fromVersion, manuallyTriggered, false)
 			})
 
 			It("creates a check plan", func() {
 				Expect(fakeResourceType.CheckPlanCallCount()).To(Equal(1))
-				_, types, version, interval, defaults := fakeResourceType.CheckPlanArgsForCall(0)
+				_, types, version, interval, defaults, _, _ := fakeResourceType.CheckPlanArgsForCall(0)
 				Expect(version).To(Equal(atc.Version{"from": "version"}))
 				Expect(interval).To(Equal(defaultCheckInterval))
-				Expect(types).To(Equal(atc.VersionedResourceTypes{}))
+				Expect(types).To(Equal(atc.ResourceTypes{}))
 				Expect(defaults).To(Equal(atc.Source{}))
 			})
 

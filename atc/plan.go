@@ -369,6 +369,18 @@ func (plan *Plan) Each(f func(*Plan)) {
 			(*plan.Retry)[i] = p
 		}
 	}
+
+	if plan.Get != nil {
+		plan.Get.TypeImage.EachPlan(f)
+	}
+
+	if plan.Put != nil {
+		plan.Put.TypeImage.EachPlan(f)
+	}
+
+	if plan.Check != nil {
+		plan.Check.TypeImage.EachPlan(f)
+	}
 }
 
 type PlanID string
@@ -387,6 +399,15 @@ type TypeImage struct {
 
 	// Privileged indicates whether the parent resource type is privileged.
 	Privileged bool `json:"privileged,omitempty"`
+}
+
+func (t TypeImage) EachPlan(f func(*Plan)) {
+	if t.CheckPlan != nil {
+		t.CheckPlan.Each(f)
+	}
+	if t.GetPlan != nil {
+		t.GetPlan.Each(f)
+	}
 }
 
 type ArtifactInputPlan struct {
@@ -541,6 +562,10 @@ type CheckPlan struct {
 	// will be skipped.
 	Interval string `json:"interval,omitempty"`
 
+	// If set, the check interval will not be respected, (i.e. a new check will
+	// be run even if the interval has not elapsed).
+	SkipInterval bool `json:"skip_interval,omitempty"`
+
 	// A timeout to enforce on the resource `check` process. Note that fetching
 	// the resource's image does not count towards the timeout.
 	Timeout string `json:"timeout,omitempty"`
@@ -593,7 +618,7 @@ type TaskPlan struct {
 	Timeout string `json:"timeout,omitempty"`
 
 	// Resource types to have available for use when fetching the task's image.
-	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
+	ResourceTypes ResourceTypes `json:"resource_types,omitempty"`
 }
 
 type SetPipelinePlan struct {

@@ -6,7 +6,6 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/dbtest"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/tracing"
 	. "github.com/onsi/ginkgo"
@@ -84,13 +83,11 @@ var _ = Describe("ResourceType", func() {
 					Expect(t.Type()).To(Equal("registry-image"))
 					Expect(t.Source()).To(Equal(atc.Source{"some": "repository"}))
 					Expect(t.Defaults()).To(Equal(atc.Source{"some-default-k1": "some-default-v1"}))
-					Expect(t.Version()).To(BeNil())
 				case "some-other-type":
 					Expect(t.Name()).To(Equal("some-other-type"))
 					Expect(t.Type()).To(Equal("some-type"))
 					Expect(t.Source()).To(Equal(atc.Source{"some": "other-repository"}))
 					Expect(t.Defaults()).To(BeNil())
-					Expect(t.Version()).To(BeNil())
 					Expect(t.Privileged()).To(BeTrue())
 				case "some-type-with-params":
 					Expect(t.Name()).To(Equal("some-type-with-params"))
@@ -103,7 +100,6 @@ var _ = Describe("ResourceType", func() {
 					Expect(t.Type()).To(Equal("registry-image"))
 					Expect(t.Source()).To(Equal(atc.Source{"some": "repository"}))
 					Expect(t.Defaults()).To(BeNil())
-					Expect(t.Version()).To(BeNil())
 					Expect(t.CheckEvery().Interval.String()).To(Equal("10ms"))
 				}
 			}
@@ -292,49 +288,41 @@ var _ = Describe("ResourceType", func() {
 		})
 
 		Context("Deserialize", func() {
-			var vrts atc.VersionedResourceTypes
+			var vrts atc.ResourceTypes
 			JustBeforeEach(func() {
 				vrts = resourceTypes.Deserialize()
 			})
 
 			Context("when no base resource type defaults defined", func() {
 				It("should return original resource types", func() {
-					Expect(vrts).To(ContainElement(atc.VersionedResourceType{
-						ResourceType: atc.ResourceType{
-							Name:     "some-type",
-							Type:     "registry-image",
-							Source:   atc.Source{"some": "repository"},
-							Defaults: atc.Source{"some-default-k1": "some-default-v1"},
-						},
+					Expect(vrts).To(ContainElement(atc.ResourceType{
+						Name:     "some-type",
+						Type:     "registry-image",
+						Source:   atc.Source{"some": "repository"},
+						Defaults: atc.Source{"some-default-k1": "some-default-v1"},
 					}))
-					Expect(vrts).To(ContainElement(atc.VersionedResourceType{
-						ResourceType: atc.ResourceType{
-							Name: "some-other-type",
-							Type: "some-type",
-							Source: atc.Source{
-								"some-default-k1": "some-default-v1",
-								"some":            "other-repository",
-							},
-							Privileged: true,
+					Expect(vrts).To(ContainElement(atc.ResourceType{
+						Name: "some-other-type",
+						Type: "some-type",
+						Source: atc.Source{
+							"some-default-k1": "some-default-v1",
+							"some":            "other-repository",
 						},
+						Privileged: true,
 					}))
-					Expect(vrts).To(ContainElement(atc.VersionedResourceType{
-						ResourceType: atc.ResourceType{
-							Name:       "some-type-with-params",
-							Type:       "s3",
-							Source:     atc.Source{"some": "repository"},
-							Defaults:   nil,
-							Privileged: false,
-							Params:     atc.Params{"unpack": "true"},
-						},
+					Expect(vrts).To(ContainElement(atc.ResourceType{
+						Name:       "some-type-with-params",
+						Type:       "s3",
+						Source:     atc.Source{"some": "repository"},
+						Defaults:   nil,
+						Privileged: false,
+						Params:     atc.Params{"unpack": "true"},
 					}))
-					Expect(vrts).To(ContainElement(atc.VersionedResourceType{
-						ResourceType: atc.ResourceType{
-							Name:       "some-type-with-custom-check",
-							Type:       "registry-image",
-							Source:     atc.Source{"some": "repository"},
-							CheckEvery: &atc.CheckEvery{Interval: 10 * time.Millisecond},
-						},
+					Expect(vrts).To(ContainElement(atc.ResourceType{
+						Name:       "some-type-with-custom-check",
+						Type:       "registry-image",
+						Source:     atc.Source{"some": "repository"},
+						CheckEvery: &atc.CheckEvery{Interval: 10 * time.Millisecond},
 					}))
 				})
 			})
@@ -348,109 +336,39 @@ var _ = Describe("ResourceType", func() {
 				})
 
 				It("should return original resource types", func() {
-					Expect(vrts).To(ContainElement(atc.VersionedResourceType{
-						ResourceType: atc.ResourceType{
-							Name:     "some-type",
-							Type:     "registry-image",
-							Source:   atc.Source{"some": "repository"},
-							Defaults: atc.Source{"some-default-k1": "some-default-v1"},
-						},
+					Expect(vrts).To(ContainElement(atc.ResourceType{
+						Name:     "some-type",
+						Type:     "registry-image",
+						Source:   atc.Source{"some": "repository"},
+						Defaults: atc.Source{"some-default-k1": "some-default-v1"},
 					}))
-					Expect(vrts).To(ContainElement(atc.VersionedResourceType{
-						ResourceType: atc.ResourceType{
-							Name: "some-other-type",
-							Type: "some-type",
-							Source: atc.Source{
-								"some-default-k1": "some-default-v1",
-								"some":            "other-repository",
-							},
-							Privileged: true,
+					Expect(vrts).To(ContainElement(atc.ResourceType{
+						Name: "some-other-type",
+						Type: "some-type",
+						Source: atc.Source{
+							"some-default-k1": "some-default-v1",
+							"some":            "other-repository",
 						},
+						Privileged: true,
 					}))
-					Expect(vrts).To(ContainElement(atc.VersionedResourceType{
-						ResourceType: atc.ResourceType{
-							Name: "some-type-with-params",
-							Type: "s3",
-							Source: atc.Source{
-								"some":           "repository",
-								"default-s3-key": "some-value",
-							},
-							Defaults:   nil,
-							Privileged: false,
-							Params:     atc.Params{"unpack": "true"},
+					Expect(vrts).To(ContainElement(atc.ResourceType{
+						Name: "some-type-with-params",
+						Type: "s3",
+						Source: atc.Source{
+							"some":           "repository",
+							"default-s3-key": "some-value",
 						},
+						Defaults:   nil,
+						Privileged: false,
+						Params:     atc.Params{"unpack": "true"},
 					}))
-					Expect(vrts).To(ContainElement(atc.VersionedResourceType{
-						ResourceType: atc.ResourceType{
-							Name:       "some-type-with-custom-check",
-							Type:       "registry-image",
-							Source:     atc.Source{"some": "repository"},
-							CheckEvery: &atc.CheckEvery{Interval: 10 * time.Millisecond},
-						},
+					Expect(vrts).To(ContainElement(atc.ResourceType{
+						Name:       "some-type-with-custom-check",
+						Type:       "registry-image",
+						Source:     atc.Source{"some": "repository"},
+						CheckEvery: &atc.CheckEvery{Interval: 10 * time.Millisecond},
 					}))
 				})
-			})
-		})
-	})
-
-	Describe("Resource type version", func() {
-		var (
-			scenario          *dbtest.Scenario
-			resourceTypeScope db.ResourceConfigScope
-		)
-
-		BeforeEach(func() {
-			scenario = dbtest.Setup(
-				builder.WithPipeline(atc.Config{
-					ResourceTypes: atc.ResourceTypes{
-						{
-							Name:   "some-type",
-							Type:   "some-base-resource-type",
-							Source: atc.Source{"some": "repository"},
-						},
-					},
-				}),
-			)
-			Expect(scenario.ResourceType("some-type").Version()).To(BeNil())
-
-			scenario.Run(builder.WithResourceTypeVersions("some-type"))
-
-			resourceTypeConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(
-				scenario.ResourceType("some-type").Type(),
-				scenario.ResourceType("some-type").Source(),
-				nil,
-			)
-			Expect(err).ToNot(HaveOccurred())
-
-			resourceTypeScope, err = resourceTypeConfig.FindOrCreateScope(nil)
-			Expect(err).ToNot(HaveOccurred())
-		})
-
-		JustBeforeEach(func() {
-			reloaded, err := scenario.ResourceType("some-type").Reload()
-			Expect(reloaded).To(BeTrue())
-			Expect(err).ToNot(HaveOccurred())
-		})
-
-		It("creates a shared scope for the resource type", func() {
-			Expect(resourceTypeScope.Resource()).To(BeNil())
-			Expect(resourceTypeScope.ResourceConfig()).ToNot(BeNil())
-		})
-
-		It("returns the resource config scope id", func() {
-			Expect(scenario.ResourceType("some-type").ResourceConfigScopeID()).To(Equal(resourceTypeScope.ID()))
-		})
-
-		Context("when the resource type has proper versions", func() {
-			BeforeEach(func() {
-				scenario.Run(builder.WithResourceTypeVersions("some-type",
-					atc.Version{"version": "1"},
-					atc.Version{"version": "2"},
-				))
-			})
-
-			It("returns the version", func() {
-				Expect(scenario.ResourceType("some-type").Version()).To(Equal(atc.Version{"version": "2"}))
 			})
 		})
 	})
@@ -622,7 +540,7 @@ var _ = Describe("ResourceType", func() {
 				planFactory := atc.NewPlanFactory(0)
 				version = atc.Version{"version": "from"}
 				sourceDefault := atc.Source{"source-test": "default"}
-				createdCheckPlan = resourceType.CheckPlan(planFactory, atc.VersionedResourceTypes{}, version, 1*time.Hour, sourceDefault)
+				createdCheckPlan = resourceType.CheckPlan(planFactory, atc.ResourceTypes{}, version, 1*time.Hour, sourceDefault, false, false)
 			})
 
 			It("produces a simple check plan", func() {
@@ -688,14 +606,13 @@ var _ = Describe("ResourceType", func() {
 				planFactory := atc.NewPlanFactory(0)
 				version = atc.Version{"version": "from"}
 				createdCheckPlan = resourceType.CheckPlan(planFactory,
-					atc.VersionedResourceTypes{{
-						ResourceType: atc.ResourceType{
+					atc.ResourceTypes{
+						{
 							Name:   "some-resource-type",
 							Type:   "some-base-resource-type",
 							Source: atc.Source{"some": "type-source"},
 						},
-						Version: nil,
-					}}, version, 1*time.Hour, nil)
+					}, version, 1*time.Hour, nil, false, false)
 			})
 
 			It("produces a check plan with nested image steps", func() {
@@ -785,15 +702,14 @@ var _ = Describe("ResourceType", func() {
 				planFactory := atc.NewPlanFactory(0)
 				version = atc.Version{"version": "from"}
 				createdCheckPlan = resourceType.CheckPlan(planFactory,
-					atc.VersionedResourceTypes{{
-						ResourceType: atc.ResourceType{
+					atc.ResourceTypes{
+						{
 							Name:       "some-resource-type",
 							Type:       "some-base-resource-type",
 							Source:     atc.Source{"some": "type-source"},
 							Privileged: true,
 						},
-						Version: atc.Version{"some": "version"},
-					}}, version, 1*time.Hour, nil)
+					}, version, 1*time.Hour, nil, false, false)
 			})
 
 			It("produces a check plan with privileged", func() {
@@ -839,6 +755,159 @@ var _ = Describe("ResourceType", func() {
 					},
 				}
 				Expect(createdCheckPlan).To(Equal(expectedPlan))
+			})
+		})
+
+		Context("when skipping the interval", func() {
+			var resourceType db.ResourceType
+
+			BeforeEach(func() {
+				pipeline, created, err := defaultTeam.SavePipeline(
+					atc.PipelineRef{Name: "pipeline-with-resource-custom-type"},
+					atc.Config{
+						ResourceTypes: atc.ResourceTypes{
+							{
+								Name: "some-custom-resource-type",
+								Type: "some-resource-type",
+								Source: atc.Source{
+									"some": "source",
+								},
+							},
+							{
+								Name:   "some-resource-type",
+								Type:   "some-base-resource-type",
+								Source: atc.Source{"some": "type-source"},
+							},
+						},
+					},
+					0,
+					false,
+				)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(created).To(BeTrue())
+
+				var found bool
+				resourceType, found, err = pipeline.ResourceType("some-custom-resource-type")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+			})
+
+			Context("when not skipping the interval recursively", func() {
+				It("skips the interval for the resource check, but not for the resource type", func() {
+					planFactory := atc.NewPlanFactory(0)
+					version := atc.Version{"version": "from"}
+					createdCheckPlan := resourceType.CheckPlan(planFactory,
+						atc.ResourceTypes{
+							{
+								Name:   "some-resource-type",
+								Type:   "some-base-resource-type",
+								Source: atc.Source{"some": "type-source"},
+							},
+						}, version, 1*time.Hour, nil, true, false)
+
+					checkPlanID := atc.PlanID("1/image-check")
+					expectedPlan := atc.Plan{
+						ID: atc.PlanID("1"),
+						Check: &atc.CheckPlan{
+							Name: resourceType.Name(),
+							Type: resourceType.Type(),
+							Source: atc.Source{
+								"some": "source",
+							},
+							SkipInterval: true,
+							TypeImage: atc.TypeImage{
+								BaseType: "some-base-resource-type",
+								CheckPlan: &atc.Plan{
+									ID: checkPlanID,
+									Check: &atc.CheckPlan{
+										Name:         "some-resource-type",
+										Type:         "some-base-resource-type",
+										Source:       atc.Source{"some": "type-source"},
+										SkipInterval: false,
+										TypeImage: atc.TypeImage{
+											BaseType: "some-base-resource-type",
+										},
+									},
+								},
+								GetPlan: &atc.Plan{
+									ID: atc.PlanID("1/image-get"),
+									Get: &atc.GetPlan{
+										Name:   "some-resource-type",
+										Type:   "some-base-resource-type",
+										Source: atc.Source{"some": "type-source"},
+										TypeImage: atc.TypeImage{
+											BaseType: "some-base-resource-type",
+										},
+										VersionFrom: &checkPlanID,
+									},
+								},
+							},
+							FromVersion:  version,
+							ResourceType: resourceType.Name(),
+							Interval:     "1h0m0s",
+						},
+					}
+					Expect(createdCheckPlan).To(Equal(expectedPlan))
+				})
+			})
+
+			Context("when skipping the interval recursively", func() {
+				It("skips the interval for the resource and resource type checks", func() {
+					planFactory := atc.NewPlanFactory(0)
+					version := atc.Version{"version": "from"}
+					createdCheckPlan := resourceType.CheckPlan(planFactory,
+						atc.ResourceTypes{
+							{
+								Name:   "some-resource-type",
+								Type:   "some-base-resource-type",
+								Source: atc.Source{"some": "type-source"},
+							},
+						}, version, 1*time.Hour, nil, true, true)
+
+					checkPlanID := atc.PlanID("1/image-check")
+					expectedPlan := atc.Plan{
+						ID: atc.PlanID("1"),
+						Check: &atc.CheckPlan{
+							Name: resourceType.Name(),
+							Type: resourceType.Type(),
+							Source: atc.Source{
+								"some": "source",
+							},
+							SkipInterval: true,
+							TypeImage: atc.TypeImage{
+								BaseType: "some-base-resource-type",
+								CheckPlan: &atc.Plan{
+									ID: checkPlanID,
+									Check: &atc.CheckPlan{
+										Name:         "some-resource-type",
+										Type:         "some-base-resource-type",
+										Source:       atc.Source{"some": "type-source"},
+										SkipInterval: true,
+										TypeImage: atc.TypeImage{
+											BaseType: "some-base-resource-type",
+										},
+									},
+								},
+								GetPlan: &atc.Plan{
+									ID: atc.PlanID("1/image-get"),
+									Get: &atc.GetPlan{
+										Name:   "some-resource-type",
+										Type:   "some-base-resource-type",
+										Source: atc.Source{"some": "type-source"},
+										TypeImage: atc.TypeImage{
+											BaseType: "some-base-resource-type",
+										},
+										VersionFrom: &checkPlanID,
+									},
+								},
+							},
+							FromVersion:  version,
+							ResourceType: resourceType.Name(),
+							Interval:     "1h0m0s",
+						},
+					}
+					Expect(createdCheckPlan).To(Equal(expectedPlan))
+				})
 			})
 		})
 	})
