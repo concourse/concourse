@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/concourse/flag"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/trace/jaeger"
 	export "go.opentelemetry.io/otel/sdk/export/trace"
@@ -14,9 +15,9 @@ import (
 
 // Jaeger service to export traces to
 type Jaeger struct {
-	Endpoint string            `yaml:"endpoint,omitempty"`
-	Tags     map[string]string `yaml:"tags,omitempty"`
-	Service  string            `yaml:"service,omitempty"`
+	Endpoint string              `yaml:"endpoint,omitempty"`
+	Tags     flag.StringToString `yaml:"tags,omitempty"`
+	Service  string              `yaml:"service,omitempty"`
 }
 
 func (j Jaeger) ID() string {
@@ -34,7 +35,7 @@ func (j Jaeger) Validate() error {
 
 // Exporter returns a SpanExporter to sync spans to Jaeger
 func (j Jaeger) Exporter() (export.SpanExporter, error) {
-	attributes := append([]attribute.KeyValue{semconv.ServiceNameKey.String(j.Service)}, keyValueSlice(j.Tags)...)
+	attributes := append([]attribute.KeyValue{semconv.ServiceNameKey.String(j.Service)}, keyValueSlice(map[string]string(j.Tags))...)
 	exporter, err := jaeger.NewRawExporter(
 		jaeger.WithCollectorEndpoint(j.Endpoint),
 		jaeger.WithSDKOptions(sdktrace.WithResource(resource.NewWithAttributes(attributes...))),

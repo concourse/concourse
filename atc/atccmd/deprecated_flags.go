@@ -25,7 +25,7 @@ func InitializeATCFlagsDEPRECATED(c *cobra.Command, flags *RunConfig) {
 	InitializeLetsEncryptFlags(c, flags)
 	c.Flags().Var(&flags.ConfigRBAC, "config-rbac", "Customize RBAC role-action mapping.")
 	InitializePolicyFlags(c, flags)
-	c.Flags().StringToStringVar(&flags.DisplayUserIdPerConnector, "display-user-id-per-connector", nil, "Define how to display user ID for each authentication connector. Format is <connector>:<fieldname>. Valid field names are user_id, name, username and email, where name maps to claims field username, and username maps to claims field preferred username")
+	c.Flags().Var(&flags.DisplayUserIdPerConnector, "display-user-id-per-connector", "Define how to display user ID for each authentication connector. Format is <connector>:<fieldname>. Valid field names are user_id, name, username and email, where name maps to claims field username, and username maps to claims field preferred username")
 
 	InitializeDatabaseFlags(c, flags)
 
@@ -242,7 +242,7 @@ func InitializeTeamConnectorsFlags(c *cobra.Command, flags *RunConfig) {
 func InitializeDatabaseFlags(c *cobra.Command, flags *RunConfig) {
 	InitializePostgresFlags(c, &flags.Database.Postgres)
 
-	c.Flags().StringToIntVar(&flags.Database.ConcurrentRequestLimits, "concurrent-request-limit", nil, "Limit the number of concurrent requests to an API endpoint (Example: ListAllJobs:5)")
+	c.Flags().Var(&flags.Database.ConcurrentRequestLimits, "concurrent-request-limit", "Limit the number of concurrent requests to an API endpoint (Example: ListAllJobs:5)")
 	c.Flags().IntVar(&flags.Database.APIMaxOpenConnections, "api-max-conns", CmdDefaults.Database.APIMaxOpenConnections, "The maximum number of open connections for the api connection pool.")
 	c.Flags().IntVar(&flags.Database.BackendMaxOpenConnections, "backend-max-conns", CmdDefaults.Database.BackendMaxOpenConnections, "The maximum number of open connections for the backend connection pool.")
 	c.Flags().Var(&flags.Database.EncryptionKey, "encryption-key", "A 16 or 32 length key used to encrypt sensitive information before storing it in the database.")
@@ -281,7 +281,7 @@ func InitializeRuntimeFlags(c *cobra.Command, flags *RunConfig) {
 
 func InitializeMetricsFlags(c *cobra.Command, flags *RunConfig) {
 	c.Flags().StringVar(&flags.Metrics.HostName, "metrics-host-name", "", "Host string to attach to emitted metrics.")
-	c.Flags().StringToStringVar(&flags.Metrics.Attributes, "metrics-attribute", nil, "A key-value attribute to attach to emitted metrics. Can be specified multiple times. Ex: NAME:VALUE")
+	c.Flags().Var(&flags.Metrics.Attributes, "metrics-attribute", "A key-value attribute to attach to emitted metrics. Can be specified multiple times. Ex: NAME:VALUE")
 	c.Flags().Uint32Var(&flags.Metrics.BufferSize, "metrics-buffer-size", CmdDefaults.Metrics.BufferSize, "The size of the buffer used in emitting event metrics.")
 	c.Flags().BoolVar(&flags.Metrics.CaptureErrorMetrics, "capture-error-metrics", false, "Enable capturing of error log metrics")
 }
@@ -395,12 +395,12 @@ func InitializeManagerFlags(c *cobra.Command, flags *RunConfig) {
 	c.Flags().DurationVar(&flags.CredentialManagers.Vault.Auth.BackendMaxTTL, "vault-auth-backend-max-ttl", 0, "Time after which to force a re-login. If not set, the token will just be continuously renewed.")
 	c.Flags().DurationVar(&flags.CredentialManagers.Vault.Auth.RetryMax, "vault-retry-max", CmdDefaults.CredentialManagers.Vault.Auth.RetryMax, "The maximum time between retries when logging in or re-authing a secret.")
 	c.Flags().DurationVar(&flags.CredentialManagers.Vault.Auth.RetryInitial, "vault-retry-initial", CmdDefaults.CredentialManagers.Vault.Auth.RetryInitial, "The initial time between retries when logging in or re-authing a secret.")
-	c.Flags().StringToStringVar(&flags.CredentialManagers.Vault.Auth.Params, "vault-auth-param", nil, "Paramter to pass when logging in via the backend. Can be specified multiple times. Ex.NAME:VALUE")
+	c.Flags().Var(&flags.CredentialManagers.Vault.Auth.Params, "vault-auth-param", "Paramter to pass when logging in via the backend. Can be specified multiple times. Ex.NAME:VALUE")
 }
 
 func InitializeTracingFlags(c *cobra.Command, flags *RunConfig) {
 	c.Flags().StringVar(&flags.Tracing.ServiceName, "tracing-service-name", "concourse-web", "service name to attach to traces as metadata")
-	c.Flags().StringToStringVar(&flags.Tracing.Attributes, "tracing-attribute", nil, "attributes to attach to traces as metadata")
+	c.Flags().Var(&flags.Tracing.Attributes, "tracing-attribute", "attributes to attach to traces as metadata")
 
 	// Honeycomb
 	c.Flags().StringVar(&flags.Tracing.Providers.Honeycomb.APIKey, "tracing-honeycomb-api-key", "", "honeycomb.io api key")
@@ -408,7 +408,7 @@ func InitializeTracingFlags(c *cobra.Command, flags *RunConfig) {
 
 	// Jaeger
 	c.Flags().StringVar(&flags.Tracing.Providers.Jaeger.Endpoint, "tracing-jaeger-endpoint", "", "jaeger http-based thrift collector")
-	c.Flags().StringToStringVar(&flags.Tracing.Providers.Jaeger.Tags, "tracing-jaeger-tags", nil, "tags to add to the components")
+	c.Flags().Var(&flags.Tracing.Providers.Jaeger.Tags, "tracing-jaeger-tags", "tags to add to the components")
 	c.Flags().StringVar(&flags.Tracing.Providers.Jaeger.Service, "tracing-jaeger-service", CmdDefaults.Tracing.Providers.Jaeger.Service, "jaeger process service name")
 
 	// Stackdriver
@@ -416,7 +416,7 @@ func InitializeTracingFlags(c *cobra.Command, flags *RunConfig) {
 
 	// OTLP
 	c.Flags().StringVar(&flags.Tracing.Providers.OTLP.Address, "tracing-otlp-address", "", "otlp address to send traces to")
-	c.Flags().StringToStringVar(&flags.Tracing.Providers.OTLP.Headers, "tracing-otlp-header", nil, "headers to attach to each tracing message")
+	c.Flags().Var(&flags.Tracing.Providers.OTLP.Headers, "tracing-otlp-header", "headers to attach to each tracing message")
 	c.Flags().BoolVar(&flags.Tracing.Providers.OTLP.UseTLS, "tracing-otlp-use-tls", false, "whether to use tls or not")
 }
 
@@ -481,8 +481,8 @@ func InitializeAuthFlags(c *cobra.Command, flags *RunConfig) {
 	c.Flags().BoolVar(&flags.Auth.AuthFlags.SecureCookies, "cookie-secure", false, "Force sending secure flag on http cookies")
 	c.Flags().DurationVar(&flags.Auth.AuthFlags.Expiration, "auth-duration", CmdDefaults.Auth.AuthFlags.Expiration, "Length of time for which tokens are valid. Afterwards, users will have to log back in.")
 	c.Flags().Var(flags.Auth.AuthFlags.SigningKey, "session-signing-key", "File containing an RSA private key, used to sign auth tokens.")
-	c.Flags().StringToStringVar(&flags.Auth.AuthFlags.LocalUsers, "add-local-user", nil, "List of username:password combinations for all your local users. The password can be bcrypted - if so, it must have a minimum cost of 10. Ex. USERNAME:PASSWORD")
-	c.Flags().StringToStringVar(&flags.Auth.AuthFlags.Clients, "add-client", nil, "List of client_id:client_secret combinations. Ex. CLIENT_ID:CLIENT_SECRET")
+	c.Flags().Var(&flags.Auth.AuthFlags.LocalUsers, "add-local-user", "List of username:password combinations for all your local users. The password can be bcrypted - if so, it must have a minimum cost of 10. Ex. USERNAME:PASSWORD")
+	c.Flags().Var(&flags.Auth.AuthFlags.Clients, "add-client", "List of client_id:client_secret combinations. Ex. CLIENT_ID:CLIENT_SECRET")
 	c.Flags().StringVar(&flags.Auth.AuthFlags.PasswordConnector, "password-connector", CmdDefaults.Auth.AuthFlags.PasswordConnector, "Connector to use when authenticating via 'fly login -u ... -p ...'")
 
 	InitializeConnectorFlags(c, flags)

@@ -100,7 +100,7 @@ func InitializeWeb(cmd *cobra.Command, args []string) error {
 		decoder := yaml.NewDecoder(file)
 		err = decoder.Decode(&webCmd)
 		if err != nil {
-			return fmt.Errorf("decode config: %s", err)
+			return fmt.Errorf("decode config: %w", err)
 		}
 	}
 

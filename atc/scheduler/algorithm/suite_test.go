@@ -38,9 +38,11 @@ var _ = BeforeSuite(func() {
 
 	if jaegerURL != "" {
 		c := tracing.Config{
-			Jaeger: tracing.Jaeger{
-				Endpoint: jaegerURL + "/api/traces",
-				Service:  "algorithm_test",
+			Providers: tracing.ProvidersConfig{
+				Jaeger: tracing.Jaeger{
+					Endpoint: jaegerURL + "/api/traces",
+					Service:  "algorithm_test",
+				},
 			},
 		}
 

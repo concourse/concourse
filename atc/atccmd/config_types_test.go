@@ -27,7 +27,9 @@ func (s *ConfigTypesSuite) TestConfiguredCredentialManagers() {
 	credsManagerConfig := atccmd.CredentialManagersConfig{}
 	v := reflect.ValueOf(credsManagerConfig)
 	for i := 0; i < v.NumField(); i++ {
-		manager := v.Field(i).Interface().(creds.Manager)
+		m := reflect.New(v.Field(i).Type())
+		m.Elem().Set(v.Field(i))
+		manager := m.Interface().(creds.Manager)
 		expectedCredsManagers = append(expectedCredsManagers, manager.Name())
 	}
 
@@ -44,8 +46,10 @@ func (s *ConfigTypesSuite) TestConfiguredMetricsEmitter() {
 	metricsEmitterConfig := atccmd.MetricsEmitterConfig{}
 	v := reflect.ValueOf(metricsEmitterConfig)
 	for i := 0; i < v.NumField(); i++ {
-		emitter := v.Field(i).Interface().(metric.EmitterFactory)
-		expectedEmitters = append(expectedEmitters, emitter.Description())
+		e := reflect.New(v.Field(i).Type())
+		e.Elem().Set(v.Field(i))
+		emitter := e.Interface().(metric.EmitterFactory)
+		expectedEmitters = append(expectedEmitters, emitter.ID())
 	}
 
 	var actualMetricsEmitter []string

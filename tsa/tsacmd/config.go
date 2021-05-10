@@ -42,7 +42,7 @@ type TSAConfig struct {
 
 	Debug DebugConfig `yaml:"debug,omitempty"`
 
-	HostKey                *flag.PrivateKey       `yaml:"host_key,omitempty" validate:"required" env:"CONCOURSE_WORKER_GATEWAY_HOST_KEY,CONCOURSE_TSA_HOST_KEY"`
+	HostKey                flag.PrivateKey        `yaml:"host_key,omitempty" validate:"required" env:"CONCOURSE_WORKER_GATEWAY_HOST_KEY,CONCOURSE_TSA_HOST_KEY"`
 	AuthorizedKeys         flag.AuthorizedKeys    `yaml:"authorized_keys,omitempty" env:"CONCOURSE_WORKER_GATEWAY_AUTHORIZED_KEYS,CONCOURSE_TSA_AUTHORIZED_KEYS"`
 	TeamAuthorizedKeys     flag.AuthorizedKeysMap `yaml:"team_authorized_keys,omitempty" env:"CONCOURSE_WORKER_GATEWAY_TEAM_AUTHORIZED_KEYS,CONCOURSE_TSA_TEAM_AUTHORIZED_KEYS"`
 	TeamAuthorizedKeysFile flag.File              `yaml:"team_authorized_keys_file,omitempty" env:"CONCOURSE_WORKER_GATEWAY_TEAM_AUTHORIZED_KEYS_FILE,CONCOURSE_TSA_TEAM_AUTHORIZED_KEYS_FILE"`
@@ -309,7 +309,7 @@ func (cmd *TSAConfig) configureSSHServer(sessionAuthTeam *sessionTeam, authorize
 		},
 	}
 
-	signer, err := ssh.NewSignerFromKey(cmd.HostKey)
+	signer, err := ssh.NewSignerFromKey(cmd.HostKey.PrivateKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create signer from host key: %s", err)
 	}

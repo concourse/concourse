@@ -44,7 +44,7 @@ const (
 )
 
 func (g GenerateKeyConfig) Validate() error {
-	if g.Type != string(RSAKeyType) || g.Type != string(SSHKeyType) {
+	if g.Type != string(RSAKeyType) && g.Type != string(SSHKeyType) {
 		return fmt.Errorf("generate key type %s is not valid. Valid types include %s and %s", g.Type, RSAKeyType, SSHKeyType)
 	}
 

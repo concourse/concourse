@@ -37,9 +37,9 @@ type LetsEncryptConfig struct {
 type DatabaseConfig struct {
 	Postgres flag.PostgresConfig `yaml:"postgres,omitempty"`
 
-	ConcurrentRequestLimits   map[string]int `yaml:"concurrent_request_limit,omitempty" validate:"dive,keys,limited_route,endkeys"`
-	APIMaxOpenConnections     int            `yaml:"api_max_conns,omitempty"`
-	BackendMaxOpenConnections int            `yaml:"backend_max_conns,omitempty"`
+	ConcurrentRequestLimits   flag.StringToInt `yaml:"concurrent_request_limit,omitempty" validate:"dive,keys,limited_route,endkeys"`
+	APIMaxOpenConnections     int              `yaml:"api_max_conns,omitempty"`
+	BackendMaxOpenConnections int              `yaml:"backend_max_conns,omitempty"`
 
 	EncryptionKey    flag.Cipher `yaml:"encryption_key,omitempty"`
 	OldEncryptionKey flag.Cipher `yaml:"old_encryption_key,omitempty"`
@@ -100,10 +100,10 @@ type RuntimeConfig struct {
 // IMPORTANT! The env tags are only added for backwards compatibility sake. Any
 // new fields do NOT require the env tag
 type MetricsConfig struct {
-	HostName            string            `yaml:"host_name,omitempty"`
-	Attributes          map[string]string `yaml:"attributes,omitempty"`
-	BufferSize          uint32            `yaml:"buffer_size,omitempty"`
-	CaptureErrorMetrics bool              `yaml:"capture_errors,omitempty" env:"CONCOURSE_METRICS_CAPTURE_ERRORS,CONCOURSE_CAPTURE_ERROR_METRICS"`
+	HostName            string              `yaml:"host_name,omitempty"`
+	Attributes          flag.StringToString `yaml:"attributes,omitempty"`
+	BufferSize          uint32              `yaml:"buffer_size,omitempty"`
+	CaptureErrorMetrics bool                `yaml:"capture_errors,omitempty" env:"CONCOURSE_METRICS_CAPTURE_ERRORS,CONCOURSE_CAPTURE_ERROR_METRICS"`
 
 	Emitter  string               `yaml:"emitter,omitempty" validate:"metrics_emitter"`
 	Emitters MetricsEmitterConfig `yaml:",inline"`

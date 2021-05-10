@@ -1,6 +1,9 @@
 package tracing
 
 import (
+	"errors"
+
+	multierror "github.com/hashicorp/go-multierror"
 	export "go.opentelemetry.io/otel/sdk/export/trace"
 )
 

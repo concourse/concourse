@@ -2,14 +2,14 @@ package worker
 
 import (
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/flag"
 	"github.com/concourse/concourse/tsa"
+	"github.com/concourse/flag"
 )
 
 type TSAConfig struct {
 	Hosts            []string            `yaml:"host"`
 	PublicKey        flag.AuthorizedKeys `yaml:"public_key"`
-	WorkerPrivateKey *flag.PrivateKey    `yaml:"worker_private_key" validate:"required"`
+	WorkerPrivateKey flag.PrivateKey     `yaml:"worker_private_key" validate:"required"`
 }
 
 func (config TSAConfig) Client(worker atc.Worker) *tsa.Client {

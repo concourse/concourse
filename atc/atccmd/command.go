@@ -119,7 +119,7 @@ type RunConfig struct {
 	LetsEncrypt               LetsEncryptConfig    `yaml:"lets_encrypt,omitempty"`
 	ConfigRBAC                flag.File            `yaml:"config_rbac,omitempty" validate:"rbac"`
 	PolicyCheckers            PolicyCheckersConfig `yaml:"policy_check,omitempty"`
-	DisplayUserIdPerConnector map[string]string    `yaml:"display_user_id_per_connector,omitempty" validate:"connectors"`
+	DisplayUserIdPerConnector flag.StringToString  `yaml:"display_user_id_per_connector,omitempty" validate:"connectors"`
 
 	Database DatabaseConfig `yaml:"database,omitempty" ignore_env:"true"`
 
@@ -327,10 +327,6 @@ var CmdDefaults RunConfig = RunConfig{
 		ServiceName: "concourse-web",
 
 		Providers: tracing.ProvidersConfig{
-			Honeycomb: tracing.Honeycomb{
-				ServiceName: "concourse",
-			},
-
 			Jaeger: tracing.Jaeger{
 				Service: "web",
 			},

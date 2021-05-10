@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/concourse/flag"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -24,14 +25,14 @@ import (
 type Service interface {
 	ID() string
 	Validate() error
-	Exporter() (export.SpanSyncer, error)
+	Exporter() (export.SpanExporter, error)
 }
 
 var Configured bool
 
 type Config struct {
-	ServiceName string            `yaml:"service_name,omitempty"`
-	Attributes  map[string]string `yaml:"attribute,omitempty"`
+	ServiceName string              `yaml:"service_name,omitempty"`
+	Attributes  flag.StringToString `yaml:"attribute,omitempty"`
 
 	Provider  string          `yaml:"provider,omitempty" validate:"tracing_provider"`
 	Providers ProvidersConfig `yaml:",inline"`

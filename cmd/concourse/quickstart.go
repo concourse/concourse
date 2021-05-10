@@ -138,10 +138,7 @@ func (cmd *QuickstartConfig) Execute(args []string) error {
 	return <-ifrit.Invoke(sigmon.New(runner)).Wait()
 }
 
-func checkNilKeys(key *flag.PrivateKey) bool {
-	if key == nil {
-		return true
-	}
+func checkNilKeys(key flag.PrivateKey) bool {
 	if key.PrivateKey == nil {
 		return true
 	}
@@ -182,7 +179,7 @@ func (cmd *QuickstartConfig) PopulateFields() error {
 			return fmt.Errorf("failed to create worker authorized key: %s", err)
 		}
 
-		cmd.WebConfig.TSAConfig.HostKey = &flag.PrivateKey{PrivateKey: tsaHostKey}
+		cmd.WebConfig.TSAConfig.HostKey = flag.PrivateKey{PrivateKey: tsaHostKey}
 		cmd.WorkerCommand.TSA.PublicKey.Keys =
 			append(cmd.WorkerCommand.TSA.PublicKey.Keys, tsaHostPublicKey)
 	}
@@ -198,7 +195,7 @@ func (cmd *QuickstartConfig) PopulateFields() error {
 			return fmt.Errorf("failed to create worker authorized key: %s", err)
 		}
 
-		cmd.WorkerCommand.TSA.WorkerPrivateKey = &flag.PrivateKey{PrivateKey: workerKey}
+		cmd.WorkerCommand.TSA.WorkerPrivateKey = flag.PrivateKey{PrivateKey: workerKey}
 		cmd.WebConfig.TSAConfig.AuthorizedKeys.Keys =
 			append(cmd.WebConfig.TSAConfig.AuthorizedKeys.Keys, workerPublicKey)
 	}

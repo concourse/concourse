@@ -50,7 +50,7 @@ func InitializeWorkerFlags(c *cobra.Command, flags *WorkerCommand, prefix string
 func InitializeTSAConfigFlags(c *cobra.Command, flags *WorkerCommand, prefix string) {
 	c.Flags().StringSliceVar(&flags.TSA.Hosts, prefix+"tsa-host", CmdDefaults.TSA.Hosts, "TSA host to forward the worker through. Can be specified multiple times.")
 	c.Flags().Var(&flags.TSA.PublicKey, prefix+"tsa-public-key", "File containing a public key to expect from the TSA.")
-	c.Flags().Var(flags.TSA.WorkerPrivateKey, prefix+"tsa-worker-private-key", "File containing the private key to use when authenticating to the TSA.")
+	c.Flags().Var(&flags.TSA.WorkerPrivateKey, prefix+"tsa-worker-private-key", "File containing the private key to use when authenticating to the TSA.")
 }
 
 func InitializeDebugConfigFlags(c *cobra.Command, flags *WorkerCommand, prefix string) {

@@ -1,7 +1,6 @@
 package tsacmd
 
 import (
-	"github.com/concourse/flag"
 	"github.com/spf13/cobra"
 )
 
@@ -20,11 +19,7 @@ func InitializeTSAFlagsDEPRECATED(c *cobra.Command, flags *TSAConfig) {
 	c.Flags().IPVar(&flags.Debug.BindIP, "tsa-debug-bind-ip", CmdDefaults.Debug.BindIP, "IP address on which to listen for the pprof debugger endpoints.")
 	c.Flags().Uint16Var(&flags.Debug.BindPort, "tsa-debug-bind-port", CmdDefaults.Debug.BindPort, "Port on which to listen for the pprof debugger endpoints.")
 
-	var hostKey flag.PrivateKey
-	c.Flags().Var(&hostKey, "tsa-host-key", "Path to private key to use for the SSH server.")
-	if hostKey.PrivateKey != nil {
-		flags.HostKey = &hostKey
-	}
+	c.Flags().Var(&flags.HostKey, "tsa-host-key", "Path to private key to use for the SSH server.")
 
 	c.Flags().Var(&flags.AuthorizedKeys, "tsa-authorized-keys", "Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line).")
 	c.Flags().Var(&flags.TeamAuthorizedKeys, "tsa-team-authorized-keys", "Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line).")

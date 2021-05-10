@@ -24,7 +24,7 @@ func init() {
 	LandWorkerCommand.Flags().StringVar(&landWorkerCmd.WorkerName, "name", "", "The name of the worker you wish to land.")
 	LandWorkerCommand.Flags().StringSliceVar(&landWorkerCmd.TSA.Hosts, "tsa-host", []string{"127.0.0.1:2222"}, "TSA host to forward the worker through. Can be specified multiple times.")
 	LandWorkerCommand.Flags().Var(&landWorkerCmd.TSA.PublicKey, "tsa-public-key", "File containing a public key to expect from the TSA.")
-	LandWorkerCommand.Flags().Var(landWorkerCmd.TSA.WorkerPrivateKey, "tsa-worker-private-key", "File containing the private key to use when authenticating to the TSA.")
+	LandWorkerCommand.Flags().Var(&landWorkerCmd.TSA.WorkerPrivateKey, "tsa-worker-private-key", "File containing the private key to use when authenticating to the TSA.")
 
 	LandWorkerCommand.MarkFlagRequired("name")
 	LandWorkerCommand.MarkFlagRequired("tsa-host")

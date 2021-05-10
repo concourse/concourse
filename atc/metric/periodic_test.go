@@ -29,7 +29,6 @@ var _ = Describe("Periodic emission of metrics", func() {
 		monitor = metric.NewMonitor()
 
 		emitterFactory := &metricfakes.FakeEmitterFactory{}
-		emitterFactory.IsConfiguredReturns(true)
 		emitterFactory.NewEmitterReturns(emitter, nil)
 
 		monitor.Initialize(testLogger, emitterFactory, "test", map[string]string{}, 1000)

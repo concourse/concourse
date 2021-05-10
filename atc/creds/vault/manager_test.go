@@ -24,20 +24,9 @@ import (
 var _ = Describe("VaultManager", func() {
 	var manager vault.VaultManager
 
-	Describe("IsConfigured()", func() {
-		It("fails on empty Manager", func() {
-			Expect(manager.IsConfigured()).To(BeFalse())
-		})
-
-		It("passes if URL is set", func() {
-			manager.URL = "http://vault"
-			Expect(manager.IsConfigured()).To(BeTrue())
-		})
-	})
-
 	Describe("Validate()", func() {
-		JustBeforeEach(func() {
-			manager = *atccmd.CmdDefaults.CredentialManagers.Vault
+		BeforeEach(func() {
+			manager = atccmd.CmdDefaults.CredentialManagers.Vault
 			manager.URL = "http://vault"
 			manager.Auth = vault.AuthConfig{
 				ClientToken: "xxx",
@@ -55,6 +44,16 @@ var _ = Describe("VaultManager", func() {
 
 		It("passes on default parameters", func() {
 			Expect(manager.Validate()).To(BeNil())
+		})
+
+		Context("when url is not passed in", func() {
+			BeforeEach(func() {
+				manager.URL = ""
+			})
+
+			It("fails on validation", func() {
+				Expect(manager.Validate()).ToNot(BeNil())
+			})
 		})
 
 		DescribeTable("passes if all vault credentials are specified",

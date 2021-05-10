@@ -302,7 +302,7 @@ func ValidateLogLevel(field validator.FieldLevel) bool {
 }
 
 func ValidateConnectors(field validator.FieldLevel) bool {
-	userIDPerConnector := field.Field().Interface().(map[string]string)
+	userIDPerConnector := field.Field().Interface().(flag.StringToString)
 
 	for connectorId, fieldName := range userIDPerConnector {
 		valid := false

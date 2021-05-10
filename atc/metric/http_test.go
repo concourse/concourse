@@ -35,7 +35,6 @@ var _ = Describe("MetricsHandler", func() {
 		monitor = NewMonitor()
 
 		emitterFactory := &metricfakes.FakeEmitterFactory{}
-		emitterFactory.IsConfiguredReturns(true)
 		emitterFactory.NewEmitterReturns(emitter, nil)
 
 		monitor.Initialize(testLogger, emitterFactory, "test", map[string]string{}, 1000)

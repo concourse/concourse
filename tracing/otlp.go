@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/concourse/flag"
 	"go.opentelemetry.io/otel/exporters/otlp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpgrpc"
 	export "go.opentelemetry.io/otel/sdk/export/trace"
@@ -12,9 +13,9 @@ import (
 
 // OTLP service to export traces to
 type OTLP struct {
-	Address string            `yaml:"address,omitempty"`
-	Headers map[string]string `yaml:"header,omitempty"`
-	UseTLS  bool              `yaml:"use_tls,omitempty"`
+	Address string              `yaml:"address,omitempty"`
+	Headers flag.StringToString `yaml:"header,omitempty"`
+	UseTLS  bool                `yaml:"use_tls,omitempty"`
 }
 
 func (s OTLP) ID() string {

@@ -12,6 +12,7 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/flag"
 )
 
 const managerName = "vault"
@@ -57,7 +58,7 @@ type AuthConfig struct {
 	RetryMax      time.Duration `yaml:"auth_retry_max,omitempty"`
 	RetryInitial  time.Duration `yaml:"auth_retry_initial,omitempty"`
 
-	Params map[string]string `yaml:"auth_params,omitempty"`
+	Params flag.StringToString `yaml:"auth_params,omitempty"`
 }
 
 func (manager *VaultManager) Name() string {

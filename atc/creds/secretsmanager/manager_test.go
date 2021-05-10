@@ -12,20 +12,9 @@ import (
 var _ = Describe("Manager", func() {
 	var manager secretsmanager.Manager
 
-	Describe("IsConfigured()", func() {
-		It("fails on empty Manager", func() {
-			Expect(manager.IsConfigured()).To(BeFalse())
-		})
-
-		It("passes if AwsRegion is set", func() {
-			manager.AwsRegion = "test-region"
-			Expect(manager.IsConfigured()).To(BeTrue())
-		})
-	})
-
 	Describe("Validate()", func() {
-		JustBeforeEach(func() {
-			manager = *atccmd.CmdDefaults.CredentialManagers.SecretsManager
+		BeforeEach(func() {
+			manager = atccmd.CmdDefaults.CredentialManagers.SecretsManager
 			manager.AwsRegion = "test-region"
 
 			Expect(manager.PipelineSecretTemplate).To(Equal(secretsmanager.DefaultPipelineSecretTemplate))
@@ -34,6 +23,16 @@ var _ = Describe("Manager", func() {
 
 		It("passes on default parameters", func() {
 			Expect(manager.Validate()).To(BeNil())
+		})
+
+		Context("when region is not set", func() {
+			BeforeEach(func() {
+				manager.AwsRegion = ""
+			})
+
+			It("fails validation", func() {
+				Expect(manager.Validate()).ToNot(BeNil())
+			})
 		})
 
 		DescribeTable("passes if all aws credentials are specified",
