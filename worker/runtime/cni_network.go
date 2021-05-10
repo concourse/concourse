@@ -157,9 +157,18 @@ func WithCNIFileStore(f FileStore) CNINetworkOpt {
 
 // WithRestrictedNetworks defines the network ranges that containers will be restricted
 // from accessing.
+//
 func WithRestrictedNetworks(restrictedNetworks []string) CNINetworkOpt {
 	return func(n *cniNetwork) {
 		n.restrictedNetworks = restrictedNetworks
+	}
+}
+
+// WithAllowHostAccess allows containers to talk to the host
+//
+func WithAllowHostAccess() CNINetworkOpt {
+	return func(n *cniNetwork) {
+		n.allowHostAccess = true
 	}
 }
 
@@ -178,6 +187,7 @@ type cniNetwork struct {
 	nameServers        []string
 	binariesDir        string
 	restrictedNetworks []string
+	allowHostAccess    bool
 	ipt                iptables.Iptables
 }
 
@@ -233,10 +243,14 @@ func (n cniNetwork) SetupHostNetwork() error  {
 	if err != nil {
 		return err
 	}
-	err = n.restrictHostAccess()
-	if err != nil {
-		return err
+
+	if !n.allowHostAccess {
+		err = n.restrictHostAccess()
+		if err != nil {
+			return err
+		}
 	}
+
 	return nil
 }
 

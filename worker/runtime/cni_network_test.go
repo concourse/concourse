@@ -3,6 +3,7 @@ package runtime_test
 import (
 	"context"
 	"errors"
+	"reflect"
 	"strings"
 
 	"github.com/concourse/concourse/worker/runtime"
@@ -139,44 +140,111 @@ func (s *CNINetworkSuite) TestSetupMountsCallsStoreWithoutNameServers() {
 	s.Equal(resolvConfContents, []byte(contents))
 }
 
-func (s *CNINetworkSuite) TestSetupHostNetworkCreatesCorrectIptableRules() {
-	network, err := runtime.NewCNINetwork(
-		runtime.WithRestrictedNetworks([]string{"1.1.1.1", "8.8.8.8"}),
-		runtime.WithIptables(s.iptables),
-	)
-
-	err = network.SetupHostNetwork()
-	s.NoError(err)
-
-	tablename, chainName := s.iptables.CreateChainOrFlushIfExistsArgsForCall(0)
-	s.Equal(tablename, "filter")
-	s.Equal(chainName, "CONCOURSE-OPERATOR")
-
-	tablename, chainName, rulespec := s.iptables.AppendRuleArgsForCall(0)
-	s.Equal(tablename, "filter")
-	s.Equal(chainName, "CONCOURSE-OPERATOR")
-	s.Equal(rulespec, []string{"-m", "conntrack", "--ctstate", "RELATED,ESTABLISHED", "-j", "ACCEPT"})
-
-	tablename, chainName, rulespec = s.iptables.AppendRuleArgsForCall(1)
-	s.Equal(tablename, "filter")
-	s.Equal(chainName, "CONCOURSE-OPERATOR")
-	s.Equal(rulespec, []string{"-d", "1.1.1.1", "-j", "REJECT"})
-
-	tablename, chainName, rulespec = s.iptables.AppendRuleArgsForCall(2)
-	s.Equal(tablename, "filter")
-	s.Equal(chainName, "CONCOURSE-OPERATOR")
-	s.Equal(rulespec, []string{"-d", "8.8.8.8", "-j", "REJECT"})
-
-	tablename, chainName = s.iptables.CreateChainOrFlushIfExistsArgsForCall(1)
-	s.Equal(tablename, "filter")
-	s.Equal(chainName, "INPUT")
-
-	tablename, chainName, rulespec = s.iptables.AppendRuleArgsForCall(3)
-	s.Equal(tablename, "filter")
-	s.Equal(chainName, "INPUT")
+func (s *CNINetworkSuite) TestSetupHostNetwork() {
 	hostIp, err := runtime.GetHostIp()
 	s.NoError(err)
-	s.Equal(rulespec, []string{"-i", "concourse0", "-d", hostIp, "-j", "DROP"})
+
+	testCases := map[string]struct {
+		cniNetworkSetup   func() (runtime.Network, error)
+		expectedTableName string
+		expectedChainName string
+		expectedRuleSpec  []string
+	}{
+		"flushes the CONCOURSE-OPERATOR chain": {
+			cniNetworkSetup: func() (runtime.Network, error) {
+				return runtime.NewCNINetwork(
+					runtime.WithIptables(s.iptables),
+				)
+			},
+			expectedTableName: "filter",
+			expectedChainName: "CONCOURSE-OPERATOR",
+		},
+		"adds rule to CONCOURSE-OPERATOR chain for accepting established connections": {
+			cniNetworkSetup: func() (runtime.Network, error) {
+				return runtime.NewCNINetwork(
+					runtime.WithIptables(s.iptables),
+				)
+			},
+			expectedTableName: "filter",
+			expectedChainName: "CONCOURSE-OPERATOR",
+			expectedRuleSpec:  []string{"-m", "conntrack", "--ctstate", "RELATED,ESTABLISHED", "-j", "ACCEPT"},
+		},
+		"adds rule to CONCOURSE-OPERATOR chain to reject IP 1.1.1.1": {
+			cniNetworkSetup: func() (runtime.Network, error) {
+				return runtime.NewCNINetwork(
+					runtime.WithRestrictedNetworks([]string{"1.1.1.1", "8.8.8.8"}),
+					runtime.WithIptables(s.iptables),
+				)
+			},
+			expectedTableName: "filter",
+			expectedChainName: "CONCOURSE-OPERATOR",
+			expectedRuleSpec:  []string{"-d", "1.1.1.1", "-j", "REJECT"},
+		},
+		"adds rule to CONCOURSE-OPERATOR chain to reject IP 8.8.8.8": {
+			cniNetworkSetup: func() (runtime.Network, error) {
+				return runtime.NewCNINetwork(
+					runtime.WithRestrictedNetworks([]string{"1.1.1.1", "8.8.8.8"}),
+					runtime.WithIptables(s.iptables),
+				)
+			},
+			expectedTableName: "filter",
+			expectedChainName: "CONCOURSE-OPERATOR",
+			expectedRuleSpec:  []string{"-d", "8.8.8.8", "-j", "REJECT"},
+		},
+		"flushes the INPUT chain": {
+			cniNetworkSetup: func() (runtime.Network, error) {
+				return runtime.NewCNINetwork(
+					runtime.WithIptables(s.iptables),
+				)
+			},
+			expectedTableName: "filter",
+			expectedChainName: "INPUT",
+		},
+		"adds rule to INPUT chain to block host access by default": {
+			cniNetworkSetup: func() (runtime.Network, error) {
+				return runtime.NewCNINetwork(
+					runtime.WithIptables(s.iptables),
+				)
+			},
+			expectedTableName: "filter",
+			expectedChainName: "INPUT",
+			expectedRuleSpec:  []string{"-i", "concourse0", "-d", hostIp, "-j", "DROP"},
+		},
+	}
+
+	for description, testCase := range testCases {
+		network, err := testCase.cniNetworkSetup()
+		s.NoError(err)
+		err = network.SetupHostNetwork()
+		s.NoError(err)
+
+		foundExpected := false
+
+		if testCase.expectedRuleSpec == nil {
+			// Test cases to check if correct chain is created
+			numOfCalls := s.iptables.CreateChainOrFlushIfExistsCallCount()
+			for i := 0; i < numOfCalls; i++ {
+				tablename, chainName := s.iptables.CreateChainOrFlushIfExistsArgsForCall(i)
+				if tablename == testCase.expectedTableName && chainName == testCase.expectedChainName {
+					foundExpected = true
+					break
+				}
+			}
+		} else {
+			// Test cases to check if correct rule is appended
+			numOfCalls := s.iptables.AppendRuleCallCount()
+			for i := 0; i < numOfCalls; i++ {
+				tablename, chainName, rulespec := s.iptables.AppendRuleArgsForCall(i)
+				if tablename == testCase.expectedTableName && chainName == testCase.expectedChainName && reflect.DeepEqual(rulespec, testCase.expectedRuleSpec) {
+					foundExpected = true
+					break
+				}
+			}
+
+		}
+
+		s.Equal(foundExpected, true, description)
+	}
 }
 
 func (s *CNINetworkSuite) TestAddNilTask() {
