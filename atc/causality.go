@@ -9,8 +9,9 @@ type CausalityBuild struct {
 }
 
 type CausalityResourceVersion struct {
-	ResourceID   int               `json:"resource_id"`
-	ResourceName string            `json:"resource_name"`
-	Version      string            `json:"version"`
-	InputTo      []*CausalityBuild `json:"input_to,omitempty"`
+	ResourceID        int               `json:"resource_id"`
+	ResourceVersionID int               `json:"resource_version_id"`
+	ResourceName      string            `json:"resource_name"`
+	Version           Version           `json:"version"`
+	InputTo           []*CausalityBuild `json:"input_to,omitempty"`
 }
