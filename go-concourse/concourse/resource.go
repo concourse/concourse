@@ -1,6 +1,7 @@
 package concourse
 
 import (
+	"bytes"
 	"encoding/json"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/go-concourse/concourse/internal"
@@ -61,13 +62,9 @@ func (team *team) ClearResourceCache(pipelineRef atc.PipelineRef, ResourceName s
 	}
 
 	queryParams := url.Values{}
-
-	if version != nil {
-		jsonBytes, err := json.Marshal(version)
-		if err != nil {
-			return 0, err
-		}
-		params["version"] = string(jsonBytes)
+	jsonBytes, err := json.Marshal(atc.VersionDeleteBody{Version: version})
+	if err != nil {
+		return 0, err
 	}
 
 	var crcResponse atc.ClearResourceCacheResponse
@@ -76,11 +73,14 @@ func (team *team) ClearResourceCache(pipelineRef atc.PipelineRef, ResourceName s
 		Headers: &responseHeaders,
 		Result:  &crcResponse,
 	}
-	err := team.connection.Send(internal.Request{
+	request := internal.Request{
 		RequestName: atc.ClearResourceCache,
 		Params:      params,
+		Body:        bytes.NewBuffer(jsonBytes),
 		Query:       merge(queryParams, pipelineRef.QueryParams()),
-	}, &response)
+		Header:      http.Header{"Content-Type": []string{"application/json"}},
+	}
+	err = team.connection.Send(request, &response)
 
 	if err != nil {
 		return 0, err
