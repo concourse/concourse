@@ -40,7 +40,7 @@ type SchedulerJobs []SchedulerJob
 type SchedulerJob struct {
 	Job
 	Resources     SchedulerResources
-	ResourceTypes atc.VersionedResourceTypes
+	ResourceTypes atc.ResourceTypes
 }
 
 type SchedulerResources []SchedulerResource
@@ -52,7 +52,7 @@ type SchedulerResource struct {
 	ExposeBuildCreatedBy bool
 }
 
-func (r *SchedulerResource) ApplySourceDefaults(resourceTypes atc.VersionedResourceTypes) {
+func (r *SchedulerResource) ApplySourceDefaults(resourceTypes atc.ResourceTypes) {
 	parentType, found := resourceTypes.Lookup(r.Type)
 	if found {
 		r.Source = parentType.Defaults.Merge(r.Source)

@@ -29,7 +29,7 @@ type PlannerTest struct {
 	Inputs []db.BuildInput
 
 	CompareIDs             bool
-	OverwriteResourceTypes atc.VersionedResourceTypes
+	OverwriteResourceTypes atc.ResourceTypes
 
 	PlanJSON string
 	Err      error
@@ -53,15 +53,12 @@ var resources = db.SchedulerResources{
 	},
 }
 
-var defaultResourceTypes = atc.VersionedResourceTypes{
-	{
-		ResourceType: atc.ResourceType{
-			Name:     "some-resource-type",
-			Type:     "some-base-resource-type",
-			Source:   atc.Source{"some": "type-source"},
-			Defaults: atc.Source{"default-key": "default-value"},
-		},
-		Version: atc.Version{"some": "type-version"},
+var defaultResourceTypes = atc.ResourceTypes{
+	atc.ResourceType{
+		Name:     "some-resource-type",
+		Type:     "some-base-resource-type",
+		Source:   atc.Source{"some": "type-source"},
+		Defaults: atc.Source{"default-key": "default-value"},
 	},
 }
 
@@ -155,21 +152,16 @@ var factoryTests = []PlannerTest{
 			},
 		},
 		CompareIDs: true,
-		OverwriteResourceTypes: atc.VersionedResourceTypes{
+		OverwriteResourceTypes: atc.ResourceTypes{
 			{
-				ResourceType: atc.ResourceType{
-					Name:   "some-child-resource-type",
-					Type:   "some-resource-type",
-					Source: atc.Source{"some": "child-source"},
-				},
+				Name:   "some-child-resource-type",
+				Type:   "some-resource-type",
+				Source: atc.Source{"some": "child-source"},
 			},
 			{
-				ResourceType: atc.ResourceType{
-					Name:   "some-resource-type",
-					Type:   "some-base-resource-type",
-					Source: atc.Source{"some": "type-source"},
-				},
-				Version: atc.Version{"some": "type-version"},
+				Name:   "some-resource-type",
+				Type:   "some-base-resource-type",
+				Source: atc.Source{"some": "type-source"},
 			},
 		},
 		PlanJSON: `{
@@ -309,23 +301,18 @@ var factoryTests = []PlannerTest{
 			},
 		},
 		CompareIDs: true,
-		OverwriteResourceTypes: atc.VersionedResourceTypes{
+		OverwriteResourceTypes: atc.ResourceTypes{
 			{
-				ResourceType: atc.ResourceType{
-					Name:       "some-child-resource-type",
-					Type:       "some-resource-type",
-					Source:     atc.Source{"some": "child-source"},
-					Privileged: true,
-				},
+				Name:       "some-child-resource-type",
+				Type:       "some-resource-type",
+				Source:     atc.Source{"some": "child-source"},
+				Privileged: true,
 			},
 			{
-				ResourceType: atc.ResourceType{
-					Name:       "some-resource-type",
-					Type:       "some-base-resource-type",
-					Source:     atc.Source{"some": "type-source"},
-					Privileged: true,
-				},
-				Version: atc.Version{"some": "type-version"},
+				Name:       "some-resource-type",
+				Type:       "some-base-resource-type",
+				Source:     atc.Source{"some": "type-source"},
+				Privileged: true,
 			},
 		},
 		PlanJSON: `{
@@ -690,15 +677,12 @@ var factoryTests = []PlannerTest{
 				Version: atc.Version{"some": "version"},
 			},
 		},
-		OverwriteResourceTypes: atc.VersionedResourceTypes{
+		OverwriteResourceTypes: atc.ResourceTypes{
 			{
-				ResourceType: atc.ResourceType{
-					Name:       "some-resource-type",
-					Type:       "some-base-resource-type",
-					Source:     atc.Source{"some": "type-source"},
-					Privileged: true,
-				},
-				Version: atc.Version{"some": "type-version"},
+				Name:       "some-resource-type",
+				Type:       "some-base-resource-type",
+				Source:     atc.Source{"some": "type-source"},
+				Privileged: true,
 			},
 		},
 		CompareIDs: true,
@@ -827,8 +811,7 @@ var factoryTests = []PlannerTest{
 						"name": "some-resource-type",
 						"type": "some-base-resource-type",
 						"source": {"some": "type-source"},
-						"defaults": {"default-key":"default-value"},
-						"version": {"some": "type-version"}
+						"defaults": {"default-key":"default-value"}
 					}
 				]
 			}

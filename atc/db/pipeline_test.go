@@ -1774,7 +1774,7 @@ var _ = Describe("Pipeline", func() {
 		})
 	})
 
-	Describe("Resources", func() {
+	Describe("ResourceTypes", func() {
 		var resourceTypes db.ResourceTypes
 		var scenario *dbtest.Scenario
 
@@ -1794,17 +1794,6 @@ var _ = Describe("Pipeline", func() {
 						},
 					},
 				}),
-				builder.WithResourceTypeVersions("some-resource-type",
-					atc.Version{"version": "1"},
-					atc.Version{"version": "2"},
-				),
-				builder.WithResourceTypeVersions("some-other-resource-type",
-					atc.Version{"version": "3"},
-				),
-				builder.WithResourceTypeVersions("some-other-resource-type",
-					atc.Version{"version": "3"},
-					atc.Version{"version": "5"},
-				),
 			)
 		})
 
@@ -1814,10 +1803,12 @@ var _ = Describe("Pipeline", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 
-		It("returns the version", func() {
-			resourceTypeVersions := []atc.Version{resourceTypes[0].Version()}
-			resourceTypeVersions = append(resourceTypeVersions, resourceTypes[1].Version())
-			Expect(resourceTypeVersions).To(ConsistOf(atc.Version{"version": "2"}, atc.Version{"version": "5"}))
+		It("returns the resource types", func() {
+			var rtNames []string
+			for _, rt := range resourceTypes {
+				rtNames = append(rtNames, rt.Name())
+			}
+			Expect(rtNames).To(ConsistOf("some-other-resource-type", "some-resource-type"))
 		})
 	})
 

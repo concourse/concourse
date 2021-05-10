@@ -290,16 +290,6 @@ type FakeResourceType struct {
 	typeReturnsOnCall map[int]struct {
 		result1 string
 	}
-	VersionStub        func() atc.Version
-	versionMutex       sync.RWMutex
-	versionArgsForCall []struct {
-	}
-	versionReturns struct {
-		result1 atc.Version
-	}
-	versionReturnsOnCall map[int]struct {
-		result1 atc.Version
-	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -1727,59 +1717,6 @@ func (fake *FakeResourceType) TypeReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
-func (fake *FakeResourceType) Version() atc.Version {
-	fake.versionMutex.Lock()
-	ret, specificReturn := fake.versionReturnsOnCall[len(fake.versionArgsForCall)]
-	fake.versionArgsForCall = append(fake.versionArgsForCall, struct {
-	}{})
-	stub := fake.VersionStub
-	fakeReturns := fake.versionReturns
-	fake.recordInvocation("Version", []interface{}{})
-	fake.versionMutex.Unlock()
-	if stub != nil {
-		return stub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fakeReturns.result1
-}
-
-func (fake *FakeResourceType) VersionCallCount() int {
-	fake.versionMutex.RLock()
-	defer fake.versionMutex.RUnlock()
-	return len(fake.versionArgsForCall)
-}
-
-func (fake *FakeResourceType) VersionCalls(stub func() atc.Version) {
-	fake.versionMutex.Lock()
-	defer fake.versionMutex.Unlock()
-	fake.VersionStub = stub
-}
-
-func (fake *FakeResourceType) VersionReturns(result1 atc.Version) {
-	fake.versionMutex.Lock()
-	defer fake.versionMutex.Unlock()
-	fake.VersionStub = nil
-	fake.versionReturns = struct {
-		result1 atc.Version
-	}{result1}
-}
-
-func (fake *FakeResourceType) VersionReturnsOnCall(i int, result1 atc.Version) {
-	fake.versionMutex.Lock()
-	defer fake.versionMutex.Unlock()
-	fake.VersionStub = nil
-	if fake.versionReturnsOnCall == nil {
-		fake.versionReturnsOnCall = make(map[int]struct {
-			result1 atc.Version
-		})
-	}
-	fake.versionReturnsOnCall[i] = struct {
-		result1 atc.Version
-	}{result1}
-}
-
 func (fake *FakeResourceType) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -1835,8 +1772,6 @@ func (fake *FakeResourceType) Invocations() map[string][][]interface{} {
 	defer fake.teamNameMutex.RUnlock()
 	fake.typeMutex.RLock()
 	defer fake.typeMutex.RUnlock()
-	fake.versionMutex.RLock()
-	defer fake.versionMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

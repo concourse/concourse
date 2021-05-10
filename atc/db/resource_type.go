@@ -51,8 +51,6 @@ type ResourceType interface {
 	CheckPlan(planFactory atc.PlanFactory, imagePlanner ImagePlanner, from atc.Version, interval time.Duration, sourceDefaults atc.Source) atc.Plan
 	CreateBuild(context.Context, bool, atc.Plan) (Build, bool, error)
 
-	Version() atc.Version
-
 	Reload() (bool, error)
 }
 
@@ -84,8 +82,8 @@ func (resourceTypes ResourceTypes) Filter(checkable Checkable) ResourceTypes {
 	}
 }
 
-func (resourceTypes ResourceTypes) Deserialize() atc.VersionedResourceTypes {
-	var versionedResourceTypes atc.VersionedResourceTypes
+func (resourceTypes ResourceTypes) Deserialize() atc.ResourceTypes {
+	var atcResourceTypes atc.ResourceTypes
 
 	for _, t := range resourceTypes {
 		// Apply source defaults to resource types
@@ -100,22 +98,19 @@ func (resourceTypes ResourceTypes) Deserialize() atc.VersionedResourceTypes {
 			}
 		}
 
-		versionedResourceTypes = append(versionedResourceTypes, atc.VersionedResourceType{
-			ResourceType: atc.ResourceType{
-				Name:       t.Name(),
-				Type:       t.Type(),
-				Source:     source,
-				Defaults:   t.Defaults(),
-				Privileged: t.Privileged(),
-				CheckEvery: t.CheckEvery(),
-				Tags:       t.Tags(),
-				Params:     t.Params(),
-			},
-			Version: t.Version(),
+		atcResourceTypes = append(atcResourceTypes, atc.ResourceType{
+			Name:       t.Name(),
+			Type:       t.Type(),
+			Source:     source,
+			Defaults:   t.Defaults(),
+			Privileged: t.Privileged(),
+			CheckEvery: t.CheckEvery(),
+			Tags:       t.Tags(),
+			Params:     t.Params(),
 		})
 	}
 
-	return versionedResourceTypes
+	return atcResourceTypes
 }
 
 func (resourceTypes ResourceTypes) Configs() atc.ResourceTypes {
@@ -154,7 +149,6 @@ var resourceTypesQuery = psql.Select(
 	"r.name",
 	"r.type",
 	"r.config",
-	"rcv.version",
 	"r.nonce",
 	"p.name",
 	"p.instance_vars",
@@ -169,13 +163,6 @@ var resourceTypesQuery = psql.Select(
 	Join("teams t ON t.id = p.team_id").
 	LeftJoin("resource_configs c ON c.id = r.resource_config_id").
 	LeftJoin("resource_config_scopes ro ON ro.resource_config_id = c.id").
-	LeftJoin(`LATERAL (
-		SELECT rcv.*
-		FROM resource_config_versions rcv
-		WHERE rcv.resource_config_scope_id = ro.id
-		ORDER BY rcv.check_order DESC
-		LIMIT 1
-	) AS rcv ON true`).
 	Where(sq.Eq{"r.active": true})
 
 type resourceType struct {
@@ -192,29 +179,26 @@ type resourceType struct {
 	defaults              atc.Source
 	params                atc.Params
 	tags                  atc.Tags
-	version               atc.Version
 	checkEvery            *atc.CheckEvery
 	lastCheckStartTime    time.Time
 	lastCheckEndTime      time.Time
 }
 
-func (t *resourceType) ID() int                       { return t.id }
-func (t *resourceType) TeamID() int                   { return t.teamID }
-func (t *resourceType) TeamName() string              { return t.teamName }
-func (t *resourceType) Name() string                  { return t.name }
-func (t *resourceType) Type() string                  { return t.type_ }
-func (t *resourceType) Privileged() bool              { return t.privileged }
-func (t *resourceType) CheckEvery() *atc.CheckEvery   { return t.checkEvery }
-func (t *resourceType) CheckTimeout() string          { return "" }
-func (r *resourceType) LastCheckStartTime() time.Time { return r.lastCheckStartTime }
-func (r *resourceType) LastCheckEndTime() time.Time   { return r.lastCheckEndTime }
-func (t *resourceType) Source() atc.Source            { return t.source }
-func (t *resourceType) Defaults() atc.Source          { return t.defaults }
-func (t *resourceType) Params() atc.Params            { return t.params }
-func (t *resourceType) Tags() atc.Tags                { return t.tags }
-func (t *resourceType) ResourceConfigScopeID() int    { return t.resourceConfigScopeID }
-
-func (t *resourceType) Version() atc.Version              { return t.version }
+func (t *resourceType) ID() int                           { return t.id }
+func (t *resourceType) TeamID() int                       { return t.teamID }
+func (t *resourceType) TeamName() string                  { return t.teamName }
+func (t *resourceType) Name() string                      { return t.name }
+func (t *resourceType) Type() string                      { return t.type_ }
+func (t *resourceType) Privileged() bool                  { return t.privileged }
+func (t *resourceType) CheckEvery() *atc.CheckEvery       { return t.checkEvery }
+func (t *resourceType) CheckTimeout() string              { return "" }
+func (r *resourceType) LastCheckStartTime() time.Time     { return r.lastCheckStartTime }
+func (r *resourceType) LastCheckEndTime() time.Time       { return r.lastCheckEndTime }
+func (t *resourceType) Source() atc.Source                { return t.source }
+func (t *resourceType) Defaults() atc.Source              { return t.defaults }
+func (t *resourceType) Params() atc.Params                { return t.params }
+func (t *resourceType) Tags() atc.Tags                    { return t.tags }
+func (t *resourceType) ResourceConfigScopeID() int        { return t.resourceConfigScopeID }
 func (t *resourceType) CurrentPinnedVersion() atc.Version { return nil }
 
 func (t *resourceType) HasWebhook() bool {
@@ -237,10 +221,6 @@ func (t *resourceType) Reload() (bool, error) {
 	}
 
 	return true, nil
-}
-
-func (r *resourceType) SetResourceConfig(atc.Source, atc.VersionedResourceTypes) (ResourceConfigScope, error) {
-	return nil, fmt.Errorf("not implemented")
 }
 
 func (r *resourceType) SetResourceConfigScope(scope ResourceConfigScope) error {
@@ -353,25 +333,18 @@ func (r *resourceType) CreateBuild(ctx context.Context, manuallyTriggered bool, 
 func scanResourceType(t *resourceType, row scannable) error {
 	var (
 		configJSON                           sql.NullString
-		rcsID, version, nonce                sql.NullString
+		rcsID, nonce                         sql.NullString
 		lastCheckStartTime, lastCheckEndTime pq.NullTime
 		pipelineInstanceVars                 sql.NullString
 	)
 
-	err := row.Scan(&t.id, &t.pipelineID, &t.name, &t.type_, &configJSON, &version, &nonce, &t.pipelineName, &pipelineInstanceVars, &t.teamID, &t.teamName, &rcsID, &lastCheckStartTime, &lastCheckEndTime)
+	err := row.Scan(&t.id, &t.pipelineID, &t.name, &t.type_, &configJSON, &nonce, &t.pipelineName, &pipelineInstanceVars, &t.teamID, &t.teamName, &rcsID, &lastCheckStartTime, &lastCheckEndTime)
 	if err != nil {
 		return err
 	}
 
 	t.lastCheckStartTime = lastCheckStartTime.Time
 	t.lastCheckEndTime = lastCheckEndTime.Time
-
-	if version.Valid {
-		err = json.Unmarshal([]byte(version.String), &t.version)
-		if err != nil {
-			return err
-		}
-	}
 
 	es := t.conn.EncryptionStrategy()
 

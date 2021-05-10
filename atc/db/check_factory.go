@@ -85,12 +85,6 @@ func NewCheckFactory(
 	}
 }
 
-//go:generate counterfeiter . CheckPlanner
-
-type CheckPlanner interface {
-	Create(checkable Checkable, versionedResourceTypes atc.VersionedResourceTypes, from atc.Version, sourceDefaults atc.Source, interval time.Duration) atc.Plan
-}
-
 func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, resourceTypes ResourceTypes, from atc.Version, manuallyTriggered bool) (Build, bool, error) {
 	logger := lagerctx.FromContext(ctx)
 
@@ -99,9 +93,6 @@ func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, 
 	sourceDefaults := atc.Source{}
 	parentType, found := resourceTypes.Parent(checkable)
 	if found {
-		if parentType.Version() == nil {
-			return nil, false, fmt.Errorf("resource type '%s' has no version", parentType.Name())
-		}
 		sourceDefaults = parentType.Defaults()
 	} else {
 		defaults, found := atc.FindBaseResourceTypeDefaults(checkable.Type())
@@ -123,16 +114,16 @@ func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, 
 		return nil, false, nil
 	}
 
-	versionedResourceTypes := resourceTypes.Filter(checkable).Deserialize()
-	if versionedResourceTypes == nil {
-		// If there are no versioned resource types, set it to a zero length list
-		// of versioned resource types. The reason behind this is because we wrap
-		// the versioned resource types object in an ImagePlanner interface, and
-		// this will panic if the versioned resource types is nil.
-		versionedResourceTypes = atc.VersionedResourceTypes{}
+	deserializedResourceTypes := resourceTypes.Filter(checkable).Deserialize()
+	if deserializedResourceTypes == nil {
+		// If there are no resource types, set it to a zero length list of resource
+		// types. The reason behind this is because we wrap the resource types
+		// object in an ImagePlanner interface, and this will panic if the resource
+		// types is nil.
+		deserializedResourceTypes = atc.ResourceTypes{}
 	}
 
-	plan := checkable.CheckPlan(c.planFactory, versionedResourceTypes, from, interval, sourceDefaults)
+	plan := checkable.CheckPlan(c.planFactory, deserializedResourceTypes, from, interval, sourceDefaults)
 	build, created, err := checkable.CreateBuild(ctx, manuallyTriggered, plan)
 	if err != nil {
 		return nil, false, fmt.Errorf("create build: %w", err)

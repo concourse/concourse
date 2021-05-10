@@ -18,7 +18,7 @@ func NewPlanner(planFactory atc.PlanFactory) Planner {
 func (planner Planner) Create(
 	planConfig atc.StepConfig,
 	resources db.SchedulerResources,
-	resourceTypes atc.VersionedResourceTypes,
+	resourceTypes atc.ResourceTypes,
 	inputs []db.BuildInput,
 ) (atc.Plan, error) {
 	visitor := &planVisitor{
@@ -41,7 +41,7 @@ type planVisitor struct {
 	planFactory atc.PlanFactory
 
 	resources     db.SchedulerResources
-	resourceTypes atc.VersionedResourceTypes
+	resourceTypes atc.ResourceTypes
 	inputs        []db.BuildInput
 
 	plan atc.Plan
@@ -61,7 +61,7 @@ func (visitor *planVisitor) VisitTask(step *atc.TaskStep) error {
 		ImageArtifactName: step.ImageArtifactName,
 		Timeout:           step.Timeout,
 
-		VersionedResourceTypes: visitor.resourceTypes,
+		ResourceTypes: visitor.resourceTypes,
 	})
 
 	return nil
@@ -417,7 +417,7 @@ func (visitor *planVisitor) VisitEnsure(step *atc.EnsureStep) error {
 	return nil
 }
 
-func FetchImagePlan(planID atc.PlanID, image atc.ImageResource, resourceTypes atc.VersionedResourceTypes, stepTags atc.Tags) (atc.Plan, *atc.Plan) {
+func FetchImagePlan(planID atc.PlanID, image atc.ImageResource, resourceTypes atc.ResourceTypes, stepTags atc.Tags) (atc.Plan, *atc.Plan) {
 	// If resource type is a custom type, recurse in order to resolve nested resource types
 	getPlanID := planID + "/image-get"
 

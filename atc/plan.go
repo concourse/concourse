@@ -593,7 +593,7 @@ type TaskPlan struct {
 	Timeout string `json:"timeout,omitempty"`
 
 	// Resource types to have available for use when fetching the task's image.
-	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
+	ResourceTypes ResourceTypes `json:"resource_types,omitempty"`
 }
 
 type SetPipelinePlan struct {

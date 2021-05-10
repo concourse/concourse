@@ -787,10 +787,6 @@ var _ = Describe("Resources API", func() {
 				resourceType1.PrivilegedReturns(false)
 				resourceType1.TagsReturns([]string{"tag1"})
 				resourceType1.ParamsReturns(map[string]interface{}{"param-key-1": "param-value-1"})
-				resourceType1.VersionReturns(map[string]string{
-					"version-key-1": "version-value-1",
-					"version-key-2": "version-value-2",
-				})
 
 				resourceType2 := new(dbfakes.FakeResourceType)
 				resourceType2.IDReturns(2)
@@ -801,9 +797,6 @@ var _ = Describe("Resources API", func() {
 				resourceType2.CheckEveryReturns(&atc.CheckEvery{Interval: 10 * time.Millisecond})
 				resourceType2.TagsReturns([]string{"tag1", "tag2"})
 				resourceType2.ParamsReturns(map[string]interface{}{"param-key-2": "param-value-2"})
-				resourceType2.VersionReturns(map[string]string{
-					"version-key-2": "version-value-2",
-				})
 
 				fakePipeline.ResourceTypesReturns(db.ResourceTypes{
 					resourceType1, resourceType2,
@@ -852,11 +845,7 @@ var _ = Describe("Resources API", func() {
 					"type": "type-1",
 					"tags": ["tag1"],
 					"params": {"param-key-1": "param-value-1"},
-					"source": {"source-key-1": "source-value-1"},
-					"version": {
-						"version-key-1": "version-value-1",
-						"version-key-2": "version-value-2"
-					}
+					"source": {"source-key-1": "source-value-1"}
 				},
 				{
 					"name": "resource-type-2",
@@ -865,10 +854,7 @@ var _ = Describe("Resources API", func() {
 					"privileged": true,
 					"check_every": "10ms",
 					"params": {"param-key-2": "param-value-2"},
-					"source": {"source-key-2": "source-value-2"},
-					"version": {
-						"version-key-2": "version-value-2"
-					}
+					"source": {"source-key-2": "source-value-2"}
 				}
 			]`))
 					})
@@ -902,11 +888,7 @@ var _ = Describe("Resources API", func() {
 				"type": "type-1",
 				"tags": ["tag1"],
 				"params": {"param-key-1": "param-value-1"},
-				"source": {"source-key-1": "source-value-1"},
-				"version": {
-					"version-key-1": "version-value-1",
-					"version-key-2": "version-value-2"
-				}
+				"source": {"source-key-1": "source-value-1"}
 			},
 			{
 				"name": "resource-type-2",
@@ -915,10 +897,7 @@ var _ = Describe("Resources API", func() {
 				"privileged": true,
 				"check_every": "10ms",
 				"params": {"param-key-2": "param-value-2"},
-				"source": {"source-key-2": "source-value-2"},
-				"version": {
-					"version-key-2": "version-value-2"
-				}
+				"source": {"source-key-2": "source-value-2"}
 			}
 		]`))
 				})

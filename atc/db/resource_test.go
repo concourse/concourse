@@ -1219,7 +1219,7 @@ var _ = Describe("Resource", func() {
 				planFactory := atc.NewPlanFactory(0)
 				version = atc.Version{"version": "from"}
 				sourceDefault := atc.Source{"source-test": "default"}
-				createdCheckPlan = resource.CheckPlan(planFactory, atc.VersionedResourceTypes{}, version, 1*time.Hour, sourceDefault)
+				createdCheckPlan = resource.CheckPlan(planFactory, atc.ResourceTypes{}, version, 1*time.Hour, sourceDefault)
 			})
 
 			It("produces a simple check plan", func() {
@@ -1285,14 +1285,13 @@ var _ = Describe("Resource", func() {
 				planFactory := atc.NewPlanFactory(0)
 				version = atc.Version{"version": "from"}
 				createdCheckPlan = resource.CheckPlan(planFactory,
-					atc.VersionedResourceTypes{{
-						ResourceType: atc.ResourceType{
+					atc.ResourceTypes{
+						{
 							Name:   "some-resource-type",
 							Type:   "some-base-resource-type",
 							Source: atc.Source{"some": "type-source"},
 						},
-						Version: nil,
-					}}, version, 1*time.Hour, nil)
+					}, version, 1*time.Hour, nil)
 			})
 
 			It("produces a check plan with nested image steps", func() {
@@ -1381,15 +1380,14 @@ var _ = Describe("Resource", func() {
 				planFactory := atc.NewPlanFactory(0)
 				version = atc.Version{"version": "from"}
 				createdCheckPlan = resource.CheckPlan(planFactory,
-					atc.VersionedResourceTypes{{
-						ResourceType: atc.ResourceType{
+					atc.ResourceTypes{
+						{
 							Name:       "some-resource-type",
 							Type:       "some-base-resource-type",
 							Source:     atc.Source{"some": "type-source"},
 							Privileged: true,
 						},
-						Version: atc.Version{"some": "version"},
-					}}, version, 1*time.Hour, nil)
+					}, version, 1*time.Hour, nil)
 			})
 
 			It("produces a check plan with privileged", func() {

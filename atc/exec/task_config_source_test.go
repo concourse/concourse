@@ -456,7 +456,7 @@ run: {path: a/file}
 	Context("BaseResourceTypeDefaultsApplySource", func() {
 		var (
 			configSource  TaskConfigSource
-			resourceTypes atc.VersionedResourceTypes
+			resourceTypes atc.ResourceTypes
 			fetchedConfig atc.TaskConfig
 			fetchErr      error
 		)
@@ -497,12 +497,10 @@ run: {path: a/file}
 
 		Context("resourceTypes contains image source type", func() {
 			BeforeEach(func() {
-				resourceTypes = atc.VersionedResourceTypes{
+				resourceTypes = atc.ResourceTypes{
 					{
-						ResourceType: atc.ResourceType{
-							Name:     "docker",
-							Defaults: atc.Source{"some-key": "some-value"},
-						},
+						Name:     "docker",
+						Defaults: atc.Source{"some-key": "some-value"},
 					},
 				}
 			})

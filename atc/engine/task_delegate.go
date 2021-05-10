@@ -323,7 +323,7 @@ func (d *taskDelegate) Finished(
 func (d *taskDelegate) FetchImage(
 	ctx context.Context,
 	image atc.ImageResource,
-	types atc.VersionedResourceTypes,
+	types atc.ResourceTypes,
 	privileged bool,
 	stepTags atc.Tags,
 ) (worker.ImageSpec, error) {
