@@ -256,7 +256,7 @@ func (p *pipeline) CausalityV2(resourceID int, versionID int) (atc.CausalityReso
 	// }
 
 	var rcvID int
-	var versionMD5 string
+	var versionMD5, versionStr string
 	err := psql.Select("r.id", "rcv.id", "r.name", "rcv.version", "rcv.version_md5").
 		From("resource_config_versions rcv").
 		Join("resources r ON r.resource_config_scope_id = rcv.resource_config_scope_id").
@@ -266,10 +266,16 @@ func (p *pipeline) CausalityV2(resourceID int, versionID int) (atc.CausalityReso
 			"rcv.id": versionID,
 		}).
 		RunWith(p.conn).
-		Scan(&result.ResourceID, &rcvID, &result.ResourceName, &result.Version, &versionMD5)
+		Scan(&result.ResourceID, &rcvID, &result.ResourceName, &versionStr, &versionMD5)
 	if err != nil {
 		return result, err
 	}
+
+	err = json.Unmarshal([]byte(versionStr), &result.Version)
+	if err != nil {
+		return result, err
+	}
+
 	fmt.Println("found root resource version", result)
 
 	// figure out list of builds that were caused by this resource version
@@ -366,9 +372,15 @@ func (p *pipeline) CausalityV2(resourceID int, versionID int) (atc.CausalityReso
 	fmt.Println("constructing inputs")
 	for rows.Next() {
 		var rID, rcvID, bID int
-		var rName, version string
+		var rName, versionStr string
+		var version atc.Version
 
-		rows.Scan(&rID, &rcvID, &rName, &version, &bID)
+		rows.Scan(&rID, &rcvID, &rName, &versionStr, &bID)
+
+		err = json.Unmarshal([]byte(versionStr), &version)
+		if err != nil {
+			return result, err
+		}
 
 		if rv, found := resourceVersions[rcvID]; !found {
 			resourceVersions[rcvID] = &atc.CausalityResourceVersion{
@@ -402,12 +414,19 @@ func (p *pipeline) CausalityV2(resourceID int, versionID int) (atc.CausalityReso
 	fmt.Println("constructing outputs")
 	for rows.Next() {
 		var rID, rcvID, bID int
-		var rName, version string
+		var rName, versionStr string
+		var version atc.Version
 
-		rows.Scan(&rID, &rcvID, &rName, &version, &bID)
+		rows.Scan(&rID, &rcvID, &rName, &versionStr, &bID)
 
 		rv, found := resourceVersions[rcvID]
 		if !found {
+
+			err = json.Unmarshal([]byte(versionStr), &version)
+			if err != nil {
+				return result, err
+			}
+
 			rv = &atc.CausalityResourceVersion{
 				ResourceID:   rID,
 				ResourceName: rName,

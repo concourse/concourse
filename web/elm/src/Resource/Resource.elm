@@ -490,12 +490,7 @@ handleCallback callback session ( model, effects ) =
             )
 
         CausalityFetched (Ok ( versionID, causality )) ->
-            let
-                -- only render the graph once upon fetching the data and store that to display
-                graph =
-                    Maybe.map (\vr -> buildGraph vr) causality
-            in
-            ( updateVersion versionID (\v -> { v | causality = graph }) model
+            ( updateVersion versionID (\v -> { v | causality = causality }) model
             , effects
             )
 
@@ -963,7 +958,7 @@ type alias VersionPresenter =
     , expanded : Bool
     , inputTo : List Concourse.Build
     , outputOf : List Concourse.Build
-    , causality : Maybe (Graph Entity ())
+    , causality : Maybe Concourse.CausalityResourceVersion
     , pinState : VersionPinState
     }
 
@@ -1815,7 +1810,7 @@ viewVersionBody :
     { a
         | inputTo : List Concourse.Build
         , outputOf : List Concourse.Build
-        , causality : Maybe (Graph Entity ())
+        , causality : Maybe Concourse.CausalityResourceVersion
         , metadata : Concourse.Metadata
     }
     -> Html Message
