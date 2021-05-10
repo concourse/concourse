@@ -21,7 +21,7 @@ type BuildStarter interface {
 
 //counterfeiter:generate . BuildPlanner
 type BuildPlanner interface {
-	Create(atc.StepConfig, db.SchedulerResources, atc.VersionedResourceTypes, atc.Prototypes, []db.BuildInput) (atc.Plan, error)
+	Create(atc.StepConfig, db.SchedulerResources, atc.ResourceTypes, atc.Prototypes, []db.BuildInput) (atc.Plan, error)
 }
 
 type Build interface {

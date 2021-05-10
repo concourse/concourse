@@ -39,7 +39,7 @@ type Prototype interface {
 
 	SetResourceConfigScope(ResourceConfigScope) error
 
-	CheckPlan(atc.Version, time.Duration, ResourceTypes, atc.Source) atc.CheckPlan
+	CheckPlan(planFactory atc.PlanFactory, imagePlanner ImagePlanner, from atc.Version, interval time.Duration, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) atc.Plan
 	CreateBuild(context.Context, bool, atc.Plan) (Build, bool, error)
 
 	Version() atc.Version
@@ -177,19 +177,23 @@ func (p *prototype) SetResourceConfigScope(scope ResourceConfigScope) error {
 	return nil
 }
 
-func (p *prototype) CheckPlan(from atc.Version, interval time.Duration, resourceTypes ResourceTypes, sourceDefaults atc.Source) atc.CheckPlan {
-	return atc.CheckPlan{
+func (p *prototype) CheckPlan(planFactory atc.PlanFactory, imagePlanner ImagePlanner, from atc.Version, interval time.Duration, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) atc.Plan {
+	plan := planFactory.NewPlan(atc.CheckPlan{
 		Name:   p.Name(),
 		Type:   p.Type(),
 		Source: sourceDefaults.Merge(p.Source()),
 		Tags:   p.Tags(),
 
-		FromVersion:            from,
-		Interval:               interval.String(),
-		VersionedResourceTypes: resourceTypes.Deserialize(),
+		FromVersion: from,
+		Interval:    interval.String(),
 
 		Prototype: p.Name(),
-	}
+
+		SkipInterval: skipInterval,
+	})
+
+	plan.Check.TypeImage = imagePlanner.ImageForType(plan.ID, p.Type(), p.Tags(), skipInterval && skipIntervalRecursively)
+	return plan
 }
 
 func (p *prototype) CreateBuild(ctx context.Context, manuallyTriggered bool, plan atc.Plan) (Build, bool, error) {

@@ -112,15 +112,12 @@ var _ = Describe("TaskStep", func() {
 		taskPlan = &atc.TaskPlan{
 			Name:       "some-task",
 			Privileged: false,
-			VersionedResourceTypes: atc.VersionedResourceTypes{
+			ResourceTypes: atc.ResourceTypes{
 				{
-					ResourceType: atc.ResourceType{
-						Name:   "custom-resource",
-						Type:   "custom-type",
-						Source: atc.Source{"some-custom": "((source-param))"},
-						Params: atc.Params{"some-custom": "param"},
-					},
-					Version: atc.Version{"some-custom": "version"},
+					Name:   "custom-resource",
+					Type:   "custom-type",
+					Source: atc.Source{"some-custom": "((source-param))"},
+					Params: atc.Params{"some-custom": "param"},
 				},
 			},
 		}
@@ -872,7 +869,7 @@ var _ = Describe("TaskStep", func() {
 					Source: atc.Source{"some": "super-secret-source"},
 					Params: atc.Params{"some": "params"},
 				}))
-				Expect(types).To(Equal(taskPlan.VersionedResourceTypes))
+				Expect(types).To(Equal(taskPlan.ResourceTypes))
 				Expect(privileged).To(BeFalse())
 				Expect(tags).To(Equal(atc.Tags{"some", "tags"}))
 			})

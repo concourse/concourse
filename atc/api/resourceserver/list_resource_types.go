@@ -8,7 +8,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 )
 
-func (s *Server) ListVersionedResourceTypes(pipeline db.Pipeline) http.Handler {
+func (s *Server) ListResourceTypes(pipeline db.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger := s.logger.Session("list-versioned-resource-types")
 
@@ -19,11 +19,11 @@ func (s *Server) ListVersionedResourceTypes(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		versionedResourceTypes := present.VersionedResourceTypes(resourceTypes)
+		presentResourceTypes := present.ResourceTypes(resourceTypes)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		err = json.NewEncoder(w).Encode(versionedResourceTypes)
+		err = json.NewEncoder(w).Encode(presentResourceTypes)
 		if err != nil {
 			logger.Error("failed-to-encode-versioned-resource-types", err)
 			w.WriteHeader(http.StatusInternalServerError)

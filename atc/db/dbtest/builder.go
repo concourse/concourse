@@ -853,5 +853,5 @@ func (builder Builder) createResourceCache(buildID int, resourceType db.Resource
 		return nil, err
 	}
 
-	return builder.ResourceCacheFactory.FindOrCreateResourceCache(db.ForBuild(buildID), resourceType.Type(), resourceType.Version(), resourceType.Source(), resourceType.Params(), imageResourceCache)
+	return builder.ResourceCacheFactory.FindOrCreateResourceCache(db.ForBuild(buildID), resourceType.Type(), atc.Version{"custom-type": "version"}, resourceType.Source(), resourceType.Params(), imageResourceCache)
 }

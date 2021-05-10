@@ -159,7 +159,7 @@ func NewHandler(
 
 		atc.ListAllResources:        http.HandlerFunc(resourceServer.ListAllResources),
 		atc.ListResources:           pipelineHandlerFactory.HandlerFor(resourceServer.ListResources),
-		atc.ListResourceTypes:       pipelineHandlerFactory.HandlerFor(resourceServer.ListVersionedResourceTypes),
+		atc.ListResourceTypes:       pipelineHandlerFactory.HandlerFor(resourceServer.ListResourceTypes),
 		atc.GetResource:             pipelineHandlerFactory.HandlerFor(resourceServer.GetResource),
 		atc.UnpinResource:           pipelineHandlerFactory.HandlerFor(resourceServer.UnpinResource),
 		atc.SetPinCommentOnResource: pipelineHandlerFactory.HandlerFor(resourceServer.SetPinCommentOnResource),

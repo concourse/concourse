@@ -19,7 +19,7 @@ import (
 
 var _ = Describe("Jobs API", func() {
 	var fakeJob *dbfakes.FakeJob
-	var versionedResourceTypes atc.VersionedResourceTypes
+	var versionedResourceTypes atc.ResourceTypes
 	var fakePipeline *dbfakes.FakePipeline
 
 	BeforeEach(func() {
@@ -28,30 +28,21 @@ var _ = Describe("Jobs API", func() {
 		dbTeamFactory.FindTeamReturns(dbTeam, true, nil)
 		dbTeam.PipelineReturns(fakePipeline, true, nil)
 
-		versionedResourceTypes = atc.VersionedResourceTypes{
-			atc.VersionedResourceType{
-				ResourceType: atc.ResourceType{
-					Name:   "some-resource-1",
-					Type:   "some-base-type-1",
-					Source: atc.Source{"some": "source-1"},
-				},
-				Version: atc.Version{"some": "version-1"},
+		versionedResourceTypes = atc.ResourceTypes{
+			atc.ResourceType{
+				Name:   "some-resource-1",
+				Type:   "some-base-type-1",
+				Source: atc.Source{"some": "source-1"},
 			},
-			atc.VersionedResourceType{
-				ResourceType: atc.ResourceType{
-					Name:   "some-resource-2",
-					Type:   "some-base-type-2",
-					Source: atc.Source{"some": "source-2"},
-				},
-				Version: atc.Version{"some": "version-2"},
+			atc.ResourceType{
+				Name:   "some-resource-2",
+				Type:   "some-base-type-2",
+				Source: atc.Source{"some": "source-2"},
 			},
-			atc.VersionedResourceType{
-				ResourceType: atc.ResourceType{
-					Name:   "some-resource-3",
-					Type:   "some-base-type-3",
-					Source: atc.Source{"some": "source-3"},
-				},
-				Version: atc.Version{"some": "version-3"},
+			atc.ResourceType{
+				Name:   "some-resource-3",
+				Type:   "some-base-type-3",
+				Source: atc.Source{"some": "source-3"},
 			},
 		}
 
@@ -1644,7 +1635,7 @@ var _ = Describe("Jobs API", func() {
 									})
 
 									It("runs the check from the current pinned version", func() {
-										_, _, _, fromVersion, _ := dbCheckFactory.TryCreateCheckArgsForCall(0)
+										_, _, _, fromVersion, _, _ := dbCheckFactory.TryCreateCheckArgsForCall(0)
 										Expect(fromVersion).To(Equal(atc.Version{"some": "version"}))
 									})
 
@@ -2618,11 +2609,10 @@ var _ = Describe("Jobs API", func() {
 	})
 })
 
-func fakeDBResourceType(t atc.VersionedResourceType) *dbfakes.FakeResourceType {
+func fakeDBResourceType(t atc.ResourceType) *dbfakes.FakeResourceType {
 	fake := new(dbfakes.FakeResourceType)
 	fake.NameReturns(t.Name)
 	fake.TypeReturns(t.Type)
 	fake.SourceReturns(t.Source)
-	fake.VersionReturns(t.Version)
 	return fake
 }

@@ -678,11 +678,12 @@ var _ = Describe("Resources API", func() {
 
 					It("checks with no version specified", func() {
 						Expect(dbCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
-						_, actualResource, actualResourceTypes, actualFromVersion, manuallyTriggered := dbCheckFactory.TryCreateCheckArgsForCall(0)
+						_, actualResource, actualResourceTypes, actualFromVersion, manuallyTriggered, skipIntervalRecursively := dbCheckFactory.TryCreateCheckArgsForCall(0)
 						Expect(actualResource).To(Equal(fakeResource))
 						Expect(actualResourceTypes).To(Equal(fakeResourceTypes))
 						Expect(actualFromVersion).To(BeNil())
 						Expect(manuallyTriggered).To(BeTrue())
+						Expect(skipIntervalRecursively).To(BeTrue())
 					})
 
 					Context("when checking with a version specified", func() {
@@ -696,11 +697,23 @@ var _ = Describe("Resources API", func() {
 
 						It("checks with the version specified", func() {
 							Expect(dbCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
-							_, actualResource, actualResourceTypes, actualFromVersion, manuallyTriggered := dbCheckFactory.TryCreateCheckArgsForCall(0)
+							_, actualResource, actualResourceTypes, actualFromVersion, manuallyTriggered, skipIntervalRecursively := dbCheckFactory.TryCreateCheckArgsForCall(0)
 							Expect(actualResource).To(Equal(fakeResource))
 							Expect(actualResourceTypes).To(Equal(fakeResourceTypes))
 							Expect(actualFromVersion).To(Equal(checkRequestBody.From))
 							Expect(manuallyTriggered).To(BeTrue())
+							Expect(skipIntervalRecursively).To(BeTrue())
+						})
+					})
+
+					Context("when doing a shallow check", func() {
+						BeforeEach(func() {
+							checkRequestBody.Shallow = true
+						})
+
+						It("does not recursively skip the check interval", func() {
+							_, _, _, _, _, skipIntervalRecursively := dbCheckFactory.TryCreateCheckArgsForCall(0)
+							Expect(skipIntervalRecursively).To(BeFalse())
 						})
 					})
 
@@ -787,10 +800,6 @@ var _ = Describe("Resources API", func() {
 				resourceType1.PrivilegedReturns(false)
 				resourceType1.TagsReturns([]string{"tag1"})
 				resourceType1.ParamsReturns(map[string]interface{}{"param-key-1": "param-value-1"})
-				resourceType1.VersionReturns(map[string]string{
-					"version-key-1": "version-value-1",
-					"version-key-2": "version-value-2",
-				})
 
 				resourceType2 := new(dbfakes.FakeResourceType)
 				resourceType2.IDReturns(2)
@@ -801,9 +810,6 @@ var _ = Describe("Resources API", func() {
 				resourceType2.CheckEveryReturns(&atc.CheckEvery{Interval: 10 * time.Millisecond})
 				resourceType2.TagsReturns([]string{"tag1", "tag2"})
 				resourceType2.ParamsReturns(map[string]interface{}{"param-key-2": "param-value-2"})
-				resourceType2.VersionReturns(map[string]string{
-					"version-key-2": "version-value-2",
-				})
 
 				fakePipeline.ResourceTypesReturns(db.ResourceTypes{
 					resourceType1, resourceType2,
@@ -852,11 +858,7 @@ var _ = Describe("Resources API", func() {
 					"type": "type-1",
 					"tags": ["tag1"],
 					"params": {"param-key-1": "param-value-1"},
-					"source": {"source-key-1": "source-value-1"},
-					"version": {
-						"version-key-1": "version-value-1",
-						"version-key-2": "version-value-2"
-					}
+					"source": {"source-key-1": "source-value-1"}
 				},
 				{
 					"name": "resource-type-2",
@@ -865,10 +867,7 @@ var _ = Describe("Resources API", func() {
 					"privileged": true,
 					"check_every": "10ms",
 					"params": {"param-key-2": "param-value-2"},
-					"source": {"source-key-2": "source-value-2"},
-					"version": {
-						"version-key-2": "version-value-2"
-					}
+					"source": {"source-key-2": "source-value-2"}
 				}
 			]`))
 					})
@@ -902,11 +901,7 @@ var _ = Describe("Resources API", func() {
 				"type": "type-1",
 				"tags": ["tag1"],
 				"params": {"param-key-1": "param-value-1"},
-				"source": {"source-key-1": "source-value-1"},
-				"version": {
-					"version-key-1": "version-value-1",
-					"version-key-2": "version-value-2"
-				}
+				"source": {"source-key-1": "source-value-1"}
 			},
 			{
 				"name": "resource-type-2",
@@ -915,10 +910,7 @@ var _ = Describe("Resources API", func() {
 				"privileged": true,
 				"check_every": "10ms",
 				"params": {"param-key-2": "param-value-2"},
-				"source": {"source-key-2": "source-value-2"},
-				"version": {
-					"version-key-2": "version-value-2"
-				}
+				"source": {"source-key-2": "source-value-2"}
 			}
 		]`))
 				})
@@ -1363,11 +1355,23 @@ var _ = Describe("Resources API", func() {
 
 					It("checks with no version specified", func() {
 						Expect(dbCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
-						_, actualResourceType, actualResourceTypes, actualFromVersion, manuallyTriggered := dbCheckFactory.TryCreateCheckArgsForCall(0)
+						_, actualResourceType, actualResourceTypes, actualFromVersion, manuallyTriggered, skipIntervalRecursively := dbCheckFactory.TryCreateCheckArgsForCall(0)
 						Expect(actualResourceType).To(Equal(fakeResourceType))
 						Expect(actualResourceTypes).To(Equal(fakeResourceTypes))
 						Expect(actualFromVersion).To(BeNil())
 						Expect(manuallyTriggered).To(BeTrue())
+						Expect(skipIntervalRecursively).To(BeTrue())
+					})
+
+					Context("when doing a shallow check", func() {
+						BeforeEach(func() {
+							checkRequestBody.Shallow = true
+						})
+
+						It("does not recursively skip the check interval", func() {
+							_, _, _, _, _, skipIntervalRecursively := dbCheckFactory.TryCreateCheckArgsForCall(0)
+							Expect(skipIntervalRecursively).To(BeFalse())
+						})
 					})
 
 					Context("when checking with a version specified", func() {
@@ -1379,9 +1383,9 @@ var _ = Describe("Resources API", func() {
 							}
 						})
 
-						It("checks with no version specified", func() {
+						It("checks with the given version specified", func() {
 							Expect(dbCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
-							_, actualResourceType, actualResourceTypes, actualFromVersion, manuallyTriggered := dbCheckFactory.TryCreateCheckArgsForCall(0)
+							_, actualResourceType, actualResourceTypes, actualFromVersion, manuallyTriggered, _ := dbCheckFactory.TryCreateCheckArgsForCall(0)
 							Expect(actualResourceType).To(Equal(fakeResourceType))
 							Expect(actualResourceTypes).To(Equal(fakeResourceTypes))
 							Expect(actualFromVersion).To(Equal(checkRequestBody.From))
@@ -1694,11 +1698,12 @@ var _ = Describe("Resources API", func() {
 
 					It("checks with a nil version", func() {
 						Expect(dbCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
-						_, actualResource, actualResourceTypes, actualFromVersion, manuallyTriggered := dbCheckFactory.TryCreateCheckArgsForCall(0)
+						_, actualResource, actualResourceTypes, actualFromVersion, manuallyTriggered, skipIntervalRecursively := dbCheckFactory.TryCreateCheckArgsForCall(0)
 						Expect(actualResource).To(Equal(fakeResource))
 						Expect(actualResourceTypes).To(Equal(fakeResourceTypes))
 						Expect(actualFromVersion).To(BeNil())
 						Expect(manuallyTriggered).To(BeTrue())
+						Expect(skipIntervalRecursively).To(BeFalse())
 					})
 
 					Context("when checking fails", func() {

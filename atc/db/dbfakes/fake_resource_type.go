@@ -21,7 +21,7 @@ type FakeResourceType struct {
 	checkEveryReturnsOnCall map[int]struct {
 		result1 *atc.CheckEvery
 	}
-	CheckPlanStub        func(atc.PlanFactory, db.ImagePlanner, atc.Version, time.Duration, atc.Source) atc.Plan
+	CheckPlanStub        func(atc.PlanFactory, db.ImagePlanner, atc.Version, time.Duration, atc.Source, bool, bool) atc.Plan
 	checkPlanMutex       sync.RWMutex
 	checkPlanArgsForCall []struct {
 		arg1 atc.PlanFactory
@@ -29,6 +29,8 @@ type FakeResourceType struct {
 		arg3 atc.Version
 		arg4 time.Duration
 		arg5 atc.Source
+		arg6 bool
+		arg7 bool
 	}
 	checkPlanReturns struct {
 		result1 atc.Plan
@@ -300,16 +302,6 @@ type FakeResourceType struct {
 	typeReturnsOnCall map[int]struct {
 		result1 string
 	}
-	VersionStub        func() atc.Version
-	versionMutex       sync.RWMutex
-	versionArgsForCall []struct {
-	}
-	versionReturns struct {
-		result1 atc.Version
-	}
-	versionReturnsOnCall map[int]struct {
-		result1 atc.Version
-	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -367,7 +359,7 @@ func (fake *FakeResourceType) CheckEveryReturnsOnCall(i int, result1 *atc.CheckE
 	}{result1}
 }
 
-func (fake *FakeResourceType) CheckPlan(arg1 atc.PlanFactory, arg2 db.ImagePlanner, arg3 atc.Version, arg4 time.Duration, arg5 atc.Source) atc.Plan {
+func (fake *FakeResourceType) CheckPlan(arg1 atc.PlanFactory, arg2 db.ImagePlanner, arg3 atc.Version, arg4 time.Duration, arg5 atc.Source, arg6 bool, arg7 bool) atc.Plan {
 	fake.checkPlanMutex.Lock()
 	ret, specificReturn := fake.checkPlanReturnsOnCall[len(fake.checkPlanArgsForCall)]
 	fake.checkPlanArgsForCall = append(fake.checkPlanArgsForCall, struct {
@@ -376,13 +368,15 @@ func (fake *FakeResourceType) CheckPlan(arg1 atc.PlanFactory, arg2 db.ImagePlann
 		arg3 atc.Version
 		arg4 time.Duration
 		arg5 atc.Source
-	}{arg1, arg2, arg3, arg4, arg5})
+		arg6 bool
+		arg7 bool
+	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
 	stub := fake.CheckPlanStub
 	fakeReturns := fake.checkPlanReturns
-	fake.recordInvocation("CheckPlan", []interface{}{arg1, arg2, arg3, arg4, arg5})
+	fake.recordInvocation("CheckPlan", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
 	fake.checkPlanMutex.Unlock()
 	if stub != nil {
-		return stub(arg1, arg2, arg3, arg4, arg5)
+		return stub(arg1, arg2, arg3, arg4, arg5, arg6, arg7)
 	}
 	if specificReturn {
 		return ret.result1
@@ -396,17 +390,17 @@ func (fake *FakeResourceType) CheckPlanCallCount() int {
 	return len(fake.checkPlanArgsForCall)
 }
 
-func (fake *FakeResourceType) CheckPlanCalls(stub func(atc.PlanFactory, db.ImagePlanner, atc.Version, time.Duration, atc.Source) atc.Plan) {
+func (fake *FakeResourceType) CheckPlanCalls(stub func(atc.PlanFactory, db.ImagePlanner, atc.Version, time.Duration, atc.Source, bool, bool) atc.Plan) {
 	fake.checkPlanMutex.Lock()
 	defer fake.checkPlanMutex.Unlock()
 	fake.CheckPlanStub = stub
 }
 
-func (fake *FakeResourceType) CheckPlanArgsForCall(i int) (atc.PlanFactory, db.ImagePlanner, atc.Version, time.Duration, atc.Source) {
+func (fake *FakeResourceType) CheckPlanArgsForCall(i int) (atc.PlanFactory, db.ImagePlanner, atc.Version, time.Duration, atc.Source, bool, bool) {
 	fake.checkPlanMutex.RLock()
 	defer fake.checkPlanMutex.RUnlock()
 	argsForCall := fake.checkPlanArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6, argsForCall.arg7
 }
 
 func (fake *FakeResourceType) CheckPlanReturns(result1 atc.Plan) {
@@ -1790,59 +1784,6 @@ func (fake *FakeResourceType) TypeReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
-func (fake *FakeResourceType) Version() atc.Version {
-	fake.versionMutex.Lock()
-	ret, specificReturn := fake.versionReturnsOnCall[len(fake.versionArgsForCall)]
-	fake.versionArgsForCall = append(fake.versionArgsForCall, struct {
-	}{})
-	stub := fake.VersionStub
-	fakeReturns := fake.versionReturns
-	fake.recordInvocation("Version", []interface{}{})
-	fake.versionMutex.Unlock()
-	if stub != nil {
-		return stub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fakeReturns.result1
-}
-
-func (fake *FakeResourceType) VersionCallCount() int {
-	fake.versionMutex.RLock()
-	defer fake.versionMutex.RUnlock()
-	return len(fake.versionArgsForCall)
-}
-
-func (fake *FakeResourceType) VersionCalls(stub func() atc.Version) {
-	fake.versionMutex.Lock()
-	defer fake.versionMutex.Unlock()
-	fake.VersionStub = stub
-}
-
-func (fake *FakeResourceType) VersionReturns(result1 atc.Version) {
-	fake.versionMutex.Lock()
-	defer fake.versionMutex.Unlock()
-	fake.VersionStub = nil
-	fake.versionReturns = struct {
-		result1 atc.Version
-	}{result1}
-}
-
-func (fake *FakeResourceType) VersionReturnsOnCall(i int, result1 atc.Version) {
-	fake.versionMutex.Lock()
-	defer fake.versionMutex.Unlock()
-	fake.VersionStub = nil
-	if fake.versionReturnsOnCall == nil {
-		fake.versionReturnsOnCall = make(map[int]struct {
-			result1 atc.Version
-		})
-	}
-	fake.versionReturnsOnCall[i] = struct {
-		result1 atc.Version
-	}{result1}
-}
-
 func (fake *FakeResourceType) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -1900,8 +1841,6 @@ func (fake *FakeResourceType) Invocations() map[string][][]interface{} {
 	defer fake.teamNameMutex.RUnlock()
 	fake.typeMutex.RLock()
 	defer fake.typeMutex.RUnlock()
-	fake.versionMutex.RLock()
-	defer fake.versionMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

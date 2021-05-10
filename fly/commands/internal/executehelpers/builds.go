@@ -11,7 +11,7 @@ func CreateBuildPlan(
 	privileged bool,
 	inputs []Input,
 	inputMappings map[string]string,
-	versionedResourceTypes atc.VersionedResourceTypes,
+	resourceTypes atc.ResourceTypes,
 	outputs []Output,
 	config atc.TaskConfig,
 	tags []string,
@@ -26,11 +26,11 @@ func CreateBuildPlan(
 	}
 
 	taskPlan := fact.NewPlan(atc.TaskPlan{
-		Name:                   "one-off",
-		Privileged:             privileged,
-		Config:                 &config,
-		InputMapping:           inputMappings,
-		VersionedResourceTypes: versionedResourceTypes,
+		Name:          "one-off",
+		Privileged:    privileged,
+		Config:        &config,
+		InputMapping:  inputMappings,
+		ResourceTypes: resourceTypes,
 	})
 
 	if len(tags) != 0 {
