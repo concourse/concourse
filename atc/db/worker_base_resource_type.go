@@ -48,3 +48,30 @@ func (workerBaseResourceType WorkerBaseResourceType) Find(runner sq.Runner) (*Us
 		WorkerName: workerBaseResourceType.WorkerName,
 	}, true, nil
 }
+
+func (workerBaseResourceType WorkerBaseResourceType) FindById(runner sq.Runner, id int) (*UsedWorkerBaseResourceType, bool, error) {
+	var name, version, workerName string
+	err := psql.Select("brt.name, wbrt.version, wbrt.worker_name").
+		From("worker_base_resource_types wbrt").
+		LeftJoin("base_resource_types brt ON brt.id = wbrt.base_resource_type_id").
+		Where(sq.Eq{
+			"wbrt.id": id,
+		}).
+		RunWith(runner).
+		QueryRow().
+		Scan(&name, &version, &workerName)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, false, nil
+		}
+
+		return nil, false, err
+	}
+
+	return &UsedWorkerBaseResourceType{
+		ID:         id,
+		Name:       name,
+		Version:    version,
+		WorkerName: workerName,
+	}, true, nil
+}

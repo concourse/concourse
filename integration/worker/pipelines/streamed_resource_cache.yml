@@ -1,0 +1,22 @@
+resources:
+- name: some-image
+  type: mock
+  source:
+    mirror_self: true
+  tags: [tag1]
+
+jobs:
+- name: job
+  plan:
+  - get: some-image
+    tags: [tag1]
+  - task: task1
+    image: some-image
+    config:
+      platform: linux
+      run:
+        path: sh
+        args:
+        - -c
+        - echo hello-world
+    tags: [tag2]

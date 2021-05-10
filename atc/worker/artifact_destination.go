@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"github.com/concourse/baggageclaim"
+	"github.com/concourse/concourse/atc/db"
 )
 
 //counterfeiter:generate . ArtifactDestination
@@ -18,4 +19,6 @@ type ArtifactDestination interface {
 	StreamIn(context.Context, string, baggageclaim.Encoding, io.Reader) error
 
 	GetStreamInP2pUrl(ctx context.Context, path string) (string, error)
+
+	InitializeStreamedResourceCache(cache db.UsedResourceCache, sourceWorkerName string) error
 }

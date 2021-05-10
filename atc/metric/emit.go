@@ -82,6 +82,9 @@ type Monitor struct {
 	ConcurrentRequestsLimitHit map[string]*Counter
 
 	VolumesStreamed Counter
+
+	GetStepCacheHits       Counter
+	StreamedResourceCaches Counter
 }
 
 var Metrics = NewMonitor()

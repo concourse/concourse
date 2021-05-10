@@ -73,6 +73,7 @@ type Team interface {
 	FindCreatedContainerByHandle(string) (CreatedContainer, bool, error)
 	FindWorkerForContainer(handle string) (Worker, bool, error)
 	FindWorkerForVolume(handle string) (Worker, bool, error)
+	FindWorkersForResourceCache(rcId int) ([]Worker, error)
 
 	UpdateProviderAuth(auth atc.TeamAuth) error
 }
@@ -159,6 +160,16 @@ func (t *team) FindWorkerForVolume(handle string) (Worker, bool, error) {
 	return getWorker(t.conn, workersQuery.Join("volumes v ON v.worker_name = w.name").Where(sq.And{
 		sq.Eq{"v.handle": handle},
 	}))
+}
+
+func (t *team) FindWorkersForResourceCache(rcId int) ([]Worker, error) {
+	return getWorkers(
+		t.conn, workersQuery.
+			Join("worker_resource_caches wrc ON w.name = wrc.worker_name").
+			Where(sq.And{
+				sq.Eq{"wrc.resource_cache_id": rcId},
+				sq.Eq{"w.state": WorkerStateRunning},
+			}))
 }
 
 func (t *team) Containers() ([]Container, error) {

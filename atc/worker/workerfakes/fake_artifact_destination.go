@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/concourse/baggageclaim"
+	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/worker"
 )
 
@@ -24,6 +25,18 @@ type FakeArtifactDestination struct {
 	getStreamInP2pUrlReturnsOnCall map[int]struct {
 		result1 string
 		result2 error
+	}
+	InitializeStreamedResourceCacheStub        func(db.UsedResourceCache, string) error
+	initializeStreamedResourceCacheMutex       sync.RWMutex
+	initializeStreamedResourceCacheArgsForCall []struct {
+		arg1 db.UsedResourceCache
+		arg2 string
+	}
+	initializeStreamedResourceCacheReturns struct {
+		result1 error
+	}
+	initializeStreamedResourceCacheReturnsOnCall map[int]struct {
+		result1 error
 	}
 	StreamInStub        func(context.Context, string, baggageclaim.Encoding, io.Reader) error
 	streamInMutex       sync.RWMutex
@@ -108,6 +121,68 @@ func (fake *FakeArtifactDestination) GetStreamInP2pUrlReturnsOnCall(i int, resul
 	}{result1, result2}
 }
 
+func (fake *FakeArtifactDestination) InitializeStreamedResourceCache(arg1 db.UsedResourceCache, arg2 string) error {
+	fake.initializeStreamedResourceCacheMutex.Lock()
+	ret, specificReturn := fake.initializeStreamedResourceCacheReturnsOnCall[len(fake.initializeStreamedResourceCacheArgsForCall)]
+	fake.initializeStreamedResourceCacheArgsForCall = append(fake.initializeStreamedResourceCacheArgsForCall, struct {
+		arg1 db.UsedResourceCache
+		arg2 string
+	}{arg1, arg2})
+	stub := fake.InitializeStreamedResourceCacheStub
+	fakeReturns := fake.initializeStreamedResourceCacheReturns
+	fake.recordInvocation("InitializeStreamedResourceCache", []interface{}{arg1, arg2})
+	fake.initializeStreamedResourceCacheMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeArtifactDestination) InitializeStreamedResourceCacheCallCount() int {
+	fake.initializeStreamedResourceCacheMutex.RLock()
+	defer fake.initializeStreamedResourceCacheMutex.RUnlock()
+	return len(fake.initializeStreamedResourceCacheArgsForCall)
+}
+
+func (fake *FakeArtifactDestination) InitializeStreamedResourceCacheCalls(stub func(db.UsedResourceCache, string) error) {
+	fake.initializeStreamedResourceCacheMutex.Lock()
+	defer fake.initializeStreamedResourceCacheMutex.Unlock()
+	fake.InitializeStreamedResourceCacheStub = stub
+}
+
+func (fake *FakeArtifactDestination) InitializeStreamedResourceCacheArgsForCall(i int) (db.UsedResourceCache, string) {
+	fake.initializeStreamedResourceCacheMutex.RLock()
+	defer fake.initializeStreamedResourceCacheMutex.RUnlock()
+	argsForCall := fake.initializeStreamedResourceCacheArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeArtifactDestination) InitializeStreamedResourceCacheReturns(result1 error) {
+	fake.initializeStreamedResourceCacheMutex.Lock()
+	defer fake.initializeStreamedResourceCacheMutex.Unlock()
+	fake.InitializeStreamedResourceCacheStub = nil
+	fake.initializeStreamedResourceCacheReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeArtifactDestination) InitializeStreamedResourceCacheReturnsOnCall(i int, result1 error) {
+	fake.initializeStreamedResourceCacheMutex.Lock()
+	defer fake.initializeStreamedResourceCacheMutex.Unlock()
+	fake.InitializeStreamedResourceCacheStub = nil
+	if fake.initializeStreamedResourceCacheReturnsOnCall == nil {
+		fake.initializeStreamedResourceCacheReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.initializeStreamedResourceCacheReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeArtifactDestination) StreamIn(arg1 context.Context, arg2 string, arg3 baggageclaim.Encoding, arg4 io.Reader) error {
 	fake.streamInMutex.Lock()
 	ret, specificReturn := fake.streamInReturnsOnCall[len(fake.streamInArgsForCall)]
@@ -177,6 +252,8 @@ func (fake *FakeArtifactDestination) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.getStreamInP2pUrlMutex.RLock()
 	defer fake.getStreamInP2pUrlMutex.RUnlock()
+	fake.initializeStreamedResourceCacheMutex.RLock()
+	defer fake.initializeStreamedResourceCacheMutex.RUnlock()
 	fake.streamInMutex.RLock()
 	defer fake.streamInMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

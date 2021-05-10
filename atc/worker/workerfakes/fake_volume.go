@@ -106,6 +106,18 @@ type FakeVolume struct {
 	initializeResourceCacheReturnsOnCall map[int]struct {
 		result1 error
 	}
+	InitializeStreamedResourceCacheStub        func(db.UsedResourceCache, string) error
+	initializeStreamedResourceCacheMutex       sync.RWMutex
+	initializeStreamedResourceCacheArgsForCall []struct {
+		arg1 db.UsedResourceCache
+		arg2 string
+	}
+	initializeStreamedResourceCacheReturns struct {
+		result1 error
+	}
+	initializeStreamedResourceCacheReturnsOnCall map[int]struct {
+		result1 error
+	}
 	InitializeTaskCacheStub        func(lager.Logger, int, string, string, bool) error
 	initializeTaskCacheMutex       sync.RWMutex
 	initializeTaskCacheArgsForCall []struct {
@@ -208,6 +220,16 @@ type FakeVolume struct {
 	}
 	streamP2pOutReturnsOnCall map[int]struct {
 		result1 error
+	}
+	VolumeStub        func() worker.Volume
+	volumeMutex       sync.RWMutex
+	volumeArgsForCall []struct {
+	}
+	volumeReturns struct {
+		result1 worker.Volume
+	}
+	volumeReturnsOnCall map[int]struct {
+		result1 worker.Volume
 	}
 	WorkerNameStub        func() string
 	workerNameMutex       sync.RWMutex
@@ -687,6 +709,68 @@ func (fake *FakeVolume) InitializeResourceCacheReturnsOnCall(i int, result1 erro
 		})
 	}
 	fake.initializeResourceCacheReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeVolume) InitializeStreamedResourceCache(arg1 db.UsedResourceCache, arg2 string) error {
+	fake.initializeStreamedResourceCacheMutex.Lock()
+	ret, specificReturn := fake.initializeStreamedResourceCacheReturnsOnCall[len(fake.initializeStreamedResourceCacheArgsForCall)]
+	fake.initializeStreamedResourceCacheArgsForCall = append(fake.initializeStreamedResourceCacheArgsForCall, struct {
+		arg1 db.UsedResourceCache
+		arg2 string
+	}{arg1, arg2})
+	stub := fake.InitializeStreamedResourceCacheStub
+	fakeReturns := fake.initializeStreamedResourceCacheReturns
+	fake.recordInvocation("InitializeStreamedResourceCache", []interface{}{arg1, arg2})
+	fake.initializeStreamedResourceCacheMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeVolume) InitializeStreamedResourceCacheCallCount() int {
+	fake.initializeStreamedResourceCacheMutex.RLock()
+	defer fake.initializeStreamedResourceCacheMutex.RUnlock()
+	return len(fake.initializeStreamedResourceCacheArgsForCall)
+}
+
+func (fake *FakeVolume) InitializeStreamedResourceCacheCalls(stub func(db.UsedResourceCache, string) error) {
+	fake.initializeStreamedResourceCacheMutex.Lock()
+	defer fake.initializeStreamedResourceCacheMutex.Unlock()
+	fake.InitializeStreamedResourceCacheStub = stub
+}
+
+func (fake *FakeVolume) InitializeStreamedResourceCacheArgsForCall(i int) (db.UsedResourceCache, string) {
+	fake.initializeStreamedResourceCacheMutex.RLock()
+	defer fake.initializeStreamedResourceCacheMutex.RUnlock()
+	argsForCall := fake.initializeStreamedResourceCacheArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeVolume) InitializeStreamedResourceCacheReturns(result1 error) {
+	fake.initializeStreamedResourceCacheMutex.Lock()
+	defer fake.initializeStreamedResourceCacheMutex.Unlock()
+	fake.InitializeStreamedResourceCacheStub = nil
+	fake.initializeStreamedResourceCacheReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeVolume) InitializeStreamedResourceCacheReturnsOnCall(i int, result1 error) {
+	fake.initializeStreamedResourceCacheMutex.Lock()
+	defer fake.initializeStreamedResourceCacheMutex.Unlock()
+	fake.InitializeStreamedResourceCacheStub = nil
+	if fake.initializeStreamedResourceCacheReturnsOnCall == nil {
+		fake.initializeStreamedResourceCacheReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.initializeStreamedResourceCacheReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }
@@ -1182,6 +1266,59 @@ func (fake *FakeVolume) StreamP2pOutReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeVolume) Volume() worker.Volume {
+	fake.volumeMutex.Lock()
+	ret, specificReturn := fake.volumeReturnsOnCall[len(fake.volumeArgsForCall)]
+	fake.volumeArgsForCall = append(fake.volumeArgsForCall, struct {
+	}{})
+	stub := fake.VolumeStub
+	fakeReturns := fake.volumeReturns
+	fake.recordInvocation("Volume", []interface{}{})
+	fake.volumeMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeVolume) VolumeCallCount() int {
+	fake.volumeMutex.RLock()
+	defer fake.volumeMutex.RUnlock()
+	return len(fake.volumeArgsForCall)
+}
+
+func (fake *FakeVolume) VolumeCalls(stub func() worker.Volume) {
+	fake.volumeMutex.Lock()
+	defer fake.volumeMutex.Unlock()
+	fake.VolumeStub = stub
+}
+
+func (fake *FakeVolume) VolumeReturns(result1 worker.Volume) {
+	fake.volumeMutex.Lock()
+	defer fake.volumeMutex.Unlock()
+	fake.VolumeStub = nil
+	fake.volumeReturns = struct {
+		result1 worker.Volume
+	}{result1}
+}
+
+func (fake *FakeVolume) VolumeReturnsOnCall(i int, result1 worker.Volume) {
+	fake.volumeMutex.Lock()
+	defer fake.volumeMutex.Unlock()
+	fake.VolumeStub = nil
+	if fake.volumeReturnsOnCall == nil {
+		fake.volumeReturnsOnCall = make(map[int]struct {
+			result1 worker.Volume
+		})
+	}
+	fake.volumeReturnsOnCall[i] = struct {
+		result1 worker.Volume
+	}{result1}
+}
+
 func (fake *FakeVolume) WorkerName() string {
 	fake.workerNameMutex.Lock()
 	ret, specificReturn := fake.workerNameReturnsOnCall[len(fake.workerNameArgsForCall)]
@@ -1254,6 +1391,8 @@ func (fake *FakeVolume) Invocations() map[string][][]interface{} {
 	defer fake.initializeArtifactMutex.RUnlock()
 	fake.initializeResourceCacheMutex.RLock()
 	defer fake.initializeResourceCacheMutex.RUnlock()
+	fake.initializeStreamedResourceCacheMutex.RLock()
+	defer fake.initializeStreamedResourceCacheMutex.RUnlock()
 	fake.initializeTaskCacheMutex.RLock()
 	defer fake.initializeTaskCacheMutex.RUnlock()
 	fake.pathMutex.RLock()
@@ -1270,6 +1409,8 @@ func (fake *FakeVolume) Invocations() map[string][][]interface{} {
 	defer fake.streamOutMutex.RUnlock()
 	fake.streamP2pOutMutex.RLock()
 	defer fake.streamP2pOutMutex.RUnlock()
+	fake.volumeMutex.RLock()
+	defer fake.volumeMutex.RUnlock()
 	fake.workerNameMutex.RLock()
 	defer fake.workerNameMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
