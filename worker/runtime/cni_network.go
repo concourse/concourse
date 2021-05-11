@@ -238,7 +238,7 @@ func NewCNINetwork(opts ...CNINetworkOpt) (*cniNetwork, error) {
 	return n, nil
 }
 
-func (n cniNetwork) SetupHostNetwork() error  {
+func (n cniNetwork) SetupHostNetwork() error {
 	err := n.setupRestrictedNetworks()
 	if err != nil {
 		return err

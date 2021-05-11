@@ -52,6 +52,7 @@ type ContainerdRuntime struct {
 		RestrictedNetworks []string  `long:"restricted-network" description:"Network ranges to which traffic from containers will be restricted. Can be specified multiple times."`
 		Pool               string    `long:"network-pool" default:"10.80.0.0/16" description:"Network range to use for dynamically allocated container subnets."`
 		MTU                int       `long:"mtu" description:"MTU size for container network interfaces. Defaults to the MTU of the interface used for outbound access by the host."`
+		AllowHostAccess    bool      `long:"allow-host-access" description:"Allow containers to reach the host's network. This is turned off by default."`
 	} `group:"Container Networking"`
 
 	MaxContainers int `long:"max-containers" default:"250" description:"Max container capacity. 0 means no limit."`

@@ -70,6 +70,10 @@ func (cmd *WorkerCommand) containerdGardenServerRunner(
 		networkOpts = append(networkOpts, runtime.WithRestrictedNetworks(cmd.Containerd.Network.RestrictedNetworks))
 	}
 
+	if cmd.Containerd.Network.AllowHostAccess {
+		networkOpts = append(networkOpts, runtime.WithAllowHostAccess())
+	}
+
 	networkConfig := runtime.DefaultCNINetworkConfig
 	if cmd.Containerd.Network.Pool != "" {
 		networkConfig.Subnet = cmd.Containerd.Network.Pool
