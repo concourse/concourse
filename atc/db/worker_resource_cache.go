@@ -2,9 +2,11 @@ package db
 
 import (
 	"errors"
-	sq "github.com/Masterminds/squirrel"
 	"math/rand"
 	"time"
+
+	sq "github.com/Masterminds/squirrel"
+	"github.com/lib/pq"
 )
 
 type WorkerResourceCache struct {
@@ -18,7 +20,16 @@ type UsedWorkerResourceCache struct {
 
 var ErrWorkerBaseResourceTypeDisappeared = errors.New("worker base resource type disappeared")
 
-func (workerResourceCache WorkerResourceCache) FindOrCreate(tx Tx, sourceWorker string) (*UsedWorkerResourceCache, error) {
+// FindOrCreate finds or creates a worker_resource_cache initialized from a
+// given sourceWorker. If there already exists a worker_resource_cache for the
+// provided WorkerName and ResourceCache, but initialized from a different
+// sourceWorker, it will return `false` as its second return value.
+//
+// This can happen if multiple volumes for the same resource cache are being
+// streamed to a worker simultaneously from multiple other "source" workers -
+// we only want a single worker_resource_cache in the end for the destination
+// worker, so the "first write wins".
+func (workerResourceCache WorkerResourceCache) FindOrCreate(tx Tx, sourceWorker string) (*UsedWorkerResourceCache, bool, error) {
 	if sourceWorker == "" {
 		sourceWorker = workerResourceCache.WorkerName
 	}
@@ -29,16 +40,16 @@ func (workerResourceCache WorkerResourceCache) FindOrCreate(tx Tx, sourceWorker 
 		WorkerName: sourceWorker,
 	}.Find(tx)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	if !found {
-		return nil, ErrWorkerBaseResourceTypeDisappeared
+		return nil, false, ErrWorkerBaseResourceTypeDisappeared
 	}
 
 	ids, workerBaseResourceTypeIds, found, err := workerResourceCache.find(tx)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	if found {
@@ -46,7 +57,7 @@ func (workerResourceCache WorkerResourceCache) FindOrCreate(tx Tx, sourceWorker 
 			if workerBaseResourceTypeId == usedWorkerBaseResourceType.ID {
 				return &UsedWorkerResourceCache{
 					ID: ids[i],
-				}, nil
+				}, true, nil
 			}
 		}
 	}
@@ -63,23 +74,20 @@ func (workerResourceCache WorkerResourceCache) FindOrCreate(tx Tx, sourceWorker 
 			usedWorkerBaseResourceType.ID,
 			workerResourceCache.WorkerName,
 		).
-		Suffix(`
-			ON CONFLICT (resource_cache_id, worker_base_resource_type_id, worker_name) DO UPDATE SET
-				resource_cache_id = ?,
-				worker_base_resource_type_id = ?,
-				worker_name = ? 
-			RETURNING id
-		`, workerResourceCache.ResourceCache.ID(), usedWorkerBaseResourceType.ID, workerResourceCache.WorkerName).
+		Suffix(`RETURNING id`).
 		RunWith(tx).
 		QueryRow().
 		Scan(&id)
 	if err != nil {
-		return nil, err
+		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == pqUniqueViolationErrCode {
+			return nil, false, nil
+		}
+		return nil, false, err
 	}
 
 	return &UsedWorkerResourceCache{
 		ID: id,
-	}, nil
+	}, true, nil
 }
 
 // Find looks for a worker resource cache by resource cache id and worker name. It may find multiple
