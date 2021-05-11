@@ -10,7 +10,7 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-func (team *team) CheckResourceType(pipelineRef atc.PipelineRef, resourceTypeName string, version atc.Version) (atc.Build, bool, error) {
+func (team *team) CheckResourceType(pipelineRef atc.PipelineRef, resourceTypeName string, version atc.Version, shallow bool) (atc.Build, bool, error) {
 
 	params := rata.Params{
 		"pipeline_name":      pipelineRef.Name,
@@ -20,7 +20,7 @@ func (team *team) CheckResourceType(pipelineRef atc.PipelineRef, resourceTypeNam
 
 	var build atc.Build
 
-	jsonBytes, err := json.Marshal(atc.CheckRequestBody{From: version})
+	jsonBytes, err := json.Marshal(atc.CheckRequestBody{From: version, Shallow: shallow})
 	if err != nil {
 		return build, false, err
 	}

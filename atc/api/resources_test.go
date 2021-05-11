@@ -678,11 +678,12 @@ var _ = Describe("Resources API", func() {
 
 					It("checks with no version specified", func() {
 						Expect(dbCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
-						_, actualResource, actualResourceTypes, actualFromVersion, manuallyTriggered := dbCheckFactory.TryCreateCheckArgsForCall(0)
+						_, actualResource, actualResourceTypes, actualFromVersion, manuallyTriggered, skipIntervalRecursively := dbCheckFactory.TryCreateCheckArgsForCall(0)
 						Expect(actualResource).To(Equal(fakeResource))
 						Expect(actualResourceTypes).To(Equal(fakeResourceTypes))
 						Expect(actualFromVersion).To(BeNil())
 						Expect(manuallyTriggered).To(BeTrue())
+						Expect(skipIntervalRecursively).To(BeTrue())
 					})
 
 					Context("when checking with a version specified", func() {
@@ -696,11 +697,23 @@ var _ = Describe("Resources API", func() {
 
 						It("checks with the version specified", func() {
 							Expect(dbCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
-							_, actualResource, actualResourceTypes, actualFromVersion, manuallyTriggered := dbCheckFactory.TryCreateCheckArgsForCall(0)
+							_, actualResource, actualResourceTypes, actualFromVersion, manuallyTriggered, skipIntervalRecursively := dbCheckFactory.TryCreateCheckArgsForCall(0)
 							Expect(actualResource).To(Equal(fakeResource))
 							Expect(actualResourceTypes).To(Equal(fakeResourceTypes))
 							Expect(actualFromVersion).To(Equal(checkRequestBody.From))
 							Expect(manuallyTriggered).To(BeTrue())
+							Expect(skipIntervalRecursively).To(BeTrue())
+						})
+					})
+
+					Context("when doing a shallow check", func() {
+						BeforeEach(func() {
+							checkRequestBody.Shallow = true
+						})
+
+						It("does not recursively skip the check interval", func() {
+							_, _, _, _, _, skipIntervalRecursively := dbCheckFactory.TryCreateCheckArgsForCall(0)
+							Expect(skipIntervalRecursively).To(BeFalse())
 						})
 					})
 
@@ -1342,11 +1355,23 @@ var _ = Describe("Resources API", func() {
 
 					It("checks with no version specified", func() {
 						Expect(dbCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
-						_, actualResourceType, actualResourceTypes, actualFromVersion, manuallyTriggered := dbCheckFactory.TryCreateCheckArgsForCall(0)
+						_, actualResourceType, actualResourceTypes, actualFromVersion, manuallyTriggered, skipIntervalRecursively := dbCheckFactory.TryCreateCheckArgsForCall(0)
 						Expect(actualResourceType).To(Equal(fakeResourceType))
 						Expect(actualResourceTypes).To(Equal(fakeResourceTypes))
 						Expect(actualFromVersion).To(BeNil())
 						Expect(manuallyTriggered).To(BeTrue())
+						Expect(skipIntervalRecursively).To(BeTrue())
+					})
+
+					Context("when doing a shallow check", func() {
+						BeforeEach(func() {
+							checkRequestBody.Shallow = true
+						})
+
+						It("does not recursively skip the check interval", func() {
+							_, _, _, _, _, skipIntervalRecursively := dbCheckFactory.TryCreateCheckArgsForCall(0)
+							Expect(skipIntervalRecursively).To(BeFalse())
+						})
 					})
 
 					Context("when checking with a version specified", func() {
@@ -1358,9 +1383,9 @@ var _ = Describe("Resources API", func() {
 							}
 						})
 
-						It("checks with no version specified", func() {
+						It("checks with the given version specified", func() {
 							Expect(dbCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
-							_, actualResourceType, actualResourceTypes, actualFromVersion, manuallyTriggered := dbCheckFactory.TryCreateCheckArgsForCall(0)
+							_, actualResourceType, actualResourceTypes, actualFromVersion, manuallyTriggered, _ := dbCheckFactory.TryCreateCheckArgsForCall(0)
 							Expect(actualResourceType).To(Equal(fakeResourceType))
 							Expect(actualResourceTypes).To(Equal(fakeResourceTypes))
 							Expect(actualFromVersion).To(Equal(checkRequestBody.From))
@@ -1498,11 +1523,12 @@ var _ = Describe("Resources API", func() {
 
 					It("checks with a nil version", func() {
 						Expect(dbCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
-						_, actualResource, actualResourceTypes, actualFromVersion, manuallyTriggered := dbCheckFactory.TryCreateCheckArgsForCall(0)
+						_, actualResource, actualResourceTypes, actualFromVersion, manuallyTriggered, skipIntervalRecursively := dbCheckFactory.TryCreateCheckArgsForCall(0)
 						Expect(actualResource).To(Equal(fakeResource))
 						Expect(actualResourceTypes).To(Equal(fakeResourceTypes))
 						Expect(actualFromVersion).To(BeNil())
 						Expect(manuallyTriggered).To(BeTrue())
+						Expect(skipIntervalRecursively).To(BeFalse())
 					})
 
 					Context("when checking fails", func() {

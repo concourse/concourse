@@ -70,7 +70,7 @@ var _ = Describe("CheckFactory", func() {
 
 		Context("when it is run on a resource", func() {
 			JustBeforeEach(func() {
-				build, created, err = checkFactory.TryCreateCheck(context.TODO(), fakeResource, fakeResourceTypes, fromVersion, manuallyTriggered)
+				build, created, err = checkFactory.TryCreateCheck(context.TODO(), fakeResource, fakeResourceTypes, fromVersion, manuallyTriggered, false)
 			})
 
 			Context("when the resource parent type is not a custom type", func() {
@@ -133,7 +133,7 @@ var _ = Describe("CheckFactory", func() {
 
 				It("creates a check plan with the default webhook interval", func() {
 					Expect(fakeResource.CheckPlanCallCount()).To(Equal(1))
-					_, types, version, interval, defaults := fakeResource.CheckPlanArgsForCall(0)
+					_, types, version, interval, defaults, _, _ := fakeResource.CheckPlanArgsForCall(0)
 					Expect(version).To(Equal(atc.Version{"from": "version"}))
 					Expect(interval).To(Equal(defaultWebhookCheckInterval))
 					Expect(types).To(HaveLen(0))
@@ -159,7 +159,7 @@ var _ = Describe("CheckFactory", func() {
 
 				It("sets it in the check plan", func() {
 					Expect(fakeResource.CheckPlanCallCount()).To(Equal(1))
-					_, types, version, interval, defaults := fakeResource.CheckPlanArgsForCall(0)
+					_, types, version, interval, defaults, _, _ := fakeResource.CheckPlanArgsForCall(0)
 					Expect(version).To(Equal(atc.Version{"from": "version"}))
 					Expect(interval).To(Equal(42 * time.Second))
 					Expect(types).To(HaveLen(0))
@@ -193,7 +193,7 @@ var _ = Describe("CheckFactory", func() {
 
 					It("creates a check plan", func() {
 						Expect(fakeResource.CheckPlanCallCount()).To(Equal(1))
-						_, types, version, interval, defaults := fakeResource.CheckPlanArgsForCall(0)
+						_, types, version, interval, defaults, _, _ := fakeResource.CheckPlanArgsForCall(0)
 						Expect(version).To(Equal(atc.Version{"from": "version"}))
 						Expect(interval).To(Equal(defaultCheckInterval))
 						Expect(types).To(Equal(atc.ResourceTypes{
@@ -234,12 +234,12 @@ var _ = Describe("CheckFactory", func() {
 			})
 
 			JustBeforeEach(func() {
-				build, created, err = checkFactory.TryCreateCheck(context.TODO(), fakeResourceType, fakeResourceTypes, fromVersion, manuallyTriggered)
+				build, created, err = checkFactory.TryCreateCheck(context.TODO(), fakeResourceType, fakeResourceTypes, fromVersion, manuallyTriggered, false)
 			})
 
 			It("creates a check plan", func() {
 				Expect(fakeResourceType.CheckPlanCallCount()).To(Equal(1))
-				_, types, version, interval, defaults := fakeResourceType.CheckPlanArgsForCall(0)
+				_, types, version, interval, defaults, _, _ := fakeResourceType.CheckPlanArgsForCall(0)
 				Expect(version).To(Equal(atc.Version{"from": "version"}))
 				Expect(interval).To(Equal(defaultCheckInterval))
 				Expect(types).To(Equal(atc.ResourceTypes{}))

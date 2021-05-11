@@ -105,7 +105,7 @@ func (visitor *planVisitor) VisitGet(step *atc.GetStep) error {
 		Timeout:  step.Timeout,
 	})
 
-	plan.Get.TypeImage = visitor.resourceTypes.ImageForType(plan.ID, resource.Type, step.Tags)
+	plan.Get.TypeImage = visitor.resourceTypes.ImageForType(plan.ID, resource.Type, step.Tags, false)
 	visitor.plan = plan
 	return nil
 }
@@ -138,7 +138,7 @@ func (visitor *planVisitor) VisitPut(step *atc.PutStep) error {
 		ExposeBuildCreatedBy: resource.ExposeBuildCreatedBy,
 	})
 
-	plan.Put.TypeImage = visitor.resourceTypes.ImageForType(plan.ID, resource.Type, step.Tags)
+	plan.Put.TypeImage = visitor.resourceTypes.ImageForType(plan.ID, resource.Type, step.Tags, false)
 
 	dependentGetPlan := visitor.planFactory.NewPlan(atc.GetPlan{
 		Name:        logicalName,
@@ -152,7 +152,7 @@ func (visitor *planVisitor) VisitPut(step *atc.PutStep) error {
 		Timeout: step.Timeout,
 	})
 
-	dependentGetPlan.Get.TypeImage = visitor.resourceTypes.ImageForType(dependentGetPlan.ID, resource.Type, step.Tags)
+	dependentGetPlan.Get.TypeImage = visitor.resourceTypes.ImageForType(dependentGetPlan.ID, resource.Type, step.Tags, false)
 
 	visitor.plan = visitor.planFactory.NewPlan(atc.OnSuccessPlan{
 		Step: plan,
@@ -436,7 +436,7 @@ func FetchImagePlan(planID atc.PlanID, image atc.ImageResource, resourceTypes at
 			Source: image.Source,
 			Params: image.Params,
 
-			TypeImage: resourceTypes.ImageForType(getPlanID, image.Type, tags),
+			TypeImage: resourceTypes.ImageForType(getPlanID, image.Type, tags, false),
 
 			Tags: tags,
 		},
@@ -453,7 +453,7 @@ func FetchImagePlan(planID atc.PlanID, image atc.ImageResource, resourceTypes at
 				Type:   image.Type,
 				Source: image.Source,
 
-				TypeImage: resourceTypes.ImageForType(checkPlanID, image.Type, tags),
+				TypeImage: resourceTypes.ImageForType(checkPlanID, image.Type, tags, false),
 
 				Tags: tags,
 			},

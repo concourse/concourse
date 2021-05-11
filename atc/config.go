@@ -284,7 +284,7 @@ func (types ResourceTypes) Without(name string) ResourceTypes {
 	return newTypes
 }
 
-func (types ResourceTypes) ImageForType(planID PlanID, resourceType string, stepTags Tags) TypeImage {
+func (types ResourceTypes) ImageForType(planID PlanID, resourceType string, stepTags Tags, skipInterval bool) TypeImage {
 	// Check if resource type is a custom type
 	parent, found := types.Lookup(resourceType)
 	if !found {
@@ -299,8 +299,8 @@ func (types ResourceTypes) ImageForType(planID PlanID, resourceType string, step
 		tags = stepTags
 	}
 
-	checkPlan := types.createImageCheckPlan(planID, parent, tags)
-	getPlan := types.createImageGetPlan(planID, parent, tags, &checkPlan.ID)
+	checkPlan := types.createImageCheckPlan(planID, parent, tags, skipInterval)
+	getPlan := types.createImageGetPlan(planID, parent, tags, &checkPlan.ID, skipInterval)
 
 	return TypeImage{
 		// Set the base type as the base type of its parent. The value of the base
@@ -320,21 +320,22 @@ func (types ResourceTypes) ImageForType(planID PlanID, resourceType string, step
 	}
 }
 
-func (types ResourceTypes) createImageCheckPlan(planID PlanID, parent ResourceType, tags Tags) *Plan {
+func (types ResourceTypes) createImageCheckPlan(planID PlanID, parent ResourceType, tags Tags, skipInterval bool) *Plan {
 	checkPlanID := planID + "/image-check"
 	return &Plan{
 		ID: checkPlanID,
 		Check: &CheckPlan{
-			Name:      parent.Name,
-			Type:      parent.Type,
-			Source:    parent.Source,
-			TypeImage: types.Without(parent.Name).ImageForType(checkPlanID, parent.Type, tags),
-			Tags:      tags,
+			Name:         parent.Name,
+			Type:         parent.Type,
+			Source:       parent.Source,
+			TypeImage:    types.Without(parent.Name).ImageForType(checkPlanID, parent.Type, tags, skipInterval),
+			Tags:         tags,
+			SkipInterval: skipInterval,
 		},
 	}
 }
 
-func (types ResourceTypes) createImageGetPlan(planID PlanID, parent ResourceType, tags Tags, checkPlanID *PlanID) *Plan {
+func (types ResourceTypes) createImageGetPlan(planID PlanID, parent ResourceType, tags Tags, checkPlanID *PlanID, skipInterval bool) *Plan {
 	getPlanID := planID + "/image-get"
 	return &Plan{
 		ID: getPlanID,
@@ -344,7 +345,7 @@ func (types ResourceTypes) createImageGetPlan(planID PlanID, parent ResourceType
 			Source:      parent.Source,
 			Params:      parent.Params,
 			VersionFrom: checkPlanID,
-			TypeImage:   types.Without(parent.Name).ImageForType(getPlanID, parent.Type, tags),
+			TypeImage:   types.Without(parent.Name).ImageForType(getPlanID, parent.Type, tags, skipInterval),
 			Tags:        tags,
 		},
 	}

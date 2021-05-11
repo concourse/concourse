@@ -30,13 +30,13 @@ type Checkable interface {
 
 	HasWebhook() bool
 
-	CheckPlan(planFactory atc.PlanFactory, imagePlanner ImagePlanner, from atc.Version, interval time.Duration, sourceDefaults atc.Source) atc.Plan
+	CheckPlan(planFactory atc.PlanFactory, imagePlanner ImagePlanner, from atc.Version, interval time.Duration, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) atc.Plan
 	CreateBuild(context.Context, bool, atc.Plan) (Build, bool, error)
 }
 
 //counterfeiter:generate . CheckFactory
 type CheckFactory interface {
-	TryCreateCheck(context.Context, Checkable, ResourceTypes, atc.Version, bool) (Build, bool, error)
+	TryCreateCheck(context.Context, Checkable, ResourceTypes, atc.Version, bool, bool) (Build, bool, error)
 	Resources() ([]Resource, error)
 	ResourceTypes() ([]ResourceType, error)
 }
@@ -83,7 +83,7 @@ func NewCheckFactory(
 	}
 }
 
-func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, resourceTypes ResourceTypes, from atc.Version, manuallyTriggered bool) (Build, bool, error) {
+func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, resourceTypes ResourceTypes, from atc.Version, manuallyTriggered bool, skipIntervalRecursively bool) (Build, bool, error) {
 	logger := lagerctx.FromContext(ctx)
 
 	var err error
@@ -107,7 +107,8 @@ func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, 
 		interval = checkable.CheckEvery().Interval
 	}
 
-	if !manuallyTriggered && time.Now().Before(checkable.LastCheckEndTime().Add(interval)) {
+	skipInterval := manuallyTriggered
+	if !skipInterval && time.Now().Before(checkable.LastCheckEndTime().Add(interval)) {
 		// skip creating the check if its interval hasn't elapsed yet
 		return nil, false, nil
 	}
@@ -121,7 +122,7 @@ func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, 
 		deserializedResourceTypes = atc.ResourceTypes{}
 	}
 
-	plan := checkable.CheckPlan(c.planFactory, deserializedResourceTypes, from, interval, sourceDefaults)
+	plan := checkable.CheckPlan(c.planFactory, deserializedResourceTypes, from, interval, sourceDefaults, skipInterval, skipIntervalRecursively)
 	build, created, err := checkable.CreateBuild(ctx, manuallyTriggered, plan)
 	if err != nil {
 		return nil, false, fmt.Errorf("create build: %w", err)

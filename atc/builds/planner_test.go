@@ -864,8 +864,7 @@ var factoryTests = []PlannerTest{
 						"name": "some-resource-type",
 						"type": "some-base-resource-type",
 						"source": {"some": "type-source"},
-						"defaults": {"default-key":"default-value"},
-						"version": {"some": "type-version"}
+						"defaults": {"default-key":"default-value"}
 					}
 				]
 			}
