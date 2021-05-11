@@ -59,7 +59,7 @@ type ContainerdRuntime struct {
 }
 
 type DNSConfig struct {
-	Enable bool `long:"enable" description:"Enable proxy DNS server."`
+	Enable bool `long:"enable" description:"Enable proxy DNS server. Note: this will enable containers to access the host network."`
 }
 
 const containerdRuntime = "containerd"
