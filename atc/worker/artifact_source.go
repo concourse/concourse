@@ -10,6 +10,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/compression"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/metric"
@@ -171,7 +172,7 @@ func (source *artifactSource) StreamTo(
 	metric.Metrics.VolumesStreamed.Inc()
 
 	// If the source volume is a resource cache, then mark dest volume as a resource cache too.
-	if source.volume.GetResourceCacheID() > 0 {
+	if atc.EnableCacheStreamedVolumes && source.volume.GetResourceCacheID() > 0 {
 		usedResourceCache, found, err := source.resourceCacheFactory.FindResourceCacheByID(source.volume.GetResourceCacheID())
 		if err != nil {
 			logger.Error("stream-to-failed-to-find-resource-cache", err)
