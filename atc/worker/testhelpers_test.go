@@ -92,7 +92,11 @@ func (f FakeDestination) GetStreamInP2pUrl(ctx context.Context, path string) (st
 }
 
 func (f FakeDestination) InitializeStreamedResourceCache(cache db.UsedResourceCache, sourceWorkerName string) error {
-	return nil
+	panic("unimplemented")
+}
+
+func (f FakeDestination) SetPrivileged(_ bool) error {
+	panic("unimplemented")
 }
 
 func BeStreamableWithContent(content content) types.GomegaMatcher {

@@ -328,6 +328,11 @@ var _ = Describe("StreamableArtifactSource", func() {
 						Expect(fakeDestination.InitializeStreamedResourceCacheArgsForCall(0)).To(Equal(fakeUrc))
 					})
 
+					It("should mark dest volume as unprivileged", func() {
+						Expect(fakeDestination.SetPrivilegedCallCount()).To(Equal(1))
+						Expect(fakeDestination.SetPrivilegedArgsForCall(0)).To(Equal(false))
+					})
+
 					Context("fails to update destination as resource cache", func() {
 						BeforeEach(func() {
 							fakeDestination.InitializeStreamedResourceCacheReturns(disaster)

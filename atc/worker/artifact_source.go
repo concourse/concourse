@@ -186,6 +186,12 @@ func (source *artifactSource) StreamTo(
 			}
 		}
 
+		err = destination.SetPrivileged(false)
+		if err != nil {
+			logger.Error("failed-to-set-volume-unprivileged", err)
+			return err
+		}
+
 		err = destination.InitializeStreamedResourceCache(usedResourceCache, source.volume.WorkerName())
 		if err != nil {
 			logger.Error("stream-to-failed-init-resource-cache-on-dest-worker", err)

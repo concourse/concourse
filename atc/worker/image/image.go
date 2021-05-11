@@ -232,3 +232,7 @@ func (wad *artifactDestination) GetStreamInP2pUrl(ctx context.Context, path stri
 func (wad *artifactDestination) InitializeStreamedResourceCache(cache db.UsedResourceCache, sourceWorkerName string) error {
 	return wad.destination.InitializeStreamedResourceCache(cache, sourceWorkerName)
 }
+
+func (wad *artifactDestination) SetPrivileged(privileged bool) error {
+	return wad.destination.SetPrivileged(privileged)
+}
