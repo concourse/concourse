@@ -15,12 +15,19 @@ func (s *Server) ClearResourceCache(pipeline db.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger := s.logger.Session("clear-resource-cache")
 		resourceName := r.FormValue(":resource_name")
-		version := r.FormValue(":version")
 
 		resource, found, err := pipeline.Resource(resourceName)
 		if err != nil {
 			logger.Error("failed-to-get-resource", err)
 			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		var version atc.VersionDeleteBody
+		err = json.NewDecoder(r.Body).Decode(&version)
+		if err != nil {
+			logger.Info("malformed-request", lager.Data{"error": err.Error()})
+			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
@@ -32,14 +39,14 @@ func (s *Server) ClearResourceCache(pipeline db.Pipeline) http.Handler {
 			w.Header().Set("Content-Type", jsonapi.MediaType)
 			w.WriteHeader(http.StatusNotFound)
 			_ = jsonapi.MarshalErrors(w, []*jsonapi.ErrorObject{{
-				Title:  "Job Not Found Error",
+				Title:  "Resource Not Found Error",
 				Detail: fmt.Sprintf("Resource with name '%s' not found.", resourceName),
 				Status: "404",
 			}})
 			return
 		}
 
-		rowsDeleted, err := resource.ClearResourceCache(version)
+		rowsDeleted, err := resource.ClearResourceCache(version.Version)
 
 		if err != nil {
 			logger.Error("failed-to-clear-resource-cache", err)

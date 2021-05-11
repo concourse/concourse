@@ -69,7 +69,7 @@ type Resource interface {
 
 	NotifyScan() error
 
-	ClearResourceCache(string) (int64, error)
+	ClearResourceCache(atc.Version) (int64, error)
 
 	Reload() (bool, error)
 }
@@ -749,7 +749,7 @@ func (r *resource) NotifyScan() error {
 	return r.conn.Bus().Notify(fmt.Sprintf("resource_scan_%d", r.id))
 }
 
-func (r *resource) ClearResourceCache(version string) (int64, error) {
+func (r *resource) ClearResourceCache(version atc.Version) (int64, error) {
 	tx, err := r.conn.Begin()
 	if err != nil {
 		return 0, err
@@ -761,7 +761,7 @@ func (r *resource) ClearResourceCache(version string) (int64, error) {
 	selectStatement := "SELECT id FROM resource_caches WHERE resource_config_id = $1"
 	var results sql.Result
 
-	if version != "" {
+	if version != nil {
 		selectStatement += "AND version @> '$2'"
 		deleteStatement += "(" + selectStatement + ")"
 		results, err = tx.Exec(deleteStatement, r.id, version)
