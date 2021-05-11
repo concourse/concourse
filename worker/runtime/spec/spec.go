@@ -11,11 +11,6 @@ import (
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 )
 
-const (
-	SuperuserPath = "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-	Path          = "PATH=/usr/local/bin:/usr/bin:/bin"
-)
-
 const baseCgroupsPath = "garden"
 
 var isSwapLimitEnabled bool
@@ -74,8 +69,6 @@ func OciSpec(initBinPath string, gdn garden.ContainerSpec, maxUid, maxGid uint32
 			},
 		},
 	)
-
-	oci.Process.Env = envWithDefaultPath(oci.Process.Env, gdn.Privileged)
 
 	return
 }
@@ -191,24 +184,6 @@ func OciCgroupsPath(basePath, handle string, privileged bool) string {
 		return ""
 	}
 	return filepath.Join(basePath, handle)
-}
-
-// envWithDefaultPath returns the default PATH for a privileged/unprivileged
-// user based on the existence of PATH already being set in the initial
-// environment.
-//
-func envWithDefaultPath(env []string, privileged bool) []string {
-	for _, envVar := range env {
-		if strings.HasPrefix(envVar, "PATH=") {
-			return env
-		}
-	}
-
-	if privileged {
-		return append(env, SuperuserPath)
-	}
-
-	return append(env, Path)
 }
 
 // defaultGardenOciSpec represents a default set of properties necessary in
