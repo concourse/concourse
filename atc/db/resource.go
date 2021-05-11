@@ -757,18 +757,28 @@ func (r *resource) ClearResourceCache(version atc.Version) (int64, error) {
 
 	defer Rollback(tx)
 
-	deleteStatement := "DELETE FROM worker_resource_caches WHERE resource_cache_id in"
-	selectStatement := "SELECT id FROM resource_caches WHERE resource_config_id = $1"
-	var results sql.Result
+	selectStatement := sq.Select("id").
+		From("resource_caches").
+		Where(sq.Eq{
+			"resource_config_id": r.resourceConfigID,
+		})
 
 	if version != nil {
-		selectStatement += "AND version @> '$2'"
-		deleteStatement += "(" + selectStatement + ")"
-		results, err = tx.Exec(deleteStatement, r.id, version)
-	} else {
-		deleteStatement += "(" + selectStatement + ")"
-		results, err = tx.Exec(deleteStatement, r.id)
+		versionJson, err := json.Marshal(version)
+		if err != nil {
+			return 0, err
+		}
+
+		selectStatement = selectStatement.Where(
+			sq.Expr("version @> ?::jsonb", versionJson),
+		)
 	}
+
+	sqlStatement, args, err := selectStatement.PlaceholderFormat(sq.Dollar).ToSql()
+	if err != nil {
+		return 0, err
+	}
+	results, err := tx.Exec(`DELETE FROM worker_resource_caches WHERE resource_cache_id IN (` + sqlStatement + `)`, args...)
 
 	if err != nil {
 		return 0, err
