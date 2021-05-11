@@ -65,6 +65,19 @@ type FakeResource struct {
 	checkTimeoutReturnsOnCall map[int]struct {
 		result1 string
 	}
+	ClearResourceCacheStub        func(atc.Version) (int64, error)
+	clearResourceCacheMutex       sync.RWMutex
+	clearResourceCacheArgsForCall []struct {
+		arg1 atc.Version
+	}
+	clearResourceCacheReturns struct {
+		result1 int64
+		result2 error
+	}
+	clearResourceCacheReturnsOnCall map[int]struct {
+		result1 int64
+		result2 error
+	}
 	ConfigStub        func() atc.ResourceConfig
 	configMutex       sync.RWMutex
 	configArgsForCall []struct {
@@ -740,6 +753,70 @@ func (fake *FakeResource) CheckTimeoutReturnsOnCall(i int, result1 string) {
 	fake.checkTimeoutReturnsOnCall[i] = struct {
 		result1 string
 	}{result1}
+}
+
+func (fake *FakeResource) ClearResourceCache(arg1 atc.Version) (int64, error) {
+	fake.clearResourceCacheMutex.Lock()
+	ret, specificReturn := fake.clearResourceCacheReturnsOnCall[len(fake.clearResourceCacheArgsForCall)]
+	fake.clearResourceCacheArgsForCall = append(fake.clearResourceCacheArgsForCall, struct {
+		arg1 atc.Version
+	}{arg1})
+	stub := fake.ClearResourceCacheStub
+	fakeReturns := fake.clearResourceCacheReturns
+	fake.recordInvocation("ClearResourceCache", []interface{}{arg1})
+	fake.clearResourceCacheMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeResource) ClearResourceCacheCallCount() int {
+	fake.clearResourceCacheMutex.RLock()
+	defer fake.clearResourceCacheMutex.RUnlock()
+	return len(fake.clearResourceCacheArgsForCall)
+}
+
+func (fake *FakeResource) ClearResourceCacheCalls(stub func(atc.Version) (int64, error)) {
+	fake.clearResourceCacheMutex.Lock()
+	defer fake.clearResourceCacheMutex.Unlock()
+	fake.ClearResourceCacheStub = stub
+}
+
+func (fake *FakeResource) ClearResourceCacheArgsForCall(i int) atc.Version {
+	fake.clearResourceCacheMutex.RLock()
+	defer fake.clearResourceCacheMutex.RUnlock()
+	argsForCall := fake.clearResourceCacheArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeResource) ClearResourceCacheReturns(result1 int64, result2 error) {
+	fake.clearResourceCacheMutex.Lock()
+	defer fake.clearResourceCacheMutex.Unlock()
+	fake.ClearResourceCacheStub = nil
+	fake.clearResourceCacheReturns = struct {
+		result1 int64
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeResource) ClearResourceCacheReturnsOnCall(i int, result1 int64, result2 error) {
+	fake.clearResourceCacheMutex.Lock()
+	defer fake.clearResourceCacheMutex.Unlock()
+	fake.ClearResourceCacheStub = nil
+	if fake.clearResourceCacheReturnsOnCall == nil {
+		fake.clearResourceCacheReturnsOnCall = make(map[int]struct {
+			result1 int64
+			result2 error
+		})
+	}
+	fake.clearResourceCacheReturnsOnCall[i] = struct {
+		result1 int64
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeResource) Config() atc.ResourceConfig {
@@ -2775,6 +2852,8 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.checkPlanMutex.RUnlock()
 	fake.checkTimeoutMutex.RLock()
 	defer fake.checkTimeoutMutex.RUnlock()
+	fake.clearResourceCacheMutex.RLock()
+	defer fake.clearResourceCacheMutex.RUnlock()
 	fake.configMutex.RLock()
 	defer fake.configMutex.RUnlock()
 	fake.configPinnedVersionMutex.RLock()

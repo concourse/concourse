@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/concourse/concourse/atc"
 	"github.com/google/jsonapi"
+	"io"
 	"net/http"
 
 	"github.com/concourse/concourse/atc/db"
@@ -25,10 +26,13 @@ func (s *Server) ClearResourceCache(pipeline db.Pipeline) http.Handler {
 
 		var version atc.VersionDeleteBody
 		err = json.NewDecoder(r.Body).Decode(&version)
-		if err != nil {
-			logger.Info("malformed-request", lager.Data{"error": err.Error()})
-			w.WriteHeader(http.StatusBadRequest)
-			return
+		switch {
+			case err == io.EOF:
+				version = atc.VersionDeleteBody{}
+			case err != nil:
+				logger.Info("malformed-request", lager.Data{"error": err.Error()})
+				w.WriteHeader(http.StatusBadRequest)
+				return
 		}
 
 		if !found {

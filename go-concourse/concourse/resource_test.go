@@ -119,7 +119,7 @@ var _ = Describe("ATC Handler Resource", func() {
 		})
 	})
 
-	FDescribe("ClearResourceCache", func() {
+	Describe("ClearResourceCache", func() {
 		var (
 			expectedQueryParams []string
 			expectedURL = "/api/v1/teams/some-team/pipelines/some-pipeline/resources/some-resource/cache"
