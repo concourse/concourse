@@ -9,82 +9,71 @@ package ypath
 
 import (
 	"strings"
+	"testing"
 
 	"github.com/goccy/go-yaml"
 	"github.com/goccy/go-yaml/ast"
 	"github.com/goccy/go-yaml/parser"
+	"github.com/stretchr/testify/require"
 )
 
 type Document struct {
 	file *ast.File
 }
 
-func Load(path string) (*Document, error) {
+func Load(t *testing.T, path string) *Document {
 	file, err := parser.ParseFile(path, 0)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Document{file}, nil
+	require.NoError(t, err)
+	return &Document{file}
 }
 
 func (doc *Document) Bytes() []byte {
 	return []byte(doc.file.String())
 }
 
-func (doc *Document) Read(pathString string, dest interface{}) error {
+func (doc *Document) Read(t *testing.T, pathString string, dest interface{}) {
 	path, err := yaml.PathString(pathString)
-	if err != nil {
-		return err
-	}
+	require.NoError(t, err)
 
-	return path.Read(doc.file, dest)
+	err = path.Read(doc.file, dest)
+	require.NoError(t, err)
 }
 
-func (doc *Document) Merge(pathString string, value interface{}) error {
+func (doc *Document) Merge(t *testing.T, pathString string, value interface{}) {
 	path, err := yaml.PathString(pathString)
-	if err != nil {
-		return err
-	}
+	require.NoError(t, err)
 
 	node, err := yaml.NewEncoder(nil).EncodeToNode(value)
-	if err != nil {
-		return err
-	}
+	require.NoError(t, err)
 
-	return path.MergeFromNode(doc.file, node)
+	err = path.MergeFromNode(doc.file, node)
+	require.NoError(t, err)
 }
 
-func (doc *Document) Replace(pathString string, value interface{}) error {
+func (doc *Document) Replace(t *testing.T, pathString string, value interface{}) {
 	path, err := yaml.PathString(pathString)
-	if err != nil {
-		return err
-	}
+	require.NoError(t, err)
 
 	node, err := yaml.NewEncoder(nil).EncodeToNode(value)
-	if err != nil {
-		return err
-	}
+	require.NoError(t, err)
 
-	return path.ReplaceWithNode(doc.file, node)
+	err = path.ReplaceWithNode(doc.file, node)
+	require.NoError(t, err)
 }
 
-func (doc *Document) Set(pathString string, value interface{}) error {
+func (doc *Document) Set(t *testing.T, pathString string, value interface{}) {
 	segments := strings.Split(pathString, ".")
 	field := segments[len(segments)-1]
 	parent := strings.Join(segments[0:len(segments)-1], ".")
 
 	path, err := yaml.PathString(parent)
-	if err != nil {
-		return err
-	}
+	require.NoError(t, err)
 
 	node, err := yaml.NewEncoder(nil).EncodeToNode(map[string]interface{}{
 		field: value,
 	})
-	if err != nil {
-		return err
-	}
+	require.NoError(t, err)
 
-	return path.MergeFromNode(doc.file, node)
+	err = path.MergeFromNode(doc.file, node)
+	require.NoError(t, err)
 }
