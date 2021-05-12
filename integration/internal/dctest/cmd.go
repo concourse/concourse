@@ -60,9 +60,9 @@ func Init(t *testing.T, composeFile string, overrides ...string) Cmd {
 	}
 }
 
-func InitDynamic(t *testing.T, doc *ypath.Document) Cmd {
+func InitDynamic(t *testing.T, doc *ypath.Document, parentDir string) Cmd {
 	name := filepath.Base(t.Name())
-	fileName := fmt.Sprintf(".docker-compose.%s.yml", name)
+	fileName := filepath.Join(parentDir, fmt.Sprintf(".docker-compose.%s.yml", name))
 
 	err := ioutil.WriteFile(fileName, doc.Bytes(), os.ModePerm)
 	require.NoError(t, err)

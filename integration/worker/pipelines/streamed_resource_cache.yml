@@ -14,9 +14,26 @@ jobs:
     image: some-image
     config:
       platform: linux
+      inputs: [{name: some-image}]
       run:
         path: sh
         args:
         - -c
-        - echo hello-world
+        - |
+          echo hello-world > /foo
+          echo hello-world > some-image/foo
+    tags: [tag2]
+  - task: task2
+    image: some-image
+    config:
+      platform: linux
+      run:
+        path: sh
+        args:
+        - -c
+        - |
+          set -ex
+          # ensure each task gets a fresh copy of the image and inputs
+          [ ! -f /foo ]
+          [ ! -f some-image/foo ]
     tags: [tag2]

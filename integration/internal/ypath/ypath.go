@@ -77,3 +77,33 @@ func (doc *Document) Set(t *testing.T, pathString string, value interface{}) {
 	err = path.MergeFromNode(doc.file, node)
 	require.NoError(t, err)
 }
+
+func (doc *Document) Delete(t *testing.T, pathString string) {
+	segments := strings.Split(pathString, ".")
+	field := segments[len(segments)-1]
+	parent := strings.Join(segments[0:len(segments)-1], ".")
+
+	path, err := yaml.PathString(parent)
+	require.NoError(t, err)
+
+	var newMap map[string]interface{}
+	doc.Read(t, parent, &newMap)
+	delete(newMap, field)
+
+	newNode, err := yaml.NewEncoder(nil).EncodeToNode(newMap)
+	require.NoError(t, err)
+
+	err = path.ReplaceWithNode(doc.file, newNode)
+	require.NoError(t, err)
+}
+
+func (doc *Document) Clone(t *testing.T, srcPath string, dstPath string) {
+	var src interface{}
+	doc.Read(t, srcPath, &src)
+	doc.Set(t, dstPath, src)
+}
+
+func (doc *Document) Move(t *testing.T, srcPath string, dstPath string) {
+	doc.Clone(t, srcPath, dstPath)
+	doc.Delete(t, srcPath)
+}
