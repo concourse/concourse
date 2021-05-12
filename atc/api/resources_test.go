@@ -1613,6 +1613,25 @@ var _ = Describe("Resources API", func() {
 		var response *http.Response
 		var fakeResource *dbfakes.FakeResource
 
+		executeNoVersionConnection := func() {
+			request, err := http.NewRequest("DELETE", server.URL+"/api/v1/teams/a-team/pipelines/a-pipeline/resources/resource-name/cache", nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			response, err = client.Do(request)
+			Expect(err).NotTo(HaveOccurred())
+		}
+
+		executeVersionConnection := func() {
+			reqPayload, err := json.Marshal(atc.VersionDeleteBody{Version: atc.Version{"ref": "fake-ref"}})
+			Expect(err).NotTo(HaveOccurred())
+
+			request, err := http.NewRequest("DELETE", server.URL+"/api/v1/teams/a-team/pipelines/a-pipeline/resources/resource-name/cache", bytes.NewBuffer(reqPayload))
+			Expect(err).NotTo(HaveOccurred())
+
+			response, err = client.Do(request)
+			Expect(err).NotTo(HaveOccurred())
+		}
+
 		Context("when authenticated ", func() {
 			BeforeEach(func() {
 				fakeAccess.IsAuthenticatedReturns(true)
@@ -1625,13 +1644,7 @@ var _ = Describe("Resources API", func() {
 
 				Context("when it tries to find a resource", func() {
 					JustBeforeEach(func() {
-						var err error
-
-						request, err := http.NewRequest("DELETE", server.URL+"/api/v1/teams/a-team/pipelines/a-pipeline/resources/resource-name/cache", nil)
-						Expect(err).NotTo(HaveOccurred())
-
-						response, err = client.Do(request)
-						Expect(err).NotTo(HaveOccurred())
+						executeNoVersionConnection()
 					})
 
 					It("calls the resource", func() {
@@ -1651,13 +1664,7 @@ var _ = Describe("Resources API", func() {
 
 						Context("when no version is passed", func() {
 							JustBeforeEach(func() {
-								var err error
-
-								request, err := http.NewRequest("DELETE", server.URL+"/api/v1/teams/a-team/pipelines/a-pipeline/resources/resource-name/cache", nil)
-								Expect(err).NotTo(HaveOccurred())
-
-								response, err = client.Do(request)
-								Expect(err).NotTo(HaveOccurred())
+								executeNoVersionConnection()
 							})
 
 							BeforeEach(func() {
@@ -1675,7 +1682,6 @@ var _ = Describe("Resources API", func() {
 							It("it send an empty version", func() {
 								version := fakeResource.ClearResourceCacheArgsForCall(0)
 								expectedVersion := atc.VersionDeleteBody{}.Version
-								fmt.Println(version)
 								Expect(version).To(Equal(expectedVersion))
 							})
 
@@ -1710,16 +1716,7 @@ var _ = Describe("Resources API", func() {
 
 						Context("when a version is passed", func() {
 							JustBeforeEach(func() {
-								var err error
-
-								reqPayload, err := json.Marshal(atc.VersionDeleteBody{Version: atc.Version{"ref": "fake-ref"}})
-								Expect(err).NotTo(HaveOccurred())
-
-								request, err := http.NewRequest("DELETE", server.URL+"/api/v1/teams/a-team/pipelines/a-pipeline/resources/resource-name/cache", bytes.NewBuffer(reqPayload))
-								Expect(err).NotTo(HaveOccurred())
-
-								response, err = client.Do(request)
-								Expect(err).NotTo(HaveOccurred())
+								executeVersionConnection()
 							})
 
 							BeforeEach(func() {
@@ -1772,13 +1769,7 @@ var _ = Describe("Resources API", func() {
 
 					Context("when clear cache fails", func() {
 						JustBeforeEach(func() {
-							var err error
-
-							request, err := http.NewRequest("DELETE", server.URL+"/api/v1/teams/a-team/pipelines/a-pipeline/resources/resource-name/cache", nil)
-							Expect(err).NotTo(HaveOccurred())
-
-							response, err = client.Do(request)
-							Expect(err).NotTo(HaveOccurred())
+							executeNoVersionConnection()
 						})
 
 						BeforeEach(func() {
@@ -1793,13 +1784,7 @@ var _ = Describe("Resources API", func() {
 
 				Context("when it fails to find the resource", func() {
 					JustBeforeEach(func() {
-						var err error
-
-						request, err := http.NewRequest("DELETE", server.URL+"/api/v1/teams/a-team/pipelines/a-pipeline/resources/resource-name/cache", nil)
-						Expect(err).NotTo(HaveOccurred())
-
-						response, err = client.Do(request)
-						Expect(err).NotTo(HaveOccurred())
+						executeNoVersionConnection()
 					})
 
 					BeforeEach(func() {
@@ -1825,13 +1810,7 @@ var _ = Describe("Resources API", func() {
 			})
 			Context("when not authorized", func() {
 				JustBeforeEach(func() {
-					var err error
-
-					request, err := http.NewRequest("DELETE", server.URL+"/api/v1/teams/a-team/pipelines/a-pipeline/resources/resource-name/cache", nil)
-					Expect(err).NotTo(HaveOccurred())
-
-					response, err = client.Do(request)
-					Expect(err).NotTo(HaveOccurred())
+					executeNoVersionConnection()
 				})
 
 				BeforeEach(func() {
@@ -1846,13 +1825,7 @@ var _ = Describe("Resources API", func() {
 
 		Context("when not authenticated", func() {
 			JustBeforeEach(func() {
-				var err error
-
-				request, err := http.NewRequest("DELETE", server.URL+"/api/v1/teams/a-team/pipelines/a-pipeline/resources/resource-name/cache", nil)
-				Expect(err).NotTo(HaveOccurred())
-
-				response, err = client.Do(request)
-				Expect(err).NotTo(HaveOccurred())
+				executeNoVersionConnection()
 			})
 
 			BeforeEach(func() {

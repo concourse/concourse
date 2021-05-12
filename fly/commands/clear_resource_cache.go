@@ -33,7 +33,6 @@ func (command *ClearResourceCacheCommand) Execute(args []string) error {
 	numRemoved, err := target.Team().ClearResourceCache(command.Resource.PipelineRef, command.Resource.ResourceName, version)
 
 	if err != nil {
-		fmt.Println(err.Error())
 		return err
 	} else {
 		fmt.Printf("%d caches removed\n", numRemoved)
