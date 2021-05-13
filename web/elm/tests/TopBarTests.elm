@@ -273,11 +273,11 @@ all =
                                     , style "text-overflow" "ellipsis"
                                     ]
                             ]
-                , it "shows the logged in username when the user is logged in" <|
+                , it "shows the logged in displayUserId when the user is logged in" <|
                     Query.children []
                         >> Query.index -1
                         >> Query.find [ id "user-id" ]
-                        >> Query.has [ text "test" ]
+                        >> Query.has [ text "displayUserIdTest" ]
                 , it "Click UserMenu message is received when login menu is clicked" <|
                     Query.find [ id "login-container" ]
                         >> Event.simulate Event.click
@@ -856,7 +856,7 @@ all =
                                 , teams =
                                     Dict.fromList
                                         [ ( "t", [ "member" ] ) ]
-                                , displayUserId = "test"
+                                , displayUserId = "displayUserIdTest"
                                 }
                         )
                         >> Tuple.first
@@ -873,7 +873,7 @@ all =
                                 , teams =
                                     Dict.fromList
                                         [ ( "s", [ "member" ] ) ]
-                                , displayUserId = "test"
+                                , displayUserId = "displayUserIdTest"
                                 }
                         )
                         >> Tuple.first
@@ -1087,7 +1087,7 @@ eachHasStyle property value =
 
 sampleUser : Concourse.User
 sampleUser =
-    { id = "1", userName = "test", name = "Bob", isAdmin = False, email = "bob@bob.com", teams = Dict.empty , displayUserId = "1" }
+    { id = "1", userName = "test", name = "Bob", isAdmin = False, email = "bob@bob.com", teams = Dict.empty , displayUserId = "displayUserIdTest" }
 
 
 pipelineBreadcrumbSelector : List Selector.Selector
