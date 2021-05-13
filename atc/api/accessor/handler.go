@@ -9,12 +9,11 @@ import (
 	"github.com/concourse/concourse/atc/auditor"
 )
 
-//go:generate counterfeiter net/http.Handler
-
-//go:generate counterfeiter . AccessFactory
+//counterfeiter:generate net/http.Handler
 
 const accessorContextKey atc.ContextKey = "accessor"
 
+//counterfeiter:generate . AccessFactory
 type AccessFactory interface {
 	Create(req *http.Request, role string) (Access, error)
 }

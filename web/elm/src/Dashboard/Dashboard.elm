@@ -22,7 +22,15 @@ import Dashboard.Footer as Footer
 import Dashboard.Grid as Grid
 import Dashboard.Grid.Constants as GridConstants
 import Dashboard.Group as Group
-import Dashboard.Group.Models exposing (Card(..), Pipeline, cardName)
+import Dashboard.Group.Models
+    exposing
+        ( Card(..)
+        , Pipeline
+        , cardName
+        , cardTeamName
+        , groupCardsWithinTeam
+        , ungroupCards
+        )
 import Dashboard.Models as Models
     exposing
         ( DragState(..)
@@ -675,24 +683,42 @@ update session msg =
 updateBody : Session -> Message -> ET Model
 updateBody session msg ( model, effects ) =
     case msg of
-        DragStart teamName cardId ->
-            ( { model | dragState = Models.Dragging teamName cardId }, effects )
+        DragStart card ->
+            ( { model | dragState = Models.Dragging card }, effects )
 
         DragOver target ->
             ( { model | dropState = Models.Dropping target }, effects )
 
         DragEnd ->
             case ( model.dragState, model.dropState ) of
-                ( Dragging teamName identifier, Dropping target ) ->
+                ( Dragging card, Dropping target ) ->
                     let
+                        teamName =
+                            cardTeamName card
+
+                        viewingInstanceGroups =
+                            case card of
+                                InstancedPipelineCard _ ->
+                                    True
+
+                                _ ->
+                                    False
+
+                        cardGroupFunction =
+                            if viewingInstanceGroups then
+                                List.map InstancedPipelineCard
+
+                            else
+                                groupCardsWithinTeam
+
                         teamCards =
                             model.pipelines
                                 |> Maybe.andThen (Dict.get teamName)
                                 |> Maybe.withDefault []
-                                |> groupCardsWithinTeam
+                                |> cardGroupFunction
                                 |> (\cards ->
                                         cards
-                                            |> (case Drag.dragCardIndices identifier target cards of
+                                            |> (case Drag.dragCardIndices card target cards of
                                                     Just ( from, to ) ->
                                                         Drag.drag from to
 
@@ -701,26 +727,29 @@ updateBody session msg ( model, effects ) =
                                                )
                                    )
 
+                        teamPipelines =
+                            ungroupCards teamCards
+
                         pipelines =
                             model.pipelines
                                 |> Maybe.withDefault Dict.empty
-                                |> Dict.update teamName
-                                    (always <|
-                                        Just <|
-                                            List.concatMap
-                                                (\card ->
-                                                    case card of
-                                                        PipelineCard p ->
-                                                            [ p ]
+                                |> Dict.update teamName (always <| Just teamPipelines)
 
-                                                        InstancedPipelineCard p ->
-                                                            [ p ]
+                        request =
+                            if viewingInstanceGroups then
+                                let
+                                    instanceGroupName =
+                                        cardName card
+                                in
+                                teamPipelines
+                                    |> List.filter (.name >> (==) instanceGroupName)
+                                    |> List.map .instanceVars
+                                    |> SendOrderPipelinesWithinGroupRequest { teamName = teamName, name = instanceGroupName }
 
-                                                        InstanceGroupCard p ps ->
-                                                            p :: ps
-                                                )
-                                                teamCards
-                                    )
+                            else
+                                teamCards
+                                    |> List.map cardName
+                                    |> SendOrderPipelinesRequest teamName
                     in
                     ( { model
                         | pipelines = Just pipelines
@@ -728,9 +757,7 @@ updateBody session msg ( model, effects ) =
                         , dropState = DroppingWhileApiRequestInFlight teamName
                       }
                     , effects
-                        ++ [ teamCards
-                                |> List.map cardName
-                                |> SendOrderPipelinesRequest teamName
+                        ++ [ request
                            , pipelines
                                 |> Dict.values
                                 |> List.concat
@@ -1298,26 +1325,13 @@ regularCardsView session params =
             filteredPipelinesByTeam
                 |> List.map
                     (\( team, teamPipelines ) ->
-                        ( team
-                        , groupCardsWithinTeam teamPipelines
-                        )
+                        { header = team
+                        , cards = groupCardsWithinTeam teamPipelines
+                        , teamName = team
+                        }
                     )
     in
     cardsView session params teamCards
-
-
-groupCardsWithinTeam : List Pipeline -> List Card
-groupCardsWithinTeam =
-    Concourse.groupPipelinesWithinTeam
-        >> List.map
-            (\g ->
-                case g of
-                    Concourse.RegularPipeline p ->
-                        PipelineCard p
-
-                    Concourse.InstanceGroup p ps ->
-                        InstanceGroupCard p ps
-            )
 
 
 instanceGroupCardsView : Session -> Model -> List (Html Message)
@@ -1329,7 +1343,7 @@ instanceGroupCardsView session model =
                 |> Dict.toList
                 |> List.sortWith (Ordering.byFieldWith (Group.ordering session) Tuple.first)
 
-        instanceGroups : List ( String, List Card )
+        instanceGroups : List (Group.Section Card)
         instanceGroups =
             filteredPipelines
                 |> List.concatMap
@@ -1337,16 +1351,17 @@ instanceGroupCardsView session model =
                         List.Extra.gatherEqualsBy .name teamPipelines
                             |> List.map
                                 (\( p, ps ) ->
-                                    ( team ++ " / " ++ p.name
-                                    , p :: ps |> List.map InstancedPipelineCard
-                                    )
+                                    { header = team ++ " / " ++ p.name
+                                    , cards = p :: ps |> List.map InstancedPipelineCard
+                                    , teamName = team
+                                    }
                                 )
                     )
     in
     cardsView session model instanceGroups
 
 
-cardsView : Session -> Model -> List ( String, List Card ) -> List (Html Message)
+cardsView : Session -> Model -> List (Group.Section Card) -> List (Html Message)
 cardsView session params teamCards =
     let
         jobs =
@@ -1364,7 +1379,7 @@ cardsView session params teamCards =
                 let
                     favoritedCards =
                         teamCards
-                            |> List.concatMap Tuple.second
+                            |> List.concatMap .cards
                             |> List.concatMap
                                 (\c ->
                                     case c of
@@ -1461,7 +1476,7 @@ cardsView session params teamCards =
 
                     else
                         List.foldl
-                            (\( teamName, cards ) ( htmlList, totalOffset ) ->
+                            (\{ header, teamName, cards } ( htmlList, totalOffset ) ->
                                 let
                                     startingOffset =
                                         totalOffset
@@ -1495,8 +1510,10 @@ cardsView session params teamCards =
                                     , query = params.query
                                     , viewingInstanceGroups = viewingInstanceGroups
                                     }
-                                    teamName
-                                    layout.cards
+                                    { header = header
+                                    , teamName = teamName
+                                    , cards = layout.cards
+                                    }
                                     |> (\html ->
                                             ( html :: htmlList
                                             , startingOffset + layout.height

@@ -10,8 +10,7 @@ import (
 	"github.com/concourse/concourse/atc/metric"
 )
 
-//go:generate counterfeiter . BuildStarter
-
+//counterfeiter:generate . BuildStarter
 type BuildStarter interface {
 	TryStartPendingBuildsForJob(
 		logger lager.Logger,
@@ -20,8 +19,7 @@ type BuildStarter interface {
 	) (bool, error)
 }
 
-//go:generate counterfeiter . BuildPlanner
-
+//counterfeiter:generate . BuildPlanner
 type BuildPlanner interface {
 	Create(atc.StepConfig, db.SchedulerResources, atc.VersionedResourceTypes, []db.BuildInput) (atc.Plan, error)
 }

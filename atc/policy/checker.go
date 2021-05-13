@@ -8,6 +8,8 @@ import (
 	"github.com/jessevdk/go-flags"
 )
 
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+
 const ActionUseImage = "UseImage"
 
 type PolicyCheckNotPass struct {
@@ -58,7 +60,7 @@ func PassedPolicyCheck() PolicyCheckOutput {
 	}
 }
 
-//go:generate counterfeiter . Agent
+//counterfeiter:generate . Agent
 
 // Agent should be implemented by policy agents.
 type Agent interface {
@@ -67,8 +69,7 @@ type Agent interface {
 	Check(PolicyCheckInput) (PolicyCheckOutput, error)
 }
 
-//go:generate counterfeiter . AgentFactory
-
+//counterfeiter:generate . AgentFactory
 type AgentFactory interface {
 	Description() string
 	IsConfigured() bool
@@ -95,8 +96,7 @@ var (
 	clusterVersion string
 )
 
-//go:generate counterfeiter . Checker
-
+//counterfeiter:generate . Checker
 type Checker interface {
 	ShouldCheckHttpMethod(string) bool
 	ShouldCheckAction(string) bool

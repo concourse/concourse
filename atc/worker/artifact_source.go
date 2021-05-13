@@ -7,28 +7,38 @@ import (
 	"io"
 	"time"
 
+	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 
-	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/compression"
+	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/tracing"
 	"github.com/hashicorp/go-multierror"
 )
 
-//go:generate counterfeiter . ArtifactSourcer
+type ErrStreamingResourceCacheNotFound struct {
+	Handle          string
+	ResourceCacheId int
+}
 
+func (e ErrStreamingResourceCacheNotFound) Error() string {
+	return fmt.Sprintf("resource cache not found, id %d, volume handle %s", e.ResourceCacheId, e.Handle)
+}
+
+//counterfeiter:generate . ArtifactSourcer
 type ArtifactSourcer interface {
 	SourceInputsAndCaches(logger lager.Logger, teamID int, inputMap map[string]runtime.Artifact) ([]InputSource, error)
 	SourceImage(logger lager.Logger, imageArtifact runtime.Artifact) (StreamableArtifactSource, error)
 }
 
 type artifactSourcer struct {
-	compression         compression.Compression
-	volumeFinder        VolumeFinder
-	enableP2PStreaming  bool
-	p2pStreamingTimeout time.Duration
+	compression          compression.Compression
+	volumeFinder         VolumeFinder
+	enableP2PStreaming   bool
+	p2pStreamingTimeout  time.Duration
+	resourceCacheFactory db.ResourceCacheFactory
 }
 
 func NewArtifactSourcer(
@@ -36,12 +46,14 @@ func NewArtifactSourcer(
 	volumeFinder VolumeFinder,
 	enableP2PStreaming bool,
 	p2pStreamingTimeout time.Duration,
+	resourceCacheFactory db.ResourceCacheFactory,
 ) ArtifactSourcer {
 	return artifactSourcer{
-		compression:         compression,
-		volumeFinder:        volumeFinder,
-		enableP2PStreaming:  enableP2PStreaming,
-		p2pStreamingTimeout: p2pStreamingTimeout,
+		compression:          compression,
+		volumeFinder:         volumeFinder,
+		enableP2PStreaming:   enableP2PStreaming,
+		p2pStreamingTimeout:  p2pStreamingTimeout,
+		resourceCacheFactory: resourceCacheFactory,
 	}
 }
 
@@ -62,7 +74,7 @@ func (w artifactSourcer) SourceInputsAndCaches(logger lager.Logger, teamID int, 
 				return nil, fmt.Errorf("volume not found for artifact id %v type %T", artifact.ID(), artifact)
 			}
 
-			source := NewStreamableArtifactSource(artifact, artifactVolume, w.compression, w.enableP2PStreaming, w.p2pStreamingTimeout)
+			source := NewStreamableArtifactSource(artifact, artifactVolume, w.compression, w.enableP2PStreaming, w.p2pStreamingTimeout, w.resourceCacheFactory)
 			inputs = append(inputs, inputSource{source, path})
 		}
 	}
@@ -79,11 +91,10 @@ func (w artifactSourcer) SourceImage(logger lager.Logger, imageArtifact runtime.
 		return nil, fmt.Errorf("volume not found for artifact id %v type %T", imageArtifact.ID(), imageArtifact)
 	}
 
-	return NewStreamableArtifactSource(imageArtifact, artifactVolume, w.compression, w.enableP2PStreaming, w.p2pStreamingTimeout), nil
+	return NewStreamableArtifactSource(imageArtifact, artifactVolume, w.compression, w.enableP2PStreaming, w.p2pStreamingTimeout, w.resourceCacheFactory), nil
 }
 
-//go:generate counterfeiter . ArtifactSource
-
+//counterfeiter:generate . ArtifactSource
 type ArtifactSource interface {
 	// ExistsOn attempts to locate a volume equivalent to this source on the
 	// given worker. If a volume can be found, it will be used directly. If not,
@@ -91,7 +102,7 @@ type ArtifactSource interface {
 	ExistsOn(lager.Logger, Worker) (Volume, bool, error)
 }
 
-//go:generate counterfeiter . StreamableArtifactSource
+//counterfeiter:generate . StreamableArtifactSource
 
 // Source represents data produced by the steps, that can be transferred to
 // other steps.
@@ -108,11 +119,12 @@ type StreamableArtifactSource interface {
 }
 
 type artifactSource struct {
-	artifact            runtime.Artifact
-	volume              Volume
-	compression         compression.Compression
-	enabledP2pStreaming bool
-	p2pStreamingTimeout time.Duration
+	artifact             runtime.Artifact
+	volume               Volume
+	compression          compression.Compression
+	enabledP2pStreaming  bool
+	p2pStreamingTimeout  time.Duration
+	resourceCacheFactory db.ResourceCacheFactory
 }
 
 func NewStreamableArtifactSource(
@@ -121,13 +133,15 @@ func NewStreamableArtifactSource(
 	compression compression.Compression,
 	enabledP2pStreaming bool,
 	p2pStreamingTimeout time.Duration,
+	resourceCacheFactory db.ResourceCacheFactory,
 ) StreamableArtifactSource {
 	return &artifactSource{
-		artifact:            artifact,
-		volume:              volume,
-		compression:         compression,
-		enabledP2pStreaming: enabledP2pStreaming,
-		p2pStreamingTimeout: p2pStreamingTimeout,
+		artifact:             artifact,
+		volume:               volume,
+		compression:          compression,
+		enabledP2pStreaming:  enabledP2pStreaming,
+		p2pStreamingTimeout:  p2pStreamingTimeout,
+		resourceCacheFactory: resourceCacheFactory,
 	}
 }
 
@@ -149,12 +163,39 @@ func (source *artifactSource) StreamTo(
 		err = source.p2pStreamTo(ctx, destination)
 	}
 
-	// Inc counter if no error occurred.
-	if err == nil {
-		metric.Metrics.VolumesStreamed.Inc()
+	if err != nil {
+		return err
 	}
 
-	return err
+	// Inc counter if no error occurred.
+	metric.Metrics.VolumesStreamed.Inc()
+
+	// If the source volume is a resource cache, then mark dest volume as a resource cache too.
+	if source.volume.GetResourceCacheID() > 0 {
+		usedResourceCache, found, err := source.resourceCacheFactory.FindResourceCacheByID(source.volume.GetResourceCacheID())
+		if err != nil {
+			logger.Error("stream-to-failed-to-find-resource-cache", err)
+			return err
+		}
+		if !found {
+			logger.Info("stream-to-not-find-resource-cache-should-not-happen",
+				lager.Data{"rcId": source.volume.GetResourceCacheID(), "volumeHandle": source.volume.Handle()})
+			return ErrStreamingResourceCacheNotFound{
+				Handle:          source.volume.Handle(),
+				ResourceCacheId: source.volume.GetResourceCacheID(),
+			}
+		}
+
+		err = destination.InitializeStreamedResourceCache(usedResourceCache, source.volume.WorkerName())
+		if err != nil {
+			logger.Error("stream-to-failed-init-resource-cache-on-dest-worker", err)
+			return err
+		}
+
+		metric.Metrics.StreamedResourceCaches.Inc()
+	}
+
+	return nil
 }
 
 func (source *artifactSource) streamTo(
@@ -167,7 +208,6 @@ func (source *artifactSource) streamTo(
 	})
 	defer outSpan.End()
 	out, err := source.volume.StreamOut(ctx, ".", source.compression.Encoding())
-
 	if err != nil {
 		tracing.End(outSpan, err)
 		return err
@@ -257,15 +297,15 @@ func (source *artifactSource) ExistsOn(logger lager.Logger, worker Worker) (Volu
 
 }
 
-type cacheArtifactSource struct {
+type CacheArtifactSource struct {
 	runtime.CacheArtifact
 }
 
 func NewCacheArtifactSource(artifact runtime.CacheArtifact) ArtifactSource {
-	return &cacheArtifactSource{artifact}
+	return &CacheArtifactSource{artifact}
 }
 
-func (source *cacheArtifactSource) ExistsOn(logger lager.Logger, worker Worker) (Volume, bool, error) {
+func (source *CacheArtifactSource) ExistsOn(logger lager.Logger, worker Worker) (Volume, bool, error) {
 	return worker.FindVolumeForTaskCache(logger, source.TeamID, source.JobID, source.StepName, source.Path)
 }
 

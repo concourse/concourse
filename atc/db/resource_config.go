@@ -41,8 +41,7 @@ type ResourceConfigDescriptor struct {
 	Source atc.Source
 }
 
-//go:generate counterfeiter . ResourceConfig
-
+//counterfeiter:generate . ResourceConfig
 type ResourceConfig interface {
 	ID() int
 	LastReferenced() time.Time

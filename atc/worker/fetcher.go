@@ -17,8 +17,7 @@ const GetResourceLockInterval = 5 * time.Second
 
 var ErrFailedToGetLock = errors.New("failed to get lock")
 
-//go:generate counterfeiter . Fetcher
-
+//counterfeiter:generate . Fetcher
 type Fetcher interface {
 	Fetch(
 		ctx context.Context,

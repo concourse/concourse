@@ -6,8 +6,9 @@ import (
 	"github.com/concourse/concourse/tsa"
 )
 
-//go:generate counterfeiter . TSAClient
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
 
+//counterfeiter:generate . TSAClient
 type TSAClient interface {
 	Register(context.Context, tsa.RegisterOptions) error
 

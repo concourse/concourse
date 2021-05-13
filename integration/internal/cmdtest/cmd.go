@@ -3,6 +3,7 @@ package cmdtest
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -69,7 +70,8 @@ func (cmd Cmd) ExpectExit(code int) Cmd {
 func (cmd Cmd) Run(t *testing.T, args ...string) {
 	err := cmd.Try(args...)
 	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
 			if exitErr.ExitCode() != cmd.ExpectExitCode {
 				t.Fatalf("ExitCode %d != %d", exitErr.ExitCode(), cmd.ExpectExitCode)
 			}

@@ -19,6 +19,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+
 type PrometheusEmitter struct {
 	jobsScheduled  prometheus.Counter
 	jobsScheduling prometheus.Gauge
@@ -65,6 +67,9 @@ type PrometheusEmitter struct {
 	checksEnqueued prometheus.Counter
 
 	volumesStreamed prometheus.Counter
+
+	getStepCacheHits       prometheus.Counter
+	streamedResourceCaches prometheus.Counter
 
 	workerContainers        *prometheus.GaugeVec
 	workerUnknownContainers *prometheus.GaugeVec
@@ -468,6 +473,26 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 	)
 	prometheus.MustRegister(volumesStreamed)
 
+	getStepCacheHits := prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: "concourse",
+			Subsystem: "caches",
+			Name:      "get_step_cache_hits",
+			Help:      "Total number of get steps that hit caches",
+		},
+	)
+	prometheus.MustRegister(getStepCacheHits)
+
+	streamedResourceCaches := prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: "concourse",
+			Subsystem: "caches",
+			Name:      "streamed_resource_caches",
+			Help:      "Total number of streamed resource caches",
+		},
+	)
+	prometheus.MustRegister(streamedResourceCaches)
+
 	listener, err := net.Listen("tcp", config.bind())
 	if err != nil {
 		return nil, err
@@ -532,6 +557,9 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 		workerUnknownVolumes:    workerUnknownVolumes,
 
 		volumesStreamed: volumesStreamed,
+
+		getStepCacheHits:       getStepCacheHits,
+		streamedResourceCaches: streamedResourceCaches,
 	}
 	go emitter.periodicMetricGC()
 
@@ -617,6 +645,10 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 		emitter.checksEnqueued.Add(event.Value)
 	case "volumes streamed":
 		emitter.volumesStreamed.Add(event.Value)
+	case "get step cache hits":
+		emitter.getStepCacheHits.Add(event.Value)
+	case "streamed resource caches":
+		emitter.streamedResourceCaches.Add(event.Value)
 	default:
 		// unless we have a specific metric, we do nothing
 	}
@@ -943,7 +975,7 @@ func DoGarbageCollection(emitter PrometheusGarbageCollectable, worker string) {
 	delete(emitter.WorkerTasksLabels(), worker)
 }
 
-//go:generate counterfeiter . PrometheusGarbageCollectable
+//counterfeiter:generate . PrometheusGarbageCollectable
 type PrometheusGarbageCollectable interface {
 	WorkerContainers() *prometheus.GaugeVec
 	WorkerVolumes() *prometheus.GaugeVec

@@ -110,6 +110,7 @@ var _ = Describe("Image", func() {
 		var (
 			fakeArtifactVolume        *workerfakes.FakeVolume
 			fakeImageArtifactSource   *workerfakes.FakeStreamableArtifactSource
+			fakeStreamInVolume        *workerfakes.FakeVolume
 			fakeContainerRootfsVolume *workerfakes.FakeVolume
 		)
 
@@ -122,9 +123,14 @@ var _ = Describe("Image", func() {
 			))
 			fakeImageArtifactSource.StreamFileReturns(metadataReader, nil)
 
+			fakeStreamInVolume = new(workerfakes.FakeVolume)
+			fakeStreamInVolume.COWStrategyReturns(baggageclaim.COWStrategy{})
+			fakeVolumeClient.FindOrCreateVolumeForContainerReturns(fakeStreamInVolume, nil)
+
 			fakeContainerRootfsVolume = new(workerfakes.FakeVolume)
 			fakeContainerRootfsVolume.PathReturns("some-path")
-			fakeVolumeClient.FindOrCreateVolumeForContainerReturns(fakeContainerRootfsVolume, nil)
+
+			fakeVolumeClient.FindOrCreateCOWVolumeForContainerReturns(fakeContainerRootfsVolume, nil)
 
 			var err error
 			img, err = imageFactory.GetImage(
@@ -151,7 +157,18 @@ var _ = Describe("Image", func() {
 			}))
 			Expect(container).To(Equal(fakeContainer))
 			Expect(teamID).To(Equal(42))
+			Expect(path).To(Equal("streamed-no-mount:/"))
+
+			_, volumeSpec, container, parent, teamID, path := fakeVolumeClient.FindOrCreateCOWVolumeForContainerArgsForCall(0)
+			Expect(volumeSpec).To(Equal(worker.VolumeSpec{
+				Strategy:   fakeStreamInVolume.COWStrategy(),
+				Privileged: true,
+			}))
+			Expect(container).To(Equal(fakeContainer))
+			Expect(parent).To(Equal(fakeStreamInVolume))
+			Expect(teamID).To(Equal(42))
 			Expect(path).To(Equal("/"))
+
 		})
 
 		Context("when VolumeClient fails to create a volume", func() {
@@ -174,7 +191,7 @@ var _ = Describe("Image", func() {
 
 			_, artifactDestination := fakeImageArtifactSource.StreamToArgsForCall(0)
 			artifactDestination.StreamIn(context.TODO(), "fake-path", baggageclaim.GzipEncoding, strings.NewReader("fake-tar-stream"))
-			Expect(fakeContainerRootfsVolume.StreamInCallCount()).To(Equal(1))
+			Expect(fakeStreamInVolume.StreamInCallCount()).To(Equal(1))
 		})
 
 		Context("when streamTo fails", func() {

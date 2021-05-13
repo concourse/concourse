@@ -28,8 +28,7 @@ func (e ErrResourceNotFound) Error() string {
 	return fmt.Sprintf("resource '%s' not found", e.Name)
 }
 
-//go:generate counterfeiter . Pipeline
-
+//counterfeiter:generate . Pipeline
 type Cause struct {
 	ResourceVersionID int `json:"resource_version_id"`
 	BuildID           int `json:"build_id"`

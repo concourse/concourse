@@ -11,6 +11,7 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc/atccmd"
 	"github.com/concourse/concourse/atc/creds/vault"
+	"github.com/concourse/flag"
 	"github.com/hashicorp/vault/api"
 	"github.com/jessevdk/go-flags"
 	"github.com/square/certstrap/pkix"
@@ -209,7 +210,7 @@ var _ = Describe("VaultManager", func() {
 			Expect(manager.Auth.RetryMax).To(Equal(15 * time.Minute))
 			Expect(manager.Auth.RetryInitial).To(Equal(10 * time.Second))
 			Expect(manager.Auth.Backend).To(Equal("approle"))
-			Expect(manager.Auth.Params).To(Equal(map[string]string{
+			Expect(manager.Auth.Params).To(Equal(flag.StringToString{
 				"role_id":   "some-role-id",
 				"secret_id": "some-secret-id",
 			}))

@@ -8,6 +8,8 @@ import (
 	"github.com/concourse/concourse/atc/db"
 )
 
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+
 type Event struct {
 	Name       string
 	Value      float64
@@ -16,12 +18,12 @@ type Event struct {
 	Time       time.Time
 }
 
-//go:generate counterfeiter . Emitter
+//counterfeiter:generate . Emitter
 type Emitter interface {
 	Emit(lager.Logger, Event)
 }
 
-//go:generate counterfeiter . EmitterFactory
+//counterfeiter:generate . EmitterFactory
 type EmitterFactory interface {
 	ID() string
 	Description() string
@@ -78,6 +80,9 @@ type Monitor struct {
 	ConcurrentRequestsLimitHit map[string]*Counter
 
 	VolumesStreamed Counter
+
+	GetStepCacheHits       Counter
+	StreamedResourceCaches Counter
 }
 
 var Metrics = NewMonitor()

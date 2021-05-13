@@ -10,7 +10,7 @@ import (
 	"github.com/containerd/containerd"
 )
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . ProcessKiller
+//counterfeiter:generate . ProcessKiller
 
 type ProcessKiller interface {
 

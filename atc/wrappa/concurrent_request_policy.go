@@ -6,8 +6,7 @@ import (
 
 var SupportedActions = []string{atc.ListAllJobs}
 
-//go:generate counterfeiter . ConcurrentRequestPolicy
-
+//counterfeiter:generate . ConcurrentRequestPolicy
 type ConcurrentRequestPolicy interface {
 	HandlerPool(action string) (Pool, bool)
 }

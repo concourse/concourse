@@ -1,6 +1,7 @@
 package algorithm_test
 
 import (
+	"context"
 	"os"
 	"testing"
 
@@ -73,6 +74,6 @@ var _ = AfterSuite(func() {
 	postgresrunner.FinalizeRunnerForGinkgo(&postgresRunner, &dbProcess)
 
 	if exporter != nil {
-		exporter.Flush()
+		exporter.Shutdown(context.Background())
 	}
 })

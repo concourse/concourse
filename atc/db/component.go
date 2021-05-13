@@ -11,8 +11,7 @@ import (
 var componentsQuery = psql.Select("c.id, c.name, c.interval, c.last_ran, c.paused").
 	From("components c")
 
-//go:generate counterfeiter . Component
-
+//counterfeiter:generate . Component
 type Component interface {
 	ID() int
 	Name() string

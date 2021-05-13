@@ -5,9 +5,10 @@ import (
 	"io"
 
 	"github.com/concourse/baggageclaim"
+	"github.com/concourse/concourse/atc/db"
 )
 
-//go:generate counterfeiter . ArtifactDestination
+//counterfeiter:generate . ArtifactDestination
 
 // Destination is the inverse of Source. This interface allows
 // the receiving end to determine the location of the data, e.g. based on a
@@ -18,4 +19,6 @@ type ArtifactDestination interface {
 	StreamIn(context.Context, string, baggageclaim.Encoding, io.Reader) error
 
 	GetStreamInP2pUrl(ctx context.Context, path string) (string, error)
+
+	InitializeStreamedResourceCache(cache db.UsedResourceCache, sourceWorkerName string) error
 }

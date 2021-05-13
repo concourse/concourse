@@ -2,24 +2,29 @@ package runtime
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"code.cloudfoundry.org/garden"
 	"github.com/containerd/containerd"
+	"github.com/containerd/containerd/errdefs"
 )
 
 type Process struct {
 	process     containerd.Process
 	exitStatusC <-chan containerd.ExitStatus
+	stdin       *stdinWrapper
 }
 
 func NewProcess(
 	p containerd.Process,
 	ch <-chan containerd.ExitStatus,
+	in *stdinWrapper,
 ) *Process {
 	return &Process{
 		process:     p,
 		exitStatusC: ch,
+		stdin:       in,
 	}
 }
 
@@ -44,8 +49,13 @@ func (p *Process) Wait() (int, error) {
 	p.process.IO().Wait()
 
 	_, err = p.process.Delete(context.Background())
-	if err != nil {
+	// ignore "not found" errors - the process was already deleted
+	if err != nil && !errors.Is(err, errdefs.ErrNotFound) {
 		return 0, fmt.Errorf("delete process: %w", err)
+	}
+
+	if p.stdin != nil {
+		p.stdin.Close()
 	}
 
 	return int(status.ExitCode()), nil

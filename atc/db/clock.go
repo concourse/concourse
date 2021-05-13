@@ -2,8 +2,7 @@ package db
 
 import "time"
 
-//go:generate counterfeiter . Clock
-
+//counterfeiter:generate . Clock
 type Clock interface {
 	Now() time.Time
 	Until(time.Time) time.Duration

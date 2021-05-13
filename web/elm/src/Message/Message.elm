@@ -11,6 +11,7 @@ module Message.Message exposing
 import Concourse
 import Concourse.Cli as Cli
 import Concourse.Pagination exposing (Page)
+import Dashboard.Group.Models
 import Routes exposing (StepID)
 import StrictEvents
 
@@ -24,7 +25,7 @@ type Message
     | ToggleGroup Concourse.PipelineGroup
     | SetGroups (List String)
       -- Dashboard
-    | DragStart String String
+    | DragStart Dashboard.Group.Models.Card
     | DragOver DropTarget
     | DragEnd
       -- Resource
@@ -130,5 +131,5 @@ type alias VersionId =
 
 
 type DropTarget
-    = Before String
+    = Before Dashboard.Group.Models.Card
     | End

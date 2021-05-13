@@ -39,6 +39,8 @@ Steps for a new major/minor release:
   
   * including all the external workers (pr-worker, ci-topgun-worker, darwin-worker & BOSH deployed windows worker)
 
+* [ ] If you are doing a major release (or a release that involves a risky large feature), consider creating a [drills environment](https://github.com/concourse/drills) for some stress testing to ensure that the release does not involve any performance regressions.
+
 * [ ] Once the final commit has made it through the pipeline, the `create-draft-release` job can be triggered. This job will create a draft release within the concourse GitHub [release page](https://github.com/concourse/concourse/releases) where you can make any final adjustments or arrangements to the generated release notes. **PLEASE NOTE that any manual changes made on the draft release WILL BE OVERWRITTEN if you retrigger the `create-draft-release` job**. Please be sure to only make manual edits AFTER you are sure this is the final run of the job.
   * If you would like to edit the content, you can directly edit the PRs that it was generated from. The title is used for each PR and also the body within the `Release Note` header in the PR. After you have made your edits within the PR, you can rerun the `create-draft-release` job in order to regenerate a new release note.
   * If you would like to change the arrangement of the PRs within the release note, you can make the edits directly on the release note of the draft release. 

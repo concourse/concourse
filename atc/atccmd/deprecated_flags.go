@@ -424,6 +424,7 @@ func InitializePolicyFlags(c *cobra.Command, flags *RunConfig) {
 
 func InitializeServerFlags(c *cobra.Command, flags *RunConfig) {
 	c.Flags().StringVar(&flags.Server.XFrameOptions, "x-frame-options", CmdDefaults.Server.XFrameOptions, "The value to set for X-Frame-Options.")
+	c.Flags().StringVar(&flags.Server.ContentSecurityPolicy, "content-security-policy", "frame-ancestors 'none'", "The value to set for the Content-Security-Policy header.")
 	c.Flags().StringVar(&flags.Server.ClusterName, "cluster-name", "", "A name for this Concourse cluster, to be displayed on the dashboard page.")
 	c.Flags().StringVar(&flags.Server.ClientID, "client-id", CmdDefaults.Server.ClientID, "Client ID to use for login flow")
 	c.Flags().StringVar(&flags.Server.ClientSecret, "client-secret", "", "Client secret to use for login flow")

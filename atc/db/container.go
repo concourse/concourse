@@ -12,8 +12,7 @@ var ErrContainerDisappeared = errors.New("container disappeared from db")
 
 type ContainerState string
 
-//go:generate counterfeiter . Container
-
+//counterfeiter:generate . Container
 type Container interface {
 	ID() int
 	State() string
@@ -22,8 +21,7 @@ type Container interface {
 	Metadata() ContainerMetadata
 }
 
-//go:generate counterfeiter . CreatingContainer
-
+//counterfeiter:generate . CreatingContainer
 type CreatingContainer interface {
 	Container
 
@@ -130,8 +128,7 @@ func (container *creatingContainer) Failed() (FailedContainer, error) {
 	), nil
 }
 
-//go:generate counterfeiter . CreatedContainer
-
+//counterfeiter:generate . CreatedContainer
 type CreatedContainer interface {
 	Container
 
@@ -238,8 +235,7 @@ func (container *createdContainer) UpdateLastHijack() error {
 	return nil
 }
 
-//go:generate counterfeiter . DestroyingContainer
-
+//counterfeiter:generate . DestroyingContainer
 type DestroyingContainer interface {
 	Container
 
@@ -301,8 +297,7 @@ func (container *destroyingContainer) Destroy() (bool, error) {
 	return true, nil
 }
 
-//go:generate counterfeiter . FailedContainer
-
+//counterfeiter:generate . FailedContainer
 type FailedContainer interface {
 	Container
 

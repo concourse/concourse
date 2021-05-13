@@ -12,7 +12,7 @@ import (
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 github.com/containerd/go-cni.CNI
+//counterfeiter:generate github.com/containerd/go-cni.CNI
 
 // CNINetworkConfig provides configuration for CNINetwork to override the
 // defaults.
@@ -298,7 +298,7 @@ func (n cniNetwork) generateResolvConfContents() ([]byte, error) {
 		resolvConfEntries, err = ParseHostResolveConf("/etc/resolv.conf")
 	}
 
-	contents = strings.Join(resolvConfEntries, "\n")
+	contents = strings.Join(resolvConfEntries, "\n") + "\n"
 
 	return []byte(contents), err
 }

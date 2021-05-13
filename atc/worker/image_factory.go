@@ -9,8 +9,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 )
 
-//go:generate counterfeiter . ImageFactory
-
+//counterfeiter:generate . ImageFactory
 type ImageFactory interface {
 	GetImage(
 		logger lager.Logger,
@@ -28,8 +27,7 @@ type FetchedImage struct {
 	Privileged bool
 }
 
-//go:generate counterfeiter . Image
-
+//counterfeiter:generate . Image
 type Image interface {
 	FetchForContainer(
 		ctx context.Context,

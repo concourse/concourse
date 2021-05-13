@@ -31,14 +31,14 @@ test('shows abort hooks', async t => {
   await t.context.web.waitForText("say-bye-from-job");
   // await t.context.web.waitForText("looping");
 
-  await t.context.web.page.waitFor('button[aria-label="Abort Build"]');
+  await t.context.web.page.waitForSelector('button[aria-label="Abort Build"]');
   await t.context.web.page.click('button[aria-label="Abort Build"]');
 
   await t.context.web.waitForBackgroundColor('.build-header', palette.brown, {
     timeout: 60000,
   });
-  await t.context.web.page.waitFor('[data-step-name="say-bye-from-step"] [data-step-state="succeeded"]');
-  await t.context.web.page.waitFor('[data-step-name="say-bye-from-job"] [data-step-state="succeeded"]');
+  await t.context.web.page.waitForSelector('[data-step-name="say-bye-from-step"] [data-step-state="succeeded"]');
+  await t.context.web.page.waitForSelector('[data-step-name="say-bye-from-job"] [data-step-state="succeeded"]');
 
   await t.context.web.clickAndWait('[data-step-name="say-bye-from-step"] .header', '[data-step-name="say-bye-from-step"] .step-body:not(.step-collapsed)');
   t.regex(await t.context.web.text(), /bye from step/);

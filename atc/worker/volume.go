@@ -2,16 +2,16 @@ package worker
 
 import (
 	"context"
-	"github.com/concourse/concourse/tracing"
 	"io"
+
+	"github.com/concourse/concourse/tracing"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc/db"
 )
 
-//go:generate counterfeiter . Volume
-
+//counterfeiter:generate . Volume
 type Volume interface {
 	Handle() string
 	Path() string
@@ -30,6 +30,7 @@ type Volume interface {
 	COWStrategy() baggageclaim.COWStrategy
 
 	InitializeResourceCache(db.UsedResourceCache) error
+	InitializeStreamedResourceCache(db.UsedResourceCache, string) error
 	GetResourceCacheID() int
 	InitializeTaskCache(logger lager.Logger, jobID int, stepName string, path string, privileged bool) error
 	InitializeArtifact(name string, buildID int) (db.WorkerArtifact, error)
@@ -133,6 +134,10 @@ func (v *volume) COWStrategy() baggageclaim.COWStrategy {
 
 func (v *volume) InitializeResourceCache(urc db.UsedResourceCache) error {
 	return v.dbVolume.InitializeResourceCache(urc)
+}
+
+func (v *volume) InitializeStreamedResourceCache(urc db.UsedResourceCache, sourceWorkerName string) error {
+	return v.dbVolume.InitializeStreamedResourceCache(urc, sourceWorkerName)
 }
 
 func (v *volume) GetResourceCacheID() int {

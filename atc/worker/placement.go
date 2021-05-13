@@ -40,12 +40,12 @@ type ContainerPlacementStrategy interface {
 	Name() string
 
 	// Orders the list of candidate workers based off the configured strategies. Should only remove
-	// candidate workers which will never match the strategy. Filtering should mostly be left to Pick.
+	// candidate workers which will never match the strategy. Filtering should mostly be left to Approve().
 	Order(lager.Logger, []Worker, ContainerSpec) ([]Worker, error)
 
-	// Attempts to pick the given worker to run the specified container, checking the worker abides
+	// Attempts to approve the given worker to run the specified container, checking the worker abides
 	// by the conditions of the specific strategy.
-	Pick(lager.Logger, Worker, ContainerSpec) error
+	Approve(lager.Logger, Worker, ContainerSpec) error
 
 	// Releases any resources acquired by any configured strategies as part of
 	// picking the candidate worker.
@@ -148,7 +148,7 @@ func (strategy *ChainPlacementStrategy) Order(logger lager.Logger, workers []Wor
 	return candidates, nil
 }
 
-func (strategy *ChainPlacementStrategy) Pick(logger lager.Logger, worker Worker, spec ContainerSpec) error {
+func (strategy *ChainPlacementStrategy) Approve(logger lager.Logger, worker Worker, spec ContainerSpec) error {
 	var err error
 	var i int
 
@@ -156,7 +156,7 @@ func (strategy *ChainPlacementStrategy) Pick(logger lager.Logger, worker Worker,
 	// Release on the relevant nodes when an error occurs.
 	for i = 0; i < len(strategy.nodes); i++ {
 		node := strategy.nodes[i]
-		err = node.Pick(logger, worker, spec)
+		err = node.Approve(logger, worker, spec)
 
 		if err != nil {
 			break
@@ -165,7 +165,7 @@ func (strategy *ChainPlacementStrategy) Pick(logger lager.Logger, worker Worker,
 
 	if err != nil {
 		// On error, call Release on all stages which successfully passed
-		// Pick. Decrement "i" initially to skip stage which failed Pick.
+		// Approve. Decrement "i" initially to skip stage which failed Approve.
 		for i--; i >= 0; i-- {
 			node := strategy.nodes[i]
 			node.Release(logger, worker, spec)
@@ -231,7 +231,7 @@ func (strategy *VolumeLocalityStrategy) Order(logger lager.Logger, workers []Wor
 	return candidates, nil
 }
 
-func (strategy *VolumeLocalityStrategy) Pick(logger lager.Logger, worker Worker, spec ContainerSpec) error {
+func (strategy *VolumeLocalityStrategy) Approve(logger lager.Logger, worker Worker, spec ContainerSpec) error {
 	// This strategy doesn't have any requirements on the number of volumes which must exist
 	// on a worker for the container to be scheduled on it
 	return nil
@@ -267,7 +267,7 @@ func (strategy *FewestBuildContainersStrategy) Order(logger lager.Logger, worker
 	return candidates, nil
 }
 
-func (strategy *FewestBuildContainersStrategy) Pick(logger lager.Logger, worker Worker, spec ContainerSpec) error {
+func (strategy *FewestBuildContainersStrategy) Approve(logger lager.Logger, worker Worker, spec ContainerSpec) error {
 	return nil
 }
 
@@ -313,7 +313,7 @@ func (strategy *LimitActiveTasksStrategy) Order(logger lager.Logger, workers []W
 	return candidates, nil
 }
 
-func (strategy *LimitActiveTasksStrategy) Pick(logger lager.Logger, worker Worker, spec ContainerSpec) error {
+func (strategy *LimitActiveTasksStrategy) Approve(logger lager.Logger, worker Worker, spec ContainerSpec) error {
 	if spec.Type != db.ContainerTypeTask {
 		return nil
 	}
@@ -363,7 +363,7 @@ func (strategy *LimitActiveContainersStrategy) Order(logger lager.Logger, worker
 	return workers, nil
 }
 
-func (strategy *LimitActiveContainersStrategy) Pick(logger lager.Logger, worker Worker, spec ContainerSpec) error {
+func (strategy *LimitActiveContainersStrategy) Approve(logger lager.Logger, worker Worker, spec ContainerSpec) error {
 	if strategy.maxContainers > 0 && worker.ActiveContainers() > strategy.maxContainers {
 		return ErrTooManyContainers
 	}
@@ -390,7 +390,7 @@ func (strategy *LimitActiveVolumesStrategy) Order(logger lager.Logger, workers [
 	return workers, nil
 }
 
-func (strategy *LimitActiveVolumesStrategy) Pick(logger lager.Logger, worker Worker, spec ContainerSpec) error {
+func (strategy *LimitActiveVolumesStrategy) Approve(logger lager.Logger, worker Worker, spec ContainerSpec) error {
 	if strategy.maxVolumes > 0 && worker.ActiveVolumes() > strategy.maxVolumes {
 		return ErrTooManyVolumes
 	}

@@ -36,7 +36,7 @@ func (flag *ResourceFlag) UnmarshalFlag(value string) error {
 		var err error
 		flag.PipelineRef.InstanceVars, err = unmarshalInstanceVars(vs[1])
 		if err != nil {
-			return errors.New(err.Error() + "/<resource>")
+			return err
 		}
 	}
 

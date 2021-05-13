@@ -19,7 +19,6 @@ func ValidateIdentifier(identifier string, context ...string) (*ConfigWarning, e
 	if identifier == "" {
 		return nil, fmt.Errorf("%s: identifier cannot be an empty string", strings.Join(context, ""))
 	}
-
 	if !validIdentifiers.MatchString(identifier) {
 		var reason string
 		if startsWithLetter.MatchString(identifier) {

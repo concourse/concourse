@@ -258,6 +258,10 @@ type CheckPlan struct {
 	Tags Tags `json:"tags,omitempty"`
 }
 
+func (plan CheckPlan) IsPeriodic() bool {
+	return plan.Resource != "" || plan.ResourceType != ""
+}
+
 type TaskPlan struct {
 	// The name of the step.
 	Name string `json:"name"`
@@ -274,6 +278,9 @@ type TaskPlan struct {
 	// provided statically.
 	ConfigPath string      `json:"config_path,omitempty"`
 	Config     *TaskConfig `json:"config,omitempty"`
+
+	// Limits to set on the Task Container
+	Limits *ContainerLimits `json:"container_limits,omitempty"`
 
 	// An artifact in the build plan to use as the task's image. Overrides any
 	// image set in the task's config.

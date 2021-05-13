@@ -15,7 +15,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/localip"
 	concourseCmd "github.com/concourse/concourse/cmd"
-	"github.com/concourse/concourse/worker/mtu"
+	"github.com/concourse/concourse/worker/network"
 	"github.com/concourse/concourse/worker/runtime"
 	"github.com/concourse/concourse/worker/runtime/libcontainerd"
 	"github.com/tedsuo/ifrit"
@@ -222,5 +222,5 @@ func (cmd ContainerdRuntime) mtu() (int, error) {
 		return 0, err
 	}
 
-	return mtu.MTU(externalIP.String())
+	return network.MTU(externalIP.String())
 }

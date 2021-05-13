@@ -9,8 +9,7 @@ import (
 	uuid "github.com/nu7hatch/gouuid"
 )
 
-//go:generate counterfeiter . VolumeRepository
-
+//counterfeiter:generate . VolumeRepository
 type VolumeRepository interface {
 	GetTeamVolumes(teamID int) ([]CreatedVolume, error)
 
@@ -467,15 +466,18 @@ func (repository *volumeRepository) FindCreatedVolume(handle string) (CreatedVol
 	return createdVolume, true, nil
 }
 
+// GetOrphanedVolumes returns all volumes that not used by Concourse artifacts such as containers and caches and has no child volume.
 func (repository *volumeRepository) GetOrphanedVolumes() ([]CreatedVolume, error) {
 	query, args, err := psql.Select(volumeColumns...).
 		From("volumes v").
 		LeftJoin("workers w ON v.worker_name = w.name").
 		LeftJoin("containers c ON v.container_id = c.id").
 		LeftJoin("volumes pv ON v.parent_id = pv.id").
+		LeftJoin("volumes cv ON cv.parent_id = v.id").
 		LeftJoin("worker_resource_caches wrc ON wrc.id = v.worker_resource_cache_id").
 		Where(
 			sq.Eq{
+				"cv.id":                          nil,
 				"v.worker_resource_cache_id":     nil,
 				"v.worker_base_resource_type_id": nil,
 				"v.container_id":                 nil,

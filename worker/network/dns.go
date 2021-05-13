@@ -1,4 +1,4 @@
-package workercmd
+package network
 
 import (
 	"fmt"
@@ -6,11 +6,7 @@ import (
 	"github.com/miekg/dns"
 )
 
-type DNSConfig struct {
-	Enable bool `yaml:"enable,omitempty"`
-}
-
-func (config DNSConfig) Server() (*dns.Server, error) {
+func DNSServer() (*dns.Server, error) {
 	resolvConf, err := dns.ClientConfigFromFile("/etc/resolv.conf")
 	if err != nil {
 		return nil, err
@@ -20,6 +16,8 @@ func (config DNSConfig) Server() (*dns.Server, error) {
 	mux := dns.NewServeMux()
 	mux.HandleFunc(".", func(w dns.ResponseWriter, r *dns.Msg) {
 		for _, server := range resolvConf.Servers {
+			// TODO: support the `search` configuration
+
 			response, _, err := client.Exchange(r, fmt.Sprintf("%s:%s", server, resolvConf.Port))
 			if err == nil {
 				response.Compress = true

@@ -241,6 +241,66 @@ func (s *ContainerSuite) TestRunWithUserLookupSucceeds() {
 	s.True(userEnvVarSet)
 }
 
+func (s *ContainerSuite) TestRunWithRootUserHasSuperUserPath() {
+	s.containerdContainer.SpecReturns(&specs.Spec{
+		Process: &specs.Process{},
+		Root:    &specs.Root{},
+	}, nil)
+
+	s.containerdContainer.TaskReturns(s.containerdTask, nil)
+	s.containerdTask.ExecReturns(s.containerdProcess, nil)
+
+	expectedUser := specs.User{UID: 0, GID: 0, Username: "root"}
+	s.rootfsManager.LookupUserReturns(expectedUser, true, nil)
+
+	_, err := s.container.Run(garden.ProcessSpec{User: "root"}, garden.ProcessIO{})
+	s.NoError(err)
+
+	_, _, procSpec, _ := s.containerdTask.ExecArgsForCall(0)
+	s.Equal(expectedUser, procSpec.User)
+
+	userEnvVarSet := false
+	expectedEnvVar := runtime.SuperuserPath
+
+	for _, envVar := range procSpec.Env {
+		if envVar == expectedEnvVar {
+			userEnvVarSet = true
+			break
+		}
+	}
+	s.True(userEnvVarSet)
+}
+
+func (s *ContainerSuite) TestRunWithNonRootUserHasUserPath() {
+	s.containerdContainer.SpecReturns(&specs.Spec{
+		Process: &specs.Process{},
+		Root:    &specs.Root{},
+	}, nil)
+
+	s.containerdContainer.TaskReturns(s.containerdTask, nil)
+	s.containerdTask.ExecReturns(s.containerdProcess, nil)
+
+	expectedUser := specs.User{UID: 6, GID: 6, Username: "games"}
+	s.rootfsManager.LookupUserReturns(expectedUser, true, nil)
+
+	_, err := s.container.Run(garden.ProcessSpec{User: "games"}, garden.ProcessIO{})
+	s.NoError(err)
+
+	_, _, procSpec, _ := s.containerdTask.ExecArgsForCall(0)
+	s.Equal(expectedUser, procSpec.User)
+
+	userEnvVarSet := false
+	expectedEnvVar := runtime.Path
+
+	for _, envVar := range procSpec.Env {
+		if envVar == expectedEnvVar {
+			userEnvVarSet = true
+			break
+		}
+	}
+	s.True(userEnvVarSet)
+}
+
 func (s *ContainerSuite) TestRunWithUserLookupErrors() {
 	s.containerdContainer.SpecReturns(&specs.Spec{
 		Process: &specs.Process{},

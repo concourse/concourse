@@ -15,8 +15,7 @@ import (
 	"github.com/cppforlife/go-semi-semantic/version"
 )
 
-//go:generate counterfeiter . WorkerProvider
-
+//counterfeiter:generate . WorkerProvider
 type WorkerProvider interface {
 	RunningWorkers(lager.Logger) ([]Worker, error)
 
@@ -35,6 +34,12 @@ type WorkerProvider interface {
 	FindWorkersForContainerByOwner(
 		logger lager.Logger,
 		owner db.ContainerOwner,
+	) ([]Worker, error)
+
+	FindWorkersForResourceCache(
+		logger lager.Logger,
+		teamID int,
+		rcId int,
 	) ([]Worker, error)
 
 	NewGardenWorker(
@@ -198,6 +203,31 @@ func (provider *dbWorkerProvider) FindWorkerForVolume(
 		return nil, false, nil
 	}
 	return worker, true, err
+}
+
+func (provider *dbWorkerProvider) FindWorkersForResourceCache(
+	logger lager.Logger,
+	teamID int,
+	rcId int,
+) ([]Worker, error) {
+	logger = logger.Session("worker-for-volume")
+	team := provider.dbTeamFactory.GetByID(teamID)
+
+	dbWorkers, err := team.FindWorkersForResourceCache(rcId)
+	if err != nil {
+		return nil, err
+	}
+
+	workers := []Worker{}
+	for _, dbWorker := range dbWorkers {
+		worker := provider.NewGardenWorker(logger, dbWorker, 0)
+		if !worker.IsVersionCompatible(logger, provider.workerVersion) {
+			continue
+		}
+		workers = append(workers, worker)
+	}
+
+	return workers, nil
 }
 
 func (provider *dbWorkerProvider) NewGardenWorker(logger lager.Logger, savedWorker db.Worker, buildContainersCount int) Worker {

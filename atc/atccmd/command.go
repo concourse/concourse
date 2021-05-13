@@ -194,8 +194,9 @@ var CmdDefaults RunConfig = RunConfig{
 	},
 
 	Server: ServerConfig{
-		XFrameOptions: "deny",
-		ClientID:      "concourse-web",
+		XFrameOptions:         "deny",
+		ContentSecurityPolicy: "frame-ancestors 'none'",
+		ClientID:              "concourse-web",
 	},
 
 	SystemClaim: SystemClaimConfig{
@@ -916,7 +917,7 @@ func (cmd *RunConfig) backendComponents(
 
 	pool := worker.NewPool(workerProvider)
 	artifactStreamer := worker.NewArtifactStreamer(pool, compressionLib)
-	artifactSourcer := worker.NewArtifactSourcer(compressionLib, pool, cmd.FeatureFlags.EnableP2PVolumeStreaming, cmd.Runtime.P2pVolumeStreamingTimeout)
+	artifactSourcer := worker.NewArtifactSourcer(compressionLib, pool, cmd.FeatureFlags.EnableP2PVolumeStreaming, cmd.Runtime.P2pVolumeStreamingTimeout, dbResourceCacheFactory)
 
 	defaultLimits, err := cmd.parseDefaultLimits()
 	if err != nil {
@@ -1539,7 +1540,8 @@ func (cmd *RunConfig) constructHTTPHandler(
 		Logger: logger,
 
 		Handler: wrappa.SecurityHandler{
-			XFrameOptions: cmd.Server.XFrameOptions,
+			XFrameOptions:         cmd.Server.XFrameOptions,
+			ContentSecurityPolicy: cmd.Server.ContentSecurityPolicy,
 
 			// proxy Authorization header to/from auth cookie,
 			// to support auth from JS (EventSource) and custom JWT auth

@@ -53,20 +53,21 @@ const (
 
 	GetCC = "GetCC"
 
-	ListAllPipelines    = "ListAllPipelines"
-	ListPipelines       = "ListPipelines"
-	GetPipeline         = "GetPipeline"
-	DeletePipeline      = "DeletePipeline"
-	OrderPipelines      = "OrderPipelines"
-	PausePipeline       = "PausePipeline"
-	ArchivePipeline     = "ArchivePipeline"
-	UnpausePipeline     = "UnpausePipeline"
-	ExposePipeline      = "ExposePipeline"
-	HidePipeline        = "HidePipeline"
-	RenamePipeline      = "RenamePipeline"
-	ListPipelineBuilds  = "ListPipelineBuilds"
-	CreatePipelineBuild = "CreatePipelineBuild"
-	PipelineBadge       = "PipelineBadge"
+	ListAllPipelines          = "ListAllPipelines"
+	ListPipelines             = "ListPipelines"
+	GetPipeline               = "GetPipeline"
+	DeletePipeline            = "DeletePipeline"
+	OrderPipelines            = "OrderPipelines"
+	OrderPipelinesWithinGroup = "OrderPipelinesWithinGroup"
+	PausePipeline             = "PausePipeline"
+	ArchivePipeline           = "ArchivePipeline"
+	UnpausePipeline           = "UnpausePipeline"
+	ExposePipeline            = "ExposePipeline"
+	HidePipeline              = "HidePipeline"
+	RenamePipeline            = "RenamePipeline"
+	ListPipelineBuilds        = "ListPipelineBuilds"
+	CreatePipelineBuild       = "CreatePipelineBuild"
+	PipelineBadge             = "PipelineBadge"
 
 	RegisterWorker  = "RegisterWorker"
 	LandWorker      = "LandWorker"
@@ -153,6 +154,7 @@ var Routes = rata.Routes([]rata.Route{
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name", Method: "GET", Name: GetPipeline},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name", Method: "DELETE", Name: DeletePipeline},
 	{Path: "/api/v1/teams/:team_name/pipelines/ordering", Method: "PUT", Name: OrderPipelines},
+	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/ordering", Method: "PUT", Name: OrderPipelinesWithinGroup},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/pause", Method: "PUT", Name: PausePipeline},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/archive", Method: "PUT", Name: ArchivePipeline},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/unpause", Method: "PUT", Name: UnpausePipeline},

@@ -10,8 +10,9 @@ import (
 	"github.com/concourse/concourse/tracing"
 )
 
-//go:generate counterfeiter . Algorithm
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
 
+//counterfeiter:generate . Algorithm
 type Algorithm interface {
 	Compute(
 		context.Context,

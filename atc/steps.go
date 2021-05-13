@@ -336,6 +336,7 @@ type TaskStep struct {
 	Name              string            `json:"task"`
 	Privileged        bool              `json:"privileged,omitempty"`
 	ConfigPath        string            `json:"file,omitempty"`
+	Limits            *ContainerLimits  `json:"container_limits,omitempty"`
 	Config            *TaskConfig       `json:"config,omitempty"`
 	Params            TaskEnv           `json:"params,omitempty"`
 	Vars              Params            `json:"vars,omitempty"`

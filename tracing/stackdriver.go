@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	texporter "github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace"
-	export "go.opentelemetry.io/otel/sdk/export/trace"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
 type Stackdriver struct {
@@ -24,12 +24,12 @@ func (s Stackdriver) Validate() error {
 	return nil
 }
 
-func (s Stackdriver) Exporter() (export.SpanExporter, error) {
+func (s Stackdriver) Exporter() (sdktrace.SpanExporter, []sdktrace.TracerProviderOption, error) {
 	exporter, err := texporter.NewExporter(texporter.WithProjectID(s.ProjectID))
 	if err != nil {
 		err = fmt.Errorf("failed to create stackdriver exporter: %w", err)
-		return nil, err
+		return nil, nil, err
 	}
 
-	return exporter, nil
+	return exporter, nil, nil
 }

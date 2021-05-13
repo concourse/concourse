@@ -7,8 +7,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 )
 
-//go:generate counterfeiter . AccessTokenLifecycle
-
+//counterfeiter:generate . AccessTokenLifecycle
 type AccessTokenLifecycle interface {
 	RemoveExpiredAccessTokens(leeway time.Duration) (int, error)
 }

@@ -9,11 +9,13 @@ import (
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . Client
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 github.com/containerd/containerd.Container
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 github.com/containerd/containerd.Task
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 github.com/containerd/containerd.Process
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 github.com/containerd/containerd/cio.IO
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+
+//counterfeiter:generate . Client
+//counterfeiter:generate github.com/containerd/containerd.Container
+//counterfeiter:generate github.com/containerd/containerd.Task
+//counterfeiter:generate github.com/containerd/containerd.Process
+//counterfeiter:generate github.com/containerd/containerd/cio.IO
 
 // Client represents the minimum interface used to communicate with containerd
 // to manage containers.

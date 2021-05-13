@@ -15,6 +15,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	concourseCmd "github.com/concourse/concourse/cmd"
+	"github.com/concourse/concourse/worker/network"
 	"github.com/concourse/flag"
 	"github.com/tedsuo/ifrit"
 )
@@ -56,6 +57,10 @@ type ContainerdNetwork struct {
 	RestrictedNetworks []string  `yaml:"restricted_network,omitempty"`
 	Pool               string    `yaml:"network_pool,omitempty"`
 	MTU                int       `yaml:"mtu,omitempty"`
+}
+
+type DNSConfig struct {
+	Enable bool `yaml:"enable,omitempty"`
 }
 
 var RuntimeDefaults = RuntimeConfiguration{
@@ -171,7 +176,7 @@ func (cmd *WorkerCommand) checkRoot() error {
 }
 
 func (cmd *WorkerCommand) dnsProxyRunner(logger lager.Logger) (ifrit.Runner, error) {
-	server, err := cmd.Guardian.DNS.Server()
+	server, err := network.DNSServer()
 	if err != nil {
 		return nil, err
 	}

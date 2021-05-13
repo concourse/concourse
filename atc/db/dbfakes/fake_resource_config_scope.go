@@ -3,7 +3,6 @@ package dbfakes
 
 import (
 	"sync"
-	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
@@ -52,16 +51,16 @@ type FakeResourceConfigScope struct {
 	iDReturnsOnCall map[int]struct {
 		result1 int
 	}
-	LastCheckEndTimeStub        func() (time.Time, error)
-	lastCheckEndTimeMutex       sync.RWMutex
-	lastCheckEndTimeArgsForCall []struct {
+	LastCheckStub        func() (db.LastCheck, error)
+	lastCheckMutex       sync.RWMutex
+	lastCheckArgsForCall []struct {
 	}
-	lastCheckEndTimeReturns struct {
-		result1 time.Time
+	lastCheckReturns struct {
+		result1 db.LastCheck
 		result2 error
 	}
-	lastCheckEndTimeReturnsOnCall map[int]struct {
-		result1 time.Time
+	lastCheckReturnsOnCall map[int]struct {
+		result1 db.LastCheck
 		result2 error
 	}
 	LatestVersionStub        func() (db.ResourceConfigVersion, bool, error)
@@ -110,9 +109,10 @@ type FakeResourceConfigScope struct {
 	saveVersionsReturnsOnCall map[int]struct {
 		result1 error
 	}
-	UpdateLastCheckEndTimeStub        func() (bool, error)
+	UpdateLastCheckEndTimeStub        func(bool) (bool, error)
 	updateLastCheckEndTimeMutex       sync.RWMutex
 	updateLastCheckEndTimeArgsForCall []struct {
+		arg1 bool
 	}
 	updateLastCheckEndTimeReturns struct {
 		result1 bool
@@ -325,15 +325,15 @@ func (fake *FakeResourceConfigScope) IDReturnsOnCall(i int, result1 int) {
 	}{result1}
 }
 
-func (fake *FakeResourceConfigScope) LastCheckEndTime() (time.Time, error) {
-	fake.lastCheckEndTimeMutex.Lock()
-	ret, specificReturn := fake.lastCheckEndTimeReturnsOnCall[len(fake.lastCheckEndTimeArgsForCall)]
-	fake.lastCheckEndTimeArgsForCall = append(fake.lastCheckEndTimeArgsForCall, struct {
+func (fake *FakeResourceConfigScope) LastCheck() (db.LastCheck, error) {
+	fake.lastCheckMutex.Lock()
+	ret, specificReturn := fake.lastCheckReturnsOnCall[len(fake.lastCheckArgsForCall)]
+	fake.lastCheckArgsForCall = append(fake.lastCheckArgsForCall, struct {
 	}{})
-	stub := fake.LastCheckEndTimeStub
-	fakeReturns := fake.lastCheckEndTimeReturns
-	fake.recordInvocation("LastCheckEndTime", []interface{}{})
-	fake.lastCheckEndTimeMutex.Unlock()
+	stub := fake.LastCheckStub
+	fakeReturns := fake.lastCheckReturns
+	fake.recordInvocation("LastCheck", []interface{}{})
+	fake.lastCheckMutex.Unlock()
 	if stub != nil {
 		return stub()
 	}
@@ -343,40 +343,40 @@ func (fake *FakeResourceConfigScope) LastCheckEndTime() (time.Time, error) {
 	return fakeReturns.result1, fakeReturns.result2
 }
 
-func (fake *FakeResourceConfigScope) LastCheckEndTimeCallCount() int {
-	fake.lastCheckEndTimeMutex.RLock()
-	defer fake.lastCheckEndTimeMutex.RUnlock()
-	return len(fake.lastCheckEndTimeArgsForCall)
+func (fake *FakeResourceConfigScope) LastCheckCallCount() int {
+	fake.lastCheckMutex.RLock()
+	defer fake.lastCheckMutex.RUnlock()
+	return len(fake.lastCheckArgsForCall)
 }
 
-func (fake *FakeResourceConfigScope) LastCheckEndTimeCalls(stub func() (time.Time, error)) {
-	fake.lastCheckEndTimeMutex.Lock()
-	defer fake.lastCheckEndTimeMutex.Unlock()
-	fake.LastCheckEndTimeStub = stub
+func (fake *FakeResourceConfigScope) LastCheckCalls(stub func() (db.LastCheck, error)) {
+	fake.lastCheckMutex.Lock()
+	defer fake.lastCheckMutex.Unlock()
+	fake.LastCheckStub = stub
 }
 
-func (fake *FakeResourceConfigScope) LastCheckEndTimeReturns(result1 time.Time, result2 error) {
-	fake.lastCheckEndTimeMutex.Lock()
-	defer fake.lastCheckEndTimeMutex.Unlock()
-	fake.LastCheckEndTimeStub = nil
-	fake.lastCheckEndTimeReturns = struct {
-		result1 time.Time
+func (fake *FakeResourceConfigScope) LastCheckReturns(result1 db.LastCheck, result2 error) {
+	fake.lastCheckMutex.Lock()
+	defer fake.lastCheckMutex.Unlock()
+	fake.LastCheckStub = nil
+	fake.lastCheckReturns = struct {
+		result1 db.LastCheck
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeResourceConfigScope) LastCheckEndTimeReturnsOnCall(i int, result1 time.Time, result2 error) {
-	fake.lastCheckEndTimeMutex.Lock()
-	defer fake.lastCheckEndTimeMutex.Unlock()
-	fake.LastCheckEndTimeStub = nil
-	if fake.lastCheckEndTimeReturnsOnCall == nil {
-		fake.lastCheckEndTimeReturnsOnCall = make(map[int]struct {
-			result1 time.Time
+func (fake *FakeResourceConfigScope) LastCheckReturnsOnCall(i int, result1 db.LastCheck, result2 error) {
+	fake.lastCheckMutex.Lock()
+	defer fake.lastCheckMutex.Unlock()
+	fake.LastCheckStub = nil
+	if fake.lastCheckReturnsOnCall == nil {
+		fake.lastCheckReturnsOnCall = make(map[int]struct {
+			result1 db.LastCheck
 			result2 error
 		})
 	}
-	fake.lastCheckEndTimeReturnsOnCall[i] = struct {
-		result1 time.Time
+	fake.lastCheckReturnsOnCall[i] = struct {
+		result1 db.LastCheck
 		result2 error
 	}{result1, result2}
 }
@@ -613,17 +613,18 @@ func (fake *FakeResourceConfigScope) SaveVersionsReturnsOnCall(i int, result1 er
 	}{result1}
 }
 
-func (fake *FakeResourceConfigScope) UpdateLastCheckEndTime() (bool, error) {
+func (fake *FakeResourceConfigScope) UpdateLastCheckEndTime(arg1 bool) (bool, error) {
 	fake.updateLastCheckEndTimeMutex.Lock()
 	ret, specificReturn := fake.updateLastCheckEndTimeReturnsOnCall[len(fake.updateLastCheckEndTimeArgsForCall)]
 	fake.updateLastCheckEndTimeArgsForCall = append(fake.updateLastCheckEndTimeArgsForCall, struct {
-	}{})
+		arg1 bool
+	}{arg1})
 	stub := fake.UpdateLastCheckEndTimeStub
 	fakeReturns := fake.updateLastCheckEndTimeReturns
-	fake.recordInvocation("UpdateLastCheckEndTime", []interface{}{})
+	fake.recordInvocation("UpdateLastCheckEndTime", []interface{}{arg1})
 	fake.updateLastCheckEndTimeMutex.Unlock()
 	if stub != nil {
-		return stub()
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -637,10 +638,17 @@ func (fake *FakeResourceConfigScope) UpdateLastCheckEndTimeCallCount() int {
 	return len(fake.updateLastCheckEndTimeArgsForCall)
 }
 
-func (fake *FakeResourceConfigScope) UpdateLastCheckEndTimeCalls(stub func() (bool, error)) {
+func (fake *FakeResourceConfigScope) UpdateLastCheckEndTimeCalls(stub func(bool) (bool, error)) {
 	fake.updateLastCheckEndTimeMutex.Lock()
 	defer fake.updateLastCheckEndTimeMutex.Unlock()
 	fake.UpdateLastCheckEndTimeStub = stub
+}
+
+func (fake *FakeResourceConfigScope) UpdateLastCheckEndTimeArgsForCall(i int) bool {
+	fake.updateLastCheckEndTimeMutex.RLock()
+	defer fake.updateLastCheckEndTimeMutex.RUnlock()
+	argsForCall := fake.updateLastCheckEndTimeArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeResourceConfigScope) UpdateLastCheckEndTimeReturns(result1 bool, result2 error) {
@@ -734,8 +742,8 @@ func (fake *FakeResourceConfigScope) Invocations() map[string][][]interface{} {
 	defer fake.findVersionMutex.RUnlock()
 	fake.iDMutex.RLock()
 	defer fake.iDMutex.RUnlock()
-	fake.lastCheckEndTimeMutex.RLock()
-	defer fake.lastCheckEndTimeMutex.RUnlock()
+	fake.lastCheckMutex.RLock()
+	defer fake.lastCheckMutex.RUnlock()
 	fake.latestVersionMutex.RLock()
 	defer fake.latestVersionMutex.RUnlock()
 	fake.resourceMutex.RLock()

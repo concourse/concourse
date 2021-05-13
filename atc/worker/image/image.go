@@ -83,7 +83,7 @@ func (i *imageProvidedByPreviousStepOnDifferentWorker) FetchForContainer(
 	ctx, span := tracing.StartSpan(ctx, "imageProvidedByPreviousStepOnDifferentWorker.FetchForContainer", tracing.Attrs{"container_id": container.Handle()})
 	defer span.End()
 
-	imageVolume, err := i.volumeClient.FindOrCreateVolumeForContainer(
+	streamInVolume, err := i.volumeClient.FindOrCreateVolumeForContainer(
 		logger,
 		worker.VolumeSpec{
 			Strategy:   baggageclaim.EmptyStrategy{},
@@ -91,7 +91,7 @@ func (i *imageProvidedByPreviousStepOnDifferentWorker) FetchForContainer(
 		},
 		container,
 		i.teamID,
-		"/",
+		"streamed-no-mount:/",
 	)
 	if err != nil {
 		logger.Error("failed-to-create-image-artifact-replicated-volume", err)
@@ -99,7 +99,7 @@ func (i *imageProvidedByPreviousStepOnDifferentWorker) FetchForContainer(
 	}
 
 	dest := artifactDestination{
-		destination: imageVolume,
+		destination: streamInVolume,
 	}
 
 	err = i.imageSpec.ImageArtifactSource.StreamTo(ctx, &dest)
@@ -108,6 +108,18 @@ func (i *imageProvidedByPreviousStepOnDifferentWorker) FetchForContainer(
 		return worker.FetchedImage{}, err
 	}
 	logger.Debug("streamed-non-local-image-volume")
+
+	imageVolume, err := i.volumeClient.FindOrCreateCOWVolumeForContainer(
+		logger,
+		worker.VolumeSpec{
+			Strategy:   streamInVolume.COWStrategy(),
+			Privileged: i.imageSpec.Privileged,
+		},
+		container,
+		streamInVolume,
+		i.teamID,
+		"/",
+	)
 
 	imageMetadataReader, err := i.imageSpec.ImageArtifactSource.StreamFile(ctx, ImageMetadataFile)
 	if err != nil {
@@ -215,4 +227,8 @@ func (wad *artifactDestination) StreamIn(ctx context.Context, path string, encod
 
 func (wad *artifactDestination) GetStreamInP2pUrl(ctx context.Context, path string) (string, error) {
 	return wad.destination.GetStreamInP2pUrl(ctx, path)
+}
+
+func (wad *artifactDestination) InitializeStreamedResourceCache(cache db.UsedResourceCache, sourceWorkerName string) error {
+	return wad.destination.InitializeStreamedResourceCache(cache, sourceWorkerName)
 }

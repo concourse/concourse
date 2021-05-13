@@ -19,6 +19,7 @@ var _ = Describe("Syslog", func() {
 		hostname = "hostname"
 		tag      = "tag"
 		message  = "build 123 log"
+		eventID  = "123"
 	)
 
 	AfterEach(func() {
@@ -77,7 +78,7 @@ var _ = Describe("Syslog", func() {
 				sl, err := syslog.Dial("tls", server.Addr, []string{caFilePath})
 				Expect(err).NotTo(HaveOccurred())
 
-				err = sl.Write(hostname, tag, time.Now(), message)
+				err = sl.Write(hostname, tag, time.Now(), message, eventID)
 				Expect(err).NotTo(HaveOccurred())
 
 				got := <-server.Messages
@@ -102,7 +103,7 @@ var _ = Describe("Syslog", func() {
 
 			It("connects and writes to server", func() {
 				sl, err := syslog.Dial("tcp", server.Addr, []string{})
-				sl.Write(hostname, tag, time.Now(), message)
+				sl.Write(hostname, tag, time.Now(), message, eventID)
 				Expect(err).NotTo(HaveOccurred())
 
 				got := <-server.Messages
@@ -130,7 +131,7 @@ var _ = Describe("Syslog", func() {
 			})
 
 			It("subsequent ops will error", func() {
-				err = sl.Write(hostname, tag, time.Now(), message)
+				err = sl.Write(hostname, tag, time.Now(), message, eventID)
 				Expect(err.Error()).To(ContainSubstring("connection already closed"))
 
 				err = sl.Close()

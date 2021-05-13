@@ -1,7 +1,6 @@
 package db
 
-//go:generate counterfeiter . WorkerBaseResourceTypeFactory
-
+//counterfeiter:generate . WorkerBaseResourceTypeFactory
 type WorkerBaseResourceTypeFactory interface {
 	Find(name string, worker Worker) (*UsedWorkerBaseResourceType, bool, error)
 }

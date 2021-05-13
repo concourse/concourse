@@ -868,6 +868,129 @@ var _ = Describe("Team", func() {
 		})
 	})
 
+	Describe("FindWorkersForResourceCache", func() {
+		var atcWorker = atc.Worker{
+			GardenAddr:       "some-garden-addr",
+			BaggageclaimURL:  "some-bc-url",
+			HTTPProxyURL:     "some-http-proxy-url",
+			HTTPSProxyURL:    "some-https-proxy-url",
+			NoProxy:          "some-no-proxy",
+			ActiveContainers: 140,
+			ResourceTypes: []atc.WorkerResourceType{
+				{
+					Type:    "some-base-resource-type",
+					Image:   "some-image",
+					Version: "some-version",
+				},
+			},
+			Platform:  "some-platform",
+			Name:      "some-worker-name",
+			StartTime: 55,
+		}
+
+		var urc db.UsedResourceCache
+
+		BeforeEach(func() {
+			_, err := workerFactory.SaveWorker(atcWorker, 0)
+			Expect(err).ToNot(HaveOccurred())
+
+			build, err := defaultTeam.CreateOneOffBuild()
+			Expect(err).ToNot(HaveOccurred())
+
+			urc, err = resourceCacheFactory.FindOrCreateResourceCache(
+				db.ForBuild(build.ID()),
+				"some-base-resource-type",
+				atc.Version{"some": "version"},
+				atc.Source{
+					"some": "source",
+				},
+				atc.Params{"some": "params"},
+				atc.VersionedResourceTypes{},
+			)
+			Expect(err).ToNot(HaveOccurred())
+
+			creatingVolume, err := volumeRepository.CreateVolume(defaultTeam.ID(), atcWorker.Name, db.VolumeTypeResource)
+			Expect(err).ToNot(HaveOccurred())
+
+			createdVolume, err := creatingVolume.Created()
+			Expect(err).ToNot(HaveOccurred())
+
+			err = createdVolume.InitializeResourceCache(urc)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		Context("when the worker is running", func() {
+			BeforeEach(func() {
+				atcWorker.State = string(db.WorkerStateRunning)
+				_, err := workerFactory.SaveWorker(atcWorker, 0)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("should find the worker", func() {
+				workers, err := defaultTeam.FindWorkersForResourceCache(urc.ID())
+				Expect(err).ToNot(HaveOccurred())
+				Expect(len(workers)).To(Equal(1))
+				Expect(workers[0].Name()).To(Equal("some-worker-name"))
+			})
+		})
+
+		Context("when the worker is stalled", func() {
+			BeforeEach(func() {
+				atcWorker.State = string(db.WorkerStateStalled)
+				_, err := workerFactory.SaveWorker(atcWorker, 0)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("should not find the worker", func() {
+				workers, err := defaultTeam.FindWorkersForResourceCache(urc.ID())
+				Expect(err).ToNot(HaveOccurred())
+				Expect(len(workers)).To(Equal(0))
+			})
+		})
+
+		Context("when the worker is retiring", func() {
+			BeforeEach(func() {
+				atcWorker.State = string(db.WorkerStateRetiring)
+				_, err := workerFactory.SaveWorker(atcWorker, 0)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("should not find the worker", func() {
+				workers, err := defaultTeam.FindWorkersForResourceCache(urc.ID())
+				Expect(err).ToNot(HaveOccurred())
+				Expect(len(workers)).To(Equal(0))
+			})
+		})
+
+		Context("when the worker is landing", func() {
+			BeforeEach(func() {
+				atcWorker.State = string(db.WorkerStateLanding)
+				_, err := workerFactory.SaveWorker(atcWorker, 0)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("should not find the worker", func() {
+				workers, err := defaultTeam.FindWorkersForResourceCache(urc.ID())
+				Expect(err).ToNot(HaveOccurred())
+				Expect(len(workers)).To(Equal(0))
+			})
+		})
+
+		Context("when the worker is landed", func() {
+			BeforeEach(func() {
+				atcWorker.State = string(db.WorkerStateLanded)
+				_, err := workerFactory.SaveWorker(atcWorker, 0)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("should not find the worker", func() {
+				workers, err := defaultTeam.FindWorkersForResourceCache(urc.ID())
+				Expect(err).ToNot(HaveOccurred())
+				Expect(len(workers)).To(Equal(0))
+			})
+		})
+	})
+
 	Describe("Updating Auth", func() {
 		var (
 			authProvider atc.TeamAuth
@@ -1107,7 +1230,7 @@ var _ = Describe("Team", func() {
 		Context("when pipeline does not exist", func() {
 			It("returns not found error", func() {
 				err := otherTeam.OrderPipelines([]string{"pipeline1", "invalid-pipeline"})
-				Expect(err).To(MatchError(db.ErrPipelineNotFound{"invalid-pipeline"}))
+				Expect(err).To(MatchError(db.ErrPipelineNotFound{Name: "invalid-pipeline"}))
 			})
 		})
 	})
@@ -1199,7 +1322,7 @@ var _ = Describe("Team", func() {
 			Expect(events.Next()).To(Equal(envelope(event.Status{
 				Status: atc.StatusStarted,
 				Time:   startedBuild.StartTime().Unix(),
-			})))
+			}, "0")))
 		})
 	})
 

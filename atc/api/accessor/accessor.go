@@ -8,8 +8,9 @@ import (
 	"github.com/concourse/concourse/atc/db"
 )
 
-//go:generate counterfeiter . Access
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
 
+//counterfeiter:generate . Access
 type Access interface {
 	HasToken() bool
 	IsAuthenticated() bool

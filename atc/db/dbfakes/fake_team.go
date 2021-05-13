@@ -216,6 +216,19 @@ type FakeTeam struct {
 		result2 bool
 		result3 error
 	}
+	FindWorkersForResourceCacheStub        func(int) ([]db.Worker, error)
+	findWorkersForResourceCacheMutex       sync.RWMutex
+	findWorkersForResourceCacheArgsForCall []struct {
+		arg1 int
+	}
+	findWorkersForResourceCacheReturns struct {
+		result1 []db.Worker
+		result2 error
+	}
+	findWorkersForResourceCacheReturnsOnCall map[int]struct {
+		result1 []db.Worker
+		result2 error
+	}
 	IDStub        func() int
 	iDMutex       sync.RWMutex
 	iDArgsForCall []struct {
@@ -272,6 +285,18 @@ type FakeTeam struct {
 		result1 error
 	}
 	orderPipelinesReturnsOnCall map[int]struct {
+		result1 error
+	}
+	OrderPipelinesWithinGroupStub        func(string, []atc.InstanceVars) error
+	orderPipelinesWithinGroupMutex       sync.RWMutex
+	orderPipelinesWithinGroupArgsForCall []struct {
+		arg1 string
+		arg2 []atc.InstanceVars
+	}
+	orderPipelinesWithinGroupReturns struct {
+		result1 error
+	}
+	orderPipelinesWithinGroupReturnsOnCall map[int]struct {
 		result1 error
 	}
 	PipelineStub        func(atc.PipelineRef) (db.Pipeline, bool, error)
@@ -1351,6 +1376,70 @@ func (fake *FakeTeam) FindWorkerForVolumeReturnsOnCall(i int, result1 db.Worker,
 	}{result1, result2, result3}
 }
 
+func (fake *FakeTeam) FindWorkersForResourceCache(arg1 int) ([]db.Worker, error) {
+	fake.findWorkersForResourceCacheMutex.Lock()
+	ret, specificReturn := fake.findWorkersForResourceCacheReturnsOnCall[len(fake.findWorkersForResourceCacheArgsForCall)]
+	fake.findWorkersForResourceCacheArgsForCall = append(fake.findWorkersForResourceCacheArgsForCall, struct {
+		arg1 int
+	}{arg1})
+	stub := fake.FindWorkersForResourceCacheStub
+	fakeReturns := fake.findWorkersForResourceCacheReturns
+	fake.recordInvocation("FindWorkersForResourceCache", []interface{}{arg1})
+	fake.findWorkersForResourceCacheMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeTeam) FindWorkersForResourceCacheCallCount() int {
+	fake.findWorkersForResourceCacheMutex.RLock()
+	defer fake.findWorkersForResourceCacheMutex.RUnlock()
+	return len(fake.findWorkersForResourceCacheArgsForCall)
+}
+
+func (fake *FakeTeam) FindWorkersForResourceCacheCalls(stub func(int) ([]db.Worker, error)) {
+	fake.findWorkersForResourceCacheMutex.Lock()
+	defer fake.findWorkersForResourceCacheMutex.Unlock()
+	fake.FindWorkersForResourceCacheStub = stub
+}
+
+func (fake *FakeTeam) FindWorkersForResourceCacheArgsForCall(i int) int {
+	fake.findWorkersForResourceCacheMutex.RLock()
+	defer fake.findWorkersForResourceCacheMutex.RUnlock()
+	argsForCall := fake.findWorkersForResourceCacheArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeTeam) FindWorkersForResourceCacheReturns(result1 []db.Worker, result2 error) {
+	fake.findWorkersForResourceCacheMutex.Lock()
+	defer fake.findWorkersForResourceCacheMutex.Unlock()
+	fake.FindWorkersForResourceCacheStub = nil
+	fake.findWorkersForResourceCacheReturns = struct {
+		result1 []db.Worker
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) FindWorkersForResourceCacheReturnsOnCall(i int, result1 []db.Worker, result2 error) {
+	fake.findWorkersForResourceCacheMutex.Lock()
+	defer fake.findWorkersForResourceCacheMutex.Unlock()
+	fake.FindWorkersForResourceCacheStub = nil
+	if fake.findWorkersForResourceCacheReturnsOnCall == nil {
+		fake.findWorkersForResourceCacheReturnsOnCall = make(map[int]struct {
+			result1 []db.Worker
+			result2 error
+		})
+	}
+	fake.findWorkersForResourceCacheReturnsOnCall[i] = struct {
+		result1 []db.Worker
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeTeam) ID() int {
 	fake.iDMutex.Lock()
 	ret, specificReturn := fake.iDReturnsOnCall[len(fake.iDArgsForCall)]
@@ -1648,6 +1737,73 @@ func (fake *FakeTeam) OrderPipelinesReturnsOnCall(i int, result1 error) {
 		})
 	}
 	fake.orderPipelinesReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeTeam) OrderPipelinesWithinGroup(arg1 string, arg2 []atc.InstanceVars) error {
+	var arg2Copy []atc.InstanceVars
+	if arg2 != nil {
+		arg2Copy = make([]atc.InstanceVars, len(arg2))
+		copy(arg2Copy, arg2)
+	}
+	fake.orderPipelinesWithinGroupMutex.Lock()
+	ret, specificReturn := fake.orderPipelinesWithinGroupReturnsOnCall[len(fake.orderPipelinesWithinGroupArgsForCall)]
+	fake.orderPipelinesWithinGroupArgsForCall = append(fake.orderPipelinesWithinGroupArgsForCall, struct {
+		arg1 string
+		arg2 []atc.InstanceVars
+	}{arg1, arg2Copy})
+	stub := fake.OrderPipelinesWithinGroupStub
+	fakeReturns := fake.orderPipelinesWithinGroupReturns
+	fake.recordInvocation("OrderPipelinesWithinGroup", []interface{}{arg1, arg2Copy})
+	fake.orderPipelinesWithinGroupMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeTeam) OrderPipelinesWithinGroupCallCount() int {
+	fake.orderPipelinesWithinGroupMutex.RLock()
+	defer fake.orderPipelinesWithinGroupMutex.RUnlock()
+	return len(fake.orderPipelinesWithinGroupArgsForCall)
+}
+
+func (fake *FakeTeam) OrderPipelinesWithinGroupCalls(stub func(string, []atc.InstanceVars) error) {
+	fake.orderPipelinesWithinGroupMutex.Lock()
+	defer fake.orderPipelinesWithinGroupMutex.Unlock()
+	fake.OrderPipelinesWithinGroupStub = stub
+}
+
+func (fake *FakeTeam) OrderPipelinesWithinGroupArgsForCall(i int) (string, []atc.InstanceVars) {
+	fake.orderPipelinesWithinGroupMutex.RLock()
+	defer fake.orderPipelinesWithinGroupMutex.RUnlock()
+	argsForCall := fake.orderPipelinesWithinGroupArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeTeam) OrderPipelinesWithinGroupReturns(result1 error) {
+	fake.orderPipelinesWithinGroupMutex.Lock()
+	defer fake.orderPipelinesWithinGroupMutex.Unlock()
+	fake.OrderPipelinesWithinGroupStub = nil
+	fake.orderPipelinesWithinGroupReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeTeam) OrderPipelinesWithinGroupReturnsOnCall(i int, result1 error) {
+	fake.orderPipelinesWithinGroupMutex.Lock()
+	defer fake.orderPipelinesWithinGroupMutex.Unlock()
+	fake.OrderPipelinesWithinGroupStub = nil
+	if fake.orderPipelinesWithinGroupReturnsOnCall == nil {
+		fake.orderPipelinesWithinGroupReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.orderPipelinesWithinGroupReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }
@@ -2309,6 +2465,8 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.findWorkerForContainerMutex.RUnlock()
 	fake.findWorkerForVolumeMutex.RLock()
 	defer fake.findWorkerForVolumeMutex.RUnlock()
+	fake.findWorkersForResourceCacheMutex.RLock()
+	defer fake.findWorkersForResourceCacheMutex.RUnlock()
 	fake.iDMutex.RLock()
 	defer fake.iDMutex.RUnlock()
 	fake.isCheckContainerMutex.RLock()
@@ -2319,6 +2477,8 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.nameMutex.RUnlock()
 	fake.orderPipelinesMutex.RLock()
 	defer fake.orderPipelinesMutex.RUnlock()
+	fake.orderPipelinesWithinGroupMutex.RLock()
+	defer fake.orderPipelinesWithinGroupMutex.RUnlock()
 	fake.pipelineMutex.RLock()
 	defer fake.pipelineMutex.RUnlock()
 	fake.pipelinesMutex.RLock()

@@ -134,10 +134,11 @@ type PolicyCheckersConfig struct {
 // IMPORTANT! The env tags are only added for backwards compatibility sake. Any
 // new fields do NOT require the env tag
 type ServerConfig struct {
-	XFrameOptions string `yaml:"x_frame_options,omitempty" env:"CONCOURSE_WEB_SERVER_X_FRAME_OPTIONS,CONCOURSE_X_FRAME_OPTIONS"`
-	ClusterName   string `yaml:"cluster_name,omitempty" env:"CONCOURSE_WEB_SERVER_CLUSTER_NAME,CONCOURSE_CLUSTER_NAME"`
-	ClientID      string `yaml:"client_id,omitempty" env:"CONCOURSE_WEB_SERVER_CLIENT_ID,CONCOURSE_CLIENT_ID"`
-	ClientSecret  string `yaml:"client_secret,omitempty" env:"CONCOURSE_WEB_SERVER_CLIENT_SECRET,CONCOURSE_CLIENT_SECRET"`
+	XFrameOptions         string `yaml:"x_frame_options,omitempty" env:"CONCOURSE_WEB_SERVER_X_FRAME_OPTIONS,CONCOURSE_X_FRAME_OPTIONS"`
+	ContentSecurityPolicy string `yaml:"content_security_policy,omitempty" env:"CONCOURSE_WEB_SERVER_CONTENT_SECURITY_POLICY,CONCOURSE_CONTENT_SECURITY_POLICY"`
+	ClusterName           string `yaml:"cluster_name,omitempty" env:"CONCOURSE_WEB_SERVER_CLUSTER_NAME,CONCOURSE_CLUSTER_NAME"`
+	ClientID              string `yaml:"client_id,omitempty" env:"CONCOURSE_WEB_SERVER_CLIENT_ID,CONCOURSE_CLIENT_ID"`
+	ClientSecret          string `yaml:"client_secret,omitempty" env:"CONCOURSE_WEB_SERVER_CLIENT_SECRET,CONCOURSE_CLIENT_SECRET"`
 }
 
 type LogConfig struct {

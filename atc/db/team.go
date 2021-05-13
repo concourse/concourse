@@ -21,16 +21,13 @@ import (
 
 var ErrConfigComparisonFailed = errors.New("comparison with existing config failed during save")
 
-type ErrPipelineNotFound struct {
-	Name string
-}
+type ErrPipelineNotFound atc.PipelineRef
 
 func (e ErrPipelineNotFound) Error() string {
-	return fmt.Sprintf("pipeline '%s' not found", e.Name)
+	return fmt.Sprintf("pipeline '%s' not found", atc.PipelineRef(e))
 }
 
-//go:generate counterfeiter . Team
-
+//counterfeiter:generate . Team
 type Team interface {
 	ID() int
 	Name() string
@@ -53,6 +50,7 @@ type Team interface {
 	Pipelines() ([]Pipeline, error)
 	PublicPipelines() ([]Pipeline, error)
 	OrderPipelines([]string) error
+	OrderPipelinesWithinGroup(string, []atc.InstanceVars) error
 
 	CreateOneOffBuild() (Build, error)
 	CreateStartedBuild(plan atc.Plan) (Build, error)
@@ -75,6 +73,7 @@ type Team interface {
 	FindCreatedContainerByHandle(string) (CreatedContainer, bool, error)
 	FindWorkerForContainer(handle string) (Worker, bool, error)
 	FindWorkerForVolume(handle string) (Worker, bool, error)
+	FindWorkersForResourceCache(rcId int) ([]Worker, error)
 
 	UpdateProviderAuth(auth atc.TeamAuth) error
 }
@@ -161,6 +160,16 @@ func (t *team) FindWorkerForVolume(handle string) (Worker, bool, error) {
 	return getWorker(t.conn, workersQuery.Join("volumes v ON v.worker_name = w.name").Where(sq.And{
 		sq.Eq{"v.handle": handle},
 	}))
+}
+
+func (t *team) FindWorkersForResourceCache(rcId int) ([]Worker, error) {
+	return getWorkers(
+		t.conn, workersQuery.
+			Join("worker_resource_caches wrc ON w.name = wrc.worker_name").
+			Where(sq.And{
+				sq.Eq{"wrc.resource_cache_id": rcId},
+				sq.Eq{"w.state": WorkerStateRunning},
+			}))
 }
 
 func (t *team) Containers() ([]Container, error) {
@@ -431,7 +440,8 @@ func savePipeline(
 			"instance_vars":   instanceVars,
 		}
 		var ordering sql.NullInt64
-		err := psql.Select("max(ordering)").
+		var secondaryOrdering sql.NullInt64
+		err := psql.Select("max(ordering), max(secondary_ordering)").
 			From("pipelines").
 			Where(sq.Eq{
 				"team_id": teamID,
@@ -439,14 +449,16 @@ func savePipeline(
 			}).
 			RunWith(tx).
 			QueryRow().
-			Scan(&ordering)
+			Scan(&ordering, &secondaryOrdering)
 		if err != nil {
 			return 0, false, err
 		}
 		if ordering.Valid {
 			values["ordering"] = ordering.Int64
+			values["secondary_ordering"] = secondaryOrdering.Int64 + 1
 		} else {
 			values["ordering"] = sq.Expr("currval('pipelines_id_seq')")
+			values["secondary_ordering"] = 1
 		}
 		err = psql.Insert("pipelines").
 			SetMap(values).
@@ -661,7 +673,7 @@ func (t *team) Pipelines() ([]Pipeline, error) {
 		Where(sq.Eq{
 			"team_id": t.id,
 		}).
-		OrderBy("p.ordering", "p.id").
+		OrderBy("p.ordering", "p.secondary_ordering").
 		RunWith(t.conn).
 		Query()
 	if err != nil {
@@ -682,7 +694,7 @@ func (t *team) PublicPipelines() ([]Pipeline, error) {
 			"team_id": t.id,
 			"public":  true,
 		}).
-		OrderBy("t.name ASC", "ordering ASC").
+		OrderBy("p.ordering ASC", "p.secondary_ordering ASC").
 		RunWith(t.conn).
 		Query()
 	if err != nil {
@@ -723,6 +735,54 @@ func (t *team) OrderPipelines(names []string) error {
 		}
 		if updatedPipelines == 0 {
 			return ErrPipelineNotFound{Name: name}
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (t *team) OrderPipelinesWithinGroup(groupName string, instanceVars []atc.InstanceVars) error {
+
+	tx, err := t.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer Rollback(tx)
+
+	for i, vars := range instanceVars {
+		filter := sq.Eq{
+			"team_id": t.id,
+			"name":    groupName,
+		}
+
+		if len(vars) == 0 {
+			filter["instance_vars"] = nil
+		} else {
+			varsJson, err := json.Marshal(vars)
+			if err != nil {
+				return err
+			}
+			filter["instance_vars"] = varsJson
+		}
+
+		pipelineUpdate, err := psql.Update("pipelines").
+			Set("secondary_ordering", i+1).
+			Where(filter).
+			RunWith(tx).
+			Exec()
+		if err != nil {
+			return err
+		}
+		updatedPipelines, err := pipelineUpdate.RowsAffected()
+		if err != nil {
+			return err
+		}
+		if updatedPipelines == 0 {
+			return ErrPipelineNotFound{Name: groupName, InstanceVars: vars}
 		}
 	}
 

@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	multierror "github.com/hashicorp/go-multierror"
-	export "go.opentelemetry.io/otel/sdk/export/trace"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
 type Honeycomb struct {
@@ -30,7 +30,7 @@ func (h Honeycomb) Validate() error {
 	return errs.ErrorOrNil()
 }
 
-func (h Honeycomb) Exporter() (export.SpanExporter, error) {
+func (h Honeycomb) Exporter() (sdktrace.SpanExporter, []sdktrace.TracerProviderOption, error) {
 	return OTLP{
 		Address: "api.honeycomb.io:443",
 		Headers: map[string]string{

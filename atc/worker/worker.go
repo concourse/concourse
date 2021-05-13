@@ -28,12 +28,13 @@ import (
 	"github.com/concourse/concourse/tracing"
 )
 
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+
 const userPropertyName = "user"
 
 var ErrResourceConfigCheckSessionExpired = errors.New("no db container was found for owner")
 
-//go:generate counterfeiter . Worker
-
+//counterfeiter:generate . Worker
 type Worker interface {
 	BuildContainers() int
 
@@ -409,6 +410,11 @@ type mountableLocalInput struct {
 	desiredMountPath string
 }
 
+type mountableCacheInput struct {
+	desiredArtifact  ArtifactSource
+	desiredMountPath string
+}
+
 type mountableRemoteInput struct {
 	desiredArtifact  ArtifactSource
 	desiredMountPath string
@@ -428,7 +434,6 @@ func (worker *gardenWorker) createVolumes(
 ) ([]VolumeMount, error) {
 	var volumeMounts []VolumeMount
 	var ioVolumeMounts []VolumeMount
-
 	scratchVolume, err := worker.volumeClient.FindOrCreateVolumeForContainer(
 		logger,
 		VolumeSpec{
@@ -477,6 +482,7 @@ func (worker *gardenWorker) createVolumes(
 	inputDestinationPaths := make(map[string]bool)
 
 	localInputs := make([]mountableLocalInput, 0)
+	cacheInputs := make([]mountableCacheInput, 0)
 	nonlocalInputs := make([]mountableRemoteInput, 0)
 
 	for _, inputSource := range spec.Inputs {
@@ -493,11 +499,38 @@ func (worker *gardenWorker) createVolumes(
 				desiredMountPath: cleanedInputPath,
 			})
 		} else {
-			nonlocalInputs = append(nonlocalInputs, mountableRemoteInput{
-				desiredArtifact:  inputSource.Source(),
-				desiredMountPath: cleanedInputPath,
-			})
+			if _, ok := inputSource.Source().(*CacheArtifactSource); ok {
+				cacheInputs = append(cacheInputs, mountableCacheInput{
+					desiredArtifact:  inputSource.Source(),
+					desiredMountPath: cleanedInputPath,
+				})
+			} else {
+				nonlocalInputs = append(nonlocalInputs, mountableRemoteInput{
+					desiredArtifact:  inputSource.Source(),
+					desiredMountPath: cleanedInputPath,
+				})
+			}
 		}
+	}
+
+	// stream remote volumes to local.
+	streamedMounts, err := worker.cloneRemoteVolumes(
+		ctx,
+		logger,
+		spec.TeamID,
+		isPrivileged,
+		creatingContainer,
+		nonlocalInputs,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, streamedMount := range streamedMounts {
+		localInputs = append(localInputs, mountableLocalInput{
+			desiredCOWParent: streamedMount.Volume,
+			desiredMountPath: streamedMount.MountPath,
+		})
 	}
 
 	// we create COW volumes for task caches too, in case multiple builds
@@ -513,20 +546,19 @@ func (worker *gardenWorker) createVolumes(
 		return nil, err
 	}
 
-	streamedMounts, err := worker.cloneRemoteVolumes(
-		ctx,
+	cacheMounts, err := worker.createCacheVolumes(
 		logger,
 		spec.TeamID,
 		isPrivileged,
 		creatingContainer,
-		nonlocalInputs,
+		cacheInputs,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	ioVolumeMounts = append(ioVolumeMounts, cowMounts...)
-	ioVolumeMounts = append(ioVolumeMounts, streamedMounts...)
+	ioVolumeMounts = append(ioVolumeMounts, cacheMounts...)
 
 	for _, outputPath := range spec.Outputs {
 		cleanedOutputPath := filepath.Clean(outputPath)
@@ -618,6 +650,10 @@ func (worker *gardenWorker) cloneRemoteVolumes(
 	for i, nonLocalInput := range nonLocals {
 		// this is to ensure each go func gets its own non changing copy of the iterator
 		i, nonLocalInput := i, nonLocalInput
+		// create an empty volume to stream-in the remote volume. this volume will only
+		// be used as a parent volume, it won't be directly mounted to a container.
+		// so that mount-path is only used as a search criteria in FindOrCreateVolumeForContainer
+		// to distinguish different streamed-in volumes.
 		inputVolume, err := worker.volumeClient.FindOrCreateVolumeForContainer(
 			logger,
 			VolumeSpec{
@@ -626,7 +662,7 @@ func (worker *gardenWorker) cloneRemoteVolumes(
 			},
 			container,
 			teamID,
-			nonLocalInput.desiredMountPath,
+			filepath.Join("streamed-no-mount:", nonLocalInput.desiredMountPath),
 		)
 		if err != nil {
 			return []VolumeMount{}, err
@@ -653,6 +689,47 @@ func (worker *gardenWorker) cloneRemoteVolumes(
 	}
 
 	logger.Debug("streamed-non-local-volumes", lager.Data{"volumes-streamed": len(nonLocals)})
+
+	return mounts, nil
+}
+
+func (worker *gardenWorker) createCacheVolumes(
+	logger lager.Logger,
+	teamID int,
+	privileged bool,
+	container db.CreatingContainer,
+	nonLocals []mountableCacheInput,
+) ([]VolumeMount, error) {
+
+	mounts := make([]VolumeMount, len(nonLocals))
+	if len(nonLocals) <= 0 {
+		return mounts, nil
+	}
+
+	for i, nonLocalInput := range nonLocals {
+		// this is to ensure each go func gets its own non changing copy of the iterator
+		i, nonLocalInput := i, nonLocalInput
+		inputVolume, err := worker.volumeClient.FindOrCreateVolumeForContainer(
+			logger,
+			VolumeSpec{
+				Strategy:   baggageclaim.EmptyStrategy{},
+				Privileged: privileged,
+			},
+			container,
+			teamID,
+			nonLocalInput.desiredMountPath,
+		)
+		if err != nil {
+			return []VolumeMount{}, err
+		}
+
+		mounts[i] = VolumeMount{
+			Volume:    inputVolume,
+			MountPath: nonLocalInput.desiredMountPath,
+		}
+	}
+
+	logger.Debug("created-cache-volumes", lager.Data{"volumes-created": len(nonLocals)})
 
 	return mounts, nil
 }

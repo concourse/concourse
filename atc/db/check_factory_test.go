@@ -391,5 +391,16 @@ var _ = Describe("CheckFactory", func() {
 				Expect(resourceTypes).To(HaveLen(0))
 			})
 		})
+
+		Context("when the pipeline is paused", func() {
+			BeforeEach(func() {
+				_, err = dbConn.Exec(`UPDATE pipelines SET paused = true`)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("does not return resource types from paused pipelines", func() {
+				Expect(resourceTypes).To(HaveLen(0))
+			})
+		})
 	})
 })

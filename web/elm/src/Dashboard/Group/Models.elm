@@ -4,6 +4,8 @@ module Dashboard.Group.Models exposing
     , cardIdentifier
     , cardName
     , cardTeamName
+    , groupCardsWithinTeam
+    , ungroupCards
     )
 
 import Concourse
@@ -13,6 +15,36 @@ type Card
     = PipelineCard Pipeline
     | InstancedPipelineCard Pipeline
     | InstanceGroupCard Pipeline (List Pipeline)
+
+
+groupCardsWithinTeam : List Pipeline -> List Card
+groupCardsWithinTeam =
+    Concourse.groupPipelinesWithinTeam
+        >> List.map
+            (\g ->
+                case g of
+                    Concourse.RegularPipeline p ->
+                        PipelineCard p
+
+                    Concourse.InstanceGroup p ps ->
+                        InstanceGroupCard p ps
+            )
+
+
+ungroupCards : List Card -> List Pipeline
+ungroupCards =
+    List.concatMap
+        (\c ->
+            case c of
+                PipelineCard p ->
+                    [ p ]
+
+                InstancedPipelineCard p ->
+                    [ p ]
+
+                InstanceGroupCard p ps ->
+                    p :: ps
+        )
 
 
 cardIdentifier : Card -> String

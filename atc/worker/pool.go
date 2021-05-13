@@ -18,8 +18,6 @@ import (
 
 const WorkerPollingInterval = 5 * time.Second
 
-//go:generate counterfeiter . Pool
-
 type NoCompatibleWorkersError struct {
 	Spec WorkerSpec
 }
@@ -28,6 +26,7 @@ func (err NoCompatibleWorkersError) Error() string {
 	return fmt.Sprintf("no workers satisfying: %s", err.Spec.Description())
 }
 
+//counterfeiter:generate . Pool
 type Pool interface {
 	FindContainer(lager.Logger, int, string) (Container, bool, error)
 	VolumeFinder
@@ -42,6 +41,13 @@ type Pool interface {
 		PoolCallbacks,
 	) (Client, time.Duration, error)
 
+	FindWorkersForResourceCache(
+		lager.Logger,
+		int,
+		int,
+		WorkerSpec,
+	) ([]Worker, error)
+
 	ReleaseWorker(
 		context.Context,
 		ContainerSpec,
@@ -50,14 +56,12 @@ type Pool interface {
 	)
 }
 
-//go:generate counterfeiter . PoolCallbacks
-
+//counterfeiter:generate . PoolCallbacks
 type PoolCallbacks interface {
 	WaitingForWorker(lager.Logger)
 }
 
-//go:generate counterfeiter . VolumeFinder
-
+//counterfeiter:generate . VolumeFinder
 type VolumeFinder interface {
 	FindVolume(lager.Logger, int, string) (Volume, bool, error)
 }
@@ -80,13 +84,17 @@ func (pool *pool) allSatisfying(logger lager.Logger, spec WorkerSpec) ([]Worker,
 		return nil, err
 	}
 
-	if len(workers) == 0 {
-		return workers, nil
+	return pool.compatibleWorkers(logger, workers, spec)
+}
+
+func (pool *pool) compatibleWorkers(logger lager.Logger, candidateWorkers []Worker, spec WorkerSpec) ([]Worker, error) {
+	if len(candidateWorkers) == 0 {
+		return candidateWorkers, nil
 	}
 
 	compatibleTeamWorkers := []Worker{}
 	compatibleGeneralWorkers := []Worker{}
-	for _, worker := range workers {
+	for _, worker := range candidateWorkers {
 		compatible := worker.Satisfies(logger, spec)
 		if compatible {
 			if worker.IsOwnedByTeam() {
@@ -145,7 +153,7 @@ func (pool *pool) findWorkerFromStrategy(
 
 	var strategyError error
 	for _, candidate := range orderedWorkers {
-		err := strategy.Pick(logger, candidate, containerSpec)
+		err := strategy.Approve(logger, candidate, containerSpec)
 
 		if err == nil {
 			return candidate, nil
@@ -248,6 +256,15 @@ func (pool *pool) CreateVolume(logger lager.Logger, volumeSpec VolumeSpec, worke
 	}
 
 	return worker.CreateVolume(logger, volumeSpec, workerSpec.TeamID, volumeType)
+}
+
+func (pool *pool) FindWorkersForResourceCache(logger lager.Logger, teamId int, rcId int, workerSpec WorkerSpec) ([]Worker, error) {
+	workers, err := pool.provider.FindWorkersForResourceCache(logger, teamId, rcId)
+	if err != nil {
+		return nil, err
+	}
+
+	return pool.compatibleWorkers(logger, workers, workerSpec)
 }
 
 func (pool *pool) SelectWorker(
