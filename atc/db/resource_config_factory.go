@@ -90,11 +90,6 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfig(
 		return nil, err
 	}
 
-	err = resourceConfig.updateLastReferenced(tx)
-	if err != nil {
-		return nil, err
-	}
-
 	err = tx.Commit()
 	if err != nil {
 		return nil, err
