@@ -194,35 +194,40 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 		return false, err
 	}
 
-	getResult, found, err := step.getFromLocalCache(logger, step.metadata.TeamID, resourceCache, workerSpec)
-	if err != nil {
-		return false, err
-	}
-	if found {
-		fmt.Fprintln(delegate.Stderr(), "\x1b[1;36mINFO: found resource cache from local cache\x1b[0m")
-		fmt.Fprintln(delegate.Stderr(), "")
-
-		delegate.Starting(logger)
-		state.StoreResult(step.planID, resourceCache)
-
-		state.ArtifactRepository().RegisterArtifact(
-			build.ArtifactName(step.plan.Name),
-			getResult.GetArtifact,
-		)
-
-		if step.plan.Resource != "" {
-			delegate.UpdateVersion(logger, step.plan, getResult.VersionResult)
+	// Only get from local cache if caching streamed volumes is enabled -
+	// otherwise, we'd need to stream volumes between workers much more
+	// frequently.
+	if atc.EnableCacheStreamedVolumes {
+		getResult, found, err := step.getFromLocalCache(logger, step.metadata.TeamID, resourceCache, workerSpec)
+		if err != nil {
+			return false, err
 		}
+		if found {
+			fmt.Fprintln(delegate.Stderr(), "\x1b[1;36mINFO: found resource cache from local cache\x1b[0m")
+			fmt.Fprintln(delegate.Stderr(), "")
 
-		delegate.Finished(
-			logger,
-			ExitStatus(getResult.ExitStatus),
-			getResult.VersionResult,
-		)
+			delegate.Starting(logger)
+			state.StoreResult(step.planID, resourceCache)
 
-		metric.Metrics.GetStepCacheHits.Inc()
+			state.ArtifactRepository().RegisterArtifact(
+				build.ArtifactName(step.plan.Name),
+				getResult.GetArtifact,
+			)
 
-		return true, nil
+			if step.plan.Resource != "" {
+				delegate.UpdateVersion(logger, step.plan, getResult.VersionResult)
+			}
+
+			delegate.Finished(
+				logger,
+				ExitStatus(getResult.ExitStatus),
+				getResult.VersionResult,
+			)
+
+			metric.Metrics.GetStepCacheHits.Inc()
+
+			return true, nil
+		}
 	}
 
 	processSpec := runtime.ProcessSpec{
@@ -270,7 +275,7 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 
 	defer cancel()
 
-	getResult, err = worker.RunGetStep(
+	getResult, err := worker.RunGetStep(
 		lagerctx.NewContext(processCtx, logger),
 		containerOwner,
 		containerSpec,
