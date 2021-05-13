@@ -120,6 +120,10 @@ func (i *imageProvidedByPreviousStepOnDifferentWorker) FetchForContainer(
 		i.teamID,
 		"/",
 	)
+	if err != nil {
+		logger.Error("failed-to-create-cow-volume-for-image", err)
+		return worker.FetchedImage{}, err
+	}
 
 	imageMetadataReader, err := i.imageSpec.ImageArtifactSource.StreamFile(ctx, ImageMetadataFile)
 	if err != nil {
