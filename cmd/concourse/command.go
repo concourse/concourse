@@ -1,30 +1,23 @@
 package main
 
 import (
-	"github.com/concourse/concourse/atc/atccmd"
-	"github.com/concourse/concourse/worker/land"
-	"github.com/concourse/concourse/worker/retire"
-	"github.com/concourse/concourse/worker/workercmd"
-	"github.com/jessevdk/go-flags"
+	"github.com/concourse/concourse"
+	"github.com/spf13/cobra"
 )
 
-type ConcourseCommand struct {
-	Version func() `short:"v" long:"version" description:"Print the version of Concourse and exit"`
-
-	Web     WebCommand              `command:"web"     description:"Run the web UI and build scheduler."`
-	Worker  workercmd.WorkerCommand `command:"worker"  description:"Run and register a worker."`
-	Migrate atccmd.Migration        `command:"migrate" description:"Run database migrations."`
-
-	Quickstart QuickstartCommand `command:"quickstart" description:"Run both 'web' and 'worker' together, auto-wired. Not recommended for production."`
-
-	LandWorker   land.LandWorkerCommand     `command:"land-worker" description:"Safely drain a worker's assignments for temporary downtime."`
-	RetireWorker retire.RetireWorkerCommand `command:"retire-worker" description:"Safely remove a worker from the cluster permanently."`
-
-	GenerateKey GenerateKeyCommand `command:"generate-key" description:"Generate RSA key for use with Concourse components."`
+var ConcourseCommand = &cobra.Command{
+	Use:     "concourse",
+	Short:   "c",
+	Long:    `TODO`,
+	Version: concourse.Version,
 }
 
-func (cmd ConcourseCommand) LessenRequirements(parser *flags.Parser) {
-	cmd.Quickstart.LessenRequirements(parser.Find("quickstart"))
-	cmd.Web.LessenRequirements(parser.Find("web"))
-	cmd.Worker.LessenRequirements("", parser.Find("worker"))
+func init() {
+	ConcourseCommand.AddCommand(WebCommand)
+	ConcourseCommand.AddCommand(WorkerCommand)
+	ConcourseCommand.AddCommand(MigrateCmd)
+	ConcourseCommand.AddCommand(QuickstartCommand)
+	ConcourseCommand.AddCommand(LandWorkerCommand)
+	ConcourseCommand.AddCommand(RetireWorkerCommand)
+	ConcourseCommand.AddCommand(GenerateKeyCommand)
 }

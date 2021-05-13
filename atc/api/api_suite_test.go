@@ -22,7 +22,6 @@ import (
 	"github.com/concourse/concourse/atc/api/containerserver/containerserverfakes"
 	"github.com/concourse/concourse/atc/api/policychecker/policycheckerfakes"
 	"github.com/concourse/concourse/atc/auditor/auditorfakes"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
@@ -65,7 +64,7 @@ var (
 	fakeSecretManager       *credsfakes.FakeSecrets
 	fakeVarSourcePool       *credsfakes.FakeVarSourcePool
 	fakePolicyChecker       *policycheckerfakes.FakePolicyChecker
-	credsManagers           creds.Managers
+	credsManager            *credsfakes.FakeManager
 	interceptTimeoutFactory *containerserverfakes.FakeInterceptTimeoutFactory
 	interceptTimeout        *containerserverfakes.FakeInterceptTimeout
 	isTLSEnabled            bool
@@ -140,7 +139,7 @@ var _ = BeforeEach(func() {
 
 	fakeSecretManager = new(credsfakes.FakeSecrets)
 	fakeVarSourcePool = new(credsfakes.FakeVarSourcePool)
-	credsManagers = make(creds.Managers)
+	credsManager = new(credsfakes.FakeManager)
 
 	fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
 
@@ -214,7 +213,7 @@ var _ = BeforeEach(func() {
 		"4.5.6",
 		fakeSecretManager,
 		fakeVarSourcePool,
-		credsManagers,
+		credsManager,
 		interceptTimeoutFactory,
 		time.Second,
 		dbWall,

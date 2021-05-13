@@ -21,11 +21,9 @@ var _ = Describe("Metrics", func() {
 			monitor = metric.NewMonitor()
 
 			emitterFactory := new(metricfakes.FakeEmitterFactory)
-			emitterFactory.IsConfiguredReturns(true)
 			emitterFactory.NewEmitterReturns(emitter, nil)
 
-			monitor.RegisterEmitter(emitterFactory)
-			monitor.Initialize(testLogger, "test", map[string]string{}, 1000)
+			monitor.Initialize(testLogger, emitterFactory, "test", map[string]string{}, 1000)
 		})
 
 		It("emits a value for every state", func() {

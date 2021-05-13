@@ -14,16 +14,18 @@ import (
 	"github.com/concourse/concourse/atc/creds"
 )
 
+const managerName = "ssm"
+
 const DefaultPipelineSecretTemplate = "/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"
 const DefaultTeamSecretTemplate = "/concourse/{{.Team}}/{{.Secret}}"
 
 type SsmManager struct {
-	AwsAccessKeyID         string `mapstructure:"access_key" long:"access-key" description:"AWS Access key ID"`
-	AwsSecretAccessKey     string `mapstructure:"secret_key" long:"secret-key" description:"AWS Secret Access Key"`
-	AwsSessionToken        string `mapstructure:"session_token" long:"session-token" description:"AWS Session Token"`
-	AwsRegion              string `mapstructure:"region" long:"region" description:"AWS region to send requests to"`
-	PipelineSecretTemplate string `mapstructure:"pipeline_secret_template" long:"pipeline-secret-template" description:"AWS SSM parameter name template used for pipeline specific parameter" default:"/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"`
-	TeamSecretTemplate     string `mapstructure:"team_secret_template" long:"team-secret-template" description:"AWS SSM parameter name template used for team specific parameter" default:"/concourse/{{.Team}}/{{.Secret}}"`
+	AwsAccessKeyID         string `yaml:"access_key,omitempty"`
+	AwsSecretAccessKey     string `yaml:"secret_key,omitempty"`
+	AwsSessionToken        string `yaml:"session_token,omitempty"`
+	AwsRegion              string `yaml:"region,omitempty"`
+	PipelineSecretTemplate string `yaml:"pipeline_secret_template,omitempty"`
+	TeamSecretTemplate     string `yaml:"team_secret_template,omitempty"`
 	Ssm                    *Ssm
 }
 
@@ -39,6 +41,14 @@ func (manager *SsmManager) MarshalJSON() ([]byte, error) {
 		"team_secret_template":     manager.TeamSecretTemplate,
 		"health":                   health,
 	})
+}
+
+func (manager *SsmManager) Name() string {
+	return managerName
+}
+
+func (manager *SsmManager) Config() interface{} {
+	return manager
 }
 
 func (manager *SsmManager) Init(log lager.Logger) error {
@@ -91,11 +101,11 @@ func (manager *SsmManager) Health() (*creds.HealthResponse, error) {
 	return health, nil
 }
 
-func (manager *SsmManager) IsConfigured() bool {
-	return manager.AwsRegion != ""
-}
-
 func (manager *SsmManager) Validate() error {
+	if manager.AwsRegion == "" {
+		return errors.New("must provide aws region")
+	}
+
 	if _, err := creds.BuildSecretTemplate("pipeline-secret-template", manager.PipelineSecretTemplate); err != nil {
 		return err
 	}

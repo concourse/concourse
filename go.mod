@@ -1,5 +1,9 @@
 module github.com/concourse/concourse
 
+replace github.com/concourse/baggageclaim => ./baggageclaim
+
+replace github.com/concourse/flag => ./flag
+
 require (
 	code.cloudfoundry.org/clock v0.0.0-20180518195852-02e53af36e6c
 	code.cloudfoundry.org/credhub-cli v0.0.0-20190415201820-e3951663d25c
@@ -16,6 +20,7 @@ require (
 	github.com/aws/aws-sdk-go v1.38.9
 	github.com/caarlos0/env v3.5.0+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible
+	github.com/clarafu/envstruct v0.0.0-20210414180622-62f3047362cf
 	github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e // indirect
 	github.com/cloudfoundry/socks5-proxy v0.0.0-20180530211953-3659db090cb2 // indirect
 	github.com/concourse/baggageclaim v1.11.0
@@ -32,6 +37,9 @@ require (
 	github.com/cyberark/conjur-api-go v0.7.1
 	github.com/fatih/color v1.10.0
 	github.com/felixge/httpsnoop v1.0.2
+	github.com/go-playground/locales v0.13.0
+	github.com/go-playground/universal-translator v0.17.0
+	github.com/go-playground/validator/v10 v10.4.1
 	github.com/gobwas/glob v0.2.3
 	github.com/goccy/go-yaml v1.8.9
 	github.com/gogo/protobuf v1.3.2
@@ -71,6 +79,7 @@ require (
 	github.com/racksec/srslog v0.0.0-20180709174129-a4725f04ec91
 	github.com/sirupsen/logrus v1.8.1
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
+	github.com/spf13/cobra v1.1.3
 	github.com/square/certstrap v1.1.1
 	github.com/stretchr/testify v1.7.0
 	github.com/tedsuo/ifrit v0.0.0-20180802180643-bea94bb476cc
@@ -79,7 +88,6 @@ require (
 	github.com/vito/go-interact v0.0.0-20171111012221-fa338ed9e9ec
 	github.com/vito/go-sse v0.0.0-20160212001227-fd69d275caac
 	github.com/vito/houdini v1.1.1
-	github.com/vito/twentythousandtonnesofcrudeoil v0.0.0-20180305154709-3b21ad808fcb
 	go.opentelemetry.io/otel v0.20.0
 	go.opentelemetry.io/otel/exporters/otlp v0.20.0
 	go.opentelemetry.io/otel/exporters/trace/jaeger v0.20.0

@@ -201,8 +201,8 @@ func (cmd *WorkerCommand) containerdRunner(logger lager.Logger) (ifrit.Runner, e
 }
 
 func (cmd ContainerdRuntime) externalIP() (net.IP, error) {
-	if cmd.Network.ExternalIP.IP != nil {
-		return cmd.Network.ExternalIP.IP, nil
+	if cmd.Network.ExternalIP != nil {
+		return cmd.Network.ExternalIP, nil
 	}
 
 	localIP, err := localip.LocalIP()

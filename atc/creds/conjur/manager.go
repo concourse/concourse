@@ -13,20 +13,22 @@ import (
 // Do not know if these constants are doing anything
 // Defaults are grabbed from the 'default:' path in the Manager struct for PipelineSecretTemplate and TeamSecretTemplate
 
+const managerName = "conjur"
+
 const DefaultPipelineSecretTemplate = "concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"
 const DefaultTeamSecretTemplate = "concourse/{{.Team}}/{{.Secret}}"
 
 type Manager struct {
-	ConjurApplianceUrl     string `long:"appliance-url" description:"URL of the conjur instance"`
-	ConjurAccount          string `long:"account" description:"Conjur Account"`
-	ConjurCertFile         string `long:"cert-file" description:"Cert file used if conjur instance is using a self signed cert. E.g. /path/to/conjur.pem"`
-	ConjurAuthnLogin       string `long:"authn-login" description:"Host username. E.g host/concourse"`
-	ConjurAuthnApiKey      string `long:"authn-api-key" description:"Api key related to the host"`
-	ConjurAuthnTokenFile   string `long:"authn-token-file" description:"Token file used if conjur instance is running in k8s or iam. E.g. /path/to/token_file"`
-	PipelineSecretTemplate string `long:"pipeline-secret-template" description:"Conjur secret identifier template used for pipeline specific parameter" default:"concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"`
-	TeamSecretTemplate     string `long:"team-secret-template" description:"Conjur secret identifier template used for team specific parameter" default:"concourse/{{.Team}}/{{.Secret}}"`
-	SecretTemplate         string `long:"secret-template" description:"Conjur secret identifier template used for full path conjur secrets" default:"vaultName/{{.Secret}}"`
-	Conjur                 *Conjur
+	ConjurApplianceUrl     string  `yaml:"appliance_url,omitempty"`
+	ConjurAccount          string  `yaml:"account,omitempty"`
+	ConjurCertFile         string  `yaml:"cert_file,omitempty"`
+	ConjurAuthnLogin       string  `yaml:"authn_login,omitempty"`
+	ConjurAuthnApiKey      string  `yaml:"authn_api_key,omitempty"`
+	ConjurAuthnTokenFile   string  `yaml:"authn_token_file,omitempty"`
+	PipelineSecretTemplate string  `yaml:"pipeline_secret_template,omitempty"`
+	TeamSecretTemplate     string  `yaml:"team_secret_template,omitempty"`
+	SecretTemplate         string  `yaml:"secret_template,omitempty"`
+	Conjur                 *Conjur `yaml:",omitempty"`
 }
 
 func newConjurClient(manager *Manager) (*conjurapi.Client, error) {
@@ -49,6 +51,14 @@ func newConjurClient(manager *Manager) (*conjurapi.Client, error) {
 			APIKey: manager.ConjurAuthnApiKey,
 		},
 	)
+}
+
+func (manager *Manager) Name() string {
+	return managerName
+}
+
+func (manager *Manager) Config() interface{} {
+	return manager
 }
 
 func (manager *Manager) Init(log lager.Logger) error {
@@ -76,10 +86,6 @@ func (manager *Manager) Health() (*creds.HealthResponse, error) {
 	}
 
 	return health, nil
-}
-
-func (manager *Manager) IsConfigured() bool {
-	return manager.ConjurApplianceUrl != ""
 }
 
 func (manager *Manager) Validate() error {

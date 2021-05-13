@@ -13,7 +13,7 @@ type randomATCEndpointPicker struct {
 	ATCEndpoints []*rata.RequestGenerator
 }
 
-func NewRandomATCEndpointPicker(atcURLFlags []flag.URL) EndpointPicker {
+func NewRandomATCEndpointPicker(atcURLFlags flag.URLs) EndpointPicker {
 	atcEndpoints := []*rata.RequestGenerator{}
 	for _, f := range atcURLFlags {
 		atcEndpoints = append(atcEndpoints, rata.NewRequestGenerator(f.String(), atc.Routes))

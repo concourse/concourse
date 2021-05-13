@@ -39,7 +39,7 @@ func (s *WorkerRunnerSuite) BeforeTest(suiteName, testName string) {
 	signingKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	s.NoError(err)
 
-	s.wrkcmd.TSA.WorkerPrivateKey = &flag.PrivateKey{PrivateKey: signingKey}
+	s.wrkcmd.TSA.WorkerPrivateKey = flag.PrivateKey{PrivateKey: signingKey}
 }
 
 func (s *WorkerRunnerSuite) TestWorkDirIsCreated() {

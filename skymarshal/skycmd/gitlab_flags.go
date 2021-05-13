@@ -8,18 +8,17 @@ import (
 	multierror "github.com/hashicorp/go-multierror"
 )
 
-func init() {
-	RegisterConnector(&Connector{
-		id:         "gitlab",
-		config:     &GitlabFlags{},
-		teamConfig: &GitlabTeamFlags{},
-	})
-}
+const GitlabConnectorID = "gitlab"
 
 type GitlabFlags struct {
-	ClientID     string `long:"client-id" description:"(Required) Client id"`
-	ClientSecret string `long:"client-secret" description:"(Required) Client secret"`
-	Host         string `long:"host" description:"Hostname of Gitlab Enterprise deployment (Include scheme, No trailing slash)"`
+	Enabled      bool   `yaml:"enabled,omitempty"`
+	ClientID     string `yaml:"client_id,omitempty"`
+	ClientSecret string `yaml:"client_secret,omitempty"`
+	Host         string `yaml:"host,omitempty"`
+}
+
+func (flag *GitlabFlags) ID() string {
+	return GitlabConnectorID
 }
 
 func (flag *GitlabFlags) Name() string {
@@ -54,8 +53,12 @@ func (flag *GitlabFlags) Serialize(redirectURI string) ([]byte, error) {
 }
 
 type GitlabTeamFlags struct {
-	Users  []string `long:"user" description:"A whitelisted GitLab user" value-name:"USERNAME"`
-	Groups []string `long:"group" description:"A whitelisted GitLab group" value-name:"GROUP_NAME"`
+	Users  []string `yaml:"users,omitempty" env:"CONCOURSE_MAIN_TEAM_GITLAB_USERS,CONCOURSE_MAIN_TEAM_GITLAB_USER" long:"user" description:"A whitelisted GitLab user" value-name:"USERNAME"`
+	Groups []string `yaml:"groups,omitempty" env:"CONCOURSE_MAIN_TEAM_GITLAB_GROUPS,CONCOURSE_MAIN_TEAM_GITLAB_GROUP" long:"group" description:"A whitelisted GitLab group" value-name:"GROUP_NAME"`
+}
+
+func (flag *GitlabTeamFlags) ID() string {
+	return GitlabConnectorID
 }
 
 func (flag *GitlabTeamFlags) GetUsers() []string {

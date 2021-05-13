@@ -1,8 +1,10 @@
 package tracing
 
 import (
+	"errors"
 	"fmt"
 
+	"github.com/concourse/flag"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/trace/jaeger"
 	"go.opentelemetry.io/otel/sdk/resource"
@@ -12,19 +14,27 @@ import (
 
 // Jaeger service to export traces to
 type Jaeger struct {
-	Endpoint string            `long:"jaeger-endpoint" description:"jaeger http-based thrift collector"`
-	Tags     map[string]string `long:"jaeger-tags"     description:"tags to add to the components"`
-	Service  string            `long:"jaeger-service"  description:"jaeger process service name" default:"web"`
+	Endpoint string              `yaml:"endpoint,omitempty"`
+	Tags     flag.StringToString `yaml:"tags,omitempty"`
+	Service  string              `yaml:"service,omitempty"`
 }
 
-// IsConfigured identifies if an endpoint has been set
-func (j Jaeger) IsConfigured() bool {
-	return j.Endpoint != ""
+func (j Jaeger) ID() string {
+	return "jaeger"
+}
+
+// Validate identifies if an endpoint has been set
+func (j Jaeger) Validate() error {
+	if j.Endpoint == "" {
+		return errors.New("endpoint is missing")
+	}
+
+	return nil
 }
 
 // Exporter returns a SpanExporter to sync spans to Jaeger
 func (j Jaeger) Exporter() (sdktrace.SpanExporter, []sdktrace.TracerProviderOption, error) {
-	attributes := append([]attribute.KeyValue{semconv.ServiceNameKey.String(j.Service)}, keyValueSlice(j.Tags)...)
+	attributes := append([]attribute.KeyValue{semconv.ServiceNameKey.String(j.Service)}, keyValueSlice(map[string]string(j.Tags))...)
 	exporter, err := jaeger.NewRawExporter(
 		jaeger.WithCollectorEndpoint(jaeger.WithEndpoint(j.Endpoint)),
 	)

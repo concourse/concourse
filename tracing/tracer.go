@@ -2,7 +2,9 @@ package tracing
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/concourse/flag"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -19,15 +21,71 @@ import (
 // tracing hasn't been configured.
 //
 //
+type Service interface {
+	ID() string
+	Validate() error
+	Exporter() (sdktrace.SpanExporter, []sdktrace.TracerProviderOption, error)
+}
+
 var Configured bool
 
 type Config struct {
-	ServiceName string            `long:"service-name"  description:"service name to attach to traces as metadata" default:"concourse-web"`
-	Attributes  map[string]string `long:"attribute"  description:"attributes to attach to traces as metadata"`
-	Honeycomb   Honeycomb
-	Jaeger      Jaeger
-	Stackdriver Stackdriver
-	OTLP        OTLP
+	ServiceName string              `yaml:"service_name,omitempty"`
+	Attributes  flag.StringToString `yaml:"attribute,omitempty"`
+
+	Provider  string          `yaml:"provider,omitempty" validate:"tracing_provider"`
+	Providers ProvidersConfig `yaml:",inline"`
+}
+
+type ProvidersConfig struct {
+	Honeycomb   Honeycomb   `yaml:"honeycomb,omitempty"`
+	Jaeger      Jaeger      `yaml:"jaeger,omitempty"`
+	Stackdriver Stackdriver `yaml:"stackdriver,omitempty"`
+	OTLP        OTLP        `yaml:"otlp,omitempty"`
+}
+
+func (p ProvidersConfig) All() map[string]Service {
+	return map[string]Service{
+		p.Honeycomb.ID():   &p.Honeycomb,
+		p.Jaeger.ID():      &p.Jaeger,
+		p.OTLP.ID():        &p.OTLP,
+		p.Stackdriver.ID(): &p.Stackdriver,
+	}
+}
+
+type ValidationTracingProviderError struct{}
+
+func (e ValidationTracingProviderError) Error() string {
+	var providers []string
+	providersConfig := ProvidersConfig{}
+	for name := range providersConfig.All() {
+		providers = append(providers, name)
+	}
+	return fmt.Sprintf("Not a valid tracing provider. Valid options include %v.", providers)
+}
+
+func (c Config) Prepare() error {
+	var configuredService Service
+	for name, service := range c.Providers.All() {
+		if c.Provider == name {
+			configuredService = service
+		}
+	}
+
+	if configuredService != nil {
+		err := configuredService.Validate()
+		if err != nil {
+			return err
+		}
+
+		var provider trace.TracerProvider
+		provider, err = c.TraceProvider(configuredService.Exporter)
+		if provider != nil {
+			ConfigureTraceProvider(provider)
+		}
+	}
+
+	return nil
 }
 
 func (c Config) resource() *resource.Resource {
@@ -62,31 +120,6 @@ func (c Config) TraceProvider(exporter func() (sdktrace.SpanExporter, []sdktrace
 	}
 
 	return provider, nil
-}
-
-func (c Config) Prepare() error {
-	var provider trace.TracerProvider
-	var err error
-
-	switch {
-	case c.Honeycomb.IsConfigured():
-		provider, err = c.TraceProvider(c.Honeycomb.Exporter)
-	case c.Jaeger.IsConfigured():
-		provider, err = c.TraceProvider(c.Jaeger.Exporter)
-	case c.OTLP.IsConfigured():
-		provider, err = c.TraceProvider(c.OTLP.Exporter)
-	case c.Stackdriver.IsConfigured():
-		provider, err = c.TraceProvider(c.Stackdriver.Exporter)
-	}
-	if err != nil {
-		return err
-	}
-
-	if provider != nil {
-		ConfigureTraceProvider(provider)
-	}
-
-	return nil
 }
 
 // StartSpan creates a span, giving back a context that has itself added as the

@@ -3,8 +3,6 @@ package infoserver
 import (
 	"encoding/json"
 	"net/http"
-
-	"github.com/concourse/concourse/atc/creds"
 )
 
 // Creds returns information on the credential manager attached to this instance of concourse.
@@ -15,15 +13,12 @@ func (s *Server) Creds(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 
-	configuredManagers := make(creds.Managers)
-
-	for name, manager := range s.credsManagers {
-		if manager.IsConfigured() {
-			configuredManagers[name] = manager
-		}
+	var credManager map[string]interface{}
+	if s.credsManager != nil {
+		credManager = map[string]interface{}{s.credsManager.Name(): s.credsManager.Config()}
 	}
 
-	err := json.NewEncoder(w).Encode(configuredManagers)
+	err := json.NewEncoder(w).Encode(credManager)
 	if err != nil {
 		logger.Error("failed-to-encode-info", err)
 		w.WriteHeader(http.StatusInternalServerError)

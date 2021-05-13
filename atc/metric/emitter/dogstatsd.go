@@ -9,6 +9,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/DataDog/datadog-go/statsd"
 	"github.com/concourse/concourse/atc/metric"
+	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 )
 
@@ -17,18 +18,26 @@ type DogstatsdEmitter struct {
 }
 
 type DogstatsDBConfig struct {
-	Host   string `long:"datadog-agent-host" description:"Datadog agent host to expose dogstatsd metrics"`
-	Port   string `long:"datadog-agent-port" description:"Datadog agent port to expose dogstatsd metrics"`
-	Prefix string `long:"datadog-prefix" description:"Prefix for all metrics to easily find them in Datadog"`
+	Host   string `yaml:"agent_host,omitempty"`
+	Port   string `yaml:"agent_port,omitempty"`
+	Prefix string `yaml:"prefix,omitempty"`
 }
 
-func init() {
-	metric.Metrics.RegisterEmitter(&DogstatsDBConfig{})
-}
-
+func (config *DogstatsDBConfig) ID() string          { return "datadog" }
 func (config *DogstatsDBConfig) Description() string { return "Datadog" }
+func (config *DogstatsDBConfig) Validate() error {
+	var errs *multierror.Error
 
-func (config *DogstatsDBConfig) IsConfigured() bool { return config.Host != "" && config.Port != "" }
+	if config.Host == "" {
+		errs = multierror.Append(errs, errors.New("host is missing"))
+	}
+
+	if config.Port == "" {
+		errs = multierror.Append(errs, errors.New("port is missing"))
+	}
+
+	return errs.ErrorOrNil()
+}
 
 func (config *DogstatsDBConfig) NewEmitter() (metric.Emitter, error) {
 

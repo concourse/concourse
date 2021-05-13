@@ -13,26 +13,36 @@ import (
 	"github.com/concourse/concourse/atc/creds"
 )
 
+const managerName = "credhub"
+
 type CredHubManager struct {
-	URL string `long:"url" description:"CredHub server address used to access secrets."`
+	URL string `yaml:"url,omitempty"`
 
-	PathPrefix string `long:"path-prefix" default:"/concourse" description:"Path under which to namespace credential lookup."`
+	PathPrefix string `yaml:"path_prefix,omitempty"`
 
-	TLS    TLS
-	UAA    UAA
-	Client *LazyCredhub
+	TLS    TLS          `yaml:",inline"`
+	UAA    UAA          `yaml:",inline"`
+	Client *LazyCredhub `yaml:",omitempty"`
 }
 
 type TLS struct {
-	CACerts    []string `long:"ca-cert"              description:"Paths to PEM-encoded CA cert files to use to verify the CredHub server SSL cert."`
-	ClientCert string   `long:"client-cert"          description:"Path to the client certificate for mutual TLS authorization."`
-	ClientKey  string   `long:"client-key"           description:"Path to the client private key for mutual TLS authorization."`
-	Insecure   bool     `long:"insecure-skip-verify" description:"Enable insecure SSL verification."`
+	CACerts    []string `yaml:"ca_cert,omitempty"`
+	ClientCert string   `yaml:"client_cert,omitempty"`
+	ClientKey  string   `yaml:"client_key,omitempty"`
+	Insecure   bool     `yaml:"insecure_skip_verify,omitempty"`
 }
 
 type UAA struct {
-	ClientId     string `long:"client-id"     description:"Client ID for CredHub authorization."`
-	ClientSecret string `long:"client-secret" description:"Client secret for CredHub authorization."`
+	ClientId     string `yaml:"client_id,omitempty"`
+	ClientSecret string `yaml:"client_secret,omitempty"`
+}
+
+func (manager *CredHubManager) Name() string {
+	return managerName
+}
+
+func (manager *CredHubManager) Config() interface{} {
+	return manager
 }
 
 func (manager *CredHubManager) MarshalJSON() ([]byte, error) {
@@ -86,15 +96,6 @@ func (manager *CredHubManager) Init(log lager.Logger) error {
 	manager.Client = newLazyCredhub(manager.URL, options)
 
 	return nil
-}
-
-func (manager CredHubManager) IsConfigured() bool {
-	return manager.URL != "" ||
-		manager.UAA.ClientId != "" ||
-		manager.UAA.ClientSecret != "" ||
-		len(manager.TLS.CACerts) != 0 ||
-		manager.TLS.ClientCert != "" ||
-		manager.TLS.ClientKey != ""
 }
 
 func (manager CredHubManager) Validate() error {

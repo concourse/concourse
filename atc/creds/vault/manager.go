@@ -9,23 +9,26 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
+	"gopkg.in/yaml.v2"
 
 	"github.com/concourse/concourse/atc/creds"
-	"github.com/mitchellh/mapstructure"
+	"github.com/concourse/flag"
 )
 
+const managerName = "vault"
+
 type VaultManager struct {
-	URL string `mapstructure:"url" long:"url" description:"Vault server address used to access secrets."`
+	URL string `yaml:"url,omitempty"`
 
-	PathPrefix      string        `mapstructure:"path_prefix" long:"path-prefix" default:"/concourse" description:"Path under which to namespace credential lookup."`
-	LookupTemplates []string      `mapstructure:"lookup_templates" long:"lookup-templates" default:"/{{.Team}}/{{.Pipeline}}/{{.Secret}}" default:"/{{.Team}}/{{.Secret}}" description:"Path templates for credential lookup"`
-	SharedPath      string        `mapstructure:"shared_path" long:"shared-path" description:"Path under which to lookup shared credentials."`
-	Namespace       string        `mapstructure:"namespace" long:"namespace"   description:"Vault namespace to use for authentication and secret lookup."`
-	LoginTimeout    time.Duration `mapstructure:"login_timeout" long:"login-timeout" default:"60s" description:"Timeout value for Vault login."`
-	QueryTimeout    time.Duration `mapstructure:"query_timeout" long:"query-timeout" default:"60s" description:"Timeout value for Vault query."`
+	PathPrefix      string        `yaml:"path_prefix,omitempty"`
+	LookupTemplates []string      `yaml:"lookup_templates,omitempty"`
+	SharedPath      string        `yaml:"shared_path,omitempty"`
+	Namespace       string        `yaml:"namespace,omitempty"`
+	LoginTimeout    time.Duration `yaml:"login_timeout,omitempty"`
+	QueryTimeout    time.Duration `yaml:"query_timeout,omitempty"`
 
-	TLS  TLSConfig  `mapstructure:",squash"`
-	Auth AuthConfig `mapstructure:",squash"`
+	TLS  TLSConfig
+	Auth AuthConfig
 
 	Client        *APIClient
 	ReAuther      *ReAuther
@@ -33,29 +36,37 @@ type VaultManager struct {
 }
 
 type TLSConfig struct {
-	CACert     string `mapstructure:"ca_cert"`
-	CACertFile string `long:"ca-cert"              description:"Path to a PEM-encoded CA cert file to use to verify the vault server SSL cert."`
-	CAPath     string `long:"ca-path"              description:"Path to a directory of PEM-encoded CA cert files to verify the vault server SSL cert."`
+	CACert     string `yaml:"ca_cert,omitempty"`
+	CACertFile string `yaml:"ca_cert_file,omitempty" env:"CONCOURSE_VAULT_CA_CERT_FILE,CONCOURSE_VAULT_CA_CERT"`
+	CAPath     string `yaml:"ca_path,omitempty"`
 
-	ClientCert     string `mapstructure:"client_cert"`
-	ClientCertFile string `long:"client-cert"          description:"Path to the client certificate for Vault authorization."`
+	ClientCert     string `yaml:"client_cert,omitempty"`
+	ClientCertFile string `yaml:"client_cert_file,omitempty" env:"CONCOURSE_VAULT_CLIENT_CERT_FILE,CONCOURSE_VAULT_CLIENT_CERT"`
 
-	ClientKey     string `mapstructure:"client_key"`
-	ClientKeyFile string `long:"client-key"           description:"Path to the client private key for Vault authorization."`
+	ClientKey     string `yaml:"client_key,omitempty"`
+	ClientKeyFile string `yaml:"client_key_file,omitempty" env:"CONCOURSE_VAULT_CLIENT_KEY_FILE,CONCOURSE_VAULT_CLIENT_KEY"`
 
-	ServerName string `mapstructure:"server_name" long:"server-name"          description:"If set, is used to set the SNI host when connecting via TLS."`
-	Insecure   bool   `mapstructure:"insecure_skip_verify" long:"insecure-skip-verify" description:"Enable insecure SSL verification."`
+	ServerName string `yaml:"server_name,omitempty"`
+	Insecure   bool   `yaml:"insecure_skip_verify,omitempty"`
 }
 
 type AuthConfig struct {
-	ClientToken string `mapstructure:"client_token" long:"client-token" description:"Client token for accessing secrets within the Vault server."`
+	ClientToken string `yaml:"client_token,omitempty"`
 
-	Backend       string        `mapstructure:"auth_backend" long:"auth-backend"               description:"Auth backend to use for logging in to Vault."`
-	BackendMaxTTL time.Duration `mapstructure:"auth_backend_max_ttl" long:"auth-backend-max-ttl"       description:"Time after which to force a re-login. If not set, the token will just be continuously renewed."`
-	RetryMax      time.Duration `mapstructure:"auth_retry_max" long:"retry-max"     default:"5m" description:"The maximum time between retries when logging in or re-authing a secret."`
-	RetryInitial  time.Duration `mapstructure:"auth_retry_initial" long:"retry-initial" default:"1s" description:"The initial time between retries when logging in or re-authing a secret."`
+	Backend       string        `yaml:"auth_backend,omitempty"`
+	BackendMaxTTL time.Duration `yaml:"auth_backend_max_ttl,omitempty"`
+	RetryMax      time.Duration `yaml:"auth_retry_max,omitempty"`
+	RetryInitial  time.Duration `yaml:"auth_retry_initial,omitempty"`
 
-	Params map[string]string `mapstructure:"auth_params" long:"auth-param"  description:"Paramter to pass when logging in via the backend. Can be specified multiple times." value-name:"NAME:VALUE"`
+	Params flag.StringToString `yaml:"auth_params,omitempty"`
+}
+
+func (manager *VaultManager) Name() string {
+	return managerName
+}
+
+func (manager *VaultManager) Config() interface{} {
+	return manager
 }
 
 func (manager *VaultManager) Init(log lager.Logger) error {
@@ -91,7 +102,7 @@ func (manager *VaultManager) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func (manager *VaultManager) Config(config map[string]interface{}) error {
+func (manager *VaultManager) ApplyConfig(config interface{}) error {
 	// apply defaults
 	manager.PathPrefix = "/concourse"
 	manager.Auth.RetryMax = 5 * time.Minute
@@ -99,16 +110,12 @@ func (manager *VaultManager) Config(config map[string]interface{}) error {
 	manager.LoginTimeout = 60 * time.Second
 	manager.QueryTimeout = 60 * time.Second
 
-	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-		DecodeHook:  mapstructure.StringToTimeDurationHookFunc(),
-		ErrorUnused: true,
-		Result:      &manager,
-	})
-	if err != nil {
-		return err
+	configBytes, ok := config.([]byte)
+	if !ok {
+		return fmt.Errorf("invalid config: %s", config)
 	}
 
-	err = decoder.Decode(config)
+	err := yaml.Unmarshal(configBytes, &manager)
 	if err != nil {
 		return err
 	}
@@ -116,7 +123,7 @@ func (manager *VaultManager) Config(config map[string]interface{}) error {
 	// Fill in default templates if not otherwise set (done here so
 	// that these are effective all together or not at all, rather
 	// than combining the defaults with a user's custom setting)
-	if _, setsTemplates := config["lookup_templates"]; !setsTemplates {
+	if manager.LookupTemplates == nil {
 		manager.LookupTemplates = []string{
 			"/{{.Team}}/{{.Pipeline}}/{{.Secret}}",
 			"/{{.Team}}/{{.Secret}}",
@@ -126,11 +133,11 @@ func (manager *VaultManager) Config(config map[string]interface{}) error {
 	return nil
 }
 
-func (manager VaultManager) IsConfigured() bool {
-	return manager.URL != ""
-}
-
 func (manager VaultManager) Validate() error {
+	if manager.URL == "" {
+		return errors.New("must provide vault url")
+	}
+
 	_, err := url.Parse(manager.URL)
 	if err != nil {
 		return fmt.Errorf("invalid URL: %s", err)

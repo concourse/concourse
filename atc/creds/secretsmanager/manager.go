@@ -12,17 +12,27 @@ import (
 	"github.com/concourse/concourse/atc/creds"
 )
 
+const managerName = "secretsmanager"
+
 const DefaultPipelineSecretTemplate = "/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"
 const DefaultTeamSecretTemplate = "/concourse/{{.Team}}/{{.Secret}}"
 
 type Manager struct {
-	AwsAccessKeyID         string `long:"access-key" description:"AWS Access key ID"`
-	AwsSecretAccessKey     string `long:"secret-key" description:"AWS Secret Access Key"`
-	AwsSessionToken        string `long:"session-token" description:"AWS Session Token"`
-	AwsRegion              string `long:"region" description:"AWS region to send requests to"`
-	PipelineSecretTemplate string `long:"pipeline-secret-template" description:"AWS Secrets Manager secret identifier template used for pipeline specific parameter" default:"/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"`
-	TeamSecretTemplate     string `long:"team-secret-template" description:"AWS Secrets Manager secret identifier  template used for team specific parameter" default:"/concourse/{{.Team}}/{{.Secret}}"`
+	AwsAccessKeyID         string `yaml:"access_key,omitempty"`
+	AwsSecretAccessKey     string `yaml:"secret_key,omitempty"`
+	AwsSessionToken        string `yaml:"session_token,omitempty"`
+	AwsRegion              string `yaml:"region,omitempty"`
+	PipelineSecretTemplate string `yaml:"pipeline_secret_template,omitempty"`
+	TeamSecretTemplate     string `yaml:"team_secret_template,omitempty"`
 	SecretManager          *SecretsManager
+}
+
+func (manager *Manager) Name() string {
+	return managerName
+}
+
+func (manager *Manager) Config() interface{} {
+	return manager
 }
 
 func (manager *Manager) Init(log lager.Logger) error {
@@ -76,11 +86,11 @@ func (manager *Manager) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func (manager *Manager) IsConfigured() bool {
-	return manager.AwsRegion != ""
-}
-
 func (manager *Manager) Validate() error {
+	if manager.AwsRegion == "" {
+		return errors.New("must provide aws region")
+	}
+
 	if _, err := creds.BuildSecretTemplate("pipeline-secret-template", manager.PipelineSecretTemplate); err != nil {
 		return err
 	}

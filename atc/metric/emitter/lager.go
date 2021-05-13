@@ -5,20 +5,24 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/metric"
+	"github.com/pkg/errors"
 )
 
 type LagerEmitter struct{}
 
 type LagerConfig struct {
-	Enabled bool `long:"emit-to-logs" description:"Emit metrics to logs."`
+	Enabled bool `yaml:"enabled,omitempty" env:"CONCOURSE_LAGER_ENABLE,CONCOURSE_EMIT_TO_LOGS"`
 }
 
-func init() {
-	metric.Metrics.RegisterEmitter(&LagerConfig{})
-}
-
+func (config *LagerConfig) ID() string          { return "lager" }
 func (config *LagerConfig) Description() string { return "Lager" }
-func (config *LagerConfig) IsConfigured() bool  { return config.Enabled }
+func (config *LagerConfig) Validate() error {
+	if !config.Enabled {
+		return errors.New("enabled needs to be true")
+	}
+
+	return nil
+}
 
 func (config *LagerConfig) NewEmitter() (metric.Emitter, error) {
 	return &LagerEmitter{}, nil

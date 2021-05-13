@@ -2,11 +2,14 @@ package creds
 
 import (
 	"code.cloudfoundry.org/lager"
-	"github.com/jessevdk/go-flags"
 )
 
+//go:generate counterfeiter . Manager
+
 type Manager interface {
-	IsConfigured() bool
+	Name() string
+	Config() interface{}
+
 	Validate() error
 	Health() (*HealthResponse, error)
 	Init(lager.Logger) error
@@ -16,15 +19,14 @@ type Manager interface {
 }
 
 type ManagerFactory interface {
-	AddConfig(*flags.Group) Manager
 	NewInstance(interface{}) (Manager, error)
 }
 
 type Managers map[string]Manager
 
 type CredentialManagementConfig struct {
-	RetryConfig SecretRetryConfig
-	CacheConfig SecretCacheConfig
+	RetryConfig SecretRetryConfig `yaml:"secret_retry,omitempty"`
+	CacheConfig SecretCacheConfig `yaml:"secret_cache,omitempty"`
 }
 
 // NewSecrets creates a Secrets object from secretsFactory based on configs.

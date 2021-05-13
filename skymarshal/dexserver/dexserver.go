@@ -28,6 +28,7 @@ type DexConfig struct {
 	PasswordConnector string
 	RedirectURL       string
 	Storage           s.Storage
+	Connectors        skycmd.ConnectorsConfig
 }
 
 //go:embed web
@@ -44,7 +45,6 @@ func NewDexServer(config *DexConfig) (*server.Server, error) {
 }
 
 func NewDexServerConfig(config *DexConfig) (server.Config, error) {
-
 	var clients []storage.Client
 	var connectors []storage.Connector
 	var passwords []storage.Password
@@ -71,15 +71,18 @@ func NewDexServerConfig(config *DexConfig) (server.Config, error) {
 
 	redirectURI := strings.TrimRight(config.IssuerURL, "/") + "/callback"
 
-	for _, connector := range skycmd.GetConnectors() {
-		if c, err := connector.Serialize(redirectURI); err == nil {
-			connectors = append(connectors, storage.Connector{
-				ID:     connector.ID(),
-				Type:   connector.ID(),
-				Name:   connector.Name(),
-				Config: c,
-			})
+	for _, connector := range config.Connectors.ConfiguredConnectors() {
+		c, err := connector.Serialize(redirectURI)
+		if err != nil {
+			return server.Config{}, err
 		}
+
+		connectors = append(connectors, storage.Connector{
+			ID:     connector.ID(),
+			Type:   connector.ID(),
+			Name:   connector.Name(),
+			Config: c,
+		})
 	}
 
 	for clientId, clientSecret := range newLocalClients(config) {

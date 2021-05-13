@@ -18,15 +18,15 @@ type FakeEmitterFactory struct {
 	descriptionReturnsOnCall map[int]struct {
 		result1 string
 	}
-	IsConfiguredStub        func() bool
-	isConfiguredMutex       sync.RWMutex
-	isConfiguredArgsForCall []struct {
+	IDStub        func() string
+	iDMutex       sync.RWMutex
+	iDArgsForCall []struct {
 	}
-	isConfiguredReturns struct {
-		result1 bool
+	iDReturns struct {
+		result1 string
 	}
-	isConfiguredReturnsOnCall map[int]struct {
-		result1 bool
+	iDReturnsOnCall map[int]struct {
+		result1 string
 	}
 	NewEmitterStub        func() (metric.Emitter, error)
 	newEmitterMutex       sync.RWMutex
@@ -39,6 +39,16 @@ type FakeEmitterFactory struct {
 	newEmitterReturnsOnCall map[int]struct {
 		result1 metric.Emitter
 		result2 error
+	}
+	ValidateStub        func() error
+	validateMutex       sync.RWMutex
+	validateArgsForCall []struct {
+	}
+	validateReturns struct {
+		result1 error
+	}
+	validateReturnsOnCall map[int]struct {
+		result1 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -97,15 +107,15 @@ func (fake *FakeEmitterFactory) DescriptionReturnsOnCall(i int, result1 string) 
 	}{result1}
 }
 
-func (fake *FakeEmitterFactory) IsConfigured() bool {
-	fake.isConfiguredMutex.Lock()
-	ret, specificReturn := fake.isConfiguredReturnsOnCall[len(fake.isConfiguredArgsForCall)]
-	fake.isConfiguredArgsForCall = append(fake.isConfiguredArgsForCall, struct {
+func (fake *FakeEmitterFactory) ID() string {
+	fake.iDMutex.Lock()
+	ret, specificReturn := fake.iDReturnsOnCall[len(fake.iDArgsForCall)]
+	fake.iDArgsForCall = append(fake.iDArgsForCall, struct {
 	}{})
-	stub := fake.IsConfiguredStub
-	fakeReturns := fake.isConfiguredReturns
-	fake.recordInvocation("IsConfigured", []interface{}{})
-	fake.isConfiguredMutex.Unlock()
+	stub := fake.IDStub
+	fakeReturns := fake.iDReturns
+	fake.recordInvocation("ID", []interface{}{})
+	fake.iDMutex.Unlock()
 	if stub != nil {
 		return stub()
 	}
@@ -115,38 +125,38 @@ func (fake *FakeEmitterFactory) IsConfigured() bool {
 	return fakeReturns.result1
 }
 
-func (fake *FakeEmitterFactory) IsConfiguredCallCount() int {
-	fake.isConfiguredMutex.RLock()
-	defer fake.isConfiguredMutex.RUnlock()
-	return len(fake.isConfiguredArgsForCall)
+func (fake *FakeEmitterFactory) IDCallCount() int {
+	fake.iDMutex.RLock()
+	defer fake.iDMutex.RUnlock()
+	return len(fake.iDArgsForCall)
 }
 
-func (fake *FakeEmitterFactory) IsConfiguredCalls(stub func() bool) {
-	fake.isConfiguredMutex.Lock()
-	defer fake.isConfiguredMutex.Unlock()
-	fake.IsConfiguredStub = stub
+func (fake *FakeEmitterFactory) IDCalls(stub func() string) {
+	fake.iDMutex.Lock()
+	defer fake.iDMutex.Unlock()
+	fake.IDStub = stub
 }
 
-func (fake *FakeEmitterFactory) IsConfiguredReturns(result1 bool) {
-	fake.isConfiguredMutex.Lock()
-	defer fake.isConfiguredMutex.Unlock()
-	fake.IsConfiguredStub = nil
-	fake.isConfiguredReturns = struct {
-		result1 bool
+func (fake *FakeEmitterFactory) IDReturns(result1 string) {
+	fake.iDMutex.Lock()
+	defer fake.iDMutex.Unlock()
+	fake.IDStub = nil
+	fake.iDReturns = struct {
+		result1 string
 	}{result1}
 }
 
-func (fake *FakeEmitterFactory) IsConfiguredReturnsOnCall(i int, result1 bool) {
-	fake.isConfiguredMutex.Lock()
-	defer fake.isConfiguredMutex.Unlock()
-	fake.IsConfiguredStub = nil
-	if fake.isConfiguredReturnsOnCall == nil {
-		fake.isConfiguredReturnsOnCall = make(map[int]struct {
-			result1 bool
+func (fake *FakeEmitterFactory) IDReturnsOnCall(i int, result1 string) {
+	fake.iDMutex.Lock()
+	defer fake.iDMutex.Unlock()
+	fake.IDStub = nil
+	if fake.iDReturnsOnCall == nil {
+		fake.iDReturnsOnCall = make(map[int]struct {
+			result1 string
 		})
 	}
-	fake.isConfiguredReturnsOnCall[i] = struct {
-		result1 bool
+	fake.iDReturnsOnCall[i] = struct {
+		result1 string
 	}{result1}
 }
 
@@ -206,15 +216,70 @@ func (fake *FakeEmitterFactory) NewEmitterReturnsOnCall(i int, result1 metric.Em
 	}{result1, result2}
 }
 
+func (fake *FakeEmitterFactory) Validate() error {
+	fake.validateMutex.Lock()
+	ret, specificReturn := fake.validateReturnsOnCall[len(fake.validateArgsForCall)]
+	fake.validateArgsForCall = append(fake.validateArgsForCall, struct {
+	}{})
+	stub := fake.ValidateStub
+	fakeReturns := fake.validateReturns
+	fake.recordInvocation("Validate", []interface{}{})
+	fake.validateMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeEmitterFactory) ValidateCallCount() int {
+	fake.validateMutex.RLock()
+	defer fake.validateMutex.RUnlock()
+	return len(fake.validateArgsForCall)
+}
+
+func (fake *FakeEmitterFactory) ValidateCalls(stub func() error) {
+	fake.validateMutex.Lock()
+	defer fake.validateMutex.Unlock()
+	fake.ValidateStub = stub
+}
+
+func (fake *FakeEmitterFactory) ValidateReturns(result1 error) {
+	fake.validateMutex.Lock()
+	defer fake.validateMutex.Unlock()
+	fake.ValidateStub = nil
+	fake.validateReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeEmitterFactory) ValidateReturnsOnCall(i int, result1 error) {
+	fake.validateMutex.Lock()
+	defer fake.validateMutex.Unlock()
+	fake.ValidateStub = nil
+	if fake.validateReturnsOnCall == nil {
+		fake.validateReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.validateReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeEmitterFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.descriptionMutex.RLock()
 	defer fake.descriptionMutex.RUnlock()
-	fake.isConfiguredMutex.RLock()
-	defer fake.isConfiguredMutex.RUnlock()
+	fake.iDMutex.RLock()
+	defer fake.iDMutex.RUnlock()
 	fake.newEmitterMutex.RLock()
 	defer fake.newEmitterMutex.RUnlock()
+	fake.validateMutex.RLock()
+	defer fake.validateMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

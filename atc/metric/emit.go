@@ -1,14 +1,11 @@
 package metric
 
 import (
-	"fmt"
-	"strings"
 	"time"
 
 	"code.cloudfoundry.org/lager"
 
 	"github.com/concourse/concourse/atc/db"
-	flags "github.com/jessevdk/go-flags"
 )
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
@@ -28,8 +25,9 @@ type Emitter interface {
 
 //counterfeiter:generate . EmitterFactory
 type EmitterFactory interface {
+	ID() string
 	Description() string
-	IsConfigured() bool
+	Validate() error
 	NewEmitter() (Emitter, error)
 }
 
@@ -97,54 +95,21 @@ func NewMonitor() *Monitor {
 	}
 }
 
-func (m *Monitor) RegisterEmitter(factory EmitterFactory) {
-	m.emitterFactories = append(m.emitterFactories, factory)
-}
-
-func (m *Monitor) WireEmitters(group *flags.Group) {
-	for _, factory := range m.emitterFactories {
-		_, err := group.AddGroup(fmt.Sprintf("Metric Emitter (%s)", factory.Description()), "", factory)
-		if err != nil {
-			panic(err)
-		}
-	}
-}
-
 type eventEmission struct {
 	event  Event
 	logger lager.Logger
 }
 
-func (m *Monitor) Initialize(logger lager.Logger, host string, attributes map[string]string, bufferSize uint32) error {
+func (m *Monitor) Initialize(logger lager.Logger, factory EmitterFactory, host string, attributes map[string]string, bufferSize uint32) error {
 	logger.Debug("metric-initialize", lager.Data{
 		"host":        host,
 		"attributes":  attributes,
 		"buffer-size": bufferSize,
 	})
 
-	var (
-		emitterDescriptions []string
-		err                 error
-	)
-
-	for _, factory := range m.emitterFactories {
-		if factory.IsConfigured() {
-			emitterDescriptions = append(emitterDescriptions, factory.Description())
-		}
-	}
-	if len(emitterDescriptions) > 1 {
-		return fmt.Errorf("multiple emitters configured: %s", strings.Join(emitterDescriptions, ", "))
-	}
-
-	var emitter Emitter
-
-	for _, factory := range m.emitterFactories {
-		if factory.IsConfigured() {
-			emitter, err = factory.NewEmitter()
-			if err != nil {
-				return err
-			}
-		}
+	emitter, err := factory.NewEmitter()
+	if err != nil {
+		return err
 	}
 
 	if emitter == nil {

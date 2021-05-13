@@ -12,10 +12,12 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
+const managerName = "kubernetes"
+
 type KubernetesManager struct {
-	InClusterConfig bool   `long:"in-cluster" description:"Enables the in-cluster client."`
-	ConfigPath      string `long:"config-path" description:"Path to Kubernetes config when running ATC outside Kubernetes."`
-	NamespacePrefix string `long:"namespace-prefix" default:"concourse-" description:"Prefix to use for Kubernetes namespaces under which secrets will be looked up."`
+	InClusterConfig bool   `yaml:"in_cluster,omitempty"`
+	ConfigPath      string `yaml:"config_path,omitempty"`
+	NamespacePrefix string `yaml:"namespace_prefix,omitempty"`
 }
 
 func (manager *KubernetesManager) MarshalJSON() ([]byte, error) {
@@ -27,12 +29,16 @@ func (manager *KubernetesManager) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func (manager KubernetesManager) Init(log lager.Logger) error {
-	return nil
+func (manager *KubernetesManager) Name() string {
+	return managerName
 }
 
-func (manager KubernetesManager) IsConfigured() bool {
-	return manager.InClusterConfig || manager.ConfigPath != ""
+func (manager *KubernetesManager) Config() interface{} {
+	return manager
+}
+
+func (manager KubernetesManager) Init(log lager.Logger) error {
+	return nil
 }
 
 func (manager KubernetesManager) buildConfig() (*rest.Config, error) {
@@ -48,6 +54,10 @@ func (manager KubernetesManager) Health() (*creds.HealthResponse, error) {
 }
 
 func (manager KubernetesManager) Validate() error {
+	if !manager.InClusterConfig && manager.ConfigPath == "" {
+		return errors.New("Either in_cluster or config_path needs to be configured")
+	}
+
 	if manager.InClusterConfig && manager.ConfigPath != "" {
 		return errors.New("either in-cluster or config-path can be used, not both")
 	}

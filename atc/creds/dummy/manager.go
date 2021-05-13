@@ -8,8 +8,18 @@ import (
 	"github.com/concourse/concourse/atc/creds"
 )
 
+const managerName = "dummy"
+
 type Manager struct {
-	Vars []VarFlag `long:"var" description:"A YAML value to expose via credential management. Can be prefixed with a team and/or pipeline to limit scope." value-name:"[TEAM/[PIPELINE/]]VAR=VALUE"`
+	Vars VarFlags `yaml:"var,omitempty"`
+}
+
+func (manager *Manager) Name() string {
+	return managerName
+}
+
+func (manager *Manager) Config() interface{} {
+	return manager
 }
 
 func (manager *Manager) Init(log lager.Logger) error {
@@ -25,10 +35,6 @@ func (manager *Manager) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&map[string]interface{}{
 		"health": health,
 	})
-}
-
-func (manager Manager) IsConfigured() bool {
-	return len(manager.Vars) > 0
 }
 
 func (manager Manager) Validate() error {

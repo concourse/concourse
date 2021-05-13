@@ -1,59 +1,138 @@
 package skycmd
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
-	"reflect"
 	"strings"
 	"time"
 
-	flags "github.com/jessevdk/go-flags"
-	"github.com/mitchellh/mapstructure"
 	"sigs.k8s.io/yaml"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/flag"
 )
 
-var connectors []*Connector
+type ValidationConnectorsError struct{}
 
-func RegisterConnector(connector *Connector) {
-	connectors = append(connectors, connector)
-}
-
-func GetConnectors() []*Connector {
-	return connectors
-}
-
-func WireConnectors(group *flags.Group) {
-	for _, c := range connectors {
-		description := fmt.Sprintf("%s (%s)", group.ShortDescription, c.Name())
-		connGroup, _ := group.AddGroup(description, description, c.config)
-		connGroup.Namespace = c.ID()
+func (e ValidationConnectorsError) Error() string {
+	var connectorIDs []string
+	connectors := TeamConnectorsConfig{}
+	for _, c := range connectors.AllConnectors() {
+		connectorIDs = append(connectorIDs, c.ID())
 	}
-}
-
-func WireTeamConnectors(group *flags.Group) {
-	for _, c := range connectors {
-		description := fmt.Sprintf("%s (%s)", group.ShortDescription, c.Name())
-		connTeamGroup, _ := group.AddGroup(description, description, c.teamConfig)
-		connTeamGroup.Namespace = c.ID()
-	}
+	return fmt.Sprintf("Not a valid auth connector. Valid options include %v.", connectorIDs)
 }
 
 type AuthFlags struct {
-	SecureCookies     bool              `long:"cookie-secure" description:"Force sending secure flag on http cookies"`
-	Expiration        time.Duration     `long:"auth-duration" default:"24h" description:"Length of time for which tokens are valid. Afterwards, users will have to log back in."`
-	SigningKey        *flag.PrivateKey  `long:"session-signing-key" required:"true" description:"File containing an RSA private key, used to sign auth tokens."`
-	PasswordConnector string            `long:"password-connector" default:"local" choice:"local" choice:"ldap" description:"Connector to use when authenticating via 'fly login -u ... -p ...'"`
-	LocalUsers        map[string]string `long:"add-local-user" description:"List of username:password combinations for all your local users. The password can be bcrypted - if so, it must have a minimum cost of 10." value-name:"USERNAME:PASSWORD"`
-	Clients           map[string]string `long:"add-client" description:"List of client_id:client_secret combinations" value-name:"CLIENT_ID:CLIENT_SECRET"`
+	SecureCookies     bool                `yaml:"cookie_secure,omitempty"`
+	Expiration        time.Duration       `yaml:"auth_duration,omitempty"`
+	SigningKey        *flag.PrivateKey    `yaml:"session_signing_key,omitempty"`
+	LocalUsers        flag.StringToString `yaml:"add_local_user,omitempty"`
+	Clients           flag.StringToString `yaml:"add_client,omitempty"`
+	PasswordConnector string              `yaml:"password_connector,omitempty" validate:"oneof=local ldap"`
+
+	Connectors ConnectorsConfig `yaml:"connectors,omitempty" ignore_env:"true"`
 }
 
+// XXX: IMPORTANT! Once fly has been converted to using cobra, all the go-flags
+// tags can be removed from this AuthTeamFlags struct and any substructs of all
+// the team connectors
 type AuthTeamFlags struct {
-	LocalUsers []string  `long:"local-user" description:"A whitelisted local concourse user. These are the users you've added at web startup with the --add-local-user flag." value-name:"USERNAME"`
-	Config     flag.File `short:"c" long:"config" description:"Configuration file for specifying team params"`
+	LocalUsers []string  `yaml:"local_user,omitempty" long:"local-user" description:"A whitelisted local concourse user. These are the users you've added at web startup with the --add-local-user flag." value-name:"USERNAME"`
+	Config     flag.File `yaml:"config,omitempty" short:"c" long:"config" description:"Configuration file for specifying team params"`
+
+	TeamConnectors TeamConnectorsConfig `yaml:"team_connectors,omitempty" ignore_env:"true"`
+}
+
+type ConnectorsConfig struct {
+	BitbucketCloud BitbucketCloudFlags `yaml:"bitbucket_cloud,omitempty"`
+	CF             CFFlags             `yaml:"cf,omitempty"`
+	Github         GithubFlags         `yaml:"github,omitempty"`
+	Gitlab         GitlabFlags         `yaml:"gitlab,omitempty"`
+	LDAP           LDAPFlags           `yaml:"ldap,omitempty"`
+	Microsoft      MicrosoftFlags      `yaml:"microsoft,omitempty"`
+	OAuth          OAuthFlags          `yaml:"oauth,omitempty"`
+	OIDC           OIDCFlags           `yaml:"oidc,omitempty"`
+	SAML           SAMLFlags           `yaml:"saml,omitempty"`
+}
+
+func (c ConnectorsConfig) ConfiguredConnectors() []Config {
+	var configuredConnectors []Config
+	if c.BitbucketCloud.Enabled {
+		configuredConnectors = append(configuredConnectors, &c.BitbucketCloud)
+	}
+
+	if c.CF.Enabled {
+		configuredConnectors = append(configuredConnectors, &c.CF)
+	}
+
+	if c.Github.Enabled {
+		configuredConnectors = append(configuredConnectors, &c.Github)
+	}
+
+	if c.Gitlab.Enabled {
+		configuredConnectors = append(configuredConnectors, &c.Gitlab)
+	}
+
+	if c.LDAP.Enabled {
+		configuredConnectors = append(configuredConnectors, &c.LDAP)
+	}
+
+	if c.Microsoft.Enabled {
+		configuredConnectors = append(configuredConnectors, &c.Microsoft)
+	}
+
+	if c.OAuth.Enabled {
+		configuredConnectors = append(configuredConnectors, &c.OAuth)
+	}
+
+	if c.OIDC.Enabled {
+		configuredConnectors = append(configuredConnectors, &c.OIDC)
+	}
+
+	if c.SAML.Enabled {
+		configuredConnectors = append(configuredConnectors, &c.SAML)
+	}
+
+	return configuredConnectors
+}
+
+type TeamConnectorsConfig struct {
+	BitbucketCloud BitbucketCloudTeamFlags `yaml:"bitbucket_cloud,omitempty" group:"Authentication (Bitbucket Cloud)" namespace:"bitbucket-cloud"`
+	CF             CFTeamFlags             `yaml:"cf,omitempty" group:"Authentication (CloudFoundry)" namespace:"cf"`
+	Github         GithubTeamFlags         `yaml:"github,omitempty" group:"Authentication (GitHub)" namespace:"github"`
+	Gitlab         GitlabTeamFlags         `yaml:"gitlab,omitempty" group:"Authentication (GitLab)" namespace:"gitlab"`
+	LDAP           LDAPTeamFlags           `yaml:"ldap,omitempty" group:"Authentication (LDAP)" namespace:"ldap"`
+	Microsoft      MicrosoftTeamFlags      `yaml:"microsoft,omitempty" group:"Authentication (Microsoft)" namespace:"microsoft"`
+	OAuth          OAuthTeamFlags          `yaml:"oauth,omitempty" group:"Authentication (OAuth2)" namespace:"oauth"`
+	OIDC           OIDCTeamFlags           `yaml:"oidc,omitempty" group:"Authentication (OIDC)" namespace:"oidc"`
+	SAML           SAMLTeamFlags           `yaml:"saml,omitempty" group:"Authentication (SAML)" namespace:"saml"`
+}
+
+func (c TeamConnectorsConfig) AllConnectors() []TeamConfig {
+	return []TeamConfig{
+		&c.BitbucketCloud,
+		&c.CF,
+		&c.Github,
+		&c.Gitlab,
+		&c.LDAP,
+		&c.Microsoft,
+		&c.OAuth,
+		&c.OIDC,
+		&c.SAML,
+	}
+}
+
+type Config interface {
+	ID() string
+	Name() string
+	Serialize(redirectURI string) ([]byte, error)
+}
+
+type TeamConfig interface {
+	ID() string
+	GetUsers() []string
+	GetGroups() []string
 }
 
 func (flag *AuthTeamFlags) Format() (atc.TeamAuth, error) {
@@ -76,15 +155,22 @@ func (flag *AuthTeamFlags) Format() (atc.TeamAuth, error) {
 // The cf conncetor has configuration for: users, orgs, spaces
 
 func (flag *AuthTeamFlags) formatFromFile() (atc.TeamAuth, error) {
-
 	content, err := ioutil.ReadFile(flag.Config.Path())
 	if err != nil {
 		return nil, err
 	}
 
 	var data struct {
-		Roles []map[string]interface{} `json:"roles"`
+		Roles []struct {
+			Name string `yaml:"name"`
+
+			Local struct {
+				Users []string `yaml:"users"`
+			} `yaml:"local"`
+			TeamConnectorsConfig
+		} `yaml:"roles"`
 	}
+
 	if err = yaml.Unmarshal(content, &data); err != nil {
 		return nil, err
 	}
@@ -92,45 +178,27 @@ func (flag *AuthTeamFlags) formatFromFile() (atc.TeamAuth, error) {
 	auth := atc.TeamAuth{}
 
 	for _, role := range data.Roles {
-		roleName := role["name"].(string)
-
 		users := []string{}
 		groups := []string{}
 
-		for _, connector := range connectors {
-			config, ok := role[connector.ID()]
-			if !ok {
-				continue
-			}
-
-			teamConfig, err := connector.newTeamConfig()
-			if err != nil {
-				return nil, err
-			}
-
-			err = mapstructure.Decode(config, &teamConfig)
-			if err != nil {
-				return nil, err
-			}
-
+		teamConfigs := role.TeamConnectorsConfig.AllConnectors()
+		for _, teamConfig := range teamConfigs {
 			for _, user := range teamConfig.GetUsers() {
 				if user != "" {
-					users = append(users, connector.ID()+":"+strings.ToLower(user))
+					users = append(users, teamConfig.ID()+":"+strings.ToLower(user))
 				}
 			}
 
 			for _, group := range teamConfig.GetGroups() {
 				if group != "" {
-					groups = append(groups, connector.ID()+":"+strings.ToLower(group))
+					groups = append(groups, teamConfig.ID()+":"+strings.ToLower(group))
 				}
 			}
 		}
 
-		if conf, ok := role["local"].(map[string]interface{}); ok {
-			for _, user := range conf["users"].([]interface{}) {
-				if user != "" {
-					users = append(users, "local:"+strings.ToLower(user.(string)))
-				}
+		if role.Local.Users != nil {
+			for _, user := range role.Local.Users {
+				users = append(users, "local:"+strings.ToLower(user))
 			}
 		}
 
@@ -138,7 +206,7 @@ func (flag *AuthTeamFlags) formatFromFile() (atc.TeamAuth, error) {
 			continue
 		}
 
-		auth[roleName] = map[string][]string{
+		auth[role.Name] = map[string][]string{
 			"users":  users,
 			"groups": groups,
 		}
@@ -160,19 +228,17 @@ func (flag *AuthTeamFlags) formatFromFlags() (atc.TeamAuth, error) {
 	users := []string{}
 	groups := []string{}
 
-	for _, connector := range connectors {
-
-		teamConfig := connector.teamConfig
-
+	teamConfigs := flag.TeamConnectors.AllConnectors()
+	for _, teamConfig := range teamConfigs {
 		for _, user := range teamConfig.GetUsers() {
 			if user != "" {
-				users = append(users, connector.ID()+":"+strings.ToLower(user))
+				users = append(users, teamConfig.ID()+":"+strings.ToLower(user))
 			}
 		}
 
 		for _, group := range teamConfig.GetGroups() {
 			if group != "" {
-				groups = append(groups, connector.ID()+":"+strings.ToLower(group))
+				groups = append(groups, teamConfig.ID()+":"+strings.ToLower(group))
 			}
 		}
 	}
@@ -195,89 +261,14 @@ func (flag *AuthTeamFlags) formatFromFlags() (atc.TeamAuth, error) {
 	}, nil
 }
 
-type Config interface {
-	Name() string
-	Serialize(redirectURI string) ([]byte, error)
-}
-
-type TeamConfig interface {
-	GetUsers() []string
-	GetGroups() []string
-}
-
-type Connector struct {
-	id         string
-	config     Config
-	teamConfig TeamConfig
-}
-
-func (con *Connector) ID() string {
-	return con.id
-}
-
-func (con *Connector) Name() string {
-	return con.config.Name()
-}
-
-func (con *Connector) Serialize(redirectURI string) ([]byte, error) {
-	return con.config.Serialize(redirectURI)
-}
-
-func (con *Connector) newTeamConfig() (TeamConfig, error) {
-
-	typeof := reflect.TypeOf(con.teamConfig)
-	if typeof.Kind() == reflect.Ptr {
-		typeof = typeof.Elem()
-	}
-
-	valueof := reflect.ValueOf(con.teamConfig)
-	if valueof.Kind() == reflect.Ptr {
-		valueof = valueof.Elem()
-	}
-
-	instance := reflect.New(typeof).Interface()
-	res, ok := instance.(TeamConfig)
-	if !ok {
-		return nil, errors.New("Invalid TeamConfig")
-	}
-
-	return res, nil
-}
-
 type skyDisplayUserIdGenerator struct {
 	mapConnectorUserid map[string]string
 }
 
-func NewSkyDisplayUserIdGenerator(config map[string]string) (atc.DisplayUserIdGenerator, error) {
-	generator := &skyDisplayUserIdGenerator{
-		mapConnectorUserid: map[string]string{},
+func NewSkyDisplayUserIdGenerator(config map[string]string) atc.DisplayUserIdGenerator {
+	return &skyDisplayUserIdGenerator{
+		mapConnectorUserid: config,
 	}
-
-	for connectorId, fieldName := range config {
-		valid := false
-		if connectorId == "local" {
-			valid = true
-		} else {
-			for _, connector := range GetConnectors() {
-				if connectorId == connector.ID() {
-					valid = true
-					break
-				}
-			}
-		}
-		if !valid {
-			return nil, fmt.Errorf("invalid connector: %s", connectorId)
-		}
-
-		switch fieldName {
-		case "user_id", "name", "username", "email":
-		default:
-			return nil, fmt.Errorf("invalid user field %s of connector %s", fieldName, connectorId)
-		}
-
-		generator.mapConnectorUserid[connectorId] = fieldName
-	}
-	return generator, nil
 }
 
 func (g *skyDisplayUserIdGenerator) DisplayUserId(connector, userid, username, preferredUsername, email string) string {

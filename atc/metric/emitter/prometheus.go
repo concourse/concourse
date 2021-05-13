@@ -12,6 +12,8 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/metric"
+	"github.com/hashicorp/go-multierror"
+	"github.com/pkg/errors"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -84,8 +86,8 @@ type PrometheusEmitter struct {
 }
 
 type PrometheusConfig struct {
-	BindIP   string `long:"prometheus-bind-ip" description:"IP to listen on to expose Prometheus metrics."`
-	BindPort string `long:"prometheus-bind-port" description:"Port to listen on to expose Prometheus metrics."`
+	BindIP   string `yaml:"bind_ip,omitempty"`
+	BindPort string `yaml:"bind_port,omitempty"`
 }
 
 // The most natural data type to hold the labels is a set because each worker can have multiple but
@@ -107,13 +109,20 @@ func serializeLabels(labels *prometheus.Labels) string {
 	return key
 }
 
-func init() {
-	metric.Metrics.RegisterEmitter(&PrometheusConfig{})
-}
-
+func (config *PrometheusConfig) ID() string          { return "prometheus" }
 func (config *PrometheusConfig) Description() string { return "Prometheus" }
-func (config *PrometheusConfig) IsConfigured() bool {
-	return config.BindPort != "" && config.BindIP != ""
+func (config *PrometheusConfig) Validate() error {
+	var errs *multierror.Error
+
+	if config.BindPort == "" {
+		errs = multierror.Append(errs, errors.New("bind port is missing"))
+	}
+
+	if config.BindIP == "" {
+		errs = multierror.Append(errs, errors.New("bind ip is missing"))
+	}
+
+	return errs.ErrorOrNil()
 }
 func (config *PrometheusConfig) bind() string {
 	return fmt.Sprintf("%s:%s", config.BindIP, config.BindPort)

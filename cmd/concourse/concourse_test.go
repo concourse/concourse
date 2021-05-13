@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -28,6 +29,7 @@ var _ = Describe("Web Command", func() {
 	var (
 		hostKeyFile    string
 		hostPubKeyFile string
+		configFile     *os.File
 
 		concourseCommand *exec.Cmd
 		concourseProcess ifrit.Process
@@ -42,23 +44,43 @@ var _ = Describe("Web Command", func() {
 
 		postgresRunner.CreateEmptyTestDB()
 
+		webConfig := fmt.Sprintf(`
+web:
+  database:
+    postgres:
+      user: postgres
+      database: testdb
+      port: %s
+  auth:
+    main_team:
+      local_user:
+      - test
+    add_local_user:
+      test: test
+  debug:
+    bind_port: %s
+  bind_port: %s
+  web_server:
+    client_id: client-id
+    client_secret: client-secret
+worker_gateway:
+  host_key: %s
+  client_id: tsa-client-id
+  client_secret: tsa-client-secret
+  token_url: "http://localhost/token"
+  bind_port: %s`, strconv.Itoa(5433+GinkgoParallelNode()), strconv.Itoa(8000+GinkgoParallelNode()), strconv.Itoa(8080+GinkgoParallelNode()), hostKeyFile, strconv.Itoa(2222+GinkgoParallelNode()))
+
+		var err error
+		configFile, err = ioutil.TempFile("", "cmd-test")
+		Expect(err).ToNot(HaveOccurred())
+
+		_, err = configFile.Write([]byte(webConfig))
+		Expect(err).ToNot(HaveOccurred())
+
 		concourseCommand = exec.Command(
 			concoursePath,
 			"web",
-			"--tsa-host-key", hostKeyFile,
-			"--postgres-user", "postgres",
-			"--postgres-database", "testdb",
-			"--postgres-port", strconv.Itoa(5433+GinkgoParallelNode()),
-			"--main-team-local-user", "test",
-			"--add-local-user", "test:test",
-			"--debug-bind-port", strconv.Itoa(8000+GinkgoParallelNode()),
-			"--bind-port", strconv.Itoa(8080+GinkgoParallelNode()),
-			"--tsa-bind-port", strconv.Itoa(2222+GinkgoParallelNode()),
-			"--client-id", "client-id",
-			"--client-secret", "client-secret",
-			"--tsa-client-id", "tsa-client-id",
-			"--tsa-client-secret", "tsa-client-secret",
-			"--tsa-token-url", "http://localhost/token",
+			"--config="+configFile.Name(),
 		)
 	})
 
@@ -84,6 +106,7 @@ var _ = Describe("Web Command", func() {
 		os.Remove(hostKeyFile)
 		os.Remove(hostPubKeyFile)
 		os.Remove(filepath.Dir(hostPubKeyFile))
+		os.Remove(configFile.Name())
 	})
 
 	It("starts atc", func() {
@@ -100,7 +123,7 @@ var _ = Describe("Web Command", func() {
 		})
 
 		It("prints an error and exits", func() {
-			Eventually(concourseRunner.Err()).Should(gbytes.Say("'InvalidAction' is not a valid action"))
+			Eventually(concourseRunner.Err()).Should(gbytes.Say("Not a valid route to limit"))
 		})
 	})
 

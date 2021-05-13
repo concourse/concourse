@@ -1,14 +1,17 @@
 package dexserver_test
 
 import (
+	"errors"
 	"sort"
 
+	"github.com/hashicorp/go-multierror"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/skymarshal/dexserver"
+	"github.com/concourse/concourse/skymarshal/skycmd"
 	store "github.com/concourse/concourse/skymarshal/storage"
 	"github.com/concourse/dex/server"
 	"github.com/concourse/dex/storage"
@@ -199,6 +202,46 @@ var _ = Describe("Dex Server", func() {
 
 				It("errors", func() {
 					// error check happens in JustBeforeEach
+				})
+			})
+		})
+
+		Context("when auth provider is configured", func() {
+			BeforeEach(func() {
+				config.Connectors = skycmd.ConnectorsConfig{
+					BitbucketCloud: skycmd.BitbucketCloudFlags{
+						Enabled: true,
+					},
+				}
+			})
+
+			Context("with invalid configuration", func() {
+				BeforeEach(func() {
+					config.Connectors.BitbucketCloud.ClientID = "client-id"
+					expectErr = true
+				})
+
+				It("fails to create dexserver because of failed validation", func() {
+					Expect(err).To(HaveOccurred())
+					Expect(err).To(Equal(&multierror.Error{Errors: []error{errors.New("Missing client-secret")}}))
+				})
+			})
+
+			Context("with valid configuration", func() {
+				BeforeEach(func() {
+					config.Connectors.BitbucketCloud.ClientID = "client-id"
+					config.Connectors.BitbucketCloud.ClientSecret = "client-secret"
+				})
+
+				It("successfully adds the auth provider", func() {
+					connectors, err := storage.ListConnectors()
+					Expect(err).NotTo(HaveOccurred())
+
+					bitbucket := skycmd.BitbucketCloudFlags{}
+					Expect(connectors).To(HaveLen(1))
+					Expect(connectors[0].ID).To(Equal(bitbucket.ID()))
+					Expect(connectors[0].Type).To(Equal(bitbucket.ID()))
+					Expect(connectors[0].Name).To(Equal(bitbucket.Name()))
 				})
 			})
 		})

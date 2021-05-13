@@ -1,8 +1,8 @@
 package secretsmanager_test
 
 import (
+	"github.com/concourse/concourse/atc/atccmd"
 	"github.com/concourse/concourse/atc/creds/secretsmanager"
-	"github.com/jessevdk/go-flags"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
@@ -12,33 +12,27 @@ import (
 var _ = Describe("Manager", func() {
 	var manager secretsmanager.Manager
 
-	Describe("IsConfigured()", func() {
-		JustBeforeEach(func() {
-			_, err := flags.ParseArgs(&manager, []string{})
-			Expect(err).To(BeNil())
-		})
-
-		It("fails on empty Manager", func() {
-			Expect(manager.IsConfigured()).To(BeFalse())
-		})
-
-		It("passes if AwsRegion is set", func() {
-			manager.AwsRegion = "test-region"
-			Expect(manager.IsConfigured()).To(BeTrue())
-		})
-	})
-
 	Describe("Validate()", func() {
-		JustBeforeEach(func() {
-			manager = secretsmanager.Manager{AwsRegion: "test-region"}
-			_, err := flags.ParseArgs(&manager, []string{})
-			Expect(err).To(BeNil())
+		BeforeEach(func() {
+			manager = atccmd.CmdDefaults.CredentialManagers.SecretsManager
+			manager.AwsRegion = "test-region"
+
 			Expect(manager.PipelineSecretTemplate).To(Equal(secretsmanager.DefaultPipelineSecretTemplate))
 			Expect(manager.TeamSecretTemplate).To(Equal(secretsmanager.DefaultTeamSecretTemplate))
 		})
 
 		It("passes on default parameters", func() {
 			Expect(manager.Validate()).To(BeNil())
+		})
+
+		Context("when region is not set", func() {
+			BeforeEach(func() {
+				manager.AwsRegion = ""
+			})
+
+			It("fails validation", func() {
+				Expect(manager.Validate()).ToNot(BeNil())
+			})
 		})
 
 		DescribeTable("passes if all aws credentials are specified",

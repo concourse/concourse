@@ -12,23 +12,14 @@ import (
 	"github.com/concourse/concourse/fly/ui"
 	"github.com/concourse/concourse/go-concourse/concourse"
 	"github.com/concourse/concourse/skymarshal/skycmd"
-	"github.com/jessevdk/go-flags"
 	"github.com/vito/go-interact/interact"
 )
-
-func WireTeamConnectors(command *flags.Command) {
-	for _, group := range command.Groups() {
-		if group.ShortDescription == "Authentication" {
-			skycmd.WireTeamConnectors(group)
-			return
-		}
-	}
-}
 
 type SetTeamCommand struct {
 	Team            flaghelpers.TeamFlag `short:"n" long:"team-name" required:"true" description:"The team to create or modify"`
 	SkipInteractive bool                 `long:"non-interactive" description:"Force apply configuration"`
-	AuthFlags       skycmd.AuthTeamFlags `group:"Authentication"`
+
+	AuthFlags skycmd.AuthTeamFlags `group:"Authentication"`
 }
 
 func (command *SetTeamCommand) Validate() ([]concourse.ConfigWarning, error) {

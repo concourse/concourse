@@ -18,17 +18,17 @@ type InfluxDBEmitter struct {
 }
 
 type InfluxDBConfig struct {
-	URL string `long:"influxdb-url" description:"InfluxDB server address to emit points to."`
+	URL string `yaml:"url,omitempty"`
 
-	Database string `long:"influxdb-database" description:"InfluxDB database to write points to."`
+	Database string `yaml:"database,omitempty"`
 
-	Username string `long:"influxdb-username" description:"InfluxDB server username."`
-	Password string `long:"influxdb-password" description:"InfluxDB server password."`
+	Username string `yaml:"username,omitempty"`
+	Password string `yaml:"password,omitempty"`
 
-	InsecureSkipVerify bool `long:"influxdb-insecure-skip-verify" description:"Skip SSL verification when emitting to InfluxDB."`
+	InsecureSkipVerify bool `yaml:"insecure_skip_verify,omitempty"`
 
-	BatchSize     uint32        `long:"influxdb-batch-size" default:"5000" description:"Number of points to batch together when emitting to InfluxDB."`
-	BatchDuration time.Duration `long:"influxdb-batch-duration" default:"300s" description:"The duration to wait before emitting a batch of points to InfluxDB, disregarding influxdb-batch-size."`
+	BatchSize     uint32        `yaml:"batch_size,omitempty"`
+	BatchDuration time.Duration `yaml:"batch_duration,omitempty"`
 }
 
 var (
@@ -39,11 +39,17 @@ var (
 func init() {
 	batch = make([]metric.Event, 0)
 	lastBatchTime = time.Now()
-	metric.Metrics.RegisterEmitter(&InfluxDBConfig{})
 }
 
+func (config *InfluxDBConfig) ID() string          { return "influxdb" }
 func (config *InfluxDBConfig) Description() string { return "InfluxDB" }
-func (config *InfluxDBConfig) IsConfigured() bool  { return config.URL != "" }
+func (config *InfluxDBConfig) Validate() error {
+	if config.URL == "" {
+		return errors.New("url is missing")
+	}
+
+	return nil
+}
 
 func (config *InfluxDBConfig) NewEmitter() (metric.Emitter, error) {
 	client, err := influxclient.NewHTTPClient(influxclient.HTTPConfig{
