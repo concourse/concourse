@@ -99,4 +99,4 @@ userDisplayName user =
         List.head <|
             List.filter
                 (not << String.isEmpty)
-                [ user.userName, user.name, user.email ]
+                [ user.displayUserId, user.userName, user.name, user.email ]

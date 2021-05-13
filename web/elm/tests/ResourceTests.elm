@@ -147,6 +147,7 @@ all =
                                         Dict.fromList
                                             [ ( teamName, [ "member" ] )
                                             ]
+                                    , displayUserId = "test"
                                     }
                             )
                         |> Tuple.first
@@ -2352,6 +2353,7 @@ all =
                                                   , [ "member" ]
                                                   )
                                                 ]
+                                        , displayUserId = "some-user"
                                         }
                                 )
                             |> Tuple.first
@@ -2638,6 +2640,7 @@ all =
                         , email = "test"
                         , isAdmin = False
                         , teams = Dict.fromList [ ( teamName, [ "member" ] ) ]
+                        , displayUserId = "test"
                         }
                 in
                 [ defineHoverBehaviour
@@ -2816,6 +2819,7 @@ all =
                         , email = "test"
                         , isAdmin = False
                         , teams = Dict.fromList [ ( teamName, [ "viewer" ] ) ]
+                        , displayUserId = "test"
                         }
                 in
                 [ defineHoverBehaviour
@@ -3523,6 +3527,7 @@ givenUserIsAuthorized =
                     Dict.fromList
                         [ ( teamName, [ "member" ] )
                         ]
+                , displayUserId = "test"
                 }
         )
         >> Tuple.first
@@ -3962,6 +3967,7 @@ session =
             , email = "test"
             , isAdmin = False
             , teams = Dict.fromList [ ( teamName, [ "member" ] ) ]
+            , displayUserId = "test"
             }
     , hovered = HoverState.NoHover
     , clusterName = ""

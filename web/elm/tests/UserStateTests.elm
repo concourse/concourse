@@ -18,6 +18,7 @@ isMemberHelper teamName roles isAdmin =
                 , email = "test_email"
                 , isAdmin = isAdmin
                 , teams = roles
+                , displayUserId = "test"
                 }
         }
 
@@ -40,6 +41,7 @@ all =
                         , email = "test_email"
                         , isAdmin = True
                         , teams = Dict.fromList [ ( "team1", [ "role" ] ) ]
+                        , displayUserId = "test"
                         }
                         |> isAnonymous
                         |> Expect.false "logged-in user should not be anonymous"
