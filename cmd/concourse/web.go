@@ -264,12 +264,12 @@ func derivedCredential(key *rsa.PrivateKey, clientID string) string {
 // have a default value of 0
 func fixupFlagDefaults(cmd *cobra.Command, web *WebConfig) {
 	// XXX: TEST THIS
-	if !cmd.Flags().Changed("default-task-cpu-limit") {
-		web.DefaultCpuLimit = nil
+	if cmd.Flags().Changed("default-task-cpu-limit") {
+		web.DefaultCpuLimit.Enable = true
 	}
 
-	if !cmd.Flags().Changed("default-task-memory-limit") {
-		web.DefaultMemoryLimit = nil
+	if cmd.Flags().Changed("default-task-memory-limit") {
+		web.DefaultMemoryLimit.Enable = true
 	}
 }
 

@@ -144,9 +144,9 @@ type RunConfig struct {
 	Auditor AuditorConfig  `yaml:"auditing,omitempty"`
 	Syslog  SyslogConfig   `yaml:"syslog,omitempty"`
 
-	DefaultCpuLimit      *int          `yaml:"default_task_cpu_limit,omitempty"`
-	DefaultMemoryLimit   *string       `yaml:"default_task_memory_limit,omitempty"`
-	InterceptIdleTimeout time.Duration `yaml:"intercept_idle_timeout,omitempty"`
+	DefaultCpuLimit      DefaultCpuLimitConfig    `yaml:"default_task_cpu_limit,omitempty"`
+	DefaultMemoryLimit   DefaultMemoryLimitConfig `yaml:"default_task_memory_limit,omitempty"`
+	InterceptIdleTimeout time.Duration            `yaml:"intercept_idle_timeout,omitempty"`
 
 	CLIArtifactsDir flag.Dir `yaml:"cli_artifacts_dir,omitempty"`
 	WebPublicDir    flag.Dir `yaml:"web_public_dir"`
@@ -1298,12 +1298,12 @@ func (cmd *RunConfig) tlsConfig(logger lager.Logger, dbConn db.Conn) (*tls.Confi
 
 func (cmd *RunConfig) parseDefaultLimits() (atc.ContainerLimits, error) {
 	limits := atc.ContainerLimits{}
-	if cmd.DefaultCpuLimit != nil {
-		cpu := atc.CPULimit(*cmd.DefaultCpuLimit)
+	if cmd.DefaultCpuLimit.Enable {
+		cpu := atc.CPULimit(cmd.DefaultCpuLimit.Limit)
 		limits.CPU = &cpu
 	}
-	if cmd.DefaultMemoryLimit != nil {
-		memory, err := atc.ParseMemoryLimit(*cmd.DefaultMemoryLimit)
+	if cmd.DefaultMemoryLimit.Enable {
+		memory, err := atc.ParseMemoryLimit(cmd.DefaultMemoryLimit.Limit)
 		if err != nil {
 			return atc.ContainerLimits{}, err
 		}

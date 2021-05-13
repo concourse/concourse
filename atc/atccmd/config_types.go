@@ -180,6 +180,16 @@ type AuditorConfig struct {
 	EnableVolumeAuditLog    bool `yaml:"enable_volume,omitempty" env:"CONCOURSE_AUDITING_ENABLE_VOLUME,CONCOURSE_ENABLE_VOLUME_AUDITING"`
 }
 
+type DefaultCpuLimitConfig struct {
+	Enable bool `yaml:"enable,omitempty"`
+	Limit  int  `yaml:"limit,omitempty"`
+}
+
+type DefaultMemoryLimitConfig struct {
+	Enable bool   `yaml:"enable,omitempty"`
+	Limit  string `yaml:"limit,omitempty"`
+}
+
 type SyslogConfig struct {
 	Hostname      string        `yaml:"hostname,omitempty"`
 	Address       string        `yaml:"address,omitempty"`
