@@ -6,13 +6,26 @@ import (
 
 	"github.com/concourse/concourse/integration/internal/dctest"
 	"github.com/concourse/concourse/integration/internal/flytest"
+	"github.com/concourse/concourse/integration/internal/ypath"
 	"github.com/stretchr/testify/require"
 )
 
 func TestStreamed_ResourceCache(t *testing.T) {
 	t.Parallel()
 
-	dc := dctest.Init(t, "../docker-compose.yml", "overrides/streamed_resource_cache.yml")
+	dockerComposeDoc := ypath.Load(t, "../docker-compose.yml")
+
+	// Configure two worker services in docker-compose with distinct names and tags
+	dockerComposeDoc.Move(t, "$.services.worker", "$.services.worker1")
+	dockerComposeDoc.Clone(t, "$.services.worker1", "$.services.worker2")
+
+	dockerComposeDoc.Set(t, "$.services.worker1.environment.CONCOURSE_NAME", "worker1")
+	dockerComposeDoc.Set(t, "$.services.worker1.environment.CONCOURSE_TAG", "tag1")
+
+	dockerComposeDoc.Set(t, "$.services.worker2.environment.CONCOURSE_NAME", "worker2")
+	dockerComposeDoc.Set(t, "$.services.worker2.environment.CONCOURSE_TAG", "tag2")
+
+	dc := dctest.InitDynamic(t, dockerComposeDoc, "..")
 
 	t.Run("deploy with 2 tagged workers", func(t *testing.T) {
 		dc.Run(t, "up", "-d")

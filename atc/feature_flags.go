@@ -6,4 +6,5 @@ var (
 	EnableBuildRerunWhenWorkerDisappears bool
 	EnableAcrossStep                     bool
 	EnablePipelineInstances              bool
+	EnableCacheStreamedVolumes           bool
 )

@@ -120,6 +120,10 @@ func (i *imageProvidedByPreviousStepOnDifferentWorker) FetchForContainer(
 		i.teamID,
 		"/",
 	)
+	if err != nil {
+		logger.Error("failed-to-create-cow-volume-for-image", err)
+		return worker.FetchedImage{}, err
+	}
 
 	imageMetadataReader, err := i.imageSpec.ImageArtifactSource.StreamFile(ctx, ImageMetadataFile)
 	if err != nil {
@@ -231,4 +235,8 @@ func (wad *artifactDestination) GetStreamInP2pUrl(ctx context.Context, path stri
 
 func (wad *artifactDestination) InitializeStreamedResourceCache(cache db.UsedResourceCache, sourceWorkerName string) error {
 	return wad.destination.InitializeStreamedResourceCache(cache, sourceWorkerName)
+}
+
+func (wad *artifactDestination) SetPrivileged(privileged bool) error {
+	return wad.destination.SetPrivileged(privileged)
 }

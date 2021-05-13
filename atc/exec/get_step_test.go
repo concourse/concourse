@@ -253,6 +253,7 @@ var _ = Describe("GetStep", func() {
 		)
 
 		BeforeEach(func() {
+			atc.EnableCacheStreamedVolumes = true
 			fakeWorker = new(workerfakes.FakeWorker)
 			fakeVolume = new(workerfakes.FakeVolume)
 			fakeWorker.FindVolumeForResourceCacheReturns(fakeVolume, true, nil)
@@ -338,6 +339,17 @@ var _ = Describe("GetStep", func() {
 					Expect(status).To(Equal(exec.ExitStatus(0)))
 					Expect(info.Version).To(Equal(atc.Version{"some": "version"}))
 					Expect(info.Metadata).To(Equal([]atc.MetadataField{{Name: "some", Value: "metadata"}}))
+				})
+
+				Context("when EnableCacheStreamedVolumes is disabled", func() {
+					BeforeEach(func() {
+						atc.EnableCacheStreamedVolumes = false
+						shouldRunGetStep = true
+					})
+
+					It("should run normal get step", func() {
+						// Do nothing here, JustBeforeEach() will check shouldRunGetStep
+					})
 				})
 			})
 		})

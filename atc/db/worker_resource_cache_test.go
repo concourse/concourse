@@ -42,8 +42,9 @@ var _ = Describe("WorkerResourceCache", func() {
 				Expect(err).ToNot(HaveOccurred())
 				defer db.Rollback(tx)
 
-				usedWorkerResourceCache, err := workerResourceCache.FindOrCreate(tx, defaultWorker.Name())
+				usedWorkerResourceCache, valid, err := workerResourceCache.FindOrCreate(tx, defaultWorker.Name())
 				Expect(err).ToNot(HaveOccurred())
+				Expect(valid).To(BeTrue())
 
 				Expect(usedWorkerResourceCache.ID).To(Equal(1))
 			})
@@ -55,8 +56,9 @@ var _ = Describe("WorkerResourceCache", func() {
 				tx, err := dbConn.Begin()
 				Expect(err).ToNot(HaveOccurred())
 
-				_, err = workerResourceCache.FindOrCreate(tx, defaultWorker.Name())
+				_, valid, err := workerResourceCache.FindOrCreate(tx, defaultWorker.Name())
 				Expect(err).ToNot(HaveOccurred())
+				Expect(valid).To(BeTrue())
 
 				Expect(tx.Commit()).To(Succeed())
 			})
@@ -66,8 +68,9 @@ var _ = Describe("WorkerResourceCache", func() {
 				Expect(err).ToNot(HaveOccurred())
 				defer db.Rollback(tx)
 
-				usedWorkerResourceCache, err := workerResourceCache.FindOrCreate(tx, defaultWorker.Name())
+				usedWorkerResourceCache, valid, err := workerResourceCache.FindOrCreate(tx, defaultWorker.Name())
 				Expect(err).ToNot(HaveOccurred())
+				Expect(valid).To(BeTrue())
 
 				Expect(usedWorkerResourceCache.ID).To(Equal(1))
 			})
@@ -80,15 +83,14 @@ var _ = Describe("WorkerResourceCache", func() {
 					}
 				})
 
-				It("creates a new worker resource cache", func() {
+				It("indicates the worker resource cache is invalid", func() {
 					tx, err := dbConn.Begin()
 					Expect(err).ToNot(HaveOccurred())
 					defer db.Rollback(tx)
 
-					usedWorkerResourceCache, err := streamedWorkerResourceCache.FindOrCreate(tx, otherWorker.Name())
+					_, valid, err := streamedWorkerResourceCache.FindOrCreate(tx, otherWorker.Name())
 					Expect(err).ToNot(HaveOccurred())
-
-					Expect(usedWorkerResourceCache.ID).To(Equal(2))
+					Expect(valid).To(BeFalse())
 				})
 			})
 		})
@@ -180,8 +182,10 @@ var _ = Describe("WorkerResourceCache", func() {
 				tx, err := dbConn.Begin()
 				Expect(err).ToNot(HaveOccurred())
 
-				createdWorkerResourceCache, err = workerResourceCache.FindOrCreate(tx, defaultWorker.Name())
+				var valid bool
+				createdWorkerResourceCache, valid, err = workerResourceCache.FindOrCreate(tx, defaultWorker.Name())
 				Expect(err).ToNot(HaveOccurred())
+				Expect(valid).To(BeTrue())
 
 				Expect(tx.Commit()).To(Succeed())
 			})

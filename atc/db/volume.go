@@ -360,7 +360,7 @@ func (volume *createdVolume) InitializeStreamedResourceCache(resourceCache UsedR
 	return volume.initializeResourceCache(resourceCache, sourceWorkerName)
 }
 
-// InitializeResourceCache creates a worker resource cache and point current volume's
+// initializeResourceCache creates a worker resource cache and point current volume's
 // worker_resource_cache_id to the cache. When initializing a local generated resource
 // cache, then source worker is just the volume's worker.
 func (volume *createdVolume) initializeResourceCache(resourceCache UsedResourceCache, sourceWorkerName string) error {
@@ -371,12 +371,19 @@ func (volume *createdVolume) initializeResourceCache(resourceCache UsedResourceC
 
 	defer tx.Rollback()
 
-	workerResourceCache, err := WorkerResourceCache{
+	workerResourceCache, valid, err := WorkerResourceCache{
 		WorkerName:    volume.WorkerName(),
 		ResourceCache: resourceCache,
 	}.FindOrCreate(tx, sourceWorkerName)
 	if err != nil {
 		return err
+	}
+	if !valid {
+		// there's already a WorkerResourceCache for this resource cache on
+		// this worker, but originating from a different sourceWorker, meaning
+		// the other streamed volume "won the race", and will become the cached
+		// volume
+		return nil
 	}
 
 	rows, err := psql.Update("volumes").

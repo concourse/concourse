@@ -38,6 +38,17 @@ type FakeArtifactDestination struct {
 	initializeStreamedResourceCacheReturnsOnCall map[int]struct {
 		result1 error
 	}
+	SetPrivilegedStub        func(bool) error
+	setPrivilegedMutex       sync.RWMutex
+	setPrivilegedArgsForCall []struct {
+		arg1 bool
+	}
+	setPrivilegedReturns struct {
+		result1 error
+	}
+	setPrivilegedReturnsOnCall map[int]struct {
+		result1 error
+	}
 	StreamInStub        func(context.Context, string, baggageclaim.Encoding, io.Reader) error
 	streamInMutex       sync.RWMutex
 	streamInArgsForCall []struct {
@@ -183,6 +194,67 @@ func (fake *FakeArtifactDestination) InitializeStreamedResourceCacheReturnsOnCal
 	}{result1}
 }
 
+func (fake *FakeArtifactDestination) SetPrivileged(arg1 bool) error {
+	fake.setPrivilegedMutex.Lock()
+	ret, specificReturn := fake.setPrivilegedReturnsOnCall[len(fake.setPrivilegedArgsForCall)]
+	fake.setPrivilegedArgsForCall = append(fake.setPrivilegedArgsForCall, struct {
+		arg1 bool
+	}{arg1})
+	stub := fake.SetPrivilegedStub
+	fakeReturns := fake.setPrivilegedReturns
+	fake.recordInvocation("SetPrivileged", []interface{}{arg1})
+	fake.setPrivilegedMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeArtifactDestination) SetPrivilegedCallCount() int {
+	fake.setPrivilegedMutex.RLock()
+	defer fake.setPrivilegedMutex.RUnlock()
+	return len(fake.setPrivilegedArgsForCall)
+}
+
+func (fake *FakeArtifactDestination) SetPrivilegedCalls(stub func(bool) error) {
+	fake.setPrivilegedMutex.Lock()
+	defer fake.setPrivilegedMutex.Unlock()
+	fake.SetPrivilegedStub = stub
+}
+
+func (fake *FakeArtifactDestination) SetPrivilegedArgsForCall(i int) bool {
+	fake.setPrivilegedMutex.RLock()
+	defer fake.setPrivilegedMutex.RUnlock()
+	argsForCall := fake.setPrivilegedArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeArtifactDestination) SetPrivilegedReturns(result1 error) {
+	fake.setPrivilegedMutex.Lock()
+	defer fake.setPrivilegedMutex.Unlock()
+	fake.SetPrivilegedStub = nil
+	fake.setPrivilegedReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeArtifactDestination) SetPrivilegedReturnsOnCall(i int, result1 error) {
+	fake.setPrivilegedMutex.Lock()
+	defer fake.setPrivilegedMutex.Unlock()
+	fake.SetPrivilegedStub = nil
+	if fake.setPrivilegedReturnsOnCall == nil {
+		fake.setPrivilegedReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.setPrivilegedReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeArtifactDestination) StreamIn(arg1 context.Context, arg2 string, arg3 baggageclaim.Encoding, arg4 io.Reader) error {
 	fake.streamInMutex.Lock()
 	ret, specificReturn := fake.streamInReturnsOnCall[len(fake.streamInArgsForCall)]
@@ -254,6 +326,8 @@ func (fake *FakeArtifactDestination) Invocations() map[string][][]interface{} {
 	defer fake.getStreamInP2pUrlMutex.RUnlock()
 	fake.initializeStreamedResourceCacheMutex.RLock()
 	defer fake.initializeStreamedResourceCacheMutex.RUnlock()
+	fake.setPrivilegedMutex.RLock()
+	defer fake.setPrivilegedMutex.RUnlock()
 	fake.streamInMutex.RLock()
 	defer fake.streamInMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

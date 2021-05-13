@@ -221,16 +221,6 @@ type FakeVolume struct {
 	streamP2pOutReturnsOnCall map[int]struct {
 		result1 error
 	}
-	VolumeStub        func() worker.Volume
-	volumeMutex       sync.RWMutex
-	volumeArgsForCall []struct {
-	}
-	volumeReturns struct {
-		result1 worker.Volume
-	}
-	volumeReturnsOnCall map[int]struct {
-		result1 worker.Volume
-	}
 	WorkerNameStub        func() string
 	workerNameMutex       sync.RWMutex
 	workerNameArgsForCall []struct {
@@ -1266,59 +1256,6 @@ func (fake *FakeVolume) StreamP2pOutReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeVolume) Volume() worker.Volume {
-	fake.volumeMutex.Lock()
-	ret, specificReturn := fake.volumeReturnsOnCall[len(fake.volumeArgsForCall)]
-	fake.volumeArgsForCall = append(fake.volumeArgsForCall, struct {
-	}{})
-	stub := fake.VolumeStub
-	fakeReturns := fake.volumeReturns
-	fake.recordInvocation("Volume", []interface{}{})
-	fake.volumeMutex.Unlock()
-	if stub != nil {
-		return stub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fakeReturns.result1
-}
-
-func (fake *FakeVolume) VolumeCallCount() int {
-	fake.volumeMutex.RLock()
-	defer fake.volumeMutex.RUnlock()
-	return len(fake.volumeArgsForCall)
-}
-
-func (fake *FakeVolume) VolumeCalls(stub func() worker.Volume) {
-	fake.volumeMutex.Lock()
-	defer fake.volumeMutex.Unlock()
-	fake.VolumeStub = stub
-}
-
-func (fake *FakeVolume) VolumeReturns(result1 worker.Volume) {
-	fake.volumeMutex.Lock()
-	defer fake.volumeMutex.Unlock()
-	fake.VolumeStub = nil
-	fake.volumeReturns = struct {
-		result1 worker.Volume
-	}{result1}
-}
-
-func (fake *FakeVolume) VolumeReturnsOnCall(i int, result1 worker.Volume) {
-	fake.volumeMutex.Lock()
-	defer fake.volumeMutex.Unlock()
-	fake.VolumeStub = nil
-	if fake.volumeReturnsOnCall == nil {
-		fake.volumeReturnsOnCall = make(map[int]struct {
-			result1 worker.Volume
-		})
-	}
-	fake.volumeReturnsOnCall[i] = struct {
-		result1 worker.Volume
-	}{result1}
-}
-
 func (fake *FakeVolume) WorkerName() string {
 	fake.workerNameMutex.Lock()
 	ret, specificReturn := fake.workerNameReturnsOnCall[len(fake.workerNameArgsForCall)]
@@ -1409,8 +1346,6 @@ func (fake *FakeVolume) Invocations() map[string][][]interface{} {
 	defer fake.streamOutMutex.RUnlock()
 	fake.streamP2pOutMutex.RLock()
 	defer fake.streamP2pOutMutex.RUnlock()
-	fake.volumeMutex.RLock()
-	defer fake.volumeMutex.RUnlock()
 	fake.workerNameMutex.RLock()
 	defer fake.workerNameMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

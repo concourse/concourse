@@ -13,6 +13,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/baggageclaim"
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/compression"
 	"github.com/concourse/concourse/atc/compression/compressionfakes"
 	"github.com/concourse/concourse/atc/db"
@@ -280,6 +281,7 @@ var _ = Describe("StreamableArtifactSource", func() {
 
 			Context("when source volume is a resource cache", func() {
 				BeforeEach(func() {
+					atc.EnableCacheStreamedVolumes = true
 					fakeVolume.GetResourceCacheIDReturns(1234)
 				})
 
@@ -328,6 +330,11 @@ var _ = Describe("StreamableArtifactSource", func() {
 						Expect(fakeDestination.InitializeStreamedResourceCacheArgsForCall(0)).To(Equal(fakeUrc))
 					})
 
+					It("should mark dest volume as unprivileged", func() {
+						Expect(fakeDestination.SetPrivilegedCallCount()).To(Equal(1))
+						Expect(fakeDestination.SetPrivilegedArgsForCall(0)).To(Equal(false))
+					})
+
 					Context("fails to update destination as resource cache", func() {
 						BeforeEach(func() {
 							fakeDestination.InitializeStreamedResourceCacheReturns(disaster)
@@ -347,6 +354,16 @@ var _ = Describe("StreamableArtifactSource", func() {
 						It("should fail with same error", func() {
 							Expect(streamToErr).ToNot(HaveOccurred())
 						})
+					})
+				})
+
+				Context("when streamed volumes caching is disabled", func() {
+					BeforeEach(func() {
+						atc.EnableCacheStreamedVolumes = false
+					})
+
+					It("should not cache streamed volumes", func() {
+						Expect(fakeResourceCacheFactory.FindResourceCacheByIDCallCount()).To(Equal(0))
 					})
 				})
 			})

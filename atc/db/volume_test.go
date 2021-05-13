@@ -271,6 +271,27 @@ var _ = Describe("Volume", func() {
 			})
 		})
 
+		Context("when the same resource cache is initialized from another source worker", func() {
+			It("leaves the volume owned by the the container", func() {
+				creatingContainer, err := defaultWorker.CreateContainer(db.NewBuildStepContainerOwner(build.ID(), "some-plan", defaultTeam.ID()), db.ContainerMetadata{
+					Type:     "get",
+					StepName: "some-resource",
+				})
+				Expect(err).ToNot(HaveOccurred())
+
+				resourceCacheVolume, err := volumeRepository.CreateContainerVolume(defaultTeam.ID(), defaultWorker.Name(), creatingContainer, "some-path")
+				Expect(err).ToNot(HaveOccurred())
+
+				createdVolume, err = resourceCacheVolume.Created()
+				Expect(err).ToNot(HaveOccurred())
+
+				err = createdVolume.InitializeStreamedResourceCache(resourceCache, otherWorker.Name())
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(createdVolume.Type()).To(Equal(db.VolumeTypeContainer))
+			})
+		})
+
 		Context("when initialize streamed resource cache", func() {
 			var streamedVolume1, streamedVolume2 db.CreatedVolume
 
@@ -369,11 +390,11 @@ var _ = Describe("Volume", func() {
 					Expect(found).To(BeTrue())
 				})
 
-				It("associates the volume to the resource cache", func() {
+				It("keeps the originally streamed volume as the resource cache", func() {
 					foundVolume, found, err := volumeRepository.FindResourceCacheVolume(otherWorker.Name(), resourceCache)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeTrue())
-					Expect(foundVolume.Handle()).To(Or(Equal(streamedVolume1.Handle()), Equal(streamedVolume2.Handle())))
+					Expect(foundVolume.Handle()).To(Equal(streamedVolume1.Handle()))
 				})
 			})
 		})
