@@ -1,9 +1,11 @@
 package db_test
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"strconv"
+	"sync"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -3445,6 +3447,97 @@ var _ = Describe("Team", func() {
 				_, _, err = team.SavePipeline(pipelineRef, otherConfig, otherTeamPipeline.ConfigVersion(), true)
 				Expect(err).To(HaveOccurred())
 			})
+		})
+
+		It("does not deadlock when concurrently setting pipelines and running checks", func() {
+			// enable concurrent use of database. this is set to 1 by default to
+			// ensure methods don't require more than one in a single connection,
+			// which can cause deadlocking as the pool is limited.
+			dbConn.SetMaxOpenConns(3)
+
+			config := atc.Config{
+				ResourceTypes: atc.ResourceTypes{
+					{
+						Name:   "some-resource-type",
+						Type:   dbtest.BaseResourceType,
+						Source: atc.Source{"foo": "bar"},
+					},
+				},
+				Resources: atc.ResourceConfigs{
+					{
+						Name:   "some-resource",
+						Type:   "some-resource-type",
+						Source: atc.Source{"foo": "baz"},
+					},
+				},
+			}
+			scenario := dbtest.Setup(
+				builder.WithBaseWorker(),
+				builder.WithPipeline(config),
+			)
+
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+
+			errChan := make(chan error, 1)
+
+			var wg sync.WaitGroup
+
+			loopUntilTimeoutOrPanic := func(name string, run func(i int)) func() {
+				wg.Add(1)
+				return func() {
+					defer wg.Done()
+					defer func() {
+						if err := recover(); err != nil {
+							errChan <- fmt.Errorf("%s error: %v", name, err)
+						}
+					}()
+
+					i := 0
+					for {
+						select {
+						case <-ctx.Done():
+							return
+						default:
+							run(i)
+							i++
+						}
+					}
+				}
+			}
+
+			pipeline := scenario.Pipeline
+			go loopUntilTimeoutOrPanic("set pipeline", func(_ int) {
+				var err error
+				pipeline, _, err = scenario.Team.SavePipeline(
+					atc.PipelineRef{Name: pipeline.Name()},
+					config,
+					pipeline.ConfigVersion(),
+					false,
+				)
+				if err != nil {
+					panic(err)
+				}
+			})()
+
+			go loopUntilTimeoutOrPanic("check resource", func(i int) {
+				scenario.Run(
+					builder.WithResourceVersions("some-resource", atc.Version{"v": strconv.Itoa(i / 10)}),
+				)
+			})()
+
+			go loopUntilTimeoutOrPanic("check resource type", func(i int) {
+				scenario.Run(
+					builder.WithResourceTypeVersions("some-resource-type", atc.Version{"foo": strconv.Itoa(i / 10)}),
+				)
+			})()
+
+			go func() {
+				wg.Wait()
+				close(errChan)
+			}()
+
+			Expect(<-errChan).ToNot(HaveOccurred())
 		})
 	})
 
