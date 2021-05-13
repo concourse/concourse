@@ -332,7 +332,7 @@ func (s *IntegrationSuite) TestContainerBlocksHostAccess() {
 		customBackend.Stop()
 	}()
 
-	hostIp, err := runtime.GetHostIp()
+	hostIp, err := getHostIp()
 	s.NoError(err)
 
 	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -348,7 +348,7 @@ func (s *IntegrationSuite) TestContainerBlocksHostAccess() {
 		garden.ProcessSpec{
 			Path: "/executable",
 			Args: []string{
-				"-http-get="+ts.URL,
+				"-http-get=" + ts.URL,
 			},
 		},
 		garden.ProcessIO{
@@ -361,6 +361,24 @@ func (s *IntegrationSuite) TestContainerBlocksHostAccess() {
 	exitCode, err := proc.Wait()
 	s.NoError(err)
 	s.Equal(exitCode, 1, "Process in container should not be able to connect to host network")
+
+	proc, err = container.Run(
+		garden.ProcessSpec{
+			Path: "/executable",
+			Args: []string{
+				"-http-get=http://1.1.1.1",
+			},
+		},
+		garden.ProcessIO{
+			Stdout: buf,
+			Stderr: buf,
+		},
+	)
+	s.NoError(err)
+
+	exitCode, err = proc.Wait()
+	s.NoError(err)
+	s.Equal(exitCode, 0, "Process in container should be able to reach the internet")
 }
 
 // TestRunPrivileged tests whether we're able to run a process in a privileged

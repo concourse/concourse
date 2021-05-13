@@ -2,11 +2,8 @@ package runtime
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"net"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/concourse/concourse/worker/runtime/iptables"
@@ -339,38 +336,12 @@ func (n cniNetwork) restrictHostAccess() error {
 		return fmt.Errorf("create chain or flush if exists failed: %w", err)
 	}
 
-	hostIp, err := GetHostIp()
+	err = n.ipt.AppendRule(filterTable, "INPUT", "-i", n.config.BridgeName, "-j", "REJECT", "--reject-with", "icmp-host-prohibited")
 	if err != nil {
-		return err
+		return fmt.Errorf("error appending iptables rule: %w", err)
 	}
-	n.ipt.AppendRule(filterTable, "INPUT", "-i", n.config.BridgeName, "-d", hostIp, "-j", "DROP")
 
 	return nil
-}
-
-func GetHostIp() (string, error) {
-	ifaces, err := net.Interfaces()
-	if err != nil {
-		return "", err
-	}
-	ethInterface := regexp.MustCompile("eth0")
-
-	for _, i := range ifaces {
-		if ethInterface.MatchString(i.Name) {
-			addrs, err := i.Addrs()
-			if err != nil {
-				return "", err
-			}
-			for _, address := range addrs {
-				if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
-					if ipnet.IP.To4() != nil {
-						return ipnet.IP.String(), nil
-					}
-				}
-			}
-		}
-	}
-	return "", errors.New("unable to find host's IP")
 }
 
 func (n cniNetwork) Add(ctx context.Context, task containerd.Task) error {

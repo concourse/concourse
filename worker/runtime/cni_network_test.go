@@ -141,9 +141,6 @@ func (s *CNINetworkSuite) TestSetupMountsCallsStoreWithoutNameServers() {
 }
 
 func (s *CNINetworkSuite) TestSetupHostNetwork() {
-	hostIp, err := runtime.GetHostIp()
-	s.NoError(err)
-
 	testCases := map[string]struct {
 		cniNetworkSetup   func() (runtime.Network, error)
 		expectedTableName string
@@ -208,7 +205,7 @@ func (s *CNINetworkSuite) TestSetupHostNetwork() {
 			},
 			expectedTableName: "filter",
 			expectedChainName: "INPUT",
-			expectedRuleSpec:  []string{"-i", "concourse0", "-d", hostIp, "-j", "DROP"},
+			expectedRuleSpec:  []string{"-i", "concourse0", "-j", "REJECT", "--reject-with", "icmp-host-prohibited"},
 		},
 	}
 
