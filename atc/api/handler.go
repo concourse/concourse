@@ -176,7 +176,7 @@ func NewHandler(
 		atc.PinResourceVersion:            pipelineHandlerFactory.HandlerFor(versionServer.PinResourceVersion),
 		atc.ListBuildsWithVersionAsInput:  pipelineHandlerFactory.HandlerFor(versionServer.ListBuildsWithVersionAsInput),
 		atc.ListBuildsWithVersionAsOutput: pipelineHandlerFactory.HandlerFor(versionServer.ListBuildsWithVersionAsOutput),
-		atc.GetResourceCausality:          pipelineHandlerFactory.HandlerFor(versionServer.GetCausality),
+		atc.GetResourceCausality:          pipelineHandlerFactory.HandlerFor(versionServer.GetResourceCausality),
 
 		atc.ListWorkers:     http.HandlerFunc(workerServer.ListWorkers),
 		atc.RegisterWorker:  http.HandlerFunc(workerServer.RegisterWorker),

@@ -1195,6 +1195,7 @@ type alias CausalityResourceVersion =
     , resourceName : String
     , version : Version
     , inputTo : List CausalityBuild
+    , outputOf : List CausalityBuild
     }
 
 
@@ -1208,6 +1209,7 @@ type alias CausalityBuildFields =
     , name : String
     , jobId : Int
     , jobName : String
+    , inputs : List CausalityResourceVersion
     , outputs : List CausalityResourceVersion
     }
 
@@ -1220,6 +1222,7 @@ decodeCausalityResourceVersion =
         |> andMap (Json.Decode.field "resource_name" Json.Decode.string)
         |> andMap (Json.Decode.field "version" decodeVersion)
         |> andMap (defaultTo [] (Json.Decode.field "input_to" (Json.Decode.list decodeCausalityBuild)))
+        |> andMap (defaultTo [] (Json.Decode.field "output_of" (Json.Decode.list decodeCausalityBuild)))
 
 
 decodeCausalityBuild : Json.Decode.Decoder CausalityBuild
@@ -1229,6 +1232,13 @@ decodeCausalityBuild =
         |> andMap (Json.Decode.field "name" Json.Decode.string)
         |> andMap (Json.Decode.field "job_id" Json.Decode.int)
         |> andMap (Json.Decode.field "job_name" Json.Decode.string)
+        |> andMap
+            (defaultTo []
+                (Json.Decode.field "inputs" <|
+                    Json.Decode.list <|
+                        Json.Decode.lazy (\_ -> decodeCausalityResourceVersion)
+                )
+            )
         |> andMap
             (defaultTo []
                 (Json.Decode.field "outputs" <|
