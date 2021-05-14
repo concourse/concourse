@@ -30,7 +30,7 @@ require (
 	github.com/cppforlife/go-semi-semantic v0.0.0-20160921010311-576b6af77ae4
 	github.com/creack/pty v1.1.11 // indirect
 	github.com/cyberark/conjur-api-go v0.7.1
-	github.com/fatih/color v1.10.0
+	github.com/fatih/color v1.11.0
 	github.com/felixge/httpsnoop v1.0.2
 	github.com/gobwas/glob v0.2.3
 	github.com/goccy/go-yaml v1.8.9
