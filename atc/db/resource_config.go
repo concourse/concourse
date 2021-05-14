@@ -112,7 +112,7 @@ func (r *resourceConfig) FindOrCreateScope(resource Resource) (ResourceConfigSco
 	return scope, nil
 }
 
-func (r *ResourceConfigDescriptor) findOrCreate(tx Tx, lockFactory lock.LockFactory, conn Conn) (*resourceConfig, error) {
+func (r *ResourceConfigDescriptor) findOrCreate(tx Tx, lockFactory lock.LockFactory, conn Conn, updateLastReferenced bool) (*resourceConfig, error) {
 	rc := &resourceConfig{
 		lockFactory: lockFactory,
 		conn:        conn,
@@ -150,7 +150,13 @@ func (r *ResourceConfigDescriptor) findOrCreate(tx Tx, lockFactory lock.LockFact
 		parentID = rc.CreatedByBaseResourceType().ID
 	}
 
-	found, err := r.updateLastReferenced(tx, rc, parentColumnName, parentID)
+	var found bool
+	var err error
+	if updateLastReferenced {
+		found, err = r.updateLastReferenced(tx, rc, parentColumnName, parentID)
+	} else {
+		found, err = r.findWithParentID(tx, rc, parentColumnName, parentID)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -158,22 +164,24 @@ func (r *ResourceConfigDescriptor) findOrCreate(tx Tx, lockFactory lock.LockFact
 	if !found {
 		hash := mapHash(r.Source)
 
+		valueMap := map[string]interface{}{
+			parentColumnName: parentID,
+			"source_hash":    hash,
+		}
+		if updateLastReferenced {
+			valueMap["last_referenced"] = sq.Expr("now()")
+		}
+		var updateLastReferencedStr string
+		if updateLastReferenced {
+			updateLastReferencedStr = `, last_referenced = now()`
+		}
 		err := psql.Insert("resource_configs").
-			Columns(
-				parentColumnName,
-				"source_hash",
-				"last_referenced",
-			).
-			Values(
-				parentID,
-				hash,
-				sq.Expr("now()"),
-			).
+			SetMap(valueMap).
 			Suffix(`
 				ON CONFLICT (`+parentColumnName+`, source_hash) DO UPDATE SET
 					`+parentColumnName+` = ?,
-					source_hash = ?,
-					last_referenced = now()
+					source_hash = ?`+
+				updateLastReferencedStr+`
 				RETURNING id, last_referenced
 			`, parentID, hash).
 			RunWith(tx).
@@ -185,6 +193,28 @@ func (r *ResourceConfigDescriptor) findOrCreate(tx Tx, lockFactory lock.LockFact
 	}
 
 	return rc, nil
+}
+
+func (r *ResourceConfigDescriptor) findWithParentID(tx Tx, rc *resourceConfig, parentColumnName string, parentID int) (bool, error) {
+	err := psql.Select("id", "last_referenced").
+		From("resource_configs").
+		Where(sq.Eq{
+			parentColumnName: parentID,
+			"source_hash":    mapHash(r.Source),
+		}).
+		Suffix("FOR SHARE").
+		RunWith(tx).
+		QueryRow().
+		Scan(&rc.id, &rc.lastReferenced)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+
+		return false, err
+	}
+
+	return true, nil
 }
 
 func (r *ResourceConfigDescriptor) updateLastReferenced(tx Tx, rc *resourceConfig, parentColumnName string, parentID int) (bool, error) {

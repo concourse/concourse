@@ -1201,7 +1201,7 @@ func (b *build) SaveOutput(
 		return err
 	}
 
-	resourceConfig, err := resourceConfigDescriptor.findOrCreate(tx, b.lockFactory, b.conn)
+	resourceConfig, err := resourceConfigDescriptor.findOrCreate(tx, b.lockFactory, b.conn, false)
 	if err != nil {
 		return err
 	}

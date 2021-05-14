@@ -3449,11 +3449,11 @@ var _ = Describe("Team", func() {
 			})
 		})
 
-		It("does not deadlock when concurrently setting pipelines and running checks", func() {
+		It("does not deadlock when concurrently setting pipelines and running checks/gets", func() {
 			// enable concurrent use of database. this is set to 1 by default to
 			// ensure methods don't require more than one in a single connection,
 			// which can cause deadlocking as the pool is limited.
-			dbConn.SetMaxOpenConns(3)
+			dbConn.SetMaxOpenConns(4)
 
 			config := atc.Config{
 				ResourceTypes: atc.ResourceTypes{
@@ -3520,10 +3520,31 @@ var _ = Describe("Team", func() {
 				}
 			})()
 
+			resource := scenario.Resource("some-resource")
 			go loopUntilTimeoutOrPanic("check resource", func(i int) {
 				scenario.Run(
-					builder.WithResourceVersions("some-resource", atc.Version{"v": strconv.Itoa(i / 10)}),
+					builder.WithResourceVersions(resource.Name(), atc.Version{"v": strconv.Itoa(i / 10)}),
 				)
+			})()
+
+			build, err := defaultJob.CreateBuild("some-user")
+			Expect(err).ToNot(HaveOccurred())
+
+			rt, err := scenario.Pipeline.ResourceTypes()
+			Expect(err).ToNot(HaveOccurred())
+
+			go loopUntilTimeoutOrPanic("get resource", func(i int) {
+				_, err := resourceCacheFactory.FindOrCreateResourceCache(
+					db.ForBuild(build.ID()),
+					resource.Type(),
+					atc.Version{"v": strconv.Itoa(i / 10)},
+					resource.Source(),
+					atc.Params{},
+					rt.Deserialize(),
+				)
+				if err != nil {
+					panic(err)
+				}
 			})()
 
 			go loopUntilTimeoutOrPanic("check resource type", func(i int) {

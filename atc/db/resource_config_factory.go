@@ -85,7 +85,7 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfig(
 	}
 	defer Rollback(tx)
 
-	resourceConfig, err := resourceConfigDescriptor.findOrCreate(tx, f.lockFactory, f.conn)
+	resourceConfig, err := resourceConfigDescriptor.findOrCreate(tx, f.lockFactory, f.conn, true)
 	if err != nil {
 		return nil, err
 	}
