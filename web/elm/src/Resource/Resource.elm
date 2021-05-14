@@ -87,7 +87,7 @@ import Message.Subscription as Subscription
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import Pinned exposing (ResourcePinState(..), VersionPinState(..))
 import RemoteData exposing (WebData)
-import Resource.Causality exposing (Entity, NodeType(..), buildGraph, viewCausality)
+import Resource.Causality exposing (NodeMetadata, NodeType(..), constructGraph, renderGraph)
 import Resource.Models as Models exposing (Model)
 import Resource.Styles
 import Routes
@@ -493,7 +493,7 @@ handleCallback callback session ( model, effects ) =
             let
                 -- only render the graph once upon fetching the data and store that to display
                 graph =
-                    Maybe.map (\vr -> buildGraph vr) causality
+                    Maybe.map (\vr -> constructGraph vr) causality
             in
             ( updateVersion versionID (\v -> { v | causality = graph }) model
             , effects
@@ -963,7 +963,7 @@ type alias VersionPresenter =
     , expanded : Bool
     , inputTo : List Concourse.Build
     , outputOf : List Concourse.Build
-    , causality : Maybe (Graph Entity ())
+    , causality : Maybe (Graph NodeMetadata ())
     , pinState : VersionPinState
     }
 
@@ -1815,7 +1815,7 @@ viewVersionBody :
     { a
         | inputTo : List Concourse.Build
         , outputOf : List Concourse.Build
-        , causality : Maybe (Graph Entity ())
+        , causality : Maybe (Graph NodeMetadata ())
         , metadata : Concourse.Metadata
     }
     -> Html Message
@@ -1826,7 +1826,7 @@ viewVersionBody { inputTo, outputOf, causality, metadata } =
         ]
         [ case causality of
             Just c ->
-                viewCausality c
+                renderGraph c
 
             Nothing ->
                 Html.text "no"
