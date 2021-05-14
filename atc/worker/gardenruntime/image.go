@@ -50,7 +50,7 @@ func (worker *Worker) fetchImageForContainer(
 			volumeOnWorker := volume.(Volume)
 			return worker.imageProvidedByPreviousStepOnSameWorker(ctx, logger, imageSpec.Privileged, teamID, container, volumeOnWorker)
 		} else {
-			return worker.imageProvidedByPreviousStepOnDifferentWorker(ctx, logger, imageSpec.Privileged, teamID, container, volume, srcWorker)
+			return worker.imageProvidedByPreviousStepOnDifferentWorker(ctx, logger, imageSpec.Privileged, teamID, container, volume)
 		}
 	}
 
@@ -117,14 +117,10 @@ func (worker *Worker) imageProvidedByPreviousStepOnDifferentWorker(
 	teamID int,
 	container db.CreatingContainer,
 	artifactVolume runtime.Volume,
-	workerName string,
 ) (FetchedImage, error) {
-	imageVolume, err := worker.findOrCreateVolumeForContainer(
+	streamedVolume, err := worker.findOrCreateVolumeForStreaming(
 		logger,
-		baggageclaim.VolumeSpec{
-			Strategy:   baggageclaim.EmptyStrategy{},
-			Privileged: privileged,
-		},
+		privileged,
 		container,
 		teamID,
 		"/",
@@ -134,11 +130,24 @@ func (worker *Worker) imageProvidedByPreviousStepOnDifferentWorker(
 		return FetchedImage{}, err
 	}
 
-	if err := worker.streamer.Stream(ctx, workerName, artifactVolume, imageVolume); err != nil {
+	if err := worker.streamer.Stream(ctx, artifactVolume, streamedVolume); err != nil {
 		logger.Error("failed-to-stream-image-artifact", err)
 		return FetchedImage{}, err
 	}
 	logger.Debug("streamed-non-local-image-volume")
+
+	imageVolume, err := worker.findOrCreateCOWVolumeForContainer(
+		logger,
+		privileged,
+		container,
+		streamedVolume,
+		teamID,
+		"/",
+	)
+	if err != nil {
+		logger.Error("failed-to-create-cow-volume-for-image", err)
+		return FetchedImage{}, err
+	}
 
 	imageMetadataReader, err := worker.streamer.StreamFile(ctx, artifactVolume, ImageMetadataFile)
 	if err != nil {

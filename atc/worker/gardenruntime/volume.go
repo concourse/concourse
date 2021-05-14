@@ -17,6 +17,11 @@ import (
 
 const creatingVolumeRetryDelay = 1 * time.Second
 
+// Prefix used to differentiate between streamed empty volumes (that aren't
+// mounted directly to containers) and the child COW volumes that we do mount
+// to containers
+const streamedVolumePathPrefix = "streamed-no-mount:"
+
 type Volume struct {
 	dbVolume db.CreatedVolume
 	bcVolume baggageclaim.Volume
@@ -41,6 +46,18 @@ func (v Volume) InitializeResourceCache(logger lager.Logger, cache db.UsedResour
 		return err
 	}
 	if err := v.dbVolume.InitializeResourceCache(cache); err != nil {
+		logger.Error("failed-to-initialize-resource-cache", err)
+		return err
+	}
+	return nil
+}
+
+func (v Volume) InitializeStreamedResourceCache(logger lager.Logger, cache db.UsedResourceCache, sourceWorker string) error {
+	if err := v.bcVolume.SetPrivileged(false); err != nil {
+		logger.Error("failed-to-set-unprivileged", err)
+		return err
+	}
+	if err := v.dbVolume.InitializeStreamedResourceCache(cache, sourceWorker); err != nil {
 		logger.Error("failed-to-initialize-resource-cache", err)
 		return err
 	}
@@ -170,6 +187,27 @@ func (worker *Worker) findOrCreateVolumeForContainer(
 		func() (db.CreatingVolume, error) {
 			return worker.db.VolumeRepo.CreateContainerVolume(teamID, worker.Name(), container, mountPath)
 		},
+	)
+}
+
+func (worker *Worker) findOrCreateVolumeForStreaming(
+	logger lager.Logger,
+	privileged bool,
+	container db.CreatingContainer,
+	teamID int,
+	mountPath string,
+) (Volume, error) {
+	return worker.findOrCreateVolumeForContainer(
+		logger,
+		baggageclaim.VolumeSpec{
+			Strategy:   baggageclaim.EmptyStrategy{},
+			Privileged: privileged,
+		},
+		container,
+		teamID,
+		// we prefix the mount path to distinguish between streamed-in volumes
+		// and mounted volumes.
+		streamedVolumePathPrefix+mountPath,
 	)
 }
 

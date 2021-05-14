@@ -474,11 +474,13 @@ var _ = Describe("Garden Worker", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		var streamedVolume *grt.Volume
-		By("validating the volume was streamed", func() {
-			var ok bool
-			streamedVolume, ok = findVolumeBy(worker, grt.ContentEq(imageVolume.Content))
-			Expect(ok).To(BeTrue())
-			Expect(streamedVolume).To(grt.HaveStrategy(baggageclaim.EmptyStrategy{}))
+		By("validating the volume was streamed and then COW'd", func() {
+			streamedParentVolume, ok := findVolumeBy(worker, grt.ContentEq(imageVolume.Content))
+			Expect(ok).To(BeTrue(), "streamed image volume not found")
+			Expect(streamedParentVolume).To(grt.HaveStrategy(baggageclaim.EmptyStrategy{}))
+
+			streamedVolume, ok = findVolumeBy(worker, grt.StrategyEq(baggageclaim.COWStrategy{Parent: streamedParentVolume}))
+			Expect(ok).To(BeTrue(), "image COW volume not found")
 		})
 
 		By("validating the container was created with the proper rootfs + metadata", func() {
@@ -568,17 +570,16 @@ var _ = Describe("Garden Worker", func() {
 		)
 		Expect(err).ToNot(HaveOccurred())
 
-		volumeMountMap := volumeMountMap(volumeMounts)
-		Expect(volumeMountMap).To(consistOfMap(expectMap{
+		remoteVolumeParent, ok := findVolumeBy(worker, grt.ContentEq(remoteInputVolume.Content))
+		Expect(ok).To(BeTrue(), "streamed remote input volume not found")
+
+		Expect(volumeMountMap(volumeMounts)).To(consistOfMap(expectMap{
 			"/scratch":               grt.HaveStrategy(baggageclaim.EmptyStrategy{}),
 			"/workdir":               grt.HaveStrategy(baggageclaim.EmptyStrategy{}),
 			"/local-input":           grt.HaveStrategy(baggageclaim.COWStrategy{Parent: localInputVolume1}),
 			"/local-input/sub-input": grt.HaveStrategy(baggageclaim.COWStrategy{Parent: localInputVolume2}),
-			"/remote-input": SatisfyAll(
-				grt.HaveStrategy(baggageclaim.EmptyStrategy{}),
-				grt.HaveContent(remoteInputVolume.Content),
-			),
-			"/output": grt.HaveStrategy(baggageclaim.EmptyStrategy{}),
+			"/remote-input":          grt.HaveStrategy(baggageclaim.COWStrategy{Parent: remoteVolumeParent}),
+			"/output":                grt.HaveStrategy(baggageclaim.EmptyStrategy{}),
 		}))
 
 		By("validating the IO mounts are sorted by path and appear after the scratch/workdir mounts", func() {
@@ -618,7 +619,7 @@ var _ = Describe("Garden Worker", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		resourceCache2 := scenario.FindOrCreateResourceCache("worker2", "container2")
-		err = scenario.WorkerVolume("worker2", "remote-volume").InitializeResourceCache(logger, resourceCache2)
+		err = scenario.WorkerVolume("worker2", "remote-volume").InitializeStreamedResourceCache(logger, resourceCache2, "worker1")
 		Expect(err).ToNot(HaveOccurred())
 
 		worker := scenario.Worker("worker1")

@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc/compression"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker/gardenruntime"
@@ -22,10 +21,11 @@ type Factory interface {
 type DefaultFactory struct {
 	DB DB
 
+	Streamer Streamer
+
 	GardenRequestTimeout              time.Duration
 	BaggageclaimResponseHeaderTimeout time.Duration
 	HTTPRetryTimeout                  time.Duration
-	Compression                       compression.Compression
 }
 
 func (f DefaultFactory) NewWorker(logger lager.Logger, dbWorker db.Worker) runtime.Worker {
@@ -57,6 +57,6 @@ func (f DefaultFactory) newGardenWorker(logger lager.Logger, dbWorker db.Worker)
 		gClient,
 		bcClient,
 		f.DB.ToGardenRuntimeDB(),
-		Streamer{Compression: f.Compression},
+		f.Streamer,
 	)
 }

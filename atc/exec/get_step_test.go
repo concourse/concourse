@@ -258,6 +258,59 @@ var _ = Describe("GetStep", func() {
 		))
 	})
 
+	Context("when there is already a resource cache present", func() {
+		var cacheVolume *runtimetest.Volume
+
+		BeforeEach(func() {
+			atc.EnableCacheStreamedVolumes = true
+
+			cacheVolume = runtimetest.NewVolume("cache-volume")
+			fakePool.FindResourceCacheVolumeReturns(cacheVolume, true, nil)
+			fakeResourceCacheFactory.ResourceCacheMetadataReturns(db.ResourceConfigMetadataFields{
+				{Name: "some", Value: "metadata"},
+			}, nil)
+		})
+
+		It("registers the volume as an artifact", func() {
+			artifact, found := artifactRepository.ArtifactFor(build.ArtifactName(getPlan.Name))
+			Expect(artifact).To(Equal(cacheVolume))
+			Expect(found).To(BeTrue())
+		})
+
+		It("stores the resource cache as the step result", func() {
+			var val interface{}
+			Expect(runState.Result(planID, &val)).To(BeTrue())
+			Expect(val).To(Equal(fakeResourceCache))
+		})
+
+		It("doesn't select a worker", func() {
+			Expect(fakePool.FindOrSelectWorkerCallCount()).To(Equal(0))
+		})
+
+		It("finishes with the correct version result", func() {
+			Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
+			_, exitStatus, versionResult := fakeDelegate.FinishedArgsForCall(0)
+			Expect(exitStatus).To(Equal(exec.ExitStatus(0)))
+			Expect(versionResult.Metadata).To(Equal([]atc.MetadataField{
+				{Name: "some", Value: "metadata"},
+			}))
+		})
+
+		It("logs a message to stderr", func() {
+			Expect(stderrBuf).To(gbytes.Say(`found.*cache`))
+		})
+
+		Context("when EnableCacheStreamedVolumes is disabled", func() {
+			BeforeEach(func() {
+				atc.EnableCacheStreamedVolumes = false
+			})
+
+			It("should run normal get step", func() {
+				Expect(fakePool.FindOrSelectWorkerCallCount()).To(Equal(1))
+			})
+		})
+	})
+
 	Describe("worker selection", func() {
 		var ctx context.Context
 		var workerSpec worker.Spec
@@ -535,7 +588,7 @@ var _ = Describe("GetStep", func() {
 		})
 	})
 
-	Context("when Client.RunGetStep returns a Failed GetResult", func() {
+	Context("when get script fails", func() {
 		BeforeEach(func() {
 			chosenContainer.ProcessDefs[0].Stub.ExitStatus = 1
 		})

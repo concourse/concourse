@@ -5,13 +5,11 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
 	grt "github.com/concourse/concourse/atc/worker/gardenruntime/gardenruntimetest"
-	"github.com/concourse/concourse/atc/worker/workerfakes"
 	"github.com/concourse/concourse/atc/worker/workertest"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -334,101 +332,91 @@ var _ = Describe("Pool", func() {
 		})
 	})
 
-	Describe("FindWorkersForResourceCache", func() {
-		var (
-			workerSpec WorkerSpec
+	Describe("FindResourceCacheVolume", func() {
+		Test("finds a resource cache volume among multiple workers", func() {
+			scenario := Setup(
+				workertest.WithWorkers(
+					grt.NewWorker("worker1").
+						WithDBContainersInState(grt.Creating, "container1").
+						WithVolumesCreatedInDBAndBaggageclaim(
+							grt.NewVolume("resource-cache-1"),
+						),
+					grt.NewWorker("worker2").
+						WithDBContainersInState(grt.Creating, "container2").
+						WithVolumesCreatedInDBAndBaggageclaim(
+							grt.NewVolume("resource-cache-2"),
+						),
+					grt.NewWorker("worker3"),
+				),
+			)
+			resourceCache := scenario.FindOrCreateResourceCache("worker1", "container1")
 
-			chosenWorkers []Worker
-			chooseErr     error
+			err := scenario.WorkerVolume("worker1", "resource-cache-1").InitializeResourceCache(logger, resourceCache)
+			Expect(err).ToNot(HaveOccurred())
 
-			incompatibleWorker *workerfakes.FakeWorker
-			compatibleWorker   *workerfakes.FakeWorker
-		)
+			err = scenario.WorkerVolume("worker2", "resource-cache-2").InitializeResourceCache(logger, resourceCache)
+			Expect(err).ToNot(HaveOccurred())
 
-		BeforeEach(func() {
-			workerSpec = WorkerSpec{
-				ResourceType: "some-type",
-				TeamID:       4567,
-				Tags:         atc.Tags{"some-tag"},
-			}
-
-			incompatibleWorker = new(workerfakes.FakeWorker)
-			incompatibleWorker.SatisfiesReturns(false)
-
-			compatibleWorker = new(workerfakes.FakeWorker)
-			compatibleWorker.SatisfiesReturns(true)
+			cacheVolume, found, err := scenario.Pool.FindResourceCacheVolume(logger, 0, resourceCache, worker.Spec{})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(cacheVolume.Handle()).To(BeOneOf("resource-cache-1", "resource-cache-2"))
 		})
 
-		JustBeforeEach(func() {
-			chosenWorkers, chooseErr = pool.FindWorkersForResourceCache(
-				logger,
-				4567,
-				1234,
-				workerSpec,
+		Test("skips over workers with volume missing", func() {
+			scenario := Setup(
+				workertest.WithWorkers(
+					grt.NewWorker("worker1").
+						WithDBContainersInState(grt.Creating, "container1").
+						WithVolumesCreatedInDBAndBaggageclaim(
+							grt.NewVolume("resource-cache-1"),
+						),
+					grt.NewWorker("worker2").
+						WithDBContainersInState(grt.Creating, "container2").
+						WithVolumesCreatedInDBAndBaggageclaim(
+							grt.NewVolume("resource-cache-2"),
+						),
+					grt.NewWorker("worker3"),
+				),
 			)
+			resourceCache := scenario.FindOrCreateResourceCache("worker1", "container1")
+
+			err := scenario.WorkerVolume("worker1", "resource-cache-1").InitializeResourceCache(logger, resourceCache)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = scenario.WorkerVolume("worker2", "resource-cache-2").InitializeResourceCache(logger, resourceCache)
+			Expect(err).ToNot(HaveOccurred())
+
+			By("destroying one of the worker's resource cache volumes", func() {
+				_, err := scenario.WorkerVolume("worker1", "resource-cache-1").DBVolume().Destroying()
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			cacheVolume, found, err := scenario.Pool.FindResourceCacheVolume(logger, 0, resourceCache, worker.Spec{})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(cacheVolume.Handle()).To(Equal("resource-cache-2"))
 		})
 
-		Context("when workers are found with the resource cache", func() {
-			var (
-				workerA *workerfakes.FakeWorker
-				workerB *workerfakes.FakeWorker
-				workerC *workerfakes.FakeWorker
+		Test("skips over stalled workers", func() {
+			scenario := Setup(
+				workertest.WithWorkers(
+					grt.NewWorker("worker1").
+						WithDBContainersInState(grt.Creating, "container1").
+						WithVolumesCreatedInDBAndBaggageclaim(
+							grt.NewVolume("resource-cache-1"),
+						).
+						WithState(db.WorkerStateStalled),
+				),
 			)
+			resourceCache := scenario.FindOrCreateResourceCache("worker1", "container1")
 
-			BeforeEach(func() {
-				workerA = new(workerfakes.FakeWorker)
-				workerA.NameReturns("workerA")
-				workerB = new(workerfakes.FakeWorker)
-				workerB.NameReturns("workerB")
-				workerC = new(workerfakes.FakeWorker)
-				workerC.NameReturns("workerC")
+			err := scenario.WorkerVolume("worker1", "resource-cache-1").InitializeResourceCache(logger, resourceCache)
+			Expect(err).ToNot(HaveOccurred())
 
-				fakeProvider.FindWorkersForResourceCacheReturns([]Worker{workerA, workerB, workerC}, nil)
-			})
-
-			Context("when one of the workers satisfy the spec", func() {
-				BeforeEach(func() {
-					workerA.SatisfiesReturns(true)
-					workerB.SatisfiesReturns(false)
-					workerC.SatisfiesReturns(false)
-				})
-
-				It("succeeds and returns the compatible worker with the resource cache", func() {
-					Expect(chooseErr).NotTo(HaveOccurred())
-					Expect(len(chosenWorkers)).To(Equal(1))
-					Expect(chosenWorkers[0].Name()).To(Equal(workerA.Name()))
-				})
-			})
-
-			Context("when multiple workers satisfy the spec", func() {
-				BeforeEach(func() {
-					workerA.SatisfiesReturns(true)
-					workerB.SatisfiesReturns(true)
-					workerC.SatisfiesReturns(false)
-				})
-
-				It("succeeds and returns the first compatible worker with the container", func() {
-					Expect(chooseErr).NotTo(HaveOccurred())
-					Expect(len(chosenWorkers)).To(Equal(2))
-					Expect(chosenWorkers[0].Name()).To(Equal(workerA.Name()))
-					Expect(chosenWorkers[1].Name()).To(Equal(workerB.Name()))
-				})
-			})
-
-			Context("when the worker that has the resource cache does not satisfy the spec", func() {
-				BeforeEach(func() {
-					workerA.SatisfiesReturns(true)
-					workerB.SatisfiesReturns(true)
-					workerC.SatisfiesReturns(false)
-
-					fakeProvider.FindWorkersForResourceCacheReturns([]Worker{workerC}, nil)
-				})
-
-				It("returns empty worker list", func() {
-					Expect(chooseErr).ToNot(HaveOccurred())
-					Expect(chosenWorkers).To(BeEmpty())
-				})
-			})
+			_, found, err := scenario.Pool.FindResourceCacheVolume(logger, 0, resourceCache, worker.Spec{})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeFalse())
 		})
 	})
 })

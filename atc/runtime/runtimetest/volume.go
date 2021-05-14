@@ -25,10 +25,11 @@ type VolumeContent fstest.MapFS
 type Volume struct {
 	Content VolumeContent
 
-	VolumeHandle             string
-	ResourceCacheInitialized bool
-	TaskCacheInitialized     bool
-	DBVolume_                *dbfakes.FakeCreatedVolume
+	VolumeHandle              string
+	ResourceCacheInitialized  bool
+	ResourceCacheStreamedFrom string
+	TaskCacheInitialized      bool
+	DBVolume_                 *dbfakes.FakeCreatedVolume
 }
 
 func NewVolume(handle string) *Volume {
@@ -60,6 +61,12 @@ func (v Volume) StreamOut(ctx context.Context, path string, compression compress
 
 func (v *Volume) InitializeResourceCache(_ lager.Logger, _ db.UsedResourceCache) error {
 	v.ResourceCacheInitialized = true
+	return nil
+}
+
+func (v *Volume) InitializeStreamedResourceCache(_ lager.Logger, _ db.UsedResourceCache, workerName string) error {
+	v.ResourceCacheInitialized = true
+	v.ResourceCacheStreamedFrom = workerName
 	return nil
 }
 

@@ -7,6 +7,7 @@ import (
 	"io"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
@@ -22,7 +23,7 @@ import (
 )
 
 type Streamer interface {
-	Stream(ctx context.Context, srcWorker string, src runtime.Volume, dst runtime.Volume) error
+	Stream(ctx context.Context, src runtime.Volume, dst runtime.Volume) error
 	StreamFile(ctx context.Context, src runtime.Volume, path string) (io.ReadCloser, error)
 }
 
@@ -255,9 +256,12 @@ func (worker *Worker) constructContainer(
 		return Container{}, nil, err
 	}
 
-	volumeMounts := make([]runtime.VolumeMount, len(createdVolumes))
-
-	for i, dbVolume := range createdVolumes {
+	var volumeMounts []runtime.VolumeMount
+	for _, dbVolume := range createdVolumes {
+		if strings.HasPrefix(dbVolume.Path(), streamedVolumePathPrefix) {
+			// streamed volumes aren't directly mounted to the container
+			continue
+		}
 		volumeLogger := logger.Session("volume", lager.Data{
 			"handle": dbVolume.Handle(),
 		})
@@ -277,19 +281,21 @@ func (worker *Worker) constructContainer(
 			return Container{}, nil, err
 		}
 
-		volumeMounts[i] = runtime.VolumeMount{
+		volumeMounts = append(volumeMounts, runtime.VolumeMount{
 			Volume:    volume.(Volume),
 			MountPath: dbVolume.Path(),
-		}
+		})
 	}
 	return Container{GardenContainer: gardenContainer, DBContainer_: createdContainer}, volumeMounts, nil
 }
 
 // creates volumes required to run any step:
-// * scratch
-// * working dir (i.e. spec.Dir)
+// * scratch (empty volume)
+// * working dir (i.e. spec.Dir, empty volume)
 // * inputs
-// * outputs
+//   * local volumes are COW'd
+//   * remote volumes are streamed into an empty volume, then COW'd (only COW is mounted)
+// * outputs (empty volumes)
 // * caches (COW if exists, empty otherwise)
 func (worker *Worker) createVolumes(
 	ctx context.Context,
@@ -373,9 +379,8 @@ type mountableLocalInput struct {
 	mountPath string
 }
 
-type mountableRemoteInput struct {
+type remoteInput struct {
 	volume    runtime.Volume
-	srcWorker string
 	mountPath string
 }
 
@@ -389,7 +394,7 @@ func (worker *Worker) cloneInputVolumes(
 	inputDestinationPaths := make(map[string]bool)
 
 	var localInputs []mountableLocalInput
-	var remoteInputs []mountableRemoteInput
+	var remoteInputs []remoteInput
 
 	for _, input := range spec.Inputs {
 		volume, err := worker.volumeOrLocalResourceCache(logger, spec.TeamID, input.Volume)
@@ -407,27 +412,28 @@ func (worker *Worker) cloneInputVolumes(
 				mountPath: input.DestinationPath,
 			})
 		} else {
-			remoteInputs = append(remoteInputs, mountableRemoteInput{
+			remoteInputs = append(remoteInputs, remoteInput{
 				volume:    volume,
-				srcWorker: srcWorker,
 				mountPath: input.DestinationPath,
 			})
 		}
 	}
 
-	mounts := make([]runtime.VolumeMount, 0, len(localInputs)+len(remoteInputs))
-
-	localMounts, err := worker.cloneLocalInputVolumes(logger, spec, privileged, container, localInputs)
+	locallyClonedVolumes, err := worker.streamRemoteInputVolumes(ctx, logger, spec, privileged, container, remoteInputs)
 	if err != nil {
 		return nil, nil, err
 	}
-	mounts = append(mounts, localMounts...)
+	// after we stream the remote volumes, they become "local" inputs. note
+	// that we can't mount the streamed volumes directly, since those streamed
+	// volumes may be cached locally - if we were to mount the raw volume and
+	// if the container modifies the volume in any way, it'd affect subsequent
+	// steps.
+	localInputs = append(localInputs, locallyClonedVolumes...)
 
-	remoteMounts, err := worker.cloneRemoteInputVolumes(ctx, logger, spec, privileged, container, remoteInputs)
+	mounts, err := worker.cloneLocalInputVolumes(logger, spec, privileged, container, localInputs)
 	if err != nil {
 		return nil, nil, err
 	}
-	mounts = append(mounts, remoteMounts...)
 
 	return mounts, inputDestinationPaths, nil
 }
@@ -462,20 +468,20 @@ func (worker *Worker) cloneLocalInputVolumes(
 	return mounts, nil
 }
 
-func (worker *Worker) cloneRemoteInputVolumes(
+func (worker *Worker) streamRemoteInputVolumes(
 	ctx context.Context,
 	logger lager.Logger,
 	spec runtime.ContainerSpec,
 	privileged bool,
 	container db.CreatingContainer,
-	inputs []mountableRemoteInput,
-) ([]runtime.VolumeMount, error) {
+	inputs []remoteInput,
+) ([]mountableLocalInput, error) {
 	if len(inputs) == 0 {
-		return []runtime.VolumeMount{}, nil
+		return nil, nil
 	}
-	mounts := make([]runtime.VolumeMount, len(inputs))
+	mounts := make([]mountableLocalInput, len(inputs))
 
-	ctx, span := tracing.StartSpan(ctx, "worker.cloneRemoteVolumes", tracing.Attrs{"container_id": container.Handle()})
+	ctx, span := tracing.StartSpan(ctx, "worker.streamRemoteInputVolumes", tracing.Attrs{"container_id": container.Handle()})
 	defer span.End()
 
 	g, groupCtx := errgroup.WithContext(ctx)
@@ -484,12 +490,17 @@ func (worker *Worker) cloneRemoteInputVolumes(
 		// capture loop vars so each goroutine gets its own copy
 		i, input := i, input
 
-		inputVolume, err := worker.findOrCreateVolumeForContainer(
+		// create an empty volume to stream-in the remote volume. this volume
+		// will only be used as a parent volume (i.e. it won't be directly
+		// mounted to a container) - this is because it may be saved as a
+		// resource cache.
+		//
+		// we use a unique mount path used as a search criteria in
+		// findOrCreateVolumeForContainer so we can distinguish between
+		// streamed-in volumes and mounted volumes.
+		streamedVolume, err := worker.findOrCreateVolumeForStreaming(
 			logger,
-			baggageclaim.VolumeSpec{
-				Strategy:   baggageclaim.EmptyStrategy{},
-				Privileged: privileged,
-			},
+			privileged,
 			container,
 			spec.TeamID,
 			input.mountPath,
@@ -498,13 +509,13 @@ func (worker *Worker) cloneRemoteInputVolumes(
 			return nil, err
 		}
 
-		mounts[i] = runtime.VolumeMount{
-			Volume:    inputVolume,
-			MountPath: input.mountPath,
+		mounts[i] = mountableLocalInput{
+			cowParent: streamedVolume,
+			mountPath: input.mountPath,
 		}
 
 		g.Go(func() error {
-			return worker.streamer.Stream(groupCtx, input.srcWorker, input.volume, inputVolume)
+			return worker.streamer.Stream(groupCtx, input.volume, streamedVolume)
 		})
 	}
 

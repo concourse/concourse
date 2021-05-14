@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math/rand"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
@@ -205,9 +204,8 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 	// Only get from local cache if caching streamed volumes is enabled -
 	// otherwise, we'd need to stream volumes between workers much more
 	// frequently.
-	// TODO: need to update this when we re-implement streamed volume caching
 	if atc.EnableCacheStreamedVolumes {
-		getResult, found, err := step.getFromLocalCache(logger, step.metadata.TeamID, resourceCache, workerSpec)
+		volume, versionResult, found, err := step.getFromLocalCache(logger, step.metadata.TeamID, resourceCache, workerSpec)
 		if err != nil {
 			return false, err
 		}
@@ -220,17 +218,17 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 
 			state.ArtifactRepository().RegisterArtifact(
 				build.ArtifactName(step.plan.Name),
-				getResult.GetArtifact,
+				volume,
 			)
 
 			if step.plan.Resource != "" {
-				delegate.UpdateVersion(logger, step.plan, getResult.VersionResult)
+				delegate.UpdateVersion(logger, step.plan, versionResult)
 			}
 
 			delegate.Finished(
 				logger,
-				ExitStatus(getResult.ExitStatus),
-				getResult.VersionResult,
+				ExitStatus(0),
+				versionResult,
 			)
 
 			metric.Metrics.GetStepCacheHits.Inc()
@@ -319,57 +317,21 @@ func (step *GetStep) getFromLocalCache(
 	teamId int,
 	resourceCache db.UsedResourceCache,
 	workerSpec worker.Spec,
-) (worker.GetResult, bool, error) {
-	volume, found := step.findResourceCache(logger, teamId, resourceCache, workerSpec)
+) (runtime.Volume, resource.VersionResult, bool, error) {
+	volume, found, err := step.workerPool.FindResourceCacheVolume(logger, teamId, resourceCache, workerSpec)
+	if err != nil {
+		return nil, resource.VersionResult{}, false, err
+	}
 	if !found {
-		return worker.GetResult{}, false, nil
+		return nil, resource.VersionResult{}, false, nil
 	}
 	metadata, err := step.resourceCacheFactory.ResourceCacheMetadata(resourceCache)
 	if err != nil {
-		return worker.GetResult{}, false, err
+		return nil, resource.VersionResult{}, false, err
 	}
-	return worker.GetResult{
-		ExitStatus: 0,
-		VersionResult: runtime.VersionResult{
-			Version:  resourceCache.Version(),
-			Metadata: metadata.ToATCMetadata(),
-		},
-		GetArtifact: runtime.GetArtifact{volume.Handle()},
-	}, true, nil
-}
-
-func (step *GetStep) findResourceCache(
-	logger lager.Logger,
-	teamId int,
-	resourceCache db.UsedResourceCache,
-	workerSpec worker.WorkerSpec) (worker.Volume, bool) {
-	workers, err := step.workerPool.FindWorkersForResourceCache(logger, teamId, resourceCache.ID(), workerSpec)
-	if err != nil {
-		return nil, false
+	result := resource.VersionResult{
+		Version:  resourceCache.Version(),
+		Metadata: metadata.ToATCMetadata(),
 	}
-
-	// Randomize worker order so that the same worker doesn't have to perform
-	// the streaming constantly
-	rand.Shuffle(len(workers), func(i, j int) {
-		workers[i], workers[j] = workers[j], workers[i]
-	})
-
-	for _, sourceWorker := range workers {
-		volume, found, err := sourceWorker.FindVolumeForResourceCache(logger, resourceCache)
-		if err != nil {
-			logger.Debug("ignore-find-volume-for-resource-cache-error",
-				lager.Data{
-					"error":           err,
-					"sourceWorker":    sourceWorker,
-					"resourceCacheId": resourceCache.ID(),
-				})
-			continue
-		}
-		if !found {
-			continue
-		}
-		return volume, true
-	}
-
-	return nil, false
+	return volume, result, true, nil
 }

@@ -152,6 +152,53 @@ func (pool Pool) ReleaseWorker(logger lager.Logger, containerSpec runtime.Contai
 	}
 }
 
+func (pool Pool) FindResourceCacheVolume(logger lager.Logger, teamID int, resourceCache db.UsedResourceCache, workerSpec Spec) (runtime.Volume, bool, error) {
+	team := pool.db.TeamFactory.GetByID(teamID)
+	workersWithCache, err := team.FindWorkersForResourceCache(resourceCache.ID())
+	if err != nil {
+		return nil, false, err
+	}
+
+	// randomize the order of workers so that the same worker isn't used all
+	// the time for streaming
+	rand.Shuffle(len(workersWithCache), func(i, j int) {
+		workersWithCache[i], workersWithCache[j] = workersWithCache[j], workersWithCache[i]
+	})
+
+	for _, worker := range workersWithCache {
+		if pool.isWorkerCompatibleAndRunning(logger, worker, workerSpec) {
+			volume, found, err := pool.findResourceCacheVolumeOnWorker(logger, worker, resourceCache)
+			if err != nil {
+				logger.Debug("ignore-find-volume-for-resource-cache-error",
+					lager.Data{
+						"error":             err,
+						"worker":            worker.Name(),
+						"resource-cache-id": resourceCache.ID(),
+					})
+				continue
+			}
+			if !found {
+				continue
+			}
+			return volume, true, nil
+		}
+	}
+
+	return nil, false, nil
+}
+
+func (pool Pool) findResourceCacheVolumeOnWorker(logger lager.Logger, dbWorker db.Worker, resourceCache db.UsedResourceCache) (runtime.Volume, bool, error) {
+	volume, found, err := pool.db.VolumeRepo.FindResourceCacheVolume(dbWorker.Name(), resourceCache)
+	if err != nil {
+		return nil, false, err
+	}
+	if !found {
+		return nil, false, nil
+	}
+	worker := pool.factory.NewWorker(logger, dbWorker)
+	return worker.LookupVolume(logger, volume.Handle())
+}
+
 func (pool Pool) FindWorkerForContainer(logger lager.Logger, owner db.ContainerOwner, workerSpec Spec) (runtime.Worker, bool, error) {
 	worker, _, found, err := pool.findWorkerForContainer(logger, owner, workerSpec)
 	if err != nil {
@@ -169,7 +216,7 @@ func (pool Pool) findWorkerForContainer(logger lager.Logger, owner db.ContainerO
 		return nil, nil, false, err
 	}
 
-	compatibleWorkers, err := pool.allCompatible(logger, workerSpec)
+	compatibleWorkers, err := pool.allCompatibleAndRunningWorkers(logger, workerSpec)
 	if err != nil {
 		return nil, nil, false, err
 	}
@@ -267,7 +314,7 @@ func (pool Pool) LocateContainer(logger lager.Logger, teamID int, handle string)
 }
 
 func (pool Pool) CreateVolumeForArtifact(logger lager.Logger, spec Spec) (runtime.Volume, db.WorkerArtifact, error) {
-	compatibleWorkers, err := pool.allCompatible(logger, spec)
+	compatibleWorkers, err := pool.allCompatibleAndRunningWorkers(logger, spec)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -276,7 +323,7 @@ func (pool Pool) CreateVolumeForArtifact(logger lager.Logger, spec Spec) (runtim
 	return worker.CreateVolumeForArtifact(logger, spec.TeamID)
 }
 
-func (pool Pool) allCompatible(logger lager.Logger, spec Spec) ([]db.Worker, error) {
+func (pool Pool) allCompatibleAndRunningWorkers(logger lager.Logger, spec Spec) ([]db.Worker, error) {
 	workers, err := pool.db.WorkerFactory.Workers()
 	if err != nil {
 		return nil, err
@@ -289,8 +336,7 @@ func (pool Pool) allCompatible(logger lager.Logger, spec Spec) ([]db.Worker, err
 	var compatibleTeamWorkers []db.Worker
 	var compatibleGeneralWorkers []db.Worker
 	for _, worker := range workers {
-		compatible := pool.isWorkerCompatible(logger, worker, spec)
-		if worker.State() == db.WorkerStateRunning && compatible {
+		if pool.isWorkerCompatibleAndRunning(logger, worker, spec) {
 			if worker.TeamID() != 0 {
 				compatibleTeamWorkers = append(compatibleTeamWorkers, worker)
 			} else {
@@ -347,7 +393,11 @@ func (pool Pool) isWorkerVersionCompatible(logger lager.Logger, dbWorker db.Work
 	}
 }
 
-func (pool Pool) isWorkerCompatible(logger lager.Logger, worker db.Worker, spec Spec) bool {
+func (pool Pool) isWorkerCompatibleAndRunning(logger lager.Logger, worker db.Worker, spec Spec) bool {
+	if worker.State() != db.WorkerStateRunning {
+		return false
+	}
+
 	if !pool.isWorkerVersionCompatible(logger, worker) {
 		return false
 	}

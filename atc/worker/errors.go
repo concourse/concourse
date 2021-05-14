@@ -25,3 +25,12 @@ type NoWorkerFitContainerPlacementStrategyError struct {
 func (err NoWorkerFitContainerPlacementStrategyError) Error() string {
 	return fmt.Sprintf("no worker fit container placement strategy: %s", err.Strategy)
 }
+
+type StreamingResourceCacheNotFoundError struct {
+	Handle          string
+	ResourceCacheID int
+}
+
+func (e StreamingResourceCacheNotFoundError) Error() string {
+	return fmt.Sprintf("resource cache not found (id %d, volume handle %s)", e.ResourceCacheID, e.Handle)
+}

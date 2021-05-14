@@ -4,6 +4,7 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/compression"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbtest"
 	"github.com/concourse/concourse/atc/db/lock"
@@ -149,4 +150,8 @@ func (s *Scenario) ContainerVolume(workerName string, containerHandle string, mo
 	Expect(err).ToNot(HaveOccurred())
 
 	return creating, created
+}
+
+func (s *Scenario) Streamer(p2p worker.P2PConfig) worker.Streamer {
+	return worker.NewStreamer(s.Factory.DB.ResourceCacheFactory, compression.NewGzipCompression(), p2p)
 }

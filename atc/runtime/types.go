@@ -294,7 +294,12 @@ type Volume interface {
 
 	// InitializeResourceCache is called upon a successful run of the get step
 	// to register this Volume as a resource cache.
-	InitializeResourceCache(lager.Logger, db.UsedResourceCache) error
+	InitializeResourceCache(logger lager.Logger, urc db.UsedResourceCache) error
+
+	// InitializeStreamedResourceCache is called when an external resource
+	// cache volume is streamed locally to register this volume as a resource
+	// cache.
+	InitializeStreamedResourceCache(logger lager.Logger, urc db.UsedResourceCache, workerName string) error
 
 	// InitializeTaskCache is called upon a successful run of the task step to
 	// register this Volume as a task cache.
@@ -308,9 +313,6 @@ type Volume interface {
 // Volumes implement this interface, then the P2P streaming methods will be
 // used.
 type P2PVolume interface {
-	// Handle gives the globally unique ID of the Volume.
-	Handle() string
-
 	// GetStreamInP2PURL gives a URL which, if you POST to with a compressed
 	// tar stream (using the encoding format specified by the
 	// `Content-Encoding` header parameter - either "gzip" or "zstd"), will

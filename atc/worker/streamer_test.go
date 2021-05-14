@@ -4,7 +4,8 @@ import (
 	"context"
 	"io/ioutil"
 
-	"github.com/concourse/concourse/atc/compression"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/runtime/runtimetest"
 	"github.com/concourse/concourse/atc/worker"
@@ -34,18 +35,116 @@ var _ = Describe("Streamer", func() {
 			),
 		)
 
-		streamer := worker.Streamer{
-			Compression: compression.NewGzipCompression(),
-		}
+		streamer := scenario.Streamer(worker.P2PConfig{
+			Enabled: false,
+		})
 
 		ctx := context.Background()
 		src := scenario.WorkerVolume("src-worker", "src")
 		dst := scenario.WorkerVolume("dst-worker", "dst")
 
-		err := streamer.Stream(ctx, "src-worker", src, dst)
+		err := streamer.Stream(ctx, src, dst)
 		Expect(err).ToNot(HaveOccurred())
 
 		Expect(baggageclaimVolume(dst)).To(grt.HaveContent(content))
+	})
+
+	Test("stream a resource cache volume", func() {
+		atc.EnableCacheStreamedVolumes = true
+
+		scenario := Setup(
+			workertest.WithWorkers(
+				grt.NewWorker("src-worker").
+					WithDBContainersInState(grt.Creating, "container1").
+					WithVolumesCreatedInDBAndBaggageclaim(
+						grt.NewVolume("src"),
+					),
+				grt.NewWorker("dst-worker").
+					WithVolumesCreatedInDBAndBaggageclaim(
+						grt.NewVolume("dst"),
+					),
+			),
+		)
+
+		streamer := scenario.Streamer(worker.P2PConfig{
+			Enabled: false,
+		})
+
+		ctx := context.Background()
+		src := scenario.WorkerVolume("src-worker", "src")
+		dst := scenario.WorkerVolume("dst-worker", "dst")
+
+		By("setting the dst volume as privileged", func() {
+			err := baggageclaimVolume(dst).SetPrivileged(true)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		var resourceCache db.UsedResourceCache
+		By("initializing src as a resource cache", func() {
+			resourceCache = scenario.FindOrCreateResourceCache("src-worker", "container1")
+			err := src.InitializeResourceCache(logger, resourceCache)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		err := streamer.Stream(ctx, src, dst)
+		Expect(err).ToNot(HaveOccurred())
+
+		By("validating the volume was marked as a resource cache on the dst worker", func() {
+			volume, found, err := scenario.DBBuilder.VolumeRepo.FindResourceCacheVolume("dst-worker", resourceCache)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(volume.Handle()).To(Equal(dst.Handle()))
+		})
+
+		By("validating the volume was marked as non-privileged", func() {
+			// This test is specific to the gardenruntime - however, it's being
+			// used to ensure we shell out to the runtime-specific
+			// `InitializeResourceCache` method rather than on the DB volume
+			// directly, since that could lead to subtle bugs.
+			Expect(baggageclaimVolume(dst).Spec.Privileged).To(BeFalse(), "should have called the runtime specific InitializeResourceCache method")
+		})
+	})
+
+	Test("does not cache streamed volumes when setting is disabled", func() {
+		atc.EnableCacheStreamedVolumes = false
+
+		scenario := Setup(
+			workertest.WithWorkers(
+				grt.NewWorker("src-worker").
+					WithDBContainersInState(grt.Creating, "container1").
+					WithVolumesCreatedInDBAndBaggageclaim(
+						grt.NewVolume("src"),
+					),
+				grt.NewWorker("dst-worker").
+					WithVolumesCreatedInDBAndBaggageclaim(
+						grt.NewVolume("dst"),
+					),
+			),
+		)
+
+		streamer := scenario.Streamer(worker.P2PConfig{
+			Enabled: false,
+		})
+
+		ctx := context.Background()
+		src := scenario.WorkerVolume("src-worker", "src")
+		dst := scenario.WorkerVolume("dst-worker", "dst")
+
+		var resourceCache db.UsedResourceCache
+		By("initializing src as a resource cache", func() {
+			resourceCache = scenario.FindOrCreateResourceCache("src-worker", "container1")
+			err := src.InitializeResourceCache(logger, resourceCache)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		err := streamer.Stream(ctx, src, dst)
+		Expect(err).ToNot(HaveOccurred())
+
+		By("validating the volume was NOT marked as a resource cache on the dst worker", func() {
+			_, found, err := scenario.DBBuilder.VolumeRepo.FindResourceCacheVolume("dst-worker", resourceCache)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeFalse())
+		})
 	})
 
 	Test("P2P stream between workers", func() {
@@ -66,16 +165,15 @@ var _ = Describe("Streamer", func() {
 			),
 		)
 
-		streamer := worker.Streamer{
-			Compression:        compression.NewGzipCompression(),
-			EnableP2PStreaming: true,
-		}
+		streamer := scenario.Streamer(worker.P2PConfig{
+			Enabled: true,
+		})
 
 		ctx := context.Background()
 		src := scenario.WorkerVolume("src-worker", "src")
 		dst := scenario.WorkerVolume("dst-worker", "dst")
 
-		err := streamer.Stream(ctx, "src-worker", src, dst)
+		err := streamer.Stream(ctx, src, dst)
 		Expect(err).ToNot(HaveOccurred())
 
 		Expect(baggageclaimVolume(dst)).To(grt.HaveContent(content))
@@ -95,9 +193,9 @@ var _ = Describe("Streamer", func() {
 			),
 		)
 
-		streamer := worker.Streamer{
-			Compression: compression.NewGzipCompression(),
-		}
+		streamer := scenario.Streamer(worker.P2PConfig{
+			Enabled: false,
+		})
 
 		ctx := context.Background()
 		src := scenario.WorkerVolume("src-worker", "src")
