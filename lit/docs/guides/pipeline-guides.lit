@@ -123,7 +123,58 @@
   }
 
   \section{
-    \title{Fetching Images Instead of using Anonymous Image Resources}
+    \title{\code{Get} Images for Tasks Instead of using Anonymous Image Resources}
+
+    It is easy to let Concourse fetch images for tasks right when they are
+    needed, it's the easy out-of-the-box solution. Another way is to pass the
+    image(s) for tasks as inputs to jobs.
+
+    \bold{Before - Anonymous Image Fetching for Tasks}
+
+    \codeblock{yaml}{{
+    jobs:
+    - name: job
+      plan:
+      - task: simple-task
+        config:
+          platform: linux
+          image_resource: # anonymous image resource
+            type: registry-image
+            source: { repository: busybox }
+          run:
+            path: echo
+            args: ["Hello world!"]
+    }}
+
+    \inset{} {- spacer -}
+
+    \bold{After - Passing Task Image as Job Inputs}
+
+    \codeblock{yaml}{{
+    resources:
+    - name: busybox
+      type: registry-image
+      source:
+        repository: busybox
+        username: ((docker.user))
+        password: ((docker.password))
+
+    jobs:
+    - name: job
+      plan:
+      - get: busybox # pass image into job
+      - task: simple-task
+        image: busybox # use image for task. Overrides anonymous image
+        config:
+          platform: linux
+          image_resource: # overridden by step-level "image" field
+            type: registry-image
+            source:
+              repository: busybox
+          run:
+            path: echo
+            args: ["Hello world!"]
+    }}
   }
 }
 
