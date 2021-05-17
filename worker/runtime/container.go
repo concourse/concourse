@@ -345,6 +345,7 @@ func (c *Container) setupContainerdProcSpec(gdnProcSpec garden.ProcessSpec, cont
 	procSpec := containerSpec.Process
 
 	procSpec.Args = append([]string{gdnProcSpec.Path}, gdnProcSpec.Args...)
+	procSpec.Env = append(procSpec.Env, gdnProcSpec.Env...)
 
 	cwd := gdnProcSpec.Dir
 	if cwd == "" {
@@ -379,11 +380,23 @@ func (c *Container) setupContainerdProcSpec(gdnProcSpec garden.ProcessSpec, cont
 		procSpec.Env = append(procSpec.Env, setUserEnv)
 	}
 
-	procSpec.Env = append(procSpec.Env, usersPath(procSpec.User.UID))
+	if pathEnv := envWithDefaultPath(procSpec.User.UID, procSpec.Env); pathEnv != "" {
+		procSpec.Env = append(procSpec.Env, pathEnv)
+	}
+
 	return *procSpec, nil
 }
 
-func usersPath(uid uint32) string {
+// Set a default path based on the UID if no existing PATH is found
+//
+func envWithDefaultPath(uid uint32, currentEnv []string) string {
+	pathRegexp := regexp.MustCompile("^PATH=.*$")
+	for _, envVar := range currentEnv {
+		if pathRegexp.MatchString(envVar) {
+			return ""
+		}
+	}
+
 	if uid == 0 {
 		return SuperuserPath
 	}

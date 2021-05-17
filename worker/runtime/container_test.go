@@ -241,6 +241,42 @@ func (s *ContainerSuite) TestRunWithUserLookupSucceeds() {
 	s.True(userEnvVarSet)
 }
 
+func (s *ContainerSuite) TestDoesNotOverwriteExistingPathInImage() {
+	s.containerdContainer.SpecReturns(&specs.Spec{
+		Process: &specs.Process{},
+		Root:    &specs.Root{},
+	}, nil)
+
+	s.containerdContainer.TaskReturns(s.containerdTask, nil)
+	s.containerdTask.ExecReturns(s.containerdProcess, nil)
+
+	expectedUser := specs.User{UID: 0, GID: 0, Username: "root"}
+	s.rootfsManager.LookupUserReturns(expectedUser, true, nil)
+
+	expectedImagePath := "PATH=/usr/local/image-path"
+	_, err := s.container.Run(
+		garden.ProcessSpec{
+			User: "root",
+			Env:  []string{expectedImagePath},
+		},
+		garden.ProcessIO{},
+	)
+	s.NoError(err)
+
+	_, _, procSpec, _ := s.containerdTask.ExecArgsForCall(0)
+	s.Equal(expectedUser, procSpec.User)
+
+	userEnvVarSet := false
+
+	for _, envVar := range procSpec.Env {
+		if envVar == expectedImagePath {
+			userEnvVarSet = true
+			break
+		}
+	}
+	s.True(userEnvVarSet)
+}
+
 func (s *ContainerSuite) TestRunWithRootUserHasSuperUserPath() {
 	s.containerdContainer.SpecReturns(&specs.Spec{
 		Process: &specs.Process{},
