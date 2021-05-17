@@ -261,7 +261,7 @@ var _ = Describe("Volume", func() {
 			})
 
 			Context("when there's already an initialized resource cache on the same worker", func() {
-				It("leaves the volume owned by the the container", func() {
+				It("leaves the volume owned by the container", func() {
 					createdVolume2 := volumeOnWorker(scenario.Workers[0])
 					err := createdVolume2.InitializeResourceCache(resourceCache)
 					Expect(err).ToNot(HaveOccurred())
@@ -271,7 +271,7 @@ var _ = Describe("Volume", func() {
 		})
 
 		Context("when the same resource cache is initialized from another source worker", func() {
-			It("leaves the volume owned by the the container", func() {
+			It("leaves the volume owned by the container", func() {
 				scenario.Run(builder.WithBaseWorker())
 				worker2CacheVolume := volumeOnWorker(scenario.Workers[1])
 				err := worker2CacheVolume.InitializeResourceCache(resourceCache)
@@ -352,6 +352,33 @@ var _ = Describe("Volume", func() {
 					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeFalse())
 				})
+			})
+		})
+
+		Context("when streaming a volume cache that has been invalidated on the source worker", func() {
+			It("leaves the volume owned by the container", func() {
+				scenario.Run(
+					builder.WithBaseWorker(), // workers[1]
+				)
+
+				cachedVolume := volumeOnWorker(scenario.Workers[0])
+				err := cachedVolume.InitializeResourceCache(resourceCache)
+				Expect(err).ToNot(HaveOccurred())
+
+				scenario.Run(
+					builder.WithWorker(atc.Worker{
+						Name:          scenario.Workers[0].Name(),
+						ResourceTypes: []atc.WorkerResourceType{
+							// empty => invalidate the existing worker_resource_cache
+						},
+					}),
+				)
+
+				streamedVolume := volumeOnWorker(scenario.Workers[1])
+				err = streamedVolume.InitializeStreamedResourceCache(resourceCache, scenario.Workers[0].Name())
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(streamedVolume.Type()).To(Equal(db.VolumeTypeContainer))
 			})
 		})
 	})

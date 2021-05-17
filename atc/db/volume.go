@@ -17,7 +17,6 @@ var (
 	ErrVolumeStateTransitionFailed                = errors.New("could not transition volume state")
 	ErrVolumeMissing                              = errors.New("volume no longer in db")
 	ErrInvalidResourceCache                       = errors.New("invalid resource cache")
-	ErrSourceResourceCacheDisappeared             = errors.New("resource cache disappeared from source worker")
 )
 
 type ErrVolumeMarkStateFailed struct {
@@ -400,7 +399,11 @@ func (volume *createdVolume) InitializeStreamedResourceCache(resourceCache UsedR
 		return err
 	}
 	if !found {
-		return ErrSourceResourceCacheDisappeared
+		// resource cache disappeared from source worker. this means the cache
+		// was invalidated *after* we started the step that streamed the
+		// volume. in this case, we don't want to initialize this volume as a
+		// cache, but we also don't want to error the build.
+		return nil
 	}
 
 	initialized, err := volume.initializeResourceCache(tx, resourceCache, sourceWorkerResourceCache.WorkerBaseResourceTypeID)
