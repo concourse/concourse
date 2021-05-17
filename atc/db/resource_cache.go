@@ -32,7 +32,7 @@ func (cache *ResourceCacheDescriptor) findOrCreate(
 	lockFactory lock.LockFactory,
 	conn Conn,
 ) (UsedResourceCache, error) {
-	resourceConfig, err := cache.ResourceConfigDescriptor.findOrCreate(tx, lockFactory, conn)
+	resourceConfig, err := cache.ResourceConfigDescriptor.findOrCreate(tx, lockFactory, conn, false)
 	if err != nil {
 		return nil, err
 	}
