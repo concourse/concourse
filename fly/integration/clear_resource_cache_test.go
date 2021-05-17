@@ -109,7 +109,7 @@ var _ = Describe("Fly CLI", func() {
 						Expect(err).NotTo(HaveOccurred())
 
 						Eventually(sess).Should(gexec.Exit(1))
-						Eventually(sess).Should(gbytes.Say("resource not found"))
+						Eventually(sess.Err).Should(gbytes.Say("resource not found"))
 					}).To(Change(func() int {
 						return len(atcServer.ReceivedRequests())
 					}).By(2))

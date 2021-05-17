@@ -1610,19 +1610,14 @@ var _ = Describe("Resources API", func() {
 	})
 
 	Describe("DELETE /api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/cache", func() {
-		var response *http.Response
-		var fakeResource *dbfakes.FakeResource
+		var (
+			versionDeleteBody atc.VersionDeleteBody
+			response *http.Response
+			fakeResource *dbfakes.FakeResource
+		)
 
-		executeNoVersionConnection := func() {
-			request, err := http.NewRequest("DELETE", server.URL+"/api/v1/teams/a-team/pipelines/a-pipeline/resources/resource-name/cache", nil)
-			Expect(err).NotTo(HaveOccurred())
-
-			response, err = client.Do(request)
-			Expect(err).NotTo(HaveOccurred())
-		}
-
-		executeVersionConnection := func() {
-			reqPayload, err := json.Marshal(atc.VersionDeleteBody{Version: atc.Version{"ref": "fake-ref"}})
+		executeConnection := func() {
+			reqPayload, err := json.Marshal(versionDeleteBody)
 			Expect(err).NotTo(HaveOccurred())
 
 			request, err := http.NewRequest("DELETE", server.URL+"/api/v1/teams/a-team/pipelines/a-pipeline/resources/resource-name/cache", bytes.NewBuffer(reqPayload))
@@ -1631,6 +1626,14 @@ var _ = Describe("Resources API", func() {
 			response, err = client.Do(request)
 			Expect(err).NotTo(HaveOccurred())
 		}
+
+		BeforeEach(func() {
+			versionDeleteBody = atc.VersionDeleteBody{}
+		})
+
+		JustBeforeEach(func() {
+			executeConnection()
+		})
 
 		Context("when authenticated ", func() {
 			BeforeEach(func() {
@@ -1643,9 +1646,6 @@ var _ = Describe("Resources API", func() {
 				})
 
 				Context("when it tries to find a resource", func() {
-					JustBeforeEach(func() {
-						executeNoVersionConnection()
-					})
 
 					It("calls the resource", func() {
 						resourceName := fakePipeline.ResourceArgsForCall(0)
@@ -1658,28 +1658,22 @@ var _ = Describe("Resources API", func() {
 						fakeResource = new(dbfakes.FakeResource)
 						fakeResource.IDReturns(1)
 						fakePipeline.ResourceReturns(fakeResource, true, nil)
+
+						fakeResource.ClearResourceCacheReturns(1,nil)
 					})
 
 					Context("when clear cache succeeds", func() {
 
 						Context("when no version is passed", func() {
-							JustBeforeEach(func() {
-								executeNoVersionConnection()
-							})
-
-							BeforeEach(func() {
-								fakeResource.ClearResourceCacheReturns(1,nil)
-							})
-
 							It("returns 200", func() {
 								Expect(response.StatusCode).To(Equal(http.StatusOK))
 							})
 
-							It("it clears the db cache entries successfully", func() {
+							It("clears the db cache entries successfully", func() {
 								Expect(fakeResource.ClearResourceCacheCallCount()).To(Equal(1))
 							})
 
-							It("it send an empty version", func() {
+							It("send an empty version", func() {
 								version := fakeResource.ClearResourceCacheArgsForCall(0)
 								expectedVersion := atc.VersionDeleteBody{}.Version
 								Expect(version).To(Equal(expectedVersion))
@@ -1692,46 +1686,28 @@ var _ = Describe("Resources API", func() {
 								Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 							})
 
-							It("it returns the number of rows deleted", func() {
+							It("returns the number of rows deleted", func() {
 								body, err := ioutil.ReadAll(response.Body)
 								Expect(err).NotTo(HaveOccurred())
 
 								Expect(body).To(MatchJSON(`{"caches_removed": 1}`))
 							})
-
-							Context("but no rows were deleted", func() {
-								BeforeEach(func() {
-									fakeResource.ClearResourceCacheReturns(0, nil)
-								})
-
-								It("it returns that 0 rows were deleted", func() {
-									body, err := ioutil.ReadAll(response.Body)
-									Expect(err).NotTo(HaveOccurred())
-
-									Expect(body).To(MatchJSON(`{"caches_removed": 0}`))
-								})
-
-							})
 						})
 
 						Context("when a version is passed", func() {
-							JustBeforeEach(func() {
-								executeVersionConnection()
-							})
-
 							BeforeEach(func() {
-								fakeResource.ClearResourceCacheReturns(1,nil)
+								versionDeleteBody = atc.VersionDeleteBody{Version: atc.Version{"ref": "fake-ref"}}
 							})
 
 							It("returns 200", func() {
 								Expect(response.StatusCode).To(Equal(http.StatusOK))
 							})
 
-							It("it clears the db cache entries successfully", func() {
+							It("clears the db cache entries successfully", func() {
 								Expect(fakeResource.ClearResourceCacheCallCount()).To(Equal(1))
 							})
 
-							It("it send a non empty version", func() {
+							It("send a non empty version", func() {
 								version := fakeResource.ClearResourceCacheArgsForCall(0)
 								expectedVersion := atc.Version{"ref": "fake-ref"}
 								Expect(version).To(Equal(expectedVersion))
@@ -1744,34 +1720,29 @@ var _ = Describe("Resources API", func() {
 								Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 							})
 
-							It("it returns the number of rows deleted", func() {
+							It("returns the number of rows deleted", func() {
 								body, err := ioutil.ReadAll(response.Body)
 								Expect(err).NotTo(HaveOccurred())
 
 								Expect(body).To(MatchJSON(`{"caches_removed": 1}`))
 							})
+						})
+					})
 
-							Context("but no rows were deleted", func() {
-								BeforeEach(func() {
-									fakeResource.ClearResourceCacheReturns(0, nil)
-								})
+					Context("when no rows were deleted", func() {
+						BeforeEach(func() {
+							fakeResource.ClearResourceCacheReturns(0, nil)
+						})
 
-								It("it returns that 0 rows were deleted", func() {
-									body, err := ioutil.ReadAll(response.Body)
-									Expect(err).NotTo(HaveOccurred())
+						It("returns that 0 rows were deleted", func() {
+							body, err := ioutil.ReadAll(response.Body)
+							Expect(err).NotTo(HaveOccurred())
 
-									Expect(body).To(MatchJSON(`{"caches_removed": 0}`))
-								})
-
-							})
+							Expect(body).To(MatchJSON(`{"caches_removed": 0}`))
 						})
 					})
 
 					Context("when clear cache fails", func() {
-						JustBeforeEach(func() {
-							executeNoVersionConnection()
-						})
-
 						BeforeEach(func() {
 							fakeResource.ClearResourceCacheReturns(0, errors.New("welp"))
 						})
@@ -1783,10 +1754,6 @@ var _ = Describe("Resources API", func() {
 				})
 
 				Context("when it fails to find the resource", func() {
-					JustBeforeEach(func() {
-						executeNoVersionConnection()
-					})
-
 					BeforeEach(func() {
 						fakePipeline.ResourceReturns(nil, false, errors.New("welp"))
 					})
@@ -1794,25 +1761,19 @@ var _ = Describe("Resources API", func() {
 					It("returns Internal Server Error", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 					})
+				})
 
-					Context("when the resource is not found", func() {
-						BeforeEach(func() {
-							fakePipeline.ResourceReturns(nil, false, nil)
-						})
+				Context("when the resource is not found", func() {
+					BeforeEach(func() {
+						fakePipeline.ResourceReturns(nil, false, nil)
+					})
 
-						It("returns not found", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-						})
+					It("returns not found", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 					})
 				})
-
-
 			})
 			Context("when not authorized", func() {
-				JustBeforeEach(func() {
-					executeNoVersionConnection()
-				})
-
 				BeforeEach(func() {
 					fakeAccess.IsAuthorizedReturns(false)
 				})
@@ -1824,10 +1785,6 @@ var _ = Describe("Resources API", func() {
 		})
 
 		Context("when not authenticated", func() {
-			JustBeforeEach(func() {
-				executeNoVersionConnection()
-			})
-
 			BeforeEach(func() {
 				fakeAccess.IsAuthenticatedReturns(false)
 			})
