@@ -1530,7 +1530,7 @@ combined-stream@^1.0.6, combined-stream@~1.0.6:
   dependencies:
     delayed-stream "~1.0.0"
 
-commander@7.x, commander@^7.0.0:
+commander@7.x, commander@^7.0.0, commander@^7.1.0:
   version "7.2.0"
   resolved "https://registry.yarnpkg.com/commander/-/commander-7.2.0.tgz#a36cb57d0b501ce108e4d20559a150a391d97ab7"
   integrity sha512-QrWXB+ZQSVPmIWIhtEO9H+gwHaMGYiF5ChvoJ+K9ZGHG/sVsa6yiesAD1GC/x46sET00Xlwo1u49RVVVzvcSkw==
@@ -1733,16 +1733,16 @@ elm-format@0.8.5:
   dependencies:
     binwrap "^0.2.3"
 
-elm-test@^0.19.1-revision6:
-  version "0.19.1-revision6"
-  resolved "https://registry.yarnpkg.com/elm-test/-/elm-test-0.19.1-revision6.tgz#a00b5427df98892b4394aef4aa4497237c71a16f"
-  integrity sha512-4VbIyCRlCUm/py0E0AjMT3/mwd6DR4Y5Z5gEox6z5JII6ZdKIJmcQzjgWRI5qo5ERJiw9M/Nxhk7SGXFUbZsxQ==
+elm-test@^0.19.1-revision7:
+  version "0.19.1-revision7"
+  resolved "https://registry.yarnpkg.com/elm-test/-/elm-test-0.19.1-revision7.tgz#1a0864b001f2cc55ba6479bd3afedfbd271ab549"
+  integrity sha512-sd3nCQMeYMaY84Sz41bVJ30ZvQN1/4ZcD8uYMOuUbM39FDh58NY9/AcImVJ7Z+gjCFdcSU6VscZzhUoPW8jp6Q==
   dependencies:
     chalk "^4.1.0"
     chokidar "^3.5.1"
-    commander "^7.0.0"
+    commander "^7.1.0"
     cross-spawn "^7.0.3"
-    elm-tooling "^1.1.0"
+    elm-tooling "^1.2.0"
     glob "^7.1.6"
     graceful-fs "^4.2.4"
     rimraf "^3.0.2"
@@ -1750,7 +1750,7 @@ elm-test@^0.19.1-revision6:
     which "^2.0.2"
     xmlbuilder "^15.1.0"
 
-elm-tooling@^1.1.0:
+elm-tooling@^1.2.0:
   version "1.3.0"
   resolved "https://registry.yarnpkg.com/elm-tooling/-/elm-tooling-1.3.0.tgz#9969d5778ae458007b32124b2ab6040ca11aa3a0"
   integrity sha512-OLRg8D7QCbzMmi8QTaebIIsH2qaIj4NiltuJ8vZj4JFHOIVa3utyD5tlfySBGZNfDG7+vZ2K8iDk82TalFaAbw==
