@@ -38,5 +38,6 @@ func (cl *checkLifecycle) DeleteCompletedChecks() error {
       )
       DELETE FROM check_build_events USING deleted_builds WHERE build_id = deleted_builds.id
     `)
+	// TODO: delete prototype checks
 	return err
 }

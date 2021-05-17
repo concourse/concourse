@@ -13,6 +13,7 @@ import (
 	"github.com/tedsuo/rata"
 )
 
+// XXX(prototypes): will need a CheckPrototype (and corresponding fly check-prototype)
 func (s *Server) CheckResourceType(dbPipeline db.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resourceTypeName := rata.Param(r, "resource_type_name")

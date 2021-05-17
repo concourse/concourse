@@ -45,8 +45,23 @@ func (lifecycle resourceConfigCheckSessionLifecycle) CleanInactiveResourceConfig
 		return err
 	}
 
+	usedByActiveUnpausedPrototypes, _, err := sq.
+		Select("rccs.id").
+		From("resource_config_check_sessions rccs").
+		Join("resource_configs rc ON rccs.resource_config_id = rc.id").
+		Join("prototypes pt ON pt.resource_config_id = rc.id").
+		Join("pipelines p ON p.id = pt.pipeline_id").
+		Where(sq.Expr("pt.active AND NOT p.paused")).
+		ToSql()
+	if err != nil {
+		return err
+	}
+
 	_, err = sq.Delete("resource_config_check_sessions").
-		Where("id NOT IN (" + usedByActiveUnpausedResources + " UNION " + usedByActiveUnpausedResourceTypes + ")").
+		Where("id NOT IN (" +
+			usedByActiveUnpausedResources + " UNION " +
+			usedByActiveUnpausedResourceTypes + " UNION " +
+			usedByActiveUnpausedPrototypes + ")").
 		PlaceholderFormat(sq.Dollar).
 		RunWith(lifecycle.conn).
 		Exec()

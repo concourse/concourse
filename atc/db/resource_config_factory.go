@@ -143,7 +143,7 @@ func (f *resourceConfigFactory) CleanUnreferencedConfigs(gracePeriod time.Durati
 		return err
 	}
 
-	usedByResourceIds, _, err := sq.
+	usedByResourcesIds, _, err := sq.
 		Select("resource_config_id").
 		From("resources").
 		Where("resource_config_id IS NOT NULL").
@@ -161,8 +161,21 @@ func (f *resourceConfigFactory) CleanUnreferencedConfigs(gracePeriod time.Durati
 		return err
 	}
 
+	usedByPrototypesIds, _, err := sq.
+		Select("resource_config_id").
+		From("prototypes").
+		Where("resource_config_id IS NOT NULL").
+		ToSql()
+	if err != nil {
+		return err
+	}
+
 	_, err = psql.Delete("resource_configs").
-		Where("id NOT IN (" + usedByResourceCachesIds + " UNION " + usedByResourceIds + " UNION " + usedByResourceTypesIds + ")").
+		Where("id NOT IN (" +
+			usedByResourceCachesIds + " UNION " +
+			usedByResourcesIds + " UNION " +
+			usedByResourceTypesIds + "UNION" +
+			usedByPrototypesIds + ")").
 		Where(sq.Expr(fmt.Sprintf("now() - last_referenced > '%d seconds'::interval", int(gracePeriod.Seconds())))).
 		PlaceholderFormat(sq.Dollar).
 		RunWith(f.conn).Exec()

@@ -24,6 +24,7 @@ type Config struct {
 	VarSources    VarSourceConfigs `json:"var_sources,omitempty"`
 	Resources     ResourceConfigs  `json:"resources,omitempty"`
 	ResourceTypes ResourceTypes    `json:"resource_types,omitempty"`
+	Prototypes    Prototypes       `json:"prototypes,omitempty"`
 	Jobs          JobConfigs       `json:"jobs,omitempty"`
 	Display       *DisplayConfig   `json:"display,omitempty"`
 }
@@ -35,6 +36,7 @@ func UnmarshalConfig(payload []byte, config interface{}) error {
 		VarSources    interface{} `json:"var_sources,omitempty"`
 		Resources     interface{} `json:"resources,omitempty"`
 		ResourceTypes interface{} `json:"resource_types,omitempty"`
+		Prototypes    interface{} `json:"prototypes,omitempty"`
 		Jobs          interface{} `json:"jobs,omitempty"`
 		Display       interface{} `json:"display,omitempty"`
 	}
@@ -201,6 +203,17 @@ type ResourceType struct {
 	Params     Params      `json:"params,omitempty"`
 }
 
+type Prototype struct {
+	Name       string      `json:"name"`
+	Type       string      `json:"type"`
+	Source     Source      `json:"source"`
+	Defaults   Source      `json:"defaults,omitempty"`
+	Privileged bool        `json:"privileged,omitempty"`
+	CheckEvery *CheckEvery `json:"check_every,omitempty"`
+	Tags       Tags        `json:"tags,omitempty"`
+	Params     Params      `json:"params,omitempty"`
+}
+
 type DisplayConfig struct {
 	BackgroundImage string `json:"background_image,omitempty"`
 }
@@ -247,6 +260,8 @@ func (c *CheckEvery) MarshalJSON() ([]byte, error) {
 
 	return json.Marshal("")
 }
+
+type Prototypes []Prototype
 
 type ResourceTypes []ResourceType
 

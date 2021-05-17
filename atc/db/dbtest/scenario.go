@@ -62,6 +62,16 @@ func (scenario Scenario) ResourceType(name string) db.ResourceType {
 	return resourceType
 }
 
+func (scenario Scenario) Prototype(name string) db.Prototype {
+	Expect(scenario.Pipeline).ToNot(BeNil(), "pipeline not set in scenario")
+
+	resourceType, found, err := scenario.Pipeline.Prototype(name)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(found).To(BeTrue(), "prototype '%s' not found", name)
+
+	return resourceType
+}
+
 func (scenario Scenario) ResourceVersion(name string, version atc.Version) db.ResourceConfigVersion {
 	Expect(scenario.Pipeline).ToNot(BeNil(), "pipeline not set in scenario")
 

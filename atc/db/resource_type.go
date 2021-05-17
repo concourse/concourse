@@ -41,6 +41,7 @@ type ResourceType interface {
 	LastCheckStartTime() time.Time
 	LastCheckEndTime() time.Time
 	CurrentPinnedVersion() atc.Version
+	ResourceConfigID() int
 	ResourceConfigScopeID() int
 
 	HasWebhook() bool
@@ -147,6 +148,7 @@ var resourceTypesQuery = psql.Select(
 	"p.instance_vars",
 	"t.id",
 	"t.name",
+	"r.resource_config_id",
 	"ro.id",
 	"ro.last_check_start_time",
 	"ro.last_check_end_time",
@@ -170,6 +172,7 @@ type resourceType struct {
 
 	id                    int
 	teamID                int
+	resourceConfigID      int
 	resourceConfigScopeID int
 	teamName              string
 	name                  string
@@ -199,6 +202,7 @@ func (t *resourceType) Source() atc.Source            { return t.source }
 func (t *resourceType) Defaults() atc.Source          { return t.defaults }
 func (t *resourceType) Params() atc.Params            { return t.params }
 func (t *resourceType) Tags() atc.Tags                { return t.tags }
+func (t *resourceType) ResourceConfigID() int         { return t.resourceConfigID }
 func (t *resourceType) ResourceConfigScopeID() int    { return t.resourceConfigScopeID }
 
 func (t *resourceType) Version() atc.Version              { return t.version }
@@ -329,9 +333,10 @@ func scanResourceType(t *resourceType, row scannable) error {
 		rcsID, version, nonce                sql.NullString
 		lastCheckStartTime, lastCheckEndTime pq.NullTime
 		pipelineInstanceVars                 sql.NullString
+		resourceConfigID                     sql.NullInt64
 	)
 
-	err := row.Scan(&t.id, &t.pipelineID, &t.name, &t.type_, &configJSON, &version, &nonce, &t.pipelineName, &pipelineInstanceVars, &t.teamID, &t.teamName, &rcsID, &lastCheckStartTime, &lastCheckEndTime)
+	err := row.Scan(&t.id, &t.pipelineID, &t.name, &t.type_, &configJSON, &version, &nonce, &t.pipelineName, &pipelineInstanceVars, &t.teamID, &t.teamName, &resourceConfigID, &rcsID, &lastCheckStartTime, &lastCheckEndTime)
 	if err != nil {
 		return err
 	}
@@ -374,6 +379,10 @@ func scanResourceType(t *resourceType, row scannable) error {
 	t.privileged = config.Privileged
 	t.tags = config.Tags
 	t.checkEvery = config.CheckEvery
+
+	if resourceConfigID.Valid {
+		t.resourceConfigID = int(resourceConfigID.Int64)
+	}
 
 	if rcsID.Valid {
 		t.resourceConfigScopeID, err = strconv.Atoi(rcsID.String)
