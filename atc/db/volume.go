@@ -17,6 +17,7 @@ var (
 	ErrVolumeStateTransitionFailed                = errors.New("could not transition volume state")
 	ErrVolumeMissing                              = errors.New("volume no longer in db")
 	ErrInvalidResourceCache                       = errors.New("invalid resource cache")
+	ErrSourceResourceCacheDisappeared             = errors.New("resource cache disappeared from source worker")
 )
 
 type ErrVolumeMarkStateFailed struct {
@@ -353,17 +354,6 @@ func (volume *createdVolume) findWorkerBaseResourceTypeByBaseResourceTypeID(base
 }
 
 func (volume *createdVolume) InitializeResourceCache(resourceCache UsedResourceCache) error {
-	return volume.initializeResourceCache(resourceCache, volume.workerName)
-}
-
-func (volume *createdVolume) InitializeStreamedResourceCache(resourceCache UsedResourceCache, sourceWorkerName string) error {
-	return volume.initializeResourceCache(resourceCache, sourceWorkerName)
-}
-
-// initializeResourceCache creates a worker resource cache and point current volume's
-// worker_resource_cache_id to the cache. When initializing a local generated resource
-// cache, then source worker is just the volume's worker.
-func (volume *createdVolume) initializeResourceCache(resourceCache UsedResourceCache, sourceWorkerName string) error {
 	tx, err := volume.conn.Begin()
 	if err != nil {
 		return err
@@ -371,19 +361,77 @@ func (volume *createdVolume) initializeResourceCache(resourceCache UsedResourceC
 
 	defer tx.Rollback()
 
+	usedWorkerBaseResourceType, found, err := WorkerBaseResourceType{
+		Name:       resourceCache.BaseResourceType().Name,
+		WorkerName: volume.workerName,
+	}.Find(tx)
+	if err != nil {
+		return err
+	}
+	if !found {
+		return ErrWorkerBaseResourceTypeDisappeared
+	}
+
+	initialized, err := volume.initializeResourceCache(tx, resourceCache, usedWorkerBaseResourceType.ID)
+	if err != nil {
+		return err
+	}
+	if !initialized {
+		// Another volume became the resource cache - don't commit the transaction
+		return nil
+	}
+
+	return tx.Commit()
+}
+
+func (volume *createdVolume) InitializeStreamedResourceCache(resourceCache UsedResourceCache, sourceWorkerName string) error {
+	tx, err := volume.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	sourceWorkerResourceCache, found, err := WorkerResourceCache{
+		WorkerName:    sourceWorkerName,
+		ResourceCache: resourceCache,
+	}.Find(tx)
+	if err != nil {
+		return err
+	}
+	if !found {
+		return ErrSourceResourceCacheDisappeared
+	}
+
+	initialized, err := volume.initializeResourceCache(tx, resourceCache, sourceWorkerResourceCache.WorkerBaseResourceTypeID)
+	if err != nil {
+		return err
+	}
+	if !initialized {
+		// Another volume became the resource cache - don't commit the transaction
+		return nil
+	}
+
+	return tx.Commit()
+}
+
+// initializeResourceCache creates a worker resource cache and point current volume's
+// worker_resource_cache_id to the cache. When initializing a local generated resource
+// cache, then source worker is just the volume's worker.
+func (volume *createdVolume) initializeResourceCache(tx Tx, resourceCache UsedResourceCache, workerBaseResourceTypeID int) (bool, error) {
 	workerResourceCache, valid, err := WorkerResourceCache{
 		WorkerName:    volume.WorkerName(),
 		ResourceCache: resourceCache,
-	}.FindOrCreate(tx, sourceWorkerName)
+	}.FindOrCreate(tx, workerBaseResourceTypeID)
 	if err != nil {
-		return err
+		return false, err
 	}
 	if !valid {
 		// there's already a WorkerResourceCache for this resource cache on
 		// this worker, but originating from a different sourceWorker, meaning
 		// the other streamed volume "won the race", and will become the cached
 		// volume
-		return nil
+		return false, nil
 	}
 
 	rows, err := psql.Update("volumes").
@@ -396,30 +444,25 @@ func (volume *createdVolume) initializeResourceCache(resourceCache UsedResourceC
 		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == pqUniqueViolationErrCode {
 			// another volume was 'blessed' as the cache volume - leave this one
 			// owned by the container so it just expires when the container is GCed
-			return nil
+			return false, nil
 		}
 
-		return err
+		return false, err
 	}
 
 	affected, err := rows.RowsAffected()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	if affected == 0 {
-		return ErrVolumeMissing
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return err
+		return false, ErrVolumeMissing
 	}
 
 	volume.resourceCacheID = resourceCache.ID()
 	volume.typ = VolumeTypeResource
 
-	return nil
+	return true, nil
 }
 
 func (volume *createdVolume) GetResourceCacheID() int {
