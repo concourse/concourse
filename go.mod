@@ -50,7 +50,7 @@ require (
 	github.com/klauspost/compress v1.12.2
 	github.com/kr/pty v1.1.8
 	github.com/krishicks/yaml-patch v0.0.10
-	github.com/lib/pq v1.10.1
+	github.com/lib/pq v1.10.2
 	github.com/mattn/go-colorable v0.1.8
 	github.com/mattn/go-isatty v0.0.12
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.4.1
