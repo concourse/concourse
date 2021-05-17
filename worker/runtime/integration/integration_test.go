@@ -103,7 +103,7 @@ func (s *IntegrationSuite) TearDownSuite() {
 	s.NoError(os.RemoveAll(s.tmpDir))
 }
 
-func (s *IntegrationSuite) SetupTest() {
+func (s *IntegrationSuite) BeforeTest(suiteName, testName string) {
 	var (
 		err            error
 		namespace      = "test"
@@ -141,7 +141,7 @@ func (s *IntegrationSuite) setupRootfs() {
 	return
 }
 
-func (s *IntegrationSuite) TearDownTest() {
+func (s *IntegrationSuite) AfterTest(suiteName, testName string) {
 	s.gardenBackend.Stop()
 	os.RemoveAll(s.rootfs)
 	s.cleanupIptables()
@@ -236,6 +236,10 @@ func (s *IntegrationSuite) TestContainerNetworkEgress() {
 // we have blocked access to.
 //
 func (s *IntegrationSuite) TestContainerNetworkEgressWithRestrictedNetworks() {
+	// Using custom backend, clean up BeforeTest() stuff
+	s.gardenBackend.Stop()
+	s.cleanupIptables()
+
 	namespace := "test-restricted-networks"
 	requestTimeout := 3 * time.Second
 
@@ -298,10 +302,77 @@ func (s *IntegrationSuite) TestContainerNetworkEgressWithRestrictedNetworks() {
 // container is not able to reach the host but is able to reach the internet.
 //
 func (s *IntegrationSuite) TestContainerBlocksHostAccess() {
+	handle := uuid()
+	container, err := s.gardenBackend.Create(garden.ContainerSpec{
+		Handle:     handle,
+		RootFSPath: "raw://" + s.rootfs,
+		Privileged: true,
+	})
+	s.NoError(err)
+
+	defer func() {
+		s.NoError(s.gardenBackend.Destroy(handle))
+		s.gardenBackend.Stop()
+	}()
+
+	hostIp, err := getHostIp()
+	s.NoError(err)
+
+	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, "Hello, client")
+	}))
+	l, err := net.Listen("tcp", hostIp+":0")
+	ts.Listener = l
+	ts.Start()
+	defer ts.Close()
+
+	buf := new(buffer)
+	proc, err := container.Run(
+		garden.ProcessSpec{
+			Path: "/executable",
+			Args: []string{
+				"-http-get=" + ts.URL,
+			},
+		},
+		garden.ProcessIO{
+			Stdout: buf,
+			Stderr: buf,
+		},
+	)
+	s.NoError(err)
+
+	exitCode, err := proc.Wait()
+	s.NoError(err)
+	s.Equal(exitCode, 1, "Process in container should not be able to connect to host network")
+
+	proc, err = container.Run(
+		garden.ProcessSpec{
+			Path: "/executable",
+			Args: []string{
+				"-http-get=http://1.1.1.1",
+			},
+		},
+		garden.ProcessIO{
+			Stdout: buf,
+			Stderr: buf,
+		},
+	)
+	s.NoError(err)
+
+	exitCode, err = proc.Wait()
+	s.NoError(err)
+	s.Equal(exitCode, 0, "Process in container should also be able to reach the internet")
+}
+
+func (s *IntegrationSuite) TestContainerAllowsHostAccess() {
+	// Using custom backend, clean up BeforeTest() stuff
+	s.gardenBackend.Stop()
+	s.cleanupIptables()
+
 	namespace := "test-block-host-access"
 	requestTimeout := 3 * time.Second
 
-	network, err := runtime.NewCNINetwork()
+	network, err := runtime.NewCNINetwork(runtime.WithAllowHostAccess())
 
 	s.NoError(err)
 
@@ -360,25 +431,7 @@ func (s *IntegrationSuite) TestContainerBlocksHostAccess() {
 
 	exitCode, err := proc.Wait()
 	s.NoError(err)
-	s.Equal(exitCode, 1, "Process in container should not be able to connect to host network")
-
-	proc, err = container.Run(
-		garden.ProcessSpec{
-			Path: "/executable",
-			Args: []string{
-				"-http-get=http://1.1.1.1",
-			},
-		},
-		garden.ProcessIO{
-			Stdout: buf,
-			Stderr: buf,
-		},
-	)
-	s.NoError(err)
-
-	exitCode, err = proc.Wait()
-	s.NoError(err)
-	s.Equal(exitCode, 0, "Process in container should be able to reach the internet")
+	s.Equal(exitCode, 0, "Process in container should be able to reach the host network")
 }
 
 // TestRunPrivileged tests whether we're able to run a process in a privileged
