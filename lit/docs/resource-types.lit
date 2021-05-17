@@ -84,13 +84,6 @@ A pipeline's resource types are listed under
     \reference{schema.step.tags}.
   }
 
-  \optional-attribute{unique_version_history}{boolean}{
-    \italic{Default \code{false}.} Only relevant when
-    \reference{global-resources} is enabled. When set to \code{true}, resources
-    using this resource type will have a version history that is unique to the
-    resource, rather than sharing a global version history.
-  }
-
   \optional-attribute{defaults}{config}{
     The default configuration for the resource type. This varies
     by resource type, and is a black box to Concourse; it is merged with

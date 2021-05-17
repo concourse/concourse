@@ -103,7 +103,7 @@ instead associated to an anonymous 'resource config' i.e. its
   \omit-children-from-table-of-contents
 
   \section{
-    \title{Some resources should opt-out}
+    \title{Sharing versions doesn't work well for all resource types}
 
     Sharing versions isn't always a good idea. For example, the \resource{time}
     is often used to generate versions on an interval so that jobs can fire
@@ -111,19 +111,10 @@ instead associated to an anonymous 'resource config' i.e. its
     a 10 minute interval, that would lead to a thundering herd of builds
     storming your workers, leading to load spikes and a lot of unhappy builds.
 
-    For this reason, resource types can opt out of sharing version history for
-    all resources that use them. This way all existing usage of the
-    \resource{time} don't have to change, and continue to have their own
-    version history, unique to the pipeline resource.
-
-    The \resource{time} opts out of this by configuring
-    \code{unique_version_history: true} in its \code{metadata.json} - but this
-    is something that only "core" resource types can do. We plan on supporting
-    this as part of the \link{Resources v2
-    RFC}{https://github.com/concourse/rfcs/pull/1}.
-
-    Users can also set this value themselves by configuring
-    \reference{schema.resource_type.unique_version_history} on the resource type.
+    We are working toward a solution to the \resource{time}'s thundering herd
+    problem - namely, to not model time as a resource, and instead model it
+    as a \reference{schema.pipeline.var_sources}{\code{var_source}}. We are
+    tracking progress toward this goal in \ghissue{5815}.
 
     Another case where version history shouldn't be shared is when resources
     "automagically" learn their auth credentials using things like IAM roles.
