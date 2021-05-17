@@ -77,7 +77,6 @@ type Pipeline interface {
 
 	ResourceTypes() (ResourceTypes, error)
 	ResourceType(name string) (ResourceType, bool, error)
-	ResourceTypeByID(id int) (ResourceType, bool, error)
 
 	Job(name string) (Job, bool, error)
 	Jobs() (Jobs, error)
@@ -512,13 +511,6 @@ func (p *pipeline) ResourceType(name string) (ResourceType, bool, error) {
 	return p.resourceType(sq.Eq{
 		"r.pipeline_id": p.id,
 		"r.name":        name,
-	})
-}
-
-func (p *pipeline) ResourceTypeByID(id int) (ResourceType, bool, error) {
-	return p.resourceType(sq.Eq{
-		"r.pipeline_id": p.id,
-		"r.id":          id,
 	})
 }
 
