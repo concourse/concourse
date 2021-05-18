@@ -1,6 +1,8 @@
 package integration_test
 
 import (
+	"fmt"
+	"io"
 	"net/http"
 	"os/exec"
 	"strings"
@@ -16,20 +18,42 @@ import (
 var _ = Describe("Fly CLI", func() {
 	Describe("clear-resource-cache", func() {
 		var (
-			flyCmd *exec.Cmd
 			expectedQueryParams []string
 			expectedURL         = "/api/v1/teams/main/pipelines/some-pipeline/resources/some-resource/cache"
+			stdin io.Writer
+			args  []string
+			sess  *gexec.Session
 		)
+
+		BeforeEach(func() {
+			stdin = nil
+			args = []string{}
+		})
+
+		JustBeforeEach(func() {
+			var err error
+
+			flyCmd := exec.Command(flyPath, append([]string{"-t", targetName, "clear-resource-cache"}, args...)...)
+			stdin, err = flyCmd.StdinPipe()
+			Expect(err).NotTo(HaveOccurred())
+
+			sess, err = gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		yes := func() {
+			Eventually(sess).Should(gbytes.Say(`are you sure\? \[yN\]: `))
+			fmt.Fprintf(stdin, "y\n")
+		}
+
+		no := func() {
+			Eventually(sess).Should(gbytes.Say(`are you sure\? \[yN\]: `))
+			fmt.Fprintf(stdin, "n\n")
+		}
 
 		Context("when a resource is not specified", func() {
 			It("asks the user to specify a resource", func() {
-				flyCmd = exec.Command(flyPath, "-t", targetName, "clear-resource-cache")
-
-				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-				Expect(err).NotTo(HaveOccurred())
-
 				Eventually(sess).Should(gexec.Exit(1))
-
 				Expect(sess.Err).To(gbytes.Say("error: the required flag `" + osFlag("r", "resource") + "' was not specified"))
 			})
 		})
@@ -46,17 +70,28 @@ var _ = Describe("Fly CLI", func() {
 				)
 			})
 
+			BeforeEach(func() {
+				args = append(args, "-r", "some-pipeline/some-resource", "-v", "ref:fake-ref")
+			})
+
+			It("warns this could be a dangerous command", func() {
+				Eventually(sess).Should(gbytes.Say("this will remove the resource cache\\(s\\) for `some-pipeline/some-resource` with version: `{\"ref\":\"fake-ref\"}`"))
+			})
+
 			It("succeeds with one deletion", func() {
 				Expect(func() {
-					flyCmd = exec.Command(flyPath, "-t", targetName, "clear-resource-cache", "-r", "some-pipeline/some-resource", "-v", "ref:fake-ref")
-					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-					Expect(err).NotTo(HaveOccurred())
-
+					yes()
 					Eventually(sess).Should(gexec.Exit(0))
 					Eventually(sess).Should(gbytes.Say("1 caches removed"))
 				}).To(Change(func() int {
 					return len(atcServer.ReceivedRequests())
 				}).By(2))
+			})
+
+			It("bails out if the user negate the command", func() {
+				no()
+				Eventually(sess).Should(gbytes.Say(`bailing out`))
+				Eventually(sess).Should(gexec.Exit(0))
 			})
 		})
 
@@ -71,12 +106,13 @@ var _ = Describe("Fly CLI", func() {
 					)
 				})
 
+				BeforeEach(func() {
+					args = append(args, "-r", "some-pipeline/some-resource")
+				})
+
 				It("succeeds with one deletion", func() {
 					Expect(func() {
-						flyCmd = exec.Command(flyPath, "-t", targetName, "clear-resource-cache", "-r", "some-pipeline/some-resource")
-						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-						Expect(err).NotTo(HaveOccurred())
-
+						yes()
 						Eventually(sess).Should(gexec.Exit(0))
 						Eventually(sess).Should(gbytes.Say("1 caches removed"))
 					}).To(Change(func() int {
@@ -87,11 +123,7 @@ var _ = Describe("Fly CLI", func() {
 
 
 			Context("when the resource does not exist", func() {
-				var (
-					flyCmd *exec.Cmd
-					expectedQueryParams []string
-					expectedURL         = "/api/v1/teams/main/pipelines/some-pipeline/resources/no-existing-resource/cache"
-				)
+				var expectedURL = "/api/v1/teams/main/pipelines/some-pipeline/resources/no-existing-resource/cache"
 
 				JustBeforeEach(func() {
 					atcServer.AppendHandlers(
@@ -102,12 +134,13 @@ var _ = Describe("Fly CLI", func() {
 					)
 				})
 
+				BeforeEach(func() {
+					args = append(args,  "-r", "some-pipeline/no-existing-resource")
+				})
+
 				It("writes that it did not exist", func() {
 					Expect(func() {
-						flyCmd = exec.Command(flyPath, "-t", targetName, "clear-resource-cache", "-r", "some-pipeline/no-existing-resource")
-						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-						Expect(err).NotTo(HaveOccurred())
-
+						yes()
 						Eventually(sess).Should(gexec.Exit(1))
 						Eventually(sess.Err).Should(gbytes.Say("resource not found"))
 					}).To(Change(func() int {
@@ -115,8 +148,6 @@ var _ = Describe("Fly CLI", func() {
 					}).By(2))
 				})
 			})
-
-
 
 			Context("and the api returns an unexpected status code", func() {
 				JustBeforeEach(func() {
@@ -128,18 +159,18 @@ var _ = Describe("Fly CLI", func() {
 					)
 				})
 
+				BeforeEach(func() {
+					args = append(args, "-r", "some-pipeline/some-resource")
+				})
+
 				It("writes an error message to stderr", func() {
 					Expect(func() {
-						flyCmd = exec.Command(flyPath, "-t", targetName, "clear-resource-cache", "-r", "some-pipeline/some-resource")
-						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-						Expect(err).NotTo(HaveOccurred())
-
+						yes()
 						Eventually(sess.Err).Should(gbytes.Say("Unexpected Response"))
 						Eventually(sess).Should(gexec.Exit(1))
 					}).To(Change(func() int {
 						return len(atcServer.ReceivedRequests())
 					}).By(2))
-
 				})
 			})
 		})

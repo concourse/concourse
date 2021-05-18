@@ -757,7 +757,7 @@ func (r *resource) ClearResourceCache(version atc.Version) (int64, error) {
 
 	defer Rollback(tx)
 
-	selectStatement := sq.Select("id").
+	selectStatement := psql.Select("id").
 		From("resource_caches").
 		Where(sq.Eq{
 			"resource_config_id": r.resourceConfigID,
@@ -770,14 +770,15 @@ func (r *resource) ClearResourceCache(version atc.Version) (int64, error) {
 		}
 
 		selectStatement = selectStatement.Where(
-			sq.Expr("version @> ?::jsonb", versionJson),
+			sq.Expr("version_md5 = md5(?)", versionJson),
 		)
 	}
 
-	sqlStatement, args, err := selectStatement.PlaceholderFormat(sq.Dollar).ToSql()
+	sqlStatement, args, err := selectStatement.ToSql()
 	if err != nil {
 		return 0, err
 	}
+
 	results, err := tx.Exec(`DELETE FROM worker_resource_caches WHERE resource_cache_id IN (` + sqlStatement + `)`, args...)
 
 	if err != nil {
