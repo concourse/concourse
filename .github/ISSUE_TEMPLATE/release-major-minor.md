@@ -8,10 +8,12 @@ assignees: ''
 
 Steps for a new major/minor release:
 
+* [ ] Add this issue to the `v<M.m.x>` milestone
+
 * [ ] Create your release branch on the `concourse/concourse` github repo with the following format `release/M.m.x` (M being the major version and m being the minor version)
 
 * [ ] Create the release branch on the `concourse/concourse-bosh-release` repository. Make any missing changes to the spec of `web` or `worker` depending on if the release contains any changes that adds or modifies any flags.
-  
+
   * Any changes you make on the branch will not get automatically merged back to master so try to make the changes on master and then create the branch from there.
   * We should really have something that will merge the branch back to master. (like we do for the `concourse/concourse` branches)
 
@@ -20,7 +22,7 @@ Steps for a new major/minor release:
 * [ ] Create the release branch on `concourse/concourse-chart` repository from the `dev` branch. Make any missing changes to `values.yaml` or `templates/web-deployment.yaml` for changes to flags on web or `templates/worker-deployment.yaml` for changes to flags on the worker.
 
 * [ ] Bump the appropriate versions for resource types. Go to the releases page `https://project.concourse-ci.org/releases` and take a look at which resource type repositories have had new commits or PRs. Take a look at what those changes entail and bump the version in their respective pipeline in `ci.concourse-ci.org`.
-  
+
   * If the changes were only README or repo restructuring changes with no user impact, you don't need to bump the version
   * If the changes were small bug fixes or changes, you can do a patch version bump
   * If the changes were adding of features, you can do a minor version bump
@@ -34,9 +36,9 @@ Steps for a new major/minor release:
   * If there is no documentation and the changes have user impact that should be documented, add the documentation to `concourse/docs`(or delegate) then add a `release/documented` label after finished. E.g. the addition of a new step type ( set_pipeline step).
   * If there is no documentation and the changes have user impact that do not need to be documented, add a `release/undocumented` label. E.g. an experimental feature.
   * If there is no documentation and the changes do not have user impact, add a `release/no-impact` label. E.g. refactors.
-  
+
 * [ ] Once the all source code changes are finalized, Concourse RC version should be deployed to CI
-  
+
   * including all the external workers (pr-worker, ci-topgun-worker, darwin-worker & BOSH deployed windows worker)
 
 * [ ] If you are doing a major release (or a release that involves a risky large feature), consider creating a [drills environment](https://github.com/concourse/drills) for some stress testing to ensure that the release does not involve any performance regressions.
