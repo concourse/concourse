@@ -127,6 +127,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.CreateBuild,
 			atc.CheckResource,
 			atc.CheckResourceType,
+			atc.CheckPrototype,
 			atc.CreateJobBuild,
 			atc.RerunJobBuild,
 			atc.CreatePipelineBuild,

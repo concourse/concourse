@@ -115,6 +115,7 @@ func (a *auditor) ValidateAction(action string) bool {
 		atc.CheckResource,
 		atc.CheckResourceWebHook,
 		atc.CheckResourceType,
+		atc.CheckPrototype,
 		atc.ListResourceVersions,
 		atc.GetResourceVersion,
 		atc.EnableResourceVersion,

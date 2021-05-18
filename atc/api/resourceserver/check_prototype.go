@@ -13,12 +13,12 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-func (s *Server) CheckResourceType(dbPipeline db.Pipeline) http.Handler {
+func (s *Server) CheckPrototype(dbPipeline db.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		resourceTypeName := rata.Param(r, "resource_type_name")
+		prototypeName := rata.Param(r, "prototype_name")
 
-		logger := s.logger.Session("check-resource-type", lager.Data{
-			"resource-type": resourceTypeName,
+		logger := s.logger.Session("check-prototype", lager.Data{
+			"prototype": prototypeName,
 		})
 
 		var reqBody atc.CheckRequestBody
@@ -29,15 +29,15 @@ func (s *Server) CheckResourceType(dbPipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		dbResourceType, found, err := dbPipeline.ResourceType(resourceTypeName)
+		dbPrototype, found, err := dbPipeline.Prototype(prototypeName)
 		if err != nil {
-			logger.Error("failed-to-get-resource-type", err)
+			logger.Error("failed-to-get-prototype", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
 		if !found {
-			logger.Info("resource-type-not-found")
+			logger.Info("prototype-not-found")
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
@@ -51,7 +51,7 @@ func (s *Server) CheckResourceType(dbPipeline db.Pipeline) http.Handler {
 
 		build, created, err := s.checkFactory.TryCreateCheck(
 			lagerctx.NewContext(context.Background(), logger),
-			dbResourceType,
+			dbPrototype,
 			dbResourceTypes,
 			reqBody.From,
 			true,
