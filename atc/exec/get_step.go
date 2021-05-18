@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/rand"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
@@ -351,6 +352,12 @@ func (step *GetStep) findResourceCache(
 	if err != nil {
 		return nil, false
 	}
+
+	// Randomize worker order so that the same worker doesn't have to perform
+	// the streaming constantly
+	rand.Shuffle(len(workers), func(i, j int) {
+		workers[i], workers[j] = workers[j], workers[i]
+	})
 
 	for _, sourceWorker := range workers {
 		volume, found, err := sourceWorker.FindVolumeForResourceCache(logger, resourceCache)
