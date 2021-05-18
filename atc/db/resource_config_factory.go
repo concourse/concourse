@@ -174,7 +174,7 @@ func (f *resourceConfigFactory) CleanUnreferencedConfigs(gracePeriod time.Durati
 		Where("id NOT IN (" +
 			usedByResourceCachesIds + " UNION " +
 			usedByResourcesIds + " UNION " +
-			usedByResourceTypesIds + "UNION" +
+			usedByResourceTypesIds + " UNION " +
 			usedByPrototypesIds + ")").
 		Where(sq.Expr(fmt.Sprintf("now() - last_referenced > '%d seconds'::interval", int(gracePeriod.Seconds())))).
 		PlaceholderFormat(sq.Dollar).

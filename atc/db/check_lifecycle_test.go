@@ -58,12 +58,14 @@ var _ = Describe("Check Lifecycle", func() {
 	It("removes completed check builds when there is a new completed check", func() {
 		resourceBuild := createFinishedCheck(defaultResource, plan)
 		resourceTypeBuild := createFinishedCheck(defaultResourceType, plan)
+		prototypeBuild := createFinishedCheck(defaultPrototype, plan)
 
 		By("attempting to delete completed checks when there are no newer checks")
 		err := lifecycle.DeleteCompletedChecks()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(exists(resourceBuild)).To(BeTrue())
 		Expect(exists(resourceTypeBuild)).To(BeTrue())
+		Expect(exists(prototypeBuild)).To(BeTrue())
 
 		By("creating a new check for the resource")
 		createFinishedCheck(defaultResource, plan)
@@ -76,6 +78,7 @@ var _ = Describe("Check Lifecycle", func() {
 		Expect(numBuildEventsForCheck(resourceBuild)).To(Equal(0))
 
 		Expect(exists(resourceTypeBuild)).To(BeTrue())
+		Expect(exists(prototypeBuild)).To(BeTrue())
 
 		By("creating a new check for the resource type")
 		createFinishedCheck(defaultResourceType, plan)
@@ -86,6 +89,18 @@ var _ = Describe("Check Lifecycle", func() {
 
 		Expect(exists(resourceTypeBuild)).To(BeFalse())
 		Expect(numBuildEventsForCheck(resourceTypeBuild)).To(Equal(0))
+
+		Expect(exists(prototypeBuild)).To(BeTrue())
+
+		By("creating a new check for the prototype")
+		createFinishedCheck(defaultPrototype, plan)
+
+		By("deleting completed checks")
+		err = lifecycle.DeleteCompletedChecks()
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(exists(prototypeBuild)).To(BeFalse())
+		Expect(numBuildEventsForCheck(prototypeBuild)).To(Equal(0))
 	})
 
 	It("ignores incomplete checks", func() {

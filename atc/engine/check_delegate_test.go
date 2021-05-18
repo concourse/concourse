@@ -508,5 +508,59 @@ var _ = Describe("CheckDelegate", func() {
 				})
 			})
 		})
+
+		Context("when checking for a prototype", func() {
+			var (
+				fakePipeline  *dbfakes.FakePipeline
+				fakePrototype *dbfakes.FakePrototype
+			)
+
+			BeforeEach(func() {
+				plan.Check.Prototype = "some-prototype"
+
+				fakePipeline = new(dbfakes.FakePipeline)
+				fakeBuild.PipelineReturns(fakePipeline, true, nil)
+
+				fakePrototype = new(dbfakes.FakePrototype)
+				fakePipeline.PrototypeReturns(fakePrototype, true, nil)
+			})
+
+			It("succeeds", func() {
+				Expect(pointErr).ToNot(HaveOccurred())
+			})
+
+			It("looks up the resource type on the pipeline", func() {
+				Expect(fakePipeline.PrototypeCallCount()).To(Equal(1))
+				resourceName := fakePipeline.PrototypeArgsForCall(0)
+				Expect(resourceName).To(Equal("some-prototype"))
+			})
+
+			It("assigns the scope to the resource type", func() {
+				Expect(fakePrototype.SetResourceConfigScopeCallCount()).To(Equal(1))
+
+				scope := fakePrototype.SetResourceConfigScopeArgsForCall(0)
+				Expect(scope).To(Equal(fakeResourceConfigScope))
+			})
+
+			Context("when the pipeline is not found", func() {
+				BeforeEach(func() {
+					fakeBuild.PipelineReturns(nil, false, nil)
+				})
+
+				It("returns an error", func() {
+					Expect(pointErr).To(HaveOccurred())
+				})
+			})
+
+			Context("when the prototype is not found", func() {
+				BeforeEach(func() {
+					fakePipeline.PrototypeReturns(nil, false, nil)
+				})
+
+				It("returns an error", func() {
+					Expect(pointErr).To(HaveOccurred())
+				})
+			})
+		})
 	})
 })

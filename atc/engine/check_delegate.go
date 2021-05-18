@@ -54,6 +54,7 @@ type checkDelegate struct {
 	cachedPipeline     db.Pipeline
 	cachedResource     db.Resource
 	cachedResourceType db.ResourceType
+	cachedPrototype    db.Prototype
 
 	limiter RateLimiter
 }
@@ -192,6 +193,18 @@ func (d *checkDelegate) PointToCheckedConfig(scope db.ResourceConfigScope) error
 		}
 	}
 
+	prototype, found, err := d.prototype()
+	if err != nil {
+		return fmt.Errorf("get prototype: %w", err)
+	}
+
+	if found {
+		err := prototype.SetResourceConfigScope(scope)
+		if err != nil {
+			return fmt.Errorf("set prototype scope: %w", err)
+		}
+	}
+
 	return nil
 }
 
@@ -268,4 +281,32 @@ func (d *checkDelegate) resourceType() (db.ResourceType, bool, error) {
 	d.cachedResourceType = resourceType
 
 	return d.cachedResourceType, true, nil
+}
+
+func (d *checkDelegate) prototype() (db.Prototype, bool, error) {
+	if d.plan.Prototype == "" {
+		return nil, false, nil
+	}
+
+	if d.cachedPrototype != nil {
+		return d.cachedPrototype, true, nil
+	}
+
+	pipeline, err := d.pipeline()
+	if err != nil {
+		return nil, false, err
+	}
+
+	prototype, found, err := pipeline.Prototype(d.plan.Prototype)
+	if err != nil {
+		return nil, false, fmt.Errorf("get pipeline prototype: %w", err)
+	}
+
+	if !found {
+		return nil, false, fmt.Errorf("prototype '%s' deleted", d.plan.Prototype)
+	}
+
+	d.cachedPrototype = prototype
+
+	return d.cachedPrototype, true, nil
 }

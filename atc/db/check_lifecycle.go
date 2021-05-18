@@ -33,11 +33,15 @@ func (cl *checkLifecycle) DeleteCompletedChecks() error {
           FROM builds b
           WHERE completed AND resource_type_id IS NOT NULL
           AND EXISTS (SELECT * FROM builds b2 WHERE b.resource_type_id = b2.resource_type_id AND b.id < b2.id)
+            UNION ALL
+          SELECT id
+          FROM builds b
+          WHERE completed AND prototype_id IS NOT NULL
+          AND EXISTS (SELECT * FROM builds b2 WHERE b.prototype_id = b2.prototype_id AND b.id < b2.id)
 		) AS deletable_builds WHERE builds.id = deletable_builds.id
 		RETURNING builds.id
       )
       DELETE FROM check_build_events USING deleted_builds WHERE build_id = deleted_builds.id
     `)
-	// TODO: delete prototype checks
 	return err
 }

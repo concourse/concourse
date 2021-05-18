@@ -244,8 +244,7 @@ type CheckPlan struct {
 	// A pipeline resource, resource type, or prototype to assign the config to.
 	Resource     string `json:"resource,omitempty"`
 	ResourceType string `json:"resource_type,omitempty"`
-	// XXX(prototypes): use this to check prototypes
-	Prototype string `json:"prototype,omitempty"`
+	Prototype    string `json:"prototype,omitempty"`
 
 	// The interval on which to check - if it has not elapsed since the config
 	// was last checked, and the build has not been manually triggered, the check
