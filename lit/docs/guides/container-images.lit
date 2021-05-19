@@ -79,8 +79,8 @@
 
   jobs:
   - name: build-and-push
-   plan:
-   - get: concourse-examples
+    plan:
+    - get: concourse-examples
   }}
 
   \inline-header{Build the Image}
@@ -101,16 +101,16 @@
 
   jobs:
   - name: build-and-push
-   plan:
-   - get: concourse-examples
-   - task: build-image
-     privileged: true # oci-build-task must run in a privileged container
-     config:
-       platform: linux
-       image_resource:
-         type: registry-image
-         source:
-           repository: vito/oci-build-task
+    plan:
+    - get: concourse-examples
+    - task: build-image
+      privileged: true # oci-build-task must run in a privileged container
+      config:
+        platform: linux
+        image_resource:
+          type: registry-image
+          source:
+            repository: vito/oci-build-task
   }}
   \inset{} {- spacer -}
 

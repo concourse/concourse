@@ -56,6 +56,7 @@
     \reference{schema.step.put-step.inputs} or you can pass in an exact list of
     all artifacts the \reference{put-step} needs.
 
+    Using \code{detect}:
     \codeblock{yaml}{{
     jobs:
     - name: the-job
@@ -63,15 +64,25 @@
       - get: apples
       - get: apple-basket
       - get: monkeys
-      # using detect
+      # using detect will result in "apples-location" and "basket" being passed in
+      # "monkeys" will not be passed in
       - put: apples-in-basket
         input: detect
         params:
           apples-location: apples/location # matches the first get step
           basket: apple-basket # matches the second get step
-      # or you can specify the exact inputs needed
+    }}
+
+    Specifying the exact inputs needed for the \reference{put-step}:
+    \codeblock{yaml}{{
+    jobs:
+    - name: the-job
+      plan: # Get some artifacts
+      - get: apples
+      - get: apple-basket
+      - get: monkeys
       - put: apples-in-basket
-        input: [apples, apple-basket]
+        input: [apples, apple-basket] # specify the exact inputs needed
         params:
           apples-location: apples/location
           basket: apple-basket
@@ -90,7 +101,7 @@
     store task configs in files instead of embedding the config directly in the
     pipeline.
 
-    Here's what this looks like in practice.
+    Here's what this looks like in practice:
 
     \titled-codeblock{todays-date.yml, stored in some git repo under a folder named "task"}{yaml}{{
     platform: linux
@@ -104,7 +115,9 @@
       path: date
       args: ["+%Y-%m-%d"]
     }}
-    Using the task in a pipeline.
+    \inset{} {- spacer -}
+
+    Using the task in a pipeline:
 
     \titled-codeblock{pipline.yml}{yaml}{{
     resources:
@@ -140,7 +153,8 @@
           platform: linux
           image_resource: # anonymous image resource
             type: registry-image
-            source: { repository: busybox }
+            source:
+              repository: busybox
           run:
             path: echo
             args: ["Hello world!"]
