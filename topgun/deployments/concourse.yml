@@ -15,7 +15,7 @@ instance_groups:
   networks: [{name: test}]
   azs: [z1]
   vm_type: test
-  stemcell: xenial
+  stemcell: bionic
   jobs:
   - release: bpm
     name: bpm
@@ -55,7 +55,7 @@ instance_groups:
   # don't bother with persistent disk
   # persistent_disk: 10240
   vm_type: test
-  stemcell: xenial
+  stemcell: bionic
   jobs:
   - release: postgres
     name: postgres
@@ -72,7 +72,7 @@ instance_groups:
   networks: [{name: test}]
   azs: [z1]
   vm_type: test
-  stemcell: xenial
+  stemcell: bionic
   jobs:
   - release: concourse((suite))
     name: worker
@@ -94,8 +94,8 @@ variables:
   type: ssh
 
 stemcells:
-- alias: xenial
-  os: ubuntu-xenial
+- alias: bionic
+  os: ubuntu-bionic
   version: ((stemcell_version))
 
 update:
