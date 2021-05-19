@@ -22,6 +22,22 @@ func formatErr(groupName string, err error) string {
 	return fmt.Sprintf("invalid %s:\n%s\n", groupName, strings.Join(indented, "\n"))
 }
 
+type location struct {
+	section string
+	index   int
+}
+
+func (l location) String() string {
+	return fmt.Sprintf("%s[%d]", l.section, l.index)
+}
+
+func (l location) Identifier(name string) string {
+	if name == "" {
+		return l.String()
+	}
+	return fmt.Sprintf("%s.%s", l.section, name)
+}
+
 func Validate(c atc.Config) ([]atc.ConfigWarning, []string) {
 	warnings := []atc.ConfigWarning{}
 	errorMessages := []string{}
@@ -38,11 +54,19 @@ func Validate(c atc.Config) ([]atc.ConfigWarning, []string) {
 	}
 	warnings = append(warnings, resourcesWarnings...)
 
-	resourceTypesWarnings, resourceTypesErr := validateResourceTypes(c)
+	seenTypes := make(map[string]location)
+
+	resourceTypesWarnings, resourceTypesErr := validateResourceTypes(c, seenTypes)
 	if resourceTypesErr != nil {
 		errorMessages = append(errorMessages, formatErr("resource types", resourceTypesErr))
 	}
 	warnings = append(warnings, resourceTypesWarnings...)
+
+	prototypesWarnings, prototypesErr := validatePrototypes(c, seenTypes)
+	if prototypesErr != nil {
+		errorMessages = append(errorMessages, formatErr("prototypes", prototypesErr))
+	}
+	warnings = append(warnings, prototypesWarnings...)
 
 	varSourcesWarnings, varSourcesErr := validateVarSources(c)
 	if varSourcesErr != nil {
@@ -77,12 +101,8 @@ func validateGroups(c atc.Config) ([]atc.ConfigWarning, error) {
 	}
 
 	for i, group := range c.Groups {
-		var identifier string
-		if group.Name == "" {
-			identifier = fmt.Sprintf("groups[%d]", i)
-		} else {
-			identifier = fmt.Sprintf("groups.%s", group.Name)
-		}
+		location := location{section: "groups", index: i}
+		identifier := location.Identifier(group.Name)
 
 		warning, err := atc.ValidateIdentifier(group.Name, identifier)
 		if err != nil {
@@ -150,15 +170,11 @@ func validateResources(c atc.Config) ([]atc.ConfigWarning, error) {
 	var warnings []atc.ConfigWarning
 	var errorMessages []string
 
-	names := map[string]int{}
+	names := map[string]location{}
 
 	for i, resource := range c.Resources {
-		var identifier string
-		if resource.Name == "" {
-			identifier = fmt.Sprintf("resources[%d]", i)
-		} else {
-			identifier = fmt.Sprintf("resources.%s", resource.Name)
-		}
+		location := location{section: "resources", index: i}
+		identifier := location.Identifier(resource.Name)
 
 		warning, err := atc.ValidateIdentifier(resource.Name, identifier)
 		if err != nil {
@@ -171,10 +187,10 @@ func validateResources(c atc.Config) ([]atc.ConfigWarning, error) {
 		if other, exists := names[resource.Name]; exists {
 			errorMessages = append(errorMessages,
 				fmt.Sprintf(
-					"resources[%d] and resources[%d] have the same name ('%s')",
-					other, i, resource.Name))
+					"%s and %s have the same name ('%s')",
+					other, location, resource.Name))
 		} else if resource.Name != "" {
-			names[resource.Name] = i
+			names[resource.Name] = location
 		}
 
 		if resource.Name == "" {
@@ -191,19 +207,13 @@ func validateResources(c atc.Config) ([]atc.ConfigWarning, error) {
 	return warnings, compositeErr(errorMessages)
 }
 
-func validateResourceTypes(c atc.Config) ([]atc.ConfigWarning, error) {
+func validateResourceTypes(c atc.Config, seenTypes map[string]location) ([]atc.ConfigWarning, error) {
 	var warnings []atc.ConfigWarning
 	var errorMessages []string
 
-	names := map[string]int{}
-
 	for i, resourceType := range c.ResourceTypes {
-		var identifier string
-		if resourceType.Name == "" {
-			identifier = fmt.Sprintf("resource_types[%d]", i)
-		} else {
-			identifier = fmt.Sprintf("resource_types.%s", resourceType.Name)
-		}
+		location := location{section: "resource_types", index: i}
+		identifier := location.Identifier(resourceType.Name)
 
 		warning, err := atc.ValidateIdentifier(resourceType.Name, identifier)
 		if err != nil {
@@ -213,13 +223,13 @@ func validateResourceTypes(c atc.Config) ([]atc.ConfigWarning, error) {
 			warnings = append(warnings, *warning)
 		}
 
-		if other, exists := names[resourceType.Name]; exists {
+		if other, exists := seenTypes[resourceType.Name]; exists {
 			errorMessages = append(errorMessages,
 				fmt.Sprintf(
-					"resource_types[%d] and resource_types[%d] have the same name ('%s')",
-					other, i, resourceType.Name))
+					"%s and %s have the same name ('%s')",
+					other, location, resourceType.Name))
 		} else if resourceType.Name != "" {
-			names[resourceType.Name] = i
+			seenTypes[resourceType.Name] = location
 		}
 
 		if resourceType.Name == "" {
@@ -227,6 +237,43 @@ func validateResourceTypes(c atc.Config) ([]atc.ConfigWarning, error) {
 		}
 
 		if resourceType.Type == "" {
+			errorMessages = append(errorMessages, identifier+" has no type")
+		}
+	}
+
+	return warnings, compositeErr(errorMessages)
+}
+
+func validatePrototypes(c atc.Config, seenTypes map[string]location) ([]atc.ConfigWarning, error) {
+	var warnings []atc.ConfigWarning
+	var errorMessages []string
+
+	for i, prototype := range c.Prototypes {
+		location := location{section: "prototypes", index: i}
+		identifier := location.Identifier(prototype.Name)
+
+		warning, err := atc.ValidateIdentifier(prototype.Name, identifier)
+		if err != nil {
+			errorMessages = append(errorMessages, err.Error())
+		}
+		if warning != nil {
+			warnings = append(warnings, *warning)
+		}
+
+		if other, exists := seenTypes[prototype.Name]; exists {
+			errorMessages = append(errorMessages,
+				fmt.Sprintf(
+					"%s and %s have the same name ('%s')",
+					other, location, prototype.Name))
+		} else if prototype.Name != "" {
+			seenTypes[prototype.Name] = location
+		}
+
+		if prototype.Name == "" {
+			errorMessages = append(errorMessages, identifier+" has no name")
+		}
+
+		if prototype.Type == "" {
 			errorMessages = append(errorMessages, identifier+" has no type")
 		}
 	}
@@ -271,7 +318,7 @@ func validateJobs(c atc.Config) ([]atc.ConfigWarning, error) {
 	var errorMessages []string
 	var warnings []atc.ConfigWarning
 
-	names := map[string]int{}
+	names := map[string]location{}
 
 	if len(c.Jobs) == 0 {
 		errorMessages = append(errorMessages, "jobs: pipeline must contain at least one job")
@@ -279,12 +326,8 @@ func validateJobs(c atc.Config) ([]atc.ConfigWarning, error) {
 	}
 
 	for i, job := range c.Jobs {
-		var identifier string
-		if job.Name == "" {
-			identifier = fmt.Sprintf("jobs[%d]", i)
-		} else {
-			identifier = fmt.Sprintf("jobs.%s", job.Name)
-		}
+		location := location{section: "jobs", index: i}
+		identifier := location.Identifier(job.Name)
 
 		warning, err := atc.ValidateIdentifier(job.Name, identifier)
 		if err != nil {
@@ -297,10 +340,10 @@ func validateJobs(c atc.Config) ([]atc.ConfigWarning, error) {
 		if other, exists := names[job.Name]; exists {
 			errorMessages = append(errorMessages,
 				fmt.Sprintf(
-					"jobs[%d] and jobs[%d] have the same name ('%s')",
-					other, i, job.Name))
+					"%s and %s have the same name ('%s')",
+					other, location, job.Name))
 		} else if job.Name != "" {
-			names[job.Name] = i
+			names[job.Name] = location
 		}
 
 		if job.Name == "" {
@@ -372,17 +415,13 @@ func validateVarSources(c atc.Config) ([]atc.ConfigWarning, error) {
 	var warnings []atc.ConfigWarning
 	var errorMessages []string
 
-	names := map[string]interface{}{}
+	names := map[string]location{}
 
-	for i, cm := range c.VarSources {
-		var identifier string
-		if cm.Name == "" {
-			identifier = fmt.Sprintf("var_sources[%d]", i)
-		} else {
-			identifier = fmt.Sprintf("var_sources.%s", cm.Name)
-		}
+	for i, varSource := range c.VarSources {
+		location := location{section: "var_sources", index: i}
+		identifier := location.Identifier(varSource.Name)
 
-		warning, err := atc.ValidateIdentifier(cm.Name, identifier)
+		warning, err := atc.ValidateIdentifier(varSource.Name, identifier)
 		if err != nil {
 			errorMessages = append(errorMessages, err.Error())
 		}
@@ -390,30 +429,33 @@ func validateVarSources(c atc.Config) ([]atc.ConfigWarning, error) {
 			warnings = append(warnings, *warning)
 		}
 
-		if factory, exists := creds.ManagerFactories()[cm.Type]; exists {
+		if factory, exists := creds.ManagerFactories()[varSource.Type]; exists {
 			// TODO: this check should eventually be removed once all credential managers
 			// are supported in pipeline. - @evanchaoli
-			switch cm.Type {
+			switch varSource.Type {
 			case "vault", "dummy", "ssm":
 			default:
-				errorMessages = append(errorMessages, fmt.Sprintf("credential manager type %s is not supported in pipeline yet", cm.Type))
+				errorMessages = append(errorMessages, fmt.Sprintf("credential manager type %s is not supported in pipeline yet", varSource.Type))
 			}
 
-			if _, ok := names[cm.Name]; ok {
-				errorMessages = append(errorMessages, fmt.Sprintf("duplicate var_source name: %s", cm.Name))
+			if other, ok := names[varSource.Name]; ok {
+				errorMessages = append(errorMessages,
+					fmt.Sprintf(
+						"%s and %s have the same name ('%s')",
+						other, location, varSource.Name))
 			}
-			names[cm.Name] = 0
+			names[varSource.Name] = location
 
-			if manager, err := factory.NewInstance(cm.Config); err == nil {
+			if manager, err := factory.NewInstance(varSource.Config); err == nil {
 				err = manager.Validate()
 				if err != nil {
-					errorMessages = append(errorMessages, fmt.Sprintf("credential manager %s is invalid: %s", cm.Name, err.Error()))
+					errorMessages = append(errorMessages, fmt.Sprintf("credential manager %s is invalid: %s", varSource.Name, err.Error()))
 				}
 			} else {
-				errorMessages = append(errorMessages, fmt.Sprintf("failed to create credential manager %s: %s", cm.Name, err.Error()))
+				errorMessages = append(errorMessages, fmt.Sprintf("failed to create credential manager %s: %s", varSource.Name, err.Error()))
 			}
 		} else {
-			errorMessages = append(errorMessages, fmt.Sprintf("unknown credential manager type: %s", cm.Type))
+			errorMessages = append(errorMessages, fmt.Sprintf("unknown credential manager type: %s", varSource.Type))
 		}
 	}
 
