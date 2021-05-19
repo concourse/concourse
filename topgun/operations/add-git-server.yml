@@ -13,7 +13,7 @@
     networks: [{name: test}]
     azs: [z1]
     vm_type: test
-    stemcell: xenial
+    stemcell: bionic
     jobs:
     - release: git-server
       name: git-server
