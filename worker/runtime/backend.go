@@ -246,7 +246,7 @@ func (b *GardenBackend) startTask(ctx context.Context, cont containerd.Container
 		return fmt.Errorf("new task: %w", err)
 	}
 
-	err = b.network.Add(ctx, task)
+	err = b.network.Add(ctx, task, cont.ID())
 	if err != nil {
 		return fmt.Errorf("network add: %w", err)
 	}

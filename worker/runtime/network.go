@@ -21,7 +21,7 @@ type Network interface {
 
 	// Add adds a task to the network.
 	//
-	Add(ctx context.Context, task containerd.Task) (err error)
+	Add(ctx context.Context, task containerd.Task, containerHandle string) (err error)
 
 	// Removes a task from the network.
 	//
