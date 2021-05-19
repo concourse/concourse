@@ -42,9 +42,9 @@
         config:
           platform: linux
           image_resource:
-            type: mock
+            type: registry-image
             source:
-              mirror_self: true
+              repository: gitea/gitea # use any image that has the git cli
           inputs: # pass concourse-examples into this task step
           - name: concourse-examples
           run:
@@ -74,9 +74,9 @@
         config:
           platform: linux
           image_resource:
-            type: mock
+            type: registry-image
             source:
-              mirror_self: true
+              repository: gitea/gitea # use any image that has the git cli
           inputs:
           - name: repo-main
           outputs:
