@@ -6,7 +6,7 @@
     networks: [{name: test}]
     azs: [z1]
     vm_type: test
-    stemcell: xenial
+    stemcell: bionic
     jobs:
     - release: concourse((suite))
       name: worker

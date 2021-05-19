@@ -39,7 +39,7 @@
     azs: [z1]
     persistent_disk: 10240
     vm_type: test
-    stemcell: xenial
+    stemcell: bionic
     jobs:
     - release: bpm
       name: bpm
