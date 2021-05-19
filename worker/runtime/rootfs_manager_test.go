@@ -1,13 +1,11 @@
 package runtime_test
 
 import (
-	"errors"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
 	"github.com/concourse/concourse/worker/runtime"
-	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -78,125 +76,4 @@ func (s *RootfsManagerSuite) TestSetupCwdWithoutIDMappings() {
 
 	s.Equal(expectedPath, path)
 	s.Equal(expectedMode, mode)
-}
-
-func (s *RootfsManagerSuite) TestLookupUserReturnsUserInfo() {
-	mgr := runtime.NewRootfsManager()
-	s.writeEtcPasswd(`
-		root:*:0:0:System Administrator:/var/root:/bin/sh
-		some_user_name:*:1:1:Some User:/var/root:/usr/bin/false
-	`)
-	actualUser, ok, err := mgr.LookupUser(s.rootfsPath, "some_user_name")
-	s.NoError(err)
-
-	s.True(ok)
-	expectedUser := specs.User{
-		UID: 1,
-		GID: 1,
-	}
-	s.Equal(expectedUser, actualUser)
-}
-
-func (s *RootfsManagerSuite) TestLookupUserUsernameNotFound() {
-	mgr := runtime.NewRootfsManager()
-
-	s.writeEtcPasswd(`
-		root:*:0:0:System Administrator:/var/root:/bin/sh
-		some_user_name:*:1:1:Some User:/var/root:/usr/bin/false
-	`)
-
-	_, ok, err := mgr.LookupUser(s.rootfsPath, "missing_username")
-	s.NoError(err)
-	s.False(ok)
-}
-
-func (s *RootfsManagerSuite) TestLookupUserInvalidUID() {
-	mgr := runtime.NewRootfsManager()
-
-	s.writeEtcPasswd(`
-		some_user_name:*:NaN:0:System Administrator:/var/root:/bin/sh
-	`)
-
-	_, _, err := mgr.LookupUser(s.rootfsPath, "some_user_name")
-	s.True(errors.Is(err, runtime.InvalidUidError{UID: "NaN"}))
-}
-
-func (s *RootfsManagerSuite) TestLookupUserInvalidGID() {
-	mgr := runtime.NewRootfsManager()
-
-	s.writeEtcPasswd(`
-		some_user_name:*:0:NaN:System Administrator:/var/root:/bin/sh
-	`)
-
-	_, _, err := mgr.LookupUser(s.rootfsPath, "some_user_name")
-	s.True(errors.Is(err, runtime.InvalidGidError{GID: "NaN"}))
-}
-
-func (s *RootfsManagerSuite) TestLookupUserEtcPasswdNotFound() {
-	mgr := runtime.NewRootfsManager()
-
-	_, _, err := mgr.LookupUser(s.rootfsPath, "username")
-	s.Error(err)
-}
-
-func (s *RootfsManagerSuite) TestLookupUserIgnoreNonUserInfo() {
-	mgr := runtime.NewRootfsManager()
-	s.writeEtcPasswd(`
-		#This is etc passwd
-		root:*:0:0:System Administrator:/var/root:/bin/sh
-		some_user_name:*:1
-
-		some_user_name:*:1:1:Some User:/var/root:/usr/bin/false
-	`)
-	_, ok, err := mgr.LookupUser(s.rootfsPath, "some_user_name")
-	s.NoError(err)
-	s.True(ok)
-}
-
-func (s *RootfsManagerSuite) TestLookupUserRootNoPasswdFileRoot() {
-	mgr := runtime.NewRootfsManager()
-
-	actualUser, ok, err := mgr.LookupUser("no-passwd-file", "root")
-	s.NoError(err)
-
-	s.True(ok)
-	expectedUser := specs.User{
-		UID: 0,
-		GID: 0,
-	}
-	s.Equal(expectedUser, actualUser)
-}
-
-func (s *RootfsManagerSuite) TestLookupUserNoPasswdFileNonRoot() {
-	mgr := runtime.NewRootfsManager()
-
-	_, _, err := mgr.LookupUser("no-passwd-file", "some_user_name")
-	s.True(errors.Is(err, os.ErrNotExist))
-}
-
-func (s *RootfsManagerSuite) TestLookupUserRootUidNotZero() {
-	mgr := runtime.NewRootfsManager()
-	s.writeEtcPasswd(`
-		#This is etc passwd
-		admin:*:0:0:System Administrator:/var/root:/bin/sh
-		root:*:1:1:Some User:/var/root:/usr/bin/false
-	`)
-
-	actualUser, ok, err := mgr.LookupUser(s.rootfsPath, "root")
-	s.NoError(err)
-
-	s.True(ok)
-	expectedUser := specs.User{
-		UID: 1,
-		GID: 1,
-	}
-	s.Equal(expectedUser, actualUser)
-}
-
-func (s *RootfsManagerSuite) writeEtcPasswd(contents string) {
-	err := os.MkdirAll(filepath.Join(s.rootfsPath, "etc"), 0755)
-	s.NoError(err)
-
-	err = ioutil.WriteFile(filepath.Join(s.rootfsPath, "etc", "passwd"), []byte(contents), 0755)
-	s.NoError(err)
 }
