@@ -35,7 +35,7 @@ fly -t ci execute \
   -i concourse=. \
   -i ci="$ci" \
   -i concourse-release=${release_input} \
-  -m stemcell=gcp-xenial-stemcell \
+  -m stemcell=gcp-bionic-stemcell \
   --tag bosh \
   -- \
   --stream \
