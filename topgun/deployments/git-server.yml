@@ -11,7 +11,7 @@ instance_groups:
   networks: [{name: test}]
   azs: [z1]
   vm_type: test
-  stemcell: xenial
+  stemcell: bionic
   jobs:
   - release: git-server
     name: git-server
@@ -20,8 +20,8 @@ instance_groups:
       - some-repo
 
 stemcells:
-- alias: xenial
-  os: ubuntu-xenial
+- alias: bionic
+  os: ubuntu-bionic
   version: ((stemcell_version))
 
 update:
