@@ -87,6 +87,20 @@ type FakeClient struct {
 	stopReturnsOnCall map[int]struct {
 		result1 error
 	}
+	TasksStub        func(context.Context, ...string) ([]libcontainerd.TaskInfo, error)
+	tasksMutex       sync.RWMutex
+	tasksArgsForCall []struct {
+		arg1 context.Context
+		arg2 []string
+	}
+	tasksReturns struct {
+		result1 []libcontainerd.TaskInfo
+		result2 error
+	}
+	tasksReturnsOnCall map[int]struct {
+		result1 []libcontainerd.TaskInfo
+		result2 error
+	}
 	VersionStub        func(context.Context) error
 	versionMutex       sync.RWMutex
 	versionArgsForCall []struct {
@@ -467,6 +481,71 @@ func (fake *FakeClient) StopReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeClient) Tasks(arg1 context.Context, arg2 ...string) ([]libcontainerd.TaskInfo, error) {
+	fake.tasksMutex.Lock()
+	ret, specificReturn := fake.tasksReturnsOnCall[len(fake.tasksArgsForCall)]
+	fake.tasksArgsForCall = append(fake.tasksArgsForCall, struct {
+		arg1 context.Context
+		arg2 []string
+	}{arg1, arg2})
+	stub := fake.TasksStub
+	fakeReturns := fake.tasksReturns
+	fake.recordInvocation("Tasks", []interface{}{arg1, arg2})
+	fake.tasksMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2...)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeClient) TasksCallCount() int {
+	fake.tasksMutex.RLock()
+	defer fake.tasksMutex.RUnlock()
+	return len(fake.tasksArgsForCall)
+}
+
+func (fake *FakeClient) TasksCalls(stub func(context.Context, ...string) ([]libcontainerd.TaskInfo, error)) {
+	fake.tasksMutex.Lock()
+	defer fake.tasksMutex.Unlock()
+	fake.TasksStub = stub
+}
+
+func (fake *FakeClient) TasksArgsForCall(i int) (context.Context, []string) {
+	fake.tasksMutex.RLock()
+	defer fake.tasksMutex.RUnlock()
+	argsForCall := fake.tasksArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeClient) TasksReturns(result1 []libcontainerd.TaskInfo, result2 error) {
+	fake.tasksMutex.Lock()
+	defer fake.tasksMutex.Unlock()
+	fake.TasksStub = nil
+	fake.tasksReturns = struct {
+		result1 []libcontainerd.TaskInfo
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeClient) TasksReturnsOnCall(i int, result1 []libcontainerd.TaskInfo, result2 error) {
+	fake.tasksMutex.Lock()
+	defer fake.tasksMutex.Unlock()
+	fake.TasksStub = nil
+	if fake.tasksReturnsOnCall == nil {
+		fake.tasksReturnsOnCall = make(map[int]struct {
+			result1 []libcontainerd.TaskInfo
+			result2 error
+		})
+	}
+	fake.tasksReturnsOnCall[i] = struct {
+		result1 []libcontainerd.TaskInfo
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeClient) Version(arg1 context.Context) error {
 	fake.versionMutex.Lock()
 	ret, specificReturn := fake.versionReturnsOnCall[len(fake.versionArgsForCall)]
@@ -543,6 +622,8 @@ func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	defer fake.newContainerMutex.RUnlock()
 	fake.stopMutex.RLock()
 	defer fake.stopMutex.RUnlock()
+	fake.tasksMutex.RLock()
+	defer fake.tasksMutex.RUnlock()
 	fake.versionMutex.RLock()
 	defer fake.versionMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

@@ -308,28 +308,34 @@ func (b *GardenBackend) Destroy(handle string) error {
 // Containers lists all containers filtered by properties (which are ANDed
 // together).
 //
-func (b *GardenBackend) Containers(properties garden.Properties) (containers []garden.Container, err error) {
+func (b *GardenBackend) Containers(properties garden.Properties) ([]garden.Container, error) {
 	filters, err := propertiesToFilterList(properties)
 	if err != nil {
-		return
+		return nil, err
 	}
 
-	res, err := b.client.Containers(context.Background(), filters...)
+	ctx := context.Background()
+	// note: we fetch Tasks rather than Containers deliberately. Tasks are the
+	// actual running processes on workers, while Containers are just metadata
+	// that can contain a Task. if the Task gets terminated (e.g. the worker
+	// reboots), the worker should not report this container as alive
+	tasks, err := b.client.Tasks(ctx, filters...)
 	if err != nil {
-		err = fmt.Errorf("list containers: %w", err)
-		return
+		return nil, fmt.Errorf("list tasks: %w", err)
 	}
 
-	containers = make([]garden.Container, len(res))
-	for i, containerdContainer := range res {
-		containers[i] = NewContainer(
-			containerdContainer,
-			b.killer,
-			b.rootfsManager,
-		)
+	containers := make([]garden.Container, len(tasks))
+	for i, task := range tasks {
+		containers[i] = &LazyContainer{
+			ID: task.ContainerID,
+
+			client:        b.client,
+			killer:        b.killer,
+			rootfsManager: b.rootfsManager,
+		}
 	}
 
-	return
+	return containers, nil
 }
 
 // Lookup returns the container with the specified handle.

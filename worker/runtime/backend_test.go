@@ -10,6 +10,7 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/garden/gardenfakes"
 	"github.com/concourse/concourse/worker/runtime"
+	"github.com/concourse/concourse/worker/runtime/libcontainerd"
 	"github.com/concourse/concourse/worker/runtime/libcontainerd/libcontainerdfakes"
 	"github.com/concourse/concourse/worker/runtime/runtimefakes"
 	"github.com/containerd/containerd"
@@ -258,11 +259,11 @@ func (s *BackendSuite) TestCreateContainerLockTimeout() {
 	}
 }
 func (s *BackendSuite) TestContainersWithContainerdFailure() {
-	s.client.ContainersReturns(nil, errors.New("err"))
+	s.client.TasksReturns(nil, errors.New("err"))
 
 	_, err := s.backend.Containers(nil)
 	s.Error(err)
-	s.Equal(1, s.client.ContainersCallCount())
+	s.Equal(1, s.client.TasksCallCount())
 }
 
 func (s *BackendSuite) TestContainersWithInvalidPropertyFilters() {
@@ -294,23 +295,25 @@ func (s *BackendSuite) TestContainersWithInvalidPropertyFilters() {
 
 func (s *BackendSuite) TestContainersWithProperProperties() {
 	_, _ = s.backend.Containers(map[string]string{"foo": "bar", "caz": "zaz"})
-	s.Equal(1, s.client.ContainersCallCount())
+	s.Equal(1, s.client.TasksCallCount())
 
-	_, labelSet := s.client.ContainersArgsForCall(0)
+	_, labelSet := s.client.TasksArgsForCall(0)
 	s.ElementsMatch([]string{"labels.foo==bar", "labels.caz==zaz"}, labelSet)
 }
 
 func (s *BackendSuite) TestContainersConversion() {
-	fakeContainer1 := new(libcontainerdfakes.FakeContainer)
-	fakeContainer2 := new(libcontainerdfakes.FakeContainer)
-
-	s.client.ContainersReturns([]containerd.Container{
-		fakeContainer1, fakeContainer2,
+	s.client.TasksReturns([]libcontainerd.TaskInfo{
+		{
+			ContainerID: "container1",
+		},
+		{
+			ContainerID: "container2",
+		},
 	}, nil)
 
 	containers, err := s.backend.Containers(nil)
 	s.NoError(err)
-	s.Equal(1, s.client.ContainersCallCount())
+	s.Equal(1, s.client.TasksCallCount())
 	s.Len(containers, 2)
 }
 

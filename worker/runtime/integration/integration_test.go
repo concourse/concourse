@@ -188,6 +188,37 @@ func (s *IntegrationSuite) TestContainerCreateRunStopedDestroy() {
 	s.Len(containers, 0)
 }
 
+// TestContainersMissingTask validates that when a Task is deleted from an
+// existing Container, Containers will not report that container as it is
+// effectively "dead".
+//
+func (s *IntegrationSuite) TestContainersMissingTask() {
+	handle := uuid()
+	properties := garden.Properties{"test": uuid()}
+
+	_, err := s.gardenBackend.Create(garden.ContainerSpec{
+		Handle:     handle,
+		RootFSPath: "raw://" + s.rootfs,
+		Privileged: true,
+		Properties: properties,
+	})
+	s.NoError(err)
+
+	containers, err := s.gardenBackend.Containers(properties)
+	s.NoError(err)
+	s.Len(containers, 1)
+
+	_, err = s.ctr("tasks", "kill", handle, "--signal", "SIGKILL")
+	s.NoError(err)
+
+	_, err = s.ctr("tasks", "delete", handle)
+	s.NoError(err)
+
+	containers, err = s.gardenBackend.Containers(properties)
+	s.NoError(err)
+	s.Len(containers, 0)
+}
+
 // TestContainerNetworkEgress aims at verifying that a process that we run in a
 // container that we create through our gardenBackend is able to make requests to
 // external services.
@@ -658,4 +689,22 @@ func (s *IntegrationSuite) TestRequestTimeoutZero() {
 	defer func() {
 		customBackend.Stop()
 	}()
+}
+
+// ctr runs a command using against the the ctr CLI.
+func (s *IntegrationSuite) ctr(args ...string) (string, error) {
+	cmd := exec.Command("ctr", "--address="+s.containerdSocket(), "--namespace=test")
+	cmd.Args = append(cmd.Args, args...)
+
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
+
+	cmd.Stdout = stdout
+	cmd.Stderr = stderr
+
+	err := cmd.Run()
+	if err != nil {
+		return "", fmt.Errorf("%v: %s", err, stderr)
+	}
+	return stdout.String(), nil
 }

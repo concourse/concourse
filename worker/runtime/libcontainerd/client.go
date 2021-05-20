@@ -3,9 +3,11 @@ package libcontainerd
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/containerd/containerd"
+	tasks "github.com/containerd/containerd/api/services/tasks/v1"
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
@@ -67,11 +69,19 @@ type Client interface {
 		container containerd.Container, err error,
 	)
 
+	Tasks(ctx context.Context, filters ...string) ([]TaskInfo, error)
+
 	// Destroy stops any running tasks on a container and removes the container.
 	// If a task cannot be stopped gracefully, it will be forcefully stopped after
 	// a timeout period (default 10 seconds).
 	//
 	Destroy(ctx context.Context, handle string) error
+}
+
+type TaskInfo struct {
+	ContainerID string
+	ID          string
+	Pid         uint32
 }
 
 type client struct {
@@ -161,6 +171,7 @@ func (c *client) Version(ctx context.Context) (err error) {
 	_, err = c.containerd.Version(ctx)
 	return
 }
+
 func (c *client) Destroy(ctx context.Context, handle string) error {
 	ctx, cancel := createTimeoutContext(ctx, c.requestTimeout)
 	defer cancel()
@@ -171,4 +182,27 @@ func (c *client) Destroy(ctx context.Context, handle string) error {
 	}
 
 	return container.Delete(ctx)
+}
+
+func (c *client) Tasks(ctx context.Context, filters ...string) ([]TaskInfo, error) {
+	ctx, cancel := createTimeoutContext(ctx, c.requestTimeout)
+	defer cancel()
+
+	response, err := c.containerd.TaskService().List(ctx, &tasks.ListTasksRequest{
+		Filter: strings.Join(filters, ","),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	tasks := make([]TaskInfo, len(response.Tasks))
+	for i, task := range response.Tasks {
+		tasks[i] = TaskInfo{
+			ContainerID: task.ContainerID,
+			ID:          task.ID,
+			Pid:         task.Pid,
+		}
+	}
+
+	return tasks, nil
 }
