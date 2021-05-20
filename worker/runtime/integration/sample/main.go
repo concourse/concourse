@@ -53,6 +53,7 @@ func httpGet(url string) {
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
 		},
+		Timeout: 5 * time.Second,
 	}
 
 	resp, err := client.Get(url)

@@ -70,6 +70,11 @@ func (cmd *WorkerCommand) containerdGardenServerRunner(
 		networkOpts = append(networkOpts, runtime.WithRestrictedNetworks(cmd.Containerd.Network.RestrictedNetworks))
 	}
 
+	// DNS proxy won't work without allowing access to host network
+	if cmd.Containerd.Network.AllowHostAccess || cmd.Containerd.Network.DNS.Enable  {
+		networkOpts = append(networkOpts, runtime.WithAllowHostAccess())
+	}
+
 	networkConfig := runtime.DefaultCNINetworkConfig
 	if cmd.Containerd.Network.Pool != "" {
 		networkConfig.Subnet = cmd.Containerd.Network.Pool
