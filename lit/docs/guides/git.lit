@@ -20,6 +20,9 @@
   can use. For example, Pull Request workflows can be accomplished with the
   \link{teliaoss/github-pr-resource}{https://github.com/telia-oss/github-pr-resource}.
 
+  Check out the \link{docs}{https://github.com/concourse/git-resource} for the
+  git resource for all configuration options.
+
   \section{
     \title{Fetching a Repository}
 
@@ -54,7 +57,7 @@
   }
 
   \section{
-    \title{Creating and Pushing Commits}
+    \title{Creating Commits and Tags}
     Here's a simple way to create a commit using a bash script.
 
     \codeblock{yaml}{{
@@ -70,7 +73,7 @@
     - name: create-a-commit
       plan:
       - get: repo-main
-      - task: create-commit
+      - task: commit-and-tag
         config:
           platform: linux
           image_resource:
@@ -87,13 +90,15 @@
             path: sh
             args:
             - -cx
+            # this is just a bash script
             - |
             cd repo-main
             # edit a file / make a change
             date +%Y-%m-%d > todays-date
             git add ./todays-date
             git commit -m "Add todays date"
-      # push commit
+            git tag v0.1.6
+      # push commit and tag
       - put: repo-main
         params:
           # specify the "repo-main" artifact as the location
