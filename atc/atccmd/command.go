@@ -250,7 +250,7 @@ type RunCommand struct {
 		EnableAcrossStep                     bool `long:"enable-across-step" description:"Enable the experimental across step to be used in jobs. The API is subject to change."`
 		EnablePipelineInstances              bool `long:"enable-pipeline-instances" description:"Enable pipeline instances"`
 		EnableP2PVolumeStreaming             bool `long:"enable-p2p-volume-streaming" description:"Enable P2P volume streaming"`
-		DisableCacheStreamedVolumes          bool `long:"disable-cache-streamed-volumes" description:"By default, streamed resource volumes will be automatically cached on the destination worker. This flag opts out of that behaviour"`
+		EnableCacheStreamedVolumes           bool `long:"enable-cache-streamed-volumes" description:"When enabled, streamed resource volumes will be cached on the destination worker."`
 	} `group:"Feature Flags"`
 
 	BaseResourceTypeDefaults flag.File `long:"base-resource-type-defaults" description:"Base resource type defaults"`
@@ -521,7 +521,7 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	atc.EnableBuildRerunWhenWorkerDisappears = cmd.FeatureFlags.EnableBuildRerunWhenWorkerDisappears
 	atc.EnableAcrossStep = cmd.FeatureFlags.EnableAcrossStep
 	atc.EnablePipelineInstances = cmd.FeatureFlags.EnablePipelineInstances
-	atc.EnableCacheStreamedVolumes = !cmd.FeatureFlags.DisableCacheStreamedVolumes
+	atc.EnableCacheStreamedVolumes = cmd.FeatureFlags.EnableCacheStreamedVolumes
 
 	if cmd.BaseResourceTypeDefaults.Path() != "" {
 		content, err := ioutil.ReadFile(cmd.BaseResourceTypeDefaults.Path())
