@@ -1,0 +1,13 @@
+---
+platform: linux
+
+image_resource:
+  type: registry-image
+  source:
+    repository: ubuntu
+
+params:
+  SOME_PARAM: ((some-value))
+
+run:
+  path: irrelevant

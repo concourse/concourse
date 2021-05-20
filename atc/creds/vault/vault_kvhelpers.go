@@ -25,6 +25,11 @@ func kvPreflightVersionRequest(client *api.Client, path string) (string, int, er
 			return "", 1, nil
 		}
 
+		// If we get a 403 default to version -1 no valid mount
+		if resp != nil && resp.StatusCode == 403 {
+			return "", -1, nil
+		}
+
 		return "", 0, err
 	}
 
