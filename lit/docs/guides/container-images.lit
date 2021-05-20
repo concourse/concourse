@@ -125,18 +125,18 @@
 
   jobs:
   - name: build-and-push
-   plan:
-   - get: concourse-examples
-   - task: build-image
-     privileged: true # oci-build-task must run in a privileged container
-     config:
-       platform: linux
-       image_resource:
-         type: registry-image
-         source:
-           repository: vito/oci-build-task
-       inputs:
-       - name: concourse-examples
+    plan:
+    - get: concourse-examples
+    - task: build-image
+      privileged: true # oci-build-task must run in a privileged container
+      config:
+        platform: linux
+        image_resource:
+          type: registry-image
+          source:
+            repository: vito/oci-build-task
+        inputs:
+        - name: concourse-examples
   }}
   \inset{} {- spacer -}
 
@@ -150,20 +150,20 @@
 
   jobs:
   - name: build-and-push
-   plan:
-   - get: concourse-examples
-   - task: build-image
-     privileged: true # oci-build-task must run in a privileged container
-     config:
-       platform: linux
-       image_resource:
-         type: registry-image
-         source:
-           repository: vito/oci-build-task
-       inputs:
-       - name: concourse-examples
-       outputs:
-       - name: image
+    plan:
+    - get: concourse-examples
+    - task: build-image
+      privileged: true # oci-build-task must run in a privileged container
+      config:
+        platform: linux
+        image_resource:
+          type: registry-image
+          source:
+            repository: vito/oci-build-task
+        inputs:
+        - name: concourse-examples
+        outputs:
+        - name: image
   }}
 
   \inline-header{Defining the Build Context}
@@ -181,24 +181,24 @@
 
   jobs:
   - name: build-and-push
-   plan:
-   - get: concourse-examples
-   - task: build-image
-     privileged: true # oci-build-task must run in a privileged container
-     config:
-       platform: linux
-       image_resource:
-         type: registry-image
-         source:
-           repository: vito/oci-build-task
-       inputs:
-       - name: concourse-examples
-       outputs:
-       - name: image
-       params:
-         CONTEXT: concourse-examples/Dockerfiles/simple
-       run: # binary used to build the image
-         path: build
+    plan:
+    - get: concourse-examples
+    - task: build-image
+      privileged: true # oci-build-task must run in a privileged container
+      config:
+        platform: linux
+        image_resource:
+          type: registry-image
+          source:
+            repository: vito/oci-build-task
+        inputs:
+        - name: concourse-examples
+        outputs:
+        - name: image
+        params:
+          CONTEXT: concourse-examples/Dockerfiles/simple
+        run: # binary used to build the image
+          path: build
   }}
 
   \inline-header{Publish the Container Image}
@@ -215,27 +215,27 @@
 
   jobs:
   - name: build-and-push
-   plan:
-   - get: concourse-examples
-   - task: build-image
-     privileged: true # oci-build-task must run in a privileged container
-     config:
-       platform: linux
-       image_resource:
-         type: registry-image
-         source:
-           repository: vito/oci-build-task
-       inputs:
-       - name: concourse-examples
-       outputs:
-       - name: image
-       params:
-         CONTEXT: concourse-examples/Dockerfiles/simple
-       run: # binary used to build the image
-         path: build
-   - put: simple-image
-     params:
-       image: image/image.tar
+    plan:
+    - get: concourse-examples
+    - task: build-image
+      privileged: true # oci-build-task must run in a privileged container
+      config:
+        platform: linux
+        image_resource:
+          type: registry-image
+          source:
+            repository: vito/oci-build-task
+        inputs:
+        - name: concourse-examples
+        outputs:
+        - name: image
+        params:
+          CONTEXT: concourse-examples/Dockerfiles/simple
+        run: # binary used to build the image
+          path: build
+    - put: simple-image
+      params:
+        image: image/image.tar
   }}
 
   \inline-header{The Entire Pipeline}
