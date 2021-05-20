@@ -304,10 +304,10 @@ func (s *BackendSuite) TestContainersWithProperProperties() {
 func (s *BackendSuite) TestContainersConversion() {
 	s.client.TasksReturns([]libcontainerd.TaskInfo{
 		{
-			ContainerID: "container1",
+			ID: "container1",
 		},
 		{
-			ContainerID: "container2",
+			ID: "container2",
 		},
 	}, nil)
 

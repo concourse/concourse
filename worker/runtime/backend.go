@@ -327,7 +327,7 @@ func (b *GardenBackend) Containers(properties garden.Properties) ([]garden.Conta
 	containers := make([]garden.Container, len(tasks))
 	for i, task := range tasks {
 		containers[i] = &LazyContainer{
-			ID: task.ContainerID,
+			ID: task.ID,
 
 			client:        b.client,
 			killer:        b.killer,

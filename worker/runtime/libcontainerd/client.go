@@ -79,9 +79,8 @@ type Client interface {
 }
 
 type TaskInfo struct {
-	ContainerID string
-	ID          string
-	Pid         uint32
+	ID  string
+	Pid uint32
 }
 
 type client struct {
@@ -198,9 +197,8 @@ func (c *client) Tasks(ctx context.Context, filters ...string) ([]TaskInfo, erro
 	tasks := make([]TaskInfo, len(response.Tasks))
 	for i, task := range response.Tasks {
 		tasks[i] = TaskInfo{
-			ContainerID: task.ContainerID,
-			ID:          task.ID,
-			Pid:         task.Pid,
+			ID:  task.ID,
+			Pid: task.Pid,
 		}
 	}
 

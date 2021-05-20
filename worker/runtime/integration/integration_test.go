@@ -207,6 +207,7 @@ func (s *IntegrationSuite) TestContainersMissingTask() {
 	containers, err := s.gardenBackend.Containers(properties)
 	s.NoError(err)
 	s.Len(containers, 1)
+	s.Equal(containers[0].Handle(), handle)
 
 	_, err = s.ctr("tasks", "kill", handle, "--signal", "SIGKILL")
 	s.NoError(err)
