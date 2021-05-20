@@ -21,10 +21,15 @@ COPY . .
 RUN go build -gcflags=all="-N -l" -o /usr/local/concourse/bin/concourse \
       ./cmd/concourse
 
-# build 'fly' binary and update web CLI asset
+
+# separate build target to build the linux fly binary
+FROM base AS with-fly
 RUN go build -ldflags '-extldflags "-static"' -o /tmp/fly ./fly && \
       tar -C /tmp -czf /usr/local/concourse/fly-assets/fly-$(go env GOOS)-$(go env GOARCH).tgz fly && \
       rm /tmp/fly
+VOLUME /src
+ENV CONCOURSE_WEB_PUBLIC_DIR=/src/web/public
+
 
 # extend base stage with setup for local docker-compose workflow
 FROM base

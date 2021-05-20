@@ -1,0 +1,13 @@
+version: '3'
+
+services:
+  web:
+    build:
+      context: .
+      target: with-fly
+
+  worker:
+    build:
+      context: .
+      target: with-fly
+
