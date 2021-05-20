@@ -83,7 +83,7 @@ around the world.
   \title{Report a security issue}{security-contact}
 
   To report a security issue, please send an email to
-  \link{concourseteam+security@gmail.com}{mailto:concourseteam+security@gmail.com}.
+  \link{security@concourse-ci.org}{mailto:security@concourse-ci.org}.
 
   Security advisories will be published as \link{\code{concourse/concourse}
   GitHub Security
