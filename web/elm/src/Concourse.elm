@@ -387,6 +387,9 @@ mapBuildPlan fn plan =
                 BuildStepGet _ _ _ ->
                     []
 
+                BuildStepRun _ ->
+                    []
+
                 BuildStepArtifactOutput _ ->
                     []
 
@@ -441,6 +444,7 @@ type BuildStep
     | BuildStepArtifactInput StepName
     | BuildStepCheck StepName
     | BuildStepGet StepName (Maybe ResourceName) (Maybe Version)
+    | BuildStepRun StepName
     | BuildStepArtifactOutput StepName
     | BuildStepPut StepName (Maybe ResourceName)
     | BuildStepInParallel (Array BuildPlan)
@@ -617,6 +621,8 @@ decodeBuildPlan =
                     lazy (\_ -> decodeBuildStepCheck)
                 , Json.Decode.field "get" <|
                     lazy (\_ -> decodeBuildStepGet)
+                , Json.Decode.field "run" <|
+                    lazy (\_ -> decodeBuildStepRun)
                 , Json.Decode.field "artifact_input" <|
                     lazy (\_ -> decodeBuildStepArtifactInput)
                 , Json.Decode.field "put" <|
@@ -673,6 +679,12 @@ decodeBuildStepGet =
         |> andMap (Json.Decode.field "name" Json.Decode.string)
         |> andMap (Json.Decode.maybe <| Json.Decode.field "resource" Json.Decode.string)
         |> andMap (Json.Decode.maybe <| Json.Decode.field "version" decodeVersion)
+
+
+decodeBuildStepRun : Json.Decode.Decoder BuildStep
+decodeBuildStepRun =
+    Json.Decode.succeed BuildStepRun
+        |> andMap (Json.Decode.field "message" Json.Decode.string)
 
 
 decodeBuildStepCheck : Json.Decode.Decoder BuildStep
@@ -1264,6 +1276,7 @@ decodeUser =
         |> andMap (Json.Decode.field "is_admin" Json.Decode.bool)
         |> andMap (Json.Decode.field "teams" (Json.Decode.dict (Json.Decode.list Json.Decode.string)))
         |> andMap (Json.Decode.field "display_user_id" Json.Decode.string)
+
 
 
 -- Cause

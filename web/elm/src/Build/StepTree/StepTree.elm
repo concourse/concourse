@@ -83,6 +83,9 @@ init buildId hl resources plan =
                 |> setupGetStep resources name version
                 |> initBottom buildId hl resources plan Get
 
+        Concourse.BuildStepRun _ ->
+            step |> initBottom buildId hl resources plan Run
+
         Concourse.BuildStepPut _ _ ->
             step |> initBottom buildId hl resources plan Put
 
@@ -496,6 +499,9 @@ viewTree session model tree depth =
             viewStep model session depth stepId
 
         Get stepId ->
+            viewStep model session depth stepId
+
+        Run stepId ->
             viewStep model session depth stepId
 
         Put stepId ->
@@ -1164,6 +1170,9 @@ viewStepHeader step =
         Concourse.BuildStepCheck name ->
             simpleHeader "check:" Nothing name
 
+        Concourse.BuildStepRun message ->
+            simpleHeader "run:" Nothing message
+
         Concourse.BuildStepGet name _ _ ->
             simpleHeader "get:" (Just "new version") name
 
@@ -1230,6 +1239,9 @@ stepName header =
 
         Concourse.BuildStepCheck name ->
             Just name
+
+        Concourse.BuildStepRun message ->
+            Just message
 
         Concourse.BuildStepGet name _ _ ->
             Just name
