@@ -557,6 +557,22 @@ var _ = Describe("Builder", func() {
 						})
 					})
 
+					Context("that contains a run step", func() {
+						BeforeEach(func() {
+							expectedPlan = planFactory.NewPlan(atc.RunPlan{
+								Message: "some-message",
+								Type:    "some-prototype",
+								Object:  atc.Params{"some": "params"},
+							})
+						})
+
+						It("constructs run step correctly", func() {
+							plan, stepMetadata, _, _ := fakeCoreStepFactory.RunStepArgsForCall(0)
+							Expect(plan).To(Equal(expectedPlan))
+							Expect(stepMetadata).To(Equal(expectedMetadataWithoutCreatedBy))
+						})
+					})
+
 					Context("that contains a set_pipeline step", func() {
 						BeforeEach(func() {
 							expectedPlan = planFactory.NewPlan(atc.SetPipelinePlan{

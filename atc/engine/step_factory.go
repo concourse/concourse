@@ -138,6 +138,27 @@ func (factory *coreStepFactory) CheckStep(
 	return checkStep
 }
 
+func (factory *coreStepFactory) RunStep(
+	plan atc.Plan,
+	stepMetadata exec.StepMetadata,
+	containerMetadata db.ContainerMetadata,
+	delegateFactory DelegateFactory,
+) exec.Step {
+	containerMetadata.WorkingDirectory = "/tmp/build/run"
+
+	runStep := exec.NewRunStep(
+		plan.ID,
+		*plan.Run,
+		delegateFactory,
+	)
+
+	runStep = exec.LogError(runStep, delegateFactory)
+	if atc.EnableBuildRerunWhenWorkerDisappears {
+		runStep = exec.RetryError(runStep, delegateFactory)
+	}
+	return runStep
+}
+
 func (factory *coreStepFactory) TaskStep(
 	plan atc.Plan,
 	stepMetadata exec.StepMetadata,
