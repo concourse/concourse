@@ -158,7 +158,8 @@ var _ = AfterEach(func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		TimestampedBy("saving logs to " + dir + " due to test failure")
-		Bosh("logs", "--dir", dir)
+		// runs at top-level topgun folders as its working dir
+		Bosh("logs", "--dir", filepath.Join(filepath.Dir(test.FileName), dir))
 	}
 
 	DeleteAllContainers()
