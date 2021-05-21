@@ -152,14 +152,13 @@ var _ = BeforeEach(func() {
 var _ = AfterEach(func() {
 	test := CurrentGinkgoTestDescription()
 	if test.Failed {
-		dir := filepath.Join("logs", fmt.Sprintf("%s.%d", filepath.Base(test.FileName), test.LineNumber))
+		dir := filepath.Join("/tmp/logs", fmt.Sprintf("%s.%d", filepath.Base(test.FileName), test.LineNumber))
 
 		err := os.MkdirAll(dir, 0755)
 		Expect(err).ToNot(HaveOccurred())
 
 		TimestampedBy("saving logs to " + dir + " due to test failure")
-		// runs at top-level topgun folders as its working dir
-		Bosh("logs", "--dir", filepath.Join(filepath.Dir(test.FileName), dir))
+		Bosh("logs", "--dir", dir)
 	}
 
 	DeleteAllContainers()
@@ -598,5 +597,5 @@ var _ = SynchronizedAfterSuite(func() {
 	gexec.CleanupBuildArtifacts()
 })
 
-var InstanceRow = regexp.MustCompile(`^([^/]+)/([^\s]+)\s+-\s+(\w+)\s+z1\s+([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\s+([^\s]+)\s*`)
+var InstanceRow = regexp.MustCompile(`^([^/]+)\/([^\s]+)\s+-\s+(\w+|-)\s+z1\s+([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\s+([^\s]+)\s*`)
 var JobRow = regexp.MustCompile(`^([^\s]+)\s+(\w+)\s+(\w+)\s+-\s+-\s+-\s*`)
