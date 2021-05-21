@@ -47,7 +47,7 @@
           image_resource:
             type: registry-image
             source:
-              repository: gitea/gitea # use any image that has the git cli
+              repository: busybox
           inputs: # pass concourse-examples into this task step
           - name: concourse-examples
           run:
@@ -92,12 +92,12 @@
             - -cx
             # this is just a bash script
             - |
-            cd repo-main
-            # edit a file / make a change
-            date +%Y-%m-%d > todays-date
-            git add ./todays-date
-            git commit -m "Add todays date"
-            git tag v0.1.6
+              cd repo-main
+              # edit a file / make a change
+              date +%Y-%m-%d > todays-date
+              git add ./todays-date
+              git commit -m "Add todays date"
+              git tag v0.1.6
       # push commit and tag
       - put: repo-main
         params:

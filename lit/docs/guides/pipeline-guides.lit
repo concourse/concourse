@@ -61,9 +61,10 @@
     jobs:
     - name: the-job
       plan: # Get some artifacts
-      - get: apples
-      - get: apple-basket
-      - get: monkeys
+      - in_parallel:
+        - get: apples
+        - get: apple-basket
+        - get: monkeys
       # using detect will result in "apples-location" and "basket" being passed in
       # "monkeys" will not be passed in
       - put: apples-in-basket
@@ -78,9 +79,10 @@
     jobs:
     - name: the-job
       plan: # Get some artifacts
-      - get: apples
-      - get: apple-basket
-      - get: monkeys
+      - in_parallel:
+        - get: apples
+        - get: apple-basket
+        - get: monkeys
       - put: apples-in-basket
         input: [apples, apple-basket] # specify the exact inputs needed
         params:
@@ -91,7 +93,7 @@
   }
 
   \section{
-    \title{Putting Task Config's in Files}
+    \title{Putting Task Configs in Files}
 
     A lot of the pipeline examples that you will find on this site and in
     resource repos will embed a \reference{schema.step.task-step.config} directly
@@ -119,7 +121,7 @@
 
     Using the task in a pipeline:
 
-    \titled-codeblock{pipline.yml}{yaml}{{
+    \titled-codeblock{pipeline.yml}{yaml}{{
     resources:
     - name: ci
       type: git
@@ -139,8 +141,12 @@
     \title{\code{Get} Images for Tasks Instead of using Anonymous Image Resources}
 
     It is easy to let Concourse fetch images for tasks right when they are
-    needed, it's the easy out-of-the-box solution. Another way is to pass the
-    image(s) for tasks as inputs to jobs.
+    needed by using the \reference{schema.task.image_resource} field in a
+    \reference{tasks}{task config}. It's the easy out-of-the-box solution.
+    Another way is to pass the image for a task as an input to the job by
+    setting the \reference{schema.step.task-step.image} field. This also allows
+    you to track the version of the image being used by the task and also avoid
+    getting rate-limited by configuring the resource with credentials.
 
     \bold{Before - Anonymous Image Fetching for Tasks}
 
@@ -181,10 +187,6 @@
         image: busybox # use image for task. Overrides anonymous image
         config:
           platform: linux
-          image_resource: # overridden by step-level "image" field
-            type: registry-image
-            source:
-              repository: busybox
           run:
             path: echo
             args: ["Hello world!"]
@@ -217,7 +219,8 @@
     \titled-codeblock{passing-artifacts.yml}{yaml}{{
     busybox: &busybox #YAML anchor
       type: registry-image
-      source: {repository: busybox}
+      source:
+        repository: busybox
 
     jobs:
     - name: the-job
