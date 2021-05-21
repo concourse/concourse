@@ -1658,11 +1658,12 @@ var _ = Describe("Resources API", func() {
 						fakeResource = new(dbfakes.FakeResource)
 						fakeResource.IDReturns(1)
 						fakePipeline.ResourceReturns(fakeResource, true, nil)
-
-						fakeResource.ClearResourceCacheReturns(1,nil)
 					})
 
 					Context("when clear cache succeeds", func() {
+						BeforeEach(func() {
+							fakeResource.ClearResourceCacheReturns(1,nil)
+						})
 
 						Context("when no version is passed", func() {
 							It("returns 200", func() {

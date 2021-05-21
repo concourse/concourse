@@ -17,22 +17,22 @@ func (s *Server) ClearResourceCache(pipeline db.Pipeline) http.Handler {
 		logger := s.logger.Session("clear-resource-cache")
 		resourceName := r.FormValue(":resource_name")
 
+		var version atc.VersionDeleteBody
+		err := json.NewDecoder(r.Body).Decode(&version)
+		switch {
+		case err == io.EOF:
+			version = atc.VersionDeleteBody{}
+		case err != nil:
+			logger.Info("malformed-request", lager.Data{"error": err.Error()})
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
 		resource, found, err := pipeline.Resource(resourceName)
 		if err != nil {
 			logger.Error("failed-to-get-resource", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
-		}
-
-		var version atc.VersionDeleteBody
-		err = json.NewDecoder(r.Body).Decode(&version)
-		switch {
-			case err == io.EOF:
-				version = atc.VersionDeleteBody{}
-			case err != nil:
-				logger.Info("malformed-request", lager.Data{"error": err.Error()})
-				w.WriteHeader(http.StatusBadRequest)
-				return
 		}
 
 		if !found {
