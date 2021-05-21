@@ -263,6 +263,16 @@ func (c *CheckEvery) MarshalJSON() ([]byte, error) {
 
 type Prototypes []Prototype
 
+func (types Prototypes) Lookup(name string) (Prototype, bool) {
+	for _, t := range types {
+		if t.Name == name {
+			return t, true
+		}
+	}
+
+	return Prototype{}, false
+}
+
 type ResourceTypes []ResourceType
 
 func (types ResourceTypes) Lookup(name string) (ResourceType, bool) {

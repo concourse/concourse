@@ -1065,6 +1065,46 @@ var _ = Describe("JobFactory", func() {
 				})
 			})
 		})
+
+		Describe("schedule jobs prototypes", func() {
+			Context("when the pipeline for the job needed to be scheduled uses custom prototypes", func() {
+				BeforeEach(func() {
+					pipeline1, _, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "fake-pipeline"}, atc.Config{
+						Jobs: atc.JobConfigs{
+							{Name: "job-name"},
+						},
+						Prototypes: atc.Prototypes{
+							{
+								Name: "some-type",
+								Type: "other-type",
+							},
+						},
+					}, db.ConfigVersion(1), false)
+					Expect(err).ToNot(HaveOccurred())
+
+					var found bool
+					job1, found, err = pipeline1.Job("job-name")
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					err = job1.RequestSchedule()
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("fetches that job and prototype", func() {
+					jobs, err := jobFactory.JobsToSchedule()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(len(jobs)).To(Equal(1))
+					Expect(jobs[0].Name()).To(Equal(job1.Name()))
+					Expect(jobs[0].Prototypes).To(ConsistOf(
+						atc.Prototype{
+							Name: "some-type",
+							Type: "other-type",
+						},
+					))
+				})
+			})
+		})
 	})
 })
 

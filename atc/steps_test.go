@@ -166,6 +166,36 @@ var factoryTests = []StepTest{
 		},
 	},
 	{
+		Title: "run step",
+
+		ConfigYAML: `
+			run: some-message
+			type: some-prototype
+			privileged: true
+			params:
+			  foo: {bar: [123, 456]}
+			  baz: qux
+			tags: [tag-1, tag-2]
+			container_limits: {cpu: 10, memory: 1024}
+			timeout: 1h
+		`,
+
+		StepConfig: &atc.RunStep{
+			Message:    "some-message",
+			Type:       "some-prototype",
+			Privileged: true,
+			Params: atc.Params{
+				"foo": map[string]interface{}{
+					"bar": []interface{}{123.0, 456.0},
+				},
+				"baz": "qux",
+			},
+			Tags:    []string{"tag-1", "tag-2"},
+			Limits:  &atc.ContainerLimits{CPU: newCPULimit(10), Memory: newMemoryLimit(1024)},
+			Timeout: "1h",
+		},
+	},
+	{
 		Title: "set_pipeline step",
 
 		ConfigYAML: `

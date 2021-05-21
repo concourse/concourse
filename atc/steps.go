@@ -191,6 +191,7 @@ type StepVisitor interface {
 	VisitTask(*TaskStep) error
 	VisitGet(*GetStep) error
 	VisitPut(*PutStep) error
+	VisitRun(*RunStep) error
 	VisitSetPipeline(*SetPipelineStep) error
 	VisitLoadVar(*LoadVarStep) error
 	VisitTry(*TryStep) error
@@ -248,6 +249,10 @@ var StepPrecedence = []StepDetector{
 	{
 		Key: "attempts",
 		New: func() StepConfig { return &RetryStep{} },
+	},
+	{
+		Key: "run",
+		New: func() StepConfig { return &RunStep{} },
 	},
 	{
 		Key: "task",
@@ -349,6 +354,28 @@ type TaskStep struct {
 
 func (step *TaskStep) Visit(v StepVisitor) error {
 	return v.VisitTask(step)
+}
+
+type RunStep struct {
+	Message    string           `json:"run"`
+	Type       string           `json:"type"`
+	Params     Params           `json:"params,omitempty"`
+	Privileged bool             `json:"privileged,omitempty"`
+	Tags       Tags             `json:"tags,omitempty"`
+	Limits     *ContainerLimits `json:"container_limits,omitempty"`
+	Timeout    string           `json:"timeout,omitempty"`
+
+	// XXX(prototypes): inputs, outputs, input_mapping, output_mapping?
+	// see https://github.com/concourse/rfcs/pull/103
+
+	// XXX(prototypes): set_vars?
+
+	// XXX(prototypes): image? That way, you can build a prototype and run it
+	// in the same pipeline. This would be in place of type.
+}
+
+func (step *RunStep) Visit(v StepVisitor) error {
+	return v.VisitRun(step)
 }
 
 type SetPipelineStep struct {
