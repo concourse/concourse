@@ -42,17 +42,18 @@ const (
 	CheckResourceType    = "CheckResourceType"
 	CheckPrototype       = "CheckPrototype"
 
-	ListResourceVersions          = "ListResourceVersions"
-	GetResourceVersion            = "GetResourceVersion"
-	EnableResourceVersion         = "EnableResourceVersion"
-	DisableResourceVersion        = "DisableResourceVersion"
-	PinResourceVersion            = "PinResourceVersion"
-	UnpinResource                 = "UnpinResource"
-	SetPinCommentOnResource       = "SetPinCommentOnResource"
-	ListBuildsWithVersionAsInput  = "ListBuildsWithVersionAsInput"
-	ListBuildsWithVersionAsOutput = "ListBuildsWithVersionAsOutput"
-	GetResourceCausality          = "GetResourceCausality"
-	ClearResourceCache            = "ClearResourceCache"
+	ListResourceVersions           = "ListResourceVersions"
+	GetResourceVersion             = "GetResourceVersion"
+	EnableResourceVersion          = "EnableResourceVersion"
+	DisableResourceVersion         = "DisableResourceVersion"
+	PinResourceVersion             = "PinResourceVersion"
+	UnpinResource                  = "UnpinResource"
+	SetPinCommentOnResource        = "SetPinCommentOnResource"
+	ListBuildsWithVersionAsInput   = "ListBuildsWithVersionAsInput"
+	ListBuildsWithVersionAsOutput  = "ListBuildsWithVersionAsOutput"
+	ClearResourceCache             = "ClearResourceCache"
+	GetDownstreamResourceCausality = "GetDownstreamResourceCausality"
+	GetUpstreamResourceCausality   = "GetUpstreamResourceCausality"
 
 	GetCC = "GetCC"
 
@@ -189,7 +190,8 @@ var Routes = rata.Routes([]rata.Route{
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/pin_comment", Method: "PUT", Name: SetPinCommentOnResource},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_config_version_id/input_to", Method: "GET", Name: ListBuildsWithVersionAsInput},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_config_version_id/output_of", Method: "GET", Name: ListBuildsWithVersionAsOutput},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_config_version_id/causality", Method: "GET", Name: GetResourceCausality},
+	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_config_version_id/downstream", Method: "GET", Name: GetDownstreamResourceCausality},
+	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_config_version_id/upstream", Method: "GET", Name: GetUpstreamResourceCausality},
 	// {Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/causality", Method: "GET", Name: GetResourceCausality},
 
 	{Path: "/api/v1/teams/:team_name/cc.xml", Method: "GET", Name: GetCC},

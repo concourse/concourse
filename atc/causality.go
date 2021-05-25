@@ -6,8 +6,7 @@ type CausalityBuild struct {
 	JobID   int    `json:"job_id"`
 	JobName string `json:"job_name"`
 
-	Inputs  []*CausalityResourceVersion `json:"inputs,omitempty"`
-	Outputs []*CausalityResourceVersion `json:"outputs,omitempty"`
+	ResourceVersions []*CausalityResourceVersion `json:"resource_versions,omitempty"`
 }
 
 type CausalityResourceVersion struct {
@@ -16,6 +15,5 @@ type CausalityResourceVersion struct {
 	ResourceName      string  `json:"resource_name"`
 	Version           Version `json:"version"`
 
-	InputTo  []*CausalityBuild `json:"input_to,omitempty"`
-	OutputOf []*CausalityBuild `json:"output_of,omitempty"`
+	Builds []*CausalityBuild `json:"builds,omitempty"`
 }

@@ -10,7 +10,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 )
 
-func (s *Server) GetResourceCausality(pipeline db.Pipeline) http.Handler {
+func (s *Server) GetDownstreamResourceCausality(pipeline db.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger := s.logger.Session("causality")
 
@@ -31,7 +31,7 @@ func (s *Server) GetResourceCausality(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		causality, found, err := resource.Causality(versionID)
+		causality, found, err := resource.DownstreamCausality(versionID)
 		if err != nil {
 			logger.Error("failed-to-fetch", err)
 			w.WriteHeader(http.StatusInternalServerError)
