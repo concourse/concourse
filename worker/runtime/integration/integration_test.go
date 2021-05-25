@@ -369,7 +369,7 @@ func (s *IntegrationSuite) TestContainerAllowsHostAccess() {
 	s.gardenBackend.Stop()
 	s.cleanupIptables()
 
-	namespace := "test-block-host-access"
+	namespace := "test-allow-host-access"
 	requestTimeout := 3 * time.Second
 
 	network, err := runtime.NewCNINetwork(runtime.WithAllowHostAccess())
@@ -432,6 +432,44 @@ func (s *IntegrationSuite) TestContainerAllowsHostAccess() {
 	exitCode, err := proc.Wait()
 	s.NoError(err)
 	s.Equal(exitCode, 0, "Process in container should be able to reach the host network")
+}
+
+func (s *IntegrationSuite) TestContainerNetworkHosts() {
+	s.NoError(s.gardenBackend.Start())
+
+	handle := uuid()
+
+	container, err := s.gardenBackend.Create(garden.ContainerSpec{
+		Handle:     handle,
+		RootFSPath: "raw://" + s.rootfs,
+		Privileged: true,
+	})
+	s.NoError(err)
+
+	defer func() {
+		s.NoError(s.gardenBackend.Destroy(handle))
+	}()
+
+	buf := new(buffer)
+	proc, err := container.Run(
+		garden.ProcessSpec{
+			Path: "/executable",
+			Args: []string{
+				"-cat=/etc/hosts",
+			},
+		},
+		garden.ProcessIO{
+			Stdout: buf,
+			Stderr: buf,
+		},
+	)
+	s.NoError(err)
+
+	exitCode, err := proc.Wait()
+	s.NoError(err)
+
+	s.Equal(exitCode, 0)
+	s.Contains(buf.String(), handle)
 }
 
 // TestRunPrivileged tests whether we're able to run a process in a privileged

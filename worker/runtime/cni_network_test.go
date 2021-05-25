@@ -3,8 +3,11 @@ package runtime_test
 import (
 	"context"
 	"errors"
+	"net"
 	"reflect"
 	"strings"
+
+	"github.com/containerd/go-cni"
 
 	"github.com/concourse/concourse/worker/runtime"
 	"github.com/concourse/concourse/worker/runtime/iptables/iptablesfakes"
@@ -70,31 +73,50 @@ func (s *CNINetworkSuite) TestSetupMountsFailToCreateHosts() {
 	s.Equal("handle/hosts", fname)
 }
 
+func (s *CNINetworkSuite) TestSetupMountsFailToCreateHostname() {
+	s.store.CreateReturnsOnCall(1, "", errors.New("create-hostname-err"))
+
+	_, err := s.network.SetupMounts("handle")
+	s.EqualError(errors.Unwrap(err), "create-hostname-err")
+
+	s.Equal(2, s.store.CreateCallCount())
+	fname, _ := s.store.CreateArgsForCall(1)
+
+	s.Equal("handle/hostname", fname)
+}
+
 func (s *CNINetworkSuite) TestSetupMountsFailToCreateResolvConf() {
-	s.store.CreateReturnsOnCall(1, "", errors.New("create-resolvconf-err"))
+	s.store.CreateReturnsOnCall(2, "", errors.New("create-resolvconf-err"))
 
 	_, err := s.network.SetupMounts("handle")
 	s.EqualError(errors.Unwrap(err), "create-resolvconf-err")
 
-	s.Equal(2, s.store.CreateCallCount())
-	fname, _ := s.store.CreateArgsForCall(1)
+	s.Equal(3, s.store.CreateCallCount())
+	fname, _ := s.store.CreateArgsForCall(2)
 
 	s.Equal("handle/resolv.conf", fname)
 }
 
 func (s *CNINetworkSuite) TestSetupMountsReturnsMountpoints() {
 	s.store.CreateReturnsOnCall(0, "/tmp/handle/etc/hosts", nil)
-	s.store.CreateReturnsOnCall(1, "/tmp/handle/etc/resolv.conf", nil)
+	s.store.CreateReturnsOnCall(1, "/tmp/handle/etc/hostname", nil)
+	s.store.CreateReturnsOnCall(2, "/tmp/handle/etc/resolv.conf", nil)
 
 	mounts, err := s.network.SetupMounts("some-handle")
 	s.NoError(err)
 
-	s.Len(mounts, 2)
+	s.Len(mounts, 3)
 	s.Equal(mounts, []specs.Mount{
 		{
 			Destination: "/etc/hosts",
 			Type:        "bind",
 			Source:      "/tmp/handle/etc/hosts",
+			Options:     []string{"bind", "rw"},
+		},
+		{
+			Destination: "/etc/hostname",
+			Type:        "bind",
+			Source:      "/tmp/handle/etc/hostname",
 			Options:     []string{"bind", "rw"},
 		},
 		{
@@ -117,7 +139,7 @@ func (s *CNINetworkSuite) TestSetupMountsCallsStoreWithNameServers() {
 	_, err = network.SetupMounts("some-handle")
 	s.NoError(err)
 
-	_, resolvConfContents := s.store.CreateArgsForCall(1)
+	_, resolvConfContents := s.store.CreateArgsForCall(2)
 	s.Equal(resolvConfContents, []byte("nameserver 6.6.7.7\nnameserver 1.2.3.4\n"))
 }
 
@@ -136,7 +158,7 @@ func (s *CNINetworkSuite) TestSetupMountsCallsStoreWithoutNameServers() {
 
 	contents := strings.Join(actualResolvContents, "\n") + "\n"
 
-	_, resolvConfContents := s.store.CreateArgsForCall(1)
+	_, resolvConfContents := s.store.CreateArgsForCall(2)
 	s.Equal(resolvConfContents, []byte(contents))
 }
 
@@ -245,7 +267,7 @@ func (s *CNINetworkSuite) TestSetupHostNetwork() {
 }
 
 func (s *CNINetworkSuite) TestAddNilTask() {
-	err := s.network.Add(context.Background(), nil)
+	err := s.network.Add(context.Background(), nil, "container-handle")
 	s.EqualError(err, "nil task")
 }
 
@@ -253,8 +275,21 @@ func (s *CNINetworkSuite) TestAddSetupErrors() {
 	s.cni.SetupReturns(nil, errors.New("setup-err"))
 	task := new(libcontainerdfakes.FakeTask)
 
-	err := s.network.Add(context.Background(), task)
+	err := s.network.Add(context.Background(), task, "container-handle")
 	s.EqualError(errors.Unwrap(err), "setup-err")
+}
+
+func (s *CNINetworkSuite) TestAddInterfaceNotFound() {
+	task := new(libcontainerdfakes.FakeTask)
+	task.PidReturns(123)
+	task.IDReturns("id")
+
+	result := &cni.Result{
+		Interfaces: make(map[string]*cni.Config, 0),
+	}
+	s.cni.SetupReturns(result, nil)
+	err := s.network.Add(context.Background(), task, "container-handle")
+	s.EqualError(err, "cni net setup: no eth0 interface found")
 }
 
 func (s *CNINetworkSuite) TestAdd() {
@@ -262,7 +297,20 @@ func (s *CNINetworkSuite) TestAdd() {
 	task.PidReturns(123)
 	task.IDReturns("id")
 
-	err := s.network.Add(context.Background(), task)
+	result := &cni.Result{
+		Interfaces: make(map[string]*cni.Config, 0),
+	}
+	result.Interfaces["eth0"] = &cni.Config{
+		IPConfigs: []*cni.IPConfig{
+			{
+				IP: net.IPv4(10, 8, 0, 1),
+			},
+		},
+	}
+
+	s.cni.SetupReturns(result, nil)
+
+	err := s.network.Add(context.Background(), task, "container-handle")
 	s.NoError(err)
 
 	s.Equal(1, s.cni.SetupCallCount())

@@ -16,6 +16,10 @@ type FileStore interface {
 	//
 	Create(name string, content []byte) (absPath string, err error)
 
+	// Append appends to a file previously created in the store.
+	//
+	Append(name string, content []byte) error
+
 	// DeleteFile removes a file previously created in the store.
 	//
 	Delete(name string) (err error)
@@ -49,6 +53,24 @@ func (f fileStore) Create(name string, content []byte) (string, error) {
 
 	return absPath, nil
 }
+
+func (f fileStore) Append(name string, content []byte) error {
+	absPath := filepath.Join(f.root, name)
+
+	file, err := os.OpenFile(absPath, os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		return fmt.Errorf("open file: %w", err)
+	}
+	defer file.Close()
+
+	if _, err := file.Write(content); err != nil {
+		return fmt.Errorf("write file: %w", err)
+	}
+
+	return nil
+}
+
+
 
 func (f fileStore) Delete(path string) error {
 	absPath := filepath.Join(f.root, path)

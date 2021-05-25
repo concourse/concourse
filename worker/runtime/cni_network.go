@@ -258,10 +258,18 @@ func (n cniNetwork) SetupMounts(handle string) ([]specs.Mount, error) {
 
 	etcHosts, err := n.store.Create(
 		filepath.Join(handle, "/hosts"),
-		[]byte("127.0.0.1 localhost"),
+		[]byte("127.0.0.1 localhost\n"),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("creating /etc/hosts: %w", err)
+	}
+
+	etcHostName, err := n.store.Create(
+		filepath.Join(handle, "/hostname"),
+		[]byte(handle+"\n"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("creating /etc/hostname: %w", err)
 	}
 
 	resolvContents, err := n.generateResolvConfContents()
@@ -282,6 +290,11 @@ func (n cniNetwork) SetupMounts(handle string) ([]specs.Mount, error) {
 			Destination: "/etc/hosts",
 			Type:        "bind",
 			Source:      etcHosts,
+			Options:     []string{"bind", "rw"},
+		}, {
+			Destination: "/etc/hostname",
+			Type:        "bind",
+			Source:      etcHostName,
 			Options:     []string{"bind", "rw"},
 		}, {
 			Destination: "/etc/resolv.conf",
@@ -344,19 +357,31 @@ func (n cniNetwork) restrictHostAccess() error {
 	return nil
 }
 
-func (n cniNetwork) Add(ctx context.Context, task containerd.Task) error {
+func (n cniNetwork) Add(ctx context.Context, task containerd.Task, containerHandle string) error {
 	if task == nil {
 		return ErrInvalidInput("nil task")
 	}
 
 	id, netns := netId(task), netNsPath(task)
 
-	_, err := n.client.Setup(ctx, id, netns)
+	result, err := n.client.Setup(ctx, id, netns)
+
 	if err != nil {
 		return fmt.Errorf("cni net setup: %w", err)
 	}
 
-	return nil
+	// Find container IP
+	config, found := result.Interfaces["eth0"]
+	if !found || len(config.IPConfigs) == 0 {
+		return fmt.Errorf("cni net setup: no eth0 interface found")
+	}
+
+	// Update /etc/hosts on container
+	// This could not be done earlier because we only have the container IP after the network has been setup
+	return n.store.Append(
+		filepath.Join(containerHandle, "/hosts"),
+		[]byte(config.IPConfigs[0].IP.String()+" "+containerHandle+"\n"),
+	)
 }
 
 func (n cniNetwork) Remove(ctx context.Context, task containerd.Task) error {

@@ -49,6 +49,17 @@ func (s *FileStoreSuite) TestCreateFileInDir() {
 	s.Equal("hey", string(content))
 }
 
+func (s *FileStoreSuite) TestAppendFile() {
+	fpath, err := s.store.Create("dir/name", []byte("hey"))
+	s.NoError(err)
+
+	err = s.store.Append("dir/name", []byte(" there"))
+	s.NoError(err)
+	content, err := ioutil.ReadFile(fpath)
+	s.NoError(err)
+	s.Equal("hey there", string(content))
+}
+
 func (s *FileStoreSuite) TestDeleteFile() {
 	fpath, err := s.store.Create("dir/name", []byte("hey"))
 	s.NoError(err)
