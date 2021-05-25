@@ -71,11 +71,12 @@ type ResourceEndpoint
 
 type ResourceVersionEndpoint
     = ResourceVersionInputTo
+    | DownstreamCausality
     | ResourceVersionOutputOf
+    | UpstreamCasuality
     | PinResourceVersion
     | EnableResourceVersion
     | DisableResourceVersion
-    | Causality
 
 
 type TeamEndpoint
@@ -301,8 +302,11 @@ resourceVersionEndpoint endpoint =
         DisableResourceVersion ->
             [ "disable" ]
 
-        Causality ->
-            [ "causality" ]
+        DownstreamCausality ->
+            [ "downstream" ]
+
+        UpstreamCasuality ->
+            [ "upstream" ]
     , []
     )
 

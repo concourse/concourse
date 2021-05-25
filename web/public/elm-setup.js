@@ -304,4 +304,7 @@ app.ports.renderSvgIcon.subscribe(function(icon, id) {
   renderingModulePromise.then(({addIcon}) => addIcon(icon, (typeof id !== 'undefined') ? id : icon));
 });
 
+app.ports.renderCausality.subscribe(function(tree) {
+});
+
 var clipboard = new ClipboardJS('#copy-token');

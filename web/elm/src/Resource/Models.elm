@@ -11,10 +11,8 @@ module Resource.Models exposing
 import Build.Output.Models exposing (OutputModel)
 import Concourse
 import Concourse.Pagination exposing (Page, Paginated)
-import Graph exposing (Graph)
 import Login.Login as Login
 import Pinned exposing (CommentState, ResourcePinState)
-import Resource.Causality exposing (NodeMetadata)
 import Routes
 import Time
 
@@ -74,5 +72,4 @@ type alias Version =
     , expanded : Bool
     , inputTo : List Concourse.Build
     , outputOf : List Concourse.Build
-    , causality : Maybe (Graph NodeMetadata ())
     }

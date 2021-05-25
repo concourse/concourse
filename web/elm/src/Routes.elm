@@ -54,6 +54,7 @@ type Route
     | Pipeline { id : Concourse.PipelineIdentifier, groups : List String }
     | Dashboard { searchType : SearchType, dashboardView : DashboardView }
     | FlySuccess Bool (Maybe Int)
+    | Causality { id : Concourse.VersionedResourceIdentifier, direction : Concourse.CausalityDirection }
 
 
 type SearchType
@@ -299,6 +300,39 @@ flySuccess =
         )
 
 
+causality : Parser ((InstanceVars -> Route) -> a) a
+causality =
+    let
+        causalityHelper direction { teamName, pipelineName } resourceName versionId =
+            \iv ->
+                Causality
+                    { id =
+                        { teamName = teamName
+                        , pipelineName = pipelineName
+                        , pipelineInstanceVars = iv
+                        , resourceName = resourceName
+                        , versionID = versionId
+                        }
+                    , direction = direction
+                    }
+
+        baseRoute dir =
+            map (causalityHelper dir)
+                (pipelineIdentifier
+                    </> s "resources"
+                    </> string
+                    </> s "causality"
+                    </> int
+                )
+    in
+    oneOf
+        [ baseRoute Concourse.Upstream
+            </> s "upstream"
+        , baseRoute Concourse.Downstream
+            </> s "downstream"
+        ]
+
+
 
 -- route utils
 
@@ -430,6 +464,7 @@ sitemap =
         , build
         , oneOffBuild
         , flySuccess
+        , causality
         ]
 
 
@@ -512,6 +547,22 @@ toString route =
                      else
                         []
                     )
+                |> RouteBuilder.build
+
+        Causality { id, direction } ->
+            let
+                path =
+                    case direction of
+                        Concourse.Downstream ->
+                            "downstream"
+
+                        Concourse.Upstream ->
+                            "upstream"
+            in
+            pipelineIdBuilder id
+                |> appendPath [ "resources", id.resourceName ]
+                |> appendPath [ "causality", String.fromInt id.versionID ]
+                |> appendPath [ path ]
                 |> RouteBuilder.build
 
 

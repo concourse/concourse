@@ -24,6 +24,7 @@ import Build.Output.Models exposing (OutputModel)
 import Build.Output.Output
 import Build.StepTree.Models as STModels
 import Build.StepTree.StepTree as StepTree
+import Causality.Causality as Causality
 import Concourse
 import Concourse.BuildStatus
 import Concourse.Pagination
@@ -40,7 +41,6 @@ import DateFormat
 import Dict
 import Duration
 import EffectTransformer exposing (ET)
-import Graph exposing (Graph)
 import HoverState
 import Html exposing (Html)
 import Html.Attributes
@@ -87,7 +87,6 @@ import Message.Subscription as Subscription
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import Pinned exposing (ResourcePinState(..), VersionPinState(..))
 import RemoteData exposing (WebData)
-import Resource.Causality exposing (NodeMetadata, NodeType(..), constructGraph, renderGraph)
 import Resource.Models as Models exposing (Model)
 import Resource.Styles
 import Routes
@@ -442,7 +441,6 @@ handleCallback callback session ( model, effects ) =
                                             , expanded = expanded
                                             , inputTo = []
                                             , outputOf = []
-                                            , causality = Nothing
                                             }
                                 )
                     }
@@ -486,16 +484,6 @@ handleCallback callback session ( model, effects ) =
 
         OutputOfFetched (Ok ( versionID, builds )) ->
             ( updateVersion versionID (\v -> { v | outputOf = builds }) model
-            , effects
-            )
-
-        CausalityFetched (Ok ( versionID, causality )) ->
-            let
-                -- only render the graph once upon fetching the data and store that to display
-                graph =
-                    Maybe.map (\vr -> constructGraph vr) causality
-            in
-            ( updateVersion versionID (\v -> { v | causality = graph }) model
             , effects
             )
 
@@ -759,7 +747,8 @@ update msg ( model, effects ) =
                 model
             , if newExpandedState then
                 effects
-                    ++ [ FetchCausality versionID
+                    ++ [ FetchInputTo versionID
+                       , FetchOutputOf versionID
                        ]
 
               else
@@ -963,7 +952,6 @@ type alias VersionPresenter =
     , expanded : Bool
     , inputTo : List Concourse.Build
     , outputOf : List Concourse.Build
-    , causality : Maybe (Graph NodeMetadata ())
     , pinState : VersionPinState
     }
 
@@ -985,7 +973,6 @@ versions model =
                 , expanded = v.expanded
                 , inputTo = v.inputTo
                 , outputOf = v.outputOf
-                , causality = v.causality
                 , pinState = Pinned.pinState v.version v.id model.pinnedVersion
                 }
             )
@@ -1800,7 +1787,7 @@ viewVersionedResource { version, archived } =
                     [ viewVersionBody
                         { inputTo = version.inputTo
                         , outputOf = version.outputOf
-                        , causality = version.causality
+                        , versionId = version.id
                         , metadata = version.metadata
                         }
                     ]
@@ -1815,36 +1802,38 @@ viewVersionBody :
     { a
         | inputTo : List Concourse.Build
         , outputOf : List Concourse.Build
-        , causality : Maybe (Graph NodeMetadata ())
+        , versionId : Concourse.VersionedResourceIdentifier
         , metadata : Concourse.Metadata
     }
     -> Html Message
-viewVersionBody { inputTo, outputOf, causality, metadata } =
+viewVersionBody { inputTo, outputOf, versionId, metadata } =
     Html.div
         [ style "display" "flex"
         , style "padding" "5px 10px"
         ]
-        [ case causality of
-            Just c ->
-                renderGraph c
-
-            Nothing ->
-                Html.text "no"
-
-        -- Html.div [ class "vri" ] <|
-        --   List.concat
-        --       [ [ Html.div [ style "line-height" "25px" ] [ Html.text "inputs to" ] ]
-        --       , viewBuilds <| listToMap inputTo
-        --       ]
-        -- , Html.div [ class "vri" ] <|
-        --   List.concat
-        --       [ [ Html.div [ style "line-height" "25px" ] [ Html.text "outputs of" ] ]
-        --       , viewBuilds <| listToMap outputOf
-        --       ]
-        -- , Html.div [ class "vri metadata-container" ]
-        --   [ Html.div [ class "list-collapsable-title" ] [ Html.text "metadata" ]
-        --   , viewMetadata metadata
-        --   ]
+        [ Html.div [ class "vri" ] <|
+            List.concat
+                [ [ Html.div
+                        [ style "line-height" "25px" ]
+                        [ Html.text "inputs to"
+                        , viewCausalityButton Concourse.Downstream versionId
+                        ]
+                  ]
+                , viewBuilds <| listToMap inputTo
+                ]
+        , Html.div [ class "vri" ] <|
+            List.concat
+                [ [ Html.div [ style "line-height" "25px" ]
+                        [ Html.text "outputs of"
+                        , viewCausalityButton Concourse.Upstream versionId
+                        ]
+                  ]
+                , viewBuilds <| listToMap outputOf
+                ]
+        , Html.div [ class "vri metadata-container" ]
+            [ Html.div [ class "list-collapsable-title" ] [ Html.text "metadata" ]
+            , viewMetadata metadata
+            ]
         ]
 
 
@@ -1966,6 +1955,31 @@ viewVersion attrs version =
     version
         |> Dict.map (always Html.text)
         |> DictView.view attrs
+
+
+viewCausalityButton : Concourse.CausalityDirection -> Concourse.VersionedResourceIdentifier -> Html Message
+viewCausalityButton dir versionId =
+    let
+        link =
+            Routes.Causality
+                { id = versionId
+                , direction = dir
+                }
+    in
+    case dir of
+        Concourse.Downstream ->
+            Html.a
+                [ StrictEvents.onLeftClick <| GoToRoute link
+                , href (Routes.toString link)
+                ]
+                [ Html.text "downstream" ]
+
+        Concourse.Upstream ->
+            Html.a
+                [ StrictEvents.onLeftClick <| GoToRoute link
+                , href (Routes.toString link)
+                ]
+                [ Html.text "upstream" ]
 
 
 viewMetadata : Concourse.Metadata -> Html Message

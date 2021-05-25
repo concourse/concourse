@@ -15,6 +15,7 @@ import Application.Models exposing (Session)
 import Build.Build as Build
 import Build.Header.Models
 import Build.Models
+import Causality.Causality as Causality
 import Dashboard.Dashboard as Dashboard
 import Dashboard.Models
 import EffectTransformer exposing (ET)
@@ -46,6 +47,7 @@ type Model
     | NotFoundModel NotFound.Model.Model
     | DashboardModel Dashboard.Models.Model
     | FlySuccessModel FlySuccess.Models.Model
+    | CausalityModel Causality.Model
 
 
 init : Session -> Routes.Route -> ( Model, List Effect )
@@ -105,6 +107,13 @@ init session route =
                 }
                 |> Tuple.mapFirst FlySuccessModel
 
+        Routes.Causality { id, direction } ->
+            Causality.init
+                { versionId = id
+                , direction = direction
+                }
+                |> Tuple.mapFirst CausalityModel
+
 
 handleNotFound : String -> Routes.Route -> ET Model
 handleNotFound notFound route ( model, effects ) =
@@ -147,8 +156,9 @@ genericUpdate :
     -> ET Dashboard.Models.Model
     -> ET NotFound.Model.Model
     -> ET FlySuccess.Models.Model
+    -> ET Causality.Model
     -> ET Model
-genericUpdate fBuild fJob fRes fPipe fDash fNF fFS ( model, effects ) =
+genericUpdate fBuild fJob fRes fPipe fDash fNF fFS fCaus ( model, effects ) =
     case model of
         BuildModel buildModel ->
             fBuild ( buildModel, effects )
@@ -178,6 +188,10 @@ genericUpdate fBuild fJob fRes fPipe fDash fNF fFS ( model, effects ) =
             fNF ( notFoundModel, effects )
                 |> Tuple.mapFirst NotFoundModel
 
+        CausalityModel causalityModel ->
+            fCaus ( causalityModel, effects )
+                |> Tuple.mapFirst CausalityModel
+
 
 handleCallback : Callback -> Session -> ET Model
 handleCallback callback session =
@@ -189,9 +203,11 @@ handleCallback callback session =
         (Dashboard.handleCallback callback)
         identity
         identity
+        (Causality.handleCallback callback)
         >> (case callback of
                 LoggedOut (Ok ()) ->
                     genericUpdate
+                        handleLoggedOut
                         handleLoggedOut
                         handleLoggedOut
                         handleLoggedOut
@@ -229,6 +245,7 @@ handleDelivery session delivery =
         (Dashboard.handleDelivery session delivery)
         (NotFound.handleDelivery delivery)
         (FlySuccess.handleDelivery delivery)
+        (Causality.handleDelivery delivery)
 
 
 update : Session -> Message -> ET Model
@@ -241,6 +258,7 @@ update session msg =
         (Login.update msg >> Dashboard.update session msg)
         (Login.update msg)
         (Login.update msg >> FlySuccess.update msg)
+        (Login.update msg >> Causality.update msg)
         >> (case msg of
                 GoToRoute route ->
                     handleGoToRoute route
@@ -321,6 +339,16 @@ urlUpdate routes =
         )
         identity
         identity
+        (case routes.to of
+            Routes.Causality { id, direction } ->
+                Causality.changeToVersionedResource
+                    { versionId = id
+                    , direction = direction
+                    }
+
+            _ ->
+                identity
+        )
 
 
 view : Session -> Model -> ( String, Html Message )
@@ -361,6 +389,11 @@ view ({ userState } as session) mdl =
             , FlySuccess.view userState model
             )
 
+        CausalityModel model ->
+            ( Causality.documentTitle model
+            , Causality.view session model
+            )
+
 
 tooltip : Model -> Session -> Maybe Tooltip.Tooltip
 tooltip mdl =
@@ -386,6 +419,9 @@ tooltip mdl =
         FlySuccessModel model ->
             FlySuccess.tooltip model
 
+        CausalityModel model ->
+            Causality.tooltip model
+
 
 subscriptions : Model -> List Subscription
 subscriptions mdl =
@@ -410,3 +446,6 @@ subscriptions mdl =
 
         FlySuccessModel _ ->
             FlySuccess.subscriptions
+
+        CausalityModel _ ->
+            Causality.subscriptions
