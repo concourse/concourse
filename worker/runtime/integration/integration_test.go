@@ -435,29 +435,11 @@ func (s *IntegrationSuite) TestContainerAllowsHostAccess() {
 }
 
 func (s *IntegrationSuite) TestContainerNetworkHosts() {
-	namespace := "test-restricted-networks"
-	requestTimeout := 3 * time.Second
-
-	network, err := runtime.NewCNINetwork()
-
-	s.NoError(err)
-
-	networkOpt := runtime.WithNetwork(network)
-	customBackend, err := runtime.NewGardenBackend(
-		libcontainerd.New(
-			s.containerdSocket(),
-			namespace,
-			requestTimeout,
-		),
-		networkOpt,
-	)
-	s.NoError(err)
-
-	s.NoError(customBackend.Start())
+	s.NoError(s.gardenBackend.Start())
 
 	handle := uuid()
 
-	container, err := customBackend.Create(garden.ContainerSpec{
+	container, err := s.gardenBackend.Create(garden.ContainerSpec{
 		Handle:     handle,
 		RootFSPath: "raw://" + s.rootfs,
 		Privileged: true,
@@ -465,8 +447,7 @@ func (s *IntegrationSuite) TestContainerNetworkHosts() {
 	s.NoError(err)
 
 	defer func() {
-		s.NoError(customBackend.Destroy(handle))
-		customBackend.Stop()
+		s.NoError(s.gardenBackend.Destroy(handle))
 	}()
 
 	buf := new(buffer)
@@ -486,8 +467,6 @@ func (s *IntegrationSuite) TestContainerNetworkHosts() {
 
 	exitCode, err := proc.Wait()
 	s.NoError(err)
-
-	fmt.Println(buf.String())
 
 	s.Equal(exitCode, 0)
 	s.Contains(buf.String(), handle)
