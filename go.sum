@@ -83,8 +83,8 @@ github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym
 github.com/DataDog/datadog-go v3.2.0+incompatible/go.mod h1:LButxg5PwREeZtORoXG3tL4fMGNddJ+vMq1mwgfaqoQ=
 github.com/DataDog/datadog-go v3.7.2+incompatible h1:o4QtYjBU/rG58VPh8Ne6F65YiMY5/v5q4WdY/HvRYMQ=
 github.com/DataDog/datadog-go v3.7.2+incompatible/go.mod h1:LButxg5PwREeZtORoXG3tL4fMGNddJ+vMq1mwgfaqoQ=
-github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace v0.20.0 h1:ExGRyJwOUijAPv/RzCJ3p1CNUxBQGzVO238m1lFjLS4=
-github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace v0.20.0/go.mod h1:f4BFp2+kV6s/OKj3IP/34keB/OE7tTTaZZQyX/mQ7Ng=
+github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace v0.20.1 h1:b+IF0z5KKs9pEXtPb3gic80fTotTOdiTzg+EfsKv7l4=
+github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace v0.20.1/go.mod h1:f4BFp2+kV6s/OKj3IP/34keB/OE7tTTaZZQyX/mQ7Ng=
 github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=
 github.com/Masterminds/squirrel v1.5.0 h1:JukIZisrUXadA9pl3rMkjhiamxiB0cXiu+HGp/Y8cY8=
 github.com/Masterminds/squirrel v1.5.0/go.mod h1:NNaOrjSoIDfDA40n7sr2tPNZRfjzjA400rg+riTZj10=
