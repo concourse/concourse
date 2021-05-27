@@ -67,6 +67,7 @@ type FlyCommand struct {
 	UnpinResource          UnpinResourceCommand          `command:"unpin-resource"             alias:"ur"   description:"Unpin a resource"`
 	EnableResourceVersion  EnableResourceVersionCommand  `command:"enable-resource-version"    alias:"erv"  description:"Enable a version of a resource"`
 	DisableResourceVersion DisableResourceVersionCommand `command:"disable-resource-version"   alias:"drv"  description:"Disable a version of a resource"`
+	ClearResourceCache	   ClearResourceCacheCommand	 `command:"clear-resource-cache"       alias:"crc"  description:"Clear cache of a resource"`
 
 	CheckResourceType CheckResourceTypeCommand `command:"check-resource-type" alias:"crt"  description:"Check a resource-type"`
 

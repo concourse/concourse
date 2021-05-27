@@ -2,6 +2,7 @@ package concourse_test
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/concourse/concourse/atc"
 	. "github.com/onsi/ginkgo"
@@ -114,6 +115,47 @@ var _ = Describe("ATC Handler Resource", func() {
 			It("returns false for found and an error", func() {
 				Expect(clientErr).To(HaveOccurred())
 				Expect(found).To(BeFalse())
+			})
+		})
+	})
+
+	Describe("ClearResourceCache", func() {
+		var (
+			expectedQueryParams []string
+			expectedURL = "/api/v1/teams/some-team/pipelines/some-pipeline/resources/some-resource/cache"
+			version = atc.Version{}
+			pipelineRef = atc.PipelineRef{Name: "some-pipeline"}
+		)
+
+		Context("when the API call succeeds", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("DELETE", expectedURL, strings.Join(expectedQueryParams, "&")),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, atc.ClearResourceCacheResponse{CachesRemoved: 1}),
+					),
+				)
+			})
+
+			It("return no error", func() {
+				rowsDeleted, err := team.ClearResourceCache(pipelineRef, "some-resource", version)
+				Expect(err).NotTo(HaveOccurred())
+				Eventually(rowsDeleted).Should(Equal(int64(1)))
+			})
+		})
+
+		Context("when the API call errors", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("DELETE", expectedURL, strings.Join(expectedQueryParams, "&")),
+						ghttp.RespondWithJSONEncoded(http.StatusInternalServerError, nil),
+					),
+				)
+			})
+			It("returns error", func() {
+				_, err := team.ClearResourceCache(pipelineRef, "some-resource", version)
+				Expect(err).To(HaveOccurred())
 			})
 		})
 	})

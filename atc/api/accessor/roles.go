@@ -55,6 +55,7 @@ var DefaultRoles = map[string]string{
 	atc.ListBuildsWithVersionAsInput:  ViewerRole,
 	atc.ListBuildsWithVersionAsOutput: ViewerRole,
 	atc.GetResourceCausality:          ViewerRole,
+	atc.ClearResourceCache:            OperatorRole,
 	atc.ListAllPipelines:              ViewerRole,
 	atc.ListPipelines:                 ViewerRole,
 	atc.GetPipeline:                   ViewerRole,

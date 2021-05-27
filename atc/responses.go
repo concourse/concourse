@@ -12,3 +12,7 @@ type SaveConfigResponse struct {
 type ConfigResponse struct {
 	Config Config `json:"config"`
 }
+
+type ClearResourceCacheResponse struct {
+	CachesRemoved int64 `json:"caches_removed"`
+}
