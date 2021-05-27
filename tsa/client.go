@@ -11,7 +11,6 @@ import (
 	"math/rand"
 	"net"
 	"os"
-	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -379,7 +378,9 @@ func (client *Client) tryDialAll(ctx context.Context) (net.Conn, string, error) 
 
 	shuffled := make([]string, len(client.Hosts))
 	copy(shuffled, client.Hosts)
-	shuffle(sort.StringSlice(shuffled))
+	rand.Shuffle(len(shuffled), func(i, j int) {
+		shuffled[i], shuffled[j] = shuffled[j], shuffled[i]
+	})
 
 	for _, host := range shuffled {
 		conn, err := dialer.Dial("tcp", host)
@@ -406,7 +407,6 @@ func (client *Client) checkHostKey(hostname string, remote net.Addr, remoteKey s
 
 	return errors.New("remote host public key mismatch")
 }
-
 
 func (client *Client) run(ctx context.Context, sshClient *ssh.Client, command string, stdout io.Writer) error {
 	argv := strings.Split(command, " ")
@@ -505,13 +505,19 @@ func handleForwardedConn(ctx context.Context, remoteConn net.Conn, network strin
 		localConn, err = net.Dial("tcp", addr)
 		if err != nil {
 			logger.Error("failed-to-dial", err)
-			time.Sleep(time.Second)
-			logger.Info("retrying")
-			continue
+			select {
+			case <-ctx.Done():
+				logger.Info("cancelled")
+				return
+			case <-time.After(1 * time.Second):
+				logger.Info("retrying")
+				continue
+			}
 		}
 
 		break
 	}
+	defer localConn.Close()
 
 	wg := new(sync.WaitGroup)
 
@@ -533,10 +539,4 @@ func handleForwardedConn(ctx context.Context, remoteConn net.Conn, network strin
 	go pipe(remoteConn, localConn)
 
 	wg.Wait()
-}
-
-func shuffle(v sort.Interface) {
-	for i := v.Len() - 1; i > 0; i-- {
-		v.Swap(i, rand.Intn(i+1))
-	}
 }

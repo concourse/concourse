@@ -54,15 +54,31 @@ func (beacon *Beacon) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 	defer cancelAll()
 
 	latestErrChan := make(chan error, 1)
-	ctx, cancel := context.WithCancel(rootCtx)
+
+	// Make sure we are concurrently handling signals while registering a worker since worker registration can block
+	// indefinitely.
+	receivedSignals := make(chan os.Signal, 1)
+	go func() {
+		select {
+		case s := <-signals:
+			// Cancel context to unblock worker registration
+			cancelAll()
+			// Pass on signal to the main loop that runs after worker registration
+			receivedSignals <- s
+		case <-rootCtx.Done():
+		}
+	}()
 
 	cwg.Add(1)
+
+	ctx, cancel := context.WithCancel(rootCtx)
 	beacon.registerWorker(ctx, cwg, latestErrChan)
 
 	close(ready)
 
 	var retiring bool
 
+	cancelPrev := cancel
 	for {
 		select {
 		case <-rebalanceCh:
@@ -78,8 +94,7 @@ func (beacon *Beacon) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 				logger.Debug("rebalancing")
 			}
 
-			cancelPrev := cancel
-			ctx, cancel = context.WithCancel(lagerctx.NewContext(rootCtx, logger))
+			ctx, cancel := context.WithCancel(lagerctx.NewContext(rootCtx, logger))
 
 			// make a new channel so prior registrations can write to their own
 			// buffered channel and exit
@@ -89,6 +104,7 @@ func (beacon *Beacon) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			beacon.registerWorker(ctx, cwg, latestErrChan)
 
 			cancelPrev()
+			cancelPrev = cancel
 
 		case err := <-latestErrChan:
 			if err != nil {
@@ -96,10 +112,6 @@ func (beacon *Beacon) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			} else {
 				beacon.Logger.Info("exited")
 			}
-
-			// not actually necessary since we defer cancel the root ctx, but makes
-			// the linter happy
-			cancel()
 
 			return err
 
@@ -118,13 +130,9 @@ func (beacon *Beacon) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			if isLand(sig) {
 				logger.Info("landing-worker")
 
-				err := beacon.Client.Land(ctx)
+				err := beacon.Client.Land(rootCtx)
 				if err != nil {
 					logger.Error("failed-to-land-worker", err)
-
-					// not actually necessary since we defer cancel the root ctx, but makes
-					// the linter happy
-					cancel()
 
 					return err
 				}
@@ -133,31 +141,23 @@ func (beacon *Beacon) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 
 				logger.Info("retiring-worker")
 
-				err := beacon.Client.Retire(ctx)
+				err := beacon.Client.Retire(rootCtx)
 				if err != nil {
 					logger.Error("failed-to-retire-worker", err)
-
-					// not actually necessary since we defer cancel the root ctx, but makes
-					// the linter happy
-					cancel()
 
 					return err
 				}
 			}
 
-		case <-signals:
+		case <-receivedSignals:
 			logger := beacon.Logger.Session("signal")
 
 			logger.Info("signalled")
 
-			// not actually necessary since we defer cancel the root ctx, but makes
-			// the linter happy
-			cancel()
-
 			if retiring {
 				logger.Info("deleting-worker")
 
-				err := beacon.Client.Delete(ctx)
+				err := beacon.Client.Delete(rootCtx)
 				if err != nil {
 					logger.Error("failed-to-delete-worker", err)
 					return err
