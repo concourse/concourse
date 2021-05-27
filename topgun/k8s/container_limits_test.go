@@ -72,7 +72,8 @@ func containerLimitsWork(selectorFlags ...string) {
 }
 
 func containerLimitsFail(selectorFlags ...string) {
-	Context("container limits fail", func() {
+	// Disabling until https://github.com/concourse/concourse/issues/7086 is fixed.
+	XContext("container limits fail", func() {
 		It("fails to set the memory limit", func() {
 			deployWithSelectors(selectorFlags...)
 
