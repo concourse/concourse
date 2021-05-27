@@ -1,7 +1,38 @@
 @import (reference) "_vars.less";
 
-svg {
+svg.causality-graph {
   .node rect { fill: @grey100; }
+  .node text { fill: #fff; }
+
+
+  .edgePath { stroke: @grey-secondary }
+}
+
+svg.pipeline-graph {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+
+  h1 {
+    margin: 5px;
+    width: 100%;
+  }
+
+  h1.resource {
+    font-size: 1.5em;
+    font-weight: normal;
+    width: 100%;
+  }
+
+  h1 a {
+    padding: 5px;
+    text-decoration: none;
+  }
+
+  .node rect {
+    fill: @grey100;
+    shape-rendering: crispEdges;
+  }
 
   .node.job {
     &.pending rect { fill: @grey-primary; }
@@ -33,50 +64,6 @@ svg {
     }
   }
 
-  .edge { stroke: @grey-secondary; }
-  .edge.pending { stroke: @grey50; }
-  .edge.succeeded { stroke: @green-primary; }
-  .edge.failed { stroke: @red-primary; }
-  .edge.errored { stroke: @amber-primary; }
-  .edge.aborted { stroke: @brown-primary; }
-  .edge.paused { stroke: @blue-primary; }
-  .edge.trigger-false { stroke-dasharray: 5, 5; }
-}
-
-svg.pipeline-graph {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-
-  h1 {
-    margin: 5px;
-    width: 100%;
-  }
-
-  h1.resource {
-    font-size: 1.5em;
-    font-weight: normal;
-    width: 100%;
-  }
-
-  h1 a {
-    padding: 5px;
-    text-decoration: none;
-  }
-
-  .node a {
-    cursor: pointer;
-  }
-
-  .node rect {
-    shape-rendering: crispEdges;
-  }
-
-  .edge path {
-    stroke-width: 2px;
-    fill: none;
-  }
-
   .node text {
     fill: #fff;
   }
@@ -98,6 +85,23 @@ svg.pipeline-graph {
         fill: #fff;
       }
     }
+  }
+
+  .edge { stroke: @grey-secondary; }
+  .edge.pending { stroke: @grey50; }
+  .edge.succeeded { stroke: @green-primary; }
+  .edge.failed { stroke: @red-primary; }
+  .edge.errored { stroke: @amber-primary; }
+  .edge.aborted { stroke: @brown-primary; }
+  .edge.paused { stroke: @blue-primary; }
+  .edge.trigger-false { stroke-dasharray: 5, 5; }
+  .node a {
+    cursor: pointer;
+  }
+
+  .edge path {
+    stroke-width: 2px;
+    fill: none;
   }
 
   .edge.active {

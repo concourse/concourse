@@ -13,9 +13,14 @@ module Causality.Causality exposing
 
 import Application.Models exposing (Session)
 import Concourse
+    exposing
+        ( CausalityBuild(..)
+        , CausalityDirection(..)
+        , CausalityResourceVersion
+        )
 import Dict
 import EffectTransformer exposing (ET)
-import Graph exposing (Edge, Graph, Node, NodeId)
+import Graph exposing (Graph, NodeContext, NodeId)
 import Graph.DOT as DOT
 import Html exposing (Html)
 import Html.Attributes
@@ -26,10 +31,11 @@ import Html.Attributes
         , src
         , style
         )
+import IntDict
 import Login.Login as Login
 import Message.Callback exposing (Callback(..))
-import Message.Effects as Effects exposing (Effect(..), toHtmlID)
-import Message.Message as Message exposing (DomID(..), Message(..))
+import Message.Effects exposing (Effect(..))
+import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription
     exposing
         ( Delivery(..)
@@ -38,6 +44,8 @@ import Message.Subscription
         )
 import Routes
 import SideBar.SideBar as SideBar exposing (byPipelineId, lookupPipeline)
+import Svg
+import Svg.Attributes as SvgAttributes
 import Tooltip
 import Views.Styles
 import Views.TopBar as TopBar
@@ -46,8 +54,8 @@ import Views.TopBar as TopBar
 type alias Model =
     Login.Model
         { versionId : Concourse.VersionedResourceIdentifier
-        , direction : Concourse.CausalityDirection
-        , fetchedCausality : Maybe Concourse.CausalityResourceVersion
+        , direction : CausalityDirection
+        , fetchedCausality : Maybe CausalityResourceVersion
         , graph : Graph NodeMetadata ()
         , renderedJobs : Maybe (List Concourse.Job)
         , renderedBuilds : Maybe (List Concourse.Build)
@@ -58,7 +66,7 @@ type alias Model =
 
 type alias Flags =
     { versionId : Concourse.VersionedResourceIdentifier
-    , direction : Concourse.CausalityDirection
+    , direction : CausalityDirection
     }
 
 
@@ -114,12 +122,12 @@ tooltip _ _ =
 handleCallback : Callback -> ET Model
 handleCallback callback ( model, effects ) =
     case callback of
-        CausalityFetched (Ok ( _, crv )) ->
+        CausalityFetched (Ok ( direction, crv )) ->
             let
                 graph =
                     case crv of
                         Just rv ->
-                            constructGraph rv
+                            constructGraph direction rv
 
                         _ ->
                             model.graph
@@ -129,6 +137,7 @@ handleCallback callback ( model, effects ) =
                 , graph = graph
               }
             , effects
+                ++ [ RenderCausality <| graphvizDotNotation graph ]
             )
 
         _ ->
@@ -176,9 +185,22 @@ view session model =
                     , teamName = model.versionId.teamName
                     }
                 )
+
+            -- , Html.text <| graphvizDotNotation model.graph
             , Html.div
-                []
-                [ renderGraph model.graph ]
+                [ class "causality-view"
+                , id "causality-container"
+                , style "display" "flex"
+                , style "flex-direction" "column"
+                , style "flex-grow" "1"
+                ]
+                [ Html.div
+                    [ class "causality-content" ]
+                    [ Svg.svg
+                        [ SvgAttributes.class "causality-graph" ]
+                        []
+                    ]
+                ]
             ]
         ]
 
@@ -188,139 +210,207 @@ type alias NodeId =
 
 
 type alias NodeMetadata =
-    { nodeType : NodeType
+    { typ : NodeType
+    , name : String
+    , labels : List String
     }
 
 
 type NodeType
-    = BuildNode String String
-    | ResourceVersionNode String Concourse.Version
+    = Job
+    | Resource
 
 
-type alias GraphConstructor =
-    { nodes : List (Node NodeMetadata)
-    , edges : List (Edge ())
-    }
+insert : List String -> String -> List String
+insert lst str =
+    if List.member str lst then
+        lst
+
+    else
+        lst ++ [ str ]
 
 
-constructResourceVersion : NodeId -> Bool -> Concourse.CausalityResourceVersion -> GraphConstructor
-constructResourceVersion parentId downstream rv =
+constructResourceVersion : NodeId -> CausalityDirection -> CausalityResourceVersion -> Graph NodeMetadata () -> Graph NodeMetadata ()
+constructResourceVersion parentId dir rv graph =
     let
+        -- NodeId is the (positive) versionId for resourceVersions and the (negative) buildId for builds
         nodeId =
-            rv.versionId
+            rv.resourceId
 
-        edge =
-            if downstream then
-                Edge parentId nodeId ()
+        childEdges =
+            IntDict.fromList <| List.map (\(CausalityBuildVariant b) -> ( -b.jobId, () )) rv.builds
 
-            else
-                Edge nodeId parentId ()
+        addEdge : NodeContext NodeMetadata () -> NodeContext NodeMetadata ()
+        addEdge ctx =
+            case dir of
+                Downstream ->
+                    { ctx
+                        | incoming = IntDict.insert parentId () ctx.incoming
+                        , outgoing = childEdges
+                    }
 
-        recurseChild : Bool -> Concourse.CausalityBuild -> GraphConstructor -> GraphConstructor
-        recurseChild d child acc =
-            let
-                result =
-                    constructBuild nodeId d child
-            in
-            { nodes = acc.nodes ++ result.nodes
-            , edges = acc.edges ++ result.edges
-            }
+                Upstream ->
+                    { ctx
+                        | incoming = childEdges
+                        , outgoing = IntDict.insert parentId () ctx.outgoing
+                    }
 
-        children =
-            List.foldl (recurseChild True) { nodes = [], edges = [] } rv.builds
+        versionStr =
+            String.join "," <| List.map (\( k, v ) -> k ++ ":" ++ v) <| Dict.toList rv.version
+
+        updateNode : Maybe (NodeContext NodeMetadata ()) -> Maybe (NodeContext NodeMetadata ())
+        updateNode nodeContext =
+            Just <|
+                case nodeContext of
+                    Just { node, incoming, outgoing } ->
+                        let
+                            metadata : NodeMetadata
+                            metadata =
+                                node.label
+                        in
+                        addEdge
+                            { node =
+                                { node | label = { metadata | labels = insert metadata.labels versionStr } }
+                            , incoming = incoming
+                            , outgoing = outgoing
+                            }
+
+                    Nothing ->
+                        addEdge
+                            { node =
+                                { id = nodeId
+                                , label =
+                                    { typ = Resource
+                                    , name = rv.resourceName
+                                    , labels = [ versionStr ]
+                                    }
+                                }
+                            , incoming = IntDict.empty
+                            , outgoing = IntDict.empty
+                            }
+
+        updatedGraph =
+            Graph.update nodeId updateNode graph
     in
-    { nodes =
-        Node nodeId { nodeType = ResourceVersionNode rv.resourceName rv.version }
-            :: children.nodes
-    , edges =
-        edge
-            :: children.edges
-    }
+    List.foldl (\build acc -> constructBuild nodeId dir build acc) updatedGraph rv.builds
 
 
-constructBuild : NodeId -> Bool -> Concourse.CausalityBuild -> GraphConstructor
-constructBuild parentId downstream (Concourse.CausalityBuildVariant b) =
+constructBuild : NodeId -> CausalityDirection -> CausalityBuild -> Graph NodeMetadata () -> Graph NodeMetadata ()
+constructBuild parentId dir (CausalityBuildVariant b) graph =
     let
+        -- NodeId is the (positive) resourceId for resourceVersions and the (negative) jobId for builds
         nodeId =
-            -b.id
+            -b.jobId
 
-        edge =
-            if downstream then
-                Edge parentId nodeId ()
+        childEdges =
+            IntDict.fromList <| List.map (\rv -> ( rv.resourceId, () )) b.resourceVersions
 
-            else
-                Edge nodeId parentId ()
+        addEdge : NodeContext NodeMetadata () -> NodeContext NodeMetadata ()
+        addEdge ctx =
+            case dir of
+                Downstream ->
+                    { ctx
+                        | incoming = IntDict.insert parentId () ctx.incoming
+                        , outgoing = childEdges
+                    }
 
-        recurseChild : Bool -> Concourse.CausalityResourceVersion -> GraphConstructor -> GraphConstructor
-        recurseChild d child acc =
-            let
-                result =
-                    constructResourceVersion nodeId d child
-            in
-            { nodes = acc.nodes ++ result.nodes
-            , edges = acc.edges ++ result.edges
-            }
+                Upstream ->
+                    { ctx
+                        | incoming = childEdges
+                        , outgoing = IntDict.insert parentId () ctx.outgoing
+                    }
 
-        children =
-            List.foldl (recurseChild True) { nodes = [], edges = [] } b.resourceVersions
+        buildName =
+            "#" ++ b.name
+
+        updateNode : Maybe (NodeContext NodeMetadata ()) -> Maybe (NodeContext NodeMetadata ())
+        updateNode nodeContext =
+            Just <|
+                case nodeContext of
+                    Just { node, incoming, outgoing } ->
+                        let
+                            metadata =
+                                node.label
+                        in
+                        addEdge
+                            { node =
+                                { node | label = { metadata | labels = insert metadata.labels buildName } }
+                            , incoming = incoming
+                            , outgoing = outgoing
+                            }
+
+                    Nothing ->
+                        addEdge
+                            { node =
+                                { id = nodeId
+                                , label =
+                                    { typ = Job
+                                    , name = b.jobName
+                                    , labels = [ buildName ]
+                                    }
+                                }
+                            , incoming = IntDict.empty
+                            , outgoing = IntDict.empty
+                            }
+
+        updatedGraph =
+            Graph.update nodeId updateNode graph
     in
-    { nodes =
-        Node nodeId { nodeType = BuildNode b.jobName b.name }
-            :: children.nodes
-    , edges =
-        edge
-            :: children.edges
-    }
+    List.foldl (\build acc -> constructResourceVersion nodeId dir build acc) updatedGraph b.resourceVersions
 
 
-constructGraph : Concourse.CausalityResourceVersion -> Graph NodeMetadata ()
-constructGraph rv =
+constructGraph : CausalityDirection -> CausalityResourceVersion -> Graph NodeMetadata ()
+constructGraph direction rv =
     let
-        { nodes, edges } =
-            constructResourceVersion 0 True rv
-
-        -- because the first node is constructed with fictious parentId 0, the first edge needs to be removed
-        trimmedEdges =
-            case edges of
-                x :: xs ->
-                    xs
-
-                [] ->
-                    []
+        graph =
+            constructResourceVersion 0 direction rv Graph.empty
     in
-    Graph.fromNodesAndEdges nodes trimmedEdges
+    -- because the first node is constructed with fictious parentId 0, the first edge needs to be removed
+    Graph.update rv.versionId
+        (Maybe.map
+            (\ctx ->
+                case direction of
+                    Downstream ->
+                        { ctx | incoming = IntDict.remove 0 ctx.incoming }
+
+                    Upstream ->
+                        { ctx | outgoing = IntDict.remove 0 ctx.outgoing }
+            )
+        )
+        graph
 
 
-renderGraph : Graph NodeMetadata () -> Html.Html msg
-renderGraph graph =
+graphvizDotNotation : Graph NodeMetadata () -> String
+graphvizDotNotation =
     let
         styles : DOT.Styles
         styles =
-            { rankdir = DOT.TB
+            { rankdir = DOT.LR
             , graph = ""
-            , node = "shape=box, style=\"filled\""
+            , node = "style=\"filled\""
             , edge = ""
             }
 
-        versionString =
-            Dict.foldl (\k v acc -> k ++ ":" ++ v ++ "\n" ++ acc) ""
-
-        nodeAttrs { nodeType } =
+        nodeAttrs { typ, name, labels } =
             Dict.fromList <|
-                case nodeType of
-                    BuildNode jobName buildName ->
-                        [ ( "label", jobName ++ "\n" ++ "#" ++ buildName )
-                        , ( "fillcolor", "chartreuse" )
-                        ]
+                ( "label"
+                , "\n" ++ name ++ "\n" ++ String.join "\n" labels
+                )
+                    :: (case typ of
+                            Job ->
+                                [ ( "class", "job" )
+                                , ( "shape", "rect" )
+                                , ( "fillcolor", "chartreuse" )
+                                ]
 
-                    ResourceVersionNode resourceName version ->
-                        [ ( "label", resourceName ++ "\n" ++ versionString version )
-                        , ( "fillcolor", "deepskyblue" )
-                        ]
+                            Resource ->
+                                [ ( "class", "resource" )
+                                , ( "shape", "ellipse" )
+                                , ( "fillcolor", "deepskyblue" )
+                                ]
+                       )
 
         edgeAttrs _ =
             Dict.empty
     in
-    Html.div
-        []
-        [ Html.text <| DOT.outputWithStylesAndAttributes styles nodeAttrs edgeAttrs graph ]
+    DOT.outputWithStylesAndAttributes styles nodeAttrs edgeAttrs

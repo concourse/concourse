@@ -55,6 +55,9 @@ import Views.Styles
 port renderPipeline : ( Json.Encode.Value, Json.Encode.Value ) -> Cmd msg
 
 
+port renderCausality : String -> Cmd msg
+
+
 port pinTeamNames : StickyHeaderConfig -> Cmd msg
 
 
@@ -153,6 +156,7 @@ type Effect
     | UnpauseJob Concourse.JobIdentifier
     | ResetPipelineFocus
     | RenderPipeline (List Concourse.Job) (List Concourse.Resource)
+    | RenderCausality String
     | RedirectToLogin
     | LoadExternal String
     | NavigateTo String
@@ -329,7 +333,7 @@ runEffect effect key csrfToken =
                 (Endpoints.DownstreamCausality |> Endpoints.ResourceVersion id)
                 |> Api.expectJson Concourse.decodeCausalityResourceVersion
                 |> Api.request
-                |> Task.map (\b -> ( id, Just b ))
+                |> Task.map (\b -> ( Concourse.Downstream, Just b ))
                 |> Task.attempt CausalityFetched
 
         FetchOutputOf id ->
@@ -345,7 +349,7 @@ runEffect effect key csrfToken =
                 (Endpoints.UpstreamCasuality |> Endpoints.ResourceVersion id)
                 |> Api.expectJson Concourse.decodeCausalityResourceVersion
                 |> Api.request
-                |> Task.map (\b -> ( id, Just b ))
+                |> Task.map (\b -> ( Concourse.Upstream, Just b ))
                 |> Task.attempt CausalityFetched
 
         FetchAllTeams ->
@@ -420,6 +424,9 @@ runEffect effect key csrfToken =
 
         ResetPipelineFocus ->
             resetPipelineFocus ()
+
+        RenderCausality dot ->
+            renderCausality dot
 
         RenderPipeline jobs resources ->
             renderPipeline
