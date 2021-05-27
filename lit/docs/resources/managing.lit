@@ -108,3 +108,28 @@
   the resource page.
 }
 
+\section{
+  \title{\code{fly clear-resource-cache}}{fly-clear-resource-cache}
+
+  If you've got a resource cache that you need to
+  clear out for whatever reason, this can be done like so:
+
+  \codeblock{bash}{{
+  $ fly -t example clear-resource-cache -r my-pipeline/my-resource
+  }}
+
+  This will immediately invalidate all the caches related to that resource - they'll be garbage collected
+  asynchronously and subsequent builds will run with empty caches.
+
+  You can also clear out a particular version for the given resource cache, using
+  \code{-v}:
+
+  \codeblock{bash}{{
+  $ fly -t example clear-resource-cache \\
+      -r my-pipeline/my-resource \\
+      -v ref:abcdef
+  }}
+
+  If \code{-v} is not specified, all caches for the given resource will
+  be cleared.
+}

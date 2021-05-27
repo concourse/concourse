@@ -127,6 +127,7 @@ and viewers cannot.
   - PinResourceVersion
   - PausePipeline
   - UnpausePipeline
+  - ClearResourceCache
   }}}
 }
 
@@ -288,6 +289,7 @@ and viewers cannot.
     \table-row{ClearTaskCache               }{\reference{fly-clear-task-cache}                                  }{n/a                                             }{✘                                }{✓           }
     \table-row{CreateArtifact               }{\reference{fly-execute}                                           }{n/a                                             }{✘                                }{✓           }
     \table-row{GetArtifact                  }{\reference{fly-execute}                                           }{n/a                                             }{✘                                }{✓           }
+    \table-row{ClearResourceCache           }{\reference{fly-clear-resource-cache}                              }{n/a                                             }{✘                                }{✓           }
   }
 }
 
