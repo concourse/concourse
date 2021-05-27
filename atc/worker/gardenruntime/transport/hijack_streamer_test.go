@@ -17,9 +17,9 @@ import (
 
 	"code.cloudfoundry.org/garden"
 	"github.com/concourse/concourse/atc/db/dbfakes"
-	gconn "github.com/concourse/concourse/atc/worker/gclient/connection"
-	"github.com/concourse/concourse/atc/worker/transport"
-	"github.com/concourse/concourse/atc/worker/transport/transportfakes"
+	gconn "github.com/concourse/concourse/atc/worker/gardenruntime/gclient/connection"
+	"github.com/concourse/concourse/atc/worker/gardenruntime/transport"
+	"github.com/concourse/concourse/atc/worker/gardenruntime/transport/transportfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/rata"

@@ -10,7 +10,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/runtime"
-	"github.com/concourse/concourse/atc/worker/gclient"
+	"github.com/concourse/concourse/atc/worker/gardenruntime/gclient"
 )
 
 const userPropertyName = "user"

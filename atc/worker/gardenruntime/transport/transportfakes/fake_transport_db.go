@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/worker/transport"
+	"github.com/concourse/concourse/atc/worker/gardenruntime/transport"
 )
 
 type FakeTransportDB struct {

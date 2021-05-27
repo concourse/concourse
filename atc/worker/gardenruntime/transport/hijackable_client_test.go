@@ -11,8 +11,8 @@ import (
 
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/concourse/concourse/atc/worker/transport"
-	"github.com/concourse/concourse/atc/worker/transport/transportfakes"
+	"github.com/concourse/concourse/atc/worker/gardenruntime/transport"
+	"github.com/concourse/concourse/atc/worker/gardenruntime/transport/transportfakes"
 	"github.com/concourse/retryhttp"
 	"github.com/concourse/retryhttp/retryhttpfakes"
 )

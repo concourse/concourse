@@ -7,7 +7,7 @@ import (
 
 	"code.cloudfoundry.org/garden"
 	"github.com/concourse/concourse/atc/runtime"
-	"github.com/concourse/concourse/atc/worker/gclient"
+	"github.com/concourse/concourse/atc/worker/gardenruntime/gclient"
 	"github.com/hashicorp/go-multierror"
 )
 

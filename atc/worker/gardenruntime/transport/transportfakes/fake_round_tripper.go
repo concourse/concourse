@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/concourse/concourse/atc/worker/transport"
+	"github.com/concourse/concourse/atc/worker/gardenruntime/transport"
 )
 
 type FakeRoundTripper struct {

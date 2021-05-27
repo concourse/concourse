@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/concourse/concourse/atc/worker/gclient"
-	gconn "github.com/concourse/concourse/atc/worker/gclient/connection"
+	"github.com/concourse/concourse/atc/worker/gardenruntime/gclient"
+	gconn "github.com/concourse/concourse/atc/worker/gardenruntime/gclient/connection"
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/garden/gardenfakes"
-	"github.com/concourse/concourse/atc/worker/gclient/connection/connectionfakes"
+	"github.com/concourse/concourse/atc/worker/gardenruntime/gclient/connection/connectionfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"

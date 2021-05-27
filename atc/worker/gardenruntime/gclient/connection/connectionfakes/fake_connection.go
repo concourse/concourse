@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/garden"
-	"github.com/concourse/concourse/atc/worker/gclient/connection"
+	"github.com/concourse/concourse/atc/worker/gardenruntime/gclient/connection"
 )
 
 type FakeConnection struct {

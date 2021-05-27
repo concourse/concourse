@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/garden"
-	"github.com/concourse/concourse/atc/worker/gclient"
+	"github.com/concourse/concourse/atc/worker/gardenruntime/gclient"
 	uuid "github.com/nu7hatch/gouuid"
 )
 

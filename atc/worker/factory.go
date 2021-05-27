@@ -8,8 +8,8 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker/gardenruntime"
-	"github.com/concourse/concourse/atc/worker/gclient"
-	"github.com/concourse/concourse/atc/worker/transport"
+	"github.com/concourse/concourse/atc/worker/gardenruntime/gclient"
+	"github.com/concourse/concourse/atc/worker/gardenruntime/transport"
 	bclient "github.com/concourse/concourse/worker/baggageclaim/client"
 	"github.com/concourse/retryhttp"
 )
