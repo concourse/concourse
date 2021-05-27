@@ -76,7 +76,7 @@ on the configured strategy. If no workers satisfies the configured strategy, the
   A value of 0 means that there is no limit on the maximum number of active tasks on the workers.
   If no worker can be selected because all of them already have \code{max-active-tasks-per-worker}
   active tasks, then the task will wait for a free worker, periodically polling the pool.
-  The metric \code{concourse_tasks_waiting} is emitted to monitor these events.
+  The metric \code{concourse_steps_waiting\{type="task"\}} is emitted to monitor these events.
   Note that the parameter does not apply to \code{get} and \code{put} steps which will always
   be scheduled on the worker with the fewest active tasks.
 
