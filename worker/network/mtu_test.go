@@ -13,17 +13,17 @@ import (
 )
 
 func TestMTU(t *testing.T) {
-	ifconfig, err := exec.LookPath("ifconfig")
+	ipcmd, err := exec.LookPath("ip")
 	if err != nil {
-		t.Skip("ifconfig is required")
+		t.Skip("ip command is required")
 	}
 	iface, err := net.InterfaceByIndex(1)
 	require.NoError(t, err)
 
-	ifconfigOutput, err := exec.Command(ifconfig, iface.Name).CombinedOutput()
+	ipcmdOutput, err := exec.Command(ipcmd, "link", "show", iface.Name).CombinedOutput()
 	require.NoError(t, err)
 
-	groups := regexp.MustCompile(`(MTU|mtu).(\d+)`).FindStringSubmatch(string(ifconfigOutput))
+	groups := regexp.MustCompile(`(MTU|mtu).(\d+)`).FindStringSubmatch(string(ipcmdOutput))
 	mtuStr := groups[2]
 	expectMTU, err := strconv.Atoi(mtuStr)
 	require.NoError(t, err)
