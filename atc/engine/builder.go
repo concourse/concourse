@@ -193,13 +193,15 @@ func (factory *stepperFactory) buildAcrossStep(build db.Build, plan atc.Plan) ex
 		}
 	}
 
-	return exec.Across(
+	acrossStep := exec.Across(
 		plan.Across.Vars,
 		steps,
 		plan.Across.FailFast,
 		factory.buildDelegateFactory(build, plan),
 		stepMetadata,
 	)
+
+	return exec.LogError(acrossStep, factory.buildDelegateFactory(build, plan))
 }
 
 func (factory *stepperFactory) buildDoStep(build db.Build, plan atc.Plan) exec.Step {
