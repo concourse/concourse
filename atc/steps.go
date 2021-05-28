@@ -193,6 +193,7 @@ type StepVisitor interface {
 	VisitPut(*PutStep) error
 	VisitSetPipeline(*SetPipelineStep) error
 	VisitLoadVar(*LoadVarStep) error
+	VisitGetVar(*GetVarStep) error
 	VisitTry(*TryStep) error
 	VisitDo(*DoStep) error
 	VisitInParallel(*InParallelStep) error
@@ -272,6 +273,10 @@ var StepPrecedence = []StepDetector{
 	{
 		Key: "load_var",
 		New: func() StepConfig { return &LoadVarStep{} },
+	},
+	{
+		Key: "get_var",
+		New: func() StepConfig { return &GetVarStep{} },
 	},
 	{
 		Key: "try",
@@ -373,6 +378,15 @@ type LoadVarStep struct {
 
 func (step *LoadVarStep) Visit(v StepVisitor) error {
 	return v.VisitLoadVar(step)
+}
+
+type GetVarStep struct {
+	Name   string `json:"get_var"`
+	Source string `json:"source"`
+}
+
+func (step *GetVarStep) Visit(v StepVisitor) error {
+	return v.VisitGetVar(step)
 }
 
 type TryStep struct {

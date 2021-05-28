@@ -39,8 +39,9 @@ type SchedulerJobs []SchedulerJob
 
 type SchedulerJob struct {
 	Job
-	Resources     SchedulerResources
-	ResourceTypes atc.ResourceTypes
+	Resources        SchedulerResources
+	ResourceTypes    atc.ResourceTypes
+	VarSourceConfigs atc.VarSourceConfigs
 }
 
 type SchedulerResources []SchedulerResource
@@ -102,6 +103,7 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 
 	var schedulerJobs SchedulerJobs
 	pipelineResourceTypes := make(map[int]ResourceTypes)
+	pipelineVarSourceConfigs := make(map[int]atc.VarSourceConfigs)
 	for _, job := range jobs {
 		rows, err := tx.Query(`WITH inputs AS (
 				SELECT ji.resource_id from job_inputs ji where ji.job_id = $1
@@ -182,10 +184,47 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 			pipelineResourceTypes[job.PipelineID()] = resourceTypes
 		}
 
+		var varSourceConfigs atc.VarSourceConfigs
+		varSourceConfigs, found = pipelineVarSourceConfigs[job.PipelineID()]
+		if !found {
+			var varSources, nonce sql.NullString
+			err := psql.Select("var_sources", "nonce").
+				From("pipelines").
+				Where(sq.Eq{"id": job.PipelineID()}).
+				RunWith(tx).
+				QueryRow().
+				Scan(&varSources, &nonce)
+			if err != nil {
+				return nil, err
+			}
+
+			es := j.conn.EncryptionStrategy()
+
+			var noncense *string
+			if nonce.Valid {
+				noncense = &nonce.String
+			}
+
+			if varSources.Valid {
+				decryptedVarSources, err := es.Decrypt(varSources.String, noncense)
+				if err != nil {
+					return nil, err
+				}
+
+				err = json.Unmarshal([]byte(decryptedVarSources), &varSourceConfigs)
+				if err != nil {
+					return nil, err
+				}
+			}
+
+			pipelineVarSourceConfigs[job.PipelineID()] = varSourceConfigs
+		}
+
 		schedulerJobs = append(schedulerJobs, SchedulerJob{
-			Job:           job,
-			Resources:     schedulerResources,
-			ResourceTypes: resourceTypes.Deserialize(),
+			Job:              job,
+			Resources:        schedulerResources,
+			ResourceTypes:    resourceTypes.Deserialize(),
+			VarSourceConfigs: varSourceConfigs,
 		})
 	}
 

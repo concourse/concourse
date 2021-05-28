@@ -273,6 +273,7 @@ package atc
 // 		}
 // 	}
 // }
+
 type Plan struct {
 	ID       PlanID `json:"id"`
 	Attempts []int  `json:"attempts,omitempty"`
@@ -638,11 +639,15 @@ type SetPipelinePlan struct {
 }
 
 type GetVarPlan struct {
-	Name   string   `json:"name"` // Represents the name of the var source
-	Path   string   `json:"path"` // The path within the var source to fetch the var
-	Type   string   `json:"type"` // The type of the var source
-	Fields []string `json:"fields"`
-	Source Source   `json:"source"` // The source of the var source
+	Name string `json:"name"` // Represents the name of the var source
+	Path string `json:"path"` // The path within the var source to fetch the var
+	Type string `json:"type"` // The type of the var source
+	// TODO: match VarSourceConfig.Config
+	Source Source `json:"source"` // The source of the var source
+
+	Fields []string `json:"fields,omitempty"`
+
+	VarPlans []Plan `json:"var_plans,omitempty"`
 }
 
 type LoadVarPlan struct {

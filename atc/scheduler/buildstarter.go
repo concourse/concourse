@@ -21,7 +21,7 @@ type BuildStarter interface {
 
 //counterfeiter:generate . BuildPlanner
 type BuildPlanner interface {
-	Create(atc.StepConfig, db.SchedulerResources, atc.ResourceTypes, []db.BuildInput) (atc.Plan, error)
+	Create(atc.StepConfig, db.SchedulerResources, atc.ResourceTypes, atc.VarSourceConfigs, []db.BuildInput) (atc.Plan, error)
 }
 
 type Build interface {
@@ -196,7 +196,7 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		return startResults{}, fmt.Errorf("config: %w", err)
 	}
 
-	plan, err := s.planner.Create(config.StepConfig(), job.Resources, job.ResourceTypes, buildInputs)
+	plan, err := s.planner.Create(config.StepConfig(), job.Resources, job.ResourceTypes, job.VarSourceConfigs, buildInputs)
 	if err != nil {
 		logger.Error("failed-to-create-build-plan", err)
 

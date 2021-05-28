@@ -57,6 +57,28 @@ func (t Template) interpolateRoot(obj interface{}, tracker varsTracker) (interfa
 	return obj, tracker.Error()
 }
 
+func ExtractVars(in interface{}) ([]Reference, error) {
+	byteParams, err := json.Marshal(in)
+	if err != nil {
+		return nil, err
+	}
+
+	tpl := NewTemplate(byteParams)
+	varNames := tpl.ExtraVarNames()
+
+	var varRefs []Reference
+	for _, varName := range varNames {
+		varRef, err := ParseReference(varName)
+		if err != nil {
+			return nil, err
+		}
+
+		varRefs = append(varRefs, varRef)
+	}
+
+	return varRefs, nil
+}
+
 type interpolator struct{}
 
 var (
@@ -205,3 +227,4 @@ func identifier(varRef Reference) string {
 
 	return id
 }
+
