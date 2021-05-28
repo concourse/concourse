@@ -225,20 +225,10 @@ func (step *GetVarStep) runGetVar(state RunState, delegate BuildStepDelegate, re
 		return nil, nil, false, fmt.Errorf("unknown credential manager type: %s", ref.Source)
 	}
 
-	// Evaluate the var source's config. If the config of the var source has
-	// templated vars then it will end up recursing to evaluate the var
-	// source config's vars until it is able to evaluate a source that does
-	// not have any templated vars or is evaluated using the global
-	// credential manager.
-	source, ok := varSourceConfig.Config.(map[string]interface{})
-	if !ok {
-		return nil, nil, false, fmt.Errorf("invalid source for %s", varSourceConfig.Name)
-	}
-
 	// Pass in a list of var source configs that don't include the var source
 	// that we are currently trying to evaluate
 	variables := delegate.Variables(ctx, state.VarSourceConfigs().Without(ref.Source))
-	evaluatedConfig, err := creds.NewSource(variables, source).Evaluate()
+	evaluatedConfig, err := creds.NewSource(variables, varSourceConfig.Config).Evaluate()
 	if err != nil {
 		return nil, nil, false, fmt.Errorf("evaluate var source config: %w", err)
 	}

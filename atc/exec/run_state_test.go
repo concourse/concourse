@@ -34,7 +34,7 @@ var _ = Describe("RunState", func() {
 			{
 				Name:   "some-var-source",
 				Type:   "registry",
-				Config: map[string]string{"some": "config"},
+				Config: map[string]interface{}{"some": "config"},
 			},
 		}
 

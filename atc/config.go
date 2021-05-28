@@ -75,9 +75,9 @@ func (groups GroupConfigs) Lookup(name string) (GroupConfig, int, bool) {
 }
 
 type VarSourceConfig struct {
-	Name   string      `json:"name"`
-	Type   string      `json:"type"`
-	Config interface{} `json:"config"`
+	Name   string                 `json:"name"`
+	Type   string                 `json:"type"`
+	Config map[string]interface{} `json:"config"`
 }
 
 type VarSourceConfigs []VarSourceConfig
@@ -140,7 +140,7 @@ func (c VarSourceConfigs) GetVarPlan(parentPlanID PlanID, parentConfig interface
 				Path:     varRef.Path,
 				Type:     varSourceConfig.Type,
 				Fields:   varRef.Fields,
-				Source:   varSourceConfig.Config.(Source), // TODO: no
+				Source:   varSourceConfig.Config,
 				VarPlans: subGetVarPlans,
 			},
 		}
