@@ -81,7 +81,7 @@ func (visitor *planVisitor) VisitGetVar(step *atc.GetVarStep) error {
 		Name:   step.Source,
 		Path:   step.Name,
 		Type:   varSourceConfig.Type,
-		Source: varSourceConfig.Config.(atc.Source), // TODO: no
+		Source: varSourceConfig.Config,
 	})
 	var err error
 	plan.GetVar.VarPlans, err = visitor.varSourceConfigs.Without(step.Source).GetVarPlan(plan.ID, varSourceConfig.Config)
