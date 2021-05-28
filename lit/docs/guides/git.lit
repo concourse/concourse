@@ -1,0 +1,141 @@
+\title{Git Guides}
+
+\use-plugin{concourse-docs}
+\split-sections
+\table-of-contents
+
+\section{
+  \title{Basic Git Operations}
+  \omit-children-from-table-of-contents
+
+  All of these examples use the
+  \link{concourse/git-resource}{https://github.com/concourse/git-resource}
+  image. That image is probably the most popular git resource for Concourse
+  since it is shipped in the
+  \link{concourse/concourse}{https://hub.docker.com/r/concourse/concourse}
+  image and in the tarball on the \link{Github release
+  page}{https://github.com/concourse/concourse/releases}. It is not the only
+  resource available for working with git-related resources. If you don't see
+  your use-case on this page then there is probably another resource that you
+  can use. For example, Pull Request workflows can be accomplished with the
+  \link{teliaoss/github-pr-resource}{https://github.com/telia-oss/github-pr-resource}.
+
+  Check out the \link{docs}{https://github.com/concourse/git-resource} for the
+  git resource for all configuration options.
+
+  \section{
+    \title{Fetching a Repository}
+
+    Here is how you fetch the contents of a git repository and use it in a
+    task.
+
+    \codeblock{yaml}{{
+    resources:
+    - name: concourse-examples
+      type: git
+      icon: github
+      source:
+        uri: https://github.com/concourse/examples
+
+    jobs:
+    - name: read-the-readme
+      plan:
+      - get: concourse-examples
+      - task: cat-readme
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source:
+              repository: busybox
+          inputs: # pass concourse-examples into this task step
+          - name: concourse-examples
+          run:
+            path: cat
+            args: ["concourse-examples/README.md"]
+    }}
+  }
+
+  \section{
+    \title{Creating Commits and Tags}
+    Here's a simple way to create a commit using a bash script.
+
+    \codeblock{yaml}{{
+    resources:
+    - name: repo-main
+      type: git
+      icon: github
+      source:
+        uri: https://github.com/user/my-repo
+        branch: main
+
+    jobs:
+    - name: create-a-commit
+      plan:
+      - get: repo-main
+      - task: commit-and-tag
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source:
+              repository: gitea/gitea # use any image that has the git cli
+          inputs:
+          - name: repo-main
+          outputs:
+          # to pass the commit to the following steps specify
+          # the "repo-main" as an output as well
+          - name: repo-main
+          run:
+            path: sh
+            args:
+            - -cx
+            # this is just a bash script
+            - |
+              cd repo-main
+              # edit a file / make a change
+              date +%Y-%m-%d > todays-date
+              git add ./todays-date
+              git commit -m "Add todays date"
+              git tag v0.1.6
+      # push commit and tag
+      - put: repo-main
+        params:
+          # specify the "repo-main" artifact as the location
+          repository: repo-main
+    }}
+  }
+
+  \section{
+    \title{Merging Branches}
+    Here is how you can merge two branches. Common if you are using
+    \link{gitflow}{https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow}
+    and need to merge a \code{dev} branch into \code{main} every so often.
+
+    \codeblock{yaml}{{
+    resources:
+    - name: repo-main
+      type: git
+      icon: github
+      source:
+        uri: https://github.com/user/my-repo
+        branch: main
+
+    - name: repo-dev
+      type: git
+      icon: github
+      source:
+        uri: https://github.com/user/my-repo
+        branch: dev
+
+    jobs:
+    - name: merge-dev-into-main
+      plan:
+      - get: repo-dev
+      - put: repo-main
+        params:
+          repository: repo-dev
+          merge: true
+    }}
+  }
+}

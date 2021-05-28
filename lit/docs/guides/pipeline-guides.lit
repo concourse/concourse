@@ -1,0 +1,679 @@
+\title{Pipeline Guides}
+
+\use-plugin{concourse-docs}
+\split-sections
+\table-of-contents
+
+\section{
+  \title{Common Pipeline Practices}
+  \omit-children-from-table-of-contents
+
+  The following are practices that we see a lot of people use in their
+  pipelines. These are by no means "Best" practices, they are simply common and
+  may or may not work for you and your team.
+
+  \section{
+    \title{Parallelizing Get Steps in Jobs}
+
+    All jobs usually have \reference{get-step}{get steps} as their first set of
+    steps.
+
+    \codeblock{yaml}{{
+    jobs:
+    - name: awesome-job
+      plan:
+      - get: cool-code
+      - get: funny-binary
+      - get: the-weather
+      - task: business-stuff
+    }}
+
+    To reduce the waiting time to the length of longest running get step, put all
+    get steps under an \reference{in-parallel-step}.
+
+    \codeblock{yaml}{{
+    jobs:
+    - name: awesome-job
+      plan:
+      - in_parallel:
+        - get: cool-code
+        - get: funny-binary
+        - get: the-weather
+      - task: business-stuff
+    }}
+  }
+
+  \section{
+    \title{Specify Inputs for Put Steps}
+
+    By default \reference{put-step}'s have all artifacts from a job mounted in
+    their resource container. This can result in long initialization times for
+    put steps. It's likely that a \reference{put-step} only needs a subset of
+    all available artifacts generated throughout the job.
+
+    There are two ways to specify which artifacts to send to a
+    \reference{put-step}. You can specify \code{detect} as the
+    \reference{schema.step.put-step.inputs} or you can pass in an exact list of
+    all artifacts the \reference{put-step} needs.
+
+    Using \code{detect}:
+    \codeblock{yaml}{{
+    jobs:
+    - name: the-job
+      plan: # Get some artifacts
+      - in_parallel:
+        - get: apples
+        - get: apple-basket
+        - get: monkeys
+      # using detect will result in "apples-location" and "basket" being passed in
+      # "monkeys" will not be passed in
+      - put: apples-in-basket
+        input: detect
+        params:
+          apples-location: apples/location # matches the first get step
+          basket: apple-basket # matches the second get step
+    }}
+
+    Specifying the exact inputs needed for the \reference{put-step}:
+    \codeblock{yaml}{{
+    jobs:
+    - name: the-job
+      plan: # Get some artifacts
+      - in_parallel:
+        - get: apples
+        - get: apple-basket
+        - get: monkeys
+      - put: apples-in-basket
+        input: [apples, apple-basket] # specify the exact inputs needed
+        params:
+          apples-location: apples/location
+          basket: apple-basket
+    }}
+
+  }
+
+  \section{
+    \title{Putting Task Configs in Files}
+
+    A lot of the pipeline examples that you will find on this site and in
+    resource repos will embed a \reference{schema.step.task-step.config} directly
+    in the pipeline. This is a nice way of clearly seeing what inputs/outputs the
+    task uses. Tasks are usually designed to be used in multiple places, maybe
+    with slightly different configuration. To support this scenario, most users
+    store task configs in files instead of embedding the config directly in the
+    pipeline.
+
+    Here's what this looks like in practice:
+
+    \titled-codeblock{todays-date.yml, stored in some git repo under a folder named "task"}{yaml}{{
+    platform: linux
+
+    image_resource: # define a default image for the task to use
+      type: registry-image
+      source:
+        repository: busybox
+
+    run:
+      path: date
+      args: ["+%Y-%m-%d"]
+    }}
+    \inset{} {- spacer -}
+
+    Using the task in a pipeline:
+
+    \titled-codeblock{pipeline.yml}{yaml}{{
+    resources:
+    - name: ci
+      type: git
+      source:
+        uri: http://github.com/username/my-ci-repo
+
+    jobs:
+    - name: the-best-job
+      plan:
+      - get: ci
+      - task: what-day-is-it
+        file: ci/tasks/todays-date.yml
+    }}
+  }
+
+  \section{
+    \title{\code{Get} Images for Tasks Instead of using Anonymous Image Resources}
+
+    It is easy to let Concourse fetch images for tasks right when they are
+    needed by using the \reference{schema.task.image_resource} field in a
+    \reference{tasks}{task config}. It's the easy out-of-the-box solution.
+    Another way is to pass the image for a task as an input to the job by
+    setting the \reference{schema.step.task-step.image} field. This also allows
+    you to track the version of the image being used by the task and also avoid
+    getting rate-limited by configuring the resource with credentials.
+
+    \bold{Before - Anonymous Image Fetching for Tasks}
+
+    \codeblock{yaml}{{
+    jobs:
+    - name: job
+      plan:
+      - task: simple-task
+        config:
+          platform: linux
+          image_resource: # anonymous image resource
+            type: registry-image
+            source:
+              repository: busybox
+          run:
+            path: echo
+            args: ["Hello world!"]
+    }}
+
+    \inset{} {- spacer -}
+
+    \bold{After - Passing Task Image as Job Inputs}
+
+    \codeblock{yaml}{{
+    resources:
+    - name: busybox
+      type: registry-image
+      source:
+        repository: busybox
+        username: ((docker.user))
+        password: ((docker.password))
+
+    jobs:
+    - name: job
+      plan:
+      - get: busybox # pass image into job
+      - task: simple-task
+        image: busybox # use image for task. Overrides anonymous image
+        config:
+          platform: linux
+          run:
+            path: echo
+            args: ["Hello world!"]
+    }}
+  }
+}
+
+\section{
+  \omit-children-from-table-of-contents
+  \title{Exploring Task Input and Output Scenarios}
+  Understanding how task inputs and outputs work in Concourse can be a little
+  confusing initially. This guide will walk you through a few example pipelines
+  to show you how inputs and outputs work within a single Concourse job. By the
+  end you should understand how inputs and outputs work within the context of a
+  single job.
+
+  To run the pipelines in the following examples yourself you can get your own
+  Concourse running locally by following the \reference{quick-start} guide.
+  Then use \reference{fly-set-pipeline} to see the pipelines in action.
+
+  \section{
+    \title{#1 - Passing Inputs Between Tasks}
+
+    This pipeline will show us how to create outputs and pass outputs as inputs
+    to the next \reference{steps}{step} in a \reference{schema.job.plan}{job plan}.
+
+    This pipeline has two tasks. The first task outputs a file with the date. The
+    second task reads and prints the contents of the file from the first task.
+
+    \titled-codeblock{passing-artifacts.yml}{yaml}{{
+    busybox: &busybox #YAML anchor
+      type: registry-image
+      source:
+        repository: busybox
+
+    jobs:
+    - name: the-job
+      plan:
+      - task: create-one-output
+        config:
+          platform: linux
+          image_resource: *busybox
+          outputs:
+            # Concourse will make an empty dir with this name
+            # and save the contents for later steps
+            - name: the-output
+          run:
+            path: /bin/sh
+            args:
+              - -cx
+              - |
+                ls -lah
+                date > ./the-output/file
+      - task: read-ouput-from-previous-step
+        config:
+          platform: linux
+          image_resource: *busybox
+          # You must explicitly name the inputs you expect
+          # this task to have.
+          # If you don't then outputs from previous steps
+          # will not appear in the step's container.
+          # The name must match the output from the previous step.
+          # Try removing or renaming the input to see what happens!
+          inputs:
+            - name: the-output
+          run:
+            path: /bin/sh
+            args:
+              - -cx
+              - |
+                ls -lah
+                cat ./the-output/file
+    }}
+
+    Set and run this pipeline to see the results yourself. Save the pipeline in a
+    file called \code{passing-artifacts.yml}.
+
+    \codeblock{bash}{{
+    fly -t tutorial set-pipeline -p passing-artifacts -c passing-artifacts.yml
+    fly -t tutorial unpause-pipeline -p passing-artifacts
+    fly -t tutorial trigger-job --job passing-artifacts/the-job --watch
+    }}
+  }
+
+  \section{
+    \title{#2 - Two tasks with the same output, who wins?}
+
+    This scenario is to satisfy the curiosity cat inside all of us. Never do this
+    in real life because you're definitely going to hurt yourself!
+
+    We are going to go over two versions of this example. The first one has three
+    steps. The first two steps run
+    \reference{schema.step.in-parallel-step.in_parallel}{\code{in_parallel}}.
+    This makes it unclear which step will finish first. Both steps have an output
+    with the same name, \code{artifact}. The third step tries to read
+    \code{file1} and \code{file2} from \code{artifact}. It will error because
+    only one of those files will exist. Whichever of the first two jobs finishes
+    last will have its \code{artifact} passed onto the third job. \bold{Last to
+    write wins!}
+
+    \titled-codeblock{parallel-artifacts.yml}{yaml}{{
+    busybox: &busybox #YAML anchor
+      type: registry-image
+      source: {repository: busybox}
+
+    jobs:
+    - name: writing-in-parallel
+      plan:
+      # running two tasks that output in parallel?!?
+      # who will win??
+      - in_parallel:
+        - task: create-the-output
+          config:
+            platform: linux
+            image_resource: *busybox
+            outputs:
+              - name: artifact
+            run:
+              path: /bin/sh
+              args:
+                - -cx
+                - |
+                  ls -lah
+                  date > ./artifact/file1
+        - task: also-create-the-output
+          config:
+            platform: linux
+            image_resource: *busybox
+            outputs:
+              - name: artifact
+            run:
+              path: /bin/sh
+              args:
+                - -cx
+                - |
+                  ls -lah
+                  date > ./artifact/file2
+      # run this job multiple times to see which
+      # previous task wins each time
+      - task: read-ouput-from-previous-step
+        config:
+          platform: linux
+          image_resource: *busybox
+          inputs:
+            - name: artifact
+          run:
+            path: /bin/sh
+            args:
+              - -cx
+              - |
+                ls -lah ./artifact
+                echo "Get ready to error!"
+                cat ./artifact/file1 ./artifact/file2
+    }}
+
+    Set and run this pipeline to see the results yourself. Save the pipeline in a
+    file called \code{parallel-artifacts.yml}.
+
+    \codeblock{bash}{{
+    fly -t tutorial set-pipeline -p parallel-artifacts -c parallel-artifacts.yml
+    fly -t tutorial unpause-pipeline -p parallel-artifacts
+    fly -t tutorial trigger-job --job parallel-artifacts/writing-in-parallel --watch
+    }}
+  }
+
+  \section{
+    \title{#3 - Mapping the Names of Inputs and Outputs}
+
+    Sometimes the names of inputs and outputs don't match between multiple
+    \reference{schema.step.task-step.config}{task configs}, or they do match and
+    you don't want them overwriting each other, like in the previous example.
+    That's when
+    \reference{schema.step.task-step.input_mapping}{\code{input_mapping}} and
+    \reference{schema.step.task-step.output_mapping}{\code{output_mapping}}
+    become helpful. Both of these features rename the inputs/outputs in the task's
+    config to some other name in the job plan.
+
+    This pipeline has one job with four tasks.
+
+    The first task outputs a file with the date to the \code{the-output}
+    directory.  \code{the-output} is mapped to the new name \code{demo-disk}.
+    The artifact \code{demo-disk} is now available in the rest of the job plan
+    for future steps to take as inputs.
+
+    The second task reads and prints the contents of the file under the new name
+    \code{demo-disk}.
+
+    The third task reads and prints the contents of the file under another name,
+    \code{generic-input}. The \code{demo-disk} artifact in the job plan is mapped
+    to \code{generic-input}.
+
+    \titled-codeblock{mapping-artifacts.yml}{yaml}{{
+    busybox: &busybox #YAML anchor
+      type: registry-image
+      source: {repository: busybox}
+
+    jobs:
+    - name: the-job
+      plan:
+      - task: create-one-output
+        # The task config has the artifact `the-output`
+        # output_mapping will rename `the-output` to `demo-disk`
+        # in the rest of the job's plan
+        output_mapping:
+          the-output: demo-disk
+        config:
+          platform: linux
+          image_resource: *busybox
+          outputs:
+            - name: the-output
+          run:
+            path: /bin/sh
+            args:
+              - -cx
+              - |
+                ls -lah
+                date > ./the-output/file
+      # this task expects the artifact `demo-disk` so no mapping is needed
+      - task: read-ouput-from-previous-step
+        config:
+          platform: linux
+          image_resource: *busybox
+          inputs:
+            - name: demo-disk
+          run:
+            path: /bin/sh
+            args:
+              - -cx
+              - |
+                ls -lah
+                cat ./demo-disk/file
+      - task: rename-and-read-output
+        # This task expects the artifact `generic-input`.
+        # input_mapping will map the task's `generic-input` to
+        # the job plans `demo-disk` artifact.
+        # `demo-disk` is renamed to `generic-input`.
+        input_mapping:
+          generic-input: demo-disk
+        config:
+          platform: linux
+          image_resource: *busybox
+          inputs:
+            - name: generic-input
+          run:
+            path: /bin/sh
+            args:
+              - -cx
+              - |
+                ls -lah
+                cat ./generic-input/file
+      - task: try-to-read-the-output
+        input_mapping:
+          generic-input: demo-disk
+        config:
+          platform: linux
+          image_resource: *busybox
+          # `the-output` is not available in the job plan
+          # so this task will error while initializing
+          # since there's no artiact named `the-output` in
+          # the job's plan
+          inputs:
+            - name: the-output
+          run:
+            path: /bin/sh
+            args:
+              - -cx
+              - |
+                ls -lah
+                cat ./generic-input/file
+    }}
+
+    Set and run this pipeline to see the results yourself. Save the pipeline in a
+    file called \code{mapping-artifacts.yml}.
+
+    \codeblock{bash}{{
+    fly -t tutorial set-pipeline -p mapping-artifacts -c mapping-artifacts.yml
+    fly -t tutorial unpause-pipeline -p mapping-artifacts
+    fly -t tutorial trigger-job --job mapping-artifacts/the-job --watch
+    }}
+  }
+
+  \section{
+    \title{#4 - Adding Files to an Existing Artifact}
+    This pipeline will also have two jobs in order to illustrate this point. What
+    happens if we add a file to an output? If you think back to example two you
+    may already know the answer.
+
+    The first task will create \code{the-output} with \code{file1}. The second
+    task will add \code{file2} to the \code{the-output}. The last task will read
+    the contents of \code{file1} and \code{file2}.
+
+    As long as you re-declare the input as an output in the second task you can
+    modify any of your outputs.
+
+    This means you can pass something between a bunch of tasks and have each task
+    add or modify something in the artifact.
+
+    \titled-codeblock{existing-artifact.yml}{yaml}{{
+    jobs:
+    - name: add-file-to-output
+      plan:
+      - task: create-one-output
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source: {repository: busybox}
+          outputs:
+            - name: the-output
+          run:
+            path: /bin/sh
+            args:
+              - -cx
+              - |
+                ls -lah
+                date > ./the-output/file1
+      - task: add-file-to-previous-output
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source: {repository: busybox}
+          # this task lists the same artifact as
+          # its input and output
+          inputs:
+            - name: the-output
+          outputs:
+            - name: the-output
+          run:
+            path: /bin/sh
+            args:
+              - -cx
+              - |
+                ls -lah
+                date > ./the-output/file2
+      - task: read-ouput-from-previous-step
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source: {repository: busybox}
+          inputs:
+            - name: the-output
+          run:
+            path: /bin/sh
+            args:
+              - -cx
+              - |
+                ls -lah ./the-output
+                cat ./the-output/file1 ./the-output/file2
+    }}
+
+    Set and run this pipeline to see the results yourself. Save the pipeline in a
+    file called \code{existing-artifact.yml}.
+
+    \codeblock{bash}{{
+    fly -t tutorial set-pipeline -p existing-artifact -c existing-artifact.yml
+    fly -t tutorial unpause-pipeline -p existing-artifact
+    fly -t tutorial trigger-job --job existing-artifact/add-file-to-output --watch
+    }}
+  }
+
+  \section{
+    \title{#5 - Task With Multiple Inputs and Outputs}
+
+    What happens if you have a task that has multiple outputs and a second task
+    that only lists one of the outputs? Does the second task get the extra
+    outputs from the first task?
+
+    The answer is no. A task will only get the artifacts that match the name of
+    the inputs listed in the task's config.
+
+    \titled-codeblock{multiple-artifacts.yml}{yaml}{{
+    jobs:
+    - name: multiple-outputs
+      plan:
+      - task: create-three-outputs
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source: {repository: busybox}
+          outputs:
+            - name: the-output-1
+            - name: the-output-2
+            - name: the-output-3
+          run:
+            path: /bin/sh
+            args:
+              - -cx
+              - |
+                ls -lah
+                date > ./the-output-1/file
+                date > ./the-output-2/file
+                date > ./the-output-3/file
+      - task: take-one-output
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source: {repository: busybox}
+          # only one of the three outputs are
+          # listed as inputs
+          inputs:
+            - name: the-output-1
+          run:
+            path: /bin/sh
+            args:
+              - -cx
+              - |
+                ls -lah ./
+                cat ./the-output-1/file
+      - task: take-two-outputs
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source: {repository: busybox}
+          # this task pulls in the other
+          # two outputs, just for fun!
+          inputs:
+            - name: the-output-2
+            - name: the-output-3
+          run:
+            path: /bin/sh
+            args:
+              - -cx
+              - |
+                ls -lah ./
+                cat ./the-output-2/file
+                cat ./the-output-3/file
+    }}
+
+    Set and run this pipeline to see the results yourself. Save the pipeline in a
+    file called \code{multiple-artifacts.yml}.
+
+    \codeblock{bash}{{
+    fly -t tutorial set-pipeline -p multiple-artifacts -c multiple-artifacts.yml
+    fly -t tutorial unpause-pipeline -p multiple-artifacts
+    fly -t tutorial trigger-job --job multiple-artifacts/multiple-outputs --watch
+    }}
+  }
+
+  \section{
+    \title{#6 - Get Steps Generate Artifacts}
+
+    The majority of Concourse pipelines have at least one
+    \reference{resources}{resource}, which means they have at least one \reference{get-step}{get step}.
+    Using a \reference{get-step}{get step} in a job makes an artifact with the name of the get step
+    available for later steps in the job plan to consume as inputs.
+
+    \titled-codeblock{get-artifact.yml}{yaml}{{
+    resources:
+    - name: concourse-examples
+      type: git
+      source: {uri: "https://github.com/concourse/examples"}
+
+    jobs:
+    - name: get-job
+      plan:
+      # there will be an artifact named
+      # "concourse-examples" available in the job plan
+      - get: concourse-examples
+      - task: take-one-output
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source: {repository: busybox}
+          inputs:
+            - name: concourse-examples
+          run:
+            path: /bin/sh
+            args:
+              - -cx
+              - |
+                ls -lah ./
+                cat ./concourse-examples/README.md
+    }}
+
+    Set and run this pipeline to see the results yourself. Save the pipeline in a
+    file called \code{get-artifact.yml}.
+
+    \codeblock{bash}{{
+    fly -t tutorial set-pipeline -p get-artifact -c get-artifact.yml
+    fly -t tutorial unpause-pipeline -p get-artifact
+    fly -t tutorial trigger-job --job get-artifact/get-job --watch
+    }}
+  }
+}
