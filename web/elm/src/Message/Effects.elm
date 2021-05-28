@@ -942,6 +942,12 @@ toHtmlID domId =
         PreviousPageButton ->
             "previous-page"
 
+        InputsTo ->
+            "view-all-inputs"
+
+        OutputsOf ->
+            "view-all-outputs"
+
         _ ->
             ""
 

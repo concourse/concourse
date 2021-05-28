@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="16px" height="16px" viewBox="0 0 16 16" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 51.2 (57519) - http://www.bohemiancoding.com/sketch -->
+    <title>ic_arrow_upward</title>
+    <desc>Created with Sketch.</desc>
+    <defs></defs>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="Job_page_mobile_update-Copy-5" transform="translate(-33.000000, -335.000000)" fill="#FFFFFF" fill-rule="nonzero">
+            <g id="ic_arrow_upward" transform="translate(41.000000, 343.000000) rotate(-180.000000) translate(-41.000000, -343.000000) translate(33.000000, 335.000000)">
+                <polygon id="Shape" points="16 8 14.59 6.59 9 12.17 9 0 7 0 7 12.17 1.42 6.58 0 8 8 16"></polygon>
+            </g>
+        </g>
+    </g>
+</svg>

@@ -144,6 +144,9 @@ getUpdateMessage model =
         PipelineModel mdl ->
             Pipeline.getUpdateMessage mdl
 
+        CausalityModel mdl ->
+            Causality.getUpdateMessage mdl
+
         _ ->
             UpdateMsg.AOK
 

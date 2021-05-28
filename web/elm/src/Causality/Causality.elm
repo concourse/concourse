@@ -2,6 +2,7 @@ module Causality.Causality exposing
     ( Model
     , changeToVersionedResource
     , documentTitle
+    , getUpdateMessage
     , handleCallback
     , handleDelivery
     , init
@@ -26,11 +27,10 @@ import Html exposing (Html)
 import Html.Attributes
     exposing
         ( class
-        , href
         , id
-        , src
         , style
         )
+import Http
 import IntDict
 import Login.Login as Login
 import Message.Callback exposing (Callback(..))
@@ -43,10 +43,11 @@ import Message.Subscription
         , Subscription(..)
         )
 import Routes
-import SideBar.SideBar as SideBar exposing (byPipelineId, lookupPipeline)
+import SideBar.SideBar as SideBar
 import Svg
 import Svg.Attributes as SvgAttributes
 import Tooltip
+import UpdateMsg exposing (UpdateMsg)
 import Views.Styles
 import Views.TopBar as TopBar
 
@@ -61,6 +62,7 @@ type alias Model =
         , renderedBuilds : Maybe (List Concourse.Build)
         , renderedResources : Maybe (List Concourse.Resource)
         , renderedResourceVersions : Maybe (List Concourse.VersionedResource)
+        , pageStatus : Result () ()
         }
 
 
@@ -95,8 +97,11 @@ init flags =
       , renderedBuilds = Nothing
       , renderedResources = Nothing
       , renderedResourceVersions = Nothing
+      , pageStatus = Ok ()
       }
-    , [ fetchCausality ]
+    , [ FetchAllPipelines
+      , fetchCausality
+      ]
     )
 
 
@@ -122,6 +127,21 @@ tooltip _ _ =
 handleCallback : Callback -> ET Model
 handleCallback callback ( model, effects ) =
     case callback of
+        CausalityFetched (Err err) ->
+            case err of
+                Http.BadStatus { status } ->
+                    if status.code == 401 then
+                        ( model, effects ++ [ RedirectToLogin ] )
+
+                    else if status.code == 404 then
+                        ( { model | pageStatus = Err () }, effects )
+
+                    else
+                        ( model, effects )
+
+                _ ->
+                    ( model, effects )
+
         CausalityFetched (Ok ( direction, crv )) ->
             let
                 graph =
@@ -158,6 +178,16 @@ update msg ( model, effects ) =
             ( model, effects )
 
 
+getUpdateMessage : Model -> UpdateMsg
+getUpdateMessage model =
+    case model.pageStatus of
+        Err () ->
+            UpdateMsg.NotFound
+
+        Ok () ->
+            UpdateMsg.AOK
+
+
 view : Session -> Model -> Html Message
 view session model =
     let
@@ -165,6 +195,7 @@ view session model =
             Routes.Causality
                 { id = model.versionId
                 , direction = model.direction
+                , version = Maybe.map .version model.fetchedCausality
                 }
     in
     Html.div
@@ -256,7 +287,7 @@ constructResourceVersion parentId dir rv graph =
                     }
 
         versionStr =
-            String.join "," <| List.map (\( k, v ) -> k ++ ":" ++ v) <| Dict.toList rv.version
+            String.join "," <| Concourse.versionQuery rv.version
 
         updateNode : Maybe (NodeContext NodeMetadata ()) -> Maybe (NodeContext NodeMetadata ())
         updateNode nodeContext =

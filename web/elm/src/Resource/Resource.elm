@@ -24,7 +24,6 @@ import Build.Output.Models exposing (OutputModel)
 import Build.Output.Output
 import Build.StepTree.Models as STModels
 import Build.StepTree.StepTree as StepTree
-import Causality.Causality as Causality
 import Concourse
 import Concourse.BuildStatus
 import Concourse.Pagination
@@ -1143,6 +1142,22 @@ tooltip model session =
                 , containerAttrs = Nothing
                 }
 
+        HoverState.Tooltip InputsTo _ ->
+            Just
+                { body = Html.text "view all downstream builds and resources"
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
+
+        HoverState.Tooltip OutputsOf _ ->
+            Just
+                { body = Html.text "view all upstream builds and resources"
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
+
         _ ->
             model.output
                 |> Maybe.andThen .steps
@@ -1811,25 +1826,8 @@ viewVersionBody { inputTo, outputOf, versionId, metadata } =
         [ style "display" "flex"
         , style "padding" "5px 10px"
         ]
-        [ Html.div [ class "vri" ] <|
-            List.concat
-                [ [ Html.div
-                        [ style "line-height" "25px" ]
-                        [ Html.text "inputs to"
-                        , viewCausalityButton Concourse.Downstream versionId
-                        ]
-                  ]
-                , viewBuilds <| listToMap inputTo
-                ]
-        , Html.div [ class "vri" ] <|
-            List.concat
-                [ [ Html.div [ style "line-height" "25px" ]
-                        [ Html.text "outputs of"
-                        , viewCausalityButton Concourse.Upstream versionId
-                        ]
-                  ]
-                , viewBuilds <| listToMap outputOf
-                ]
+        [ viewInputsOrOutputs Concourse.Downstream versionId inputTo
+        , viewInputsOrOutputs Concourse.Upstream versionId outputOf
         , Html.div [ class "vri metadata-container" ]
             [ Html.div [ class "list-collapsable-title" ] [ Html.text "metadata" ]
             , viewMetadata metadata
@@ -1957,6 +1955,18 @@ viewVersion attrs version =
         |> DictView.view attrs
 
 
+viewInputsOrOutputs : Concourse.CausalityDirection -> Concourse.VersionedResourceIdentifier -> List Concourse.Build -> Html Message
+viewInputsOrOutputs direction versionId builds =
+    Html.div [ class "vri" ] <|
+        List.concat
+            [ [ Html.div
+                    [ style "line-height" "25px" ]
+                    [ viewCausalityButton direction versionId ]
+              ]
+            , viewBuilds <| listToMap builds
+            ]
+
+
 viewCausalityButton : Concourse.CausalityDirection -> Concourse.VersionedResourceIdentifier -> Html Message
 viewCausalityButton dir versionId =
     let
@@ -1964,22 +1974,38 @@ viewCausalityButton dir versionId =
             Routes.Causality
                 { id = versionId
                 , direction = dir
+                , version = Nothing
                 }
-    in
-    case dir of
-        Concourse.Downstream ->
-            Html.a
-                [ StrictEvents.onLeftClick <| GoToRoute link
-                , href (Routes.toString link)
-                ]
-                [ Html.text "downstream" ]
 
-        Concourse.Upstream ->
-            Html.a
-                [ StrictEvents.onLeftClick <| GoToRoute link
-                , href (Routes.toString link)
-                ]
-                [ Html.text "upstream" ]
+        ( domID, text ) =
+            case dir of
+                Concourse.Downstream ->
+                    ( InputsTo, "inputs to" )
+
+                Concourse.Upstream ->
+                    ( OutputsOf, "outputs of" )
+
+        eventHandlers =
+            [ onMouseOver <| Hover <| Just domID
+            , onMouseOut <| Hover Nothing
+            , onClick <| GoToRoute link
+            ]
+    in
+    Html.div
+        [ style "line-height" "25px"
+        , style "display" "flex"
+        , style "justify-content" "space-between"
+        ]
+        [ Html.text text
+        , Html.a
+            ([ href (Routes.toString link)
+             , id (toHtmlID <| domID)
+             ]
+                ++ eventHandlers
+                ++ Resource.Styles.causalityButton
+            )
+            [ Html.text "view all" ]
+        ]
 
 
 viewMetadata : Concourse.Metadata -> Html Message

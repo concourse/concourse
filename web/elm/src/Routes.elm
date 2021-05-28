@@ -54,7 +54,8 @@ type Route
     | Pipeline { id : Concourse.PipelineIdentifier, groups : List String }
     | Dashboard { searchType : SearchType, dashboardView : DashboardView }
     | FlySuccess Bool (Maybe Int)
-    | Causality { id : Concourse.VersionedResourceIdentifier, direction : Concourse.CausalityDirection }
+      -- the version field is really only used as a hack to populate the breadcrumbs, it's not actually used by anyhting else
+    | Causality { id : Concourse.VersionedResourceIdentifier, direction : Concourse.CausalityDirection, version : Maybe Concourse.Version }
 
 
 type SearchType
@@ -314,6 +315,7 @@ causality =
                         , versionID = versionId
                         }
                     , direction = direction
+                    , version = Nothing
                     }
 
         baseRoute dir =
@@ -369,17 +371,17 @@ jobRoute j =
         }
 
 
-resourceRoute : Concourse.Resource -> Route
-resourceRoute r =
+resourceRoute : Concourse.ResourceIdentifier -> Maybe Concourse.Version -> Route
+resourceRoute r v =
     Resource
         { id =
             { teamName = r.teamName
             , pipelineName = r.pipelineName
             , pipelineInstanceVars = r.pipelineInstanceVars
-            , resourceName = r.name
+            , resourceName = r.resourceName
             }
         , page = Nothing
-        , version = Nothing
+        , version = v
         }
 
 

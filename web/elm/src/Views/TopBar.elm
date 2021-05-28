@@ -8,6 +8,7 @@ import Assets
 import ColorValues
 import Concourse exposing (hyphenNotation)
 import Dashboard.FilterBuilder exposing (instanceGroupFilter)
+import Dict
 import Html exposing (Html)
 import Html.Attributes
     exposing
@@ -62,7 +63,7 @@ breadcrumbs session route =
                     Just pipeline ->
                         pipelineBreadcrumbs session pipeline
                             ++ [ breadcrumbSeparator
-                               , resourceBreadcrumb id.resourceName
+                               , resourceBreadcrumb id
                                ]
 
             Routes.Job { id } ->
@@ -78,6 +79,19 @@ breadcrumbs session route =
 
             Routes.Dashboard _ ->
                 [ clusterNameBreadcrumb session ]
+
+            Routes.Causality { id, direction, version } ->
+                case lookupPipeline (byPipelineId id) session of
+                    Nothing ->
+                        []
+
+                    Just pipeline ->
+                        pipelineBreadcrumbs session pipeline
+                            ++ [ breadcrumbSeparator
+                               , resourceBreadcrumb <| Concourse.resourceId id
+                               , breadcrumbSeparator
+                               , causalityBreadCrumb id direction <| Maybe.withDefault Dict.empty version
+                               ]
 
             _ ->
                 []
@@ -194,17 +208,56 @@ jobBreadcrumb jobName =
         )
 
 
-resourceBreadcrumb : String -> Html Message
-resourceBreadcrumb resourceName =
-    Html.li
-        (id "breadcrumb-resource" :: Styles.breadcrumbItem False)
+resourceBreadcrumb : Concourse.ResourceIdentifier -> Html Message
+resourceBreadcrumb resource =
+    Html.a
+        ([ id "breadcrumb-resource"
+         , href <|
+            Routes.toString <|
+                Routes.resourceRoute resource Nothing
+         ]
+            ++ Styles.breadcrumbItem True
+        )
         (breadcrumbComponent
             { icon =
                 { component = Assets.ResourceComponent
                 , widthPx = 32
                 , heightPx = 17
                 }
-            , name = resourceName
+            , name = resource.resourceName
+            }
+        )
+
+
+causalityBreadCrumb : Concourse.VersionedResourceIdentifier -> Concourse.CausalityDirection -> Concourse.Version -> Html Message
+causalityBreadCrumb rv direction version =
+    let
+        component =
+            case direction of
+                Concourse.Downstream ->
+                    Assets.DownstreamCausalityComponent
+
+                Concourse.Upstream ->
+                    Assets.UpstreamCausalityComponent
+
+        name =
+            String.join "," <| Concourse.versionQuery version
+    in
+    Html.a
+        ([ id "breadcrumb-causality"
+         , href <|
+            Routes.toString <|
+                Routes.resourceRoute (Concourse.resourceId rv) (Just version)
+         ]
+            ++ Styles.breadcrumbItem True
+        )
+        (breadcrumbComponent
+            { icon =
+                { component = component
+                , widthPx = 32
+                , heightPx = 17
+                }
+            , name = name
             }
         )
 

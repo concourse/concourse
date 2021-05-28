@@ -1,18 +1,24 @@
 @import (reference) "_vars.less";
 
-svg.causality-graph {
-  .node rect { fill: @grey100; }
-  .node text { fill: #fff; }
+svg {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
 
+svg.causality-graph {
+  .node text { fill: #fff; }
+  .node.job rect {
+    fill: @grey100;
+  }
+  .node.resource ellipse {
+    fill: @grey100;
+  }
 
   .edgePath { stroke: @grey-secondary }
 }
 
 svg.pipeline-graph {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-
   h1 {
     margin: 5px;
     width: 100%;
