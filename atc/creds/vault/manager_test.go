@@ -93,7 +93,7 @@ var _ = Describe("VaultManager", func() {
 
 			serverName := "vault"
 
-			serverCSR, err := pkix.CreateCertificateSigningRequest(serverKey, "", []net.IP{net.ParseIP("127.0.0.1")}, []string{serverName}, "", "", "", "", "")
+			serverCSR, err := pkix.CreateCertificateSigningRequest(serverKey, "", []net.IP{net.ParseIP("127.0.0.1")}, []string{serverName}, nil, "", "", "", "", "")
 			Expect(err).ToNot(HaveOccurred())
 
 			serverCert, err := pkix.CreateCertificateHost(ca, key, serverCSR, time.Now().Add(time.Hour))
@@ -105,7 +105,7 @@ var _ = Describe("VaultManager", func() {
 			clientKeyBytes, err := clientKey.ExportPrivate()
 			Expect(err).ToNot(HaveOccurred())
 
-			clientCSR, err := pkix.CreateCertificateSigningRequest(clientKey, "", nil, nil, "", "", "", "", "concourse")
+			clientCSR, err := pkix.CreateCertificateSigningRequest(clientKey, "", nil, nil, nil, "", "", "", "", "concourse")
 			Expect(err).ToNot(HaveOccurred())
 
 			clientCert, err := pkix.CreateCertificateHost(ca, key, clientCSR, time.Now().Add(time.Hour))
@@ -137,8 +137,8 @@ var _ = Describe("VaultManager", func() {
 			fakeVault.StartTLS()
 
 			config = map[string]interface{}{
-				"url":                  fakeVault.URL,
-				"path_prefix":          "/path-prefix",
+				"url":         fakeVault.URL,
+				"path_prefix": "/path-prefix",
 				"lookup_templates": []string{
 					"/what/{{.Team}}/blah/{{.Pipeline}}/{{.Secret}}",
 					"/thing/{{.Team}}/{{.Secret}}",
