@@ -1,8 +1,22 @@
 package spec
 
-import "github.com/opencontainers/runtime-spec/specs-go"
+import (
+	"os"
+
+	"github.com/opencontainers/runtime-spec/specs-go"
+)
 
 var (
+	worldReadWrite = os.FileMode(0666)
+
+	fuseDevice = specs.LinuxDevice{
+		Path:     "/dev/fuse",
+		Type:     "c",
+		Major:    10,
+		Minor:    229,
+		FileMode: &worldReadWrite,
+	}
+
 	// runc adds a list of devices by default.
 	// The rule below gets appended to that list.
 	// The rules along with some context can be found here:
@@ -12,10 +26,18 @@ var (
 	// Linux docs about how cgroup device rules work:
 	// https://github.com/torvalds/linux/blob/master/Documentation/admin-guide/cgroup-v1/devices.rst
 	AnyContainerDevices = []specs.LinuxDeviceCgroup{
-		// This allows use of the FUSE filesystem. We are following Guardian in this case, and aren't sure of the
-		// exact use cases.
-		{Access: "rwm", Type: "c", Major: intRef(10), Minor: intRef(229), Allow: true}, 	// /dev/fuse
+		// This allows use of the FUSE filesystem
+		{Access: "rwm", Type: fuseDevice.Type, Major: intRef(fuseDevice.Major), Minor: intRef(fuseDevice.Minor), Allow: true}, // /dev/fuse
 	}
 )
 
-func intRef(i int64) *int64  { return &i }
+func intRef(i int64) *int64 { return &i }
+
+func Devices(privileged bool) []specs.LinuxDevice {
+	if !privileged {
+		return nil
+	}
+	return []specs.LinuxDevice{
+		fuseDevice,
+	}
+}
