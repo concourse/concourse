@@ -19,14 +19,16 @@ func (planner Planner) Create(
 	planConfig atc.StepConfig,
 	resources db.SchedulerResources,
 	resourceTypes atc.ResourceTypes,
+	varSourceConfigs atc.VarSourceConfigs,
 	inputs []db.BuildInput,
 ) (atc.Plan, error) {
 	visitor := &planVisitor{
 		planFactory: planner.planFactory,
 
-		resources:     resources,
-		resourceTypes: resourceTypes,
-		inputs:        inputs,
+		resources:        resources,
+		resourceTypes:    resourceTypes,
+		varSourceConfigs: varSourceConfigs,
+		inputs:           inputs,
 	}
 
 	err := planConfig.Visit(visitor)
@@ -40,9 +42,10 @@ func (planner Planner) Create(
 type planVisitor struct {
 	planFactory atc.PlanFactory
 
-	resources     db.SchedulerResources
-	resourceTypes atc.ResourceTypes
-	inputs        []db.BuildInput
+	resources        db.SchedulerResources
+	resourceTypes    atc.ResourceTypes
+	varSourceConfigs atc.VarSourceConfigs
+	inputs           []db.BuildInput
 
 	plan atc.Plan
 }
@@ -65,6 +68,28 @@ func (visitor *planVisitor) VisitTask(step *atc.TaskStep) error {
 		ResourceTypes: visitor.resourceTypes,
 	})
 
+	return nil
+}
+
+func (visitor *planVisitor) VisitGetVar(step *atc.GetVarStep) error {
+	varSourceConfig, found := visitor.varSourceConfigs.Lookup(step.Source)
+	if !found {
+		return atc.UnknownVarSourceError{VarSource: step.Source}
+	}
+
+	plan := visitor.planFactory.NewPlan(atc.GetVarPlan{
+		Name:   step.Source,
+		Path:   step.Name,
+		Type:   varSourceConfig.Type,
+		Source: varSourceConfig.Config.(atc.Source), // TODO: no
+	})
+	var err error
+	plan.GetVar.VarPlans, err = visitor.varSourceConfigs.Without(step.Source).GetVarPlan(plan.ID, varSourceConfig.Config)
+	if err != nil {
+		return err
+	}
+
+	visitor.plan = plan
 	return nil
 }
 

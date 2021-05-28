@@ -35,7 +35,17 @@ var _ = Describe("ValidateConfig", func() {
 				},
 			},
 
-			VarSources: atc.VarSourceConfigs{},
+			VarSources: atc.VarSourceConfigs{
+				{
+					Name: "some-var-source",
+					Type: "dummy",
+					Config: map[string]interface{}{
+						"vars": map[string]interface{}{
+							"some": "config",
+						},
+					},
+				},
+			},
 
 			Resources: atc.ResourceConfigs{
 				{
@@ -76,6 +86,12 @@ var _ = Describe("ValidateConfig", func() {
 							Config: &atc.LoadVarStep{
 								Name: "some_var",
 								File: "some-input/some-file.json",
+							},
+						},
+						{
+							Config: &atc.GetVarStep{
+								Name:   "some-get-var",
+								Source: "some-var-source",
 							},
 						},
 						{
@@ -1807,6 +1823,24 @@ var _ = Describe("ValidateConfig", func() {
 				It("returns an error", func() {
 					Expect(errorMessages).To(HaveLen(1))
 					Expect(errorMessages[0]).To(ContainSubstring(`jobs.some-other-job.plan.do[0]: unknown fields ["bogus"]`))
+				})
+			})
+
+			Context("when get_var points to an invalid var source", func() {
+				BeforeEach(func() {
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.GetVarStep{
+							Name:   "a-var",
+							Source: "invalid-var-source",
+						},
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("returns an error", func() {
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].get_var(a-var): unknown var source 'invalid-var-source'"))
 				})
 			})
 

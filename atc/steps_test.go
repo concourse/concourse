@@ -202,6 +202,19 @@ var factoryTests = []StepTest{
 		},
 	},
 	{
+		Title: "get_var step",
+
+		ConfigYAML: `
+			get_var: some-var
+			source: some-var-source
+		`,
+
+		StepConfig: &atc.GetVarStep{
+			Name:   "some-var",
+			Source: "some-var-source",
+		},
+	},
+	{
 		Title: "try step",
 
 		ConfigYAML: `

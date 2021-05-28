@@ -103,6 +103,54 @@ func (c VarSourceConfigs) Without(name string) VarSourceConfigs {
 	return newVarSources
 }
 
+// UnknownVarSourceError is returned when a 'get-var' step refers to a var
+// source that is not included in the list of VarSourceConfigs provided to the
+// Planner
+type UnknownVarSourceError struct {
+	VarSource string
+}
+
+func (err UnknownVarSourceError) Error() string {
+	return fmt.Sprintf("unknown var source: %s", err.VarSource)
+}
+
+func (c VarSourceConfigs) GetVarPlan(parentPlanID PlanID, parentConfig interface{}) ([]Plan, error) {
+	varRefs, err := vars.ExtractVars(parentConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	var getVarPlans []Plan
+	for i, varRef := range varRefs {
+		planID := PlanID(fmt.Sprintf("%s/var-%d", parentPlanID, i+1))
+
+		varSourceConfig, found := c.Lookup(varRef.Source)
+		if !found {
+			return nil, UnknownVarSourceError{varRef.Source}
+		}
+		subGetVarPlans, err := c.Without(varRef.Source).GetVarPlan(planID, varSourceConfig.Config)
+		if err != nil {
+			return nil, err
+		}
+
+		plan := Plan{
+			ID: planID,
+			GetVar: &GetVarPlan{
+				Name:     varRef.Source,
+				Path:     varRef.Path,
+				Type:     varSourceConfig.Type,
+				Fields:   varRef.Fields,
+				Source:   varSourceConfig.Config.(Source), // TODO: no
+				VarPlans: subGetVarPlans,
+			},
+		}
+
+		getVarPlans = append(getVarPlans, plan)
+	}
+
+	return getVarPlans, nil
+}
+
 type pendingVarSource struct {
 	vs   VarSourceConfig
 	deps []string

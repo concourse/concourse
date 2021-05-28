@@ -1055,6 +1055,50 @@ var _ = Describe("JobFactory", func() {
 				})
 			})
 		})
+
+		Describe("schedule jobs var source configs", func() {
+			Context("when the pipeline for the job needed to be scheduled contains var source configs", func() {
+				BeforeEach(func() {
+					pipeline1, _, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "fake-pipeline"}, atc.Config{
+						Jobs: atc.JobConfigs{
+							{Name: "job-name"},
+						},
+						VarSources: atc.VarSourceConfigs{
+							{
+								Name:   "var-source",
+								Type:   "source-type",
+								Config: "some-config",
+							},
+						},
+					}, db.ConfigVersion(1), false)
+					Expect(err).ToNot(HaveOccurred())
+
+					var found bool
+					job1, found, err = pipeline1.Job("job-name")
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					err = job1.RequestSchedule()
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("fetches that job and var sources", func() {
+					jobs, err := jobFactory.JobsToSchedule()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(len(jobs)).To(Equal(1))
+					Expect(jobs[0].Name()).To(Equal(job1.Name()))
+					Expect(jobs[0].VarSourceConfigs).To(ConsistOf(
+						atc.VarSourceConfigs{
+							{
+								Name:   "var-source",
+								Type:   "source-type",
+								Config: "some-config",
+							},
+						},
+					))
+				})
+			})
+		})
 	})
 })
 

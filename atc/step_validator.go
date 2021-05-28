@@ -229,6 +229,29 @@ func (validator *StepValidator) VisitLoadVar(step *LoadVarStep) error {
 	return nil
 }
 
+func (validator *StepValidator) VisitGetVar(step *GetVarStep) error {
+	validator.pushContext(".get_var(%s)", step.Name)
+	defer validator.popContext()
+
+	warning, err := ValidateIdentifier(step.Name, validator.context...)
+	if err != nil {
+		validator.recordError(err.Error())
+	}
+	if warning != nil {
+		validator.recordWarning(*warning)
+	}
+
+	// XXX: Add this when we save get var into local vars during explicit get-var steps
+	// validator.declareLocalVar(step.Name)
+
+	_, found := validator.config.VarSources.Lookup(step.Source)
+	if !found {
+		validator.recordError("unknown var source '%s'", step.Source)
+	}
+
+	return nil
+}
+
 func (validator *StepValidator) VisitTry(step *TryStep) error {
 	validator.pushContext(".try")
 	defer validator.popContext()

@@ -24,3 +24,4 @@ func evaluate(variablesResolver vars.Variables, in, out interface{}) error {
 
 	return yaml.Unmarshal(bytes, out)
 }
+

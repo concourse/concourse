@@ -28,8 +28,9 @@ type PlannerTest struct {
 	Config atc.StepConfig
 	Inputs []db.BuildInput
 
-	CompareIDs             bool
-	OverwriteResourceTypes atc.ResourceTypes
+	CompareIDs                bool
+	OverwriteResourceTypes    atc.ResourceTypes
+	OverwriteVarSourceConfigs atc.VarSourceConfigs
 
 	PlanJSON string
 	Err      error
@@ -65,6 +66,8 @@ var defaultResourceTypes = atc.ResourceTypes{
 var baseResourceTypeDefaults = map[string]atc.Source{
 	"some-base-resource-type": {"default-key": "default-value"},
 }
+
+var defaultVarSourceConfigs = atc.VarSourceConfigs{}
 
 var factoryTests = []PlannerTest{
 	{
@@ -1351,6 +1354,147 @@ var factoryTests = []PlannerTest{
 			}
 		}`,
 	},
+	{
+		Title: "simple get_var step",
+
+		CompareIDs: true,
+		OverwriteVarSourceConfigs: atc.VarSourceConfigs{
+			atc.VarSourceConfig{
+				Name: "some-fake-source",
+				Type: "fake-vault",
+				Config: atc.Source{
+					"foo": "fake-var",
+				},
+			},
+		},
+
+		Config: &atc.GetVarStep{
+			Name:   "some-get-var",
+			Source: "some-fake-source",
+		},
+
+		PlanJSON: `{
+			"id": "1",
+			"get_var": {
+				"name": "some-fake-source",
+				"path": "some-get-var",
+				"type": "fake-vault",
+				"source": {
+					"foo": "fake-var"
+				}
+			}
+		}`,
+	},
+	{
+		Title: "nested get_var step",
+
+		CompareIDs: true,
+		OverwriteVarSourceConfigs: atc.VarSourceConfigs{
+			atc.VarSourceConfig{
+				Name: "some-nested-fake-source",
+				Type: "fake-vault",
+				Config: atc.Source{
+					"foo": "fake-nested-var",
+				},
+			},
+			atc.VarSourceConfig{
+				Name: "some-fake-source",
+				Type: "fake-vault",
+				Config: atc.Source{
+					"((some-nested-fake-source:foo))": "((some-nested-fake-source:bar.field1))",
+				},
+			},
+		},
+
+		Config: &atc.GetVarStep{
+			Name:   "some-get-var",
+			Source: "some-fake-source",
+		},
+
+		PlanJSON: `{
+			"id": "1",
+			"get_var": {
+				"name": "some-fake-source",
+				"path": "some-get-var",
+				"type": "fake-vault",
+				"var_plans": [
+					{
+						"id": "1/var-1",
+						"get_var": {
+							"name": "some-nested-fake-source",
+							"path": "foo",
+							"type": "fake-vault",
+							"source": {
+								"foo": "fake-nested-var"
+							}
+						}
+					},
+					{
+						"id": "1/var-2",
+						"get_var": {
+							"name": "some-nested-fake-source",
+							"path": "bar",
+							"fields": ["field1"],
+							"type": "fake-vault",
+							"source": {
+								"foo": "fake-nested-var"
+							}
+						}
+					}
+				],
+				"source": {
+					"((some-nested-fake-source:foo))": "((some-nested-fake-source:bar.field1))"
+				}
+			}
+		}`,
+	},
+	{
+		Title: "get_var step var source does not exist",
+
+		OverwriteVarSourceConfigs: atc.VarSourceConfigs{
+			atc.VarSourceConfig{
+				Name: "some-fake-source",
+				Type: "fake-vault",
+				Config: atc.Source{
+					"foo": "fake-var",
+				},
+			},
+		},
+
+		Config: &atc.GetVarStep{
+			Name:   "some-get-var",
+			Source: "some-unknown-source",
+		},
+
+		Err: atc.UnknownVarSourceError{VarSource: "some-unknown-source"},
+	},
+	{
+		Title: "get_var step var source dependency loop",
+
+		OverwriteVarSourceConfigs: atc.VarSourceConfigs{
+			atc.VarSourceConfig{
+				Name: "some-var-source-1",
+				Type: "fake-vault",
+				Config: atc.Source{
+					"foo": "((some-var-source-2:foo))",
+				},
+			},
+			atc.VarSourceConfig{
+				Name: "some-var-source-2",
+				Type: "fake-vault",
+				Config: atc.Source{
+					"foo": "((some-var-source-1:foo))",
+				},
+			},
+		},
+
+		Config: &atc.GetVarStep{
+			Name:   "some-get-var",
+			Source: "some-var-source-1",
+		},
+
+		Err: atc.UnknownVarSourceError{VarSource: "some-var-source-1"},
+	},
 }
 
 func (test PlannerTest) Run(s *PlannerSuite) {
@@ -1360,7 +1504,13 @@ func (test PlannerTest) Run(s *PlannerSuite) {
 	if test.OverwriteResourceTypes != nil {
 		resourceTypes = test.OverwriteResourceTypes
 	}
-	actualPlan, actualErr := factory.Create(test.Config, resources, resourceTypes, test.Inputs)
+
+	varSourceConfigs := defaultVarSourceConfigs
+	if test.OverwriteVarSourceConfigs != nil {
+		varSourceConfigs = test.OverwriteVarSourceConfigs
+	}
+
+	actualPlan, actualErr := factory.Create(test.Config, resources, resourceTypes, varSourceConfigs, test.Inputs)
 
 	if test.Err != nil {
 		s.Equal(test.Err, actualErr)

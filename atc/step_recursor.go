@@ -22,6 +22,9 @@ type StepRecursor struct {
 
 	// OnLoadVar will be invoked for any *LoadVarStep present in the StepConfig.
 	OnLoadVar func(*LoadVarStep) error
+
+	// OnGetVar will be invoked for any *GetVarStep present in the StepConfig.
+	OnGetVar func(*GetVarStep) error
 }
 
 // VisitTask calls the OnTask hook if configured.
@@ -64,6 +67,15 @@ func (recursor StepRecursor) VisitSetPipeline(step *SetPipelineStep) error {
 func (recursor StepRecursor) VisitLoadVar(step *LoadVarStep) error {
 	if recursor.OnLoadVar != nil {
 		return recursor.OnLoadVar(step)
+	}
+
+	return nil
+}
+
+// VisitGetVar calls the OnGetVar hook if configured.
+func (recursor StepRecursor) VisitGetVar(step *GetVarStep) error {
+	if recursor.OnGetVar != nil {
+		return recursor.OnGetVar(step)
 	}
 
 	return nil
