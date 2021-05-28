@@ -2,10 +2,10 @@ package db_test
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"code.cloudfoundry.org/clock/fakeclock"
-	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -32,6 +32,11 @@ var _ = Describe("ResourceCheckRateLimiter", func() {
 		refreshInterval = 5 * time.Minute
 		fakeClock = fakeclock.NewFakeClock(time.Now())
 
+		_, err := psql.Delete("resources").
+			RunWith(dbConn).
+			Exec()
+		Expect(err).ToNot(HaveOccurred())
+
 		checkableCount = 0
 
 		ctx = context.Background()
@@ -56,14 +61,15 @@ var _ = Describe("ResourceCheckRateLimiter", func() {
 	}
 
 	createCheckable := func() {
-		config, err := resourceConfigFactory.FindOrCreateResourceConfig(
-			defaultWorkerResourceType.Type,
-			atc.Source{"some": "source", "count": checkableCount},
-			atc.VersionedResourceTypes{},
-		)
+		es := dbConn.EncryptionStrategy()
+		encryptedPayload, nonce, err := es.Encrypt([]byte("{}"))
 		Expect(err).ToNot(HaveOccurred())
 
-		_, err = config.FindOrCreateScope(nil)
+		_, err = psql.Insert("resources").
+			Columns("name", "pipeline_id", "config", "active", "nonce", "type").
+			Values(fmt.Sprintf("resource-%d", checkableCount), defaultPipeline.ID(), encryptedPayload, true, nonce, defaultWorkerResourceType.Type).
+			RunWith(dbConn).
+			Exec()
 		Expect(err).ToNot(HaveOccurred())
 
 		checkableCount++
