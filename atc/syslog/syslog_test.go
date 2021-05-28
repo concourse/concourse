@@ -37,7 +37,7 @@ var _ = Describe("Syslog", func() {
 				ca, err := pkix.CreateCertificateAuthority(key, "", time.Now().Add(time.Hour), "Acme Co", "", "", "", "")
 				Expect(err).NotTo(HaveOccurred())
 
-				req, err := pkix.CreateCertificateSigningRequest(key, "", []net.IP{net.IPv4(127, 0, 0, 1)}, nil, "Acme Co", "", "", "", "")
+				req, err := pkix.CreateCertificateSigningRequest(key, "", []net.IP{net.IPv4(127, 0, 0, 1)}, nil, nil, "Acme Co", "", "", "", "")
 				Expect(err).NotTo(HaveOccurred())
 
 				cert, err := pkix.CreateCertificateHost(ca, key, req, time.Now().Add(time.Hour))

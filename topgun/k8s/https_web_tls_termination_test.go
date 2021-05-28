@@ -161,7 +161,7 @@ func generateKeyPairWithCA(namespace, service string) (*pkix.Certificate, *pkix.
 
 	certificateSigningRequest, err := pkix.CreateCertificateSigningRequest(
 		serverKey, "", []net.IP{net.IPv4(127, 0, 0, 1)},
-		[]string{serviceAddress(namespace, service)},
+		[]string{serviceAddress(namespace, service)}, nil,
 		"Pivotal", "", "", "", "127.0.0.1")
 	Expect(err).NotTo(HaveOccurred())
 
