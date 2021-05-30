@@ -9,7 +9,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	"code.cloudfoundry.org/clock/fakeclock"
-	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
@@ -195,19 +194,6 @@ var _ = Describe("CheckDelegate", func() {
 				Expect(runLock).To(Equal(fakeLock))
 			})
 
-			Context("before acquiring the lock", func() {
-				BeforeEach(func() {
-					fakeResourceConfigScope.AcquireResourceCheckingLockStub = func(lager.Logger) (lock.Lock, bool, error) {
-						Expect(fakeRateLimiter.WaitCallCount()).To(Equal(1))
-						return fakeLock, true, nil
-					}
-				})
-
-				It("rate limits", func() {
-					Expect(fakeRateLimiter.WaitCallCount()).To(Equal(1))
-				})
-			})
-
 			Context("when the build is manually triggered", func() {
 				BeforeEach(func() {
 					fakeBuild.IsManuallyTriggeredReturns(true)
@@ -264,6 +250,10 @@ var _ = Describe("CheckDelegate", func() {
 					It("returns true", func() {
 						Expect(run).To(BeTrue())
 					})
+
+					It("does not rate limit", func() {
+						Expect(fakeRateLimiter.WaitCallCount()).To(Equal(0))
+					})
 				})
 			})
 
@@ -318,6 +308,10 @@ var _ = Describe("CheckDelegate", func() {
 					It("returns true", func() {
 						Expect(run).To(BeTrue())
 					})
+
+					It("rate limits", func() {
+						Expect(fakeRateLimiter.WaitCallCount()).To(Equal(1))
+					})
 				})
 			})
 		})
@@ -325,10 +319,6 @@ var _ = Describe("CheckDelegate", func() {
 		Context("when not running for a resource", func() {
 			BeforeEach(func() {
 				plan.Check.Resource = ""
-			})
-
-			It("does not rate limit", func() {
-				Expect(fakeRateLimiter.WaitCallCount()).To(Equal(0))
 			})
 
 			It("does not acquire a lock", func() {
@@ -351,6 +341,10 @@ var _ = Describe("CheckDelegate", func() {
 				It("returns true", func() {
 					Expect(run).To(BeTrue())
 				})
+
+				It("does not rate limit", func() {
+					Expect(fakeRateLimiter.WaitCallCount()).To(Equal(0))
+				})
 			})
 
 			Context("when last check ended before build start time", func() {
@@ -366,6 +360,10 @@ var _ = Describe("CheckDelegate", func() {
 				It("returns true", func() {
 					Expect(run).To(BeTrue())
 				})
+
+				It("does not rate limit", func() {
+					Expect(fakeRateLimiter.WaitCallCount()).To(Equal(0))
+				})
 			})
 
 			Context("when last check succeeds after build starts", func() {
@@ -380,6 +378,10 @@ var _ = Describe("CheckDelegate", func() {
 
 				It("returns false", func() {
 					Expect(run).To(BeFalse())
+				})
+
+				It("does not rate limit", func() {
+					Expect(fakeRateLimiter.WaitCallCount()).To(Equal(0))
 				})
 			})
 		})

@@ -82,17 +82,7 @@ func (d *checkDelegate) FindOrCreateScope(config db.ResourceConfig) (db.Resource
 func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigScope) (lock.Lock, bool, error) {
 	logger := lagerctx.FromContext(ctx)
 
-	// rate limit periodic resource checks so worker load (plus load on external
-	// services) isn't too spiky
-	if !d.build.IsManuallyTriggered() && d.plan.IsPeriodic() {
-		err := d.limiter.Wait(ctx)
-		if err != nil {
-			return nil, false, fmt.Errorf("rate limit: %w", err)
-		}
-	}
-
 	var err error
-
 	var interval time.Duration
 	if d.plan.Interval != "" {
 		interval, err = time.ParseDuration(d.plan.Interval)
@@ -162,6 +152,18 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 		}
 
 		return nil, false, nil
+	} else {
+		// rate limit periodic resource checks so worker load (plus load on external
+		// services) isn't too spiky
+		if !d.build.IsManuallyTriggered() && d.plan.IsPeriodic() {
+			err := d.limiter.Wait(ctx)
+			if err != nil {
+				if releaseErr := lock.Release(); releaseErr != nil {
+					logger.Error("failed-to-release-lock", releaseErr)
+				}
+				return nil, false, fmt.Errorf("rate limit: %w", err)
+			}
+		}
 	}
 
 	return lock, true, nil
