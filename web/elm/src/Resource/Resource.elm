@@ -1142,7 +1142,7 @@ tooltip model session =
                 , containerAttrs = Nothing
                 }
 
-        HoverState.Tooltip InputsTo _ ->
+        HoverState.Tooltip (InputsTo _) _ ->
             Just
                 { body = Html.text "view all downstream builds and resources"
                 , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
@@ -1150,7 +1150,7 @@ tooltip model session =
                 , containerAttrs = Nothing
                 }
 
-        HoverState.Tooltip OutputsOf _ ->
+        HoverState.Tooltip (OutputsOf _) _ ->
             Just
                 { body = Html.text "view all upstream builds and resources"
                 , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
@@ -1980,10 +1980,10 @@ viewCausalityButton dir versionId =
         ( domID, text ) =
             case dir of
                 Concourse.Downstream ->
-                    ( InputsTo, "inputs to" )
+                    ( InputsTo versionId, "inputs to" )
 
                 Concourse.Upstream ->
-                    ( OutputsOf, "outputs of" )
+                    ( OutputsOf versionId, "outputs of" )
 
         eventHandlers =
             [ onMouseOver <| Hover <| Just domID

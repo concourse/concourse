@@ -942,11 +942,11 @@ toHtmlID domId =
         PreviousPageButton ->
             "previous-page"
 
-        InputsTo ->
-            "view-all-inputs"
+        InputsTo id ->
+            "view-all-inputs-" ++ String.fromInt id.versionID
 
-        OutputsOf ->
-            "view-all-outputs"
+        OutputsOf id ->
+            "view-all-outputs" ++ String.fromInt id.versionID
 
         _ ->
             ""

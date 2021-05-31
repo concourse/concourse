@@ -118,8 +118,8 @@ type DomID
     | SideBarInstanceGroupFavoritedIcon Concourse.InstanceGroupIdentifier
     | Dashboard
     | DashboardGroup String
-    | InputsTo
-    | OutputsOf
+    | InputsTo VersionId
+    | OutputsOf VersionId
 
 
 type PipelinesSection

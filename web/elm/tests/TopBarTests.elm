@@ -733,6 +733,14 @@ all =
                     >> Query.index 1
                     >> Query.has
                         [ text "resource" ]
+            , it "resource breadcrumb should have a link to itself" <|
+                Query.find [ id "breadcrumb-resource" ]
+                    >> Query.has
+                        [ tag "a"
+                        , attribute <|
+                            Attr.href
+                                "/teams/team/pipelines/pipeline/resources/resource"
+                        ]
             ]
         , rspecStyleDescribe
             "when on resource page for an instanced pipeline"
@@ -766,6 +774,54 @@ all =
                         >> Query.index 1
                         >> Query.has [ text "v1-v2" ]
                 ]
+            ]
+        , rspecStyleDescribe "rendering top bar on causality page"
+            (Common.init "/teams/team/pipelines/pipeline/resources/resource/causality/1/downstream"
+                |> Application.handleCallback
+                    (Callback.AllPipelinesFetched <|
+                        Ok [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
+                    )
+                |> Tuple.first
+                |> Application.handleCallback
+                    (Callback.CausalityFetched <|
+                        Ok
+                            ( Concourse.Downstream
+                            , Just <|
+                                { resourceId = 1
+                                , versionId = 1
+                                , resourceName = "resource"
+                                , version = Dict.fromList [ ( "ver", "1" ) ]
+                                , builds = []
+                                }
+                            )
+                    )
+                |> Tuple.first
+                |> queryView
+            )
+            [ it "pipeline breadcrumb should have a link to the pipeline page when viewing resource details" <|
+                Query.find [ id "breadcrumb-pipeline" ]
+                    >> Query.has
+                        [ tag "a"
+                        , attribute <|
+                            Attr.href
+                                "/teams/team/pipelines/pipeline"
+                        ]
+            , it "resource breadcrumb should have a link to the resource page when viewing resource details" <|
+                Query.find [ id "breadcrumb-resource" ]
+                    >> Query.has
+                        [ tag "a"
+                        , attribute <|
+                            Attr.href
+                                "/teams/team/pipelines/pipeline/resources/resource"
+                        ]
+            , it "causality breadcrumb should have a link to the resource page with the version filter applied" <|
+                Query.find [ id "breadcrumb-causality" ]
+                    >> Query.has
+                        [ tag "a"
+                        , attribute <|
+                            Attr.href
+                                "/teams/team/pipelines/pipeline/resources/resource?filter=ver%3A1"
+                        ]
             ]
         , rspecStyleDescribe "rendering top bar on job page"
             (Common.init "/teams/team/pipelines/pipeline/jobs/job"
