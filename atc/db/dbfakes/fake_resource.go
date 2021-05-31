@@ -136,6 +136,21 @@ type FakeResource struct {
 	disableVersionReturnsOnCall map[int]struct {
 		result1 error
 	}
+	DownstreamCausalityStub        func(int) (atc.CausalityResourceVersion, bool, error)
+	downstreamCausalityMutex       sync.RWMutex
+	downstreamCausalityArgsForCall []struct {
+		arg1 int
+	}
+	downstreamCausalityReturns struct {
+		result1 atc.CausalityResourceVersion
+		result2 bool
+		result3 error
+	}
+	downstreamCausalityReturnsOnCall map[int]struct {
+		result1 atc.CausalityResourceVersion
+		result2 bool
+		result3 error
+	}
 	EnableVersionStub        func(int) error
 	enableVersionMutex       sync.RWMutex
 	enableVersionArgsForCall []struct {
@@ -446,6 +461,21 @@ type FakeResource struct {
 	updateMetadataReturnsOnCall map[int]struct {
 		result1 bool
 		result2 error
+	}
+	UpstreamCausalityStub        func(int) (atc.CausalityResourceVersion, bool, error)
+	upstreamCausalityMutex       sync.RWMutex
+	upstreamCausalityArgsForCall []struct {
+		arg1 int
+	}
+	upstreamCausalityReturns struct {
+		result1 atc.CausalityResourceVersion
+		result2 bool
+		result3 error
+	}
+	upstreamCausalityReturnsOnCall map[int]struct {
+		result1 atc.CausalityResourceVersion
+		result2 bool
+		result3 error
 	}
 	VersionsStub        func(db.Page, atc.Version) ([]atc.ResourceVersion, db.Pagination, bool, error)
 	versionsMutex       sync.RWMutex
@@ -1106,6 +1136,73 @@ func (fake *FakeResource) DisableVersionReturnsOnCall(i int, result1 error) {
 	fake.disableVersionReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
+}
+
+func (fake *FakeResource) DownstreamCausality(arg1 int) (atc.CausalityResourceVersion, bool, error) {
+	fake.downstreamCausalityMutex.Lock()
+	ret, specificReturn := fake.downstreamCausalityReturnsOnCall[len(fake.downstreamCausalityArgsForCall)]
+	fake.downstreamCausalityArgsForCall = append(fake.downstreamCausalityArgsForCall, struct {
+		arg1 int
+	}{arg1})
+	stub := fake.DownstreamCausalityStub
+	fakeReturns := fake.downstreamCausalityReturns
+	fake.recordInvocation("DownstreamCausality", []interface{}{arg1})
+	fake.downstreamCausalityMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+}
+
+func (fake *FakeResource) DownstreamCausalityCallCount() int {
+	fake.downstreamCausalityMutex.RLock()
+	defer fake.downstreamCausalityMutex.RUnlock()
+	return len(fake.downstreamCausalityArgsForCall)
+}
+
+func (fake *FakeResource) DownstreamCausalityCalls(stub func(int) (atc.CausalityResourceVersion, bool, error)) {
+	fake.downstreamCausalityMutex.Lock()
+	defer fake.downstreamCausalityMutex.Unlock()
+	fake.DownstreamCausalityStub = stub
+}
+
+func (fake *FakeResource) DownstreamCausalityArgsForCall(i int) int {
+	fake.downstreamCausalityMutex.RLock()
+	defer fake.downstreamCausalityMutex.RUnlock()
+	argsForCall := fake.downstreamCausalityArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeResource) DownstreamCausalityReturns(result1 atc.CausalityResourceVersion, result2 bool, result3 error) {
+	fake.downstreamCausalityMutex.Lock()
+	defer fake.downstreamCausalityMutex.Unlock()
+	fake.DownstreamCausalityStub = nil
+	fake.downstreamCausalityReturns = struct {
+		result1 atc.CausalityResourceVersion
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeResource) DownstreamCausalityReturnsOnCall(i int, result1 atc.CausalityResourceVersion, result2 bool, result3 error) {
+	fake.downstreamCausalityMutex.Lock()
+	defer fake.downstreamCausalityMutex.Unlock()
+	fake.DownstreamCausalityStub = nil
+	if fake.downstreamCausalityReturnsOnCall == nil {
+		fake.downstreamCausalityReturnsOnCall = make(map[int]struct {
+			result1 atc.CausalityResourceVersion
+			result2 bool
+			result3 error
+		})
+	}
+	fake.downstreamCausalityReturnsOnCall[i] = struct {
+		result1 atc.CausalityResourceVersion
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakeResource) EnableVersion(arg1 int) error {
@@ -2715,6 +2812,73 @@ func (fake *FakeResource) UpdateMetadataReturnsOnCall(i int, result1 bool, resul
 	}{result1, result2}
 }
 
+func (fake *FakeResource) UpstreamCausality(arg1 int) (atc.CausalityResourceVersion, bool, error) {
+	fake.upstreamCausalityMutex.Lock()
+	ret, specificReturn := fake.upstreamCausalityReturnsOnCall[len(fake.upstreamCausalityArgsForCall)]
+	fake.upstreamCausalityArgsForCall = append(fake.upstreamCausalityArgsForCall, struct {
+		arg1 int
+	}{arg1})
+	stub := fake.UpstreamCausalityStub
+	fakeReturns := fake.upstreamCausalityReturns
+	fake.recordInvocation("UpstreamCausality", []interface{}{arg1})
+	fake.upstreamCausalityMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+}
+
+func (fake *FakeResource) UpstreamCausalityCallCount() int {
+	fake.upstreamCausalityMutex.RLock()
+	defer fake.upstreamCausalityMutex.RUnlock()
+	return len(fake.upstreamCausalityArgsForCall)
+}
+
+func (fake *FakeResource) UpstreamCausalityCalls(stub func(int) (atc.CausalityResourceVersion, bool, error)) {
+	fake.upstreamCausalityMutex.Lock()
+	defer fake.upstreamCausalityMutex.Unlock()
+	fake.UpstreamCausalityStub = stub
+}
+
+func (fake *FakeResource) UpstreamCausalityArgsForCall(i int) int {
+	fake.upstreamCausalityMutex.RLock()
+	defer fake.upstreamCausalityMutex.RUnlock()
+	argsForCall := fake.upstreamCausalityArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeResource) UpstreamCausalityReturns(result1 atc.CausalityResourceVersion, result2 bool, result3 error) {
+	fake.upstreamCausalityMutex.Lock()
+	defer fake.upstreamCausalityMutex.Unlock()
+	fake.UpstreamCausalityStub = nil
+	fake.upstreamCausalityReturns = struct {
+		result1 atc.CausalityResourceVersion
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeResource) UpstreamCausalityReturnsOnCall(i int, result1 atc.CausalityResourceVersion, result2 bool, result3 error) {
+	fake.upstreamCausalityMutex.Lock()
+	defer fake.upstreamCausalityMutex.Unlock()
+	fake.UpstreamCausalityStub = nil
+	if fake.upstreamCausalityReturnsOnCall == nil {
+		fake.upstreamCausalityReturnsOnCall = make(map[int]struct {
+			result1 atc.CausalityResourceVersion
+			result2 bool
+			result3 error
+		})
+	}
+	fake.upstreamCausalityReturnsOnCall[i] = struct {
+		result1 atc.CausalityResourceVersion
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeResource) Versions(arg1 db.Page, arg2 atc.Version) ([]atc.ResourceVersion, db.Pagination, bool, error) {
 	fake.versionsMutex.Lock()
 	ret, specificReturn := fake.versionsReturnsOnCall[len(fake.versionsArgsForCall)]
@@ -2864,6 +3028,8 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.currentPinnedVersionMutex.RUnlock()
 	fake.disableVersionMutex.RLock()
 	defer fake.disableVersionMutex.RUnlock()
+	fake.downstreamCausalityMutex.RLock()
+	defer fake.downstreamCausalityMutex.RUnlock()
 	fake.enableVersionMutex.RLock()
 	defer fake.enableVersionMutex.RUnlock()
 	fake.findVersionMutex.RLock()
@@ -2922,6 +3088,8 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.unpinVersionMutex.RUnlock()
 	fake.updateMetadataMutex.RLock()
 	defer fake.updateMetadataMutex.RUnlock()
+	fake.upstreamCausalityMutex.RLock()
+	defer fake.upstreamCausalityMutex.RUnlock()
 	fake.versionsMutex.RLock()
 	defer fake.versionsMutex.RUnlock()
 	fake.webhookTokenMutex.RLock()
