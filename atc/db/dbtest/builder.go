@@ -14,7 +14,10 @@ import (
 )
 
 const BaseResourceType = "global-base-type"
+const BaseResourceTypeVersion = "some-global-type-version"
+
 const UniqueBaseResourceType = "unique-base-type"
+const UniqueBaseResourceTypeVersion = "some-unique-type-version"
 
 type JobInputs []JobInput
 
@@ -130,12 +133,12 @@ func (builder Builder) WithBaseWorker() SetupFunc {
 			{
 				Type:    BaseResourceType,
 				Image:   "/path/to/global/image",
-				Version: "some-global-type-version",
+				Version: BaseResourceTypeVersion,
 			},
 			{
 				Type:                 UniqueBaseResourceType,
 				Image:                "/path/to/unique/image",
-				Version:              "some-unique-type-version",
+				Version:              UniqueBaseResourceTypeVersion,
 				UniqueVersionHistory: true,
 			},
 		},
