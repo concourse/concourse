@@ -1701,6 +1701,7 @@ func (cmd *RunCommand) constructEngine(
 				cmd.varSourcePool,
 				varsCache,
 				cmd.CredentialManagement.CacheConfig,
+				secretManager,
 			),
 			cmd.ExternalURL.String(),
 			rateLimiter,

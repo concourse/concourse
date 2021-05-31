@@ -32,6 +32,7 @@ type coreStepFactory struct {
 	varSourcePool         creds.VarSourcePool
 	varsCache             *gocache.Cache
 	secretCacheConfig     creds.SecretCacheConfig
+	globalSecrets         creds.Secrets
 }
 
 func NewCoreStepFactory(
@@ -50,6 +51,7 @@ func NewCoreStepFactory(
 	varSourcePool creds.VarSourcePool,
 	varsCache *gocache.Cache,
 	secretCacheConfig creds.SecretCacheConfig,
+	globalSecrets creds.Secrets,
 ) CoreStepFactory {
 	return &coreStepFactory{
 		pool:                  pool,
@@ -67,6 +69,7 @@ func NewCoreStepFactory(
 		varSourcePool:         varSourcePool,
 		varsCache:             varsCache,
 		secretCacheConfig:     secretCacheConfig,
+		globalSecrets:         globalSecrets,
 	}
 }
 
@@ -219,6 +222,7 @@ func (factory *coreStepFactory) GetVarStep(
 		factory.varsCache,
 		factory.lockFactory,
 		factory.varSourcePool,
+		factory.globalSecrets,
 	)
 
 	getVarStep = exec.LogError(getVarStep, delegateFactory)

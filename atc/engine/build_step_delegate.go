@@ -327,11 +327,6 @@ func (v *StepVariables) Get(ref vars.Reference) (interface{}, bool, error) {
 		return nil, false, ErrNoMatchingVarSource{ref.Source}
 	}
 
-	source, ok := varSource.Config.(map[string]interface{})
-	if !ok {
-		return nil, false, fmt.Errorf("source %s cannot be parsed", varSource.Config)
-	}
-
 	getVarID := atc.PlanID(fmt.Sprintf("%s/get-var/%s:%s", v.delegate.planID, ref.Source, ref.Path))
 
 	getVarPlan := atc.Plan{
@@ -341,7 +336,7 @@ func (v *StepVariables) Get(ref vars.Reference) (interface{}, bool, error) {
 			Path:   ref.Path,
 			Type:   varSource.Type,
 			Fields: ref.Fields,
-			Source: source,
+			Source: varSource.Config,
 		},
 	}
 
@@ -356,7 +351,7 @@ func (v *StepVariables) Get(ref vars.Reference) (interface{}, bool, error) {
 		return nil, false, fmt.Errorf("save sub get var event: %w", err)
 	}
 
-	ok, err = childState.Run(v.ctx, getVarPlan)
+	ok, err := childState.Run(v.ctx, getVarPlan)
 	if err != nil {
 		return nil, false, fmt.Errorf("run sub get var: %w", err)
 	}

@@ -39,6 +39,7 @@ var _ = Describe("GetVarStep", func() {
 		getVarPlan atc.GetVarPlan
 		state      exec.RunState
 
+		fakeGlobalSecrets      *credsfakes.FakeSecrets
 		fakeVarSourceVariables *varsfakes.FakeVariables
 		fakeVarSourcePool      *credsfakes.FakeVarSourcePool
 		fakeManagerFactory     *credsfakes.FakeManagerFactory
@@ -112,6 +113,7 @@ var _ = Describe("GetVarStep", func() {
 			},
 		}
 
+		fakeGlobalSecrets = new(credsfakes.FakeSecrets)
 		fakeManagerFactory = new(credsfakes.FakeManagerFactory)
 		fakeSecrets = new(credsfakes.FakeSecrets)
 		fakeVarSourcePool.FindOrCreateReturns(fakeSecrets, nil)
@@ -159,6 +161,7 @@ var _ = Describe("GetVarStep", func() {
 					cache,
 					fakeLockFactory,
 					fakeVarSourcePool,
+					fakeGlobalSecrets,
 				)
 
 				stepOk, stepErr = step.Run(ctx, state)
@@ -204,6 +207,80 @@ var _ = Describe("GetVarStep", func() {
 			})
 		})
 
+		Context("when the source of the var is empty", func() {
+			BeforeEach(func() {
+				getVarPlan = atc.GetVarPlan{
+					Path: "some-var",
+					Type: "some-type",
+					Source: atc.Source{
+						"some": "source",
+					},
+				}
+
+				fakeSecrets.NewSecretLookupPathsReturns(nil)
+				state = exec.NewRunState(noopStepper, varSourceConfigs, enableRedaction)
+			})
+
+			JustBeforeEach(func() {
+				step = exec.NewGetVarStep(
+					planID,
+					getVarPlan,
+					stepMetadata,
+					fakeDelegateFactory,
+					secretCacheConfig,
+					cache,
+					fakeLockFactory,
+					fakeVarSourcePool,
+					fakeGlobalSecrets,
+				)
+
+				stepOk, stepErr = step.Run(ctx, state)
+			})
+
+			Context("when the var is stored in the global credential manager", func() {
+				BeforeEach(func() {
+					fakeGlobalSecrets.GetReturns("some-value", nil, true, nil)
+				})
+
+				It("gets the var from the global vars and stores it as the step result", func() {
+					Expect(stepErr).ToNot(HaveOccurred())
+					Expect(stepOk).To(BeTrue())
+
+					var value string
+					state.Result(planID, &value)
+					Expect(value).To(Equal("some-value"))
+				})
+
+				It("does not cache the result", func() {
+					hash, err := exec.HashVarIdentifier(getVarPlan.Path, getVarPlan.Type, getVarPlan.Source, 123)
+					Expect(err).ToNot(HaveOccurred())
+
+					_, found := cache.Get(hash)
+					Expect(found).To(BeFalse())
+				})
+
+				It("does not fetch from var source", func() {
+					Expect(fakeSecrets.GetCallCount()).To(Equal(0))
+				})
+
+				It("releases the lock", func() {
+					Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
+				})
+			})
+
+			Context("when the var is not stored in the global credential manager", func() {
+				BeforeEach(func() {
+					fakeGlobalSecrets.GetReturns(nil, nil, false, errors.New("not found!"))
+				})
+
+				It("fails with global var not found error", func() {
+					Expect(stepErr).To(HaveOccurred())
+					Expect(stepErr).To(Equal(exec.GlobalVarNotFoundError{getVarPlan.Path}))
+					Expect(stepOk).To(BeFalse())
+				})
+			})
+		})
+
 		Context("when the source of the var is a var source", func() {
 			BeforeEach(func() {
 				getVarPlan = atc.GetVarPlan{
@@ -228,6 +305,7 @@ var _ = Describe("GetVarStep", func() {
 					cache,
 					fakeLockFactory,
 					fakeVarSourcePool,
+					fakeGlobalSecrets,
 				)
 
 				stepOk, stepErr = step.Run(ctx, state)
@@ -699,6 +777,7 @@ var _ = Describe("GetVarStep", func() {
 					cache,
 					fakeLockFactory,
 					fakeVarSourcePool,
+					fakeGlobalSecrets,
 				)
 
 				step2 = exec.NewGetVarStep(
@@ -710,6 +789,7 @@ var _ = Describe("GetVarStep", func() {
 					cache,
 					fakeLockFactory,
 					fakeVarSourcePool,
+					fakeGlobalSecrets,
 				)
 
 				state = exec.NewRunState(noopStepper, varSourceConfigs, enableRedaction)

@@ -41,6 +41,14 @@ func (e VarNotFoundError) Error() string {
 	return fmt.Sprintf("var %s:%s not found", e.Source, e.Path)
 }
 
+type GlobalVarNotFoundError struct {
+	Path string
+}
+
+func (e GlobalVarNotFoundError) Error() string {
+	return fmt.Sprintf("var %s not found in global credential manager", e.Path)
+}
+
 type LocalVarNotFound struct {
 	Path string
 }
@@ -58,6 +66,7 @@ type GetVarStep struct {
 	secretCacheConfig creds.SecretCacheConfig
 	cache             *gocache.Cache
 	varSourcePool     creds.VarSourcePool
+	globalSecrets     creds.Secrets
 }
 
 func NewGetVarStep(
@@ -69,6 +78,7 @@ func NewGetVarStep(
 	cache *gocache.Cache,
 	lockFactory lock.LockFactory,
 	varSourcePool creds.VarSourcePool,
+	globalSecrets creds.Secrets,
 ) Step {
 	return &GetVarStep{
 		planID:            planID,
@@ -79,6 +89,7 @@ func NewGetVarStep(
 		secretCacheConfig: secretCacheConfig,
 		cache:             cache,
 		varSourcePool:     varSourcePool,
+		globalSecrets:     globalSecrets,
 	}
 }
 
@@ -139,8 +150,20 @@ func (step *GetVarStep) run(ctx context.Context, state RunState, delegate BuildS
 	var value interface{}
 	var found bool
 
+	switch varsRef.Source {
+	// Fetch from global credential manager if the source is empty
+	case "":
+		globalVars := creds.NewVariables(step.globalSecrets, step.metadata.TeamName, step.metadata.PipelineName, false)
+		value, found, err = globalVars.Get(varsRef)
+		if err != nil {
+			return false, fmt.Errorf("get var from global vars: %w", err)
+		}
+
+		if !found {
+			return false, GlobalVarNotFoundError{varsRef.Path}
+		}
 	// Fetch from local variables if the source is "."
-	if varsRef.Source == "." {
+	case ".":
 		value, found, err = state.LocalVariables().Get(varsRef)
 		if err != nil {
 			return false, fmt.Errorf("get var from build vars: %w", err)
@@ -149,7 +172,7 @@ func (step *GetVarStep) run(ctx context.Context, state RunState, delegate BuildS
 		if !found {
 			return false, LocalVarNotFound{varsRef.Path}
 		}
-	} else {
+	default:
 		// Fetch from cache if source is populated and caching is enabled
 		var entry interface{}
 		if step.secretCacheConfig.Enabled {
