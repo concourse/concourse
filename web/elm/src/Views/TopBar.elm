@@ -88,7 +88,7 @@ breadcrumbs session route =
                     Just pipeline ->
                         pipelineBreadcrumbs session pipeline
                             ++ [ breadcrumbSeparator
-                               , resourceBreadcrumb <| Concourse.resourceId id
+                               , resourceBreadcrumb <| Concourse.resourceIdFromVersionedResourceId id
                                , breadcrumbSeparator
                                , causalityBreadCrumb id direction <| Maybe.withDefault Dict.empty version
                                ]
@@ -247,7 +247,7 @@ causalityBreadCrumb rv direction version =
         ([ id "breadcrumb-causality"
          , href <|
             Routes.toString <|
-                Routes.resourceRoute (Concourse.resourceId rv) (Just version)
+                Routes.resourceRoute (Concourse.resourceIdFromVersionedResourceId rv) (Just version)
          ]
             ++ Styles.breadcrumbItem True
         )

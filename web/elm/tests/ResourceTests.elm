@@ -1492,7 +1492,7 @@ all =
                                 |> Data.withPipelineInstanceVars (Dict.fromList [ ( "foo", JsonNumber 1 ) ])
 
                         setup resource =
-                            Common.initRoute (Routes.resourceRoute resource)
+                            Common.initRoute (Routes.resourceRoute (Concourse.resourceId resource) Nothing)
                                 |> givenAResourceIsNotPinned resource
                                 |> givenVersionsWithoutPagination
                                 |> givenThePipelineIsArchived
