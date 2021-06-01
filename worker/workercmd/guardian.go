@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/localip"
@@ -136,7 +137,16 @@ func (cmd *WorkerCommand) guardianRunner(logger lager.Logger) (ifrit.Runner, err
 		Name: "gdn",
 		Runner: concourseCmd.NewLoggingRunner(
 			logger.Session("gdn-runner"),
-			CmdRunner{gdnCmd},
+			CmdRunner{
+				Cmd: gdnCmd,
+				Ready: func() bool {
+					// Unlike containerd, there are no dependent Ifrit processes on the worker that rely on Guardian
+					// to start up successfully before the process itself can get going. So we can return immediately
+					// and allow Guardian to come up in its own time, which is usually very fast.
+					return true
+				},
+				Timeout: time.Second * 5,
+			},
 		),
 	})
 
