@@ -20,6 +20,7 @@ type alias Model r =
         , scrolledToCurrentBuild : Bool
         , history : List HistoryItem
         , duration : Concourse.BuildDuration
+        , createdBy: Concourse.BuildCreatedBy
         , status : BuildStatus.BuildStatus
         , disableManualTrigger : Bool
         , now : Maybe Time.Posix

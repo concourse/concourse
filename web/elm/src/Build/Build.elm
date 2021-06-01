@@ -123,6 +123,7 @@ init flags =
           , hasLoadedYet = False
           , notFound = False
           , reapTime = Nothing
+          , createdBy = Nothing
           }
         , [ GetCurrentTime
           , GetCurrentTimeZone

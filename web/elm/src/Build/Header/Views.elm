@@ -49,7 +49,7 @@ type alias Header =
 
 type Widget
     = Button (Maybe ButtonView)
-    | Title String (Maybe Concourse.JobIdentifier)
+    | Title String (Maybe Concourse.JobIdentifier) (Concourse.BuildCreatedBy)
     | Duration BuildDuration
 
 
@@ -62,7 +62,6 @@ type BuildDuration
         , finished : Timestamp
         , duration : Timespan
         }
-
 
 type Timestamp
     = Absolute String (Maybe Timespan)
@@ -126,8 +125,8 @@ viewWidget widget =
         Button button ->
             Maybe.map viewButton button |> Maybe.withDefault (Html.text "")
 
-        Title name jobId ->
-            Html.h1 [] [ viewTitle name jobId ]
+        Title name jobId createdBy ->
+            Html.h1 [] [ viewTitle name jobId createdBy ]
 
         Duration duration ->
             viewDuration duration
@@ -153,9 +152,9 @@ viewDuration buildDuration =
 
             Cancelled timestamp ->
                 [ Html.tr []
-                    [ Html.td [ class "dict-key" ] [ Html.text "finished" ]
-                    , viewTimestamp timestamp
-                    ]
+                   [ Html.td [ class "dict-key" ] [ Html.text "finished" ]
+                   , viewTimestamp timestamp
+                   ]
                 ]
 
             Finished { started, finished, duration } ->
@@ -172,7 +171,6 @@ viewDuration buildDuration =
                     , Html.td [ class "dict-value" ] [ Html.text <| viewTimespan duration ]
                     ]
                 ]
-
 
 viewTimestamp : Timestamp -> Html Message
 viewTimestamp timestamp =
@@ -315,24 +313,42 @@ viewButton { type_, backgroundColor, backgroundShade, isClickable } =
         ]
 
 
-viewTitle : String -> Maybe Concourse.JobIdentifier -> Html Message
-viewTitle name jobID =
+viewTitle : String -> Maybe Concourse.JobIdentifier -> Concourse.BuildCreatedBy -> Html Message
+viewTitle name jobID createdBy =
     case jobID of
         Just jid ->
-            Html.a
-                [ href <|
-                    Routes.toString <|
-                        Routes.Job { id = jid, page = Nothing }
-                , onMouseEnter <| Hover <| Just Message.JobName
-                , onMouseLeave <| Hover Nothing
-                , id <| toHtmlID Message.JobName
-                ]
-                [ Html.span [ class "build-name" ] [ Html.text jid.jobName ]
-                , Html.span [ style "letter-spacing" "-1px" ] [ Html.text (" #" ++ name) ]
-                ]
-
+            case createdBy of
+                Just who ->
+                    Html.a
+                        [ href <|
+                            Routes.toString <|
+                                Routes.Job { id = jid, page = Nothing }
+                        , onMouseEnter <| Hover <| Just Message.JobName
+                        , onMouseLeave <| Hover Nothing
+                        , id <| toHtmlID Message.JobName
+                        ]
+                        [ Html.span [ class "build-name" ] [ Html.text jid.jobName ]
+                        , Html.span [ style "letter-spacing" "-1px" ] [ Html.text (" #" ++ name) ]
+                        , Html.span [ style "letter-spacing" "-1px" ] [ Html.text (" by " ++ who) ]
+                        ]
+                Nothing ->
+                    Html.a
+                        [ href <|
+                            Routes.toString <|
+                                Routes.Job { id = jid, page = Nothing }
+                        , onMouseEnter <| Hover <| Just Message.JobName
+                        , onMouseLeave <| Hover Nothing
+                        , id <| toHtmlID Message.JobName
+                        ]
+                        [ Html.span [ class "build-name" ] [ Html.text jid.jobName ]
+                        , Html.span [ style "letter-spacing" "-1px" ] [ Html.text (" #" ++ name) ]
+                        ]
         _ ->
-            Html.text name
+            case createdBy of
+                Just who ->
+                    Html.text( name ++ " by " ++ who )
+                Nothing ->
+                    Html.text name
 
 
 viewHistory : BuildStatus -> List BuildTab -> Html Message
