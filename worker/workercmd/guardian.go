@@ -28,12 +28,12 @@ type GdnBinaryFlags struct {
 	Server struct {
 		Network struct {
 			Pool string `long:"network-pool" description:"Network range to use for dynamically allocated container subnets. (default:10.80.0.0/16)"`
-		} `group:"Container Networking"`
+		} `group:"Guardian Container Networking"`
 
 		Limits struct {
 			MaxContainers string `long:"max-containers" description:"Maximum container capacity. 0 means no limit. (default:250)"`
-		} `group:"Limits"`
-	} `group:"server"`
+		} `group:"Guardian Limits"`
+	} `group:"Guardian server"`
 }
 
 // Defaults for GdnBinaryFlags
