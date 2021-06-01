@@ -209,6 +209,7 @@ func defaultGardenOciSpec(initBinPath string, privileged bool, maxUid, maxGid ui
 			Resources: &specs.LinuxResources{
 				Devices: AnyContainerDevices,
 			},
+			Devices:     Devices(privileged),
 			UIDMappings: OciIDMappings(privileged, maxUid),
 			GIDMappings: OciIDMappings(privileged, maxGid),
 		},

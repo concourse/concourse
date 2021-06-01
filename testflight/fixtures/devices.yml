@@ -1,0 +1,18 @@
+jobs:
+- name: check-fuse-privileged
+  plan:
+  - task: check-fuse
+    privileged: true
+    config: &check-fuse
+      platform: linux
+      image_resource:
+        type: mock
+        source: {mirror_self: true}
+      run:
+        path: ls
+        args: [/dev/fuse]
+
+- name: check-fuse-unprivileged
+  plan:
+  - task: check-fuse
+    config: *check-fuse
