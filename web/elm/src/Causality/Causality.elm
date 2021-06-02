@@ -1,8 +1,11 @@
 module Causality.Causality exposing
     ( Model
+    , NodeType(..)
     , changeToVersionedResource
+    , constructGraph
     , documentTitle
     , getUpdateMessage
+    , graphvizDotNotation
     , handleCallback
     , handleDelivery
     , init
@@ -57,7 +60,7 @@ type alias Model =
         { versionId : Concourse.VersionedResourceIdentifier
         , direction : CausalityDirection
         , fetchedCausality : Maybe CausalityResourceVersion
-        , graph : Graph NodeMetadata ()
+        , graph : Graph NodeType ()
         , renderedJobs : Maybe (List Concourse.Job)
         , renderedBuilds : Maybe (List Concourse.Build)
         , renderedResources : Maybe (List Concourse.Resource)
@@ -236,32 +239,29 @@ view session model =
         ]
 
 
-type alias NodeId =
-    Int
 
-
-type alias NodeMetadata =
-    { typ : NodeType
-    , name : String
-    , labels : List String
-    }
+-- type alias NodeType =
+--     { typ : NodeType
+--     , name : String
+--     , labels : List String
+--     }
 
 
 type NodeType
-    = Job
-    | Resource
+    = Job String (List String)
+    | Resource String (List Concourse.Version)
 
 
-insert : List String -> String -> List String
-insert lst str =
-    if List.member str lst then
+insert : List a -> a -> List a
+insert lst e =
+    if List.member e lst then
         lst
 
     else
-        lst ++ [ str ]
+        lst ++ [ e ]
 
 
-constructResourceVersion : NodeId -> CausalityDirection -> CausalityResourceVersion -> Graph NodeMetadata () -> Graph NodeMetadata ()
+constructResourceVersion : NodeId -> CausalityDirection -> CausalityResourceVersion -> Graph NodeType () -> Graph NodeType ()
 constructResourceVersion parentId dir rv graph =
     let
         -- NodeId is the (positive) versionId for resourceVersions and the (negative) buildId for builds
@@ -271,7 +271,7 @@ constructResourceVersion parentId dir rv graph =
         childEdges =
             IntDict.fromList <| List.map (\(CausalityBuildVariant b) -> ( -b.jobId, () )) rv.builds
 
-        addEdge : NodeContext NodeMetadata () -> NodeContext NodeMetadata ()
+        addEdge : NodeContext NodeType () -> NodeContext NodeType ()
         addEdge ctx =
             case dir of
                 Downstream ->
@@ -286,22 +286,27 @@ constructResourceVersion parentId dir rv graph =
                         , outgoing = IntDict.insert parentId () ctx.outgoing
                     }
 
-        versionStr =
-            String.join "," <| Concourse.versionQuery rv.version
-
-        updateNode : Maybe (NodeContext NodeMetadata ()) -> Maybe (NodeContext NodeMetadata ())
+        updateNode : Maybe (NodeContext NodeType ()) -> Maybe (NodeContext NodeType ())
         updateNode nodeContext =
             Just <|
                 case nodeContext of
                     Just { node, incoming, outgoing } ->
                         let
-                            metadata : NodeMetadata
-                            metadata =
+                            oldNode =
                                 node.label
+
+                            newNodeType : NodeType
+                            newNodeType =
+                                case oldNode of
+                                    Resource name versions ->
+                                        Resource name <| insert versions rv.version
+
+                                    _ ->
+                                        oldNode
                         in
                         addEdge
                             { node =
-                                { node | label = { metadata | labels = insert metadata.labels versionStr } }
+                                { node | label = newNodeType }
                             , incoming = incoming
                             , outgoing = outgoing
                             }
@@ -310,11 +315,7 @@ constructResourceVersion parentId dir rv graph =
                         addEdge
                             { node =
                                 { id = nodeId
-                                , label =
-                                    { typ = Resource
-                                    , name = rv.resourceName
-                                    , labels = [ versionStr ]
-                                    }
+                                , label = Resource rv.resourceName [ rv.version ]
                                 }
                             , incoming = IntDict.empty
                             , outgoing = IntDict.empty
@@ -326,7 +327,7 @@ constructResourceVersion parentId dir rv graph =
     List.foldl (\build acc -> constructBuild nodeId dir build acc) updatedGraph rv.builds
 
 
-constructBuild : NodeId -> CausalityDirection -> CausalityBuild -> Graph NodeMetadata () -> Graph NodeMetadata ()
+constructBuild : NodeId -> CausalityDirection -> CausalityBuild -> Graph NodeType () -> Graph NodeType ()
 constructBuild parentId dir (CausalityBuildVariant b) graph =
     let
         -- NodeId is the (positive) resourceId for resourceVersions and the (negative) jobId for builds
@@ -336,7 +337,7 @@ constructBuild parentId dir (CausalityBuildVariant b) graph =
         childEdges =
             IntDict.fromList <| List.map (\rv -> ( rv.resourceId, () )) b.resourceVersions
 
-        addEdge : NodeContext NodeMetadata () -> NodeContext NodeMetadata ()
+        addEdge : NodeContext NodeType () -> NodeContext NodeType ()
         addEdge ctx =
             case dir of
                 Downstream ->
@@ -354,18 +355,27 @@ constructBuild parentId dir (CausalityBuildVariant b) graph =
         buildName =
             "#" ++ b.name
 
-        updateNode : Maybe (NodeContext NodeMetadata ()) -> Maybe (NodeContext NodeMetadata ())
+        updateNode : Maybe (NodeContext NodeType ()) -> Maybe (NodeContext NodeType ())
         updateNode nodeContext =
             Just <|
                 case nodeContext of
                     Just { node, incoming, outgoing } ->
                         let
-                            metadata =
+                            oldNode =
                                 node.label
+
+                            newNodeType : NodeType
+                            newNodeType =
+                                case oldNode of
+                                    Job name builds ->
+                                        Job name <| insert builds buildName
+
+                                    _ ->
+                                        oldNode
                         in
                         addEdge
                             { node =
-                                { node | label = { metadata | labels = insert metadata.labels buildName } }
+                                { node | label = newNodeType }
                             , incoming = incoming
                             , outgoing = outgoing
                             }
@@ -374,11 +384,7 @@ constructBuild parentId dir (CausalityBuildVariant b) graph =
                         addEdge
                             { node =
                                 { id = nodeId
-                                , label =
-                                    { typ = Job
-                                    , name = b.jobName
-                                    , labels = [ buildName ]
-                                    }
+                                , label = Job b.jobName [ buildName ]
                                 }
                             , incoming = IntDict.empty
                             , outgoing = IntDict.empty
@@ -390,7 +396,7 @@ constructBuild parentId dir (CausalityBuildVariant b) graph =
     List.foldl (\build acc -> constructResourceVersion nodeId dir build acc) updatedGraph b.resourceVersions
 
 
-constructGraph : CausalityDirection -> CausalityResourceVersion -> Graph NodeMetadata ()
+constructGraph : CausalityDirection -> CausalityResourceVersion -> Graph NodeType ()
 constructGraph direction rv =
     let
         graph =
@@ -411,7 +417,7 @@ constructGraph direction rv =
         graph
 
 
-graphvizDotNotation : Graph NodeMetadata () -> String
+graphvizDotNotation : Graph NodeType () -> String
 graphvizDotNotation =
     let
         styles : DOT.Styles
@@ -422,24 +428,20 @@ graphvizDotNotation =
             , edge = ""
             }
 
-        nodeAttrs { typ, name, labels } =
+        nodeAttrs typ =
             Dict.fromList <|
-                ( "label"
-                , "\n" ++ name ++ "\n" ++ String.join "\n" labels
-                )
-                    :: (case typ of
-                            Job ->
-                                [ ( "class", "job" )
-                                , ( "shape", "rect" )
-                                , ( "fillcolor", "chartreuse" )
-                                ]
+                case typ of
+                    Job name builds ->
+                        [ ( "class", "job" )
+                        , ( "shape", "rect" )
+                        , ( "label", "<B>" ++ name ++ String.join " " builds ++ "</B>" )
+                        ]
 
-                            Resource ->
-                                [ ( "class", "resource" )
-                                , ( "shape", "ellipse" )
-                                , ( "fillcolor", "deepskyblue" )
-                                ]
-                       )
+                    Resource name versions ->
+                        [ ( "class", "resource" )
+                        , ( "shape", "ellipse" )
+                        , ( "label", name ++ "\n" ++ (String.join "\n" <| List.map (\v -> String.join "," <| Concourse.versionQuery v) versions) )
+                        ]
 
         edgeAttrs _ =
             Dict.empty
