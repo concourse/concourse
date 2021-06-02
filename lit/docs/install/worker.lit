@@ -257,7 +257,7 @@ decide much on its own.
     \link{containerd}{https://github.com/containerd/containerd/},
     \link{Guardian}{https://github.com/cloudfoundry/guardian}, and \link{Houdini}{https://github.com/vito/houdini} (an
     experimental runtime for Darwin and Windows). Only \code{containerd} and
-    \code{Guardian} are meant for production use. From v7.4.0, \code{containerd} will be
+    \code{Guardian} are meant for production use. Starting in v7.4.0, \code{containerd} is
     the default runtime for Concourse.
 
     \italic{Note about architecture}: The web node (ATC) talks to all 3 runtimes via a single interface called the
@@ -273,7 +273,7 @@ decide much on its own.
       the \code{concourse worker} command.
 
       The following is a list of the \code{containerd} runtime specific flags for Concourse that can be set. They are
-      all optional or have default values.
+      all optional and have default values.
 
       \codeblock{ini}{{{
         Containerd Configuration:
@@ -292,27 +292,79 @@ decide much on its own.
           --containerd-mtu=                                  MTU size for container network interfaces. Defaults to the MTU of the interface used for outbound access by the host. [$CONCOURSE_CONTAINERD_MTU]
       }}}
 
+    }
+    \section{
+      \title{\bold{Transitioning from Guardian to containerd}}
 
-      \bold{Transitioning from Guardian}
+      If you are transitioning from \code{Guardian} to \code{containerd} you will need to convert any \code{--garden-*} (\code{CONCOURSE_GARDEN_*}) flags to their \code{containerd} (\code{CONCOURSE_CONTAINERD_*}) counterparts:
 
-      If you are transitioning from \code{Guardian} to \code{containerd} you will need to convert any \code{--garden-*} (\code{CONCOURSE_GARDEN_*}) flags to their \code{containerd} (\code{CONCOURSE_CONTAINERD_*} counterparts:
-      \list{
-        \code{--garden-request-timeout} (\code{CONCOURSE_GARDEN_REQUEST_TIMEOUT}) \bold{-->} \code{--containerd-request-timeout} (\code{CONCOURSE_CONTAINERD_REQUEST_TIMEOUT})
+      \table{
+        \table-row{Guardian Flags}{Containerd Flags}
+       }{
+        \table-row{
+          \code{--garden-request-timeout}
+          \code{CONCOURSE_GARDEN_REQUEST_TIMEOUT}
+        }{
+          \code{--containerd-request-timeout}
+          \code{CONCOURSE_CONTAINERD_REQUEST_TIMEOUT}
+        }
       }{
-        \code{--garden-dns-proxy-enable} (\code{CONCOURSE_GARDEN_DNS_PROXY_ENABLE}) \bold{-->} \code{--containerd-dns-proxy-enable} (\code{CONCOURSE_CONTAINERD_DNS_PROXY_ENABLE})
+        \table-row{
+          \code{--garden-dns-proxy-enable}
+          \code{CONCOURSE_GARDEN_DNS_PROXY_ENABLE}
+        }{
+          \code{--containerd-dns-proxy-enable}
+          \code{CONCOURSE_CONTAINERD_DNS_PROXY_ENABLE}
+        }
       }{
-        \code{--garden-network-pool} (\code{CONCOURSE_GARDEN_NETWORK_POOL}) \bold{-->} \code{--containerd-network-pool} (\code{CONCOURSE_CONTAINERD_NETWORK_POOL})
+        \table-row{
+          \code{--garden-network-pool}
+          \code{CONCOURSE_GARDEN_NETWORK_POOL}
+        }{
+          \code{--containerd-network-pool}
+          \code{CONCOURSE_CONTAINERD_NETWORK_POOL}
+        }
       }{
-        \code{--garden-max-containers} (\code{CONCOURSE_GARDEN_MAX_CONTAINERS}) \bold{-->} \code{--containerd-max-containers} (\code{CONCOURSE_CONTAINERD_MAX_CONTAINERS})
+        \table-row{
+          \code{--garden-max-containers}
+          \code{CONCOURSE_GARDEN_MAX_CONTAINERS}
+        }{
+          \code{--containerd-max-containers}
+          \code{CONCOURSE_CONTAINERD_MAX_CONTAINERS}
+        }
       }{
-        \code{--garden-deny-network} (\code{CONCOURSE_GARDEN_DENY_NETWORKS}) \bold{-->} \code{--containerd-restricted-network} (\code{CONCOURSE_CONTAINERD_RESTRICTED_NETWORK})
+        \table-row{
+          \code{--garden-deny-network}
+          \code{CONCOURSE_GARDEN_DENY_NETWORKS}
+        }{
+          \code{--containerd-restricted-network}
+          \code{CONCOURSE_CONTAINERD_RESTRICTED_NETWORK}
+        }
       }{
-        \code{--garden-dns-server} (\code{CONCOURSE_GARDEN_DNS_SERVER}) \bold{-->} \code{--containerd-dns-server} (\code{CONCOURSE_CONTAINERD_DNS_SERVER})
+        \table-row{
+          \code{--garden-dns-server}
+          \code{CONCOURSE_GARDEN_DNS_SERVER}
+        }{
+          \code{--containerd-dns-server}
+          \code{CONCOURSE_CONTAINERD_DNS_SERVER}
+        }
       }{
-        \code{--garden-external-ip} (\code{CONCOURSE_GARDEN_EXTERNAL_IP}) \bold{-->} \code{--containerd-external-ip} (\code{CONCOURSE_CONTAINERD_EXTERNAL_IP})
+        \table-row{
+          \code{--garden-external-ip}
+          \code{CONCOURSE_GARDEN_EXTERNAL_IP}
+        }{
+          \code{--containerd-external-ip}
+          \code{CONCOURSE_CONTAINERD_EXTERNAL_IP}
+        }
       }{
-        \code{--garden-mtu} (\code{CONCOURSE_GARDEN_MTU}) \bold{-->} \code{--containerd-mtu} (\code{CONCOURSE_CONTAINERD_MTU})
-      }
+        \table-row{
+          \code{--garden-mtu}
+          \code{CONCOURSE_GARDEN_MTU}
+        }{
+          \code{--containerd-mtu}
+          \code{CONCOURSE_CONTAINERD_MTU}
+        }
+       }
     }
 
     \section{
@@ -320,7 +372,7 @@ decide much on its own.
 
       For versions earlier than 7.4.0 Guardian was the default runtime for
       Concourse. To enable it manually in future versions the \code{--runtime}
-      flag has to be set to "guardian".
+      flag has to be set to \code{guardian}.
 
       The \code{concourse worker} command automatically configures and runs
       \code{Guardian} using the \code{gdn} binary, but depending on the environment you're running Concourse in,
@@ -336,7 +388,7 @@ decide much on its own.
 
         \codeblock{ini}{{{
         [server]
-        flag-name = flag-value
+        flag-name=flag-value
         }}}
 
         To learn which flags can be set, consult \code{gdn server --help}. Each
@@ -345,7 +397,7 @@ decide much on its own.
         By setting \code{CONCOURSE_GARDEN_*} environment variables.
 
         This is primarily supported for backwards compatibility, and these
-        variables are not present in \code{concourse web --help}. They are
+        variables are not present in \code{concourse worker --help}. They are
         translated to flags passed to \code{gdn server} by lower-casing the
         \code{*} portion and replacing underscores with hyphens.
       }
@@ -367,8 +419,8 @@ decide much on its own.
 
         \codeblock{bash}{{{
         $ fly -t ci intercept -c concourse/concourse
-        bash-5.0# grep nameserver /etc/resolv.conf
-        bash-5.0#
+        bash-5.0$ grep nameserver /etc/resolv.conf
+        bash-5.0$
         }}}
 
         In this case it is empty, as the host only listed a single
@@ -388,20 +440,19 @@ decide much on its own.
           \codeblock{ini}{{{
           [server]
           ; configure Google DNS
-          dns-server = 8.8.8.8
-          dns-server = 8.8.4.4
+          dns-server=8.8.8.8
+          dns-server=8.8.4.4
           }}}
 
-          To validate whether the changes have taken effect, you can
-          \reference{fly-intercept} into any container and check
-          \code{/etc/resolv.conf} once again:
+          To diagnose this problem you can \reference{fly-intercept} into a failing
+          container and check which nameservers are in \code{/etc/resolv.conf}:
 
           \codeblock{bash}{{{
           $ fly -t ci intercept -c concourse/concourse
-          bash-5.0# cat /etc/resolv.conf
+          bash-5.0$ cat /etc/resolv.conf
           nameserver 8.8.8.8
           nameserver 8.8.4.4
-          bash-5.0# ping google.com
+          bash-5.0$ ping google.com
           PING google.com (108.177.111.139): 56 data bytes
           64 bytes from 108.177.111.139: seq=0 ttl=47 time=2.672 ms
           64 bytes from 108.177.111.139: seq=1 ttl=47 time=0.911 ms
@@ -419,16 +470,18 @@ decide much on its own.
           \codeblock{ini}{{{
           [server]
           ; internal IP of the worker machine
-          dns-server = 10.1.2.3
+          dns-server=10.1.2.3
 
           ; allow containers to reach the above IP
-          allow-host-access = true
+          allow-host-access=true
           }}}
 
           \warn{
             Setting \code{allow-host-access} will, well, allow containers to access
             your host VM's network. If you don't trust your container workloads,
-            you may not want to allow this.
+            you may not want to allow this. With host network access, containers
+            will be able to reach out to the garden and baggageclaim servers, and
+            any other locally running network processes running on the worker.
           }
 
           To validate whether the changes have taken effect, you can
@@ -437,9 +490,9 @@ decide much on its own.
 
           \codeblock{bash}{{{
           $ fly -t ci intercept -c concourse/concourse
-          bash-5.0# cat /etc/resolv.conf
+          bash-5.0$ cat /etc/resolv.conf
           nameserver 10.1.2.3
-          bash-5.0# nslookup concourse-ci.org
+          bash-5.0$ nslookup concourse-ci.org
           Server:         10.1.2.3
           Address:        10.1.2.3#53
 
