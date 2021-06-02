@@ -252,151 +252,265 @@ decide much on its own.
   on the resource itself.
 
   \section{
-    \title{Configuring \code{gdn server}}
+    \title{Configuring Runtimes}
+    The worker can be run with multiple container runtimes -
+    \link{containerd}{https://github.com/containerd/containerd/},
+    \link{Guardian}{https://github.com/cloudfoundry/guardian}, and \link{Houdini}{https://github.com/vito/houdini} (an
+    experimental runtime for Darwin and Windows). Only \code{containerd} and
+    \code{Guardian} are meant for production use. Starting in v7.4.0, \code{containerd} is
+    the default runtime for Concourse.
 
-    On Linux, the \code{concourse} binary is packaged alongside a \code{gdn}
-    binary. This binary is used for running
-    \link{Guardian}{https://github.com/cloudfoundry/guardian}, which is a
-    \link{Garden}{https://github.com/cloudfoundry/garden} backend
-    implementation which runs containers via
-    \link{\code{runc}}{https://github.com/opencontainers/runc} (the same
-    technology underlying tools like Docker).
+    \italic{Note about architecture}: The web node (ATC) talks to all 3 runtimes via a single interface called the
+    \link{Garden}{https://github.com/cloudfoundry/garden} server. While Guardian comes packaged with a Garden server
+    and its flags in Concourse are unfortunately prefixed with \code{--garden}, Guardian (a runtime) and Garden (an interface and server)
+    are two separate tools. An analog for Garden would be the \link{Container Runtime Interface (CRI)}{https://kubernetes.io/blog/2016/12/container-runtime-interface-cri-in-kubernetes/} used in Kubernetes.
+    Kubernetes uses containerd via CRI. Concourse uses containerd via Garden.
 
-    The \code{concourse worker} command automatically configures and runs
-    \code{gdn}, but depending on the environment you're running Concourse in,
-    you may need to pop open the hood and configure a few things.
+    \section{
+      \title{\bold{\code{containerd} runtime}}
+      For versions of Concourse before 7.4.0 the \code{containerd} runtime has to be enabled
+      manually by setting \code{--runtime} (\code{CONCOURSE_RUNTIME}) to \code{containerd} on
+      the \code{concourse worker} command.
 
-    The \code{gdn} server can be configured in two ways:
-
-    \ordered-list{
-      By creating a \code{config.ini} file and passing it as
-      \code{--garden-config} (or \code{CONCOURSE_GARDEN_CONFIG}).
-
-      The \code{.ini} file should look something like this:
+      The following is a list of the \code{containerd} runtime specific flags for Concourse that can be set. They are
+      all optional and have default values.
 
       \codeblock{ini}{{{
-      [server]
-      flag-name = flag-value
+        Containerd Configuration:
+          --containerd-config=                               Path to a config file to use for the Containerd daemon. [$CONCOURSE_CONTAINERD_CONFIG]
+          --containerd-bin=                                  Path to a containerd executable (non-absolute names get resolved from $PATH). [$CONCOURSE_CONTAINERD_BIN]
+          --containerd-init-bin=                             Path to an init executable (non-absolute names get resolved from $PATH). (default: /usr/local/concourse/bin/init) [$CONCOURSE_CONTAINERD_INIT_BIN]
+          --containerd-cni-plugins-dir=                      Path to CNI network plugins. (default: /usr/local/concourse/bin) [$CONCOURSE_CONTAINERD_CNI_PLUGINS_DIR]
+          --containerd-request-timeout=                      How long to wait for requests to Containerd to complete. 0 means no timeout. (default: 5m) [$CONCOURSE_CONTAINERD_REQUEST_TIMEOUT]
+          --containerd-max-containers=                       Max container capacity. 0 means no limit. (default: 250) [$CONCOURSE_CONTAINERD_MAX_CONTAINERS]
+
+        Containerd Container Networking:
+          --containerd-external-ip=                          IP address to use to reach container's mapped ports. Autodetected if not specified. [$CONCOURSE_CONTAINERD_EXTERNAL_IP]
+          --containerd-dns-server=                           DNS server IP address to use instead of automatically determined servers. Can be specified multiple times. [$CONCOURSE_CONTAINERD_DNS_SERVER]
+          --containerd-restricted-network=                   Network ranges to which traffic from containers will be restricted. Can be specified multiple times. [$CONCOURSE_CONTAINERD_RESTRICTED_NETWORK]
+          --containerd-network-pool=                         Network range to use for dynamically allocated container subnets. (default: 10.80.0.0/16) [$CONCOURSE_CONTAINERD_NETWORK_POOL]
+          --containerd-mtu=                                  MTU size for container network interfaces. Defaults to the MTU of the interface used for outbound access by the host. [$CONCOURSE_CONTAINERD_MTU]
       }}}
 
-      To learn which flags can be set, consult \code{gdn server --help}. Each
-      flag listed can be set under the \code{[server]} heading.
-    }{
-      By setting \code{CONCOURSE_GARDEN_*} environment variables.
+    }
+    \section{
+      \title{\bold{Transitioning from Guardian to containerd}}
 
-      This is primarily supported for backwards compatibility, and these
-      variables are not present in \code{concourse web --help}. They are
-      translated to flags passed to \code{gdn server} by lower-casing the
-      \code{*} portion and replacing underscores with hyphens.
+      If you are transitioning from \code{Guardian} to \code{containerd} you will need to convert any \code{--garden-*} (\code{CONCOURSE_GARDEN_*}) flags to their \code{containerd} (\code{CONCOURSE_CONTAINERD_*}) counterparts:
+
+      \table{
+        \table-row{Guardian Flags}{Containerd Flags}
+       }{
+        \table-row{
+          \code{--garden-request-timeout}
+          \code{CONCOURSE_GARDEN_REQUEST_TIMEOUT}
+        }{
+          \code{--containerd-request-timeout}
+          \code{CONCOURSE_CONTAINERD_REQUEST_TIMEOUT}
+        }
+      }{
+        \table-row{
+          \code{--garden-dns-proxy-enable}
+          \code{CONCOURSE_GARDEN_DNS_PROXY_ENABLE}
+        }{
+          \code{--containerd-dns-proxy-enable}
+          \code{CONCOURSE_CONTAINERD_DNS_PROXY_ENABLE}
+        }
+      }{
+        \table-row{
+          \code{--garden-network-pool}
+          \code{CONCOURSE_GARDEN_NETWORK_POOL}
+        }{
+          \code{--containerd-network-pool}
+          \code{CONCOURSE_CONTAINERD_NETWORK_POOL}
+        }
+      }{
+        \table-row{
+          \code{--garden-max-containers}
+          \code{CONCOURSE_GARDEN_MAX_CONTAINERS}
+        }{
+          \code{--containerd-max-containers}
+          \code{CONCOURSE_CONTAINERD_MAX_CONTAINERS}
+        }
+      }{
+        \table-row{
+          \code{--garden-deny-network}
+          \code{CONCOURSE_GARDEN_DENY_NETWORKS}
+        }{
+          \code{--containerd-restricted-network}
+          \code{CONCOURSE_CONTAINERD_RESTRICTED_NETWORK}
+        }
+      }{
+        \table-row{
+          \code{--garden-dns-server}
+          \code{CONCOURSE_GARDEN_DNS_SERVER}
+        }{
+          \code{--containerd-dns-server}
+          \code{CONCOURSE_CONTAINERD_DNS_SERVER}
+        }
+      }{
+        \table-row{
+          \code{--garden-external-ip}
+          \code{CONCOURSE_GARDEN_EXTERNAL_IP}
+        }{
+          \code{--containerd-external-ip}
+          \code{CONCOURSE_CONTAINERD_EXTERNAL_IP}
+        }
+      }{
+        \table-row{
+          \code{--garden-mtu}
+          \code{CONCOURSE_GARDEN_MTU}
+        }{
+          \code{--containerd-mtu}
+          \code{CONCOURSE_CONTAINERD_MTU}
+        }
+       }
     }
 
     \section{
-      \title{Troubleshooting and fixing DNS resolution}
+      \title{\bold{\code{Guardian} runtime}}
 
-      By default, containers created by Guardian will carry over the
-      \code{/etc/resolv.conf} from the host into the container. This is often
-      fine, but some Linux distributions configure a special \code{127.x.x.x} DNS
-      resolver (e.g. \code{systemd-resolved}).
+      For versions earlier than 7.4.0 Guardian was the default runtime for
+      Concourse. To enable it manually in future versions the \code{--runtime}
+      flag has to be set to \code{guardian}.
 
-      When Guardian copies the \code{resolv.conf} over, it removes these entries,
-      as they won't be reachable from the container's network namespace. As a
-      result, your containers may not have any valid nameservers configured.
+      The \code{concourse worker} command automatically configures and runs
+      \code{Guardian} using the \code{gdn} binary, but depending on the environment you're running Concourse in,
+      you may need to pop open the hood and configure a few things.
 
-      To diagnose this problem you can \reference{fly-intercept} into a failing
-      container and check which nameservers are in \code{/etc/resolv.conf}:
+      The \code{gdn} server can be configured in two ways:
 
-      \codeblock{bash}{{{
-      $ fly -t ci intercept -c concourse/concourse
-      bash-5.0# grep nameserver /etc/resolv.conf
-      bash-5.0#
-      }}}
+      \ordered-list{
+        By creating a \code{config.ini} file and passing it as
+        \code{--garden-config} (or \code{CONCOURSE_GARDEN_CONFIG}).
 
-      In this case it is empty, as the host only listed a single
-      \code{127.0.0.53} address which was then stripped out. To fix this, you'll
-      just need to explicitly configure DNS instead of relying on the \code{gdn}
-      default behavior.
-
-      \section{
-        \title{Pointing to external DNS servers}
-
-        If you have no need for special DNS resolution within your Concourse
-        containers, you can just configure your containers to use specific DNS
-        server addresses external to the VM.
-
-        This can be done by listing DNS servers in \code{config.ini} like so:
+        The \code{.ini} file should look something like this:
 
         \codeblock{ini}{{{
         [server]
-        ; configure Google DNS
-        dns-server = 8.8.8.8
-        dns-server = 8.8.4.4
+        flag-name=flag-value
         }}}
 
-        To validate whether the changes have taken effect, you can
-        \reference{fly-intercept} into any container and check
-        \code{/etc/resolv.conf} once again:
+        To learn which flags can be set, consult \code{gdn server --help}. Each
+        flag listed can be set under the \code{[server]} heading.
+      }{
+        By setting \code{CONCOURSE_GARDEN_*} environment variables.
 
-        \codeblock{bash}{{{
-        $ fly -t ci intercept -c concourse/concourse
-        bash-5.0# cat /etc/resolv.conf
-        nameserver 8.8.8.8
-        nameserver 8.8.4.4
-        bash-5.0# ping google.com
-        PING google.com (108.177.111.139): 56 data bytes
-        64 bytes from 108.177.111.139: seq=0 ttl=47 time=2.672 ms
-        64 bytes from 108.177.111.139: seq=1 ttl=47 time=0.911 ms
-        }}}
+        This is primarily supported for backwards compatibility, and these
+        variables are not present in \code{concourse worker --help}. They are
+        translated to flags passed to \code{gdn server} by lower-casing the
+        \code{*} portion and replacing underscores with hyphens.
       }
 
       \section{
-        \title{Using a local DNS server}
+        \title{Troubleshooting and fixing DNS resolution}
 
-        If you would like to use Consul, \code{dnsmasq}, or some other DNS server
-        running on the worker VM, you'll have to configure the internal address
-        of the VM as the DNS server \italic{and} allow the containers to reach
-        the address, like so:
+        By default, containers created by Guardian will carry over the
+        \code{/etc/resolv.conf} from the host into the container. This is often
+        fine, but some Linux distributions configure a special \code{127.x.x.x} DNS
+        resolver (e.g. \code{systemd-resolved}).
 
-        \codeblock{ini}{{{
-        [server]
-        ; internal IP of the worker machine
-        dns-server = 10.1.2.3
+        When Guardian copies the \code{resolv.conf} over, it removes these entries,
+        as they won't be reachable from the container's network namespace. As a
+        result, your containers may not have any valid nameservers configured.
 
-        ; allow containers to reach the above IP
-        allow-host-access = true
-        }}}
-
-        \warn{
-          Setting \code{allow-host-access} will, well, allow containers to access
-          your host VM's network. If you don't trust your container workloads,
-          you may not want to allow this.
-        }
-
-        To validate whether the changes have taken effect, you can
-        \reference{fly-intercept} into any container and check
-        \code{/etc/resolv.conf} once again:
+        To diagnose this problem you can \reference{fly-intercept} into a failing
+        container and check which nameservers are in \code{/etc/resolv.conf}:
 
         \codeblock{bash}{{{
         $ fly -t ci intercept -c concourse/concourse
-        bash-5.0# cat /etc/resolv.conf
-        nameserver 10.1.2.3
-        bash-5.0# nslookup concourse-ci.org
-        Server:         10.1.2.3
-        Address:        10.1.2.3#53
-
-        Non-authoritative answer:
-        Name:   concourse-ci.org
-        Address: 185.199.108.153
-        Name:   concourse-ci.org
-        Address: 185.199.109.153
-        Name:   concourse-ci.org
-        Address: 185.199.110.153
-        Name:   concourse-ci.org
-        Address: 185.199.111.153
+        bash-5.0$ grep nameserver /etc/resolv.conf
+        bash-5.0$
         }}}
 
-        If \code{nslookup} times out or fails, you may need to open up firewalls
-        or security group configuration so that the worker VM can send UDP/TCP
-        packets to itself.
+        In this case it is empty, as the host only listed a single
+        \code{127.0.0.53} address which was then stripped out. To fix this, you'll
+        just need to explicitly configure DNS instead of relying on the \code{gdn}
+        default behavior.
+
+        \section{
+          \title{Pointing to external DNS servers}
+
+          If you have no need for special DNS resolution within your Concourse
+          containers, you can just configure your containers to use specific DNS
+          server addresses external to the VM.
+
+          This can be done by listing DNS servers in \code{config.ini} like so:
+
+          \codeblock{ini}{{{
+          [server]
+          ; configure Google DNS
+          dns-server=8.8.8.8
+          dns-server=8.8.4.4
+          }}}
+
+          To diagnose this problem you can \reference{fly-intercept} into a failing
+          container and check which nameservers are in \code{/etc/resolv.conf}:
+
+          \codeblock{bash}{{{
+          $ fly -t ci intercept -c concourse/concourse
+          bash-5.0$ cat /etc/resolv.conf
+          nameserver 8.8.8.8
+          nameserver 8.8.4.4
+          bash-5.0$ ping google.com
+          PING google.com (108.177.111.139): 56 data bytes
+          64 bytes from 108.177.111.139: seq=0 ttl=47 time=2.672 ms
+          64 bytes from 108.177.111.139: seq=1 ttl=47 time=0.911 ms
+          }}}
+        }
+
+        \section{
+          \title{Using a local DNS server}
+
+          If you would like to use Consul, \code{dnsmasq}, or some other DNS server
+          running on the worker VM, you'll have to configure the internal address
+          of the VM as the DNS server \italic{and} allow the containers to reach
+          the address, like so:
+
+          \codeblock{ini}{{{
+          [server]
+          ; internal IP of the worker machine
+          dns-server=10.1.2.3
+
+          ; allow containers to reach the above IP
+          allow-host-access=true
+          }}}
+
+          \warn{
+            Setting \code{allow-host-access} will, well, allow containers to access
+            your host VM's network. If you don't trust your container workloads,
+            you may not want to allow this. With host network access, containers
+            will be able to reach out to the garden and baggageclaim servers, and
+            any other locally running network processes running on the worker.
+          }
+
+          To validate whether the changes have taken effect, you can
+          \reference{fly-intercept} into any container and check
+          \code{/etc/resolv.conf} once again:
+
+          \codeblock{bash}{{{
+          $ fly -t ci intercept -c concourse/concourse
+          bash-5.0$ cat /etc/resolv.conf
+          nameserver 10.1.2.3
+          bash-5.0$ nslookup concourse-ci.org
+          Server:         10.1.2.3
+          Address:        10.1.2.3#53
+
+          Non-authoritative answer:
+          Name:   concourse-ci.org
+          Address: 185.199.108.153
+          Name:   concourse-ci.org
+          Address: 185.199.109.153
+          Name:   concourse-ci.org
+          Address: 185.199.110.153
+          Name:   concourse-ci.org
+          Address: 185.199.111.153
+          }}}
+
+          If \code{nslookup} times out or fails, you may need to open up firewalls
+          or security group configuration so that the worker VM can send UDP/TCP
+          packets to itself.
+        }
       }
     }
   }
