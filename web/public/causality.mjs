@@ -1,22 +1,20 @@
 import "./d3.v355.min.js";
-import "./dagre-d3.v064.min.js"
-import "./graphlib-dot.v064.min.js"
+import './graphviz.min.js';
 
 export function renderCausality(dot){
   const foundSvg = d3.select(".causality-graph");
   const svg = createSvg(foundSvg)
 
-  var render = dagreD3.render();
-  var g = graphlibDot.read(dot);
+  graphviz.graphviz.layout(dot, "svg", "dot").then(content => {
+    svg.html(content);
 
-  render(svg, g)
+    svg.selectAll('title').remove();
+    svg.selectAll('*').attr('xlink:title', null);
 
-  var bbox = svg.node().getBBox()
-  d3.select(svg.node().parentNode)
-    .attr("viewBox", "" + (bbox.x - 20) + " " + (bbox.y - 20) + " " + (bbox.width + 40) + " " + (bbox.height + 40))
-}
-
-function resize(svg) {
+    var bbox = svg.node().getBBox()
+    d3.select(svg.node().parentNode)
+      .attr("viewBox", "" + (bbox.x - 20) + " " + (bbox.y - 20) + " " + (bbox.width + 40) + " " + (bbox.height + 40))
+  })
 }
 
 function createSvg(svg) {

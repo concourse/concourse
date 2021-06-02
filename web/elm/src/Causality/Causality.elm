@@ -423,8 +423,8 @@ graphvizDotNotation =
         styles : DOT.Styles
         styles =
             { rankdir = DOT.LR
-            , graph = ""
-            , node = "style=\"filled\""
+            , graph = "bgcolor=\"transparent\""
+            , node = "style=\"filled\" fontname=\"Inconsolata\""
             , edge = ""
             }
 
