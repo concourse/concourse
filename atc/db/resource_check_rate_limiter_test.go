@@ -6,10 +6,14 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/clock/fakeclock"
-	"github.com/concourse/concourse/atc/db"
+	"golang.org/x/time/rate"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"golang.org/x/time/rate"
+
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/dbtest"
 )
 
 var _ = Describe("ResourceCheckRateLimiter", func() {
@@ -19,6 +23,7 @@ var _ = Describe("ResourceCheckRateLimiter", func() {
 		refreshInterval time.Duration
 		fakeClock       *fakeclock.FakeClock
 
+		scenario       *dbtest.Scenario
 		checkableCount int
 
 		ctx context.Context
@@ -32,12 +37,11 @@ var _ = Describe("ResourceCheckRateLimiter", func() {
 		refreshInterval = 5 * time.Minute
 		fakeClock = fakeclock.NewFakeClock(time.Now())
 
-		_, err := psql.Delete("resources").
-			RunWith(dbConn).
-			Exec()
+		_, err := dbConn.Exec("update resources set active=false")
 		Expect(err).ToNot(HaveOccurred())
 
 		checkableCount = 0
+		scenario = &dbtest.Scenario{}
 
 		ctx = context.Background()
 	})
@@ -61,18 +65,20 @@ var _ = Describe("ResourceCheckRateLimiter", func() {
 	}
 
 	createCheckable := func() {
-		es := dbConn.EncryptionStrategy()
-		encryptedPayload, nonce, err := es.Encrypt([]byte("{}"))
-		Expect(err).ToNot(HaveOccurred())
-
-		_, err = psql.Insert("resources").
-			Columns("name", "pipeline_id", "config", "active", "nonce", "type").
-			Values(fmt.Sprintf("resource-%d", checkableCount), defaultPipeline.ID(), encryptedPayload, true, nonce, defaultWorkerResourceType.Type).
-			RunWith(dbConn).
-			Exec()
-		Expect(err).ToNot(HaveOccurred())
-
 		checkableCount++
+
+		var resources atc.ResourceConfigs
+		for i := 0; i < checkableCount; i++ {
+			resources = append(resources, atc.ResourceConfig{
+				Name:   fmt.Sprintf("resource-%d", i),
+				Type:   dbtest.BaseResourceType,
+				Source: atc.Source{"some": "source"},
+			})
+		}
+
+		scenario.Run(builder.WithPipeline(atc.Config{
+			Resources: resources,
+		}))
 	}
 
 	Context("with no static limit provided", func() {
@@ -132,6 +138,18 @@ var _ = Describe("ResourceCheckRateLimiter", func() {
 			By("unblocking after the the new rate limit elapses")
 			fakeClock.Increment(checkInterval / time.Duration(checkableCount))
 			Expect(<-done).To(Succeed())
+
+			By("inactiving all resources by reset the pipeline with no resource")
+			scenario.Run(builder.WithPipeline(atc.Config{
+				Resources: atc.ResourceConfigs{},
+			}))
+
+			By("waiting for the refresh interval")
+			fakeClock.Increment(refreshInterval)
+
+			By("returning immediately and retaining the infinite rate")
+			Expect(<-wait(limiter)).To(Succeed())
+			Expect(limiter.Limit()).To(Equal(rate.Limit(rate.Inf)))
 		})
 	})
 
