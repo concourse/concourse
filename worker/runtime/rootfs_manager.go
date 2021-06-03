@@ -2,10 +2,11 @@ package runtime
 
 import (
 	"fmt"
-	"github.com/opencontainers/runc/libcontainer/user"
-	"github.com/opencontainers/runtime-spec/specs-go"
 	"os"
 	"path/filepath"
+
+	"github.com/opencontainers/runc/libcontainer/user"
+	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
 //counterfeiter:generate . RootfsManager
@@ -104,8 +105,12 @@ func (r rootfsManager) LookupUser(rootfsPath string, username string) (specs.Use
 	passwdPath := filepath.Join(rootfsPath, "etc", "passwd")
 	groupPath := filepath.Join(rootfsPath, "etc", "group")
 
-	execUser, err := user.GetExecUserPath(username, &user.ExecUser{Uid: DefaultUid, Gid: DefaultGid}, passwdPath, groupPath)
+	_, err := os.Stat(passwdPath)
+	if os.IsNotExist(err) && username == "root" {
+		return specs.User{UID: DefaultUid, GID: DefaultGid}, true, nil
+	}
 
+	execUser, err := user.GetExecUserPath(username, &user.ExecUser{Uid: DefaultUid, Gid: DefaultGid}, passwdPath, groupPath)
 	if err != nil {
 		return specs.User{}, false, err
 	}
