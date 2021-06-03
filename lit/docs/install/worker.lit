@@ -290,8 +290,17 @@ decide much on its own.
           --containerd-restricted-network=                   Network ranges to which traffic from containers will be restricted. Can be specified multiple times. [$CONCOURSE_CONTAINERD_RESTRICTED_NETWORK]
           --containerd-network-pool=                         Network range to use for dynamically allocated container subnets. (default: 10.80.0.0/16) [$CONCOURSE_CONTAINERD_NETWORK_POOL]
           --containerd-mtu=                                  MTU size for container network interfaces. Defaults to the MTU of the interface used for outbound access by the host. [$CONCOURSE_CONTAINERD_MTU]
+          --containerd-allow-host-access                     Allow containers to reach the host's network. This is turned off by default. [$CONCOURSE_CONTAINERD_ALLOW_HOST_ACCESS]
+
+        DNS Proxy Configuration:
+          --containerd-dns-proxy-enable                      Enable proxy DNS server. Note: this will enable containers to access the host network. [$CONCOURSE_CONTAINERD_DNS_PROXY_ENABLE]
       }}}
 
+      \warn{
+        Make sure to read \reference{note-on-allow-host-access} to understand
+        the implications of using \code{--containerd-allow-host-access} and
+        \code{--containerd-dns-proxy-enable}
+      }
     }
     \section{
       \title{\bold{Transitioning from Guardian to containerd}}
@@ -315,6 +324,14 @@ decide much on its own.
         }{
           \code{--containerd-dns-proxy-enable}
           \code{CONCOURSE_CONTAINERD_DNS_PROXY_ENABLE}
+        }
+      }{
+        \table-row{
+          \code{--garden-allow-host-access}
+          \code{CONCOURSE_GARDEN_ALLOW_HOST_ACCESS}
+        }{
+          \code{--containerd-allow-host-access}
+          \code{CONCOURSE_CONTAINERD_ALLOW_HOST_ACCESS}
         }
       }{
         \table-row{
@@ -364,7 +381,7 @@ decide much on its own.
           \code{--containerd-mtu}
           \code{CONCOURSE_CONTAINERD_MTU}
         }
-       }
+      }
     }
 
     \section{
@@ -477,11 +494,8 @@ decide much on its own.
           }}}
 
           \warn{
-            Setting \code{allow-host-access} will, well, allow containers to access
-            your host VM's network. If you don't trust your container workloads,
-            you may not want to allow this. With host network access, containers
-            will be able to reach out to the garden and baggageclaim servers, and
-            any other locally running network processes running on the worker.
+            Make sure to read \reference{note-on-allow-host-access} to
+            understand the implications of using \code{allow-host-access}
           }
 
           To validate whether the changes have taken effect, you can
@@ -513,5 +527,20 @@ decide much on its own.
         }
       }
     }
+  }
+
+  \section{
+    \title{A note on allowing host access and DNS proxy}{note-on-allow-host-access}
+    Setting \code{allow-host-access} will, well, allow containers to access your
+    host VM's network. If you don't trust your container workloads, you may not
+    want to allow this. With host network access, containers will be able to
+    reach out to any other locally running network processes running on the
+    worker including the garden and baggageclaim servers \bold{which would allow
+    them to issue commands and manipulate other containers and volumes on the
+    same worker}.
+
+    Setting \code{dns-proxy-enable} will also enable \code{allow-host-access}
+    (since the dns proxy will be run on the host).
+
   }
 }
