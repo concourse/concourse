@@ -45,7 +45,7 @@
   \title{Add a job}
 
   We only need one job right now so let's add a single job named
-  \code{hello-world}.
+  \code{hello-world-job}.
 
   \codeblock{yaml}{{
   jobs:

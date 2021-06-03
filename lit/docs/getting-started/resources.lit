@@ -17,7 +17,7 @@
   }{
       Run unit tests on new PR's? \link{Github-PR resource}{https://github.com/telia-oss/github-pr-resource}.
   }{
-      Build the latest image of your app? \link{Registry-image resource}{https://github.com/concourse/registry-image-resource/}
+      Fetch or push the latest image of your app? \link{Registry-image resource}{https://github.com/concourse/registry-image-resource/}
   }
 
   Resources can do a lot of things! The main goal of resources is to
@@ -109,10 +109,16 @@
   \title{Get Steps}
 
   Let's add some automation to our \code{hello-world.yml} pipeline and have
-  it \bold{trigger every one minute}. We will use the \link{time
-  resource}{https://github.com/concourse/time-resource/} to accomplish this.
+  it \bold{trigger on every new commit from some git repo}. We will use the \link{git
+  resource}{https://github.com/concourse/git-resource/} to accomplish this.
 
-  First, let's go back to the one step version of the pipeline.
+  Before proceeding, please have a git repository ready that you can push code
+  to. The rest of the tutorial will point to
+  \link{\code{github.com/concourse/examples}}{https://github.com/concourse/examples}
+  which you should replace with your own repository or your own fork of
+  \code{concourse/examples}.
+
+  To start, let's go back to the one step version of the pipeline.
 
   \codeblock{yaml}{{
   jobs:
@@ -130,10 +136,10 @@
           args: ["Hello World!"]
   }}
 
-  Now let's add the \link{time
-  resource}{https://github.com/concourse/time-resource/} to the pipeline.
-  First we'll add the \reference{resources}{\code{resources}} key to the
-  top-level of our yaml.
+  Now let's add the \link{git
+  resource}{https://github.com/concourse/git-resource/} to the pipeline. First
+  we'll add the \reference{resources}{\code{resources}} key to the top-level of
+  our yaml.
 
   \codeblock{yaml}{{
   resources:
@@ -155,15 +161,15 @@
 
   The \reference{resources}{\code{resources}} key takes a list of resources.
   In our case, we're going to add one item to that list. We will name the
-  resource \code{every-1min}. This is the name we'll use to refer to this
+  resource \code{repo}. This is the name we'll use to refer to this
   specific instance of the resource within our pipeline. We'll define the
-  \reference{schema.resource.type}{\code{type}} as \code{time}, which we got
+  \reference{schema.resource.type}{\code{type}} as \code{git}, which we got
   from the output of \code{fly -t tutorial workers --details}.
 
   \codeblock{yaml}{{
   resources:
-  - name: every-1min
-    type: time
+  - name: repo
+    type: git
 
   jobs:
   - name: hello-world-job
@@ -189,18 +195,27 @@
   different for every resource type, so you'll need to refer to that resource's
   documentation to determine how to fill out the \code{source} field.
 
-  If we look at the \link{\code{README} for the time
-  resource}{https://github.com/concourse/time-resource/#source-configuration}
-  we'll find that it accepts an \code{interval} field where we can specify
-  how often the time resource emits a new version. Let's add the
-  \code{interval} field and set it to \code{1m}.
+  If we look at the \link{\code{README} for the git
+  resource}{https://github.com/concourse/git-resource/#source-configuration}
+  we'll find that it requires we set the \code{uri} field. This should point to the location of the git repository. We can specify it in \code{https://} or \code{ssh@} format.
+  Let's add the \code{uri} field and set it to your repository.
+
+  \aside{
+    If you use the \code{ssh@} format for the \code{uri} then you'll likely
+    need to set the \code{private_key} field as well.
+
+    If you use the \code{https://} format and your repo is public then you
+    don't need to set anything else. If you repository is private then you'll
+    need to set the \code{username} and \code{password} fields to allow the git
+    resource to authenticate.
+  }
 
   \codeblock{yaml}{{
   resources:
-  - name: every-1min
-    type: time
+  - name: repo
+    type: git
     source:
-      interval: 1m
+      uri: https://github.com/concourse/examples.git
 
   jobs:
   - name: hello-world-job
@@ -217,22 +232,22 @@
           args: ["Hello World!"]
   }}
 
-  Next we need to connect the \code{every-1min} resource to the
+  Next we need to connect the \code{repo} resource to the
   \code{hello-world-job}. We connect the two objects by adding a
   \reference{get-step}{get step} to the job.
 
   \codeblock{yaml}{{
   resources:
-  - name: every-1min
-    type: time
+  - name: repo
+    type: git
     source:
-      interval: 1m
+      uri: https://github.com/concourse/examples.git
 
   jobs:
   - name: hello-world-job
     plan:
     # Add a get step referencing the resource
-    - get: every-1min
+    - get: repo
     - task: hello-world-task
       config:
         platform: linux
@@ -246,21 +261,21 @@
   }}
 
   The final piece is telling Concourse to trigger the \code{hello-world-job}
-  whenever the \code{every-1min} resource emits a new version. We can do that
+  whenever the \code{repo} resource emits a new version. We can do that
   by setting \reference{schema.step.get-step.trigger}{\code{trigger}} to
   \code{true} for the \reference{get-step}{get step}.
 
   \codeblock{yaml}{{
   resources:
-  - name: every-1min
-    type: time
+  - name: repo
+    type: git
     source:
-      interval: 1m
+      uri: https://github.com/concourse/examples.git
 
   jobs:
   - name: hello-world-job
     plan:
-    - get: every-1min
+    - get: repo
       trigger: true   # tell Concourse to trigger this job when new versions are emitted
     - task: hello-world-task
       config:
@@ -284,9 +299,17 @@
   \image{images/tutorial/hello-world-trigger-job.png}
 
   If you \link{click the
-  resource}{http://localhost:8080/teams/main/pipelines/hello-world/resources/every-1min}
-  you'll see a list of the versions that it has emitted so far. You can
-  expand each version to see which build it was used in.
+  resource}{http://localhost:8080/teams/main/pipelines/hello-world/resources/repo}
+  you'll see a list of the versions that it has emitted so far. You can expand
+  each version to see which build it was used in and some metadata if the
+  resource fetched any. Metadata is only populated after a version is fetched
+  by a \reference{get-step}.
+
+  By default, resources will only fetch the most recent version available. At
+  this point you can make commits to your repo and watch Concourse find them
+  and trigger the job. If you want to populate the version history with older
+  versions you can use \reference{fly-check-resource} with the \code{--from}
+  flag.
 }
 
 \section{
@@ -306,26 +329,25 @@
 
   To find out the structure of the artifact generated by a \reference{get-step}
   you will have to refer to the resource's documentation. The documentation for
-  the \link{time
-  resource}{https://github.com/concourse/time-resource/#in-report-the-given-time}
-  tells us that the \code{in} script will store the given timestamp in a file
-  called \code{timestamp}.
+  the \link{git
+  resource}{https://github.com/concourse/git-resource#in-clone-the-repository-at-the-given-ref}
+  tells us that the \code{in} script will clone the git repository.
 
-  Let's add \code{every-1min} as an input to the \code{hello-world-task}. Let's
-  also update the command the task runs to instead print the contents of the
-  \code{timestamp} file from \code{every-1min}.
+  Let's add \code{repo} as an input to the \code{hello-world-task}. Let's also
+  update the command the task runs to instead print the contents of some file
+  in the \code{repo}.
 
   \codeblock{yaml}{{
   resources:
-  - name: every-1min
-    type: time
+  - name: repo
+    type: git
     source:
-      interval: 1m
+      uri: https://github.com/concourse/examples.git
 
   jobs:
   - name: hello-world-job
     plan:
-    - get: every-1min
+    - get: repo
       trigger: true
     - task: hello-world-task
       config:
@@ -335,10 +357,10 @@
           source:
             repository: busybox
         inputs: # add the get step as an input to this task
-        - name: every-1min
+        - name: repo
         run: # read the file from the get step
           path: cat
-          args: ["every-1min/timestamp"]
+          args: ["repo/README.md"]
   }}
 
   Set the pipeline and we'll manually trigger the job.
@@ -350,13 +372,14 @@
 
   initializing
   selected worker: d032d4471e67
-  running cat every-1min/timestamp
-  2021-06-02 19:40:29.3371652 +0000 UTC
+  running cat repo/README.md
+  # examples
+  Examples of Concourse workflows
   succeeded
   }}}
 
   The job should finish successfully and print out the contents of
-  \code{every-1min/timestamp}.
+  \code{repo/README.md} or whichever file you selected from your repo.
 }
 
 \section{
@@ -371,7 +394,7 @@
   The default \code{check_every} interval helps keep Concourse feeling snappy
   and responsive to changes in external systems. The negative side-effect of
   this is that if you have a lot of resources all hitting the same system (e.g.
-  an internal Gitlab instance) you may end up
+  an internal Git system) you may end up
   \link{DDOS'ing}{https://en.wikipedia.org/wiki/Denial-of-service_attack} your
   external system! In these cases you may want to increase the
   \code{check_every} interval of your resource or disable it and use
@@ -382,17 +405,19 @@
   pipeline}{http://localhost:8080/teams/main/pipelines/hello-world/resources/every-1min}
   and expand the top line that starts with \code{check: <resource-name>}.
 
+  \image{images/tutorial/view-check-status.png}
+
   If your resource is having trouble finding new versions or is configured
-  incorrectly the resource will print a message that will be visible on it's
+  incorrectly the resource will print a message that will be visible on its
   resource page for you to debug.
 
-  You can also use \code{fly} by running \code{fly builds} and filtering for
-  \code{check}'s to see the result of the last check.
+  You can also use \code{fly} to view the status by running \code{fly builds}
+  and filtering for \code{check}'s to see the result of the last check.
 
   \codeblock{}{{
   $ fly -t tutorial builds | grep check
-  id   name                            status     start
-  106  hello-world/every-1min/check    succeeded  2021-04-10@12:00:20-0400
+  id   name                    status     start
+  106  hello-world/repo/check  succeeded  2021-04-10@12:00:20-0400
   }}
 }
 
@@ -405,24 +430,36 @@
   again, you should carefully read the documentation for the specific resource
   you are using. Each resource is basically its own little application.
 
-  Let's add a \reference{put-step} to our \code{hello-world.yml} pipeline.
-  We'll add another resource called \code{timestamps} that the
-  \reference{put-step} will emit to.
+  In order to "put" something, in the context of the \link{git
+  resource}{https://github.com/concourse/git-resource}, we'll need to make a
+  commit that can then be "put" to the repo.
+
+  \aside{
+    If you haven't already, you'll probably need to provide the git resource
+    with your \code{private_key} or a \code{username} and \code{password}, depending on the format
+    of \code{uri} you provided.
+
+    If you're used to pushing code from your computer you probably have a
+    private key in your \code{~/.ssh/} directory that you can use.
+  }
+
 
   \codeblock{yaml}{{
   resources:
-  - name: every-1min
-    type: time
+  - name: repo
+    type: git
     source:
-      interval: 1m
-  # add a new resource
-  - name: timestamps
-    type: mock  # from https://github.com/concourse/mock-resource
+      # changed uri to ssh format
+      uri: git@github.com:concourse/examples.git
+      private_key: |
+      -----BEGIN OPENSSH PRIVATE KEY-----
+      ...
+      -----END OPENSSH PRIVATE KEY-----
 
   jobs:
   - name: hello-world-job
     plan:
-    - get: every-1min
+    - get: repo
       trigger: true
     - task: hello-world-task
       config:
@@ -432,27 +469,121 @@
           source:
             repository: busybox
         inputs:
-        - name: every-1min
+        - name: repo
         run:
           path: cat
-          args: ["every-1min/timestamp"]
-    # add a put step to the end of the job
-    - put: timestamps
+          args: ["repo/README.md"]
+  }}
+
+  Next let's change the \code{hello-world-task} to instead create a commit.
+
+  \codeblock{yaml}{{
+  resources:
+  - name: repo
+    type: git
+    source:
+      uri: git@github.com:concourse/examples.git
+      private_key: |
+      -----BEGIN OPENSSH PRIVATE KEY-----
+      ...
+      -----END OPENSSH PRIVATE KEY-----
+
+  jobs:
+  - name: hello-world-job
+    plan:
+    - get: repo
+      trigger: true
+    - task: create-commit # renamed task
+      config:
+        platform: linux
+        image_resource:
+          type: registry-image
+          source:
+            repository: gitea/gitea # use any image that has the git cli
+        inputs:
+        - name: repo
+        run:
+          path: sh
+          args:
+          - -cx
+          # this is just a bash script
+          - |
+            cd repo
+            date +%Y-%m-%d > todays-date
+            git add ./todays-date
+            git commit -m "Update todays date"
+  }}
+
+  Lastly we can add a \reference{put-step} to push the commit made by the task.
+  \reference{put-step}{Put steps} usually have various \code{params} that
+  you'll need to set in order run the step correctly. If we read the
+  \link{documentation for the git
+  resource}{https://github.com/concourse/git-resource#out-push-to-a-repository}
+  we'll see that we need to specify \code{repository} field.
+
+  \aside{
+    If you're wondering why we don't do \code{git push} from the task, that's
+    for two reasons:
+    \ordered-list{
+      The newly made commit represents a new version and Concourse won't
+      capture it correctly if it's pushed from the task, which is outside of
+      the resource interface (check, get, put).
+    }{
+      The \code{private_key} is not available in the task so you would get an
+      authentication error if you \code{git push}ed.
+    }
+  }
+
+  \codeblock{yaml}{{
+  resources:
+  - name: repo
+    type: git
+    source:
+      uri: git@github.com:concourse/examples.git
+      private_key: |
+      -----BEGIN OPENSSH PRIVATE KEY-----
+      ...
+      -----END OPENSSH PRIVATE KEY-----
+
+  jobs:
+  - name: hello-world-job
+    plan:
+    - get: repo
+      trigger: true
+    - task: create-commit
+      config:
+        platform: linux
+        image_resource:
+          type: registry-image
+          source:
+            repository: gitea/gitea
+        inputs:
+        - name: repo
+        run:
+          path: sh
+          args:
+          - -cx
+          - |
+            cd repo
+            date +%Y-%m-%d > todays-date
+            git add ./todays-date
+            git commit -m "Update todays date"
+    - put: repo
       params:
-        file: every-1min/timestamp
+        repository: repo
   }}
 
   Set the pipeline and let's watch it trigger and run from the \link{web
-  UI}{http://localhost:8080/teams/main/pipelines/hello-world}
+  UI}{http://localhost:8080/teams/main/pipelines/hello-world}.
 
   \codeblock{}{{
   $ fly -t tutorial set-pipeline -p hello-world -c hello-world.yml
   }}
 
-  The job now has the \code{every-1min} resource to the left and the new
-  \code{timestamps} resource on the right. This is how Concourse visually
-  represents the inputs (\reference{get-step}{get steps}) and outputs
-  (\reference{put-step}{put steps}) of a job.
+  The job now has the \code{repo} resource to the left and right of the
+  \code{hello-world-job}. This is how Concourse visually represents the inputs
+  (\reference{get-step}{get steps}) and outputs (\reference{put-step}{put
+  steps}) of a job.
 
   That covers the basics of resources. It is best of think of each resource as
   a little application, so carefully read any documentation the resource author
@@ -471,54 +602,45 @@
   very similar to adding a resource. You can even override the bundled resource
   types by re-declaring them in your pipeline.
 
-  Remember, a resource is a container image. So to pull in a new
-  resource type you need to tell Concourse \italic{where} to pull the image
-  from. This is done by using the built-in \link{registry-image
-  resource}{https://github.com/concourse/registry-image-resource/}.
+  Remember, a resource is a container image. So to pull in a new resource type
+  you need to tell Concourse \italic{where} to pull the image from. This is
+  done by using the built-in \link{registry-image
+  resource}{https://github.com/concourse/registry-image-resource/}. The process
+  of adding a resource type is just like adding a regular resource.
 
-  Here is how we would re-declare the \code{time} resource in our
-  \code{hello-world} pipeline. By default the \link{registry-image
-  resource}{https://github.com/concourse/registry-image-resource/} pulls images
-  from \link{Docker Hub}{https://hub.docker.com/}.
+  Here's an example of using an external resource type to read an \link{rss
+  feed}{https://github.com/suhlig/concourse-rss-resource}.
 
   \codeblock{yaml}{{
-  resource_types: # declare the new resource type
-  - name: new-time
+  resource_types:
+  # declare the new resource type
+  - name: rss
     type: registry-image
     source:
-      repository: concourse/time-resource
+      repository: suhlig/concourse-rss-resource
+      tag: latest
 
   resources:
-  - name: every-1min
-    type: new-time # use our new resource type
+  # use the resource as usual
+  - name: dino-feed
+    type: rss
     source:
-      interval: 1m
+      url: http://www.qwantz.com/rssfeed.php
 
   jobs:
-  - name: hello-world-job
+  - name: announce
     plan:
-    - get: every-1min
+    - get: dino-feed
       trigger: true
-    - task: hello-world-task
-      config:
-        platform: linux
-        image_resource:
-          type: registry-image
-          source:
-            repository: busybox
-        inputs:
-        - name: every-1min
-        run:
-          path: cat
-          args: ["every-1min/timestamp"]
   }}
 
-  That's how you add external resource types to your pipeline. You could also
-  call the new resource type \code{time} instead of \code{new-time}.
+  That's how you add external resource types to your pipeline. If you're
+  looking for more resource types there's a catalog of them at
+  \link{resource-types.concourse-ci.org}{https://resource-types.concourse-ci.org/}.
 }
 
 \section{
-  \title{Time to Fly ✈️}{time-to-fly}
+  \title{Time For Takeoff ✈️}{time-to-takeoff}
 
   This brings us to the end of the tutorial. You should have a basic
   understanding about how to read Concourse pipelines and start creating your
