@@ -1,6 +1,8 @@
 module Causality.Causality exposing
-    ( Model
+    ( Build
+    , Model
     , NodeType(..)
+    , Version
     , changeToVersionedResource
     , constructGraph
     , documentTitle
@@ -16,16 +18,19 @@ module Causality.Causality exposing
     )
 
 import Application.Models exposing (Session)
+import Causality.DOT as DOT exposing (Attr(..))
+import ColorValues
+import Colors exposing (buildStatusColor)
 import Concourse
     exposing
         ( CausalityBuild(..)
         , CausalityDirection(..)
         , CausalityResourceVersion
         )
+import Concourse.BuildStatus exposing (BuildStatus(..))
 import Dict
 import EffectTransformer exposing (ET)
 import Graph exposing (Graph, NodeContext, NodeId)
-import Graph.DOT as DOT
 import Html exposing (Html)
 import Html.Attributes
     exposing
@@ -160,7 +165,7 @@ handleCallback callback ( model, effects ) =
                 , graph = graph
               }
             , effects
-                ++ [ RenderCausality <| graphvizDotNotation graph ]
+                ++ [ RenderCausality <| graphvizDotNotation model graph ]
             )
 
         _ ->
@@ -239,17 +244,26 @@ view session model =
         ]
 
 
+type alias Build =
+    { id : Int
+    , name : String
+    , status : Concourse.BuildStatus.BuildStatus
+    }
 
--- type alias NodeType =
---     { typ : NodeType
---     , name : String
---     , labels : List String
---     }
+
+type alias Version =
+    { id : Int
+    , version : Concourse.Version
+    }
 
 
 type NodeType
-    = Job String (List String)
-    | Resource String (List Concourse.Version)
+    = Job String (List Build)
+    | Resource String (List Version)
+
+
+
+-- inserts e into lst only if it doesn't already contain it
 
 
 insert : List a -> a -> List a
@@ -259,6 +273,10 @@ insert lst e =
 
     else
         lst ++ [ e ]
+
+
+
+-- mutually recursive function with constructBuild that converts the tree returned by the causality api into a graph
 
 
 constructResourceVersion : NodeId -> CausalityDirection -> CausalityResourceVersion -> Graph NodeType () -> Graph NodeType ()
@@ -277,17 +295,21 @@ constructResourceVersion parentId dir rv graph =
                 Downstream ->
                     { ctx
                         | incoming = IntDict.insert parentId () ctx.incoming
-                        , outgoing = childEdges
+                        , outgoing = IntDict.union ctx.outgoing childEdges
                     }
 
                 Upstream ->
                     { ctx
-                        | incoming = childEdges
+                        | incoming = IntDict.union ctx.incoming childEdges
                         , outgoing = IntDict.insert parentId () ctx.outgoing
                     }
 
         updateNode : Maybe (NodeContext NodeType ()) -> Maybe (NodeContext NodeType ())
         updateNode nodeContext =
+            let
+                version =
+                    { id = rv.versionId, version = rv.version }
+            in
             Just <|
                 case nodeContext of
                     Just { node, incoming, outgoing } ->
@@ -299,7 +321,10 @@ constructResourceVersion parentId dir rv graph =
                             newNodeType =
                                 case oldNode of
                                     Resource name versions ->
-                                        Resource name <| insert versions rv.version
+                                        insert versions version
+                                            |> List.sortBy .id
+                                            |> List.reverse
+                                            |> Resource name
 
                                     _ ->
                                         oldNode
@@ -315,7 +340,7 @@ constructResourceVersion parentId dir rv graph =
                         addEdge
                             { node =
                                 { id = nodeId
-                                , label = Resource rv.resourceName [ rv.version ]
+                                , label = Resource rv.resourceName [ version ]
                                 }
                             , incoming = IntDict.empty
                             , outgoing = IntDict.empty
@@ -325,6 +350,10 @@ constructResourceVersion parentId dir rv graph =
             Graph.update nodeId updateNode graph
     in
     List.foldl (\build acc -> constructBuild nodeId dir build acc) updatedGraph rv.builds
+
+
+
+-- mutually recursive function with constructResourceVersion that converts the tree returned by the causality api into a graph
 
 
 constructBuild : NodeId -> CausalityDirection -> CausalityBuild -> Graph NodeType () -> Graph NodeType ()
@@ -343,17 +372,14 @@ constructBuild parentId dir (CausalityBuildVariant b) graph =
                 Downstream ->
                     { ctx
                         | incoming = IntDict.insert parentId () ctx.incoming
-                        , outgoing = childEdges
+                        , outgoing = IntDict.union ctx.outgoing childEdges
                     }
 
                 Upstream ->
                     { ctx
-                        | incoming = childEdges
+                        | incoming = IntDict.union ctx.incoming childEdges
                         , outgoing = IntDict.insert parentId () ctx.outgoing
                     }
-
-        buildName =
-            "#" ++ b.name
 
         updateNode : Maybe (NodeContext NodeType ()) -> Maybe (NodeContext NodeType ())
         updateNode nodeContext =
@@ -368,7 +394,10 @@ constructBuild parentId dir (CausalityBuildVariant b) graph =
                             newNodeType =
                                 case oldNode of
                                     Job name builds ->
-                                        Job name <| insert builds buildName
+                                        insert builds { id = b.id, name = b.name, status = b.status }
+                                            |> List.sortBy .id
+                                            |> List.reverse
+                                            |> Job name
 
                                     _ ->
                                         oldNode
@@ -384,7 +413,7 @@ constructBuild parentId dir (CausalityBuildVariant b) graph =
                         addEdge
                             { node =
                                 { id = nodeId
-                                , label = Job b.jobName [ buildName ]
+                                , label = Job b.jobName [ { id = b.id, name = b.name, status = b.status } ]
                                 }
                             , incoming = IntDict.empty
                             , outgoing = IntDict.empty
@@ -417,30 +446,136 @@ constructGraph direction rv =
         graph
 
 
-graphvizDotNotation : Graph NodeType () -> String
-graphvizDotNotation =
+
+-- http://www.graphviz.org/doc/info/shapes.html#html. this should probably use Json.Encode.string to sanitize the output
+
+
+attributes : List ( String, String ) -> String
+attributes =
+    List.map (\( k, v ) -> k ++ "=\"" ++ v ++ "\"") >> String.join " "
+
+
+graphvizDotNotation : Model -> Graph NodeType () -> String
+graphvizDotNotation model =
     let
+        -- http://www.graphviz.org/doc/info/attrs.html
         styles : DOT.Styles
         styles =
             { rankdir = DOT.LR
-            , graph = "bgcolor=\"transparent\""
-            , node = "style=\"filled\" fontname=\"Inconsolata\""
-            , edge = ""
+            , graph =
+                attributes
+                    [ ( "bgcolor", "transparent" )
+                    ]
+            , node =
+                attributes
+                    [ ( "color", ColorValues.grey100 )
+                    , ( "style", "filled" )
+                    , ( "tooltip", " " )
+                    , ( "fontname", "Courier" )
+                    , ( "fontcolor", Colors.white )
+                    ]
+            , edge =
+                attributes
+                    [ ( "color", ColorValues.grey50 )
+                    , ( "penwidth", "2.0" )
+                    ]
             }
+
+        table body =
+            "<TABLE "
+                ++ attributes
+                    [ ( "BORDER", "0" )
+                    , ( "CELLBORDER", "0" )
+                    , ( "CELLSPACING", "0" )
+                    ]
+                ++ ">"
+                ++ String.join "" body
+                ++ "</TABLE>"
+
+        row attrs body =
+            "<TR><TD " ++ attrs ++ ">" ++ body ++ "</TD></TR>"
+
+        { teamName, pipelineName, pipelineInstanceVars } =
+            model.versionId
+
+        jobLabel : String -> List Build -> String
+        jobLabel name builds =
+            table <|
+                row "" name
+                    :: List.map
+                        (\b ->
+                            let
+                                build =
+                                    { teamName = teamName
+                                    , pipelineName = pipelineName
+                                    , pipelineInstanceVars = pipelineInstanceVars
+                                    , jobName = name
+                                    , buildName = b.name
+                                    }
+
+                                link =
+                                    Routes.toString <| Routes.Build { id = build, highlight = Routes.HighlightNothing }
+                            in
+                            row (attributes [ ( "HREF", link ), ( "BGCOLOR", buildStatusColor True b.status ) ]) ("#" ++ b.name)
+                        )
+                        builds
+
+        resourceLabel : String -> List Version -> String
+        resourceLabel name versions =
+            table <|
+                row "" name
+                    :: List.map
+                        (\{ version } ->
+                            let
+                                versionStr =
+                                    Concourse.versionQuery version
+                                        |> List.map
+                                            (\s ->
+                                                if String.length s > 40 then
+                                                    String.left 38 s ++ "…"
+
+                                                else
+                                                    s
+                                            )
+                                        |> String.join "<BR/>"
+
+                                resource =
+                                    { teamName = teamName
+                                    , pipelineName = pipelineName
+                                    , pipelineInstanceVars = pipelineInstanceVars
+                                    , resourceName = name
+                                    }
+
+                                link =
+                                    Routes.toString <|
+                                        Routes.resourceRoute resource (Just version)
+                            in
+                            row
+                                (attributes
+                                    [ ( "HREF", link )
+                                    , ( "BORDER", "4" )
+                                    , ( "COLOR", ColorValues.grey80 )
+                                    , ( "SIDES", "T" )
+                                    ]
+                                )
+                                versionStr
+                        )
+                        versions
 
         nodeAttrs typ =
             Dict.fromList <|
                 case typ of
                     Job name builds ->
-                        [ ( "class", "job" )
-                        , ( "shape", "rect" )
-                        , ( "label", "<B>" ++ name ++ String.join " " builds ++ "</B>" )
+                        [ ( "class", EscString "job" )
+                        , ( "shape", EscString "rect" )
+                        , ( "label", HtmlLabel <| jobLabel name builds )
                         ]
 
                     Resource name versions ->
-                        [ ( "class", "resource" )
-                        , ( "shape", "ellipse" )
-                        , ( "label", name ++ "\n" ++ (String.join "\n" <| List.map (\v -> String.join "," <| Concourse.versionQuery v) versions) )
+                        [ ( "class", EscString "resource" )
+                        , ( "shape", EscString "rect" )
+                        , ( "style", EscString "filled,rounded" )
+                        , ( "label", HtmlLabel <| resourceLabel name versions )
                         ]
 
         edgeAttrs _ =

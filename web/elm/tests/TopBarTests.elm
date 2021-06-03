@@ -1143,7 +1143,7 @@ eachHasStyle property value =
 
 sampleUser : Concourse.User
 sampleUser =
-    { id = "1", userName = "test", name = "Bob", isAdmin = False, email = "bob@bob.com", teams = Dict.empty , displayUserId = "displayUserIdTest" }
+    { id = "1", userName = "test", name = "Bob", isAdmin = False, email = "bob@bob.com", teams = Dict.empty, displayUserId = "displayUserIdTest" }
 
 
 pipelineBreadcrumbSelector : List Selector.Selector

@@ -1017,7 +1017,7 @@ func (r *resource) getCausalityResourceVersions(
 	updateOutput resourceVersionUpdater,
 ) error {
 	// construct the job and build nodes. These are placed into a map for easy access down the line
-	rows, err := psql.Select("b.id", "b.name", "j.id", "j.name").
+	rows, err := psql.Select("b.id", "b.name", "b.status", "j.id", "j.name").
 		From("builds b").
 		Join("jobs j ON b.job_id = j.id").
 		Where(sq.Eq{"b.id": buildIDs}).
@@ -1030,9 +1030,9 @@ func (r *resource) getCausalityResourceVersions(
 	builds := make(map[int]*atc.CausalityBuild)
 	for rows.Next() {
 		var buildID, jobID int
-		var buildName, jobName string
+		var buildName, jobName, status string
 
-		rows.Scan(&buildID, &buildName, &jobID, &jobName)
+		rows.Scan(&buildID, &buildName, &status, &jobID, &jobName)
 
 		if _, found := builds[buildID]; !found {
 			builds[buildID] = &atc.CausalityBuild{
@@ -1040,6 +1040,7 @@ func (r *resource) getCausalityResourceVersions(
 				JobID:   jobID,
 				Name:    buildName,
 				JobName: jobName,
+				Status:  atc.BuildStatus(status),
 			}
 		}
 	}

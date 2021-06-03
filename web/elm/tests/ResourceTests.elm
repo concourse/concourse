@@ -3014,7 +3014,7 @@ all =
                                 Ok { resource | build = Just { baseBuild | id = 2 } }
                             )
                         |> Tuple.second
-                        |> Common.contains (Effects.CloseBuildEventStream)
+                        |> Common.contains Effects.CloseBuildEventStream
             , describe "build events subscription" <|
                 [ test "after build plan is received, opens event stream" <|
                     \_ ->
