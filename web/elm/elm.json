@@ -8,7 +8,6 @@
     "dependencies": {
         "direct": {
             "NoRedInk/elm-simple-fuzzy": "1.0.3",
-            "avh4/elm-color": "1.0.0",
             "elm/browser": "1.0.2",
             "elm/core": "1.0.5",
             "elm/html": "1.0.0",
@@ -23,13 +22,10 @@
             "elm-community/json-extra": "4.3.0",
             "elm-community/list-extra": "8.3.1",
             "elm-community/maybe-extra": "5.2.0",
-            "elm-community/typed-svg": "7.0.0",
             "elm-explorations/benchmark": "1.0.2",
             "fapian/elm-html-aria": "1.4.0",
-            "gampleman/elm-visualization": "2.2.0",
             "krisajenkins/remotedata": "5.0.0",
             "matthewsj/elm-ordering": "2.0.0",
-            "peterszerzo/elm-arborist": "8.5.0",
             "ryannhg/date-format": "2.3.0",
             "truqu/elm-base64": "2.0.4",
             "vito/elm-ansi": "10.0.1"
