@@ -1010,11 +1010,13 @@ func (r *resource) getCausalityBuilds(versionMD5 string, query string) ([]int, e
 // this allows us to reuse getCausalityResourceVersions to construct both upstream and downstream trees by passing in a different updater fn
 type resourceVersionUpdater func(*atc.CausalityResourceVersion, *atc.CausalityBuild)
 
-// getCausalityResourceVersions converts the list of buildIDs into a tree
+// for a given list of build ids, use the build inputs and outputs to construct the tree.
+// the handleInput and handleOutput functions can be used to reverse the direction of the tree:
+// i.e. if the children of a build node is the output, then it's a downstream tree, vice versa if it's an input
 func (r *resource) getCausalityResourceVersions(
 	buildIDs []int, root *atc.CausalityResourceVersion,
-	updateInput resourceVersionUpdater,
-	updateOutput resourceVersionUpdater,
+	handleInput resourceVersionUpdater,
+	handleOutput resourceVersionUpdater,
 ) error {
 	// construct the job and build nodes. These are placed into a map for easy access down the line
 	rows, err := psql.Select("b.id", "b.name", "b.status", "j.id", "j.name").
@@ -1049,8 +1051,7 @@ func (r *resource) getCausalityResourceVersions(
 	// pre-populate the list with the root
 	resourceVersions[root.ResourceVersionID] = root
 
-	// go through all the inputs and construct the struct. By filling in the
-	// `InputTo` field, this will partially construct the tree
+	// go through all the inputs and construct the struct, this will partially construct the tree
 	rows, err = psql.Select("r.id", "rcv.id", "r.name", "rcv.version", "i.build_id").
 		From("build_resource_config_version_inputs i").
 		Join("resources r ON r.id = i.resource_id").
@@ -1083,7 +1084,7 @@ func (r *resource) getCausalityResourceVersions(
 				Version:           version,
 			}
 		}
-		updateInput(rv, builds[bID])
+		handleInput(rv, builds[bID])
 		resourceVersions[rcvID] = rv
 	}
 
@@ -1117,9 +1118,7 @@ func (r *resource) getCausalityResourceVersions(
 				Version:           version,
 			}
 		}
-		// rv.OutputOf = append(rv.OutputOf, builds[bID])
-		updateOutput(rv, builds[bID])
-		// builds[bID].Outputs = append(builds[bID].Outputs, rv)
+		handleOutput(rv, builds[bID])
 		resourceVersions[rcvID] = rv
 	}
 
@@ -1127,8 +1126,8 @@ func (r *resource) getCausalityResourceVersions(
 }
 
 func (r *resource) causality(rcvID int, query string,
-	updateInput resourceVersionUpdater,
-	updateOutput resourceVersionUpdater,
+	handleInput resourceVersionUpdater,
+	handleOutput resourceVersionUpdater,
 ) (atc.CausalityResourceVersion, bool, error) {
 	root := atc.CausalityResourceVersion{
 		ResourceID:        r.id,
@@ -1160,9 +1159,7 @@ func (r *resource) causality(rcvID int, query string,
 	if err != nil {
 		return root, false, err
 	}
-	err = r.getCausalityResourceVersions(buildIDs, &root, updateInput, updateOutput)
-
-	buildIDs, err = r.getCausalityBuilds(versionMD5, upStreamCausalityQuery)
+	err = r.getCausalityResourceVersions(buildIDs, &root, handleInput, handleOutput)
 	if err != nil {
 		return root, false, err
 	}
@@ -1171,11 +1168,12 @@ func (r *resource) causality(rcvID int, query string,
 }
 
 func (r *resource) DownstreamCausality(rcvID int) (atc.CausalityResourceVersion, bool, error) {
-	// downstream causality => [rv] root.inputTo -> [build] child.outputs -> [rv] child.inputTo...
 	return r.causality(rcvID, downStreamCausalityQuery,
+		// for every build input (resource version), add the build to its children
 		func(rv *atc.CausalityResourceVersion, build *atc.CausalityBuild) {
 			rv.Builds = append(rv.Builds, build)
 		},
+		// for every build output (resource version), register it as a child of the build
 		func(rv *atc.CausalityResourceVersion, build *atc.CausalityBuild) {
 			build.ResourceVersions = append(build.ResourceVersions, rv)
 		},
@@ -1183,11 +1181,12 @@ func (r *resource) DownstreamCausality(rcvID int) (atc.CausalityResourceVersion,
 }
 
 func (r *resource) UpstreamCausality(rcvID int) (atc.CausalityResourceVersion, bool, error) {
-	// upstream causality => [rv] root.outputOf -> [build] child.inputs -> [rv] child.outputOf...
 	return r.causality(rcvID, upStreamCausalityQuery,
+		// for every build input (resource version), register it as a child of the build
 		func(rv *atc.CausalityResourceVersion, build *atc.CausalityBuild) {
 			build.ResourceVersions = append(build.ResourceVersions, rv)
 		},
+		// for every build output (resource version), add the build to its children
 		func(rv *atc.CausalityResourceVersion, build *atc.CausalityBuild) {
 			rv.Builds = append(rv.Builds, build)
 		},

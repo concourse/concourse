@@ -74,8 +74,6 @@ type Pipeline interface {
 	CheckPaused() (bool, error)
 	Reload() (bool, error)
 
-	Causality(versionedResourceID int) ([]Cause, error)
-
 	ResourceVersion(resourceConfigVersionID int) (atc.ResourceVersion, bool, error)
 
 	GetBuildsWithVersionAsInput(int, int) ([]Build, error)
@@ -192,54 +190,6 @@ func (p *pipeline) Public() bool                     { return p.public }
 func (p *pipeline) Paused() bool                     { return p.paused }
 func (p *pipeline) Archived() bool                   { return p.archived }
 func (p *pipeline) LastUpdated() time.Time           { return p.lastUpdated }
-
-// IMPORTANT: This method is broken with the new resource config versions changes
-func (p *pipeline) Causality(versionedResourceID int) ([]Cause, error) {
-	rows, err := p.conn.Query(`
-		WITH RECURSIVE causality(versioned_resource_id, build_id) AS (
-				SELECT bi.versioned_resource_id, bi.build_id
-				FROM build_inputs bi
-				WHERE bi.versioned_resource_id = $1
-			UNION
-				SELECT bi.versioned_resource_id, bi.build_id
-				FROM causality t
-				INNER JOIN build_outputs bo ON bo.build_id = t.build_id
-				INNER JOIN build_inputs bi ON bi.versioned_resource_id = bo.versioned_resource_id
-				INNER JOIN builds b ON b.id = bi.build_id
-				AND NOT EXISTS (
-					SELECT 1
-					FROM build_outputs obo
-					INNER JOIN builds ob ON ob.id = obo.build_id
-					WHERE obo.build_id < bi.build_id
-					AND ob.job_id = b.job_id
-					AND obo.versioned_resource_id = bi.versioned_resource_id
-				)
-		)
-		SELECT c.versioned_resource_id, c.build_id
-		FROM causality c
-		INNER JOIN builds b ON b.id = c.build_id
-		ORDER BY b.start_time ASC, c.versioned_resource_id ASC
-	`, versionedResourceID)
-	if err != nil {
-		return nil, err
-	}
-
-	var causality []Cause
-	for rows.Next() {
-		var vrID, buildID int
-		err := rows.Scan(&vrID, &buildID)
-		if err != nil {
-			return nil, err
-		}
-
-		causality = append(causality, Cause{
-			ResourceVersionID: vrID,
-			BuildID:           buildID,
-		})
-	}
-
-	return causality, nil
-}
 
 func (p *pipeline) CheckPaused() (bool, error) {
 	var paused bool
