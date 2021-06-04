@@ -47,7 +47,7 @@ type ResourceType interface {
 
 	SetResourceConfigScope(ResourceConfigScope) error
 
-	CheckPlan(planFactory atc.PlanFactory, imagePlanner ImagePlanner, from atc.Version, interval time.Duration, sourceDefaults atc.Source, manuallyTriggered bool, shallow bool) atc.Plan
+	CheckPlan(planFactory atc.PlanFactory, imagePlanner ImagePlanner, varSourceConfigs atc.VarSourceConfigs, from atc.Version, interval time.Duration, sourceDefaults atc.Source, manuallyTriggered bool, shallow bool) (atc.Plan, error)
 	CreateBuild(context.Context, bool, atc.Plan) (Build, bool, error)
 
 	Reload() (bool, error)
@@ -239,7 +239,7 @@ func (r *resourceType) SetResourceConfigScope(scope ResourceConfigScope) error {
 	return nil
 }
 
-func (r *resourceType) CheckPlan(planFactory atc.PlanFactory, imagePlanner ImagePlanner, from atc.Version, interval time.Duration, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) atc.Plan {
+func (r *resourceType) CheckPlan(planFactory atc.PlanFactory, imagePlanner ImagePlanner, varSourceConfigs atc.VarSourceConfigs, from atc.Version, interval time.Duration, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) (atc.Plan, error) {
 	plan := planFactory.NewPlan(atc.CheckPlan{
 		Name:   r.name,
 		Type:   r.type_,
@@ -254,8 +254,18 @@ func (r *resourceType) CheckPlan(planFactory atc.PlanFactory, imagePlanner Image
 		ResourceType: r.name,
 	})
 
-	plan.Check.TypeImage = imagePlanner.ImageForType(plan.ID, r.type_, r.tags, skipInterval && skipIntervalRecursively)
-	return plan
+	var err error
+	plan.Check.VarPlans, err = varSourceConfigs.GetVarPlans(plan.ID+"/source", plan.Check.Source)
+	if err != nil {
+		return atc.Plan{}, fmt.Errorf("check source var plan: %w", err)
+	}
+
+	plan.Check.TypeImage, err = imagePlanner.ImageForType(plan.ID, r.type_, varSourceConfigs, r.tags, skipInterval && skipIntervalRecursively)
+	if err != nil {
+		return atc.Plan{}, fmt.Errorf("check image planner: %w", err)
+	}
+
+	return plan, nil
 }
 
 func (r *resourceType) CreateBuild(ctx context.Context, manuallyTriggered bool, plan atc.Plan) (Build, bool, error) {

@@ -163,6 +163,7 @@ var _ = Describe("TaskDelegate", func() {
 
 		var expectedCheckPlan, expectedGetPlan atc.Plan
 		var types atc.ResourceTypes
+		var varSources atc.VarSourceConfigs
 		var imageResource atc.ImageResource
 
 		var fakeArtifact *runtimefakes.FakeArtifact
@@ -238,9 +239,17 @@ var _ = Describe("TaskDelegate", func() {
 						BaseType: "docker",
 					},
 					Tags: atc.Tags{"some", "tags"},
+					VarPlans: []atc.Plan{
+						{
+							ID: planID + "/image-check/source/var-1",
+							GetVar: &atc.GetVarPlan{
+								Path:   "source-var",
+								Fields: []string{},
+							},
+						},
+					},
 				},
 			}
-
 			expectedGetPlan = atc.Plan{
 				ID: planID + "/image-get",
 				Get: &atc.GetPlan{
@@ -253,12 +262,28 @@ var _ = Describe("TaskDelegate", func() {
 					VersionFrom: &expectedCheckPlan.ID,
 					Params:      atc.Params{"some": "((params-var))"},
 					Tags:        atc.Tags{"some", "tags"},
+					VarPlans: []atc.Plan{
+						{
+							ID: planID + "/image-get/source/var-1",
+							GetVar: &atc.GetVarPlan{
+								Path:   "source-var",
+								Fields: []string{},
+							},
+						},
+						{
+							ID: planID + "/image-get/params/var-1",
+							GetVar: &atc.GetVarPlan{
+								Path:   "params-var",
+								Fields: []string{},
+							},
+						},
+					},
 				},
 			}
 		})
 
 		JustBeforeEach(func() {
-			imageSpec, fetchErr = delegate.FetchImage(context.TODO(), imageResource, types, privileged, tags)
+			imageSpec, fetchErr = delegate.FetchImage(context.TODO(), imageResource, types, varSources, privileged, tags)
 		})
 
 		It("succeeds", func() {

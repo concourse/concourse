@@ -1,6 +1,8 @@
 package builds
 
 import (
+	"fmt"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 )
@@ -65,7 +67,8 @@ func (visitor *planVisitor) VisitTask(step *atc.TaskStep) error {
 		ImageArtifactName: step.ImageArtifactName,
 		Timeout:           step.Timeout,
 
-		ResourceTypes: visitor.resourceTypes,
+		ResourceTypes:    visitor.resourceTypes,
+		VarSourceConfigs: visitor.varSourceConfigs,
 	})
 
 	return nil
@@ -84,7 +87,7 @@ func (visitor *planVisitor) VisitGetVar(step *atc.GetVarStep) error {
 		Source: varSourceConfig.Config,
 	})
 	var err error
-	plan.GetVar.VarPlans, err = visitor.varSourceConfigs.Without(step.Source).GetVarPlan(plan.ID, varSourceConfig.Config)
+	plan.GetVar.VarPlans, err = visitor.varSourceConfigs.Without(step.Source).GetVarPlans(plan.ID+"/source", varSourceConfig.Config)
 	if err != nil {
 		return err
 	}
@@ -130,7 +133,24 @@ func (visitor *planVisitor) VisitGet(step *atc.GetStep) error {
 		Timeout:  step.Timeout,
 	})
 
-	plan.Get.TypeImage = visitor.resourceTypes.ImageForType(plan.ID, resource.Type, step.Tags, false)
+	var err error
+	plan.Get.TypeImage, err = visitor.resourceTypes.ImageForType(plan.ID, resource.Type, visitor.varSourceConfigs, step.Tags, false)
+	if err != nil {
+		return fmt.Errorf("get image planner: %w", err)
+	}
+
+	sourceVarPlans, err := visitor.varSourceConfigs.GetVarPlans(plan.ID+"/source", resource.Source)
+	if err != nil {
+		return fmt.Errorf("get source var plan: %w", err)
+	}
+
+	paramsVarPlans, err := visitor.varSourceConfigs.GetVarPlans(plan.ID+"/params", step.Params)
+	if err != nil {
+		return fmt.Errorf("get params var plan: %w", err)
+	}
+
+	plan.Get.VarPlans = append(sourceVarPlans, paramsVarPlans...)
+
 	visitor.plan = plan
 	return nil
 }
@@ -163,7 +183,23 @@ func (visitor *planVisitor) VisitPut(step *atc.PutStep) error {
 		ExposeBuildCreatedBy: resource.ExposeBuildCreatedBy,
 	})
 
-	plan.Put.TypeImage = visitor.resourceTypes.ImageForType(plan.ID, resource.Type, step.Tags, false)
+	var err error
+	plan.Put.TypeImage, err = visitor.resourceTypes.ImageForType(plan.ID, resource.Type, visitor.varSourceConfigs, step.Tags, false)
+	if err != nil {
+		return fmt.Errorf("put image planner: %w", err)
+	}
+
+	putSourceVarPlans, err := visitor.varSourceConfigs.GetVarPlans(plan.ID+"/source", resource.Source)
+	if err != nil {
+		return fmt.Errorf("put source var plan: %w", err)
+	}
+
+	putParamsVarPlans, err := visitor.varSourceConfigs.GetVarPlans(plan.ID+"/params", step.Params)
+	if err != nil {
+		return fmt.Errorf("put params var plan: %w", err)
+	}
+
+	plan.Put.VarPlans = append(putSourceVarPlans, putParamsVarPlans...)
 
 	dependentGetPlan := visitor.planFactory.NewPlan(atc.GetPlan{
 		Name:        logicalName,
@@ -177,7 +213,21 @@ func (visitor *planVisitor) VisitPut(step *atc.PutStep) error {
 		Timeout: step.Timeout,
 	})
 
-	dependentGetPlan.Get.TypeImage = visitor.resourceTypes.ImageForType(dependentGetPlan.ID, resource.Type, step.Tags, false)
+	dependentGetPlan.Get.TypeImage, err = visitor.resourceTypes.ImageForType(dependentGetPlan.ID, resource.Type, visitor.varSourceConfigs, step.Tags, false)
+	if err != nil {
+		return fmt.Errorf("dependent get image planner: %w", err)
+	}
+
+	dependentGetVarSourcePlan, err := visitor.varSourceConfigs.GetVarPlans(dependentGetPlan.ID+"/source", resource.Source)
+	if err != nil {
+		return fmt.Errorf("dependent get source var plan: %w", err)
+	}
+
+	dependentGetVarParamsPlan, err := visitor.varSourceConfigs.GetVarPlans(dependentGetPlan.ID+"/params", step.GetParams)
+	if err != nil {
+		return fmt.Errorf("dependent get params var plan: %w", err)
+	}
+	dependentGetPlan.Get.VarPlans = append(dependentGetVarSourcePlan, dependentGetVarParamsPlan...)
 
 	visitor.plan = visitor.planFactory.NewPlan(atc.OnSuccessPlan{
 		Step: plan,
@@ -443,13 +493,28 @@ func (visitor *planVisitor) VisitEnsure(step *atc.EnsureStep) error {
 	return nil
 }
 
-func FetchImagePlan(planID atc.PlanID, image atc.ImageResource, resourceTypes atc.ResourceTypes, stepTags atc.Tags) (atc.Plan, *atc.Plan) {
+func FetchImagePlan(planID atc.PlanID, image atc.ImageResource, resourceTypes atc.ResourceTypes, varSourceConfigs atc.VarSourceConfigs, stepTags atc.Tags) (atc.Plan, *atc.Plan, error) {
 	// If resource type is a custom type, recurse in order to resolve nested resource types
 	getPlanID := planID + "/image-get"
 
 	tags := image.Tags
 	if len(image.Tags) == 0 {
 		tags = stepTags
+	}
+
+	getSourceVarPlans, err := varSourceConfigs.GetVarPlans(getPlanID+"/source", image.Source)
+	if err != nil {
+		return atc.Plan{}, nil, fmt.Errorf("get source var plan: %w", err)
+	}
+
+	getParamsVarPlans, err := varSourceConfigs.GetVarPlans(getPlanID+"/params", image.Params)
+	if err != nil {
+		return atc.Plan{}, nil, fmt.Errorf("get params var plan: %w", err)
+	}
+
+	getTypeImage, err := resourceTypes.ImageForType(getPlanID, image.Type, varSourceConfigs, tags, false)
+	if err != nil {
+		return atc.Plan{}, nil, fmt.Errorf("get image planner: %w", err)
 	}
 
 	// Construct get plan for image
@@ -461,7 +526,9 @@ func FetchImagePlan(planID atc.PlanID, image atc.ImageResource, resourceTypes at
 			Source: image.Source,
 			Params: image.Params,
 
-			TypeImage: resourceTypes.ImageForType(getPlanID, image.Type, tags, false),
+			TypeImage: getTypeImage,
+
+			VarPlans: append(getSourceVarPlans, getParamsVarPlans...),
 
 			Tags: tags,
 		},
@@ -470,6 +537,17 @@ func FetchImagePlan(planID atc.PlanID, image atc.ImageResource, resourceTypes at
 	var maybeCheckPlan *atc.Plan
 	if image.Version == nil {
 		checkPlanID := planID + "/image-check"
+
+		checkSourceVarPlans, err := varSourceConfigs.GetVarPlans(checkPlanID+"/source", image.Source)
+		if err != nil {
+			return atc.Plan{}, nil, fmt.Errorf("check source var plan: %w", err)
+		}
+
+		checkTypeImage, err := resourceTypes.ImageForType(checkPlanID, image.Type, varSourceConfigs, tags, false)
+		if err != nil {
+			return atc.Plan{}, nil, fmt.Errorf("check image planner: %w", err)
+		}
+
 		// don't know the version, need to do a Check before the Get
 		checkPlan := atc.Plan{
 			ID: checkPlanID,
@@ -478,7 +556,9 @@ func FetchImagePlan(planID atc.PlanID, image atc.ImageResource, resourceTypes at
 				Type:   image.Type,
 				Source: image.Source,
 
-				TypeImage: resourceTypes.ImageForType(checkPlanID, image.Type, tags, false),
+				TypeImage: checkTypeImage,
+
+				VarPlans: checkSourceVarPlans,
 
 				Tags: tags,
 			},
@@ -491,5 +571,5 @@ func FetchImagePlan(planID atc.PlanID, image atc.ImageResource, resourceTypes at
 		imageGetPlan.Get.Version = &image.Version
 	}
 
-	return imageGetPlan, maybeCheckPlan
+	return imageGetPlan, maybeCheckPlan, nil
 }

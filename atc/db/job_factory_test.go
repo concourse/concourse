@@ -1065,9 +1065,11 @@ var _ = Describe("JobFactory", func() {
 						},
 						VarSources: atc.VarSourceConfigs{
 							{
-								Name:   "var-source",
-								Type:   "source-type",
-								Config: "some-config",
+								Name: "var-source",
+								Type: "source-type",
+								Config: map[string]interface{}{
+									"some": "config",
+								},
 							},
 						},
 					}, db.ConfigVersion(1), false)
@@ -1090,9 +1092,11 @@ var _ = Describe("JobFactory", func() {
 					Expect(jobs[0].VarSourceConfigs).To(ConsistOf(
 						atc.VarSourceConfigs{
 							{
-								Name:   "var-source",
-								Type:   "source-type",
-								Config: "some-config",
+								Name: "var-source",
+								Type: "source-type",
+								Config: map[string]interface{}{
+									"some": "config",
+								},
 							},
 						},
 					))

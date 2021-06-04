@@ -64,7 +64,7 @@ type Resource interface {
 
 	SetResourceConfigScope(ResourceConfigScope) error
 
-	CheckPlan(planFactory atc.PlanFactory, imagePlanner ImagePlanner, from atc.Version, interval time.Duration, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) atc.Plan
+	CheckPlan(planFactory atc.PlanFactory, imagePlanner ImagePlanner, varSourceConfigs atc.VarSourceConfigs, from atc.Version, interval time.Duration, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) (atc.Plan, error)
 	CreateBuild(context.Context, bool, atc.Plan) (Build, bool, error)
 
 	NotifyScan() error
@@ -250,10 +250,10 @@ func (r *resource) setResourceConfigScopeInTransaction(tx Tx, scope ResourceConf
 }
 
 type ImagePlanner interface {
-	ImageForType(planID atc.PlanID, resourceType string, stepTags atc.Tags, skipInterval bool) atc.TypeImage
+	ImageForType(planID atc.PlanID, resourceType string, varSourceConfigs atc.VarSourceConfigs, stepTags atc.Tags, skipInterval bool) (atc.TypeImage, error)
 }
 
-func (r *resource) CheckPlan(planFactory atc.PlanFactory, imagePlanner ImagePlanner, from atc.Version, interval time.Duration, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) atc.Plan {
+func (r *resource) CheckPlan(planFactory atc.PlanFactory, imagePlanner ImagePlanner, varSourceConfigs atc.VarSourceConfigs, from atc.Version, interval time.Duration, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) (atc.Plan, error) {
 	plan := planFactory.NewPlan(atc.CheckPlan{
 		Name:    r.name,
 		Type:    r.type_,
@@ -269,8 +269,18 @@ func (r *resource) CheckPlan(planFactory atc.PlanFactory, imagePlanner ImagePlan
 		Resource: r.name,
 	})
 
-	plan.Check.TypeImage = imagePlanner.ImageForType(plan.ID, r.type_, r.config.Tags, skipInterval && skipIntervalRecursively)
-	return plan
+	var err error
+	plan.Check.VarPlans, err = varSourceConfigs.GetVarPlans(plan.ID+"/source", plan.Check.Source)
+	if err != nil {
+		return atc.Plan{}, fmt.Errorf("check source var plan: %w", err)
+	}
+
+	plan.Check.TypeImage, err = imagePlanner.ImageForType(plan.ID, r.type_, varSourceConfigs, r.config.Tags, skipInterval && skipIntervalRecursively)
+	if err != nil {
+		return atc.Plan{}, fmt.Errorf("check image planner: %w", err)
+	}
+
+	return plan, nil
 }
 
 // CreateBuild creates a check build for this resource. It returns back the

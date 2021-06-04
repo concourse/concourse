@@ -879,7 +879,7 @@ var _ = Describe("Builder", func() {
 							},
 						}
 
-						expectedPlan, err = planner.Create(step, nil, nil, nil)
+						expectedPlan, err = planner.Create(step, nil, nil, nil, nil)
 						Expect(err).ToNot(HaveOccurred())
 					})
 

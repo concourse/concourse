@@ -61,7 +61,7 @@ type TaskDelegate interface {
 	StartSpan(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
 
 	Variables(context.Context, atc.VarSourceConfigs) vars.Variables
-	FetchImage(context.Context, atc.ImageResource, atc.ResourceTypes, bool, atc.Tags) (worker.ImageSpec, error)
+	FetchImage(context.Context, atc.ImageResource, atc.ResourceTypes, atc.VarSourceConfigs, bool, atc.Tags) (worker.ImageSpec, error)
 
 	Stdout() io.Writer
 	Stderr() io.Writer
@@ -337,6 +337,7 @@ func (step *TaskStep) imageSpec(ctx context.Context, logger lager.Logger, state 
 			ctx,
 			*config.ImageResource,
 			step.plan.ResourceTypes,
+			step.plan.VarSourceConfigs,
 			step.plan.Privileged,
 			step.plan.Tags,
 		)

@@ -540,7 +540,8 @@ var _ = Describe("ResourceType", func() {
 				planFactory := atc.NewPlanFactory(0)
 				version = atc.Version{"version": "from"}
 				sourceDefault := atc.Source{"source-test": "default"}
-				createdCheckPlan = resourceType.CheckPlan(planFactory, atc.ResourceTypes{}, version, 1*time.Hour, sourceDefault, false, false)
+				createdCheckPlan, err = resourceType.CheckPlan(planFactory, atc.ResourceTypes{}, atc.VarSourceConfigs{}, version, 1*time.Hour, sourceDefault, false, false)
+				Expect(err).ToNot(HaveOccurred())
 			})
 
 			It("produces a simple check plan", func() {
@@ -605,14 +606,15 @@ var _ = Describe("ResourceType", func() {
 
 				planFactory := atc.NewPlanFactory(0)
 				version = atc.Version{"version": "from"}
-				createdCheckPlan = resourceType.CheckPlan(planFactory,
+				createdCheckPlan, err = resourceType.CheckPlan(planFactory,
 					atc.ResourceTypes{
 						{
 							Name:   "some-resource-type",
 							Type:   "some-base-resource-type",
 							Source: atc.Source{"some": "type-source"},
 						},
-					}, version, 1*time.Hour, nil, false, false)
+					}, atc.VarSourceConfigs{}, version, 1*time.Hour, nil, false, false)
+				Expect(err).ToNot(HaveOccurred())
 			})
 
 			It("produces a check plan with nested image steps", func() {
@@ -701,7 +703,7 @@ var _ = Describe("ResourceType", func() {
 
 				planFactory := atc.NewPlanFactory(0)
 				version = atc.Version{"version": "from"}
-				createdCheckPlan = resourceType.CheckPlan(planFactory,
+				createdCheckPlan, err = resourceType.CheckPlan(planFactory,
 					atc.ResourceTypes{
 						{
 							Name:       "some-resource-type",
@@ -709,7 +711,8 @@ var _ = Describe("ResourceType", func() {
 							Source:     atc.Source{"some": "type-source"},
 							Privileged: true,
 						},
-					}, version, 1*time.Hour, nil, false, false)
+					}, atc.VarSourceConfigs{}, version, 1*time.Hour, nil, false, false)
+				Expect(err).ToNot(HaveOccurred())
 			})
 
 			It("produces a check plan with privileged", func() {
@@ -796,14 +799,15 @@ var _ = Describe("ResourceType", func() {
 				It("skips the interval for the resource check, but not for the resource type", func() {
 					planFactory := atc.NewPlanFactory(0)
 					version := atc.Version{"version": "from"}
-					createdCheckPlan := resourceType.CheckPlan(planFactory,
+					createdCheckPlan, err := resourceType.CheckPlan(planFactory,
 						atc.ResourceTypes{
 							{
 								Name:   "some-resource-type",
 								Type:   "some-base-resource-type",
 								Source: atc.Source{"some": "type-source"},
 							},
-						}, version, 1*time.Hour, nil, true, false)
+						}, atc.VarSourceConfigs{}, version, 1*time.Hour, nil, true, false)
+					Expect(err).ToNot(HaveOccurred())
 
 					checkPlanID := atc.PlanID("1/image-check")
 					expectedPlan := atc.Plan{
@@ -855,14 +859,15 @@ var _ = Describe("ResourceType", func() {
 				It("skips the interval for the resource and resource type checks", func() {
 					planFactory := atc.NewPlanFactory(0)
 					version := atc.Version{"version": "from"}
-					createdCheckPlan := resourceType.CheckPlan(planFactory,
+					createdCheckPlan, err := resourceType.CheckPlan(planFactory,
 						atc.ResourceTypes{
 							{
 								Name:   "some-resource-type",
 								Type:   "some-base-resource-type",
 								Source: atc.Source{"some": "type-source"},
 							},
-						}, version, 1*time.Hour, nil, true, true)
+						}, atc.VarSourceConfigs{}, version, 1*time.Hour, nil, true, true)
+					Expect(err).ToNot(HaveOccurred())
 
 					checkPlanID := atc.PlanID("1/image-check")
 					expectedPlan := atc.Plan{
@@ -908,6 +913,89 @@ var _ = Describe("ResourceType", func() {
 					}
 					Expect(createdCheckPlan).To(Equal(expectedPlan))
 				})
+			})
+		})
+
+		Context("when there is a resource type with vars in source", func() {
+			var createdCheckPlan atc.Plan
+			var checkErr error
+			var version atc.Version
+			var resourceType db.ResourceType
+
+			BeforeEach(func() {
+				pipeline, created, err := defaultTeam.SavePipeline(
+					atc.PipelineRef{Name: "pipeline-with-resource-base-type"},
+					atc.Config{
+						ResourceTypes: atc.ResourceTypes{{
+							Name: "some-resource-type",
+							Type: "some-base-resource-type",
+							Tags: []string{"tag"},
+							Source: atc.Source{
+								"some": "((var-source:foo))",
+							},
+						}},
+					},
+					0,
+					false,
+				)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(created).To(BeTrue())
+
+				var found bool
+				resourceType, found, err = pipeline.ResourceType("some-resource-type")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				planFactory := atc.NewPlanFactory(0)
+				version = atc.Version{"version": "from"}
+				sourceDefault := atc.Source{"source-test": "default"}
+				varSources := atc.VarSourceConfigs{
+					{
+						Name: "var-source",
+						Type: "vault",
+						Config: map[string]interface{}{
+							"some": "config",
+						},
+					},
+				}
+				createdCheckPlan, checkErr = resourceType.CheckPlan(planFactory, atc.ResourceTypes{}, varSources, version, 1*time.Hour, sourceDefault, false, false)
+			})
+
+			It("produces a check plan with var plans", func() {
+				Expect(checkErr).ToNot(HaveOccurred())
+				expectedPlan := atc.Plan{
+					ID: atc.PlanID("1"),
+					Check: &atc.CheckPlan{
+						Name: resourceType.Name(),
+						Type: resourceType.Type(),
+						Source: atc.Source{
+							"some":        "((var-source:foo))",
+							"source-test": "default",
+						},
+						Tags: resourceType.Tags(),
+						TypeImage: atc.TypeImage{
+							BaseType: resourceType.Type(),
+						},
+						FromVersion:  version,
+						ResourceType: resourceType.Name(),
+						Interval:     "1h0m0s",
+						VarPlans: []atc.Plan{
+							{
+								ID: atc.PlanID("1/source/var-1"),
+								GetVar: &atc.GetVarPlan{
+									Name:   "var-source",
+									Type:   "vault",
+									Path:   "foo",
+									Fields: []string{},
+									Source: atc.Source{
+										"some": "config",
+									},
+								},
+							},
+						},
+					},
+				}
+				Expect(createdCheckPlan).To(Equal(expectedPlan))
 			})
 		})
 	})

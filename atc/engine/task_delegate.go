@@ -113,12 +113,16 @@ func (d *taskDelegate) FetchImage(
 	ctx context.Context,
 	image atc.ImageResource,
 	types atc.ResourceTypes,
+	varSources atc.VarSourceConfigs,
 	privileged bool,
 	stepTags atc.Tags,
 ) (worker.ImageSpec, error) {
 	image.Name = "image"
 
-	getPlan, checkPlan := builds.FetchImagePlan(d.planID, image, types, stepTags)
+	getPlan, checkPlan, err := builds.FetchImagePlan(d.planID, image, types, varSources, stepTags)
+	if err != nil {
+		return worker.ImageSpec{}, err
+	}
 
 	if checkPlan != nil {
 		err := d.build.SaveEvent(event.ImageCheck{
@@ -133,7 +137,7 @@ func (d *taskDelegate) FetchImage(
 		}
 	}
 
-	err := d.build.SaveEvent(event.ImageGet{
+	err = d.build.SaveEvent(event.ImageGet{
 		Time: d.clock.Now().Unix(),
 		Origin: event.Origin{
 			ID: event.OriginID(d.planID),

@@ -3414,6 +3414,7 @@ var _ = Describe("Team", func() {
 
 	Describe("FindCheckContainers", func() {
 		var (
+			fakeVarSourcePool *credsfakes.FakeVarSourcePool
 			fakeSecretManager *credsfakes.FakeSecrets
 			logger            lager.Logger
 		)
@@ -3424,6 +3425,7 @@ var _ = Describe("Team", func() {
 		}
 
 		BeforeEach(func() {
+			fakeVarSourcePool = new(credsfakes.FakeVarSourcePool)
 			fakeSecretManager = new(credsfakes.FakeSecrets)
 			fakeSecretManager.GetReturns("", nil, false, nil)
 			logger = lagertest.NewTestLogger("db-test")

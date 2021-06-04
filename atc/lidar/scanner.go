@@ -46,19 +46,25 @@ func (s *scanner) Run(ctx context.Context) error {
 		return err
 	}
 
-	s.scanResourceTypes(spanCtx, resourceTypes)
-	s.scanResources(spanCtx, resources, resourceTypes)
+	varSourcesPerPipeline, err := s.checkFactory.VarSources()
+	if err != nil {
+		logger.Error("failed-to-get-var-sources", err)
+		return err
+	}
+
+	s.scanResourceTypes(spanCtx, resourceTypes, varSourcesPerPipeline)
+	s.scanResources(spanCtx, resources, resourceTypes, varSourcesPerPipeline)
 
 	return nil
 }
 
-func (s *scanner) scanResources(ctx context.Context, resources []db.Resource, resourceTypes db.ResourceTypes) {
+func (s *scanner) scanResources(ctx context.Context, resources []db.Resource, resourceTypes db.ResourceTypes, varSourcesPerPipeline map[int]atc.VarSourceConfigs) {
 	logger := lagerctx.FromContext(ctx)
 	waitGroup := new(sync.WaitGroup)
 	for _, resource := range resources {
 		waitGroup.Add(1)
 
-		go func(resource db.Resource, resourceTypes db.ResourceTypes) {
+		go func(resource db.Resource, resourceTypes db.ResourceTypes, varSourcesPerPipeline map[int]atc.VarSourceConfigs) {
 			defer func() {
 				err := util.DumpPanic(recover(), "scanning resource %d", resource.ID())
 				if err != nil {
@@ -67,18 +73,18 @@ func (s *scanner) scanResources(ctx context.Context, resources []db.Resource, re
 			}()
 			defer waitGroup.Done()
 
-			s.check(ctx, resource, resourceTypes)
-		}(resource, resourceTypes)
+			s.check(ctx, resource, resourceTypes, varSourcesPerPipeline)
+		}(resource, resourceTypes, varSourcesPerPipeline)
 	}
 	waitGroup.Wait()
 }
 
-func (s *scanner) scanResourceTypes(ctx context.Context, resourceTypes db.ResourceTypes) {
+func (s *scanner) scanResourceTypes(ctx context.Context, resourceTypes db.ResourceTypes, varSourcesPerPipeline map[int]atc.VarSourceConfigs) {
 	logger := lagerctx.FromContext(ctx)
 	waitGroup := new(sync.WaitGroup)
 	for _, resourceType := range resourceTypes {
 		waitGroup.Add(1)
-		go func(resourceType db.ResourceType, resourceTypes db.ResourceTypes) {
+		go func(resourceType db.ResourceType, resourceTypes db.ResourceTypes, varSourcesPerPipeline map[int]atc.VarSourceConfigs) {
 			defer func() {
 				err := util.DumpPanic(recover(), "scanning resource type %d", resourceType.ID())
 				if err != nil {
@@ -86,13 +92,13 @@ func (s *scanner) scanResourceTypes(ctx context.Context, resourceTypes db.Resour
 				}
 			}()
 			defer waitGroup.Done()
-			s.check(ctx, resourceType, resourceTypes)
-		}(resourceType, resourceTypes)
+			s.check(ctx, resourceType, resourceTypes, varSourcesPerPipeline)
+		}(resourceType, resourceTypes, varSourcesPerPipeline)
 	}
 	waitGroup.Wait()
 }
 
-func (s *scanner) check(ctx context.Context, checkable db.Checkable, resourceTypes db.ResourceTypes) {
+func (s *scanner) check(ctx context.Context, checkable db.Checkable, resourceTypes db.ResourceTypes, varSourcesPerPipeline map[int]atc.VarSourceConfigs) {
 	logger := lagerctx.FromContext(ctx)
 
 	spanCtx, span := tracing.StartSpan(ctx, "scanner.check", tracing.Attrs{
@@ -110,7 +116,12 @@ func (s *scanner) check(ctx context.Context, checkable db.Checkable, resourceTyp
 		return
 	}
 
-	_, created, err := s.checkFactory.TryCreateCheck(lagerctx.NewContext(spanCtx, logger), checkable, resourceTypes, version, false, false)
+	var varSources atc.VarSourceConfigs
+	if sources, ok := varSourcesPerPipeline[checkable.PipelineID()]; ok {
+		varSources = sources
+	}
+
+	_, created, err := s.checkFactory.TryCreateCheck(lagerctx.NewContext(spanCtx, logger), checkable, resourceTypes, varSources, version, false, false)
 	if err != nil {
 		logger.Error("failed-to-create-check", err)
 		return

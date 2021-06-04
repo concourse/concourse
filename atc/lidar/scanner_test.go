@@ -101,93 +101,148 @@ var _ = Describe("Scanner", func() {
 					fakeCheckFactory.ResourceTypesReturns([]db.ResourceType{fakeResourceType}, nil)
 				})
 
-				Context("when the resource parent type is a base type", func() {
+				Context("when fetching var sources succeeds", func() {
+					var varSourcesMap map[int]atc.VarSourceConfigs
+
 					BeforeEach(func() {
-						fakeCheckFactory.ResourceTypesReturns([]db.ResourceType{}, nil)
-						fakeResource.TypeReturns("some-type")
+						varSourcesMap = map[int]atc.VarSourceConfigs{
+							1: {
+								{
+									Name: "some-var-source",
+									Type: "dummy",
+									Config: map[string]interface{}{
+										"some": "config",
+									},
+								},
+							},
+						}
+
+						fakeCheckFactory.VarSourcesReturns(varSourcesMap, nil)
 					})
 
-					Context("when the last check end time is past our interval", func() {
-						It("creates a check", func() {
-							Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
+					Context("when the resource parent type is a base type", func() {
+						BeforeEach(func() {
+							fakeCheckFactory.ResourceTypesReturns([]db.ResourceType{}, nil)
+							fakeResource.TypeReturns("some-type")
 						})
 
-						Context("when try creating a check panics", func() {
+						Context("when the last check end time is past our interval", func() {
+							It("creates a check", func() {
+								Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
+							})
+
+							Context("when try creating a check panics", func() {
+								BeforeEach(func() {
+									fakeCheckFactory.TryCreateCheckStub = func(context.Context, db.Checkable, db.ResourceTypes, atc.VarSourceConfigs, atc.Version, bool, bool) (db.Build, bool, error) {
+										panic("something went wrong")
+									}
+								})
+
+								It("recovers from the panic", func() {
+									Expect(err).ToNot(HaveOccurred())
+								})
+							})
+						})
+
+						Context("when the checkable has a pinned version", func() {
 							BeforeEach(func() {
-								fakeCheckFactory.TryCreateCheckStub = func(context.Context, db.Checkable, db.ResourceTypes, atc.Version, bool, bool) (db.Build, bool, error) {
-									panic("something went wrong")
-								}
+								fakeResource.CurrentPinnedVersionReturns(atc.Version{"some": "version"})
 							})
 
-							It("recovers from the panic", func() {
-								Expect(err).ToNot(HaveOccurred())
+							It("creates a check with that pinned version", func() {
+								Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
+								_, _, _, _, fromVersion, _, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+								Expect(fromVersion).To(Equal(atc.Version{"some": "version"}))
+							})
+						})
+
+						Context("when the checkable does not have a pinned version", func() {
+							BeforeEach(func() {
+								fakeResource.CurrentPinnedVersionReturns(nil)
+							})
+
+							It("creates a check with a nil pinned version", func() {
+								Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
+								_, _, _, _, fromVersion, _, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+								Expect(fromVersion).To(BeNil())
+							})
+						})
+
+						Context("when the resources pipeline has var sources", func() {
+							BeforeEach(func() {
+								fakeResource.PipelineIDReturns(1)
+							})
+
+							It("creates a check with the var sources for the pipeline", func() {
+								Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
+								_, _, _, varSources, _, _, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+								Expect(varSources).To(Equal(varSourcesMap[1]))
+							})
+						})
+
+						Context("when the resources pipeline does not have var sources", func() {
+							BeforeEach(func() {
+								fakeResource.PipelineIDReturns(2)
+							})
+
+							It("creates a check with empty var sources", func() {
+								Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
+								_, _, _, varSources, _, _, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+								var emptyVarSources atc.VarSourceConfigs
+								Expect(varSources).To(Equal(emptyVarSources))
 							})
 						})
 					})
 
-					Context("when the checkable has a pinned version", func() {
+					Context("when the resource has a parent type", func() {
 						BeforeEach(func() {
-							fakeResource.CurrentPinnedVersionReturns(atc.Version{"some": "version"})
+							fakeResource.TypeReturns("custom-type")
+							fakeResource.PipelineIDReturns(1)
+							fakeResourceType.NameReturns("custom-type")
+							fakeResourceType.PipelineIDReturns(1)
 						})
 
-						It("creates a check with that pinned version", func() {
-							Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
-							_, _, _, fromVersion, _, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
-							Expect(fromVersion).To(Equal(atc.Version{"some": "version"}))
+						It("creates a check for both the parent and the resource", func() {
+							Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(2))
+
+							_, checkable, _, _, _, manuallyTriggered, skipIntervalRecursively := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+							Expect(checkable).To(Equal(fakeResourceType))
+							Expect(manuallyTriggered).To(BeFalse())
+							Expect(skipIntervalRecursively).To(BeFalse())
+
+							_, checkable, _, _, _, manuallyTriggered, skipIntervalRecursively = fakeCheckFactory.TryCreateCheckArgsForCall(1)
+							Expect(checkable).To(Equal(fakeResource))
+							Expect(manuallyTriggered).To(BeFalse())
+							Expect(skipIntervalRecursively).To(BeFalse())
 						})
 					})
 
-					Context("when the checkable does not have a pinned version", func() {
+					Context("when a put-only resource has a parent-type", func() {
 						BeforeEach(func() {
-							fakeResource.CurrentPinnedVersionReturns(nil)
+							By("checkFactory.Resources should not return any put-only resources")
+							fakeResourceType.NameReturns("put-only-custom-type")
+							fakeResourceType.PipelineIDReturns(1)
 						})
 
-						It("creates a check with a nil pinned version", func() {
-							Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
-							_, _, _, fromVersion, _, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
-							Expect(fromVersion).To(BeNil())
+						It("creates a check for only the parent and not the put-only resource", func() {
+							Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(2),
+								"two checks created; one for the fakeResourceType and the second for the unrelated fakeResource")
+
+							_, checkable, _, _, _, manuallyTriggered, skipIntervalRecursively := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+							Expect(checkable).To(Equal(fakeResourceType))
+							Expect(manuallyTriggered).To(BeFalse())
+							Expect(skipIntervalRecursively).To(BeFalse())
 						})
 					})
 				})
 
-				Context("when the resource has a parent type", func() {
+				Context("when fetching var sources fails", func() {
 					BeforeEach(func() {
-						fakeResource.TypeReturns("custom-type")
-						fakeResource.PipelineIDReturns(1)
-						fakeResourceType.NameReturns("custom-type")
-						fakeResourceType.PipelineIDReturns(1)
+						fakeCheckFactory.VarSourcesReturns(nil, errors.New("oops"))
 					})
 
-					It("creates a check for both the parent and the resource", func() {
-						Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(2))
-
-						_, checkable, _, _, manuallyTriggered, skipIntervalRecursively := fakeCheckFactory.TryCreateCheckArgsForCall(0)
-						Expect(checkable).To(Equal(fakeResourceType))
-						Expect(manuallyTriggered).To(BeFalse())
-						Expect(skipIntervalRecursively).To(BeFalse())
-
-						_, checkable, _, _, manuallyTriggered, skipIntervalRecursively = fakeCheckFactory.TryCreateCheckArgsForCall(1)
-						Expect(checkable).To(Equal(fakeResource))
-						Expect(manuallyTriggered).To(BeFalse())
-						Expect(skipIntervalRecursively).To(BeFalse())
-					})
-				})
-
-				Context("when a put-only resource has a parent-type", func() {
-					BeforeEach(func() {
-						By("checkFactory.Resources should not return any put-only resources")
-						fakeResourceType.NameReturns("put-only-custom-type")
-						fakeResourceType.PipelineIDReturns(1)
-					})
-
-					It("creates a check for only the parent and not the put-only resource", func() {
-						Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(2),
-							"two checks created; one for the fakeResourceType and the second for the unrelated fakeResource")
-
-						_, checkable, _, _, manuallyTriggered, skipIntervalRecursively := fakeCheckFactory.TryCreateCheckArgsForCall(0)
-						Expect(checkable).To(Equal(fakeResourceType))
-						Expect(manuallyTriggered).To(BeFalse())
-						Expect(skipIntervalRecursively).To(BeFalse())
+					It("fails to run the scanner", func() {
+						Expect(err).To(HaveOccurred())
 					})
 				})
 			})
@@ -228,13 +283,13 @@ var _ = Describe("Scanner", func() {
 				Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(3))
 
 				var checked []string
-				_, checkable, _, _, _, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+				_, checkable, _, _, _, _, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
 				checked = append(checked, checkable.Name())
 
-				_, checkable, _, _, _, _ = fakeCheckFactory.TryCreateCheckArgsForCall(1)
+				_, checkable, _, _, _, _, _ = fakeCheckFactory.TryCreateCheckArgsForCall(1)
 				checked = append(checked, checkable.Name())
 
-				_, checkable, _, _, _, _ = fakeCheckFactory.TryCreateCheckArgsForCall(2)
+				_, checkable, _, _, _, _, _ = fakeCheckFactory.TryCreateCheckArgsForCall(2)
 				checked = append(checked, checkable.Name())
 
 				Expect(checked).To(ConsistOf([]string{fakeResourceType.Name(), fakeResource1.Name(), fakeResource2.Name()}))

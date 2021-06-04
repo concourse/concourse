@@ -114,7 +114,7 @@ func (err UnknownVarSourceError) Error() string {
 	return fmt.Sprintf("unknown var source: %s", err.VarSource)
 }
 
-func (c VarSourceConfigs) GetVarPlan(parentPlanID PlanID, parentConfig interface{}) ([]Plan, error) {
+func (c VarSourceConfigs) GetVarPlans(parentPlanID PlanID, parentConfig interface{}) ([]Plan, error) {
 	varRefs, err := vars.ExtractVars(parentConfig)
 	if err != nil {
 		return nil, err
@@ -124,25 +124,28 @@ func (c VarSourceConfigs) GetVarPlan(parentPlanID PlanID, parentConfig interface
 	for i, varRef := range varRefs {
 		planID := PlanID(fmt.Sprintf("%s/var-%d", parentPlanID, i+1))
 
-		varSourceConfig, found := c.Lookup(varRef.Source)
-		if !found {
-			return nil, UnknownVarSourceError{varRef.Source}
-		}
-		subGetVarPlans, err := c.Without(varRef.Source).GetVarPlan(planID, varSourceConfig.Config)
-		if err != nil {
-			return nil, err
-		}
-
 		plan := Plan{
 			ID: planID,
 			GetVar: &GetVarPlan{
-				Name:     varRef.Source,
-				Path:     varRef.Path,
-				Type:     varSourceConfig.Type,
-				Fields:   varRef.Fields,
-				Source:   varSourceConfig.Config,
-				VarPlans: subGetVarPlans,
+				Name:   varRef.Source,
+				Path:   varRef.Path,
+				Fields: varRef.Fields,
 			},
+		}
+
+		if varRef.Source != "" {
+			varSourceConfig, found := c.Lookup(varRef.Source)
+			if !found {
+				return nil, UnknownVarSourceError{varRef.Source}
+			}
+			subGetVarPlans, err := c.Without(varRef.Source).GetVarPlans(planID, varSourceConfig.Config)
+			if err != nil {
+				return nil, err
+			}
+
+			plan.GetVar.Type = varSourceConfig.Type
+			plan.GetVar.Source = varSourceConfig.Config
+			plan.GetVar.VarPlans = subGetVarPlans
 		}
 
 		getVarPlans = append(getVarPlans, plan)
@@ -332,14 +335,14 @@ func (types ResourceTypes) Without(name string) ResourceTypes {
 	return newTypes
 }
 
-func (types ResourceTypes) ImageForType(planID PlanID, resourceType string, stepTags Tags, skipInterval bool) TypeImage {
+func (types ResourceTypes) ImageForType(planID PlanID, resourceType string, varSourceConfigs VarSourceConfigs, stepTags Tags, skipInterval bool) (TypeImage, error) {
 	// Check if resource type is a custom type
 	parent, found := types.Lookup(resourceType)
 	if !found {
 		// If it is not a custom type, return back the image as a base type
 		return TypeImage{
 			BaseType: resourceType,
-		}
+		}, nil
 	}
 
 	tags := parent.Tags
@@ -347,8 +350,15 @@ func (types ResourceTypes) ImageForType(planID PlanID, resourceType string, step
 		tags = stepTags
 	}
 
-	checkPlan := types.createImageCheckPlan(planID, parent, tags, skipInterval)
-	getPlan := types.createImageGetPlan(planID, parent, tags, &checkPlan.ID, skipInterval)
+	checkPlan, err := types.createImageCheckPlan(planID, parent, varSourceConfigs, tags, skipInterval)
+	if err != nil {
+		return TypeImage{}, fmt.Errorf("image check plan: %w", err)
+	}
+
+	getPlan, err := types.createImageGetPlan(planID, parent, varSourceConfigs, tags, &checkPlan.ID, skipInterval)
+	if err != nil {
+		return TypeImage{}, fmt.Errorf("image get plan: %w", err)
+	}
 
 	return TypeImage{
 		// Set the base type as the base type of its parent. The value of the base
@@ -365,26 +375,52 @@ func (types ResourceTypes) ImageForType(planID PlanID, resourceType string, step
 		// for checking the version of the custom type.
 		GetPlan:   getPlan,
 		CheckPlan: checkPlan,
-	}
+	}, nil
 }
 
-func (types ResourceTypes) createImageCheckPlan(planID PlanID, parent ResourceType, tags Tags, skipInterval bool) *Plan {
+func (types ResourceTypes) createImageCheckPlan(planID PlanID, parent ResourceType, varSourceConfigs VarSourceConfigs, tags Tags, skipInterval bool) (*Plan, error) {
 	checkPlanID := planID + "/image-check"
+	checkSourceVarPlans, err := varSourceConfigs.GetVarPlans(checkPlanID+"/source", parent.Source)
+	if err != nil {
+		return nil, fmt.Errorf("check source var plan: %w", err)
+	}
+
+	typeImage, err := types.Without(parent.Name).ImageForType(checkPlanID, parent.Type, varSourceConfigs, tags, skipInterval)
+	if err != nil {
+		return nil, fmt.Errorf("parent check image planner: %w", err)
+	}
+
 	return &Plan{
 		ID: checkPlanID,
 		Check: &CheckPlan{
 			Name:         parent.Name,
 			Type:         parent.Type,
 			Source:       parent.Source,
-			TypeImage:    types.Without(parent.Name).ImageForType(checkPlanID, parent.Type, tags, skipInterval),
+			TypeImage:    typeImage,
 			Tags:         tags,
 			SkipInterval: skipInterval,
+			VarPlans:     checkSourceVarPlans,
 		},
-	}
+	}, nil
 }
 
-func (types ResourceTypes) createImageGetPlan(planID PlanID, parent ResourceType, tags Tags, checkPlanID *PlanID, skipInterval bool) *Plan {
+func (types ResourceTypes) createImageGetPlan(planID PlanID, parent ResourceType, varSourceConfigs VarSourceConfigs, tags Tags, checkPlanID *PlanID, skipInterval bool) (*Plan, error) {
 	getPlanID := planID + "/image-get"
+	getSourceVarPlans, err := varSourceConfigs.GetVarPlans(getPlanID+"/source", parent.Source)
+	if err != nil {
+		return nil, fmt.Errorf("get source var plan: %w", err)
+	}
+
+	getParamsVarPlans, err := varSourceConfigs.GetVarPlans(getPlanID+"/params", parent.Params)
+	if err != nil {
+		return nil, fmt.Errorf("get params var plan: %w", err)
+	}
+
+	typeImage, err := types.Without(parent.Name).ImageForType(getPlanID, parent.Type, varSourceConfigs, tags, skipInterval)
+	if err != nil {
+		return nil, fmt.Errorf("parent get image planner: %w", err)
+	}
+
 	return &Plan{
 		ID: getPlanID,
 		Get: &GetPlan{
@@ -392,11 +428,12 @@ func (types ResourceTypes) createImageGetPlan(planID PlanID, parent ResourceType
 			Type:        parent.Type,
 			Source:      parent.Source,
 			Params:      parent.Params,
+			TypeImage:   typeImage,
 			VersionFrom: checkPlanID,
-			TypeImage:   types.Without(parent.Name).ImageForType(getPlanID, parent.Type, tags, skipInterval),
 			Tags:        tags,
+			VarPlans:    append(getSourceVarPlans, getParamsVarPlans...),
 		},
-	}
+	}, nil
 }
 
 type ResourceConfigs []ResourceConfig
