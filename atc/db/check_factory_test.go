@@ -2,6 +2,7 @@ package db_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -21,11 +22,12 @@ var _ = Describe("CheckFactory", func() {
 
 	Describe("TryCreateCheck", func() {
 		var (
-			fakeResource      *dbfakes.FakeResource
-			fakeResourceType  *dbfakes.FakeResourceType
-			fakeResourceTypes db.ResourceTypes
-			fromVersion       atc.Version
-			manuallyTriggered bool
+			fakeResource         *dbfakes.FakeResource
+			fakeResourceType     *dbfakes.FakeResourceType
+			fakeResourceTypes    db.ResourceTypes
+			fakeVarSourceConfigs atc.VarSourceConfigs
+			fromVersion          atc.Version
+			manuallyTriggered    bool
 
 			checkPlan atc.Plan
 			fakeBuild *dbfakes.FakeBuild
@@ -48,7 +50,7 @@ var _ = Describe("CheckFactory", func() {
 			fakeResource.PipelineNameReturns(defaultPipeline.Name())
 			fakeResource.PipelineInstanceVarsReturns(defaultPipeline.InstanceVars())
 			fakeResource.PipelineReturns(defaultPipeline, true, nil)
-			fakeResource.CheckPlanReturns(checkPlan)
+			fakeResource.CheckPlanReturns(checkPlan, nil)
 
 			fakeBuild = new(dbfakes.FakeBuild)
 			fakeResource.CreateBuildReturns(fakeBuild, true, nil)
@@ -66,11 +68,28 @@ var _ = Describe("CheckFactory", func() {
 
 			fakeResourceTypes = db.ResourceTypes{fakeResourceType}
 			manuallyTriggered = false
+
+			fakeVarSourceConfigs = atc.VarSourceConfigs{
+				{
+					Name: "some-var-source",
+					Type: "vault",
+					Config: map[string]interface{}{
+						"some": "config",
+					},
+				},
+				{
+					Name: "other-var-source",
+					Type: "dummy",
+					Config: map[string]interface{}{
+						"other": "config",
+					},
+				},
+			}
 		})
 
 		Context("when it is run on a resource", func() {
 			JustBeforeEach(func() {
-				build, created, err = checkFactory.TryCreateCheck(context.TODO(), fakeResource, fakeResourceTypes, fromVersion, manuallyTriggered, false)
+				build, created, err = checkFactory.TryCreateCheck(context.TODO(), fakeResource, fakeResourceTypes, fakeVarSourceConfigs, fromVersion, manuallyTriggered, false)
 			})
 
 			Context("when the resource parent type is not a custom type", func() {
@@ -133,10 +152,11 @@ var _ = Describe("CheckFactory", func() {
 
 				It("creates a check plan with the default webhook interval", func() {
 					Expect(fakeResource.CheckPlanCallCount()).To(Equal(1))
-					_, types, version, interval, defaults, _, _ := fakeResource.CheckPlanArgsForCall(0)
+					_, types, varSources, version, interval, defaults, _, _ := fakeResource.CheckPlanArgsForCall(0)
 					Expect(version).To(Equal(atc.Version{"from": "version"}))
 					Expect(interval).To(Equal(defaultWebhookCheckInterval))
 					Expect(types).To(HaveLen(0))
+					Expect(varSources).To(Equal(fakeVarSourceConfigs))
 					Expect(defaults).To(BeEmpty())
 				})
 
@@ -159,10 +179,11 @@ var _ = Describe("CheckFactory", func() {
 
 				It("sets it in the check plan", func() {
 					Expect(fakeResource.CheckPlanCallCount()).To(Equal(1))
-					_, types, version, interval, defaults, _, _ := fakeResource.CheckPlanArgsForCall(0)
+					_, types, varSources, version, interval, defaults, _, _ := fakeResource.CheckPlanArgsForCall(0)
 					Expect(version).To(Equal(atc.Version{"from": "version"}))
 					Expect(interval).To(Equal(42 * time.Second))
 					Expect(types).To(HaveLen(0))
+					Expect(varSources).To(Equal(fakeVarSourceConfigs))
 					Expect(defaults).To(BeEmpty())
 				})
 			})
@@ -193,7 +214,7 @@ var _ = Describe("CheckFactory", func() {
 
 					It("creates a check plan", func() {
 						Expect(fakeResource.CheckPlanCallCount()).To(Equal(1))
-						_, types, version, interval, defaults, _, _ := fakeResource.CheckPlanArgsForCall(0)
+						_, types, varSources, version, interval, defaults, _, _ := fakeResource.CheckPlanArgsForCall(0)
 						Expect(version).To(Equal(atc.Version{"from": "version"}))
 						Expect(interval).To(Equal(defaultCheckInterval))
 						Expect(types).To(Equal(atc.ResourceTypes{
@@ -207,6 +228,7 @@ var _ = Describe("CheckFactory", func() {
 								},
 							},
 						}))
+						Expect(varSources).To(Equal(fakeVarSourceConfigs))
 						Expect(defaults).To(Equal(atc.Source{"sdk": "sdk"}))
 					})
 
@@ -223,26 +245,40 @@ var _ = Describe("CheckFactory", func() {
 						Expect(plan.ID).ToNot(BeEmpty())
 						Expect(plan.Check).To(Equal(checkPlan.Check))
 					})
+
+					Context("when creating the check plan fails", func() {
+						BeforeEach(func() {
+							fakeResource.CheckPlanReturns(atc.Plan{}, errors.New("failed"))
+						})
+
+						It("does not create build", func() {
+							Expect(fakeResource.CreateBuildCallCount()).To(Equal(0))
+							Expect(err).To(HaveOccurred())
+							Expect(created).To(BeFalse())
+							Expect(build).To(BeNil())
+						})
+					})
 				})
 			})
 		})
 
 		Context("when it is run for a resource type", func() {
 			BeforeEach(func() {
-				fakeResourceType.CheckPlanReturns(checkPlan)
+				fakeResourceType.CheckPlanReturns(checkPlan, nil)
 				fakeResourceType.CreateBuildReturns(fakeBuild, true, nil)
 			})
 
 			JustBeforeEach(func() {
-				build, created, err = checkFactory.TryCreateCheck(context.TODO(), fakeResourceType, fakeResourceTypes, fromVersion, manuallyTriggered, false)
+				build, created, err = checkFactory.TryCreateCheck(context.TODO(), fakeResourceType, fakeResourceTypes, fakeVarSourceConfigs, fromVersion, manuallyTriggered, false)
 			})
 
 			It("creates a check plan", func() {
 				Expect(fakeResourceType.CheckPlanCallCount()).To(Equal(1))
-				_, types, version, interval, defaults, _, _ := fakeResourceType.CheckPlanArgsForCall(0)
+				_, types, varSources, version, interval, defaults, _, _ := fakeResourceType.CheckPlanArgsForCall(0)
 				Expect(version).To(Equal(atc.Version{"from": "version"}))
 				Expect(interval).To(Equal(defaultCheckInterval))
 				Expect(types).To(Equal(atc.ResourceTypes{}))
+				Expect(varSources).To(Equal(fakeVarSourceConfigs))
 				Expect(defaults).To(Equal(atc.Source{}))
 			})
 
@@ -258,7 +294,6 @@ var _ = Describe("CheckFactory", func() {
 				Expect(manuallyTriggered).To(BeFalse())
 				Expect(plan).To(Equal(checkPlan))
 			})
-
 		})
 	})
 
@@ -418,6 +453,105 @@ var _ = Describe("CheckFactory", func() {
 
 			It("does not return resource types from paused pipelines", func() {
 				Expect(resourceTypes).To(HaveLen(0))
+			})
+		})
+	})
+
+	Describe("VarSources", func() {
+		var (
+			varSourceConfigs     map[int]atc.VarSourceConfigs
+			pipeline1, pipeline2 db.Pipeline
+		)
+
+		BeforeEach(func() {
+			var err error
+			pipeline1, _, err = defaultTeam.SavePipeline(atc.PipelineRef{Name: "some-pipeline"}, atc.Config{
+				VarSources: atc.VarSourceConfigs{
+					{
+						Name: "some-var-source",
+						Type: "dummy",
+						Config: map[string]interface{}{
+							"some": "config",
+						},
+					},
+					{
+						Name: "other-var-source",
+						Type: "vault",
+						Config: map[string]interface{}{
+							"some": "other-config",
+						},
+					},
+				},
+			}, db.ConfigVersion(1), false)
+			Expect(err).NotTo(HaveOccurred())
+
+			pipeline2, _, err = defaultTeam.SavePipeline(atc.PipelineRef{Name: "other-pipeline"}, atc.Config{
+				VarSources: atc.VarSourceConfigs{
+					{
+						Name: "fake-var-source",
+						Type: "dummy",
+						Config: map[string]interface{}{
+							"fake": "config",
+						},
+					},
+				},
+			}, db.ConfigVersion(1), false)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, _, err = defaultTeam.SavePipeline(atc.PipelineRef{Name: "another-pipeline"}, atc.Config{
+				Jobs: atc.JobConfigs{
+					{
+						Name: "some-job",
+					},
+				},
+			}, db.ConfigVersion(1), false)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		JustBeforeEach(func() {
+			varSourceConfigs, err = checkFactory.VarSources()
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("include var sources for each pipeline in return", func() {
+			Expect(varSourceConfigs).To(HaveLen(2))
+			Expect(varSourceConfigs).To(Equal(map[int]atc.VarSourceConfigs{
+				pipeline1.ID(): atc.VarSourceConfigs{
+					{
+						Name: "some-var-source",
+						Type: "dummy",
+						Config: map[string]interface{}{
+							"some": "config",
+						},
+					},
+					{
+						Name: "other-var-source",
+						Type: "vault",
+						Config: map[string]interface{}{
+							"some": "other-config",
+						},
+					},
+				},
+				pipeline2.ID(): atc.VarSourceConfigs{
+					{
+						Name: "fake-var-source",
+						Type: "dummy",
+						Config: map[string]interface{}{
+							"fake": "config",
+						},
+					},
+				},
+			}))
+		})
+
+		Context("when the pipeline is paused", func() {
+			BeforeEach(func() {
+				_, err = dbConn.Exec(`UPDATE pipelines SET paused = true`)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("does not return var source configs from paused pipelines", func() {
+				Expect(varSourceConfigs).To(HaveLen(0))
 			})
 		})
 	})

@@ -41,22 +41,25 @@ type FakeResource struct {
 	checkEveryReturnsOnCall map[int]struct {
 		result1 *atc.CheckEvery
 	}
-	CheckPlanStub        func(atc.PlanFactory, db.ImagePlanner, atc.Version, time.Duration, atc.Source, bool, bool) atc.Plan
+	CheckPlanStub        func(atc.PlanFactory, db.ImagePlanner, atc.VarSourceConfigs, atc.Version, time.Duration, atc.Source, bool, bool) (atc.Plan, error)
 	checkPlanMutex       sync.RWMutex
 	checkPlanArgsForCall []struct {
 		arg1 atc.PlanFactory
 		arg2 db.ImagePlanner
-		arg3 atc.Version
-		arg4 time.Duration
-		arg5 atc.Source
-		arg6 bool
+		arg3 atc.VarSourceConfigs
+		arg4 atc.Version
+		arg5 time.Duration
+		arg6 atc.Source
 		arg7 bool
+		arg8 bool
 	}
 	checkPlanReturns struct {
 		result1 atc.Plan
+		result2 error
 	}
 	checkPlanReturnsOnCall map[int]struct {
 		result1 atc.Plan
+		result2 error
 	}
 	CheckTimeoutStub        func() string
 	checkTimeoutMutex       sync.RWMutex
@@ -641,29 +644,30 @@ func (fake *FakeResource) CheckEveryReturnsOnCall(i int, result1 *atc.CheckEvery
 	}{result1}
 }
 
-func (fake *FakeResource) CheckPlan(arg1 atc.PlanFactory, arg2 db.ImagePlanner, arg3 atc.Version, arg4 time.Duration, arg5 atc.Source, arg6 bool, arg7 bool) atc.Plan {
+func (fake *FakeResource) CheckPlan(arg1 atc.PlanFactory, arg2 db.ImagePlanner, arg3 atc.VarSourceConfigs, arg4 atc.Version, arg5 time.Duration, arg6 atc.Source, arg7 bool, arg8 bool) (atc.Plan, error) {
 	fake.checkPlanMutex.Lock()
 	ret, specificReturn := fake.checkPlanReturnsOnCall[len(fake.checkPlanArgsForCall)]
 	fake.checkPlanArgsForCall = append(fake.checkPlanArgsForCall, struct {
 		arg1 atc.PlanFactory
 		arg2 db.ImagePlanner
-		arg3 atc.Version
-		arg4 time.Duration
-		arg5 atc.Source
-		arg6 bool
+		arg3 atc.VarSourceConfigs
+		arg4 atc.Version
+		arg5 time.Duration
+		arg6 atc.Source
 		arg7 bool
-	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
+		arg8 bool
+	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8})
 	stub := fake.CheckPlanStub
 	fakeReturns := fake.checkPlanReturns
-	fake.recordInvocation("CheckPlan", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
+	fake.recordInvocation("CheckPlan", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8})
 	fake.checkPlanMutex.Unlock()
 	if stub != nil {
-		return stub(arg1, arg2, arg3, arg4, arg5, arg6, arg7)
+		return stub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
 	}
 	if specificReturn {
-		return ret.result1
+		return ret.result1, ret.result2
 	}
-	return fakeReturns.result1
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeResource) CheckPlanCallCount() int {
@@ -672,40 +676,43 @@ func (fake *FakeResource) CheckPlanCallCount() int {
 	return len(fake.checkPlanArgsForCall)
 }
 
-func (fake *FakeResource) CheckPlanCalls(stub func(atc.PlanFactory, db.ImagePlanner, atc.Version, time.Duration, atc.Source, bool, bool) atc.Plan) {
+func (fake *FakeResource) CheckPlanCalls(stub func(atc.PlanFactory, db.ImagePlanner, atc.VarSourceConfigs, atc.Version, time.Duration, atc.Source, bool, bool) (atc.Plan, error)) {
 	fake.checkPlanMutex.Lock()
 	defer fake.checkPlanMutex.Unlock()
 	fake.CheckPlanStub = stub
 }
 
-func (fake *FakeResource) CheckPlanArgsForCall(i int) (atc.PlanFactory, db.ImagePlanner, atc.Version, time.Duration, atc.Source, bool, bool) {
+func (fake *FakeResource) CheckPlanArgsForCall(i int) (atc.PlanFactory, db.ImagePlanner, atc.VarSourceConfigs, atc.Version, time.Duration, atc.Source, bool, bool) {
 	fake.checkPlanMutex.RLock()
 	defer fake.checkPlanMutex.RUnlock()
 	argsForCall := fake.checkPlanArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6, argsForCall.arg7
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6, argsForCall.arg7, argsForCall.arg8
 }
 
-func (fake *FakeResource) CheckPlanReturns(result1 atc.Plan) {
+func (fake *FakeResource) CheckPlanReturns(result1 atc.Plan, result2 error) {
 	fake.checkPlanMutex.Lock()
 	defer fake.checkPlanMutex.Unlock()
 	fake.CheckPlanStub = nil
 	fake.checkPlanReturns = struct {
 		result1 atc.Plan
-	}{result1}
+		result2 error
+	}{result1, result2}
 }
 
-func (fake *FakeResource) CheckPlanReturnsOnCall(i int, result1 atc.Plan) {
+func (fake *FakeResource) CheckPlanReturnsOnCall(i int, result1 atc.Plan, result2 error) {
 	fake.checkPlanMutex.Lock()
 	defer fake.checkPlanMutex.Unlock()
 	fake.CheckPlanStub = nil
 	if fake.checkPlanReturnsOnCall == nil {
 		fake.checkPlanReturnsOnCall = make(map[int]struct {
 			result1 atc.Plan
+			result2 error
 		})
 	}
 	fake.checkPlanReturnsOnCall[i] = struct {
 		result1 atc.Plan
-	}{result1}
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeResource) CheckTimeout() string {

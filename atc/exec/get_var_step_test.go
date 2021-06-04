@@ -270,7 +270,7 @@ var _ = Describe("GetVarStep", func() {
 
 			Context("when the var is not stored in the global credential manager", func() {
 				BeforeEach(func() {
-					fakeGlobalSecrets.GetReturns(nil, nil, false, errors.New("not found!"))
+					fakeGlobalSecrets.GetReturns(nil, nil, false, nil)
 				})
 
 				It("fails with global var not found error", func() {

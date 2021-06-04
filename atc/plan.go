@@ -507,6 +507,10 @@ type GetPlan struct {
 	// A timeout to enforce on the resource `get` process. Note that fetching the
 	// resource's image does not count towards the timeout.
 	Timeout string `json:"timeout,omitempty"`
+
+	// Plans for get var steps that are required to run in order to fetch the
+	// vars within this step
+	VarPlans []Plan `json:"var_plans,omitempty"`
 }
 
 type PutPlan struct {
@@ -538,6 +542,10 @@ type PutPlan struct {
 
 	// If or not expose BUILD_CREATED_BY to build metadata
 	ExposeBuildCreatedBy bool `json:"expose_build_created_by,omitempty"`
+
+	// Plans for get var steps that are required to run in order to fetch the
+	// vars within this step
+	VarPlans []Plan `json:"var_plans,omitempty"`
 }
 
 type CheckPlan struct {
@@ -574,6 +582,10 @@ type CheckPlan struct {
 
 	// Worker tags to influence placement of the container.
 	Tags Tags `json:"tags,omitempty"`
+
+	// Plans for get var steps that are required to run in order to fetch the
+	// vars within this step
+	VarPlans []Plan `json:"var_plans,omitempty"`
 }
 
 func (plan CheckPlan) IsPeriodic() bool {
@@ -618,6 +630,12 @@ type TaskPlan struct {
 	// A timeout to enforce on the task's process. Note that etching the task's
 	// image does not count towards the timeout.
 	Timeout string `json:"timeout,omitempty"`
+
+	// These are necessary because we are dynamically creating substeps for image
+	// fetching and vars interpolation if the config is provided as a path to a
+	// file.
+	// Var source configs for evaluating vars
+	VarSourceConfigs VarSourceConfigs `json:"var_source_configs,omitempty"`
 
 	// Resource types to have available for use when fetching the task's image.
 	ResourceTypes ResourceTypes `json:"resource_types,omitempty"`

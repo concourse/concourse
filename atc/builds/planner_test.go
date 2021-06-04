@@ -52,6 +52,11 @@ var resources = db.SchedulerResources{
 		Type:   "some-base-resource-type",
 		Source: atc.Source{"some": "source"},
 	},
+	db.SchedulerResource{
+		Name:   "some-var-resource",
+		Type:   "some-base-resource-type",
+		Source: atc.Source{"some-((bar))": "source"},
+	},
 }
 
 var defaultResourceTypes = atc.ResourceTypes{
@@ -474,6 +479,194 @@ var factoryTests = []PlannerTest{
 		}`,
 	},
 	{
+		Title: "get step with vars in source and params",
+
+		CompareIDs: true,
+		OverwriteVarSourceConfigs: atc.VarSourceConfigs{
+			atc.VarSourceConfig{
+				Name: "some-fake-source",
+				Type: "fake-vault",
+				Config: atc.Source{
+					"foo": "fake-var",
+				},
+			},
+		},
+
+		Config: &atc.GetStep{
+			Name:     "some-name",
+			Resource: "some-var-resource",
+			Params:   atc.Params{"((some-fake-source:bar))": "((some-fake-source:foo))"},
+			Version:  &atc.VersionConfig{Pinned: atc.Version{"doesnt": "matter"}},
+		},
+
+		Inputs: []db.BuildInput{
+			{
+				Name:    "some-name",
+				Version: atc.Version{"some": "version"},
+			},
+		},
+		PlanJSON: `{
+			"id": "1",
+			"get": {
+				"name": "some-name",
+				"type": "some-base-resource-type",
+				"resource": "some-var-resource",
+				"source": {"some-((bar))":"source","default-key":"default-value"},
+				"params": {"((some-fake-source:bar))":"((some-fake-source:foo))"},
+				"version": {"some":"version"},
+				"image": {
+					"base_type": "some-base-resource-type"
+				},
+				"var_plans": [
+					{
+						"id": "1/source/var-1",
+						"get_var": {
+							"name": "",
+							"path": "bar",
+							"type": "",
+							"source": null
+						}
+					},
+					{
+						"id": "1/params/var-1",
+						"get_var": {
+							"name": "some-fake-source",
+							"path": "bar",
+							"type": "fake-vault",
+							"source": {
+								"foo": "fake-var"
+							}
+						}
+					},
+					{
+						"id": "1/params/var-2",
+						"get_var": {
+							"name": "some-fake-source",
+							"path": "foo",
+							"type": "fake-vault",
+							"source": {
+								"foo": "fake-var"
+							}
+						}
+					}
+				]
+			}
+		}`,
+	},
+	{
+		Title: "get step with vars in custom resource type",
+
+		CompareIDs: true,
+		OverwriteResourceTypes: atc.ResourceTypes{
+			{
+				Name:   "some-resource-type",
+				Type:   "some-base-resource-type",
+				Source: atc.Source{"some": "((some-fake-source:foo))"},
+				Params: atc.Params{"((bar))": "params"},
+			},
+		},
+		OverwriteVarSourceConfigs: atc.VarSourceConfigs{
+			atc.VarSourceConfig{
+				Name: "some-fake-source",
+				Type: "fake-vault",
+				Config: atc.Source{
+					"foo": "fake-var",
+				},
+			},
+		},
+
+		Config: &atc.GetStep{
+			Name:     "some-name",
+			Resource: "some-resource",
+			Version:  &atc.VersionConfig{Pinned: atc.Version{"doesnt": "matter"}},
+		},
+
+		Inputs: []db.BuildInput{
+			{
+				Name:    "some-name",
+				Version: atc.Version{"some": "version"},
+			},
+		},
+		PlanJSON: `{
+			"id": "1",
+			"get": {
+				"name": "some-name",
+				"type": "some-resource-type",
+				"resource": "some-resource",
+				"source": {"some":"source"},
+				"version": {"some":"version"},
+				"image": {
+					"base_type": "some-base-resource-type",
+					"check_plan": {
+						"id": "1/image-check",
+						"check": {
+							"name": "some-resource-type",
+							"type": "some-base-resource-type",
+							"source": {
+								"some": "((some-fake-source:foo))"
+							},
+							"image": {
+								"base_type": "some-base-resource-type"
+							},
+							"var_plans": [
+							  {
+								  "id": "1/image-check/source/var-1",
+								  "get_var": {
+										"name": "some-fake-source",
+										"type": "fake-vault",
+										"path": "foo",
+										"source": {
+											"foo": "fake-var"
+										}
+									}
+							  }
+							]
+						}
+					},
+					"get_plan": {
+						"id": "1/image-get",
+						"get": {
+							"name": "some-resource-type",
+							"type": "some-base-resource-type",
+							"source": {
+								"some": "((some-fake-source:foo))"
+							},
+							"params": {
+								"((bar))": "params"
+							},
+							"image": {
+								"base_type": "some-base-resource-type"
+							},
+							"version_from": "1/image-check",
+							"var_plans": [
+							  {
+								  "id": "1/image-get/source/var-1",
+								  "get_var": {
+										"name": "some-fake-source",
+										"type": "fake-vault",
+										"path": "foo",
+										"source": {
+											"foo": "fake-var"
+										}
+									}
+							  },
+							  {
+								  "id": "1/image-get/params/var-1",
+								  "get_var": {
+										"name": "",
+										"type": "",
+										"path": "bar",
+										"source": null
+									}
+							  }
+							]
+						}
+					}
+				}
+			}
+		}`,
+	},
+	{
 		Title: "get step with unknown resource",
 		Config: &atc.GetStep{
 			Name:     "some-name",
@@ -773,7 +966,121 @@ var factoryTests = []PlannerTest{
 		}`,
 	},
 	{
+		Title: "put step with vars in source and params",
+
+		CompareIDs: true,
+		OverwriteVarSourceConfigs: atc.VarSourceConfigs{
+			atc.VarSourceConfig{
+				Name: "some-fake-source",
+				Type: "fake-vault",
+				Config: atc.Source{
+					"foo": "fake-var",
+				},
+			},
+		},
+
+		Config: &atc.PutStep{
+			Name:      "some-name",
+			Resource:  "some-var-resource",
+			Params:    atc.Params{"some": "((some-fake-source:foo))"},
+			GetParams: atc.Params{"some": "((some-fake-source:get-foo))"},
+		},
+
+		Inputs: []db.BuildInput{
+			{
+				Name:    "some-name",
+				Version: atc.Version{"some": "version"},
+			},
+		},
+		PlanJSON: `{
+			"id": "3",
+			"on_success": {
+				"step": {
+					"id": "1",
+					"put": {
+						"name": "some-name",
+						"type": "some-base-resource-type",
+						"resource": "some-var-resource",
+						"source": {"some-((bar))":"source","default-key":"default-value"},
+						"params": {"some":"((some-fake-source:foo))"},
+						"image": {
+							"base_type": "some-base-resource-type"
+						},
+			    	"var_plans": [
+			    		{
+			    			"id": "1/source/var-1",
+			    			"get_var": {
+			    				"name": "",
+			    				"path": "bar",
+			    				"type": "",
+			    				"source": null
+			    			}
+			    		},
+			    		{
+			    			"id": "1/params/var-1",
+			    			"get_var": {
+			    				"name": "some-fake-source",
+			    				"path": "foo",
+			    				"type": "fake-vault",
+			    				"source": {
+			    					"foo": "fake-var"
+			    				}
+			    			}
+			    		}
+			    	]
+					}
+				},
+				"on_success": {
+					"id": "2",
+					"get": {
+						"name": "some-name",
+						"type": "some-base-resource-type",
+						"resource": "some-var-resource",
+						"source": {"some-((bar))":"source","default-key":"default-value"},
+						"params": {"some": "((some-fake-source:get-foo))"},
+						"version_from": "1",
+						"image": {
+							"base_type": "some-base-resource-type"
+						},
+			    	"var_plans": [
+			    		{
+			    			"id": "2/source/var-1",
+			    			"get_var": {
+			    				"name": "",
+			    				"path": "bar",
+			    				"type": "",
+			    				"source": null
+			    			}
+			    		},
+			    		{
+			    			"id": "2/params/var-1",
+			    			"get_var": {
+			    				"name": "some-fake-source",
+			    				"path": "get-foo",
+			    				"type": "fake-vault",
+			    				"source": {
+			    					"foo": "fake-var"
+			    				}
+			    			}
+			    		}
+			    	]
+					}
+				}
+			}
+		}`,
+	},
+	{
 		Title: "task step",
+
+		OverwriteVarSourceConfigs: atc.VarSourceConfigs{
+			atc.VarSourceConfig{
+				Name: "some-fake-source",
+				Type: "fake-vault",
+				Config: atc.Source{
+					"foo": "fake-var",
+				},
+			},
+		},
 
 		Config: &atc.TaskStep{
 			Name:       "some-task",
@@ -815,6 +1122,15 @@ var factoryTests = []PlannerTest{
 						"type": "some-base-resource-type",
 						"source": {"some": "type-source"},
 						"defaults": {"default-key":"default-value"}
+					}
+				],
+				"var_source_configs": [
+				  {
+						"name": "some-fake-source",
+						"type": "fake-vault",
+						"config": {
+							"foo": "fake-var"
+						}
 					}
 				]
 			}
@@ -1419,7 +1735,7 @@ var factoryTests = []PlannerTest{
 				"type": "fake-vault",
 				"var_plans": [
 					{
-						"id": "1/var-1",
+						"id": "1/source/var-1",
 						"get_var": {
 							"name": "some-nested-fake-source",
 							"path": "foo",
@@ -1430,7 +1746,7 @@ var factoryTests = []PlannerTest{
 						}
 					},
 					{
-						"id": "1/var-2",
+						"id": "1/source/var-2",
 						"get_var": {
 							"name": "some-nested-fake-source",
 							"path": "bar",

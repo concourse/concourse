@@ -2,6 +2,8 @@ package db
 
 import (
 	"context"
+	"database/sql"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -30,23 +32,23 @@ type Checkable interface {
 
 	HasWebhook() bool
 
-	CheckPlan(planFactory atc.PlanFactory, imagePlanner ImagePlanner, from atc.Version, interval time.Duration, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) atc.Plan
+	CheckPlan(planFactory atc.PlanFactory, imagePlanner ImagePlanner, varSourceConfigs atc.VarSourceConfigs, from atc.Version, interval time.Duration, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) (atc.Plan, error)
 	CreateBuild(context.Context, bool, atc.Plan) (Build, bool, error)
 }
 
 //counterfeiter:generate . CheckFactory
 type CheckFactory interface {
-	TryCreateCheck(context.Context, Checkable, ResourceTypes, atc.Version, bool, bool) (Build, bool, error)
+	TryCreateCheck(context.Context, Checkable, ResourceTypes, atc.VarSourceConfigs, atc.Version, bool, bool) (Build, bool, error)
 	Resources() ([]Resource, error)
 	ResourceTypes() ([]ResourceType, error)
+	VarSources() (map[int]atc.VarSourceConfigs, error)
 }
 
 type checkFactory struct {
 	conn        Conn
 	lockFactory lock.LockFactory
 
-	secrets       creds.Secrets
-	varSourcePool creds.VarSourcePool
+	secrets creds.Secrets
 
 	planFactory atc.PlanFactory
 
@@ -65,15 +67,13 @@ func NewCheckFactory(
 	conn Conn,
 	lockFactory lock.LockFactory,
 	secrets creds.Secrets,
-	varSourcePool creds.VarSourcePool,
 	durations CheckDurations,
 ) CheckFactory {
 	return &checkFactory{
 		conn:        conn,
 		lockFactory: lockFactory,
 
-		secrets:       secrets,
-		varSourcePool: varSourcePool,
+		secrets: secrets,
 
 		planFactory: atc.NewPlanFactory(time.Now().Unix()),
 
@@ -83,7 +83,7 @@ func NewCheckFactory(
 	}
 }
 
-func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, resourceTypes ResourceTypes, from atc.Version, manuallyTriggered bool, skipIntervalRecursively bool) (Build, bool, error) {
+func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, resourceTypes ResourceTypes, varSourceConfigs atc.VarSourceConfigs, from atc.Version, manuallyTriggered bool, skipIntervalRecursively bool) (Build, bool, error) {
 	logger := lagerctx.FromContext(ctx)
 
 	var err error
@@ -122,7 +122,11 @@ func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, 
 		deserializedResourceTypes = atc.ResourceTypes{}
 	}
 
-	plan := checkable.CheckPlan(c.planFactory, deserializedResourceTypes, from, interval, sourceDefaults, skipInterval, skipIntervalRecursively)
+	plan, err := checkable.CheckPlan(c.planFactory, deserializedResourceTypes, varSourceConfigs, from, interval, sourceDefaults, skipInterval, skipIntervalRecursively)
+	if err != nil {
+		return nil, false, fmt.Errorf("check plan: %w", err)
+	}
+
 	build, created, err := checkable.CreateBuild(ctx, manuallyTriggered, plan)
 	if err != nil {
 		return nil, false, fmt.Errorf("create build: %w", err)
@@ -206,4 +210,55 @@ func (c *checkFactory) ResourceTypes() ([]ResourceType, error) {
 	}
 
 	return resourceTypes, nil
+}
+
+func (c *checkFactory) VarSources() (map[int]atc.VarSourceConfigs, error) {
+	rows, err := psql.Select("id", "var_sources", "nonce").
+		From("pipelines").
+		Where(sq.And{
+			sq.Eq{"paused": false},
+		}).
+		RunWith(c.conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	defer Close(rows)
+
+	varSourcesPerPipeline := map[int]atc.VarSourceConfigs{}
+	for rows.Next() {
+		var (
+			pipelineID      int
+			varSourcesBytes sql.NullString
+			nonce           sql.NullString
+			nonceStr        *string
+		)
+
+		err = rows.Scan(&pipelineID, &varSourcesBytes, &nonce)
+		if err != nil {
+			return nil, err
+		}
+
+		if nonce.Valid {
+			nonceStr = &nonce.String
+		}
+
+		var pipelineVarSources atc.VarSourceConfigs
+		decryptedVarSource, err := c.conn.EncryptionStrategy().Decrypt(varSourcesBytes.String, nonceStr)
+		if err != nil {
+			return nil, err
+		}
+
+		err = json.Unmarshal([]byte(decryptedVarSource), &pipelineVarSources)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(pipelineVarSources) > 0 {
+			varSourcesPerPipeline[pipelineID] = pipelineVarSources
+		}
+	}
+
+	return varSourcesPerPipeline, nil
 }

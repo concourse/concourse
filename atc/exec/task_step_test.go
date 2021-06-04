@@ -120,6 +120,7 @@ var _ = Describe("TaskStep", func() {
 					Params: atc.Params{"some-custom": "param"},
 				},
 			},
+			VarSourceConfigs: atc.VarSourceConfigs{},
 		}
 
 		shouldRunTaskStep = true
@@ -863,13 +864,14 @@ var _ = Describe("TaskStep", func() {
 
 			It("fetches the image", func() {
 				Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
-				_, imageResource, types, privileged, tags := fakeDelegate.FetchImageArgsForCall(0)
+				_, imageResource, types, varSources, privileged, tags := fakeDelegate.FetchImageArgsForCall(0)
 				Expect(imageResource).To(Equal(atc.ImageResource{
 					Type:   "docker",
 					Source: atc.Source{"some": "super-secret-source"},
 					Params: atc.Params{"some": "params"},
 				}))
 				Expect(types).To(Equal(taskPlan.ResourceTypes))
+				Expect(varSources).To(Equal(taskPlan.VarSourceConfigs))
 				Expect(privileged).To(BeFalse())
 				Expect(tags).To(Equal(atc.Tags{"some", "tags"}))
 			})
@@ -885,7 +887,7 @@ var _ = Describe("TaskStep", func() {
 
 				It("fetches a privileged image", func() {
 					Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
-					_, _, _, privileged, _ := fakeDelegate.FetchImageArgsForCall(0)
+					_, _, _, _, privileged, _ := fakeDelegate.FetchImageArgsForCall(0)
 					Expect(privileged).To(BeTrue())
 				})
 			})
