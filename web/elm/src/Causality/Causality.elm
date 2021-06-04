@@ -514,7 +514,10 @@ graphvizDotNotation model =
                                     }
 
                                 link =
-                                    Routes.toString <| Routes.Build { id = build, highlight = Routes.HighlightNothing }
+                                    Routes.Build { id = build, highlight = Routes.HighlightNothing }
+                                        |> Routes.toString
+                                        -- graphviz needs '&' to be escaped
+                                        |> String.replace "&" "&amp;"
                             in
                             row (attributes [ ( "HREF", link ), ( "BGCOLOR", buildStatusColor True b.status ) ]) ("#" ++ b.name)
                         )
@@ -547,8 +550,10 @@ graphvizDotNotation model =
                                     }
 
                                 link =
-                                    Routes.toString <|
-                                        Routes.resourceRoute resource (Just version)
+                                    Routes.resourceRoute resource (Just version)
+                                        |> Routes.toString
+                                        -- graphviz needs '&' to be escaped
+                                        |> String.replace "&" "&amp;"
                             in
                             row
                                 (attributes

@@ -306,7 +306,6 @@ app.ports.renderSvgIcon.subscribe(function(icon, id) {
 });
 
 app.ports.renderCausality.subscribe(function(dot) {
-  console.log(dot)
   causalityModulePromise.then(({renderCausality}) =>
     // elm 0.17 bug, see https://github.com/elm-lang/core/issues/595
     setTimeout(() => renderCausality(dot), 0)
