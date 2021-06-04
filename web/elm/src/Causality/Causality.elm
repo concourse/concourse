@@ -447,12 +447,25 @@ constructGraph direction rv =
 
 
 
+-- note: '&' needs to be escaped first, otherwise it'll start escaping itself
+
+
+escape : String -> String
+escape =
+    String.replace "&" "&amp;"
+        >> String.replace "<" "&lt;"
+        >> String.replace ">" "&gt;"
+        >> String.replace "\"" "&quot;"
+        >> String.replace "'" "&#039;"
+
+
+
 -- http://www.graphviz.org/doc/info/shapes.html#html. this should probably use Json.Encode.string to sanitize the output
 
 
 attributes : List ( String, String ) -> String
 attributes =
-    List.map (\( k, v ) -> k ++ "=\"" ++ v ++ "\"") >> String.join " "
+    List.map (\( k, v ) -> escape k ++ "=\"" ++ escape v ++ "\"") >> String.join " "
 
 
 graphvizDotNotation : Model -> Graph NodeType () -> String
@@ -501,7 +514,7 @@ graphvizDotNotation model =
         jobLabel : String -> List Build -> String
         jobLabel name builds =
             table <|
-                row "" name
+                row "" (escape name)
                     :: List.map
                         (\b ->
                             let
@@ -516,8 +529,6 @@ graphvizDotNotation model =
                                 link =
                                     Routes.Build { id = build, highlight = Routes.HighlightNothing }
                                         |> Routes.toString
-                                        -- graphviz needs '&' to be escaped
-                                        |> String.replace "&" "&amp;"
                             in
                             row (attributes [ ( "HREF", link ), ( "BGCOLOR", buildStatusColor True b.status ) ]) ("#" ++ b.name)
                         )
@@ -526,7 +537,7 @@ graphvizDotNotation model =
         resourceLabel : String -> List Version -> String
         resourceLabel name versions =
             table <|
-                row "" name
+                row "" (escape name)
                     :: List.map
                         (\{ version } ->
                             let
@@ -534,11 +545,12 @@ graphvizDotNotation model =
                                     Concourse.versionQuery version
                                         |> List.map
                                             (\s ->
-                                                if String.length s > 40 then
-                                                    String.left 38 s ++ "…"
+                                                escape <|
+                                                    if String.length s > 40 then
+                                                        String.left 38 s ++ "…"
 
-                                                else
-                                                    s
+                                                    else
+                                                        s
                                             )
                                         |> String.join "<BR/>"
 
@@ -552,8 +564,6 @@ graphvizDotNotation model =
                                 link =
                                     Routes.resourceRoute resource (Just version)
                                         |> Routes.toString
-                                        -- graphviz needs '&' to be escaped
-                                        |> String.replace "&" "&amp;"
                             in
                             row
                                 (attributes
