@@ -197,8 +197,10 @@
 
   If we look at the \link{\code{README} for the git
   resource}{https://github.com/concourse/git-resource/#source-configuration}
-  we'll find that it requires we set the \code{uri} field. This should point to the location of the git repository. We can specify it in \code{https://} or \code{ssh@} format.
-  Let's add the \code{uri} field and set it to your repository.
+  we'll find that it requires we set the \code{uri} field. This should point to
+  the location of the git repository. We can specify it in \code{https://} or
+  \code{ssh@} format.  Let's add the \code{uri} field and set it to your
+  repository.
 
   \aside{
     If you use the \code{ssh@} format for the \code{uri} then you'll likely
@@ -207,7 +209,8 @@
     If you use the \code{https://} format and your repo is public then you
     don't need to set anything else. If you repository is private then you'll
     need to set the \code{username} and \code{password} fields to allow the git
-    resource to authenticate.
+    resource to authenticate. \code{private_key} can also be used for
+    \code{https://} uri's.
   }
 
   \codeblock{yaml}{{
@@ -436,8 +439,8 @@
 
   \aside{
     If you haven't already, you'll probably need to provide the git resource
-    with your \code{private_key} or a \code{username} and \code{password}, depending on the format
-    of \code{uri} you provided.
+    with your \code{private_key} or a \code{username} and \code{password},
+    depending on the format of \code{uri} you provided.
 
     If you're used to pushing code from your computer you probably have a
     private key in your \code{~/.ssh/} directory that you can use.
