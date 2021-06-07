@@ -1,4 +1,4 @@
-package main
+package worker_test
 
 import (
 	"strings"
