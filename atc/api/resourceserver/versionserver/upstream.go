@@ -12,7 +12,7 @@ import (
 
 func (s *Server) GetUpstreamResourceCausality(pipeline db.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logger := s.logger.Session("causality")
+		logger := s.logger.Session("upstream-causality")
 
 		versionIDString := r.FormValue(":resource_config_version_id")
 		resourceName := r.FormValue(":resource_name")
@@ -33,7 +33,7 @@ func (s *Server) GetUpstreamResourceCausality(pipeline db.Pipeline) http.Handler
 
 		causality, found, err := resource.UpstreamCausality(versionID)
 		if err != nil {
-			logger.Error("failed-to-fetch", err)
+			logger.Error("failed-to-fetch", err, lager.Data{"resource-name": resourceName, "resource-config-version": versionID})
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
