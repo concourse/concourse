@@ -167,7 +167,7 @@ func (cmd Cmd) TryOutput(args ...string) (string, error) {
 	return buf.String(), nil
 }
 
-func (cmd Cmd) TryOutputJSON(t *testing.T, dest interface{}, args ...string) error {
+func (cmd Cmd) TryOutputJSON(dest interface{}, args ...string) error {
 	buf := new(bytes.Buffer)
 
 	cmd.Stdout = buf
