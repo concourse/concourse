@@ -273,7 +273,7 @@ func (volume *createdVolume) findVolumeResourceTypeByCacheID(resourceCacheID int
 	}
 
 	if sqBaseResourceTypeID.Valid {
-		workerBaseResourceType, err := volume.findWorkerBaseResourceTypeByBaseResourceTypeID(int(sqBaseResourceTypeID.Int64))
+		workerBaseResourceType, err := volume.findWorkerBaseResourceTypeByBaseResourceTypeID()
 		if err != nil {
 			return nil, err
 		}
@@ -325,17 +325,18 @@ func (volume *createdVolume) findWorkerBaseResourceTypeByID(workerBaseResourceTy
 	}, nil
 }
 
-func (volume *createdVolume) findWorkerBaseResourceTypeByBaseResourceTypeID(baseResourceTypeID int) (*UsedWorkerBaseResourceType, error) {
+func (volume *createdVolume) findWorkerBaseResourceTypeByBaseResourceTypeID() (*UsedWorkerBaseResourceType, error) {
 	var id int
 	var name string
 	var version string
 
 	err := psql.Select("wbrt.id, brt.name, wbrt.version").
-		From("worker_base_resource_types wbrt").
+		From("worker_resource_caches wrc").
+		LeftJoin("worker_base_resource_types wbrt ON wbrt.id = wrc.worker_base_resource_type_id").
 		LeftJoin("base_resource_types brt ON brt.id = wbrt.base_resource_type_id").
 		Where(sq.Eq{
-			"brt.id":           baseResourceTypeID,
-			"wbrt.worker_name": volume.workerName,
+			"wrc.resource_cache_id": volume.resourceCacheID,
+			"wrc.worker_name":       volume.workerName,
 		}).
 		RunWith(volume.conn).
 		QueryRow().

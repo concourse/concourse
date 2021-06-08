@@ -613,6 +613,102 @@ var _ = Describe("Volume", func() {
 			Expect(volumeResourceType.ResourceType.Version).To(Equal(atc.Version{"some-custom-type": "version"}))
 			Expect(volumeResourceType.Version).To(Equal(atc.Version{"some": "version"}))
 		})
+
+		It("returns volume type from streamed source volume", func() {
+			scenario := dbtest.Setup(
+				builder.WithPipeline(atc.Config{
+					ResourceTypes: atc.ResourceTypes{
+						{
+							Name: "some-type",
+							Type: "some-base-resource-type",
+							Source: atc.Source{
+								"some-type": "source",
+							},
+						},
+					},
+				}),
+				builder.WithResourceTypeVersions(
+					"some-type",
+					atc.Version{"some": "version"},
+					atc.Version{"some-custom-type": "version"},
+				),
+				builder.WithWorker(atc.Worker{
+					Name:     "weird-worker",
+					Platform: "weird",
+
+					GardenAddr:      "weird-garden-addr",
+					BaggageclaimURL: "weird-baggageclaim-url",
+				}),
+			)
+
+			sourceWorker := scenario.Workers[0]
+			destinationWorker := scenario.Workers[1]
+
+			build, err := scenario.Team.CreateOneOffBuild()
+			Expect(err).ToNot(HaveOccurred())
+
+			resourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
+				db.ForBuild(build.ID()),
+				"some-type",
+				atc.Version{"some": "version"},
+				atc.Source{"some": "source"},
+				atc.Params{"some": "params"},
+				atc.VersionedResourceTypes{
+					{
+						ResourceType: atc.ResourceType{
+							Name:   "some-type",
+							Type:   dbtest.BaseResourceType,
+							Source: atc.Source{"some-type": "((source-param))"},
+						},
+						Version: atc.Version{"some-custom-type": "version"},
+					},
+				},
+			)
+			Expect(err).ToNot(HaveOccurred())
+
+			creatingSourceContainer, err := sourceWorker.CreateContainer(db.NewBuildStepContainerOwner(build.ID(), "some-plan", defaultTeam.ID()), db.ContainerMetadata{
+				Type:     "get",
+				StepName: "some-resource",
+			})
+			Expect(err).ToNot(HaveOccurred())
+
+			creatingSourceVolume, err := volumeRepository.CreateContainerVolume(defaultTeam.ID(), sourceWorker.Name(), creatingSourceContainer, "some-path")
+			Expect(err).ToNot(HaveOccurred())
+
+			sourceVolume, err := creatingSourceVolume.Created()
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(sourceVolume.Type()).To(Equal(db.VolumeType(db.VolumeTypeContainer)))
+
+			err = sourceVolume.InitializeResourceCache(resourceCache)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(sourceVolume.Type()).To(Equal(db.VolumeType(db.VolumeTypeResource)))
+
+			creatingDestinationContainer, err := destinationWorker.CreateContainer(db.NewBuildStepContainerOwner(build.ID(), "some-plan", defaultTeam.ID()), db.ContainerMetadata{
+				Type:     "get",
+				StepName: "some-resource",
+			})
+			Expect(err).ToNot(HaveOccurred())
+
+			creatingDestinationVolume, err := volumeRepository.CreateContainerVolume(defaultTeam.ID(), destinationWorker.Name(), creatingDestinationContainer, "some-path")
+			Expect(err).ToNot(HaveOccurred())
+
+			destinationVolume, err := creatingDestinationVolume.Created()
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(destinationVolume.Type()).To(Equal(db.VolumeType(db.VolumeTypeContainer)))
+
+			err = destinationVolume.InitializeStreamedResourceCache(resourceCache, sourceWorker.Name())
+			Expect(err).ToNot(HaveOccurred())
+
+			volumeResourceType, err := destinationVolume.ResourceType()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(volumeResourceType.ResourceType.WorkerBaseResourceType.Name).To(Equal(dbtest.BaseResourceType))
+			Expect(volumeResourceType.ResourceType.WorkerBaseResourceType.Version).To(Equal(dbtest.BaseResourceTypeVersion))
+			Expect(volumeResourceType.ResourceType.Version).To(Equal(atc.Version{"some-custom-type": "version"}))
+			Expect(volumeResourceType.Version).To(Equal(atc.Version{"some": "version"}))
+		})
 	})
 
 	Describe("Resource type volumes", func() {
