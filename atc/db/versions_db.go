@@ -661,12 +661,7 @@ func (cursor BuildCursor) NewerBuilds(idCol string) sq.Sqlizer {
 			},
 		}
 	} else {
-		return sq.Or{
-			sq.Expr("COALESCE(rerun_of, "+idCol+") > ?", cursor.ID),
-
-			// include reruns of the build
-			sq.Eq{"rerun_of": cursor.ID},
-		}
+		return sq.Expr("COALESCE(rerun_of, "+idCol+") > ?", cursor.ID)
 	}
 }
 
