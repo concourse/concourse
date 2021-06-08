@@ -284,88 +284,35 @@ func (delegate *buildStepDelegate) FetchImage(
 	}, result.ResourceCache, nil
 }
 
-// The var source configs that are passed in will eventually be used to
-// overwrite the var source configs on the child state created for running a
-// get var substep. This is done this way so that steps can pass a modified
-// list of var sources to the get var sub step. (For ex. if we are trying to
-// evaluate the source of a var source, that var source will not be included in
-// the list of var sources within the sub step)
-func (delegate *buildStepDelegate) Variables(ctx context.Context, varSourceConfigs atc.VarSourceConfigs) vars.Variables {
-	return &StepVariables{
-		delegate:         delegate,
-		varSourceConfigs: varSourceConfigs,
-		ctx:              ctx,
-	}
-}
+func (delegate *buildStepDelegate) FetchVariables(ctx context.Context, varPlans []atc.Plan) (vars.Variables, error) {
+	childState := delegate.state.NewScope()
 
-type StepVariables struct {
-	delegate         *buildStepDelegate
-	varSourceConfigs atc.VarSourceConfigs
-	ctx              context.Context
-}
+	var resultVars vars.FetchedVariables
+	for _, varPlan := range varPlans {
+		ok, err := childState.Run(ctx, varPlan)
+		if err != nil {
+			return nil, err
+		}
 
-func (v *StepVariables) Get(ref vars.Reference) (interface{}, bool, error) {
-	if ref.Source == "" {
-		globalVars := creds.NewVariables(v.delegate.globalSecrets, v.delegate.build.TeamName(), v.delegate.build.PipelineName(), false)
-		return globalVars.Get(ref)
-	}
+		if !ok {
+			return nil, fmt.Errorf("sub get var failed")
+		}
 
-	buildVar, found, err := v.delegate.state.LocalVariables().Get(ref)
-	if err != nil {
-		return nil, false, err
+		var value interface{}
+		if !childState.Result(varPlan.ID, &value) {
+			return nil, fmt.Errorf("get var did not return a value")
+		}
+
+		varsString := vars.Reference{
+			Source: varPlan.GetVar.Name,
+			Path:   varPlan.GetVar.Path,
+			Fields: varPlan.GetVar.Fields,
+		}.String()
+
+		resultVars[varsString] = value
 	}
 
-	if found {
-		return buildVar, true, nil
-	}
-
-	childState := v.delegate.state.NewScope()
-	childState.SetVarSourceConfigs(v.varSourceConfigs)
-
-	varSource, found := childState.VarSourceConfigs().Lookup(ref.Source)
-	if !found {
-		return nil, false, ErrNoMatchingVarSource{ref.Source}
-	}
-
-	getVarID := atc.PlanID(fmt.Sprintf("%s/get-var/%s:%s", v.delegate.planID, ref.Source, ref.Path))
-
-	getVarPlan := atc.Plan{
-		ID: getVarID,
-		GetVar: &atc.GetVarPlan{
-			Name:   ref.Source,
-			Path:   ref.Path,
-			Type:   varSource.Type,
-			Fields: ref.Fields,
-			Source: varSource.Config,
-		},
-	}
-
-	err = v.delegate.build.SaveEvent(event.SubGetVar{
-		Time: v.delegate.clock.Now().Unix(),
-		Origin: event.Origin{
-			ID: event.OriginID(v.delegate.planID),
-		},
-		PublicPlan: getVarPlan.Public(),
-	})
-	if err != nil {
-		return nil, false, fmt.Errorf("save sub get var event: %w", err)
-	}
-
-	ok, err := childState.Run(v.ctx, getVarPlan)
-	if err != nil {
-		return nil, false, fmt.Errorf("run sub get var: %w", err)
-	}
-
-	if !ok {
-		return nil, false, fmt.Errorf("get var failed")
-	}
-
-	var value interface{}
-	if !childState.Result(getVarID, &value) {
-		return nil, false, fmt.Errorf("get var did not return a value")
-	}
-
-	return value, true, nil
+	return resultVars, nil
 }
 
 func (delegate *buildStepDelegate) checkImagePolicy(imageSource atc.Source, imageType string, privileged bool) error {

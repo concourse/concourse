@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"fmt"
 	"io"
 
 	"code.cloudfoundry.org/clock"
@@ -15,6 +16,7 @@ import (
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/vars"
 )
 
 func NewTaskDelegate(
@@ -35,6 +37,7 @@ func NewTaskDelegate(
 		planID:      planID,
 		build:       build,
 		clock:       clock,
+		state:       state,
 
 		dbWorkerFactory: dbWorkerFactory,
 		lockFactory:     lockFactory,
@@ -49,6 +52,7 @@ type taskDelegate struct {
 	build       db.Build
 	eventOrigin event.Origin
 	clock       clock.Clock
+	state       exec.RunState
 
 	dbWorkerFactory db.WorkerFactory
 	lockFactory     lock.LockFactory
@@ -154,4 +158,78 @@ func (d *taskDelegate) FetchImage(
 	}
 
 	return imageSpec, nil
+}
+
+func (d *taskDelegate) FetchVariables(ctx context.Context, varSourceConfigs atc.VarSourceConfigs) vars.Variables {
+	return &TaskVariables{
+		delegate:         d,
+		varSourceConfigs: varSourceConfigs,
+		ctx:              ctx,
+	}
+}
+
+type TaskVariables struct {
+	delegate         *taskDelegate
+	varSourceConfigs atc.VarSourceConfigs
+	getVarPlanNum    int
+	ctx              context.Context
+}
+
+func (v *TaskVariables) Get(ref vars.Reference) (interface{}, bool, error) {
+	childState := v.delegate.state.NewScope()
+
+	v.getVarPlanNum++
+
+	planID := atc.PlanID(fmt.Sprintf("%s/task-var", v.delegate.planID))
+
+	plan := atc.Plan{
+		ID: planID,
+		GetVar: &atc.GetVarPlan{
+			Name:   ref.Source,
+			Path:   ref.Path,
+			Fields: ref.Fields,
+		},
+	}
+
+	if ref.Source != "" {
+		varSourceConfig, found := v.varSourceConfigs.Lookup(ref.Source)
+		if !found {
+			return nil, false, atc.UnknownVarSourceError{ref.Source}
+		}
+		subGetVarPlans, err := v.varSourceConfigs.Without(ref.Source).GetVarPlans(planID, varSourceConfig.Config)
+		if err != nil {
+			return nil, false, err
+		}
+
+		plan.GetVar.Type = varSourceConfig.Type
+		plan.GetVar.Source = varSourceConfig.Config
+		plan.GetVar.VarPlans = subGetVarPlans
+	}
+
+	err := v.delegate.build.SaveEvent(event.SubGetVar{
+		Time: v.delegate.clock.Now().Unix(),
+		Origin: event.Origin{
+			ID: event.OriginID(planID),
+		},
+		PublicPlan: plan.Public(),
+	})
+	if err != nil {
+		return nil, false, fmt.Errorf("save sub get var event: %w", err)
+	}
+
+	ok, err := childState.Run(v.ctx, plan)
+	if err != nil {
+		return nil, false, fmt.Errorf("run sub get var: %w", err)
+	}
+
+	if !ok {
+		return nil, false, nil
+	}
+
+	var value interface{}
+	if !childState.Result(planID, &value) {
+		return nil, false, fmt.Errorf("get var did not return a value")
+	}
+
+	return value, true, nil
 }

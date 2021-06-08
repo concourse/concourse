@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"encoding/json"
+	"reflect"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -17,11 +18,13 @@ import (
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/policy/policyfakes"
 	"github.com/concourse/concourse/atc/runtime/runtimefakes"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
+	"github.com/concourse/concourse/vars"
 )
 
 var noopStepper exec.Stepper = func(atc.Plan) exec.Step {
@@ -56,7 +59,7 @@ var _ = Describe("TaskDelegate", func() {
 
 		fakeBuild = new(dbfakes.FakeBuild)
 		fakeClock = fakeclock.NewFakeClock(now)
-		state = exec.NewRunState(noopStepper, nil, true)
+		state = exec.NewRunState(noopStepper, true)
 
 		fakePolicyChecker = new(policyfakes.FakeChecker)
 
@@ -341,6 +344,198 @@ var _ = Describe("TaskDelegate", func() {
 					},
 					PublicPlan: expectedGetPlan.Public(),
 				}))
+			})
+		})
+	})
+
+	Describe("FetchVariables/Get", func() {
+		var (
+			stepVariables      vars.Variables
+			buildVariables     *build.Variables
+			sources            atc.VarSourceConfigs
+			varRef             vars.Reference
+			getVarID           atc.PlanID
+			expectedGetVarPlan atc.Plan
+
+			childState *execfakes.FakeRunState
+
+			fetchedVal string
+			value      interface{}
+			fetched    bool
+			fetchErr   error
+		)
+
+		BeforeEach(func() {
+			sources = atc.VarSourceConfigs{
+				{
+					Name: "some-var-source",
+					Type: "registry-image",
+					Config: map[string]interface{}{
+						"var": "config",
+					},
+				},
+				{
+					Name: "other-var-source",
+					Type: "registry-image",
+					Config: map[string]interface{}{
+						"var": "other-config",
+					},
+				},
+			}
+
+			getVarID = planID + "/get-var/some-var-source:path"
+
+			expectedGetVarPlan = atc.Plan{
+				ID: getVarID,
+				GetVar: &atc.GetVarPlan{
+					Name:   "some-var-source",
+					Path:   "path",
+					Type:   "registry-image",
+					Source: atc.Source{"var": "config"},
+				},
+			}
+
+			varRef = vars.Reference{
+				Source: "some-var-source",
+				Path:   "path",
+			}
+			fetchedVal = "fetched-value"
+
+			state = new(execfakes.FakeRunState)
+			childState = new(execfakes.FakeRunState)
+			childState.VarSourceConfigsReturns(sources)
+			childState.RunReturns(true, nil)
+			childState.ResultStub = func(planID atc.PlanID, to interface{}) bool {
+				Expect(planID).To(Equal(getVarID))
+
+				if reflect.TypeOf(fetchedVal).AssignableTo(reflect.TypeOf(to).Elem()) {
+					reflect.ValueOf(to).Elem().Set(reflect.ValueOf(fetchedVal))
+					return true
+				}
+
+				return false
+			}
+
+			state.NewScopeReturns(childState)
+
+			stepVariables = delegate.FetchVariables(context.TODO(), sources)
+		})
+
+		JustBeforeEach(func() {
+			value, fetched, fetchErr = stepVariables.Get(varRef)
+		})
+
+		Context("when the var does not have a source (global vars)", func() {
+			BeforeEach(func() {
+				varRef.Source = ""
+
+				fakeSecrets.NewSecretLookupPathsReturns(nil)
+			})
+
+			It("calls get off the global secrets", func() {
+				Expect(fakeSecrets.GetCallCount()).To(Equal(1))
+				Expect(fakeSecrets.GetArgsForCall(0)).To(Equal(varRef.Path))
+			})
+		})
+
+		Context("when the var is found in the build vars", func() {
+			BeforeEach(func() {
+				varRef.Source = "."
+				buildVariables.SetVar(".", "path", "fetched-value", true)
+			})
+
+			It("succeeds", func() {
+				Expect(fetchErr).ToNot(HaveOccurred())
+				Expect(fetched).To(BeTrue())
+			})
+
+			It("returns the value", func() {
+				Expect(value).To(Equal("fetched-value"))
+			})
+
+			It("did not spawn get var sub step", func() {
+				Expect(childState.RunCallCount()).To(Equal(0))
+			})
+		})
+
+		Context("when the var uses a var source", func() {
+			It("creates a new scope for the get var substep", func() {
+				Expect(state.NewScopeCallCount()).To(Equal(1))
+			})
+
+			It("sets new var source configs for the child state", func() {
+				Expect(childState.SetVarSourceConfigsCallCount()).To(Equal(1))
+				Expect(childState.SetVarSourceConfigsArgsForCall(0)).To(Equal(sources))
+			})
+
+			It("saves a build event for the sub get var plan", func() {
+				Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
+				e := fakeBuild.SaveEventArgsForCall(0)
+				Expect(e).To(Equal(event.SubGetVar{
+					Time: 675927000,
+					Origin: event.Origin{
+						ID: event.OriginID(planID),
+					},
+					PublicPlan: expectedGetVarPlan.Public(),
+				}))
+			})
+
+			It("runs a GetVar plan to get the var value", func() {
+				Expect(childState.RunCallCount()).To(Equal(1))
+
+				_, plan := childState.RunArgsForCall(0)
+				Expect(plan).To(Equal(expectedGetVarPlan))
+			})
+
+			It("succeeds", func() {
+				Expect(fetchErr).ToNot(HaveOccurred())
+				Expect(fetched).To(BeTrue())
+			})
+
+			It("returns the value", func() {
+				Expect(value).To(Equal("fetched-value"))
+			})
+
+			Context("when the var source is not found", func() {
+				BeforeEach(func() {
+					sources = atc.VarSourceConfigs{
+						{
+							Name: "other-var-source",
+							Type: "registry-image",
+							Config: map[string]interface{}{
+								"var": "other-config",
+							},
+						},
+					}
+
+					childState.VarSourceConfigsReturns(sources)
+				})
+
+				It("returns no matching var source error", func() {
+					Expect(fetchErr).To(Equal(ErrNoMatchingVarSource{"some-var-source"}))
+				})
+			})
+		})
+
+		Context("when running the get var step fails", func() {
+			BeforeEach(func() {
+				childState.RunStub = func(ctx context.Context, plan atc.Plan) (bool, error) {
+					return false, nil
+				}
+			})
+
+			It("errors", func() {
+				Expect(fetchErr).To(MatchError("get var failed"))
+			})
+		})
+
+		Context("when no result is returned by the get var step", func() {
+			BeforeEach(func() {
+				childState.ResultReturns(false)
+			})
+
+			It("errors", func() {
+				Expect(fetchErr).To(MatchError("get var did not return a value"))
 			})
 		})
 	})
