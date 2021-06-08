@@ -6,7 +6,7 @@
     "email": "suraci.alex@gmail.com"
   },
   "engines": {
-    "ghost-api": "v2"
+    "ghost-api": "v4"
   },
   "keywords": ["ghost-theme"],
   "config": {
