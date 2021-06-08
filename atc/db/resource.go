@@ -1026,6 +1026,10 @@ func (r *resource) getCausalityBuilds(tx Tx, query string, versionMD5 string) (m
 // this allows us to reuse getCausalityResourceVersions to construct both upstream and downstream trees by passing in a different updater fn
 type resourceVersionUpdater func(*atc.CausalityResourceVersion, *atc.CausalityBuild)
 
+func resourceVersionID(rID, rcvID int) string {
+	return fmt.Sprintf("%v-%v", rID, rcvID)
+}
+
 // for a given list of build ids, use the build inputs and outputs to construct the tree.
 // the handleInput and handleOutput functions can be used to reverse the direction of the tree:
 // i.e. if the children of a build node is the output, then it's a downstream tree, vice versa if it's an input
@@ -1035,8 +1039,8 @@ func (r *resource) getCausalityResourceVersions(
 	handleInput resourceVersionUpdater,
 	handleOutput resourceVersionUpdater,
 ) error {
-	resourceVersions := make(map[int]*atc.CausalityResourceVersion)
-	resourceVersions[root.ResourceVersionID] = root
+	resourceVersions := make(map[string]*atc.CausalityResourceVersion)
+	resourceVersions[resourceVersionID(root.ResourceID, root.ResourceVersionID)] = root
 
 	tx, err := r.conn.Begin()
 	if err != nil {
@@ -1083,7 +1087,7 @@ UNION ALL
 			return err
 		}
 
-		rv, found := resourceVersions[rcvID]
+		rv, found := resourceVersions[resourceVersionID(rID, rcvID)]
 		if !found {
 			rv = &atc.CausalityResourceVersion{
 				ResourceID:        rID,
@@ -1102,7 +1106,7 @@ UNION ALL
 			return fmt.Errorf("unknown type: %v", typ)
 		}
 
-		resourceVersions[rcvID] = rv
+		resourceVersions[resourceVersionID(rID, rcvID)] = rv
 	}
 
 	return tx.Commit()
