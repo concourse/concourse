@@ -29,12 +29,12 @@ type GdnBinaryFlags struct {
 	Server struct {
 		Network struct {
 			Pool string `long:"network-pool" description:"Network range to use for dynamically allocated container subnets. (default:10.80.0.0/16)"`
-		} `group:"Guardian Container Networking"`
+		} `group:"Container Networking"`
 
 		Limits struct {
 			MaxContainers string `long:"max-containers" description:"Maximum container capacity. 0 means no limit. (default:250)"`
-		} `group:"Guardian Limits"`
-	} `group:"Guardian server"`
+		} `group:"Limits"`
+	} `group:"server"`
 }
 
 // Defaults for GdnBinaryFlags
@@ -200,7 +200,7 @@ func flagify(env string) string {
 
 func getGdnFlagsFromConfig(configPath string) (GdnBinaryFlags, error) {
 	var configFlags GdnBinaryFlags
-	parser := flags.NewParser(&configFlags, flags.Default | flags.IgnoreUnknown)
+	parser := flags.NewParser(&configFlags, flags.Default|flags.IgnoreUnknown)
 	parser.NamespaceDelimiter = "-"
 
 	iniParser := flags.NewIniParser(parser)
