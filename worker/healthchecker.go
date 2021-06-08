@@ -9,7 +9,6 @@ import (
 )
 
 type healthChecker struct {
-	client           *http.Client
 	baggageclaimAddr string
 	gardenAddr       string
 	timeout          time.Duration
@@ -61,6 +60,4 @@ func (h *healthChecker) CheckHealth(w http.ResponseWriter, req *http.Request) {
 		h.logger.Error("failed-to-list-volumes-on-baggageclaim-server", err)
 		return
 	}
-
-	return
 }

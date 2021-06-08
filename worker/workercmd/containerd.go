@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"syscall"
+	"time"
 
 	"code.cloudfoundry.org/garden/server"
 	"code.cloudfoundry.org/lager"
@@ -21,6 +22,8 @@ import (
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 )
+
+const containerdNamespace = "concourse"
 
 // WriteDefaultContainerdConfig writes a default containerd configuration file
 // to a destination.
@@ -56,10 +59,7 @@ func (cmd *WorkerCommand) containerdGardenServerRunner(
 	containerdAddr string,
 	dnsServers []string,
 ) (ifrit.Runner, error) {
-	const (
-		graceTime = 0
-		namespace = "concourse"
-	)
+	const graceTime = 0
 
 	backendOpts := []runtime.GardenBackendOpt{}
 	networkOpts := []runtime.CNINetworkOpt{runtime.WithCNIBinariesDir(cmd.Containerd.CNIPluginsDir)}
@@ -73,7 +73,7 @@ func (cmd *WorkerCommand) containerdGardenServerRunner(
 	}
 
 	// DNS proxy won't work without allowing access to host network
-	if cmd.Containerd.Network.AllowHostAccess || cmd.Containerd.Network.DNS.Enable  {
+	if cmd.Containerd.Network.AllowHostAccess || cmd.Containerd.Network.DNS.Enable {
 		networkOpts = append(networkOpts, runtime.WithAllowHostAccess())
 	}
 
@@ -101,7 +101,7 @@ func (cmd *WorkerCommand) containerdGardenServerRunner(
 	)
 
 	gardenBackend, err := runtime.NewGardenBackend(
-		libcontainerd.New(containerdAddr, namespace, cmd.Containerd.RequestTimeout),
+		libcontainerd.New(containerdAddr, containerdNamespace, cmd.Containerd.RequestTimeout),
 		backendOpts...,
 	)
 	if err != nil {
@@ -194,8 +194,19 @@ func (cmd *WorkerCommand) containerdRunner(logger lager.Logger) (ifrit.Runner, e
 
 	members = append(grouper.Members{
 		{
-			Name:   "containerd",
-			Runner: CmdRunner{command},
+			Name: "containerd",
+			Runner: CmdRunner{
+				Cmd: command,
+				Ready: func() bool {
+					client := libcontainerd.New(sock, containerdNamespace, cmd.Containerd.RequestTimeout)
+					err := client.Init()
+					if err != nil {
+						logger.Info("failed-to-connect-to-containerd", lager.Data{"error": err.Error()})
+					}
+					return err == nil
+				},
+				Timeout: 10 * time.Second,
+			},
 		},
 		{
 			Name:   "containerd-garden-backend",
