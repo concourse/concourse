@@ -14,7 +14,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Policy checker", func() {
+var _ = Describe("OPA Policy Checker", func() {
 
 	var (
 		logger  = lagertest.NewTestLogger("opa-test")
@@ -31,7 +31,7 @@ var _ = Describe("Policy checker", func() {
 
 	JustBeforeEach(func() {
 		fakeOpa.Start()
-		agent, err = (&opa.OpaConfig{fakeOpa.URL, time.Second * 2}).NewAgent(logger)
+		agent, err = (&opa.OpaConfig{URL: fakeOpa.URL, Timeout: time.Second * 2}).NewAgent(logger)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(agent).ToNot(BeNil())
 	})
@@ -102,8 +102,8 @@ var _ = Describe("Policy checker", func() {
 		It("should not be allowed and return reasons", func() {
 			result, err := agent.Check(policy.PolicyCheckInput{})
 			Expect(err).ToNot(HaveOccurred())
-			Expect(result.Allowed).To(BeFalse())
-			Expect(result.Reasons).To(BeEmpty())
+			Expect(result.Allowed()).To(BeFalse())
+			Expect(result.Messages()).To(BeEmpty())
 		})
 	})
 
@@ -118,7 +118,7 @@ var _ = Describe("Policy checker", func() {
 			result, err := agent.Check(policy.PolicyCheckInput{})
 			Expect(err).ToNot(HaveOccurred())
 			Expect(result.Allowed).To(BeFalse())
-			Expect(result.Reasons).To(ConsistOf("a policy says you can't do that"))
+			Expect(result.Messages()).To(ConsistOf("a policy says you can't do that"))
 		})
 	})
 

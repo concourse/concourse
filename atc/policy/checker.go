@@ -11,13 +11,19 @@ import (
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
 
 const ActionUseImage = "UseImage"
+const ActionRunSetPipeline = "SetPipeline"
 
 type PolicyCheckNotPass struct {
-	Reasons []string
+	Messages []string
 }
 
 func (e PolicyCheckNotPass) Error() string {
-	return fmt.Sprintf("policy check failed: %s", strings.Join(e.Reasons, ", "))
+	if len(e.Messages) == 0 {
+		return "policy check failed"
+	}
+	lines := []string{""}
+	lines = append(lines, e.Messages...)
+	return fmt.Sprintf("policy check failed: %s", strings.Join(lines, "\n * "))
 }
 
 type Filter struct {
@@ -39,24 +45,35 @@ type PolicyCheckInput struct {
 	Data           interface{} `json:"data,omitempty"`
 }
 
-type PolicyCheckOutput struct {
-	Allowed bool
-	Reasons []string
+//counterfeiter:generate . PolicyCheckResult
+type PolicyCheckResult interface {
+	Allowed() bool
+	ShouldBlock() bool
+	Messages() []string
 }
 
-// FailedPolicyCheck creates a generic failed check
-func FailedPolicyCheck() PolicyCheckOutput {
-	return PolicyCheckOutput{
-		Allowed: false,
-		Reasons: []string{},
-	}
+type internalPolicyCheckResult struct {
+	allowed bool
+	messages []string
+}
+
+func (r internalPolicyCheckResult) Allowed() bool {
+	return r.allowed
+}
+
+func (r internalPolicyCheckResult) ShouldBlock() bool {
+	return !r.allowed
+}
+
+func (r internalPolicyCheckResult) Messages() []string {
+	return r.messages
 }
 
 // PassedPolicyCheck creates a generic passed check
-func PassedPolicyCheck() PolicyCheckOutput {
-	return PolicyCheckOutput{
-		Allowed: true,
-		Reasons: []string{},
+func PassedPolicyCheck() PolicyCheckResult {
+	return internalPolicyCheckResult{
+		allowed: true,
+		messages: []string{""},
 	}
 }
 
@@ -66,7 +83,7 @@ func PassedPolicyCheck() PolicyCheckOutput {
 type Agent interface {
 	// Check returns true if passes policy check. If not goes through policy
 	// check, just return true.
-	Check(PolicyCheckInput) (PolicyCheckOutput, error)
+	Check(PolicyCheckInput) (PolicyCheckResult, error)
 }
 
 //counterfeiter:generate . AgentFactory
@@ -102,7 +119,7 @@ type Checker interface {
 	ShouldCheckAction(string) bool
 	ShouldSkipAction(string) bool
 
-	Check(input PolicyCheckInput) (PolicyCheckOutput, error)
+	Check(input PolicyCheckInput) (PolicyCheckResult, error)
 }
 
 func Initialize(logger lager.Logger, cluster string, version string, filter Filter) (Checker, error) {
@@ -170,7 +187,7 @@ func inArray(array []string, target string) bool {
 	return found
 }
 
-func (c *AgentChecker) Check(input PolicyCheckInput) (PolicyCheckOutput, error) {
+func (c *AgentChecker) Check(input PolicyCheckInput) (PolicyCheckResult, error) {
 	input.Service = "concourse"
 	input.ClusterName = clusterName
 	input.ClusterVersion = clusterVersion
@@ -183,6 +200,6 @@ func (noop NoopChecker) ShouldCheckHttpMethod(string) bool { return false }
 func (noop NoopChecker) ShouldCheckAction(string) bool     { return false }
 func (noop NoopChecker) ShouldSkipAction(string) bool      { return true }
 
-func (noop NoopChecker) Check(PolicyCheckInput) (PolicyCheckOutput, error) {
-	return PolicyCheckOutput{Allowed: true}, nil
+func (noop NoopChecker) Check(PolicyCheckInput) (PolicyCheckResult, error) {
+	return PassedPolicyCheck(), nil
 }

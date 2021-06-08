@@ -15,6 +15,17 @@ import (
 )
 
 type FakeSetPipelineStepDelegate struct {
+	CheckRunSetPipelinePolicyStub        func(*atc.Config) error
+	checkRunSetPipelinePolicyMutex       sync.RWMutex
+	checkRunSetPipelinePolicyArgsForCall []struct {
+		arg1 *atc.Config
+	}
+	checkRunSetPipelinePolicyReturns struct {
+		result1 error
+	}
+	checkRunSetPipelinePolicyReturnsOnCall map[int]struct {
+		result1 error
+	}
 	ErroredStub        func(lager.Logger, string)
 	erroredMutex       sync.RWMutex
 	erroredArgsForCall []struct {
@@ -107,6 +118,67 @@ type FakeSetPipelineStepDelegate struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeSetPipelineStepDelegate) CheckRunSetPipelinePolicy(arg1 *atc.Config) error {
+	fake.checkRunSetPipelinePolicyMutex.Lock()
+	ret, specificReturn := fake.checkRunSetPipelinePolicyReturnsOnCall[len(fake.checkRunSetPipelinePolicyArgsForCall)]
+	fake.checkRunSetPipelinePolicyArgsForCall = append(fake.checkRunSetPipelinePolicyArgsForCall, struct {
+		arg1 *atc.Config
+	}{arg1})
+	stub := fake.CheckRunSetPipelinePolicyStub
+	fakeReturns := fake.checkRunSetPipelinePolicyReturns
+	fake.recordInvocation("CheckRunSetPipelinePolicy", []interface{}{arg1})
+	fake.checkRunSetPipelinePolicyMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeSetPipelineStepDelegate) CheckRunSetPipelinePolicyCallCount() int {
+	fake.checkRunSetPipelinePolicyMutex.RLock()
+	defer fake.checkRunSetPipelinePolicyMutex.RUnlock()
+	return len(fake.checkRunSetPipelinePolicyArgsForCall)
+}
+
+func (fake *FakeSetPipelineStepDelegate) CheckRunSetPipelinePolicyCalls(stub func(*atc.Config) error) {
+	fake.checkRunSetPipelinePolicyMutex.Lock()
+	defer fake.checkRunSetPipelinePolicyMutex.Unlock()
+	fake.CheckRunSetPipelinePolicyStub = stub
+}
+
+func (fake *FakeSetPipelineStepDelegate) CheckRunSetPipelinePolicyArgsForCall(i int) *atc.Config {
+	fake.checkRunSetPipelinePolicyMutex.RLock()
+	defer fake.checkRunSetPipelinePolicyMutex.RUnlock()
+	argsForCall := fake.checkRunSetPipelinePolicyArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeSetPipelineStepDelegate) CheckRunSetPipelinePolicyReturns(result1 error) {
+	fake.checkRunSetPipelinePolicyMutex.Lock()
+	defer fake.checkRunSetPipelinePolicyMutex.Unlock()
+	fake.CheckRunSetPipelinePolicyStub = nil
+	fake.checkRunSetPipelinePolicyReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeSetPipelineStepDelegate) CheckRunSetPipelinePolicyReturnsOnCall(i int, result1 error) {
+	fake.checkRunSetPipelinePolicyMutex.Lock()
+	defer fake.checkRunSetPipelinePolicyMutex.Unlock()
+	fake.CheckRunSetPipelinePolicyStub = nil
+	if fake.checkRunSetPipelinePolicyReturnsOnCall == nil {
+		fake.checkRunSetPipelinePolicyReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.checkRunSetPipelinePolicyReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeSetPipelineStepDelegate) Errored(arg1 lager.Logger, arg2 string) {
@@ -579,6 +651,8 @@ func (fake *FakeSetPipelineStepDelegate) WaitingForWorkerArgsForCall(i int) lage
 func (fake *FakeSetPipelineStepDelegate) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.checkRunSetPipelinePolicyMutex.RLock()
+	defer fake.checkRunSetPipelinePolicyMutex.RUnlock()
 	fake.erroredMutex.RLock()
 	defer fake.erroredMutex.RUnlock()
 	fake.fetchImageMutex.RLock()

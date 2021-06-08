@@ -362,7 +362,7 @@ func (delegate *buildStepDelegate) checkImagePolicy(image atc.ImageResource, pri
 		return fmt.Errorf("redact source: %w", err)
 	}
 
-	result, err := delegate.policyChecker.Check(policy.PolicyCheckInput{
+	return delegate.checkPolicy(policy.PolicyCheckInput{
 		Action:   policy.ActionUseImage,
 		Team:     delegate.build.TeamName(),
 		Pipeline: delegate.build.PipelineName(),
@@ -372,13 +372,23 @@ func (delegate *buildStepDelegate) checkImagePolicy(image atc.ImageResource, pri
 			"privileged":   privileged,
 		},
 	})
+}
+
+func (delegate *buildStepDelegate) checkPolicy(input policy.PolicyCheckInput) error {
+	result, err := delegate.policyChecker.Check(input)
 	if err != nil {
 		return fmt.Errorf("perform check: %w", err)
 	}
 
-	if !result.Allowed {
-		return policy.PolicyCheckNotPass{
-			Reasons: result.Reasons,
+	if !result.Allowed() {
+		policyCheckErr := policy.PolicyCheckNotPass{
+			Messages: result.Messages(),
+		}
+		if result.ShouldBlock() {
+			return policyCheckErr
+		} else {
+			fmt.Fprintf(delegate.Stderr(), "\x1b[1;33m%s\x1b[0m\n\n", policyCheckErr.Error())
+			fmt.Fprintln(delegate.Stderr(), "\x1b[33mWARNING: unblocking from the policy check failure for soft enforcement\x1b[0m")
 		}
 	}
 

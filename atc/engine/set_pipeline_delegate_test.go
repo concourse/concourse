@@ -1,6 +1,7 @@
 package engine_test
 
 import (
+	"github.com/concourse/concourse/atc/policy/policyfakes"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -20,6 +21,8 @@ var _ = Describe("SetPipelineStepDelegate", func() {
 		logger    *lagertest.TestLogger
 		fakeBuild *dbfakes.FakeBuild
 		fakeClock *fakeclock.FakeClock
+		fakePolicyChecker   *policyfakes.FakeChecker
+		fakePolicyCheckResult *policyfakes.FakePolicyCheckResult
 
 		state exec.RunState
 
@@ -38,7 +41,11 @@ var _ = Describe("SetPipelineStepDelegate", func() {
 		}
 		state = exec.NewRunState(noopStepper, credVars, true)
 
-		delegate = engine.NewSetPipelineStepDelegate(fakeBuild, "some-plan-id", state, fakeClock)
+		fakePolicyCheckResult = new(policyfakes.FakePolicyCheckResult)
+		fakePolicyChecker = new(policyfakes.FakeChecker)
+		fakePolicyChecker.CheckReturns(fakePolicyCheckResult, nil)
+
+		delegate = engine.NewSetPipelineStepDelegate(fakeBuild, "some-plan-id", state, fakeClock, fakePolicyChecker)
 	})
 
 	Describe("SetPipelineChanged", func() {
@@ -53,5 +60,9 @@ var _ = Describe("SetPipelineStepDelegate", func() {
 				Changed: true,
 			}))
 		})
+	})
+
+	Describe("CheckRunSetPipelinePolicy", func(){
+		// TODO: add test cases
 	})
 })

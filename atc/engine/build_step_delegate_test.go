@@ -283,16 +283,18 @@ var _ = Describe("BuildStepDelegate", func() {
 				})
 			})
 
+			// TODO: add test cases for shouldBlock
 			Context("when the action needs to be checked", func() {
+				var fakeCheckResult *policyfakes.FakePolicyCheckResult
 				BeforeEach(func() {
+					fakeCheckResult = new(policyfakes.FakePolicyCheckResult)
+					fakePolicyChecker.CheckReturns(fakeCheckResult, nil)
 					fakePolicyChecker.ShouldCheckActionReturns(true)
 				})
 
 				Context("when the check is allowed", func() {
 					BeforeEach(func() {
-						fakePolicyChecker.CheckReturns(policy.PolicyCheckOutput{
-							Allowed: true,
-						}, nil)
+						fakeCheckResult.AllowedReturns(true)
 					})
 
 					It("succeeds", func() {

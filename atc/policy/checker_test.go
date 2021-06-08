@@ -1,8 +1,6 @@
 package policy_test
 
 import (
-	"errors"
-
 	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/atc/policy/policyfakes"
 
@@ -15,6 +13,7 @@ var _ = Describe("Policy checker", func() {
 		checker policy.Checker
 		filter  policy.Filter
 		err     error
+		fakeResult *policyfakes.FakePolicyCheckResult
 	)
 
 	BeforeEach(func() {
@@ -24,7 +23,10 @@ var _ = Describe("Policy checker", func() {
 			ActionsToSkip: []string{"skip_1", "skip_2"},
 		}
 
+		fakeResult = new(policyfakes.FakePolicyCheckResult)
 		fakeAgent = new(policyfakes.FakeAgent)
+		fakeAgent.CheckReturns(fakeResult, nil)
+
 		fakeAgentFactory.NewAgentReturns(fakeAgent, nil)
 	})
 
@@ -74,12 +76,14 @@ var _ = Describe("Policy checker", func() {
 			Context("Check", func() {
 				var (
 					input    policy.PolicyCheckInput
-					output   policy.PolicyCheckOutput
+					output   policy.PolicyCheckResult
 					checkErr error
 				)
+
 				BeforeEach(func() {
 					input = policy.PolicyCheckInput{}
 				})
+
 				JustBeforeEach(func() {
 					output, checkErr = checker.Check(input)
 				})
@@ -87,6 +91,7 @@ var _ = Describe("Policy checker", func() {
 				It("agent should be called", func() {
 					Expect(fakeAgent.CheckCallCount()).To(Equal(1))
 				})
+
 				It("cluster name should be injected into input", func() {
 					realInput := fakeAgent.CheckArgsForCall(0)
 					Expect(realInput).To(Equal(policy.PolicyCheckInput{
@@ -96,55 +101,9 @@ var _ = Describe("Policy checker", func() {
 					}))
 				})
 
-				Context("when agent says pass", func() {
-					BeforeEach(func() {
-						fakeAgent.CheckReturns(policy.PassedPolicyCheck(), nil)
-					})
-
-					It("it should pass", func() {
-						Expect(checkErr).ToNot(HaveOccurred())
-						Expect(output.Allowed).To(BeTrue())
-					})
-				})
-
-				Context("when agent says not-pass", func() {
-					BeforeEach(func() {
-						fakeAgent.CheckReturns(policy.FailedPolicyCheck(), nil)
-					})
-
-					It("should not pass", func() {
-						Expect(checkErr).ToNot(HaveOccurred())
-						Expect(output.Allowed).To(BeFalse())
-					})
-				})
-
-				Context("when agent includes reasons", func() {
-					BeforeEach(func() {
-						fakeAgent.CheckReturns(
-							policy.PolicyCheckOutput{
-								Allowed: false,
-								Reasons: []string{"a policy says you can't do that"},
-							},
-							nil,
-						)
-					})
-
-					It("should include reasons", func() {
-						Expect(checkErr).ToNot(HaveOccurred())
-						Expect(output.Reasons).To(ConsistOf("a policy says you can't do that"))
-					})
-				})
-
-				Context("when agent says error", func() {
-					BeforeEach(func() {
-						fakeAgent.CheckReturns(policy.FailedPolicyCheck(), errors.New("some-error"))
-					})
-
-					It("should not pass", func() {
-						Expect(checkErr).To(HaveOccurred())
-						Expect(checkErr.Error()).To(Equal("some-error"))
-						Expect(output.Allowed).To(BeFalse())
-					})
+				It("return the same result the agent returns", func(){
+					Expect(checkErr).ToNot(HaveOccurred())
+					Expect(output).To(Equal(fakeResult))
 				})
 			})
 		})

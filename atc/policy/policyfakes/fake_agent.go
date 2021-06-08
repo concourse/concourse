@@ -8,24 +8,24 @@ import (
 )
 
 type FakeAgent struct {
-	CheckStub        func(policy.PolicyCheckInput) (policy.PolicyCheckOutput, error)
+	CheckStub        func(policy.PolicyCheckInput) (policy.PolicyCheckResult, error)
 	checkMutex       sync.RWMutex
 	checkArgsForCall []struct {
 		arg1 policy.PolicyCheckInput
 	}
 	checkReturns struct {
-		result1 policy.PolicyCheckOutput
+		result1 policy.PolicyCheckResult
 		result2 error
 	}
 	checkReturnsOnCall map[int]struct {
-		result1 policy.PolicyCheckOutput
+		result1 policy.PolicyCheckResult
 		result2 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeAgent) Check(arg1 policy.PolicyCheckInput) (policy.PolicyCheckOutput, error) {
+func (fake *FakeAgent) Check(arg1 policy.PolicyCheckInput) (policy.PolicyCheckResult, error) {
 	fake.checkMutex.Lock()
 	ret, specificReturn := fake.checkReturnsOnCall[len(fake.checkArgsForCall)]
 	fake.checkArgsForCall = append(fake.checkArgsForCall, struct {
@@ -50,7 +50,7 @@ func (fake *FakeAgent) CheckCallCount() int {
 	return len(fake.checkArgsForCall)
 }
 
-func (fake *FakeAgent) CheckCalls(stub func(policy.PolicyCheckInput) (policy.PolicyCheckOutput, error)) {
+func (fake *FakeAgent) CheckCalls(stub func(policy.PolicyCheckInput) (policy.PolicyCheckResult, error)) {
 	fake.checkMutex.Lock()
 	defer fake.checkMutex.Unlock()
 	fake.CheckStub = stub
@@ -63,28 +63,28 @@ func (fake *FakeAgent) CheckArgsForCall(i int) policy.PolicyCheckInput {
 	return argsForCall.arg1
 }
 
-func (fake *FakeAgent) CheckReturns(result1 policy.PolicyCheckOutput, result2 error) {
+func (fake *FakeAgent) CheckReturns(result1 policy.PolicyCheckResult, result2 error) {
 	fake.checkMutex.Lock()
 	defer fake.checkMutex.Unlock()
 	fake.CheckStub = nil
 	fake.checkReturns = struct {
-		result1 policy.PolicyCheckOutput
+		result1 policy.PolicyCheckResult
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeAgent) CheckReturnsOnCall(i int, result1 policy.PolicyCheckOutput, result2 error) {
+func (fake *FakeAgent) CheckReturnsOnCall(i int, result1 policy.PolicyCheckResult, result2 error) {
 	fake.checkMutex.Lock()
 	defer fake.checkMutex.Unlock()
 	fake.CheckStub = nil
 	if fake.checkReturnsOnCall == nil {
 		fake.checkReturnsOnCall = make(map[int]struct {
-			result1 policy.PolicyCheckOutput
+			result1 policy.PolicyCheckResult
 			result2 error
 		})
 	}
 	fake.checkReturnsOnCall[i] = struct {
-		result1 policy.PolicyCheckOutput
+		result1 policy.PolicyCheckResult
 		result2 error
 	}{result1, result2}
 }

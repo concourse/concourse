@@ -180,7 +180,6 @@ func (factory *coreStepFactory) SetPipelineStep(
 		factory.teamFactory,
 		factory.buildFactory,
 		factory.artifactStreamer,
-		delegateFactory.policyChecker,
 	)
 
 	spStep = exec.LogError(spStep, delegateFactory)
