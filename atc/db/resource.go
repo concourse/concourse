@@ -957,84 +957,58 @@ var (
 	downStreamCausalityQuery = `
 WITH RECURSIVE build_ids AS (
 		SELECT DISTINCT i.build_id
-			FROM build_resource_config_version_inputs i
-			WHERE i.resource_id=$1 AND i.version_md5=$2
-	UNION ALL
-		SELECT DISTINCT bp.to_build_id AS build_id
+		FROM build_resource_config_version_inputs i
+		WHERE i.resource_id=$1 AND i.version_md5=$2
+	UNION
+		SELECT bp.to_build_id AS build_id
 		FROM build_ids bi
 		INNER JOIN build_pipes bp ON bi.build_id = bp.from_build_id
 		INNER JOIN build_resource_config_version_inputs i ON i.build_id = bi.build_id
 		WHERE i.resource_id!=$1
 )
-SELECT * FROM build_ids `
+`
 
 	upStreamCausalityQuery = `
 WITH RECURSIVE build_ids AS (
 		SELECT DISTINCT o.build_id
-			FROM build_resource_config_version_outputs o
-			WHERE o.resource_id=$1 AND o.version_md5=$2
-	UNION ALL
-		SELECT DISTINCT bp.from_build_id AS build_id
+		FROM build_resource_config_version_outputs o
+		WHERE o.resource_id=$1 AND o.version_md5=$2
+	UNION
+		SELECT bp.from_build_id AS build_id
 		FROM build_ids bi
 		INNER JOIN build_pipes bp ON bi.build_id = bp.to_build_id
 		INNER JOIN build_resource_config_version_inputs i ON i.build_id = bi.build_id
 		WHERE i.resource_id!=$1
 )
-SELECT * FROM build_ids
 `
 )
 
 // getCausalityBuilds figures out all the builds that are related to a particular resource version
 // This can include builds that were used the resource version (and its descendents) as an input,
 // and builds that generated some ancestor of the build that generated the resource version itself.
-func (r *resource) getCausalityBuilds(versionMD5 string, query string) ([]int, error) {
-	buildIDs := make([]int, 0)
+func (r *resource) getCausalityBuilds(tx Tx, query string, versionMD5 string) (map[int]*atc.CausalityBuild, error) {
+	builds := make(map[int]*atc.CausalityBuild)
 
-	// downstream builds that were caused by this resource version
-	rows, err := r.conn.Query(query, r.id, versionMD5)
-	if err != nil {
-		return nil, err
-	}
-	for rows.Next() {
-		var buildID int
-		err := rows.Scan(&buildID)
-		if err != nil {
-			return nil, err
-		}
-		buildIDs = append(buildIDs, buildID)
-	}
-
-	return buildIDs, nil
-}
-
-// this allows us to reuse getCausalityResourceVersions to construct both upstream and downstream trees by passing in a different updater fn
-type resourceVersionUpdater func(*atc.CausalityResourceVersion, *atc.CausalityBuild)
-
-// for a given list of build ids, use the build inputs and outputs to construct the tree.
-// the handleInput and handleOutput functions can be used to reverse the direction of the tree:
-// i.e. if the children of a build node is the output, then it's a downstream tree, vice versa if it's an input
-func (r *resource) getCausalityResourceVersions(
-	buildIDs []int, root *atc.CausalityResourceVersion,
-	handleInput resourceVersionUpdater,
-	handleOutput resourceVersionUpdater,
-) error {
 	// construct the job and build nodes. These are placed into a map for easy access down the line
 	rows, err := psql.Select("b.id", "b.name", "b.status", "j.id", "j.name").
-		From("builds b").
+		Prefix(query, r.id, versionMD5).
+		From("build_ids bi").
+		Join("builds b ON b.id = bi.build_id").
 		Join("jobs j ON b.job_id = j.id").
-		Where(sq.Eq{"b.id": buildIDs}).
 		RunWith(r.conn).
 		Query()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	builds := make(map[int]*atc.CausalityBuild)
 	for rows.Next() {
 		var buildID, jobID int
 		var buildName, jobName, status string
 
-		rows.Scan(&buildID, &buildName, &status, &jobID, &jobName)
+		err = rows.Scan(&buildID, &buildName, &status, &jobID, &jobName)
+		if err != nil {
+			return nil, err
+		}
 
 		if _, found := builds[buildID]; !found {
 			builds[buildID] = &atc.CausalityBuild{
@@ -1046,30 +1020,64 @@ func (r *resource) getCausalityResourceVersions(
 			}
 		}
 	}
+	return builds, nil
+}
 
+// this allows us to reuse getCausalityResourceVersions to construct both upstream and downstream trees by passing in a different updater fn
+type resourceVersionUpdater func(*atc.CausalityResourceVersion, *atc.CausalityBuild)
+
+// for a given list of build ids, use the build inputs and outputs to construct the tree.
+// the handleInput and handleOutput functions can be used to reverse the direction of the tree:
+// i.e. if the children of a build node is the output, then it's a downstream tree, vice versa if it's an input
+func (r *resource) getCausalityResourceVersions(
+	query string, versionMD5 string,
+	root *atc.CausalityResourceVersion,
+	handleInput resourceVersionUpdater,
+	handleOutput resourceVersionUpdater,
+) error {
 	resourceVersions := make(map[int]*atc.CausalityResourceVersion)
-	// pre-populate the list with the root
 	resourceVersions[root.ResourceVersionID] = root
 
-	// go through all the inputs and construct the struct, this will partially construct the tree
-	rows, err = psql.Select("r.id", "rcv.id", "r.name", "rcv.version", "i.build_id").
-		From("build_resource_config_version_inputs i").
-		Join("resources r ON r.id = i.resource_id").
-		Join("resource_config_versions rcv ON rcv.version_md5 = i.version_md5 AND rcv.resource_config_scope_id = r.resource_config_scope_id").
-		Where(sq.Eq{"i.build_id": buildIDs}).
-		RunWith(r.conn).
-		Query()
+	tx, err := r.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer Rollback(tx)
+
+	builds, err := r.getCausalityBuilds(tx, query, versionMD5)
+	if err != nil {
+		return err
+	}
+
+	rows, err := r.conn.Query(query+`
+	SELECT r.id, rcv.id, r.name, rcv.version, i.build_id, 'input' AS type
+	FROM build_resource_config_version_inputs i
+	JOIN resources r ON r.id = i.resource_id
+	JOIN resource_config_versions rcv ON rcv.version_md5 = i.version_md5 AND rcv.resource_config_scope_id = r.resource_config_scope_id
+	JOIN build_ids bi ON i.build_id = bi.build_id
+UNION ALL
+	SELECT r.id, rcv.id, r.name, rcv.version, o.build_id, 'output' AS type
+	FROM build_resource_config_version_outputs o
+	JOIN resources r ON r.id = o.resource_id
+	JOIN resource_config_versions rcv ON rcv.version_md5 = o.version_md5 AND rcv.resource_config_scope_id = r.resource_config_scope_id
+	JOIN build_ids bi ON o.build_id = bi.build_id
+	`, r.id, versionMD5)
 	if err != nil {
 		return err
 	}
 
 	for rows.Next() {
 		var (
-			rID, rcvID, bID   int
-			rName, versionStr string
-			version           atc.Version
+			rID, rcvID, bID        int
+			rName, versionStr, typ string
+			version                atc.Version
 		)
-		rows.Scan(&rID, &rcvID, &rName, &versionStr, &bID)
+		err = rows.Scan(&rID, &rcvID, &rName, &versionStr, &bID, &typ)
+		if err != nil {
+			return err
+		}
+
 		err = json.Unmarshal([]byte(versionStr), &version)
 		if err != nil {
 			return err
@@ -1084,45 +1092,20 @@ func (r *resource) getCausalityResourceVersions(
 				Version:           version,
 			}
 		}
-		handleInput(rv, builds[bID])
-		resourceVersions[rcvID] = rv
-	}
 
-	// do the same thing but with outputs. This *should* complete the tree
-	rows, err = psql.Select("r.id", "rcv.id", "r.name", "rcv.version", "o.build_id").
-		From("build_resource_config_version_outputs o").
-		Join("resources r ON r.id = o.resource_id").
-		Join("resource_config_versions rcv ON rcv.version_md5 = o.version_md5 AND rcv.resource_config_scope_id = r.resource_config_scope_id").
-		Where(sq.Eq{"o.build_id": buildIDs}).
-		RunWith(r.conn).
-		Query()
-	if err != nil {
-		return err
-	}
-
-	for rows.Next() {
-		var (
-			rID, rcvID, bID   int
-			rName, versionStr string
-			version           atc.Version
-		)
-		rows.Scan(&rID, &rcvID, &rName, &versionStr, &bID)
-		err = json.Unmarshal([]byte(versionStr), &version)
-
-		rv, found := resourceVersions[rcvID]
-		if !found {
-			rv = &atc.CausalityResourceVersion{
-				ResourceID:        rID,
-				ResourceVersionID: rcvID,
-				ResourceName:      rName,
-				Version:           version,
-			}
+		switch typ {
+		case "input":
+			handleInput(rv, builds[bID])
+		case "output":
+			handleOutput(rv, builds[bID])
+		default:
+			return fmt.Errorf("unknown type: %v", typ)
 		}
-		handleOutput(rv, builds[bID])
+
 		resourceVersions[rcvID] = rv
 	}
 
-	return nil
+	return tx.Commit()
 }
 
 func (r *resource) causality(rcvID int, query string,
@@ -1138,9 +1121,8 @@ func (r *resource) causality(rcvID int, query string,
 	var versionMD5, versionStr string
 	err := psql.Select("version", "version_md5").
 		From("resource_config_versions").
-		Where(
-			sq.Eq{"id": rcvID},
-			sq.Eq{"resource_config_scope_id": r.resourceConfigScopeID},
+		Where(sq.Eq{
+			"id": rcvID},
 		).
 		RunWith(r.conn).
 		Scan(&versionStr, &versionMD5)
@@ -1155,11 +1137,7 @@ func (r *resource) causality(rcvID int, query string,
 		return root, false, err
 	}
 
-	buildIDs, err := r.getCausalityBuilds(versionMD5, query)
-	if err != nil {
-		return root, false, err
-	}
-	err = r.getCausalityResourceVersions(buildIDs, &root, handleInput, handleOutput)
+	err = r.getCausalityResourceVersions(query, versionMD5, &root, handleInput, handleOutput)
 	if err != nil {
 		return root, false, err
 	}
