@@ -19,9 +19,6 @@ type runState struct {
 	artifacts *build.Repository
 	results   *sync.Map
 
-	// source configurations of all the var sources within the pipeline
-	sources atc.VarSourceConfigs
-
 	parent *runState
 }
 
@@ -29,7 +26,6 @@ type Stepper func(atc.Plan) Step
 
 func NewRunState(
 	stepper Stepper,
-	varSourceConfigs atc.VarSourceConfigs,
 	enableRedaction bool,
 ) RunState {
 	tracker := vars.NewTracker(enableRedaction)
@@ -38,8 +34,6 @@ func NewRunState(
 
 		tracker:   tracker,
 		localVars: build.NewVariables(tracker),
-
-		sources: varSourceConfigs,
 
 		artifacts: build.NewRepository(),
 		results:   &sync.Map{},
@@ -102,12 +96,4 @@ func (state *runState) RedactionEnabled() bool {
 
 func (state *runState) Run(ctx context.Context, plan atc.Plan) (bool, error) {
 	return state.stepper(plan).Run(ctx, state)
-}
-
-func (state *runState) VarSourceConfigs() atc.VarSourceConfigs {
-	return state.sources
-}
-
-func (state *runState) SetVarSourceConfigs(varSourceConfigs atc.VarSourceConfigs) {
-	state.sources = varSourceConfigs
 }

@@ -60,8 +60,8 @@ type TaskDelegateFactory interface {
 type TaskDelegate interface {
 	StartSpan(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
 
-	Variables(context.Context, atc.VarSourceConfigs) vars.Variables
 	FetchImage(context.Context, atc.ImageResource, atc.ResourceTypes, atc.VarSourceConfigs, bool, atc.Tags) (worker.ImageSpec, error)
+	FetchVariables(ctx context.Context, varSourceConfigs atc.VarSourceConfigs) vars.Variables
 
 	Stdout() io.Writer
 	Stderr() io.Writer
