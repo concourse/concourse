@@ -213,6 +213,7 @@ myBrowserFetchedTheBuild =
                         , finishedAt = Nothing
                         }
                     , reapTime = Nothing
+                    , createdBy = Nothing
                     }
             )
 

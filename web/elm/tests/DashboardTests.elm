@@ -2221,6 +2221,7 @@ jobWithNameTransitionedAt jobName transitionedAt status =
                 , finishedAt = Nothing
                 }
             , reapTime = Nothing
+            , createdBy = Nothing
             }
     , transitionBuild =
         transitionedAt
@@ -2236,6 +2237,7 @@ jobWithNameTransitionedAt jobName transitionedAt status =
                         , finishedAt = Just <| t
                         }
                     , reapTime = Nothing
+                    , createdBy = Nothing
                     }
                 )
     , paused = False
@@ -2266,6 +2268,7 @@ circularJobs =
                     , finishedAt = Nothing
                     }
                 , reapTime = Nothing
+                , createdBy = Nothing
                 }
       , transitionBuild =
             Just
@@ -2279,6 +2282,7 @@ circularJobs =
                     , finishedAt = Just <| Time.millisToPosix 0
                     }
                 , reapTime = Nothing
+                , createdBy = Nothing
                 }
       , paused = False
       , disableManualTrigger = False
@@ -2310,6 +2314,7 @@ circularJobs =
                     , finishedAt = Nothing
                     }
                 , reapTime = Nothing
+                , createdBy = Nothing
                 }
       , transitionBuild =
             Just
@@ -2323,6 +2328,7 @@ circularJobs =
                     , finishedAt = Just <| Time.millisToPosix 0
                     }
                 , reapTime = Nothing
+                , createdBy = Nothing
                 }
       , paused = False
       , disableManualTrigger = False

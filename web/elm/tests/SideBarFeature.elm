@@ -2204,6 +2204,7 @@ iAmLookingAtAOneOffBuildPageOnANonPhoneScreen =
                     , status = BuildStatusStarted
                     , duration = { startedAt = Nothing, finishedAt = Nothing }
                     , reapTime = Nothing
+                    , createdBy = Nothing
                     }
                 )
             )
