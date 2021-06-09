@@ -49,7 +49,7 @@ type alias Header =
 
 type Widget
     = Button (Maybe ButtonView)
-    | Title String (Maybe Concourse.JobIdentifier) (Concourse.BuildCreatedBy)
+    | Title String (Maybe Concourse.JobIdentifier) Concourse.BuildCreatedBy
     | Duration BuildDuration
 
 
@@ -126,7 +126,7 @@ viewWidget widget =
             Maybe.map viewButton button |> Maybe.withDefault (Html.text "")
 
         Title name jobId createdBy ->
-            Html.h1 [] [ viewTitle name jobId createdBy ]
+            viewTitle name jobId createdBy
 
         Duration duration ->
             viewDuration duration
@@ -152,9 +152,9 @@ viewDuration buildDuration =
 
             Cancelled timestamp ->
                 [ Html.tr []
-                   [ Html.td [ class "dict-key" ] [ Html.text "finished" ]
-                   , viewTimestamp timestamp
-                   ]
+                    [ Html.td [ class "dict-key" ] [ Html.text "finished" ]
+                    , viewTimestamp timestamp
+                    ]
                 ]
 
             Finished { started, finished, duration } ->
@@ -315,41 +315,82 @@ viewButton { type_, backgroundColor, backgroundShade, isClickable } =
 
 viewTitle : String -> Maybe Concourse.JobIdentifier -> Concourse.BuildCreatedBy -> Html Message
 viewTitle name jobID createdBy =
-    case jobID of
-        Just jid ->
-            case createdBy of
-                Just who ->
-                    Html.a
-                        [ href <|
-                            Routes.toString <|
-                                Routes.Job { id = jid, page = Nothing }
-                        , onMouseEnter <| Hover <| Just Message.JobName
-                        , onMouseLeave <| Hover Nothing
-                        , id <| toHtmlID Message.JobName
-                        ]
-                        [ Html.span [ class "build-name" ] [ Html.text jid.jobName ]
-                        , Html.span [ style "letter-spacing" "-1px" ] [ Html.text (" #" ++ name) ]
-                        , Html.span [ style "letter-spacing" "-1px" ] [ Html.text (" by " ++ who) ]
-                        ]
-                Nothing ->
-                    Html.a
-                        [ href <|
-                            Routes.toString <|
-                                Routes.Job { id = jid, page = Nothing }
-                        , onMouseEnter <| Hover <| Just Message.JobName
-                        , onMouseLeave <| Hover Nothing
-                        , id <| toHtmlID Message.JobName
-                        ]
-                        [ Html.span [ class "build-name" ] [ Html.text jid.jobName ]
-                        , Html.span [ style "letter-spacing" "-1px" ] [ Html.text (" #" ++ name) ]
-                        ]
-        _ ->
-            case createdBy of
-                Just who ->
-                    Html.text( name ++ " by " ++ who )
-                Nothing ->
-                    Html.text name
+    let
+        hasCreatedBy =
+            createdBy /= Nothing
 
+        buildName =
+            let
+                buildNameLineHeight =
+                    style "line-height" <|
+                        if hasCreatedBy then
+                            "44px"
+                        else
+                            "60px"
+            in
+            case jobID of
+                Just jid ->
+                    Html.a
+                        [ href <|
+                            Routes.toString <|
+                                Routes.Job { id = jid, page = Nothing }
+                        , onMouseEnter <| Hover <| Just Message.JobName
+                        , onMouseLeave <| Hover Nothing
+                        , id <| toHtmlID Message.JobName
+                        , buildNameLineHeight
+                        ]
+                        [ Html.span [ class "build-name" ] [ Html.text jid.jobName ]
+                        , Html.span [ style "letter-spacing" "-1px" ] [ Html.text (" #" ++ name) ]
+                        ]
+
+                Nothing ->
+                    Html.span [ buildNameLineHeight ] [ Html.text name ]
+
+        createdByText =
+            case createdBy of
+                Just who ->
+                    let
+                        text =
+                            "created by " ++ who
+                    in
+                    Html.span
+                        [ style "position" "absolute"
+                        , style "font-size" "12px"
+                        , style "bottom" "6px"
+                        , style "line-height" "16px"
+                        , style "right" "0"
+                        , style "left" "0"
+                        , style "text-align" "right"
+                        , style "text-overflow" "ellipsis"
+                        , style "white-space" "nowrap"
+                        , style "overflow" "hidden"
+                        , title text
+                        ]
+                        [ Html.text text ]
+                Nothing ->
+                    Html.text ""
+
+        headerStyle =
+            [ style "position" "relative"
+            , style "height" "60px"
+            , style "line-height"
+                (if hasCreatedBy then
+                    "38px"
+
+                 else
+                    "60px"
+                )
+            ]
+                ++ (if hasCreatedBy then
+                        [ style "min-width" "100px"
+                        , style "text-align" "right"
+                        ]
+
+                    else
+                        []
+                   )
+    in
+    Html.h1 headerStyle [ buildName, createdByText ]
 
 viewHistory : BuildStatus -> List BuildTab -> Html Message
 viewHistory backgroundColor =
