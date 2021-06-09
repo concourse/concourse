@@ -31,7 +31,7 @@ func (s *Server) GetDownstreamResourceCausality(pipeline db.Pipeline) http.Handl
 			return
 		}
 
-		causality, found, err := resource.DownstreamCausality(versionID)
+		causality, found, err := resource.Causality(versionID, db.CausalityDownstream)
 		if err != nil {
 			logger.Error("failed-to-fetch", err, lager.Data{"resource-name": resourceName, "resource-config-version": versionID})
 			w.WriteHeader(http.StatusInternalServerError)

@@ -20,6 +20,55 @@ var ErrPinnedThroughConfig = errors.New("resource is pinned through config")
 
 const CheckBuildName = "check"
 
+type CausalityDirection string
+
+const (
+	CausalityDownstream CausalityDirection = "downstream"
+	CausalityUpstream   CausalityDirection = "upstream"
+
+	downStreamCausalityQuery = `
+WITH RECURSIVE build_ids AS (
+		SELECT DISTINCT i.build_id
+		FROM build_resource_config_version_inputs i
+		WHERE i.resource_id=$1 AND i.version_md5=$2
+	UNION
+		SELECT bp.to_build_id AS build_id
+		FROM build_ids bi
+		INNER JOIN build_pipes bp ON bi.build_id = bp.from_build_id
+		INNER JOIN build_resource_config_version_inputs i ON i.build_id = bi.build_id
+		WHERE i.resource_id!=$1
+)
+`
+
+	upStreamCausalityQuery = `
+WITH RECURSIVE build_ids AS (
+		SELECT DISTINCT o.build_id
+		FROM build_resource_config_version_outputs o
+		WHERE o.resource_id=$1 AND o.version_md5=$2
+	UNION
+		SELECT bp.from_build_id AS build_id
+		FROM build_ids bi
+		INNER JOIN build_pipes bp ON bi.build_id = bp.to_build_id
+		INNER JOIN build_resource_config_version_inputs i ON i.build_id = bi.build_id
+		WHERE i.resource_id!=$1
+)
+`
+	inputQuery = `
+	SELECT r.id, rcv.id, r.name, rcv.version, i.build_id, 'input' AS type
+	FROM build_resource_config_version_inputs i
+	JOIN resources r ON r.id = i.resource_id
+	JOIN resource_config_versions rcv ON rcv.version_md5 = i.version_md5 AND rcv.resource_config_scope_id = r.resource_config_scope_id
+	JOIN build_ids bi ON i.build_id = bi.build_id
+	`
+	outputQuery = `
+	SELECT r.id, rcv.id, r.name, rcv.version, o.build_id, 'output' AS type
+	FROM build_resource_config_version_outputs o
+	JOIN resources r ON r.id = o.resource_id
+	JOIN resource_config_versions rcv ON rcv.version_md5 = o.version_md5 AND rcv.resource_config_scope_id = r.resource_config_scope_id
+	JOIN build_ids bi ON o.build_id = bi.build_id
+`
+)
+
 //counterfeiter:generate . Resource
 type Resource interface {
 	PipelineRef
@@ -62,8 +111,7 @@ type Resource interface {
 	PinVersion(rcvID int) (bool, error)
 	UnpinVersion() error
 
-	DownstreamCausality(rcvID int) (atc.CausalityResourceVersion, bool, error)
-	UpstreamCausality(rcvID int) (atc.CausalityResourceVersion, bool, error)
+	Causality(rcvID int, direction CausalityDirection) (atc.CausalityResourceVersion, bool, error)
 
 	SetResourceConfigScope(ResourceConfigScope) error
 
@@ -778,7 +826,7 @@ func (r *resource) ClearResourceCache(version atc.Version) (int64, error) {
 		return 0, err
 	}
 
-	results, err := tx.Exec(`DELETE FROM worker_resource_caches WHERE resource_cache_id IN (` + sqlStatement + `)`, args...)
+	results, err := tx.Exec(`DELETE FROM worker_resource_caches WHERE resource_cache_id IN (`+sqlStatement+`)`, args...)
 
 	if err != nil {
 		return 0, err
@@ -953,36 +1001,6 @@ func requestScheduleForJobsUsingResource(tx Tx, resourceID int) error {
 	return nil
 }
 
-var (
-	downStreamCausalityQuery = `
-WITH RECURSIVE build_ids AS (
-		SELECT DISTINCT i.build_id
-		FROM build_resource_config_version_inputs i
-		WHERE i.resource_id=$1 AND i.version_md5=$2
-	UNION
-		SELECT bp.to_build_id AS build_id
-		FROM build_ids bi
-		INNER JOIN build_pipes bp ON bi.build_id = bp.from_build_id
-		INNER JOIN build_resource_config_version_inputs i ON i.build_id = bi.build_id
-		WHERE i.resource_id!=$1
-)
-`
-
-	upStreamCausalityQuery = `
-WITH RECURSIVE build_ids AS (
-		SELECT DISTINCT o.build_id
-		FROM build_resource_config_version_outputs o
-		WHERE o.resource_id=$1 AND o.version_md5=$2
-	UNION
-		SELECT bp.from_build_id AS build_id
-		FROM build_ids bi
-		INNER JOIN build_pipes bp ON bi.build_id = bp.to_build_id
-		INNER JOIN build_resource_config_version_inputs i ON i.build_id = bi.build_id
-		WHERE i.resource_id!=$1
-)
-`
-)
-
 // getCausalityBuilds figures out all the builds that are related to a particular resource version
 // This can include builds that were used the resource version (and its descendents) as an input,
 // and builds that generated some ancestor of the build that generated the resource version itself.
@@ -1026,21 +1044,29 @@ func (r *resource) getCausalityBuilds(tx Tx, query string, versionMD5 string) (m
 // this allows us to reuse getCausalityResourceVersions to construct both upstream and downstream trees by passing in a different updater fn
 type resourceVersionUpdater func(*atc.CausalityResourceVersion, *atc.CausalityBuild)
 
-func resourceVersionID(rID, rcvID int) string {
+func toCausalityResourceVersionID(rID, rcvID int) string {
 	return fmt.Sprintf("%v-%v", rID, rcvID)
+}
+
+func removeChildIfExists(lst []*atc.CausalityResourceVersion, e *atc.CausalityResourceVersion) []*atc.CausalityResourceVersion {
+	for i, rv := range lst {
+		if rv == e { // swap duplicate element with last element, and return truncated slice
+			lst[i] = lst[len(lst)-1]
+			return lst[:len(lst)-1]
+		}
+	}
+	return lst
 }
 
 // for a given list of build ids, use the build inputs and outputs to construct the tree.
 // the handleInput and handleOutput functions can be used to reverse the direction of the tree:
 // i.e. if the children of a build node is the output, then it's a downstream tree, vice versa if it's an input
 func (r *resource) getCausalityResourceVersions(
-	query string, versionMD5 string,
+	direction CausalityDirection, versionMD5 string,
 	root *atc.CausalityResourceVersion,
-	handleInput resourceVersionUpdater,
-	handleOutput resourceVersionUpdater,
 ) error {
 	resourceVersions := make(map[string]*atc.CausalityResourceVersion)
-	resourceVersions[resourceVersionID(root.ResourceID, root.ResourceVersionID)] = root
+	resourceVersions[toCausalityResourceVersionID(root.ResourceID, root.ResourceVersionID)] = root
 
 	tx, err := r.conn.Begin()
 	if err != nil {
@@ -1049,24 +1075,48 @@ func (r *resource) getCausalityResourceVersions(
 
 	defer Rollback(tx)
 
-	builds, err := r.getCausalityBuilds(tx, query, versionMD5)
+	var handleInput, handleOutput resourceVersionUpdater
+
+	var baseQuery, inputOutputQuery string
+	// in order to detect cycles where a child of a build is the same as the parent (i.e. a build outputs
+	// the same resource version as one of its inputs), it needs to build the tree from the leaf up.
+	// This means that for downstream, the outputs need to be processed before the input and vice versa for
+	// upstream, by manipulating the inputOutputQuery, we can control which rows are returned (and processed) first.
+	switch direction {
+	case CausalityDownstream:
+		baseQuery = downStreamCausalityQuery
+		inputOutputQuery = baseQuery + outputQuery + "UNION ALL\n" + inputQuery
+
+		// for every build output, register it as a child of the build
+		// for every build input (resource version), add the build to its children
+		handleOutput = func(rv *atc.CausalityResourceVersion, build *atc.CausalityBuild) {
+			build.ResourceVersions = append(build.ResourceVersions, rv)
+		}
+		handleInput = func(rv *atc.CausalityResourceVersion, build *atc.CausalityBuild) {
+			build.ResourceVersions = removeChildIfExists(build.ResourceVersions, rv)
+			rv.Builds = append(rv.Builds, build)
+		}
+	case CausalityUpstream:
+		baseQuery = upStreamCausalityQuery
+		inputOutputQuery = baseQuery + inputQuery + "UNION ALL\n" + outputQuery
+
+		// for every build input (resource version), register it as a child of the build
+		// for every build output, add the build to its children
+		handleInput = func(rv *atc.CausalityResourceVersion, build *atc.CausalityBuild) {
+			build.ResourceVersions = append(build.ResourceVersions, rv)
+		}
+		handleOutput = func(rv *atc.CausalityResourceVersion, build *atc.CausalityBuild) {
+			build.ResourceVersions = removeChildIfExists(build.ResourceVersions, rv)
+			rv.Builds = append(rv.Builds, build)
+		}
+	}
+
+	builds, err := r.getCausalityBuilds(tx, baseQuery, versionMD5)
 	if err != nil {
 		return err
 	}
 
-	rows, err := r.conn.Query(query+`
-	SELECT r.id, rcv.id, r.name, rcv.version, i.build_id, 'input' AS type
-	FROM build_resource_config_version_inputs i
-	JOIN resources r ON r.id = i.resource_id
-	JOIN resource_config_versions rcv ON rcv.version_md5 = i.version_md5 AND rcv.resource_config_scope_id = r.resource_config_scope_id
-	JOIN build_ids bi ON i.build_id = bi.build_id
-UNION ALL
-	SELECT r.id, rcv.id, r.name, rcv.version, o.build_id, 'output' AS type
-	FROM build_resource_config_version_outputs o
-	JOIN resources r ON r.id = o.resource_id
-	JOIN resource_config_versions rcv ON rcv.version_md5 = o.version_md5 AND rcv.resource_config_scope_id = r.resource_config_scope_id
-	JOIN build_ids bi ON o.build_id = bi.build_id
-	`, r.id, versionMD5)
+	rows, err := r.conn.Query(inputOutputQuery, r.id, versionMD5)
 	if err != nil {
 		return err
 	}
@@ -1087,7 +1137,7 @@ UNION ALL
 			return err
 		}
 
-		rv, found := resourceVersions[resourceVersionID(rID, rcvID)]
+		rv, found := resourceVersions[toCausalityResourceVersionID(rID, rcvID)]
 		if !found {
 			rv = &atc.CausalityResourceVersion{
 				ResourceID:        rID,
@@ -1106,16 +1156,13 @@ UNION ALL
 			return fmt.Errorf("unknown type: %v", typ)
 		}
 
-		resourceVersions[resourceVersionID(rID, rcvID)] = rv
+		resourceVersions[toCausalityResourceVersionID(rID, rcvID)] = rv
 	}
 
 	return tx.Commit()
 }
 
-func (r *resource) causality(rcvID int, query string,
-	handleInput resourceVersionUpdater,
-	handleOutput resourceVersionUpdater,
-) (atc.CausalityResourceVersion, bool, error) {
+func (r *resource) Causality(rcvID int, direction CausalityDirection) (atc.CausalityResourceVersion, bool, error) {
 	root := atc.CausalityResourceVersion{
 		ResourceID:        r.id,
 		ResourceVersionID: rcvID,
@@ -1141,36 +1188,10 @@ func (r *resource) causality(rcvID int, query string,
 		return root, false, err
 	}
 
-	err = r.getCausalityResourceVersions(query, versionMD5, &root, handleInput, handleOutput)
+	err = r.getCausalityResourceVersions(direction, versionMD5, &root)
 	if err != nil {
 		return root, false, err
 	}
 
 	return root, true, nil
-}
-
-func (r *resource) DownstreamCausality(rcvID int) (atc.CausalityResourceVersion, bool, error) {
-	return r.causality(rcvID, downStreamCausalityQuery,
-		// for every build input (resource version), add the build to its children
-		func(rv *atc.CausalityResourceVersion, build *atc.CausalityBuild) {
-			rv.Builds = append(rv.Builds, build)
-		},
-		// for every build output (resource version), register it as a child of the build
-		func(rv *atc.CausalityResourceVersion, build *atc.CausalityBuild) {
-			build.ResourceVersions = append(build.ResourceVersions, rv)
-		},
-	)
-}
-
-func (r *resource) UpstreamCausality(rcvID int) (atc.CausalityResourceVersion, bool, error) {
-	return r.causality(rcvID, upStreamCausalityQuery,
-		// for every build input (resource version), register it as a child of the build
-		func(rv *atc.CausalityResourceVersion, build *atc.CausalityBuild) {
-			build.ResourceVersions = append(build.ResourceVersions, rv)
-		},
-		// for every build output (resource version), add the build to its children
-		func(rv *atc.CausalityResourceVersion, build *atc.CausalityBuild) {
-			rv.Builds = append(rv.Builds, build)
-		},
-	)
 }
