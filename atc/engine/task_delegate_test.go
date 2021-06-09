@@ -10,14 +10,10 @@ import (
 	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/policy/policyfakes"
-	"github.com/concourse/concourse/atc/runtime"
-	"github.com/concourse/concourse/atc/runtime/runtimetest"
-	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/vars"
 )
 
@@ -144,40 +140,3 @@ var _ = Describe("TaskDelegate", func() {
 		})
 	})
 })
-
-func containerSpecDummy() runtime.ContainerSpec {
-	cpu := uint64(1024)
-	memory := uint64(1024)
-
-	return runtime.ContainerSpec{
-		TeamID: 123,
-		ImageSpec: runtime.ImageSpec{
-			ImageVolume: runtimetest.NewVolume("some-volume"),
-			Privileged:  false,
-		},
-		Limits: runtime.ContainerLimits{
-			CPU:    &cpu,
-			Memory: &memory,
-		},
-		Dir:     "some-artifact-root",
-		Env:     []string{"SECURE=secret-task-param"},
-		Inputs:  []runtime.Input{},
-		Outputs: runtime.OutputPaths{},
-	}
-}
-
-func workerSpecDummy() worker.Spec {
-	return worker.Spec{
-		TeamID:   123,
-		Platform: "some-platform",
-		Tags:     []string{"step", "tags"},
-	}
-}
-
-func containerOwnerDummy() db.ContainerOwner {
-	return db.NewBuildStepContainerOwner(
-		1234,
-		atc.PlanID("42"),
-		123,
-	)
-}

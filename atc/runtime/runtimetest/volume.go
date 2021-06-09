@@ -163,7 +163,7 @@ func (vc VolumeContent) StreamOut(ctx context.Context, path string, encoding bag
 	if err := tarWriter.Flush(); err != nil {
 		return nil, err
 	}
-	return noopCloser{buf}, nil
+	return io.NopCloser(buf), nil
 }
 
 func removeLeadingSlash(path string) string {
@@ -173,7 +173,3 @@ func removeLeadingSlash(path string) string {
 	}
 	return path
 }
-
-type noopCloser struct{ io.Reader }
-
-func (noopCloser) Close() error { return nil }

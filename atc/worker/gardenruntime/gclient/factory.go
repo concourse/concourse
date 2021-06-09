@@ -17,7 +17,7 @@ import (
 // applies to BasicGardenClientWithRequestTimeout.
 var idleConnTimeoutOverride string
 
-type gardenClientFactory struct {
+type GardenClientFactory struct {
 	db                         transport.TransportDB
 	logger                     lager.Logger
 	workerName                 string
@@ -33,8 +33,8 @@ func NewGardenClientFactory(
 	workerHost *string,
 	retryBackOffFactory retryhttp.BackOffFactory,
 	streamClientRequestTimeout time.Duration,
-) *gardenClientFactory {
-	return &gardenClientFactory{
+) *GardenClientFactory {
+	return &GardenClientFactory{
 		db:                         db,
 		logger:                     logger,
 		workerName:                 workerName,
@@ -44,7 +44,7 @@ func NewGardenClientFactory(
 	}
 }
 
-func (gcf *gardenClientFactory) NewClient() Client {
+func (gcf *GardenClientFactory) NewClient() Client {
 	retryer := &transport.UnreachableWorkerRetryer{
 		DelegateRetryer: &retryhttp.DefaultRetryer{},
 	}

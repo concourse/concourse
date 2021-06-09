@@ -17,7 +17,7 @@ type Baggageclaim struct {
 	Volumes []*Volume
 }
 
-func (b Baggageclaim) FindVolume(handle string) (*Volume, int, bool) {
+func (b *Baggageclaim) FindVolume(handle string) (*Volume, int, bool) {
 	for i, v := range b.Volumes {
 		if v.handle == handle {
 			return v, i, true
@@ -26,7 +26,7 @@ func (b Baggageclaim) FindVolume(handle string) (*Volume, int, bool) {
 	return nil, 0, false
 }
 
-func (b Baggageclaim) FilteredVolumes(pred func(*Volume) bool) []*Volume {
+func (b *Baggageclaim) FilteredVolumes(pred func(*Volume) bool) []*Volume {
 	var filtered []*Volume
 	for _, v := range b.Volumes {
 		if pred(v) {
@@ -51,7 +51,7 @@ func (b *Baggageclaim) CreateVolume(_ lager.Logger, handle string, spec baggagec
 	return volume, nil
 }
 
-func (b Baggageclaim) ListVolumes(_ lager.Logger, filter baggageclaim.VolumeProperties) (baggageclaim.Volumes, error) {
+func (b *Baggageclaim) ListVolumes(_ lager.Logger, filter baggageclaim.VolumeProperties) (baggageclaim.Volumes, error) {
 	filteredVolumes := b.FilteredVolumes(func(v *Volume) bool {
 		return matchesFilter(v.Spec.Properties, filter)
 	})
@@ -62,19 +62,19 @@ func (b Baggageclaim) ListVolumes(_ lager.Logger, filter baggageclaim.VolumeProp
 	return bcVolumes, nil
 }
 
-func (b Baggageclaim) LookupVolume(_ lager.Logger, handle string) (baggageclaim.Volume, bool, error) {
+func (b *Baggageclaim) LookupVolume(_ lager.Logger, handle string) (baggageclaim.Volume, bool, error) {
 	v, _, ok := b.FindVolume(handle)
 	return v, ok, nil
 }
 
-func (b Baggageclaim) DestroyVolumes(logger lager.Logger, handles []string) error {
+func (b *Baggageclaim) DestroyVolumes(logger lager.Logger, handles []string) error {
 	for _, handle := range handles {
 		b.DestroyVolume(logger, handle)
 	}
 	return nil
 }
 
-func (b Baggageclaim) DestroyVolume(_ lager.Logger, handle string) error {
+func (b *Baggageclaim) DestroyVolume(_ lager.Logger, handle string) error {
 	b.Volumes = b.FilteredVolumes(func(v *Volume) bool {
 		return v.handle != handle
 	})
