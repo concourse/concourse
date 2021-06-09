@@ -2,7 +2,7 @@ module Build.HeaderTests exposing (all)
 
 import Application.Models exposing (Session)
 import Build.Header.Header as Header
-import Build.Header.Models as Models
+import Build.Header.Models as Models exposing (BuildComment(..))
 import Build.Header.Views as Views
 import Build.StepTree.Models as STModels
 import Common
@@ -420,6 +420,8 @@ model =
     , fetchingHistory = False
     , nextPage = Nothing
     , hasLoadedYet = False
+    , comment = Viewing ""
+    , shortcutsEnabled = True
     }
 
 

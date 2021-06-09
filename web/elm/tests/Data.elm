@@ -494,6 +494,7 @@ build status =
         }
     , reapTime = Nothing
     , createdBy = Just <| "some-one"
+    , comment = ""
     }
 
 
@@ -526,6 +527,7 @@ jobBuild status =
         }
     , reapTime = Nothing
     , createdBy = Just <| "some-one"
+    , comment = ""
     }
 
 

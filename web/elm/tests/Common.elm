@@ -214,6 +214,7 @@ myBrowserFetchedTheBuild =
                         }
                     , reapTime = Nothing
                     , createdBy = Nothing
+                    , comment = ""
                     }
             )
 

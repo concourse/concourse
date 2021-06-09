@@ -645,6 +645,7 @@ all =
                                         }
                                     , reapTime = Nothing
                                     , createdBy = Nothing
+                                    , comment = ""
                                     }
                             )
                         |> Tuple.first

@@ -7,7 +7,7 @@ import Assets
 import Benchmark
 import Benchmark.Runner exposing (BenchmarkProgram, program)
 import Build.Build as Build
-import Build.Header.Models exposing (BuildPageType(..), CurrentOutput(..))
+import Build.Header.Models exposing (BuildComment(..), BuildPageType(..), CurrentOutput(..))
 import Build.Models
 import Build.Output.Models
 import Build.Output.Output
@@ -272,13 +272,12 @@ viewBuildHeader session model build =
                                 build.status
                         )
                     <|
-                        [ Icon.icon
+                        Icon.icon
                             { sizePx = 40
                             , image = Assets.AddCircleIcon |> Assets.CircleOutlineIcon
                             }
                             []
-                        ]
-                            ++ (if buttonDisabled && buttonHovered then
+                            :: (if buttonDisabled && buttonHovered then
                                     [ Html.div
                                         []
                                         [ Html.text <|
@@ -728,6 +727,7 @@ sampleOldModel =
                     }
                 , reapTime = Nothing
                 , createdBy = Nothing
+                , comment = ""
                 }
             , prep = Nothing
             , output =
@@ -791,6 +791,8 @@ sampleModel =
     , notFound = False
     , reapTime = Nothing
     , createdBy = Nothing
+    , comment = Viewing ""
+    , shortcutsEnabled = True
     }
 
 
