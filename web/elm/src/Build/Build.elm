@@ -585,7 +585,13 @@ handleBuildFetched build ( model, effects ) =
         ( newModel
         , cmd
             ++ fetchJobAndHistory
-            ++ [ SetFavIcon (Just build.status), Focus bodyId ]
+            ++ SetFavIcon (Just build.status)
+            :: (if model.shortcutsEnabled then
+                    [ Focus bodyId ]
+
+                else
+                    []
+               )
         )
 
     else
