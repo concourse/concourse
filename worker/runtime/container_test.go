@@ -7,7 +7,6 @@ import (
 	"github.com/concourse/concourse/worker/runtime"
 	"github.com/concourse/concourse/worker/runtime/libcontainerd/libcontainerdfakes"
 	"github.com/concourse/concourse/worker/runtime/runtimefakes"
-	"github.com/containerd/containerd"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -166,49 +165,6 @@ func (s *ContainerSuite) TestRunProcStartErrorExecutableNotFound() {
 
 	_, err := s.container.Run(garden.ProcessSpec{}, garden.ProcessIO{})
 	s.True(errors.Is(err, garden.ExecutableNotFoundError{Message: exeNotFoundErr.Error()}))
-}
-
-func (s *ContainerSuite) TestRunProcCloseIOError() {
-	s.containerdContainer.SpecReturns(&specs.Spec{
-		Process: &specs.Process{},
-		Root:    &specs.Root{},
-	}, nil)
-
-	s.containerdContainer.TaskReturns(s.containerdTask, nil)
-	s.containerdTask.ExecReturns(s.containerdProcess, nil)
-
-	expectedErr := errors.New("proc-closeio-err")
-	s.containerdProcess.CloseIOReturns(expectedErr)
-
-	_, err := s.container.Run(garden.ProcessSpec{}, garden.ProcessIO{})
-	s.True(errors.Is(err, expectedErr))
-}
-
-func (s *ContainerSuite) TestRunProcCloseIOWithStdin() {
-	s.containerdContainer.SpecReturns(&specs.Spec{
-		Process: &specs.Process{},
-		Root:    &specs.Root{},
-	}, nil)
-
-	s.containerdContainer.TaskReturns(s.containerdTask, nil)
-	s.containerdTask.ExecReturns(s.containerdProcess, nil)
-
-	_, err := s.container.Run(garden.ProcessSpec{}, garden.ProcessIO{})
-	s.NoError(err)
-
-	s.Equal(1, s.containerdProcess.CloseIOCallCount())
-	_, opts := s.containerdProcess.CloseIOArgsForCall(0)
-	s.Len(opts, 1)
-
-	// you can't compare two functions in Go, so, compare its effects (these
-	// are functional opts).
-	//
-	obj := containerd.IOCloseInfo{}
-	opts[0](&obj)
-
-	// we want to make sure that we're passing an opt that sets `Stdin` to
-	// true on an `IOCloseInfo`.
-	s.True(obj.Stdin)
 }
 
 func (s *ContainerSuite) TestRunWithUserLookupSucceeds() {

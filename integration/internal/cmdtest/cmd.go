@@ -67,6 +67,14 @@ func (cmd Cmd) ExpectExit(code int) Cmd {
 	return cmd
 }
 
+func (cmd Cmd) Start(t *testing.T, args ...string) *exec.Cmd {
+	execCmd, err := cmd.TryStart(args...)
+	if err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	return execCmd
+}
+
 func (cmd Cmd) Run(t *testing.T, args ...string) {
 	err := cmd.Try(args...)
 	if err != nil {
@@ -102,7 +110,7 @@ func (cmd Cmd) OutputJSON(t *testing.T, dest interface{}, args ...string) {
 	}
 }
 
-func (cmd Cmd) Try(args ...string) error {
+func (cmd Cmd) execCmd(args ...string) *exec.Cmd {
 	env := []string{
 		// only inherit $PATH; we don't want to pass *everything* along because
 		// then it's unclear what's necessary for the tests, but $PATH seems
@@ -141,13 +149,32 @@ func (cmd Cmd) Try(args ...string) error {
 		}
 	}
 
+	return execCmd
+}
+
+func (cmd Cmd) TryStart(args ...string) (*exec.Cmd, error) {
+	execCmd := cmd.execCmd(args...)
 	cmdStr := strings.Join(execCmd.Args, " ")
 
-	fmt.Fprintf(verbose, "\x1b[33m==== EXEC %s\x1b[0m\n", cmdStr)
+	fmt.Fprintf(os.Stderr, "\x1b[33m==== EXEC %s\x1b[0m\n", cmdStr)
+
+	err := execCmd.Start()
+	if err != nil {
+		return nil, err
+	}
+
+	return execCmd, nil
+}
+
+func (cmd Cmd) Try(args ...string) error {
+	execCmd := cmd.execCmd(args...)
+	cmdStr := strings.Join(execCmd.Args, " ")
+
+	fmt.Fprintf(os.Stderr, "\x1b[33m==== EXEC %s\x1b[0m\n", cmdStr)
 
 	err := execCmd.Run()
 	if err != nil {
-		fmt.Fprintf(verbose, "\x1b[33m==== %s\x1b[0m\n", err)
+		fmt.Fprintf(os.Stderr, "\x1b[33m==== %s\x1b[0m\n", err)
 		return fmt.Errorf("run %s: %w", cmdStr, err)
 	}
 

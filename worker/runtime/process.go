@@ -13,18 +13,15 @@ import (
 type Process struct {
 	process     containerd.Process
 	exitStatusC <-chan containerd.ExitStatus
-	stdin       *stdinWrapper
 }
 
 func NewProcess(
 	p containerd.Process,
 	ch <-chan containerd.ExitStatus,
-	in *stdinWrapper,
 ) *Process {
 	return &Process{
 		process:     p,
 		exitStatusC: ch,
-		stdin:       in,
 	}
 }
 
@@ -46,16 +43,17 @@ func (p *Process) Wait() (int, error) {
 		return 0, fmt.Errorf("waiting for exit status: %w", err)
 	}
 
+	err = p.process.CloseIO(context.Background(), containerd.WithStdinCloser)
+	if err != nil {
+		return 0, fmt.Errorf("proc closeio: %w", err)
+	}
+
 	p.process.IO().Wait()
 
 	_, err = p.process.Delete(context.Background())
 	// ignore "not found" errors - the process was already deleted
 	if err != nil && !errors.Is(err, errdefs.ErrNotFound) {
 		return 0, fmt.Errorf("delete process: %w", err)
-	}
-
-	if p.stdin != nil {
-		p.stdin.Close()
 	}
 
 	return int(status.ExitCode()), nil

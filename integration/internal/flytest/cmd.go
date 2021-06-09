@@ -67,8 +67,14 @@ func Init(t *testing.T, dc dctest.Cmd) Cmd {
 
 	fly.Run(t, "login", "-c", webURL, "-u", "test", "-p", "test")
 
+	fly.WaitForRunningWorker(t)
+
+	return fly
+}
+
+func (cmd Cmd) WaitForRunningWorker(t *testing.T) {
 	require.Eventually(t, func() bool {
-		for _, w := range fly.Table(t, "workers") {
+		for _, w := range cmd.Table(t, "workers") {
 			if w["state"] == "running" {
 				return true
 			}
@@ -76,8 +82,6 @@ func Init(t *testing.T, dc dctest.Cmd) Cmd {
 
 		return false
 	}, time.Minute, time.Second, "should have a running worker")
-
-	return fly
 }
 
 type Table []map[string]string

@@ -1,0 +1,5 @@
+version: '3'
+
+services:
+  worker:
+    entrypoint: /src/integration/worker/overrides/restartable-entrypoint.sh
