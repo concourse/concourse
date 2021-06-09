@@ -1,0 +1,201 @@
+\title{Hello World Pipeline}{tutorial-hello-world}
+
+\use-plugin{concourse-docs}
+
+\section{
+  \title{Creating a Pipeline}
+  Let's start where all tutorials start, with a \code{Hello World!} example!
+
+  In this section you're going to create a pipeline that simply prints
+  \code{Hello world!} to the console. While building up the pipeline we will
+  pause to explain the core pieces of the pipeline.
+
+  Let's first answer: \bold{what is a pipeline made up from?}
+
+  The simplest Concourse \reference{pipelines}{pipeline} is made of two objects:
+
+  \list{
+  An unordered list of \reference{jobs} which contains...
+  }{
+  An ordered list of \reference{steps}
+  }
+  If you've used other pipeline building tools in the past, then what you think
+  of as a pipeline is probably most similar to a \reference{jobs}{job} in
+  Concourse.
+
+  For our \code{Hello World!} pipeline we will need \bold{one job} with \bold{one
+  step}. This is the smallest pipeline you can make in Concourse. The single step
+  is what will print \code{Hello World!} to the console.
+
+  Create and open a new file called \code{hello-world.yml}. Inside that file
+  let's add the first top-level key, \code{\reference{jobs}{jobs}}.
+
+  \codeblock{yaml}{{
+  jobs:
+  }}
+
+  The \code{\reference{jobs}{jobs}} key is where we define the list of jobs that
+  should make up our pipeline. The order of the jobs does not matter. \bold{The
+  order of jobs does not define the structure of the pipeline.} We'll get into
+  pipeline structure and job ordering later when we talk about
+  \reference{resources} and passed constraints.
+}
+
+\section{
+  \title{Add a job}
+
+  We only need one job right now so let's add a single job named
+  \code{hello-world-job}.
+
+  \codeblock{yaml}{{
+  jobs:
+  - name: hello-world-job
+  }}
+
+  Awesome, we have a \reference{jobs}{job} named \code{hello-world}! Now we need
+  to add a \code{\reference{steps}{step}} to our job. To define a list of
+  \reference{steps}{steps} a job should execute, we need to add the
+  \code{\reference{schema.job.plan}{plan}} key to our job.
+
+  \codeblock{yaml}{{
+  jobs:
+  - name: hello-world-job
+    plan:
+  }}
+}
+
+\section{
+  \title{Add a step}
+
+  Unlike \reference{jobs}{jobs}, the order of \reference{steps}{steps}
+  \bold{does matter!} Concourse will run the \reference{steps}{steps} in the
+  order that they are listed. Let's \italic{carefully} place a
+  \reference{schema.step.task-step.task}{task step} as the first (and only)
+  step in our job.
+
+  \codeblock{yaml}{{
+  jobs:
+  - name: hello-world-job
+    plan:
+    - task: hello-world-task
+  }}
+
+  Fantastic! Now we need to tell Concourse \italic{how} to run our task step. We
+  do that by providing a \reference{schema.task}{task config}.
+
+  \codeblock{yaml}{{
+  jobs:
+  - name: hello-world-job
+    plan:
+    - task: hello-world-task
+      config:
+  }}
+
+  At this point we are going to pause to explain steps a bit more.
+}
+
+\section{
+  \title{What is a step?}
+
+  A step is a single container running on a
+  \reference{concourse-worker}{Concourse worker}. Each \reference{steps}{step} in
+  a \reference{schema.job.plan}{job plan} runs in its own container. You can run
+  anything you want inside the container \italic{(i.e. run my tests, run this
+  bash script, build this image, etc.)}.
+
+  So if you have a job with five steps Concourse will create five containers, one
+  for each step. Therefore, we need to tell Concourse the following about each
+  step:
+
+  \list{
+  What type of \reference{worker-node}{worker} to run the task on (linux/windows/darwin)
+  }{
+  What container image to use \italic{(Linux only)}
+  }{
+  What command to run inside the container
+  }
+
+  \aside{
+  Concourse currently only supports Linux containers. Concourse does not yet run
+  Windows containers. Darwin does not have native containers.
+  }
+}
+
+\section{
+  \title{Fill in the Task Config}
+
+  Let's answer the previous three questions for our \code{hello-world-task}:
+
+  \list{
+  \bold{What type of \reference{worker-node}{worker} to run the task on (linux/windows/darwin)}
+
+  Linux, because our docker-composed Concourse only has one linux worker.
+  You can verify this by running \code{fly -t tutorial workers}
+  }{
+  \bold{What container image to use \italic{(Linux only)}}
+
+  We'll use the super small \link{busybox image}{https://hub.docker.com/_/busybox}
+  }{
+  \bold{What command to run inside the container}
+
+  \code{echo "Hello world!"}
+  }
+
+  You can view the \reference{tasks}{task documentation} to see all configurable
+  options for tasks. For now, you can add the following
+  \reference{schema.task}{task config} to the step.
+
+  \codeblock{yaml}{{
+  jobs:
+  - name: hello-world-job
+    plan:
+    - task: hello-world-task
+      config:
+        # Tells Concourse which type of worker this task should run on
+        platform: linux
+        # This is one way of telling Concourse which container image to use for a
+        # task. We'll explain this more when talking about resources
+        image_resource:
+          type: registry-image
+          source:
+            repository: busybox # images are pulled from docker hub by default
+        # The command Concourse will run inside the container
+        # echo "Hello world!"
+        run:
+          path: echo
+          args: ["Hello world!"]
+  }}
+}
+
+\section{
+  \title{Run the pipeline}
+
+  That's the whole pipeline! You can now set it, unpause, and trigger it using
+  the \reference{fly}{fly cli}. You can then view it from the \link{web
+  ui}{http://localhost:8080/teams/main/pipelines/hello-world/jobs/hello-world-job}.
+
+  \codeblock{bash}{{
+  $ fly -t tutorial set-pipeline -p hello-world -c hello-world.yml
+  # pipelines are paused when first created
+  $ fly -t tutorial unpause-pipeline -p hello-world
+  # trigger the job and watch it run to completion
+  $ fly -t tutorial trigger-job --job hello-world/hello-world-job --watch
+  }}
+
+  You'll see extra output than what we're showing below (the busybox image being
+  downloaded) but the last four lines will be the task executing.
+
+  \codeblock{}{{
+  selected worker: 701785fa43a1
+  running echo Hello world!
+  Hello world!
+  succeeded
+  }}
+
+  \frame{http://localhost:8080/teams/main/pipelines/hello-world}{500px}
+
+  Congratulations on building your first Concourse pipeline!
+
+  In the next section we will build upon what we have learned about tasks and
+  introduce inputs and outputs, which allow you to pass files between tasks.
+}

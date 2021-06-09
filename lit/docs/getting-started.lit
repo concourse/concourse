@@ -1,0 +1,32 @@
+\title{Getting Started}
+
+This tutorial will guide you through the basics of creating Concourse
+pipelines. You will use a local instance of Concourse running on your machine to
+run pipelines.
+
+Before getting started you should have the following installed:
+
+\list{
+  \link{Docker}{https://docs.docker.com/get-docker/}
+}{
+  \link{Docker-compose}{https://docs.docker.com/compose/install/}
+}
+
+This tutorial assumes you understand what Linux containers are and how to work
+with them. If you know what a Dockfile is and how to make your own then you're
+probably good to jump into this tutorial. If you're not familiar with Linux
+containers then you may want to \link{get started with
+Docker}{https://docs.docker.com/get-started/} first before diving into this
+tutorial.
+
+It will also help if you know how to read YAML. We have a quick
+\reference{intro-to-yaml} if you're not familiar with the syntax.
+
+\table-of-contents
+
+\split-sections
+
+\include-section{getting-started/quickstart.lit}
+\include-section{getting-started/hello-world.lit}
+\include-section{getting-started/inputs-outputs.lit}
+\include-section{getting-started/resources.lit}

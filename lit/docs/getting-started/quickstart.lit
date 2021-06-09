@@ -1,0 +1,60 @@
+\title{Quick Start}
+
+\use-plugin{concourse-docs}
+
+\section{
+    \title{Docker Compose Concourse}
+
+    Concourse is distributed as a single \code{concourse} binary, making it easy to
+    run just about anywhere, especially with Docker.
+
+    If you'd like to get Concourse running somewhere quickly so you can start to
+    kick the tires, the easiest way is to use our \link{docker-compose.yml}{docker-compose.yml}:
+
+    \codeblock{bash}{{
+    $ curl -O https://concourse-ci.org/docker-compose.yml
+    $ docker-compose up -d
+    Creating docs_concourse-db_1 ...
+    Creating docs_concourse-db_1 ... done
+    Creating docs_concourse_1 ...
+    Creating docs_concourse_1 ... done
+    }}
+
+    Concourse will be running at \link{localhost:8080}{http://localhost:8080} on
+    your machine. You can log in with the username/password as
+    \code{test}/\code{test}.
+}
+
+\section{
+    \title{Install Fly}
+
+    Next, install the \reference{fly-cli} by downloading it from the web UI and
+    \reference{fly-login}{login} to your local Concourse as the \code{test} user:
+
+    \codeblock{bash}{{
+    # MacOS
+    $ curl http://localhost:8080/api/v1/cli?arch=amd64&platform=darwin -o fly \\
+        && chmod +x ./fly && mv ./fly /usr/local/bin/
+    # Linux
+    $ curl http://localhost:8080/api/v1/cli?arch=amd64&platform=linux -o fly \\
+        && chmod +x ./fly && mv ./fly /usr/local/bin/
+    # TODO Windows powershell. How to PATH on windows???
+
+    $ fly -t tutorial login -c http://localhost:8080 -u test -p test
+    logging in to team 'main'
+
+    target saved
+    }}
+
+    You'll notice that every \code{fly} command in this tutorial has to have the
+    \reference{fly-targets}{target (\code{-t tutorial})} specified. This is
+    annoying when you only have one Concourse to target, but it helps ensure you
+    don't trigger a job on the wrong Concourse instance. It will save you from
+    hurting yourself!
+
+    Once you've confirmed everything is up and running by logging in through fly
+    and the \link{web UI}{http://localhost:8080}, you can move onto the next
+    section. If you refresh this page you should see the web UI in the frame below.
+
+    \frame{http://localhost:8080}{500px}
+}

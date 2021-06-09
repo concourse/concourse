@@ -1,0 +1,185 @@
+\title{Inputs and Outputs}{tutorial-inputs-outputs}
+
+\use-plugin{concourse-docs}
+
+\section{
+  \title{Overview}
+
+  This section is going to go over how to pass data between different
+  \reference{steps}{steps} in a \reference{jobs}{job}. We'll continue building
+  on our \code{hello-world.yml} pipeline.
+
+  In the previous section we learned that \reference{steps}{steps} are where we
+  tell Concourse what to run \italic{(i.e. run my tests, run this bash script,
+  build this image, etc.)}. We are going to expand on the concept of
+  \reference{steps}{steps} and show you how to pass artifacts/files between
+  \reference{tasks}{tasks}.
+}
+
+\section{
+  \title{What are inputs and outputs?}
+
+  The simple answer is that inputs and outputs are directories that get passed
+  between steps. We'll refer to both inputs and outputs as \bold{artifacts}.
+
+  Let's start exploring how artifacts work by adding a
+  \reference{schema.task.outputs} to our \code{hello-world-task}.
+
+  \codeblock{yaml}{{
+  jobs:
+  - name: hello-world-job
+    plan:
+    - task: hello-world-task
+      config:
+        platform: linux
+        image_resource:
+          type: registry-image
+          source:
+            repository: busybox
+        # Add "the-artifact" to our task
+        outputs:
+        - name: the-artifact
+        run:
+          # Change the command to `ls -lF` to see
+          # what the task sees in its working directory
+          path: ls
+          args: ["-lF"]
+  }}
+
+  Update the pipeline and trigger the job:
+  \codeblock{}{{
+  $ fly -t tutorial set-pipeline -p hello-world -c hello-world.yml
+  $ fly -t tutorial trigger-job --job hello-world/hello-world-job --watch
+  ...
+  selected worker: 57d7419112ca
+  running ls -lF
+  total 4
+  drwxr-xr-x    2 root     root          4096 Apr  8 16:42 the-artifact/
+  succeeded
+  }}
+
+  We can see that in the task's \link{current working
+  directory}{https://en.wikipedia.org/wiki/Working_directory} there is now a
+  folder called \code{the-artifact}. Concourse makes output directories for you
+  and will pass any contents inside the folder onto later steps. Let's see how
+  that works next.
+}
+
+\section{
+  \title{Passing outputs to another task}
+  To pass artifacts from one task to another, the first task must declare the
+  artifact as an output. The second task must then declare the same artifact as
+  an input. Let's update the pipeline to do the following:
+
+  \list{
+  Have the first task create a file inside \code{the-artifact}
+  }{
+  Create a second task to read the file inside \code{the-artifact} from the
+  previous step
+  }
+
+  \codeblock{yaml}{{
+  jobs:
+  - name: hello-world-job
+    plan:
+    - task: hello-world-task
+      config:
+        platform: linux
+        image_resource:
+          type: registry-image
+          source:
+            repository: busybox
+        outputs:
+        - name: the-artifact
+        run:
+          # This is a neat way of embedding a script into a task
+          path: sh
+          args:
+          - -cx
+          - |
+            ls -l .
+            echo "hello from another step!" > the-artifact/message
+    # Add a second task that reads the contents of the-artifact/message
+    - task: read-the-artifact
+      config:
+        platform: linux
+        image_resource:
+          type: registry-image
+          source:
+            repository: busybox
+        # To recieve "the-artifact", specify it as an input
+        inputs:
+        - name: the-artifact
+        run:
+          path: sh
+          args:
+          - -cx
+          - |
+            ls -l .
+            cat the-artifact/message
+  }}
+
+  Update the pipeline and trigger the job:
+  \codeblock{}{{
+  $ fly -t tutorial set-pipeline -p hello-world -c hello-world.yml
+  $ fly -t tutorial trigger-job --job hello-world/hello-world-job --watch
+
+  initializing
+  selected worker: 57d7419112ca
+  running sh -cx ls -l .
+  echo "hello from another step!" > the-artifact/message
+
+  + ls -l .
+  total 4
+  drwxr-xr-x    2 root     root          4096 Feb 26 19:09 the-artifact
+  + echo 'hello from another step!'
+  initializing
+  selected worker: 57d7419112ca
+  running sh -cx ls -l .
+  cat the-artifact/message
+
+  + ls -l .
+  total 4
+  drwxr-xr-x    1 root     root          4096 Feb 26 19:09 the-artifact
+  + cat the-artifact/message
+  hello from another step!
+  succeeded
+  }}
+
+  With the above pipeline we can see that the file made in the first step is
+  made available in the second step. You can view the same build output from
+  the \link{web UI}{http://localhost:8080/teams/main/pipelines/hello-world}.
+  Click on the job tile to see the individual steps. Click on each step to
+  expand it and see the build logs.
+
+  \frame{http://localhost:8080/teams/main/pipelines/hello-world}{500px}
+}
+
+\section{
+  \title{How does Concourse track artifacts?}
+
+  As Concourse is running the steps in your job, it is creating a list of
+  \bold{named artifacts}. Let's see what that looks like for the pipeline we just
+  ran.
+
+  \list{
+    Concourse runs the task step \code{hello-world-task} with
+    \reference{schema.task.outputs}{output} \code{the-artifact}
+
+    \aside{
+    Concourse creates an empty artifact, assigns it the name \code{the-artifact}, and
+    mounts it inside the task container.
+    }
+  }{
+    Concourse runs the task step \code{read-the-artifact} with
+    \reference{schema.task.inputs}{input} \code{the-artifact}
+
+    \aside{
+      Concourse looks up, in its list of artifacts for the build, for an
+      artifact named \code{the-artifact}, and mounts it inside the task
+      container. If no input with that name is found then the build would fail.
+    }
+  }
+
+  The next section will introduce you to the concept of \reference{resources}.
+}
