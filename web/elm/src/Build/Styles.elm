@@ -3,10 +3,12 @@ module Build.Styles exposing
     , abortButton
     , body
     , changedStepTooltip
+    , commentTextArea
     , durationTooltip
     , errorLog
     , header
     , historyItem
+    , historyTriangle
     , imageSteps
     , initializationToggle
     , keyValuePairHeaderLabel
@@ -26,7 +28,7 @@ import Colors
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Dashboard.Styles exposing (striped)
 import Html
-import Html.Attributes exposing (style)
+import Html.Attributes exposing (rows, style)
 import Views.Styles
 
 
@@ -57,6 +59,20 @@ header status =
     ]
 
 
+commentTextArea : List (Html.Attribute msg)
+commentTextArea =
+    [ style "resize" "none"
+    , style "outline" "none"
+    , style "border" "medium dashed rgba(255, 255, 255, 0.5)"
+    , style "border-radius" "7px"
+    , style "color" Colors.text
+    , style "margin" "16px 0"
+    , style "flex" "0 0 50%"
+    , rows 1
+    ]
+        ++ Views.Styles.defaultFont
+
+
 body : List (Html.Attribute msg)
 body =
     [ style "overflow-y" "auto"
@@ -68,7 +84,8 @@ body =
 
 historyItem : BuildStatus -> Bool -> BuildStatus -> List (Html.Attribute msg)
 historyItem currentBuildStatus isCurrent status =
-    [ style "letter-spacing" "-1px"
+    [ style "position" "relative"
+    , style "letter-spacing" "-1px"
     , style "padding" "0 2px 0 2px"
     , style "border-top" <| "1px solid " ++ Colors.buildStatusColor isCurrent currentBuildStatus
     , style "border-right" <| "1px solid " ++ Colors.buildStatusColor False status
@@ -102,6 +119,27 @@ historyItem currentBuildStatus isCurrent status =
                 BuildStatusAborted ->
                     [ style "background" Colors.aborted ]
            )
+
+
+historyTriangle : String -> List (Html.Attribute msg)
+historyTriangle size =
+    [ style "position" "absolute"
+    , style "top" "0"
+    , style "right" "0"
+    , style "width" "0"
+    , style "height" "0"
+    , style "pointer-events" "none"
+    , style "border-style" "solid"
+    , style "border-width" (String.join " " [ "0", size, size, "0" ])
+    , style "border-color"
+        (String.join " "
+            [ "transparent"
+            , Colors.white
+            , "transparent"
+            , "transparent"
+            ]
+        )
+    ]
 
 
 triggerButton : Bool -> Bool -> BuildStatus -> List (Html.Attribute msg)

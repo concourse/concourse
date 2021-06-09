@@ -74,6 +74,41 @@ func (team *team) RerunJobBuild(pipelineRef atc.PipelineRef, jobName string, bui
 	return build, err
 }
 
+func (team *team) SetJobBuildComment(pipelineRef atc.PipelineRef, jobName string, buildName string, comment string) (bool, error) {
+	params := rata.Params{
+		"build_name":    buildName,
+		"job_name":      jobName,
+		"pipeline_name": pipelineRef.Name,
+		"team_name":     team.Name(),
+	}
+
+	pinComment := atc.SetBuildCommentBody{
+		Comment: comment,
+	}
+
+	buffer := &bytes.Buffer{}
+	err := json.NewEncoder(buffer).Encode(pinComment)
+	if err != nil {
+		return false, fmt.Errorf("Unable to marshal comment: %s", err)
+	}
+
+	err = team.connection.Send(internal.Request{
+		RequestName: atc.SetBuildComment,
+		Params:      params,
+		Query:       pipelineRef.QueryParams(),
+		Body:        buffer,
+	}, nil)
+
+	switch err.(type) {
+	case nil:
+		return true, nil
+	case internal.ResourceNotFoundError:
+		return false, nil
+	default:
+		return false, err
+	}
+}
+
 func (team *team) JobBuild(pipelineRef atc.PipelineRef, jobName, buildName string) (atc.Build, bool, error) {
 	params := rata.Params{
 		"job_name":      jobName,

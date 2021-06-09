@@ -192,6 +192,7 @@ type alias Build =
     , job : Maybe JobIdentifier
     , status : BuildStatus
     , duration : BuildDuration
+    , comment : String
     , reapTime : Maybe Time.Posix
     , createdBy: BuildCreatedBy
     }
@@ -253,6 +254,7 @@ decodeBuild =
                 |> andMap (Json.Decode.maybe (Json.Decode.field "start_time" (Json.Decode.map dateFromSeconds Json.Decode.int)))
                 |> andMap (Json.Decode.maybe (Json.Decode.field "end_time" (Json.Decode.map dateFromSeconds Json.Decode.int)))
             )
+        |> andMap (defaultTo "" <| Json.Decode.field "comment" <| Json.Decode.string)
         |> andMap (Json.Decode.maybe (Json.Decode.field "reap_time" (Json.Decode.map dateFromSeconds Json.Decode.int)))
         |> andMap (Json.Decode.maybe (Json.Decode.field "created_by" Json.Decode.string))
 

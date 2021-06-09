@@ -1,5 +1,6 @@
 module Build.Header.Models exposing
-    ( BuildPageType(..)
+    ( BuildComment(..)
+    , BuildPageType(..)
     , CurrentOutput(..)
     , HistoryItem
     , Model
@@ -27,6 +28,8 @@ type alias Model r =
         , fetchingHistory : Bool
         , nextPage : Maybe Page
         , hasLoadedYet : Bool
+        , comment : BuildComment
+        , shortcutsEnabled : Bool
     }
 
 
@@ -36,6 +39,7 @@ type alias HistoryItem =
     , status : BuildStatus.BuildStatus
     , duration : Concourse.BuildDuration
     , createdBy : Concourse.BuildCreatedBy
+    , comment : String
     }
 
 
@@ -43,6 +47,12 @@ type CurrentOutput
     = Empty
     | Cancelled
     | Output OutputModel
+
+
+type BuildComment
+    = Viewing String
+    | Editing ( String, String )
+    | Saving String
 
 
 type BuildPageType

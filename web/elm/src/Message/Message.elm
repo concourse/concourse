@@ -34,6 +34,9 @@ type Message
     | BlurTextArea
       -- Build
     | ScrollBuilds StrictEvents.WheelEvent
+    | EditBuildComment String
+    | FocusBuildComment
+    | BlurBuildComment
     | RevealCurrentBuildInHistory
     | SetHighlight String Int
     | ExtendHighlight String Int
@@ -46,6 +49,10 @@ type Message
 
 type DomID
     = ToggleJobButton
+    | BuildCommentTextArea
+    | CancelBuildCommentButton
+    | EditBuildCommentButton
+    | SaveBuildCommentButton
     | TriggerBuildButton
     | AbortBuildButton
     | RerunBuildButton

@@ -1,6 +1,6 @@
 module Build.Shortcuts exposing (handleDelivery, keyboardHelp)
 
-import Build.Header.Models exposing (HistoryItem)
+import Build.Header.Models exposing (BuildComment(..), HistoryItem)
 import Build.Models exposing (ShortcutsModel)
 import Concourse.BuildStatus
 import EffectTransformer exposing (ET)
@@ -62,6 +62,16 @@ historyItem model =
     , status = model.status
     , duration = model.duration
     , createdBy = model.createdBy
+    , comment =
+        case model.comment of
+            Viewing content ->
+                content
+
+            Editing ( _, oldState ) ->
+                oldState
+
+            Saving oldState ->
+                oldState
     }
 
 
@@ -95,20 +105,24 @@ nextHistoryItem builds b =
 
 handleDelivery : Delivery -> ET (ShortcutsModel r)
 handleDelivery delivery ( model, effects ) =
-    case delivery of
-        KeyDown keyEvent ->
-            handleKeyPressed keyEvent ( model, effects )
+    if model.shortcutsEnabled then
+        case delivery of
+            KeyDown keyEvent ->
+                handleKeyPressed keyEvent ( model, effects )
 
-        KeyUp keyEvent ->
-            case keyEvent.code of
-                Keyboard.T ->
-                    ( { model | isTriggerBuildKeyDown = False }, effects )
+            KeyUp keyEvent ->
+                case keyEvent.code of
+                    Keyboard.T ->
+                        ( { model | isTriggerBuildKeyDown = False }, effects )
 
-                _ ->
-                    ( model, effects )
+                    _ ->
+                        ( model, effects )
 
-        _ ->
-            ( model, effects )
+            _ ->
+                ( model, effects )
+
+    else
+        ( model, effects )
 
 
 handleKeyPressed : Keyboard.KeyEvent -> ET (ShortcutsModel r)

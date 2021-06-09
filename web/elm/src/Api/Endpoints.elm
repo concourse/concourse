@@ -58,6 +58,7 @@ type BuildEndpoint
     | AbortBuild
     | BuildResourcesList
     | BuildEventStream
+    | SetComment
 
 
 type ResourceEndpoint
@@ -253,6 +254,9 @@ buildEndpoint endpoint =
 
         BuildEventStream ->
             [ "events" ]
+
+        SetComment ->
+            [ "comment" ]
     , []
     )
 

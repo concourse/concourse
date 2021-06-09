@@ -1,5 +1,6 @@
 module Build.Header.Views exposing
     ( BackgroundShade(..)
+    , BuildComment(..)
     , BuildDuration(..)
     , BuildTab
     , ButtonType(..)
@@ -15,19 +16,21 @@ import Build.Styles as Styles
 import Colors
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus)
-import Html exposing (Html)
+import Html exposing (Html, text)
 import Html.Attributes
     exposing
         ( attribute
         , class
         , href
         , id
+        , readonly
         , style
         , title
+        , value
         )
-import Html.Events exposing (onBlur, onFocus, onMouseEnter, onMouseLeave)
+import Html.Events exposing (onBlur, onFocus, onInput, onMouseEnter, onMouseLeave)
 import Html.Lazy
-import Message.Effects exposing (toHtmlID)
+import Message.Effects exposing (Effect(..), toHtmlID)
 import Message.Message as Message exposing (Message(..))
 import Routes
 import StrictEvents exposing (onLeftClick, onWheel)
@@ -44,6 +47,7 @@ type alias Header =
     , rightWidgets : List Widget
     , backgroundColor : BuildStatus
     , tabs : List BuildTab
+    , comment : BuildComment
     }
 
 
@@ -51,6 +55,7 @@ type Widget
     = Button (Maybe ButtonView)
     | Title String (Maybe Concourse.JobIdentifier) Concourse.BuildCreatedBy
     | Duration BuildDuration
+    | Spacer ( String, BuildStatus )
 
 
 type BuildDuration
@@ -81,6 +86,7 @@ type alias BuildTab =
     , background : BuildStatus
     , href : Routes.Route
     , isCurrent : Bool
+    , hasComment : Bool
     }
 
 
@@ -92,21 +98,69 @@ type alias ButtonView =
     }
 
 
+type BuildComment
+    = Viewing String
+    | Editing String
+
+
 type BackgroundShade
     = Light
     | Dark
 
 
 type ButtonType
-    = Abort
+    = CancelComment
+    | EditComment
+    | SaveComment
+    | Abort
     | Trigger
     | Rerun
+
+
+buildComment : ( Bool, String ) -> List (Html Message)
+buildComment ( isReadOnly, content ) =
+    [ Html.div
+        [ style "display" "flex"
+        , style "justify-content" "center"
+        ]
+        [ Html.textarea
+            ([ id (toHtmlID Message.BuildCommentTextArea)
+             , value content
+             , onInput EditBuildComment
+             , onFocus FocusBuildComment
+             , onBlur BlurBuildComment
+             , readonly isReadOnly
+             , if isReadOnly then
+                style "background-color" "transparent"
+
+               else
+                style "background-color" "rgba(255, 255, 255, 0.1)"
+             ]
+                ++ Styles.commentTextArea
+            )
+            []
+        ]
+    ]
+
+
+buildCommentBar : BuildComment -> List (Html Message)
+buildCommentBar comment =
+    case comment of
+        Viewing content ->
+            if String.isEmpty content then
+                []
+
+            else
+                buildComment ( True, content )
+
+        Editing content ->
+            buildComment ( False, content )
 
 
 viewHeader : Header -> Html Message
 viewHeader header =
     Html.div [ class "fixed-header" ]
-        [ Html.div
+        ([ Html.div
             ([ id "build-header"
              , class "build-header"
              ]
@@ -115,8 +169,10 @@ viewHeader header =
             [ Html.div [] (List.map viewWidget header.leftWidgets)
             , Html.div [ style "display" "flex" ] (List.map viewWidget header.rightWidgets)
             ]
-        , viewHistory header.backgroundColor header.tabs
-        ]
+         , viewHistory header.backgroundColor header.tabs
+         ]
+            ++ buildCommentBar header.comment
+        )
 
 
 viewWidget : Widget -> Html Message
@@ -130,6 +186,16 @@ viewWidget widget =
 
         Duration duration ->
             viewDuration duration
+
+        Spacer ( size, status ) ->
+            Html.div
+                [ style "height" "100%"
+                , style "width" size
+                , style "border-width" "0 0 0 1px"
+                , style "border-color" <| Colors.buildStatusColor False status
+                , style "border-style" "solid"
+                ]
+                []
 
 
 viewDuration : BuildDuration -> Html Message
@@ -228,12 +294,19 @@ viewBuildTab backgroundColor tab =
         ((id <| String.fromInt tab.id)
             :: Styles.historyItem backgroundColor tab.isCurrent tab.background
         )
-        [ Html.a
-            [ onLeftClick <| Click <| Message.BuildTab tab.id tab.name
-            , href <| Routes.toString tab.href
-            ]
-            [ Html.text tab.name ]
-        ]
+        ((if tab.hasComment then
+            [ Html.div (Styles.historyTriangle "5px") [] ]
+
+          else
+            []
+         )
+            ++ [ Html.a
+                    [ onLeftClick <| Click <| Message.BuildTab tab.id tab.name
+                    , href <| Routes.toString tab.href
+                    ]
+                    [ Html.text tab.name ]
+               ]
+        )
 
 
 viewButton : ButtonView -> Html Message
@@ -241,6 +314,15 @@ viewButton { type_, backgroundColor, backgroundShade, isClickable } =
     let
         image =
             case type_ of
+                CancelComment ->
+                    Assets.AbortCircleIcon |> Assets.CircleOutlineIcon
+
+                EditComment ->
+                    Assets.InfoIcon
+
+                SaveComment ->
+                    Assets.SaveIcon
+
                 Abort ->
                     Assets.AbortCircleIcon |> Assets.CircleOutlineIcon
 
@@ -252,6 +334,15 @@ viewButton { type_, backgroundColor, backgroundShade, isClickable } =
 
         accessibilityLabel =
             case type_ of
+                CancelComment ->
+                    "Cancel Build Comment"
+
+                EditComment ->
+                    "Edit Build Comment"
+
+                SaveComment ->
+                    "Save Build Comment"
+
                 Abort ->
                     "Abort Build"
 
@@ -263,6 +354,15 @@ viewButton { type_, backgroundColor, backgroundShade, isClickable } =
 
         domID =
             case type_ of
+                CancelComment ->
+                    Message.CancelBuildCommentButton
+
+                EditComment ->
+                    Message.EditBuildCommentButton
+
+                SaveComment ->
+                    Message.SaveBuildCommentButton
+
                 Abort ->
                     Message.AbortBuildButton
 
@@ -296,13 +396,18 @@ viewButton { type_, backgroundColor, backgroundShade, isClickable } =
         ([ attribute "role" "button"
          , attribute "tabindex" "0"
          , attribute "aria-label" accessibilityLabel
-         , onLeftClick <| Click domID
          , onMouseEnter <| Hover <| Just domID
          , onMouseLeave <| Hover Nothing
          , onFocus <| Hover <| Just domID
          , onBlur <| Hover Nothing
          , id <| toHtmlID domID
          ]
+            ++ (if isClickable then
+                    [ onLeftClick <| Click domID ]
+
+                else
+                    []
+               )
             ++ styles
         )
         [ Icon.icon
