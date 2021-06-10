@@ -14,6 +14,16 @@ func (err UnknownResourceError) Error() string {
 	return fmt.Sprintf("unknown resource: %s", err.Resource)
 }
 
+// UnknownPrototypeError is returned when a 'run' step refers to a
+// prototypes which is not in the set of prototypes provided to the Planner.
+type UnknownPrototypeError struct {
+	Prototype string
+}
+
+func (err UnknownPrototypeError) Error() string {
+	return fmt.Sprintf("unknown prototype: %s", err.Prototype)
+}
+
 // VersionNotProvidedError is returned when a 'get' step does not have a
 // corresponding input provided to the Planner.
 type VersionNotProvidedError struct {

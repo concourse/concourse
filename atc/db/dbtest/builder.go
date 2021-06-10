@@ -282,6 +282,72 @@ func (builder Builder) WithResourceTypeVersions(resourceTypeName string, version
 	}
 }
 
+func (builder Builder) WithPrototypeVersions(prototypeName string, versions ...atc.Version) SetupFunc {
+	return func(scenario *Scenario) error {
+		if scenario.Pipeline == nil {
+			err := builder.WithPipeline(atc.Config{
+				Prototypes: atc.Prototypes{
+					{
+						Name:   prototypeName,
+						Type:   BaseResourceType,
+						Source: atc.Source{"some": "source"},
+					},
+				},
+			})(scenario)
+			if err != nil {
+				return fmt.Errorf("bootstrap pipeline: %w", err)
+			}
+		}
+
+		if len(scenario.Workers) == 0 {
+			err := builder.WithBaseWorker()(scenario)
+			if err != nil {
+				return fmt.Errorf("bootstrap workers: %w", err)
+			}
+		}
+
+		prototype, found, err := scenario.Pipeline.Prototype(prototypeName)
+		if err != nil {
+			return err
+		}
+
+		if !found {
+			return fmt.Errorf("prototype '%s' not configured in pipeline", prototypeName)
+		}
+
+		resourceTypes, err := scenario.Pipeline.ResourceTypes()
+		if err != nil {
+			return fmt.Errorf("get pipeline prototypes: %w", err)
+		}
+
+		resourceConfig, err := builder.ResourceConfigFactory.FindOrCreateResourceConfig(
+			prototype.Type(),
+			prototype.Source(),
+			resourceTypes.Filter(prototype).Deserialize(),
+		)
+		if err != nil {
+			return fmt.Errorf("find or create resource config: %w", err)
+		}
+
+		scope, err := resourceConfig.FindOrCreateScope(nil)
+		if err != nil {
+			return fmt.Errorf("find or create scope: %w", err)
+		}
+
+		err = scope.SaveVersions(db.SpanContext{}, versions)
+		if err != nil {
+			return fmt.Errorf("save versions: %w", err)
+		}
+
+		prototype.SetResourceConfigScope(scope)
+		if err != nil {
+			return fmt.Errorf("set resource scope: %w", err)
+		}
+
+		return nil
+	}
+}
+
 func (builder Builder) WithPendingJobBuild(assign *db.Build, jobName string) SetupFunc {
 	return func(scenario *Scenario) error {
 		if scenario.Pipeline == nil {

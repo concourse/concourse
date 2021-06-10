@@ -1,0 +1,13 @@
+---
+prototypes:
+- name: some-prototype
+  type: mock
+  source:
+    mirror_self: true
+
+jobs:
+- name: job
+  plan:
+  - run: some-message
+    type: some-prototype
+

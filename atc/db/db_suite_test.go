@@ -58,6 +58,7 @@ var (
 	defaultWorker             db.Worker
 	otherWorker               db.Worker
 	otherWorkerPayload        atc.Worker
+	defaultPrototype          db.Prototype
 	defaultResourceType       db.ResourceType
 	defaultResource           db.Resource
 	defaultPipelineConfig     atc.Config
@@ -201,6 +202,15 @@ var _ = BeforeEach(func() {
 				},
 			},
 		},
+		Prototypes: atc.Prototypes{
+			{
+				Name: "some-prototype",
+				Type: "some-base-resource-type",
+				Source: atc.Source{
+					"some-prototype": "source",
+				},
+			},
+		},
 	}
 
 	defaultPipelineRef = atc.PipelineRef{Name: "default-pipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}
@@ -214,6 +224,10 @@ var _ = BeforeEach(func() {
 	Expect(found).To(BeTrue())
 
 	defaultResource, found, err = defaultPipeline.Resource("some-resource")
+	Expect(err).NotTo(HaveOccurred())
+	Expect(found).To(BeTrue())
+
+	defaultPrototype, found, err = defaultPipeline.Prototype("some-prototype")
 	Expect(err).NotTo(HaveOccurred())
 	Expect(found).To(BeTrue())
 

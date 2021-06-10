@@ -19,6 +19,7 @@ func (planner Planner) Create(
 	planConfig atc.StepConfig,
 	resources db.SchedulerResources,
 	resourceTypes atc.VersionedResourceTypes,
+	prototypes atc.Prototypes,
 	inputs []db.BuildInput,
 ) (atc.Plan, error) {
 	visitor := &planVisitor{
@@ -26,6 +27,7 @@ func (planner Planner) Create(
 
 		resources:     resources,
 		resourceTypes: resourceTypes,
+		prototypes:    prototypes,
 		inputs:        inputs,
 	}
 
@@ -42,6 +44,7 @@ type planVisitor struct {
 
 	resources     db.SchedulerResources
 	resourceTypes atc.VersionedResourceTypes
+	prototypes    atc.Prototypes
 	inputs        []db.BuildInput
 
 	plan atc.Plan
@@ -63,6 +66,27 @@ func (visitor *planVisitor) VisitTask(step *atc.TaskStep) error {
 		Timeout:           step.Timeout,
 
 		VersionedResourceTypes: visitor.resourceTypes,
+	})
+
+	return nil
+}
+
+func (visitor *planVisitor) VisitRun(step *atc.RunStep) error {
+	prototype, found := visitor.prototypes.Lookup(step.Type)
+	if !found {
+		return UnknownPrototypeError{step.Type}
+	}
+
+	object := prototype.Defaults.Merge(atc.Source(step.Params))
+
+	visitor.plan = visitor.planFactory.NewPlan(atc.RunPlan{
+		Message:    step.Message,
+		Type:       step.Type,
+		Object:     atc.Params(object),
+		Privileged: step.Privileged,
+		Tags:       step.Tags,
+		Limits:     step.Limits,
+		Timeout:    step.Timeout,
 	})
 
 	return nil

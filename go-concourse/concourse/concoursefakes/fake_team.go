@@ -108,6 +108,23 @@ type FakeTeam struct {
 		result2 bool
 		result3 error
 	}
+	CheckPrototypeStub        func(atc.PipelineRef, string, atc.Version) (atc.Build, bool, error)
+	checkPrototypeMutex       sync.RWMutex
+	checkPrototypeArgsForCall []struct {
+		arg1 atc.PipelineRef
+		arg2 string
+		arg3 atc.Version
+	}
+	checkPrototypeReturns struct {
+		result1 atc.Build
+		result2 bool
+		result3 error
+	}
+	checkPrototypeReturnsOnCall map[int]struct {
+		result1 atc.Build
+		result2 bool
+		result3 error
+	}
 	CheckResourceStub        func(atc.PipelineRef, string, atc.Version) (atc.Build, bool, error)
 	checkResourceMutex       sync.RWMutex
 	checkResourceArgsForCall []struct {
@@ -1234,6 +1251,75 @@ func (fake *FakeTeam) BuildsWithVersionAsOutputReturnsOnCall(i int, result1 []at
 	}
 	fake.buildsWithVersionAsOutputReturnsOnCall[i] = struct {
 		result1 []atc.Build
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeTeam) CheckPrototype(arg1 atc.PipelineRef, arg2 string, arg3 atc.Version) (atc.Build, bool, error) {
+	fake.checkPrototypeMutex.Lock()
+	ret, specificReturn := fake.checkPrototypeReturnsOnCall[len(fake.checkPrototypeArgsForCall)]
+	fake.checkPrototypeArgsForCall = append(fake.checkPrototypeArgsForCall, struct {
+		arg1 atc.PipelineRef
+		arg2 string
+		arg3 atc.Version
+	}{arg1, arg2, arg3})
+	stub := fake.CheckPrototypeStub
+	fakeReturns := fake.checkPrototypeReturns
+	fake.recordInvocation("CheckPrototype", []interface{}{arg1, arg2, arg3})
+	fake.checkPrototypeMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+}
+
+func (fake *FakeTeam) CheckPrototypeCallCount() int {
+	fake.checkPrototypeMutex.RLock()
+	defer fake.checkPrototypeMutex.RUnlock()
+	return len(fake.checkPrototypeArgsForCall)
+}
+
+func (fake *FakeTeam) CheckPrototypeCalls(stub func(atc.PipelineRef, string, atc.Version) (atc.Build, bool, error)) {
+	fake.checkPrototypeMutex.Lock()
+	defer fake.checkPrototypeMutex.Unlock()
+	fake.CheckPrototypeStub = stub
+}
+
+func (fake *FakeTeam) CheckPrototypeArgsForCall(i int) (atc.PipelineRef, string, atc.Version) {
+	fake.checkPrototypeMutex.RLock()
+	defer fake.checkPrototypeMutex.RUnlock()
+	argsForCall := fake.checkPrototypeArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeTeam) CheckPrototypeReturns(result1 atc.Build, result2 bool, result3 error) {
+	fake.checkPrototypeMutex.Lock()
+	defer fake.checkPrototypeMutex.Unlock()
+	fake.CheckPrototypeStub = nil
+	fake.checkPrototypeReturns = struct {
+		result1 atc.Build
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeTeam) CheckPrototypeReturnsOnCall(i int, result1 atc.Build, result2 bool, result3 error) {
+	fake.checkPrototypeMutex.Lock()
+	defer fake.checkPrototypeMutex.Unlock()
+	fake.CheckPrototypeStub = nil
+	if fake.checkPrototypeReturnsOnCall == nil {
+		fake.checkPrototypeReturnsOnCall = make(map[int]struct {
+			result1 atc.Build
+			result2 bool
+			result3 error
+		})
+	}
+	fake.checkPrototypeReturnsOnCall[i] = struct {
+		result1 atc.Build
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
@@ -4346,6 +4432,8 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.buildsWithVersionAsInputMutex.RUnlock()
 	fake.buildsWithVersionAsOutputMutex.RLock()
 	defer fake.buildsWithVersionAsOutputMutex.RUnlock()
+	fake.checkPrototypeMutex.RLock()
+	defer fake.checkPrototypeMutex.RUnlock()
 	fake.checkResourceMutex.RLock()
 	defer fake.checkResourceMutex.RUnlock()
 	fake.checkResourceTypeMutex.RLock()

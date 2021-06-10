@@ -37,6 +37,7 @@ var _ = Describe("RejectArchivedWrappa", func() {
 			atc.ScheduleJob,
 			atc.CheckResource,
 			atc.CheckResourceType,
+			atc.CheckPrototype,
 			atc.DisableResourceVersion,
 			atc.EnableResourceVersion,
 			atc.PinResourceVersion,

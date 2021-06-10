@@ -229,6 +229,33 @@ func (t *team) Containers() ([]Container, error) {
 	}
 
 	rows, err = selectContainers("c").
+		Join("workers w ON c.worker_name = w.name").
+		Join("resource_config_check_sessions rccs ON rccs.id = c.resource_config_check_session_id").
+		Join("prototypes pt ON pt.resource_config_id = rccs.resource_config_id").
+		Join("pipelines p ON p.id = pt.pipeline_id").
+		Where(sq.Eq{
+			"p.team_id": t.id,
+		}).
+		Where(sq.Or{
+			sq.Eq{
+				"w.team_id": t.id,
+			}, sq.Eq{
+				"w.team_id": nil,
+			},
+		}).
+		Distinct().
+		RunWith(t.conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	containers, err = scanContainers(rows, t.conn, containers)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err = selectContainers("c").
 		Where(sq.Eq{
 			"c.team_id": t.id,
 		}).
@@ -543,6 +570,11 @@ func savePipeline(
 	}
 
 	err = saveResourceTypes(tx, config.ResourceTypes, pipelineID)
+	if err != nil {
+		return 0, false, err
+	}
+
+	err = savePrototypes(tx, config.Prototypes, pipelineID)
 	if err != nil {
 		return 0, false, err
 	}
@@ -1314,6 +1346,28 @@ func saveResourceType(tx Tx, resourceType atc.ResourceType, pipelineID int) erro
 	return err
 }
 
+func savePrototype(tx Tx, prototype atc.Prototype, pipelineID int) error {
+	configPayload, err := json.Marshal(prototype)
+	if err != nil {
+		return err
+	}
+
+	es := tx.EncryptionStrategy()
+	encryptedPayload, nonce, err := es.Encrypt(configPayload)
+	if err != nil {
+		return err
+	}
+
+	_, err = psql.Insert("prototypes").
+		Columns("name", "pipeline_id", "config", "active", "nonce", "type").
+		Values(prototype.Name, pipelineID, encryptedPayload, true, nonce, prototype.Type).
+		Suffix("ON CONFLICT (name, pipeline_id) DO UPDATE SET config = EXCLUDED.config, active = EXCLUDED.active, nonce = EXCLUDED.nonce, type = EXCLUDED.type").
+		RunWith(tx).
+		Exec()
+
+	return err
+}
+
 func checkIfRowsUpdated(tx Tx, query string, params ...interface{}) (bool, error) {
 	result, err := tx.Exec(query, params...)
 	if err != nil {
@@ -1508,8 +1562,7 @@ func resetDependentTableStates(tx Tx, pipelineID int) error {
 		return err
 	}
 
-	tableNames := []string{"jobs", "resources", "resource_types"}
-	for _, table := range tableNames {
+	for _, table := range pipelineObjectTables {
 		err = inactivateTableForPipeline(tx, pipelineID, table)
 		if err != nil {
 			return err
@@ -1546,6 +1599,17 @@ func saveResources(tx Tx, resources atc.ResourceConfigs, pipelineID int) (map[st
 func saveResourceTypes(tx Tx, resourceTypes atc.ResourceTypes, pipelineID int) error {
 	for _, resourceType := range resourceTypes {
 		err := saveResourceType(tx, resourceType, pipelineID)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func savePrototypes(tx Tx, prototypes atc.Prototypes, pipelineID int) error {
+	for _, prototype := range prototypes {
+		err := savePrototype(tx, prototype, pipelineID)
 		if err != nil {
 			return err
 		}

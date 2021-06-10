@@ -1443,6 +1443,181 @@ var _ = Describe("Resources API", func() {
 		})
 	})
 
+	Describe("POST /api/v1/teams/:team_name/pipelines/:pipeline_name/prototypes/:prototype_name/check", func() {
+		var checkRequestBody atc.CheckRequestBody
+		var response *http.Response
+
+		BeforeEach(func() {
+			checkRequestBody = atc.CheckRequestBody{}
+		})
+
+		JustBeforeEach(func() {
+			reqPayload, err := json.Marshal(checkRequestBody)
+			Expect(err).NotTo(HaveOccurred())
+
+			request, err := http.NewRequest("POST", server.URL+"/api/v1/teams/a-team/pipelines/a-pipeline/prototypes/prototype-name/check", bytes.NewBuffer(reqPayload))
+			Expect(err).NotTo(HaveOccurred())
+			request.Header.Set("Content-Type", "application/json")
+
+			response, err = client.Do(request)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				fakeAccess.IsAuthenticatedReturns(false)
+			})
+
+			It("returns Unauthorized", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			})
+		})
+
+		Context("when not authorized", func() {
+			BeforeEach(func() {
+				fakeAccess.IsAuthenticatedReturns(true)
+				fakeAccess.IsAuthorizedReturns(false)
+			})
+
+			It("returns Forbidden", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+			})
+		})
+
+		Context("when authenticated and authorized", func() {
+
+			BeforeEach(func() {
+				fakeAccess.IsAuthenticatedReturns(true)
+				fakeAccess.IsAuthorizedReturns(true)
+			})
+
+			Context("when looking up the resource type fails", func() {
+				BeforeEach(func() {
+					fakePipeline.PrototypeReturns(nil, false, errors.New("nope"))
+				})
+				It("returns 500", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				})
+			})
+
+			Context("when the prototype is not found", func() {
+				BeforeEach(func() {
+					fakePipeline.PrototypeReturns(nil, false, nil)
+				})
+				It("returns 404", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+				})
+			})
+
+			Context("when it finds the prototype", func() {
+				var fakePrototype *dbfakes.FakePrototype
+
+				BeforeEach(func() {
+					fakePrototype = new(dbfakes.FakePrototype)
+					fakePrototype.IDReturns(1)
+					fakePipeline.PrototypeReturns(fakePrototype, true, nil)
+				})
+
+				Context("when looking up the resource types fails", func() {
+					BeforeEach(func() {
+						fakePipeline.ResourceTypesReturns(nil, errors.New("nope"))
+					})
+
+					It("returns 500", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
+
+				Context("when looking up the resource types succeeds", func() {
+					var fakeResourceTypes db.ResourceTypes
+
+					BeforeEach(func() {
+						fakeResourceTypes = db.ResourceTypes{}
+						fakePipeline.ResourceTypesReturns(fakeResourceTypes, nil)
+					})
+
+					It("checks with no version specified", func() {
+						Expect(dbCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
+						_, actualPrototype, actualResourceTypes, actualFromVersion, manuallyTriggered := dbCheckFactory.TryCreateCheckArgsForCall(0)
+						Expect(actualPrototype).To(Equal(fakePrototype))
+						Expect(actualResourceTypes).To(Equal(fakeResourceTypes))
+						Expect(actualFromVersion).To(BeNil())
+						Expect(manuallyTriggered).To(BeTrue())
+					})
+
+					Context("when checking with a version specified", func() {
+						BeforeEach(func() {
+							checkRequestBody = atc.CheckRequestBody{
+								From: atc.Version{
+									"some-version-key": "some-version-value",
+								},
+							}
+						})
+
+						It("checks with no version specified", func() {
+							Expect(dbCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
+							_, actualPrototype, actualResourceTypes, actualFromVersion, manuallyTriggered := dbCheckFactory.TryCreateCheckArgsForCall(0)
+							Expect(actualPrototype).To(Equal(fakePrototype))
+							Expect(actualResourceTypes).To(Equal(fakeResourceTypes))
+							Expect(actualFromVersion).To(Equal(checkRequestBody.From))
+							Expect(manuallyTriggered).To(BeTrue())
+						})
+					})
+
+					Context("when checking fails", func() {
+						BeforeEach(func() {
+							dbCheckFactory.TryCreateCheckReturns(nil, false, errors.New("nope"))
+						})
+
+						It("returns 500", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+						})
+					})
+
+					Context("when checking does not create a new check", func() {
+						BeforeEach(func() {
+							dbCheckFactory.TryCreateCheckReturns(nil, false, nil)
+						})
+
+						It("returns 500", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+						})
+					})
+
+					Context("when checking creates a new check", func() {
+						var fakeBuild *dbfakes.FakeBuild
+
+						BeforeEach(func() {
+							fakeBuild = new(dbfakes.FakeBuild)
+							fakeBuild.IDReturns(10)
+							fakeBuild.NameReturns("some-name")
+							fakeBuild.TeamNameReturns("some-team")
+							fakeBuild.StatusReturns("started")
+							fakeBuild.StartTimeReturns(time.Date(2001, 01, 01, 0, 0, 0, 0, time.UTC))
+							fakeBuild.EndTimeReturns(time.Date(2002, 01, 01, 0, 0, 0, 0, time.UTC))
+
+							dbCheckFactory.TryCreateCheckReturns(fakeBuild, true, nil)
+						})
+
+						It("returns 201", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusCreated))
+							Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`{
+                 "id": 10,
+								 "name": "some-name",
+								 "team_name": "some-team",
+								 "status": "started",
+								 "api_url": "/api/v1/builds/10",
+								 "start_time": 978307200,
+								 "end_time": 1009843200
+							}`))
+						})
+					})
+
+				})
+			})
+		})
+	})
+
 	Describe("POST /api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/check/webhook", func() {
 		var (
 			checkRequestBody atc.CheckRequestBody

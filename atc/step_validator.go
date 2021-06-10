@@ -189,6 +189,29 @@ func (validator *StepValidator) VisitPut(step *PutStep) error {
 	return nil
 }
 
+func (validator *StepValidator) VisitRun(step *RunStep) error {
+	validator.pushContext(".run(%s.%s)", step.Type, step.Message)
+	defer validator.popContext()
+
+	warning, err := ValidateIdentifier(step.Message, validator.context...)
+	if err != nil {
+		validator.recordError(err.Error())
+	}
+	if warning != nil {
+		// To prevent people from writing prototypes with invalid message
+		// names, we'll explicitly error on invalid identifiers rather than
+		// emitting a warning.
+		validator.recordError(warning.Message)
+	}
+
+	_, found := validator.config.Prototypes.Lookup(step.Type)
+	if !found {
+		validator.recordError("unknown prototype '%s'", step.Type)
+	}
+
+	return nil
+}
+
 func (validator *StepValidator) VisitSetPipeline(step *SetPipelineStep) error {
 	validator.pushContext(".set_pipeline(%s)", step.Name)
 	defer validator.popContext()

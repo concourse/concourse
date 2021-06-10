@@ -8,6 +8,7 @@ type Plan struct {
 	Put         *PutPlan         `json:"put,omitempty"`
 	Check       *CheckPlan       `json:"check,omitempty"`
 	Task        *TaskPlan        `json:"task,omitempty"`
+	Run         *RunPlan         `json:"run,omitempty"`
 	SetPipeline *SetPipelinePlan `json:"set_pipeline,omitempty"`
 	LoadVar     *LoadVarPlan     `json:"load_var,omitempty"`
 
@@ -241,9 +242,10 @@ type CheckPlan struct {
 	// version of the config.
 	FromVersion Version `json:"from_version,omitempty"`
 
-	// A pipeline resource or resource type to assign the config to.
+	// A pipeline resource, resource type, or prototype to assign the config to.
 	Resource     string `json:"resource,omitempty"`
 	ResourceType string `json:"resource_type,omitempty"`
+	Prototype    string `json:"prototype,omitempty"`
 
 	// The interval on which to check - if it has not elapsed since the config
 	// was last checked, and the build has not been manually triggered, the check
@@ -259,7 +261,7 @@ type CheckPlan struct {
 }
 
 func (plan CheckPlan) IsPeriodic() bool {
-	return plan.Resource != "" || plan.ResourceType != ""
+	return plan.Resource != "" || plan.ResourceType != "" || plan.Prototype != ""
 }
 
 type TaskPlan struct {
@@ -297,7 +299,7 @@ type TaskPlan struct {
 	InputMapping  map[string]string `json:"input_mapping,omitempty"`
 	OutputMapping map[string]string `json:"output_mapping,omitempty"`
 
-	// A timeout to enforce on the task's process. Note that etching the task's
+	// A timeout to enforce on the task's process. Note that fetching the task's
 	// image does not count towards the timeout.
 	Timeout string `json:"timeout,omitempty"`
 
@@ -310,6 +312,32 @@ type TaskPlan struct {
 	// difficult to do because we don't even know what image resource to fetch
 	// until the task step runs and fetches its ConfigPath.
 	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
+}
+
+type RunPlan struct {
+	// The message to run on the prototype.
+	Message string `json:"message"`
+
+	// The prototype name.
+	Type string `json:"type"`
+
+	// Object to provide to the prototype. Result of merging run.params with
+	// prototype.defaults.
+	Object Params `json:"object,omitempty"`
+
+	// Run in 'privileged' mode. What this means depends on the platform, but
+	// typically you expose your workers to more risk by enabling this.
+	Privileged bool `json:"privileged"`
+
+	// Worker tags to influence placement of the container.
+	Tags Tags `json:"tags,omitempty"`
+
+	// Limits to set on the Container
+	Limits *ContainerLimits `json:"container_limits,omitempty"`
+
+	// A timeout to enforce on the run step's process. Note that fetching the
+	// prototype's image does not count towards the timeout.
+	Timeout string `json:"timeout,omitempty"`
 }
 
 type SetPipelinePlan struct {

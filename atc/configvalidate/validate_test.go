@@ -57,6 +57,16 @@ var _ = Describe("ValidateConfig", func() {
 				},
 			},
 
+			Prototypes: atc.Prototypes{
+				{
+					Name: "some-prototype",
+					Type: "some-type",
+					Source: atc.Source{
+						"source-config": "some-value",
+					},
+				},
+			},
+
 			Jobs: atc.JobConfigs{
 				{
 					Name:   "some-job",
@@ -88,6 +98,15 @@ var _ = Describe("ValidateConfig", func() {
 						{
 							Config: &atc.PutStep{
 								Name: "some-resource",
+								Params: atc.Params{
+									"some-param": "some-value",
+								},
+							},
+						},
+						{
+							Config: &atc.RunStep{
+								Message: "some-message",
+								Type:    "some-prototype",
 								Params: atc.Params{
 									"some-param": "some-value",
 								},
@@ -170,6 +189,23 @@ var _ = Describe("ValidateConfig", func() {
 			})
 		})
 
+		Context("when a prototype has an invalid identifier", func() {
+			BeforeEach(func() {
+				config.Prototypes = append(config.Prototypes, atc.Prototype{
+					Name: "_some-prototype",
+					Type: "some-type",
+					Source: atc.Source{
+						"source-config": "some-value",
+					},
+				})
+			})
+
+			It("returns a warning", func() {
+				Expect(warnings).To(HaveLen(1))
+				Expect(warnings[0].Message).To(ContainSubstring("'_some-prototype' is not a valid identifier"))
+			})
+		})
+
 		Context("when a var source has an invalid identifier", func() {
 			BeforeEach(func() {
 				config.VarSources = append(config.VarSources, atc.VarSourceConfig{
@@ -199,36 +235,39 @@ var _ = Describe("ValidateConfig", func() {
 		})
 
 		Context("when a step has an invalid identifier", func() {
-			var job atc.JobConfig
-
 			BeforeEach(func() {
-				job.PlanSequence = append(job.PlanSequence, atc.Step{
-					Config: &atc.GetStep{
-						Name: "_get-step",
+				config.Jobs[0].PlanSequence = append(config.Jobs[0].PlanSequence,
+					atc.Step{
+						Config: &atc.GetStep{
+							Name: "_get-step",
+						},
 					},
-				})
-				job.PlanSequence = append(job.PlanSequence, atc.Step{
-					Config: &atc.TaskStep{
-						Name: "_task-step",
+					atc.Step{
+						Config: &atc.TaskStep{
+							Name: "_task-step",
+						},
 					},
-				})
-				job.PlanSequence = append(job.PlanSequence, atc.Step{
-					Config: &atc.PutStep{
-						Name: "_put-step",
+					atc.Step{
+						Config: &atc.PutStep{
+							Name: "_put-step",
+						},
 					},
-				})
-				job.PlanSequence = append(job.PlanSequence, atc.Step{
-					Config: &atc.SetPipelineStep{
-						Name: "_set-pipeline-step",
+					atc.Step{
+						Config: &atc.RunStep{
+							Message: "_run-step",
+						},
 					},
-				})
-				job.PlanSequence = append(job.PlanSequence, atc.Step{
-					Config: &atc.LoadVarStep{
-						Name: "_load-var-step",
+					atc.Step{
+						Config: &atc.SetPipelineStep{
+							Name: "_set-pipeline-step",
+						},
 					},
-				})
-
-				config.Jobs = append(config.Jobs, job)
+					atc.Step{
+						Config: &atc.LoadVarStep{
+							Name: "_load-var-step",
+						},
+					},
+				)
 			})
 
 			It("returns a warning", func() {
@@ -238,6 +277,9 @@ var _ = Describe("ValidateConfig", func() {
 				Expect(warnings[2].Message).To(ContainSubstring("'_put-step' is not a valid identifier"))
 				Expect(warnings[3].Message).To(ContainSubstring("'_set-pipeline-step' is not a valid identifier"))
 				Expect(warnings[4].Message).To(ContainSubstring("'_load-var-step' is not a valid identifier"))
+
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("'_run-step' is not a valid identifier"))
 			})
 		})
 	})
@@ -396,7 +438,7 @@ var _ = Describe("ValidateConfig", func() {
 
 			It("returns an error", func() {
 				Expect(errorMessages).To(HaveLen(1))
-				Expect(errorMessages[0]).To(ContainSubstring("duplicate var_source name: some"))
+				Expect(errorMessages[0]).To(ContainSubstring("var_sources[0] and var_sources[1] have the same name ('some')"))
 			})
 		})
 
@@ -773,7 +815,7 @@ var _ = Describe("ValidateConfig", func() {
 			})
 		})
 
-		Context("when a resource has no type", func() {
+		Context("when a resource type has no type", func() {
 			BeforeEach(func() {
 				config.ResourceTypes = append(config.ResourceTypes, atc.ResourceType{
 					Name: "bogus-resource-type",
@@ -788,7 +830,7 @@ var _ = Describe("ValidateConfig", func() {
 			})
 		})
 
-		Context("when a resource has no name or type", func() {
+		Context("when a resource type has no name or type", func() {
 			BeforeEach(func() {
 				config.ResourceTypes = append(config.ResourceTypes, atc.ResourceType{
 					Name: "",
@@ -813,6 +855,80 @@ var _ = Describe("ValidateConfig", func() {
 				Expect(errorMessages).To(HaveLen(1))
 				Expect(errorMessages[0]).To(ContainSubstring("invalid resource types:"))
 				Expect(errorMessages[0]).To(ContainSubstring("resource_types[0] and resource_types[1] have the same name ('some-resource-type')"))
+			})
+		})
+	})
+
+	Describe("invalid prototypes", func() {
+		Context("when a prototype has no name", func() {
+			BeforeEach(func() {
+				config.Prototypes = append(config.Prototypes, atc.Prototype{
+					Name: "",
+				})
+			})
+
+			It("returns an error", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("invalid prototypes:"))
+				Expect(errorMessages[0]).To(ContainSubstring("prototypes[1] has no name"))
+			})
+		})
+
+		Context("when a prototype has no type", func() {
+			BeforeEach(func() {
+				config.Prototypes = append(config.Prototypes, atc.Prototype{
+					Name: "bogus-prototype",
+					Type: "",
+				})
+			})
+
+			It("returns an error", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("invalid prototypes:"))
+				Expect(errorMessages[0]).To(ContainSubstring("prototypes.bogus-prototype has no type"))
+			})
+		})
+
+		Context("when a prototype has no name or type", func() {
+			BeforeEach(func() {
+				config.Prototypes = append(config.Prototypes, atc.Prototype{
+					Name: "",
+					Type: "",
+				})
+			})
+
+			It("returns an error describing both errors", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("invalid prototypes:"))
+				Expect(errorMessages[0]).To(ContainSubstring("prototypes[1] has no name"))
+				Expect(errorMessages[0]).To(ContainSubstring("prototypes[1] has no type"))
+			})
+		})
+
+		Context("when two prototypes have the same name", func() {
+			BeforeEach(func() {
+				config.Prototypes = append(config.Prototypes, config.Prototypes...)
+			})
+
+			It("returns an error", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("invalid prototypes:"))
+				Expect(errorMessages[0]).To(ContainSubstring("prototypes[0] and prototypes[1] have the same name ('some-prototype')"))
+			})
+		})
+
+		Context("when a prototype has the same name as a resource type", func() {
+			BeforeEach(func() {
+				config.Prototypes = append(config.Prototypes, atc.Prototype{
+					Name: config.ResourceTypes[0].Name,
+					Type: "some-type",
+				})
+			})
+
+			It("returns an error", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("invalid prototypes:"))
+				Expect(errorMessages[0]).To(ContainSubstring("resource_types[0] and prototypes[1] have the same name ('some-resource-type')"))
 			})
 		})
 	})
@@ -1037,7 +1153,7 @@ var _ = Describe("ValidateConfig", func() {
 				})
 			})
 
-			Context("when a put plan has refers to a resource that does not exist", func() {
+			Context("when a put plan refers to a resource that does not exist", func() {
 				BeforeEach(func() {
 					job.PlanSequence = append(job.PlanSequence, atc.Step{
 						Config: &atc.PutStep{
@@ -1052,6 +1168,25 @@ var _ = Describe("ValidateConfig", func() {
 					Expect(errorMessages).To(HaveLen(1))
 					Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
 					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].put(some-nonexistent-resource): unknown resource 'some-nonexistent-resource'"))
+				})
+			})
+
+			Context("when a run plan refers to a prototype that does not exist", func() {
+				BeforeEach(func() {
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.RunStep{
+							Message: "some-message",
+							Type:    "some-nonexistent-prototype",
+						},
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("returns an error", func() {
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].run(some-nonexistent-prototype.some-message): unknown prototype 'some-nonexistent-prototype'"))
 				})
 			})
 

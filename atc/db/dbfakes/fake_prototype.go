@@ -10,7 +10,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 )
 
-type FakeResourceType struct {
+type FakePrototype struct {
 	CheckEveryStub        func() *atc.CheckEvery
 	checkEveryMutex       sync.RWMutex
 	checkEveryArgsForCall []struct {
@@ -313,7 +313,7 @@ type FakeResourceType struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeResourceType) CheckEvery() *atc.CheckEvery {
+func (fake *FakePrototype) CheckEvery() *atc.CheckEvery {
 	fake.checkEveryMutex.Lock()
 	ret, specificReturn := fake.checkEveryReturnsOnCall[len(fake.checkEveryArgsForCall)]
 	fake.checkEveryArgsForCall = append(fake.checkEveryArgsForCall, struct {
@@ -331,19 +331,19 @@ func (fake *FakeResourceType) CheckEvery() *atc.CheckEvery {
 	return fakeReturns.result1
 }
 
-func (fake *FakeResourceType) CheckEveryCallCount() int {
+func (fake *FakePrototype) CheckEveryCallCount() int {
 	fake.checkEveryMutex.RLock()
 	defer fake.checkEveryMutex.RUnlock()
 	return len(fake.checkEveryArgsForCall)
 }
 
-func (fake *FakeResourceType) CheckEveryCalls(stub func() *atc.CheckEvery) {
+func (fake *FakePrototype) CheckEveryCalls(stub func() *atc.CheckEvery) {
 	fake.checkEveryMutex.Lock()
 	defer fake.checkEveryMutex.Unlock()
 	fake.CheckEveryStub = stub
 }
 
-func (fake *FakeResourceType) CheckEveryReturns(result1 *atc.CheckEvery) {
+func (fake *FakePrototype) CheckEveryReturns(result1 *atc.CheckEvery) {
 	fake.checkEveryMutex.Lock()
 	defer fake.checkEveryMutex.Unlock()
 	fake.CheckEveryStub = nil
@@ -352,7 +352,7 @@ func (fake *FakeResourceType) CheckEveryReturns(result1 *atc.CheckEvery) {
 	}{result1}
 }
 
-func (fake *FakeResourceType) CheckEveryReturnsOnCall(i int, result1 *atc.CheckEvery) {
+func (fake *FakePrototype) CheckEveryReturnsOnCall(i int, result1 *atc.CheckEvery) {
 	fake.checkEveryMutex.Lock()
 	defer fake.checkEveryMutex.Unlock()
 	fake.CheckEveryStub = nil
@@ -366,7 +366,7 @@ func (fake *FakeResourceType) CheckEveryReturnsOnCall(i int, result1 *atc.CheckE
 	}{result1}
 }
 
-func (fake *FakeResourceType) CheckPlan(arg1 atc.Version, arg2 time.Duration, arg3 db.ResourceTypes, arg4 atc.Source) atc.CheckPlan {
+func (fake *FakePrototype) CheckPlan(arg1 atc.Version, arg2 time.Duration, arg3 db.ResourceTypes, arg4 atc.Source) atc.CheckPlan {
 	fake.checkPlanMutex.Lock()
 	ret, specificReturn := fake.checkPlanReturnsOnCall[len(fake.checkPlanArgsForCall)]
 	fake.checkPlanArgsForCall = append(fake.checkPlanArgsForCall, struct {
@@ -388,26 +388,26 @@ func (fake *FakeResourceType) CheckPlan(arg1 atc.Version, arg2 time.Duration, ar
 	return fakeReturns.result1
 }
 
-func (fake *FakeResourceType) CheckPlanCallCount() int {
+func (fake *FakePrototype) CheckPlanCallCount() int {
 	fake.checkPlanMutex.RLock()
 	defer fake.checkPlanMutex.RUnlock()
 	return len(fake.checkPlanArgsForCall)
 }
 
-func (fake *FakeResourceType) CheckPlanCalls(stub func(atc.Version, time.Duration, db.ResourceTypes, atc.Source) atc.CheckPlan) {
+func (fake *FakePrototype) CheckPlanCalls(stub func(atc.Version, time.Duration, db.ResourceTypes, atc.Source) atc.CheckPlan) {
 	fake.checkPlanMutex.Lock()
 	defer fake.checkPlanMutex.Unlock()
 	fake.CheckPlanStub = stub
 }
 
-func (fake *FakeResourceType) CheckPlanArgsForCall(i int) (atc.Version, time.Duration, db.ResourceTypes, atc.Source) {
+func (fake *FakePrototype) CheckPlanArgsForCall(i int) (atc.Version, time.Duration, db.ResourceTypes, atc.Source) {
 	fake.checkPlanMutex.RLock()
 	defer fake.checkPlanMutex.RUnlock()
 	argsForCall := fake.checkPlanArgsForCall[i]
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
-func (fake *FakeResourceType) CheckPlanReturns(result1 atc.CheckPlan) {
+func (fake *FakePrototype) CheckPlanReturns(result1 atc.CheckPlan) {
 	fake.checkPlanMutex.Lock()
 	defer fake.checkPlanMutex.Unlock()
 	fake.CheckPlanStub = nil
@@ -416,7 +416,7 @@ func (fake *FakeResourceType) CheckPlanReturns(result1 atc.CheckPlan) {
 	}{result1}
 }
 
-func (fake *FakeResourceType) CheckPlanReturnsOnCall(i int, result1 atc.CheckPlan) {
+func (fake *FakePrototype) CheckPlanReturnsOnCall(i int, result1 atc.CheckPlan) {
 	fake.checkPlanMutex.Lock()
 	defer fake.checkPlanMutex.Unlock()
 	fake.CheckPlanStub = nil
@@ -430,7 +430,7 @@ func (fake *FakeResourceType) CheckPlanReturnsOnCall(i int, result1 atc.CheckPla
 	}{result1}
 }
 
-func (fake *FakeResourceType) CheckTimeout() string {
+func (fake *FakePrototype) CheckTimeout() string {
 	fake.checkTimeoutMutex.Lock()
 	ret, specificReturn := fake.checkTimeoutReturnsOnCall[len(fake.checkTimeoutArgsForCall)]
 	fake.checkTimeoutArgsForCall = append(fake.checkTimeoutArgsForCall, struct {
@@ -448,19 +448,19 @@ func (fake *FakeResourceType) CheckTimeout() string {
 	return fakeReturns.result1
 }
 
-func (fake *FakeResourceType) CheckTimeoutCallCount() int {
+func (fake *FakePrototype) CheckTimeoutCallCount() int {
 	fake.checkTimeoutMutex.RLock()
 	defer fake.checkTimeoutMutex.RUnlock()
 	return len(fake.checkTimeoutArgsForCall)
 }
 
-func (fake *FakeResourceType) CheckTimeoutCalls(stub func() string) {
+func (fake *FakePrototype) CheckTimeoutCalls(stub func() string) {
 	fake.checkTimeoutMutex.Lock()
 	defer fake.checkTimeoutMutex.Unlock()
 	fake.CheckTimeoutStub = stub
 }
 
-func (fake *FakeResourceType) CheckTimeoutReturns(result1 string) {
+func (fake *FakePrototype) CheckTimeoutReturns(result1 string) {
 	fake.checkTimeoutMutex.Lock()
 	defer fake.checkTimeoutMutex.Unlock()
 	fake.CheckTimeoutStub = nil
@@ -469,7 +469,7 @@ func (fake *FakeResourceType) CheckTimeoutReturns(result1 string) {
 	}{result1}
 }
 
-func (fake *FakeResourceType) CheckTimeoutReturnsOnCall(i int, result1 string) {
+func (fake *FakePrototype) CheckTimeoutReturnsOnCall(i int, result1 string) {
 	fake.checkTimeoutMutex.Lock()
 	defer fake.checkTimeoutMutex.Unlock()
 	fake.CheckTimeoutStub = nil
@@ -483,7 +483,7 @@ func (fake *FakeResourceType) CheckTimeoutReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
-func (fake *FakeResourceType) CreateBuild(arg1 context.Context, arg2 bool, arg3 atc.Plan) (db.Build, bool, error) {
+func (fake *FakePrototype) CreateBuild(arg1 context.Context, arg2 bool, arg3 atc.Plan) (db.Build, bool, error) {
 	fake.createBuildMutex.Lock()
 	ret, specificReturn := fake.createBuildReturnsOnCall[len(fake.createBuildArgsForCall)]
 	fake.createBuildArgsForCall = append(fake.createBuildArgsForCall, struct {
@@ -504,26 +504,26 @@ func (fake *FakeResourceType) CreateBuild(arg1 context.Context, arg2 bool, arg3 
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
-func (fake *FakeResourceType) CreateBuildCallCount() int {
+func (fake *FakePrototype) CreateBuildCallCount() int {
 	fake.createBuildMutex.RLock()
 	defer fake.createBuildMutex.RUnlock()
 	return len(fake.createBuildArgsForCall)
 }
 
-func (fake *FakeResourceType) CreateBuildCalls(stub func(context.Context, bool, atc.Plan) (db.Build, bool, error)) {
+func (fake *FakePrototype) CreateBuildCalls(stub func(context.Context, bool, atc.Plan) (db.Build, bool, error)) {
 	fake.createBuildMutex.Lock()
 	defer fake.createBuildMutex.Unlock()
 	fake.CreateBuildStub = stub
 }
 
-func (fake *FakeResourceType) CreateBuildArgsForCall(i int) (context.Context, bool, atc.Plan) {
+func (fake *FakePrototype) CreateBuildArgsForCall(i int) (context.Context, bool, atc.Plan) {
 	fake.createBuildMutex.RLock()
 	defer fake.createBuildMutex.RUnlock()
 	argsForCall := fake.createBuildArgsForCall[i]
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
-func (fake *FakeResourceType) CreateBuildReturns(result1 db.Build, result2 bool, result3 error) {
+func (fake *FakePrototype) CreateBuildReturns(result1 db.Build, result2 bool, result3 error) {
 	fake.createBuildMutex.Lock()
 	defer fake.createBuildMutex.Unlock()
 	fake.CreateBuildStub = nil
@@ -534,7 +534,7 @@ func (fake *FakeResourceType) CreateBuildReturns(result1 db.Build, result2 bool,
 	}{result1, result2, result3}
 }
 
-func (fake *FakeResourceType) CreateBuildReturnsOnCall(i int, result1 db.Build, result2 bool, result3 error) {
+func (fake *FakePrototype) CreateBuildReturnsOnCall(i int, result1 db.Build, result2 bool, result3 error) {
 	fake.createBuildMutex.Lock()
 	defer fake.createBuildMutex.Unlock()
 	fake.CreateBuildStub = nil
@@ -552,7 +552,7 @@ func (fake *FakeResourceType) CreateBuildReturnsOnCall(i int, result1 db.Build, 
 	}{result1, result2, result3}
 }
 
-func (fake *FakeResourceType) CurrentPinnedVersion() atc.Version {
+func (fake *FakePrototype) CurrentPinnedVersion() atc.Version {
 	fake.currentPinnedVersionMutex.Lock()
 	ret, specificReturn := fake.currentPinnedVersionReturnsOnCall[len(fake.currentPinnedVersionArgsForCall)]
 	fake.currentPinnedVersionArgsForCall = append(fake.currentPinnedVersionArgsForCall, struct {
@@ -570,19 +570,19 @@ func (fake *FakeResourceType) CurrentPinnedVersion() atc.Version {
 	return fakeReturns.result1
 }
 
-func (fake *FakeResourceType) CurrentPinnedVersionCallCount() int {
+func (fake *FakePrototype) CurrentPinnedVersionCallCount() int {
 	fake.currentPinnedVersionMutex.RLock()
 	defer fake.currentPinnedVersionMutex.RUnlock()
 	return len(fake.currentPinnedVersionArgsForCall)
 }
 
-func (fake *FakeResourceType) CurrentPinnedVersionCalls(stub func() atc.Version) {
+func (fake *FakePrototype) CurrentPinnedVersionCalls(stub func() atc.Version) {
 	fake.currentPinnedVersionMutex.Lock()
 	defer fake.currentPinnedVersionMutex.Unlock()
 	fake.CurrentPinnedVersionStub = stub
 }
 
-func (fake *FakeResourceType) CurrentPinnedVersionReturns(result1 atc.Version) {
+func (fake *FakePrototype) CurrentPinnedVersionReturns(result1 atc.Version) {
 	fake.currentPinnedVersionMutex.Lock()
 	defer fake.currentPinnedVersionMutex.Unlock()
 	fake.CurrentPinnedVersionStub = nil
@@ -591,7 +591,7 @@ func (fake *FakeResourceType) CurrentPinnedVersionReturns(result1 atc.Version) {
 	}{result1}
 }
 
-func (fake *FakeResourceType) CurrentPinnedVersionReturnsOnCall(i int, result1 atc.Version) {
+func (fake *FakePrototype) CurrentPinnedVersionReturnsOnCall(i int, result1 atc.Version) {
 	fake.currentPinnedVersionMutex.Lock()
 	defer fake.currentPinnedVersionMutex.Unlock()
 	fake.CurrentPinnedVersionStub = nil
@@ -605,7 +605,7 @@ func (fake *FakeResourceType) CurrentPinnedVersionReturnsOnCall(i int, result1 a
 	}{result1}
 }
 
-func (fake *FakeResourceType) Defaults() atc.Source {
+func (fake *FakePrototype) Defaults() atc.Source {
 	fake.defaultsMutex.Lock()
 	ret, specificReturn := fake.defaultsReturnsOnCall[len(fake.defaultsArgsForCall)]
 	fake.defaultsArgsForCall = append(fake.defaultsArgsForCall, struct {
@@ -623,19 +623,19 @@ func (fake *FakeResourceType) Defaults() atc.Source {
 	return fakeReturns.result1
 }
 
-func (fake *FakeResourceType) DefaultsCallCount() int {
+func (fake *FakePrototype) DefaultsCallCount() int {
 	fake.defaultsMutex.RLock()
 	defer fake.defaultsMutex.RUnlock()
 	return len(fake.defaultsArgsForCall)
 }
 
-func (fake *FakeResourceType) DefaultsCalls(stub func() atc.Source) {
+func (fake *FakePrototype) DefaultsCalls(stub func() atc.Source) {
 	fake.defaultsMutex.Lock()
 	defer fake.defaultsMutex.Unlock()
 	fake.DefaultsStub = stub
 }
 
-func (fake *FakeResourceType) DefaultsReturns(result1 atc.Source) {
+func (fake *FakePrototype) DefaultsReturns(result1 atc.Source) {
 	fake.defaultsMutex.Lock()
 	defer fake.defaultsMutex.Unlock()
 	fake.DefaultsStub = nil
@@ -644,7 +644,7 @@ func (fake *FakeResourceType) DefaultsReturns(result1 atc.Source) {
 	}{result1}
 }
 
-func (fake *FakeResourceType) DefaultsReturnsOnCall(i int, result1 atc.Source) {
+func (fake *FakePrototype) DefaultsReturnsOnCall(i int, result1 atc.Source) {
 	fake.defaultsMutex.Lock()
 	defer fake.defaultsMutex.Unlock()
 	fake.DefaultsStub = nil
@@ -658,7 +658,7 @@ func (fake *FakeResourceType) DefaultsReturnsOnCall(i int, result1 atc.Source) {
 	}{result1}
 }
 
-func (fake *FakeResourceType) HasWebhook() bool {
+func (fake *FakePrototype) HasWebhook() bool {
 	fake.hasWebhookMutex.Lock()
 	ret, specificReturn := fake.hasWebhookReturnsOnCall[len(fake.hasWebhookArgsForCall)]
 	fake.hasWebhookArgsForCall = append(fake.hasWebhookArgsForCall, struct {
@@ -676,19 +676,19 @@ func (fake *FakeResourceType) HasWebhook() bool {
 	return fakeReturns.result1
 }
 
-func (fake *FakeResourceType) HasWebhookCallCount() int {
+func (fake *FakePrototype) HasWebhookCallCount() int {
 	fake.hasWebhookMutex.RLock()
 	defer fake.hasWebhookMutex.RUnlock()
 	return len(fake.hasWebhookArgsForCall)
 }
 
-func (fake *FakeResourceType) HasWebhookCalls(stub func() bool) {
+func (fake *FakePrototype) HasWebhookCalls(stub func() bool) {
 	fake.hasWebhookMutex.Lock()
 	defer fake.hasWebhookMutex.Unlock()
 	fake.HasWebhookStub = stub
 }
 
-func (fake *FakeResourceType) HasWebhookReturns(result1 bool) {
+func (fake *FakePrototype) HasWebhookReturns(result1 bool) {
 	fake.hasWebhookMutex.Lock()
 	defer fake.hasWebhookMutex.Unlock()
 	fake.HasWebhookStub = nil
@@ -697,7 +697,7 @@ func (fake *FakeResourceType) HasWebhookReturns(result1 bool) {
 	}{result1}
 }
 
-func (fake *FakeResourceType) HasWebhookReturnsOnCall(i int, result1 bool) {
+func (fake *FakePrototype) HasWebhookReturnsOnCall(i int, result1 bool) {
 	fake.hasWebhookMutex.Lock()
 	defer fake.hasWebhookMutex.Unlock()
 	fake.HasWebhookStub = nil
@@ -711,7 +711,7 @@ func (fake *FakeResourceType) HasWebhookReturnsOnCall(i int, result1 bool) {
 	}{result1}
 }
 
-func (fake *FakeResourceType) ID() int {
+func (fake *FakePrototype) ID() int {
 	fake.iDMutex.Lock()
 	ret, specificReturn := fake.iDReturnsOnCall[len(fake.iDArgsForCall)]
 	fake.iDArgsForCall = append(fake.iDArgsForCall, struct {
@@ -729,19 +729,19 @@ func (fake *FakeResourceType) ID() int {
 	return fakeReturns.result1
 }
 
-func (fake *FakeResourceType) IDCallCount() int {
+func (fake *FakePrototype) IDCallCount() int {
 	fake.iDMutex.RLock()
 	defer fake.iDMutex.RUnlock()
 	return len(fake.iDArgsForCall)
 }
 
-func (fake *FakeResourceType) IDCalls(stub func() int) {
+func (fake *FakePrototype) IDCalls(stub func() int) {
 	fake.iDMutex.Lock()
 	defer fake.iDMutex.Unlock()
 	fake.IDStub = stub
 }
 
-func (fake *FakeResourceType) IDReturns(result1 int) {
+func (fake *FakePrototype) IDReturns(result1 int) {
 	fake.iDMutex.Lock()
 	defer fake.iDMutex.Unlock()
 	fake.IDStub = nil
@@ -750,7 +750,7 @@ func (fake *FakeResourceType) IDReturns(result1 int) {
 	}{result1}
 }
 
-func (fake *FakeResourceType) IDReturnsOnCall(i int, result1 int) {
+func (fake *FakePrototype) IDReturnsOnCall(i int, result1 int) {
 	fake.iDMutex.Lock()
 	defer fake.iDMutex.Unlock()
 	fake.IDStub = nil
@@ -764,7 +764,7 @@ func (fake *FakeResourceType) IDReturnsOnCall(i int, result1 int) {
 	}{result1}
 }
 
-func (fake *FakeResourceType) LastCheckEndTime() time.Time {
+func (fake *FakePrototype) LastCheckEndTime() time.Time {
 	fake.lastCheckEndTimeMutex.Lock()
 	ret, specificReturn := fake.lastCheckEndTimeReturnsOnCall[len(fake.lastCheckEndTimeArgsForCall)]
 	fake.lastCheckEndTimeArgsForCall = append(fake.lastCheckEndTimeArgsForCall, struct {
@@ -782,19 +782,19 @@ func (fake *FakeResourceType) LastCheckEndTime() time.Time {
 	return fakeReturns.result1
 }
 
-func (fake *FakeResourceType) LastCheckEndTimeCallCount() int {
+func (fake *FakePrototype) LastCheckEndTimeCallCount() int {
 	fake.lastCheckEndTimeMutex.RLock()
 	defer fake.lastCheckEndTimeMutex.RUnlock()
 	return len(fake.lastCheckEndTimeArgsForCall)
 }
 
-func (fake *FakeResourceType) LastCheckEndTimeCalls(stub func() time.Time) {
+func (fake *FakePrototype) LastCheckEndTimeCalls(stub func() time.Time) {
 	fake.lastCheckEndTimeMutex.Lock()
 	defer fake.lastCheckEndTimeMutex.Unlock()
 	fake.LastCheckEndTimeStub = stub
 }
 
-func (fake *FakeResourceType) LastCheckEndTimeReturns(result1 time.Time) {
+func (fake *FakePrototype) LastCheckEndTimeReturns(result1 time.Time) {
 	fake.lastCheckEndTimeMutex.Lock()
 	defer fake.lastCheckEndTimeMutex.Unlock()
 	fake.LastCheckEndTimeStub = nil
@@ -803,7 +803,7 @@ func (fake *FakeResourceType) LastCheckEndTimeReturns(result1 time.Time) {
 	}{result1}
 }
 
-func (fake *FakeResourceType) LastCheckEndTimeReturnsOnCall(i int, result1 time.Time) {
+func (fake *FakePrototype) LastCheckEndTimeReturnsOnCall(i int, result1 time.Time) {
 	fake.lastCheckEndTimeMutex.Lock()
 	defer fake.lastCheckEndTimeMutex.Unlock()
 	fake.LastCheckEndTimeStub = nil
@@ -817,7 +817,7 @@ func (fake *FakeResourceType) LastCheckEndTimeReturnsOnCall(i int, result1 time.
 	}{result1}
 }
 
-func (fake *FakeResourceType) LastCheckStartTime() time.Time {
+func (fake *FakePrototype) LastCheckStartTime() time.Time {
 	fake.lastCheckStartTimeMutex.Lock()
 	ret, specificReturn := fake.lastCheckStartTimeReturnsOnCall[len(fake.lastCheckStartTimeArgsForCall)]
 	fake.lastCheckStartTimeArgsForCall = append(fake.lastCheckStartTimeArgsForCall, struct {
@@ -835,19 +835,19 @@ func (fake *FakeResourceType) LastCheckStartTime() time.Time {
 	return fakeReturns.result1
 }
 
-func (fake *FakeResourceType) LastCheckStartTimeCallCount() int {
+func (fake *FakePrototype) LastCheckStartTimeCallCount() int {
 	fake.lastCheckStartTimeMutex.RLock()
 	defer fake.lastCheckStartTimeMutex.RUnlock()
 	return len(fake.lastCheckStartTimeArgsForCall)
 }
 
-func (fake *FakeResourceType) LastCheckStartTimeCalls(stub func() time.Time) {
+func (fake *FakePrototype) LastCheckStartTimeCalls(stub func() time.Time) {
 	fake.lastCheckStartTimeMutex.Lock()
 	defer fake.lastCheckStartTimeMutex.Unlock()
 	fake.LastCheckStartTimeStub = stub
 }
 
-func (fake *FakeResourceType) LastCheckStartTimeReturns(result1 time.Time) {
+func (fake *FakePrototype) LastCheckStartTimeReturns(result1 time.Time) {
 	fake.lastCheckStartTimeMutex.Lock()
 	defer fake.lastCheckStartTimeMutex.Unlock()
 	fake.LastCheckStartTimeStub = nil
@@ -856,7 +856,7 @@ func (fake *FakeResourceType) LastCheckStartTimeReturns(result1 time.Time) {
 	}{result1}
 }
 
-func (fake *FakeResourceType) LastCheckStartTimeReturnsOnCall(i int, result1 time.Time) {
+func (fake *FakePrototype) LastCheckStartTimeReturnsOnCall(i int, result1 time.Time) {
 	fake.lastCheckStartTimeMutex.Lock()
 	defer fake.lastCheckStartTimeMutex.Unlock()
 	fake.LastCheckStartTimeStub = nil
@@ -870,7 +870,7 @@ func (fake *FakeResourceType) LastCheckStartTimeReturnsOnCall(i int, result1 tim
 	}{result1}
 }
 
-func (fake *FakeResourceType) Name() string {
+func (fake *FakePrototype) Name() string {
 	fake.nameMutex.Lock()
 	ret, specificReturn := fake.nameReturnsOnCall[len(fake.nameArgsForCall)]
 	fake.nameArgsForCall = append(fake.nameArgsForCall, struct {
@@ -888,19 +888,19 @@ func (fake *FakeResourceType) Name() string {
 	return fakeReturns.result1
 }
 
-func (fake *FakeResourceType) NameCallCount() int {
+func (fake *FakePrototype) NameCallCount() int {
 	fake.nameMutex.RLock()
 	defer fake.nameMutex.RUnlock()
 	return len(fake.nameArgsForCall)
 }
 
-func (fake *FakeResourceType) NameCalls(stub func() string) {
+func (fake *FakePrototype) NameCalls(stub func() string) {
 	fake.nameMutex.Lock()
 	defer fake.nameMutex.Unlock()
 	fake.NameStub = stub
 }
 
-func (fake *FakeResourceType) NameReturns(result1 string) {
+func (fake *FakePrototype) NameReturns(result1 string) {
 	fake.nameMutex.Lock()
 	defer fake.nameMutex.Unlock()
 	fake.NameStub = nil
@@ -909,7 +909,7 @@ func (fake *FakeResourceType) NameReturns(result1 string) {
 	}{result1}
 }
 
-func (fake *FakeResourceType) NameReturnsOnCall(i int, result1 string) {
+func (fake *FakePrototype) NameReturnsOnCall(i int, result1 string) {
 	fake.nameMutex.Lock()
 	defer fake.nameMutex.Unlock()
 	fake.NameStub = nil
@@ -923,7 +923,7 @@ func (fake *FakeResourceType) NameReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
-func (fake *FakeResourceType) Params() atc.Params {
+func (fake *FakePrototype) Params() atc.Params {
 	fake.paramsMutex.Lock()
 	ret, specificReturn := fake.paramsReturnsOnCall[len(fake.paramsArgsForCall)]
 	fake.paramsArgsForCall = append(fake.paramsArgsForCall, struct {
@@ -941,19 +941,19 @@ func (fake *FakeResourceType) Params() atc.Params {
 	return fakeReturns.result1
 }
 
-func (fake *FakeResourceType) ParamsCallCount() int {
+func (fake *FakePrototype) ParamsCallCount() int {
 	fake.paramsMutex.RLock()
 	defer fake.paramsMutex.RUnlock()
 	return len(fake.paramsArgsForCall)
 }
 
-func (fake *FakeResourceType) ParamsCalls(stub func() atc.Params) {
+func (fake *FakePrototype) ParamsCalls(stub func() atc.Params) {
 	fake.paramsMutex.Lock()
 	defer fake.paramsMutex.Unlock()
 	fake.ParamsStub = stub
 }
 
-func (fake *FakeResourceType) ParamsReturns(result1 atc.Params) {
+func (fake *FakePrototype) ParamsReturns(result1 atc.Params) {
 	fake.paramsMutex.Lock()
 	defer fake.paramsMutex.Unlock()
 	fake.ParamsStub = nil
@@ -962,7 +962,7 @@ func (fake *FakeResourceType) ParamsReturns(result1 atc.Params) {
 	}{result1}
 }
 
-func (fake *FakeResourceType) ParamsReturnsOnCall(i int, result1 atc.Params) {
+func (fake *FakePrototype) ParamsReturnsOnCall(i int, result1 atc.Params) {
 	fake.paramsMutex.Lock()
 	defer fake.paramsMutex.Unlock()
 	fake.ParamsStub = nil
@@ -976,7 +976,7 @@ func (fake *FakeResourceType) ParamsReturnsOnCall(i int, result1 atc.Params) {
 	}{result1}
 }
 
-func (fake *FakeResourceType) Pipeline() (db.Pipeline, bool, error) {
+func (fake *FakePrototype) Pipeline() (db.Pipeline, bool, error) {
 	fake.pipelineMutex.Lock()
 	ret, specificReturn := fake.pipelineReturnsOnCall[len(fake.pipelineArgsForCall)]
 	fake.pipelineArgsForCall = append(fake.pipelineArgsForCall, struct {
@@ -994,19 +994,19 @@ func (fake *FakeResourceType) Pipeline() (db.Pipeline, bool, error) {
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
-func (fake *FakeResourceType) PipelineCallCount() int {
+func (fake *FakePrototype) PipelineCallCount() int {
 	fake.pipelineMutex.RLock()
 	defer fake.pipelineMutex.RUnlock()
 	return len(fake.pipelineArgsForCall)
 }
 
-func (fake *FakeResourceType) PipelineCalls(stub func() (db.Pipeline, bool, error)) {
+func (fake *FakePrototype) PipelineCalls(stub func() (db.Pipeline, bool, error)) {
 	fake.pipelineMutex.Lock()
 	defer fake.pipelineMutex.Unlock()
 	fake.PipelineStub = stub
 }
 
-func (fake *FakeResourceType) PipelineReturns(result1 db.Pipeline, result2 bool, result3 error) {
+func (fake *FakePrototype) PipelineReturns(result1 db.Pipeline, result2 bool, result3 error) {
 	fake.pipelineMutex.Lock()
 	defer fake.pipelineMutex.Unlock()
 	fake.PipelineStub = nil
@@ -1017,7 +1017,7 @@ func (fake *FakeResourceType) PipelineReturns(result1 db.Pipeline, result2 bool,
 	}{result1, result2, result3}
 }
 
-func (fake *FakeResourceType) PipelineReturnsOnCall(i int, result1 db.Pipeline, result2 bool, result3 error) {
+func (fake *FakePrototype) PipelineReturnsOnCall(i int, result1 db.Pipeline, result2 bool, result3 error) {
 	fake.pipelineMutex.Lock()
 	defer fake.pipelineMutex.Unlock()
 	fake.PipelineStub = nil
@@ -1035,7 +1035,7 @@ func (fake *FakeResourceType) PipelineReturnsOnCall(i int, result1 db.Pipeline, 
 	}{result1, result2, result3}
 }
 
-func (fake *FakeResourceType) PipelineID() int {
+func (fake *FakePrototype) PipelineID() int {
 	fake.pipelineIDMutex.Lock()
 	ret, specificReturn := fake.pipelineIDReturnsOnCall[len(fake.pipelineIDArgsForCall)]
 	fake.pipelineIDArgsForCall = append(fake.pipelineIDArgsForCall, struct {
@@ -1053,19 +1053,19 @@ func (fake *FakeResourceType) PipelineID() int {
 	return fakeReturns.result1
 }
 
-func (fake *FakeResourceType) PipelineIDCallCount() int {
+func (fake *FakePrototype) PipelineIDCallCount() int {
 	fake.pipelineIDMutex.RLock()
 	defer fake.pipelineIDMutex.RUnlock()
 	return len(fake.pipelineIDArgsForCall)
 }
 
-func (fake *FakeResourceType) PipelineIDCalls(stub func() int) {
+func (fake *FakePrototype) PipelineIDCalls(stub func() int) {
 	fake.pipelineIDMutex.Lock()
 	defer fake.pipelineIDMutex.Unlock()
 	fake.PipelineIDStub = stub
 }
 
-func (fake *FakeResourceType) PipelineIDReturns(result1 int) {
+func (fake *FakePrototype) PipelineIDReturns(result1 int) {
 	fake.pipelineIDMutex.Lock()
 	defer fake.pipelineIDMutex.Unlock()
 	fake.PipelineIDStub = nil
@@ -1074,7 +1074,7 @@ func (fake *FakeResourceType) PipelineIDReturns(result1 int) {
 	}{result1}
 }
 
-func (fake *FakeResourceType) PipelineIDReturnsOnCall(i int, result1 int) {
+func (fake *FakePrototype) PipelineIDReturnsOnCall(i int, result1 int) {
 	fake.pipelineIDMutex.Lock()
 	defer fake.pipelineIDMutex.Unlock()
 	fake.PipelineIDStub = nil
@@ -1088,7 +1088,7 @@ func (fake *FakeResourceType) PipelineIDReturnsOnCall(i int, result1 int) {
 	}{result1}
 }
 
-func (fake *FakeResourceType) PipelineInstanceVars() atc.InstanceVars {
+func (fake *FakePrototype) PipelineInstanceVars() atc.InstanceVars {
 	fake.pipelineInstanceVarsMutex.Lock()
 	ret, specificReturn := fake.pipelineInstanceVarsReturnsOnCall[len(fake.pipelineInstanceVarsArgsForCall)]
 	fake.pipelineInstanceVarsArgsForCall = append(fake.pipelineInstanceVarsArgsForCall, struct {
@@ -1106,19 +1106,19 @@ func (fake *FakeResourceType) PipelineInstanceVars() atc.InstanceVars {
 	return fakeReturns.result1
 }
 
-func (fake *FakeResourceType) PipelineInstanceVarsCallCount() int {
+func (fake *FakePrototype) PipelineInstanceVarsCallCount() int {
 	fake.pipelineInstanceVarsMutex.RLock()
 	defer fake.pipelineInstanceVarsMutex.RUnlock()
 	return len(fake.pipelineInstanceVarsArgsForCall)
 }
 
-func (fake *FakeResourceType) PipelineInstanceVarsCalls(stub func() atc.InstanceVars) {
+func (fake *FakePrototype) PipelineInstanceVarsCalls(stub func() atc.InstanceVars) {
 	fake.pipelineInstanceVarsMutex.Lock()
 	defer fake.pipelineInstanceVarsMutex.Unlock()
 	fake.PipelineInstanceVarsStub = stub
 }
 
-func (fake *FakeResourceType) PipelineInstanceVarsReturns(result1 atc.InstanceVars) {
+func (fake *FakePrototype) PipelineInstanceVarsReturns(result1 atc.InstanceVars) {
 	fake.pipelineInstanceVarsMutex.Lock()
 	defer fake.pipelineInstanceVarsMutex.Unlock()
 	fake.PipelineInstanceVarsStub = nil
@@ -1127,7 +1127,7 @@ func (fake *FakeResourceType) PipelineInstanceVarsReturns(result1 atc.InstanceVa
 	}{result1}
 }
 
-func (fake *FakeResourceType) PipelineInstanceVarsReturnsOnCall(i int, result1 atc.InstanceVars) {
+func (fake *FakePrototype) PipelineInstanceVarsReturnsOnCall(i int, result1 atc.InstanceVars) {
 	fake.pipelineInstanceVarsMutex.Lock()
 	defer fake.pipelineInstanceVarsMutex.Unlock()
 	fake.PipelineInstanceVarsStub = nil
@@ -1141,7 +1141,7 @@ func (fake *FakeResourceType) PipelineInstanceVarsReturnsOnCall(i int, result1 a
 	}{result1}
 }
 
-func (fake *FakeResourceType) PipelineName() string {
+func (fake *FakePrototype) PipelineName() string {
 	fake.pipelineNameMutex.Lock()
 	ret, specificReturn := fake.pipelineNameReturnsOnCall[len(fake.pipelineNameArgsForCall)]
 	fake.pipelineNameArgsForCall = append(fake.pipelineNameArgsForCall, struct {
@@ -1159,19 +1159,19 @@ func (fake *FakeResourceType) PipelineName() string {
 	return fakeReturns.result1
 }
 
-func (fake *FakeResourceType) PipelineNameCallCount() int {
+func (fake *FakePrototype) PipelineNameCallCount() int {
 	fake.pipelineNameMutex.RLock()
 	defer fake.pipelineNameMutex.RUnlock()
 	return len(fake.pipelineNameArgsForCall)
 }
 
-func (fake *FakeResourceType) PipelineNameCalls(stub func() string) {
+func (fake *FakePrototype) PipelineNameCalls(stub func() string) {
 	fake.pipelineNameMutex.Lock()
 	defer fake.pipelineNameMutex.Unlock()
 	fake.PipelineNameStub = stub
 }
 
-func (fake *FakeResourceType) PipelineNameReturns(result1 string) {
+func (fake *FakePrototype) PipelineNameReturns(result1 string) {
 	fake.pipelineNameMutex.Lock()
 	defer fake.pipelineNameMutex.Unlock()
 	fake.PipelineNameStub = nil
@@ -1180,7 +1180,7 @@ func (fake *FakeResourceType) PipelineNameReturns(result1 string) {
 	}{result1}
 }
 
-func (fake *FakeResourceType) PipelineNameReturnsOnCall(i int, result1 string) {
+func (fake *FakePrototype) PipelineNameReturnsOnCall(i int, result1 string) {
 	fake.pipelineNameMutex.Lock()
 	defer fake.pipelineNameMutex.Unlock()
 	fake.PipelineNameStub = nil
@@ -1194,7 +1194,7 @@ func (fake *FakeResourceType) PipelineNameReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
-func (fake *FakeResourceType) PipelineRef() atc.PipelineRef {
+func (fake *FakePrototype) PipelineRef() atc.PipelineRef {
 	fake.pipelineRefMutex.Lock()
 	ret, specificReturn := fake.pipelineRefReturnsOnCall[len(fake.pipelineRefArgsForCall)]
 	fake.pipelineRefArgsForCall = append(fake.pipelineRefArgsForCall, struct {
@@ -1212,19 +1212,19 @@ func (fake *FakeResourceType) PipelineRef() atc.PipelineRef {
 	return fakeReturns.result1
 }
 
-func (fake *FakeResourceType) PipelineRefCallCount() int {
+func (fake *FakePrototype) PipelineRefCallCount() int {
 	fake.pipelineRefMutex.RLock()
 	defer fake.pipelineRefMutex.RUnlock()
 	return len(fake.pipelineRefArgsForCall)
 }
 
-func (fake *FakeResourceType) PipelineRefCalls(stub func() atc.PipelineRef) {
+func (fake *FakePrototype) PipelineRefCalls(stub func() atc.PipelineRef) {
 	fake.pipelineRefMutex.Lock()
 	defer fake.pipelineRefMutex.Unlock()
 	fake.PipelineRefStub = stub
 }
 
-func (fake *FakeResourceType) PipelineRefReturns(result1 atc.PipelineRef) {
+func (fake *FakePrototype) PipelineRefReturns(result1 atc.PipelineRef) {
 	fake.pipelineRefMutex.Lock()
 	defer fake.pipelineRefMutex.Unlock()
 	fake.PipelineRefStub = nil
@@ -1233,7 +1233,7 @@ func (fake *FakeResourceType) PipelineRefReturns(result1 atc.PipelineRef) {
 	}{result1}
 }
 
-func (fake *FakeResourceType) PipelineRefReturnsOnCall(i int, result1 atc.PipelineRef) {
+func (fake *FakePrototype) PipelineRefReturnsOnCall(i int, result1 atc.PipelineRef) {
 	fake.pipelineRefMutex.Lock()
 	defer fake.pipelineRefMutex.Unlock()
 	fake.PipelineRefStub = nil
@@ -1247,7 +1247,7 @@ func (fake *FakeResourceType) PipelineRefReturnsOnCall(i int, result1 atc.Pipeli
 	}{result1}
 }
 
-func (fake *FakeResourceType) Privileged() bool {
+func (fake *FakePrototype) Privileged() bool {
 	fake.privilegedMutex.Lock()
 	ret, specificReturn := fake.privilegedReturnsOnCall[len(fake.privilegedArgsForCall)]
 	fake.privilegedArgsForCall = append(fake.privilegedArgsForCall, struct {
@@ -1265,19 +1265,19 @@ func (fake *FakeResourceType) Privileged() bool {
 	return fakeReturns.result1
 }
 
-func (fake *FakeResourceType) PrivilegedCallCount() int {
+func (fake *FakePrototype) PrivilegedCallCount() int {
 	fake.privilegedMutex.RLock()
 	defer fake.privilegedMutex.RUnlock()
 	return len(fake.privilegedArgsForCall)
 }
 
-func (fake *FakeResourceType) PrivilegedCalls(stub func() bool) {
+func (fake *FakePrototype) PrivilegedCalls(stub func() bool) {
 	fake.privilegedMutex.Lock()
 	defer fake.privilegedMutex.Unlock()
 	fake.PrivilegedStub = stub
 }
 
-func (fake *FakeResourceType) PrivilegedReturns(result1 bool) {
+func (fake *FakePrototype) PrivilegedReturns(result1 bool) {
 	fake.privilegedMutex.Lock()
 	defer fake.privilegedMutex.Unlock()
 	fake.PrivilegedStub = nil
@@ -1286,7 +1286,7 @@ func (fake *FakeResourceType) PrivilegedReturns(result1 bool) {
 	}{result1}
 }
 
-func (fake *FakeResourceType) PrivilegedReturnsOnCall(i int, result1 bool) {
+func (fake *FakePrototype) PrivilegedReturnsOnCall(i int, result1 bool) {
 	fake.privilegedMutex.Lock()
 	defer fake.privilegedMutex.Unlock()
 	fake.PrivilegedStub = nil
@@ -1300,7 +1300,7 @@ func (fake *FakeResourceType) PrivilegedReturnsOnCall(i int, result1 bool) {
 	}{result1}
 }
 
-func (fake *FakeResourceType) Reload() (bool, error) {
+func (fake *FakePrototype) Reload() (bool, error) {
 	fake.reloadMutex.Lock()
 	ret, specificReturn := fake.reloadReturnsOnCall[len(fake.reloadArgsForCall)]
 	fake.reloadArgsForCall = append(fake.reloadArgsForCall, struct {
@@ -1318,19 +1318,19 @@ func (fake *FakeResourceType) Reload() (bool, error) {
 	return fakeReturns.result1, fakeReturns.result2
 }
 
-func (fake *FakeResourceType) ReloadCallCount() int {
+func (fake *FakePrototype) ReloadCallCount() int {
 	fake.reloadMutex.RLock()
 	defer fake.reloadMutex.RUnlock()
 	return len(fake.reloadArgsForCall)
 }
 
-func (fake *FakeResourceType) ReloadCalls(stub func() (bool, error)) {
+func (fake *FakePrototype) ReloadCalls(stub func() (bool, error)) {
 	fake.reloadMutex.Lock()
 	defer fake.reloadMutex.Unlock()
 	fake.ReloadStub = stub
 }
 
-func (fake *FakeResourceType) ReloadReturns(result1 bool, result2 error) {
+func (fake *FakePrototype) ReloadReturns(result1 bool, result2 error) {
 	fake.reloadMutex.Lock()
 	defer fake.reloadMutex.Unlock()
 	fake.ReloadStub = nil
@@ -1340,7 +1340,7 @@ func (fake *FakeResourceType) ReloadReturns(result1 bool, result2 error) {
 	}{result1, result2}
 }
 
-func (fake *FakeResourceType) ReloadReturnsOnCall(i int, result1 bool, result2 error) {
+func (fake *FakePrototype) ReloadReturnsOnCall(i int, result1 bool, result2 error) {
 	fake.reloadMutex.Lock()
 	defer fake.reloadMutex.Unlock()
 	fake.ReloadStub = nil
@@ -1356,7 +1356,7 @@ func (fake *FakeResourceType) ReloadReturnsOnCall(i int, result1 bool, result2 e
 	}{result1, result2}
 }
 
-func (fake *FakeResourceType) ResourceConfigID() int {
+func (fake *FakePrototype) ResourceConfigID() int {
 	fake.resourceConfigIDMutex.Lock()
 	ret, specificReturn := fake.resourceConfigIDReturnsOnCall[len(fake.resourceConfigIDArgsForCall)]
 	fake.resourceConfigIDArgsForCall = append(fake.resourceConfigIDArgsForCall, struct {
@@ -1374,19 +1374,19 @@ func (fake *FakeResourceType) ResourceConfigID() int {
 	return fakeReturns.result1
 }
 
-func (fake *FakeResourceType) ResourceConfigIDCallCount() int {
+func (fake *FakePrototype) ResourceConfigIDCallCount() int {
 	fake.resourceConfigIDMutex.RLock()
 	defer fake.resourceConfigIDMutex.RUnlock()
 	return len(fake.resourceConfigIDArgsForCall)
 }
 
-func (fake *FakeResourceType) ResourceConfigIDCalls(stub func() int) {
+func (fake *FakePrototype) ResourceConfigIDCalls(stub func() int) {
 	fake.resourceConfigIDMutex.Lock()
 	defer fake.resourceConfigIDMutex.Unlock()
 	fake.ResourceConfigIDStub = stub
 }
 
-func (fake *FakeResourceType) ResourceConfigIDReturns(result1 int) {
+func (fake *FakePrototype) ResourceConfigIDReturns(result1 int) {
 	fake.resourceConfigIDMutex.Lock()
 	defer fake.resourceConfigIDMutex.Unlock()
 	fake.ResourceConfigIDStub = nil
@@ -1395,7 +1395,7 @@ func (fake *FakeResourceType) ResourceConfigIDReturns(result1 int) {
 	}{result1}
 }
 
-func (fake *FakeResourceType) ResourceConfigIDReturnsOnCall(i int, result1 int) {
+func (fake *FakePrototype) ResourceConfigIDReturnsOnCall(i int, result1 int) {
 	fake.resourceConfigIDMutex.Lock()
 	defer fake.resourceConfigIDMutex.Unlock()
 	fake.ResourceConfigIDStub = nil
@@ -1409,7 +1409,7 @@ func (fake *FakeResourceType) ResourceConfigIDReturnsOnCall(i int, result1 int) 
 	}{result1}
 }
 
-func (fake *FakeResourceType) ResourceConfigScopeID() int {
+func (fake *FakePrototype) ResourceConfigScopeID() int {
 	fake.resourceConfigScopeIDMutex.Lock()
 	ret, specificReturn := fake.resourceConfigScopeIDReturnsOnCall[len(fake.resourceConfigScopeIDArgsForCall)]
 	fake.resourceConfigScopeIDArgsForCall = append(fake.resourceConfigScopeIDArgsForCall, struct {
@@ -1427,19 +1427,19 @@ func (fake *FakeResourceType) ResourceConfigScopeID() int {
 	return fakeReturns.result1
 }
 
-func (fake *FakeResourceType) ResourceConfigScopeIDCallCount() int {
+func (fake *FakePrototype) ResourceConfigScopeIDCallCount() int {
 	fake.resourceConfigScopeIDMutex.RLock()
 	defer fake.resourceConfigScopeIDMutex.RUnlock()
 	return len(fake.resourceConfigScopeIDArgsForCall)
 }
 
-func (fake *FakeResourceType) ResourceConfigScopeIDCalls(stub func() int) {
+func (fake *FakePrototype) ResourceConfigScopeIDCalls(stub func() int) {
 	fake.resourceConfigScopeIDMutex.Lock()
 	defer fake.resourceConfigScopeIDMutex.Unlock()
 	fake.ResourceConfigScopeIDStub = stub
 }
 
-func (fake *FakeResourceType) ResourceConfigScopeIDReturns(result1 int) {
+func (fake *FakePrototype) ResourceConfigScopeIDReturns(result1 int) {
 	fake.resourceConfigScopeIDMutex.Lock()
 	defer fake.resourceConfigScopeIDMutex.Unlock()
 	fake.ResourceConfigScopeIDStub = nil
@@ -1448,7 +1448,7 @@ func (fake *FakeResourceType) ResourceConfigScopeIDReturns(result1 int) {
 	}{result1}
 }
 
-func (fake *FakeResourceType) ResourceConfigScopeIDReturnsOnCall(i int, result1 int) {
+func (fake *FakePrototype) ResourceConfigScopeIDReturnsOnCall(i int, result1 int) {
 	fake.resourceConfigScopeIDMutex.Lock()
 	defer fake.resourceConfigScopeIDMutex.Unlock()
 	fake.ResourceConfigScopeIDStub = nil
@@ -1462,7 +1462,7 @@ func (fake *FakeResourceType) ResourceConfigScopeIDReturnsOnCall(i int, result1 
 	}{result1}
 }
 
-func (fake *FakeResourceType) SetResourceConfigScope(arg1 db.ResourceConfigScope) error {
+func (fake *FakePrototype) SetResourceConfigScope(arg1 db.ResourceConfigScope) error {
 	fake.setResourceConfigScopeMutex.Lock()
 	ret, specificReturn := fake.setResourceConfigScopeReturnsOnCall[len(fake.setResourceConfigScopeArgsForCall)]
 	fake.setResourceConfigScopeArgsForCall = append(fake.setResourceConfigScopeArgsForCall, struct {
@@ -1481,26 +1481,26 @@ func (fake *FakeResourceType) SetResourceConfigScope(arg1 db.ResourceConfigScope
 	return fakeReturns.result1
 }
 
-func (fake *FakeResourceType) SetResourceConfigScopeCallCount() int {
+func (fake *FakePrototype) SetResourceConfigScopeCallCount() int {
 	fake.setResourceConfigScopeMutex.RLock()
 	defer fake.setResourceConfigScopeMutex.RUnlock()
 	return len(fake.setResourceConfigScopeArgsForCall)
 }
 
-func (fake *FakeResourceType) SetResourceConfigScopeCalls(stub func(db.ResourceConfigScope) error) {
+func (fake *FakePrototype) SetResourceConfigScopeCalls(stub func(db.ResourceConfigScope) error) {
 	fake.setResourceConfigScopeMutex.Lock()
 	defer fake.setResourceConfigScopeMutex.Unlock()
 	fake.SetResourceConfigScopeStub = stub
 }
 
-func (fake *FakeResourceType) SetResourceConfigScopeArgsForCall(i int) db.ResourceConfigScope {
+func (fake *FakePrototype) SetResourceConfigScopeArgsForCall(i int) db.ResourceConfigScope {
 	fake.setResourceConfigScopeMutex.RLock()
 	defer fake.setResourceConfigScopeMutex.RUnlock()
 	argsForCall := fake.setResourceConfigScopeArgsForCall[i]
 	return argsForCall.arg1
 }
 
-func (fake *FakeResourceType) SetResourceConfigScopeReturns(result1 error) {
+func (fake *FakePrototype) SetResourceConfigScopeReturns(result1 error) {
 	fake.setResourceConfigScopeMutex.Lock()
 	defer fake.setResourceConfigScopeMutex.Unlock()
 	fake.SetResourceConfigScopeStub = nil
@@ -1509,7 +1509,7 @@ func (fake *FakeResourceType) SetResourceConfigScopeReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeResourceType) SetResourceConfigScopeReturnsOnCall(i int, result1 error) {
+func (fake *FakePrototype) SetResourceConfigScopeReturnsOnCall(i int, result1 error) {
 	fake.setResourceConfigScopeMutex.Lock()
 	defer fake.setResourceConfigScopeMutex.Unlock()
 	fake.SetResourceConfigScopeStub = nil
@@ -1523,7 +1523,7 @@ func (fake *FakeResourceType) SetResourceConfigScopeReturnsOnCall(i int, result1
 	}{result1}
 }
 
-func (fake *FakeResourceType) Source() atc.Source {
+func (fake *FakePrototype) Source() atc.Source {
 	fake.sourceMutex.Lock()
 	ret, specificReturn := fake.sourceReturnsOnCall[len(fake.sourceArgsForCall)]
 	fake.sourceArgsForCall = append(fake.sourceArgsForCall, struct {
@@ -1541,19 +1541,19 @@ func (fake *FakeResourceType) Source() atc.Source {
 	return fakeReturns.result1
 }
 
-func (fake *FakeResourceType) SourceCallCount() int {
+func (fake *FakePrototype) SourceCallCount() int {
 	fake.sourceMutex.RLock()
 	defer fake.sourceMutex.RUnlock()
 	return len(fake.sourceArgsForCall)
 }
 
-func (fake *FakeResourceType) SourceCalls(stub func() atc.Source) {
+func (fake *FakePrototype) SourceCalls(stub func() atc.Source) {
 	fake.sourceMutex.Lock()
 	defer fake.sourceMutex.Unlock()
 	fake.SourceStub = stub
 }
 
-func (fake *FakeResourceType) SourceReturns(result1 atc.Source) {
+func (fake *FakePrototype) SourceReturns(result1 atc.Source) {
 	fake.sourceMutex.Lock()
 	defer fake.sourceMutex.Unlock()
 	fake.SourceStub = nil
@@ -1562,7 +1562,7 @@ func (fake *FakeResourceType) SourceReturns(result1 atc.Source) {
 	}{result1}
 }
 
-func (fake *FakeResourceType) SourceReturnsOnCall(i int, result1 atc.Source) {
+func (fake *FakePrototype) SourceReturnsOnCall(i int, result1 atc.Source) {
 	fake.sourceMutex.Lock()
 	defer fake.sourceMutex.Unlock()
 	fake.SourceStub = nil
@@ -1576,7 +1576,7 @@ func (fake *FakeResourceType) SourceReturnsOnCall(i int, result1 atc.Source) {
 	}{result1}
 }
 
-func (fake *FakeResourceType) Tags() atc.Tags {
+func (fake *FakePrototype) Tags() atc.Tags {
 	fake.tagsMutex.Lock()
 	ret, specificReturn := fake.tagsReturnsOnCall[len(fake.tagsArgsForCall)]
 	fake.tagsArgsForCall = append(fake.tagsArgsForCall, struct {
@@ -1594,19 +1594,19 @@ func (fake *FakeResourceType) Tags() atc.Tags {
 	return fakeReturns.result1
 }
 
-func (fake *FakeResourceType) TagsCallCount() int {
+func (fake *FakePrototype) TagsCallCount() int {
 	fake.tagsMutex.RLock()
 	defer fake.tagsMutex.RUnlock()
 	return len(fake.tagsArgsForCall)
 }
 
-func (fake *FakeResourceType) TagsCalls(stub func() atc.Tags) {
+func (fake *FakePrototype) TagsCalls(stub func() atc.Tags) {
 	fake.tagsMutex.Lock()
 	defer fake.tagsMutex.Unlock()
 	fake.TagsStub = stub
 }
 
-func (fake *FakeResourceType) TagsReturns(result1 atc.Tags) {
+func (fake *FakePrototype) TagsReturns(result1 atc.Tags) {
 	fake.tagsMutex.Lock()
 	defer fake.tagsMutex.Unlock()
 	fake.TagsStub = nil
@@ -1615,7 +1615,7 @@ func (fake *FakeResourceType) TagsReturns(result1 atc.Tags) {
 	}{result1}
 }
 
-func (fake *FakeResourceType) TagsReturnsOnCall(i int, result1 atc.Tags) {
+func (fake *FakePrototype) TagsReturnsOnCall(i int, result1 atc.Tags) {
 	fake.tagsMutex.Lock()
 	defer fake.tagsMutex.Unlock()
 	fake.TagsStub = nil
@@ -1629,7 +1629,7 @@ func (fake *FakeResourceType) TagsReturnsOnCall(i int, result1 atc.Tags) {
 	}{result1}
 }
 
-func (fake *FakeResourceType) TeamID() int {
+func (fake *FakePrototype) TeamID() int {
 	fake.teamIDMutex.Lock()
 	ret, specificReturn := fake.teamIDReturnsOnCall[len(fake.teamIDArgsForCall)]
 	fake.teamIDArgsForCall = append(fake.teamIDArgsForCall, struct {
@@ -1647,19 +1647,19 @@ func (fake *FakeResourceType) TeamID() int {
 	return fakeReturns.result1
 }
 
-func (fake *FakeResourceType) TeamIDCallCount() int {
+func (fake *FakePrototype) TeamIDCallCount() int {
 	fake.teamIDMutex.RLock()
 	defer fake.teamIDMutex.RUnlock()
 	return len(fake.teamIDArgsForCall)
 }
 
-func (fake *FakeResourceType) TeamIDCalls(stub func() int) {
+func (fake *FakePrototype) TeamIDCalls(stub func() int) {
 	fake.teamIDMutex.Lock()
 	defer fake.teamIDMutex.Unlock()
 	fake.TeamIDStub = stub
 }
 
-func (fake *FakeResourceType) TeamIDReturns(result1 int) {
+func (fake *FakePrototype) TeamIDReturns(result1 int) {
 	fake.teamIDMutex.Lock()
 	defer fake.teamIDMutex.Unlock()
 	fake.TeamIDStub = nil
@@ -1668,7 +1668,7 @@ func (fake *FakeResourceType) TeamIDReturns(result1 int) {
 	}{result1}
 }
 
-func (fake *FakeResourceType) TeamIDReturnsOnCall(i int, result1 int) {
+func (fake *FakePrototype) TeamIDReturnsOnCall(i int, result1 int) {
 	fake.teamIDMutex.Lock()
 	defer fake.teamIDMutex.Unlock()
 	fake.TeamIDStub = nil
@@ -1682,7 +1682,7 @@ func (fake *FakeResourceType) TeamIDReturnsOnCall(i int, result1 int) {
 	}{result1}
 }
 
-func (fake *FakeResourceType) TeamName() string {
+func (fake *FakePrototype) TeamName() string {
 	fake.teamNameMutex.Lock()
 	ret, specificReturn := fake.teamNameReturnsOnCall[len(fake.teamNameArgsForCall)]
 	fake.teamNameArgsForCall = append(fake.teamNameArgsForCall, struct {
@@ -1700,19 +1700,19 @@ func (fake *FakeResourceType) TeamName() string {
 	return fakeReturns.result1
 }
 
-func (fake *FakeResourceType) TeamNameCallCount() int {
+func (fake *FakePrototype) TeamNameCallCount() int {
 	fake.teamNameMutex.RLock()
 	defer fake.teamNameMutex.RUnlock()
 	return len(fake.teamNameArgsForCall)
 }
 
-func (fake *FakeResourceType) TeamNameCalls(stub func() string) {
+func (fake *FakePrototype) TeamNameCalls(stub func() string) {
 	fake.teamNameMutex.Lock()
 	defer fake.teamNameMutex.Unlock()
 	fake.TeamNameStub = stub
 }
 
-func (fake *FakeResourceType) TeamNameReturns(result1 string) {
+func (fake *FakePrototype) TeamNameReturns(result1 string) {
 	fake.teamNameMutex.Lock()
 	defer fake.teamNameMutex.Unlock()
 	fake.TeamNameStub = nil
@@ -1721,7 +1721,7 @@ func (fake *FakeResourceType) TeamNameReturns(result1 string) {
 	}{result1}
 }
 
-func (fake *FakeResourceType) TeamNameReturnsOnCall(i int, result1 string) {
+func (fake *FakePrototype) TeamNameReturnsOnCall(i int, result1 string) {
 	fake.teamNameMutex.Lock()
 	defer fake.teamNameMutex.Unlock()
 	fake.TeamNameStub = nil
@@ -1735,7 +1735,7 @@ func (fake *FakeResourceType) TeamNameReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
-func (fake *FakeResourceType) Type() string {
+func (fake *FakePrototype) Type() string {
 	fake.typeMutex.Lock()
 	ret, specificReturn := fake.typeReturnsOnCall[len(fake.typeArgsForCall)]
 	fake.typeArgsForCall = append(fake.typeArgsForCall, struct {
@@ -1753,19 +1753,19 @@ func (fake *FakeResourceType) Type() string {
 	return fakeReturns.result1
 }
 
-func (fake *FakeResourceType) TypeCallCount() int {
+func (fake *FakePrototype) TypeCallCount() int {
 	fake.typeMutex.RLock()
 	defer fake.typeMutex.RUnlock()
 	return len(fake.typeArgsForCall)
 }
 
-func (fake *FakeResourceType) TypeCalls(stub func() string) {
+func (fake *FakePrototype) TypeCalls(stub func() string) {
 	fake.typeMutex.Lock()
 	defer fake.typeMutex.Unlock()
 	fake.TypeStub = stub
 }
 
-func (fake *FakeResourceType) TypeReturns(result1 string) {
+func (fake *FakePrototype) TypeReturns(result1 string) {
 	fake.typeMutex.Lock()
 	defer fake.typeMutex.Unlock()
 	fake.TypeStub = nil
@@ -1774,7 +1774,7 @@ func (fake *FakeResourceType) TypeReturns(result1 string) {
 	}{result1}
 }
 
-func (fake *FakeResourceType) TypeReturnsOnCall(i int, result1 string) {
+func (fake *FakePrototype) TypeReturnsOnCall(i int, result1 string) {
 	fake.typeMutex.Lock()
 	defer fake.typeMutex.Unlock()
 	fake.TypeStub = nil
@@ -1788,7 +1788,7 @@ func (fake *FakeResourceType) TypeReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
-func (fake *FakeResourceType) Version() atc.Version {
+func (fake *FakePrototype) Version() atc.Version {
 	fake.versionMutex.Lock()
 	ret, specificReturn := fake.versionReturnsOnCall[len(fake.versionArgsForCall)]
 	fake.versionArgsForCall = append(fake.versionArgsForCall, struct {
@@ -1806,19 +1806,19 @@ func (fake *FakeResourceType) Version() atc.Version {
 	return fakeReturns.result1
 }
 
-func (fake *FakeResourceType) VersionCallCount() int {
+func (fake *FakePrototype) VersionCallCount() int {
 	fake.versionMutex.RLock()
 	defer fake.versionMutex.RUnlock()
 	return len(fake.versionArgsForCall)
 }
 
-func (fake *FakeResourceType) VersionCalls(stub func() atc.Version) {
+func (fake *FakePrototype) VersionCalls(stub func() atc.Version) {
 	fake.versionMutex.Lock()
 	defer fake.versionMutex.Unlock()
 	fake.VersionStub = stub
 }
 
-func (fake *FakeResourceType) VersionReturns(result1 atc.Version) {
+func (fake *FakePrototype) VersionReturns(result1 atc.Version) {
 	fake.versionMutex.Lock()
 	defer fake.versionMutex.Unlock()
 	fake.VersionStub = nil
@@ -1827,7 +1827,7 @@ func (fake *FakeResourceType) VersionReturns(result1 atc.Version) {
 	}{result1}
 }
 
-func (fake *FakeResourceType) VersionReturnsOnCall(i int, result1 atc.Version) {
+func (fake *FakePrototype) VersionReturnsOnCall(i int, result1 atc.Version) {
 	fake.versionMutex.Lock()
 	defer fake.versionMutex.Unlock()
 	fake.VersionStub = nil
@@ -1841,7 +1841,7 @@ func (fake *FakeResourceType) VersionReturnsOnCall(i int, result1 atc.Version) {
 	}{result1}
 }
 
-func (fake *FakeResourceType) Invocations() map[string][][]interface{} {
+func (fake *FakePrototype) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.checkEveryMutex.RLock()
@@ -1907,7 +1907,7 @@ func (fake *FakeResourceType) Invocations() map[string][][]interface{} {
 	return copiedInvocations
 }
 
-func (fake *FakeResourceType) recordInvocation(key string, args []interface{}) {
+func (fake *FakePrototype) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
@@ -1919,4 +1919,4 @@ func (fake *FakeResourceType) recordInvocation(key string, args []interface{}) {
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ db.ResourceType = new(FakeResourceType)
+var _ db.Prototype = new(FakePrototype)

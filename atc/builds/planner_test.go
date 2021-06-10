@@ -58,6 +58,20 @@ var resourceTypes = atc.VersionedResourceTypes{
 	},
 }
 
+var prototypes = atc.Prototypes{
+	{
+		Name: "some-prototype",
+		Type: "some-base-resource-type",
+		Source: atc.Source{
+			"some": "prototype-source",
+		},
+		Defaults: atc.Source{
+			"default-key":       "default-value",
+			"other-default-key": "other-default-value",
+		},
+	},
+}
+
 var baseResourceTypeDefaults = map[string]atc.Source{
 	"some-base-resource-type": {"default-key": "default-value"},
 }
@@ -325,6 +339,42 @@ var factoryTests = []PlannerTest{
 						"version": {"some": "type-version"}
 					}
 				]
+			}
+		}`,
+	},
+	{
+		Title: "run step",
+
+		Config: &atc.RunStep{
+			Message: "some-message",
+			Type:    "some-prototype",
+			Params: atc.Params{
+				"some-param":        "some-val",
+				"other-default-key": "override-defaults",
+			},
+			Privileged: true,
+			Tags:       atc.Tags{"tag-1", "tag-2"},
+			Limits: &atc.ContainerLimits{
+				CPU:    newCPULimit(456),
+				Memory: newMemoryLimit(2048),
+			},
+			Timeout: "1h",
+		},
+
+		PlanJSON: `{
+			"id": "(unique)",
+			"run": {
+				"message": "some-message",
+				"type": "some-prototype",
+				"object": {
+					"some-param": "some-val",
+					"default-key": "default-value",
+					"other-default-key": "override-defaults"
+				},
+				"privileged": true,
+				"tags": ["tag-1", "tag-2"],
+				"container_limits": {"cpu": 456, "memory": 2048},
+				"timeout": "1h"
 			}
 		}`,
 	},
@@ -814,7 +864,7 @@ var factoryTests = []PlannerTest{
 func (test PlannerTest) Run(s *PlannerSuite) {
 	factory := builds.NewPlanner(atc.NewPlanFactory(0))
 
-	actualPlan, actualErr := factory.Create(test.Config, resources, resourceTypes, test.Inputs)
+	actualPlan, actualErr := factory.Create(test.Config, resources, resourceTypes, prototypes, test.Inputs)
 
 	if test.Err != nil {
 		s.Equal(test.Err, actualErr)

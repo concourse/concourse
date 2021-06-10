@@ -10,13 +10,14 @@ import (
 )
 
 type FakeBuildPlanner struct {
-	CreateStub        func(atc.StepConfig, db.SchedulerResources, atc.VersionedResourceTypes, []db.BuildInput) (atc.Plan, error)
+	CreateStub        func(atc.StepConfig, db.SchedulerResources, atc.VersionedResourceTypes, atc.Prototypes, []db.BuildInput) (atc.Plan, error)
 	createMutex       sync.RWMutex
 	createArgsForCall []struct {
 		arg1 atc.StepConfig
 		arg2 db.SchedulerResources
 		arg3 atc.VersionedResourceTypes
-		arg4 []db.BuildInput
+		arg4 atc.Prototypes
+		arg5 []db.BuildInput
 	}
 	createReturns struct {
 		result1 atc.Plan
@@ -30,11 +31,11 @@ type FakeBuildPlanner struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeBuildPlanner) Create(arg1 atc.StepConfig, arg2 db.SchedulerResources, arg3 atc.VersionedResourceTypes, arg4 []db.BuildInput) (atc.Plan, error) {
-	var arg4Copy []db.BuildInput
-	if arg4 != nil {
-		arg4Copy = make([]db.BuildInput, len(arg4))
-		copy(arg4Copy, arg4)
+func (fake *FakeBuildPlanner) Create(arg1 atc.StepConfig, arg2 db.SchedulerResources, arg3 atc.VersionedResourceTypes, arg4 atc.Prototypes, arg5 []db.BuildInput) (atc.Plan, error) {
+	var arg5Copy []db.BuildInput
+	if arg5 != nil {
+		arg5Copy = make([]db.BuildInput, len(arg5))
+		copy(arg5Copy, arg5)
 	}
 	fake.createMutex.Lock()
 	ret, specificReturn := fake.createReturnsOnCall[len(fake.createArgsForCall)]
@@ -42,14 +43,15 @@ func (fake *FakeBuildPlanner) Create(arg1 atc.StepConfig, arg2 db.SchedulerResou
 		arg1 atc.StepConfig
 		arg2 db.SchedulerResources
 		arg3 atc.VersionedResourceTypes
-		arg4 []db.BuildInput
-	}{arg1, arg2, arg3, arg4Copy})
+		arg4 atc.Prototypes
+		arg5 []db.BuildInput
+	}{arg1, arg2, arg3, arg4, arg5Copy})
 	stub := fake.CreateStub
 	fakeReturns := fake.createReturns
-	fake.recordInvocation("Create", []interface{}{arg1, arg2, arg3, arg4Copy})
+	fake.recordInvocation("Create", []interface{}{arg1, arg2, arg3, arg4, arg5Copy})
 	fake.createMutex.Unlock()
 	if stub != nil {
-		return stub(arg1, arg2, arg3, arg4)
+		return stub(arg1, arg2, arg3, arg4, arg5)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -63,17 +65,17 @@ func (fake *FakeBuildPlanner) CreateCallCount() int {
 	return len(fake.createArgsForCall)
 }
 
-func (fake *FakeBuildPlanner) CreateCalls(stub func(atc.StepConfig, db.SchedulerResources, atc.VersionedResourceTypes, []db.BuildInput) (atc.Plan, error)) {
+func (fake *FakeBuildPlanner) CreateCalls(stub func(atc.StepConfig, db.SchedulerResources, atc.VersionedResourceTypes, atc.Prototypes, []db.BuildInput) (atc.Plan, error)) {
 	fake.createMutex.Lock()
 	defer fake.createMutex.Unlock()
 	fake.CreateStub = stub
 }
 
-func (fake *FakeBuildPlanner) CreateArgsForCall(i int) (atc.StepConfig, db.SchedulerResources, atc.VersionedResourceTypes, []db.BuildInput) {
+func (fake *FakeBuildPlanner) CreateArgsForCall(i int) (atc.StepConfig, db.SchedulerResources, atc.VersionedResourceTypes, atc.Prototypes, []db.BuildInput) {
 	fake.createMutex.RLock()
 	defer fake.createMutex.RUnlock()
 	argsForCall := fake.createArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5
 }
 
 func (fake *FakeBuildPlanner) CreateReturns(result1 atc.Plan, result2 error) {
