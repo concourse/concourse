@@ -155,6 +155,7 @@ func (cmd *WorkerCommand) containerdRunner(logger lager.Logger) (ifrit.Runner, e
 	command.Stderr = os.Stderr
 	command.SysProcAttr = &syscall.SysProcAttr{
 		Pdeathsig: syscall.SIGKILL,
+		Setpgid:   true,
 	}
 
 	members := grouper.Members{}
