@@ -47,6 +47,10 @@ type WorkerProvider interface {
 		savedWorker db.Worker,
 		numBuildWorkers int,
 	) Worker
+
+	GetTeamByID(
+		teamID int,
+	) string
 }
 
 type dbWorkerProvider struct {
@@ -274,4 +278,18 @@ func (provider *dbWorkerProvider) NewGardenWorker(logger lager.Logger, savedWork
 		provider.dbResourceCacheFactory,
 		buildContainersCount,
 	)
+}
+
+func (provider *dbWorkerProvider) GetTeamByID(teamID int) (string) {
+	allTeams, err := provider.dbTeamFactory.GetTeams()
+	if err != nil {
+		return "Cannot get all teams"
+	}
+	teamName := "Not Found"
+	for i := range allTeams {
+		if allTeams[i].ID() == teamID {
+			teamName = allTeams[i].Name()
+		}
+	}
+	return teamName
 }

@@ -210,7 +210,7 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 		Subsystem: "steps",
 		Name:      "waiting",
 		Help:      "Number of Concourse build steps currently waiting.",
-	}, []string{"platform", "teamId", "type", "workerTags"})
+	}, []string{"platform", "teamId", "teamName", "type", "workerTags"})
 	prometheus.MustRegister(stepsWaiting)
 
 	stepsWaitingDuration := prometheus.NewHistogramVec(prometheus.HistogramOpts{
@@ -219,7 +219,7 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 		Name:      "wait_duration",
 		Help:      "Elapsed time waiting for execution",
 		Buckets:   []float64{10, 30, 60, 120, 300, 600, 1800, 2400, 3000, 3600},
-	}, []string{"platform", "teamId", "type", "workerTags"})
+	}, []string{"platform", "teamId", "teamName", "type", "workerTags"})
 	prometheus.MustRegister(stepsWaitingDuration)
 
 	buildsFinished := prometheus.NewCounter(prometheus.CounterOpts{
@@ -593,6 +593,7 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 			WithLabelValues(
 				event.Attributes["platform"],
 				event.Attributes["teamId"],
+				event.Attributes["teamName"],
 				event.Attributes["type"],
 				event.Attributes["workerTags"],
 			).Set(event.Value)
@@ -601,6 +602,7 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 			WithLabelValues(
 				event.Attributes["platform"],
 				event.Attributes["teamId"],
+				event.Attributes["teamName"],
 				event.Attributes["type"],
 				event.Attributes["workerTags"],
 			).Observe(event.Value)

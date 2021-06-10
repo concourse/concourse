@@ -198,6 +198,7 @@ var _ = Describe("PrometheusEmitter", func() {
 			Attributes: map[string]string{
 				"platform":   "darwin",
 				"teamId":     "42",
+				"teamName":   "teamdev",
 				"type":       "get",
 				"workerTags": "tester",
 			},
@@ -208,7 +209,7 @@ var _ = Describe("PrometheusEmitter", func() {
 		body, _ := ioutil.ReadAll(res.Body)
 
 		Expect(res.StatusCode).To(Equal(http.StatusOK))
-		Expect(string(body)).To(ContainSubstring("concourse_steps_waiting{platform=\"darwin\",teamId=\"42\",type=\"get\",workerTags=\"tester\"} 4"))
+		Expect(string(body)).To(ContainSubstring("concourse_steps_waiting{platform=\"darwin\",teamId=\"42\",teamName=\"teamdev\",type=\"get\",workerTags=\"tester\"} 4"))
 		Expect(err).To(BeNil())
 	})
 })
