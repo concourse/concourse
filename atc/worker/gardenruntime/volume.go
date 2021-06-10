@@ -118,13 +118,13 @@ func (worker *Worker) newVolume(bcVolume baggageclaim.Volume, dbVolume db.Create
 }
 
 func (worker *Worker) LookupVolume(logger lager.Logger, handle string) (runtime.Volume, bool, error) {
-	_, createdVolume, err := worker.db.VolumeRepo.FindVolume(handle)
+	createdVolume, found, err := worker.db.VolumeRepo.FindVolume(handle)
 	if err != nil {
 		logger.Error("failed-to-lookup-volume-in-db", err)
 		return Volume{}, false, err
 	}
 
-	if createdVolume == nil {
+	if !found {
 		return Volume{}, false, nil
 	}
 

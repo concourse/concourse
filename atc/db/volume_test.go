@@ -412,8 +412,9 @@ var _ = Describe("Volume", func() {
 		})
 
 		It("associates worker artifact with the volume", func() {
-			_, created, err := volumeRepository.FindVolume(createdVolume.Handle())
+			created, found, err := volumeRepository.FindVolume(createdVolume.Handle())
 			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
 			Expect(created.WorkerArtifactID()).To(Equal(workerArtifact.ID()))
 		})
 	})

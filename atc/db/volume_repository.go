@@ -36,7 +36,7 @@ type VolumeRepository interface {
 
 	CreateVolume(teamID int, workerName string, volumeType VolumeType) (CreatingVolume, error)
 	CreateVolumeWithHandle(handle string, teamID int, workerName string, volumeType VolumeType) (CreatingVolume, error)
-	FindVolume(handle string) (CreatingVolume, CreatedVolume, error)
+	FindVolume(handle string) (CreatedVolume, bool, error)
 
 	RemoveDestroyingVolumes(workerName string, handles []string) (int, error)
 
@@ -465,15 +465,19 @@ func (repository *volumeRepository) FindResourceCacheVolume(workerName string, r
 	return createdVolume, true, nil
 }
 
-func (repository *volumeRepository) FindVolume(handle string) (CreatingVolume, CreatedVolume, error) {
-	creatingVolume, createdVolume, err := getVolume(repository.conn, map[string]interface{}{
+func (repository *volumeRepository) FindVolume(handle string) (CreatedVolume, bool, error) {
+	_, createdVolume, err := getVolume(repository.conn, map[string]interface{}{
 		"v.handle": handle,
 	})
 	if err != nil {
-		return nil, nil, err
+		return nil, false, err
 	}
 
-	return creatingVolume, createdVolume, nil
+	if createdVolume == nil {
+		return nil, false, nil
+	}
+
+	return createdVolume, true, nil
 }
 
 // GetOrphanedVolumes returns all volumes that not used by Concourse artifacts such as containers and caches and has no child volume.
