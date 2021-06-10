@@ -35,6 +35,7 @@ type Callback
     | ResourcesFetched (Fetched (List Concourse.Resource))
     | BuildResourcesFetched (Fetched ( Int, Concourse.BuildResources ))
     | ResourceFetched (Fetched Concourse.Resource)
+    | VersionedResourceFetched (Fetched Concourse.VersionedResource)
     | VersionedResourcesFetched (Fetched ( Page, Paginated Concourse.VersionedResource ))
     | VersionedResourceIdFetched (Fetched (Maybe Concourse.VersionedResource))
     | ClusterInfoFetched (Fetched Concourse.ClusterInfo)

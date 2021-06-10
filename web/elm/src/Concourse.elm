@@ -17,7 +17,6 @@ module Concourse exposing
     , CausalityBuild(..)
     , CausalityDirection(..)
     , CausalityResourceVersion
-    , Cause
     , ClusterInfo
     , DatabaseID
     , HookedPlan
@@ -54,7 +53,6 @@ module Concourse exposing
     , decodeBuildPrep
     , decodeBuildResources
     , decodeCausalityResourceVersion
-    , decodeCause
     , decodeInfo
     , decodeInstanceGroupId
     , decodeInstanceVars
@@ -1366,23 +1364,6 @@ decodeUser =
         |> andMap (Json.Decode.field "is_admin" Json.Decode.bool)
         |> andMap (Json.Decode.field "teams" (Json.Decode.dict (Json.Decode.list Json.Decode.string)))
         |> andMap (Json.Decode.field "display_user_id" Json.Decode.string)
-
-
-
--- Cause
-
-
-type alias Cause =
-    { versionedResourceID : Int
-    , buildID : Int
-    }
-
-
-decodeCause : Json.Decode.Decoder Cause
-decodeCause =
-    Json.Decode.succeed Cause
-        |> andMap (Json.Decode.field "versioned_resource_id" Json.Decode.int)
-        |> andMap (Json.Decode.field "build_id" Json.Decode.int)
 
 
 

@@ -123,6 +123,7 @@ type Effect
     | FetchJobBuilds Concourse.JobIdentifier Page
     | FetchResource Concourse.ResourceIdentifier
     | FetchCheck Int
+    | FetchVersionedResource Concourse.VersionedResourceIdentifier
     | FetchVersionedResources Concourse.ResourceIdentifier Page
     | FetchVersionedResourceId Concourse.ResourceIdentifier Concourse.Version
     | FetchResources Concourse.PipelineIdentifier
@@ -266,6 +267,13 @@ runEffect effect key csrfToken =
                 |> Api.request
                 |> Task.map (\b -> ( page, b ))
                 |> Task.attempt VersionedResourcesFetched
+
+        FetchVersionedResource id ->
+            Api.get
+                (Endpoints.BaseResourceVersion |> Endpoints.ResourceVersion id)
+                |> Api.expectJson Concourse.decodeVersionedResource
+                |> Api.request
+                |> Task.attempt VersionedResourceFetched
 
         FetchResources id ->
             Api.get

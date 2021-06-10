@@ -65,6 +65,7 @@ type alias Model =
         { versionId : Concourse.VersionedResourceIdentifier
         , direction : CausalityDirection
         , fetchedCausality : Maybe CausalityResourceVersion
+        , fetchedVersionedResource : Maybe Concourse.VersionedResource
         , graph : Graph NodeType ()
         , renderedJobs : Maybe (List Concourse.Job)
         , renderedBuilds : Maybe (List Concourse.Build)
@@ -99,6 +100,7 @@ init flags =
     ( { isUserMenuExpanded = False
       , versionId = flags.versionId
       , direction = flags.direction
+      , fetchedVersionedResource = Nothing
       , fetchedCausality = Nothing
       , graph = Graph.empty
       , renderedJobs = Nothing
@@ -108,6 +110,7 @@ init flags =
       , pageStatus = Ok ()
       }
     , [ FetchAllPipelines
+      , FetchVersionedResource flags.versionId
       , fetchCausality
       ]
     )
@@ -168,6 +171,13 @@ handleCallback callback ( model, effects ) =
                 ++ [ RenderCausality <| graphvizDotNotation model graph ]
             )
 
+        VersionedResourceFetched (Ok vr) ->
+            ( { model
+                | fetchedVersionedResource = Just vr
+              }
+            , effects
+            )
+
         _ ->
             ( model, effects )
 
@@ -203,7 +213,7 @@ view session model =
             Routes.Causality
                 { id = model.versionId
                 , direction = model.direction
-                , version = Maybe.map .version model.fetchedCausality
+                , version = Maybe.map .version model.fetchedVersionedResource
                 }
     in
     Html.div
