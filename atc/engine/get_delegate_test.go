@@ -22,12 +22,13 @@ import (
 
 var _ = Describe("GetDelegate", func() {
 	var (
-		logger            *lagertest.TestLogger
-		fakeBuild         *dbfakes.FakeBuild
-		fakePipeline      *dbfakes.FakePipeline
-		fakeResource      *dbfakes.FakeResource
-		fakeClock         *fakeclock.FakeClock
-		fakePolicyChecker *policyfakes.FakeChecker
+		logger                   *lagertest.TestLogger
+		fakeBuild                *dbfakes.FakeBuild
+		fakePipeline             *dbfakes.FakePipeline
+		fakeResource             *dbfakes.FakeResource
+		fakeClock                *fakeclock.FakeClock
+		fakePolicyChecker        *policyfakes.FakeChecker
+		fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
 
 		state exec.RunState
 
@@ -44,6 +45,7 @@ var _ = Describe("GetDelegate", func() {
 		fakePipeline = new(dbfakes.FakePipeline)
 		fakeResource = new(dbfakes.FakeResource)
 		fakeClock = fakeclock.NewFakeClock(now)
+		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 		credVars := vars.StaticVariables{
 			"source-param": "super-secret-source",
 			"git-key":      "{\n123\n456\n789\n}\n",
@@ -57,7 +59,7 @@ var _ = Describe("GetDelegate", func() {
 
 		fakePolicyChecker = new(policyfakes.FakeChecker)
 
-		delegate = engine.NewGetDelegate(fakeBuild, "some-plan-id", state, fakeClock, fakePolicyChecker)
+		delegate = engine.NewGetDelegate(fakeBuild, "some-plan-id", state, fakeClock, fakePolicyChecker, fakeResourceCacheFactory)
 	})
 
 	Describe("Finished", func() {
@@ -77,10 +79,31 @@ var _ = Describe("GetDelegate", func() {
 		})
 	})
 
-	Describe("UpdateVersion", func() {
+	Describe("UpdateMetadata", func() {
+		var dummyResourceCache db.UsedResourceCache
+		var resourceName string
+
 		JustBeforeEach(func() {
-			plan := atc.GetPlan{Resource: "some-resource"}
-			delegate.UpdateVersion(logger, plan, info)
+			dummyResourceCache = new(dbfakes.FakeUsedResourceCache)
+			delegate.UpdateMetadata(logger, resourceName, dummyResourceCache, info)
+		})
+
+		BeforeEach(func() {
+			resourceName = "some-resource"
+		})
+
+		It("updates the resource cache metadata", func() {
+			Expect(fakeResourceCacheFactory.UpdateResourceCacheMetadataCallCount()).To(Equal(1))
+		})
+
+		Context("when the resource is not a named resource", func() {
+			BeforeEach(func() {
+				resourceName = ""
+			})
+
+			It("doesn't try to retrieve the pipeline", func() {
+				Expect(fakeBuild.PipelineCallCount()).To(Equal(0))
+			})
 		})
 
 		Context("when retrieving the pipeline fails", func() {

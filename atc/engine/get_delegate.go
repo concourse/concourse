@@ -20,22 +20,25 @@ func NewGetDelegate(
 	state exec.RunState,
 	clock clock.Clock,
 	policyChecker policy.Checker,
+	resourceCacheFactory db.ResourceCacheFactory,
 ) exec.GetDelegate {
 	return &getDelegate{
 		BuildStepDelegate: NewBuildStepDelegate(build, planID, state, clock, policyChecker),
 
-		eventOrigin: event.Origin{ID: event.OriginID(planID)},
-		build:       build,
-		clock:       clock,
+		eventOrigin:          event.Origin{ID: event.OriginID(planID)},
+		build:                build,
+		clock:                clock,
+		resourceCacheFactory: resourceCacheFactory,
 	}
 }
 
 type getDelegate struct {
 	exec.BuildStepDelegate
 
-	build       db.Build
-	eventOrigin event.Origin
-	clock       clock.Clock
+	build                db.Build
+	eventOrigin          event.Origin
+	clock                clock.Clock
+	resourceCacheFactory db.ResourceCacheFactory
 }
 
 func (d *getDelegate) Initializing(logger lager.Logger) {
@@ -84,11 +87,22 @@ func (d *getDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus, 
 	logger.Info("finished", lager.Data{"exit-status": exitStatus})
 }
 
-func (d *getDelegate) UpdateVersion(log lager.Logger, plan atc.GetPlan, info resource.VersionResult) {
+func (d *getDelegate) UpdateMetadata(log lager.Logger, resourceName string, resourceCache db.UsedResourceCache, info resource.VersionResult) {
 	logger := log.WithData(lager.Data{
 		"pipeline-name": d.build.PipelineName(),
 		"pipeline-id":   d.build.PipelineID()},
 	)
+
+	err := d.resourceCacheFactory.UpdateResourceCacheMetadata(resourceCache, info.Metadata)
+	if err != nil {
+		logger.Error("failed-to-update-resource-cache-metadata", err)
+		return
+	}
+
+	// If not a named resource, don't need to do anything else.
+	if resourceName == "" {
+		return
+	}
 
 	pipeline, found, err := d.build.Pipeline()
 	if err != nil {
@@ -101,7 +115,7 @@ func (d *getDelegate) UpdateVersion(log lager.Logger, plan atc.GetPlan, info res
 		return
 	}
 
-	resource, found, err := pipeline.Resource(plan.Resource)
+	resource, found, err := pipeline.Resource(resourceName)
 	if err != nil {
 		logger.Error("failed-to-find-resource", err)
 		return

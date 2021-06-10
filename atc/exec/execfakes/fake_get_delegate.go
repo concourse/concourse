@@ -8,6 +8,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/runtime"
@@ -96,12 +97,13 @@ type FakeGetDelegate struct {
 	stdoutReturnsOnCall map[int]struct {
 		result1 io.Writer
 	}
-	UpdateVersionStub        func(lager.Logger, atc.GetPlan, resource.VersionResult)
-	updateVersionMutex       sync.RWMutex
-	updateVersionArgsForCall []struct {
+	UpdateMetadataStub        func(lager.Logger, string, db.UsedResourceCache, resource.VersionResult)
+	updateMetadataMutex       sync.RWMutex
+	updateMetadataArgsForCall []struct {
 		arg1 lager.Logger
-		arg2 atc.GetPlan
-		arg3 resource.VersionResult
+		arg2 string
+		arg3 db.UsedResourceCache
+		arg4 resource.VersionResult
 	}
 	WaitingForWorkerStub        func(lager.Logger)
 	waitingForWorkerMutex       sync.RWMutex
@@ -515,38 +517,39 @@ func (fake *FakeGetDelegate) StdoutReturnsOnCall(i int, result1 io.Writer) {
 	}{result1}
 }
 
-func (fake *FakeGetDelegate) UpdateVersion(arg1 lager.Logger, arg2 atc.GetPlan, arg3 resource.VersionResult) {
-	fake.updateVersionMutex.Lock()
-	fake.updateVersionArgsForCall = append(fake.updateVersionArgsForCall, struct {
+func (fake *FakeGetDelegate) UpdateMetadata(arg1 lager.Logger, arg2 string, arg3 db.UsedResourceCache, arg4 resource.VersionResult) {
+	fake.updateMetadataMutex.Lock()
+	fake.updateMetadataArgsForCall = append(fake.updateMetadataArgsForCall, struct {
 		arg1 lager.Logger
-		arg2 atc.GetPlan
-		arg3 resource.VersionResult
-	}{arg1, arg2, arg3})
-	stub := fake.UpdateVersionStub
-	fake.recordInvocation("UpdateVersion", []interface{}{arg1, arg2, arg3})
-	fake.updateVersionMutex.Unlock()
+		arg2 string
+		arg3 db.UsedResourceCache
+		arg4 resource.VersionResult
+	}{arg1, arg2, arg3, arg4})
+	stub := fake.UpdateMetadataStub
+	fake.recordInvocation("UpdateMetadata", []interface{}{arg1, arg2, arg3, arg4})
+	fake.updateMetadataMutex.Unlock()
 	if stub != nil {
-		fake.UpdateVersionStub(arg1, arg2, arg3)
+		fake.UpdateMetadataStub(arg1, arg2, arg3, arg4)
 	}
 }
 
-func (fake *FakeGetDelegate) UpdateVersionCallCount() int {
-	fake.updateVersionMutex.RLock()
-	defer fake.updateVersionMutex.RUnlock()
-	return len(fake.updateVersionArgsForCall)
+func (fake *FakeGetDelegate) UpdateMetadataCallCount() int {
+	fake.updateMetadataMutex.RLock()
+	defer fake.updateMetadataMutex.RUnlock()
+	return len(fake.updateMetadataArgsForCall)
 }
 
-func (fake *FakeGetDelegate) UpdateVersionCalls(stub func(lager.Logger, atc.GetPlan, resource.VersionResult)) {
-	fake.updateVersionMutex.Lock()
-	defer fake.updateVersionMutex.Unlock()
-	fake.UpdateVersionStub = stub
+func (fake *FakeGetDelegate) UpdateMetadataCalls(stub func(lager.Logger, string, db.UsedResourceCache, resource.VersionResult)) {
+	fake.updateMetadataMutex.Lock()
+	defer fake.updateMetadataMutex.Unlock()
+	fake.UpdateMetadataStub = stub
 }
 
-func (fake *FakeGetDelegate) UpdateVersionArgsForCall(i int) (lager.Logger, atc.GetPlan, resource.VersionResult) {
-	fake.updateVersionMutex.RLock()
-	defer fake.updateVersionMutex.RUnlock()
-	argsForCall := fake.updateVersionArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+func (fake *FakeGetDelegate) UpdateMetadataArgsForCall(i int) (lager.Logger, string, db.UsedResourceCache, resource.VersionResult) {
+	fake.updateMetadataMutex.RLock()
+	defer fake.updateMetadataMutex.RUnlock()
+	argsForCall := fake.updateMetadataArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
 func (fake *FakeGetDelegate) WaitingForWorker(arg1 lager.Logger) {
@@ -602,8 +605,8 @@ func (fake *FakeGetDelegate) Invocations() map[string][][]interface{} {
 	defer fake.stderrMutex.RUnlock()
 	fake.stdoutMutex.RLock()
 	defer fake.stdoutMutex.RUnlock()
-	fake.updateVersionMutex.RLock()
-	defer fake.updateVersionMutex.RUnlock()
+	fake.updateMetadataMutex.RLock()
+	defer fake.updateMetadataMutex.RUnlock()
 	fake.waitingForWorkerMutex.RLock()
 	defer fake.waitingForWorkerMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

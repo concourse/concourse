@@ -6,11 +6,12 @@ import (
 	"fmt"
 	"time"
 
-	"code.cloudfoundry.org/clock/fakeclock"
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/db/lock"
+	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/exec/execfakes"
@@ -42,10 +43,10 @@ var _ = Describe("GetStep", func() {
 		fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
 		fakeResourceCache        *dbfakes.FakeUsedResourceCache
 
-		resourceGetter resource.Getter
-
 		fakeDelegate        *execfakes.FakeGetDelegate
 		fakeDelegateFactory *execfakes.FakeGetDelegateFactory
+
+		fakeLockFactory *lockfakes.FakeLockFactory
 
 		spanCtx context.Context
 
@@ -107,12 +108,10 @@ var _ = Describe("GetStep", func() {
 		fakePool = new(execfakes.FakePool)
 		fakePool.FindOrSelectWorkerReturns(chosenWorker, nil)
 
+		fakeLockFactory = lockOnAttempt(1)
+
 		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 		fakeResourceCache = new(dbfakes.FakeUsedResourceCache)
-
-		fakeClock := fakeclock.NewFakeClock(time.Unix(0, 123))
-		fakeVolumeRepo := new(dbfakes.FakeVolumeRepository)
-		resourceGetter = resource.NewGetter(lock.NewInMemoryFactory(), fakeClock, fakeResourceCacheFactory, fakeVolumeRepo)
 
 		runState = exec.NewRunState(noopStepper, vars.StaticVariables{
 			"source-var": "super-secret-source",
@@ -177,7 +176,7 @@ var _ = Describe("GetStep", func() {
 			*plan.Get,
 			stepMetadata,
 			containerMetadata,
-			resourceGetter,
+			fakeLockFactory,
 			fakeResourceCacheFactory,
 			nil,
 			fakeDelegateFactory,
@@ -258,55 +257,196 @@ var _ = Describe("GetStep", func() {
 		))
 	})
 
-	Context("when there is already a resource cache present", func() {
-		var cacheVolume *runtimetest.Volume
-
+	Describe("retrieve from cache or run get step", func() {
 		BeforeEach(func() {
-			atc.EnableCacheStreamedVolumes = true
-
-			cacheVolume = runtimetest.NewVolume("cache-volume")
-			fakePool.FindResourceCacheVolumeReturns(cacheVolume, true, nil)
-			fakeResourceCacheFactory.ResourceCacheMetadataReturns(db.ResourceConfigMetadataFields{
-				{Name: "some", Value: "metadata"},
-			}, nil)
+			exec.GetResourceLockInterval = 10 * time.Millisecond
 		})
 
-		It("registers the volume as an artifact", func() {
-			artifact, found := artifactRepository.ArtifactFor(build.ArtifactName(getPlan.Name))
-			Expect(artifact).To(Equal(cacheVolume))
-			Expect(found).To(BeTrue())
+		Context("when caching streamed volumes", func() {
+			BeforeEach(func() {
+				atc.EnableCacheStreamedVolumes = true
+			})
+
+			Context("when the cache is present on any worker", func() {
+				var cacheVolume *runtimetest.Volume
+
+				BeforeEach(func() {
+					fakeLockFactory = neverLock()
+
+					chosenContainer.ProcessDefs[0].Stub.Err = "should not run"
+
+					cacheVolume = runtimetest.NewVolume("cache-volume")
+					fakePool.FindResourceCacheVolumeReturns(cacheVolume, true, nil)
+					fakeResourceCacheFactory.ResourceCacheMetadataReturns(db.ResourceConfigMetadataFields{
+						{Name: "some", Value: "metadata"},
+					}, nil)
+				})
+
+				It("succeeds", func() {
+					Expect(stepErr).ToNot(HaveOccurred())
+				})
+
+				It("registers the volume as an artifact", func() {
+					artifact, found := artifactRepository.ArtifactFor(build.ArtifactName(getPlan.Name))
+					Expect(artifact).To(Equal(cacheVolume))
+					Expect(found).To(BeTrue())
+				})
+
+				It("stores the resource cache as the step result", func() {
+					var val interface{}
+					Expect(runState.Result(planID, &val)).To(BeTrue())
+					Expect(val).To(Equal(fakeResourceCache))
+				})
+
+				It("doesn't select a worker", func() {
+					Expect(fakePool.FindOrSelectWorkerCallCount()).To(Equal(0))
+				})
+
+				It("doesn't initialize the get volume", func() {
+					Expect(getVolume.ResourceCacheInitialized).To(BeFalse())
+				})
+
+				It("updates the version metadata", func() {
+					Expect(fakeDelegate.UpdateMetadataCallCount()).To(Equal(1))
+				})
+
+				It("finishes with the correct version result", func() {
+					Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
+					_, exitStatus, versionResult := fakeDelegate.FinishedArgsForCall(0)
+					Expect(exitStatus).To(Equal(exec.ExitStatus(0)))
+					Expect(versionResult.Metadata).To(Equal([]atc.MetadataField{
+						{Name: "some", Value: "metadata"},
+					}))
+				})
+
+				It("logs a message to stderr", func() {
+					Expect(stderrBuf).To(gbytes.Say(`INFO.*found.*cache`))
+				})
+			})
+
+			Context("when the cache is missing from all workers", func() {
+				BeforeEach(func() {
+					fakeLockFactory = lockOnAttempt(1)
+
+					chosenContainer.ProcessDefs[0].Stub.Output = resource.VersionResult{
+						Version:  atc.Version{"some": "version"},
+						Metadata: []atc.MetadataField{{Name: "some", Value: "metadata"}},
+					}
+				})
+
+				It("selects a worker", func() {
+					Expect(fakePool.FindOrSelectWorkerCallCount()).To(Equal(1))
+				})
+
+				It("initializes the get volume", func() {
+					Expect(getVolume.ResourceCacheInitialized).To(BeTrue())
+				})
+
+				It("updates the version metadata", func() {
+					Expect(fakeDelegate.UpdateMetadataCallCount()).To(Equal(1))
+				})
+
+				It("finishes the step via the delegate", func() {
+					Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
+					_, status, info := fakeDelegate.FinishedArgsForCall(0)
+					Expect(status).To(Equal(exec.ExitStatus(0)))
+					Expect(info.Version).To(Equal(atc.Version{"some": "version"}))
+					Expect(info.Metadata).To(Equal([]atc.MetadataField{{Name: "some", Value: "metadata"}}))
+				})
+
+				It("does not log any info messages", func() {
+					Expect(stderrBuf).ToNot(gbytes.Say("INFO"))
+				})
+
+				Context("when the lock isn't initially acquired", func() {
+					BeforeEach(func() {
+						fakeLockFactory = lockOnAttempt(3)
+					})
+
+					It("logs a message to stderr", func() {
+						Expect(stderrBuf).To(gbytes.Say(`INFO.*waiting.*lock`))
+					})
+
+					It("eventually selects a worker", func() {
+						Expect(fakePool.FindOrSelectWorkerCallCount()).To(Equal(1))
+					})
+				})
+			})
 		})
 
-		It("stores the resource cache as the step result", func() {
-			var val interface{}
-			Expect(runState.Result(planID, &val)).To(BeTrue())
-			Expect(val).To(Equal(fakeResourceCache))
-		})
-
-		It("doesn't select a worker", func() {
-			Expect(fakePool.FindOrSelectWorkerCallCount()).To(Equal(0))
-		})
-
-		It("finishes with the correct version result", func() {
-			Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
-			_, exitStatus, versionResult := fakeDelegate.FinishedArgsForCall(0)
-			Expect(exitStatus).To(Equal(exec.ExitStatus(0)))
-			Expect(versionResult.Metadata).To(Equal([]atc.MetadataField{
-				{Name: "some", Value: "metadata"},
-			}))
-		})
-
-		It("logs a message to stderr", func() {
-			Expect(stderrBuf).To(gbytes.Say(`found.*cache`))
-		})
-
-		Context("when EnableCacheStreamedVolumes is disabled", func() {
+		Context("when not caching streamed volumes", func() {
 			BeforeEach(func() {
 				atc.EnableCacheStreamedVolumes = false
 			})
 
-			It("should run normal get step", func() {
+			AfterEach(func() {
+				// always select a worker
 				Expect(fakePool.FindOrSelectWorkerCallCount()).To(Equal(1))
+			})
+
+			Context("when the cache is present on the selected worker", func() {
+				var cacheVolume *runtimetest.Volume
+
+				BeforeEach(func() {
+					fakeLockFactory = neverLock()
+
+					chosenContainer.ProcessDefs[0].Stub.Err = "should not run"
+
+					cacheVolume = runtimetest.NewVolume("cache-volume")
+					fakePool.FindResourceCacheVolumeOnWorkerReturns(cacheVolume, true, nil)
+					fakeResourceCacheFactory.ResourceCacheMetadataReturns(db.ResourceConfigMetadataFields{
+						{Name: "some", Value: "metadata"},
+					}, nil)
+				})
+
+				It("succeeds", func() {
+					Expect(stepErr).ToNot(HaveOccurred())
+				})
+
+				It("logs a message to stderr", func() {
+					Expect(stderrBuf).To(gbytes.Say(`INFO.*found.*cache`))
+				})
+			})
+
+			Context("when the cache is missing from the selected worker", func() {
+				BeforeEach(func() {
+					fakeLockFactory = lockOnAttempt(1)
+
+					chosenContainer.ProcessDefs[0].Stub.Output = resource.VersionResult{
+						Version:  atc.Version{"some": "version"},
+						Metadata: []atc.MetadataField{{Name: "some", Value: "metadata"}},
+					}
+				})
+
+				It("succeeds", func() {
+					Expect(stepErr).ToNot(HaveOccurred())
+				})
+
+				It("finishes the step via the delegate", func() {
+					Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
+					_, status, info := fakeDelegate.FinishedArgsForCall(0)
+					Expect(status).To(Equal(exec.ExitStatus(0)))
+					Expect(info.Version).To(Equal(atc.Version{"some": "version"}))
+					Expect(info.Metadata).To(Equal([]atc.MetadataField{{Name: "some", Value: "metadata"}}))
+				})
+
+				It("does not log any info messages", func() {
+					Expect(stderrBuf).ToNot(gbytes.Say("INFO"))
+				})
+
+				Context("when the lock isn't initially acquired", func() {
+					BeforeEach(func() {
+						fakeLockFactory = lockOnAttempt(3)
+					})
+
+					It("succeeds", func() {
+						Expect(stepErr).ToNot(HaveOccurred())
+					})
+
+					It("logs a message to stderr", func() {
+						Expect(stderrBuf).To(gbytes.Say(`INFO.*waiting.*lock`))
+					})
+				})
 			})
 		})
 	})
@@ -541,6 +681,10 @@ var _ = Describe("GetStep", func() {
 			Expect(found).To(BeTrue())
 		})
 
+		It("initializes the resource cache on the get volume", func() {
+			Expect(getVolume.ResourceCacheInitialized).To(BeTrue())
+		})
+
 		It("stores the resource cache as the step result", func() {
 			var val interface{}
 			Expect(runState.Result(planID, &val)).To(BeTrue())
@@ -559,28 +703,8 @@ var _ = Describe("GetStep", func() {
 			Expect(info.Metadata).To(Equal([]atc.MetadataField{{Name: "some", Value: "metadata"}}))
 		})
 
-		Context("when the plan has a resource", func() {
-			BeforeEach(func() {
-				getPlan.Resource = "some-pipeline-resource"
-			})
-
-			It("saves a version for the resource", func() {
-				Expect(fakeDelegate.UpdateVersionCallCount()).To(Equal(1))
-				_, actualPlan, actualVersionResult := fakeDelegate.UpdateVersionArgsForCall(0)
-				Expect(actualPlan.Resource).To(Equal("some-pipeline-resource"))
-				Expect(actualVersionResult.Version).To(Equal(atc.Version{"some": "version"}))
-				Expect(actualVersionResult.Metadata).To(Equal([]atc.MetadataField{{Name: "some", Value: "metadata"}}))
-			})
-		})
-
-		Context("when getting an anonymous resource", func() {
-			BeforeEach(func() {
-				getPlan.Resource = ""
-			})
-
-			It("does not save the version", func() {
-				Expect(fakeDelegate.UpdateVersionCallCount()).To(Equal(0))
-			})
+		It("saves the version metadata for the resource", func() {
+			Expect(fakeDelegate.UpdateMetadataCallCount()).To(Equal(1))
 		})
 
 		It("does not return an err", func() {
@@ -609,3 +733,24 @@ var _ = Describe("GetStep", func() {
 		})
 	})
 })
+
+func lockOnAttempt(attemptNumber int) *lockfakes.FakeLockFactory {
+	fakeLockFactory := new(lockfakes.FakeLockFactory)
+	fakeLockFactory.AcquireStub = func(lager.Logger, lock.LockID) (lock.Lock, bool, error) {
+		attemptNumber--
+		if attemptNumber <= 0 {
+			return new(lockfakes.FakeLock), true, nil
+		}
+		return nil, false, nil
+	}
+
+	return fakeLockFactory
+}
+
+func neverLock() *lockfakes.FakeLockFactory {
+	fakeLockFactory := new(lockfakes.FakeLockFactory)
+	fakeLockFactory.AcquireStub = func(lager.Logger, lock.LockID) (lock.Lock, bool, error) {
+		panic("expected lock to not be acquired")
+	}
+	return fakeLockFactory
+}

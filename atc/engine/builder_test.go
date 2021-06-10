@@ -18,11 +18,12 @@ var _ = Describe("Builder", func() {
 	Describe("BuildStep", func() {
 
 		var (
-			fakeCoreStepFactory *enginefakes.FakeCoreStepFactory
-			fakeRateLimiter     *enginefakes.FakeRateLimiter
-			fakePolicyChecker   *policyfakes.FakeChecker
-			fakeWorkerFactory   *dbfakes.FakeWorkerFactory
-			fakeLockFactory     *lockfakes.FakeLockFactory
+			fakeCoreStepFactory      *enginefakes.FakeCoreStepFactory
+			fakeRateLimiter          *enginefakes.FakeRateLimiter
+			fakePolicyChecker        *policyfakes.FakeChecker
+			fakeWorkerFactory        *dbfakes.FakeWorkerFactory
+			fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
+			fakeLockFactory          *lockfakes.FakeLockFactory
 
 			planFactory    atc.PlanFactory
 			stepperFactory engine.StepperFactory
@@ -33,6 +34,7 @@ var _ = Describe("Builder", func() {
 			fakeRateLimiter = new(enginefakes.FakeRateLimiter)
 			fakePolicyChecker = new(policyfakes.FakeChecker)
 			fakeWorkerFactory = new(dbfakes.FakeWorkerFactory)
+			fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 			fakeLockFactory = new(lockfakes.FakeLockFactory)
 
 			stepperFactory = engine.NewStepperFactory(
@@ -41,6 +43,7 @@ var _ = Describe("Builder", func() {
 				fakeRateLimiter,
 				fakePolicyChecker,
 				fakeWorkerFactory,
+				fakeResourceCacheFactory,
 				fakeLockFactory,
 			)
 

@@ -419,6 +419,81 @@ var _ = Describe("Pool", func() {
 			Expect(found).To(BeFalse())
 		})
 	})
+
+	Describe("FindResourceCacheVolumeOnWorker", func() {
+		Test("finds a resource cache volume on a worker", func() {
+			scenario := Setup(
+				workertest.WithWorkers(
+					grt.NewWorker("worker1").
+						WithDBContainersInState(grt.Creating, "container1").
+						WithVolumesCreatedInDBAndBaggageclaim(
+							grt.NewVolume("resource-cache-1"),
+						),
+					grt.NewWorker("worker2").
+						WithDBContainersInState(grt.Creating, "container2").
+						WithVolumesCreatedInDBAndBaggageclaim(
+							grt.NewVolume("resource-cache-2"),
+						),
+					grt.NewWorker("worker3"),
+				),
+			)
+			resourceCache := scenario.FindOrCreateResourceCache("worker1", "container1")
+
+			err := scenario.WorkerVolume("worker1", "resource-cache-1").InitializeResourceCache(logger, resourceCache)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = scenario.WorkerVolume("worker2", "resource-cache-2").InitializeResourceCache(logger, resourceCache)
+			Expect(err).ToNot(HaveOccurred())
+
+			cacheVolume, found, err := scenario.Pool.FindResourceCacheVolumeOnWorker(logger, resourceCache, worker.Spec{}, "worker1")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(cacheVolume.Handle()).To(Equal("resource-cache-1"))
+		})
+
+		Test("ignores invalid worker names", func() {
+			scenario := Setup(
+				workertest.WithWorkers(
+					grt.NewWorker("worker1").
+						WithDBContainersInState(grt.Creating, "container1").
+						WithVolumesCreatedInDBAndBaggageclaim(
+							grt.NewVolume("resource-cache-1"),
+						),
+				),
+			)
+
+			resourceCache := scenario.FindOrCreateResourceCache("worker1", "container1")
+
+			err := scenario.WorkerVolume("worker1", "resource-cache-1").InitializeResourceCache(logger, resourceCache)
+			Expect(err).ToNot(HaveOccurred())
+
+			_, found, err := scenario.Pool.FindResourceCacheVolumeOnWorker(logger, resourceCache, worker.Spec{}, "invalid-worker")
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeFalse())
+		})
+
+		Test("ignores stalled workers", func() {
+			scenario := Setup(
+				workertest.WithWorkers(
+					grt.NewWorker("stalled-worker").
+						WithDBContainersInState(grt.Creating, "container1").
+						WithVolumesCreatedInDBAndBaggageclaim(
+							grt.NewVolume("resource-cache-1"),
+						).
+						WithState(db.WorkerStateStalled),
+				),
+			)
+			resourceCache := scenario.FindOrCreateResourceCache("stalled-worker", "container1")
+
+			err := scenario.WorkerVolume("stalled-worker", "resource-cache-1").InitializeResourceCache(logger, resourceCache)
+			Expect(err).ToNot(HaveOccurred())
+
+			_, found, err := scenario.Pool.FindResourceCacheVolumeOnWorker(logger, resourceCache, worker.Spec{}, "stalled-worker")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeFalse())
+		})
+	})
 })
 
 type PoolCallback struct {

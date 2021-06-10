@@ -8,6 +8,7 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/worker"
@@ -16,7 +17,7 @@ import (
 type coreStepFactory struct {
 	pool                  worker.Pool
 	streamer              worker.Streamer
-	resourceGetter        resource.Getter
+	lockFactory           lock.LockFactory
 	teamFactory           db.TeamFactory
 	buildFactory          db.BuildFactory
 	resourceCacheFactory  db.ResourceCacheFactory
@@ -29,7 +30,7 @@ type coreStepFactory struct {
 func NewCoreStepFactory(
 	pool worker.Pool,
 	streamer worker.Streamer,
-	resourceGetter resource.Getter,
+	lockFactory lock.LockFactory,
 	teamFactory db.TeamFactory,
 	buildFactory db.BuildFactory,
 	resourceCacheFactory db.ResourceCacheFactory,
@@ -41,7 +42,7 @@ func NewCoreStepFactory(
 	return &coreStepFactory{
 		pool:                  pool,
 		streamer:              streamer,
-		resourceGetter:        resourceGetter,
+		lockFactory:           lockFactory,
 		teamFactory:           teamFactory,
 		buildFactory:          buildFactory,
 		resourceCacheFactory:  resourceCacheFactory,
@@ -65,7 +66,7 @@ func (factory *coreStepFactory) GetStep(
 		*plan.Get,
 		stepMetadata,
 		containerMetadata,
-		factory.resourceGetter,
+		factory.lockFactory,
 		factory.resourceCacheFactory,
 		factory.strategy,
 		delegateFactory,
