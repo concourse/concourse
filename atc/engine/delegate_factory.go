@@ -33,7 +33,7 @@ func (delegate DelegateFactory) TaskDelegate(state exec.RunState) exec.TaskDeleg
 }
 
 func (delegate DelegateFactory) RunDelegate(state exec.RunState) exec.RunDelegate {
-	return NewBuildStepDelegate(delegate.build, delegate.plan.ID, state, clock.NewClock(), delegate.policyChecker, delegate.artifactSourcer)
+	return NewBuildStepDelegate(delegate.build, delegate.plan.ID, state, clock.NewClock(), delegate.policyChecker)
 }
 
 func (delegate DelegateFactory) CheckDelegate(state exec.RunState) exec.CheckDelegate {
