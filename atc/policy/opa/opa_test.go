@@ -31,7 +31,13 @@ var _ = Describe("OPA Policy Checker", func() {
 
 	JustBeforeEach(func() {
 		fakeOpa.Start()
-		agent, err = (&opa.OpaConfig{URL: fakeOpa.URL, Timeout: time.Second * 2}).NewAgent(logger)
+		agent, err = (&opa.OpaConfig{
+			URL:              fakeOpa.URL,
+			Timeout:          time.Second * 2,
+			ResultAllowedKey: "result.allowed",
+			// TODO: add shouldBlock test case
+			ResultMessagesKey: "result.reasons",
+		}).NewAgent(logger)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(agent).ToNot(BeNil())
 	})
@@ -45,8 +51,8 @@ var _ = Describe("OPA Policy Checker", func() {
 
 		It("should return an error", func() {
 			result, err := agent.Check(policy.PolicyCheckInput{})
-			Expect(err).To(MatchError(ContainSubstring("opa returned invalid response")))
-			Expect(result.Allowed).To(BeFalse())
+			Expect(err).To(MatchError(ContainSubstring("not found allowed key result.allowed from opa result")))
+			Expect(result.Allowed()).To(BeFalse())
 		})
 	})
 
@@ -59,8 +65,8 @@ var _ = Describe("OPA Policy Checker", func() {
 
 		It("should return an error", func() {
 			result, err := agent.Check(policy.PolicyCheckInput{})
-			Expect(err).To(MatchError(ContainSubstring("opa returned invalid response")))
-			Expect(result.Allowed).To(BeFalse())
+			Expect(err).To(MatchError(ContainSubstring("not found allowed key result.allowed from opa result")))
+			Expect(result.Allowed()).To(BeFalse())
 		})
 	})
 
@@ -73,8 +79,8 @@ var _ = Describe("OPA Policy Checker", func() {
 
 		It("should return an error", func() {
 			result, err := agent.Check(policy.PolicyCheckInput{})
-			Expect(err).To(MatchError(ContainSubstring("opa returned invalid response")))
-			Expect(result.Allowed).To(BeFalse())
+			Expect(err).To(MatchError(ContainSubstring("not found allowed key result.allowed from opa result")))
+			Expect(result.Allowed()).To(BeFalse())
 		})
 	})
 
@@ -88,7 +94,7 @@ var _ = Describe("OPA Policy Checker", func() {
 		It("should be allowed", func() {
 			result, err := agent.Check(policy.PolicyCheckInput{})
 			Expect(err).ToNot(HaveOccurred())
-			Expect(result.Allowed).To(BeTrue())
+			Expect(result.Allowed()).To(BeTrue())
 		})
 	})
 
@@ -117,7 +123,7 @@ var _ = Describe("OPA Policy Checker", func() {
 		It("should not be allowed and return reasons", func() {
 			result, err := agent.Check(policy.PolicyCheckInput{})
 			Expect(err).ToNot(HaveOccurred())
-			Expect(result.Allowed).To(BeFalse())
+			Expect(result.Allowed()).To(BeFalse())
 			Expect(result.Messages()).To(ConsistOf("a policy says you can't do that"))
 		})
 	})
@@ -136,7 +142,7 @@ var _ = Describe("OPA Policy Checker", func() {
 			result, err := agent.Check(policy.PolicyCheckInput{})
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(MatchRegexp("connection refused"))
-			Expect(result.Allowed).To(BeFalse())
+			Expect(result).To(BeNil())
 		})
 	})
 
@@ -149,7 +155,7 @@ var _ = Describe("OPA Policy Checker", func() {
 			result, err := agent.Check(policy.PolicyCheckInput{})
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(Equal("opa returned status: 404"))
-			Expect(result.Allowed).To(BeFalse())
+			Expect(result).To(BeNil())
 		})
 	})
 
@@ -163,8 +169,8 @@ var _ = Describe("OPA Policy Checker", func() {
 		It("should return error", func() {
 			result, err := agent.Check(policy.PolicyCheckInput{})
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(Equal("opa returned bad response: invalid character 'h' looking for beginning of value"))
-			Expect(result.Allowed).To(BeFalse())
+			Expect(err.Error()).To(Equal("invalid character 'h' looking for beginning of value"))
+			Expect(result.Allowed()).To(BeFalse())
 		})
 	})
 })

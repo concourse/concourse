@@ -10,7 +10,7 @@ import (
 var _ = Describe("OPA Result", func() {
 	Context("ParseOpaResult", func() {
 		Context("when result string doesn't contain the key of allowed", func() {
-			FIt("should fail", func() {
+			It("should fail", func() {
 				_, err := opa.ParseOpaResult([]byte(`{"some": "value"}`), opa.OpaConfig{
 					ResultAllowedKey: "a.b",
 				})
@@ -20,7 +20,7 @@ var _ = Describe("OPA Result", func() {
 		})
 
 		Context("when result string contain the key of allowed but type is not bool", func() {
-			FIt("should fail", func() {
+			It("should fail", func() {
 				_, err := opa.ParseOpaResult([]byte(`{"a": {"b": "ok"}}`), opa.OpaConfig{
 					ResultAllowedKey: "a.b",
 				})
@@ -30,7 +30,7 @@ var _ = Describe("OPA Result", func() {
 		})
 
 		Context("when result string contain the key of allowed but other keys", func() {
-			FIt("should succeed", func() {
+			It("should succeed", func() {
 				result, err := opa.ParseOpaResult([]byte(`{"a": {"b": true}}`), opa.OpaConfig{
 					ResultAllowedKey: "a.b",
 				})
@@ -42,7 +42,7 @@ var _ = Describe("OPA Result", func() {
 		})
 
 		Context("when result string contain the key of allowed and shouldBlock", func() {
-			FIt("should succeed", func() {
+			It("should succeed", func() {
 				result, err := opa.ParseOpaResult([]byte(`{"a": {"b": true, "c": true}}`), opa.OpaConfig{
 					ResultAllowedKey:     "a.b",
 					ResultShouldBlockKey: "a.c",
@@ -55,7 +55,7 @@ var _ = Describe("OPA Result", func() {
 		})
 
 		Context("when result string contain all keys", func() {
-			FIt("should succeed", func() {
+			It("should succeed", func() {
 				result, err := opa.ParseOpaResult([]byte(`{"a": {"b": true, "c": true, "d": ["e", "f"]}}`), opa.OpaConfig{
 					ResultAllowedKey:     "a.b",
 					ResultShouldBlockKey: "a.c",
