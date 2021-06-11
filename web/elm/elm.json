@@ -32,25 +32,11 @@
         "indirect": {
             "BrianHicks/elm-trend": "2.1.3",
             "avh4/elm-fifo": "1.0.4",
-            "elm/random": "1.0.0",
             "elm/regex": "1.0.0",
             "elm/virtual-dom": "1.0.2",
-            "folkertdev/elm-deque": "3.0.1",
-            "folkertdev/one-true-path-experiment": "6.0.0",
-            "folkertdev/svg-path-lowlevel": "4.0.1",
-            "ianmackenzie/elm-1d-parameter": "1.0.1",
-            "ianmackenzie/elm-float-extra": "1.1.0",
-            "ianmackenzie/elm-geometry": "3.9.0",
-            "ianmackenzie/elm-interval": "2.0.0",
-            "ianmackenzie/elm-triangular-mesh": "1.1.0",
-            "ianmackenzie/elm-units": "2.9.0",
-            "ianmackenzie/elm-units-interval": "2.3.0",
-            "ianmackenzie/elm-units-prefixed": "2.7.0",
-            "justinmimbs/date": "3.2.1",
-            "justinmimbs/time-extra": "1.1.0",
+            "elm-community/intdict": "3.0.0",
             "mdgriffith/style-elements": "5.0.2",
             "robinheghan/murmur3": "1.0.0",
-            "rtfeldman/elm-hex": "1.0.0",
             "rtfeldman/elm-iso8601-date-strings": "1.1.2"
         }
     },
@@ -58,6 +44,8 @@
         "direct": {
             "elm-explorations/test": "1.2.2"
         },
-        "indirect": {}
+        "indirect": {
+            "elm/random": "1.0.0"
+        }
     }
 }
