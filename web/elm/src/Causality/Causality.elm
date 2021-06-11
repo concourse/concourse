@@ -23,14 +23,13 @@ import ColorValues
 import Colors exposing (buildStatusColor)
 import Concourse
     exposing
-        ( CausalityBuild(..)
+        ( Causality
         , CausalityDirection(..)
-        , CausalityResourceVersion
         )
 import Concourse.BuildStatus exposing (BuildStatus(..))
-import Dict
+import Dict exposing (Dict)
 import EffectTransformer exposing (ET)
-import Graph exposing (Graph, NodeContext, NodeId)
+import Graph exposing (Edge, Graph, Node)
 import Html exposing (Html)
 import Html.Attributes
     exposing
@@ -39,7 +38,6 @@ import Html.Attributes
         , style
         )
 import Http
-import IntDict
 import Login.Login as Login
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
@@ -64,8 +62,8 @@ type alias Model =
     Login.Model
         { versionId : Concourse.VersionedResourceIdentifier
         , direction : CausalityDirection
-        , fetchedCausality : Maybe CausalityResourceVersion
         , fetchedVersionedResource : Maybe Concourse.VersionedResource
+        , fetchedCausality : Maybe Causality
         , graph : Graph NodeType ()
         , renderedJobs : Maybe (List Concourse.Job)
         , renderedBuilds : Maybe (List Concourse.Build)
@@ -153,18 +151,18 @@ handleCallback callback ( model, effects ) =
                 _ ->
                     ( model, effects )
 
-        CausalityFetched (Ok ( direction, crv )) ->
+        CausalityFetched (Ok ( direction, causality )) ->
             let
                 graph =
-                    case crv of
-                        Just rv ->
-                            constructGraph direction rv
+                    case causality of
+                        Just c ->
+                            constructGraph direction c
 
                         _ ->
                             model.graph
             in
             ( { model
-                | fetchedCausality = crv
+                | fetchedCausality = causality
                 , graph = graph
               }
             , effects
@@ -272,188 +270,106 @@ type NodeType
     | Resource String (List Version)
 
 
-
--- inserts e into lst only if it doesn't already contain it
-
-
-insert : List a -> a -> List a
-insert lst e =
-    if List.member e lst then
-        lst
-
-    else
-        lst ++ [ e ]
-
-
-
--- mutually recursive function with constructBuild that converts the tree returned by the causality api into a graph
-
-
-constructResourceVersion : NodeId -> CausalityDirection -> CausalityResourceVersion -> Graph NodeType () -> Graph NodeType ()
-constructResourceVersion parentId dir rv graph =
+constructGraph : CausalityDirection -> Causality -> Graph NodeType ()
+constructGraph direction causality =
     let
-        -- NodeId is the (positive) versionId for resourceVersions and the (negative) buildId for builds
-        nodeId =
-            rv.resourceId
+        idPairs : List { a | id : Int } -> Dict Int { a | id : Int }
+        idPairs =
+            Dict.fromList << List.map (\thing -> ( thing.id, thing ))
 
-        childEdges =
-            IntDict.fromList <| List.map (\(CausalityBuildVariant b) -> ( -b.jobId, () )) rv.builds
+        fetchIds : (a -> b) -> Dict Int a -> List Int -> List b
+        fetchIds fn dict =
+            List.filterMap (\id -> Dict.get id dict)
+                >> List.map fn
 
-        addEdge : NodeContext NodeType () -> NodeContext NodeType ()
-        addEdge ctx =
-            case dir of
+        convertBuild { id, name, status } =
+            { id = id
+            , name = name
+            , status = status
+            }
+
+        convertVersion { id, version } =
+            { id = id
+            , version = version
+            }
+
+        builds =
+            idPairs causality.builds
+
+        resourceVersions =
+            idPairs causality.resourceVersions
+
+        jobNodes =
+            List.map
+                (\job ->
+                    Node -job.id
+                        (Job job.name
+                            (fetchIds convertBuild builds job.buildIds
+                                |> List.sortBy .name
+                                |> List.reverse
+                            )
+                        )
+                )
+                causality.jobs
+
+        resourceNodes =
+            List.map
+                (\resource ->
+                    Node resource.id
+                        (Resource resource.name
+                            (fetchIds convertVersion resourceVersions resource.resourceVersionIds
+                                |> List.sortBy .id
+                                |> List.reverse
+                            )
+                        )
+                )
+                causality.resources
+
+        jobEdges =
+            List.concatMap
+                (\build ->
+                    List.map
+                        (\vId ->
+                            ( -build.jobId
+                            , Dict.get vId resourceVersions
+                                |> Maybe.map .resourceId
+                                |> Maybe.withDefault 0
+                            )
+                        )
+                        build.resourceVersionIds
+                )
+                causality.builds
+
+        resourceEdges =
+            List.concatMap
+                (\version ->
+                    List.map
+                        (\bId ->
+                            ( version.resourceId
+                            , Dict.get bId builds
+                                |> Maybe.map (\b -> -b.jobId)
+                                |> Maybe.withDefault 0
+                            )
+                        )
+                        version.buildIds
+                )
+                causality.resourceVersions
+
+        nodes =
+            resourceNodes ++ jobNodes
+
+        pairs =
+            resourceEdges ++ jobEdges
+
+        edges =
+            case direction of
                 Downstream ->
-                    { ctx
-                        | incoming = IntDict.insert parentId () ctx.incoming
-                        , outgoing = IntDict.union ctx.outgoing childEdges
-                    }
+                    List.map (\( a, b ) -> Edge a b ()) pairs
 
                 Upstream ->
-                    { ctx
-                        | incoming = IntDict.union ctx.incoming childEdges
-                        , outgoing = IntDict.insert parentId () ctx.outgoing
-                    }
-
-        updateNode : Maybe (NodeContext NodeType ()) -> Maybe (NodeContext NodeType ())
-        updateNode nodeContext =
-            let
-                version =
-                    { id = rv.versionId, version = rv.version }
-            in
-            Just <|
-                case nodeContext of
-                    Just { node, incoming, outgoing } ->
-                        let
-                            oldNode =
-                                node.label
-
-                            newNodeType : NodeType
-                            newNodeType =
-                                case oldNode of
-                                    Resource name versions ->
-                                        insert versions version
-                                            |> List.sortBy .id
-                                            |> List.reverse
-                                            |> Resource name
-
-                                    _ ->
-                                        oldNode
-                        in
-                        addEdge
-                            { node =
-                                { node | label = newNodeType }
-                            , incoming = incoming
-                            , outgoing = outgoing
-                            }
-
-                    Nothing ->
-                        addEdge
-                            { node =
-                                { id = nodeId
-                                , label = Resource rv.resourceName [ version ]
-                                }
-                            , incoming = IntDict.empty
-                            , outgoing = IntDict.empty
-                            }
-
-        updatedGraph =
-            Graph.update nodeId updateNode graph
+                    List.map (\( a, b ) -> Edge b a ()) pairs
     in
-    List.foldl (\build acc -> constructBuild nodeId dir build acc) updatedGraph rv.builds
-
-
-
--- mutually recursive function with constructResourceVersion that converts the tree returned by the causality api into a graph
-
-
-constructBuild : NodeId -> CausalityDirection -> CausalityBuild -> Graph NodeType () -> Graph NodeType ()
-constructBuild parentId dir (CausalityBuildVariant b) graph =
-    let
-        -- NodeId is the (positive) resourceId for resourceVersions and the (negative) jobId for builds
-        nodeId =
-            -b.jobId
-
-        childEdges =
-            IntDict.fromList <| List.map (\rv -> ( rv.resourceId, () )) b.resourceVersions
-
-        addEdge : NodeContext NodeType () -> NodeContext NodeType ()
-        addEdge ctx =
-            case dir of
-                Downstream ->
-                    { ctx
-                        | incoming = IntDict.insert parentId () ctx.incoming
-                        , outgoing = IntDict.union ctx.outgoing childEdges
-                    }
-
-                Upstream ->
-                    { ctx
-                        | incoming = IntDict.union ctx.incoming childEdges
-                        , outgoing = IntDict.insert parentId () ctx.outgoing
-                    }
-
-        updateNode : Maybe (NodeContext NodeType ()) -> Maybe (NodeContext NodeType ())
-        updateNode nodeContext =
-            Just <|
-                case nodeContext of
-                    Just { node, incoming, outgoing } ->
-                        let
-                            oldNode =
-                                node.label
-
-                            newNodeType : NodeType
-                            newNodeType =
-                                case oldNode of
-                                    Job name builds ->
-                                        insert builds { id = b.id, name = b.name, status = b.status }
-                                            |> List.sortBy .id
-                                            |> List.reverse
-                                            |> Job name
-
-                                    _ ->
-                                        oldNode
-                        in
-                        addEdge
-                            { node =
-                                { node | label = newNodeType }
-                            , incoming = incoming
-                            , outgoing = outgoing
-                            }
-
-                    Nothing ->
-                        addEdge
-                            { node =
-                                { id = nodeId
-                                , label = Job b.jobName [ { id = b.id, name = b.name, status = b.status } ]
-                                }
-                            , incoming = IntDict.empty
-                            , outgoing = IntDict.empty
-                            }
-
-        updatedGraph =
-            Graph.update nodeId updateNode graph
-    in
-    List.foldl (\build acc -> constructResourceVersion nodeId dir build acc) updatedGraph b.resourceVersions
-
-
-constructGraph : CausalityDirection -> CausalityResourceVersion -> Graph NodeType ()
-constructGraph direction rv =
-    let
-        graph =
-            constructResourceVersion 0 direction rv Graph.empty
-    in
-    -- because the first node is constructed with fictious parentId 0, the first edge needs to be removed
-    Graph.update rv.versionId
-        (Maybe.map
-            (\ctx ->
-                case direction of
-                    Downstream ->
-                        { ctx | incoming = IntDict.remove 0 ctx.incoming }
-
-                    Upstream ->
-                        { ctx | outgoing = IntDict.remove 0 ctx.outgoing }
-            )
-        )
-        graph
+    Graph.fromNodesAndEdges nodes edges
 
 
 

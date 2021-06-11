@@ -18,7 +18,6 @@
             "elm/time": "1.0.0",
             "elm/url": "1.0.0",
             "elm-community/graph": "6.0.0",
-            "elm-community/intdict": "3.0.0",
             "elm-community/json-extra": "4.3.0",
             "elm-community/list-extra": "8.3.1",
             "elm-community/maybe-extra": "5.2.0",

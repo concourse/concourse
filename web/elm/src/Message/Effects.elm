@@ -339,7 +339,7 @@ runEffect effect key csrfToken =
         FetchDownstreamCausality id ->
             Api.get
                 (Endpoints.DownstreamCausality |> Endpoints.ResourceVersion id)
-                |> Api.expectJson Concourse.decodeCausalityResourceVersion
+                |> Api.expectJson Concourse.decodeCausality
                 |> Api.request
                 |> Task.map (\b -> ( Concourse.Downstream, Just b ))
                 |> Task.attempt CausalityFetched
@@ -355,7 +355,7 @@ runEffect effect key csrfToken =
         FetchUpstreamCausality id ->
             Api.get
                 (Endpoints.UpstreamCasuality |> Endpoints.ResourceVersion id)
-                |> Api.expectJson Concourse.decodeCausalityResourceVersion
+                |> Api.expectJson Concourse.decodeCausality
                 |> Api.request
                 |> Task.map (\b -> ( Concourse.Upstream, Just b ))
                 |> Task.attempt CausalityFetched

@@ -783,17 +783,13 @@ all =
                     )
                 |> Tuple.first
                 |> Application.handleCallback
-                    (Callback.CausalityFetched <|
+                    (Callback.VersionedResourceFetched <|
                         Ok
-                            ( Concourse.Downstream
-                            , Just <|
-                                { resourceId = 1
-                                , versionId = 1
-                                , resourceName = "resource"
-                                , version = Dict.fromList [ ( "ver", "1" ) ]
-                                , builds = []
-                                }
-                            )
+                            { id = 1
+                            , version = Dict.fromList [ ( "ver", "1" ) ]
+                            , metadata = []
+                            , enabled = True
+                            }
                     )
                 |> Tuple.first
                 |> queryView

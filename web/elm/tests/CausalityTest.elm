@@ -3,14 +3,18 @@ module CausalityTest exposing (all)
 import Causality.Causality as Causality
 import Concourse
     exposing
-        ( CausalityBuild(..)
+        ( Causality
+        , CausalityBuild
         , CausalityDirection(..)
+        , CausalityJob
+        , CausalityResource
         , CausalityResourceVersion
         )
-import Concourse.BuildStatus
+import Concourse.BuildStatus exposing (BuildStatus(..))
 import Dict
 import Expect
 import Graph exposing (Edge, Node)
+import List.Extra
 import Test exposing (..)
 
 
@@ -23,8 +27,8 @@ all =
                     Causality.constructGraph Downstream simplePipeline
                         |> Expect.equal
                             (Graph.fromNodesAndEdges
-                                [ Node 1 <| Causality.Resource "resource" [ Causality.Version 1 someVersion ]
-                                , Node -1 <| Causality.Job "job" [ Causality.Build 1 "1" Concourse.BuildStatus.BuildStatusSucceeded ]
+                                [ Node 1 <| Causality.Resource "r1" [ Causality.Version 1 someVersion ]
+                                , Node -1 <| Causality.Job "j1" [ Causality.Build 1 "1" BuildStatusSucceeded ]
                                 ]
                                 [ Edge 1 -1 () ]
                             )
@@ -36,9 +40,9 @@ all =
                                 [ Node 1 <| Causality.Resource "r1" [ Causality.Version 1 someVersion ]
                                 , Node 2 <| Causality.Resource "r2" [ Causality.Version 2 someVersion ]
                                 , Node 3 <| Causality.Resource "r3" [ Causality.Version 3 someVersion ]
-                                , Node -1 <| Causality.Job "j1" [ Causality.Build 1 "1" Concourse.BuildStatus.BuildStatusSucceeded ]
-                                , Node -2 <| Causality.Job "j2" [ Causality.Build 2 "1" Concourse.BuildStatus.BuildStatusSucceeded ]
-                                , Node -3 <| Causality.Job "j3" [ Causality.Build 3 "1" Concourse.BuildStatus.BuildStatusSucceeded ]
+                                , Node -1 <| Causality.Job "j1" [ Causality.Build 1 "1" BuildStatusSucceeded ]
+                                , Node -2 <| Causality.Job "j2" [ Causality.Build 2 "1" BuildStatusSucceeded ]
+                                , Node -3 <| Causality.Job "j3" [ Causality.Build 3 "1" BuildStatusSucceeded ]
                                 ]
                                 [ Edge 1 -1 ()
                                 , Edge 1 -2 ()
@@ -55,8 +59,8 @@ all =
                             (Graph.fromNodesAndEdges
                                 [ Node 1 <| Causality.Resource "r1" [ Causality.Version 1 someVersion ]
                                 , Node 2 <| Causality.Resource "r2" [ Causality.Version 2 someVersion ]
-                                , Node -1 <| Causality.Job "j1" [ Causality.Build 1 "1" Concourse.BuildStatus.BuildStatusSucceeded ]
-                                , Node -2 <| Causality.Job "j2" [ Causality.Build 2 "1" Concourse.BuildStatus.BuildStatusSucceeded ]
+                                , Node -1 <| Causality.Job "j1" [ Causality.Build 1 "1" BuildStatusSucceeded ]
+                                , Node -2 <| Causality.Job "j2" [ Causality.Build 2 "1" BuildStatusSucceeded ]
                                 ]
                                 [ Edge 1 -1 ()
                                 , Edge 1 -2 ()
@@ -71,7 +75,11 @@ all =
                             (Graph.fromNodesAndEdges
                                 [ Node 1 <| Causality.Resource "r1" [ Causality.Version 1 someVersion ]
                                 , Node 2 <| Causality.Resource "r2" [ Causality.Version 2 someVersion ]
-                                , Node -1 <| Causality.Job "j1" [ Causality.Build 1 "1" Concourse.BuildStatus.BuildStatusSucceeded ]
+                                , Node -1 <|
+                                    Causality.Job "j1"
+                                        [ Causality.Build 2 "2" BuildStatusFailed
+                                        , Causality.Build 1 "1" BuildStatusSucceeded
+                                        ]
                                 ]
                                 [ Edge 1 -1 ()
                                 , Edge -1 2 ()
@@ -86,8 +94,8 @@ all =
                     Causality.constructGraph Upstream simplePipeline
                         |> Expect.equal
                             (Graph.fromNodesAndEdges
-                                [ Node 1 <| Causality.Resource "resource" [ Causality.Version 1 someVersion ]
-                                , Node -1 <| Causality.Job "job" [ Causality.Build 1 "1" Concourse.BuildStatus.BuildStatusSucceeded ]
+                                [ Node 1 <| Causality.Resource "r1" [ Causality.Version 1 someVersion ]
+                                , Node -1 <| Causality.Job "j1" [ Causality.Build 1 "1" BuildStatusSucceeded ]
                                 ]
                                 [ Edge -1 1 () ]
                             )
@@ -100,77 +108,111 @@ someVersion =
     Dict.fromList [ ( "v", "1" ) ]
 
 
-resourceVersion : Int -> String -> List CausalityBuild -> CausalityResourceVersion
-resourceVersion id name builds =
-    { resourceId = id
-    , versionId = id
-    , resourceName = name
-    , version = someVersion
+
+-- figure out list of resources and jobs from passed in versions and builds
+
+
+causality : List CausalityResourceVersion -> List CausalityBuild -> Causality
+causality rvs builds =
+    let
+        jobs : List CausalityJob
+        jobs =
+            List.Extra.uniqueBy .jobId builds
+                |> List.map (\b -> ( b.jobId, List.filter (\b2 -> b2.jobId == b.jobId) builds ))
+                |> List.map (\( id, bs ) -> { id = id, name = "j" ++ String.fromInt id, buildIds = List.map .id bs })
+
+        resources : List CausalityResource
+        resources =
+            List.Extra.uniqueBy .resourceId rvs
+                |> List.map (\rv -> ( rv.resourceId, List.filter (\rv2 -> rv2.resourceId == rv.resourceId) rvs ))
+                |> List.map (\( id, rs ) -> { id = id, name = "r" ++ String.fromInt id, resourceVersionIds = List.map .id rs })
+    in
+    { jobs = jobs
     , builds = builds
+    , resources = resources
+    , resourceVersions = rvs
     }
-
-
-build : Int -> String -> List CausalityResourceVersion -> CausalityBuild
-build id name rvs =
-    CausalityBuildVariant
-        { id = id
-        , name = "1"
-        , jobId = id
-        , jobName = name
-        , resourceVersions = rvs
-        , status = Concourse.BuildStatus.BuildStatusSucceeded
-        }
 
 
 
 -- single resource feeding into single build
+-- resource1 [
+--   job1 build1
+-- ]
 
 
-simplePipeline : CausalityResourceVersion
+simplePipeline : Causality
 simplePipeline =
-    resourceVersion 1 "resource" <|
-        [ build 1 "job" []
-        ]
+    causality
+        [ CausalityResourceVersion 1 someVersion 1 [ 1 ] ]
+        [ CausalityBuild 1 "1" 1 BuildStatusSucceeded [] ]
 
 
 
---    r1 fans out into j1 and j2, the outputs of which fans back into j3
+-- r1 fans out into j1 and j2, the outputs of which fans back into j3
+-- resource1 [
+--   job1 build1 [
+--     resource2 [
+--       job3 build1 []
+--     ]
+--   job2 build1 [
+--     resource3 [
+--       job3 build1 []
+--     ]
+--   ]
+-- ]
 
 
-fanOutFanInPipeline : CausalityResourceVersion
+fanOutFanInPipeline : Causality
 fanOutFanInPipeline =
-    resourceVersion 1 "r1" <|
-        [ build 1 "j1" <|
-            [ resourceVersion 2 "r2" <|
-                [ build 3 "j3" [] ]
-            ]
-        , build 2 "j2" <|
-            [ resourceVersion 3 "r3" <|
-                [ build 3 "j3" [] ]
-            ]
+    causality
+        [ CausalityResourceVersion 1 someVersion 1 [ 1, 2 ]
+        , CausalityResourceVersion 2 someVersion 2 [ 3 ]
+        , CausalityResourceVersion 3 someVersion 3 [ 3 ]
+        ]
+        [ CausalityBuild 1 "1" 1 BuildStatusSucceeded [ 2 ]
+        , CausalityBuild 2 "1" 2 BuildStatusSucceeded [ 3 ]
+        , CausalityBuild 3 "1" 3 BuildStatusSucceeded []
         ]
 
 
 
 -- b2 uses both r1 and a downstream output of r1 as inputs
+-- resource1 [
+--   job1 build1 [
+--     resource2 [
+--       job2 build1 []
+--     ]
+--   ]
+--   job2 build1 []
+-- ]
 
 
-intermediateOutputsPipeline : CausalityResourceVersion
+intermediateOutputsPipeline : Causality
 intermediateOutputsPipeline =
-    resourceVersion 1 "r1" <|
-        [ build 1 "j1" <|
-            [ resourceVersion 2 "r2" <|
-                [ build 2 "j2" [] ]
-            ]
-        , build 2 "j2" []
+    causality
+        [ CausalityResourceVersion 1 someVersion 1 [ 1, 2 ]
+        , CausalityResourceVersion 2 someVersion 2 [ 2 ]
+        ]
+        [ CausalityBuild 1 "1" 1 BuildStatusSucceeded [ 2 ]
+        , CausalityBuild 2 "1" 2 BuildStatusSucceeded []
         ]
 
 
-singleJobMultipleBuildsPipeline : CausalityResourceVersion
+
+-- j1 has 2 builds, one of the builds generated an output while the otherone failed
+-- resource1 [
+--   job1 build2 []
+--   job1 build1 [resource2]
+-- ]
+
+
+singleJobMultipleBuildsPipeline : Causality
 singleJobMultipleBuildsPipeline =
-    resourceVersion 1 "r1" <|
-        [ build 1 "j1" <|
-            [ resourceVersion 2 "r2" []
-            ]
-        , build 1 "j1" []
+    causality
+        [ CausalityResourceVersion 1 someVersion 1 [ 1, 2 ]
+        , CausalityResourceVersion 2 someVersion 2 []
+        ]
+        [ CausalityBuild 1 "1" 1 BuildStatusSucceeded [ 2 ]
+        , CausalityBuild 2 "2" 1 BuildStatusFailed []
         ]
