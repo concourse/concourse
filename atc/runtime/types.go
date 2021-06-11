@@ -100,7 +100,7 @@ type ContainerSpec struct {
 	// an absolute path.
 	Dir string
 
-	// Inputs defines the inputs to provide to the container. The Volumes
+	// Inputs defines the inputs to provide to the container. The Artifact
 	// pointed to in these inputs may be on another worker, in which case they
 	// must be streamed.
 	Inputs []Input
@@ -233,9 +233,9 @@ type ProcessResult struct {
 // Input represents a Volume (typically from a build artifact) to mount to the
 // container.
 type Input struct {
-	// Volume is the volume to mount. It may be on any worker, so may need to
-	// be streamed.
-	Volume Volume
+	// Artifact is the artifact to mount. This artifact may need to be
+	// streamed (if it is not a Volume on the target worker).
+	Artifact Artifact
 	// DestinationPath is the path in the container to mount the input.
 	//
 	// May be absolute or relative to ContainerSpec.Dir.
@@ -250,8 +250,8 @@ type OutputPaths map[string]string
 // must be set. For non-containerized platforms, each of those fields should be
 // left empty.
 type ImageSpec struct {
-	// ImageVolume is the Volume to use as the container image.
-	ImageVolume Volume
+	// ImageArtifact is the Artifact whose contents are the container image.
+	ImageArtifact Artifact
 	// ImageURL points to a path on the worker to use as the rootfs. This
 	// corresponds with `task.rootfs_uri`:
 	// https://concourse-ci.org/tasks.html#schema.task.rootfs_uri
@@ -272,6 +272,12 @@ type ContainerLimits struct {
 	// Memory defines the memory limit for all Processes run in the Container,
 	// measured in bytes. Unset means no limit.
 	Memory *uint64
+}
+
+// Artifact represents an output from a step that can be used as an input to
+// other steps.
+type Artifact interface {
+	StreamOut(ctx context.Context, path string, compression compression.Compression) (io.ReadCloser, error)
 }
 
 // Volume represents a data volume that can be mounted to a Container.
@@ -308,11 +314,16 @@ type Volume interface {
 	DBVolume() db.CreatedVolume
 }
 
-// P2PVolume is an *optional* interface that may also be satisfied by Volume
+// A Volume is a type of Artifact that is mounted to a Container.
+var _ Artifact = (Volume)(nil)
+
+// P2PVolume is an interface that may also be satisfied by Volume
 // implementations. When streaming contents from one Volume to another, if both
 // Volumes implement this interface, then the P2P streaming methods will be
 // used.
 type P2PVolume interface {
+	Volume
+
 	// GetStreamInP2PURL gives a URL which, if you POST to with a compressed
 	// tar stream (using the encoding format specified by the
 	// `Content-Encoding` header parameter - either "gzip" or "zstd"), will

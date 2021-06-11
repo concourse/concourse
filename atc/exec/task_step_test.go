@@ -366,11 +366,11 @@ var _ = Describe("TaskStep", func() {
 				It("configures the inputs for the containerSpec correctly", func() {
 					Expect(chosenContainer.Spec.Inputs).To(ConsistOf([]runtime.Input{
 						{
-							Volume:          input1,
+							Artifact:        input1,
 							DestinationPath: "some-artifact-root/some-input-configured-path",
 						},
 						{
-							Volume:          input2,
+							Artifact:        input2,
 							DestinationPath: "some-artifact-root/some-other-input",
 						},
 					}))
@@ -409,7 +409,7 @@ var _ = Describe("TaskStep", func() {
 				It("uses remapped input", func() {
 					Expect(chosenContainer.Spec.Inputs).To(ConsistOf([]runtime.Input{
 						{
-							Volume:          remappedInputArtifact,
+							Artifact:        remappedInputArtifact,
 							DestinationPath: "some-artifact-root/remapped-input",
 						},
 					}))
@@ -443,11 +443,11 @@ var _ = Describe("TaskStep", func() {
 				It("runs successfully without the optional input", func() {
 					Expect(chosenContainer.Spec.Inputs).To(ConsistOf([]runtime.Input{
 						{
-							Volume:          requiredInputArtifact,
+							Artifact:        requiredInputArtifact,
 							DestinationPath: "some-artifact-root/required-input",
 						},
 						{
-							Volume:          optionalInput2Artifact,
+							Artifact:        optionalInput2Artifact,
 							DestinationPath: "some-artifact-root/optional-input-2",
 						},
 					}))
@@ -587,7 +587,7 @@ var _ = Describe("TaskStep", func() {
 			})
 
 			It("registers the outputs in the build repo", func() {
-				Expect(repo.AsMap()).To(Equal(map[build.ArtifactName]runtime.Volume{
+				Expect(repo.AsMap()).To(Equal(map[build.ArtifactName]runtime.Artifact{
 					"some-output":                outputVolume1,
 					"some-remapped-output":       outputVolume2,
 					"some-trailing-slash-output": outputVolume3,
@@ -638,7 +638,7 @@ var _ = Describe("TaskStep", func() {
 
 				It("configures it in the containerSpec's ImageSpec", func() {
 					Expect(chosenContainer.Spec.ImageSpec).To(Equal(runtime.ImageSpec{
-						ImageVolume: imageVolume,
+						ImageArtifact: imageVolume,
 					}))
 
 					expectWorkerSpecResourceTypeUnset()
@@ -657,7 +657,7 @@ var _ = Describe("TaskStep", func() {
 
 							It("still uses the image artifact", func() {
 								Expect(chosenContainer.Spec.ImageSpec).To(Equal(runtime.ImageSpec{
-									ImageVolume: imageVolume,
+									ImageArtifact: imageVolume,
 								}))
 								expectWorkerSpecResourceTypeUnset()
 							})
@@ -675,7 +675,7 @@ var _ = Describe("TaskStep", func() {
 
 							It("still uses the image artifact", func() {
 								Expect(chosenContainer.Spec.ImageSpec).To(Equal(runtime.ImageSpec{
-									ImageVolume: imageVolume,
+									ImageArtifact: imageVolume,
 								}))
 								expectWorkerSpecResourceTypeUnset()
 							})
@@ -707,7 +707,7 @@ var _ = Describe("TaskStep", func() {
 				}
 
 				fetchedImageSpec = runtime.ImageSpec{
-					ImageVolume: runtimetest.NewVolume("some-volume"),
+					ImageArtifact: runtimetest.NewVolume("some-volume"),
 				}
 
 				fakeDelegate.FetchImageReturns(fetchedImageSpec, nil)

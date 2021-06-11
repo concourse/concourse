@@ -23,8 +23,8 @@ import (
 )
 
 type Streamer interface {
-	Stream(ctx context.Context, src runtime.Volume, dst runtime.Volume) error
-	StreamFile(ctx context.Context, src runtime.Volume, path string) (io.ReadCloser, error)
+	Stream(ctx context.Context, src runtime.Artifact, dst runtime.Volume) error
+	StreamFile(ctx context.Context, src runtime.Artifact, path string) (io.ReadCloser, error)
 }
 
 type Worker struct {
@@ -380,7 +380,7 @@ type mountableLocalInput struct {
 }
 
 type remoteInput struct {
-	volume    runtime.Volume
+	volume    runtime.Artifact
 	mountPath string
 }
 
@@ -397,7 +397,7 @@ func (worker *Worker) cloneInputVolumes(
 	var remoteInputs []remoteInput
 
 	for _, input := range spec.Inputs {
-		volume, err := worker.volumeOrLocalResourceCache(logger, spec.TeamID, input.Volume)
+		volume, ok, err := worker.findVolumeForArtifact(logger, spec.TeamID, input.Artifact)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -405,15 +405,14 @@ func (worker *Worker) cloneInputVolumes(
 		cleanedInputPath := filepath.Clean(input.DestinationPath)
 		inputDestinationPaths[cleanedInputPath] = true
 
-		srcWorker := volume.DBVolume().WorkerName()
-		if srcWorker == worker.Name() {
+		if ok && volume.DBVolume().WorkerName() == worker.Name() {
 			localInputs = append(localInputs, mountableLocalInput{
 				cowParent: volume.(Volume),
 				mountPath: input.DestinationPath,
 			})
 		} else {
 			remoteInputs = append(remoteInputs, remoteInput{
-				volume:    volume,
+				volume:    input.Artifact,
 				mountPath: input.DestinationPath,
 			})
 		}

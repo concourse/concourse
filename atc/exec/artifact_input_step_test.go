@@ -130,7 +130,7 @@ var _ = Describe("ArtifactInputStep", func() {
 					Expect(stepErr).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 
-					Expect(artifact.Handle()).To(Equal("some-volume"))
+					Expect(artifact).To(Equal(volume))
 				})
 
 				It("succeeds", func() {

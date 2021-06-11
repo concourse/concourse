@@ -38,19 +38,18 @@ func (worker *Worker) fetchImageForContainer(
 	teamID int,
 	container db.CreatingContainer,
 ) (FetchedImage, error) {
-	if imageSpec.ImageVolume != nil {
-		volume, err := worker.volumeOrLocalResourceCache(logger, teamID, imageSpec.ImageVolume)
+	if imageSpec.ImageArtifact != nil {
+		volume, ok, err := worker.findVolumeForArtifact(logger, teamID, imageSpec.ImageArtifact)
 		if err != nil {
 			logger.Error("failed-to-locate-artifact-volume", err)
 			return FetchedImage{}, err
 		}
-		srcWorker := volume.DBVolume().WorkerName()
-		if srcWorker == worker.Name() {
+		if ok && volume.DBVolume().WorkerName() == worker.Name() {
 			// it's on the same worker, so it will be a baggageclaim volume
 			volumeOnWorker := volume.(Volume)
 			return worker.imageProvidedByPreviousStepOnSameWorker(ctx, logger, imageSpec.Privileged, teamID, container, volumeOnWorker)
 		} else {
-			return worker.imageProvidedByPreviousStepOnDifferentWorker(ctx, logger, imageSpec.Privileged, teamID, container, volume)
+			return worker.imageProvidedByPreviousStepOnDifferentWorker(ctx, logger, imageSpec.Privileged, teamID, container, imageSpec.ImageArtifact)
 		}
 	}
 
@@ -116,7 +115,7 @@ func (worker *Worker) imageProvidedByPreviousStepOnDifferentWorker(
 	privileged bool,
 	teamID int,
 	container db.CreatingContainer,
-	artifactVolume runtime.Volume,
+	artifact runtime.Artifact,
 ) (FetchedImage, error) {
 	streamedVolume, err := worker.findOrCreateVolumeForStreaming(
 		logger,
@@ -130,7 +129,7 @@ func (worker *Worker) imageProvidedByPreviousStepOnDifferentWorker(
 		return FetchedImage{}, err
 	}
 
-	if err := worker.streamer.Stream(ctx, artifactVolume, streamedVolume); err != nil {
+	if err := worker.streamer.Stream(ctx, artifact, streamedVolume); err != nil {
 		logger.Error("failed-to-stream-image-artifact", err)
 		return FetchedImage{}, err
 	}
@@ -149,7 +148,7 @@ func (worker *Worker) imageProvidedByPreviousStepOnDifferentWorker(
 		return FetchedImage{}, err
 	}
 
-	imageMetadataReader, err := worker.streamer.StreamFile(ctx, artifactVolume, ImageMetadataFile)
+	imageMetadataReader, err := worker.streamer.StreamFile(ctx, artifact, ImageMetadataFile)
 	if err != nil {
 		logger.Error("failed-to-stream-metadata-file", err)
 		return FetchedImage{}, err

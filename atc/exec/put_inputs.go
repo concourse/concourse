@@ -33,8 +33,8 @@ func (i allInputs) FindAll(artifacts *build.Repository) ([]runtime.Input, error)
 	artifactsMap := artifacts.AsMap()
 
 	inputs := make([]runtime.Input, 0, len(artifactsMap))
-	for name, vol := range artifactsMap {
-		inputs = append(inputs, putInput(name, vol))
+	for name, artifact := range artifactsMap {
+		inputs = append(inputs, putInput(name, artifact))
 	}
 
 	return inputs, nil
@@ -111,20 +111,20 @@ func (i detectInputs) FindAll(artifacts *build.Repository) ([]runtime.Input, err
 
 	inputs := []runtime.Input{}
 	for _, name := range i.guessedNames {
-		vol, found := artifactsMap[name]
+		artifact, found := artifactsMap[name]
 		if !found {
 			// false positive; not an artifact
 			continue
 		}
-		inputs = append(inputs, putInput(name, vol))
+		inputs = append(inputs, putInput(name, artifact))
 	}
 
 	return inputs, nil
 }
 
-func putInput(name build.ArtifactName, volume runtime.Volume) runtime.Input {
+func putInput(name build.ArtifactName, artifact runtime.Artifact) runtime.Input {
 	return runtime.Input{
-		Volume:          volume,
+		Artifact:        artifact,
 		DestinationPath: filepath.Join(resource.ResourcesDir("put"), string(name)),
 	}
 }

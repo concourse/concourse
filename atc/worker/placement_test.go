@@ -3,6 +3,7 @@ package worker_test
 import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/runtime"
+	"github.com/concourse/concourse/atc/runtime/runtimetest"
 	"github.com/concourse/concourse/atc/worker"
 	grt "github.com/concourse/concourse/atc/worker/gardenruntime/gardenruntimetest"
 	"github.com/concourse/concourse/atc/worker/workertest"
@@ -45,15 +46,15 @@ var _ = Describe("Container Placement Strategies", func() {
 
 				Inputs: []runtime.Input{
 					{
-						Volume:          scenario.WorkerVolume("worker1", "input1"),
+						Artifact:        scenario.WorkerVolume("worker1", "input1"),
 						DestinationPath: "/input1",
 					},
 					{
-						Volume:          scenario.WorkerVolume("worker2", "input2"),
+						Artifact:        scenario.WorkerVolume("worker2", "input2"),
 						DestinationPath: "/input2",
 					},
 					{
-						Volume:          scenario.WorkerVolume("worker1", "input3"),
+						Artifact:        scenario.WorkerVolume("worker1", "input3"),
 						DestinationPath: "/input3",
 					},
 				},
@@ -85,11 +86,11 @@ var _ = Describe("Container Placement Strategies", func() {
 
 				Inputs: []runtime.Input{
 					{
-						Volume:          scenario.WorkerVolume("worker1", "input1"),
+						Artifact:        scenario.WorkerVolume("worker1", "input1"),
 						DestinationPath: "/input1",
 					},
 					{
-						Volume:          scenario.WorkerVolume("worker2", "input2"),
+						Artifact:        scenario.WorkerVolume("worker2", "input2"),
 						DestinationPath: "/input2",
 					},
 				},
@@ -133,11 +134,11 @@ var _ = Describe("Container Placement Strategies", func() {
 
 				Inputs: []runtime.Input{
 					{
-						Volume:          scenario.WorkerVolume("worker1", "input1"),
+						Artifact:        scenario.WorkerVolume("worker1", "input1"),
 						DestinationPath: "/input1",
 					},
 					{
-						Volume:          scenario.WorkerVolume("worker2", "input2"),
+						Artifact:        scenario.WorkerVolume("worker2", "input2"),
 						DestinationPath: "/input2",
 					},
 				},
@@ -181,11 +182,11 @@ var _ = Describe("Container Placement Strategies", func() {
 
 				Inputs: []runtime.Input{
 					{
-						Volume:          scenario.WorkerVolume("worker1", "input1"),
+						Artifact:        scenario.WorkerVolume("worker1", "input1"),
 						DestinationPath: "/input1",
 					},
 					{
-						Volume:          scenario.WorkerVolume("worker2", "input2"),
+						Artifact:        scenario.WorkerVolume("worker2", "input2"),
 						DestinationPath: "/input2",
 					},
 				},
@@ -194,6 +195,43 @@ var _ = Describe("Container Placement Strategies", func() {
 			})
 			Expect(err).ToNot(HaveOccurred())
 			Expect(workerNames(workers)).To(Equal([]string{"worker1", "worker2"}))
+		})
+
+		Test("ignores non-Volume artifacts", func() {
+			scenario := Setup(
+				workertest.WithBasicJob(),
+				workertest.WithWorkers(
+					grt.NewWorker("worker1"),
+					grt.NewWorker("worker2").
+						WithVolumesCreatedInDBAndBaggageclaim(
+							grt.NewVolume("input1"),
+						),
+				),
+			)
+
+			workers, err := volumeLocalityStrategy().Order(
+				logger,
+				scenario.Pool,
+				scenario.DB.Workers,
+				runtime.ContainerSpec{
+					TeamID:   scenario.TeamID,
+					JobID:    scenario.JobID,
+					StepName: scenario.StepName,
+
+					Inputs: []runtime.Input{
+						{
+							Artifact:        scenario.WorkerVolume("worker2", "input1"),
+							DestinationPath: "/input1",
+						},
+						{
+							Artifact:        runtimetest.Artifact{},
+							DestinationPath: "/input2",
+						},
+					},
+				},
+			)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(workerNames(workers)).To(Equal([]string{"worker2", "worker1"}))
 		})
 
 		Test("does not consider workers that have been filtered out", func() {
@@ -219,7 +257,7 @@ var _ = Describe("Container Placement Strategies", func() {
 
 					Inputs: []runtime.Input{
 						{
-							Volume:          scenario.WorkerVolume("worker2", "input1"),
+							Artifact:        scenario.WorkerVolume("worker2", "input1"),
 							DestinationPath: "/input1",
 						},
 					},

@@ -340,7 +340,7 @@ var _ = Describe("Garden Worker", func() {
 			db.ContainerMetadata{},
 			runtime.ContainerSpec{
 				ImageSpec: runtime.ImageSpec{
-					ImageVolume: scenario.WorkerVolume("worker", imageVolume.Handle()),
+					ImageArtifact: scenario.WorkerVolume("worker", imageVolume.Handle()),
 				},
 				Env: []string{"A=b"},
 			},
@@ -427,7 +427,7 @@ var _ = Describe("Garden Worker", func() {
 			db.ContainerMetadata{},
 			runtime.ContainerSpec{
 				ImageSpec: runtime.ImageSpec{
-					ImageVolume: scenario.WorkerVolume("worker2", "remote-volume"),
+					ImageArtifact: scenario.WorkerVolume("worker2", "remote-volume"),
 				},
 			},
 		)
@@ -475,7 +475,7 @@ var _ = Describe("Garden Worker", func() {
 			db.ContainerMetadata{},
 			runtime.ContainerSpec{
 				ImageSpec: runtime.ImageSpec{
-					ImageVolume: scenario.WorkerVolume("worker2", imageVolume.Handle()),
+					ImageArtifact: scenario.WorkerVolume("worker2", imageVolume.Handle()),
 				},
 			},
 		)
@@ -559,15 +559,15 @@ var _ = Describe("Garden Worker", func() {
 				Dir: "/workdir",
 				Inputs: []runtime.Input{
 					{
-						Volume:          scenario.WorkerVolume("worker1", localInputVolume1.Handle()),
+						Artifact:        scenario.WorkerVolume("worker1", localInputVolume1.Handle()),
 						DestinationPath: "/local-input",
 					},
 					{
-						Volume:          scenario.WorkerVolume("worker1", localInputVolume2.Handle()),
+						Artifact:        scenario.WorkerVolume("worker1", localInputVolume2.Handle()),
 						DestinationPath: "/local-input/sub-input",
 					},
 					{
-						Volume:          scenario.WorkerVolume("worker2", remoteInputVolume.Handle()),
+						Artifact:        scenario.WorkerVolume("worker2", remoteInputVolume.Handle()),
 						DestinationPath: "/remote-input",
 					},
 				},
@@ -643,7 +643,7 @@ var _ = Describe("Garden Worker", func() {
 				Dir: "/workdir",
 				Inputs: []runtime.Input{
 					{
-						Volume:          scenario.WorkerVolume("worker2", "remote-volume"),
+						Artifact:        scenario.WorkerVolume("worker2", "remote-volume"),
 						DestinationPath: "/input",
 					},
 				},
@@ -681,7 +681,7 @@ var _ = Describe("Garden Worker", func() {
 				Dir: "/workdir",
 				Inputs: []runtime.Input{
 					{
-						Volume:          scenario.WorkerVolume("worker", localInputVolume.Handle()),
+						Artifact:        scenario.WorkerVolume("worker", localInputVolume.Handle()),
 						DestinationPath: "/workdir",
 					},
 				},
@@ -861,12 +861,12 @@ var _ = Describe("Garden Worker", func() {
 
 				Dir: "/workdir",
 				ImageSpec: runtime.ImageSpec{
-					ImageVolume: scenario.WorkerVolume("worker", imageVolume.Handle()),
-					Privileged:  true,
+					ImageArtifact: scenario.WorkerVolume("worker", imageVolume.Handle()),
+					Privileged:    true,
 				},
 				Inputs: []runtime.Input{
 					{
-						Volume:          scenario.WorkerVolume("worker", inputVolume.Handle()),
+						Artifact:        scenario.WorkerVolume("worker", inputVolume.Handle()),
 						DestinationPath: "/input",
 					},
 				},
@@ -927,12 +927,12 @@ var _ = Describe("Garden Worker", func() {
 
 				Dir: "/workdir",
 				ImageSpec: runtime.ImageSpec{
-					ImageVolume: scenario.WorkerVolume("worker", imageVolume.Handle()),
-					Privileged:  false,
+					ImageArtifact: scenario.WorkerVolume("worker", imageVolume.Handle()),
+					Privileged:    false,
 				},
 				Inputs: []runtime.Input{
 					{
-						Volume:          scenario.WorkerVolume("worker", inputVolume.Handle()),
+						Artifact:        scenario.WorkerVolume("worker", inputVolume.Handle()),
 						DestinationPath: "/input",
 					},
 				},

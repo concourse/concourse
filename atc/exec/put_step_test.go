@@ -273,15 +273,15 @@ var _ = Describe("PutStep", func() {
 			It("runs with all inputs", func() {
 				Expect(chosenContainer.Spec.Inputs).To(ConsistOf([]runtime.Input{
 					{
-						Volume:          volume1,
+						Artifact:        volume1,
 						DestinationPath: "/tmp/build/put/input1",
 					},
 					{
-						Volume:          volume2,
+						Artifact:        volume2,
 						DestinationPath: "/tmp/build/put/input2",
 					},
 					{
-						Volume:          volume3,
+						Artifact:        volume3,
 						DestinationPath: "/tmp/build/put/input3",
 					},
 				}))
@@ -292,15 +292,15 @@ var _ = Describe("PutStep", func() {
 			It("runs with all inputs", func() {
 				Expect(chosenContainer.Spec.Inputs).To(ConsistOf([]runtime.Input{
 					{
-						Volume:          volume1,
+						Artifact:        volume1,
 						DestinationPath: "/tmp/build/put/input1",
 					},
 					{
-						Volume:          volume2,
+						Artifact:        volume2,
 						DestinationPath: "/tmp/build/put/input2",
 					},
 					{
-						Volume:          volume3,
+						Artifact:        volume3,
 						DestinationPath: "/tmp/build/put/input3",
 					},
 				}))
@@ -317,11 +317,11 @@ var _ = Describe("PutStep", func() {
 			It("runs with specified inputs", func() {
 				Expect(chosenContainer.Spec.Inputs).To(ConsistOf([]runtime.Input{
 					{
-						Volume:          volume1,
+						Artifact:        volume1,
 						DestinationPath: "/tmp/build/put/input1",
 					},
 					{
-						Volume:          volume3,
+						Artifact:        volume3,
 						DestinationPath: "/tmp/build/put/input3",
 					},
 				}))
@@ -359,7 +359,7 @@ var _ = Describe("PutStep", func() {
 				It("runs with detected inputs", func() {
 					Expect(chosenContainer.Spec.Inputs).To(ConsistOf([]runtime.Input{
 						{
-							Volume:          volume1,
+							Artifact:        volume1,
 							DestinationPath: "/tmp/build/put/input1",
 						},
 					}))
@@ -382,11 +382,11 @@ var _ = Describe("PutStep", func() {
 				It("runs with detected inputs", func() {
 					Expect(chosenContainer.Spec.Inputs).To(ConsistOf([]runtime.Input{
 						{
-							Volume:          volume1,
+							Artifact:        volume1,
 							DestinationPath: "/tmp/build/put/input1",
 						},
 						{
-							Volume:          volume2,
+							Artifact:        volume2,
 							DestinationPath: "/tmp/build/put/input2",
 						},
 					}))
@@ -406,11 +406,11 @@ var _ = Describe("PutStep", func() {
 				It("runs with detected inputs", func() {
 					Expect(chosenContainer.Spec.Inputs).To(ConsistOf([]runtime.Input{
 						{
-							Volume:          volume1,
+							Artifact:        volume1,
 							DestinationPath: "/tmp/build/put/input1",
 						},
 						{
-							Volume:          volume2,
+							Artifact:        volume2,
 							DestinationPath: "/tmp/build/put/input2",
 						},
 					}))
@@ -426,7 +426,7 @@ var _ = Describe("PutStep", func() {
 			putPlan.Type = "some-custom-type"
 
 			fetchedImageSpec = runtime.ImageSpec{
-				ImageVolume: runtimetest.NewVolume("some-volume"),
+				ImageArtifact: runtimetest.NewVolume("some-volume"),
 			}
 
 			fakeDelegate.FetchImageReturns(fetchedImageSpec, nil)

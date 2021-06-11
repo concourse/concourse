@@ -343,11 +343,11 @@ func (step *TaskStep) imageSpec(ctx context.Context, logger lager.Logger, state 
 	// Determine the source of the container image
 	// a reference to an artifact (get step, task output) ?
 	if step.plan.ImageArtifactName != "" {
-		volume, found := state.ArtifactRepository().ArtifactFor(build.ArtifactName(step.plan.ImageArtifactName))
+		artifact, found := state.ArtifactRepository().ArtifactFor(build.ArtifactName(step.plan.ImageArtifactName))
 		if !found {
 			return runtime.ImageSpec{}, MissingTaskImageSourceError{step.plan.ImageArtifactName}
 		}
-		imageSpec.ImageVolume = volume
+		imageSpec.ImageArtifact = artifact
 
 		//an image_resource
 	} else if config.ImageResource != nil {
@@ -382,7 +382,7 @@ func (step *TaskStep) containerInputs(logger lager.Logger, repository *build.Rep
 			inputName = sourceName
 		}
 
-		volume, found := repository.ArtifactFor(build.ArtifactName(inputName))
+		artifact, found := repository.ArtifactFor(build.ArtifactName(inputName))
 		if !found {
 			if !input.Optional {
 				missingRequiredInputs = append(missingRequiredInputs, inputName)
@@ -390,7 +390,7 @@ func (step *TaskStep) containerInputs(logger lager.Logger, repository *build.Rep
 			continue
 		}
 		inputs = append(inputs, runtime.Input{
-			Volume:          volume,
+			Artifact:        artifact,
 			DestinationPath: artifactPath(metadata.WorkingDirectory, input.Name, input.Path),
 		})
 	}

@@ -37,13 +37,17 @@ func NewStreamer(cacheFactory db.ResourceCacheFactory, compression compression.C
 	}
 }
 
-func (s Streamer) Stream(ctx context.Context, src runtime.Volume, dst runtime.Volume) error {
-	logger := lagerctx.FromContext(ctx).Session("stream", lager.Data{
-		"from":        src.DBVolume().WorkerName(),
-		"from-volume": src.Handle(),
-		"to":          dst.DBVolume().WorkerName(),
-		"to-handle":   dst.Handle(),
-	})
+func (s Streamer) Stream(ctx context.Context, src runtime.Artifact, dst runtime.Volume) error {
+	loggerData := lager.Data{
+		"to":        dst.DBVolume().WorkerName(),
+		"to-handle": dst.Handle(),
+	}
+	srcVolume, isSrcVolume := src.(runtime.Volume)
+	if isSrcVolume {
+		loggerData["from"] = srcVolume.DBVolume().WorkerName()
+		loggerData["from-handle"] = srcVolume.Handle()
+	}
+	logger := lagerctx.FromContext(ctx).Session("stream", loggerData)
 	logger.Info("start")
 	defer logger.Info("end")
 
@@ -51,9 +55,14 @@ func (s Streamer) Stream(ctx context.Context, src runtime.Volume, dst runtime.Vo
 	if err != nil {
 		return err
 	}
+
+	if !isSrcVolume {
+		return nil
+	}
+
 	metric.Metrics.VolumesStreamed.Inc()
 
-	resourceCacheID := src.DBVolume().GetResourceCacheID()
+	resourceCacheID := srcVolume.DBVolume().GetResourceCacheID()
 	if atc.EnableCacheStreamedVolumes && resourceCacheID != 0 {
 		logger.Debug("initialize-streamed-resource-cache", lager.Data{"resource-cache-id": resourceCacheID})
 		usedResourceCache, found, err := s.resourceCacheFactory.FindResourceCacheByID(resourceCacheID)
@@ -64,15 +73,15 @@ func (s Streamer) Stream(ctx context.Context, src runtime.Volume, dst runtime.Vo
 		if !found {
 			logger.Info("stream-resource-cache-not-found-should-not-happen", lager.Data{
 				"resource-cache-id": resourceCacheID,
-				"volume":            src.Handle(),
+				"volume":            srcVolume.Handle(),
 			})
 			return StreamingResourceCacheNotFoundError{
-				Handle:          src.Handle(),
+				Handle:          srcVolume.Handle(),
 				ResourceCacheID: resourceCacheID,
 			}
 		}
 
-		err = dst.InitializeStreamedResourceCache(logger, usedResourceCache, src.DBVolume().WorkerName())
+		err = dst.InitializeStreamedResourceCache(logger, usedResourceCache, srcVolume.DBVolume().WorkerName())
 		if err != nil {
 			logger.Error("failed-to-init-resource-cache-on-dest-worker", err)
 			return err
@@ -83,7 +92,7 @@ func (s Streamer) Stream(ctx context.Context, src runtime.Volume, dst runtime.Vo
 	return nil
 }
 
-func (s Streamer) stream(ctx context.Context, src runtime.Volume, dst runtime.Volume) error {
+func (s Streamer) stream(ctx context.Context, src runtime.Artifact, dst runtime.Volume) error {
 	if !s.p2p.Enabled {
 		return s.streamThroughATC(ctx, src, dst)
 	}
@@ -99,12 +108,15 @@ func (s Streamer) stream(ctx context.Context, src runtime.Volume, dst runtime.Vo
 	return s.p2pStream(ctx, p2pSrc, p2pDst)
 }
 
-func (s Streamer) streamThroughATC(ctx context.Context, src runtime.Volume, dst runtime.Volume) error {
-	_, outSpan := tracing.StartSpan(ctx, "volume.StreamOut", tracing.Attrs{
-		"origin-volume": src.Handle(),
-		"origin-worker": src.DBVolume().WorkerName(),
-		"dest-worker":   dst.DBVolume().WorkerName(),
-	})
+func (s Streamer) streamThroughATC(ctx context.Context, src runtime.Artifact, dst runtime.Volume) error {
+	traceAttrs := tracing.Attrs{
+		"dest-worker": dst.DBVolume().WorkerName(),
+	}
+	if srcVolume, ok := src.(runtime.Volume); ok {
+		traceAttrs["origin-volume"] = srcVolume.Handle()
+		traceAttrs["origin-worker"] = srcVolume.DBVolume().WorkerName()
+	}
+	_, outSpan := tracing.StartSpan(ctx, "volume.StreamOut", traceAttrs)
 	defer outSpan.End()
 	out, err := src.StreamOut(ctx, ".", s.compression)
 
@@ -128,9 +140,9 @@ func (s Streamer) p2pStream(ctx context.Context, src runtime.P2PVolume, dst runt
 	}
 
 	_, outSpan := tracing.StartSpan(ctx, "volume.P2pStreamOut", tracing.Attrs{
-		"origin-volume": src.(runtime.Volume).Handle(),
-		"origin-worker": src.(runtime.Volume).DBVolume().WorkerName(),
-		"dest-worker":   dst.(runtime.Volume).DBVolume().WorkerName(),
+		"origin-volume": src.Handle(),
+		"origin-worker": src.DBVolume().WorkerName(),
+		"dest-worker":   dst.DBVolume().WorkerName(),
 		"stream-in-url": streamInUrl,
 	})
 	defer outSpan.End()
@@ -145,8 +157,8 @@ func (s Streamer) p2pStream(ctx context.Context, src runtime.P2PVolume, dst runt
 	return src.StreamP2POut(putCtx, ".", streamInUrl, s.compression)
 }
 
-func (s Streamer) StreamFile(ctx context.Context, volume runtime.Volume, path string) (io.ReadCloser, error) {
-	out, err := volume.StreamOut(ctx, path, s.compression)
+func (s Streamer) StreamFile(ctx context.Context, artifact runtime.Artifact, path string) (io.ReadCloser, error) {
+	out, err := artifact.StreamOut(ctx, path, s.compression)
 	if err != nil {
 		return nil, err
 	}

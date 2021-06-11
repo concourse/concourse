@@ -17,7 +17,7 @@ import (
 )
 
 var _ = Describe("Streamer", func() {
-	Test("stream through ATC", func() {
+	Test("stream volume through ATC", func() {
 		content := runtimetest.VolumeContent{
 			"file1":        {Data: []byte("content 1")},
 			"folder/file2": {Data: []byte("content 2")},
@@ -47,6 +47,35 @@ var _ = Describe("Streamer", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		Expect(baggageclaimVolume(dst)).To(grt.HaveContent(content))
+	})
+
+	Test("stream artifact through ATC", func() {
+		artifact := runtimetest.Artifact{
+			Content: runtimetest.VolumeContent{
+				"file1":        {Data: []byte("content 1")},
+				"folder/file2": {Data: []byte("content 2")},
+			},
+		}
+		scenario := Setup(
+			workertest.WithWorkers(
+				grt.NewWorker("dst-worker").
+					WithVolumesCreatedInDBAndBaggageclaim(
+						grt.NewVolume("dst"),
+					),
+			),
+		)
+
+		streamer := scenario.Streamer(worker.P2PConfig{
+			Enabled: false,
+		})
+
+		ctx := context.Background()
+		dst := scenario.WorkerVolume("dst-worker", "dst")
+
+		err := streamer.Stream(ctx, artifact, dst)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(baggageclaimVolume(dst)).To(grt.HaveContent(artifact.Content))
 	})
 
 	Test("stream a resource cache volume", func() {
@@ -179,7 +208,7 @@ var _ = Describe("Streamer", func() {
 		Expect(baggageclaimVolume(dst)).To(grt.HaveContent(content))
 	})
 
-	Test("stream file from artifact", func() {
+	Test("stream file from volume", func() {
 		content := runtimetest.VolumeContent{
 			"file":        {Data: []byte("content 1")},
 			"folder/file": {Data: []byte("content 2")},
@@ -201,6 +230,27 @@ var _ = Describe("Streamer", func() {
 		src := scenario.WorkerVolume("src-worker", "src")
 
 		stream, err := streamer.StreamFile(ctx, src, "folder/file")
+		Expect(err).ToNot(HaveOccurred())
+
+		fileContent, err := ioutil.ReadAll(stream)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(fileContent).To(Equal([]byte("content 2")))
+	})
+
+	Test("stream file from artifact", func() {
+		artifact := runtimetest.Artifact{
+			Content: runtimetest.VolumeContent{
+				"file":        {Data: []byte("content 1")},
+				"folder/file": {Data: []byte("content 2")},
+			},
+		}
+		streamer := Setup().Streamer(worker.P2PConfig{
+			Enabled: false,
+		})
+
+		ctx := context.Background()
+		stream, err := streamer.StreamFile(ctx, artifact, "folder/file")
 		Expect(err).ToNot(HaveOccurred())
 
 		fileContent, err := ioutil.ReadAll(stream)

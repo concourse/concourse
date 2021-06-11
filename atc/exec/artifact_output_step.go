@@ -9,6 +9,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec/build"
+	"github.com/concourse/concourse/atc/runtime"
 )
 
 type ArtifactNotFoundError struct {
@@ -17,6 +18,14 @@ type ArtifactNotFoundError struct {
 
 func (e ArtifactNotFoundError) Error() string {
 	return fmt.Sprintf("artifact '%s' not found", e.ArtifactName)
+}
+
+type ArtifactNotVolumeError struct {
+	ArtifactName string
+}
+
+func (e ArtifactNotVolumeError) Error() string {
+	return fmt.Sprintf("artifact '%s' is not a volume", e.ArtifactName)
 }
 
 type ArtifactOutputStep struct {
@@ -40,9 +49,14 @@ func (step *ArtifactOutputStep) Run(ctx context.Context, state RunState) (bool, 
 
 	outputName := step.plan.ArtifactOutput.Name
 
-	volume, found := state.ArtifactRepository().ArtifactFor(build.ArtifactName(outputName))
+	artifact, found := state.ArtifactRepository().ArtifactFor(build.ArtifactName(outputName))
 	if !found {
 		return false, ArtifactNotFoundError{outputName}
+	}
+
+	volume, ok := artifact.(runtime.Volume)
+	if !ok {
+		return false, ArtifactNotVolumeError{outputName}
 	}
 
 	dbWorkerArtifact, err := volume.DBVolume().InitializeArtifact(outputName, step.build.ID())

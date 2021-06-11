@@ -140,14 +140,20 @@ func (strategy volumeLocalityStrategy) Order(logger lager.Logger, pool Pool, wor
 	counts := make(map[string]int, len(workers))
 
 	for _, input := range spec.Inputs {
+		volume, ok := input.Artifact.(runtime.Volume)
+		if !ok {
+			// Non-volume artifacts don't live on workers, so don't affect
+			// volume locality decisions.
+			continue
+		}
 		logger := logger.WithData(lager.Data{
-			"handle": input.Volume.Handle(),
+			"handle": volume.Handle(),
 			"path":   input.DestinationPath,
 		})
-		srcWorker := input.Volume.DBVolume().WorkerName()
+		srcWorker := volume.DBVolume().WorkerName()
 		counts[srcWorker]++
 
-		resourceCacheID := input.Volume.DBVolume().GetResourceCacheID()
+		resourceCacheID := volume.DBVolume().GetResourceCacheID()
 		if resourceCacheID == 0 {
 			logger.Debug("resource-not-cached")
 			continue

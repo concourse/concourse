@@ -82,5 +82,5 @@ type Pool interface {
 //go:generate counterfeiter . Streamer
 
 type Streamer interface {
-	StreamFile(ctx context.Context, volume runtime.Volume, path string) (io.ReadCloser, error)
+	StreamFile(ctx context.Context, artifact runtime.Artifact, path string) (io.ReadCloser, error)
 }

@@ -11,11 +11,11 @@ import (
 )
 
 type FakeStreamer struct {
-	StreamFileStub        func(context.Context, runtime.Volume, string) (io.ReadCloser, error)
+	StreamFileStub        func(context.Context, runtime.Artifact, string) (io.ReadCloser, error)
 	streamFileMutex       sync.RWMutex
 	streamFileArgsForCall []struct {
 		arg1 context.Context
-		arg2 runtime.Volume
+		arg2 runtime.Artifact
 		arg3 string
 	}
 	streamFileReturns struct {
@@ -30,12 +30,12 @@ type FakeStreamer struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeStreamer) StreamFile(arg1 context.Context, arg2 runtime.Volume, arg3 string) (io.ReadCloser, error) {
+func (fake *FakeStreamer) StreamFile(arg1 context.Context, arg2 runtime.Artifact, arg3 string) (io.ReadCloser, error) {
 	fake.streamFileMutex.Lock()
 	ret, specificReturn := fake.streamFileReturnsOnCall[len(fake.streamFileArgsForCall)]
 	fake.streamFileArgsForCall = append(fake.streamFileArgsForCall, struct {
 		arg1 context.Context
-		arg2 runtime.Volume
+		arg2 runtime.Artifact
 		arg3 string
 	}{arg1, arg2, arg3})
 	stub := fake.StreamFileStub
@@ -57,13 +57,13 @@ func (fake *FakeStreamer) StreamFileCallCount() int {
 	return len(fake.streamFileArgsForCall)
 }
 
-func (fake *FakeStreamer) StreamFileCalls(stub func(context.Context, runtime.Volume, string) (io.ReadCloser, error)) {
+func (fake *FakeStreamer) StreamFileCalls(stub func(context.Context, runtime.Artifact, string) (io.ReadCloser, error)) {
 	fake.streamFileMutex.Lock()
 	defer fake.streamFileMutex.Unlock()
 	fake.StreamFileStub = stub
 }
 
-func (fake *FakeStreamer) StreamFileArgsForCall(i int) (context.Context, runtime.Volume, string) {
+func (fake *FakeStreamer) StreamFileArgsForCall(i int) (context.Context, runtime.Artifact, string) {
 	fake.streamFileMutex.RLock()
 	defer fake.streamFileMutex.RUnlock()
 	argsForCall := fake.streamFileArgsForCall[i]
