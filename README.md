@@ -159,7 +159,7 @@ Concourse instance to the next.
 * The [Concourse Tutorial](https://concoursetutorial.com) by Stark & Wayne is
   great for a guided introduction to all the core concepts.
 * See Concourse in action with our [production pipelines](https://ci.concourse-ci.org/)
-* Hang around in the [forums](https://discuss.concourse-ci.org) or in
+* Hang around in the [GitHub discussions](https://github.com/concourse/concourse/discussions) or in
   [Discord](https://discord.gg/MeRxXKW).
 * See what we're working on on the [project board](https://github.com/orgs/concourse/projects). 
 
