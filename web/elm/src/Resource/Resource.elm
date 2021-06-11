@@ -375,9 +375,21 @@ handleCallback callback session ( model, effects ) =
 
                         Nothing ->
                             startingPage
+
+                vri vr =
+                    Concourse.toVersionedResourceId model.resourceIdentifier vr
             in
             ( { model | currentPage = page }
             , effects
+                ++ (case versionedResource of
+                        Just vr ->
+                            [ FetchInputTo <| vri vr
+                            , FetchOutputOf <| vri vr
+                            ]
+
+                        Nothing ->
+                            []
+                   )
                 ++ [ FetchVersionedResources model.resourceIdentifier page
                    ]
             )

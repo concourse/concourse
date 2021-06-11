@@ -339,16 +339,20 @@ all =
                 initWithVersion =
                     initQuery "filter=version:v2"
             in
-            [ describe "when the version is valid"
+            [ describe "when the version is valid" <|
+                let
+                    givenVersionIsValid =
+                        Application.handleCallback
+                            (Callback.VersionedResourceIdFetched
+                                (Ok
+                                    (Just <| Data.versionedResource otherVersion 42)
+                                )
+                            )
+                in
                 [ test "it navigates to that page" <|
                     \_ ->
                         initWithVersion
-                            |> Application.handleCallback
-                                (Callback.VersionedResourceIdFetched
-                                    (Ok
-                                        (Just <| Data.versionedResource otherVersion 42)
-                                    )
-                                )
+                            |> givenVersionIsValid
                             |> Tuple.second
                             |> Common.contains
                                 (Effects.FetchVersionedResources Data.resourceId
@@ -356,21 +360,21 @@ all =
                                     , limit = 100
                                     }
                                 )
-                , test "it expands the correct version" <|
-                    let
-                        givenVersionIsValid =
-                            Application.handleCallback
-                                (Callback.VersionedResourceIdFetched
-                                    (Ok
-                                        (Just <| Data.versionedResource otherVersion 42)
-                                    )
-                                )
-                                >> Tuple.first
-                    in
+                , test "it fetches the inputs (and outputs) right away" <|
                     \_ ->
                         initWithVersion
                             |> givenResourceIsNotPinned
                             |> givenVersionIsValid
+                            |> Tuple.second
+                            -- if FetchInputTo is there, we can assume FetchOutputOf is there as well
+                            |> Common.contains
+                                (Effects.FetchInputTo <| Data.resourceVersionId 42)
+                , test "it expands the correct version" <|
+                    \_ ->
+                        initWithVersion
+                            |> givenResourceIsNotPinned
+                            |> givenVersionIsValid
+                            |> Tuple.first
                             |> Application.handleCallback
                                 (Callback.VersionedResourcesFetched
                                     (Ok
