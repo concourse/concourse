@@ -10,7 +10,7 @@ import (
 func TestUpgrade(t *testing.T) {
 	t.Parallel()
 
-	latestDC := dctest.Init(t, "../docker-compose.yml", "overrides/latest.yml")
+	latestDC := dctest.Init(t, "../docker-compose.yml", "overrides/named.yml", "overrides/latest.yml")
 
 	t.Run("deploy latest", func(t *testing.T) {
 		latestDC.Run(t, "up", "-d")
@@ -19,7 +19,7 @@ func TestUpgrade(t *testing.T) {
 	fly := flytest.Init(t, latestDC)
 	setupUpgradeDowngrade(t, fly)
 
-	devDC := dctest.Init(t, "../docker-compose.yml")
+	devDC := dctest.Init(t, "../docker-compose.yml", "overrides/named.yml")
 
 	t.Run("upgrade to dev", func(t *testing.T) {
 		devDC.Run(t, "up", "-d")
