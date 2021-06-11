@@ -8,6 +8,7 @@ export function renderCausality(dot){
   graphviz.graphviz.layout(dot, "svg", "dot").then(content => {
     svg.html(content);
 
+    // disable tooltips that graphviz auto-generates
     svg.selectAll('title').remove();
     svg.selectAll('*').attr('xlink:title', null);
 

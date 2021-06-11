@@ -53,20 +53,6 @@ WITH RECURSIVE build_ids AS (
 		WHERE i.resource_id!=$1
 )
 `
-	inputQuery = `
-	SELECT r.id, rcv.id, r.name, rcv.version, i.build_id, 'input' AS type
-	FROM build_resource_config_version_inputs i
-	JOIN resources r ON r.id = i.resource_id
-	JOIN resource_config_versions rcv ON rcv.version_md5 = i.version_md5 AND rcv.resource_config_scope_id = r.resource_config_scope_id
-	JOIN build_ids bi ON i.build_id = bi.build_id
-	`
-	outputQuery = `
-	SELECT r.id, rcv.id, r.name, rcv.version, o.build_id, 'output' AS type
-	FROM build_resource_config_version_outputs o
-	JOIN resources r ON r.id = o.resource_id
-	JOIN resource_config_versions rcv ON rcv.version_md5 = o.version_md5 AND rcv.resource_config_scope_id = r.resource_config_scope_id
-	JOIN build_ids bi ON o.build_id = bi.build_id
-`
 )
 
 //counterfeiter:generate . Resource
@@ -1093,10 +1079,6 @@ func causalityResourceVersions(tx Tx, resourceID int, versionMD5 string, directi
 	buildAsChild := func(rv *atc.CausalityResourceVersion, build *atc.CausalityBuild) {
 		if !contains(build.ResourceVersionIDs, rv.ID) { // in case a build outputs the same resource multiple times
 			build.ResourceVersionIDs = append(build.ResourceVersionIDs, rv.ID)
-		}
-
-		if used, found := resourceHasParent[rv.ResourceID]; !used || !found {
-			resourceHasParent[rv.ResourceID] = false
 		}
 	}
 	resourceVersionAsChild := func(rv *atc.CausalityResourceVersion, build *atc.CausalityBuild) {
