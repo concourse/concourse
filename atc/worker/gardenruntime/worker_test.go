@@ -169,21 +169,29 @@ var _ = Describe("Garden Worker", func() {
 
 			Eventually(gardenContainer(container).NumProcesses).Should(Equal(1))
 
-			By("attaching to the running process", func() {
-				attachBuf := new(bytes.Buffer)
-				attachProcess, err := container.Attach(ctx, "process", runtime.ProcessIO{Stdout: attachBuf})
+			By("attaching to the running process multiple times", func() {
+				attachBuf1 := new(bytes.Buffer)
+				attachProcess1, err := container.Attach(ctx, "process", runtime.ProcessIO{Stdout: attachBuf1})
+				Expect(err).ToNot(HaveOccurred())
+
+				attachBuf2 := new(bytes.Buffer)
+				attachProcess2, err := container.Attach(ctx, "process", runtime.ProcessIO{Stdout: attachBuf2})
 				Expect(err).ToNot(HaveOccurred())
 
 				runResult, err := runProcess.Wait(ctx)
 				Expect(err).ToNot(HaveOccurred())
-				attachResult, err := attachProcess.Wait(ctx)
+				attachResult1, err := attachProcess1.Wait(ctx)
+				Expect(err).ToNot(HaveOccurred())
+				attachResult2, err := attachProcess2.Wait(ctx)
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(runResult.ExitStatus).To(Equal(0))
-				Expect(attachResult.ExitStatus).To(Equal(0))
+				Expect(attachResult1.ExitStatus).To(Equal(0))
+				Expect(attachResult2.ExitStatus).To(Equal(0))
 
 				Expect(runBuf.String()).To(Equal("hello world\n"))
-				Expect(attachBuf.String()).To(Equal("hello world\n"))
+				Expect(attachBuf1.String()).To(Equal("hello world\n"))
+				Expect(attachBuf2.String()).To(Equal("hello world\n"))
 			})
 		})
 
