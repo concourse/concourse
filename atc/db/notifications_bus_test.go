@@ -217,6 +217,17 @@ var _ = Describe("NotificationBus", func() {
 					Eventually(b).Should(Receive(Equal(false)))
 				})
 			})
+
+			Context("when one of the listeners unlistens", func() {
+				BeforeEach(func() {
+					bus.Unlisten("some-channel", a)
+				})
+
+				It("should still send notifications to the other listeners", func() {
+					c <- &pq.Notification{Channel: "some-channel"}
+					Eventually(b).Should(Receive(Equal(true)))
+				})
+			})
 		})
 
 		Context("when there are multiple listeners on different channels", func() {

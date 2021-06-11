@@ -168,6 +168,11 @@ func (m *notificationsMap) unregister(channel string, notify chan bool) {
 	defer m.Unlock()
 
 	delete(m.notifications[channel], notify)
+
+	// Note: we don't call empty since we already acquired the lock.
+	if len(m.notifications[channel]) == 0 {
+		delete(m.notifications, channel)
+	}
 }
 
 func (m *notificationsMap) each(f func(chan bool)) {
