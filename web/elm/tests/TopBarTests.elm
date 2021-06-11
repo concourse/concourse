@@ -652,6 +652,14 @@ all =
                 , it "does not appear clickable" <|
                     Query.hasNot [ style "cursor" "pointer" ]
                 ]
+            , it "last breadcrumb has text overflow and ellipsis" <|
+                Query.find [ id "breadcrumbs" ]
+                    >> Query.children []
+                    >> Query.index -1
+                    >> Query.has
+                        [ style "overflow" "hidden"
+                        , style "flex" "1"
+                        ]
             ]
         , rspecStyleDescribe
             "when on build page for an instanced pipeline"
@@ -741,6 +749,14 @@ all =
                             Attr.href
                                 "/teams/team/pipelines/pipeline/resources/resource"
                         ]
+            , it "last breadcrumb has text overflow and ellipsis" <|
+                Query.find [ id "breadcrumbs" ]
+                    >> Query.children []
+                    >> Query.index -1
+                    >> Query.has
+                        [ style "overflow" "hidden"
+                        , style "flex" "1"
+                        ]
             ]
         , rspecStyleDescribe
             "when on resource page for an instanced pipeline"
@@ -818,6 +834,14 @@ all =
                             Attr.href
                                 "/teams/team/pipelines/pipeline/resources/resource?filter=ver%3A1"
                         ]
+            , it "last breadcrumb has text overflow and ellipsis" <|
+                Query.find [ id "breadcrumbs" ]
+                    >> Query.children []
+                    >> Query.index -1
+                    >> Query.has
+                        [ style "overflow" "hidden"
+                        , style "flex" "1"
+                        ]
             ]
         , rspecStyleDescribe "rendering top bar on job page"
             (Common.init "/teams/team/pipelines/pipeline/jobs/job"
@@ -848,6 +872,14 @@ all =
                             >> Query.has [ class "breadcrumb-separator" ]
                         , Query.index 0 >> Query.has [ id "breadcrumb-pipeline" ]
                         , Query.index 2 >> Query.has [ id "breadcrumb-job" ]
+                        ]
+            , it "last breadcrumb has text overflow and ellipsis" <|
+                Query.find [ id "breadcrumbs" ]
+                    >> Query.children []
+                    >> Query.index -1
+                    >> Query.has
+                        [ style "overflow" "hidden"
+                        , style "flex" "1"
                         ]
             ]
         , rspecStyleDescribe

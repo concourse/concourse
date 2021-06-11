@@ -559,7 +559,7 @@ all =
                         |> Query.find [ id "breadcrumbs" ]
                         |> Query.children []
                         |> Query.each
-                            (Query.has [ style "display" "inline-block" ])
+                            (Query.has [ style "display" "inline-flex" ])
             , describe "top bar positioning"
                 [ testTopBarPositioning "Dashboard" "/"
                 , testTopBarPositioning "Pipeline" "/teams/team/pipelines/pipeline"
