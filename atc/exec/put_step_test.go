@@ -273,6 +273,7 @@ var _ = Describe("PutStep", func() {
 				worker.WorkerSpec{
 					ResourceType: "some-resource-type",
 					TeamID:       stepMetadata.TeamID,
+					TeamName:     "some-team",
 				},
 			))
 		})
@@ -500,6 +501,7 @@ var _ = Describe("PutStep", func() {
 
 			Expect(workerSpec).To(Equal(worker.WorkerSpec{
 				TeamID:       stepMetadata.TeamID,
+				TeamName:     "some-team",
 				ResourceType: "registry-image",
 			}))
 		})
