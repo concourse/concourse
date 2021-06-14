@@ -145,5 +145,59 @@ job-2: concourse.check %s main some-pipeline/branch:master job-2
 				})
 			})
 		})
+
+		Context("when a team name is specified alongwith pipeline name", func() {
+			JustBeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/teams/other-team"),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{
+							Name: "other-team",
+						}),
+					),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/teams/other-team/pipelines/some-pipeline/config"),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, atc.ConfigResponse{Config: config}, http.Header{atc.ConfigVersionHeader: {"42"}}),
+					),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("PUT", "/api/v1/teams/other-team/pipelines/some-pipeline/config"),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, atc.ConfigResponse{Config: config}, http.Header{atc.ConfigVersionHeader: {"42"}}),
+					),
+				)
+			})
+
+			Context("when there are no groups", func() {
+				BeforeEach(func() {
+					config = atc.Config{
+						Jobs: atc.JobConfigs{
+							{
+								Name: "job-1",
+							},
+							{
+								Name: "job-2",
+							},
+						},
+					}
+
+				})
+
+				It("prints the config as yaml to stdout, and uses the pipeline name as header", func() {
+					flyCmd := exec.Command(flyPath, "-t", targetName, "checklist", "-p", "some-pipeline/branch:master", "--team", "other-team")
+
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+
+					<-sess.Exited
+					Expect(sess.ExitCode()).To(Equal(0))
+
+					Expect(string(sess.Out.Contents())).To(Equal(fmt.Sprintf(
+						`#- some-pipeline/branch:master
+job-1: concourse.check %s other-team some-pipeline/branch:master job-1
+job-2: concourse.check %s other-team some-pipeline/branch:master job-2
+
+`, atcServer.URL(), atcServer.URL())))
+				})
+			})
+		})
 	})
 })
