@@ -86,17 +86,6 @@ type FakeWorkerProvider struct {
 	newGardenWorkerReturnsOnCall map[int]struct {
 		result1 worker.Worker
 	}
-	GetTeamByIDStub        func(int) (string)
-	getTeamByIDMutex       sync.RWMutex
-	getTeamByIDArgsForCall []struct {
-		arg1 int
-	}
-	getTeamByIDReturns struct {
-		result1 string
-	}
-	getTeamByIDReturnsOnCall map[int]struct {
-		result1 string
-	}
 	RunningWorkersStub        func(lager.Logger) ([]worker.Worker, error)
 	runningWorkersMutex       sync.RWMutex
 	runningWorkersArgsForCall []struct {
@@ -510,67 +499,6 @@ func (fake *FakeWorkerProvider) RunningWorkersReturnsOnCall(i int, result1 []wor
 	}{result1, result2}
 }
 
-func (fake *FakeWorkerProvider) GetTeamByID(arg1 int) (string) {
-	fake.getTeamByIDMutex.Lock()
-	ret, specificReturn := fake.getTeamByIDReturnsOnCall[len(fake.getTeamByIDArgsForCall)]
-	fake.getTeamByIDArgsForCall = append(fake.getTeamByIDArgsForCall, struct {
-		arg1 int
-	}{arg1})
-	stub := fake.GetTeamByIDStub
-	fakeReturns := fake.getTeamByIDReturns
-	fake.recordInvocation("GetTeamByID", []interface{}{arg1})
-	fake.getTeamByIDMutex.Unlock()
-	if stub != nil {
-		return stub(arg1)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fakeReturns.result1
-}
-
-func (fake *FakeWorkerProvider) GetTeamByIDCallCount() int {
-	fake.getTeamByIDMutex.RLock()
-	defer fake.getTeamByIDMutex.RUnlock()
-	return len(fake.getTeamByIDArgsForCall)
-}
-
-func (fake *FakeWorkerProvider) GetTeamByIDCalls(stub func(int) (string)) {
-	fake.getTeamByIDMutex.Lock()
-	defer fake.getTeamByIDMutex.Unlock()
-	fake.GetTeamByIDStub = stub
-}
-
-func (fake *FakeWorkerProvider) GetTeamByIDForCall(i int) int {
-	fake.getTeamByIDMutex.RLock()
-	defer fake.getTeamByIDMutex.RUnlock()
-	argsForCall := fake.getTeamByIDArgsForCall[i]
-	return argsForCall.arg1
-}
-
-func (fake *FakeWorkerProvider) GetTeamByIDReturns(result1 string) {
-	fake.getTeamByIDMutex.Lock()
-	defer fake.getTeamByIDMutex.Unlock()
-	fake.GetTeamByIDStub = nil
-	fake.getTeamByIDReturns = struct {
-		result1 string
-	}{result1}
-}
-
-func (fake *FakeWorkerProvider) GetTeamByIDReturnsOnCall(i int, result1 string) {
-	fake.getTeamByIDMutex.Lock()
-	defer fake.getTeamByIDMutex.Unlock()
-	fake.GetTeamByIDStub = nil
-	if fake.getTeamByIDReturnsOnCall == nil {
-		fake.getTeamByIDReturnsOnCall = make(map[int]struct {
-			result1 string
-		})
-	}
-	fake.getTeamByIDReturnsOnCall[i] = struct {
-		result1 string
-	}{result1}
-}
-
 func (fake *FakeWorkerProvider) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -586,8 +514,6 @@ func (fake *FakeWorkerProvider) Invocations() map[string][][]interface{} {
 	defer fake.newGardenWorkerMutex.RUnlock()
 	fake.runningWorkersMutex.RLock()
 	defer fake.runningWorkersMutex.RUnlock()
-	fake.getTeamByIDMutex.RLock()
-	defer fake.getTeamByIDMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
