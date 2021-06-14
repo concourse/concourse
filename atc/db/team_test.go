@@ -815,7 +815,7 @@ var _ = Describe("Team", func() {
 			StartTime: 55,
 		}
 
-		var urc db.UsedResourceCache
+		var urc db.ResourceCache
 
 		BeforeEach(func() {
 			_, err := workerFactory.SaveWorker(atcWorker, 0)
@@ -832,7 +832,7 @@ var _ = Describe("Team", func() {
 					"some": "source",
 				},
 				atc.Params{"some": "params"},
-				atc.VersionedResourceTypes{},
+				nil,
 			)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -3532,27 +3532,36 @@ var _ = Describe("Team", func() {
 			build, err := defaultJob.CreateBuild("some-user")
 			Expect(err).ToNot(HaveOccurred())
 
-			rt, err := scenario.Pipeline.ResourceTypes()
-			Expect(err).ToNot(HaveOccurred())
+			go loopUntilTimeoutOrPanic("check resource type", func(i int) {
+				scenario.Run(
+					builder.WithResourceTypeVersions("some-resource-type", atc.Version{"foo": strconv.Itoa(i / 10)}),
+				)
+			})()
 
 			go loopUntilTimeoutOrPanic("get resource", func(i int) {
-				_, err := resourceCacheFactory.FindOrCreateResourceCache(
+				customResourceTypeCache, err := resourceCacheFactory.FindOrCreateResourceCache(
+					db.ForBuild(build.ID()),
+					dbtest.BaseResourceType,
+					atc.Version{"foo": strconv.Itoa(i / 10)},
+					atc.Source{"foo": "bar"},
+					atc.Params{},
+					nil,
+				)
+				if err != nil {
+					panic(err)
+				}
+
+				_, err = resourceCacheFactory.FindOrCreateResourceCache(
 					db.ForBuild(build.ID()),
 					resource.Type(),
 					atc.Version{"v": strconv.Itoa(i / 10)},
 					resource.Source(),
 					atc.Params{},
-					rt.Deserialize(),
+					customResourceTypeCache,
 				)
 				if err != nil {
 					panic(err)
 				}
-			})()
-
-			go loopUntilTimeoutOrPanic("check resource type", func(i int) {
-				scenario.Run(
-					builder.WithResourceTypeVersions("some-resource-type", atc.Version{"foo": strconv.Itoa(i / 10)}),
-				)
 			})()
 
 			go func() {

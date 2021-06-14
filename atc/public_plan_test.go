@@ -4,6 +4,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/format"
 )
 
 var _ = Describe("Plan", func() {
@@ -537,9 +538,19 @@ var _ = Describe("Plan", func() {
 								FailFast:        true,
 							},
 						},
+						{
+							ID: "42",
+							LoadVar: &atc.LoadVarPlan{
+								Name:   "some-name",
+								File:   "some-file",
+								Format: "some-format",
+								Reveal: true,
+							},
+						},
 					},
 				},
 			}
+			format.MaxLength = 999999
 
 			json := plan.Public()
 			Expect(json).ToNot(BeNil())

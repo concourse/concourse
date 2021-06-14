@@ -106,10 +106,10 @@ type FakeVolume struct {
 	initializeResourceCacheReturnsOnCall map[int]struct {
 		result1 error
 	}
-	InitializeStreamedResourceCacheStub        func(db.UsedResourceCache, string) error
+	InitializeStreamedResourceCacheStub        func(db.ResourceCache, string) error
 	initializeStreamedResourceCacheMutex       sync.RWMutex
 	initializeStreamedResourceCacheArgsForCall []struct {
-		arg1 db.UsedResourceCache
+		arg1 db.ResourceCache
 		arg2 string
 	}
 	initializeStreamedResourceCacheReturns struct {
@@ -703,11 +703,11 @@ func (fake *FakeVolume) InitializeResourceCacheReturnsOnCall(i int, result1 erro
 	}{result1}
 }
 
-func (fake *FakeVolume) InitializeStreamedResourceCache(arg1 db.UsedResourceCache, arg2 string) error {
+func (fake *FakeVolume) InitializeStreamedResourceCache(arg1 db.ResourceCache, arg2 string) error {
 	fake.initializeStreamedResourceCacheMutex.Lock()
 	ret, specificReturn := fake.initializeStreamedResourceCacheReturnsOnCall[len(fake.initializeStreamedResourceCacheArgsForCall)]
 	fake.initializeStreamedResourceCacheArgsForCall = append(fake.initializeStreamedResourceCacheArgsForCall, struct {
-		arg1 db.UsedResourceCache
+		arg1 db.ResourceCache
 		arg2 string
 	}{arg1, arg2})
 	stub := fake.InitializeStreamedResourceCacheStub
@@ -729,13 +729,13 @@ func (fake *FakeVolume) InitializeStreamedResourceCacheCallCount() int {
 	return len(fake.initializeStreamedResourceCacheArgsForCall)
 }
 
-func (fake *FakeVolume) InitializeStreamedResourceCacheCalls(stub func(db.UsedResourceCache, string) error) {
+func (fake *FakeVolume) InitializeStreamedResourceCacheCalls(stub func(db.ResourceCache, string) error) {
 	fake.initializeStreamedResourceCacheMutex.Lock()
 	defer fake.initializeStreamedResourceCacheMutex.Unlock()
 	fake.InitializeStreamedResourceCacheStub = stub
 }
 
-func (fake *FakeVolume) InitializeStreamedResourceCacheArgsForCall(i int) (db.UsedResourceCache, string) {
+func (fake *FakeVolume) InitializeStreamedResourceCacheArgsForCall(i int) (db.ResourceCache, string) {
 	fake.initializeStreamedResourceCacheMutex.RLock()
 	defer fake.initializeStreamedResourceCacheMutex.RUnlock()
 	argsForCall := fake.initializeStreamedResourceCacheArgsForCall[i]

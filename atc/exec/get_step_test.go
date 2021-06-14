@@ -196,9 +196,8 @@ var _ = Describe("GetStep", func() {
 			var version atc.Version
 
 			BeforeEach(func() {
-				version = atc.Version{"some": "version"}
 				fakeState.ResultStub = func(id atc.PlanID, to interface{}) bool {
-					to = version
+					to = &version
 					return true
 				}
 			})
@@ -618,9 +617,9 @@ var _ = Describe("GetStep", func() {
 
 		It("stores the resource cache as the step result", func() {
 			Expect(fakeState.StoreResultCallCount()).To(Equal(1))
-			actualPlanID, actualCache := fakeState.StoreResultArgsForCall(0)
+			actualPlanID, actualGetResult := fakeState.StoreResultArgsForCall(0)
 			Expect(actualPlanID).To(Equal(atc.PlanID(planID)))
-			Expect(actualCache).To(Equal(fakeResourceCache))
+			Expect(actualGetResult).To(Equal(exec.GetResult{Name: getPlan.Name, ResourceCache: fakeResourceCache}))
 		})
 
 		It("marks the step as succeeded", func() {

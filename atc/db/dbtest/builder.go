@@ -839,18 +839,16 @@ func md5Version(version atc.Version) string {
 }
 
 func (builder Builder) createResourceCache(buildID int, resourceType db.ResourceType, resourceTypes db.ResourceTypes) (db.ResourceCache, error) {
-	if len(resourceTypes) == 0 {
-		return nil, nil
-	}
-
-	parentResourceType, _ := resourceTypes.Parent(resourceType)
-	if resourceType == nil {
-		return nil, nil
-	}
-
-	imageResourceCache, err := builder.createResourceCache(buildID, parentResourceType, resourceTypes.Without(parentResourceType.Name()))
-	if err != nil {
-		return nil, err
+	var imageResourceCache db.ResourceCache
+	if resourceTypes != nil {
+		parentResourceType, found := resourceTypes.Parent(resourceType)
+		if found {
+			var err error
+			imageResourceCache, err = builder.createResourceCache(buildID, parentResourceType, resourceTypes.Without(parentResourceType.Name()))
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	return builder.ResourceCacheFactory.FindOrCreateResourceCache(db.ForBuild(buildID), resourceType.Type(), atc.Version{"custom-type": "version"}, resourceType.Source(), resourceType.Params(), imageResourceCache)

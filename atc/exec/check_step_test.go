@@ -105,10 +105,9 @@ var _ = Describe("CheckStep", func() {
 		fakeDelegateFactory.CheckDelegateReturns(fakeDelegate)
 
 		checkPlan = atc.CheckPlan{
-			Name:    "some-name",
-			Type:    "some-base-type",
-			Source:  atc.Source{"some": "((source-var))"},
-			Timeout: "10s",
+			Name:   "some-name",
+			Type:   "some-base-type",
+			Source: atc.Source{"some": "((source-var))"},
 			TypeImage: atc.TypeImage{
 				BaseType: "some-base-type",
 			},

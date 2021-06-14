@@ -108,7 +108,6 @@ var _ = Describe("BuildStepDelegate", func() {
 		var fetchErr error
 		var resourceCache db.ResourceCache
 
-		var childState *execfakes.FakeRunState
 		var runPlans []atc.Plan
 		var stepper exec.Stepper
 		var parentRunState exec.RunState
@@ -160,8 +159,6 @@ var _ = Describe("BuildStepDelegate", func() {
 			parentRunState = exec.NewRunState(stepper, nil, true)
 
 			privileged = false
-
-			childState.RunReturns(true, nil)
 
 			fakeSource = new(workerfakes.FakeStreamableArtifactSource)
 			fakeArtifactSourcer.SourceImageReturns(fakeSource, nil)
@@ -353,9 +350,7 @@ var _ = Describe("BuildStepDelegate", func() {
 						BeforeEach(func() {
 							expectedGetPlan.Get.Source = atc.Source{"some": "super-secret-source"}
 
-							runState.IterateInterpolatedCredsStub = func(iter vars.TrackedVarsIterator) {
-								iter.YieldCred("source-var", "super-secret-source")
-							}
+							parentRunState.AddLocalVar("source-var", "super-secret-source", true)
 						})
 
 						It("redacts the value prior to checking", func() {

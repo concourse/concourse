@@ -318,10 +318,10 @@ var _ = Describe("StreamableArtifactSource", func() {
 				})
 
 				Context("when source resource cache is found", func() {
-					var fakeUrc *dbfakes.FakeUsedResourceCache
+					var fakeUrc *dbfakes.FakeResourceCache
 
 					BeforeEach(func() {
-						fakeUrc = new(dbfakes.FakeUsedResourceCache)
+						fakeUrc = new(dbfakes.FakeResourceCache)
 						fakeResourceCacheFactory.FindResourceCacheByIDReturns(fakeUrc, true, nil)
 					})
 

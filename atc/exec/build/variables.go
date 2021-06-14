@@ -40,6 +40,19 @@ func (v *Variables) Get(ref vars.Reference) (interface{}, bool, error) {
 	return nil, false, nil
 }
 
+func (v *Variables) List() ([]vars.Reference, error) {
+	list, err := v.parentScope.List()
+	if err != nil {
+		return nil, err
+	}
+	v.lock.RLock()
+	defer v.lock.RUnlock()
+	for k := range v.localVars {
+		list = append(list, vars.Reference{Source: ".", Path: k})
+	}
+	return list, nil
+}
+
 func (v *Variables) NewScope(tracker *vars.Tracker) *Variables {
 	return &Variables{
 		parentScope: v,

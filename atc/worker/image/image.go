@@ -233,7 +233,7 @@ func (wad *artifactDestination) GetStreamInP2pUrl(ctx context.Context, path stri
 	return wad.destination.GetStreamInP2pUrl(ctx, path)
 }
 
-func (wad *artifactDestination) InitializeStreamedResourceCache(cache db.UsedResourceCache, sourceWorkerName string) error {
+func (wad *artifactDestination) InitializeStreamedResourceCache(cache db.ResourceCache, sourceWorkerName string) error {
 	return wad.destination.InitializeStreamedResourceCache(cache, sourceWorkerName)
 }
 
