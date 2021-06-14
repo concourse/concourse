@@ -242,6 +242,7 @@ func (step *CheckStep) runCheck(
 	workerSpec := worker.WorkerSpec{
 		Tags:         step.plan.Tags,
 		TeamID:       step.metadata.TeamID,
+		TeamName:     step.metadata.TeamName,
 		ResourceType: step.plan.VersionedResourceTypes.Base(step.plan.Type),
 	}
 
@@ -274,6 +275,7 @@ func (step *CheckStep) runCheck(
 	containerSpec := worker.ContainerSpec{
 		ImageSpec: imageSpec,
 		TeamID:    step.metadata.TeamID,
+		TeamName:  step.metadata.TeamName,
 		Type:      step.containerMetadata.Type,
 
 		BindMounts: []worker.BindMountSource{

@@ -14,10 +14,12 @@ type WorkerSpec struct {
 	ResourceType string
 	Tags         []string
 	TeamID       int
+	TeamName     string
 }
 
 type ContainerSpec struct {
 	TeamID    int
+	TeamName  string
 	ImageSpec ImageSpec
 	Env       []string
 	Type      db.ContainerType

@@ -156,6 +156,7 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 	workerSpec := worker.WorkerSpec{
 		Tags:         step.plan.Tags,
 		TeamID:       step.metadata.TeamID,
+		TeamName:     step.metadata.TeamName,
 		ResourceType: step.plan.VersionedResourceTypes.Base(step.plan.Type),
 	}
 
@@ -188,6 +189,7 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 	containerSpec := worker.ContainerSpec{
 		ImageSpec: imageSpec,
 		TeamID:    step.metadata.TeamID,
+		TeamName:     step.metadata.TeamName,
 		Type:      step.containerMetadata.Type,
 
 		Dir: step.containerMetadata.WorkingDirectory,

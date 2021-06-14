@@ -281,7 +281,7 @@ func (pool *pool) SelectWorker(
 	labels := metric.StepsWaitingLabels{
 		Platform:   workerSpec.Platform,
 		TeamId:     strconv.Itoa(workerSpec.TeamID),
-		TeamName:   pool.provider.GetTeamByID(workerSpec.TeamID),
+		TeamName:   workerSpec.TeamName,
 		Type:       string(containerSpec.Type),
 		WorkerTags: strings.Join(workerSpec.Tags, "_"),
 	}
