@@ -46,7 +46,6 @@ func (s *scanner) Run(ctx context.Context) error {
 		return err
 	}
 
-	s.scanResourceTypes(spanCtx, resourceTypes)
 	s.scanResources(spanCtx, resources, resourceTypes)
 
 	return nil
@@ -69,25 +68,6 @@ func (s *scanner) scanResources(ctx context.Context, resources []db.Resource, re
 
 			s.check(ctx, resource, resourceTypes)
 		}(resource, resourceTypes)
-	}
-	waitGroup.Wait()
-}
-
-func (s *scanner) scanResourceTypes(ctx context.Context, resourceTypes db.ResourceTypes) {
-	logger := lagerctx.FromContext(ctx)
-	waitGroup := new(sync.WaitGroup)
-	for _, resourceType := range resourceTypes {
-		waitGroup.Add(1)
-		go func(resourceType db.ResourceType, resourceTypes db.ResourceTypes) {
-			defer func() {
-				err := util.DumpPanic(recover(), "scanning resource type %d", resourceType.ID())
-				if err != nil {
-					logger.Error("panic-in-scanner-run", err)
-				}
-			}()
-			defer waitGroup.Done()
-			s.check(ctx, resourceType, resourceTypes)
-		}(resourceType, resourceTypes)
 	}
 	waitGroup.Wait()
 }

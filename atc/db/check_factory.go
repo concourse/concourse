@@ -179,6 +179,7 @@ func (c *checkFactory) Resources() ([]Resource, error) {
 	return resources, nil
 }
 
+// XXXX: TODO return a map[PipelineID]ResourceTypes instead, for faster lookup
 func (c *checkFactory) ResourceTypes() ([]ResourceType, error) {
 	var resourceTypes []ResourceType
 
