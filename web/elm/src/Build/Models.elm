@@ -4,7 +4,7 @@ module Build.Models exposing
     , toMaybe
     )
 
-import Build.Header.Models exposing (BuildPageType(..), CurrentOutput(..), HistoryItem)
+import Build.Header.Models exposing (BuildPageType(..), CommentBarVisibility, CurrentOutput(..), HistoryItem)
 import Build.Output.Models exposing (OutputModel)
 import Concourse
 import Concourse.BuildStatus as BuildStatus
@@ -46,7 +46,7 @@ type alias ShortcutsModel r =
         , history : List HistoryItem
         , name : String
         , job : Maybe Concourse.JobIdentifier
-        , comment : Build.Header.Models.BuildComment
+        , comment : CommentBarVisibility
         , status : BuildStatus.BuildStatus
         , isTriggerBuildKeyDown : Bool
         , duration : Concourse.BuildDuration

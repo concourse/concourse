@@ -5,6 +5,7 @@ module Build.Styles exposing
     , changedStepTooltip
     , commentTextArea
     , durationTooltip
+    , editSaveWrapper
     , errorLog
     , header
     , historyItem
@@ -59,15 +60,22 @@ header status =
     ]
 
 
+editSaveWrapper : List (Html.Attribute msg)
+editSaveWrapper =
+    [ style "width" "60px"
+    , style "display" "flex"
+    , style "justify-content" "flex-end"
+    ]
+
+
 commentTextArea : List (Html.Attribute msg)
 commentTextArea =
     [ style "resize" "none"
     , style "outline" "none"
-    , style "border" "medium dashed rgba(255, 255, 255, 0.5)"
-    , style "border-radius" "7px"
+    , style "border" "medium none"
     , style "color" Colors.text
-    , style "margin" "16px 0"
-    , style "flex" "0 0 50%"
+    , style "min-height" "70px"
+    , style "flex-grow" "1"
     , rows 1
     ]
         ++ Views.Styles.defaultFont

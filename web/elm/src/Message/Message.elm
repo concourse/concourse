@@ -3,7 +3,7 @@ module Message.Message exposing
     , DropTarget(..)
     , Message(..)
     , PipelinesSection(..)
-    , VersionId
+    , VersionId,CommentBarButtonKind(..)
     , VersionToggleAction(..)
     , VisibilityAction(..)
     )
@@ -40,6 +40,10 @@ type Message
     | RevealCurrentBuildInHistory
     | SetHighlight String Int
     | ExtendHighlight String Int
+      -- Comment Bar
+    | EditCommentBar DomID String
+    | FocusCommentBar DomID
+    | BlurCommentBar DomID
       -- common
     | Hover (Maybe DomID)
     | Click DomID
@@ -49,8 +53,11 @@ type Message
 
 type DomID
     = ToggleJobButton
+    | CommentBar DomID
+    | CommentBarButton CommentBarButtonKind DomID
+    | BuildComment
     | BuildCommentTextArea
-    | CancelBuildCommentButton
+    | ToggleBuildCommentButton
     | EditBuildCommentButton
     | SaveBuildCommentButton
     | TriggerBuildButton
@@ -131,6 +138,11 @@ type VersionToggleAction
 type VisibilityAction
     = Expose
     | Hide
+
+
+type CommentBarButtonKind
+    = Edit
+    | Save
 
 
 type alias VersionId =

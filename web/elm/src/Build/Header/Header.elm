@@ -10,7 +10,7 @@ module Build.Header.Header exposing
 
 import Api.Endpoints as Endpoints
 import Application.Models exposing (Session)
-import Build.Header.Models exposing (BuildComment(..), BuildPageType(..), HistoryItem, Model)
+import Build.Header.Models exposing (BuildPageType(..), CommentBarVisibility(..), HistoryItem, Model)
 import Build.Header.Views as Views
 import Build.StepTree.Models as STModels
 import Concourse
@@ -20,6 +20,7 @@ import Dashboard.Styles exposing (content)
 import DateFormat
 import Duration exposing (Duration)
 import EffectTransformer exposing (ET)
+import FetchResult exposing (FetchResult(..))
 import HoverState
 import Html exposing (Html)
 import List.Extra
@@ -39,6 +40,8 @@ import SideBar.SideBar exposing (byPipelineId, lookupPipeline)
 import StrictEvents exposing (DeltaMode(..))
 import Time
 import Tooltip
+import UserState
+import Views.CommentBar as CommentBar
 
 
 historyId : String
@@ -64,117 +67,38 @@ header session model =
         , Views.Duration (duration session model)
         ]
     , rightWidgets =
-        if archived then
-            []
-
-        else
-            (case model.comment of
-                Viewing _ ->
-                    [ let
+        Views.Button
+            (Just
+                { type_ = Views.ToggleComment
+                , isClickable = True
+                , backgroundShade =
+                    let
                         isHovered =
                             HoverState.isHovered
-                                EditBuildCommentButton
+                                ToggleBuildCommentButton
                                 session.hovered
-                      in
-                      Views.Button
-                        (Just
-                            { type_ = Views.EditComment
-                            , isClickable = True
-                            , backgroundShade =
-                                if isHovered then
-                                    Views.Dark
+                    in
+                    case ( model.comment, isHovered ) of
+                        ( Hidden _, False ) ->
+                            Views.Dark
 
-                                else
-                                    Views.Light
-                            , backgroundColor = model.status
-                            }
-                        )
-                    ]
+                        ( Hidden _, True ) ->
+                            Views.Light
 
-                Editing _ ->
-                    [ let
-                        isHovered =
-                            HoverState.isHovered
-                                SaveBuildCommentButton
-                                session.hovered
-                      in
-                      Views.Button
-                        (Just
-                            { type_ = Views.SaveComment
-                            , isClickable = True
-                            , backgroundShade =
-                                if isHovered then
-                                    Views.Dark
+                        ( Visible _, False ) ->
+                            Views.Light
 
-                                else
-                                    Views.Light
-                            , backgroundColor = model.status
-                            }
-                        )
-                    , let
-                        isHovered =
-                            HoverState.isHovered
-                                CancelBuildCommentButton
-                                session.hovered
-                      in
-                      Views.Button
-                        (Just
-                            { type_ = Views.CancelComment
-                            , isClickable = True
-                            , backgroundShade =
-                                if isHovered then
-                                    Views.Dark
-
-                                else
-                                    Views.Light
-                            , backgroundColor = model.status
-                            }
-                        )
-                    ]
-
-                Saving _ ->
-                    [ let
-                        isHovered =
-                            HoverState.isHovered
-                                SaveBuildCommentButton
-                                session.hovered
-                      in
-                      Views.Button
-                        (Just
-                            { type_ = Views.SaveComment
-                            , isClickable = False
-                            , backgroundShade =
-                                if isHovered then
-                                    Views.Dark
-
-                                else
-                                    Views.Light
-                            , backgroundColor = model.status
-                            }
-                        )
-                    , let
-                        isHovered =
-                            HoverState.isHovered
-                                CancelBuildCommentButton
-                                session.hovered
-                      in
-                      Views.Button
-                        (Just
-                            { type_ = Views.CancelComment
-                            , isClickable = False
-                            , backgroundShade =
-                                if isHovered then
-                                    Views.Dark
-
-                                else
-                                    Views.Light
-                            , backgroundColor = model.status
-                            }
-                        )
-                    ]
+                        ( Visible _, True ) ->
+                            Views.Dark
+                , backgroundColor = model.status
+                }
             )
-                ++ [ Views.Spacer ( "10px", model.status )
-                   , Views.Button
+            :: (if archived then
+                    []
+
+                else
+                    [ Views.Spacer ( "10px", model.status )
+                    , Views.Button
                         (if Concourse.BuildStatus.isRunning model.status then
                             Just
                                 { type_ = Views.Abort
@@ -214,7 +138,7 @@ header session model =
                          else
                             Nothing
                         )
-                   , Views.Button
+                    , Views.Button
                         (if model.job /= Nothing then
                             let
                                 isHovered =
@@ -237,19 +161,31 @@ header session model =
                          else
                             Nothing
                         )
-                   ]
+                    ]
+               )
     , backgroundColor = model.status
     , tabs = tabs model
     , comment =
         case model.comment of
-            Viewing contents ->
-                Views.Viewing contents
+            Hidden _ ->
+                Nothing
 
-            Editing ( contents, _ ) ->
-                Views.Editing contents
+            Visible c ->
+                Just
+                    ( c
+                    , { hover = session.hovered
+                      , editable =
+                            case model.job of
+                                Nothing ->
+                                    False
 
-            Saving contents ->
-                Views.Viewing contents
+                                Just job ->
+                                    UserState.isMember
+                                        { teamName = job.teamName
+                                        , userState = session.userState
+                                        }
+                      }
+                    )
     }
 
 
@@ -270,9 +206,17 @@ tooltip model session =
                 , containerAttrs = Nothing
                 }
 
-        HoverState.Tooltip CancelBuildCommentButton _ ->
+        HoverState.Tooltip ToggleBuildCommentButton _ ->
             Just
-                { body = Html.text "stop editing build comment"
+                { body =
+                    Html.text
+                        (case model.comment of
+                            Hidden _ ->
+                                "show build comment"
+
+                            Visible _ ->
+                                "hide build comment"
+                        )
                 , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
                 , arrow = Just 5
                 , containerAttrs = Nothing
@@ -346,14 +290,19 @@ historyItem model =
     , createdBy = model.createdBy
     , comment =
         case model.comment of
-            Viewing content ->
-                content
+            Hidden comment ->
+                CommentBar.getContent comment
 
-            Editing ( _, oldState ) ->
-                oldState
+            Visible comment ->
+                CommentBar.getContent comment
+    }
 
-            Saving oldState ->
-                oldState
+
+initBuildCommentBar : String -> CommentBar.Model
+initBuildCommentBar content =
+    { id = BuildComment
+    , state = CommentBar.Viewing content
+    , style = CommentBar.defaultStyle
     }
 
 
@@ -371,7 +320,16 @@ changeToBuild pageType ( model, effects ) =
                             , duration = b.duration
                             , name = b.name
                             , createdBy = b.createdBy
-                            , comment = Viewing b.comment
+                            , comment =
+                                let
+                                    commentBar =
+                                        initBuildCommentBar b.comment
+                                in
+                                if String.isEmpty b.comment then
+                                    Hidden commentBar
+
+                                else
+                                    Visible commentBar
                         }
                     )
                 |> Maybe.withDefault model
@@ -656,62 +614,13 @@ update msg ( model, effects ) =
                    )
             )
 
-        Click CancelBuildCommentButton ->
+        Click ToggleBuildCommentButton ->
             case model.comment of
-                Viewing _ ->
-                    ( model, effects )
+                Hidden commentBar ->
+                    ( { model | comment = Visible commentBar }, effects )
 
-                Saving _ ->
-                    ( model, effects )
-
-                Editing ( _, oldState ) ->
-                    ( { model | comment = Viewing oldState }, effects )
-
-        Click EditBuildCommentButton ->
-            case model.comment of
-                Editing _ ->
-                    ( model, effects )
-
-                Saving _ ->
-                    ( model, effects )
-
-                Viewing content ->
-                    ( { model | comment = Editing ( content, content ) }, effects )
-
-        Click SaveBuildCommentButton ->
-            case model.comment of
-                Viewing _ ->
-                    ( model, effects )
-
-                Saving _ ->
-                    ( model, effects )
-
-                Editing ( contents, oldState ) ->
-                    ( { model | comment = Saving oldState }
-                    , effects
-                        ++ (model.job
-                                |> Maybe.map
-                                    (\_ -> SetBuildComment model.id contents)
-                                |> Maybe.Extra.toList
-                           )
-                    )
-
-        EditBuildComment content ->
-            case model.comment of
-                Viewing _ ->
-                    ( model, effects )
-
-                Saving _ ->
-                    ( model, effects )
-
-                Editing ( _, oldState ) ->
-                    ( { model | comment = Editing ( content, oldState ) }, effects )
-
-        FocusBuildComment ->
-            ( { model | shortcutsEnabled = False }, effects )
-
-        BlurBuildComment ->
-            ( { model | shortcutsEnabled = True }, effects )
+                Visible commentBar ->
+                    ( { model | comment = Hidden commentBar }, effects )
 
         _ ->
             ( model, effects )
@@ -723,35 +632,34 @@ handleCallback callback ( model, effects ) =
         BuildFetched (Ok b) ->
             handleBuildFetched b ( model, effects )
 
-        BuildCommentSet id comment result ->
-            if model.id == id then
-                ( { model
-                    | comment =
-                        case ( result, model.comment ) of
-                            ( Ok (), Saving _ ) ->
-                                Viewing comment
+        BuildCommentSet id savedComment result ->
+            let
+                updatedComment =
+                    if model.id == id then
+                        { model
+                            | comment =
+                                case model.comment of
+                                    Hidden commentBar ->
+                                        Hidden (CommentBar.commentSetCallback ( savedComment, result ) commentBar)
 
-                            ( Err _, Saving state ) ->
-                                Editing ( comment, state )
+                                    Visible commentBar ->
+                                        Visible (CommentBar.commentSetCallback ( savedComment, result ) commentBar)
+                        }
 
-                            ( _, oldComment ) ->
-                                oldComment
-                    , history =
-                        model.history
-                            |> List.map
+                    else
+                        model
+
+                updatedHistory =
+                    { updatedComment
+                        | history =
+                            List.Extra.updateIf (.id >> (==) id)
                                 (\b ->
-                                    if b.id == model.id then
-                                        { b | comment = comment }
-
-                                    else
-                                        b
+                                    { b | comment = savedComment }
                                 )
-                  }
-                , effects
-                )
-
-            else
-                ( model, effects )
+                                model.history
+                    }
+            in
+            ( updatedHistory, effects )
 
         BuildTriggered (Ok b) ->
             ( { model
@@ -820,12 +728,23 @@ handleBuildFetched b ( model, effects ) =
             , name = b.name
             , createdBy = b.createdBy
             , comment =
-                case model.comment of
-                    Viewing _ ->
-                        Viewing b.comment
+                let
+                    commentBar =
+                        case model.comment of
+                            Hidden c ->
+                                c
 
-                    other ->
-                        other
+                            Visible c ->
+                                c
+
+                    updatedCommentBar =
+                        CommentBar.setCachedContent b.comment commentBar
+                in
+                if String.isEmpty b.comment then
+                    Hidden updatedCommentBar
+
+                else
+                    Visible updatedCommentBar
           }
         , effects
         )

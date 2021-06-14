@@ -16,24 +16,23 @@ import Build.Styles as Styles
 import Colors
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus)
-import Html exposing (Html, text)
+import Html exposing (Html)
 import Html.Attributes
     exposing
         ( attribute
         , class
         , href
         , id
-        , readonly
         , style
         , title
-        , value
         )
-import Html.Events exposing (onBlur, onFocus, onInput, onMouseEnter, onMouseLeave)
+import Html.Events exposing (onBlur, onFocus, onMouseEnter, onMouseLeave)
 import Html.Lazy
 import Message.Effects exposing (Effect(..), toHtmlID)
 import Message.Message as Message exposing (Message(..))
 import Routes
 import StrictEvents exposing (onLeftClick, onWheel)
+import Views.CommentBar as CommentBar
 import Views.Icon as Icon
 
 
@@ -47,7 +46,7 @@ type alias Header =
     , rightWidgets : List Widget
     , backgroundColor : BuildStatus
     , tabs : List BuildTab
-    , comment : BuildComment
+    , comment : Maybe ( CommentBar.Model, CommentBar.ViewState )
     }
 
 
@@ -99,7 +98,8 @@ type alias ButtonView =
 
 
 type BuildComment
-    = Viewing String
+    = Hidden
+    | Viewing String
     | Editing String
 
 
@@ -109,52 +109,10 @@ type BackgroundShade
 
 
 type ButtonType
-    = CancelComment
-    | EditComment
-    | SaveComment
-    | Abort
+    = Abort
+    | ToggleComment
     | Trigger
     | Rerun
-
-
-buildComment : ( Bool, String ) -> List (Html Message)
-buildComment ( isReadOnly, content ) =
-    [ Html.div
-        [ style "display" "flex"
-        , style "justify-content" "center"
-        ]
-        [ Html.textarea
-            ([ id (toHtmlID Message.BuildCommentTextArea)
-             , value content
-             , onInput EditBuildComment
-             , onFocus FocusBuildComment
-             , onBlur BlurBuildComment
-             , readonly isReadOnly
-             , if isReadOnly then
-                style "background-color" "transparent"
-
-               else
-                style "background-color" "rgba(255, 255, 255, 0.1)"
-             ]
-                ++ Styles.commentTextArea
-            )
-            []
-        ]
-    ]
-
-
-buildCommentBar : BuildComment -> List (Html Message)
-buildCommentBar comment =
-    case comment of
-        Viewing content ->
-            if String.isEmpty content then
-                []
-
-            else
-                buildComment ( True, content )
-
-        Editing content ->
-            buildComment ( False, content )
 
 
 viewHeader : Header -> Html Message
@@ -171,7 +129,18 @@ viewHeader header =
             ]
          , viewHistory header.backgroundColor header.tabs
          ]
-            ++ buildCommentBar header.comment
+            ++ (case header.comment of
+                    Nothing ->
+                        []
+
+                    Just ( model, state ) ->
+                        [ Html.div [ style "display" "flex" ]
+                            [ Html.div [ style "flex" "1 1 0%" ] []
+                            , CommentBar.view model state [ style "flex" "2 1 0%" ]
+                            , Html.div [ style "flex" "1 1 0%" ] []
+                            ]
+                        ]
+               )
         )
 
 
@@ -314,14 +283,8 @@ viewButton { type_, backgroundColor, backgroundShade, isClickable } =
     let
         image =
             case type_ of
-                CancelComment ->
-                    Assets.AbortCircleIcon |> Assets.CircleOutlineIcon
-
-                EditComment ->
-                    Assets.InfoIcon
-
-                SaveComment ->
-                    Assets.SaveIcon
+                ToggleComment ->
+                    Assets.MessageIcon
 
                 Abort ->
                     Assets.AbortCircleIcon |> Assets.CircleOutlineIcon
@@ -334,14 +297,8 @@ viewButton { type_, backgroundColor, backgroundShade, isClickable } =
 
         accessibilityLabel =
             case type_ of
-                CancelComment ->
-                    "Cancel Build Comment"
-
-                EditComment ->
-                    "Edit Build Comment"
-
-                SaveComment ->
-                    "Save Build Comment"
+                ToggleComment ->
+                    "Toggle Build Comment"
 
                 Abort ->
                     "Abort Build"
@@ -354,14 +311,8 @@ viewButton { type_, backgroundColor, backgroundShade, isClickable } =
 
         domID =
             case type_ of
-                CancelComment ->
-                    Message.CancelBuildCommentButton
-
-                EditComment ->
-                    Message.EditBuildCommentButton
-
-                SaveComment ->
-                    Message.SaveBuildCommentButton
+                ToggleComment ->
+                    Message.ToggleBuildCommentButton
 
                 Abort ->
                     Message.AbortBuildButton

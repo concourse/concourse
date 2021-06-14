@@ -50,6 +50,7 @@ import SideBar.State exposing (SideBarState, encodeSideBarState)
 import Task
 import Time
 import Views.Styles
+import Message.Message exposing (CommentBarButtonKind(..))
 
 
 port renderPipeline : ( Json.Encode.Value, Json.Encode.Value ) -> Cmd msg
@@ -858,8 +859,26 @@ toHtmlID domId =
         BuildCommentTextArea ->
             "build-comment"
 
-        CancelBuildCommentButton ->
-            "cancel-build-comment-button"
+        CommentBar id ->
+            "comment-bar-" ++ toHtmlID id
+
+        CommentBarButton kind id ->
+            "comment-bar-"
+                ++ (case kind of
+                        Edit ->
+                            "edit"
+
+                        Save ->
+                            "save"
+                   )
+                ++ "-button-"
+                ++ toHtmlID id
+
+        BuildComment ->
+            "build-comment"
+
+        ToggleBuildCommentButton ->
+            "toggle-build-comment-button"
 
         EditBuildCommentButton ->
             "edit-build-comment-button"

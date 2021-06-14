@@ -1,6 +1,6 @@
 module Build.Shortcuts exposing (handleDelivery, keyboardHelp)
 
-import Build.Header.Models exposing (BuildComment(..), HistoryItem)
+import Build.Header.Models exposing (CommentBarVisibility(..), HistoryItem)
 import Build.Models exposing (ShortcutsModel)
 import Concourse.BuildStatus
 import EffectTransformer exposing (ET)
@@ -13,6 +13,7 @@ import Message.Message exposing (DomID(..), Message(..))
 import Message.ScrollDirection exposing (ScrollDirection(..))
 import Message.Subscription exposing (Delivery(..))
 import Routes
+import Views.CommentBar as CommentBar
 
 
 bodyId : String
@@ -64,14 +65,11 @@ historyItem model =
     , createdBy = model.createdBy
     , comment =
         case model.comment of
-            Viewing content ->
-                content
+            Hidden comment ->
+                CommentBar.getContent comment
 
-            Editing ( _, oldState ) ->
-                oldState
-
-            Saving oldState ->
-                oldState
+            Visible comment ->
+                CommentBar.getContent comment
     }
 
 

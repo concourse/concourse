@@ -4,6 +4,12 @@ module Views.Styles exposing
     , breadcrumbContainer
     , breadcrumbItem
     , clusterName
+    , commentBarEditButton
+    , commentBarSaveButton
+    , commentBarText
+    , commentBarTextArea
+    , commentBarTextButton
+    , commentBarWrapper
     , concourseLogo
     , defaultFont
     , fontFamilyDefault
@@ -25,7 +31,7 @@ import Assets
 import ColorValues
 import Colors
 import Html
-import Html.Attributes exposing (style)
+import Html.Attributes exposing (rows, style)
 import Routes
 
 
@@ -282,3 +288,97 @@ instanceGroupBadge backgroundColor =
     , style "align-items" "center"
     , style "justify-content" "center"
     ]
+
+
+commentBarWrapper : List (Html.Attribute msg)
+commentBarWrapper =
+    [ style "border" "medium dashed rgba(255, 255, 255, 0.5)"
+    , style "border-radius" "7px"
+    , style "margin" "16px 0"
+    ]
+
+
+commentBarTextArea : List (Html.Attribute msg)
+commentBarTextArea =
+    [ style "box-sizing" "border-box"
+    , style "flex-grow" "1"
+    , style "resize" "none"
+    , style "outline" "none"
+    , style "border" "none"
+    , style "color" Colors.text
+    , style "background-color" "transparent"
+    , style "max-height" "150px"
+    , style "margin" "8px 0"
+    , rows 1
+    ]
+        ++ defaultFont
+
+
+commentBarText : List (Html.Attribute msg)
+commentBarText =
+    [ style "flex-grow" "1"
+    , style "margin" "0"
+    , style "outline" "0"
+    , style "padding" "8px 0"
+    , style "max-height" "150px"
+    , style "overflow-y" "scroll"
+    ]
+
+
+commentBarEditButton : List (Html.Attribute msg)
+commentBarEditButton =
+    [ style "padding" "5px"
+    , style "margin" "5px"
+    , style "cursor" "pointer"
+    , style "background-origin" "content-box"
+    , style "background-size" "contain"
+    ]
+
+
+commentBarTextButton : List (Html.Attribute msg)
+commentBarTextButton =
+    [ style "padding" "5px 10px"
+    , style "margin" "5px 5px 7px 7px"
+    , style "outline" "none"
+    , style "border" "1px solid"
+    , style "transition" "border 200ms ease, color 200ms ease"
+    ]
+        ++ defaultFont
+
+
+commentBarSaveButton :
+    { isHovered : Bool, commentChanged : Bool, pinCommentLoading : Bool }
+    -> List (Html.Attribute msg)
+commentBarSaveButton { commentChanged, isHovered, pinCommentLoading } =
+    [ style "border" <|
+        "1px solid "
+            ++ (if commentChanged && not pinCommentLoading then
+                    Colors.white
+
+                else
+                    Colors.buttonDisabledGrey
+               )
+    , style "background-color" <|
+        if isHovered && commentChanged && not pinCommentLoading then
+            Colors.frame
+
+        else
+            "transparent"
+    , style "color" <|
+        if commentChanged && not pinCommentLoading then
+            Colors.text
+
+        else
+            Colors.buttonDisabledGrey
+    , style "padding" "5px 10px"
+    , style "margin" "5px 5px 7px 7px"
+    , style "outline" "none"
+    , style "transition" "border 200ms ease, color 200ms ease"
+    , style "cursor" <|
+        if commentChanged && not pinCommentLoading then
+            "pointer"
+
+        else
+            "default"
+    ]
+        ++ defaultFont

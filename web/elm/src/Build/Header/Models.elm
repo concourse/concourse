@@ -1,6 +1,6 @@
 module Build.Header.Models exposing
-    ( BuildComment(..)
-    , BuildPageType(..)
+    ( BuildPageType(..)
+    , CommentBarVisibility(..)
     , CurrentOutput(..)
     , HistoryItem
     , Model
@@ -10,7 +10,9 @@ import Build.Output.Models exposing (OutputModel)
 import Concourse
 import Concourse.BuildStatus as BuildStatus
 import Concourse.Pagination exposing (Page)
+import Message.Message exposing (DomID(..))
 import Time
+import Views.CommentBar as CommentBar
 
 
 type alias Model r =
@@ -28,8 +30,8 @@ type alias Model r =
         , fetchingHistory : Bool
         , nextPage : Maybe Page
         , hasLoadedYet : Bool
-        , comment : BuildComment
         , shortcutsEnabled : Bool
+        , comment : CommentBarVisibility
     }
 
 
@@ -49,10 +51,9 @@ type CurrentOutput
     | Output OutputModel
 
 
-type BuildComment
-    = Viewing String
-    | Editing ( String, String )
-    | Saving String
+type CommentBarVisibility
+    = Hidden CommentBar.Model
+    | Visible CommentBar.Model
 
 
 type BuildPageType

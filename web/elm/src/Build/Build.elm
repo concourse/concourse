@@ -17,7 +17,7 @@ import Api.Endpoints as Endpoints
 import Application.Models exposing (Session)
 import Assets
 import Build.Header.Header as Header
-import Build.Header.Models exposing (BuildComment(..), BuildPageType(..), CurrentOutput(..))
+import Build.Header.Models exposing (BuildPageType(..), CommentBarVisibility(..), CurrentOutput(..))
 import Build.Models exposing (Model, toMaybe)
 import Build.Output.Models exposing (OutputModel)
 import Build.Output.Output
@@ -61,6 +61,7 @@ import String
 import Time
 import Tooltip
 import UpdateMsg exposing (UpdateMsg)
+import Views.CommentBar as CommentBar
 import Views.Icon as Icon
 import Views.LoadingIndicator as LoadingIndicator
 import Views.NotAuthorized as NotAuthorized
@@ -105,7 +106,12 @@ init flags =
           , disableManualTrigger = False
           , history = []
           , nextPage = Nothing
-          , comment = Viewing ""
+          , comment =
+                Hidden
+                    { id = BuildComment
+                    , state = CommentBar.Viewing ""
+                    , style = CommentBar.defaultStyle
+                    }
           , prep = Nothing
           , duration = { startedAt = Nothing, finishedAt = Nothing }
           , status = BuildStatusPending
@@ -467,10 +473,49 @@ update msg ( model, effects ) =
             , effects
             )
 
+        FocusCommentBar id ->
+            if id == BuildComment then
+                ( { model | shortcutsEnabled = False }, effects )
+
+            else
+                ( model, effects )
+
+        BlurCommentBar id ->
+            if id == BuildComment then
+                ( { model | shortcutsEnabled = True }, effects )
+
+            else
+                ( model, effects )
+
         _ ->
             ( model, effects )
     )
         |> Header.update msg
+        |> updateCommentBar msg
+
+
+updateCommentBar : Message -> ET Model
+updateCommentBar msg ( model, effects ) =
+    case model.comment of
+        Hidden _ ->
+            ( model, effects )
+
+        Visible commentBar ->
+            let
+                ( updatedCommentBar, updatedEffects ) =
+                    CommentBar.updateMap msg
+                        commentBar
+                        (\effect effs ->
+                            (case effect of
+                                CommentBar.Save content ->
+                                    SetBuildComment model.id content
+                            )
+                                :: effs
+                        )
+            in
+            ( { model | comment = Visible updatedCommentBar }
+            , effects ++ updatedEffects
+            )
 
 
 getScrollBehavior : Model -> ScrollBehavior
