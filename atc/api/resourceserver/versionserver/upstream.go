@@ -33,9 +33,15 @@ func (s *Server) GetUpstreamResourceCausality(pipeline db.Pipeline) http.Handler
 
 		causality, found, err := resource.Causality(versionID, db.CausalityUpstream)
 		if err != nil {
-			logger.Error("failed-to-fetch", err, lager.Data{"resource-name": resourceName, "resource-config-version": versionID})
-			w.WriteHeader(http.StatusInternalServerError)
-			return
+			if err == db.ErrTooManyBuilds || err == db.ErrTooManyResourceVersions {
+				logger.Error("too-many-nodes", err, lager.Data{"resource-name": resourceName, "resource-config-version": versionID})
+				w.WriteHeader(http.StatusForbidden)
+				return
+			} else {
+				logger.Error("failed-to-fetch", err, lager.Data{"resource-name": resourceName, "resource-config-version": versionID})
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
 		}
 
 		if !found {

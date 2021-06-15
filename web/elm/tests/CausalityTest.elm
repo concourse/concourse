@@ -1,6 +1,8 @@
 module CausalityTest exposing (all)
 
+import Application.Application as Application
 import Causality.Causality as Causality
+import Common
 import Concourse
     exposing
         ( Causality
@@ -11,17 +13,38 @@ import Concourse
         , CausalityResourceVersion
         )
 import Concourse.BuildStatus exposing (BuildStatus(..))
+import Data
 import Dict
 import Expect
 import Graph exposing (Edge, Node)
+import Http
 import List.Extra
+import Message.Callback as Callback
 import Test exposing (..)
+import Test.Html.Query as Query
+import Test.Html.Selector
+    exposing
+        ( class
+        , id
+        , text
+        )
 
 
 all : Test
 all =
     describe "causality graph" <|
-        [ describe "constructing downstream" <|
+        [ describe "viewing graph" <|
+            [ test "shows error message if too large" <|
+                \_ ->
+                    init
+                        |> Application.handleCallback
+                            (Callback.CausalityFetched Data.httpForbidden)
+                        |> Tuple.first
+                        |> Common.queryView
+                        |> Query.find [ id "causality-error" ]
+                        |> Query.has [ text "graph is too large" ]
+            ]
+        , describe "constructing downstream" <|
             [ test "simple graph with 1 build and output" <|
                 \_ ->
                     Causality.constructGraph Downstream simplePipeline
@@ -216,3 +239,23 @@ singleJobMultipleBuildsPipeline =
         [ CausalityBuild 1 "1" 1 BuildStatusSucceeded [ 2 ]
         , CausalityBuild 2 "2" 1 BuildStatusFailed []
         ]
+
+
+resourceVersionId : Int
+resourceVersionId =
+    1
+
+
+init : Application.Model
+init =
+    Common.init
+        ("/teams/"
+            ++ Data.teamName
+            ++ "/pipelines/"
+            ++ Data.pipelineName
+            ++ "/resources/"
+            ++ Data.resourceName
+            ++ "/causality/"
+            ++ String.fromInt resourceVersionId
+            ++ "/downstream"
+        )

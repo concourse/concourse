@@ -53,6 +53,13 @@ WITH RECURSIVE build_ids AS (
 		WHERE i.resource_id!=$1
 )
 `
+	causalityMaxBuilds        = 5000
+	causalityMaxInputsOutputs = 25000
+)
+
+var (
+	ErrTooManyBuilds           = errors.New("too many builds")
+	ErrTooManyResourceVersions = errors.New("too many resoruce versions")
 )
 
 //counterfeiter:generate . Resource
@@ -1026,16 +1033,20 @@ func causalityBuilds(tx Tx, resourceID int, versionMD5 string, direction Causali
 		From("build_ids bi").
 		Join("builds b ON b.id = bi.build_id").
 		Join("jobs j ON b.job_id = j.id").
+		Limit(causalityMaxBuilds).
 		RunWith(tx).
 		Query()
 	if err != nil {
 		return nil, nil, err
 	}
 
+	defer rows.Close()
+
 	builds := make(map[int]*atc.CausalityBuild, 0)
 	jobs := make(map[int]*atc.CausalityJob, 0)
 
-	for rows.Next() {
+	var i int
+	for i = 1; rows.Next(); i++ {
 		var buildID, jobID int
 		var buildName, jobName, status string
 
@@ -1063,6 +1074,9 @@ func causalityBuilds(tx Tx, resourceID int, versionMD5 string, direction Causali
 
 		builds[buildID] = build
 		jobs[jobID] = job
+	}
+	if i == causalityMaxBuilds {
+		return nil, nil, ErrTooManyBuilds
 	}
 
 	return builds, jobs, nil
@@ -1120,17 +1134,21 @@ UNION ALL
 	JOIN resources r ON r.id = o.resource_id
 	JOIN resource_config_versions rcv ON rcv.version_md5 = o.version_md5 AND rcv.resource_config_scope_id = r.resource_config_scope_id
 	JOIN build_ids bi ON o.build_id = bi.build_id
+LIMIT $3
 `
 
-	rows, err := tx.Query(query, resourceID, versionMD5)
+	rows, err := tx.Query(query, resourceID, versionMD5, causalityMaxInputsOutputs)
 	if err != nil {
 		return err
 	}
 
+	defer rows.Close()
+
 	resources := make(map[int]*atc.CausalityResource)
 	resourceVersions := make(map[resourceVersionKey]*atc.CausalityResourceVersion)
 
-	for rows.Next() {
+	var i int
+	for i = 1; rows.Next(); i++ {
 		var (
 			rID, rcvID, bID        int
 			rName, versionStr, typ string
@@ -1177,6 +1195,10 @@ UNION ALL
 
 		resources[rID] = r
 		resourceVersions[resourceVersionKey{rID, rcvID}] = rv
+	}
+
+	if i == causalityMaxInputsOutputs {
+		return ErrTooManyResourceVersions
 	}
 
 	// flattening

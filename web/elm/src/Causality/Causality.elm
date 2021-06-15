@@ -58,6 +58,11 @@ import Views.Styles
 import Views.TopBar as TopBar
 
 
+type PageError
+    = NotFound
+    | TooManyNodes
+
+
 type alias Model =
     Login.Model
         { versionId : Concourse.VersionedResourceIdentifier
@@ -69,7 +74,7 @@ type alias Model =
         , renderedBuilds : Maybe (List Concourse.Build)
         , renderedResources : Maybe (List Concourse.Resource)
         , renderedResourceVersions : Maybe (List Concourse.VersionedResource)
-        , pageStatus : Result () ()
+        , pageStatus : Result PageError ()
         }
 
 
@@ -142,8 +147,11 @@ handleCallback callback ( model, effects ) =
                     if status.code == 401 then
                         ( model, effects ++ [ RedirectToLogin ] )
 
+                    else if status.code == 403 then
+                        ( { model | pageStatus = Err TooManyNodes }, effects )
+
                     else if status.code == 404 then
-                        ( { model | pageStatus = Err () }, effects )
+                        ( { model | pageStatus = Err NotFound }, effects )
 
                     else
                         ( model, effects )
@@ -197,8 +205,11 @@ update msg ( model, effects ) =
 getUpdateMessage : Model -> UpdateMsg
 getUpdateMessage model =
     case model.pageStatus of
-        Err () ->
+        Err NotFound ->
             UpdateMsg.NotFound
+
+        Err _ ->
+            UpdateMsg.AOK
 
         Ok () ->
             UpdateMsg.AOK
@@ -232,9 +243,28 @@ view session model =
                     , teamName = model.versionId.teamName
                     }
                 )
+            , viewGraph model
+            ]
+        ]
 
-            -- , Html.text <| graphvizDotNotation model.graph
-            , Html.div
+
+viewGraph : Model -> Html Message
+viewGraph model =
+    case model.pageStatus of
+        Err TooManyNodes ->
+            Html.div
+                [ class "notfound"
+                , id "causality-error"
+                ]
+                [ Html.div [ class "title" ] [ Html.text "403" ]
+                , Html.div [ class "reason" ] [ Html.text "graph is too large" ]
+                , Html.div [ class "help-message" ]
+                    [ Html.text "try a less popular resource version ¯\\_(ツ)_/¯"
+                    ]
+                ]
+
+        _ ->
+            Html.div
                 [ class "causality-view"
                 , id "causality-container"
                 , style "display" "flex"
@@ -248,8 +278,6 @@ view session model =
                         []
                     ]
                 ]
-            ]
-        ]
 
 
 type alias Build =
