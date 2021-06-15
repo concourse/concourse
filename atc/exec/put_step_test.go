@@ -273,7 +273,6 @@ var _ = Describe("PutStep", func() {
 				worker.WorkerSpec{
 					ResourceType: "some-resource-type",
 					TeamID:       stepMetadata.TeamID,
-					TeamName:     "some-team",
 				},
 			))
 		})
@@ -434,6 +433,7 @@ var _ = Describe("PutStep", func() {
 			ResourceType: "some-resource-type",
 		}))
 		Expect(containerSpec.TeamID).To(Equal(123))
+		Expect(containerSpec.TeamName).To(Equal("some-team"))
 		Expect(containerSpec.Env).To(Equal(stepMetadata.Env()))
 		Expect(containerSpec.Dir).To(Equal("/tmp/build/put"))
 		Expect(containerSpec.Inputs).To(Equal(expectedInputs))
@@ -501,7 +501,6 @@ var _ = Describe("PutStep", func() {
 
 			Expect(workerSpec).To(Equal(worker.WorkerSpec{
 				TeamID:       stepMetadata.TeamID,
-				TeamName:     "some-team",
 				ResourceType: "registry-image",
 			}))
 		})

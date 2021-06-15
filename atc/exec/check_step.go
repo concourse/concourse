@@ -242,7 +242,6 @@ func (step *CheckStep) runCheck(
 	workerSpec := worker.WorkerSpec{
 		Tags:         step.plan.Tags,
 		TeamID:       step.metadata.TeamID,
-		TeamName:     step.metadata.TeamName,
 		ResourceType: step.plan.VersionedResourceTypes.Base(step.plan.Type),
 	}
 

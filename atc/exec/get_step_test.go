@@ -370,7 +370,7 @@ var _ = Describe("GetStep", func() {
 					ResourceType: "some-base-type",
 				},
 				TeamID:   stepMetadata.TeamID,
-				TeamName: "some-team",
+				TeamName: stepMetadata.TeamName,
 				Type:     containerMetadata.Type,
 				Env:      stepMetadata.Env(),
 			},
@@ -396,7 +396,6 @@ var _ = Describe("GetStep", func() {
 				worker.WorkerSpec{
 					ResourceType: "some-base-type",
 					TeamID:       stepMetadata.TeamID,
-					TeamName:     "some-team",
 				},
 			))
 		})
@@ -566,7 +565,6 @@ var _ = Describe("GetStep", func() {
 			Expect(workerSpec).To(Equal(
 				worker.WorkerSpec{
 					TeamID:       stepMetadata.TeamID,
-					TeamName:     "some-team",
 					ResourceType: "registry-image",
 				},
 			))

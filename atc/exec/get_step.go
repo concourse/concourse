@@ -134,7 +134,6 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 	workerSpec := worker.WorkerSpec{
 		Tags:         step.plan.Tags,
 		TeamID:       step.metadata.TeamID,
-		TeamName:     step.metadata.TeamName,
 		ResourceType: step.plan.VersionedResourceTypes.Base(step.plan.Type),
 	}
 
@@ -177,7 +176,7 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 	containerSpec := worker.ContainerSpec{
 		ImageSpec: imageSpec,
 		TeamID:    step.metadata.TeamID,
-		TeamName:     step.metadata.TeamName,
+		TeamName:  step.metadata.TeamName,
 		Type:      step.containerMetadata.Type,
 
 		Env: step.metadata.Env(),
