@@ -32,10 +32,10 @@ WITH RECURSIVE build_ids AS (
 		FROM build_resource_config_version_inputs i
 		WHERE i.resource_id=$1 AND i.version_md5=$2
 	UNION
-		SELECT bp.to_build_id AS build_id
+		SELECT i.build_id
 		FROM build_ids bi
-		INNER JOIN build_pipes bp ON bi.build_id = bp.from_build_id
-		INNER JOIN build_resource_config_version_inputs i ON i.build_id = bi.build_id
+		INNER JOIN build_resource_config_version_outputs o ON o.build_id = bi.build_id
+		INNER JOIN build_resource_config_version_inputs i ON i.resource_id = o.resource_id AND i.version_md5 = o.version_md5
 		WHERE i.resource_id!=$1
 )
 `
@@ -46,10 +46,10 @@ WITH RECURSIVE build_ids AS (
 		FROM build_resource_config_version_outputs o
 		WHERE o.resource_id=$1 AND o.version_md5=$2
 	UNION
-		SELECT bp.from_build_id AS build_id
+		SELECT o.build_id
 		FROM build_ids bi
-		INNER JOIN build_pipes bp ON bi.build_id = bp.to_build_id
 		INNER JOIN build_resource_config_version_inputs i ON i.build_id = bi.build_id
+		INNER JOIN build_resource_config_version_outputs o ON o.resource_id = i.resource_id AND o.version_md5 = i.version_md5
 		WHERE i.resource_id!=$1
 )
 `
