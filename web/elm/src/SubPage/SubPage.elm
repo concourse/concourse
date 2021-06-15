@@ -157,11 +157,11 @@ genericUpdate :
     -> ET Resource.Models.Model
     -> ET Pipeline.Model
     -> ET Dashboard.Models.Model
+    -> ET Causality.Model
     -> ET NotFound.Model.Model
     -> ET FlySuccess.Models.Model
-    -> ET Causality.Model
     -> ET Model
-genericUpdate fBuild fJob fRes fPipe fDash fNF fFS fCaus ( model, effects ) =
+genericUpdate fBuild fJob fRes fPipe fDash fCaus fNF fFS ( model, effects ) =
     case model of
         BuildModel buildModel ->
             fBuild ( buildModel, effects )
@@ -183,6 +183,10 @@ genericUpdate fBuild fJob fRes fPipe fDash fNF fFS fCaus ( model, effects ) =
             fDash ( dashboardModel, effects )
                 |> Tuple.mapFirst DashboardModel
 
+        CausalityModel causalityModel ->
+            fCaus ( causalityModel, effects )
+                |> Tuple.mapFirst CausalityModel
+
         FlySuccessModel flySuccessModel ->
             fFS ( flySuccessModel, effects )
                 |> Tuple.mapFirst FlySuccessModel
@@ -190,10 +194,6 @@ genericUpdate fBuild fJob fRes fPipe fDash fNF fFS fCaus ( model, effects ) =
         NotFoundModel notFoundModel ->
             fNF ( notFoundModel, effects )
                 |> Tuple.mapFirst NotFoundModel
-
-        CausalityModel causalityModel ->
-            fCaus ( causalityModel, effects )
-                |> Tuple.mapFirst CausalityModel
 
 
 handleCallback : Callback -> Session -> ET Model
@@ -204,9 +204,9 @@ handleCallback callback session =
         (Resource.handleCallback callback session)
         (Pipeline.handleCallback callback)
         (Dashboard.handleCallback callback)
-        identity
-        identity
         (Causality.handleCallback callback)
+        identity
+        identity
         >> (case callback of
                 LoggedOut (Ok ()) ->
                     genericUpdate
@@ -246,9 +246,9 @@ handleDelivery session delivery =
         (Resource.handleDelivery session delivery)
         (Pipeline.handleDelivery delivery)
         (Dashboard.handleDelivery session delivery)
+        (Causality.handleDelivery delivery)
         (NotFound.handleDelivery delivery)
         (FlySuccess.handleDelivery delivery)
-        (Causality.handleDelivery delivery)
 
 
 update : Session -> Message -> ET Model
@@ -259,9 +259,9 @@ update session msg =
         (Login.update msg >> Resource.update msg)
         (Login.update msg >> Pipeline.update msg)
         (Login.update msg >> Dashboard.update session msg)
+        (Login.update msg >> Causality.update msg)
         (Login.update msg)
         (Login.update msg >> FlySuccess.update msg)
-        (Login.update msg >> Causality.update msg)
         >> (case msg of
                 GoToRoute route ->
                     handleGoToRoute route
@@ -340,8 +340,6 @@ urlUpdate routes =
             _ ->
                 identity
         )
-        identity
-        identity
         (case routes.to of
             Routes.Causality { id, direction } ->
                 Causality.changeToVersionedResource
@@ -352,6 +350,8 @@ urlUpdate routes =
             _ ->
                 identity
         )
+        identity
+        identity
 
 
 view : Session -> Model -> ( String, Html Message )
