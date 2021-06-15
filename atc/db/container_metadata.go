@@ -28,6 +28,7 @@ const (
 	ContainerTypeGet   ContainerType = "get"
 	ContainerTypePut   ContainerType = "put"
 	ContainerTypeTask  ContainerType = "task"
+	ContainerTypeRun   ContainerType = "run"
 )
 
 func ContainerTypeFromString(containerType string) (ContainerType, error) {
@@ -40,6 +41,8 @@ func ContainerTypeFromString(containerType string) (ContainerType, error) {
 		return ContainerTypePut, nil
 	case "task":
 		return ContainerTypeTask, nil
+	case "run":
+		return ContainerTypeRun, nil
 	default:
 		return "", fmt.Errorf("unrecognized containerType: %s", containerType)
 	}

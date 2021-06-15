@@ -8,6 +8,18 @@ import (
 )
 
 type FakeFileStore struct {
+	AppendStub        func(string, []byte) error
+	appendMutex       sync.RWMutex
+	appendArgsForCall []struct {
+		arg1 string
+		arg2 []byte
+	}
+	appendReturns struct {
+		result1 error
+	}
+	appendReturnsOnCall map[int]struct {
+		result1 error
+	}
 	CreateStub        func(string, []byte) (string, error)
 	createMutex       sync.RWMutex
 	createArgsForCall []struct {
@@ -35,6 +47,73 @@ type FakeFileStore struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeFileStore) Append(arg1 string, arg2 []byte) error {
+	var arg2Copy []byte
+	if arg2 != nil {
+		arg2Copy = make([]byte, len(arg2))
+		copy(arg2Copy, arg2)
+	}
+	fake.appendMutex.Lock()
+	ret, specificReturn := fake.appendReturnsOnCall[len(fake.appendArgsForCall)]
+	fake.appendArgsForCall = append(fake.appendArgsForCall, struct {
+		arg1 string
+		arg2 []byte
+	}{arg1, arg2Copy})
+	stub := fake.AppendStub
+	fakeReturns := fake.appendReturns
+	fake.recordInvocation("Append", []interface{}{arg1, arg2Copy})
+	fake.appendMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeFileStore) AppendCallCount() int {
+	fake.appendMutex.RLock()
+	defer fake.appendMutex.RUnlock()
+	return len(fake.appendArgsForCall)
+}
+
+func (fake *FakeFileStore) AppendCalls(stub func(string, []byte) error) {
+	fake.appendMutex.Lock()
+	defer fake.appendMutex.Unlock()
+	fake.AppendStub = stub
+}
+
+func (fake *FakeFileStore) AppendArgsForCall(i int) (string, []byte) {
+	fake.appendMutex.RLock()
+	defer fake.appendMutex.RUnlock()
+	argsForCall := fake.appendArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeFileStore) AppendReturns(result1 error) {
+	fake.appendMutex.Lock()
+	defer fake.appendMutex.Unlock()
+	fake.AppendStub = nil
+	fake.appendReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeFileStore) AppendReturnsOnCall(i int, result1 error) {
+	fake.appendMutex.Lock()
+	defer fake.appendMutex.Unlock()
+	fake.AppendStub = nil
+	if fake.appendReturnsOnCall == nil {
+		fake.appendReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.appendReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeFileStore) Create(arg1 string, arg2 []byte) (string, error) {
@@ -171,6 +250,8 @@ func (fake *FakeFileStore) DeleteReturnsOnCall(i int, result1 error) {
 func (fake *FakeFileStore) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.appendMutex.RLock()
+	defer fake.appendMutex.RUnlock()
 	fake.createMutex.RLock()
 	defer fake.createMutex.RUnlock()
 	fake.deleteMutex.RLock()

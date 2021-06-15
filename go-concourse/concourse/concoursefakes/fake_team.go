@@ -108,6 +108,23 @@ type FakeTeam struct {
 		result2 bool
 		result3 error
 	}
+	CheckPrototypeStub        func(atc.PipelineRef, string, atc.Version) (atc.Build, bool, error)
+	checkPrototypeMutex       sync.RWMutex
+	checkPrototypeArgsForCall []struct {
+		arg1 atc.PipelineRef
+		arg2 string
+		arg3 atc.Version
+	}
+	checkPrototypeReturns struct {
+		result1 atc.Build
+		result2 bool
+		result3 error
+	}
+	checkPrototypeReturnsOnCall map[int]struct {
+		result1 atc.Build
+		result2 bool
+		result3 error
+	}
 	CheckResourceStub        func(atc.PipelineRef, string, atc.Version) (atc.Build, bool, error)
 	checkResourceMutex       sync.RWMutex
 	checkResourceArgsForCall []struct {
@@ -141,6 +158,21 @@ type FakeTeam struct {
 		result1 atc.Build
 		result2 bool
 		result3 error
+	}
+	ClearResourceCacheStub        func(atc.PipelineRef, string, atc.Version) (int64, error)
+	clearResourceCacheMutex       sync.RWMutex
+	clearResourceCacheArgsForCall []struct {
+		arg1 atc.PipelineRef
+		arg2 string
+		arg3 atc.Version
+	}
+	clearResourceCacheReturns struct {
+		result1 int64
+		result2 error
+	}
+	clearResourceCacheReturnsOnCall map[int]struct {
+		result1 int64
+		result2 error
 	}
 	ClearTaskCacheStub        func(atc.PipelineRef, string, string, string) (int64, error)
 	clearTaskCacheMutex       sync.RWMutex
@@ -1224,6 +1256,75 @@ func (fake *FakeTeam) BuildsWithVersionAsOutputReturnsOnCall(i int, result1 []at
 	}{result1, result2, result3}
 }
 
+func (fake *FakeTeam) CheckPrototype(arg1 atc.PipelineRef, arg2 string, arg3 atc.Version) (atc.Build, bool, error) {
+	fake.checkPrototypeMutex.Lock()
+	ret, specificReturn := fake.checkPrototypeReturnsOnCall[len(fake.checkPrototypeArgsForCall)]
+	fake.checkPrototypeArgsForCall = append(fake.checkPrototypeArgsForCall, struct {
+		arg1 atc.PipelineRef
+		arg2 string
+		arg3 atc.Version
+	}{arg1, arg2, arg3})
+	stub := fake.CheckPrototypeStub
+	fakeReturns := fake.checkPrototypeReturns
+	fake.recordInvocation("CheckPrototype", []interface{}{arg1, arg2, arg3})
+	fake.checkPrototypeMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+}
+
+func (fake *FakeTeam) CheckPrototypeCallCount() int {
+	fake.checkPrototypeMutex.RLock()
+	defer fake.checkPrototypeMutex.RUnlock()
+	return len(fake.checkPrototypeArgsForCall)
+}
+
+func (fake *FakeTeam) CheckPrototypeCalls(stub func(atc.PipelineRef, string, atc.Version) (atc.Build, bool, error)) {
+	fake.checkPrototypeMutex.Lock()
+	defer fake.checkPrototypeMutex.Unlock()
+	fake.CheckPrototypeStub = stub
+}
+
+func (fake *FakeTeam) CheckPrototypeArgsForCall(i int) (atc.PipelineRef, string, atc.Version) {
+	fake.checkPrototypeMutex.RLock()
+	defer fake.checkPrototypeMutex.RUnlock()
+	argsForCall := fake.checkPrototypeArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeTeam) CheckPrototypeReturns(result1 atc.Build, result2 bool, result3 error) {
+	fake.checkPrototypeMutex.Lock()
+	defer fake.checkPrototypeMutex.Unlock()
+	fake.CheckPrototypeStub = nil
+	fake.checkPrototypeReturns = struct {
+		result1 atc.Build
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeTeam) CheckPrototypeReturnsOnCall(i int, result1 atc.Build, result2 bool, result3 error) {
+	fake.checkPrototypeMutex.Lock()
+	defer fake.checkPrototypeMutex.Unlock()
+	fake.CheckPrototypeStub = nil
+	if fake.checkPrototypeReturnsOnCall == nil {
+		fake.checkPrototypeReturnsOnCall = make(map[int]struct {
+			result1 atc.Build
+			result2 bool
+			result3 error
+		})
+	}
+	fake.checkPrototypeReturnsOnCall[i] = struct {
+		result1 atc.Build
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeTeam) CheckResource(arg1 atc.PipelineRef, arg2 string, arg3 atc.Version) (atc.Build, bool, error) {
 	fake.checkResourceMutex.Lock()
 	ret, specificReturn := fake.checkResourceReturnsOnCall[len(fake.checkResourceArgsForCall)]
@@ -1360,6 +1461,72 @@ func (fake *FakeTeam) CheckResourceTypeReturnsOnCall(i int, result1 atc.Build, r
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
+}
+
+func (fake *FakeTeam) ClearResourceCache(arg1 atc.PipelineRef, arg2 string, arg3 atc.Version) (int64, error) {
+	fake.clearResourceCacheMutex.Lock()
+	ret, specificReturn := fake.clearResourceCacheReturnsOnCall[len(fake.clearResourceCacheArgsForCall)]
+	fake.clearResourceCacheArgsForCall = append(fake.clearResourceCacheArgsForCall, struct {
+		arg1 atc.PipelineRef
+		arg2 string
+		arg3 atc.Version
+	}{arg1, arg2, arg3})
+	stub := fake.ClearResourceCacheStub
+	fakeReturns := fake.clearResourceCacheReturns
+	fake.recordInvocation("ClearResourceCache", []interface{}{arg1, arg2, arg3})
+	fake.clearResourceCacheMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeTeam) ClearResourceCacheCallCount() int {
+	fake.clearResourceCacheMutex.RLock()
+	defer fake.clearResourceCacheMutex.RUnlock()
+	return len(fake.clearResourceCacheArgsForCall)
+}
+
+func (fake *FakeTeam) ClearResourceCacheCalls(stub func(atc.PipelineRef, string, atc.Version) (int64, error)) {
+	fake.clearResourceCacheMutex.Lock()
+	defer fake.clearResourceCacheMutex.Unlock()
+	fake.ClearResourceCacheStub = stub
+}
+
+func (fake *FakeTeam) ClearResourceCacheArgsForCall(i int) (atc.PipelineRef, string, atc.Version) {
+	fake.clearResourceCacheMutex.RLock()
+	defer fake.clearResourceCacheMutex.RUnlock()
+	argsForCall := fake.clearResourceCacheArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeTeam) ClearResourceCacheReturns(result1 int64, result2 error) {
+	fake.clearResourceCacheMutex.Lock()
+	defer fake.clearResourceCacheMutex.Unlock()
+	fake.ClearResourceCacheStub = nil
+	fake.clearResourceCacheReturns = struct {
+		result1 int64
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) ClearResourceCacheReturnsOnCall(i int, result1 int64, result2 error) {
+	fake.clearResourceCacheMutex.Lock()
+	defer fake.clearResourceCacheMutex.Unlock()
+	fake.ClearResourceCacheStub = nil
+	if fake.clearResourceCacheReturnsOnCall == nil {
+		fake.clearResourceCacheReturnsOnCall = make(map[int]struct {
+			result1 int64
+			result2 error
+		})
+	}
+	fake.clearResourceCacheReturnsOnCall[i] = struct {
+		result1 int64
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeTeam) ClearTaskCache(arg1 atc.PipelineRef, arg2 string, arg3 string, arg4 string) (int64, error) {
@@ -4265,10 +4432,14 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.buildsWithVersionAsInputMutex.RUnlock()
 	fake.buildsWithVersionAsOutputMutex.RLock()
 	defer fake.buildsWithVersionAsOutputMutex.RUnlock()
+	fake.checkPrototypeMutex.RLock()
+	defer fake.checkPrototypeMutex.RUnlock()
 	fake.checkResourceMutex.RLock()
 	defer fake.checkResourceMutex.RUnlock()
 	fake.checkResourceTypeMutex.RLock()
 	defer fake.checkResourceTypeMutex.RUnlock()
+	fake.clearResourceCacheMutex.RLock()
+	defer fake.clearResourceCacheMutex.RUnlock()
 	fake.clearTaskCacheMutex.RLock()
 	defer fake.clearTaskCacheMutex.RUnlock()
 	fake.createArtifactMutex.RLock()

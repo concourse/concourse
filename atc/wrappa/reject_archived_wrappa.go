@@ -30,6 +30,7 @@ func (rw *RejectArchivedWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.ScheduleJob,
 			atc.CheckResource,
 			atc.CheckResourceType,
+			atc.CheckPrototype,
 			atc.DisableResourceVersion,
 			atc.EnableResourceVersion,
 			atc.PinResourceVersion,
@@ -120,6 +121,7 @@ func (rw *RejectArchivedWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.CreatePipelineBuild,
 			atc.ClearTaskCache,
 			atc.CreateArtifact,
+			atc.ClearResourceCache,
 			atc.GetArtifact:
 
 		default:

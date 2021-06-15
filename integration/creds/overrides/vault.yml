@@ -7,6 +7,7 @@ services:
     environment:
       CONCOURSE_VAULT_URL: https://vault:8200
       CONCOURSE_VAULT_AUTH_BACKEND: cert
+      CONCOURSE_VAULT_SHARED_PATH: shared
       CONCOURSE_VAULT_CA_CERT: /vault-certs/vault-ca.crt
       CONCOURSE_VAULT_CLIENT_CERT: /vault-certs/concourse.crt
       CONCOURSE_VAULT_CLIENT_KEY: /vault-certs/concourse.key

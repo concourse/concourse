@@ -1,0 +1,15 @@
+jobs:
+- name: across-step
+  plan:
+  - task: prepare-to-fail
+    config:
+      platform: linux
+      image_resource:
+        type: mock
+        source: { mirror_self: true}
+      run:
+        path: bad-path
+        args: ["500"]
+    across:
+    - var: some-var
+      values: [1]

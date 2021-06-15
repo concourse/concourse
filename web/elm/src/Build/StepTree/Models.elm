@@ -47,6 +47,7 @@ type StepTree
     = Task StepID
     | Check StepID
     | Get StepID
+    | Run StepID
     | Put StepID
     | SetPipeline StepID
     | LoadVar StepID
@@ -256,6 +257,9 @@ activeStepIds model tree =
             [ stepId ]
 
         Get stepId ->
+            [ stepId ]
+
+        Run stepId ->
             [ stepId ]
 
         Put stepId ->

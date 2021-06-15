@@ -39,6 +39,7 @@ const (
 	CheckResource        = "CheckResource"
 	CheckResourceWebHook = "CheckResourceWebHook"
 	CheckResourceType    = "CheckResourceType"
+	CheckPrototype       = "CheckPrototype"
 
 	ListResourceVersions          = "ListResourceVersions"
 	GetResourceVersion            = "GetResourceVersion"
@@ -50,6 +51,7 @@ const (
 	ListBuildsWithVersionAsInput  = "ListBuildsWithVersionAsInput"
 	ListBuildsWithVersionAsOutput = "ListBuildsWithVersionAsOutput"
 	GetResourceCausality          = "GetResourceCausality"
+	ClearResourceCache            = "ClearResourceCache"
 
 	GetCC = "GetCC"
 
@@ -173,6 +175,8 @@ var Routes = rata.Routes([]rata.Route{
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/check", Method: "POST", Name: CheckResource},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/check/webhook", Method: "POST", Name: CheckResourceWebHook},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resource-types/:resource_type_name/check", Method: "POST", Name: CheckResourceType},
+	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/prototypes/:prototype_name/check", Method: "POST", Name: CheckPrototype},
+	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/cache", Method: "DELETE", Name: ClearResourceCache},
 
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions", Method: "GET", Name: ListResourceVersions},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_config_version_id", Method: "GET", Name: GetResourceVersion},

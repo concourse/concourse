@@ -69,6 +69,8 @@ type Resource interface {
 
 	NotifyScan() error
 
+	ClearResourceCache(atc.Version) (int64, error)
+
 	Reload() (bool, error)
 }
 
@@ -194,10 +196,6 @@ func (r *resource) Reload() (bool, error) {
 	}
 
 	return true, nil
-}
-
-func (r *resource) SetResourceConfig(atc.Source, atc.VersionedResourceTypes) (ResourceConfigScope, error) {
-	return nil, fmt.Errorf("not implemented")
 }
 
 func (r *resource) SetResourceConfigScope(scope ResourceConfigScope) error {
@@ -745,6 +743,50 @@ func (r *resource) toggleVersion(rcvID int, enable bool) error {
 
 func (r *resource) NotifyScan() error {
 	return r.conn.Bus().Notify(fmt.Sprintf("resource_scan_%d", r.id))
+}
+
+func (r *resource) ClearResourceCache(version atc.Version) (int64, error) {
+	tx, err := r.conn.Begin()
+	if err != nil {
+		return 0, err
+	}
+
+	defer Rollback(tx)
+
+	selectStatement := psql.Select("id").
+		From("resource_caches").
+		Where(sq.Eq{
+			"resource_config_id": r.resourceConfigID,
+		})
+
+	if version != nil {
+		versionJson, err := json.Marshal(version)
+		if err != nil {
+			return 0, err
+		}
+
+		selectStatement = selectStatement.Where(
+			sq.Expr("version_md5 = md5(?)", versionJson),
+		)
+	}
+
+	sqlStatement, args, err := selectStatement.ToSql()
+	if err != nil {
+		return 0, err
+	}
+
+	results, err := tx.Exec(`DELETE FROM worker_resource_caches WHERE resource_cache_id IN (` + sqlStatement + `)`, args...)
+
+	if err != nil {
+		return 0, err
+	}
+
+	rowsDeleted, err := results.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+
+	return rowsDeleted, tx.Commit()
 }
 
 func scanResource(r *resource, row scannable) error {

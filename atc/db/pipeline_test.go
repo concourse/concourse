@@ -159,6 +159,18 @@ var _ = Describe("Pipeline", func() {
 					Source: atc.Source{"some": "type-soure"},
 				},
 			},
+			Prototypes: atc.Prototypes{
+				{
+					Name:   "some-other-prototype",
+					Type:   "base-type",
+					Source: atc.Source{"some": "other-type-source"},
+				},
+				{
+					Name:   "some-prototype",
+					Type:   "base-type",
+					Source: atc.Source{"some": "type-source"},
+				},
+			},
 		}
 		var created bool
 		pipeline, created, err = team.SavePipeline(atc.PipelineRef{Name: "fake-pipeline"}, pipelineConfig, db.ConfigVersion(0), false)
@@ -289,6 +301,19 @@ var _ = Describe("Pipeline", func() {
 				{Name: "some-resource-type", Type: "base-type"},
 			}
 			Expect(resourceTypeConfigs).To(Equal(emptyResourceTypeConfigs))
+		})
+
+		It("removes the config of each prototype", func() {
+			prototypes, err := pipeline.Prototypes()
+			Expect(err).ToNot(HaveOccurred())
+
+			prototypeConfigs := prototypes.Configs()
+
+			emptyPrototypeConfigs := atc.Prototypes{
+				{Name: "some-other-prototype", Type: "base-type"},
+				{Name: "some-prototype", Type: "base-type"},
+			}
+			Expect(prototypeConfigs).To(Equal(emptyPrototypeConfigs))
 		})
 	})
 

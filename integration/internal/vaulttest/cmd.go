@@ -3,9 +3,11 @@ package vaulttest
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/concourse/concourse/integration/internal/cmdtest"
 	"github.com/concourse/concourse/integration/internal/dctest"
+	"github.com/stretchr/testify/require"
 )
 
 type Cmd struct {
@@ -20,7 +22,15 @@ func Init(t *testing.T, dc dctest.Cmd) Cmd {
 		RootToken  string   `json:"root_token"`
 	}
 
-	vault.OutputJSON(t, &initOut, "operator", "init")
+	var err error
+	for i := 0; i < 5; i++ {
+		err = vault.TryOutputJSON(&initOut, "operator", "init")
+		if err == nil {
+			break
+		}
+		time.Sleep(1 * time.Second)
+	}
+	require.NoError(t, err)
 
 	for i := 0; i < 3; i++ {
 		vault.Run(t, "operator", "unseal", initOut.UnsealKeys[i])

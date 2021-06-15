@@ -127,6 +127,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.CreateBuild,
 			atc.CheckResource,
 			atc.CheckResourceType,
+			atc.CheckPrototype,
 			atc.CreateJobBuild,
 			atc.RerunJobBuild,
 			atc.CreatePipelineBuild,
@@ -152,6 +153,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.SaveConfig,
 			atc.ArchivePipeline,
 			atc.ClearTaskCache,
+			atc.ClearResourceCache,
 			atc.CreateArtifact,
 			atc.ScheduleJob,
 			atc.GetArtifact:

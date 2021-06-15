@@ -154,9 +154,18 @@ func WithCNIFileStore(f FileStore) CNINetworkOpt {
 
 // WithRestrictedNetworks defines the network ranges that containers will be restricted
 // from accessing.
+//
 func WithRestrictedNetworks(restrictedNetworks []string) CNINetworkOpt {
 	return func(n *cniNetwork) {
 		n.restrictedNetworks = restrictedNetworks
+	}
+}
+
+// WithAllowHostAccess allows containers to talk to the host
+//
+func WithAllowHostAccess() CNINetworkOpt {
+	return func(n *cniNetwork) {
+		n.allowHostAccess = true
 	}
 }
 
@@ -175,6 +184,7 @@ type cniNetwork struct {
 	nameServers        []string
 	binariesDir        string
 	restrictedNetworks []string
+	allowHostAccess    bool
 	ipt                iptables.Iptables
 }
 
@@ -225,6 +235,22 @@ func NewCNINetwork(opts ...CNINetworkOpt) (*cniNetwork, error) {
 	return n, nil
 }
 
+func (n cniNetwork) SetupHostNetwork() error {
+	err := n.setupRestrictedNetworks()
+	if err != nil {
+		return err
+	}
+
+	if !n.allowHostAccess {
+		err = n.restrictHostAccess()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (n cniNetwork) SetupMounts(handle string) ([]specs.Mount, error) {
 	if handle == "" {
 		return nil, ErrInvalidInput("empty handle")
@@ -232,10 +258,18 @@ func (n cniNetwork) SetupMounts(handle string) ([]specs.Mount, error) {
 
 	etcHosts, err := n.store.Create(
 		filepath.Join(handle, "/hosts"),
-		[]byte("127.0.0.1 localhost"),
+		[]byte("127.0.0.1 localhost\n"),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("creating /etc/hosts: %w", err)
+	}
+
+	etcHostName, err := n.store.Create(
+		filepath.Join(handle, "/hostname"),
+		[]byte(handle+"\n"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("creating /etc/hostname: %w", err)
 	}
 
 	resolvContents, err := n.generateResolvConfContents()
@@ -258,6 +292,11 @@ func (n cniNetwork) SetupMounts(handle string) ([]specs.Mount, error) {
 			Source:      etcHosts,
 			Options:     []string{"bind", "rw"},
 		}, {
+			Destination: "/etc/hostname",
+			Type:        "bind",
+			Source:      etcHostName,
+			Options:     []string{"bind", "rw"},
+		}, {
 			Destination: "/etc/resolv.conf",
 			Type:        "bind",
 			Source:      resolvConf,
@@ -266,22 +305,23 @@ func (n cniNetwork) SetupMounts(handle string) ([]specs.Mount, error) {
 	}, nil
 }
 
-func (n cniNetwork) SetupRestrictedNetworks() error {
-	const tableName = "filter"
-	err := n.ipt.CreateChainOrFlushIfExists(tableName, ipTablesAdminChainName)
+const filterTable = "filter"
+
+func (n cniNetwork) setupRestrictedNetworks() error {
+	err := n.ipt.CreateChainOrFlushIfExists(filterTable, ipTablesAdminChainName)
 	if err != nil {
 		return fmt.Errorf("create chain or flush if exists failed: %w", err)
 	}
 
 	// Optimization that allows packets of ESTABLISHED and RELATED connections to go through without further rule matching
-	err = n.ipt.AppendRule(tableName, ipTablesAdminChainName, "-m", "conntrack", "--ctstate", "RELATED,ESTABLISHED", "-j", "ACCEPT")
+	err = n.ipt.AppendRule(filterTable, ipTablesAdminChainName, "-m", "conntrack", "--ctstate", "RELATED,ESTABLISHED", "-j", "ACCEPT")
 	if err != nil {
 		return fmt.Errorf("appending accept rule for RELATED & ESTABLISHED connections failed: %w", err)
 	}
 
 	for _, restrictedNetwork := range n.restrictedNetworks {
 		// Create REJECT rule in admin chain
-		err = n.ipt.AppendRule(tableName, ipTablesAdminChainName, "-d", restrictedNetwork, "-j", "REJECT")
+		err = n.ipt.AppendRule(filterTable, ipTablesAdminChainName, "-d", restrictedNetwork, "-j", "REJECT")
 		if err != nil {
 			return fmt.Errorf("appending reject rule for restricted network %s failed: %w", restrictedNetwork, err)
 		}
@@ -303,19 +343,45 @@ func (n cniNetwork) generateResolvConfContents() ([]byte, error) {
 	return []byte(contents), err
 }
 
-func (n cniNetwork) Add(ctx context.Context, task containerd.Task) error {
+func (n cniNetwork) restrictHostAccess() error {
+	err := n.ipt.CreateChainOrFlushIfExists(filterTable, "INPUT")
+	if err != nil {
+		return fmt.Errorf("create chain or flush if exists failed: %w", err)
+	}
+
+	err = n.ipt.AppendRule(filterTable, "INPUT", "-i", n.config.BridgeName, "-j", "REJECT", "--reject-with", "icmp-host-prohibited")
+	if err != nil {
+		return fmt.Errorf("error appending iptables rule: %w", err)
+	}
+
+	return nil
+}
+
+func (n cniNetwork) Add(ctx context.Context, task containerd.Task, containerHandle string) error {
 	if task == nil {
 		return ErrInvalidInput("nil task")
 	}
 
 	id, netns := netId(task), netNsPath(task)
 
-	_, err := n.client.Setup(ctx, id, netns)
+	result, err := n.client.Setup(ctx, id, netns)
+
 	if err != nil {
 		return fmt.Errorf("cni net setup: %w", err)
 	}
 
-	return nil
+	// Find container IP
+	config, found := result.Interfaces["eth0"]
+	if !found || len(config.IPConfigs) == 0 {
+		return fmt.Errorf("cni net setup: no eth0 interface found")
+	}
+
+	// Update /etc/hosts on container
+	// This could not be done earlier because we only have the container IP after the network has been setup
+	return n.store.Append(
+		filepath.Join(containerHandle, "/hosts"),
+		[]byte(config.IPConfigs[0].IP.String()+" "+containerHandle+"\n"),
+	)
 }
 
 func (n cniNetwork) Remove(ctx context.Context, task containerd.Task) error {

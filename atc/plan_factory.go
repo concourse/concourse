@@ -37,6 +37,8 @@ func (factory PlanFactory) NewPlan(step PlanConfig) Plan {
 		plan.Put = &t
 	case TaskPlan:
 		plan.Task = &t
+	case RunPlan:
+		plan.Run = &t
 	case SetPipelinePlan:
 		plan.SetPipeline = &t
 	case LoadVarPlan:

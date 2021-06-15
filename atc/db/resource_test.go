@@ -1218,4 +1218,144 @@ var _ = Describe("Resource", func() {
 			})
 		})
 	})
+
+	Describe("Clear resource cache", func() {
+		Context("when resource cache exists", func() {
+			var (
+				scenario *dbtest.Scenario
+				firstUsedResourceCache db.UsedResourceCache
+				secondUsedResourceCache db.UsedResourceCache
+			)
+
+			initializeResourceCacheVolume := func(build db.Build, workerName string, resourceCache db.UsedResourceCache) {
+				creatingContainer, err := defaultWorker.CreateContainer(db.NewBuildStepContainerOwner(build.ID(), "some-plan", defaultTeam.ID()), db.ContainerMetadata{
+					Type:     "get",
+					StepName: "some-resource",
+				})
+				Expect(err).ToNot(HaveOccurred())
+
+				resourceCacheVolume, err := volumeRepository.CreateContainerVolume(defaultTeam.ID(), workerName, creatingContainer, "some-path")
+				Expect(err).ToNot(HaveOccurred())
+
+				createdVolume, err := resourceCacheVolume.Created()
+				Expect(err).ToNot(HaveOccurred())
+
+				err = createdVolume.InitializeResourceCache(resourceCache)
+				Expect(err).ToNot(HaveOccurred())
+			}
+
+			hasResourceCacheVolume := func(workerName string, usedResourceCache db.UsedResourceCache) bool {
+				_, found, err := volumeRepository.FindResourceCacheVolume(workerName, usedResourceCache)
+				Expect(err).ToNot(HaveOccurred())
+				return found
+			}
+
+			BeforeEach(func() {
+				scenario = dbtest.Setup(
+					builder.WithPipeline(atc.Config{
+						Resources: atc.ResourceConfigs{
+							{
+								Name: "some-resource",
+								Type: dbtest.BaseResourceType,
+							},
+							{
+								Name: "some-other-resource",
+								Type: dbtest.BaseResourceType,
+							},
+						},
+					}),
+					builder.WithResourceVersions(
+						"some-resource",
+						atc.Version{"version": "v1"},
+						atc.Version{"version": "v2"},
+						atc.Version{"version": "v3"},
+					),
+					builder.WithBaseWorker(),
+					builder.WithBaseWorker(),
+				)
+
+				build, err := defaultTeam.CreateOneOffBuild()
+				Expect(err).ToNot(HaveOccurred())
+
+				firstUsedResourceCache, err = resourceCacheFactory.FindOrCreateResourceCache(
+					db.ForBuild(build.ID()),
+					dbtest.BaseResourceType,
+					atc.Version{"some": "version"},
+					scenario.Resource("some-resource").Source(),
+					atc.Params{"some": "params"},
+					atc.VersionedResourceTypes{},
+				)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(firstUsedResourceCache.ID()).ToNot(BeZero())
+
+				secondUsedResourceCache, err = resourceCacheFactory.FindOrCreateResourceCache(
+					db.ForBuild(build.ID()),
+					dbtest.BaseResourceType,
+					atc.Version{"some": "other-version"},
+					scenario.Resource("some-resource").Source(),
+					atc.Params{"some": "params"},
+					atc.VersionedResourceTypes{},
+				)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(secondUsedResourceCache.ID()).ToNot(BeZero())
+
+				initializeResourceCacheVolume(build, scenario.Workers[0].Name(), firstUsedResourceCache)
+				initializeResourceCacheVolume(build, scenario.Workers[0].Name(), secondUsedResourceCache)
+				initializeResourceCacheVolume(build, scenario.Workers[1].Name(), firstUsedResourceCache)
+			})
+
+			Context("when a version is not provided", func() {
+
+				It("Invalidated all resource-cache volumes associated to a resource", func() {
+					resource := scenario.Resource("some-resource")
+
+					rowsDeleted, err := resource.ClearResourceCache(nil)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(rowsDeleted).To(Equal(int64(3)))
+
+					Expect(hasResourceCacheVolume(scenario.Workers[0].Name(), firstUsedResourceCache)).To(BeFalse())
+					Expect(hasResourceCacheVolume(scenario.Workers[0].Name(), secondUsedResourceCache)).To(BeFalse())
+					Expect(hasResourceCacheVolume(scenario.Workers[1].Name(), firstUsedResourceCache)).To(BeFalse())
+				})
+
+				It("Should not invalidate any resource-cache volume for other resources", func() {
+					resource := scenario.Resource("some-other-resource")
+
+					rowsDeleted, err := resource.ClearResourceCache(nil)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(rowsDeleted).To(Equal(int64(0)))
+
+					Expect(hasResourceCacheVolume(scenario.Workers[0].Name(), firstUsedResourceCache)).To(BeTrue())
+					Expect(hasResourceCacheVolume(scenario.Workers[0].Name(), secondUsedResourceCache)).To(BeTrue())
+					Expect(hasResourceCacheVolume(scenario.Workers[1].Name(), firstUsedResourceCache)).To(BeTrue())
+				})
+			})
+
+			Context("when a version is provided", func() {
+
+				It("Invalidated all resource-cache volumes associated to a resource for that version", func() {
+					resource := scenario.Resource("some-resource")
+					rowsDeleted, err := resource.ClearResourceCache(atc.Version{"some": "version"})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(rowsDeleted).To(Equal(int64(2)))
+
+					Expect(hasResourceCacheVolume(scenario.Workers[0].Name(), firstUsedResourceCache)).To(BeFalse())
+					Expect(hasResourceCacheVolume(scenario.Workers[0].Name(), secondUsedResourceCache)).To(BeTrue())
+					Expect(hasResourceCacheVolume(scenario.Workers[1].Name(), firstUsedResourceCache)).To(BeFalse())
+				})
+
+				It("Should not invalidate any resource-cache volume for other resources", func() {
+					resource := scenario.Resource("some-other-resource")
+
+					rowsDeleted, err := resource.ClearResourceCache(atc.Version{"some": "some-version"})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(rowsDeleted).To(Equal(int64(0)))
+
+					Expect(hasResourceCacheVolume(scenario.Workers[0].Name(), firstUsedResourceCache)).To(BeTrue())
+					Expect(hasResourceCacheVolume(scenario.Workers[0].Name(), secondUsedResourceCache)).To(BeTrue())
+					Expect(hasResourceCacheVolume(scenario.Workers[1].Name(), firstUsedResourceCache)).To(BeTrue())
+				})
+			})
+		})
+	})
 })
