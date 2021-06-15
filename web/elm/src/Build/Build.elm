@@ -106,12 +106,7 @@ init flags =
           , disableManualTrigger = False
           , history = []
           , nextPage = Nothing
-          , comment =
-                Hidden
-                    { id = BuildComment
-                    , state = CommentBar.Viewing ""
-                    , style = CommentBar.defaultStyle
-                    }
+          , comment = Hidden ""
           , prep = Nothing
           , duration = { startedAt = Nothing, finishedAt = Nothing }
           , status = BuildStatusPending
@@ -503,15 +498,9 @@ updateCommentBar msg ( model, effects ) =
         Visible commentBar ->
             let
                 ( updatedCommentBar, updatedEffects ) =
-                    CommentBar.updateMap msg
-                        commentBar
-                        (\effect effs ->
-                            (case effect of
-                                CommentBar.Save content ->
-                                    SetBuildComment model.id content
-                            )
-                                :: effs
-                        )
+                    CommentBar.update commentBar
+                        { saveComment = \content -> SetBuildComment model.id content }
+                        msg
             in
             ( { model | comment = Visible updatedCommentBar }
             , effects ++ updatedEffects

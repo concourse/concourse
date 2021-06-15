@@ -24,7 +24,8 @@ import Maybe exposing (Maybe)
 import Message.Callback exposing (Callback(..))
 import Message.Message
     exposing
-        ( DomID(..)
+        ( CommentBarButtonKind(..)
+        , DomID(..)
         , PipelinesSection(..)
         , VersionToggleAction(..)
         , VisibilityAction(..)
@@ -50,7 +51,6 @@ import SideBar.State exposing (SideBarState, encodeSideBarState)
 import Task
 import Time
 import Views.Styles
-import Message.Message exposing (CommentBarButtonKind(..))
 
 
 port renderPipeline : ( Json.Encode.Value, Json.Encode.Value ) -> Cmd msg
@@ -900,6 +900,9 @@ toHtmlID domId =
 
         CheckButton _ ->
             "check-button"
+
+        BuildTab id _ ->
+            String.fromInt id
 
         PinIcon ->
             "pin-icon"

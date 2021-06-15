@@ -5,7 +5,6 @@ module Views.Styles exposing
     , breadcrumbItem
     , clusterName
     , commentBarEditButton
-    , commentBarSaveButton
     , commentBarText
     , commentBarTextArea
     , commentBarTextButton
@@ -292,8 +291,7 @@ instanceGroupBadge backgroundColor =
 
 commentBarWrapper : List (Html.Attribute msg)
 commentBarWrapper =
-    [ style "border" "medium dashed rgba(255, 255, 255, 0.5)"
-    , style "border-radius" "7px"
+    [ style "border" "1px solid"
     , style "margin" "16px 0"
     ]
 
@@ -342,43 +340,5 @@ commentBarTextButton =
     , style "outline" "none"
     , style "border" "1px solid"
     , style "transition" "border 200ms ease, color 200ms ease"
-    ]
-        ++ defaultFont
-
-
-commentBarSaveButton :
-    { isHovered : Bool, commentChanged : Bool, pinCommentLoading : Bool }
-    -> List (Html.Attribute msg)
-commentBarSaveButton { commentChanged, isHovered, pinCommentLoading } =
-    [ style "border" <|
-        "1px solid "
-            ++ (if commentChanged && not pinCommentLoading then
-                    Colors.white
-
-                else
-                    Colors.buttonDisabledGrey
-               )
-    , style "background-color" <|
-        if isHovered && commentChanged && not pinCommentLoading then
-            Colors.frame
-
-        else
-            "transparent"
-    , style "color" <|
-        if commentChanged && not pinCommentLoading then
-            Colors.text
-
-        else
-            Colors.buttonDisabledGrey
-    , style "padding" "5px 10px"
-    , style "margin" "5px 5px 7px 7px"
-    , style "outline" "none"
-    , style "transition" "border 200ms ease, color 200ms ease"
-    , style "cursor" <|
-        if commentChanged && not pinCommentLoading then
-            "pointer"
-
-        else
-            "default"
     ]
         ++ defaultFont

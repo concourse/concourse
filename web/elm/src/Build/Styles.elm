@@ -3,9 +3,7 @@ module Build.Styles exposing
     , abortButton
     , body
     , changedStepTooltip
-    , commentTextArea
     , durationTooltip
-    , editSaveWrapper
     , errorLog
     , header
     , historyItem
@@ -58,27 +56,6 @@ header status =
             BuildStatusAborted ->
                 Colors.aborted
     ]
-
-
-editSaveWrapper : List (Html.Attribute msg)
-editSaveWrapper =
-    [ style "width" "60px"
-    , style "display" "flex"
-    , style "justify-content" "flex-end"
-    ]
-
-
-commentTextArea : List (Html.Attribute msg)
-commentTextArea =
-    [ style "resize" "none"
-    , style "outline" "none"
-    , style "border" "medium none"
-    , style "color" Colors.text
-    , style "min-height" "70px"
-    , style "flex-grow" "1"
-    , rows 1
-    ]
-        ++ Views.Styles.defaultFont
 
 
 body : List (Html.Attribute msg)

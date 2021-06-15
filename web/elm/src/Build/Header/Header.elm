@@ -3,6 +3,7 @@ module Build.Header.Header exposing
     , handleCallback
     , handleDelivery
     , header
+    , initBuildCommentBar
     , tooltip
     , update
     , view
@@ -80,16 +81,16 @@ header session model =
                     in
                     case ( model.comment, isHovered ) of
                         ( Hidden _, False ) ->
-                            Views.Dark
+                            Views.Light
 
                         ( Hidden _, True ) ->
-                            Views.Light
+                            Views.Dark
 
                         ( Visible _, False ) ->
-                            Views.Light
+                            Views.Dark
 
                         ( Visible _, True ) ->
-                            Views.Dark
+                            Views.Light
                 , backgroundColor = model.status
                 }
             )
@@ -97,8 +98,7 @@ header session model =
                     []
 
                 else
-                    [ Views.Spacer ( "10px", model.status )
-                    , Views.Button
+                    [ Views.Button
                         (if Concourse.BuildStatus.isRunning model.status then
                             Just
                                 { type_ = Views.Abort
@@ -166,26 +166,30 @@ header session model =
     , backgroundColor = model.status
     , tabs = tabs model
     , comment =
-        case model.comment of
-            Hidden _ ->
-                Nothing
+        if not model.authorized then
+            Nothing
 
-            Visible c ->
-                Just
-                    ( c
-                    , { hover = session.hovered
-                      , editable =
-                            case model.job of
-                                Nothing ->
-                                    False
+        else
+            case model.comment of
+                Hidden _ ->
+                    Nothing
 
-                                Just job ->
-                                    UserState.isMember
-                                        { teamName = job.teamName
-                                        , userState = session.userState
-                                        }
-                      }
-                    )
+                Visible c ->
+                    Just
+                        ( c
+                        , { hover = session.hovered
+                          , editable =
+                                case model.job of
+                                    Nothing ->
+                                        False
+
+                                    Just job ->
+                                        UserState.isMember
+                                            { teamName = job.teamName
+                                            , userState = session.userState
+                                            }
+                          }
+                        )
     }
 
 
@@ -211,8 +215,12 @@ tooltip model session =
                 { body =
                     Html.text
                         (case model.comment of
-                            Hidden _ ->
-                                "show build comment"
+                            Hidden comment ->
+                                if String.isEmpty comment then
+                                    "add build comment"
+
+                                else
+                                    "show build comment"
 
                             Visible _ ->
                                 "hide build comment"
@@ -262,6 +270,37 @@ tooltip model session =
                 , containerAttrs = Nothing
                 }
 
+        HoverState.Tooltip (BuildTab id _) _ ->
+            List.head (List.filter (\b -> b.id == id) model.history)
+                |> Maybe.andThen
+                    (\b ->
+                        let
+                            lines =
+                                String.lines b.comment
+                        in
+                        if String.isEmpty b.comment then
+                            Nothing
+
+                        else
+                            List.head lines
+                                |> Maybe.map
+                                    (\text ->
+                                        let
+                                            truncatedText =
+                                                if List.length lines > 1 || String.length text > 50 then
+                                                    String.left 50 text ++ "…"
+
+                                                else
+                                                    text
+                                        in
+                                        { body = Html.text truncatedText
+                                        , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.Start }
+                                        , arrow = Nothing
+                                        , containerAttrs = Nothing
+                                        }
+                                    )
+                    )
+
         _ ->
             Nothing
 
@@ -291,10 +330,10 @@ historyItem model =
     , comment =
         case model.comment of
             Hidden comment ->
-                CommentBar.getContent comment
+                comment
 
-            Visible comment ->
-                CommentBar.getContent comment
+            Visible commentBar ->
+                CommentBar.getContent commentBar
     }
 
 
@@ -310,31 +349,35 @@ changeToBuild : BuildPageType -> ET (Model r)
 changeToBuild pageType ( model, effects ) =
     case pageType of
         JobBuildPage buildID ->
-            ( model.history
+            model.history
                 |> List.Extra.find (.name >> (==) buildID.buildName)
                 |> Maybe.map
                     (\b ->
-                        { model
-                            | id = b.id
-                            , status = b.status
-                            , duration = b.duration
-                            , name = b.name
-                            , createdBy = b.createdBy
-                            , comment =
-                                let
-                                    commentBar =
-                                        initBuildCommentBar b.comment
-                                in
+                        let
+                            ( commentBar, initEffects ) =
                                 if String.isEmpty b.comment then
-                                    Hidden commentBar
+                                    ( Hidden b.comment, [] )
 
                                 else
-                                    Visible commentBar
-                        }
+                                    let
+                                        ( cb, effs ) =
+                                            CommentBar.resetState (initBuildCommentBar b.comment)
+                                    in
+                                    ( Visible cb, effs )
+
+                            updatedModel =
+                                { model
+                                    | id = b.id
+                                    , status = b.status
+                                    , duration = b.duration
+                                    , name = b.name
+                                    , createdBy = b.createdBy
+                                    , comment = commentBar
+                                }
+                        in
+                        ( updatedModel, effects ++ initEffects )
                     )
-                |> Maybe.withDefault model
-            , effects
-            )
+                |> Maybe.withDefault ( model, effects )
 
         _ ->
             ( model, effects )
@@ -616,11 +659,19 @@ update msg ( model, effects ) =
 
         Click ToggleBuildCommentButton ->
             case model.comment of
-                Hidden commentBar ->
-                    ( { model | comment = Visible commentBar }, effects )
+                Hidden comment ->
+                    let
+                        ( updatedCommentBar, updatedEffects ) =
+                            CommentBar.resetState (initBuildCommentBar comment)
+                    in
+                    ( { model | comment = Visible updatedCommentBar }
+                    , effects ++ updatedEffects
+                    )
 
                 Visible commentBar ->
-                    ( { model | comment = Hidden commentBar }, effects )
+                    ( { model | comment = Hidden (CommentBar.getContent commentBar) }
+                    , effects
+                    )
 
         _ ->
             ( model, effects )
@@ -639,8 +690,8 @@ handleCallback callback ( model, effects ) =
                         { model
                             | comment =
                                 case model.comment of
-                                    Hidden commentBar ->
-                                        Hidden (CommentBar.commentSetCallback ( savedComment, result ) commentBar)
+                                    Hidden _ ->
+                                        Hidden savedComment
 
                                     Visible commentBar ->
                                         Visible (CommentBar.commentSetCallback ( savedComment, result ) commentBar)
@@ -708,6 +759,27 @@ handleCallback callback ( model, effects ) =
 handleBuildFetched : Concourse.Build -> ET (Model r)
 handleBuildFetched b ( model, effects ) =
     if not model.hasLoadedYet || model.id == b.id then
+        let
+            ( commentBar, commentBarEffects ) =
+                if not model.hasLoadedYet then
+                    if String.isEmpty b.comment then
+                        ( Hidden b.comment, [] )
+
+                    else
+                        let
+                            ( initCommentBar, effs ) =
+                                CommentBar.resetState (initBuildCommentBar b.comment)
+                        in
+                        ( Visible initCommentBar, effs )
+
+                else
+                    case model.comment of
+                        Hidden _ ->
+                            ( Hidden b.comment, [] )
+
+                        Visible c ->
+                            ( Visible (CommentBar.setCachedContent b.comment c), [] )
+        in
         ( { model
             | hasLoadedYet = True
             , history =
@@ -727,26 +799,9 @@ handleBuildFetched b ( model, effects ) =
             , id = b.id
             , name = b.name
             , createdBy = b.createdBy
-            , comment =
-                let
-                    commentBar =
-                        case model.comment of
-                            Hidden c ->
-                                c
-
-                            Visible c ->
-                                c
-
-                    updatedCommentBar =
-                        CommentBar.setCachedContent b.comment commentBar
-                in
-                if String.isEmpty b.comment then
-                    Hidden updatedCommentBar
-
-                else
-                    Visible updatedCommentBar
+            , comment = commentBar
           }
-        , effects
+        , effects ++ commentBarEffects
         )
 
     else

@@ -260,7 +260,7 @@ viewBuildTabs backgroundColor =
 viewBuildTab : BuildStatus -> BuildTab -> Html Message
 viewBuildTab backgroundColor tab =
     Html.li
-        ((id <| String.fromInt tab.id)
+        ((id <| toHtmlID <| Message.BuildTab tab.id tab.name)
             :: Styles.historyItem backgroundColor tab.isCurrent tab.background
         )
         ((if tab.hasComment then
@@ -271,6 +271,8 @@ viewBuildTab backgroundColor tab =
          )
             ++ [ Html.a
                     [ onLeftClick <| Click <| Message.BuildTab tab.id tab.name
+                    , onMouseEnter <| Hover <| Just <| Message.BuildTab tab.id tab.name
+                    , onMouseLeave <| Hover Nothing
                     , href <| Routes.toString tab.href
                     ]
                     [ Html.text tab.name ]

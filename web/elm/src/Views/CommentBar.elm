@@ -1,4 +1,17 @@
-module Views.CommentBar exposing (Effect(..), Model, State(..), Style, ViewState, commentSetCallback, defaultStyle, getContent, setCachedContent, update, updateMap, view)
+module Views.CommentBar exposing
+    ( Model
+    , State(..)
+    , Style
+    , ViewState
+    , commentSetCallback
+    , defaultStyle
+    , getContent
+    , getTextAreaID
+    , resetState
+    , setCachedContent
+    , update
+    , view
+    )
 
 import Assets
 import Colors
@@ -7,8 +20,8 @@ import Html exposing (Attribute, Html)
 import Html.Attributes exposing (id, readonly, style, value)
 import Html.Events exposing (onBlur, onClick, onFocus, onInput, onMouseEnter, onMouseLeave)
 import Http
-import Message.Effects exposing (Effect, toHtmlID)
-import Message.Message as Message
+import Message.Effects exposing (Effect(..), toHtmlID)
+import Message.Message as Message exposing (CommentBarButtonKind(..), DomID)
 import Views.Icon as Icon
 import Views.Spinner as Spinner
 import Views.Styles as Styles
@@ -24,6 +37,11 @@ type alias Model =
 type alias ViewState =
     { hover : HoverState
     , editable : Bool
+    }
+
+
+type alias UpdateState =
+    { saveComment : String -> Effect
     }
 
 
@@ -45,10 +63,6 @@ type State
     | Saving CachedState
 
 
-type Effect
-    = Save String
-
-
 defaultStyle : Style
 defaultStyle =
     { viewBackgroundColor = "transparent"
@@ -62,11 +76,16 @@ getContent model =
         Viewing content ->
             content
 
-        Editing s ->
-            s.content
+        Editing { content } ->
+            content
 
-        Saving s ->
-            s.content
+        Saving { content } ->
+            content
+
+
+getTextAreaID : Model -> DomID
+getTextAreaID model =
+    Message.CommentBar model.id
 
 
 setCachedContent : String -> Model -> Model
@@ -85,6 +104,43 @@ setCachedContent content model =
     }
 
 
+resetState : Model -> ( Model, List Effect )
+resetState model =
+    let
+        content =
+            getContent model
+
+        viewOrEditState =
+            if String.isEmpty content then
+                Editing { content = content, cached = content }
+
+            else
+                Viewing content
+
+        updatedState =
+            case model.state of
+                Viewing _ ->
+                    viewOrEditState
+
+                Editing _ ->
+                    viewOrEditState
+
+                -- Don't change away from "Saving" state, wait for callback instead
+                Saving state ->
+                    Saving state
+    in
+    ( { model | state = updatedState }
+    , SyncTextareaHeight (getTextAreaID model)
+        :: (case updatedState of
+                Editing _ ->
+                    [ Focus (toHtmlID (getTextAreaID model)) ]
+
+                _ ->
+                    []
+           )
+    )
+
+
 commentTextArea : Model -> Html Message.Message
 commentTextArea model =
     let
@@ -97,7 +153,7 @@ commentTextArea model =
                     True
     in
     Html.textarea
-        ([ id (toHtmlID (Message.CommentBar model.id))
+        ([ id (toHtmlID (getTextAreaID model))
          , value (getContent model)
          , onInput (Message.EditCommentBar model.id)
          , onFocus (Message.FocusCommentBar model.id)
@@ -140,7 +196,7 @@ editButton model state =
 
 loadingButton : Html Message.Message
 loadingButton =
-    Html.button
+    Html.div
         ([ style "background-color" "transparent"
          , style "color" Colors.buttonDisabledGrey
          ]
@@ -220,8 +276,8 @@ view model state attrs =
 
 commentSetCallback : ( String, Result Http.Error () ) -> Model -> Model
 commentSetCallback ( content, result ) model =
-    let
-        updatedState =
+    { model
+        | state =
             case ( result, model.state ) of
                 ( Ok (), Viewing _ ) ->
                     Viewing content
@@ -237,12 +293,11 @@ commentSetCallback ( content, result ) model =
 
                 ( _, state ) ->
                     state
-    in
-    { model | state = updatedState }
+    }
 
 
-update : Message.Message -> Model -> ( Model, List Effect )
-update msg model =
+update : Model -> UpdateState -> Message.Message -> ( Model, List Effect )
+update model updateState msg =
     case msg of
         Message.Click (Message.CommentBarButton kind id) ->
             if model.id == id then
@@ -250,7 +305,9 @@ update msg model =
                     Message.Edit ->
                         case model.state of
                             Viewing content ->
-                                ( { model | state = Editing { content = content, cached = content } }, [] )
+                                ( { model | state = Editing { content = content, cached = content } }
+                                , [ Focus (toHtmlID (getTextAreaID model)) ]
+                                )
 
                             _ ->
                                 ( model, [] )
@@ -259,7 +316,7 @@ update msg model =
                         case model.state of
                             Editing state ->
                                 if state.content /= state.cached then
-                                    ( { model | state = Saving state }, [ Save state.content ] )
+                                    ( { model | state = Saving state }, [ updateState.saveComment state.content ] )
 
                                 else
                                     ( { model | state = Viewing state.content }, [] )
@@ -272,34 +329,17 @@ update msg model =
 
         Message.EditCommentBar id content ->
             if model.id == id then
-                ( { model
-                    | state =
-                        case model.state of
-                            Editing state ->
-                                Editing { state | content = content }
+                case model.state of
+                    Editing state ->
+                        ( { model | state = Editing { state | content = content } }
+                        , [ SyncTextareaHeight (getTextAreaID model) ]
+                        )
 
-                            state ->
-                                state
-                  }
-                , []
-                )
+                    _ ->
+                        ( model, [] )
 
             else
                 ( model, [] )
 
         _ ->
             ( model, [] )
-
-
-updateMap : Message.Message -> Model -> (Effect -> List a -> List a) -> ( Model, List a )
-updateMap msg model func =
-    let
-        ( updatedModel, effects ) =
-            update msg model
-    in
-    ( updatedModel
-    , List.foldr
-        (\effect b -> func effect b)
-        []
-        effects
-    )
