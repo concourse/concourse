@@ -14,7 +14,6 @@ type WorkerSpec struct {
 	ResourceType string
 	Tags         []string
 	TeamID       int
-	TeamName     string
 }
 
 type ContainerSpec struct {
