@@ -125,6 +125,27 @@ func (c *Container) Run(
 		return nil, fmt.Errorf("proc start: %w", err)
 	}
 
+	// If there is no TTY allocated for the process, we can call CloseIO right
+	// away. The reason we don't do this when there is a TTY is that runc
+	// signals such processes with SIGHUP when stdin is closed and we have
+	// called CloseIO (which doesn't actually close the stdin stream for the
+	// container - it just marks the stream as "closable").
+	//
+	// If we were to call CloseIO immediately on processes with a TTY, if the
+	// Stdin stream ever receives an error (e.g. an io.EOF due to worker
+	// rebalancing, or the worker restarting gracefully), runc will kill the
+	// process with SIGHUP (because we would have marked the stream as
+	// closable).
+	//
+	// Note: resource containers are the only ones without a TTY - task and
+	// hijack processes have a TTY enabled.
+	if spec.TTY == nil {
+		err = proc.CloseIO(ctx, containerd.WithStdinCloser)
+		if err != nil {
+			return nil, fmt.Errorf("proc closeio: %w", err)
+		}
+	}
+
 	return NewProcess(proc, exitStatusC), nil
 }
 
