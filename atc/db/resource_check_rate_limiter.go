@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"fmt"
+	sq "github.com/Masterminds/squirrel"
 	"sync"
 	"time"
 
@@ -88,7 +89,8 @@ func (limiter *ResourceCheckRateLimiter) Limit() rate.Limit {
 func (limiter *ResourceCheckRateLimiter) refreshCheckLimiter() error {
 	var count int
 	err := psql.Select("COUNT(id)").
-		From("resource_config_scopes").
+		From("resources").
+		Where(sq.Eq{"active": true}).
 		RunWith(limiter.refreshConn).
 		QueryRow().
 		Scan(&count)
