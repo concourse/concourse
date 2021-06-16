@@ -140,14 +140,6 @@ func (br *buildLogCollector) reapLogsOfJob(pipeline db.Pipeline,
 			continue
 		}
 
-		if logRetention.Days > 0 {
-			if !build.EndTime().IsZero() && build.EndTime().AddDate(0, 0, logRetention.Days).Before(time.Now()) {
-				logger.Debug("should-reap-due-to-days", build.LagerData())
-				buildIDsToDelete = append(buildIDsToDelete, build.ID())
-				continue
-			}
-		}
-
 		// Before a build is drained, it should not be reaped.
 		if br.drainerConfigured {
 			if !build.IsDrained() {
@@ -156,26 +148,50 @@ func (br *buildLogCollector) reapLogsOfJob(pipeline db.Pipeline,
 			}
 		}
 
-		// If Builds is 0, then all builds are retained, so we don't need to
-		// check MinSuccessBuilds at all.
-		if logRetention.Builds > 0 {
-			if logRetention.MinimumSucceededBuilds > 0 && build.Status() == db.BuildStatusSucceeded {
-				if retainedSucceededBuilds < logRetention.MinimumSucceededBuilds {
-					retainedBuilds++
-					retainedSucceededBuilds++
-					firstLoggedBuildID = build.ID()
-					continue
-				}
-			}
-
-			if retainedBuilds < logRetention.Builds {
+		// If the minimum is set but not satisfied it should not be reaped
+		if logRetention.Builds != 0 && logRetention.MinimumSucceededBuilds != 0 {
+			if build.Status() == db.BuildStatusSucceeded && retainedSucceededBuilds < logRetention.MinimumSucceededBuilds {
 				retainedBuilds++
-				toRetainNonSucceededBuildIDs = append(toRetainNonSucceededBuildIDs, build.ID())
+				retainedSucceededBuilds++
 				firstLoggedBuildID = build.ID()
 				continue
 			}
+		}
 
+		maxBuildsRetained := retainedBuilds >= logRetention.Builds
+
+		// If only builds is set
+		if logRetention.Days == 0 {
+			if maxBuildsRetained {
+				logger.Debug("should-reap-due-to-builds", build.LagerData())
+				buildIDsToDelete = append(buildIDsToDelete, build.ID())
+			} else {
+				retainedBuilds++
+				toRetainNonSucceededBuildIDs = append(toRetainNonSucceededBuildIDs, build.ID())
+				firstLoggedBuildID = build.ID()
+			}
+			continue
+		}
+
+		buildHasExpired := !build.EndTime().IsZero() && build.EndTime().AddDate(0, 0, logRetention.Days).Before(time.Now())
+
+		// If only Days is set
+		if logRetention.Builds == 0 {
+			if buildHasExpired {
+				logger.Debug("should-reap-due-to-days", build.LagerData())
+				buildIDsToDelete = append(buildIDsToDelete, build.ID())
+			}
+			continue
+		}
+
+		// If Builds and Days are set
+		if maxBuildsRetained && buildHasExpired {
+			logger.Debug("should-reap-due-to-days-and-builds", build.LagerData())
 			buildIDsToDelete = append(buildIDsToDelete, build.ID())
+		} else {
+			retainedBuilds++
+			toRetainNonSucceededBuildIDs = append(toRetainNonSucceededBuildIDs, build.ID())
+			firstLoggedBuildID = build.ID()
 		}
 	}
 
