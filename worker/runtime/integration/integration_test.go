@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"testing/iotest"
 	"time"
@@ -533,6 +534,49 @@ func (s *IntegrationSuite) runToCompletion(privileged bool) {
 	s.Equal(exitCode, 0)
 	s.Equal("hello world\n", buf.String())
 
+}
+
+// TestRunWithoutTerminalStdinReturnsEOF validates that when running a process
+// with TTY disabled, the stdin stream eventually sends an EOF (so stdin can be
+// read to completion)
+//
+func (s *IntegrationSuite) TestRunWithoutTerminalStdinReturnsEOF() {
+	handle := uuid()
+	container, err := s.gardenBackend.Create(garden.ContainerSpec{
+		Handle:     handle,
+		RootFSPath: "raw://" + s.rootfs,
+		Privileged: true,
+	})
+	s.NoError(err)
+
+	stdin := strings.NewReader("hello world")
+	buf := new(buffer)
+
+	proc, err := container.Run(
+		garden.ProcessSpec{
+			Path: "/executable",
+			Args: []string{
+				"-cat=/dev/stdin",
+			},
+			// Only applies when TTY is nil
+			TTY: nil,
+		},
+		garden.ProcessIO{
+			Stdin:  stdin,
+			Stdout: buf,
+			Stderr: buf,
+		},
+	)
+	s.NoError(err)
+
+	exitCode, err := proc.Wait()
+	s.NoError(err)
+
+	s.Equal(exitCode, 0)
+	s.Contains(buf.String(), "hello world")
+
+	err = s.gardenBackend.Destroy(container.Handle())
+	s.NoError(err)
 }
 
 // TestRunWithTerminalStdinClosed validates that when running a process with

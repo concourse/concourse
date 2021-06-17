@@ -105,10 +105,7 @@ func (c *Container) Run(
 	}
 
 	id := procID(spec)
-	// NOTE: if stdin is ever closed (network issues), it can't be reattached to
-	// again. This isn't a problem since we only send stdin once at the very
-	// beginning for resource scripts, but this might bite us in the future.
-	cioOpts, stdinWrapper := containerdCIO(processIO, spec.TTY != nil)
+	cioOpts := containerdCIO(processIO, spec.TTY != nil)
 
 	proc, err := task.Exec(ctx, id, &procSpec, cio.NewCreator(cioOpts...))
 	if err != nil {
@@ -128,12 +125,28 @@ func (c *Container) Run(
 		return nil, fmt.Errorf("proc start: %w", err)
 	}
 
-	err = proc.CloseIO(ctx, containerd.WithStdinCloser)
-	if err != nil {
-		return nil, fmt.Errorf("proc closeio: %w", err)
+	// If there is no TTY allocated for the process, we can call CloseIO right
+	// away. The reason we don't do this when there is a TTY is that runc
+	// signals such processes with SIGHUP when stdin is closed and we have
+	// called CloseIO (which doesn't actually close the stdin stream for the
+	// container - it just marks the stream as "closable").
+	//
+	// If we were to call CloseIO immediately on processes with a TTY, if the
+	// Stdin stream ever receives an error (e.g. an io.EOF due to worker
+	// rebalancing, or the worker restarting gracefully), runc will kill the
+	// process with SIGHUP (because we would have marked the stream as
+	// closable).
+	//
+	// Note: resource containers are the only ones without a TTY - task and
+	// hijack processes have a TTY enabled.
+	if spec.TTY == nil {
+		err = proc.CloseIO(ctx, containerd.WithStdinCloser)
+		if err != nil {
+			return nil, fmt.Errorf("proc closeio: %w", err)
+		}
 	}
 
-	return NewProcess(proc, exitStatusC, stdinWrapper), nil
+	return NewProcess(proc, exitStatusC), nil
 }
 
 // Attach starts streaming the output back to the client from a specified process.
@@ -150,7 +163,7 @@ func (c *Container) Attach(pid string, processIO garden.ProcessIO) (process gard
 		return nil, fmt.Errorf("task: %w", err)
 	}
 
-	cioOpts, stdinWrapper := containerdCIO(processIO, false)
+	cioOpts := containerdCIO(processIO, false)
 
 	proc, err := task.LoadProcess(ctx, pid, cio.NewAttach(cioOpts...))
 	if err != nil {
@@ -171,7 +184,7 @@ func (c *Container) Attach(pid string, processIO garden.ProcessIO) (process gard
 		return nil, fmt.Errorf("proc wait: %w", err)
 	}
 
-	return NewProcess(proc, exitStatusC, stdinWrapper), nil
+	return NewProcess(proc, exitStatusC), nil
 }
 
 // Properties returns the current set of properties
@@ -404,34 +417,7 @@ func envWithDefaultPath(uid uint32, currentEnv []string) string {
 	return Path
 }
 
-// stdinWrapper will normally transparently pass Reads through to the underlying
-// reader, but if a read fails, it will nop (block) until the process has
-// exited.
-//
-// This is because it's possible for network flakes or worker rebalancing to
-// kill the current connection, which causes the stdin io.Reader to return an
-// error. If the container is created with terminal: true, then containerd will
-// treat that as a hang up and send a SIGHUP to the container
-//
-type stdinWrapper struct {
-	in io.Reader
-	c  chan struct{}
-}
-
-func (s *stdinWrapper) Read(p []byte) (int, error) {
-	n, err := s.in.Read(p)
-	if err != nil {
-		<-s.c
-		return n, err
-	}
-	return n, err
-}
-
-func (s *stdinWrapper) Close() {
-	s.c <- struct{}{}
-}
-
-func containerdCIO(gdnProcIO garden.ProcessIO, tty bool) ([]cio.Opt, *stdinWrapper) {
+func containerdCIO(gdnProcIO garden.ProcessIO, tty bool) []cio.Opt {
 	if !tty {
 		return []cio.Opt{
 			cio.WithStreams(
@@ -439,23 +425,18 @@ func containerdCIO(gdnProcIO garden.ProcessIO, tty bool) ([]cio.Opt, *stdinWrapp
 				gdnProcIO.Stdout,
 				gdnProcIO.Stderr,
 			),
-		}, nil
-	}
-
-	stdin := &stdinWrapper{
-		in: gdnProcIO.Stdin,
-		c:  make(chan struct{}, 1),
+		}
 	}
 
 	cioOpts := []cio.Opt{
 		cio.WithStreams(
-			stdin,
+			gdnProcIO.Stdin,
 			gdnProcIO.Stdout,
 			gdnProcIO.Stderr,
 		),
 		cio.WithTerminal,
 	}
-	return cioOpts, stdin
+	return cioOpts
 }
 
 func isNoSuchExecutable(err error) bool {

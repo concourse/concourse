@@ -42,7 +42,9 @@ services:
     privileged: true
     depends_on: [web]
     ports: [7777, 7788]
-    volumes: ["../hack/keys:/concourse-keys"]
+    volumes:
+    - ..:/src
+    - ../hack/keys:/concourse-keys
     stop_signal: SIGUSR2
     environment:
       CONCOURSE_RUNTIME: containerd

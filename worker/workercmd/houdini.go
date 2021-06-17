@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"code.cloudfoundry.org/garden/server"
 	"code.cloudfoundry.org/lager"
 	"github.com/tedsuo/ifrit"
 	"github.com/vito/houdini"
@@ -21,15 +20,13 @@ func (cmd *WorkerCommand) houdiniRunner(logger lager.Logger) (ifrit.Runner, erro
 
 	backend := houdini.NewBackend(depotDir)
 
-	server := server.New(
+	return newGardenServerRunner(
 		"tcp",
 		cmd.bindAddr(),
 		0,
 		backend,
 		logger,
-	)
-
-	return gardenServerRunner{logger, server}, nil
+	), nil
 }
 
 func (cmd *WorkerCommand) bindAddr() string {

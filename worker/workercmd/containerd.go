@@ -12,7 +12,6 @@ import (
 	"syscall"
 	"time"
 
-	"code.cloudfoundry.org/garden/server"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/localip"
 	concourseCmd "github.com/concourse/concourse/cmd"
@@ -108,13 +107,13 @@ func (cmd *WorkerCommand) containerdGardenServerRunner(
 		return nil, fmt.Errorf("containerd containerd init: %w", err)
 	}
 
-	server := server.New("tcp", cmd.bindAddr(),
+	return newGardenServerRunner(
+		"tcp",
+		cmd.bindAddr(),
 		graceTime,
 		&gardenBackend,
 		logger,
-	)
-
-	return gardenServerRunner{logger, server}, nil
+	), nil
 }
 
 // containerdRunner spawns a containerd and a Garden server process for use as the container
@@ -156,6 +155,7 @@ func (cmd *WorkerCommand) containerdRunner(logger lager.Logger) (ifrit.Runner, e
 	command.Stderr = os.Stderr
 	command.SysProcAttr = &syscall.SysProcAttr{
 		Pdeathsig: syscall.SIGKILL,
+		Setpgid:   true,
 	}
 
 	members := grouper.Members{}
