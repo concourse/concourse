@@ -84,8 +84,6 @@ var buildsQuery = psql.Select(`
 		b.reap_time,
 		j.name,
 		r.name,
-		rt.name,
-		pt.name,
 		b.pipeline_id,
 		p.name,
 		p.instance_vars,
@@ -103,8 +101,6 @@ var buildsQuery = psql.Select(`
 	From("builds b").
 	JoinClause("LEFT OUTER JOIN jobs j ON b.job_id = j.id").
 	JoinClause("LEFT OUTER JOIN resources r ON b.resource_id = r.id").
-	JoinClause("LEFT OUTER JOIN resource_types rt ON b.resource_type_id = rt.id").
-	JoinClause("LEFT OUTER JOIN prototypes pt ON b.prototype_id = pt.id").
 	JoinClause("LEFT OUTER JOIN pipelines p ON b.pipeline_id = p.id").
 	JoinClause("LEFT OUTER JOIN teams t ON b.team_id = t.id").
 	JoinClause("LEFT OUTER JOIN builds rb ON rb.id = b.rerun_of")
@@ -133,10 +129,8 @@ type Build interface {
 	ResourceName() string
 
 	ResourceTypeID() int
-	ResourceTypeName() string
 
 	PrototypeID() int
-	PrototypeName() string
 
 	Schema() string
 	PrivatePlan() atc.Plan
@@ -229,11 +223,8 @@ type build struct {
 	resourceID   int
 	resourceName string
 
-	resourceTypeID   int
-	resourceTypeName string
-
-	prototypeID   int
-	prototypeName string
+	resourceTypeID int
+	prototypeID    int
 
 	isManuallyTriggered bool
 
@@ -289,10 +280,6 @@ func (b *build) SyslogTag(origin event.OriginID) string {
 		segments = append(segments, b.jobName, b.name)
 	} else if b.resourceID != 0 {
 		segments = append(segments, b.resourceName, strconv.Itoa(b.id))
-	} else if b.resourceTypeID != 0 {
-		segments = append(segments, b.resourceTypeName, strconv.Itoa(b.id))
-	} else if b.prototypeID != 0 {
-		segments = append(segments, b.prototypeName, strconv.Itoa(b.id))
 	} else {
 		segments = append(segments, strconv.Itoa(b.id))
 	}
@@ -323,14 +310,6 @@ func (b *build) LagerData() lager.Data {
 		data["resource"] = b.resourceName
 	}
 
-	if b.resourceTypeID != 0 {
-		data["resource_type"] = b.resourceTypeName
-	}
-
-	if b.prototypeID != 0 {
-		data["prototype"] = b.prototypeName
-	}
-
 	return data
 }
 
@@ -356,14 +335,6 @@ func (b *build) TracingAttrs() tracing.Attrs {
 		data["resource"] = b.resourceName
 	}
 
-	if b.resourceTypeID != 0 {
-		data["resource_type"] = b.resourceTypeName
-	}
-
-	if b.prototypeID != 0 {
-		data["prototype"] = b.prototypeName
-	}
-
 	return data
 }
 
@@ -374,9 +345,7 @@ func (b *build) JobName() string              { return b.jobName }
 func (b *build) ResourceID() int              { return b.resourceID }
 func (b *build) ResourceName() string         { return b.resourceName }
 func (b *build) ResourceTypeID() int          { return b.resourceTypeID }
-func (b *build) ResourceTypeName() string     { return b.resourceTypeName }
 func (b *build) PrototypeID() int             { return b.prototypeID }
-func (b *build) PrototypeName() string        { return b.prototypeName }
 func (b *build) TeamID() int                  { return b.teamID }
 func (b *build) TeamName() string             { return b.teamName }
 func (b *build) IsManuallyTriggered() bool    { return b.isManuallyTriggered }
@@ -1786,13 +1755,13 @@ func buildEventSeq(buildid int) string {
 
 func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) error {
 	var (
-		jobID, resourceID, resourceTypeID, prototypeID, pipelineID, rerunOf, rerunNumber                                   sql.NullInt64
-		schema, privatePlan, jobName, resourceName, resourceTypeName, prototypeName, pipelineName, publicPlan, rerunOfName sql.NullString
-		createTime, startTime, endTime, reapTime                                                                           pq.NullTime
-		nonce, spanContext, createdBy                                                                                      sql.NullString
-		drained, aborted, completed                                                                                        bool
-		status                                                                                                             string
-		pipelineInstanceVars                                                                                               sql.NullString
+		jobID, resourceID, resourceTypeID, prototypeID, pipelineID, rerunOf, rerunNumber  sql.NullInt64
+		schema, privatePlan, jobName, resourceName, pipelineName, publicPlan, rerunOfName sql.NullString
+		createTime, startTime, endTime, reapTime                                          pq.NullTime
+		nonce, spanContext, createdBy                                                     sql.NullString
+		drained, aborted, completed                                                       bool
+		status                                                                            string
+		pipelineInstanceVars                                                              sql.NullString
 	)
 
 	err := row.Scan(
@@ -1816,8 +1785,6 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 		&reapTime,
 		&jobName,
 		&resourceName,
-		&resourceTypeName,
-		&prototypeName,
 		&pipelineID,
 		&pipelineName,
 		&pipelineInstanceVars,
@@ -1842,9 +1809,7 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 	b.resourceID = int(resourceID.Int64)
 	b.resourceName = resourceName.String
 	b.resourceTypeID = int(resourceTypeID.Int64)
-	b.resourceTypeName = resourceTypeName.String
 	b.prototypeID = int(prototypeID.Int64)
-	b.prototypeName = prototypeName.String
 	b.pipelineID = int(pipelineID.Int64)
 	b.pipelineName = pipelineName.String
 	b.schema = schema.String

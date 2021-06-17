@@ -143,46 +143,6 @@ var _ = Describe("Build", func() {
 				}))
 			})
 		})
-
-		Context("for a resource type build", func() {
-			BeforeEach(func() {
-				var err error
-				var created bool
-				build, created, err = defaultResourceType.CreateBuild(context.TODO(), false, atc.Plan{})
-				Expect(err).ToNot(HaveOccurred())
-				Expect(created).To(BeTrue())
-			})
-
-			It("includes build, team, and pipeline", func() {
-				Expect(data).To(Equal(lager.Data{
-					"build_id":      build.ID(),
-					"build":         build.Name(),
-					"team":          build.TeamName(),
-					"pipeline":      build.PipelineName(),
-					"resource_type": defaultResourceType.Name(),
-				}))
-			})
-		})
-
-		Context("for a prototype build", func() {
-			BeforeEach(func() {
-				var err error
-				var created bool
-				build, created, err = defaultPrototype.CreateBuild(context.TODO(), false, atc.Plan{})
-				Expect(err).ToNot(HaveOccurred())
-				Expect(created).To(BeTrue())
-			})
-
-			It("includes build, team, and pipeline", func() {
-				Expect(data).To(Equal(lager.Data{
-					"build_id":  build.ID(),
-					"build":     build.Name(),
-					"team":      build.TeamName(),
-					"pipeline":  build.PipelineName(),
-					"prototype": defaultPrototype.Name(),
-				}))
-			})
-		})
 	})
 
 	Describe("SyslogTag", func() {
@@ -230,34 +190,6 @@ var _ = Describe("Build", func() {
 
 			It("includes build, team, and pipeline", func() {
 				Expect(tag).To(Equal(fmt.Sprintf("%s/%s/%s/%d/%s", defaultResource.TeamName(), defaultResource.PipelineName(), defaultResource.Name(), build.ID(), originID)))
-			})
-		})
-
-		Context("for a resource type build", func() {
-			BeforeEach(func() {
-				var err error
-				var created bool
-				build, created, err = defaultResourceType.CreateBuild(context.TODO(), false, atc.Plan{})
-				Expect(err).ToNot(HaveOccurred())
-				Expect(created).To(BeTrue())
-			})
-
-			It("includes build, team, and pipeline", func() {
-				Expect(tag).To(Equal(fmt.Sprintf("%s/%s/%s/%d/%s", defaultResourceType.TeamName(), defaultResourceType.PipelineName(), defaultResourceType.Name(), build.ID(), originID)))
-			})
-		})
-
-		Context("for a prototype build", func() {
-			BeforeEach(func() {
-				var err error
-				var created bool
-				build, created, err = defaultPrototype.CreateBuild(context.TODO(), false, atc.Plan{})
-				Expect(err).ToNot(HaveOccurred())
-				Expect(created).To(BeTrue())
-			})
-
-			It("includes build, team, and pipeline", func() {
-				Expect(tag).To(Equal(fmt.Sprintf("%s/%s/%s/%d/%s", defaultPrototype.TeamName(), defaultPrototype.PipelineName(), defaultPrototype.Name(), build.ID(), originID)))
 			})
 		})
 	})
@@ -321,46 +253,6 @@ var _ = Describe("Build", func() {
 					"team_name": build.TeamName(),
 					"pipeline":  build.PipelineName(),
 					"resource":  defaultResource.Name(),
-				}))
-			})
-		})
-
-		Context("for a resource type build", func() {
-			BeforeEach(func() {
-				var err error
-				var created bool
-				build, created, err = defaultResourceType.CreateBuild(context.TODO(), false, atc.Plan{})
-				Expect(err).ToNot(HaveOccurred())
-				Expect(created).To(BeTrue())
-			})
-
-			It("includes build, team, and pipeline", func() {
-				Expect(attrs).To(Equal(tracing.Attrs{
-					"build_id":      strconv.Itoa(build.ID()),
-					"build":         build.Name(),
-					"team_name":     build.TeamName(),
-					"pipeline":      build.PipelineName(),
-					"resource_type": defaultResourceType.Name(),
-				}))
-			})
-		})
-
-		Context("for a prototype build", func() {
-			BeforeEach(func() {
-				var err error
-				var created bool
-				build, created, err = defaultPrototype.CreateBuild(context.TODO(), false, atc.Plan{})
-				Expect(err).ToNot(HaveOccurred())
-				Expect(created).To(BeTrue())
-			})
-
-			It("includes build, team, and pipeline", func() {
-				Expect(attrs).To(Equal(tracing.Attrs{
-					"build_id":  strconv.Itoa(build.ID()),
-					"build":     build.Name(),
-					"team_name": build.TeamName(),
-					"pipeline":  build.PipelineName(),
-					"prototype": defaultPrototype.Name(),
 				}))
 			})
 		})

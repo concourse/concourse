@@ -416,16 +416,6 @@ type FakeBuild struct {
 	prototypeIDReturnsOnCall map[int]struct {
 		result1 int
 	}
-	PrototypeNameStub        func() string
-	prototypeNameMutex       sync.RWMutex
-	prototypeNameArgsForCall []struct {
-	}
-	prototypeNameReturns struct {
-		result1 string
-	}
-	prototypeNameReturnsOnCall map[int]struct {
-		result1 string
-	}
 	PublicPlanStub        func() *json.RawMessage
 	publicPlanMutex       sync.RWMutex
 	publicPlanArgsForCall []struct {
@@ -517,16 +507,6 @@ type FakeBuild struct {
 	}
 	resourceTypeIDReturnsOnCall map[int]struct {
 		result1 int
-	}
-	ResourceTypeNameStub        func() string
-	resourceTypeNameMutex       sync.RWMutex
-	resourceTypeNameArgsForCall []struct {
-	}
-	resourceTypeNameReturns struct {
-		result1 string
-	}
-	resourceTypeNameReturnsOnCall map[int]struct {
-		result1 string
 	}
 	ResourcesStub        func() ([]db.BuildInput, []db.BuildOutput, error)
 	resourcesMutex       sync.RWMutex
@@ -2744,59 +2724,6 @@ func (fake *FakeBuild) PrototypeIDReturnsOnCall(i int, result1 int) {
 	}{result1}
 }
 
-func (fake *FakeBuild) PrototypeName() string {
-	fake.prototypeNameMutex.Lock()
-	ret, specificReturn := fake.prototypeNameReturnsOnCall[len(fake.prototypeNameArgsForCall)]
-	fake.prototypeNameArgsForCall = append(fake.prototypeNameArgsForCall, struct {
-	}{})
-	stub := fake.PrototypeNameStub
-	fakeReturns := fake.prototypeNameReturns
-	fake.recordInvocation("PrototypeName", []interface{}{})
-	fake.prototypeNameMutex.Unlock()
-	if stub != nil {
-		return stub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fakeReturns.result1
-}
-
-func (fake *FakeBuild) PrototypeNameCallCount() int {
-	fake.prototypeNameMutex.RLock()
-	defer fake.prototypeNameMutex.RUnlock()
-	return len(fake.prototypeNameArgsForCall)
-}
-
-func (fake *FakeBuild) PrototypeNameCalls(stub func() string) {
-	fake.prototypeNameMutex.Lock()
-	defer fake.prototypeNameMutex.Unlock()
-	fake.PrototypeNameStub = stub
-}
-
-func (fake *FakeBuild) PrototypeNameReturns(result1 string) {
-	fake.prototypeNameMutex.Lock()
-	defer fake.prototypeNameMutex.Unlock()
-	fake.PrototypeNameStub = nil
-	fake.prototypeNameReturns = struct {
-		result1 string
-	}{result1}
-}
-
-func (fake *FakeBuild) PrototypeNameReturnsOnCall(i int, result1 string) {
-	fake.prototypeNameMutex.Lock()
-	defer fake.prototypeNameMutex.Unlock()
-	fake.PrototypeNameStub = nil
-	if fake.prototypeNameReturnsOnCall == nil {
-		fake.prototypeNameReturnsOnCall = make(map[int]struct {
-			result1 string
-		})
-	}
-	fake.prototypeNameReturnsOnCall[i] = struct {
-		result1 string
-	}{result1}
-}
-
 func (fake *FakeBuild) PublicPlan() *json.RawMessage {
 	fake.publicPlanMutex.Lock()
 	ret, specificReturn := fake.publicPlanReturnsOnCall[len(fake.publicPlanArgsForCall)]
@@ -3274,59 +3201,6 @@ func (fake *FakeBuild) ResourceTypeIDReturnsOnCall(i int, result1 int) {
 	}
 	fake.resourceTypeIDReturnsOnCall[i] = struct {
 		result1 int
-	}{result1}
-}
-
-func (fake *FakeBuild) ResourceTypeName() string {
-	fake.resourceTypeNameMutex.Lock()
-	ret, specificReturn := fake.resourceTypeNameReturnsOnCall[len(fake.resourceTypeNameArgsForCall)]
-	fake.resourceTypeNameArgsForCall = append(fake.resourceTypeNameArgsForCall, struct {
-	}{})
-	stub := fake.ResourceTypeNameStub
-	fakeReturns := fake.resourceTypeNameReturns
-	fake.recordInvocation("ResourceTypeName", []interface{}{})
-	fake.resourceTypeNameMutex.Unlock()
-	if stub != nil {
-		return stub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fakeReturns.result1
-}
-
-func (fake *FakeBuild) ResourceTypeNameCallCount() int {
-	fake.resourceTypeNameMutex.RLock()
-	defer fake.resourceTypeNameMutex.RUnlock()
-	return len(fake.resourceTypeNameArgsForCall)
-}
-
-func (fake *FakeBuild) ResourceTypeNameCalls(stub func() string) {
-	fake.resourceTypeNameMutex.Lock()
-	defer fake.resourceTypeNameMutex.Unlock()
-	fake.ResourceTypeNameStub = stub
-}
-
-func (fake *FakeBuild) ResourceTypeNameReturns(result1 string) {
-	fake.resourceTypeNameMutex.Lock()
-	defer fake.resourceTypeNameMutex.Unlock()
-	fake.ResourceTypeNameStub = nil
-	fake.resourceTypeNameReturns = struct {
-		result1 string
-	}{result1}
-}
-
-func (fake *FakeBuild) ResourceTypeNameReturnsOnCall(i int, result1 string) {
-	fake.resourceTypeNameMutex.Lock()
-	defer fake.resourceTypeNameMutex.Unlock()
-	fake.ResourceTypeNameStub = nil
-	if fake.resourceTypeNameReturnsOnCall == nil {
-		fake.resourceTypeNameReturnsOnCall = make(map[int]struct {
-			result1 string
-		})
-	}
-	fake.resourceTypeNameReturnsOnCall[i] = struct {
-		result1 string
 	}{result1}
 }
 
@@ -4464,8 +4338,6 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.privatePlanMutex.RUnlock()
 	fake.prototypeIDMutex.RLock()
 	defer fake.prototypeIDMutex.RUnlock()
-	fake.prototypeNameMutex.RLock()
-	defer fake.prototypeNameMutex.RUnlock()
 	fake.publicPlanMutex.RLock()
 	defer fake.publicPlanMutex.RUnlock()
 	fake.reapTimeMutex.RLock()
@@ -4484,8 +4356,6 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.resourceNameMutex.RUnlock()
 	fake.resourceTypeIDMutex.RLock()
 	defer fake.resourceTypeIDMutex.RUnlock()
-	fake.resourceTypeNameMutex.RLock()
-	defer fake.resourceTypeNameMutex.RUnlock()
 	fake.resourcesMutex.RLock()
 	defer fake.resourcesMutex.RUnlock()
 	fake.resourcesCheckedMutex.RLock()
