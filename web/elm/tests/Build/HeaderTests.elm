@@ -339,6 +339,7 @@ all =
                                         | id = 1
                                         , name = "1"
                                         , status = BuildStatusStarted
+                                        , createdBy = Just <| "some-one"
                                         , duration =
                                             { startedAt =
                                                 Just <|
@@ -362,7 +363,7 @@ all =
                             >> Expect.equal BuildStatusStarted
                         , .leftWidgets
                             >> Expect.equal
-                                [ Views.Title "1" (Just jobId) Nothing
+                                [ Views.Title "1" (Just jobId) (Just "some-one")
                                 , Views.Duration <|
                                     Views.Running <|
                                         Views.Absolute
