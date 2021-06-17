@@ -15,7 +15,7 @@ var _ = Describe("OPA Result", func() {
 					ResultAllowedKey: "a.b",
 				})
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(Equal("not found allowed key a.b from opa result"))
+				Expect(err.Error()).To(Equal("allowed: key 'a.b' not found"))
 			})
 		})
 
@@ -25,7 +25,7 @@ var _ = Describe("OPA Result", func() {
 					ResultAllowedKey: "a.b",
 				})
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(Equal("not found allowed key a.b from opa result"))
+				Expect(err.Error()).To(Equal("allowed: key 'a.b' must have a boolean value"))
 			})
 		})
 

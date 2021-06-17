@@ -51,8 +51,8 @@ var _ = Describe("OPA Policy Checker", func() {
 
 		It("should return an error", func() {
 			result, err := agent.Check(policy.PolicyCheckInput{})
-			Expect(err).To(MatchError(ContainSubstring("not found allowed key result.allowed from opa result")))
-			Expect(result.Allowed()).To(BeFalse())
+			Expect(err).To(MatchError(ContainSubstring("allowed: key 'result.allowed' not found")))
+			Expect(result).To(BeNil())
 		})
 	})
 
@@ -65,8 +65,8 @@ var _ = Describe("OPA Policy Checker", func() {
 
 		It("should return an error", func() {
 			result, err := agent.Check(policy.PolicyCheckInput{})
-			Expect(err).To(MatchError(ContainSubstring("not found allowed key result.allowed from opa result")))
-			Expect(result.Allowed()).To(BeFalse())
+			Expect(err).To(MatchError(ContainSubstring("missing field 'allowed' in var: result.allowed")))
+			Expect(result).To(BeNil())
 		})
 	})
 
@@ -79,8 +79,8 @@ var _ = Describe("OPA Policy Checker", func() {
 
 		It("should return an error", func() {
 			result, err := agent.Check(policy.PolicyCheckInput{})
-			Expect(err).To(MatchError(ContainSubstring("not found allowed key result.allowed from opa result")))
-			Expect(result.Allowed()).To(BeFalse())
+			Expect(err).To(MatchError(ContainSubstring("missing field 'allowed' in var: result.allowed")))
+			Expect(result).To(BeNil())
 		})
 	})
 
@@ -95,6 +95,8 @@ var _ = Describe("OPA Policy Checker", func() {
 			result, err := agent.Check(policy.PolicyCheckInput{})
 			Expect(err).ToNot(HaveOccurred())
 			Expect(result.Allowed()).To(BeTrue())
+			Expect(result.ShouldBlock()).To(BeFalse())
+			Expect(result.Messages()).To(BeEmpty())
 		})
 	})
 
@@ -169,8 +171,8 @@ var _ = Describe("OPA Policy Checker", func() {
 		It("should return error", func() {
 			result, err := agent.Check(policy.PolicyCheckInput{})
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(Equal("invalid character 'h' looking for beginning of value"))
-			Expect(result.Allowed()).To(BeFalse())
+			Expect(err.Error()).To(ContainSubstring("invalid character 'h' looking for beginning of value"))
+			Expect(result).To(BeNil())
 		})
 	})
 })

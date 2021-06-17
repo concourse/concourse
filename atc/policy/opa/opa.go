@@ -74,5 +74,10 @@ func (c opa) Check(input policy.PolicyCheckInput) (policy.PolicyCheckResult, err
 		return nil, fmt.Errorf("opa returned no response: %s", err.Error())
 	}
 
-	return ParseOpaResult(body, c.config)
+	result, err := ParseOpaResult(body, c.config)
+	if err != nil {
+		return nil, fmt.Errorf("parsing opa results: %w", err)
+	}
+
+	return result, nil
 }

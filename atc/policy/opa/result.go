@@ -2,10 +2,10 @@ package opa
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
-	"reflect"
 	"strings"
+
+	"github.com/concourse/concourse/vars"
 )
 
 type opaResult struct {
@@ -27,8 +27,8 @@ func (r opaResult) Messages() []string {
 }
 
 func ParseOpaResult(bytesResult []byte, opaConfig OpaConfig) (opaResult, error) {
-	var mapResult map[string]interface{}
-	err := json.Unmarshal(bytesResult, &mapResult)
+	var results vars.StaticVariables
+	err := json.Unmarshal(bytesResult, &results)
 	if err != nil {
 		return opaResult{}, err
 	}
@@ -36,28 +36,35 @@ func ParseOpaResult(bytesResult []byte, opaConfig OpaConfig) (opaResult, error) 
 	var allowed, shouldBlock, ok bool
 	var messages []string
 
-	v, err := getRawValue(opaConfig.ResultAllowedKey, mapResult)
+	parts := strings.Split(opaConfig.ResultAllowedKey, ".")
+	v, found, err := results.Get(vars.Reference{Path: parts[0], Fields: parts[1:]})
 	if err != nil {
 		return opaResult{}, err
+	}
+	if !found {
+		return opaResult{}, fmt.Errorf("allowed: key '%s' not found", opaConfig.ResultAllowedKey)
 	}
 	if allowed, ok = v.(bool); !ok {
-		return opaResult{}, fmt.Errorf("not found allowed key %s from opa result", opaConfig.ResultAllowedKey)
+		return opaResult{}, fmt.Errorf("allowed: key '%s' must have a boolean value", opaConfig.ResultAllowedKey)
 	}
 
-	v, err = getRawValue(opaConfig.ResultShouldBlockKey, mapResult)
+	parts = strings.Split(opaConfig.ResultShouldBlockKey, ".")
+	v, found, err = results.Get(vars.Reference{Path: parts[0], Fields: parts[1:]})
 	if err != nil {
 		return opaResult{}, err
 	}
-	if shouldBlock, ok = v.(bool); v != nil && !ok {
-		return opaResult{}, fmt.Errorf("not found shouldBlock key %s from opa result", opaConfig.ResultShouldBlockKey)
+	if !found {
+		shouldBlock = !allowed
+	} else if shouldBlock, ok = v.(bool); !ok {
+		return opaResult{}, fmt.Errorf("shouldBlock: key '%s' must have a boolean value", opaConfig.ResultShouldBlockKey)
 	}
 
-	v, err = getRawValue(opaConfig.ResultMessagesKey, mapResult)
-	if err != nil {
-		return opaResult{}, err
-	}
-	if arr, ok := v.([]interface{}); v != nil && !ok {
-		return opaResult{}, fmt.Errorf("not found messages key %s from opa result", opaConfig.ResultMessagesKey)
+	parts = strings.Split(opaConfig.ResultMessagesKey, ".")
+	v, found, err = results.Get(vars.Reference{Path: parts[0], Fields: parts[1:]})
+	if err != nil || !found {
+		messages = []string{}
+	} else if arr, ok := v.([]interface{}); v != nil && !ok {
+		return opaResult{}, fmt.Errorf("messages: key '%s' must have a list of strings", opaConfig.ResultMessagesKey)
 	} else {
 		for _, item := range arr {
 			switch v := item.(type) {
@@ -70,23 +77,4 @@ func ParseOpaResult(bytesResult []byte, opaConfig OpaConfig) (opaResult, error) 
 	}
 
 	return opaResult{allowed, shouldBlock, messages}, nil
-}
-
-func getRawValue(key string, h map[string]interface{}) (interface{}, error) {
-	parts := strings.Split(key, ".")
-	for i, part := range parts {
-		switch v := h[part].(type) {
-		case nil:
-			return nil, nil
-		case map[string]interface{}:
-			h = v
-		default:
-			if i == len(parts)-1 {
-				return v, nil
-			} else {
-				return nil, fmt.Errorf("%s expecting a map but %s found", part, reflect.TypeOf(v))
-			}
-		}
-	}
-	return nil, errors.New("should not reach here")
 }

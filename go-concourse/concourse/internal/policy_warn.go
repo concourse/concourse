@@ -8,7 +8,7 @@ import (
 )
 
 func showPolicyCheckWarningIfHas(response *http.Response) {
-	warn := response.Header.Get("X-Policy-Check-Warn")
+	warn := response.Header.Get("X-Concourse-Policy-Check-Warning")
 	if warn == "" {
 		return
 	}
