@@ -107,6 +107,8 @@ var _ = Describe("Fly CLI", func() {
 
 				Eventually(sess.Err.Contents).Should(ContainSubstring(`error: team 'doesnotexist' does not exist`))
 			},
+			Entry("checklist command returns an error",
+				exec.Command(flyPath, "-t", targetName, "checklist", "-p", "pipeline", "--team", nonExistentTeam)),
 			Entry("trigger-job command returns an error",
 				exec.Command(flyPath, "-t", targetName, "trigger-job", "-j", "pipeline/job", "--team", nonExistentTeam)),
 			Entry("expose-pipeline command returns an error",
@@ -149,6 +151,8 @@ var _ = Describe("Fly CLI", func() {
 
 				Eventually(sess.Err.Contents).Should(ContainSubstring(`error: you do not have a role on team 'other-team'`))
 			},
+			Entry("checklist command returns an error",
+				exec.Command(flyPath, "-t", targetName, "checklist", "-p", "pipeline", "--team", otherTeam)),
 			Entry("trigger-job command returns an error",
 				exec.Command(flyPath, "-t", targetName, "trigger-job", "-j", "pipeline/job", "--team", otherTeam)),
 			Entry("expose-pipeline command returns an error",
