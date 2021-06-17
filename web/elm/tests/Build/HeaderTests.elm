@@ -57,7 +57,7 @@ all =
                     \_ ->
                         Header.header session jobBuildModel
                             |> .leftWidgets
-                            |> Common.contains (Views.Title "123" (Just job))
+                            |> Common.contains (Views.Title "123" (Just job) Nothing)
                 , test "shows job and build name as number" <|
                     \_ ->
                         Header.view session jobBuildModel
@@ -76,7 +76,7 @@ all =
                     \_ ->
                         Header.header session nonJobBuild
                             |> .leftWidgets
-                            |> Common.contains (Views.Title "check" Nothing)
+                            |> Common.contains (Views.Title "check" Nothing Nothing)
                 , test "shows build name, not as a number" <|
                     \_ ->
                         Header.view session nonJobBuild
@@ -339,6 +339,7 @@ all =
                                         | id = 1
                                         , name = "1"
                                         , status = BuildStatusStarted
+                                        , createdBy = Just <| "some-one"
                                         , duration =
                                             { startedAt =
                                                 Just <|
@@ -362,7 +363,7 @@ all =
                             >> Expect.equal BuildStatusStarted
                         , .leftWidgets
                             >> Expect.equal
-                                [ Views.Title "1" (Just jobId)
+                                [ Views.Title "1" (Just jobId) (Just "some-one")
                                 , Views.Duration <|
                                     Views.Running <|
                                         Views.Absolute
@@ -412,6 +413,7 @@ model =
     , scrolledToCurrentBuild = False
     , history = []
     , duration = { startedAt = Nothing, finishedAt = Nothing }
+    , createdBy = Nothing
     , status = BuildStatusPending
     , disableManualTrigger = False
     , now = Nothing

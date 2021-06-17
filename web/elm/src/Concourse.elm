@@ -2,6 +2,7 @@ module Concourse exposing
     ( AuthSession
     , AuthToken
     , Build
+    , BuildCreatedBy
     , BuildDuration
     , BuildId
     , BuildName
@@ -172,6 +173,8 @@ type alias BuildId =
 type alias BuildName =
     String
 
+type alias BuildCreatedBy =
+    Maybe String
 
 type alias JobBuildIdentifier =
     { teamName : TeamName
@@ -190,6 +193,7 @@ type alias Build =
     , status : BuildStatus
     , duration : BuildDuration
     , reapTime : Maybe Time.Posix
+    , createdBy: BuildCreatedBy
     }
 
 
@@ -212,6 +216,7 @@ encodeBuild build =
          , optionalField "start_time" (secondsFromDate >> Json.Encode.int) build.duration.startedAt
          , optionalField "end_time" (secondsFromDate >> Json.Encode.int) build.duration.finishedAt
          , optionalField "reap_time" (secondsFromDate >> Json.Encode.int) build.reapTime
+         , optionalField "created_by" Json.Encode.string build.createdBy
          ]
             |> List.filterMap identity
         )
@@ -249,6 +254,7 @@ decodeBuild =
                 |> andMap (Json.Decode.maybe (Json.Decode.field "end_time" (Json.Decode.map dateFromSeconds Json.Decode.int)))
             )
         |> andMap (Json.Decode.maybe (Json.Decode.field "reap_time" (Json.Decode.map dateFromSeconds Json.Decode.int)))
+        |> andMap (Json.Decode.maybe (Json.Decode.field "created_by" Json.Decode.string))
 
 
 

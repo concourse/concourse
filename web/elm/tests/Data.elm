@@ -493,6 +493,7 @@ build status =
                 Just <| Time.millisToPosix 0
         }
     , reapTime = Nothing
+    , createdBy = Just <| "some-one"
     }
 
 
@@ -524,6 +525,7 @@ jobBuild status =
                 Just <| Time.millisToPosix 0
         }
     , reapTime = Nothing
+    , createdBy = Just <| "some-one"
     }
 
 

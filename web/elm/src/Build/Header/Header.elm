@@ -59,7 +59,7 @@ header session model =
                     False
     in
     { leftWidgets =
-        [ Views.Title model.name model.job
+        [ Views.Title model.name model.job model.createdBy
         , Views.Duration (duration session model)
         ]
     , rightWidgets =
@@ -201,6 +201,7 @@ historyItem model =
     , name = model.name
     , status = model.status
     , duration = model.duration
+    , createdBy = model.createdBy
     }
 
 
@@ -217,6 +218,7 @@ changeToBuild pageType ( model, effects ) =
                             , status = b.status
                             , duration = b.duration
                             , name = b.name
+                            , createdBy = b.createdBy
                         }
                     )
                 |> Maybe.withDefault model
@@ -518,6 +520,7 @@ handleCallback callback ( model, effects ) =
                      , name = b.name
                      , status = b.status
                      , duration = b.duration
+                     , createdBy = b.createdBy
                      }
                         :: model.history
                     )
@@ -564,6 +567,7 @@ handleBuildFetched b ( model, effects ) =
                     , name = b.name
                     , status = b.status
                     , duration = b.duration
+                    , createdBy = b.createdBy
                     }
                     model.history
             , fetchingHistory = True
@@ -572,6 +576,7 @@ handleBuildFetched b ( model, effects ) =
             , job = b.job
             , id = b.id
             , name = b.name
+            , createdBy = b.createdBy
           }
         , effects
         )
@@ -607,6 +612,7 @@ handleHistoryFetched history ( model, effects ) =
                                         , name = b.name
                                         , status = b.status
                                         , duration = b.duration
+                                        , createdBy = b.createdBy
                                         }
                                     )
                            )

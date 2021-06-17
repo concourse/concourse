@@ -727,6 +727,7 @@ sampleOldModel =
                     , finishedAt = Nothing
                     }
                 , reapTime = Nothing
+                , createdBy = Nothing
                 }
             , prep = Nothing
             , output =
@@ -789,6 +790,7 @@ sampleModel =
     , hasLoadedYet = True
     , notFound = False
     , reapTime = Nothing
+    , createdBy = Nothing
     }
 
 

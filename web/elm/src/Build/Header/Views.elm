@@ -49,7 +49,7 @@ type alias Header =
 
 type Widget
     = Button (Maybe ButtonView)
-    | Title String (Maybe Concourse.JobIdentifier)
+    | Title String (Maybe Concourse.JobIdentifier) Concourse.BuildCreatedBy
     | Duration BuildDuration
 
 
@@ -62,7 +62,6 @@ type BuildDuration
         , finished : Timestamp
         , duration : Timespan
         }
-
 
 type Timestamp
     = Absolute String (Maybe Timespan)
@@ -126,8 +125,8 @@ viewWidget widget =
         Button button ->
             Maybe.map viewButton button |> Maybe.withDefault (Html.text "")
 
-        Title name jobId ->
-            Html.h1 [] [ viewTitle name jobId ]
+        Title name jobId createdBy ->
+            viewTitle name jobId createdBy
 
         Duration duration ->
             viewDuration duration
@@ -172,7 +171,6 @@ viewDuration buildDuration =
                     , Html.td [ class "dict-value" ] [ Html.text <| viewTimespan duration ]
                     ]
                 ]
-
 
 viewTimestamp : Timestamp -> Html Message
 viewTimestamp timestamp =
@@ -315,25 +313,84 @@ viewButton { type_, backgroundColor, backgroundShade, isClickable } =
         ]
 
 
-viewTitle : String -> Maybe Concourse.JobIdentifier -> Html Message
-viewTitle name jobID =
-    case jobID of
-        Just jid ->
-            Html.a
-                [ href <|
-                    Routes.toString <|
-                        Routes.Job { id = jid, page = Nothing }
-                , onMouseEnter <| Hover <| Just Message.JobName
-                , onMouseLeave <| Hover Nothing
-                , id <| toHtmlID Message.JobName
-                ]
-                [ Html.span [ class "build-name" ] [ Html.text jid.jobName ]
-                , Html.span [ style "letter-spacing" "-1px" ] [ Html.text (" #" ++ name) ]
-                ]
+viewTitle : String -> Maybe Concourse.JobIdentifier -> Concourse.BuildCreatedBy -> Html Message
+viewTitle name jobID createdBy =
+    let
+        hasCreatedBy =
+            createdBy /= Nothing
 
-        _ ->
-            Html.text name
+        buildName =
+            let
+                buildNameLineHeight =
+                    style "line-height" <|
+                        if hasCreatedBy then
+                            "44px"
+                        else
+                            "60px"
+            in
+            case jobID of
+                Just jid ->
+                    Html.a
+                        [ href <|
+                            Routes.toString <|
+                                Routes.Job { id = jid, page = Nothing }
+                        , onMouseEnter <| Hover <| Just Message.JobName
+                        , onMouseLeave <| Hover Nothing
+                        , id <| toHtmlID Message.JobName
+                        , buildNameLineHeight
+                        ]
+                        [ Html.span [ class "build-name" ] [ Html.text jid.jobName ]
+                        , Html.span [ style "letter-spacing" "-1px" ] [ Html.text (" #" ++ name) ]
+                        ]
 
+                Nothing ->
+                    Html.span [ buildNameLineHeight ] [ Html.text name ]
+
+        createdByText =
+            case createdBy of
+                Just who ->
+                    let
+                        text =
+                            "created by " ++ who
+                    in
+                    Html.span
+                        [ style "position" "absolute"
+                        , style "font-size" "12px"
+                        , style "bottom" "6px"
+                        , style "line-height" "16px"
+                        , style "right" "0"
+                        , style "left" "0"
+                        , style "text-align" "right"
+                        , style "text-overflow" "ellipsis"
+                        , style "white-space" "nowrap"
+                        , style "overflow" "hidden"
+                        , title text
+                        ]
+                        [ Html.text text ]
+                Nothing ->
+                    Html.text ""
+
+        headerStyle =
+            [ style "position" "relative"
+            , style "height" "60px"
+            , style "line-height"
+                (if hasCreatedBy then
+                    "38px"
+
+                 else
+                    "60px"
+                )
+            ]
+                ++ (if hasCreatedBy then
+                        [ style "min-width" "100px"
+                        , style "text-align" "right"
+                        ]
+
+                    else
+                        []
+                   )
+    in
+    Html.h1 headerStyle [ buildName, createdByText ]
 
 viewHistory : BuildStatus -> List BuildTab -> Html Message
 viewHistory backgroundColor =
