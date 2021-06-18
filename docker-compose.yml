@@ -25,9 +25,8 @@ services:
       CONCOURSE_MAIN_TEAM_LOCAL_USER: test
       # instead of relying on the default "detect"
       CONCOURSE_WORKER_BAGGAGECLAIM_DRIVER: overlay
-      # docker puts the dns server at 127.0.0.*, which cannot be accessed by the containerd containers
-      CONCOURSE_WORKER_CONTAINERD_DNS_PROXY_ENABLE: "true"
       CONCOURSE_CLIENT_SECRET: Y29uY291cnNlLXdlYgo=
       CONCOURSE_TSA_CLIENT_SECRET: Y29uY291cnNlLXdvcmtlcgo=
       CONCOURSE_X_FRAME_OPTIONS: allow
       CONCOURSE_CLUSTER_NAME: tutorial
+      CONCOURSE_WORKER_CONTAINERD_DNS_SERVER: "8.8.8.8"
