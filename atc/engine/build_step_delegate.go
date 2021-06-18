@@ -377,7 +377,7 @@ func (delegate *buildStepDelegate) checkImagePolicy(image atc.ImageResource, pri
 func (delegate *buildStepDelegate) checkPolicy(input policy.PolicyCheckInput) error {
 	result, err := delegate.policyChecker.Check(input)
 	if err != nil {
-		return fmt.Errorf("perform check: %w", err)
+		return fmt.Errorf("policy check: %w", err)
 	}
 
 	if !result.Allowed() {

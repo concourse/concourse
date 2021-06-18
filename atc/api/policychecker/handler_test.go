@@ -19,13 +19,13 @@ import (
 
 var _ = Describe("Handler", func() {
 	var (
-		innerHandlerCalled   bool
-		dummyHandler         http.HandlerFunc
-		policyCheckerHandler http.Handler
-		req                  *http.Request
-		fakePolicyChecker    *policycheckerfakes.FakePolicyChecker
+		innerHandlerCalled    bool
+		dummyHandler          http.HandlerFunc
+		policyCheckerHandler  http.Handler
+		req                   *http.Request
+		fakePolicyChecker     *policycheckerfakes.FakePolicyChecker
 		fakePolicyCheckResult *policyfakes.FakePolicyCheckResult
-		responseWriter       *httptest.ResponseRecorder
+		responseWriter        *httptest.ResponseRecorder
 
 		logger = lagertest.NewTestLogger("test")
 	)
@@ -67,26 +67,45 @@ var _ = Describe("Handler", func() {
 	Context("policy check doesn't pass", func() {
 		BeforeEach(func() {
 			fakePolicyCheckResult.AllowedReturns(false)
-			fakePolicyCheckResult.ShouldBlockReturns(true)
 			fakePolicyCheckResult.MessagesReturns([]string{"a policy says you can't do that", "another policy also says you can't do that"})
 			fakePolicyChecker.CheckReturns(fakePolicyCheckResult, nil)
 		})
 
-		It("return http forbidden", func() {
-			Expect(responseWriter.Code).To(Equal(http.StatusForbidden))
+		Context("when should block", func() {
+			BeforeEach(func() {
+				fakePolicyCheckResult.ShouldBlockReturns(true)
+			})
 
-			msg, err := ioutil.ReadAll(responseWriter.Body)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(string(msg)).To(ContainSubstring("a policy says you can't do that"))
-			Expect(string(msg)).To(ContainSubstring("another policy also says you can't do that"))
+			It("return http forbidden", func() {
+				Expect(responseWriter.Code).To(Equal(http.StatusForbidden))
+
+				msg, err := ioutil.ReadAll(responseWriter.Body)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(string(msg)).To(ContainSubstring("a policy says you can't do that"))
+				Expect(string(msg)).To(ContainSubstring("another policy also says you can't do that"))
+			})
+
+			It("not call the inner handler", func() {
+				Expect(innerHandlerCalled).To(BeFalse())
+			})
 		})
 
-		It("not call the inner handler", func() {
-			Expect(innerHandlerCalled).To(BeFalse())
+		Context("when should not block", func() {
+			BeforeEach(func() {
+				fakePolicyCheckResult.ShouldBlockReturns(false)
+			})
+
+			It("calls the inner handler", func() {
+				Expect(innerHandlerCalled).To(BeTrue())
+			})
+
+			It("response should have a header about policy check warning", func() {
+				value := responseWriter.Header().Get("X-Concourse-Policy-Check-Warning")
+				Expect(value).To(ContainSubstring("a policy says you can't do that"))
+				Expect(value).To(ContainSubstring("another policy also says you can't do that"))
+			})
 		})
 	})
-
-	// TODO: add test case for shouldBlock
 
 	Context("policy check errors", func() {
 		BeforeEach(func() {

@@ -39,7 +39,7 @@ func ParseOpaResult(bytesResult []byte, opaConfig OpaConfig) (opaResult, error) 
 	parts := strings.Split(opaConfig.ResultAllowedKey, ".")
 	v, found, err := results.Get(vars.Reference{Path: parts[0], Fields: parts[1:]})
 	if err != nil {
-		return opaResult{}, err
+		return opaResult{}, fmt.Errorf("allowed: %w", err)
 	}
 	if !found {
 		return opaResult{}, fmt.Errorf("allowed: key '%s' not found", opaConfig.ResultAllowedKey)
@@ -50,10 +50,7 @@ func ParseOpaResult(bytesResult []byte, opaConfig OpaConfig) (opaResult, error) 
 
 	parts = strings.Split(opaConfig.ResultShouldBlockKey, ".")
 	v, found, err = results.Get(vars.Reference{Path: parts[0], Fields: parts[1:]})
-	if err != nil {
-		return opaResult{}, err
-	}
-	if !found {
+	if err != nil || !found {
 		shouldBlock = !allowed
 	} else if shouldBlock, ok = v.(bool); !ok {
 		return opaResult{}, fmt.Errorf("shouldBlock: key '%s' must have a boolean value", opaConfig.ResultShouldBlockKey)

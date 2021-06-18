@@ -32,11 +32,11 @@ var _ = Describe("OPA Policy Checker", func() {
 	JustBeforeEach(func() {
 		fakeOpa.Start()
 		agent, err = (&opa.OpaConfig{
-			URL:              fakeOpa.URL,
-			Timeout:          time.Second * 2,
-			ResultAllowedKey: "result.allowed",
-			// TODO: add shouldBlock test case
-			ResultMessagesKey: "result.reasons",
+			URL:                  fakeOpa.URL,
+			Timeout:              time.Second * 2,
+			ResultAllowedKey:     "result.allowed",
+			ResultShouldBlockKey: "result.block",
+			ResultMessagesKey:    "result.reasons",
 		}).NewAgent(logger)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(agent).ToNot(BeNil())
@@ -65,7 +65,7 @@ var _ = Describe("OPA Policy Checker", func() {
 
 		It("should return an error", func() {
 			result, err := agent.Check(policy.PolicyCheckInput{})
-			Expect(err).To(MatchError(ContainSubstring("missing field 'allowed' in var: result.allowed")))
+			Expect(err).To(MatchError(ContainSubstring("allowed: missing field 'allowed' in var: result.allowed")))
 			Expect(result).To(BeNil())
 		})
 	})
@@ -79,12 +79,12 @@ var _ = Describe("OPA Policy Checker", func() {
 
 		It("should return an error", func() {
 			result, err := agent.Check(policy.PolicyCheckInput{})
-			Expect(err).To(MatchError(ContainSubstring("missing field 'allowed' in var: result.allowed")))
+			Expect(err).To(MatchError(ContainSubstring("allowed: missing field 'allowed' in var: result.allowed")))
 			Expect(result).To(BeNil())
 		})
 	})
 
-	Context("when OPA returns allowed", func() {
+	Context("when OPA returns only the field of allowed with true", func() {
 		BeforeEach(func() {
 			fakeOpa = httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				fmt.Fprint(w, `{"result": {"allowed": true }}`)
@@ -100,17 +100,50 @@ var _ = Describe("OPA Policy Checker", func() {
 		})
 	})
 
-	Context("when OPA returns not-allowed", func() {
+	Context("when OPA returns only the field of allowed with false", func() {
 		BeforeEach(func() {
 			fakeOpa = httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				fmt.Fprint(w, `{"result": {"allowed": false }}`)
 			}))
 		})
 
-		It("should not be allowed and return reasons", func() {
+		It("should not be allowed", func() {
 			result, err := agent.Check(policy.PolicyCheckInput{})
 			Expect(err).ToNot(HaveOccurred())
 			Expect(result.Allowed()).To(BeFalse())
+			Expect(result.ShouldBlock()).To(BeTrue())
+			Expect(result.Messages()).To(BeEmpty())
+		})
+	})
+
+	Context("when OPA returns allowed false and block true", func() {
+		BeforeEach(func() {
+			fakeOpa = httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				fmt.Fprint(w, `{"result": {"allowed": false, "block": true }}`)
+			}))
+		})
+
+		It("should not be allowed", func() {
+			result, err := agent.Check(policy.PolicyCheckInput{})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result.Allowed()).To(BeFalse())
+			Expect(result.ShouldBlock()).To(BeTrue())
+			Expect(result.Messages()).To(BeEmpty())
+		})
+	})
+
+	Context("when OPA returns allowed false and block false", func() {
+		BeforeEach(func() {
+			fakeOpa = httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				fmt.Fprint(w, `{"result": {"allowed": false, "block": false }}`)
+			}))
+		})
+
+		It("should not be allowed", func() {
+			result, err := agent.Check(policy.PolicyCheckInput{})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result.Allowed()).To(BeFalse())
+			Expect(result.ShouldBlock()).To(BeFalse())
 			Expect(result.Messages()).To(BeEmpty())
 		})
 	})
@@ -126,6 +159,7 @@ var _ = Describe("OPA Policy Checker", func() {
 			result, err := agent.Check(policy.PolicyCheckInput{})
 			Expect(err).ToNot(HaveOccurred())
 			Expect(result.Allowed()).To(BeFalse())
+			Expect(result.ShouldBlock()).To(BeTrue())
 			Expect(result.Messages()).To(ConsistOf("a policy says you can't do that"))
 		})
 	})

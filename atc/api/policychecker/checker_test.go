@@ -19,11 +19,11 @@ import (
 
 var _ = Describe("PolicyChecker", func() {
 	var (
-		policyFilter policy.Filter
-		fakeAccess   *accessorfakes.FakeAccess
-		fakeRequest  *http.Request
-		result       policy.PolicyCheckResult
-		checkErr     error
+		policyFilter          policy.Filter
+		fakeAccess            *accessorfakes.FakeAccess
+		fakeRequest           *http.Request
+		result                policy.PolicyCheckResult
+		checkErr              error
 		fakePolicyCheckResult *policyfakes.FakePolicyCheckResult
 	)
 
@@ -143,6 +143,7 @@ var _ = Describe("PolicyChecker", func() {
 					Expect(checkErr.Error()).To(Equal(`error converting YAML to JSON: yaml: line 3: could not find expected ':'`))
 					Expect(result).To(BeNil())
 				})
+
 				It("Agent should not be called", func() {
 					Expect(fakePolicyAgent.CheckCallCount()).To(Equal(0))
 				})
@@ -163,9 +164,11 @@ var _ = Describe("PolicyChecker", func() {
 				It("should not error", func() {
 					Expect(checkErr).ToNot(HaveOccurred())
 				})
+
 				It("Agent should be called", func() {
 					Expect(fakePolicyAgent.CheckCallCount()).To(Equal(1))
 				})
+
 				It("Agent should take correct input", func() {
 					Expect(fakePolicyAgent.CheckArgsForCall(0)).To(Equal(policy.PolicyCheckInput{
 						Service:        "concourse",
@@ -208,6 +211,7 @@ var _ = Describe("PolicyChecker", func() {
 					It("should not pass", func() {
 						Expect(checkErr).ToNot(HaveOccurred())
 						Expect(result.Allowed()).To(BeFalse())
+						Expect(result.ShouldBlock()).To(BeTrue())
 						Expect(result.Messages()).To(ConsistOf("a policy says you can't do that"))
 					})
 				})
