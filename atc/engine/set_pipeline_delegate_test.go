@@ -2,9 +2,6 @@ package engine_test
 
 import (
 	"errors"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/policy"
-	"github.com/concourse/concourse/atc/policy/policyfakes"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -12,10 +9,14 @@ import (
 
 	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager/lagertest"
+
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/engine"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/policy"
+	"github.com/concourse/concourse/atc/policy/policyfakes"
 	"github.com/concourse/concourse/vars"
 )
 

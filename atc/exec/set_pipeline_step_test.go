@@ -95,7 +95,6 @@ jobs:
 		fakeDelegate        *execfakes.FakeSetPipelineStepDelegate
 		fakeDelegateFactory *execfakes.FakeSetPipelineStepDelegateFactory
 
-		//filter      policy.Filter
 		fakeAgent   *policyfakes.FakeAgent
 
 		fakeArtifactStreamer *workerfakes.FakeArtifactStreamer
@@ -177,15 +176,9 @@ jobs:
 		fakeTeamFactory.GetByIDReturns(fakeTeam)
 		fakeBuildFactory.BuildReturns(fakeBuild, true, nil)
 
-		//filter = policy.Filter{
-		//	Actions: []string{policy.ActionRunSetPipeline},
-		//}
-
 		fakeAgent = new(policyfakes.FakeAgent)
 		fakeAgent.CheckReturns(policy.PassedPolicyCheck(), nil)
 		fakePolicyAgentFactory.NewAgentReturns(fakeAgent, nil)
-
-		//fakeChecker, _ = policy.Initialize(testLogger, "some-cluster", "some-version", filter)
 
 		fakeArtifactStreamer = new(workerfakes.FakeArtifactStreamer)
 
@@ -571,56 +564,6 @@ jobs:
 					})
 				})
 			})
-
-			//Context("when policy checker enabled", func() {
-			//	var fakeResult *policyfakes.FakePolicyCheckResult
-			//
-			//	BeforeEach(func(){
-			//		fakeResult = new(policyfakes.FakePolicyCheckResult)
-			//		fakeResult.AllowedReturns(true)
-			//		fakeResult.ShouldBlockReturns(false)
-			//		fakeAgent.CheckReturns(fakeResult, nil)
-			//	})
-			//
-			//	Context("policy check errors", func() {
-			//		BeforeEach(func() {
-			//			fakeAgent.CheckReturns(nil, fmt.Errorf("unexpected error"))
-			//		})
-			//
-			//		It("should return error", func() {
-			//			Expect(stepErr).To(HaveOccurred())
-			//			Expect(stepErr.Error()).To(Equal("error checking policy enforcement"))
-			//		})
-			//	})
-			//
-			//	Context("policy check fails", func() {
-			//		BeforeEach(func() {
-			//			fakeResult.AllowedReturns(false)
-			//			fakeResult.MessagesReturns([]string{"foo", "bar"})
-			//		})
-			//
-			//		It("should return error", func() {
-			//			Expect(stepErr).To(HaveOccurred())
-			//			Expect(stepErr.Error()).To(Equal("policy check failed for set_pipeline: foo, bar"))
-			//		})
-			//	})
-			//
-			//	Context("policy check succeeds", func() {
-			//		BeforeEach(func() {
-			//			fakeBuild.PipelineReturns(fakePipeline, true, nil)
-			//			fakeBuild.SavePipelineReturns(fakePipeline, false, nil)
-			//			spPlan.Team = ""
-			//		})
-			//
-			//		It("should finish successfully", func() {
-			//			_, teamID, _, _, _ := fakeBuild.SavePipelineArgsForCall(0)
-			//			Expect(teamID).To(Equal(fakeTeam.ID()))
-			//			Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
-			//			_, succeeded := fakeDelegate.FinishedArgsForCall(0)
-			//			Expect(succeeded).To(BeTrue())
-			//		})
-			//	})
-			//})
 		})
 	})
 })
