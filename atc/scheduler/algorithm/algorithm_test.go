@@ -2500,7 +2500,52 @@ var _ = DescribeTable("Input resolving",
 		Iterations: 100,
 	}),
 
-	Entry("with very every and passed, it does not use retrigger builds as latest build", Example{
+	Entry("with every and passed, with one rerun build, new versions are passed to downstream", Example{
+		DB: DB{
+			BuildInputs: []DBRow{
+				{Job: CurrentJobName, BuildID: 100, Resource: "resource-x", Version: "rxv4", CheckOrder: 4},
+			},
+
+			BuildPipes: []DBRow{
+				{FromBuildID: 4, ToBuildID: 100},
+			},
+
+			BuildOutputs: []DBRow{
+				{Job: "simple-a", BuildID: 1, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Job: "simple-a", BuildID: 2, Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
+				{Job: "simple-a", BuildID: 3, Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
+				{Job: "simple-a", BuildID: 4, Resource: "resource-x", Version: "rxv4", CheckOrder: 4},
+				{Job: "simple-a", BuildID: 5, Resource: "resource-x", Version: "rxv4", CheckOrder: 4, RerunOfBuildID: 4},
+				{Job: "simple-a", BuildID: 6, Resource: "resource-x", Version: "rxv5", CheckOrder: 5},
+			},
+
+			Resources: []DBRow{
+				{Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
+				{Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
+				{Resource: "resource-x", Version: "rxv4", CheckOrder: 4},
+				{Resource: "resource-x", Version: "rxv5", CheckOrder: 5},
+			},
+		},
+
+		Inputs: Inputs{
+			{
+				Name:     "resource-x",
+				Resource: "resource-x",
+				Version:  Version{Every: true},
+				Passed:   []string{"simple-a"},
+			},
+		},
+
+		Result: Result{
+			OK: true,
+			Values: map[string]string{
+				"resource-x": "rxv5",
+			},
+		},
+	}),
+
+	Entry("with every and passed, it does not use retrigger builds as latest build", Example{
 		DB: DB{
 			BuildInputs: []DBRow{
 				{Job: CurrentJobName, BuildID: 100, Resource: "resource-x", Version: "rxv4", CheckOrder: 4},
@@ -2543,7 +2588,7 @@ var _ = DescribeTable("Input resolving",
 		},
 	}),
 
-	Entry("with very every and passed, it does not use retrigger builds as latest build when there are multiple passed jobs", Example{
+	Entry("with every and passed, it does not use retrigger builds as latest build when there are multiple passed jobs", Example{
 		DB: DB{
 			BuildInputs: []DBRow{
 				{Job: CurrentJobName, BuildID: 100, Resource: "resource-x", Version: "rxv4", CheckOrder: 4},

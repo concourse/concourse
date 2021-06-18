@@ -602,14 +602,7 @@ var _ = Describe("VersionsDB", func() {
 				}
 			})
 
-			It("returns the rerun builds, oldest to newest, followed by the newer builds, oldest to newest, followed by the cursor build and older builds, newest to oldest", func() {
-				for i := 0; i < len(rerunBuilds); i++ {
-					buildID, ok, err := paginatedBuilds.Next(ctx)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(ok).To(BeTrue())
-					Expect(buildID).To(Equal(rerunBuilds[i].ID()))
-				}
-
+			It("returns the newer builds, oldest to newest, followed by the cursor build and older builds, newest to oldest", func() {
 				for i := 0; i < len(newerBuilds); i++ {
 					buildID, ok, err := paginatedBuilds.Next(ctx)
 					Expect(err).ToNot(HaveOccurred())
