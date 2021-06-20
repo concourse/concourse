@@ -29,8 +29,6 @@ type Asset
     | PassportOfficerIcon
     | ConcourseLogoWhite
     | CircleOutlineIcon CircleOutlineIcon
-    | InfoIcon
-    | SaveIcon
     | CogsIcon
     | RunningLegend
     | NotBlockingCheckIcon
@@ -258,12 +256,6 @@ toPath asset =
 
         SuccessCheckIcon ->
             basePath ++ [ "ic-success-check.svg" ]
-
-        InfoIcon ->
-            basePath ++ [ "ic-info.svg" ]
-
-        SaveIcon ->
-            basePath ++ [ "ic-save.svg" ]
 
         FailureTimesIcon ->
             basePath ++ [ "ic-failure-times.svg" ]
