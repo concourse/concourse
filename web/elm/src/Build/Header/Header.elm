@@ -24,6 +24,7 @@ import EffectTransformer exposing (ET)
 import FetchResult exposing (FetchResult(..))
 import HoverState
 import Html exposing (Html)
+import Html.Attributes exposing (style)
 import List.Extra
 import Maybe.Extra
 import Message.Callback exposing (Callback(..))
@@ -68,33 +69,51 @@ header session model =
         , Views.Duration (duration session model)
         ]
     , rightWidgets =
-        Views.Button
-            (Just
-                { type_ = Views.ToggleComment
-                , isClickable = True
-                , backgroundShade =
-                    let
-                        isHovered =
-                            HoverState.isHovered
-                                ToggleBuildCommentButton
-                                session.hovered
-                    in
-                    case ( model.comment, isHovered ) of
-                        ( Hidden _, False ) ->
-                            Views.Light
+        (let
+            isAuthorized =
+                case model.job of
+                    Nothing ->
+                        False
 
-                        ( Hidden _, True ) ->
-                            Views.Dark
+                    Just job ->
+                        UserState.isMember
+                            { teamName = job.teamName
+                            , userState = session.userState
+                            }
+         in
+         if isAuthorized then
+            [ Views.Button
+                (Just
+                    { type_ = Views.ToggleComment
+                    , isClickable = True
+                    , backgroundShade =
+                        let
+                            isHovered =
+                                HoverState.isHovered
+                                    ToggleBuildCommentButton
+                                    session.hovered
+                        in
+                        case ( model.comment, isHovered ) of
+                            ( Hidden _, False ) ->
+                                Views.Light
 
-                        ( Visible _, False ) ->
-                            Views.Dark
+                            ( Hidden _, True ) ->
+                                Views.Dark
 
-                        ( Visible _, True ) ->
-                            Views.Light
-                , backgroundColor = model.status
-                }
-            )
-            :: (if archived then
+                            ( Visible _, False ) ->
+                                Views.Dark
+
+                            ( Visible _, True ) ->
+                                Views.Light
+                    , backgroundColor = model.status
+                    }
+                )
+            ]
+
+         else
+            []
+        )
+            ++ (if archived then
                     []
 
                 else
@@ -285,18 +304,18 @@ tooltip model session =
                             List.head lines
                                 |> Maybe.map
                                     (\text ->
-                                        let
-                                            truncatedText =
-                                                if List.length lines > 1 || String.length text > 50 then
-                                                    String.left 50 text ++ "…"
-
-                                                else
-                                                    text
-                                        in
-                                        { body = Html.text truncatedText
+                                        { body = Html.text text
                                         , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.Start }
                                         , arrow = Nothing
-                                        , containerAttrs = Nothing
+                                        , containerAttrs =
+                                            Just
+                                                ([ style "max-width" "350px"
+                                                 , style "white-space" "nowrap"
+                                                 , style "overflow" "hidden"
+                                                 , style "text-overflow" "ellipsis"
+                                                 ]
+                                                    ++ Tooltip.defaultTooltipStyle
+                                                )
                                         }
                                     )
                     )

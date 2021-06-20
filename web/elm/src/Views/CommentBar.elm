@@ -219,6 +219,7 @@ saveButton model state =
          , onMouseLeave (Message.Hover Nothing)
          , onClick (Message.Click htmlID)
          , style "color" Colors.text
+         , style "cursor" "pointer"
          , if HoverState.isHovered htmlID state.hover then
             style "background-color" Colors.frame
 
