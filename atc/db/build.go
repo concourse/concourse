@@ -123,6 +123,7 @@ type Build interface {
 	TeamID() int
 	TeamName() string
 
+	Job() (Job, bool, error)
 	JobID() int
 	JobName() string
 
@@ -409,6 +410,31 @@ func (b *build) Interceptible() (bool, error) {
 	}
 
 	return interceptible, nil
+}
+
+func (b *build) Job() (Job, bool, error) {
+	jobName := b.JobName()
+	if jobName == "" {
+		return nil, false, nil
+	}
+
+	row := jobsQuery.Where(sq.Eq{
+		"j.name":   jobName,
+		"j.active": true,
+	}).RunWith(b.conn).QueryRow()
+
+	job := newEmptyJob(b.conn, b.lockFactory)
+	err := scanJob(job, row)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, false, nil
+		}
+
+		return nil, false, err
+	}
+
+	return job, true, nil
 }
 
 func (b *build) SetComment(comment string) error {

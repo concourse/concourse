@@ -82,7 +82,7 @@ func (s *Server) CreateJobBuild(pipeline db.Pipeline) http.Handler {
 			}
 		}
 
-		err = json.NewEncoder(w).Encode(present.Build(build))
+		err = json.NewEncoder(w).Encode(present.Build(build, nil, nil))
 		if err != nil {
 			logger.Error("failed-to-encode-build", err)
 			w.WriteHeader(http.StatusInternalServerError)

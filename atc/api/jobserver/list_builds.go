@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
 )
@@ -88,7 +89,7 @@ func (s *Server) ListJobBuilds(pipeline db.Pipeline) http.Handler {
 
 		jobBuilds := make([]atc.Build, len(builds))
 		for i := 0; i < len(builds); i++ {
-			jobBuilds[i] = present.Build(builds[i])
+			jobBuilds[i] = present.Build(builds[i], job, accessor.GetAccessor(r))
 		}
 
 		err = json.NewEncoder(w).Encode(jobBuilds)

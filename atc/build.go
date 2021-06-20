@@ -20,8 +20,8 @@ type Build struct {
 	TeamName             string        `json:"team_name"`
 	Name                 string        `json:"name"`
 	Status               BuildStatus   `json:"status"`
-	Comment              string        `json:"comment"`
 	APIURL               string        `json:"api_url"`
+	Comment              string        `json:"comment,omitempty"`
 	JobName              string        `json:"job_name,omitempty"`
 	ResourceName         string        `json:"resource_name,omitempty"`
 	PipelineID           int           `json:"pipeline_id,omitempty"`

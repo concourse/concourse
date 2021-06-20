@@ -288,6 +288,20 @@ type FakeBuild struct {
 	isScheduledReturnsOnCall map[int]struct {
 		result1 bool
 	}
+	JobStub        func() (db.Job, bool, error)
+	jobMutex       sync.RWMutex
+	jobArgsForCall []struct {
+	}
+	jobReturns struct {
+		result1 db.Job
+		result2 bool
+		result3 error
+	}
+	jobReturnsOnCall map[int]struct {
+		result1 db.Job
+		result2 bool
+		result3 error
+	}
 	JobIDStub        func() int
 	jobIDMutex       sync.RWMutex
 	jobIDArgsForCall []struct {
@@ -2095,6 +2109,65 @@ func (fake *FakeBuild) IsScheduledReturnsOnCall(i int, result1 bool) {
 	fake.isScheduledReturnsOnCall[i] = struct {
 		result1 bool
 	}{result1}
+}
+
+func (fake *FakeBuild) Job() (db.Job, bool, error) {
+	fake.jobMutex.Lock()
+	ret, specificReturn := fake.jobReturnsOnCall[len(fake.jobArgsForCall)]
+	fake.jobArgsForCall = append(fake.jobArgsForCall, struct {
+	}{})
+	stub := fake.JobStub
+	fakeReturns := fake.jobReturns
+	fake.recordInvocation("Job", []interface{}{})
+	fake.jobMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+}
+
+func (fake *FakeBuild) JobCallCount() int {
+	fake.jobMutex.RLock()
+	defer fake.jobMutex.RUnlock()
+	return len(fake.jobArgsForCall)
+}
+
+func (fake *FakeBuild) JobCalls(stub func() (db.Job, bool, error)) {
+	fake.jobMutex.Lock()
+	defer fake.jobMutex.Unlock()
+	fake.JobStub = stub
+}
+
+func (fake *FakeBuild) JobReturns(result1 db.Job, result2 bool, result3 error) {
+	fake.jobMutex.Lock()
+	defer fake.jobMutex.Unlock()
+	fake.JobStub = nil
+	fake.jobReturns = struct {
+		result1 db.Job
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeBuild) JobReturnsOnCall(i int, result1 db.Job, result2 bool, result3 error) {
+	fake.jobMutex.Lock()
+	defer fake.jobMutex.Unlock()
+	fake.JobStub = nil
+	if fake.jobReturnsOnCall == nil {
+		fake.jobReturnsOnCall = make(map[int]struct {
+			result1 db.Job
+			result2 bool
+			result3 error
+		})
+	}
+	fake.jobReturnsOnCall[i] = struct {
+		result1 db.Job
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakeBuild) JobID() int {
@@ -4449,6 +4522,8 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.isRunningMutex.RUnlock()
 	fake.isScheduledMutex.RLock()
 	defer fake.isScheduledMutex.RUnlock()
+	fake.jobMutex.RLock()
+	defer fake.jobMutex.RUnlock()
 	fake.jobIDMutex.RLock()
 	defer fake.jobIDMutex.RUnlock()
 	fake.jobNameMutex.RLock()

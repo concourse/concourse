@@ -71,7 +71,7 @@ func (s *Server) ListTeamBuilds(team db.Team) http.Handler {
 		atc := make([]atc.Build, len(builds))
 		for i := 0; i < len(builds); i++ {
 			build := builds[i]
-			atc[i] = present.Build(build)
+			atc[i] = present.Build(build, nil, nil)
 		}
 
 		err = json.NewEncoder(w).Encode(atc)

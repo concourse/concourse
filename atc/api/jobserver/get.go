@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
 )
@@ -54,6 +55,7 @@ func (s *Server) GetJob(pipeline db.Pipeline) http.Handler {
 		err = json.NewEncoder(w).Encode(present.Job(
 			teamName,
 			job,
+			accessor.GetAccessor(r),
 			inputs,
 			outputs,
 			finished,
