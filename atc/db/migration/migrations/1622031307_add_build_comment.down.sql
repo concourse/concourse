@@ -1,2 +1,1 @@
-ALTER TABLE builds
-DROP COLUMN comment;
+DROP TABLE build_comments;

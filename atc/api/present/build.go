@@ -42,7 +42,8 @@ func Build(build db.Build, job db.Job, access accessor.Access) atc.Build {
 	}
 
 	if showComments {
-		atcBuild.Comment = build.Comment()
+		comment, _ := build.Comment()
+		atcBuild.Comment = comment
 	}
 
 	if build.RerunOf() != 0 {

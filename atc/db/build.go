@@ -96,8 +96,7 @@ var buildsQuery = psql.Select(`
 		b.rerun_of,
 		rb.name,
 		b.rerun_number,
-		b.span_context,
-		b.comment
+		b.span_context
 	`).
 	From("builds b").
 	JoinClause("LEFT OUTER JOIN jobs j ON b.job_id = j.id").
@@ -137,7 +136,6 @@ type Build interface {
 	Schema() string
 	PrivatePlan() atc.Plan
 	PublicPlan() *json.RawMessage
-	Comment() string
 	HasPlan() bool
 	Status() BuildStatus
 	CreateTime() time.Time
@@ -175,6 +173,8 @@ type Build interface {
 	Variables(lager.Logger, creds.Secrets, creds.VarSourcePool) (vars.Variables, error)
 
 	SetInterceptible(bool) error
+
+	Comment() (string, error)
 	SetComment(string) error
 
 	Events(uint) (EventSource, error)
@@ -354,7 +354,6 @@ func (b *build) PrototypeID() int             { return b.prototypeID }
 func (b *build) TeamID() int                  { return b.teamID }
 func (b *build) TeamName() string             { return b.teamName }
 func (b *build) IsManuallyTriggered() bool    { return b.isManuallyTriggered }
-func (b *build) Comment() string              { return b.comment }
 func (b *build) Schema() string               { return b.schema }
 func (b *build) PrivatePlan() atc.Plan        { return b.privatePlan }
 func (b *build) PublicPlan() *json.RawMessage { return b.publicPlan }
@@ -437,30 +436,28 @@ func (b *build) Job() (Job, bool, error) {
 	return job, true, nil
 }
 
-func (b *build) SetComment(comment string) error {
-	var nullComment sql.NullString
-	if comment != "" {
-		nullComment = sql.NullString{String: comment, Valid: true}
-	}
+func (b *build) Comment() (string, error) {
+	var comment string
+	err := psql.Select("COALESCE(bc.comment, '')").
+		From("builds b").
+		JoinClause("LEFT OUTER JOIN build_comments bc ON b.id = bc.build_id").
+		Where(sq.Eq{"b.id": b.id}).
+		RunWith(b.conn).
+		QueryRow().
+		Scan(&comment)
 
-	rows, err := psql.Update("builds").
-		Set("comment", nullComment).
-		Where(sq.Eq{
-			"id": b.id,
-		}).
+	return comment, err
+}
+
+func (b *build) SetComment(comment string) error {
+	_, err := psql.Insert("build_comments").
+		Columns("build_id", "comment").
+		Values(b.id, comment).
+		Suffix("ON CONFLICT (build_id) DO UPDATE SET comment = EXCLUDED.comment").
 		RunWith(b.conn).
 		Exec()
 	if err != nil {
 		return err
-	}
-
-	affected, err := rows.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if affected == 0 {
-		return ErrBuildDisappeared
 	}
 
 	return nil
@@ -1858,7 +1855,6 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 		&rerunOfName,
 		&rerunNumber,
 		&spanContext,
-		&comment,
 	)
 	if err != nil {
 		return err
