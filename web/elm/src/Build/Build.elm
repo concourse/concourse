@@ -402,6 +402,23 @@ handleDelivery session delivery ( model, effects ) =
         |> Tooltip.handleDelivery session delivery
         |> Shortcuts.handleDelivery delivery
         |> Header.handleDelivery delivery
+        |> handleDeliveryCommentBar delivery
+
+
+handleDeliveryCommentBar : Delivery -> ET Model
+handleDeliveryCommentBar delivery ( model, effects ) =
+    case model.comment of
+        Hidden _ ->
+            ( model, effects )
+
+        Visible commentBar ->
+            let
+                ( updatedCommentBar, updatedEffects ) =
+                    CommentBar.handleDelivery commentBar delivery
+            in
+            ( { model | comment = Visible updatedCommentBar }
+            , effects ++ updatedEffects
+            )
 
 
 update : Message -> ET Model

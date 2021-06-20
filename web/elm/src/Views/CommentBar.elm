@@ -7,6 +7,7 @@ module Views.CommentBar exposing
     , defaultStyle
     , getContent
     , getTextAreaID
+    , handleDelivery
     , resetState
     , setCachedContent
     , update
@@ -22,6 +23,7 @@ import Html.Events exposing (onBlur, onClick, onFocus, onInput, onMouseEnter, on
 import Http
 import Message.Effects exposing (Effect(..), toHtmlID)
 import Message.Message as Message exposing (CommentBarButtonKind(..), DomID)
+import Message.Subscription exposing (Delivery(..))
 import Views.Icon as Icon
 import Views.Spinner as Spinner
 import Views.Styles as Styles
@@ -294,6 +296,18 @@ commentSetCallback ( content, result ) model =
                 ( _, state ) ->
                     state
     }
+
+
+handleDelivery : Model -> Delivery -> ( Model, List Effect )
+handleDelivery model delivery =
+    case delivery of
+        WindowResized _ _ ->
+            ( model
+            , [ SyncTextareaHeight (getTextAreaID model) ]
+            )
+
+        _ ->
+            ( model, [] )
 
 
 update : Model -> UpdateState -> Message.Message -> ( Model, List Effect )
