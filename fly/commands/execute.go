@@ -36,6 +36,7 @@ type ExecuteCommand struct {
 	Var            []flaghelpers.VariablePairFlag     `short:"v"  long:"var"       value-name:"[NAME=STRING]"  unquote:"false"  description:"Specify a string value to set for a variable in the pipeline"`
 	YAMLVar        []flaghelpers.YAMLVariablePairFlag `short:"y"  long:"yaml-var"  value-name:"[NAME=YAML]"    unquote:"false"  description:"Specify a YAML value to set for a variable in the pipeline"`
 	VarsFrom       []atc.PathFlag                     `short:"l"  long:"load-vars-from"  description:"Variable flag that can be used for filling in template values in configuration from a YAML file"`
+	Params         []flaghelpers.ParamPairFlag        `          long:"param"      value-name:"NAME=STRING" description:"Set parameter values."`
 }
 
 func (command *ExecuteCommand) Execute(args []string) error {
@@ -85,6 +86,11 @@ func (command *ExecuteCommand) Execute(args []string) error {
 		return err
 	}
 
+	params := atc.TaskEnv{}
+	for _, p := range command.Params {
+		params[p.Name] = p.Value
+	}
+
 	plan, err := executehelpers.CreateBuildPlan(
 		planFactory,
 		target,
@@ -95,6 +101,7 @@ func (command *ExecuteCommand) Execute(args []string) error {
 		outputs,
 		taskConfig,
 		command.Tags,
+		params,
 	)
 
 	if err != nil {

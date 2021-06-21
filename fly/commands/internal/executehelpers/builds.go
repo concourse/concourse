@@ -15,6 +15,7 @@ func CreateBuildPlan(
 	outputs []Output,
 	config atc.TaskConfig,
 	tags []string,
+	params atc.TaskEnv,
 ) (atc.Plan, error) {
 	if err := config.Validate(); err != nil {
 		return atc.Plan{}, err
@@ -35,6 +36,10 @@ func CreateBuildPlan(
 
 	if len(tags) != 0 {
 		taskPlan.Task.Tags = tags
+	}
+
+	if len(params) != 0 {
+		taskPlan.Task.Params = params
 	}
 
 	buildOutputs := atc.InParallelPlan{}
