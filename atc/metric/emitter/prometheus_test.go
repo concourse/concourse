@@ -198,17 +198,17 @@ var _ = Describe("PrometheusEmitter", func() {
 			Attributes: map[string]string{
 				"platform":   "darwin",
 				"teamId":     "42",
+				"teamName":   "teamdev",
 				"type":       "get",
 				"workerTags": "tester",
 			},
 		})
 
 		res, _ := http.Get(fmt.Sprintf("http://%s:%s/metrics", prometheusConfig.BindIP, prometheusConfig.BindPort))
-		defer res.Body.Close()
 		body, _ := ioutil.ReadAll(res.Body)
-
+		defer res.Body.Close()
 		Expect(res.StatusCode).To(Equal(http.StatusOK))
-		Expect(string(body)).To(ContainSubstring("concourse_steps_waiting{platform=\"darwin\",teamId=\"42\",type=\"get\",workerTags=\"tester\"} 4"))
+		Expect(string(body)).To(ContainSubstring("concourse_steps_waiting{platform=\"darwin\",teamId=\"42\",teamName=\"teamdev\",type=\"get\",workerTags=\"tester\"} 4"))
 		Expect(err).To(BeNil())
 	})
 })

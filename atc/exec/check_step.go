@@ -274,6 +274,7 @@ func (step *CheckStep) runCheck(
 	containerSpec := worker.ContainerSpec{
 		ImageSpec: imageSpec,
 		TeamID:    step.metadata.TeamID,
+		TeamName:  step.metadata.TeamName,
 		Type:      step.containerMetadata.Type,
 
 		BindMounts: []worker.BindMountSource{

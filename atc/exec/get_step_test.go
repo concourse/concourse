@@ -369,9 +369,10 @@ var _ = Describe("GetStep", func() {
 				ImageSpec: worker.ImageSpec{
 					ResourceType: "some-base-type",
 				},
-				TeamID: stepMetadata.TeamID,
-				Type:   containerMetadata.Type,
-				Env:    stepMetadata.Env(),
+				TeamID:   stepMetadata.TeamID,
+				TeamName: stepMetadata.TeamName,
+				Type:     containerMetadata.Type,
+				Env:      stepMetadata.Env(),
 			},
 		))
 	})

@@ -433,6 +433,7 @@ var _ = Describe("PutStep", func() {
 			ResourceType: "some-resource-type",
 		}))
 		Expect(containerSpec.TeamID).To(Equal(123))
+		Expect(containerSpec.TeamName).To(Equal("some-team"))
 		Expect(containerSpec.Env).To(Equal(stepMetadata.Env()))
 		Expect(containerSpec.Dir).To(Equal("/tmp/build/put"))
 		Expect(containerSpec.Inputs).To(Equal(expectedInputs))

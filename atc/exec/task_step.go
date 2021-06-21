@@ -416,6 +416,7 @@ func (step *TaskStep) containerSpec(logger lager.Logger, state RunState, imageSp
 	containerSpec := worker.ContainerSpec{
 		ImageSpec: imageSpec,
 		TeamID:    step.metadata.TeamID,
+		TeamName:  step.metadata.TeamName,
 		Type:      metadata.Type,
 
 		Dir:    metadata.WorkingDirectory,

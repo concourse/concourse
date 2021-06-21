@@ -176,6 +176,7 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 	containerSpec := worker.ContainerSpec{
 		ImageSpec: imageSpec,
 		TeamID:    step.metadata.TeamID,
+		TeamName:  step.metadata.TeamName,
 		Type:      step.containerMetadata.Type,
 
 		Env: step.metadata.Env(),

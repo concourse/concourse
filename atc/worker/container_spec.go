@@ -18,6 +18,7 @@ type WorkerSpec struct {
 
 type ContainerSpec struct {
 	TeamID    int
+	TeamName  string
 	ImageSpec ImageSpec
 	Env       []string
 	Type      db.ContainerType
