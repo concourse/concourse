@@ -192,68 +192,6 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 					})
 				})
 			})
-
-			Describe("for containers", func() {
-				var container db.CreatingContainer
-
-				BeforeEach(func() {
-					worker, err := defaultTeam.SaveWorker(atc.Worker{
-						Name: "some-worker",
-					}, 0)
-					Expect(err).ToNot(HaveOccurred())
-
-					container, err = worker.CreateContainer(
-						db.NewBuildStepContainerOwner(defaultBuild.ID(), "some-plan", defaultTeam.ID()),
-						db.ContainerMetadata{},
-					)
-					Expect(err).ToNot(HaveOccurred())
-
-					customResourceTypeCache, err = resourceCacheFactory.FindOrCreateResourceCache(
-						db.ForContainer(container.ID()),
-						"some-base-type",
-						atc.Version{"some-type": "version"},
-						atc.Source{
-							"some-type": "source-param",
-						},
-						nil,
-						nil,
-					)
-					Expect(err).NotTo(HaveOccurred())
-
-					_, err = resourceCacheFactory.FindOrCreateResourceCache(
-						db.ForContainer(container.ID()),
-						"some-type",
-						atc.Version{"some-type": "version"},
-						atc.Source{
-							"cache": "source",
-						},
-						atc.Params{"some": "params"},
-						customResourceTypeCache,
-					)
-					Expect(err).NotTo(HaveOccurred())
-				})
-
-				Context("while the container is still in use", func() {
-					It("does not clean up the uses", func() {
-						Expect(countResourceCacheUses()).NotTo(BeZero())
-						Expect(collector.Run(context.TODO())).To(Succeed())
-						Expect(countResourceCacheUses()).NotTo(BeZero())
-					})
-				})
-
-				Context("when the container is removed", func() {
-					It("cleans up the uses (except it was actually a cascade delete, not the GC, lol)", func() {
-						Expect(countResourceCacheUses()).NotTo(BeZero())
-						created, err := container.Created()
-						Expect(err).ToNot(HaveOccurred())
-						destroying, err := created.Destroying()
-						Expect(err).ToNot(HaveOccurred())
-						Expect(destroying.Destroy()).To(BeTrue())
-						Expect(collector.Run(context.TODO())).To(Succeed())
-						Expect(countResourceCacheUses()).To(BeZero())
-					})
-				})
-			})
 		})
 	})
 })
