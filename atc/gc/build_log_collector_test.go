@@ -406,6 +406,48 @@ var _ = Describe("BuildLogCollector", func() {
 
 			Context("when count and date are set > 0", func() {
 				BeforeEach(func() {
+					fakeJob.ConfigReturns(atc.JobConfig{
+						BuildLogRetention: &atc.BuildLogRetention{
+							Builds: 1,
+							Days:   2,
+						},
+					}, nil)
+
+					fakePipeline.DeleteBuildEventsByBuildIDsReturns(nil)
+					fakeJob.UpdateFirstLoggedBuildIDReturns(nil)
+				})
+
+				It("should not reap if count is not satisfied", func() {
+					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
+						if *page.From == 5 {
+							return []db.Build{sbTime(5, time.Now().Add(-49*time.Hour))}, db.Pagination{}, nil
+						}
+						Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
+						return nil, db.Pagination{}, nil
+					}
+
+					err := buildLogCollector.Run(context.TODO())
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(Equal(0))
+				})
+
+				It("should not reap if days is not satisfied", func() {
+					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
+						if *page.From == 5 {
+							return []db.Build{sbTime(6, time.Now().Add(-23*time.Hour)), sbTime(5, time.Now().Add(-24*time.Hour))}, db.Pagination{}, nil
+						}
+						Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
+						return nil, db.Pagination{}, nil
+					}
+
+					err := buildLogCollector.Run(context.TODO())
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(Equal(0))
+				})
+
+				It("should delete 1 build, because both criteria are satisfied", func() {
 					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
 						if *page.From == 5 {
 							return []db.Build{sbTime(6, time.Now().Add(-23*time.Hour)), sbTime(5, time.Now().Add(-49*time.Hour))}, db.Pagination{}, nil
@@ -414,18 +456,6 @@ var _ = Describe("BuildLogCollector", func() {
 						return nil, db.Pagination{}, nil
 					}
 
-					fakeJob.ConfigReturns(atc.JobConfig{
-						BuildLogRetention: &atc.BuildLogRetention{
-							Builds: 1,
-							Days:   3,
-						},
-					}, nil)
-
-					fakePipeline.DeleteBuildEventsByBuildIDsReturns(nil)
-					fakeJob.UpdateFirstLoggedBuildIDReturns(nil)
-				})
-
-				It("should delete 1 build, because of the builds retention", func() {
 					err := buildLogCollector.Run(context.TODO())
 					Expect(err).NotTo(HaveOccurred())
 
@@ -744,7 +774,6 @@ var _ = Describe("BuildLogCollector", func() {
 		})
 	})
 
-	
 	Context("when getting the pipelines fails", func() {
 		var disaster error
 

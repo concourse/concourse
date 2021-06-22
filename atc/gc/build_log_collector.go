@@ -1,14 +1,11 @@
 package gc
 
 import (
-	"context"
-
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
-
-	"time"
-
+	"context"
 	"github.com/concourse/concourse/atc/db"
+	"time"
 )
 
 type buildLogCollector struct {
@@ -129,7 +126,7 @@ func (br *buildLogCollector) reapLogsOfJob(pipeline db.Pipeline,
 	}
 
 	buildIDsToDelete := []int{}
-	toRetainNonSucceededBuildIDs := []int{}
+	candidateBuildIDsToKeep := []int{}
 	retainedBuilds := 0
 	retainedSucceededBuilds := 0
 	firstLoggedBuildID := 0
@@ -140,14 +137,6 @@ func (br *buildLogCollector) reapLogsOfJob(pipeline db.Pipeline,
 			continue
 		}
 
-		if logRetention.Days > 0 {
-			if !build.EndTime().IsZero() && build.EndTime().AddDate(0, 0, logRetention.Days).Before(time.Now()) {
-				logger.Debug("should-reap-due-to-days", build.LagerData())
-				buildIDsToDelete = append(buildIDsToDelete, build.ID())
-				continue
-			}
-		}
-
 		// Before a build is drained, it should not be reaped.
 		if br.drainerConfigured {
 			if !build.IsDrained() {
@@ -156,11 +145,13 @@ func (br *buildLogCollector) reapLogsOfJob(pipeline db.Pipeline,
 			}
 		}
 
-		// If Builds is 0, then all builds are retained, so we don't need to
-		// check MinSuccessBuilds at all.
-		if logRetention.Builds > 0 {
-			if logRetention.MinimumSucceededBuilds > 0 && build.Status() == db.BuildStatusSucceeded {
-				if retainedSucceededBuilds < logRetention.MinimumSucceededBuilds {
+		maxBuildsRetained := retainedBuilds >= logRetention.Builds
+		buildHasExpired := !build.EndTime().IsZero() && build.EndTime().AddDate(0, 0, logRetention.Days).Before(time.Now())
+
+
+		if logRetention.Builds != 0 {
+			if logRetention.MinimumSucceededBuilds != 0 {
+				if build.Status() == db.BuildStatusSucceeded && retainedSucceededBuilds < logRetention.MinimumSucceededBuilds {
 					retainedBuilds++
 					retainedSucceededBuilds++
 					firstLoggedBuildID = build.ID()
@@ -168,15 +159,26 @@ func (br *buildLogCollector) reapLogsOfJob(pipeline db.Pipeline,
 				}
 			}
 
-			if retainedBuilds < logRetention.Builds {
+			if !maxBuildsRetained {
 				retainedBuilds++
-				toRetainNonSucceededBuildIDs = append(toRetainNonSucceededBuildIDs, build.ID())
+				candidateBuildIDsToKeep = append(candidateBuildIDsToKeep, build.ID())
 				firstLoggedBuildID = build.ID()
 				continue
 			}
-
-			buildIDsToDelete = append(buildIDsToDelete, build.ID())
 		}
+
+		if logRetention.Days != 0 {
+			if !buildHasExpired {
+				retainedBuilds++
+				candidateBuildIDsToKeep = append(candidateBuildIDsToKeep, build.ID())
+				firstLoggedBuildID = build.ID()
+				continue
+			}
+		}
+
+		// at this point, we haven't met all of the enabled conditions, so here we can reap
+		buildIDsToDelete = append(buildIDsToDelete, build.ID())
+
 	}
 
 	logger.Debug("after-second-round-filter", lager.Data{
@@ -189,16 +191,15 @@ func (br *buildLogCollector) reapLogsOfJob(pipeline db.Pipeline,
 		return nil
 	}
 
-	// If this happens, firstLoggedBuildID must points to a success build, thus
-	// no need to update firstLoggedBuildID.
-	if retainedBuilds > logRetention.Builds {
+	// If we exceeded the maximum number of builds we should delete the oldest candidates
+	if logRetention.Builds != 0 && retainedBuilds > logRetention.Builds {
 		logger.Debug("more-builds-to-retain", lager.Data{
 			"retained_builds": retainedBuilds,
 		})
 		delta := retainedBuilds - logRetention.Builds
-		n := len(toRetainNonSucceededBuildIDs)
+		n := len(candidateBuildIDsToKeep)
 		for i := 1; i <= delta; i++ {
-			buildIDsToDelete = append(buildIDsToDelete, toRetainNonSucceededBuildIDs[n-i])
+			buildIDsToDelete = append(buildIDsToDelete, candidateBuildIDsToKeep[n-i])
 		}
 	}
 
