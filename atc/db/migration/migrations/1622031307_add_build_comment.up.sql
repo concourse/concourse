@@ -4,4 +4,4 @@ CREATE TABLE build_comments (
 );
 
 ALTER TABLE build_comments
-  ADD CONSTRAINT worker_artifacts_build_fkey FOREIGN KEY (build_id) REFERENCES builds(id) ON DELETE CASCADE;
+  ADD CONSTRAINT build_comments_build_id_fkey FOREIGN KEY (build_id) REFERENCES builds(id) ON DELETE CASCADE;
