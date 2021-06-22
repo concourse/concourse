@@ -1,5 +1,6 @@
 module BuildTests exposing (all)
 
+import Ansi exposing (Color(..))
 import Application.Application as Application
 import Array
 import Assets
@@ -25,7 +26,7 @@ import Html.Attributes as Attr
 import Json.Encode as Encode
 import Keyboard
 import Message.Callback as Callback
-import Message.Effects as Effects
+import Message.Effects as Effects exposing (toHtmlID)
 import Message.Message exposing (DomID(..))
 import Message.ScrollDirection as ScrollDirection
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..))
@@ -132,6 +133,15 @@ all =
                             , content = [ Data.jobBuild BuildStatusSucceeded ]
                             }
                         )
+                    )
+
+            toggleBuildComment :
+                Application.Model
+                -> ( Application.Model, List Effects.Effect )
+            toggleBuildComment =
+                Application.update
+                    (Msgs.Update
+                        (Message.Message.Click ToggleBuildCommentButton)
                     )
 
             csrfToken : String
@@ -2306,76 +2316,73 @@ all =
                         |> Tuple.first
                         |> fetchJobDetails
             in
-            [ test "build action section lays out horizontally" <|
-                givenBuildStarted
-                    >> Tuple.first
-                    >> Common.queryView
-                    >> Query.find [ id "build-header" ]
-                    >> Query.children []
-                    >> Query.index -1
-                    >> Query.has [ style "display" "flex" ]
-            , test "abort build button is to the left of the trigger button" <|
-                givenBuildStarted
-                    >> Tuple.first
-                    >> Common.queryView
-                    >> Query.find [ id "build-header" ]
-                    >> Query.children []
-                    >> Query.index -1
-                    >> Query.children []
-                    >> Query.first
-                    >> Query.has
-                        [ attribute <|
-                            Attr.attribute "aria-label" "Abort Build"
-                        ]
-            , test "abort build button is styled as a bright red box" <|
-                givenBuildStarted
-                    >> Tuple.first
-                    >> Common.queryView
-                    >> Query.find
-                        [ attribute <|
-                            Attr.attribute "aria-label" "Abort Build"
-                        ]
-                    >> Query.has [ style "background-color" brightRed ]
-            , test "hovered abort build button is styled as a dark red box" <|
-                givenBuildStarted
-                    >> Tuple.first
-                    >> hoverOver Message.Message.AbortBuildButton
-                    >> Tuple.first
-                    >> Common.queryView
-                    >> Query.find
-                        [ attribute <|
-                            Attr.attribute "aria-label" "Abort Build"
-                        ]
-                    >> Query.has [ style "background-color" darkRed ]
-            , test "shows tooltip when hovered" <|
-                givenBuildStarted
-                    >> Tuple.first
-                    >> expectTooltip AbortBuildButton "abort the current build"
-            , test "abort build button has pointer cursor" <|
-                givenBuildStarted
-                    >> Tuple.first
-                    >> Common.queryView
-                    >> Query.find
-                        [ attribute <|
-                            Attr.attribute "aria-label" "Abort Build"
-                        ]
-                    >> Query.has [ style "cursor" "pointer" ]
-            , test "abort build button has 'X' icon" <|
-                givenBuildStarted
-                    >> Tuple.first
-                    >> Common.queryView
-                    >> Query.find
-                        [ attribute <|
-                            Attr.attribute "aria-label" "Abort Build"
-                        ]
-                    >> Query.children []
-                    >> Query.first
-                    >> Query.has
-                        (iconSelector
-                            { size = "40px"
-                            , image = Assets.AbortCircleIcon |> Assets.CircleOutlineIcon
+            [ describe "header bar actions"
+                (let
+                    buildModel =
+                        givenBuildStarted >> Tuple.first
+                 in
+                 (test "build action section lays out horizontally" <|
+                    givenBuildStarted
+                        >> Tuple.first
+                        >> Common.queryView
+                        >> Query.find [ id "build-header" ]
+                        >> Query.children []
+                        >> Query.index -1
+                        >> Query.has [ style "display" "flex" ]
+                 )
+                    :: (testHeaderButton "comment build (visible comment)"
+                            buildModel
+                            { key = "Toggle Build Comment"
+                            , index = 0
+                            , domID = Message.Message.ToggleBuildCommentButton
+                            , backgroundColor = darkYellow
+                            , hoveredBackgroundColor = brightYellow
+                            , tooltip = "hide build comment"
+                            , cursor = "pointer"
+                            , icon = Assets.MessageIcon
                             }
-                        )
+                            ++ (let
+                                    commentlessModel =
+                                        buildModel
+                                            >> toggleBuildComment
+                                            >> Tuple.first
+                                in
+                                testHeaderButton "comment build (hidden comment)"
+                                    commentlessModel
+                                    { key = "Toggle Build Comment"
+                                    , index = 0
+                                    , domID = Message.Message.ToggleBuildCommentButton
+                                    , backgroundColor = brightYellow
+                                    , hoveredBackgroundColor = darkYellow
+                                    , tooltip = "show build comment"
+                                    , cursor = "pointer"
+                                    , icon = Assets.MessageIcon
+                                    }
+                               )
+                       )
+                    ++ testHeaderButton "trigger build"
+                        buildModel
+                        { key = "Abort Build"
+                        , index = 1
+                        , domID = Message.Message.AbortBuildButton
+                        , backgroundColor = brightRed
+                        , hoveredBackgroundColor = darkRed
+                        , tooltip = "abort the current build"
+                        , cursor = "pointer"
+                        , icon = Assets.AbortCircleIcon |> Assets.CircleOutlineIcon
+                        }
+                    ++ testHeaderButton "abort build"
+                        buildModel
+                        { key = "Trigger Build"
+                        , index = 2
+                        , domID = Message.Message.TriggerBuildButton
+                        , backgroundColor = brightYellow
+                        , hoveredBackgroundColor = darkYellow
+                        , tooltip = "trigger a new build"
+                        , cursor = "pointer"
+                        , icon = Assets.AddCircleIcon |> Assets.CircleOutlineIcon
+                        }
+                )
             , describe "build prep section"
                 [ test "when pipeline is not paused, shows a check" <|
                     let
@@ -3847,11 +3854,63 @@ all =
         ]
 
 
-runStepLabel =
-    [ style "color" Colors.pending
-    , style "line-height" "28px"
-    , style "padding-left" "6px"
-    , containing [ text "run:" ]
+type alias HeaderButtonTest =
+    { key : String
+    , index : Int
+    , domID : DomID
+    , backgroundColor : String
+    , hoveredBackgroundColor : String
+    , tooltip : String
+    , cursor : String
+    , icon : Assets.Asset
+    }
+
+
+testHeaderButton : String -> (() -> Application.Model) -> HeaderButtonTest -> List Test
+testHeaderButton name model { key, index, domID, backgroundColor, hoveredBackgroundColor, tooltip, cursor, icon } =
+    let
+        view =
+            model >> Common.queryView
+
+        button =
+            view >> Query.find [ attribute <| Attr.attribute "aria-label" key ]
+
+        hoveredButton =
+            model
+                >> hoverOver domID
+                >> Tuple.first
+                >> Common.queryView
+                >> Query.find
+                    [ attribute <| Attr.attribute "aria-label" key ]
+    in
+    [ test (name ++ " button is at index " ++ String.fromInt index) <|
+        view
+            >> Query.find [ id "build-header" ]
+            >> Query.children []
+            >> Query.index -1
+            >> Query.children []
+            >> Query.index index
+            >> Query.has
+                [ attribute <| Attr.attribute "aria-label" key
+                , id <| toHtmlID <| domID
+                ]
+    , test (name ++ " button has correct icon") <|
+        button
+            >> Query.children []
+            >> Query.first
+            >> Query.has (iconSelector { size = "40px", image = icon })
+    , test (name ++ " button has correct tooltip") <|
+        model
+            >> expectTooltip domID tooltip
+    , test (name ++ " button is correctly styled") <|
+        button
+            >> Query.has
+                [ style "background-color" backgroundColor
+                , style "cursor" cursor
+                ]
+    , test (name ++ " button, when hovered, is correctly styled") <|
+        hoveredButton
+            >> Query.has [ style "background-color" hoveredBackgroundColor ]
     ]
 
 
@@ -3860,6 +3919,14 @@ getStepLabel =
     , style "line-height" "28px"
     , style "padding-left" "6px"
     , containing [ text "get:" ]
+    ]
+
+
+runStepLabel =
+    [ style "color" Colors.pending
+    , style "line-height" "28px"
+    , style "padding-left" "6px"
+    , containing [ text "run:" ]
     ]
 
 
@@ -3956,6 +4023,16 @@ darkRed =
 brightRed : String
 brightRed =
     "#ed4b35"
+
+
+darkYellow : String
+darkYellow =
+    "#f1c40f"
+
+
+brightYellow : String
+brightYellow =
+    "#fad43b"
 
 
 darkGreen : String

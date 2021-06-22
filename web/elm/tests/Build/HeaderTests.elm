@@ -192,7 +192,7 @@ all =
                                 (Effects.RerunJobBuild
                                     (Data.longJobBuildId |> Data.withBuildName model.name)
                                 )
-                , test "archived pipeline's have no right widgets" <|
+                , test "archived pipeline's only have a toggle comment button" <|
                     \_ ->
                         { model | status = BuildStatusSucceeded, job = Just jobId }
                             |> Header.header
@@ -205,7 +205,15 @@ all =
                                             ]
                                 }
                             |> .rightWidgets
-                            |> Expect.equal []
+                            |> Expect.equal
+                                [ Views.Button <|
+                                    Just
+                                        { type_ = Views.ToggleComment
+                                        , isClickable = True
+                                        , backgroundShade = Views.Light
+                                        , backgroundColor = BuildStatusSucceeded
+                                        }
+                                ]
                 , test "pipeline lookup considers instance vars" <|
                     \_ ->
                         let

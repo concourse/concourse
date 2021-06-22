@@ -632,7 +632,7 @@ handleBuildFetched build ( model, effects ) =
                                 _ ->
                                     [ Focus bodyId ]
                         )
-                    |> Maybe.withDefault []
+                    |> Maybe.withDefault [ Focus bodyId ]
                )
         )
 

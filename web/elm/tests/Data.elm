@@ -493,8 +493,12 @@ build status =
                 Just <| Time.millisToPosix 0
         }
     , reapTime = Nothing
+<<<<<<< HEAD
     , createdBy = Just <| "some-one"
     , comment = ""
+=======
+    , comment = "Test Comment"
+>>>>>>> web: behavior: Add tests for toggle comment button
     }
 
 
@@ -527,7 +531,7 @@ jobBuild status =
         }
     , reapTime = Nothing
     , createdBy = Just <| "some-one"
-    , comment = ""
+    , comment = "Test Comment"
     }
 
 
