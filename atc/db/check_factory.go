@@ -38,7 +38,7 @@ type Checkable interface {
 type CheckFactory interface {
 	TryCreateCheck(context.Context, Checkable, ResourceTypes, atc.Version, bool, bool) (Build, bool, error)
 	Resources() ([]Resource, error)
-	ResourceTypes() ([]ResourceType, error)
+	ResourceTypes() (map[int]ResourceTypes, error)
 }
 
 type checkFactory struct {
@@ -179,9 +179,8 @@ func (c *checkFactory) Resources() ([]Resource, error) {
 	return resources, nil
 }
 
-// XXXX: TODO return a map[PipelineID]ResourceTypes instead, for faster lookup
-func (c *checkFactory) ResourceTypes() ([]ResourceType, error) {
-	var resourceTypes []ResourceType
+func (c *checkFactory) ResourceTypes() (map[int]ResourceTypes, error) {
+	resourceTypes := make(map[int]ResourceTypes)
 
 	rows, err := resourceTypesQuery.
 		Where(sq.And{
@@ -203,7 +202,7 @@ func (c *checkFactory) ResourceTypes() ([]ResourceType, error) {
 			return nil, err
 		}
 
-		resourceTypes = append(resourceTypes, r)
+		resourceTypes[r.pipelineID] = append(resourceTypes[r.pipelineID], r)
 	}
 
 	return resourceTypes, nil

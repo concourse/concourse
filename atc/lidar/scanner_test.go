@@ -73,13 +73,14 @@ var _ = Describe("Scanner", func() {
 			Context("when CheckEvery is never", func() {
 				BeforeEach(func() {
 					fakeResource.CheckEveryReturns(&atc.CheckEvery{Never: true})
-
 					fakeResource.TypeReturns("parent")
 					fakeResource.PipelineIDReturns(1)
 					fakeResourceType := new(dbfakes.FakeResourceType)
 					fakeResourceType.NameReturns("parent")
 					fakeResourceType.PipelineIDReturns(1)
-					fakeCheckFactory.ResourceTypesReturns([]db.ResourceType{fakeResourceType}, nil)
+					fakeCheckFactory.ResourceTypesReturns(map[int]db.ResourceTypes{
+						1: {fakeResourceType},
+					}, nil)
 				})
 
 				It("does not check the resource", func() {
@@ -97,13 +98,19 @@ var _ = Describe("Scanner", func() {
 					fakeResourceType.TagsReturns([]string{"some-tag"})
 					fakeResourceType.SourceReturns(atc.Source{"some": "type-source"})
 
-					fakeCheckFactory.ResourceTypesReturns([]db.ResourceType{fakeResourceType}, nil)
+					fakeCheckFactory.ResourceTypesReturns(map[int]db.ResourceTypes{1: {fakeResourceType}}, nil)
 				})
 
 				Context("when the resource parent type is a base type", func() {
 					BeforeEach(func() {
-						fakeCheckFactory.ResourceTypesReturns([]db.ResourceType{}, nil)
+						fakeCheckFactory.ResourceTypesReturns(map[int]db.ResourceTypes{}, nil)
 						fakeResource.TypeReturns("some-type")
+					})
+
+					It("creates a check with empty resource types list", func() {
+						_, _, resourceTypes, _, _, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+						var nilResourceTypes db.ResourceTypes
+						Expect(resourceTypes).To(Equal(nilResourceTypes))
 					})
 
 					Context("when the last check end time is past our interval", func() {

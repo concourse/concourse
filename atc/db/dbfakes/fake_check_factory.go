@@ -10,16 +10,16 @@ import (
 )
 
 type FakeCheckFactory struct {
-	ResourceTypesStub        func() ([]db.ResourceType, error)
+	ResourceTypesStub        func() (map[int]db.ResourceTypes, error)
 	resourceTypesMutex       sync.RWMutex
 	resourceTypesArgsForCall []struct {
 	}
 	resourceTypesReturns struct {
-		result1 []db.ResourceType
+		result1 map[int]db.ResourceTypes
 		result2 error
 	}
 	resourceTypesReturnsOnCall map[int]struct {
-		result1 []db.ResourceType
+		result1 map[int]db.ResourceTypes
 		result2 error
 	}
 	ResourcesStub        func() ([]db.Resource, error)
@@ -58,7 +58,7 @@ type FakeCheckFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeCheckFactory) ResourceTypes() ([]db.ResourceType, error) {
+func (fake *FakeCheckFactory) ResourceTypes() (map[int]db.ResourceTypes, error) {
 	fake.resourceTypesMutex.Lock()
 	ret, specificReturn := fake.resourceTypesReturnsOnCall[len(fake.resourceTypesArgsForCall)]
 	fake.resourceTypesArgsForCall = append(fake.resourceTypesArgsForCall, struct {
@@ -82,34 +82,34 @@ func (fake *FakeCheckFactory) ResourceTypesCallCount() int {
 	return len(fake.resourceTypesArgsForCall)
 }
 
-func (fake *FakeCheckFactory) ResourceTypesCalls(stub func() ([]db.ResourceType, error)) {
+func (fake *FakeCheckFactory) ResourceTypesCalls(stub func() (map[int]db.ResourceTypes, error)) {
 	fake.resourceTypesMutex.Lock()
 	defer fake.resourceTypesMutex.Unlock()
 	fake.ResourceTypesStub = stub
 }
 
-func (fake *FakeCheckFactory) ResourceTypesReturns(result1 []db.ResourceType, result2 error) {
+func (fake *FakeCheckFactory) ResourceTypesReturns(result1 map[int]db.ResourceTypes, result2 error) {
 	fake.resourceTypesMutex.Lock()
 	defer fake.resourceTypesMutex.Unlock()
 	fake.ResourceTypesStub = nil
 	fake.resourceTypesReturns = struct {
-		result1 []db.ResourceType
+		result1 map[int]db.ResourceTypes
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCheckFactory) ResourceTypesReturnsOnCall(i int, result1 []db.ResourceType, result2 error) {
+func (fake *FakeCheckFactory) ResourceTypesReturnsOnCall(i int, result1 map[int]db.ResourceTypes, result2 error) {
 	fake.resourceTypesMutex.Lock()
 	defer fake.resourceTypesMutex.Unlock()
 	fake.ResourceTypesStub = nil
 	if fake.resourceTypesReturnsOnCall == nil {
 		fake.resourceTypesReturnsOnCall = make(map[int]struct {
-			result1 []db.ResourceType
+			result1 map[int]db.ResourceTypes
 			result2 error
 		})
 	}
 	fake.resourceTypesReturnsOnCall[i] = struct {
-		result1 []db.ResourceType
+		result1 map[int]db.ResourceTypes
 		result2 error
 	}{result1, result2}
 }

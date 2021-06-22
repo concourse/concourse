@@ -386,7 +386,9 @@ var _ = Describe("CheckFactory", func() {
 
 	Describe("ResourceTypes", func() {
 		var (
-			resourceTypes db.ResourceTypes
+			resourceTypes    map[int]db.ResourceTypes
+			somePipeline     db.Pipeline
+			atcResourceTypes atc.ResourceTypes
 		)
 
 		JustBeforeEach(func() {
@@ -394,9 +396,41 @@ var _ = Describe("CheckFactory", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
+		BeforeEach(func() {
+			atcResourceTypes = atc.ResourceTypes{
+				{
+					Name: "some-type",
+					Type: "some-base-resource-type",
+					Source: atc.Source{
+						"some-type": "source",
+					},
+				},
+				{
+					Name: "some-other-type",
+					Type: "some-base-resource-type",
+					Source: atc.Source{
+						"some-other-type": "source",
+					},
+				},
+			}
+
+			somePipelineConfig := atc.Config{
+				ResourceTypes: atcResourceTypes,
+			}
+
+			somePipelineRef := atc.PipelineRef{Name: "some-pipeline"}
+			somePipeline, _, err = defaultTeam.SavePipeline(somePipelineRef, somePipelineConfig, db.ConfigVersion(1), false)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
 		It("include resource types in return", func() {
-			Expect(resourceTypes).To(HaveLen(1))
-			Expect(resourceTypes[0].Name()).To(Equal("some-type"))
+			Expect(resourceTypes).To(HaveLen(2))
+
+			Expect(resourceTypes[defaultPipeline.ID()]).To(HaveLen(1))
+			Expect(resourceTypes[defaultPipeline.ID()][0].Name()).To(Equal("some-type"))
+
+			Expect(resourceTypes[somePipeline.ID()]).To(HaveLen(2))
+			Expect(resourceTypes[somePipeline.ID()].Deserialize()).To(ConsistOf(atcResourceTypes))
 		})
 
 		Context("when the resource type is not active", func() {
