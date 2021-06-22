@@ -11,17 +11,15 @@ module Build.Header.Header exposing
 
 import Api.Endpoints as Endpoints
 import Application.Models exposing (Session)
-import Build.Header.Models exposing (BuildPageType(..), CommentBarVisibility(..), HistoryItem, Model)
+import Build.Header.Models exposing (BuildPageType(..), CommentBarVisibility(..), HistoryItem, Model, commentBarIsVisible)
 import Build.Header.Views as Views
 import Build.StepTree.Models as STModels
 import Concourse
 import Concourse.BuildStatus
 import Concourse.Pagination exposing (Paginated)
-import Dashboard.Styles exposing (content)
 import DateFormat
 import Duration exposing (Duration)
 import EffectTransformer exposing (ET)
-import FetchResult exposing (FetchResult(..))
 import HoverState
 import Html exposing (Html)
 import Html.Attributes exposing (style)
@@ -69,19 +67,7 @@ header session model =
         , Views.Duration (duration session model)
         ]
     , rightWidgets =
-        (let
-            isAuthorized =
-                case model.job of
-                    Nothing ->
-                        False
-
-                    Just job ->
-                        UserState.isMember
-                            { teamName = job.teamName
-                            , userState = session.userState
-                            }
-         in
-         if isAuthorized then
+        (if model.authorized then
             [ Views.Button
                 (Just
                     { type_ = Views.ToggleComment
@@ -189,12 +175,9 @@ header session model =
             Nothing
 
         else
-            case model.comment of
-                Hidden _ ->
-                    Nothing
-
-                Visible c ->
-                    Just
+            commentBarIsVisible model.comment
+                |> Maybe.map
+                    (\c ->
                         ( c
                         , { hover = session.hovered
                           , editable =
@@ -209,6 +192,16 @@ header session model =
                                             }
                           }
                         )
+                    )
+    }
+
+
+button_tooltip : String -> Tooltip.Tooltip
+button_tooltip text =
+    { body = Html.text text
+    , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
+    , arrow = Just 5
+    , containerAttrs = Nothing
     }
 
 
@@ -217,77 +210,37 @@ tooltip model session =
     case session.hovered of
         HoverState.Tooltip TriggerBuildButton _ ->
             Just
-                { body =
-                    Html.text <|
-                        if model.disableManualTrigger then
-                            "manual triggering disabled in job config"
+                (button_tooltip <|
+                    if model.disableManualTrigger then
+                        "manual triggering disabled in job config"
 
-                        else
-                            "trigger a new build"
-                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
-                , arrow = Just 5
-                , containerAttrs = Nothing
-                }
+                    else
+                        "trigger a new build"
+                )
 
         HoverState.Tooltip ToggleBuildCommentButton _ ->
             Just
-                { body =
-                    Html.text
-                        (case model.comment of
-                            Hidden comment ->
-                                if String.isEmpty comment then
-                                    "add build comment"
+                (button_tooltip <|
+                    case model.comment of
+                        Hidden comment ->
+                            if String.isEmpty comment then
+                                "add build comment"
 
-                                else
-                                    "show build comment"
+                            else
+                                "show build comment"
 
-                            Visible _ ->
-                                "hide build comment"
-                        )
-                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
-                , arrow = Just 5
-                , containerAttrs = Nothing
-                }
-
-        HoverState.Tooltip EditBuildCommentButton _ ->
-            Just
-                { body = Html.text "edit build comment"
-                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
-                , arrow = Just 5
-                , containerAttrs = Nothing
-                }
-
-        HoverState.Tooltip SaveBuildCommentButton _ ->
-            Just
-                { body = Html.text "save build comment"
-                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
-                , arrow = Just 5
-                , containerAttrs = Nothing
-                }
+                        Visible _ ->
+                            "hide build comment"
+                )
 
         HoverState.Tooltip RerunBuildButton _ ->
-            Just
-                { body = Html.text "re-run with the same inputs"
-                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
-                , arrow = Just 5
-                , containerAttrs = Nothing
-                }
+            Just (button_tooltip "re-run with the same inputs")
 
         HoverState.Tooltip AbortBuildButton _ ->
-            Just
-                { body = Html.text "abort the current build"
-                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
-                , arrow = Just 5
-                , containerAttrs = Nothing
-                }
+            Just (button_tooltip "abort the current build")
 
         HoverState.Tooltip JobName _ ->
-            Just
-                { body = Html.text "view job builds"
-                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.Start }
-                , arrow = Nothing
-                , containerAttrs = Nothing
-                }
+            Just (button_tooltip "view job builds")
 
         HoverState.Tooltip (BuildTab id _) _ ->
             List.head (List.filter (\b -> b.id == id) model.history)

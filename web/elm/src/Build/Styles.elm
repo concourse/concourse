@@ -27,7 +27,7 @@ import Colors
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Dashboard.Styles exposing (striped)
 import Html
-import Html.Attributes exposing (rows, style)
+import Html.Attributes exposing (style)
 import Views.Styles
 
 

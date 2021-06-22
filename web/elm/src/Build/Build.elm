@@ -17,7 +17,7 @@ import Api.Endpoints as Endpoints
 import Application.Models exposing (Session)
 import Assets
 import Build.Header.Header as Header
-import Build.Header.Models exposing (BuildPageType(..), CommentBarVisibility(..), CurrentOutput(..))
+import Build.Header.Models exposing (BuildPageType(..), CommentBarVisibility(..), CurrentOutput(..), commentBarIsVisible)
 import Build.Models exposing (Model, toMaybe)
 import Build.Output.Models exposing (OutputModel)
 import Build.Output.Output
@@ -61,7 +61,7 @@ import String
 import Time
 import Tooltip
 import UpdateMsg exposing (UpdateMsg)
-import Views.CommentBar as CommentBar
+import Views.CommentBar as CommentBar exposing (State(..))
 import Views.Icon as Icon
 import Views.LoadingIndicator as LoadingIndicator
 import Views.NotAuthorized as NotAuthorized
@@ -126,7 +126,6 @@ init flags =
           , notFound = False
           , reapTime = Nothing
           , createdBy = Nothing
-          , shortcutsEnabled = True
           }
         , [ GetCurrentTime
           , GetCurrentTimeZone
@@ -485,20 +484,6 @@ update msg ( model, effects ) =
             , effects
             )
 
-        FocusCommentBar id ->
-            if id == BuildComment then
-                ( { model | shortcutsEnabled = False }, effects )
-
-            else
-                ( model, effects )
-
-        BlurCommentBar id ->
-            if id == BuildComment then
-                ( { model | shortcutsEnabled = True }, effects )
-
-            else
-                ( model, effects )
-
         _ ->
             ( model, effects )
     )
@@ -637,11 +622,17 @@ handleBuildFetched build ( model, effects ) =
         , cmd
             ++ fetchJobAndHistory
             ++ SetFavIcon (Just build.status)
-            :: (if model.shortcutsEnabled then
-                    [ Focus bodyId ]
+            :: (commentBarIsVisible model.comment
+                    |> Maybe.map
+                        (\commentBar ->
+                            case commentBar.state of
+                                Editing _ ->
+                                    []
 
-                else
-                    []
+                                _ ->
+                                    [ Focus bodyId ]
+                        )
+                    |> Maybe.withDefault []
                )
         )
 

@@ -216,6 +216,7 @@ encodeBuild build =
          , ( "status", build.status |> Concourse.BuildStatus.encodeBuildStatus ) |> Just
          , optionalField "start_time" (secondsFromDate >> Json.Encode.int) build.duration.startedAt
          , optionalField "end_time" (secondsFromDate >> Json.Encode.int) build.duration.finishedAt
+         , ( "comment", build.comment |> Json.Encode.string ) |> Just
          , optionalField "reap_time" (secondsFromDate >> Json.Encode.int) build.reapTime
          , optionalField "created_by" Json.Encode.string build.createdBy
          ]

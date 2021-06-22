@@ -103,24 +103,20 @@ nextHistoryItem builds b =
 
 handleDelivery : Delivery -> ET (ShortcutsModel r)
 handleDelivery delivery ( model, effects ) =
-    if model.shortcutsEnabled then
-        case delivery of
-            KeyDown keyEvent ->
-                handleKeyPressed keyEvent ( model, effects )
+    case delivery of
+        KeyDown keyEvent ->
+            handleKeyPressed keyEvent ( model, effects )
 
-            KeyUp keyEvent ->
-                case keyEvent.code of
-                    Keyboard.T ->
-                        ( { model | isTriggerBuildKeyDown = False }, effects )
+        KeyUp keyEvent ->
+            case keyEvent.code of
+                Keyboard.T ->
+                    ( { model | isTriggerBuildKeyDown = False }, effects )
 
-                    _ ->
-                        ( model, effects )
+                _ ->
+                    ( model, effects )
 
-            _ ->
-                ( model, effects )
-
-    else
-        ( model, effects )
+        _ ->
+            ( model, effects )
 
 
 handleKeyPressed : Keyboard.KeyEvent -> ET (ShortcutsModel r)

@@ -42,7 +42,7 @@ func Build(build db.Build, job db.Job, access accessor.Access) atc.Build {
 	}
 
 	if showComments {
-		comment, _ := build.Comment()
+		comment := build.Comment()
 		atcBuild.Comment = comment
 	}
 

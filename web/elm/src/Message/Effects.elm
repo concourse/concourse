@@ -206,10 +206,6 @@ type alias VersionId =
 
 runEffect : Effect -> Navigation.Key -> Concourse.CSRFToken -> Cmd Callback
 runEffect effect key csrfToken =
-    let
-        _ =
-            Debug.log (Debug.toString effect)
-    in
     case effect of
         FetchJob id ->
             Api.get (Endpoints.BaseJob |> Endpoints.Job id)
@@ -856,9 +852,6 @@ toHtmlID domId =
         TopBarPinIcon ->
             "top-bar-pin-icon"
 
-        BuildCommentTextArea ->
-            "build-comment"
-
         CommentBar id ->
             "comment-bar-" ++ toHtmlID id
 
@@ -874,17 +867,11 @@ toHtmlID domId =
                 ++ "-button-"
                 ++ toHtmlID id
 
-        BuildComment ->
-            "build-comment"
-
         ToggleBuildCommentButton ->
             "toggle-build-comment-button"
 
-        EditBuildCommentButton ->
-            "edit-build-comment-button"
-
-        SaveBuildCommentButton ->
-            "save-build-comment-button"
+        BuildComment ->
+            "build-comment"
 
         AbortBuildButton ->
             "abort-build-button"

@@ -7,7 +7,7 @@ import Assets
 import Benchmark
 import Benchmark.Runner exposing (BenchmarkProgram, program)
 import Build.Build as Build
-import Build.Header.Models exposing (BuildComment(..), BuildPageType(..), CurrentOutput(..))
+import Build.Header.Models exposing (BuildPageType(..), CommentBarVisibility(..), CurrentOutput(..))
 import Build.Models
 import Build.Output.Models
 import Build.Output.Output
@@ -791,8 +791,7 @@ sampleModel =
     , notFound = False
     , reapTime = Nothing
     , createdBy = Nothing
-    , comment = Viewing ""
-    , shortcutsEnabled = True
+    , comment = Hidden ""
     }
 
 

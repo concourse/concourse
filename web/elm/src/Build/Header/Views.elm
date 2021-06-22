@@ -1,6 +1,5 @@
 module Build.Header.Views exposing
     ( BackgroundShade(..)
-    , BuildComment(..)
     , BuildDuration(..)
     , BuildTab
     , ButtonType(..)
@@ -28,7 +27,7 @@ import Html.Attributes
         )
 import Html.Events exposing (onBlur, onFocus, onMouseEnter, onMouseLeave)
 import Html.Lazy
-import Message.Effects exposing (Effect(..), toHtmlID)
+import Message.Effects exposing (toHtmlID)
 import Message.Message as Message exposing (Message(..))
 import Routes
 import StrictEvents exposing (onLeftClick, onWheel)
@@ -54,7 +53,6 @@ type Widget
     = Button (Maybe ButtonView)
     | Title String (Maybe Concourse.JobIdentifier) Concourse.BuildCreatedBy
     | Duration BuildDuration
-    | Spacer ( String, BuildStatus )
 
 
 type BuildDuration
@@ -95,12 +93,6 @@ type alias ButtonView =
     , backgroundShade : BackgroundShade
     , backgroundColor : BuildStatus
     }
-
-
-type BuildComment
-    = Hidden
-    | Viewing String
-    | Editing String
 
 
 type BackgroundShade
@@ -155,16 +147,6 @@ viewWidget widget =
 
         Duration duration ->
             viewDuration duration
-
-        Spacer ( size, status ) ->
-            Html.div
-                [ style "height" "100%"
-                , style "width" size
-                , style "border-width" "0 0 0 1px"
-                , style "border-color" <| Colors.buildStatusColor False status
-                , style "border-style" "solid"
-                ]
-                []
 
 
 viewDuration : BuildDuration -> Html Message

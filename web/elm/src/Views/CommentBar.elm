@@ -19,8 +19,9 @@ import Colors
 import HoverState exposing (HoverState)
 import Html exposing (Attribute, Html)
 import Html.Attributes exposing (id, readonly, style, value)
-import Html.Events exposing (onBlur, onClick, onFocus, onInput, onMouseEnter, onMouseLeave)
+import Html.Events exposing (onBlur, onClick, onFocus, onInput, onMouseEnter, onMouseLeave, stopPropagationOn)
 import Http
+import Json.Decode as Json
 import Message.Effects exposing (Effect(..), toHtmlID)
 import Message.Message as Message exposing (CommentBarButtonKind(..), DomID)
 import Message.Subscription exposing (Delivery(..))
@@ -160,6 +161,7 @@ commentTextArea model =
          , onInput (Message.EditCommentBar model.id)
          , onFocus (Message.FocusCommentBar model.id)
          , onBlur (Message.BlurCommentBar model.id)
+         , stopPropagationOn "keydown" (Json.succeed ( Message.NoOp, True ))
          , readonly isReadOnly
          , if isReadOnly then
             style "background-color" model.style.viewBackgroundColor

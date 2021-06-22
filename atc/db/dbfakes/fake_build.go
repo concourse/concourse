@@ -99,17 +99,15 @@ type FakeBuild struct {
 		result1 []db.WorkerArtifact
 		result2 error
 	}
-	CommentStub        func() (string, error)
+	CommentStub        func() string
 	commentMutex       sync.RWMutex
 	commentArgsForCall []struct {
 	}
 	commentReturns struct {
 		result1 string
-		result2 error
 	}
 	commentReturnsOnCall map[int]struct {
 		result1 string
-		result2 error
 	}
 	CreateTimeStub        func() time.Time
 	createTimeMutex       sync.RWMutex
@@ -1126,7 +1124,7 @@ func (fake *FakeBuild) ArtifactsReturnsOnCall(i int, result1 []db.WorkerArtifact
 	}{result1, result2}
 }
 
-func (fake *FakeBuild) Comment() (string, error) {
+func (fake *FakeBuild) Comment() string {
 	fake.commentMutex.Lock()
 	ret, specificReturn := fake.commentReturnsOnCall[len(fake.commentArgsForCall)]
 	fake.commentArgsForCall = append(fake.commentArgsForCall, struct {
@@ -1139,9 +1137,9 @@ func (fake *FakeBuild) Comment() (string, error) {
 		return stub()
 	}
 	if specificReturn {
-		return ret.result1, ret.result2
+		return ret.result1
 	}
-	return fakeReturns.result1, fakeReturns.result2
+	return fakeReturns.result1
 }
 
 func (fake *FakeBuild) CommentCallCount() int {
@@ -1150,36 +1148,33 @@ func (fake *FakeBuild) CommentCallCount() int {
 	return len(fake.commentArgsForCall)
 }
 
-func (fake *FakeBuild) CommentCalls(stub func() (string, error)) {
+func (fake *FakeBuild) CommentCalls(stub func() string) {
 	fake.commentMutex.Lock()
 	defer fake.commentMutex.Unlock()
 	fake.CommentStub = stub
 }
 
-func (fake *FakeBuild) CommentReturns(result1 string, result2 error) {
+func (fake *FakeBuild) CommentReturns(result1 string) {
 	fake.commentMutex.Lock()
 	defer fake.commentMutex.Unlock()
 	fake.CommentStub = nil
 	fake.commentReturns = struct {
 		result1 string
-		result2 error
-	}{result1, result2}
+	}{result1}
 }
 
-func (fake *FakeBuild) CommentReturnsOnCall(i int, result1 string, result2 error) {
+func (fake *FakeBuild) CommentReturnsOnCall(i int, result1 string) {
 	fake.commentMutex.Lock()
 	defer fake.commentMutex.Unlock()
 	fake.CommentStub = nil
 	if fake.commentReturnsOnCall == nil {
 		fake.commentReturnsOnCall = make(map[int]struct {
 			result1 string
-			result2 error
 		})
 	}
 	fake.commentReturnsOnCall[i] = struct {
 		result1 string
-		result2 error
-	}{result1, result2}
+	}{result1}
 }
 
 func (fake *FakeBuild) CreateTime() time.Time {

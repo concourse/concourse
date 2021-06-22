@@ -34,9 +34,6 @@ type Message
     | BlurTextArea
       -- Build
     | ScrollBuilds StrictEvents.WheelEvent
-    | EditBuildComment String
-    | FocusBuildComment
-    | BlurBuildComment
     | RevealCurrentBuildInHistory
     | SetHighlight String Int
     | ExtendHighlight String Int
@@ -49,6 +46,7 @@ type Message
     | Click DomID
     | GoToRoute Routes.Route
     | Scrolled StrictEvents.ScrollState
+    | NoOp
 
 
 type DomID
@@ -56,10 +54,7 @@ type DomID
     | CommentBar DomID
     | CommentBarButton CommentBarButtonKind DomID
     | BuildComment
-    | BuildCommentTextArea
     | ToggleBuildCommentButton
-    | EditBuildCommentButton
-    | SaveBuildCommentButton
     | TriggerBuildButton
     | AbortBuildButton
     | RerunBuildButton

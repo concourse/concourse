@@ -96,14 +96,16 @@ var buildsQuery = psql.Select(`
 		b.rerun_of,
 		rb.name,
 		b.rerun_number,
-		b.span_context
+		b.span_context,
+		COALESCE(bc.comment, '')
 	`).
 	From("builds b").
 	JoinClause("LEFT OUTER JOIN jobs j ON b.job_id = j.id").
 	JoinClause("LEFT OUTER JOIN resources r ON b.resource_id = r.id").
 	JoinClause("LEFT OUTER JOIN pipelines p ON b.pipeline_id = p.id").
 	JoinClause("LEFT OUTER JOIN teams t ON b.team_id = t.id").
-	JoinClause("LEFT OUTER JOIN builds rb ON rb.id = b.rerun_of")
+	JoinClause("LEFT OUTER JOIN builds rb ON rb.id = b.rerun_of").
+	JoinClause("LEFT OUTER JOIN build_comments bc ON b.id = bc.build_id")
 
 var minMaxIdQuery = psql.Select("COALESCE(MAX(b.id), 0)", "COALESCE(MIN(b.id), 0)").
 	From("builds as b")
@@ -137,6 +139,7 @@ type Build interface {
 	PrivatePlan() atc.Plan
 	PublicPlan() *json.RawMessage
 	HasPlan() bool
+	Comment() string
 	Status() BuildStatus
 	CreateTime() time.Time
 	StartTime() time.Time
@@ -172,10 +175,8 @@ type Build interface {
 
 	Variables(lager.Logger, creds.Secrets, creds.VarSourcePool) (vars.Variables, error)
 
-	SetInterceptible(bool) error
-
-	Comment() (string, error)
 	SetComment(string) error
+	SetInterceptible(bool) error
 
 	Events(uint) (EventSource, error)
 	SaveEvent(event atc.Event) error
@@ -365,6 +366,7 @@ func (b *build) CreateTime() time.Time { return b.createTime }
 func (b *build) StartTime() time.Time  { return b.startTime }
 func (b *build) EndTime() time.Time    { return b.endTime }
 func (b *build) ReapTime() time.Time   { return b.reapTime }
+func (b *build) Comment() string       { return b.comment }
 func (b *build) Status() BuildStatus   { return b.status }
 func (b *build) IsScheduled() bool     { return b.scheduled }
 func (b *build) IsDrained() bool       { return b.drained }
@@ -434,19 +436,6 @@ func (b *build) Job() (Job, bool, error) {
 	}
 
 	return job, true, nil
-}
-
-func (b *build) Comment() (string, error) {
-	var comment string
-	err := psql.Select("COALESCE(bc.comment, '')").
-		From("builds b").
-		JoinClause("LEFT OUTER JOIN build_comments bc ON b.id = bc.build_id").
-		Where(sq.Eq{"b.id": b.id}).
-		RunWith(b.conn).
-		QueryRow().
-		Scan(&comment)
-
-	return comment, err
 }
 
 func (b *build) SetComment(comment string) error {
@@ -1855,6 +1844,7 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 		&rerunOfName,
 		&rerunNumber,
 		&spanContext,
+		&comment,
 	)
 	if err != nil {
 		return err

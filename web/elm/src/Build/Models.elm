@@ -51,7 +51,6 @@ type alias ShortcutsModel r =
         , isTriggerBuildKeyDown : Bool
         , duration : Concourse.BuildDuration
         , createdBy : Concourse.BuildCreatedBy
-        , shortcutsEnabled : Bool
     }
 
 

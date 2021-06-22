@@ -2,7 +2,7 @@ module Build.HeaderTests exposing (all)
 
 import Application.Models exposing (Session)
 import Build.Header.Header as Header
-import Build.Header.Models as Models exposing (BuildComment(..))
+import Build.Header.Models as Models exposing (CommentBarVisibility(..))
 import Build.Header.Views as Views
 import Build.StepTree.Models as STModels
 import Common
@@ -409,6 +409,7 @@ model : Models.Model {}
 model =
     { id = 0
     , name = "0"
+    , authorized = True
     , job = Nothing
     , scrolledToCurrentBuild = False
     , history = []
@@ -420,8 +421,7 @@ model =
     , fetchingHistory = False
     , nextPage = Nothing
     , hasLoadedYet = False
-    , comment = Viewing ""
-    , shortcutsEnabled = True
+    , comment = Hidden ""
     }
 
 

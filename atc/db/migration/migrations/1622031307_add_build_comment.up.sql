@@ -1,6 +1,6 @@
 CREATE TABLE build_comments (
     build_id INTEGER PRIMARY KEY,
-    comment text
+    comment TEXT NOT NULL DEFAULT ''
 );
 
 ALTER TABLE build_comments
