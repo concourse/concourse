@@ -58,7 +58,7 @@ require (
 	github.com/mattn/go-isatty v0.0.13
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.4.1
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b
-	github.com/miekg/dns v1.1.42
+	github.com/miekg/dns v1.1.43
 	github.com/mitchellh/mapstructure v1.4.1
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d
 	github.com/onsi/ginkgo v1.16.4
