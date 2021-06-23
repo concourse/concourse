@@ -185,7 +185,7 @@ func (runner *Runner) openConn(dbName string) db.Conn {
 	// require more than one, which will deadlock if it's at the limit
 	dbConn.SetMaxOpenConns(1)
 
-	return dbConn
+	return joinLimitValidatorConn{dbConn}
 }
 
 func (runner *Runner) OpenSingleton() *sql.DB {
