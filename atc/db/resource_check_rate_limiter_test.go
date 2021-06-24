@@ -80,25 +80,6 @@ var _ = Describe("ResourceCheckRateLimiter", func() {
 		scenario.Run(builder.WithPipeline(*pipelineConfig))
 	}
 
-	createResourceWithCustomType := func() {
-		checkableCount++
-		customResourceType := fmt.Sprintf("resource-type-%d", checkableCount)
-
-		pipelineConfig.ResourceTypes = append(pipelineConfig.ResourceTypes, atc.ResourceType{Name: customResourceType,
-			Type:   dbtest.BaseResourceType,
-			Source: atc.Source{"some": "source"},
-		})
-
-		checkableCount++
-
-		pipelineConfig.Resources = append(pipelineConfig.Resources, atc.ResourceConfig{Name: fmt.Sprintf("resource-%d", checkableCount),
-			Type:   customResourceType,
-			Source: atc.Source{"some": "source"},
-		})
-
-		scenario.Run(builder.WithPipeline(*pipelineConfig))
-	}
-
 	Context("with no static limit provided", func() {
 		BeforeEach(func() {
 			checksPerSecond = 0
@@ -136,11 +117,7 @@ var _ = Describe("ResourceCheckRateLimiter", func() {
 
 			By("creating more checkables")
 			for i := 0; i < 10; i++ {
-				if i%3 == 0 {
-					createResourceWithCustomType()
-				} else {
-					createResource()
-				}
+				createResource()
 			}
 
 			By("waiting for the refresh interval")
@@ -165,6 +142,27 @@ var _ = Describe("ResourceCheckRateLimiter", func() {
 			scenario.Run(builder.WithPipeline(atc.Config{
 				Resources: atc.ResourceConfigs{},
 			}))
+
+			By("waiting for the refresh interval")
+			fakeClock.Increment(refreshInterval)
+
+			By("returning immediately and retaining the infinite rate")
+			Expect(<-wait(limiter)).To(Succeed())
+			Expect(limiter.Limit()).To(Equal(rate.Limit(rate.Inf)))
+
+			By("re-activing all resources")
+			scenario.Run(builder.WithPipeline(*pipelineConfig))
+
+			By("waiting for the refresh interval")
+			fakeClock.Increment(refreshInterval)
+
+			By("adjusting the limit but returning immediately for the first time")
+			Expect(<-wait(limiter)).To(Succeed())
+			Expect(limiter.Limit()).To(Equal(rate.Limit(float64(checkableCount) / checkInterval.Seconds())))
+
+			By("pausing the pipeline")
+			err := scenario.Pipeline.Pause()
+			Expect(err).ToNot(HaveOccurred())
 
 			By("waiting for the refresh interval")
 			fakeClock.Increment(refreshInterval)

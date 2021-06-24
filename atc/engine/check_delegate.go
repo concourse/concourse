@@ -83,9 +83,11 @@ func (d *checkDelegate) FindOrCreateScope(config db.ResourceConfig) (db.Resource
 func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigScope) (lock.Lock, bool, error) {
 	logger := lagerctx.FromContext(ctx)
 
-	// rate limit periodic resource checks so worker load (plus load on external
-	// services) isn't too spiky
-	if !d.build.IsManuallyTriggered() && d.plan.IsPeriodic() {
+	// rate limit lidar-scheduled resource checks so worker load (plus load on
+	// external services) isn't too spiky. note that we don't rate limit
+	// resource type or prototype checks, since they don't run periodically -
+	// they only run as needed (when used by a resource)
+	if !d.build.IsManuallyTriggered() && d.plan.Resource != "" {
 		err := d.limiter.Wait(ctx)
 		if err != nil {
 			return nil, false, fmt.Errorf("rate limit: %w", err)
@@ -103,7 +105,7 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 	}
 
 	var lock lock.Lock = lock.NoopLock{}
-	if d.plan.IsPeriodic() {
+	if d.plan.Resource != "" {
 		for {
 			var acquired bool
 			lock, acquired, err = scope.AcquireResourceCheckingLock(logger)
@@ -128,21 +130,27 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 	}
 
 	shouldRun := false
-	if !d.plan.IsPeriodic() {
-		if !lastCheck.Succeeded || lastCheck.EndTime.Before(d.build.StartTime()) {
-			shouldRun = true
-		}
-	} else if d.build.IsManuallyTriggered() {
+	// TODO: what does this do?
+	//if d.plan.Resource == "" && d.plan.ResourceType == "" && d.plan.Prototype == "" {
+	//	// anonymous checks (image_resources) shouldn't run if they started
+	//	// before the last (successful) check ended (e.g. multiple tasks in a
+	//	// build use the same image_resource, so only check one of them) ???
+	//	shouldRun = !lastCheck.Succeeded || d.build.StartTime().After(lastCheck.EndTime)
+	//} else if d.build.IsManuallyTriggered() {
+	if d.build.IsManuallyTriggered() {
 		// If a manually triggered check takes a from version, then it should be run.
 		if d.plan.FromVersion != nil {
 			shouldRun = true
 		} else {
-			// ignore interval for manually triggered builds.
-			// avoid running redundant checks
+			// manually triggered checks ignore the interval, but won't run if
+			// there is another check that has started after this check was
+			// created (e.g. if multiple webhooks come in for a git repo that's
+			// common to several pipelines at around the same time, we should
+			// only run the check once).
 			shouldRun = !lastCheck.Succeeded || d.build.CreateTime().After(lastCheck.StartTime)
 		}
 	} else {
-		shouldRun = !d.clock.Now().Before(lastCheck.EndTime.Add(interval))
+		shouldRun = d.clock.Now().After(lastCheck.EndTime.Add(interval))
 	}
 
 	// XXX(check-refactor): we could add an else{} case and potentially sleep

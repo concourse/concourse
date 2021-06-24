@@ -368,20 +368,20 @@ var _ = Describe("CheckDelegate", func() {
 				})
 			})
 
-			Context("when last check succeeds after build starts", func() {
-				BeforeEach(func() {
-					fakeResourceConfigScope.LastCheckReturns(db.LastCheck{
-						StartTime: now.Add(-10 * time.Second),
-						EndTime:   now.Add(-time.Second),
-						Succeeded: true,
-					}, nil)
-					fakeBuild.StartTimeReturns(now.Add(-5 * time.Second))
-				})
+			//Context("when last check succeeds after build starts", func() {
+			//	BeforeEach(func() {
+			//		fakeResourceConfigScope.LastCheckReturns(db.LastCheck{
+			//			StartTime: now.Add(-10 * time.Second),
+			//			EndTime:   now.Add(-time.Second),
+			//			Succeeded: true,
+			//		}, nil)
+			//		fakeBuild.StartTimeReturns(now.Add(-5 * time.Second))
+			//	})
 
-				It("returns false", func() {
-					Expect(run).To(BeFalse())
-				})
-			})
+			//	It("returns false", func() {
+			//		Expect(run).To(BeFalse())
+			//	})
+			//})
 		})
 	})
 

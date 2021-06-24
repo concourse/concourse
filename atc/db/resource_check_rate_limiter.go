@@ -88,28 +88,21 @@ func (limiter *ResourceCheckRateLimiter) Limit() rate.Limit {
 }
 
 func (limiter *ResourceCheckRateLimiter) refreshCheckLimiter() error {
-	var resourceCount int
-	var resourceTypeCount int
-	err := psql.Select("COUNT(id)").
-		From("resources").
-		Where(sq.Eq{"active": true}).
+	var count int
+	err := psql.Select("COUNT(*)").
+		From("resources r").
+		Join("pipelines p ON p.id = r.pipeline_id").
+		Where(sq.Eq{
+			"r.active": true,
+			"p.paused": false,
+		}).
 		RunWith(limiter.refreshConn).
 		QueryRow().
-		Scan(&resourceCount)
-	if err != nil {
-		return err
-	}
-	err = psql.Select("COUNT(id)").
-		From("resource_types").
-		Where(sq.Eq{"active": true}).
-		RunWith(limiter.refreshConn).
-		QueryRow().
-		Scan(&resourceTypeCount)
+		Scan(&count)
 	if err != nil {
 		return err
 	}
 
-	count := resourceCount + resourceTypeCount
 	limit := rate.Limit(float64(count) / limiter.checkInterval.Seconds())
 	if count == 0 {
 		// don't bother waiting if there aren't any checkables
