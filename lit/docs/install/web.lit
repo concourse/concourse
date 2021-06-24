@@ -71,55 +71,6 @@ as performing all pipeline scheduling. It's basically the brain of Concourse.
   errors being emitted to \code{stderr}.
 
   \section{
-    \title{Configuring ingress traffic}{web-ingress}
-
-    If your web nodes are going to be accessed over the network, you will need
-    to set \code{CONCOURSE_EXTERNAL_URL} to a URL accessible by your Concourse
-    users. If you don't set this property, logging in will incorrectly
-    redirect to its default value of \code{127.0.0.1}.
-
-    If your web node(s) will be behind a load balancer or reverse proxy then
-    you will need to ensure connctions made by \reference{fly-intercept} are
-    properly handled by upgrading the connection. Here is a sample nginx
-    configuration that upgrades connections made by \reference{fly-intercept}.
-
-    \codeblock{}{{{
-    server {
-      server_name ci.example.com;
-
-      add_header Strict-Transport-Security "max-age=31536000" always;
-      ssl_stapling on;
-      ssl_stapling_verify on;
-
-      # Proxy main concourse traffic
-      location / {
-          proxy_pass http://concourse.local:8080/;
-          proxy_set_header Host $host;
-          proxy_set_header X-Real-IP $remote_addr;
-          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-          proxy_set_header X-Forwarded-Proto $scheme;
-          proxy_set_header X-Forwarded-Protocol $scheme;
-          proxy_set_header X-Forwarded-Host $http_host;
-      }
-
-      # Proxy fly intercept traffic
-      location ~ /hijack$ {
-          proxy_pass http://concourse.local:8080;
-          proxy_set_header Host $host;
-          proxy_set_header X-Real-IP $remote_addr;
-          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-          proxy_set_header X-Forwarded-Proto $scheme;
-          proxy_set_header X-Forwarded-Protocol $scheme;
-          proxy_set_header X-Forwarded-Host $http_host;
-          # Upgrade connection
-          proxy_set_header Upgrade $http_upgrade;
-          proxy_set_header Connection "upgrade";
-      }
-    }
-    }}}
-  }
-
-  \section{
     \title{Resource utilization}{web-resource-utilization}
 
     CPU usage: peaks during pipeline scheduling, primarily when scheduling
@@ -325,6 +276,55 @@ as performing all pipeline scheduling. It's basically the brain of Concourse.
     }}}
 
     When set, this name will be shown in the top bar when viewing the dashboard.
+  }
+
+  \section{
+    \title{Configuring ingress traffic}{web-ingress}
+
+    If your web nodes are going to be accessed multiple network layers, you
+    will need to set \code{CONCOURSE_EXTERNAL_URL} to a URL accessible by your
+    Concourse users. If you don't set this property, logging in will
+    incorrectly redirect to its default value of \code{127.0.0.1}.
+
+    If your web node(s) will be behind a load balancer or reverse proxy then
+    you will need to ensure connctions made by \reference{fly-intercept} are
+    properly handled by upgrading the connection. Here is a sample nginx
+    configuration that upgrades connections made by \reference{fly-intercept}.
+
+    \codeblock{}{{{
+    server {
+      server_name ci.example.com;
+
+      add_header Strict-Transport-Security "max-age=31536000" always;
+      ssl_stapling on;
+      ssl_stapling_verify on;
+
+      # Proxy main concourse traffic
+      location / {
+          proxy_pass http://concourse.local:8080/;
+          proxy_set_header Host $host;
+          proxy_set_header X-Real-IP $remote_addr;
+          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+          proxy_set_header X-Forwarded-Proto $scheme;
+          proxy_set_header X-Forwarded-Protocol $scheme;
+          proxy_set_header X-Forwarded-Host $http_host;
+      }
+
+      # Proxy fly intercept traffic
+      location ~ /hijack$ {
+          proxy_pass http://concourse.local:8080;
+          proxy_set_header Host $host;
+          proxy_set_header X-Real-IP $remote_addr;
+          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+          proxy_set_header X-Forwarded-Proto $scheme;
+          proxy_set_header X-Forwarded-Protocol $scheme;
+          proxy_set_header X-Forwarded-Host $http_host;
+          # Upgrade connection
+          proxy_set_header Upgrade $http_upgrade;
+          proxy_set_header Connection "upgrade";
+      }
+    }
+    }}}
   }
 
   \section{
