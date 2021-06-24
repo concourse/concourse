@@ -3,9 +3,10 @@ package db
 import (
 	"context"
 	"fmt"
-	sq "github.com/Masterminds/squirrel"
 	"sync"
 	"time"
+
+	sq "github.com/Masterminds/squirrel"
 
 	"code.cloudfoundry.org/clock"
 	"golang.org/x/time/rate"
@@ -87,17 +88,28 @@ func (limiter *ResourceCheckRateLimiter) Limit() rate.Limit {
 }
 
 func (limiter *ResourceCheckRateLimiter) refreshCheckLimiter() error {
-	var count int
+	var resourceCount int
+	var resourceTypeCount int
 	err := psql.Select("COUNT(id)").
 		From("resources").
 		Where(sq.Eq{"active": true}).
 		RunWith(limiter.refreshConn).
 		QueryRow().
-		Scan(&count)
+		Scan(&resourceCount)
+	if err != nil {
+		return err
+	}
+	err = psql.Select("COUNT(id)").
+		From("resource_types").
+		Where(sq.Eq{"active": true}).
+		RunWith(limiter.refreshConn).
+		QueryRow().
+		Scan(&resourceTypeCount)
 	if err != nil {
 		return err
 	}
 
+	count := resourceCount + resourceTypeCount
 	limit := rate.Limit(float64(count) / limiter.checkInterval.Seconds())
 	if count == 0 {
 		// don't bother waiting if there aren't any checkables
