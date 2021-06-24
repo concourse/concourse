@@ -14,7 +14,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Policy checker", func() {
+var _ = Describe("OPA Policy Checker", func() {
 
 	var (
 		logger  = lagertest.NewTestLogger("opa-test")
@@ -31,7 +31,13 @@ var _ = Describe("Policy checker", func() {
 
 	JustBeforeEach(func() {
 		fakeOpa.Start()
-		agent, err = (&opa.OpaConfig{fakeOpa.URL, time.Second * 2}).NewAgent(logger)
+		agent, err = (&opa.OpaConfig{
+			URL:                  fakeOpa.URL,
+			Timeout:              time.Second * 2,
+			ResultAllowedKey:     "result.allowed",
+			ResultShouldBlockKey: "result.block",
+			ResultMessagesKey:    "result.reasons",
+		}).NewAgent(logger)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(agent).ToNot(BeNil())
 	})
@@ -45,8 +51,8 @@ var _ = Describe("Policy checker", func() {
 
 		It("should return an error", func() {
 			result, err := agent.Check(policy.PolicyCheckInput{})
-			Expect(err).To(MatchError(ContainSubstring("opa returned invalid response")))
-			Expect(result.Allowed).To(BeFalse())
+			Expect(err).To(MatchError(ContainSubstring("allowed: key 'result.allowed' not found")))
+			Expect(result).To(BeNil())
 		})
 	})
 
@@ -59,8 +65,8 @@ var _ = Describe("Policy checker", func() {
 
 		It("should return an error", func() {
 			result, err := agent.Check(policy.PolicyCheckInput{})
-			Expect(err).To(MatchError(ContainSubstring("opa returned invalid response")))
-			Expect(result.Allowed).To(BeFalse())
+			Expect(err).To(MatchError(ContainSubstring("allowed: missing field 'allowed' in var: result.allowed")))
+			Expect(result).To(BeNil())
 		})
 	})
 
@@ -73,12 +79,12 @@ var _ = Describe("Policy checker", func() {
 
 		It("should return an error", func() {
 			result, err := agent.Check(policy.PolicyCheckInput{})
-			Expect(err).To(MatchError(ContainSubstring("opa returned invalid response")))
-			Expect(result.Allowed).To(BeFalse())
+			Expect(err).To(MatchError(ContainSubstring("allowed: missing field 'allowed' in var: result.allowed")))
+			Expect(result).To(BeNil())
 		})
 	})
 
-	Context("when OPA returns allowed", func() {
+	Context("when OPA returns only the field of allowed with true", func() {
 		BeforeEach(func() {
 			fakeOpa = httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				fmt.Fprint(w, `{"result": {"allowed": true }}`)
@@ -88,22 +94,57 @@ var _ = Describe("Policy checker", func() {
 		It("should be allowed", func() {
 			result, err := agent.Check(policy.PolicyCheckInput{})
 			Expect(err).ToNot(HaveOccurred())
-			Expect(result.Allowed).To(BeTrue())
+			Expect(result.Allowed()).To(BeTrue())
+			Expect(result.ShouldBlock()).To(BeFalse())
+			Expect(result.Messages()).To(BeEmpty())
 		})
 	})
 
-	Context("when OPA returns not-allowed", func() {
+	Context("when OPA returns only the field of allowed with false", func() {
 		BeforeEach(func() {
 			fakeOpa = httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				fmt.Fprint(w, `{"result": {"allowed": false }}`)
 			}))
 		})
 
-		It("should not be allowed and return reasons", func() {
+		It("should not be allowed", func() {
 			result, err := agent.Check(policy.PolicyCheckInput{})
 			Expect(err).ToNot(HaveOccurred())
-			Expect(result.Allowed).To(BeFalse())
-			Expect(result.Reasons).To(BeEmpty())
+			Expect(result.Allowed()).To(BeFalse())
+			Expect(result.ShouldBlock()).To(BeTrue())
+			Expect(result.Messages()).To(BeEmpty())
+		})
+	})
+
+	Context("when OPA returns allowed false and block true", func() {
+		BeforeEach(func() {
+			fakeOpa = httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				fmt.Fprint(w, `{"result": {"allowed": false, "block": true }}`)
+			}))
+		})
+
+		It("should not be allowed", func() {
+			result, err := agent.Check(policy.PolicyCheckInput{})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result.Allowed()).To(BeFalse())
+			Expect(result.ShouldBlock()).To(BeTrue())
+			Expect(result.Messages()).To(BeEmpty())
+		})
+	})
+
+	Context("when OPA returns allowed false and block false", func() {
+		BeforeEach(func() {
+			fakeOpa = httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				fmt.Fprint(w, `{"result": {"allowed": false, "block": false }}`)
+			}))
+		})
+
+		It("should not be allowed", func() {
+			result, err := agent.Check(policy.PolicyCheckInput{})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result.Allowed()).To(BeFalse())
+			Expect(result.ShouldBlock()).To(BeFalse())
+			Expect(result.Messages()).To(BeEmpty())
 		})
 	})
 
@@ -117,8 +158,9 @@ var _ = Describe("Policy checker", func() {
 		It("should not be allowed and return reasons", func() {
 			result, err := agent.Check(policy.PolicyCheckInput{})
 			Expect(err).ToNot(HaveOccurred())
-			Expect(result.Allowed).To(BeFalse())
-			Expect(result.Reasons).To(ConsistOf("a policy says you can't do that"))
+			Expect(result.Allowed()).To(BeFalse())
+			Expect(result.ShouldBlock()).To(BeTrue())
+			Expect(result.Messages()).To(ConsistOf("a policy says you can't do that"))
 		})
 	})
 
@@ -136,7 +178,7 @@ var _ = Describe("Policy checker", func() {
 			result, err := agent.Check(policy.PolicyCheckInput{})
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(MatchRegexp("connection refused"))
-			Expect(result.Allowed).To(BeFalse())
+			Expect(result).To(BeNil())
 		})
 	})
 
@@ -149,7 +191,7 @@ var _ = Describe("Policy checker", func() {
 			result, err := agent.Check(policy.PolicyCheckInput{})
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(Equal("opa returned status: 404"))
-			Expect(result.Allowed).To(BeFalse())
+			Expect(result).To(BeNil())
 		})
 	})
 
@@ -163,8 +205,8 @@ var _ = Describe("Policy checker", func() {
 		It("should return error", func() {
 			result, err := agent.Check(policy.PolicyCheckInput{})
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(Equal("opa returned bad response: invalid character 'h' looking for beginning of value"))
-			Expect(result.Allowed).To(BeFalse())
+			Expect(err.Error()).To(ContainSubstring("invalid character 'h' looking for beginning of value"))
+			Expect(result).To(BeNil())
 		})
 	})
 })

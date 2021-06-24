@@ -19,13 +19,10 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/atc/exec/build"
-	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
 )
-
-const ActionRunSetPipeline = "SetPipeline"
 
 // SetPipelineStep sets a pipeline to current team. This step takes pipeline
 // configure file and var files from some resource in the pipeline, like git.
@@ -37,7 +34,6 @@ type SetPipelineStep struct {
 	teamFactory      db.TeamFactory
 	buildFactory     db.BuildFactory
 	artifactStreamer worker.ArtifactStreamer
-	policyChecker    policy.Checker
 }
 
 func NewSetPipelineStep(
@@ -48,7 +44,6 @@ func NewSetPipelineStep(
 	teamFactory db.TeamFactory,
 	buildFactory db.BuildFactory,
 	artifactStreamer worker.ArtifactStreamer,
-	policyChecker policy.Checker,
 ) Step {
 	return &SetPipelineStep{
 		planID:           planID,
@@ -58,7 +53,6 @@ func NewSetPipelineStep(
 		teamFactory:      teamFactory,
 		buildFactory:     buildFactory,
 		artifactStreamer: artifactStreamer,
-		policyChecker:    policyChecker,
 	}
 }
 
@@ -226,22 +220,9 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState, delegate S
 		return true, nil
 	}
 
-	// conditionally check step
-	if step.policyChecker != nil && step.policyChecker.ShouldCheckAction(ActionRunSetPipeline) {
-		input := policy.PolicyCheckInput{
-			Action:   ActionRunSetPipeline,
-			Team:     team.Name(),
-			Pipeline: step.plan.Name,
-			Data:     &atcConfig,
-		}
-		result, err := step.policyChecker.Check(input)
-		if err != nil {
-			return false, fmt.Errorf("error checking policy enforcement")
-		}
-		if !result.Allowed {
-			return false, fmt.Errorf("policy check failed for set_pipeline: %s", strings.Join(result.Reasons, ", "))
-		}
-		logger.Debug("policy check passed for set_pipeline")
+	err = delegate.CheckRunSetPipelinePolicy(&atcConfig)
+	if err != nil {
+		return false, err
 	}
 
 	fmt.Fprintf(stdout, "setting pipeline: %s\n", pipelineRef.String())

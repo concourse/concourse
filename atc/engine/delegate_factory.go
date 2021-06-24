@@ -46,5 +46,5 @@ func (delegate DelegateFactory) BuildStepDelegate(state exec.RunState) exec.Buil
 }
 
 func (delegate DelegateFactory) SetPipelineStepDelegate(state exec.RunState) exec.SetPipelineStepDelegate {
-	return NewSetPipelineStepDelegate(delegate.build, delegate.plan.ID, state, clock.NewClock())
+	return NewSetPipelineStepDelegate(delegate.build, delegate.plan.ID, state, clock.NewClock(), delegate.policyChecker)
 }

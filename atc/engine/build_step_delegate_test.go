@@ -284,19 +284,93 @@ var _ = Describe("BuildStepDelegate", func() {
 			})
 
 			Context("when the action needs to be checked", func() {
+				var fakeCheckResult *policyfakes.FakePolicyCheckResult
 				BeforeEach(func() {
+					fakeCheckResult = new(policyfakes.FakePolicyCheckResult)
+					fakePolicyChecker.CheckReturns(fakeCheckResult, nil)
 					fakePolicyChecker.ShouldCheckActionReturns(true)
 				})
 
-				Context("when the check is allowed", func() {
+				It("policy check should be done", func() {
+					Expect(fakePolicyChecker.CheckCallCount()).To(Equal(1))
+				})
+
+				Context("when the check fails", func() {
 					BeforeEach(func() {
-						fakePolicyChecker.CheckReturns(policy.PolicyCheckOutput{
-							Allowed: true,
-						}, nil)
+						fakePolicyChecker.CheckReturns(nil, errors.New("some-error"))
+					})
+
+					It("should fail", func() {
+						Expect(fetchErr).To(HaveOccurred())
+						Expect(fetchErr.Error()).To(Equal("policy check: some-error"))
+					})
+				})
+
+				Context("when the check is not allowed", func() {
+					BeforeEach(func() {
+						fakeCheckResult.AllowedReturns(false)
+						fakeCheckResult.ShouldBlockReturns(true)
+						fakeCheckResult.MessagesReturns([]string{"reasonA", "reasonB"})
+					})
+
+					It("should fail", func() {
+						Expect(fetchErr).To(HaveOccurred())
+						Expect(fetchErr.Error()).To(ContainSubstring("policy check failed"))
+						Expect(fetchErr.Error()).To(ContainSubstring("reasonA"))
+						Expect(fetchErr.Error()).To(ContainSubstring("reasonB"))
+					})
+				})
+
+				// This test case should do same thing as "when the check is allowed",
+				// thus this case only verifies policy check warning messages.
+				Context("when the check is not allowed but non-block", func() {
+					BeforeEach(func() {
+						fakeCheckResult.AllowedReturns(false)
+						fakeCheckResult.ShouldBlockReturns(false)
+						fakeCheckResult.MessagesReturns([]string{"reasonA", "reasonB"})
 					})
 
 					It("succeeds", func() {
 						Expect(fetchErr).ToNot(HaveOccurred())
+					})
+
+					It("log warning messages", func() {
+						e := fakeBuild.SaveEventArgsForCall(0)
+						Expect(e.EventType()).To(Equal(event.EventTypeLog))
+						Expect(e.(event.Log).Origin).To(Equal(event.Origin{
+							ID:     "some-plan-id",
+							Source: event.OriginSourceStderr,
+						}))
+						Expect(e.(event.Log).Payload).To(ContainSubstring("policy check failed"))
+						Expect(e.(event.Log).Payload).To(ContainSubstring("reasonA"))
+						Expect(e.(event.Log).Payload).To(ContainSubstring("reasonB"))
+
+						e = fakeBuild.SaveEventArgsForCall(1)
+						Expect(e.EventType()).To(Equal(event.EventTypeLog))
+						Expect(e.(event.Log).Origin).To(Equal(event.Origin{
+							ID:     "some-plan-id",
+							Source: event.OriginSourceStderr,
+						}))
+						Expect(e.(event.Log).Payload).To(ContainSubstring("WARNING: unblocking from the policy check failure for soft enforcement"))
+					})
+				})
+
+				Context("when the check is allowed", func() {
+					BeforeEach(func() {
+						fakeCheckResult.AllowedReturns(true)
+					})
+
+					It("succeeds", func() {
+						Expect(fetchErr).ToNot(HaveOccurred())
+					})
+
+					It("should not log policy check warning", func() {
+						for i := 0; i < fakeBuild.SaveEventCallCount(); i++ {
+							e := fakeBuild.SaveEventArgsForCall(i)
+							if logEvent, ok := e.(event.Log); ok {
+								Expect(logEvent.Payload).ToNot(ContainSubstring("WARNING: unblocking from the policy check failure for soft enforcement"))
+							}
+						}
 					})
 
 					It("checked with the right values", func() {

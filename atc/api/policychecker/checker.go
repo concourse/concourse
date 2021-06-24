@@ -16,7 +16,7 @@ import (
 
 //counterfeiter:generate . PolicyChecker
 type PolicyChecker interface {
-	Check(string, accessor.Access, *http.Request) (policy.PolicyCheckOutput, error)
+	Check(string, accessor.Access, *http.Request) (policy.PolicyCheckResult, error)
 }
 
 type checker struct {
@@ -27,7 +27,7 @@ func NewApiPolicyChecker(policyChecker policy.Checker) PolicyChecker {
 	return &checker{policyChecker: policyChecker}
 }
 
-func (c *checker) Check(action string, acc accessor.Access, req *http.Request) (policy.PolicyCheckOutput, error) {
+func (c *checker) Check(action string, acc accessor.Access, req *http.Request) (policy.PolicyCheckResult, error) {
 	// Ignore self invoked API calls.
 	if acc.IsSystem() {
 		return policy.PassedPolicyCheck(), nil
@@ -59,7 +59,7 @@ func (c *checker) Check(action string, acc accessor.Access, req *http.Request) (
 	case "application/json", "text/vnd.yaml", "text/yaml", "text/x-yaml", "application/x-yaml":
 		body, err := ioutil.ReadAll(req.Body)
 		if err != nil {
-			return policy.FailedPolicyCheck(), err
+			return nil, err
 		} else if len(body) > 0 {
 			if ct == "application/json" {
 				err = json.Unmarshal(body, &input.Data)
@@ -67,7 +67,7 @@ func (c *checker) Check(action string, acc accessor.Access, req *http.Request) (
 				err = yaml.Unmarshal(body, &input.Data)
 			}
 			if err != nil {
-				return policy.FailedPolicyCheck(), err
+				return nil, err
 			}
 
 			req.Body = ioutil.NopCloser(bytes.NewBuffer(body))
