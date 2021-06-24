@@ -1,6 +1,8 @@
 \title{Generating Keys}{concourse-generate-key}{generating-keys}
 
 \use-plugin{concourse-docs}
+\section{
+\title{Generating the Keys}
 
 Concourse's various components use RSA keys to verify tokens and worker
 registration requests.
@@ -62,10 +64,15 @@ At this point you should have the following files:
 
 You can remove the \code{session_signing_key.pub} file if you have one, it is
 not needed by any process in Concourse.
+}
 
-Currently you have one \code{worker_key}. You can use this one key with
-multiple \reference{concourse-worker}s; each worker using the same key. Another
-valid strategy is to have each worker use a key that's unique to that worker.
+\section{
+\title{Multiple Worker Keys}{multiple-worker-keys}
+
+Currently you have one \code{worker_key}. You can use this one key-pair with
+multiple \reference{concourse-worker}s. Another good strategy is to have each
+worker or group of workers use a key that's unique to that one worker or group
+of workers.
 
 In the second case you will end up with multiple private and public worker
 keys. The \reference{concourse-web} needs to know about all of the public
@@ -82,3 +89,4 @@ ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDgNU7KBz/QQusPO52pNcea...
 }}
 
 You should now have all the necessary keys needed to deploy Web and Worker nodes.
+}
