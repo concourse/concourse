@@ -17,7 +17,7 @@ type OpaConfig struct {
 	URL                  string        `long:"opa-url" description:"OPA policy check endpoint."`
 	Timeout              time.Duration `long:"opa-timeout" default:"5s" description:"OPA request timeout."`
 	ResultAllowedKey     string        `long:"opa-result-allowed-key" description:"Key name of if pass policy check in OPA returned result. Expects a boolean value." default:"result.allowed"`
-	ResultShouldBlockKey string        `long:"opa-result-should-block-key" description:"Key name of if should block current action in OPA returned result. Expects a boolean value."`
+	ResultShouldBlockKey string        `long:"opa-result-should-block-key" description:"Key name of if should block current action in OPA returned result. Expects a boolean value."  default:"result.block"`
 	ResultMessagesKey    string        `long:"opa-result-messages-key" description:"Key name of messages in OPA returned result." default:"result.reasons"`
 }
 

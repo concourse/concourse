@@ -2,7 +2,6 @@ package policychecker_test
 
 import (
 	"errors"
-	"github.com/concourse/concourse/atc/policy/policyfakes"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -12,6 +11,7 @@ import (
 	"github.com/concourse/concourse/atc/api/policychecker"
 	"github.com/concourse/concourse/atc/api/policychecker/policycheckerfakes"
 	"github.com/concourse/concourse/atc/policy"
+	"github.com/concourse/concourse/atc/policy/policyfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

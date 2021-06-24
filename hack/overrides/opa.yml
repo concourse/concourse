@@ -12,6 +12,9 @@ services:
       CONCOURSE_POLICY_CHECK_FILTER_HTTP_METHODS: PUT,POST
 
       # uncomment to configure
+      # CONCOURSE_OPA_RESULT_ALLOW_KEY: result.allowed
+      # CONCOURSE_OPA_RESULT_SHOULD_BLOCK_KEY: result.block
+      # CONCOURSE_OPA_RESULT_MESSAGES_KEY: result.reasons
       # CONCOURSE_POLICY_CHECK_FILTER_ACTION: ListWorkers,ListContainers,UseImage,SaveConfig
       # CONCOURSE_POLICY_CHECK_FILTER_ACTION_SKIP: PausePipeline,UnpausePipeline
 
