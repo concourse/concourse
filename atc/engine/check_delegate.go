@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/clock"
+	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -81,14 +82,14 @@ func (d *checkDelegate) FindOrCreateScope(config db.ResourceConfig) (db.Resource
 // 3) A step embedded check may reuse a previous step if the last check succeeded and finished later
 // than the current build started.
 func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigScope) (lock.Lock, bool, error) {
-	logger := lagerctx.FromContext(ctx)
+	logger := lagerctx.FromContext(ctx).Session("wait-to-run")
 
 	// rate limit lidar-scheduled resource checks so worker load (plus load on
 	// external services) isn't too spiky. note that we don't rate limit
 	// resource type or prototype checks, since they don't run periodically -
 	// they only run as needed (when used by a resource)
 	if !d.build.IsManuallyTriggered() && d.plan.Resource != "" {
-		err := d.limiter.Wait(ctx)
+		err := d.limiter.Wait(lagerctx.NewContext(ctx, logger))
 		if err != nil {
 			return nil, false, fmt.Errorf("rate limit: %w", err)
 		}
@@ -102,10 +103,12 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 		if err != nil {
 			return nil, false, err
 		}
+		logger.Debug("interval", lager.Data{"interval": interval})
 	}
 
 	var lock lock.Lock = lock.NoopLock{}
 	if d.plan.Resource != "" {
+		logger.Debug("will-acquire-lock")
 		for {
 			var acquired bool
 			lock, acquired, err = scope.AcquireResourceCheckingLock(logger)
@@ -113,6 +116,7 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 				return nil, false, fmt.Errorf("acquire lock: %w", err)
 			}
 
+			logger.Debug("acquiring-lock", lager.Data{"acquired": acquired})
 			if acquired {
 				break
 			}
@@ -152,6 +156,8 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 	} else {
 		shouldRun = d.clock.Now().After(lastCheck.EndTime.Add(interval))
 	}
+
+	logger.Debug("should-run?", lager.Data{"result": shouldRun})
 
 	// XXX(check-refactor): we could add an else{} case and potentially sleep
 	// here until runAt is reached.

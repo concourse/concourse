@@ -96,8 +96,13 @@ func (step *CheckStep) Run(ctx context.Context, state RunState) (bool, error) {
 
 func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDelegate) (bool, error) {
 	logger := lagerctx.FromContext(ctx)
-	logger = logger.Session("check-step", lager.Data{
-		"step-name": step.plan.Name,
+	logger = logger.Session("AIDAN").Session("check-step", lager.Data{
+		"step-name":     step.plan.Name,
+		"resource":      step.plan.Resource,
+		"resource_type": step.plan.ResourceType,
+		"prototype":     step.plan.Prototype,
+		"build_id":      step.metadata.BuildID,
+		"pipeline_id":   step.metadata.PipelineID,
 	})
 
 	delegate.Initializing(logger)
@@ -111,20 +116,24 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 		}
 	}
 
+	logger.Debug("got-timeout", lager.Data{"timeout": timeout})
 	source, err := creds.NewSource(state, step.plan.Source).Evaluate()
 	if err != nil {
 		return false, fmt.Errorf("resource config creds evaluation: %w", err)
 	}
+	logger.Debug("got-source")
 
 	resourceTypes, err := creds.NewVersionedResourceTypes(state, step.plan.VersionedResourceTypes).Evaluate()
 	if err != nil {
 		return false, fmt.Errorf("resource types creds evaluation: %w", err)
 	}
+	logger.Debug("got-resource-types")
 
 	resourceConfig, err := step.resourceConfigFactory.FindOrCreateResourceConfig(step.plan.Type, source, resourceTypes)
 	if err != nil {
 		return false, fmt.Errorf("create resource config: %w", err)
 	}
+	logger.Debug("got-resource-config")
 
 	// XXX(check-refactor): we should remove scopes as soon as it's safe to do
 	// so, i.e. global resources is on by default. i think this can be done when
@@ -135,13 +144,16 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 	if err != nil {
 		return false, fmt.Errorf("create resource config scope: %w", err)
 	}
+	logger.Debug("got-scope")
 
-	lock, run, err := delegate.WaitToRun(ctx, scope)
+	lock, run, err := delegate.WaitToRun(lagerctx.NewContext(ctx, logger), scope)
 	if err != nil {
 		return false, fmt.Errorf("wait: %w", err)
 	}
+	logger.Debug("waited")
 
 	if run {
+		logger.Debug("running")
 		defer func() {
 			err := lock.Release()
 			if err != nil {
@@ -169,6 +181,7 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 		}
 
 		result, runErr := step.runCheck(ctx, logger, delegate, timeout, resourceConfig, source, resourceTypes, fromVersion)
+		logger.Debug("finished", lager.Data{"err": runErr})
 		if runErr != nil {
 			metric.Metrics.ChecksFinishedWithError.Inc()
 
@@ -208,11 +221,14 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 		if err != nil {
 			return false, fmt.Errorf("update check end time: %w", err)
 		}
+		logger.Debug("updated-last-check-end")
 	} else {
+		logger.Debug("not-running-getting-latest")
 		latestVersion, found, err := scope.LatestVersion()
 		if err != nil {
 			return false, fmt.Errorf("get latest version: %w", err)
 		}
+		logger.Debug("got-latest")
 
 		if found {
 			state.StoreResult(step.planID, atc.Version(latestVersion.Version()))
@@ -223,6 +239,7 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 	if err != nil {
 		return false, fmt.Errorf("update resource config scope: %w", err)
 	}
+	logger.Debug("pointed-to-checked-scope")
 
 	delegate.Finished(logger, true)
 

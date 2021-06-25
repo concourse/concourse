@@ -9,6 +9,8 @@ import (
 	sq "github.com/Masterminds/squirrel"
 
 	"code.cloudfoundry.org/clock"
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"golang.org/x/time/rate"
 )
 
@@ -51,11 +53,13 @@ func NewResourceCheckRateLimiter(
 }
 
 func (limiter *ResourceCheckRateLimiter) Wait(ctx context.Context) error {
+	logger := lagerctx.FromContext(ctx).Session("rate-limiter")
+
 	limiter.mut.Lock()
 	defer limiter.mut.Unlock()
 
 	if limiter.refreshLimiter != nil && limiter.refreshLimiter.AllowN(limiter.clock.Now(), 1) {
-		err := limiter.refreshCheckLimiter()
+		err := limiter.refreshCheckLimiter(logger)
 		if err != nil {
 			return fmt.Errorf("refresh: %w", err)
 		}
@@ -64,6 +68,7 @@ func (limiter *ResourceCheckRateLimiter) Wait(ctx context.Context) error {
 	reservation := limiter.checkLimiter.ReserveN(limiter.clock.Now(), 1)
 
 	delay := reservation.DelayFrom(limiter.clock.Now())
+	logger.Debug("reserved", lager.Data{"reservation": reservation, "delay": delay})
 	if delay == 0 {
 		return nil
 	}
@@ -73,8 +78,10 @@ func (limiter *ResourceCheckRateLimiter) Wait(ctx context.Context) error {
 
 	select {
 	case <-timer.C():
+		logger.Debug("waited")
 		return nil
 	case <-ctx.Done():
+		logger.Debug("canceled")
 		reservation.Cancel()
 		return ctx.Err()
 	}
@@ -87,7 +94,7 @@ func (limiter *ResourceCheckRateLimiter) Limit() rate.Limit {
 	return limiter.checkLimiter.Limit()
 }
 
-func (limiter *ResourceCheckRateLimiter) refreshCheckLimiter() error {
+func (limiter *ResourceCheckRateLimiter) refreshCheckLimiter(logger lager.Logger) error {
 	var count int
 	err := psql.Select("COUNT(*)").
 		From("resources r").
@@ -108,6 +115,7 @@ func (limiter *ResourceCheckRateLimiter) refreshCheckLimiter() error {
 		// don't bother waiting if there aren't any checkables
 		limit = rate.Inf
 	}
+	logger.Debug("refresh", lager.Data{"count": count, "limit": limit})
 
 	if limiter.checkLimiter == nil {
 		limiter.checkLimiter = rate.NewLimiter(limit, 1)
