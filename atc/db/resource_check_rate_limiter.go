@@ -8,6 +8,8 @@ import (
 	sq "github.com/Masterminds/squirrel"
 
 	"code.cloudfoundry.org/clock"
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"golang.org/x/time/rate"
 )
 
@@ -52,6 +54,8 @@ func NewResourceCheckRateLimiter(
 }
 
 func (limiter *ResourceCheckRateLimiter) Wait(ctx context.Context) error {
+	logger := lagerctx.FromContext(ctx)
+
 	if limiter.refreshLimiter != nil && limiter.refreshLimiter.AllowN(limiter.clock.Now(), 1) {
 		err := limiter.refreshCheckLimiter()
 		if err != nil {
@@ -65,6 +69,7 @@ func (limiter *ResourceCheckRateLimiter) Wait(ctx context.Context) error {
 	if delay == 0 {
 		return nil
 	}
+	logger.Debug("resource-rate-limit-exceeded", lager.Data{"waiting-for": delay.String()})
 
 	timer := limiter.clock.NewTimer(delay)
 	defer timer.Stop()
