@@ -3,7 +3,6 @@ package db
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -20,7 +19,6 @@ type ResourceCheckRateLimiter struct {
 	refreshLimiter *rate.Limiter
 
 	clock clock.Clock
-	mut   *sync.Mutex
 }
 
 func NewResourceCheckRateLimiter(
@@ -32,7 +30,6 @@ func NewResourceCheckRateLimiter(
 ) *ResourceCheckRateLimiter {
 	limiter := &ResourceCheckRateLimiter{
 		clock: clock,
-		mut:   new(sync.Mutex),
 	}
 
 	if checksPerSecond < 0 {
@@ -45,15 +42,16 @@ func NewResourceCheckRateLimiter(
 		limiter.checkInterval = checkInterval
 		limiter.refreshConn = refreshConn
 		limiter.refreshLimiter = rate.NewLimiter(rate.Every(refreshInterval), 1)
+
+		// The first time we call Wait, we will properly update the limit.
+		// This is just to avoid dealing with the limiter not existing.
+		limiter.checkLimiter = rate.NewLimiter(rate.Inf, 1)
 	}
 
 	return limiter
 }
 
 func (limiter *ResourceCheckRateLimiter) Wait(ctx context.Context) error {
-	limiter.mut.Lock()
-	defer limiter.mut.Unlock()
-
 	if limiter.refreshLimiter != nil && limiter.refreshLimiter.AllowN(limiter.clock.Now(), 1) {
 		err := limiter.refreshCheckLimiter()
 		if err != nil {
@@ -81,9 +79,6 @@ func (limiter *ResourceCheckRateLimiter) Wait(ctx context.Context) error {
 }
 
 func (limiter *ResourceCheckRateLimiter) Limit() rate.Limit {
-	limiter.mut.Lock()
-	defer limiter.mut.Unlock()
-
 	return limiter.checkLimiter.Limit()
 }
 
@@ -109,9 +104,7 @@ func (limiter *ResourceCheckRateLimiter) refreshCheckLimiter() error {
 		limit = rate.Inf
 	}
 
-	if limiter.checkLimiter == nil {
-		limiter.checkLimiter = rate.NewLimiter(limit, 1)
-	} else if limit != limiter.checkLimiter.Limit() {
+	if limit != limiter.checkLimiter.Limit() {
 		limiter.checkLimiter.SetLimit(limit)
 	}
 
