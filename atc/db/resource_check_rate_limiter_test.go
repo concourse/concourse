@@ -18,10 +18,11 @@ import (
 
 var _ = Describe("ResourceCheckRateLimiter", func() {
 	var (
-		checkInterval   time.Duration
-		checksPerSecond int
-		refreshInterval time.Duration
-		fakeClock       *fakeclock.FakeClock
+		checkInterval      time.Duration
+		checksPerSecond    int
+		minChecksPerSecond float64
+		refreshInterval    time.Duration
+		fakeClock          *fakeclock.FakeClock
 
 		scenario       *dbtest.Scenario
 		checkableCount int
@@ -36,6 +37,8 @@ var _ = Describe("ResourceCheckRateLimiter", func() {
 	BeforeEach(func() {
 		checkInterval = time.Minute
 		checksPerSecond = 0
+		// schedule at least 2 checks per minute, regardless of the checkableCount
+		minChecksPerSecond = 2.0 / 60
 		refreshInterval = 5 * time.Minute
 		fakeClock = fakeclock.NewFakeClock(time.Now())
 
@@ -54,6 +57,7 @@ var _ = Describe("ResourceCheckRateLimiter", func() {
 	JustBeforeEach(func() {
 		limiter = db.NewResourceCheckRateLimiter(
 			rate.Limit(checksPerSecond),
+			rate.Limit(minChecksPerSecond),
 			checkInterval,
 			dbConn,
 			refreshInterval,
@@ -100,9 +104,9 @@ var _ = Describe("ResourceCheckRateLimiter", func() {
 			By("waiting for the refresh interval")
 			fakeClock.Increment(refreshInterval)
 
-			By("adjusting the limit but returning immediately for the first time")
+			By("adjusting the limit to the minimum value but returning immediately for the first time")
 			Expect(<-wait(limiter)).To(Succeed())
-			Expect(limiter.Limit()).To(Equal(rate.Limit(float64(checkableCount) / checkInterval.Seconds())))
+			Expect(limiter.Limit()).To(Equal(rate.Limit(minChecksPerSecond)))
 
 			done := wait(limiter)
 			select {

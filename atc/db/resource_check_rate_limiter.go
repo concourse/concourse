@@ -17,6 +17,8 @@ import (
 type ResourceCheckRateLimiter struct {
 	checkLimiter *rate.Limiter
 
+	minChecksPerSecond rate.Limit
+
 	refreshConn    Conn
 	checkInterval  time.Duration
 	refreshLimiter *rate.Limiter
@@ -27,6 +29,7 @@ type ResourceCheckRateLimiter struct {
 
 func NewResourceCheckRateLimiter(
 	checksPerSecond rate.Limit,
+	minChecksPerSecond rate.Limit,
 	checkInterval time.Duration,
 	refreshConn Conn,
 	refreshInterval time.Duration,
@@ -35,6 +38,8 @@ func NewResourceCheckRateLimiter(
 	limiter := &ResourceCheckRateLimiter{
 		clock: clock,
 		mut:   new(sync.Mutex),
+
+		minChecksPerSecond: minChecksPerSecond,
 	}
 
 	if checksPerSecond < 0 {
@@ -118,6 +123,9 @@ func (limiter *ResourceCheckRateLimiter) refreshCheckLimiter(logger lager.Logger
 	if count == 0 {
 		// don't bother waiting if there aren't any checkables
 		limit = rate.Inf
+	}
+	if limit < limiter.minChecksPerSecond {
+		limit = limiter.minChecksPerSecond
 	}
 	logger.Debug("refresh", lager.Data{"count": count, "limit": limit})
 
