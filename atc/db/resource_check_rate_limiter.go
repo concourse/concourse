@@ -16,6 +16,8 @@ import (
 type ResourceCheckRateLimiter struct {
 	checkLimiter *rate.Limiter
 
+	minChecksPerSecond rate.Limit
+
 	refreshConn    Conn
 	checkInterval  time.Duration
 	refreshLimiter *rate.Limiter
@@ -25,13 +27,15 @@ type ResourceCheckRateLimiter struct {
 
 func NewResourceCheckRateLimiter(
 	checksPerSecond rate.Limit,
+	minChecksPerSecond rate.Limit,
 	checkInterval time.Duration,
 	refreshConn Conn,
 	refreshInterval time.Duration,
 	clock clock.Clock,
 ) *ResourceCheckRateLimiter {
 	limiter := &ResourceCheckRateLimiter{
-		clock: clock,
+		minChecksPerSecond: minChecksPerSecond,
+		clock:              clock,
 	}
 
 	if checksPerSecond < 0 {
@@ -107,6 +111,9 @@ func (limiter *ResourceCheckRateLimiter) refreshCheckLimiter() error {
 	if count == 0 {
 		// don't bother waiting if there aren't any checkables
 		limit = rate.Inf
+	}
+	if limit < limiter.minChecksPerSecond {
+		limit = limiter.minChecksPerSecond
 	}
 
 	if limit != limiter.checkLimiter.Limit() {
