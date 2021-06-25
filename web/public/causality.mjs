@@ -3,7 +3,7 @@ import './graphviz.min.js';
 
 export function renderCausality(dot){
   const foundSvg = d3.select(".causality-graph");
-  const svg = createSvg(foundSvg)
+  const svg = createSvg(foundSvg);
 
   graphviz.graphviz.layout(dot, "svg", "dot").then(content => {
     svg.html(content);
@@ -20,6 +20,8 @@ export function renderCausality(dot){
 
 function createSvg(svg) {
   var g = d3.select("g.test")
+  var zoom = d3.behavior.zoom();
+
   if (g.empty()) {
     svg.append("defs").append("filter")
       .attr("id", "embiggen")
@@ -32,19 +34,15 @@ function createSvg(svg) {
       var ev = d3.event;
       if (ev.button || ev.ctrlKey)
         ev.stopImmediatePropagation();
-      }).call(zoom().scaleExtent([0.5, 10]).on("zoom", function() {
-      var ev = d3.event;
-      g.attr("transform", "translate(" + ev.translate + ") scale(" + ev.scale + ")");
-    }));
+      }
+    )
+    .call(zoom
+      .scaleExtent([0.5, 10])
+      .on("zoom", function() {
+        var ev = d3.event;
+        g.attr("transform", "translate(" + ev.translate + ") scale(" + ev.scale + ")");
+      })
+    );
   }
-  return g
+  return g;
 }
-
-var zoom = (function() {
-  var z;
-  return function() {
-    z = z || d3.behavior.zoom();
-    return z;
-  }
-})();
-
