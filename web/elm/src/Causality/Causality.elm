@@ -61,6 +61,7 @@ import Views.TopBar as TopBar
 type PageError
     = NotFound
     | TooManyNodes
+    | NoNodes
 
 
 type alias Model =
@@ -169,13 +170,23 @@ handleCallback callback ( model, effects ) =
                         _ ->
                             model.graph
             in
-            ( { model
-                | fetchedCausality = causality
-                , graph = graph
-              }
-            , effects
-                ++ [ RenderCausality <| graphvizDotNotation model graph ]
-            )
+            if Graph.isEmpty graph then
+                ( { model
+                    | fetchedCausality = causality
+                    , graph = graph
+                    , pageStatus = Err NoNodes
+                  }
+                , effects
+                )
+
+            else
+                ( { model
+                    | fetchedCausality = causality
+                    , graph = graph
+                  }
+                , effects
+                    ++ [ RenderCausality <| graphvizDotNotation model graph ]
+                )
 
         VersionedResourceFetched (Ok vr) ->
             ( { model
@@ -256,10 +267,22 @@ viewGraph model =
                 [ class "notfound"
                 , id "causality-error"
                 ]
-                [ Html.div [ class "title" ] [ Html.text "403" ]
-                , Html.div [ class "reason" ] [ Html.text "graph is too large" ]
+                [ Html.div [ class "title" ] [ Html.text "graph too large" ]
+                , Html.div [ class "reason" ] [ Html.text "number of builds/resource versions exceeds 5000/25000" ]
                 , Html.div [ class "help-message" ]
                     [ Html.text "try a less popular resource version ¯\\_(ツ)_/¯"
+                    ]
+                ]
+
+        Err NoNodes ->
+            Html.div
+                [ class "notfound"
+                , id "causality-error"
+                ]
+                [ Html.div [ class "title" ] [ Html.text "no causality" ]
+                , Html.div [ class "reason" ] [ Html.text "resource version was not used in any builds" ]
+                , Html.div [ class "help-message" ]
+                    [ Html.text "try a more popular resource version ¯\\_(ツ)_/¯"
                     ]
                 ]
 
