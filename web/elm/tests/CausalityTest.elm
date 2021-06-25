@@ -17,15 +17,13 @@ import Data
 import Dict
 import Expect
 import Graph exposing (Edge, Node)
-import Http
 import List.Extra
 import Message.Callback as Callback
 import Test exposing (..)
 import Test.Html.Query as Query
 import Test.Html.Selector
     exposing
-        ( class
-        , id
+        ( id
         , text
         )
 
@@ -42,7 +40,21 @@ all =
                         |> Tuple.first
                         |> Common.queryView
                         |> Query.find [ id "causality-error" ]
-                        |> Query.has [ text "graph is too large" ]
+                        |> Query.has [ text "graph too large" ]
+            , test "shows error message if there's no causality" <|
+                \_ ->
+                    init
+                        |> Application.handleCallback
+                            (Callback.CausalityFetched <|
+                                Ok
+                                    ( Downstream
+                                    , Just { jobs = [], builds = [], resources = [], resourceVersions = [] }
+                                    )
+                            )
+                        |> Tuple.first
+                        |> Common.queryView
+                        |> Query.find [ id "causality-error" ]
+                        |> Query.has [ text "no causality" ]
             ]
         , describe "constructing downstream" <|
             [ test "simple graph with 1 build and output" <|
