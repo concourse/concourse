@@ -3,9 +3,10 @@ package db
 import (
 	"context"
 	"fmt"
-	sq "github.com/Masterminds/squirrel"
 	"sync"
 	"time"
+
+	sq "github.com/Masterminds/squirrel"
 
 	"code.cloudfoundry.org/clock"
 	"golang.org/x/time/rate"
@@ -88,9 +89,13 @@ func (limiter *ResourceCheckRateLimiter) Limit() rate.Limit {
 
 func (limiter *ResourceCheckRateLimiter) refreshCheckLimiter() error {
 	var count int
-	err := psql.Select("COUNT(id)").
-		From("resources").
-		Where(sq.Eq{"active": true}).
+	err := psql.Select("COUNT(*)").
+		From("resources r").
+		Join("pipelines p ON p.id = r.pipeline_id").
+		Where(sq.Eq{
+			"r.active": true,
+			"p.paused": false,
+		}).
 		RunWith(limiter.refreshConn).
 		QueryRow().
 		Scan(&count)

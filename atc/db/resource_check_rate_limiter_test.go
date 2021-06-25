@@ -29,6 +29,8 @@ var _ = Describe("ResourceCheckRateLimiter", func() {
 		ctx context.Context
 
 		limiter *db.ResourceCheckRateLimiter
+
+		pipelineConfig *atc.Config
 	)
 
 	BeforeEach(func() {
@@ -37,13 +39,16 @@ var _ = Describe("ResourceCheckRateLimiter", func() {
 		refreshInterval = 5 * time.Minute
 		fakeClock = fakeclock.NewFakeClock(time.Now())
 
-		_, err := dbConn.Exec("update resources set active=false")
-		Expect(err).ToNot(HaveOccurred())
-
 		checkableCount = 0
 		scenario = &dbtest.Scenario{}
 
 		ctx = context.Background()
+
+		By("Unpolluting our env")
+		err := defaultPipeline.Destroy()
+		Expect(err).NotTo(HaveOccurred())
+
+		pipelineConfig = &atc.Config{}
 	})
 
 	JustBeforeEach(func() {
@@ -67,18 +72,12 @@ var _ = Describe("ResourceCheckRateLimiter", func() {
 	createCheckable := func() {
 		checkableCount++
 
-		var resources atc.ResourceConfigs
-		for i := 0; i < checkableCount; i++ {
-			resources = append(resources, atc.ResourceConfig{
-				Name:   fmt.Sprintf("resource-%d", i),
-				Type:   dbtest.BaseResourceType,
-				Source: atc.Source{"some": "source"},
-			})
-		}
+		pipelineConfig.Resources = append(pipelineConfig.Resources, atc.ResourceConfig{Name: fmt.Sprintf("resource-%d", checkableCount),
+			Type:   dbtest.BaseResourceType,
+			Source: atc.Source{"some": "source"},
+		})
 
-		scenario.Run(builder.WithPipeline(atc.Config{
-			Resources: resources,
-		}))
+		scenario.Run(builder.WithPipeline(*pipelineConfig))
 	}
 
 	Context("with no static limit provided", func() {
@@ -143,6 +142,27 @@ var _ = Describe("ResourceCheckRateLimiter", func() {
 			scenario.Run(builder.WithPipeline(atc.Config{
 				Resources: atc.ResourceConfigs{},
 			}))
+
+			By("waiting for the refresh interval")
+			fakeClock.Increment(refreshInterval)
+
+			By("returning immediately and retaining the infinite rate")
+			Expect(<-wait(limiter)).To(Succeed())
+			Expect(limiter.Limit()).To(Equal(rate.Limit(rate.Inf)))
+
+			By("re-activing all resources")
+			scenario.Run(builder.WithPipeline(*pipelineConfig))
+
+			By("waiting for the refresh interval")
+			fakeClock.Increment(refreshInterval)
+
+			By("adjusting the limit but returning immediately for the first time")
+			Expect(<-wait(limiter)).To(Succeed())
+			Expect(limiter.Limit()).To(Equal(rate.Limit(float64(checkableCount) / checkInterval.Seconds())))
+
+			By("pausing the pipeline")
+			err := scenario.Pipeline.Pause()
+			Expect(err).ToNot(HaveOccurred())
 
 			By("waiting for the refresh interval")
 			fakeClock.Increment(refreshInterval)
