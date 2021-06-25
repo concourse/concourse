@@ -29,8 +29,6 @@ var _ = Describe("ResourceCheckRateLimiter", func() {
 		ctx context.Context
 
 		limiter *db.ResourceCheckRateLimiter
-
-		pipelineConfig *atc.Config
 	)
 
 	BeforeEach(func() {
@@ -39,16 +37,13 @@ var _ = Describe("ResourceCheckRateLimiter", func() {
 		refreshInterval = 5 * time.Minute
 		fakeClock = fakeclock.NewFakeClock(time.Now())
 
+		_, err := dbConn.Exec("update resources set active=false")
+		Expect(err).ToNot(HaveOccurred())
+
 		checkableCount = 0
 		scenario = &dbtest.Scenario{}
 
 		ctx = context.Background()
-
-		By("Unpolluting our env")
-		err := defaultPipeline.Destroy()
-		Expect(err).NotTo(HaveOccurred())
-
-		pipelineConfig = &atc.Config{}
 	})
 
 	JustBeforeEach(func() {
@@ -69,34 +64,21 @@ var _ = Describe("ResourceCheckRateLimiter", func() {
 		return errs
 	}
 
-	createResource := func() {
+	createCheckable := func() {
 		checkableCount++
 
-		pipelineConfig.Resources = append(pipelineConfig.Resources, atc.ResourceConfig{Name: fmt.Sprintf("resource-%d", checkableCount),
-			Type:   dbtest.BaseResourceType,
-			Source: atc.Source{"some": "source"},
-		})
+		var resources atc.ResourceConfigs
+		for i := 0; i < checkableCount; i++ {
+			resources = append(resources, atc.ResourceConfig{
+				Name:   fmt.Sprintf("resource-%d", i),
+				Type:   dbtest.BaseResourceType,
+				Source: atc.Source{"some": "source"},
+			})
+		}
 
-		scenario.Run(builder.WithPipeline(*pipelineConfig))
-	}
-
-	createResourceWithCustomType := func() {
-		checkableCount++
-		customResourceType := fmt.Sprintf("resource-type-%d", checkableCount)
-
-		pipelineConfig.ResourceTypes = append(pipelineConfig.ResourceTypes, atc.ResourceType{Name: customResourceType,
-			Type:   dbtest.BaseResourceType,
-			Source: atc.Source{"some": "source"},
-		})
-
-		checkableCount++
-
-		pipelineConfig.Resources = append(pipelineConfig.Resources, atc.ResourceConfig{Name: fmt.Sprintf("resource-%d", checkableCount),
-			Type:   customResourceType,
-			Source: atc.Source{"some": "source"},
-		})
-
-		scenario.Run(builder.WithPipeline(*pipelineConfig))
+		scenario.Run(builder.WithPipeline(atc.Config{
+			Resources: resources,
+		}))
 	}
 
 	Context("with no static limit provided", func() {
@@ -110,7 +92,7 @@ var _ = Describe("ResourceCheckRateLimiter", func() {
 			Expect(limiter.Limit()).To(Equal(rate.Inf))
 
 			By("creating one checkable")
-			createResource()
+			createCheckable()
 
 			By("continuing to return immediately, as the refresh interval has not elapsed")
 			Expect(<-wait(limiter)).To(Succeed())
@@ -136,11 +118,7 @@ var _ = Describe("ResourceCheckRateLimiter", func() {
 
 			By("creating more checkables")
 			for i := 0; i < 10; i++ {
-				if i%3 == 0 {
-					createResourceWithCustomType()
-				} else {
-					createResource()
-				}
+				createCheckable()
 			}
 
 			By("waiting for the refresh interval")
@@ -196,7 +174,7 @@ var _ = Describe("ResourceCheckRateLimiter", func() {
 
 			By("creating a few (ignored) checkables")
 			for i := 0; i < 10; i++ {
-				createResource()
+				createCheckable()
 			}
 
 			By("waiting for the (ignored) refresh interval")
