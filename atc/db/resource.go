@@ -53,6 +53,7 @@ WITH RECURSIVE build_ids AS (
 		WHERE i.resource_id!=$1
 )
 `
+	// arbitrary numbers based around what we observed to be reasonable
 	causalityMaxBuilds        = 5000
 	causalityMaxInputsOutputs = 25000
 )
@@ -1046,7 +1047,7 @@ func causalityBuilds(tx Tx, resourceID int, versionMD5 string, direction Causali
 	jobs := make(map[int]*atc.CausalityJob, 0)
 
 	var i int
-	for i = 1; rows.Next(); i++ {
+	for i = 0; rows.Next(); i++ {
 		var buildID, jobID int
 		var buildName, jobName, status string
 
@@ -1091,13 +1092,13 @@ func causalityResourceVersions(tx Tx, resourceID int, versionMD5 string, directi
 	resourceHasParent[resourceID] = true // the root resource is the only one that is not required to have a parent
 
 	buildAsChild := func(rv *atc.CausalityResourceVersion, build *atc.CausalityBuild) {
-		if !contains(build.ResourceVersionIDs, rv.ID) { // in case a build outputs the same resource multiple times
-			build.ResourceVersionIDs = append(build.ResourceVersionIDs, rv.ID)
+		if !contains(rv.BuildIDs, build.ID) { // in case the same resource is used multiple times
+			rv.BuildIDs = append(rv.BuildIDs, build.ID)
 		}
 	}
 	resourceVersionAsChild := func(rv *atc.CausalityResourceVersion, build *atc.CausalityBuild) {
-		if !contains(rv.BuildIDs, build.ID) { // in case the same resource is used multiple times
-			rv.BuildIDs = append(rv.BuildIDs, build.ID)
+		if !contains(build.ResourceVersionIDs, rv.ID) { // in case a build outputs the same resource multiple times
+			build.ResourceVersionIDs = append(build.ResourceVersionIDs, rv.ID)
 		}
 
 		resourceHasParent[rv.ResourceID] = true
@@ -1148,7 +1149,7 @@ LIMIT $3
 	resourceVersions := make(map[resourceVersionKey]*atc.CausalityResourceVersion)
 
 	var i int
-	for i = 1; rows.Next(); i++ {
+	for i = 0; rows.Next(); i++ {
 		var (
 			rID, rcvID, bID        int
 			rName, versionStr, typ string
@@ -1202,18 +1203,13 @@ LIMIT $3
 	}
 
 	// flattening
-	result.Builds = make([]atc.CausalityBuild, 0, len(builds))
-	for _, b := range builds {
-		result.Builds = append(result.Builds, *b)
-	}
-	result.Jobs = make([]atc.CausalityJob, 0, len(jobs))
-	for _, j := range jobs {
-		result.Jobs = append(result.Jobs, *j)
-	}
 	result.ResourceVersions = make([]atc.CausalityResourceVersion, 0, len(resourceVersions))
+	unusedResourceVersions := make([]int, 0)
 	for _, rv := range resourceVersions {
 		if resourceHasParent[rv.ResourceID] {
 			result.ResourceVersions = append(result.ResourceVersions, *rv)
+		} else {
+			unusedResourceVersions = append(unusedResourceVersions, rv.ID)
 		}
 	}
 	result.Resources = make([]atc.CausalityResource, 0, len(resources))
@@ -1223,6 +1219,23 @@ LIMIT $3
 		}
 	}
 
+	result.Builds = make([]atc.CausalityBuild, 0, len(builds))
+	for _, b := range builds {
+		// remove any resource version ids that don't have a parent
+		filteredResourceVersions := make([]int, 0)
+		for _, rvID := range b.ResourceVersionIDs {
+			if !contains(unusedResourceVersions, rvID) {
+				filteredResourceVersions = append(filteredResourceVersions, rvID)
+			}
+		}
+
+		b.ResourceVersionIDs = filteredResourceVersions
+		result.Builds = append(result.Builds, *b)
+	}
+	result.Jobs = make([]atc.CausalityJob, 0, len(jobs))
+	for _, j := range jobs {
+		result.Jobs = append(result.Jobs, *j)
+	}
 	return nil
 }
 
