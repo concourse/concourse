@@ -83,9 +83,11 @@ func (d *checkDelegate) FindOrCreateScope(config db.ResourceConfig) (db.Resource
 func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigScope) (lock.Lock, bool, error) {
 	logger := lagerctx.FromContext(ctx)
 
-	// rate limit periodic resource checks so worker load (plus load on external
-	// services) isn't too spiky
-	if !d.build.IsManuallyTriggered() && d.plan.IsPeriodic() {
+	// rate limit periodic resource checks so worker load (plus load on
+	// external services) isn't too spiky. note that we don't rate limit
+	// resource type or prototype checks, because they are created every time a
+	// resource is used (rather than periodically).
+	if !d.build.IsManuallyTriggered() && d.plan.Resource != "" {
 		err := d.limiter.Wait(ctx)
 		if err != nil {
 			return nil, false, fmt.Errorf("rate limit: %w", err)
