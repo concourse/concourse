@@ -55,8 +55,7 @@ func NewResourceCheckRateLimiter(
 func (limiter *ResourceCheckRateLimiter) Wait(ctx context.Context) error {
 	logger := lagerctx.FromContext(ctx).Session("rate-limiter")
 
-	limiter.mut.Lock()
-	defer limiter.mut.Unlock()
+	logger.Debug("start")
 
 	if limiter.refreshLimiter != nil && limiter.refreshLimiter.AllowN(limiter.clock.Now(), 1) {
 		err := limiter.refreshCheckLimiter(logger)
@@ -95,6 +94,11 @@ func (limiter *ResourceCheckRateLimiter) Limit() rate.Limit {
 }
 
 func (limiter *ResourceCheckRateLimiter) refreshCheckLimiter(logger lager.Logger) error {
+	logger.Debug("refresh-start")
+	limiter.mut.Lock()
+	defer limiter.mut.Unlock()
+
+	logger.Debug("got-lock")
 	var count int
 	err := psql.Select("COUNT(*)").
 		From("resources r").
