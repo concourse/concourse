@@ -117,7 +117,11 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 				break
 			}
 
-			d.clock.Sleep(time.Second)
+			select {
+			case <-ctx.Done():
+				return nil, false, ctx.Err()
+			case <-d.clock.After(time.Second):
+			}
 		}
 	}
 
