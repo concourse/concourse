@@ -271,23 +271,18 @@ func (r *resourceType) CreateBuild(ctx context.Context, manuallyTriggered bool, 
 	defer Rollback(tx)
 
 	if !manuallyTriggered {
-		var buildID int
-		var completed, noBuild bool
-		err = psql.Select("id", "completed").
+		var numRunningBuilds int
+		err = psql.Select("COUNT(1)").
 			From("builds").
-			Where(sq.Eq{"resource_type_id": r.id}).
+			Where(sq.Eq{"resource_type_id": r.id, "completed": false}).
 			RunWith(tx).
 			QueryRow().
-			Scan(&buildID, &completed)
+			Scan(&numRunningBuilds)
 		if err != nil {
-			if err == sql.ErrNoRows {
-				noBuild = true
-			} else {
-				return nil, false, err
-			}
+			return nil, false, err
 		}
 
-		if !noBuild && !completed {
+		if numRunningBuilds > 0 {
 			// a build is already running; leave it be
 			return nil, false, nil
 		}

@@ -537,12 +537,20 @@ var _ = Describe("Resource", func() {
 			})
 		})
 
-		Context("when another build already exists", func() {
+		Context("when another running build already exists", func() {
 			var prevBuild db.Build
 
 			BeforeEach(func() {
 				var err error
 				var prevCreated bool
+				By("creating a completed build")
+				prevBuild, prevCreated, err = defaultResource.CreateBuild(ctx, false, plan)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(prevCreated).To(BeTrue())
+				err = prevBuild.Finish(db.BuildStatusSucceeded)
+				Expect(err).ToNot(HaveOccurred())
+
+				By("creating a running build")
 				prevBuild, prevCreated, err = defaultResource.CreateBuild(ctx, false, plan)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(prevCreated).To(BeTrue())
@@ -1222,8 +1230,8 @@ var _ = Describe("Resource", func() {
 	Describe("Clear resource cache", func() {
 		Context("when resource cache exists", func() {
 			var (
-				scenario *dbtest.Scenario
-				firstUsedResourceCache db.UsedResourceCache
+				scenario                *dbtest.Scenario
+				firstUsedResourceCache  db.UsedResourceCache
 				secondUsedResourceCache db.UsedResourceCache
 			)
 
