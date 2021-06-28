@@ -406,16 +406,6 @@ type FakeBuild struct {
 	privatePlanReturnsOnCall map[int]struct {
 		result1 atc.Plan
 	}
-	PrototypeIDStub        func() int
-	prototypeIDMutex       sync.RWMutex
-	prototypeIDArgsForCall []struct {
-	}
-	prototypeIDReturns struct {
-		result1 int
-	}
-	prototypeIDReturnsOnCall map[int]struct {
-		result1 int
-	}
 	PublicPlanStub        func() *json.RawMessage
 	publicPlanMutex       sync.RWMutex
 	publicPlanArgsForCall []struct {
@@ -2671,59 +2661,6 @@ func (fake *FakeBuild) PrivatePlanReturnsOnCall(i int, result1 atc.Plan) {
 	}{result1}
 }
 
-func (fake *FakeBuild) PrototypeID() int {
-	fake.prototypeIDMutex.Lock()
-	ret, specificReturn := fake.prototypeIDReturnsOnCall[len(fake.prototypeIDArgsForCall)]
-	fake.prototypeIDArgsForCall = append(fake.prototypeIDArgsForCall, struct {
-	}{})
-	stub := fake.PrototypeIDStub
-	fakeReturns := fake.prototypeIDReturns
-	fake.recordInvocation("PrototypeID", []interface{}{})
-	fake.prototypeIDMutex.Unlock()
-	if stub != nil {
-		return stub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fakeReturns.result1
-}
-
-func (fake *FakeBuild) PrototypeIDCallCount() int {
-	fake.prototypeIDMutex.RLock()
-	defer fake.prototypeIDMutex.RUnlock()
-	return len(fake.prototypeIDArgsForCall)
-}
-
-func (fake *FakeBuild) PrototypeIDCalls(stub func() int) {
-	fake.prototypeIDMutex.Lock()
-	defer fake.prototypeIDMutex.Unlock()
-	fake.PrototypeIDStub = stub
-}
-
-func (fake *FakeBuild) PrototypeIDReturns(result1 int) {
-	fake.prototypeIDMutex.Lock()
-	defer fake.prototypeIDMutex.Unlock()
-	fake.PrototypeIDStub = nil
-	fake.prototypeIDReturns = struct {
-		result1 int
-	}{result1}
-}
-
-func (fake *FakeBuild) PrototypeIDReturnsOnCall(i int, result1 int) {
-	fake.prototypeIDMutex.Lock()
-	defer fake.prototypeIDMutex.Unlock()
-	fake.PrototypeIDStub = nil
-	if fake.prototypeIDReturnsOnCall == nil {
-		fake.prototypeIDReturnsOnCall = make(map[int]struct {
-			result1 int
-		})
-	}
-	fake.prototypeIDReturnsOnCall[i] = struct {
-		result1 int
-	}{result1}
-}
-
 func (fake *FakeBuild) PublicPlan() *json.RawMessage {
 	fake.publicPlanMutex.Lock()
 	ret, specificReturn := fake.publicPlanReturnsOnCall[len(fake.publicPlanArgsForCall)]
@@ -4336,8 +4273,6 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.preparationMutex.RUnlock()
 	fake.privatePlanMutex.RLock()
 	defer fake.privatePlanMutex.RUnlock()
-	fake.prototypeIDMutex.RLock()
-	defer fake.prototypeIDMutex.RUnlock()
 	fake.publicPlanMutex.RLock()
 	defer fake.publicPlanMutex.RUnlock()
 	fake.reapTimeMutex.RLock()

@@ -7,7 +7,6 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbtest"
-	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/tracing"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -268,19 +267,11 @@ var _ = Describe("Prototype", func() {
 			Expect(created).To(BeTrue())
 			Expect(build).ToNot(BeNil())
 			Expect(build.Name()).To(Equal(db.CheckBuildName))
-			Expect(build.PrototypeID()).To(Equal(prototype.ID()))
 			Expect(build.PipelineID()).To(Equal(prototype.PipelineID()))
 			Expect(build.TeamID()).To(Equal(prototype.TeamID()))
 			Expect(build.IsManuallyTriggered()).To(BeFalse())
 			Expect(build.Status()).To(Equal(db.BuildStatusStarted))
 			Expect(build.PrivatePlan()).To(Equal(plan))
-		})
-
-		It("logs to the check_build_events partition", func() {
-			err := build.SaveEvent(event.Log{Payload: "log"})
-			Expect(err).ToNot(HaveOccurred())
-			// created + log events
-			Expect(numBuildEventsForCheck(build)).To(Equal(2))
 		})
 
 		Context("when tracing is configured", func() {
@@ -301,45 +292,6 @@ var _ = Describe("Prototype", func() {
 				buildContext := build.SpanContext()
 				traceParent := buildContext.Get("traceparent")
 				Expect(traceParent).To(ContainSubstring(traceID))
-			})
-		})
-
-		Context("when another build already exists", func() {
-			var prevBuild db.Build
-
-			BeforeEach(func() {
-				var err error
-				var prevCreated bool
-				prevBuild, prevCreated, err = prototype.CreateBuild(ctx, false, plan)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(prevCreated).To(BeTrue())
-			})
-
-			It("does not create the second build", func() {
-				Expect(created).To(BeFalse())
-			})
-
-			Context("when manually triggered", func() {
-				BeforeEach(func() {
-					manuallyTriggered = true
-				})
-
-				It("creates a manually triggered resource build", func() {
-					Expect(created).To(BeTrue())
-					Expect(build.IsManuallyTriggered()).To(BeTrue())
-					Expect(build.PrototypeID()).To(Equal(prototype.ID()))
-				})
-			})
-
-			Context("when the previous build is finished", func() {
-				BeforeEach(func() {
-					Expect(prevBuild.Finish(db.BuildStatusSucceeded)).To(Succeed())
-				})
-
-				It("creates the build", func() {
-					Expect(created).To(BeTrue())
-					Expect(build.PrototypeID()).To(Equal(prototype.ID()))
-				})
 			})
 		})
 	})

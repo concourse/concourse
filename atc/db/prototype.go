@@ -200,29 +200,6 @@ func (p *prototype) CreateBuild(ctx context.Context, manuallyTriggered bool, pla
 
 	defer Rollback(tx)
 
-	if !manuallyTriggered {
-		var buildID int
-		var completed, noBuild bool
-		err = psql.Select("id", "completed").
-			From("builds").
-			Where(sq.Eq{"prototype_id": p.id}).
-			RunWith(tx).
-			QueryRow().
-			Scan(&buildID, &completed)
-		if err != nil {
-			if err == sql.ErrNoRows {
-				noBuild = true
-			} else {
-				return nil, false, err
-			}
-		}
-
-		if !noBuild && !completed {
-			// a build is already running; leave it be
-			return nil, false, nil
-		}
-	}
-
 	build := newEmptyBuild(p.conn, p.lockFactory)
 	err = createStartedBuild(tx, build, startedBuildArgs{
 		Name:              CheckBuildName,
@@ -231,9 +208,6 @@ func (p *prototype) CreateBuild(ctx context.Context, manuallyTriggered bool, pla
 		Plan:              plan,
 		ManuallyTriggered: manuallyTriggered,
 		SpanContext:       NewSpanContext(ctx),
-		ExtraValues: map[string]interface{}{
-			"prototype_id": p.id,
-		},
 	})
 	if err != nil {
 		return nil, false, err
