@@ -33,10 +33,10 @@
 
     \codeblock{bash}{{
     # MacOS
-    $ curl http://localhost:8080/api/v1/cli?arch=amd64&platform=darwin -o fly \\
+    $ curl 'http://localhost:8080/api/v1/cli?arch=amd64&platform=darwin' -o fly \\
         && chmod +x ./fly && mv ./fly /usr/local/bin/
     # Linux
-    $ curl http://localhost:8080/api/v1/cli?arch=amd64&platform=linux -o fly \\
+    $ curl 'http://localhost:8080/api/v1/cli?arch=amd64&platform=linux' -o fly \\
         && chmod +x ./fly && mv ./fly /usr/local/bin/
     # TODO Windows powershell. How to PATH on windows???
 
