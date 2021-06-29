@@ -198,7 +198,7 @@ var _ = Describe("Prototype", func() {
 		})
 	})
 
-	FDescribe("CheckPlan", func() {
+	Describe("CheckPlan", func() {
 		var prototype db.Prototype
 		var resourceTypes db.ResourceTypes
 
@@ -215,7 +215,7 @@ var _ = Describe("Prototype", func() {
 
 		It("returns a plan which will update the prototype", func() {
 			defaults := atc.Source{"sdk": "sdv"}
-			Expect(prototype.CheckPlan(atc.NewPlanFactory(0), resourceTypes.Deserialize(), atc.Version{"some": "version"}, 1*time.Hour, nil, false, false)).To(Equal(
+			Expect(prototype.CheckPlan(atc.NewPlanFactory(0), resourceTypes.Deserialize(), atc.Version{"some": "version"}, 1*time.Hour, defaults, false, false)).To(Equal(
 				atc.Plan{
 					ID: atc.PlanID("1"),
 					Check: &atc.CheckPlan{
@@ -225,7 +225,11 @@ var _ = Describe("Prototype", func() {
 						Tags:   prototype.Tags(),
 
 						FromVersion: atc.Version{"some": "version"},
-						Interval:    "1m0s",
+						Interval:    "1h0m0s",
+
+						TypeImage: atc.TypeImage{
+							BaseType: "registry-image",
+						},
 
 						Prototype: prototype.Name(),
 					},

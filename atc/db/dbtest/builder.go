@@ -376,15 +376,40 @@ func (builder Builder) WithPrototypeVersions(prototypeName string, versions ...a
 			return fmt.Errorf("prototype '%s' not configured in pipeline", prototypeName)
 		}
 
+		build, success, err := prototype.CreateBuild(context.TODO(), false, atc.Plan{
+			ID: "check-prototype",
+			Check: &atc.CheckPlan{
+				Name:   prototype.Name(),
+				Type:   prototype.Type(),
+				Source: prototype.Source(),
+			},
+		})
+		if err != nil {
+			return fmt.Errorf("create check build: %w", err)
+		}
+		if !success {
+			return fmt.Errorf("failed to create check build")
+		}
+
 		resourceTypes, err := scenario.Pipeline.ResourceTypes()
 		if err != nil {
 			return fmt.Errorf("get pipeline prototypes: %w", err)
 		}
 
+		var imageResourceCache db.ResourceCache
+		if resourceTypes != nil {
+			resourceType, _ := resourceTypes.Parent(prototype)
+			if resourceType != nil {
+				imageResourceCache, err = builder.createResourceCache(build.ID(), resourceType, resourceTypes.Without(resourceType.Name()))
+				if err != nil {
+					return fmt.Errorf("create resource cache: %w", err)
+				}
+			}
+		}
 		resourceConfig, err := builder.ResourceConfigFactory.FindOrCreateResourceConfig(
 			prototype.Type(),
 			prototype.Source(),
-			resourceTypes.Filter(prototype).Deserialize(),
+			imageResourceCache,
 		)
 		if err != nil {
 			return fmt.Errorf("find or create resource config: %w", err)
