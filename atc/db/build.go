@@ -69,7 +69,6 @@ var buildsQuery = psql.Select(`
 		b.job_id,
 		b.resource_id,
 		b.resource_type_id,
-		b.prototype_id,
 		b.team_id,
 		b.status,
 		b.manually_triggered,
@@ -129,8 +128,6 @@ type Build interface {
 	ResourceName() string
 
 	ResourceTypeID() int
-
-	PrototypeID() int
 
 	Schema() string
 	PrivatePlan() atc.Plan
@@ -224,7 +221,6 @@ type build struct {
 	resourceName string
 
 	resourceTypeID int
-	prototypeID    int
 
 	isManuallyTriggered bool
 
@@ -345,7 +341,6 @@ func (b *build) JobName() string              { return b.jobName }
 func (b *build) ResourceID() int              { return b.resourceID }
 func (b *build) ResourceName() string         { return b.resourceName }
 func (b *build) ResourceTypeID() int          { return b.resourceTypeID }
-func (b *build) PrototypeID() int             { return b.prototypeID }
 func (b *build) TeamID() int                  { return b.teamID }
 func (b *build) TeamName() string             { return b.teamName }
 func (b *build) IsManuallyTriggered() bool    { return b.isManuallyTriggered }
@@ -1755,7 +1750,7 @@ func buildEventSeq(buildid int) string {
 
 func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) error {
 	var (
-		jobID, resourceID, resourceTypeID, prototypeID, pipelineID, rerunOf, rerunNumber  sql.NullInt64
+		jobID, resourceID, resourceTypeID, pipelineID, rerunOf, rerunNumber               sql.NullInt64
 		schema, privatePlan, jobName, resourceName, pipelineName, publicPlan, rerunOfName sql.NullString
 		createTime, startTime, endTime, reapTime                                          pq.NullTime
 		nonce, spanContext, createdBy                                                     sql.NullString
@@ -1770,7 +1765,6 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 		&jobID,
 		&resourceID,
 		&resourceTypeID,
-		&prototypeID,
 		&b.teamID,
 		&status,
 		&b.isManuallyTriggered,
@@ -1809,7 +1803,6 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 	b.resourceID = int(resourceID.Int64)
 	b.resourceName = resourceName.String
 	b.resourceTypeID = int(resourceTypeID.Int64)
-	b.prototypeID = int(prototypeID.Int64)
 	b.pipelineID = int(pipelineID.Int64)
 	b.pipelineName = pipelineName.String
 	b.schema = schema.String
@@ -1889,7 +1882,7 @@ func (b *build) saveEvent(tx Tx, event atc.Event) error {
 }
 
 func (b *build) isForCheck() bool {
-	return b.resourceTypeID != 0 || b.resourceID != 0 || b.prototypeID != 0
+	return b.resourceTypeID != 0 || b.resourceID != 0
 }
 
 func (b *build) eventsTable() string {

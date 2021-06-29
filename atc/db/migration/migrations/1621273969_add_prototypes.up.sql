@@ -17,8 +17,3 @@ CREATE INDEX prototypes_pipeline_id
 
 CREATE INDEX prototypes_resource_config_id
     ON prototypes (resource_config_id);
-
-ALTER TABLE builds
-    ADD COLUMN prototype_id integer REFERENCES prototypes (id) ON DELETE CASCADE;
-
-CREATE INDEX builds_prototype_id_idx ON builds (prototype_id);
