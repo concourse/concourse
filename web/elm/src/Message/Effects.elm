@@ -19,7 +19,6 @@ import Concourse.BuildStatus exposing (BuildStatus)
 import Concourse.Pagination exposing (Page)
 import Json.Decode
 import Json.Encode
-import Json.Encode.Extra
 import Maybe exposing (Maybe)
 import Message.Callback exposing (Callback(..))
 import Message.Message

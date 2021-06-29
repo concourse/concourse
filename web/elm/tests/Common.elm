@@ -1,5 +1,6 @@
 module Common exposing
     ( and
+    , any
     , contains
     , defineHoverBehaviour
     , expectNoTooltip
@@ -15,6 +16,7 @@ module Common exposing
     , initRoute
     , isColorWithStripes
     , myBrowserFetchedTheBuild
+    , none
     , notContains
     , pipelineRunningKeyframes
     , queryView
@@ -54,6 +56,32 @@ queryView =
         >> .body
         >> Html.div []
         >> Query.fromHtml
+
+
+any : (a -> Bool) -> List a -> Expect.Expectation
+any x xs =
+    if List.any x xs then
+        Expect.pass
+
+    else
+        Expect.fail <|
+            "Expected \n[ "
+                ++ String.join "\n, " (List.map Debug.toString xs)
+                ++ "\n] to contain "
+                ++ Debug.toString x
+
+
+none : (a -> Bool) -> List a -> Expect.Expectation
+none x xs =
+    if List.any x xs then
+        Expect.fail <|
+            "Expected \n[ "
+                ++ String.join "\n, " (List.map Debug.toString xs)
+                ++ "\n] to not contain "
+                ++ Debug.toString x
+
+    else
+        Expect.pass
 
 
 contains : a -> List a -> Expect.Expectation

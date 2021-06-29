@@ -158,14 +158,14 @@ all =
                         Header.header session
                             { model | status = BuildStatusSucceeded }
                             |> .rightWidgets
-                            |> Common.notContains
-                                (Views.Button <|
-                                    Just
-                                        { type_ = Views.Rerun
-                                        , isClickable = True
-                                        , backgroundShade = Views.Light
-                                        , backgroundColor = BuildStatusSucceeded
-                                        }
+                            |> Common.none
+                                (\w ->
+                                    case w of
+                                        Views.Button (Just x) ->
+                                            x.type_ == Views.Rerun
+
+                                        _ ->
+                                            False
                                 )
                 , test "appears on non-running job build" <|
                     \_ ->
@@ -192,28 +192,6 @@ all =
                                 (Effects.RerunJobBuild
                                     (Data.longJobBuildId |> Data.withBuildName model.name)
                                 )
-                , test "archived pipeline's only have a toggle comment button" <|
-                    \_ ->
-                        { model | status = BuildStatusSucceeded, job = Just jobId }
-                            |> Header.header
-                                { session
-                                    | pipelines =
-                                        RemoteData.Success
-                                            [ Data.pipeline jobId.teamName 0
-                                                |> Data.withName jobId.pipelineName
-                                                |> Data.withArchived True
-                                            ]
-                                }
-                            |> .rightWidgets
-                            |> Expect.equal
-                                [ Views.Button <|
-                                    Just
-                                        { type_ = Views.ToggleComment
-                                        , isClickable = True
-                                        , backgroundShade = Views.Light
-                                        , backgroundColor = BuildStatusSucceeded
-                                        }
-                                ]
                 , test "pipeline lookup considers instance vars" <|
                     \_ ->
                         let
@@ -235,7 +213,86 @@ all =
                                             ]
                                 }
                             |> .rightWidgets
-                            |> Expect.notEqual []
+                            |> Common.contains
+                                (Views.Button <|
+                                    Just
+                                        { type_ = Views.Rerun
+                                        , isClickable = True
+                                        , backgroundShade = Views.Light
+                                        , backgroundColor = BuildStatusSucceeded
+                                        }
+                                )
+                ]
+            , describe "comment"
+                [ test "shown when user is authorized to edit comment" <|
+                    \_ ->
+                        Header.header session
+                            { model | job = Just jobId }
+                            |> .rightWidgets
+                            |> Common.contains
+                                (Views.Button <|
+                                    Just
+                                        { type_ = Views.ToggleComment
+                                        , isClickable = True
+                                        , backgroundShade = Views.Light
+                                        , backgroundColor = model.status
+                                        }
+                                )
+                , test "hidden when user is not authorized to edit comment" <|
+                    \_ ->
+                        Header.header session
+                            { model | job = Just jobId, authorized = False }
+                            |> .rightWidgets
+                            |> Common.none
+                                (\w ->
+                                    case w of
+                                        Views.Button (Just x) ->
+                                            x.type_ == Views.ToggleComment
+
+                                        _ ->
+                                            False
+                                )
+                , test "clicking toggles visiblity of comment" <|
+                    \_ ->
+                        ( { model | job = Just jobId }
+                        , []
+                        )
+                            |> Header.update (Message.Click Message.ToggleBuildCommentButton)
+                            |> Tuple.first
+                            |> (\updatedModel ->
+                                    case updatedModel.comment of
+                                        Visible _ ->
+                                            Expect.pass
+
+                                        _ ->
+                                            Expect.fail
+                                                ("Expected model.comment ("
+                                                    ++ Debug.toString updatedModel.comment
+                                                    ++ ") to be Visible"
+                                                )
+                               )
+                , test "archived pipeline's only have a toggle comment button" <|
+                    \_ ->
+                        { model | job = Just jobId, status = BuildStatusSucceeded }
+                            |> Header.header
+                                { session
+                                    | pipelines =
+                                        RemoteData.Success
+                                            [ Data.pipeline jobId.teamName 0
+                                                |> Data.withName jobId.pipelineName
+                                                |> Data.withArchived True
+                                            ]
+                                }
+                            |> .rightWidgets
+                            |> Expect.equal
+                                [ Views.Button <|
+                                    Just
+                                        { type_ = Views.ToggleComment
+                                        , isClickable = True
+                                        , backgroundShade = Views.Light
+                                        , backgroundColor = BuildStatusSucceeded
+                                        }
+                                ]
                 ]
             ]
         , test "stops fetching history once current build appears" <|

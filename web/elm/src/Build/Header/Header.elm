@@ -3,7 +3,6 @@ module Build.Header.Header exposing
     , handleCallback
     , handleDelivery
     , header
-    , initBuildCommentBar
     , tooltip
     , update
     , view
@@ -26,7 +25,7 @@ import Html.Attributes exposing (style)
 import List.Extra
 import Maybe.Extra
 import Message.Callback exposing (Callback(..))
-import Message.Effects as Effects exposing (Effect(..))
+import Message.Effects as Effects exposing (Effect(..), toHtmlID)
 import Message.Message exposing (DomID(..), Message(..))
 import Message.ScrollDirection exposing (ScrollDirection(..))
 import Message.Subscription
@@ -309,12 +308,33 @@ historyItem model =
     }
 
 
-initBuildCommentBar : String -> CommentBar.Model
+initBuildCommentBar : String -> ( CommentBar.Model, List Effect )
 initBuildCommentBar content =
-    { id = BuildComment
-    , state = CommentBar.Viewing content
-    , style = CommentBar.defaultStyle
-    }
+    let
+        model =
+            { id = BuildComment
+            , style = CommentBar.defaultStyle
+            , state =
+                if String.isEmpty content then
+                    CommentBar.Editing { content = content, cached = content }
+
+                else
+                    CommentBar.Viewing content
+            }
+
+        id =
+            CommentBar.getTextareaID model
+    in
+    ( model
+    , SyncTextareaHeight id
+        :: (case model.state of
+                CommentBar.Editing _ ->
+                    [ Focus (toHtmlID id) ]
+
+                _ ->
+                    []
+           )
+    )
 
 
 changeToBuild : BuildPageType -> ET (Model r)
@@ -333,7 +353,7 @@ changeToBuild pageType ( model, effects ) =
                                 else
                                     let
                                         ( cb, effs ) =
-                                            CommentBar.resetState (initBuildCommentBar b.comment)
+                                            initBuildCommentBar b.comment
                                     in
                                     ( Visible cb, effs )
 
@@ -634,7 +654,7 @@ update msg ( model, effects ) =
                 Hidden comment ->
                     let
                         ( updatedCommentBar, updatedEffects ) =
-                            CommentBar.resetState (initBuildCommentBar comment)
+                            initBuildCommentBar comment
                     in
                     ( { model | comment = Visible updatedCommentBar }
                     , effects ++ updatedEffects
@@ -657,6 +677,9 @@ handleCallback callback ( model, effects ) =
 
         BuildCommentSet id savedComment result ->
             let
+                savedSuccessfully =
+                    result |> Result.toMaybe |> Maybe.Extra.isJust
+
                 updatedComment =
                     if model.id == id then
                         { model
@@ -666,7 +689,7 @@ handleCallback callback ( model, effects ) =
                                         Hidden savedComment
 
                                     Visible commentBar ->
-                                        Visible (CommentBar.commentSetCallback ( savedComment, result ) commentBar)
+                                        Visible <| CommentBar.saveCallback ( savedSuccessfully, savedComment ) commentBar
                         }
 
                     else
@@ -740,7 +763,7 @@ handleBuildFetched b ( model, effects ) =
                     else
                         let
                             ( initCommentBar, effs ) =
-                                CommentBar.resetState (initBuildCommentBar b.comment)
+                                initBuildCommentBar b.comment
                         in
                         ( Visible initCommentBar, effs )
 

@@ -126,9 +126,12 @@ viewHeader header =
                         []
 
                     Just ( model, state ) ->
-                        [ Html.div [ style "display" "flex" ]
+                        [ Html.div
+                            [ id (toHtmlID model.id)
+                            , style "display" "flex"
+                            ]
                             [ Html.div [ style "flex" "1 1 0%" ] []
-                            , CommentBar.view model state [ style "flex" "2 1 0%" ]
+                            , CommentBar.view [ style "flex" "2 1 0%" ] state model
                             , Html.div [ style "flex" "1 1 0%" ] []
                             ]
                         ]

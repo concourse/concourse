@@ -413,7 +413,7 @@ handleDeliveryCommentBar delivery ( model, effects ) =
         Visible commentBar ->
             let
                 ( updatedCommentBar, updatedEffects ) =
-                    CommentBar.handleDelivery commentBar delivery
+                    CommentBar.handleDelivery delivery commentBar
             in
             ( { model | comment = Visible updatedCommentBar }
             , effects ++ updatedEffects
@@ -500,9 +500,7 @@ updateCommentBar msg ( model, effects ) =
         Visible commentBar ->
             let
                 ( updatedCommentBar, updatedEffects ) =
-                    CommentBar.update commentBar
-                        { saveComment = \content -> SetBuildComment model.id content }
-                        msg
+                    CommentBar.update msg (\content -> SetBuildComment model.id content) commentBar
             in
             ( { model | comment = Visible updatedCommentBar }
             , effects ++ updatedEffects

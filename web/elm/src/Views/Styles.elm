@@ -6,7 +6,7 @@ module Views.Styles exposing
     , clusterName
     , commentBarEditButton
     , commentBarText
-    , commentBarTextArea
+    , commentBarTextarea
     , commentBarTextButton
     , commentBarWrapper
     , concourseLogo
@@ -296,8 +296,8 @@ commentBarWrapper =
     ]
 
 
-commentBarTextArea : List (Html.Attribute msg)
-commentBarTextArea =
+commentBarTextarea : List (Html.Attribute msg)
+commentBarTextarea =
     [ style "box-sizing" "border-box"
     , style "flex-grow" "1"
     , style "resize" "none"
