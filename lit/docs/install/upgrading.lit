@@ -2,28 +2,66 @@
 
 \use-plugin{concourse-docs}
 
-Concourse is upgraded by stopping the Concourse process, swapping out the
-\code{concourse} binary with the new one, and re-starting it. This should be
-done on each \reference{web-node} and \reference{worker-node}. Be careful to
-check the release notes for anything marked 'breaking' - in particular, you'll
-want to look for any flags that have changed.
+Be careful to check the "Breaking Changes" in the release notes - in
+particular, you'll want to look for any flags that have changed.
 
-Each \reference{web-node} will automatically run migrations on start and locks
-via the database to ensure only one of them runs the migrations. We currently
-do not guarantee zero-downtime upgrades, as migrations may make changes that
-confuse the older \code{web} nodes. This should resolve as each node is
-upgraded, and shouldn't result in any inconsistent state.
+\section{
+  \title{Upgrading the Web Node}
 
-Typically, Concourse can be upgraded from any version to any other version,
-though around 3.x and 4.x we made some changes to how migrations are run, and
-as a result the following upgrade paths must be followed:
+  The web node is upgraded by stopping the Concourse process, swapping out the
+  \code{concourse} binary with the new one, and re-starting it.
 
-\table{
-  \table-row{Current Version}{Upgrade Path}
-}{
-  \table-row{< \ghrelease{v3.6.0}}{\ghrelease{v3.6.0} -> \ghrelease{v4.0.0} -> latest}
-}{
-  \table-row{= \ghrelease{v3.6.0}}{\ghrelease{v4.0.0} -> latest}
+  Each \reference{web-node} will automatically run database migrations on
+  start-up and lock via the database to ensure only one of the web nodes runs
+  the migrations. We currently do not guarantee zero-downtime upgrades, as
+  migrations may make changes that confuse the older web nodes. This should
+  resolve as each web node is upgraded, and shouldn't result in any
+  inconsistent state.
+
+  Typically, Concourse can be upgraded from any version to any other version,
+  though around 3.x and 4.x we made some changes to how migrations are run, and
+  as a result the following upgrade paths must be followed:
+
+  \table{
+    \table-row{Current Version}{Upgrade Path}
+  }{
+    \table-row{< \ghrelease{v3.6.0}}{\ghrelease{v3.6.0} -> \ghrelease{v4.0.0} -> latest}
+  }{
+    \table-row{= \ghrelease{v3.6.0}}{\ghrelease{v4.0.0} -> latest}
+  }
+
+  We'll try to minimize this kind of thing in the future.
+
+  Lastly, you will want to overwrite the contents of
+  \code{concourse/fly-assets} with the contents from the \link{Github release
+  tarball}{https://github.com/concourse/concourse/releases} so users can
+  \reference{fly-sync} to the correct version.
 }
 
-We'll try to minimize this kind of thing in the future.
+\section{
+  \title{Upgrading the Worker Node}
+    The worker node is upgraded by stopping the Concourse process, swapping out
+    the \code{concourse} binary with the new one, and re-starting it.
+
+  \section{
+    \title{Linux Workers}
+    The Linux tarball from the \link{Github release
+    page}{https://github.com/concourse/concourse/releases} contains extra
+    assets that you will want to ensure are also upgraded at the same time.
+    Make sure you overwrite the contents of the following directories:
+
+    \list{
+      \code{concourse/bin/...} - Other binaries like \code{gdn}, \code{runc},
+      and \code{containerd} are in this directory
+    }{
+      \code{concourse/resource-types/...} - The location of the default
+      \reference{resource-types}{resource-types} included with each Concourse release
+    }
+
+  }
+
+  \section{
+    \title{Darwin and Windows Workers}
+    There are no additional steps for upgrading Darwin and Windows workers.
+  }
+}
