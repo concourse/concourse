@@ -33,8 +33,6 @@ import Common
     exposing
         ( defineHoverBehaviour
         , givenDataUnauthenticated
-        , isColorWithStripes
-        , pipelineRunningKeyframes
         )
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
@@ -87,11 +85,6 @@ lightGrey =
     "#9b9b9b"
 
 
-menuGrey : String
-menuGrey =
-    "#868585"
-
-
 green : String
 green =
     "#11c560"
@@ -135,21 +128,6 @@ fadedGreen =
 orange : String
 orange =
     "#e67e22"
-
-
-pipelineRunningKeyframes : String
-pipelineRunningKeyframes =
-    "pipeline-running"
-
-
-flags : Application.Flags
-flags =
-    { turbulenceImgSrc = ""
-    , notFoundImgSrc = ""
-    , csrfToken = csrfToken
-    , authToken = ""
-    , pipelineRunningKeyframes = pipelineRunningKeyframes
-    }
 
 
 all : Test
@@ -2099,11 +2077,6 @@ afterSeconds n =
         |> List.foldr (>>) identity
 
 
-csrfToken : String
-csrfToken =
-    "csrf_token"
-
-
 iconSelector : { size : String, image : Assets.Asset } -> List Selector
 iconSelector { size, image } =
     [ style "background-image" <| Assets.backgroundImage <| Just image
@@ -2177,7 +2150,7 @@ givenClusterInfo :
 givenClusterInfo version clusterName =
     Application.handleCallback
         (Callback.ClusterInfoFetched <|
-            Ok { version = version, clusterName = clusterName }
+            Ok { version = version, clusterName = clusterName, featureFlags = { resourceCausality = False } }
         )
 
 

@@ -23,7 +23,8 @@ import Test exposing (..)
 import Test.Html.Query as Query
 import Test.Html.Selector
     exposing
-        ( id
+        ( class
+        , id
         , text
         )
 
@@ -32,11 +33,27 @@ all : Test
 all =
     describe "causality graph" <|
         [ describe "viewing graph" <|
-            [ test "shows error message if too large" <|
+            [ test "shows not found if feature flag is disabled" <|
+                \_ ->
+                    init
+                        |> Common.withFeatureFlags { resourceCausality = True }
+                        |> Common.queryView
+                        |> Query.find [ class "notfound" ]
+                        |> Query.has [ text "404" ]
+            , test "shows not found if response is forbidden" <|
                 \_ ->
                     init
                         |> Application.handleCallback
                             (Callback.CausalityFetched Data.httpForbidden)
+                        |> Tuple.first
+                        |> Common.queryView
+                        |> Query.find [ class "notfound" ]
+                        |> Query.has [ text "404" ]
+            , test "shows error message if too large" <|
+                \_ ->
+                    init
+                        |> Application.handleCallback
+                            (Callback.CausalityFetched Data.httpUnproccessableEntity)
                         |> Tuple.first
                         |> Common.queryView
                         |> Query.find [ id "causality-error" ]
@@ -271,3 +288,4 @@ init =
             ++ String.fromInt resourceVersionId
             ++ "/downstream"
         )
+        |> Common.withFeatureFlags { resourceCausality = True }

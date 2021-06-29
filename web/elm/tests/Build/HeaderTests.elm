@@ -12,8 +12,6 @@ import Data
 import Dict
 import Expect
 import HoverState
-import Html.Attributes exposing (type_)
-import Keyboard
 import List.Extra
 import Message.Callback as Callback
 import Message.Effects as Effects
@@ -27,12 +25,7 @@ import Test exposing (Test, describe, test)
 import Test.Html.Query as Query
 import Test.Html.Selector
     exposing
-        ( attribute
-        , class
-        , containing
-        , id
-        , style
-        , tag
+        ( containing
         , text
         )
 import Time
@@ -463,6 +456,9 @@ session =
     , userState = UserState.UserStateLoggedOut
     , clusterName = ""
     , version = ""
+    , featureFlags =
+        { resourceCausality = False
+        }
     , turbulenceImgSrc = ""
     , notFoundImgSrc = ""
     , csrfToken = ""

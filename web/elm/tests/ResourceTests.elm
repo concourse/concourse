@@ -292,48 +292,87 @@ all =
                     |> queryView
                     |> Query.find (versionSelector version)
                     |> Query.has [ text "some-build" ]
-        , test "'Inputs To' links to causality page" <|
-            \_ ->
-                init
-                    |> givenResourceIsNotPinned
-                    |> givenVersionsWithoutPagination
-                    |> update
-                        (Message.Message.Click <|
-                            Message.Message.VersionHeader versionID
-                        )
-                    |> Tuple.first
-                    |> givenVersionsWithoutPagination
-                    |> queryView
-                    |> Query.find (inputsOutputsSelector "inputs to")
-                    |> Query.has
-                        [ Common.routeHref <|
-                            Routes.Causality
-                                { id = versionID
-                                , direction = Concourse.Downstream
-                                , version = Nothing
-                                }
-                        ]
-        , test "'Outputs Of' links to causality page" <|
-            \_ ->
-                init
-                    |> givenResourceIsNotPinned
-                    |> givenVersionsWithoutPagination
-                    |> update
-                        (Message.Message.Click <|
-                            Message.Message.VersionHeader versionID
-                        )
-                    |> Tuple.first
-                    |> givenVersionsWithoutPagination
-                    |> queryView
-                    |> Query.find (inputsOutputsSelector "outputs of")
-                    |> Query.has
-                        [ Common.routeHref <|
-                            Routes.Causality
-                                { id = versionID
-                                , direction = Concourse.Upstream
-                                , version = Nothing
-                                }
-                        ]
+        , describe "when causality is enabled" <|
+            let
+                whenItsEnabled =
+                    init
+                        |> Common.withFeatureFlags { resourceCausality = True }
+                        |> givenResourceIsNotPinned
+                        |> givenVersionsWithoutPagination
+                        |> update
+                            (Message.Message.Click <|
+                                Message.Message.VersionHeader versionID
+                            )
+                        |> Tuple.first
+                        |> givenVersionsWithoutPagination
+            in
+            [ test "'Inputs To' links to causality page" <|
+                \_ ->
+                    whenItsEnabled
+                        |> queryView
+                        |> Query.find (inputsOutputsSelector "inputs to")
+                        |> Query.has
+                            [ Common.routeHref <|
+                                Routes.Causality
+                                    { id = versionID
+                                    , direction = Concourse.Downstream
+                                    , version = Nothing
+                                    }
+                            ]
+            , test "'Outputs Of' links to causality page" <|
+                \_ ->
+                    whenItsEnabled
+                        |> queryView
+                        |> Query.find (inputsOutputsSelector "outputs of")
+                        |> Query.has
+                            [ Common.routeHref <|
+                                Routes.Causality
+                                    { id = versionID
+                                    , direction = Concourse.Upstream
+                                    , version = Nothing
+                                    }
+                            ]
+            ]
+        , describe "when causality is disabled" <|
+            let
+                whenItsDisabled =
+                    init
+                        |> givenResourceIsNotPinned
+                        |> givenVersionsWithoutPagination
+                        |> update
+                            (Message.Message.Click <|
+                                Message.Message.VersionHeader versionID
+                            )
+                        |> Tuple.first
+                        |> givenVersionsWithoutPagination
+            in
+            [ test "'Inputs To' links to causality page" <|
+                \_ ->
+                    whenItsDisabled
+                        |> queryView
+                        |> Query.find (inputsOutputsSelector "inputs to")
+                        |> Query.hasNot
+                            [ Common.routeHref <|
+                                Routes.Causality
+                                    { id = versionID
+                                    , direction = Concourse.Downstream
+                                    , version = Nothing
+                                    }
+                            ]
+            , test "'Outputs Of' links to causality page" <|
+                \_ ->
+                    whenItsDisabled
+                        |> queryView
+                        |> Query.find (inputsOutputsSelector "outputs of")
+                        |> Query.hasNot
+                            [ Common.routeHref <|
+                                Routes.Causality
+                                    { id = versionID
+                                    , direction = Concourse.Upstream
+                                    , version = Nothing
+                                    }
+                            ]
+            ]
         , describe "when the url contains a version" <|
             let
                 initWithVersion =
@@ -4033,6 +4072,9 @@ session =
     , hovered = HoverState.NoHover
     , clusterName = ""
     , version = ""
+    , featureFlags =
+        { resourceCausality = True
+        }
     , turbulenceImgSrc = flags.turbulenceImgSrc
     , notFoundImgSrc = flags.notFoundImgSrc
     , csrfToken = flags.csrfToken

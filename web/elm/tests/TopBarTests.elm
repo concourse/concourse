@@ -793,6 +793,7 @@ all =
             ]
         , rspecStyleDescribe "rendering top bar on causality page"
             (Common.init "/teams/team/pipelines/pipeline/resources/resource/causality/1/downstream"
+                |> Common.withFeatureFlags { resourceCausality = True }
                 |> Application.handleCallback
                     (Callback.AllPipelinesFetched <|
                         Ok [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
