@@ -83,7 +83,7 @@ func containerLimitsFail(selectorFlags ...string) {
 			<-buildSession.Exited
 			Expect(buildSession.ExitCode()).To(Equal(2))
 			Expect(buildSession).To(gbytes.Say(
-				"memory.memsw.limit_in_bytes: permission denied",
+				"memory.memsw.limit_in_bytes: (permission denied|no such file or directory)",
 			))
 		})
 	})
