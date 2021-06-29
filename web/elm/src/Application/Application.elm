@@ -73,6 +73,9 @@ init flags url =
             , hovered = HoverState.NoHover
             , clusterName = ""
             , version = ""
+            , featureFlags =
+                { resourceCausality = False
+                }
             , turbulenceImgSrc = flags.turbulenceImgSrc
             , notFoundImgSrc = flags.notFoundImgSrc
             , csrfToken = flags.csrfToken
@@ -205,13 +208,13 @@ handleCallback callback model =
             in
             subpageHandleCallback callback ( { model | session = newSession }, [] )
 
-        ClusterInfoFetched (Ok { clusterName, version }) ->
+        ClusterInfoFetched (Ok { clusterName, version, featureFlags }) ->
             let
                 session =
                     model.session
 
                 newSession =
-                    { session | clusterName = clusterName, version = version }
+                    { session | clusterName = clusterName, version = version, featureFlags = featureFlags }
             in
             subpageHandleCallback callback ( { model | session = newSession }, [] )
 
@@ -263,7 +266,7 @@ subpageHandleCallback callback ( model, effects ) =
         ( subModel, newEffects ) =
             ( model.subModel, effects )
                 |> SubPage.handleCallback callback model.session
-                |> SubPage.handleNotFound model.session.notFoundImgSrc model.session.route
+                |> SubPage.handleNotFound model.session
     in
     ( { model | subModel = subModel }, newEffects )
 
@@ -301,7 +304,7 @@ update msg model =
                 ( subModel, subEffects ) =
                     ( model.subModel, [] )
                         |> SubPage.update model.session m
-                        |> SubPage.handleNotFound model.session.notFoundImgSrc model.session.route
+                        |> SubPage.handleNotFound model.session
 
                 ( session, sessionEffects ) =
                     SideBar.update m model.session
@@ -323,7 +326,7 @@ handleDelivery delivery model =
         ( newSubmodel, subPageEffects ) =
             ( model.subModel, [] )
                 |> SubPage.handleDelivery model.session delivery
-                |> SubPage.handleNotFound model.session.notFoundImgSrc model.session.route
+                |> SubPage.handleNotFound model.session
 
         ( newModel, applicationEffects ) =
             handleDeliveryForApplication

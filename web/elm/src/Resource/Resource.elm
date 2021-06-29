@@ -1226,6 +1226,7 @@ body :
         , pipelines : WebData (List Concourse.Pipeline)
         , hovered : HoverState.HoverState
         , timeZone : Time.Zone
+        , featureFlags : Concourse.FeatureFlags
     }
     -> Model
     -> Html Message
@@ -1745,7 +1746,10 @@ isPipelineArchived session id =
 
 
 viewVersionedResources :
-    { a | pipelines : WebData (List Concourse.Pipeline) }
+    { a
+        | pipelines : WebData (List Concourse.Pipeline)
+        , featureFlags : Concourse.FeatureFlags
+    }
     ->
         { b
             | versions : Paginated Models.Version
@@ -1760,16 +1764,17 @@ viewVersionedResources session model =
     in
     model
         |> versions
-        |> List.map (\v -> viewVersionedResource { version = v, archived = archived })
+        |> List.map (\v -> viewVersionedResource { version = v, archived = archived, causalityEnabled = session.featureFlags.resourceCausality })
         |> Html.ul [ class "list list-collapsable list-enableDisable resource-versions" ]
 
 
 viewVersionedResource :
     { version : VersionPresenter
     , archived : Bool
+    , causalityEnabled : Bool
     }
     -> Html Message
-viewVersionedResource { version, archived } =
+viewVersionedResource { version, archived, causalityEnabled } =
     Html.li
         (case ( version.pinState, version.enabled ) of
             ( Disabled, _ ) ->
@@ -1816,6 +1821,7 @@ viewVersionedResource { version, archived } =
                         , outputOf = version.outputOf
                         , versionId = version.id
                         , metadata = version.metadata
+                        , causalityEnabled = causalityEnabled
                         }
                     ]
 
@@ -1831,15 +1837,16 @@ viewVersionBody :
         , outputOf : List Concourse.Build
         , versionId : Concourse.VersionedResourceIdentifier
         , metadata : Concourse.Metadata
+        , causalityEnabled : Bool
     }
     -> Html Message
-viewVersionBody { inputTo, outputOf, versionId, metadata } =
+viewVersionBody { inputTo, outputOf, versionId, metadata, causalityEnabled } =
     Html.div
         [ style "display" "flex"
         , style "padding" "5px 10px"
         ]
-        [ viewInputsOrOutputs Concourse.Downstream versionId inputTo
-        , viewInputsOrOutputs Concourse.Upstream versionId outputOf
+        [ viewInputsOrOutputs causalityEnabled Concourse.Downstream versionId inputTo
+        , viewInputsOrOutputs causalityEnabled Concourse.Upstream versionId outputOf
         , Html.div [ class "vri metadata-container" ]
             [ Html.div [ class "list-collapsable-title" ] [ Html.text "metadata" ]
             , viewMetadata metadata
@@ -1967,20 +1974,20 @@ viewVersion attrs version =
         |> DictView.view attrs
 
 
-viewInputsOrOutputs : Concourse.CausalityDirection -> Concourse.VersionedResourceIdentifier -> List Concourse.Build -> Html Message
-viewInputsOrOutputs direction versionId builds =
+viewInputsOrOutputs : Bool -> Concourse.CausalityDirection -> Concourse.VersionedResourceIdentifier -> List Concourse.Build -> Html Message
+viewInputsOrOutputs causalityEnabled direction versionId builds =
     Html.div [ class "vri" ] <|
         List.concat
             [ [ Html.div
                     [ style "line-height" "25px" ]
-                    [ viewCausalityButton direction versionId ]
+                    [ viewCausalityButton causalityEnabled direction versionId ]
               ]
             , viewBuilds <| listToMap builds
             ]
 
 
-viewCausalityButton : Concourse.CausalityDirection -> Concourse.VersionedResourceIdentifier -> Html Message
-viewCausalityButton dir versionId =
+viewCausalityButton : Bool -> Concourse.CausalityDirection -> Concourse.VersionedResourceIdentifier -> Html Message
+viewCausalityButton enabled dir versionId =
     let
         link =
             Routes.Causality
@@ -2003,21 +2010,25 @@ viewCausalityButton dir versionId =
             , onClick <| GoToRoute link
             ]
     in
-    Html.div
-        [ style "line-height" "25px"
-        , style "display" "flex"
-        , style "justify-content" "space-between"
-        ]
-        [ Html.text text
-        , Html.a
-            ([ href (Routes.toString link)
-             , id (toHtmlID <| domID)
-             ]
-                ++ eventHandlers
-                ++ Resource.Styles.causalityButton
-            )
-            [ Html.text "view all" ]
-        ]
+    if enabled then
+        Html.div
+            [ style "line-height" "25px"
+            , style "display" "flex"
+            , style "justify-content" "space-between"
+            ]
+            [ Html.text text
+            , Html.a
+                ([ href (Routes.toString link)
+                 , id (toHtmlID <| domID)
+                 ]
+                    ++ eventHandlers
+                    ++ Resource.Styles.causalityButton
+                )
+                [ Html.text "view all" ]
+            ]
+
+    else
+        Html.text text
 
 
 viewMetadata : Concourse.Metadata -> Html Message

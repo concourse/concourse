@@ -22,6 +22,7 @@ module Concourse exposing
     , CausalityResourceVersion
     , ClusterInfo
     , DatabaseID
+    , FeatureFlags
     , HookedPlan
     , InstanceGroupIdentifier
     , InstanceVars
@@ -181,8 +182,10 @@ type alias BuildId =
 type alias BuildName =
     String
 
+
 type alias BuildCreatedBy =
     Maybe String
+
 
 type alias JobBuildIdentifier =
     { teamName : TeamName
@@ -202,7 +205,7 @@ type alias Build =
     , duration : BuildDuration
     , comment : String
     , reapTime : Maybe Time.Posix
-    , createdBy: BuildCreatedBy
+    , createdBy : BuildCreatedBy
     }
 
 
@@ -834,9 +837,21 @@ decodeBuildStepAcross =
 -- Info
 
 
+type alias FeatureFlags =
+    { resourceCausality : Bool
+    }
+
+
+decodeFeatureFlags : Json.Decode.Decoder FeatureFlags
+decodeFeatureFlags =
+    Json.Decode.succeed FeatureFlags
+        |> andMap (Json.Decode.field "resource_causality" Json.Decode.bool)
+
+
 type alias ClusterInfo =
     { version : String
     , clusterName : String
+    , featureFlags : FeatureFlags
     }
 
 
@@ -845,6 +860,7 @@ decodeInfo =
     Json.Decode.succeed ClusterInfo
         |> andMap (Json.Decode.field "version" Json.Decode.string)
         |> andMap (defaultTo "" <| Json.Decode.field "cluster_name" Json.Decode.string)
+        |> andMap (Json.Decode.field "feature_flags" decodeFeatureFlags)
 
 
 

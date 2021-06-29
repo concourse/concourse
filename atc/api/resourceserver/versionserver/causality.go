@@ -8,6 +8,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 )
 
@@ -22,6 +23,12 @@ func (s *Server) GetUpstreamResourceCausality(pipeline db.Pipeline) http.Handler
 func (s *Server) getResourceCausality(direction db.CausalityDirection, pipeline db.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger := s.logger.Session(fmt.Sprintf("%v-causality", direction))
+
+		if !atc.EnableResourceCausality {
+			logger.Info("causality-disabled")
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
 
 		versionIDString := r.FormValue(":resource_config_version_id")
 		resourceName := r.FormValue(":resource_name")
@@ -44,7 +51,7 @@ func (s *Server) getResourceCausality(direction db.CausalityDirection, pipeline 
 		if err != nil {
 			if err == db.ErrTooManyBuilds || err == db.ErrTooManyResourceVersions {
 				logger.Error("too-many-nodes", err, lager.Data{"resource-name": resourceName, "resource-config-version": versionID})
-				w.WriteHeader(http.StatusForbidden)
+				w.WriteHeader(http.StatusUnprocessableEntity)
 				return
 			} else {
 				logger.Error("failed-to-fetch", err, lager.Data{"resource-name": resourceName, "resource-config-version": versionID})

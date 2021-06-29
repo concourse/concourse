@@ -148,8 +148,11 @@ handleCallback callback ( model, effects ) =
                     if status.code == 401 then
                         ( model, effects ++ [ RedirectToLogin ] )
 
-                    else if status.code == 403 then
+                    else if status.code == 422 then
                         ( { model | pageStatus = Err TooManyNodes }, effects )
+
+                    else if status.code == 403 then
+                        ( { model | pageStatus = Err NotFound }, effects )
 
                     else if status.code == 404 then
                         ( { model | pageStatus = Err NotFound }, effects )
@@ -213,17 +216,21 @@ update msg ( model, effects ) =
             ( model, effects )
 
 
-getUpdateMessage : Model -> UpdateMsg
-getUpdateMessage model =
-    case model.pageStatus of
-        Err NotFound ->
-            UpdateMsg.NotFound
+getUpdateMessage : Session -> Model -> UpdateMsg
+getUpdateMessage session model =
+    if not session.featureFlags.resourceCausality then
+        UpdateMsg.NotFound
 
-        Err _ ->
-            UpdateMsg.AOK
+    else
+        case model.pageStatus of
+            Err NotFound ->
+                UpdateMsg.NotFound
 
-        Ok () ->
-            UpdateMsg.AOK
+            Err _ ->
+                UpdateMsg.AOK
+
+            Ok () ->
+                UpdateMsg.AOK
 
 
 view : Session -> Model -> Html Message

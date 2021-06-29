@@ -115,13 +115,13 @@ init session route =
                 |> Tuple.mapFirst CausalityModel
 
 
-handleNotFound : String -> Routes.Route -> ET Model
-handleNotFound notFound route ( model, effects ) =
-    case getUpdateMessage model of
+handleNotFound : Session -> ET Model
+handleNotFound session ( model, effects ) =
+    case getUpdateMessage session model of
         UpdateMsg.NotFound ->
             let
                 ( newModel, newEffects ) =
-                    NotFound.init { notFoundImgSrc = notFound, route = route }
+                    NotFound.init { notFoundImgSrc = session.notFoundImgSrc, route = session.route }
             in
             ( NotFoundModel newModel, effects ++ newEffects )
 
@@ -129,8 +129,8 @@ handleNotFound notFound route ( model, effects ) =
             ( model, effects )
 
 
-getUpdateMessage : Model -> UpdateMsg
-getUpdateMessage model =
+getUpdateMessage : Session -> Model -> UpdateMsg
+getUpdateMessage session model =
     case model of
         BuildModel mdl ->
             Build.getUpdateMessage mdl
@@ -145,7 +145,7 @@ getUpdateMessage model =
             Pipeline.getUpdateMessage mdl
 
         CausalityModel mdl ->
-            Causality.getUpdateMessage mdl
+            Causality.getUpdateMessage session mdl
 
         _ ->
             UpdateMsg.AOK
