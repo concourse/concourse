@@ -188,3 +188,32 @@ func (c fixedHandleContainerOwner) sqlMap() map[string]interface{} {
 		"handle": c.Handle,
 	}
 }
+
+// NewInMemoryCheckBuildContainerOwner references a in-memory check build.
+func NewInMemoryCheckBuildContainerOwner(
+	buildID int,
+) ContainerOwner {
+	return inMemoryCheckBuildContainerOwner{
+		BuildID: buildID,
+	}
+}
+
+type inMemoryCheckBuildContainerOwner struct {
+	BuildID int
+}
+
+// Find return a query criteria of `build_id`, it would not find the build as
+// the build is not in db.
+func (c inMemoryCheckBuildContainerOwner) Find(Conn) (sq.Eq, bool, error) {
+	return sq.Eq(c.sqlMap()), true, nil
+}
+
+func (c inMemoryCheckBuildContainerOwner) Create(Tx, string) (map[string]interface{}, error) {
+	return c.sqlMap(), nil
+}
+
+func (c inMemoryCheckBuildContainerOwner) sqlMap() map[string]interface{} {
+	return map[string]interface{}{
+		"in_memory_check_build_id": c.BuildID,
+	}
+}

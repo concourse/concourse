@@ -23,6 +23,7 @@ var ErrResourceCacheDisappeared = errors.New("resource-cache-disappeared")
 
 //go:generate counterfeiter . ResourceCache
 type ResourceCache interface {
+
 	ID() int
 	Version() atc.Version
 
@@ -88,4 +89,3 @@ func paramsHash(p atc.Params) string {
 
 	return mapHash(atc.Params{})
 }
-

@@ -57,6 +57,7 @@ func (s *scanner) scanResources(ctx context.Context, resources []db.Resource, re
 	logger := lagerctx.FromContext(ctx)
 	waitGroup := new(sync.WaitGroup)
 	for _, resource := range resources {
+		// If there is a running check on the resource, then don't create a duplicate one.
 		if resource.BuildSummary() != nil && resource.BuildSummary().Status == atc.StatusStarted && resource.BuildSummary().StartTime+60 > time.Now().Unix() {
 			logger.Info("EVAN:skip resource check", lager.Data{"resource": resource.Name(), "current_start": resource.BuildSummary().StartTime, "current_id": resource.BuildSummary().ID})
 			continue
@@ -98,7 +99,7 @@ func (s *scanner) check(ctx context.Context, checkable db.Checkable, resourceTyp
 		return
 	}
 
-	_, created, err := s.checkFactory.TryCreateCheck(lagerctx.NewContext(spanCtx, logger), checkable, resourceTypes, version, false, false)
+	_, created, err := s.checkFactory.TryCreateCheck(lagerctx.NewContext(spanCtx, logger), checkable, resourceTypes, version, false, false, false)
 	if err != nil {
 		logger.Error("failed-to-create-check", err)
 		return

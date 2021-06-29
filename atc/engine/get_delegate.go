@@ -123,3 +123,11 @@ func (d *getDelegate) UpdateResourceVersion(log lager.Logger, resourceName strin
 		return
 	}
 }
+
+func (d *getDelegate) ResourceCacheUser() db.ResourceCacheUser {
+	return d.build.ResourceCacheUser()
+}
+
+func (d *getDelegate) ContainerOwner(planId atc.PlanID) db.ContainerOwner {
+	return d.build.ContainerOwner(planId)
+}

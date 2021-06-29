@@ -19,3 +19,14 @@ func (user forBuild) SQLMap() map[string]interface{} {
 		"build_id": user.BuildID,
 	}
 }
+
+type noUser struct {
+}
+
+func NoUser() ResourceCacheUser {
+	return noUser{}
+}
+
+func (user noUser) SQLMap() map[string]interface{} {
+	return map[string]interface{}{}
+}

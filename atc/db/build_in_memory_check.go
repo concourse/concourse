@@ -13,10 +13,11 @@ import (
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
 	"go.opentelemetry.io/otel/propagation"
-	"os"
 	"time"
 )
 
+// inMemoryCheckBuild handles in-memory check builds only, thus it just implement
+// the necessary function of interface Build.
 type inMemoryCheckBuild struct {
 	id               int
 	checkable        Checkable
@@ -28,6 +29,51 @@ type inMemoryCheckBuild struct {
 	resourceTypeName string
 
 	conn Conn
+}
+
+func newInMemoryCheckBuild(conn Conn, checkable Checkable, plan atc.Plan) (*inMemoryCheckBuild, error) {
+	tx, err := conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer Rollback(tx)
+
+	var nextBuildId int
+	err = psql.Select("nextval('builds_id_seq'::regclass)").RunWith(tx).QueryRow().Scan(&nextBuildId)
+	if err != nil {
+		return nil, err
+	}
+
+	err = createBuildEventSeq(tx, nextBuildId)
+	if err != nil {
+		return nil, err
+	}
+
+	build := inMemoryCheckBuild{
+		id:         nextBuildId,
+		checkable:  checkable,
+		plan:       plan,
+		createTime: time.Now(),
+		conn:       conn,
+	}
+
+	if resource, ok := checkable.(Resource); ok {
+		build.resourceId = resource.ID()
+		build.resourceName = resource.Name()
+	} else if resourceType, ok := checkable.(ResourceType); ok {
+		build.resourceTypeId = resourceType.ID()
+		build.resourceTypeName = resourceType.Name()
+	} else {
+		return nil, fmt.Errorf("invalid checkable")
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	return &build, nil
 }
 
 func (b *inMemoryCheckBuild) TeamID() int {
@@ -59,19 +105,39 @@ func (b *inMemoryCheckBuild) Pipeline() (Pipeline, bool, error) {
 }
 
 func (b *inMemoryCheckBuild) LagerData() lager.Data {
-	return lager.Data{
+	data := lager.Data{
 		"build":    b.ID(),
 		"team":     b.TeamName(),
 		"pipeline": b.PipelineName(),
 	}
+
+	if b.resourceId != 0 {
+		data["resource"] = b.resourceName
+	}
+
+	if b.resourceTypeId != 0 {
+		data["resourceType"] = b.resourceTypeName
+	}
+
+	return data
 }
 
 func (b *inMemoryCheckBuild) TracingAttrs() tracing.Attrs {
-	return tracing.Attrs{
+	attrs := tracing.Attrs{
 		"build":    fmt.Sprintf("%d", b.ID()),
 		"team":     b.TeamName(),
 		"pipeline": b.PipelineName(),
 	}
+
+	if b.resourceId != 0 {
+		attrs["resource"] = b.resourceName
+	}
+
+	if b.resourceTypeId != 0 {
+		attrs["resourceType"] = b.resourceTypeName
+	}
+
+	return attrs
 }
 
 // Reload does nothing.
@@ -89,12 +155,6 @@ func (b *inMemoryCheckBuild) AcquireTrackingLock(logger lager.Logger, interval t
 // update in-memory-check-build info to table resources, and save a finish
 // event.
 func (b *inMemoryCheckBuild) Finish(status BuildStatus) error {
-	if b.resourceId == 0 {
-		return nil
-	}
-
-	fmt.Fprintf(os.Stderr, "EVAN:finish - %d\n", b.id)
-
 	tx, err := b.conn.Begin()
 	if err != nil {
 		return err
@@ -112,6 +172,15 @@ func (b *inMemoryCheckBuild) Finish(status BuildStatus) error {
 	_, err = tx.Exec(fmt.Sprintf(`
 		DROP SEQUENCE %s
 	`, buildEventSeq(b.id)))
+	if err != nil {
+		return err
+	}
+
+	_, err = psql.Update("containers").
+		Set("in_memory_check_build_id", nil).
+		Where(sq.Eq{"in_memory_check_build_id": b.id}).
+		RunWith(tx).
+		Exec()
 	if err != nil {
 		return err
 	}
@@ -208,7 +277,7 @@ func (b *inMemoryCheckBuild) PrivatePlan() atc.Plan {
 	return b.plan
 }
 
-func (b *inMemoryCheckBuild) HasPlan() bool            {
+func (b *inMemoryCheckBuild) HasPlan() bool {
 	if b.plan.ID != "" {
 		return true
 	}
@@ -258,6 +327,19 @@ func (b *inMemoryCheckBuild) Schema() string {
 	return schema
 }
 
+func (b *inMemoryCheckBuild) ResourceCacheUser() ResourceCacheUser {
+	return NoUser()
+}
+
+func (b *inMemoryCheckBuild) ContainerOwner(planId atc.PlanID) ContainerOwner {
+	return NewInMemoryCheckBuildContainerOwner(b.ID())
+}
+
+// SaveImageResourceVersion does nothing as a resource check doesn't belong to any job.
+func (b *inMemoryCheckBuild) SaveImageResourceVersion(cache UsedResourceCache) error {
+	return nil
+}
+
 func (b *inMemoryCheckBuild) ResourceID() int          { return b.resourceId }
 func (b *inMemoryCheckBuild) ResourceName() string     { return b.resourceName }
 func (b *inMemoryCheckBuild) ResourceTypeID() int      { return b.resourceTypeId }
@@ -294,9 +376,6 @@ func (b *inMemoryCheckBuild) ResourcesChecked() (bool, error) {
 	panic("not-implemented")
 }
 func (b *inMemoryCheckBuild) Resources() ([]BuildInput, []BuildOutput, error) {
-	panic("not-implemented")
-}
-func (b *inMemoryCheckBuild) SaveImageResourceVersion(cache UsedResourceCache) error {
 	panic("not-implemented")
 }
 func (b *inMemoryCheckBuild) SavePipeline(atc.PipelineRef, int, atc.Config, ConfigVersion, bool) (Pipeline, bool, error) {

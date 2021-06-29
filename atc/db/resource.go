@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"strconv"
 	"time"
 
@@ -112,9 +111,7 @@ type Resource interface {
 
 	CheckPlan(planFactory atc.PlanFactory, imagePlanner atc.ImagePlanner, from atc.Version, interval atc.CheckEvery, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) atc.Plan
 	CreateBuild(context.Context, bool, atc.Plan) (Build, bool, error)
-
 	CreateInMemoryBuild(context.Context, atc.Plan) (Build, error)
-	CheckApiEndpoint() string
 
 	NotifyScan() error
 
@@ -362,15 +359,6 @@ func (r *resource) CreateBuild(ctx context.Context, manuallyTriggered bool, plan
 		return nil, false, err
 	}
 
-	//_, err = psql.Update("resources").
-	//	Set("build_id", build.ID()).
-	//	Where(sq.Eq{"id": r.id}).
-	//	RunWith(tx).
-	//	Exec()
-	//if err != nil {
-	//	return nil, false, err
-	//}
-
 	err = tx.Commit()
 	if err != nil {
 		return nil, false, err
@@ -390,46 +378,7 @@ func (r *resource) CreateBuild(ctx context.Context, manuallyTriggered bool, plan
 }
 
 func (r *resource) CreateInMemoryBuild(context context.Context, plan atc.Plan) (Build, error) {
-	tx, err := r.conn.Begin()
-	if err != nil {
-		return nil, err
-	}
-
-	defer Rollback(tx)
-
-	var nextBuildId int
-	err = psql.Select("nextval('builds_id_seq'::regclass)").RunWith(tx).QueryRow().Scan(&nextBuildId)
-	if err != nil {
-		return nil, err
-	}
-
-	err = createBuildEventSeq(tx, nextBuildId)
-	if err != nil {
-		return nil, err
-	}
-
-	build := inMemoryCheckBuild{
-		id:           nextBuildId,
-		checkable:    r,
-		plan:         plan,
-		createTime:   time.Now(),
-		resourceId:   r.id,
-		resourceName: r.name,
-		conn:         r.conn,
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return nil, err
-	}
-
-	fmt.Fprintf(os.Stderr, "EVAN:create in memory check build\n")
-
-	return &build, nil
-}
-
-func (r *resource) CheckApiEndpoint() string {
-	return fmt.Sprintf("/api/v1/teams/%s/pipelines/%s/resources/%s/check?lidar=true", r.teamName, r.pipelineName, r.name)
+	return newInMemoryCheckBuild(r.conn, r, plan)
 }
 
 func (r *resource) UpdateMetadata(version atc.Version, metadata ResourceConfigMetadataFields) (bool, error) {

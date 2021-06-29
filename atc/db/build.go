@@ -205,6 +205,9 @@ type Build interface {
 		from ConfigVersion,
 		initiallyPaused bool,
 	) (Pipeline, bool, error)
+
+	ResourceCacheUser() ResourceCacheUser
+	ContainerOwner(atc.PlanID) ContainerOwner
 }
 
 type build struct {
@@ -1773,6 +1776,14 @@ func (b *build) SavePipeline(
 	}
 
 	return pipeline, isNewPipeline, nil
+}
+
+func (b *build) ResourceCacheUser() ResourceCacheUser {
+	return ForBuild(b.ID())
+}
+
+func (b *build) ContainerOwner(planId atc.PlanID) ContainerOwner {
+	return NewBuildStepContainerOwner(b.ID(), planId, b.TeamID())
 }
 
 func newNullInt64(i int) sql.NullInt64 {

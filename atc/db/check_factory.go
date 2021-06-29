@@ -34,7 +34,6 @@ type Checkable interface {
 	CreateBuild(context.Context, bool, atc.Plan) (Build, bool, error)
 
 	CreateInMemoryBuild(context.Context, atc.Plan) (Build, error)
-	CheckApiEndpoint() string
 }
 
 //counterfeiter:generate . CheckFactory

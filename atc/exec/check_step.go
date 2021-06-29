@@ -214,7 +214,6 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 			return false, fmt.Errorf("update check end time: %w", err)
 		}
 	} else {
-		logger.Info("EVAN:reuse check result")
 		latestVersion, found, err := scope.LatestVersion()
 		if err != nil {
 			return false, fmt.Errorf("get latest version: %w", err)
@@ -302,7 +301,7 @@ func (step *CheckStep) runCheck(
 }
 
 func (step *CheckStep) containerOwner(resourceConfig db.ResourceConfig) db.ContainerOwner {
-	if step.plan.Resource == "" {
+	if step.plan.Resource == "" && step.plan.ResourceType == "" {
 		return db.NewBuildStepContainerOwner(
 			step.metadata.BuildID,
 			step.planID,

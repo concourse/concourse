@@ -10,3 +10,10 @@
 ALTER TABLE resource_config_scopes
     ADD COLUMN last_check_build_id int8,
     ADD COLUMN last_check_build_plan json NULL DEFAULT '{}'::json;
+
+ALTER TABLE containers
+    ADD COLUMN in_memory_check_build_id int8;
+
+-- TODO:
+--  1. maybe add an index on in_memory_check_build_id
+--  2. update the down script

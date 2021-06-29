@@ -51,7 +51,6 @@ type ResourceType interface {
 	CheckPlan(planFactory atc.PlanFactory, imagePlanner atc.ImagePlanner, from atc.Version, interval atc.CheckEvery, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) atc.Plan
 	CreateBuild(context.Context, bool, atc.Plan) (Build, bool, error)
 	CreateInMemoryBuild(context.Context, atc.Plan) (Build, error)
-	CheckApiEndpoint() string
 
 	Version() atc.Version
 
@@ -331,17 +330,7 @@ func (r *resourceType) CreateBuild(ctx context.Context, manuallyTriggered bool, 
 }
 
 func (r *resourceType) CreateInMemoryBuild(context context.Context, plan atc.Plan) (Build, error) {
-	return &inMemoryCheckBuild{
-		checkable:        r,
-		plan:             plan,
-		createTime:       time.Now(),
-		resourceTypeId:   r.id,
-		resourceTypeName: r.name,
-	}, nil
-}
-
-func (r *resourceType) CheckApiEndpoint() string {
-	return fmt.Sprintf("/api/v1/teams/%s/pipelines/%s/resource_types/%s/check?lidar=true", r.teamName, r.pipelineName, r.name)
+	return newInMemoryCheckBuild(r.conn, r, plan)
 }
 
 func scanResourceType(t *resourceType, row scannable) error {

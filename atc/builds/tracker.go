@@ -105,11 +105,10 @@ func (bt *Tracker) Drain(ctx context.Context) {
 func (bt *Tracker) fetchInMemoryBuild(logger lager.Logger) []db.Build {
 	builds := []db.Build{}
 	hasMore := true
-	logger.Info("EVAN: tracker chan has", lager.Data{"len": len(bt.checkBuildsChan)})
 	for hasMore {
 		select {
 		case b := <-bt.checkBuildsChan:
-			logger.Info("EVAN-get-in-memory-build", lager.Data{"id": b.ID()})
+			logger.Debug("received-in-memory-build", lager.Data{"id": b.ID()})
 			builds = append(builds, b)
 		default:
 			hasMore = false
