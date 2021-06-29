@@ -11,6 +11,7 @@ import Concourse
         , CausalityJob
         , CausalityResource
         , CausalityResourceVersion
+        , defaultFeatureFlags
         )
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Data
@@ -36,7 +37,7 @@ all =
             [ test "shows not found if feature flag is disabled" <|
                 \_ ->
                     init
-                        |> Common.withFeatureFlags { resourceCausality = True }
+                        |> Common.withFeatureFlags Concourse.defaultFeatureFlags
                         |> Common.queryView
                         |> Query.find [ class "notfound" ]
                         |> Query.has [ text "404" ]
@@ -288,4 +289,4 @@ init =
             ++ String.fromInt resourceVersionId
             ++ "/downstream"
         )
-        |> Common.withFeatureFlags { resourceCausality = True }
+        |> Common.withFeatureFlags { defaultFeatureFlags | resourceCausality = True }

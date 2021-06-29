@@ -6,7 +6,7 @@ import Assets
 import Build.StepTree.Models as STModels
 import ColorValues
 import Common exposing (defineHoverBehaviour, expectNoTooltip, expectTooltip, queryView)
-import Concourse exposing (JsonValue(..))
+import Concourse exposing (JsonValue(..), defaultFeatureFlags)
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.Pagination exposing (Direction(..), Page, Pagination)
 import DashboardTests
@@ -296,7 +296,7 @@ all =
             let
                 whenItsEnabled =
                     init
-                        |> Common.withFeatureFlags { resourceCausality = True }
+                        |> Common.withFeatureFlags { defaultFeatureFlags | resourceCausality = True }
                         |> givenResourceIsNotPinned
                         |> givenVersionsWithoutPagination
                         |> update
@@ -4072,9 +4072,7 @@ session =
     , hovered = HoverState.NoHover
     , clusterName = ""
     , version = ""
-    , featureFlags =
-        { resourceCausality = True
-        }
+    , featureFlags = defaultFeatureFlags
     , turbulenceImgSrc = flags.turbulenceImgSrc
     , notFoundImgSrc = flags.notFoundImgSrc
     , csrfToken = flags.csrfToken

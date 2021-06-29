@@ -5,7 +5,7 @@ import Assets
 import Char
 import ColorValues
 import Common exposing (defineHoverBehaviour, hoverOver, queryView)
-import Concourse exposing (JsonValue(..))
+import Concourse exposing (JsonValue(..), defaultFeatureFlags)
 import Dashboard.SearchBar as SearchBar
 import DashboardTests exposing (iconSelector)
 import Data
@@ -793,7 +793,7 @@ all =
             ]
         , rspecStyleDescribe "rendering top bar on causality page"
             (Common.init "/teams/team/pipelines/pipeline/resources/resource/causality/1/downstream"
-                |> Common.withFeatureFlags { resourceCausality = True }
+                |> Common.withFeatureFlags { defaultFeatureFlags | resourceCausality = True }
                 |> Application.handleCallback
                     (Callback.AllPipelinesFetched <|
                         Ok [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]

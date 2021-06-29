@@ -73,9 +73,7 @@ init flags url =
             , hovered = HoverState.NoHover
             , clusterName = ""
             , version = ""
-            , featureFlags =
-                { resourceCausality = False
-                }
+            , featureFlags = Concourse.defaultFeatureFlags
             , turbulenceImgSrc = flags.turbulenceImgSrc
             , notFoundImgSrc = flags.notFoundImgSrc
             , csrfToken = flags.csrfToken

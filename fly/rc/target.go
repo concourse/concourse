@@ -491,7 +491,7 @@ func (t *target) validate(allowVersionMismatch bool) error {
 }
 
 func (t *target) getInfo() (atc.Info, error) {
-	if (t.info != atc.Info{}) {
+	if t.info.Version != "" {
 		return t.info, nil
 	}
 

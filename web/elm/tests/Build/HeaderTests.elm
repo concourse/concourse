@@ -456,9 +456,7 @@ session =
     , userState = UserState.UserStateLoggedOut
     , clusterName = ""
     , version = ""
-    , featureFlags =
-        { resourceCausality = False
-        }
+    , featureFlags = Concourse.defaultFeatureFlags
     , turbulenceImgSrc = ""
     , notFoundImgSrc = ""
     , csrfToken = ""

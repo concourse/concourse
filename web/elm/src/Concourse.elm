@@ -69,6 +69,7 @@ module Concourse exposing
     , decodeUser
     , decodeVersion
     , decodeVersionedResource
+    , defaultFeatureFlags
     , emptyBuildResources
     , encodeBuild
     , encodeInstanceGroupId
@@ -838,13 +839,37 @@ decodeBuildStepAcross =
 
 
 type alias FeatureFlags =
-    { resourceCausality : Bool
+    { globalResources : Bool
+    , redactSecrets : Bool
+    , buildRerun : Bool
+    , acrossStep : Bool
+    , pipelineInstances : Bool
+    , cacheStreamedVolumes : Bool
+    , resourceCausality : Bool
+    }
+
+
+defaultFeatureFlags : FeatureFlags
+defaultFeatureFlags =
+    { globalResources = False
+    , redactSecrets = False
+    , buildRerun = False
+    , acrossStep = False
+    , pipelineInstances = False
+    , cacheStreamedVolumes = False
+    , resourceCausality = False
     }
 
 
 decodeFeatureFlags : Json.Decode.Decoder FeatureFlags
 decodeFeatureFlags =
     Json.Decode.succeed FeatureFlags
+        |> andMap (Json.Decode.field "global_resources" Json.Decode.bool)
+        |> andMap (Json.Decode.field "redact_secrets" Json.Decode.bool)
+        |> andMap (Json.Decode.field "build_rerun" Json.Decode.bool)
+        |> andMap (Json.Decode.field "across_step" Json.Decode.bool)
+        |> andMap (Json.Decode.field "pipeline_instances" Json.Decode.bool)
+        |> andMap (Json.Decode.field "cache_streamed_volumes" Json.Decode.bool)
         |> andMap (Json.Decode.field "resource_causality" Json.Decode.bool)
 
 

@@ -678,7 +678,6 @@ viewDetailItem ( name, status ) =
 sampleSession : Session
 sampleSession =
     { authToken = ""
-    , clusterName = ""
     , csrfToken = ""
     , expandedTeamsInAllPipelines = Set.empty
     , collapsedTeamsInFavorites = Set.empty
@@ -697,7 +696,9 @@ sampleSession =
     , timeZone = Time.utc
     , turbulenceImgSrc = ""
     , userState = UserState.UserStateLoggedOut
+    , clusterName = ""
     , version = ""
+    , featureFlags = Concourse.defaultFeatureFlags
     , route =
         Routes.OneOffBuild
             { id = 1

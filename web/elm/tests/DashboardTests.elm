@@ -2150,7 +2150,11 @@ givenClusterInfo :
 givenClusterInfo version clusterName =
     Application.handleCallback
         (Callback.ClusterInfoFetched <|
-            Ok { version = version, clusterName = clusterName, featureFlags = { resourceCausality = False } }
+            Ok
+                { version = version
+                , clusterName = clusterName
+                , featureFlags = Concourse.defaultFeatureFlags
+                }
         )
 
 
