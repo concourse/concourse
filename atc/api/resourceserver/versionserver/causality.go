@@ -2,6 +2,7 @@ package versionserver
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -10,9 +11,17 @@ import (
 	"github.com/concourse/concourse/atc/db"
 )
 
+func (s *Server) GetDownstreamResourceCausality(pipeline db.Pipeline) http.Handler {
+	return s.getResourceCausality(db.CausalityDownstream, pipeline)
+}
+
 func (s *Server) GetUpstreamResourceCausality(pipeline db.Pipeline) http.Handler {
+	return s.getResourceCausality(db.CausalityUpstream, pipeline)
+}
+
+func (s *Server) getResourceCausality(direction db.CausalityDirection, pipeline db.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logger := s.logger.Session("upstream-causality")
+		logger := s.logger.Session(fmt.Sprintf("%v-causality", direction))
 
 		versionIDString := r.FormValue(":resource_config_version_id")
 		resourceName := r.FormValue(":resource_name")
@@ -31,7 +40,7 @@ func (s *Server) GetUpstreamResourceCausality(pipeline db.Pipeline) http.Handler
 			return
 		}
 
-		causality, found, err := resource.Causality(versionID, db.CausalityUpstream)
+		causality, found, err := resource.Causality(versionID, direction)
 		if err != nil {
 			if err == db.ErrTooManyBuilds || err == db.ErrTooManyResourceVersions {
 				logger.Error("too-many-nodes", err, lager.Data{"resource-name": resourceName, "resource-config-version": versionID})
