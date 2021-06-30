@@ -7,7 +7,6 @@ import (
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/builds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/event"
@@ -116,7 +115,7 @@ func (d *taskDelegate) FetchImage(
 ) (worker.ImageSpec, error) {
 	image.Name = "image"
 
-	getPlan, checkPlan := builds.FetchImagePlan(d.planID, image, types, stepTags)
+	getPlan, checkPlan := atc.FetchImagePlan(d.planID, image, types, stepTags, false)
 
 	if checkPlan != nil {
 		err := d.build.SaveEvent(event.ImageCheck{
