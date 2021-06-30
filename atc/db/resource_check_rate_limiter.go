@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -23,6 +24,7 @@ type ResourceCheckRateLimiter struct {
 	refreshLimiter *rate.Limiter
 
 	clock clock.Clock
+	mut   *sync.Mutex
 }
 
 func NewResourceCheckRateLimiter(
@@ -36,6 +38,7 @@ func NewResourceCheckRateLimiter(
 	limiter := &ResourceCheckRateLimiter{
 		minChecksPerSecond: minChecksPerSecond,
 		clock:              clock,
+		mut:                new(sync.Mutex),
 	}
 
 	if checksPerSecond < 0 {
@@ -60,11 +63,9 @@ func NewResourceCheckRateLimiter(
 func (limiter *ResourceCheckRateLimiter) Wait(ctx context.Context) error {
 	logger := lagerctx.FromContext(ctx)
 
-	if limiter.refreshLimiter != nil && limiter.refreshLimiter.AllowN(limiter.clock.Now(), 1) {
-		err := limiter.refreshCheckLimiter()
-		if err != nil {
-			return fmt.Errorf("refresh: %w", err)
-		}
+	err := limiter.refreshCheckLimiterIfNeeded()
+	if err != nil {
+		return fmt.Errorf("refresh: %w", err)
 	}
 
 	reservation := limiter.checkLimiter.ReserveN(limiter.clock.Now(), 1)
@@ -91,7 +92,19 @@ func (limiter *ResourceCheckRateLimiter) Limit() rate.Limit {
 	return limiter.checkLimiter.Limit()
 }
 
-func (limiter *ResourceCheckRateLimiter) refreshCheckLimiter() error {
+func (limiter *ResourceCheckRateLimiter) refreshCheckLimiterIfNeeded() error {
+	if limiter.refreshLimiter == nil {
+		return nil
+	}
+
+	limiter.mut.Lock()
+	defer limiter.mut.Unlock()
+
+	if !limiter.refreshLimiter.AllowN(limiter.clock.Now(), 1) {
+		// Refresh interval has not elapsed, so no refresh is necessary.
+		return nil
+	}
+
 	var count int
 	err := psql.Select("COUNT(*)").
 		From("resources r").
