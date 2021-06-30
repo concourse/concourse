@@ -164,7 +164,7 @@ initCheck : Test
 initCheck =
     let
         step =
-            BuildStepCheck "some-name"
+            BuildStepCheck "some-name" Nothing
 
         { tree, steps } =
             StepTree.init Nothing
@@ -215,7 +215,7 @@ initGet =
             Dict.fromList [ ( "some", "version" ) ]
 
         step =
-            BuildStepGet "some-name" (Just "some-resource") (Just version)
+            BuildStepGet "some-name" (Just "some-resource") (Just version) Nothing
 
         { tree, steps } =
             StepTree.init Nothing
@@ -239,7 +239,7 @@ initPut : Test
 initPut =
     let
         step =
-            BuildStepPut "some-name" (Just "some-resource")
+            BuildStepPut "some-name" (Just "some-resource") Nothing
 
         { tree, steps } =
             StepTree.init Nothing
