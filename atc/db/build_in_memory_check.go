@@ -27,11 +27,15 @@ type inMemoryCheckBuild struct {
 	resourceName     string
 	resourceTypeId   int
 	resourceTypeName string
+	spanContext      SpanContext
 
-	conn Conn
+	running bool
+	conn    Conn
+
+	cacheAssociatedTeams []string
 }
 
-func newInMemoryCheckBuild(conn Conn, checkable Checkable, plan atc.Plan) (*inMemoryCheckBuild, error) {
+func newRunningInMemoryCheckBuild(conn Conn, checkable Checkable, plan atc.Plan, spanContext SpanContext) (*inMemoryCheckBuild, error) {
 	tx, err := conn.Begin()
 	if err != nil {
 		return nil, err
@@ -51,11 +55,13 @@ func newInMemoryCheckBuild(conn Conn, checkable Checkable, plan atc.Plan) (*inMe
 	}
 
 	build := inMemoryCheckBuild{
-		id:         nextBuildId,
-		checkable:  checkable,
-		plan:       plan,
-		createTime: time.Now(),
-		conn:       conn,
+		id:          nextBuildId,
+		checkable:   checkable,
+		plan:        plan,
+		spanContext: spanContext,
+		createTime:  time.Now(),
+		running:     true,
+		conn:        conn,
 	}
 
 	if resource, ok := checkable.(Resource); ok {
@@ -76,32 +82,45 @@ func newInMemoryCheckBuild(conn Conn, checkable Checkable, plan atc.Plan) (*inMe
 	return &build, nil
 }
 
-func (b *inMemoryCheckBuild) TeamID() int {
-	return b.checkable.TeamID()
+func newExistingInMemoryCheckBuild(conn Conn, buildId int, checkable Checkable) *inMemoryCheckBuild {
+	return &inMemoryCheckBuild{
+		id:        buildId,
+		conn:      conn,
+		checkable: checkable,
+		running:   false,
+	}
 }
 
-func (b *inMemoryCheckBuild) TeamName() string {
-	return b.checkable.TeamName()
-}
-
-func (b *inMemoryCheckBuild) PipelineID() int {
-	return b.checkable.PipelineID()
-}
-
-func (b *inMemoryCheckBuild) PipelineName() string {
-	return b.checkable.PipelineName()
-}
-
+func (b *inMemoryCheckBuild) ID() int                                 { return b.id }
+func (b *inMemoryCheckBuild) Name() string                            { return CheckBuildName }
+func (b *inMemoryCheckBuild) CreateTime() time.Time                   { return b.createTime }
+func (b *inMemoryCheckBuild) TeamID() int                             { return b.checkable.TeamID() }
+func (b *inMemoryCheckBuild) TeamName() string                        { return b.checkable.TeamName() }
+func (b *inMemoryCheckBuild) PipelineID() int                         { return b.checkable.PipelineID() }
+func (b *inMemoryCheckBuild) PipelineName() string                    { return b.checkable.PipelineName() }
+func (b *inMemoryCheckBuild) PipelineRef() atc.PipelineRef            { return b.checkable.PipelineRef() }
+func (b *inMemoryCheckBuild) Pipeline() (Pipeline, bool, error)       { return b.checkable.Pipeline() }
+func (b *inMemoryCheckBuild) ResourceID() int                         { return b.resourceId }
+func (b *inMemoryCheckBuild) ResourceName() string                    { return b.resourceName }
+func (b *inMemoryCheckBuild) ResourceTypeID() int                     { return b.resourceTypeId }
+func (b *inMemoryCheckBuild) ResourceTypeName() string                { return b.resourceTypeName }
+func (b *inMemoryCheckBuild) Schema() string                          { return schema }
+func (b *inMemoryCheckBuild) IsRunning() bool                         { return b.running }
+func (b *inMemoryCheckBuild) IsManuallyTriggered() bool               { return false }
+func (b *inMemoryCheckBuild) PrivatePlan() atc.Plan                   { return b.plan }
+func (b *inMemoryCheckBuild) SpanContext() propagation.TextMapCarrier { return b.spanContext }
 func (b *inMemoryCheckBuild) PipelineInstanceVars() atc.InstanceVars {
 	return b.checkable.PipelineInstanceVars()
 }
 
-func (b *inMemoryCheckBuild) PipelineRef() atc.PipelineRef {
-	return b.checkable.PipelineRef()
-}
+// JobID returns 0 because check build doesn't belong to any job.
+func (b *inMemoryCheckBuild) JobID() int { return 0 }
 
-func (b *inMemoryCheckBuild) Pipeline() (Pipeline, bool, error) {
-	return b.checkable.Pipeline()
+// JobName returns an empty string because check build doesn't belong to any job.
+func (b *inMemoryCheckBuild) JobName() string { return "" }
+
+func (b *inMemoryCheckBuild) IsNewerThanLastCheckOf(input Resource) bool {
+	return b.createTime.After(input.LastCheckEndTime())
 }
 
 func (b *inMemoryCheckBuild) LagerData() lager.Data {
@@ -140,9 +159,9 @@ func (b *inMemoryCheckBuild) TracingAttrs() tracing.Attrs {
 	return attrs
 }
 
-// Reload does nothing.
+// Reload just reloads the embedded checkable.
 func (b *inMemoryCheckBuild) Reload() (bool, error) {
-	return true, nil
+	return b.checkable.Reload()
 }
 
 // AcquireTrackingLock returns a noop lock because in-memory check build runs
@@ -151,10 +170,11 @@ func (b *inMemoryCheckBuild) AcquireTrackingLock(logger lager.Logger, interval t
 	return lock.NoopLock{}, true, nil
 }
 
-// Finish does nothing for resource type check. For resource check, it will
-// update in-memory-check-build info to table resources, and save a finish
-// event.
 func (b *inMemoryCheckBuild) Finish(status BuildStatus) error {
+	if !b.running {
+		panic("not a running in-memory-check-build")
+	}
+
 	tx, err := b.conn.Begin()
 	if err != nil {
 		return err
@@ -199,6 +219,10 @@ func (b *inMemoryCheckBuild) Finish(status BuildStatus) error {
 }
 
 func (b *inMemoryCheckBuild) saveEvent(tx Tx, event atc.Event) error {
+	if !b.running {
+		panic("not a running in-memory-check-build")
+	}
+
 	payload, err := json.Marshal(event)
 	if err != nil {
 		return err
@@ -225,6 +249,10 @@ func (b *inMemoryCheckBuild) Variables(logger lager.Logger, secrets creds.Secret
 }
 
 func (b *inMemoryCheckBuild) SaveEvent(ev atc.Event) error {
+	if !b.running {
+		panic("not a running in-memory-check-build")
+	}
+
 	tx, err := b.conn.Begin()
 	if err != nil {
 		return err
@@ -261,20 +289,15 @@ func (b *inMemoryCheckBuild) Events(from uint) (EventSource, error) {
 	), nil
 }
 
+// AbortNotifier returns NoopNotifier because there is no way to abort a in-memory
+// check build. Say a in-memory build may run on ATC-a, but abort-build API call
+// might be received by ATC-b, there is not a channel for ATC-b to tell ATC-a to
+// mark the in-memory build as aborted. If we really want to abort a in-memory
+// check build in future, it might need to add a new table "aborted-in-memory-builds"
+// and API insert in-memory build id to the table, and AbortNotifier watches the
+// table to see if current build should be aborted.
 func (b *inMemoryCheckBuild) AbortNotifier() (Notifier, error) {
 	return newNoopNotifier(), nil
-}
-
-func (b *inMemoryCheckBuild) SpanContext() propagation.TextMapCarrier {
-	return SpanContext{}
-}
-
-func (b *inMemoryCheckBuild) IsManuallyTriggered() bool {
-	return false
-}
-
-func (b *inMemoryCheckBuild) PrivatePlan() atc.Plan {
-	return b.plan
 }
 
 func (b *inMemoryCheckBuild) HasPlan() bool {
@@ -302,31 +325,6 @@ func (b *inMemoryCheckBuild) PublicPlan() *json.RawMessage {
 	return &m
 }
 
-func (b *inMemoryCheckBuild) ID() int { return b.id }
-
-func (b *inMemoryCheckBuild) Name() string { return CheckBuildName }
-
-// JobID returns 0 because check build doesn't belong to any job.
-func (b *inMemoryCheckBuild) JobID() int { return 0 }
-
-// JobName returns an empty string because check build doesn't belong to any job.
-func (b *inMemoryCheckBuild) JobName() string { return "" }
-
-func (b *inMemoryCheckBuild) CreateTime() time.Time { return b.createTime }
-
-func (b *inMemoryCheckBuild) IsNewerThanLastCheckOf(input Resource) bool {
-	return b.createTime.After(input.LastCheckEndTime())
-}
-
-// IsRunning returns true as a in-memory check build only runs once.
-func (b *inMemoryCheckBuild) IsRunning() bool {
-	return true
-}
-
-func (b *inMemoryCheckBuild) Schema() string {
-	return schema
-}
-
 func (b *inMemoryCheckBuild) ResourceCacheUser() ResourceCacheUser {
 	return NoUser()
 }
@@ -340,10 +338,35 @@ func (b *inMemoryCheckBuild) SaveImageResourceVersion(cache UsedResourceCache) e
 	return nil
 }
 
-func (b *inMemoryCheckBuild) ResourceID() int          { return b.resourceId }
-func (b *inMemoryCheckBuild) ResourceName() string     { return b.resourceName }
-func (b *inMemoryCheckBuild) ResourceTypeID() int      { return b.resourceTypeId }
-func (b *inMemoryCheckBuild) ResourceTypeName() string { return b.resourceTypeName }
+func (b *inMemoryCheckBuild) AllAssociatedTeamNames() []string {
+	if b.cacheAssociatedTeams != nil {
+		return b.cacheAssociatedTeams
+	}
+
+	rows, err := sq.Select("distinct(t.name)").
+		From("resources r").
+		LeftJoin("teams t on r.team_id == t.id").
+		Where(sq.Eq{"r.resource_config_scope_id": b.checkable.ResourceConfigScopeID()}).
+		RunWith(b.conn).
+		Query()
+	if err != nil {
+		return []string{b.checkable.TeamName()}
+	}
+	defer Close(rows)
+
+	var teamNames []string
+	for rows.Next() {
+		var teamName string
+		err := rows.Scan(&teamName)
+		if err != nil {
+			return teamNames
+		}
+		teamNames = append(teamNames, teamName)
+	}
+	b.cacheAssociatedTeams = teamNames
+
+	return b.cacheAssociatedTeams
+}
 
 // === No implemented functions ===
 

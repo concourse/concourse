@@ -57,11 +57,7 @@ func (f *buildFactory) Build(buildID int) (Build, bool, error) {
 				return nil, false, nil
 			}
 
-			return &inMemoryCheckBuild{
-				conn:      f.conn,
-				id:        buildID,
-				checkable: resource,
-			}, true, nil
+			return newExistingInMemoryCheckBuild(f.conn, buildID, resource), true, nil
 		}
 		return nil, false, err
 	}
@@ -149,6 +145,7 @@ func (f *buildFactory) findResourceOfInMemoryCheckBuild(buildId int) (Resource, 
 	resource := newEmptyResource(f.conn, f.lockFactory)
 	row := resourcesQuery.
 		Where(sq.Eq{"rs.last_check_build_id": buildId}).
+		Limit(1).
 		RunWith(f.conn).
 		QueryRow()
 	err := scanResource(resource, row)

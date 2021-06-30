@@ -124,6 +124,12 @@ type Build interface {
 	TeamName() string
 
 	Job() (Job, bool, error)
+
+	// AllAssociatedTeamNames is only meaningful for check build. For a global
+	// resource's check build, it may associate to resources across multiple
+	// teams.
+	AllAssociatedTeamNames() []string
+
 	JobID() int
 	JobName() string
 
@@ -343,20 +349,21 @@ func (b *build) TracingAttrs() tracing.Attrs {
 	return data
 }
 
-func (b *build) ID() int                      { return b.id }
-func (b *build) Name() string                 { return b.name }
-func (b *build) JobID() int                   { return b.jobID }
-func (b *build) JobName() string              { return b.jobName }
-func (b *build) ResourceID() int              { return b.resourceID }
-func (b *build) ResourceName() string         { return b.resourceName }
-func (b *build) ResourceTypeID() int          { return b.resourceTypeID }
-func (b *build) TeamID() int                  { return b.teamID }
-func (b *build) TeamName() string             { return b.teamName }
-func (b *build) IsManuallyTriggered() bool    { return b.isManuallyTriggered }
-func (b *build) Schema() string               { return b.schema }
-func (b *build) PrivatePlan() atc.Plan        { return b.privatePlan }
-func (b *build) PublicPlan() *json.RawMessage { return b.publicPlan }
-func (b *build) HasPlan() bool                { return string(*b.publicPlan) != "{}" }
+func (b *build) ID() int                          { return b.id }
+func (b *build) Name() string                     { return b.name }
+func (b *build) JobID() int                       { return b.jobID }
+func (b *build) JobName() string                  { return b.jobName }
+func (b *build) ResourceID() int                  { return b.resourceID }
+func (b *build) ResourceName() string             { return b.resourceName }
+func (b *build) ResourceTypeID() int              { return b.resourceTypeID }
+func (b *build) TeamID() int                      { return b.teamID }
+func (b *build) TeamName() string                 { return b.teamName }
+func (b *build) AllAssociatedTeamNames() []string { return []string{b.teamName} }
+func (b *build) IsManuallyTriggered() bool        { return b.isManuallyTriggered }
+func (b *build) Schema() string                   { return b.schema }
+func (b *build) PrivatePlan() atc.Plan            { return b.privatePlan }
+func (b *build) PublicPlan() *json.RawMessage     { return b.publicPlan }
+func (b *build) HasPlan() bool                    { return string(*b.publicPlan) != "{}" }
 func (b *build) IsNewerThanLastCheckOf(input Resource) bool {
 	return b.createTime.After(input.LastCheckEndTime())
 }

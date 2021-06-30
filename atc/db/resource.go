@@ -377,8 +377,8 @@ func (r *resource) CreateBuild(ctx context.Context, manuallyTriggered bool, plan
 	return build, true, nil
 }
 
-func (r *resource) CreateInMemoryBuild(context context.Context, plan atc.Plan) (Build, error) {
-	return newInMemoryCheckBuild(r.conn, r, plan)
+func (r *resource) CreateInMemoryBuild(ctx context.Context, plan atc.Plan) (Build, error) {
+	return newRunningInMemoryCheckBuild(r.conn, r, plan, NewSpanContext(ctx))
 }
 
 func (r *resource) UpdateMetadata(version atc.Version, metadata ResourceConfigMetadataFields) (bool, error) {
@@ -933,28 +933,40 @@ func scanResource(r *resource, row scannable) error {
 			PipelineInstanceVars: r.pipelineInstanceVars,
 		}
 
-		if lastCheckStartTime.Valid {
-			r.buildSummary.StartTime = lastCheckStartTime.Time.Unix()
+		err := populateBuildSummary(r.buildSummary, lastCheckStartTime, lastCheckEndTime, lastCheckSucceeded, lastCheckBuildPlan)
+		if err != nil {
+			return err
+		}
+	}
 
-			if lastCheckEndTime.Valid && lastCheckStartTime.Time.Before(lastCheckEndTime.Time) {
-				r.buildSummary.EndTime = lastCheckEndTime.Time.Unix()
-				if lastCheckSucceeded.Valid && lastCheckSucceeded.Bool {
-					r.buildSummary.Status = atc.StatusSucceeded
-				} else {
-					r.buildSummary.Status = atc.StatusFailed
-				}
+	return nil
+}
+
+func populateBuildSummary(buildSummary *atc.BuildSummary,
+	lastCheckStartTime, lastCheckEndTime pq.NullTime,
+	lastCheckSucceeded sql.NullBool,
+	lastCheckBuildPlan sql.NullString) error {
+	if lastCheckStartTime.Valid {
+		buildSummary.StartTime = lastCheckStartTime.Time.Unix()
+
+		if lastCheckEndTime.Valid && lastCheckStartTime.Time.Before(lastCheckEndTime.Time) {
+			buildSummary.EndTime = lastCheckEndTime.Time.Unix()
+			if lastCheckSucceeded.Valid && lastCheckSucceeded.Bool {
+				buildSummary.Status = atc.StatusSucceeded
 			} else {
-				r.buildSummary.Status = atc.StatusStarted
+				buildSummary.Status = atc.StatusFailed
 			}
 		} else {
-			r.buildSummary.Status = atc.StatusPending
+			buildSummary.Status = atc.StatusStarted
 		}
+	} else {
+		buildSummary.Status = atc.StatusPending
+	}
 
-		if lastCheckBuildPlan.Valid {
-			err = json.Unmarshal([]byte(lastCheckBuildPlan.String), &r.buildSummary.PublicPlan)
-			if err != nil {
-				return err
-			}
+	if lastCheckBuildPlan.Valid {
+		err := json.Unmarshal([]byte(lastCheckBuildPlan.String), &buildSummary.PublicPlan)
+		if err != nil {
+			return err
 		}
 	}
 

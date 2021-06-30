@@ -29,11 +29,14 @@ type Checkable interface {
 	CurrentPinnedVersion() atc.Version
 
 	HasWebhook() bool
+	BuildSummary() *atc.BuildSummary
 
 	CheckPlan(planFactory atc.PlanFactory, imagePlanner atc.ImagePlanner, from atc.Version, interval atc.CheckEvery, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) atc.Plan
 	CreateBuild(context.Context, bool, atc.Plan) (Build, bool, error)
 
 	CreateInMemoryBuild(context.Context, atc.Plan) (Build, error)
+
+	Reload() (bool, error)
 }
 
 //counterfeiter:generate . CheckFactory
@@ -52,7 +55,7 @@ type checkFactory struct {
 
 	planFactory atc.PlanFactory
 
-	checkBuildChan chan<-Build
+	checkBuildChan chan<- Build
 }
 
 func NewCheckFactory(
@@ -60,7 +63,7 @@ func NewCheckFactory(
 	lockFactory lock.LockFactory,
 	secrets creds.Secrets,
 	varSourcePool creds.VarSourcePool,
-	checkBuildChan chan<-Build,
+	checkBuildChan chan<- Build,
 ) CheckFactory {
 	return &checkFactory{
 		conn:        conn,
@@ -71,7 +74,7 @@ func NewCheckFactory(
 
 		planFactory: atc.NewPlanFactory(time.Now().Unix()),
 
-		checkBuildChan:    checkBuildChan,
+		checkBuildChan: checkBuildChan,
 	}
 }
 
@@ -120,7 +123,7 @@ func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, 
 			return nil, false, nil
 		}
 
-		logger.Info("created-check-build", build.LagerData())
+		logger.Debug("created-check-build", build.LagerData())
 
 		return build, true, nil
 	} else {
@@ -129,7 +132,7 @@ func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, 
 			return nil, false, err
 		}
 
-		logger.Info("EVAN:created-in-memory-check-build", build.LagerData())
+		logger.Debug("created-in-memory-check-build", build.LagerData())
 		c.checkBuildChan <- build
 
 		return build, true, nil
