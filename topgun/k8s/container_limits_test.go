@@ -72,8 +72,7 @@ func containerLimitsWork(selectorFlags ...string) {
 }
 
 func containerLimitsFail(selectorFlags ...string) {
-	// Disabling until https://github.com/concourse/concourse/issues/7086 is fixed.
-	XContext("container limits fail", func() {
+	Context("container limits fail", func() {
 		It("fails to set the memory limit", func() {
 			deployWithSelectors(selectorFlags...)
 
@@ -84,7 +83,7 @@ func containerLimitsFail(selectorFlags ...string) {
 			<-buildSession.Exited
 			Expect(buildSession.ExitCode()).To(Equal(2))
 			Expect(buildSession).To(gbytes.Say(
-				"memory.memsw.limit_in_bytes: permission denied",
+				"memory.memsw.limit_in_bytes: (permission denied|no such file or directory)",
 			))
 		})
 	})
