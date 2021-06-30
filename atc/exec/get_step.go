@@ -200,7 +200,10 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 			fmt.Fprintln(delegate.Stderr(), "")
 
 			delegate.Starting(logger)
-			state.StoreResult(step.planID, resourceCache)
+			state.StoreResult(step.planID, GetResult{
+				Name:          step.plan.Name,
+				ResourceCache: resourceCache,
+			})
 
 			state.ArtifactRepository().RegisterArtifact(
 				build.ArtifactName(step.plan.Name),

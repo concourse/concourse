@@ -288,20 +288,20 @@ var _ = Describe("ResourceType", func() {
 		})
 
 		Context("Deserialize", func() {
-			var vrts atc.ResourceTypes
+			var rts atc.ResourceTypes
 			JustBeforeEach(func() {
-				vrts = resourceTypes.Deserialize()
+				rts = resourceTypes.Deserialize()
 			})
 
 			Context("when no base resource type defaults defined", func() {
 				It("should return original resource types", func() {
-					Expect(vrts).To(ContainElement(atc.ResourceType{
+					Expect(rts).To(ContainElement(atc.ResourceType{
 						Name:     "some-type",
 						Type:     "registry-image",
 						Source:   atc.Source{"some": "repository"},
 						Defaults: atc.Source{"some-default-k1": "some-default-v1"},
 					}))
-					Expect(vrts).To(ContainElement(atc.ResourceType{
+					Expect(rts).To(ContainElement(atc.ResourceType{
 						Name: "some-other-type",
 						Type: "some-type",
 						Source: atc.Source{
@@ -310,7 +310,7 @@ var _ = Describe("ResourceType", func() {
 						},
 						Privileged: true,
 					}))
-					Expect(vrts).To(ContainElement(atc.ResourceType{
+					Expect(rts).To(ContainElement(atc.ResourceType{
 						Name:       "some-type-with-params",
 						Type:       "s3",
 						Source:     atc.Source{"some": "repository"},
@@ -318,7 +318,7 @@ var _ = Describe("ResourceType", func() {
 						Privileged: false,
 						Params:     atc.Params{"unpack": "true"},
 					}))
-					Expect(vrts).To(ContainElement(atc.ResourceType{
+					Expect(rts).To(ContainElement(atc.ResourceType{
 						Name:       "some-type-with-custom-check",
 						Type:       "registry-image",
 						Source:     atc.Source{"some": "repository"},
@@ -336,13 +336,13 @@ var _ = Describe("ResourceType", func() {
 				})
 
 				It("should return original resource types", func() {
-					Expect(vrts).To(ContainElement(atc.ResourceType{
+					Expect(rts).To(ContainElement(atc.ResourceType{
 						Name:     "some-type",
 						Type:     "registry-image",
 						Source:   atc.Source{"some": "repository"},
 						Defaults: atc.Source{"some-default-k1": "some-default-v1"},
 					}))
-					Expect(vrts).To(ContainElement(atc.ResourceType{
+					Expect(rts).To(ContainElement(atc.ResourceType{
 						Name: "some-other-type",
 						Type: "some-type",
 						Source: atc.Source{
@@ -351,7 +351,7 @@ var _ = Describe("ResourceType", func() {
 						},
 						Privileged: true,
 					}))
-					Expect(vrts).To(ContainElement(atc.ResourceType{
+					Expect(rts).To(ContainElement(atc.ResourceType{
 						Name: "some-type-with-params",
 						Type: "s3",
 						Source: atc.Source{
@@ -362,7 +362,7 @@ var _ = Describe("ResourceType", func() {
 						Privileged: false,
 						Params:     atc.Params{"unpack": "true"},
 					}))
-					Expect(vrts).To(ContainElement(atc.ResourceType{
+					Expect(rts).To(ContainElement(atc.ResourceType{
 						Name:       "some-type-with-custom-check",
 						Type:       "registry-image",
 						Source:     atc.Source{"some": "repository"},

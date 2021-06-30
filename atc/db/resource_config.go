@@ -23,7 +23,7 @@ var ErrResourceConfigDisappeared = errors.New("resource config disappeared")
 var ErrResourceConfigParentDisappeared = errors.New("resource config parent disappeared")
 var ErrResourceConfigHasNoType = errors.New("resource config has no type")
 
-//go:generate counterfeiter . ResourceConfig
+//counterfeiter:generate . ResourceConfig
 type ResourceConfig interface {
 	ID() int
 	LastReferenced() time.Time
