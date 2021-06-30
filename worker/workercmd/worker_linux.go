@@ -25,12 +25,12 @@ type Certs struct {
 }
 
 type RuntimeConfiguration struct {
-	Runtime string `long:"runtime" default:"containerd" choice:"guardian" choice:"containerd" choice:"houdini" description:"Runtime to use with the worker. Please note that Houdini is insecure and doesn't run 'tasks' in containers."`
+	Runtime string `long:"runtime" default:"guardian" choice:"guardian" choice:"containerd" choice:"houdini" description:"Runtime to use with the worker. Please note that Houdini is insecure and doesn't run 'tasks' in containers."`
 }
 
 type GuardianRuntime struct {
 	Bin            string        `long:"bin"        description:"Path to a garden server executable (non-absolute names get resolved from $PATH)."`
-	DNS            DNSConfig     `group:"Guardian DNS Proxy Configuration" namespace:"dns-proxy"`
+	DNS            DNSConfig     `group:"DNS Proxy Configuration" namespace:"dns-proxy"`
 	RequestTimeout time.Duration `long:"request-timeout" default:"5m" description:"How long to wait for requests to the Garden server to complete. 0 means no timeout."`
 
 	Config      flag.File `long:"config"     description:"Path to a config file to use for the Garden backend. e.g. 'foo-bar=a,b' for '--foo-bar a --foo-bar b'."`
@@ -53,7 +53,7 @@ type ContainerdRuntime struct {
 		Pool               string    `long:"network-pool" default:"10.80.0.0/16" description:"Network range to use for dynamically allocated container subnets."`
 		MTU                int       `long:"mtu" description:"MTU size for container network interfaces. Defaults to the MTU of the interface used for outbound access by the host."`
 		AllowHostAccess    bool      `long:"allow-host-access" description:"Allow containers to reach the host's network. This is turned off by default."`
-	} `group:"Containerd Container Networking"`
+	} `group:"Container Networking"`
 
 	MaxContainers int `long:"max-containers" default:"250" description:"Max container capacity. 0 means no limit."`
 }
