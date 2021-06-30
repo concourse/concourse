@@ -41,6 +41,7 @@ var _ = Describe("CheckBuildWriteAccessHandler", func() {
 		pipeline = new(dbfakes.FakePipeline)
 		build.PipelineReturns(pipeline, true, nil)
 		build.TeamNameReturns("some-team")
+		build.AllAssociatedTeamNamesReturns([]string{"some-team"})
 		build.JobNameReturns("some-job")
 
 		innerHandler := handlerFactory.HandlerFor(delegate, auth.UnauthorizedRejector{})

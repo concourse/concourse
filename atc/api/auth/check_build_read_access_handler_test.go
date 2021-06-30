@@ -44,6 +44,7 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 		build.PipelineReturns(pipeline, true, nil)
 		build.TeamIDReturns(42)
 		build.TeamNameReturns("some-team")
+		build.AllAssociatedTeamNamesReturns([]string{"some-team"})
 		build.JobIDReturns(43)
 		build.JobNameReturns("some-job")
 	})

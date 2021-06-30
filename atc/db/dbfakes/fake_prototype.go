@@ -11,6 +11,26 @@ import (
 )
 
 type FakePrototype struct {
+	BuildSummaryStub        func() *atc.BuildSummary
+	buildSummaryMutex       sync.RWMutex
+	buildSummaryArgsForCall []struct {
+	}
+	buildSummaryReturns struct {
+		result1 *atc.BuildSummary
+	}
+	buildSummaryReturnsOnCall map[int]struct {
+		result1 *atc.BuildSummary
+	}
+	CheckApiEndpointStub        func() string
+	checkApiEndpointMutex       sync.RWMutex
+	checkApiEndpointArgsForCall []struct {
+	}
+	checkApiEndpointReturns struct {
+		result1 string
+	}
+	checkApiEndpointReturnsOnCall map[int]struct {
+		result1 string
+	}
 	CheckEveryStub        func() *atc.CheckEvery
 	checkEveryMutex       sync.RWMutex
 	checkEveryArgsForCall []struct {
@@ -64,6 +84,20 @@ type FakePrototype struct {
 		result1 db.Build
 		result2 bool
 		result3 error
+	}
+	CreateInMemoryBuildStub        func(context.Context, atc.Plan) (db.Build, error)
+	createInMemoryBuildMutex       sync.RWMutex
+	createInMemoryBuildArgsForCall []struct {
+		arg1 context.Context
+		arg2 atc.Plan
+	}
+	createInMemoryBuildReturns struct {
+		result1 db.Build
+		result2 error
+	}
+	createInMemoryBuildReturnsOnCall map[int]struct {
+		result1 db.Build
+		result2 error
 	}
 	CurrentPinnedVersionStub        func() atc.Version
 	currentPinnedVersionMutex       sync.RWMutex
@@ -316,6 +350,112 @@ type FakePrototype struct {
 	invocationsMutex sync.RWMutex
 }
 
+func (fake *FakePrototype) BuildSummary() *atc.BuildSummary {
+	fake.buildSummaryMutex.Lock()
+	ret, specificReturn := fake.buildSummaryReturnsOnCall[len(fake.buildSummaryArgsForCall)]
+	fake.buildSummaryArgsForCall = append(fake.buildSummaryArgsForCall, struct {
+	}{})
+	stub := fake.BuildSummaryStub
+	fakeReturns := fake.buildSummaryReturns
+	fake.recordInvocation("BuildSummary", []interface{}{})
+	fake.buildSummaryMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakePrototype) BuildSummaryCallCount() int {
+	fake.buildSummaryMutex.RLock()
+	defer fake.buildSummaryMutex.RUnlock()
+	return len(fake.buildSummaryArgsForCall)
+}
+
+func (fake *FakePrototype) BuildSummaryCalls(stub func() *atc.BuildSummary) {
+	fake.buildSummaryMutex.Lock()
+	defer fake.buildSummaryMutex.Unlock()
+	fake.BuildSummaryStub = stub
+}
+
+func (fake *FakePrototype) BuildSummaryReturns(result1 *atc.BuildSummary) {
+	fake.buildSummaryMutex.Lock()
+	defer fake.buildSummaryMutex.Unlock()
+	fake.BuildSummaryStub = nil
+	fake.buildSummaryReturns = struct {
+		result1 *atc.BuildSummary
+	}{result1}
+}
+
+func (fake *FakePrototype) BuildSummaryReturnsOnCall(i int, result1 *atc.BuildSummary) {
+	fake.buildSummaryMutex.Lock()
+	defer fake.buildSummaryMutex.Unlock()
+	fake.BuildSummaryStub = nil
+	if fake.buildSummaryReturnsOnCall == nil {
+		fake.buildSummaryReturnsOnCall = make(map[int]struct {
+			result1 *atc.BuildSummary
+		})
+	}
+	fake.buildSummaryReturnsOnCall[i] = struct {
+		result1 *atc.BuildSummary
+	}{result1}
+}
+
+func (fake *FakePrototype) CheckApiEndpoint() string {
+	fake.checkApiEndpointMutex.Lock()
+	ret, specificReturn := fake.checkApiEndpointReturnsOnCall[len(fake.checkApiEndpointArgsForCall)]
+	fake.checkApiEndpointArgsForCall = append(fake.checkApiEndpointArgsForCall, struct {
+	}{})
+	stub := fake.CheckApiEndpointStub
+	fakeReturns := fake.checkApiEndpointReturns
+	fake.recordInvocation("CheckApiEndpoint", []interface{}{})
+	fake.checkApiEndpointMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakePrototype) CheckApiEndpointCallCount() int {
+	fake.checkApiEndpointMutex.RLock()
+	defer fake.checkApiEndpointMutex.RUnlock()
+	return len(fake.checkApiEndpointArgsForCall)
+}
+
+func (fake *FakePrototype) CheckApiEndpointCalls(stub func() string) {
+	fake.checkApiEndpointMutex.Lock()
+	defer fake.checkApiEndpointMutex.Unlock()
+	fake.CheckApiEndpointStub = stub
+}
+
+func (fake *FakePrototype) CheckApiEndpointReturns(result1 string) {
+	fake.checkApiEndpointMutex.Lock()
+	defer fake.checkApiEndpointMutex.Unlock()
+	fake.CheckApiEndpointStub = nil
+	fake.checkApiEndpointReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakePrototype) CheckApiEndpointReturnsOnCall(i int, result1 string) {
+	fake.checkApiEndpointMutex.Lock()
+	defer fake.checkApiEndpointMutex.Unlock()
+	fake.CheckApiEndpointStub = nil
+	if fake.checkApiEndpointReturnsOnCall == nil {
+		fake.checkApiEndpointReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.checkApiEndpointReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
+}
+
 func (fake *FakePrototype) CheckEvery() *atc.CheckEvery {
 	fake.checkEveryMutex.Lock()
 	ret, specificReturn := fake.checkEveryReturnsOnCall[len(fake.checkEveryArgsForCall)]
@@ -556,6 +696,71 @@ func (fake *FakePrototype) CreateBuildReturnsOnCall(i int, result1 db.Build, res
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
+}
+
+func (fake *FakePrototype) CreateInMemoryBuild(arg1 context.Context, arg2 atc.Plan) (db.Build, error) {
+	fake.createInMemoryBuildMutex.Lock()
+	ret, specificReturn := fake.createInMemoryBuildReturnsOnCall[len(fake.createInMemoryBuildArgsForCall)]
+	fake.createInMemoryBuildArgsForCall = append(fake.createInMemoryBuildArgsForCall, struct {
+		arg1 context.Context
+		arg2 atc.Plan
+	}{arg1, arg2})
+	stub := fake.CreateInMemoryBuildStub
+	fakeReturns := fake.createInMemoryBuildReturns
+	fake.recordInvocation("CreateInMemoryBuild", []interface{}{arg1, arg2})
+	fake.createInMemoryBuildMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakePrototype) CreateInMemoryBuildCallCount() int {
+	fake.createInMemoryBuildMutex.RLock()
+	defer fake.createInMemoryBuildMutex.RUnlock()
+	return len(fake.createInMemoryBuildArgsForCall)
+}
+
+func (fake *FakePrototype) CreateInMemoryBuildCalls(stub func(context.Context, atc.Plan) (db.Build, error)) {
+	fake.createInMemoryBuildMutex.Lock()
+	defer fake.createInMemoryBuildMutex.Unlock()
+	fake.CreateInMemoryBuildStub = stub
+}
+
+func (fake *FakePrototype) CreateInMemoryBuildArgsForCall(i int) (context.Context, atc.Plan) {
+	fake.createInMemoryBuildMutex.RLock()
+	defer fake.createInMemoryBuildMutex.RUnlock()
+	argsForCall := fake.createInMemoryBuildArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakePrototype) CreateInMemoryBuildReturns(result1 db.Build, result2 error) {
+	fake.createInMemoryBuildMutex.Lock()
+	defer fake.createInMemoryBuildMutex.Unlock()
+	fake.CreateInMemoryBuildStub = nil
+	fake.createInMemoryBuildReturns = struct {
+		result1 db.Build
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakePrototype) CreateInMemoryBuildReturnsOnCall(i int, result1 db.Build, result2 error) {
+	fake.createInMemoryBuildMutex.Lock()
+	defer fake.createInMemoryBuildMutex.Unlock()
+	fake.CreateInMemoryBuildStub = nil
+	if fake.createInMemoryBuildReturnsOnCall == nil {
+		fake.createInMemoryBuildReturnsOnCall = make(map[int]struct {
+			result1 db.Build
+			result2 error
+		})
+	}
+	fake.createInMemoryBuildReturnsOnCall[i] = struct {
+		result1 db.Build
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakePrototype) CurrentPinnedVersion() atc.Version {
@@ -1850,6 +2055,10 @@ func (fake *FakePrototype) VersionReturnsOnCall(i int, result1 atc.Version) {
 func (fake *FakePrototype) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.buildSummaryMutex.RLock()
+	defer fake.buildSummaryMutex.RUnlock()
+	fake.checkApiEndpointMutex.RLock()
+	defer fake.checkApiEndpointMutex.RUnlock()
 	fake.checkEveryMutex.RLock()
 	defer fake.checkEveryMutex.RUnlock()
 	fake.checkPlanMutex.RLock()
@@ -1858,6 +2067,8 @@ func (fake *FakePrototype) Invocations() map[string][][]interface{} {
 	defer fake.checkTimeoutMutex.RUnlock()
 	fake.createBuildMutex.RLock()
 	defer fake.createBuildMutex.RUnlock()
+	fake.createInMemoryBuildMutex.RLock()
+	defer fake.createInMemoryBuildMutex.RUnlock()
 	fake.currentPinnedVersionMutex.RLock()
 	defer fake.currentPinnedVersionMutex.RUnlock()
 	fake.defaultsMutex.RLock()

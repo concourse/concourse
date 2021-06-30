@@ -74,6 +74,16 @@ type FakeBuild struct {
 		result2 bool
 		result3 error
 	}
+	AllAssociatedTeamNamesStub        func() []string
+	allAssociatedTeamNamesMutex       sync.RWMutex
+	allAssociatedTeamNamesArgsForCall []struct {
+	}
+	allAssociatedTeamNamesReturns struct {
+		result1 []string
+	}
+	allAssociatedTeamNamesReturnsOnCall map[int]struct {
+		result1 []string
+	}
 	ArtifactStub        func(int) (db.WorkerArtifact, error)
 	artifactMutex       sync.RWMutex
 	artifactArgsForCall []struct {
@@ -99,6 +109,7 @@ type FakeBuild struct {
 		result1 []db.WorkerArtifact
 		result2 error
 	}
+
 	CommentStub        func() string
 	commentMutex       sync.RWMutex
 	commentArgsForCall []struct {
@@ -108,6 +119,16 @@ type FakeBuild struct {
 	}
 	commentReturnsOnCall map[int]struct {
 		result1 string
+	ContainerOwnerStub        func(atc.PlanID) db.ContainerOwner
+	containerOwnerMutex       sync.RWMutex
+	containerOwnerArgsForCall []struct {
+		arg1 atc.PlanID
+	}
+	containerOwnerReturns struct {
+		result1 db.ContainerOwner
+	}
+	containerOwnerReturnsOnCall map[int]struct {
+		result1 db.ContainerOwner
 	}
 	CreateTimeStub        func() time.Time
 	createTimeMutex       sync.RWMutex
@@ -491,6 +512,16 @@ type FakeBuild struct {
 	}
 	rerunOfNameReturnsOnCall map[int]struct {
 		result1 string
+	}
+	ResourceCacheUserStub        func() db.ResourceCacheUser
+	resourceCacheUserMutex       sync.RWMutex
+	resourceCacheUserArgsForCall []struct {
+	}
+	resourceCacheUserReturns struct {
+		result1 db.ResourceCacheUser
+	}
+	resourceCacheUserReturnsOnCall map[int]struct {
+		result1 db.ResourceCacheUser
 	}
 	ResourceIDStub        func() int
 	resourceIDMutex       sync.RWMutex
@@ -994,6 +1025,59 @@ func (fake *FakeBuild) AdoptRerunInputsAndPipesReturnsOnCall(i int, result1 []db
 	}{result1, result2, result3}
 }
 
+func (fake *FakeBuild) AllAssociatedTeamNames() []string {
+	fake.allAssociatedTeamNamesMutex.Lock()
+	ret, specificReturn := fake.allAssociatedTeamNamesReturnsOnCall[len(fake.allAssociatedTeamNamesArgsForCall)]
+	fake.allAssociatedTeamNamesArgsForCall = append(fake.allAssociatedTeamNamesArgsForCall, struct {
+	}{})
+	stub := fake.AllAssociatedTeamNamesStub
+	fakeReturns := fake.allAssociatedTeamNamesReturns
+	fake.recordInvocation("AllAssociatedTeamNames", []interface{}{})
+	fake.allAssociatedTeamNamesMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeBuild) AllAssociatedTeamNamesCallCount() int {
+	fake.allAssociatedTeamNamesMutex.RLock()
+	defer fake.allAssociatedTeamNamesMutex.RUnlock()
+	return len(fake.allAssociatedTeamNamesArgsForCall)
+}
+
+func (fake *FakeBuild) AllAssociatedTeamNamesCalls(stub func() []string) {
+	fake.allAssociatedTeamNamesMutex.Lock()
+	defer fake.allAssociatedTeamNamesMutex.Unlock()
+	fake.AllAssociatedTeamNamesStub = stub
+}
+
+func (fake *FakeBuild) AllAssociatedTeamNamesReturns(result1 []string) {
+	fake.allAssociatedTeamNamesMutex.Lock()
+	defer fake.allAssociatedTeamNamesMutex.Unlock()
+	fake.AllAssociatedTeamNamesStub = nil
+	fake.allAssociatedTeamNamesReturns = struct {
+		result1 []string
+	}{result1}
+}
+
+func (fake *FakeBuild) AllAssociatedTeamNamesReturnsOnCall(i int, result1 []string) {
+	fake.allAssociatedTeamNamesMutex.Lock()
+	defer fake.allAssociatedTeamNamesMutex.Unlock()
+	fake.AllAssociatedTeamNamesStub = nil
+	if fake.allAssociatedTeamNamesReturnsOnCall == nil {
+		fake.allAssociatedTeamNamesReturnsOnCall = make(map[int]struct {
+			result1 []string
+		})
+	}
+	fake.allAssociatedTeamNamesReturnsOnCall[i] = struct {
+		result1 []string
+	}{result1}
+}
+
 func (fake *FakeBuild) Artifact(arg1 int) (db.WorkerArtifact, error) {
 	fake.artifactMutex.Lock()
 	ret, specificReturn := fake.artifactReturnsOnCall[len(fake.artifactArgsForCall)]
@@ -1114,6 +1198,7 @@ func (fake *FakeBuild) ArtifactsReturnsOnCall(i int, result1 []db.WorkerArtifact
 	}{result1, result2}
 }
 
+<<<<<<< HEAD
 func (fake *FakeBuild) Comment() string {
 	fake.commentMutex.Lock()
 	ret, specificReturn := fake.commentReturnsOnCall[len(fake.commentArgsForCall)]
@@ -1125,6 +1210,20 @@ func (fake *FakeBuild) Comment() string {
 	fake.commentMutex.Unlock()
 	if stub != nil {
 		return stub()
+=======
+func (fake *FakeBuild) ContainerOwner(arg1 atc.PlanID) db.ContainerOwner {
+	fake.containerOwnerMutex.Lock()
+	ret, specificReturn := fake.containerOwnerReturnsOnCall[len(fake.containerOwnerArgsForCall)]
+	fake.containerOwnerArgsForCall = append(fake.containerOwnerArgsForCall, struct {
+		arg1 atc.PlanID
+	}{arg1})
+	stub := fake.ContainerOwnerStub
+	fakeReturns := fake.containerOwnerReturns
+	fake.recordInvocation("ContainerOwner", []interface{}{arg1})
+	fake.containerOwnerMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+>>>>>>> 01a89b1b2 (fixed existing tests, new tests will be added later)
 	}
 	if specificReturn {
 		return ret.result1
@@ -1132,6 +1231,7 @@ func (fake *FakeBuild) Comment() string {
 	return fakeReturns.result1
 }
 
+<<<<<<< HEAD
 func (fake *FakeBuild) CommentCallCount() int {
 	fake.commentMutex.RLock()
 	defer fake.commentMutex.RUnlock()
@@ -1164,6 +1264,47 @@ func (fake *FakeBuild) CommentReturnsOnCall(i int, result1 string) {
 	}
 	fake.commentReturnsOnCall[i] = struct {
 		result1 string
+=======
+func (fake *FakeBuild) ContainerOwnerCallCount() int {
+	fake.containerOwnerMutex.RLock()
+	defer fake.containerOwnerMutex.RUnlock()
+	return len(fake.containerOwnerArgsForCall)
+}
+
+func (fake *FakeBuild) ContainerOwnerCalls(stub func(atc.PlanID) db.ContainerOwner) {
+	fake.containerOwnerMutex.Lock()
+	defer fake.containerOwnerMutex.Unlock()
+	fake.ContainerOwnerStub = stub
+}
+
+func (fake *FakeBuild) ContainerOwnerArgsForCall(i int) atc.PlanID {
+	fake.containerOwnerMutex.RLock()
+	defer fake.containerOwnerMutex.RUnlock()
+	argsForCall := fake.containerOwnerArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeBuild) ContainerOwnerReturns(result1 db.ContainerOwner) {
+	fake.containerOwnerMutex.Lock()
+	defer fake.containerOwnerMutex.Unlock()
+	fake.ContainerOwnerStub = nil
+	fake.containerOwnerReturns = struct {
+		result1 db.ContainerOwner
+	}{result1}
+}
+
+func (fake *FakeBuild) ContainerOwnerReturnsOnCall(i int, result1 db.ContainerOwner) {
+	fake.containerOwnerMutex.Lock()
+	defer fake.containerOwnerMutex.Unlock()
+	fake.ContainerOwnerStub = nil
+	if fake.containerOwnerReturnsOnCall == nil {
+		fake.containerOwnerReturnsOnCall = make(map[int]struct {
+			result1 db.ContainerOwner
+		})
+	}
+	fake.containerOwnerReturnsOnCall[i] = struct {
+		result1 db.ContainerOwner
+>>>>>>> 01a89b1b2 (fixed existing tests, new tests will be added later)
 	}{result1}
 }
 
@@ -3129,6 +3270,59 @@ func (fake *FakeBuild) RerunOfNameReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
+func (fake *FakeBuild) ResourceCacheUser() db.ResourceCacheUser {
+	fake.resourceCacheUserMutex.Lock()
+	ret, specificReturn := fake.resourceCacheUserReturnsOnCall[len(fake.resourceCacheUserArgsForCall)]
+	fake.resourceCacheUserArgsForCall = append(fake.resourceCacheUserArgsForCall, struct {
+	}{})
+	stub := fake.ResourceCacheUserStub
+	fakeReturns := fake.resourceCacheUserReturns
+	fake.recordInvocation("ResourceCacheUser", []interface{}{})
+	fake.resourceCacheUserMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeBuild) ResourceCacheUserCallCount() int {
+	fake.resourceCacheUserMutex.RLock()
+	defer fake.resourceCacheUserMutex.RUnlock()
+	return len(fake.resourceCacheUserArgsForCall)
+}
+
+func (fake *FakeBuild) ResourceCacheUserCalls(stub func() db.ResourceCacheUser) {
+	fake.resourceCacheUserMutex.Lock()
+	defer fake.resourceCacheUserMutex.Unlock()
+	fake.ResourceCacheUserStub = stub
+}
+
+func (fake *FakeBuild) ResourceCacheUserReturns(result1 db.ResourceCacheUser) {
+	fake.resourceCacheUserMutex.Lock()
+	defer fake.resourceCacheUserMutex.Unlock()
+	fake.ResourceCacheUserStub = nil
+	fake.resourceCacheUserReturns = struct {
+		result1 db.ResourceCacheUser
+	}{result1}
+}
+
+func (fake *FakeBuild) ResourceCacheUserReturnsOnCall(i int, result1 db.ResourceCacheUser) {
+	fake.resourceCacheUserMutex.Lock()
+	defer fake.resourceCacheUserMutex.Unlock()
+	fake.ResourceCacheUserStub = nil
+	if fake.resourceCacheUserReturnsOnCall == nil {
+		fake.resourceCacheUserReturnsOnCall = make(map[int]struct {
+			result1 db.ResourceCacheUser
+		})
+	}
+	fake.resourceCacheUserReturnsOnCall[i] = struct {
+		result1 db.ResourceCacheUser
+	}{result1}
+}
+
 func (fake *FakeBuild) ResourceID() int {
 	fake.resourceIDMutex.Lock()
 	ret, specificReturn := fake.resourceIDReturnsOnCall[len(fake.resourceIDArgsForCall)]
@@ -4419,12 +4613,19 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.adoptInputsAndPipesMutex.RUnlock()
 	fake.adoptRerunInputsAndPipesMutex.RLock()
 	defer fake.adoptRerunInputsAndPipesMutex.RUnlock()
+	fake.allAssociatedTeamNamesMutex.RLock()
+	defer fake.allAssociatedTeamNamesMutex.RUnlock()
 	fake.artifactMutex.RLock()
 	defer fake.artifactMutex.RUnlock()
 	fake.artifactsMutex.RLock()
 	defer fake.artifactsMutex.RUnlock()
+<<<<<<< HEAD
 	fake.commentMutex.RLock()
 	defer fake.commentMutex.RUnlock()
+=======
+	fake.containerOwnerMutex.RLock()
+	defer fake.containerOwnerMutex.RUnlock()
+>>>>>>> 01a89b1b2 (fixed existing tests, new tests will be added later)
 	fake.createTimeMutex.RLock()
 	defer fake.createTimeMutex.RUnlock()
 	fake.createdByMutex.RLock()
@@ -4497,6 +4698,8 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.rerunOfMutex.RUnlock()
 	fake.rerunOfNameMutex.RLock()
 	defer fake.rerunOfNameMutex.RUnlock()
+	fake.resourceCacheUserMutex.RLock()
+	defer fake.resourceCacheUserMutex.RUnlock()
 	fake.resourceIDMutex.RLock()
 	defer fake.resourceIDMutex.RUnlock()
 	fake.resourceNameMutex.RLock()

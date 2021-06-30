@@ -5,7 +5,7 @@
 --     ADD COLUMN in_memory_check_build_status text,
 --     ADD COLUMN in_memory_check_build_plan text;
 
--- TODO: add an unique index on in_memory_check_build_id
+-- TODO: DROP build_id from resources
 
 ALTER TABLE resource_config_scopes
     ADD COLUMN last_check_build_id int8,

@@ -457,23 +457,6 @@ var _ = Describe("Resource", func() {
 			Expect(build.PrivatePlan()).To(Equal(plan))
 		})
 
-		It("associates the resource to the build", func() {
-			exists, err := defaultResource.Reload()
-			Expect(err).ToNot(HaveOccurred())
-			Expect(exists).To(BeTrue())
-
-			Expect(defaultResource.BuildSummary()).To(Equal(&atc.BuildSummary{
-				ID:                   build.ID(),
-				Name:                 db.CheckBuildName,
-				Status:               atc.StatusStarted,
-				StartTime:            build.StartTime().Unix(),
-				TeamName:             defaultTeam.Name(),
-				PipelineID:           defaultPipeline.ID(),
-				PipelineName:         defaultPipeline.Name(),
-				PipelineInstanceVars: defaultPipeline.InstanceVars(),
-			}))
-		})
-
 		It("logs to the check_build_events partition", func() {
 			err := build.SaveEvent(event.Log{Payload: "log"})
 			Expect(err).ToNot(HaveOccurred())
@@ -534,23 +517,6 @@ var _ = Describe("Resource", func() {
 					Expect(created).To(BeTrue())
 					Expect(build.IsManuallyTriggered()).To(BeTrue())
 					Expect(build.ResourceID()).To(Equal(defaultResource.ID()))
-				})
-
-				It("associates the resource to the build", func() {
-					exists, err := defaultResource.Reload()
-					Expect(err).ToNot(HaveOccurred())
-					Expect(exists).To(BeTrue())
-
-					Expect(defaultResource.BuildSummary()).To(Equal(&atc.BuildSummary{
-						ID:                   build.ID(),
-						Name:                 db.CheckBuildName,
-						Status:               atc.StatusStarted,
-						StartTime:            build.StartTime().Unix(),
-						TeamName:             defaultTeam.Name(),
-						PipelineID:           defaultPipeline.ID(),
-						PipelineName:         defaultPipeline.Name(),
-						PipelineInstanceVars: defaultPipeline.InstanceVars(),
-					}))
 				})
 			})
 

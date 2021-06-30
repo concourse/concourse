@@ -134,6 +134,20 @@ type FakeResource struct {
 		result2 bool
 		result3 error
 	}
+	CreateInMemoryBuildStub        func(context.Context, atc.Plan) (db.Build, error)
+	createInMemoryBuildMutex       sync.RWMutex
+	createInMemoryBuildArgsForCall []struct {
+		arg1 context.Context
+		arg2 atc.Plan
+	}
+	createInMemoryBuildReturns struct {
+		result1 db.Build
+		result2 error
+	}
+	createInMemoryBuildReturnsOnCall map[int]struct {
+		result1 db.Build
+		result2 error
+	}
 	CurrentPinnedVersionStub        func() atc.Version
 	currentPinnedVersionMutex       sync.RWMutex
 	currentPinnedVersionArgsForCall []struct {
@@ -1082,6 +1096,71 @@ func (fake *FakeResource) CreateBuildReturnsOnCall(i int, result1 db.Build, resu
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
+}
+
+func (fake *FakeResource) CreateInMemoryBuild(arg1 context.Context, arg2 atc.Plan) (db.Build, error) {
+	fake.createInMemoryBuildMutex.Lock()
+	ret, specificReturn := fake.createInMemoryBuildReturnsOnCall[len(fake.createInMemoryBuildArgsForCall)]
+	fake.createInMemoryBuildArgsForCall = append(fake.createInMemoryBuildArgsForCall, struct {
+		arg1 context.Context
+		arg2 atc.Plan
+	}{arg1, arg2})
+	stub := fake.CreateInMemoryBuildStub
+	fakeReturns := fake.createInMemoryBuildReturns
+	fake.recordInvocation("CreateInMemoryBuild", []interface{}{arg1, arg2})
+	fake.createInMemoryBuildMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeResource) CreateInMemoryBuildCallCount() int {
+	fake.createInMemoryBuildMutex.RLock()
+	defer fake.createInMemoryBuildMutex.RUnlock()
+	return len(fake.createInMemoryBuildArgsForCall)
+}
+
+func (fake *FakeResource) CreateInMemoryBuildCalls(stub func(context.Context, atc.Plan) (db.Build, error)) {
+	fake.createInMemoryBuildMutex.Lock()
+	defer fake.createInMemoryBuildMutex.Unlock()
+	fake.CreateInMemoryBuildStub = stub
+}
+
+func (fake *FakeResource) CreateInMemoryBuildArgsForCall(i int) (context.Context, atc.Plan) {
+	fake.createInMemoryBuildMutex.RLock()
+	defer fake.createInMemoryBuildMutex.RUnlock()
+	argsForCall := fake.createInMemoryBuildArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeResource) CreateInMemoryBuildReturns(result1 db.Build, result2 error) {
+	fake.createInMemoryBuildMutex.Lock()
+	defer fake.createInMemoryBuildMutex.Unlock()
+	fake.CreateInMemoryBuildStub = nil
+	fake.createInMemoryBuildReturns = struct {
+		result1 db.Build
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeResource) CreateInMemoryBuildReturnsOnCall(i int, result1 db.Build, result2 error) {
+	fake.createInMemoryBuildMutex.Lock()
+	defer fake.createInMemoryBuildMutex.Unlock()
+	fake.CreateInMemoryBuildStub = nil
+	if fake.createInMemoryBuildReturnsOnCall == nil {
+		fake.createInMemoryBuildReturnsOnCall = make(map[int]struct {
+			result1 db.Build
+			result2 error
+		})
+	}
+	fake.createInMemoryBuildReturnsOnCall[i] = struct {
+		result1 db.Build
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeResource) CurrentPinnedVersion() atc.Version {
@@ -2952,6 +3031,8 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.configPinnedVersionMutex.RUnlock()
 	fake.createBuildMutex.RLock()
 	defer fake.createBuildMutex.RUnlock()
+	fake.createInMemoryBuildMutex.RLock()
+	defer fake.createInMemoryBuildMutex.RUnlock()
 	fake.currentPinnedVersionMutex.RLock()
 	defer fake.currentPinnedVersionMutex.RUnlock()
 	fake.disableVersionMutex.RLock()

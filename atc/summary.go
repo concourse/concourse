@@ -44,7 +44,7 @@ type BuildSummary struct {
 
 	JobName string `json:"job_name,omitempty"`
 
-	PublicPlan *json.RawMessage
+	PublicPlan *json.RawMessage `json:"plan,omitempty"`
 }
 
 type JobInputSummary struct {
