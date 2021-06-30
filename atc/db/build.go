@@ -414,13 +414,8 @@ func (b *build) Interceptible() (bool, error) {
 }
 
 func (b *build) Job() (Job, bool, error) {
-	jobName := b.JobName()
-	if jobName == "" {
-		return nil, false, nil
-	}
-
 	row := jobsQuery.Where(sq.Eq{
-		"j.name":   jobName,
+		"j.id":     b.JobID(),
 		"j.active": true,
 	}).RunWith(b.conn).QueryRow()
 
@@ -445,6 +440,7 @@ func (b *build) SetComment(comment string) error {
 		Suffix("ON CONFLICT (build_id) DO UPDATE SET comment = EXCLUDED.comment").
 		RunWith(b.conn).
 		Exec()
+
 	if err != nil {
 		return err
 	}

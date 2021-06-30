@@ -339,6 +339,5 @@ commentBarTextButton =
     , style "margin" "5px 5px 7px 7px"
     , style "outline" "none"
     , style "border" "1px solid"
-    , style "transition" "border 200ms ease, color 200ms ease"
     ]
         ++ defaultFont

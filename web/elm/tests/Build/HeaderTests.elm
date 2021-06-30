@@ -12,6 +12,7 @@ import Data
 import Dict
 import Expect
 import HoverState
+import Html.Attributes exposing (type_)
 import Keyboard
 import List.Extra
 import Message.Callback as Callback
@@ -158,15 +159,17 @@ all =
                         Header.header session
                             { model | status = BuildStatusSucceeded }
                             |> .rightWidgets
-                            |> Common.none
+                            |> List.filterMap
                                 (\w ->
                                     case w of
-                                        Views.Button (Just x) ->
-                                            x.type_ == Views.Rerun
+                                        Views.Button b ->
+                                            b
 
                                         _ ->
-                                            False
+                                            Nothing
                                 )
+                            |> List.map .type_
+                            |> Common.notContains Views.Rerun
                 , test "appears on non-running job build" <|
                     \_ ->
                         Header.header session
@@ -243,15 +246,17 @@ all =
                         Header.header session
                             { model | job = Just jobId, authorized = False }
                             |> .rightWidgets
-                            |> Common.none
+                            |> List.filterMap
                                 (\w ->
                                     case w of
-                                        Views.Button (Just x) ->
-                                            x.type_ == Views.ToggleComment
+                                        Views.Button b ->
+                                            b
 
                                         _ ->
-                                            False
+                                            Nothing
                                 )
+                            |> List.map .type_
+                            |> Common.notContains Views.ToggleComment
                 , test "clicking toggles visiblity of comment" <|
                     \_ ->
                         ( { model | job = Just jobId }
