@@ -262,8 +262,8 @@ decide much on its own.
     \link{Guardian}{https://github.com/cloudfoundry/guardian}, and
     \link{Houdini}{https://github.com/vito/houdini} (an experimental runtime
     for Darwin and Windows). Only \code{containerd} and \code{Guardian} are
-    meant for production use. Starting in v7.4.0, \code{containerd} is the
-    default runtime for Concourse.
+    meant for production use. \code{Guardian} is the default runtime for
+    Concourse.
 
     \aside{
       \bold{Note about architecture}: The web node (ATC) talks to all 3
@@ -281,8 +281,7 @@ decide much on its own.
     \section{
       \title{\bold{\code{containerd} runtime}}
 
-      For versions of Concourse before 7.4.0 the \code{containerd} runtime has
-      to be enabled manually by setting \code{--runtime}
+      To use the \code{containerd} runtime manually set the \code{--runtime}
       (\code{CONCOURSE_RUNTIME}) to \code{containerd} on the \code{concourse
       worker} command.
 
@@ -405,9 +404,9 @@ decide much on its own.
     \section{
       \title{\bold{\code{Guardian} runtime}}
 
-      For versions earlier than 7.4.0 Guardian was the default runtime for
-      Concourse. To enable it manually in future versions the \code{--runtime}
-      flag has to be set to \code{guardian}.
+      Guardian is currently the default runtime for Concourse. It can also be
+      set by setting the \code{--runtime} flag to \code{guardian} on the
+      \code{concourse worker} command.
 
       The \code{concourse worker} command automatically configures and runs
       \code{Guardian} using the \code{gdn} binary, but depending on the
