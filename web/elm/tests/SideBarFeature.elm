@@ -2205,6 +2205,7 @@ iAmLookingAtAOneOffBuildPageOnANonPhoneScreen =
                     , duration = { startedAt = Nothing, finishedAt = Nothing }
                     , reapTime = Nothing
                     , createdBy = Nothing
+                    , comment = ""
                     }
                 )
             )

@@ -50,6 +50,7 @@ func (rw *RejectArchivedWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.GetBuildPreparation,
 			atc.GetBuildPlan,
 			atc.AbortBuild,
+			atc.SetBuildComment,
 			atc.PruneWorker,
 			atc.LandWorker,
 			atc.ReportWorkerContainers,

@@ -23,7 +23,8 @@ import Maybe exposing (Maybe)
 import Message.Callback exposing (Callback(..))
 import Message.Message
     exposing
-        ( DomID(..)
+        ( CommentBarButtonKind(..)
+        , DomID(..)
         , PipelinesSection(..)
         , VersionToggleAction(..)
         , VisibilityAction(..)
@@ -144,6 +145,7 @@ type Effect
     | GetCurrentTimeZone
     | DoTriggerBuild Concourse.JobIdentifier
     | RerunJobBuild Concourse.JobBuildIdentifier
+    | SetBuildComment Int String
     | DoAbortBuild Int
     | PauseJob Concourse.JobIdentifier
     | UnpauseJob Concourse.JobIdentifier
@@ -353,6 +355,18 @@ runEffect effect key csrfToken =
                 |> Api.expectJson Concourse.decodeBuild
                 |> Api.request
                 |> Task.attempt BuildTriggered
+
+        SetBuildComment buildId comment ->
+            Api.put (Endpoints.SetComment |> Endpoints.Build buildId) csrfToken
+                |> Api.withJsonBody
+                    (Json.Encode.object
+                        [ ( "comment"
+                          , Json.Encode.string comment
+                          )
+                        ]
+                    )
+                |> Api.request
+                |> Task.attempt (BuildCommentSet buildId comment)
 
         RerunJobBuild id ->
             Api.post (Endpoints.JobBuild id) csrfToken
@@ -837,6 +851,27 @@ toHtmlID domId =
         TopBarPinIcon ->
             "top-bar-pin-icon"
 
+        CommentBar id ->
+            "comment-bar-" ++ toHtmlID id
+
+        CommentBarButton kind id ->
+            "comment-bar-"
+                ++ (case kind of
+                        Edit ->
+                            "edit"
+
+                        Save ->
+                            "save"
+                   )
+                ++ "-button-"
+                ++ toHtmlID id
+
+        ToggleBuildCommentButton ->
+            "toggle-build-comment-button"
+
+        BuildComment ->
+            "build-comment"
+
         AbortBuildButton ->
             "abort-build-button"
 
@@ -851,6 +886,9 @@ toHtmlID domId =
 
         CheckButton _ ->
             "check-button"
+
+        BuildTab id _ ->
+            String.fromInt id
 
         PinIcon ->
             "pin-icon"

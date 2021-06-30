@@ -99,6 +99,16 @@ type FakeBuild struct {
 		result1 []db.WorkerArtifact
 		result2 error
 	}
+	CommentStub        func() string
+	commentMutex       sync.RWMutex
+	commentArgsForCall []struct {
+	}
+	commentReturns struct {
+		result1 string
+	}
+	commentReturnsOnCall map[int]struct {
+		result1 string
+	}
 	CreateTimeStub        func() time.Time
 	createTimeMutex       sync.RWMutex
 	createTimeArgsForCall []struct {
@@ -277,6 +287,20 @@ type FakeBuild struct {
 	}
 	isScheduledReturnsOnCall map[int]struct {
 		result1 bool
+	}
+	JobStub        func() (db.Job, bool, error)
+	jobMutex       sync.RWMutex
+	jobArgsForCall []struct {
+	}
+	jobReturns struct {
+		result1 db.Job
+		result2 bool
+		result3 error
+	}
+	jobReturnsOnCall map[int]struct {
+		result1 db.Job
+		result2 bool
+		result3 error
 	}
 	JobIDStub        func() int
 	jobIDMutex       sync.RWMutex
@@ -591,6 +615,17 @@ type FakeBuild struct {
 	}
 	schemaReturnsOnCall map[int]struct {
 		result1 string
+	}
+	SetCommentStub        func(string) error
+	setCommentMutex       sync.RWMutex
+	setCommentArgsForCall []struct {
+		arg1 string
+	}
+	setCommentReturns struct {
+		result1 error
+	}
+	setCommentReturnsOnCall map[int]struct {
+		result1 error
 	}
 	SetDrainedStub        func(bool) error
 	setDrainedMutex       sync.RWMutex
@@ -1077,6 +1112,59 @@ func (fake *FakeBuild) ArtifactsReturnsOnCall(i int, result1 []db.WorkerArtifact
 		result1 []db.WorkerArtifact
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeBuild) Comment() string {
+	fake.commentMutex.Lock()
+	ret, specificReturn := fake.commentReturnsOnCall[len(fake.commentArgsForCall)]
+	fake.commentArgsForCall = append(fake.commentArgsForCall, struct {
+	}{})
+	stub := fake.CommentStub
+	fakeReturns := fake.commentReturns
+	fake.recordInvocation("Comment", []interface{}{})
+	fake.commentMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeBuild) CommentCallCount() int {
+	fake.commentMutex.RLock()
+	defer fake.commentMutex.RUnlock()
+	return len(fake.commentArgsForCall)
+}
+
+func (fake *FakeBuild) CommentCalls(stub func() string) {
+	fake.commentMutex.Lock()
+	defer fake.commentMutex.Unlock()
+	fake.CommentStub = stub
+}
+
+func (fake *FakeBuild) CommentReturns(result1 string) {
+	fake.commentMutex.Lock()
+	defer fake.commentMutex.Unlock()
+	fake.CommentStub = nil
+	fake.commentReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeBuild) CommentReturnsOnCall(i int, result1 string) {
+	fake.commentMutex.Lock()
+	defer fake.commentMutex.Unlock()
+	fake.CommentStub = nil
+	if fake.commentReturnsOnCall == nil {
+		fake.commentReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.commentReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
 }
 
 func (fake *FakeBuild) CreateTime() time.Time {
@@ -2011,6 +2099,65 @@ func (fake *FakeBuild) IsScheduledReturnsOnCall(i int, result1 bool) {
 	fake.isScheduledReturnsOnCall[i] = struct {
 		result1 bool
 	}{result1}
+}
+
+func (fake *FakeBuild) Job() (db.Job, bool, error) {
+	fake.jobMutex.Lock()
+	ret, specificReturn := fake.jobReturnsOnCall[len(fake.jobArgsForCall)]
+	fake.jobArgsForCall = append(fake.jobArgsForCall, struct {
+	}{})
+	stub := fake.JobStub
+	fakeReturns := fake.jobReturns
+	fake.recordInvocation("Job", []interface{}{})
+	fake.jobMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+}
+
+func (fake *FakeBuild) JobCallCount() int {
+	fake.jobMutex.RLock()
+	defer fake.jobMutex.RUnlock()
+	return len(fake.jobArgsForCall)
+}
+
+func (fake *FakeBuild) JobCalls(stub func() (db.Job, bool, error)) {
+	fake.jobMutex.Lock()
+	defer fake.jobMutex.Unlock()
+	fake.JobStub = stub
+}
+
+func (fake *FakeBuild) JobReturns(result1 db.Job, result2 bool, result3 error) {
+	fake.jobMutex.Lock()
+	defer fake.jobMutex.Unlock()
+	fake.JobStub = nil
+	fake.jobReturns = struct {
+		result1 db.Job
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeBuild) JobReturnsOnCall(i int, result1 db.Job, result2 bool, result3 error) {
+	fake.jobMutex.Lock()
+	defer fake.jobMutex.Unlock()
+	fake.JobStub = nil
+	if fake.jobReturnsOnCall == nil {
+		fake.jobReturnsOnCall = make(map[int]struct {
+			result1 db.Job
+			result2 bool
+			result3 error
+		})
+	}
+	fake.jobReturnsOnCall[i] = struct {
+		result1 db.Job
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakeBuild) JobID() int {
@@ -3569,6 +3716,67 @@ func (fake *FakeBuild) SchemaReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
+func (fake *FakeBuild) SetComment(arg1 string) error {
+	fake.setCommentMutex.Lock()
+	ret, specificReturn := fake.setCommentReturnsOnCall[len(fake.setCommentArgsForCall)]
+	fake.setCommentArgsForCall = append(fake.setCommentArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	stub := fake.SetCommentStub
+	fakeReturns := fake.setCommentReturns
+	fake.recordInvocation("SetComment", []interface{}{arg1})
+	fake.setCommentMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeBuild) SetCommentCallCount() int {
+	fake.setCommentMutex.RLock()
+	defer fake.setCommentMutex.RUnlock()
+	return len(fake.setCommentArgsForCall)
+}
+
+func (fake *FakeBuild) SetCommentCalls(stub func(string) error) {
+	fake.setCommentMutex.Lock()
+	defer fake.setCommentMutex.Unlock()
+	fake.SetCommentStub = stub
+}
+
+func (fake *FakeBuild) SetCommentArgsForCall(i int) string {
+	fake.setCommentMutex.RLock()
+	defer fake.setCommentMutex.RUnlock()
+	argsForCall := fake.setCommentArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeBuild) SetCommentReturns(result1 error) {
+	fake.setCommentMutex.Lock()
+	defer fake.setCommentMutex.Unlock()
+	fake.SetCommentStub = nil
+	fake.setCommentReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBuild) SetCommentReturnsOnCall(i int, result1 error) {
+	fake.setCommentMutex.Lock()
+	defer fake.setCommentMutex.Unlock()
+	fake.SetCommentStub = nil
+	if fake.setCommentReturnsOnCall == nil {
+		fake.setCommentReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.setCommentReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeBuild) SetDrained(arg1 bool) error {
 	fake.setDrainedMutex.Lock()
 	ret, specificReturn := fake.setDrainedReturnsOnCall[len(fake.setDrainedArgsForCall)]
@@ -4215,6 +4423,8 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.artifactMutex.RUnlock()
 	fake.artifactsMutex.RLock()
 	defer fake.artifactsMutex.RUnlock()
+	fake.commentMutex.RLock()
+	defer fake.commentMutex.RUnlock()
 	fake.createTimeMutex.RLock()
 	defer fake.createTimeMutex.RUnlock()
 	fake.createdByMutex.RLock()
@@ -4249,6 +4459,8 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.isRunningMutex.RUnlock()
 	fake.isScheduledMutex.RLock()
 	defer fake.isScheduledMutex.RUnlock()
+	fake.jobMutex.RLock()
+	defer fake.jobMutex.RUnlock()
 	fake.jobIDMutex.RLock()
 	defer fake.jobIDMutex.RUnlock()
 	fake.jobNameMutex.RLock()
@@ -4305,6 +4517,8 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.savePipelineMutex.RUnlock()
 	fake.schemaMutex.RLock()
 	defer fake.schemaMutex.RUnlock()
+	fake.setCommentMutex.RLock()
+	defer fake.setCommentMutex.RUnlock()
 	fake.setDrainedMutex.RLock()
 	defer fake.setDrainedMutex.RUnlock()
 	fake.setInterceptibleMutex.RLock()

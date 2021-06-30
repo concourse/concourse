@@ -2,12 +2,14 @@ package present
 
 import (
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/db"
 )
 
 func Job(
 	teamName string,
 	job db.Job,
+	access accessor.Access,
 	inputs []atc.JobInput,
 	outputs []atc.JobOutput,
 	finishedBuild db.Build,
@@ -17,17 +19,17 @@ func Job(
 	var presentedNextBuild, presentedFinishedBuild, presentedTransitionBuild *atc.Build
 
 	if nextBuild != nil {
-		presented := Build(nextBuild)
+		presented := Build(nextBuild, job, access)
 		presentedNextBuild = &presented
 	}
 
 	if finishedBuild != nil {
-		presented := Build(finishedBuild)
+		presented := Build(finishedBuild, job, access)
 		presentedFinishedBuild = &presented
 	}
 
 	if transitionBuild != nil {
-		presented := Build(transitionBuild)
+		presented := Build(transitionBuild, job, access)
 		presentedTransitionBuild = &presented
 	}
 

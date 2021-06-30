@@ -60,6 +60,7 @@ func (a *auditor) ValidateAction(action string) bool {
 		atc.GetBuildPlan,
 		atc.CreateBuild,
 		atc.RerunJobBuild,
+		atc.SetBuildComment,
 		atc.ListBuilds,
 		atc.BuildEvents,
 		atc.BuildResources,

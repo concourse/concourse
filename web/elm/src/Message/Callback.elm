@@ -23,6 +23,7 @@ type Callback
     | GotCurrentTime Time.Posix
     | GotCurrentTimeZone Time.Zone
     | BuildTriggered (Fetched Concourse.Build)
+    | BuildCommentSet Int String (Fetched ())
     | JobBuildsFetched (Fetched ( Page, Paginated Concourse.Build ))
     | JobFetched (Fetched Concourse.Job)
     | JobsFetched (Fetched (List Concourse.Job))

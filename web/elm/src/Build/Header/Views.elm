@@ -31,6 +31,7 @@ import Message.Effects exposing (toHtmlID)
 import Message.Message as Message exposing (Message(..))
 import Routes
 import StrictEvents exposing (onLeftClick, onWheel)
+import Views.CommentBar as CommentBar
 import Views.Icon as Icon
 
 
@@ -44,6 +45,7 @@ type alias Header =
     , rightWidgets : List Widget
     , backgroundColor : BuildStatus
     , tabs : List BuildTab
+    , comment : Maybe ( CommentBar.Model, CommentBar.ViewState )
     }
 
 
@@ -81,6 +83,7 @@ type alias BuildTab =
     , background : BuildStatus
     , href : Routes.Route
     , isCurrent : Bool
+    , hasComment : Bool
     }
 
 
@@ -99,6 +102,7 @@ type BackgroundShade
 
 type ButtonType
     = Abort
+    | ToggleComment
     | Trigger
     | Rerun
 
@@ -106,7 +110,7 @@ type ButtonType
 viewHeader : Header -> Html Message
 viewHeader header =
     Html.div [ class "fixed-header" ]
-        [ Html.div
+        ([ Html.div
             ([ id "build-header"
              , class "build-header"
              ]
@@ -115,8 +119,24 @@ viewHeader header =
             [ Html.div [] (List.map viewWidget header.leftWidgets)
             , Html.div [ style "display" "flex" ] (List.map viewWidget header.rightWidgets)
             ]
-        , viewHistory header.backgroundColor header.tabs
-        ]
+         , viewHistory header.backgroundColor header.tabs
+         ]
+            ++ (case header.comment of
+                    Nothing ->
+                        []
+
+                    Just ( model, state ) ->
+                        [ Html.div
+                            [ id (toHtmlID model.id)
+                            , style "display" "flex"
+                            ]
+                            [ Html.div [ style "flex" "1 1 0%" ] []
+                            , CommentBar.view [ style "flex" "2 1 0%" ] state model
+                            , Html.div [ style "flex" "1 1 0%" ] []
+                            ]
+                        ]
+               )
+        )
 
 
 viewWidget : Widget -> Html Message
@@ -225,15 +245,24 @@ viewBuildTabs backgroundColor =
 viewBuildTab : BuildStatus -> BuildTab -> Html Message
 viewBuildTab backgroundColor tab =
     Html.li
-        ((id <| String.fromInt tab.id)
+        ((id <| toHtmlID <| Message.BuildTab tab.id tab.name)
             :: Styles.historyItem backgroundColor tab.isCurrent tab.background
         )
-        [ Html.a
-            [ onLeftClick <| Click <| Message.BuildTab tab.id tab.name
-            , href <| Routes.toString tab.href
-            ]
-            [ Html.text tab.name ]
-        ]
+        ((if tab.hasComment then
+            [ Html.div (Styles.historyTriangle "5px") [] ]
+
+          else
+            []
+         )
+            ++ [ Html.a
+                    [ onLeftClick <| Click <| Message.BuildTab tab.id tab.name
+                    , onMouseEnter <| Hover <| Just <| Message.BuildTab tab.id tab.name
+                    , onMouseLeave <| Hover Nothing
+                    , href <| Routes.toString tab.href
+                    ]
+                    [ Html.text tab.name ]
+               ]
+        )
 
 
 viewButton : ButtonView -> Html Message
@@ -241,6 +270,9 @@ viewButton { type_, backgroundColor, backgroundShade, isClickable } =
     let
         image =
             case type_ of
+                ToggleComment ->
+                    Assets.MessageIcon
+
                 Abort ->
                     Assets.AbortCircleIcon |> Assets.CircleOutlineIcon
 
@@ -252,6 +284,9 @@ viewButton { type_, backgroundColor, backgroundShade, isClickable } =
 
         accessibilityLabel =
             case type_ of
+                ToggleComment ->
+                    "Toggle Build Comment"
+
                 Abort ->
                     "Abort Build"
 
@@ -263,6 +298,9 @@ viewButton { type_, backgroundColor, backgroundShade, isClickable } =
 
         domID =
             case type_ of
+                ToggleComment ->
+                    Message.ToggleBuildCommentButton
+
                 Abort ->
                     Message.AbortBuildButton
 
@@ -296,13 +334,18 @@ viewButton { type_, backgroundColor, backgroundShade, isClickable } =
         ([ attribute "role" "button"
          , attribute "tabindex" "0"
          , attribute "aria-label" accessibilityLabel
-         , onLeftClick <| Click domID
          , onMouseEnter <| Hover <| Just domID
          , onMouseLeave <| Hover Nothing
          , onFocus <| Hover <| Just domID
          , onBlur <| Hover Nothing
          , id <| toHtmlID domID
          ]
+            ++ (if isClickable then
+                    [ onLeftClick <| Click domID ]
+
+                else
+                    []
+               )
             ++ styles
         )
         [ Icon.icon

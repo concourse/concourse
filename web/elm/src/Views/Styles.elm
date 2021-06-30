@@ -4,6 +4,11 @@ module Views.Styles exposing
     , breadcrumbContainer
     , breadcrumbItem
     , clusterName
+    , commentBarEditButton
+    , commentBarText
+    , commentBarTextarea
+    , commentBarTextButton
+    , commentBarWrapper
     , concourseLogo
     , defaultFont
     , fontFamilyDefault
@@ -25,7 +30,7 @@ import Assets
 import ColorValues
 import Colors
 import Html
-import Html.Attributes exposing (style)
+import Html.Attributes exposing (rows, style)
 import Routes
 
 
@@ -282,3 +287,57 @@ instanceGroupBadge backgroundColor =
     , style "align-items" "center"
     , style "justify-content" "center"
     ]
+
+
+commentBarWrapper : List (Html.Attribute msg)
+commentBarWrapper =
+    [ style "border" "1px solid"
+    , style "margin" "16px 0"
+    ]
+
+
+commentBarTextarea : List (Html.Attribute msg)
+commentBarTextarea =
+    [ style "box-sizing" "border-box"
+    , style "flex-grow" "1"
+    , style "resize" "none"
+    , style "outline" "none"
+    , style "border" "none"
+    , style "color" Colors.text
+    , style "background-color" "transparent"
+    , style "max-height" "150px"
+    , style "margin" "8px 0"
+    , rows 1
+    ]
+        ++ defaultFont
+
+
+commentBarText : List (Html.Attribute msg)
+commentBarText =
+    [ style "flex-grow" "1"
+    , style "margin" "0"
+    , style "outline" "0"
+    , style "padding" "8px 0"
+    , style "max-height" "150px"
+    , style "overflow-y" "scroll"
+    ]
+
+
+commentBarEditButton : List (Html.Attribute msg)
+commentBarEditButton =
+    [ style "padding" "5px"
+    , style "margin" "5px"
+    , style "cursor" "pointer"
+    , style "background-origin" "content-box"
+    , style "background-size" "contain"
+    ]
+
+
+commentBarTextButton : List (Html.Attribute msg)
+commentBarTextButton =
+    [ style "padding" "5px 10px"
+    , style "margin" "5px 5px 7px 7px"
+    , style "outline" "none"
+    , style "border" "1px solid"
+    ]
+        ++ defaultFont

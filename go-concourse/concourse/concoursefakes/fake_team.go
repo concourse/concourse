@@ -738,6 +738,22 @@ type FakeTeam struct {
 		result1 bool
 		result2 error
 	}
+	SetJobBuildCommentStub        func(atc.PipelineRef, string, string, string) (bool, error)
+	setJobBuildCommentMutex       sync.RWMutex
+	setJobBuildCommentArgsForCall []struct {
+		arg1 atc.PipelineRef
+		arg2 string
+		arg3 string
+		arg4 string
+	}
+	setJobBuildCommentReturns struct {
+		result1 bool
+		result2 error
+	}
+	setJobBuildCommentReturnsOnCall map[int]struct {
+		result1 bool
+		result2 error
+	}
 	SetPinCommentStub        func(atc.PipelineRef, string, string) (bool, error)
 	setPinCommentMutex       sync.RWMutex
 	setPinCommentArgsForCall []struct {
@@ -4088,6 +4104,73 @@ func (fake *FakeTeam) ScheduleJobReturnsOnCall(i int, result1 bool, result2 erro
 	}{result1, result2}
 }
 
+func (fake *FakeTeam) SetJobBuildComment(arg1 atc.PipelineRef, arg2 string, arg3 string, arg4 string) (bool, error) {
+	fake.setJobBuildCommentMutex.Lock()
+	ret, specificReturn := fake.setJobBuildCommentReturnsOnCall[len(fake.setJobBuildCommentArgsForCall)]
+	fake.setJobBuildCommentArgsForCall = append(fake.setJobBuildCommentArgsForCall, struct {
+		arg1 atc.PipelineRef
+		arg2 string
+		arg3 string
+		arg4 string
+	}{arg1, arg2, arg3, arg4})
+	stub := fake.SetJobBuildCommentStub
+	fakeReturns := fake.setJobBuildCommentReturns
+	fake.recordInvocation("SetJobBuildComment", []interface{}{arg1, arg2, arg3, arg4})
+	fake.setJobBuildCommentMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeTeam) SetJobBuildCommentCallCount() int {
+	fake.setJobBuildCommentMutex.RLock()
+	defer fake.setJobBuildCommentMutex.RUnlock()
+	return len(fake.setJobBuildCommentArgsForCall)
+}
+
+func (fake *FakeTeam) SetJobBuildCommentCalls(stub func(atc.PipelineRef, string, string, string) (bool, error)) {
+	fake.setJobBuildCommentMutex.Lock()
+	defer fake.setJobBuildCommentMutex.Unlock()
+	fake.SetJobBuildCommentStub = stub
+}
+
+func (fake *FakeTeam) SetJobBuildCommentArgsForCall(i int) (atc.PipelineRef, string, string, string) {
+	fake.setJobBuildCommentMutex.RLock()
+	defer fake.setJobBuildCommentMutex.RUnlock()
+	argsForCall := fake.setJobBuildCommentArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+}
+
+func (fake *FakeTeam) SetJobBuildCommentReturns(result1 bool, result2 error) {
+	fake.setJobBuildCommentMutex.Lock()
+	defer fake.setJobBuildCommentMutex.Unlock()
+	fake.SetJobBuildCommentStub = nil
+	fake.setJobBuildCommentReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) SetJobBuildCommentReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.setJobBuildCommentMutex.Lock()
+	defer fake.setJobBuildCommentMutex.Unlock()
+	fake.SetJobBuildCommentStub = nil
+	if fake.setJobBuildCommentReturnsOnCall == nil {
+		fake.setJobBuildCommentReturnsOnCall = make(map[int]struct {
+			result1 bool
+			result2 error
+		})
+	}
+	fake.setJobBuildCommentReturnsOnCall[i] = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeTeam) SetPinComment(arg1 atc.PipelineRef, arg2 string, arg3 string) (bool, error) {
 	fake.setPinCommentMutex.Lock()
 	ret, specificReturn := fake.setPinCommentReturnsOnCall[len(fake.setPinCommentArgsForCall)]
@@ -4518,6 +4601,8 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.resourceVersionsMutex.RUnlock()
 	fake.scheduleJobMutex.RLock()
 	defer fake.scheduleJobMutex.RUnlock()
+	fake.setJobBuildCommentMutex.RLock()
+	defer fake.setJobBuildCommentMutex.RUnlock()
 	fake.setPinCommentMutex.RLock()
 	defer fake.setPinCommentMutex.RUnlock()
 	fake.unpauseJobMutex.RLock()

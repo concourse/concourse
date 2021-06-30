@@ -10,7 +10,7 @@ module Build.Header.Header exposing
 
 import Api.Endpoints as Endpoints
 import Application.Models exposing (Session)
-import Build.Header.Models exposing (BuildPageType(..), HistoryItem, Model)
+import Build.Header.Models exposing (BuildPageType(..), CommentBarVisibility(..), HistoryItem, Model, commentBarIsVisible)
 import Build.Header.Views as Views
 import Build.StepTree.Models as STModels
 import Concourse
@@ -21,10 +21,11 @@ import Duration exposing (Duration)
 import EffectTransformer exposing (ET)
 import HoverState
 import Html exposing (Html)
+import Html.Attributes exposing (style)
 import List.Extra
 import Maybe.Extra
 import Message.Callback exposing (Callback(..))
-import Message.Effects as Effects exposing (Effect(..))
+import Message.Effects as Effects exposing (Effect(..), toHtmlID)
 import Message.Message exposing (DomID(..), Message(..))
 import Message.ScrollDirection exposing (ScrollDirection(..))
 import Message.Subscription
@@ -38,6 +39,8 @@ import SideBar.SideBar exposing (byPipelineId, lookupPipeline)
 import StrictEvents exposing (DeltaMode(..))
 import Time
 import Tooltip
+import UserState
+import Views.CommentBar as CommentBar
 
 
 historyId : String
@@ -63,76 +66,141 @@ header session model =
         , Views.Duration (duration session model)
         ]
     , rightWidgets =
-        if archived then
-            []
-
-        else
+        (if model.authorized then
             [ Views.Button
-                (if Concourse.BuildStatus.isRunning model.status then
-                    Just
-                        { type_ = Views.Abort
-                        , isClickable = True
-                        , backgroundShade =
-                            if
+                (Just
+                    { type_ = Views.ToggleComment
+                    , isClickable = True
+                    , backgroundShade =
+                        let
+                            isHovered =
                                 HoverState.isHovered
-                                    AbortBuildButton
+                                    ToggleBuildCommentButton
                                     session.hovered
-                            then
+                        in
+                        case ( model.comment, isHovered ) of
+                            ( Hidden _, False ) ->
+                                Views.Light
+
+                            ( Hidden _, True ) ->
                                 Views.Dark
 
-                            else
-                                Views.Light
-                        , backgroundColor = Concourse.BuildStatus.BuildStatusFailed
-                        }
-
-                 else if model.job /= Nothing then
-                    let
-                        isHovered =
-                            HoverState.isHovered
-                                RerunBuildButton
-                                session.hovered
-                    in
-                    Just
-                        { type_ = Views.Rerun
-                        , isClickable = True
-                        , backgroundShade =
-                            if isHovered then
+                            ( Visible _, False ) ->
                                 Views.Dark
 
-                            else
+                            ( Visible _, True ) ->
                                 Views.Light
-                        , backgroundColor = model.status
-                        }
-
-                 else
-                    Nothing
-                )
-            , Views.Button
-                (if model.job /= Nothing then
-                    let
-                        isHovered =
-                            HoverState.isHovered
-                                TriggerBuildButton
-                                session.hovered
-                    in
-                    Just
-                        { type_ = Views.Trigger
-                        , isClickable = not model.disableManualTrigger
-                        , backgroundShade =
-                            if isHovered then
-                                Views.Dark
-
-                            else
-                                Views.Light
-                        , backgroundColor = model.status
-                        }
-
-                 else
-                    Nothing
+                    , backgroundColor = model.status
+                    }
                 )
             ]
+
+         else
+            []
+        )
+            ++ (if archived then
+                    []
+
+                else
+                    [ Views.Button
+                        (if Concourse.BuildStatus.isRunning model.status then
+                            Just
+                                { type_ = Views.Abort
+                                , isClickable = True
+                                , backgroundShade =
+                                    if
+                                        HoverState.isHovered
+                                            AbortBuildButton
+                                            session.hovered
+                                    then
+                                        Views.Dark
+
+                                    else
+                                        Views.Light
+                                , backgroundColor = Concourse.BuildStatus.BuildStatusFailed
+                                }
+
+                         else if model.job /= Nothing then
+                            let
+                                isHovered =
+                                    HoverState.isHovered
+                                        RerunBuildButton
+                                        session.hovered
+                            in
+                            Just
+                                { type_ = Views.Rerun
+                                , isClickable = True
+                                , backgroundShade =
+                                    if isHovered then
+                                        Views.Dark
+
+                                    else
+                                        Views.Light
+                                , backgroundColor = model.status
+                                }
+
+                         else
+                            Nothing
+                        )
+                    , Views.Button
+                        (if model.job /= Nothing then
+                            let
+                                isHovered =
+                                    HoverState.isHovered
+                                        TriggerBuildButton
+                                        session.hovered
+                            in
+                            Just
+                                { type_ = Views.Trigger
+                                , isClickable = not model.disableManualTrigger
+                                , backgroundShade =
+                                    if isHovered then
+                                        Views.Dark
+
+                                    else
+                                        Views.Light
+                                , backgroundColor = model.status
+                                }
+
+                         else
+                            Nothing
+                        )
+                    ]
+               )
     , backgroundColor = model.status
     , tabs = tabs model
+    , comment =
+        if not model.authorized then
+            Nothing
+
+        else
+            commentBarIsVisible model.comment
+                |> Maybe.map
+                    (\c ->
+                        ( c
+                        , { hover = session.hovered
+                          , editable =
+                                case model.job of
+                                    Nothing ->
+                                        False
+
+                                    Just job ->
+                                        UserState.isMember
+                                            { teamName = job.teamName
+                                            , userState = session.userState
+                                            }
+                          }
+                        )
+                    )
+    }
+
+
+button_tooltip : String -> Tooltip.Tooltip
+button_tooltip text =
+    { body = Html.text text
+    , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
+    , arrow = Just 5
+    , containerAttrs = Nothing
     }
 
 
@@ -141,41 +209,68 @@ tooltip model session =
     case session.hovered of
         HoverState.Tooltip TriggerBuildButton _ ->
             Just
-                { body =
-                    Html.text <|
-                        if model.disableManualTrigger then
-                            "manual triggering disabled in job config"
+                (button_tooltip <|
+                    if model.disableManualTrigger then
+                        "manual triggering disabled in job config"
 
-                        else
-                            "trigger a new build"
-                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
-                , arrow = Just 5
-                , containerAttrs = Nothing
-                }
+                    else
+                        "trigger a new build"
+                )
+
+        HoverState.Tooltip ToggleBuildCommentButton _ ->
+            Just
+                (button_tooltip <|
+                    case model.comment of
+                        Hidden comment ->
+                            if String.isEmpty comment then
+                                "add build comment"
+
+                            else
+                                "show build comment"
+
+                        Visible _ ->
+                            "hide build comment"
+                )
 
         HoverState.Tooltip RerunBuildButton _ ->
-            Just
-                { body = Html.text "re-run with the same inputs"
-                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
-                , arrow = Just 5
-                , containerAttrs = Nothing
-                }
+            Just (button_tooltip "re-run with the same inputs")
 
         HoverState.Tooltip AbortBuildButton _ ->
-            Just
-                { body = Html.text "abort the current build"
-                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
-                , arrow = Just 5
-                , containerAttrs = Nothing
-                }
+            Just (button_tooltip "abort the current build")
 
         HoverState.Tooltip JobName _ ->
-            Just
-                { body = Html.text "view job builds"
-                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.Start }
-                , arrow = Nothing
-                , containerAttrs = Nothing
-                }
+            Just (button_tooltip "view job builds")
+
+        HoverState.Tooltip (BuildTab id _) _ ->
+            List.head (List.filter (\b -> b.id == id) model.history)
+                |> Maybe.andThen
+                    (\b ->
+                        let
+                            lines =
+                                String.lines b.comment
+                        in
+                        if String.isEmpty b.comment then
+                            Nothing
+
+                        else
+                            List.head lines
+                                |> Maybe.map
+                                    (\text ->
+                                        { body = Html.text text
+                                        , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.Start }
+                                        , arrow = Nothing
+                                        , containerAttrs =
+                                            Just
+                                                ([ style "max-width" "350px"
+                                                 , style "white-space" "nowrap"
+                                                 , style "overflow" "hidden"
+                                                 , style "text-overflow" "ellipsis"
+                                                 ]
+                                                    ++ Tooltip.defaultTooltipStyle
+                                                )
+                                        }
+                                    )
+                    )
 
         _ ->
             Nothing
@@ -191,6 +286,7 @@ tabs model =
                 , background = b.status
                 , href = Routes.buildRoute b.id b.name model.job
                 , isCurrent = b.id == model.id
+                , hasComment = not (String.isEmpty b.comment)
                 }
             )
 
@@ -202,28 +298,78 @@ historyItem model =
     , status = model.status
     , duration = model.duration
     , createdBy = model.createdBy
+    , comment =
+        case model.comment of
+            Hidden comment ->
+                comment
+
+            Visible commentBar ->
+                CommentBar.getContent commentBar
     }
+
+
+initBuildCommentBar : String -> ( CommentBar.Model, List Effect )
+initBuildCommentBar content =
+    let
+        model =
+            { id = BuildComment
+            , style = CommentBar.defaultStyle
+            , state =
+                if String.isEmpty content then
+                    CommentBar.Editing { content = content, cached = content }
+
+                else
+                    CommentBar.Viewing content
+            }
+
+        id =
+            CommentBar.getTextareaID model
+    in
+    ( model
+    , SyncTextareaHeight id
+        :: (case model.state of
+                CommentBar.Editing _ ->
+                    [ Focus (toHtmlID id) ]
+
+                _ ->
+                    []
+           )
+    )
 
 
 changeToBuild : BuildPageType -> ET (Model r)
 changeToBuild pageType ( model, effects ) =
     case pageType of
         JobBuildPage buildID ->
-            ( model.history
+            model.history
                 |> List.Extra.find (.name >> (==) buildID.buildName)
                 |> Maybe.map
                     (\b ->
-                        { model
-                            | id = b.id
-                            , status = b.status
-                            , duration = b.duration
-                            , name = b.name
-                            , createdBy = b.createdBy
-                        }
+                        let
+                            ( commentBar, initEffects ) =
+                                if String.isEmpty b.comment then
+                                    ( Hidden b.comment, [] )
+
+                                else
+                                    let
+                                        ( cb, effs ) =
+                                            initBuildCommentBar b.comment
+                                    in
+                                    ( Visible cb, effs )
+
+                            updatedModel =
+                                { model
+                                    | id = b.id
+                                    , status = b.status
+                                    , duration = b.duration
+                                    , name = b.name
+                                    , createdBy = b.createdBy
+                                    , comment = commentBar
+                                }
+                        in
+                        ( updatedModel, effects ++ initEffects )
                     )
-                |> Maybe.withDefault model
-            , effects
-            )
+                |> Maybe.withDefault ( model, effects )
 
         _ ->
             ( model, effects )
@@ -503,6 +649,22 @@ update msg ( model, effects ) =
                    )
             )
 
+        Click ToggleBuildCommentButton ->
+            case model.comment of
+                Hidden comment ->
+                    let
+                        ( updatedCommentBar, updatedEffects ) =
+                            initBuildCommentBar comment
+                    in
+                    ( { model | comment = Visible updatedCommentBar }
+                    , effects ++ updatedEffects
+                    )
+
+                Visible commentBar ->
+                    ( { model | comment = Hidden (CommentBar.getContent commentBar) }
+                    , effects
+                    )
+
         _ ->
             ( model, effects )
 
@@ -513,6 +675,38 @@ handleCallback callback ( model, effects ) =
         BuildFetched (Ok b) ->
             handleBuildFetched b ( model, effects )
 
+        BuildCommentSet id savedComment result ->
+            let
+                savedSuccessfully =
+                    result |> Result.toMaybe |> Maybe.Extra.isJust
+
+                updatedComment =
+                    if model.id == id then
+                        { model
+                            | comment =
+                                case model.comment of
+                                    Hidden _ ->
+                                        Hidden savedComment
+
+                                    Visible commentBar ->
+                                        Visible <| CommentBar.saveCallback ( savedSuccessfully, savedComment ) commentBar
+                        }
+
+                    else
+                        model
+
+                updatedHistory =
+                    { updatedComment
+                        | history =
+                            List.Extra.updateIf (.id >> (==) id)
+                                (\b ->
+                                    { b | comment = savedComment }
+                                )
+                                model.history
+                    }
+            in
+            ( updatedHistory, effects )
+
         BuildTriggered (Ok b) ->
             ( { model
                 | history =
@@ -521,6 +715,7 @@ handleCallback callback ( model, effects ) =
                      , status = b.status
                      , duration = b.duration
                      , createdBy = b.createdBy
+                     , comment = b.comment
                      }
                         :: model.history
                     )
@@ -559,6 +754,27 @@ handleCallback callback ( model, effects ) =
 handleBuildFetched : Concourse.Build -> ET (Model r)
 handleBuildFetched b ( model, effects ) =
     if not model.hasLoadedYet || model.id == b.id then
+        let
+            ( commentBar, commentBarEffects ) =
+                if not model.hasLoadedYet then
+                    if String.isEmpty b.comment then
+                        ( Hidden b.comment, [] )
+
+                    else
+                        let
+                            ( initCommentBar, effs ) =
+                                initBuildCommentBar b.comment
+                        in
+                        ( Visible initCommentBar, effs )
+
+                else
+                    case model.comment of
+                        Hidden _ ->
+                            ( Hidden b.comment, [] )
+
+                        Visible c ->
+                            ( Visible (CommentBar.setCachedContent b.comment c), [] )
+        in
         ( { model
             | hasLoadedYet = True
             , history =
@@ -568,6 +784,7 @@ handleBuildFetched b ( model, effects ) =
                     , status = b.status
                     , duration = b.duration
                     , createdBy = b.createdBy
+                    , comment = b.comment
                     }
                     model.history
             , fetchingHistory = True
@@ -577,8 +794,9 @@ handleBuildFetched b ( model, effects ) =
             , id = b.id
             , name = b.name
             , createdBy = b.createdBy
+            , comment = commentBar
           }
-        , effects
+        , effects ++ commentBarEffects
         )
 
     else
@@ -613,6 +831,7 @@ handleHistoryFetched history ( model, effects ) =
                                         , status = b.status
                                         , duration = b.duration
                                         , createdBy = b.createdBy
+                                        , comment = b.comment
                                         }
                                     )
                            )

@@ -4,11 +4,12 @@ import (
 	"strconv"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/tedsuo/rata"
 )
 
-func Build(build db.Build) atc.Build {
+func Build(build db.Build, job db.Job, access accessor.Access) atc.Build {
 
 	apiURL, err := atc.Routes.CreatePathForRoute(atc.GetBuild, rata.Params{
 		"build_id":  strconv.Itoa(build.ID()),
@@ -30,6 +31,19 @@ func Build(build db.Build) atc.Build {
 		Status:               atc.BuildStatus(build.Status()),
 		APIURL:               apiURL,
 		CreatedBy:            build.CreatedBy(),
+	}
+
+	showComments := false
+	if job != nil {
+		showComments = showComments || job.Public()
+	}
+	if access != nil {
+		showComments = showComments || access.IsAuthorized(build.TeamName())
+	}
+
+	if showComments {
+		comment := build.Comment()
+		atcBuild.Comment = comment
 	}
 
 	if build.RerunOf() != 0 {

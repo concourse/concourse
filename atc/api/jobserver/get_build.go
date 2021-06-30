@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
 )
@@ -41,7 +42,7 @@ func (s *Server) GetJobBuild(pipeline db.Pipeline) http.Handler {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 
-		err = json.NewEncoder(w).Encode(present.Build(build))
+		err = json.NewEncoder(w).Encode(present.Build(build, job, accessor.GetAccessor(r)))
 		if err != nil {
 			logger.Error("failed-to-encode-build", err)
 			w.WriteHeader(http.StatusInternalServerError)

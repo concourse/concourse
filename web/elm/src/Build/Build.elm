@@ -17,7 +17,7 @@ import Api.Endpoints as Endpoints
 import Application.Models exposing (Session)
 import Assets
 import Build.Header.Header as Header
-import Build.Header.Models exposing (BuildPageType(..), CurrentOutput(..))
+import Build.Header.Models exposing (BuildPageType(..), CommentBarVisibility(..), CurrentOutput(..), commentBarIsVisible)
 import Build.Models exposing (Model, toMaybe)
 import Build.Output.Models exposing (OutputModel)
 import Build.Output.Output
@@ -61,6 +61,7 @@ import String
 import Time
 import Tooltip
 import UpdateMsg exposing (UpdateMsg)
+import Views.CommentBar as CommentBar exposing (State(..))
 import Views.Icon as Icon
 import Views.LoadingIndicator as LoadingIndicator
 import Views.NotAuthorized as NotAuthorized
@@ -105,6 +106,7 @@ init flags =
           , disableManualTrigger = False
           , history = []
           , nextPage = Nothing
+          , comment = Hidden ""
           , prep = Nothing
           , duration = { startedAt = Nothing, finishedAt = Nothing }
           , status = BuildStatusPending
@@ -399,6 +401,23 @@ handleDelivery session delivery ( model, effects ) =
         |> Tooltip.handleDelivery session delivery
         |> Shortcuts.handleDelivery delivery
         |> Header.handleDelivery delivery
+        |> handleDeliveryCommentBar delivery
+
+
+handleDeliveryCommentBar : Delivery -> ET Model
+handleDeliveryCommentBar delivery ( model, effects ) =
+    case model.comment of
+        Hidden _ ->
+            ( model, effects )
+
+        Visible commentBar ->
+            let
+                ( updatedCommentBar, updatedEffects ) =
+                    CommentBar.handleDelivery delivery commentBar
+            in
+            ( { model | comment = Visible updatedCommentBar }
+            , effects ++ updatedEffects
+            )
 
 
 update : Message -> ET Model
@@ -469,6 +488,23 @@ update msg ( model, effects ) =
             ( model, effects )
     )
         |> Header.update msg
+        |> updateCommentBar msg
+
+
+updateCommentBar : Message -> ET Model
+updateCommentBar msg ( model, effects ) =
+    case model.comment of
+        Hidden _ ->
+            ( model, effects )
+
+        Visible commentBar ->
+            let
+                ( updatedCommentBar, updatedEffects ) =
+                    CommentBar.update msg (\content -> SetBuildComment model.id content) commentBar
+            in
+            ( { model | comment = Visible updatedCommentBar }
+            , effects ++ updatedEffects
+            )
 
 
 getScrollBehavior : Model -> ScrollBehavior
@@ -583,7 +619,19 @@ handleBuildFetched build ( model, effects ) =
         ( newModel
         , cmd
             ++ fetchJobAndHistory
-            ++ [ SetFavIcon (Just build.status), Focus bodyId ]
+            ++ SetFavIcon (Just build.status)
+            :: (commentBarIsVisible model.comment
+                    |> Maybe.map
+                        (\commentBar ->
+                            case commentBar.state of
+                                Editing _ ->
+                                    []
+
+                                _ ->
+                                    [ Focus bodyId ]
+                        )
+                    |> Maybe.withDefault [ Focus bodyId ]
+               )
         )
 
     else

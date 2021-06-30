@@ -79,6 +79,32 @@ var _ = Describe("Build", func() {
 		Expect(build.CreateTime()).To(BeTemporally("<", time.Now(), 1*time.Second))
 	})
 
+	It("can have it's comment updated", func() {
+		By("Setting it while not set")
+		comment := "hello-world"
+		Expect(build.Comment()).To(BeEmpty())
+
+		err := build.SetComment(comment)
+		Expect(err).ToNot(HaveOccurred())
+
+		found, err := build.Reload()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(found).To(BeTrue())
+
+		Expect(build.Comment()).To(Equal(comment))
+
+		By("Updating it once already set")
+		comment = "updated-comment"
+		err = build.SetComment(comment)
+		Expect(err).ToNot(HaveOccurred())
+
+		found, err = build.Reload()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(found).To(BeTrue())
+
+		Expect(build.Comment()).To(Equal(comment))
+	})
+
 	Describe("LagerData", func() {
 		var build db.Build
 

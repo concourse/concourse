@@ -95,14 +95,16 @@ var buildsQuery = psql.Select(`
 		b.rerun_of,
 		rb.name,
 		b.rerun_number,
-		b.span_context
+		b.span_context,
+		COALESCE(bc.comment, '')
 	`).
 	From("builds b").
 	JoinClause("LEFT OUTER JOIN jobs j ON b.job_id = j.id").
 	JoinClause("LEFT OUTER JOIN resources r ON b.resource_id = r.id").
 	JoinClause("LEFT OUTER JOIN pipelines p ON b.pipeline_id = p.id").
 	JoinClause("LEFT OUTER JOIN teams t ON b.team_id = t.id").
-	JoinClause("LEFT OUTER JOIN builds rb ON rb.id = b.rerun_of")
+	JoinClause("LEFT OUTER JOIN builds rb ON rb.id = b.rerun_of").
+	JoinClause("LEFT OUTER JOIN build_comments bc ON b.id = bc.build_id")
 
 var minMaxIdQuery = psql.Select("COALESCE(MAX(b.id), 0)", "COALESCE(MIN(b.id), 0)").
 	From("builds as b")
@@ -121,6 +123,7 @@ type Build interface {
 	TeamID() int
 	TeamName() string
 
+	Job() (Job, bool, error)
 	JobID() int
 	JobName() string
 
@@ -133,6 +136,7 @@ type Build interface {
 	PrivatePlan() atc.Plan
 	PublicPlan() *json.RawMessage
 	HasPlan() bool
+	Comment() string
 	Status() BuildStatus
 	CreateTime() time.Time
 	StartTime() time.Time
@@ -168,6 +172,7 @@ type Build interface {
 
 	Variables(lager.Logger, creds.Secrets, creds.VarSourcePool) (vars.Variables, error)
 
+	SetComment(string) error
 	SetInterceptible(bool) error
 
 	Events(uint) (EventSource, error)
@@ -213,6 +218,7 @@ type build struct {
 
 	teamID   int
 	teamName string
+	comment  string
 
 	jobID   int
 	jobName string
@@ -355,6 +361,7 @@ func (b *build) CreateTime() time.Time { return b.createTime }
 func (b *build) StartTime() time.Time  { return b.startTime }
 func (b *build) EndTime() time.Time    { return b.endTime }
 func (b *build) ReapTime() time.Time   { return b.reapTime }
+func (b *build) Comment() string       { return b.comment }
 func (b *build) Status() BuildStatus   { return b.status }
 func (b *build) IsScheduled() bool     { return b.scheduled }
 func (b *build) IsDrained() bool       { return b.drained }
@@ -399,6 +406,41 @@ func (b *build) Interceptible() (bool, error) {
 	}
 
 	return interceptible, nil
+}
+
+func (b *build) Job() (Job, bool, error) {
+	row := jobsQuery.Where(sq.Eq{
+		"j.id":     b.JobID(),
+		"j.active": true,
+	}).RunWith(b.conn).QueryRow()
+
+	job := newEmptyJob(b.conn, b.lockFactory)
+	err := scanJob(job, row)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, false, nil
+		}
+
+		return nil, false, err
+	}
+
+	return job, true, nil
+}
+
+func (b *build) SetComment(comment string) error {
+	_, err := psql.Insert("build_comments").
+		Columns("build_id", "comment").
+		Values(b.id, comment).
+		Suffix("ON CONFLICT (build_id) DO UPDATE SET comment = EXCLUDED.comment").
+		RunWith(b.conn).
+		Exec()
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (b *build) SetInterceptible(i bool) error {
@@ -1756,7 +1798,7 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 		nonce, spanContext, createdBy                                                     sql.NullString
 		drained, aborted, completed                                                       bool
 		status                                                                            string
-		pipelineInstanceVars                                                              sql.NullString
+		pipelineInstanceVars, comment                                                     sql.NullString
 	)
 
 	err := row.Scan(
@@ -1792,6 +1834,7 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 		&rerunOfName,
 		&rerunNumber,
 		&spanContext,
+		&comment,
 	)
 	if err != nil {
 		return err
@@ -1816,6 +1859,7 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 	b.rerunOf = int(rerunOf.Int64)
 	b.rerunOfName = rerunOfName.String
 	b.rerunNumber = int(rerunNumber.Int64)
+	b.comment = comment.String
 
 	var (
 		noncense      *string

@@ -4,6 +4,7 @@ module Tooltip exposing
     , Model
     , Tooltip
     , colors
+    , defaultTooltipStyle
     , handleCallback
     , handleDelivery
     , hoverAttrs

@@ -89,7 +89,7 @@ func (s *Server) CheckResourceWebHook(dbPipeline db.Pipeline) http.Handler {
 
 		w.WriteHeader(http.StatusCreated)
 
-		err = json.NewEncoder(w).Encode(present.Build(build))
+		err = json.NewEncoder(w).Encode(present.Build(build, nil, nil))
 		if err != nil {
 			logger.Error("failed-to-encode-check", err)
 			w.WriteHeader(http.StatusInternalServerError)
