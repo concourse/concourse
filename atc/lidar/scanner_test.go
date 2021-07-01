@@ -3,6 +3,7 @@ package lidar_test
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"

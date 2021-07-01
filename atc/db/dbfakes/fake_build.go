@@ -109,7 +109,6 @@ type FakeBuild struct {
 		result1 []db.WorkerArtifact
 		result2 error
 	}
-
 	CommentStub        func() string
 	commentMutex       sync.RWMutex
 	commentArgsForCall []struct {
@@ -119,6 +118,7 @@ type FakeBuild struct {
 	}
 	commentReturnsOnCall map[int]struct {
 		result1 string
+	}
 	ContainerOwnerStub        func(atc.PlanID) db.ContainerOwner
 	containerOwnerMutex       sync.RWMutex
 	containerOwnerArgsForCall []struct {
@@ -1198,7 +1198,6 @@ func (fake *FakeBuild) ArtifactsReturnsOnCall(i int, result1 []db.WorkerArtifact
 	}{result1, result2}
 }
 
-<<<<<<< HEAD
 func (fake *FakeBuild) Comment() string {
 	fake.commentMutex.Lock()
 	ret, specificReturn := fake.commentReturnsOnCall[len(fake.commentArgsForCall)]
@@ -1210,20 +1209,6 @@ func (fake *FakeBuild) Comment() string {
 	fake.commentMutex.Unlock()
 	if stub != nil {
 		return stub()
-=======
-func (fake *FakeBuild) ContainerOwner(arg1 atc.PlanID) db.ContainerOwner {
-	fake.containerOwnerMutex.Lock()
-	ret, specificReturn := fake.containerOwnerReturnsOnCall[len(fake.containerOwnerArgsForCall)]
-	fake.containerOwnerArgsForCall = append(fake.containerOwnerArgsForCall, struct {
-		arg1 atc.PlanID
-	}{arg1})
-	stub := fake.ContainerOwnerStub
-	fakeReturns := fake.containerOwnerReturns
-	fake.recordInvocation("ContainerOwner", []interface{}{arg1})
-	fake.containerOwnerMutex.Unlock()
-	if stub != nil {
-		return stub(arg1)
->>>>>>> 01a89b1b2 (fixed existing tests, new tests will be added later)
 	}
 	if specificReturn {
 		return ret.result1
@@ -1231,7 +1216,6 @@ func (fake *FakeBuild) ContainerOwner(arg1 atc.PlanID) db.ContainerOwner {
 	return fakeReturns.result1
 }
 
-<<<<<<< HEAD
 func (fake *FakeBuild) CommentCallCount() int {
 	fake.commentMutex.RLock()
 	defer fake.commentMutex.RUnlock()
@@ -1264,7 +1248,28 @@ func (fake *FakeBuild) CommentReturnsOnCall(i int, result1 string) {
 	}
 	fake.commentReturnsOnCall[i] = struct {
 		result1 string
-=======
+	}{result1}
+}
+
+func (fake *FakeBuild) ContainerOwner(arg1 atc.PlanID) db.ContainerOwner {
+	fake.containerOwnerMutex.Lock()
+	ret, specificReturn := fake.containerOwnerReturnsOnCall[len(fake.containerOwnerArgsForCall)]
+	fake.containerOwnerArgsForCall = append(fake.containerOwnerArgsForCall, struct {
+		arg1 atc.PlanID
+	}{arg1})
+	stub := fake.ContainerOwnerStub
+	fakeReturns := fake.containerOwnerReturns
+	fake.recordInvocation("ContainerOwner", []interface{}{arg1})
+	fake.containerOwnerMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
 func (fake *FakeBuild) ContainerOwnerCallCount() int {
 	fake.containerOwnerMutex.RLock()
 	defer fake.containerOwnerMutex.RUnlock()
@@ -1304,7 +1309,6 @@ func (fake *FakeBuild) ContainerOwnerReturnsOnCall(i int, result1 db.ContainerOw
 	}
 	fake.containerOwnerReturnsOnCall[i] = struct {
 		result1 db.ContainerOwner
->>>>>>> 01a89b1b2 (fixed existing tests, new tests will be added later)
 	}{result1}
 }
 
@@ -4619,13 +4623,10 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.artifactMutex.RUnlock()
 	fake.artifactsMutex.RLock()
 	defer fake.artifactsMutex.RUnlock()
-<<<<<<< HEAD
 	fake.commentMutex.RLock()
 	defer fake.commentMutex.RUnlock()
-=======
 	fake.containerOwnerMutex.RLock()
 	defer fake.containerOwnerMutex.RUnlock()
->>>>>>> 01a89b1b2 (fixed existing tests, new tests will be added later)
 	fake.createTimeMutex.RLock()
 	defer fake.createTimeMutex.RUnlock()
 	fake.createdByMutex.RLock()

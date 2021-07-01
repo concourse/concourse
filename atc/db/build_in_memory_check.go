@@ -395,6 +395,9 @@ func (b *inMemoryCheckBuild) Artifacts() ([]WorkerArtifact, error)         { pan
 func (b *inMemoryCheckBuild) Artifact(int) (WorkerArtifact, error)         { panic("not-implemented") }
 func (b *inMemoryCheckBuild) Start(atc.Plan) (bool, error)                 { panic("not-implemented") }
 func (b *inMemoryCheckBuild) SyslogTag(id event.OriginID) string           { panic("not-implemented") }
+func (b *inMemoryCheckBuild) Comment() string                              { panic("not-implemented") }
+func (b *inMemoryCheckBuild) SetComment(string) error                      { panic("not-implemented") }
+func (b *inMemoryCheckBuild) Job() (Job, bool, error)                      { panic("not-implemented") }
 func (b *inMemoryCheckBuild) ResourcesChecked() (bool, error) {
 	panic("not-implemented")
 }
