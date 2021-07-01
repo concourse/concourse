@@ -195,8 +195,8 @@ header session model =
     }
 
 
-button_tooltip : String -> Tooltip.Tooltip
-button_tooltip text =
+buttonTooltip : String -> Tooltip.Tooltip
+buttonTooltip text =
     { body = Html.text text
     , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
     , arrow = Just 5
@@ -209,7 +209,7 @@ tooltip model session =
     case session.hovered of
         HoverState.Tooltip TriggerBuildButton _ ->
             Just
-                (button_tooltip <|
+                (buttonTooltip <|
                     if model.disableManualTrigger then
                         "manual triggering disabled in job config"
 
@@ -219,7 +219,7 @@ tooltip model session =
 
         HoverState.Tooltip ToggleBuildCommentButton _ ->
             Just
-                (button_tooltip <|
+                (buttonTooltip <|
                     case model.comment of
                         Hidden comment ->
                             if String.isEmpty comment then
@@ -233,13 +233,13 @@ tooltip model session =
                 )
 
         HoverState.Tooltip RerunBuildButton _ ->
-            Just (button_tooltip "re-run with the same inputs")
+            Just (buttonTooltip "re-run with the same inputs")
 
         HoverState.Tooltip AbortBuildButton _ ->
-            Just (button_tooltip "abort the current build")
+            Just (buttonTooltip "abort the current build")
 
         HoverState.Tooltip JobName _ ->
-            Just (button_tooltip "view job builds")
+            Just (buttonTooltip "view job builds")
 
         HoverState.Tooltip (BuildTab id _) _ ->
             List.head (List.filter (\b -> b.id == id) model.history)
