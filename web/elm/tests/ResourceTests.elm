@@ -6,7 +6,7 @@ import Assets
 import Build.StepTree.Models as STModels
 import ColorValues
 import Common exposing (defineHoverBehaviour, expectNoTooltip, expectTooltip, queryView)
-import Concourse exposing (JsonValue(..))
+import Concourse exposing (JsonValue(..), defaultFeatureFlags)
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.Pagination exposing (Direction(..), Page, Pagination)
 import DashboardTests
@@ -292,21 +292,106 @@ all =
                     |> queryView
                     |> Query.find (versionSelector version)
                     |> Query.has [ text "some-build" ]
+        , describe "when causality is enabled" <|
+            let
+                whenItsEnabled =
+                    init
+                        |> Common.withFeatureFlags { defaultFeatureFlags | resourceCausality = True }
+                        |> givenResourceIsNotPinned
+                        |> givenVersionsWithoutPagination
+                        |> update
+                            (Message.Message.Click <|
+                                Message.Message.VersionHeader versionID
+                            )
+                        |> Tuple.first
+                        |> givenVersionsWithoutPagination
+            in
+            [ test "'Inputs To' links to causality page" <|
+                \_ ->
+                    whenItsEnabled
+                        |> queryView
+                        |> Query.find (inputsOutputsSelector "inputs to")
+                        |> Query.has
+                            [ Common.routeHref <|
+                                Routes.Causality
+                                    { id = versionID
+                                    , direction = Concourse.Downstream
+                                    , version = Nothing
+                                    }
+                            ]
+            , test "'Outputs Of' links to causality page" <|
+                \_ ->
+                    whenItsEnabled
+                        |> queryView
+                        |> Query.find (inputsOutputsSelector "outputs of")
+                        |> Query.has
+                            [ Common.routeHref <|
+                                Routes.Causality
+                                    { id = versionID
+                                    , direction = Concourse.Upstream
+                                    , version = Nothing
+                                    }
+                            ]
+            ]
+        , describe "when causality is disabled" <|
+            let
+                whenItsDisabled =
+                    init
+                        |> givenResourceIsNotPinned
+                        |> givenVersionsWithoutPagination
+                        |> update
+                            (Message.Message.Click <|
+                                Message.Message.VersionHeader versionID
+                            )
+                        |> Tuple.first
+                        |> givenVersionsWithoutPagination
+            in
+            [ test "'Inputs To' links to causality page" <|
+                \_ ->
+                    whenItsDisabled
+                        |> queryView
+                        |> Query.find (inputsOutputsSelector "inputs to")
+                        |> Query.hasNot
+                            [ Common.routeHref <|
+                                Routes.Causality
+                                    { id = versionID
+                                    , direction = Concourse.Downstream
+                                    , version = Nothing
+                                    }
+                            ]
+            , test "'Outputs Of' links to causality page" <|
+                \_ ->
+                    whenItsDisabled
+                        |> queryView
+                        |> Query.find (inputsOutputsSelector "outputs of")
+                        |> Query.hasNot
+                            [ Common.routeHref <|
+                                Routes.Causality
+                                    { id = versionID
+                                    , direction = Concourse.Upstream
+                                    , version = Nothing
+                                    }
+                            ]
+            ]
         , describe "when the url contains a version" <|
             let
                 initWithVersion =
                     initQuery "filter=version:v2"
             in
-            [ describe "when the version is valid"
+            [ describe "when the version is valid" <|
+                let
+                    givenVersionIsValid =
+                        Application.handleCallback
+                            (Callback.VersionedResourceIdFetched
+                                (Ok
+                                    (Just <| Data.versionedResource otherVersion 42)
+                                )
+                            )
+                in
                 [ test "it navigates to that page" <|
                     \_ ->
                         initWithVersion
-                            |> Application.handleCallback
-                                (Callback.VersionedResourceIdFetched
-                                    (Ok
-                                        (Just <| Data.versionedResource otherVersion 42)
-                                    )
-                                )
+                            |> givenVersionIsValid
                             |> Tuple.second
                             |> Common.contains
                                 (Effects.FetchVersionedResources Data.resourceId
@@ -314,21 +399,21 @@ all =
                                     , limit = 100
                                     }
                                 )
-                , test "it expands the correct version" <|
-                    let
-                        givenVersionIsValid =
-                            Application.handleCallback
-                                (Callback.VersionedResourceIdFetched
-                                    (Ok
-                                        (Just <| Data.versionedResource otherVersion 42)
-                                    )
-                                )
-                                >> Tuple.first
-                    in
+                , test "it fetches the inputs (and outputs) right away" <|
                     \_ ->
                         initWithVersion
                             |> givenResourceIsNotPinned
                             |> givenVersionIsValid
+                            |> Tuple.second
+                            -- if FetchInputTo is there, we can assume FetchOutputOf is there as well
+                            |> Common.contains
+                                (Effects.FetchInputTo <| Data.resourceVersionId 42)
+                , test "it expands the correct version" <|
+                    \_ ->
+                        initWithVersion
+                            |> givenResourceIsNotPinned
+                            |> givenVersionIsValid
+                            |> Tuple.first
                             |> Application.handleCallback
                                 (Callback.VersionedResourcesFetched
                                     (Ok
@@ -1492,7 +1577,7 @@ all =
                                 |> Data.withPipelineInstanceVars (Dict.fromList [ ( "foo", JsonNumber 1 ) ])
 
                         setup resource =
-                            Common.initRoute (Routes.resourceRoute resource)
+                            Common.initRoute (Routes.resourceRoute (Concourse.resourceId resource) Nothing)
                                 |> givenAResourceIsNotPinned resource
                                 |> givenVersionsWithoutPagination
                                 |> givenThePipelineIsArchived
@@ -2972,7 +3057,7 @@ all =
                                 Ok { resource | build = Just { baseBuild | id = 2 } }
                             )
                         |> Tuple.second
-                        |> Common.contains (Effects.CloseBuildEventStream)
+                        |> Common.contains Effects.CloseBuildEventStream
             , describe "build events subscription" <|
                 [ test "after build plan is received, opens event stream" <|
                     \_ ->
@@ -3461,6 +3546,16 @@ all =
                     init
                         |> givenVersionsWithPagination
                         |> expectTooltip PreviousPageButton "view previous page"
+            , test "view all inputs to" <|
+                \_ ->
+                    init
+                        |> givenVersionsWithPagination
+                        |> expectTooltip (InputsTo versionID) "view all downstream builds and resources"
+            , test "view all outputs of" <|
+                \_ ->
+                    init
+                        |> givenVersionsWithPagination
+                        |> expectTooltip (OutputsOf versionID) "view all upstream builds and resources"
             ]
         ]
 
@@ -3809,6 +3904,11 @@ versionSelector v =
     anyVersionSelector ++ [ containing [ text v ] ]
 
 
+inputsOutputsSelector : String -> List Selector
+inputsOutputsSelector t =
+    [ class "vri", containing [ text t ] ]
+
+
 anyVersionSelector : List Selector
 anyVersionSelector =
     [ tag "li" ]
@@ -3972,6 +4072,7 @@ session =
     , hovered = HoverState.NoHover
     , clusterName = ""
     , version = ""
+    , featureFlags = defaultFeatureFlags
     , turbulenceImgSrc = flags.turbulenceImgSrc
     , notFoundImgSrc = flags.notFoundImgSrc
     , csrfToken = flags.csrfToken

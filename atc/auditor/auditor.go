@@ -123,7 +123,8 @@ func (a *auditor) ValidateAction(action string) bool {
 		atc.DisableResourceVersion,
 		atc.PinResourceVersion,
 		atc.ClearResourceCache,
-		atc.GetResourceCausality:
+		atc.GetDownstreamResourceCausality,
+		atc.GetUpstreamResourceCausality:
 		return a.EnableResourceAuditLog
 	case
 		atc.SaveConfig,

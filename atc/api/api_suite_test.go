@@ -38,8 +38,17 @@ import (
 var (
 	sink *lager.ReconfigurableSink
 
-	externalURL = "https://example.com"
-	clusterName = "Test Cluster"
+	externalURL      = "https://example.com"
+	clusterName      = "Test Cluster"
+	featureFlagsJson = ` {
+	"across_step": false,
+	"build_rerun": false,
+	"cache_streamed_volumes": false,
+	"global_resources": false,
+	"pipeline_instances": true,
+	"redact_secrets": false,
+	"resource_causality": false
+}`
 
 	fakeWorkerPool          *workerfakes.FakePool
 	fakeVolumeRepository    *dbfakes.FakeVolumeRepository

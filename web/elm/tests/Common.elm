@@ -24,6 +24,7 @@ module Common exposing
     , whenOnDesktop
     , whenOnMobile
     , withAllPipelinesVisible
+    , withFeatureFlags
     )
 
 import Application.Application as Application
@@ -80,6 +81,19 @@ notContains x xs =
 
     else
         Expect.pass
+
+
+withFeatureFlags : Concourse.FeatureFlags -> Application.Model -> Application.Model
+withFeatureFlags flags =
+    Application.handleCallback
+        (Callback.ClusterInfoFetched <|
+            Ok
+                { version = ""
+                , clusterName = ""
+                , featureFlags = flags
+                }
+        )
+        >> Tuple.first
 
 
 routeHref : Routes.Route -> Test.Html.Selector.Selector

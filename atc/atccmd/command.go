@@ -251,6 +251,7 @@ type RunCommand struct {
 		EnablePipelineInstances              bool `long:"enable-pipeline-instances" description:"Enable pipeline instances"`
 		EnableP2PVolumeStreaming             bool `long:"enable-p2p-volume-streaming" description:"Enable P2P volume streaming. NOTE: All workers must be on the same LAN network"`
 		EnableCacheStreamedVolumes           bool `long:"enable-cache-streamed-volumes" description:"When enabled, streamed resource volumes will be cached on the destination worker."`
+		EnableResourceCausality              bool `long:"enable-resource-causality" description:"Enable the resource causality page. Computing causality can be expensive for the database. "`
 	} `group:"Feature Flags"`
 
 	BaseResourceTypeDefaults flag.File `long:"base-resource-type-defaults" description:"Base resource type defaults"`
@@ -522,6 +523,7 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	atc.EnableAcrossStep = cmd.FeatureFlags.EnableAcrossStep
 	atc.EnablePipelineInstances = cmd.FeatureFlags.EnablePipelineInstances
 	atc.EnableCacheStreamedVolumes = cmd.FeatureFlags.EnableCacheStreamedVolumes
+	atc.EnableResourceCausality = cmd.FeatureFlags.EnableResourceCausality
 
 	if cmd.BaseResourceTypeDefaults.Path() != "" {
 		content, err := ioutil.ReadFile(cmd.BaseResourceTypeDefaults.Path())

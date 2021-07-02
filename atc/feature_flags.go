@@ -7,4 +7,5 @@ var (
 	EnableAcrossStep                     bool
 	EnablePipelineInstances              bool
 	EnableCacheStreamedVolumes           bool
+	EnableResourceCausality              bool
 )

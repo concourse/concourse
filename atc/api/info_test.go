@@ -3,6 +3,7 @@ package api_test
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -65,12 +66,13 @@ var _ = Describe("Pipelines API", func() {
 			body, err := ioutil.ReadAll(response.Body)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(body).To(MatchJSON(`{
+			Expect(body).To(MatchJSON(fmt.Sprintf(`{
 				"version": "1.2.3",
 				"worker_version": "4.5.6",
+				"feature_flags": %v,
 				"external_url": "https://example.com",
 				"cluster_name": "Test Cluster"
-			}`))
+			}`, featureFlagsJson)))
 		})
 	})
 

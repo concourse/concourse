@@ -6,11 +6,12 @@ module Views.Styles exposing
     , clusterName
     , commentBarEditButton
     , commentBarText
-    , commentBarTextarea
     , commentBarTextButton
+    , commentBarTextarea
     , commentBarWrapper
     , concourseLogo
     , defaultFont
+    , ellipsedText
     , fontFamilyDefault
     , fontWeightBold
     , fontWeightDefault
@@ -116,6 +117,12 @@ pageBelowTopBar route =
                     , style "height" "100%"
                     , style "display" "flex"
                     ]
+
+                Routes.Causality _ ->
+                    [ style "box-sizing" "border-box"
+                    , style "height" "100%"
+                    , style "display" "flex"
+                    ]
            )
 
 
@@ -165,6 +172,7 @@ breadcrumbContainer : List (Html.Attribute msg)
 breadcrumbContainer =
     [ style "flex-grow" "1"
     , style "display" "flex"
+    , style "min-width" "0"
     ]
 
 
@@ -189,8 +197,8 @@ breadcrumbComponent { component, widthPx, heightPx } =
     ]
 
 
-breadcrumbItem : Bool -> List (Html.Attribute msg)
-breadcrumbItem clickable =
+breadcrumbItem : Bool -> Bool -> List (Html.Attribute msg)
+breadcrumbItem clickable lastItem =
     [ style "display" "inline-flex"
     , style "align-items" "center"
     , style "font-size" "18px"
@@ -204,6 +212,14 @@ breadcrumbItem clickable =
             "default"
     , style "color" Colors.white
     ]
+        ++ (if lastItem then
+                [ style "flex" "1"
+                , style "overflow" "hidden"
+                ]
+
+            else
+                []
+           )
 
 
 pauseToggle : String -> List (Html.Attribute msg)
@@ -341,3 +357,10 @@ commentBarTextButton =
     , style "border" "1px solid"
     ]
         ++ defaultFont
+
+
+ellipsedText : List (Html.Attribute msg)
+ellipsedText =
+    [ style "overflow" "hidden"
+    , style "text-overflow" "ellipsis"
+    ]

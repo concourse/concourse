@@ -14,9 +14,15 @@ module Concourse exposing
     , BuildResourcesOutput
     , BuildStep(..)
     , CSRFToken
-    , Cause
+    , Causality
+    , CausalityBuild
+    , CausalityDirection(..)
+    , CausalityJob
+    , CausalityResource
+    , CausalityResourceVersion
     , ClusterInfo
     , DatabaseID
+    , FeatureFlags
     , HookedPlan
     , InstanceGroupIdentifier
     , InstanceVars
@@ -50,7 +56,7 @@ module Concourse exposing
     , decodeBuildPlanResponse
     , decodeBuildPrep
     , decodeBuildResources
-    , decodeCause
+    , decodeCausality
     , decodeInfo
     , decodeInstanceGroupId
     , decodeInstanceVars
@@ -63,6 +69,7 @@ module Concourse exposing
     , decodeUser
     , decodeVersion
     , decodeVersionedResource
+    , defaultFeatureFlags
     , emptyBuildResources
     , encodeBuild
     , encodeInstanceGroupId
@@ -79,14 +86,17 @@ module Concourse exposing
     , isInstanceGroup
     , mapBuildPlan
     , pipelineId
+    , resourceId
+    , resourceIdFromVersionedResourceId
     , retrieveCSRFToken
     , toInstanceGroupId
     , toPipelineId
+    , toVersionedResourceId
     , versionQuery
     )
 
 import Array exposing (Array)
-import Concourse.BuildStatus exposing (BuildStatus)
+import Concourse.BuildStatus exposing (BuildStatus, decodeBuildStatus, encodeBuildStatus)
 import Dict exposing (Dict)
 import Json.Decode
 import Json.Decode.Extra exposing (andMap)
@@ -173,8 +183,10 @@ type alias BuildId =
 type alias BuildName =
     String
 
+
 type alias BuildCreatedBy =
     Maybe String
+
 
 type alias JobBuildIdentifier =
     { teamName : TeamName
@@ -194,7 +206,7 @@ type alias Build =
     , duration : BuildDuration
     , comment : String
     , reapTime : Maybe Time.Posix
-    , createdBy: BuildCreatedBy
+    , createdBy : BuildCreatedBy
     }
 
 
@@ -213,7 +225,7 @@ encodeBuild build =
          , optionalField "pipeline_name" Json.Encode.string (build.job |> Maybe.map .pipelineName)
          , optionalField "pipeline_instance_vars" encodeInstanceVars (build.job |> Maybe.map .pipelineInstanceVars)
          , optionalField "job_name" Json.Encode.string (build.job |> Maybe.map .jobName)
-         , ( "status", build.status |> Concourse.BuildStatus.encodeBuildStatus ) |> Just
+         , ( "status", build.status |> encodeBuildStatus ) |> Just
          , optionalField "start_time" (secondsFromDate >> Json.Encode.int) build.duration.startedAt
          , optionalField "end_time" (secondsFromDate >> Json.Encode.int) build.duration.finishedAt
          , ( "comment", build.comment |> Json.Encode.string ) |> Just
@@ -249,7 +261,7 @@ decodeBuild =
                     |> andMap (Json.Decode.field "job_name" Json.Decode.string)
                 )
             )
-        |> andMap (Json.Decode.field "status" Concourse.BuildStatus.decodeBuildStatus)
+        |> andMap (Json.Decode.field "status" decodeBuildStatus)
         |> andMap
             (Json.Decode.succeed BuildDuration
                 |> andMap (Json.Decode.maybe (Json.Decode.field "start_time" (Json.Decode.map dateFromSeconds Json.Decode.int)))
@@ -826,9 +838,45 @@ decodeBuildStepAcross =
 -- Info
 
 
+type alias FeatureFlags =
+    { globalResources : Bool
+    , redactSecrets : Bool
+    , buildRerun : Bool
+    , acrossStep : Bool
+    , pipelineInstances : Bool
+    , cacheStreamedVolumes : Bool
+    , resourceCausality : Bool
+    }
+
+
+defaultFeatureFlags : FeatureFlags
+defaultFeatureFlags =
+    { globalResources = False
+    , redactSecrets = False
+    , buildRerun = False
+    , acrossStep = False
+    , pipelineInstances = False
+    , cacheStreamedVolumes = False
+    , resourceCausality = False
+    }
+
+
+decodeFeatureFlags : Json.Decode.Decoder FeatureFlags
+decodeFeatureFlags =
+    Json.Decode.succeed FeatureFlags
+        |> andMap (Json.Decode.field "global_resources" Json.Decode.bool)
+        |> andMap (Json.Decode.field "redact_secrets" Json.Decode.bool)
+        |> andMap (Json.Decode.field "build_rerun" Json.Decode.bool)
+        |> andMap (Json.Decode.field "across_step" Json.Decode.bool)
+        |> andMap (Json.Decode.field "pipeline_instances" Json.Decode.bool)
+        |> andMap (Json.Decode.field "cache_streamed_volumes" Json.Decode.bool)
+        |> andMap (Json.Decode.field "resource_causality" Json.Decode.bool)
+
+
 type alias ClusterInfo =
     { version : String
     , clusterName : String
+    , featureFlags : FeatureFlags
     }
 
 
@@ -837,6 +885,7 @@ decodeInfo =
     Json.Decode.succeed ClusterInfo
         |> andMap (Json.Decode.field "version" Json.Decode.string)
         |> andMap (defaultTo "" <| Json.Decode.field "cluster_name" Json.Decode.string)
+        |> andMap (Json.Decode.field "feature_flags" decodeFeatureFlags)
 
 
 
@@ -1121,6 +1170,24 @@ type alias ResourceIdentifier =
     }
 
 
+resourceId : { r | teamName : String, pipelineName : String, pipelineInstanceVars : InstanceVars, name : String } -> ResourceIdentifier
+resourceId { teamName, pipelineName, pipelineInstanceVars, name } =
+    { teamName = teamName
+    , pipelineName = pipelineName
+    , pipelineInstanceVars = pipelineInstanceVars
+    , resourceName = name
+    }
+
+
+resourceIdFromVersionedResourceId : { r | teamName : String, pipelineName : String, pipelineInstanceVars : InstanceVars, resourceName : String } -> ResourceIdentifier
+resourceIdFromVersionedResourceId { teamName, pipelineName, pipelineInstanceVars, resourceName } =
+    { teamName = teamName
+    , pipelineName = pipelineName
+    , pipelineInstanceVars = pipelineInstanceVars
+    , resourceName = resourceName
+    }
+
+
 type alias VersionedResource =
     { id : Int
     , version : Version
@@ -1135,6 +1202,16 @@ type alias VersionedResourceIdentifier =
     , pipelineInstanceVars : InstanceVars
     , resourceName : String
     , versionID : Int
+    }
+
+
+toVersionedResourceId : ResourceIdentifier -> VersionedResource -> VersionedResourceIdentifier
+toVersionedResourceId { teamName, pipelineName, pipelineInstanceVars, resourceName } { id } =
+    { teamName = teamName
+    , pipelineName = pipelineName
+    , pipelineInstanceVars = pipelineInstanceVars
+    , resourceName = resourceName
+    , versionID = id
     }
 
 
@@ -1183,7 +1260,98 @@ decodeVersionedResource =
 
 
 
--- Version
+-- Causality
+
+
+type CausalityDirection
+    = Downstream
+    | Upstream
+
+
+type alias CausalityJob =
+    { id : Int
+    , name : String
+    , buildIds : List Int
+    }
+
+
+type alias CausalityBuild =
+    { id : Int
+    , name : String
+    , jobId : Int
+    , status : BuildStatus
+    , resourceVersionIds : List Int
+    }
+
+
+type alias CausalityResource =
+    { id : Int
+    , name : String
+    , resourceVersionIds : List Int
+    }
+
+
+type alias CausalityResourceVersion =
+    { id : Int
+    , version : Version
+    , resourceId : Int
+    , buildIds : List Int
+    }
+
+
+type alias Causality =
+    { jobs : List CausalityJob
+    , builds : List CausalityBuild
+    , resources : List CausalityResource
+    , resourceVersions : List CausalityResourceVersion
+    }
+
+
+decodeCausalityJob : Json.Decode.Decoder CausalityJob
+decodeCausalityJob =
+    Json.Decode.succeed CausalityJob
+        |> andMap (Json.Decode.field "id" Json.Decode.int)
+        |> andMap (Json.Decode.field "name" Json.Decode.string)
+        |> andMap
+            (defaultTo []
+                (Json.Decode.field "build_ids" <| Json.Decode.list Json.Decode.int)
+            )
+
+
+decodeCausalityBuild : Json.Decode.Decoder CausalityBuild
+decodeCausalityBuild =
+    Json.Decode.succeed CausalityBuild
+        |> andMap (Json.Decode.field "id" Json.Decode.int)
+        |> andMap (Json.Decode.field "name" Json.Decode.string)
+        |> andMap (Json.Decode.field "job_id" Json.Decode.int)
+        |> andMap (Json.Decode.field "status" decodeBuildStatus)
+        |> andMap (defaultTo [] <| Json.Decode.field "resource_version_ids" <| Json.Decode.list Json.Decode.int)
+
+
+decodeCausalityResource : Json.Decode.Decoder CausalityResource
+decodeCausalityResource =
+    Json.Decode.succeed CausalityResource
+        |> andMap (Json.Decode.field "id" Json.Decode.int)
+        |> andMap (Json.Decode.field "name" Json.Decode.string)
+        |> andMap (defaultTo [] <| Json.Decode.field "version_ids" <| Json.Decode.list Json.Decode.int)
+
+
+decodeCausalityResourceVersion : Json.Decode.Decoder CausalityResourceVersion
+decodeCausalityResourceVersion =
+    Json.Decode.succeed CausalityResourceVersion
+        |> andMap (Json.Decode.field "id" Json.Decode.int)
+        |> andMap (Json.Decode.field "version" decodeVersion)
+        |> andMap (Json.Decode.field "resource_id" Json.Decode.int)
+        |> andMap (defaultTo [] <| Json.Decode.field "build_ids" <| Json.Decode.list Json.Decode.int)
+
+
+decodeCausality : Json.Decode.Decoder Causality
+decodeCausality =
+    Json.Decode.succeed Causality
+        |> andMap (Json.Decode.field "jobs" <| Json.Decode.list decodeCausalityJob)
+        |> andMap (Json.Decode.field "builds" <| Json.Decode.list decodeCausalityBuild)
+        |> andMap (Json.Decode.field "resources" <| Json.Decode.list decodeCausalityResource)
+        |> andMap (Json.Decode.field "resource_versions" <| Json.Decode.list decodeCausalityResourceVersion)
 
 
 type alias Version =
@@ -1285,23 +1453,6 @@ decodeUser =
         |> andMap (Json.Decode.field "is_admin" Json.Decode.bool)
         |> andMap (Json.Decode.field "teams" (Json.Decode.dict (Json.Decode.list Json.Decode.string)))
         |> andMap (Json.Decode.field "display_user_id" Json.Decode.string)
-
-
-
--- Cause
-
-
-type alias Cause =
-    { versionedResourceID : Int
-    , buildID : Int
-    }
-
-
-decodeCause : Json.Decode.Decoder Cause
-decodeCause =
-    Json.Decode.succeed Cause
-        |> andMap (Json.Decode.field "versioned_resource_id" Json.Decode.int)
-        |> andMap (Json.Decode.field "build_id" Json.Decode.int)
 
 
 

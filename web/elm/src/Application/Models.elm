@@ -11,6 +11,7 @@ type alias Session =
         { userState : UserState
         , clusterName : String
         , version : String
+        , featureFlags : Concourse.FeatureFlags
         , turbulenceImgSrc : String
         , notFoundImgSrc : String
         , csrfToken : Concourse.CSRFToken

@@ -55,6 +55,9 @@ import Views.Styles
 port renderPipeline : ( Json.Encode.Value, Json.Encode.Value ) -> Cmd msg
 
 
+port renderCausality : String -> Cmd msg
+
+
 port pinTeamNames : StickyHeaderConfig -> Cmd msg
 
 
@@ -120,6 +123,7 @@ type Effect
     | FetchJobBuilds Concourse.JobIdentifier Page
     | FetchResource Concourse.ResourceIdentifier
     | FetchCheck Int
+    | FetchVersionedResource Concourse.VersionedResourceIdentifier
     | FetchVersionedResources Concourse.ResourceIdentifier Page
     | FetchVersionedResourceId Concourse.ResourceIdentifier Concourse.Version
     | FetchResources Concourse.PipelineIdentifier
@@ -128,7 +132,9 @@ type Effect
     | FetchPipelines String
     | FetchClusterInfo
     | FetchInputTo Concourse.VersionedResourceIdentifier
+    | FetchDownstreamCausality Concourse.VersionedResourceIdentifier
     | FetchOutputOf Concourse.VersionedResourceIdentifier
+    | FetchUpstreamCausality Concourse.VersionedResourceIdentifier
     | FetchAllTeams
     | FetchUser
     | FetchBuild Float Int
@@ -151,6 +157,7 @@ type Effect
     | UnpauseJob Concourse.JobIdentifier
     | ResetPipelineFocus
     | RenderPipeline (List Concourse.Job) (List Concourse.Resource)
+    | RenderCausality String
     | RedirectToLogin
     | LoadExternal String
     | NavigateTo String
@@ -261,6 +268,13 @@ runEffect effect key csrfToken =
                 |> Task.map (\b -> ( page, b ))
                 |> Task.attempt VersionedResourcesFetched
 
+        FetchVersionedResource id ->
+            Api.get
+                (Endpoints.BaseResourceVersion |> Endpoints.ResourceVersion id)
+                |> Api.expectJson Concourse.decodeVersionedResource
+                |> Api.request
+                |> Task.attempt VersionedResourceFetched
+
         FetchResources id ->
             Api.get
                 (Endpoints.PipelineResourcesList |> Endpoints.Pipeline id)
@@ -322,6 +336,14 @@ runEffect effect key csrfToken =
                 |> Task.map (\b -> ( id, b ))
                 |> Task.attempt InputToFetched
 
+        FetchDownstreamCausality id ->
+            Api.get
+                (Endpoints.DownstreamCausality |> Endpoints.ResourceVersion id)
+                |> Api.expectJson Concourse.decodeCausality
+                |> Api.request
+                |> Task.map (\b -> ( Concourse.Downstream, Just b ))
+                |> Task.attempt CausalityFetched
+
         FetchOutputOf id ->
             Api.get
                 (Endpoints.ResourceVersionOutputOf |> Endpoints.ResourceVersion id)
@@ -329,6 +351,14 @@ runEffect effect key csrfToken =
                 |> Api.request
                 |> Task.map (\b -> ( id, b ))
                 |> Task.attempt OutputOfFetched
+
+        FetchUpstreamCausality id ->
+            Api.get
+                (Endpoints.UpstreamCasuality |> Endpoints.ResourceVersion id)
+                |> Api.expectJson Concourse.decodeCausality
+                |> Api.request
+                |> Task.map (\b -> ( Concourse.Upstream, Just b ))
+                |> Task.attempt CausalityFetched
 
         FetchAllTeams ->
             Api.get Endpoints.TeamsList
@@ -402,6 +432,9 @@ runEffect effect key csrfToken =
 
         ResetPipelineFocus ->
             resetPipelineFocus ()
+
+        RenderCausality dot ->
+            renderCausality dot
 
         RenderPipeline jobs resources ->
             renderPipeline
@@ -916,6 +949,12 @@ toHtmlID domId =
 
         PreviousPageButton ->
             "previous-page"
+
+        InputsTo id ->
+            "view-all-inputs-" ++ String.fromInt id.versionID
+
+        OutputsOf id ->
+            "view-all-outputs" ++ String.fromInt id.versionID
 
         _ ->
             ""

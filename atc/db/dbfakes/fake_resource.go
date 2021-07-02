@@ -31,6 +31,22 @@ type FakeResource struct {
 	buildSummaryReturnsOnCall map[int]struct {
 		result1 *atc.BuildSummary
 	}
+	CausalityStub        func(int, db.CausalityDirection) (atc.Causality, bool, error)
+	causalityMutex       sync.RWMutex
+	causalityArgsForCall []struct {
+		arg1 int
+		arg2 db.CausalityDirection
+	}
+	causalityReturns struct {
+		result1 atc.Causality
+		result2 bool
+		result3 error
+	}
+	causalityReturnsOnCall map[int]struct {
+		result1 atc.Causality
+		result2 bool
+		result3 error
+	}
 	CheckEveryStub        func() *atc.CheckEvery
 	checkEveryMutex       sync.RWMutex
 	checkEveryArgsForCall []struct {
@@ -583,6 +599,74 @@ func (fake *FakeResource) BuildSummaryReturnsOnCall(i int, result1 *atc.BuildSum
 	fake.buildSummaryReturnsOnCall[i] = struct {
 		result1 *atc.BuildSummary
 	}{result1}
+}
+
+func (fake *FakeResource) Causality(arg1 int, arg2 db.CausalityDirection) (atc.Causality, bool, error) {
+	fake.causalityMutex.Lock()
+	ret, specificReturn := fake.causalityReturnsOnCall[len(fake.causalityArgsForCall)]
+	fake.causalityArgsForCall = append(fake.causalityArgsForCall, struct {
+		arg1 int
+		arg2 db.CausalityDirection
+	}{arg1, arg2})
+	stub := fake.CausalityStub
+	fakeReturns := fake.causalityReturns
+	fake.recordInvocation("Causality", []interface{}{arg1, arg2})
+	fake.causalityMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+}
+
+func (fake *FakeResource) CausalityCallCount() int {
+	fake.causalityMutex.RLock()
+	defer fake.causalityMutex.RUnlock()
+	return len(fake.causalityArgsForCall)
+}
+
+func (fake *FakeResource) CausalityCalls(stub func(int, db.CausalityDirection) (atc.Causality, bool, error)) {
+	fake.causalityMutex.Lock()
+	defer fake.causalityMutex.Unlock()
+	fake.CausalityStub = stub
+}
+
+func (fake *FakeResource) CausalityArgsForCall(i int) (int, db.CausalityDirection) {
+	fake.causalityMutex.RLock()
+	defer fake.causalityMutex.RUnlock()
+	argsForCall := fake.causalityArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeResource) CausalityReturns(result1 atc.Causality, result2 bool, result3 error) {
+	fake.causalityMutex.Lock()
+	defer fake.causalityMutex.Unlock()
+	fake.CausalityStub = nil
+	fake.causalityReturns = struct {
+		result1 atc.Causality
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeResource) CausalityReturnsOnCall(i int, result1 atc.Causality, result2 bool, result3 error) {
+	fake.causalityMutex.Lock()
+	defer fake.causalityMutex.Unlock()
+	fake.CausalityStub = nil
+	if fake.causalityReturnsOnCall == nil {
+		fake.causalityReturnsOnCall = make(map[int]struct {
+			result1 atc.Causality
+			result2 bool
+			result3 error
+		})
+	}
+	fake.causalityReturnsOnCall[i] = struct {
+		result1 atc.Causality
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakeResource) CheckEvery() *atc.CheckEvery {
@@ -2846,6 +2930,8 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.aPIPinnedVersionMutex.RUnlock()
 	fake.buildSummaryMutex.RLock()
 	defer fake.buildSummaryMutex.RUnlock()
+	fake.causalityMutex.RLock()
+	defer fake.causalityMutex.RUnlock()
 	fake.checkEveryMutex.RLock()
 	defer fake.checkEveryMutex.RUnlock()
 	fake.checkPlanMutex.RLock()

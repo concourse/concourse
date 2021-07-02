@@ -54,6 +54,8 @@ type Route
     | Pipeline { id : Concourse.PipelineIdentifier, groups : List String }
     | Dashboard { searchType : SearchType, dashboardView : DashboardView }
     | FlySuccess Bool (Maybe Int)
+      -- the version field is really only used as a hack to populate the breadcrumbs, it's not actually used by anyhting else
+    | Causality { id : Concourse.VersionedResourceIdentifier, direction : Concourse.CausalityDirection, version : Maybe Concourse.Version }
 
 
 type SearchType
@@ -299,6 +301,40 @@ flySuccess =
         )
 
 
+causality : Parser ((InstanceVars -> Route) -> a) a
+causality =
+    let
+        causalityHelper direction { teamName, pipelineName } resourceName versionId =
+            \iv ->
+                Causality
+                    { id =
+                        { teamName = teamName
+                        , pipelineName = pipelineName
+                        , pipelineInstanceVars = iv
+                        , resourceName = resourceName
+                        , versionID = versionId
+                        }
+                    , direction = direction
+                    , version = Nothing
+                    }
+
+        baseRoute dir =
+            map (causalityHelper dir)
+                (pipelineIdentifier
+                    </> s "resources"
+                    </> string
+                    </> s "causality"
+                    </> int
+                )
+    in
+    oneOf
+        [ baseRoute Concourse.Upstream
+            </> s "upstream"
+        , baseRoute Concourse.Downstream
+            </> s "downstream"
+        ]
+
+
 
 -- route utils
 
@@ -335,17 +371,17 @@ jobRoute j =
         }
 
 
-resourceRoute : Concourse.Resource -> Route
-resourceRoute r =
+resourceRoute : Concourse.ResourceIdentifier -> Maybe Concourse.Version -> Route
+resourceRoute r v =
     Resource
         { id =
             { teamName = r.teamName
             , pipelineName = r.pipelineName
             , pipelineInstanceVars = r.pipelineInstanceVars
-            , resourceName = r.name
+            , resourceName = r.resourceName
             }
         , page = Nothing
-        , version = Nothing
+        , version = v
         }
 
 
@@ -430,6 +466,7 @@ sitemap =
         , build
         , oneOffBuild
         , flySuccess
+        , causality
         ]
 
 
@@ -512,6 +549,22 @@ toString route =
                      else
                         []
                     )
+                |> RouteBuilder.build
+
+        Causality { id, direction } ->
+            let
+                path =
+                    case direction of
+                        Concourse.Downstream ->
+                            "downstream"
+
+                        Concourse.Upstream ->
+                            "upstream"
+            in
+            pipelineIdBuilder id
+                |> appendPath [ "resources", id.resourceName ]
+                |> appendPath [ "causality", String.fromInt id.versionID ]
+                |> appendPath [ path ]
                 |> RouteBuilder.build
 
 

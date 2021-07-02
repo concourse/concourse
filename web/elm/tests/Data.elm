@@ -7,6 +7,7 @@ module Data exposing
     , httpNotFound
     , httpNotImplemented
     , httpUnauthorized
+    , httpUnproccessableEntity
     , job
     , jobBuild
     , jobBuildId
@@ -108,6 +109,20 @@ httpNotFound =
             , status =
                 { code = 404
                 , message = "not found"
+                }
+            , headers = Dict.empty
+            , body = ""
+            }
+
+
+httpUnproccessableEntity : Result Http.Error a
+httpUnproccessableEntity =
+    Err <|
+        Http.BadStatus
+            { url = "http://example.com"
+            , status =
+                { code = 422
+                , message = "unprocessable entity"
                 }
             , headers = Dict.empty
             , body = ""
@@ -342,22 +357,27 @@ withIcon i r =
     { r | icon = i }
 
 
+jobName : String
 jobName =
     "job"
 
 
+teamName : String
 teamName =
     "team"
 
 
+pipelineName : String
 pipelineName =
     "pipeline"
 
 
+resourceName : String
 resourceName =
     "resource"
 
 
+buildName : String
 buildName =
     "1"
 

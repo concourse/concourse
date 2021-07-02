@@ -63,19 +63,6 @@ type FakePipeline struct {
 		result2 db.Pagination
 		result3 error
 	}
-	CausalityStub        func(int) ([]db.Cause, error)
-	causalityMutex       sync.RWMutex
-	causalityArgsForCall []struct {
-		arg1 int
-	}
-	causalityReturns struct {
-		result1 []db.Cause
-		result2 error
-	}
-	causalityReturnsOnCall map[int]struct {
-		result1 []db.Cause
-		result2 error
-	}
 	CheckPausedStub        func() (bool, error)
 	checkPausedMutex       sync.RWMutex
 	checkPausedArgsForCall []struct {
@@ -797,70 +784,6 @@ func (fake *FakePipeline) BuildsWithTimeReturnsOnCall(i int, result1 []db.Build,
 		result2 db.Pagination
 		result3 error
 	}{result1, result2, result3}
-}
-
-func (fake *FakePipeline) Causality(arg1 int) ([]db.Cause, error) {
-	fake.causalityMutex.Lock()
-	ret, specificReturn := fake.causalityReturnsOnCall[len(fake.causalityArgsForCall)]
-	fake.causalityArgsForCall = append(fake.causalityArgsForCall, struct {
-		arg1 int
-	}{arg1})
-	stub := fake.CausalityStub
-	fakeReturns := fake.causalityReturns
-	fake.recordInvocation("Causality", []interface{}{arg1})
-	fake.causalityMutex.Unlock()
-	if stub != nil {
-		return stub(arg1)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fakeReturns.result1, fakeReturns.result2
-}
-
-func (fake *FakePipeline) CausalityCallCount() int {
-	fake.causalityMutex.RLock()
-	defer fake.causalityMutex.RUnlock()
-	return len(fake.causalityArgsForCall)
-}
-
-func (fake *FakePipeline) CausalityCalls(stub func(int) ([]db.Cause, error)) {
-	fake.causalityMutex.Lock()
-	defer fake.causalityMutex.Unlock()
-	fake.CausalityStub = stub
-}
-
-func (fake *FakePipeline) CausalityArgsForCall(i int) int {
-	fake.causalityMutex.RLock()
-	defer fake.causalityMutex.RUnlock()
-	argsForCall := fake.causalityArgsForCall[i]
-	return argsForCall.arg1
-}
-
-func (fake *FakePipeline) CausalityReturns(result1 []db.Cause, result2 error) {
-	fake.causalityMutex.Lock()
-	defer fake.causalityMutex.Unlock()
-	fake.CausalityStub = nil
-	fake.causalityReturns = struct {
-		result1 []db.Cause
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakePipeline) CausalityReturnsOnCall(i int, result1 []db.Cause, result2 error) {
-	fake.causalityMutex.Lock()
-	defer fake.causalityMutex.Unlock()
-	fake.CausalityStub = nil
-	if fake.causalityReturnsOnCall == nil {
-		fake.causalityReturnsOnCall = make(map[int]struct {
-			result1 []db.Cause
-			result2 error
-		})
-	}
-	fake.causalityReturnsOnCall[i] = struct {
-		result1 []db.Cause
-		result2 error
-	}{result1, result2}
 }
 
 func (fake *FakePipeline) CheckPaused() (bool, error) {
@@ -3231,8 +3154,6 @@ func (fake *FakePipeline) Invocations() map[string][][]interface{} {
 	defer fake.buildsMutex.RUnlock()
 	fake.buildsWithTimeMutex.RLock()
 	defer fake.buildsWithTimeMutex.RUnlock()
-	fake.causalityMutex.RLock()
-	defer fake.causalityMutex.RUnlock()
 	fake.checkPausedMutex.RLock()
 	defer fake.checkPausedMutex.RUnlock()
 	fake.configMutex.RLock()

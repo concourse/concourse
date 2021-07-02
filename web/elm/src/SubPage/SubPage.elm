@@ -15,6 +15,7 @@ import Application.Models exposing (Session)
 import Build.Build as Build
 import Build.Header.Models
 import Build.Models
+import Causality.Causality as Causality
 import Dashboard.Dashboard as Dashboard
 import Dashboard.Models
 import EffectTransformer exposing (ET)
@@ -46,6 +47,7 @@ type Model
     | NotFoundModel NotFound.Model.Model
     | DashboardModel Dashboard.Models.Model
     | FlySuccessModel FlySuccess.Models.Model
+    | CausalityModel Causality.Model
 
 
 init : Session -> Routes.Route -> ( Model, List Effect )
@@ -105,14 +107,21 @@ init session route =
                 }
                 |> Tuple.mapFirst FlySuccessModel
 
+        Routes.Causality { id, direction } ->
+            Causality.init
+                { versionId = id
+                , direction = direction
+                }
+                |> Tuple.mapFirst CausalityModel
 
-handleNotFound : String -> Routes.Route -> ET Model
-handleNotFound notFound route ( model, effects ) =
-    case getUpdateMessage model of
+
+handleNotFound : Session -> ET Model
+handleNotFound session ( model, effects ) =
+    case getUpdateMessage session model of
         UpdateMsg.NotFound ->
             let
                 ( newModel, newEffects ) =
-                    NotFound.init { notFoundImgSrc = notFound, route = route }
+                    NotFound.init { notFoundImgSrc = session.notFoundImgSrc, route = session.route }
             in
             ( NotFoundModel newModel, effects ++ newEffects )
 
@@ -120,8 +129,8 @@ handleNotFound notFound route ( model, effects ) =
             ( model, effects )
 
 
-getUpdateMessage : Model -> UpdateMsg
-getUpdateMessage model =
+getUpdateMessage : Session -> Model -> UpdateMsg
+getUpdateMessage session model =
     case model of
         BuildModel mdl ->
             Build.getUpdateMessage mdl
@@ -135,6 +144,9 @@ getUpdateMessage model =
         PipelineModel mdl ->
             Pipeline.getUpdateMessage mdl
 
+        CausalityModel mdl ->
+            Causality.getUpdateMessage session mdl
+
         _ ->
             UpdateMsg.AOK
 
@@ -145,10 +157,11 @@ genericUpdate :
     -> ET Resource.Models.Model
     -> ET Pipeline.Model
     -> ET Dashboard.Models.Model
+    -> ET Causality.Model
     -> ET NotFound.Model.Model
     -> ET FlySuccess.Models.Model
     -> ET Model
-genericUpdate fBuild fJob fRes fPipe fDash fNF fFS ( model, effects ) =
+genericUpdate fBuild fJob fRes fPipe fDash fCaus fNF fFS ( model, effects ) =
     case model of
         BuildModel buildModel ->
             fBuild ( buildModel, effects )
@@ -170,6 +183,10 @@ genericUpdate fBuild fJob fRes fPipe fDash fNF fFS ( model, effects ) =
             fDash ( dashboardModel, effects )
                 |> Tuple.mapFirst DashboardModel
 
+        CausalityModel causalityModel ->
+            fCaus ( causalityModel, effects )
+                |> Tuple.mapFirst CausalityModel
+
         FlySuccessModel flySuccessModel ->
             fFS ( flySuccessModel, effects )
                 |> Tuple.mapFirst FlySuccessModel
@@ -187,11 +204,13 @@ handleCallback callback session =
         (Resource.handleCallback callback session)
         (Pipeline.handleCallback callback)
         (Dashboard.handleCallback callback)
+        (Causality.handleCallback callback)
         identity
         identity
         >> (case callback of
                 LoggedOut (Ok ()) ->
                     genericUpdate
+                        handleLoggedOut
                         handleLoggedOut
                         handleLoggedOut
                         handleLoggedOut
@@ -227,6 +246,7 @@ handleDelivery session delivery =
         (Resource.handleDelivery session delivery)
         (Pipeline.handleDelivery delivery)
         (Dashboard.handleDelivery session delivery)
+        (Causality.handleDelivery delivery)
         (NotFound.handleDelivery delivery)
         (FlySuccess.handleDelivery delivery)
 
@@ -239,6 +259,7 @@ update session msg =
         (Login.update msg >> Resource.update msg)
         (Login.update msg >> Pipeline.update msg)
         (Login.update msg >> Dashboard.update session msg)
+        (Login.update msg >> Causality.update msg)
         (Login.update msg)
         (Login.update msg >> FlySuccess.update msg)
         >> (case msg of
@@ -319,6 +340,16 @@ urlUpdate routes =
             _ ->
                 identity
         )
+        (case routes.to of
+            Routes.Causality { id, direction } ->
+                Causality.changeToVersionedResource
+                    { versionId = id
+                    , direction = direction
+                    }
+
+            _ ->
+                identity
+        )
         identity
         identity
 
@@ -361,6 +392,11 @@ view ({ userState } as session) mdl =
             , FlySuccess.view userState model
             )
 
+        CausalityModel model ->
+            ( Causality.documentTitle model
+            , Causality.view session model
+            )
+
 
 tooltip : Model -> Session -> Maybe Tooltip.Tooltip
 tooltip mdl =
@@ -386,6 +422,9 @@ tooltip mdl =
         FlySuccessModel model ->
             FlySuccess.tooltip model
 
+        CausalityModel model ->
+            Causality.tooltip model
+
 
 subscriptions : Model -> List Subscription
 subscriptions mdl =
@@ -410,3 +449,6 @@ subscriptions mdl =
 
         FlySuccessModel _ ->
             FlySuccess.subscriptions
+
+        CausalityModel _ ->
+            Causality.subscriptions

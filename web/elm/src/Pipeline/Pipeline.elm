@@ -171,10 +171,17 @@ handleCallback callback ( model, effects ) =
     in
     case callback of
         PipelineFetched (Ok pipeline) ->
-            ( { model | pipeline = RemoteData.Success pipeline }
+            let
+                locator =
+                    Concourse.toPipelineId pipeline
+            in
+            ( { model
+                | pipeline = RemoteData.Success pipeline
+                , pipelineLocator = locator
+              }
             , effects
-                ++ [ FetchJobs model.pipelineLocator
-                   , FetchResources model.pipelineLocator
+                ++ [ FetchJobs locator
+                   , FetchResources locator
                    ]
             )
 
