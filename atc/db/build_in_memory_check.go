@@ -32,15 +32,23 @@ type inMemoryCheckBuild struct {
 	running bool
 	conn    Conn
 
+	// reallyRun makes a check build really executed in a container on a worker.
+	reallyRun bool
+	dbInited bool
+	cacheEvents []atc.Event
+
 	cacheAssociatedTeams []string
 }
 
 func newRunningInMemoryCheckBuild(conn Conn, checkable Checkable, plan atc.Plan, spanContext SpanContext) (*inMemoryCheckBuild, error) {
+	build := newExistingInMemoryCheckBuild(conn, 0, checkable)
+	build.plan = plan
+	build.running = true
+
 	tx, err := conn.Begin()
 	if err != nil {
 		return nil, err
 	}
-
 	defer Rollback(tx)
 
 	var nextBuildId int
@@ -48,20 +56,22 @@ func newRunningInMemoryCheckBuild(conn Conn, checkable Checkable, plan atc.Plan,
 	if err != nil {
 		return nil, err
 	}
+	build.id = nextBuildId
 
-	err = createBuildEventSeq(tx, nextBuildId)
+	err = tx.Commit()
 	if err != nil {
 		return nil, err
 	}
 
-	build := inMemoryCheckBuild{
-		id:          nextBuildId,
-		checkable:   checkable,
-		plan:        plan,
-		spanContext: spanContext,
-		createTime:  time.Now(),
-		running:     true,
-		conn:        conn,
+	return build, nil
+}
+
+func newExistingInMemoryCheckBuild(conn Conn, buildId int, checkable Checkable) *inMemoryCheckBuild {
+	build :=  inMemoryCheckBuild{
+		id:        buildId,
+		conn:      conn,
+		checkable: checkable,
+		running:   false,
 	}
 
 	if resource, ok := checkable.(Resource); ok {
@@ -70,25 +80,9 @@ func newRunningInMemoryCheckBuild(conn Conn, checkable Checkable, plan atc.Plan,
 	} else if resourceType, ok := checkable.(ResourceType); ok {
 		build.resourceTypeId = resourceType.ID()
 		build.resourceTypeName = resourceType.Name()
-	} else {
-		return nil, fmt.Errorf("invalid checkable")
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		return nil, err
-	}
-
-	return &build, nil
-}
-
-func newExistingInMemoryCheckBuild(conn Conn, buildId int, checkable Checkable) *inMemoryCheckBuild {
-	return &inMemoryCheckBuild{
-		id:        buildId,
-		conn:      conn,
-		checkable: checkable,
-		running:   false,
-	}
+	return &build
 }
 
 func (b *inMemoryCheckBuild) ID() int                                 { return b.id }
@@ -175,6 +169,10 @@ func (b *inMemoryCheckBuild) Finish(status BuildStatus) error {
 		panic("not a running in-memory-check-build")
 	}
 
+	if !b.reallyRun {
+		return nil
+	}
+
 	tx, err := b.conn.Begin()
 	if err != nil {
 		return err
@@ -253,11 +251,27 @@ func (b *inMemoryCheckBuild) SaveEvent(ev atc.Event) error {
 		panic("not a running in-memory-check-build")
 	}
 
+	if ev.EventType() == event.EventTypeSelectedWorker {
+		b.reallyRun = true
+	}
+
+	if !b.reallyRun {
+		b.cacheEvents = append(b.cacheEvents, ev)
+		return nil
+	}
+
 	tx, err := b.conn.Begin()
 	if err != nil {
 		return err
 	}
 	defer Rollback(tx)
+
+	if !b.dbInited {
+		err := b.initDbStuff(tx)
+		if err != nil {
+			return err
+		}
+	}
 
 	err = b.saveEvent(tx, ev)
 	if err != nil {
@@ -366,6 +380,24 @@ func (b *inMemoryCheckBuild) AllAssociatedTeamNames() []string {
 	b.cacheAssociatedTeams = teamNames
 
 	return b.cacheAssociatedTeams
+}
+
+func (b *inMemoryCheckBuild) initDbStuff(tx Tx) error {
+	err := createBuildEventSeq(tx, b.id)
+	if err != nil {
+		return err
+	}
+
+	for _, cachedEv := range b.cacheEvents {
+		err = b.saveEvent(tx, cachedEv)
+		if err != nil {
+			return err
+		}
+	}
+
+	b.dbInited = true
+
+	return nil
 }
 
 // === No implemented functions ===

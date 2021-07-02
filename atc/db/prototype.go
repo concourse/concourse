@@ -44,7 +44,6 @@ type Prototype interface {
 	CreateBuild(context.Context, bool, atc.Plan) (Build, bool, error)
 
 	CreateInMemoryBuild(context.Context, atc.Plan) (Build, error)
-	CheckApiEndpoint() string
 
 	Version() atc.Version
 
@@ -245,10 +244,6 @@ func (p *prototype) CreateBuild(ctx context.Context, manuallyTriggered bool, pla
 }
 
 func (p *prototype) CreateInMemoryBuild(context.Context, atc.Plan) (Build, error) {
-	panic("not implemented")
-}
-
-func (p *prototype) CheckApiEndpoint() string {
 	panic("not implemented")
 }
 
