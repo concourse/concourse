@@ -65,6 +65,7 @@ type BuildDuration
         , duration : Timespan
         }
 
+
 type Timestamp
     = Absolute String (Maybe Timespan)
     | Relative Timespan String
@@ -191,6 +192,7 @@ viewDuration buildDuration =
                     , Html.td [ class "dict-value" ] [ Html.text <| viewTimespan duration ]
                     ]
                 ]
+
 
 viewTimestamp : Timestamp -> Html Message
 viewTimestamp timestamp =
@@ -368,6 +370,7 @@ viewTitle name jobID createdBy =
                     style "line-height" <|
                         if hasCreatedBy then
                             "44px"
+
                         else
                             "60px"
             in
@@ -403,13 +406,13 @@ viewTitle name jobID createdBy =
                         , style "line-height" "16px"
                         , style "right" "0"
                         , style "left" "0"
-                        , style "text-align" "right"
                         , style "text-overflow" "ellipsis"
                         , style "white-space" "nowrap"
                         , style "overflow" "hidden"
                         , title text
                         ]
                         [ Html.text text ]
+
                 Nothing ->
                     Html.text ""
 
@@ -425,15 +428,14 @@ viewTitle name jobID createdBy =
                 )
             ]
                 ++ (if hasCreatedBy then
-                        [ style "min-width" "100px"
-                        , style "text-align" "right"
-                        ]
+                        [ style "min-width" "100px" ]
 
                     else
                         []
                    )
     in
     Html.h1 headerStyle [ buildName, createdByText ]
+
 
 viewHistory : BuildStatus -> List BuildTab -> Html Message
 viewHistory backgroundColor =
