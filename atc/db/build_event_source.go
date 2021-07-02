@@ -4,9 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/lib/pq"
-	"os"
 	"strconv"
 	"sync"
 
@@ -128,10 +126,8 @@ func (source *buildEventSource) collectEvents(from uint) {
 				Scan(&lastCheckStartTime, &lastCheckEndTime)
 			if err != nil {
 				if err == sql.ErrNoRows {
-					fmt.Fprintf(os.Stderr, "EVAN:event complete, build id = %d\n", source.buildID)
 					completed = true
 				} else {
-					fmt.Fprintf(os.Stderr, "EVAN:event errored, build id = %d\n", source.buildID)
 					source.err = err
 					close(source.events)
 					return
@@ -140,7 +136,6 @@ func (source *buildEventSource) collectEvents(from uint) {
 
 			if lastCheckStartTime.Valid && lastCheckEndTime.Valid && lastCheckStartTime.Time.Before(lastCheckEndTime.Time) {
 				completed = true
-				fmt.Fprintf(os.Stderr, "EVAN:event complete 222222, build id = %d\n", source.buildID)
 			}
 		} else {
 			err = psql.Select("completed").

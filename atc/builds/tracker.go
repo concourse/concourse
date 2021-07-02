@@ -26,16 +26,19 @@ type Runnable interface {
 }
 
 func NewTracker(
+	logger lager.Logger,
 	buildFactory db.BuildFactory,
 	engine Engine,
 	checkBuildsChan <-chan db.Build,
 ) *Tracker {
-	return &Tracker{
+	tracker := &Tracker{
 		buildFactory:    buildFactory,
 		engine:          engine,
 		running:         &sync.Map{},
 		checkBuildsChan: checkBuildsChan,
 	}
+	go tracker.trackInMemoryBuilds(logger)
+	return tracker
 }
 
 type Tracker struct {
@@ -59,40 +62,8 @@ func (bt *Tracker) Run(ctx context.Context) error {
 		builds = []db.Build{}
 	}
 
-	// TODO: maybe use a go routine to receive builds from ch.
-	builds = append(builds, bt.fetchInMemoryBuild(logger)...)
-
 	for _, b := range builds {
-		if _, exists := bt.running.LoadOrStore(b.ID(), true); !exists {
-			go func(build db.Build) {
-				loggerData := build.LagerData()
-				defer func() {
-					err := util.DumpPanic(recover(), "tracking build %d", build.ID())
-					if err != nil {
-						logger.Error("panic-in-tracker-build-run", err)
-
-						build.Finish(db.BuildStatusErrored)
-					}
-				}()
-
-				defer bt.running.Delete(build.ID())
-
-				if build.Name() == db.CheckBuildName {
-					metric.Metrics.CheckBuildsRunning.Inc()
-					defer metric.Metrics.CheckBuildsRunning.Dec()
-				} else {
-					metric.Metrics.BuildsRunning.Inc()
-					defer metric.Metrics.BuildsRunning.Dec()
-				}
-
-				bt.engine.NewBuild(build).Run(
-					lagerctx.NewContext(
-						context.Background(),
-						logger.Session("run", loggerData),
-					),
-				)
-			}(b)
-		}
+		bt.trackBuild(logger, b)
 	}
 
 	return nil
@@ -102,17 +73,54 @@ func (bt *Tracker) Drain(ctx context.Context) {
 	bt.engine.Drain(ctx)
 }
 
-func (bt *Tracker) fetchInMemoryBuild(logger lager.Logger) []db.Build {
-	builds := []db.Build{}
-	hasMore := true
-	for hasMore {
+func (bt *Tracker) trackBuild(logger lager.Logger, b db.Build) {
+	if _, exists := bt.running.LoadOrStore(b.ID(), true); exists {
+		return
+	}
+
+	go func(build db.Build) {
+		loggerData := build.LagerData()
+		defer func() {
+			err := util.DumpPanic(recover(), "tracking build %d", build.ID())
+			if err != nil {
+				logger.Error("panic-in-tracker-build-run", err)
+
+				build.Finish(db.BuildStatusErrored)
+			}
+		}()
+
+		defer bt.running.Delete(build.ID())
+
+		if build.Name() == db.CheckBuildName {
+			metric.Metrics.CheckBuildsRunning.Inc()
+			defer metric.Metrics.CheckBuildsRunning.Dec()
+		} else {
+			metric.Metrics.BuildsRunning.Inc()
+			defer metric.Metrics.BuildsRunning.Dec()
+		}
+
+		bt.engine.NewBuild(build).Run(
+			lagerctx.NewContext(
+				context.Background(),
+				logger.Session("run", loggerData),
+			),
+		)
+	}(b)
+}
+
+func (bt *Tracker) trackInMemoryBuilds(logger lager.Logger) {
+	logger = logger.Session("tracker-imb")
+	logger.Info("start")
+	defer logger.Info("end")
+
+	for {
 		select {
 		case b := <-bt.checkBuildsChan:
+			if b == nil {
+				return
+			}
 			logger.Debug("received-in-memory-build", lager.Data{"id": b.ID()})
-			builds = append(builds, b)
-		default:
-			hasMore = false
+			bt.trackBuild(logger, b)
 		}
 	}
-	return builds
 }

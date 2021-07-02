@@ -155,6 +155,7 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 				return nil, false, fmt.Errorf("acquire lock: %w", err)
 			}
 
+			// TODO: for in-memory check build, if not acquire lock, maybe don't wait, just return shouldNotRun.
 			if acquired {
 				break
 			}
