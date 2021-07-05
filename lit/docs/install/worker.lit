@@ -270,7 +270,7 @@ decide much on its own.
   \section{
     \title{Team Workers}
 
-    If you want to isolate \bold{all workloads} by
+    If you want to isolate \bold{all workloads} for a
     \reference{managing-teams}{team} then you can configure a worker to belong
     to a single team like so:
 
@@ -279,9 +279,14 @@ decide much on its own.
     }}
 
     Once an untagged team worker is registered Concourse will schedule all
-    untagged builds for that team on its team worker(s). It is possible to have a
-    Concourse cluster made up of only team workers and have zero non-team
-    workers.
+    untagged builds for that team on its team worker(s). Builds for this team
+    will not be scheduled on any untagged, non-team workers anymore.
+
+    It is possible to have a Concourse cluster made up of only team workers and
+    have zero non-team workers, though this is not a common setup because
+    resource uitilization across all workers ends up underuitilized. It is
+    useful though if you have a particular team with heavy worloads that
+    usually bothers other teams pipelines.
 
 
     \section{
