@@ -580,12 +580,20 @@ var _ = Describe("ResourceType", func() {
 			})
 		})
 
-		Context("when another build already exists", func() {
+		Context("when another running build already exists", func() {
 			var prevBuild db.Build
 
 			BeforeEach(func() {
 				var err error
 				var prevCreated bool
+				By("creating a completed build")
+				prevBuild, prevCreated, err = resourceType.CreateBuild(ctx, false, plan)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(prevCreated).To(BeTrue())
+				err = prevBuild.Finish(db.BuildStatusSucceeded)
+				Expect(err).ToNot(HaveOccurred())
+
+				By("creating a running build")
 				prevBuild, prevCreated, err = resourceType.CreateBuild(ctx, false, plan)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(prevCreated).To(BeTrue())
