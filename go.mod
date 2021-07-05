@@ -15,7 +15,7 @@ require (
 	github.com/Masterminds/squirrel v1.5.0
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/aryann/difflib v0.0.0-20170710044230-e206f873d14a
-	github.com/aws/aws-sdk-go v1.38.9
+	github.com/aws/aws-sdk-go v1.39.0
 	github.com/caarlos0/env v3.5.0+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e // indirect
