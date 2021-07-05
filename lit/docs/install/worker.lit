@@ -218,7 +218,7 @@ decide much on its own.
     When a worker machine is going away, it should be \italic{retired}. This is
     similar to \italic{landing}, except at the end the worker is completely
     unregistered, along with its volumes and containers. This should be done
-    when a worker's VM or container are being destroyed.
+    when a worker's VM or container is being destroyed.
 
     To retire a worker, send \code{SIGUSR2} to the \code{worker} process. This
     will switch the worker to \code{retiring} state, and Concourse will stop
