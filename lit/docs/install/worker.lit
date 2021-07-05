@@ -115,6 +115,8 @@ decide much on its own.
     }{
       External traffic to the \code{web} node's TSA port (\code{2222}) for
       registering the worker
+    }{
+      If P2P streaming is enabled there will be traffic to other workers.
     }
 
     \bold{Inbound traffic}:
@@ -122,6 +124,8 @@ decide much on its own.
       From the \reference{web-node} on port \code{7777} (Garden) and
       \code{7788} (BaggageClaim). These ports do not need to be exposed, they
       are forwarded to the web node via the ssh connection on port 2222.
+    }{
+      If P2P streaming is enabled there will be traffic to other workers.
     }
   }
 }
