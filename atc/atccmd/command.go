@@ -1692,7 +1692,6 @@ func (cmd *RunCommand) constructEngine(
 				resourceFactory,
 				teamFactory,
 				buildFactory,
-				lockFactory,
 				resourceCacheFactory,
 				resourceConfigFactory,
 				defaultLimits,

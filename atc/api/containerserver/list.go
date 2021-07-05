@@ -85,11 +85,9 @@ func createContainerLocatorFromRequest(team db.Team, r *http.Request, secretMana
 
 	if query.Get("type") == "check" {
 		return &checkContainerLocator{
-			team:          team,
-			pipelineRef:   pipelineRef,
-			resourceName:  query.Get("resource_name"),
-			secretManager: secretManager,
-			varSourcePool: varSourcePool,
+			team:         team,
+			pipelineRef:  pipelineRef,
+			resourceName: query.Get("resource_name"),
 		}, nil
 	}
 
@@ -148,15 +146,13 @@ func (l *allContainersLocator) Locate(logger lager.Logger) ([]db.Container, map[
 }
 
 type checkContainerLocator struct {
-	team          db.Team
-	pipelineRef   atc.PipelineRef
-	resourceName  string
-	secretManager creds.Secrets
-	varSourcePool creds.VarSourcePool
+	team         db.Team
+	pipelineRef  atc.PipelineRef
+	resourceName string
 }
 
 func (l *checkContainerLocator) Locate(logger lager.Logger) ([]db.Container, map[int]time.Time, error) {
-	return l.team.FindCheckContainers(logger, l.pipelineRef, l.resourceName, l.secretManager, l.varSourcePool)
+	return l.team.FindCheckContainers(logger, l.pipelineRef, l.resourceName)
 }
 
 type stepContainerLocator struct {

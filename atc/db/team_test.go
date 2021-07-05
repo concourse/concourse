@@ -3642,8 +3642,7 @@ var _ = Describe("Team", func() {
 
 	Describe("FindCheckContainers", func() {
 		var (
-			fakeSecretManager *credsfakes.FakeSecrets
-			logger            lager.Logger
+			logger lager.Logger
 		)
 
 		expiries := db.ContainerOwnerExpiries{
@@ -3652,8 +3651,6 @@ var _ = Describe("Team", func() {
 		}
 
 		BeforeEach(func() {
-			fakeSecretManager = new(credsfakes.FakeSecrets)
-			fakeSecretManager.GetReturns("", nil, false, nil)
 			logger = lagertest.NewTestLogger("db-test")
 		})
 
@@ -3672,6 +3669,12 @@ var _ = Describe("Team", func() {
 						)
 						Expect(err).ToNot(HaveOccurred())
 
+						scope, err := resourceConfig.FindOrCreateScope(defaultResource)
+						Expect(err).ToNot(HaveOccurred())
+
+						err = defaultResource.SetResourceConfigScope(scope)
+						Expect(err).ToNot(HaveOccurred())
+
 						resourceContainer, err = defaultWorker.CreateContainer(
 							db.NewResourceConfigCheckSessionContainerOwner(
 								resourceConfig.ID(),
@@ -3684,7 +3687,7 @@ var _ = Describe("Team", func() {
 					})
 
 					It("returns check container for resource", func() {
-						containers, checkContainersExpiresAt, err := defaultTeam.FindCheckContainers(logger, defaultPipelineRef, "some-resource", fakeSecretManager, fakeVarSourcePool)
+						containers, checkContainersExpiresAt, err := defaultTeam.FindCheckContainers(logger, defaultPipelineRef, "some-resource")
 						Expect(err).ToNot(HaveOccurred())
 						Expect(containers).To(HaveLen(1))
 						Expect(containers[0].ID()).To(Equal(resourceContainer.ID()))
@@ -3728,6 +3731,12 @@ var _ = Describe("Team", func() {
 							)
 							Expect(err).ToNot(HaveOccurred())
 
+							scope, err := resourceConfig.FindOrCreateScope(otherResource)
+							Expect(err).ToNot(HaveOccurred())
+
+							err = otherResource.SetResourceConfigScope(scope)
+							Expect(err).ToNot(HaveOccurred())
+
 							otherResourceContainer, _, err = defaultWorker.FindContainer(
 								db.NewResourceConfigCheckSessionContainerOwner(
 									resourceConfig.ID(),
@@ -3739,7 +3748,7 @@ var _ = Describe("Team", func() {
 						})
 
 						It("returns the same check container", func() {
-							containers, checkContainersExpiresAt, err := defaultTeam.FindCheckContainers(logger, otherPipelineRef, "some-resource", fakeSecretManager, fakeVarSourcePool)
+							containers, checkContainersExpiresAt, err := defaultTeam.FindCheckContainers(logger, otherPipelineRef, "some-resource")
 							Expect(err).ToNot(HaveOccurred())
 							Expect(containers).To(HaveLen(1))
 							Expect(containers[0].ID()).To(Equal(otherResourceContainer.ID()))
@@ -3752,7 +3761,7 @@ var _ = Describe("Team", func() {
 
 				Context("when check container does not exist", func() {
 					It("returns empty list", func() {
-						containers, checkContainersExpiresAt, err := defaultTeam.FindCheckContainers(logger, defaultPipelineRef, "some-resource", fakeSecretManager, fakeVarSourcePool)
+						containers, checkContainersExpiresAt, err := defaultTeam.FindCheckContainers(logger, defaultPipelineRef, "some-resource")
 						Expect(err).ToNot(HaveOccurred())
 						Expect(containers).To(BeEmpty())
 						Expect(checkContainersExpiresAt).To(BeEmpty())
@@ -3762,7 +3771,7 @@ var _ = Describe("Team", func() {
 
 			Context("when resource does not exist", func() {
 				It("returns empty list", func() {
-					containers, checkContainersExpiresAt, err := defaultTeam.FindCheckContainers(logger, defaultPipelineRef, "non-existent-resource", fakeSecretManager, fakeVarSourcePool)
+					containers, checkContainersExpiresAt, err := defaultTeam.FindCheckContainers(logger, defaultPipelineRef, "non-existent-resource")
 					Expect(err).ToNot(HaveOccurred())
 					Expect(containers).To(BeEmpty())
 					Expect(checkContainersExpiresAt).To(BeEmpty())
@@ -3772,7 +3781,7 @@ var _ = Describe("Team", func() {
 
 		Context("when pipeline does not exist", func() {
 			It("returns empty list", func() {
-				containers, checkContainersExpiresAt, err := defaultTeam.FindCheckContainers(logger, atc.PipelineRef{Name: "non-existent-pipeline"}, "some-resource", fakeSecretManager, fakeVarSourcePool)
+				containers, checkContainersExpiresAt, err := defaultTeam.FindCheckContainers(logger, atc.PipelineRef{Name: "non-existent-pipeline"}, "some-resource")
 				Expect(err).ToNot(HaveOccurred())
 				Expect(containers).To(BeEmpty())
 				Expect(checkContainersExpiresAt).To(BeEmpty())
