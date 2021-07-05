@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Concourse web UI acceptance tests",
   "dependencies": {
-    "@ava/babel": "^1.0.1",
+    "@ava/babel": "^2.0.0",
     "ava": "^3.15.0",
     "child-process-promise": "^2.2.1",
     "color": "^3.1.2",
