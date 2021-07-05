@@ -246,17 +246,64 @@ decide much on its own.
 \section{
   \title{Configuring the \code{worker} node}{worker-configuration}
 
-  If there's something special about your worker and you'd like to target
-  builds at it specifically, you can configure tags like so:
+  \section{
+    \title{Tagging Workers}
 
-  \codeblock{bash}{{
-  CONCOURSE_TAG=tag-1,tag-2
-  }}
+    If there's something special about your worker and you'd like to target
+    builds at it specifically, you can configure tags like so:
 
-  A tagged worker is taken out of the default placement logic. To run build
-  steps on it, specify the \reference{schema.step.tags}. Or, to perform
-  resource \code{check}s on it, specify
-  \reference{schema.resource.tags}{\code{tags}} on the resource itself.
+    \codeblock{bash}{{
+    CONCOURSE_TAG="tag-1,tag-2"
+    }}
+
+    A tagged worker is taken out of the default placement logic. Tagged workers
+    will not be used for any untagged \reference{steps}.
+
+    To run build steps on a tagged worker, specify the
+    \reference{schema.step.tags} on any particular step in your
+    \reference{jobs}{job}.
+
+    To perform resource \code{check}s on on a tagged worker, specify
+    \reference{schema.resource.tags}{\code{tags}} on the resource declaration.
+  }
+
+  \section{
+    \title{Team Workers}
+
+    If you want to isolate \bold{all workloads} by
+    \reference{managing-teams}{team} then you can configure a worker to belong
+    to a single team like so:
+
+    \codeblock{bash}{{
+    CONCOURSE_TEAM="lightweavers"
+    }}
+
+    Once an untagged team worker is registered Concourse will schedule all
+    untagged builds for that team on its team worker(s). It is possible to have a
+    Concourse cluster made up of only team workers and have zero non-team
+    workers.
+
+
+    \section{
+      \title{Tags and Team Workers}
+
+      When you have a worker configured with tag(s) and a team like so:
+
+      \codeblock{bash}{{
+      CONCOURSE_TAG="tag-1,tag-2"
+      CONCOURSE_TEAM="lightweavers"
+      }}
+
+      Only steps that are tagged and from the specified team will be scheduled
+      on such a worker. Any untagged work the team has will land on either:
+
+      \ordered-list{
+        Untagged team workers belonging to the team, or
+        }{
+        Untagged workers not configured to a specific team
+      }
+    }
+  }
 
   \section{
     \title{Configuring Runtimes}
