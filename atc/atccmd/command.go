@@ -1078,6 +1078,7 @@ func (cmd *RunCommand) backendComponents(
 
 	rateLimiter := db.NewResourceCheckRateLimiter(
 		rate.Limit(cmd.MaxChecksPerSecond),
+		rate.Limit(1),
 		cmd.ResourceCheckingInterval,
 		dbConn,
 		time.Minute,

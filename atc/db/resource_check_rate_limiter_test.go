@@ -18,10 +18,11 @@ import (
 
 var _ = Describe("ResourceCheckRateLimiter", func() {
 	var (
-		checkInterval   time.Duration
-		checksPerSecond int
-		refreshInterval time.Duration
-		fakeClock       *fakeclock.FakeClock
+		checkInterval      time.Duration
+		checksPerSecond    int
+		minChecksPerSecond float64
+		refreshInterval    time.Duration
+		fakeClock          *fakeclock.FakeClock
 
 		scenario       *dbtest.Scenario
 		checkableCount int
@@ -36,6 +37,8 @@ var _ = Describe("ResourceCheckRateLimiter", func() {
 	BeforeEach(func() {
 		checkInterval = time.Minute
 		checksPerSecond = 0
+		// schedule at least 2 checks per minute, regardless of the checkableCount
+		minChecksPerSecond = 2.0 / 60
 		refreshInterval = 5 * time.Minute
 		fakeClock = fakeclock.NewFakeClock(time.Now())
 
@@ -54,6 +57,7 @@ var _ = Describe("ResourceCheckRateLimiter", func() {
 	JustBeforeEach(func() {
 		limiter = db.NewResourceCheckRateLimiter(
 			rate.Limit(checksPerSecond),
+			rate.Limit(minChecksPerSecond),
 			checkInterval,
 			dbConn,
 			refreshInterval,
@@ -69,30 +73,11 @@ var _ = Describe("ResourceCheckRateLimiter", func() {
 		return errs
 	}
 
-	createResource := func() {
+	createCheckable := func() {
 		checkableCount++
 
 		pipelineConfig.Resources = append(pipelineConfig.Resources, atc.ResourceConfig{Name: fmt.Sprintf("resource-%d", checkableCount),
 			Type:   dbtest.BaseResourceType,
-			Source: atc.Source{"some": "source"},
-		})
-
-		scenario.Run(builder.WithPipeline(*pipelineConfig))
-	}
-
-	createResourceWithCustomType := func() {
-		checkableCount++
-		customResourceType := fmt.Sprintf("resource-type-%d", checkableCount)
-
-		pipelineConfig.ResourceTypes = append(pipelineConfig.ResourceTypes, atc.ResourceType{Name: customResourceType,
-			Type:   dbtest.BaseResourceType,
-			Source: atc.Source{"some": "source"},
-		})
-
-		checkableCount++
-
-		pipelineConfig.Resources = append(pipelineConfig.Resources, atc.ResourceConfig{Name: fmt.Sprintf("resource-%d", checkableCount),
-			Type:   customResourceType,
 			Source: atc.Source{"some": "source"},
 		})
 
@@ -110,7 +95,7 @@ var _ = Describe("ResourceCheckRateLimiter", func() {
 			Expect(limiter.Limit()).To(Equal(rate.Inf))
 
 			By("creating one checkable")
-			createResource()
+			createCheckable()
 
 			By("continuing to return immediately, as the refresh interval has not elapsed")
 			Expect(<-wait(limiter)).To(Succeed())
@@ -119,9 +104,9 @@ var _ = Describe("ResourceCheckRateLimiter", func() {
 			By("waiting for the refresh interval")
 			fakeClock.Increment(refreshInterval)
 
-			By("adjusting the limit but returning immediately for the first time")
+			By("adjusting the limit to the minimum value but returning immediately for the first time")
 			Expect(<-wait(limiter)).To(Succeed())
-			Expect(limiter.Limit()).To(Equal(rate.Limit(float64(checkableCount) / checkInterval.Seconds())))
+			Expect(limiter.Limit()).To(Equal(rate.Limit(minChecksPerSecond)))
 
 			done := wait(limiter)
 			select {
@@ -136,11 +121,7 @@ var _ = Describe("ResourceCheckRateLimiter", func() {
 
 			By("creating more checkables")
 			for i := 0; i < 10; i++ {
-				if i%3 == 0 {
-					createResourceWithCustomType()
-				} else {
-					createResource()
-				}
+				createCheckable()
 			}
 
 			By("waiting for the refresh interval")
@@ -172,6 +153,27 @@ var _ = Describe("ResourceCheckRateLimiter", func() {
 			By("returning immediately and retaining the infinite rate")
 			Expect(<-wait(limiter)).To(Succeed())
 			Expect(limiter.Limit()).To(Equal(rate.Limit(rate.Inf)))
+
+			By("re-activing all resources")
+			scenario.Run(builder.WithPipeline(*pipelineConfig))
+
+			By("waiting for the refresh interval")
+			fakeClock.Increment(refreshInterval)
+
+			By("adjusting the limit but returning immediately for the first time")
+			Expect(<-wait(limiter)).To(Succeed())
+			Expect(limiter.Limit()).To(Equal(rate.Limit(float64(checkableCount) / checkInterval.Seconds())))
+
+			By("pausing the pipeline")
+			err := scenario.Pipeline.Pause()
+			Expect(err).ToNot(HaveOccurred())
+
+			By("waiting for the refresh interval")
+			fakeClock.Increment(refreshInterval)
+
+			By("returning immediately and retaining the infinite rate")
+			Expect(<-wait(limiter)).To(Succeed())
+			Expect(limiter.Limit()).To(Equal(rate.Limit(rate.Inf)))
 		})
 	})
 
@@ -196,7 +198,7 @@ var _ = Describe("ResourceCheckRateLimiter", func() {
 
 			By("creating a few (ignored) checkables")
 			for i := 0; i < 10; i++ {
-				createResource()
+				createCheckable()
 			}
 
 			By("waiting for the (ignored) refresh interval")

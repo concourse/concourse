@@ -9,11 +9,15 @@ import (
 	sq "github.com/Masterminds/squirrel"
 
 	"code.cloudfoundry.org/clock"
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"golang.org/x/time/rate"
 )
 
 type ResourceCheckRateLimiter struct {
 	checkLimiter *rate.Limiter
+
+	minChecksPerSecond rate.Limit
 
 	refreshConn    Conn
 	checkInterval  time.Duration
@@ -25,14 +29,16 @@ type ResourceCheckRateLimiter struct {
 
 func NewResourceCheckRateLimiter(
 	checksPerSecond rate.Limit,
+	minChecksPerSecond rate.Limit,
 	checkInterval time.Duration,
 	refreshConn Conn,
 	refreshInterval time.Duration,
 	clock clock.Clock,
 ) *ResourceCheckRateLimiter {
 	limiter := &ResourceCheckRateLimiter{
-		clock: clock,
-		mut:   new(sync.Mutex),
+		minChecksPerSecond: minChecksPerSecond,
+		clock:              clock,
+		mut:                new(sync.Mutex),
 	}
 
 	if checksPerSecond < 0 {
@@ -45,20 +51,21 @@ func NewResourceCheckRateLimiter(
 		limiter.checkInterval = checkInterval
 		limiter.refreshConn = refreshConn
 		limiter.refreshLimiter = rate.NewLimiter(rate.Every(refreshInterval), 1)
+
+		// The first time we call Wait, we will properly update the limit.
+		// This is just to avoid dealing with the limiter not existing.
+		limiter.checkLimiter = rate.NewLimiter(rate.Inf, 1)
 	}
 
 	return limiter
 }
 
 func (limiter *ResourceCheckRateLimiter) Wait(ctx context.Context) error {
-	limiter.mut.Lock()
-	defer limiter.mut.Unlock()
+	logger := lagerctx.FromContext(ctx)
 
-	if limiter.refreshLimiter != nil && limiter.refreshLimiter.AllowN(limiter.clock.Now(), 1) {
-		err := limiter.refreshCheckLimiter()
-		if err != nil {
-			return fmt.Errorf("refresh: %w", err)
-		}
+	err := limiter.refreshCheckLimiterIfNeeded()
+	if err != nil {
+		return fmt.Errorf("refresh: %w", err)
 	}
 
 	reservation := limiter.checkLimiter.ReserveN(limiter.clock.Now(), 1)
@@ -67,6 +74,7 @@ func (limiter *ResourceCheckRateLimiter) Wait(ctx context.Context) error {
 	if delay == 0 {
 		return nil
 	}
+	logger.Debug("resource-rate-limit-exceeded", lager.Data{"waiting-for": delay.String()})
 
 	timer := limiter.clock.NewTimer(delay)
 	defer timer.Stop()
@@ -81,44 +89,47 @@ func (limiter *ResourceCheckRateLimiter) Wait(ctx context.Context) error {
 }
 
 func (limiter *ResourceCheckRateLimiter) Limit() rate.Limit {
-	limiter.mut.Lock()
-	defer limiter.mut.Unlock()
-
 	return limiter.checkLimiter.Limit()
 }
 
-func (limiter *ResourceCheckRateLimiter) refreshCheckLimiter() error {
-	var resourceCount int
-	var resourceTypeCount int
-	err := psql.Select("COUNT(id)").
-		From("resources").
-		Where(sq.Eq{"active": true}).
-		RunWith(limiter.refreshConn).
-		QueryRow().
-		Scan(&resourceCount)
-	if err != nil {
-		return err
+func (limiter *ResourceCheckRateLimiter) refreshCheckLimiterIfNeeded() error {
+	if limiter.refreshLimiter == nil {
+		return nil
 	}
-	err = psql.Select("COUNT(id)").
-		From("resource_types").
-		Where(sq.Eq{"active": true}).
+
+	limiter.mut.Lock()
+	defer limiter.mut.Unlock()
+
+	if !limiter.refreshLimiter.AllowN(limiter.clock.Now(), 1) {
+		// Refresh interval has not elapsed, so no refresh is necessary.
+		return nil
+	}
+
+	var count int
+	err := psql.Select("COUNT(*)").
+		From("resources r").
+		Join("pipelines p ON p.id = r.pipeline_id").
+		Where(sq.Eq{
+			"r.active": true,
+			"p.paused": false,
+		}).
 		RunWith(limiter.refreshConn).
 		QueryRow().
-		Scan(&resourceTypeCount)
+		Scan(&count)
 	if err != nil {
 		return err
 	}
 
-	count := resourceCount + resourceTypeCount
 	limit := rate.Limit(float64(count) / limiter.checkInterval.Seconds())
 	if count == 0 {
 		// don't bother waiting if there aren't any checkables
 		limit = rate.Inf
 	}
+	if limit < limiter.minChecksPerSecond {
+		limit = limiter.minChecksPerSecond
+	}
 
-	if limiter.checkLimiter == nil {
-		limiter.checkLimiter = rate.NewLimiter(limit, 1)
-	} else if limit != limiter.checkLimiter.Limit() {
+	if limit != limiter.checkLimiter.Limit() {
 		limiter.checkLimiter.SetLimit(limit)
 	}
 
