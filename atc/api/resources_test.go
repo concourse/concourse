@@ -1542,11 +1542,12 @@ var _ = Describe("Resources API", func() {
 
 					It("checks with no version specified", func() {
 						Expect(dbCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
-						_, actualPrototype, actualResourceTypes, actualFromVersion, manuallyTriggered := dbCheckFactory.TryCreateCheckArgsForCall(0)
+						_, actualPrototype, actualResourceTypes, actualFromVersion, manuallyTriggered, skipIntervalRecursively := dbCheckFactory.TryCreateCheckArgsForCall(0)
 						Expect(actualPrototype).To(Equal(fakePrototype))
 						Expect(actualResourceTypes).To(Equal(fakeResourceTypes))
 						Expect(actualFromVersion).To(BeNil())
 						Expect(manuallyTriggered).To(BeTrue())
+						Expect(skipIntervalRecursively).To(BeTrue())
 					})
 
 					Context("when checking with a version specified", func() {
@@ -1560,11 +1561,23 @@ var _ = Describe("Resources API", func() {
 
 						It("checks with no version specified", func() {
 							Expect(dbCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
-							_, actualPrototype, actualResourceTypes, actualFromVersion, manuallyTriggered := dbCheckFactory.TryCreateCheckArgsForCall(0)
+							_, actualPrototype, actualResourceTypes, actualFromVersion, manuallyTriggered, skipIntervalRecursively := dbCheckFactory.TryCreateCheckArgsForCall(0)
 							Expect(actualPrototype).To(Equal(fakePrototype))
 							Expect(actualResourceTypes).To(Equal(fakeResourceTypes))
 							Expect(actualFromVersion).To(Equal(checkRequestBody.From))
 							Expect(manuallyTriggered).To(BeTrue())
+							Expect(skipIntervalRecursively).To(BeTrue())
+						})
+					})
+
+					Context("when doing a shallow check", func() {
+						BeforeEach(func() {
+							checkRequestBody.Shallow = true
+						})
+
+						It("does not recursively skip the check interval", func() {
+							_, _, _, _, _, skipIntervalRecursively := dbCheckFactory.TryCreateCheckArgsForCall(0)
+							Expect(skipIntervalRecursively).To(BeFalse())
 						})
 					})
 
@@ -1792,8 +1805,8 @@ var _ = Describe("Resources API", func() {
 	Describe("DELETE /api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/cache", func() {
 		var (
 			versionDeleteBody atc.VersionDeleteBody
-			response *http.Response
-			fakeResource *dbfakes.FakeResource
+			response          *http.Response
+			fakeResource      *dbfakes.FakeResource
 		)
 
 		executeConnection := func() {
@@ -1842,7 +1855,7 @@ var _ = Describe("Resources API", func() {
 
 					Context("when clear cache succeeds", func() {
 						BeforeEach(func() {
-							fakeResource.ClearResourceCacheReturns(1,nil)
+							fakeResource.ClearResourceCacheReturns(1, nil)
 						})
 
 						Context("when no version is passed", func() {

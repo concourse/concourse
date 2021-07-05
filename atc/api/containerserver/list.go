@@ -10,7 +10,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/present"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 )
 
@@ -21,7 +20,7 @@ func (s *Server) ListContainers(team db.Team) http.Handler {
 			"params": params,
 		})
 
-		containerLocator, err := createContainerLocatorFromRequest(team, r, s.secretManager, s.varSourcePool)
+		containerLocator, err := createContainerLocatorFromRequest(team, r)
 		if err != nil {
 			hLog.Error("failed-to-parse-request", err)
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -59,7 +58,7 @@ type containerLocator interface {
 	Locate(lager.Logger) ([]db.Container, map[int]time.Time, error)
 }
 
-func createContainerLocatorFromRequest(team db.Team, r *http.Request, secretManager creds.Secrets, varSourcePool creds.VarSourcePool) (containerLocator, error) {
+func createContainerLocatorFromRequest(team db.Team, r *http.Request) (containerLocator, error) {
 	query := r.URL.Query()
 	delete(query, ":team_name")
 
