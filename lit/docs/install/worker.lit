@@ -432,10 +432,10 @@ decide much on its own.
     The worker can be run with multiple container runtimes -
     \link{containerd}{https://github.com/containerd/containerd/},
     \link{Guardian}{https://github.com/cloudfoundry/guardian}, and
-    \link{Houdini}{https://github.com/vito/houdini} (an experimental runtime
-    for Darwin and Windows). Only \code{containerd} and \code{Guardian} are
-    meant for production use. \code{Guardian} is the default runtime for
-    Concourse.
+    \link{Houdini}{https://github.com/vito/houdini} (an experimental and the
+    only runtime for Darwin and Windows). Only \code{containerd} and
+    \code{Guardian} are meant for production use. \code{Guardian} is the
+    default runtime for Concourse.
 
     \aside{
       \bold{Note about architecture}: The web node (ATC) talks to all 3
