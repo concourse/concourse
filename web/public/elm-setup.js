@@ -93,13 +93,20 @@ app.ports.loadFromLocalStorage.subscribe(function(key) {
     return;
   }
   setTimeout(function() {
-    app.ports.receivedFromLocalStorage.send([key, value]);
+    try {
+      app.ports.receivedFromLocalStorage.send([key, JSON.parse(value)]);
+    } catch(err) {
+      console.error(err)
+    }
   }, 0);
 });
 
-app.ports.deleteFromLocalStorage.subscribe(function(key) {
-  localStorage.removeItem(key);
-});
+// deleteFromLocalStorage is currently unused, so was removed by Elm.
+if (app.ports.deleteFromLocalStorage) {
+  app.ports.deleteFromLocalStorage.subscribe(function(key) {
+    localStorage.removeItem(key);
+  });
+}
 
 
 const csrfTokenKey = "csrf_token";
@@ -114,6 +121,51 @@ window.addEventListener('storage', function(event) {
   }
 }, false);
 
+const cachePromise = (function() {
+  const cacheApiSupported = 'caches' in window;
+  if (!cacheApiSupported) {
+    const noop = () => {};
+    // dummy implementation of cache API if not supported
+    return Promise.resolve({
+      put: noop,
+      match: noop,
+      delete: noop,
+    });
+  }
+  return caches.open('concourse');
+})();
+
+app.ports.saveToCache.subscribe(function(params) {
+  if (!params || params.length !== 2) {
+    return;
+  }
+  const [key, value] = params;
+  cachePromise
+    .then(cache => cache.put(new Request(key), new Response(JSON.stringify(value))))
+    .catch(console.error);
+});
+
+app.ports.loadFromCache.subscribe(function(key) {
+  cachePromise
+    .then(cache => cache.match(new Request(key)))
+    .then(res => {
+      if (res !== undefined) {
+        res.json()
+          .then(value => {
+            app.ports.receivedFromCache.send([key, value]);
+          })
+          .catch(console.error);
+      }
+    })
+    .catch(console.error);
+});
+
+app.ports.deleteFromCache.subscribe(function(key) {
+  cachePromise
+    .then(cache => cache.delete(new Request(key)))
+    .catch(console.error);
+});
+
 app.ports.syncTextareaHeight.subscribe(function(id) {
   const attemptToSyncHeight = () => {
     const elem = document.getElementById(id);
@@ -122,15 +174,15 @@ app.ports.syncTextareaHeight.subscribe(function(id) {
     }
     elem.style.height = "auto";
     elem.style.height = elem.scrollHeight + "px";
-	return true;
+    return true;
   };
   setTimeout(() => {
     const success = attemptToSyncHeight();
     if (!success) {
-	  // The element does not always exist by the time we attempt to sync
-	  // Try one more time after a small delay
-	  setTimeout(attemptToSyncHeight, 50);
-	}
+      // The element does not always exist by the time we attempt to sync
+      // Try one more time after a small delay
+      setTimeout(attemptToSyncHeight, 50);
+    }
   }, 0);
 });
 

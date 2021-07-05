@@ -174,20 +174,6 @@ all =
                         )
                     |> Tuple.second
                     |> Common.notContains (SaveCachedJobs [ Data.job 0 ])
-        , test "bounds the number of cached jobs to 1000" <|
-            \_ ->
-                let
-                    firstNJobs n =
-                        List.range 0 (n - 1) |> List.map Data.job
-                in
-                whenOnDashboard { highDensity = False }
-                    |> Application.handleCallback
-                        (AllJobsFetched <|
-                            Ok <|
-                                firstNJobs 2000
-                        )
-                    |> Tuple.second
-                    |> Common.contains (SaveCachedJobs <| firstNJobs 1000)
         , test "saves pipelines to cache when fetched" <|
             \_ ->
                 whenOnDashboard { highDensity = False }

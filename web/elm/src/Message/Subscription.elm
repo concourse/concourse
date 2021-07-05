@@ -29,6 +29,7 @@ import Message.Storage as Storage
         , favoritedPipelinesKey
         , jobsKey
         , pipelinesKey
+        , receivedFromCache
         , receivedFromLocalStorage
         , sideBarStateKey
         , teamsKey
@@ -85,6 +86,7 @@ type Subscription
     | OnElementVisible
     | OnTokenSentToFly
     | OnLocalStorageReceived
+    | OnCacheReceived
     | OnScrolledToId
 
 
@@ -175,6 +177,10 @@ runSubscription s =
             receivedFromLocalStorage <|
                 decodeStorageResponse
 
+        OnCacheReceived ->
+            receivedFromCache <|
+                decodeStorageResponse
+
         OnElementVisible ->
             reportIsVisible ElementVisible
 
@@ -196,7 +202,7 @@ decodeStorageResponse : ( Storage.Key, Storage.Value ) -> Delivery
 decodeStorageResponse ( key, value ) =
     let
         decodeValue decoder toDelivery =
-            Json.Decode.decodeString decoder >> toDelivery
+            Json.Decode.decodeValue decoder >> toDelivery
     in
     value
         |> (if key == tokenKey then
