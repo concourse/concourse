@@ -14,18 +14,14 @@ concourse/fly-assets/...
 concourse/resource-types/... # Linux only
 }}
 
-The Linux release is the largest among all the platforms because it contains
-some of the most commonly used resource types like the
-\link{git}{https://github.com/concourse/git-resource},
+The Linux release is the largest among all the platforms because it is
+prepackaged with a \reference{bundled-resource-types}{bundle of resource types}
+like the \link{git}{https://github.com/concourse/git-resource},
 \link{time}{https://github.com/concourse/time-resource/}, and
 \link{registry-image}{https://github.com/concourse/registry-image-resource/}
 resources. Resources only run on Linux workers, that's why the other platforms
 are not bundled with resources; resources don't currently exist for non-linux
 platforms.
-
-The \link{release page}{https://github.com/concourse/concourse/releases}
-details which version of each \bold{bundled resource type} is shipped with any
-particular version of Concourse.
 
 When extracted, the \code{concourse} binary will auto-discover its sibling
 assets based on its file location, so you may extract it anywhere. On Linux a

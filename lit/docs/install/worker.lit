@@ -306,6 +306,127 @@ decide much on its own.
   }
 
   \section{
+    \title{Resource Types}{worker-resource-types}
+
+    \aside{
+      The following section only applies to Linux workers. Resource types are
+      simply Linux container images and therefore can't be run on Windows or
+      Darwin workers.
+    }
+
+    \section{
+      \title{Bundled Resource Types}
+
+      Workers come prepackaged with a bundle of resource types. They are
+      included in the tarball from the \link{Github release
+      page}{https://github.com/concourse/concourse/releases} and are part of
+      the \link{concourse/concourse
+      image}{https://hub.docker.com/r/concourse/concourse}.
+
+      To view the resource types available on a worker run:
+
+      \codeblock{bash}{{
+      fly workers --details
+      }}
+
+      If you want more details, like the version number of each resource, you can run:
+
+      \codeblock{bash}{{
+      fly curl api/v1/workers
+      }}
+    }
+    \section{
+      \title{Installing or Upgrading Bundled Resource Types}
+
+      You may want to upgrade the bundled resource types outside of Concourse
+      upgrades or even install additional resource types on your workers to
+      reduce the polling on some external image repository like
+      \link{Docker Hub}{https://hub.docker.com/}.
+
+      We will use the \link{git
+      resource}{https://github.com/concourse/git-resource} as our example. We
+      will assume your Concourse installation is at \code{/usr/local/concourse}.
+
+      First, pull and create a container of the resource you're
+      installing/upgrading. The container does not need to remain running.
+
+      \codeblock{bash}{{
+      docker pull concourse/git-resource
+      docker run concourse/git-resource
+      }}
+
+      Get the ID of the container that was created.
+
+      \codeblock{bash}{{
+      $ docker ps -a
+      CONTAINER ID   IMAGE                    COMMAND                  CREATED          STATUS                        PORTS     NAMES
+      a895ae2dbb24   concourse/git-resource   "sh"                     22 minutes ago   Exited (0) 21 minutes ago               frosty_galileo
+      }}
+
+      Export the containers file system into a tar archive. Then gzip compress
+      the tar archive into a file named \code{rootfs.tgz}
+
+      \codeblock{bash}{{
+      docker export a895ae2dbb24 -o rootfs.tar
+      gzip -c rootfs.tar > rootfs.tgz
+      rm rootfs.tar
+      }}
+
+      Create a file called \code{resource_metadata.json} and populate it with
+      the following contents. Make sure the \code{type} does not conflict with
+      an existing resource type when you're installing a new resource type. In
+      our example here we're calling the type \code{gitv2} to avoid
+      conflicting with the pre-existing \code{git} resource.
+
+      \codeblock{json}{{{
+        {
+          "type": "gitv2",
+          "version": "1.13.0",
+          "privileged": false,
+          "unique_version_history": false
+        }
+      }}}
+
+      At this point you should have two files: \code{rootfs.tgz} and \code{resource_metadata.json}.
+
+      Create a new directory under the \code{resource-types} folder in your
+      Concourse installation directory. By convention it should be the same
+      name as the \code{type}.
+
+      \codeblock{bash}{{
+      mkdir /usr/local/concourse/resource-types/gitv2
+      }}
+
+      Place the \code{rootfs.tgz} and \code{resource_metadata.json} inside the
+      folder. \reference{restarting-a-worker}{Restart your worker} and verify
+      the new resource type is on there by running one of the following
+      commands:
+
+      \codeblock{bash}{{
+      fly workers --details
+      # or
+      fly curl api/v1/workers
+      }}
+
+      You can also verify that Concourse can create a container with the
+      \code{rootfs.tgz} you made by running a simple pipeline:
+
+      \codeblock{yaml}{{
+      resources:
+      - name: some-resource
+        type: gitv2 #change to your resource type
+        source:
+          uri: https://github.com/concourse/git-resource.git
+
+      jobs:
+      - name: simple-job
+        plan:
+        - get: some-resource
+      }}
+    }
+  }
+
+  \section{
     \title{Configuring Runtimes}
 
     The worker can be run with multiple container runtimes -
