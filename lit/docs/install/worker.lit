@@ -279,7 +279,7 @@ decide much on its own.
     }
 
     \section{
-      \title{\bold{\code{containerd} runtime}}
+      \title{\code{containerd} runtime}
 
       To use the \code{containerd} runtime manually set the \code{--runtime}
       (\code{CONCOURSE_RUNTIME}) to \code{containerd} on the \code{concourse
@@ -317,7 +317,7 @@ decide much on its own.
       }
     }
     \section{
-      \title{\bold{Transitioning from Guardian to containerd}}
+      \title{{Transitioning from Guardian to containerd}}
 
       If you are transitioning from \code{Guardian} to \code{containerd} you
       will need to convert any \code{--garden-*} (\code{CONCOURSE_GARDEN_*})
@@ -402,7 +402,7 @@ decide much on its own.
     }
 
     \section{
-      \title{\bold{\code{Guardian} runtime}}
+      \title{\code{Guardian} runtime}
 
       Guardian is currently the default runtime for Concourse. It can also be
       set by setting the \code{--runtime} flag to \code{guardian} on the
