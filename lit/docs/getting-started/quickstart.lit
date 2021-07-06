@@ -31,20 +31,43 @@
     Next, install the \reference{fly-cli} by downloading it from the web UI and
     \reference{fly-login}{login} to your local Concourse as the \code{test} user:
 
-    \codeblock{bash}{{
+    \titled-codeblock{Unix}{bash}{{
     # MacOS
-    $ curl 'http://localhost:8080/api/v1/cli?arch=amd64&platform=darwin' -o fly \\
+    % curl 'http://localhost:8080/api/v1/cli?arch=amd64&platform=darwin' -o fly \\
         && chmod +x ./fly && mv ./fly /usr/local/bin/
     # Linux
-    $ curl 'http://localhost:8080/api/v1/cli?arch=amd64&platform=linux' -o fly \\
+    % curl 'http://localhost:8080/api/v1/cli?arch=amd64&platform=linux' -o fly \\
         && chmod +x ./fly && mv ./fly /usr/local/bin/
-    # TODO Windows powershell. How to PATH on windows???
 
     $ fly -t tutorial login -c http://localhost:8080 -u test -p test
     logging in to team 'main'
 
     target saved
     }}
+
+    \titled-codeblock{Powershell One-liner}{bash}{{{
+    # Windows (Powershell)
+    % $concoursePath = 'C:\concourse\'; mkdir $concoursePath; `
+    [Environment]::SetEnvironmentVariable('PATH', "$ENV:PATH;${concoursePath}", 'USER'); `
+    $concourseURL = 'http://localhost:8080/api/v1/cli?arch=amd64&platform=windows'; `
+    Invoke-WebRequest $concourseURL -OutFile "${concoursePath}\fly.exe"
+    }}}
+
+    \titled-codeblock{flyinstall.ps1}{bash}{{{
+    # -- Desired fly.exe location -----------
+    $concoursePath = 'C:\concourse\'
+    mkdir $concoursePath
+
+    # -- Sets User Env Variable -------------
+    [Environment]::SetEnvironmentVariable('PATH', "$ENV:PATH;${concoursePath}", 'USER')
+
+    # -- Sets System Env Variable -----------
+    # [Environment]::SetEnvironmentVariable("PATH", "$ENV:PATH;${concoursePath}", "MACHINE")
+
+    # -- Download fly.exe -------------------
+    $concourseURL = 'http://localhost:8080/api/v1/cli?arch=amd64&platform=windows'
+    Invoke-WebRequest $concourseURL -OutFile "${concoursePath}\fly.exe"
+    }}}
 
     You'll notice that every \code{fly} command in this tutorial has to have the
     \reference{fly-targets}{target (\code{-t tutorial})} specified. This is
