@@ -2,6 +2,7 @@ package gc
 
 import (
 	"context"
+	"github.com/concourse/concourse/atc/component"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -29,7 +30,7 @@ func NewContainerCollector(
 	}
 }
 
-func (c *containerCollector) Run(ctx context.Context) error {
+func (c *containerCollector) Run(ctx context.Context, _ string) (component.RunResult, error) {
 	logger := lagerctx.FromContext(ctx).Session("container-collector")
 
 	logger.Debug("start")
@@ -62,7 +63,7 @@ func (c *containerCollector) Run(ctx context.Context) error {
 		logger.Error("failed-to-clean-up-missing-containers", err)
 	}
 
-	return errs
+	return nil, errs
 }
 
 func (c *containerCollector) markFailedContainersAsDestroying(logger lager.Logger) error {

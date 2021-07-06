@@ -61,7 +61,7 @@ func (f *componentFactory) CreateOrUpdate(c atc.Component) (Component, error) {
 		Values(c.Name, c.Interval.String()).
 		Suffix(`
 			ON CONFLICT (name) DO UPDATE SET interval=EXCLUDED.interval
-			RETURNING id, name, interval, last_ran, paused
+			RETURNING id, name, interval, last_ran, paused, last_run_result
 		`).
 		RunWith(tx).
 		QueryRow()

@@ -25,6 +25,7 @@ type Checkable interface {
 	Tags() atc.Tags
 	CheckEvery() *atc.CheckEvery
 	CheckTimeout() string
+	LastCheckStartTime() time.Time
 	LastCheckEndTime() time.Time
 	CurrentPinnedVersion() atc.Version
 
@@ -159,6 +160,7 @@ func (c *checkFactory) Resources() ([]Resource, error) {
 				sq.Eq{"ji.resource_id": nil},
 			},
 		}).
+		OrderBy("r.id ASC").
 		RunWith(c.conn).
 		Query()
 
@@ -188,6 +190,7 @@ func (c *checkFactory) ResourceTypesByPipeline() (map[int]ResourceTypes, error) 
 		Where(sq.And{
 			sq.Eq{"p.paused": false},
 		}).
+		OrderBy("r.id ASC").
 		RunWith(c.conn).
 		Query()
 

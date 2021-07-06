@@ -2,6 +2,7 @@ package gc
 
 import (
 	"context"
+	"github.com/concourse/concourse/atc/component"
 	"time"
 
 	"code.cloudfoundry.org/lager/lagerctx"
@@ -19,7 +20,7 @@ func NewArtifactCollector(artifactLifecycle db.WorkerArtifactLifecycle) *artifac
 	}
 }
 
-func (a *artifactCollector) Run(ctx context.Context) error {
+func (a *artifactCollector) Run(ctx context.Context, _ string) (component.RunResult, error) {
 	logger := lagerctx.FromContext(ctx).Session("artifact-collector")
 
 	logger.Debug("start")
@@ -32,5 +33,5 @@ func (a *artifactCollector) Run(ctx context.Context) error {
 		}.Emit(logger)
 	}()
 
-	return a.artifactLifecycle.RemoveExpiredArtifacts()
+	return nil, a.artifactLifecycle.RemoveExpiredArtifacts()
 }

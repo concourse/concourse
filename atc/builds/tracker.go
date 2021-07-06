@@ -3,6 +3,7 @@ package builds
 import (
 	"code.cloudfoundry.org/lager"
 	"context"
+	"github.com/concourse/concourse/atc/component"
 	"sync"
 
 	"code.cloudfoundry.org/lager/lagerctx"
@@ -50,7 +51,7 @@ type Tracker struct {
 	running *sync.Map
 }
 
-func (bt *Tracker) Run(ctx context.Context) error {
+func (bt *Tracker) Run(ctx context.Context, _ string) (component.RunResult, error) {
 	logger := lagerctx.FromContext(ctx)
 
 	logger.Debug("start")
@@ -66,7 +67,7 @@ func (bt *Tracker) Run(ctx context.Context) error {
 		bt.trackBuild(logger, b)
 	}
 
-	return nil
+	return nil, nil
 }
 
 func (bt *Tracker) Drain(ctx context.Context) {

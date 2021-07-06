@@ -4,6 +4,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"context"
+	"github.com/concourse/concourse/atc/component"
 	"github.com/concourse/concourse/atc/db"
 	"time"
 )
@@ -32,7 +33,7 @@ func NewBuildLogCollector(
 	}
 }
 
-func (br *buildLogCollector) Run(ctx context.Context) error {
+func (br *buildLogCollector) Run(ctx context.Context, _ string) (component.RunResult, error) {
 	logger := lagerctx.FromContext(ctx).Session("build-reaper")
 
 	logger.Debug("start")
@@ -41,13 +42,13 @@ func (br *buildLogCollector) Run(ctx context.Context) error {
 	err := br.pipelineLifecycle.RemoveBuildEventsForDeletedPipelines()
 	if err != nil {
 		logger.Error("failed-to-remove-build-events-for-deleted-pipelines", err)
-		return err
+		return nil, err
 	}
 
 	pipelines, err := br.pipelineFactory.AllPipelines()
 	if err != nil {
 		logger.Error("failed-to-get-pipelines", err)
-		return err
+		return nil, err
 	}
 
 	for _, pipeline := range pipelines {
@@ -58,7 +59,7 @@ func (br *buildLogCollector) Run(ctx context.Context) error {
 		jobs, err := pipeline.Jobs()
 		if err != nil {
 			logger.Error("failed-to-get-dashboard", err)
-			return err
+			return nil, err
 		}
 
 		for _, job := range jobs {
@@ -68,12 +69,12 @@ func (br *buildLogCollector) Run(ctx context.Context) error {
 
 			err = br.reapLogsOfJob(pipeline, job, logger)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 	}
 
-	return nil
+	return nil, nil
 }
 
 func (br *buildLogCollector) reapLogsOfJob(pipeline db.Pipeline,

@@ -2,6 +2,7 @@ package gc
 
 import (
 	"context"
+	"github.com/concourse/concourse/atc/component"
 	"time"
 
 	"code.cloudfoundry.org/lager/lagerctx"
@@ -20,7 +21,7 @@ func NewAccessTokensCollector(lifecycle db.AccessTokenLifecycle, leeway time.Dur
 	}
 }
 
-func (c *accessTokensCollector) Run(ctx context.Context) error {
+func (c *accessTokensCollector) Run(ctx context.Context, _ string) (component.RunResult, error) {
 	logger := lagerctx.FromContext(ctx).Session("access-tokens-collector")
 
 	logger.Debug("start")
@@ -29,8 +30,8 @@ func (c *accessTokensCollector) Run(ctx context.Context) error {
 	_, err := c.lifecycle.RemoveExpiredAccessTokens(c.leeway)
 	if err != nil {
 		logger.Error("failed-to-remove-expired-access-tokens", err)
-		return err
+		return nil, err
 	}
 
-	return nil
+	return nil, nil
 }

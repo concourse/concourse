@@ -2,6 +2,7 @@ package gc
 
 import (
 	"context"
+	"github.com/concourse/concourse/atc/component"
 	"time"
 
 	"code.cloudfoundry.org/lager/lagerctx"
@@ -24,7 +25,7 @@ func NewResourceConfigCollector(
 	}
 }
 
-func (rcuc *resourceConfigCollector) Run(ctx context.Context) error {
+func (rcuc *resourceConfigCollector) Run(ctx context.Context, _ string) (component.RunResult, error) {
 	logger := lagerctx.FromContext(ctx).Session("resource-config-collector")
 
 	logger.Debug("start")
@@ -37,5 +38,5 @@ func (rcuc *resourceConfigCollector) Run(ctx context.Context) error {
 		}.Emit(logger)
 	}()
 
-	return rcuc.configFactory.CleanUnreferencedConfigs(rcuc.gracePeriod)
+	return nil, rcuc.configFactory.CleanUnreferencedConfigs(rcuc.gracePeriod)
 }

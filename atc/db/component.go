@@ -2,13 +2,14 @@ package db
 
 import (
 	"database/sql"
+	atc_component "github.com/concourse/concourse/atc/component"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
 )
 
-var componentsQuery = psql.Select("c.id, c.name, c.interval, c.last_ran, c.paused").
+var componentsQuery = psql.Select("c.id, c.name, c.interval, c.last_ran, c.paused, c.last_run_result").
 	From("components c")
 
 //counterfeiter:generate . Component
@@ -21,7 +22,9 @@ type Component interface {
 
 	Reload() (bool, error)
 	IntervalElapsed() bool
-	UpdateLastRan() error
+	UpdateLastRan(when time.Time, runResult atc_component.RunResult) error
+
+	LastRunResult() string
 }
 
 type component struct {
@@ -30,6 +33,7 @@ type component struct {
 	interval time.Duration
 	lastRan  time.Time
 	paused   bool
+	lastRunResult string
 
 	conn Conn
 }
@@ -57,12 +61,20 @@ func (c *component) Reload() (bool, error) {
 }
 
 func (c *component) IntervalElapsed() bool {
-	return time.Now().After(c.lastRan.Add(c.interval))
+	return !time.Now().Before(c.lastRan.Add(c.interval))
 }
 
-func (c *component) UpdateLastRan() error {
-	_, err := psql.Update("components").
-		Set("last_ran", sq.Expr("now()")).
+func (c *component) UpdateLastRan(when time.Time, lastRunResult atc_component.RunResult) error {
+	builder := psql.Update("components")
+	if when.IsZero() {
+		builder = builder.Set("last_ran", sq.Expr("now()"))
+	} else {
+		builder = builder.Set("last_ran", when)
+	}
+	if lastRunResult != nil {
+		builder = builder.Set("last_run_result", lastRunResult.String())
+	}
+	_, err := builder.
 		Where(sq.Eq{
 			"id": c.id,
 		}).
@@ -75,10 +87,15 @@ func (c *component) UpdateLastRan() error {
 	return nil
 }
 
+func (c *component) LastRunResult() string {
+	return c.lastRunResult
+}
+
 func scanComponent(c *component, row scannable) error {
 	var (
 		lastRan  pq.NullTime
 		interval string
+		lastRunResult sql.NullString
 	)
 
 	err := row.Scan(
@@ -87,6 +104,7 @@ func scanComponent(c *component, row scannable) error {
 		&interval,
 		&lastRan,
 		&c.paused,
+		&lastRunResult,
 	)
 	if err != nil {
 		return err
@@ -97,6 +115,10 @@ func scanComponent(c *component, row scannable) error {
 	c.interval, err = time.ParseDuration(interval)
 	if err != nil {
 		return err
+	}
+
+	if lastRunResult.Valid {
+		c.lastRunResult = lastRunResult.String
 	}
 
 	return nil

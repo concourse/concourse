@@ -1063,6 +1063,7 @@ func (cmd *RunCommand) backendComponents(
 			Runnable: lidar.NewScanner(
 				dbCheckFactory,
 				atc.NewPlanFactory(time.Now().Unix()),
+				int(cmd.ResourceCheckingInterval.Seconds()/cmd.LidarScannerInterval.Seconds()),
 			),
 		},
 		{

@@ -2,6 +2,7 @@ package component
 
 import (
 	"context"
+	"time"
 
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc/db/lock"
@@ -61,12 +62,14 @@ func (coordinator *Coordinator) run(ctx context.Context, immediate bool) {
 		return
 	}
 
-	if err := coordinator.Runnable.Run(ctx); err != nil {
+	startAt := time.Now()
+	var runResult RunResult
+	if runResult, err = coordinator.Runnable.Run(ctx, coordinator.Component.LastRunResult()); err != nil {
 		logger.Error("component-failed", err)
 		return
 	}
 
-	if err := coordinator.Component.UpdateLastRan(); err != nil {
+	if err := coordinator.Component.UpdateLastRan(startAt, runResult); err != nil {
 		logger.Error("failed-to-update-last-ran", err)
 		return
 	}

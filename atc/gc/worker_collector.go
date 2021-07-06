@@ -2,6 +2,7 @@ package gc
 
 import (
 	"context"
+	"github.com/concourse/concourse/atc/component"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -20,7 +21,7 @@ func NewWorkerCollector(workerLifecycle db.WorkerLifecycle) *workerCollector {
 	}
 }
 
-func (wc *workerCollector) Run(ctx context.Context) error {
+func (wc *workerCollector) Run(ctx context.Context, _ string) (component.RunResult, error) {
 	logger := lagerctx.FromContext(ctx).Session("worker-collector")
 
 	logger.Debug("start")
@@ -36,7 +37,7 @@ func (wc *workerCollector) Run(ctx context.Context) error {
 	affected, err := wc.workerLifecycle.DeleteUnresponsiveEphemeralWorkers()
 	if err != nil {
 		logger.Error("failed-to-remove-dead-ephemeral-workers", err)
-		return err
+		return nil, err
 	}
 
 	if len(affected) > 0 {
@@ -46,7 +47,7 @@ func (wc *workerCollector) Run(ctx context.Context) error {
 	affected, err = wc.workerLifecycle.StallUnresponsiveWorkers()
 	if err != nil {
 		logger.Error("failed-to-mark-workers-as-stalled", err)
-		return err
+		return nil, err
 	}
 
 	if len(affected) > 0 {
@@ -56,7 +57,7 @@ func (wc *workerCollector) Run(ctx context.Context) error {
 	affected, err = wc.workerLifecycle.DeleteFinishedRetiringWorkers()
 	if err != nil {
 		logger.Error("failed-to-delete-finished-retiring-workers", err)
-		return err
+		return nil, err
 	}
 
 	if len(affected) > 0 {
@@ -66,7 +67,7 @@ func (wc *workerCollector) Run(ctx context.Context) error {
 	affected, err = wc.workerLifecycle.LandFinishedLandingWorkers()
 	if err != nil {
 		logger.Error("failed-to-land-finished-landing-workers", err)
-		return err
+		return nil, err
 	}
 
 	if len(affected) > 0 {
@@ -83,5 +84,5 @@ func (wc *workerCollector) Run(ctx context.Context) error {
 		}.Emit(logger, metric.Metrics)
 	}
 
-	return nil
+	return nil, nil
 }

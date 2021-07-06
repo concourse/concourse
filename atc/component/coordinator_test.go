@@ -3,8 +3,6 @@ package component_test
 import (
 	"context"
 	"errors"
-	"testing"
-
 	"github.com/concourse/concourse/atc/component"
 	"github.com/concourse/concourse/atc/component/cmocks"
 	"github.com/concourse/concourse/atc/db/lock"
@@ -12,6 +10,8 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"testing"
+	"time"
 )
 
 func TestCoordinator(t *testing.T) {
@@ -63,6 +63,7 @@ func (test CoordinatorTest) Run(s *CoordinatorSuite, action func(*component.Coor
 	fakeComponent.On("Paused").Return(test.Paused)
 	fakeComponent.On("IntervalElapsed").Return(test.IntervalElapsed)
 	fakeComponent.On("UpdateLastRan").Return(test.UpdateLastRanErr)
+	fakeComponent.On("LastRunResult").Return("")
 
 	fakeComponent.On("Reload").Return(!test.Disappeared, test.ReloadErr).Run(func(mock.Arguments) {
 		// make sure we haven't asked for anything prior to reloading
@@ -73,7 +74,7 @@ func (test CoordinatorTest) Run(s *CoordinatorSuite, action func(*component.Coor
 	ctx := context.Background()
 
 	if test.Runs {
-		fakeRunnable.On("Run", ctx).Return(test.RunErr).Run(func(mock.Arguments) {
+		fakeRunnable.On("Run", ctx, "").Return(nil, test.RunErr).Run(func(mock.Arguments) {
 			// make sure the lock is held while running
 			s.Equal(fakeLock.ReleaseCallCount(), 0, "lock was released too early")
 
@@ -91,13 +92,13 @@ func (test CoordinatorTest) Run(s *CoordinatorSuite, action func(*component.Coor
 	action(coordinator, ctx)
 
 	if test.Runs {
-		fakeRunnable.AssertCalled(s.T(), "Run", ctx)
+		fakeRunnable.AssertCalled(s.T(), "Run", ctx, "")
 	} else {
 		fakeRunnable.AssertNotCalled(s.T(), "Run")
 	}
 
 	if test.UpdatesLastRan {
-		fakeComponent.AssertCalled(s.T(), "UpdateLastRan")
+		fakeComponent.AssertCalled(s.T(), "UpdateLastRan", time.Now(), nil)
 	} else {
 		fakeComponent.AssertNotCalled(s.T(), "UpdateLastRan")
 	}

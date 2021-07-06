@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/concourse/concourse/atc/component"
 	"strings"
 	"time"
 
@@ -17,7 +18,7 @@ import (
 
 //counterfeiter:generate . Drainer
 type Drainer interface {
-	Run(context.Context) error
+	Run(context.Context, string) (component.RunResult, error)
 }
 
 type drainer struct {
@@ -38,20 +39,20 @@ func NewDrainer(transport string, address string, hostname string, caCerts []str
 	}
 }
 
-func (d *drainer) Run(ctx context.Context) error {
+func (d *drainer) Run(ctx context.Context, _ string) (component.RunResult, error) {
 	logger := lagerctx.FromContext(ctx).Session("syslog")
 
 	builds, err := d.buildFactory.GetDrainableBuilds()
 	if err != nil {
 		logger.Error("failed-to-get-drainable-builds", err)
-		return err
+		return nil, err
 	}
 
 	if len(builds) > 0 {
 		syslog, err := Dial(d.transport, d.address, d.caCerts)
 		if err != nil {
 			logger.Error("failed-to-connect", err)
-			return err
+			return nil, err
 		}
 
 		// ignore any errors coming from syslog.Close()
@@ -60,11 +61,11 @@ func (d *drainer) Run(ctx context.Context) error {
 		for _, build := range builds {
 			err := d.drainBuild(logger, build, syslog)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 	}
-	return nil
+	return nil, nil
 }
 
 func (d *drainer) drainBuild(logger lager.Logger, build db.Build, syslog *Syslog) error {

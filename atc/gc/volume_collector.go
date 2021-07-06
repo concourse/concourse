@@ -2,6 +2,7 @@ package gc
 
 import (
 	"context"
+	"github.com/concourse/concourse/atc/component"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -26,7 +27,7 @@ func NewVolumeCollector(
 	}
 }
 
-func (vc *volumeCollector) Run(ctx context.Context) error {
+func (vc *volumeCollector) Run(ctx context.Context, _ string) (component.RunResult, error) {
 	logger := lagerctx.FromContext(ctx).Session("volume-collector")
 
 	logger.Debug("start")
@@ -59,7 +60,7 @@ func (vc *volumeCollector) Run(ctx context.Context) error {
 		logger.Error("failed-to-clean-up-missing-volumes", err)
 	}
 
-	return errs
+	return nil, errs
 }
 
 func (vc *volumeCollector) cleanupFailedVolumes(logger lager.Logger) error {

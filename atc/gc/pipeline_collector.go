@@ -2,6 +2,7 @@ package gc
 
 import (
 	"context"
+	"github.com/concourse/concourse/atc/component"
 
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc/db"
@@ -17,7 +18,7 @@ func NewPipelineCollector(pipelineLifecyle db.PipelineLifecycle) *pipelineCollec
 	}
 }
 
-func (pc *pipelineCollector) Run(ctx context.Context) error {
+func (pc *pipelineCollector) Run(ctx context.Context, _ string) (component.RunResult, error) {
 	logger := lagerctx.FromContext(ctx).Session("pipeline-collector")
 
 	logger.Debug("start")
@@ -26,8 +27,8 @@ func (pc *pipelineCollector) Run(ctx context.Context) error {
 	err := pc.pipelineLifecycle.ArchiveAbandonedPipelines()
 	if err != nil {
 		logger.Error("failed-to-automatically-archive-pipelines", err)
-		return err
+		return nil, err
 	}
 
-	return nil
+	return nil, nil
 }

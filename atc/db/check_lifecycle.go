@@ -21,13 +21,14 @@ func NewCheckLifecycle(conn Conn) CheckLifecycle {
 
 func (cl *checkLifecycle) DeleteCompletedChecks(logger lager.Logger) error {
 	var counter int
+	var err1 error
 	for {
 		var numChecksDeleted int
-		err := cl.conn.QueryRow(`
+		err1 = cl.conn.QueryRow(`
       WITH resource_builds AS (
-        SELECT build_id
-        FROM resources
-        WHERE build_id IS NOT NULL
+        SELECT distinct(last_check_build_id) as build_id
+        FROM resource_config_scopes
+        WHERE last_check_build_id IS NOT NULL
       ),
       deleted_builds AS (
         DELETE FROM builds USING (
@@ -48,8 +49,8 @@ func (cl *checkLifecycle) DeleteCompletedChecks(logger lager.Logger) error {
       )
       SELECT COUNT(*) FROM deleted_builds
     `, CheckDeleteBatchSize).Scan(&numChecksDeleted)
-		if err != nil {
-			return err
+		if err1 != nil {
+			break
 		}
 		logger.Debug("deleted-check-builds", lager.Data{"count": numChecksDeleted, "batch": counter})
 
@@ -57,6 +58,23 @@ func (cl *checkLifecycle) DeleteCompletedChecks(logger lager.Logger) error {
 			break
 		}
 		counter++
+	}
+
+	_, err2 := cl.conn.Exec(`
+      WITH resource_builds AS (
+        SELECT distinct(last_check_build_id) as build_id
+        FROM resource_config_scopes
+        WHERE last_check_build_id IS NOT NULL
+      )
+      DELETE FROM check_build_events c USING resource_builds WHERE NOT EXISTS (select 1 FROM resource_builds where c.build_id = build_id)
+    `)
+
+	if err1 != nil {
+		return err1
+	}
+
+	if err2 != nil {
+		return err2
 	}
 
 	return nil

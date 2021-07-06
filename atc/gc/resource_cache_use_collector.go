@@ -2,6 +2,7 @@ package gc
 
 import (
 	"context"
+	"github.com/concourse/concourse/atc/component"
 	"time"
 
 	"code.cloudfoundry.org/lager/lagerctx"
@@ -20,7 +21,7 @@ func NewResourceCacheUseCollector(cacheLifecycle db.ResourceCacheLifecycle) *res
 	}
 }
 
-func (rcuc *resourceCacheUseCollector) Run(ctx context.Context) error {
+func (rcuc *resourceCacheUseCollector) Run(ctx context.Context, _ string) (component.RunResult, error) {
 	logger := lagerctx.FromContext(ctx).Session("resource-cache-use-collector")
 
 	logger.Debug("start")
@@ -47,5 +48,5 @@ func (rcuc *resourceCacheUseCollector) Run(ctx context.Context) error {
 		logger.Error("failed-to-clean-finished-build-uses", err)
 	}
 
-	return errs
+	return nil, errs
 }

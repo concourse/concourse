@@ -357,9 +357,10 @@ func (b *inMemoryCheckBuild) AllAssociatedTeamNames() []string {
 		return b.cacheAssociatedTeams
 	}
 
-	rows, err := sq.Select("distinct(t.name)").
+	rows, err := psql.Select("distinct(t.name)").
 		From("resources r").
-		LeftJoin("teams t on r.team_id == t.id").
+		LeftJoin("pipelines p on r.pipeline_id = p.id").
+		LeftJoin("teams t on p.team_id = t.id").
 		Where(sq.Eq{"r.resource_config_scope_id": b.checkable.ResourceConfigScopeID()}).
 		RunWith(b.conn).
 		Query()
