@@ -30,7 +30,9 @@ func NewPlacementStrategy(options PlacementOptions) (PlacementStrategy, error) {
 	for _, s := range options.Strategies {
 		switch strings.TrimSpace(s) {
 		case "random":
-			// Add nothing. Because an empty strategy chain equals to random strategy.
+			// Add nothing - since worker order is already randomized
+			// initially, a `random` strategy appearing anywhere in the chain
+			// of strategies has no effect.
 		case "volume-locality":
 			strategy = append(strategy, volumeLocalityStrategy{})
 		case "fewest-build-containers":
