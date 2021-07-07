@@ -22,5 +22,10 @@ func evaluate(variablesResolver vars.Variables, in, out interface{}) error {
 		return err
 	}
 
-	return yaml.Unmarshal(bytes, out)
+	return yaml.Unmarshal(bytes, out, useJSONNumber)
+}
+
+func useJSONNumber(decoder *json.Decoder) *json.Decoder {
+	decoder.UseNumber()
+	return decoder
 }

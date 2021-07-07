@@ -5,7 +5,7 @@ resources:
   source:
     create_files:
       data.yml: |
-        [dynamic1, dynamic2, dynamic3]
+        [dynamic1, dynamic2, dynamic3, 4]
 
 jobs:
 - name: job
