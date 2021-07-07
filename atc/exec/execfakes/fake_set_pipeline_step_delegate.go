@@ -26,11 +26,12 @@ type FakeSetPipelineStepDelegate struct {
 	checkRunSetPipelinePolicyReturnsOnCall map[int]struct {
 		result1 error
 	}
-	ConstructAcrossSubstepsStub        func(atc.Plan, [][]interface{}) ([]atc.VarScopedPlan, error)
+	ConstructAcrossSubstepsStub        func([]byte, []atc.AcrossVar, [][]interface{}) ([]atc.VarScopedPlan, error)
 	constructAcrossSubstepsMutex       sync.RWMutex
 	constructAcrossSubstepsArgsForCall []struct {
-		arg1 atc.Plan
-		arg2 [][]interface{}
+		arg1 []byte
+		arg2 []atc.AcrossVar
+		arg3 [][]interface{}
 	}
 	constructAcrossSubstepsReturns struct {
 		result1 []atc.VarScopedPlan
@@ -195,24 +196,35 @@ func (fake *FakeSetPipelineStepDelegate) CheckRunSetPipelinePolicyReturnsOnCall(
 	}{result1}
 }
 
-func (fake *FakeSetPipelineStepDelegate) ConstructAcrossSubsteps(arg1 atc.Plan, arg2 [][]interface{}) ([]atc.VarScopedPlan, error) {
-	var arg2Copy [][]interface{}
+func (fake *FakeSetPipelineStepDelegate) ConstructAcrossSubsteps(arg1 []byte, arg2 []atc.AcrossVar, arg3 [][]interface{}) ([]atc.VarScopedPlan, error) {
+	var arg1Copy []byte
+	if arg1 != nil {
+		arg1Copy = make([]byte, len(arg1))
+		copy(arg1Copy, arg1)
+	}
+	var arg2Copy []atc.AcrossVar
 	if arg2 != nil {
-		arg2Copy = make([][]interface{}, len(arg2))
+		arg2Copy = make([]atc.AcrossVar, len(arg2))
 		copy(arg2Copy, arg2)
+	}
+	var arg3Copy [][]interface{}
+	if arg3 != nil {
+		arg3Copy = make([][]interface{}, len(arg3))
+		copy(arg3Copy, arg3)
 	}
 	fake.constructAcrossSubstepsMutex.Lock()
 	ret, specificReturn := fake.constructAcrossSubstepsReturnsOnCall[len(fake.constructAcrossSubstepsArgsForCall)]
 	fake.constructAcrossSubstepsArgsForCall = append(fake.constructAcrossSubstepsArgsForCall, struct {
-		arg1 atc.Plan
-		arg2 [][]interface{}
-	}{arg1, arg2Copy})
+		arg1 []byte
+		arg2 []atc.AcrossVar
+		arg3 [][]interface{}
+	}{arg1Copy, arg2Copy, arg3Copy})
 	stub := fake.ConstructAcrossSubstepsStub
 	fakeReturns := fake.constructAcrossSubstepsReturns
-	fake.recordInvocation("ConstructAcrossSubsteps", []interface{}{arg1, arg2Copy})
+	fake.recordInvocation("ConstructAcrossSubsteps", []interface{}{arg1Copy, arg2Copy, arg3Copy})
 	fake.constructAcrossSubstepsMutex.Unlock()
 	if stub != nil {
-		return stub(arg1, arg2)
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -226,17 +238,17 @@ func (fake *FakeSetPipelineStepDelegate) ConstructAcrossSubstepsCallCount() int 
 	return len(fake.constructAcrossSubstepsArgsForCall)
 }
 
-func (fake *FakeSetPipelineStepDelegate) ConstructAcrossSubstepsCalls(stub func(atc.Plan, [][]interface{}) ([]atc.VarScopedPlan, error)) {
+func (fake *FakeSetPipelineStepDelegate) ConstructAcrossSubstepsCalls(stub func([]byte, []atc.AcrossVar, [][]interface{}) ([]atc.VarScopedPlan, error)) {
 	fake.constructAcrossSubstepsMutex.Lock()
 	defer fake.constructAcrossSubstepsMutex.Unlock()
 	fake.ConstructAcrossSubstepsStub = stub
 }
 
-func (fake *FakeSetPipelineStepDelegate) ConstructAcrossSubstepsArgsForCall(i int) (atc.Plan, [][]interface{}) {
+func (fake *FakeSetPipelineStepDelegate) ConstructAcrossSubstepsArgsForCall(i int) ([]byte, []atc.AcrossVar, [][]interface{}) {
 	fake.constructAcrossSubstepsMutex.RLock()
 	defer fake.constructAcrossSubstepsMutex.RUnlock()
 	argsForCall := fake.constructAcrossSubstepsArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeSetPipelineStepDelegate) ConstructAcrossSubstepsReturns(result1 []atc.VarScopedPlan, result2 error) {

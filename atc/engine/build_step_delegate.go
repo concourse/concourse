@@ -19,7 +19,9 @@ import (
 	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"
+	"github.com/concourse/concourse/vars"
 	"go.opentelemetry.io/otel/trace"
+	"sigs.k8s.io/yaml"
 )
 
 type buildStepDelegate struct {
@@ -352,14 +354,32 @@ func (delegate *buildStepDelegate) FetchImage(
 	}, nil
 }
 
-func (delegate *buildStepDelegate) ConstructAcrossSubsteps(planSkeleton atc.Plan, valueCombinations [][]interface{}) ([]atc.VarScopedPlan, error) {
+func (delegate *buildStepDelegate) ConstructAcrossSubsteps(templateBytes []byte, acrossVars []atc.AcrossVar, valueCombinations [][]interface{}) ([]atc.VarScopedPlan, error) {
+	template := vars.NewTemplate(templateBytes)
 	substeps := make([]atc.VarScopedPlan, len(valueCombinations))
 	substepsPublic := make([]*json.RawMessage, len(substeps))
 	for i, values := range valueCombinations {
-		curPlan := planSkeleton
-		curPlan.ID = atc.PlanID(fmt.Sprintf("%s/%d", delegate.planID, i))
+		localVars := vars.StaticVariables{}
+		for j, v := range acrossVars {
+			localVars[v.Var] = values[j]
+		}
+		interpolatedBytes, err := template.Evaluate(vars.NamedVariables{".": localVars}, vars.EvaluateOpts{})
+		if err != nil {
+			return nil, fmt.Errorf("failed to interpolate template: %w", err)
+		}
+		var subPlan atc.Plan
+		// This must use sigs.k8s.io/yaml, since gopkg.in/yaml.v2 doesn't
+		// convert from YAML -> JSON first.
+		if err := yaml.Unmarshal(interpolatedBytes, &subPlan); err != nil {
+			return nil, fmt.Errorf("invalid template bytes: %w", err)
+		}
+		planIDCounter := 0
+		subPlan.Each(func(p *atc.Plan) {
+			p.ID = atc.PlanID(fmt.Sprintf("%s/%d/%d", delegate.planID, i, planIDCounter))
+			planIDCounter++
+		})
 		substeps[i] = atc.VarScopedPlan{
-			Step:   curPlan,
+			Step:   subPlan,
 			Values: values,
 		}
 		substepsPublic[i] = substeps[i].Public()

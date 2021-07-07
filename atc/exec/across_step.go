@@ -68,7 +68,7 @@ func (step AcrossStep) Run(ctx context.Context, state RunState) (bool, error) {
 			return false, err
 		}
 	}
-	substeps, err := delegate.ConstructAcrossSubsteps(step.plan.SubStepSkeleton, cartesianProduct(varValues))
+	substeps, err := delegate.ConstructAcrossSubsteps([]byte(step.plan.SubStepTemplate), step.plan.Vars, cartesianProduct(varValues))
 	if err != nil {
 		return false, err
 	}
@@ -119,6 +119,9 @@ func (step AcrossStep) acrossStepLeafExecutor(state RunState, steps []atc.VarSco
 		count:       len(steps),
 
 		runFunc: func(ctx context.Context, i int) (bool, error) {
+			// Even though we interpolate the vars into the substep plan, we
+			// still need to add them to a local scope since they can be used
+			// to interpolate a task file.
 			scope := state.NewLocalScope()
 			for j, v := range step.plan.Vars {
 				// Don't redact because the values being iterated across are

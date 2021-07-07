@@ -149,13 +149,11 @@ func (plan AcrossPlan) Public() *json.RawMessage {
 	}
 
 	return enc(struct {
-		Vars            []acrossVar      `json:"vars"`
-		SubStepSkeleton *json.RawMessage `json:"substep"`
-		FailFast        bool             `json:"fail_fast,omitempty"`
+		Vars     []acrossVar `json:"vars"`
+		FailFast bool        `json:"fail_fast,omitempty"`
 	}{
-		Vars:            vars,
-		SubStepSkeleton: plan.SubStepSkeleton.Public(),
-		FailFast:        plan.FailFast,
+		Vars:     vars,
+		FailFast: plan.FailFast,
 	})
 }
 

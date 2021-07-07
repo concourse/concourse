@@ -379,16 +379,8 @@ var _ = Describe("Plan", func() {
 										MaxInFlight: &atc.MaxInFlightConfig{All: true},
 									},
 								},
-								SubStepSkeleton: atc.Plan{
-									Task: &atc.TaskPlan{
-										Name:       "name",
-										ConfigPath: "some/config/path.yml",
-										Config: &atc.TaskConfig{
-											Params: atc.TaskEnv{"some": "secret"},
-										},
-									},
-								},
-								FailFast: true,
+								SubStepTemplate: `{"id":"ACROSS_STEP_TEMPLATE"}`,
+								FailFast:        true,
 							},
 						},
 					},
@@ -675,12 +667,6 @@ var _ = Describe("Plan", func() {
               "name": "v2"
             }
           ],
-          "substep": {
-            "task": {
-              "name": "name",
-              "privileged": false
-            }
-          },
           "fail_fast": true
         }
       }

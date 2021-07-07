@@ -570,13 +570,7 @@ var factoryTests = []PlannerTest{
 						"max_in_flight": 1
 					}
 				],
-				"substep": {
-					"id": "ACROSS_SUBSTEP_SKELETON",
-					"load_var": {
-						"name": "some-var",
-						"file": "some-file"
-					}
-				}
+				"substep_template": "{\"id\":\"ACROSS_SUBSTEP_TEMPLATE\",\"load_var\":{\"name\":\"some-var\",\"file\":\"some-file\"}}"
 			}
 		}`,
 	},

@@ -1,6 +1,8 @@
 package builds
 
 import (
+	"encoding/json"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 )
@@ -237,13 +239,20 @@ func (visitor *planVisitor) VisitAcross(step *atc.AcrossStep) error {
 		return err
 	}
 
-	// The plan is simply used as a skeleton for generating the substeps
-	// dynamically, so it doesn't need a valid ID.
-	visitor.plan.ID = "ACROSS_SUBSTEP_SKELETON"
+	// The plan is simply used as a template for generating the substeps
+	// dynamically, so it should be clear that the IDs aren't valid.
+	visitor.plan.Each(func(p *atc.Plan) {
+		p.ID = "ACROSS_SUBSTEP_TEMPLATE"
+	})
+
+	template, err := json.Marshal(visitor.plan)
+	if err != nil {
+		return err
+	}
 
 	acrossPlan := atc.AcrossPlan{
 		Vars:            vars,
-		SubStepSkeleton: visitor.plan,
+		SubStepTemplate: string(template),
 		FailFast:        step.FailFast,
 	}
 

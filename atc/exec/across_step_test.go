@@ -222,7 +222,7 @@ var _ = Describe("AcrossStep", func() {
 		step.Run(ctx, state)
 
 		Expect(fakeDelegate.ConstructAcrossSubstepsCallCount()).To(Equal(1))
-		_, valueCombinations := fakeDelegate.ConstructAcrossSubstepsArgsForCall(0)
+		_, _, valueCombinations := fakeDelegate.ConstructAcrossSubstepsArgsForCall(0)
 		Expect(valueCombinations).To(Equal([][]interface{}{
 			{"a1", "b1", "c1", "d1"},
 			{"a1", "b1", "c2", "d1"},

@@ -149,10 +149,11 @@ type InParallelPlan struct {
 
 type AcrossPlan struct {
 	Vars []AcrossVar `json:"vars"`
-	// SubStepSkeleton contains the plan for the substep, but must NOT be run
-	// directly as it does not have a valid ID.
-	SubStepSkeleton Plan `json:"substep"`
-	FailFast        bool `json:"fail_fast,omitempty"`
+	// SubStepTemplate contains the uninterpolated JSON encoded plan for the
+	// substep. This template must be interpolated for each substep using the
+	// across vars, and the plan IDs must be updated.
+	SubStepTemplate string `json:"substep_template"`
+	FailFast        bool   `json:"fail_fast,omitempty"`
 }
 
 type AcrossVar struct {
