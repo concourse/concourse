@@ -1,10 +1,77 @@
 package db
 
 import (
-	"database/sql"
+	"sync"
+	"time"
 
 	sq "github.com/Masterminds/squirrel"
 )
+
+// The table base_resource_types is small (less than 100 tuples) and steady (it
+// may only be updated after Concourse changes). But it's queried extremely
+// frequently, thus it makes sense to cache this table in memory, and reload it
+// periodically, which should help reduce db queries.
+
+type baseResourceTypeRaw struct {
+	id                   int
+	name                 string
+	uniqueVersionHistory bool
+}
+
+type baseResourceTypeTableRaw struct {
+	tableByName map[string]baseResourceTypeRaw
+
+	rwLock       sync.RWMutex
+	lastLoadTime time.Time
+}
+
+func (table *baseResourceTypeTableRaw) findByName(runner sq.Runner, name string) (baseResourceTypeRaw, bool, error) {
+	err := table.reloadIfNeeded(runner)
+	if err != nil {
+		return baseResourceTypeRaw{}, false, err
+	}
+
+	table.rwLock.RLock()
+	defer table.rwLock.RUnlock()
+
+	brt, found := table.tableByName[name]
+	return brt, found, nil
+}
+
+func (table *baseResourceTypeTableRaw) reloadIfNeeded(runner sq.Runner) error {
+	if table.lastLoadTime.Add(3 * time.Minute).After(time.Now()) {
+		return nil
+	}
+
+	rows, err := psql.Select("id, name, unique_version_history").
+		From("base_resource_types").
+		RunWith(runner).
+		Query()
+	if err != nil {
+		return err
+	}
+
+	table.rwLock.Lock()
+	defer table.rwLock.Unlock()
+
+	table.tableByName = map[string]baseResourceTypeRaw{}
+
+	for rows.Next() {
+		var row baseResourceTypeRaw
+		err := rows.Scan(&row.id, &row.name, &row.uniqueVersionHistory)
+		if err != nil {
+			return err
+		}
+		table.tableByName[row.name] = row
+	}
+	table.lastLoadTime = time.Now()
+
+	return nil
+}
+
+var baseResourceTypeTable = &baseResourceTypeTableRaw{
+	tableByName: map[string]baseResourceTypeRaw{},
+}
 
 // BaseResourceType represents a resource type provided by workers.
 //
@@ -44,24 +111,12 @@ func (brt BaseResourceType) FindOrCreate(tx Tx, unique bool) (*UsedBaseResourceT
 }
 
 func (brt BaseResourceType) Find(runner sq.Runner) (*UsedBaseResourceType, bool, error) {
-	var id int
-	var unique bool
-	err := psql.Select("id, unique_version_history").
-		From("base_resource_types").
-		Where(sq.Eq{"name": brt.Name}).
-		Suffix("FOR SHARE").
-		RunWith(runner).
-		QueryRow().
-		Scan(&id, &unique)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, false, nil
-		}
-
-		return nil, false, err
+	brtRaw, found, err := baseResourceTypeTable.findByName(runner, brt.Name)
+	if err != nil || !found {
+		return nil, found, err
 	}
 
-	return &UsedBaseResourceType{ID: id, Name: brt.Name, UniqueVersionHistory: unique}, true, nil
+	return &UsedBaseResourceType{ID: brtRaw.id, Name: brtRaw.name, UniqueVersionHistory: brtRaw.uniqueVersionHistory}, true, nil
 }
 
 func (brt BaseResourceType) create(tx Tx, unique bool) (*UsedBaseResourceType, error) {
@@ -82,6 +137,8 @@ func (brt BaseResourceType) create(tx Tx, unique bool) (*UsedBaseResourceType, e
 	if err != nil {
 		return nil, err
 	}
+
+	baseResourceTypeTable.reloadIfNeeded(tx)
 
 	return &UsedBaseResourceType{ID: id, Name: brt.Name, UniqueVersionHistory: savedUnique}, nil
 }
