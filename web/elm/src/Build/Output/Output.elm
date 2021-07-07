@@ -265,6 +265,11 @@ handleEvent event ( model, effects ) =
             , effects
             )
 
+        AcrossSubsteps { id } substeps ->
+            ( { model | steps = Maybe.map (Build.StepTree.StepTree.setAcrossSubsteps model.buildId id substeps) model.steps }
+            , effects
+            )
+
         End ->
             ( { model | state = StepsComplete, eventStreamUrlPath = Nothing }
             , effects

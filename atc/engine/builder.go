@@ -190,18 +190,8 @@ func (factory *stepperFactory) buildAcrossStep(build db.Build, plan atc.Plan) ex
 		false,
 	)
 
-	steps := make([]exec.ScopedStep, len(plan.Across.Steps))
-	for i, s := range plan.Across.Steps {
-		steps[i] = exec.ScopedStep{
-			Step:   factory.buildStep(build, s.Step),
-			Values: s.Values,
-		}
-	}
-
 	acrossStep := exec.Across(
-		plan.Across.Vars,
-		steps,
-		plan.Across.FailFast,
+		*plan.Across,
 		factory.buildDelegateFactory(build, plan),
 		stepMetadata,
 	)

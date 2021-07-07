@@ -10,6 +10,7 @@ module Common exposing
     , gotPipelines
     , hoverOver
     , iOpenTheBuildPage
+    , iOpenTheBuildPageHighlighting
     , init
     , initQuery
     , initRoute
@@ -203,6 +204,23 @@ iOpenTheBuildPage _ =
         , path = "/builds/1"
         , query = Nothing
         , fragment = Nothing
+        }
+
+
+iOpenTheBuildPageHighlighting stepId _ =
+    Application.init
+        { turbulenceImgSrc = ""
+        , notFoundImgSrc = ""
+        , csrfToken = ""
+        , authToken = ""
+        , pipelineRunningKeyframes = ""
+        }
+        { protocol = Url.Http
+        , host = ""
+        , port_ = Nothing
+        , path = "/builds/1"
+        , query = Nothing
+        , fragment = Just <| "L" ++ stepId ++ ":1"
         }
 
 

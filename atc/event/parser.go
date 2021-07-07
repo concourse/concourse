@@ -51,6 +51,7 @@ func init() {
 	RegisterEvent(Error{})
 	RegisterEvent(ImageCheck{})
 	RegisterEvent(ImageGet{})
+	RegisterEvent(AcrossSubsteps{})
 
 	// deprecated:
 	RegisterEvent(InitializeV10{})

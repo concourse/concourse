@@ -51,13 +51,6 @@ func (plan *Plan) Each(f func(*Plan)) {
 		}
 	}
 
-	if plan.Across != nil {
-		for i, p := range plan.Across.Steps {
-			p.Step.Each(f)
-			plan.Across.Steps[i] = p
-		}
-	}
-
 	if plan.OnSuccess != nil {
 		plan.OnSuccess.Step.Each(f)
 		plan.OnSuccess.Next.Each(f)
@@ -155,14 +148,16 @@ type InParallelPlan struct {
 }
 
 type AcrossPlan struct {
-	Vars     []AcrossVar     `json:"vars"`
-	Steps    []VarScopedPlan `json:"steps"`
-	FailFast bool            `json:"fail_fast,omitempty"`
+	Vars []AcrossVar `json:"vars"`
+	// SubStepSkeleton contains the plan for the substep, but must NOT be run
+	// directly as it does not have a valid ID.
+	SubStepSkeleton Plan `json:"substep"`
+	FailFast        bool `json:"fail_fast,omitempty"`
 }
 
 type AcrossVar struct {
 	Var         string             `json:"name"`
-	Values      []interface{}      `json:"values"`
+	Values      interface{}        `json:"values,omitempty"`
 	MaxInFlight *MaxInFlightConfig `json:"max_in_flight,omitempty"`
 }
 

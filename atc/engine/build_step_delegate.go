@@ -352,6 +352,33 @@ func (delegate *buildStepDelegate) FetchImage(
 	}, nil
 }
 
+func (delegate *buildStepDelegate) ConstructAcrossSubsteps(planSkeleton atc.Plan, valueCombinations [][]interface{}) ([]atc.VarScopedPlan, error) {
+	substeps := make([]atc.VarScopedPlan, len(valueCombinations))
+	substepsPublic := make([]*json.RawMessage, len(substeps))
+	for i, values := range valueCombinations {
+		curPlan := planSkeleton
+		curPlan.ID = atc.PlanID(fmt.Sprintf("%s/%d", delegate.planID, i))
+		substeps[i] = atc.VarScopedPlan{
+			Step:   curPlan,
+			Values: values,
+		}
+		substepsPublic[i] = substeps[i].Public()
+	}
+
+	err := delegate.build.SaveEvent(event.AcrossSubsteps{
+		Time: delegate.clock.Now().Unix(),
+		Origin: event.Origin{
+			ID: event.OriginID(delegate.planID),
+		},
+		Substeps: substepsPublic,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("save across substeps event: %w", err)
+	}
+
+	return substeps, nil
+}
+
 func (delegate *buildStepDelegate) checkImagePolicy(image atc.ImageResource, privileged bool) error {
 	if !delegate.policyChecker.ShouldCheckAction(policy.ActionUseImage) {
 		return nil

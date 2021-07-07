@@ -4,7 +4,7 @@ import "encoding/json"
 
 func (plan Plan) Public() *json.RawMessage {
 	var public struct {
-		ID PlanID `json:"id"`
+		ID PlanID `json:"id,omitempty"`
 
 		InParallel     *json.RawMessage `json:"in_parallel,omitempty"`
 		Across         *json.RawMessage `json:"across,omitempty"`
@@ -137,27 +137,25 @@ func (plan InParallelPlan) Public() *json.RawMessage {
 }
 
 func (plan AcrossPlan) Public() *json.RawMessage {
-	type scopedStep struct {
-		Step   *json.RawMessage `json:"step"`
-		Values []interface{}    `json:"values"`
+	type acrossVar struct {
+		Name string `json:"name"`
 	}
 
-	steps := []scopedStep{}
-	for _, step := range plan.Steps {
-		steps = append(steps, scopedStep{
-			Step:   step.Step.Public(),
-			Values: step.Values,
-		})
+	vars := make([]acrossVar, len(plan.Vars))
+	for i, v := range plan.Vars {
+		vars[i] = acrossVar{
+			Name: v.Var,
+		}
 	}
 
 	return enc(struct {
-		Vars     []AcrossVar  `json:"vars"`
-		Steps    []scopedStep `json:"steps"`
-		FailFast bool         `json:"fail_fast,omitempty"`
+		Vars            []acrossVar      `json:"vars"`
+		SubStepSkeleton *json.RawMessage `json:"substep"`
+		FailFast        bool             `json:"fail_fast,omitempty"`
 	}{
-		Vars:     plan.Vars,
-		Steps:    steps,
-		FailFast: plan.FailFast,
+		Vars:            vars,
+		SubStepSkeleton: plan.SubStepSkeleton.Public(),
+		FailFast:        plan.FailFast,
 	})
 }
 
@@ -345,6 +343,16 @@ func (plan ArtifactInputPlan) Public() *json.RawMessage {
 
 func (plan ArtifactOutputPlan) Public() *json.RawMessage {
 	return enc(plan)
+}
+
+func (plan VarScopedPlan) Public() *json.RawMessage {
+	return enc(struct {
+		Step   *json.RawMessage `json:"step"`
+		Values []interface{}    `json:"values"`
+	}{
+		Step:   plan.Step.Public(),
+		Values: plan.Values,
+	})
 }
 
 func enc(public interface{}) *json.RawMessage {

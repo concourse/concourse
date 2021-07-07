@@ -240,3 +240,12 @@ type ImageGet struct {
 
 func (ImageGet) EventType() atc.EventType  { return EventTypeImageGet }
 func (ImageGet) Version() atc.EventVersion { return "1.1" }
+
+type AcrossSubsteps struct {
+	Time     int64              `json:"time"`
+	Origin   Origin             `json:"origin"`
+	Substeps []*json.RawMessage `json:"substeps"`
+}
+
+func (AcrossSubsteps) EventType() atc.EventType  { return EventTypeAcrossSubsteps }
+func (AcrossSubsteps) Version() atc.EventVersion { return "1.0" }

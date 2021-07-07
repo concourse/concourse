@@ -61,4 +61,7 @@ const (
 
 	// image get sub-plan
 	EventTypeImageGet atc.EventType = "image-get"
+
+	// across step substeps (sent dynamically as of Concourse 7.4)
+	EventTypeAcrossSubsteps atc.EventType = "across-substeps"
 )

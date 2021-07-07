@@ -2,6 +2,7 @@ package exec_test
 
 import (
 	"context"
+	"sync/atomic"
 
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
@@ -14,7 +15,7 @@ import (
 )
 
 var _ = Describe("AcrossStep", func() {
-	type vals [3]interface{}
+	type vals [4]interface{}
 
 	var (
 		ctx    context.Context
@@ -25,10 +26,12 @@ var _ = Describe("AcrossStep", func() {
 
 		step exec.AcrossStep
 
-		acrossVars []atc.AcrossVar
-		steps      []exec.ScopedStep
-		state      exec.RunState
-		failFast   bool
+		plan  atc.AcrossPlan
+		state exec.RunState
+
+		stepperCount        int64
+		stepperFailOnCount  int64
+		stepperPanicOnCount int64
 
 		allVals []vals
 
@@ -47,7 +50,7 @@ var _ = Describe("AcrossStep", func() {
 		stderr *gbytes.Buffer
 	)
 
-	stepRun := func(succeeded bool, values vals) func(context.Context, exec.RunState) (bool, error) {
+	stepRun := func(succeeded bool) func(context.Context, exec.RunState) (bool, error) {
 		started := started
 		terminate := terminate
 
@@ -55,10 +58,11 @@ var _ = Describe("AcrossStep", func() {
 			defer GinkgoRecover()
 
 			By("having the correct var values")
-			for i, v := range acrossVars {
+			values := vals{}
+			for i, v := range plan.Vars {
 				val, found, _ := childState.Get(vars.Reference{Source: ".", Path: v.Var})
 				Expect(found).To(BeTrue(), "unset variable "+v.Var)
-				Expect(val).To(Equal(values[i]), "invalid value for variable "+v.Var)
+				values[i] = val
 			}
 
 			By("running with a child scope")
@@ -77,20 +81,28 @@ var _ = Describe("AcrossStep", func() {
 		}
 	}
 
-	scopedStepFactory := func(acrossVars []atc.AcrossVar, values vals) exec.ScopedStep {
+	stepper := func(plan atc.Plan) exec.Step {
+		curCount := atomic.AddInt64(&stepperCount, 1)
+
+		panics := curCount == stepperPanicOnCount
+
 		s := new(execfakes.FakeStep)
-		s.RunStub = stepRun(true, values)
-		return exec.ScopedStep{
-			Values: values[:],
-			Step:   s,
+		if panics {
+			s.RunStub = func(_ context.Context, _ exec.RunState) (bool, error) {
+				panic("something went wrong")
+			}
+		} else {
+			successful := curCount != stepperFailOnCount
+			s.RunStub = stepRun(successful)
 		}
+		return s
 	}
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithCancel(context.Background())
 		ctx = lagerctx.NewContext(ctx, testLogger)
 
-		state = exec.NewRunState(noopStepper, vars.StaticVariables{}, false)
+		state = exec.NewRunState(stepper, vars.StaticVariables{}, false)
 
 		stderr = gbytes.NewBuffer()
 
@@ -100,7 +112,7 @@ var _ = Describe("AcrossStep", func() {
 		fakeDelegateFactory = new(execfakes.FakeBuildStepDelegateFactory)
 		fakeDelegateFactory.BuildStepDelegateReturns(fakeDelegate)
 
-		acrossVars = []atc.AcrossVar{
+		plan.Vars = []atc.AcrossVar{
 			{
 				Var:         "var1",
 				Values:      []interface{}{"a1", "a2"},
@@ -112,33 +124,47 @@ var _ = Describe("AcrossStep", func() {
 			},
 			{
 				Var:         "var3",
-				Values:      []interface{}{"c1", "c2"},
-				MaxInFlight: &atc.MaxInFlightConfig{Limit: 2},
+				Values:      []interface{}{"c1", "c2", "c3"},
+				MaxInFlight: &atc.MaxInFlightConfig{Limit: 3},
+			},
+			{
+				Var:    "var4",
+				Values: []interface{}{"d1"},
 			},
 		}
-		started = make(chan vals, 8)
+		stepperFailOnCount = -1
+		stepperPanicOnCount = -1
+		stepperCount = 0
+
+		started = make(chan vals, 12)
 		terminate = map[vals]chan error{}
 
 		allVals = []vals{
-			{"a1", "b1", "c1"},
-			{"a1", "b1", "c2"},
+			{"a1", "b1", "c1", "d1"},
+			{"a1", "b1", "c2", "d1"},
+			{"a1", "b1", "c3", "d1"},
 
-			{"a1", "b2", "c1"},
-			{"a1", "b2", "c2"},
+			{"a1", "b2", "c1", "d1"},
+			{"a1", "b2", "c2", "d1"},
+			{"a1", "b2", "c3", "d1"},
 
-			{"a2", "b1", "c1"},
-			{"a2", "b1", "c2"},
+			{"a2", "b1", "c1", "d1"},
+			{"a2", "b1", "c2", "d1"},
+			{"a2", "b1", "c3", "d1"},
 
-			{"a2", "b2", "c1"},
-			{"a2", "b2", "c2"},
+			{"a2", "b2", "c1", "d1"},
+			{"a2", "b2", "c2", "d1"},
+			{"a2", "b2", "c3", "d1"},
 		}
-
-		steps = make([]exec.ScopedStep, len(allVals))
-		for i, v := range allVals {
-			steps[i] = scopedStepFactory(acrossVars, v)
+		plans := make([]atc.VarScopedPlan, len(allVals))
+		for i, vals := range allVals {
+			// capture the array from the range
+			vals := vals
+			plans[i] = atc.VarScopedPlan{Values: vals[:]}
 		}
+		fakeDelegate.ConstructAcrossSubstepsReturns(plans, nil)
 
-		failFast = false
+		plan.FailFast = false
 	})
 
 	AfterEach(func() {
@@ -147,9 +173,7 @@ var _ = Describe("AcrossStep", func() {
 
 	JustBeforeEach(func() {
 		step = exec.Across(
-			acrossVars,
-			steps,
-			failFast,
+			plan,
 			fakeDelegateFactory,
 			stepMetadata,
 		)
@@ -194,6 +218,30 @@ var _ = Describe("AcrossStep", func() {
 		})
 	})
 
+	It("correctly computes the combinations of var values", func() {
+		step.Run(ctx, state)
+
+		Expect(fakeDelegate.ConstructAcrossSubstepsCallCount()).To(Equal(1))
+		_, valueCombinations := fakeDelegate.ConstructAcrossSubstepsArgsForCall(0)
+		Expect(valueCombinations).To(Equal([][]interface{}{
+			{"a1", "b1", "c1", "d1"},
+			{"a1", "b1", "c2", "d1"},
+			{"a1", "b1", "c3", "d1"},
+
+			{"a1", "b2", "c1", "d1"},
+			{"a1", "b2", "c2", "d1"},
+			{"a1", "b2", "c3", "d1"},
+
+			{"a2", "b1", "c1", "d1"},
+			{"a2", "b1", "c2", "d1"},
+			{"a2", "b1", "c3", "d1"},
+
+			{"a2", "b2", "c1", "d1"},
+			{"a2", "b2", "c2", "d1"},
+			{"a2", "b2", "c3", "d1"},
+		}))
+	})
+
 	Describe("parallel execution", func() {
 		BeforeEach(func() {
 			for _, v := range allVals {
@@ -206,14 +254,16 @@ var _ = Describe("AcrossStep", func() {
 
 			By("running the first stage")
 			var receivedVals []vals
-			for i := 0; i < 4; i++ {
+			for i := 0; i < 6; i++ {
 				receivedVals = append(receivedVals, <-started)
 			}
 			Expect(receivedVals).To(ConsistOf(
-				vals{"a1", "b1", "c1"},
-				vals{"a1", "b1", "c2"},
-				vals{"a2", "b1", "c1"},
-				vals{"a2", "b1", "c2"},
+				vals{"a1", "b1", "c1", "d1"},
+				vals{"a1", "b1", "c2", "d1"},
+				vals{"a1", "b1", "c3", "d1"},
+				vals{"a2", "b1", "c1", "d1"},
+				vals{"a2", "b1", "c2", "d1"},
+				vals{"a2", "b1", "c3", "d1"},
 			))
 			Consistently(started).ShouldNot(Receive())
 
@@ -224,26 +274,29 @@ var _ = Describe("AcrossStep", func() {
 
 			By("running the second stage")
 			receivedVals = []vals{}
-			for i := 0; i < 4; i++ {
+			for i := 0; i < 6; i++ {
 				receivedVals = append(receivedVals, <-started)
 			}
 			Expect(receivedVals).To(ConsistOf(
-				vals{"a1", "b2", "c1"},
-				vals{"a1", "b2", "c2"},
-				vals{"a2", "b2", "c1"},
-				vals{"a2", "b2", "c2"},
+				vals{"a1", "b2", "c1", "d1"},
+				vals{"a1", "b2", "c2", "d1"},
+				vals{"a1", "b2", "c3", "d1"},
+				vals{"a2", "b2", "c1", "d1"},
+				vals{"a2", "b2", "c2", "d1"},
+				vals{"a2", "b2", "c3", "d1"},
 			))
 		})
 
 		Context("when fail fast is true", func() {
 			BeforeEach(func() {
-				failFast = true
+				plan.FailFast = true
+
+				stepperFailOnCount = 2
 			})
 
 			It("stops running steps after a failure", func() {
-				By("a step in the first stage failing")
+				// Allow the failed step to terminate
 				terminate[allVals[1]] <- nil
-				steps[1].Step.(*execfakes.FakeStep).RunStub = stepRun(false, allVals[1])
 
 				By("running the step")
 				ok, err := step.Run(ctx, state)
@@ -251,19 +304,18 @@ var _ = Describe("AcrossStep", func() {
 				Expect(ok).To(BeFalse())
 
 				By("ensuring not all steps were started")
-				Expect(started).ToNot(HaveLen(8))
+				Expect(started).ToNot(HaveLen(12))
 			})
 		})
 
 		Context("when fail fast is false", func() {
 			BeforeEach(func() {
-				failFast = false
+				plan.FailFast = false
+
+				stepperFailOnCount = 2
 			})
 
 			It("allows all steps to run before failing", func() {
-				By("a step in the first stage failing")
-				steps[1].Step.(*execfakes.FakeStep).RunStub = stepRun(false, allVals[1])
-
 				for _, v := range allVals {
 					terminate[v] <- nil
 				}
@@ -274,7 +326,7 @@ var _ = Describe("AcrossStep", func() {
 				Expect(ok).To(BeFalse())
 
 				By("ensuring all steps were run")
-				Expect(started).To(HaveLen(8))
+				Expect(started).To(HaveLen(12))
 			})
 		})
 	})
@@ -282,9 +334,7 @@ var _ = Describe("AcrossStep", func() {
 	Describe("panic recovery", func() {
 		Context("when one step panics", func() {
 			BeforeEach(func() {
-				steps[1].Step.(*execfakes.FakeStep).RunStub = func(context.Context, exec.RunState) (bool, error) {
-					panic("something went wrong")
-				}
+				stepperPanicOnCount = 2
 			})
 
 			It("handles it gracefully", func() {

@@ -20,6 +20,7 @@ module Build.StepTree.Models exposing
     , toggleSubHeaderExpanded
     , treeIsActive
     , updateAt
+    , updateTreeNodeAt
     )
 
 import Ansi.Log
@@ -207,6 +208,7 @@ type BuildEvent
     | Error Origin String Time.Posix
     | ImageCheck Origin Concourse.BuildPlan
     | ImageGet Origin Concourse.BuildPlan
+    | AcrossSubsteps Origin (List Concourse.AcrossSubstep)
     | End
     | Opened
     | NetworkError
@@ -312,6 +314,109 @@ activeStepIds model tree =
                 |> Array.toList
                 |> List.Extra.takeWhile (mostSevereStepState model >> (/=) StepStateSucceeded)
                 |> List.concatMap (activeStepIds model)
+
+
+updateTreeNodeAt : StepID -> (StepTree -> StepTree) -> StepTree -> StepTree
+updateTreeNodeAt id fn tree =
+    let
+        updateSelf stepId =
+            if stepId == id then
+                fn tree
+
+            else
+                tree
+    in
+    case tree of
+        Task stepId ->
+            updateSelf stepId
+
+        Check stepId ->
+            updateSelf stepId
+
+        Get stepId ->
+            updateSelf stepId
+
+        Run stepId ->
+            updateSelf stepId
+
+        Put stepId ->
+            updateSelf stepId
+
+        ArtifactInput stepId ->
+            updateSelf stepId
+
+        ArtifactOutput stepId ->
+            updateSelf stepId
+
+        SetPipeline stepId ->
+            updateSelf stepId
+
+        LoadVar stepId ->
+            updateSelf stepId
+
+        InParallel trees ->
+            InParallel <| Array.map (updateTreeNodeAt id fn) trees
+
+        Do trees ->
+            Do <| Array.map (updateTreeNodeAt id fn) trees
+
+        Across stepId vars vals trees ->
+            let
+                withUpdatedChildren =
+                    Across stepId vars vals <| Array.map (updateTreeNodeAt stepId fn) trees
+            in
+            if stepId == id then
+                fn withUpdatedChildren
+
+            else
+                withUpdatedChildren
+
+        OnSuccess { step, hook } ->
+            OnSuccess
+                { step = updateTreeNodeAt id fn step
+                , hook = updateTreeNodeAt id fn hook
+                }
+
+        OnFailure { step, hook } ->
+            OnFailure
+                { step = updateTreeNodeAt id fn step
+                , hook = updateTreeNodeAt id fn hook
+                }
+
+        OnAbort { step, hook } ->
+            OnAbort
+                { step = updateTreeNodeAt id fn step
+                , hook = updateTreeNodeAt id fn hook
+                }
+
+        OnError { step, hook } ->
+            OnError
+                { step = updateTreeNodeAt id fn step
+                , hook = updateTreeNodeAt id fn hook
+                }
+
+        Ensure { step, hook } ->
+            Ensure
+                { step = updateTreeNodeAt id fn step
+                , hook = updateTreeNodeAt id fn hook
+                }
+
+        Try subTree ->
+            Try <| updateTreeNodeAt id fn subTree
+
+        Timeout subTree ->
+            Timeout <| updateTreeNodeAt id fn subTree
+
+        Retry stepId trees ->
+            let
+                withUpdatedChildren =
+                    Retry stepId <| Array.map (updateTreeNodeAt stepId fn) trees
+            in
+            if stepId == id then
+                fn withUpdatedChildren
+
+            else
+                withUpdatedChildren
 
 
 activeTreeSteps : StepTreeModel -> StepTree -> List Step
