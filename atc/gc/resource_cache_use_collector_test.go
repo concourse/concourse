@@ -75,7 +75,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 				Context("before the build has completed", func() {
 					It("does not clean up the uses", func() {
 						Expect(countResourceCacheUses()).NotTo(BeZero())
-						Expect(collector.Run(context.TODO())).To(Succeed())
+						Expect(collector.Run(context.TODO(), "")).To(Succeed())
 						Expect(countResourceCacheUses()).NotTo(BeZero())
 					})
 				})
@@ -84,8 +84,8 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 					It("cleans up the uses", func() {
 						Expect(countResourceCacheUses()).NotTo(BeZero())
 						Expect(defaultBuild.Finish(db.BuildStatusSucceeded)).To(Succeed())
-						Expect(buildCollector.Run(context.TODO())).To(Succeed())
-						Expect(collector.Run(context.TODO())).To(Succeed())
+						Expect(buildCollector.Run(context.TODO(), "")).To(Succeed())
+						Expect(collector.Run(context.TODO(), "")).To(Succeed())
 						Expect(countResourceCacheUses()).To(BeZero())
 					})
 				})
@@ -94,8 +94,8 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 					It("cleans up the uses", func() {
 						Expect(countResourceCacheUses()).NotTo(BeZero())
 						Expect(defaultBuild.Finish(db.BuildStatusAborted)).To(Succeed())
-						Expect(buildCollector.Run(context.TODO())).To(Succeed())
-						Expect(collector.Run(context.TODO())).To(Succeed())
+						Expect(buildCollector.Run(context.TODO(), "")).To(Succeed())
+						Expect(collector.Run(context.TODO(), "")).To(Succeed())
 						Expect(countResourceCacheUses()).To(BeZero())
 					})
 				})
@@ -105,8 +105,8 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 						It("cleans up the uses", func() {
 							Expect(countResourceCacheUses()).NotTo(BeZero())
 							Expect(defaultBuild.Finish(db.BuildStatusFailed)).To(Succeed())
-							Expect(buildCollector.Run(context.TODO())).To(Succeed())
-							Expect(collector.Run(context.TODO())).To(Succeed())
+							Expect(buildCollector.Run(context.TODO(), "")).To(Succeed())
+							Expect(collector.Run(context.TODO(), "")).To(Succeed())
 							Expect(countResourceCacheUses()).To(BeZero())
 						})
 					})
@@ -150,8 +150,8 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 					It("preserves the uses", func() {
 						Expect(countResourceCacheUses()).NotTo(BeZero())
 						Expect(jobBuild.Finish(db.BuildStatusFailed)).To(Succeed())
-						Expect(buildCollector.Run(context.TODO())).To(Succeed())
-						Expect(collector.Run(context.TODO())).To(Succeed())
+						Expect(buildCollector.Run(context.TODO(), "")).To(Succeed())
+						Expect(collector.Run(context.TODO(), "")).To(Succeed())
 						Expect(countResourceCacheUses()).NotTo(BeZero())
 					})
 				})
@@ -179,14 +179,14 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 
 					It("cleans up the uses", func() {
 						Expect(jobBuild.Finish(db.BuildStatusFailed)).To(Succeed())
-						Expect(buildCollector.Run(context.TODO())).To(Succeed())
-						Expect(collector.Run(context.TODO())).To(Succeed())
+						Expect(buildCollector.Run(context.TODO(), "")).To(Succeed())
+						Expect(collector.Run(context.TODO(), "")).To(Succeed())
 
 						Expect(countResourceCacheUses()).NotTo(BeZero())
 
 						Expect(secondJobBuild.Finish(db.BuildStatusSucceeded)).To(Succeed())
-						Expect(buildCollector.Run(context.TODO())).To(Succeed())
-						Expect(collector.Run(context.TODO())).To(Succeed())
+						Expect(buildCollector.Run(context.TODO(), "")).To(Succeed())
+						Expect(collector.Run(context.TODO(), "")).To(Succeed())
 
 						Expect(countResourceCacheUses()).To(BeZero())
 					})

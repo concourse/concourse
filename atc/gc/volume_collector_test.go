@@ -75,7 +75,7 @@ var _ = Describe("VolumeCollector", func() {
 					missingVolumeGracePeriod,
 				)
 
-				err = volumeCollector.Run(context.TODO())
+				_, err = volumeCollector.Run(context.TODO(), "")
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -99,7 +99,7 @@ var _ = Describe("VolumeCollector", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(failedVolumesLen).To(Equal(1))
 
-				err = volumeCollector.Run(context.TODO())
+				_, err = volumeCollector.Run(context.TODO(), "")
 				Expect(err).NotTo(HaveOccurred())
 
 				failedVolumesLen, err = volumeRepository.DestroyFailedVolumes()
@@ -146,7 +146,7 @@ var _ = Describe("VolumeCollector", func() {
 			})
 
 			It("marks orphaned volumes as 'destroying'", func() {
-				err = volumeCollector.Run(context.TODO())
+				_, err = volumeCollector.Run(context.TODO(), "")
 				Expect(err).NotTo(HaveOccurred())
 
 				destroyingVolumes, err := volumeRepository.GetDestroyingVolumes(worker.Name())

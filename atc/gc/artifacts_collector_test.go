@@ -21,7 +21,7 @@ var _ = Describe("ArtifactCollector", func() {
 
 	Describe("Run", func() {
 		It("tells the artifact lifecycle to remove expired artifacts", func() {
-			err := collector.Run(context.TODO())
+			_, err := collector.Run(context.TODO(), "")
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(fakeArtifactLifecycle.RemoveExpiredArtifactsCallCount()).To(Equal(1))

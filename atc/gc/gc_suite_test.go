@@ -2,6 +2,7 @@ package gc_test
 
 import (
 	"context"
+	"github.com/concourse/concourse/atc/component"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -21,7 +22,7 @@ import (
 )
 
 type GcCollector interface {
-	Run(context.Context) error
+	Run(context.Context, string) (component.RunResult, error)
 }
 
 func TestGc(t *testing.T) {
@@ -67,6 +68,8 @@ var _ = BeforeEach(func() {
 	dbConn = postgresRunner.OpenConn()
 
 	lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton(), fakeLogFunc, fakeLogFunc)
+
+	db.DisableBaseResourceTypeCache()
 
 	builder = dbtest.NewBuilder(dbConn, lockFactory)
 

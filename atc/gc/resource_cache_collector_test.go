@@ -103,14 +103,14 @@ var _ = Describe("ResourceCacheCollector", func() {
 			}
 
 			JustBeforeEach(func() {
-				Expect(buildCollector.Run(context.TODO())).To(Succeed())
-				Expect(resourceCacheUseCollector.Run(context.TODO())).To(Succeed())
-				Expect(collector.Run(context.TODO())).To(Succeed())
+				Expect(buildCollector.Run(context.TODO(), "")).To(Succeed())
+				Expect(resourceCacheUseCollector.Run(context.TODO(), "")).To(Succeed())
+				Expect(collector.Run(context.TODO(), "")).To(Succeed())
 			})
 
 			Context("when the resource cache is still in use", func() {
 				It("does not delete the cache", func() {
-					Expect(collector.Run(context.TODO())).To(Succeed())
+					Expect(collector.Run(context.TODO(), "")).To(Succeed())
 					Expect(resourceCacheExists(oneOffCache)).To(BeTrue())
 					Expect(resourceCacheExists(jobCache)).To(BeTrue())
 				})

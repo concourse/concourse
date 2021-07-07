@@ -22,7 +22,7 @@ var _ = Describe("AccessTokensCollector", func() {
 
 	Describe("Run", func() {
 		It("tells the access token lifecycle to remove expired access tokens", func() {
-			err := collector.Run(context.TODO())
+			_, err := collector.Run(context.TODO(), "")
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(fakeLifecycle.RemoveExpiredAccessTokensCallCount()).To(Equal(1))

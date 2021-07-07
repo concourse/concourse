@@ -51,7 +51,7 @@ var _ = Describe("ContainerCollector", func() {
 		)
 
 		JustBeforeEach(func() {
-			err = collector.Run(context.TODO())
+			_, err = collector.Run(context.TODO(), "")
 		})
 
 		It("succeeds", func() {

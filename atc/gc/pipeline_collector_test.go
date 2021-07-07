@@ -21,7 +21,7 @@ var _ = Describe("PipelineCollector", func() {
 
 	Describe("Run", func() {
 		It("tells the pipeline lifecycle to remove abandoned pipelines", func() {
-			err := collector.Run(context.TODO())
+			_, err := collector.Run(context.TODO(), "")
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(fakePipelineLifecycle.ArchiveAbandonedPipelinesCallCount()).To(Equal(1))
