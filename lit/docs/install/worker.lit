@@ -280,12 +280,12 @@ decide much on its own.
 
     Once an untagged team worker is registered Concourse will schedule all
     untagged builds for that team on its team worker(s). Builds for this team
-    will not be scheduled on any untagged, non-team workers anymore.
+    will no longer be scheduled on any untagged, non-team workers.
 
     It is possible to have a Concourse cluster made up of only team workers and
     have zero non-team workers, though this is not a common setup because
-    resource uitilization across all workers ends up underuitilized. It is
-    useful though if you have a particular team with heavy worloads that
+    resource utilization across all workers ends up underutilized. It is
+    useful though if you have a particular team with heavy workloads that
     usually bothers other teams pipelines.
 
 
@@ -353,28 +353,18 @@ decide much on its own.
       will assume your Concourse installation is at \code{/usr/local/concourse}.
 
       First, pull and create a container of the resource you're
-      installing/upgrading. The container does not need to remain running.
+      installing/upgrading. Grab the ID of the container that Docker creates.
 
       \codeblock{bash}{{
-      docker pull concourse/git-resource
-      docker run concourse/git-resource
+      $ docker run -d concourse/git-resource
+      b253417142565cd5eb43902e94a2cf355d5354b583fbc686488c9a153584c6ba
       }}
 
-      Get the ID of the container that was created.
+      Export the containers file system into a gzip compressed tar archive
+      named \code{rootfs.tgz}
 
       \codeblock{bash}{{
-      $ docker ps -a
-      CONTAINER ID   IMAGE                    COMMAND                  CREATED          STATUS                        PORTS     NAMES
-      a895ae2dbb24   concourse/git-resource   "sh"                     22 minutes ago   Exited (0) 21 minutes ago               frosty_galileo
-      }}
-
-      Export the containers file system into a tar archive. Then gzip compress
-      the tar archive into a file named \code{rootfs.tgz}
-
-      \codeblock{bash}{{
-      docker export a895ae2dbb24 -o rootfs.tar
-      gzip -c rootfs.tar > rootfs.tgz
-      rm rootfs.tar
+      docker export b253417142 | gzip > rootfs.tgz
       }}
 
       Create a file called \code{resource_metadata.json} and populate it with
@@ -494,7 +484,7 @@ decide much on its own.
       }
     }
     \section{
-      \title{{Transitioning from Guardian to containerd}}
+      \title{Transitioning from Guardian to containerd}
 
       If you are transitioning from \code{Guardian} to \code{containerd} you
       will need to convert any \code{--garden-*} (\code{CONCOURSE_GARDEN_*})
