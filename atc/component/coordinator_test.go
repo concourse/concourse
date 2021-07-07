@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"testing"
-	"time"
 )
 
 func TestCoordinator(t *testing.T) {
@@ -62,7 +61,7 @@ func (test CoordinatorTest) Run(s *CoordinatorSuite, action func(*component.Coor
 	fakeComponent.On("Name").Return(componentName)
 	fakeComponent.On("Paused").Return(test.Paused)
 	fakeComponent.On("IntervalElapsed").Return(test.IntervalElapsed)
-	fakeComponent.On("UpdateLastRan").Return(test.UpdateLastRanErr)
+	fakeComponent.On("UpdateLastRan", mock.AnythingOfType("time.Time"), nil).Return(test.UpdateLastRanErr)
 	fakeComponent.On("LastRunResult").Return("")
 
 	fakeComponent.On("Reload").Return(!test.Disappeared, test.ReloadErr).Run(func(mock.Arguments) {
@@ -98,7 +97,7 @@ func (test CoordinatorTest) Run(s *CoordinatorSuite, action func(*component.Coor
 	}
 
 	if test.UpdatesLastRan {
-		fakeComponent.AssertCalled(s.T(), "UpdateLastRan", time.Now(), nil)
+		fakeComponent.AssertCalled(s.T(), "UpdateLastRan", mock.AnythingOfType("time.Time"), nil)
 	} else {
 		fakeComponent.AssertNotCalled(s.T(), "UpdateLastRan")
 	}
