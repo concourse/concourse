@@ -119,6 +119,16 @@ type FakeCheckable struct {
 	lastCheckEndTimeReturnsOnCall map[int]struct {
 		result1 time.Time
 	}
+	LastCheckStartTimeStub        func() time.Time
+	lastCheckStartTimeMutex       sync.RWMutex
+	lastCheckStartTimeArgsForCall []struct {
+	}
+	lastCheckStartTimeReturns struct {
+		result1 time.Time
+	}
+	lastCheckStartTimeReturnsOnCall map[int]struct {
+		result1 time.Time
+	}
 	NameStub        func() string
 	nameMutex       sync.RWMutex
 	nameArgsForCall []struct {
@@ -774,6 +784,59 @@ func (fake *FakeCheckable) LastCheckEndTimeReturnsOnCall(i int, result1 time.Tim
 		})
 	}
 	fake.lastCheckEndTimeReturnsOnCall[i] = struct {
+		result1 time.Time
+	}{result1}
+}
+
+func (fake *FakeCheckable) LastCheckStartTime() time.Time {
+	fake.lastCheckStartTimeMutex.Lock()
+	ret, specificReturn := fake.lastCheckStartTimeReturnsOnCall[len(fake.lastCheckStartTimeArgsForCall)]
+	fake.lastCheckStartTimeArgsForCall = append(fake.lastCheckStartTimeArgsForCall, struct {
+	}{})
+	stub := fake.LastCheckStartTimeStub
+	fakeReturns := fake.lastCheckStartTimeReturns
+	fake.recordInvocation("LastCheckStartTime", []interface{}{})
+	fake.lastCheckStartTimeMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeCheckable) LastCheckStartTimeCallCount() int {
+	fake.lastCheckStartTimeMutex.RLock()
+	defer fake.lastCheckStartTimeMutex.RUnlock()
+	return len(fake.lastCheckStartTimeArgsForCall)
+}
+
+func (fake *FakeCheckable) LastCheckStartTimeCalls(stub func() time.Time) {
+	fake.lastCheckStartTimeMutex.Lock()
+	defer fake.lastCheckStartTimeMutex.Unlock()
+	fake.LastCheckStartTimeStub = stub
+}
+
+func (fake *FakeCheckable) LastCheckStartTimeReturns(result1 time.Time) {
+	fake.lastCheckStartTimeMutex.Lock()
+	defer fake.lastCheckStartTimeMutex.Unlock()
+	fake.LastCheckStartTimeStub = nil
+	fake.lastCheckStartTimeReturns = struct {
+		result1 time.Time
+	}{result1}
+}
+
+func (fake *FakeCheckable) LastCheckStartTimeReturnsOnCall(i int, result1 time.Time) {
+	fake.lastCheckStartTimeMutex.Lock()
+	defer fake.lastCheckStartTimeMutex.Unlock()
+	fake.LastCheckStartTimeStub = nil
+	if fake.lastCheckStartTimeReturnsOnCall == nil {
+		fake.lastCheckStartTimeReturnsOnCall = make(map[int]struct {
+			result1 time.Time
+		})
+	}
+	fake.lastCheckStartTimeReturnsOnCall[i] = struct {
 		result1 time.Time
 	}{result1}
 }
@@ -1497,6 +1560,8 @@ func (fake *FakeCheckable) Invocations() map[string][][]interface{} {
 	defer fake.hasWebhookMutex.RUnlock()
 	fake.lastCheckEndTimeMutex.RLock()
 	defer fake.lastCheckEndTimeMutex.RUnlock()
+	fake.lastCheckStartTimeMutex.RLock()
+	defer fake.lastCheckStartTimeMutex.RUnlock()
 	fake.nameMutex.RLock()
 	defer fake.nameMutex.RUnlock()
 	fake.pipelineMutex.RLock()

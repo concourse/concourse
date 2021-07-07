@@ -85,6 +85,7 @@ var _ = Describe("CheckFactory", func() {
 			Context("when the resource parent type is not a custom type", func() {
 				BeforeEach(func() {
 					fakeResource.TypeReturns("base-type")
+					fakeResource.LastCheckStartTimeReturns(time.Now().Add(defaultCheckInterval))
 				})
 
 				It("returns the build", func() {
@@ -138,6 +139,7 @@ var _ = Describe("CheckFactory", func() {
 			Context("when the resource has a webhook configured", func() {
 				BeforeEach(func() {
 					fakeResource.HasWebhookReturns(true)
+					fakeResource.LastCheckStartTimeReturns(time.Now().Add(-(defaultWebhookCheckInterval / 2)))
 				})
 
 				It("creates a check plan with the default webhook interval", func() {

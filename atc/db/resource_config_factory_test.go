@@ -53,9 +53,9 @@ var _ = Describe("ResourceConfigFactory", func() {
 				Expect(err).ToNot(HaveOccurred())
 			})
 
-			It("returns the same config, but with a newer 'last referenced' time", func() {
+			It("returns the same config, but with the same 'last referenced' time because we only update last_referenced once a minute", func() {
 				Expect(sameConfig.ID()).To(Equal(resourceConfig.ID()))
-				Expect(sameConfig.LastReferenced()).To(BeTemporally(">", resourceConfig.LastReferenced()))
+				Expect(sameConfig.LastReferenced()).To(Equal(resourceConfig.LastReferenced()))
 			})
 		})
 

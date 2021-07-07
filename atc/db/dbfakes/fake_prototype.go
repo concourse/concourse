@@ -21,16 +21,6 @@ type FakePrototype struct {
 	buildSummaryReturnsOnCall map[int]struct {
 		result1 *atc.BuildSummary
 	}
-	CheckApiEndpointStub        func() string
-	checkApiEndpointMutex       sync.RWMutex
-	checkApiEndpointArgsForCall []struct {
-	}
-	checkApiEndpointReturns struct {
-		result1 string
-	}
-	checkApiEndpointReturnsOnCall map[int]struct {
-		result1 string
-	}
 	CheckEveryStub        func() *atc.CheckEvery
 	checkEveryMutex       sync.RWMutex
 	checkEveryArgsForCall []struct {
@@ -400,59 +390,6 @@ func (fake *FakePrototype) BuildSummaryReturnsOnCall(i int, result1 *atc.BuildSu
 	}
 	fake.buildSummaryReturnsOnCall[i] = struct {
 		result1 *atc.BuildSummary
-	}{result1}
-}
-
-func (fake *FakePrototype) CheckApiEndpoint() string {
-	fake.checkApiEndpointMutex.Lock()
-	ret, specificReturn := fake.checkApiEndpointReturnsOnCall[len(fake.checkApiEndpointArgsForCall)]
-	fake.checkApiEndpointArgsForCall = append(fake.checkApiEndpointArgsForCall, struct {
-	}{})
-	stub := fake.CheckApiEndpointStub
-	fakeReturns := fake.checkApiEndpointReturns
-	fake.recordInvocation("CheckApiEndpoint", []interface{}{})
-	fake.checkApiEndpointMutex.Unlock()
-	if stub != nil {
-		return stub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fakeReturns.result1
-}
-
-func (fake *FakePrototype) CheckApiEndpointCallCount() int {
-	fake.checkApiEndpointMutex.RLock()
-	defer fake.checkApiEndpointMutex.RUnlock()
-	return len(fake.checkApiEndpointArgsForCall)
-}
-
-func (fake *FakePrototype) CheckApiEndpointCalls(stub func() string) {
-	fake.checkApiEndpointMutex.Lock()
-	defer fake.checkApiEndpointMutex.Unlock()
-	fake.CheckApiEndpointStub = stub
-}
-
-func (fake *FakePrototype) CheckApiEndpointReturns(result1 string) {
-	fake.checkApiEndpointMutex.Lock()
-	defer fake.checkApiEndpointMutex.Unlock()
-	fake.CheckApiEndpointStub = nil
-	fake.checkApiEndpointReturns = struct {
-		result1 string
-	}{result1}
-}
-
-func (fake *FakePrototype) CheckApiEndpointReturnsOnCall(i int, result1 string) {
-	fake.checkApiEndpointMutex.Lock()
-	defer fake.checkApiEndpointMutex.Unlock()
-	fake.CheckApiEndpointStub = nil
-	if fake.checkApiEndpointReturnsOnCall == nil {
-		fake.checkApiEndpointReturnsOnCall = make(map[int]struct {
-			result1 string
-		})
-	}
-	fake.checkApiEndpointReturnsOnCall[i] = struct {
-		result1 string
 	}{result1}
 }
 
@@ -2057,8 +1994,6 @@ func (fake *FakePrototype) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.buildSummaryMutex.RLock()
 	defer fake.buildSummaryMutex.RUnlock()
-	fake.checkApiEndpointMutex.RLock()
-	defer fake.checkApiEndpointMutex.RUnlock()
 	fake.checkEveryMutex.RLock()
 	defer fake.checkEveryMutex.RUnlock()
 	fake.checkPlanMutex.RLock()

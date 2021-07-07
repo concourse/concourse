@@ -25,6 +25,13 @@ type baseResourceTypeTableRaw struct {
 	lastLoadTime time.Time
 }
 
+var (
+	baseResourceTypeTable = &baseResourceTypeTableRaw{
+		tableByName: map[string]baseResourceTypeRaw{},
+	}
+	disableBaseResourceTypeCache = false // this flag is mostly used for unit tests.
+)
+
 func (table *baseResourceTypeTableRaw) findByName(runner sq.Runner, name string) (baseResourceTypeRaw, bool, error) {
 	err := table.reloadIfNeeded(runner)
 	if err != nil {
@@ -39,7 +46,7 @@ func (table *baseResourceTypeTableRaw) findByName(runner sq.Runner, name string)
 }
 
 func (table *baseResourceTypeTableRaw) reloadIfNeeded(runner sq.Runner) error {
-	if table.lastLoadTime.Add(3 * time.Minute).After(time.Now()) {
+	if !disableBaseResourceTypeCache && table.lastLoadTime.Add(3 * time.Minute).After(time.Now()) {
 		return nil
 	}
 
@@ -50,6 +57,8 @@ func (table *baseResourceTypeTableRaw) reloadIfNeeded(runner sq.Runner) error {
 	if err != nil {
 		return err
 	}
+
+	defer rows.Close()
 
 	table.rwLock.Lock()
 	defer table.rwLock.Unlock()
@@ -69,8 +78,8 @@ func (table *baseResourceTypeTableRaw) reloadIfNeeded(runner sq.Runner) error {
 	return nil
 }
 
-var baseResourceTypeTable = &baseResourceTypeTableRaw{
-	tableByName: map[string]baseResourceTypeRaw{},
+func DisableBaseResourceTypeCache() {
+	disableBaseResourceTypeCache = true
 }
 
 // BaseResourceType represents a resource type provided by workers.
