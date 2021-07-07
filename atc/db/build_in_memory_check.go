@@ -34,8 +34,10 @@ type inMemoryCheckBuild struct {
 
 	// reallyRun makes a check build really executed in a container on a worker.
 	reallyRun bool
-	dbInited bool
+	dbInited  bool
+
 	cacheEvents []atc.Event
+	eventIdSeq  int
 
 	cacheAssociatedTeams []string
 }
@@ -67,7 +69,7 @@ func newRunningInMemoryCheckBuild(conn Conn, checkable Checkable, plan atc.Plan,
 }
 
 func newExistingInMemoryCheckBuild(conn Conn, buildId int, checkable Checkable) *inMemoryCheckBuild {
-	build :=  inMemoryCheckBuild{
+	build := inMemoryCheckBuild{
 		id:        buildId,
 		conn:      conn,
 		checkable: checkable,
@@ -187,13 +189,7 @@ func (b *inMemoryCheckBuild) Finish(status BuildStatus) error {
 		return err
 	}
 
-	_, err = tx.Exec(fmt.Sprintf(`
-		DROP SEQUENCE %s
-	`, buildEventSeq(b.id)))
-	if err != nil {
-		return err
-	}
-
+	// Release the containers using in this build, so that they can be GC-ed.
 	_, err = psql.Update("containers").
 		Set("in_memory_check_build_id", nil).
 		Where(sq.Eq{"in_memory_check_build_id": b.id}).
@@ -228,9 +224,11 @@ func (b *inMemoryCheckBuild) saveEvent(tx Tx, event atc.Event) error {
 
 	_, err = psql.Insert("check_build_events").
 		Columns("event_id", "build_id", "type", "version", "payload").
-		Values(sq.Expr("nextval('"+buildEventSeq(b.id)+"')"), b.id, string(event.EventType()), string(event.Version()), payload).
+		Values(b.eventIdSeq, b.id, string(event.EventType()), string(event.Version()), payload).
 		RunWith(tx).
 		Exec()
+	b.eventIdSeq++
+
 	return err
 }
 
@@ -384,19 +382,15 @@ func (b *inMemoryCheckBuild) AllAssociatedTeamNames() []string {
 }
 
 func (b *inMemoryCheckBuild) initDbStuff(tx Tx) error {
-	err := createBuildEventSeq(tx, b.id)
-	if err != nil {
-		return err
-	}
-
 	for _, cachedEv := range b.cacheEvents {
-		err = b.saveEvent(tx, cachedEv)
+		err := b.saveEvent(tx, cachedEv)
 		if err != nil {
 			return err
 		}
 	}
 
 	b.dbInited = true
+	b.cacheEvents = []atc.Event{}
 
 	return nil
 }
