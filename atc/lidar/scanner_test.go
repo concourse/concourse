@@ -3,7 +3,7 @@ package lidar_test
 import (
 	"context"
 	"errors"
-	"time"
+	"github.com/concourse/concourse/atc/component"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -14,7 +14,7 @@ import (
 )
 
 type Scanner interface {
-	Run(ctx context.Context) error
+	Run(ctx context.Context, lastRunResult string) (component.RunResult, error)
 }
 
 var _ = Describe("Scanner", func() {
@@ -31,11 +31,11 @@ var _ = Describe("Scanner", func() {
 		planFactory = atc.NewPlanFactory(0)
 		fakeCheckFactory = new(dbfakes.FakeCheckFactory)
 
-		scanner = lidar.NewScanner(fakeCheckFactory, planFactory)
+		scanner = lidar.NewScanner(fakeCheckFactory, planFactory, 1)
 	})
 
 	JustBeforeEach(func() {
-		err = scanner.Run(context.TODO())
+		_, err = scanner.Run(context.TODO(), "")
 	})
 
 	Describe("Run", func() {
