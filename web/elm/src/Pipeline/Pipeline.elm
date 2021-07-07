@@ -50,7 +50,7 @@ import Pipeline.Styles as Styles
 import RemoteData exposing (WebData)
 import Routes
 import SideBar.SideBar as SideBar
-import StrictEvents exposing (onLeftClickOrShiftLeftClick)
+import StrictEvents exposing (onShiftLeftClick)
 import Svg
 import Svg.Attributes as SvgAttributes
 import Tooltip
@@ -332,9 +332,6 @@ update msg ( model, effects ) =
                             model
                    ]
             )
-
-        SetGroups groups ->
-            ( model, effects ++ [ NavigateTo <| getNextUrl groups model ] )
 
         Click (TopBarPauseToggle pipelineIdentifier) ->
             let
@@ -655,9 +652,7 @@ viewGroup { selectedGroups, pipelineLocator, hovered } idx grp =
     in
     Html.a
         ([ Html.Attributes.href <| url
-         , onLeftClickOrShiftLeftClick
-            (SetGroups [ grp.name ])
-            (ToggleGroup grp)
+         , onShiftLeftClick (ToggleGroup grp)
          , onMouseEnter <| Hover <| Just <| JobGroup idx
          , onMouseLeave <| Hover Nothing
          ]

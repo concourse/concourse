@@ -10,6 +10,7 @@ module StrictEvents exposing
     , onLeftMouseDownCapturing
     , onMouseEnterStopPropagation
     , onScroll
+    , onShiftLeftClick
     , onWheel
     )
 
@@ -75,6 +76,24 @@ onLeftClickCapturing preventDefault stopPropagation captured msg =
                                         }
                                     )
                                     captured
+                            )
+                )
+        )
+
+
+onShiftLeftClick : msg -> Html.Attribute msg
+onShiftLeftClick msg =
+    Html.Events.custom "click"
+        (assertLeftButton
+            |> Json.Decode.andThen
+                (\_ ->
+                    assert "shiftKey"
+                        |> Json.Decode.map
+                            (\_ ->
+                                { message = msg
+                                , stopPropagation = False
+                                , preventDefault = True
+                                }
                             )
                 )
         )
@@ -186,6 +205,17 @@ assertNoModifier =
                                     )
                         )
             )
+
+
+assert : String -> Json.Decode.Decoder ()
+assert prop =
+    customDecoder (Json.Decode.field prop Json.Decode.bool) <|
+        \val ->
+            if val then
+                Ok ()
+
+            else
+                Err (prop ++ " not used - skipping")
 
 
 assertNo : String -> Json.Decode.Decoder ()

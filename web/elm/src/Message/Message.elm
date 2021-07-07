@@ -1,9 +1,10 @@
 module Message.Message exposing
-    ( DomID(..)
+    ( CommentBarButtonKind(..)
+    , DomID(..)
     , DropTarget(..)
     , Message(..)
     , PipelinesSection(..)
-    , VersionId,CommentBarButtonKind(..)
+    , VersionId
     , VersionToggleAction(..)
     , VisibilityAction(..)
     )
@@ -23,7 +24,6 @@ type Message
     | BlurMsg
       -- Pipeline
     | ToggleGroup Concourse.PipelineGroup
-    | SetGroups (List String)
       -- Dashboard
     | DragStart Dashboard.Group.Models.Card
     | DragOver DropTarget
