@@ -1,6 +1,7 @@
 package builds_test
 
 import (
+	"code.cloudfoundry.org/lager/lagertest"
 	"context"
 	"io/ioutil"
 	"testing"
@@ -29,6 +30,8 @@ type TrackerSuite struct {
 
 	tracker *builds.Tracker
 	buildChan chan db.Build
+
+	logger                    *lagertest.TestLogger
 }
 
 func TestTracker(t *testing.T) {
@@ -38,11 +41,13 @@ func TestTracker(t *testing.T) {
 }
 
 func (s *TrackerSuite) SetupTest() {
+	s.logger = lagertest.NewTestLogger("test")
 	s.fakeBuildFactory = new(dbfakes.FakeBuildFactory)
 	s.fakeEngine = new(buildsfakes.FakeEngine)
 	s.buildChan = make(chan db.Build, 10)
 
 	s.tracker = builds.NewTracker(
+		s.logger,
 		s.fakeBuildFactory,
 		s.fakeEngine,
 		s.buildChan,
@@ -69,7 +74,7 @@ func (s *TrackerSuite) TestTrackRunsStartedBuilds() {
 		return engineBuild
 	}
 
-	err := s.tracker.Run(context.TODO())
+	_, err := s.tracker.Run(context.TODO(), "")
 	s.NoError(err)
 
 	s.ElementsMatch([]int{
@@ -112,7 +117,7 @@ func (s *TrackerSuite) TestTrackerDoesntCrashWhenOneBuildPanic() {
 		return fakeEngineBuild
 	}
 
-	err := s.tracker.Run(context.TODO())
+	_, err := s.tracker.Run(context.TODO(), "")
 	s.NoError(err)
 
 	s.ElementsMatch([]int{
@@ -151,12 +156,12 @@ func (s *TrackerSuite) TestTrackDoesntTrackAlreadyRunningBuilds() {
 		return engineBuild
 	}
 
-	err := s.tracker.Run(context.TODO())
+	_, err := s.tracker.Run(context.TODO(), "")
 	s.NoError(err)
 
 	<-running
 
-	err = s.tracker.Run(context.TODO())
+	_, err = s.tracker.Run(context.TODO(), "")
 	s.NoError(err)
 
 	select {
