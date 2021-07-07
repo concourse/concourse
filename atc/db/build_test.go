@@ -2472,6 +2472,46 @@ var _ = Describe("Build", func() {
 				Expect(pipeline.ParentBuildID()).To(Equal(build.ID()))
 			})
 		})
+
+		It("unpauses the pipeline if it was previously archived", func() {
+			By("creating and archiving a pipeline")
+			pipeline, _, err := defaultTeam.SavePipeline(defaultPipelineRef, defaultPipelineConfig, db.ConfigVersion(1), false)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = pipeline.Archive()
+			Expect(err).ToNot(HaveOccurred())
+
+			_, err = pipeline.Reload()
+			Expect(err).ToNot(HaveOccurred())
+
+			By("setting the pipeline again via a build")
+			build, err := defaultJob.CreateBuild(defaultBuildCreatedBy)
+			Expect(err).ToNot(HaveOccurred())
+			pipeline, _, err = build.SavePipeline(defaultPipelineRef, build.TeamID(), defaultPipelineConfig, pipeline.ConfigVersion(), false)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(pipeline.Paused()).To(BeFalse())
+		})
+
+		It("does not unpause the pipeline if it was previously paused", func() {
+			By("creating and pausing a pipeline")
+			pipeline, _, err := defaultTeam.SavePipeline(defaultPipelineRef, defaultPipelineConfig, db.ConfigVersion(1), false)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = pipeline.Pause()
+			Expect(err).ToNot(HaveOccurred())
+
+			_, err = pipeline.Reload()
+			Expect(err).ToNot(HaveOccurred())
+
+			By("setting the pipeline again via a build")
+			build, err := defaultJob.CreateBuild(defaultBuildCreatedBy)
+			Expect(err).ToNot(HaveOccurred())
+			pipeline, _, err = build.SavePipeline(defaultPipelineRef, build.TeamID(), defaultPipelineConfig, pipeline.ConfigVersion(), false)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(pipeline.Paused()).To(BeTrue())
+		})
 	})
 })
 
