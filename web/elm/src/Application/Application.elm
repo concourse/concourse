@@ -460,6 +460,7 @@ subscriptions : Model -> List Subscription
 subscriptions model =
     [ OnNonHrefLinkClicked
     , OnLocalStorageReceived
+    , OnCacheReceived
     , OnWindowResize
     ]
         ++ (if model.session.draggingSideBar then

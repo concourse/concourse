@@ -32,12 +32,14 @@ import Message.Message
 import Message.ScrollDirection exposing (ScrollDirection(..))
 import Message.Storage
     exposing
-        ( deleteFromLocalStorage
+        ( deleteFromCache
         , favoritedInstanceGroupsKey
         , favoritedPipelinesKey
         , jobsKey
+        , loadFromCache
         , loadFromLocalStorage
         , pipelinesKey
+        , saveToCache
         , saveToLocalStorage
         , sideBarStateKey
         , teamsKey
@@ -672,22 +674,22 @@ runEffect effect key csrfToken =
             loadFromLocalStorage sideBarStateKey
 
         SaveCachedJobs jobs ->
-            saveToLocalStorage ( jobsKey, jobs |> Json.Encode.list encodeJob )
+            saveToCache ( jobsKey, jobs |> Json.Encode.list encodeJob )
 
         LoadCachedJobs ->
-            loadFromLocalStorage jobsKey
+            loadFromCache jobsKey
 
         DeleteCachedJobs ->
-            deleteFromLocalStorage jobsKey
+            deleteFromCache jobsKey
 
         SaveCachedPipelines pipelines ->
-            saveToLocalStorage ( pipelinesKey, pipelines |> Json.Encode.list encodePipeline )
+            saveToCache ( pipelinesKey, pipelines |> Json.Encode.list encodePipeline )
 
         LoadCachedPipelines ->
-            loadFromLocalStorage pipelinesKey
+            loadFromCache pipelinesKey
 
         DeleteCachedPipelines ->
-            deleteFromLocalStorage pipelinesKey
+            deleteFromCache pipelinesKey
 
         SaveFavoritedPipelines pipelineIDs ->
             saveToLocalStorage
@@ -712,13 +714,13 @@ runEffect effect key csrfToken =
             loadFromLocalStorage favoritedInstanceGroupsKey
 
         SaveCachedTeams teams ->
-            saveToLocalStorage ( teamsKey, teams |> Json.Encode.list encodeTeam )
+            saveToCache ( teamsKey, teams |> Json.Encode.list encodeTeam )
 
         LoadCachedTeams ->
-            loadFromLocalStorage teamsKey
+            loadFromCache teamsKey
 
         DeleteCachedTeams ->
-            deleteFromLocalStorage teamsKey
+            deleteFromCache teamsKey
 
         GetViewportOf domID ->
             Browser.Dom.getViewportOf (toHtmlID domID)

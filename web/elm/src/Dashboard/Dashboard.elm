@@ -281,9 +281,6 @@ handleCallback callback ( model, effects ) =
                         |> Dict.fromList
                         |> Fetched
 
-                maxJobsInCache =
-                    1000
-
                 mapToJobIds jobsResult =
                     jobsResult
                         |> FetchResult.map (Dict.toList >> List.map Tuple.first)
@@ -298,7 +295,6 @@ handleCallback callback ( model, effects ) =
                 ( newModel |> precomputeJobMetadata
                 , effects
                     ++ [ allJobsInEntireCluster
-                            |> List.take maxJobsInCache
                             |> List.map removeBuild
                             |> SaveCachedJobs
                        ]

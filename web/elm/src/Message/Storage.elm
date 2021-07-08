@@ -1,13 +1,17 @@
 port module Message.Storage exposing
     ( Key
     , Value
+    , deleteFromCache
     , deleteFromLocalStorage
     , favoritedInstanceGroupsKey
     , favoritedPipelinesKey
     , jobsKey
+    , loadFromCache
     , loadFromLocalStorage
     , pipelinesKey
+    , receivedFromCache
     , receivedFromLocalStorage
+    , saveToCache
     , saveToLocalStorage
     , sideBarStateKey
     , teamsKey
@@ -22,10 +26,14 @@ type alias Key =
 
 
 type alias Value =
-    String
+    Json.Encode.Value
 
 
-port saveToLocalStorage : ( Key, Json.Encode.Value ) -> Cmd msg
+
+-- Uses localStorage: https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage
+
+
+port saveToLocalStorage : ( Key, Value ) -> Cmd msg
 
 
 port deleteFromLocalStorage : Key -> Cmd msg
@@ -35,6 +43,22 @@ port loadFromLocalStorage : Key -> Cmd msg
 
 
 port receivedFromLocalStorage : (( Key, Value ) -> msg) -> Sub msg
+
+
+
+-- Uses the browser cache API: https://developer.mozilla.org/en-US/docs/Web/API/Cache
+
+
+port saveToCache : ( Key, Value ) -> Cmd msg
+
+
+port deleteFromCache : Key -> Cmd msg
+
+
+port loadFromCache : Key -> Cmd msg
+
+
+port receivedFromCache : (( Key, Value ) -> msg) -> Sub msg
 
 
 sideBarStateKey : Key

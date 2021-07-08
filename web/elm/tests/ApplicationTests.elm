@@ -29,6 +29,11 @@ all =
                 Common.init "/teams/t/pipelines/p/"
                     |> Application.subscriptions
                     |> Common.contains Subscription.OnLocalStorageReceived
+        , test "subscribes to browser cache" <|
+            \_ ->
+                Common.init "/teams/t/pipelines/p/"
+                    |> Application.subscriptions
+                    |> Common.contains Subscription.OnCacheReceived
         , test "loads favorited pipelines/instance groups on init" <|
             \_ ->
                 Application.init
