@@ -32,9 +32,9 @@ type inMemoryCheckBuild struct {
 	running bool
 	conn    Conn
 
-	// reallyRun makes a check build really executed in a container on a worker.
-	reallyRun bool
-	dbInited  bool
+	// runningInContainer makes a check build really executed in a container on a worker.
+	runningInContainer bool
+	dbInited           bool
 
 	cacheEvents []atc.Event
 	eventIdSeq  int
@@ -171,7 +171,7 @@ func (b *inMemoryCheckBuild) Finish(status BuildStatus) error {
 		panic("not a running in-memory-check-build")
 	}
 
-	if !b.reallyRun {
+	if !b.runningInContainer {
 		return nil
 	}
 
@@ -250,10 +250,10 @@ func (b *inMemoryCheckBuild) SaveEvent(ev atc.Event) error {
 	}
 
 	if ev.EventType() == event.EventTypeSelectedWorker {
-		b.reallyRun = true
+		b.runningInContainer = true
 	}
 
-	if !b.reallyRun {
+	if !b.runningInContainer {
 		b.cacheEvents = append(b.cacheEvents, ev)
 		return nil
 	}
@@ -316,8 +316,7 @@ func (b *inMemoryCheckBuild) HasPlan() bool {
 	if b.plan.ID != "" {
 		return true
 	}
-	resource, ok := b.checkable.(Resource)
-	return ok && resource.BuildSummary() != nil && resource.BuildSummary().PublicPlan != nil
+	return b.checkable != nil && b.checkable.BuildSummary() != nil && b.checkable.BuildSummary().PublicPlan != nil
 }
 
 func (b *inMemoryCheckBuild) PublicPlan() *json.RawMessage {

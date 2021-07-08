@@ -133,7 +133,7 @@ func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, 
 			return nil, false, err
 		}
 
-		logger.Info("created-in-memory-check-build", build.LagerData())
+		logger.Debug("created-in-memory-check-build", build.LagerData())
 		c.checkBuildChan <- build
 
 		return build, true, nil

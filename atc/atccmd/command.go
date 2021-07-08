@@ -150,7 +150,6 @@ type RunCommand struct {
 	ResourceCheckingInterval            time.Duration `long:"resource-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources."`
 	ResourceWithWebhookCheckingInterval time.Duration `long:"resource-with-webhook-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources that has webhook defined."`
 	MaxChecksPerSecond                  int           `long:"max-checks-per-second" description:"Maximum number of checks that can be started per second. If not specified, this will be calculated as (# of resources)/(resource checking interval). -1 value will remove this maximum limit of checks per second."`
-	InMemoryCheckBuildQueueSize         int           `long:"in-memory-check-build-queue-size" description:"Max in-memory check build can be queued" default:"1000"`
 
 	ContainerPlacementStrategyOptions worker.PlacementOptions `group:"Container Placement Strategy"`
 
@@ -683,7 +682,7 @@ func (cmd *RunCommand) constructMembers(
 	}
 
 	workerCache, err := db.NewWorkerCache(logger.Session("worker-cache"), backendConn, 1*time.Minute)
-	checkBuildsChan := make(chan db.Build, 5000) // TODO: make 5000 configurable
+	checkBuildsChan := make(chan db.Build, 2000)
 	apiMembers, err := cmd.constructAPIMembers(logger, reconfigurableSink, apiConn, workerConn, storage, lockFactory, secretManager, policyChecker, workerCache, checkBuildsChan)
 	if err != nil {
 		return nil, err
@@ -1631,8 +1630,8 @@ func constructLockConn(driverName, connectionString string) (*sql.DB, error) {
 		return nil, err
 	}
 
-	dbConn.SetMaxOpenConns(10)
-	dbConn.SetMaxIdleConns(10)
+	dbConn.SetMaxOpenConns(1)
+	dbConn.SetMaxIdleConns(1)
 	dbConn.SetConnMaxLifetime(0)
 
 	return dbConn, nil

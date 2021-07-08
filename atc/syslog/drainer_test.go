@@ -83,7 +83,7 @@ var _ = Describe("Drainer", func() {
 
 			It("drains all build events by tcp", func() {
 				testDrainer := syslog.NewDrainer("tcp", server.Addr, "test", []string{}, fakeBuildFactory)
-				err := testDrainer.Run(context.TODO())
+				_, err := testDrainer.Run(context.TODO(), "")
 				Expect(err).NotTo(HaveOccurred())
 
 				got := <-server.Messages
