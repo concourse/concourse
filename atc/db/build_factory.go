@@ -54,11 +54,21 @@ func (f *buildFactory) Build(buildID int) (Build, bool, error) {
 			}
 
 			if !found {
-				return nil, false, nil
+				resourceType, found, err := f.findResourceTypeOfInMemoryCheckBuild(buildID)
+				if err != nil {
+					return nil, false, err
+				}
+
+				if !found {
+					return nil, false, nil
+				}
+
+				return newExistingInMemoryCheckBuild(f.conn, buildID, resourceType), true, nil
 			}
 
 			return newExistingInMemoryCheckBuild(f.conn, buildID, resource), true, nil
 		}
+
 		return nil, false, err
 	}
 
@@ -156,6 +166,23 @@ func (f *buildFactory) findResourceOfInMemoryCheckBuild(buildId int) (Resource, 
 		return nil, false, err
 	}
 	return resource, true, nil
+}
+
+func (f *buildFactory) findResourceTypeOfInMemoryCheckBuild(buildId int) (ResourceType, bool, error) {
+	resourceType := newEmptyResourceType(f.conn, f.lockFactory)
+	row := resourceTypesQuery.
+		Where(sq.Eq{"ro.last_check_build_id": buildId}).
+		Limit(1).
+		RunWith(f.conn).
+		QueryRow()
+	err := scanResourceType(resourceType, row)
+	if err == sql.ErrNoRows {
+		return nil, false, nil
+	}
+	if err != nil {
+		return nil, false, err
+	}
+	return resourceType, true, nil
 }
 
 func getBuilds(buildsQuery sq.SelectBuilder, conn Conn, lockFactory lock.LockFactory) ([]Build, error) {

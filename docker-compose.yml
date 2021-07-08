@@ -24,7 +24,7 @@ services:
       CONCOURSE_TSA_AUTHORIZED_KEYS: /concourse-keys/authorized_worker_keys
       CONCOURSE_TSA_HOST_KEY: /concourse-keys/tsa_host_key
 
-      CONCOURSE_LOG_LEVEL: debug
+      CONCOURSE_LOG_LEVEL: info
       CONCOURSE_POSTGRES_HOST: db
       CONCOURSE_POSTGRES_USER: dev
       CONCOURSE_POSTGRES_PASSWORD: dev

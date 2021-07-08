@@ -43,7 +43,8 @@ var (
 	buildFactory           db.BuildFactory
 	lockFactory            lock.LockFactory
 
-	teamFactory db.TeamFactory
+	teamFactory   db.TeamFactory
+	workerFactory db.WorkerFactory
 
 	defaultTeam        db.Team
 	defaultPipeline    db.Pipeline
@@ -65,16 +66,42 @@ var _ = postgresrunner.GinkgoRunner(&postgresRunner)
 var _ = BeforeEach(func() {
 	postgresRunner.CreateTestDBFromTemplate()
 
+	logger = lagertest.NewTestLogger("gc-test")
+
 	dbConn = postgresRunner.OpenConn()
 
 	lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton(), fakeLogFunc, fakeLogFunc)
 
-	db.DisableBaseResourceTypeCache()
-
 	builder = dbtest.NewBuilder(dbConn, lockFactory)
 
 	teamFactory = db.NewTeamFactory(dbConn, lockFactory)
+	workerFactory = db.NewWorkerFactory(dbConn)
 	buildFactory = db.NewBuildFactory(dbConn, lockFactory, 0, time.Hour)
+
+	resourceCacheLifecycle = db.NewResourceCacheLifecycle(dbConn)
+	resourceCacheFactory = db.NewResourceCacheFactory(dbConn, lockFactory)
+	resourceConfigFactory = db.NewResourceConfigFactory(dbConn, lockFactory)
+
+	defaultWorkerResourceType := atc.WorkerResourceType{
+		Type:    "some-base-type",
+		Image:   "/path/to/image",
+		Version: "some-brt-version",
+	}
+
+	certsPath := "/etc/ssl/certs"
+	defaultWorkerPayload := atc.Worker{
+		Name:            "default-worker",
+		GardenAddr:      "1.2.3.4:7777",
+		BaggageclaimURL: "5.6.7.8:7878",
+		CertsPath:       &certsPath,
+
+		ResourceTypes: []atc.WorkerResourceType{
+			defaultWorkerResourceType,
+		},
+	}
+
+	_, err = workerFactory.SaveWorker(defaultWorkerPayload, 0)
+	Expect(err).NotTo(HaveOccurred())
 
 	defaultTeam, err = teamFactory.CreateTeam(atc.Team{Name: "default-team"})
 	Expect(err).NotTo(HaveOccurred())
@@ -124,23 +151,18 @@ var _ = BeforeEach(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(found).To(BeTrue())
 
-	setupTx, err := dbConn.Begin()
-	Expect(err).ToNot(HaveOccurred())
+	//setupTx, err := dbConn.Begin()
+	//Expect(err).ToNot(HaveOccurred())
 
-	baseResourceType := db.BaseResourceType{
-		Name: "some-base-type",
-	}
+	//baseResourceType := db.BaseResourceType{
+	//	Name: "some-base-type",
+	//}
 
-	_, err = baseResourceType.FindOrCreate(setupTx, false)
-	Expect(err).NotTo(HaveOccurred())
+	//_, err = baseResourceType.FindOrCreate(setupTx, false)
+	//Expect(err).NotTo(HaveOccurred())
 
-	Expect(setupTx.Commit()).To(Succeed())
+	//Expect(setupTx.Commit()).To(Succeed())
 
-	logger = lagertest.NewTestLogger("gc-test")
-
-	resourceCacheLifecycle = db.NewResourceCacheLifecycle(dbConn)
-	resourceCacheFactory = db.NewResourceCacheFactory(dbConn, lockFactory)
-	resourceConfigFactory = db.NewResourceConfigFactory(dbConn, lockFactory)
 })
 
 var _ = AfterEach(func() {
