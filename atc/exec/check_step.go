@@ -300,13 +300,13 @@ func (step *CheckStep) runCheck(
 	}.Check(ctx, container, delegate.Stderr())
 }
 
-func (step *CheckStep) containerOwner(resourceConfig db.ResourceConfig) db.ContainerOwner {
+func (step *CheckStep) containerOwner(delegate CheckDelegate, resourceConfig db.ResourceConfig) db.ContainerOwner {
 	if step.plan.Resource == "" && step.plan.ResourceType == "" {
-		return db.NewBuildStepContainerOwner(
-			step.metadata.BuildID,
-			step.planID,
-			step.metadata.TeamID,
-		)
+		return delegate.ContainerOwner(step.planID)
+	}
+
+	if resourceConfig.CreatedByBaseResourceType() != nil && resourceConfig.CreatedByBaseResourceType().UniqueVersionHistory {
+		return delegate.ContainerOwner(step.planID)
 	}
 
 	expires := db.ContainerOwnerExpiries{

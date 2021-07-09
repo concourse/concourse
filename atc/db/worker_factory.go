@@ -328,12 +328,12 @@ func (f *workerFactory) SaveWorker(atcWorker atc.Worker, ttl time.Duration) (Wor
 		return nil, err
 	}
 
+	baseResourceTypeTable.reloadIfNeeded(tx, true)
+
 	err = tx.Commit()
 	if err != nil {
 		return nil, err
 	}
-
-	//baseResourceTypeTable.reloadIfNeeded(f.conn, true)
 
 	return savedWorker, nil
 }

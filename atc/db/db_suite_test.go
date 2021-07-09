@@ -103,8 +103,7 @@ var _ = BeforeEach(func() {
 	postgresRunner.CreateTestDBFromTemplate()
 
 	dbConn = postgresRunner.OpenConn()
-
-	//db.DisableBaseResourceTypeCache()
+	db.DisableBaseResourceTypeCache()
 
 	lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton(), metric.LogLockAcquired, metric.LogLockReleased)
 

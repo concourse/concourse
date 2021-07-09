@@ -30,7 +30,15 @@ var (
 	baseResourceTypeTable = &baseResourceTypeTableRaw{
 		tableByName: map[string]baseResourceTypeRaw{},
 	}
+	disableBaseResourceTypeCache bool
 )
+
+// DisableBaseResourceTypeCache provides a way to turn off the cache because
+// using a global cache is not friendly to unit tests. This function should
+// only be used in unit tests.
+func DisableBaseResourceTypeCache() {
+	disableBaseResourceTypeCache = true
+}
 
 func (table *baseResourceTypeTableRaw) findByName(runner sq.Runner, name string) (baseResourceTypeRaw, bool, error) {
 	err := table.reloadIfNeeded(runner, false)
@@ -46,7 +54,7 @@ func (table *baseResourceTypeTableRaw) findByName(runner sq.Runner, name string)
 }
 
 func (table *baseResourceTypeTableRaw) reloadIfNeeded(runner sq.Runner, force bool) error {
-	if !force && table.lastLoadTime.Add(3*time.Minute).After(time.Now()) {
+	if !force && table.lastLoadTime.Add(2*time.Minute).After(time.Now()) {
 		return nil
 	}
 
@@ -116,12 +124,14 @@ func (brt BaseResourceType) FindOrCreate(tx Tx, unique bool) (*UsedBaseResourceT
 }
 
 func (brt BaseResourceType) Find(runner sq.Runner) (*UsedBaseResourceType, bool, error) {
-	//brtRaw, found, err := baseResourceTypeTable.findByName(runner, brt.Name)
-	//if err != nil || !found {
-	//	return nil, found, err
-	//}
-	//
-	//return &UsedBaseResourceType{ID: brtRaw.id, Name: brtRaw.name, UniqueVersionHistory: brtRaw.uniqueVersionHistory}, true, nil
+	if !disableBaseResourceTypeCache {
+		brtRaw, found, err := baseResourceTypeTable.findByName(runner, brt.Name)
+		if err != nil || !found {
+			return nil, found, err
+		}
+
+		return &UsedBaseResourceType{ID: brtRaw.id, Name: brtRaw.name, UniqueVersionHistory: brtRaw.uniqueVersionHistory}, true, nil
+	}
 
 	var id int
 	var unique bool

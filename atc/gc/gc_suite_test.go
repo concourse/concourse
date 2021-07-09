@@ -69,6 +69,7 @@ var _ = BeforeEach(func() {
 	logger = lagertest.NewTestLogger("gc-test")
 
 	dbConn = postgresRunner.OpenConn()
+	db.DisableBaseResourceTypeCache()
 
 	lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton(), fakeLogFunc, fakeLogFunc)
 
@@ -150,19 +151,6 @@ var _ = BeforeEach(func() {
 	usedResourceType, found, err = defaultPipeline.ResourceType("some-resource-type")
 	Expect(err).NotTo(HaveOccurred())
 	Expect(found).To(BeTrue())
-
-	//setupTx, err := dbConn.Begin()
-	//Expect(err).ToNot(HaveOccurred())
-
-	//baseResourceType := db.BaseResourceType{
-	//	Name: "some-base-type",
-	//}
-
-	//_, err = baseResourceType.FindOrCreate(setupTx, false)
-	//Expect(err).NotTo(HaveOccurred())
-
-	//Expect(setupTx.Commit()).To(Succeed())
-
 })
 
 var _ = AfterEach(func() {
