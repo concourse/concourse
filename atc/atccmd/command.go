@@ -681,12 +681,17 @@ func (cmd *RunCommand) constructMembers(
 		return nil, err
 	}
 
-	apiMembers, err := cmd.constructAPIMembers(logger, reconfigurableSink, apiConn, workerConn, storage, lockFactory, secretManager, policyChecker)
+	workerCache, err := db.NewWorkerCache(logger.Session("worker-cache"), backendConn, 1*time.Minute)
 	if err != nil {
 		return nil, err
 	}
 
-	backendComponents, err := cmd.backendComponents(logger, backendConn, lockFactory, secretManager, policyChecker)
+	apiMembers, err := cmd.constructAPIMembers(logger, reconfigurableSink, apiConn, workerConn, storage, lockFactory, secretManager, policyChecker, workerCache)
+	if err != nil {
+		return nil, err
+	}
+
+	backendComponents, err := cmd.backendComponents(logger, backendConn, lockFactory, secretManager, policyChecker, workerCache)
 	if err != nil {
 		return nil, err
 	}
@@ -749,6 +754,7 @@ func (cmd *RunCommand) constructAPIMembers(
 	lockFactory lock.LockFactory,
 	secretManager creds.Secrets,
 	policyChecker policy.Checker,
+	workerCache *db.WorkerCache,
 ) ([]grouper.Member, error) {
 
 	httpClient, err := cmd.skyHttpClient()
@@ -780,7 +786,7 @@ func (cmd *RunCommand) constructAPIMembers(
 	dbWorkerTaskCacheFactory := db.NewWorkerTaskCacheFactory(dbConn)
 	dbTaskCacheFactory := db.NewTaskCacheFactory(dbConn)
 	dbVolumeRepository := db.NewVolumeRepository(dbConn)
-	dbWorkerFactory := db.NewWorkerFactory(workerConn)
+	dbWorkerFactory := db.NewWorkerFactory(workerConn, workerCache)
 	workerVersion, err := workerVersion()
 	if err != nil {
 		return nil, err
@@ -997,6 +1003,7 @@ func (cmd *RunCommand) backendComponents(
 	lockFactory lock.LockFactory,
 	secretManager creds.Secrets,
 	policyChecker policy.Checker,
+	workerCache *db.WorkerCache,
 ) ([]RunnableComponent, error) {
 
 	if cmd.Syslog.Address != "" && cmd.Syslog.Transport == "" {
@@ -1032,7 +1039,7 @@ func (cmd *RunCommand) backendComponents(
 	dbTaskCacheFactory := db.NewTaskCacheFactory(dbConn)
 	dbWorkerTaskCacheFactory := db.NewWorkerTaskCacheFactory(dbConn)
 	dbVolumeRepository := db.NewVolumeRepository(dbConn)
-	dbWorkerFactory := db.NewWorkerFactory(dbConn)
+	dbWorkerFactory := db.NewWorkerFactory(dbConn, workerCache)
 	workerVersion, err := workerVersion()
 	if err != nil {
 		return nil, err

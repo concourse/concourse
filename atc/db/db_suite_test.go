@@ -98,6 +98,8 @@ var (
 var _ = postgresrunner.GinkgoRunner(&postgresRunner)
 
 var _ = BeforeEach(func() {
+	logger = lagertest.NewTestLogger("test")
+
 	postgresRunner.CreateTestDBFromTemplate()
 
 	dbConn = postgresRunner.OpenConn()
@@ -111,7 +113,7 @@ var _ = BeforeEach(func() {
 	volumeRepository = db.NewVolumeRepository(dbConn)
 	containerRepository = db.NewContainerRepository(dbConn)
 	teamFactory = db.NewTeamFactory(dbConn, lockFactory)
-	workerFactory = db.NewWorkerFactory(dbConn)
+	workerFactory = db.NewWorkerFactory(dbConn, db.NewStaticWorkerCache(logger, dbConn, 0))
 	workerLifecycle = db.NewWorkerLifecycle(dbConn)
 	resourceConfigCheckSessionLifecycle = db.NewResourceConfigCheckSessionLifecycle(dbConn)
 	resourceConfigFactory = db.NewResourceConfigFactory(dbConn, lockFactory)
@@ -236,8 +238,6 @@ var _ = BeforeEach(func() {
 	Expect(found).To(BeTrue())
 
 	defaultBuildCreatedBy = "some-user"
-
-	logger = lagertest.NewTestLogger("test")
 })
 
 func destroy(d interface{ Destroy() error }) {

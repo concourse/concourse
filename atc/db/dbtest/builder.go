@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
@@ -49,9 +50,10 @@ type Builder struct {
 }
 
 func NewBuilder(conn db.Conn, lockFactory lock.LockFactory) Builder {
+	logger := lagertest.NewTestLogger("dummy-logger")
 	return Builder{
 		TeamFactory:           db.NewTeamFactory(conn, lockFactory),
-		WorkerFactory:         db.NewWorkerFactory(conn),
+		WorkerFactory:         db.NewWorkerFactory(conn, db.NewStaticWorkerCache(logger, conn, 0)),
 		ResourceConfigFactory: db.NewResourceConfigFactory(conn, lockFactory),
 	}
 }
@@ -122,9 +124,9 @@ func (builder Builder) WithPipeline(config atc.Config) SetupFunc {
 	}
 }
 
-func (builder Builder) WithBaseWorker() SetupFunc {
-	return builder.WithWorker(atc.Worker{
-		Name: unique("worker"),
+func BaseWorker(name string) atc.Worker {
+	return atc.Worker{
+		Name: name,
 
 		GardenAddr:      unique("garden-addr"),
 		BaggageclaimURL: unique("baggageclaim-url"),
@@ -142,7 +144,11 @@ func (builder Builder) WithBaseWorker() SetupFunc {
 				UniqueVersionHistory: true,
 			},
 		},
-	})
+	}
+}
+
+func (builder Builder) WithBaseWorker() SetupFunc {
+	return builder.WithWorker(BaseWorker(unique("worker")))
 }
 
 func (builder Builder) WithResourceVersions(resourceName string, versions ...atc.Version) SetupFunc {

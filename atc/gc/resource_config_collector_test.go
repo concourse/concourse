@@ -57,7 +57,7 @@ var _ = Describe("ResourceConfigCollector", func() {
 					)
 					Expect(err).NotTo(HaveOccurred())
 
-					workerFactory := db.NewWorkerFactory(dbConn)
+					workerFactory := db.NewWorkerFactory(dbConn, db.NewStaticWorkerCache(logger, dbConn, 0))
 					defaultWorkerPayload := atc.Worker{
 						ResourceTypes: []atc.WorkerResourceType{
 							{
