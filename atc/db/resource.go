@@ -378,7 +378,7 @@ func (r *resource) CreateBuild(ctx context.Context, manuallyTriggered bool, plan
 }
 
 func (r *resource) CreateInMemoryBuild(ctx context.Context, plan atc.Plan) (Build, error) {
-	return newRunningInMemoryCheckBuild(r.conn, r, plan, NewSpanContext(ctx))
+	return newRunningInMemoryCheckBuild(r.conn, r.lockFactory, r, plan, NewSpanContext(ctx))
 }
 
 func (r *resource) UpdateMetadata(version atc.Version, metadata ResourceConfigMetadataFields) (bool, error) {

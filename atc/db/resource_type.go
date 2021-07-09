@@ -332,7 +332,7 @@ func (r *resourceType) CreateBuild(ctx context.Context, manuallyTriggered bool, 
 }
 
 func (r *resourceType) CreateInMemoryBuild(ctx context.Context, plan atc.Plan) (Build, error) {
-	return newRunningInMemoryCheckBuild(r.conn, r, plan, NewSpanContext(ctx))
+	return newRunningInMemoryCheckBuild(r.conn, r.lockFactory, r, plan, NewSpanContext(ctx))
 }
 
 func scanResourceType(t *resourceType, row scannable) error {

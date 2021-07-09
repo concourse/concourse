@@ -157,13 +157,29 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 
 			// TODO: for in-memory check build, if not acquire lock, maybe don't wait, just return shouldNotRun.
 			if acquired {
-				break
+				lock = scopeLock
+			} else {
+				return lock, false, nil
 			}
+		} else {
+			// For manually triggered check build, it expects to return a new version,
+			// so let's wait for the lock.
+			for {
+				var acquired bool
+				lock, acquired, err = scope.AcquireResourceCheckingLock(logger)
+				if err != nil {
+					return nil, false, fmt.Errorf("acquire lock: %w", err)
+				}
 
-			select {
-			case <-ctx.Done():
-				return nil, false, ctx.Err()
-			case <-d.clock.After(time.Second):
+				if acquired {
+					break
+				}
+
+				select {
+				case <-ctx.Done():
+					return nil, false, ctx.Err()
+				case <-d.clock.After(time.Second):
+				}
 			}
 		}
 	} else {

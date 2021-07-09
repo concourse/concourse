@@ -31,6 +31,7 @@ type inMemoryCheckBuild struct {
 
 	running bool
 	conn    Conn
+	lockFactory lock.LockFactory
 
 	// runningInContainer makes a check build really executed in a container on a worker.
 	runningInContainer bool
@@ -42,10 +43,12 @@ type inMemoryCheckBuild struct {
 	cacheAssociatedTeams []string
 }
 
-func newRunningInMemoryCheckBuild(conn Conn, checkable Checkable, plan atc.Plan, spanContext SpanContext) (*inMemoryCheckBuild, error) {
+func newRunningInMemoryCheckBuild(conn Conn, lockFactory lock.LockFactory, checkable Checkable, plan atc.Plan, spanContext SpanContext) (*inMemoryCheckBuild, error) {
 	build := newExistingInMemoryCheckBuild(conn, 0, checkable)
+	build.lockFactory = lockFactory
 	build.plan = plan
 	build.running = true
+	build.spanContext = spanContext
 
 	tx, err := conn.Begin()
 	if err != nil {
@@ -155,15 +158,39 @@ func (b *inMemoryCheckBuild) TracingAttrs() tracing.Attrs {
 	return attrs
 }
 
-// Reload just reloads the embedded checkable.
+// Reload just does nothing because an in-memory build lives shortly.
 func (b *inMemoryCheckBuild) Reload() (bool, error) {
-	return b.checkable.Reload()
+	return true, nil
 }
 
-// AcquireTrackingLock returns a noop lock because in-memory check build runs
-// on only one ATC, thus no need to use a lock to sync among ATCs.
+// AcquireTrackingLock tries to acquire a lock on checkable's ID in order to
+// avoid duplicate checks on the same checkable among ATCs and Lidar scan
+// intervals.
 func (b *inMemoryCheckBuild) AcquireTrackingLock(logger lager.Logger, interval time.Duration) (lock.Lock, bool, error) {
-	return lock.NoopLock{}, true, nil
+	var lockId lock.LockID
+	if b.ResourceID() != 0 {
+		lockId = lock.NewInMemoryCheckBuildTrackingLockID("resource", b.ResourceID())
+	} else if b.ResourceTypeID() != 0 {
+		lockId = lock.NewInMemoryCheckBuildTrackingLockID("resourceType", b.ResourceTypeID())
+	} else {
+		panic("not-implemented")
+	}
+
+	lock, acquired, err := b.lockFactory.Acquire(
+		logger.Session("lock", lager.Data{
+			"build_id": b.id,
+		}),
+		lockId,
+	)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !acquired {
+		return nil, false, nil
+	}
+
+	return lock, true, nil
 }
 
 func (b *inMemoryCheckBuild) Finish(status BuildStatus) error {
