@@ -7,7 +7,13 @@ import (
 	"github.com/lib/pq"
 )
 
+type Notification struct {
+	Payload string
+	Healthy bool
+}
+
 //counterfeiter:generate . Listener
+
 type Listener interface {
 	Close() error
 	Listen(channel string) error
@@ -22,8 +28,8 @@ type Executor interface {
 
 type NotificationsBus interface {
 	Notify(channel string) error
-	Listen(channel string) (chan bool, error)
-	Unlisten(channel string, notify chan bool) error
+	Listen(channel string, queueSize int) (chan Notification, error)
+	Unlisten(channel string, notify chan Notification) error
 	Close() error
 }
 
@@ -57,7 +63,7 @@ func (bus *notificationsBus) Notify(channel string) error {
 	return err
 }
 
-func (bus *notificationsBus) Listen(channel string) (chan bool, error) {
+func (bus *notificationsBus) Listen(channel string, queueSize int) (chan Notification, error) {
 	bus.Lock()
 	defer bus.Unlock()
 
@@ -68,12 +74,12 @@ func (bus *notificationsBus) Listen(channel string) (chan bool, error) {
 		}
 	}
 
-	notify := make(chan bool, 1)
+	notify := make(chan Notification, queueSize)
 	bus.notifications.register(channel, notify)
 	return notify, nil
 }
 
-func (bus *notificationsBus) Unlisten(channel string, notify chan bool) error {
+func (bus *notificationsBus) Unlisten(channel string, notify chan Notification) error {
 	bus.Lock()
 	defer bus.Unlock()
 
@@ -104,12 +110,13 @@ func (bus *notificationsBus) wait() {
 func (bus *notificationsBus) handleNotification(notification *pq.Notification) {
 	// alert any relevant listeners of notification being received
 	// (nonblocking)
-	bus.notifications.eachForChannel(notification.Channel, func(sink chan bool) {
+	bus.notifications.eachForChannel(notification.Channel, func(sink chan Notification) {
+		n := Notification{Healthy: true, Payload: notification.Extra}
 		select {
-		case sink <- true:
+		case sink <- n:
 			// notified of message being received (or queued up)
 		default:
-			// already had notification queued up; no need to handle it twice
+			// queue overflowed - just ignore
 		}
 	})
 }
@@ -117,28 +124,28 @@ func (bus *notificationsBus) handleNotification(notification *pq.Notification) {
 func (bus *notificationsBus) handleReconnect() {
 	// alert all listeners of connection break so they can check for things
 	// they may have missed
-	bus.notifications.each(func(sink chan bool) {
+	bus.notifications.each(func(sink chan Notification) {
+		n := Notification{Healthy: false}
 		select {
-		case sink <- false:
+		case sink <- n:
 			// notify that connection was lost, so listener can check for
 			// things that may have changed while connection was lost
 		default:
-			// already had notification queued up; no need to check for
-			// anything missed since something will be notified anyway
+			// queue overflowed - just ignore
 		}
 	})
 }
 
 func newNotificationsMap() *notificationsMap {
 	return &notificationsMap{
-		notifications: map[string]map[chan bool]struct{}{},
+		notifications: make(map[string]map[chan Notification]struct{}),
 	}
 }
 
 type notificationsMap struct {
 	sync.RWMutex
 
-	notifications map[string]map[chan bool]struct{}
+	notifications map[string]map[chan Notification]struct{}
 }
 
 func (m *notificationsMap) empty(channel string) bool {
@@ -148,23 +155,27 @@ func (m *notificationsMap) empty(channel string) bool {
 	return len(m.notifications[channel]) == 0
 }
 
-func (m *notificationsMap) register(channel string, notify chan bool) {
+func (m *notificationsMap) register(channel string, notify chan Notification) {
 	m.Lock()
 	defer m.Unlock()
 
 	sinks, found := m.notifications[channel]
 	if !found {
-		sinks = map[chan bool]struct{}{}
+		sinks = make(map[chan Notification]struct{})
 		m.notifications[channel] = sinks
 	}
 
 	sinks[notify] = struct{}{}
 }
 
-func (m *notificationsMap) unregister(channel string, notify chan bool) {
+func (m *notificationsMap) unregister(channel string, notify chan Notification) {
 	m.Lock()
 	defer m.Unlock()
 
+	_, ok := m.notifications[channel]
+	if !ok {
+		return
+	}
 	delete(m.notifications[channel], notify)
 
 	// Note: we don't call empty since we already acquired the lock.
@@ -173,7 +184,7 @@ func (m *notificationsMap) unregister(channel string, notify chan bool) {
 	}
 }
 
-func (m *notificationsMap) each(f func(chan bool)) {
+func (m *notificationsMap) each(f func(chan Notification)) {
 	m.RLock()
 	defer m.RUnlock()
 
@@ -184,7 +195,7 @@ func (m *notificationsMap) each(f func(chan bool)) {
 	}
 }
 
-func (m *notificationsMap) eachForChannel(channel string, f func(chan bool)) {
+func (m *notificationsMap) eachForChannel(channel string, f func(chan Notification)) {
 	m.RLock()
 	defer m.RUnlock()
 

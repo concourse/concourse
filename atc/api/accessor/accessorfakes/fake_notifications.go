@@ -5,27 +5,29 @@ import (
 	"sync"
 
 	"github.com/concourse/concourse/atc/api/accessor"
+	"github.com/concourse/concourse/atc/db"
 )
 
 type FakeNotifications struct {
-	ListenStub        func(string) (chan bool, error)
+	ListenStub        func(string, int) (chan db.Notification, error)
 	listenMutex       sync.RWMutex
 	listenArgsForCall []struct {
 		arg1 string
+		arg2 int
 	}
 	listenReturns struct {
-		result1 chan bool
+		result1 chan db.Notification
 		result2 error
 	}
 	listenReturnsOnCall map[int]struct {
-		result1 chan bool
+		result1 chan db.Notification
 		result2 error
 	}
-	UnlistenStub        func(string, chan bool) error
+	UnlistenStub        func(string, chan db.Notification) error
 	unlistenMutex       sync.RWMutex
 	unlistenArgsForCall []struct {
 		arg1 string
-		arg2 chan bool
+		arg2 chan db.Notification
 	}
 	unlistenReturns struct {
 		result1 error
@@ -37,18 +39,19 @@ type FakeNotifications struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeNotifications) Listen(arg1 string) (chan bool, error) {
+func (fake *FakeNotifications) Listen(arg1 string, arg2 int) (chan db.Notification, error) {
 	fake.listenMutex.Lock()
 	ret, specificReturn := fake.listenReturnsOnCall[len(fake.listenArgsForCall)]
 	fake.listenArgsForCall = append(fake.listenArgsForCall, struct {
 		arg1 string
-	}{arg1})
+		arg2 int
+	}{arg1, arg2})
 	stub := fake.ListenStub
 	fakeReturns := fake.listenReturns
-	fake.recordInvocation("Listen", []interface{}{arg1})
+	fake.recordInvocation("Listen", []interface{}{arg1, arg2})
 	fake.listenMutex.Unlock()
 	if stub != nil {
-		return stub(arg1)
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -62,51 +65,51 @@ func (fake *FakeNotifications) ListenCallCount() int {
 	return len(fake.listenArgsForCall)
 }
 
-func (fake *FakeNotifications) ListenCalls(stub func(string) (chan bool, error)) {
+func (fake *FakeNotifications) ListenCalls(stub func(string, int) (chan db.Notification, error)) {
 	fake.listenMutex.Lock()
 	defer fake.listenMutex.Unlock()
 	fake.ListenStub = stub
 }
 
-func (fake *FakeNotifications) ListenArgsForCall(i int) string {
+func (fake *FakeNotifications) ListenArgsForCall(i int) (string, int) {
 	fake.listenMutex.RLock()
 	defer fake.listenMutex.RUnlock()
 	argsForCall := fake.listenArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeNotifications) ListenReturns(result1 chan bool, result2 error) {
+func (fake *FakeNotifications) ListenReturns(result1 chan db.Notification, result2 error) {
 	fake.listenMutex.Lock()
 	defer fake.listenMutex.Unlock()
 	fake.ListenStub = nil
 	fake.listenReturns = struct {
-		result1 chan bool
+		result1 chan db.Notification
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeNotifications) ListenReturnsOnCall(i int, result1 chan bool, result2 error) {
+func (fake *FakeNotifications) ListenReturnsOnCall(i int, result1 chan db.Notification, result2 error) {
 	fake.listenMutex.Lock()
 	defer fake.listenMutex.Unlock()
 	fake.ListenStub = nil
 	if fake.listenReturnsOnCall == nil {
 		fake.listenReturnsOnCall = make(map[int]struct {
-			result1 chan bool
+			result1 chan db.Notification
 			result2 error
 		})
 	}
 	fake.listenReturnsOnCall[i] = struct {
-		result1 chan bool
+		result1 chan db.Notification
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeNotifications) Unlisten(arg1 string, arg2 chan bool) error {
+func (fake *FakeNotifications) Unlisten(arg1 string, arg2 chan db.Notification) error {
 	fake.unlistenMutex.Lock()
 	ret, specificReturn := fake.unlistenReturnsOnCall[len(fake.unlistenArgsForCall)]
 	fake.unlistenArgsForCall = append(fake.unlistenArgsForCall, struct {
 		arg1 string
-		arg2 chan bool
+		arg2 chan db.Notification
 	}{arg1, arg2})
 	stub := fake.UnlistenStub
 	fakeReturns := fake.unlistenReturns
@@ -127,13 +130,13 @@ func (fake *FakeNotifications) UnlistenCallCount() int {
 	return len(fake.unlistenArgsForCall)
 }
 
-func (fake *FakeNotifications) UnlistenCalls(stub func(string, chan bool) error) {
+func (fake *FakeNotifications) UnlistenCalls(stub func(string, chan db.Notification) error) {
 	fake.unlistenMutex.Lock()
 	defer fake.unlistenMutex.Unlock()
 	fake.UnlistenStub = stub
 }
 
-func (fake *FakeNotifications) UnlistenArgsForCall(i int) (string, chan bool) {
+func (fake *FakeNotifications) UnlistenArgsForCall(i int) (string, chan db.Notification) {
 	fake.unlistenMutex.RLock()
 	defer fake.unlistenMutex.RUnlock()
 	argsForCall := fake.unlistenArgsForCall[i]
