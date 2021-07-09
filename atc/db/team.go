@@ -496,7 +496,6 @@ func savePipeline(
 			return 0, false, err
 		}
 	} else {
-
 		q := psql.Update("pipelines").
 			Set("archived", false).
 			Set("groups", groupsPayload).
@@ -512,6 +511,13 @@ func savePipeline(
 				sq.Eq{"version": from},
 			})
 
+		if !initiallyPaused {
+			// The set_pipeline step creates pipelines that aren't initially
+			// paused (unlike `fly set-pipeline`). In this case, we should keep
+			// previously paused pipelines as paused, but we should unpause any
+			// formerly archived pipelines.
+			q = q.Set("paused", sq.Expr("paused AND NOT archived"))
+		}
 		if buildID.Valid {
 			q = q.Where(sq.Or{sq.Lt{"parent_build_id": buildID}, sq.Eq{"parent_build_id": nil}})
 		}
