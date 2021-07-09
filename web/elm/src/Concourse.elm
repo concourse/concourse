@@ -1,5 +1,6 @@
 module Concourse exposing
-    ( AuthSession
+    ( AcrossSubstep
+    , AuthSession
     , AuthToken
     , Build
     , BuildCreatedBy
@@ -50,6 +51,7 @@ module Concourse exposing
     , VersionedResourceIdentifier
     , csrfTokenHeaderName
     , customDecoder
+    , decodeAcrossSubstep
     , decodeAuthToken
     , decodeBuild
     , decodeBuildPlan
@@ -419,7 +421,7 @@ mapBuildPlan fn plan =
 
                 BuildStepAcross { steps } ->
                     List.concatMap (mapBuildPlan fn)
-                        (steps |> List.map Tuple.second)
+                        (steps |> List.map .step)
 
                 BuildStepDo plans ->
                     List.concatMap (mapBuildPlan fn) (Array.toList plans)
@@ -620,7 +622,7 @@ isInInstanceGroup allPipelines p =
 
 type alias AcrossPlan =
     { vars : List String
-    , steps : List ( List JsonValue, BuildPlan )
+    , steps : List AcrossSubstep
     }
 
 
@@ -824,14 +826,30 @@ decodeBuildStepAcross =
                     Json.Decode.list <|
                         Json.Decode.field "name" Json.Decode.string
                 )
+            -- Note: across steps no longer include the substeps directly in
+            -- the plan. However, this is kept for backward compatibility (so
+            -- you can view old across steps)
             |> andMap
-                (Json.Decode.field "steps" <|
-                    Json.Decode.list <|
-                        Json.Decode.map2 Tuple.pair
-                            (Json.Decode.field "values" <| Json.Decode.list decodeJsonValue)
-                            (Json.Decode.field "step" decodeBuildPlan)
+                ((Json.Decode.maybe <|
+                    Json.Decode.field "steps" <|
+                        Json.Decode.list decodeAcrossSubstep
+                 )
+                    |> Json.Decode.map (Maybe.withDefault [])
                 )
         )
+
+
+type alias AcrossSubstep =
+    { values : List JsonValue
+    , step : BuildPlan
+    }
+
+
+decodeAcrossSubstep : Json.Decode.Decoder AcrossSubstep
+decodeAcrossSubstep =
+    Json.Decode.map2 AcrossSubstep
+        (Json.Decode.field "values" <| Json.Decode.list decodeJsonValue)
+        (Json.Decode.field "step" decodeBuildPlan)
 
 
 

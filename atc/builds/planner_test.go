@@ -549,7 +549,7 @@ var factoryTests = []PlannerTest{
 				},
 				{
 					Var:         "var2",
-					Values:      []interface{}{"b1", "b2"},
+					Values:      "((dynamic))",
 					MaxInFlight: &atc.MaxInFlightConfig{Limit: 1},
 				},
 			},
@@ -566,52 +566,11 @@ var factoryTests = []PlannerTest{
 					},
 					{
 						"name": "var2",
-						"values": ["b1", "b2"],
+						"values": "((dynamic))",
 						"max_in_flight": 1
 					}
 				],
-				"steps": [
-					{
-						"values": ["a1", "b1"],
-						"step": {
-							"id": "(unique)",
-							"load_var": {
-								"name": "some-var",
-								"file": "some-file"
-							}
-						}
-					},
-					{
-						"values": ["a1", "b2"],
-						"step": {
-							"id": "(unique)",
-							"load_var": {
-								"name": "some-var",
-								"file": "some-file"
-							}
-						}
-					},
-					{
-						"values": ["a2", "b1"],
-						"step": {
-							"id": "(unique)",
-							"load_var": {
-								"name": "some-var",
-								"file": "some-file"
-							}
-						}
-					},
-					{
-						"values": ["a2", "b2"],
-						"step": {
-							"id": "(unique)",
-							"load_var": {
-								"name": "some-var",
-								"file": "some-file"
-							}
-						}
-					}
-				]
+				"substep_template": "{\"id\":\"ACROSS_SUBSTEP_TEMPLATE\",\"load_var\":{\"name\":\"some-var\",\"file\":\"some-file\"}}"
 			}
 		}`,
 	},

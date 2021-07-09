@@ -2,6 +2,7 @@ package exec_test
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 
 	"code.cloudfoundry.org/lager/lagerctx"
@@ -25,11 +26,12 @@ const plainString = "  pv  \n\n"
 const yamlString = `
 k1: yv1
 k2: yv2
+k3: 123
 `
 
 const jsonString = `
 {
-  "k1": "jv1", "k2": "jv2"
+  "k1": "jv1", "k2": "jv2", "k3": 123
 }
 `
 
@@ -159,7 +161,7 @@ var _ = Describe("LoadVarStep", func() {
 				Expect(stepOk).To(BeTrue())
 			})
 
-			It("should var parsed correctly", func() {
+			It("var should be parsed correctly", func() {
 				expectLocalVarAdded("some-var", strings.TrimSpace(plainString), true)
 			})
 		})
@@ -180,7 +182,7 @@ var _ = Describe("LoadVarStep", func() {
 				Expect(stepOk).To(BeTrue())
 			})
 
-			It("should var parsed correctly", func() {
+			It("var should be parsed correctly", func() {
 				expectLocalVarAdded("some-var", plainString, true)
 			})
 		})
@@ -201,8 +203,8 @@ var _ = Describe("LoadVarStep", func() {
 				Expect(stepOk).To(BeTrue())
 			})
 
-			It("should var parsed correctly", func() {
-				expectLocalVarAdded("some-var", map[string]interface{}{"k1": "jv1", "k2": "jv2"}, true)
+			It("var should be parsed correctly", func() {
+				expectLocalVarAdded("some-var", map[string]interface{}{"k1": "jv1", "k2": "jv2", "k3": json.Number("123")}, true)
 			})
 		})
 
@@ -222,8 +224,8 @@ var _ = Describe("LoadVarStep", func() {
 				Expect(stepOk).To(BeTrue())
 			})
 
-			It("should var parsed correctly", func() {
-				expectLocalVarAdded("some-var", map[string]interface{}{"k1": "yv1", "k2": "yv2"}, true)
+			It("var should be parsed correctly", func() {
+				expectLocalVarAdded("some-var", map[string]interface{}{"k1": "yv1", "k2": "yv2", "k3": json.Number("123")}, true)
 			})
 		})
 
@@ -243,8 +245,8 @@ var _ = Describe("LoadVarStep", func() {
 				Expect(stepOk).To(BeTrue())
 			})
 
-			It("should var parsed correctly", func() {
-				expectLocalVarAdded("some-var", map[string]interface{}{"k1": "yv1", "k2": "yv2"}, true)
+			It("var should be parsed correctly", func() {
+				expectLocalVarAdded("some-var", map[string]interface{}{"k1": "yv1", "k2": "yv2", "k3": json.Number("123")}, true)
 			})
 		})
 	})
@@ -265,7 +267,7 @@ var _ = Describe("LoadVarStep", func() {
 				Expect(stepOk).To(BeTrue())
 			})
 
-			It("should var parsed correctly as trim", func() {
+			It("var should be parsed correctly as trim", func() {
 				expectLocalVarAdded("some-var", strings.TrimSpace(plainString), true)
 			})
 		})
@@ -285,8 +287,8 @@ var _ = Describe("LoadVarStep", func() {
 				Expect(stepOk).To(BeTrue())
 			})
 
-			It("should var parsed correctly", func() {
-				expectLocalVarAdded("some-var", map[string]interface{}{"k1": "jv1", "k2": "jv2"}, true)
+			It("var should be parsed correctly", func() {
+				expectLocalVarAdded("some-var", map[string]interface{}{"k1": "jv1", "k2": "jv2", "k3": json.Number("123")}, true)
 			})
 		})
 
@@ -305,8 +307,8 @@ var _ = Describe("LoadVarStep", func() {
 				Expect(stepOk).To(BeTrue())
 			})
 
-			It("should var parsed correctly", func() {
-				expectLocalVarAdded("some-var", map[string]interface{}{"k1": "yv1", "k2": "yv2"}, true)
+			It("var should be parsed correctly", func() {
+				expectLocalVarAdded("some-var", map[string]interface{}{"k1": "yv1", "k2": "yv2", "k3": json.Number("123")}, true)
 			})
 		})
 
@@ -325,21 +327,21 @@ var _ = Describe("LoadVarStep", func() {
 				Expect(stepOk).To(BeTrue())
 			})
 
-			It("should var parsed correctly", func() {
-				expectLocalVarAdded("some-var", map[string]interface{}{"k1": "yv1", "k2": "yv2"}, true)
+			It("var should be parsed correctly", func() {
+				expectLocalVarAdded("some-var", map[string]interface{}{"k1": "yv1", "k2": "yv2", "k3": json.Number("123")}, true)
 			})
 		})
 	})
 
 	Context("when file is bad", func() {
-		Context("when json file is bad", func() {
+		Context("when json file is invalid JSON", func() {
 			BeforeEach(func() {
 				loadVarPlan = &atc.LoadVarPlan{
 					Name: "some-var",
 					File: "some-resource/a.json",
 				}
 
-				fakeArtifactStreamer.StreamFileFromArtifactReturns(&fakeReadCloser{str: plainString}, nil)
+				fakeArtifactStreamer.StreamFileFromArtifactReturns(&fakeReadCloser{str: jsonString + "{}"}, nil)
 			})
 
 			It("step should fail", func() {

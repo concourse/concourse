@@ -10,6 +10,7 @@ import Common
         ( defineHoverBehaviour
         , given
         , iOpenTheBuildPage
+        , iOpenTheBuildPageHighlighting
         , myBrowserFetchedTheBuild
         , then_
         , when
@@ -238,6 +239,13 @@ all =
                         >> given theFirstAcrossSubHeaderIsExpanded
                         >> when iAmLookingAtTheAcrossStepInTheBuildOutput
                         >> then_ iSeeATaskHeader
+                , test "auto-expands when a substep is highlighted" <|
+                    given (iOpenTheBuildPageHighlighting "task1Id")
+                        >> given myBrowserFetchedTheBuild
+                        >> given thePlanContainsAnAcrossStep
+                        >> given (thereIsALog "task1Id")
+                        >> when iAmLookingAtTheStepBody
+                        >> then_ iSeeATimestamp
                 , describe "shows status of subtree"
                     [ test "pending" <|
                         given iVisitABuildWithAnAcrossStep
@@ -311,6 +319,33 @@ all =
                             >> given theAcrossStepIsExpanded
                             >> when iAmLookingAtTheFirstAcrossSubHeader
                             >> then_ iSeeTheObjectKeyValuePairs
+                    ]
+                , describe "substep plans sent in build event" <|
+                    [ test "renders a header before substeps are sent" <|
+                        given iVisitABuildWithAnAcrossStepWithoutSubsteps
+                            >> when iAmLookingAtTheAcrossStepInTheBuildOutput
+                            >> then_ iSeeTheVarNames
+                    , test "receiving the substeps renders them" <|
+                        given iVisitABuildWithAnAcrossStepWithoutSubsteps
+                            >> given theAcrossStepIsExpanded
+                            >> given iReceiveAcrossSubsteps
+                            >> when iAmLookingAtTheAcrossSubHeaders
+                            >> then_ iSeeFourOfThem
+                    , test "receiving the substeps doesn't clear existing logs" <|
+                        given iVisitABuildWithAnAcrossStepWithoutSubsteps
+                            >> given theAcrossStepIsExpanded
+                            >> given (thereIsALog acrossStepId)
+                            >> given iReceiveAcrossSubsteps
+                            >> when iAmLookingAtTheStepBody
+                            >> then_ iSeeATimestamp
+                    , test "auto-expands when a received substep is highlighted" <|
+                        given (iOpenTheBuildPageHighlighting "task1Id")
+                            >> given myBrowserFetchedTheBuild
+                            >> given thePlanContainsAnAcrossStepWithoutSubsteps
+                            >> given iReceiveAcrossSubsteps
+                            >> given (thereIsALog "task1Id")
+                            >> when iAmLookingAtTheStepBody
+                            >> then_ iSeeATimestamp
                     ]
                 ]
             ]
@@ -463,6 +498,12 @@ iVisitABuildWithAnAcrossStep =
     iOpenTheBuildPage
         >> myBrowserFetchedTheBuild
         >> thePlanContainsAnAcrossStep
+
+
+iVisitABuildWithAnAcrossStepWithoutSubsteps =
+    iOpenTheBuildPage
+        >> myBrowserFetchedTheBuild
+        >> thePlanContainsAnAcrossStepWithoutSubsteps
 
 
 iVisitABuildWithAnAcrossStepWrappingARetryStep =
@@ -638,34 +679,38 @@ thePlanContainsAnAcrossStep =
                             Concourse.BuildStepAcross
                                 { vars = [ "var1", "var2" ]
                                 , steps =
-                                    [ ( [ JsonString "a1", JsonString "b1" ]
-                                      , { id = "task1Id"
-                                        , step =
-                                            Concourse.BuildStepTask
-                                                "taskName"
-                                        }
-                                      )
-                                    , ( [ JsonString "a1", JsonString "b2" ]
-                                      , { id = "task2Id"
-                                        , step =
-                                            Concourse.BuildStepTask
-                                                "taskName"
-                                        }
-                                      )
-                                    , ( [ JsonString "a2", JsonString "b1" ]
-                                      , { id = "task3Id"
-                                        , step =
-                                            Concourse.BuildStepTask
-                                                "taskName"
-                                        }
-                                      )
-                                    , ( [ JsonString "a2", JsonString "b2" ]
-                                      , { id = "task4Id"
-                                        , step =
-                                            Concourse.BuildStepTask
-                                                "taskName"
-                                        }
-                                      )
+                                    [ { values = [ JsonString "a1", JsonString "b1" ]
+                                      , step =
+                                            { id = "task1Id"
+                                            , step =
+                                                Concourse.BuildStepTask
+                                                    "taskName"
+                                            }
+                                      }
+                                    , { values = [ JsonString "a1", JsonString "b2" ]
+                                      , step =
+                                            { id = "task2Id"
+                                            , step =
+                                                Concourse.BuildStepTask
+                                                    "taskName"
+                                            }
+                                      }
+                                    , { values = [ JsonString "a2", JsonString "b1" ]
+                                      , step =
+                                            { id = "task3Id"
+                                            , step =
+                                                Concourse.BuildStepTask
+                                                    "taskName"
+                                            }
+                                      }
+                                    , { values = [ JsonString "a2", JsonString "b2" ]
+                                      , step =
+                                            { id = "task4Id"
+                                            , step =
+                                                Concourse.BuildStepTask
+                                                    "taskName"
+                                            }
+                                      }
                                     ]
                                 }
                       }
@@ -673,6 +718,74 @@ thePlanContainsAnAcrossStep =
                       , outputs = []
                       }
                     )
+            )
+
+
+thePlanContainsAnAcrossStepWithoutSubsteps =
+    Tuple.first
+        >> Application.handleCallback
+            (Callback.PlanAndResourcesFetched 1 <|
+                Ok
+                    ( { id = acrossStepId
+                      , step =
+                            Concourse.BuildStepAcross
+                                { vars = [ "var1", "var2" ]
+                                , steps = []
+                                }
+                      }
+                    , { inputs = []
+                      , outputs = []
+                      }
+                    )
+            )
+
+
+iReceiveAcrossSubsteps =
+    Tuple.first
+        >> Application.handleDelivery
+            (EventsReceived <|
+                Ok
+                    [ { data =
+                            AcrossSubsteps
+                                { source = ""
+                                , id = acrossStepId
+                                }
+                                [ { values = [ JsonString "a1", JsonString "b1" ]
+                                  , step =
+                                        { id = "task1Id"
+                                        , step =
+                                            Concourse.BuildStepTask
+                                                "taskName"
+                                        }
+                                  }
+                                , { values = [ JsonString "a1", JsonString "b2" ]
+                                  , step =
+                                        { id = "task2Id"
+                                        , step =
+                                            Concourse.BuildStepTask
+                                                "taskName"
+                                        }
+                                  }
+                                , { values = [ JsonString "a2", JsonString "b1" ]
+                                  , step =
+                                        { id = "task3Id"
+                                        , step =
+                                            Concourse.BuildStepTask
+                                                "taskName"
+                                        }
+                                  }
+                                , { values = [ JsonString "a2", JsonString "b2" ]
+                                  , step =
+                                        { id = "task4Id"
+                                        , step =
+                                            Concourse.BuildStepTask
+                                                "taskName"
+                                        }
+                                  }
+                                ]
+                      , url = "http://localhost:8080/api/v1/builds/1/events"
+                      }
+                    ]
             )
 
 
@@ -685,7 +798,11 @@ thePlanContainsAnAcrossStepWithSubplan plan =
                       , step =
                             Concourse.BuildStepAcross
                                 { vars = [ "var1" ]
-                                , steps = [ ( [ JsonString "a1" ], plan ) ]
+                                , steps =
+                                    [ { values = [ JsonString "a1" ]
+                                      , step = plan
+                                      }
+                                    ]
                                 }
                       }
                     , { inputs = []
@@ -705,30 +822,33 @@ thePlanContainsAnAcrossStepWithComplexValues =
                             Concourse.BuildStepAcross
                                 { vars = [ "var1" ]
                                 , steps =
-                                    [ ( [ JsonObject
-                                            [ ( "f1", JsonString "v1" )
-                                            , ( "f2", JsonNumber 1 )
-                                            , ( "f3"
-                                              , JsonRaw
-                                                    (Json.Encode.object
-                                                        [ ( "abc", Json.Encode.int 123 ) ]
-                                                    )
-                                              )
+                                    [ { values =
+                                            [ JsonObject
+                                                [ ( "f1", JsonString "v1" )
+                                                , ( "f2", JsonNumber 1 )
+                                                , ( "f3"
+                                                  , JsonRaw
+                                                        (Json.Encode.object
+                                                            [ ( "abc", Json.Encode.int 123 ) ]
+                                                        )
+                                                  )
+                                                ]
                                             ]
-                                        ]
-                                      , { id = "task1Id"
-                                        , step =
-                                            Concourse.BuildStepTask
-                                                "taskName"
-                                        }
-                                      )
-                                    , ( [ JsonString "test" ]
-                                      , { id = "task2Id"
-                                        , step =
-                                            Concourse.BuildStepTask
-                                                "taskName"
-                                        }
-                                      )
+                                      , step =
+                                            { id = "task1Id"
+                                            , step =
+                                                Concourse.BuildStepTask
+                                                    "taskName"
+                                            }
+                                      }
+                                    , { values = [ JsonString "test" ]
+                                      , step =
+                                            { id = "task2Id"
+                                            , step =
+                                                Concourse.BuildStepTask
+                                                    "taskName"
+                                            }
+                                      }
                                     ]
                                 }
                       }

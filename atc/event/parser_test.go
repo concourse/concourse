@@ -73,5 +73,6 @@ var _ = Describe("ParseEvent", func() {
 		Entry("Error", event.Error{}),
 		Entry("ImageCheck", event.ImageCheck{}),
 		Entry("ImageGet", event.ImageGet{}),
+		Entry("AcrossSubsteps", event.AcrossSubsteps{}),
 	)
 })

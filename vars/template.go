@@ -31,6 +31,10 @@ func (t Template) ExtraVarNames() []string {
 func (t Template) Evaluate(vars Variables, opts EvaluateOpts) ([]byte, error) {
 	var obj interface{}
 
+	// Note: if we do end up changing from "gopkg.in/yaml.v2" to
+	// "sigs.k8s.io/yaml" here, we'll want to ensure we call
+	// `json.Decoder.UseNumber()` so that we don't lose precision unmarshaling
+	// numbers to float64.
 	err := yaml.Unmarshal(t.bytes, &obj)
 	if err != nil {
 		return []byte{}, err

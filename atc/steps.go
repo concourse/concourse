@@ -463,7 +463,7 @@ func (c *InParallelConfig) UnmarshalJSON(payload []byte) error {
 
 type AcrossVarConfig struct {
 	Var         string             `json:"var"`
-	Values      []interface{}      `json:"values,omitempty"`
+	Values      interface{}        `json:"values,omitempty"`
 	MaxInFlight *MaxInFlightConfig `json:"max_in_flight,omitempty"`
 }
 

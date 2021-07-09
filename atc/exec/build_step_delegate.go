@@ -33,6 +33,8 @@ type BuildStepDelegate interface {
 
 	WaitingForWorker(lager.Logger)
 	SelectedWorker(lager.Logger, string)
+
+	ConstructAcrossSubsteps([]byte, []atc.AcrossVar, [][]interface{}) ([]atc.VarScopedPlan, error)
 }
 
 //counterfeiter:generate . SetPipelineStepDelegateFactory

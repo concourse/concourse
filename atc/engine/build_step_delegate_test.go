@@ -2,6 +2,7 @@ package engine_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"time"
@@ -551,6 +552,90 @@ var _ = Describe("BuildStepDelegate", func() {
 			It("errors", func() {
 				Expect(fetchErr).To(MatchError("check did not return a version"))
 			})
+		})
+	})
+
+	Describe("ConstructAcrossSubsteps", func() {
+		It("constructs the across substeps and emits them as a build event", func() {
+			template := []byte(`{
+				"id": "ACROSS_SUBSTEP_TEMPLATE",
+				"do": [
+					{
+						"id": "ACROSS_SUBSTEP_TEMPLATE",
+						"task": {
+							"name": "foo",
+							"params": {
+								"p1": "((.:v1))",
+								"p2": "howdy ((.:v2))"
+							},
+							"input_mapping": {
+								"blah": "((.:v3))",
+								"untouched": "((v1))"
+							}
+						}
+					}
+				]
+			}`)
+			substeps, err := delegate.ConstructAcrossSubsteps(template, []atc.AcrossVar{
+				{Var: "v1"},
+				{Var: "v2"},
+				{Var: "v3"},
+			}, [][]interface{}{
+				{"a1", "b1", "c1"},
+				{"a1", "b1", "c2"},
+			})
+			Expect(err).ToNot(HaveOccurred())
+
+			expectedSubstepPlans := []atc.VarScopedPlan{
+				{
+					Values: []interface{}{"a1", "b1", "c1"},
+					Step: atc.Plan{
+						ID: "some-plan-id/0/0",
+						Do: &atc.DoPlan{
+							{
+								ID: "some-plan-id/0/1",
+								Task: &atc.TaskPlan{
+									Name:         "foo",
+									Params:       atc.TaskEnv{"p1": "a1", "p2": "howdy b1"},
+									InputMapping: map[string]string{"blah": "c1", "untouched": "((v1))"},
+								},
+							},
+						},
+					},
+				},
+				{
+					Values: []interface{}{"a1", "b1", "c2"},
+					Step: atc.Plan{
+						ID: "some-plan-id/1/0",
+						Do: &atc.DoPlan{
+							{
+								ID: "some-plan-id/1/1",
+								Task: &atc.TaskPlan{
+									Name:         "foo",
+									Params:       atc.TaskEnv{"p1": "a1", "p2": "howdy b1"},
+									InputMapping: map[string]string{"blah": "c2", "untouched": "((v1))"},
+								},
+							},
+						},
+					},
+				},
+			}
+
+			By("interpolating the var values into the substep plans")
+			Expect(substeps).To(Equal(expectedSubstepPlans))
+
+			By("emitting the public plans as a build event")
+			Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
+			Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.AcrossSubsteps{
+				Time: now.Unix(),
+				Substeps: []*json.RawMessage{
+					expectedSubstepPlans[0].Public(),
+					expectedSubstepPlans[1].Public(),
+				},
+				Origin: event.Origin{
+					ID: "some-plan-id",
+				},
+			}))
 		})
 	})
 

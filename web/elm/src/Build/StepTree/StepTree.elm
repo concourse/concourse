@@ -2,6 +2,7 @@ module Build.StepTree.StepTree exposing
     ( extendHighlight
     , finished
     , init
+    , setAcrossSubsteps
     , setHighlight
     , setImageCheck
     , setImageGet
@@ -35,6 +36,7 @@ import Build.StepTree.Models
         , toggleSubHeaderExpanded
         , treeIsActive
         , updateAt
+        , updateTreeNodeAt
         )
 import Build.Styles as Styles
 import Colors
@@ -109,17 +111,23 @@ init buildId hl resources plan =
 
         Concourse.BuildStepAcross { vars, steps } ->
             let
-                ( values, plans ) =
-                    List.unzip steps
+                values =
+                    List.map .values steps
+
+                plans =
+                    List.map .step steps
+
+                expandedHeaders =
+                    plans
+                        |> List.indexedMap (\i p -> ( i, planIsHighlighted hl p ))
+                        |> List.filter Tuple.second
+                        |> Dict.fromList
             in
             step
                 |> (\s ->
                         { s
-                            | expandedHeaders =
-                                plans
-                                    |> List.indexedMap (\i p -> ( i, planIsHighlighted hl p ))
-                                    |> List.filter Tuple.second
-                                    |> Dict.fromList
+                            | expandedHeaders = expandedHeaders
+                            , expanded = not <| Dict.isEmpty expandedHeaders
                         }
                    )
                 |> Just
@@ -185,6 +193,54 @@ setImageGet buildId stepId subPlan model =
             Dict.union sub.steps model.steps
                 |> Dict.update stepId (Maybe.map (\step -> { step | imageGet = Just sub.tree }))
     }
+
+
+setAcrossSubsteps : Maybe Concourse.JobBuildIdentifier -> StepID -> List Concourse.AcrossSubstep -> StepTreeModel -> StepTreeModel
+setAcrossSubsteps buildId stepId substeps model =
+    case Dict.get stepId model.steps of
+        Just oldStep ->
+            case oldStep.buildStep of
+                Concourse.BuildStepAcross { vars } ->
+                    let
+                        newAcrossStep =
+                            Concourse.BuildStepAcross
+                                { vars = vars
+                                , steps = substeps
+                                }
+
+                        newAcrossModel =
+                            init buildId
+                                model.highlight
+                                model.resources
+                                { id = stepId
+                                , step = newAcrossStep
+                                }
+                    in
+                    { model
+                        | steps =
+                            Dict.union newAcrossModel.steps model.steps
+                                -- We need to keep the old step since otherwise
+                                -- we'll lose any existing state for this step
+                                -- (e.g. build logs)
+                                |> Dict.update stepId
+                                    (Maybe.map
+                                        (\newStep ->
+                                            { oldStep
+                                                | buildStep = newStep.buildStep
+                                                , expandedHeaders = newStep.expandedHeaders
+                                                , expanded = newStep.expanded || oldStep.expanded
+                                            }
+                                        )
+                                    )
+                        , tree = updateTreeNodeAt stepId (always newAcrossModel.tree) model.tree
+                    }
+
+                _ ->
+                    -- Should never happen
+                    model
+
+        Nothing ->
+            model
 
 
 planIsHighlighted : Highlight -> Concourse.BuildPlan -> Bool

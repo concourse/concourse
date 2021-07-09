@@ -216,6 +216,15 @@ decodeBuildEvent =
                                 (Json.Decode.field "plan" Concourse.decodeBuildPlan)
                             )
 
+                    "across-substeps" ->
+                        Json.Decode.field "data"
+                            (Json.Decode.map2 AcrossSubsteps
+                                (Json.Decode.field "origin" decodeOrigin)
+                                (Json.Decode.field "substeps" <|
+                                    Json.Decode.list Concourse.decodeAcrossSubstep
+                                )
+                            )
+
                     unknown ->
                         Json.Decode.fail ("unknown event type: " ++ unknown)
             )

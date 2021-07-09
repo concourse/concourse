@@ -1,6 +1,8 @@
 package builds
 
 import (
+	"encoding/json"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 )
@@ -233,39 +235,30 @@ func (visitor *planVisitor) VisitAcross(step *atc.AcrossStep) error {
 		vars[i] = atc.AcrossVar(v)
 	}
 
-	acrossPlan := atc.AcrossPlan{
-		Vars:     vars,
-		Steps:    []atc.VarScopedPlan{},
-		FailFast: step.FailFast,
+	if err := step.Step.Visit(visitor); err != nil {
+		return err
 	}
-	for _, vals := range cartesianProduct(step.Vars) {
-		err := step.Step.Visit(visitor)
-		if err != nil {
-			return err
-		}
-		acrossPlan.Steps = append(acrossPlan.Steps, atc.VarScopedPlan{
-			Step:   visitor.plan,
-			Values: vals,
-		})
+
+	// The plan is simply used as a template for generating the substeps
+	// dynamically, so it should be clear that the IDs aren't valid.
+	visitor.plan.Each(func(p *atc.Plan) {
+		p.ID = "ACROSS_SUBSTEP_TEMPLATE"
+	})
+
+	template, err := json.Marshal(visitor.plan)
+	if err != nil {
+		return err
+	}
+
+	acrossPlan := atc.AcrossPlan{
+		Vars:            vars,
+		SubStepTemplate: string(template),
+		FailFast:        step.FailFast,
 	}
 
 	visitor.plan = visitor.planFactory.NewPlan(acrossPlan)
 
 	return nil
-}
-
-func cartesianProduct(vars []atc.AcrossVarConfig) [][]interface{} {
-	if len(vars) == 0 {
-		return make([][]interface{}, 1)
-	}
-	var product [][]interface{}
-	subProduct := cartesianProduct(vars[:len(vars)-1])
-	for _, vec := range subProduct {
-		for _, val := range vars[len(vars)-1].Values {
-			product = append(product, append(vec, val))
-		}
-	}
-	return product
 }
 
 func (visitor *planVisitor) VisitSetPipeline(step *atc.SetPipelineStep) error {

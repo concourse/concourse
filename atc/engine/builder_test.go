@@ -2,7 +2,6 @@ package engine_test
 
 import (
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/builds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
@@ -20,8 +19,6 @@ var _ = Describe("Builder", func() {
 	Describe("BuildStep", func() {
 
 		var (
-			err error
-
 			fakeCoreStepFactory *enginefakes.FakeCoreStepFactory
 			fakeRateLimiter     *enginefakes.FakeRateLimiter
 			fakePolicyChecker   *policyfakes.FakeChecker
@@ -858,51 +855,6 @@ var _ = Describe("Builder", func() {
 						Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 							Type:                 db.ContainerTypeGet,
 							StepName:             "some-input",
-							PipelineID:           2222,
-							PipelineName:         "some-pipeline",
-							PipelineInstanceVars: "{\"branch\":\"master\"}",
-							JobID:                3333,
-							JobName:              "some-job",
-							BuildID:              4444,
-							BuildName:            "42",
-						}))
-					})
-				})
-
-				Context("running across steps", func() {
-					BeforeEach(func() {
-						planner := builds.NewPlanner(planFactory)
-
-						step := &atc.AcrossStep{
-							Step: &atc.TaskStep{Name: "some-task"},
-							Vars: []atc.AcrossVarConfig{
-								{
-									Var:    "var1",
-									Values: []interface{}{"a1", "a2"},
-								},
-								{
-									Var:    "var2",
-									Values: []interface{}{"b1", "b2"},
-								},
-								{
-									Var:    "var3",
-									Values: []interface{}{"c1"},
-								},
-							},
-						}
-
-						expectedPlan, err = planner.Create(step, nil, nil, nil, nil)
-						Expect(err).ToNot(HaveOccurred())
-					})
-
-					It("constructs the steps correctly", func() {
-						Expect(fakeCoreStepFactory.TaskStepCallCount()).To(Equal(4))
-						plan, stepMetadata, containerMetadata, _ := fakeCoreStepFactory.TaskStepArgsForCall(0)
-						Expect(*plan.Task).To(Equal(atc.TaskPlan{Name: "some-task"}))
-						Expect(stepMetadata).To(Equal(expectedMetadataWithoutCreatedBy))
-						Expect(containerMetadata).To(Equal(db.ContainerMetadata{
-							Type:                 db.ContainerTypeTask,
-							StepName:             "some-task",
 							PipelineID:           2222,
 							PipelineName:         "some-pipeline",
 							PipelineInstanceVars: "{\"branch\":\"master\"}",

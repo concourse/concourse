@@ -15,6 +15,21 @@ import (
 )
 
 type FakeBuildStepDelegate struct {
+	ConstructAcrossSubstepsStub        func([]byte, []atc.AcrossVar, [][]interface{}) ([]atc.VarScopedPlan, error)
+	constructAcrossSubstepsMutex       sync.RWMutex
+	constructAcrossSubstepsArgsForCall []struct {
+		arg1 []byte
+		arg2 []atc.AcrossVar
+		arg3 [][]interface{}
+	}
+	constructAcrossSubstepsReturns struct {
+		result1 []atc.VarScopedPlan
+		result2 error
+	}
+	constructAcrossSubstepsReturnsOnCall map[int]struct {
+		result1 []atc.VarScopedPlan
+		result2 error
+	}
 	ErroredStub        func(lager.Logger, string)
 	erroredMutex       sync.RWMutex
 	erroredArgsForCall []struct {
@@ -101,6 +116,87 @@ type FakeBuildStepDelegate struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeBuildStepDelegate) ConstructAcrossSubsteps(arg1 []byte, arg2 []atc.AcrossVar, arg3 [][]interface{}) ([]atc.VarScopedPlan, error) {
+	var arg1Copy []byte
+	if arg1 != nil {
+		arg1Copy = make([]byte, len(arg1))
+		copy(arg1Copy, arg1)
+	}
+	var arg2Copy []atc.AcrossVar
+	if arg2 != nil {
+		arg2Copy = make([]atc.AcrossVar, len(arg2))
+		copy(arg2Copy, arg2)
+	}
+	var arg3Copy [][]interface{}
+	if arg3 != nil {
+		arg3Copy = make([][]interface{}, len(arg3))
+		copy(arg3Copy, arg3)
+	}
+	fake.constructAcrossSubstepsMutex.Lock()
+	ret, specificReturn := fake.constructAcrossSubstepsReturnsOnCall[len(fake.constructAcrossSubstepsArgsForCall)]
+	fake.constructAcrossSubstepsArgsForCall = append(fake.constructAcrossSubstepsArgsForCall, struct {
+		arg1 []byte
+		arg2 []atc.AcrossVar
+		arg3 [][]interface{}
+	}{arg1Copy, arg2Copy, arg3Copy})
+	stub := fake.ConstructAcrossSubstepsStub
+	fakeReturns := fake.constructAcrossSubstepsReturns
+	fake.recordInvocation("ConstructAcrossSubsteps", []interface{}{arg1Copy, arg2Copy, arg3Copy})
+	fake.constructAcrossSubstepsMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeBuildStepDelegate) ConstructAcrossSubstepsCallCount() int {
+	fake.constructAcrossSubstepsMutex.RLock()
+	defer fake.constructAcrossSubstepsMutex.RUnlock()
+	return len(fake.constructAcrossSubstepsArgsForCall)
+}
+
+func (fake *FakeBuildStepDelegate) ConstructAcrossSubstepsCalls(stub func([]byte, []atc.AcrossVar, [][]interface{}) ([]atc.VarScopedPlan, error)) {
+	fake.constructAcrossSubstepsMutex.Lock()
+	defer fake.constructAcrossSubstepsMutex.Unlock()
+	fake.ConstructAcrossSubstepsStub = stub
+}
+
+func (fake *FakeBuildStepDelegate) ConstructAcrossSubstepsArgsForCall(i int) ([]byte, []atc.AcrossVar, [][]interface{}) {
+	fake.constructAcrossSubstepsMutex.RLock()
+	defer fake.constructAcrossSubstepsMutex.RUnlock()
+	argsForCall := fake.constructAcrossSubstepsArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeBuildStepDelegate) ConstructAcrossSubstepsReturns(result1 []atc.VarScopedPlan, result2 error) {
+	fake.constructAcrossSubstepsMutex.Lock()
+	defer fake.constructAcrossSubstepsMutex.Unlock()
+	fake.ConstructAcrossSubstepsStub = nil
+	fake.constructAcrossSubstepsReturns = struct {
+		result1 []atc.VarScopedPlan
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeBuildStepDelegate) ConstructAcrossSubstepsReturnsOnCall(i int, result1 []atc.VarScopedPlan, result2 error) {
+	fake.constructAcrossSubstepsMutex.Lock()
+	defer fake.constructAcrossSubstepsMutex.Unlock()
+	fake.ConstructAcrossSubstepsStub = nil
+	if fake.constructAcrossSubstepsReturnsOnCall == nil {
+		fake.constructAcrossSubstepsReturnsOnCall = make(map[int]struct {
+			result1 []atc.VarScopedPlan
+			result2 error
+		})
+	}
+	fake.constructAcrossSubstepsReturnsOnCall[i] = struct {
+		result1 []atc.VarScopedPlan
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeBuildStepDelegate) Errored(arg1 lager.Logger, arg2 string) {
@@ -540,6 +636,8 @@ func (fake *FakeBuildStepDelegate) WaitingForWorkerArgsForCall(i int) lager.Logg
 func (fake *FakeBuildStepDelegate) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.constructAcrossSubstepsMutex.RLock()
+	defer fake.constructAcrossSubstepsMutex.RUnlock()
 	fake.erroredMutex.RLock()
 	defer fake.erroredMutex.RUnlock()
 	fake.fetchImageMutex.RLock()

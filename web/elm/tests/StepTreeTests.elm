@@ -266,12 +266,12 @@ initAcross =
             BuildStepAcross
                 { vars = [ "var" ]
                 , steps =
-                    [ ( [ JsonString "v1" ]
-                      , { id = "task-a-id", step = task "a" }
-                      )
-                    , ( [ JsonString "v2" ]
-                      , { id = "task-b-id", step = task "b" }
-                      )
+                    [ { values = [ JsonString "v1" ]
+                      , step = { id = "task-a-id", step = task "a" }
+                      }
+                    , { values = [ JsonString "v2" ]
+                      , step = { id = "task-b-id", step = task "b" }
+                      }
                     ]
                 }
 
@@ -315,12 +315,12 @@ initAcrossNested =
             BuildStepAcross
                 { vars = [ "var2" ]
                 , steps =
-                    [ ( [ JsonString "b1" ]
-                      , { id = "task-a-id", step = task "a" }
-                      )
-                    , ( [ JsonString "b2" ]
-                      , { id = "task-b-id", step = task "b" }
-                      )
+                    [ { values = [ JsonString "b1" ]
+                      , step = { id = "task-a-id", step = task "a" }
+                      }
+                    , { values = [ JsonString "b2" ]
+                      , step = { id = "task-b-id", step = task "b" }
+                      }
                     ]
                 }
 
@@ -328,11 +328,12 @@ initAcrossNested =
             BuildStepAcross
                 { vars = [ "var1" ]
                 , steps =
-                    [ ( [ JsonString "a1" ]
-                      , { id = "nested-across-id"
-                        , step = nestedAcross
-                        }
-                      )
+                    [ { values = [ JsonString "a1" ]
+                      , step =
+                            { id = "nested-across-id"
+                            , step = nestedAcross
+                            }
+                      }
                     ]
                 }
 
@@ -390,11 +391,12 @@ initAcrossWithDo =
             BuildStepAcross
                 { vars = [ "var" ]
                 , steps =
-                    [ ( [ JsonString "v1" ]
-                      , { id = "do-id"
-                        , step = do
-                        }
-                      )
+                    [ { values = [ JsonString "v1" ]
+                      , step =
+                            { id = "do-id"
+                            , step = do
+                            }
+                      }
                     ]
                 }
 

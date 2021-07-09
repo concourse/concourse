@@ -1,8 +1,10 @@
 package exec
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
@@ -157,14 +159,17 @@ func (step *LoadVarStep) fetchVars(
 	var value interface{}
 	switch format {
 	case "json":
-		value = map[string]interface{}{}
-		err = json.Unmarshal(fileContent, &value)
+		decoder := json.NewDecoder(bytes.NewReader(fileContent))
+		decoder.UseNumber()
+		err = decoder.Decode(&value)
 		if err != nil {
 			return nil, InvalidLocalVarFile{file, "json", err}
 		}
+		if decoder.More() {
+			return nil, InvalidLocalVarFile{file, "json", errors.New("invalid json: characters found after top-level value")}
+		}
 	case "yml", "yaml":
-		value = map[string]interface{}{}
-		err = yaml.Unmarshal(fileContent, &value)
+		err = yaml.Unmarshal(fileContent, &value, useJSONNumber)
 		if err != nil {
 			return nil, InvalidLocalVarFile{file, "yaml", err}
 		}
@@ -177,6 +182,11 @@ func (step *LoadVarStep) fetchVars(
 	}
 
 	return value, nil
+}
+
+func useJSONNumber(decoder *json.Decoder) *json.Decoder {
+	decoder.UseNumber()
+	return decoder
 }
 
 func (step *LoadVarStep) fileFormat(file string) (string, error) {

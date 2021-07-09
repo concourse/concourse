@@ -379,22 +379,8 @@ var _ = Describe("Plan", func() {
 										MaxInFlight: &atc.MaxInFlightConfig{All: true},
 									},
 								},
-								Steps: []atc.VarScopedPlan{
-									{
-										Step: atc.Plan{
-											ID: "40",
-											Task: &atc.TaskPlan{
-												Name:       "name",
-												ConfigPath: "some/config/path.yml",
-												Config: &atc.TaskConfig{
-													Params: atc.TaskEnv{"some": "secret"},
-												},
-											},
-										},
-										Values: []interface{}{"a", "b"},
-									},
-								},
-								FailFast: true,
+								SubStepTemplate: `{"id":"ACROSS_STEP_TEMPLATE"}`,
+								FailFast:        true,
 							},
 						},
 					},
@@ -675,33 +661,10 @@ var _ = Describe("Plan", func() {
         "across": {
           "vars": [
             {
-              "name": "v1",
-              "values": [
-                "a"
-              ],
-              "max_in_flight": 1
+              "name": "v1"
             },
             {
-              "name": "v2",
-              "values": [
-                "b"
-              ],
-              "max_in_flight": "all"
-            }
-          ],
-          "steps": [
-            {
-              "step": {
-                "id": "40",
-                "task": {
-                  "name": "name",
-                  "privileged": false
-                }
-              },
-              "values": [
-                "a",
-                "b"
-              ]
+              "name": "v2"
             }
           ],
           "fail_fast": true
