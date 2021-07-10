@@ -305,9 +305,9 @@ func (step *CheckStep) containerOwner(delegate CheckDelegate, resourceConfig db.
 		return delegate.ContainerOwner(step.planID)
 	}
 
-	if resourceConfig.CreatedByBaseResourceType() != nil && resourceConfig.CreatedByBaseResourceType().UniqueVersionHistory {
-		return delegate.ContainerOwner(step.planID)
-	}
+	//if resourceConfig.CreatedByBaseResourceType() != nil && resourceConfig.CreatedByBaseResourceType().UniqueVersionHistory {
+	//	return delegate.ContainerOwner(step.planID)
+	//}
 
 	expires := db.ContainerOwnerExpiries{
 		Min: 5 * time.Minute,
