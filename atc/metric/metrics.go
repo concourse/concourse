@@ -111,6 +111,20 @@ func (event ResourceCacheCollectorDuration) Emit(logger lager.Logger) {
 	)
 }
 
+type TaskCacheCollectorDuration struct {
+	Duration time.Duration
+}
+
+func (event TaskCacheCollectorDuration) Emit(logger lager.Logger) {
+	Metrics.emit(
+		logger.Session("gc-task-cache-collector-duration"),
+		Event{
+			Name:  "gc: task cache collector duration (ms)",
+			Value: ms(event.Duration),
+		},
+	)
+}
+
 type ResourceConfigCheckSessionCollectorDuration struct {
 	Duration time.Duration
 }
