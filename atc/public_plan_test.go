@@ -929,7 +929,7 @@ var _ = Describe("Plan", func() {
           ],
           "fail_fast": true
         }
-      }
+      },
 			{
 				"id": "42",
 				"load_var": {
