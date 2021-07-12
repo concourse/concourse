@@ -36,11 +36,8 @@ type BuildStepDelegate interface {
 	WaitingForWorker(lager.Logger)
 	SelectedWorker(lager.Logger, string)
 
-<<<<<<< HEAD
 	ConstructAcrossSubsteps([]byte, []atc.AcrossVar, [][]interface{}) ([]atc.VarScopedPlan, error)
-=======
 	ContainerOwner(planId atc.PlanID) db.ContainerOwner
->>>>>>> 0477ed51f (p27)
 }
 
 //counterfeiter:generate . SetPipelineStepDelegateFactory

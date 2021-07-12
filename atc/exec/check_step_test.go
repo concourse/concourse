@@ -112,8 +112,9 @@ var _ = Describe("CheckStep", func() {
 
 		fakeResourceConfigScope = new(dbfakes.FakeResourceConfigScope)
 		fakeDelegate.FindOrCreateScopeReturns(fakeResourceConfigScope, nil)
-		fakeDelegate.UpdateScopeLastCheckStartTimeStub = func(scope db.ResourceConfigScope) (bool, error) {
-			return scope.UpdateLastCheckStartTime(int(time.Now().Unix()), nil)
+		fakeDelegate.UpdateScopeLastCheckStartTimeStub = func(scope db.ResourceConfigScope) (bool, int, error) {
+			found, err := scope.UpdateLastCheckStartTime(int(time.Now().Unix()), nil)
+			return found, 678, err
 		}
 		fakeDelegate.UpdateScopeLastCheckEndTimeStub = func(scope db.ResourceConfigScope, succeeded bool) (bool, error) {
 			return scope.UpdateLastCheckEndTime(succeeded)

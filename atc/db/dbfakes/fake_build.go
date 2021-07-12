@@ -373,6 +373,16 @@ type FakeBuild struct {
 	nameReturnsOnCall map[int]struct {
 		result1 string
 	}
+	OnCheckBuildStartStub        func() error
+	onCheckBuildStartMutex       sync.RWMutex
+	onCheckBuildStartArgsForCall []struct {
+	}
+	onCheckBuildStartReturns struct {
+		result1 error
+	}
+	onCheckBuildStartReturnsOnCall map[int]struct {
+		result1 error
+	}
 	PipelineStub        func() (db.Pipeline, bool, error)
 	pipelineMutex       sync.RWMutex
 	pipelineArgsForCall []struct {
@@ -2570,6 +2580,59 @@ func (fake *FakeBuild) NameReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
+func (fake *FakeBuild) OnCheckBuildStart() error {
+	fake.onCheckBuildStartMutex.Lock()
+	ret, specificReturn := fake.onCheckBuildStartReturnsOnCall[len(fake.onCheckBuildStartArgsForCall)]
+	fake.onCheckBuildStartArgsForCall = append(fake.onCheckBuildStartArgsForCall, struct {
+	}{})
+	stub := fake.OnCheckBuildStartStub
+	fakeReturns := fake.onCheckBuildStartReturns
+	fake.recordInvocation("OnCheckBuildStart", []interface{}{})
+	fake.onCheckBuildStartMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeBuild) OnCheckBuildStartCallCount() int {
+	fake.onCheckBuildStartMutex.RLock()
+	defer fake.onCheckBuildStartMutex.RUnlock()
+	return len(fake.onCheckBuildStartArgsForCall)
+}
+
+func (fake *FakeBuild) OnCheckBuildStartCalls(stub func() error) {
+	fake.onCheckBuildStartMutex.Lock()
+	defer fake.onCheckBuildStartMutex.Unlock()
+	fake.OnCheckBuildStartStub = stub
+}
+
+func (fake *FakeBuild) OnCheckBuildStartReturns(result1 error) {
+	fake.onCheckBuildStartMutex.Lock()
+	defer fake.onCheckBuildStartMutex.Unlock()
+	fake.OnCheckBuildStartStub = nil
+	fake.onCheckBuildStartReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBuild) OnCheckBuildStartReturnsOnCall(i int, result1 error) {
+	fake.onCheckBuildStartMutex.Lock()
+	defer fake.onCheckBuildStartMutex.Unlock()
+	fake.OnCheckBuildStartStub = nil
+	if fake.onCheckBuildStartReturnsOnCall == nil {
+		fake.onCheckBuildStartReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.onCheckBuildStartReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeBuild) Pipeline() (db.Pipeline, bool, error) {
 	fake.pipelineMutex.Lock()
 	ret, specificReturn := fake.pipelineReturnsOnCall[len(fake.pipelineArgsForCall)]
@@ -4673,6 +4736,8 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.markAsAbortedMutex.RUnlock()
 	fake.nameMutex.RLock()
 	defer fake.nameMutex.RUnlock()
+	fake.onCheckBuildStartMutex.RLock()
+	defer fake.onCheckBuildStartMutex.RUnlock()
 	fake.pipelineMutex.RLock()
 	defer fake.pipelineMutex.RUnlock()
 	fake.pipelineIDMutex.RLock()

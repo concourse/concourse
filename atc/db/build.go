@@ -214,6 +214,8 @@ type Build interface {
 
 	ResourceCacheUser() ResourceCacheUser
 	ContainerOwner(atc.PlanID) ContainerOwner
+
+	OnCheckBuildStart() error
 }
 
 type build struct {
@@ -1791,6 +1793,12 @@ func (b *build) ResourceCacheUser() ResourceCacheUser {
 
 func (b *build) ContainerOwner(planId atc.PlanID) ContainerOwner {
 	return NewBuildStepContainerOwner(b.ID(), planId, b.TeamID())
+}
+
+// OnSelectedWorker is a hook point called after a worker is selected. For DB
+// build, there is nothing to in at this point.
+func (b *build) OnCheckBuildStart() error {
+	return nil
 }
 
 func newNullInt64(i int) sql.NullInt64 {

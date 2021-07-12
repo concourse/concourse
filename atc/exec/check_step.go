@@ -43,7 +43,7 @@ type CheckDelegate interface {
 	FindOrCreateScope(db.ResourceConfig) (db.ResourceConfigScope, error)
 	WaitToRun(context.Context, db.ResourceConfigScope) (lock.Lock, bool, error)
 	PointToCheckedConfig(db.ResourceConfigScope) error
-	UpdateScopeLastCheckStartTime(db.ResourceConfigScope) (bool, error)
+	UpdateScopeLastCheckStartTime(db.ResourceConfigScope) (bool, int, error)
 	UpdateScopeLastCheckEndTime(db.ResourceConfigScope, bool) (bool, error)
 }
 
@@ -168,10 +168,14 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 
 		metric.Metrics.ChecksStarted.Inc()
 
-		_, err = delegate.UpdateScopeLastCheckStartTime(scope)
+		_, buildId, err := delegate.UpdateScopeLastCheckStartTime(scope)
 		if err != nil {
 			return false, fmt.Errorf("update check start time: %w", err)
 		}
+
+		// Update build in logger
+		logger = logger.WithData(lager.Data{"build": buildId})
+		ctx = lagerctx.NewContext(ctx, logger)
 
 		versions, processResult, runErr := step.runCheck(ctx, logger, delegate, timeout, imageSpec, resourceConfig, source, fromVersion)
 		if runErr != nil || processResult.ExitStatus != 0 {
@@ -266,7 +270,7 @@ func (step *CheckStep) runCheck(
 	}
 	tracing.Inject(ctx, &containerSpec)
 
-	containerOwner := step.containerOwner(resourceConfig)
+	containerOwner := step.containerOwner(delegate, resourceConfig)
 	worker, err := step.workerPool.FindOrSelectWorker(ctx, containerOwner, containerSpec, workerSpec, step.strategy, delegate)
 	if err != nil {
 		return nil, runtime.ProcessResult{}, err

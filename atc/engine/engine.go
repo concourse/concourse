@@ -222,7 +222,7 @@ func (b *engineBuild) Run(ctx context.Context) {
 			return
 		}
 
-		b.finish(logger.Session("finish"), runErr, succeeded)
+		b.finish(logger.Session("finish").WithData(b.build.LagerData()), runErr, succeeded)
 	}
 }
 

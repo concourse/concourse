@@ -13,12 +13,14 @@ import (
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
 	"go.opentelemetry.io/otel/propagation"
+	"math/rand"
 	"time"
 )
 
 // inMemoryCheckBuild handles in-memory check builds only, thus it just implement
 // the necessary function of interface Build.
 type inMemoryCheckBuild struct {
+	preId int
 	id               int
 	checkable        Checkable
 	plan             atc.Plan
@@ -29,8 +31,8 @@ type inMemoryCheckBuild struct {
 	resourceTypeName string
 	spanContext      SpanContext
 
-	running bool
-	conn    Conn
+	running     bool
+	conn        Conn
 	lockFactory lock.LockFactory
 
 	// runningInContainer makes a check build really executed in a container on a worker.
@@ -50,23 +52,9 @@ func newRunningInMemoryCheckBuild(conn Conn, lockFactory lock.LockFactory, check
 	build.running = true
 	build.spanContext = spanContext
 
-	tx, err := conn.Begin()
-	if err != nil {
-		return nil, err
-	}
-	defer Rollback(tx)
-
-	var nextBuildId int
-	err = psql.Select("nextval('builds_id_seq'::regclass)").RunWith(tx).QueryRow().Scan(&nextBuildId)
-	if err != nil {
-		return nil, err
-	}
-	build.id = nextBuildId
-
-	err = tx.Commit()
-	if err != nil {
-		return nil, err
-	}
+	seed := rand.NewSource(time.Now().UnixNano())
+	r := rand.New(seed)
+	build.preId = r.Int()
 
 	return build, nil
 }
@@ -124,9 +112,16 @@ func (b *inMemoryCheckBuild) IsNewerThanLastCheckOf(input Resource) bool {
 
 func (b *inMemoryCheckBuild) LagerData() lager.Data {
 	data := lager.Data{
-		"build":    b.ID(),
 		"team":     b.TeamName(),
 		"pipeline": b.PipelineName(),
+	}
+
+	if b.preId != 0 {
+		data["preBuildId"] = b.preId
+	}
+
+	if b.id != 0 {
+		data["build"] = b.id
 	}
 
 	if b.resourceId != 0 {
@@ -142,9 +137,16 @@ func (b *inMemoryCheckBuild) LagerData() lager.Data {
 
 func (b *inMemoryCheckBuild) TracingAttrs() tracing.Attrs {
 	attrs := tracing.Attrs{
-		"build":    fmt.Sprintf("%d", b.ID()),
 		"team":     b.TeamName(),
 		"pipeline": b.PipelineName(),
+	}
+
+	if b.preId != 0 {
+		attrs["perBuildId"] = fmt.Sprintf("%d", b.preId)
+	}
+
+	if b.id != 0 {
+		attrs["build"] = fmt.Sprintf("%d", b.id)
 	}
 
 	if b.resourceId != 0 {
@@ -178,7 +180,7 @@ func (b *inMemoryCheckBuild) AcquireTrackingLock(logger lager.Logger, interval t
 
 	lock, acquired, err := b.lockFactory.Acquire(
 		logger.Session("lock", lager.Data{
-			"build_id": b.id,
+			"preBuildId": b.preId,
 		}),
 		lockId,
 	)
@@ -271,19 +273,14 @@ func (b *inMemoryCheckBuild) Variables(logger lager.Logger, secrets creds.Secret
 	return pipeline.Variables(logger, secrets, varSourcePool)
 }
 
-func (b *inMemoryCheckBuild) SaveEvent(ev atc.Event) error {
+// OnSelectedWorker is a hook point called after a worker is selected. For DB
+// build, there is nothing to in at this point.
+func (b *inMemoryCheckBuild) OnCheckBuildStart() error {
 	if !b.running {
 		panic("not a running in-memory-check-build")
 	}
 
-	if ev.EventType() == event.EventTypeSelectedWorker {
-		b.runningInContainer = true
-	}
-
-	if !b.runningInContainer {
-		b.cacheEvents = append(b.cacheEvents, ev)
-		return nil
-	}
+	b.runningInContainer = true
 
 	tx, err := b.conn.Begin()
 	if err != nil {
@@ -298,6 +295,32 @@ func (b *inMemoryCheckBuild) SaveEvent(ev atc.Event) error {
 		}
 	}
 
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	//logger.Info("generated-build-id", b.LagerData())
+
+	return b.conn.Bus().Notify(buildEventsChannel(b.id))
+}
+
+func (b *inMemoryCheckBuild) SaveEvent(ev atc.Event) error {
+	if !b.running {
+		panic("not a running in-memory-check-build")
+	}
+
+	if !b.runningInContainer {
+		b.cacheEvents = append(b.cacheEvents, ev)
+		return nil
+	}
+
+	tx, err := b.conn.Begin()
+	if err != nil {
+		return err
+	}
+	defer Rollback(tx)
+
 	err = b.saveEvent(tx, ev)
 	if err != nil {
 		return err
@@ -311,6 +334,10 @@ func (b *inMemoryCheckBuild) SaveEvent(ev atc.Event) error {
 }
 
 func (b *inMemoryCheckBuild) Events(from uint) (EventSource, error) {
+	if b.id == 0 {
+		return nil, fmt.Errorf("no-build-event-yet")
+	}
+
 	notifier, err := newConditionNotifier(b.conn.Bus(), buildEventsChannel(b.id), func() (bool, error) {
 		return true, nil
 	})
@@ -408,6 +435,13 @@ func (b *inMemoryCheckBuild) AllAssociatedTeamNames() []string {
 }
 
 func (b *inMemoryCheckBuild) initDbStuff(tx Tx) error {
+	var nextBuildId int
+	err := psql.Select("nextval('builds_id_seq'::regclass)").RunWith(tx).QueryRow().Scan(&nextBuildId)
+	if err != nil {
+		return err
+	}
+	b.id = nextBuildId
+
 	for _, cachedEv := range b.cacheEvents {
 		err := b.saveEvent(tx, cachedEv)
 		if err != nil {
