@@ -38,10 +38,10 @@ type CNINetworkConfig struct {
 }
 
 const (
-	// fileStoreWorkDir is a default directory used for storing
-	// container-related files
+	// networkMountsDir is a default directory used for storing
+	// container-related files inside the worker's WorkDir
 	//
-	fileStoreWorkDir = "/tmp"
+	networkMountsDir = "networkmounts"
 
 	// binariesDir corresponds to the directory where CNI plugins have their
 	// binaries in.
@@ -152,6 +152,13 @@ func WithCNIFileStore(f FileStore) CNINetworkOpt {
 	}
 }
 
+// FileStoreWithWorkDir creates a Filestore specific to the CNI networks
+// working directory
+//
+func FileStoreWithWorkDir(path string) FileStore {
+	return NewFileStore(filepath.Join(path, networkMountsDir))
+}
+
 // WithRestrictedNetworks defines the network ranges that containers will be restricted
 // from accessing.
 //
@@ -228,7 +235,7 @@ func NewCNINetwork(opts ...CNINetworkOpt) (*cniNetwork, error) {
 		n.ipt, err = iptables.New()
 
 		if err != nil {
-			return nil, fmt.Errorf("failed to initialize iptables")
+			return nil, fmt.Errorf("failed to initialize iptables: %w", err)
 		}
 	}
 
@@ -384,14 +391,20 @@ func (n cniNetwork) Add(ctx context.Context, task containerd.Task, containerHand
 	)
 }
 
-func (n cniNetwork) Remove(ctx context.Context, task containerd.Task) error {
+func (n cniNetwork) Remove(ctx context.Context, task containerd.Task, handle string) error {
+	var err error
 	if task == nil {
 		return ErrInvalidInput("nil task")
 	}
 
 	id, netns := netId(task), netNsPath(task)
 
-	err := n.client.Remove(ctx, id, netns)
+	err = n.store.Delete(handle)
+	if err != nil {
+		return fmt.Errorf("cni network mounts teardown: %w", err)
+	}
+
+	err = n.client.Remove(ctx, id, netns)
 	if err != nil {
 		return fmt.Errorf("cni net teardown: %w", err)
 	}

@@ -24,11 +24,12 @@ type FakeNetwork struct {
 	addReturnsOnCall map[int]struct {
 		result1 error
 	}
-	RemoveStub        func(context.Context, containerd.Task) error
+	RemoveStub        func(context.Context, containerd.Task, string) error
 	removeMutex       sync.RWMutex
 	removeArgsForCall []struct {
 		arg1 context.Context
 		arg2 containerd.Task
+		arg3 string
 	}
 	removeReturns struct {
 		result1 error
@@ -126,19 +127,20 @@ func (fake *FakeNetwork) AddReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeNetwork) Remove(arg1 context.Context, arg2 containerd.Task) error {
+func (fake *FakeNetwork) Remove(arg1 context.Context, arg2 containerd.Task, arg3 string) error {
 	fake.removeMutex.Lock()
 	ret, specificReturn := fake.removeReturnsOnCall[len(fake.removeArgsForCall)]
 	fake.removeArgsForCall = append(fake.removeArgsForCall, struct {
 		arg1 context.Context
 		arg2 containerd.Task
-	}{arg1, arg2})
+		arg3 string
+	}{arg1, arg2, arg3})
 	stub := fake.RemoveStub
 	fakeReturns := fake.removeReturns
-	fake.recordInvocation("Remove", []interface{}{arg1, arg2})
+	fake.recordInvocation("Remove", []interface{}{arg1, arg2, arg3})
 	fake.removeMutex.Unlock()
 	if stub != nil {
-		return stub(arg1, arg2)
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1
@@ -152,17 +154,17 @@ func (fake *FakeNetwork) RemoveCallCount() int {
 	return len(fake.removeArgsForCall)
 }
 
-func (fake *FakeNetwork) RemoveCalls(stub func(context.Context, containerd.Task) error) {
+func (fake *FakeNetwork) RemoveCalls(stub func(context.Context, containerd.Task, string) error) {
 	fake.removeMutex.Lock()
 	defer fake.removeMutex.Unlock()
 	fake.RemoveStub = stub
 }
 
-func (fake *FakeNetwork) RemoveArgsForCall(i int) (context.Context, containerd.Task) {
+func (fake *FakeNetwork) RemoveArgsForCall(i int) (context.Context, containerd.Task, string) {
 	fake.removeMutex.RLock()
 	defer fake.removeMutex.RUnlock()
 	argsForCall := fake.removeArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeNetwork) RemoveReturns(result1 error) {

@@ -25,5 +25,5 @@ type Network interface {
 
 	// Removes a task from the network.
 	//
-	Remove(ctx context.Context, task containerd.Task) (err error)
+	Remove(ctx context.Context, task containerd.Task, handle string) (err error)
 }

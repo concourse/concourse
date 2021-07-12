@@ -61,7 +61,10 @@ func (cmd *WorkerCommand) containerdGardenServerRunner(
 	const graceTime = 0
 
 	backendOpts := []runtime.GardenBackendOpt{}
-	networkOpts := []runtime.CNINetworkOpt{runtime.WithCNIBinariesDir(cmd.Containerd.CNIPluginsDir)}
+	networkOpts := []runtime.CNINetworkOpt{
+		runtime.WithCNIBinariesDir(cmd.Containerd.CNIPluginsDir),
+		runtime.WithCNIFileStore(runtime.FileStoreWithWorkDir(cmd.WorkDir.Path())),
+	}
 
 	if len(dnsServers) > 0 {
 		networkOpts = append(networkOpts, runtime.WithNameServers(dnsServers))

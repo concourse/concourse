@@ -884,3 +884,76 @@ func (s *IntegrationSuite) TestRequestTimeoutZero() {
 		customBackend.Stop()
 	}()
 }
+
+func (s *IntegrationSuite) TestNetworkMountsAreRemoved() {
+	// Using custom backend, clean up BeforeTest() stuff
+	s.gardenBackend.Stop()
+	s.cleanupIptables()
+
+	namespace := "test-network-mounts-are-removed"
+	requestTimeout := 3 * time.Second
+
+	networkMountsDir := s.T().TempDir()
+	network, err := runtime.NewCNINetwork(
+		runtime.WithCNIFileStore(runtime.FileStoreWithWorkDir(networkMountsDir)),
+	)
+
+	s.NoError(err)
+
+	networkOpt := runtime.WithNetwork(network)
+	customBackend, err := runtime.NewGardenBackend(
+		libcontainerd.New(
+			s.containerdSocket(),
+			namespace,
+			requestTimeout,
+		),
+		networkOpt,
+	)
+	s.NoError(err)
+
+	s.NoError(customBackend.Start())
+
+	handle := uuid()
+
+	container, err := customBackend.Create(garden.ContainerSpec{
+		Handle:     handle,
+		RootFSPath: "raw://" + s.rootfs,
+		Privileged: true,
+	})
+	s.NoError(err)
+
+	defer func() {
+		customBackend.Stop()
+	}()
+
+	buf := new(buffer)
+	proc, err := container.Run(
+		garden.ProcessSpec{
+			Path: "/executable",
+			Args: []string{
+				"-cat",
+				"/etc/resolv.conf",
+			},
+		},
+		garden.ProcessIO{
+			Stdout: buf,
+			Stderr: buf,
+		},
+	)
+	s.NoError(err)
+
+	exitCode, err := proc.Wait()
+	s.NoError(err)
+
+	s.Equal(exitCode, 0)
+
+	networkFiles, err := os.ReadDir(filepath.Join(networkMountsDir, "networkmounts", handle))
+	s.NoError(err)
+	s.Len(networkFiles, 3)
+
+	s.NoError(customBackend.Destroy(handle))
+
+	networkFiles, err = os.ReadDir(filepath.Join(networkMountsDir, "networkmounts"))
+	s.NoError(err)
+	s.Len(networkFiles, 0)
+}

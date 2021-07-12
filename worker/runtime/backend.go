@@ -287,7 +287,7 @@ func (b *GardenBackend) Destroy(handle string) error {
 		return fmt.Errorf("gracefully killing task: %w", err)
 	}
 
-	err = b.network.Remove(ctx, task)
+	err = b.network.Remove(ctx, task, handle)
 	if err != nil {
 		return fmt.Errorf("network remove: %w", err)
 	}
