@@ -43,11 +43,6 @@ const (
 	//
 	networkMountsDir = "networkmounts"
 
-	// binariesDir corresponds to the directory where CNI plugins have their
-	// binaries in.
-	//
-	binariesDir = "/usr/local/concourse/bin"
-
 	ipTablesAdminChainName = "CONCOURSE-OPERATOR"
 )
 
@@ -184,6 +179,19 @@ func WithIptables(ipt iptables.Iptables) CNINetworkOpt {
 	}
 }
 
+// WithDefaultsForTesting testing damage
+//
+func WithDefaultsForTesting() CNINetworkOpt {
+	return func(n *cniNetwork) {
+		if n.binariesDir == "" {
+			n.binariesDir = "/usr/local/concourse/bin"
+		}
+		if n.store == nil {
+			n.store = NewFileStore("/tmp")
+		}
+	}
+}
+
 type cniNetwork struct {
 	client             cni.CNI
 	store              FileStore
@@ -209,11 +217,11 @@ func NewCNINetwork(opts ...CNINetworkOpt) (*cniNetwork, error) {
 	}
 
 	if n.binariesDir == "" {
-		n.binariesDir = binariesDir
+		return nil, fmt.Errorf("missing binaries dir")
 	}
 
 	if n.store == nil {
-		n.store = NewFileStore(fileStoreWorkDir)
+		return nil, fmt.Errorf("no file store initialized")
 	}
 
 	if n.client == nil {

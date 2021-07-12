@@ -111,12 +111,19 @@ func (s *IntegrationSuite) BeforeTest(suiteName, testName string) {
 		requestTimeout = 3 * time.Second
 	)
 
+	network, err := runtime.NewCNINetwork(
+		runtime.WithDefaultsForTesting(),
+	)
+
+	s.NoError(err)
+
 	s.gardenBackend, err = runtime.NewGardenBackend(
 		libcontainerd.New(
 			s.containerdSocket(),
 			namespace,
 			requestTimeout,
 		),
+		runtime.WithNetwork(network),
 	)
 	s.NoError(err)
 	s.NoError(s.gardenBackend.Start())
@@ -245,6 +252,7 @@ func (s *IntegrationSuite) TestContainerNetworkEgressWithRestrictedNetworks() {
 	requestTimeout := 3 * time.Second
 
 	network, err := runtime.NewCNINetwork(
+		runtime.WithDefaultsForTesting(),
 		runtime.WithRestrictedNetworks([]string{"1.1.1.1"}),
 	)
 
@@ -373,7 +381,10 @@ func (s *IntegrationSuite) TestContainerAllowsHostAccess() {
 	namespace := "test-allow-host-access"
 	requestTimeout := 3 * time.Second
 
-	network, err := runtime.NewCNINetwork(runtime.WithAllowHostAccess())
+	network, err := runtime.NewCNINetwork(
+		runtime.WithDefaultsForTesting(),
+		runtime.WithAllowHostAccess(),
+	)
 
 	s.NoError(err)
 
@@ -715,6 +726,7 @@ func (s *IntegrationSuite) TestCustomDNS() {
 	requestTimeout := 3 * time.Second
 
 	network, err := runtime.NewCNINetwork(
+		runtime.WithDefaultsForTesting(),
 		runtime.WithNameServers([]string{
 			"1.1.1.1", "1.2.3.4",
 		}),
@@ -895,6 +907,7 @@ func (s *IntegrationSuite) TestNetworkMountsAreRemoved() {
 
 	networkMountsDir := s.T().TempDir()
 	network, err := runtime.NewCNINetwork(
+		runtime.WithDefaultsForTesting(),
 		runtime.WithCNIFileStore(runtime.FileStoreWithWorkDir(networkMountsDir)),
 	)
 
