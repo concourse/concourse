@@ -782,7 +782,7 @@ func (cmd *RunCommand) constructAPIMembers(
 	}
 
 	// The worker factory has its own connection pool (for worker registration)
-	dbWorkerFactory := db.NewWorkerFactory(workerConn)
+	dbWorkerFactory := db.NewWorkerFactory(workerConn, workerCache)
 
 	credsManagers := cmd.CredentialManagers
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)

@@ -226,34 +226,6 @@ func (builder Builder) WithPipeline(config atc.Config) SetupFunc {
 	}
 }
 
-func BaseWorker(name string) atc.Worker {
-	certsPath := CertsPath
-	return atc.Worker{
-		Name: name,
-
-		Version: concourse.WorkerVersion,
-
-		GardenAddr:      unique("garden-addr"),
-		BaggageclaimURL: unique("baggageclaim-url"),
-
-		ResourceTypes: []atc.WorkerResourceType{
-			{
-				Type:    BaseResourceType,
-				Image:   "/path/to/global/image",
-				Version: BaseResourceTypeVersion,
-			},
-			{
-				Type:                 UniqueBaseResourceType,
-				Image:                "/path/to/unique/image",
-				Version:              UniqueBaseResourceTypeVersion,
-				UniqueVersionHistory: true,
-			},
-		},
-
-		CertsPath: &certsPath,
-	}
-}
-
 func (builder Builder) WithBaseWorker() SetupFunc {
 	return builder.WithWorker(BaseWorker(unique("worker")))
 }
@@ -626,6 +598,37 @@ func (builder Builder) WithJobBuild(assign *db.Build, jobName string, inputs Job
 	}
 }
 
+func (builder Builder) WithJobBuildContainer(assign *db.CreatingContainer, jobName string, workerName string, teamID int) SetupFunc {
+	return func(scenario *Scenario) error {
+		if len(scenario.Workers) == 0 {
+			return fmt.Errorf("no workers set in scenario")
+		}
+
+		var build db.Build
+		scenario.Run(builder.WithJobBuild(&build, jobName, nil, nil))
+
+		owner := db.NewBuildStepContainerOwner(build.ID(), "123", teamID)
+
+		worker, found, err := builder.WorkerFactory.GetWorker(workerName)
+		if err != nil {
+			return err
+		}
+
+		if !found {
+			return fmt.Errorf("worker '%s' not set in the scenario", workerName)
+		}
+
+		containerMetadata := db.ContainerMetadata{}
+
+		*assign, err = worker.CreateContainer(owner, containerMetadata)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+}
+
 func (builder Builder) WithCheckContainer(resourceName string, workerName string) SetupFunc {
 	return func(scenario *Scenario) error {
 		if scenario.Pipeline == nil {
@@ -669,7 +672,7 @@ func (builder Builder) WithCheckContainer(resourceName string, workerName string
 		}
 
 		if !found {
-			return fmt.Errorf("worker '%d' not set in the scenario", rc.ID())
+			return fmt.Errorf("worker '%s' not set in the scenario", worker.Name())
 		}
 
 		containerMetadata := db.ContainerMetadata{

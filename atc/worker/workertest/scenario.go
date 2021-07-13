@@ -25,6 +25,7 @@ type Scenario struct {
 
 	TeamID   int
 	JobID    int
+	JobName  string
 	StepName string
 }
 
@@ -32,7 +33,7 @@ type SetupFunc func(*Scenario)
 
 func Setup(dbConn db.Conn, lockFactory lock.LockFactory, setup ...SetupFunc) *Scenario {
 	db := worker.NewDB(
-		db.NewWorkerFactory(dbConn),
+		db.NewWorkerFactory(dbConn, db.NewStaticWorkerCache(dummyLogger, dbConn, 0)),
 		db.NewTeamFactory(dbConn, lockFactory),
 		db.NewVolumeRepository(dbConn),
 		db.NewTaskCacheFactory(dbConn),
@@ -77,6 +78,7 @@ func WithBasicJob() SetupFunc {
 		job := s.DB.Job("job")
 		s.TeamID = s.DB.Team.ID()
 		s.JobID = job.ID()
+		s.JobName = job.Name()
 		s.StepName = "some-step"
 	}
 }

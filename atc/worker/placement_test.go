@@ -282,18 +282,12 @@ var _ = Describe("Container Placement Strategies", func() {
 				workertest.WithBasicJob(),
 				workertest.WithWorkers(
 					grt.NewWorker("worker1").
-						WithContainersCreatedInDBAndGarden(
-							grt.NewContainer("c1"),
-						),
+						WithJobBuildContainerCreatedInDBAndGarden(),
 					grt.NewWorker("worker2").
-						WithContainersCreatedInDBAndGarden(
-							grt.NewContainer("c2"),
-							grt.NewContainer("c3"),
-						),
+						WithJobBuildContainerCreatedInDBAndGarden().
+						WithJobBuildContainerCreatedInDBAndGarden(),
 					grt.NewWorker("worker3").
-						WithContainersCreatedInDBAndGarden(
-							grt.NewContainer("c4"),
-						),
+						WithJobBuildContainerCreatedInDBAndGarden(),
 				),
 			)
 

@@ -64,16 +64,13 @@ var _ = Describe("Pool", func() {
 
 		Test("follows the strategy for selecting a worker", func() {
 			scenario := Setup(
+				workertest.WithBasicJob(),
 				workertest.WithWorkers(
 					grt.NewWorker("worker1").
-						WithContainersCreatedInDBAndGarden(
-							grt.NewContainer("c1"),
-							grt.NewContainer("c2"),
-						),
+						WithJobBuildContainerCreatedInDBAndGarden().
+						WithJobBuildContainerCreatedInDBAndGarden(),
 					grt.NewWorker("worker2").
-						WithContainersCreatedInDBAndGarden(
-							grt.NewContainer("c3"),
-						),
+						WithJobBuildContainerCreatedInDBAndGarden(),
 					grt.NewWorker("worker3"),
 				),
 			)

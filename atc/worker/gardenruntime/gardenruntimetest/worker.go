@@ -166,6 +166,18 @@ func (w Worker) WithVolumesCreatedInDBAndBaggageclaim(volumes ...*Volume) *Worke
 	return w.WithBaggageclaimVolumes(volumes...).WithDBVolumesInState(Created, volumeHandles(volumes)...)
 }
 
+func (w Worker) WithJobBuildContainerCreatedInDBAndGarden() *Worker {
+	return w.WithMutableSetup(func(w *Worker, s *workertest.Scenario) {
+		var container db.CreatingContainer
+		s.DB.Run(s.DBBuilder.WithJobBuildContainer(&container, s.JobName, w.WorkerName, s.TeamID))
+
+		created, err := container.Created()
+		Expect(err).ToNot(HaveOccurred())
+
+		*w = *w.WithGardenContainers(NewContainer(created.Handle()))
+	})
+}
+
 func (w Worker) WithActiveTasks(activeTasks int) *Worker {
 	return w.WithSetup(func(s *workertest.Scenario) {
 		worker := s.DB.Worker(w.Name())

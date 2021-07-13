@@ -227,14 +227,14 @@ func (volumeLocalityStrategy) Release(lager.Logger, db.Worker, runtime.Container
 type fewestBuildContainersStrategy struct{}
 
 func (strategy fewestBuildContainersStrategy) Order(logger lager.Logger, pool Pool, workers []db.Worker, spec runtime.ContainerSpec) ([]db.Worker, error) {
-	counts := make(map[db.Worker]int, len(workers))
-	for _, worker := range workers {
-		counts[worker] = worker.ActiveContainers()
+	counts, err := pool.db.WorkerFactory.BuildContainersCountPerWorker()
+	if err != nil {
+		return nil, err
 	}
 
 	sortedWorkers := cloneWorkers(workers)
 	sort.SliceStable(sortedWorkers, func(i, j int) bool {
-		return counts[sortedWorkers[i]] < counts[sortedWorkers[j]]
+		return counts[sortedWorkers[i].Name()] < counts[sortedWorkers[j].Name()]
 	})
 
 	return sortedWorkers, nil
