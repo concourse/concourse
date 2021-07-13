@@ -2,7 +2,6 @@ package gc
 
 import (
 	"context"
-	"github.com/concourse/concourse/atc/component"
 	"time"
 
 	"code.cloudfoundry.org/lager/lagerctx"
@@ -23,7 +22,7 @@ func NewResourceConfigCheckSessionCollector(
 	}
 }
 
-func (rccsc *resourceConfigCheckSessionCollector) Run(ctx context.Context, _ string) (component.RunResult, error) {
+func (rccsc *resourceConfigCheckSessionCollector) Run(ctx context.Context) error {
 	logger := lagerctx.FromContext(ctx).Session("resource-config-check-session-collector")
 
 	logger.Debug("start")
@@ -50,5 +49,5 @@ func (rccsc *resourceConfigCheckSessionCollector) Run(ctx context.Context, _ str
 		logger.Error("failed-to-clean-up-inactive-resource-config-check-sessions", err)
 	}
 
-	return nil, errs
+	return errs
 }

@@ -9,7 +9,5 @@ type Component interface {
 	IntervalElapsed() bool
 
 	Reload() (bool, error)
-	UpdateLastRan(when time.Time, result RunResult) error
-
-	LastRunResult() string
+	UpdateLastRan(when time.Time) error
 }

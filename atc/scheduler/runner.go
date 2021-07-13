@@ -3,7 +3,6 @@ package scheduler
 import (
 	"context"
 	"fmt"
-	"github.com/concourse/concourse/atc/component"
 	"sync"
 	"time"
 
@@ -44,7 +43,7 @@ func NewRunner(logger lager.Logger, jobFactory db.JobFactory, scheduler BuildSch
 	}
 }
 
-func (s *Runner) Run(ctx context.Context, _ string) (component.RunResult, error) {
+func (s *Runner) Run(ctx context.Context) error {
 	sLog := s.logger.Session("run")
 
 	sLog.Debug("start")
@@ -54,7 +53,7 @@ func (s *Runner) Run(ctx context.Context, _ string) (component.RunResult, error)
 
 	jobs, err := s.jobFactory.JobsToSchedule()
 	if err != nil {
-		return nil, fmt.Errorf("find jobs to schedule: %w", err)
+		return fmt.Errorf("find jobs to schedule: %w", err)
 	}
 
 	for _, j := range jobs {
@@ -99,7 +98,7 @@ func (s *Runner) Run(ctx context.Context, _ string) (component.RunResult, error)
 		}(j)
 	}
 
-	return nil, nil
+	return nil
 }
 
 func (s *Runner) scheduleJob(ctx context.Context, logger lager.Logger, job db.SchedulerJob) error {

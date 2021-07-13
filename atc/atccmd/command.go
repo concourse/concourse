@@ -145,7 +145,6 @@ type RunCommand struct {
 	ComponentRunnerInterval time.Duration `long:"component-runner-interval" default:"10s" description:"Interval on which runners are kicked off for builds, locks, scans, and checks"`
 
 	LidarScannerInterval time.Duration `long:"lidar-scanner-interval" default:"10s" description:"Interval on which the resource scanner will run to see if new checks need to be scheduled"`
-	LidarScannerChunks   int           `long:"lidar-scanner-chunks" default:"1" description:"Divide all resources into multiple chunks to check. 0 for auto determine chunks; 1 for not dividing; >1 for chunk count to divide. Small deployments having 1 ATC should use 1. Large deployments may use 0 or ATC count. The more chunks, the more delay on resource checks, thus it's better to keep this value not bigger than 6."`
 
 	GlobalResourceCheckTimeout          time.Duration `long:"global-resource-check-timeout" default:"1h" description:"Time limit on checking for new versions of resources."`
 	ResourceCheckingInterval            time.Duration `long:"resource-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources."`
@@ -1055,13 +1054,6 @@ func (cmd *RunCommand) backendComponents(
 		cmd.ResourceWithWebhookCheckingInterval = cmd.ResourceCheckingInterval
 	}
 
-	if cmd.LidarScannerChunks < 0 {
-		return nil, fmt.Errorf("lidar scanner chunks must be >= 0")
-	}
-	chunks := cmd.LidarScannerChunks
-	if cmd.LidarScannerChunks == 0 {
-		chunks = int(cmd.ResourceCheckingInterval.Seconds() / cmd.LidarScannerInterval.Seconds())
-	}
 	components := []RunnableComponent{
 		{
 			Component: atc.Component{
@@ -1071,7 +1063,6 @@ func (cmd *RunCommand) backendComponents(
 			Runnable: lidar.NewScanner(
 				dbCheckFactory,
 				atc.NewPlanFactory(time.Now().Unix()),
-				chunks,
 			),
 		},
 		{

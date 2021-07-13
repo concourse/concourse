@@ -2,7 +2,6 @@ package gc
 
 import (
 	"context"
-	"github.com/concourse/concourse/atc/component"
 	"time"
 
 	"code.cloudfoundry.org/lager/lagerctx"
@@ -23,7 +22,7 @@ func NewBuildCollector(buildFactory buildFactory) *buildCollector {
 	}
 }
 
-func (b *buildCollector) Run(ctx context.Context, _ string) (component.RunResult, error) {
+func (b *buildCollector) Run(ctx context.Context) error {
 	logger := lagerctx.FromContext(ctx).Session("build-collector")
 
 	start := time.Now()
@@ -36,5 +35,5 @@ func (b *buildCollector) Run(ctx context.Context, _ string) (component.RunResult
 	logger.Debug("start")
 	defer logger.Debug("done")
 
-	return nil, b.buildFactory.MarkNonInterceptibleBuilds()
+	return b.buildFactory.MarkNonInterceptibleBuilds()
 }

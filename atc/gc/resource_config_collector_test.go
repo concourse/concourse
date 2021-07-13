@@ -79,7 +79,7 @@ var _ = Describe("ResourceConfigCollector", func() {
 
 				It("preserves the config", func() {
 					Expect(countResourceConfigs()).ToNot(BeZero())
-					Expect(collector.Run(context.TODO(), "")).To(Succeed())
+					Expect(collector.Run(context.TODO())).To(Succeed())
 					Expect(countResourceConfigs()).ToNot(BeZero())
 				})
 			})
@@ -101,7 +101,7 @@ var _ = Describe("ResourceConfigCollector", func() {
 
 				It("preserve the config", func() {
 					Expect(countResourceConfigs()).NotTo(BeZero())
-					Expect(collector.Run(context.TODO(), "")).To(Succeed())
+					Expect(collector.Run(context.TODO())).To(Succeed())
 					Expect(countResourceConfigs()).NotTo(BeZero())
 				})
 			})
@@ -132,7 +132,7 @@ var _ = Describe("ResourceConfigCollector", func() {
 
 				It("cleans up the config", func() {
 					Expect(countResourceConfigs()).NotTo(BeZero())
-					Expect(collector.Run(context.TODO(), "")).To(Succeed())
+					Expect(collector.Run(context.TODO())).To(Succeed())
 					Expect(countResourceConfigs()).To(BeZero())
 				})
 			})
@@ -155,7 +155,7 @@ var _ = Describe("ResourceConfigCollector", func() {
 
 				It("preserve the config", func() {
 					Expect(countResourceConfigs()).NotTo(BeZero())
-					Expect(collector.Run(context.TODO(), "")).To(Succeed())
+					Expect(collector.Run(context.TODO())).To(Succeed())
 					Expect(countResourceConfigs()).NotTo(BeZero())
 				})
 			})
@@ -175,7 +175,7 @@ var _ = Describe("ResourceConfigCollector", func() {
 
 				It("spares the config until the grace period elapses", func() {
 					Expect(countResourceConfigs()).NotTo(BeZero())
-					Expect(collector.Run(context.TODO(), "")).To(Succeed())
+					Expect(collector.Run(context.TODO())).To(Succeed())
 					Expect(countResourceConfigs()).NotTo(BeZero())
 
 					// tightly coupled but better than a flaky sleep test. :/
@@ -189,7 +189,7 @@ var _ = Describe("ResourceConfigCollector", func() {
 						Exec()
 					Expect(err).ToNot(HaveOccurred())
 
-					Expect(collector.Run(context.TODO(), "")).To(Succeed())
+					Expect(collector.Run(context.TODO())).To(Succeed())
 					Expect(countResourceConfigs()).To(BeZero())
 				})
 			})
@@ -212,7 +212,7 @@ var _ = Describe("ResourceConfigCollector", func() {
 
 				It("preserve the config", func() {
 					Expect(countResourceConfigs()).NotTo(BeZero())
-					Expect(collector.Run(context.TODO(), "")).To(Succeed())
+					Expect(collector.Run(context.TODO())).To(Succeed())
 					Expect(countResourceConfigs()).NotTo(BeZero())
 				})
 			})
@@ -234,7 +234,7 @@ var _ = Describe("ResourceConfigCollector", func() {
 
 				It("spares the config until the grace period elapses", func() {
 					Expect(countResourceConfigs()).NotTo(BeZero())
-					Expect(collector.Run(context.TODO(), "")).To(Succeed())
+					Expect(collector.Run(context.TODO())).To(Succeed())
 					Expect(countResourceConfigs()).NotTo(BeZero())
 
 					// tightly coupled but better than a flaky sleep test. :/
@@ -248,7 +248,7 @@ var _ = Describe("ResourceConfigCollector", func() {
 						Exec()
 					Expect(err).ToNot(HaveOccurred())
 
-					Expect(collector.Run(context.TODO(), "")).To(Succeed())
+					Expect(collector.Run(context.TODO())).To(Succeed())
 					Expect(countResourceConfigs()).To(BeZero())
 				})
 			})

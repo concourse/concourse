@@ -2,7 +2,6 @@ package gc
 
 import (
 	"context"
-	"github.com/concourse/concourse/atc/component"
 	"time"
 
 	"code.cloudfoundry.org/lager/lagerctx"
@@ -20,7 +19,7 @@ func NewResourceCacheCollector(cacheLifecycle db.ResourceCacheLifecycle) *resour
 	}
 }
 
-func (rcc *resourceCacheCollector) Run(ctx context.Context, _ string) (component.RunResult, error) {
+func (rcc *resourceCacheCollector) Run(ctx context.Context) error {
 	logger := lagerctx.FromContext(ctx).Session("resource-cache-collector")
 
 	logger.Debug("start")
@@ -33,5 +32,5 @@ func (rcc *resourceCacheCollector) Run(ctx context.Context, _ string) (component
 		}.Emit(logger)
 	}()
 
-	return nil, rcc.cacheLifecycle.CleanUpInvalidCaches(logger)
+	return rcc.cacheLifecycle.CleanUpInvalidCaches(logger)
 }

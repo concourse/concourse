@@ -21,7 +21,7 @@ var _ = Describe("CheckCollector", func() {
 
 	Describe("Run", func() {
 		It("tells the check lifecycle to remove completed checks", func() {
-			_, err := collector.Run(context.Background(), "")
+			err := collector.Run(context.Background())
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(fakeLifecycle.DeleteCompletedChecksCallCount()).To(Equal(1))

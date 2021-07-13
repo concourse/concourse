@@ -84,7 +84,7 @@ var _ = Describe("ResourceConfigCheckSessionCollector", func() {
 		}
 
 		JustBeforeEach(func() {
-			Expect(collector.Run(context.TODO(), "")).To(Succeed())
+			Expect(collector.Run(context.TODO())).To(Succeed())
 		})
 
 		Context("when the resource is active", func() {

@@ -63,13 +63,12 @@ func (coordinator *Coordinator) run(ctx context.Context, immediate bool) {
 	}
 
 	startAt := time.Now()
-	var runResult RunResult
-	if runResult, err = coordinator.Runnable.Run(ctx, coordinator.Component.LastRunResult()); err != nil {
+	if err = coordinator.Runnable.Run(ctx); err != nil {
 		logger.Error("component-failed", err)
 		return
 	}
 
-	if err := coordinator.Component.UpdateLastRan(startAt, runResult); err != nil {
+	if err := coordinator.Component.UpdateLastRan(startAt); err != nil {
 		logger.Error("failed-to-update-last-ran", err)
 		return
 	}

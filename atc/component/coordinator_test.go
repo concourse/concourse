@@ -61,8 +61,7 @@ func (test CoordinatorTest) Run(s *CoordinatorSuite, action func(*component.Coor
 	fakeComponent.On("Name").Return(componentName)
 	fakeComponent.On("Paused").Return(test.Paused)
 	fakeComponent.On("IntervalElapsed").Return(test.IntervalElapsed)
-	fakeComponent.On("UpdateLastRan", mock.AnythingOfType("time.Time"), nil).Return(test.UpdateLastRanErr)
-	fakeComponent.On("LastRunResult").Return("")
+	fakeComponent.On("UpdateLastRan", mock.AnythingOfType("time.Time")).Return(test.UpdateLastRanErr)
 
 	fakeComponent.On("Reload").Return(!test.Disappeared, test.ReloadErr).Run(func(mock.Arguments) {
 		// make sure we haven't asked for anything prior to reloading
@@ -73,7 +72,7 @@ func (test CoordinatorTest) Run(s *CoordinatorSuite, action func(*component.Coor
 	ctx := context.Background()
 
 	if test.Runs {
-		fakeRunnable.On("Run", ctx, "").Return(nil, test.RunErr).Run(func(mock.Arguments) {
+		fakeRunnable.On("Run", ctx).Return(test.RunErr).Run(func(mock.Arguments) {
 			// make sure the lock is held while running
 			s.Equal(fakeLock.ReleaseCallCount(), 0, "lock was released too early")
 
@@ -91,13 +90,13 @@ func (test CoordinatorTest) Run(s *CoordinatorSuite, action func(*component.Coor
 	action(coordinator, ctx)
 
 	if test.Runs {
-		fakeRunnable.AssertCalled(s.T(), "Run", ctx, "")
+		fakeRunnable.AssertCalled(s.T(), "Run", ctx)
 	} else {
 		fakeRunnable.AssertNotCalled(s.T(), "Run")
 	}
 
 	if test.UpdatesLastRan {
-		fakeComponent.AssertCalled(s.T(), "UpdateLastRan", mock.AnythingOfType("time.Time"), nil)
+		fakeComponent.AssertCalled(s.T(), "UpdateLastRan", mock.AnythingOfType("time.Time"))
 	} else {
 		fakeComponent.AssertNotCalled(s.T(), "UpdateLastRan")
 	}

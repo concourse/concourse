@@ -58,7 +58,7 @@ var _ = Describe("Runner", func() {
 			maxInFlight,
 		)
 
-		_, schedulerErr = schedulerRunner.Run(context.TODO(), "")
+		schedulerErr = schedulerRunner.Run(context.TODO())
 	})
 
 	It("loads up all the jobs to schedule", func() {

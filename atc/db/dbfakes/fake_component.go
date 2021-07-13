@@ -5,7 +5,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/concourse/concourse/atc/component"
 	"github.com/concourse/concourse/atc/db"
 )
 
@@ -92,11 +91,10 @@ type FakeComponent struct {
 		result1 bool
 		result2 error
 	}
-	UpdateLastRanStub        func(time.Time, component.RunResult) error
+	UpdateLastRanStub        func(time.Time) error
 	updateLastRanMutex       sync.RWMutex
 	updateLastRanArgsForCall []struct {
 		arg1 time.Time
-		arg2 component.RunResult
 	}
 	updateLastRanReturns struct {
 		result1 error
@@ -535,19 +533,18 @@ func (fake *FakeComponent) ReloadReturnsOnCall(i int, result1 bool, result2 erro
 	}{result1, result2}
 }
 
-func (fake *FakeComponent) UpdateLastRan(arg1 time.Time, arg2 component.RunResult) error {
+func (fake *FakeComponent) UpdateLastRan(arg1 time.Time) error {
 	fake.updateLastRanMutex.Lock()
 	ret, specificReturn := fake.updateLastRanReturnsOnCall[len(fake.updateLastRanArgsForCall)]
 	fake.updateLastRanArgsForCall = append(fake.updateLastRanArgsForCall, struct {
 		arg1 time.Time
-		arg2 component.RunResult
-	}{arg1, arg2})
+	}{arg1})
 	stub := fake.UpdateLastRanStub
 	fakeReturns := fake.updateLastRanReturns
-	fake.recordInvocation("UpdateLastRan", []interface{}{arg1, arg2})
+	fake.recordInvocation("UpdateLastRan", []interface{}{arg1})
 	fake.updateLastRanMutex.Unlock()
 	if stub != nil {
-		return stub(arg1, arg2)
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
@@ -561,17 +558,17 @@ func (fake *FakeComponent) UpdateLastRanCallCount() int {
 	return len(fake.updateLastRanArgsForCall)
 }
 
-func (fake *FakeComponent) UpdateLastRanCalls(stub func(time.Time, component.RunResult) error) {
+func (fake *FakeComponent) UpdateLastRanCalls(stub func(time.Time) error) {
 	fake.updateLastRanMutex.Lock()
 	defer fake.updateLastRanMutex.Unlock()
 	fake.UpdateLastRanStub = stub
 }
 
-func (fake *FakeComponent) UpdateLastRanArgsForCall(i int) (time.Time, component.RunResult) {
+func (fake *FakeComponent) UpdateLastRanArgsForCall(i int) time.Time {
 	fake.updateLastRanMutex.RLock()
 	defer fake.updateLastRanMutex.RUnlock()
 	argsForCall := fake.updateLastRanArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1
 }
 
 func (fake *FakeComponent) UpdateLastRanReturns(result1 error) {

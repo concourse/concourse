@@ -2,7 +2,6 @@ package gc_test
 
 import (
 	"context"
-	"github.com/concourse/concourse/atc/component"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -22,7 +21,7 @@ import (
 )
 
 type GcCollector interface {
-	Run(context.Context, string) (component.RunResult, error)
+	Run(context.Context) error
 }
 
 func TestGc(t *testing.T) {

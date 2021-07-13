@@ -1,10 +1,8 @@
 package gc
 
 import (
-	"context"
-	"github.com/concourse/concourse/atc/component"
-
 	"code.cloudfoundry.org/lager/lagerctx"
+	"context"
 	"github.com/concourse/concourse/atc/db"
 )
 
@@ -18,7 +16,7 @@ func NewChecksCollector(lifecycle db.CheckLifecycle) *checksCollector {
 	}
 }
 
-func (c *checksCollector) Run(ctx context.Context, _ string) (component.RunResult, error) {
+func (c *checksCollector) Run(ctx context.Context) error {
 	logger := lagerctx.FromContext(ctx).Session("check-collector")
 
 	logger.Debug("start")
@@ -27,8 +25,8 @@ func (c *checksCollector) Run(ctx context.Context, _ string) (component.RunResul
 	err := c.lifecycle.DeleteCompletedChecks(logger)
 	if err != nil {
 		logger.Error("failed-to-delete-completed-checks", err)
-		return nil, err
+		return err
 	}
 
-	return nil, nil
+	return nil
 }
