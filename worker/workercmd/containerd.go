@@ -60,7 +60,43 @@ func (cmd *WorkerCommand) containerdGardenServerRunner(
 ) (ifrit.Runner, error) {
 	const graceTime = 0
 
-	backendOpts := []runtime.GardenBackendOpt{}
+	cniNetwork, err := cmd.buildUpNetworkOpts(logger, dnsServers)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create CNI network opts: %w", err)
+	}
+
+	backendOpts, err := cmd.buildUpBackendOpts(logger, cniNetwork)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create contianerd backend opts: %w", err)
+	}
+
+	gardenBackend, err := runtime.NewGardenBackend(
+		libcontainerd.New(containerdAddr, containerdNamespace, cmd.Containerd.RequestTimeout),
+		backendOpts...,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("containerd containerd init: %w", err)
+	}
+
+	return newGardenServerRunner(
+		"tcp",
+		cmd.bindAddr(),
+		graceTime,
+		&gardenBackend,
+		logger,
+	), nil
+}
+
+func (cmd *WorkerCommand) buildUpNetworkOpts(logger lager.Logger, dnsServers []string) (runtime.Network, error) {
+	logger.Debug("create-cni-network-opts")
+	if cmd.Containerd.CNIPluginsDir == "" {
+		pluginsDir := concourseCmd.DiscoverAsset("bin")
+		if pluginsDir == "" {
+			return nil, fmt.Errorf("could not find CNI Plugins dir. Try setting the --containerd-cni-plugins-dir flag")
+		}
+		cmd.Containerd.CNIPluginsDir = pluginsDir
+	}
+
 	networkOpts := []runtime.CNINetworkOpt{
 		runtime.WithCNIBinariesDir(cmd.Containerd.CNIPluginsDir),
 		runtime.WithCNIFileStore(runtime.FileStoreWithWorkDir(cmd.WorkDir.Path())),
@@ -90,10 +126,11 @@ func (cmd *WorkerCommand) containerdGardenServerRunner(
 	}
 	networkOpts = append(networkOpts, runtime.WithCNINetworkConfig(networkConfig))
 
-	cniNetwork, err := runtime.NewCNINetwork(networkOpts...)
-	if err != nil {
-		return nil, fmt.Errorf("new cni network: %w", err)
-	}
+	return runtime.NewCNINetwork(networkOpts...)
+}
+
+func (cmd *WorkerCommand) buildUpBackendOpts(logger lager.Logger, cniNetwork runtime.Network) ([]runtime.GardenBackendOpt, error) {
+	logger.Debug("create-containerd-backendOpts")
 
 	if cmd.Containerd.InitBin == "" {
 		initBin := concourseCmd.DiscoverAsset("bin/init")
@@ -103,28 +140,12 @@ func (cmd *WorkerCommand) containerdGardenServerRunner(
 		cmd.Containerd.InitBin = initBin
 	}
 
-	backendOpts = append(backendOpts,
+	return []runtime.GardenBackendOpt{
 		runtime.WithNetwork(cniNetwork),
 		runtime.WithRequestTimeout(cmd.Containerd.RequestTimeout),
 		runtime.WithMaxContainers(cmd.Containerd.MaxContainers),
 		runtime.WithInitBinPath(cmd.Containerd.InitBin),
-	)
-
-	gardenBackend, err := runtime.NewGardenBackend(
-		libcontainerd.New(containerdAddr, containerdNamespace, cmd.Containerd.RequestTimeout),
-		backendOpts...,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("containerd containerd init: %w", err)
-	}
-
-	return newGardenServerRunner(
-		"tcp",
-		cmd.bindAddr(),
-		graceTime,
-		&gardenBackend,
-		logger,
-	), nil
+	}, nil
 }
 
 // containerdRunner spawns a containerd and a Garden server process for use as the container
