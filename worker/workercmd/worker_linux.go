@@ -40,7 +40,7 @@ type GuardianRuntime struct {
 type ContainerdRuntime struct {
 	Config         flag.File     `long:"config"     description:"Path to a config file to use for the Containerd daemon."`
 	Bin            string        `long:"bin"        description:"Path to a containerd executable (non-absolute names get resolved from $PATH)."`
-	InitBin        string        `long:"init-bin"   description:"Path to an init executable (non-absolute names get resolved from $PATH)."`
+	InitBin        string        `long:"init-bin"   description:"Path to an init executable".`
 	CNIPluginsDir  string        `long:"cni-plugins-dir" default:"/usr/local/concourse/bin" description:"Path to CNI network plugins."`
 	RequestTimeout time.Duration `long:"request-timeout" default:"5m" description:"How long to wait for requests to Containerd to complete. 0 means no timeout."`
 
