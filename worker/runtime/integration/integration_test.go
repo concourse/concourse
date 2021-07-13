@@ -837,6 +837,11 @@ func (s *IntegrationSuite) TestMaxContainers() {
 
 	limit := runtime.WithMaxContainers(1)
 
+	network, err := runtime.NewCNINetwork(
+		runtime.WithDefaultsForTesting(),
+	)
+	s.NoError(err)
+
 	customBackend, err := runtime.NewGardenBackend(
 		libcontainerd.New(
 			s.containerdSocket(),
@@ -844,6 +849,7 @@ func (s *IntegrationSuite) TestMaxContainers() {
 			requestTimeout,
 		),
 		limit,
+		runtime.WithNetwork(network),
 	)
 	s.NoError(err)
 
@@ -878,12 +884,18 @@ func (s *IntegrationSuite) TestRequestTimeoutZero() {
 	namespace := "test-requesTimeout-zero"
 	requestTimeout := time.Duration(0)
 
+	network, err := runtime.NewCNINetwork(
+		runtime.WithDefaultsForTesting(),
+	)
+	s.NoError(err)
+
 	customBackend, err := runtime.NewGardenBackend(
 		libcontainerd.New(
 			s.containerdSocket(),
 			namespace,
 			requestTimeout,
 		),
+		runtime.WithNetwork(network),
 	)
 	s.NoError(err)
 
@@ -910,17 +922,15 @@ func (s *IntegrationSuite) TestNetworkMountsAreRemoved() {
 		runtime.WithDefaultsForTesting(),
 		runtime.WithCNIFileStore(runtime.FileStoreWithWorkDir(networkMountsDir)),
 	)
-
 	s.NoError(err)
 
-	networkOpt := runtime.WithNetwork(network)
 	customBackend, err := runtime.NewGardenBackend(
 		libcontainerd.New(
 			s.containerdSocket(),
 			namespace,
 			requestTimeout,
 		),
-		networkOpt,
+		runtime.WithNetwork(network),
 	)
 	s.NoError(err)
 

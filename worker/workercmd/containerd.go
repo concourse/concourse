@@ -95,6 +95,14 @@ func (cmd *WorkerCommand) containerdGardenServerRunner(
 		return nil, fmt.Errorf("new cni network: %w", err)
 	}
 
+	if cmd.Containerd.InitBin == "" {
+		initBin := concourseCmd.DiscoverAsset("bin/init")
+		if initBin == "" {
+			return nil, fmt.Errorf("could not find init binary. Try setting the --containerd-init-bin flag")
+		}
+		cmd.Containerd.InitBin = initBin
+	}
+
 	backendOpts = append(backendOpts,
 		runtime.WithNetwork(cniNetwork),
 		runtime.WithRequestTimeout(cmd.Containerd.RequestTimeout),
