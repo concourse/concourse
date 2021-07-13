@@ -3,7 +3,6 @@ package engine
 import (
 	"context"
 	"errors"
-	"fmt"
 	"sync"
 	"time"
 
@@ -121,6 +120,9 @@ func (b *engineBuild) Run(ctx context.Context) {
 
 	if !acquired {
 		logger.Debug("build-already-tracked")
+		if b.build.ResourceID() == 109302 {
+			logger.Info("EVAN:build-already-tracked")
+		}
 		return
 	}
 
@@ -144,7 +146,7 @@ func (b *engineBuild) Run(ctx context.Context) {
 
 	notifier, err := b.build.AbortNotifier()
 	if err != nil {
-		logger.Error("failed-to-listen-for-aborts", err)
+		logger.Error("EVAN:failed-to-listen-for-aborts", err)
 		return
 	}
 
@@ -155,7 +157,7 @@ func (b *engineBuild) Run(ctx context.Context) {
 
 	stepper, err := b.builder.StepperForBuild(b.build)
 	if err != nil {
-		logger.Error("failed-to-construct-build-stepper", err)
+		logger.Error("EVAN:failed-to-construct-build-stepper", err)
 
 		// Fails the build if BuildStep returned an error because such unrecoverable
 		// errors will cause a build to never start to run.
@@ -169,6 +171,9 @@ func (b *engineBuild) Run(ctx context.Context) {
 	defer b.trackFinished(logger)
 
 	logger.Info("running")
+	if b.build.ResourceID() == 109302 {
+		logger.Info("EVAN:running")
+	}
 
 	state, err := b.runState(logger, stepper)
 	if err != nil {
@@ -302,7 +307,7 @@ func (b *engineBuild) trackFinished(logger lager.Logger) {
 }
 
 func (b *engineBuild) runState(logger lager.Logger, stepper exec.Stepper) (exec.RunState, error) {
-	id := fmt.Sprintf("build:%v", b.build.ID())
+	id := b.build.RunStateID()
 	existingState, ok := b.trackedStates.Load(id)
 	if ok {
 		return existingState.(exec.RunState), nil
@@ -316,6 +321,5 @@ func (b *engineBuild) runState(logger lager.Logger, stepper exec.Stepper) (exec.
 }
 
 func (b *engineBuild) clearRunState() {
-	id := fmt.Sprintf("build:%v", b.build.ID())
-	b.trackedStates.Delete(id)
+	b.trackedStates.Delete(b.build.RunStateID())
 }

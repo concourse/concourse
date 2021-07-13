@@ -8,6 +8,7 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/util"
 )
 
 type FakeCheckable struct {
@@ -75,11 +76,12 @@ type FakeCheckable struct {
 		result2 bool
 		result3 error
 	}
-	CreateInMemoryBuildStub        func(context.Context, atc.Plan) (db.Build, error)
+	CreateInMemoryBuildStub        func(context.Context, atc.Plan, util.SequenceGenerator) (db.Build, error)
 	createInMemoryBuildMutex       sync.RWMutex
 	createInMemoryBuildArgsForCall []struct {
 		arg1 context.Context
 		arg2 atc.Plan
+		arg3 util.SequenceGenerator
 	}
 	createInMemoryBuildReturns struct {
 		result1 db.Build
@@ -108,6 +110,16 @@ type FakeCheckable struct {
 	}
 	hasWebhookReturnsOnCall map[int]struct {
 		result1 bool
+	}
+	IDStub        func() int
+	iDMutex       sync.RWMutex
+	iDArgsForCall []struct {
+	}
+	iDReturns struct {
+		result1 int
+	}
+	iDReturnsOnCall map[int]struct {
+		result1 int
 	}
 	LastCheckEndTimeStub        func() time.Time
 	lastCheckEndTimeMutex       sync.RWMutex
@@ -564,19 +576,20 @@ func (fake *FakeCheckable) CreateBuildReturnsOnCall(i int, result1 db.Build, res
 	}{result1, result2, result3}
 }
 
-func (fake *FakeCheckable) CreateInMemoryBuild(arg1 context.Context, arg2 atc.Plan) (db.Build, error) {
+func (fake *FakeCheckable) CreateInMemoryBuild(arg1 context.Context, arg2 atc.Plan, arg3 util.SequenceGenerator) (db.Build, error) {
 	fake.createInMemoryBuildMutex.Lock()
 	ret, specificReturn := fake.createInMemoryBuildReturnsOnCall[len(fake.createInMemoryBuildArgsForCall)]
 	fake.createInMemoryBuildArgsForCall = append(fake.createInMemoryBuildArgsForCall, struct {
 		arg1 context.Context
 		arg2 atc.Plan
-	}{arg1, arg2})
+		arg3 util.SequenceGenerator
+	}{arg1, arg2, arg3})
 	stub := fake.CreateInMemoryBuildStub
 	fakeReturns := fake.createInMemoryBuildReturns
-	fake.recordInvocation("CreateInMemoryBuild", []interface{}{arg1, arg2})
+	fake.recordInvocation("CreateInMemoryBuild", []interface{}{arg1, arg2, arg3})
 	fake.createInMemoryBuildMutex.Unlock()
 	if stub != nil {
-		return stub(arg1, arg2)
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -590,17 +603,17 @@ func (fake *FakeCheckable) CreateInMemoryBuildCallCount() int {
 	return len(fake.createInMemoryBuildArgsForCall)
 }
 
-func (fake *FakeCheckable) CreateInMemoryBuildCalls(stub func(context.Context, atc.Plan) (db.Build, error)) {
+func (fake *FakeCheckable) CreateInMemoryBuildCalls(stub func(context.Context, atc.Plan, util.SequenceGenerator) (db.Build, error)) {
 	fake.createInMemoryBuildMutex.Lock()
 	defer fake.createInMemoryBuildMutex.Unlock()
 	fake.CreateInMemoryBuildStub = stub
 }
 
-func (fake *FakeCheckable) CreateInMemoryBuildArgsForCall(i int) (context.Context, atc.Plan) {
+func (fake *FakeCheckable) CreateInMemoryBuildArgsForCall(i int) (context.Context, atc.Plan, util.SequenceGenerator) {
 	fake.createInMemoryBuildMutex.RLock()
 	defer fake.createInMemoryBuildMutex.RUnlock()
 	argsForCall := fake.createInMemoryBuildArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeCheckable) CreateInMemoryBuildReturns(result1 db.Build, result2 error) {
@@ -732,6 +745,59 @@ func (fake *FakeCheckable) HasWebhookReturnsOnCall(i int, result1 bool) {
 	}
 	fake.hasWebhookReturnsOnCall[i] = struct {
 		result1 bool
+	}{result1}
+}
+
+func (fake *FakeCheckable) ID() int {
+	fake.iDMutex.Lock()
+	ret, specificReturn := fake.iDReturnsOnCall[len(fake.iDArgsForCall)]
+	fake.iDArgsForCall = append(fake.iDArgsForCall, struct {
+	}{})
+	stub := fake.IDStub
+	fakeReturns := fake.iDReturns
+	fake.recordInvocation("ID", []interface{}{})
+	fake.iDMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeCheckable) IDCallCount() int {
+	fake.iDMutex.RLock()
+	defer fake.iDMutex.RUnlock()
+	return len(fake.iDArgsForCall)
+}
+
+func (fake *FakeCheckable) IDCalls(stub func() int) {
+	fake.iDMutex.Lock()
+	defer fake.iDMutex.Unlock()
+	fake.IDStub = stub
+}
+
+func (fake *FakeCheckable) IDReturns(result1 int) {
+	fake.iDMutex.Lock()
+	defer fake.iDMutex.Unlock()
+	fake.IDStub = nil
+	fake.iDReturns = struct {
+		result1 int
+	}{result1}
+}
+
+func (fake *FakeCheckable) IDReturnsOnCall(i int, result1 int) {
+	fake.iDMutex.Lock()
+	defer fake.iDMutex.Unlock()
+	fake.IDStub = nil
+	if fake.iDReturnsOnCall == nil {
+		fake.iDReturnsOnCall = make(map[int]struct {
+			result1 int
+		})
+	}
+	fake.iDReturnsOnCall[i] = struct {
+		result1 int
 	}{result1}
 }
 
@@ -1558,6 +1624,8 @@ func (fake *FakeCheckable) Invocations() map[string][][]interface{} {
 	defer fake.currentPinnedVersionMutex.RUnlock()
 	fake.hasWebhookMutex.RLock()
 	defer fake.hasWebhookMutex.RUnlock()
+	fake.iDMutex.RLock()
+	defer fake.iDMutex.RUnlock()
 	fake.lastCheckEndTimeMutex.RLock()
 	defer fake.lastCheckEndTimeMutex.RUnlock()
 	fake.lastCheckStartTimeMutex.RLock()

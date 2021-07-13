@@ -589,6 +589,16 @@ type FakeBuild struct {
 		result1 bool
 		result2 error
 	}
+	RunStateIDStub        func() string
+	runStateIDMutex       sync.RWMutex
+	runStateIDArgsForCall []struct {
+	}
+	runStateIDReturns struct {
+		result1 string
+	}
+	runStateIDReturnsOnCall map[int]struct {
+		result1 string
+	}
 	SaveEventStub        func(atc.Event) error
 	saveEventMutex       sync.RWMutex
 	saveEventArgsForCall []struct {
@@ -3664,6 +3674,59 @@ func (fake *FakeBuild) ResourcesCheckedReturnsOnCall(i int, result1 bool, result
 	}{result1, result2}
 }
 
+func (fake *FakeBuild) RunStateID() string {
+	fake.runStateIDMutex.Lock()
+	ret, specificReturn := fake.runStateIDReturnsOnCall[len(fake.runStateIDArgsForCall)]
+	fake.runStateIDArgsForCall = append(fake.runStateIDArgsForCall, struct {
+	}{})
+	stub := fake.RunStateIDStub
+	fakeReturns := fake.runStateIDReturns
+	fake.recordInvocation("RunStateID", []interface{}{})
+	fake.runStateIDMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeBuild) RunStateIDCallCount() int {
+	fake.runStateIDMutex.RLock()
+	defer fake.runStateIDMutex.RUnlock()
+	return len(fake.runStateIDArgsForCall)
+}
+
+func (fake *FakeBuild) RunStateIDCalls(stub func() string) {
+	fake.runStateIDMutex.Lock()
+	defer fake.runStateIDMutex.Unlock()
+	fake.RunStateIDStub = stub
+}
+
+func (fake *FakeBuild) RunStateIDReturns(result1 string) {
+	fake.runStateIDMutex.Lock()
+	defer fake.runStateIDMutex.Unlock()
+	fake.RunStateIDStub = nil
+	fake.runStateIDReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeBuild) RunStateIDReturnsOnCall(i int, result1 string) {
+	fake.runStateIDMutex.Lock()
+	defer fake.runStateIDMutex.Unlock()
+	fake.RunStateIDStub = nil
+	if fake.runStateIDReturnsOnCall == nil {
+		fake.runStateIDReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.runStateIDReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
+}
+
 func (fake *FakeBuild) SaveEvent(arg1 atc.Event) error {
 	fake.saveEventMutex.Lock()
 	ret, specificReturn := fake.saveEventReturnsOnCall[len(fake.saveEventArgsForCall)]
@@ -4776,6 +4839,8 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.resourcesMutex.RUnlock()
 	fake.resourcesCheckedMutex.RLock()
 	defer fake.resourcesCheckedMutex.RUnlock()
+	fake.runStateIDMutex.RLock()
+	defer fake.runStateIDMutex.RUnlock()
 	fake.saveEventMutex.RLock()
 	defer fake.saveEventMutex.RUnlock()
 	fake.saveImageResourceVersionMutex.RLock()

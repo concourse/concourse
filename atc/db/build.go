@@ -120,6 +120,8 @@ type Build interface {
 	ID() int
 	Name() string
 
+	RunStateID() string
+
 	TeamID() int
 	TeamName() string
 
@@ -353,6 +355,7 @@ func (b *build) TracingAttrs() tracing.Attrs {
 
 func (b *build) ID() int                          { return b.id }
 func (b *build) Name() string                     { return b.name }
+func (b *build) RunStateID() string               { return fmt.Sprintf("build:%v", b.id) }
 func (b *build) JobID() int                       { return b.jobID }
 func (b *build) JobName() string                  { return b.jobName }
 func (b *build) ResourceID() int                  { return b.resourceID }

@@ -138,12 +138,19 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 	// shared history problem)
 	scope, err := delegate.FindOrCreateScope(resourceConfig)
 	if err != nil {
+		if step.metadata.TeamName == "many-resources-1" && step.metadata.PipelineName == "many-resources-1" && step.plan.Resource == "20m-0" {
+			logger.Error("EVAN:failed-to-find-or-create-scope", err, lager.Data{"resourceConfig": resourceConfig.ID()})
+		}
 		return false, fmt.Errorf("create resource config scope: %w", err)
 	}
 
 	lock, run, err := delegate.WaitToRun(ctx, scope)
 	if err != nil {
 		return false, fmt.Errorf("wait: %w", err)
+	}
+
+	if step.metadata.TeamName == "many-resources-1" && step.metadata.PipelineName == "many-resources-1" && step.plan.Resource == "20m-0" {
+		logger.Info("EVAN:after-wait-for", lager.Data{"run": run})
 	}
 
 	if run {

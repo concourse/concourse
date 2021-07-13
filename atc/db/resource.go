@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/concourse/concourse/atc/util"
 	"strconv"
 	"time"
 
@@ -111,7 +112,7 @@ type Resource interface {
 
 	CheckPlan(planFactory atc.PlanFactory, imagePlanner atc.ImagePlanner, from atc.Version, interval atc.CheckEvery, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) atc.Plan
 	CreateBuild(context.Context, bool, atc.Plan) (Build, bool, error)
-	CreateInMemoryBuild(context.Context, atc.Plan) (Build, error)
+	CreateInMemoryBuild(context.Context, atc.Plan, util.SequenceGenerator) (Build, error)
 
 	NotifyScan() error
 
@@ -377,8 +378,8 @@ func (r *resource) CreateBuild(ctx context.Context, manuallyTriggered bool, plan
 	return build, true, nil
 }
 
-func (r *resource) CreateInMemoryBuild(ctx context.Context, plan atc.Plan) (Build, error) {
-	return newRunningInMemoryCheckBuild(r.conn, r.lockFactory, r, plan, NewSpanContext(ctx))
+func (r *resource) CreateInMemoryBuild(ctx context.Context, plan atc.Plan, seqGen util.SequenceGenerator) (Build, error) {
+	return newRunningInMemoryCheckBuild(r.conn, r.lockFactory, r, plan, NewSpanContext(ctx), seqGen)
 }
 
 func (r *resource) UpdateMetadata(version atc.Version, metadata ResourceConfigMetadataFields) (bool, error) {

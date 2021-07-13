@@ -92,7 +92,11 @@ func (bt *Tracker) trackBuild(logger lager.Logger, b db.Build, dupCheck bool) {
 			}
 		}()
 
-		defer bt.running.Delete(build.ID())
+		defer func(dupCheck bool) {
+			if dupCheck {
+				bt.running.Delete(build.ID())
+			}
+		}(dupCheck)
 
 		if build.Name() == db.CheckBuildName {
 			metric.Metrics.CheckBuildsRunning.Inc()
@@ -123,6 +127,9 @@ func (bt *Tracker) trackInMemoryBuilds(logger lager.Logger) {
 				return
 			}
 			logger.Debug("received-in-memory-build", b.LagerData())
+			if b.ResourceID() == 109302 {
+				logger.Info("EVAN:received-in-memory-build", b.LagerData())
+			}
 			bt.trackBuild(logger, b, false)
 		}
 	}

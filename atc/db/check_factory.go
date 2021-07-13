@@ -1,8 +1,10 @@
 package db
 
 import (
+	"code.cloudfoundry.org/lager"
 	"context"
 	"fmt"
+	"github.com/concourse/concourse/atc/util"
 	"time"
 
 	"code.cloudfoundry.org/lager/lagerctx"
@@ -16,6 +18,7 @@ import (
 type Checkable interface {
 	PipelineRef
 
+	ID() int
 	Name() string
 	TeamID() int
 	ResourceConfigScopeID() int
@@ -35,7 +38,7 @@ type Checkable interface {
 	CheckPlan(planFactory atc.PlanFactory, imagePlanner atc.ImagePlanner, from atc.Version, interval atc.CheckEvery, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) atc.Plan
 	CreateBuild(context.Context, bool, atc.Plan) (Build, bool, error)
 
-	CreateInMemoryBuild(context.Context, atc.Plan) (Build, error)
+	CreateInMemoryBuild(context.Context, atc.Plan, util.SequenceGenerator) (Build, error)
 
 	Reload() (bool, error)
 }
@@ -57,6 +60,7 @@ type checkFactory struct {
 	planFactory atc.PlanFactory
 
 	checkBuildChan chan<- Build
+	sequenceGenerator util.SequenceGenerator
 }
 
 func NewCheckFactory(
@@ -65,6 +69,7 @@ func NewCheckFactory(
 	secrets creds.Secrets,
 	varSourcePool creds.VarSourcePool,
 	checkBuildChan chan<- Build,
+	sequenceGenerator util.SequenceGenerator,
 ) CheckFactory {
 	return &checkFactory{
 		conn:        conn,
@@ -75,7 +80,8 @@ func NewCheckFactory(
 
 		planFactory: atc.NewPlanFactory(time.Now().Unix()),
 
-		checkBuildChan: checkBuildChan,
+		checkBuildChan:    checkBuildChan,
+		sequenceGenerator: sequenceGenerator,
 	}
 }
 
@@ -128,12 +134,15 @@ func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, 
 
 		return build, true, nil
 	} else {
-		build, err := checkable.CreateInMemoryBuild(ctx, plan)
+		build, err := checkable.CreateInMemoryBuild(ctx, plan, c.sequenceGenerator)
 		if err != nil {
 			return nil, false, err
 		}
 
 		logger.Debug("created-in-memory-check-build", build.LagerData())
+		if checkable.ID() == 109302 {
+			logger.Debug("EVAN:created-in-memory-check-build", build.LagerData())
+		}
 		c.checkBuildChan <- build
 
 		return build, true, nil

@@ -10,17 +10,17 @@ import (
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/event"
+	"github.com/concourse/concourse/atc/util"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
 	"go.opentelemetry.io/otel/propagation"
-	"math/rand"
 	"time"
 )
 
 // inMemoryCheckBuild handles in-memory check builds only, thus it just implement
 // the necessary function of interface Build.
 type inMemoryCheckBuild struct {
-	preId int
+	preId            int
 	id               int
 	checkable        Checkable
 	plan             atc.Plan
@@ -40,22 +40,19 @@ type inMemoryCheckBuild struct {
 	dbInited           bool
 
 	cacheEvents []atc.Event
-	eventIdSeq  int
+	eventIdSeq  util.SequenceGenerator
 
 	cacheAssociatedTeams []string
 }
 
-func newRunningInMemoryCheckBuild(conn Conn, lockFactory lock.LockFactory, checkable Checkable, plan atc.Plan, spanContext SpanContext) (*inMemoryCheckBuild, error) {
+func newRunningInMemoryCheckBuild(conn Conn, lockFactory lock.LockFactory, checkable Checkable, plan atc.Plan, spanContext SpanContext, seqGen util.SequenceGenerator) (*inMemoryCheckBuild, error) {
 	build := newExistingInMemoryCheckBuild(conn, 0, checkable)
 	build.lockFactory = lockFactory
 	build.plan = plan
 	build.running = true
 	build.spanContext = spanContext
-
-	seed := rand.NewSource(time.Now().UnixNano())
-	r := rand.New(seed)
-	build.preId = r.Int()
-
+	build.preId = seqGen.Next()
+	build.eventIdSeq = util.NewSequenceGenerator()
 	return build, nil
 }
 
@@ -76,6 +73,10 @@ func newExistingInMemoryCheckBuild(conn Conn, buildId int, checkable Checkable) 
 	}
 
 	return &build
+}
+
+func (b *inMemoryCheckBuild) RunStateID() string {
+	return fmt.Sprintf("in-mem-build:%v", b.preId)
 }
 
 func (b *inMemoryCheckBuild) ID() int                                 { return b.id }
@@ -253,10 +254,9 @@ func (b *inMemoryCheckBuild) saveEvent(tx Tx, event atc.Event) error {
 
 	_, err = psql.Insert("check_build_events").
 		Columns("event_id", "build_id", "type", "version", "payload").
-		Values(b.eventIdSeq, b.id, string(event.EventType()), string(event.Version()), payload).
+		Values(b.eventIdSeq.Next(), b.id, string(event.EventType()), string(event.Version()), payload).
 		RunWith(tx).
 		Exec()
-	b.eventIdSeq++
 
 	return err
 }
@@ -299,8 +299,6 @@ func (b *inMemoryCheckBuild) OnCheckBuildStart() error {
 	if err != nil {
 		return err
 	}
-
-	//logger.Info("generated-build-id", b.LagerData())
 
 	return b.conn.Bus().Notify(buildEventsChannel(b.id))
 }
@@ -395,7 +393,10 @@ func (b *inMemoryCheckBuild) ResourceCacheUser() ResourceCacheUser {
 }
 
 func (b *inMemoryCheckBuild) ContainerOwner(planId atc.PlanID) ContainerOwner {
-	return NewInMemoryCheckBuildContainerOwner(b.ID())
+	if b.id == 0 {
+		panic("in-memory-build-not-running-yet")
+	}
+	return NewInMemoryCheckBuildContainerOwner(b.id, b.plan.ID, b.TeamID())
 }
 
 // SaveImageResourceVersion does nothing as a resource check doesn't belong to any job.
