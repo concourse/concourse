@@ -15,7 +15,7 @@ import (
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
 
 const (
-	LockTypeResourceConfigScopeChecking = iota
+	LockTypeResourceConfigChecking = iota
 	LockTypeBuildTracking
 	LockTypeBatch
 	LockTypeVolumeCreating
@@ -32,8 +32,8 @@ func NewBuildTrackingLockID(buildID int) LockID {
 	return LockID{LockTypeBuildTracking, buildID}
 }
 
-func NewResourceConfigScopeCheckingLockID(resourceConfigScopeID int) LockID {
-	return LockID{LockTypeResourceConfigScopeChecking, resourceConfigScopeID}
+func NewResourceConfigCheckingLockID(resourceConfigID int) LockID {
+	return LockID{LockTypeResourceConfigChecking, resourceConfigID}
 }
 
 func NewTaskLockID(taskName string) LockID {

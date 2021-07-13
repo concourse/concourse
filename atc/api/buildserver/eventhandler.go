@@ -68,6 +68,7 @@ func NewEventHandler(logger lager.Logger, build db.Build) http.Handler {
 
 				return
 			}
+
 			err = writer.WriteEvent(eventID, ev)
 			if err != nil {
 				logger.Info("failed-to-write-event", lager.Data{"error": err.Error()})

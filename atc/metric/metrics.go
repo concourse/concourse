@@ -557,15 +557,15 @@ func (event HTTPResponseTime) Emit(logger lager.Logger, m *Monitor) {
 }
 
 var lockTypeNames = map[int]string{
-	lock.LockTypeResourceConfigScopeChecking: "ResourceConfigScopeChecking",
-	lock.LockTypeBuildTracking:               "BuildTracking",
-	lock.LockTypeJobScheduling:               "JobScheduling",
-	lock.LockTypeBatch:                       "Batch",
-	lock.LockTypeVolumeCreating:              "VolumeCreating",
-	lock.LockTypeContainerCreating:           "ContainerCreating",
-	lock.LockTypeDatabaseMigration:           "DatabaseMigration",
-	lock.LockTypeResourceScanning:            "ResourceScanning",
-	lock.LockTypeInMemoryCheckBuildTracking:  "InMemoryCheckBuildTracking",
+	lock.LockTypeResourceConfigChecking:     "ResourceConfigChecking",
+	lock.LockTypeBuildTracking:              "BuildTracking",
+	lock.LockTypeJobScheduling:              "JobScheduling",
+	lock.LockTypeBatch:                      "Batch",
+	lock.LockTypeVolumeCreating:             "VolumeCreating",
+	lock.LockTypeContainerCreating:          "ContainerCreating",
+	lock.LockTypeDatabaseMigration:          "DatabaseMigration",
+	lock.LockTypeResourceScanning:           "ResourceScanning",
+	lock.LockTypeInMemoryCheckBuildTracking: "InMemoryCheckBuildTracking",
 }
 
 type LockAcquired struct {

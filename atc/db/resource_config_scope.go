@@ -192,7 +192,7 @@ func (r *resourceConfigScope) AcquireResourceCheckingLock(
 ) (lock.Lock, bool, error) {
 	return r.lockFactory.Acquire(
 		logger,
-		lock.NewResourceConfigScopeCheckingLockID(r.ID()),
+		lock.NewResourceConfigCheckingLockID(r.resourceConfig.ID()),
 	)
 }
 
