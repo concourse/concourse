@@ -31,7 +31,7 @@ var _ = Describe("VolumeCollector", func() {
 		postgresRunner.Truncate()
 
 		volumeRepository = db.NewVolumeRepository(dbConn)
-		workerFactory = db.NewWorkerFactory(dbConn)
+		workerFactory = db.NewWorkerFactory(dbConn, db.NewStaticWorkerCache(logger, dbConn, 0))
 
 		missingVolumeGracePeriod = 1 * time.Minute
 

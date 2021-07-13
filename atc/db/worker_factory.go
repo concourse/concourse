@@ -25,12 +25,14 @@ type WorkerFactory interface {
 }
 
 type workerFactory struct {
-	conn Conn
+	conn  Conn
+	cache *WorkerCache
 }
 
-func NewWorkerFactory(conn Conn) WorkerFactory {
+func NewWorkerFactory(conn Conn, cache *WorkerCache) WorkerFactory {
 	return &workerFactory{
-		conn: conn,
+		conn:  conn,
+		cache: cache,
 	}
 }
 
@@ -59,26 +61,52 @@ var workersQuery = psql.Select(`
 	LeftJoin("teams t ON w.team_id = t.id")
 
 func (f *workerFactory) GetWorker(name string) (Worker, bool, error) {
-	return getWorker(f.conn, workersQuery.Where(sq.Eq{"w.name": name}))
+	workers, err := f.cache.Workers()
+	if err != nil {
+		return nil, false, err
+	}
+
+	for _, worker := range workers {
+		if worker.Name() == name {
+			return worker, true, nil
+		}
+	}
+
+	return nil, false, nil
 }
 
 func (f *workerFactory) VisibleWorkers(teamNames []string) ([]Worker, error) {
-	workersQuery := workersQuery.
-		Where(sq.Or{
-			sq.Eq{"t.name": teamNames},
-			sq.Eq{"w.team_id": nil},
-		})
-
-	workers, err := getWorkers(f.conn, workersQuery)
+	workers, err := f.cache.Workers()
 	if err != nil {
 		return nil, err
 	}
 
-	return workers, nil
+	isVisible := func(worker Worker) bool {
+		if worker.TeamID() == 0 {
+			return true
+		}
+
+		for _, team := range teamNames {
+			if worker.TeamName() == team {
+				return true
+			}
+		}
+
+		return false
+	}
+
+	visibleWorkers := []Worker{}
+	for _, worker := range workers {
+		if isVisible(worker) {
+			visibleWorkers = append(visibleWorkers, worker)
+		}
+	}
+
+	return visibleWorkers, nil
 }
 
 func (f *workerFactory) Workers() ([]Worker, error) {
-	return getWorkers(f.conn, workersQuery)
+	return f.cache.Workers()
 }
 
 func getWorker(conn Conn, query sq.SelectBuilder) (Worker, bool, error) {
@@ -334,33 +362,7 @@ func (f *workerFactory) FindWorkersForContainerByOwner(owner ContainerOwner) ([]
 }
 
 func (f *workerFactory) BuildContainersCountPerWorker() (map[string]int, error) {
-	rows, err := psql.Select("worker_name, COUNT(*)").
-		From("containers").
-		Where("build_id IS NOT NULL").
-		GroupBy("worker_name").
-		RunWith(f.conn).
-		Query()
-	if err != nil {
-		return nil, err
-	}
-
-	defer Close(rows)
-
-	countByWorker := make(map[string]int)
-
-	for rows.Next() {
-		var workerName string
-		var containersCount int
-
-		err = rows.Scan(&workerName, &containersCount)
-		if err != nil {
-			return nil, err
-		}
-
-		countByWorker[workerName] = containersCount
-	}
-
-	return countByWorker, nil
+	return f.cache.WorkerContainerCounts()
 }
 
 func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, conn Conn) (Worker, error) {
