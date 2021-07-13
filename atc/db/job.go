@@ -51,13 +51,16 @@ func (e InputVersionEmptyError) Error() string {
 	return fmt.Sprintf("input '%s' has successfully resolved but contains missing version information", e.InputName)
 }
 
+type JobPauseRequest struct {
+	UserName string
+}
+
 //counterfeiter:generate . Job
 type Job interface {
 	PipelineRef
 
 	ID() int
 	Name() string
-	Paused() bool
 	FirstLoggedBuildID() int
 	TeamID() int
 	TeamName() string
@@ -74,7 +77,10 @@ type Job interface {
 
 	Reload() (bool, error)
 
-	Pause() error
+	Paused() bool
+	PausedBy() string
+	PausedAt() time.Time
+	Pause(*JobPauseRequest) error
 	Unpause() error
 
 	ScheduleBuild(Build) (bool, error)
@@ -104,8 +110,30 @@ type Job interface {
 	HasNewInputs() bool
 }
 
-var jobsQuery = psql.Select("j.id", "j.name", "j.config", "j.paused", "j.public", "j.first_logged_build_id", "j.pipeline_id", "p.name", "p.instance_vars", "p.team_id", "t.name", "j.nonce", "j.tags", "j.has_new_inputs", "j.schedule_requested", "j.max_in_flight", "j.disable_manual_trigger").
-	From("jobs j, pipelines p").
+var jobsQuery = psql.Select(
+	"j.id",
+	"j.name",
+	"j.config",
+	"COALESCE(jp.paused, false)",
+	"j.public",
+	"j.first_logged_build_id",
+	"j.pipeline_id",
+	"p.name",
+	"p.instance_vars",
+	"p.team_id",
+	"t.name",
+	"j.nonce",
+	"j.tags",
+	"j.has_new_inputs",
+	"j.schedule_requested",
+	"j.max_in_flight",
+	"j.disable_manual_trigger",
+	"COALESCE(jp.paused_by, '')",
+	"jp.paused_at").
+	From("jobs j").
+	LeftJoin("job_pauses jp ON j.id = jp.job_id").
+	LeftJoin("pipelines p ON j.pipeline_id = p.id").
+	LeftJoin("pipeline_pauses pp ON pp.pipeline_id = p.id").
 	LeftJoin("teams t ON p.team_id = t.id").
 	Where(sq.Expr("j.pipeline_id = p.id"))
 
@@ -125,6 +153,8 @@ type job struct {
 	id                    int
 	name                  string
 	paused                bool
+	pausedBy              string
+	pausedAt              sql.NullTime
 	public                bool
 	firstLoggedBuildID    int
 	teamID                int
@@ -186,6 +216,7 @@ func (jobs Jobs) Configs() (atc.JobConfigs, error) {
 func (j *job) ID() int                          { return j.id }
 func (j *job) Name() string                     { return j.name }
 func (j *job) Paused() bool                     { return j.paused }
+func (j *job) PausedBy() string                 { return j.pausedBy }
 func (j *job) Public() bool                     { return j.public }
 func (j *job) FirstLoggedBuildID() int          { return j.firstLoggedBuildID }
 func (j *job) TeamID() int                      { return j.teamID }
@@ -401,12 +432,50 @@ func (j *job) Reload() (bool, error) {
 	return true, nil
 }
 
-func (j *job) Pause() error {
-	return j.updatePausedJob(true)
+func (j *job) Pause(req *JobPauseRequest) error {
+	set := sq.Eq{"job_id": j.id, "paused_by": nil}
+
+	if req != nil {
+		set["paused_by"] = req.UserName
+	}
+
+	_, err := psql.Insert("job_pauses").
+		SetMap(set).
+		Suffix("ON CONFLICT(job_id) DO NOTHING").
+		RunWith(j.conn).
+		Exec()
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (j *job) Unpause() error {
-	return j.updatePausedJob(false)
+	_, err := psql.Delete("job_pauses").
+		Where(sq.Eq{"job_id": j.id}).
+		RunWith(j.conn).
+		Exec()
+
+	if err != nil {
+		return err
+	}
+
+	err = j.RequestSchedule()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (j *job) PausedAt() time.Time {
+	if j.pausedAt.Valid {
+		return j.pausedAt.Time
+	} else {
+		return time.Time{}
+	}
 }
 
 func (j *job) FinishedAndNextBuild() (Build, Build, error) {
@@ -1063,7 +1132,7 @@ func (j *job) getNextPendingBuildBySerialGroup(tx Tx, serialGroups []string) (Bu
 		Where(sq.Eq{
 			"jsg.serial_group":    serialGroups,
 			"b.status":            BuildStatusPending,
-			"j.paused":            false,
+			"jp.paused":           nil,
 			"j.inputs_determined": true,
 			"j.pipeline_id":       j.pipelineID}).
 		ToSql()
@@ -1086,35 +1155,6 @@ func (j *job) getNextPendingBuildBySerialGroup(tx Tx, serialGroups []string) (Bu
 	}
 
 	return build, true, nil
-}
-
-func (j *job) updatePausedJob(pause bool) error {
-	result, err := psql.Update("jobs").
-		Set("paused", pause).
-		Where(sq.Eq{"id": j.id}).
-		RunWith(j.conn).
-		Exec()
-	if err != nil {
-		return err
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if rowsAffected != 1 {
-		return NonOneRowAffectedError{rowsAffected}
-	}
-
-	if !pause {
-		err = j.RequestSchedule()
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 func (j *job) getNewBuildName(tx Tx) (string, error) {
@@ -1360,9 +1400,10 @@ func (j *job) isPipelineOrJobPaused(tx Tx) (bool, error) {
 	}
 
 	var paused bool
-	err := psql.Select("paused").
-		From("pipelines").
-		Where(sq.Eq{"id": j.pipelineID}).
+	err := psql.Select("COALESCE(pp.paused, false) as paused").
+		From("pipelines p").
+		LeftJoin("pipeline_pauses pp ON p.id = pp.pipeline_id").
+		Where(sq.Eq{"p.id": j.pipelineID}).
 		RunWith(tx).
 		QueryRow().
 		Scan(&paused)
@@ -1380,7 +1421,7 @@ func scanJob(j *job, row scannable) error {
 		pipelineInstanceVars sql.NullString
 	)
 
-	err := row.Scan(&j.id, &j.name, &config, &j.paused, &j.public, &j.firstLoggedBuildID, &j.pipelineID, &j.pipelineName, &pipelineInstanceVars, &j.teamID, &j.teamName, &nonce, pq.Array(&j.tags), &j.hasNewInputs, &j.scheduleRequestedTime, &j.maxInFlight, &j.disableManualTrigger)
+	err := row.Scan(&j.id, &j.name, &config, &j.paused, &j.public, &j.firstLoggedBuildID, &j.pipelineID, &j.pipelineName, &pipelineInstanceVars, &j.teamID, &j.teamName, &nonce, pq.Array(&j.tags), &j.hasNewInputs, &j.scheduleRequestedTime, &j.maxInFlight, &j.disableManualTrigger, &j.pausedBy, &j.pausedAt)
 	if err != nil {
 		return err
 	}

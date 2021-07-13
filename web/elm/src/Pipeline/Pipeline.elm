@@ -53,6 +53,7 @@ import SideBar.SideBar as SideBar
 import StrictEvents exposing (onShiftLeftClick)
 import Svg
 import Svg.Attributes as SvgAttributes
+import Time
 import Tooltip
 import UpdateMsg exposing (UpdateMsg)
 import Views.FavoritedIcon as FavoritedIcon
@@ -110,6 +111,7 @@ init flags =
     , [ FetchPipeline flags.pipelineLocator
       , ResetPipelineFocus
       , FetchAllPipelines
+      , GetCurrentTimeZone
       ]
     )
 
@@ -212,7 +214,7 @@ handleCallback callback ( model, effects ) =
                         model.pipeline
                 , isToggleLoading = False
               }
-            , effects
+            , effects ++ [ FetchPipeline model.pipelineLocator ]
             )
 
         PipelineToggled _ (Err _) ->
@@ -342,10 +344,7 @@ update msg ( model, effects ) =
                 RemoteData.Success p ->
                     ( { model | isToggleLoading = True }
                     , effects
-                        ++ [ SendTogglePipelineRequest
-                                pipelineIdentifier
-                                p
-                           ]
+                        ++ [ SendTogglePipelineRequest pipelineIdentifier p ]
                     )
 
                 _ ->
@@ -394,6 +393,12 @@ view session model =
                 [ SideBar.sideBarIcon session
                 , TopBar.concourseLogo
                 , TopBar.breadcrumbs session route
+                , TopBar.paused
+                    { paused = displayPaused
+                    , pausedBy = pausedBy model.pipeline
+                    , pausedAt = pausedAt model.pipeline
+                    , timeZone = session.timeZone
+                    }
                 , PinMenu.viewPinMenu session model
                 , Html.div
                     Styles.favoritedIcon
@@ -488,6 +493,26 @@ getPipelineId p =
 isPaused : WebData Concourse.Pipeline -> Bool
 isPaused p =
     RemoteData.withDefault False (RemoteData.map .paused p)
+
+
+pausedBy : WebData Concourse.Pipeline -> Maybe String
+pausedBy pipeline =
+    case pipeline of
+        RemoteData.Success p ->
+            p.pausedBy
+
+        _ ->
+            Nothing
+
+
+pausedAt : WebData Concourse.Pipeline -> Maybe Time.Posix
+pausedAt pipeline =
+    case pipeline of
+        RemoteData.Success p ->
+            p.pausedAt
+
+        _ ->
+            Nothing
 
 
 isArchived : WebData Concourse.Pipeline -> Bool
