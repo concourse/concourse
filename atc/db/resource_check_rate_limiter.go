@@ -109,9 +109,10 @@ func (limiter *ResourceCheckRateLimiter) refreshCheckLimiterIfNeeded() error {
 	err := psql.Select("COUNT(*)").
 		From("resources r").
 		Join("pipelines p ON p.id = r.pipeline_id").
+		LeftJoin("pipeline_pauses pp ON pp.pipeline_id = r.pipeline_id").
 		Where(sq.Eq{
-			"r.active": true,
-			"p.paused": false,
+			"r.active":  true,
+			"pp.paused": nil,
 		}).
 		RunWith(limiter.refreshConn).
 		QueryRow().

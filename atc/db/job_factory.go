@@ -86,9 +86,9 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 	rows, err := jobsQuery.
 		Where(sq.Expr("j.schedule_requested > j.last_scheduled")).
 		Where(sq.Eq{
-			"j.active": true,
-			"j.paused": false,
-			"p.paused": false,
+			"j.active":  true,
+			"jp.paused": nil,
+			"pp.paused": nil,
 		}).
 		RunWith(tx).
 		Query()
@@ -308,13 +308,25 @@ func (d dashboardFactory) buildDashboard() ([]atc.JobSummary, error) {
 }
 
 func (d dashboardFactory) constructJobsForDashboard() ([]atc.JobSummary, error) {
-	rows, err := psql.Select("j.id", "j.name", "p.id", "p.name", "p.instance_vars", "j.paused", "j.has_new_inputs", "j.tags", "tm.name",
+	rows, err := psql.Select(
+		"j.id",
+		"j.name",
+		"p.id",
+		"p.name",
+		"p.instance_vars",
+		"COALESCE(jp.paused, false) as paused",
+		"j.has_new_inputs",
+		"j.tags",
+		"tm.name",
 		"l.id", "l.name", "l.status", "l.start_time", "l.end_time",
 		"n.id", "n.name", "n.status", "n.start_time", "n.end_time",
-		"t.id", "t.name", "t.status", "t.start_time", "t.end_time").
+		"t.id", "t.name", "t.status", "t.start_time", "t.end_time",
+		"COALESCE(jp.paused_by, '')",
+		"jp.paused_at").
 		From("jobs j").
 		Join("pipelines p ON j.pipeline_id = p.id").
 		Join("teams tm ON p.team_id = tm.id").
+		LeftJoin("job_pauses jp ON j.id = jp.job_id").
 		LeftJoin("builds l on j.latest_completed_build_id = l.id").
 		LeftJoin("builds n on j.next_build_id = n.id").
 		LeftJoin("builds t on j.transition_build_id = t.id").
@@ -340,8 +352,8 @@ func (d dashboardFactory) constructJobsForDashboard() ([]atc.JobSummary, error) 
 	var dashboard []atc.JobSummary
 	for rows.Next() {
 		var (
-			f, n, t nullableBuild
-
+			f, n, t              nullableBuild
+			jobPausedAt          sql.NullTime
 			pipelineInstanceVars sql.NullString
 		)
 
@@ -349,9 +361,14 @@ func (d dashboardFactory) constructJobsForDashboard() ([]atc.JobSummary, error) 
 		err = rows.Scan(&j.ID, &j.Name, &j.PipelineID, &j.PipelineName, &pipelineInstanceVars, &j.Paused, &j.HasNewInputs, pq.Array(&j.Groups), &j.TeamName,
 			&f.id, &f.name, &f.status, &f.startTime, &f.endTime,
 			&n.id, &n.name, &n.status, &n.startTime, &n.endTime,
-			&t.id, &t.name, &t.status, &t.startTime, &t.endTime)
+			&t.id, &t.name, &t.status, &t.startTime, &t.endTime,
+			&j.PausedBy, &jobPausedAt)
 		if err != nil {
 			return nil, err
+		}
+
+		if jobPausedAt.Valid {
+			j.PausedAt = jobPausedAt.Time.Unix()
 		}
 
 		if pipelineInstanceVars.Valid {

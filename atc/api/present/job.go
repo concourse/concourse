@@ -51,7 +51,7 @@ func Job(
 		})
 	}
 
-	return atc.Job{
+	atcJob := atc.Job{
 		ID: job.ID(),
 
 		Name:                 job.Name(),
@@ -61,6 +61,7 @@ func Job(
 		TeamName:             teamName,
 		DisableManualTrigger: job.DisableManualTrigger(),
 		Paused:               job.Paused(),
+		PausedBy:             job.PausedBy(),
 		FirstLoggedBuildID:   job.FirstLoggedBuildID(),
 		FinishedBuild:        presentedFinishedBuild,
 		NextBuild:            presentedNextBuild,
@@ -72,4 +73,10 @@ func Job(
 
 		Groups: job.Tags(),
 	}
+
+	if !job.PausedAt().IsZero() {
+		atcJob.PausedAt = job.PausedAt().Unix()
+	}
+
+	return atcJob
 }

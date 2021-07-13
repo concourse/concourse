@@ -27,7 +27,8 @@ func (lifecycle resourceConfigCheckSessionLifecycle) CleanInactiveResourceConfig
 		Join("resource_configs rc ON rccs.resource_config_id = rc.id").
 		Join("resources r ON r.resource_config_id = rc.id").
 		Join("pipelines p ON p.id = r.pipeline_id").
-		Where(sq.Expr("r.active AND NOT p.paused")).
+		LeftJoin("pipeline_pauses pp ON p.id = pp.pipeline_id").
+		Where(sq.Expr("r.active AND pp.paused IS NULL")).
 		ToSql()
 	if err != nil {
 		return err
@@ -39,7 +40,8 @@ func (lifecycle resourceConfigCheckSessionLifecycle) CleanInactiveResourceConfig
 		Join("resource_configs rc ON rccs.resource_config_id = rc.id").
 		Join("resource_types rt ON rt.resource_config_id = rc.id").
 		Join("pipelines p ON p.id = rt.pipeline_id").
-		Where(sq.Expr("rt.active AND NOT p.paused")).
+		LeftJoin("pipeline_pauses pp ON p.id = pp.pipeline_id").
+		Where(sq.Expr("rt.active AND pp.paused IS NULL")).
 		ToSql()
 	if err != nil {
 		return err
@@ -51,7 +53,8 @@ func (lifecycle resourceConfigCheckSessionLifecycle) CleanInactiveResourceConfig
 		Join("resource_configs rc ON rccs.resource_config_id = rc.id").
 		Join("prototypes pt ON pt.resource_config_id = rc.id").
 		Join("pipelines p ON p.id = pt.pipeline_id").
-		Where(sq.Expr("pt.active AND NOT p.paused")).
+		LeftJoin("pipeline_pauses pp ON p.id = pp.pipeline_id").
+		Where(sq.Expr("pt.active AND pp.paused IS NULL")).
 		ToSql()
 	if err != nil {
 		return err

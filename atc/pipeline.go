@@ -16,6 +16,8 @@ type Pipeline struct {
 	Name          string         `json:"name"`
 	InstanceVars  InstanceVars   `json:"instance_vars,omitempty"`
 	Paused        bool           `json:"paused"`
+	PausedBy      string         `json:"paused_by,omitempty"`
+	PausedAt      int64          `json:"paused_at,omitempty"`
 	Public        bool           `json:"public"`
 	Archived      bool           `json:"archived"`
 	Groups        GroupConfigs   `json:"groups,omitempty"`

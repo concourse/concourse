@@ -156,6 +156,7 @@ var resourceTypesQuery = psql.Select(
 	From("resource_types r").
 	Join("pipelines p ON p.id = r.pipeline_id").
 	Join("teams t ON t.id = p.team_id").
+	LeftJoin("pipeline_pauses pp ON p.id = pp.pipeline_id").
 	LeftJoin("resource_configs c ON c.id = r.resource_config_id").
 	LeftJoin("resource_config_scopes ro ON ro.resource_config_id = c.id").
 	LeftJoin(`LATERAL (

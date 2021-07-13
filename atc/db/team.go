@@ -459,7 +459,6 @@ func savePipeline(
 			"display":         displayPayload,
 			"nonce":           nonce,
 			"version":         sq.Expr("nextval('config_version_seq')"),
-			"paused":          initiallyPaused,
 			"last_updated":    sq.Expr("now()"),
 			"team_id":         teamID,
 			"parent_job_id":   jobID,
@@ -495,7 +494,30 @@ func savePipeline(
 		if err != nil {
 			return 0, false, err
 		}
+
+		if initiallyPaused {
+			_, err = psql.Insert("pipeline_pauses").
+				Columns("pipeline_id").
+				Values(pipelineID).
+				RunWith(tx).
+				Exec()
+			if err != nil {
+				return 0, false, err
+			}
+		}
+
 	} else {
+		var wasArchived bool
+		err := psql.Select("archived").
+			From("pipelines").
+			Where(pipelineRefWhereClause).
+			RunWith(tx).
+			QueryRow().
+			Scan(&wasArchived)
+		if err != nil {
+			return 0, false, err
+		}
+
 		q := psql.Update("pipelines").
 			Set("archived", false).
 			Set("groups", groupsPayload).
@@ -511,18 +533,11 @@ func savePipeline(
 				sq.Eq{"version": from},
 			})
 
-		if !initiallyPaused {
-			// The set_pipeline step creates pipelines that aren't initially
-			// paused (unlike `fly set-pipeline`). In this case, we should keep
-			// previously paused pipelines as paused, but we should unpause any
-			// formerly archived pipelines.
-			q = q.Set("paused", sq.Expr("paused AND NOT archived"))
-		}
 		if buildID.Valid {
 			q = q.Where(sq.Or{sq.Lt{"parent_build_id": buildID}, sq.Eq{"parent_build_id": nil}})
 		}
 
-		err := q.Suffix("RETURNING id").
+		err = q.Suffix("RETURNING id").
 			RunWith(tx).
 			QueryRow().
 			Scan(&pipelineID)
@@ -545,6 +560,20 @@ func savePipeline(
 			}
 
 			return 0, false, err
+		}
+
+		if !initiallyPaused && wasArchived {
+			// The set_pipeline step creates pipelines that aren't initially
+			// paused (unlike `fly set-pipeline`). In this case, we should keep
+			// previously paused pipelines as paused, but we should unpause any
+			// formerly archived pipelines.
+			_, err = psql.Delete("pipeline_pauses").
+				Where(sq.Eq{"pipeline_id": pipelineID}).
+				RunWith(tx).
+				Exec()
+			if err != nil {
+				return 0, false, err
+			}
 		}
 
 		err = resetDependentTableStates(tx, pipelineID)
@@ -1426,7 +1455,7 @@ func scanPipeline(p *pipeline, scan scannable) error {
 		parentBuildID sql.NullInt64
 		instanceVars  sql.NullString
 	)
-	err := scan.Scan(&p.id, &p.name, &groups, &varSources, &display, &nonce, &p.configVersion, &p.teamID, &p.teamName, &p.paused, &p.public, &p.archived, &lastUpdated, &parentJobID, &parentBuildID, &instanceVars)
+	err := scan.Scan(&p.id, &p.name, &groups, &varSources, &display, &nonce, &p.configVersion, &p.teamID, &p.teamName, &p.paused, &p.public, &p.archived, &lastUpdated, &parentJobID, &parentBuildID, &instanceVars, &p.pausedBy, &p.pausedAt)
 	if err != nil {
 		return err
 	}

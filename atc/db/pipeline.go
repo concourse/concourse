@@ -53,6 +53,10 @@ type Cause struct {
 	BuildID           int `json:"build_id"`
 }
 
+type PipelinePauseRequest struct {
+	UserName string `json:"user_name"`
+}
+
 type Pipeline interface {
 	ID() int
 	Name() string
@@ -67,7 +71,6 @@ type Pipeline interface {
 	ConfigVersion() ConfigVersion
 	Config() (atc.Config, error)
 	Public() bool
-	Paused() bool
 	Archived() bool
 	LastUpdated() time.Time
 
@@ -110,7 +113,10 @@ type Pipeline interface {
 	Expose() error
 	Hide() error
 
-	Pause() error
+	Paused() bool
+	PausedBy() string
+	PausedAt() time.Time
+	Pause(*PipelinePauseRequest) error
 	Unpause() error
 
 	Archive() error
@@ -135,6 +141,8 @@ type pipeline struct {
 	display       *atc.DisplayConfig
 	configVersion ConfigVersion
 	paused        bool
+	pausedBy      string
+	pausedAt      sql.NullTime
 	public        bool
 	archived      bool
 	lastUpdated   time.Time
@@ -156,16 +164,18 @@ var pipelinesQuery = psql.Select(`
 		p.version,
 		p.team_id,
 		t.name,
-		p.paused,
+		COALESCE(pp.paused, false) as paused,
 		p.public,
 		p.archived,
 		p.last_updated,
 		p.parent_job_id,
 		p.parent_build_id,
-		p.instance_vars
-	`).
+		p.instance_vars,
+		COALESCE(pp.paused_by, ''),
+		pp.paused_at`).
 	From("pipelines p").
-	LeftJoin("teams t ON p.team_id = t.id")
+	LeftJoin("teams t ON p.team_id = t.id").
+	LeftJoin("pipeline_pauses pp ON p.id = pp.pipeline_id")
 
 func newPipeline(conn Conn, lockFactory lock.LockFactory) *pipeline {
 	return &pipeline{
@@ -188,15 +198,17 @@ func (p *pipeline) Display() *atc.DisplayConfig      { return p.display }
 func (p *pipeline) ConfigVersion() ConfigVersion     { return p.configVersion }
 func (p *pipeline) Public() bool                     { return p.public }
 func (p *pipeline) Paused() bool                     { return p.paused }
+func (p *pipeline) PausedBy() string                 { return p.pausedBy }
 func (p *pipeline) Archived() bool                   { return p.archived }
 func (p *pipeline) LastUpdated() time.Time           { return p.lastUpdated }
 
 func (p *pipeline) CheckPaused() (bool, error) {
 	var paused bool
 
-	err := psql.Select("paused").
-		From("pipelines").
-		Where(sq.Eq{"id": p.id}).
+	err := psql.Select("COALESCE(pp.paused, false) as paused").
+		From("pipelines p").
+		LeftJoin("pipeline_pauses pp ON p.id = pp.pipeline_id").
+		Where(sq.Eq{"p.id": p.id}).
 		RunWith(p.conn).
 		QueryRow().
 		Scan(&paused)
@@ -592,8 +604,8 @@ func (p *pipeline) Job(name string) (Job, bool, error) {
 func (p *pipeline) Jobs() (Jobs, error) {
 	rows, err := jobsQuery.
 		Where(sq.Eq{
-			"pipeline_id": p.id,
-			"active":      true,
+			"j.pipeline_id": p.id,
+			"active":        true,
 		}).
 		OrderBy("j.id ASC").
 		RunWith(p.conn).
@@ -631,16 +643,24 @@ func (p *pipeline) Dashboard() ([]atc.JobSummary, error) {
 	return dashboard, nil
 }
 
-func (p *pipeline) Pause() error {
-	_, err := psql.Update("pipelines").
-		Set("paused", true).
-		Where(sq.Eq{
-			"id": p.id,
-		}).
+func (p *pipeline) Pause(req *PipelinePauseRequest) error {
+	set := sq.Eq{"pipeline_id": p.id, "paused_by": nil}
+
+	if req != nil {
+		set["paused_by"] = req.UserName
+	}
+
+	_, err := psql.Insert("pipeline_pauses").
+		SetMap(set).
+		Suffix("ON CONFLICT(pipeline_id) DO NOTHING").
 		RunWith(p.conn).
 		Exec()
 
-	return err
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (p *pipeline) Unpause() error {
@@ -651,13 +671,14 @@ func (p *pipeline) Unpause() error {
 
 	defer Rollback(tx)
 
-	_, err = psql.Update("pipelines").
-		Set("paused", false).
-		Where(sq.Eq{
-			"id": p.id,
-		}).
+	_, err = psql.Delete("pipeline_pauses").
+		Where(sq.Eq{"pipeline_id": p.id}).
 		RunWith(tx).
 		Exec()
+
+	if err != nil {
+		return err
+	}
 
 	if err != nil {
 		return err
@@ -669,6 +690,14 @@ func (p *pipeline) Unpause() error {
 	}
 
 	return tx.Commit()
+}
+
+func (p *pipeline) PausedAt() time.Time {
+	if p.pausedAt.Valid {
+		return p.pausedAt.Time
+	} else {
+		return time.Time{}
+	}
 }
 
 func (p *pipeline) Archive() error {
@@ -690,14 +719,20 @@ func (p *pipeline) archive(tx Tx) error {
 	_, err := psql.Update("pipelines").
 		Set("archived", true).
 		Set("last_updated", sq.Expr("now()")).
-		Set("paused", true).
 		Set("version", 0).
-		Where(sq.Eq{
-			"id": p.id,
-		}).
+		Where(sq.Eq{"id": p.id}).
 		RunWith(tx).
 		Exec()
+	if err != nil {
+		return err
+	}
 
+	_, err = psql.Insert("pipeline_pauses").
+		Columns("pipeline_id").
+		Values(p.id).
+		Suffix("ON CONFLICT(pipeline_id) DO NOTHING").
+		RunWith(tx).
+		Exec()
 	if err != nil {
 		return err
 	}

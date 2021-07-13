@@ -271,9 +271,10 @@ type FakeJob struct {
 		result1 []atc.JobOutput
 		result2 error
 	}
-	PauseStub        func() error
+	PauseStub        func(*db.JobPauseRequest) error
 	pauseMutex       sync.RWMutex
 	pauseArgsForCall []struct {
+		arg1 *db.JobPauseRequest
 	}
 	pauseReturns struct {
 		result1 error
@@ -290,6 +291,26 @@ type FakeJob struct {
 	}
 	pausedReturnsOnCall map[int]struct {
 		result1 bool
+	}
+	PausedAtStub        func() time.Time
+	pausedAtMutex       sync.RWMutex
+	pausedAtArgsForCall []struct {
+	}
+	pausedAtReturns struct {
+		result1 time.Time
+	}
+	pausedAtReturnsOnCall map[int]struct {
+		result1 time.Time
+	}
+	PausedByStub        func() string
+	pausedByMutex       sync.RWMutex
+	pausedByArgsForCall []struct {
+	}
+	pausedByReturns struct {
+		result1 string
+	}
+	pausedByReturnsOnCall map[int]struct {
+		result1 string
 	}
 	PipelineStub        func() (db.Pipeline, bool, error)
 	pipelineMutex       sync.RWMutex
@@ -1733,17 +1754,18 @@ func (fake *FakeJob) OutputsReturnsOnCall(i int, result1 []atc.JobOutput, result
 	}{result1, result2}
 }
 
-func (fake *FakeJob) Pause() error {
+func (fake *FakeJob) Pause(arg1 *db.JobPauseRequest) error {
 	fake.pauseMutex.Lock()
 	ret, specificReturn := fake.pauseReturnsOnCall[len(fake.pauseArgsForCall)]
 	fake.pauseArgsForCall = append(fake.pauseArgsForCall, struct {
-	}{})
+		arg1 *db.JobPauseRequest
+	}{arg1})
 	stub := fake.PauseStub
 	fakeReturns := fake.pauseReturns
-	fake.recordInvocation("Pause", []interface{}{})
+	fake.recordInvocation("Pause", []interface{}{arg1})
 	fake.pauseMutex.Unlock()
 	if stub != nil {
-		return stub()
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
@@ -1757,10 +1779,17 @@ func (fake *FakeJob) PauseCallCount() int {
 	return len(fake.pauseArgsForCall)
 }
 
-func (fake *FakeJob) PauseCalls(stub func() error) {
+func (fake *FakeJob) PauseCalls(stub func(*db.JobPauseRequest) error) {
 	fake.pauseMutex.Lock()
 	defer fake.pauseMutex.Unlock()
 	fake.PauseStub = stub
+}
+
+func (fake *FakeJob) PauseArgsForCall(i int) *db.JobPauseRequest {
+	fake.pauseMutex.RLock()
+	defer fake.pauseMutex.RUnlock()
+	argsForCall := fake.pauseArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeJob) PauseReturns(result1 error) {
@@ -1836,6 +1865,112 @@ func (fake *FakeJob) PausedReturnsOnCall(i int, result1 bool) {
 	}
 	fake.pausedReturnsOnCall[i] = struct {
 		result1 bool
+	}{result1}
+}
+
+func (fake *FakeJob) PausedAt() time.Time {
+	fake.pausedAtMutex.Lock()
+	ret, specificReturn := fake.pausedAtReturnsOnCall[len(fake.pausedAtArgsForCall)]
+	fake.pausedAtArgsForCall = append(fake.pausedAtArgsForCall, struct {
+	}{})
+	stub := fake.PausedAtStub
+	fakeReturns := fake.pausedAtReturns
+	fake.recordInvocation("PausedAt", []interface{}{})
+	fake.pausedAtMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeJob) PausedAtCallCount() int {
+	fake.pausedAtMutex.RLock()
+	defer fake.pausedAtMutex.RUnlock()
+	return len(fake.pausedAtArgsForCall)
+}
+
+func (fake *FakeJob) PausedAtCalls(stub func() time.Time) {
+	fake.pausedAtMutex.Lock()
+	defer fake.pausedAtMutex.Unlock()
+	fake.PausedAtStub = stub
+}
+
+func (fake *FakeJob) PausedAtReturns(result1 time.Time) {
+	fake.pausedAtMutex.Lock()
+	defer fake.pausedAtMutex.Unlock()
+	fake.PausedAtStub = nil
+	fake.pausedAtReturns = struct {
+		result1 time.Time
+	}{result1}
+}
+
+func (fake *FakeJob) PausedAtReturnsOnCall(i int, result1 time.Time) {
+	fake.pausedAtMutex.Lock()
+	defer fake.pausedAtMutex.Unlock()
+	fake.PausedAtStub = nil
+	if fake.pausedAtReturnsOnCall == nil {
+		fake.pausedAtReturnsOnCall = make(map[int]struct {
+			result1 time.Time
+		})
+	}
+	fake.pausedAtReturnsOnCall[i] = struct {
+		result1 time.Time
+	}{result1}
+}
+
+func (fake *FakeJob) PausedBy() string {
+	fake.pausedByMutex.Lock()
+	ret, specificReturn := fake.pausedByReturnsOnCall[len(fake.pausedByArgsForCall)]
+	fake.pausedByArgsForCall = append(fake.pausedByArgsForCall, struct {
+	}{})
+	stub := fake.PausedByStub
+	fakeReturns := fake.pausedByReturns
+	fake.recordInvocation("PausedBy", []interface{}{})
+	fake.pausedByMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeJob) PausedByCallCount() int {
+	fake.pausedByMutex.RLock()
+	defer fake.pausedByMutex.RUnlock()
+	return len(fake.pausedByArgsForCall)
+}
+
+func (fake *FakeJob) PausedByCalls(stub func() string) {
+	fake.pausedByMutex.Lock()
+	defer fake.pausedByMutex.Unlock()
+	fake.PausedByStub = stub
+}
+
+func (fake *FakeJob) PausedByReturns(result1 string) {
+	fake.pausedByMutex.Lock()
+	defer fake.pausedByMutex.Unlock()
+	fake.PausedByStub = nil
+	fake.pausedByReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeJob) PausedByReturnsOnCall(i int, result1 string) {
+	fake.pausedByMutex.Lock()
+	defer fake.pausedByMutex.Unlock()
+	fake.PausedByStub = nil
+	if fake.pausedByReturnsOnCall == nil {
+		fake.pausedByReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.pausedByReturnsOnCall[i] = struct {
+		result1 string
 	}{result1}
 }
 
@@ -2960,6 +3095,10 @@ func (fake *FakeJob) Invocations() map[string][][]interface{} {
 	defer fake.pauseMutex.RUnlock()
 	fake.pausedMutex.RLock()
 	defer fake.pausedMutex.RUnlock()
+	fake.pausedAtMutex.RLock()
+	defer fake.pausedAtMutex.RUnlock()
+	fake.pausedByMutex.RLock()
+	defer fake.pausedByMutex.RUnlock()
 	fake.pipelineMutex.RLock()
 	defer fake.pipelineMutex.RUnlock()
 	fake.pipelineIDMutex.RLock()

@@ -2220,6 +2220,8 @@ jobWithNameTransitionedAt jobName transitionedAt status =
                     }
                 )
     , paused = False
+    , pausedBy = Nothing
+    , pausedAt = Nothing
     , disableManualTrigger = False
     , inputs = []
     , outputs = []
@@ -2266,6 +2268,8 @@ circularJobs =
                 , comment = ""
                 }
       , paused = False
+      , pausedBy = Nothing
+      , pausedAt = Nothing
       , disableManualTrigger = False
       , inputs =
             [ { name = "inA"
@@ -2314,6 +2318,8 @@ circularJobs =
                 , comment = ""
                 }
       , paused = False
+      , pausedBy = Nothing
+      , pausedAt = Nothing
       , disableManualTrigger = False
       , inputs =
             [ { name = "inB"
