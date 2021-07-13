@@ -35,8 +35,8 @@ type WorkerCache struct {
 }
 
 type TriggerEvent struct {
-	Operation string            `json:"operation"`
-	Data      map[string]string `json:"data"`
+	Operation string             `json:"operation"`
+	Data      map[string]*string `json:"data"`
 }
 
 func NewWorkerCache(logger lager.Logger, conn Conn, refreshInterval time.Duration) (*WorkerCache, error) {
@@ -127,19 +127,19 @@ func (cache *WorkerCache) listenWorkers(notifications <-chan Notification) {
 			continue
 		}
 
-		workerName, ok := event.Data["name"]
-		if !ok {
+		workerName := event.Data["name"]
+		if workerName == nil {
 			logger.Info("missing-name")
 			continue
 		}
 
 		if event.Operation == "UPDATE" || event.Operation == "INSERT" {
-			if err := cache.upsertWorker(workerName); err != nil {
+			if err := cache.upsertWorker(*workerName); err != nil {
 				logger.Error("failed-to-upsert-worker", err)
 				continue
 			}
 		} else if event.Operation == "DELETE" {
-			cache.removeWorker(workerName)
+			cache.removeWorker(*workerName)
 		} else {
 			logger.Info("unexpected-operation", lager.Data{"operation": event.Operation})
 		}
@@ -162,16 +162,21 @@ func (cache *WorkerCache) listenContainers(notifications <-chan Notification) {
 			continue
 		}
 
-		workerName, ok := event.Data["worker_name"]
-		if !ok {
+		workerName := event.Data["worker_name"]
+		if workerName == nil {
 			logger.Info("missing-name")
 			continue
 		}
 
+		if event.Data["build_id"] == nil {
+			// Skip over non-build containers.
+			continue
+		}
+
 		if event.Operation == "INSERT" {
-			cache.addWorkerContainerCount(workerName, 1)
+			cache.addWorkerContainerCount(*workerName, 1)
 		} else if event.Operation == "DELETE" {
-			cache.addWorkerContainerCount(workerName, -1)
+			cache.addWorkerContainerCount(*workerName, -1)
 		} else {
 			logger.Info("unexpected-operation", lager.Data{"operation": event.Operation})
 		}
