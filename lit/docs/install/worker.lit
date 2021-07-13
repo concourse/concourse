@@ -311,6 +311,27 @@ decide much on its own.
   }
 
   \section{
+    \title{Healthcheck Endpoint}{worker-healthcheck-endpoint}
+
+    The worker will automatically listen on port \code{8888} as its healthcheck
+    endpoint. It will return a \code{HTTP 200} status code with an empty body
+    on a successful check. A successful check means the worker can reach the
+    \reference{architecture-worker}{Garden and BaggageClaim servers}.
+
+    The healthcheck endpoint is configurable through three variables:
+    \codeblock{}{{
+      --healthcheck-bind-ip=
+      IP address on which to listen for health checking requests. (default: 0.0.0.0)
+
+      --healthcheck-bind-port
+      Port on which to listen for health checking requests. (default: 8888)
+
+      --healthcheck-timeout
+      HTTP timeout for the full duration of health checking. (default: 5s)
+    }}
+  }
+
+  \section{
     \title{Resource Types}{worker-resource-types}
 
     \aside{
