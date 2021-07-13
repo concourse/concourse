@@ -1,46 +1,92 @@
 \title{Generating Keys}{concourse-generate-key}{generating-keys}
-
 \use-plugin{concourse-docs}
 
-Concourse's various components use RSA keys to verify tokens and worker
-registration requests.
+\section{
+  \title{Generating the Keys}
 
-A minimal deployment will require the following keys:
+  Concourse's various components use RSA keys to verify tokens and worker
+  registration requests.
 
-\definitions{
-  \definition{\code{session_signing_key}}{
-    Used by the \reference{web-node} for signing and verifying user session
-    tokens.
+  A minimal deployment will require the following keys:
+
+  \definitions{
+    \definition{\bold{Session Signing Key}}{
+      Used by the \reference{web-node} for signing and verifying user session
+      tokens.
+    }
+  }{
+    \definition{\bold{TSA Host Key}}{
+      Used by the \reference{web-node} for the SSH worker registration gateway
+      server ("TSA").
+
+      The public key is given to each \reference{worker-node} to verify the
+      remote host when connecting via SSH.
+    }
+  }{
+    \definition{\bold{Worker Key}}{
+      Each \reference{worker-node} verifies its registration with the
+      \reference{web-node} via a SSH key.
+
+      The public key must be listed in the \reference{web-node}'s
+      \italic{authorized worker keys} file in order for the worker to register.
+    }
   }
-}{
-  \definition{\code{tsa_host_key}}{
-    Used by the \reference{web-node} for the SSH worker registration gateway
-    server ("TSA").
 
-    The public key is given to each \reference{worker-node} to verify the
-    remote host when connecting via SSH.
-  }
-}{
-  \definition{\code{worker_key} (one per worker)}{
-    Each \reference{worker-node} verifies its registration with the
-    \reference{web-node} via a SSH key.
+  To generate these keys, run:
 
-    The public key must be listed in the \reference{web-node}'s
-    \italic{authorized keys} configuration in order for the worker to register.
+  \codeblock{bash}{{
+  concourse generate-key -t rsa -f ./session_signing_key
+  concourse generate-key -t ssh -f ./tsa_host_key
+  concourse generate-key -t ssh -f ./worker_key
+  }}
+
+  or use \code{ssh-keygen}:
+
+  \codeblock{bash}{{
+  ssh-keygen -t rsa -b 4096 -m PEM -f ./session_signing_key
+  ssh-keygen -t rsa -b 4096 -m PEM -f ./tsa_host_key
+  ssh-keygen -t rsa -b 4096 -m PEM -f ./worker_key
+  }}
+
+  At this point you should have the following files:
+
+  \list{
+  \code{session_signing_key}
+  }{
+  \code{tsa_host_key}
+  }{
+  \code{tsa_host_key.pub}
+  }{
+  \code{worker_key}
+  }{
+  \code{worker_key.pub}
   }
+
+  You can remove the \code{session_signing_key.pub} file if you have one, it is
+  not needed by any process in Concourse.
 }
 
-To generate these keys, run:
+\section{
+  \title{Multiple Worker Keys}{multiple-worker-keys}
 
-\codeblock{bash}{{
-concourse generate-key -t rsa -f ./session_signing_key
-concourse generate-key -t ssh -f ./tsa_host_key
-concourse generate-key -t ssh -f ./worker_key
-}}
+  Currently you have one \code{worker_key}. You can use this one key-pair with
+  multiple \reference{concourse-worker}s. Another good strategy is to have each
+  worker or group of workers use a key that's unique to that one worker or group
+  of workers.
 
-...and we'll also start on an \code{authorized_keys} file, currently
-listing this initial worker key:
+  In the second case you will end up with multiple private and public worker
+  keys. The \reference{concourse-web} needs to know about all of the public
+  worker keys.  To pass all public worker keys to the \reference{concourse-web}
+  create a file that contains all of the worker public keys. A common name for
+  this file is \code{authorized_worker_keys}. The file should look like this,
+  with one public key per line.
 
-\codeblock{bash}{{
-cp worker_key.pub authorized_worker_keys
-}}
+  \codeblock{bash}{{
+  $ cat authorized_worker_keys
+  ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCgKtVnbGRJ7Y63QKoO+loS...
+  ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDU6lA4gSRYIc4MXzphJ2l5...
+  ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDgNU7KBz/QQusPO52pNcea...
+  }}
+
+  You should now have all the necessary keys needed to deploy Web and Worker nodes.
+}

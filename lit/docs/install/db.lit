@@ -17,8 +17,9 @@ data and coordinating work in a multi-\reference{web-node} installation.
 \section{
   \title{Running PostgreSQL}{db-running}
 
-  How this node is managed is up to you; Concourse doesn't actually have much of
-  an opinion on it, it just needs a database.
+  How this node is managed is up to you; Concourse doesn't actually have much
+  of an opinion on it, it just needs a database. By default Concourse will try
+  connecting to a database named \code{atc}.
 
   How to install PostgreSQL is really dependent on your platform. Please refer to
   your Linux distribution or operating system's documentation.
@@ -36,50 +37,39 @@ data and coordinating work in a multi-\reference{web-node} installation.
   this same user is going to be running the \reference{web-node}. This is a
   reasonable default for distros like Ubuntu and Debian which default PostgreSQL
   to \code{peer} auth.
+}
+\section{
+  \title{Resource utilization}{db-resource-utilization}
 
-  \section{
-    \title{Resource utilization}{db-resource-utilization}
+  \bold{CPU usage}: this is one of the most volatile metrics, and one we try pretty
+  hard to keep down. There will be near-constant database queries running, and
+  while we try to keep them very simple, there is always more work to do.
+  Expect to feed your database with at least a couple cores, ideally four to
+  eight. Monitor this closely as the size of your deployment and the amount of
+  traffic it's handling increases, and scale accordingly.
 
-    CPU usage: this is one of the most volatile metrics, and one we try pretty
-    hard to keep down. There will be near-constant database queries running, and
-    while we try to keep them very simple, there is always more work to do.
-    Expect to feed your database with at least a couple cores, ideally four to
-    eight. Monitor this closely as the size of your deployment and the amount of
-    traffic it's handling increases, and scale accordingly.
+  \bold{Memory usage}: similar to CPU usage, but not quite as volatile.
 
-    Memory usage: similar to CPU usage, but not quite as volatile.
+  \bold{Disk usage}: pipeline configurations and various bookkeeping metadata for
+  keeping track of jobs, builds, resources, containers, and volumes. In
+  addition, \bold{all build logs are stored in the database}. This is the
+  primary source of disk usage. To mitigate this, users can configure
+  \reference{schema.job.build_logs_to_retain} on a job, but currently there is no
+  operator control for this setting. As a result, disk usage on the database
+  can grow arbitrarily large.
 
-    Disk usage: pipeline configurations and various bookkeeping metadata for
-    keeping track of jobs, builds, resources, containers, and volumes. In
-    addition, \bold{all build logs are stored in the database}. This is the
-    primary source of disk usage. To mitigate this, users can configure
-    \reference{schema.job.build_logs_to_retain} on a job, but currently there is no
-    operator control for this setting. As a result, disk usage on the database
-    can grow arbitrarily large.
+  \bold{Bandwidth usage}: well, it's a database, so it most definitely uses the
+  network. Something important to consider here is the number of simultaneous
+  connections that the database server itself will allow. Postgres exposes a
+  \link{\code{max_connections}}{https://www.postgresql.org/docs/current/runtime-config-connection.html#GUC-MAX-CONNECTIONS}
+  configuration variable, and depending on how many web nodes you are running
+  and the size of their \reference{web-connection-pooling}{connection pool},
+  you may need to tune these two numbers against each other.
 
-    Bandwidth usage: well, it's a database, so it most definitely uses the
-    network. Something important to consider here is the number of simultaneous
-    connections that the database server itself will allow. Postgres exposes a
-    \link{\code{max_connections}}{https://www.postgresql.org/docs/current/runtime-config-connection.html#GUC-MAX-CONNECTIONS}
-    configuration variable, and depending on how many web nodes you are running
-    and the size of their \reference{web-connection-pooling}{connection pool},
-    you may need to tune these two numbers against each other.
+  \bold{Highly available}: Up to you. Clustered PostgreSQL is kind of new and probably
+  tricky to deploy, but there are various cloud solutions for this.
 
-    Highly available: up to you. Clustered PostgreSQL is kind of new and probably
-    tricky to deploy, but there are various cloud solutions for this.
+  \bold{Outbound traffic}: None
 
-    Horizontally scalable: I...don't think so?
-
-    Outbound traffic:
-
-    \list{
-      none
-    }
-
-    Inbound traffic:
-
-    \list{
-      only ever from the \code{web} node
-    }
-  }
+  \bold{Inbound traffic}: Only ever from the \code{web} node
 }

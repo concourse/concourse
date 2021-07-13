@@ -15,6 +15,7 @@ decide much on its own.
     Linux: We test and support the following distributions. Minimum kernel
     version tested is 4.4. User namespaces must be enabled. To enforce memory
     limits on tasks, memory + swap accounting must be enabled.
+
     \list{
       Ubuntu 16.04 (kernel 4.4)
     }{
@@ -28,11 +29,11 @@ decide much on its own.
     Windows/Darwin: no special requirements (that we know of).
 
     \aside{
-      \bold{NOTE:} Windows containers are currently not supported and Darwin does not
-      have native containers. Steps will run inside a temporary directory on the
-      Windows/Darwin worker. Any dependencies needed for your tasks (e.g. git,
-      .NET, golang, ssh) should be pre-installed on the worker. Windows/Darwin
-      workers do not come with any resource types.
+      \bold{NOTE:} Windows containers are currently not supported and Darwin
+      does not have native containers. Steps will run inside a temporary
+      directory on the Windows/Darwin worker. Any dependencies needed for your
+      tasks (e.g. git, .NET, golang, ssh) should be pre-installed on the
+      worker. Windows/Darwin workers do not come with any resource types.
     }
   }
 }
@@ -40,8 +41,8 @@ decide much on its own.
 \section{
   \title{Running \code{concourse worker}}{worker-running}
 
-  The \code{concourse} CLI can run as a \code{worker} node via the \code{worker}
-  subcommand.
+  The \code{concourse} CLI can run as a \code{worker} node via the
+  \code{worker} subcommand.
 
   First, you'll need to configure a directory for the worker to store data:
 
@@ -49,25 +50,25 @@ decide much on its own.
   CONCOURSE_WORK_DIR=/opt/concourse/worker
   }}}
 
-  This is where all the builds run, and where all resources are fetched in
-  to, so make sure it's backed by enough storage. Then, configure it like so:
+  This is where all the builds run, and where all resources are fetched in to,
+  so make sure it's backed by enough storage.
 
   Next, point the worker at your \reference{web-node} like so:
 
   \codeblock{bash}{{{
-  CONCOURSE_TSA_HOST=127.0.0.1:2222
+  CONCOURSE_TSA_HOST=10.0.2.15:2222
   CONCOURSE_TSA_PUBLIC_KEY=path/to/tsa_host_key.pub
   CONCOURSE_TSA_WORKER_PRIVATE_KEY=path/to/worker_key
   }}}
 
-  Finally, run:
+  Finally start the worker:
 
   \codeblock{bash}{{{
   # run with -E to forward env config, or just set it all as root
   sudo -E concourse worker
   }}}
 
-  Note that the worker must be run as \code{root}, as it orchestrates
+  Note that the worker must be run as \code{root} because it orchestrates
   containers.
 
   All logs will be emitted to \code{stdout}, with any panics or lower-level
@@ -76,53 +77,55 @@ decide much on its own.
   \section{
     \title{Resource utilization}{worker-resource-utilization}
 
-    CPU usage: almost entirely subject to pipeline workloads. More resources
-    configured will result in more checking, and in-flight builds will use as
-    much CPU as they want.
+    \bold{CPU usage}: almost entirely subject to pipeline workloads. More
+    resources configured will result in more checking, and in-flight builds
+    will use as much CPU as they want.
 
-    Memory usage: also subject to pipeline workloads. Expect usage to increase
-    with the number of containers on the worker and spike as builds run.
+    \bold{Memory usage}: also subject to pipeline workloads. Expect usage to
+    increase with the number of containers on the worker and spike as builds
+    run.
 
-    Bandwidth usage: again, almost entirely subject to pipeline workloads. Expect
-    spikes from periodic checking, though the intervals should spread out over
-    enough time. Resource fetching and pushing will also use arbitrary bandwidth.
+    \bold{Bandwidth usage}: again, almost entirely subject to pipeline
+    workloads. Expect spikes from periodic checking, though the intervals
+    should spread out over enough time. Resource fetching and pushing will also
+    use arbitrary bandwidth.
 
-    Disk usage: arbitrary data will be written as builds run, and resource caches
-    will be kept and garbage collected on their own life cycle. We suggest going
-    for a larger disk size if it's not too much trouble. All state on disk must
-    not outlive the worker itself; it is all ephemeral. If the worker is
-    re-created (i.e. fresh VM/container and all processes were killed), it should
-    be brought back with an empty disk.
+    \bold{Disk usage}: arbitrary data will be written as builds run, and
+    resource caches will be kept and garbage collected on their own life cycle.
+    We suggest going for a larger disk size if it's not too much trouble. All
+    state on disk must not outlive the worker itself; it is all ephemeral. If
+    the worker is re-created (i.e. fresh VM/container and all processes were
+    killed), it should be brought back with an empty disk.
 
-    Highly available: not applicable. Workers are inherently singletons, as
-    they're being used as drivers running entirely different workloads.
+    \bold{Highly available}: not applicable. Workers are inherently singletons,
+    as they're being used as drivers running entirely different workloads.
 
-    Horizontally scalable: yes; workers directly correlate to your capacity
-    required by however many pipelines, resources, and in-flight builds you want
-    to run. It makes sense to scale them up and down with demand.
+    \bold{Horizontally scalable}: yes; workers directly correlate to your
+    capacity required by however many pipelines, resources, and in-flight
+    builds you want to run. It makes sense to scale them up and down with
+    demand.
 
-    Outbound traffic:
-
+    \bold{Outbound traffic}:
     \list{
-      external traffic to arbitrary locations as a result of periodic resource
+      External traffic to arbitrary locations as a result of periodic resource
       checking and running builds
     }{
-      external traffic to the \code{web} node's configured external URL when
+      External traffic to the \code{web} node's configured external URL when
       downloading the inputs for a \reference{fly-execute}
     }{
-      external traffic to the \code{web} node's TSA port (\code{2222}) for
+      External traffic to the \code{web} node's TSA port (\code{2222}) for
       registering the worker
+    }{
+      If P2P streaming is enabled there will be traffic to other workers.
     }
 
-    Inbound traffic:
-
+    \bold{Inbound traffic}:
     \list{
-      various connections from the \reference{web-node} on port \code{7777}
-      (Garden), \code{7788} (BaggageClaim), and \code{7799} (garbage collection)
+      From the \reference{web-node} on port \code{7777} (Garden) and
+      \code{7788} (BaggageClaim). These ports do not need to be exposed, they
+      are forwarded to the web node via the ssh connection on port 2222.
     }{
-      repeated connections to \code{7777} and \code{7788} from the
-      \reference{web-node}'s TSA component as it heartbeats to ensure the worker
-      is healthy
+      If P2P streaming is enabled there will be traffic to other workers.
     }
   }
 }
@@ -133,7 +136,8 @@ decide much on its own.
   The \code{worker} nodes are designed to be stateless and as interchangeable
   as possible. \reference{tasks} and \reference{resources} bring their own
   Docker images, so you should never have to install dependencies on the
-  worker.
+  worker. Windows and Darwin workers are the exception to this. Any
+  dependencies should be pre-installed on Windows and Darwin workers.
 
   In Concourse, all important data is represented by \reference{resources}, so
   the workers themselves are dispensible. Any data in the work-dir is ephemeral
@@ -143,28 +147,31 @@ decide much on its own.
   \section{
     \title{Scaling Workers}
 
-    More workers should be added to accomodate more pipelines. To know when this
-    is necessary you should probably set up \reference{metrics} and keep an eye
-    on container counts. If it's starting to approach 200 or so, you should
-    probably add another worker. Load average is another metric to keep an eye
-    on.
+    More workers should be added to accomodate more pipelines. To know when
+    this is necessary you should probably set up \reference{metrics} and keep
+    an eye on container counts. If it's starting to approach 200 or so, you
+    should probably add another worker. Load average is another metric to keep
+    an eye on.
 
     To add a worker, just create another machine for the worker and follow the
     \reference{worker-running} instructions again.
 
-    Note: it doesn't really make sense to run multiple workers on one machine,
-    since they'll both just be contending for the same physical resources.
-    Workers should be given their own VMs or physical machines.
+    \aside{
+      \bold{Note}: it doesn't make sense to run multiple workers on one machine
+      since they'll both be contending for the same physical resources.
+      Workers should be given their own VMs or physical machines to maximize
+      resource usage.
+    }
   }
 
   \section{
     \title{Worker Heartbeating & Stalling}
 
     Workers will continuously heartbeat to the Concourse cluster in order to
-    remain registered and healthy. If a worker hasn't checked in in a while,
-    possibly due to a network partition, being overloaded, or having crashed,
-    its state will transition to \code{stalled} and new workloads will not be
-    scheduled on it until it recovers.
+    remain registered and healthy. If a worker hasn't checked in after a while,
+    possibly due to a network error, being overloaded, or having crashed, the
+    web node will transition its state to \code{stalled} and new workloads will
+    not be scheduled on that worker until it recovers.
 
     If the worker remains in this state and cannot be recovered, it can be
     removed using the \reference{fly-prune-worker} command.
@@ -183,7 +190,7 @@ decide much on its own.
 
     A safer way to restart a worker is to \italic{land} it by sending
     \code{SIGUSR1} to the \code{worker} process. This will switch the worker to
-    \code{landing} state, and Concourse will stop scheduling new work on it.
+    the \code{landing} state and Concourse will stop scheduling new work on it.
     When all builds running on the worker have finished, the process will exit.
 
     You may want to enforce a timeout for draining - that way a stuck build
@@ -239,41 +246,215 @@ decide much on its own.
 \section{
   \title{Configuring the \code{worker} node}{worker-configuration}
 
-  If there's something special about your worker and you'd like to target
-  builds at it specifically, you can configure tags like so:
+  \section{
+    \title{Tagging Workers}
 
-  \codeblock{bash}{{
-  CONCOURSE_TAG=tag-1,tag-2
-  }}
+    If there's something special about your worker and you'd like to target
+    builds at it specifically, you can configure tags like so:
 
-  A tagged worker is taken out of the default placement logic. To run build
-  steps on it, specify the \reference{schema.step.tags}. Or, to perform
-  resource \code{check}s on it, specify \reference{schema.resource.tags}{\code{tags}}
-  on the resource itself.
+    \codeblock{bash}{{
+    CONCOURSE_TAG="tag-1,tag-2"
+    }}
+
+    A tagged worker is taken out of the default placement logic. Tagged workers
+    will not be used for any untagged \reference{steps}.
+
+    To run build steps on a tagged worker, specify the
+    \reference{schema.step.tags} on any particular step in your
+    \reference{jobs}{job}.
+
+    To perform resource \code{check}s on on a tagged worker, specify
+    \reference{schema.resource.tags}{\code{tags}} on the resource declaration.
+  }
+
+  \section{
+    \title{Team Workers}
+
+    If you want to isolate \bold{all workloads} for a
+    \reference{managing-teams}{team} then you can configure a worker to belong
+    to a single team like so:
+
+    \codeblock{bash}{{
+    CONCOURSE_TEAM="lightweavers"
+    }}
+
+    Once an untagged team worker is registered Concourse will schedule all
+    untagged builds for that team on its team worker(s). Builds for this team
+    will no longer be scheduled on any untagged, non-team workers.
+
+    It is possible to have a Concourse cluster made up of only team workers and
+    have zero non-team workers, though this is not a common setup because
+    resource utilization across all workers ends up underutilized. It is
+    useful though if you have a particular team with heavy workloads that
+    usually bothers other teams pipelines.
+
+
+    \section{
+      \title{Tags and Team Workers}
+
+      When you have a worker configured with tag(s) and a team like so:
+
+      \codeblock{bash}{{
+      CONCOURSE_TAG="tag-1,tag-2"
+      CONCOURSE_TEAM="lightweavers"
+      }}
+
+      Only steps that are tagged and from the specified team will be scheduled
+      on such a worker. Any untagged work the team has will land on either:
+
+      \ordered-list{
+        Untagged team workers belonging to the team, or
+        }{
+        Untagged workers not configured to a specific team
+      }
+    }
+  }
+
+  \section{
+    \title{Resource Types}{worker-resource-types}
+
+    \aside{
+      The following section only applies to Linux workers. Resource types are
+      simply Linux container images and therefore can't be run on Windows or
+      Darwin workers.
+    }
+
+    \section{
+      \title{Bundled Resource Types}
+
+      Workers come prepackaged with a bundle of resource types. They are
+      included in the tarball from the \link{Github release
+      page}{https://github.com/concourse/concourse/releases} and are part of
+      the \link{concourse/concourse
+      image}{https://hub.docker.com/r/concourse/concourse}.
+
+      To view the resource types available on a worker run:
+
+      \codeblock{bash}{{
+      fly workers --details
+      }}
+
+      If you want more details, like the version number of each resource, you can run:
+
+      \codeblock{bash}{{
+      fly curl api/v1/workers
+      }}
+    }
+    \section{
+      \title{Installing or Upgrading Bundled Resource Types}
+
+      You may want to upgrade the bundled resource types outside of Concourse
+      upgrades or even install additional resource types on your workers to
+      reduce the polling on some external image repository like
+      \link{Docker Hub}{https://hub.docker.com/}.
+
+      We will use the \link{git
+      resource}{https://github.com/concourse/git-resource} as our example. We
+      will assume your Concourse installation is at \code{/usr/local/concourse}.
+
+      First, pull and create a container of the resource you're
+      installing/upgrading. Grab the ID of the container that Docker creates.
+
+      \codeblock{bash}{{
+      $ docker run -d concourse/git-resource
+      b253417142565cd5eb43902e94a2cf355d5354b583fbc686488c9a153584c6ba
+      }}
+
+      Export the containers file system into a gzip compressed tar archive
+      named \code{rootfs.tgz}
+
+      \codeblock{bash}{{
+      docker export b253417142 | gzip > rootfs.tgz
+      }}
+
+      Create a file called \code{resource_metadata.json} and populate it with
+      the following contents. Make sure the \code{type} does not conflict with
+      an existing resource type when you're installing a new resource type. In
+      our example here we're calling the type \code{gitv2} to avoid
+      conflicting with the pre-existing \code{git} resource.
+
+      \codeblock{json}{{{
+        {
+          "type": "gitv2",
+          "version": "1.13.0",
+          "privileged": false,
+          "unique_version_history": false
+        }
+      }}}
+
+      At this point you should have two files: \code{rootfs.tgz} and \code{resource_metadata.json}.
+
+      Create a new directory under the \code{resource-types} folder in your
+      Concourse installation directory. By convention it should be the same
+      name as the \code{type}.
+
+      \codeblock{bash}{{
+      mkdir /usr/local/concourse/resource-types/gitv2
+      }}
+
+      Place the \code{rootfs.tgz} and \code{resource_metadata.json} inside the
+      folder. \reference{restarting-a-worker}{Restart your worker} and verify
+      the new resource type is on there by running one of the following
+      commands:
+
+      \codeblock{bash}{{
+      fly workers --details
+      # or
+      fly curl api/v1/workers
+      }}
+
+      You can also verify that Concourse can create a container with the
+      \code{rootfs.tgz} you made by running a simple pipeline:
+
+      \codeblock{yaml}{{
+      resources:
+      - name: some-resource
+        type: gitv2 #change to your resource type
+        source:
+          uri: https://github.com/concourse/git-resource.git
+
+      jobs:
+      - name: simple-job
+        plan:
+        - get: some-resource
+      }}
+    }
+  }
 
   \section{
     \title{Configuring Runtimes}
+
     The worker can be run with multiple container runtimes -
     \link{containerd}{https://github.com/containerd/containerd/},
-    \link{Guardian}{https://github.com/cloudfoundry/guardian}, and \link{Houdini}{https://github.com/vito/houdini} (an
-    experimental runtime for Darwin and Windows). Only \code{containerd} and
-    \code{Guardian} are meant for production use. Starting in v7.4.0, \code{containerd} is
-    the default runtime for Concourse.
+    \link{Guardian}{https://github.com/cloudfoundry/guardian}, and
+    \link{Houdini}{https://github.com/vito/houdini} (an experimental and the
+    only runtime for Darwin and Windows). Only \code{containerd} and
+    \code{Guardian} are meant for production use. \code{Guardian} is the
+    default runtime for Concourse.
 
-    \italic{Note about architecture}: The web node (ATC) talks to all 3 runtimes via a single interface called the
-    \link{Garden}{https://github.com/cloudfoundry/garden} server. While Guardian comes packaged with a Garden server
-    and its flags in Concourse are unfortunately prefixed with \code{--garden}, Guardian (a runtime) and Garden (an interface and server)
-    are two separate tools. An analog for Garden would be the \link{Container Runtime Interface (CRI)}{https://kubernetes.io/blog/2016/12/container-runtime-interface-cri-in-kubernetes/} used in Kubernetes.
-    Kubernetes uses containerd via CRI. Concourse uses containerd via Garden.
+    \aside{
+      \bold{Note about architecture}: The web node (ATC) talks to all 3
+      runtimes via a single interface called the
+      \link{Garden}{https://github.com/cloudfoundry/garden} server. While
+      Guardian comes packaged with a Garden server and its flags in Concourse
+      are unfortunately prefixed with \code{--garden-*}, Guardian (a runtime)
+      and Garden (an interface and server) are two separate tools. An analogy
+      for Garden would be the \link{Container Runtime Interface
+      (CRI)}{https://kubernetes.io/blog/2016/12/container-runtime-interface-cri-in-kubernetes/}
+      used in Kubernetes. Kubernetes uses containerd via CRI. Concourse uses
+      containerd via Garden.
+    }
 
     \section{
-      \title{\bold{\code{containerd} runtime}}
-      For versions of Concourse before 7.4.0 the \code{containerd} runtime has to be enabled
-      manually by setting \code{--runtime} (\code{CONCOURSE_RUNTIME}) to \code{containerd} on
-      the \code{concourse worker} command.
+      \title{\code{containerd} runtime}
 
-      The following is a list of the \code{containerd} runtime specific flags for Concourse that can be set. They are
-      all optional and have default values.
+      To use the \code{containerd} runtime manually set the \code{--runtime}
+      (\code{CONCOURSE_RUNTIME}) to \code{containerd} on the \code{concourse
+      worker} command.
+
+      The following is a list of the \code{containerd} runtime specific flags
+      for Concourse that can be set. They are all optional and have default
+      values.
 
       \codeblock{ini}{{{
         Containerd Configuration:
@@ -303,9 +484,12 @@ decide much on its own.
       }
     }
     \section{
-      \title{\bold{Transitioning from Guardian to containerd}}
+      \title{Transitioning from Guardian to containerd}
 
-      If you are transitioning from \code{Guardian} to \code{containerd} you will need to convert any \code{--garden-*} (\code{CONCOURSE_GARDEN_*}) flags to their \code{containerd} (\code{CONCOURSE_CONTAINERD_*}) counterparts:
+      If you are transitioning from \code{Guardian} to \code{containerd} you
+      will need to convert any \code{--garden-*} (\code{CONCOURSE_GARDEN_*})
+      flags to their \code{containerd} (\code{CONCOURSE_CONTAINERD_*})
+      counterparts:
 
       \table{
         \table-row{Guardian Flags}{Containerd Flags}
@@ -385,15 +569,16 @@ decide much on its own.
     }
 
     \section{
-      \title{\bold{\code{Guardian} runtime}}
+      \title{\code{Guardian} runtime}
 
-      For versions earlier than 7.4.0 Guardian was the default runtime for
-      Concourse. To enable it manually in future versions the \code{--runtime}
-      flag has to be set to \code{guardian}.
+      Guardian is currently the default runtime for Concourse. It can also be
+      set by setting the \code{--runtime} flag to \code{guardian} on the
+      \code{concourse worker} command.
 
       The \code{concourse worker} command automatically configures and runs
-      \code{Guardian} using the \code{gdn} binary, but depending on the environment you're running Concourse in,
-      you may need to pop open the hood and configure a few things.
+      \code{Guardian} using the \code{gdn} binary, but depending on the
+      environment you're running Concourse in, you may need to pop open the
+      hood and configure a few things.
 
       The \code{gdn} server can be configured in two ways:
 
@@ -418,80 +603,133 @@ decide much on its own.
         translated to flags passed to \code{gdn server} by lower-casing the
         \code{*} portion and replacing underscores with hyphens.
       }
+    }
 
       \section{
         \title{Troubleshooting and fixing DNS resolution}
 
-        By default, containers created by Guardian will carry over the
-        \code{/etc/resolv.conf} from the host into the container. This is often
-        fine, but some Linux distributions configure a special \code{127.x.x.x} DNS
-        resolver (e.g. \code{systemd-resolved}).
+        \aside{
+          \bold{Note}: The Guardian runtime took care of a lot of container
+          creation operations for Concourse in the past. It was very
+          user-friendly for the project to use as a container runtime. While
+          implementing the containerd runtime most reported bugs were actually
+          a difference in containerd's default behaviour compared to
+          Guardian's. Currently Concourse's containerd runtime \bold{mostly}
+          behaves like the Guardian runtime did. Most of the following DNS
+          section should apply to both runtimes.
+        }
 
-        When Guardian copies the \code{resolv.conf} over, it removes these entries,
-        as they won't be reachable from the container's network namespace. As a
-        result, your containers may not have any valid nameservers configured.
+        By default, containers created by the Guardian or containerd (will
+        refer to both as \italic{runtime}) runtime will carry over the
+        \code{/etc/resolv.conf} from the host into the container. This is often
+        fine, but some Linux distributions configure a special \code{127.x.x.x}
+        DNS resolver (e.g. \code{systemd-resolved}).
+
+        When the runtime copies the \code{resolv.conf} over, it removes these
+        entries as they won't be reachable from the container's network
+        namespace. As a result, your containers may not have any valid
+        nameservers configured.
 
         To diagnose this problem you can \reference{fly-intercept} into a failing
         container and check which nameservers are in \code{/etc/resolv.conf}:
 
         \codeblock{bash}{{{
-        $ fly -t ci intercept -c concourse/concourse
+        $ fly -t ci intercept -j concourse/concourse
         bash-5.0$ grep nameserver /etc/resolv.conf
         bash-5.0$
         }}}
 
         In this case it is empty, as the host only listed a single
-        \code{127.0.0.53} address which was then stripped out. To fix this, you'll
-        just need to explicitly configure DNS instead of relying on the \code{gdn}
-        default behavior.
+        \code{127.0.0.53} address which was then stripped out. To fix this
+        you'll need to explicitly configure DNS instead of relying on the
+        default runtime behavior.
 
         \section{
           \title{Pointing to external DNS servers}
 
           If you have no need for special DNS resolution within your Concourse
-          containers, you can just configure your containers to use specific DNS
+          containers, you can configure your containers to use specific DNS
           server addresses external to the VM.
 
-          This can be done by listing DNS servers in \code{config.ini} like so:
+          Both the Guardian and containerd runtimes can have their DNS servers
+          configured with flags or envs vars.
 
-          \codeblock{ini}{{{
+          \titled-codeblock{DNS Servers via flags}{bash}{{
+          concourse worker --containerd-dns-server="1.1.1.1" --containerd-dns-server="8.8.8.8"
+          concourse worker --garden-dns-server="1.1.1.1" --garden-dns-server="8.8.8.8"
+          }}
+
+          \inset{} {- spacer -}
+
+          \titled-codeblock{DNS Servers via env vars}{bash}{{
+          # containerd runtime
+          CONCOURSE_CONTAINERD_DNS_SERVER="1.1.1.1,8.8.8.8"
+          # Guardian runtime
+          CONCOURSE_GARDEN_DNS_SERVER="1.1.1.1,8.8.8.8"
+          }}
+
+          \inset{} {- spacer -}
+
+          \titled-codeblock{config.ini (Guardian runtime only)}{ini}{{{
           [server]
           ; configure Google DNS
           dns-server=8.8.8.8
           dns-server=8.8.4.4
           }}}
 
-          To diagnose this problem you can \reference{fly-intercept} into a failing
-          container and check which nameservers are in \code{/etc/resolv.conf}:
+          To verify this solves your problem you can \reference{fly-intercept}
+          into a container and check which nameservers are in
+          \code{/etc/resolv.conf}:
 
           \codeblock{bash}{{{
-          $ fly -t ci intercept -c concourse/concourse
+          $ fly -t ci intercept -j my-pipeline/the-job
           bash-5.0$ cat /etc/resolv.conf
+          nameserver 1.1.1.1
           nameserver 8.8.8.8
-          nameserver 8.8.4.4
           bash-5.0$ ping google.com
           PING google.com (108.177.111.139): 56 data bytes
           64 bytes from 108.177.111.139: seq=0 ttl=47 time=2.672 ms
           64 bytes from 108.177.111.139: seq=1 ttl=47 time=0.911 ms
           }}}
+
         }
 
         \section{
           \title{Using a local DNS server}
 
           If you would like to use Consul, \code{dnsmasq}, or some other DNS server
-          running on the worker VM, you'll have to configure the internal address
+          running on the worker VM, you'll have to configure the LAN address
           of the VM as the DNS server \italic{and} allow the containers to reach
           the address, like so:
 
-          \codeblock{ini}{{{
+          \titled-codeblock{Local DNS Servers via flags}{bash}{{
+          concourse worker --containerd-dns-server="10.0.1.3" --containerd-allow-host-access="true"
+          concourse worker --garden-dns-server="10.0.1.3" --garden-allow-host-access="true"
+          }}
+
+          \inset{} {- spacer -}
+
+          \titled-codeblock{Local DNS Servers via env vars}{bash}{{
+          # containerd runtime
+          CONCOURSE_CONTAINERD_DNS_SERVER="10.0.1.3"
+          CONCOURSE_CONTAINERD_ALLOW_HOST_ACCESS="true"
+          # Guardian runtime
+          CONCOURSE_GARDEN_DNS_SERVER="10.0.1.3"
+          CONCOURSE_GARDEN_ALLOW_HOST_ACCESS="true"
+          }}
+
+          \inset{} {- spacer -}
+
+          \titled-codeblock{config.ini (Guardian runtime only)}{ini}{{{
           [server]
           ; internal IP of the worker machine
-          dns-server=10.1.2.3
+          dns-server=10.0.1.3
 
           ; allow containers to reach the above IP
           allow-host-access=true
           }}}
+
+          \inset{} {- spacer -}
 
           \warn{
             Make sure to read \reference{note-on-allow-host-access} to
@@ -503,7 +741,7 @@ decide much on its own.
           \code{/etc/resolv.conf} once again:
 
           \codeblock{bash}{{{
-          $ fly -t ci intercept -c concourse/concourse
+          $ fly -t ci intercept -j my-pipeline/the-job
           bash-5.0$ cat /etc/resolv.conf
           nameserver 10.1.2.3
           bash-5.0$ nslookup concourse-ci.org
@@ -525,22 +763,23 @@ decide much on its own.
           or security group configuration so that the worker VM can send UDP/TCP
           packets to itself.
         }
+        \section{
+          \title{A note on allowing host access and DNS proxy}{note-on-allow-host-access}
+
+          Setting \code{allow-host-access} will, well, allow containers to access
+          your host VM's network. If you don't trust your container workloads,
+          you may not want to allow this.  With host network access, containers
+          will be able to reach out to any other locally running network
+          processes running on the worker including the garden and baggageclaim
+          servers \bold{which would allow them to issue commands and manipulate
+          other containers and volumes on the same worker}.
+
+          Setting \code{dns-proxy-enable} will also enable
+          \code{allow-host-access} (since the dns proxy will be run on the host,
+          therefore requiring host access be enabled).
+
+        }
       }
-    }
   }
 
-  \section{
-    \title{A note on allowing host access and DNS proxy}{note-on-allow-host-access}
-    Setting \code{allow-host-access} will, well, allow containers to access your
-    host VM's network. If you don't trust your container workloads, you may not
-    want to allow this. With host network access, containers will be able to
-    reach out to any other locally running network processes running on the
-    worker including the garden and baggageclaim servers \bold{which would allow
-    them to issue commands and manipulate other containers and volumes on the
-    same worker}.
-
-    Setting \code{dns-proxy-enable} will also enable \code{allow-host-access}
-    (since the dns proxy will be run on the host).
-
-  }
 }

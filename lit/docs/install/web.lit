@@ -11,7 +11,8 @@ as performing all pipeline scheduling. It's basically the brain of Concourse.
   \title{Prerequisites}{web-prerequisites}
 
   Nothing special - the \code{web} node is a pretty simple Go application that
-  can be run like a 12-factor app.
+  can be run like a \link{12-factor
+  app}{https://en.wikipedia.org/wiki/Twelve-Factor_App_methodology}.
 }
 
 \section{
@@ -70,26 +71,6 @@ as performing all pipeline scheduling. It's basically the brain of Concourse.
   errors being emitted to \code{stderr}.
 
   \section{
-    \title{Configuring ingress traffic}{web-ingress}
-
-    If your web nodes are going to be accessed over the network, you will need
-    to set \code{CONCOURSE_EXTERNAL_URL} to a URL accessible by your Concourse
-    users. If you don't set this property, logging in will incorrectly
-    redirect to its default value of \code{127.0.0.1}.
-
-    If your instance is available on the public internet, you may wish to
-    prevent the Concourse UI from being nefariously embedded as an iframe by
-    setting \code{CONCOURSE_X_FRAME_OPTIONS} to \code{deny} (to prevent
-    \italic{any} iframe embeddings) or \code{sameorigin} (to only allow iframe
-    embeddings in pages served from the same subdomain). This protects against
-    clickjacking.
-
-    \bold{Note:} If setting the value to \code{allow-from}, please note that not
-    all browsers support this value and when not supported, the header is ignored
-    by the browser.
-  }
-
-  \section{
     \title{Resource utilization}{web-resource-utilization}
 
     CPU usage: peaks during pipeline scheduling, primarily when scheduling
@@ -121,7 +102,8 @@ as performing all pipeline scheduling. It's basically the brain of Concourse.
       \code{db} on its configured port for locking and coordinating in a
       multi-\code{web} node deployment
     }{
-      other \code{web} nodes (possibly itself) on an ephemeral port when a worker
+      other \code{web} nodes (possibly itself) on an \link{ephemeral
+      port}{https://en.wikipedia.org/wiki/Ephemeral_port} when a worker
       is forwarded through the web node's TSA
     }
 
@@ -164,7 +146,7 @@ as performing all pipeline scheduling. It's basically the brain of Concourse.
     }}}
 
     This address will be used for forwarded worker connections, which listen on
-    the ephemeral port range.
+    the \link{ephemeral port}{https://en.wikipedia.org/wiki/Ephemeral_port} range.
 
     Finally, if all of these nodes are going to be accessed through a load
     balancer, you'll need to configure the external URL that will be used to
@@ -185,6 +167,11 @@ as performing all pipeline scheduling. It's basically the brain of Concourse.
       API requests, and one used for all the backend work such as pipeline
       scheduling.
 
+      \codeblock{bash}{{{
+      CONCOURSE_API_MAX_CONNS=10     # default
+      CONCOURSE_BACKEND_MAX_CONNS=50 # default
+      }}}
+
       There are some non-configurable connection pools. They take up the
       following number of connections per pool:
       \list{
@@ -200,15 +187,9 @@ as performing all pipeline scheduling. It's basically the brain of Concourse.
       server will allow. See \reference{db-resource-utilization}{\code{db} node
       resource utilization} for more information.
 
-      For example, if 3 \code{web} nodes are configured as such:
-
-      \codeblock{bash}{{{
-      CONCOURSE_API_MAX_CONNS=10     # default
-      CONCOURSE_BACKEND_MAX_CONNS=50 # default
-      }}}
-
-      ...then your PostgreSQL server should be configured with a connection
-      limit of at least 201: (10 + 50 + 5 + 1 + 1) * 3.
+      For example, if 3 \code{web} nodes are configured with the values shown
+      above then your PostgreSQL server should be configured with a connection
+      limit of at least 201: \code{(10 + 50 + 5 + 1 + 1) * 3 web nodes}.
 
     }
   }
@@ -216,33 +197,37 @@ as performing all pipeline scheduling. It's basically the brain of Concourse.
   \section{
     \title{Reloading worker authorized key}
 
-    While \reference{web-running}, the authorized worker key files are loaded at
-    startup. During the lifecycle of a \reference{web-node} new \code{worker} keys
-    might be added or old ones removed.
-
-    The authorized key file containing \code{worker} public keys can be reloaded without
-    downtime by sending \code{SIGHUP} to the \code{web} process. The process
-    will remain running and Concourse will reload the keys to authorize.
+    While \reference{web-running}, the authorized worker key file, which
+    contains all public keys for the workers, is loaded at startup. During the
+    lifecycle of a \reference{web-node} new \code{worker} keys might be added
+    or old ones removed. To perform a live reload of this file you can send a
+    \code{SIGHUP} signal to the \code{concourse web} process. The process will
+    remain running and Concourse will reload the authorized worker key file.
   }
 
   \section{
     \title{Restarting & Upgrading}
 
     The \code{web} nodes can be killed and restarted willy-nilly. No draining
-    is necessary; if the \code{web} node was orchestrating a build it will just
-    continue where it left off when it comes back, or the build will be
-    picked up by one of the other \code{web} nodes.
+    is necessary; if the \code{web} node was orchestrating a build it will
+    continue where it left off when it comes back, or the build will be picked
+    up by one of the other \code{web} nodes.
 
     To upgrade a \code{web} node, stop its process and start a new one using
-    the newly installed \code{concourse}. Any migrations will be run
+    the newly installed \code{concourse}. Any database migrations will be run
     automatically on start. If \code{web} nodes are started in parallel, only
     one will run the migrations.
 
-    Note that we don't currently guarantee a lack of funny-business if you're
+    We don't currently guarantee a lack of funny-business if you're
     running mixed Concourse versions - database migrations can perform
     modifications that confuse other \code{web} nodes. So there may be some
     turbulence during a rolling upgrade, but everything should stabilize once
     all \code{web} nodes are running the latest version.
+
+    If you want more control over when the database migrations happen and know if
+    they were successful you can use the \code{concourse migrate} command. The
+    \code{migrate} command accepts the same \code{CONCOURSE_POSTGRES_*} env
+    vars as the \code{concourse web} command.
   }
 
   \section{
@@ -250,11 +235,6 @@ as performing all pipeline scheduling. It's basically the brain of Concourse.
 
     If you're stuck in a pinch and need to downgrade from one version of
     Concourse to another, you can use the \code{concourse migrate} command.
-
-    \italic{
-      Note: support for down migrations is a fairly recent addition to
-      Concourse; it is not supported for downgrading to v3.6.0 and below.
-    }
 
     First, grab the desired migration version by running the following:
 
@@ -296,6 +276,55 @@ as performing all pipeline scheduling. It's basically the brain of Concourse.
     }}}
 
     When set, this name will be shown in the top bar when viewing the dashboard.
+  }
+
+  \section{
+    \title{Configuring ingress traffic}{web-ingress}
+
+    If your web nodes are going to be accessed multiple network layers, you
+    will need to set \code{CONCOURSE_EXTERNAL_URL} to a URL accessible by your
+    Concourse users. If you don't set this property, logging in will
+    incorrectly redirect to its default value of \code{127.0.0.1}.
+
+    If your web node(s) will be behind a load balancer or reverse proxy then
+    you will need to ensure connctions made by \reference{fly-intercept} are
+    properly handled by upgrading the connection. Here is a sample nginx
+    configuration that upgrades connections made by \reference{fly-intercept}.
+
+    \codeblock{}{{{
+    server {
+      server_name ci.example.com;
+
+      add_header Strict-Transport-Security "max-age=31536000" always;
+      ssl_stapling on;
+      ssl_stapling_verify on;
+
+      # Proxy main concourse traffic
+      location / {
+          proxy_pass http://concourse.local:8080/;
+          proxy_set_header Host $host;
+          proxy_set_header X-Real-IP $remote_addr;
+          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+          proxy_set_header X-Forwarded-Proto $scheme;
+          proxy_set_header X-Forwarded-Protocol $scheme;
+          proxy_set_header X-Forwarded-Host $http_host;
+      }
+
+      # Proxy fly intercept traffic
+      location ~ /hijack$ {
+          proxy_pass http://concourse.local:8080;
+          proxy_set_header Host $host;
+          proxy_set_header X-Real-IP $remote_addr;
+          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+          proxy_set_header X-Forwarded-Proto $scheme;
+          proxy_set_header X-Forwarded-Protocol $scheme;
+          proxy_set_header X-Forwarded-Host $http_host;
+          # Upgrade connection
+          proxy_set_header Upgrade $http_upgrade;
+          proxy_set_header Connection "upgrade";
+      }
+    }
+    }}}
   }
 
   \section{

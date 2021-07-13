@@ -14,6 +14,18 @@ The documentation found here will primarily focus on the \code{concourse} CLI,
 which is the lowest common denominator, and can also be directly used if you
 want to just run Concourse yourself on real hardware or your own managed VMs.
 
+The high-level steps to follow for installing Concourse are:
+
+\ordered-list{
+  Setup a Postgres database
+}{
+  Generate Secrets for the web and worker nodes
+}{
+  Install the web node
+}{
+  Install the worker node
+}
+
 \table-of-contents
 
 \split-sections

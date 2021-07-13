@@ -9,10 +9,19 @@ contains the following files:
 
 \codeblock{sh}{{
 concourse/bin/concourse
-concourse/bin/gdn            # on Linux
+concourse/bin/gdn            # Linux only
 concourse/fly-assets/...
-concourse/resource-types/... # on Linux
+concourse/resource-types/... # Linux only
 }}
+
+The Linux release is the largest among all the platforms because it is
+prepackaged with a \reference{bundled-resource-types}{bundle of resource types}
+like the \link{git}{https://github.com/concourse/git-resource},
+\link{time}{https://github.com/concourse/time-resource/}, and
+\link{registry-image}{https://github.com/concourse/registry-image-resource/}
+resources. Resources only run on Linux workers, that's why the other platforms
+are not bundled with resources; resources don't currently exist for non-linux
+platforms.
 
 When extracted, the \code{concourse} binary will auto-discover its sibling
 assets based on its file location, so you may extract it anywhere. On Linux a
@@ -26,19 +35,29 @@ From there, you can either add \code{/usr/local/concourse/bin} to your
 \code{$PATH}, or just execute \code{/usr/local/concourse/bin/concourse}
 directly.
 
-
 \inline-header{Configuring \code{concourse}}
 
-All Concourse \code{web} node and \code{worker} node configuration is defined
+All Concourse \code{web} and \code{worker} node configuration is defined
 statically via flags. For a full list of flags, you can pass \code{--help} to
 any command.
 
+\titled-codeblock{CLI Commands}{bash}{{
+concourse web --help
+concourse worker --help
+concourse quickstart --help
+concourse migrate --help
+concourse generate-key --help
+concourse land-worker --help
+concourse retire-worker --help
+}}
+
 Each flag can also be set via an environment variable. The env var for each
-flag is based on the flag name, preceded with \code{CONCOURSE_}. These are
-also shown in \code{--help}.
+flag is based on the flag name uppercased, preceded with \code{CONCOURSE_} and
+dashes (\code{-}) replaced with underscores (\code{_}). These are also shown in
+\code{--help}.
 
 Various sections in documentation may refer to configuration via env vars
 rather than flags, but they are both equivalent and interchangeable. Env
-vars are just easier to reference in isolation and are more useful to
+vars are simply easier to reference in isolation and are more useful to
 copy-paste.
 
