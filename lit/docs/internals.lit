@@ -121,12 +121,20 @@ experienced users that want to dig deeper into how Concourse works.
 }
 
 \section{
-  \title{Workers\aux{: container runtime & cache management}}{architecture-worker}
+  \title{Workers Architecture}{architecture-worker}
 
   Workers are machines running
   \link{Garden}{https://github.com/cloudfoundry-incubator/garden} and
-  \link{Baggageclaim}{https://github.com/concourse/baggageclaim} servers
-  and registering themselves via the \reference{component-tsa}{TSA}.
+  \link{Baggageclaim}{https://github.com/concourse/baggageclaim} servers and
+  registering themselves via the \reference{component-tsa}{TSA}.
+
+  \aside{
+    \bold{Note}: Windows and Darwin workers also run Garden and Baggageclaim
+    servers but do not run containers. They both use
+    \link{houdini}{https://github.com/vito/houdini} to fake making containers.
+    Windows containers are not supported and Darwin does not have native
+    container technology.
+  }
 
   Workers have no important state configured on their machines, as everything
   runs in a container and thus shouldn't care about what packages are installed
@@ -139,11 +147,8 @@ experienced users that want to dig deeper into how Concourse works.
   \reference{component-tsa}{TSA}.
 
   Workers by default listen on port \code{7777} for Garden and port \code{7788}
-  for Baggageclaim. If they are within a private network reachable by the
-  \reference{component-atc}{ATC}, they'll probably bind on all addresses
-  (\code{0.0.0.0}) and register themselves directly. Otherwise they should bind
-  on \code{127.0.0.1} and forward themselves through the
-  \reference{component-tsa}{TSA}.
+  for Baggageclaim. Connections to both serves are forwarded over the SSH
+  connection made to the \reference{component-tsa}{TSA}.
 
   \section{
     \title{The worker lifecycle}{worker-lifecycle}
