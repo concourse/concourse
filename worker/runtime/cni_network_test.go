@@ -36,6 +36,7 @@ func (s *CNINetworkSuite) SetupTest() {
 	s.iptables = new(iptablesfakes.FakeIptables)
 
 	s.network, err = runtime.NewCNINetwork(
+		runtime.WithDefaultsForTesting(),
 		runtime.WithCNIFileStore(s.store),
 		runtime.WithCNIClient(s.cni),
 		runtime.WithIptables(s.iptables),
@@ -48,6 +49,7 @@ func (s *CNINetworkSuite) TestNewCNINetworkWithInvalidConfigDoesntFail() {
 	// the plugins.
 	//
 	_, err := runtime.NewCNINetwork(
+		runtime.WithDefaultsForTesting(),
 		runtime.WithCNINetworkConfig(runtime.CNINetworkConfig{
 			Subnet: "_____________",
 		}),
@@ -98,9 +100,9 @@ func (s *CNINetworkSuite) TestSetupMountsFailToCreateResolvConf() {
 }
 
 func (s *CNINetworkSuite) TestSetupMountsReturnsMountpoints() {
-	s.store.CreateReturnsOnCall(0, "/tmp/handle/etc/hosts", nil)
-	s.store.CreateReturnsOnCall(1, "/tmp/handle/etc/hostname", nil)
-	s.store.CreateReturnsOnCall(2, "/tmp/handle/etc/resolv.conf", nil)
+	s.store.CreateReturnsOnCall(0, "/worker-state/handle/etc/hosts", nil)
+	s.store.CreateReturnsOnCall(1, "/worker-state/handle/etc/hostname", nil)
+	s.store.CreateReturnsOnCall(2, "/worker-state/handle/etc/resolv.conf", nil)
 
 	mounts, err := s.network.SetupMounts("some-handle")
 	s.NoError(err)
@@ -110,19 +112,19 @@ func (s *CNINetworkSuite) TestSetupMountsReturnsMountpoints() {
 		{
 			Destination: "/etc/hosts",
 			Type:        "bind",
-			Source:      "/tmp/handle/etc/hosts",
+			Source:      "/worker-state/handle/etc/hosts",
 			Options:     []string{"bind", "rw"},
 		},
 		{
 			Destination: "/etc/hostname",
 			Type:        "bind",
-			Source:      "/tmp/handle/etc/hostname",
+			Source:      "/worker-state/handle/etc/hostname",
 			Options:     []string{"bind", "rw"},
 		},
 		{
 			Destination: "/etc/resolv.conf",
 			Type:        "bind",
-			Source:      "/tmp/handle/etc/resolv.conf",
+			Source:      "/worker-state/handle/etc/resolv.conf",
 			Options:     []string{"bind", "rw"},
 		},
 	})
@@ -130,6 +132,7 @@ func (s *CNINetworkSuite) TestSetupMountsReturnsMountpoints() {
 
 func (s *CNINetworkSuite) TestSetupMountsCallsStoreWithNameServers() {
 	network, err := runtime.NewCNINetwork(
+		runtime.WithDefaultsForTesting(),
 		runtime.WithCNIFileStore(s.store),
 		runtime.WithNameServers([]string{"6.6.7.7", "1.2.3.4"}),
 		runtime.WithIptables(s.iptables),
@@ -145,6 +148,7 @@ func (s *CNINetworkSuite) TestSetupMountsCallsStoreWithNameServers() {
 
 func (s *CNINetworkSuite) TestSetupMountsCallsStoreWithoutNameServers() {
 	network, err := runtime.NewCNINetwork(
+		runtime.WithDefaultsForTesting(),
 		runtime.WithCNIFileStore(s.store),
 		runtime.WithIptables(s.iptables),
 	)
@@ -172,6 +176,7 @@ func (s *CNINetworkSuite) TestSetupHostNetwork() {
 		"flushes the CONCOURSE-OPERATOR chain": {
 			cniNetworkSetup: func() (runtime.Network, error) {
 				return runtime.NewCNINetwork(
+					runtime.WithDefaultsForTesting(),
 					runtime.WithIptables(s.iptables),
 				)
 			},
@@ -181,6 +186,7 @@ func (s *CNINetworkSuite) TestSetupHostNetwork() {
 		"adds rule to CONCOURSE-OPERATOR chain for accepting established connections": {
 			cniNetworkSetup: func() (runtime.Network, error) {
 				return runtime.NewCNINetwork(
+					runtime.WithDefaultsForTesting(),
 					runtime.WithIptables(s.iptables),
 				)
 			},
@@ -191,6 +197,7 @@ func (s *CNINetworkSuite) TestSetupHostNetwork() {
 		"adds rule to CONCOURSE-OPERATOR chain to reject IP 1.1.1.1": {
 			cniNetworkSetup: func() (runtime.Network, error) {
 				return runtime.NewCNINetwork(
+					runtime.WithDefaultsForTesting(),
 					runtime.WithRestrictedNetworks([]string{"1.1.1.1", "8.8.8.8"}),
 					runtime.WithIptables(s.iptables),
 				)
@@ -202,6 +209,7 @@ func (s *CNINetworkSuite) TestSetupHostNetwork() {
 		"adds rule to CONCOURSE-OPERATOR chain to reject IP 8.8.8.8": {
 			cniNetworkSetup: func() (runtime.Network, error) {
 				return runtime.NewCNINetwork(
+					runtime.WithDefaultsForTesting(),
 					runtime.WithRestrictedNetworks([]string{"1.1.1.1", "8.8.8.8"}),
 					runtime.WithIptables(s.iptables),
 				)
@@ -213,6 +221,7 @@ func (s *CNINetworkSuite) TestSetupHostNetwork() {
 		"flushes the INPUT chain": {
 			cniNetworkSetup: func() (runtime.Network, error) {
 				return runtime.NewCNINetwork(
+					runtime.WithDefaultsForTesting(),
 					runtime.WithIptables(s.iptables),
 				)
 			},
@@ -222,6 +231,7 @@ func (s *CNINetworkSuite) TestSetupHostNetwork() {
 		"adds rule to INPUT chain to block host access by default": {
 			cniNetworkSetup: func() (runtime.Network, error) {
 				return runtime.NewCNINetwork(
+					runtime.WithDefaultsForTesting(),
 					runtime.WithIptables(s.iptables),
 				)
 			},
@@ -320,7 +330,7 @@ func (s *CNINetworkSuite) TestAdd() {
 }
 
 func (s *CNINetworkSuite) TestRemoveNilTask() {
-	err := s.network.Remove(context.Background(), nil)
+	err := s.network.Remove(context.Background(), nil, "")
 	s.EqualError(err, "nil task")
 }
 
@@ -328,7 +338,7 @@ func (s *CNINetworkSuite) TestRemoveSetupErrors() {
 	s.cni.RemoveReturns(errors.New("remove-err"))
 	task := new(libcontainerdfakes.FakeTask)
 
-	err := s.network.Remove(context.Background(), task)
+	err := s.network.Remove(context.Background(), task, "")
 	s.EqualError(errors.Unwrap(err), "remove-err")
 }
 
@@ -337,11 +347,15 @@ func (s *CNINetworkSuite) TestRemove() {
 	task.PidReturns(123)
 	task.IDReturns("id")
 
-	err := s.network.Remove(context.Background(), task)
+	err := s.network.Remove(context.Background(), task, "some-handle")
 	s.NoError(err)
 
 	s.Equal(1, s.cni.RemoveCallCount())
 	_, id, netns, _ := s.cni.RemoveArgsForCall(0)
 	s.Equal("id", id)
 	s.Equal("/proc/123/ns/net", netns)
+
+	s.Equal(1, s.store.DeleteCallCount())
+	path := s.store.DeleteArgsForCall(0)
+	s.Equal("some-handle", path)
 }

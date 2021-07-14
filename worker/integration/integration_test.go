@@ -45,6 +45,8 @@ func (s *WorkerRunnerSuite) BeforeTest(suiteName, testName string) {
 func (s *WorkerRunnerSuite) TestWorkDirIsCreated() {
 	s.wrkcmd.WorkDir = "somedir"
 	s.wrkcmd.Runtime = "containerd"
+	s.wrkcmd.Containerd.CNIPluginsDir = "somedir"
+	s.wrkcmd.Containerd.InitBin = "somedir"
 
 	_, err := s.wrkcmd.Runner([]string{})
 	s.NoError(err)

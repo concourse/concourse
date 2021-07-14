@@ -40,8 +40,8 @@ type GuardianRuntime struct {
 type ContainerdRuntime struct {
 	Config         flag.File     `long:"config"     description:"Path to a config file to use for the Containerd daemon."`
 	Bin            string        `long:"bin"        description:"Path to a containerd executable (non-absolute names get resolved from $PATH)."`
-	InitBin        string        `long:"init-bin"   default:"/usr/local/concourse/bin/init" description:"Path to an init executable (non-absolute names get resolved from $PATH)."`
-	CNIPluginsDir  string        `long:"cni-plugins-dir" default:"/usr/local/concourse/bin" description:"Path to CNI network plugins."`
+	InitBin        string        `long:"init-bin"   description:"Path to an init executable. By default will search within the concourse/bin directory the concourse binary is in."`
+	CNIPluginsDir  string        `long:"cni-plugins-dir" description:"Path to CNI network plugins. By default will set to the concourse/bin directory the concourse binary is in."`
 	RequestTimeout time.Duration `long:"request-timeout" default:"5m" description:"How long to wait for requests to Containerd to complete. 0 means no timeout."`
 
 	Network struct {
@@ -133,7 +133,7 @@ func trySetConcourseDirInPATH() {
 
 	err := os.Setenv("PATH", binDir+":"+os.Getenv("PATH"))
 	if err != nil {
-		// programming mistake
+		// syscall error
 		panic(fmt.Errorf("failed to set PATH environment variable: %w", err))
 	}
 }

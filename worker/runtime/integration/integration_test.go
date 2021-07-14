@@ -111,12 +111,19 @@ func (s *IntegrationSuite) BeforeTest(suiteName, testName string) {
 		requestTimeout = 3 * time.Second
 	)
 
+	network, err := runtime.NewCNINetwork(
+		runtime.WithDefaultsForTesting(),
+	)
+
+	s.NoError(err)
+
 	s.gardenBackend, err = runtime.NewGardenBackend(
 		libcontainerd.New(
 			s.containerdSocket(),
 			namespace,
 			requestTimeout,
 		),
+		runtime.WithNetwork(network),
 	)
 	s.NoError(err)
 	s.NoError(s.gardenBackend.Start())
@@ -245,6 +252,7 @@ func (s *IntegrationSuite) TestContainerNetworkEgressWithRestrictedNetworks() {
 	requestTimeout := 3 * time.Second
 
 	network, err := runtime.NewCNINetwork(
+		runtime.WithDefaultsForTesting(),
 		runtime.WithRestrictedNetworks([]string{"1.1.1.1"}),
 	)
 
@@ -373,7 +381,10 @@ func (s *IntegrationSuite) TestContainerAllowsHostAccess() {
 	namespace := "test-allow-host-access"
 	requestTimeout := 3 * time.Second
 
-	network, err := runtime.NewCNINetwork(runtime.WithAllowHostAccess())
+	network, err := runtime.NewCNINetwork(
+		runtime.WithDefaultsForTesting(),
+		runtime.WithAllowHostAccess(),
+	)
 
 	s.NoError(err)
 
@@ -715,6 +726,7 @@ func (s *IntegrationSuite) TestCustomDNS() {
 	requestTimeout := 3 * time.Second
 
 	network, err := runtime.NewCNINetwork(
+		runtime.WithDefaultsForTesting(),
 		runtime.WithNameServers([]string{
 			"1.1.1.1", "1.2.3.4",
 		}),
@@ -825,6 +837,11 @@ func (s *IntegrationSuite) TestMaxContainers() {
 
 	limit := runtime.WithMaxContainers(1)
 
+	network, err := runtime.NewCNINetwork(
+		runtime.WithDefaultsForTesting(),
+	)
+	s.NoError(err)
+
 	customBackend, err := runtime.NewGardenBackend(
 		libcontainerd.New(
 			s.containerdSocket(),
@@ -832,6 +849,7 @@ func (s *IntegrationSuite) TestMaxContainers() {
 			requestTimeout,
 		),
 		limit,
+		runtime.WithNetwork(network),
 	)
 	s.NoError(err)
 
@@ -866,12 +884,18 @@ func (s *IntegrationSuite) TestRequestTimeoutZero() {
 	namespace := "test-requesTimeout-zero"
 	requestTimeout := time.Duration(0)
 
+	network, err := runtime.NewCNINetwork(
+		runtime.WithDefaultsForTesting(),
+	)
+	s.NoError(err)
+
 	customBackend, err := runtime.NewGardenBackend(
 		libcontainerd.New(
 			s.containerdSocket(),
 			namespace,
 			requestTimeout,
 		),
+		runtime.WithNetwork(network),
 	)
 	s.NoError(err)
 
@@ -883,4 +907,76 @@ func (s *IntegrationSuite) TestRequestTimeoutZero() {
 	defer func() {
 		customBackend.Stop()
 	}()
+}
+
+func (s *IntegrationSuite) TestNetworkMountsAreRemoved() {
+	// Using custom backend, clean up BeforeTest() stuff
+	s.gardenBackend.Stop()
+	s.cleanupIptables()
+
+	namespace := "test-network-mounts-are-removed"
+	requestTimeout := 3 * time.Second
+
+	networkMountsDir := s.T().TempDir()
+	network, err := runtime.NewCNINetwork(
+		runtime.WithDefaultsForTesting(),
+		runtime.WithCNIFileStore(runtime.FileStoreWithWorkDir(networkMountsDir)),
+	)
+	s.NoError(err)
+
+	customBackend, err := runtime.NewGardenBackend(
+		libcontainerd.New(
+			s.containerdSocket(),
+			namespace,
+			requestTimeout,
+		),
+		runtime.WithNetwork(network),
+	)
+	s.NoError(err)
+
+	s.NoError(customBackend.Start())
+
+	handle := uuid()
+
+	container, err := customBackend.Create(garden.ContainerSpec{
+		Handle:     handle,
+		RootFSPath: "raw://" + s.rootfs,
+		Privileged: true,
+	})
+	s.NoError(err)
+
+	defer func() {
+		customBackend.Stop()
+	}()
+
+	buf := new(buffer)
+	proc, err := container.Run(
+		garden.ProcessSpec{
+			Path: "/executable",
+			Args: []string{
+				"-cat",
+				"/etc/resolv.conf",
+			},
+		},
+		garden.ProcessIO{
+			Stdout: buf,
+			Stderr: buf,
+		},
+	)
+	s.NoError(err)
+
+	exitCode, err := proc.Wait()
+	s.NoError(err)
+
+	s.Equal(exitCode, 0)
+
+	networkFiles, err := os.ReadDir(filepath.Join(networkMountsDir, "networkmounts", handle))
+	s.NoError(err)
+	s.Len(networkFiles, 3)
+
+	s.NoError(customBackend.Destroy(handle))
+
+	networkFiles, err = os.ReadDir(filepath.Join(networkMountsDir, "networkmounts"))
+	s.NoError(err)
+	s.Len(networkFiles, 0)
 }
