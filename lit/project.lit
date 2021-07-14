@@ -15,7 +15,9 @@ around the world.
   \list{
     The \link{Concourse repo}{https://github.com/concourse/concourse} is where
     the main code lives, where the backlog is planned, and where bugs are
-    reported. It is managed by the \team{maintainers}.
+    reported. It is managed by the \team{maintainers}. Another high-level view
+    of the backlog is also available at
+    \link{project.concourse-ci.org}{https://project.concourse-ci.org/}
   }{
     The \link{RFCs repo}{https://github.com/concourse/rfcs} is where shiny new
     features are designed through collaborating in the open and collecting
