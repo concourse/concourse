@@ -62,7 +62,7 @@ var _ = Describe("Check Lifecycle", func() {
 		By("attempting to delete completed checks when there are no newer checks")
 		err := lifecycle.DeleteCompletedChecks(logger)
 		Expect(err).ToNot(HaveOccurred())
-		// TODO: fix this test
+		//TODO: fix this test
 		//Expect(exists(resourceBuild)).To(BeTrue())
 		Expect(exists(resourceTypeBuild)).To(BeTrue())
 

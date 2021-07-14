@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/concourse/concourse/atc/util"
 	"strconv"
 	"time"
 
@@ -15,6 +14,7 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
+	"github.com/concourse/concourse/atc/util"
 )
 
 var ErrPinnedThroughConfig = errors.New("resource is pinned through config")

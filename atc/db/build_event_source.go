@@ -1,10 +1,8 @@
 package db
 
 import (
-	"database/sql"
 	"encoding/json"
 	"errors"
-	"github.com/lib/pq"
 	"strconv"
 	"sync"
 
@@ -22,13 +20,15 @@ type EventSource interface {
 	Close() error
 }
 
+type buildCompleteWatcherFunc func(Tx, int) (bool, error)
+
 func newBuildEventSource(
 	buildID int,
 	table string,
 	conn Conn,
 	notifier Notifier,
 	from uint,
-	inMemoryBuild bool,
+	watcher buildCompleteWatcherFunc,
 ) *buildEventSource {
 	wg := new(sync.WaitGroup)
 
@@ -44,7 +44,7 @@ func newBuildEventSource(
 		stop:   make(chan struct{}),
 		wg:     wg,
 
-		inMemoryBuild: inMemoryBuild,
+		watcherFunc: watcher,
 	}
 
 	wg.Add(1)
@@ -65,7 +65,7 @@ type buildEventSource struct {
 	err    error
 	wg     *sync.WaitGroup
 
-	inMemoryBuild bool
+	watcherFunc buildCompleteWatcherFunc
 }
 
 func (source *buildEventSource) Next() (event.Envelope, error) {
@@ -107,8 +107,6 @@ func (source *buildEventSource) collectEvents(from uint) {
 		default:
 		}
 
-		completed := false
-
 		tx, err := source.conn.Begin()
 		if err != nil {
 			return
@@ -116,39 +114,11 @@ func (source *buildEventSource) collectEvents(from uint) {
 
 		defer Rollback(tx)
 
-		if source.inMemoryBuild {
-			var lastCheckStartTime, lastCheckEndTime pq.NullTime
-			err = psql.Select("last_check_start_time", "last_check_end_time").
-				From("resource_config_scopes").
-				Where(sq.Eq{"last_check_build_id": source.buildID}).
-				RunWith(tx).
-				QueryRow().
-				Scan(&lastCheckStartTime, &lastCheckEndTime)
-			if err != nil {
-				if err == sql.ErrNoRows {
-					completed = true
-				} else {
-					source.err = err
-					close(source.events)
-					return
-				}
-			}
-
-			if lastCheckStartTime.Valid && lastCheckEndTime.Valid && lastCheckStartTime.Time.Before(lastCheckEndTime.Time) {
-				completed = true
-			}
-		} else {
-			err = psql.Select("completed").
-				From("builds").
-				Where(sq.Eq{"id": source.buildID}).
-				RunWith(tx).
-				QueryRow().
-				Scan(&completed)
-			if err != nil {
-				source.err = err
-				close(source.events)
-				return
-			}
+		completed, err := source.watcherFunc(tx, source.buildID)
+		if err != nil {
+			source.err = err
+			close(source.events)
+			return
 		}
 
 		rows, err := psql.Select("event_id", "type", "version", "payload").

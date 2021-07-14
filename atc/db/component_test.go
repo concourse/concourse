@@ -39,7 +39,7 @@ var _ = Describe("Component", func() {
 
 		Context("when the interval is not reached", func() {
 			BeforeEach(func() {
-				err = component.UpdateLastRan(time.Now())
+				err = component.UpdateLastRan()
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -50,7 +50,7 @@ var _ = Describe("Component", func() {
 
 		Context("when the interval is reached", func() {
 			BeforeEach(func() {
-				err = component.UpdateLastRan(time.Now())
+				err = component.UpdateLastRan()
 				Expect(err).NotTo(HaveOccurred())
 
 				time.Sleep(1 * time.Second)
@@ -64,7 +64,7 @@ var _ = Describe("Component", func() {
 
 	Describe("UpdateLastRan", func() {
 		BeforeEach(func() {
-			err = component.UpdateLastRan(time.Now())
+			err = component.UpdateLastRan()
 			Expect(err).NotTo(HaveOccurred())
 		})
 

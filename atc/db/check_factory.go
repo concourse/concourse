@@ -1,10 +1,8 @@
 package db
 
 import (
-	"code.cloudfoundry.org/lager"
 	"context"
 	"fmt"
-	"github.com/concourse/concourse/atc/util"
 	"time"
 
 	"code.cloudfoundry.org/lager/lagerctx"
@@ -12,13 +10,13 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db/lock"
+	"github.com/concourse/concourse/atc/util"
 )
 
 //counterfeiter:generate . Checkable
 type Checkable interface {
 	PipelineRef
 
-	ID() int
 	Name() string
 	TeamID() int
 	ResourceConfigScopeID() int
@@ -28,7 +26,6 @@ type Checkable interface {
 	Tags() atc.Tags
 	CheckEvery() *atc.CheckEvery
 	CheckTimeout() string
-	LastCheckStartTime() time.Time
 	LastCheckEndTime() time.Time
 	CurrentPinnedVersion() atc.Version
 
@@ -37,10 +34,7 @@ type Checkable interface {
 
 	CheckPlan(planFactory atc.PlanFactory, imagePlanner atc.ImagePlanner, from atc.Version, interval atc.CheckEvery, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) atc.Plan
 	CreateBuild(context.Context, bool, atc.Plan) (Build, bool, error)
-
 	CreateInMemoryBuild(context.Context, atc.Plan, util.SequenceGenerator) (Build, error)
-
-	Reload() (bool, error)
 }
 
 //counterfeiter:generate . CheckFactory
@@ -140,9 +134,6 @@ func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, 
 		}
 
 		logger.Debug("created-in-memory-check-build", build.LagerData())
-		if checkable.ID() == 109302 {
-			logger.Debug("EVAN:created-in-memory-check-build", build.LagerData())
-		}
 		c.checkBuildChan <- build
 
 		return build, true, nil
@@ -165,7 +156,10 @@ func (c *checkFactory) Resources() ([]Resource, error) {
 			},
 			sq.And{
 				// find put-only resources that have errored
-				sq.Expr("rs.last_check_succeeded = false"),
+				sq.Or{
+					sq.Eq{"rs.last_check_succeeded": nil},
+					sq.Eq{"rs.last_check_succeeded": false},
+				},
 				sq.Eq{"ji.resource_id": nil},
 			},
 		}).

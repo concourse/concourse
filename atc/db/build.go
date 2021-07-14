@@ -1123,7 +1123,19 @@ func (b *build) Events(from uint) (EventSource, error) {
 		b.conn,
 		notifier,
 		from,
-		false,
+		func(tx Tx, buildID int) (bool, error) {
+			completed := false
+			err = psql.Select("completed").
+				From("builds").
+				Where(sq.Eq{"id": buildID}).
+				RunWith(tx).
+				QueryRow().
+				Scan(&completed)
+			if err != nil {
+				return false, nil
+			}
+			return completed, nil
+		},
 	), nil
 }
 

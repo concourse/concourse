@@ -4,14 +4,15 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"github.com/concourse/concourse/atc/util"
 	"strconv"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/lib/pq"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
-	"github.com/lib/pq"
+	"github.com/concourse/concourse/atc/util"
 )
 
 //counterfeiter:generate . Prototype

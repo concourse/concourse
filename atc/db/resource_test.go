@@ -2,6 +2,8 @@ package db_test
 
 import (
 	"context"
+	"encoding/json"
+	"github.com/concourse/concourse/atc/util"
 	"strconv"
 	"time"
 
@@ -147,6 +149,62 @@ var _ = Describe("Resource", func() {
 				Expect(scenario.Resource("some-resource").Name()).To(Equal("some-resource"))
 				Expect(scenario.Resource("some-resource").Type()).To(Equal("some-base-resource-type"))
 				Expect(scenario.Resource("some-resource").Source()).To(Equal(atc.Source{"some": "repository"}))
+			})
+
+			Context("when the resource has check build", func(){
+				var publicPlan atc.Plan
+				BeforeEach(func(){
+					resource := scenario.Resource("some-resource")
+					resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(
+						"some-base-resource-type",
+						atc.Source{"some": "repository"},
+						atc.VersionedResourceTypes{},
+					)
+					Expect(err).NotTo(HaveOccurred())
+
+					resourceConfigScope, err := resourceConfig.FindOrCreateScope(resource)
+					Expect(err).NotTo(HaveOccurred())
+
+					err = resource.SetResourceConfigScope(resourceConfigScope)
+					Expect(err).NotTo(HaveOccurred())
+
+					publicPlan = atc.Plan{
+						ID: atc.PlanID("1234"),
+						Check: &atc.CheckPlan{
+							Name: "some-resource",
+							Type: "some-resource-type",
+						},
+					}
+					bytes, err := json.Marshal(publicPlan)
+					jr := json.RawMessage(bytes)
+					resourceConfigScope.UpdateLastCheckStartTime(99, &jr)
+					resourceConfigScope.UpdateLastCheckEndTime(false)
+				})
+
+				It("return check build info", func(){
+					Expect(scenario.Resource("some-resource").LastCheckStartTime()).Should(BeTemporally("~", time.Now(), time.Second))
+					Expect(scenario.Resource("some-resource").LastCheckEndTime()).Should(BeTemporally("~", time.Now(), time.Second))
+
+				})
+
+				It("return build summary", func(){
+					buildSummary := scenario.Resource("some-resource").BuildSummary()
+					Expect(buildSummary).NotTo(BeNil())
+					Expect(buildSummary.ID).To(Equal(99))
+					Expect(buildSummary.Name).To(Equal(db.CheckBuildName))
+					Expect(buildSummary.TeamName).To(Equal(scenario.Team.Name()))
+					Expect(buildSummary.PipelineName).To(Equal(scenario.Pipeline.Name()))
+					Expect(buildSummary.Status).To(Equal(atc.StatusFailed))
+					Expect(buildSummary.JobName).To(BeEmpty())
+					Expect(time.Unix(buildSummary.StartTime, 0)).Should(BeTemporally("~", time.Now(), time.Second))
+					Expect(time.Unix(buildSummary.EndTime, 0)).Should(BeTemporally("~", time.Now(), time.Second))
+					Expect(buildSummary.PublicPlan).ToNot(BeNil())
+
+					var plan atc.Plan
+					err := json.Unmarshal(*buildSummary.PublicPlan, &plan)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(plan).To(Equal(publicPlan))
+				})
 			})
 		})
 
@@ -529,6 +587,66 @@ var _ = Describe("Resource", func() {
 					Expect(created).To(BeTrue())
 					Expect(build.ResourceID()).To(Equal(defaultResource.ID()))
 				})
+			})
+		})
+	})
+
+	Describe("CreateInMemoryBuild", func() {
+		var ctx context.Context
+		var plan atc.Plan
+		var build db.Build
+
+		BeforeEach(func() {
+			ctx = context.TODO()
+			plan = atc.Plan{
+				ID: "some-plan",
+				Check: &atc.CheckPlan{
+					Name: "wreck",
+				},
+			}
+		})
+
+		JustBeforeEach(func() {
+			var err error
+			build, err = defaultResource.CreateInMemoryBuild(ctx, plan, util.NewSequenceGenerator())
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("creates a started build for a resource", func() {
+			Expect(build).ToNot(BeNil())
+			Expect(build.ID()).To(Equal(0))
+			Expect(build.Name()).To(Equal(db.CheckBuildName))
+			Expect(build.ResourceID()).To(Equal(defaultResource.ID()))
+			Expect(build.PipelineID()).To(Equal(defaultResource.PipelineID()))
+			Expect(build.TeamID()).To(Equal(defaultResource.TeamID()))
+			Expect(build.IsManuallyTriggered()).To(BeFalse())
+			Expect(build.PrivatePlan()).To(Equal(plan))
+		})
+
+		It("should not log to the check_build_events partition", func() {
+			err := build.SaveEvent(event.Log{Payload: "log"})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(numBuildEventsForCheck(build)).To(Equal(0))
+		})
+
+		Context("when tracing is configured", func() {
+			var span trace.Span
+
+			BeforeEach(func() {
+				tracing.ConfigureTraceProvider(oteltest.NewTracerProvider())
+
+				ctx, span = tracing.StartSpan(context.Background(), "fake-operation", nil)
+			})
+
+			AfterEach(func() {
+				tracing.Configured = false
+			})
+
+			It("propagates span context", func() {
+				traceID := span.SpanContext().TraceID().String()
+				buildContext := build.SpanContext()
+				traceParent := buildContext.Get("traceparent")
+				Expect(traceParent).To(ContainSubstring(traceID))
 			})
 		})
 	})

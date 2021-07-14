@@ -21,7 +21,7 @@ type Component interface {
 
 	Reload() (bool, error)
 	IntervalElapsed() bool
-	UpdateLastRan(when time.Time) error
+	UpdateLastRan() error
 }
 
 type component struct {
@@ -57,17 +57,12 @@ func (c *component) Reload() (bool, error) {
 }
 
 func (c *component) IntervalElapsed() bool {
-	return !time.Now().Before(c.lastRan.Add(c.interval))
+	return time.Now().After(c.lastRan.Add(c.interval))
 }
 
-func (c *component) UpdateLastRan(when time.Time) error {
-	builder := psql.Update("components")
-	if when.IsZero() {
-		builder = builder.Set("last_ran", sq.Expr("now()"))
-	} else {
-		builder = builder.Set("last_ran", when)
-	}
-	_, err := builder.
+func (c *component) UpdateLastRan() error {
+	_, err := psql.Update("components").
+		Set("last_ran", sq.Expr("now()")).
 		Where(sq.Eq{
 			"id": c.id,
 		}).

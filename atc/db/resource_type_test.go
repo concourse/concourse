@@ -2,11 +2,13 @@ package db_test
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/event"
+	"github.com/concourse/concourse/atc/util"
 	"github.com/concourse/concourse/tracing"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -1007,6 +1009,121 @@ var _ = Describe("ResourceType", func() {
 					Expect(createdCheckPlan).To(Equal(expectedPlan))
 				})
 			})
+		})
+	})
+
+	Describe("CreateInMemoryBuild", func() {
+		var resourceType db.ResourceType
+		var ctx context.Context
+		var plan atc.Plan
+		var build db.Build
+
+		BeforeEach(func() {
+			ctx = context.TODO()
+			resourceType = defaultResourceType
+			plan = atc.Plan{
+				ID: "some-plan",
+				Check: &atc.CheckPlan{
+					Name: "wreck",
+				},
+			}
+		})
+
+		JustBeforeEach(func() {
+			var err error
+			build, err = resourceType.CreateInMemoryBuild(ctx, plan, util.NewSequenceGenerator())
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("creates a build for a resource type", func() {
+			Expect(build).ToNot(BeNil())
+			Expect(build.ID()).To(Equal(0))
+			Expect(build.Name()).To(Equal(db.CheckBuildName))
+			Expect(build.ResourceTypeID()).To(Equal(resourceType.ID()))
+			Expect(build.PipelineID()).To(Equal(defaultResource.PipelineID()))
+			Expect(build.TeamID()).To(Equal(defaultResource.TeamID()))
+			Expect(build.IsManuallyTriggered()).To(BeFalse())
+			Expect(build.PrivatePlan()).To(Equal(plan))
+		})
+
+		It("not log to the check_build_events partition", func() {
+			err := build.SaveEvent(event.Log{Payload: "log"})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(numBuildEventsForCheck(build)).To(Equal(0))
+		})
+
+		Context("when tracing is configured", func() {
+			var span trace.Span
+
+			BeforeEach(func() {
+				tracing.ConfigureTraceProvider(oteltest.NewTracerProvider())
+
+				ctx, span = tracing.StartSpan(context.Background(), "fake-operation", nil)
+			})
+
+			AfterEach(func() {
+				tracing.Configured = false
+			})
+
+			It("propagates span context", func() {
+				traceID := span.SpanContext().TraceID().String()
+				buildContext := build.SpanContext()
+				traceParent := buildContext.Get("traceparent")
+				Expect(traceParent).To(ContainSubstring(traceID))
+			})
+		})
+	})
+
+	Describe("BuildSummary", func() {
+		var resourceType db.ResourceType
+		var publicPlan atc.Plan
+
+		BeforeEach(func() {
+			resourceType = defaultResourceType
+
+			resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(resourceType.Type(), resourceType.Source(), nil)
+			Expect(err).ToNot(HaveOccurred())
+
+			scope, err := resourceConfig.FindOrCreateScope(nil)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = resourceType.SetResourceConfigScope(scope)
+			Expect(err).ToNot(HaveOccurred())
+
+			publicPlan = atc.Plan{
+				ID: atc.PlanID("1234"),
+				Check: &atc.CheckPlan{
+					Name: "some-resource",
+					Type: "some-resource-type",
+				},
+			}
+			bytes, err := json.Marshal(publicPlan)
+			jr := json.RawMessage(bytes)
+			scope.UpdateLastCheckStartTime(99, &jr)
+			scope.UpdateLastCheckEndTime(false)
+
+			found, err := resourceType.Reload()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+		})
+
+		It("return build summary", func() {
+			buildSummary := resourceType.BuildSummary()
+			Expect(buildSummary).NotTo(BeNil())
+			Expect(buildSummary.ID).To(Equal(99))
+			Expect(buildSummary.Name).To(Equal(db.CheckBuildName))
+			Expect(buildSummary.TeamName).To(Equal(resourceType.TeamName()))
+			Expect(buildSummary.PipelineName).To(Equal(resourceType.PipelineName()))
+			Expect(buildSummary.Status).To(Equal(atc.StatusFailed))
+			Expect(buildSummary.JobName).To(BeEmpty())
+			Expect(time.Unix(buildSummary.StartTime, 0)).Should(BeTemporally("~", time.Now(), time.Second))
+			Expect(time.Unix(buildSummary.EndTime, 0)).Should(BeTemporally("~", time.Now(), time.Second))
+			Expect(buildSummary.PublicPlan).ToNot(BeNil())
+
+			var plan atc.Plan
+			err := json.Unmarshal(*buildSummary.PublicPlan, &plan)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(plan).To(Equal(publicPlan))
 		})
 	})
 })

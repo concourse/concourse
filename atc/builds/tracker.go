@@ -59,7 +59,7 @@ func (bt *Tracker) Run(ctx context.Context) error {
 	builds, err := bt.buildFactory.GetAllStartedBuilds()
 	if err != nil {
 		logger.Error("failed-to-lookup-started-builds", err)
-		builds = []db.Build{}
+		return err
 	}
 
 	for _, b := range builds {
@@ -126,9 +126,6 @@ func (bt *Tracker) trackInMemoryBuilds(logger lager.Logger) {
 				return
 			}
 			logger.Debug("received-in-memory-build", b.LagerData())
-			if b.ResourceID() == 109302 {
-				logger.Info("EVAN:received-in-memory-build", b.LagerData())
-			}
 			bt.trackBuild(logger, b, false)
 		}
 	}

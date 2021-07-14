@@ -111,16 +111,6 @@ type FakeCheckable struct {
 	hasWebhookReturnsOnCall map[int]struct {
 		result1 bool
 	}
-	IDStub        func() int
-	iDMutex       sync.RWMutex
-	iDArgsForCall []struct {
-	}
-	iDReturns struct {
-		result1 int
-	}
-	iDReturnsOnCall map[int]struct {
-		result1 int
-	}
 	LastCheckEndTimeStub        func() time.Time
 	lastCheckEndTimeMutex       sync.RWMutex
 	lastCheckEndTimeArgsForCall []struct {
@@ -129,16 +119,6 @@ type FakeCheckable struct {
 		result1 time.Time
 	}
 	lastCheckEndTimeReturnsOnCall map[int]struct {
-		result1 time.Time
-	}
-	LastCheckStartTimeStub        func() time.Time
-	lastCheckStartTimeMutex       sync.RWMutex
-	lastCheckStartTimeArgsForCall []struct {
-	}
-	lastCheckStartTimeReturns struct {
-		result1 time.Time
-	}
-	lastCheckStartTimeReturnsOnCall map[int]struct {
 		result1 time.Time
 	}
 	NameStub        func() string
@@ -204,18 +184,6 @@ type FakeCheckable struct {
 	}
 	pipelineRefReturnsOnCall map[int]struct {
 		result1 atc.PipelineRef
-	}
-	ReloadStub        func() (bool, error)
-	reloadMutex       sync.RWMutex
-	reloadArgsForCall []struct {
-	}
-	reloadReturns struct {
-		result1 bool
-		result2 error
-	}
-	reloadReturnsOnCall map[int]struct {
-		result1 bool
-		result2 error
 	}
 	ResourceConfigScopeIDStub        func() int
 	resourceConfigScopeIDMutex       sync.RWMutex
@@ -748,59 +716,6 @@ func (fake *FakeCheckable) HasWebhookReturnsOnCall(i int, result1 bool) {
 	}{result1}
 }
 
-func (fake *FakeCheckable) ID() int {
-	fake.iDMutex.Lock()
-	ret, specificReturn := fake.iDReturnsOnCall[len(fake.iDArgsForCall)]
-	fake.iDArgsForCall = append(fake.iDArgsForCall, struct {
-	}{})
-	stub := fake.IDStub
-	fakeReturns := fake.iDReturns
-	fake.recordInvocation("ID", []interface{}{})
-	fake.iDMutex.Unlock()
-	if stub != nil {
-		return stub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fakeReturns.result1
-}
-
-func (fake *FakeCheckable) IDCallCount() int {
-	fake.iDMutex.RLock()
-	defer fake.iDMutex.RUnlock()
-	return len(fake.iDArgsForCall)
-}
-
-func (fake *FakeCheckable) IDCalls(stub func() int) {
-	fake.iDMutex.Lock()
-	defer fake.iDMutex.Unlock()
-	fake.IDStub = stub
-}
-
-func (fake *FakeCheckable) IDReturns(result1 int) {
-	fake.iDMutex.Lock()
-	defer fake.iDMutex.Unlock()
-	fake.IDStub = nil
-	fake.iDReturns = struct {
-		result1 int
-	}{result1}
-}
-
-func (fake *FakeCheckable) IDReturnsOnCall(i int, result1 int) {
-	fake.iDMutex.Lock()
-	defer fake.iDMutex.Unlock()
-	fake.IDStub = nil
-	if fake.iDReturnsOnCall == nil {
-		fake.iDReturnsOnCall = make(map[int]struct {
-			result1 int
-		})
-	}
-	fake.iDReturnsOnCall[i] = struct {
-		result1 int
-	}{result1}
-}
-
 func (fake *FakeCheckable) LastCheckEndTime() time.Time {
 	fake.lastCheckEndTimeMutex.Lock()
 	ret, specificReturn := fake.lastCheckEndTimeReturnsOnCall[len(fake.lastCheckEndTimeArgsForCall)]
@@ -850,59 +765,6 @@ func (fake *FakeCheckable) LastCheckEndTimeReturnsOnCall(i int, result1 time.Tim
 		})
 	}
 	fake.lastCheckEndTimeReturnsOnCall[i] = struct {
-		result1 time.Time
-	}{result1}
-}
-
-func (fake *FakeCheckable) LastCheckStartTime() time.Time {
-	fake.lastCheckStartTimeMutex.Lock()
-	ret, specificReturn := fake.lastCheckStartTimeReturnsOnCall[len(fake.lastCheckStartTimeArgsForCall)]
-	fake.lastCheckStartTimeArgsForCall = append(fake.lastCheckStartTimeArgsForCall, struct {
-	}{})
-	stub := fake.LastCheckStartTimeStub
-	fakeReturns := fake.lastCheckStartTimeReturns
-	fake.recordInvocation("LastCheckStartTime", []interface{}{})
-	fake.lastCheckStartTimeMutex.Unlock()
-	if stub != nil {
-		return stub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fakeReturns.result1
-}
-
-func (fake *FakeCheckable) LastCheckStartTimeCallCount() int {
-	fake.lastCheckStartTimeMutex.RLock()
-	defer fake.lastCheckStartTimeMutex.RUnlock()
-	return len(fake.lastCheckStartTimeArgsForCall)
-}
-
-func (fake *FakeCheckable) LastCheckStartTimeCalls(stub func() time.Time) {
-	fake.lastCheckStartTimeMutex.Lock()
-	defer fake.lastCheckStartTimeMutex.Unlock()
-	fake.LastCheckStartTimeStub = stub
-}
-
-func (fake *FakeCheckable) LastCheckStartTimeReturns(result1 time.Time) {
-	fake.lastCheckStartTimeMutex.Lock()
-	defer fake.lastCheckStartTimeMutex.Unlock()
-	fake.LastCheckStartTimeStub = nil
-	fake.lastCheckStartTimeReturns = struct {
-		result1 time.Time
-	}{result1}
-}
-
-func (fake *FakeCheckable) LastCheckStartTimeReturnsOnCall(i int, result1 time.Time) {
-	fake.lastCheckStartTimeMutex.Lock()
-	defer fake.lastCheckStartTimeMutex.Unlock()
-	fake.LastCheckStartTimeStub = nil
-	if fake.lastCheckStartTimeReturnsOnCall == nil {
-		fake.lastCheckStartTimeReturnsOnCall = make(map[int]struct {
-			result1 time.Time
-		})
-	}
-	fake.lastCheckStartTimeReturnsOnCall[i] = struct {
 		result1 time.Time
 	}{result1}
 }
@@ -1229,62 +1091,6 @@ func (fake *FakeCheckable) PipelineRefReturnsOnCall(i int, result1 atc.PipelineR
 	fake.pipelineRefReturnsOnCall[i] = struct {
 		result1 atc.PipelineRef
 	}{result1}
-}
-
-func (fake *FakeCheckable) Reload() (bool, error) {
-	fake.reloadMutex.Lock()
-	ret, specificReturn := fake.reloadReturnsOnCall[len(fake.reloadArgsForCall)]
-	fake.reloadArgsForCall = append(fake.reloadArgsForCall, struct {
-	}{})
-	stub := fake.ReloadStub
-	fakeReturns := fake.reloadReturns
-	fake.recordInvocation("Reload", []interface{}{})
-	fake.reloadMutex.Unlock()
-	if stub != nil {
-		return stub()
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fakeReturns.result1, fakeReturns.result2
-}
-
-func (fake *FakeCheckable) ReloadCallCount() int {
-	fake.reloadMutex.RLock()
-	defer fake.reloadMutex.RUnlock()
-	return len(fake.reloadArgsForCall)
-}
-
-func (fake *FakeCheckable) ReloadCalls(stub func() (bool, error)) {
-	fake.reloadMutex.Lock()
-	defer fake.reloadMutex.Unlock()
-	fake.ReloadStub = stub
-}
-
-func (fake *FakeCheckable) ReloadReturns(result1 bool, result2 error) {
-	fake.reloadMutex.Lock()
-	defer fake.reloadMutex.Unlock()
-	fake.ReloadStub = nil
-	fake.reloadReturns = struct {
-		result1 bool
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeCheckable) ReloadReturnsOnCall(i int, result1 bool, result2 error) {
-	fake.reloadMutex.Lock()
-	defer fake.reloadMutex.Unlock()
-	fake.ReloadStub = nil
-	if fake.reloadReturnsOnCall == nil {
-		fake.reloadReturnsOnCall = make(map[int]struct {
-			result1 bool
-			result2 error
-		})
-	}
-	fake.reloadReturnsOnCall[i] = struct {
-		result1 bool
-		result2 error
-	}{result1, result2}
 }
 
 func (fake *FakeCheckable) ResourceConfigScopeID() int {
@@ -1624,12 +1430,8 @@ func (fake *FakeCheckable) Invocations() map[string][][]interface{} {
 	defer fake.currentPinnedVersionMutex.RUnlock()
 	fake.hasWebhookMutex.RLock()
 	defer fake.hasWebhookMutex.RUnlock()
-	fake.iDMutex.RLock()
-	defer fake.iDMutex.RUnlock()
 	fake.lastCheckEndTimeMutex.RLock()
 	defer fake.lastCheckEndTimeMutex.RUnlock()
-	fake.lastCheckStartTimeMutex.RLock()
-	defer fake.lastCheckStartTimeMutex.RUnlock()
 	fake.nameMutex.RLock()
 	defer fake.nameMutex.RUnlock()
 	fake.pipelineMutex.RLock()
@@ -1642,8 +1444,6 @@ func (fake *FakeCheckable) Invocations() map[string][][]interface{} {
 	defer fake.pipelineNameMutex.RUnlock()
 	fake.pipelineRefMutex.RLock()
 	defer fake.pipelineRefMutex.RUnlock()
-	fake.reloadMutex.RLock()
-	defer fake.reloadMutex.RUnlock()
 	fake.resourceConfigScopeIDMutex.RLock()
 	defer fake.resourceConfigScopeIDMutex.RUnlock()
 	fake.sourceMutex.RLock()

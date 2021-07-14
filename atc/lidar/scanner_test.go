@@ -138,8 +138,10 @@ var _ = Describe("Scanner", func() {
 
 						It("creates a check with that pinned version", func() {
 							Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
-							_, _, _, fromVersion, _, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+							_, _, _, fromVersion, manuallyTriggered, toDb := fakeCheckFactory.TryCreateCheckArgsForCall(0)
 							Expect(fromVersion).To(Equal(atc.Version{"some": "version"}))
+							Expect(manuallyTriggered).To(BeFalse())
+							Expect(toDb).To(BeFalse())
 						})
 					})
 

@@ -2,6 +2,7 @@ package db
 
 import (
 	"code.cloudfoundry.org/lager"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 	"github.com/concourse/concourse/atc/util"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
+	"github.com/lib/pq"
 	"go.opentelemetry.io/otel/propagation"
 	"time"
 )
@@ -349,7 +351,29 @@ func (b *inMemoryCheckBuild) Events(from uint) (EventSource, error) {
 		b.conn,
 		notifier,
 		from,
-		true,
+		func(tx Tx, buildID int) (bool, error) {
+			completed := false
+
+			var lastCheckStartTime, lastCheckEndTime pq.NullTime
+			err = psql.Select("last_check_start_time", "last_check_end_time").
+				From("resource_config_scopes").
+				Where(sq.Eq{"last_check_build_id": buildID}).
+				RunWith(tx).
+				QueryRow().
+				Scan(&lastCheckStartTime, &lastCheckEndTime)
+			if err != nil {
+				if err == sql.ErrNoRows {
+					completed = true
+				} else {
+					return false, err
+				}
+			}
+
+			if lastCheckStartTime.Valid && lastCheckEndTime.Valid && lastCheckStartTime.Time.Before(lastCheckEndTime.Time) {
+				completed = true
+			}
+			return completed, nil
+		},
 	), nil
 }
 

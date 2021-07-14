@@ -3,6 +3,8 @@ package component_test
 import (
 	"context"
 	"errors"
+	"testing"
+
 	"github.com/concourse/concourse/atc/component"
 	"github.com/concourse/concourse/atc/component/cmocks"
 	"github.com/concourse/concourse/atc/db/lock"
@@ -10,7 +12,6 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"testing"
 )
 
 func TestCoordinator(t *testing.T) {
@@ -61,7 +62,7 @@ func (test CoordinatorTest) Run(s *CoordinatorSuite, action func(*component.Coor
 	fakeComponent.On("Name").Return(componentName)
 	fakeComponent.On("Paused").Return(test.Paused)
 	fakeComponent.On("IntervalElapsed").Return(test.IntervalElapsed)
-	fakeComponent.On("UpdateLastRan", mock.AnythingOfType("time.Time")).Return(test.UpdateLastRanErr)
+	fakeComponent.On("UpdateLastRan").Return(test.UpdateLastRanErr)
 
 	fakeComponent.On("Reload").Return(!test.Disappeared, test.ReloadErr).Run(func(mock.Arguments) {
 		// make sure we haven't asked for anything prior to reloading
@@ -96,7 +97,7 @@ func (test CoordinatorTest) Run(s *CoordinatorSuite, action func(*component.Coor
 	}
 
 	if test.UpdatesLastRan {
-		fakeComponent.AssertCalled(s.T(), "UpdateLastRan", mock.AnythingOfType("time.Time"))
+		fakeComponent.AssertCalled(s.T(), "UpdateLastRan")
 	} else {
 		fakeComponent.AssertNotCalled(s.T(), "UpdateLastRan")
 	}

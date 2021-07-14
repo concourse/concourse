@@ -1,6 +1,7 @@
 package db_test
 
 import (
+	"github.com/concourse/concourse/atc/util"
 	"testing"
 	"time"
 
@@ -93,6 +94,9 @@ var (
 	}
 
 	psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	checkBuildChan chan db.Build
+	seqGenerator   util.SequenceGenerator
 )
 
 var _ = postgresrunner.GinkgoRunner(&postgresRunner)
@@ -107,6 +111,9 @@ var _ = BeforeEach(func() {
 
 	lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton(), metric.LogLockAcquired, metric.LogLockReleased)
 
+	checkBuildChan = make(chan db.Build, 10)
+	seqGenerator = util.NewSequenceGenerator()
+
 	fakeSecrets = new(credsfakes.FakeSecrets)
 	fakeVarSourcePool = new(credsfakes.FakeVarSourcePool)
 	componentFactory = db.NewComponentFactory(dbConn)
@@ -120,7 +127,7 @@ var _ = BeforeEach(func() {
 	resourceConfigFactory = db.NewResourceConfigFactory(dbConn, lockFactory)
 	resourceCacheFactory = db.NewResourceCacheFactory(dbConn, lockFactory)
 	taskCacheFactory = db.NewTaskCacheFactory(dbConn)
-	checkFactory = db.NewCheckFactory(dbConn, lockFactory, fakeSecrets, fakeVarSourcePool, nil, nil)
+	checkFactory = db.NewCheckFactory(dbConn, lockFactory, fakeSecrets, fakeVarSourcePool, checkBuildChan, seqGenerator)
 	workerBaseResourceTypeFactory = db.NewWorkerBaseResourceTypeFactory(dbConn)
 	workerTaskCacheFactory = db.NewWorkerTaskCacheFactory(dbConn)
 	userFactory = db.NewUserFactory(dbConn)

@@ -189,7 +189,6 @@ func (c fixedHandleContainerOwner) sqlMap() map[string]interface{} {
 	}
 }
 
-// TODO: add plan id and team id
 // NewInMemoryCheckBuildContainerOwner references a in-memory check build.
 func NewInMemoryCheckBuildContainerOwner(
 	buildID int,

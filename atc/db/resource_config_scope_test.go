@@ -1,6 +1,7 @@
 package db_test
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/concourse/concourse/atc"
@@ -299,12 +300,29 @@ var _ = Describe("Resource Config Scope", func() {
 	Describe("UpdateLastCheckStartTime", func() {
 		It("updates last check start time", func() {
 			lastTime := scenario.Resource("some-resource").LastCheckEndTime()
-
-			updated, err := resourceScope.UpdateLastCheckStartTime(99, nil)
+			publicPlan := atc.Plan{
+				ID: atc.PlanID("1234"),
+				Check: &atc.CheckPlan{
+					Name: "some-resource",
+					Type: "some-resource-type",
+				},
+			}
+			bytes, err := json.Marshal(publicPlan)
+			jr := json.RawMessage(bytes)
+			updated, err := resourceScope.UpdateLastCheckStartTime(99, &jr)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(updated).To(BeTrue())
 
 			Expect(scenario.Resource("some-resource").LastCheckStartTime()).To(BeTemporally(">", lastTime))
+
+			buildSummary := scenario.Resource("some-resource").BuildSummary()
+			Expect(buildSummary.ID).To(Equal(99))
+			Expect(time.Unix(buildSummary.StartTime, 0)).Should(BeTemporally("~", time.Now(), time.Second))
+			Expect(buildSummary.PublicPlan).ToNot(BeNil())
+			var plan atc.Plan
+			err = json.Unmarshal(*buildSummary.PublicPlan, &plan)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(plan).To(Equal(publicPlan))
 		})
 	})
 

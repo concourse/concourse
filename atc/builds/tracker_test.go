@@ -28,10 +28,10 @@ type TrackerSuite struct {
 	fakeBuildFactory *dbfakes.FakeBuildFactory
 	fakeEngine       *buildsfakes.FakeEngine
 
-	tracker *builds.Tracker
+	tracker   *builds.Tracker
 	buildChan chan db.Build
 
-	logger                    *lagertest.TestLogger
+	logger *lagertest.TestLogger
 }
 
 func TestTracker(t *testing.T) {
@@ -85,6 +85,56 @@ func (s *TrackerSuite) TestTrackRunsStartedBuilds() {
 		(<-running).ID(),
 		(<-running).ID(),
 		(<-running).ID(),
+	})
+}
+
+func (s *TrackerSuite) TestTrackInMemoryBuilds() {
+	inMemoryBuilds := []db.Build{}
+	for i := 0; i < 3; i++ {
+		fakeBuild := new(dbfakes.FakeBuild)
+		// When tracked, in-memory builds have no id yet, thus let's use fake
+		// team id to verify test result.
+		fakeBuild.IDReturns(0)
+		fakeBuild.TeamIDReturns(i + 1)
+		inMemoryBuilds = append(inMemoryBuilds, fakeBuild)
+		s.buildChan <- fakeBuild
+	}
+
+	running := []db.Build{}
+	done := make(chan interface{}, 0)
+	s.fakeEngine.NewBuildStub = func(build db.Build) engine.Runnable {
+		engineBuild := new(enginefakes.FakeRunnable)
+		engineBuild.RunStub = func(context.Context) {
+			running = append(running, build)
+			if len(running) == len(inMemoryBuilds) {
+				close(done)
+			}
+		}
+		return engineBuild
+	}
+
+	err := s.tracker.Run(context.TODO())
+	s.NoError(err)
+	timer := time.NewTimer(2*time.Second)
+	select {
+	case <-done:
+	case <- timer.C:
+	}
+
+	s.ElementsMatch([]int{0, 0, 0}, []int{
+		running[0].ID(),
+		running[1].ID(),
+		running[2].ID(),
+	})
+
+	s.ElementsMatch([]int{
+		inMemoryBuilds[0].TeamID(),
+		inMemoryBuilds[1].TeamID(),
+		inMemoryBuilds[2].TeamID(),
+	}, []int{
+		running[0].TeamID(),
+		running[1].TeamID(),
+		running[2].TeamID(),
 	})
 }
 

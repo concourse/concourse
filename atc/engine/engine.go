@@ -120,9 +120,6 @@ func (b *engineBuild) Run(ctx context.Context) {
 
 	if !acquired {
 		logger.Debug("build-already-tracked")
-		if b.build.ResourceID() == 109302 {
-			logger.Info("EVAN:build-already-tracked")
-		}
 		return
 	}
 
@@ -146,7 +143,7 @@ func (b *engineBuild) Run(ctx context.Context) {
 
 	notifier, err := b.build.AbortNotifier()
 	if err != nil {
-		logger.Error("EVAN:failed-to-listen-for-aborts", err)
+		logger.Error("failed-to-listen-for-aborts", err)
 		return
 	}
 
@@ -157,7 +154,7 @@ func (b *engineBuild) Run(ctx context.Context) {
 
 	stepper, err := b.builder.StepperForBuild(b.build)
 	if err != nil {
-		logger.Error("EVAN:failed-to-construct-build-stepper", err)
+		logger.Error("failed-to-construct-build-stepper", err)
 
 		// Fails the build if BuildStep returned an error because such unrecoverable
 		// errors will cause a build to never start to run.
@@ -171,9 +168,6 @@ func (b *engineBuild) Run(ctx context.Context) {
 	defer b.trackFinished(logger)
 
 	logger.Info("running")
-	if b.build.ResourceID() == 109302 {
-		logger.Info("EVAN:running")
-	}
 
 	state, err := b.runState(logger, stepper)
 	if err != nil {

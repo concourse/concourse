@@ -1,11 +1,6 @@
--- ALTER TABLE resources
---     ADD COLUMN in_memory_check_build_id int8,
---     ADD COLUMN in_memory_check_build_start_time timestamptz,
---     ADD COLUMN in_memory_check_build_end_time timestamptz,
---     ADD COLUMN in_memory_check_build_status text,
---     ADD COLUMN in_memory_check_build_plan text;
-
--- TODO: DROP build_id from resources
+CREATE INDEX resources_build_id_idx ON resources (build_id);
+ALTER TABLE resources
+    DROP COLUMN build_id;
 
 ALTER TABLE resource_config_scopes
     ADD COLUMN last_check_build_id int8,
