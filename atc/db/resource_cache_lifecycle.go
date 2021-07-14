@@ -130,25 +130,3 @@ func (f *resourceCacheLifecycle) CleanUpInvalidCaches(logger lager.Logger) error
 
 	return nil
 }
-
-func (f *resourceCacheLifecycle) CleanUsesForPausedPipelineResources() error {
-	pausedPipelineIds, _, err := sq.
-		Select("id").
-		Distinct().
-		From("pipelines").
-		Where(sq.Expr("paused = false")).
-		ToSql()
-	if err != nil {
-		return err
-	}
-
-	_, err = psql.Delete("resource_cache_uses rcu USING resources r").
-		Where(sq.And{
-			sq.Expr("r.pipeline_id NOT IN (" + pausedPipelineIds + ")"),
-			sq.Expr("rcu.resource_id = r.id"),
-		}).
-		RunWith(f.conn).
-		Exec()
-
-	return err
-}
