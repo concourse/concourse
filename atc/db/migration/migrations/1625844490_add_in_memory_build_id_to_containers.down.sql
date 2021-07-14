@@ -1,9 +1,5 @@
--- ALTER TABLE resources
---     DROP COLUMN in_memory_check_build_id,
---     DROP COLUMN in_memory_check_build_start_time,
---     DROP COLUMN in_memory_check_build_end_time,
---     DROP COLUMN in_memory_check_build_status,
---     DROP COLUMN in_memory_check_build_plan;
+ALTER TABLE resources ADD COLUMN build_id bigint REFERENCES builds (id) ON DELETE SET NULL;
+CREATE INDEX resources_build_id_idx ON resources (build_id);
 
 DROP INDEX resource_config_scopes_last_check_build_id_idx;
 

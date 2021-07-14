@@ -1,4 +1,4 @@
-CREATE INDEX resources_build_id_idx ON resources (build_id);
+DROP INDEX resources_build_id_idx;
 ALTER TABLE resources
     DROP COLUMN build_id;
 
