@@ -8,7 +8,7 @@
   \title{Building and Pushing an Image}
 
   In this guide we are going to show how to build and publish container images
-  using the \link{oci-build task}{https://github.com/vito/oci-build-task} and
+  using the \link{oci-build task}{https://github.com/concourse/oci-build-task} and
   \link{registry-image
   resource}{https://github.com/concourse/registry-image-resource}. This guide
   assumes you understand how to build container images with
@@ -88,11 +88,11 @@
   The second step in our job will build the container image.
 
   To build the container image we are going to use the
-  \link{oci-build-task}{https://github.com/vito/oci-build-task}. The
-  \link{oci-build-task}{https://github.com/vito/oci-build-task} is a container
+  \link{oci-build-task}{https://github.com/concourse/oci-build-task}. The
+  \link{oci-build-task}{https://github.com/concourse/oci-build-task} is a container
   image that is meant to be used in a Concourse \reference{tasks}{task} to build other
   container images. Check out the
-  \link{README}{https://github.com/vito/oci-build-task/blob/master/README.md} in
+  \link{README}{https://github.com/concourse/oci-build-task/blob/master/README.md} in
   the repo for more details on how to configure and use the oci-build-task in
   more complex build scenarios.
 
@@ -110,7 +110,7 @@
         image_resource:
           type: registry-image
           source:
-            repository: vito/oci-build-task
+            repository: concourse/oci-build-task
   }}
   \inset{} {- spacer -}
 
@@ -134,14 +134,14 @@
         image_resource:
           type: registry-image
           source:
-            repository: vito/oci-build-task
+            repository: concourse/oci-build-task
         inputs:
         - name: concourse-examples
   }}
   \inset{} {- spacer -}
 
   The oci-build-task \link{outputs the built container
-  image}{https://github.com/vito/oci-build-task#outputs} in a directory called
+  image}{https://github.com/concourse/oci-build-task#outputs} in a directory called
   \code{image}. Let's add image as an output of our task so we can publish it
   in a later step.
 
@@ -159,7 +159,7 @@
         image_resource:
           type: registry-image
           source:
-            repository: vito/oci-build-task
+            repository: concourse/oci-build-task
         inputs:
         - name: concourse-examples
         outputs:
@@ -171,7 +171,7 @@
   Next we need to tell the \code{oci-build-task} what the \link{build
   context}{https://docs.docker.com/engine/reference/commandline/build/} of our
   \code{Dockerfile} is. The
-  \link{README}{https://github.com/vito/oci-build-task} goes over a few other
+  \link{README}{https://github.com/concourse/oci-build-task} goes over a few other
   methods of creating your build context. We are going to use the simplest
   use-case. By specifying \code{CONTEXT} the \code{oci-build-task} assumes a
   \code{Dockerfile} and its build context are in the same directory.
@@ -190,7 +190,7 @@
         image_resource:
           type: registry-image
           source:
-            repository: vito/oci-build-task
+            repository: concourse/oci-build-task
         inputs:
         - name: concourse-examples
         outputs:
@@ -224,7 +224,7 @@
         image_resource:
           type: registry-image
           source:
-            repository: vito/oci-build-task
+            repository: concourse/oci-build-task
         inputs:
         - name: concourse-examples
         outputs:
@@ -273,7 +273,7 @@
         image_resource:
           type: registry-image
           source:
-            repository: vito/oci-build-task
+            repository: concourse/oci-build-task
         inputs:
         - name: concourse-examples
         outputs:
@@ -306,12 +306,12 @@
   Practices}{https://docs.docker.com/develop/develop-images/dockerfile_best-practices/#understand-build-context}
   for more details about build contexts.
 
-  The \link{inputs section}{https://github.com/vito/oci-build-task#inputs} of
+  The \link{inputs section}{https://github.com/concourse/oci-build-task#inputs} of
   the oci-build-task's \code{README} has examples on how to create a build
   context with multiple inputs and other complex build scenarios.
 
   Read the \code{README}'s in the
-  \link{oci-build-task}{https://github.com/vito/oci-build-task} and
+  \link{oci-build-task}{https://github.com/concourse/oci-build-task} and
   \link{registry-image
   resource}{https://github.com/concourse/registry-image-resource/} to learn
   more about their other configuration options.
