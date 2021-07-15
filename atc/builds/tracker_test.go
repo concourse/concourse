@@ -100,41 +100,26 @@ func (s *TrackerSuite) TestTrackInMemoryBuilds() {
 		s.buildChan <- fakeBuild
 	}
 
-	running := []db.Build{}
-	done := make(chan interface{}, 0)
+	running := make(chan db.Build, 3)
 	s.fakeEngine.NewBuildStub = func(build db.Build) engine.Runnable {
 		engineBuild := new(enginefakes.FakeRunnable)
 		engineBuild.RunStub = func(context.Context) {
-			running = append(running, build)
-			if len(running) == len(inMemoryBuilds) {
-				close(done)
-			}
+			running <- build
 		}
 		return engineBuild
 	}
 
 	err := s.tracker.Run(context.TODO())
 	s.NoError(err)
-	timer := time.NewTimer(2*time.Second)
-	select {
-	case <-done:
-	case <- timer.C:
-	}
-
-	s.ElementsMatch([]int{0, 0, 0}, []int{
-		running[0].ID(),
-		running[1].ID(),
-		running[2].ID(),
-	})
 
 	s.ElementsMatch([]int{
 		inMemoryBuilds[0].TeamID(),
 		inMemoryBuilds[1].TeamID(),
 		inMemoryBuilds[2].TeamID(),
 	}, []int{
-		running[0].TeamID(),
-		running[1].TeamID(),
-		running[2].TeamID(),
+		(<-running).TeamID(),
+		(<-running).TeamID(),
+		(<-running).TeamID(),
 	})
 }
 

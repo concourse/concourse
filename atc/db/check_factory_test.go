@@ -327,6 +327,10 @@ var _ = Describe("CheckFactory", func() {
 					})
 
 					Context("when creates in-memory build", func() {
+						BeforeEach(func(){
+							toDB = false
+						})
+
 						It("returns the build", func() {
 							Expect(err).NotTo(HaveOccurred())
 							Expect(created).To(BeTrue())
@@ -334,7 +338,7 @@ var _ = Describe("CheckFactory", func() {
 						})
 
 						It("starts the build with the check plan", func() {
-							Expect(fakeResource.CreateBuildCallCount()).To(Equal(1))
+							Expect(fakeResource.CreateInMemoryBuildCallCount()).To(Equal(1))
 							_, plan, seqGen := fakeResource.CreateInMemoryBuildArgsForCall(0)
 							Expect(plan.ID).ToNot(BeEmpty())
 							Expect(plan.Check).To(Equal(&checkPlan))

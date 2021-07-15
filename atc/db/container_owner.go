@@ -208,8 +208,6 @@ type inMemoryCheckBuildContainerOwner struct {
 	TeamID  int
 }
 
-// Find return a query criteria of `build_id`, it would not find the build as
-// the build is not in db.
 func (c inMemoryCheckBuildContainerOwner) Find(Conn) (sq.Eq, bool, error) {
 	return sq.Eq(c.sqlMap()), true, nil
 }

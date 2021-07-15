@@ -412,6 +412,8 @@ func (b *inMemoryCheckBuild) PublicPlan() *json.RawMessage {
 	return &m
 }
 
+// ResourceCacheUser return no-user because a check build may only generate a image
+// resource and image resource will be cached by SaveImageResourceVersion.
 func (b *inMemoryCheckBuild) ResourceCacheUser() ResourceCacheUser {
 	return NoUser()
 }
@@ -420,10 +422,10 @@ func (b *inMemoryCheckBuild) ContainerOwner(planId atc.PlanID) ContainerOwner {
 	if b.id == 0 {
 		panic("in-memory-build-not-running-yet")
 	}
-	return NewInMemoryCheckBuildContainerOwner(b.id, b.plan.ID, b.TeamID())
+	return NewInMemoryCheckBuildContainerOwner(b.id, planId, b.TeamID())
 }
 
-// SaveImageResourceVersion does nothing as a resource check doesn't belong to any job.
+// TODO: add in_memory_build_id to build_image_resource_caches.
 func (b *inMemoryCheckBuild) SaveImageResourceVersion(cache UsedResourceCache) error {
 	return nil
 }

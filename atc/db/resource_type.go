@@ -5,13 +5,13 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/concourse/concourse/atc/util"
 	"strconv"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
+	"github.com/concourse/concourse/atc/util"
 	"github.com/lib/pq"
 )
 

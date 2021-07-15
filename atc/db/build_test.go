@@ -105,6 +105,23 @@ var _ = Describe("Build", func() {
 		Expect(build.Comment()).To(Equal(comment))
 	})
 
+	It("has run state id", func(){
+		Expect(build.RunStateID()).To(Equal(fmt.Sprintf("build:%v", build.ID())))
+	})
+
+	It("all associated teams should be only the team itself", func(){
+		Expect(build.AllAssociatedTeamNames()).To(HaveLen(1))
+		Expect(build.AllAssociatedTeamNames()[0]).To(Equal(build.TeamName()))
+	})
+
+	It("has resource cache user", func(){
+		Expect(build.ResourceCacheUser()).To(Equal(db.ForBuild(build.ID())))
+	})
+
+	It("has container owner", func(){
+		Expect(build.ContainerOwner("some-plan")).To(Equal(db.NewBuildStepContainerOwner(build.ID(), "some-plan", build.TeamID())))
+	})
+
 	Describe("LagerData", func() {
 		var build db.Build
 

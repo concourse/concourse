@@ -50,7 +50,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.ListBuildArtifacts:
 			newHandler = wrappa.checkBuildReadAccessHandlerFactory.CheckIfPrivateJobHandler(handler, rejector)
 
-		// resource belongs to authorized team
+			// resource belongs to authorized team
 		case atc.AbortBuild,
 			atc.SetBuildComment:
 			newHandler = wrappa.checkBuildWriteAccessHandlerFactory.HandlerFor(handler, rejector)

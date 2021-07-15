@@ -13,7 +13,7 @@ type seqGenerator struct {
 
 func NewSequenceGenerator() SequenceGenerator {
 	return &seqGenerator{
-		current: 0,
+		current: 1,
 	}
 }
 

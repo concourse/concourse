@@ -221,6 +221,8 @@ func (b *engineBuild) Run(ctx context.Context) {
 			return
 		}
 
+		// An in-memory build only generates a real build id once start to run,
+		// so let's update logger with the latest lager data.
 		b.finish(logger.Session("finish").WithData(b.build.LagerData()), runErr, succeeded)
 	}
 }

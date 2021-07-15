@@ -1,7 +1,6 @@
 package db_test
 
 import (
-	"github.com/concourse/concourse/atc/util"
 	"testing"
 	"time"
 
@@ -19,6 +18,7 @@ import (
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/postgresrunner"
+	"github.com/concourse/concourse/atc/util"
 )
 
 func TestDB(t *testing.T) {

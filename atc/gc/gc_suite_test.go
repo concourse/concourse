@@ -75,7 +75,10 @@ var _ = BeforeEach(func() {
 	builder = dbtest.NewBuilder(dbConn, lockFactory)
 
 	teamFactory = db.NewTeamFactory(dbConn, lockFactory)
-	workerFactory = db.NewWorkerFactory(dbConn)
+
+	workerCache, err := db.NewWorkerCache(logger.Session("worker-cache"), dbConn, 1*time.Minute)
+	workerFactory = db.NewWorkerFactory(dbConn, workerCache)
+
 	buildFactory = db.NewBuildFactory(dbConn, lockFactory, 0, time.Hour)
 
 	resourceCacheLifecycle = db.NewResourceCacheLifecycle(dbConn)

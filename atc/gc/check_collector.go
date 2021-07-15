@@ -1,8 +1,9 @@
 package gc
 
 import (
-	"code.cloudfoundry.org/lager/lagerctx"
 	"context"
+
+	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc/db"
 )
 

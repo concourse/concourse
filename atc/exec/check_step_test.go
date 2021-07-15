@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/concourse/concourse/atc/db/lock"
 	"io"
 	"time"
 
@@ -552,7 +553,7 @@ var _ = Describe("CheckStep", func() {
 
 				Context("before running the check", func() {
 					BeforeEach(func() {
-						fakeResourceConfigScope.UpdateLastCheckStartTimeStub = func() (bool, error) {
+						fakeResourceConfigScope.UpdateLastCheckStartTimeStub = func(int, *json.RawMessage) (bool, error) {
 							Expect(chosenContainer.RunningProcesses()).To(BeEmpty())
 							return true, nil
 						}
@@ -663,6 +664,51 @@ var _ = Describe("CheckStep", func() {
 				It("errors", func() {
 					Expect(stepErr).To(HaveOccurred())
 					Expect(errors.Is(stepErr, expectedErr)).To(BeTrue())
+				})
+			})
+		})
+
+		Context("not running", func() {
+			BeforeEach(func() {
+				fakeDelegate.WaitToRunReturns(lock.NoopLock{}, false, nil)
+			})
+
+			Context("not a periodic check", func() {
+				BeforeEach(func() {
+					checkPlan.Resource = ""
+					checkPlan.ResourceType = ""
+					checkPlan.Prototype = ""
+					fakeDelegate.IsManuallyTriggeredReturns(false)
+				})
+
+				It("should update state", func() {
+					Expect(fakeResourceConfigScope.LatestVersionCallCount()).To(Equal(1))
+				})
+			})
+
+			Context("a periodic check", func() {
+				BeforeEach(func() {
+					checkPlan.Resource = "some-resource"
+				})
+
+				Context("triggered manually", func() {
+					BeforeEach(func() {
+						fakeDelegate.IsManuallyTriggeredReturns(true)
+					})
+
+					It("should update state", func() {
+						Expect(fakeResourceConfigScope.LatestVersionCallCount()).To(Equal(1))
+					})
+				})
+
+				Context("triggered by lidar", func() {
+					BeforeEach(func() {
+						fakeDelegate.IsManuallyTriggeredReturns(false)
+					})
+
+					It("should not update state", func() {
+						Expect(fakeResourceConfigScope.LatestVersionCallCount()).To(Equal(0))
+					})
 				})
 			})
 		})
