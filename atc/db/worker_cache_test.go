@@ -3,6 +3,7 @@ package db_test
 import (
 	"time"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbtest"
 
@@ -80,17 +81,43 @@ var _ = Describe("WorkerCache", func() {
 		scenario.Run(builder.WithWorker(atcWorker))
 		Eventually(getWorkerActiveVolumes).Should(ConsistOf(50))
 
-		By("adding a container")
+		By("adding a build container")
+		var build db.Build
 		scenario.Run(
-			builder.WithResourceVersions("some-resource"),
-			builder.WithCheckContainer("some-resource", "some-worker"),
+			builder.WithPipeline(atc.Config{
+				Resources: atc.ResourceConfigs{
+					{
+						Name:   "some-resource",
+						Type:   dbtest.BaseResourceType,
+						Source: atc.Source{"some": "source"},
+					},
+				},
+				Jobs: atc.JobConfigs{
+					{
+						Name: "some-job",
+					},
+				},
+			}),
+			builder.WithJobBuild(&build, "some-job", nil, nil),
 		)
+		_, err := scenario.Workers[0].CreateContainer(db.NewBuildStepContainerOwner(build.ID(), "123", scenario.Team.ID()), db.ContainerMetadata{})
+		Expect(err).ToNot(HaveOccurred())
 		Eventually(getContainerCounts).Should(Equal(map[string]int{
 			"some-worker": 1,
 		}))
 
+		By("adding a check container")
+		scenario.Run(
+			builder.WithResourceVersions("some-resource"),
+			builder.WithCheckContainer("some-resource", "some-worker"),
+		)
+		// Only counts build containers
+		Consistently(getContainerCounts).Should(Equal(map[string]int{
+			"some-worker": 1,
+		}))
+
 		By("removing the container")
-		_, err := dbConn.Exec("DELETE FROM containers")
+		_, err = dbConn.Exec("DELETE FROM containers")
 		Expect(err).ToNot(HaveOccurred())
 		Eventually(getContainerCounts).Should(Equal(map[string]int{
 			"some-worker": 0,

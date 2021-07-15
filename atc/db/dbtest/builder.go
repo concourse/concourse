@@ -544,7 +544,7 @@ func (builder Builder) WithCheckContainer(resourceName string, workerName string
 		}
 
 		if !found {
-			return fmt.Errorf("resource config '%d' not found", rc.ID())
+			return fmt.Errorf("resource config '%d' not found", resource.ResourceConfigID())
 		}
 
 		owner := db.NewResourceConfigCheckSessionContainerOwner(

@@ -39,4 +39,4 @@ CREATE TRIGGER workers_upsert_or_delete_trigger AFTER INSERT OR UPDATE OR DELETE
   FOR EACH ROW EXECUTE PROCEDURE notify_trigger(worker_events_channel, name);
 
 CREATE TRIGGER containers_insert_or_delete_trigger AFTER INSERT OR DELETE ON containers
-  FOR EACH ROW EXECUTE PROCEDURE notify_trigger(container_events_channel, id, worker_name);
+  FOR EACH ROW EXECUTE PROCEDURE notify_trigger(container_events_channel, id, worker_name, build_id);
