@@ -14,7 +14,7 @@ import (
 	"github.com/concourse/concourse/tracing"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"go.opentelemetry.io/otel/api/trace/testtrace"
+	"go.opentelemetry.io/otel/oteltest"
 )
 
 var _ = Describe("Scheduler", func() {
@@ -457,7 +457,7 @@ var _ = Describe("Scheduler", func() {
 
 			It("starts a linked span", func() {
 				pendingBuildCtx := fakeJob.EnsurePendingBuildExistsArgsForCall(0)
-				span := tracing.FromContext(pendingBuildCtx).(*testtrace.Span)
+				span := tracing.FromContext(pendingBuildCtx).(*oteltest.Span)
 				Expect(span.Links()).To(HaveLen(1))
 				Expect(span.Links()).To(HaveKey(tracing.FromContext(ctx).SpanContext()))
 				Expect(span.ParentSpanID()).To(Equal(tracing.FromContext(inputCtx1).SpanContext().SpanID))

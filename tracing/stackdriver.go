@@ -3,8 +3,8 @@ package tracing
 import (
 	"fmt"
 
-	"go.opentelemetry.io/otel/exporter/trace/stackdriver"
-	export "go.opentelemetry.io/otel/sdk/export/trace"
+	texporter "github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
 type Stackdriver struct {
@@ -15,14 +15,12 @@ func (s Stackdriver) IsConfigured() bool {
 	return s.ProjectID != ""
 }
 
-func (s Stackdriver) Exporter() (export.SpanSyncer, error) {
-	exporter, err := stackdriver.NewExporter(
-		stackdriver.WithProjectID(s.ProjectID),
-	)
+func (s Stackdriver) Exporter() (sdktrace.SpanExporter, []sdktrace.TracerProviderOption, error) {
+	exporter, err := texporter.NewExporter(texporter.WithProjectID(s.ProjectID))
 	if err != nil {
 		err = fmt.Errorf("failed to create stackdriver exporter: %w", err)
-		return nil, err
+		return nil, nil, err
 	}
 
-	return exporter, nil
+	return exporter, nil, nil
 }

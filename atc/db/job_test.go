@@ -10,7 +10,6 @@ import (
 	"github.com/concourse/concourse/tracing"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"go.opentelemetry.io/otel/api/propagators"
 )
 
 var _ = Describe("Job", func() {
@@ -1997,7 +1996,7 @@ var _ = Describe("Job", func() {
 
 					pendingBuilds, _ := job.GetPendingBuilds()
 					spanContext := pendingBuilds[0].SpanContext()
-					traceParent := spanContext.Get(propagators.TraceparentHeader)
+					traceParent := spanContext.Get("traceparent")
 					Expect(traceParent).To(ContainSubstring(traceID))
 				})
 			})

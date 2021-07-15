@@ -7,9 +7,9 @@ import (
 
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/tracing"
-	"go.opentelemetry.io/otel/api/key"
-	"go.opentelemetry.io/otel/api/trace"
-	"google.golang.org/grpc/codes"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type versionCandidate struct {
@@ -74,7 +74,7 @@ func (r *groupResolver) Resolve(ctx context.Context) (map[string]*versionCandida
 
 		if !found {
 			notFoundErr := db.PinnedVersionNotFound{PinnedVersion: cfg.PinnedVersion}
-			span.SetStatus(codes.InvalidArgument)
+			span.SetStatus(codes.Error, "pinned version not found")
 			return nil, notFoundErr.String(), nil
 		}
 
@@ -88,8 +88,8 @@ func (r *groupResolver) Resolve(ctx context.Context) (map[string]*versionCandida
 	}
 
 	if !resolved {
-		span.SetAttributes(key.New("failure").String(string(failure)))
-		span.SetStatus(codes.NotFound)
+		span.SetAttributes(attribute.String("failure", string(failure)))
+		span.SetStatus(codes.Error, "")
 		return nil, failure, nil
 	}
 
@@ -98,7 +98,7 @@ func (r *groupResolver) Resolve(ctx context.Context) (map[string]*versionCandida
 		finalCandidates[input.Name] = r.candidates[i]
 	}
 
-	span.SetStatus(codes.OK)
+	span.SetStatus(codes.Ok, "")
 	return finalCandidates, "", nil
 }
 
@@ -117,13 +117,13 @@ func (r *groupResolver) tryResolve(ctx context.Context) (bool, db.ResolutionFail
 
 		if !worked {
 			// input was not satisfiable
-			span.SetStatus(codes.NotFound)
+			span.SetStatus(codes.Error, "")
 			return false, failure, nil
 		}
 	}
 
 	// got to the end of all the inputs
-	span.SetStatus(codes.OK)
+	span.SetStatus(codes.Ok, "")
 	return true, "", nil
 }
 
@@ -158,7 +158,11 @@ func (r *groupResolver) trySatisfyPassedConstraintsForInput(ctx context.Context,
 		}
 
 		if skip {
-			span.AddEvent(ctx, "deferring selection to other jobs", key.New("passedJobID").Int(passedJobID))
+			span.AddEvent("deferring selection to other jobs",
+				trace.WithAttributes(
+					attribute.Int("passedJobID", passedJobID),
+				),
+			)
 			continue
 		}
 
@@ -172,13 +176,13 @@ func (r *groupResolver) trySatisfyPassedConstraintsForInput(ctx context.Context,
 			// resolving recursively worked!
 			break
 		} else {
-			span.SetStatus(codes.NotFound)
+			span.SetStatus(codes.Error, "")
 			return false, db.NoSatisfiableBuilds, nil
 		}
 	}
 
 	// all passed constraints were satisfied
-	span.SetStatus(codes.OK)
+	span.SetStatus(codes.Ok, "")
 	return true, "", nil
 }
 
@@ -186,7 +190,7 @@ func (r *groupResolver) tryJobBuilds(ctx context.Context, inputIndex int, passed
 	ctx, span := tracing.StartSpan(ctx, "groupResolver.tryJobBuilds", tracing.Attrs{})
 	defer span.End()
 
-	span.SetAttributes(key.New("passedJobID").Int(passedJobID))
+	span.SetAttributes(attribute.Int("passedJobID", passedJobID))
 
 	for {
 		buildID, ok, err := builds.Next(ctx)
@@ -197,7 +201,7 @@ func (r *groupResolver) tryJobBuilds(ctx context.Context, inputIndex int, passed
 
 		if !ok {
 			// reached the end of the builds
-			span.SetStatus(codes.ResourceExhausted)
+			span.SetStatus(codes.Error, "")
 			return false, nil
 		}
 
@@ -208,7 +212,7 @@ func (r *groupResolver) tryJobBuilds(ctx context.Context, inputIndex int, passed
 		}
 
 		if worked {
-			span.SetStatus(codes.OK)
+			span.SetStatus(codes.Ok, "")
 			return true, nil
 		}
 	}
@@ -218,7 +222,7 @@ func (r *groupResolver) tryBuildOutputs(ctx context.Context, resolvingIdx, jobID
 	ctx, span := tracing.StartSpan(ctx, "groupResolver.tryBuildOutputs", tracing.Attrs{})
 	defer span.End()
 
-	span.SetAttributes(key.New("buildID").Int(buildID))
+	span.SetAttributes(attribute.Int("buildID", buildID))
 
 	outputs, err := r.vdb.SuccessfulBuildOutputs(ctx, buildID)
 	if err != nil {
@@ -273,10 +277,11 @@ outputs:
 			restore[c] = candidate
 
 			span.AddEvent(
-				ctx,
 				"vouching for candidate",
-				key.New("resourceID").Int(output.ResourceID),
-				key.New("version").String(string(output.Version)),
+				trace.WithAttributes(
+					attribute.Int("resourceID", output.ResourceID),
+					attribute.String("version", string(output.Version)),
+				),
 			)
 
 			r.candidates[c] = r.vouchForCandidate(candidate, output.Version, jobID, buildID, hasNext)
@@ -286,10 +291,7 @@ outputs:
 	// we found a candidate for ourselves and the rest are OK too - recurse
 	if r.candidates[resolvingIdx] != nil && r.candidates[resolvingIdx].VouchedForBy[jobID] && !mismatch {
 		if r.candidatesAreDoomed() {
-			span.AddEvent(
-				ctx,
-				"candidates are doomed",
-			)
+			span.AddEvent("candidates are doomed")
 		} else {
 			worked, _, err := r.tryResolve(ctx)
 			if err != nil {
@@ -299,7 +301,7 @@ outputs:
 
 			if worked {
 				// this build's candidates satisfied everything else!
-				span.SetStatus(codes.OK)
+				span.SetStatus(codes.Ok, "")
 				return true, nil
 			}
 
@@ -313,7 +315,7 @@ outputs:
 		r.candidates[c] = candidate
 	}
 
-	span.SetStatus(codes.InvalidArgument)
+	span.SetStatus(codes.Error, "")
 	return false, nil
 }
 
@@ -451,10 +453,11 @@ func (r *groupResolver) outputIsRelatedAndMatches(ctx context.Context, span trac
 	if disabled {
 		// this version is disabled so it cannot be used
 		span.AddEvent(
-			ctx,
 			"version disabled",
-			key.New("resourceID").Int(output.ResourceID),
-			key.New("version").String(string(output.Version)),
+			trace.WithAttributes(
+				attribute.Int("resourceID", output.ResourceID),
+				attribute.String("version", string(output.Version)),
+			),
 		)
 		return false, false, nil
 	}
@@ -464,11 +467,12 @@ func (r *groupResolver) outputIsRelatedAndMatches(ctx context.Context, span trac
 		// version doesn't match the job's output version
 
 		span.AddEvent(
-			ctx,
 			"pin mismatch",
-			key.New("resourceID").Int(output.ResourceID),
-			key.New("outputHas").String(string(output.Version)),
-			key.New("pinHas").String(string(r.pins[candidateIdx])),
+			trace.WithAttributes(
+				attribute.Int("resourceID", output.ResourceID),
+				attribute.String("outputHas", string(output.Version)),
+				attribute.String("pinHas", string(r.pins[candidateIdx])),
+			),
 		)
 
 		return false, false, nil
