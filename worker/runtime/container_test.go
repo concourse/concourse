@@ -337,7 +337,7 @@ func (s *ContainerSuite) TestSetGraceTimeSetLabelsSucceeds() {
 	s.NoError(err)
 
 	expectedLabelSet := map[string]string{
-		"garden.grace-time": "1234",
+		"garden.grace-time.0": "1234",
 	}
 	_, labelSet := s.containerdContainer.SetLabelsArgsForCall(0)
 	s.Equal(expectedLabelSet, labelSet)
@@ -358,7 +358,7 @@ func (s *ContainerSuite) TestPropertyNotFound() {
 
 func (s *ContainerSuite) TestPropertyReturnsValue() {
 	properties := garden.Properties{
-		"any": "some-value",
+		"any.0": "some-value",
 	}
 	s.containerdContainer.LabelsReturns(properties, nil)
 	result, err := s.container.Property("any")

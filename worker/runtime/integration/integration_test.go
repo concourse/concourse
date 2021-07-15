@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"testing/iotest"
@@ -907,6 +908,62 @@ func (s *IntegrationSuite) TestRequestTimeoutZero() {
 	defer func() {
 		customBackend.Stop()
 	}()
+}
+
+// TestPropertiesGetChunked tests that we are able to store arbitrarily long
+// properties, getting around containerd's label length restriction.
+//
+func (s *IntegrationSuite) TestPropertiesGetChunked() {
+	handle := uuid()
+
+	longString := ""
+	for i := 0; i < 10000; i++ {
+		longString += strconv.Itoa(i)
+	}
+
+	properties := garden.Properties{
+		"long1": longString,
+		// Concourse may try to set an empty value property on a container.
+		// This just gets ignored (i.e. subsequent calls to
+		// container.Properties() won't include it)
+		"empty": "",
+	}
+
+	container, err := s.gardenBackend.Create(garden.ContainerSpec{
+		Handle:     handle,
+		RootFSPath: "raw://" + s.rootfs,
+		Privileged: true,
+		Properties: properties,
+	})
+	s.NoError(err)
+
+	containers, err := s.gardenBackend.Containers(garden.Properties{
+		"long1": longString,
+	})
+	s.NoError(err)
+
+	s.Len(containers, 1)
+
+	err = container.SetProperty("long2", longString)
+	s.NoError(err)
+
+	containers, err = s.gardenBackend.Containers(garden.Properties{
+		"long1": longString,
+		"long2": longString,
+	})
+	s.NoError(err)
+	s.Len(containers, 1)
+
+	err = container.SetProperty(longString, "foo")
+	s.Error(err)
+
+	properties, err = container.Properties()
+	s.NoError(err)
+
+	s.Equal(garden.Properties{
+		"long1": longString,
+		"long2": longString,
+	}, properties)
 }
 
 func (s *IntegrationSuite) TestNetworkMountsAreRemoved() {

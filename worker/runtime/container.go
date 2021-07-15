@@ -197,7 +197,7 @@ func (c *Container) Properties() (garden.Properties, error) {
 		return garden.Properties{}, fmt.Errorf("labels retrieval: %w", err)
 	}
 
-	return labels, nil
+	return labelsToProperties(labels), nil
 }
 
 // Property returns the value of the property with the specified name.
@@ -219,11 +219,11 @@ func (c *Container) Property(name string) (string, error) {
 // Set a named property on a container to a specified value.
 //
 func (c *Container) SetProperty(name string, value string) error {
-	labelSet := map[string]string{
-		name: value,
+	labelSet, err := propertiesToLabels(garden.Properties{name: value})
+	if err != nil {
+		return err
 	}
-
-	_, err := c.container.SetLabels(context.Background(), labelSet)
+	_, err = c.container.SetLabels(context.Background(), labelSet)
 	if err != nil {
 		return fmt.Errorf("set label: %w", err)
 	}

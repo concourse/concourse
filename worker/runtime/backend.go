@@ -237,7 +237,11 @@ func (b *GardenBackend) createContainer(ctx context.Context, gdnSpec garden.Cont
 
 	oci.Mounts = append(oci.Mounts, netMounts...)
 
-	return b.client.NewContainer(ctx, gdnSpec.Handle, gdnSpec.Properties, oci)
+	labels, err := propertiesToLabels(gdnSpec.Properties)
+	if err != nil {
+		return nil, fmt.Errorf("convert properties to labels: %w", err)
+	}
+	return b.client.NewContainer(ctx, gdnSpec.Handle, labels, oci)
 }
 
 func (b *GardenBackend) startTask(ctx context.Context, cont containerd.Container) error {
@@ -308,19 +312,19 @@ func (b *GardenBackend) Destroy(handle string) error {
 // Containers lists all containers filtered by properties (which are ANDed
 // together).
 //
-func (b *GardenBackend) Containers(properties garden.Properties) (containers []garden.Container, err error) {
+func (b *GardenBackend) Containers(properties garden.Properties) ([]garden.Container, error) {
 	filters, err := propertiesToFilterList(properties)
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	res, err := b.client.Containers(context.Background(), filters...)
 	if err != nil {
 		err = fmt.Errorf("list containers: %w", err)
-		return
+		return nil, err
 	}
 
-	containers = make([]garden.Container, len(res))
+	containers := make([]garden.Container, len(res))
 	for i, containerdContainer := range res {
 		containers[i] = NewContainer(
 			containerdContainer,
@@ -329,7 +333,7 @@ func (b *GardenBackend) Containers(properties garden.Properties) (containers []g
 		)
 	}
 
-	return
+	return containers, nil
 }
 
 // Lookup returns the container with the specified handle.
