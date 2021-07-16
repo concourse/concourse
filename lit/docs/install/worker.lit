@@ -544,7 +544,7 @@ decide much on its own.
         }
       }{
         \table-row{
-          \code{--garden-allow-host-access}
+          \italic{No equivalent CLI flag}
           \code{CONCOURSE_GARDEN_ALLOW_HOST_ACCESS}
         }{
           \code{--containerd-allow-host-access}
@@ -568,7 +568,7 @@ decide much on its own.
         }
       }{
         \table-row{
-          \code{--garden-deny-network}
+          \italic{No equivalent CLI flag}
           \code{CONCOURSE_GARDEN_DENY_NETWORKS}
         }{
           \code{--containerd-restricted-network}
@@ -576,7 +576,7 @@ decide much on its own.
         }
       }{
         \table-row{
-          \code{--garden-dns-server}
+          \italic{No equivalent CLI flag}
           \code{CONCOURSE_GARDEN_DNS_SERVER}
         }{
           \code{--containerd-dns-server}
@@ -584,7 +584,7 @@ decide much on its own.
         }
       }{
         \table-row{
-          \code{--garden-external-ip}
+          \italic{No equivalent CLI flag}
           \code{CONCOURSE_GARDEN_EXTERNAL_IP}
         }{
           \code{--containerd-external-ip}
@@ -592,7 +592,7 @@ decide much on its own.
         }
       }{
         \table-row{
-          \code{--garden-mtu}
+          \italic{No equivalent CLI flag}
           \code{CONCOURSE_GARDEN_MTU}
         }{
           \code{--containerd-mtu}
@@ -684,12 +684,11 @@ decide much on its own.
           containers, you can configure your containers to use specific DNS
           server addresses external to the VM.
 
-          Both the Guardian and containerd runtimes can have their DNS servers
+          The Guardian and containerd runtimes can have their DNS servers
           configured with flags or envs vars.
 
-          \titled-codeblock{DNS Servers via flags}{bash}{{
+          \titled-codeblock{DNS Servers via flags (containerd runtime only)}{bash}{{
           concourse worker --containerd-dns-server="1.1.1.1" --containerd-dns-server="8.8.8.8"
-          concourse worker --garden-dns-server="1.1.1.1" --garden-dns-server="8.8.8.8"
           }}
 
           \inset{} {- spacer -}
@@ -735,9 +734,8 @@ decide much on its own.
           of the VM as the DNS server \italic{and} allow the containers to reach
           the address, like so:
 
-          \titled-codeblock{Local DNS Servers via flags}{bash}{{
+          \titled-codeblock{Local DNS Servers via flags (containerd runtime only)}{bash}{{
           concourse worker --containerd-dns-server="10.0.1.3" --containerd-allow-host-access="true"
-          concourse worker --garden-dns-server="10.0.1.3" --garden-allow-host-access="true"
           }}
 
           \inset{} {- spacer -}
