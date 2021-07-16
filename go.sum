@@ -625,6 +625,8 @@ github.com/inconshreveable/mousetrap v1.0.0/go.mod h1:PxqpIevigyE2G7u3NXJIT2ANyt
 github.com/influxdata/influxdb1-client v0.0.0-20191209144304-8bf82d3c094d h1:/WZQPMZNsjZ7IlCpsLGdQBINg5bxKQ1K1sh6awxLtkA=
 github.com/influxdata/influxdb1-client v0.0.0-20191209144304-8bf82d3c094d/go.mod h1:qj24IKcXYK6Iy9ceXlo3Tc+vtHo9lIhSX5JddghvEPo=
 github.com/j-keck/arping v0.0.0-20160618110441-2cf9dc699c56/go.mod h1:ymszkNOg6tORTn+6F6j+Jc8TOr5osrynvN6ivFWZ2GA=
+github.com/jackpal/gateway v1.0.7 h1:7tIFeCGmpyrMx9qvT0EgYUi7cxVW48a0mMvnIL17bPM=
+github.com/jackpal/gateway v1.0.7/go.mod h1:aRcO0UFKt+MgIZmRmvOmnejdDT4Y1DNiNOsSd1AcIbA=
 github.com/jessevdk/go-flags v1.4.0/go.mod h1:4FA24M0QyGHXBuZZK/XkWh8h0e1EYbRYJSGM75WSRxI=
 github.com/jessevdk/go-flags v1.4.1-0.20200711081900-c17162fe8fd7 h1:Ug59miTxVKVg5Oi2S5uHlKOIV5jBx4Hb2u0jIxxDaSs=
 github.com/jessevdk/go-flags v1.4.1-0.20200711081900-c17162fe8fd7/go.mod h1:4FA24M0QyGHXBuZZK/XkWh8h0e1EYbRYJSGM75WSRxI=
