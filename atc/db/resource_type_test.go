@@ -1031,7 +1031,7 @@ var _ = Describe("ResourceType", func() {
 
 		JustBeforeEach(func() {
 			var err error
-			build, err = resourceType.CreateInMemoryBuild(ctx, plan, util.NewSequenceGenerator())
+			build, err = resourceType.CreateInMemoryBuild(ctx, plan, util.NewSequenceGenerator(1))
 			Expect(err).ToNot(HaveOccurred())
 		})
 

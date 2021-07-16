@@ -11,9 +11,9 @@ type seqGenerator struct {
 	lock sync.Mutex
 }
 
-func NewSequenceGenerator() SequenceGenerator {
+func NewSequenceGenerator(start int) SequenceGenerator {
 	return &seqGenerator{
-		current: 1,
+		current: start,
 	}
 }
 

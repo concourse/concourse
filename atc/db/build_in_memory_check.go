@@ -26,7 +26,6 @@ type inMemoryCheckBuild struct {
 	id               int
 	checkable        Checkable
 	plan             atc.Plan
-	createTime       time.Time
 	resourceId       int
 	resourceName     string
 	resourceTypeId   int
@@ -54,7 +53,7 @@ func newRunningInMemoryCheckBuild(conn Conn, lockFactory lock.LockFactory, check
 	build.running = true
 	build.spanContext = spanContext
 	build.preId = seqGen.Next()
-	build.eventIdSeq = util.NewSequenceGenerator()
+	build.eventIdSeq = util.NewSequenceGenerator(0)
 	return build, nil
 }
 
@@ -78,12 +77,11 @@ func newExistingInMemoryCheckBuild(conn Conn, buildId int, checkable Checkable) 
 }
 
 func (b *inMemoryCheckBuild) RunStateID() string {
-	return fmt.Sprintf("in-mem-build:%v", b.preId)
+	return fmt.Sprintf("in-memory-check-build:%v", b.preId)
 }
 
 func (b *inMemoryCheckBuild) ID() int                                 { return b.id }
 func (b *inMemoryCheckBuild) Name() string                            { return CheckBuildName }
-func (b *inMemoryCheckBuild) CreateTime() time.Time                   { return b.createTime }
 func (b *inMemoryCheckBuild) TeamID() int                             { return b.checkable.TeamID() }
 func (b *inMemoryCheckBuild) TeamName() string                        { return b.checkable.TeamName() }
 func (b *inMemoryCheckBuild) PipelineID() int                         { return b.checkable.PipelineID() }
@@ -93,11 +91,9 @@ func (b *inMemoryCheckBuild) Pipeline() (Pipeline, bool, error)       { return b
 func (b *inMemoryCheckBuild) ResourceID() int                         { return b.resourceId }
 func (b *inMemoryCheckBuild) ResourceName() string                    { return b.resourceName }
 func (b *inMemoryCheckBuild) ResourceTypeID() int                     { return b.resourceTypeId }
-func (b *inMemoryCheckBuild) ResourceTypeName() string                { return b.resourceTypeName }
 func (b *inMemoryCheckBuild) Schema() string                          { return schema }
 func (b *inMemoryCheckBuild) IsRunning() bool                         { return b.running }
 func (b *inMemoryCheckBuild) IsManuallyTriggered() bool               { return false }
-func (b *inMemoryCheckBuild) PrivatePlan() atc.Plan                   { return b.plan }
 func (b *inMemoryCheckBuild) SpanContext() propagation.TextMapCarrier { return b.spanContext }
 func (b *inMemoryCheckBuild) PipelineInstanceVars() atc.InstanceVars {
 	return b.checkable.PipelineInstanceVars()
@@ -108,10 +104,6 @@ func (b *inMemoryCheckBuild) JobID() int { return 0 }
 
 // JobName returns an empty string because check build doesn't belong to any job.
 func (b *inMemoryCheckBuild) JobName() string { return "" }
-
-func (b *inMemoryCheckBuild) IsNewerThanLastCheckOf(input Resource) bool {
-	return b.createTime.After(input.LastCheckEndTime())
-}
 
 func (b *inMemoryCheckBuild) LagerData() lager.Data {
 	data := lager.Data{
@@ -145,7 +137,7 @@ func (b *inMemoryCheckBuild) TracingAttrs() tracing.Attrs {
 	}
 
 	if b.preId != 0 {
-		attrs["perBuildId"] = fmt.Sprintf("%d", b.preId)
+		attrs["preBuildId"] = fmt.Sprintf("%d", b.preId)
 	}
 
 	if b.id != 0 {
@@ -168,10 +160,52 @@ func (b *inMemoryCheckBuild) Reload() (bool, error) {
 	return true, nil
 }
 
+func (b *inMemoryCheckBuild) PrivatePlan() atc.Plan {
+	if !b.running {
+		panic("not-implemented")
+	}
+
+	return b.plan
+}
+
+// OnCheckBuildStart is a hook point called once a check build starts. For
+// in-memory check build, this is a chance to initialize database connection.
+func (b *inMemoryCheckBuild) OnCheckBuildStart() error {
+	if !b.running {
+		panic("not-implemented")
+	}
+
+	b.runningInContainer = true
+
+	tx, err := b.conn.Begin()
+	if err != nil {
+		return err
+	}
+	defer Rollback(tx)
+
+	if !b.dbInited {
+		err := b.initDbStuff(tx)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return b.conn.Bus().Notify(buildEventsChannel(b.id))
+}
+
 // AcquireTrackingLock tries to acquire a lock on checkable's ID in order to
 // avoid duplicate checks on the same checkable among ATCs and Lidar scan
 // intervals.
 func (b *inMemoryCheckBuild) AcquireTrackingLock(logger lager.Logger, interval time.Duration) (lock.Lock, bool, error) {
+	if !b.running {
+		panic("not-implemented")
+	}
+
 	var lockId lock.LockID
 	if b.ResourceID() != 0 {
 		lockId = lock.NewInMemoryCheckBuildTrackingLockID("resource", b.ResourceID())
@@ -200,7 +234,7 @@ func (b *inMemoryCheckBuild) AcquireTrackingLock(logger lager.Logger, interval t
 
 func (b *inMemoryCheckBuild) Finish(status BuildStatus) error {
 	if !b.running {
-		panic("not a running in-memory-check-build")
+		panic("not-implemented")
 	}
 
 	if !b.runningInContainer {
@@ -246,7 +280,7 @@ func (b *inMemoryCheckBuild) Finish(status BuildStatus) error {
 
 func (b *inMemoryCheckBuild) saveEvent(tx Tx, event atc.Event) error {
 	if !b.running {
-		panic("not a running in-memory-check-build")
+		panic("not-implemented")
 	}
 
 	payload, err := json.Marshal(event)
@@ -273,36 +307,6 @@ func (b *inMemoryCheckBuild) Variables(logger lager.Logger, secrets creds.Secret
 	}
 
 	return pipeline.Variables(logger, secrets, varSourcePool)
-}
-
-// OnSelectedWorker is a hook point called after a worker is selected. For DB
-// build, there is nothing to in at this point.
-func (b *inMemoryCheckBuild) OnCheckBuildStart() error {
-	if !b.running {
-		panic("not a running in-memory-check-build")
-	}
-
-	b.runningInContainer = true
-
-	tx, err := b.conn.Begin()
-	if err != nil {
-		return err
-	}
-	defer Rollback(tx)
-
-	if !b.dbInited {
-		err := b.initDbStuff(tx)
-		if err != nil {
-			return err
-		}
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return err
-	}
-
-	return b.conn.Bus().Notify(buildEventsChannel(b.id))
 }
 
 func (b *inMemoryCheckBuild) SaveEvent(ev atc.Event) error {
@@ -415,17 +419,29 @@ func (b *inMemoryCheckBuild) PublicPlan() *json.RawMessage {
 // ResourceCacheUser return no-user because a check build may only generate a image
 // resource and image resource will be cached by SaveImageResourceVersion.
 func (b *inMemoryCheckBuild) ResourceCacheUser() ResourceCacheUser {
+	if !b.running {
+		panic("not-implemented")
+	}
 	return NoUser()
 }
 
 func (b *inMemoryCheckBuild) ContainerOwner(planId atc.PlanID) ContainerOwner {
+	if !b.running {
+		panic("not-implemented")
+	}
+
 	if b.id == 0 {
 		panic("in-memory-build-not-running-yet")
 	}
+
 	return NewInMemoryCheckBuildContainerOwner(b.id, planId, b.TeamID())
 }
 
-// TODO: add in_memory_build_id to build_image_resource_caches.
+// SaveImageResourceVersion does nothing. Because if a check use a custom resource
+// type, the resource type image's resource cache id will be set in the resource's
+// resource config as resource_cache_id, so that the image's resource cache will not
+// be GC-ed. As checks run every minute, the resource_config's last_referenced time
+// keeps updated, then the image's resource cache will be always retained.
 func (b *inMemoryCheckBuild) SaveImageResourceVersion(cache UsedResourceCache) error {
 	return nil
 }
@@ -484,6 +500,7 @@ func (b *inMemoryCheckBuild) initDbStuff(tx Tx) error {
 
 // === No implemented functions ===
 
+func (b *inMemoryCheckBuild) CreateTime() time.Time                        { panic("not-implemented") }
 func (b *inMemoryCheckBuild) PrototypeID() int                             { panic("not-implemented") }
 func (b *inMemoryCheckBuild) PrototypeName() string                        { panic("not-implemented") }
 func (b *inMemoryCheckBuild) StartTime() time.Time                         { panic("not-implemented") }
@@ -528,5 +545,8 @@ func (b *inMemoryCheckBuild) AdoptRerunInputsAndPipes() ([]BuildInput, bool, err
 	panic("not-implemented")
 }
 func (b *inMemoryCheckBuild) SaveOutput(string, atc.Source, atc.VersionedResourceTypes, atc.Version, ResourceConfigMetadataFields, string, string) error {
+	panic("not-implemented")
+}
+func (b *inMemoryCheckBuild) IsNewerThanLastCheckOf(input Resource) bool {
 	panic("not-implemented")
 }

@@ -1810,7 +1810,7 @@ func (b *build) ContainerOwner(planId atc.PlanID) ContainerOwner {
 	return NewBuildStepContainerOwner(b.ID(), planId, b.TeamID())
 }
 
-// OnSelectedWorker is a hook point called after a worker is selected. For DB
+// OnCheckBuildStart is a hook point called after a worker is selected. For DB
 // build, there is nothing to in at this point.
 func (b *build) OnCheckBuildStart() error {
 	return nil

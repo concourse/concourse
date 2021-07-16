@@ -112,7 +112,7 @@ var _ = BeforeEach(func() {
 	lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton(), metric.LogLockAcquired, metric.LogLockReleased)
 
 	checkBuildChan = make(chan db.Build, 10)
-	seqGenerator = util.NewSequenceGenerator()
+	seqGenerator = util.NewSequenceGenerator(1)
 
 	fakeSecrets = new(credsfakes.FakeSecrets)
 	fakeVarSourcePool = new(credsfakes.FakeVarSourcePool)
