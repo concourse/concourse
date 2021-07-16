@@ -59,7 +59,7 @@ func (config *NewRelicConfig) IsConfigured() bool {
 	return config.AccountID != "" && config.APIKey != ""
 }
 
-func (config *NewRelicConfig) NewEmitter() (metric.Emitter, error) {
+func (config *NewRelicConfig) NewEmitter(_ map[string]string) (metric.Emitter, error) {
 	client := &http.Client{
 		Transport: &http.Transport{Proxy: http.ProxyFromEnvironment},
 		Timeout:   time.Minute,

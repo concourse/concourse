@@ -28,9 +28,10 @@ type FakeEmitterFactory struct {
 	isConfiguredReturnsOnCall map[int]struct {
 		result1 bool
 	}
-	NewEmitterStub        func() (metric.Emitter, error)
+	NewEmitterStub        func(map[string]string) (metric.Emitter, error)
 	newEmitterMutex       sync.RWMutex
 	newEmitterArgsForCall []struct {
+		arg1 map[string]string
 	}
 	newEmitterReturns struct {
 		result1 metric.Emitter
@@ -150,17 +151,18 @@ func (fake *FakeEmitterFactory) IsConfiguredReturnsOnCall(i int, result1 bool) {
 	}{result1}
 }
 
-func (fake *FakeEmitterFactory) NewEmitter() (metric.Emitter, error) {
+func (fake *FakeEmitterFactory) NewEmitter(arg1 map[string]string) (metric.Emitter, error) {
 	fake.newEmitterMutex.Lock()
 	ret, specificReturn := fake.newEmitterReturnsOnCall[len(fake.newEmitterArgsForCall)]
 	fake.newEmitterArgsForCall = append(fake.newEmitterArgsForCall, struct {
-	}{})
+		arg1 map[string]string
+	}{arg1})
 	stub := fake.NewEmitterStub
 	fakeReturns := fake.newEmitterReturns
-	fake.recordInvocation("NewEmitter", []interface{}{})
+	fake.recordInvocation("NewEmitter", []interface{}{arg1})
 	fake.newEmitterMutex.Unlock()
 	if stub != nil {
-		return stub()
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -174,10 +176,17 @@ func (fake *FakeEmitterFactory) NewEmitterCallCount() int {
 	return len(fake.newEmitterArgsForCall)
 }
 
-func (fake *FakeEmitterFactory) NewEmitterCalls(stub func() (metric.Emitter, error)) {
+func (fake *FakeEmitterFactory) NewEmitterCalls(stub func(map[string]string) (metric.Emitter, error)) {
 	fake.newEmitterMutex.Lock()
 	defer fake.newEmitterMutex.Unlock()
 	fake.NewEmitterStub = stub
+}
+
+func (fake *FakeEmitterFactory) NewEmitterArgsForCall(i int) map[string]string {
+	fake.newEmitterMutex.RLock()
+	defer fake.newEmitterMutex.RUnlock()
+	argsForCall := fake.newEmitterArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeEmitterFactory) NewEmitterReturns(result1 metric.Emitter, result2 error) {

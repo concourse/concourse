@@ -30,7 +30,7 @@ type Emitter interface {
 type EmitterFactory interface {
 	Description() string
 	IsConfigured() bool
-	NewEmitter() (Emitter, error)
+	NewEmitter(map[string]string) (Emitter, error)
 }
 
 type Monitor struct {
@@ -140,7 +140,7 @@ func (m *Monitor) Initialize(logger lager.Logger, host string, attributes map[st
 
 	for _, factory := range m.emitterFactories {
 		if factory.IsConfigured() {
-			emitter, err = factory.NewEmitter()
+			emitter, err = factory.NewEmitter(attributes)
 			if err != nil {
 				return err
 			}

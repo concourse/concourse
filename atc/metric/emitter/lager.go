@@ -20,7 +20,7 @@ func init() {
 func (config *LagerConfig) Description() string { return "Lager" }
 func (config *LagerConfig) IsConfigured() bool  { return config.Enabled }
 
-func (config *LagerConfig) NewEmitter() (metric.Emitter, error) {
+func (config *LagerConfig) NewEmitter(_ map[string]string) (metric.Emitter, error) {
 	return &LagerEmitter{}, nil
 }
 

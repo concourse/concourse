@@ -30,7 +30,7 @@ func (config *DogstatsDBConfig) Description() string { return "Datadog" }
 
 func (config *DogstatsDBConfig) IsConfigured() bool { return config.Host != "" && config.Port != "" }
 
-func (config *DogstatsDBConfig) NewEmitter() (metric.Emitter, error) {
+func (config *DogstatsDBConfig) NewEmitter(_ map[string]string) (metric.Emitter, error) {
 
 	client, err := statsd.New(fmt.Sprintf("%s:%s", config.Host, config.Port))
 	if err != nil {

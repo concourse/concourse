@@ -154,7 +154,7 @@ var _ = Describe("NewRelicEmitter", func() {
 
 			server.RouteToHandler(http.MethodPost, "/v1/accounts/123456/events", verifyEvents(1))
 
-			e, _ := config.NewEmitter()
+			e, _ := config.NewEmitter(nil)
 			e.Emit(testLogger, testEvent)
 
 			newRelicEmitter := e.(*emitter.NewRelicEmitter)
