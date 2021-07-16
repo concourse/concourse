@@ -41,9 +41,13 @@ func DisableBaseResourceTypeCache() {
 }
 
 func (table *baseResourceTypeTableRaw) isReloadNeeded() bool {
+	return table.lastLoadTime.Add(2*time.Minute).Before(time.Now())
+}
+
+func (table *baseResourceTypeTableRaw) isReloadNeededWithLock() bool {
 	table.rwLock.RLock()
 	defer table.rwLock.RUnlock()
-	return table.lastLoadTime.Add(2*time.Minute).Before(time.Now())
+	return table.isReloadNeeded()
 }
 
 func (table *baseResourceTypeTableRaw) findByName(runner sq.Runner, name string) (baseResourceTypeRaw, bool, error) {
@@ -60,7 +64,15 @@ func (table *baseResourceTypeTableRaw) findByName(runner sq.Runner, name string)
 }
 
 func (table *baseResourceTypeTableRaw) reloadIfNeeded(runner sq.Runner, force bool) error {
-	if !force && !table.isReloadNeeded() {
+	if !force && !table.isReloadNeededWithLock() {
+		return nil
+	}
+
+	table.rwLock.Lock()
+	defer table.rwLock.Unlock()
+
+	// After get the lock, check if need to reload again.
+	if !table.isReloadNeeded() {
 		return nil
 	}
 
@@ -73,9 +85,6 @@ func (table *baseResourceTypeTableRaw) reloadIfNeeded(runner sq.Runner, force bo
 	}
 
 	defer rows.Close()
-
-	table.rwLock.Lock()
-	defer table.rwLock.Unlock()
 
 	table.tableByName = map[string]baseResourceTypeRaw{}
 
