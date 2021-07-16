@@ -69,9 +69,6 @@ var _ = Describe("Configuring a resource type in a pipeline config", func() {
 		})
 
 		It("applies the defaults for check, get, and put steps", func() {
-			check := fly("check-resource", "-r", inPipeline("some-resource"))
-			Expect(check).To(gbytes.Say("defaulted"))
-
 			getAndPut := fly("trigger-job", "-j", inPipeline("some-job"), "-w")
 			Expect(getAndPut).To(gbytes.Say("defaulted"))
 			Expect(getAndPut).To(gbytes.Say("fetching version: " + hash))
