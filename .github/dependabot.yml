@@ -3,25 +3,35 @@ version: 2
 updates:
 - package-ecosystem: gomod
   directory: /
-  schedule: {interval: daily}
+  schedule:
+    interval: daily
+    time: "00:00"
   labels: ["go", "dependencies", "misc", "release/undocumented"]
 
 - package-ecosystem: elm
   directory: /web/elm
-  schedule: {interval: daily}
+  schedule:
+    interval: daily
+    time: "00:00"
   labels: ["elm", "dependencies", "misc", "release/undocumented"]
 
 - package-ecosystem: npm
   directory: /
-  schedule: {interval: daily}
+  schedule:
+    interval: daily
+    time: "00:00"
   labels: ["javascript", "dependencies", "misc", "release/undocumented"]
 
 - package-ecosystem: npm
   directory: /web/wats
-  schedule: {interval: daily}
+  schedule:
+    interval: daily
+    time: "00:00"
   labels: ["javascript", "dependencies", "misc", "release/undocumented"]
 
 - package-ecosystem: github-actions
   directory: /
-  schedule: {interval: daily}
+  schedule:
+    interval: daily
+    time: "00:00"
   labels: ["github-actions", "dependencies", "misc", "release/undocumented"]
