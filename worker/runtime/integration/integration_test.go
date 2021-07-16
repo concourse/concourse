@@ -20,6 +20,7 @@ import (
 	"github.com/concourse/concourse/worker/runtime/libcontainerd"
 	"github.com/concourse/concourse/worker/workercmd"
 	"github.com/containerd/containerd"
+	"github.com/jackpal/gateway"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -324,13 +325,13 @@ func (s *IntegrationSuite) TestContainerBlocksHostAccess() {
 		s.gardenBackend.Stop()
 	}()
 
-	hostIp, err := getHostIp()
+	hostIp, err := gateway.DiscoverInterface()
 	s.NoError(err)
 
 	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, "Hello, client")
 	}))
-	l, err := net.Listen("tcp", hostIp+":0")
+	l, err := net.Listen("tcp", hostIp.String()+":0")
 	ts.Listener = l
 	ts.Start()
 	defer ts.Close()
@@ -415,13 +416,13 @@ func (s *IntegrationSuite) TestContainerAllowsHostAccess() {
 		customBackend.Stop()
 	}()
 
-	hostIp, err := getHostIp()
+	hostIp, err := gateway.DiscoverInterface()
 	s.NoError(err)
 
 	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, "Hello, client")
 	}))
-	l, err := net.Listen("tcp", hostIp+":0")
+	l, err := net.Listen("tcp", hostIp.String()+":0")
 	ts.Listener = l
 	ts.Start()
 	defer ts.Close()

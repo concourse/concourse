@@ -1,11 +1,8 @@
 package integration_test
 
 import (
-	"errors"
 	"io/ioutil"
-	"net"
 	"os/user"
-	"regexp"
 	"sync"
 	"testing"
 
@@ -58,29 +55,4 @@ func TestSuite(t *testing.T) {
 		Assertions: req,
 		tmpDir:     tmpDir,
 	})
-}
-
-func getHostIp() (string, error) {
-	ifaces, err := net.Interfaces()
-	if err != nil {
-		return "", err
-	}
-	ethInterface := regexp.MustCompile("eth0")
-
-	for _, i := range ifaces {
-		if ethInterface.MatchString(i.Name) {
-			addrs, err := i.Addrs()
-			if err != nil {
-				return "", err
-			}
-			for _, address := range addrs {
-				if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
-					if ipnet.IP.To4() != nil {
-						return ipnet.IP.String(), nil
-					}
-				}
-			}
-		}
-	}
-	return "", errors.New("unable to find host's IP")
 }
