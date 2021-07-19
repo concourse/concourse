@@ -35,14 +35,16 @@ var factoryTests = []StepTest{
 			version: {some: version}
 			tags: [tag-1, tag-2]
 			timeout: 1h
+			force_refresh: true
 		`,
 		StepConfig: &atc.GetStep{
-			Name:     "some-name",
-			Resource: "some-resource",
-			Params:   atc.Params{"some": "params"},
-			Version:  &atc.VersionConfig{Pinned: atc.Version{"some": "version"}},
-			Tags:     []string{"tag-1", "tag-2"},
-			Timeout:  "1h",
+			Name:         "some-name",
+			Resource:     "some-resource",
+			Params:       atc.Params{"some": "params"},
+			Version:      &atc.VersionConfig{Pinned: atc.Version{"some": "version"}},
+			Tags:         []string{"tag-1", "tag-2"},
+			Timeout:      "1h",
+			ForceRefresh: true,
 		},
 	},
 	{

@@ -293,14 +293,15 @@ var StepPrecedence = []StepDetector{
 }
 
 type GetStep struct {
-	Name     string         `json:"get"`
-	Resource string         `json:"resource,omitempty"`
-	Version  *VersionConfig `json:"version,omitempty"`
-	Params   Params         `json:"params,omitempty"`
-	Passed   []string       `json:"passed,omitempty"`
-	Trigger  bool           `json:"trigger,omitempty"`
-	Tags     Tags           `json:"tags,omitempty"`
-	Timeout  string         `json:"timeout,omitempty"`
+	Name         string         `json:"get"`
+	Resource     string         `json:"resource,omitempty"`
+	Version      *VersionConfig `json:"version,omitempty"`
+	Params       Params         `json:"params,omitempty"`
+	Passed       []string       `json:"passed,omitempty"`
+	Trigger      bool           `json:"trigger,omitempty"`
+	Tags         Tags           `json:"tags,omitempty"`
+	Timeout      string         `json:"timeout,omitempty"`
+	ForceRefresh bool           `json:"force_refresh,omitempty"`
 }
 
 func (step *GetStep) ResourceName() string {

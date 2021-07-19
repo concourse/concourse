@@ -199,7 +199,7 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 	// Only get from local cache if caching streamed volumes is enabled -
 	// otherwise, we'd need to stream volumes between workers much more
 	// frequently.
-	if atc.EnableCacheStreamedVolumes {
+	if atc.EnableCacheStreamedVolumes && !step.plan.ForceRefresh {
 		getResult, found, err := step.getFromLocalCache(logger, step.metadata.TeamID, resourceCache, workerSpec)
 		if err != nil {
 			return false, err

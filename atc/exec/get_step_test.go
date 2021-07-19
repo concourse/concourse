@@ -351,6 +351,17 @@ var _ = Describe("GetStep", func() {
 						// Do nothing here, JustBeforeEach() will check shouldRunGetStep
 					})
 				})
+
+				Context("when force refresh is enabled", func() {
+					BeforeEach(func() {
+						getPlan.ForceRefresh = true
+						shouldRunGetStep = true
+					})
+
+					It("should run normal get step", func() {
+						// Do nothing here, JustBeforeEach() will check shouldRunGetStep
+					})
+				})
 			})
 		})
 	})

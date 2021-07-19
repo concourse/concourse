@@ -122,13 +122,14 @@ func (visitor *planVisitor) VisitGet(step *atc.GetStep) error {
 	visitor.plan = visitor.planFactory.NewPlan(atc.GetPlan{
 		Name: step.Name,
 
-		Type:     resource.Type,
-		Resource: resourceName,
-		Source:   resource.Source,
-		Params:   step.Params,
-		Version:  &version,
-		Tags:     step.Tags,
-		Timeout:  step.Timeout,
+		Type:         resource.Type,
+		Resource:     resourceName,
+		Source:       resource.Source,
+		Params:       step.Params,
+		Version:      &version,
+		Tags:         step.Tags,
+		Timeout:      step.Timeout,
+		ForceRefresh: step.ForceRefresh,
 
 		VersionedResourceTypes: visitor.resourceTypes,
 	})

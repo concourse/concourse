@@ -194,6 +194,9 @@ type GetPlan struct {
 	// A timeout to enforce on the resource `get` process. Note that fetching the
 	// resource's image does not count towards the timeout.
 	Timeout string `json:"timeout,omitempty"`
+
+	// Don't use resource cache if set to true.
+	ForceRefresh bool `json:"force_refresh,omitempty"`
 }
 
 type PutPlan struct {
