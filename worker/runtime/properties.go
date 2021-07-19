@@ -26,10 +26,16 @@ func propertiesToLabels(properties garden.Properties) (map[string]string, error)
 	// containerd on a per-label basis.
 	const maxLabelLen = 4096
 
+	// Restrict the key length to no more than half the label length.
+	// This ratio is arbitrary, but helps ensure that:
+	// 1. The key + sequence number suffix cannot exceed maxLabelLen, and
+	// 2. We can fit a reasonable amount of data from the value in each chunk
+	const maxKeyLen = maxLabelLen / 2
+
 	labelSet := map[string]string{}
 	for key, value := range properties {
 		sequenceNum := 0
-		if len(key) > maxLabelLen/2 {
+		if len(key) > maxKeyLen {
 			return nil, fmt.Errorf("property name %q is too long", key[:32]+"...")
 		}
 		for {

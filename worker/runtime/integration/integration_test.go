@@ -956,6 +956,7 @@ func (s *IntegrationSuite) TestPropertiesGetChunked() {
 
 	err = container.SetProperty(longString, "foo")
 	s.Error(err)
+	s.Regexp("property.*too long", err.Error())
 
 	properties, err = container.Properties()
 	s.NoError(err)
