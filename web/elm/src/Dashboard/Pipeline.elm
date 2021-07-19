@@ -93,7 +93,7 @@ hdPipelineView { pipelineRunningKeyframes } { pipeline, resourceError, existingJ
         ([ class "card"
          , attribute "data-pipeline-name" pipeline.name
          , attribute "data-team-name" pipeline.teamName
-         , href <| Routes.toString <| Routes.pipelineRoute pipeline
+         , href <| Routes.toString <| Routes.pipelineRoute pipeline []
          ]
             ++ Styles.pipelineCardHd (pipelineStatus existingJobs pipeline)
         )
@@ -291,7 +291,7 @@ headerView section pipeline resourceError headerHeight viewingInstanceGroups inI
                 []
     in
     Html.a
-        [ href <| Routes.toString <| Routes.pipelineRoute pipeline, draggable "false" ]
+        [ href <| Routes.toString <| Routes.pipelineRoute pipeline [], draggable "false" ]
         [ Html.div
             (class "card-header" :: Styles.pipelineCardHeader headerHeight)
             (rows ++ [ resourceErrorElem ])

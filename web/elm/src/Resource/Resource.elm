@@ -479,6 +479,7 @@ handleCallback callback session ( model, effects ) =
                                         { id = model.resourceIdentifier
                                         , page = Just startingPage
                                         , version = Nothing
+                                        , groups = []
                                         }
                            ]
 
@@ -730,6 +731,7 @@ update msg ( model, effects ) =
                                 { id = model.resourceIdentifier
                                 , page = Just page
                                 , version = Nothing
+                                , groups = []
                                 }
                    ]
             )
@@ -997,6 +999,7 @@ view session model =
                 { id = model.resourceIdentifier
                 , page = Nothing
                 , version = Nothing
+                , groups = Routes.getGroups session.route
                 }
     in
     Html.div
@@ -1322,6 +1325,7 @@ paginationMenu { hovered } model =
                                     { id = model.resourceIdentifier
                                     , page = Just page
                                     , version = Nothing
+                                    , groups = []
                                     }
                          , attribute "aria-label" "Previous Page"
                          , id <| toHtmlID PreviousPageButton
@@ -1361,6 +1365,7 @@ paginationMenu { hovered } model =
                                     { id = model.resourceIdentifier
                                     , page = Just page
                                     , version = Nothing
+                                    , groups = []
                                     }
                          , attribute "aria-label" "Next Page"
                          , id <| toHtmlID NextPageButton
@@ -1994,6 +1999,7 @@ viewCausalityButton enabled dir versionId =
                 { id = versionId
                 , direction = dir
                 , version = Nothing
+                , groups = []
                 }
 
         ( domID, text ) =
@@ -2140,6 +2146,7 @@ viewBuildsByJob buildDict jobName =
                                         , buildName = build.name
                                         }
                                     , highlight = Routes.HighlightNothing
+                                    , groups = []
                                     }
                         in
                         Html.li [ class <| Concourse.BuildStatus.show build.status ]

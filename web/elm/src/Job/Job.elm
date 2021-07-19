@@ -183,6 +183,7 @@ handleCallback callback ( model, effects ) =
                                             , buildName = build.name
                                             }
                                         , highlight = Routes.HighlightNothing
+                                        , groups = []
                                         }
                            ]
             )
@@ -394,6 +395,7 @@ handleJobBuildsFetched requestedPage paginatedBuilds ( model, effects ) =
                         Routes.Job
                             { id = model.jobIdentifier
                             , page = Just startingPage
+                            , groups = []
                             }
                ]
         )
@@ -419,24 +421,17 @@ documentTitle model =
 
 view : Session -> Model -> Html Message
 view session model =
-    let
-        route =
-            Routes.Job
-                { id = model.jobIdentifier
-                , page = Just model.currentPage
-                }
-    in
     Html.div
         (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
         [ Html.div
             (id "top-bar-app" :: Views.Styles.topBar False)
             [ SideBar.sideBarIcon session
             , TopBar.concourseLogo
-            , TopBar.breadcrumbs session route
+            , TopBar.breadcrumbs session session.route
             , Login.view session.userState model
             ]
         , Html.div
-            (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
+            (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar session.route)
             [ SideBar.view session
                 (Just
                     { pipelineName = model.jobIdentifier.pipelineName
@@ -681,7 +676,7 @@ viewPaginationBar session model =
                     Just page ->
                         let
                             jobRoute =
-                                Routes.Job { id = model.jobIdentifier, page = Just page }
+                                Routes.Job { id = model.jobIdentifier, page = Just page, groups = [] }
                         in
                         Html.div
                             ([ onMouseEnter <| Hover <| Just PreviousPageButton
@@ -721,7 +716,7 @@ viewPaginationBar session model =
                     Just page ->
                         let
                             jobRoute =
-                                Routes.Job { id = model.jobIdentifier, page = Just page }
+                                Routes.Job { id = model.jobIdentifier, page = Just page, groups = [] }
                         in
                         Html.div
                             ([ onMouseEnter <| Hover <| Just NextPageButton

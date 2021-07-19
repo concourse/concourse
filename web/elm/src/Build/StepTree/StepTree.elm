@@ -989,6 +989,7 @@ viewVersion step pipelineId name =
                                         }
                                     , page = Nothing
                                     , version = Just version
+                                    , groups = []
                                     }
                         , onMouseLeave <| Hover Nothing
                         , onMouseEnter <| Hover (Just domId)

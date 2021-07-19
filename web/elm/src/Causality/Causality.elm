@@ -241,6 +241,7 @@ view session model =
                 { id = model.versionId
                 , direction = model.direction
                 , version = Maybe.map .version model.fetchedVersionedResource
+                , groups = Routes.getGroups session.route
                 }
     in
     Html.div
@@ -511,7 +512,7 @@ graphvizDotNotation model =
                                     }
 
                                 link =
-                                    Routes.Build { id = build, highlight = Routes.HighlightNothing }
+                                    Routes.Build { id = build, highlight = Routes.HighlightNothing, groups = [] }
                                         |> Routes.toString
                             in
                             row (attributes [ ( "HREF", link ), ( "BGCOLOR", buildStatusColor True b.status ) ]) ("#" ++ b.name)

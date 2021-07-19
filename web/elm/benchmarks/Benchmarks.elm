@@ -125,6 +125,7 @@ buildView session model =
                     Routes.Build
                         { id = buildId
                         , highlight = model.highlight
+                        , groups = []
                         }
     in
     Html.div
@@ -194,6 +195,7 @@ breadcrumbs session model =
                 Routes.Job
                     { id = jobId
                     , page = Nothing
+                    , groups = []
                     }
 
         ( _, JobBuildPage buildId ) ->
@@ -201,6 +203,7 @@ breadcrumbs session model =
                 Routes.Build
                     { id = buildId
                     , highlight = model.highlight
+                    , groups = []
                     }
 
         _ ->
@@ -326,7 +329,7 @@ viewBuildHeader session model build =
                 Just jobId ->
                     let
                         jobRoute =
-                            Routes.Job { id = jobId, page = Nothing }
+                            Routes.Job { id = jobId, page = Nothing, groups = [] }
                     in
                     Html.a
                         [ href <| Routes.toString jobRoute ]
