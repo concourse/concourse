@@ -22,7 +22,7 @@ type baseResourceTypeRaw struct {
 type baseResourceTypeTableRaw struct {
 	tableByName map[string]baseResourceTypeRaw
 
-	rwLock       sync.RWMutex
+	lock         sync.Mutex
 	lastLoadTime time.Time
 }
 
@@ -41,38 +41,11 @@ func DisableBaseResourceTypeCache() {
 }
 
 func (table *baseResourceTypeTableRaw) isReloadNeeded() bool {
-	return table.lastLoadTime.Add(2*time.Minute).Before(time.Now())
-}
-
-func (table *baseResourceTypeTableRaw) isReloadNeededWithLock() bool {
-	table.rwLock.RLock()
-	defer table.rwLock.RUnlock()
-	return table.isReloadNeeded()
-}
-
-func (table *baseResourceTypeTableRaw) findByName(runner sq.Runner, name string) (baseResourceTypeRaw, bool, error) {
-	err := table.reloadIfNeeded(runner, false)
-	if err != nil {
-		return baseResourceTypeRaw{}, false, err
-	}
-
-	table.rwLock.RLock()
-	defer table.rwLock.RUnlock()
-
-	brt, found := table.tableByName[name]
-	return brt, found, nil
+	return len(table.tableByName) == 0 || table.lastLoadTime.Add(2*time.Minute).Before(time.Now())
 }
 
 func (table *baseResourceTypeTableRaw) reloadIfNeeded(runner sq.Runner, force bool) error {
-	if !force && !table.isReloadNeededWithLock() {
-		return nil
-	}
-
-	table.rwLock.Lock()
-	defer table.rwLock.Unlock()
-
-	// After get the lock, check if need to reload again.
-	if !table.isReloadNeeded() {
+	if !force && !table.isReloadNeeded() {
 		return nil
 	}
 
@@ -99,6 +72,26 @@ func (table *baseResourceTypeTableRaw) reloadIfNeeded(runner sq.Runner, force bo
 	table.lastLoadTime = time.Now()
 
 	return nil
+}
+
+func (table *baseResourceTypeTableRaw) findByName(runner sq.Runner, name string) (baseResourceTypeRaw, bool, error) {
+	table.lock.Lock()
+	defer table.lock.Unlock()
+
+	err := table.reloadIfNeeded(runner, false)
+	if err != nil {
+		return baseResourceTypeRaw{}, false, err
+	}
+
+	brt, found := table.tableByName[name]
+	return brt, found, nil
+}
+
+func (table *baseResourceTypeTableRaw) forceReload(runner sq.Runner) error {
+	table.lock.Lock()
+	defer table.lock.Unlock()
+
+	return table.reloadIfNeeded(runner, true)
 }
 
 // BaseResourceType represents a resource type provided by workers.
