@@ -191,6 +191,9 @@ func findOrCreateResourceConfigScope(
 			Where(sq.Eq{
 				"resource_id": resource.ID(),
 			}).
+			Where(sq.NotEq{
+				"resource_config_id": resourceConfig.ID(),
+			}).
 			RunWith(tx).
 			Exec()
 		if err != nil {
