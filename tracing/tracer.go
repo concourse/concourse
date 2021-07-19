@@ -60,24 +60,6 @@ func (c Config) Prepare() error {
 	return nil
 }
 
-// func (c Config) Prepare() error {
-// 	var exp export.SpanSyncer
-// 	var err error
-// 	switch {
-// 	case c.Jaeger.IsConfigured():
-// 		exp, err = c.Jaeger.Exporter()
-// 	case c.Stackdriver.IsConfigured():
-// 		exp, err = c.Stackdriver.Exporter()
-// 	}
-// 	if err != nil {
-// 		return err
-// 	}
-// 	if exp != nil {
-// 		ConfigureTraceProvider(TraceProvider(exp))
-// 	}
-// 	return nil
-// }
-
 // StartSpan creates a span, giving back a context that has itself added as the
 // parent span.
 //
@@ -150,10 +132,14 @@ func StartSpanLinkedToFollowing(
 	component string,
 	attrs Attrs,
 ) (context.Context, trace.Span) {
+	ctx := context.Background()
+	if supplier := following.SpanContext(); supplier != nil {
+		ctx = propagation.TraceContext{}.Extract(ctx, supplier)
+	}
 	linkedSpanContext := trace.SpanFromContext(linked).SpanContext()
 
 	return startSpan(
-		context.Background(),
+		ctx,
 		component,
 		attrs,
 		trace.WithLinks(trace.Link{SpanContext: linkedSpanContext}),
@@ -208,17 +194,6 @@ func ConfigureTraceProvider(tp trace.TracerProvider) {
 	Configured = true
 }
 
-// func TraceProvider(exporter export.SpanSyncer) trace.TraceProvider {
-// 	// the only way NewProvider can error is if exporter is nil, but
-// 	// this method is never called in such circumstances.
-// 	provider, _ := sdktrace.NewProvider(sdktrace.WithConfig(
-// 		sdktrace.Config{
-// 			DefaultSampler: sdktrace.AlwaysSample(),
-// 		}),
-// 		sdktrace.WithSyncer(exporter),
-// 	)
-// 	return provider
-// }
 func (c Config) TraceProvider(exporter func() (sdktrace.SpanExporter, []sdktrace.TracerProviderOption, error)) (trace.TracerProvider, error) {
 	exp, exporterOptions, err := exporter()
 	if err != nil {

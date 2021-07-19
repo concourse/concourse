@@ -211,9 +211,11 @@ func (example Example) importVersionsDB(ctx context.Context, setup setupDB, cach
 	Expect(err).ToNot(HaveOccurred())
 
 	var debugDB atc.DebugVersionsDB
-	err = span.Tracer().WithSpan(ctx, "Decode", func(context.Context) error {
+	err = func(ctx context.Context) error {
+		_, span = tracing.StartSpan(ctx, "Decode", tracing.Attrs{})
+		defer span.End()
 		return json.NewDecoder(gr).Decode(&debugDB)
-	})
+	}(ctx)
 	Expect(err).ToNot(HaveOccurred())
 
 	span.AddEvent(
@@ -267,7 +269,9 @@ func (example Example) importVersionsDB(ctx context.Context, setup setupDB, cach
 		}
 	}
 
-	span.Tracer().WithSpan(ctx, "import versions", func(context.Context) error {
+	err = func(ctx context.Context) error {
+		_, span = tracing.StartSpan(ctx, "import versions", tracing.Attrs{})
+		defer span.End()
 		tx, err := dbConn.Begin()
 		Expect(err).ToNot(HaveOccurred())
 
@@ -298,9 +302,12 @@ func (example Example) importVersionsDB(ctx context.Context, setup setupDB, cach
 		Expect(err).ToNot(HaveOccurred())
 
 		return nil
-	})
+	}(ctx)
+	Expect(err).ToNot(HaveOccurred())
 
-	span.Tracer().WithSpan(ctx, "import builds", func(context.Context) error {
+	err = func(ctx context.Context) error {
+		_, span = tracing.StartSpan(ctx, "import builds", tracing.Attrs{})
+		defer span.End()
 		tx, err := dbConn.Begin()
 		Expect(err).ToNot(HaveOccurred())
 
@@ -369,9 +376,12 @@ func (example Example) importVersionsDB(ctx context.Context, setup setupDB, cach
 		}
 
 		return nil
-	})
+	}(ctx)
+	Expect(err).ToNot(HaveOccurred())
 
-	span.Tracer().WithSpan(ctx, "import inputs", func(context.Context) error {
+	err = func(ctx context.Context) error {
+		_, span = tracing.StartSpan(ctx, "import inputs", tracing.Attrs{})
+		defer span.End()
 		tx, err := dbConn.Begin()
 		Expect(err).ToNot(HaveOccurred())
 
@@ -393,9 +403,12 @@ func (example Example) importVersionsDB(ctx context.Context, setup setupDB, cach
 		Expect(err).ToNot(HaveOccurred())
 
 		return nil
-	})
+	}(ctx)
+	Expect(err).ToNot(HaveOccurred())
 
-	span.Tracer().WithSpan(ctx, "import outputs", func(context.Context) error {
+	err = func(ctx context.Context) error {
+		_, span = tracing.StartSpan(ctx, "import outputs", tracing.Attrs{})
+		defer span.End()
 		tx, err := dbConn.Begin()
 		Expect(err).ToNot(HaveOccurred())
 
@@ -417,7 +430,8 @@ func (example Example) importVersionsDB(ctx context.Context, setup setupDB, cach
 		Expect(err).ToNot(HaveOccurred())
 
 		return nil
-	})
+	}(ctx)
+	Expect(err).ToNot(HaveOccurred())
 
 	return versionsDB
 }

@@ -260,7 +260,7 @@ var _ = Describe("GetStep", func() {
 		var buildSpan trace.Span
 
 		BeforeEach(func() {
-			tracing.ConfigureTraceProvider(testTraceProvider{})
+			tracing.ConfigureTraceProvider(oteltest.NewTracerProvider())
 			ctx, buildSpan = tracing.StartSpan(ctx, "build", nil)
 		})
 
@@ -268,7 +268,7 @@ var _ = Describe("GetStep", func() {
 			ctx, _, _, _, _, _, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
 			span, ok := tracing.FromContext(ctx).(*oteltest.Span)
 			Expect(ok).To(BeTrue(), "no oteltest.Span in context")
-			Expect(span.ParentSpanID()).To(Equal(buildSpan.SpanContext().SpanID))
+			Expect(span.ParentSpanID()).To(Equal(buildSpan.SpanContext().SpanID()))
 		})
 
 		It("populates the TRACEPARENT env var", func() {

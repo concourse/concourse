@@ -75,7 +75,7 @@ var _ = Describe("Checker", func() {
 			)
 
 			BeforeEach(func() {
-				tracing.ConfigureTraceProvider(&tracing.TestTraceProvider{})
+				tracing.ConfigureTraceProvider(oteltest.NewTracerProvider())
 				fakeCheck := new(dbfakes.FakeCheck)
 				fakeCheck.IDReturns(1)
 				var ctx context.Context
@@ -102,7 +102,7 @@ var _ = Describe("Checker", func() {
 				ctx := fakeRunnable.RunArgsForCall(0)
 				span, ok := tracing.FromContext(ctx).(*oteltest.Span)
 				Expect(ok).To(BeTrue(), "no oteltest.Span in context")
-				Expect(span.ParentSpanID()).To(Equal(scanSpan.SpanContext().SpanID))
+				Expect(span.ParentSpanID()).To(Equal(scanSpan.SpanContext().SpanID()))
 			})
 		})
 
