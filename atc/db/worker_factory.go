@@ -333,8 +333,6 @@ func (f *workerFactory) SaveWorker(atcWorker atc.Worker, ttl time.Duration) (Wor
 		return nil, err
 	}
 
-	baseResourceTypeTable.forceReload(f.conn)
-
 	return savedWorker, nil
 }
 
