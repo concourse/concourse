@@ -45,7 +45,7 @@ func init() {
 func (config *InfluxDBConfig) Description() string { return "InfluxDB" }
 func (config *InfluxDBConfig) IsConfigured() bool  { return config.URL != "" }
 
-func (config *InfluxDBConfig) NewEmitter(map[string]string) (metric.Emitter, error) {
+func (config *InfluxDBConfig) NewEmitter(_ map[string]string) (metric.Emitter, error) {
 	client, err := influxclient.NewHTTPClient(influxclient.HTTPConfig{
 		Addr:               config.URL,
 		Username:           config.Username,
