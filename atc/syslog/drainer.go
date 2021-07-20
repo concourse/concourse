@@ -143,6 +143,16 @@ func (d *drainer) sendEvent(logger lager.Logger, build db.Build, syslog *Syslog,
 		ts = time.Unix(initPutEvent.Time, 0)
 		tag = build.SyslogTag(initPutEvent.Origin.ID)
 		message = fmt.Sprintf("put initializing")
+	case event.EventTypeInitializeCheck:
+		var initCheckEvent event.InitializeCheck
+		err := json.Unmarshal(*ev.Data, &initCheckEvent)
+		if err != nil {
+			logger.Error("failed-to-unmarshal", err)
+			return err
+		}
+		ts = time.Unix(initCheckEvent.Time, 0)
+		tag = build.SyslogTag(initCheckEvent.Origin.ID)
+		message = fmt.Sprintf("check initializing %s", initCheckEvent.Name)
 	case event.EventTypeInitializeTask:
 		var initTaskEvent event.InitializeTask
 		err := json.Unmarshal(*ev.Data, &initTaskEvent)

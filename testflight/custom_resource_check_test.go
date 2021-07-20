@@ -13,10 +13,10 @@ var _ = Describe("When a resource type depends on another resource type", func()
 
 	It("can be checked recursively", func() {
 		check := fly("check-resource", "-r", inPipeline("recursive-custom-resource"))
-		Expect(check).To(gbytes.Say("selected worker")) // check for mock-resource-parent
-		Expect(check).To(gbytes.Say("selected worker")) // check for mock-resource-child
-		Expect(check).To(gbytes.Say("selected worker")) // check for mock-resource-grandchild
-		Expect(check).To(gbytes.Say("selected worker")) // check for recursive-custom-resource
+		Expect(check).To(gbytes.Say("recursive-custom-resource"))
+		Expect(check).To(gbytes.Say("mock-resource-grandchild"))
+		Expect(check).To(gbytes.Say("mock-resource-child"))
+		Expect(check).To(gbytes.Say("mock-resource-parent"))
 		Expect(check).To(gbytes.Say("succeeded"))
 	})
 })
