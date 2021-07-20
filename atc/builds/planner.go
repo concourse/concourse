@@ -239,12 +239,6 @@ func (visitor *planVisitor) VisitAcross(step *atc.AcrossStep) error {
 		return err
 	}
 
-	// The plan is simply used as a template for generating the substeps
-	// dynamically, so it should be clear that the IDs aren't valid.
-	visitor.plan.Each(func(p *atc.Plan) {
-		p.ID = "ACROSS_SUBSTEP_TEMPLATE"
-	})
-
 	template, err := json.Marshal(visitor.plan)
 	if err != nil {
 		return err
