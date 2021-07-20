@@ -9,7 +9,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
-	"go.opentelemetry.io/otel/api/propagators"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 type FakeCheck struct {
@@ -219,15 +219,15 @@ type FakeCheck struct {
 	schemaReturnsOnCall map[int]struct {
 		result1 string
 	}
-	SpanContextStub        func() propagators.Supplier
+	SpanContextStub        func() propagation.TextMapCarrier
 	spanContextMutex       sync.RWMutex
 	spanContextArgsForCall []struct {
 	}
 	spanContextReturns struct {
-		result1 propagators.Supplier
+		result1 propagation.TextMapCarrier
 	}
 	spanContextReturnsOnCall map[int]struct {
-		result1 propagators.Supplier
+		result1 propagation.TextMapCarrier
 	}
 	StartStub        func() error
 	startMutex       sync.RWMutex
@@ -1319,7 +1319,7 @@ func (fake *FakeCheck) SchemaReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
-func (fake *FakeCheck) SpanContext() propagators.Supplier {
+func (fake *FakeCheck) SpanContext() propagation.TextMapCarrier {
 	fake.spanContextMutex.Lock()
 	ret, specificReturn := fake.spanContextReturnsOnCall[len(fake.spanContextArgsForCall)]
 	fake.spanContextArgsForCall = append(fake.spanContextArgsForCall, struct {
@@ -1342,32 +1342,32 @@ func (fake *FakeCheck) SpanContextCallCount() int {
 	return len(fake.spanContextArgsForCall)
 }
 
-func (fake *FakeCheck) SpanContextCalls(stub func() propagators.Supplier) {
+func (fake *FakeCheck) SpanContextCalls(stub func() propagation.TextMapCarrier) {
 	fake.spanContextMutex.Lock()
 	defer fake.spanContextMutex.Unlock()
 	fake.SpanContextStub = stub
 }
 
-func (fake *FakeCheck) SpanContextReturns(result1 propagators.Supplier) {
+func (fake *FakeCheck) SpanContextReturns(result1 propagation.TextMapCarrier) {
 	fake.spanContextMutex.Lock()
 	defer fake.spanContextMutex.Unlock()
 	fake.SpanContextStub = nil
 	fake.spanContextReturns = struct {
-		result1 propagators.Supplier
+		result1 propagation.TextMapCarrier
 	}{result1}
 }
 
-func (fake *FakeCheck) SpanContextReturnsOnCall(i int, result1 propagators.Supplier) {
+func (fake *FakeCheck) SpanContextReturnsOnCall(i int, result1 propagation.TextMapCarrier) {
 	fake.spanContextMutex.Lock()
 	defer fake.spanContextMutex.Unlock()
 	fake.SpanContextStub = nil
 	if fake.spanContextReturnsOnCall == nil {
 		fake.spanContextReturnsOnCall = make(map[int]struct {
-			result1 propagators.Supplier
+			result1 propagation.TextMapCarrier
 		})
 	}
 	fake.spanContextReturnsOnCall[i] = struct {
-		result1 propagators.Supplier
+		result1 propagation.TextMapCarrier
 	}{result1}
 }
 

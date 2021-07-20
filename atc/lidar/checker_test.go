@@ -16,8 +16,8 @@ import (
 	"github.com/concourse/concourse/atc/lidar"
 	"github.com/concourse/concourse/atc/lidar/lidarfakes"
 	"github.com/concourse/concourse/tracing"
-	"go.opentelemetry.io/otel/api/trace"
-	"go.opentelemetry.io/otel/api/trace/testtrace"
+	"go.opentelemetry.io/otel/oteltest"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type Checker interface {
@@ -75,7 +75,7 @@ var _ = Describe("Checker", func() {
 			)
 
 			BeforeEach(func() {
-				tracing.ConfigureTraceProvider(&tracing.TestTraceProvider{})
+				tracing.ConfigureTraceProvider(oteltest.NewTracerProvider())
 				fakeCheck := new(dbfakes.FakeCheck)
 				fakeCheck.IDReturns(1)
 				var ctx context.Context
@@ -100,9 +100,9 @@ var _ = Describe("Checker", func() {
 			It("propagates span context to check step", func() {
 				Eventually(fakeRunnable.RunCallCount).Should(Equal(1))
 				ctx := fakeRunnable.RunArgsForCall(0)
-				span, ok := tracing.FromContext(ctx).(*testtrace.Span)
-				Expect(ok).To(BeTrue(), "no testtrace.Span in context")
-				Expect(span.ParentSpanID()).To(Equal(scanSpan.SpanContext().SpanID))
+				span, ok := tracing.FromContext(ctx).(*oteltest.Span)
+				Expect(ok).To(BeTrue(), "no oteltest.Span in context")
+				Expect(span.ParentSpanID()).To(Equal(scanSpan.SpanContext().SpanID()))
 			})
 		})
 

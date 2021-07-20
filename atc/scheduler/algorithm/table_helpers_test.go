@@ -20,7 +20,8 @@ import (
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	gocache "github.com/patrickmn/go-cache"
-	"go.opentelemetry.io/otel/api/key"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type DB struct {
@@ -210,23 +211,25 @@ func (example Example) importVersionsDB(ctx context.Context, setup setupDB, cach
 	Expect(err).ToNot(HaveOccurred())
 
 	var debugDB atc.DebugVersionsDB
-	err = span.Tracer().WithSpan(ctx, "Decode", func(context.Context) error {
+	err = func(ctx context.Context) error {
+		_, span = tracing.StartSpan(ctx, "Decode", tracing.Attrs{})
+		defer span.End()
 		return json.NewDecoder(gr).Decode(&debugDB)
-	})
+	}(ctx)
 	Expect(err).ToNot(HaveOccurred())
 
 	span.AddEvent(
-		ctx,
 		"decoded",
-		key.New("Jobs").Int(len(debugDB.Jobs)),
-		key.New("Resources").Int(len(debugDB.Resources)),
-		key.New("LegacyJobIDs").Int(len(debugDB.LegacyJobIDs)),
-		key.New("LegacyResourceIDs").Int(len(debugDB.LegacyResourceIDs)),
-		key.New("ResourceVersions").Int(len(debugDB.ResourceVersions)),
-		key.New("BuildInputs").Int(len(debugDB.BuildInputs)),
-		key.New("BuildOutputs").Int(len(debugDB.BuildOutputs)),
-		key.New("BuildReruns").Int(len(debugDB.BuildReruns)),
-	)
+		trace.WithAttributes(
+			attribute.Int("Jobs", len(debugDB.Jobs)),
+			attribute.Int("Resources", len(debugDB.Resources)),
+			attribute.Int("LegacyJobIDs", len(debugDB.LegacyJobIDs)),
+			attribute.Int("LegacyResourceIDs", len(debugDB.LegacyResourceIDs)),
+			attribute.Int("ResourceVersions", len(debugDB.ResourceVersions)),
+			attribute.Int("BuildInputs", len(debugDB.BuildInputs)),
+			attribute.Int("BuildOutputs", len(debugDB.BuildOutputs)),
+			attribute.Int("BuildReruns", len(debugDB.BuildReruns)),
+		))
 
 	// legacy, pre-6.0
 	for name, id := range debugDB.LegacyJobIDs {
@@ -266,7 +269,9 @@ func (example Example) importVersionsDB(ctx context.Context, setup setupDB, cach
 		}
 	}
 
-	span.Tracer().WithSpan(ctx, "import versions", func(context.Context) error {
+	err = func(ctx context.Context) error {
+		_, span = tracing.StartSpan(ctx, "import versions", tracing.Attrs{})
+		defer span.End()
 		tx, err := dbConn.Begin()
 		Expect(err).ToNot(HaveOccurred())
 
@@ -297,9 +302,12 @@ func (example Example) importVersionsDB(ctx context.Context, setup setupDB, cach
 		Expect(err).ToNot(HaveOccurred())
 
 		return nil
-	})
+	}(ctx)
+	Expect(err).ToNot(HaveOccurred())
 
-	span.Tracer().WithSpan(ctx, "import builds", func(context.Context) error {
+	err = func(ctx context.Context) error {
+		_, span = tracing.StartSpan(ctx, "import builds", tracing.Attrs{})
+		defer span.End()
 		tx, err := dbConn.Begin()
 		Expect(err).ToNot(HaveOccurred())
 
@@ -368,9 +376,12 @@ func (example Example) importVersionsDB(ctx context.Context, setup setupDB, cach
 		}
 
 		return nil
-	})
+	}(ctx)
+	Expect(err).ToNot(HaveOccurred())
 
-	span.Tracer().WithSpan(ctx, "import inputs", func(context.Context) error {
+	err = func(ctx context.Context) error {
+		_, span = tracing.StartSpan(ctx, "import inputs", tracing.Attrs{})
+		defer span.End()
 		tx, err := dbConn.Begin()
 		Expect(err).ToNot(HaveOccurred())
 
@@ -392,9 +403,12 @@ func (example Example) importVersionsDB(ctx context.Context, setup setupDB, cach
 		Expect(err).ToNot(HaveOccurred())
 
 		return nil
-	})
+	}(ctx)
+	Expect(err).ToNot(HaveOccurred())
 
-	span.Tracer().WithSpan(ctx, "import outputs", func(context.Context) error {
+	err = func(ctx context.Context) error {
+		_, span = tracing.StartSpan(ctx, "import outputs", tracing.Attrs{})
+		defer span.End()
 		tx, err := dbConn.Begin()
 		Expect(err).ToNot(HaveOccurred())
 
@@ -416,7 +430,8 @@ func (example Example) importVersionsDB(ctx context.Context, setup setupDB, cach
 		Expect(err).ToNot(HaveOccurred())
 
 		return nil
-	})
+	}(ctx)
+	Expect(err).ToNot(HaveOccurred())
 
 	return versionsDB
 }
@@ -553,7 +568,7 @@ func (example Example) assert(
 	ctx, span := tracing.StartSpan(ctx, "assert", tracing.Attrs{})
 	defer span.End()
 
-	span.SetAttributes(key.New("seed").Int64(ginkgo.GinkgoRandomSeed()))
+	span.SetAttributes(attribute.Int64("seed", ginkgo.GinkgoRandomSeed()))
 
 	resolved, ok, hasNext, resolvedErr := alg.Compute(ctx, job, inputConfigs)
 	if example.Error != nil {

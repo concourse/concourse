@@ -5,8 +5,9 @@ import (
 
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/tracing"
-	"go.opentelemetry.io/otel/api/key"
-	"google.golang.org/grpc/codes"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type individualResolver struct {
@@ -45,12 +46,14 @@ func (r *individualResolver) Resolve(ctx context.Context) (map[string]*versionCa
 		}
 
 		if !found {
-			span.AddEvent(ctx, "next every version not found")
-			span.SetStatus(codes.NotFound)
+			span.AddEvent("next every version not found")
+			span.SetStatus(codes.Error, "")
 			return nil, db.VersionNotFound, nil
 		}
 
-		span.AddEvent(ctx, "found via every", key.New("version").String(string(version)))
+		span.AddEvent("found via every", trace.WithAttributes(
+			attribute.String("version", string(version)),
+		))
 	} else {
 		// there are no passed constraints, so just take the latest version
 		var err error
@@ -62,12 +65,14 @@ func (r *individualResolver) Resolve(ctx context.Context) (map[string]*versionCa
 		}
 
 		if !found {
-			span.AddEvent(ctx, "latest version not found")
-			span.SetStatus(codes.NotFound)
+			span.AddEvent("latest version not found")
+			span.SetStatus(codes.Error, "")
 			return nil, db.LatestVersionNotFound, nil
 		}
 
-		span.AddEvent(ctx, "found via latest", key.New("version").String(string(version)))
+		span.AddEvent("found via latest", trace.WithAttributes(
+			attribute.String("version", string(version)),
+		))
 	}
 
 	candidate := newCandidateVersion(version)
@@ -77,6 +82,6 @@ func (r *individualResolver) Resolve(ctx context.Context) (map[string]*versionCa
 		r.inputConfig.Name: candidate,
 	}
 
-	span.SetStatus(codes.OK)
+	span.SetStatus(codes.Ok, "")
 	return versionCandidates, "", nil
 }

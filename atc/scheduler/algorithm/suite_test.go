@@ -1,13 +1,14 @@
 package algorithm_test
 
 import (
+	"context"
 	"os"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/ifrit"
-	"go.opentelemetry.io/otel/exporter/trace/jaeger"
+	"go.opentelemetry.io/otel/exporters/trace/jaeger"
 
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
@@ -37,16 +38,15 @@ var _ = BeforeSuite(func() {
 	jaegerURL := os.Getenv("JAEGER_URL")
 
 	if jaegerURL != "" {
-		spanSyncer, err := (tracing.Jaeger{
-			Endpoint: jaegerURL + "/api/traces",
-			Service:  "algorithm_test",
-		}).Exporter()
+		c := tracing.Config{
+			Jaeger: tracing.Jaeger{
+				Endpoint: jaegerURL + "/api/traces",
+				Service:  "algorithm_test",
+			},
+		}
+
+		err := c.Prepare()
 		Expect(err).ToNot(HaveOccurred())
-
-		exporter = spanSyncer.(*jaeger.Exporter)
-
-		tp := tracing.TraceProvider(exporter)
-		tracing.ConfigureTraceProvider(tp)
 	}
 
 	postgresRunner = postgresrunner.Runner{
@@ -77,6 +77,6 @@ var _ = AfterSuite(func() {
 	<-dbProcess.Wait()
 
 	if exporter != nil {
-		exporter.Flush()
+		exporter.Shutdown(context.Background())
 	}
 })

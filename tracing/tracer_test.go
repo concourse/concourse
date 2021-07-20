@@ -4,42 +4,29 @@ import (
 	"context"
 
 	"github.com/concourse/concourse/tracing"
-	"github.com/concourse/concourse/tracing/tracingfakes"
-	"go.opentelemetry.io/otel/api/core"
-	"go.opentelemetry.io/otel/api/global"
-	"go.opentelemetry.io/otel/api/key"
-	"go.opentelemetry.io/otel/api/trace"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/oteltest"
+	"go.opentelemetry.io/otel/trace"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Tracer", func() {
-
 	var (
-		fakeSpan *tracingfakes.FakeSpan
+		spanRecorder *oteltest.SpanRecorder
 	)
 
 	BeforeEach(func() {
-		fakeTracer := new(tracingfakes.FakeTracer)
-		fakeProvider := new(tracingfakes.FakeProvider)
-		fakeSpan = new(tracingfakes.FakeSpan)
+		spanRecorder = new(oteltest.SpanRecorder)
 
-		fakeProvider.TracerReturns(fakeTracer)
-
-		fakeTracer.StartReturns(
-			context.Background(),
-			fakeSpan,
-		)
-
-		global.SetTraceProvider(fakeProvider)
-		tracing.Configured = true
+		provider := oteltest.NewTracerProvider(oteltest.WithSpanRecorder(spanRecorder))
+		tracing.ConfigureTraceProvider(provider)
 	})
 
 	Describe("StartSpan", func() {
 
 		var (
-			ctx  context.Context
 			span trace.Span
 
 			component = "a"
@@ -47,7 +34,7 @@ var _ = Describe("Tracer", func() {
 		)
 
 		JustBeforeEach(func() {
-			_, span = tracing.StartSpan(ctx, component, attrs)
+			_, span = tracing.StartSpan(context.Background(), component, attrs)
 		})
 
 		It("creates a span", func() {
@@ -64,14 +51,23 @@ var _ = Describe("Tracer", func() {
 			})
 
 			It("sets the attributes passed in", func() {
-				Expect(fakeSpan.SetAttributesCallCount()).To(Equal(1))
-
-				attrs := fakeSpan.SetAttributesArgsForCall(0)
-				Expect(attrs).To(ConsistOf([]core.KeyValue{
-					key.New("foo").String("bar"),
-					key.New("zaz").String("caz"),
+				spans := spanRecorder.Started()
+				Expect(spans).To(HaveLen(1))
+				Expect(spans[0].Attributes()).To(Equal(map[attribute.Key]attribute.Value{
+					"foo": attribute.StringValue("bar"),
+					"zaz": attribute.StringValue("caz"),
 				}))
 			})
+
+			// It("sets the attributes passed in", func() {
+			// 	Expect(fakeSpan.SetAttributesCallCount()).To(Equal(1))
+
+			// 	attrs := fakeSpan.SetAttributesArgsForCall(0)
+			// 	Expect(attrs).To(ConsistOf([]core.KeyValue{
+			// 		"foo": attribute.StringValue("bar"),
+			// 		"zaz": attribute.StringValue("caz"),
+			// 	}))
+			// })
 		})
 
 	})
