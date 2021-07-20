@@ -276,13 +276,38 @@
     With the setup described in \reference{multi-branch-tracking-branches},
     Concourse will automatically archive any pipelines for branches that get
     removed. However, Concourse doesn't know that it should destroy Terraform
-    workspaces when a branch is removed. To accomplish this, we can add another
-    job to the tracker pipeline that removes any Terraform workspaces that
-    don't belong to an active branch.
+    workspaces when a branch is removed. To accomplish this, we can yet again
+    make use of the \link{Terraform resource}{https://github.com/ljfranklin/terraform-resource}
+    to destroy these workspaces. We'll add another job to the tracker pipeline
+    that figures out which workspaces don't belong to an active branch and
+    destroy them.
 
     \link{\code{examples/pipelines/multi-branch/tracker.yml}}{https://github.com/aoldershaw/examples/blob/master/pipelines/multi-branch/tracker.yml}
     \codeblock{yaml}{{{
-      ...
+      resource_types:
+      - name: git-branches
+        ...
+
+      - name: terraform
+        type: registry-image
+        source:
+          repository: ljfranklin/terraform-resource
+
+      resources:
+      - name: feature-branches
+        ...
+
+      - name: examples
+        ...
+
+      - name: staging-env
+        type: terraform
+        source:
+          backend_type: gcs
+          backend_config: &terraform_backend_config
+            bucket: concourse-examples
+            prefix: multi-branch/terraform
+            credentials: ((concourse_artifacts_json_key))
 
       jobs:
       - name: set-feature-pipelines
@@ -290,26 +315,24 @@
 
       - name: cleanup-inactive-workspaces
         plan:
-        - get: feature-branches
-          passed: [set-feature-pipelines]
-          trigger: true
-        - load_var: active_branches
-          file: feature-branches/branches.json
-        - task: cleanup
+        - in_parallel:
+          - get: feature-branches
+            passed: [set-feature-pipelines]
+            trigger: true
+          - get: examples
+        - task: find-inactive-workspaces
           config:
             platform: linux
             image_resource:
               type: registry-image
               source: {repository: hashicorp/terraform}
+            inputs:
+            - name: feature-branches
+            outputs:
+            - name: extra-workspaces
             params:
-              ACTIVE_BRANCHES: ((.:active_branches))
               TERRAFORM_BACKEND_CONFIG:
-                terraform:
-                  backend:
-                    gcs:
-                      bucket: concourse-examples
-                      prefix: multi-branch/terraform
-                      credentials: ((concourse_artifacts_json_key))
+                gcs: *terraform_backend_config
             run:
               path: sh
               args:
@@ -317,25 +340,29 @@
               - |
                 set -euo pipefail
 
-                apk add jq
+                apk add -q jq
 
-                active_features="$(echo "$ACTIVE_BRANCHES" | jq '[.[].groups.feature]')"
+                active_features="$(jq '[.[].groups.feature]' feature-branches/branches.json)"
 
-                echo "$TERRAFORM_BACKEND_CONFIG" > backend.tf.json
+                jq -n "{terraform: {backend: $TERRAFORM_BACKEND_CONFIG}}" > backend.tf.json
                 terraform init
+
+                # List all active workspaces, ignoring the default workspace
                 active_workspaces="$(terraform workspace list | grep -v '^[*]' | tr -d ' ' | jq --raw-input --slurp 'split("\n") | map(select(. != ""))')"
 
-                jq -nr "$active_workspaces - $active_features | .[]" | while read extra_workspace
-                do
-                  echo "deleting workspace $extra_workspace"
-                  terraform workspace select "$extra_workspace"
-                  terraform init
-
-                  terraform destroy -auto-approve
-
-                  terraform workspace select default
-                  terraform workspace delete "$extra_workspace"
-                done
-    }}}
-  }
+                jq -n "$active_workspaces - $active_features" > extra-workspaces/workspaces.json
+        - load_var: extra_workspaces
+          file: extra-workspaces/workspaces.json
+        - across:
+          - var: workspace
+            values: ((.:extra_workspaces))
+          put: staging-env
+          params:
+            terraform_source: examples/terraform/staging
+            env_name: ((.:workspace))
+            action: destroy
+          get_params:
+            action: destroy
+          }}}
+        }
 }
