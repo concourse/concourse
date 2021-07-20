@@ -60,6 +60,22 @@ just here for completeness!
   but...please don't.
 }
 
+\schema{value}{
+  An arbitrary YAML value. May be a \reference{schema.number},
+  \reference{schema.string}, \reference{schema.boolean},
+  \reference{schema.config}, or a \code{[\reference{schema.value}]}.
+
+  \codeblock{yaml}{{{
+  values:
+  - 123
+  - bar
+  - true
+  - key1: abc
+    key2: def
+  - [hello, world]
+  }}}
+}
+
 \schema{identifier}{
   An \italic{identifier} is a string value. The following defines the allowed
   character set for an \italic{identifier}:
