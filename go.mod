@@ -25,7 +25,7 @@ require (
 	github.com/concourse/flag v1.1.0
 	github.com/concourse/go-archive v1.0.1
 	github.com/concourse/retryhttp v1.1.1
-	github.com/containerd/containerd v1.5.3
+	github.com/containerd/containerd v1.5.4
 	github.com/containerd/go-cni v1.0.2
 	github.com/containerd/typeurl v1.0.2
 	github.com/coreos/go-iptables v0.6.0
