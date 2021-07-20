@@ -240,6 +240,11 @@
         type: git-branches
         source:
           uri: https://github.com/concourse/examples
+          # The "(?P<name>pattern)" syntax defines a named capture group.
+          # aoldershaw/git-branches-resource emits the value of each named capture
+          # group under the `groups` key.
+          #
+          # e.g. feature/some-feature ==> {"groups": {"feature": "some-feature"}}
           branch_regex: 'feature/(?P<feature>.*)'
 
       - name: examples
@@ -307,7 +312,7 @@
           backend_config: &terraform_backend_config
             bucket: concourse-examples
             prefix: multi-branch/terraform
-            credentials: ((concourse_artifacts_json_key))
+            credentials: ((gcp_service_account_key))
 
       jobs:
       - name: set-feature-pipelines

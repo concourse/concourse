@@ -1041,8 +1041,7 @@ by configuring \reference{schema.step.on_failure} or
   }
 
   \optional-attribute{across}{[across_var]}{
-    Run a wrapped step multiple times with different combinations of variable
-    values.
+    Run a step multiple times with different combinations of variable values.
 
     \warn{
       \code{across} is considered an \bold{experimental} feature, and its
@@ -1054,7 +1053,8 @@ by configuring \reference{schema.step.on_failure} or
       \required-attribute{var}{identifier}{
         The name of the variable that will be added to the
         \reference{local-vars}{"\code{.}" var source}. This variable will only be
-        accessible in the scope of the wrapped step.
+        accessible in the scope of the step - each iteration of the step gets
+        its own scope.
 
         If a variable of the same name already exists in the parent scope, a
         warning will be printed.
