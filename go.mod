@@ -35,7 +35,7 @@ require (
 	github.com/fatih/color v1.12.0
 	github.com/felixge/httpsnoop v1.0.2
 	github.com/gobwas/glob v0.2.3
-	github.com/goccy/go-yaml v1.9.0
+	github.com/goccy/go-yaml v1.9.1
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
 	github.com/google/jsonapi v0.0.0-20180618021926-5d047c6bc66b
