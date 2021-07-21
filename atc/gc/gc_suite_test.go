@@ -65,6 +65,7 @@ var _ = BeforeEach(func() {
 	postgresRunner.CreateTestDBFromTemplate()
 
 	dbConn = postgresRunner.OpenConn()
+	db.CleanupBaseResourceTypesCache()
 
 	lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton(), fakeLogFunc, fakeLogFunc)
 
