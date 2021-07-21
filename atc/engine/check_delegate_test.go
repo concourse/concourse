@@ -238,7 +238,6 @@ var _ = Describe("CheckDelegate", func() {
 						Expect(fakeResourceConfigScope.LastCheckCallCount()).To(Equal(1))
 					})
 				})
-
 				Context("when the build create time earlier than last check start time", func() {
 					BeforeEach(func() {
 						fakeBuild.CreateTimeReturns(time.Now().Add(-5 * time.Second))
@@ -282,54 +281,6 @@ var _ = Describe("CheckDelegate", func() {
 				})
 			})
 
-			Context("when the build is lidar triggered", func() {
-				BeforeEach(func() {
-					fakeBuild.IsManuallyTriggeredReturns(false)
-				})
-
-				It("does rate limit", func() {
-					Expect(fakeRateLimiter.WaitCallCount()).To(Equal(1))
-				})
-			})
-
-			Context("when fail to get scope last start time", func() {
-				BeforeEach(func() {
-					fakeResourceConfigScope.LastCheckReturns(db.LastCheck{}, errors.New("some-error"))
-				})
-
-				Context("with an interval configured", func() {
-					var interval time.Duration = time.Minute
-
-					BeforeEach(func() {
-						plan.Check.Interval = atc.CheckEvery{
-							Interval: interval,
-						}
-					})
-
-					Context("when the interval has not elapsed since the last check", func() {
-						BeforeEach(func() {
-							fakeResourceConfigScope.LastCheckReturns(db.LastCheck{
-								StartTime: now.Add(-(interval + 10)),
-								EndTime:   now.Add(-(interval - 1)),
-								Succeeded: true,
-							}, nil)
-						})
-
-						It("returns false", func() {
-							Expect(run).To(BeFalse())
-						})
-
-						It("releases the lock", func() {
-							Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
-						})
-					})
-
-					It("never attempts to acquire the lock", func() {
-						Expect(fakeResourceConfigScope.AcquireResourceCheckingLockCallCount()).To(Equal(0))
-					})
-				})
-			})
-
 			Context("when getting the last check end time errors", func() {
 				BeforeEach(func() {
 					fakeResourceConfigScope.LastCheckReturns(db.LastCheck{}, errors.New("oh no"))
@@ -338,9 +289,41 @@ var _ = Describe("CheckDelegate", func() {
 				It("returns an error", func() {
 					Expect(runErr).To(HaveOccurred())
 				})
+			})
 
-				It("releases the lock", func() {
-					Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
+			Context("when fail to get scope last start time", func() {
+				BeforeEach(func() {
+					fakeResourceConfigScope.LastCheckReturns(db.LastCheck{}, errors.New("some-error"))
+				})
+
+				Context("when the interval has not elapsed since the last check", func() {
+					BeforeEach(func() {
+						plan.Check.Interval = atc.CheckEvery{
+							Interval: interval,
+						}
+					})
+
+					It("returns false", func() {
+						Expect(run).To(BeFalse())
+					})
+
+					It("never attempts to acquire the lock", func() {
+						Expect(fakeResourceConfigScope.AcquireResourceCheckingLockCallCount()).To(Equal(0))
+					})
+				})
+
+				Context("when the interval has elapsed since the last check", func() {
+					BeforeEach(func() {
+						fakeResourceConfigScope.LastCheckReturns(db.LastCheck{
+							StartTime: now.Add(-(interval + 10)),
+							EndTime:   now.Add(-(interval + 1)),
+							Succeeded: true,
+						}, nil)
+					})
+
+					It("returns true", func() {
+						Expect(run).To(BeTrue())
+					})
 				})
 
 				Context("when the last check value gets updated after the first loop of attempting to acquire lock", func() {

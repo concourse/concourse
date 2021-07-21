@@ -219,7 +219,7 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 		if err != nil {
 			return false, fmt.Errorf("update check end time: %w", err)
 		}
-	} else if !step.plan.IsPeriodic() || delegate.IsManuallyTriggered() {
+	} else {
 		latestVersion, found, err := scope.LatestVersion()
 		if err != nil {
 			return false, fmt.Errorf("get latest version: %w", err)
@@ -307,7 +307,7 @@ func (step *CheckStep) runCheck(
 }
 
 func (step *CheckStep) containerOwner(delegate CheckDelegate, resourceConfig db.ResourceConfig) db.ContainerOwner {
-	if !step.plan.IsPeriodic() {
+	if step.plan.Resource == "" {
 		return delegate.ContainerOwner(step.planID)
 	}
 
