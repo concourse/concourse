@@ -119,155 +119,173 @@ func (config *PrometheusConfig) bind() string {
 	return fmt.Sprintf("%s:%s", config.BindIP, config.BindPort)
 }
 
-func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
+func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric.Emitter, error) {
 	// error log metrics
 	errorLogs := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace: "concourse",
-			Subsystem: "error",
-			Name:      "logs",
-			Help:      "Number of error logged",
+			Namespace:   "concourse",
+			Subsystem:   "error",
+			Name:        "logs",
+			Help:        "Number of error logged",
+			ConstLabels: attributes,
 		}, []string{"message"},
 	)
 	prometheus.MustRegister(errorLogs)
 
 	// lock metrics
 	locksHeld := prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: "concourse",
-		Subsystem: "locks",
-		Name:      "held",
-		Help:      "Database locks held",
+		Namespace:   "concourse",
+		Subsystem:   "locks",
+		Name:        "held",
+		Help:        "Database locks held",
+		ConstLabels: attributes,
 	}, []string{"type"})
 	prometheus.MustRegister(locksHeld)
 
 	// job metrics
 	jobsScheduled := prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace: "concourse",
-		Subsystem: "jobs",
-		Name:      "scheduled_total",
-		Help:      "Total number of Concourse jobs scheduled.",
+		Namespace:   "concourse",
+		Subsystem:   "jobs",
+		Name:        "scheduled_total",
+		Help:        "Total number of Concourse jobs scheduled.",
+		ConstLabels: attributes,
 	})
 	prometheus.MustRegister(jobsScheduled)
 
 	jobsScheduling := prometheus.NewGauge(prometheus.GaugeOpts{
-		Namespace: "concourse",
-		Subsystem: "jobs",
-		Name:      "scheduling",
-		Help:      "Number of Concourse jobs currently being scheduled.",
+		Namespace:   "concourse",
+		Subsystem:   "jobs",
+		Name:        "scheduling",
+		Help:        "Number of Concourse jobs currently being scheduled.",
+		ConstLabels: attributes,
 	})
 	prometheus.MustRegister(jobsScheduling)
 
 	// build metrics
 	buildsStarted := prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace: "concourse",
-		Subsystem: "builds",
-		Name:      "started_total",
-		Help:      "Total number of Concourse builds started.",
+		Namespace:   "concourse",
+		Subsystem:   "builds",
+		Name:        "started_total",
+		Help:        "Total number of Concourse builds started.",
+		ConstLabels: attributes,
 	})
 	prometheus.MustRegister(buildsStarted)
 
 	buildsRunning := prometheus.NewGauge(prometheus.GaugeOpts{
-		Namespace: "concourse",
-		Subsystem: "builds",
-		Name:      "running",
-		Help:      "Number of Concourse builds currently running.",
+		Namespace:   "concourse",
+		Subsystem:   "builds",
+		Name:        "running",
+		Help:        "Number of Concourse builds currently running.",
+		ConstLabels: attributes,
 	})
 	prometheus.MustRegister(buildsRunning)
 
 	checkBuildsStarted := prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace: "concourse",
-		Subsystem: "builds",
-		Name:      "check_started_total",
-		Help:      "Total number of Concourse check builds started.",
+		Namespace:   "concourse",
+		Subsystem:   "builds",
+		Name:        "check_started_total",
+		Help:        "Total number of Concourse check builds started.",
+		ConstLabels: attributes,
 	})
 	prometheus.MustRegister(checkBuildsStarted)
 
 	checkBuildsRunning := prometheus.NewGauge(prometheus.GaugeOpts{
-		Namespace: "concourse",
-		Subsystem: "builds",
-		Name:      "check_running",
-		Help:      "Number of Concourse check builds currently running.",
+		Namespace:   "concourse",
+		Subsystem:   "builds",
+		Name:        "check_running",
+		Help:        "Number of Concourse check builds currently running.",
+		ConstLabels: attributes,
 	})
 	prometheus.MustRegister(checkBuildsRunning)
 
 	concurrentRequestsLimitHit := prometheus.NewCounterVec(prometheus.CounterOpts{
-		Namespace: "concourse",
-		Subsystem: "concurrent_requests",
-		Name:      "limit_hit_total",
-		Help:      "Total number of requests rejected because the server was already serving too many concurrent requests.",
+		Namespace:   "concourse",
+		Subsystem:   "concurrent_requests",
+		Name:        "limit_hit_total",
+		Help:        "Total number of requests rejected because the server was already serving too many concurrent requests.",
+		ConstLabels: attributes,
 	}, []string{"action"})
 	prometheus.MustRegister(concurrentRequestsLimitHit)
 
 	concurrentRequests := prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: "concourse",
-		Name:      "concurrent_requests",
-		Help:      "Number of concurrent requests being served by endpoints that have a specified limit of concurrent requests.",
+		Namespace:   "concourse",
+		Name:        "concurrent_requests",
+		Help:        "Number of concurrent requests being served by endpoints that have a specified limit of concurrent requests.",
+		ConstLabels: attributes,
 	}, []string{"action"})
 	prometheus.MustRegister(concurrentRequests)
 
 	stepsWaiting := prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: "concourse",
-		Subsystem: "steps",
-		Name:      "waiting",
-		Help:      "Number of Concourse build steps currently waiting.",
+		Namespace:   "concourse",
+		Subsystem:   "steps",
+		Name:        "waiting",
+		Help:        "Number of Concourse build steps currently waiting.",
+		ConstLabels: attributes,
 	}, []string{"platform", "teamId", "teamName", "type", "workerTags"})
 	prometheus.MustRegister(stepsWaiting)
 
 	stepsWaitingDuration := prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Namespace: "concourse",
-		Subsystem: "steps",
-		Name:      "wait_duration",
-		Help:      "Elapsed time waiting for execution",
-		Buckets:   []float64{10, 30, 60, 120, 300, 600, 1800, 2400, 3000, 3600},
+		Namespace:   "concourse",
+		Subsystem:   "steps",
+		Name:        "wait_duration",
+		Help:        "Elapsed time waiting for execution",
+		ConstLabels: attributes,
+		Buckets:     []float64{10, 30, 60, 120, 300, 600, 1800, 2400, 3000, 3600},
 	}, []string{"platform", "teamId", "teamName", "type", "workerTags"})
 	prometheus.MustRegister(stepsWaitingDuration)
 
 	buildsFinished := prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace: "concourse",
-		Subsystem: "builds",
-		Name:      "finished_total",
-		Help:      "Total number of Concourse builds finished.",
+		Namespace:   "concourse",
+		Subsystem:   "builds",
+		Name:        "finished_total",
+		Help:        "Total number of Concourse builds finished.",
+		ConstLabels: attributes,
 	})
 	prometheus.MustRegister(buildsFinished)
 
 	buildsSucceeded := prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace: "concourse",
-		Subsystem: "builds",
-		Name:      "succeeded_total",
-		Help:      "Total number of Concourse builds succeeded.",
+		Namespace:   "concourse",
+		Subsystem:   "builds",
+		Name:        "succeeded_total",
+		Help:        "Total number of Concourse builds succeeded.",
+		ConstLabels: attributes,
 	})
 	prometheus.MustRegister(buildsSucceeded)
 
 	buildsErrored := prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace: "concourse",
-		Subsystem: "builds",
-		Name:      "errored_total",
-		Help:      "Total number of Concourse builds errored.",
+		Namespace:   "concourse",
+		Subsystem:   "builds",
+		Name:        "errored_total",
+		Help:        "Total number of Concourse builds errored.",
+		ConstLabels: attributes,
 	})
 	prometheus.MustRegister(buildsErrored)
 
 	buildsFailed := prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace: "concourse",
-		Subsystem: "builds",
-		Name:      "failed_total",
-		Help:      "Total number of Concourse builds failed.",
+		Namespace:   "concourse",
+		Subsystem:   "builds",
+		Name:        "failed_total",
+		Help:        "Total number of Concourse builds failed.",
+		ConstLabels: attributes,
 	})
 	prometheus.MustRegister(buildsFailed)
 
 	buildsAborted := prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace: "concourse",
-		Subsystem: "builds",
-		Name:      "aborted_total",
-		Help:      "Total number of Concourse builds aborted.",
+		Namespace:   "concourse",
+		Subsystem:   "builds",
+		Name:        "aborted_total",
+		Help:        "Total number of Concourse builds aborted.",
+		ConstLabels: attributes,
 	})
 	prometheus.MustRegister(buildsAborted)
 
 	buildsFinishedVec := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace: "concourse",
-			Subsystem: "builds",
-			Name:      "finished",
-			Help:      "Count of builds finished across various dimensions.",
+			Namespace:   "concourse",
+			Subsystem:   "builds",
+			Name:        "finished",
+			Help:        "Count of builds finished across various dimensions.",
+			ConstLabels: attributes,
 		},
 		[]string{"team", "pipeline", "job", "status"},
 	)
@@ -275,63 +293,70 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 
 	buildDurationsVec := prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Namespace: "concourse",
-			Subsystem: "builds",
-			Name:      "duration_seconds",
-			Help:      "Build time in seconds",
-			Buckets:   []float64{1, 60, 180, 300, 600, 900, 1200, 1800, 2700, 3600, 7200, 18000, 36000},
+			Namespace:   "concourse",
+			Subsystem:   "builds",
+			Name:        "duration_seconds",
+			Help:        "Build time in seconds",
+			ConstLabels: attributes,
+			Buckets:     []float64{1, 60, 180, 300, 600, 900, 1200, 1800, 2700, 3600, 7200, 18000, 36000},
 		},
 		[]string{"team", "pipeline", "job"},
 	)
 	prometheus.MustRegister(buildDurationsVec)
 
 	checkBuildsFinished := prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace: "concourse",
-		Subsystem: "builds",
-		Name:      "check_finished_total",
-		Help:      "Total number of Concourse check builds finished.",
+		Namespace:   "concourse",
+		Subsystem:   "builds",
+		Name:        "check_finished_total",
+		Help:        "Total number of Concourse check builds finished.",
+		ConstLabels: attributes,
 	})
 	prometheus.MustRegister(checkBuildsFinished)
 
 	checkBuildsSucceeded := prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace: "concourse",
-		Subsystem: "builds",
-		Name:      "check_succeeded_total",
-		Help:      "Total number of Concourse check builds succeeded.",
+		Namespace:   "concourse",
+		Subsystem:   "builds",
+		Name:        "check_succeeded_total",
+		Help:        "Total number of Concourse check builds succeeded.",
+		ConstLabels: attributes,
 	})
 	prometheus.MustRegister(checkBuildsSucceeded)
 
 	checkBuildsErrored := prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace: "concourse",
-		Subsystem: "builds",
-		Name:      "check_errored_total",
-		Help:      "Total number of Concourse check builds errored.",
+		Namespace:   "concourse",
+		Subsystem:   "builds",
+		Name:        "check_errored_total",
+		Help:        "Total number of Concourse check builds errored.",
+		ConstLabels: attributes,
 	})
 	prometheus.MustRegister(checkBuildsErrored)
 
 	checkBuildsFailed := prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace: "concourse",
-		Subsystem: "builds",
-		Name:      "check_failed_total",
-		Help:      "Total number of Concourse check builds failed.",
+		Namespace:   "concourse",
+		Subsystem:   "builds",
+		Name:        "check_failed_total",
+		Help:        "Total number of Concourse check builds failed.",
+		ConstLabels: attributes,
 	})
 	prometheus.MustRegister(checkBuildsFailed)
 
 	checkBuildsAborted := prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace: "concourse",
-		Subsystem: "builds",
-		Name:      "check_aborted_total",
-		Help:      "Total number of Concourse check builds aborted.",
+		Namespace:   "concourse",
+		Subsystem:   "builds",
+		Name:        "check_aborted_total",
+		Help:        "Total number of Concourse check builds aborted.",
+		ConstLabels: attributes,
 	})
 	prometheus.MustRegister(checkBuildsAborted)
 
 	// worker metrics
 	workerContainers := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Namespace: "concourse",
-			Subsystem: "workers",
-			Name:      "containers",
-			Help:      "Number of containers per worker",
+			Namespace:   "concourse",
+			Subsystem:   "workers",
+			Name:        "containers",
+			Help:        "Number of containers per worker",
+			ConstLabels: attributes,
 		},
 		[]string{"worker", "platform", "team", "tags"},
 	)
@@ -339,10 +364,11 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 
 	workerUnknownContainers := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Namespace: "concourse",
-			Subsystem: "workers",
-			Name:      "unknown_containers",
-			Help:      "Number of unknown containers found on worker",
+			Namespace:   "concourse",
+			Subsystem:   "workers",
+			Name:        "unknown_containers",
+			Help:        "Number of unknown containers found on worker",
+			ConstLabels: attributes,
 		},
 		[]string{"worker"},
 	)
@@ -350,10 +376,11 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 
 	workerVolumes := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Namespace: "concourse",
-			Subsystem: "workers",
-			Name:      "volumes",
-			Help:      "Number of volumes per worker",
+			Namespace:   "concourse",
+			Subsystem:   "workers",
+			Name:        "volumes",
+			Help:        "Number of volumes per worker",
+			ConstLabels: attributes,
 		},
 		[]string{"worker", "platform", "team", "tags"},
 	)
@@ -361,10 +388,11 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 
 	workerUnknownVolumes := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Namespace: "concourse",
-			Subsystem: "workers",
-			Name:      "unknown_volumes",
-			Help:      "Number of unknown volumes found on worker",
+			Namespace:   "concourse",
+			Subsystem:   "workers",
+			Name:        "unknown_volumes",
+			Help:        "Number of unknown volumes found on worker",
+			ConstLabels: attributes,
 		},
 		[]string{"worker"},
 	)
@@ -372,10 +400,11 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 
 	workerTasks := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Namespace: "concourse",
-			Subsystem: "workers",
-			Name:      "tasks",
-			Help:      "Number of active tasks per worker",
+			Namespace:   "concourse",
+			Subsystem:   "workers",
+			Name:        "tasks",
+			Help:        "Number of active tasks per worker",
+			ConstLabels: attributes,
 		},
 		[]string{"worker", "platform"},
 	)
@@ -383,10 +412,11 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 
 	workersRegistered := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Namespace: "concourse",
-			Subsystem: "workers",
-			Name:      "registered",
-			Help:      "Number of workers per state as seen by the database",
+			Namespace:   "concourse",
+			Subsystem:   "workers",
+			Name:        "registered",
+			Help:        "Number of workers per state as seen by the database",
+			ConstLabels: attributes,
 		},
 		[]string{"state"},
 	)
@@ -395,29 +425,32 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 	// http metrics
 	httpRequestsDuration := prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Namespace: "concourse",
-			Subsystem: "http_responses",
-			Name:      "duration_seconds",
-			Help:      "Response time in seconds",
+			Namespace:   "concourse",
+			Subsystem:   "http_responses",
+			Name:        "duration_seconds",
+			Help:        "Response time in seconds",
+			ConstLabels: attributes,
 		},
 		[]string{"method", "route", "status"},
 	)
 	prometheus.MustRegister(httpRequestsDuration)
 
 	dbQueriesTotal := prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace: "concourse",
-		Subsystem: "db",
-		Name:      "queries_total",
-		Help:      "Total number of database Concourse database queries",
+		Namespace:   "concourse",
+		Subsystem:   "db",
+		Name:        "queries_total",
+		Help:        "Total number of database Concourse database queries",
+		ConstLabels: attributes,
 	})
 	prometheus.MustRegister(dbQueriesTotal)
 
 	dbConnections := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Namespace: "concourse",
-			Subsystem: "db",
-			Name:      "connections",
-			Help:      "Current number of concourse database connections",
+			Namespace:   "concourse",
+			Subsystem:   "db",
+			Name:        "connections",
+			Help:        "Current number of concourse database connections",
+			ConstLabels: attributes,
 		},
 		[]string{"dbname"},
 	)
@@ -425,10 +458,11 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 
 	checksFinished := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace: "concourse",
-			Subsystem: "lidar",
-			Name:      "checks_finished_total",
-			Help:      "Total number of checks finished.",
+			Namespace:   "concourse",
+			Subsystem:   "lidar",
+			Name:        "checks_finished_total",
+			Help:        "Total number of checks finished.",
+			ConstLabels: attributes,
 		},
 		[]string{"status"},
 	)
@@ -436,50 +470,55 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 
 	checksStarted := prometheus.NewCounter(
 		prometheus.CounterOpts{
-			Namespace: "concourse",
-			Subsystem: "lidar",
-			Name:      "checks_started_total",
-			Help:      "Total number of checks started. With global resource enabled, a check build may not really run a check, thus total checks started should be less than total check builds started.",
+			Namespace:   "concourse",
+			Subsystem:   "lidar",
+			Name:        "checks_started_total",
+			Help:        "Total number of checks started. With global resource enabled, a check build may not really run a check, thus total checks started should be less than total check builds started.",
+			ConstLabels: attributes,
 		},
 	)
 	prometheus.MustRegister(checksStarted)
 
 	checksEnqueued := prometheus.NewCounter(
 		prometheus.CounterOpts{
-			Namespace: "concourse",
-			Subsystem: "lidar",
-			Name:      "checks_enqueued_total",
-			Help:      "Total number of checks enqueued",
+			Namespace:   "concourse",
+			Subsystem:   "lidar",
+			Name:        "checks_enqueued_total",
+			Help:        "Total number of checks enqueued",
+			ConstLabels: attributes,
 		},
 	)
 	prometheus.MustRegister(checksEnqueued)
 
 	volumesStreamed := prometheus.NewCounter(
 		prometheus.CounterOpts{
-			Namespace: "concourse",
-			Subsystem: "volumes",
-			Name:      "volumes_streamed",
-			Help:      "Total number of volumes streamed from one worker to the other",
+			Namespace:   "concourse",
+			Subsystem:   "volumes",
+			Name:        "volumes_streamed",
+			Help:        "Total number of volumes streamed from one worker to the other",
+			ConstLabels: attributes,
 		},
 	)
 	prometheus.MustRegister(volumesStreamed)
 
 	getStepCacheHits := prometheus.NewCounter(
 		prometheus.CounterOpts{
-			Namespace: "concourse",
-			Subsystem: "caches",
-			Name:      "get_step_cache_hits",
-			Help:      "Total number of get steps that hit caches",
+			Namespace:   "concourse",
+			Subsystem:   "caches",
+			Name:        "get_step_cache_hits",
+			Help:        "Total number of get steps that hit caches",
+			ConstLabels: attributes,
 		},
 	)
 	prometheus.MustRegister(getStepCacheHits)
 
 	streamedResourceCaches := prometheus.NewCounter(
 		prometheus.CounterOpts{
-			Namespace: "concourse",
-			Subsystem: "caches",
-			Name:      "streamed_resource_caches",
-			Help:      "Total number of streamed resource caches",
+			Namespace:   "concourse",
+			Subsystem:   "caches",
+			Name:        "streamed_resource_caches",
+			Help:        "Total number of streamed resource caches",
+			ConstLabels: attributes,
 		},
 	)
 	prometheus.MustRegister(streamedResourceCaches)

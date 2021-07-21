@@ -188,7 +188,7 @@ var _ = Describe("PrometheusEmitter", func() {
 	})
 
 	JustBeforeEach(func() {
-		prometheusEmitter, err = prometheusConfig.NewEmitter()
+		prometheusEmitter, err = prometheusConfig.NewEmitter(nil)
 	})
 
 	It("emits step waiting metric", func() {
