@@ -34,6 +34,7 @@ func RegisterEvent(e atc.Event) {
 }
 
 func init() {
+	RegisterEvent(InitializeCheck{})
 	RegisterEvent(InitializeTask{})
 	RegisterEvent(StartTask{})
 	RegisterEvent(FinishTask{})

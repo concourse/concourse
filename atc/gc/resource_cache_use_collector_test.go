@@ -23,7 +23,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 	Describe("Run", func() {
 		Describe("cache uses", func() {
 			var (
-				versionedResourceType atc.VersionedResourceType
+				customResourceTypeCache db.ResourceCache
 			)
 
 			countResourceCacheUses := func() int {
@@ -44,21 +44,21 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 				return result
 			}
 
-			BeforeEach(func() {
-				versionedResourceType = atc.VersionedResourceType{
-					ResourceType: atc.ResourceType{
-						Name: "some-type",
-						Type: "some-base-type",
-						Source: atc.Source{
-							"some-type": "source-param",
-						},
-					},
-					Version: atc.Version{"some-type": "version"},
-				}
-			})
-
 			Describe("for one-off builds", func() {
 				BeforeEach(func() {
+					var err error
+					customResourceTypeCache, err = resourceCacheFactory.FindOrCreateResourceCache(
+						db.ForBuild(defaultBuild.ID()),
+						"some-base-type",
+						atc.Version{"some-type": "version"},
+						atc.Source{
+							"some-type": "source-param",
+						},
+						nil,
+						nil,
+					)
+					Expect(err).NotTo(HaveOccurred())
+
 					_, err = resourceCacheFactory.FindOrCreateResourceCache(
 						db.ForBuild(defaultBuild.ID()),
 						"some-type",
@@ -67,9 +67,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 							"some": "source",
 						},
 						atc.Params{"some": "params"},
-						atc.VersionedResourceTypes{
-							versionedResourceType,
-						},
+						customResourceTypeCache,
 					)
 					Expect(err).NotTo(HaveOccurred())
 				})
@@ -123,6 +121,18 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 					jobBuild, err = defaultJob.CreateBuild("someone")
 					Expect(err).ToNot(HaveOccurred())
 
+					customResourceTypeCache, err = resourceCacheFactory.FindOrCreateResourceCache(
+						db.ForBuild(jobBuild.ID()),
+						"some-base-type",
+						atc.Version{"some-type": "version"},
+						atc.Source{
+							"some-type": "source-param",
+						},
+						nil,
+						nil,
+					)
+					Expect(err).NotTo(HaveOccurred())
+
 					_, err = resourceCacheFactory.FindOrCreateResourceCache(
 						db.ForBuild(jobBuild.ID()),
 						"some-type",
@@ -131,9 +141,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 							"some": "source",
 						},
 						atc.Params{"some": "params"},
-						atc.VersionedResourceTypes{
-							versionedResourceType,
-						},
+						customResourceTypeCache,
 					)
 					Expect(err).NotTo(HaveOccurred())
 				})
@@ -164,9 +172,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 								"some": "source",
 							},
 							atc.Params{"some": "params"},
-							atc.VersionedResourceTypes{
-								versionedResourceType,
-							},
+							customResourceTypeCache,
 						)
 						Expect(err).NotTo(HaveOccurred())
 					})
@@ -182,58 +188,6 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 						Expect(buildCollector.Run(context.TODO())).To(Succeed())
 						Expect(collector.Run(context.TODO())).To(Succeed())
 
-						Expect(countResourceCacheUses()).To(BeZero())
-					})
-				})
-			})
-
-			Describe("for containers", func() {
-				var container db.CreatingContainer
-
-				BeforeEach(func() {
-					worker, err := defaultTeam.SaveWorker(atc.Worker{
-						Name: "some-worker",
-					}, 0)
-					Expect(err).ToNot(HaveOccurred())
-
-					container, err = worker.CreateContainer(
-						db.NewBuildStepContainerOwner(defaultBuild.ID(), "some-plan", defaultTeam.ID()),
-						db.ContainerMetadata{},
-					)
-					Expect(err).ToNot(HaveOccurred())
-
-					_, err = resourceCacheFactory.FindOrCreateResourceCache(
-						db.ForContainer(container.ID()),
-						"some-type",
-						atc.Version{"some-type": "version"},
-						atc.Source{
-							"cache": "source",
-						},
-						atc.Params{"some": "params"},
-						atc.VersionedResourceTypes{
-							versionedResourceType,
-						},
-					)
-					Expect(err).NotTo(HaveOccurred())
-				})
-
-				Context("while the container is still in use", func() {
-					It("does not clean up the uses", func() {
-						Expect(countResourceCacheUses()).NotTo(BeZero())
-						Expect(collector.Run(context.TODO())).To(Succeed())
-						Expect(countResourceCacheUses()).NotTo(BeZero())
-					})
-				})
-
-				Context("when the container is removed", func() {
-					It("cleans up the uses (except it was actually a cascade delete, not the GC, lol)", func() {
-						Expect(countResourceCacheUses()).NotTo(BeZero())
-						created, err := container.Created()
-						Expect(err).ToNot(HaveOccurred())
-						destroying, err := created.Destroying()
-						Expect(err).ToNot(HaveOccurred())
-						Expect(destroying.Destroy()).To(BeTrue())
-						Expect(collector.Run(context.TODO())).To(Succeed())
 						Expect(countResourceCacheUses()).To(BeZero())
 					})
 				})

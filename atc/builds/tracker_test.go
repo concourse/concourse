@@ -7,11 +7,10 @@ import (
 	"time"
 
 	"github.com/concourse/concourse/atc/builds"
+	"github.com/concourse/concourse/atc/builds/buildsfakes"
 	"github.com/concourse/concourse/atc/component"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/concourse/concourse/atc/engine"
-	"github.com/concourse/concourse/atc/engine/enginefakes"
 	"github.com/concourse/concourse/atc/util"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -26,7 +25,7 @@ type TrackerSuite struct {
 	*require.Assertions
 
 	fakeBuildFactory *dbfakes.FakeBuildFactory
-	fakeEngine       *enginefakes.FakeEngine
+	fakeEngine       *buildsfakes.FakeEngine
 
 	tracker *builds.Tracker
 }
@@ -39,7 +38,7 @@ func TestTracker(t *testing.T) {
 
 func (s *TrackerSuite) SetupTest() {
 	s.fakeBuildFactory = new(dbfakes.FakeBuildFactory)
-	s.fakeEngine = new(enginefakes.FakeEngine)
+	s.fakeEngine = new(buildsfakes.FakeEngine)
 
 	s.tracker = builds.NewTracker(
 		s.fakeBuildFactory,
@@ -58,8 +57,8 @@ func (s *TrackerSuite) TestTrackRunsStartedBuilds() {
 	s.fakeBuildFactory.GetAllStartedBuildsReturns(startedBuilds, nil)
 
 	running := make(chan db.Build, 3)
-	s.fakeEngine.NewBuildStub = func(build db.Build) engine.Runnable {
-		engineBuild := new(enginefakes.FakeRunnable)
+	s.fakeEngine.NewBuildStub = func(build db.Build) builds.Runnable {
+		engineBuild := new(buildsfakes.FakeRunnable)
 		engineBuild.RunStub = func(context.Context) {
 			running <- build
 		}
@@ -97,8 +96,8 @@ func (s *TrackerSuite) TestTrackerDoesntCrashWhenOneBuildPanic() {
 	s.fakeBuildFactory.GetAllStartedBuildsReturns(startedBuilds, nil)
 
 	running := make(chan db.Build, 3)
-	s.fakeEngine.NewBuildStub = func(build db.Build) engine.Runnable {
-		fakeEngineBuild := new(enginefakes.FakeRunnable)
+	s.fakeEngine.NewBuildStub = func(build db.Build) builds.Runnable {
+		fakeEngineBuild := new(buildsfakes.FakeRunnable)
 		fakeEngineBuild.RunStub = func(context.Context) {
 			if build.ID() == 1 {
 				panic("something went wrong")
@@ -139,8 +138,8 @@ func (s *TrackerSuite) TestTrackDoesntTrackAlreadyRunningBuilds() {
 	defer close(wait)
 
 	running := make(chan db.Build, 3)
-	s.fakeEngine.NewBuildStub = func(build db.Build) engine.Runnable {
-		engineBuild := new(enginefakes.FakeRunnable)
+	s.fakeEngine.NewBuildStub = func(build db.Build) builds.Runnable {
+		engineBuild := new(buildsfakes.FakeRunnable)
 		engineBuild.RunStub = func(context.Context) {
 			running <- build
 			<-wait

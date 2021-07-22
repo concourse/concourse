@@ -41,7 +41,7 @@ var _ = Describe("GetStep", func() {
 		fakeResourceFactory      *resourcefakes.FakeResourceFactory
 		fakeResource             *resourcefakes.FakeResource
 		fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
-		fakeResourceCache        *dbfakes.FakeUsedResourceCache
+		fakeResourceCache        *dbfakes.FakeResourceCache
 
 		fakeDelegate        *execfakes.FakeGetDelegate
 		fakeDelegateFactory *execfakes.FakeGetDelegateFactory
@@ -50,8 +50,8 @@ var _ = Describe("GetStep", func() {
 
 		getPlan *atc.GetPlan
 
-		artifactRepository *build.Repository
 		fakeState          *execfakes.FakeRunState
+		artifactRepository *build.Repository
 
 		getStep exec.Step
 		stepOk  bool
@@ -90,7 +90,7 @@ var _ = Describe("GetStep", func() {
 		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
 		fakeResource = new(resourcefakes.FakeResource)
 		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
-		fakeResourceCache = new(dbfakes.FakeUsedResourceCache)
+		fakeResourceCache = new(dbfakes.FakeResourceCache)
 
 		artifactRepository = build.NewRepository()
 		fakeState = new(execfakes.FakeRunState)
@@ -112,31 +112,14 @@ var _ = Describe("GetStep", func() {
 		fakeDelegateFactory.GetDelegateReturns(fakeDelegate)
 
 		getPlan = &atc.GetPlan{
-			Name:    "some-name",
-			Type:    "some-base-type",
+			Name: "some-name",
+			Type: "some-base-type",
+			TypeImage: atc.TypeImage{
+				BaseType: "some-base-type",
+			},
 			Source:  atc.Source{"some": "((source-var))"},
 			Params:  atc.Params{"some": "((params-var))"},
 			Version: &atc.Version{"some": "version"},
-			VersionedResourceTypes: atc.VersionedResourceTypes{
-				{
-					ResourceType: atc.ResourceType{
-						Name:   "some-custom-type",
-						Type:   "another-custom-type",
-						Source: atc.Source{"some-custom": "((source-var))"},
-						Params: atc.Params{"some-custom": "((params-var))"},
-					},
-					Version: atc.Version{"some-custom": "version"},
-				},
-				{
-					ResourceType: atc.ResourceType{
-						Name:       "another-custom-type",
-						Type:       "registry-image",
-						Source:     atc.Source{"another-custom": "((source-var))"},
-						Privileged: true,
-					},
-					Version: atc.Version{"another-custom": "version"},
-				},
-			},
 		}
 
 		shouldRunGetStep = true
@@ -176,7 +159,7 @@ var _ = Describe("GetStep", func() {
 	var metadata db.ContainerMetadata
 	var processSpec runtime.ProcessSpec
 	var startEventDelegate runtime.StartingEventDelegate
-	var resourceCache db.UsedResourceCache
+	var resourceCache db.ResourceCache
 	var runResource resource.Resource
 
 	JustBeforeEach(func() {
@@ -193,34 +176,48 @@ var _ = Describe("GetStep", func() {
 	})
 
 	It("constructs the resource cache correctly", func() {
-		_, typ, ver, source, params, types := fakeResourceCacheFactory.FindOrCreateResourceCacheArgsForCall(0)
+		_, typ, ver, source, params, imageResourceCache := fakeResourceCacheFactory.FindOrCreateResourceCacheArgsForCall(0)
 		Expect(typ).To(Equal("some-base-type"))
 		Expect(ver).To(Equal(atc.Version{"some": "version"}))
 		Expect(source).To(Equal(atc.Source{"some": "super-secret-source"}))
 		Expect(params).To(Equal(atc.Params{"some": "super-secret-params"}))
-		Expect(types).To(Equal(atc.VersionedResourceTypes{
-			{
-				ResourceType: atc.ResourceType{
-					Name:   "some-custom-type",
-					Type:   "another-custom-type",
-					Source: atc.Source{"some-custom": "super-secret-source"},
+		Expect(imageResourceCache).To(BeNil())
+	})
 
-					// params don't need to be interpolated because it's used for
-					// fetching, not constructing the resource config
-					Params: atc.Params{"some-custom": "((params-var))"},
-				},
-				Version: atc.Version{"some-custom": "version"},
-			},
-			{
-				ResourceType: atc.ResourceType{
-					Name:       "another-custom-type",
-					Type:       "registry-image",
-					Source:     atc.Source{"another-custom": "super-secret-source"},
-					Privileged: true,
-				},
-				Version: atc.Version{"another-custom": "version"},
-			},
-		}))
+	Context("when using a dynamic version source", func() {
+		versionPlanID := atc.PlanID("some-plan-id")
+
+		BeforeEach(func() {
+			getPlan.Version = nil
+			getPlan.VersionFrom = &versionPlanID
+		})
+
+		Context("when the version exists in the build results", func() {
+			var version atc.Version
+
+			BeforeEach(func() {
+				fakeState.ResultStub = func(id atc.PlanID, to interface{}) bool {
+					to = &version
+					return true
+				}
+			})
+
+			It("uses the version to create a resource cache", func() {
+				Expect(fakeResourceCacheFactory.FindOrCreateResourceCacheCallCount()).To(Equal(1))
+				_, _, ver, _, _, _ := fakeResourceCacheFactory.FindOrCreateResourceCacheArgsForCall(0)
+				Expect(ver).To(Equal(version))
+			})
+		})
+
+		Context("when the version does not exist in the build results", func() {
+			BeforeEach(func() {
+				shouldRunGetStep = false
+			})
+
+			It("can't resolve version and errors", func() {
+				Expect(stepErr).To(Equal(exec.ErrResultMissing))
+			})
+		})
 	})
 
 	Context("when tracing is enabled", func() {
@@ -330,7 +327,7 @@ var _ = Describe("GetStep", func() {
 					Expect(fakeState.StoreResultCallCount()).To(Equal(1))
 					key, val := fakeState.StoreResultArgsForCall(0)
 					Expect(key).To(Equal(atc.PlanID(planID)))
-					Expect(val).To(Equal(fakeResourceCache))
+					Expect(val).To(Equal(exec.GetResult{Name: getPlan.Name, ResourceCache: fakeResourceCache}))
 				})
 
 				It("finishes the step via the delegate", func() {
@@ -472,90 +469,55 @@ var _ = Describe("GetStep", func() {
 	})
 
 	Context("when using a custom resource type", func() {
-		var fakeImageSpec worker.ImageSpec
+		var (
+			fakeImageSpec          worker.ImageSpec
+			fakeImageResourceCache *dbfakes.FakeResourceCache
+		)
 
 		BeforeEach(func() {
+			getPlan.TypeImage.GetPlan = &atc.Plan{
+				ID: "1/image-get",
+				Get: &atc.GetPlan{
+					Name:   "some-custom-type",
+					Type:   "another-custom-type",
+					Source: atc.Source{"some-custom": "((source-var))"},
+					Params: atc.Params{"some-custom": "((params-var))"},
+				},
+			}
+
+			getPlan.TypeImage.CheckPlan = &atc.Plan{
+				ID: "1/image-check",
+				Check: &atc.CheckPlan{
+					Name:   "some-custom-type",
+					Type:   "another-custom-type",
+					Source: atc.Source{"some-custom": "((source-var))"},
+				},
+			}
+
 			getPlan.Type = "some-custom-type"
+			getPlan.TypeImage.BaseType = "registry-image"
 
 			fakeImageSpec = worker.ImageSpec{
 				ImageArtifactSource: new(workerfakes.FakeStreamableArtifactSource),
 			}
 
-			fakeDelegate.FetchImageReturns(fakeImageSpec, nil)
+			fakeImageResourceCache = new(dbfakes.FakeResourceCache)
+			fakeImageResourceCache.IDReturns(123)
+
+			fakeDelegate.FetchImageReturns(fakeImageSpec, fakeImageResourceCache, nil)
+		})
+
+		It("uses the same imageResourceCache to create the resourceCache", func() {
+			_, _, _, _, _, rc := fakeResourceCacheFactory.FindOrCreateResourceCacheArgsForCall(0)
+			Expect(rc.ID()).To(Equal(123))
 		})
 
 		It("fetches the resource type image and uses it for the container", func() {
 			Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
-			_, imageResource, types, privileged := fakeDelegate.FetchImageArgsForCall(0)
-
-			By("fetching the type image")
-			Expect(imageResource).To(Equal(atc.ImageResource{
-				Name:    "some-custom-type",
-				Type:    "another-custom-type",
-				Source:  atc.Source{"some-custom": "((source-var))"},
-				Params:  atc.Params{"some-custom": "((params-var))"},
-				Version: atc.Version{"some-custom": "version"},
-			}))
-
-			By("excluding the type from the FetchImage call")
-			Expect(types).To(Equal(atc.VersionedResourceTypes{
-				{
-					ResourceType: atc.ResourceType{
-						Name:       "another-custom-type",
-						Type:       "registry-image",
-						Source:     atc.Source{"another-custom": "((source-var))"},
-						Privileged: true,
-					},
-					Version: atc.Version{"another-custom": "version"},
-				},
-			}))
-
-			By("not being privileged")
+			_, actualGetImagePlan, actualCheckImagePlan, privileged := fakeDelegate.FetchImageArgsForCall(0)
+			Expect(actualGetImagePlan).To(Equal(*getPlan.TypeImage.GetPlan))
+			Expect(actualCheckImagePlan).To(Equal(getPlan.TypeImage.CheckPlan))
 			Expect(privileged).To(BeFalse())
-		})
-
-		Context("when the plan configures tags", func() {
-			BeforeEach(func() {
-				getPlan.Tags = atc.Tags{"plan", "tags"}
-			})
-
-			It("fetches using the tags", func() {
-				Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
-				_, imageResource, _, _ := fakeDelegate.FetchImageArgsForCall(0)
-				Expect(imageResource.Tags).To(Equal(atc.Tags{"plan", "tags"}))
-			})
-		})
-
-		Context("when the resource type configures tags", func() {
-			BeforeEach(func() {
-				taggedType, found := getPlan.VersionedResourceTypes.Lookup("some-custom-type")
-				Expect(found).To(BeTrue())
-
-				taggedType.Tags = atc.Tags{"type", "tags"}
-
-				newTypes := getPlan.VersionedResourceTypes.Without("some-custom-type")
-				newTypes = append(newTypes, taggedType)
-
-				getPlan.VersionedResourceTypes = newTypes
-			})
-
-			It("fetches using the type tags", func() {
-				Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
-				_, imageResource, _, _ := fakeDelegate.FetchImageArgsForCall(0)
-				Expect(imageResource.Tags).To(Equal(atc.Tags{"type", "tags"}))
-			})
-
-			Context("when the plan ALSO configures tags", func() {
-				BeforeEach(func() {
-					getPlan.Tags = atc.Tags{"plan", "tags"}
-				})
-
-				It("fetches using only the type tags", func() {
-					Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
-					_, imageResource, _, _ := fakeDelegate.FetchImageArgsForCall(0)
-					Expect(imageResource.Tags).To(Equal(atc.Tags{"type", "tags"}))
-				})
-			})
 		})
 
 		It("sets the bottom-most type in the worker spec", func() {
@@ -576,7 +538,7 @@ var _ = Describe("GetStep", func() {
 
 		Context("when the resource type is privileged", func() {
 			BeforeEach(func() {
-				getPlan.Type = "another-custom-type"
+				getPlan.TypeImage.Privileged = true
 			})
 
 			It("fetches the image with privileged", func() {
@@ -655,9 +617,9 @@ var _ = Describe("GetStep", func() {
 
 		It("stores the resource cache as the step result", func() {
 			Expect(fakeState.StoreResultCallCount()).To(Equal(1))
-			key, val := fakeState.StoreResultArgsForCall(0)
-			Expect(key).To(Equal(atc.PlanID(planID)))
-			Expect(val).To(Equal(fakeResourceCache))
+			actualPlanID, actualGetResult := fakeState.StoreResultArgsForCall(0)
+			Expect(actualPlanID).To(Equal(atc.PlanID(planID)))
+			Expect(actualGetResult).To(Equal(exec.GetResult{Name: getPlan.Name, ResourceCache: fakeResourceCache}))
 		})
 
 		It("marks the step as succeeded", func() {

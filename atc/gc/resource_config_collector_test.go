@@ -53,7 +53,7 @@ var _ = Describe("ResourceConfigCollector", func() {
 						atc.Source{
 							"some": "source",
 						},
-						atc.VersionedResourceTypes{},
+						nil,
 					)
 					Expect(err).NotTo(HaveOccurred())
 
@@ -94,7 +94,7 @@ var _ = Describe("ResourceConfigCollector", func() {
 							"some": "source",
 						},
 						nil,
-						atc.VersionedResourceTypes{},
+						nil,
 					)
 					Expect(err).NotTo(HaveOccurred())
 				})
@@ -116,7 +116,7 @@ var _ = Describe("ResourceConfigCollector", func() {
 							"some": "source",
 						},
 						nil,
-						atc.VersionedResourceTypes{},
+						nil,
 					)
 					Expect(err).NotTo(HaveOccurred())
 
@@ -168,7 +168,7 @@ var _ = Describe("ResourceConfigCollector", func() {
 					resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(
 						"some-base-type",
 						atc.Source{"some": "source"},
-						atc.VersionedResourceTypes{},
+						nil,
 					)
 					Expect(err).NotTo(HaveOccurred())
 				})
@@ -225,7 +225,7 @@ var _ = Describe("ResourceConfigCollector", func() {
 					resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(
 						"some-base-type",
 						atc.Source{"some": "source-type"},
-						atc.VersionedResourceTypes{},
+						nil,
 					)
 					Expect(err).NotTo(HaveOccurred())
 					_, err = usedResourceType.Reload()

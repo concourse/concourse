@@ -19,15 +19,15 @@ type FakeResourceConfig struct {
 	createdByBaseResourceTypeReturnsOnCall map[int]struct {
 		result1 *db.UsedBaseResourceType
 	}
-	CreatedByResourceCacheStub        func() db.UsedResourceCache
+	CreatedByResourceCacheStub        func() db.ResourceCache
 	createdByResourceCacheMutex       sync.RWMutex
 	createdByResourceCacheArgsForCall []struct {
 	}
 	createdByResourceCacheReturns struct {
-		result1 db.UsedResourceCache
+		result1 db.ResourceCache
 	}
 	createdByResourceCacheReturnsOnCall map[int]struct {
-		result1 db.UsedResourceCache
+		result1 db.ResourceCache
 	}
 	FindOrCreateScopeStub        func(db.Resource) (db.ResourceConfigScope, error)
 	findOrCreateScopeMutex       sync.RWMutex
@@ -129,7 +129,7 @@ func (fake *FakeResourceConfig) CreatedByBaseResourceTypeReturnsOnCall(i int, re
 	}{result1}
 }
 
-func (fake *FakeResourceConfig) CreatedByResourceCache() db.UsedResourceCache {
+func (fake *FakeResourceConfig) CreatedByResourceCache() db.ResourceCache {
 	fake.createdByResourceCacheMutex.Lock()
 	ret, specificReturn := fake.createdByResourceCacheReturnsOnCall[len(fake.createdByResourceCacheArgsForCall)]
 	fake.createdByResourceCacheArgsForCall = append(fake.createdByResourceCacheArgsForCall, struct {
@@ -153,32 +153,32 @@ func (fake *FakeResourceConfig) CreatedByResourceCacheCallCount() int {
 	return len(fake.createdByResourceCacheArgsForCall)
 }
 
-func (fake *FakeResourceConfig) CreatedByResourceCacheCalls(stub func() db.UsedResourceCache) {
+func (fake *FakeResourceConfig) CreatedByResourceCacheCalls(stub func() db.ResourceCache) {
 	fake.createdByResourceCacheMutex.Lock()
 	defer fake.createdByResourceCacheMutex.Unlock()
 	fake.CreatedByResourceCacheStub = stub
 }
 
-func (fake *FakeResourceConfig) CreatedByResourceCacheReturns(result1 db.UsedResourceCache) {
+func (fake *FakeResourceConfig) CreatedByResourceCacheReturns(result1 db.ResourceCache) {
 	fake.createdByResourceCacheMutex.Lock()
 	defer fake.createdByResourceCacheMutex.Unlock()
 	fake.CreatedByResourceCacheStub = nil
 	fake.createdByResourceCacheReturns = struct {
-		result1 db.UsedResourceCache
+		result1 db.ResourceCache
 	}{result1}
 }
 
-func (fake *FakeResourceConfig) CreatedByResourceCacheReturnsOnCall(i int, result1 db.UsedResourceCache) {
+func (fake *FakeResourceConfig) CreatedByResourceCacheReturnsOnCall(i int, result1 db.ResourceCache) {
 	fake.createdByResourceCacheMutex.Lock()
 	defer fake.createdByResourceCacheMutex.Unlock()
 	fake.CreatedByResourceCacheStub = nil
 	if fake.createdByResourceCacheReturnsOnCall == nil {
 		fake.createdByResourceCacheReturnsOnCall = make(map[int]struct {
-			result1 db.UsedResourceCache
+			result1 db.ResourceCache
 		})
 	}
 	fake.createdByResourceCacheReturnsOnCall[i] = struct {
-		result1 db.UsedResourceCache
+		result1 db.ResourceCache
 	}{result1}
 }
 

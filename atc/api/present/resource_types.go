@@ -5,6 +5,6 @@ import (
 	"github.com/concourse/concourse/atc/db"
 )
 
-func VersionedResourceTypes(savedResourceTypes db.ResourceTypes) atc.VersionedResourceTypes {
+func ResourceTypes(savedResourceTypes db.ResourceTypes) atc.ResourceTypes {
 	return savedResourceTypes.Deserialize()
 }

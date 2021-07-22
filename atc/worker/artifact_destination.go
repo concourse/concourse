@@ -21,5 +21,5 @@ type ArtifactDestination interface {
 	GetStreamInP2pUrl(ctx context.Context, path string) (string, error)
 
 	SetPrivileged(bool) error
-	InitializeStreamedResourceCache(cache db.UsedResourceCache, sourceWorkerName string) error
+	InitializeStreamedResourceCache(cache db.ResourceCache, sourceWorkerName string) error
 }

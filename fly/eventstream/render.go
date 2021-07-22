@@ -48,6 +48,10 @@ func Render(dst io.Writer, src eventstream.EventStream, options RenderOptions) i
 			dstImpl.SetTimestamp(e.Time)
 			fmt.Fprintf(dstImpl, "\x1b[1mselected worker:\x1b[0m %s\n", e.WorkerName)
 
+		case event.InitializeCheck:
+			dstImpl.SetTimestamp(e.Time)
+			fmt.Fprintf(dstImpl, "\x1b[1minitializing check:\x1b[0m %s\n", e.Name)
+
 		case event.InitializeTask:
 			dstImpl.SetTimestamp(e.Time)
 			fmt.Fprintf(dstImpl, "\x1b[1minitializing\x1b[0m\n")

@@ -12,13 +12,13 @@ import (
 )
 
 type FakeFetchSourceFactory struct {
-	NewFetchSourceStub        func(lager.Logger, worker.Worker, db.ContainerOwner, db.UsedResourceCache, resource.Resource, worker.ContainerSpec, runtime.ProcessSpec, db.ContainerMetadata) worker.FetchSource
+	NewFetchSourceStub        func(lager.Logger, worker.Worker, db.ContainerOwner, db.ResourceCache, resource.Resource, worker.ContainerSpec, runtime.ProcessSpec, db.ContainerMetadata) worker.FetchSource
 	newFetchSourceMutex       sync.RWMutex
 	newFetchSourceArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 worker.Worker
 		arg3 db.ContainerOwner
-		arg4 db.UsedResourceCache
+		arg4 db.ResourceCache
 		arg5 resource.Resource
 		arg6 worker.ContainerSpec
 		arg7 runtime.ProcessSpec
@@ -34,14 +34,14 @@ type FakeFetchSourceFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeFetchSourceFactory) NewFetchSource(arg1 lager.Logger, arg2 worker.Worker, arg3 db.ContainerOwner, arg4 db.UsedResourceCache, arg5 resource.Resource, arg6 worker.ContainerSpec, arg7 runtime.ProcessSpec, arg8 db.ContainerMetadata) worker.FetchSource {
+func (fake *FakeFetchSourceFactory) NewFetchSource(arg1 lager.Logger, arg2 worker.Worker, arg3 db.ContainerOwner, arg4 db.ResourceCache, arg5 resource.Resource, arg6 worker.ContainerSpec, arg7 runtime.ProcessSpec, arg8 db.ContainerMetadata) worker.FetchSource {
 	fake.newFetchSourceMutex.Lock()
 	ret, specificReturn := fake.newFetchSourceReturnsOnCall[len(fake.newFetchSourceArgsForCall)]
 	fake.newFetchSourceArgsForCall = append(fake.newFetchSourceArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 worker.Worker
 		arg3 db.ContainerOwner
-		arg4 db.UsedResourceCache
+		arg4 db.ResourceCache
 		arg5 resource.Resource
 		arg6 worker.ContainerSpec
 		arg7 runtime.ProcessSpec
@@ -66,13 +66,13 @@ func (fake *FakeFetchSourceFactory) NewFetchSourceCallCount() int {
 	return len(fake.newFetchSourceArgsForCall)
 }
 
-func (fake *FakeFetchSourceFactory) NewFetchSourceCalls(stub func(lager.Logger, worker.Worker, db.ContainerOwner, db.UsedResourceCache, resource.Resource, worker.ContainerSpec, runtime.ProcessSpec, db.ContainerMetadata) worker.FetchSource) {
+func (fake *FakeFetchSourceFactory) NewFetchSourceCalls(stub func(lager.Logger, worker.Worker, db.ContainerOwner, db.ResourceCache, resource.Resource, worker.ContainerSpec, runtime.ProcessSpec, db.ContainerMetadata) worker.FetchSource) {
 	fake.newFetchSourceMutex.Lock()
 	defer fake.newFetchSourceMutex.Unlock()
 	fake.NewFetchSourceStub = stub
 }
 
-func (fake *FakeFetchSourceFactory) NewFetchSourceArgsForCall(i int) (lager.Logger, worker.Worker, db.ContainerOwner, db.UsedResourceCache, resource.Resource, worker.ContainerSpec, runtime.ProcessSpec, db.ContainerMetadata) {
+func (fake *FakeFetchSourceFactory) NewFetchSourceArgsForCall(i int) (lager.Logger, worker.Worker, db.ContainerOwner, db.ResourceCache, resource.Resource, worker.ContainerSpec, runtime.ProcessSpec, db.ContainerMetadata) {
 	fake.newFetchSourceMutex.RLock()
 	defer fake.newFetchSourceMutex.RUnlock()
 	argsForCall := fake.newFetchSourceArgsForCall[i]

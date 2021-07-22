@@ -30,7 +30,7 @@ var _ = Describe("ContainerRepository", func() {
 				resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(
 					"some-base-resource-type",
 					atc.Source{"some": "source"},
-					atc.VersionedResourceTypes{},
+					nil,
 				)
 				Expect(err).NotTo(HaveOccurred())
 

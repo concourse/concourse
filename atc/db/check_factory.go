@@ -30,15 +30,15 @@ type Checkable interface {
 
 	HasWebhook() bool
 
-	CheckPlan(atc.Version, time.Duration, ResourceTypes, atc.Source) atc.CheckPlan
+	CheckPlan(planFactory atc.PlanFactory, imagePlanner ImagePlanner, from atc.Version, interval time.Duration, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) atc.Plan
 	CreateBuild(context.Context, bool, atc.Plan) (Build, bool, error)
 }
 
 //counterfeiter:generate . CheckFactory
 type CheckFactory interface {
-	TryCreateCheck(context.Context, Checkable, ResourceTypes, atc.Version, bool) (Build, bool, error)
+	TryCreateCheck(context.Context, Checkable, ResourceTypes, atc.Version, bool, bool) (Build, bool, error)
 	Resources() ([]Resource, error)
-	ResourceTypes() ([]ResourceType, error)
+	ResourceTypes() (map[int]ResourceTypes, error)
 }
 
 type checkFactory struct {
@@ -83,7 +83,7 @@ func NewCheckFactory(
 	}
 }
 
-func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, resourceTypes ResourceTypes, from atc.Version, manuallyTriggered bool) (Build, bool, error) {
+func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, resourceTypes ResourceTypes, from atc.Version, manuallyTriggered bool, skipIntervalRecursively bool) (Build, bool, error) {
 	logger := lagerctx.FromContext(ctx)
 
 	var err error
@@ -91,9 +91,6 @@ func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, 
 	sourceDefaults := atc.Source{}
 	parentType, found := resourceTypes.Parent(checkable)
 	if found {
-		if parentType.Version() == nil {
-			return nil, false, fmt.Errorf("resource type '%s' has no version", parentType.Name())
-		}
 		sourceDefaults = parentType.Defaults()
 	} else {
 		defaults, found := atc.FindBaseResourceTypeDefaults(checkable.Type())
@@ -110,15 +107,22 @@ func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, 
 		interval = checkable.CheckEvery().Interval
 	}
 
-	if !manuallyTriggered && time.Now().Before(checkable.LastCheckEndTime().Add(interval)) {
+	skipInterval := manuallyTriggered
+	if !skipInterval && time.Now().Before(checkable.LastCheckEndTime().Add(interval)) {
 		// skip creating the check if its interval hasn't elapsed yet
 		return nil, false, nil
 	}
 
-	checkPlan := checkable.CheckPlan(from, interval, resourceTypes.Filter(checkable), sourceDefaults)
+	deserializedResourceTypes := resourceTypes.Filter(checkable).Deserialize()
+	if deserializedResourceTypes == nil {
+		// If there are no resource types, set it to a zero length list of resource
+		// types. The reason behind this is because we wrap the resource types
+		// object in an ImagePlanner interface, and this will panic if the resource
+		// types is nil.
+		deserializedResourceTypes = atc.ResourceTypes{}
+	}
 
-	plan := c.planFactory.NewPlan(checkPlan)
-
+	plan := checkable.CheckPlan(c.planFactory, deserializedResourceTypes, from, interval, sourceDefaults, skipInterval, skipIntervalRecursively)
 	build, created, err := checkable.CreateBuild(ctx, manuallyTriggered, plan)
 	if err != nil {
 		return nil, false, fmt.Errorf("create build: %w", err)
@@ -175,8 +179,8 @@ func (c *checkFactory) Resources() ([]Resource, error) {
 	return resources, nil
 }
 
-func (c *checkFactory) ResourceTypes() ([]ResourceType, error) {
-	var resourceTypes []ResourceType
+func (c *checkFactory) ResourceTypes() (map[int]ResourceTypes, error) {
+	resourceTypes := make(map[int]ResourceTypes)
 
 	rows, err := resourceTypesQuery.
 		Where(sq.And{
@@ -198,7 +202,7 @@ func (c *checkFactory) ResourceTypes() ([]ResourceType, error) {
 			return nil, err
 		}
 
-		resourceTypes = append(resourceTypes, r)
+		resourceTypes[r.pipelineID] = append(resourceTypes[r.pipelineID], r)
 	}
 
 	return resourceTypes, nil

@@ -334,18 +334,6 @@ var _ = Describe("Build", func() {
 					Params:   atc.Params{"some": "params"},
 					Version:  &atc.Version{"some": "version"},
 					Tags:     atc.Tags{"some-tags"},
-					VersionedResourceTypes: atc.VersionedResourceTypes{
-						{
-							ResourceType: atc.ResourceType{
-								Name:       "some-name",
-								Source:     atc.Source{"some": "source"},
-								Type:       "some-type",
-								Privileged: true,
-								Tags:       atc.Tags{"some-tags"},
-							},
-							Version: atc.Version{"some-resource-type": "version"},
-						},
-					},
 				},
 			}
 		})
@@ -1216,8 +1204,8 @@ var _ = Describe("Build", func() {
 		JustBeforeEach(func() {
 			err := build.SaveOutput(
 				dbtest.BaseResourceType,
+				nil,
 				atc.Source{"some": "source"},
-				atc.VersionedResourceTypes{},
 				outputVersion,
 				[]db.ResourceConfigMetadataField{
 					{

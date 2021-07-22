@@ -61,7 +61,7 @@ type Client interface {
 		db.ContainerMetadata,
 		runtime.ProcessSpec,
 		runtime.StartingEventDelegate,
-		db.UsedResourceCache,
+		db.ResourceCache,
 		resource.Resource,
 	) (GetResult, error)
 }
@@ -267,7 +267,7 @@ func (client *client) RunGetStep(
 	containerMetadata db.ContainerMetadata,
 	processSpec runtime.ProcessSpec,
 	eventDelegate runtime.StartingEventDelegate,
-	resourceCache db.UsedResourceCache,
+	resourceCache db.ResourceCache,
 	resource resource.Resource,
 ) (GetResult, error) {
 	logger := lagerctx.FromContext(ctx)

@@ -10,12 +10,12 @@ import (
 )
 
 type FakeBuildPlanner struct {
-	CreateStub        func(atc.StepConfig, db.SchedulerResources, atc.VersionedResourceTypes, atc.Prototypes, []db.BuildInput) (atc.Plan, error)
+	CreateStub        func(atc.StepConfig, db.SchedulerResources, atc.ResourceTypes, atc.Prototypes, []db.BuildInput) (atc.Plan, error)
 	createMutex       sync.RWMutex
 	createArgsForCall []struct {
 		arg1 atc.StepConfig
 		arg2 db.SchedulerResources
-		arg3 atc.VersionedResourceTypes
+		arg3 atc.ResourceTypes
 		arg4 atc.Prototypes
 		arg5 []db.BuildInput
 	}
@@ -31,7 +31,7 @@ type FakeBuildPlanner struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeBuildPlanner) Create(arg1 atc.StepConfig, arg2 db.SchedulerResources, arg3 atc.VersionedResourceTypes, arg4 atc.Prototypes, arg5 []db.BuildInput) (atc.Plan, error) {
+func (fake *FakeBuildPlanner) Create(arg1 atc.StepConfig, arg2 db.SchedulerResources, arg3 atc.ResourceTypes, arg4 atc.Prototypes, arg5 []db.BuildInput) (atc.Plan, error) {
 	var arg5Copy []db.BuildInput
 	if arg5 != nil {
 		arg5Copy = make([]db.BuildInput, len(arg5))
@@ -42,7 +42,7 @@ func (fake *FakeBuildPlanner) Create(arg1 atc.StepConfig, arg2 db.SchedulerResou
 	fake.createArgsForCall = append(fake.createArgsForCall, struct {
 		arg1 atc.StepConfig
 		arg2 db.SchedulerResources
-		arg3 atc.VersionedResourceTypes
+		arg3 atc.ResourceTypes
 		arg4 atc.Prototypes
 		arg5 []db.BuildInput
 	}{arg1, arg2, arg3, arg4, arg5Copy})
@@ -65,13 +65,13 @@ func (fake *FakeBuildPlanner) CreateCallCount() int {
 	return len(fake.createArgsForCall)
 }
 
-func (fake *FakeBuildPlanner) CreateCalls(stub func(atc.StepConfig, db.SchedulerResources, atc.VersionedResourceTypes, atc.Prototypes, []db.BuildInput) (atc.Plan, error)) {
+func (fake *FakeBuildPlanner) CreateCalls(stub func(atc.StepConfig, db.SchedulerResources, atc.ResourceTypes, atc.Prototypes, []db.BuildInput) (atc.Plan, error)) {
 	fake.createMutex.Lock()
 	defer fake.createMutex.Unlock()
 	fake.CreateStub = stub
 }
 
-func (fake *FakeBuildPlanner) CreateArgsForCall(i int) (atc.StepConfig, db.SchedulerResources, atc.VersionedResourceTypes, atc.Prototypes, []db.BuildInput) {
+func (fake *FakeBuildPlanner) CreateArgsForCall(i int) (atc.StepConfig, db.SchedulerResources, atc.ResourceTypes, atc.Prototypes, []db.BuildInput) {
 	fake.createMutex.RLock()
 	defer fake.createMutex.RUnlock()
 	argsForCall := fake.createArgsForCall[i]

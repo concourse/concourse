@@ -23,11 +23,8 @@ var _ = Describe("ResourceCacheFactory", func() {
 
 		resourceCacheLifecycle db.ResourceCacheLifecycle
 
-		resourceType1                  atc.VersionedResourceType
-		resourceType2                  atc.VersionedResourceType
-		resourceType3                  atc.VersionedResourceType
-		resourceTypeUsingBogusBaseType atc.VersionedResourceType
-		resourceTypeOverridingBaseType atc.VersionedResourceType
+		customTypeResourceCache1 db.ResourceCache
+		customTypeResourceCache2 db.ResourceCache
 
 		logger *lagertest.TestLogger
 		build  db.Build
@@ -62,60 +59,29 @@ var _ = Describe("ResourceCacheFactory", func() {
 
 			Expect(setupTx.Commit()).To(Succeed())
 
-			resourceType1 = atc.VersionedResourceType{
-				ResourceType: atc.ResourceType{
-					Name: "some-type",
-					Type: "some-type-type",
-					Source: atc.Source{
-						"some-type": "source",
-					},
+			customTypeResourceCache2, err = resourceCacheFactory.FindOrCreateResourceCache(
+				db.ForBuild(build.ID()),
+				"some-base-type",
+				atc.Version{"some-type-type": "version"},
+				atc.Source{
+					"some-type-type": "some-secret-sauce",
 				},
-				Version: atc.Version{"some-type": "version"},
-			}
+				nil,
+				nil,
+			)
+			Expect(err).ToNot(HaveOccurred())
 
-			resourceType2 = atc.VersionedResourceType{
-				ResourceType: atc.ResourceType{
-					Name: "some-type-type",
-					Type: "some-base-type",
-					Source: atc.Source{
-						"some-type-type": "some-secret-sauce",
-					},
+			customTypeResourceCache1, err = resourceCacheFactory.FindOrCreateResourceCache(
+				db.ForBuild(build.ID()),
+				"some-type-type",
+				atc.Version{"some-type": "version"},
+				atc.Source{
+					"some-type": "source",
 				},
-				Version: atc.Version{"some-type-type": "version"},
-			}
-
-			resourceType3 = atc.VersionedResourceType{
-				ResourceType: atc.ResourceType{
-					Name: "some-unused-type",
-					Type: "some-base-type",
-					Source: atc.Source{
-						"some-unused-type": "source",
-					},
-				},
-				Version: atc.Version{"some-unused-type": "version"},
-			}
-
-			resourceTypeUsingBogusBaseType = atc.VersionedResourceType{
-				ResourceType: atc.ResourceType{
-					Name: "some-type-using-bogus-base-type",
-					Type: "some-bogus-base-type",
-					Source: atc.Source{
-						"some-type-using-bogus-base-type": "source",
-					},
-				},
-				Version: atc.Version{"some-type-using-bogus-base-type": "version"},
-			}
-
-			resourceTypeOverridingBaseType = atc.VersionedResourceType{
-				ResourceType: atc.ResourceType{
-					Name: "some-image-type",
-					Type: "some-image-type",
-					Source: atc.Source{
-						"some-image-type": "source",
-					},
-				},
-				Version: atc.Version{"some-image-type": "version"},
-			}
+				nil,
+				customTypeResourceCache2,
+			)
+			Expect(err).ToNot(HaveOccurred())
 
 			logger = lagertest.NewTestLogger("test")
 		})
@@ -129,11 +95,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 					"some": "source",
 				},
 				atc.Params{"some": "params"},
-				atc.VersionedResourceTypes{
-					resourceType1,
-					resourceType2,
-					resourceType3,
-				},
+				customTypeResourceCache1,
 			)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(usedResourceCache.Version()).To(Equal(atc.Version{"some": "version"}))
@@ -209,37 +171,49 @@ var _ = Describe("ResourceCacheFactory", func() {
 		It("returns an error if base resource type does not exist", func() {
 			_, err := resourceCacheFactory.FindOrCreateResourceCache(
 				db.ForBuild(build.ID()),
-				"some-type-using-bogus-base-type",
+				"some-bogus-base-type",
 				atc.Version{"some": "version"},
 				atc.Source{
 					"some": "source",
 				},
 				atc.Params{"some": "params"},
-				atc.VersionedResourceTypes{
-					resourceType1,
-					resourceTypeUsingBogusBaseType,
-				},
+				nil,
 			)
 			Expect(err).To(HaveOccurred())
 			Expect(err).To(Equal(db.BaseResourceTypeNotFoundError{Name: "some-bogus-base-type"}))
 		})
 
-		It("allows a base resource type to be overridden using itself", func() {
-			usedResourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
-				db.ForBuild(build.ID()),
-				"some-image-type",
-				atc.Version{"some": "version"},
-				atc.Source{
-					"some": "source",
-				},
-				atc.Params{"some": "params"},
-				atc.VersionedResourceTypes{
-					resourceTypeOverridingBaseType,
-				},
-			)
-			Expect(err).ToNot(HaveOccurred())
+		Context("when there is a custom type overriding a base type", func() {
+			var customTypeOverridingBaseTypeCache db.ResourceCache
+			BeforeEach(func() {
+				customTypeOverridingBaseTypeCache, err = resourceCacheFactory.FindOrCreateResourceCache(
+					db.ForBuild(build.ID()),
+					"some-image-type",
+					atc.Version{"some-image-type": "version"},
+					atc.Source{
+						"some-image-type": "source",
+					},
+					nil,
+					nil,
+				)
+				Expect(err).ToNot(HaveOccurred())
+			})
 
-			Expect(usedResourceCache.ResourceConfig().CreatedByResourceCache().ResourceConfig().CreatedByBaseResourceType().ID).To(Equal(usedImageBaseResourceType.ID))
+			It("allows a base resource type to be overridden using itself", func() {
+				usedResourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
+					db.ForBuild(build.ID()),
+					"some-image-type",
+					atc.Version{"some": "version"},
+					atc.Source{
+						"some": "source",
+					},
+					atc.Params{"some": "params"},
+					customTypeOverridingBaseTypeCache,
+				)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(usedResourceCache.ResourceConfig().CreatedByResourceCache().ResourceConfig().CreatedByBaseResourceType().ID).To(Equal(usedImageBaseResourceType.ID))
+			})
 		})
 
 		Context("when the resource cache is concurrently deleted and created", func() {
@@ -289,7 +263,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 							atc.Version{"some": "version"},
 							atc.Source{"some": "source"},
 							atc.Params{"some": "params"},
-							atc.VersionedResourceTypes{},
+							nil,
 						)
 						Expect(err).ToNot(HaveOccurred())
 					}
@@ -302,8 +276,8 @@ var _ = Describe("ResourceCacheFactory", func() {
 
 	Describe("FindResourceCacheByID", func() {
 		var resourceCacheUser db.ResourceCacheUser
-		var someUsedResourceCacheFromBaseResource db.UsedResourceCache
-		var someUsedResourceCacheFromCustomResource db.UsedResourceCache
+		var someUsedResourceCacheFromBaseResource db.ResourceCache
+		var someUsedResourceCacheFromCustomResource db.ResourceCache
 		BeforeEach(func() {
 			resourceCacheUser = db.ForBuild(build.ID())
 
@@ -314,9 +288,20 @@ var _ = Describe("ResourceCacheFactory", func() {
 					"some": "source",
 				},
 				atc.Params{"some": fmt.Sprintf("param-%d", time.Now().UnixNano())},
-				atc.VersionedResourceTypes{},
+				nil,
 			)
 			Expect(err).ToNot(HaveOccurred())
+
+			customResourceTypeCache, err := resourceCacheFactory.FindOrCreateResourceCache(
+				resourceCacheUser,
+				"some-base-resource-type",
+				atc.Version{"showme": "whatyougot"},
+				atc.Source{
+					"some": "source",
+				},
+				nil,
+				nil,
+			)
 
 			someUsedResourceCacheFromCustomResource, err = resourceCacheFactory.FindOrCreateResourceCache(resourceCacheUser,
 				"some-custom-resource-type",
@@ -325,18 +310,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 					"some": "source",
 				},
 				atc.Params{"some": fmt.Sprintf("param-%d", time.Now().UnixNano())},
-				atc.VersionedResourceTypes{
-					atc.VersionedResourceType{
-						ResourceType: atc.ResourceType{
-							Name: "some-custom-resource-type",
-							Type: "some-base-resource-type",
-							Source: atc.Source{
-								"some": "source",
-							},
-						},
-						Version: atc.Version{"showme": "whatyougot"},
-					},
-				},
+				customResourceTypeCache,
 			)
 			Expect(err).ToNot(HaveOccurred())
 		})
@@ -367,7 +341,6 @@ var _ = Describe("ResourceCacheFactory", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 	})
-
 })
 
 type resourceCache struct {

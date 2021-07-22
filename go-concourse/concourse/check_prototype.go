@@ -10,7 +10,7 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-func (team *team) CheckPrototype(pipelineRef atc.PipelineRef, prototypeName string, version atc.Version) (atc.Build, bool, error) {
+func (team *team) CheckPrototype(pipelineRef atc.PipelineRef, prototypeName string, version atc.Version, shallow bool) (atc.Build, bool, error) {
 	params := rata.Params{
 		"pipeline_name":  pipelineRef.Name,
 		"prototype_name": prototypeName,
@@ -19,7 +19,7 @@ func (team *team) CheckPrototype(pipelineRef atc.PipelineRef, prototypeName stri
 
 	var build atc.Build
 
-	jsonBytes, err := json.Marshal(atc.CheckRequestBody{From: version})
+	jsonBytes, err := json.Marshal(atc.CheckRequestBody{From: version, Shallow: shallow})
 	if err != nil {
 		return build, false, err
 	}

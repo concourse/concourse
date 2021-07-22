@@ -57,8 +57,8 @@ type Worker interface {
 		ContainerSpec,
 	) (Container, error)
 
-	FindVolumeForResourceCache(logger lager.Logger, resourceCache db.UsedResourceCache) (Volume, bool, error)
-	FindResourceCacheForVolume(volume Volume) (db.UsedResourceCache, bool, error)
+	FindVolumeForResourceCache(logger lager.Logger, resourceCache db.ResourceCache) (Volume, bool, error)
+	FindResourceCacheForVolume(volume Volume) (db.ResourceCache, bool, error)
 	FindVolumeForTaskCache(lager.Logger, int, int, string, string) (Volume, bool, error)
 	Fetch(
 		context.Context,
@@ -69,7 +69,7 @@ type Worker interface {
 		runtime.ProcessSpec,
 		resource.Resource,
 		db.ContainerOwner,
-		db.UsedResourceCache,
+		db.ResourceCache,
 		string,
 	) (GetResult, Volume, error)
 
@@ -181,11 +181,11 @@ func (worker *gardenWorker) FindResourceTypeByPath(path string) (atc.WorkerResou
 	return atc.WorkerResourceType{}, false
 }
 
-func (worker *gardenWorker) FindVolumeForResourceCache(logger lager.Logger, resourceCache db.UsedResourceCache) (Volume, bool, error) {
+func (worker *gardenWorker) FindVolumeForResourceCache(logger lager.Logger, resourceCache db.ResourceCache) (Volume, bool, error) {
 	return worker.volumeClient.FindVolumeForResourceCache(logger, resourceCache)
 }
 
-func (worker *gardenWorker) FindResourceCacheForVolume(volume Volume) (db.UsedResourceCache, bool, error) {
+func (worker *gardenWorker) FindResourceCacheForVolume(volume Volume) (db.ResourceCache, bool, error) {
 	if volume.GetResourceCacheID() != 0 {
 		return worker.resourceCacheFactory.FindResourceCacheByID(volume.GetResourceCacheID())
 	} else {

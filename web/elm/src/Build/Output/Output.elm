@@ -180,6 +180,11 @@ handleEvent event ( model, effects ) =
             , effects
             )
 
+        InitializeCheck origin time _ ->
+            ( updateStep origin.id (setInitialize time) model
+            , effects
+            )
+
         StartTask origin time ->
             ( updateStep origin.id (setStart time) model
             , effects

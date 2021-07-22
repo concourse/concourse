@@ -34,7 +34,7 @@ var _ = Describe("Fetcher", func() {
 		fakeVolume             *workerfakes.FakeVolume
 		fakeFetchSourceFactory *workerfakes.FakeFetchSourceFactory
 		fakeResource           *resourcefakes.FakeResource
-		fakeUsedResourceCache  *dbfakes.FakeUsedResourceCache
+		fakeResourceCache  *dbfakes.FakeResourceCache
 
 		getResult worker.GetResult
 		fetchErr  error
@@ -54,7 +54,7 @@ var _ = Describe("Fetcher", func() {
 		fakeVolume = new(workerfakes.FakeVolume)
 		fakeVolume.HandleReturns("some-handle")
 		fakeResource = new(resourcefakes.FakeResource)
-		fakeUsedResourceCache = new(dbfakes.FakeUsedResourceCache)
+		fakeResourceCache = new(dbfakes.FakeResourceCache)
 
 		fetcher = worker.NewFetcher(
 			fakeClock,
@@ -79,7 +79,7 @@ var _ = Describe("Fetcher", func() {
 			},
 			fakeResource,
 			db.NewBuildStepContainerOwner(0, "some-plan-id", 0),
-			fakeUsedResourceCache,
+			fakeResourceCache,
 			"fake-lock-name",
 		)
 	})

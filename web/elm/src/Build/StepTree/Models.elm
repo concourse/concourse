@@ -190,6 +190,7 @@ type alias BuildEventEnvelope =
 type BuildEvent
     = BuildStatus BuildStatus Time.Posix
     | InitializeTask Origin Time.Posix
+    | InitializeCheck Origin Time.Posix String
     | StartTask Origin Time.Posix
     | FinishTask Origin Int Time.Posix
     | Initialize Origin Time.Posix

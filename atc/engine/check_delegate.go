@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/clock"
+	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -57,6 +58,20 @@ type checkDelegate struct {
 	cachedPrototype    db.Prototype
 
 	limiter RateLimiter
+}
+
+func (d *checkDelegate) Initializing(logger lager.Logger) {
+	err := d.build.SaveEvent(event.InitializeCheck{
+		Origin: d.eventOrigin,
+		Time:   time.Now().Unix(),
+		Name:   d.plan.Name,
+	})
+	if err != nil {
+		logger.Error("failed-to-save-initialize-check-event", err)
+		return
+	}
+
+	logger.Info("initializing")
 }
 
 func (d *checkDelegate) FindOrCreateScope(config db.ResourceConfig) (db.ResourceConfigScope, error) {

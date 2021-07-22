@@ -815,7 +815,7 @@ var _ = Describe("Team", func() {
 			StartTime: 55,
 		}
 
-		var urc db.UsedResourceCache
+		var urc db.ResourceCache
 
 		BeforeEach(func() {
 			_, err := workerFactory.SaveWorker(atcWorker, 0)
@@ -832,7 +832,7 @@ var _ = Describe("Team", func() {
 					"some": "source",
 				},
 				atc.Params{"some": "params"},
-				atc.VersionedResourceTypes{},
+				nil,
 			)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -1191,6 +1191,8 @@ var _ = Describe("Team", func() {
 		)
 
 		BeforeEach(func() {
+			imageCheckPlanID := atc.PlanID("image-check")
+
 			plan = atc.Plan{
 				ID: atc.PlanID("56"),
 				Get: &atc.GetPlan{
@@ -1201,16 +1203,34 @@ var _ = Describe("Team", func() {
 					Params:   atc.Params{"some": "params"},
 					Version:  &atc.Version{"some": "version"},
 					Tags:     atc.Tags{"some-tags"},
-					VersionedResourceTypes: atc.VersionedResourceTypes{
-						{
-							ResourceType: atc.ResourceType{
-								Name:       "some-name",
-								Source:     atc.Source{"some": "source"},
-								Type:       "some-type",
-								Privileged: true,
-								Tags:       atc.Tags{"some-tags"},
+					TypeImage: atc.TypeImage{
+						BaseType: "some-type",
+						CheckPlan: &atc.Plan{
+							ID: imageCheckPlanID,
+							Check: &atc.CheckPlan{
+								Name:   "some-name",
+								Source: atc.Source{"some": "source"},
+								Type:   "some-type",
+								TypeImage: atc.TypeImage{
+									BaseType:   "some-type",
+									Privileged: true,
+								},
+								Tags: atc.Tags{"some-tags"},
 							},
-							Version: atc.Version{"some-resource-type": "version"},
+						},
+						GetPlan: &atc.Plan{
+							ID: "image-get",
+							Get: &atc.GetPlan{
+								Name:   "some-name",
+								Source: atc.Source{"some": "source"},
+								Type:   "some-type",
+								TypeImage: atc.TypeImage{
+									BaseType:   "some-type",
+									Privileged: true,
+								},
+								Tags:        atc.Tags{"some-tags"},
+								VersionFrom: &imageCheckPlanID,
+							},
 						},
 					},
 				},
@@ -3512,27 +3532,36 @@ var _ = Describe("Team", func() {
 			build, err := defaultJob.CreateBuild("some-user")
 			Expect(err).ToNot(HaveOccurred())
 
-			rt, err := scenario.Pipeline.ResourceTypes()
-			Expect(err).ToNot(HaveOccurred())
+			go loopUntilTimeoutOrPanic("check resource type", func(i int) {
+				scenario.Run(
+					builder.WithResourceTypeVersions("some-resource-type", atc.Version{"foo": strconv.Itoa(i / 10)}),
+				)
+			})()
 
 			go loopUntilTimeoutOrPanic("get resource", func(i int) {
-				_, err := resourceCacheFactory.FindOrCreateResourceCache(
+				customResourceTypeCache, err := resourceCacheFactory.FindOrCreateResourceCache(
+					db.ForBuild(build.ID()),
+					dbtest.BaseResourceType,
+					atc.Version{"foo": strconv.Itoa(i / 10)},
+					atc.Source{"foo": "bar"},
+					atc.Params{},
+					nil,
+				)
+				if err != nil {
+					panic(err)
+				}
+
+				_, err = resourceCacheFactory.FindOrCreateResourceCache(
 					db.ForBuild(build.ID()),
 					resource.Type(),
 					atc.Version{"v": strconv.Itoa(i / 10)},
 					resource.Source(),
 					atc.Params{},
-					rt.Deserialize(),
+					customResourceTypeCache,
 				)
 				if err != nil {
 					panic(err)
 				}
-			})()
-
-			go loopUntilTimeoutOrPanic("check resource type", func(i int) {
-				scenario.Run(
-					builder.WithResourceTypeVersions("some-resource-type", atc.Version{"foo": strconv.Itoa(i / 10)}),
-				)
 			})()
 
 			go func() {
@@ -3613,8 +3642,7 @@ var _ = Describe("Team", func() {
 
 	Describe("FindCheckContainers", func() {
 		var (
-			fakeSecretManager *credsfakes.FakeSecrets
-			logger            lager.Logger
+			logger lager.Logger
 		)
 
 		expiries := db.ContainerOwnerExpiries{
@@ -3623,8 +3651,6 @@ var _ = Describe("Team", func() {
 		}
 
 		BeforeEach(func() {
-			fakeSecretManager = new(credsfakes.FakeSecrets)
-			fakeSecretManager.GetReturns("", nil, false, nil)
 			logger = lagertest.NewTestLogger("db-test")
 		})
 
@@ -3635,14 +3661,18 @@ var _ = Describe("Team", func() {
 					var resourceConfig db.ResourceConfig
 
 					BeforeEach(func() {
-						pipelineResourceTypes, err := defaultPipeline.ResourceTypes()
-						Expect(err).ToNot(HaveOccurred())
-
+						var err error
 						resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(
 							defaultResource.Type(),
 							defaultResource.Source(),
-							pipelineResourceTypes.Deserialize(),
+							nil,
 						)
+						Expect(err).ToNot(HaveOccurred())
+
+						scope, err := resourceConfig.FindOrCreateScope(defaultResource)
+						Expect(err).ToNot(HaveOccurred())
+
+						err = defaultResource.SetResourceConfigScope(scope)
 						Expect(err).ToNot(HaveOccurred())
 
 						resourceContainer, err = defaultWorker.CreateContainer(
@@ -3657,7 +3687,7 @@ var _ = Describe("Team", func() {
 					})
 
 					It("returns check container for resource", func() {
-						containers, checkContainersExpiresAt, err := defaultTeam.FindCheckContainers(logger, defaultPipelineRef, "some-resource", fakeSecretManager, fakeVarSourcePool)
+						containers, checkContainersExpiresAt, err := defaultTeam.FindCheckContainers(logger, defaultPipelineRef, "some-resource")
 						Expect(err).ToNot(HaveOccurred())
 						Expect(containers).To(HaveLen(1))
 						Expect(containers[0].ID()).To(Equal(resourceContainer.ID()))
@@ -3697,8 +3727,14 @@ var _ = Describe("Team", func() {
 							resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(
 								otherResource.Type(),
 								otherResource.Source(),
-								atc.VersionedResourceTypes{},
+								nil,
 							)
+							Expect(err).ToNot(HaveOccurred())
+
+							scope, err := resourceConfig.FindOrCreateScope(otherResource)
+							Expect(err).ToNot(HaveOccurred())
+
+							err = otherResource.SetResourceConfigScope(scope)
 							Expect(err).ToNot(HaveOccurred())
 
 							otherResourceContainer, _, err = defaultWorker.FindContainer(
@@ -3712,7 +3748,7 @@ var _ = Describe("Team", func() {
 						})
 
 						It("returns the same check container", func() {
-							containers, checkContainersExpiresAt, err := defaultTeam.FindCheckContainers(logger, otherPipelineRef, "some-resource", fakeSecretManager, fakeVarSourcePool)
+							containers, checkContainersExpiresAt, err := defaultTeam.FindCheckContainers(logger, otherPipelineRef, "some-resource")
 							Expect(err).ToNot(HaveOccurred())
 							Expect(containers).To(HaveLen(1))
 							Expect(containers[0].ID()).To(Equal(otherResourceContainer.ID()))
@@ -3725,7 +3761,7 @@ var _ = Describe("Team", func() {
 
 				Context("when check container does not exist", func() {
 					It("returns empty list", func() {
-						containers, checkContainersExpiresAt, err := defaultTeam.FindCheckContainers(logger, defaultPipelineRef, "some-resource", fakeSecretManager, fakeVarSourcePool)
+						containers, checkContainersExpiresAt, err := defaultTeam.FindCheckContainers(logger, defaultPipelineRef, "some-resource")
 						Expect(err).ToNot(HaveOccurred())
 						Expect(containers).To(BeEmpty())
 						Expect(checkContainersExpiresAt).To(BeEmpty())
@@ -3735,7 +3771,7 @@ var _ = Describe("Team", func() {
 
 			Context("when resource does not exist", func() {
 				It("returns empty list", func() {
-					containers, checkContainersExpiresAt, err := defaultTeam.FindCheckContainers(logger, defaultPipelineRef, "non-existent-resource", fakeSecretManager, fakeVarSourcePool)
+					containers, checkContainersExpiresAt, err := defaultTeam.FindCheckContainers(logger, defaultPipelineRef, "non-existent-resource")
 					Expect(err).ToNot(HaveOccurred())
 					Expect(containers).To(BeEmpty())
 					Expect(checkContainersExpiresAt).To(BeEmpty())
@@ -3745,7 +3781,7 @@ var _ = Describe("Team", func() {
 
 		Context("when pipeline does not exist", func() {
 			It("returns empty list", func() {
-				containers, checkContainersExpiresAt, err := defaultTeam.FindCheckContainers(logger, atc.PipelineRef{Name: "non-existent-pipeline"}, "some-resource", fakeSecretManager, fakeVarSourcePool)
+				containers, checkContainersExpiresAt, err := defaultTeam.FindCheckContainers(logger, atc.PipelineRef{Name: "non-existent-pipeline"}, "some-resource")
 				Expect(err).ToNot(HaveOccurred())
 				Expect(containers).To(BeEmpty())
 				Expect(checkContainersExpiresAt).To(BeEmpty())

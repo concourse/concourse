@@ -6,27 +6,27 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-func (team *team) VersionedResourceTypes(pipelineRef atc.PipelineRef) (atc.VersionedResourceTypes, bool, error) {
+func (team *team) ResourceTypes(pipelineRef atc.PipelineRef) (atc.ResourceTypes, bool, error) {
 	params := rata.Params{
 		"pipeline_name": pipelineRef.Name,
 		"team_name":     team.Name(),
 	}
 
-	var versionedResourceTypes atc.VersionedResourceTypes
+	var resourceTypes atc.ResourceTypes
 	err := team.connection.Send(internal.Request{
 		RequestName: atc.ListResourceTypes,
 		Params:      params,
 		Query:       pipelineRef.QueryParams(),
 	}, &internal.Response{
-		Result: &versionedResourceTypes,
+		Result: &resourceTypes,
 	})
 
 	switch err.(type) {
 	case nil:
-		return versionedResourceTypes, true, nil
+		return resourceTypes, true, nil
 	case internal.ResourceNotFoundError:
-		return versionedResourceTypes, false, nil
+		return resourceTypes, false, nil
 	default:
-		return versionedResourceTypes, false, err
+		return resourceTypes, false, err
 	}
 }

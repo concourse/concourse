@@ -114,6 +114,15 @@ decodeBuildEvent =
                                 (Json.Decode.field "time" <| Json.Decode.map dateFromSeconds Json.Decode.int)
                             )
 
+                    "initialize-check" ->
+                        Json.Decode.field
+                            "data"
+                            (Json.Decode.map3 InitializeCheck
+                                (Json.Decode.field "origin" <| Json.Decode.lazy (\_ -> decodeOrigin))
+                                (Json.Decode.field "time" <| Json.Decode.map dateFromSeconds Json.Decode.int)
+                                (Json.Decode.field "name" <| Json.Decode.string)
+                            )
+
                     "start-task" ->
                         Json.Decode.field
                             "data"

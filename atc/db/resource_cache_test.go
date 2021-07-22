@@ -47,7 +47,7 @@ var _ = Describe("ResourceCache", func() {
 					"some": "source",
 				},
 				atc.Params{"some": "params"},
-				atc.VersionedResourceTypes{},
+				nil,
 			)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(urc.ID()).ToNot(BeZero())
@@ -59,7 +59,7 @@ var _ = Describe("ResourceCache", func() {
 		})
 
 		Context("when it already exists", func() {
-			var existingResourceCache db.UsedResourceCache
+			var existingResourceCache db.ResourceCache
 
 			BeforeEach(func() {
 				var err error
@@ -71,7 +71,7 @@ var _ = Describe("ResourceCache", func() {
 						"some": "source",
 					},
 					atc.Params{"some": "params"},
-					atc.VersionedResourceTypes{},
+					nil,
 				)
 				Expect(err).ToNot(HaveOccurred())
 			})
@@ -85,73 +85,9 @@ var _ = Describe("ResourceCache", func() {
 						"some": "source",
 					},
 					atc.Params{"some": "params"},
-					atc.VersionedResourceTypes{},
+					nil,
 				)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(urc.ID()).To(Equal(existingResourceCache.ID()))
-			})
-		})
-	})
-
-	Describe("creating for a container", func() {
-		var container db.CreatingContainer
-		var urc db.UsedResourceCache
-
-		BeforeEach(func() {
-			worker, err := defaultTeam.SaveWorker(atc.Worker{
-				Name: "some-worker",
-			}, 0)
-			Expect(err).ToNot(HaveOccurred())
-
-			build, err := defaultTeam.CreateOneOffBuild()
-			Expect(err).NotTo(HaveOccurred())
-
-			container, err = worker.CreateContainer(
-				db.NewBuildStepContainerOwner(build.ID(), "some-plan", defaultTeam.ID()),
-				db.ContainerMetadata{},
-			)
-			Expect(err).ToNot(HaveOccurred())
-
-			urc, err = resourceCacheFactory.FindOrCreateResourceCache(
-				db.ForContainer(container.ID()),
-				"some-worker-resource-type",
-				atc.Version{"some-type": "version"},
-				atc.Source{
-					"cache": "source",
-				},
-				atc.Params{"some": "params"},
-				atc.VersionedResourceTypes{},
-			)
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		It("resource cache cannot be deleted through use", func() {
-			var err error
-			// ON DELETE RESTRICT from resource_cache_uses -> resource_caches
-			_, err = psql.Delete("resource_caches").Where(sq.Eq{"id": urc.ID()}).RunWith(dbConn).Exec()
-			Expect(err).To(HaveOccurred())
-			Expect(err.(*pq.Error).Code.Name()).To(Equal("foreign_key_violation"))
-		})
-
-		Context("when it already exists", func() {
-			var existingResourceCache db.UsedResourceCache
-
-			BeforeEach(func() {
-				var err error
-				existingResourceCache, err = resourceCacheFactory.FindOrCreateResourceCache(
-					db.ForContainer(container.ID()),
-					"some-worker-resource-type",
-					atc.Version{"some-type": "version"},
-					atc.Source{
-						"cache": "source",
-					},
-					atc.Params{"some": "params"},
-					atc.VersionedResourceTypes{},
-				)
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			It("returns the same used resource cache", func() {
 				Expect(urc.ID()).To(Equal(existingResourceCache.ID()))
 			})
 		})
