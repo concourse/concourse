@@ -215,7 +215,7 @@ var _ = Describe("Check Lifecycle", func() {
 			By("when there is no newer build, events should not be cleaned")
 			err := lifecycle.DeleteCompletedChecks(logger)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(numBuildEventsForCheck(build)).To(Equal(1)) // should be a finish event
+			Expect(numBuildEventsForCheck(build)).To(Equal(2)) // should be status and finish event
 
 			By("when there is a newer build, old events should be cleaned up")
 			newBuild, err := defaultResource.CreateInMemoryBuild(context.Background(), plan, seqGen)

@@ -54,6 +54,12 @@ func newRunningInMemoryCheckBuild(conn Conn, lockFactory lock.LockFactory, check
 	build.spanContext = spanContext
 	build.preId = seqGen.Next()
 	build.eventIdSeq = util.NewSequenceGenerator(0)
+
+	build.SaveEvent(event.Status{
+		Status: atc.StatusStarted,
+		Time:   time.Now().Unix(),
+	})
+
 	return build, nil
 }
 
