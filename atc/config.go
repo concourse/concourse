@@ -315,6 +315,7 @@ func (types ResourceTypes) ImageForType(planID PlanID, resourceType string, step
 	}
 
 	getPlan, checkPlan := FetchImagePlan(planID, imageResource, types.Without(parent.Name), stepTags, skipInterval)
+	checkPlan.Check.ResourceType = resourceType
 
 	return TypeImage{
 		// Set the base type as the base type of its parent. The value of the base

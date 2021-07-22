@@ -1319,9 +1319,10 @@ var _ = Describe("Resource", func() {
 							CheckPlan: &atc.Plan{
 								ID: checkPlanID,
 								Check: &atc.CheckPlan{
-									Name:   "some-resource-type",
-									Type:   "some-base-resource-type",
-									Source: atc.Source{"some": "type-source"},
+									Name:         "some-resource-type",
+									ResourceType: "some-resource-type",
+									Type:         "some-base-resource-type",
+									Source:       atc.Source{"some": "type-source"},
 									TypeImage: atc.TypeImage{
 										BaseType: "some-base-resource-type",
 									},
@@ -1414,9 +1415,10 @@ var _ = Describe("Resource", func() {
 							CheckPlan: &atc.Plan{
 								ID: checkPlanID,
 								Check: &atc.CheckPlan{
-									Name:   "some-resource-type",
-									Type:   "some-base-resource-type",
-									Source: atc.Source{"some": "type-source"},
+									Name:         "some-resource-type",
+									ResourceType: "some-resource-type",
+									Type:         "some-base-resource-type",
+									Source:       atc.Source{"some": "type-source"},
 									TypeImage: atc.TypeImage{
 										BaseType: "some-base-resource-type",
 									},
@@ -1505,6 +1507,7 @@ var _ = Describe("Resource", func() {
 									ID: checkPlanID,
 									Check: &atc.CheckPlan{
 										Name:         "some-resource-type",
+										ResourceType: "some-resource-type",
 										Type:         "some-base-resource-type",
 										Source:       atc.Source{"some": "type-source"},
 										SkipInterval: false,
@@ -1564,6 +1567,7 @@ var _ = Describe("Resource", func() {
 									ID: checkPlanID,
 									Check: &atc.CheckPlan{
 										Name:         "some-resource-type",
+										ResourceType: "some-resource-type",
 										Type:         "some-base-resource-type",
 										Source:       atc.Source{"some": "type-source"},
 										SkipInterval: true,

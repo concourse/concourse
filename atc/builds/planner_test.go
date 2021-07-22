@@ -116,6 +116,7 @@ var factoryTests = []PlannerTest{
 						"check": {
 							"name": "some-resource-type",
 							"type": "some-base-resource-type",
+							"resource_type": "some-resource-type",
 							"source": {
 								 "some": "type-source"
 							},
@@ -195,6 +196,7 @@ var factoryTests = []PlannerTest{
 						"check": {
 							"name": "some-child-resource-type",
 							"type": "some-resource-type",
+							"resource_type": "some-child-resource-type",
 							"source": {
 								 "some": "child-source"
 							},
@@ -223,6 +225,7 @@ var factoryTests = []PlannerTest{
 									"check": {
 										"name": "some-resource-type",
 										"type": "some-base-resource-type",
+										"resource_type": "some-resource-type",
 										"source": {
 											"some": "type-source"
 										},
@@ -257,6 +260,7 @@ var factoryTests = []PlannerTest{
 									"check": {
 										"name": "some-resource-type",
 										"type": "some-base-resource-type",
+										"resource_type": "some-resource-type",
 										"source": {
 											"some": "type-source"
 										},
@@ -347,6 +351,7 @@ var factoryTests = []PlannerTest{
 						"check": {
 							"name": "some-child-resource-type",
 							"type": "some-resource-type",
+							"resource_type": "some-child-resource-type",
 							"source": {
 								 "some": "child-source"
 							},
@@ -358,6 +363,7 @@ var factoryTests = []PlannerTest{
 									"check": {
 										"name": "some-resource-type",
 										"type": "some-base-resource-type",
+										"resource_type": "some-resource-type",
 										"source": {
 											"some": "type-source"
 										},
@@ -411,6 +417,7 @@ var factoryTests = []PlannerTest{
 									"check": {
 										"name": "some-resource-type",
 										"type": "some-base-resource-type",
+										"resource_type": "some-resource-type",
 										"source": {
 											"some": "type-source"
 										},
@@ -598,6 +605,7 @@ var factoryTests = []PlannerTest{
 								"check": {
 									"name": "some-resource-type",
 									"type": "some-base-resource-type",
+									"resource_type": "some-resource-type",
 									"source": { "some": "type-source" },
 									"image": {
 										"base_type": "some-base-resource-type"
@@ -647,6 +655,7 @@ var factoryTests = []PlannerTest{
 								"check": {
 									"name": "some-resource-type",
 									"type": "some-base-resource-type",
+									"resource_type": "some-resource-type",
 									"source": { "some": "type-source" },
 									"image": {
 										"base_type": "some-base-resource-type"
@@ -720,6 +729,7 @@ var factoryTests = []PlannerTest{
 								"check": {
 									"name": "some-resource-type",
 									"type": "some-base-resource-type",
+									"resource_type": "some-resource-type",
 									"source": { "some": "type-source" },
 									"image": {
 										"base_type": "some-base-resource-type"
@@ -759,6 +769,7 @@ var factoryTests = []PlannerTest{
 								"check": {
 									"name": "some-resource-type",
 									"type": "some-base-resource-type",
+									"resource_type": "some-resource-type",
 									"source": { "some": "type-source" },
 									"image": {
 										"base_type": "some-base-resource-type"

@@ -260,10 +260,11 @@ run:
 			planFactory := atc.NewPlanFactory(0)
 
 			expectedCheckPlan := planFactory.NewPlan(atc.CheckPlan{
-				Name:      "resource-type",
-				Type:      "s3",
-				Source:    atc.Source{},
-				TypeImage: atc.TypeImage{BaseType: "s3"},
+				Name:         "resource-type",
+				ResourceType: "resource-type",
+				Type:         "s3",
+				Source:       atc.Source{},
+				TypeImage:    atc.TypeImage{BaseType: "s3"},
 			})
 			expectedGetPlan := planFactory.NewPlan(atc.GetPlan{
 				Name:        "resource-type",
