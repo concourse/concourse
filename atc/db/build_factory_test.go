@@ -440,6 +440,11 @@ var _ = Describe("BuildFactory", func() {
 			_, err = build4DB.Reload()
 			Expect(err).NotTo(HaveOccurred())
 
+			for _, build := range builds {
+				_, err := build.Reload()
+				Expect(err).NotTo(HaveOccurred())
+			}
+
 			Expect(builds).To(ConsistOf(build4DB))
 		})
 	})
@@ -483,6 +488,11 @@ var _ = Describe("BuildFactory", func() {
 		It("returns all builds that have been started, regardless of pipeline", func() {
 			builds, err := buildFactory.GetAllStartedBuilds()
 			Expect(err).NotTo(HaveOccurred())
+
+			for _, build := range builds {
+				_, err := build.Reload()
+				Expect(err).NotTo(HaveOccurred())
+			}
 
 			_, err = build1DB.Reload()
 			Expect(err).NotTo(HaveOccurred())
