@@ -461,3 +461,7 @@ func (delegate *buildStepDelegate) redactImageSource(source atc.Source) (atc.Sou
 	}
 	return newSource, nil
 }
+
+func (delegate *buildStepDelegate) ContainerOwner(planId atc.PlanID) db.ContainerOwner {
+	return delegate.build.ContainerOwner(planId)
+}

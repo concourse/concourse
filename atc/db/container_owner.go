@@ -226,3 +226,38 @@ func (c resourceConfigCheckSessionContainerOwner) Create(tx Tx, workerName strin
 		"resource_config_check_session_id": rccsID,
 	}, nil
 }
+
+// NewInMemoryCheckBuildContainerOwner references a in-memory check build.
+func NewInMemoryCheckBuildContainerOwner(
+	buildID int,
+	planID atc.PlanID,
+	teamID int,
+) ContainerOwner {
+	return inMemoryCheckBuildContainerOwner{
+		BuildID: buildID,
+		PlanID:  planID,
+		TeamID:  teamID,
+	}
+}
+
+type inMemoryCheckBuildContainerOwner struct {
+	BuildID int
+	PlanID  atc.PlanID
+	TeamID  int
+}
+
+func (c inMemoryCheckBuildContainerOwner) Find(Conn) (sq.Eq, bool, error) {
+	return sq.Eq(c.sqlMap()), true, nil
+}
+
+func (c inMemoryCheckBuildContainerOwner) Create(Tx, string) (map[string]interface{}, error) {
+	return c.sqlMap(), nil
+}
+
+func (c inMemoryCheckBuildContainerOwner) sqlMap() map[string]interface{} {
+	return map[string]interface{}{
+		"in_memory_check_build_id": c.BuildID,
+		"plan_id":                  c.PlanID,
+		"team_id":                  c.TeamID,
+	}
+}

@@ -20,6 +20,7 @@ import (
 	"github.com/concourse/concourse/atc/db/encryption"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/event"
+	"github.com/concourse/concourse/atc/util"
 	"github.com/concourse/concourse/tracing"
 )
 
@@ -120,10 +121,18 @@ type Build interface {
 	ID() int
 	Name() string
 
+	RunStateID() string
+
 	TeamID() int
 	TeamName() string
 
 	Job() (Job, bool, error)
+
+	// AllAssociatedTeamNames is only meaningful for check build. For a global
+	// resource's check build, it may associate to resources across multiple
+	// teams.
+	AllAssociatedTeamNames() []string
+
 	JobID() int
 	JobName() string
 
@@ -205,6 +214,11 @@ type Build interface {
 		from ConfigVersion,
 		initiallyPaused bool,
 	) (Pipeline, bool, error)
+
+	ResourceCacheUser() ResourceCacheUser
+	ContainerOwner(atc.PlanID) ContainerOwner
+
+	OnCheckBuildStart() error
 }
 
 type build struct {
@@ -250,6 +264,8 @@ type build struct {
 	completed bool
 
 	spanContext SpanContext
+
+	eventIdSeq util.SequenceGenerator
 }
 
 func newEmptyBuild(conn Conn, lockFactory lock.LockFactory) *build {
@@ -340,20 +356,22 @@ func (b *build) TracingAttrs() tracing.Attrs {
 	return data
 }
 
-func (b *build) ID() int                      { return b.id }
-func (b *build) Name() string                 { return b.name }
-func (b *build) JobID() int                   { return b.jobID }
-func (b *build) JobName() string              { return b.jobName }
-func (b *build) ResourceID() int              { return b.resourceID }
-func (b *build) ResourceName() string         { return b.resourceName }
-func (b *build) ResourceTypeID() int          { return b.resourceTypeID }
-func (b *build) TeamID() int                  { return b.teamID }
-func (b *build) TeamName() string             { return b.teamName }
-func (b *build) IsManuallyTriggered() bool    { return b.isManuallyTriggered }
-func (b *build) Schema() string               { return b.schema }
-func (b *build) PrivatePlan() atc.Plan        { return b.privatePlan }
-func (b *build) PublicPlan() *json.RawMessage { return b.publicPlan }
-func (b *build) HasPlan() bool                { return string(*b.publicPlan) != "{}" }
+func (b *build) ID() int                          { return b.id }
+func (b *build) Name() string                     { return b.name }
+func (b *build) RunStateID() string               { return fmt.Sprintf("build:%v", b.id) }
+func (b *build) JobID() int                       { return b.jobID }
+func (b *build) JobName() string                  { return b.jobName }
+func (b *build) ResourceID() int                  { return b.resourceID }
+func (b *build) ResourceName() string             { return b.resourceName }
+func (b *build) ResourceTypeID() int              { return b.resourceTypeID }
+func (b *build) TeamID() int                      { return b.teamID }
+func (b *build) TeamName() string                 { return b.teamName }
+func (b *build) AllAssociatedTeamNames() []string { return []string{b.teamName} }
+func (b *build) IsManuallyTriggered() bool        { return b.isManuallyTriggered }
+func (b *build) Schema() string                   { return b.schema }
+func (b *build) PrivatePlan() atc.Plan            { return b.privatePlan }
+func (b *build) PublicPlan() *json.RawMessage     { return b.publicPlan }
+func (b *build) HasPlan() bool                    { return string(*b.publicPlan) != "{}" }
 func (b *build) IsNewerThanLastCheckOf(input Resource) bool {
 	return b.createTime.After(input.LastCheckEndTime())
 }
@@ -375,15 +393,31 @@ func (b *build) RerunNumber() int      { return b.rerunNumber }
 func (b *build) CreatedBy() *string    { return b.createdBy }
 
 func (b *build) Reload() (bool, error) {
+	tx, err := b.conn.Begin()
+	if err != nil {
+		return false, err
+	}
+	defer tx.Rollback()
+
 	row := buildsQuery.Where(sq.Eq{"b.id": b.id}).
-		RunWith(b.conn).
+		RunWith(tx).
 		QueryRow()
 
-	err := scanBuild(b, row, b.conn.EncryptionStrategy())
+	err = scanBuild(b, row, b.conn.EncryptionStrategy())
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return false, nil
 		}
+		return false, err
+	}
+
+	err = b.refreshEventIdSeq(tx)
+	if err != nil {
+		return false, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
 		return false, err
 	}
 
@@ -600,13 +634,6 @@ func (b *build) Finish(status BuildStatus) error {
 		Status: atc.BuildStatus(status),
 		Time:   endTime.Unix(),
 	})
-	if err != nil {
-		return err
-	}
-
-	_, err = tx.Exec(fmt.Sprintf(`
-		DROP SEQUENCE %s
-	`, buildEventSeq(b.id)))
 	if err != nil {
 		return err
 	}
@@ -935,6 +962,26 @@ func (b *build) AcquireTrackingLock(logger lager.Logger, interval time.Duration)
 	return lock, true, nil
 }
 
+func (b *build) refreshEventIdSeq(runner sq.Runner) error {
+	var currentEventId sql.NullInt64
+	err := psql.Select("max(event_id)").
+		From(b.eventsTable()).
+		Where(sq.Eq{"build_id": b.id}).
+		RunWith(runner).
+		QueryRow().
+		Scan(&currentEventId)
+	if err != nil {
+		return err
+	}
+
+	seqIdInit := 0
+	if currentEventId.Valid {
+		seqIdInit = int(currentEventId.Int64) + 1
+	}
+	b.eventIdSeq = util.NewSequenceGenerator(seqIdInit)
+	return nil
+}
+
 func (b *build) Preparation() (BuildPreparation, bool, error) {
 	if b.jobID == 0 || b.status != BuildStatusPending {
 		return BuildPreparation{
@@ -1108,6 +1155,19 @@ func (b *build) Events(from uint) (EventSource, error) {
 		b.conn,
 		notifier,
 		from,
+		func(tx Tx, buildID int) (bool, error) {
+			completed := false
+			err = psql.Select("completed").
+				From("builds").
+				Where(sq.Eq{"id": buildID}).
+				RunWith(tx).
+				QueryRow().
+				Scan(&completed)
+			if err != nil {
+				return false, nil
+			}
+			return completed, nil
+		},
 	), nil
 }
 
@@ -1772,22 +1832,25 @@ func (b *build) SavePipeline(
 	return pipeline, isNewPipeline, nil
 }
 
+func (b *build) ResourceCacheUser() ResourceCacheUser {
+	return ForBuild(b.ID())
+}
+
+func (b *build) ContainerOwner(planId atc.PlanID) ContainerOwner {
+	return NewBuildStepContainerOwner(b.ID(), planId, b.TeamID())
+}
+
+// OnCheckBuildStart is a hook point called after a worker is selected. For DB
+// build, there is nothing to in at this point.
+func (b *build) OnCheckBuildStart() error {
+	return nil
+}
+
 func newNullInt64(i int) sql.NullInt64 {
 	return sql.NullInt64{
 		Valid: true,
 		Int64: int64(i),
 	}
-}
-
-func createBuildEventSeq(tx Tx, buildid int) error {
-	_, err := tx.Exec(fmt.Sprintf(`
-		CREATE SEQUENCE %s MINVALUE 0
-	`, buildEventSeq(buildid)))
-	return err
-}
-
-func buildEventSeq(buildid int) string {
-	return fmt.Sprintf("build_event_id_seq_%d", buildid)
 }
 
 func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) error {
@@ -1917,9 +1980,13 @@ func (b *build) saveEvent(tx Tx, event atc.Event) error {
 		return err
 	}
 
+	if b.eventIdSeq == nil {
+		b.refreshEventIdSeq(tx)
+	}
+
 	_, err = psql.Insert(b.eventsTable()).
 		Columns("event_id", "build_id", "type", "version", "payload").
-		Values(sq.Expr("nextval('"+buildEventSeq(b.id)+"')"), b.id, string(event.EventType()), string(event.Version()), payload).
+		Values(b.eventIdSeq.Next(), b.id, string(event.EventType()), string(event.Version()), payload).
 		RunWith(tx).
 		Exec()
 	return err
@@ -1969,7 +2036,7 @@ func createBuild(tx Tx, build *build, vals map[string]interface{}) error {
 		return err
 	}
 
-	return createBuildEventSeq(tx, buildID)
+	return nil
 }
 
 type startedBuildArgs struct {

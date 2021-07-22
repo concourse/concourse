@@ -44,6 +44,10 @@ type CheckDelegate interface {
 	FindOrCreateScope(db.ResourceConfig) (db.ResourceConfigScope, error)
 	WaitToRun(context.Context, db.ResourceConfigScope) (lock.Lock, bool, error)
 	PointToCheckedConfig(db.ResourceConfigScope) error
+	UpdateScopeLastCheckStartTime(db.ResourceConfigScope) (bool, int, error)
+	UpdateScopeLastCheckEndTime(db.ResourceConfigScope, bool) (bool, error)
+
+	IsManuallyTriggered() bool
 }
 
 func NewCheckStep(
@@ -136,6 +140,14 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 		return false, fmt.Errorf("create resource config scope: %w", err)
 	}
 
+	// Point scope to resource before check runs. Because a resource's check build
+	// summary is associated with scope, only after pointing to scope, check status
+	// can be fetched.
+	err = delegate.PointToCheckedConfig(scope)
+	if err != nil {
+		return false, fmt.Errorf("update resource config scope: %w", err)
+	}
+
 	lock, run, err := delegate.WaitToRun(ctx, scope)
 	if err != nil {
 		return false, fmt.Errorf("wait: %w", err)
@@ -163,16 +175,20 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 
 		metric.Metrics.ChecksStarted.Inc()
 
-		_, err = scope.UpdateLastCheckStartTime()
+		_, buildId, err := delegate.UpdateScopeLastCheckStartTime(scope)
 		if err != nil {
-			return false, fmt.Errorf("update check end time: %w", err)
+			return false, fmt.Errorf("update check start time: %w", err)
 		}
+
+		// Update build in logger
+		logger = logger.WithData(lager.Data{"build": buildId})
+		ctx = lagerctx.NewContext(ctx, logger)
 
 		result, runErr := step.runCheck(ctx, logger, delegate, timeout, resourceConfig, source, resourceTypes, fromVersion)
 		if runErr != nil {
 			metric.Metrics.ChecksFinishedWithError.Inc()
 
-			if _, err := scope.UpdateLastCheckEndTime(false); err != nil {
+			if _, err := delegate.UpdateScopeLastCheckEndTime(scope, false); err != nil {
 				return false, fmt.Errorf("update check end time: %w", err)
 			}
 
@@ -204,7 +220,7 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 			state.StoreResult(step.planID, result.Versions[len(result.Versions)-1])
 		}
 
-		_, err = scope.UpdateLastCheckEndTime(true)
+		_, err = delegate.UpdateScopeLastCheckEndTime(scope, true)
 		if err != nil {
 			return false, fmt.Errorf("update check end time: %w", err)
 		}
@@ -217,11 +233,6 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 		if found {
 			state.StoreResult(step.planID, atc.Version(latestVersion.Version()))
 		}
-	}
-
-	err = delegate.PointToCheckedConfig(scope)
-	if err != nil {
-		return false, fmt.Errorf("update resource config scope: %w", err)
 	}
 
 	delegate.Finished(logger, true)
@@ -298,7 +309,7 @@ func (step *CheckStep) runCheck(
 
 	chosenWorker, _, err := step.workerPool.SelectWorker(
 		lagerctx.NewContext(ctx, logger),
-		step.containerOwner(resourceConfig),
+		step.containerOwner(delegate, resourceConfig),
 		containerSpec,
 		workerSpec,
 		step.strategy,
@@ -328,7 +339,7 @@ func (step *CheckStep) runCheck(
 
 	return chosenWorker.RunCheckStep(
 		lagerctx.NewContext(processCtx, logger),
-		step.containerOwner(resourceConfig),
+		step.containerOwner(delegate, resourceConfig),
 		containerSpec,
 		step.containerMetadata,
 		processSpec,
@@ -337,13 +348,9 @@ func (step *CheckStep) runCheck(
 	)
 }
 
-func (step *CheckStep) containerOwner(resourceConfig db.ResourceConfig) db.ContainerOwner {
+func (step *CheckStep) containerOwner(delegate CheckDelegate, resourceConfig db.ResourceConfig) db.ContainerOwner {
 	if step.plan.Resource == "" {
-		return db.NewBuildStepContainerOwner(
-			step.metadata.BuildID,
-			step.planID,
-			step.metadata.TeamID,
-		)
+		return delegate.ContainerOwner(step.planID)
 	}
 
 	expires := db.ContainerOwnerExpiries{

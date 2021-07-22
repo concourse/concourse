@@ -308,6 +308,10 @@ var _ = Describe("Engine", func() {
 										Expect(fakeBuild.FinishArgsForCall(0)).To(Equal(db.BuildStatusErrored))
 									})
 								})
+
+								It("build.RunState should be called", func() {
+									Expect(fakeBuild.RunStateIDCallCount()).To(Equal(2))
+								})
 							})
 
 							Context("when getting the build vars fails", func() {

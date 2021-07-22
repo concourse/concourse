@@ -123,3 +123,8 @@ func (d *getDelegate) UpdateVersion(log lager.Logger, plan atc.GetPlan, info run
 		return
 	}
 }
+
+func (d *getDelegate) ResourceCacheUser() db.ResourceCacheUser {
+	return d.build.ResourceCacheUser()
+}
+

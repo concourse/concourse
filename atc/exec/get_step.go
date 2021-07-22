@@ -60,6 +60,9 @@ type GetDelegate interface {
 	SelectedWorker(lager.Logger, string)
 
 	UpdateVersion(lager.Logger, atc.GetPlan, runtime.VersionResult)
+
+	ResourceCacheUser() db.ResourceCacheUser
+	ContainerOwner(planId atc.PlanID) db.ContainerOwner
 }
 
 // GetStep will fetch a version of a resource on a worker that supports the
@@ -137,32 +140,6 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 		ResourceType: step.plan.VersionedResourceTypes.Base(step.plan.Type),
 	}
 
-	var imageSpec worker.ImageSpec
-	resourceType, found := step.plan.VersionedResourceTypes.Lookup(step.plan.Type)
-	if found {
-		image := atc.ImageResource{
-			Name:    resourceType.Name,
-			Type:    resourceType.Type,
-			Source:  resourceType.Source,
-			Params:  resourceType.Params,
-			Version: resourceType.Version,
-			Tags:    resourceType.Tags,
-		}
-		if len(image.Tags) == 0 {
-			image.Tags = step.plan.Tags
-		}
-
-		types := step.plan.VersionedResourceTypes.Without(step.plan.Type)
-
-		var err error
-		imageSpec, err = delegate.FetchImage(ctx, image, types, resourceType.Privileged)
-		if err != nil {
-			return false, err
-		}
-	} else {
-		imageSpec.ResourceType = step.plan.Type
-	}
-
 	resourceTypes, err := creds.NewVersionedResourceTypes(state, step.plan.VersionedResourceTypes).Evaluate()
 	if err != nil {
 		return false, err
@@ -173,18 +150,8 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 		return false, err
 	}
 
-	containerSpec := worker.ContainerSpec{
-		ImageSpec: imageSpec,
-		TeamID:    step.metadata.TeamID,
-		TeamName:  step.metadata.TeamName,
-		Type:      step.containerMetadata.Type,
-
-		Env: step.metadata.Env(),
-	}
-	tracing.Inject(ctx, &containerSpec)
-
 	resourceCache, err := step.resourceCacheFactory.FindOrCreateResourceCache(
-		db.ForBuild(step.metadata.BuildID),
+		delegate.ResourceCacheUser(),
 		step.plan.Type,
 		version,
 		source,
@@ -232,6 +199,42 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 		}
 	}
 
+	var imageSpec worker.ImageSpec
+	resourceType, found := step.plan.VersionedResourceTypes.Lookup(step.plan.Type)
+	if found {
+		image := atc.ImageResource{
+			Name:    resourceType.Name,
+			Type:    resourceType.Type,
+			Source:  resourceType.Source,
+			Params:  resourceType.Params,
+			Version: resourceType.Version,
+			Tags:    resourceType.Tags,
+		}
+		if len(image.Tags) == 0 {
+			image.Tags = step.plan.Tags
+		}
+
+		types := step.plan.VersionedResourceTypes.Without(step.plan.Type)
+
+		var err error
+		imageSpec, err = delegate.FetchImage(ctx, image, types, resourceType.Privileged)
+		if err != nil {
+			return false, err
+		}
+	} else {
+		imageSpec.ResourceType = step.plan.Type
+	}
+
+	containerSpec := worker.ContainerSpec{
+		ImageSpec: imageSpec,
+		TeamID:    step.metadata.TeamID,
+		TeamName:  step.metadata.TeamName,
+		Type:      step.containerMetadata.Type,
+
+		Env: step.metadata.Env(),
+	}
+	tracing.Inject(ctx, &containerSpec)
+
 	processSpec := runtime.ProcessSpec{
 		Path:         "/opt/resource/in",
 		Args:         []string{resource.ResourcesDir("get")},
@@ -245,7 +248,7 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 		version,
 	)
 
-	containerOwner := db.NewBuildStepContainerOwner(step.metadata.BuildID, step.planID, step.metadata.TeamID)
+	containerOwner := delegate.ContainerOwner(step.planID)
 
 	worker, _, err := step.workerPool.SelectWorker(
 		lagerctx.NewContext(ctx, logger),

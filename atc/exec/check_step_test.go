@@ -3,6 +3,7 @@ package exec_test
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -101,6 +102,13 @@ var _ = Describe("CheckStep", func() {
 
 		fakeResourceConfigScope = new(dbfakes.FakeResourceConfigScope)
 		fakeDelegate.FindOrCreateScopeReturns(fakeResourceConfigScope, nil)
+		fakeDelegate.UpdateScopeLastCheckStartTimeStub = func(scope db.ResourceConfigScope) (bool, int, error) {
+			found, err := scope.UpdateLastCheckStartTime(int(time.Now().Unix()), nil)
+			return found, 678, err
+		}
+		fakeDelegate.UpdateScopeLastCheckEndTimeStub = func(scope db.ResourceConfigScope, succeeded bool) (bool, error) {
+			return scope.UpdateLastCheckEndTime(succeeded)
+		}
 
 		fakeDelegateFactory.CheckDelegateReturns(fakeDelegate)
 
@@ -166,6 +174,12 @@ var _ = Describe("CheckStep", func() {
 	Context("with a reasonable configuration", func() {
 		It("emits an Initializing event", func() {
 			Expect(fakeDelegate.InitializingCallCount()).To(Equal(1))
+		})
+
+		It("points the resource or resource type to the scope", func() {
+			Expect(fakeDelegate.PointToCheckedConfigCallCount()).To(Equal(1))
+			scope := fakeDelegate.PointToCheckedConfigArgsForCall(0)
+			Expect(scope).To(Equal(fakeResourceConfigScope))
 		})
 
 		Context("when not running", func() {
@@ -317,14 +331,8 @@ var _ = Describe("CheckStep", func() {
 					runCtx, owner, containerSpec, metadata, processSpec, startEventDelegate, resource = fakeClient.RunCheckStepArgsForCall(0)
 				})
 
-				It("uses ResourceConfigCheckSessionOwner", func() {
-					expected := db.NewBuildStepContainerOwner(
-						678,
-						planID,
-						345,
-					)
-
-					Expect(owner).To(Equal(expected))
+				It("get container owner from delegate", func(){
+					Expect(fakeDelegate.ContainerOwnerCallCount()).To(Equal(2))
 				})
 
 				Context("when the plan is for a resource", func() {
@@ -417,6 +425,8 @@ var _ = Describe("CheckStep", func() {
 							tracing.ConfigureTraceProvider(oteltest.NewTracerProvider())
 
 							spanCtx, buildSpan = tracing.StartSpan(ctx, "build", nil)
+							// Inject a kv so that we can identify this context.
+							spanCtx = context.WithValue(spanCtx, "foo", "bar")
 							fakeDelegate.StartSpanReturns(spanCtx, buildSpan)
 						})
 
@@ -425,7 +435,7 @@ var _ = Describe("CheckStep", func() {
 						})
 
 						It("propagates span context to the worker client", func() {
-							Expect(runCtx).To(Equal(rewrapLogger(spanCtx)))
+							Expect(runCtx.Value("foo")).To(Equal("bar"))
 						})
 
 						It("populates the TRACEPARENT env var", func() {
@@ -666,7 +676,7 @@ var _ = Describe("CheckStep", func() {
 
 				Context("before running the check", func() {
 					BeforeEach(func() {
-						fakeResourceConfigScope.UpdateLastCheckStartTimeStub = func() (bool, error) {
+						fakeResourceConfigScope.UpdateLastCheckStartTimeStub = func(int, *json.RawMessage) (bool, error) {
 							Expect(fakeClient.RunCheckStepCallCount()).To(Equal(0))
 							return true, nil
 						}
@@ -681,7 +691,6 @@ var _ = Describe("CheckStep", func() {
 				Context("after saving", func() {
 					BeforeEach(func() {
 						fakeResourceConfigScope.SaveVersionsStub = func(db.SpanContext, []atc.Version) error {
-							Expect(fakeDelegate.PointToCheckedConfigCallCount()).To(BeZero())
 							Expect(fakeResourceConfigScope.UpdateLastCheckEndTimeCallCount()).To(Equal(0))
 							return nil
 						}
@@ -691,24 +700,8 @@ var _ = Describe("CheckStep", func() {
 						Expect(fakeResourceConfigScope.UpdateLastCheckEndTimeCallCount()).To(Equal(1))
 					})
 
-					It("points the resource or resource type to the scope", func() {
-						Expect(fakeResourceConfigScope.SaveVersionsCallCount()).To(Equal(1))
-						Expect(fakeDelegate.PointToCheckedConfigCallCount()).To(Equal(1))
-						scope := fakeDelegate.PointToCheckedConfigArgsForCall(0)
-						Expect(scope).To(Equal(fakeResourceConfigScope))
-					})
-				})
-
-				Context("after pointing the resource type to the scope", func() {
-					BeforeEach(func() {
-						fakeDelegate.PointToCheckedConfigStub = func(db.ResourceConfigScope) error {
-							Expect(fakeLock.ReleaseCallCount()).To(Equal(0))
-							return nil
-						}
-					})
-
 					It("releases the lock", func() {
-						Expect(fakeDelegate.PointToCheckedConfigCallCount()).To(Equal(1))
+						Expect(fakeResourceConfigScope.SaveVersionsCallCount()).To(Equal(1))
 						Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
 					})
 				})
@@ -725,16 +718,6 @@ var _ = Describe("CheckStep", func() {
 				It("errors", func() {
 					Expect(stepErr).To(HaveOccurred())
 					Expect(errors.Is(stepErr, expectedErr)).To(BeTrue())
-				})
-
-				It("points the resource or resource type to the scope", func() {
-					// even though we failed to check, we should still point to the new
-					// scope; it'd be kind of weird leave the resource pointing to the old
-					// scope for a substantial config change that also happens to be
-					// broken.
-					Expect(fakeDelegate.PointToCheckedConfigCallCount()).To(Equal(1))
-					scope := fakeDelegate.PointToCheckedConfigArgsForCall(0)
-					Expect(scope).To(Equal(fakeResourceConfigScope))
 				})
 
 				It("updates the scope's last check end time", func() {

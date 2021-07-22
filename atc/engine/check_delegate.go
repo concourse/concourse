@@ -214,6 +214,18 @@ func (d *checkDelegate) PointToCheckedConfig(scope db.ResourceConfigScope) error
 	return nil
 }
 
+func (d *checkDelegate) UpdateScopeLastCheckStartTime(scope db.ResourceConfigScope) (bool, int, error) {
+	if err := d.build.OnCheckBuildStart(); err != nil {
+		return false, 0, err
+	}
+	found, err := scope.UpdateLastCheckStartTime(d.build.ID(), d.build.PublicPlan())
+	return found, d.build.ID(), err
+}
+
+func (d *checkDelegate) UpdateScopeLastCheckEndTime(scope db.ResourceConfigScope, succeeded bool) (bool, error) {
+	return scope.UpdateLastCheckEndTime(succeeded)
+}
+
 func (d *checkDelegate) pipeline() (db.Pipeline, error) {
 	if d.cachedPipeline != nil {
 		return d.cachedPipeline, nil
@@ -315,4 +327,8 @@ func (d *checkDelegate) prototype() (db.Prototype, bool, error) {
 	d.cachedPrototype = prototype
 
 	return d.cachedPrototype, true, nil
+}
+
+func (d *checkDelegate) IsManuallyTriggered() bool {
+	return d.build.IsManuallyTriggered()
 }

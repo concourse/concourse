@@ -158,6 +158,7 @@ var _ = Describe("Builds API", func() {
 			build1.JobNameReturns("job2")
 			build1.PipelineNameReturns("pipeline2")
 			build1.TeamNameReturns("some-team")
+			build1.AllAssociatedTeamNamesReturns([]string{"some-team"})
 			build1.StatusReturns(db.BuildStatusStarted)
 			build1.StartTimeReturns(time.Unix(1, 0))
 			build1.EndTimeReturns(time.Unix(100, 0))
@@ -169,6 +170,7 @@ var _ = Describe("Builds API", func() {
 			build2.JobNameReturns("job1")
 			build2.PipelineNameReturns("pipeline1")
 			build2.TeamNameReturns("some-team")
+			build2.AllAssociatedTeamNamesReturns([]string{"some-team"})
 			build2.StatusReturns(db.BuildStatusSucceeded)
 			build2.StartTimeReturns(time.Unix(101, 0))
 			build2.EndTimeReturns(time.Unix(200, 0))
@@ -180,6 +182,7 @@ var _ = Describe("Builds API", func() {
 			build3.ResourceNameReturns("resource1")
 			build3.PipelineNameReturns("pipeline1")
 			build3.TeamNameReturns("some-team")
+			build3.AllAssociatedTeamNamesReturns([]string{"some-team"})
 			build3.StatusReturns(db.BuildStatusSucceeded)
 			build3.StartTimeReturns(time.Unix(101, 0))
 
@@ -521,6 +524,7 @@ var _ = Describe("Builds API", func() {
 					build.NameReturns("1")
 					build.TeamIDReturns(2)
 					build.TeamNameReturns("some-team")
+					build.AllAssociatedTeamNamesReturns([]string{"some-team"})
 					build.PipelineIDReturns(123)
 					build.PipelineNameReturns("pipeline1")
 					build.JobIDReturns(456)
@@ -648,6 +652,7 @@ var _ = Describe("Builds API", func() {
 		Context("when the build is found", func() {
 			BeforeEach(func() {
 				build.TeamNameReturns("some-team")
+				build.AllAssociatedTeamNamesReturns([]string{"some-team"})
 				build.JobIDReturns(42)
 				build.JobNameReturns("job1")
 				build.PipelineIDReturns(42)
@@ -860,6 +865,7 @@ var _ = Describe("Builds API", func() {
 		Context("when the build can be found", func() {
 			BeforeEach(func() {
 				build.TeamNameReturns("some-team")
+				build.AllAssociatedTeamNamesReturns([]string{"some-team"})
 				build.JobIDReturns(42)
 				build.JobNameReturns("job1")
 				build.PipelineIDReturns(42)
@@ -1071,6 +1077,7 @@ var _ = Describe("Builds API", func() {
 			Context("when the build is found", func() {
 				BeforeEach(func() {
 					build.TeamNameReturns("some-team")
+					build.AllAssociatedTeamNamesReturns([]string{"some-team"})
 					dbBuildFactory.BuildReturns(build, true, nil)
 				})
 
@@ -1140,6 +1147,8 @@ var _ = Describe("Builds API", func() {
 				}
 				dbBuildFactory.BuildReturns(build, true, nil)
 				build.TeamNameReturns("some-team")
+				build.AllAssociatedTeamNamesReturns([]string{"some-team"})
+				build.AllAssociatedTeamNamesReturns([]string{"some-team"})
 				build.JobIDReturns(42)
 				build.JobNameReturns("job1")
 				build.PipelineIDReturns(42)
@@ -1345,6 +1354,7 @@ var _ = Describe("Builds API", func() {
 		Context("when the build is found", func() {
 			BeforeEach(func() {
 				build.TeamNameReturns("some-team")
+				build.AllAssociatedTeamNamesReturns([]string{"some-team"})
 				build.JobIDReturns(42)
 				build.JobNameReturns("job1")
 				build.PipelineIDReturns(42)

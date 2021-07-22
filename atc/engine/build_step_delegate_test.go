@@ -1061,4 +1061,17 @@ var _ = Describe("BuildStepDelegate", func() {
 			})
 		})
 	})
+
+	Describe("ContainerOwner", func() {
+		JustBeforeEach(func() {
+			delegate.ContainerOwner("some-plan")
+		})
+
+		It("should delegate to build", func() {
+			Expect(fakeBuild.ContainerOwnerCallCount()).To(Equal(1))
+
+			planId := fakeBuild.ContainerOwnerArgsForCall(0)
+			Expect(planId).To(Equal(atc.PlanID("some-plan")))
+		})
+	})
 })

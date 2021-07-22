@@ -8,6 +8,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
@@ -16,6 +17,17 @@ import (
 )
 
 type FakeGetDelegate struct {
+	ContainerOwnerStub        func(atc.PlanID) db.ContainerOwner
+	containerOwnerMutex       sync.RWMutex
+	containerOwnerArgsForCall []struct {
+		arg1 atc.PlanID
+	}
+	containerOwnerReturns struct {
+		result1 db.ContainerOwner
+	}
+	containerOwnerReturnsOnCall map[int]struct {
+		result1 db.ContainerOwner
+	}
 	ErroredStub        func(lager.Logger, string)
 	erroredMutex       sync.RWMutex
 	erroredArgsForCall []struct {
@@ -49,6 +61,16 @@ type FakeGetDelegate struct {
 	initializingMutex       sync.RWMutex
 	initializingArgsForCall []struct {
 		arg1 lager.Logger
+	}
+	ResourceCacheUserStub        func() db.ResourceCacheUser
+	resourceCacheUserMutex       sync.RWMutex
+	resourceCacheUserArgsForCall []struct {
+	}
+	resourceCacheUserReturns struct {
+		result1 db.ResourceCacheUser
+	}
+	resourceCacheUserReturnsOnCall map[int]struct {
+		result1 db.ResourceCacheUser
 	}
 	SelectedWorkerStub        func(lager.Logger, string)
 	selectedWorkerMutex       sync.RWMutex
@@ -110,6 +132,67 @@ type FakeGetDelegate struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeGetDelegate) ContainerOwner(arg1 atc.PlanID) db.ContainerOwner {
+	fake.containerOwnerMutex.Lock()
+	ret, specificReturn := fake.containerOwnerReturnsOnCall[len(fake.containerOwnerArgsForCall)]
+	fake.containerOwnerArgsForCall = append(fake.containerOwnerArgsForCall, struct {
+		arg1 atc.PlanID
+	}{arg1})
+	stub := fake.ContainerOwnerStub
+	fakeReturns := fake.containerOwnerReturns
+	fake.recordInvocation("ContainerOwner", []interface{}{arg1})
+	fake.containerOwnerMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeGetDelegate) ContainerOwnerCallCount() int {
+	fake.containerOwnerMutex.RLock()
+	defer fake.containerOwnerMutex.RUnlock()
+	return len(fake.containerOwnerArgsForCall)
+}
+
+func (fake *FakeGetDelegate) ContainerOwnerCalls(stub func(atc.PlanID) db.ContainerOwner) {
+	fake.containerOwnerMutex.Lock()
+	defer fake.containerOwnerMutex.Unlock()
+	fake.ContainerOwnerStub = stub
+}
+
+func (fake *FakeGetDelegate) ContainerOwnerArgsForCall(i int) atc.PlanID {
+	fake.containerOwnerMutex.RLock()
+	defer fake.containerOwnerMutex.RUnlock()
+	argsForCall := fake.containerOwnerArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeGetDelegate) ContainerOwnerReturns(result1 db.ContainerOwner) {
+	fake.containerOwnerMutex.Lock()
+	defer fake.containerOwnerMutex.Unlock()
+	fake.ContainerOwnerStub = nil
+	fake.containerOwnerReturns = struct {
+		result1 db.ContainerOwner
+	}{result1}
+}
+
+func (fake *FakeGetDelegate) ContainerOwnerReturnsOnCall(i int, result1 db.ContainerOwner) {
+	fake.containerOwnerMutex.Lock()
+	defer fake.containerOwnerMutex.Unlock()
+	fake.ContainerOwnerStub = nil
+	if fake.containerOwnerReturnsOnCall == nil {
+		fake.containerOwnerReturnsOnCall = make(map[int]struct {
+			result1 db.ContainerOwner
+		})
+	}
+	fake.containerOwnerReturnsOnCall[i] = struct {
+		result1 db.ContainerOwner
+	}{result1}
 }
 
 func (fake *FakeGetDelegate) Errored(arg1 lager.Logger, arg2 string) {
@@ -276,6 +359,59 @@ func (fake *FakeGetDelegate) InitializingArgsForCall(i int) lager.Logger {
 	defer fake.initializingMutex.RUnlock()
 	argsForCall := fake.initializingArgsForCall[i]
 	return argsForCall.arg1
+}
+
+func (fake *FakeGetDelegate) ResourceCacheUser() db.ResourceCacheUser {
+	fake.resourceCacheUserMutex.Lock()
+	ret, specificReturn := fake.resourceCacheUserReturnsOnCall[len(fake.resourceCacheUserArgsForCall)]
+	fake.resourceCacheUserArgsForCall = append(fake.resourceCacheUserArgsForCall, struct {
+	}{})
+	stub := fake.ResourceCacheUserStub
+	fakeReturns := fake.resourceCacheUserReturns
+	fake.recordInvocation("ResourceCacheUser", []interface{}{})
+	fake.resourceCacheUserMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeGetDelegate) ResourceCacheUserCallCount() int {
+	fake.resourceCacheUserMutex.RLock()
+	defer fake.resourceCacheUserMutex.RUnlock()
+	return len(fake.resourceCacheUserArgsForCall)
+}
+
+func (fake *FakeGetDelegate) ResourceCacheUserCalls(stub func() db.ResourceCacheUser) {
+	fake.resourceCacheUserMutex.Lock()
+	defer fake.resourceCacheUserMutex.Unlock()
+	fake.ResourceCacheUserStub = stub
+}
+
+func (fake *FakeGetDelegate) ResourceCacheUserReturns(result1 db.ResourceCacheUser) {
+	fake.resourceCacheUserMutex.Lock()
+	defer fake.resourceCacheUserMutex.Unlock()
+	fake.ResourceCacheUserStub = nil
+	fake.resourceCacheUserReturns = struct {
+		result1 db.ResourceCacheUser
+	}{result1}
+}
+
+func (fake *FakeGetDelegate) ResourceCacheUserReturnsOnCall(i int, result1 db.ResourceCacheUser) {
+	fake.resourceCacheUserMutex.Lock()
+	defer fake.resourceCacheUserMutex.Unlock()
+	fake.ResourceCacheUserStub = nil
+	if fake.resourceCacheUserReturnsOnCall == nil {
+		fake.resourceCacheUserReturnsOnCall = make(map[int]struct {
+			result1 db.ResourceCacheUser
+		})
+	}
+	fake.resourceCacheUserReturnsOnCall[i] = struct {
+		result1 db.ResourceCacheUser
+	}{result1}
 }
 
 func (fake *FakeGetDelegate) SelectedWorker(arg1 lager.Logger, arg2 string) {
@@ -584,6 +720,8 @@ func (fake *FakeGetDelegate) WaitingForWorkerArgsForCall(i int) lager.Logger {
 func (fake *FakeGetDelegate) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.containerOwnerMutex.RLock()
+	defer fake.containerOwnerMutex.RUnlock()
 	fake.erroredMutex.RLock()
 	defer fake.erroredMutex.RUnlock()
 	fake.fetchImageMutex.RLock()
@@ -592,6 +730,8 @@ func (fake *FakeGetDelegate) Invocations() map[string][][]interface{} {
 	defer fake.finishedMutex.RUnlock()
 	fake.initializingMutex.RLock()
 	defer fake.initializingMutex.RUnlock()
+	fake.resourceCacheUserMutex.RLock()
+	defer fake.resourceCacheUserMutex.RUnlock()
 	fake.selectedWorkerMutex.RLock()
 	defer fake.selectedWorkerMutex.RUnlock()
 	fake.startSpanMutex.RLock()

@@ -18,6 +18,7 @@ import (
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/postgresrunner"
+	"github.com/concourse/concourse/atc/util"
 )
 
 func TestDB(t *testing.T) {
@@ -93,6 +94,9 @@ var (
 	}
 
 	psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	checkBuildChan chan db.Build
+	seqGenerator   util.SequenceGenerator
 )
 
 var _ = postgresrunner.GinkgoRunner(&postgresRunner)
@@ -103,8 +107,12 @@ var _ = BeforeEach(func() {
 	postgresRunner.CreateTestDBFromTemplate()
 
 	dbConn = postgresRunner.OpenConn()
+	db.CleanupBaseResourceTypesCache()
 
 	lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton(), metric.LogLockAcquired, metric.LogLockReleased)
+
+	checkBuildChan = make(chan db.Build, 10)
+	seqGenerator = util.NewSequenceGenerator(1)
 
 	fakeSecrets = new(credsfakes.FakeSecrets)
 	fakeVarSourcePool = new(credsfakes.FakeVarSourcePool)
@@ -123,7 +131,7 @@ var _ = BeforeEach(func() {
 		Timeout:             defaultCheckTimeout,
 		Interval:            defaultCheckInterval,
 		IntervalWithWebhook: defaultWebhookCheckInterval,
-	})
+	}, checkBuildChan, seqGenerator)
 	workerBaseResourceTypeFactory = db.NewWorkerBaseResourceTypeFactory(dbConn)
 	workerTaskCacheFactory = db.NewWorkerTaskCacheFactory(dbConn)
 	userFactory = db.NewUserFactory(dbConn)

@@ -2,6 +2,7 @@ package exec
 
 import (
 	"context"
+	"github.com/concourse/concourse/atc/db"
 	"io"
 
 	"code.cloudfoundry.org/lager"
@@ -35,6 +36,7 @@ type BuildStepDelegate interface {
 	SelectedWorker(lager.Logger, string)
 
 	ConstructAcrossSubsteps([]byte, []atc.AcrossVar, [][]interface{}) ([]atc.VarScopedPlan, error)
+	ContainerOwner(planId atc.PlanID) db.ContainerOwner
 }
 
 //counterfeiter:generate . SetPipelineStepDelegateFactory

@@ -8,9 +8,20 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/util"
 )
 
 type FakeCheckable struct {
+	BuildSummaryStub        func() *atc.BuildSummary
+	buildSummaryMutex       sync.RWMutex
+	buildSummaryArgsForCall []struct {
+	}
+	buildSummaryReturns struct {
+		result1 *atc.BuildSummary
+	}
+	buildSummaryReturnsOnCall map[int]struct {
+		result1 *atc.BuildSummary
+	}
 	CheckEveryStub        func() *atc.CheckEvery
 	checkEveryMutex       sync.RWMutex
 	checkEveryArgsForCall []struct {
@@ -61,6 +72,21 @@ type FakeCheckable struct {
 		result1 db.Build
 		result2 bool
 		result3 error
+	}
+	CreateInMemoryBuildStub        func(context.Context, atc.Plan, util.SequenceGenerator) (db.Build, error)
+	createInMemoryBuildMutex       sync.RWMutex
+	createInMemoryBuildArgsForCall []struct {
+		arg1 context.Context
+		arg2 atc.Plan
+		arg3 util.SequenceGenerator
+	}
+	createInMemoryBuildReturns struct {
+		result1 db.Build
+		result2 error
+	}
+	createInMemoryBuildReturnsOnCall map[int]struct {
+		result1 db.Build
+		result2 error
 	}
 	CurrentPinnedVersionStub        func() atc.Version
 	currentPinnedVersionMutex       sync.RWMutex
@@ -218,6 +244,59 @@ type FakeCheckable struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeCheckable) BuildSummary() *atc.BuildSummary {
+	fake.buildSummaryMutex.Lock()
+	ret, specificReturn := fake.buildSummaryReturnsOnCall[len(fake.buildSummaryArgsForCall)]
+	fake.buildSummaryArgsForCall = append(fake.buildSummaryArgsForCall, struct {
+	}{})
+	stub := fake.BuildSummaryStub
+	fakeReturns := fake.buildSummaryReturns
+	fake.recordInvocation("BuildSummary", []interface{}{})
+	fake.buildSummaryMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeCheckable) BuildSummaryCallCount() int {
+	fake.buildSummaryMutex.RLock()
+	defer fake.buildSummaryMutex.RUnlock()
+	return len(fake.buildSummaryArgsForCall)
+}
+
+func (fake *FakeCheckable) BuildSummaryCalls(stub func() *atc.BuildSummary) {
+	fake.buildSummaryMutex.Lock()
+	defer fake.buildSummaryMutex.Unlock()
+	fake.BuildSummaryStub = stub
+}
+
+func (fake *FakeCheckable) BuildSummaryReturns(result1 *atc.BuildSummary) {
+	fake.buildSummaryMutex.Lock()
+	defer fake.buildSummaryMutex.Unlock()
+	fake.BuildSummaryStub = nil
+	fake.buildSummaryReturns = struct {
+		result1 *atc.BuildSummary
+	}{result1}
+}
+
+func (fake *FakeCheckable) BuildSummaryReturnsOnCall(i int, result1 *atc.BuildSummary) {
+	fake.buildSummaryMutex.Lock()
+	defer fake.buildSummaryMutex.Unlock()
+	fake.BuildSummaryStub = nil
+	if fake.buildSummaryReturnsOnCall == nil {
+		fake.buildSummaryReturnsOnCall = make(map[int]struct {
+			result1 *atc.BuildSummary
+		})
+	}
+	fake.buildSummaryReturnsOnCall[i] = struct {
+		result1 *atc.BuildSummary
+	}{result1}
 }
 
 func (fake *FakeCheckable) CheckEvery() *atc.CheckEvery {
@@ -457,6 +536,72 @@ func (fake *FakeCheckable) CreateBuildReturnsOnCall(i int, result1 db.Build, res
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
+}
+
+func (fake *FakeCheckable) CreateInMemoryBuild(arg1 context.Context, arg2 atc.Plan, arg3 util.SequenceGenerator) (db.Build, error) {
+	fake.createInMemoryBuildMutex.Lock()
+	ret, specificReturn := fake.createInMemoryBuildReturnsOnCall[len(fake.createInMemoryBuildArgsForCall)]
+	fake.createInMemoryBuildArgsForCall = append(fake.createInMemoryBuildArgsForCall, struct {
+		arg1 context.Context
+		arg2 atc.Plan
+		arg3 util.SequenceGenerator
+	}{arg1, arg2, arg3})
+	stub := fake.CreateInMemoryBuildStub
+	fakeReturns := fake.createInMemoryBuildReturns
+	fake.recordInvocation("CreateInMemoryBuild", []interface{}{arg1, arg2, arg3})
+	fake.createInMemoryBuildMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeCheckable) CreateInMemoryBuildCallCount() int {
+	fake.createInMemoryBuildMutex.RLock()
+	defer fake.createInMemoryBuildMutex.RUnlock()
+	return len(fake.createInMemoryBuildArgsForCall)
+}
+
+func (fake *FakeCheckable) CreateInMemoryBuildCalls(stub func(context.Context, atc.Plan, util.SequenceGenerator) (db.Build, error)) {
+	fake.createInMemoryBuildMutex.Lock()
+	defer fake.createInMemoryBuildMutex.Unlock()
+	fake.CreateInMemoryBuildStub = stub
+}
+
+func (fake *FakeCheckable) CreateInMemoryBuildArgsForCall(i int) (context.Context, atc.Plan, util.SequenceGenerator) {
+	fake.createInMemoryBuildMutex.RLock()
+	defer fake.createInMemoryBuildMutex.RUnlock()
+	argsForCall := fake.createInMemoryBuildArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeCheckable) CreateInMemoryBuildReturns(result1 db.Build, result2 error) {
+	fake.createInMemoryBuildMutex.Lock()
+	defer fake.createInMemoryBuildMutex.Unlock()
+	fake.CreateInMemoryBuildStub = nil
+	fake.createInMemoryBuildReturns = struct {
+		result1 db.Build
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeCheckable) CreateInMemoryBuildReturnsOnCall(i int, result1 db.Build, result2 error) {
+	fake.createInMemoryBuildMutex.Lock()
+	defer fake.createInMemoryBuildMutex.Unlock()
+	fake.CreateInMemoryBuildStub = nil
+	if fake.createInMemoryBuildReturnsOnCall == nil {
+		fake.createInMemoryBuildReturnsOnCall = make(map[int]struct {
+			result1 db.Build
+			result2 error
+		})
+	}
+	fake.createInMemoryBuildReturnsOnCall[i] = struct {
+		result1 db.Build
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeCheckable) CurrentPinnedVersion() atc.Version {
@@ -1263,6 +1408,8 @@ func (fake *FakeCheckable) TypeReturnsOnCall(i int, result1 string) {
 func (fake *FakeCheckable) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.buildSummaryMutex.RLock()
+	defer fake.buildSummaryMutex.RUnlock()
 	fake.checkEveryMutex.RLock()
 	defer fake.checkEveryMutex.RUnlock()
 	fake.checkPlanMutex.RLock()
@@ -1271,6 +1418,8 @@ func (fake *FakeCheckable) Invocations() map[string][][]interface{} {
 	defer fake.checkTimeoutMutex.RUnlock()
 	fake.createBuildMutex.RLock()
 	defer fake.createBuildMutex.RUnlock()
+	fake.createInMemoryBuildMutex.RLock()
+	defer fake.createInMemoryBuildMutex.RUnlock()
 	fake.currentPinnedVersionMutex.RLock()
 	defer fake.currentPinnedVersionMutex.RUnlock()
 	fake.hasWebhookMutex.RLock()

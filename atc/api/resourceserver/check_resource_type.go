@@ -55,6 +55,7 @@ func (s *Server) CheckResourceType(dbPipeline db.Pipeline) http.Handler {
 			dbResourceTypes,
 			reqBody.From,
 			true,
+			true,
 		)
 		if err != nil {
 			logger.Error("failed-to-create-check", err)

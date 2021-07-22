@@ -89,6 +89,10 @@ func (cache *ResourceCacheDescriptor) use(
 	rc UsedResourceCache,
 	user ResourceCacheUser,
 ) error {
+	if _, ok := user.(noUser); ok {
+		return nil
+	}
+
 	cols := user.SQLMap()
 	cols["resource_cache_id"] = rc.ID()
 

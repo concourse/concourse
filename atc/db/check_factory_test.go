@@ -1,6 +1,7 @@
 package db_test
 
 import (
+	"code.cloudfoundry.org/lager"
 	"context"
 	"fmt"
 	"time"
@@ -26,6 +27,7 @@ var _ = Describe("CheckFactory", func() {
 			fakeResourceTypes db.ResourceTypes
 			fromVersion       atc.Version
 			manuallyTriggered bool
+			toDB              bool
 
 			checkPlan atc.CheckPlan
 			fakeBuild *dbfakes.FakeBuild
@@ -50,7 +52,9 @@ var _ = Describe("CheckFactory", func() {
 			fakeResource.CheckPlanReturns(checkPlan)
 
 			fakeBuild = new(dbfakes.FakeBuild)
+			fakeBuild.LagerDataReturns(lager.Data{})
 			fakeResource.CreateBuildReturns(fakeBuild, true, nil)
+			fakeResource.CreateInMemoryBuildReturns(fakeBuild, nil)
 
 			fakeResourceType = new(dbfakes.FakeResourceType)
 			fakeResourceType.NameReturns("some-type")
@@ -65,10 +69,11 @@ var _ = Describe("CheckFactory", func() {
 
 			fakeResourceTypes = db.ResourceTypes{fakeResourceType}
 			manuallyTriggered = false
+			toDB = true
 		})
 
 		JustBeforeEach(func() {
-			build, created, err = checkFactory.TryCreateCheck(context.TODO(), fakeResource, fakeResourceTypes, fromVersion, manuallyTriggered)
+			build, created, err = checkFactory.TryCreateCheck(context.TODO(), fakeResource, fakeResourceTypes, fromVersion, manuallyTriggered, toDB)
 		})
 
 		Context("when the resource parent type is not a custom type", func() {
@@ -76,18 +81,74 @@ var _ = Describe("CheckFactory", func() {
 				fakeResource.TypeReturns("base-type")
 			})
 
-			It("returns the build", func() {
-				Expect(err).NotTo(HaveOccurred())
-				Expect(created).To(BeTrue())
-				Expect(build).To(Equal(fakeBuild))
+			Context("when go to db", func() {
+				It("returns the build", func() {
+					Expect(err).NotTo(HaveOccurred())
+					Expect(created).To(BeTrue())
+					Expect(build).To(Equal(fakeBuild))
+				})
+
+				It("starts the build with the check plan", func() {
+					Expect(fakeResource.CreateBuildCallCount()).To(Equal(1))
+					_, manuallyTriggered, plan := fakeResource.CreateBuildArgsForCall(0)
+					Expect(manuallyTriggered).To(BeFalse())
+					Expect(plan.ID).ToNot(BeEmpty())
+					Expect(plan.Check).To(Equal(&checkPlan))
+				})
+
+				Context("when a build is not created", func() {
+					BeforeEach(func() {
+						fakeResource.CreateBuildReturns(nil, false, nil)
+					})
+
+					It("returns false", func() {
+						Expect(err).NotTo(HaveOccurred())
+						Expect(created).To(BeFalse())
+						Expect(build).To(BeNil())
+					})
+				})
 			})
 
-			It("starts the build with the check plan", func() {
-				Expect(fakeResource.CreateBuildCallCount()).To(Equal(1))
-				_, manuallyTriggered, plan := fakeResource.CreateBuildArgsForCall(0)
-				Expect(manuallyTriggered).To(BeFalse())
-				Expect(plan.ID).ToNot(BeEmpty())
-				Expect(plan.Check).To(Equal(&checkPlan))
+			Context("when creates in-memory build", func() {
+				BeforeEach(func() {
+					toDB = false
+				})
+
+				It("returns the build", func() {
+					Expect(err).NotTo(HaveOccurred())
+					Expect(created).To(BeTrue())
+					Expect(build).To(Equal(fakeBuild))
+				})
+
+				It("starts the build with the check plan", func() {
+					Expect(fakeResource.CreateInMemoryBuildCallCount()).To(Equal(1))
+					_, plan, seqGen := fakeResource.CreateInMemoryBuildArgsForCall(0)
+					Expect(manuallyTriggered).To(BeFalse())
+					Expect(plan.ID).ToNot(BeEmpty())
+					Expect(plan.Check).To(Equal(&checkPlan))
+					Expect(seqGen).To(Equal(seqGenerator))
+				})
+
+				It("send the build to tracker", func() {
+					var build db.Build
+					select {
+					case build = <-checkBuildChan:
+					default:
+					}
+					Expect(build).To(Equal(fakeBuild))
+				})
+
+				Context("when a build is not created", func() {
+					BeforeEach(func() {
+						fakeResource.CreateInMemoryBuildReturns(nil, fmt.Errorf("some-error"))
+					})
+
+					It("returns false", func() {
+						Expect(err).To(HaveOccurred())
+						Expect(created).To(BeFalse())
+						Expect(build).To(BeNil())
+					})
+				})
 			})
 
 			Context("when the interval has not elapsed", func() {
@@ -109,18 +170,6 @@ var _ = Describe("CheckFactory", func() {
 						Expect(fakeResource.CheckPlanCallCount()).To(Equal(1))
 						Expect(fakeResource.CreateBuildCallCount()).To(Equal(1))
 					})
-				})
-			})
-
-			Context("when a build is not created", func() {
-				BeforeEach(func() {
-					fakeResource.CreateBuildReturns(nil, false, nil)
-				})
-
-				It("returns false", func() {
-					Expect(err).NotTo(HaveOccurred())
-					Expect(created).To(BeFalse())
-					Expect(build).To(BeNil())
 				})
 			})
 		})
@@ -226,18 +275,49 @@ var _ = Describe("CheckFactory", func() {
 						Expect(defaults).To(Equal(atc.Source{"sdk": "sdk"}))
 					})
 
-					It("returns the build", func() {
-						Expect(err).NotTo(HaveOccurred())
-						Expect(created).To(BeTrue())
-						Expect(build).To(Equal(fakeBuild))
+					Context("when go to db", func() {
+						It("returns the build", func() {
+							Expect(err).NotTo(HaveOccurred())
+							Expect(created).To(BeTrue())
+							Expect(build).To(Equal(fakeBuild))
+						})
+
+						It("starts the build with the check plan", func() {
+							Expect(fakeResource.CreateBuildCallCount()).To(Equal(1))
+							_, manuallyTriggered, plan := fakeResource.CreateBuildArgsForCall(0)
+							Expect(manuallyTriggered).To(BeFalse())
+							Expect(plan.ID).ToNot(BeEmpty())
+							Expect(plan.Check).To(Equal(&checkPlan))
+						})
 					})
 
-					It("starts the build with the check plan", func() {
-						Expect(fakeResource.CreateBuildCallCount()).To(Equal(1))
-						_, manuallyTriggered, plan := fakeResource.CreateBuildArgsForCall(0)
-						Expect(manuallyTriggered).To(BeFalse())
-						Expect(plan.ID).ToNot(BeEmpty())
-						Expect(plan.Check).To(Equal(&checkPlan))
+					Context("when creates in-memory build", func() {
+						BeforeEach(func(){
+							toDB = false
+						})
+
+						It("returns the build", func() {
+							Expect(err).NotTo(HaveOccurred())
+							Expect(created).To(BeTrue())
+							Expect(build).To(Equal(fakeBuild))
+						})
+
+						It("starts the build with the check plan", func() {
+							Expect(fakeResource.CreateInMemoryBuildCallCount()).To(Equal(1))
+							_, plan, seqGen := fakeResource.CreateInMemoryBuildArgsForCall(0)
+							Expect(plan.ID).ToNot(BeEmpty())
+							Expect(plan.Check).To(Equal(&checkPlan))
+							Expect(seqGen).To(Equal(seqGenerator))
+						})
+
+						It("send the build to tracker", func() {
+							var build db.Build
+							select {
+							case build = <-checkBuildChan:
+							default:
+							}
+							Expect(build).To(Equal(fakeBuild))
+						})
 					})
 				})
 			})
@@ -246,8 +326,9 @@ var _ = Describe("CheckFactory", func() {
 
 	Describe("Resources", func() {
 		var (
-			resources       []db.Resource
-			putOnlyResource db.Resource
+			resources                  []db.Resource
+			putOnlyResource            db.Resource
+			putOnlyResourceConfigScope db.ResourceConfigScope
 		)
 
 		BeforeEach(func() {
@@ -304,6 +385,25 @@ var _ = Describe("CheckFactory", func() {
 			putOnlyResource, found, err = defaultPipeline.Resource("some-put-only-resource")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
+
+			resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(
+				"some-base-resource-type",
+				atc.Source{
+					"some": "source",
+				},
+				atc.VersionedResourceTypes{},
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			putOnlyResourceConfigScope, err = resourceConfig.FindOrCreateScope(putOnlyResource)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = putOnlyResource.SetResourceConfigScope(putOnlyResourceConfigScope)
+			Expect(err).NotTo(HaveOccurred())
+
+			found, err = putOnlyResourceConfigScope.UpdateLastCheckEndTime(true)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 		})
 
 		JustBeforeEach(func() {
@@ -339,19 +439,16 @@ var _ = Describe("CheckFactory", func() {
 		})
 
 		Context("when a put-only resource", func() {
-			for _, status := range []db.BuildStatus{db.BuildStatusAborted, db.BuildStatusErrored, db.BuildStatusFailed} {
-				Context(fmt.Sprintf("has a build that %s", status), func() {
-					BeforeEach(func() {
-						By("creating a failed build for the put-only resource")
-						build, created, err = putOnlyResource.CreateBuild(context.TODO(), false, atc.Plan{})
-						Expect(err).ToNot(HaveOccurred())
-						Expect(build.Finish(status)).To(Succeed())
-					})
-					It("returns the resource", func() {
-						Expect(resources).To(HaveLen(2))
-					})
+			Context(fmt.Sprintf("has failed to check last time"), func() {
+				BeforeEach(func() {
+					found, err := putOnlyResourceConfigScope.UpdateLastCheckEndTime(false)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
 				})
-			}
+				It("returns the resource", func() {
+					Expect(resources).To(HaveLen(2))
+				})
+			})
 			Context("has NOT errored", func() {
 				BeforeEach(func() {
 					By("creating a successful build for the put-only resource")

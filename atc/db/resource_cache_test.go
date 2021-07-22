@@ -156,4 +156,30 @@ var _ = Describe("ResourceCache", func() {
 			})
 		})
 	})
+
+	Describe("creating for no user", func() {
+		var urc db.UsedResourceCache
+
+		BeforeEach(func() {
+			var err error
+			urc, err = resourceCacheFactory.FindOrCreateResourceCache(
+				db.NoUser(),
+				"some-worker-resource-type",
+				atc.Version{"some-type": "version"},
+				atc.Source{
+					"cache": "source",
+				},
+				atc.Params{"some": "params"},
+				atc.VersionedResourceTypes{},
+			)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("resource cache be deleted through use", func() {
+			var err error
+			// ON DELETE RESTRICT from resource_cache_uses -> resource_caches
+			_, err = psql.Delete("resource_caches").Where(sq.Eq{"id": urc.ID()}).RunWith(dbConn).Exec()
+			Expect(err).ToNot(HaveOccurred())
+		})
+	})
 })

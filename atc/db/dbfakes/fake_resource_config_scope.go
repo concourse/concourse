@@ -2,6 +2,7 @@
 package dbfakes
 
 import (
+	"encoding/json"
 	"sync"
 
 	"code.cloudfoundry.org/lager"
@@ -122,9 +123,11 @@ type FakeResourceConfigScope struct {
 		result1 bool
 		result2 error
 	}
-	UpdateLastCheckStartTimeStub        func() (bool, error)
+	UpdateLastCheckStartTimeStub        func(int, *json.RawMessage) (bool, error)
 	updateLastCheckStartTimeMutex       sync.RWMutex
 	updateLastCheckStartTimeArgsForCall []struct {
+		arg1 int
+		arg2 *json.RawMessage
 	}
 	updateLastCheckStartTimeReturns struct {
 		result1 bool
@@ -677,17 +680,19 @@ func (fake *FakeResourceConfigScope) UpdateLastCheckEndTimeReturnsOnCall(i int, 
 	}{result1, result2}
 }
 
-func (fake *FakeResourceConfigScope) UpdateLastCheckStartTime() (bool, error) {
+func (fake *FakeResourceConfigScope) UpdateLastCheckStartTime(arg1 int, arg2 *json.RawMessage) (bool, error) {
 	fake.updateLastCheckStartTimeMutex.Lock()
 	ret, specificReturn := fake.updateLastCheckStartTimeReturnsOnCall[len(fake.updateLastCheckStartTimeArgsForCall)]
 	fake.updateLastCheckStartTimeArgsForCall = append(fake.updateLastCheckStartTimeArgsForCall, struct {
-	}{})
+		arg1 int
+		arg2 *json.RawMessage
+	}{arg1, arg2})
 	stub := fake.UpdateLastCheckStartTimeStub
 	fakeReturns := fake.updateLastCheckStartTimeReturns
-	fake.recordInvocation("UpdateLastCheckStartTime", []interface{}{})
+	fake.recordInvocation("UpdateLastCheckStartTime", []interface{}{arg1, arg2})
 	fake.updateLastCheckStartTimeMutex.Unlock()
 	if stub != nil {
-		return stub()
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -701,10 +706,17 @@ func (fake *FakeResourceConfigScope) UpdateLastCheckStartTimeCallCount() int {
 	return len(fake.updateLastCheckStartTimeArgsForCall)
 }
 
-func (fake *FakeResourceConfigScope) UpdateLastCheckStartTimeCalls(stub func() (bool, error)) {
+func (fake *FakeResourceConfigScope) UpdateLastCheckStartTimeCalls(stub func(int, *json.RawMessage) (bool, error)) {
 	fake.updateLastCheckStartTimeMutex.Lock()
 	defer fake.updateLastCheckStartTimeMutex.Unlock()
 	fake.UpdateLastCheckStartTimeStub = stub
+}
+
+func (fake *FakeResourceConfigScope) UpdateLastCheckStartTimeArgsForCall(i int) (int, *json.RawMessage) {
+	fake.updateLastCheckStartTimeMutex.RLock()
+	defer fake.updateLastCheckStartTimeMutex.RUnlock()
+	argsForCall := fake.updateLastCheckStartTimeArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeResourceConfigScope) UpdateLastCheckStartTimeReturns(result1 bool, result2 error) {

@@ -16,11 +16,11 @@ func NewCheckLifecycle(conn Conn) CheckLifecycle {
 }
 
 func (cl *checkLifecycle) DeleteCompletedChecks() error {
-	_, err := cl.conn.Exec(`
+	_, err1 := cl.conn.Exec(`
       WITH resource_builds AS (
-        SELECT build_id
-        FROM resources
-        WHERE build_id IS NOT NULL
+        SELECT distinct(last_check_build_id) as build_id
+        FROM resource_config_scopes
+        WHERE last_check_build_id IS NOT NULL
       ),
       deleted_builds AS (
         DELETE FROM builds USING (
@@ -38,5 +38,23 @@ func (cl *checkLifecycle) DeleteCompletedChecks() error {
       )
       DELETE FROM check_build_events USING deleted_builds WHERE build_id = deleted_builds.id
     `)
-	return err
+
+	_, err2 := cl.conn.Exec(`
+      WITH resource_builds AS (
+        SELECT distinct(last_check_build_id) as build_id
+        FROM resource_config_scopes
+        WHERE last_check_build_id IS NOT NULL
+      )
+      DELETE FROM check_build_events WHERE build_id NOT IN (SELECT build_id FROM resource_builds)
+    `)
+
+	if err1 != nil {
+		return err1
+	}
+
+	if err2 != nil {
+		return err2
+	}
+
+	return nil
 }

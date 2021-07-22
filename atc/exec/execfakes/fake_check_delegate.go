@@ -32,6 +32,17 @@ type FakeCheckDelegate struct {
 		result1 []atc.VarScopedPlan
 		result2 error
 	}
+	ContainerOwnerStub        func(atc.PlanID) db.ContainerOwner
+	containerOwnerMutex       sync.RWMutex
+	containerOwnerArgsForCall []struct {
+		arg1 atc.PlanID
+	}
+	containerOwnerReturns struct {
+		result1 db.ContainerOwner
+	}
+	containerOwnerReturnsOnCall map[int]struct {
+		result1 db.ContainerOwner
+	}
 	ErroredStub        func(lager.Logger, string)
 	erroredMutex       sync.RWMutex
 	erroredArgsForCall []struct {
@@ -77,6 +88,16 @@ type FakeCheckDelegate struct {
 	initializingMutex       sync.RWMutex
 	initializingArgsForCall []struct {
 		arg1 lager.Logger
+	}
+	IsManuallyTriggeredStub        func() bool
+	isManuallyTriggeredMutex       sync.RWMutex
+	isManuallyTriggeredArgsForCall []struct {
+	}
+	isManuallyTriggeredReturns struct {
+		result1 bool
+	}
+	isManuallyTriggeredReturnsOnCall map[int]struct {
+		result1 bool
 	}
 	PointToCheckedConfigStub        func(db.ResourceConfigScope) error
 	pointToCheckedConfigMutex       sync.RWMutex
@@ -134,6 +155,35 @@ type FakeCheckDelegate struct {
 	}
 	stdoutReturnsOnCall map[int]struct {
 		result1 io.Writer
+	}
+	UpdateScopeLastCheckEndTimeStub        func(db.ResourceConfigScope, bool) (bool, error)
+	updateScopeLastCheckEndTimeMutex       sync.RWMutex
+	updateScopeLastCheckEndTimeArgsForCall []struct {
+		arg1 db.ResourceConfigScope
+		arg2 bool
+	}
+	updateScopeLastCheckEndTimeReturns struct {
+		result1 bool
+		result2 error
+	}
+	updateScopeLastCheckEndTimeReturnsOnCall map[int]struct {
+		result1 bool
+		result2 error
+	}
+	UpdateScopeLastCheckStartTimeStub        func(db.ResourceConfigScope) (bool, int, error)
+	updateScopeLastCheckStartTimeMutex       sync.RWMutex
+	updateScopeLastCheckStartTimeArgsForCall []struct {
+		arg1 db.ResourceConfigScope
+	}
+	updateScopeLastCheckStartTimeReturns struct {
+		result1 bool
+		result2 int
+		result3 error
+	}
+	updateScopeLastCheckStartTimeReturnsOnCall map[int]struct {
+		result1 bool
+		result2 int
+		result3 error
 	}
 	WaitToRunStub        func(context.Context, db.ResourceConfigScope) (lock.Lock, bool, error)
 	waitToRunMutex       sync.RWMutex
@@ -239,6 +289,67 @@ func (fake *FakeCheckDelegate) ConstructAcrossSubstepsReturnsOnCall(i int, resul
 		result1 []atc.VarScopedPlan
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeCheckDelegate) ContainerOwner(arg1 atc.PlanID) db.ContainerOwner {
+	fake.containerOwnerMutex.Lock()
+	ret, specificReturn := fake.containerOwnerReturnsOnCall[len(fake.containerOwnerArgsForCall)]
+	fake.containerOwnerArgsForCall = append(fake.containerOwnerArgsForCall, struct {
+		arg1 atc.PlanID
+	}{arg1})
+	stub := fake.ContainerOwnerStub
+	fakeReturns := fake.containerOwnerReturns
+	fake.recordInvocation("ContainerOwner", []interface{}{arg1})
+	fake.containerOwnerMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeCheckDelegate) ContainerOwnerCallCount() int {
+	fake.containerOwnerMutex.RLock()
+	defer fake.containerOwnerMutex.RUnlock()
+	return len(fake.containerOwnerArgsForCall)
+}
+
+func (fake *FakeCheckDelegate) ContainerOwnerCalls(stub func(atc.PlanID) db.ContainerOwner) {
+	fake.containerOwnerMutex.Lock()
+	defer fake.containerOwnerMutex.Unlock()
+	fake.ContainerOwnerStub = stub
+}
+
+func (fake *FakeCheckDelegate) ContainerOwnerArgsForCall(i int) atc.PlanID {
+	fake.containerOwnerMutex.RLock()
+	defer fake.containerOwnerMutex.RUnlock()
+	argsForCall := fake.containerOwnerArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeCheckDelegate) ContainerOwnerReturns(result1 db.ContainerOwner) {
+	fake.containerOwnerMutex.Lock()
+	defer fake.containerOwnerMutex.Unlock()
+	fake.ContainerOwnerStub = nil
+	fake.containerOwnerReturns = struct {
+		result1 db.ContainerOwner
+	}{result1}
+}
+
+func (fake *FakeCheckDelegate) ContainerOwnerReturnsOnCall(i int, result1 db.ContainerOwner) {
+	fake.containerOwnerMutex.Lock()
+	defer fake.containerOwnerMutex.Unlock()
+	fake.ContainerOwnerStub = nil
+	if fake.containerOwnerReturnsOnCall == nil {
+		fake.containerOwnerReturnsOnCall = make(map[int]struct {
+			result1 db.ContainerOwner
+		})
+	}
+	fake.containerOwnerReturnsOnCall[i] = struct {
+		result1 db.ContainerOwner
+	}{result1}
 }
 
 func (fake *FakeCheckDelegate) Errored(arg1 lager.Logger, arg2 string) {
@@ -468,6 +579,59 @@ func (fake *FakeCheckDelegate) InitializingArgsForCall(i int) lager.Logger {
 	defer fake.initializingMutex.RUnlock()
 	argsForCall := fake.initializingArgsForCall[i]
 	return argsForCall.arg1
+}
+
+func (fake *FakeCheckDelegate) IsManuallyTriggered() bool {
+	fake.isManuallyTriggeredMutex.Lock()
+	ret, specificReturn := fake.isManuallyTriggeredReturnsOnCall[len(fake.isManuallyTriggeredArgsForCall)]
+	fake.isManuallyTriggeredArgsForCall = append(fake.isManuallyTriggeredArgsForCall, struct {
+	}{})
+	stub := fake.IsManuallyTriggeredStub
+	fakeReturns := fake.isManuallyTriggeredReturns
+	fake.recordInvocation("IsManuallyTriggered", []interface{}{})
+	fake.isManuallyTriggeredMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeCheckDelegate) IsManuallyTriggeredCallCount() int {
+	fake.isManuallyTriggeredMutex.RLock()
+	defer fake.isManuallyTriggeredMutex.RUnlock()
+	return len(fake.isManuallyTriggeredArgsForCall)
+}
+
+func (fake *FakeCheckDelegate) IsManuallyTriggeredCalls(stub func() bool) {
+	fake.isManuallyTriggeredMutex.Lock()
+	defer fake.isManuallyTriggeredMutex.Unlock()
+	fake.IsManuallyTriggeredStub = stub
+}
+
+func (fake *FakeCheckDelegate) IsManuallyTriggeredReturns(result1 bool) {
+	fake.isManuallyTriggeredMutex.Lock()
+	defer fake.isManuallyTriggeredMutex.Unlock()
+	fake.IsManuallyTriggeredStub = nil
+	fake.isManuallyTriggeredReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeCheckDelegate) IsManuallyTriggeredReturnsOnCall(i int, result1 bool) {
+	fake.isManuallyTriggeredMutex.Lock()
+	defer fake.isManuallyTriggeredMutex.Unlock()
+	fake.IsManuallyTriggeredStub = nil
+	if fake.isManuallyTriggeredReturnsOnCall == nil {
+		fake.isManuallyTriggeredReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.isManuallyTriggeredReturnsOnCall[i] = struct {
+		result1 bool
+	}{result1}
 }
 
 func (fake *FakeCheckDelegate) PointToCheckedConfig(arg1 db.ResourceConfigScope) error {
@@ -768,6 +932,138 @@ func (fake *FakeCheckDelegate) StdoutReturnsOnCall(i int, result1 io.Writer) {
 	}{result1}
 }
 
+func (fake *FakeCheckDelegate) UpdateScopeLastCheckEndTime(arg1 db.ResourceConfigScope, arg2 bool) (bool, error) {
+	fake.updateScopeLastCheckEndTimeMutex.Lock()
+	ret, specificReturn := fake.updateScopeLastCheckEndTimeReturnsOnCall[len(fake.updateScopeLastCheckEndTimeArgsForCall)]
+	fake.updateScopeLastCheckEndTimeArgsForCall = append(fake.updateScopeLastCheckEndTimeArgsForCall, struct {
+		arg1 db.ResourceConfigScope
+		arg2 bool
+	}{arg1, arg2})
+	stub := fake.UpdateScopeLastCheckEndTimeStub
+	fakeReturns := fake.updateScopeLastCheckEndTimeReturns
+	fake.recordInvocation("UpdateScopeLastCheckEndTime", []interface{}{arg1, arg2})
+	fake.updateScopeLastCheckEndTimeMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeCheckDelegate) UpdateScopeLastCheckEndTimeCallCount() int {
+	fake.updateScopeLastCheckEndTimeMutex.RLock()
+	defer fake.updateScopeLastCheckEndTimeMutex.RUnlock()
+	return len(fake.updateScopeLastCheckEndTimeArgsForCall)
+}
+
+func (fake *FakeCheckDelegate) UpdateScopeLastCheckEndTimeCalls(stub func(db.ResourceConfigScope, bool) (bool, error)) {
+	fake.updateScopeLastCheckEndTimeMutex.Lock()
+	defer fake.updateScopeLastCheckEndTimeMutex.Unlock()
+	fake.UpdateScopeLastCheckEndTimeStub = stub
+}
+
+func (fake *FakeCheckDelegate) UpdateScopeLastCheckEndTimeArgsForCall(i int) (db.ResourceConfigScope, bool) {
+	fake.updateScopeLastCheckEndTimeMutex.RLock()
+	defer fake.updateScopeLastCheckEndTimeMutex.RUnlock()
+	argsForCall := fake.updateScopeLastCheckEndTimeArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeCheckDelegate) UpdateScopeLastCheckEndTimeReturns(result1 bool, result2 error) {
+	fake.updateScopeLastCheckEndTimeMutex.Lock()
+	defer fake.updateScopeLastCheckEndTimeMutex.Unlock()
+	fake.UpdateScopeLastCheckEndTimeStub = nil
+	fake.updateScopeLastCheckEndTimeReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeCheckDelegate) UpdateScopeLastCheckEndTimeReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.updateScopeLastCheckEndTimeMutex.Lock()
+	defer fake.updateScopeLastCheckEndTimeMutex.Unlock()
+	fake.UpdateScopeLastCheckEndTimeStub = nil
+	if fake.updateScopeLastCheckEndTimeReturnsOnCall == nil {
+		fake.updateScopeLastCheckEndTimeReturnsOnCall = make(map[int]struct {
+			result1 bool
+			result2 error
+		})
+	}
+	fake.updateScopeLastCheckEndTimeReturnsOnCall[i] = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeCheckDelegate) UpdateScopeLastCheckStartTime(arg1 db.ResourceConfigScope) (bool, int, error) {
+	fake.updateScopeLastCheckStartTimeMutex.Lock()
+	ret, specificReturn := fake.updateScopeLastCheckStartTimeReturnsOnCall[len(fake.updateScopeLastCheckStartTimeArgsForCall)]
+	fake.updateScopeLastCheckStartTimeArgsForCall = append(fake.updateScopeLastCheckStartTimeArgsForCall, struct {
+		arg1 db.ResourceConfigScope
+	}{arg1})
+	stub := fake.UpdateScopeLastCheckStartTimeStub
+	fakeReturns := fake.updateScopeLastCheckStartTimeReturns
+	fake.recordInvocation("UpdateScopeLastCheckStartTime", []interface{}{arg1})
+	fake.updateScopeLastCheckStartTimeMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+}
+
+func (fake *FakeCheckDelegate) UpdateScopeLastCheckStartTimeCallCount() int {
+	fake.updateScopeLastCheckStartTimeMutex.RLock()
+	defer fake.updateScopeLastCheckStartTimeMutex.RUnlock()
+	return len(fake.updateScopeLastCheckStartTimeArgsForCall)
+}
+
+func (fake *FakeCheckDelegate) UpdateScopeLastCheckStartTimeCalls(stub func(db.ResourceConfigScope) (bool, int, error)) {
+	fake.updateScopeLastCheckStartTimeMutex.Lock()
+	defer fake.updateScopeLastCheckStartTimeMutex.Unlock()
+	fake.UpdateScopeLastCheckStartTimeStub = stub
+}
+
+func (fake *FakeCheckDelegate) UpdateScopeLastCheckStartTimeArgsForCall(i int) db.ResourceConfigScope {
+	fake.updateScopeLastCheckStartTimeMutex.RLock()
+	defer fake.updateScopeLastCheckStartTimeMutex.RUnlock()
+	argsForCall := fake.updateScopeLastCheckStartTimeArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeCheckDelegate) UpdateScopeLastCheckStartTimeReturns(result1 bool, result2 int, result3 error) {
+	fake.updateScopeLastCheckStartTimeMutex.Lock()
+	defer fake.updateScopeLastCheckStartTimeMutex.Unlock()
+	fake.UpdateScopeLastCheckStartTimeStub = nil
+	fake.updateScopeLastCheckStartTimeReturns = struct {
+		result1 bool
+		result2 int
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeCheckDelegate) UpdateScopeLastCheckStartTimeReturnsOnCall(i int, result1 bool, result2 int, result3 error) {
+	fake.updateScopeLastCheckStartTimeMutex.Lock()
+	defer fake.updateScopeLastCheckStartTimeMutex.Unlock()
+	fake.UpdateScopeLastCheckStartTimeStub = nil
+	if fake.updateScopeLastCheckStartTimeReturnsOnCall == nil {
+		fake.updateScopeLastCheckStartTimeReturnsOnCall = make(map[int]struct {
+			result1 bool
+			result2 int
+			result3 error
+		})
+	}
+	fake.updateScopeLastCheckStartTimeReturnsOnCall[i] = struct {
+		result1 bool
+		result2 int
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeCheckDelegate) WaitToRun(arg1 context.Context, arg2 db.ResourceConfigScope) (lock.Lock, bool, error) {
 	fake.waitToRunMutex.Lock()
 	ret, specificReturn := fake.waitToRunReturnsOnCall[len(fake.waitToRunArgsForCall)]
@@ -873,6 +1169,8 @@ func (fake *FakeCheckDelegate) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.constructAcrossSubstepsMutex.RLock()
 	defer fake.constructAcrossSubstepsMutex.RUnlock()
+	fake.containerOwnerMutex.RLock()
+	defer fake.containerOwnerMutex.RUnlock()
 	fake.erroredMutex.RLock()
 	defer fake.erroredMutex.RUnlock()
 	fake.fetchImageMutex.RLock()
@@ -883,6 +1181,8 @@ func (fake *FakeCheckDelegate) Invocations() map[string][][]interface{} {
 	defer fake.finishedMutex.RUnlock()
 	fake.initializingMutex.RLock()
 	defer fake.initializingMutex.RUnlock()
+	fake.isManuallyTriggeredMutex.RLock()
+	defer fake.isManuallyTriggeredMutex.RUnlock()
 	fake.pointToCheckedConfigMutex.RLock()
 	defer fake.pointToCheckedConfigMutex.RUnlock()
 	fake.selectedWorkerMutex.RLock()
@@ -895,6 +1195,10 @@ func (fake *FakeCheckDelegate) Invocations() map[string][][]interface{} {
 	defer fake.stderrMutex.RUnlock()
 	fake.stdoutMutex.RLock()
 	defer fake.stdoutMutex.RUnlock()
+	fake.updateScopeLastCheckEndTimeMutex.RLock()
+	defer fake.updateScopeLastCheckEndTimeMutex.RUnlock()
+	fake.updateScopeLastCheckStartTimeMutex.RLock()
+	defer fake.updateScopeLastCheckStartTimeMutex.RUnlock()
 	fake.waitToRunMutex.RLock()
 	defer fake.waitToRunMutex.RUnlock()
 	fake.waitingForWorkerMutex.RLock()

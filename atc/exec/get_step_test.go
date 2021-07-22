@@ -171,7 +171,6 @@ var _ = Describe("GetStep", func() {
 	})
 
 	var runCtx context.Context
-	var owner db.ContainerOwner
 	var containerSpec worker.ContainerSpec
 	var metadata db.ContainerMetadata
 	var processSpec runtime.ProcessSpec
@@ -182,7 +181,7 @@ var _ = Describe("GetStep", func() {
 	JustBeforeEach(func() {
 		if shouldRunGetStep {
 			Expect(fakeClient.RunGetStepCallCount()).To(Equal(1), "get step should have run")
-			runCtx, owner, containerSpec, metadata, processSpec, startEventDelegate, resourceCache, runResource = fakeClient.RunGetStepArgsForCall(0)
+			runCtx, _, containerSpec, metadata, processSpec, startEventDelegate, resourceCache, runResource = fakeClient.RunGetStepArgsForCall(0)
 		} else {
 			Expect(fakeClient.RunGetStepCallCount()).To(Equal(0), "get step should NOT have run")
 		}
@@ -355,14 +354,6 @@ var _ = Describe("GetStep", func() {
 		})
 	})
 
-	It("calls RunGetStep with the correct ContainerOwner", func() {
-		Expect(owner).To(Equal(db.NewBuildStepContainerOwner(
-			stepMetadata.BuildID,
-			atc.PlanID(planID),
-			stepMetadata.TeamID,
-		)))
-	})
-
 	It("calls RunGetStep with the correct ContainerSpec", func() {
 		Expect(containerSpec).To(Equal(
 			worker.ContainerSpec{
@@ -375,6 +366,14 @@ var _ = Describe("GetStep", func() {
 				Env:      stepMetadata.Env(),
 			},
 		))
+	})
+
+	It("get resource cache owner from delegate", func(){
+		Expect(fakeDelegate.ResourceCacheUserCallCount()).To(Equal(1))
+	})
+
+	It("get container owner from delegate", func(){
+		Expect(fakeDelegate.ContainerOwnerCallCount()).To(Equal(1))
 	})
 
 	Describe("worker selection", func() {

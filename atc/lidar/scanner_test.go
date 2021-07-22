@@ -112,7 +112,7 @@ var _ = Describe("Scanner", func() {
 
 						Context("when try creating a check panics", func() {
 							BeforeEach(func() {
-								fakeCheckFactory.TryCreateCheckStub = func(context.Context, db.Checkable, db.ResourceTypes, atc.Version, bool) (db.Build, bool, error) {
+								fakeCheckFactory.TryCreateCheckStub = func(context.Context, db.Checkable, db.ResourceTypes, atc.Version, bool, bool) (db.Build, bool, error) {
 									panic("something went wrong")
 								}
 							})
@@ -130,8 +130,10 @@ var _ = Describe("Scanner", func() {
 
 						It("creates a check", func() {
 							Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
-							_, _, _, fromVersion, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+							_, _, _, fromVersion, manuallyTriggered, toDb := fakeCheckFactory.TryCreateCheckArgsForCall(0)
 							Expect(fromVersion).To(Equal(atc.Version{"some": "version"}))
+							Expect(manuallyTriggered).To(BeFalse())
+							Expect(toDb).To(BeFalse())
 						})
 					})
 
@@ -142,7 +144,7 @@ var _ = Describe("Scanner", func() {
 
 						It("creates a check", func() {
 							Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
-							_, _, _, fromVersion, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+							_, _, _, fromVersion, _, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
 							Expect(fromVersion).To(BeNil())
 						})
 					})
@@ -159,13 +161,15 @@ var _ = Describe("Scanner", func() {
 					It("creates a check for both the parent and the resource", func() {
 						Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(2))
 
-						_, checkable, _, _, manuallyTriggered := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+						_, checkable, _, _, manuallyTriggered, toDb := fakeCheckFactory.TryCreateCheckArgsForCall(0)
 						Expect(checkable).To(Equal(fakeResourceType))
 						Expect(manuallyTriggered).To(BeFalse())
+						Expect(toDb).To(BeFalse())
 
-						_, checkable, _, _, manuallyTriggered = fakeCheckFactory.TryCreateCheckArgsForCall(1)
+						_, checkable, _, _, manuallyTriggered, toDb = fakeCheckFactory.TryCreateCheckArgsForCall(1)
 						Expect(checkable).To(Equal(fakeResource))
 						Expect(manuallyTriggered).To(BeFalse())
+						Expect(toDb).To(BeFalse())
 					})
 				})
 
@@ -180,9 +184,10 @@ var _ = Describe("Scanner", func() {
 						Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(2),
 							"two checks created; one for the fakeResourceType and the second for the unrelated fakeResource")
 
-						_, checkable, _, _, manuallyTriggered := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+						_, checkable, _, _, manuallyTriggered, toDb := fakeCheckFactory.TryCreateCheckArgsForCall(0)
 						Expect(checkable).To(Equal(fakeResourceType))
 						Expect(manuallyTriggered).To(BeFalse())
+						Expect(toDb).To(BeFalse())
 					})
 				})
 			})
@@ -223,13 +228,13 @@ var _ = Describe("Scanner", func() {
 				Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(3))
 
 				var checked []string
-				_, checkable, _, _, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+				_, checkable, _, _, _, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
 				checked = append(checked, checkable.Name())
 
-				_, checkable, _, _, _ = fakeCheckFactory.TryCreateCheckArgsForCall(1)
+				_, checkable, _, _, _, _ = fakeCheckFactory.TryCreateCheckArgsForCall(1)
 				checked = append(checked, checkable.Name())
 
-				_, checkable, _, _, _ = fakeCheckFactory.TryCreateCheckArgsForCall(2)
+				_, checkable, _, _, _, _ = fakeCheckFactory.TryCreateCheckArgsForCall(2)
 				checked = append(checked, checkable.Name())
 
 				Expect(checked).To(ConsistOf([]string{fakeResourceType.Name(), fakeResource1.Name(), fakeResource2.Name()}))

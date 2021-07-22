@@ -33,3 +33,14 @@ func (user forContainer) SQLMap() map[string]interface{} {
 		"container_id": user.ContainerID,
 	}
 }
+
+type noUser struct {
+}
+
+func NoUser() ResourceCacheUser {
+	return noUser{}
+}
+
+func (user noUser) SQLMap() map[string]interface{} {
+	return map[string]interface{}{}
+}

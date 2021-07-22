@@ -3,7 +3,6 @@ package engine
 import (
 	"context"
 	"errors"
-	"fmt"
 	"sync"
 	"time"
 
@@ -234,7 +233,9 @@ func (b *engineBuild) Run(ctx context.Context) {
 			return
 		}
 
-		b.finish(logger.Session("finish"), runErr, succeeded)
+		// An in-memory build only generates a real build id once start to run,
+		// so let's update logger with the latest lager data.
+		b.finish(logger.Session("finish").WithData(b.build.LagerData()), runErr, succeeded)
 	}
 }
 
@@ -314,7 +315,7 @@ func (b *engineBuild) trackFinished(logger lager.Logger) {
 }
 
 func (b *engineBuild) runState(logger lager.Logger, stepper exec.Stepper) (exec.RunState, error) {
-	id := fmt.Sprintf("build:%v", b.build.ID())
+	id := b.build.RunStateID()
 	existingState, ok := b.trackedStates.Load(id)
 	if ok {
 		return existingState.(exec.RunState), nil
@@ -328,6 +329,5 @@ func (b *engineBuild) runState(logger lager.Logger, stepper exec.Stepper) (exec.
 }
 
 func (b *engineBuild) clearRunState() {
-	id := fmt.Sprintf("build:%v", b.build.ID())
-	b.trackedStates.Delete(id)
+	b.trackedStates.Delete(b.build.RunStateID())
 }

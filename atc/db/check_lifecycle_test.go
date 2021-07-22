@@ -2,18 +2,21 @@ package db_test
 
 import (
 	"context"
-
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/util"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Check Lifecycle", func() {
 	var (
-		lifecycle db.CheckLifecycle
-		plan      atc.Plan
+		lifecycle                  db.CheckLifecycle
+		plan                       atc.Plan
+		scopeOfDefaultResource     db.ResourceConfigScope
+		scopeOfDefaultResourceType db.ResourceConfigScope
 	)
 
 	BeforeEach(func() {
@@ -24,128 +27,187 @@ var _ = Describe("Check Lifecycle", func() {
 				Name: "wreck",
 			},
 		}
-	})
 
-	exists := func(b db.Build) bool {
-		found, err := b.Reload()
-		Expect(err).ToNot(HaveOccurred())
-		return found
-	}
-
-	createUnfinishedCheck := func(checkable interface {
-		CreateBuild(context.Context, bool, atc.Plan) (db.Build, bool, error)
-	}, plan atc.Plan) db.Build {
-		build, created, err := checkable.CreateBuild(context.Background(), true, plan)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(created).To(BeTrue())
-
-		return build
-	}
-
-	finish := func(build db.Build) {
-		err := build.Finish(db.BuildStatusSucceeded)
-		Expect(err).ToNot(HaveOccurred())
-	}
-
-	createFinishedCheck := func(checkable interface {
-		CreateBuild(context.Context, bool, atc.Plan) (db.Build, bool, error)
-	}, plan atc.Plan) db.Build {
-		build := createUnfinishedCheck(checkable, plan)
-		finish(build)
-		return build
-	}
-
-	It("removes completed check builds when there is a new completed check", func() {
-		resourceBuild := createFinishedCheck(defaultResource, plan)
-		resourceTypeBuild := createFinishedCheck(defaultResourceType, plan)
-
-		By("attempting to delete completed checks when there are no newer checks")
-		err := lifecycle.DeleteCompletedChecks()
-		Expect(err).ToNot(HaveOccurred())
-		Expect(exists(resourceBuild)).To(BeTrue())
-		Expect(exists(resourceTypeBuild)).To(BeTrue())
-
-		By("creating a new check for the resource")
-		createFinishedCheck(defaultResource, plan)
-
-		By("deleting completed checks")
-		err = lifecycle.DeleteCompletedChecks()
+		resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(defaultResource.Type(), defaultResource.Source(), atc.VersionedResourceTypes{})
 		Expect(err).ToNot(HaveOccurred())
 
-		Expect(exists(resourceBuild)).To(BeFalse())
-		Expect(numBuildEventsForCheck(resourceBuild)).To(Equal(0))
-
-		Expect(exists(resourceTypeBuild)).To(BeTrue())
-
-		By("creating a new check for the resource type")
-		createFinishedCheck(defaultResourceType, plan)
-
-		By("deleting completed checks")
-		err = lifecycle.DeleteCompletedChecks()
+		scopeOfDefaultResource, err = resourceConfig.FindOrCreateScope(defaultResource)
 		Expect(err).ToNot(HaveOccurred())
 
-		Expect(exists(resourceTypeBuild)).To(BeFalse())
-		Expect(numBuildEventsForCheck(resourceTypeBuild)).To(Equal(0))
+		resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(defaultResourceType.Type(), defaultResourceType.Source(), atc.VersionedResourceTypes{})
+		Expect(err).ToNot(HaveOccurred())
 
-		By("creating a new check for the prototype")
-		createFinishedCheck(defaultPrototype, plan)
-
-		By("deleting completed checks")
-		err = lifecycle.DeleteCompletedChecks()
+		scopeOfDefaultResourceType, err = resourceConfig.FindOrCreateScope(nil)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
-	It("ignores incomplete checks", func() {
-		c1 := createUnfinishedCheck(defaultResource, plan)
-		c2 := createUnfinishedCheck(defaultResource, plan)
+	Context("DB build", func() {
+		exists := func(b db.Build) bool {
+			found, err := b.Reload()
+			Expect(err).ToNot(HaveOccurred())
+			return found
+		}
 
-		err := lifecycle.DeleteCompletedChecks()
-		Expect(err).ToNot(HaveOccurred())
-		Expect(exists(c1)).To(BeTrue())
-		Expect(exists(c2)).To(BeTrue())
+		createUnfinishedCheck := func(checkable interface {
+			CreateBuild(context.Context, bool, atc.Plan) (db.Build, bool, error)
+		}, plan atc.Plan) db.Build {
+			build, created, err := checkable.CreateBuild(context.Background(), true, plan)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(created).To(BeTrue())
+			return build
+		}
 
-		By("finishing the first check should allow it to be deleted")
-		finish(c1)
+		finish := func(build db.Build) {
+			err := build.Finish(db.BuildStatusSucceeded)
+			Expect(err).ToNot(HaveOccurred())
+		}
 
-		err = lifecycle.DeleteCompletedChecks()
-		Expect(err).ToNot(HaveOccurred())
-		Expect(exists(c1)).To(BeFalse())
-		Expect(exists(c2)).To(BeTrue())
+		createFinishedCheck := func(checkable interface {
+			CreateBuild(context.Context, bool, atc.Plan) (db.Build, bool, error)
+		}, plan atc.Plan) db.Build {
+			build := createUnfinishedCheck(checkable, plan)
+			finish(build)
+			return build
+		}
 
-		By("finishing the second check should NOT allow it to be deleted")
-		finish(c2)
+		It("removes completed check builds when there is a new completed check", func() {
+			resourceBuild := createFinishedCheck(defaultResource, plan)
+			scopeOfDefaultResource.UpdateLastCheckStartTime(resourceBuild.ID(), nil)
+			resourceTypeBuild := createFinishedCheck(defaultResourceType, plan)
+			scopeOfDefaultResourceType.UpdateLastCheckStartTime(resourceTypeBuild.ID(), nil)
 
-		err = lifecycle.DeleteCompletedChecks()
-		Expect(err).ToNot(HaveOccurred())
-		Expect(exists(c2)).To(BeTrue())
+			By("attempting to delete completed checks when there are no newer checks")
+			err := lifecycle.DeleteCompletedChecks()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(exists(resourceBuild)).To(BeTrue())
+			Expect(exists(resourceTypeBuild)).To(BeTrue())
+
+			By("creating a new check for the resource")
+			newBuild := createFinishedCheck(defaultResource, plan)
+			scopeOfDefaultResource.UpdateLastCheckStartTime(newBuild.ID(), nil)
+
+			By("deleting completed checks")
+			err = lifecycle.DeleteCompletedChecks()
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(exists(resourceBuild)).To(BeFalse())
+			Expect(numBuildEventsForCheck(resourceBuild)).To(Equal(0))
+
+			Expect(exists(resourceTypeBuild)).To(BeTrue())
+
+			By("creating a new check for the resource type")
+			newBuild = createFinishedCheck(defaultResourceType, plan)
+			scopeOfDefaultResourceType.UpdateLastCheckStartTime(newBuild.ID(), nil)
+
+			By("deleting completed checks")
+			err = lifecycle.DeleteCompletedChecks()
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(exists(resourceTypeBuild)).To(BeFalse())
+			Expect(numBuildEventsForCheck(resourceTypeBuild)).To(Equal(0))
+
+			By("creating a new check for the prototype")
+			createFinishedCheck(defaultPrototype, plan)
+
+			By("deleting completed checks")
+			err = lifecycle.DeleteCompletedChecks()
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("ignores incomplete checks", func() {
+			c1 := createUnfinishedCheck(defaultResource, plan)
+			c2 := createUnfinishedCheck(defaultResource, plan)
+			scopeOfDefaultResource.UpdateLastCheckStartTime(c2.ID(), nil)
+
+			err := lifecycle.DeleteCompletedChecks()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(exists(c1)).To(BeTrue())
+			Expect(exists(c2)).To(BeTrue())
+
+			By("finishing the first check should allow it to be deleted")
+			finish(c1)
+
+			err = lifecycle.DeleteCompletedChecks()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(exists(c1)).To(BeFalse())
+			Expect(exists(c2)).To(BeTrue())
+
+			By("finishing the second check should NOT allow it to be deleted")
+			finish(c2)
+			scopeOfDefaultResource.UpdateLastCheckStartTime(c2.ID(), nil)
+
+			err = lifecycle.DeleteCompletedChecks()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(exists(c2)).To(BeTrue())
+		})
+
+		It("deletes all expired checks", func() {
+			c1 := createFinishedCheck(defaultResource, plan)
+			c2 := createFinishedCheck(defaultResource, plan)
+
+			createFinishedCheck(defaultResource, plan)
+
+			err := lifecycle.DeleteCompletedChecks()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(exists(c1)).To(BeFalse())
+			Expect(exists(c2)).To(BeFalse())
+		})
+
+		It("ignores job builds", func() {
+			build, err := defaultJob.CreateBuild("foo")
+			Expect(err).ToNot(HaveOccurred())
+
+			err = build.Finish(db.BuildStatusSucceeded)
+			Expect(err).ToNot(HaveOccurred())
+
+			By("creating a new build for the same job")
+			_, err = defaultJob.CreateBuild("foo")
+			Expect(err).ToNot(HaveOccurred())
+
+			err = lifecycle.DeleteCompletedChecks()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(exists(build)).To(BeTrue())
+		})
 	})
 
-	It("deletes all expired checks", func() {
-		c1 := createFinishedCheck(defaultResource, plan)
-		c2 := createFinishedCheck(defaultResource, plan)
+	Context("In-memory check build", func(){
+		var build db.Build
+		var seqGen util.SequenceGenerator
 
-		createFinishedCheck(defaultResource, plan)
+		BeforeEach(func(){
+			seqGen = util.NewSequenceGenerator(1)
 
-		err := lifecycle.DeleteCompletedChecks()
-		Expect(err).ToNot(HaveOccurred())
-		Expect(exists(c1)).To(BeFalse())
-		Expect(exists(c2)).To(BeFalse())
-	})
+			var err error
+			build, err = defaultResource.CreateInMemoryBuild(context.Background(), plan, seqGen)
+			Expect(err).ToNot(HaveOccurred())
 
-	It("ignores job builds", func() {
-		build, err := defaultJob.CreateBuild("foo")
-		Expect(err).ToNot(HaveOccurred())
+			err = build.OnCheckBuildStart()
+			Expect(err).ToNot(HaveOccurred())
 
-		err = build.Finish(db.BuildStatusSucceeded)
-		Expect(err).ToNot(HaveOccurred())
+			_, err = scopeOfDefaultResource.UpdateLastCheckStartTime(build.ID(), nil)
+			Expect(err).ToNot(HaveOccurred())
 
-		By("creating a new build for the same job")
-		_, err = defaultJob.CreateBuild("foo")
-		Expect(err).ToNot(HaveOccurred())
+			err = build.Finish(db.BuildStatusSucceeded)
+			Expect(err).ToNot(HaveOccurred())
+		})
 
-		err = lifecycle.DeleteCompletedChecks()
-		Expect(err).ToNot(HaveOccurred())
-		Expect(exists(build)).To(BeTrue())
+		It("cleanup check events for", func(){
+			By("when there is no newer build, events should not be cleaned")
+			err := lifecycle.DeleteCompletedChecks()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(numBuildEventsForCheck(build)).To(Equal(2)) // should be status and finish event
+
+			By("when there is a newer build, old events should be cleaned up")
+			newBuild, err := defaultResource.CreateInMemoryBuild(context.Background(), plan, seqGen)
+			Expect(err).ToNot(HaveOccurred())
+			err = newBuild.OnCheckBuildStart()
+			Expect(err).ToNot(HaveOccurred())
+			_, err = scopeOfDefaultResource.UpdateLastCheckStartTime(newBuild.ID(), nil)
+			Expect(err).ToNot(HaveOccurred())
+			err = lifecycle.DeleteCompletedChecks()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(numBuildEventsForCheck(build)).To(Equal(0))
+		})
 	})
 })
 
