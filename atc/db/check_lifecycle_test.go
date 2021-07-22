@@ -60,7 +60,7 @@ var _ = Describe("Check Lifecycle", func() {
 		resourceTypeBuild := createFinishedCheck(defaultResourceType, plan)
 
 		By("attempting to delete completed checks when there are no newer checks")
-		err := lifecycle.DeleteCompletedChecks()
+		err := lifecycle.DeleteCompletedChecks(logger)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(exists(resourceBuild)).To(BeTrue())
 		Expect(exists(resourceTypeBuild)).To(BeTrue())
@@ -69,7 +69,7 @@ var _ = Describe("Check Lifecycle", func() {
 		createFinishedCheck(defaultResource, plan)
 
 		By("deleting completed checks")
-		err = lifecycle.DeleteCompletedChecks()
+		err = lifecycle.DeleteCompletedChecks(logger)
 		Expect(err).ToNot(HaveOccurred())
 
 		Expect(exists(resourceBuild)).To(BeFalse())
@@ -81,7 +81,7 @@ var _ = Describe("Check Lifecycle", func() {
 		createFinishedCheck(defaultResourceType, plan)
 
 		By("deleting completed checks")
-		err = lifecycle.DeleteCompletedChecks()
+		err = lifecycle.DeleteCompletedChecks(logger)
 		Expect(err).ToNot(HaveOccurred())
 
 		Expect(exists(resourceTypeBuild)).To(BeFalse())
@@ -91,15 +91,33 @@ var _ = Describe("Check Lifecycle", func() {
 		createFinishedCheck(defaultPrototype, plan)
 
 		By("deleting completed checks")
-		err = lifecycle.DeleteCompletedChecks()
+		err = lifecycle.DeleteCompletedChecks(logger)
 		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("runs check-deletion query in batches", func() {
+		db.CheckDeleteBatchSize = 10
+		for i := 0; i < 51; i++ {
+			createFinishedCheck(defaultResource, plan)
+		}
+
+		By("deleting completed checks")
+		err := lifecycle.DeleteCompletedChecks(logger)
+		Expect(err).ToNot(HaveOccurred())
+
+		By("verifying all checks but the latest were deleted")
+		var numChecksRemaining int
+		err = dbConn.QueryRow(`SELECT COUNT(*) FROM builds WHERE resource_id = $1`, defaultResource.ID()).Scan(&numChecksRemaining)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(numChecksRemaining).To(Equal(1))
 	})
 
 	It("ignores incomplete checks", func() {
 		c1 := createUnfinishedCheck(defaultResource, plan)
 		c2 := createUnfinishedCheck(defaultResource, plan)
 
-		err := lifecycle.DeleteCompletedChecks()
+		err := lifecycle.DeleteCompletedChecks(logger)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(exists(c1)).To(BeTrue())
 		Expect(exists(c2)).To(BeTrue())
@@ -107,7 +125,7 @@ var _ = Describe("Check Lifecycle", func() {
 		By("finishing the first check should allow it to be deleted")
 		finish(c1)
 
-		err = lifecycle.DeleteCompletedChecks()
+		err = lifecycle.DeleteCompletedChecks(logger)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(exists(c1)).To(BeFalse())
 		Expect(exists(c2)).To(BeTrue())
@@ -115,7 +133,7 @@ var _ = Describe("Check Lifecycle", func() {
 		By("finishing the second check should NOT allow it to be deleted")
 		finish(c2)
 
-		err = lifecycle.DeleteCompletedChecks()
+		err = lifecycle.DeleteCompletedChecks(logger)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(exists(c2)).To(BeTrue())
 	})
@@ -126,7 +144,7 @@ var _ = Describe("Check Lifecycle", func() {
 
 		createFinishedCheck(defaultResource, plan)
 
-		err := lifecycle.DeleteCompletedChecks()
+		err := lifecycle.DeleteCompletedChecks(logger)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(exists(c1)).To(BeFalse())
 		Expect(exists(c2)).To(BeFalse())
@@ -143,7 +161,7 @@ var _ = Describe("Check Lifecycle", func() {
 		_, err = defaultJob.CreateBuild("foo")
 		Expect(err).ToNot(HaveOccurred())
 
-		err = lifecycle.DeleteCompletedChecks()
+		err = lifecycle.DeleteCompletedChecks(logger)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(exists(build)).To(BeTrue())
 	})

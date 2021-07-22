@@ -23,7 +23,7 @@ func (c *checksCollector) Run(ctx context.Context) error {
 	logger.Debug("start")
 	defer logger.Debug("done")
 
-	err := c.lifecycle.DeleteCompletedChecks()
+	err := c.lifecycle.DeleteCompletedChecks(logger)
 	if err != nil {
 		logger.Error("failed-to-delete-completed-checks", err)
 		return err

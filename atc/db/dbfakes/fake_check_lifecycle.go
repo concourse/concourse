@@ -4,13 +4,15 @@ package dbfakes
 import (
 	"sync"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
 )
 
 type FakeCheckLifecycle struct {
-	DeleteCompletedChecksStub        func() error
+	DeleteCompletedChecksStub        func(lager.Logger) error
 	deleteCompletedChecksMutex       sync.RWMutex
 	deleteCompletedChecksArgsForCall []struct {
+		arg1 lager.Logger
 	}
 	deleteCompletedChecksReturns struct {
 		result1 error
@@ -22,17 +24,18 @@ type FakeCheckLifecycle struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeCheckLifecycle) DeleteCompletedChecks() error {
+func (fake *FakeCheckLifecycle) DeleteCompletedChecks(arg1 lager.Logger) error {
 	fake.deleteCompletedChecksMutex.Lock()
 	ret, specificReturn := fake.deleteCompletedChecksReturnsOnCall[len(fake.deleteCompletedChecksArgsForCall)]
 	fake.deleteCompletedChecksArgsForCall = append(fake.deleteCompletedChecksArgsForCall, struct {
-	}{})
+		arg1 lager.Logger
+	}{arg1})
 	stub := fake.DeleteCompletedChecksStub
 	fakeReturns := fake.deleteCompletedChecksReturns
-	fake.recordInvocation("DeleteCompletedChecks", []interface{}{})
+	fake.recordInvocation("DeleteCompletedChecks", []interface{}{arg1})
 	fake.deleteCompletedChecksMutex.Unlock()
 	if stub != nil {
-		return stub()
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
@@ -46,10 +49,17 @@ func (fake *FakeCheckLifecycle) DeleteCompletedChecksCallCount() int {
 	return len(fake.deleteCompletedChecksArgsForCall)
 }
 
-func (fake *FakeCheckLifecycle) DeleteCompletedChecksCalls(stub func() error) {
+func (fake *FakeCheckLifecycle) DeleteCompletedChecksCalls(stub func(lager.Logger) error) {
 	fake.deleteCompletedChecksMutex.Lock()
 	defer fake.deleteCompletedChecksMutex.Unlock()
 	fake.DeleteCompletedChecksStub = stub
+}
+
+func (fake *FakeCheckLifecycle) DeleteCompletedChecksArgsForCall(i int) lager.Logger {
+	fake.deleteCompletedChecksMutex.RLock()
+	defer fake.deleteCompletedChecksMutex.RUnlock()
+	argsForCall := fake.deleteCompletedChecksArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeCheckLifecycle) DeleteCompletedChecksReturns(result1 error) {
