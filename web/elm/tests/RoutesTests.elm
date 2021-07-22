@@ -293,6 +293,7 @@ all =
                                     }
                                 , page = Nothing
                                 , version = Just <| Dict.fromList [ ( "version", "sha:123abc" ) ]
+                                , groups = []
                                 }
                         )
         ]

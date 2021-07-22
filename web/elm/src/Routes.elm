@@ -8,6 +8,7 @@ module Routes exposing
     , buildRoute
     , extractPid
     , extractQuery
+    , getGroups
     , jobRoute
     , parsePath
     , pipelineRoute
@@ -17,6 +18,7 @@ module Routes exposing
     , toString
     , tokenToFlyRoute
     , versionQueryParams
+    , withGroups
     )
 
 import Api.Pagination
@@ -47,15 +49,15 @@ import Url.Parser.Query as Query
 
 
 type Route
-    = Build { id : Concourse.JobBuildIdentifier, highlight : Highlight }
-    | Resource { id : Concourse.ResourceIdentifier, page : Maybe Pagination.Page, version : Maybe Concourse.Version }
-    | Job { id : Concourse.JobIdentifier, page : Maybe Pagination.Page }
+    = Build { id : Concourse.JobBuildIdentifier, highlight : Highlight, groups : List String }
+    | Resource { id : Concourse.ResourceIdentifier, page : Maybe Pagination.Page, version : Maybe Concourse.Version, groups : List String }
+    | Job { id : Concourse.JobIdentifier, page : Maybe Pagination.Page, groups : List String }
     | OneOffBuild { id : Concourse.BuildId, highlight : Highlight }
     | Pipeline { id : Concourse.PipelineIdentifier, groups : List String }
     | Dashboard { searchType : SearchType, dashboardView : DashboardView }
     | FlySuccess Bool (Maybe Int)
       -- the version field is really only used as a hack to populate the breadcrumbs, it's not actually used by anyhting else
-    | Causality { id : Concourse.VersionedResourceIdentifier, direction : Concourse.CausalityDirection, version : Maybe Concourse.Version }
+    | Causality { id : Concourse.VersionedResourceIdentifier, direction : Concourse.CausalityDirection, version : Maybe Concourse.Version, groups : List String }
 
 
 type SearchType
@@ -131,6 +133,7 @@ build =
                         , buildName = buildName
                         }
                     , highlight = h
+                    , groups = []
                     }
     in
     map buildHelper
@@ -183,6 +186,7 @@ resource =
                         }
                     , page = parsePage from to limit
                     , version = version
+                    , groups = []
                     }
     in
     map resourceHelper
@@ -233,6 +237,7 @@ job =
                         , jobName = jobName
                         }
                     , page = parsePage from to limit
+                    , groups = []
                     }
     in
     map jobHelper
@@ -316,6 +321,7 @@ causality =
                         }
                     , direction = direction
                     , version = Nothing
+                    , groups = []
                     }
 
         baseRoute dir =
@@ -352,6 +358,7 @@ buildRoute id name jobId =
                     , buildName = name
                     }
                 , highlight = HighlightNothing
+                , groups = []
                 }
 
         Nothing ->
@@ -368,6 +375,7 @@ jobRoute j =
             , jobName = j.name
             }
         , page = Nothing
+        , groups = []
         }
 
 
@@ -382,14 +390,15 @@ resourceRoute r v =
             }
         , page = Nothing
         , version = v
+        , groups = []
         }
 
 
-pipelineRoute : { a | name : String, teamName : String, instanceVars : InstanceVars } -> Route
-pipelineRoute p =
+pipelineRoute : { a | name : String, teamName : String, instanceVars : InstanceVars } -> List String -> Route
+pipelineRoute p groups =
     Pipeline
         { id = Concourse.toPipelineId p
-        , groups = []
+        , groups = groups
         }
 
 
@@ -642,3 +651,59 @@ versionQueryParams version =
 pipelineIdBuilder : { r | teamName : String, pipelineName : String, pipelineInstanceVars : Concourse.InstanceVars } -> RouteBuilder
 pipelineIdBuilder =
     RouteBuilder.pipeline
+
+
+getGroups : Route -> List String
+getGroups route =
+    case route of
+        Build { groups } ->
+            groups
+
+        Resource { groups } ->
+            groups
+
+        Job { groups } ->
+            groups
+
+        Pipeline { groups } ->
+            groups
+
+        Causality { groups } ->
+            groups
+
+        OneOffBuild _ ->
+            []
+
+        Dashboard _ ->
+            []
+
+        FlySuccess _ _ ->
+            []
+
+
+withGroups : List String -> Route -> Route
+withGroups groups route =
+    case route of
+        Build params ->
+            Build { params | groups = groups }
+
+        Resource params ->
+            Resource { params | groups = groups }
+
+        Job params ->
+            Job { params | groups = groups }
+
+        Pipeline params ->
+            Pipeline { params | groups = groups }
+
+        Causality params ->
+            Causality { params | groups = groups }
+
+        OneOffBuild _ ->
+            route
+
+        Dashboard _ ->
+            route
+
+        FlySuccess _ _ ->
+            route

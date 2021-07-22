@@ -379,7 +379,7 @@ viewTitle name jobID createdBy =
                     Html.a
                         [ href <|
                             Routes.toString <|
-                                Routes.Job { id = jid, page = Nothing }
+                                Routes.Job { id = jid, page = Nothing, groups = [] }
                         , onMouseEnter <| Hover <| Just Message.JobName
                         , onMouseLeave <| Hover Nothing
                         , id <| toHtmlID Message.JobName

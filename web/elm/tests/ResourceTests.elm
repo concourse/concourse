@@ -317,6 +317,7 @@ all =
                                     { id = versionID
                                     , direction = Concourse.Downstream
                                     , version = Nothing
+                                    , groups = []
                                     }
                             ]
             , test "'Outputs Of' links to causality page" <|
@@ -330,6 +331,7 @@ all =
                                     { id = versionID
                                     , direction = Concourse.Upstream
                                     , version = Nothing
+                                    , groups = []
                                     }
                             ]
             ]
@@ -357,6 +359,7 @@ all =
                                     { id = versionID
                                     , direction = Concourse.Downstream
                                     , version = Nothing
+                                    , groups = []
                                     }
                             ]
             , test "'Outputs Of' links to causality page" <|
@@ -370,6 +373,7 @@ all =
                                     { id = versionID
                                     , direction = Concourse.Upstream
                                     , version = Nothing
+                                    , groups = []
                                     }
                             ]
             ]
@@ -4090,5 +4094,5 @@ session =
     , favoritedInstanceGroups = Set.empty
     , screenSize = ScreenSize.Desktop
     , timeZone = Time.utc
-    , route = Routes.Resource { id = Data.resourceId, page = Nothing, version = Nothing }
+    , route = Routes.Resource { id = Data.resourceId, page = Nothing, version = Nothing, groups = [] }
     }

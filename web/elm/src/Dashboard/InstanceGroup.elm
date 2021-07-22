@@ -186,7 +186,7 @@ bodyView session section pipelines pipelineJobs jobs =
             let
                 pipelinePage =
                     Routes.toString <|
-                        Routes.pipelineRoute p
+                        Routes.pipelineRoute p []
 
                 curPipelineJobs =
                     Dict.get p.id pipelineJobs

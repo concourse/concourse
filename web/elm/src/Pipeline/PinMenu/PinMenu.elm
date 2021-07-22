@@ -216,6 +216,7 @@ pinMenu { hovered } model =
                                             }
                                         , page = Nothing
                                         , version = Nothing
+                                        , groups = []
                                         }
                             }
                         )

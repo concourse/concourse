@@ -304,6 +304,7 @@ all =
                                 { id = Data.shortResourceId
                                 , page = Nothing
                                 , version = Nothing
+                                , groups = []
                                 }
                             )
                     )
@@ -315,6 +316,7 @@ all =
                                     { id = Data.shortResourceId
                                     , page = Nothing
                                     , version = Nothing
+                                    , groups = []
                                     }
                         ]
             , context "when pipeline is paused"
@@ -673,6 +675,7 @@ all =
                         , buildName = "1"
                         }
                     , highlight = Routes.HighlightNothing
+                    , groups = []
                     }
                 )
                 |> Application.handleCallback
@@ -770,6 +773,7 @@ all =
                         }
                     , page = Nothing
                     , version = Nothing
+                    , groups = []
                     }
                 )
                 |> Application.handleCallback
@@ -894,6 +898,7 @@ all =
                         , jobName = "job"
                         }
                     , page = Nothing
+                    , groups = []
                     }
                 )
                 |> Application.handleCallback
