@@ -317,38 +317,6 @@ func (delegate *buildStepDelegate) ConstructAcrossSubsteps(templateBytes []byte,
 	return substeps, nil
 }
 
-//func (delegate *buildStepDelegate) FetchImage(
-//	ctx context.Context,
-//	image atc.ImageResource,
-//	imageGetPlanID atc.PlanID,
-//	privileged bool,
-//) (worker.ImageSpec, error) {
-//	err := delegate.checkImagePolicy(image, privileged)
-//	if err != nil {
-//		return worker.ImageSpec{}, err
-//	}
-//
-//	var result exec.GetResult
-//	if !delegate.state.Result(imageGetPlanID, &result) {
-//		return worker.ImageSpec{}, fmt.Errorf("get did not return a result")
-//	}
-//
-//	err = delegate.build.SaveImageResourceVersion(result.ResourceCache)
-//	if err != nil {
-//		return worker.ImageSpec{}, fmt.Errorf("save image version: %w", err)
-//	}
-//
-//	art, found := delegate.state.ArtifactRepository().ArtifactFor(build.ArtifactName(result.Name))
-//	if !found {
-//		return worker.ImageSpec{}, fmt.Errorf("fetched artifact not found")
-//	}
-//
-//	return worker.ImageSpec{
-//		ImageArtifact: art,
-//		Privileged:    privileged,
-//	}, nil
-//}
-
 func (delegate *buildStepDelegate) checkImagePolicy(imageSource atc.Source, imageType string, privileged bool) error {
 	if !delegate.policyChecker.ShouldCheckAction(policy.ActionUseImage) {
 		return nil

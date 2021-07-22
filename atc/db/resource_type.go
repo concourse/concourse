@@ -56,7 +56,6 @@ type ResourceType interface {
 
 type ResourceTypes []ResourceType
 
-// XXX: TODO Can remove the bool
 func (resourceTypes ResourceTypes) Parent(checkable Checkable) (ResourceType, bool) {
 	for _, t := range resourceTypes {
 		if t.PipelineID() == checkable.PipelineID() {
