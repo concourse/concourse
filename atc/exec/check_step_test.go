@@ -161,6 +161,12 @@ var _ = Describe("CheckStep", func() {
 			Expect(fakeDelegate.InitializingCallCount()).To(Equal(1))
 		})
 
+		It("points the resource or resource type to the scope", func() {
+			Expect(fakeDelegate.PointToCheckedConfigCallCount()).To(Equal(1))
+			scope := fakeDelegate.PointToCheckedConfigArgsForCall(0)
+			Expect(scope).To(Equal(fakeResourceConfigScope))
+		})
+
 		Context("when not running", func() {
 			BeforeEach(func() {
 				fakeDelegate.WaitToRunReturns(nil, false, nil)
@@ -567,7 +573,6 @@ var _ = Describe("CheckStep", func() {
 				Context("after saving", func() {
 					BeforeEach(func() {
 						fakeResourceConfigScope.SaveVersionsStub = func(db.SpanContext, []atc.Version) error {
-							Expect(fakeDelegate.PointToCheckedConfigCallCount()).To(BeZero())
 							Expect(fakeResourceConfigScope.UpdateLastCheckEndTimeCallCount()).To(Equal(0))
 							return nil
 						}
@@ -577,24 +582,8 @@ var _ = Describe("CheckStep", func() {
 						Expect(fakeResourceConfigScope.UpdateLastCheckEndTimeCallCount()).To(Equal(1))
 					})
 
-					It("points the resource or resource type to the scope", func() {
-						Expect(fakeResourceConfigScope.SaveVersionsCallCount()).To(Equal(1))
-						Expect(fakeDelegate.PointToCheckedConfigCallCount()).To(Equal(1))
-						scope := fakeDelegate.PointToCheckedConfigArgsForCall(0)
-						Expect(scope).To(Equal(fakeResourceConfigScope))
-					})
-				})
-
-				Context("after pointing the resource type to the scope", func() {
-					BeforeEach(func() {
-						fakeDelegate.PointToCheckedConfigStub = func(db.ResourceConfigScope) error {
-							Expect(fakeLock.ReleaseCallCount()).To(Equal(0))
-							return nil
-						}
-					})
-
 					It("releases the lock", func() {
-						Expect(fakeDelegate.PointToCheckedConfigCallCount()).To(Equal(1))
+						Expect(fakeResourceConfigScope.SaveVersionsCallCount()).To(Equal(1))
 						Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
 					})
 				})
@@ -607,16 +596,6 @@ var _ = Describe("CheckStep", func() {
 
 				It("errors", func() {
 					Expect(stepErr).To(MatchError(ContainSubstring("run-check-step-err")))
-				})
-
-				It("points the resource or resource type to the scope", func() {
-					// even though we failed to check, we should still point to the new
-					// scope; it'd be kind of weird leave the resource pointing to the old
-					// scope for a substantial config change that also happens to be
-					// broken.
-					Expect(fakeDelegate.PointToCheckedConfigCallCount()).To(Equal(1))
-					scope := fakeDelegate.PointToCheckedConfigArgsForCall(0)
-					Expect(scope).To(Equal(fakeResourceConfigScope))
 				})
 
 				It("updates the scope's last check end time", func() {

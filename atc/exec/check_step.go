@@ -143,6 +143,14 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 		return false, fmt.Errorf("create resource config scope: %w", err)
 	}
 
+	// Point scope to resource before check runs. Because a resource's check build
+	// summary is associated with scope, only after pointing to scope, check status
+	// can be fetched.
+	err = delegate.PointToCheckedConfig(scope)
+	if err != nil {
+		return false, fmt.Errorf("update resource config scope: %w", err)
+	}
+
 	lock, run, err := delegate.WaitToRun(ctx, scope)
 	if err != nil {
 		return false, fmt.Errorf("wait: %w", err)
@@ -228,11 +236,6 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 		if found {
 			state.StoreResult(step.planID, atc.Version(latestVersion.Version()))
 		}
-	}
-
-	err = delegate.PointToCheckedConfig(scope)
-	if err != nil {
-		return false, fmt.Errorf("update resource config scope: %w", err)
 	}
 
 	delegate.Finished(logger, true)
