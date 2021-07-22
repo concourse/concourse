@@ -80,12 +80,13 @@ var factoryTests = []PlannerTest{
 	{
 		Title: "get step",
 		Config: &atc.GetStep{
-			Name:     "some-name",
-			Resource: "some-resource",
-			Params:   atc.Params{"some": "params"},
-			Version:  &atc.VersionConfig{Pinned: atc.Version{"doesnt": "matter"}},
-			Tags:     atc.Tags{"tag-1", "tag-2"},
-			Timeout:  "1h",
+			Name:         "some-name",
+			Resource:     "some-resource",
+			Params:       atc.Params{"some": "params"},
+			Version:      &atc.VersionConfig{Pinned: atc.Version{"doesnt": "matter"}},
+			Tags:         atc.Tags{"tag-1", "tag-2"},
+			Timeout:      "1h",
+			ForceRefresh: true,
 		},
 		Inputs: []db.BuildInput{
 			{
@@ -104,6 +105,7 @@ var factoryTests = []PlannerTest{
 				"version": {"some":"version"},
 				"tags": ["tag-1", "tag-2"],
 				"timeout": "1h",
+				"force_refresh": true,
 				"resource_types": [
 					{
 						"name": "some-resource-type",
@@ -119,11 +121,12 @@ var factoryTests = []PlannerTest{
 	{
 		Title: "get step with base resource type",
 		Config: &atc.GetStep{
-			Name:     "some-name",
-			Resource: "some-base-resource",
-			Params:   atc.Params{"some": "params"},
-			Version:  &atc.VersionConfig{Pinned: atc.Version{"doesnt": "matter"}},
-			Tags:     atc.Tags{"tag-1", "tag-2"},
+			Name:         "some-name",
+			Resource:     "some-base-resource",
+			Params:       atc.Params{"some": "params"},
+			Version:      &atc.VersionConfig{Pinned: atc.Version{"doesnt": "matter"}},
+			Tags:         atc.Tags{"tag-1", "tag-2"},
+			ForceRefresh: true,
 		},
 		Inputs: []db.BuildInput{
 			{
@@ -141,6 +144,7 @@ var factoryTests = []PlannerTest{
 				"params": {"some":"params"},
 				"version": {"some":"version"},
 				"tags": ["tag-1", "tag-2"],
+				"force_refresh": true,
 				"resource_types": [
 					{
 						"name": "some-resource-type",
