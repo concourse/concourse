@@ -8,8 +8,8 @@ import (
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/build"
-	"github.com/concourse/concourse/atc/runtime/runtimefakes"
-	"github.com/concourse/concourse/atc/worker/workerfakes"
+	"github.com/concourse/concourse/atc/exec/execfakes"
+	"github.com/concourse/concourse/atc/runtime/runtimetest"
 	"github.com/concourse/concourse/vars"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -27,7 +27,7 @@ var _ = Describe("ArtifactOutputStep", func() {
 		stepErr        error
 		plan           atc.Plan
 		fakeBuild      *dbfakes.FakeBuild
-		fakeWorkerPool *workerfakes.FakePool
+		fakeWorkerPool *execfakes.FakePool
 
 		artifactName string
 	)
@@ -40,7 +40,7 @@ var _ = Describe("ArtifactOutputStep", func() {
 		fakeBuild = new(dbfakes.FakeBuild)
 		fakeBuild.TeamIDReturns(4)
 
-		fakeWorkerPool = new(workerfakes.FakePool)
+		fakeWorkerPool = new(execfakes.FakePool)
 
 		artifactName = "some-artifact-name"
 	})
@@ -63,60 +63,36 @@ var _ = Describe("ArtifactOutputStep", func() {
 	})
 
 	Context("when the artifact exists", func() {
-		Context("when the source is not a worker.Volume", func() {
+		var volume *runtimetest.Volume
+
+		BeforeEach(func() {
+			volume = runtimetest.NewVolume("some-volume")
+			fakeWorkerPool.LocateVolumeReturns(volume, runtimetest.NewWorker("worker"), true, nil)
+
+			state.ArtifactRepository().RegisterArtifact(build.ArtifactName(artifactName), volume)
+		})
+
+		Context("when initializing the artifact fails", func() {
 			BeforeEach(func() {
-				fakeArtifact := new(runtimefakes.FakeArtifact)
-				state.ArtifactRepository().RegisterArtifact(build.ArtifactName(artifactName), fakeArtifact)
+				volume.DBVolume_.InitializeArtifactReturns(nil, errors.New("nope"))
 			})
 			It("returns the error", func() {
 				Expect(stepErr).To(HaveOccurred())
 			})
 		})
 
-		Context("when the source is a worker.Volume", func() {
-			var fakeWorkerVolume *workerfakes.FakeVolume
-			var fakeArtifact *runtimefakes.FakeArtifact
+		Context("when initializing the artifact succeeds", func() {
+			var fakeWorkerArtifact *dbfakes.FakeWorkerArtifact
 
 			BeforeEach(func() {
-				fakeWorkerVolume = new(workerfakes.FakeVolume)
-				fakeWorkerVolume.HandleReturns("some-volume-handle")
+				fakeWorkerArtifact = new(dbfakes.FakeWorkerArtifact)
+				fakeWorkerArtifact.IDReturns(0)
 
-				fakeArtifact = new(runtimefakes.FakeArtifact)
-				fakeArtifact.IDReturns("some-artifact-id")
-
-				fakeWorkerPool.FindVolumeReturns(fakeWorkerVolume, true, nil)
-
-				state.ArtifactRepository().RegisterArtifact(build.ArtifactName(artifactName), fakeArtifact)
+				volume.DBVolume_.InitializeArtifactReturns(fakeWorkerArtifact, nil)
 			})
 
-			Context("when initializing the artifact fails", func() {
-				BeforeEach(func() {
-					fakeWorkerVolume.InitializeArtifactReturns(nil, errors.New("nope"))
-				})
-				It("returns the error", func() {
-					Expect(stepErr).To(HaveOccurred())
-				})
-			})
-
-			Context("when initializing the artifact succeeds", func() {
-				var fakeWorkerArtifact *dbfakes.FakeWorkerArtifact
-
-				BeforeEach(func() {
-					fakeWorkerArtifact = new(dbfakes.FakeWorkerArtifact)
-					fakeWorkerArtifact.IDReturns(0)
-
-					fakeWorkerVolume.InitializeArtifactReturns(fakeWorkerArtifact, nil)
-				})
-
-				It("calls workerClient -> FindVolume with the correct arguments", func() {
-					_, actualTeamId, actualBuildArtifactID := fakeWorkerPool.FindVolumeArgsForCall(0)
-					Expect(actualTeamId).To(Equal(4))
-					Expect(actualBuildArtifactID).To(Equal("some-artifact-id"))
-				})
-
-				It("succeeds", func() {
-					Expect(stepOk).To(BeTrue())
-				})
+			It("succeeds", func() {
+				Expect(stepOk).To(BeTrue())
 			})
 		})
 	})

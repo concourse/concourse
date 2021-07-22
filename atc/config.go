@@ -17,8 +17,6 @@ import (
 const ConfigVersionHeader = "X-Concourse-Config-Version"
 const DefaultTeamName = "main"
 
-type Tags []string
-
 type Config struct {
 	Groups        GroupConfigs     `json:"groups,omitempty"`
 	VarSources    VarSourceConfigs `json:"var_sources,omitempty"`

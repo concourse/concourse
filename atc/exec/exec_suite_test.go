@@ -1,10 +1,8 @@
 package exec_test
 
 import (
-	"context"
 	"testing"
 
-	"code.cloudfoundry.org/lager/lagerctx"
 	"code.cloudfoundry.org/lager/lagertest"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -44,10 +42,4 @@ var _ = BeforeSuite(func() {
 var noopStepper exec.Stepper = func(atc.Plan) exec.Step {
 	Fail("cannot create substep")
 	return nil
-}
-
-// hack to get context equality checking working when checking that the span
-// context is propagated
-func rewrapLogger(ctx context.Context) context.Context {
-	return lagerctx.NewContext(ctx, lagerctx.FromContext(ctx))
 }

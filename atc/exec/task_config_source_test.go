@@ -11,8 +11,7 @@ import (
 	. "github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/exec/execfakes"
-	"github.com/concourse/concourse/atc/runtime/runtimefakes"
-	"github.com/concourse/concourse/atc/worker/workerfakes"
+	"github.com/concourse/concourse/atc/runtime/runtimetest"
 	"github.com/concourse/concourse/vars"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -84,19 +83,19 @@ var _ = Describe("TaskConfigSource", func() {
 
 	Describe("FileConfigSource", func() {
 		var (
-			configSource         FileConfigSource
-			fakeArtifactStreamer *workerfakes.FakeArtifactStreamer
-			fetchErr             error
-			artifactName         string
+			configSource FileConfigSource
+			fakeStreamer *execfakes.FakeStreamer
+			fetchErr     error
+			artifactName string
 		)
 
 		BeforeEach(func() {
 
 			artifactName = "some-artifact-name"
-			fakeArtifactStreamer = new(workerfakes.FakeArtifactStreamer)
+			fakeStreamer = new(execfakes.FakeStreamer)
 			configSource = FileConfigSource{
 				ConfigPath: artifactName + "/build.yml",
-				Streamer:   fakeArtifactStreamer,
+				Streamer:   fakeStreamer,
 			}
 		})
 
@@ -115,11 +114,11 @@ var _ = Describe("TaskConfigSource", func() {
 		})
 
 		Context("when the file's artifact can be found in the repository", func() {
-			var fakeArtifact *runtimefakes.FakeArtifact
+			var volume *runtimetest.Volume
 
 			BeforeEach(func() {
-				fakeArtifact = new(runtimefakes.FakeArtifact)
-				repo.RegisterArtifact(build.ArtifactName(artifactName), fakeArtifact)
+				volume = runtimetest.NewVolume("some-volume")
+				repo.RegisterArtifact(build.ArtifactName(artifactName), volume)
 			})
 
 			Context("when the artifact provides a proper file", func() {
@@ -130,12 +129,12 @@ var _ = Describe("TaskConfigSource", func() {
 					Expect(err).NotTo(HaveOccurred())
 
 					streamedOut = gbytes.BufferWithBytes(marshalled)
-					fakeArtifactStreamer.StreamFileFromArtifactReturns(streamedOut, nil)
+					fakeStreamer.StreamFileReturns(streamedOut, nil)
 				})
 
 				It("fetches the file via the correct artifact & path", func() {
-					_, artifact, dest := fakeArtifactStreamer.StreamFileFromArtifactArgsForCall(0)
-					Expect(artifact).To(Equal(fakeArtifact))
+					_, artifact, dest := fakeStreamer.StreamFileArgsForCall(0)
+					Expect(artifact).To(Equal(volume))
 					Expect(dest).To(Equal("build.yml"))
 				})
 
@@ -160,7 +159,7 @@ var _ = Describe("TaskConfigSource", func() {
 					Expect(err).NotTo(HaveOccurred())
 
 					streamedOut = gbytes.BufferWithBytes(marshalled)
-					fakeArtifactStreamer.StreamFileFromArtifactReturns(streamedOut, nil)
+					fakeStreamer.StreamFileReturns(streamedOut, nil)
 				})
 
 				It("returns an error", func() {
@@ -173,7 +172,7 @@ var _ = Describe("TaskConfigSource", func() {
 
 				BeforeEach(func() {
 					streamedOut = gbytes.BufferWithBytes([]byte("bogus"))
-					fakeArtifactStreamer.StreamFileFromArtifactReturns(streamedOut, nil)
+					fakeStreamer.StreamFileReturns(streamedOut, nil)
 				})
 
 				It("fails", func() {
@@ -196,7 +195,7 @@ intputs: []
 
 run: {path: a/file}
 `))
-					fakeArtifactStreamer.StreamFileFromArtifactReturns(streamedOut, nil)
+					fakeStreamer.StreamFileReturns(streamedOut, nil)
 				})
 
 				It("fails", func() {
@@ -212,7 +211,7 @@ run: {path: a/file}
 				disaster := errors.New("nope")
 
 				BeforeEach(func() {
-					fakeArtifactStreamer.StreamFileFromArtifactReturns(nil, disaster)
+					fakeStreamer.StreamFileReturns(nil, disaster)
 				})
 
 				It("returns the error", func() {
@@ -222,7 +221,7 @@ run: {path: a/file}
 
 			Context("when the file task is not found", func() {
 				BeforeEach(func() {
-					fakeArtifactStreamer.StreamFileFromArtifactReturns(nil, baggageclaim.ErrFileNotFound)
+					fakeStreamer.StreamFileReturns(nil, baggageclaim.ErrFileNotFound)
 				})
 
 				It("returns the error", func() {

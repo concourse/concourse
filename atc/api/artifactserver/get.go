@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/concourse/baggageclaim"
+	"github.com/concourse/concourse/atc/compression"
 	"github.com/concourse/concourse/atc/db"
 )
 
@@ -36,7 +36,7 @@ func (s *Server) GetArtifact(team db.Team) http.Handler {
 			return
 		}
 
-		workerVolume, found, err := s.workerPool.FindVolume(logger, team.ID(), artifactVolume.Handle())
+		volume, _, found, err := s.workerPool.LocateVolume(logger, team.ID(), artifactVolume.Handle())
 		if err != nil {
 			logger.Error("failed-to-get-worker-volume", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -49,7 +49,7 @@ func (s *Server) GetArtifact(team db.Team) http.Handler {
 			return
 		}
 
-		reader, err := workerVolume.StreamOut(r.Context(), "/", baggageclaim.GzipEncoding)
+		reader, err := volume.StreamOut(r.Context(), "/", compression.NewGzipCompression())
 		if err != nil {
 			logger.Error("failed-to-stream-volume-contents", err)
 			w.WriteHeader(http.StatusInternalServerError)

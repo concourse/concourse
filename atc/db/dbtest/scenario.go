@@ -1,9 +1,12 @@
 package dbtest
 
 import (
+	"fmt"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 
+	"github.com/onsi/ginkgo"
 	//lint:ignore ST1001 this is used for tests
 	. "github.com/onsi/gomega"
 )
@@ -84,4 +87,37 @@ func (scenario Scenario) ResourceVersion(name string, version atc.Version) db.Re
 	Expect(found).To(BeTrue(), "resource version '%v' of '%s' not found", version, name)
 
 	return rcv
+}
+
+func (scenario Scenario) Worker(name string) db.Worker {
+	for _, worker := range scenario.Workers {
+		if worker.Name() == name {
+			return worker
+		}
+	}
+
+	ginkgo.Fail(fmt.Sprintf("worker '%s' not found", name))
+	panic("unreachable")
+}
+
+func (scenario Scenario) Container(workerName string, owner db.ContainerOwner) db.Container {
+	container, ok := scenario.FindContainer(workerName, owner)
+	Expect(ok).To(BeTrue())
+	return container
+}
+
+func (scenario Scenario) FindContainer(workerName string, owner db.ContainerOwner) (db.Container, bool) {
+	worker := scenario.Worker(workerName)
+
+	creating, created, err := worker.FindContainer(owner)
+	Expect(err).ToNot(HaveOccurred())
+
+	if created != nil {
+		return created, true
+	}
+	if creating != nil {
+		return creating, true
+	}
+
+	return nil, false
 }

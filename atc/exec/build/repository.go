@@ -13,8 +13,8 @@ import (
 type ArtifactName string
 
 // Repository is the mapping from a ArtifactName to an Artifact.
-// Steps will both populate this map with new artifacts (e.g.  the resource
-// fetched by a Get step), and look up required artifacts (e.g.  the inputs
+// Steps will both populate this map with new artifacts (e.g. the resource
+// fetched by a Get step), and look up required artifacts (e.g. the inputs
 // configured for a Task step).
 //
 // There is only one ArtifactRepository for the duration of a build plan's
@@ -27,29 +27,23 @@ type Repository struct {
 	parent *Repository
 }
 
-// NewArtifactRepository constructs a new repository.
+// NewRepository constructs a new repository.
 func NewRepository() *Repository {
 	return &Repository{
 		repo: make(map[ArtifactName]runtime.Artifact),
 	}
 }
 
-//counterfeiter:generate . RegisterableArtifact
-// A RegisterableArtifact is an Artifact which can be added to the registry
-type RegisterableArtifact interface {
-	runtime.Artifact
-}
-
-// RegisterArtifact inserts an RegisterableArtifact into the map under the given
+// RegisterArtifact inserts an Artifact into the map under the given
 // ArtifactName. Producers of artifacts, e.g. the Get step and the Task step,
 // will call this after they've successfully produced their artifact(s).
-func (repo *Repository) RegisterArtifact(name ArtifactName, artifact RegisterableArtifact) {
+func (repo *Repository) RegisterArtifact(name ArtifactName, artifact runtime.Artifact) {
 	repo.repoL.Lock()
 	repo.repo[name] = artifact
 	repo.repoL.Unlock()
 }
 
-// SourceFor looks up a Source for the given ArtifactName. Consumers of
+// ArtifactFor looks up the Artifact for a given ArtifactName. Consumers of
 // artifacts, e.g. the Task step, will call this to locate their dependencies.
 func (repo *Repository) ArtifactFor(name ArtifactName) (runtime.Artifact, bool) {
 	repo.repoL.RLock()

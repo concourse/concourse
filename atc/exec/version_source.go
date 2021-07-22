@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/runtime"
+	"github.com/concourse/concourse/atc/resource"
 )
 
 func NewVersionSourceFromPlan(getPlan *atc.GetPlan) VersionSource {
@@ -40,7 +40,7 @@ type PutStepVersionSource struct {
 }
 
 func (p *PutStepVersionSource) Version(state RunState) (atc.Version, error) {
-	var info runtime.VersionResult
+	var info resource.VersionResult
 	if !state.Result(p.planID, &info) {
 		return atc.Version{}, ErrPutStepVersionMissing
 	}

@@ -13,7 +13,6 @@ import (
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/policy"
-	"github.com/concourse/concourse/atc/worker"
 )
 
 //counterfeiter:generate . RateLimiter
@@ -28,10 +27,9 @@ func NewCheckDelegate(
 	clock clock.Clock,
 	limiter RateLimiter,
 	policyChecker policy.Checker,
-	artifactSourcer worker.ArtifactSourcer,
 ) exec.CheckDelegate {
 	return &checkDelegate{
-		BuildStepDelegate: NewBuildStepDelegate(build, plan.ID, state, clock, policyChecker, artifactSourcer),
+		BuildStepDelegate: NewBuildStepDelegate(build, plan.ID, state, clock, policyChecker),
 
 		build:       build,
 		plan:        plan.Check,

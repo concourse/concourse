@@ -1,38 +1,38 @@
 package api_test
 
 import (
-	"bytes"
 	"context"
 	"errors"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"time"
 
 	"github.com/concourse/baggageclaim"
-	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
+	"github.com/concourse/concourse/atc/runtime/runtimetest"
 	. "github.com/concourse/concourse/atc/testhelpers"
 	"github.com/concourse/concourse/atc/worker"
-	"github.com/concourse/concourse/atc/worker/workerfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("ArtifactRepository API", func() {
-
 	Describe("POST /api/v1/teams/:team_name/artifacts", func() {
 		var request *http.Request
 		var response *http.Response
+
+		var tarContents runtimetest.VolumeContent
 
 		BeforeEach(func() {
 			fakeAccess.IsAuthenticatedReturns(true)
 		})
 
 		JustBeforeEach(func() {
-			var err error
-			request, err = http.NewRequest("POST", server.URL+"/api/v1/teams/some-team/artifacts", bytes.NewBuffer([]byte("some-data")))
+			body, err := tarContents.StreamOut(context.Background(), ".", baggageclaim.GzipEncoding)
+			Expect(err).NotTo(HaveOccurred())
+
+			request, err = http.NewRequest("POST", server.URL+"/api/v1/teams/some-team/artifacts", body)
 			Expect(err).NotTo(HaveOccurred())
 
 			request.Header.Set("Content-Type", "application/json")
@@ -66,129 +66,60 @@ var _ = Describe("ArtifactRepository API", func() {
 		})
 
 		Context("when authorized", func() {
+			var volume *runtimetest.Volume
+			var workerArtifact *dbfakes.FakeWorkerArtifact
+
 			BeforeEach(func() {
 				fakeAccess.IsAuthorizedReturns(true)
+
+				tarContents = runtimetest.VolumeContent{
+					"some/file": {Data: []byte("some contents")},
+				}
+
+				volume = runtimetest.NewVolume("some-artifact")
+
+				workerArtifact = new(dbfakes.FakeWorkerArtifact)
+				workerArtifact.IDReturns(0)
+				workerArtifact.CreatedAtReturns(time.Unix(42, 0))
+
+				fakeWorkerPool.CreateVolumeForArtifactReturns(volume, workerArtifact, nil)
 			})
 
-			Context("when creating a volume fails", func() {
-				BeforeEach(func() {
-					fakeWorkerPool.CreateVolumeReturns(nil, errors.New("nope"))
-				})
+			It("creates the volume", func() {
+				Expect(fakeWorkerPool.CreateVolumeForArtifactCallCount()).To(Equal(1))
 
-				It("returns 500 InternalServerError", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-				})
+				_, workerSpec := fakeWorkerPool.CreateVolumeForArtifactArgsForCall(0)
+				Expect(workerSpec).To(Equal(worker.Spec{
+					TeamID:   734,
+					Platform: "some-platform",
+				}))
 			})
 
-			Context("when creating a volume succeeds", func() {
-				var fakeVolume *workerfakes.FakeVolume
+			It("streams into the volume", func() {
+				Expect(volume.Content).To(Equal(tarContents))
+			})
 
-				BeforeEach(func() {
-					fakeVolume = new(workerfakes.FakeVolume)
-					fakeVolume.InitializeArtifactReturns(nil, errors.New("nope"))
+			It("returns 201 Created", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusCreated))
+			})
 
-					fakeWorkerPool.CreateVolumeReturns(fakeVolume, nil)
-				})
+			It("returns Content-Type 'application/json'", func() {
+				expectedHeaderEntries := map[string]string{
+					"Content-Type": "application/json",
+				}
+				Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
+			})
 
-				It("creates the volume using the worker client", func() {
-					Expect(fakeWorkerPool.CreateVolumeCallCount()).To(Equal(1))
+			It("returns the artifact record", func() {
+				body, err := ioutil.ReadAll(response.Body)
+				Expect(err).NotTo(HaveOccurred())
 
-					_, volumeSpec, workerSpec, volumeType := fakeWorkerPool.CreateVolumeArgsForCall(0)
-					Expect(volumeSpec.Strategy).To(Equal(baggageclaim.EmptyStrategy{}))
-					Expect(workerSpec).To(Equal(worker.WorkerSpec{
-						TeamID:   734,
-						Platform: "some-platform",
-					}))
-					Expect(volumeType).To(Equal(db.VolumeTypeArtifact))
-				})
-
-				Context("when associating a volume with an artifact fails", func() {
-					BeforeEach(func() {
-						fakeVolume.InitializeArtifactReturns(nil, errors.New("nope"))
-					})
-
-					It("returns 500 InternalServerError", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-					})
-				})
-
-				Context("when associating a volume with an artifact succeeds", func() {
-					var fakeWorkerArtifact *dbfakes.FakeWorkerArtifact
-
-					BeforeEach(func() {
-						fakeWorkerArtifact = new(dbfakes.FakeWorkerArtifact)
-						fakeWorkerArtifact.IDReturns(0)
-						fakeWorkerArtifact.CreatedAtReturns(time.Unix(42, 0))
-
-						fakeVolume.InitializeArtifactReturns(fakeWorkerArtifact, nil)
-					})
-
-					It("invokes the initialization of an artifact on a volume", func() {
-						Expect(fakeVolume.InitializeArtifactCallCount()).To(Equal(1))
-
-						name, buildID := fakeVolume.InitializeArtifactArgsForCall(0)
-						Expect(name).To(Equal(""))
-						Expect(buildID).To(Equal(0))
-					})
-
-					Context("when streaming in data to a volume fails", func() {
-						BeforeEach(func() {
-							fakeVolume.StreamInReturns(errors.New("nope"))
-						})
-
-						It("returns 500 InternalServerError", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-						})
-					})
-
-					Context("when streaming in data to a volume succeeds", func() {
-
-						BeforeEach(func() {
-							fakeVolume.StreamInReturns(nil)
-
-							fakeVolume.StreamInStub = func(ctx context.Context, path string, encoding baggageclaim.Encoding, body io.Reader) error {
-								Expect(path).To(Equal("/"))
-								Expect(encoding).To(Equal(baggageclaim.GzipEncoding))
-
-								contents, err := ioutil.ReadAll(body)
-								Expect(err).ToNot(HaveOccurred())
-
-								Expect(contents).To(Equal([]byte("some-data")))
-								return nil
-							}
-						})
-
-						It("streams in the user contents to the new volume", func() {
-							Expect(fakeVolume.StreamInCallCount()).To(Equal(1))
-						})
-
-						Context("when the request succeeds", func() {
-
-							It("returns 201 Created", func() {
-								Expect(response.StatusCode).To(Equal(http.StatusCreated))
-							})
-
-							It("returns Content-Type 'application/json'", func() {
-								expectedHeaderEntries := map[string]string{
-									"Content-Type": "application/json",
-								}
-								Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
-							})
-
-							It("returns the artifact record", func() {
-								body, err := ioutil.ReadAll(response.Body)
-								Expect(err).NotTo(HaveOccurred())
-
-								Expect(body).To(MatchJSON(`{
-									"id": 0,
-									"name": "",
-									"build_id": 0,
-									"created_at": 42
-								}`))
-							})
-						})
-					})
-				})
+				Expect(body).To(MatchJSON(`{
+					"id": 0,
+					"name": "",
+					"build_id": 0,
+					"created_at": 42
+				}`))
 			})
 		})
 	})
@@ -269,16 +200,16 @@ var _ = Describe("ArtifactRepository API", func() {
 				})
 
 				It("uses the volume handle to lookup the worker volume", func() {
-					Expect(fakeWorkerPool.FindVolumeCallCount()).To(Equal(1))
+					Expect(fakeWorkerPool.LocateVolumeCallCount()).To(Equal(1))
 
-					_, teamID, handle := fakeWorkerPool.FindVolumeArgsForCall(0)
+					_, teamID, handle := fakeWorkerPool.LocateVolumeArgsForCall(0)
 					Expect(handle).To(Equal("some-handle"))
 					Expect(teamID).To(Equal(734))
 				})
 
 				Context("when the worker client errors", func() {
 					BeforeEach(func() {
-						fakeWorkerPool.FindVolumeReturns(nil, false, errors.New("nope"))
+						fakeWorkerPool.LocateVolumeReturns(nil, nil, false, errors.New("nope"))
 					})
 
 					It("returns 500", func() {
@@ -288,7 +219,7 @@ var _ = Describe("ArtifactRepository API", func() {
 
 				Context("when the worker client can't find the volume", func() {
 					BeforeEach(func() {
-						fakeWorkerPool.FindVolumeReturns(nil, false, nil)
+						fakeWorkerPool.LocateVolumeReturns(nil, nil, false, nil)
 					})
 
 					It("returns 404", func() {
@@ -297,55 +228,35 @@ var _ = Describe("ArtifactRepository API", func() {
 				})
 
 				Context("when the worker client finds the volume", func() {
-					var fakeWorkerVolume *workerfakes.FakeVolume
+					var volume *runtimetest.Volume
 
 					BeforeEach(func() {
-						reader := ioutil.NopCloser(bytes.NewReader([]byte("")))
+						volume = runtimetest.NewVolume("volume").
+							WithContent(runtimetest.VolumeContent{
+								"some/file": {Data: []byte("some content")},
+							})
 
-						fakeWorkerVolume = new(workerfakes.FakeVolume)
-						fakeWorkerVolume.StreamOutReturns(reader, nil)
+						fakeWorkerPool.LocateVolumeReturns(volume, runtimetest.NewWorker("worker"), true, nil)
+					})
 
-						fakeWorkerPool.FindVolumeReturns(fakeWorkerVolume, true, nil)
+					It("returns 200", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					})
+
+					It("returns Content-Type 'application/octet-stream'", func() {
+						expectedHeaderEntries := map[string]string{
+							"Content-Type": "application/octet-stream",
+						}
+						Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 					})
 
 					It("streams out the contents of the volume from the root path", func() {
-						Expect(fakeWorkerVolume.StreamOutCallCount()).To(Equal(1))
+						tarStream := runtimetest.VolumeContent{}
 
-						_, path, encoding := fakeWorkerVolume.StreamOutArgsForCall(0)
-						Expect(path).To(Equal("/"))
-						Expect(encoding).To(Equal(baggageclaim.GzipEncoding))
-					})
+						err := tarStream.StreamIn(context.Background(), ".", baggageclaim.GzipEncoding, response.Body)
+						Expect(err).ToNot(HaveOccurred())
 
-					Context("when streaming volume contents fails", func() {
-						BeforeEach(func() {
-							fakeWorkerVolume.StreamOutReturns(nil, errors.New("nope"))
-						})
-
-						It("returns 500", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-						})
-					})
-
-					Context("when streaming volume contents succeeds", func() {
-						BeforeEach(func() {
-							reader := ioutil.NopCloser(bytes.NewReader([]byte("some-content")))
-							fakeWorkerVolume.StreamOutReturns(reader, nil)
-						})
-
-						It("returns 200", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusOK))
-						})
-
-						It("returns Content-Type 'application/octet-stream'", func() {
-							expectedHeaderEntries := map[string]string{
-								"Content-Type": "application/octet-stream",
-							}
-							Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
-						})
-
-						It("returns the contents of the volume", func() {
-							Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("some-content")))
-						})
+						Expect(tarStream).To(Equal(volume.Content))
 					})
 				})
 			})

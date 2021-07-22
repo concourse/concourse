@@ -390,6 +390,26 @@ var _ = Describe("Worker", func() {
 		})
 	})
 
+	Describe("Find/CreateContainer, fixed handle", func() {
+		It("uses the specified handle for the container", func() {
+			owner := NewFixedHandleContainerOwner("my-handle")
+			creating, err := defaultWorker.CreateContainer(owner, ContainerMetadata{})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(creating.Handle()).To(Equal("my-handle"))
+
+			foundCreating, _, err := defaultWorker.FindContainer(owner)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(foundCreating).To(Equal(creating))
+
+			created, err := creating.Created()
+			Expect(err).ToNot(HaveOccurred())
+
+			_, foundCreated, err := defaultWorker.FindContainer(owner)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(foundCreated).To(Equal(created))
+		})
+	})
+
 	Describe("Active tasks", func() {
 		BeforeEach(func() {
 			var err error

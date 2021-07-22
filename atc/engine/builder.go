@@ -11,7 +11,6 @@ import (
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/policy"
-	"github.com/concourse/concourse/atc/worker"
 )
 
 const supportedSchema = "exec.v2"
@@ -39,29 +38,29 @@ func NewStepperFactory(
 	externalURL string,
 	rateLimiter RateLimiter,
 	policyChecker policy.Checker,
-	artifactSourcer worker.ArtifactSourcer,
 	dbWorkerFactory db.WorkerFactory,
+	dbResourceCacheFactory db.ResourceCacheFactory,
 	lockFactory lock.LockFactory,
 ) StepperFactory {
 	return &stepperFactory{
-		coreFactory:     coreFactory,
-		externalURL:     externalURL,
-		rateLimiter:     rateLimiter,
-		policyChecker:   policyChecker,
-		artifactSourcer: artifactSourcer,
-		dbWorkerFactory: dbWorkerFactory,
-		lockFactory:     lockFactory,
+		coreFactory:            coreFactory,
+		externalURL:            externalURL,
+		rateLimiter:            rateLimiter,
+		policyChecker:          policyChecker,
+		dbWorkerFactory:        dbWorkerFactory,
+		dbResourceCacheFactory: dbResourceCacheFactory,
+		lockFactory:            lockFactory,
 	}
 }
 
 type stepperFactory struct {
-	coreFactory     CoreStepFactory
-	externalURL     string
-	rateLimiter     RateLimiter
-	policyChecker   policy.Checker
-	artifactSourcer worker.ArtifactSourcer
-	dbWorkerFactory db.WorkerFactory
-	lockFactory     lock.LockFactory
+	coreFactory            CoreStepFactory
+	externalURL            string
+	rateLimiter            RateLimiter
+	policyChecker          policy.Checker
+	dbWorkerFactory        db.WorkerFactory
+	dbResourceCacheFactory db.ResourceCacheFactory
+	lockFactory            lock.LockFactory
 }
 
 func (factory *stepperFactory) StepperForBuild(build db.Build) (exec.Stepper, error) {
@@ -76,13 +75,13 @@ func (factory *stepperFactory) StepperForBuild(build db.Build) (exec.Stepper, er
 
 func (factory *stepperFactory) buildDelegateFactory(build db.Build, plan atc.Plan) DelegateFactory {
 	return DelegateFactory{
-		build:           build,
-		plan:            plan,
-		rateLimiter:     factory.rateLimiter,
-		policyChecker:   factory.policyChecker,
-		artifactSourcer: factory.artifactSourcer,
-		dbWorkerFactory: factory.dbWorkerFactory,
-		lockFactory:     factory.lockFactory,
+		build:                  build,
+		plan:                   plan,
+		rateLimiter:            factory.rateLimiter,
+		policyChecker:          factory.policyChecker,
+		dbWorkerFactory:        factory.dbWorkerFactory,
+		dbResourceCacheFactory: factory.dbResourceCacheFactory,
+		lockFactory:            factory.lockFactory,
 	}
 }
 
