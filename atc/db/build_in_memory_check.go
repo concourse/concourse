@@ -77,6 +77,8 @@ func newExistingInMemoryCheckBuild(conn Conn, buildId int, checkable Checkable) 
 	} else if resourceType, ok := checkable.(ResourceType); ok {
 		build.resourceTypeId = resourceType.ID()
 		build.resourceTypeName = resourceType.Name()
+	} else {
+		panic("not-implemented")
 	}
 
 	return &build

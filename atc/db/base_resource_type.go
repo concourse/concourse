@@ -38,6 +38,30 @@ const baseResourceTypesCacheExpiration = 10 * time.Minute
 // workers. But the cache data will have a expiration to ensure cache fresh.
 var baseResourceTypesCache = cache.New(0, 1*time.Hour)
 
+func warnUpBaseResourceTypesCache(runner sq.Runner) error {
+	rows, err := psql.Select("id, name, unique_version_history").
+		From("base_resource_types").
+		RunWith(runner).
+		Query()
+	if err != nil {
+		return err
+	}
+
+	for rows.Next() {
+		var id int
+		var name string
+		var unique bool
+		err := rows.Scan(&id, &name, &unique)
+		if err != nil {
+			return err
+		}
+		ubrt := UsedBaseResourceType{ID: id, Name: name, UniqueVersionHistory: unique}
+		baseResourceTypesCache.Set(name, &ubrt, baseResourceTypesCacheExpiration)
+	}
+
+	return nil
+}
+
 // CleanupBaseResourceTypesCache should only be used in unit tests' BeforeEach.
 func CleanupBaseResourceTypesCache() {
 	baseResourceTypesCache = cache.New(0, 1*time.Hour)

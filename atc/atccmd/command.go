@@ -600,6 +600,11 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		return nil, err
 	}
 
+	err = db.CacheWarmUp(backendConn)
+	if err != nil {
+		return nil, err
+	}
+
 	storage, err := storage.NewPostgresStorage(logger, cmd.Postgres)
 	if err != nil {
 		return nil, err
