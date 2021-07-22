@@ -51,10 +51,6 @@ func (e InputVersionEmptyError) Error() string {
 	return fmt.Sprintf("input '%s' has successfully resolved but contains missing version information", e.InputName)
 }
 
-type JobPauseRequest struct {
-	UserName string
-}
-
 //counterfeiter:generate . Job
 type Job interface {
 	PipelineRef
@@ -80,7 +76,7 @@ type Job interface {
 	Paused() bool
 	PausedBy() string
 	PausedAt() time.Time
-	Pause(*JobPauseRequest) error
+	Pause(pausedBy string) error
 	Unpause() error
 
 	ScheduleBuild(Build) (bool, error)
@@ -114,7 +110,7 @@ var jobsQuery = psql.Select(
 	"j.id",
 	"j.name",
 	"j.config",
-	"COALESCE(jp.paused, false)",
+	"j.paused",
 	"j.public",
 	"j.first_logged_build_id",
 	"j.pipeline_id",
@@ -128,12 +124,10 @@ var jobsQuery = psql.Select(
 	"j.schedule_requested",
 	"j.max_in_flight",
 	"j.disable_manual_trigger",
-	"COALESCE(jp.paused_by, '')",
-	"jp.paused_at").
+	"j.paused_by",
+	"j.paused_at").
 	From("jobs j").
-	LeftJoin("job_pauses jp ON j.id = jp.job_id").
 	LeftJoin("pipelines p ON j.pipeline_id = p.id").
-	LeftJoin("pipeline_pauses pp ON pp.pipeline_id = p.id").
 	LeftJoin("teams t ON p.team_id = t.id").
 	Where(sq.Expr("j.pipeline_id = p.id"))
 
@@ -153,7 +147,7 @@ type job struct {
 	id                    int
 	name                  string
 	paused                bool
-	pausedBy              string
+	pausedBy              sql.NullString
 	pausedAt              sql.NullTime
 	public                bool
 	firstLoggedBuildID    int
@@ -216,7 +210,6 @@ func (jobs Jobs) Configs() (atc.JobConfigs, error) {
 func (j *job) ID() int                          { return j.id }
 func (j *job) Name() string                     { return j.name }
 func (j *job) Paused() bool                     { return j.paused }
-func (j *job) PausedBy() string                 { return j.pausedBy }
 func (j *job) Public() bool                     { return j.public }
 func (j *job) FirstLoggedBuildID() int          { return j.firstLoggedBuildID }
 func (j *job) TeamID() int                      { return j.teamID }
@@ -432,16 +425,13 @@ func (j *job) Reload() (bool, error) {
 	return true, nil
 }
 
-func (j *job) Pause(req *JobPauseRequest) error {
-	set := sq.Eq{"job_id": j.id, "paused_by": nil}
+func (j *job) Pause(pausedBy string) error {
 
-	if req != nil {
-		set["paused_by"] = req.UserName
-	}
-
-	_, err := psql.Insert("job_pauses").
-		SetMap(set).
-		Suffix("ON CONFLICT(job_id) DO NOTHING").
+	_, err := psql.Update("jobs").
+		Set("paused", true).
+		Set("paused_at", time.Now()).
+		Set("paused_by", pausedBy).
+		Where(sq.Eq{"id": j.id, "paused": false}).
 		RunWith(j.conn).
 		Exec()
 
@@ -453,18 +443,27 @@ func (j *job) Pause(req *JobPauseRequest) error {
 }
 
 func (j *job) Unpause() error {
-	_, err := psql.Delete("job_pauses").
-		Where(sq.Eq{"job_id": j.id}).
+	result, err := psql.Update("jobs").
+		Set("paused", false).
+		Set("paused_by", nil).
+		Set("paused_at", nil).
+		Where(sq.Eq{"id": j.id, "paused": true}).
 		RunWith(j.conn).
 		Exec()
-
 	if err != nil {
 		return err
 	}
 
-	err = j.RequestSchedule()
+	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return err
+	}
+
+	if rowsAffected == 1 {
+		err = j.RequestSchedule()
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -475,6 +474,14 @@ func (j *job) PausedAt() time.Time {
 		return j.pausedAt.Time
 	} else {
 		return time.Time{}
+	}
+}
+
+func (j *job) PausedBy() string {
+	if j.pausedBy.Valid {
+		return j.pausedBy.String
+	} else {
+		return ""
 	}
 }
 
@@ -1132,7 +1139,7 @@ func (j *job) getNextPendingBuildBySerialGroup(tx Tx, serialGroups []string) (Bu
 		Where(sq.Eq{
 			"jsg.serial_group":    serialGroups,
 			"b.status":            BuildStatusPending,
-			"jp.paused":           nil,
+			"j.paused":            false,
 			"j.inputs_determined": true,
 			"j.pipeline_id":       j.pipelineID}).
 		ToSql()
@@ -1400,9 +1407,8 @@ func (j *job) isPipelineOrJobPaused(tx Tx) (bool, error) {
 	}
 
 	var paused bool
-	err := psql.Select("COALESCE(pp.paused, false) as paused").
+	err := psql.Select("paused").
 		From("pipelines p").
-		LeftJoin("pipeline_pauses pp ON p.id = pp.pipeline_id").
 		Where(sq.Eq{"p.id": j.pipelineID}).
 		RunWith(tx).
 		QueryRow().

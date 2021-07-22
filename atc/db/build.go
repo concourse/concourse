@@ -100,10 +100,8 @@ var buildsQuery = psql.Select(`
 	`).
 	From("builds b").
 	JoinClause("LEFT OUTER JOIN jobs j ON b.job_id = j.id").
-	JoinClause("LEFT OUTER JOIN job_pauses jp ON b.job_id = jp.job_id").
 	JoinClause("LEFT OUTER JOIN resources r ON b.resource_id = r.id").
 	JoinClause("LEFT OUTER JOIN pipelines p ON b.pipeline_id = p.id").
-	JoinClause("LEFT OUTER JOIN pipeline_pauses pp ON b.pipeline_id = pp.pipeline_id").
 	JoinClause("LEFT OUTER JOIN teams t ON b.team_id = t.id").
 	JoinClause("LEFT OUTER JOIN builds rb ON rb.id = b.rerun_of").
 	JoinClause("LEFT OUTER JOIN build_comments bc ON b.id = bc.build_id")
@@ -957,12 +955,10 @@ func (b *build) Preparation() (BuildPreparation, bool, error) {
 		pipelineID         int
 		jobName            string
 	)
-	err := psql.Select("COALESCE(pp.paused, false), COALESCE(jp.paused, false), j.max_in_flight_reached, j.pipeline_id, j.name").
+	err := psql.Select("p.paused, j.paused, j.max_in_flight_reached, j.pipeline_id, j.name").
 		From("builds b").
 		Join("jobs j ON b.job_id = j.id").
-		LeftJoin("job_pauses jp ON b.job_id = jp.job_id").
 		Join("pipelines p ON j.pipeline_id = p.id").
-		LeftJoin("pipeline_pauses pp ON p.id = pp.pipeline_id").
 		Where(sq.Eq{"b.id": b.id}).
 		RunWith(b.conn).
 		QueryRow().

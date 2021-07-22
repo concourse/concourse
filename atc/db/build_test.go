@@ -1650,7 +1650,7 @@ var _ = Describe("Build", func() {
 
 				Context("when pipeline is paused", func() {
 					BeforeEach(func() {
-						err := scenario.Pipeline.Pause(nil)
+						err := scenario.Pipeline.Pause("")
 						Expect(err).NotTo(HaveOccurred())
 
 						expectedBuildPrep.PausedPipeline = db.BuildPreparationStatusBlocking
@@ -1666,7 +1666,7 @@ var _ = Describe("Build", func() {
 
 				Context("when job is paused", func() {
 					BeforeEach(func() {
-						err := scenario.Job("some-job").Pause(nil)
+						err := scenario.Job("some-job").Pause("")
 						Expect(err).NotTo(HaveOccurred())
 
 						expectedBuildPrep.PausedJob = db.BuildPreparationStatusBlocking
@@ -2498,7 +2498,7 @@ var _ = Describe("Build", func() {
 			pipeline, _, err := defaultTeam.SavePipeline(defaultPipelineRef, defaultPipelineConfig, db.ConfigVersion(1), false)
 			Expect(err).ToNot(HaveOccurred())
 
-			err = pipeline.Pause(nil)
+			err = pipeline.Pause("")
 			Expect(err).ToNot(HaveOccurred())
 
 			_, err = pipeline.Reload()

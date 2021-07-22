@@ -213,7 +213,7 @@ var _ = Describe("Pipeline", func() {
 
 		Context("when the pipeline is paused", func() {
 			BeforeEach(func() {
-				Expect(pipeline.Pause(nil)).To(Succeed())
+				Expect(pipeline.Pause("")).To(Succeed())
 			})
 
 			It("returns the pipeline is paused", func() {
@@ -224,7 +224,7 @@ var _ = Describe("Pipeline", func() {
 
 	Describe("Pause", func() {
 		JustBeforeEach(func() {
-			Expect(pipeline.Pause(nil)).To(Succeed())
+			Expect(pipeline.Pause("")).To(Succeed())
 
 			found, err := pipeline.Reload()
 			Expect(err).ToNot(HaveOccurred())
@@ -251,7 +251,7 @@ var _ = Describe("Pipeline", func() {
 
 		Context("when the pipeline is paused", func() {
 			BeforeEach(func() {
-				Expect(pipeline.Pause(nil)).To(Succeed())
+				Expect(pipeline.Pause("")).To(Succeed())
 			})
 
 			It("has an empty paused by", func() {
@@ -259,11 +259,9 @@ var _ = Describe("Pipeline", func() {
 			})
 		})
 
-		Context("when the pipeline is paused with a PipelinePauseRequest", func() {
+		Context("when the pipeline is paused with a username", func() {
 			BeforeEach(func() {
-				Expect(pipeline.Pause(&db.PipelinePauseRequest{
-					UserName: "concourse",
-				})).To(Succeed())
+				Expect(pipeline.Pause("concourse")).To(Succeed())
 			})
 
 			It("has an paused by", func() {
@@ -281,7 +279,7 @@ var _ = Describe("Pipeline", func() {
 
 		Context("when the pipeline is paused", func() {
 			BeforeEach(func() {
-				Expect(pipeline.Pause(nil)).To(Succeed())
+				Expect(pipeline.Pause("")).To(Succeed())
 			})
 
 			It("has a paused at time stamp", func() {
@@ -376,7 +374,7 @@ var _ = Describe("Pipeline", func() {
 
 		Context("when the pipeline is paused", func() {
 			BeforeEach(func() {
-				Expect(pipeline.Pause(nil)).To(Succeed())
+				Expect(pipeline.Pause("")).To(Succeed())
 			})
 
 			It("unpauses the pipeline", func() {

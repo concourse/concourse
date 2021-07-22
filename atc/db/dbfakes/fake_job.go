@@ -271,10 +271,10 @@ type FakeJob struct {
 		result1 []atc.JobOutput
 		result2 error
 	}
-	PauseStub        func(*db.JobPauseRequest) error
+	PauseStub        func(string) error
 	pauseMutex       sync.RWMutex
 	pauseArgsForCall []struct {
-		arg1 *db.JobPauseRequest
+		arg1 string
 	}
 	pauseReturns struct {
 		result1 error
@@ -1754,11 +1754,11 @@ func (fake *FakeJob) OutputsReturnsOnCall(i int, result1 []atc.JobOutput, result
 	}{result1, result2}
 }
 
-func (fake *FakeJob) Pause(arg1 *db.JobPauseRequest) error {
+func (fake *FakeJob) Pause(arg1 string) error {
 	fake.pauseMutex.Lock()
 	ret, specificReturn := fake.pauseReturnsOnCall[len(fake.pauseArgsForCall)]
 	fake.pauseArgsForCall = append(fake.pauseArgsForCall, struct {
-		arg1 *db.JobPauseRequest
+		arg1 string
 	}{arg1})
 	stub := fake.PauseStub
 	fakeReturns := fake.pauseReturns
@@ -1779,13 +1779,13 @@ func (fake *FakeJob) PauseCallCount() int {
 	return len(fake.pauseArgsForCall)
 }
 
-func (fake *FakeJob) PauseCalls(stub func(*db.JobPauseRequest) error) {
+func (fake *FakeJob) PauseCalls(stub func(string) error) {
 	fake.pauseMutex.Lock()
 	defer fake.pauseMutex.Unlock()
 	fake.PauseStub = stub
 }
 
-func (fake *FakeJob) PauseArgsForCall(i int) *db.JobPauseRequest {
+func (fake *FakeJob) PauseArgsForCall(i int) string {
 	fake.pauseMutex.RLock()
 	defer fake.pauseMutex.RUnlock()
 	argsForCall := fake.pauseArgsForCall[i]

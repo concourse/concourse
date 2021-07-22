@@ -133,7 +133,7 @@ var _ = Describe("ResourceConfigCheckSessionLifecycle", func() {
 
 			It("removes check sessions for resources in paused pipelines", func() {
 				By("pausing the pipeline")
-				Expect(scenario.Pipeline.Pause(nil)).To(Succeed())
+				Expect(scenario.Pipeline.Pause("")).To(Succeed())
 
 				By("cleaning up inactive sessions")
 				Expect(lifecycle.CleanInactiveResourceConfigCheckSessions()).To(Succeed())
@@ -187,7 +187,7 @@ var _ = Describe("ResourceConfigCheckSessionLifecycle", func() {
 
 			It("removes check sessions for resource types in paused pipelines", func() {
 				By("pausing the pipeline")
-				Expect(scenario.Pipeline.Pause(nil)).To(Succeed())
+				Expect(scenario.Pipeline.Pause("")).To(Succeed())
 
 				By("cleaning up inactive sessions")
 				Expect(lifecycle.CleanInactiveResourceConfigCheckSessions()).To(Succeed())
@@ -241,7 +241,7 @@ var _ = Describe("ResourceConfigCheckSessionLifecycle", func() {
 
 			It("removes check sessions for resource types in paused pipelines", func() {
 				By("pausing the pipeline")
-				Expect(scenario.Pipeline.Pause(nil)).To(Succeed())
+				Expect(scenario.Pipeline.Pause("")).To(Succeed())
 
 				By("cleaning up inactive sessions")
 				Expect(lifecycle.CleanInactiveResourceConfigCheckSessions()).To(Succeed())

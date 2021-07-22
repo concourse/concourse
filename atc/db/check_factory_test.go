@@ -329,7 +329,7 @@ var _ = Describe("CheckFactory", func() {
 
 		Context("when the resource pipeline is paused", func() {
 			BeforeEach(func() {
-				_, err = dbConn.Exec(`INSERT INTO pipeline_pauses SELECT id, true, '' FROM pipelines`)
+				_, err = dbConn.Exec(`UPDATE pipelines SET paused = true`)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -394,7 +394,7 @@ var _ = Describe("CheckFactory", func() {
 
 		Context("when the pipeline is paused", func() {
 			BeforeEach(func() {
-				_, err = dbConn.Exec(`INSERT INTO pipeline_pauses SELECT id, true, '' FROM pipelines`)
+				_, err = dbConn.Exec(`UPDATE pipelines SET paused = true`)
 				Expect(err).NotTo(HaveOccurred())
 			})
 

@@ -13,7 +13,7 @@ import (
 
 func validateJoinLimit(query string) error {
 	// Each subquery can have up to <limit> explicit JOINs
-	limit := 10
+	limit := 8
 	individualQueries := ExtractQueries(query)
 	for _, q := range individualQueries {
 		numJoins := strings.Count(strings.ToUpper(q), "JOIN")
