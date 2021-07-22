@@ -27,3 +27,8 @@ jobs:
       run:
         path: echo
         args: ["running across ((.:static)) ((.:dynamic))"]
+  - across:
+    - var: dynamic
+      values: ((.:dynamic))
+    put: mock
+    params: {version: "v_((.:dynamic))"}
