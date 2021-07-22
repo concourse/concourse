@@ -495,6 +495,7 @@ func savePipeline(
 		if err != nil {
 			return 0, false, err
 		}
+
 	} else {
 		q := psql.Update("pipelines").
 			Set("archived", false).
@@ -1426,7 +1427,7 @@ func scanPipeline(p *pipeline, scan scannable) error {
 		parentBuildID sql.NullInt64
 		instanceVars  sql.NullString
 	)
-	err := scan.Scan(&p.id, &p.name, &groups, &varSources, &display, &nonce, &p.configVersion, &p.teamID, &p.teamName, &p.paused, &p.public, &p.archived, &lastUpdated, &parentJobID, &parentBuildID, &instanceVars)
+	err := scan.Scan(&p.id, &p.name, &groups, &varSources, &display, &nonce, &p.configVersion, &p.teamID, &p.teamName, &p.paused, &p.public, &p.archived, &lastUpdated, &parentJobID, &parentBuildID, &instanceVars, &p.pausedBy, &p.pausedAt)
 	if err != nil {
 		return err
 	}

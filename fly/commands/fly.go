@@ -40,12 +40,14 @@ type FlyCommand struct {
 	Containers ContainersCommand `command:"containers" alias:"cs" description:"Print the active containers"`
 	Hijack     HijackCommand     `command:"hijack"     alias:"intercept" alias:"i" description:"Execute a command in a container"`
 
-	Jobs        JobsCommand        `command:"jobs"      alias:"js" description:"List the jobs in the pipelines"`
-	PauseJob    PauseJobCommand    `command:"pause-job" alias:"pj" description:"Pause a job"`
-	UnpauseJob  UnpauseJobCommand  `command:"unpause-job" alias:"uj" description:"Unpause a job"`
-	ScheduleJob ScheduleJobCommand `command:"schedule-job" alias:"sj" description:"Request the scheduler to run for a job. Introduced as a recovery command for the v6.0 scheduler."`
+	Jobs        JobsCommand        `command:"jobs"            alias:"js"  description:"List the jobs in the pipelines"`
+	PausedJobs  PausedJobsCommand  `command:"paused-jobs"     alias:"pjs" description:"List the paused jobs in the pipelines"`
+	PauseJob    PauseJobCommand    `command:"pause-job"       alias:"pj"  description:"Pause a job"`
+	UnpauseJob  UnpauseJobCommand  `command:"unpause-job"     alias:"uj"  description:"Unpause a job"`
+	ScheduleJob ScheduleJobCommand `command:"schedule-job"    alias:"sj"  description:"Request the scheduler to run for a job. Introduced as a recovery command for the v6.0 scheduler."`
 
 	Pipelines                 PipelinesCommand               `command:"pipelines"                 alias:"ps"   description:"List the configured pipelines"`
+	PausedPipelines           PausedPipelinesCommand         `command:"paused-pipelines"          alias:"pps"  description:"List the configured paused pipelines"`
 	DestroyPipeline           DestroyPipelineCommand         `command:"destroy-pipeline"          alias:"dp"   description:"Destroy a pipeline"`
 	GetPipeline               GetPipelineCommand             `command:"get-pipeline"              alias:"gp"   description:"Get a pipeline's current configuration"`
 	SetPipeline               SetPipelineCommand             `command:"set-pipeline"              alias:"sp"   description:"Create or update a pipeline's configuration"`
@@ -67,7 +69,7 @@ type FlyCommand struct {
 	UnpinResource          UnpinResourceCommand          `command:"unpin-resource"             alias:"ur"   description:"Unpin a resource"`
 	EnableResourceVersion  EnableResourceVersionCommand  `command:"enable-resource-version"    alias:"erv"  description:"Enable a version of a resource"`
 	DisableResourceVersion DisableResourceVersionCommand `command:"disable-resource-version"   alias:"drv"  description:"Disable a version of a resource"`
-	ClearResourceCache	   ClearResourceCacheCommand	 `command:"clear-resource-cache"       alias:"crc"  description:"Clear cache of a resource"`
+	ClearResourceCache     ClearResourceCacheCommand     `command:"clear-resource-cache"       alias:"crc"  description:"Clear cache of a resource"`
 
 	CheckResourceType CheckResourceTypeCommand `command:"check-resource-type" alias:"crt"  description:"Check a resource-type"`
 

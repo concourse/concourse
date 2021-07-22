@@ -20,6 +20,7 @@ module Views.Styles exposing
     , pageBelowTopBar
     , pageHeaderHeight
     , pageIncludingTopBar
+    , pauseDetails
     , pauseToggle
     , pauseToggleIcon
     , pauseToggleTooltip
@@ -364,3 +365,11 @@ ellipsedText =
     [ style "overflow" "hidden"
     , style "text-overflow" "ellipsis"
     ]
+
+
+pauseDetails : List (Html.Attribute msg)
+pauseDetails =
+    [ style "padding" "0px 10px"
+    , style "align-self" "center"
+    ]
+        ++ defaultFont

@@ -231,7 +231,9 @@ handleCallback callback ( model, effects ) =
             ( model, effects )
 
         PausedToggled (Ok ()) ->
-            ( { model | pausedChanging = False }, effects )
+            ( { model | pausedChanging = False }
+            , effects ++ [ FetchJob model.jobIdentifier ]
+            )
 
         GotCurrentTime now ->
             ( { model | now = now }, effects )
@@ -547,7 +549,7 @@ viewMainJobsSection session model =
                                 headerBuildStatus job.finishedBuild
                         ]
                         [ Html.div
-                            [ style "display" "flex" ]
+                            [ style "display" "flex", style "flex-grow" "1" ]
                             [ if archived then
                                 Html.text ""
 
@@ -580,6 +582,12 @@ viewMainJobsSection session model =
                                     [ Html.text job.name ]
                                 ]
                             ]
+                        , TopBar.paused
+                            { paused = isPaused model.job
+                            , pausedBy = pausedBy model.job
+                            , pausedAt = pausedAt model.job
+                            , timeZone = session.timeZone
+                            }
                         , if archived then
                             Html.text ""
 
@@ -888,3 +896,28 @@ viewVersion version =
     version
         |> Dict.map (always Html.text)
         |> DictView.view []
+
+
+isPaused : WebData Concourse.Job -> Bool
+isPaused j =
+    RemoteData.withDefault False (RemoteData.map .paused j)
+
+
+pausedBy : WebData Concourse.Job -> Maybe String
+pausedBy job =
+    case job of
+        RemoteData.Success j ->
+            j.pausedBy
+
+        _ ->
+            Nothing
+
+
+pausedAt : WebData Concourse.Job -> Maybe Time.Posix
+pausedAt job =
+    case job of
+        RemoteData.Success j ->
+            j.pausedAt
+
+        _ ->
+            Nothing

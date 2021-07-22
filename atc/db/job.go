@@ -57,7 +57,6 @@ type Job interface {
 
 	ID() int
 	Name() string
-	Paused() bool
 	FirstLoggedBuildID() int
 	TeamID() int
 	TeamName() string
@@ -74,7 +73,10 @@ type Job interface {
 
 	Reload() (bool, error)
 
-	Pause() error
+	Paused() bool
+	PausedBy() string
+	PausedAt() time.Time
+	Pause(pausedBy string) error
 	Unpause() error
 
 	ScheduleBuild(Build) (bool, error)
@@ -104,8 +106,28 @@ type Job interface {
 	HasNewInputs() bool
 }
 
-var jobsQuery = psql.Select("j.id", "j.name", "j.config", "j.paused", "j.public", "j.first_logged_build_id", "j.pipeline_id", "p.name", "p.instance_vars", "p.team_id", "t.name", "j.nonce", "j.tags", "j.has_new_inputs", "j.schedule_requested", "j.max_in_flight", "j.disable_manual_trigger").
-	From("jobs j, pipelines p").
+var jobsQuery = psql.Select(
+	"j.id",
+	"j.name",
+	"j.config",
+	"j.paused",
+	"j.public",
+	"j.first_logged_build_id",
+	"j.pipeline_id",
+	"p.name",
+	"p.instance_vars",
+	"p.team_id",
+	"t.name",
+	"j.nonce",
+	"j.tags",
+	"j.has_new_inputs",
+	"j.schedule_requested",
+	"j.max_in_flight",
+	"j.disable_manual_trigger",
+	"j.paused_by",
+	"j.paused_at").
+	From("jobs j").
+	LeftJoin("pipelines p ON j.pipeline_id = p.id").
 	LeftJoin("teams t ON p.team_id = t.id").
 	Where(sq.Expr("j.pipeline_id = p.id"))
 
@@ -125,6 +147,8 @@ type job struct {
 	id                    int
 	name                  string
 	paused                bool
+	pausedBy              sql.NullString
+	pausedAt              sql.NullTime
 	public                bool
 	firstLoggedBuildID    int
 	teamID                int
@@ -401,12 +425,64 @@ func (j *job) Reload() (bool, error) {
 	return true, nil
 }
 
-func (j *job) Pause() error {
-	return j.updatePausedJob(true)
+func (j *job) Pause(pausedBy string) error {
+
+	_, err := psql.Update("jobs").
+		Set("paused", true).
+		Set("paused_at", time.Now()).
+		Set("paused_by", pausedBy).
+		Where(sq.Eq{"id": j.id, "paused": false}).
+		RunWith(j.conn).
+		Exec()
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (j *job) Unpause() error {
-	return j.updatePausedJob(false)
+	result, err := psql.Update("jobs").
+		Set("paused", false).
+		Set("paused_by", nil).
+		Set("paused_at", nil).
+		Where(sq.Eq{"id": j.id, "paused": true}).
+		RunWith(j.conn).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 1 {
+		err = j.RequestSchedule()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (j *job) PausedAt() time.Time {
+	if j.pausedAt.Valid {
+		return j.pausedAt.Time
+	} else {
+		return time.Time{}
+	}
+}
+
+func (j *job) PausedBy() string {
+	if j.pausedBy.Valid {
+		return j.pausedBy.String
+	} else {
+		return ""
+	}
 }
 
 func (j *job) FinishedAndNextBuild() (Build, Build, error) {
@@ -1088,35 +1164,6 @@ func (j *job) getNextPendingBuildBySerialGroup(tx Tx, serialGroups []string) (Bu
 	return build, true, nil
 }
 
-func (j *job) updatePausedJob(pause bool) error {
-	result, err := psql.Update("jobs").
-		Set("paused", pause).
-		Where(sq.Eq{"id": j.id}).
-		RunWith(j.conn).
-		Exec()
-	if err != nil {
-		return err
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if rowsAffected != 1 {
-		return NonOneRowAffectedError{rowsAffected}
-	}
-
-	if !pause {
-		err = j.RequestSchedule()
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 func (j *job) getNewBuildName(tx Tx) (string, error) {
 	var buildName string
 	err := psql.Update("jobs").
@@ -1361,8 +1408,8 @@ func (j *job) isPipelineOrJobPaused(tx Tx) (bool, error) {
 
 	var paused bool
 	err := psql.Select("paused").
-		From("pipelines").
-		Where(sq.Eq{"id": j.pipelineID}).
+		From("pipelines p").
+		Where(sq.Eq{"p.id": j.pipelineID}).
 		RunWith(tx).
 		QueryRow().
 		Scan(&paused)
@@ -1380,7 +1427,7 @@ func scanJob(j *job, row scannable) error {
 		pipelineInstanceVars sql.NullString
 	)
 
-	err := row.Scan(&j.id, &j.name, &config, &j.paused, &j.public, &j.firstLoggedBuildID, &j.pipelineID, &j.pipelineName, &pipelineInstanceVars, &j.teamID, &j.teamName, &nonce, pq.Array(&j.tags), &j.hasNewInputs, &j.scheduleRequestedTime, &j.maxInFlight, &j.disableManualTrigger)
+	err := row.Scan(&j.id, &j.name, &config, &j.paused, &j.public, &j.firstLoggedBuildID, &j.pipelineID, &j.pipelineName, &pipelineInstanceVars, &j.teamID, &j.teamName, &nonce, pq.Array(&j.tags), &j.hasNewInputs, &j.scheduleRequestedTime, &j.maxInFlight, &j.disableManualTrigger, &j.pausedBy, &j.pausedAt)
 	if err != nil {
 		return err
 	}

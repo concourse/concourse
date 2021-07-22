@@ -147,7 +147,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 
 					Context("when pipeline is paused", func() {
 						BeforeEach(func() {
-							err := scenario.Pipeline.Pause()
+							err := scenario.Pipeline.Pause("")
 							Expect(err).NotTo(HaveOccurred())
 						})
 

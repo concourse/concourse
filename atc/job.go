@@ -10,8 +10,10 @@ type Job struct {
 	PipelineName         string       `json:"pipeline_name"`
 	PipelineInstanceVars InstanceVars `json:"pipeline_instance_vars,omitempty"`
 
-	Paused       bool `json:"paused,omitempty"`
-	HasNewInputs bool `json:"has_new_inputs,omitempty"`
+	Paused       bool   `json:"paused,omitempty"`
+	PausedBy     string `json:"paused_by,omitempty"`
+	PausedAt     int64  `json:"paused_at,omitempty"`
+	HasNewInputs bool   `json:"has_new_inputs,omitempty"`
 
 	Groups []string `json:"groups,omitempty"`
 

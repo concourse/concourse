@@ -3,6 +3,7 @@ package jobserver
 import (
 	"net/http"
 
+	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/tedsuo/rata"
 )
@@ -24,8 +25,12 @@ func (s *Server) PauseJob(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		err = job.Pause()
+		acc := accessor.GetAccessor(r)
+		user := acc.UserInfo().DisplayUserId
+
+		err = job.Pause(user)
 		if err != nil {
+			logger.Error("failed-to-pause-job", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}

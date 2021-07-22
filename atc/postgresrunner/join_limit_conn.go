@@ -12,16 +12,17 @@ import (
 )
 
 func validateJoinLimit(query string) error {
-	// Each subquery can have up to 8 explicit JOINs
+	// Each subquery can have up to <limit> explicit JOINs
+	limit := 8
 	individualQueries := ExtractQueries(query)
 	for _, q := range individualQueries {
 		numJoins := strings.Count(strings.ToUpper(q), "JOIN")
-		if numJoins > 8 {
+		if numJoins > limit {
 			errMsg := "the following query has too many JOINs\n\n" + q
 			if len(individualQueries) > 1 {
 				errMsg += "\n\nit is part of this full query:\n\n" + query
 			}
-			errMsg += fmt.Sprintf("\n\njoin_collapse_limit defaults to 8 JOINs, while this query has %d. exceeding the limit can result in really slow queries", numJoins)
+			errMsg += fmt.Sprintf("\n\njoin_collapse_limit defaults to %d JOINs, while this query has %d. exceeding the limit can result in really slow queries", limit, numJoins)
 
 			return fmt.Errorf(errMsg)
 		}
