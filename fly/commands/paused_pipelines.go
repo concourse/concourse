@@ -28,19 +28,18 @@ func (command *PausedPipelinesCommand) Execute([]string) error {
 		return err
 	}
 
-	var unfilteredPipelines []atc.Pipeline
+	var pipelines []atc.Pipeline
 
 	if command.All {
-		unfilteredPipelines, err = target.Client().ListPipelines()
+		pipelines, err = target.Client().ListPipelines()
 	} else {
-		unfilteredPipelines, err = target.Team().ListPipelines()
+		pipelines, err = target.Team().ListPipelines()
 	}
 	if err != nil {
 		return err
 	}
 
-	headers := command.buildHeader()
-	pipelines := command.filterPipelines(unfilteredPipelines)
+	pipelines = command.filter(pipelines)
 
 	if command.Json {
 		err = displayhelpers.JsonPrint(pipelines)
@@ -48,6 +47,17 @@ func (command *PausedPipelinesCommand) Execute([]string) error {
 			return err
 		}
 		return nil
+	} else {
+		return command.render(pipelines)
+	}
+}
+
+func (command *PausedPipelinesCommand) render(pipelines []atc.Pipeline) error {
+	var headers []string
+	if command.All {
+		headers = []string{"id", "name", "team", "paused", "paused_by", "paused_at"}
+	} else {
+		headers = []string{"id", "name", "paused", "paused_by", "paused_at"}
 	}
 
 	table := ui.Table{Headers: ui.TableRow{}}
@@ -94,25 +104,12 @@ func (command *PausedPipelinesCommand) Execute([]string) error {
 	return table.Render(os.Stdout, Fly.PrintTableHeaders)
 }
 
-func (command *PausedPipelinesCommand) buildHeader() []string {
-	var headers []string
-	if command.All {
-		headers = []string{"id", "name", "team", "paused", "paused_by", "paused_at"}
-	} else {
-		headers = []string{"id", "name", "paused", "paused_by", "paused_at"}
-	}
-
-	return headers
-}
-
-func (command *PausedPipelinesCommand) filterPipelines(unfilteredPipelines []atc.Pipeline) []atc.Pipeline {
-	pipelines := make([]atc.Pipeline, 0)
-
-	for _, p := range unfilteredPipelines {
+func (command *PausedPipelinesCommand) filter(pipelines []atc.Pipeline) []atc.Pipeline {
+	pausedPipelines := make([]atc.Pipeline, 0)
+	for _, p := range pipelines {
 		if p.Paused {
 			pipelines = append(pipelines, p)
 		}
 	}
-
-	return pipelines
+	return pausedPipelines
 }

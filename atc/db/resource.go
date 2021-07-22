@@ -150,7 +150,6 @@ var (
 		LeftJoin("builds b ON b.id = r.build_id").
 		LeftJoin("resource_config_scopes rs ON r.resource_config_scope_id = rs.id").
 		LeftJoin("resource_pins rp ON rp.resource_id = r.id").
-		LeftJoin("pipeline_pauses pp ON p.id = pp.pipeline_id").
 		Where(sq.Eq{"r.active": true})
 )
 

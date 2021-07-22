@@ -165,7 +165,7 @@ var _ = Describe("ResourceCheckRateLimiter", func() {
 			Expect(limiter.Limit()).To(Equal(rate.Limit(float64(checkableCount) / checkInterval.Seconds())))
 
 			By("pausing the pipeline")
-			err := scenario.Pipeline.Pause(nil)
+			err := scenario.Pipeline.Pause("")
 			Expect(err).ToNot(HaveOccurred())
 
 			By("waiting for the refresh interval")

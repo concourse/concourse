@@ -322,10 +322,10 @@ type FakePipeline struct {
 	parentJobIDReturnsOnCall map[int]struct {
 		result1 int
 	}
-	PauseStub        func(*db.PipelinePauseRequest) error
+	PauseStub        func(string) error
 	pauseMutex       sync.RWMutex
 	pauseArgsForCall []struct {
-		arg1 *db.PipelinePauseRequest
+		arg1 string
 	}
 	pauseReturns struct {
 		result1 error
@@ -2106,11 +2106,11 @@ func (fake *FakePipeline) ParentJobIDReturnsOnCall(i int, result1 int) {
 	}{result1}
 }
 
-func (fake *FakePipeline) Pause(arg1 *db.PipelinePauseRequest) error {
+func (fake *FakePipeline) Pause(arg1 string) error {
 	fake.pauseMutex.Lock()
 	ret, specificReturn := fake.pauseReturnsOnCall[len(fake.pauseArgsForCall)]
 	fake.pauseArgsForCall = append(fake.pauseArgsForCall, struct {
-		arg1 *db.PipelinePauseRequest
+		arg1 string
 	}{arg1})
 	stub := fake.PauseStub
 	fakeReturns := fake.pauseReturns
@@ -2131,13 +2131,13 @@ func (fake *FakePipeline) PauseCallCount() int {
 	return len(fake.pauseArgsForCall)
 }
 
-func (fake *FakePipeline) PauseCalls(stub func(*db.PipelinePauseRequest) error) {
+func (fake *FakePipeline) PauseCalls(stub func(string) error) {
 	fake.pauseMutex.Lock()
 	defer fake.pauseMutex.Unlock()
 	fake.PauseStub = stub
 }
 
-func (fake *FakePipeline) PauseArgsForCall(i int) *db.PipelinePauseRequest {
+func (fake *FakePipeline) PauseArgsForCall(i int) string {
 	fake.pauseMutex.RLock()
 	defer fake.pauseMutex.RUnlock()
 	argsForCall := fake.pauseArgsForCall[i]

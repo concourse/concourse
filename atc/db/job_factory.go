@@ -86,9 +86,9 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 	rows, err := jobsQuery.
 		Where(sq.Expr("j.schedule_requested > j.last_scheduled")).
 		Where(sq.Eq{
-			"j.active":  true,
-			"jp.paused": nil,
-			"pp.paused": nil,
+			"j.active": true,
+			"j.paused": false,
+			"p.paused": false,
 		}).
 		RunWith(tx).
 		Query()
@@ -314,19 +314,18 @@ func (d dashboardFactory) constructJobsForDashboard() ([]atc.JobSummary, error) 
 		"p.id",
 		"p.name",
 		"p.instance_vars",
-		"COALESCE(jp.paused, false) as paused",
+		"j.paused",
 		"j.has_new_inputs",
 		"j.tags",
 		"tm.name",
 		"l.id", "l.name", "l.status", "l.start_time", "l.end_time",
 		"n.id", "n.name", "n.status", "n.start_time", "n.end_time",
 		"t.id", "t.name", "t.status", "t.start_time", "t.end_time",
-		"COALESCE(jp.paused_by, '')",
-		"jp.paused_at").
+		"j.paused_by",
+		"j.paused_at").
 		From("jobs j").
 		Join("pipelines p ON j.pipeline_id = p.id").
 		Join("teams tm ON p.team_id = tm.id").
-		LeftJoin("job_pauses jp ON j.id = jp.job_id").
 		LeftJoin("builds l on j.latest_completed_build_id = l.id").
 		LeftJoin("builds n on j.next_build_id = n.id").
 		LeftJoin("builds t on j.transition_build_id = t.id").
@@ -353,6 +352,7 @@ func (d dashboardFactory) constructJobsForDashboard() ([]atc.JobSummary, error) 
 	for rows.Next() {
 		var (
 			f, n, t              nullableBuild
+			jobPausedBy          sql.NullString
 			jobPausedAt          sql.NullTime
 			pipelineInstanceVars sql.NullString
 		)
@@ -362,9 +362,13 @@ func (d dashboardFactory) constructJobsForDashboard() ([]atc.JobSummary, error) 
 			&f.id, &f.name, &f.status, &f.startTime, &f.endTime,
 			&n.id, &n.name, &n.status, &n.startTime, &n.endTime,
 			&t.id, &t.name, &t.status, &t.startTime, &t.endTime,
-			&j.PausedBy, &jobPausedAt)
+			&jobPausedBy, &jobPausedAt)
 		if err != nil {
 			return nil, err
+		}
+
+		if jobPausedBy.Valid {
+			j.PausedBy = jobPausedBy.String
 		}
 
 		if jobPausedAt.Valid {

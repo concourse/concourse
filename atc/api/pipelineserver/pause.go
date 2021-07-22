@@ -12,11 +12,8 @@ func (s *Server) PausePipeline(pipelineDB db.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		acc := accessor.GetAccessor(r)
 		user := acc.UserInfo().DisplayUserId
-		req := db.PipelinePauseRequest{
-			UserName: user,
-		}
 
-		err := pipelineDB.Pause(&req)
+		err := pipelineDB.Pause(user)
 		if err != nil {
 			logger.Error("failed-to-pause-pipeline", err)
 			w.WriteHeader(http.StatusInternalServerError)

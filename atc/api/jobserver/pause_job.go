@@ -3,7 +3,6 @@ package jobserver
 import (
 	"net/http"
 
-	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/tedsuo/rata"
@@ -28,13 +27,10 @@ func (s *Server) PauseJob(pipeline db.Pipeline) http.Handler {
 
 		acc := accessor.GetAccessor(r)
 		user := acc.UserInfo().DisplayUserId
-		req := db.JobPauseRequest{
-			UserName: user,
-		}
 
-		err = job.Pause(&req)
+		err = job.Pause(user)
 		if err != nil {
-			logger.Info("failed-to-pause-job", lager.Data{"error": err.Error()})
+			logger.Error("failed-to-pause-job", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}

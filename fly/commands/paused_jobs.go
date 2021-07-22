@@ -20,11 +20,6 @@ type PausedJobsCommand struct {
 }
 
 func (command *PausedJobsCommand) Execute([]string) error {
-	var (
-		headers []string
-		team    concourse.Team
-	)
-
 	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
 	if err != nil {
 		return err
@@ -35,6 +30,7 @@ func (command *PausedJobsCommand) Execute([]string) error {
 		return err
 	}
 
+	var team concourse.Team
 	if command.Team != "" {
 		team, err = target.FindTeam(command.Team)
 		if err != nil {
@@ -50,28 +46,27 @@ func (command *PausedJobsCommand) Execute([]string) error {
 		return err
 	}
 
+	jobs = command.filter(jobs)
+
 	if command.Json {
 		err = displayhelpers.JsonPrint(jobs)
 		if err != nil {
 			return err
 		}
 		return nil
+	} else {
+		return command.render(jobs)
 	}
+}
 
-	pausedJobs := make([]atc.Job, 0)
-	for _, j := range jobs {
-		if j.Paused {
-			pausedJobs = append(pausedJobs, j)
-		}
-	}
-
-	headers = []string{"name", "paused", "paused_by", "paused_at"}
+func (command *PausedJobsCommand) render(jobs []atc.Job) error {
+	headers := []string{"name", "paused", "paused_by", "paused_at"}
 	table := ui.Table{Headers: ui.TableRow{}}
 	for _, h := range headers {
 		table.Headers = append(table.Headers, ui.TableCell{Contents: h, Color: color.New(color.Bold)})
 	}
 
-	for _, j := range pausedJobs {
+	for _, j := range jobs {
 		var pausedColumn ui.TableCell
 		if j.Paused {
 			pausedColumn.Contents = "yes"
@@ -102,4 +97,14 @@ func (command *PausedJobsCommand) Execute([]string) error {
 	}
 
 	return table.Render(os.Stdout, Fly.PrintTableHeaders)
+}
+
+func (command *PausedJobsCommand) filter(jobs []atc.Job) []atc.Job {
+	pausedJobs := make([]atc.Job, 0)
+	for _, j := range jobs {
+		if j.Paused {
+			pausedJobs = append(pausedJobs, j)
+		}
+	}
+	return pausedJobs
 }
