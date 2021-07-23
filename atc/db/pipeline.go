@@ -979,7 +979,7 @@ func (p *pipeline) DeleteBuildEventsByBuildIDs(buildIDs []int) error {
 	defer Rollback(tx)
 
 	_, err = tx.Exec(`
-   DELETE FROM build_events
+   DELETE FROM `+p.eventsTable()+`
 	 WHERE build_id IN (`+strings.Join(indexStrings, ",")+`)
 	 `, interfaceBuildIDs...)
 	if err != nil {
@@ -997,6 +997,10 @@ func (p *pipeline) DeleteBuildEventsByBuildIDs(buildIDs []int) error {
 
 	err = tx.Commit()
 	return err
+}
+
+func (p *pipeline) eventsTable() string {
+	return fmt.Sprintf("pipeline_build_events_%d", p.id)
 }
 
 func (p *pipeline) CreateOneOffBuild() (Build, error) {

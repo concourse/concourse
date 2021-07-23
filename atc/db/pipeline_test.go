@@ -1294,7 +1294,7 @@ var _ = Describe("Pipeline", func() {
 
 	Describe("DeleteBuildEventsByBuildIDs", func() {
 		It("deletes all build logs corresponding to the given build ids", func() {
-			build1DB, err := team.CreateOneOffBuild()
+			build1DB, err := pipeline.CreateOneOffBuild()
 			Expect(err).ToNot(HaveOccurred())
 
 			err = build1DB.SaveEvent(event.Log{
@@ -1302,7 +1302,7 @@ var _ = Describe("Pipeline", func() {
 			})
 			Expect(err).ToNot(HaveOccurred())
 
-			build2DB, err := team.CreateOneOffBuild()
+			build2DB, err := pipeline.CreateOneOffBuild()
 			Expect(err).ToNot(HaveOccurred())
 
 			err = build2DB.SaveEvent(event.Log{
@@ -1310,7 +1310,7 @@ var _ = Describe("Pipeline", func() {
 			})
 			Expect(err).ToNot(HaveOccurred())
 
-			build3DB, err := team.CreateOneOffBuild()
+			build3DB, err := pipeline.CreateOneOffBuild()
 			Expect(err).ToNot(HaveOccurred())
 
 			err = build3DB.Finish(db.BuildStatusSucceeded)
@@ -1322,7 +1322,7 @@ var _ = Describe("Pipeline", func() {
 			err = build2DB.Finish(db.BuildStatusSucceeded)
 			Expect(err).ToNot(HaveOccurred())
 
-			build4DB, err := team.CreateOneOffBuild()
+			build4DB, err := pipeline.CreateOneOffBuild()
 			Expect(err).ToNot(HaveOccurred())
 
 			By("doing nothing if the list is empty")
