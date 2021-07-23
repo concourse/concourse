@@ -2,11 +2,27 @@
 
 \use-plugin{concourse-docs}
 
-TODO: blurb about what OPA is and what it can do. Link to OPA
-website.
+\aside{
+The \link{Open Policy Agent}{https://www.openpolicyagent.org/docs/latest/}
+(OPA, pronounced “oh-pa”) is an open source, general-purpose policy engine that
+unifies policy enforcement across the stack.
+}
+
+OPA allows you to create arbitrary rules within Concourse without having to add
+a new feature to Concourse. You could even recreate Concourse's
+\reference{user-roles}{RBAC system} using OPA.
+
+More likely use-cases are to enforce rules your organization may have, such as
+not using certain container images or disallowing the use of privileged
+workloads. With OPA you can be as general or fine-grained as you want,
+enforcing these rules at the team or pipeline level.
+
+The next few sections explain how to \reference{configure-opa}{configure
+Concourse} to talk to an OPA server and how to
+\reference{writing-opa-rules}{write OPA rules} for Concourse.
 
 \section{
-  \title{Configuring Concourse}
+  \title{Configuring Concourse}{configure-opa}
 
   There are four configuration options you need to set on the \code{concourse
   web} nodes to have them interact with OPA.
@@ -16,7 +32,7 @@ website.
     specific \code{package/rule} that contains all Concourse rules for your
     cluster.
 
-    \italic{Example:} \code{http://opa-endpoint.com/v1/data/package-name/decision}
+    \italic{Example:} \code{http://opa-endpoint.com/v1/data/concourse/decision}
   }{
     \code{CONCOURSE_POLICY_CHECK_FILTER_HTTP_METHODS}: API http methods to go
     through policy check. You will need to make sure these match up with an API
@@ -24,23 +40,21 @@ website.
 
     \italic{Example:} \code{PUT,POST}
   }{
-    \code{CONCOURSE_POLICY_CHECK_FILTER_ACTION}: Actions in the list will go
+    \code{CONCOURSE_POLICY_CHECK_FILTER_ACTION}: Actions in this list will go
     through policy check.
 
     \italic{Example:} \code{ListWorkers,ListContainers}
   }{
-    \code{CONCOURSE_POLICY_CHECK_FILTER_ACTION_SKIP}: Actions the list will not
-    go through policy check
+    \code{CONCOURSE_POLICY_CHECK_FILTER_ACTION_SKIP}: Actions in this list will
+    not go through policy check
 
     \italic{Example:} \code{PausePipeline,UnpausePipeline}
   }
 
   For the last three configuration options you can refer to the \link{this list
   of routes}{https://github.com/concourse/concourse/blob/master/atc/routes.go}
-  for a list of API actions and their respective HTTP method. There are some
-  special actions at the top of \link{this
-  file}{https://github.com/concourse/concourse/blob/master/atc/policy/checker.go}
-  that you can filter as well.
+  for a list of API actions and their respective HTTP method. There are also
+  some \reference{special-actions} not directly in the API.
 }
 
 \section{
@@ -110,6 +124,8 @@ website.
     \code{allowed} is \code{True} this creates a soft-policy enforcement. The
     action will be allowed and the \code{reasons} will still be printed to the
     web UI like a warning message.
+
+    Not setting \code{block} is the same as setting \code{"block": true}.
   }{
     \code{reasons} \italic{(optional)}: List of string type. If an action is
     denied based on the \code{allowed} field then the reason(s) will be
@@ -158,8 +174,9 @@ website.
     \title{\code{UseImage}}
 
     Before Concourse starts a container you can check what image it is going to
-    use to create the container. The JSON payload for this action looks like
-    this:
+    use to create the container. Depending on the \code{image_type} the
+    \code{image_source} field may contain other fields. The JSON payload for
+    this action will look similar to the following example:
 
     \codeblock{json}{{{
 {
