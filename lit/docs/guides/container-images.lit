@@ -6,6 +6,7 @@
 
 \section{
   \title{Building and Pushing an Image}
+  \omit-children-from-table-of-contents
 
   In this guide we are going to show how to build and publish container images
   using the \link{oci-build task}{https://github.com/concourse/oci-build-task} and
@@ -26,293 +27,309 @@
   repo. The rest of this post assumes you use the examples repo. All files in
   this blog post can be found in the examples repo.
 
-  \inline-header{The Dockerfile}
+  \section{
+    \title{The Dockerfile}
 
-  \titled-codeblock{Dockerfile}{dockerfile}{{
-  FROM busybox
+    \titled-codeblock{Dockerfile}{dockerfile}{{
+    FROM busybox
 
-  RUN echo "I'm simple!"
-  COPY ./stranger /stranger
-  RUN cat /stranger
-  }}
-
-  \inline-header{Defining Pipeline Resources}
-
-  Now we can start building out our pipeline. Let's declare our \reference{resources} first.
-  We will need one resource to pull in the repo where our Dockerfile is located,
-  and a second resource pointing to where we want to push the built container
-  image to.
-
-  \italic{
-  There are some \reference{variables} in this file that we will fill out when
-  setting the pipeline.
+    RUN echo "I'm simple!"
+    COPY ./stranger /stranger
+    RUN cat /stranger
+    }}
   }
 
-  \titled-codeblock{build-push.yml}{yaml}{{
-  resources:
-  # The repo with our Dockerfile
-  - name: concourse-examples
-    type: git
-    icon: github
-    source:
-      uri: https://github.com/concourse/examples.git
-      branch: master
+  \section{
+    \title{Defining Pipeline Resources}
 
-  # Where we will push the image to
-  - name: simple-image
-    type: registry-image
-    icon: docker
-    source:
-      repository: ((image-repo-name))/simple-image
-      username: ((registry-username))
-      password: ((registry-password))
-  }}
+    Now we can start building out our pipeline. Let's declare our \reference{resources} first.
+    We will need one resource to pull in the repo where our Dockerfile is located,
+    and a second resource pointing to where we want to push the built container
+    image to.
 
-  \inline-header{Create the Job}
+    \italic{
+    There are some \reference{variables} in this file that we will fill out when
+    setting the pipeline.
+    }
 
-  Next we will create a \reference{jobs}{job} that will build and push our container image.
+    \titled-codeblock{build-push.yml}{yaml}{{
+    resources:
+    # The repo with our Dockerfile
+    - name: concourse-examples
+      type: git
+      icon: github
+      source:
+        uri: https://github.com/concourse/examples.git
+        branch: master
 
-  To build the job we will need to pull in the repo where the \code{Dockerfile} is.
+    # Where we will push the image to
+    - name: simple-image
+      type: registry-image
+      icon: docker
+      source:
+        repository: ((image-repo-name))/simple-image
+        username: ((registry-username))
+        password: ((registry-password))
+    }}
+  }
 
-  \titled-codeblock{build-push.yml}{yaml}{{
-  resources: ... # omitting resource section from above
+  \section{
+    \title{Create the Job}
 
-  jobs:
-  - name: build-and-push
-    plan:
-    - get: concourse-examples
-  }}
+    Next we will create a \reference{jobs}{job} that will build and push our container image.
 
-  \inline-header{Build the Image}
+    To build the job we will need to pull in the repo where the \code{Dockerfile} is.
 
-  The second step in our job will build the container image.
+    \titled-codeblock{build-push.yml}{yaml}{{
+    resources: ... # omitting resource section from above
 
-  To build the container image we are going to use the
-  \link{oci-build-task}{https://github.com/concourse/oci-build-task}. The
-  \link{oci-build-task}{https://github.com/concourse/oci-build-task} is a container
-  image that is meant to be used in a Concourse \reference{tasks}{task} to build other
-  container images. Check out the
-  \link{README}{https://github.com/concourse/oci-build-task/blob/master/README.md} in
-  the repo for more details on how to configure and use the oci-build-task in
-  more complex build scenarios.
+    jobs:
+    - name: build-and-push
+      plan:
+      - get: concourse-examples
+    }}
+  }
 
-  \titled-codeblock{build-push.yml}{yaml}{{
-  resources: ... # omitting resource section from above
+  \section{
+    \title{Build the Image}
 
-  jobs:
-  - name: build-and-push
-    plan:
-    - get: concourse-examples
-    - task: build-image
-      privileged: true # oci-build-task must run in a privileged container
-      config:
-        platform: linux
-        image_resource:
-          type: registry-image
-          source:
-            repository: concourse/oci-build-task
-  }}
-  \inset{} {- spacer -}
+    The second step in our job will build the container image.
 
-  Next we will add
-  \link{concourse-examples}{https://github.com/concourse/examples} as an
-  \reference{schema.task.inputs}{input} to the build task to ensure the
-  artifact from the \reference{get-step}{get step} (where our \code{Dockerfile}
-  is fetched) is mounted in our \code{build-image} step.
+    To build the container image we are going to use the
+    \link{oci-build-task}{https://github.com/concourse/oci-build-task}. The
+    \link{oci-build-task}{https://github.com/concourse/oci-build-task} is a container
+    image that is meant to be used in a Concourse \reference{tasks}{task} to build other
+    container images. Check out the
+    \link{README}{https://github.com/concourse/oci-build-task/blob/master/README.md} in
+    the repo for more details on how to configure and use the oci-build-task in
+    more complex build scenarios.
 
-  \titled-codeblock{build-push.yml}{yaml}{{
-  resources: ... # omitting resource section from above
+    \titled-codeblock{build-push.yml}{yaml}{{
+    resources: ... # omitting resource section from above
 
-  jobs:
-  - name: build-and-push
-    plan:
-    - get: concourse-examples
-    - task: build-image
-      privileged: true # oci-build-task must run in a privileged container
-      config:
-        platform: linux
-        image_resource:
-          type: registry-image
-          source:
-            repository: concourse/oci-build-task
-        inputs:
-        - name: concourse-examples
-  }}
-  \inset{} {- spacer -}
+    jobs:
+    - name: build-and-push
+      plan:
+      - get: concourse-examples
+      - task: build-image
+        privileged: true # oci-build-task must run in a privileged container
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source:
+              repository: concourse/oci-build-task
+    }}
+    \inset{} {- spacer -}
 
-  The oci-build-task \link{outputs the built container
-  image}{https://github.com/concourse/oci-build-task#outputs} in a directory called
-  \code{image}. Let's add image as an output of our task so we can publish it
-  in a later step.
+    Next we will add
+    \link{concourse-examples}{https://github.com/concourse/examples} as an
+    \reference{schema.task.inputs}{input} to the build task to ensure the
+    artifact from the \reference{get-step}{get step} (where our \code{Dockerfile}
+    is fetched) is mounted in our \code{build-image} step.
 
-  \titled-codeblock{build-push.yml}{yaml}{{
-  resources: ... # omitting resource section from above
+    \titled-codeblock{build-push.yml}{yaml}{{
+    resources: ... # omitting resource section from above
 
-  jobs:
-  - name: build-and-push
-    plan:
-    - get: concourse-examples
-    - task: build-image
-      privileged: true # oci-build-task must run in a privileged container
-      config:
-        platform: linux
-        image_resource:
-          type: registry-image
-          source:
-            repository: concourse/oci-build-task
-        inputs:
-        - name: concourse-examples
-        outputs:
-        - name: image
-  }}
+    jobs:
+    - name: build-and-push
+      plan:
+      - get: concourse-examples
+      - task: build-image
+        privileged: true # oci-build-task must run in a privileged container
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source:
+              repository: concourse/oci-build-task
+          inputs:
+          - name: concourse-examples
+    }}
+    \inset{} {- spacer -}
 
-  \inline-header{Defining the Build Context}
+    The oci-build-task \link{outputs the built container
+    image}{https://github.com/concourse/oci-build-task#outputs} in a directory called
+    \code{image}. Let's add image as an output of our task so we can publish it
+    in a later step.
 
-  Next we need to tell the \code{oci-build-task} what the \link{build
-  context}{https://docs.docker.com/engine/reference/commandline/build/} of our
-  \code{Dockerfile} is. The
-  \link{README}{https://github.com/concourse/oci-build-task} goes over a few other
-  methods of creating your build context. We are going to use the simplest
-  use-case. By specifying \code{CONTEXT} the \code{oci-build-task} assumes a
-  \code{Dockerfile} and its build context are in the same directory.
+    \titled-codeblock{build-push.yml}{yaml}{{
+    resources: ... # omitting resource section from above
 
-  \titled-codeblock{build-push.yml}{yaml}{{
-  resources: ... # omitting resource section from above
+    jobs:
+    - name: build-and-push
+      plan:
+      - get: concourse-examples
+      - task: build-image
+        privileged: true # oci-build-task must run in a privileged container
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source:
+              repository: concourse/oci-build-task
+          inputs:
+          - name: concourse-examples
+          outputs:
+          - name: image
+    }}
+  }
 
-  jobs:
-  - name: build-and-push
-    plan:
-    - get: concourse-examples
-    - task: build-image
-      privileged: true # oci-build-task must run in a privileged container
-      config:
-        platform: linux
-        image_resource:
-          type: registry-image
-          source:
-            repository: concourse/oci-build-task
-        inputs:
-        - name: concourse-examples
-        outputs:
-        - name: image
+  \section{
+    \title{Defining the Build Context}
+
+    Next we need to tell the \code{oci-build-task} what the \link{build
+    context}{https://docs.docker.com/engine/reference/commandline/build/} of our
+    \code{Dockerfile} is. The
+    \link{README}{https://github.com/concourse/oci-build-task} goes over a few other
+    methods of creating your build context. We are going to use the simplest
+    use-case. By specifying \code{CONTEXT} the \code{oci-build-task} assumes a
+    \code{Dockerfile} and its build context are in the same directory.
+
+    \titled-codeblock{build-push.yml}{yaml}{{
+    resources: ... # omitting resource section from above
+
+    jobs:
+    - name: build-and-push
+      plan:
+      - get: concourse-examples
+      - task: build-image
+        privileged: true # oci-build-task must run in a privileged container
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source:
+              repository: concourse/oci-build-task
+          inputs:
+          - name: concourse-examples
+          outputs:
+          - name: image
+          params:
+            CONTEXT: concourse-examples/Dockerfiles/simple
+          run: # binary used to build the image
+            path: build
+    }}
+  }
+
+  \section{
+    \title{Publish the Container Image}
+
+    To push the container image add a \reference{put-step}{put step} to our job
+    plan and tell the regstry-image resource where the tarball of the container
+    image is.
+
+    The put step will push the container image using the information defined
+    previously in the resource's \reference{schema.resource.source}{source}.
+
+    \titled-codeblock{build-push.yml}{yaml}{{
+    resources: ... # omitting resource section from above
+
+    jobs:
+    - name: build-and-push
+      plan:
+      - get: concourse-examples
+      - task: build-image
+        privileged: true # oci-build-task must run in a privileged container
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source:
+              repository: concourse/oci-build-task
+          inputs:
+          - name: concourse-examples
+          outputs:
+          - name: image
+          params:
+            CONTEXT: concourse-examples/Dockerfiles/simple
+          run: # binary used to build the image
+            path: build
+      - put: simple-image
         params:
-          CONTEXT: concourse-examples/Dockerfiles/simple
-        run: # binary used to build the image
-          path: build
-  }}
+          image: image/image.tar
+    }}
+  }
 
-  \inline-header{Publish the Container Image}
+  \section{
+    \title{The Entire Pipeline}
 
-  To push the container image add a \reference{put-step}{put step} to our job
-  plan and tell the regstry-image resource where the tarball of the container
-  image is.
+    Putting all the pieces together, here is our pipeline that builds and pushes
+    a container image.
 
-  The put step will push the container image using the information defined
-  previously in the resource's \reference{schema.resource.source}{source}.
+    \titled-codeblock{build-push.yml}{yaml}{{
+    resources:
+    # The repo with our Dockerfile
+    - name: concourse-examples
+      type: git
+      icon: github
+      source:
+        uri: https://github.com/concourse/examples.git
+        branch: master
 
-  \titled-codeblock{build-push.yml}{yaml}{{
-  resources: ... # omitting resource section from above
+    # Where we will push the image
+    - name: simple-image
+      type: registry-image
+      icon: docker
+      source:
+        repository: ((image-repo-name))/simple-image
+        username: ((registry-username))
+        password: ((registry-password))
 
-  jobs:
-  - name: build-and-push
-    plan:
-    - get: concourse-examples
-    - task: build-image
-      privileged: true # oci-build-task must run in a privileged container
-      config:
-        platform: linux
-        image_resource:
-          type: registry-image
-          source:
-            repository: concourse/oci-build-task
-        inputs:
-        - name: concourse-examples
-        outputs:
-        - name: image
+    jobs:
+    - name: build-and-push
+      plan:
+      - get: concourse-examples
+      - task: build-task-image
+        privileged: true
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source:
+              repository: concourse/oci-build-task
+          inputs:
+          - name: concourse-examples
+          outputs:
+          - name: image
+          params:
+            CONTEXT: concourse-examples/Dockerfiles/simple
+          run:
+            path: build
+      - put: simple-image
         params:
-          CONTEXT: concourse-examples/Dockerfiles/simple
-        run: # binary used to build the image
-          path: build
-    - put: simple-image
-      params:
-        image: image/image.tar
-  }}
+          image: image/image.tar
+    }}
+    \inset{} {- spacer -}
 
-  \inline-header{The Entire Pipeline}
+    You can set the pipeline with the following fly command, updating the
+    variable values with real values the pipeline can use to run.
 
-  Putting all the pieces together, here is our pipeline that builds and pushes
-  a container image.
+    \codeblock{bash}{{{
+    fly -t <target> set-pipeline -p build-and-push-image \
+      -c ./examples/pipelines/build-and-push-simple-image.yml \
+      --var image-repo-name=<repo-name> \
+      --var registry-username=<user> \
+      --var registry-password=<password>
+    }}}
+  }
 
-  \titled-codeblock{build-push.yml}{yaml}{{
-  resources:
-  # The repo with our Dockerfile
-  - name: concourse-examples
-    type: git
-    icon: github
-    source:
-      uri: https://github.com/concourse/examples.git
-      branch: master
+  \section{
+    \title{Further Readings}
 
-  # Where we will push the image
-  - name: simple-image
-    type: registry-image
-    icon: docker
-    source:
-      repository: ((image-repo-name))/simple-image
-      username: ((registry-username))
-      password: ((registry-password))
+    Understanding what the build context is is important when building container
+    images. You can read \link{Dockerfile Best
+    Practices}{https://docs.docker.com/develop/develop-images/dockerfile_best-practices/#understand-build-context}
+    for more details about build contexts.
 
-  jobs:
-  - name: build-and-push
-    plan:
-    - get: concourse-examples
-    - task: build-task-image
-      privileged: true
-      config:
-        platform: linux
-        image_resource:
-          type: registry-image
-          source:
-            repository: concourse/oci-build-task
-        inputs:
-        - name: concourse-examples
-        outputs:
-        - name: image
-        params:
-          CONTEXT: concourse-examples/Dockerfiles/simple
-        run:
-          path: build
-    - put: simple-image
-      params:
-        image: image/image.tar
-  }}
-  \inset{} {- spacer -}
+    The \link{inputs section}{https://github.com/concourse/oci-build-task#inputs} of
+    the oci-build-task's \code{README} has examples on how to create a build
+    context with multiple inputs and other complex build scenarios.
 
-  You can set the pipeline with the following fly command, updating the
-  variable values with real values the pipeline can use to run.
-
-  \codeblock{bash}{{{
-  fly -t <target> set-pipeline -p build-and-push-image \
-    -c ./examples/pipelines/build-and-push-simple-image.yml \
-    --var image-repo-name=<repo-name> \
-    --var registry-username=<user> \
-    --var registry-password=<password>
-  }}}
-
-  \inline-header{Further Readings}
-
-  Understanding what the build context is is important when building container
-  images. You can read \link{Dockerfile Best
-  Practices}{https://docs.docker.com/develop/develop-images/dockerfile_best-practices/#understand-build-context}
-  for more details about build contexts.
-
-  The \link{inputs section}{https://github.com/concourse/oci-build-task#inputs} of
-  the oci-build-task's \code{README} has examples on how to create a build
-  context with multiple inputs and other complex build scenarios.
-
-  Read the \code{README}'s in the
-  \link{oci-build-task}{https://github.com/concourse/oci-build-task} and
-  \link{registry-image
-  resource}{https://github.com/concourse/registry-image-resource/} to learn
-  more about their other configuration options.
+    Read the \code{README}'s in the
+    \link{oci-build-task}{https://github.com/concourse/oci-build-task} and
+    \link{registry-image
+    resource}{https://github.com/concourse/registry-image-resource/} to learn
+    more about their other configuration options.
+  }
 }
