@@ -433,13 +433,20 @@ var _ = Describe("Register", func() {
 				Expect(res.StatusCode).To(Equal(http.StatusTeapot))
 
 				By("exiting successfully")
-				// https://golang.org/src/net/http/transport.go -> IdleConnTimeout is 90s in the DefaultTransport used by gclient.BasicGardenClientWithRequestTimeout
-				Eventually(registerErr, time.Second*100).Should(Receive(BeNil()))
+				// If this starts failing, it may be because we are no longer
+				// properly setting atc/worker/gclient.idleConnTimeoutOverride
+				// in the test binary. It defaults to 90s, which is incredibly
+				// slow for these tests.
+				Eventually(registerErr, time.Second*10).Should(Receive(BeNil()))
 			})
 
 			Context("with a drain timeout", func() {
 				BeforeEach(func() {
-					opts.ConnectionDrainTimeout = 5 * time.Second
+					// Note: this must not be "too close" to the idleConnTimeoutOverride
+					// value of 5s - otherwise, these timeouts seem to compound
+					// (e.g. if the drain timeout was also 5s, the effective
+					// timeout would be ~10s). Not too sure why this is
+					opts.ConnectionDrainTimeout = 3 * time.Second
 				})
 
 				It("breaks connections after the configured drain timeout", func() {
