@@ -195,7 +195,7 @@
       \link{Google Cloud Storage}{https://cloud.google.com/storage})
     }{
       Trigger a \code{terraform apply} to deploy our app to a staging
-      environment. The \link{Terraform module}{https://github.com/aoldershaw/examples/blob/master/terraform/staging/main.tf}
+      environment. The \link{Terraform module}{https://github.com/concourse/examples/blob/master/terraform/staging/main.tf}
       we'll use here doesn't actually provision any infrastructure, and is just used
       as an example
     }
@@ -207,8 +207,8 @@
 
     Below is the full pipeline config:
 
-    \link{\code{examples/pipelines/multi-branch/template.yml}}{https://github.com/aoldershaw/examples/blob/master/pipelines/multi-branch/template.yml}
-    \remote-codeblock{yaml}{https://raw.githubusercontent.com/aoldershaw/examples/master/pipelines/multi-branch/template.yml}
+    \link{\code{examples/pipelines/multi-branch/template.yml}}{https://github.com/concourse/examples/blob/master/pipelines/multi-branch/template.yml}
+    \remote-codeblock{yaml}{https://raw.githubusercontent.com/concourse/examples/master/pipelines/multi-branch/template.yml}
   }
 
   \section{
@@ -227,7 +227,7 @@
 
     Below is the full pipeline config for this tracker pipeline:
 
-    \link{\code{examples/pipelines/multi-branch/tracker.yml}}{https://github.com/aoldershaw/examples/blob/master/pipelines/multi-branch/tracker.yml}
+    \link{\code{examples/pipelines/multi-branch/tracker.yml}}{https://github.com/concourse/examples/blob/master/pipelines/multi-branch/tracker.yml}
     \codeblock{yaml}{{{
       resource_types:
       - name: git-branches
@@ -287,7 +287,7 @@
     that figures out which workspaces don't belong to an active branch and
     destroy them.
 
-    \link{\code{examples/pipelines/multi-branch/tracker.yml}}{https://github.com/aoldershaw/examples/blob/master/pipelines/multi-branch/tracker.yml}
+    \link{\code{examples/pipelines/multi-branch/tracker.yml}}{https://github.com/concourse/examples/blob/master/pipelines/multi-branch/tracker.yml}
     \codeblock{yaml}{{{
       resource_types:
       - name: git-branches
