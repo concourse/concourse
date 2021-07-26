@@ -1,0 +1,250 @@
+\title{Open Policy Agent Integration}{opa}
+
+\use-plugin{concourse-docs}
+
+\aside{
+The \link{Open Policy Agent}{https://www.openpolicyagent.org/docs/latest/}
+(OPA, pronounced “oh-pa”) is an open source, general-purpose policy engine that
+unifies policy enforcement across the stack.
+}
+
+OPA allows you to create arbitrary rules within Concourse without having to add
+a new feature to Concourse. You could even recreate Concourse's
+\reference{user-roles}{RBAC system} using OPA.
+
+More likely use-cases are to enforce rules your organization may have, such as
+not using certain container images or disallowing the use of privileged
+workloads. With OPA you can be as general or fine-grained as you want,
+enforcing these rules at the team or pipeline level.
+
+The next few sections explain how to \reference{configure-opa}{configure
+Concourse} to talk to an OPA server and how to
+\reference{writing-opa-rules}{write OPA rules} for Concourse.
+
+\section{
+  \title{Configuring Concourse}{configure-opa}
+
+  There are four configuration options you need to set on the \code{concourse
+  web} nodes to have them interact with OPA.
+
+  \list{
+    \code{CONCOURSE_OPA_URL}: The OPA policy check endpoint. Should point to a
+    specific \code{package/rule} that contains all Concourse rules for your
+    cluster.
+
+    \italic{Example:} \code{http://opa-endpoint.com/v1/data/concourse/decision}
+  }{
+    \code{CONCOURSE_POLICY_CHECK_FILTER_HTTP_METHODS}: API http methods to go
+    through policy check. You will need to make sure these match up with an API
+    action in the next two configuration options.
+
+    \italic{Example:} \code{PUT,POST}
+  }{
+    \code{CONCOURSE_POLICY_CHECK_FILTER_ACTION}: Actions in this list will go
+    through policy check.
+
+    \italic{Example:} \code{ListWorkers,ListContainers}
+  }{
+    \code{CONCOURSE_POLICY_CHECK_FILTER_ACTION_SKIP}: Actions in this list will
+    not go through policy check
+
+    \italic{Example:} \code{PausePipeline,UnpausePipeline}
+  }
+
+  For the last three configuration options you can refer to the \link{this list
+  of routes}{https://github.com/concourse/concourse/blob/master/atc/routes.go}
+  for a list of API actions and their respective HTTP method. There are also
+  some \reference{special-actions} not directly in the API.
+}
+
+\section{
+  \title{Writing OPA Rules}
+
+  On the OPA server you'll need to create a package and policy for Concourse.
+  This should match up with the endpoint provided to Concourse. The \link{OPA
+  documentation}{https://www.openpolicyagent.org/docs/latest/} has a good guide
+  explaining how to generally write OPA rules and setup an OPA server.
+
+
+  For any actions that Concourse has been configured to filter it will send a
+  JSON request to the OPA server with the following details. Top-level data
+  directly under the \code{input} key will be present for most actions. The
+  information under the \code{data} key will differ based on the action being
+  checked.
+
+  This sample JSON payload is what OPA is sent when a user sets a pipeline.
+  The \code{data} key contains the pipeline in JSON format.
+  \codeblock{json}{{{
+{
+  "input": {
+    "service": "concourse",
+    "cluster_name": "dev",
+    "cluster_version": "7.4.0",
+    "http_method": "PUT",
+    "action": "SaveConfig",
+    "user": "test",
+    "team": "main",
+    "pipeline": "check-pipeline",
+    "data": {
+      "jobs": [
+        {
+          "name": "test",
+          "plan": [
+            {
+              "get": "tiny"
+            },
+            {
+              "config": {
+                "image_resource": {
+                  "source": {
+                    "repository": "busybox"
+                  },
+                  "type": "registry-image"
+                },
+                "platform": "linux",
+                "run": {
+                  "args": [
+                    "-exc",
+                    "echo hello"
+                  ],
+                  "path": "sh"
+                }
+              },
+              "task": "a-task" }
+] } ] } } }
+  }}}
+
+  An OPA rule can respond to Concourse with three fields:
+
+  \list{
+    \code{allowed} \italic{(required)}: Boolean type. Setting to \code{False}
+    will deny the action unless the \code{block} field is \code{False}.
+  }{
+    \code{block} \italic{(optional)}: Boolean type. If set to \code{False} and
+    \code{allowed} is \code{True} this creates a soft-policy enforcement. The
+    action will be allowed and the \code{reasons} will still be printed to the
+    web UI like a warning message.
+
+    Not setting \code{block} is the same as setting \code{"block": true}.
+  }{
+    \code{reasons} \italic{(optional)}: List of string type. If an action is
+    denied based on the \code{allowed} field then the reason(s) will be
+    displayed in the UI.
+  }
+
+  Here is an example OPA policy. By default it will allow whatever action it
+  has been sent. It will deny the action if one or more of the three deny
+  rules are true.
+
+  \titled-codeblock{concourse.rego}{yaml}{{{
+    package concourse
+
+    default decision = {"allowed": true}
+
+    decision = {"allowed": false, "reasons": reasons} {
+      count(deny) > 0
+      reasons := deny
+    }
+
+    deny["cannot use docker-image types"] {
+      input.action == "UseImage"
+      input.data.image_type == "docker-image"
+    }
+
+    deny["cannot run privileged tasks"] {
+      input.action == "SaveConfig"
+      input.data.jobs[_].plan[_].privileged
+    }
+
+    deny["cannot use privileged resource types"] {
+      input.action == "SaveConfig"
+      input.data.resource_types[_].privileged
+    }
+  }}}
+}
+
+\section{
+  \title{Special Actions}
+
+  Most of the actions you can filter for come directly from the list of
+  \reference{action-matrix}{API actions}. There are currently two special
+  actions you can also filter on.
+
+  \section{
+    \title{\code{UseImage}}
+
+    Before Concourse starts a container you can check what image it is going to
+    use to create the container. Depending on the \code{image_type} the
+    \code{image_source} field may contain other fields. The JSON payload for
+    this action will look similar to the following example:
+
+    \codeblock{json}{{{
+{
+  "input": {
+    "service": "concourse",
+    "cluster_name": "dev",
+    "cluster_version": "7.4.0",
+    "action": "UseImage",
+    "team": "main",
+    "pipeline": "simple",
+    "data": {
+      "image_type": "registry-image",
+      "privileged": true,
+      "image_source": {
+        "repository": "alpine",
+        "tag": "latest"
+      }
+    }
+  }
+}
+    }}}
+
+    }
+
+  \section{
+    \title{\code{SetPipeline}}
+
+    This action occurs whenever a \reference{set-pipeline-step} is run. The
+    JSON payload for this action will contain the pipeline config in JSON
+    format under the \code{data} key:
+
+    \codeblock{json}{{{
+{
+  "input": {
+    "service": "concourse",
+    "cluster_name": "dev",
+    "cluster_version": "7.4.0",
+    "action": "SetPipeline",
+    "team": "main",
+    "pipeline": "simple",
+    "data": {
+      "jobs": [
+        {
+          "name": "test",
+          "plan": [
+            {
+              "get": "tiny"
+            },
+            {
+              "config": {
+                "image_resource": {
+                  "source": {
+                    "repository": "busybox"
+                  },
+                  "type": "registry-image"
+                },
+                "platform": "linux",
+                "run": {
+                  "args": [
+                    "-exc",
+                    "echo hello"
+                  ],
+                  "path": "sh"
+                }
+              },
+              "task": "a-task" }
+] } ] } } }
+    }}}
+
+  }
+}
