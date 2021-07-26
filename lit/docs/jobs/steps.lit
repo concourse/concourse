@@ -25,6 +25,9 @@ A build plan is a sequence of \italic{steps}:
 }{
   the \reference{do-step} runs steps in sequence
 }{
+  the \reference{schema.step.across}{\code{across} step modifier} runs a step
+  multiple times; once for each combination of variable values
+}{
   the \reference{try-step} attempts to run a step and succeeds even if the step
   fails
 }
@@ -1034,6 +1037,148 @@ by configuring \reference{schema.step.on_failure} or
           }}}
         }
       }
+    }
+  }
+
+  \optional-attribute{across}{[across_var]}{
+    Run a step multiple times with different combinations of variable values.
+
+    \warn{
+      \code{across} is considered an \bold{experimental} feature, and its
+      syntax/semantics may change. To enable \code{across} for your deployment,
+      you must set the feature flag \code{CONCOURSE_ENABLE_ACROSS_STEP}.
+    }
+
+    \schema{across_var}{
+      \required-attribute{var}{identifier}{
+        The name of the variable that will be added to the
+        \reference{local-vars}{"\code{.}" var source}. This variable will only be
+        accessible in the scope of the step - each iteration of the step gets
+        its own scope.
+
+        If a variable of the same name already exists in the parent scope, a
+        warning will be printed.
+      }
+
+      \required-attribute{values}{[value]}{
+        The list of values that the \reference{schema.across_var.var}{var} will
+        iterate over when running the substep. If multiple \reference{schema.across_var}{vars}
+        are configured, all combinations of values across all vars will run.
+
+        The list of values may also be interpolated. For instance, you may use
+        the \reference{load-var-step} to first load a list of \reference{schema.value}
+        into a \reference{local-vars}{local var}, and then iterate across that dynamic
+        list of values.
+
+        \example-toggle{Value combinations}{
+          The following \reference{schema.step.across} will run the task
+          \code{foo/build.yml} for each package defined in \code{foo/packages-to-build.json}
+          with Go 1.15 and 1.16.
+
+          \codeblock{yaml}{{{
+          plan:
+          - get: foo
+          - load_var: packages
+            file: foo/packages-to-build.json
+          - across:
+            - var: package
+              values: ((.:packages))
+            - var: go_version
+              values: ['1.15', '1.16']
+            task: build
+            file: foo/build.yml
+            vars:
+              go_version: ((.:go_version))
+              package: ((.:package))
+          }}}
+
+          Supposing \code{foo/packages-to-build.json} had the following content:
+          \codeblock{json}{{{
+          ["./cmd/first", "./cmd/second", "./cmd/third"]
+          }}}
+
+          ...then the task \code{foo/build.yml} would be run with the following
+          var combinations:
+
+          \list{
+            \code{\{package: "./cmd/first", go_version: "1.15"\}}
+          }{
+            \code{\{package: "./cmd/first", go_version: "1.16"\}}
+          }{
+            \code{\{package: "./cmd/second", go_version: "1.15"\}}
+          }{
+            \code{\{package: "./cmd/second", go_version: "1.16"\}}
+          }{
+            \code{\{package: "./cmd/third", go_version: "1.15"\}}
+          }{
+            \code{\{package: "./cmd/third", go_version: "1.16"\}}
+          }
+        }
+      }
+
+      \optional-attribute{max_in_flight}{`all` | number}{
+        \italic{Default \code{1}.} If set to \code{all}, the substep will run
+        with all combinations of the current var in parallel. If set to a
+        \reference{schema.number}, only that number of substeps may run in parallel.
+
+        \example-toggle{Multiple vars}{
+          If multiple \reference{schema.across_var}{vars} are configured, the
+          effective \code{max_in_flight} is multiplicative. For instance:
+
+          \codeblock{yaml}{{{
+          plan:
+          - across:
+            - var: var1
+              values: [a, b, c]
+              max_in_flight: all
+            - var: var2
+              values: [1, 2]
+            - var: var3
+              values: [foo, bar]
+              max_in_flight: 2
+          }}}
+
+          Here, \bold{6 substeps} will run in parallel, since all 3 of
+          \code{var1}'s values can run in parallel, and 2 of \code{var3}'s
+          values can run in parallel.
+        }
+      }
+
+      \optional-attribute{fail_fast}{boolean}{
+        \italic{Default \code{false}.} When enabled, the \code{across} step will
+        fail fast by returning as soon as any sub-step fails. This means that running steps
+        will be interrupted and pending steps will no longer be scheduled.
+      }
+    }
+
+    The \code{across} step can be combined with the \reference{load-var-step},
+    the \reference{set-pipeline-step}, and \reference{instanced-pipelines}{instanced pipelines}
+    to maintain a dynamically sized group of related pipelines.
+
+    \example-toggle{Multi-branch workflows}{
+      You can use the \code{across} step to set a pipeline for each branch in a
+      git repository.
+
+      \codeblock{yaml}{{{
+      plan:
+      - get: release-branches
+        trigger: true
+      - get: ci
+      - load_var: branches
+        file: release-branches/branches.json
+      - across:
+        - var: branch
+          values: ((.:branches))
+        set_pipeline: release
+        file: ci/pipelines/release.yml
+        instance_vars: {branch: ((.:branch.name))}
+      }}}
+
+      When a new branch is added, a new pipeline will be created. When a branch
+      is deleted, the pipeline will be automatically archived as described in
+      the \reference{set-pipeline-step}.
+
+      For a more complete example, refer to \reference{multi-branch-workflows}.
     }
   }
 
