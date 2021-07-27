@@ -19,6 +19,7 @@ type DogstatsdEmitter struct {
 type DogstatsDBConfig struct {
 	Host   string `long:"datadog-agent-host" description:"Datadog agent host to expose dogstatsd metrics"`
 	Port   string `long:"datadog-agent-port" description:"Datadog agent port to expose dogstatsd metrics"`
+	UDS    string `long:"datadog-agent-uds-filepath" description:"Datadog agent unix domain socket (uds) filepath to expose dogstatsd metrics"`
 	Prefix string `long:"datadog-prefix" description:"Prefix for all metrics to easily find them in Datadog"`
 }
 
@@ -31,8 +32,14 @@ func (config *DogstatsDBConfig) Description() string { return "Datadog" }
 func (config *DogstatsDBConfig) IsConfigured() bool { return config.Host != "" && config.Port != "" }
 
 func (config *DogstatsDBConfig) NewEmitter(_ map[string]string) (metric.Emitter, error) {
+	var client *statsd.Client
+	var err error
+	if config.UDS != "" {
+		client, err = statsd.New("unix://" + config.UDS)
+	} else {
+		client, err = statsd.New(fmt.Sprintf("%s:%s", config.Host, config.Port))
+	}
 
-	client, err := statsd.New(fmt.Sprintf("%s:%s", config.Host, config.Port))
 	if err != nil {
 		log.Fatal(err)
 		return &DogstatsdEmitter{}, err
