@@ -29,7 +29,9 @@ func init() {
 
 func (config *DogstatsDBConfig) Description() string { return "Datadog" }
 
-func (config *DogstatsDBConfig) IsConfigured() bool { return config.Host != "" && config.Port != "" }
+func (config *DogstatsDBConfig) IsConfigured() bool {
+	return (config.Host != "" && config.Port != "") || config.UDS != ""
+}
 
 func (config *DogstatsDBConfig) NewEmitter(_ map[string]string) (metric.Emitter, error) {
 	var client *statsd.Client
