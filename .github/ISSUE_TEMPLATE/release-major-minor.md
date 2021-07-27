@@ -12,6 +12,8 @@ Steps for a new major/minor release:
 
 * [ ] Create your release branch on the `concourse/concourse` github repo with the following format `release/M.m.x` (M being the major version and m being the minor version)
 
+* [ ] Create the release branch on `concourse/concourse-docker` repository.
+
 * [ ] Create the release branch on the `concourse/concourse-bosh-release` repository. Make any missing changes to the spec of `web` or `worker` depending on if the release contains any changes that adds or modifies any flags.
 
   * Any changes you make on the branch will not get automatically merged back to master so try to make the changes on master and then create the branch from there.
