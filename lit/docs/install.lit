@@ -26,6 +26,15 @@ The high-level steps to follow for installing Concourse are:
   Install the worker node
 }
 
+\aside{
+  We don't document every configuration option for the \code{web} and \code{worker} commands. To view all flags you can run the following \code{docker} commands.
+
+  \codeblock{bash}{{
+  docker run -t concourse/concourse web --help
+  docker run -t concourse/concourse worker --help
+  }}
+}
+
 \table-of-contents
 
 \split-sections
