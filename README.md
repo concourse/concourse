@@ -32,12 +32,12 @@ to keep track of - here's an overview:
 
 | Feature                  | RFC              | Status |
 | ------------------------ | ---------------- | ------ |
-| `set_pipeline` step      | ✔ [#31][rfc-31]  | ✔ v5.8.0 (experimental), TODO: [#5814][issue-5814] |
+| `set_pipeline` step      | ✔ [#31][rfc-31]  | ✔ v5.8.0 (experimental) |
 | Var sources for creds    | ✔ [#39][rfc-39]  | ✔ v5.8.0 (experimental), TODO: [#5813][issue-5813] |
 | Archiving pipelines      | ✔ [#33][rfc-33]  | ✔ v6.5.0 |
-| Instanced pipelines      | ✔ [#34][rfc-34]  | ✔ v7.0.0 (experimental, not released yet) |
+| Instanced pipelines      | ✔ [#34][rfc-34]  | ✔ v7.0.0 (experimental) |
 | Static `across` step     | 🚧 [#29][rfc-29] | ✔ v6.5.0 (experimental) |
-| Dynamic `across` step    | 🚧 [#29][rfc-29] | 🙏 RFC needs feedback! |
+| Dynamic `across` step    | 🚧 [#29][rfc-29] | ✔ v7.4.0 (experimental, not released yet) |
 | Projects                 | 🚧 [#32][rfc-32] | 🙏 RFC needs feedback! |
 | `load_var` step          | ✔ [#27][rfc-27]  | ✔ v6.0.0 (experimental) |
 | `get_var` step           | ✔ [#27][rfc-27]  | 🚧 [#5815][issue-5815] in progress! |

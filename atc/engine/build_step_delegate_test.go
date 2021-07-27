@@ -4,7 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
+	"reflect"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -556,25 +559,35 @@ var _ = Describe("BuildStepDelegate", func() {
 	})
 
 	Describe("ConstructAcrossSubsteps", func() {
+		planIDPtr := func(p atc.PlanID) *atc.PlanID {
+			return &p
+		}
+
 		It("constructs the across substeps and emits them as a build event", func() {
 			template := []byte(`{
-				"id": "ACROSS_SUBSTEP_TEMPLATE",
-				"do": [
-					{
-						"id": "ACROSS_SUBSTEP_TEMPLATE",
-						"task": {
-							"name": "foo",
+				"id": "on-success-id",
+				"on_success": {
+					"step": {
+						"id": "put-id",
+						"put": {
+							"name": "((.:v1))",
+							"type": "some-type",
 							"params": {
-								"p1": "((.:v1))",
-								"p2": "howdy ((.:v2))"
-							},
-							"input_mapping": {
-								"blah": "((.:v3))",
+								"p1": "((.:v2))",
+								"p2": "howdy ((.:v3))",
 								"untouched": "((v1))"
 							}
 						}
+					},
+					"on_success": {
+						"id": "get-id",
+						"get": {
+							"name": "((.:v1))",
+							"type": "some-type",
+							"version_from": "put-id"
+						}
 					}
-				]
+				}
 			}`)
 			substeps, err := delegate.ConstructAcrossSubsteps(template, []atc.AcrossVar{
 				{Var: "v1"},
@@ -591,13 +604,25 @@ var _ = Describe("BuildStepDelegate", func() {
 					Values: []interface{}{"a1", "b1", "c1"},
 					Step: atc.Plan{
 						ID: "some-plan-id/0/0",
-						Do: &atc.DoPlan{
-							{
+						OnSuccess: &atc.OnSuccessPlan{
+							Step: atc.Plan{
 								ID: "some-plan-id/0/1",
-								Task: &atc.TaskPlan{
-									Name:         "foo",
-									Params:       atc.TaskEnv{"p1": "a1", "p2": "howdy b1"},
-									InputMapping: map[string]string{"blah": "c1", "untouched": "((v1))"},
+								Put: &atc.PutPlan{
+									Name: "a1",
+									Type: "some-type",
+									Params: atc.Params{
+										"p1":        "b1",
+										"p2":        "howdy c1",
+										"untouched": "((v1))",
+									},
+								},
+							},
+							Next: atc.Plan{
+								ID: "some-plan-id/0/2",
+								Get: &atc.GetPlan{
+									Name:        "a1",
+									Type:        "some-type",
+									VersionFrom: planIDPtr("some-plan-id/0/1"),
 								},
 							},
 						},
@@ -607,13 +632,25 @@ var _ = Describe("BuildStepDelegate", func() {
 					Values: []interface{}{"a1", "b1", "c2"},
 					Step: atc.Plan{
 						ID: "some-plan-id/1/0",
-						Do: &atc.DoPlan{
-							{
+						OnSuccess: &atc.OnSuccessPlan{
+							Step: atc.Plan{
 								ID: "some-plan-id/1/1",
-								Task: &atc.TaskPlan{
-									Name:         "foo",
-									Params:       atc.TaskEnv{"p1": "a1", "p2": "howdy b1"},
-									InputMapping: map[string]string{"blah": "c2", "untouched": "((v1))"},
+								Put: &atc.PutPlan{
+									Name: "a1",
+									Type: "some-type",
+									Params: atc.Params{
+										"p1":        "b1",
+										"p2":        "howdy c2",
+										"untouched": "((v1))",
+									},
+								},
+							},
+							Next: atc.Plan{
+								ID: "some-plan-id/1/2",
+								Get: &atc.GetPlan{
+									Name:        "a1",
+									Type:        "some-type",
+									VersionFrom: planIDPtr("some-plan-id/1/1"),
 								},
 							},
 						},
@@ -636,6 +673,113 @@ var _ = Describe("BuildStepDelegate", func() {
 					ID: "some-plan-id",
 				},
 			}))
+		})
+
+		It("doesn't transform Get.VersionFrom if the referenced PlanID isn't a part of the substep", func() {
+			template := []byte(`{
+				"id": "get-id",
+				"get": {
+					"name": "((.:v1))",
+					"type": "some-type",
+					"version_from": "external-id"
+				}
+			}`)
+			substeps, err := delegate.ConstructAcrossSubsteps(template, []atc.AcrossVar{
+				{Var: "v1"},
+			}, [][]interface{}{
+				{"a1"},
+			})
+			Expect(err).ToNot(HaveOccurred())
+
+			expectedSubstepPlans := []atc.VarScopedPlan{
+				{
+					Values: []interface{}{"a1"},
+					Step: atc.Plan{
+						ID: "some-plan-id/0/0",
+						Get: &atc.GetPlan{
+							Name:        "a1",
+							Type:        "some-type",
+							VersionFrom: planIDPtr("external-id"),
+						},
+					},
+				},
+			}
+
+			By("interpolating the var values into the substep plans")
+			Expect(substeps).To(Equal(expectedSubstepPlans))
+
+			By("emitting the public plans as a build event")
+			Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
+			Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.AcrossSubsteps{
+				Time: now.Unix(),
+				Substeps: []*json.RawMessage{
+					expectedSubstepPlans[0].Public(),
+				},
+				Origin: event.Origin{
+					ID: "some-plan-id",
+				},
+			}))
+		})
+
+		It("handles all PlanID fields in the atc.Plan", func() {
+			// handledFields are the fields of type PlanID that are properly
+			// handled in ConstructAcrossSubsteps (i.e. that get mapped to the
+			// appropriate plan ID within the substep). If a new PlanID field
+			// is added to atc.Plan or one of its subtypes, it must be properly
+			// handled and added to this list.
+			handledFields := []string{"ID", "Get.VersionFrom"}
+
+			isHandled := func(field string) bool {
+				for _, f := range handledFields {
+					if f == field {
+						return true
+					}
+				}
+				return false
+			}
+
+			var dereference func(reflect.Type) reflect.Type
+			dereference = func(rt reflect.Type) reflect.Type {
+				switch rt.Kind() {
+				case reflect.Ptr, reflect.Array, reflect.Slice:
+					return dereference(rt.Elem())
+				default:
+					return rt
+				}
+			}
+
+			planIDType := reflect.TypeOf(atc.PlanID(""))
+
+			seen := map[reflect.Type]bool{}
+			var walk func([]string, reflect.Type)
+			walk = func(paths []string, rt reflect.Type) {
+				rt = dereference(rt)
+
+				fieldPath := strings.Join(paths, ".")
+				if rt == planIDType && !isHandled(fieldPath) {
+					Fail(fmt.Sprintf("ConstructAcrossSubsteps does not handle PlanID field %q", fieldPath))
+				}
+
+				// Avoid recursing infinitely since atc.Plan is a recursive type
+				if seen[rt] {
+					return
+				}
+				seen[rt] = true
+
+				if rt.Kind() == reflect.Map {
+					walk(append(paths, "key"), rt.Key())
+					walk(append(paths, "value"), rt.Elem())
+				}
+
+				if rt.Kind() == reflect.Struct {
+					for i := 0; i < rt.NumField(); i++ {
+						field := rt.Field(i)
+						walk(append(paths, field.Name), field.Type)
+					}
+				}
+			}
+
+			walk(nil, reflect.TypeOf(atc.Plan{}))
 		})
 	})
 
