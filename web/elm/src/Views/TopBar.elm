@@ -1,6 +1,7 @@
 module Views.TopBar exposing
     ( breadcrumbs
     , concourseLogo
+    , paused
     )
 
 import Application.Models exposing (Session)
@@ -9,6 +10,7 @@ import ColorValues
 import Concourse exposing (hyphenNotation)
 import Dashboard.FilterBuilder exposing (instanceGroupFilter)
 import Dict
+import DateFormat
 import Html exposing (Html)
 import Html.Attributes
     exposing
@@ -20,6 +22,7 @@ import Message.Message exposing (DomID(..), Message(..))
 import RemoteData
 import Routes
 import SideBar.SideBar exposing (byPipelineId, isPipelineVisible, lookupPipeline)
+import Time
 import Url
 import Views.InstanceGroupBadge as InstanceGroupBadge
 import Views.Styles as Styles
@@ -28,6 +31,47 @@ import Views.Styles as Styles
 concourseLogo : Html Message
 concourseLogo =
     Html.a (href "/" :: Styles.concourseLogo) []
+
+
+paused :
+    { paused : Bool
+    , pausedBy : Maybe String
+    , pausedAt : Maybe Time.Posix
+    , timeZone : Time.Zone
+    }
+    -> Html Message
+paused p =
+    let
+        text =
+            pausedText p
+    in
+    Html.span (class "pause-details" :: Styles.pauseDetails) [ Html.text text ]
+
+
+pausedText :
+    { paused : Bool
+    , pausedBy : Maybe String
+    , pausedAt : Maybe Time.Posix
+    , timeZone : Time.Zone
+    }
+    -> String
+pausedText p =
+    if p.paused then
+        case ( p.pausedBy, p.pausedAt ) of
+            ( Just by, Just at ) ->
+                "paused by " ++ by ++ " on " ++ formatDate p.timeZone at
+
+            ( Just by, Nothing ) ->
+                "paused by " ++ by
+
+            ( Nothing, Just at ) ->
+                "paused on " ++ formatDate p.timeZone at
+
+            ( Nothing, Nothing ) ->
+                ""
+
+    else
+        ""
 
 
 breadcrumbs : Session -> Routes.Route -> Html Message
@@ -293,3 +337,22 @@ causalityBreadCrumb rv direction version isLastBreadcrumb =
 decodeName : String -> String
 decodeName name =
     Maybe.withDefault name (Url.percentDecode name)
+
+
+formatDate : Time.Zone -> Time.Posix -> String
+formatDate =
+    DateFormat.format
+        [ DateFormat.monthNameAbbreviated
+        , DateFormat.text " "
+        , DateFormat.dayOfMonthNumber
+        , DateFormat.text " "
+        , DateFormat.yearNumber
+        , DateFormat.text " "
+        , DateFormat.hourFixed
+        , DateFormat.text ":"
+        , DateFormat.minuteFixed
+        , DateFormat.text ":"
+        , DateFormat.secondFixed
+        , DateFormat.text " "
+        , DateFormat.amPmUppercase
+        ]

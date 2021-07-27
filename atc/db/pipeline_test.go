@@ -213,7 +213,7 @@ var _ = Describe("Pipeline", func() {
 
 		Context("when the pipeline is paused", func() {
 			BeforeEach(func() {
-				Expect(pipeline.Pause()).To(Succeed())
+				Expect(pipeline.Pause("")).To(Succeed())
 			})
 
 			It("returns the pipeline is paused", func() {
@@ -224,7 +224,7 @@ var _ = Describe("Pipeline", func() {
 
 	Describe("Pause", func() {
 		JustBeforeEach(func() {
-			Expect(pipeline.Pause()).To(Succeed())
+			Expect(pipeline.Pause("")).To(Succeed())
 
 			found, err := pipeline.Reload()
 			Expect(err).ToNot(HaveOccurred())
@@ -238,6 +238,52 @@ var _ = Describe("Pipeline", func() {
 
 			It("pauses the pipeline", func() {
 				Expect(pipeline.Paused()).To(BeTrue())
+			})
+		})
+	})
+
+	Describe("PausedBy", func() {
+		JustBeforeEach(func() {
+			found, err := pipeline.Reload()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+		})
+
+		Context("when the pipeline is paused", func() {
+			BeforeEach(func() {
+				Expect(pipeline.Pause("")).To(Succeed())
+			})
+
+			It("has an empty paused by", func() {
+				Expect(pipeline.PausedBy()).To(Equal(""))
+			})
+		})
+
+		Context("when the pipeline is paused with a username", func() {
+			BeforeEach(func() {
+				Expect(pipeline.Pause("concourse")).To(Succeed())
+			})
+
+			It("has an paused by", func() {
+				Expect(pipeline.PausedBy()).To(Equal("concourse"))
+			})
+		})
+	})
+
+	Describe("PausedAt", func() {
+		JustBeforeEach(func() {
+			found, err := pipeline.Reload()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+		})
+
+		Context("when the pipeline is paused", func() {
+			BeforeEach(func() {
+				Expect(pipeline.Pause("")).To(Succeed())
+			})
+
+			It("has a paused at time stamp", func() {
+				Expect(pipeline.PausedAt()).Should(BeTemporally("~", time.Now(), time.Duration(1*time.Second)))
 			})
 		})
 	})
@@ -328,7 +374,7 @@ var _ = Describe("Pipeline", func() {
 
 		Context("when the pipeline is paused", func() {
 			BeforeEach(func() {
-				Expect(pipeline.Pause()).To(Succeed())
+				Expect(pipeline.Pause("")).To(Succeed())
 			})
 
 			It("unpauses the pipeline", func() {

@@ -67,7 +67,6 @@ type Pipeline interface {
 	ConfigVersion() ConfigVersion
 	Config() (atc.Config, error)
 	Public() bool
-	Paused() bool
 	Archived() bool
 	LastUpdated() time.Time
 
@@ -110,7 +109,10 @@ type Pipeline interface {
 	Expose() error
 	Hide() error
 
-	Pause() error
+	Paused() bool
+	PausedBy() string
+	PausedAt() time.Time
+	Pause(pausedBy string) error
 	Unpause() error
 
 	Archive() error
@@ -135,6 +137,8 @@ type pipeline struct {
 	display       *atc.DisplayConfig
 	configVersion ConfigVersion
 	paused        bool
+	pausedBy      string
+	pausedAt      time.Time
 	public        bool
 	archived      bool
 	lastUpdated   time.Time
@@ -162,8 +166,9 @@ var pipelinesQuery = psql.Select(`
 		p.last_updated,
 		p.parent_job_id,
 		p.parent_build_id,
-		p.instance_vars
-	`).
+		p.instance_vars,
+		p.paused_by,
+		p.paused_at`).
 	From("pipelines p").
 	LeftJoin("teams t ON p.team_id = t.id")
 
@@ -174,20 +179,21 @@ func newPipeline(conn Conn, lockFactory lock.LockFactory) *pipeline {
 	}
 }
 
-func (p *pipeline) ID() int                        { return p.id }
-func (p *pipeline) Name() string                   { return p.name }
-func (p *pipeline) TeamID() int                    { return p.teamID }
-func (p *pipeline) TeamName() string               { return p.teamName }
-func (p *pipeline) ParentJobID() int               { return p.parentJobID }
-func (p *pipeline) ParentBuildID() int             { return p.parentBuildID }
-func (p *pipeline) InstanceVars() atc.InstanceVars { return p.instanceVars }
-func (p *pipeline) Groups() atc.GroupConfigs       { return p.groups }
-
+func (p *pipeline) ID() int                          { return p.id }
+func (p *pipeline) Name() string                     { return p.name }
+func (p *pipeline) TeamID() int                      { return p.teamID }
+func (p *pipeline) TeamName() string                 { return p.teamName }
+func (p *pipeline) ParentJobID() int                 { return p.parentJobID }
+func (p *pipeline) ParentBuildID() int               { return p.parentBuildID }
+func (p *pipeline) InstanceVars() atc.InstanceVars   { return p.instanceVars }
+func (p *pipeline) Groups() atc.GroupConfigs         { return p.groups }
 func (p *pipeline) VarSources() atc.VarSourceConfigs { return p.varSources }
 func (p *pipeline) Display() *atc.DisplayConfig      { return p.display }
 func (p *pipeline) ConfigVersion() ConfigVersion     { return p.configVersion }
 func (p *pipeline) Public() bool                     { return p.public }
 func (p *pipeline) Paused() bool                     { return p.paused }
+func (p *pipeline) PausedAt() time.Time              { return p.pausedAt }
+func (p *pipeline) PausedBy() string                 { return p.pausedBy }
 func (p *pipeline) Archived() bool                   { return p.archived }
 func (p *pipeline) LastUpdated() time.Time           { return p.lastUpdated }
 
@@ -592,8 +598,8 @@ func (p *pipeline) Job(name string) (Job, bool, error) {
 func (p *pipeline) Jobs() (Jobs, error) {
 	rows, err := jobsQuery.
 		Where(sq.Eq{
-			"pipeline_id": p.id,
-			"active":      true,
+			"j.pipeline_id": p.id,
+			"active":        true,
 		}).
 		OrderBy("j.id ASC").
 		RunWith(p.conn).
@@ -631,16 +637,20 @@ func (p *pipeline) Dashboard() ([]atc.JobSummary, error) {
 	return dashboard, nil
 }
 
-func (p *pipeline) Pause() error {
+func (p *pipeline) Pause(pausedBy string) error {
 	_, err := psql.Update("pipelines").
 		Set("paused", true).
-		Where(sq.Eq{
-			"id": p.id,
-		}).
+		Set("paused_at", time.Now()).
+		Set("paused_by", pausedBy).
+		Where(sq.Eq{"id": p.id, "paused": false}).
 		RunWith(p.conn).
 		Exec()
 
-	return err
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (p *pipeline) Unpause() error {
@@ -653,9 +663,9 @@ func (p *pipeline) Unpause() error {
 
 	_, err = psql.Update("pipelines").
 		Set("paused", false).
-		Where(sq.Eq{
-			"id": p.id,
-		}).
+		Set("paused_by", nil).
+		Set("paused_at", nil).
+		Where(sq.Eq{"id": p.id, "paused": true}).
 		RunWith(tx).
 		Exec()
 
@@ -691,10 +701,10 @@ func (p *pipeline) archive(tx Tx) error {
 		Set("archived", true).
 		Set("last_updated", sq.Expr("now()")).
 		Set("paused", true).
+		Set("paused_by", nil).
+		Set("paused_at", time.Now()).
 		Set("version", 0).
-		Where(sq.Eq{
-			"id": p.id,
-		}).
+		Where(sq.Eq{"id": p.id}).
 		RunWith(tx).
 		Exec()
 

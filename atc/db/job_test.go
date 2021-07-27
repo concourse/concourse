@@ -166,7 +166,7 @@ var _ = Describe("Job", func() {
 			BeforeEach(func() {
 				initialRequestedTime = job.ScheduleRequestedTime()
 
-				err := job.Pause()
+				err := job.Pause("")
 				Expect(err).ToNot(HaveOccurred())
 
 				found, err := job.Reload()
@@ -180,6 +180,31 @@ var _ = Describe("Job", func() {
 
 			It("does not request schedule on job", func() {
 				Expect(job.ScheduleRequestedTime()).Should(BeTemporally("==", initialRequestedTime))
+			})
+
+			It("was paused by should be set", func() {
+				Expect(job.PausedBy()).To(Equal(""))
+			})
+
+			It("was paused at should be set", func() {
+				Expect(job.PausedAt()).Should(BeTemporally("~", time.Now(), time.Duration(1*time.Second)))
+			})
+		})
+
+		Context("when pausing with a user", func() {
+			BeforeEach(func() {
+				initialRequestedTime = job.ScheduleRequestedTime()
+
+				err := job.Pause("concourse")
+				Expect(err).ToNot(HaveOccurred())
+
+				found, err := job.Reload()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+			})
+
+			It("was paused by should be set", func() {
+				Expect(job.PausedBy()).To(Equal("concourse"))
 			})
 		})
 
@@ -200,7 +225,7 @@ var _ = Describe("Job", func() {
 			})
 
 			It("requests schedule on job", func() {
-				Expect(job.ScheduleRequestedTime()).Should(BeTemporally(">", initialRequestedTime))
+				Expect(job.ScheduleRequestedTime()).Should(BeTemporally("~", initialRequestedTime, time.Second))
 			})
 		})
 
@@ -891,7 +916,7 @@ var _ = Describe("Job", func() {
 				Context("when build exists", func() {
 					Context("when the pipeline is paused", func() {
 						BeforeEach(func() {
-							err := pipeline.Pause()
+							err := pipeline.Pause("")
 							Expect(err).ToNot(HaveOccurred())
 						})
 
@@ -905,7 +930,7 @@ var _ = Describe("Job", func() {
 
 					Context("when the job is paused", func() {
 						BeforeEach(func() {
-							err := job.Pause()
+							err := job.Pause("")
 							Expect(err).ToNot(HaveOccurred())
 						})
 
@@ -1205,7 +1230,7 @@ var _ = Describe("Job", func() {
 					err = otherSerialJob.SaveNextInputMapping(nil, true)
 					Expect(err).NotTo(HaveOccurred())
 
-					err = job.Pause()
+					err = job.Pause("")
 					Expect(err).NotTo(HaveOccurred())
 				})
 

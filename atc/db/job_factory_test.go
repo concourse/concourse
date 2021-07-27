@@ -516,7 +516,7 @@ var _ = Describe("JobFactory", func() {
 				err = job1.RequestSchedule()
 				Expect(err).ToNot(HaveOccurred())
 
-				err = job1.Pause()
+				err = job1.Pause("")
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -572,7 +572,7 @@ var _ = Describe("JobFactory", func() {
 				err = job1.RequestSchedule()
 				Expect(err).ToNot(HaveOccurred())
 
-				err = pipeline1.Pause()
+				err = pipeline1.Pause("")
 				Expect(err).ToNot(HaveOccurred())
 			})
 

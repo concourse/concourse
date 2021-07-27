@@ -932,6 +932,8 @@ type alias Job =
     , finishedBuild : Maybe Build
     , transitionBuild : Maybe Build
     , paused : Bool
+    , pausedBy : Maybe String
+    , pausedAt : Maybe Time.Posix
     , disableManualTrigger : Bool
     , inputs : List JobInput
     , outputs : List JobOutput
@@ -984,6 +986,8 @@ decodeJob =
         |> andMap (Json.Decode.maybe (Json.Decode.field "finished_build" decodeBuild))
         |> andMap (Json.Decode.maybe (Json.Decode.field "transition_build" decodeBuild))
         |> andMap (defaultTo False <| Json.Decode.field "paused" Json.Decode.bool)
+        |> andMap (Json.Decode.maybe (Json.Decode.field "paused_by" Json.Decode.string))
+        |> andMap (Json.Decode.maybe (Json.Decode.field "paused_at" (Json.Decode.map dateFromSeconds Json.Decode.int)))
         |> andMap (defaultTo False <| Json.Decode.field "disable_manual_trigger" Json.Decode.bool)
         |> andMap (defaultTo [] <| Json.Decode.field "inputs" <| Json.Decode.list decodeJobInput)
         |> andMap (defaultTo [] <| Json.Decode.field "outputs" <| Json.Decode.list decodeJobOutput)
@@ -1074,6 +1078,8 @@ type alias Pipeline =
     , name : PipelineName
     , instanceVars : InstanceVars
     , paused : Bool
+    , pausedBy : Maybe String
+    , pausedAt : Maybe Time.Posix
     , archived : Bool
     , public : Bool
     , teamName : TeamName
@@ -1111,6 +1117,8 @@ decodePipeline =
         |> andMap (Json.Decode.field "name" Json.Decode.string)
         |> andMap (defaultTo Dict.empty <| Json.Decode.field "instance_vars" <| decodeInstanceVars)
         |> andMap (Json.Decode.field "paused" Json.Decode.bool)
+        |> andMap (Json.Decode.maybe (Json.Decode.field "paused_by" Json.Decode.string))
+        |> andMap (Json.Decode.maybe (Json.Decode.field "paused_at" (Json.Decode.map dateFromSeconds Json.Decode.int)))
         |> andMap (Json.Decode.field "archived" Json.Decode.bool)
         |> andMap (Json.Decode.field "public" Json.Decode.bool)
         |> andMap (Json.Decode.field "team_name" Json.Decode.string)
