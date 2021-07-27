@@ -126,8 +126,7 @@ var jobsQuery = psql.Select(
 	"j.disable_manual_trigger",
 	"j.paused_by",
 	"j.paused_at").
-	From("jobs j").
-	LeftJoin("pipelines p ON j.pipeline_id = p.id").
+	From("jobs j, pipelines p").
 	LeftJoin("teams t ON p.team_id = t.id").
 	Where(sq.Expr("j.pipeline_id = p.id"))
 
@@ -147,8 +146,8 @@ type job struct {
 	id                    int
 	name                  string
 	paused                bool
-	pausedBy              sql.NullString
-	pausedAt              sql.NullTime
+	pausedBy              string
+	pausedAt              time.Time
 	public                bool
 	firstLoggedBuildID    int
 	teamID                int
@@ -210,6 +209,8 @@ func (jobs Jobs) Configs() (atc.JobConfigs, error) {
 func (j *job) ID() int                          { return j.id }
 func (j *job) Name() string                     { return j.name }
 func (j *job) Paused() bool                     { return j.paused }
+func (j *job) PausedAt() time.Time              { return j.pausedAt }
+func (j *job) PausedBy() string                 { return j.pausedBy }
 func (j *job) Public() bool                     { return j.public }
 func (j *job) FirstLoggedBuildID() int          { return j.firstLoggedBuildID }
 func (j *job) TeamID() int                      { return j.teamID }
@@ -467,22 +468,6 @@ func (j *job) Unpause() error {
 	}
 
 	return nil
-}
-
-func (j *job) PausedAt() time.Time {
-	if j.pausedAt.Valid {
-		return j.pausedAt.Time
-	} else {
-		return time.Time{}
-	}
-}
-
-func (j *job) PausedBy() string {
-	if j.pausedBy.Valid {
-		return j.pausedBy.String
-	} else {
-		return ""
-	}
 }
 
 func (j *job) FinishedAndNextBuild() (Build, Build, error) {
@@ -1408,8 +1393,8 @@ func (j *job) isPipelineOrJobPaused(tx Tx) (bool, error) {
 
 	var paused bool
 	err := psql.Select("paused").
-		From("pipelines p").
-		Where(sq.Eq{"p.id": j.pipelineID}).
+		From("pipelines").
+		Where(sq.Eq{"id": j.pipelineID}).
 		RunWith(tx).
 		QueryRow().
 		Scan(&paused)
@@ -1425,9 +1410,11 @@ func scanJob(j *job, row scannable) error {
 		config               sql.NullString
 		nonce                sql.NullString
 		pipelineInstanceVars sql.NullString
+		pausedBy             sql.NullString
+		pausedAt             sql.NullTime
 	)
 
-	err := row.Scan(&j.id, &j.name, &config, &j.paused, &j.public, &j.firstLoggedBuildID, &j.pipelineID, &j.pipelineName, &pipelineInstanceVars, &j.teamID, &j.teamName, &nonce, pq.Array(&j.tags), &j.hasNewInputs, &j.scheduleRequestedTime, &j.maxInFlight, &j.disableManualTrigger, &j.pausedBy, &j.pausedAt)
+	err := row.Scan(&j.id, &j.name, &config, &j.paused, &j.public, &j.firstLoggedBuildID, &j.pipelineID, &j.pipelineName, &pipelineInstanceVars, &j.teamID, &j.teamName, &nonce, pq.Array(&j.tags), &j.hasNewInputs, &j.scheduleRequestedTime, &j.maxInFlight, &j.disableManualTrigger, &pausedBy, &pausedAt)
 	if err != nil {
 		return err
 	}
@@ -1445,6 +1432,14 @@ func scanJob(j *job, row scannable) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	if pausedBy.Valid {
+		j.pausedBy = pausedBy.String
+	}
+
+	if pausedAt.Valid {
+		j.pausedAt = pausedAt.Time
 	}
 
 	return nil

@@ -108,7 +108,7 @@ func (command *PausedPipelinesCommand) filter(pipelines []atc.Pipeline) []atc.Pi
 	pausedPipelines := make([]atc.Pipeline, 0)
 	for _, p := range pipelines {
 		if p.Paused {
-			pipelines = append(pipelines, p)
+			pausedPipelines = append(pausedPipelines, p)
 		}
 	}
 	return pausedPipelines

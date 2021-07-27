@@ -191,7 +191,7 @@ var _ = Describe("Job", func() {
 			})
 		})
 
-		Context("when pausing with a request", func() {
+		Context("when pausing with a user", func() {
 			BeforeEach(func() {
 				initialRequestedTime = job.ScheduleRequestedTime()
 

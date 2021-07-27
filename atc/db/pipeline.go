@@ -137,8 +137,8 @@ type pipeline struct {
 	display       *atc.DisplayConfig
 	configVersion ConfigVersion
 	paused        bool
-	pausedBy      sql.NullString
-	pausedAt      sql.NullTime
+	pausedBy      string
+	pausedAt      time.Time
 	public        bool
 	archived      bool
 	lastUpdated   time.Time
@@ -179,29 +179,30 @@ func newPipeline(conn Conn, lockFactory lock.LockFactory) *pipeline {
 	}
 }
 
-func (p *pipeline) ID() int                        { return p.id }
-func (p *pipeline) Name() string                   { return p.name }
-func (p *pipeline) TeamID() int                    { return p.teamID }
-func (p *pipeline) TeamName() string               { return p.teamName }
-func (p *pipeline) ParentJobID() int               { return p.parentJobID }
-func (p *pipeline) ParentBuildID() int             { return p.parentBuildID }
-func (p *pipeline) InstanceVars() atc.InstanceVars { return p.instanceVars }
-func (p *pipeline) Groups() atc.GroupConfigs       { return p.groups }
-
+func (p *pipeline) ID() int                          { return p.id }
+func (p *pipeline) Name() string                     { return p.name }
+func (p *pipeline) TeamID() int                      { return p.teamID }
+func (p *pipeline) TeamName() string                 { return p.teamName }
+func (p *pipeline) ParentJobID() int                 { return p.parentJobID }
+func (p *pipeline) ParentBuildID() int               { return p.parentBuildID }
+func (p *pipeline) InstanceVars() atc.InstanceVars   { return p.instanceVars }
+func (p *pipeline) Groups() atc.GroupConfigs         { return p.groups }
 func (p *pipeline) VarSources() atc.VarSourceConfigs { return p.varSources }
 func (p *pipeline) Display() *atc.DisplayConfig      { return p.display }
 func (p *pipeline) ConfigVersion() ConfigVersion     { return p.configVersion }
 func (p *pipeline) Public() bool                     { return p.public }
 func (p *pipeline) Paused() bool                     { return p.paused }
+func (p *pipeline) PausedAt() time.Time              { return p.pausedAt }
+func (p *pipeline) PausedBy() string                 { return p.pausedBy }
 func (p *pipeline) Archived() bool                   { return p.archived }
 func (p *pipeline) LastUpdated() time.Time           { return p.lastUpdated }
 
 func (p *pipeline) CheckPaused() (bool, error) {
 	var paused bool
 
-	err := psql.Select("p.paused").
-		From("pipelines p").
-		Where(sq.Eq{"p.id": p.id}).
+	err := psql.Select("paused").
+		From("pipelines").
+		Where(sq.Eq{"id": p.id}).
 		RunWith(p.conn).
 		QueryRow().
 		Scan(&paused)
@@ -678,22 +679,6 @@ func (p *pipeline) Unpause() error {
 	}
 
 	return tx.Commit()
-}
-
-func (p *pipeline) PausedAt() time.Time {
-	if p.pausedAt.Valid {
-		return p.pausedAt.Time
-	} else {
-		return time.Time{}
-	}
-}
-
-func (p *pipeline) PausedBy() string {
-	if p.pausedBy.Valid {
-		return p.pausedBy.String
-	} else {
-		return ""
-	}
 }
 
 func (p *pipeline) Archive() error {

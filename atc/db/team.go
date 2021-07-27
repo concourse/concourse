@@ -1426,8 +1426,10 @@ func scanPipeline(p *pipeline, scan scannable) error {
 		parentJobID   sql.NullInt64
 		parentBuildID sql.NullInt64
 		instanceVars  sql.NullString
+		pausedBy      sql.NullString
+		pausedAt      sql.NullTime
 	)
-	err := scan.Scan(&p.id, &p.name, &groups, &varSources, &display, &nonce, &p.configVersion, &p.teamID, &p.teamName, &p.paused, &p.public, &p.archived, &lastUpdated, &parentJobID, &parentBuildID, &instanceVars, &p.pausedBy, &p.pausedAt)
+	err := scan.Scan(&p.id, &p.name, &groups, &varSources, &display, &nonce, &p.configVersion, &p.teamID, &p.teamName, &p.paused, &p.public, &p.archived, &lastUpdated, &parentJobID, &parentBuildID, &instanceVars, &pausedBy, &pausedAt)
 	if err != nil {
 		return err
 	}
@@ -1479,6 +1481,14 @@ func scanPipeline(p *pipeline, scan scannable) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	if pausedBy.Valid {
+		p.pausedBy = pausedBy.String
+	}
+
+	if pausedAt.Valid {
+		p.pausedAt = pausedAt.Time
 	}
 
 	return nil
