@@ -2,4 +2,7 @@ version: '3'
 
 services:
   worker:
-    entrypoint: /src/integration/worker/overrides/restartable-entrypoint.sh
+    entrypoint: /overrides/restartable-entrypoint.sh
+    volumes:
+    - ../hack/keys:/concourse-keys
+    - ./worker/overrides:/overrides
