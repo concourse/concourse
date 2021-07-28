@@ -6,10 +6,6 @@
 
 [by](https://creativecommons.org/licenses/by-nc-nd/2.0/) [atmx](https://www.flickr.com/photos/atmtx/)
 
-## reporting issues and requesting features
-
-please report all issues and feature requests in [concourse/concourse](https://github.com/concourse/concourse/issues)
-
 ## about
 
 *baggageclaim* allows you to create and layer volumes on a remote server. This
