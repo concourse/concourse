@@ -1,0 +1,56 @@
+---
+resource_types:
+- name: pull-request
+  type: registry-image
+  source: {repository: teliaoss/github-pr-resource}
+
+resources:
+- name: baggageclaim-pr
+  type: pull-request
+  icon: source-pull
+  source:
+    repository: concourse/baggageclaim
+    access_token: ((pull_requests_access_token))
+
+- name: baggageclaim-master
+  type: git
+  icon: github
+  source:
+    uri: https://github.com/concourse/baggageclaim
+
+- name: baggageclaim-ci
+  type: registry-image
+  icon: docker
+  source: {repository: concourse/baggageclaim-ci}
+
+jobs:
+- name: unit
+  public: true
+  on_failure:
+    put: baggageclaim-pr
+    params: {path: baggageclaim-pr, status: failure, context: unit}
+    tags: [pr]
+  on_success:
+    put: baggageclaim-pr
+    params: {path: baggageclaim-pr, status: success, context: unit}
+    tags: [pr]
+  plan:
+  - in_parallel:
+    - get: baggageclaim-pr
+      trigger: true
+      version: every
+      tags: [pr]
+    - get: baggageclaim-master
+      tags: [pr]
+    - get: baggageclaim-ci
+      tags: [pr]
+  - put: baggageclaim-pr
+    params: {path: baggageclaim-pr, status: pending, context: unit}
+    tags: [pr]
+  - task: unit-linux
+    image: baggageclaim-ci
+    privileged: true
+    timeout: 1h
+    file: baggageclaim-master/ci/unit-linux.yml
+    input_mapping: {baggageclaim: baggageclaim-pr}
+    tags: [pr]
