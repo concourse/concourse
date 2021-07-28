@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/baggageclaim"
+	"github.com/concourse/concourse/worker/baggageclaim"
 )
 
 type FakeClient struct {

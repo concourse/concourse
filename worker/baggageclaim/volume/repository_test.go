@@ -12,9 +12,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/concourse/baggageclaim/uidgid/uidgidfakes"
-	"github.com/concourse/baggageclaim/volume"
-	"github.com/concourse/baggageclaim/volume/volumefakes"
+	"github.com/concourse/concourse/worker/baggageclaim/uidgid/uidgidfakes"
+	"github.com/concourse/concourse/worker/baggageclaim/volume"
+	"github.com/concourse/concourse/worker/baggageclaim/volume/volumefakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/baggageclaim"
-	"github.com/concourse/baggageclaim/client"
-	"github.com/concourse/baggageclaim/volume"
+	"github.com/concourse/concourse/worker/baggageclaim"
+	"github.com/concourse/concourse/worker/baggageclaim/client"
+	"github.com/concourse/concourse/worker/baggageclaim/volume"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"

@@ -8,11 +8,11 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
-	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/vars"
+	"github.com/concourse/concourse/worker/baggageclaim"
 	"sigs.k8s.io/yaml"
 )
 

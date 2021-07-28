@@ -10,8 +10,8 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
-	"github.com/concourse/baggageclaim"
-	"github.com/concourse/baggageclaim/volume"
+	"github.com/concourse/concourse/worker/baggageclaim"
+	"github.com/concourse/concourse/worker/baggageclaim/volume"
 	uuid "github.com/nu7hatch/gouuid"
 	"github.com/tedsuo/rata"
 )

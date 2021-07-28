@@ -5,9 +5,9 @@ import (
 	"io"
 
 	"code.cloudfoundry.org/lager/lagerctx"
-	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc/compression"
 	"github.com/concourse/concourse/atc/runtime"
+	"github.com/concourse/concourse/worker/baggageclaim"
 )
 
 //counterfeiter:generate . ArtifactStreamer

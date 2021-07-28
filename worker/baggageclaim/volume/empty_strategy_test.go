@@ -4,8 +4,8 @@ import (
 	"errors"
 
 	"code.cloudfoundry.org/lager/lagertest"
-	. "github.com/concourse/baggageclaim/volume"
-	"github.com/concourse/baggageclaim/volume/volumefakes"
+	. "github.com/concourse/concourse/worker/baggageclaim/volume"
+	"github.com/concourse/concourse/worker/baggageclaim/volume/volumefakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

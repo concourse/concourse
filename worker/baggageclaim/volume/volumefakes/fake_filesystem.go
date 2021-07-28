@@ -4,7 +4,7 @@ package volumefakes
 import (
 	"sync"
 
-	"github.com/concourse/baggageclaim/volume"
+	"github.com/concourse/concourse/worker/baggageclaim/volume"
 )
 
 type FakeFilesystem struct {

@@ -4,7 +4,7 @@ package baggageclaimfakes
 import (
 	"sync"
 
-	"github.com/concourse/baggageclaim"
+	"github.com/concourse/concourse/worker/baggageclaim"
 )
 
 type FakeVolumeFuture struct {

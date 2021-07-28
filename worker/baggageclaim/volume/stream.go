@@ -3,7 +3,7 @@ package volume
 import (
 	"io"
 
-	"github.com/concourse/baggageclaim/uidgid"
+	"github.com/concourse/concourse/worker/baggageclaim/uidgid"
 )
 
 //go:generate counterfeiter . Streamer

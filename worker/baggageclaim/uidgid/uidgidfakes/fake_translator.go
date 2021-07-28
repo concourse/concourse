@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"sync"
 
-	"github.com/concourse/baggageclaim/uidgid"
+	"github.com/concourse/concourse/worker/baggageclaim/uidgid"
 )
 
 type FakeTranslator struct {

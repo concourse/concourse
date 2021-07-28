@@ -4,7 +4,7 @@ import (
 	"compress/gzip"
 	"io"
 
-	"github.com/concourse/baggageclaim"
+	"github.com/concourse/concourse/worker/baggageclaim"
 )
 
 type gzipCompression struct{}
