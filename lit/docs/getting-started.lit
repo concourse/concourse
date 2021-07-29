@@ -22,6 +22,11 @@ tutorial.
 It will also help if you know how to read YAML. We have a quick
 \reference{intro-to-yaml} if you're not familiar with the syntax.
 
+\aside{
+  If you have any feedback for this tutorial please share it in \link{this
+  Github discussion}{https://github.com/concourse/concourse/discussions/7353}
+}
+
 \table-of-contents
 
 \split-sections

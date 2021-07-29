@@ -182,4 +182,9 @@
   }
 
   The next section will introduce you to the concept of \reference{resources}.
+
+  \aside{
+    If you have any feedback for this tutorial please share it in \link{this
+    Github discussion}{https://github.com/concourse/concourse/discussions/7353}
+  }
 }

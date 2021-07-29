@@ -80,4 +80,9 @@
     section. If you refresh this page you should see the web UI in the frame below.
 
     \frame{http://localhost:8080}{500px}
+
+    \aside{
+      If you have any feedback for this tutorial please share it in \link{this
+      Github discussion}{https://github.com/concourse/concourse/discussions/7353}
+    }
 }
