@@ -265,6 +265,20 @@ var _ = Describe("CheckDelegate", func() {
 						Expect(run).To(BeTrue())
 					})
 				})
+
+				Context("when the build fails with the create time earlier the last check start time", func() {
+					BeforeEach(func() {
+						fakeBuild.CreateTimeReturns(time.Now().Add(-5 * time.Second))
+						fakeResourceConfigScope.LastCheckReturns(db.LastCheck{
+							StartTime: time.Now(),
+							Succeeded: false,
+						}, nil)
+					})
+
+					It("returns true", func() {
+						Expect(run).To(BeTrue())
+					})
+				})
 			})
 
 			Context("when getting the last check end time errors", func() {
@@ -274,10 +288,6 @@ var _ = Describe("CheckDelegate", func() {
 
 				It("returns an error", func() {
 					Expect(runErr).To(HaveOccurred())
-				})
-
-				It("releases the lock", func() {
-					Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
 				})
 			})
 
@@ -301,8 +311,8 @@ var _ = Describe("CheckDelegate", func() {
 						Expect(run).To(BeFalse())
 					})
 
-					It("releases the lock", func() {
-						Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
+					It("never attempts to acquire the lock", func() {
+						Expect(fakeResourceConfigScope.AcquireResourceCheckingLockCallCount()).To(Equal(0))
 					})
 				})
 
@@ -317,6 +327,29 @@ var _ = Describe("CheckDelegate", func() {
 
 					It("returns true", func() {
 						Expect(run).To(BeTrue())
+					})
+				})
+
+				Context("when the last check gets updated after the first loop", func() {
+					BeforeEach(func() {
+						fakeResourceConfigScope.LastCheckReturnsOnCall(0, db.LastCheck{
+							StartTime: now.Add(-(interval + 10)),
+							EndTime:   now.Add(-(interval - 1)),
+							Succeeded: true,
+						}, nil)
+						fakeResourceConfigScope.LastCheckReturnsOnCall(1, db.LastCheck{
+							StartTime: now.Add(-(interval + 10)),
+							EndTime:   now.Add(-(interval + 1)),
+							Succeeded: true,
+						}, nil)
+					})
+
+					It("exits out of loop and does not run", func() {
+						Expect(run).To(BeFalse())
+					})
+
+					It("never attempts to acquire lock", func() {
+						Expect(fakeResourceConfigScope.AcquireResourceCheckingLockCallCount()).To(Equal(0))
 					})
 				})
 			})

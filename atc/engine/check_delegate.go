@@ -110,7 +110,6 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 	}
 
 	var err error
-
 	var interval time.Duration
 	if d.plan.Interval != "" {
 		interval, err = time.ParseDuration(d.plan.Interval)
@@ -122,6 +121,29 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 	var lock lock.Lock = lock.NoopLock{}
 	if d.plan.IsPeriodic() {
 		for {
+			lastCheck, err := scope.LastCheck()
+			if err != nil {
+				return nil, false, err
+			}
+
+			if d.build.IsManuallyTriggered() { // if the check was manually triggered
+				// If the check plan does not provide a from version
+				if d.plan.FromVersion == nil {
+					// If the last check succeeded and the check was created before the last
+					// check start time, then don't run
+					// This is so that we will avoid running redundant mnaual checks
+					if lastCheck.Succeeded && d.build.CreateTime().Before(lastCheck.StartTime) {
+						return nil, false, nil
+					}
+				}
+			} else {
+				// For periodic checks, if the current time is before the end of the last
+				// check + the interval, do not run
+				if d.clock.Now().Before(lastCheck.EndTime.Add(interval)) {
+					return nil, false, nil
+				}
+			}
+
 			var acquired bool
 			lock, acquired, err = scope.AcquireResourceCheckingLock(logger)
 			if err != nil {
@@ -138,52 +160,17 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 			case <-d.clock.After(time.Second):
 			}
 		}
-	}
-
-	lastCheck, err := scope.LastCheck()
-	if err != nil {
-		if releaseErr := lock.Release(); releaseErr != nil {
-			logger.Error("failed-to-release-lock", releaseErr)
-		}
-		return nil, false, err
-	}
-
-	shouldRun := false
-	if !d.plan.IsPeriodic() {
-		if !lastCheck.Succeeded || lastCheck.EndTime.Before(d.build.StartTime()) {
-			shouldRun = true
-		}
-	} else if d.build.IsManuallyTriggered() {
-		// If a manually triggered check takes a from version, then it should be run.
-		if d.plan.FromVersion != nil {
-			shouldRun = true
-		} else {
-			// ignore interval for manually triggered builds.
-			// avoid running redundant checks
-			shouldRun = !lastCheck.Succeeded || d.build.CreateTime().After(lastCheck.StartTime)
-		}
 	} else {
-		shouldRun = !d.clock.Now().Before(lastCheck.EndTime.Add(interval))
-	}
-
-	// XXX(check-refactor): we could add an else{} case and potentially sleep
-	// here until runAt is reached.
-	//
-	// then the check build queueing logic is to just make sure there's a build
-	// running for every resource, without having to check if intervals have
-	// elapsed.
-	//
-	// this could be expanded upon to short-circuit the waiting with events
-	// triggered by webhooks so that webhooks are super responsive: rather than
-	// queueing a build, it would just wake up a goroutine.
-
-	if !shouldRun {
-		err := lock.Release()
+		lastCheck, err := scope.LastCheck()
 		if err != nil {
-			return nil, false, fmt.Errorf("release lock: %w", err)
+			return nil, false, err
 		}
 
-		return nil, false, nil
+		// If last check succeeded and the end of the last check is after the start
+		// of this check, then don't run
+		if lastCheck.Succeeded && lastCheck.EndTime.After(d.build.StartTime()) {
+			return nil, false, nil
+		}
 	}
 
 	return lock, true, nil
