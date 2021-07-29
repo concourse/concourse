@@ -3,8 +3,12 @@ module ApplicationTests exposing (all)
 import Application.Application as Application
 import Browser
 import Common exposing (queryView)
+import Concourse
+import Data
+import Dict
 import Expect
 import HoverState
+import Message.Callback as Callback
 import Message.Effects as Effects
 import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription as Subscription exposing (Delivery(..))
@@ -142,4 +146,122 @@ all =
                     |> .session
                     |> .hovered
                     |> Expect.equal HoverState.NoHover
+        , describe "pipeline groups propagation"
+            [ test "navigating through sub routes of a pipeline persists the groups" <|
+                \_ ->
+                    Common.initRoute
+                        (Routes.Pipeline
+                            { id =
+                                { teamName = "t"
+                                , pipelineName = "p"
+                                , pipelineInstanceVars = Dict.empty
+                                }
+                            , groups = [ "test-group" ]
+                            }
+                        )
+                        |> Application.handleCallback
+                            (Callback.AllPipelinesFetched <| Ok [ Data.pipeline "t" 1 |> Data.withName "p" ])
+                        |> Tuple.first
+                        |> Application.handleDelivery
+                            (RouteChanged <|
+                                Routes.Job
+                                    { id =
+                                        { teamName = "t"
+                                        , pipelineName = "p"
+                                        , pipelineInstanceVars = Dict.empty
+                                        , jobName = "j"
+                                        }
+                                    , page = Nothing
+                                    , groups = []
+                                    }
+                            )
+                        |> Tuple.first
+                        |> Application.handleDelivery
+                            (RouteChanged <|
+                                Routes.Build
+                                    { id =
+                                        { teamName = "t"
+                                        , pipelineName = "p"
+                                        , pipelineInstanceVars = Dict.empty
+                                        , jobName = "j"
+                                        , buildName = "b"
+                                        }
+                                    , highlight = Routes.HighlightNothing
+                                    , groups = []
+                                    }
+                            )
+                        |> Tuple.first
+                        |> Application.handleDelivery
+                            (RouteChanged <|
+                                Routes.Resource
+                                    { id =
+                                        { teamName = "t"
+                                        , pipelineName = "p"
+                                        , pipelineInstanceVars = Dict.empty
+                                        , resourceName = "r"
+                                        }
+                                    , page = Nothing
+                                    , version = Nothing
+                                    , groups = []
+                                    }
+                            )
+                        |> Tuple.first
+                        |> Application.handleDelivery
+                            (RouteChanged <|
+                                Routes.Causality
+                                    { id =
+                                        { teamName = "t"
+                                        , pipelineName = "p"
+                                        , pipelineInstanceVars = Dict.empty
+                                        , resourceName = "r"
+                                        , versionID = 1
+                                        }
+                                    , direction = Concourse.Downstream
+                                    , version = Nothing
+                                    , groups = []
+                                    }
+                            )
+                        |> Tuple.first
+                        |> Common.queryView
+                        |> Query.find [ id "top-bar-app" ]
+                        |> Query.has
+                            [ Common.routeHref <|
+                                Routes.Pipeline
+                                    { id =
+                                        { teamName = "t"
+                                        , pipelineName = "p"
+                                        , pipelineInstanceVars = Dict.empty
+                                        }
+                                    , groups = [ "test-group" ]
+                                    }
+                            ]
+            , test "navigating to no groups pipeline page does not propagate the groups" <|
+                \_ ->
+                    Common.initRoute
+                        (Routes.Pipeline
+                            { id =
+                                { teamName = "t"
+                                , pipelineName = "p"
+                                , pipelineInstanceVars = Dict.empty
+                                }
+                            , groups = [ "test-group" ]
+                            }
+                        )
+                        |> Application.handleDelivery
+                            (RouteChanged <|
+                                Routes.Pipeline
+                                    { id =
+                                        { teamName = "t"
+                                        , pipelineName = "p"
+                                        , pipelineInstanceVars = Dict.empty
+                                        }
+                                    , groups = []
+                                    }
+                            )
+                        |> Tuple.first
+                        |> .session
+                        |> .route
+                        |> Routes.getGroups
+                        |> Expect.equal []
+            ]
         ]

@@ -683,6 +683,7 @@ view session model =
                     Routes.Build
                         { id = buildId
                         , highlight = model.highlight
+                        , groups = []
                         }
     in
     Html.div
@@ -745,6 +746,7 @@ breadcrumbs session model =
                 Routes.Job
                     { id = jobId
                     , page = Nothing
+                    , groups = Routes.getGroups session.route
                     }
 
         ( _, JobBuildPage buildId ) ->
@@ -752,6 +754,7 @@ breadcrumbs session model =
                 Routes.Build
                     { id = buildId
                     , highlight = model.highlight
+                    , groups = Routes.getGroups session.route
                     }
 
         _ ->

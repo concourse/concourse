@@ -154,6 +154,7 @@ all =
                                                     { id = Data.resourceId |> Data.withResourceName "test"
                                                     , page = Nothing
                                                     , version = Nothing
+                                                    , groups = []
                                                     }
                                       }
                                     ]
@@ -202,6 +203,7 @@ all =
                                                     { id = Data.resourceId |> Data.withResourceName "test"
                                                     , page = Nothing
                                                     , version = Nothing
+                                                    , groups = []
                                                     }
                                       }
                                     ]

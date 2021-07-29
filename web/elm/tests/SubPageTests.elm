@@ -34,6 +34,7 @@ all =
                                 (Routes.Job
                                     { id = Data.shortJobId
                                     , page = Nothing
+                                    , groups = []
                                     }
                                 )
                             )
@@ -51,6 +52,7 @@ all =
                                     { id = Data.shortResourceId
                                     , page = Nothing
                                     , version = Nothing
+                                    , groups = []
                                     }
                                 )
                             )

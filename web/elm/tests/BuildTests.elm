@@ -1306,6 +1306,7 @@ all =
                     buildParams =
                         { id = Data.jobBuildId
                         , highlight = Routes.HighlightNothing
+                        , groups = []
                         }
                 in
                 Common.init "/"
@@ -1826,6 +1827,7 @@ all =
                                 Routes.Build
                                     { id = Data.jobBuildId |> Data.withBuildName "2"
                                     , highlight = Routes.HighlightNothing
+                                    , groups = []
                                     }
                             )
                         >> Tuple.first

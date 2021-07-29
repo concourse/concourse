@@ -401,25 +401,36 @@ redirectToLoginIfNecessary err ( model, effects ) =
 urlUpdate : Routes.Route -> Model -> ( Model, List Effect )
 urlUpdate route model =
     let
+        oldRoute =
+            model.session.route
+
+        newRoute =
+            case route of
+                Routes.Pipeline _ ->
+                    route
+
+                _ ->
+                    Routes.withGroups (Routes.getGroups oldRoute) route
+
         ( newSubmodel, subEffects ) =
-            if route == model.session.route then
+            if newRoute == oldRoute then
                 ( model.subModel, [] )
 
-            else if routeMatchesModel route model then
+            else if routeMatchesModel newRoute model then
                 SubPage.urlUpdate
-                    { from = model.session.route
-                    , to = route
+                    { from = oldRoute
+                    , to = newRoute
                     }
                     ( model.subModel, [] )
 
             else
-                SubPage.init model.session route
+                SubPage.init model.session newRoute
 
         oldSession =
             model.session
 
         newSession =
-            { oldSession | route = route, hovered = HoverState.NoHover }
+            { oldSession | route = newRoute, hovered = HoverState.NoHover }
     in
     ( { model | subModel = newSubmodel, session = newSession }
     , subEffects ++ [ SetFavIcon Nothing ]

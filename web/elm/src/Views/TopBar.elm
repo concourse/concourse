@@ -99,37 +99,37 @@ breadcrumbs session route =
                             []
 
                         Just pipeline ->
-                            pipelineBreadcrumbs session pipeline
+                            pipelineBreadcrumbs session pipeline []
 
-                Routes.Build { id } ->
+                Routes.Build { id, groups } ->
                     case lookupPipeline (byPipelineId id) session of
                         Nothing ->
                             []
 
                         Just pipeline ->
-                            pipelineBreadcrumbs session pipeline
+                            pipelineBreadcrumbs session pipeline groups
                                 ++ [ breadcrumbSeparator
                                    , jobBreadcrumb id.jobName
                                    ]
 
-                Routes.Resource { id } ->
+                Routes.Resource { id, groups } ->
                     case lookupPipeline (byPipelineId id) session of
                         Nothing ->
                             []
 
                         Just pipeline ->
-                            pipelineBreadcrumbs session pipeline
+                            pipelineBreadcrumbs session pipeline groups
                                 ++ [ breadcrumbSeparator
                                    , resourceBreadcrumb id
                                    ]
 
-                Routes.Job { id } ->
+                Routes.Job { id, groups } ->
                     case lookupPipeline (byPipelineId id) session of
                         Nothing ->
                             []
 
                         Just pipeline ->
-                            pipelineBreadcrumbs session pipeline
+                            pipelineBreadcrumbs session pipeline groups
                                 ++ [ breadcrumbSeparator
                                    , jobBreadcrumb id.jobName
                                    ]
@@ -137,13 +137,13 @@ breadcrumbs session route =
                 Routes.Dashboard _ ->
                     [ clusterNameBreadcrumb session ]
 
-                Routes.Causality { id, direction, version } ->
+                Routes.Causality { id, direction, version, groups } ->
                     case lookupPipeline (byPipelineId id) session of
                         Nothing ->
                             []
 
                         Just pipeline ->
-                            pipelineBreadcrumbs session pipeline
+                            pipelineBreadcrumbs session pipeline groups
                                 ++ [ breadcrumbSeparator
                                    , resourceBreadcrumb <| Concourse.resourceIdFromVersionedResourceId id
                                    , breadcrumbSeparator
@@ -193,8 +193,8 @@ clusterNameBreadcrumb session _ =
         [ Html.text session.clusterName ]
 
 
-pipelineBreadcrumbs : Session -> Concourse.Pipeline -> List (Bool -> Html Message)
-pipelineBreadcrumbs session pipeline =
+pipelineBreadcrumbs : Session -> Concourse.Pipeline -> List String -> List (Bool -> Html Message)
+pipelineBreadcrumbs session pipeline groups =
     let
         pipelineGroup =
             session.pipelines
@@ -229,11 +229,11 @@ pipelineBreadcrumbs session pipeline =
      else
         []
     )
-        ++ [ pipelineBreadcrumb inInstanceGroup pipeline ]
+        ++ [ pipelineBreadcrumb inInstanceGroup pipeline groups ]
 
 
-pipelineBreadcrumb : Bool -> Concourse.Pipeline -> Bool -> Html Message
-pipelineBreadcrumb inInstanceGroup pipeline isLastBreadcrumb =
+pipelineBreadcrumb : Bool -> Concourse.Pipeline -> List String -> Bool -> Html Message
+pipelineBreadcrumb inInstanceGroup pipeline groups isLastBreadcrumb =
     let
         text =
             if inInstanceGroup then
@@ -246,7 +246,7 @@ pipelineBreadcrumb inInstanceGroup pipeline isLastBreadcrumb =
         ([ id "breadcrumb-pipeline"
          , href <|
             Routes.toString <|
-                Routes.pipelineRoute pipeline
+                Routes.pipelineRoute pipeline groups
          ]
             ++ Styles.breadcrumbItem True isLastBreadcrumb
         )
