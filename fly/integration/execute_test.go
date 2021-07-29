@@ -265,6 +265,7 @@ run:
 				Type:         "s3",
 				Source:       atc.Source{},
 				TypeImage:    atc.TypeImage{BaseType: "s3"},
+				Interval:     "0s",
 			})
 			expectedGetPlan := planFactory.NewPlan(atc.GetPlan{
 				Name:        "resource-type",
