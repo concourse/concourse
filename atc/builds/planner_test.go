@@ -3,6 +3,7 @@ package builds_test
 import (
 	"encoding/json"
 	"testing"
+	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/builds"
@@ -117,6 +118,7 @@ var factoryTests = []PlannerTest{
 							"name": "some-resource-type",
 							"type": "some-base-resource-type",
 							"resource_type": "some-resource-type",
+							"interval": "1m0s",
 							"source": {
 								 "some": "type-source"
 							},
@@ -200,6 +202,7 @@ var factoryTests = []PlannerTest{
 							"source": {
 								 "some": "child-source"
 							},
+							"interval": "1m0s",
 							"image": {
 								"base_type": "some-base-resource-type",
 								"get_plan": {
@@ -232,6 +235,7 @@ var factoryTests = []PlannerTest{
 										"image": {
 											"base_type": "some-base-resource-type"
 										},
+							      "interval": "1m0s",
 										"tags": [
 											 "tag-1",
 											 "tag-2"
@@ -267,6 +271,7 @@ var factoryTests = []PlannerTest{
 										"image": {
 											"base_type": "some-base-resource-type"
 										},
+							      "interval": "1m0s",
 										"tags": [
 											 "tag-1",
 											 "tag-2"
@@ -355,6 +360,7 @@ var factoryTests = []PlannerTest{
 							"source": {
 								 "some": "child-source"
 							},
+							"interval": "1m0s",
 							"image": {
 								"privileged": true,
 								"base_type": "some-base-resource-type",
@@ -367,6 +373,7 @@ var factoryTests = []PlannerTest{
 										"source": {
 											"some": "type-source"
 										},
+							      "interval": "1m0s",
 										"image": {
 											"base_type": "some-base-resource-type"
 										},
@@ -424,6 +431,7 @@ var factoryTests = []PlannerTest{
 										"image": {
 											"base_type": "some-base-resource-type"
 										},
+							      "interval": "1m0s",
 										"tags": [
 											 "tag-1",
 											 "tag-2"
@@ -610,6 +618,7 @@ var factoryTests = []PlannerTest{
 									"image": {
 										"base_type": "some-base-resource-type"
 									},
+							    "interval": "1m0s",
 									"tags": [
 										 "tag-1",
 										 "tag-2"
@@ -660,6 +669,7 @@ var factoryTests = []PlannerTest{
 									"image": {
 										"base_type": "some-base-resource-type"
 									},
+							    "interval": "1m0s",
 									"tags": [
 										 "tag-1",
 										 "tag-2"
@@ -731,6 +741,7 @@ var factoryTests = []PlannerTest{
 									"type": "some-base-resource-type",
 									"resource_type": "some-resource-type",
 									"source": { "some": "type-source" },
+							    "interval": "1m0s",
 									"image": {
 										"base_type": "some-base-resource-type"
 									}
@@ -771,6 +782,7 @@ var factoryTests = []PlannerTest{
 									"type": "some-base-resource-type",
 									"resource_type": "some-resource-type",
 									"source": { "some": "type-source" },
+							    "interval": "1m0s",
 									"image": {
 										"base_type": "some-base-resource-type"
 									}
@@ -1374,6 +1386,9 @@ var factoryTests = []PlannerTest{
 }
 
 func (test PlannerTest) Run(s *PlannerSuite) {
+	atc.DefaultCheckInterval = 1 * time.Minute
+	atc.DefaultWebhookInterval = 2 * time.Minute
+
 	factory := builds.NewPlanner(atc.NewPlanFactory(0))
 
 	resourceTypes := defaultResourceTypes
@@ -1408,6 +1423,9 @@ func (test PlannerTest) Run(s *PlannerSuite) {
 	s.NoError(err)
 
 	s.JSONEq(test.PlanJSON, string(actualJSON))
+
+	atc.DefaultCheckInterval = 0
+	atc.DefaultWebhookInterval = 0
 }
 
 func (s *PlannerSuite) TestFactory() {

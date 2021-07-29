@@ -1193,15 +1193,39 @@ var _ = Describe("Resource", func() {
 	})
 
 	Describe("CheckPlan", func() {
+		var (
+			createdCheckPlan                      atc.Plan
+			version                               atc.Version
+			resource                              db.Resource
+			skipInterval, skipIntervalRecursively bool
+		)
+
+		BeforeEach(func() {
+			atc.DefaultCheckInterval = time.Minute
+		})
+
+		AfterEach(func() {
+			atc.DefaultCheckInterval = 0
+		})
+
+		setupCheckPlan := func(pipelineName string, config atc.Config, resourceName string, sourceDefault atc.Source, resourceTypes atc.ResourceTypes) {
+			pipeline, created, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: pipelineName}, config, 0, false)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(created).To(BeTrue())
+
+			var found bool
+			resource, found, err = pipeline.Resource(resourceName)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			planFactory := atc.NewPlanFactory(0)
+			version = atc.Version{"version": "from"}
+			createdCheckPlan = resource.CheckPlan(planFactory, resourceTypes, version, 1*time.Hour, sourceDefault, skipInterval, skipIntervalRecursively)
+		}
 
 		Context("when there is a resource using a base type", func() {
-			var createdCheckPlan atc.Plan
-			var version atc.Version
-			var resource db.Resource
-
 			BeforeEach(func() {
-				pipeline, created, err := defaultTeam.SavePipeline(
-					atc.PipelineRef{Name: "pipeline-with-resource-base-type"},
+				setupCheckPlan("pipeline-with-resource-base-type",
 					atc.Config{
 						Resources: atc.ResourceConfigs{{
 							Name:         "some-resource",
@@ -1213,21 +1237,10 @@ var _ = Describe("Resource", func() {
 							},
 						}},
 					},
-					0,
-					false,
+					"some-resource",
+					atc.Source{"source-test": "default"},
+					atc.ResourceTypes{},
 				)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(created).To(BeTrue())
-
-				var found bool
-				resource, found, err = pipeline.Resource("some-resource")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				planFactory := atc.NewPlanFactory(0)
-				version = atc.Version{"version": "from"}
-				sourceDefault := atc.Source{"source-test": "default"}
-				createdCheckPlan = resource.CheckPlan(planFactory, atc.ResourceTypes{}, version, 1*time.Hour, sourceDefault, false, false)
 			})
 
 			It("produces a simple check plan", func() {
@@ -1255,14 +1268,8 @@ var _ = Describe("Resource", func() {
 		})
 
 		Context("when there is a resource using a custom type", func() {
-
-			var createdCheckPlan atc.Plan
-			var version atc.Version
-			var resource db.Resource
-
 			BeforeEach(func() {
-				pipeline, created, err := defaultTeam.SavePipeline(
-					atc.PipelineRef{Name: "pipeline-with-resource-custom-type"},
+				setupCheckPlan("pipeline-with-resource-custom-type",
 					atc.Config{
 						Resources: atc.ResourceConfigs{{
 							Name:         "some-custom-resource",
@@ -1279,27 +1286,16 @@ var _ = Describe("Resource", func() {
 							Source: atc.Source{"some": "type-source"},
 						}},
 					},
-					0,
-					false,
-				)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(created).To(BeTrue())
-
-				var found bool
-				resource, found, err = pipeline.Resource("some-custom-resource")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				planFactory := atc.NewPlanFactory(0)
-				version = atc.Version{"version": "from"}
-				createdCheckPlan = resource.CheckPlan(planFactory,
+					"some-custom-resource",
+					nil,
 					atc.ResourceTypes{
 						{
 							Name:   "some-resource-type",
 							Type:   "some-base-resource-type",
 							Source: atc.Source{"some": "type-source"},
 						},
-					}, version, 1*time.Hour, nil, false, false)
+					},
+				)
 			})
 
 			It("produces a check plan with nested image steps", func() {
@@ -1322,6 +1318,95 @@ var _ = Describe("Resource", func() {
 									Name:         "some-resource-type",
 									ResourceType: "some-resource-type",
 									Type:         "some-base-resource-type",
+									Interval:     "1m0s",
+									Source:       atc.Source{"some": "type-source"},
+									TypeImage: atc.TypeImage{
+										BaseType: "some-base-resource-type",
+									},
+									Tags: resource.Tags(),
+								},
+							},
+							GetPlan: &atc.Plan{
+								ID: atc.PlanID("1/image-get"),
+								Get: &atc.GetPlan{
+									Name:   "some-resource-type",
+									Type:   "some-base-resource-type",
+									Source: atc.Source{"some": "type-source"},
+									TypeImage: atc.TypeImage{
+										BaseType: "some-base-resource-type",
+									},
+									Tags:        resource.Tags(),
+									VersionFrom: &checkPlanID,
+								},
+							},
+						},
+						FromVersion: version,
+						Resource:    resource.Name(),
+						Interval:    "1h0m0s",
+					},
+				}
+				Expect(createdCheckPlan).To(Equal(expectedPlan))
+			})
+		})
+
+		Context("when there is a resource using a custom type with configured check every", func() {
+			BeforeEach(func() {
+				setupCheckPlan("pipeline-with-resource-custom-type",
+					atc.Config{
+						Resources: atc.ResourceConfigs{{
+							Name: "some-custom-resource",
+							Type: "some-resource-type",
+							Tags: []string{"tag"},
+							Source: atc.Source{
+								"some": "source",
+							},
+						}},
+						ResourceTypes: atc.ResourceTypes{{
+							Name:   "some-resource-type",
+							Type:   "some-base-resource-type",
+							Source: atc.Source{"some": "type-source"},
+							CheckEvery: &atc.CheckEvery{
+								Never:    false,
+								Interval: 2 * time.Minute,
+							},
+						}},
+					},
+					"some-custom-resource",
+					nil,
+					atc.ResourceTypes{
+						{
+							Name:   "some-resource-type",
+							Type:   "some-base-resource-type",
+							Source: atc.Source{"some": "type-source"},
+							CheckEvery: &atc.CheckEvery{
+								Never:    false,
+								Interval: 2 * time.Minute,
+							},
+						},
+					},
+				)
+			})
+
+			It("produces a check plan with interval set as check every for image check", func() {
+				checkPlanID := atc.PlanID("1/image-check")
+				expectedPlan := atc.Plan{
+					ID: atc.PlanID("1"),
+					Check: &atc.CheckPlan{
+						Name: resource.Name(),
+						Type: resource.Type(),
+						Source: atc.Source{
+							"some": "source",
+						},
+						Tags: resource.Tags(),
+						TypeImage: atc.TypeImage{
+							BaseType: "some-base-resource-type",
+							CheckPlan: &atc.Plan{
+								ID: checkPlanID,
+								Check: &atc.CheckPlan{
+									Name:         "some-resource-type",
+									ResourceType: "some-resource-type",
+									Type:         "some-base-resource-type",
+									Interval:     "2m0s",
 									Source:       atc.Source{"some": "type-source"},
 									TypeImage: atc.TypeImage{
 										BaseType: "some-base-resource-type",
@@ -1353,13 +1438,9 @@ var _ = Describe("Resource", func() {
 		})
 
 		Context("when there is a resource using a privileged custom type", func() {
-			var createdCheckPlan atc.Plan
-			var version atc.Version
-			var resource db.Resource
-
 			BeforeEach(func() {
-				pipeline, created, err := defaultTeam.SavePipeline(
-					atc.PipelineRef{Name: "pipeline-with-resource-custom-type"},
+				setupCheckPlan(
+					"pipeline-with-resource-custom-type",
 					atc.Config{
 						Resources: atc.ResourceConfigs{{
 							Name: "some-custom-resource",
@@ -1375,20 +1456,8 @@ var _ = Describe("Resource", func() {
 							Privileged: true,
 						}},
 					},
-					0,
-					false,
-				)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(created).To(BeTrue())
-
-				var found bool
-				resource, found, err = pipeline.Resource("some-custom-resource")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				planFactory := atc.NewPlanFactory(0)
-				version = atc.Version{"version": "from"}
-				createdCheckPlan = resource.CheckPlan(planFactory,
+					"some-custom-resource",
+					nil,
 					atc.ResourceTypes{
 						{
 							Name:       "some-resource-type",
@@ -1396,7 +1465,8 @@ var _ = Describe("Resource", func() {
 							Source:     atc.Source{"some": "type-source"},
 							Privileged: true,
 						},
-					}, version, 1*time.Hour, nil, false, false)
+					},
+				)
 			})
 
 			It("produces a check plan with privileged", func() {
@@ -1418,6 +1488,7 @@ var _ = Describe("Resource", func() {
 									Name:         "some-resource-type",
 									ResourceType: "some-resource-type",
 									Type:         "some-base-resource-type",
+									Interval:     "1m0s",
 									Source:       atc.Source{"some": "type-source"},
 									TypeImage: atc.TypeImage{
 										BaseType: "some-base-resource-type",
@@ -1447,11 +1518,9 @@ var _ = Describe("Resource", func() {
 		})
 
 		Context("when skipping the interval", func() {
-			var resource db.Resource
-
-			BeforeEach(func() {
-				pipeline, created, err := defaultTeam.SavePipeline(
-					atc.PipelineRef{Name: "pipeline-with-resource-custom-type"},
+			JustBeforeEach(func() {
+				setupCheckPlan(
+					"pipeline-with-resource-custom-type",
 					atc.Config{
 						Resources: atc.ResourceConfigs{{
 							Name: "some-custom-resource",
@@ -1466,31 +1535,25 @@ var _ = Describe("Resource", func() {
 							Source: atc.Source{"some": "type-source"},
 						}},
 					},
-					0,
-					false,
+					"some-custom-resource",
+					nil,
+					atc.ResourceTypes{
+						{
+							Name:   "some-resource-type",
+							Type:   "some-base-resource-type",
+							Source: atc.Source{"some": "type-source"},
+						},
+					},
 				)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(created).To(BeTrue())
-
-				var found bool
-				resource, found, err = pipeline.Resource("some-custom-resource")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
 			})
 
 			Context("when not skipping the interval recursively", func() {
-				It("skips the interval for the resource check, but not for the resource type", func() {
-					planFactory := atc.NewPlanFactory(0)
-					version := atc.Version{"version": "from"}
-					createdCheckPlan := resource.CheckPlan(planFactory,
-						atc.ResourceTypes{
-							{
-								Name:   "some-resource-type",
-								Type:   "some-base-resource-type",
-								Source: atc.Source{"some": "type-source"},
-							},
-						}, version, 1*time.Hour, nil, true, false)
+				BeforeEach(func() {
+					skipInterval = true
+					skipIntervalRecursively = false
+				})
 
+				It("skips the interval for the resource check, but not for the resource type", func() {
 					checkPlanID := atc.PlanID("1/image-check")
 					expectedPlan := atc.Plan{
 						ID: atc.PlanID("1"),
@@ -1509,6 +1572,7 @@ var _ = Describe("Resource", func() {
 										Name:         "some-resource-type",
 										ResourceType: "some-resource-type",
 										Type:         "some-base-resource-type",
+										Interval:     "1m0s",
 										Source:       atc.Source{"some": "type-source"},
 										SkipInterval: false,
 										TypeImage: atc.TypeImage{
@@ -1539,18 +1603,12 @@ var _ = Describe("Resource", func() {
 			})
 
 			Context("when skipping the interval recursively", func() {
-				It("skips the interval for the resource and resource type checks", func() {
-					planFactory := atc.NewPlanFactory(0)
-					version := atc.Version{"version": "from"}
-					createdCheckPlan := resource.CheckPlan(planFactory,
-						atc.ResourceTypes{
-							{
-								Name:   "some-resource-type",
-								Type:   "some-base-resource-type",
-								Source: atc.Source{"some": "type-source"},
-							},
-						}, version, 1*time.Hour, nil, true, true)
+				BeforeEach(func() {
+					skipInterval = true
+					skipIntervalRecursively = true
+				})
 
+				It("skips the interval for the resource and resource type checks", func() {
 					checkPlanID := atc.PlanID("1/image-check")
 					expectedPlan := atc.Plan{
 						ID: atc.PlanID("1"),
@@ -1569,6 +1627,7 @@ var _ = Describe("Resource", func() {
 										Name:         "some-resource-type",
 										ResourceType: "some-resource-type",
 										Type:         "some-base-resource-type",
+										Interval:     "1m0s",
 										Source:       atc.Source{"some": "type-source"},
 										SkipInterval: true,
 										TypeImage: atc.TypeImage{

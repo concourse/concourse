@@ -178,6 +178,7 @@ var _ = Describe("TaskDelegate", func() {
 		var fetchErr error
 
 		BeforeEach(func() {
+			atc.DefaultCheckInterval = 1 * time.Minute
 			fakeArtifact = new(runtimefakes.FakeArtifact)
 
 			runPlans = nil
@@ -236,7 +237,8 @@ var _ = Describe("TaskDelegate", func() {
 					TypeImage: atc.TypeImage{
 						BaseType: "docker",
 					},
-					Tags: atc.Tags{"some", "tags"},
+					Tags:     atc.Tags{"some", "tags"},
+					Interval: "1m0s",
 				},
 			}
 
@@ -254,6 +256,10 @@ var _ = Describe("TaskDelegate", func() {
 					Tags:        atc.Tags{"some", "tags"},
 				},
 			}
+		})
+
+		AfterEach(func() {
+			atc.DefaultCheckInterval = 0
 		})
 
 		JustBeforeEach(func() {

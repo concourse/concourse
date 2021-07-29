@@ -19,6 +19,16 @@ var _ = Describe("CheckFactory", func() {
 		build   db.Build
 	)
 
+	BeforeEach(func() {
+		atc.DefaultCheckInterval = defaultCheckInterval
+		atc.DefaultWebhookInterval = defaultWebhookCheckInterval
+	})
+
+	AfterEach(func() {
+		atc.DefaultCheckInterval = 0
+		atc.DefaultWebhookInterval = 0
+	})
+
 	Describe("TryCreateCheck", func() {
 		var (
 			fakeResource      *dbfakes.FakeResource

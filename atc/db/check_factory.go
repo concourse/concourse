@@ -49,16 +49,6 @@ type checkFactory struct {
 	varSourcePool creds.VarSourcePool
 
 	planFactory atc.PlanFactory
-
-	defaultCheckTimeout             time.Duration
-	defaultCheckInterval            time.Duration
-	defaultWithWebhookCheckInterval time.Duration
-}
-
-type CheckDurations struct {
-	Timeout             time.Duration
-	Interval            time.Duration
-	IntervalWithWebhook time.Duration
 }
 
 func NewCheckFactory(
@@ -66,7 +56,6 @@ func NewCheckFactory(
 	lockFactory lock.LockFactory,
 	secrets creds.Secrets,
 	varSourcePool creds.VarSourcePool,
-	durations CheckDurations,
 ) CheckFactory {
 	return &checkFactory{
 		conn:        conn,
@@ -76,10 +65,6 @@ func NewCheckFactory(
 		varSourcePool: varSourcePool,
 
 		planFactory: atc.NewPlanFactory(time.Now().Unix()),
-
-		defaultCheckTimeout:             durations.Timeout,
-		defaultCheckInterval:            durations.Interval,
-		defaultWithWebhookCheckInterval: durations.IntervalWithWebhook,
 	}
 }
 
@@ -99,9 +84,9 @@ func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, 
 		}
 	}
 
-	interval := c.defaultCheckInterval
+	interval := atc.DefaultCheckInterval
 	if checkable.HasWebhook() {
-		interval = c.defaultWithWebhookCheckInterval
+		interval = atc.DefaultWebhookInterval
 	}
 	if checkable.CheckEvery() != nil && !checkable.CheckEvery().Never {
 		interval = checkable.CheckEvery().Interval

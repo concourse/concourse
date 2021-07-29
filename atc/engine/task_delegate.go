@@ -115,7 +115,7 @@ func (d *taskDelegate) FetchImage(
 ) (worker.ImageSpec, error) {
 	image.Name = "image"
 
-	getPlan, checkPlan := atc.FetchImagePlan(d.planID, image, types, stepTags, false)
+	getPlan, checkPlan := atc.FetchImagePlan(d.planID, image, types, stepTags, false, nil)
 
 	if checkPlan != nil {
 		err := d.build.SaveEvent(event.ImageCheck{
