@@ -17,6 +17,7 @@ var _ = Describe("Check Lifecycle", func() {
 		plan                       atc.Plan
 		scopeOfDefaultResource     db.ResourceConfigScope
 		scopeOfDefaultResourceType db.ResourceConfigScope
+		scopeOfDefaultPrototype db.ResourceConfigScope
 	)
 
 	BeforeEach(func() {
@@ -30,15 +31,17 @@ var _ = Describe("Check Lifecycle", func() {
 
 		resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(defaultResource.Type(), defaultResource.Source(), atc.VersionedResourceTypes{})
 		Expect(err).ToNot(HaveOccurred())
-
 		scopeOfDefaultResource, err = resourceConfig.FindOrCreateScope(defaultResource)
 		Expect(err).ToNot(HaveOccurred())
 
 		resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(defaultResourceType.Type(), defaultResourceType.Source(), atc.VersionedResourceTypes{})
 		Expect(err).ToNot(HaveOccurred())
-
 		scopeOfDefaultResourceType, err = resourceConfig.FindOrCreateScope(nil)
 		Expect(err).ToNot(HaveOccurred())
+
+		resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(defaultPrototype.Type(), defaultPrototype.Source(), nil)
+		Expect(err).ToNot(HaveOccurred())
+		scopeOfDefaultPrototype, err = resourceConfig.FindOrCreateScope(nil)
 	})
 
 	Context("DB build", func() {
@@ -50,31 +53,33 @@ var _ = Describe("Check Lifecycle", func() {
 
 		createUnfinishedCheck := func(checkable interface {
 			CreateBuild(context.Context, bool, atc.Plan) (db.Build, bool, error)
-		}, plan atc.Plan) db.Build {
+		}, scope db.ResourceConfigScope, plan atc.Plan) db.Build {
 			build, created, err := checkable.CreateBuild(context.Background(), true, plan)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(created).To(BeTrue())
+			_, err = scope.UpdateLastCheckStartTime(build.ID(), nil)
+			Expect(err).ToNot(HaveOccurred())
 			return build
 		}
 
-		finish := func(build db.Build) {
+		finish := func(build db.Build, scope db.ResourceConfigScope) {
 			err := build.Finish(db.BuildStatusSucceeded)
+			Expect(err).ToNot(HaveOccurred())
+			_, err = scope.UpdateLastCheckEndTime(true)
 			Expect(err).ToNot(HaveOccurred())
 		}
 
 		createFinishedCheck := func(checkable interface {
 			CreateBuild(context.Context, bool, atc.Plan) (db.Build, bool, error)
-		}, plan atc.Plan) db.Build {
-			build := createUnfinishedCheck(checkable, plan)
-			finish(build)
+		}, scope db.ResourceConfigScope, plan atc.Plan) db.Build {
+			build := createUnfinishedCheck(checkable, scope, plan)
+			finish(build, scope)
 			return build
 		}
 
 		It("removes completed check builds when there is a new completed check", func() {
-			resourceBuild := createFinishedCheck(defaultResource, plan)
-			scopeOfDefaultResource.UpdateLastCheckStartTime(resourceBuild.ID(), nil)
-			resourceTypeBuild := createFinishedCheck(defaultResourceType, plan)
-			scopeOfDefaultResourceType.UpdateLastCheckStartTime(resourceTypeBuild.ID(), nil)
+			resourceBuild := createFinishedCheck(defaultResource, scopeOfDefaultResource, plan)
+			resourceTypeBuild := createFinishedCheck(defaultResourceType, scopeOfDefaultResourceType, plan)
 
 			By("attempting to delete completed checks when there are no newer checks")
 			err := lifecycle.DeleteCompletedChecks(logger)
@@ -83,8 +88,7 @@ var _ = Describe("Check Lifecycle", func() {
 			Expect(exists(resourceTypeBuild)).To(BeTrue())
 
 			By("creating a new check for the resource")
-			newResourceBuild := createFinishedCheck(defaultResource, plan)
-			scopeOfDefaultResource.UpdateLastCheckStartTime(newResourceBuild.ID(), nil)
+			createFinishedCheck(defaultResource, scopeOfDefaultResource, plan)
 
 			By("deleting completed checks")
 			err = lifecycle.DeleteCompletedChecks(logger)
@@ -96,8 +100,7 @@ var _ = Describe("Check Lifecycle", func() {
 			Expect(exists(resourceTypeBuild)).To(BeTrue())
 
 			By("creating a new check for the resource type")
-			newResourceTypeBuild := createFinishedCheck(defaultResourceType, plan)
-			scopeOfDefaultResourceType.UpdateLastCheckStartTime(newResourceTypeBuild.ID(), nil)
+			createFinishedCheck(defaultResourceType, scopeOfDefaultResourceType, plan)
 
 			By("deleting completed checks")
 			err = lifecycle.DeleteCompletedChecks(logger)
@@ -107,7 +110,7 @@ var _ = Describe("Check Lifecycle", func() {
 			Expect(numBuildEventsForCheck(resourceTypeBuild)).To(Equal(0))
 
 			By("creating a new check for the prototype")
-			createFinishedCheck(defaultPrototype, plan)
+			createFinishedCheck(defaultPrototype, scopeOfDefaultPrototype, plan)
 
 			By("deleting completed checks")
 			err = lifecycle.DeleteCompletedChecks(logger)
@@ -117,7 +120,7 @@ var _ = Describe("Check Lifecycle", func() {
 		It("runs check-deletion query in batches", func() {
 			db.CheckDeleteBatchSize = 10
 			for i := 0; i < 51; i++ {
-				build := createFinishedCheck(defaultResource, plan)
+				build := createFinishedCheck(defaultResource, scopeOfDefaultResource, plan)
 				scopeOfDefaultResourceType.UpdateLastCheckStartTime(build.ID(), nil)
 			}
 
@@ -134,10 +137,8 @@ var _ = Describe("Check Lifecycle", func() {
 		})
 
 		It("ignores incomplete checks", func() {
-			c1 := createUnfinishedCheck(defaultResource, plan)
-			scopeOfDefaultResourceType.UpdateLastCheckStartTime(c1.ID(), nil)
-			c2 := createUnfinishedCheck(defaultResource, plan)
-			scopeOfDefaultResourceType.UpdateLastCheckStartTime(c2.ID(), nil)
+			c1 := createUnfinishedCheck(defaultResource, scopeOfDefaultResource, plan)
+			c2 := createUnfinishedCheck(defaultResource, scopeOfDefaultResource, plan)
 
 			err := lifecycle.DeleteCompletedChecks(logger)
 			Expect(err).ToNot(HaveOccurred())
@@ -145,7 +146,7 @@ var _ = Describe("Check Lifecycle", func() {
 			Expect(exists(c2)).To(BeTrue())
 
 			By("finishing the first check should allow it to be deleted")
-			finish(c1)
+			finish(c1, scopeOfDefaultResource)
 
 			err = lifecycle.DeleteCompletedChecks(logger)
 			Expect(err).ToNot(HaveOccurred())
@@ -153,7 +154,7 @@ var _ = Describe("Check Lifecycle", func() {
 			Expect(exists(c2)).To(BeTrue())
 
 			By("finishing the second check should NOT allow it to be deleted")
-			finish(c2)
+			finish(c2, scopeOfDefaultResource)
 			scopeOfDefaultResource.UpdateLastCheckStartTime(c2.ID(), nil)
 
 			err = lifecycle.DeleteCompletedChecks(logger)
@@ -162,10 +163,10 @@ var _ = Describe("Check Lifecycle", func() {
 		})
 
 		It("deletes all expired checks", func() {
-			c1 := createFinishedCheck(defaultResource, plan)
-			c2 := createFinishedCheck(defaultResource, plan)
+			c1 := createFinishedCheck(defaultResource, scopeOfDefaultResource, plan)
+			c2 := createFinishedCheck(defaultResource, scopeOfDefaultResource, plan)
 
-			createFinishedCheck(defaultResource, plan)
+			createFinishedCheck(defaultResource, scopeOfDefaultResource, plan)
 
 			err := lifecycle.DeleteCompletedChecks(logger)
 			Expect(err).ToNot(HaveOccurred())
