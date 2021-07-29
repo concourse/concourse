@@ -1,6 +1,7 @@
 package gclient
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -11,6 +12,10 @@ import (
 	"github.com/concourse/retryhttp"
 	"github.com/tedsuo/rata"
 )
+
+// Allows tests to override http.DefaultTransport's IdleConnTimeout. Only
+// applies to BasicGardenClientWithRequestTimeout.
+var idleConnTimeoutOverride string
 
 type gardenClientFactory struct {
 	db                         transport.TransportDB
@@ -73,8 +78,18 @@ func (gcf *gardenClientFactory) NewClient() Client {
 
 // Do not try any client method that requires hijack functionality (streaming logs)!
 func BasicGardenClientWithRequestTimeout(logger lager.Logger, requestTimeout time.Duration, address string) Client {
+	httpTransport := http.DefaultTransport.(*http.Transport).Clone()
+	if idleConnTimeoutOverride != "" {
+		timeout, err := time.ParseDuration(idleConnTimeoutOverride)
+		if err != nil {
+			panic(fmt.Sprintf("invalid idleConnTimeoutOverride: %v", err))
+		}
+		httpTransport.IdleConnTimeout = timeout
+	}
+
 	streamClient := &http.Client{
-		Timeout: requestTimeout,
+		Transport: httpTransport,
+		Timeout:   requestTimeout,
 	}
 
 	streamer := &transport.WorkerHijackStreamer{
