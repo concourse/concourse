@@ -244,11 +244,11 @@ reference that the module lives at:
 # after pushing to the `sample` branch in your dex fork,
 # try to fetch the module revision and get the version.
 $ go mod download -json github.com/your-user/dex@sample | jq '.Version'
-go: finding github.com/cirocosta/dex sample
-"v1.3.6-0.20190315100745-09d349f19891"
+go: finding github.com/your-user/dex sample
+"v0.0.0-20210401171635-fe97ad5e1a6d"
 
 # with that version, update `go.mod` including a replace directive
-$ echo 'replace github.com/concourse/dex => github.com/your-user/dex v1.3.6-0.20190315100745-09d349f19891' \
+$ echo 'replace github.com/concourse/dex => github.com/your-user/dex v0.0.0-20210401171635-fe97ad5e1a6d' \
   > ./go.mod
 
 # run the usual build
