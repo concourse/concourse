@@ -1738,7 +1738,8 @@ var _ = Describe("Pipelines API", func() {
 							requestBody = `{"name":""}`
 						})
 
-						It("returns a warning in the response body", func() {
+						It("returns 400 Bad Request and an error in the response body", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 							Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
 							{
 								"errors": [
