@@ -588,6 +588,7 @@ var _ = Describe("Teams API", func() {
 						})
 
 						It("returns a warning in the response body", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 							Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
 							{
 								"errors": [
