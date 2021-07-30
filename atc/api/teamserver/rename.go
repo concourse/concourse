@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/concourse/concourse/atc"
+	. "github.com/concourse/concourse/atc/api/helpers"
 	"github.com/concourse/concourse/atc/db"
 )
 
@@ -31,19 +32,13 @@ func (s *Server) RenameTeam(team db.Team) http.Handler {
 		var warnings []atc.ConfigWarning
 		var errs []string
 		warning, err := atc.ValidateIdentifier(rename.NewName, "team")
-		if warning != nil {
-			warnings = append(warnings, *warning)
-		}
 		if err != nil {
 			errs = append(errs, err.Error())
-			w.WriteHeader(http.StatusBadRequest)
-			w.Header().Set("Content-Type", "application/json")
-			err = json.NewEncoder(w).Encode(atc.SaveConfigResponse{Warnings: warnings, Errors: errs})
-			if err != nil {
-				logger.Error("failed-to-encode-response", err)
-				w.WriteHeader(http.StatusInternalServerError)
-			}
+			HandleBadRequest(w, errs...)
 			return
+		}
+		if warning != nil {
+			warnings = append(warnings, *warning)
 		}
 
 		err = team.Rename(rename.NewName)

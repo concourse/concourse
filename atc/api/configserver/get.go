@@ -8,6 +8,7 @@ import (
 	"code.cloudfoundry.org/lager"
 
 	"github.com/concourse/concourse/atc"
+	. "github.com/concourse/concourse/atc/api/helpers"
 	"github.com/tedsuo/rata"
 )
 
@@ -20,7 +21,7 @@ func (s *Server) GetConfig(w http.ResponseWriter, r *http.Request) {
 	pipelineRef.InstanceVars, err = atc.InstanceVarsFromQueryParams(r.URL.Query())
 	if err != nil {
 		logger.Error("malformed-instance-vars", err)
-		s.handleBadRequest(w, fmt.Sprintf("instance vars are malformed: %v", err))
+		HandleBadRequest(w, fmt.Sprintf("instance vars are malformed: %v", err))
 		return
 	}
 
