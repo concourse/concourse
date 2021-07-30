@@ -1078,13 +1078,7 @@ iAmViewingTheDashboardForAnInstanceGroup =
 
 
 iVisitTheDashboard _ =
-    Application.init
-        { turbulenceImgSrc = ""
-        , notFoundImgSrc = ""
-        , csrfToken = ""
-        , authToken = ""
-        , pipelineRunningKeyframes = ""
-        }
+    Application.init Data.flags
         { protocol = Url.Http
         , host = ""
         , port_ = Nothing
@@ -1742,13 +1736,7 @@ iAmViewingThePipelinePageOnAPhoneScreen =
 
 
 iOpenedThePipelinePage _ =
-    Application.init
-        { turbulenceImgSrc = ""
-        , notFoundImgSrc = ""
-        , csrfToken = ""
-        , authToken = ""
-        , pipelineRunningKeyframes = ""
-        }
+    Application.init Data.flags
         { protocol = Url.Http
         , host = ""
         , port_ = Nothing
@@ -2232,13 +2220,7 @@ myBrowserFetchesScreenSize =
 
 
 iOpenTheJobPage _ =
-    Application.init
-        { turbulenceImgSrc = ""
-        , notFoundImgSrc = ""
-        , csrfToken = ""
-        , authToken = ""
-        , pipelineRunningKeyframes = ""
-        }
+    Application.init Data.flags
         { protocol = Url.Http
         , host = ""
         , port_ = Nothing
@@ -2249,13 +2231,7 @@ iOpenTheJobPage _ =
 
 
 iOpenTheResourcePage _ =
-    Application.init
-        { turbulenceImgSrc = ""
-        , notFoundImgSrc = ""
-        , csrfToken = ""
-        , authToken = ""
-        , pipelineRunningKeyframes = ""
-        }
+    Application.init Data.flags
         { protocol = Url.Http
         , host = ""
         , port_ = Nothing

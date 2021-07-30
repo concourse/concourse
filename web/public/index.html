@@ -76,6 +76,7 @@
         csrfToken: {{ .CSRFToken }},
         authToken: {{ .AuthToken }},
         pipelineRunningKeyframes: "pipeline-running",
+        featureFlags: {{ jsonMarshal .FeatureFlags }}
       };
     </script>
     <script src="{{asset "bundle.js"}}" nomodule></script>

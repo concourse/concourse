@@ -19,7 +19,7 @@ import Concourse exposing (BuildPrepStatus(..))
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.Pagination exposing (Direction(..))
 import DashboardTests exposing (iconSelector)
-import Data
+import Data exposing (flags)
 import Dict
 import Expect
 import Html.Attributes as Attr
@@ -54,14 +54,6 @@ all : Test
 all =
     describe "build page" <|
         let
-            flags =
-                { turbulenceImgSrc = ""
-                , notFoundImgSrc = ""
-                , csrfToken = csrfToken
-                , authToken = ""
-                , pipelineRunningKeyframes = ""
-                }
-
             fetchPipeline : Application.Model -> ( Application.Model, List Effects.Effect )
             fetchPipeline =
                 Application.handleCallback <|
@@ -1285,12 +1277,7 @@ all =
         , test "fetches build on page load" <|
             \_ ->
                 Application.init
-                    { turbulenceImgSrc = ""
-                    , notFoundImgSrc = "notfound.svg"
-                    , csrfToken = "csrf_token"
-                    , authToken = ""
-                    , pipelineRunningKeyframes = "pipeline-running"
-                    }
+                    flags
                     { protocol = Url.Http
                     , host = ""
                     , port_ = Nothing
@@ -1354,12 +1341,7 @@ all =
         , test "gets current timezone on page load" <|
             \_ ->
                 Application.init
-                    { turbulenceImgSrc = ""
-                    , notFoundImgSrc = "notfound.svg"
-                    , csrfToken = "csrf_token"
-                    , authToken = ""
-                    , pipelineRunningKeyframes = "pipeline-running"
-                    }
+                    flags
                     { protocol = Url.Http
                     , host = ""
                     , port_ = Nothing

@@ -47,6 +47,7 @@ type alias Flags =
     , csrfToken : Concourse.CSRFToken
     , authToken : String
     , pipelineRunningKeyframes : String
+    , featureFlags : Concourse.FeatureFlags
     }
 
 
@@ -73,7 +74,7 @@ init flags url =
             , hovered = HoverState.NoHover
             , clusterName = ""
             , version = ""
-            , featureFlags = Concourse.defaultFeatureFlags
+            , featureFlags = flags.featureFlags
             , turbulenceImgSrc = flags.turbulenceImgSrc
             , notFoundImgSrc = flags.notFoundImgSrc
             , csrfToken = flags.csrfToken
@@ -206,13 +207,13 @@ handleCallback callback model =
             in
             subpageHandleCallback callback ( { model | session = newSession }, [] )
 
-        ClusterInfoFetched (Ok { clusterName, version, featureFlags }) ->
+        ClusterInfoFetched (Ok { clusterName, version }) ->
             let
                 session =
                     model.session
 
                 newSession =
-                    { session | clusterName = clusterName, version = version, featureFlags = featureFlags }
+                    { session | clusterName = clusterName, version = version }
             in
             subpageHandleCallback callback ( { model | session = newSession }, [] )
 
@@ -418,6 +419,7 @@ urlUpdate route model =
 
             else if routeMatchesModel newRoute model then
                 SubPage.urlUpdate
+                    model.session
                     { from = oldRoute
                     , to = newRoute
                     }

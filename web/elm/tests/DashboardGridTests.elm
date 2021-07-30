@@ -83,13 +83,7 @@ all =
                         ]
         , test "fetches the viewport of the scrollable area on load" <|
             \_ ->
-                Application.init
-                    { turbulenceImgSrc = ""
-                    , notFoundImgSrc = "notfound.svg"
-                    , csrfToken = "csrf_token"
-                    , authToken = ""
-                    , pipelineRunningKeyframes = "pipeline-running"
-                    }
+                Application.init Data.flags
                     { protocol = Url.Http
                     , host = ""
                     , port_ = Nothing

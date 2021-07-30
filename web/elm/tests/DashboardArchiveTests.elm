@@ -246,13 +246,7 @@ all =
 
 init : String -> Maybe String -> Application.Model
 init path query =
-    Application.init
-        { turbulenceImgSrc = ""
-        , notFoundImgSrc = "notfound.svg"
-        , csrfToken = "csrf_token"
-        , authToken = ""
-        , pipelineRunningKeyframes = "pipeline-running"
-        }
+    Application.init Data.flags
         { protocol = Url.Http
         , host = ""
         , port_ = Nothing

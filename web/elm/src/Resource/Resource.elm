@@ -1769,7 +1769,7 @@ viewVersionedResources session model =
     in
     model
         |> versions
-        |> List.map (\v -> viewVersionedResource { version = v, archived = archived, causalityEnabled = session.featureFlags.resourceCausality })
+        |> List.map (\v -> viewVersionedResource { version = v, archived = archived, causalityEnabled = session.featureFlags.resource_causality })
         |> Html.ul [ class "list list-collapsable list-enableDisable resource-versions" ]
 
 

@@ -216,21 +216,17 @@ update msg ( model, effects ) =
             ( model, effects )
 
 
-getUpdateMessage : Session -> Model -> UpdateMsg
-getUpdateMessage session model =
-    if not session.featureFlags.resourceCausality then
-        UpdateMsg.NotFound
+getUpdateMessage : Model -> UpdateMsg
+getUpdateMessage model =
+    case model.pageStatus of
+        Err NotFound ->
+            UpdateMsg.NotFound
 
-    else
-        case model.pageStatus of
-            Err NotFound ->
-                UpdateMsg.NotFound
+        Err _ ->
+            UpdateMsg.AOK
 
-            Err _ ->
-                UpdateMsg.AOK
-
-            Ok () ->
-                UpdateMsg.AOK
+        Ok () ->
+            UpdateMsg.AOK
 
 
 view : Session -> Model -> Html Message
