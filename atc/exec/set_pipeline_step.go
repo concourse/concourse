@@ -86,11 +86,6 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState, delegate S
 	stdout := delegate.Stdout()
 	stderr := delegate.Stderr()
 
-	fmt.Fprintln(stderr, "\x1b[1;33mWARNING: the set_pipeline step is experimental and subject to change!\x1b[0m")
-	fmt.Fprintln(stderr, "")
-	fmt.Fprintln(stderr, "\x1b[33mfollow RFC #31 for updates: https://github.com/concourse/rfcs/pull/31\x1b[0m")
-	fmt.Fprintln(stderr, "")
-
 	if step.plan.Name == "self" {
 		fmt.Fprintln(stderr, "\x1b[1;33mWARNING: 'set_pipeline: self' is experimental and may be removed in the future!\x1b[0m")
 		fmt.Fprintln(stderr, "")
