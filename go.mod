@@ -15,7 +15,7 @@ require (
 	github.com/Masterminds/squirrel v1.5.0
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/aryann/difflib v0.0.0-20170710044230-e206f873d14a
-	github.com/aws/aws-sdk-go v1.40.17
+	github.com/aws/aws-sdk-go v1.40.18
 	github.com/caarlos0/env v3.5.0+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e // indirect
@@ -25,7 +25,7 @@ require (
 	github.com/concourse/flag v1.1.0
 	github.com/concourse/go-archive v1.0.1
 	github.com/concourse/retryhttp v1.1.1
-	github.com/containerd/containerd v1.5.4
+	github.com/containerd/containerd v1.5.5
 	github.com/containerd/go-cni v1.0.2
 	github.com/containerd/typeurl v1.0.2
 	github.com/coreos/go-iptables v0.6.0
