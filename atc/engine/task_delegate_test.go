@@ -237,8 +237,10 @@ var _ = Describe("TaskDelegate", func() {
 					TypeImage: atc.TypeImage{
 						BaseType: "docker",
 					},
-					Tags:     atc.Tags{"some", "tags"},
-					Interval: "1m0s",
+					Tags: atc.Tags{"some", "tags"},
+					Interval: atc.CheckEvery{
+						Interval: 1 * time.Minute,
+					},
 				},
 			}
 

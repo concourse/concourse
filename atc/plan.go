@@ -284,8 +284,9 @@ type CheckPlan struct {
 
 	// The interval on which to check - if it has not elapsed since the config
 	// was last checked, and the build has not been manually triggered, the check
-	// will be skipped.
-	Interval string `json:"interval,omitempty"`
+	// will be skipped. It will also be set as Never if the user has specified
+	// for it to not be checked periodically.
+	Interval CheckEvery `json:"interval,omitempty"`
 
 	// If set, the check interval will not be respected, (i.e. a new check will
 	// be run even if the interval has not elapsed).

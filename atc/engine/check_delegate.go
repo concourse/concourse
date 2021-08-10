@@ -98,25 +98,23 @@ func (d *checkDelegate) FindOrCreateScope(config db.ResourceConfig) (db.Resource
 func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigScope) (lock.Lock, bool, error) {
 	logger := lagerctx.FromContext(ctx)
 
-	// rate limit periodic resource checks so worker load (plus load on
-	// external services) isn't too spiky. note that we don't rate limit
-	// resource type or prototype checks, because they are created every time a
-	// resource is used (rather than periodically).
-	if !d.build.IsManuallyTriggered() && d.plan.Resource != "" {
-		err := d.limiter.Wait(ctx)
-		if err != nil {
-			return nil, false, fmt.Errorf("rate limit: %w", err)
+	if !d.plan.SkipInterval {
+		if d.plan.Interval.Never == true {
+			// exit early if user specified to never run periodic checks
+			return nil, false, nil
+		} else if d.plan.Resource != "" {
+			// rate limit periodic resource checks so worker load (plus load on
+			// external services) isn't too spiky. note that we don't rate limit
+			// resource type or prototype checks, because they are created every time a
+			// resource is used (rather than periodically).
+			err := d.limiter.Wait(ctx)
+			if err != nil {
+				return nil, false, fmt.Errorf("rate limit: %w", err)
+			}
 		}
 	}
 
-	var err error
-	var interval time.Duration
-	if d.plan.Interval != "" {
-		interval, err = time.ParseDuration(d.plan.Interval)
-		if err != nil {
-			return nil, false, err
-		}
-	}
+	interval := d.plan.Interval.Interval
 
 	var lock lock.Lock = lock.NoopLock{}
 	if d.plan.IsPeriodic() {
@@ -126,7 +124,7 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 				return nil, false, err
 			}
 
-			if d.build.IsManuallyTriggered() { // if the check was manually triggered
+			if d.plan.SkipInterval { // if the check was manually triggered
 				// If the check plan does not provide a from version
 				if d.plan.FromVersion == nil {
 					// If the last check succeeded and the check was created before the last

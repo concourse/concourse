@@ -30,7 +30,7 @@ type Checkable interface {
 
 	HasWebhook() bool
 
-	CheckPlan(planFactory atc.PlanFactory, imagePlanner ImagePlanner, from atc.Version, interval time.Duration, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) atc.Plan
+	CheckPlan(planFactory atc.PlanFactory, imagePlanner ImagePlanner, from atc.Version, interval atc.CheckEvery, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) atc.Plan
 	CreateBuild(context.Context, bool, atc.Plan) (Build, bool, error)
 }
 
@@ -84,16 +84,20 @@ func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, 
 		}
 	}
 
-	interval := atc.DefaultCheckInterval
-	if checkable.HasWebhook() {
-		interval = atc.DefaultWebhookInterval
+	interval := atc.CheckEvery{
+		Interval: atc.DefaultCheckInterval,
 	}
-	if checkable.CheckEvery() != nil && !checkable.CheckEvery().Never {
-		interval = checkable.CheckEvery().Interval
+
+	if checkable.HasWebhook() {
+		interval.Interval = atc.DefaultWebhookInterval
+	}
+
+	if checkable.CheckEvery() != nil {
+		interval = *checkable.CheckEvery()
 	}
 
 	skipInterval := manuallyTriggered
-	if !skipInterval && time.Now().Before(checkable.LastCheckEndTime().Add(interval)) {
+	if !skipInterval && time.Now().Before(checkable.LastCheckEndTime().Add(interval.Interval)) {
 		// skip creating the check if its interval hasn't elapsed yet
 		return nil, false, nil
 	}

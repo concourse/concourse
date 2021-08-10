@@ -363,9 +363,12 @@ func FetchImagePlan(planID PlanID, image ImageResource, resourceTypes ResourceTy
 	if image.Version == nil {
 		checkPlanID := planID + "/image-check"
 		// don't know the version, need to do a Check before the Get
-		interval := DefaultCheckInterval
-		if checkEvery != nil && !checkEvery.Never {
-			interval = checkEvery.Interval
+		interval := CheckEvery{
+			Interval: DefaultCheckInterval,
+		}
+
+		if checkEvery != nil {
+			interval = *checkEvery
 		}
 
 		checkPlan := Plan{
@@ -374,7 +377,7 @@ func FetchImagePlan(planID PlanID, image ImageResource, resourceTypes ResourceTy
 				Name:     image.Name,
 				Type:     image.Type,
 				Source:   image.Source,
-				Interval: interval.String(),
+				Interval: interval,
 
 				TypeImage: resourceTypes.ImageForType(checkPlanID, image.Type, tags, skipInterval),
 

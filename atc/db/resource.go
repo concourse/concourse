@@ -109,7 +109,7 @@ type Resource interface {
 
 	SetResourceConfigScope(ResourceConfigScope) error
 
-	CheckPlan(planFactory atc.PlanFactory, imagePlanner ImagePlanner, from atc.Version, interval time.Duration, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) atc.Plan
+	CheckPlan(planFactory atc.PlanFactory, imagePlanner ImagePlanner, from atc.Version, interval atc.CheckEvery, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) atc.Plan
 	CreateBuild(context.Context, bool, atc.Plan) (Build, bool, error)
 
 	NotifyScan() error
@@ -300,7 +300,7 @@ type ImagePlanner interface {
 	ImageForType(planID atc.PlanID, resourceType string, stepTags atc.Tags, skipInterval bool) atc.TypeImage
 }
 
-func (r *resource) CheckPlan(planFactory atc.PlanFactory, imagePlanner ImagePlanner, from atc.Version, interval time.Duration, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) atc.Plan {
+func (r *resource) CheckPlan(planFactory atc.PlanFactory, imagePlanner ImagePlanner, from atc.Version, interval atc.CheckEvery, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) atc.Plan {
 	plan := planFactory.NewPlan(atc.CheckPlan{
 		Name:    r.name,
 		Type:    r.type_,
@@ -309,7 +309,7 @@ func (r *resource) CheckPlan(planFactory atc.PlanFactory, imagePlanner ImagePlan
 		Timeout: r.config.CheckTimeout,
 
 		FromVersion: from,
-		Interval:    interval.String(),
+		Interval:    interval,
 
 		SkipInterval: skipInterval,
 

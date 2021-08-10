@@ -469,6 +469,83 @@ var factoryTests = []PlannerTest{
 		}`,
 	},
 	{
+		Title: "get step with nested resource type configured with never check every",
+		Config: &atc.GetStep{
+			Name:     "some-name",
+			Resource: "some-resource",
+			Params:   atc.Params{"some": "params"},
+			Version:  &atc.VersionConfig{Pinned: atc.Version{"doesnt": "matter"}},
+			Tags:     atc.Tags{"tag-1", "tag-2"},
+		},
+		Inputs: []db.BuildInput{
+			{
+				Name:    "some-name",
+				Version: atc.Version{"some": "version"},
+			},
+		},
+		CompareIDs: true,
+		OverwriteResourceTypes: atc.ResourceTypes{
+			{
+				Name:       "some-resource-type",
+				Type:       "some-base-resource-type",
+				Source:     atc.Source{"some": "type-source"},
+				CheckEvery: &atc.CheckEvery{Never: true},
+			},
+		},
+		PlanJSON: `{
+			"id": "1",
+			"get": {
+				"name": "some-name",
+				"type": "some-resource-type",
+				"resource": "some-resource",
+				"source": {"some":"source"},
+				"params": {"some":"params"},
+				"version": {"some":"version"},
+				"tags": ["tag-1", "tag-2"],
+				"image": {
+					"base_type": "some-base-resource-type",
+					"check_plan": {
+						"id": "1/image-check",
+						"check": {
+							"name": "some-resource-type",
+							"type": "some-base-resource-type",
+							"resource_type": "some-resource-type",
+							"source": {
+								"some": "type-source"
+							},
+							"interval": "never",
+							"image": {
+								"base_type": "some-base-resource-type"
+							},
+							"tags": [
+								 "tag-1",
+								 "tag-2"
+							]
+						}
+					},
+					"get_plan": {
+						"id": "1/image-get",
+						"get": {
+							"name": "some-resource-type",
+							"type": "some-base-resource-type",
+							"source": {
+								 "some": "type-source"
+							},
+							"image": {
+								"base_type": "some-base-resource-type"
+							},
+							"version_from": "1/image-check",
+							"tags": [
+								 "tag-1",
+								 "tag-2"
+							]
+						}
+					}
+				}
+			}
+		}`,
+	},
+	{
 		Title: "get step with base resource type",
 		Config: &atc.GetStep{
 			Name:     "some-name",

@@ -542,7 +542,7 @@ var _ = Describe("ResourceType", func() {
 
 			planFactory := atc.NewPlanFactory(0)
 			version = atc.Version{"version": "from"}
-			createdCheckPlan = resourceType.CheckPlan(planFactory, resourceTypes, version, 1*time.Hour, sourceDefault, skipInterval, skipIntervalRecursively)
+			createdCheckPlan = resourceType.CheckPlan(planFactory, resourceTypes, version, atc.CheckEvery{Interval: 1 * time.Hour}, sourceDefault, skipInterval, skipIntervalRecursively)
 		}
 
 		Context("when there is a resource type using a base type", func() {
@@ -581,7 +581,9 @@ var _ = Describe("ResourceType", func() {
 						},
 						FromVersion:  version,
 						ResourceType: resourceType.Name(),
-						Interval:     "1h0m0s",
+						Interval: atc.CheckEvery{
+							Interval: 1 * time.Hour,
+						},
 					},
 				}
 				Expect(createdCheckPlan).To(Equal(expectedPlan))
@@ -640,8 +642,10 @@ var _ = Describe("ResourceType", func() {
 									Name:         "some-resource-type",
 									ResourceType: "some-resource-type",
 									Type:         "some-base-resource-type",
-									Interval:     "1m0s",
-									Source:       atc.Source{"some": "type-source"},
+									Interval: atc.CheckEvery{
+										Interval: 1 * time.Minute,
+									},
+									Source: atc.Source{"some": "type-source"},
 									TypeImage: atc.TypeImage{
 										BaseType: "some-base-resource-type",
 									},
@@ -664,7 +668,9 @@ var _ = Describe("ResourceType", func() {
 						},
 						FromVersion:  version,
 						ResourceType: resourceType.Name(),
-						Interval:     "1h0m0s",
+						Interval: atc.CheckEvery{
+							Interval: 1 * time.Hour,
+						},
 					},
 				}
 				Expect(createdCheckPlan).To(Equal(expectedPlan))
@@ -731,8 +737,10 @@ var _ = Describe("ResourceType", func() {
 									Name:         "some-resource-type",
 									ResourceType: "some-resource-type",
 									Type:         "some-base-resource-type",
-									Interval:     "2m0s",
-									Source:       atc.Source{"some": "type-source"},
+									Interval: atc.CheckEvery{
+										Interval: 2 * time.Minute,
+									},
+									Source: atc.Source{"some": "type-source"},
 									TypeImage: atc.TypeImage{
 										BaseType: "some-base-resource-type",
 									},
@@ -755,7 +763,9 @@ var _ = Describe("ResourceType", func() {
 						},
 						FromVersion:  version,
 						ResourceType: resourceType.Name(),
-						Interval:     "1h0m0s",
+						Interval: atc.CheckEvery{
+							Interval: 1 * time.Hour,
+						},
 					},
 				}
 				Expect(createdCheckPlan).To(Equal(expectedPlan))
@@ -815,8 +825,10 @@ var _ = Describe("ResourceType", func() {
 									Name:         "some-resource-type",
 									ResourceType: "some-resource-type",
 									Type:         "some-base-resource-type",
-									Interval:     "1m0s",
-									Source:       atc.Source{"some": "type-source"},
+									Interval: atc.CheckEvery{
+										Interval: 1 * time.Minute,
+									},
+									Source: atc.Source{"some": "type-source"},
 									TypeImage: atc.TypeImage{
 										BaseType: "some-base-resource-type",
 									},
@@ -837,7 +849,9 @@ var _ = Describe("ResourceType", func() {
 						},
 						FromVersion:  version,
 						ResourceType: resourceType.Name(),
-						Interval:     "1h0m0s",
+						Interval: atc.CheckEvery{
+							Interval: 1 * time.Hour,
+						},
 					},
 				}
 				Expect(createdCheckPlan).To(Equal(expectedPlan))
@@ -901,7 +915,9 @@ var _ = Describe("ResourceType", func() {
 										Name:         "some-resource-type",
 										ResourceType: "some-resource-type",
 										Type:         "some-base-resource-type",
-										Interval:     "1m0s",
+										Interval: atc.CheckEvery{
+											Interval: 1 * time.Minute,
+										},
 										Source:       atc.Source{"some": "type-source"},
 										SkipInterval: false,
 										TypeImage: atc.TypeImage{
@@ -924,7 +940,9 @@ var _ = Describe("ResourceType", func() {
 							},
 							FromVersion:  version,
 							ResourceType: resourceType.Name(),
-							Interval:     "1h0m0s",
+							Interval: atc.CheckEvery{
+								Interval: 1 * time.Hour,
+							},
 						},
 					}
 					Expect(createdCheckPlan).To(Equal(expectedPlan))
@@ -956,7 +974,9 @@ var _ = Describe("ResourceType", func() {
 										Name:         "some-resource-type",
 										ResourceType: "some-resource-type",
 										Type:         "some-base-resource-type",
-										Interval:     "1m0s",
+										Interval: atc.CheckEvery{
+											Interval: 1 * time.Minute,
+										},
 										Source:       atc.Source{"some": "type-source"},
 										SkipInterval: true,
 										TypeImage: atc.TypeImage{
@@ -979,7 +999,9 @@ var _ = Describe("ResourceType", func() {
 							},
 							FromVersion:  version,
 							ResourceType: resourceType.Name(),
-							Interval:     "1h0m0s",
+							Interval: atc.CheckEvery{
+								Interval: 1 * time.Hour,
+							},
 						},
 					}
 					Expect(createdCheckPlan).To(Equal(expectedPlan))

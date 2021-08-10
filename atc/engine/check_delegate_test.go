@@ -208,9 +208,9 @@ var _ = Describe("CheckDelegate", func() {
 				})
 			})
 
-			Context("when the build is manually triggered", func() {
+			Context("when the check plan is configured to skip interval", func() {
 				BeforeEach(func() {
-					fakeBuild.IsManuallyTriggeredReturns(true)
+					plan.Check.SkipInterval = true
 				})
 
 				It("does not rate limit", func() {
@@ -235,6 +235,12 @@ var _ = Describe("CheckDelegate", func() {
 
 					It("returns true", func() {
 						Expect(run).To(BeTrue())
+					})
+				})
+
+				Context("when the interval is set to never on the plan", func() {
+					It("does not exit early and attmpts to fetch the last check value", func() {
+						Expect(fakeResourceConfigScope.LastCheckCallCount()).To(Equal(1))
 					})
 				})
 
@@ -295,7 +301,9 @@ var _ = Describe("CheckDelegate", func() {
 				var interval time.Duration = time.Minute
 
 				BeforeEach(func() {
-					plan.Check.Interval = interval.String()
+					plan.Check.Interval = atc.CheckEvery{
+						Interval: interval,
+					}
 				})
 
 				Context("when the interval has not elapsed since the last check", func() {
@@ -357,6 +365,22 @@ var _ = Describe("CheckDelegate", func() {
 					It("rechecks the last check value in both loops", func() {
 						Expect(fakeResourceConfigScope.LastCheckCallCount()).To(Equal(2))
 					})
+				})
+			})
+
+			Context("when the interval is never", func() {
+				BeforeEach(func() {
+					plan.Check.Interval = atc.CheckEvery{
+						Never: true,
+					}
+				})
+
+				It("returns false", func() {
+					Expect(run).To(BeFalse())
+				})
+
+				It("does not attempt to fetch the last check", func() {
+					Expect(fakeResourceConfigScope.LastCheckCallCount()).To(Equal(0))
 				})
 			})
 		})

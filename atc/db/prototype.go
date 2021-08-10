@@ -39,7 +39,7 @@ type Prototype interface {
 
 	SetResourceConfigScope(ResourceConfigScope) error
 
-	CheckPlan(planFactory atc.PlanFactory, imagePlanner ImagePlanner, from atc.Version, interval time.Duration, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) atc.Plan
+	CheckPlan(planFactory atc.PlanFactory, imagePlanner ImagePlanner, from atc.Version, interval atc.CheckEvery, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) atc.Plan
 	CreateBuild(context.Context, bool, atc.Plan) (Build, bool, error)
 
 	Version() atc.Version
@@ -177,7 +177,7 @@ func (p *prototype) SetResourceConfigScope(scope ResourceConfigScope) error {
 	return nil
 }
 
-func (p *prototype) CheckPlan(planFactory atc.PlanFactory, imagePlanner ImagePlanner, from atc.Version, interval time.Duration, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) atc.Plan {
+func (p *prototype) CheckPlan(planFactory atc.PlanFactory, imagePlanner ImagePlanner, from atc.Version, interval atc.CheckEvery, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) atc.Plan {
 	plan := planFactory.NewPlan(atc.CheckPlan{
 		Name:   p.Name(),
 		Type:   p.Type(),
@@ -185,7 +185,7 @@ func (p *prototype) CheckPlan(planFactory atc.PlanFactory, imagePlanner ImagePla
 		Tags:   p.Tags(),
 
 		FromVersion: from,
-		Interval:    interval.String(),
+		Interval:    interval,
 
 		Prototype: p.Name(),
 
