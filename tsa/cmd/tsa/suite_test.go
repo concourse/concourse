@@ -39,7 +39,7 @@ var tsaPath string
 
 var _ = BeforeSuite(func() {
 	var err error
-	tsaPath, err = gexec.Build("github.com/concourse/concourse/tsa/cmd/tsa", "-ldflags", "-X 'github.com/concourse/concourse/atc/worker/gclient.idleConnTimeoutOverride=5s'")
+	tsaPath, err = gexec.Build("github.com/concourse/concourse/tsa/cmd/tsa", "-ldflags", "-X 'github.com/concourse/concourse/atc/worker/gardenruntime/gclient.idleConnTimeoutOverride=5s'")
 	Expect(err).NotTo(HaveOccurred())
 })
 
