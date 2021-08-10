@@ -314,6 +314,10 @@ var _ = Describe("CheckDelegate", func() {
 					It("never attempts to acquire the lock", func() {
 						Expect(fakeResourceConfigScope.AcquireResourceCheckingLockCallCount()).To(Equal(0))
 					})
+
+					It("checked the last check before attempting to acquire the lock", func() {
+						Expect(fakeResourceConfigScope.LastCheckCallCount()).To(Equal(1))
+					})
 				})
 
 				Context("when the interval has elapsed since the last check", func() {
@@ -327,29 +331,6 @@ var _ = Describe("CheckDelegate", func() {
 
 					It("returns true", func() {
 						Expect(run).To(BeTrue())
-					})
-				})
-
-				Context("when the last check gets updated after the first loop", func() {
-					BeforeEach(func() {
-						fakeResourceConfigScope.LastCheckReturnsOnCall(0, db.LastCheck{
-							StartTime: now.Add(-(interval + 10)),
-							EndTime:   now.Add(-(interval - 1)),
-							Succeeded: true,
-						}, nil)
-						fakeResourceConfigScope.LastCheckReturnsOnCall(1, db.LastCheck{
-							StartTime: now.Add(-(interval + 10)),
-							EndTime:   now.Add(-(interval + 1)),
-							Succeeded: true,
-						}, nil)
-					})
-
-					It("exits out of loop and does not run", func() {
-						Expect(run).To(BeFalse())
-					})
-
-					It("never attempts to acquire lock", func() {
-						Expect(fakeResourceConfigScope.AcquireResourceCheckingLockCallCount()).To(Equal(0))
 					})
 				})
 			})
