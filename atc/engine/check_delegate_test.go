@@ -314,10 +314,6 @@ var _ = Describe("CheckDelegate", func() {
 					It("never attempts to acquire the lock", func() {
 						Expect(fakeResourceConfigScope.AcquireResourceCheckingLockCallCount()).To(Equal(0))
 					})
-
-					It("checked the last check before attempting to acquire the lock", func() {
-						Expect(fakeResourceConfigScope.LastCheckCallCount()).To(Equal(1))
-					})
 				})
 
 				Context("when the interval has elapsed since the last check", func() {
@@ -331,6 +327,35 @@ var _ = Describe("CheckDelegate", func() {
 
 					It("returns true", func() {
 						Expect(run).To(BeTrue())
+					})
+				})
+
+				Context("when the last check value gets updated after the first loop of attempting to acquire lock", func() {
+					BeforeEach(func() {
+						fakeResourceConfigScope.LastCheckReturnsOnCall(0, db.LastCheck{
+							StartTime: now.Add(-(interval + 10)),
+							EndTime:   now.Add(-(interval + 1)),
+							Succeeded: true,
+						}, nil)
+						fakeResourceConfigScope.LastCheckReturnsOnCall(1, db.LastCheck{
+							StartTime: now.Add(time.Second).Add(-(interval + 10)),
+							EndTime:   now.Add(time.Second).Add(-(interval - 1)),
+							Succeeded: true,
+						}, nil)
+						fakeResourceConfigScope.AcquireResourceCheckingLockReturns(nil, false, nil)
+						go fakeClock.WaitForWatcherAndIncrement(time.Second)
+					})
+
+					It("exits out of loop after last check gets updated in second loop and does not run", func() {
+						Expect(run).To(BeFalse())
+					})
+
+					It("only attempts to acquire lock in first loop", func() {
+						Expect(fakeResourceConfigScope.AcquireResourceCheckingLockCallCount()).To(Equal(1))
+					})
+
+					It("rechecks the last check value in both loops", func() {
+						Expect(fakeResourceConfigScope.LastCheckCallCount()).To(Equal(2))
 					})
 				})
 			})
