@@ -106,15 +106,10 @@ var errDisappeared = errors.New("internal: build parent disappeared")
 func (h checkBuildReadAccessHandler) allow(build db.Build, acc accessor.Access) (bool, error) {
 	if acc.IsAuthenticated() {
 		allTeams := build.AllAssociatedTeamNames()
-		authorized := false
 		for _, team := range allTeams {
 			if acc.IsAuthorized(team) {
-				authorized = true
-				break
+				return true, nil
 			}
-		}
-		if authorized {
-			return true, nil
 		}
 	}
 

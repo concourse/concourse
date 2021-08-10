@@ -32,6 +32,11 @@ type inMemoryCheckBuild struct {
 	resourceTypeName string
 	spanContext      SpanContext
 
+	createTime time.Time
+	startTime  time.Time
+	endTime    time.Time
+	status     BuildStatus
+
 	running     bool
 	conn        Conn
 	lockFactory lock.LockFactory
@@ -54,6 +59,9 @@ func newRunningInMemoryCheckBuild(conn Conn, lockFactory lock.LockFactory, check
 	build.spanContext = spanContext
 	build.preId = seqGen.Next()
 	build.eventIdSeq = util.NewSequenceGenerator(0)
+	build.createTime = time.Now()
+	build.startTime = time.Now()
+	build.status = BuildStatusStarted
 
 	build.SaveEvent(event.Status{
 		Status: atc.StatusStarted,
@@ -100,8 +108,13 @@ func (b *inMemoryCheckBuild) ResourceID() int                         { return b
 func (b *inMemoryCheckBuild) ResourceName() string                    { return b.resourceName }
 func (b *inMemoryCheckBuild) ResourceTypeID() int                     { return b.resourceTypeId }
 func (b *inMemoryCheckBuild) Schema() string                          { return schema }
-func (b *inMemoryCheckBuild) IsRunning() bool                         { return b.running }
+func (b *inMemoryCheckBuild) IsRunning() bool                         { return b.status == BuildStatusStarted }
 func (b *inMemoryCheckBuild) IsManuallyTriggered() bool               { return false }
+func (b *inMemoryCheckBuild) CreateTime() time.Time                   { return b.createTime }
+func (b *inMemoryCheckBuild) StartTime() time.Time                    { return b.startTime }
+func (b *inMemoryCheckBuild) EndTime() time.Time                      { return b.endTime }
+func (b *inMemoryCheckBuild) Status() BuildStatus                     { return b.status }
+func (b *inMemoryCheckBuild) CreatedBy() *string                      { return nil }
 func (b *inMemoryCheckBuild) SpanContext() propagation.TextMapCarrier { return b.spanContext }
 func (b *inMemoryCheckBuild) PipelineInstanceVars() atc.InstanceVars {
 	return b.checkable.PipelineInstanceVars()
@@ -115,24 +128,21 @@ func (b *inMemoryCheckBuild) JobName() string { return "" }
 
 func (b *inMemoryCheckBuild) LagerData() lager.Data {
 	data := lager.Data{
+		"build":    b.Name(),
 		"team":     b.TeamName(),
 		"pipeline": b.PipelineName(),
 	}
 
 	if b.preId != 0 {
-		data["preBuildId"] = b.preId
+		data["pre_build_id"] = b.preId
 	}
 
 	if b.id != 0 {
-		data["build"] = b.id
+		data["build_id"] = b.id
 	}
 
 	if b.resourceId != 0 {
 		data["resource"] = b.resourceName
-	}
-
-	if b.resourceTypeId != 0 {
-		data["resourceType"] = b.resourceTypeName
 	}
 
 	return data
@@ -140,24 +150,21 @@ func (b *inMemoryCheckBuild) LagerData() lager.Data {
 
 func (b *inMemoryCheckBuild) TracingAttrs() tracing.Attrs {
 	attrs := tracing.Attrs{
+		"build":    b.Name(),
 		"team":     b.TeamName(),
 		"pipeline": b.PipelineName(),
 	}
 
 	if b.preId != 0 {
-		attrs["preBuildId"] = fmt.Sprintf("%d", b.preId)
+		attrs["pre_build_id"] = fmt.Sprintf("%d", b.preId)
 	}
 
 	if b.id != 0 {
-		attrs["build"] = fmt.Sprintf("%d", b.id)
+		attrs["build_id"] = fmt.Sprintf("%d", b.id)
 	}
 
 	if b.resourceId != 0 {
 		attrs["resource"] = b.resourceName
-	}
-
-	if b.resourceTypeId != 0 {
-		attrs["resourceType"] = b.resourceTypeName
 	}
 
 	return attrs
@@ -248,6 +255,9 @@ func (b *inMemoryCheckBuild) Finish(status BuildStatus) error {
 	if !b.runningInContainer {
 		return nil
 	}
+
+	b.status = status
+	b.endTime = time.Now()
 
 	tx, err := b.conn.Begin()
 	if err != nil {
@@ -412,11 +422,10 @@ func (b *inMemoryCheckBuild) PublicPlan() *json.RawMessage {
 		return b.plan.Public()
 	}
 
-	resource, ok := b.checkable.(Resource)
-	if !ok || resource.BuildSummary() == nil || resource.BuildSummary().PublicPlan == nil {
+	if b.checkable.BuildSummary() == nil || b.checkable.BuildSummary().PublicPlan == nil {
 		return nil
 	}
-	bytes, err := json.Marshal(resource.BuildSummary().PublicPlan)
+	bytes, err := json.Marshal(b.checkable.BuildSummary().PublicPlan)
 	if err != nil {
 		return nil
 	}
@@ -508,13 +517,9 @@ func (b *inMemoryCheckBuild) initDbStuff(tx Tx) error {
 
 // === No implemented functions ===
 
-func (b *inMemoryCheckBuild) CreateTime() time.Time                        { panic("not-implemented") }
 func (b *inMemoryCheckBuild) PrototypeID() int                             { panic("not-implemented") }
 func (b *inMemoryCheckBuild) PrototypeName() string                        { panic("not-implemented") }
-func (b *inMemoryCheckBuild) StartTime() time.Time                         { panic("not-implemented") }
-func (b *inMemoryCheckBuild) EndTime() time.Time                           { panic("not-implemented") }
 func (b *inMemoryCheckBuild) ReapTime() time.Time                          { panic("not-implemented") }
-func (b *inMemoryCheckBuild) Status() BuildStatus                          { panic("not-implemented") }
 func (b *inMemoryCheckBuild) IsScheduled() bool                            { panic("not-implemented") }
 func (b *inMemoryCheckBuild) IsDrained() bool                              { panic("not-implemented") }
 func (b *inMemoryCheckBuild) IsAborted() bool                              { panic("not-implemented") }
@@ -523,17 +528,16 @@ func (b *inMemoryCheckBuild) InputsReady() bool                            { pan
 func (b *inMemoryCheckBuild) RerunOf() int                                 { panic("not-implemented") }
 func (b *inMemoryCheckBuild) RerunOfName() string                          { panic("not-implemented") }
 func (b *inMemoryCheckBuild) RerunNumber() int                             { panic("not-implemented") }
-func (b *inMemoryCheckBuild) CreatedBy() *string                           { panic("not-implemented") }
 func (b *inMemoryCheckBuild) SetDrained(bool) error                        { panic("not-implemented") }
 func (b *inMemoryCheckBuild) Delete() (bool, error)                        { panic("not-implemented") }
 func (b *inMemoryCheckBuild) MarkAsAborted() error                         { panic("not-implemented") }
 func (b *inMemoryCheckBuild) Interceptible() (bool, error)                 { panic("not-implemented") }
 func (b *inMemoryCheckBuild) Preparation() (BuildPreparation, bool, error) { panic("not-implemented") }
-func (b *inMemoryCheckBuild) SetInterceptible(b2 bool) error               { panic("not-implemented") }
+func (b *inMemoryCheckBuild) SetInterceptible(bool) error                  { panic("not-implemented") }
 func (b *inMemoryCheckBuild) Artifacts() ([]WorkerArtifact, error)         { panic("not-implemented") }
 func (b *inMemoryCheckBuild) Artifact(int) (WorkerArtifact, error)         { panic("not-implemented") }
 func (b *inMemoryCheckBuild) Start(atc.Plan) (bool, error)                 { panic("not-implemented") }
-func (b *inMemoryCheckBuild) SyslogTag(id event.OriginID) string           { panic("not-implemented") }
+func (b *inMemoryCheckBuild) SyslogTag(event.OriginID) string              { panic("not-implemented") }
 func (b *inMemoryCheckBuild) Comment() string                              { panic("not-implemented") }
 func (b *inMemoryCheckBuild) SetComment(string) error                      { panic("not-implemented") }
 func (b *inMemoryCheckBuild) Job() (Job, bool, error)                      { panic("not-implemented") }

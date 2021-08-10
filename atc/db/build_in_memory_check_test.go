@@ -73,19 +73,21 @@ var _ = Describe("Build", func() {
 
 		It("LagerData", func() {
 			Expect(build.LagerData()).To(Equal(lager.Data{
-				"team":       defaultResource.TeamName(),
-				"pipeline":   defaultResource.PipelineName(),
-				"preBuildId": 1,
-				"resource":   defaultResource.Name(),
+				"team":         defaultResource.TeamName(),
+				"pipeline":     defaultResource.PipelineName(),
+				"pre_build_id": 1,
+				"resource":     defaultResource.Name(),
+				"build":        "check",
 			}))
 		})
 
 		It("TracingAttrs", func() {
 			Expect(build.TracingAttrs()).To(Equal(tracing.Attrs{
-				"team":       defaultResource.TeamName(),
-				"pipeline":   defaultResource.PipelineName(),
-				"preBuildId": "1",
-				"resource":   defaultResource.Name(),
+				"team":         defaultResource.TeamName(),
+				"pipeline":     defaultResource.PipelineName(),
+				"pre_build_id": "1",
+				"resource":     defaultResource.Name(),
+				"build":        "check",
 			}))
 		})
 
@@ -144,21 +146,23 @@ var _ = Describe("Build", func() {
 
 				It("LagerData", func() {
 					Expect(build.LagerData()).To(Equal(lager.Data{
-						"build":      buildId,
-						"team":       defaultResource.TeamName(),
-						"pipeline":   defaultResource.PipelineName(),
-						"preBuildId": 1,
-						"resource":   defaultResource.Name(),
+						"build_id":     buildId,
+						"team":         defaultResource.TeamName(),
+						"pipeline":     defaultResource.PipelineName(),
+						"pre_build_id": 1,
+						"resource":     defaultResource.Name(),
+						"build":        "check",
 					}))
 				})
 
 				It("TracingAttrs", func() {
 					Expect(build.TracingAttrs()).To(Equal(tracing.Attrs{
-						"build":      fmt.Sprintf("%d", buildId),
-						"team":       defaultResource.TeamName(),
-						"pipeline":   defaultResource.PipelineName(),
-						"preBuildId": "1",
-						"resource":   defaultResource.Name(),
+						"build_id":     fmt.Sprintf("%d", buildId),
+						"team":         defaultResource.TeamName(),
+						"pipeline":     defaultResource.PipelineName(),
+						"pre_build_id": "1",
+						"resource":     defaultResource.Name(),
+						"build":        "check",
 					}))
 				})
 
@@ -326,8 +330,9 @@ var _ = Describe("Build", func() {
 			Expect(build.LagerData()).To(Equal(lager.Data{
 				"team":     defaultResource.TeamName(),
 				"pipeline": defaultResource.PipelineName(),
-				"build":    1999,
+				"build_id": 1999,
 				"resource": defaultResource.Name(),
+				"build":    "check",
 			}))
 		})
 
@@ -335,8 +340,9 @@ var _ = Describe("Build", func() {
 			Expect(build.TracingAttrs()).To(Equal(tracing.Attrs{
 				"team":     defaultResource.TeamName(),
 				"pipeline": defaultResource.PipelineName(),
-				"build":    "1999",
+				"build_id": "1999",
 				"resource": defaultResource.Name(),
+				"build":    "check",
 			}))
 		})
 
