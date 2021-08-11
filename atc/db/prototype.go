@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"strconv"
 	"time"
 
@@ -246,7 +247,7 @@ func (p *prototype) CreateBuild(ctx context.Context, manuallyTriggered bool, pla
 }
 
 func (p *prototype) CreateInMemoryBuild(context.Context, atc.Plan, util.SequenceGenerator) (Build, error) {
-	panic("not implemented")
+	return nil, errors.New("prototype not supporting in-memory build yet")
 }
 
 func scanPrototype(p *prototype, row scannable) error {

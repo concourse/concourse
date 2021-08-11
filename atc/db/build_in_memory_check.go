@@ -16,6 +16,8 @@ import (
 	"github.com/concourse/concourse/vars"
 	"github.com/lib/pq"
 	"go.opentelemetry.io/otel/propagation"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -176,10 +178,6 @@ func (b *inMemoryCheckBuild) Reload() (bool, error) {
 }
 
 func (b *inMemoryCheckBuild) PrivatePlan() atc.Plan {
-	if !b.running {
-		panic("not-implemented")
-	}
-
 	return b.plan
 }
 
@@ -187,7 +185,7 @@ func (b *inMemoryCheckBuild) PrivatePlan() atc.Plan {
 // in-memory check build, this is a chance to initialize database connection.
 func (b *inMemoryCheckBuild) OnCheckBuildStart() error {
 	if !b.running {
-		panic("not-implemented")
+		return errors.New("not-running-build-cannot-start-check")
 	}
 
 	b.runningInContainer = true
@@ -218,7 +216,7 @@ func (b *inMemoryCheckBuild) OnCheckBuildStart() error {
 // intervals.
 func (b *inMemoryCheckBuild) AcquireTrackingLock(logger lager.Logger, interval time.Duration) (lock.Lock, bool, error) {
 	if !b.running {
-		panic("not-implemented")
+		return nil, false, errors.New("not-running-build-cannot-acquire-tracking-lock")
 	}
 
 	var lockId lock.LockID
@@ -249,7 +247,7 @@ func (b *inMemoryCheckBuild) AcquireTrackingLock(logger lager.Logger, interval t
 
 func (b *inMemoryCheckBuild) Finish(status BuildStatus) error {
 	if !b.running {
-		panic("not-implemented")
+		return errors.New("not-running-build-cannot-finish")
 	}
 
 	if !b.runningInContainer {
@@ -515,49 +513,91 @@ func (b *inMemoryCheckBuild) initDbStuff(tx Tx) error {
 	return nil
 }
 
-// === No implemented functions ===
+func (b *inMemoryCheckBuild) SyslogTag(origin event.OriginID) string {
+	segments := []string{b.TeamName()}
 
-func (b *inMemoryCheckBuild) PrototypeID() int                             { panic("not-implemented") }
-func (b *inMemoryCheckBuild) PrototypeName() string                        { panic("not-implemented") }
-func (b *inMemoryCheckBuild) ReapTime() time.Time                          { panic("not-implemented") }
-func (b *inMemoryCheckBuild) IsScheduled() bool                            { panic("not-implemented") }
-func (b *inMemoryCheckBuild) IsDrained() bool                              { panic("not-implemented") }
-func (b *inMemoryCheckBuild) IsAborted() bool                              { panic("not-implemented") }
-func (b *inMemoryCheckBuild) IsCompleted() bool                            { panic("not-implemented") }
-func (b *inMemoryCheckBuild) InputsReady() bool                            { panic("not-implemented") }
-func (b *inMemoryCheckBuild) RerunOf() int                                 { panic("not-implemented") }
-func (b *inMemoryCheckBuild) RerunOfName() string                          { panic("not-implemented") }
-func (b *inMemoryCheckBuild) RerunNumber() int                             { panic("not-implemented") }
-func (b *inMemoryCheckBuild) SetDrained(bool) error                        { panic("not-implemented") }
-func (b *inMemoryCheckBuild) Delete() (bool, error)                        { panic("not-implemented") }
-func (b *inMemoryCheckBuild) MarkAsAborted() error                         { panic("not-implemented") }
-func (b *inMemoryCheckBuild) Interceptible() (bool, error)                 { panic("not-implemented") }
-func (b *inMemoryCheckBuild) Preparation() (BuildPreparation, bool, error) { panic("not-implemented") }
-func (b *inMemoryCheckBuild) SetInterceptible(bool) error                  { panic("not-implemented") }
-func (b *inMemoryCheckBuild) Artifacts() ([]WorkerArtifact, error)         { panic("not-implemented") }
-func (b *inMemoryCheckBuild) Artifact(int) (WorkerArtifact, error)         { panic("not-implemented") }
-func (b *inMemoryCheckBuild) Start(atc.Plan) (bool, error)                 { panic("not-implemented") }
-func (b *inMemoryCheckBuild) SyslogTag(event.OriginID) string              { panic("not-implemented") }
-func (b *inMemoryCheckBuild) Comment() string                              { panic("not-implemented") }
-func (b *inMemoryCheckBuild) SetComment(string) error                      { panic("not-implemented") }
-func (b *inMemoryCheckBuild) Job() (Job, bool, error)                      { panic("not-implemented") }
+	if b.PipelineID() != 0 {
+		segments = append(segments, b.PipelineName())
+	}
+
+	if b.ResourceID() != 0 {
+		segments = append(segments, b.ResourceName(), strconv.Itoa(b.id))
+	} else {
+		segments = append(segments, strconv.Itoa(b.id))
+	}
+
+	segments = append(segments, origin.String())
+
+	return strings.Join(segments, "/")
+}
+
+// As in-memory builds should only be check builds, the following functions
+// should never been called, so return false value and errors for them.
+
+func (b *inMemoryCheckBuild) PrototypeID() int      { return 0 }
+func (b *inMemoryCheckBuild) PrototypeName() string { return "" }
+func (b *inMemoryCheckBuild) ReapTime() time.Time   { return time.Time{} }
+func (b *inMemoryCheckBuild) IsScheduled() bool     { return false }
+func (b *inMemoryCheckBuild) IsDrained() bool       { return false }
+func (b *inMemoryCheckBuild) IsAborted() bool       { return false }
+func (b *inMemoryCheckBuild) IsCompleted() bool     { return false }
+func (b *inMemoryCheckBuild) InputsReady() bool     { return false }
+func (b *inMemoryCheckBuild) RerunOf() int          { return 0 }
+func (b *inMemoryCheckBuild) RerunOfName() string   { return "" }
+func (b *inMemoryCheckBuild) RerunNumber() int      { return 0 }
+func (b *inMemoryCheckBuild) SetDrained(bool) error {
+	return errors.New("not implemented for in memory build")
+}
+func (b *inMemoryCheckBuild) Delete() (bool, error) {
+	return false, errors.New("not implemented for in memory build")
+}
+func (b *inMemoryCheckBuild) MarkAsAborted() error {
+	return errors.New("not implemented for in memory build")
+}
+func (b *inMemoryCheckBuild) Interceptible() (bool, error) {
+	return false, errors.New("not implemented for in memory build")
+}
+func (b *inMemoryCheckBuild) Preparation() (BuildPreparation, bool, error) {
+	return BuildPreparation{}, false, errors.New("not implemented for in memory build")
+}
+func (b *inMemoryCheckBuild) SetInterceptible(bool) error {
+	return errors.New("not implemented for in memory build")
+}
+func (b *inMemoryCheckBuild) Artifacts() ([]WorkerArtifact, error) {
+	return nil, errors.New("not implemented for in memory build")
+}
+func (b *inMemoryCheckBuild) Artifact(int) (WorkerArtifact, error) {
+	return nil, errors.New("not implemented for in memory build")
+}
+func (b *inMemoryCheckBuild) Start(atc.Plan) (bool, error) {
+	return false, errors.New("not implemented for in memory build")
+}
+func (b *inMemoryCheckBuild) Comment() string {
+	return ""
+}
+func (b *inMemoryCheckBuild) SetComment(string) error {
+	return errors.New("not implemented for in memory build")
+}
+func (b *inMemoryCheckBuild) Job() (Job, bool, error) {
+	return nil, false, errors.New("not implemented for in memory build")
+}
 func (b *inMemoryCheckBuild) ResourcesChecked() (bool, error) {
-	panic("not-implemented")
+	return false, errors.New("not implemented for in memory build")
 }
 func (b *inMemoryCheckBuild) Resources() ([]BuildInput, []BuildOutput, error) {
-	panic("not-implemented")
+	return nil, nil, errors.New("not implemented for in memory build")
 }
 func (b *inMemoryCheckBuild) SavePipeline(atc.PipelineRef, int, atc.Config, ConfigVersion, bool) (Pipeline, bool, error) {
-	panic("not-implemented")
+	return nil, false, errors.New("not implemented for in memory build")
 }
 func (b *inMemoryCheckBuild) AdoptInputsAndPipes() ([]BuildInput, bool, error) {
-	panic("not-implemented")
+	return nil, false, errors.New("not implemented for in memory build")
 }
 func (b *inMemoryCheckBuild) AdoptRerunInputsAndPipes() ([]BuildInput, bool, error) {
-	panic("not-implemented")
+	return nil, false, errors.New("not implemented for in memory build")
 }
 func (b *inMemoryCheckBuild) SaveOutput(string, atc.Source, atc.VersionedResourceTypes, atc.Version, ResourceConfigMetadataFields, string, string) error {
-	panic("not-implemented")
+	return errors.New("not implemented for in memory build")
 }
 func (b *inMemoryCheckBuild) IsNewerThanLastCheckOf(input Resource) bool {
 	panic("not-implemented")

@@ -351,11 +351,11 @@ var _ = Describe("Build", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 
-		It("should panic", func() {
-			Expect(func() { build.OnCheckBuildStart() }).Should(PanicWith(Equal("not-implemented")))
-			Expect(func() { build.PrivatePlan() }).Should(PanicWith(Equal("not-implemented")))
-			Expect(func() { build.Finish(db.BuildStatusSucceeded) }).Should(PanicWith(Equal("not-implemented")))
-			Expect(func() { build.AcquireTrackingLock(logger, time.Minute) }).Should(PanicWith(Equal("not-implemented")))
+		It("should error", func() {
+			Expect(build.OnCheckBuildStart()).To(HaveOccurred())
+			Expect(build.Finish(db.BuildStatusSucceeded)).To(HaveOccurred())
+			_, _, err := build.AcquireTrackingLock(logger, time.Minute)
+			Expect(err).To(HaveOccurred())
 		})
 	})
 })

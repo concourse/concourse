@@ -961,7 +961,7 @@ func populateBuildSummary(buildSummary *atc.BuildSummary,
 			buildSummary.Status = atc.StatusStarted
 		}
 	} else {
-		buildSummary.Status = atc.StatusPending
+		return errors.New("no check start time found")
 	}
 
 	if lastCheckBuildPlan.Valid {
