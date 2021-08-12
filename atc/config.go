@@ -296,6 +296,10 @@ func (types ResourceTypes) Without(name string) ResourceTypes {
 	return newTypes
 }
 
+type ImagePlanner interface {
+	ImageForType(planID PlanID, resourceType string, stepTags Tags, skipInterval bool) TypeImage
+}
+
 func (types ResourceTypes) ImageForType(planID PlanID, resourceType string, stepTags Tags, skipInterval bool) TypeImage {
 	// Check if resource type is a custom type
 	parent, found := types.Lookup(resourceType)

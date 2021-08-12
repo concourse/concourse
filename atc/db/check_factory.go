@@ -30,7 +30,7 @@ type Checkable interface {
 
 	HasWebhook() bool
 
-	CheckPlan(planFactory atc.PlanFactory, imagePlanner ImagePlanner, from atc.Version, interval atc.CheckEvery, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) atc.Plan
+	CheckPlan(planFactory atc.PlanFactory, imagePlanner atc.ImagePlanner, from atc.Version, interval atc.CheckEvery, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) atc.Plan
 	CreateBuild(context.Context, bool, atc.Plan) (Build, bool, error)
 }
 
@@ -38,7 +38,7 @@ type Checkable interface {
 type CheckFactory interface {
 	TryCreateCheck(context.Context, Checkable, ResourceTypes, atc.Version, bool, bool) (Build, bool, error)
 	Resources() ([]Resource, error)
-	ResourceTypes() (map[int]ResourceTypes, error)
+	ResourceTypesByPipeline() (map[int]ResourceTypes, error)
 }
 
 type checkFactory struct {
@@ -103,14 +103,6 @@ func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, 
 	}
 
 	deserializedResourceTypes := resourceTypes.Filter(checkable).Deserialize()
-	if deserializedResourceTypes == nil {
-		// If there are no resource types, set it to a zero length list of resource
-		// types. The reason behind this is because we wrap the resource types
-		// object in an ImagePlanner interface, and this will panic if the resource
-		// types is nil.
-		deserializedResourceTypes = atc.ResourceTypes{}
-	}
-
 	plan := checkable.CheckPlan(c.planFactory, deserializedResourceTypes, from, interval, sourceDefaults, skipInterval, skipIntervalRecursively)
 	build, created, err := checkable.CreateBuild(ctx, manuallyTriggered, plan)
 	if err != nil {
@@ -168,7 +160,7 @@ func (c *checkFactory) Resources() ([]Resource, error) {
 	return resources, nil
 }
 
-func (c *checkFactory) ResourceTypes() (map[int]ResourceTypes, error) {
+func (c *checkFactory) ResourceTypesByPipeline() (map[int]ResourceTypes, error) {
 	resourceTypes := make(map[int]ResourceTypes)
 
 	rows, err := resourceTypesQuery.

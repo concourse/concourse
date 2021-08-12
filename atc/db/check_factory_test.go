@@ -253,11 +253,12 @@ var _ = Describe("CheckFactory", func() {
 			})
 
 			It("creates a check plan", func() {
+				var rts atc.ResourceTypes
 				Expect(fakeResourceType.CheckPlanCallCount()).To(Equal(1))
 				_, types, version, interval, defaults, _, _ := fakeResourceType.CheckPlanArgsForCall(0)
 				Expect(version).To(Equal(atc.Version{"from": "version"}))
 				Expect(interval.Interval).To(Equal(defaultCheckInterval))
-				Expect(types).To(Equal(atc.ResourceTypes{}))
+				Expect(types).To(Equal(rts))
 				Expect(defaults).To(Equal(atc.Source{}))
 			})
 
@@ -407,7 +408,7 @@ var _ = Describe("CheckFactory", func() {
 		)
 
 		JustBeforeEach(func() {
-			resourceTypes, err = checkFactory.ResourceTypes()
+			resourceTypes, err = checkFactory.ResourceTypesByPipeline()
 			Expect(err).NotTo(HaveOccurred())
 		})
 

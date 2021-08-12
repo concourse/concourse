@@ -10,15 +10,15 @@ import (
 )
 
 type FakeCheckFactory struct {
-	ResourceTypesStub        func() (map[int]db.ResourceTypes, error)
-	resourceTypesMutex       sync.RWMutex
-	resourceTypesArgsForCall []struct {
+	ResourceTypesByPipelineStub        func() (map[int]db.ResourceTypes, error)
+	resourceTypesByPipelineMutex       sync.RWMutex
+	resourceTypesByPipelineArgsForCall []struct {
 	}
-	resourceTypesReturns struct {
+	resourceTypesByPipelineReturns struct {
 		result1 map[int]db.ResourceTypes
 		result2 error
 	}
-	resourceTypesReturnsOnCall map[int]struct {
+	resourceTypesByPipelineReturnsOnCall map[int]struct {
 		result1 map[int]db.ResourceTypes
 		result2 error
 	}
@@ -58,15 +58,15 @@ type FakeCheckFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeCheckFactory) ResourceTypes() (map[int]db.ResourceTypes, error) {
-	fake.resourceTypesMutex.Lock()
-	ret, specificReturn := fake.resourceTypesReturnsOnCall[len(fake.resourceTypesArgsForCall)]
-	fake.resourceTypesArgsForCall = append(fake.resourceTypesArgsForCall, struct {
+func (fake *FakeCheckFactory) ResourceTypesByPipeline() (map[int]db.ResourceTypes, error) {
+	fake.resourceTypesByPipelineMutex.Lock()
+	ret, specificReturn := fake.resourceTypesByPipelineReturnsOnCall[len(fake.resourceTypesByPipelineArgsForCall)]
+	fake.resourceTypesByPipelineArgsForCall = append(fake.resourceTypesByPipelineArgsForCall, struct {
 	}{})
-	stub := fake.ResourceTypesStub
-	fakeReturns := fake.resourceTypesReturns
-	fake.recordInvocation("ResourceTypes", []interface{}{})
-	fake.resourceTypesMutex.Unlock()
+	stub := fake.ResourceTypesByPipelineStub
+	fakeReturns := fake.resourceTypesByPipelineReturns
+	fake.recordInvocation("ResourceTypesByPipeline", []interface{}{})
+	fake.resourceTypesByPipelineMutex.Unlock()
 	if stub != nil {
 		return stub()
 	}
@@ -76,39 +76,39 @@ func (fake *FakeCheckFactory) ResourceTypes() (map[int]db.ResourceTypes, error) 
 	return fakeReturns.result1, fakeReturns.result2
 }
 
-func (fake *FakeCheckFactory) ResourceTypesCallCount() int {
-	fake.resourceTypesMutex.RLock()
-	defer fake.resourceTypesMutex.RUnlock()
-	return len(fake.resourceTypesArgsForCall)
+func (fake *FakeCheckFactory) ResourceTypesByPipelineCallCount() int {
+	fake.resourceTypesByPipelineMutex.RLock()
+	defer fake.resourceTypesByPipelineMutex.RUnlock()
+	return len(fake.resourceTypesByPipelineArgsForCall)
 }
 
-func (fake *FakeCheckFactory) ResourceTypesCalls(stub func() (map[int]db.ResourceTypes, error)) {
-	fake.resourceTypesMutex.Lock()
-	defer fake.resourceTypesMutex.Unlock()
-	fake.ResourceTypesStub = stub
+func (fake *FakeCheckFactory) ResourceTypesByPipelineCalls(stub func() (map[int]db.ResourceTypes, error)) {
+	fake.resourceTypesByPipelineMutex.Lock()
+	defer fake.resourceTypesByPipelineMutex.Unlock()
+	fake.ResourceTypesByPipelineStub = stub
 }
 
-func (fake *FakeCheckFactory) ResourceTypesReturns(result1 map[int]db.ResourceTypes, result2 error) {
-	fake.resourceTypesMutex.Lock()
-	defer fake.resourceTypesMutex.Unlock()
-	fake.ResourceTypesStub = nil
-	fake.resourceTypesReturns = struct {
+func (fake *FakeCheckFactory) ResourceTypesByPipelineReturns(result1 map[int]db.ResourceTypes, result2 error) {
+	fake.resourceTypesByPipelineMutex.Lock()
+	defer fake.resourceTypesByPipelineMutex.Unlock()
+	fake.ResourceTypesByPipelineStub = nil
+	fake.resourceTypesByPipelineReturns = struct {
 		result1 map[int]db.ResourceTypes
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCheckFactory) ResourceTypesReturnsOnCall(i int, result1 map[int]db.ResourceTypes, result2 error) {
-	fake.resourceTypesMutex.Lock()
-	defer fake.resourceTypesMutex.Unlock()
-	fake.ResourceTypesStub = nil
-	if fake.resourceTypesReturnsOnCall == nil {
-		fake.resourceTypesReturnsOnCall = make(map[int]struct {
+func (fake *FakeCheckFactory) ResourceTypesByPipelineReturnsOnCall(i int, result1 map[int]db.ResourceTypes, result2 error) {
+	fake.resourceTypesByPipelineMutex.Lock()
+	defer fake.resourceTypesByPipelineMutex.Unlock()
+	fake.ResourceTypesByPipelineStub = nil
+	if fake.resourceTypesByPipelineReturnsOnCall == nil {
+		fake.resourceTypesByPipelineReturnsOnCall = make(map[int]struct {
 			result1 map[int]db.ResourceTypes
 			result2 error
 		})
 	}
-	fake.resourceTypesReturnsOnCall[i] = struct {
+	fake.resourceTypesByPipelineReturnsOnCall[i] = struct {
 		result1 map[int]db.ResourceTypes
 		result2 error
 	}{result1, result2}
@@ -245,8 +245,8 @@ func (fake *FakeCheckFactory) TryCreateCheckReturnsOnCall(i int, result1 db.Buil
 func (fake *FakeCheckFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.resourceTypesMutex.RLock()
-	defer fake.resourceTypesMutex.RUnlock()
+	fake.resourceTypesByPipelineMutex.RLock()
+	defer fake.resourceTypesByPipelineMutex.RUnlock()
 	fake.resourcesMutex.RLock()
 	defer fake.resourcesMutex.RUnlock()
 	fake.tryCreateCheckMutex.RLock()

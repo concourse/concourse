@@ -21,11 +21,11 @@ type FakeCheckable struct {
 	checkEveryReturnsOnCall map[int]struct {
 		result1 *atc.CheckEvery
 	}
-	CheckPlanStub        func(atc.PlanFactory, db.ImagePlanner, atc.Version, atc.CheckEvery, atc.Source, bool, bool) atc.Plan
+	CheckPlanStub        func(atc.PlanFactory, atc.ImagePlanner, atc.Version, atc.CheckEvery, atc.Source, bool, bool) atc.Plan
 	checkPlanMutex       sync.RWMutex
 	checkPlanArgsForCall []struct {
 		arg1 atc.PlanFactory
-		arg2 db.ImagePlanner
+		arg2 atc.ImagePlanner
 		arg3 atc.Version
 		arg4 atc.CheckEvery
 		arg5 atc.Source
@@ -276,12 +276,12 @@ func (fake *FakeCheckable) CheckEveryReturnsOnCall(i int, result1 *atc.CheckEver
 	}{result1}
 }
 
-func (fake *FakeCheckable) CheckPlan(arg1 atc.PlanFactory, arg2 db.ImagePlanner, arg3 atc.Version, arg4 atc.CheckEvery, arg5 atc.Source, arg6 bool, arg7 bool) atc.Plan {
+func (fake *FakeCheckable) CheckPlan(arg1 atc.PlanFactory, arg2 atc.ImagePlanner, arg3 atc.Version, arg4 atc.CheckEvery, arg5 atc.Source, arg6 bool, arg7 bool) atc.Plan {
 	fake.checkPlanMutex.Lock()
 	ret, specificReturn := fake.checkPlanReturnsOnCall[len(fake.checkPlanArgsForCall)]
 	fake.checkPlanArgsForCall = append(fake.checkPlanArgsForCall, struct {
 		arg1 atc.PlanFactory
-		arg2 db.ImagePlanner
+		arg2 atc.ImagePlanner
 		arg3 atc.Version
 		arg4 atc.CheckEvery
 		arg5 atc.Source
@@ -307,13 +307,13 @@ func (fake *FakeCheckable) CheckPlanCallCount() int {
 	return len(fake.checkPlanArgsForCall)
 }
 
-func (fake *FakeCheckable) CheckPlanCalls(stub func(atc.PlanFactory, db.ImagePlanner, atc.Version, atc.CheckEvery, atc.Source, bool, bool) atc.Plan) {
+func (fake *FakeCheckable) CheckPlanCalls(stub func(atc.PlanFactory, atc.ImagePlanner, atc.Version, atc.CheckEvery, atc.Source, bool, bool) atc.Plan) {
 	fake.checkPlanMutex.Lock()
 	defer fake.checkPlanMutex.Unlock()
 	fake.CheckPlanStub = stub
 }
 
-func (fake *FakeCheckable) CheckPlanArgsForCall(i int) (atc.PlanFactory, db.ImagePlanner, atc.Version, atc.CheckEvery, atc.Source, bool, bool) {
+func (fake *FakeCheckable) CheckPlanArgsForCall(i int) (atc.PlanFactory, atc.ImagePlanner, atc.Version, atc.CheckEvery, atc.Source, bool, bool) {
 	fake.checkPlanMutex.RLock()
 	defer fake.checkPlanMutex.RUnlock()
 	argsForCall := fake.checkPlanArgsForCall[i]

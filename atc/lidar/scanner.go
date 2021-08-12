@@ -40,7 +40,7 @@ func (s *scanner) Run(ctx context.Context) error {
 		return err
 	}
 
-	resourceTypes, err := s.checkFactory.ResourceTypes()
+	resourceTypes, err := s.checkFactory.ResourceTypesByPipeline()
 	if err != nil {
 		logger.Error("failed-to-get-resource-types", err)
 		return err
@@ -51,28 +51,29 @@ func (s *scanner) Run(ctx context.Context) error {
 	return nil
 }
 
-func (s *scanner) scanResources(ctx context.Context, resources []db.Resource, resourceTypes map[int]db.ResourceTypes) {
+func (s *scanner) scanResources(ctx context.Context, resources []db.Resource, resourceTypesMap map[int]db.ResourceTypes) {
 	logger := lagerctx.FromContext(ctx)
 	waitGroup := new(sync.WaitGroup)
 	for _, resource := range resources {
 		waitGroup.Add(1)
 
-		go func(resource db.Resource, resourceTypes map[int]db.ResourceTypes) {
+		resourceTypes := resourceTypesMap[resource.PipelineID()]
+		go func(r db.Resource, rts db.ResourceTypes) {
 			defer func() {
-				err := util.DumpPanic(recover(), "scanning resource %d", resource.ID())
+				err := util.DumpPanic(recover(), "scanning resource %d", r.ID())
 				if err != nil {
 					logger.Error("panic-in-scanner-run", err)
 				}
 			}()
 			defer waitGroup.Done()
 
-			s.check(ctx, resource, resourceTypes)
+			s.check(ctx, r, rts)
 		}(resource, resourceTypes)
 	}
 	waitGroup.Wait()
 }
 
-func (s *scanner) check(ctx context.Context, checkable db.Checkable, resourceTypesMap map[int]db.ResourceTypes) {
+func (s *scanner) check(ctx context.Context, checkable db.Checkable, resourceTypes db.ResourceTypes) {
 	logger := lagerctx.FromContext(ctx)
 
 	spanCtx, span := tracing.StartSpan(ctx, "scanner.check", tracing.Attrs{
@@ -88,14 +89,6 @@ func (s *scanner) check(ctx context.Context, checkable db.Checkable, resourceTyp
 
 	if checkable.CheckEvery() != nil && checkable.CheckEvery().Never {
 		return
-	}
-
-	// We don't want to pass in a nil list of resource types here if the pipeline
-	// does not have any resource types because we will be calling methods off of
-	// the db.ResourceTypes interface in the TryCreateCheck method
-	var resourceTypes db.ResourceTypes
-	if rts, found := resourceTypesMap[checkable.PipelineID()]; found {
-		resourceTypes = rts
 	}
 
 	_, created, err := s.checkFactory.TryCreateCheck(lagerctx.NewContext(spanCtx, logger), checkable, resourceTypes, version, false, false)

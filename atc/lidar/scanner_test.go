@@ -62,7 +62,7 @@ var _ = Describe("Scanner", func() {
 
 			Context("when fetching resource types fails", func() {
 				BeforeEach(func() {
-					fakeCheckFactory.ResourceTypesReturns(nil, errors.New("nope"))
+					fakeCheckFactory.ResourceTypesByPipelineReturns(nil, errors.New("nope"))
 				})
 
 				It("errors", func() {
@@ -78,7 +78,7 @@ var _ = Describe("Scanner", func() {
 					fakeResourceType := new(dbfakes.FakeResourceType)
 					fakeResourceType.NameReturns("parent")
 					fakeResourceType.PipelineIDReturns(1)
-					fakeCheckFactory.ResourceTypesReturns(map[int]db.ResourceTypes{
+					fakeCheckFactory.ResourceTypesByPipelineReturns(map[int]db.ResourceTypes{
 						1: {fakeResourceType},
 					}, nil)
 				})
@@ -98,12 +98,12 @@ var _ = Describe("Scanner", func() {
 					fakeResourceType.TagsReturns([]string{"some-tag"})
 					fakeResourceType.SourceReturns(atc.Source{"some": "type-source"})
 
-					fakeCheckFactory.ResourceTypesReturns(map[int]db.ResourceTypes{1: {fakeResourceType}}, nil)
+					fakeCheckFactory.ResourceTypesByPipelineReturns(map[int]db.ResourceTypes{1: {fakeResourceType}}, nil)
 				})
 
 				Context("when the resource parent type is a base type", func() {
 					BeforeEach(func() {
-						fakeCheckFactory.ResourceTypesReturns(map[int]db.ResourceTypes{}, nil)
+						fakeCheckFactory.ResourceTypesByPipelineReturns(map[int]db.ResourceTypes{}, nil)
 						fakeResource.TypeReturns("some-type")
 					})
 

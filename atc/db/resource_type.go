@@ -48,7 +48,7 @@ type ResourceType interface {
 
 	SetResourceConfigScope(ResourceConfigScope) error
 
-	CheckPlan(planFactory atc.PlanFactory, imagePlanner ImagePlanner, from atc.Version, interval atc.CheckEvery, sourceDefaults atc.Source, manuallyTriggered bool, shallow bool) atc.Plan
+	CheckPlan(planFactory atc.PlanFactory, imagePlanner atc.ImagePlanner, from atc.Version, interval atc.CheckEvery, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) atc.Plan
 	CreateBuild(context.Context, bool, atc.Plan) (Build, bool, error)
 
 	Reload() (bool, error)
@@ -243,7 +243,7 @@ func (r *resourceType) SetResourceConfigScope(scope ResourceConfigScope) error {
 	return nil
 }
 
-func (r *resourceType) CheckPlan(planFactory atc.PlanFactory, imagePlanner ImagePlanner, from atc.Version, interval atc.CheckEvery, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) atc.Plan {
+func (r *resourceType) CheckPlan(planFactory atc.PlanFactory, imagePlanner atc.ImagePlanner, from atc.Version, interval atc.CheckEvery, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) atc.Plan {
 	plan := planFactory.NewPlan(atc.CheckPlan{
 		Name:   r.name,
 		Type:   r.type_,
