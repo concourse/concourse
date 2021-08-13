@@ -809,12 +809,6 @@ by configuring \reference{schema.step.on_failure} or
   }{
     \schema-group{\code{load_var} step}{load-var-step}{
       \required-attribute{load_var}{identifier}{
-        \warn{
-          The \code{load_var} step was introduced in Concourse v6.0.0. It is
-          considered an \bold{experimental} feature until its associated
-          \link{RFC}{https://github.com/concourse/rfcs/pull/27} is resolved.
-        }
-
         Load the value for a var at runtime, making it available to subsequent
         steps as a build-local var named after the given identifier.
 
