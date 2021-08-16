@@ -10,9 +10,10 @@ import (
 )
 
 type FakeVolume struct {
-	DestroyStub        func() error
+	DestroyStub        func(context.Context) error
 	destroyMutex       sync.RWMutex
 	destroyArgsForCall []struct {
+		arg1 context.Context
 	}
 	destroyReturns struct {
 		result1 error
@@ -20,9 +21,10 @@ type FakeVolume struct {
 	destroyReturnsOnCall map[int]struct {
 		result1 error
 	}
-	GetPrivilegedStub        func() (bool, error)
+	GetPrivilegedStub        func(context.Context) (bool, error)
 	getPrivilegedMutex       sync.RWMutex
 	getPrivilegedArgsForCall []struct {
+		arg1 context.Context
 	}
 	getPrivilegedReturns struct {
 		result1 bool
@@ -66,9 +68,10 @@ type FakeVolume struct {
 	pathReturnsOnCall map[int]struct {
 		result1 string
 	}
-	PropertiesStub        func() (baggageclaim.VolumeProperties, error)
+	PropertiesStub        func(context.Context) (baggageclaim.VolumeProperties, error)
 	propertiesMutex       sync.RWMutex
 	propertiesArgsForCall []struct {
+		arg1 context.Context
 	}
 	propertiesReturns struct {
 		result1 baggageclaim.VolumeProperties
@@ -78,10 +81,11 @@ type FakeVolume struct {
 		result1 baggageclaim.VolumeProperties
 		result2 error
 	}
-	SetPrivilegedStub        func(bool) error
+	SetPrivilegedStub        func(context.Context, bool) error
 	setPrivilegedMutex       sync.RWMutex
 	setPrivilegedArgsForCall []struct {
-		arg1 bool
+		arg1 context.Context
+		arg2 bool
 	}
 	setPrivilegedReturns struct {
 		result1 error
@@ -89,11 +93,12 @@ type FakeVolume struct {
 	setPrivilegedReturnsOnCall map[int]struct {
 		result1 error
 	}
-	SetPropertyStub        func(string, string) error
+	SetPropertyStub        func(context.Context, string, string) error
 	setPropertyMutex       sync.RWMutex
 	setPropertyArgsForCall []struct {
-		arg1 string
+		arg1 context.Context
 		arg2 string
+		arg3 string
 	}
 	setPropertyReturns struct {
 		result1 error
@@ -148,20 +153,22 @@ type FakeVolume struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeVolume) Destroy() error {
+func (fake *FakeVolume) Destroy(arg1 context.Context) error {
 	fake.destroyMutex.Lock()
 	ret, specificReturn := fake.destroyReturnsOnCall[len(fake.destroyArgsForCall)]
 	fake.destroyArgsForCall = append(fake.destroyArgsForCall, struct {
-	}{})
-	fake.recordInvocation("Destroy", []interface{}{})
+		arg1 context.Context
+	}{arg1})
+	stub := fake.DestroyStub
+	fakeReturns := fake.destroyReturns
+	fake.recordInvocation("Destroy", []interface{}{arg1})
 	fake.destroyMutex.Unlock()
-	if fake.DestroyStub != nil {
-		return fake.DestroyStub()
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.destroyReturns
 	return fakeReturns.result1
 }
 
@@ -171,10 +178,17 @@ func (fake *FakeVolume) DestroyCallCount() int {
 	return len(fake.destroyArgsForCall)
 }
 
-func (fake *FakeVolume) DestroyCalls(stub func() error) {
+func (fake *FakeVolume) DestroyCalls(stub func(context.Context) error) {
 	fake.destroyMutex.Lock()
 	defer fake.destroyMutex.Unlock()
 	fake.DestroyStub = stub
+}
+
+func (fake *FakeVolume) DestroyArgsForCall(i int) context.Context {
+	fake.destroyMutex.RLock()
+	defer fake.destroyMutex.RUnlock()
+	argsForCall := fake.destroyArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeVolume) DestroyReturns(result1 error) {
@@ -200,20 +214,22 @@ func (fake *FakeVolume) DestroyReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeVolume) GetPrivileged() (bool, error) {
+func (fake *FakeVolume) GetPrivileged(arg1 context.Context) (bool, error) {
 	fake.getPrivilegedMutex.Lock()
 	ret, specificReturn := fake.getPrivilegedReturnsOnCall[len(fake.getPrivilegedArgsForCall)]
 	fake.getPrivilegedArgsForCall = append(fake.getPrivilegedArgsForCall, struct {
-	}{})
-	fake.recordInvocation("GetPrivileged", []interface{}{})
+		arg1 context.Context
+	}{arg1})
+	stub := fake.GetPrivilegedStub
+	fakeReturns := fake.getPrivilegedReturns
+	fake.recordInvocation("GetPrivileged", []interface{}{arg1})
 	fake.getPrivilegedMutex.Unlock()
-	if fake.GetPrivilegedStub != nil {
-		return fake.GetPrivilegedStub()
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getPrivilegedReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -223,10 +239,17 @@ func (fake *FakeVolume) GetPrivilegedCallCount() int {
 	return len(fake.getPrivilegedArgsForCall)
 }
 
-func (fake *FakeVolume) GetPrivilegedCalls(stub func() (bool, error)) {
+func (fake *FakeVolume) GetPrivilegedCalls(stub func(context.Context) (bool, error)) {
 	fake.getPrivilegedMutex.Lock()
 	defer fake.getPrivilegedMutex.Unlock()
 	fake.GetPrivilegedStub = stub
+}
+
+func (fake *FakeVolume) GetPrivilegedArgsForCall(i int) context.Context {
+	fake.getPrivilegedMutex.RLock()
+	defer fake.getPrivilegedMutex.RUnlock()
+	argsForCall := fake.getPrivilegedArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeVolume) GetPrivilegedReturns(result1 bool, result2 error) {
@@ -262,15 +285,16 @@ func (fake *FakeVolume) GetStreamInP2pUrl(arg1 context.Context, arg2 string) (st
 		arg1 context.Context
 		arg2 string
 	}{arg1, arg2})
+	stub := fake.GetStreamInP2pUrlStub
+	fakeReturns := fake.getStreamInP2pUrlReturns
 	fake.recordInvocation("GetStreamInP2pUrl", []interface{}{arg1, arg2})
 	fake.getStreamInP2pUrlMutex.Unlock()
-	if fake.GetStreamInP2pUrlStub != nil {
-		return fake.GetStreamInP2pUrlStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getStreamInP2pUrlReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -324,15 +348,16 @@ func (fake *FakeVolume) Handle() string {
 	ret, specificReturn := fake.handleReturnsOnCall[len(fake.handleArgsForCall)]
 	fake.handleArgsForCall = append(fake.handleArgsForCall, struct {
 	}{})
+	stub := fake.HandleStub
+	fakeReturns := fake.handleReturns
 	fake.recordInvocation("Handle", []interface{}{})
 	fake.handleMutex.Unlock()
-	if fake.HandleStub != nil {
-		return fake.HandleStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.handleReturns
 	return fakeReturns.result1
 }
 
@@ -376,15 +401,16 @@ func (fake *FakeVolume) Path() string {
 	ret, specificReturn := fake.pathReturnsOnCall[len(fake.pathArgsForCall)]
 	fake.pathArgsForCall = append(fake.pathArgsForCall, struct {
 	}{})
+	stub := fake.PathStub
+	fakeReturns := fake.pathReturns
 	fake.recordInvocation("Path", []interface{}{})
 	fake.pathMutex.Unlock()
-	if fake.PathStub != nil {
-		return fake.PathStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.pathReturns
 	return fakeReturns.result1
 }
 
@@ -423,20 +449,22 @@ func (fake *FakeVolume) PathReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
-func (fake *FakeVolume) Properties() (baggageclaim.VolumeProperties, error) {
+func (fake *FakeVolume) Properties(arg1 context.Context) (baggageclaim.VolumeProperties, error) {
 	fake.propertiesMutex.Lock()
 	ret, specificReturn := fake.propertiesReturnsOnCall[len(fake.propertiesArgsForCall)]
 	fake.propertiesArgsForCall = append(fake.propertiesArgsForCall, struct {
-	}{})
-	fake.recordInvocation("Properties", []interface{}{})
+		arg1 context.Context
+	}{arg1})
+	stub := fake.PropertiesStub
+	fakeReturns := fake.propertiesReturns
+	fake.recordInvocation("Properties", []interface{}{arg1})
 	fake.propertiesMutex.Unlock()
-	if fake.PropertiesStub != nil {
-		return fake.PropertiesStub()
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.propertiesReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -446,10 +474,17 @@ func (fake *FakeVolume) PropertiesCallCount() int {
 	return len(fake.propertiesArgsForCall)
 }
 
-func (fake *FakeVolume) PropertiesCalls(stub func() (baggageclaim.VolumeProperties, error)) {
+func (fake *FakeVolume) PropertiesCalls(stub func(context.Context) (baggageclaim.VolumeProperties, error)) {
 	fake.propertiesMutex.Lock()
 	defer fake.propertiesMutex.Unlock()
 	fake.PropertiesStub = stub
+}
+
+func (fake *FakeVolume) PropertiesArgsForCall(i int) context.Context {
+	fake.propertiesMutex.RLock()
+	defer fake.propertiesMutex.RUnlock()
+	argsForCall := fake.propertiesArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeVolume) PropertiesReturns(result1 baggageclaim.VolumeProperties, result2 error) {
@@ -478,21 +513,23 @@ func (fake *FakeVolume) PropertiesReturnsOnCall(i int, result1 baggageclaim.Volu
 	}{result1, result2}
 }
 
-func (fake *FakeVolume) SetPrivileged(arg1 bool) error {
+func (fake *FakeVolume) SetPrivileged(arg1 context.Context, arg2 bool) error {
 	fake.setPrivilegedMutex.Lock()
 	ret, specificReturn := fake.setPrivilegedReturnsOnCall[len(fake.setPrivilegedArgsForCall)]
 	fake.setPrivilegedArgsForCall = append(fake.setPrivilegedArgsForCall, struct {
-		arg1 bool
-	}{arg1})
-	fake.recordInvocation("SetPrivileged", []interface{}{arg1})
+		arg1 context.Context
+		arg2 bool
+	}{arg1, arg2})
+	stub := fake.SetPrivilegedStub
+	fakeReturns := fake.setPrivilegedReturns
+	fake.recordInvocation("SetPrivileged", []interface{}{arg1, arg2})
 	fake.setPrivilegedMutex.Unlock()
-	if fake.SetPrivilegedStub != nil {
-		return fake.SetPrivilegedStub(arg1)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.setPrivilegedReturns
 	return fakeReturns.result1
 }
 
@@ -502,17 +539,17 @@ func (fake *FakeVolume) SetPrivilegedCallCount() int {
 	return len(fake.setPrivilegedArgsForCall)
 }
 
-func (fake *FakeVolume) SetPrivilegedCalls(stub func(bool) error) {
+func (fake *FakeVolume) SetPrivilegedCalls(stub func(context.Context, bool) error) {
 	fake.setPrivilegedMutex.Lock()
 	defer fake.setPrivilegedMutex.Unlock()
 	fake.SetPrivilegedStub = stub
 }
 
-func (fake *FakeVolume) SetPrivilegedArgsForCall(i int) bool {
+func (fake *FakeVolume) SetPrivilegedArgsForCall(i int) (context.Context, bool) {
 	fake.setPrivilegedMutex.RLock()
 	defer fake.setPrivilegedMutex.RUnlock()
 	argsForCall := fake.setPrivilegedArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeVolume) SetPrivilegedReturns(result1 error) {
@@ -538,22 +575,24 @@ func (fake *FakeVolume) SetPrivilegedReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeVolume) SetProperty(arg1 string, arg2 string) error {
+func (fake *FakeVolume) SetProperty(arg1 context.Context, arg2 string, arg3 string) error {
 	fake.setPropertyMutex.Lock()
 	ret, specificReturn := fake.setPropertyReturnsOnCall[len(fake.setPropertyArgsForCall)]
 	fake.setPropertyArgsForCall = append(fake.setPropertyArgsForCall, struct {
-		arg1 string
+		arg1 context.Context
 		arg2 string
-	}{arg1, arg2})
-	fake.recordInvocation("SetProperty", []interface{}{arg1, arg2})
+		arg3 string
+	}{arg1, arg2, arg3})
+	stub := fake.SetPropertyStub
+	fakeReturns := fake.setPropertyReturns
+	fake.recordInvocation("SetProperty", []interface{}{arg1, arg2, arg3})
 	fake.setPropertyMutex.Unlock()
-	if fake.SetPropertyStub != nil {
-		return fake.SetPropertyStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.setPropertyReturns
 	return fakeReturns.result1
 }
 
@@ -563,17 +602,17 @@ func (fake *FakeVolume) SetPropertyCallCount() int {
 	return len(fake.setPropertyArgsForCall)
 }
 
-func (fake *FakeVolume) SetPropertyCalls(stub func(string, string) error) {
+func (fake *FakeVolume) SetPropertyCalls(stub func(context.Context, string, string) error) {
 	fake.setPropertyMutex.Lock()
 	defer fake.setPropertyMutex.Unlock()
 	fake.SetPropertyStub = stub
 }
 
-func (fake *FakeVolume) SetPropertyArgsForCall(i int) (string, string) {
+func (fake *FakeVolume) SetPropertyArgsForCall(i int) (context.Context, string, string) {
 	fake.setPropertyMutex.RLock()
 	defer fake.setPropertyMutex.RUnlock()
 	argsForCall := fake.setPropertyArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeVolume) SetPropertyReturns(result1 error) {
@@ -608,15 +647,16 @@ func (fake *FakeVolume) StreamIn(arg1 context.Context, arg2 string, arg3 baggage
 		arg3 baggageclaim.Encoding
 		arg4 io.Reader
 	}{arg1, arg2, arg3, arg4})
+	stub := fake.StreamInStub
+	fakeReturns := fake.streamInReturns
 	fake.recordInvocation("StreamIn", []interface{}{arg1, arg2, arg3, arg4})
 	fake.streamInMutex.Unlock()
-	if fake.StreamInStub != nil {
-		return fake.StreamInStub(arg1, arg2, arg3, arg4)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.streamInReturns
 	return fakeReturns.result1
 }
 
@@ -670,15 +710,16 @@ func (fake *FakeVolume) StreamOut(arg1 context.Context, arg2 string, arg3 baggag
 		arg2 string
 		arg3 baggageclaim.Encoding
 	}{arg1, arg2, arg3})
+	stub := fake.StreamOutStub
+	fakeReturns := fake.streamOutReturns
 	fake.recordInvocation("StreamOut", []interface{}{arg1, arg2, arg3})
 	fake.streamOutMutex.Unlock()
-	if fake.StreamOutStub != nil {
-		return fake.StreamOutStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.streamOutReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -736,15 +777,16 @@ func (fake *FakeVolume) StreamP2pOut(arg1 context.Context, arg2 string, arg3 str
 		arg3 string
 		arg4 baggageclaim.Encoding
 	}{arg1, arg2, arg3, arg4})
+	stub := fake.StreamP2pOutStub
+	fakeReturns := fake.streamP2pOutReturns
 	fake.recordInvocation("StreamP2pOut", []interface{}{arg1, arg2, arg3, arg4})
 	fake.streamP2pOutMutex.Unlock()
-	if fake.StreamP2pOutStub != nil {
-		return fake.StreamP2pOutStub(arg1, arg2, arg3, arg4)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.streamP2pOutReturns
 	return fakeReturns.result1
 }
 

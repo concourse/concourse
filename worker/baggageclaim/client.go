@@ -4,8 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-
-	"code.cloudfoundry.org/lager"
 )
 
 type Encoding string
@@ -21,12 +19,9 @@ type Client interface {
 	// VolumeSpec with a different strategy you can choose the type of volume
 	// that you want to create.
 	//
-	// You are required to pass in a logger to the call to retain context across
-	// the library boundary.
-	//
 	// CreateVolume returns the volume that was created or an error as to why it
 	// could not be created.
-	CreateVolume(lager.Logger, string, VolumeSpec) (Volume, error)
+	CreateVolume(context.Context, string, VolumeSpec) (Volume, error)
 
 	// ListVolumes lists the volumes that are present on the server. A
 	// VolumeProperties object can be passed in to filter the volumes that are in
@@ -37,7 +32,7 @@ type Client interface {
 	//
 	// ListVolumes returns the volumes that were found or an error as to why they
 	// could not be listed.
-	ListVolumes(lager.Logger, VolumeProperties) (Volumes, error)
+	ListVolumes(context.Context, VolumeProperties) (Volumes, error)
 
 	// LookupVolume finds a volume that is present on the server. It takes a
 	// string that corresponds to the Handle of the Volume.
@@ -47,7 +42,7 @@ type Client interface {
 	//
 	// LookupVolume returns a bool if the volume is found with the matching volume
 	// or an error as to why the volume could not be found.
-	LookupVolume(lager.Logger, string) (Volume, bool, error)
+	LookupVolume(context.Context, string) (Volume, bool, error)
 
 	// DestroyVolumes deletes the list of volumes that is present on the server. It takes
 	// a string of volumes
@@ -58,7 +53,7 @@ type Client interface {
 	// DestroyVolumes returns an error if any of the volume deletion fails. It does not
 	// return an error if volumes were not found on the server.
 	// DestroyVolumes returns an error as to why one or more volumes could not be deleted.
-	DestroyVolumes(lager.Logger, []string) error
+	DestroyVolumes(context.Context, []string) error
 
 	// DestroyVolume deletes the volume with the provided handle that is present on the server.
 	//
@@ -67,7 +62,7 @@ type Client interface {
 	//
 	// DestroyVolume returns an error if the volume deletion fails. It does not
 	// return an error if the volume was not found on the server.
-	DestroyVolume(lager.Logger, string) error
+	DestroyVolume(context.Context, string) error
 }
 
 //go:generate counterfeiter . Volume
@@ -84,14 +79,14 @@ type Volume interface {
 
 	// SetProperty sets a property on the Volume. Properties can be used to
 	// filter the results in the ListVolumes call above.
-	SetProperty(key string, value string) error
+	SetProperty(ctx context.Context, key string, value string) error
 
 	// SetPrivileged namespaces or un-namespaces the UID/GID ownership of the
 	// volume's contents.
-	SetPrivileged(bool) error
+	SetPrivileged(context.Context, bool) error
 
 	// GetPrivileged returns a bool indicating if the volume is privileged.
-	GetPrivileged() (bool, error)
+	GetPrivileged(context.Context) (bool, error)
 
 	// StreamIn calls BaggageClaim API endpoint in order to initialize tarStream
 	// to stream the contents of the Reader into this volume at the specified path.
@@ -101,11 +96,11 @@ type Volume interface {
 
 	// Properties returns the currently set properties for a Volume. An error is
 	// returned if these could not be retrieved.
-	Properties() (VolumeProperties, error)
+	Properties(context.Context) (VolumeProperties, error)
 
 	// Destroy removes the volume and its contents. Note that it does not
 	// safeguard against child volumes being present.
-	Destroy() error
+	Destroy(context.Context) error
 
 	// GetStreamInP2pUrl returns a modified StreamIn URL for this volume. The
 	// returned URL contains a hostname that is reachable by other baggageclaim
@@ -117,20 +112,6 @@ type Volume interface {
 	// StreamP2pOut streams the contents of this volume directly to another
 	// baggageclaim server on the same network.
 	StreamP2pOut(ctx context.Context, path string, streamInURL string, encoding Encoding) error
-}
-
-//go:generate counterfeiter . VolumeFuture
-
-type VolumeFuture interface {
-	// Wait will wait until the future has been provided with a value, which is
-	// either the volume that was created or an error as to why it could not be
-	// created.
-	Wait() (Volume, error)
-
-	// Destroy removes the future from the remote server. This can be used to
-	// either stop waiting for a value, or remove the value from the remote
-	// server after it is no longer needed.
-	Destroy() error
 }
 
 // Volumes represents a list of Volume object.
