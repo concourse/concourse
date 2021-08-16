@@ -213,7 +213,7 @@ silly air-traffic-themed names.
 | `/skymarshal`   | Adapts [Dex](https://github.com/dexidp/dex) into an embeddable auth component for the ATC, plus the auth flag specifications for `fly` and `concourse web`. |
 | `/tsa`          | A custom-built SSH server responsible for securely authenticating and registering workers. The other half of `concourse web`. |
 | `/worker`       | The `concourse worker` library code for registering with the TSA, periodically reaping containers/volumes, etc. |
-| `/cmd`          | This is mainly glue code to wire the ATC, TSA, [BaggageClaim](https://github.com/concourse/baggageclaim), and Garden into the single `concourse` CLI. |
+| `/cmd`          | This is mainly glue code to wire the ATC, TSA, and Garden into the single `concourse` CLI. |
 | `/topgun`       | Another acceptance suite which covers operator-level features and technical aspects of the Concourse runtime. Deploys its own Concourse clusters, runs tests against them, and tears them down. |
 
 ### Rebuilding to test your changes
@@ -237,18 +237,18 @@ $ docker-compose up --build -d
 ```
 
 If you're working on a dependency that doesn't live under this repository (for instance,
-`baggageclaim`), you'll need to update `go.mod` with a `replace` directive with the exact
+`dex`), you'll need to update `go.mod` with a `replace` directive with the exact
 reference that the module lives at:
 
 ```sh
-# after pushing to the `sample` branch in your baggageclaim fork,
+# after pushing to the `sample` branch in your dex fork,
 # try to fetch the module revision and get the version.
-$ go mod download -json github.com/your-user/baggageclaim@sample | jq '.Version'
-go: finding github.com/cirocosta/baggageclaim sample
-"v1.3.6-0.20190315100745-09d349f19891"
+$ go mod download -json github.com/your-user/dex@sample | jq '.Version'
+go: finding github.com/your-user/dex sample
+"v0.0.0-20210401171635-fe97ad5e1a6d"
 
 # with that version, update `go.mod` including a replace directive
-$ echo 'replace github.com/concourse/baggageclaim => github.com/your-user/baggageclaim v1.3.6-0.20190315100745-09d349f19891' \
+$ echo 'replace github.com/concourse/dex => github.com/your-user/dex v0.0.0-20210401171635-fe97ad5e1a6d' \
   > ./go.mod
 
 # run the usual build

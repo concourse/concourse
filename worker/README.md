@@ -30,8 +30,8 @@
   * [Garden](https://github.com/cloudfoundry-incubator/garden) is a generic
     interface for orchestrating containers remotely on a worker
 
-  * [Baggageclaim](https://github.com/concourse/baggageclaim) is a server for
-    managing caches and artifacts on the workers
+  * [Baggageclaim](https://github.com/concourse/concourse/tree/master/worker/baggageclaim)
+    is a server for managing caches and artifacts on the workers
 
 
   It can be scaled horizontally in order to scale the system.
