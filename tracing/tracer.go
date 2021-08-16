@@ -9,7 +9,7 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	"go.opentelemetry.io/otel/semconv"
+	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -30,21 +30,32 @@ type Config struct {
 	OTLP        OTLP
 }
 
-func (c Config) resource() *resource.Resource {
-	attributes := []attribute.KeyValue{
-		semconv.TelemetrySDKNameKey.String("opentelemetry"),
-		semconv.TelemetrySDKLanguageKey.String("go"),
-		semconv.ServiceNameKey.String(c.ServiceName),
+func (c Config) Prepare() error {
+	var provider trace.TracerProvider
+	var err error
+
+	switch {
+	case c.Honeycomb.IsConfigured():
+		provider, err = c.traceProvider(c.Honeycomb.Exporter)
+	case c.Jaeger.IsConfigured():
+		provider, err = c.traceProvider(c.Jaeger.Exporter)
+	case c.OTLP.IsConfigured():
+		provider, err = c.traceProvider(c.OTLP.Exporter)
+	case c.Stackdriver.IsConfigured():
+		provider, err = c.traceProvider(c.Stackdriver.Exporter)
+	}
+	if err != nil {
+		return err
 	}
 
-	for key, value := range c.Attributes {
-		attributes = append(attributes, attribute.String(key, value))
+	if provider != nil {
+		ConfigureTraceProvider(provider)
 	}
 
-	return resource.NewWithAttributes(attributes...)
+	return nil
 }
 
-func (c Config) TraceProvider(exporter func() (sdktrace.SpanExporter, []sdktrace.TracerProviderOption, error)) (trace.TracerProvider, error) {
+func (c Config) traceProvider(exporter func() (sdktrace.SpanExporter, []sdktrace.TracerProviderOption, error)) (trace.TracerProvider, error) {
 	exp, exporterOptions, err := exporter()
 	if err != nil {
 		return nil, err
@@ -64,29 +75,18 @@ func (c Config) TraceProvider(exporter func() (sdktrace.SpanExporter, []sdktrace
 	return provider, nil
 }
 
-func (c Config) Prepare() error {
-	var provider trace.TracerProvider
-	var err error
-
-	switch {
-	case c.Honeycomb.IsConfigured():
-		provider, err = c.TraceProvider(c.Honeycomb.Exporter)
-	case c.Jaeger.IsConfigured():
-		provider, err = c.TraceProvider(c.Jaeger.Exporter)
-	case c.OTLP.IsConfigured():
-		provider, err = c.TraceProvider(c.OTLP.Exporter)
-	case c.Stackdriver.IsConfigured():
-		provider, err = c.TraceProvider(c.Stackdriver.Exporter)
-	}
-	if err != nil {
-		return err
+func (c Config) resource() *resource.Resource {
+	attributes := []attribute.KeyValue{
+		semconv.TelemetrySDKNameKey.String("opentelemetry"),
+		semconv.TelemetrySDKLanguageKey.String("go"),
+		semconv.ServiceNameKey.String(c.ServiceName),
 	}
 
-	if provider != nil {
-		ConfigureTraceProvider(provider)
+	for key, value := range c.Attributes {
+		attributes = append(attributes, attribute.String(key, value))
 	}
 
-	return nil
+	return resource.NewSchemaless(attributes...)
 }
 
 // StartSpan creates a span, giving back a context that has itself added as the
@@ -179,7 +179,7 @@ func startSpan(
 	ctx context.Context,
 	component string,
 	attrs Attrs,
-	opts ...trace.SpanOption,
+	opts ...trace.SpanStartOption,
 ) (context.Context, trace.Span) {
 	if !Configured {
 		return ctx, NoopSpan

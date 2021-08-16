@@ -3,8 +3,8 @@ package tracing
 import (
 	"context"
 
-	"go.opentelemetry.io/otel/exporters/otlp"
-	"go.opentelemetry.io/otel/exporters/otlp/otlpgrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"google.golang.org/grpc/credentials"
 )
@@ -21,22 +21,22 @@ func (s OTLP) IsConfigured() bool {
 	return s.Address != ""
 }
 
-func (s OTLP) security() otlpgrpc.Option {
+func (s OTLP) security() otlptracegrpc.Option {
 	if s.UseTLS {
-		return otlpgrpc.WithTLSCredentials(credentials.NewClientTLSFromCert(nil, ""))
+		return otlptracegrpc.WithTLSCredentials(credentials.NewClientTLSFromCert(nil, ""))
 	}
 
-	return otlpgrpc.WithInsecure()
+	return otlptracegrpc.WithInsecure()
 }
 
 // Exporter returns a SpanExporter to sync spans to OTLP
 func (s OTLP) Exporter() (sdktrace.SpanExporter, []sdktrace.TracerProviderOption, error) {
-	driver := otlpgrpc.NewDriver(
-		otlpgrpc.WithEndpoint(s.Address),
-		otlpgrpc.WithHeaders(s.Headers),
+	driver := otlptracegrpc.NewClient(
+		otlptracegrpc.WithEndpoint(s.Address),
+		otlptracegrpc.WithHeaders(s.Headers),
 		s.security(),
 	)
-	exporter, err := otlp.NewExporter(context.TODO(), driver)
+	exporter, err := otlptrace.New(context.TODO(), driver)
 	if err != nil {
 		return nil, nil, err
 	}
