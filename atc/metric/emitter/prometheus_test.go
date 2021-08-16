@@ -188,7 +188,12 @@ var _ = Describe("PrometheusEmitter", func() {
 	})
 
 	JustBeforeEach(func() {
-		prometheusEmitter, err = prometheusConfig.NewEmitter(nil)
+		prometheusEmitter, err = prometheusConfig.NewEmitter(map[string]string{
+			// Ensure invalid labels are sanitized.
+			"invalid-label":     "foo",
+			"__prefix__test__":  "bar",
+			"_prefix_testtwo__": "baz",
+		})
 	})
 
 	It("emits step waiting metric", func() {
@@ -208,7 +213,7 @@ var _ = Describe("PrometheusEmitter", func() {
 		body, _ := ioutil.ReadAll(res.Body)
 		defer res.Body.Close()
 		Expect(res.StatusCode).To(Equal(http.StatusOK))
-		Expect(string(body)).To(ContainSubstring("concourse_steps_waiting{platform=\"darwin\",teamId=\"42\",teamName=\"teamdev\",type=\"get\",workerTags=\"tester\"} 4"))
+		Expect(string(body)).To(ContainSubstring("concourse_steps_waiting{invalid_label=\"foo\",platform=\"darwin\",prefix_test=\"bar\",prefix_testtwo=\"baz\",teamId=\"42\",teamName=\"teamdev\",type=\"get\",workerTags=\"tester\"} 4"))
 		Expect(err).To(BeNil())
 	})
 })
