@@ -11,6 +11,7 @@ import (
 	"github.com/concourse/concourse"
 	"github.com/concourse/concourse/atc/worker/gardenruntime/gclient"
 	concourseCmd "github.com/concourse/concourse/cmd"
+	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/worker"
 	"github.com/concourse/concourse/worker/baggageclaim/baggageclaimcmd"
 	bclient "github.com/concourse/concourse/worker/baggageclaim/client"
@@ -39,6 +40,8 @@ type WorkerCommand struct {
 	HealthcheckBindIP   flag.IP       `long:"healthcheck-bind-ip"    default:"0.0.0.0"  description:"IP address on which to listen for health checking requests."`
 	HealthcheckBindPort uint16        `long:"healthcheck-bind-port"  default:"8888"     description:"Port on which to listen for health checking requests."`
 	HealthCheckTimeout  time.Duration `long:"healthcheck-timeout"    default:"5s"       description:"HTTP timeout for the full duration of health checking."`
+
+	Tracing tracing.Config `group:"Tracing" namespace:"tracing"`
 
 	SweepInterval               time.Duration `long:"sweep-interval" default:"30s" description:"Interval on which containers and volumes will be garbage collected from the worker."`
 	VolumeSweeperMaxInFlight    uint16        `long:"volume-sweeper-max-in-flight" default:"3" description:"Maximum number of volumes which can be swept in parallel."`
@@ -80,6 +83,11 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 	}
 
 	logger, _ := cmd.Logger.Logger("worker")
+
+	err := cmd.Tracing.Prepare()
+	if err != nil {
+		return nil, err
+	}
 
 	atcWorker, gardenServerRunner, err := cmd.gardenServerRunner(logger.Session("garden"))
 	if err != nil {
