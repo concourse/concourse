@@ -4,8 +4,8 @@ import (
 	"context"
 	"io"
 
-	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/worker/baggageclaim"
 )
 
 //counterfeiter:generate . ArtifactDestination

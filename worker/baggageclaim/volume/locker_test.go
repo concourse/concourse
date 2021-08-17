@@ -1,7 +1,7 @@
 package volume_test
 
 import (
-	"github.com/concourse/baggageclaim/volume"
+	"github.com/concourse/concourse/worker/baggageclaim/volume"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

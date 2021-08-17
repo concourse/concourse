@@ -15,7 +15,7 @@ import (
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/baggageclaim"
+	"github.com/concourse/concourse/worker/baggageclaim"
 	"github.com/cppforlife/go-semi-semantic/version"
 	"golang.org/x/sync/errgroup"
 

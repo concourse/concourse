@@ -12,7 +12,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
-	"github.com/concourse/baggageclaim/uidgid"
+	"github.com/concourse/concourse/worker/baggageclaim/uidgid"
 )
 
 var ErrVolumeDoesNotExist = errors.New("volume does not exist")

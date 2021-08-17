@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/concourse/baggageclaim/volume"
+	"github.com/concourse/concourse/worker/baggageclaim/volume"
 )
 
 func ConvertQueryToProperties(values url.Values) (volume.Properties, error) {

@@ -12,7 +12,6 @@ import (
 	"code.cloudfoundry.org/lager/lagerctx"
 	"sigs.k8s.io/yaml"
 
-	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/configvalidate"
 	"github.com/concourse/concourse/atc/creds"
@@ -22,6 +21,7 @@ import (
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
+	"github.com/concourse/concourse/worker/baggageclaim"
 )
 
 // SetPipelineStep sets a pipeline to current team. This step takes pipeline

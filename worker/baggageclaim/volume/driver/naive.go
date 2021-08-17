@@ -3,8 +3,8 @@ package driver
 import (
 	"os"
 
-	"github.com/concourse/baggageclaim/volume"
-	"github.com/concourse/baggageclaim/volume/copy"
+	"github.com/concourse/concourse/worker/baggageclaim/volume"
+	"github.com/concourse/concourse/worker/baggageclaim/volume/copy"
 )
 
 type NaiveDriver struct{}

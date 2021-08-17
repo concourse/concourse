@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/concourse/baggageclaim"
+	"github.com/concourse/concourse/worker/baggageclaim"
 )
 
 type Strategerizer interface {

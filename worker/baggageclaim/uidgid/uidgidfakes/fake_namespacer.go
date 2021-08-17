@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/baggageclaim/uidgid"
+	"github.com/concourse/concourse/worker/baggageclaim/uidgid"
 )
 
 type FakeNamespacer struct {
