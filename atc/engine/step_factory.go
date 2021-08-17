@@ -25,6 +25,9 @@ type coreStepFactory struct {
 	defaultLimits         atc.ContainerLimits
 	strategy              worker.PlacementStrategy
 	defaultCheckTimeout   time.Duration
+	defaultGetTimeout     time.Duration
+	defaultPutTimeout     time.Duration
+	defaultTaskTimeout    time.Duration
 }
 
 func NewCoreStepFactory(
@@ -38,6 +41,9 @@ func NewCoreStepFactory(
 	defaultLimits atc.ContainerLimits,
 	strategy worker.PlacementStrategy,
 	defaultCheckTimeout time.Duration,
+	defaultGetTimeout time.Duration,
+	defaultPutTimeout time.Duration,
+	defaultTaskTimeout time.Duration,
 ) CoreStepFactory {
 	return &coreStepFactory{
 		pool:                  pool,
@@ -50,6 +56,9 @@ func NewCoreStepFactory(
 		defaultLimits:         defaultLimits,
 		strategy:              strategy,
 		defaultCheckTimeout:   defaultCheckTimeout,
+		defaultGetTimeout:     defaultGetTimeout,
+		defaultPutTimeout:     defaultPutTimeout,
+		defaultTaskTimeout:    defaultTaskTimeout,
 	}
 }
 
@@ -71,6 +80,7 @@ func (factory *coreStepFactory) GetStep(
 		factory.strategy,
 		delegateFactory,
 		factory.pool,
+		factory.defaultGetTimeout,
 	)
 
 	getStep = exec.LogError(getStep, delegateFactory)
@@ -96,6 +106,7 @@ func (factory *coreStepFactory) PutStep(
 		factory.strategy,
 		factory.pool,
 		delegateFactory,
+		factory.defaultPutTimeout,
 	)
 
 	putStep = exec.LogError(putStep, delegateFactory)
@@ -172,6 +183,7 @@ func (factory *coreStepFactory) TaskStep(
 		factory.pool,
 		factory.streamer,
 		delegateFactory,
+		factory.defaultTaskTimeout,
 	)
 
 	taskStep = exec.LogError(taskStep, delegateFactory)

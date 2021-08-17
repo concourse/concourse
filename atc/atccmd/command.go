@@ -257,6 +257,10 @@ type RunCommand struct {
 	P2pVolumeStreamingTimeout time.Duration `long:"p2p-volume-streaming-timeout" description:"Timeout value of p2p volume streaming" default:"15m"`
 
 	DisplayUserIdPerConnector map[string]string `long:"display-user-id-per-connector" description:"Define how to display user ID for each authentication connector. Format is <connector>:<fieldname>. Valid field names are user_id, name, username and email, where name maps to claims field username, and username maps to claims field preferred username"`
+
+	DefaultGetTimeout  time.Duration `long:"default-get-timeout" description:"Default timeout of get steps" default:"1h"`
+	DefaultPutTimeout  time.Duration `long:"default-put-timeout" description:"Default timeout of put steps" default:"1h"`
+	DefaultTaskTimeout time.Duration `long:"default-task-timeout" description:"Default timeout of task steps" default:"10h"`
 }
 
 type Migration struct {
@@ -1688,6 +1692,9 @@ func (cmd *RunCommand) constructEngine(
 				defaultLimits,
 				strategy,
 				cmd.GlobalResourceCheckTimeout,
+				cmd.DefaultGetTimeout,
+				cmd.DefaultPutTimeout,
+				cmd.DefaultTaskTimeout,
 			),
 			cmd.ExternalURL.String(),
 			rateLimiter,

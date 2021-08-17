@@ -64,6 +64,8 @@ var _ = Describe("TaskStep", func() {
 		planID = atc.PlanID("42")
 
 		expectedOwner = db.NewBuildStepContainerOwner(stepMetadata.BuildID, planID, stepMetadata.TeamID)
+
+		defaultTaskTimeout time.Duration = 0
 	)
 
 	BeforeEach(func() {
@@ -117,6 +119,7 @@ var _ = Describe("TaskStep", func() {
 			fakePool,
 			fakeStreamer,
 			fakeDelegateFactory,
+			defaultTaskTimeout,
 		)
 
 		stepOk, stepErr = taskStep.Run(ctx, state)

@@ -81,15 +81,16 @@ type TaskDelegate interface {
 // TaskStep executes a TaskConfig, whose inputs will be fetched from the
 // artifact.Repository and outputs will be added to the artifact.Repository.
 type TaskStep struct {
-	planID            atc.PlanID
-	plan              atc.TaskPlan
-	defaultLimits     atc.ContainerLimits
-	metadata          StepMetadata
-	containerMetadata db.ContainerMetadata
-	strategy          worker.PlacementStrategy
-	workerPool        Pool
-	streamer          Streamer
-	delegateFactory   TaskDelegateFactory
+	planID             atc.PlanID
+	plan               atc.TaskPlan
+	defaultLimits      atc.ContainerLimits
+	metadata           StepMetadata
+	containerMetadata  db.ContainerMetadata
+	strategy           worker.PlacementStrategy
+	workerPool         Pool
+	streamer           Streamer
+	delegateFactory    TaskDelegateFactory
+	defaultTaskTimeout time.Duration
 }
 
 func NewTaskStep(
@@ -102,17 +103,19 @@ func NewTaskStep(
 	workerPool Pool,
 	streamer Streamer,
 	delegateFactory TaskDelegateFactory,
+	defaultTaskTimeout time.Duration,
 ) Step {
 	return &TaskStep{
-		planID:            planID,
-		plan:              plan,
-		defaultLimits:     defaultLimits,
-		metadata:          metadata,
-		containerMetadata: containerMetadata,
-		strategy:          strategy,
-		workerPool:        workerPool,
-		streamer:          streamer,
-		delegateFactory:   delegateFactory,
+		planID:             planID,
+		plan:               plan,
+		defaultLimits:      defaultLimits,
+		metadata:           metadata,
+		containerMetadata:  containerMetadata,
+		strategy:           strategy,
+		workerPool:         workerPool,
+		streamer:           streamer,
+		delegateFactory:    delegateFactory,
+		defaultTaskTimeout: defaultTaskTimeout,
 	}
 }
 
@@ -262,16 +265,12 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 		)
 	}()
 
-	if step.plan.Timeout != "" {
-		timeout, err := time.ParseDuration(step.plan.Timeout)
-		if err != nil {
-			return false, fmt.Errorf("parse timeout: %w", err)
-		}
-
-		var cancel func()
-		ctx, cancel = context.WithTimeout(ctx, timeout)
-		defer cancel()
+	ctx, cancel, err := MaybeTimeout(ctx, step.plan.Timeout, step.defaultTaskTimeout)
+	if err != nil {
+		return false, err
 	}
+	defer cancel()
+
 	ctx = lagerctx.NewContext(ctx, logger)
 
 	delegate.SelectedWorker(logger, worker.Name())

@@ -78,6 +78,8 @@ var _ = Describe("GetStep", func() {
 		planID = atc.PlanID("56")
 
 		expectedOwner = db.NewBuildStepContainerOwner(stepMetadata.BuildID, planID, stepMetadata.TeamID)
+
+		defaultGetTimeout time.Duration = 0
 	)
 
 	BeforeEach(func() {
@@ -166,6 +168,7 @@ var _ = Describe("GetStep", func() {
 			nil,
 			fakeDelegateFactory,
 			fakePool,
+			defaultGetTimeout,
 		)
 
 		stepOk, stepErr = getStep.Run(ctx, runState)
@@ -482,11 +485,11 @@ var _ = Describe("GetStep", func() {
 			Expect(ok).To(BeFalse())
 		})
 
-		It("get resource cache owner from delegate", func(){
+		It("get resource cache owner from delegate", func() {
 			Expect(fakeDelegate.ResourceCacheUserCallCount()).To(Equal(1))
 		})
 
-		It("get container owner from delegate", func(){
+		It("get container owner from delegate", func() {
 			Expect(fakeDelegate.ContainerOwnerCallCount()).To(Equal(1))
 		})
 

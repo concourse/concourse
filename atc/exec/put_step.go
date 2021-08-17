@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
@@ -53,6 +54,7 @@ type PutStep struct {
 	strategy          worker.PlacementStrategy
 	workerPool        Pool
 	delegateFactory   PutDelegateFactory
+	defaultPutTimeout time.Duration
 }
 
 func NewPutStep(
@@ -63,6 +65,7 @@ func NewPutStep(
 	strategy worker.PlacementStrategy,
 	workerPool Pool,
 	delegateFactory PutDelegateFactory,
+	defaultPutTimeout time.Duration,
 ) Step {
 	return &PutStep{
 		planID:            planID,
@@ -72,6 +75,7 @@ func NewPutStep(
 		workerPool:        workerPool,
 		strategy:          strategy,
 		delegateFactory:   delegateFactory,
+		defaultPutTimeout: defaultPutTimeout,
 	}
 }
 
@@ -196,7 +200,7 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 
 	delegate.SelectedWorker(logger, worker.Name())
 
-	ctx, cancel, err := MaybeTimeout(ctx, step.plan.Timeout)
+	ctx, cancel, err := MaybeTimeout(ctx, step.plan.Timeout, step.defaultPutTimeout)
 	if err != nil {
 		return false, err
 	}

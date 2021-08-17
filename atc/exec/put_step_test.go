@@ -74,6 +74,8 @@ var _ = Describe("PutStep", func() {
 		stderrBuf *gbytes.Buffer
 
 		versionResult resource.VersionResult
+
+		defaultPutTimeout time.Duration = 0
 	)
 
 	BeforeEach(func() {
@@ -160,6 +162,7 @@ var _ = Describe("PutStep", func() {
 			nil,
 			fakePool,
 			fakeDelegateFactory,
+			defaultPutTimeout,
 		)
 
 		stepOk, stepErr = putStep.Run(ctx, state)

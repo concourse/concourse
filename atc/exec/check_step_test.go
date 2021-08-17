@@ -41,7 +41,7 @@ var _ = Describe("CheckStep", func() {
 		fakeDelegate              *execfakes.FakeCheckDelegate
 		fakeDelegateFactory       *execfakes.FakeCheckDelegateFactory
 		spanCtx                   context.Context
-		defaultTimeout            = time.Hour
+		defaultTimeout            time.Duration = 0
 
 		fakePool        *execfakes.FakePool
 		chosenWorker    *runtimetest.Worker
@@ -716,16 +716,6 @@ var _ = Describe("CheckStep", func() {
 			It("errors", func() {
 				Expect(stepErr).To(HaveOccurred())
 			})
-		})
-	})
-
-	Context("when a bogus timeout is given", func() {
-		BeforeEach(func() {
-			checkPlan.Timeout = "bogus"
-		})
-
-		It("fails miserably", func() {
-			Expect(stepErr).To(MatchError("parse timeout: time: invalid duration \"bogus\""))
 		})
 	})
 })
