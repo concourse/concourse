@@ -40,13 +40,7 @@ all =
                     |> Common.contains Subscription.OnCacheReceived
         , test "loads favorited pipelines/instance groups on init" <|
             \_ ->
-                Application.init
-                    { turbulenceImgSrc = ""
-                    , notFoundImgSrc = "notfound.svg"
-                    , csrfToken = "csrf_token"
-                    , authToken = ""
-                    , pipelineRunningKeyframes = "pipeline-running"
-                    }
+                Application.init Data.flags
                     { protocol = Url.Http
                     , host = ""
                     , port_ = Nothing

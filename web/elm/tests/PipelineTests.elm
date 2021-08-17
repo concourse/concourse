@@ -55,16 +55,6 @@ it desc expectationFunc model =
         \_ -> expectationFunc model
 
 
-flags : Application.Flags
-flags =
-    { turbulenceImgSrc = ""
-    , notFoundImgSrc = ""
-    , csrfToken = csrfToken
-    , authToken = ""
-    , pipelineRunningKeyframes = ""
-    }
-
-
 pipelineFetched pipeline =
     Application.handleCallback (Callback.PipelineFetched (Ok <| pipeline))
         >> Tuple.first
@@ -89,8 +79,7 @@ all =
                     ]
 
                 setupGroupsBar groups =
-                    Application.init
-                        flags
+                    Application.init Data.flags
                         { protocol = Url.Http
                         , host = ""
                         , port_ = Nothing
@@ -284,13 +273,7 @@ all =
                     |> Query.has [ style "flex-grow" "1" ]
         , test "gets screen size on page load" <|
             \_ ->
-                Application.init
-                    { turbulenceImgSrc = ""
-                    , notFoundImgSrc = ""
-                    , csrfToken = csrfToken
-                    , authToken = ""
-                    , pipelineRunningKeyframes = ""
-                    }
+                Application.init Data.flags
                     { protocol = Url.Http
                     , host = ""
                     , port_ = Nothing

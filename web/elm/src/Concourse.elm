@@ -857,44 +857,33 @@ decodeAcrossSubstep =
 
 
 type alias FeatureFlags =
-    { globalResources : Bool
-    , redactSecrets : Bool
-    , buildRerun : Bool
-    , acrossStep : Bool
-    , pipelineInstances : Bool
-    , cacheStreamedVolumes : Bool
-    , resourceCausality : Bool
+    -- The fields must match the names in `atc/feature_flags.go -> FeatureFlags()`.
+    -- If a field is deleted on the Go side, it must also be deleted here.
+    { global_resources : Bool
+    , redact_secrets : Bool
+    , build_rerun : Bool
+    , across_step : Bool
+    , pipeline_instances : Bool
+    , cache_streamed_volumes : Bool
+    , resource_causality : Bool
     }
 
 
 defaultFeatureFlags : FeatureFlags
 defaultFeatureFlags =
-    { globalResources = False
-    , redactSecrets = False
-    , buildRerun = False
-    , acrossStep = False
-    , pipelineInstances = False
-    , cacheStreamedVolumes = False
-    , resourceCausality = False
+    { global_resources = False
+    , redact_secrets = False
+    , build_rerun = False
+    , across_step = False
+    , pipeline_instances = False
+    , cache_streamed_volumes = False
+    , resource_causality = False
     }
-
-
-decodeFeatureFlags : Json.Decode.Decoder FeatureFlags
-decodeFeatureFlags =
-    Json.Decode.succeed FeatureFlags
-        |> andMap (Json.Decode.field "global_resources" Json.Decode.bool)
-        |> andMap (Json.Decode.field "redact_secrets" Json.Decode.bool)
-        |> andMap (Json.Decode.field "build_rerun" Json.Decode.bool)
-        |> andMap (Json.Decode.field "across_step" Json.Decode.bool)
-        |> andMap (Json.Decode.field "pipeline_instances" Json.Decode.bool)
-        |> andMap (Json.Decode.field "cache_streamed_volumes" Json.Decode.bool)
-        |> andMap (Json.Decode.field "resource_causality" Json.Decode.bool)
 
 
 type alias ClusterInfo =
     { version : String
     , clusterName : String
-    , featureFlags : FeatureFlags
     }
 
 
@@ -903,7 +892,6 @@ decodeInfo =
     Json.Decode.succeed ClusterInfo
         |> andMap (Json.Decode.field "version" Json.Decode.string)
         |> andMap (defaultTo "" <| Json.Decode.field "cluster_name" Json.Decode.string)
-        |> andMap (Json.Decode.field "feature_flags" decodeFeatureFlags)
 
 
 

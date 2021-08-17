@@ -2,6 +2,8 @@ module Data exposing
     ( build
     , dashboardPipeline
     , elementPosition
+    , featureFlags
+    , flags
     , httpForbidden
     , httpInternalServerError
     , httpNotFound
@@ -62,6 +64,7 @@ module Data exposing
     , withTeamName
     )
 
+import Application.Application as Application
 import Browser.Dom
 import Concourse
 import Concourse.BuildStatus as BuildStatus
@@ -586,3 +589,19 @@ leftClickEvent =
             , ( "shiftKey", Json.Encode.bool False )
             , ( "button", Json.Encode.int 0 )
             ]
+
+
+featureFlags : Concourse.FeatureFlags
+featureFlags =
+    Concourse.defaultFeatureFlags
+
+
+flags : Application.Flags
+flags =
+    { turbulenceImgSrc = ""
+    , notFoundImgSrc = "notfound.svg"
+    , csrfToken = "csrf_token"
+    , authToken = "some_auth_token"
+    , pipelineRunningKeyframes = "pipeline-running"
+    , featureFlags = featureFlags
+    }

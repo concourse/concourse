@@ -53,13 +53,7 @@ all =
                             |> Expect.equal "job - Concourse"
                 , test "gets current timezone" <|
                     \_ ->
-                        Application.init
-                            { turbulenceImgSrc = ""
-                            , notFoundImgSrc = "notfound.svg"
-                            , csrfToken = "csrf_token"
-                            , authToken = ""
-                            , pipelineRunningKeyframes = "pipeline-running"
-                            }
+                        Application.init Data.flags
                             { protocol = Url.Http
                             , host = ""
                             , port_ = Nothing
@@ -71,13 +65,7 @@ all =
                             |> Common.contains Effects.GetCurrentTimeZone
                 , test "fetches pipelines" <|
                     \_ ->
-                        Application.init
-                            { turbulenceImgSrc = ""
-                            , notFoundImgSrc = ""
-                            , csrfToken = ""
-                            , authToken = ""
-                            , pipelineRunningKeyframes = ""
-                            }
+                        Application.init Data.flags
                             { protocol = Url.Http
                             , host = ""
                             , port_ = Nothing

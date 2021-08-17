@@ -12,7 +12,8 @@ module Common exposing
     , iOpenTheBuildPage
     , iOpenTheBuildPageHighlighting
     , init
-    , initQuery
+    , initCustom
+    , initCustomOpts
     , initRoute
     , isColorWithStripes
     , myBrowserFetchedTheBuild
@@ -25,7 +26,6 @@ module Common exposing
     , whenOnDesktop
     , whenOnMobile
     , withAllPipelinesVisible
-    , withFeatureFlags
     )
 
 import Application.Application as Application
@@ -84,19 +84,6 @@ notContains x xs =
         Expect.pass
 
 
-withFeatureFlags : Concourse.FeatureFlags -> Application.Model -> Application.Model
-withFeatureFlags flags =
-    Application.handleCallback
-        (Callback.ClusterInfoFetched <|
-            Ok
-                { version = ""
-                , clusterName = ""
-                , featureFlags = flags
-                }
-        )
-        >> Tuple.first
-
-
 routeHref : Routes.Route -> Test.Html.Selector.Selector
 routeHref =
     Routes.toString >> Attr.href >> attribute
@@ -132,15 +119,28 @@ pipelineRunningKeyframes =
     "pipeline-running"
 
 
-initQuery : String -> Maybe String -> Application.Model
-initQuery path query =
-    Application.init
-        { turbulenceImgSrc = ""
-        , notFoundImgSrc = "notfound.svg"
-        , csrfToken = "csrf_token"
-        , authToken = ""
-        , pipelineRunningKeyframes = "pipeline-running"
-        }
+type alias InitCustomOpts =
+    { query : Maybe String
+    , fragment : Maybe String
+    , featureFlags : Concourse.FeatureFlags
+    }
+
+
+initCustomOpts : InitCustomOpts
+initCustomOpts =
+    { query = Nothing
+    , fragment = Nothing
+    , featureFlags = Data.featureFlags
+    }
+
+
+initCustom : InitCustomOpts -> String -> Application.Model
+initCustom { query, featureFlags } path =
+    let
+        flags =
+            Data.flags
+    in
+    Application.init { flags | featureFlags = featureFlags }
         { protocol = Url.Http
         , host = ""
         , port_ = Nothing
@@ -155,23 +155,15 @@ initRoute : Routes.Route -> Application.Model
 initRoute route =
     case Url.fromString ("http://test.com" ++ Routes.toString route) of
         Just url ->
-            Application.init
-                { turbulenceImgSrc = ""
-                , notFoundImgSrc = "notfound.svg"
-                , csrfToken = "csrf_token"
-                , authToken = ""
-                , pipelineRunningKeyframes = "pipeline-running"
-                }
-                url
-                |> Tuple.first
+            Application.init Data.flags url |> Tuple.first
 
         Nothing ->
             Debug.todo ("invalid route stringification: " ++ Debug.toString route)
 
 
 init : String -> Application.Model
-init path =
-    initQuery path Nothing
+init =
+    initCustom initCustomOpts
 
 
 given =
@@ -190,14 +182,9 @@ then_ =
     identity
 
 
+iOpenTheBuildPage : a -> ( Application.Model, List Effect )
 iOpenTheBuildPage _ =
-    Application.init
-        { turbulenceImgSrc = ""
-        , notFoundImgSrc = ""
-        , csrfToken = ""
-        , authToken = ""
-        , pipelineRunningKeyframes = ""
-        }
+    Application.init Data.flags
         { protocol = Url.Http
         , host = ""
         , port_ = Nothing
@@ -207,14 +194,9 @@ iOpenTheBuildPage _ =
         }
 
 
+iOpenTheBuildPageHighlighting : String -> a -> ( Application.Model, List Effect )
 iOpenTheBuildPageHighlighting stepId _ =
-    Application.init
-        { turbulenceImgSrc = ""
-        , notFoundImgSrc = ""
-        , csrfToken = ""
-        , authToken = ""
-        , pipelineRunningKeyframes = ""
-        }
+    Application.init Data.flags
         { protocol = Url.Http
         , host = ""
         , port_ = Nothing

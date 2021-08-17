@@ -2,7 +2,7 @@ module CausalityTest exposing (all)
 
 import Application.Application as Application
 import Causality.Causality as Causality
-import Common
+import Common exposing (initCustomOpts)
 import Concourse
     exposing
         ( Causality
@@ -11,10 +11,9 @@ import Concourse
         , CausalityJob
         , CausalityResource
         , CausalityResourceVersion
-        , defaultFeatureFlags
         )
 import Concourse.BuildStatus exposing (BuildStatus(..))
-import Data
+import Data exposing (featureFlags)
 import Dict
 import Expect
 import Graph exposing (Edge, Node)
@@ -36,8 +35,7 @@ all =
         [ describe "viewing graph" <|
             [ test "shows not found if feature flag is disabled" <|
                 \_ ->
-                    init
-                        |> Common.withFeatureFlags Concourse.defaultFeatureFlags
+                    initEnabled False
                         |> Common.queryView
                         |> Query.find [ class "notfound" ]
                         |> Query.has [ text "404" ]
@@ -276,9 +274,9 @@ resourceVersionId =
     1
 
 
-init : Application.Model
-init =
-    Common.init
+initEnabled : Bool -> Application.Model
+initEnabled causalityEnabled =
+    Common.initCustom { initCustomOpts | featureFlags = { featureFlags | resource_causality = causalityEnabled } }
         ("/teams/"
             ++ Data.teamName
             ++ "/pipelines/"
@@ -289,4 +287,8 @@ init =
             ++ String.fromInt resourceVersionId
             ++ "/downstream"
         )
-        |> Common.withFeatureFlags { defaultFeatureFlags | resourceCausality = True }
+
+
+init : Application.Model
+init =
+    initEnabled True
