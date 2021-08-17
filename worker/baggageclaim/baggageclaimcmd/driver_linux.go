@@ -50,10 +50,10 @@ func (cmd *BaggageclaimCommand) driver(logger lager.Logger) (volume.Driver, erro
 	}
 
 	if cmd.Driver == "detect" {
-		if supportsBtrfs {
-			cmd.Driver = "btrfs"
-		} else if kernelSupportsOverlay {
+		if kernelSupportsOverlay {
 			cmd.Driver = "overlay"
+		} else if supportsBtrfs {
+			cmd.Driver = "btrfs"
 		} else {
 			cmd.Driver = "naive"
 		}
