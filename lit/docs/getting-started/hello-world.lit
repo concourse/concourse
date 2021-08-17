@@ -193,7 +193,7 @@
   }}
 
   \italic{The following is an iframe to
-  \link{http://localhost:8080}{http://localhost:8080}}
+  \link{http://localhost:8080/teams/main/pipelines/hello-world}{http://localhost:8080/teams/main/pipelines/hello-world}}
   \frame{http://localhost:8080/teams/main/pipelines/hello-world}{500px}
 
   Congratulations on building your first Concourse pipeline!
