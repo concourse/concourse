@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"github.com/concourse/baggageclaim/volume"
-	"github.com/concourse/baggageclaim/volume/copy"
+	"github.com/concourse/concourse/worker/baggageclaim/volume"
+	"github.com/concourse/concourse/worker/baggageclaim/volume/copy"
 )
 
 type OverlayDriver struct {

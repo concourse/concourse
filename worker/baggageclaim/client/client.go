@@ -14,8 +14,8 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/tedsuo/rata"
 
-	"github.com/concourse/baggageclaim"
-	"github.com/concourse/baggageclaim/api"
+	"github.com/concourse/concourse/worker/baggageclaim"
+	"github.com/concourse/concourse/worker/baggageclaim/api"
 	"github.com/concourse/retryhttp"
 )
 
@@ -391,7 +391,6 @@ func (c *client) getPrivileged(logger lager.Logger, handle string) (bool, error)
 
 	return privileged, nil
 }
-
 
 func (c *client) setPrivileged(logger lager.Logger, handle string, privileged bool) error {
 	buffer := &bytes.Buffer{}

@@ -5,7 +5,7 @@ package driver
 import (
 	"os/exec"
 
-	"github.com/concourse/baggageclaim/volume"
+	"github.com/concourse/concourse/worker/baggageclaim/volume"
 )
 
 func (driver *NaiveDriver) CreateCopyOnWriteLayer(

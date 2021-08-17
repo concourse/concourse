@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/concourse/baggageclaim/baggageclaimcmd"
+	"github.com/concourse/concourse/worker/baggageclaim/baggageclaimcmd"
 	"github.com/jessevdk/go-flags"
 )
 

@@ -23,7 +23,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	sq "github.com/Masterminds/squirrel"
-	bclient "github.com/concourse/baggageclaim/client"
+	bclient "github.com/concourse/concourse/worker/baggageclaim/client"
 	"golang.org/x/oauth2"
 
 	"github.com/concourse/concourse/go-concourse/concourse"

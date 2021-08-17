@@ -7,11 +7,11 @@ import (
 	"path"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"
+	"github.com/concourse/concourse/worker/baggageclaim"
 )
 
 const RawRootFSScheme = "raw"

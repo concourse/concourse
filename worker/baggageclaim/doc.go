@@ -25,7 +25,7 @@ parent volumes.
 
 The standard way to construct a client is:
 
-	import "github.com/concourse/baggageclaim/client"
+	import "github.com/concourse/concourse/worker/baggageclaim/client"
 
 	bcClient := client.New("http://baggageclaim.example.com:7788")
 	bcClient.CreateVolume(...)

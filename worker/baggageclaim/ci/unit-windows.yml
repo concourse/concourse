@@ -1,8 +1,0 @@
----
-platform: windows
-
-inputs:
-- name: baggageclaim
-
-run:
-  path: baggageclaim/ci/scripts/unit-windows.bat

@@ -11,10 +11,10 @@ import (
 	"syscall"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/baggageclaim/fs"
-	"github.com/concourse/baggageclaim/kernel"
-	"github.com/concourse/baggageclaim/volume"
-	"github.com/concourse/baggageclaim/volume/driver"
+	"github.com/concourse/concourse/worker/baggageclaim/fs"
+	"github.com/concourse/concourse/worker/baggageclaim/kernel"
+	"github.com/concourse/concourse/worker/baggageclaim/volume"
+	"github.com/concourse/concourse/worker/baggageclaim/volume/driver"
 )
 
 const btrfsFSType = 0x9123683e

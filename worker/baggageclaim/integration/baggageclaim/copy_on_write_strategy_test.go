@@ -1,7 +1,7 @@
 package integration_test
 
 import (
-	"github.com/concourse/baggageclaim"
+	"github.com/concourse/concourse/worker/baggageclaim"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

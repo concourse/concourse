@@ -17,8 +17,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/concourse/baggageclaim"
-	"github.com/concourse/baggageclaim/uidgid"
+	"github.com/concourse/concourse/worker/baggageclaim"
+	"github.com/concourse/concourse/worker/baggageclaim/uidgid"
 )
 
 var _ = Describe("Privileges", func() {
@@ -170,7 +170,7 @@ var _ = Describe("Privileges", func() {
 				})
 
 				It("maps uid 0 to uid 0", func() {
-					err := privilegedVolume.StreamIn(context.TODO(),".", baggageclaim.GzipEncoding, tgzStream)
+					err := privilegedVolume.StreamIn(context.TODO(), ".", baggageclaim.GzipEncoding, tgzStream)
 					Expect(err).ToNot(HaveOccurred())
 
 					stat, err := os.Stat(filepath.Join(privilegedVolume.Path(), dataFilename))

@@ -5,7 +5,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/concourse/baggageclaim/volume"
+	"github.com/concourse/concourse/worker/baggageclaim/volume"
 )
 
 type FakeStreamer struct {

@@ -15,9 +15,9 @@ import (
 
 	"code.cloudfoundry.org/lager/lagertest"
 
-	"github.com/concourse/baggageclaim/fs"
-	"github.com/concourse/baggageclaim/volume"
-	"github.com/concourse/baggageclaim/volume/driver"
+	"github.com/concourse/concourse/worker/baggageclaim/fs"
+	"github.com/concourse/concourse/worker/baggageclaim/volume"
+	"github.com/concourse/concourse/worker/baggageclaim/volume/driver"
 )
 
 var _ = Describe("BtrFS", func() {

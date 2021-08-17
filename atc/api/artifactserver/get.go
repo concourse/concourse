@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/worker/baggageclaim"
 )
 
 func (s *Server) GetArtifact(team db.Team) http.Handler {

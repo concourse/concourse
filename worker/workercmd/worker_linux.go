@@ -32,7 +32,7 @@ type GuardianRuntime struct {
 	DNS            DNSConfig     `group:"DNS Proxy Configuration" namespace:"dns-proxy"`
 	RequestTimeout time.Duration `long:"request-timeout" default:"5m" description:"How long to wait for requests to the Garden server to complete. 0 means no timeout."`
 
-  Config         flag.File     `long:"config"     description:"Path to a config file to use for the Garden backend. e.g. 'foo-bar=a,b' for '--foo-bar a --foo-bar b'."`
+	Config      flag.File `long:"config"     description:"Path to a config file to use for the Garden backend. e.g. 'foo-bar=a,b' for '--foo-bar a --foo-bar b'."`
 	BinaryFlags GdnBinaryFlags
 }
 
@@ -204,7 +204,6 @@ func (cmd *WorkerCommand) loadResources(logger lager.Logger) ([]atc.WorkerResour
 	return types, nil
 }
 
-
 func (cmd *WorkerCommand) hasFlags(prefix string) bool {
 	env := os.Environ()
 
@@ -224,7 +223,7 @@ const containerdEnvPrefix = "CONCOURSE_CONTAINERD_"
 func (cmd *WorkerCommand) verifyRuntimeFlags() error {
 	switch {
 	case cmd.Runtime == houdiniRuntime:
-		if cmd.hasFlags(guardianEnvPrefix)  || cmd.hasFlags(containerdEnvPrefix) {
+		if cmd.hasFlags(guardianEnvPrefix) || cmd.hasFlags(containerdEnvPrefix) {
 			return fmt.Errorf("cannot use %s or %s environment variables with Houdini", guardianEnvPrefix, containerdEnvPrefix)
 		}
 	case cmd.Runtime == containerdRuntime:

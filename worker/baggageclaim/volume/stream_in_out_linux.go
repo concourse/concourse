@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/concourse/baggageclaim/uidgid"
+	"github.com/concourse/concourse/worker/baggageclaim/uidgid"
 	"github.com/klauspost/compress/zstd"
 )
 

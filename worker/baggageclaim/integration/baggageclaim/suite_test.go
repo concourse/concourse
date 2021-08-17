@@ -15,8 +15,8 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/concourse/baggageclaim"
-	"github.com/concourse/baggageclaim/client"
+	"github.com/concourse/concourse/worker/baggageclaim"
+	"github.com/concourse/concourse/worker/baggageclaim/client"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/ifrit"
@@ -40,7 +40,7 @@ type suiteData struct {
 }
 
 var _ = SynchronizedBeforeSuite(func() []byte {
-	bcPath, err := gexec.Build("github.com/concourse/baggageclaim/cmd/baggageclaim")
+	bcPath, err := gexec.Build("github.com/concourse/concourse/worker/baggageclaim/cmd/baggageclaim")
 	Expect(err).NotTo(HaveOccurred())
 
 	data, err := json.Marshal(suiteData{
