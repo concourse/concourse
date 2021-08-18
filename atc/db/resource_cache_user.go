@@ -19,17 +19,3 @@ func (user forBuild) SQLMap() map[string]interface{} {
 		"build_id": user.BuildID,
 	}
 }
-
-type forContainer struct {
-	ContainerID int
-}
-
-func ForContainer(id int) ResourceCacheUser {
-	return forContainer{id}
-}
-
-func (user forContainer) SQLMap() map[string]interface{} {
-	return map[string]interface{}{
-		"container_id": user.ContainerID,
-	}
-}

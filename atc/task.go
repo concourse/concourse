@@ -47,7 +47,7 @@ type ImageResource struct {
 	Tags    Tags    `json:"tags,omitempty"`
 }
 
-func (ir *ImageResource) ApplySourceDefaults(resourceTypes VersionedResourceTypes) {
+func (ir *ImageResource) ApplySourceDefaults(resourceTypes ResourceTypes) {
 	if ir == nil {
 		return
 	}

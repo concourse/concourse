@@ -6,20 +6,23 @@ import (
 	"sync"
 
 	"code.cloudfoundry.org/lager/lagerctx"
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/util"
 	"github.com/concourse/concourse/tracing"
 )
 
-func NewScanner(checkFactory db.CheckFactory) *scanner {
+func NewScanner(checkFactory db.CheckFactory, planFactory atc.PlanFactory) *scanner {
 	return &scanner{
 		checkFactory: checkFactory,
+		planFactory:  planFactory,
 	}
 }
 
 type scanner struct {
 	checkFactory db.CheckFactory
+	planFactory  atc.PlanFactory
 }
 
 func (s *scanner) Run(ctx context.Context) error {
@@ -37,54 +40,35 @@ func (s *scanner) Run(ctx context.Context) error {
 		return err
 	}
 
-	resourceTypes, err := s.checkFactory.ResourceTypes()
+	resourceTypes, err := s.checkFactory.ResourceTypesByPipeline()
 	if err != nil {
 		logger.Error("failed-to-get-resource-types", err)
 		return err
 	}
 
-	s.scanResourceTypes(spanCtx, resourceTypes)
 	s.scanResources(spanCtx, resources, resourceTypes)
 
 	return nil
 }
 
-func (s *scanner) scanResources(ctx context.Context, resources []db.Resource, resourceTypes db.ResourceTypes) {
+func (s *scanner) scanResources(ctx context.Context, resources []db.Resource, resourceTypesMap map[int]db.ResourceTypes) {
 	logger := lagerctx.FromContext(ctx)
 	waitGroup := new(sync.WaitGroup)
 	for _, resource := range resources {
 		waitGroup.Add(1)
 
-		go func(resource db.Resource, resourceTypes db.ResourceTypes) {
+		resourceTypes := resourceTypesMap[resource.PipelineID()]
+		go func(r db.Resource, rts db.ResourceTypes) {
 			defer func() {
-				err := util.DumpPanic(recover(), "scanning resource %d", resource.ID())
+				err := util.DumpPanic(recover(), "scanning resource %d", r.ID())
 				if err != nil {
 					logger.Error("panic-in-scanner-run", err)
 				}
 			}()
 			defer waitGroup.Done()
 
-			s.check(ctx, resource, resourceTypes)
+			s.check(ctx, r, rts)
 		}(resource, resourceTypes)
-	}
-	waitGroup.Wait()
-}
-
-func (s *scanner) scanResourceTypes(ctx context.Context, resourceTypes db.ResourceTypes) {
-	logger := lagerctx.FromContext(ctx)
-	waitGroup := new(sync.WaitGroup)
-	for _, resourceType := range resourceTypes {
-		waitGroup.Add(1)
-		go func(resourceType db.ResourceType, resourceTypes db.ResourceTypes) {
-			defer func() {
-				err := util.DumpPanic(recover(), "scanning resource type %d", resourceType.ID())
-				if err != nil {
-					logger.Error("panic-in-scanner-run", err)
-				}
-			}()
-			defer waitGroup.Done()
-			s.check(ctx, resourceType, resourceTypes)
-		}(resourceType, resourceTypes)
 	}
 	waitGroup.Wait()
 }
@@ -107,7 +91,7 @@ func (s *scanner) check(ctx context.Context, checkable db.Checkable, resourceTyp
 		return
 	}
 
-	_, created, err := s.checkFactory.TryCreateCheck(lagerctx.NewContext(spanCtx, logger), checkable, resourceTypes, version, false)
+	_, created, err := s.checkFactory.TryCreateCheck(lagerctx.NewContext(spanCtx, logger), checkable, resourceTypes, version, false, false)
 	if err != nil {
 		logger.Error("failed-to-create-check", err)
 		return

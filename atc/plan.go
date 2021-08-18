@@ -90,12 +90,45 @@ func (plan *Plan) Each(f func(*Plan)) {
 			(*plan.Retry)[i] = p
 		}
 	}
+
+	if plan.Get != nil {
+		plan.Get.TypeImage.EachPlan(f)
+	}
+
+	if plan.Put != nil {
+		plan.Put.TypeImage.EachPlan(f)
+	}
+
+	if plan.Check != nil {
+		plan.Check.TypeImage.EachPlan(f)
+	}
 }
 
 type PlanID string
 
 func (id PlanID) String() string {
 	return string(id)
+}
+
+type TypeImage struct {
+	// Image of the container. One of these must be specified.
+	CheckPlan *Plan `json:"check_plan,omitempty"`
+	GetPlan   *Plan `json:"get_plan,omitempty"`
+
+	// The bottom-most resource type that this get step relies on.
+	BaseType string `json:"base_type,omitempty"`
+
+	// Privileged indicates whether the parent resource type is privileged.
+	Privileged bool `json:"privileged,omitempty"`
+}
+
+func (t TypeImage) EachPlan(f func(*Plan)) {
+	if t.CheckPlan != nil {
+		t.CheckPlan.Each(f)
+	}
+	if t.GetPlan != nil {
+		t.GetPlan.Each(f)
+	}
 }
 
 type ArtifactInputPlan struct {
@@ -174,9 +207,11 @@ type GetPlan struct {
 	Name string `json:"name,omitempty"`
 
 	// The resource config to fetch from.
-	Type                   string                 `json:"type"`
-	Source                 Source                 `json:"source"`
-	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
+	Type   string `json:"type"`
+	Source Source `json:"source"`
+
+	// Information needed for fetching the image
+	TypeImage TypeImage `json:"image"`
 
 	// The version of the resource to fetch. One of these must be specified.
 	Version     *Version `json:"version,omitempty"`
@@ -201,9 +236,11 @@ type PutPlan struct {
 	Name string `json:"name"`
 
 	// The resource config to push to.
-	Type                   string                 `json:"type"`
-	Source                 Source                 `json:"source"`
-	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
+	Type   string `json:"type"`
+	Source Source `json:"source"`
+
+	// Information needed for fetching the image
+	TypeImage TypeImage `json:"image"`
 
 	// Params to pass to the put operation.
 	Params Params `json:"params,omitempty"`
@@ -230,9 +267,11 @@ type CheckPlan struct {
 	Name string `json:"name"`
 
 	// The resource config to check.
-	Type                   string                 `json:"type"`
-	Source                 Source                 `json:"source"`
-	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
+	Type   string `json:"type"`
+	Source Source `json:"source"`
+
+	// Information needed for fetching the image
+	TypeImage TypeImage `json:"image"`
 
 	// The version to check from. If not specified, defaults to the latest
 	// version of the config.
@@ -245,8 +284,13 @@ type CheckPlan struct {
 
 	// The interval on which to check - if it has not elapsed since the config
 	// was last checked, and the build has not been manually triggered, the check
-	// will be skipped.
-	Interval string `json:"interval,omitempty"`
+	// will be skipped. It will also be set as Never if the user has specified
+	// for it to not be checked periodically.
+	Interval CheckEvery `json:"interval,omitempty"`
+
+	// If set, the check interval will not be respected, (i.e. a new check will
+	// be run even if the interval has not elapsed).
+	SkipInterval bool `json:"skip_interval,omitempty"`
 
 	// A timeout to enforce on the resource `check` process. Note that fetching
 	// the resource's image does not count towards the timeout.
@@ -300,14 +344,7 @@ type TaskPlan struct {
 	Timeout string `json:"timeout,omitempty"`
 
 	// Resource types to have available for use when fetching the task's image.
-	//
-	// XXX(check-refactor): Eliminating this would be great - if we can replace
-	// image fetching with a 'check' and 'get' step and then use
-	// ImageArtifactName, we'll have everything going down one code path and we
-	// can tidy up the runtime interface substantially. Unfortunately this is
-	// difficult to do because we don't even know what image resource to fetch
-	// until the task step runs and fetches its ConfigPath.
-	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
+	ResourceTypes ResourceTypes `json:"resource_types,omitempty"`
 }
 
 type RunPlan struct {

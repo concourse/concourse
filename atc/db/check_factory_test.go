@@ -19,6 +19,16 @@ var _ = Describe("CheckFactory", func() {
 		build   db.Build
 	)
 
+	BeforeEach(func() {
+		atc.DefaultCheckInterval = defaultCheckInterval
+		atc.DefaultWebhookInterval = defaultWebhookCheckInterval
+	})
+
+	AfterEach(func() {
+		atc.DefaultCheckInterval = 0
+		atc.DefaultWebhookInterval = 0
+	})
+
 	Describe("TryCreateCheck", func() {
 		var (
 			fakeResource      *dbfakes.FakeResource
@@ -27,17 +37,18 @@ var _ = Describe("CheckFactory", func() {
 			fromVersion       atc.Version
 			manuallyTriggered bool
 
-			checkPlan atc.CheckPlan
+			checkPlan atc.Plan
 			fakeBuild *dbfakes.FakeBuild
 		)
 
 		BeforeEach(func() {
 			fromVersion = atc.Version{"from": "version"}
 
-			checkPlan = atc.CheckPlan{
+			planFactory := atc.NewPlanFactory(0)
+			checkPlan = planFactory.NewPlan(atc.CheckPlan{
 				Type:   "doesnt-matter",
 				Source: atc.Source{"doesnt": "matter"},
-			}
+			})
 
 			fakeResource = new(dbfakes.FakeResource)
 			fakeResource.NameReturns("some-name")
@@ -67,162 +78,150 @@ var _ = Describe("CheckFactory", func() {
 			manuallyTriggered = false
 		})
 
-		JustBeforeEach(func() {
-			build, created, err = checkFactory.TryCreateCheck(context.TODO(), fakeResource, fakeResourceTypes, fromVersion, manuallyTriggered)
-		})
-
-		Context("when the resource parent type is not a custom type", func() {
-			BeforeEach(func() {
-				fakeResource.TypeReturns("base-type")
+		Context("when it is run on a resource", func() {
+			JustBeforeEach(func() {
+				build, created, err = checkFactory.TryCreateCheck(context.TODO(), fakeResource, fakeResourceTypes, fromVersion, manuallyTriggered, false)
 			})
 
-			It("returns the build", func() {
-				Expect(err).NotTo(HaveOccurred())
-				Expect(created).To(BeTrue())
-				Expect(build).To(Equal(fakeBuild))
-			})
-
-			It("starts the build with the check plan", func() {
-				Expect(fakeResource.CreateBuildCallCount()).To(Equal(1))
-				_, manuallyTriggered, plan := fakeResource.CreateBuildArgsForCall(0)
-				Expect(manuallyTriggered).To(BeFalse())
-				Expect(plan.ID).ToNot(BeEmpty())
-				Expect(plan.Check).To(Equal(&checkPlan))
-			})
-
-			Context("when the interval has not elapsed", func() {
+			Context("when the resource parent type is not a custom type", func() {
 				BeforeEach(func() {
-					fakeResource.LastCheckEndTimeReturns(time.Now().Add(defaultCheckInterval))
+					fakeResource.TypeReturns("base-type")
 				})
 
-				It("does not create a build for the resource", func() {
-					Expect(fakeResource.CheckPlanCallCount()).To(Equal(0))
-					Expect(fakeResource.CreateBuildCallCount()).To(Equal(0))
-				})
-
-				Context("but the check is manually triggered", func() {
-					BeforeEach(func() {
-						manuallyTriggered = true
-					})
-
-					It("creates the build anyway", func() {
-						Expect(fakeResource.CheckPlanCallCount()).To(Equal(1))
-						Expect(fakeResource.CreateBuildCallCount()).To(Equal(1))
-					})
-				})
-			})
-
-			Context("when a build is not created", func() {
-				BeforeEach(func() {
-					fakeResource.CreateBuildReturns(nil, false, nil)
-				})
-
-				It("returns false", func() {
+				It("returns the build", func() {
 					Expect(err).NotTo(HaveOccurred())
-					Expect(created).To(BeFalse())
-					Expect(build).To(BeNil())
-				})
-			})
-		})
-
-		Context("when the resource has a webhook configured", func() {
-			BeforeEach(func() {
-				fakeResource.HasWebhookReturns(true)
-			})
-
-			It("creates a check plan with the default webhook interval", func() {
-				Expect(fakeResource.CheckPlanCallCount()).To(Equal(1))
-				version, interval, types, defaults := fakeResource.CheckPlanArgsForCall(0)
-				Expect(version).To(Equal(atc.Version{"from": "version"}))
-				Expect(interval).To(Equal(defaultWebhookCheckInterval))
-				Expect(types).To(BeNil())
-				Expect(defaults).To(BeEmpty())
-			})
-
-			Context("when the default webhook interval has not elapsed", func() {
-				BeforeEach(func() {
-					fakeResource.LastCheckEndTimeReturns(time.Now().Add(-(defaultWebhookCheckInterval / 2)))
+					Expect(created).To(BeTrue())
+					Expect(build).To(Equal(fakeBuild))
 				})
 
-				It("does not create a build for the resource", func() {
-					Expect(fakeResource.CheckPlanCallCount()).To(Equal(0))
-					Expect(fakeResource.CreateBuildCallCount()).To(Equal(0))
-				})
-			})
-		})
-
-		Context("when an interval is specified", func() {
-			BeforeEach(func() {
-				fakeResource.CheckEveryReturns(&atc.CheckEvery{Interval: 42 * time.Second})
-			})
-
-			It("sets it in the check plan", func() {
-				Expect(fakeResource.CheckPlanCallCount()).To(Equal(1))
-				version, interval, types, defaults := fakeResource.CheckPlanArgsForCall(0)
-				Expect(version).To(Equal(atc.Version{"from": "version"}))
-				Expect(interval).To(Equal(42 * time.Second))
-				Expect(types).To(BeNil())
-				Expect(defaults).To(BeEmpty())
-			})
-		})
-
-		Context("when CheckEvery is never", func() {
-			BeforeEach(func() {
-				fakeResource.CheckEveryReturns(&atc.CheckEvery{Never: true})
-			})
-
-			It("does not try parsing the interval", func() {
-				Expect(err).ToNot(HaveOccurred())
-			})
-		})
-
-		Context("when the resource has a parent type", func() {
-			BeforeEach(func() {
-				fakeResource.TypeReturns("custom-type")
-				fakeResource.PipelineIDReturns(1)
-				fakeResourceType.NameReturns("custom-type")
-				fakeResourceType.PipelineIDReturns(1)
-				fakeResourceType.DefaultsReturns(atc.Source{"sdk": "sdk"})
-			})
-
-			Context("when the parent type has no version", func() {
-				BeforeEach(func() {
-					fakeResourceType.VersionReturns(nil)
+				It("starts the build with the check plan", func() {
+					Expect(fakeResource.CreateBuildCallCount()).To(Equal(1))
+					_, manuallyTriggered, plan := fakeResource.CreateBuildArgsForCall(0)
+					Expect(manuallyTriggered).To(BeFalse())
+					Expect(plan).To(Equal(checkPlan))
 				})
 
-				It("errors", func() {
-					Expect(err).To(HaveOccurred())
-				})
-			})
-
-			Context("when the parent type has a version", func() {
-				BeforeEach(func() {
-					fakeResourceType.VersionReturns(atc.Version{"some": "version"})
-				})
-
-				Context("when the parent type's interval has not elapsed", func() {
+				Context("when the interval has not elapsed", func() {
 					BeforeEach(func() {
-						fakeResourceType.LastCheckEndTimeReturns(time.Now().Add(defaultCheckInterval))
+						fakeResource.LastCheckEndTimeReturns(time.Now().Add(defaultCheckInterval))
 					})
 
-					It("does not create a build for the parent type", func() {
-						Expect(fakeResourceType.CheckPlanCallCount()).To(Equal(0))
-						Expect(fakeResourceType.CreateBuildCallCount()).To(Equal(0))
+					It("does not create a build for the resource", func() {
+						Expect(fakeResource.CheckPlanCallCount()).To(Equal(0))
+						Expect(fakeResource.CreateBuildCallCount()).To(Equal(0))
+					})
+
+					Context("but the check is manually triggered", func() {
+						BeforeEach(func() {
+							manuallyTriggered = true
+						})
+
+						It("creates the build anyway", func() {
+							Expect(fakeResource.CheckPlanCallCount()).To(Equal(1))
+							Expect(fakeResource.CreateBuildCallCount()).To(Equal(1))
+						})
 					})
 				})
 
-				Context("when the parent type's interval has elapsed", func() {
+				Context("when a build is not created", func() {
 					BeforeEach(func() {
-						fakeResourceType.LastCheckEndTimeReturns(time.Now().Add(-defaultCheckInterval))
+						fakeResource.CreateBuildReturns(nil, false, nil)
+					})
+
+					It("returns false", func() {
+						Expect(err).NotTo(HaveOccurred())
+						Expect(created).To(BeFalse())
+						Expect(build).To(BeNil())
+					})
+				})
+			})
+
+			Context("when the resource has a webhook configured", func() {
+				BeforeEach(func() {
+					fakeResource.HasWebhookReturns(true)
+				})
+
+				It("creates a check plan with the default webhook interval", func() {
+					Expect(fakeResource.CheckPlanCallCount()).To(Equal(1))
+					_, types, version, interval, defaults, _, _ := fakeResource.CheckPlanArgsForCall(0)
+					Expect(version).To(Equal(atc.Version{"from": "version"}))
+					Expect(interval.Interval).To(Equal(defaultWebhookCheckInterval))
+					Expect(types).To(HaveLen(0))
+					Expect(defaults).To(BeEmpty())
+				})
+
+				Context("when the default webhook interval has not elapsed", func() {
+					BeforeEach(func() {
+						fakeResource.LastCheckEndTimeReturns(time.Now().Add(-(defaultWebhookCheckInterval / 2)))
+					})
+
+					It("does not create a build for the resource", func() {
+						Expect(fakeResource.CheckPlanCallCount()).To(Equal(0))
+						Expect(fakeResource.CreateBuildCallCount()).To(Equal(0))
+					})
+				})
+			})
+
+			Context("when an interval is specified", func() {
+				BeforeEach(func() {
+					fakeResource.CheckEveryReturns(&atc.CheckEvery{Interval: 42 * time.Second})
+				})
+
+				It("sets it in the check plan", func() {
+					Expect(fakeResource.CheckPlanCallCount()).To(Equal(1))
+					_, types, version, interval, defaults, _, _ := fakeResource.CheckPlanArgsForCall(0)
+					Expect(version).To(Equal(atc.Version{"from": "version"}))
+					Expect(interval.Interval).To(Equal(42 * time.Second))
+					Expect(types).To(HaveLen(0))
+					Expect(defaults).To(BeEmpty())
+				})
+			})
+
+			Context("when CheckEvery is never", func() {
+				BeforeEach(func() {
+					fakeResource.CheckEveryReturns(&atc.CheckEvery{Never: true})
+				})
+
+				It("sets it in the check plan", func() {
+					Expect(fakeResource.CheckPlanCallCount()).To(Equal(1))
+					_, types, version, interval, defaults, _, _ := fakeResource.CheckPlanArgsForCall(0)
+					Expect(version).To(Equal(atc.Version{"from": "version"}))
+					Expect(interval.Never).To(Equal(true))
+					Expect(types).To(HaveLen(0))
+					Expect(defaults).To(BeEmpty())
+				})
+			})
+
+			Context("when the resource has a parent type", func() {
+				BeforeEach(func() {
+					fakeResource.TypeReturns("custom-type")
+					fakeResource.PipelineIDReturns(1)
+					fakeResourceType.NameReturns("custom-type")
+					fakeResourceType.PipelineIDReturns(1)
+					fakeResourceType.DefaultsReturns(atc.Source{"sdk": "sdk"})
+				})
+
+				Context("when the checkable's interval has elapsed", func() {
+					BeforeEach(func() {
 						fakeResource.LastCheckEndTimeReturns(time.Now().Add(-defaultCheckInterval))
 					})
 
 					It("creates a check plan", func() {
 						Expect(fakeResource.CheckPlanCallCount()).To(Equal(1))
-						version, interval, types, defaults := fakeResource.CheckPlanArgsForCall(0)
+						_, types, version, interval, defaults, _, _ := fakeResource.CheckPlanArgsForCall(0)
 						Expect(version).To(Equal(atc.Version{"from": "version"}))
-						Expect(interval).To(Equal(defaultCheckInterval))
-						Expect(types).To(Equal(fakeResourceTypes))
+						Expect(interval.Interval).To(Equal(defaultCheckInterval))
+						Expect(types).To(Equal(atc.ResourceTypes{
+							atc.ResourceType{
+								Name:   "custom-type",
+								Type:   "some-base-type",
+								Tags:   atc.Tags{"some-tag"},
+								Source: atc.Source{"some": "type-source"},
+								Defaults: atc.Source{
+									"sdk": "sdk",
+								},
+							},
+						}))
 						Expect(defaults).To(Equal(atc.Source{"sdk": "sdk"}))
 					})
 
@@ -237,10 +236,45 @@ var _ = Describe("CheckFactory", func() {
 						_, manuallyTriggered, plan := fakeResource.CreateBuildArgsForCall(0)
 						Expect(manuallyTriggered).To(BeFalse())
 						Expect(plan.ID).ToNot(BeEmpty())
-						Expect(plan.Check).To(Equal(&checkPlan))
+						Expect(plan.Check).To(Equal(checkPlan.Check))
 					})
 				})
 			})
+		})
+
+		Context("when it is run for a resource type", func() {
+			BeforeEach(func() {
+				fakeResourceType.CheckPlanReturns(checkPlan)
+				fakeResourceType.CreateBuildReturns(fakeBuild, true, nil)
+			})
+
+			JustBeforeEach(func() {
+				build, created, err = checkFactory.TryCreateCheck(context.TODO(), fakeResourceType, fakeResourceTypes, fromVersion, manuallyTriggered, false)
+			})
+
+			It("creates a check plan", func() {
+				var rts atc.ResourceTypes
+				Expect(fakeResourceType.CheckPlanCallCount()).To(Equal(1))
+				_, types, version, interval, defaults, _, _ := fakeResourceType.CheckPlanArgsForCall(0)
+				Expect(version).To(Equal(atc.Version{"from": "version"}))
+				Expect(interval.Interval).To(Equal(defaultCheckInterval))
+				Expect(types).To(Equal(rts))
+				Expect(defaults).To(Equal(atc.Source{}))
+			})
+
+			It("returns the build", func() {
+				Expect(err).NotTo(HaveOccurred())
+				Expect(created).To(BeTrue())
+				Expect(build).To(Equal(fakeBuild))
+			})
+
+			It("starts the build with the check plan", func() {
+				Expect(fakeResourceType.CreateBuildCallCount()).To(Equal(1))
+				_, manuallyTriggered, plan := fakeResourceType.CreateBuildArgsForCall(0)
+				Expect(manuallyTriggered).To(BeFalse())
+				Expect(plan).To(Equal(checkPlan))
+			})
+
 		})
 	})
 
@@ -368,17 +402,51 @@ var _ = Describe("CheckFactory", func() {
 
 	Describe("ResourceTypes", func() {
 		var (
-			resourceTypes db.ResourceTypes
+			resourceTypes    map[int]db.ResourceTypes
+			somePipeline     db.Pipeline
+			atcResourceTypes atc.ResourceTypes
 		)
 
 		JustBeforeEach(func() {
-			resourceTypes, err = checkFactory.ResourceTypes()
+			resourceTypes, err = checkFactory.ResourceTypesByPipeline()
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		BeforeEach(func() {
+			atcResourceTypes = atc.ResourceTypes{
+				{
+					Name: "some-type",
+					Type: "some-base-resource-type",
+					Source: atc.Source{
+						"some-type": "source",
+					},
+				},
+				{
+					Name: "some-other-type",
+					Type: "some-base-resource-type",
+					Source: atc.Source{
+						"some-other-type": "source",
+					},
+				},
+			}
+
+			somePipelineConfig := atc.Config{
+				ResourceTypes: atcResourceTypes,
+			}
+
+			somePipelineRef := atc.PipelineRef{Name: "some-pipeline"}
+			somePipeline, _, err = defaultTeam.SavePipeline(somePipelineRef, somePipelineConfig, db.ConfigVersion(1), false)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("include resource types in return", func() {
-			Expect(resourceTypes).To(HaveLen(1))
-			Expect(resourceTypes[0].Name()).To(Equal("some-type"))
+			Expect(resourceTypes).To(HaveLen(2))
+
+			Expect(resourceTypes[defaultPipeline.ID()]).To(HaveLen(1))
+			Expect(resourceTypes[defaultPipeline.ID()][0].Name()).To(Equal("some-type"))
+
+			Expect(resourceTypes[somePipeline.ID()]).To(HaveLen(2))
+			Expect(resourceTypes[somePipeline.ID()].Deserialize()).To(ConsistOf(atcResourceTypes))
 		})
 
 		Context("when the resource type is not active", func() {

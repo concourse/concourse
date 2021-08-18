@@ -26,7 +26,7 @@ type PutDelegateFactory interface {
 type PutDelegate interface {
 	StartSpan(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
 
-	FetchImage(context.Context, atc.ImageResource, atc.VersionedResourceTypes, bool) (worker.ImageSpec, error)
+	FetchImage(context.Context, atc.Plan, *atc.Plan, bool) (worker.ImageSpec, db.ResourceCache, error)
 
 	Stdout() io.Writer
 	Stderr() io.Writer
@@ -39,7 +39,7 @@ type PutDelegate interface {
 	WaitingForWorker(lager.Logger)
 	SelectedWorker(lager.Logger, string)
 
-	SaveOutput(lager.Logger, atc.PutPlan, atc.Source, atc.VersionedResourceTypes, runtime.VersionResult)
+	SaveOutput(lager.Logger, atc.PutPlan, atc.Source, db.ResourceCache, runtime.VersionResult)
 }
 
 // PutStep produces a resource version using preconfigured params and any data
@@ -123,11 +123,6 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 		return false, err
 	}
 
-	resourceTypes, err := creds.NewVersionedResourceTypes(state, step.plan.VersionedResourceTypes).Evaluate()
-	if err != nil {
-		return false, err
-	}
-
 	var putInputs PutInputs
 	if step.plan.Inputs == nil {
 		// Put step defaults to all inputs if not specified
@@ -154,35 +149,23 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 	}
 
 	workerSpec := worker.WorkerSpec{
-		Tags:         step.plan.Tags,
-		TeamID:       step.metadata.TeamID,
-		ResourceType: step.plan.VersionedResourceTypes.Base(step.plan.Type),
+		Tags:   step.plan.Tags,
+		TeamID: step.metadata.TeamID,
+
+		// Used to filter out non-Linux workers, simply because they don't support
+		// base resource types
+		ResourceType: step.plan.TypeImage.BaseType,
 	}
 
 	var imageSpec worker.ImageSpec
-	resourceType, found := step.plan.VersionedResourceTypes.Lookup(step.plan.Type)
-	if found {
-		image := atc.ImageResource{
-			Name:    resourceType.Name,
-			Type:    resourceType.Type,
-			Source:  resourceType.Source,
-			Params:  resourceType.Params,
-			Version: resourceType.Version,
-			Tags:    resourceType.Tags,
-		}
-		if len(image.Tags) == 0 {
-			image.Tags = step.plan.Tags
-		}
-
-		types := step.plan.VersionedResourceTypes.Without(step.plan.Type)
-
-		var err error
-		imageSpec, err = delegate.FetchImage(ctx, image, types, resourceType.Privileged)
+	var imageResourceCache db.ResourceCache
+	if step.plan.TypeImage.GetPlan != nil {
+		imageSpec, imageResourceCache, err = delegate.FetchImage(ctx, *step.plan.TypeImage.GetPlan, step.plan.TypeImage.CheckPlan, step.plan.TypeImage.Privileged)
 		if err != nil {
 			return false, err
 		}
 	} else {
-		imageSpec.ResourceType = step.plan.Type
+		imageSpec.ResourceType = step.plan.TypeImage.BaseType
 	}
 
 	containerSpec := worker.ContainerSpec{
@@ -270,10 +253,10 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 	// step.plan.Resource maps to an actual resource that may have been used outside of a pipeline context.
 	// Hence, if it was used outside the pipeline context, we don't want to save the output.
 	if step.plan.Resource != "" {
-		delegate.SaveOutput(logger, step.plan, source, resourceTypes, versionResult)
+		delegate.SaveOutput(logger, step.plan, source, imageResourceCache, versionResult)
 	}
 
-	state.StoreResult(step.planID, versionResult)
+	state.StoreResult(step.planID, versionResult.Version)
 
 	delegate.Finished(logger, 0, versionResult)
 

@@ -112,15 +112,12 @@ var _ = Describe("TaskStep", func() {
 		taskPlan = &atc.TaskPlan{
 			Name:       "some-task",
 			Privileged: false,
-			VersionedResourceTypes: atc.VersionedResourceTypes{
+			ResourceTypes: atc.ResourceTypes{
 				{
-					ResourceType: atc.ResourceType{
-						Name:   "custom-resource",
-						Type:   "custom-type",
-						Source: atc.Source{"some-custom": "((source-param))"},
-						Params: atc.Params{"some-custom": "param"},
-					},
-					Version: atc.Version{"some-custom": "version"},
+					Name:   "custom-resource",
+					Type:   "custom-type",
+					Source: atc.Source{"some-custom": "((source-param))"},
+					Params: atc.Params{"some-custom": "param"},
 				},
 			},
 		}
@@ -832,7 +829,7 @@ var _ = Describe("TaskStep", func() {
 			})
 		})
 
-		Context("when the image_resource is specified (even if RootfsURI is configured)", func() {
+		Context("when the image_resource is specified", func() {
 			var fakeImageSpec worker.ImageSpec
 
 			BeforeEach(func() {
@@ -850,6 +847,7 @@ var _ = Describe("TaskStep", func() {
 						Args: []string{"some", "args"},
 					},
 				}
+				taskPlan.Tags = atc.Tags{"some", "tags"}
 
 				fakeImageSpec = worker.ImageSpec{
 					ImageArtifactSource: new(workerfakes.FakeStreamableArtifactSource),
@@ -865,54 +863,19 @@ var _ = Describe("TaskStep", func() {
 
 			It("fetches the image", func() {
 				Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
-				_, imageResource, types, privileged := fakeDelegate.FetchImageArgsForCall(0)
+				_, imageResource, types, privileged, tags := fakeDelegate.FetchImageArgsForCall(0)
 				Expect(imageResource).To(Equal(atc.ImageResource{
 					Type:   "docker",
 					Source: atc.Source{"some": "super-secret-source"},
 					Params: atc.Params{"some": "params"},
 				}))
-				Expect(types).To(Equal(taskPlan.VersionedResourceTypes))
+				Expect(types).To(Equal(taskPlan.ResourceTypes))
 				Expect(privileged).To(BeFalse())
+				Expect(tags).To(Equal(atc.Tags{"some", "tags"}))
 			})
 
 			It("creates the specs with the image artifact", func() {
 				Expect(containerSpec.ImageSpec).To(Equal(fakeImageSpec))
-			})
-
-			Context("when tags are specified on the task plan", func() {
-				BeforeEach(func() {
-					taskPlan.Tags = atc.Tags{"plan", "tags"}
-				})
-
-				It("fetches the image with the same tags", func() {
-					Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
-					_, imageResource, _, _ := fakeDelegate.FetchImageArgsForCall(0)
-					Expect(imageResource.Tags).To(Equal(atc.Tags{"plan", "tags"}))
-				})
-			})
-
-			Context("when tags are specified on the image resource", func() {
-				BeforeEach(func() {
-					taskPlan.Config.ImageResource.Tags = atc.Tags{"image", "tags"}
-				})
-
-				It("fetches the image with the same tags", func() {
-					Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
-					_, imageResource, _, _ := fakeDelegate.FetchImageArgsForCall(0)
-					Expect(imageResource.Tags).To(Equal(atc.Tags{"image", "tags"}))
-				})
-
-				Context("when tags are ALSO specified on the task plan", func() {
-					BeforeEach(func() {
-						taskPlan.Tags = atc.Tags{"plan", "tags"}
-					})
-
-					It("fetches the image using only the image tags", func() {
-						Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
-						_, imageResource, _, _ := fakeDelegate.FetchImageArgsForCall(0)
-						Expect(imageResource.Tags).To(Equal(atc.Tags{"image", "tags"}))
-					})
-				})
 			})
 
 			Context("when privileged", func() {
@@ -922,7 +885,7 @@ var _ = Describe("TaskStep", func() {
 
 				It("fetches a privileged image", func() {
 					Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
-					_, _, _, privileged := fakeDelegate.FetchImageArgsForCall(0)
+					_, _, _, privileged, _ := fakeDelegate.FetchImageArgsForCall(0)
 					Expect(privileged).To(BeTrue())
 				})
 			})

@@ -136,6 +136,15 @@ const (
 	OriginSourceStderr OriginSource = "stderr"
 )
 
+type InitializeCheck struct {
+	Origin Origin `json:"origin"`
+	Time   int64  `json:"time,omitempty"`
+	Name   string `json:"name"`
+}
+
+func (InitializeCheck) EventType() atc.EventType  { return EventTypeInitializeCheck }
+func (InitializeCheck) Version() atc.EventVersion { return "1.0" }
+
 type InitializeGet struct {
 	Origin Origin `json:"origin"`
 	Time   int64  `json:"time,omitempty"`

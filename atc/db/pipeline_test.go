@@ -816,7 +816,7 @@ var _ = Describe("Pipeline", func() {
 				build1DB, err := scenarioPipeline1.Job("a-job").CreateBuild(defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 
-				err = build1DB.SaveOutput("some-type", atc.Source{"source-config": "some-value"}, atc.VersionedResourceTypes{}, atc.Version{"version": "1"}, nil, "some-output-name", "some-resource")
+				err = build1DB.SaveOutput("some-type", nil, atc.Source{"source-config": "some-value"}, atc.Version{"version": "1"}, nil, "some-output-name", "some-resource")
 				Expect(err).ToNot(HaveOccurred())
 
 				err = build1DB.Finish(db.BuildStatusSucceeded)
@@ -867,7 +867,7 @@ var _ = Describe("Pipeline", func() {
 				build2DB, err := scenarioPipeline1.Job("a-job").CreateBuild(defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 
-				err = build2DB.SaveOutput("some-type", atc.Source{"source-config": "some-value"}, atc.VersionedResourceTypes{}, atc.Version{"version": "1"}, nil, "some-output-name", "some-resource")
+				err = build2DB.SaveOutput("some-type", nil, atc.Source{"source-config": "some-value"}, atc.Version{"version": "1"}, nil, "some-output-name", "some-resource")
 				Expect(err).ToNot(HaveOccurred())
 
 				err = build2DB.Finish(db.BuildStatusFailed)
@@ -916,7 +916,7 @@ var _ = Describe("Pipeline", func() {
 				otherPipelineBuild, err := scenarioPipeline1.Job("a-job").CreateBuild(defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 
-				err = otherPipelineBuild.SaveOutput("some-type", atc.Source{"other-source-config": "some-other-value"}, atc.VersionedResourceTypes{}, atc.Version{"version": "1"}, nil, "some-output-name", "some-other-resource")
+				err = otherPipelineBuild.SaveOutput("some-type", nil, atc.Source{"other-source-config": "some-other-value"}, atc.Version{"version": "1"}, nil, "some-output-name", "some-other-resource")
 				Expect(err).ToNot(HaveOccurred())
 
 				// After SaveOutput to other resource, we need to reload it because its resourceConfigScopeID
@@ -1174,7 +1174,7 @@ var _ = Describe("Pipeline", func() {
 			Expect(found).To(BeTrue())
 
 			By("populating build outputs")
-			err = build.SaveOutput("some-type", atc.Source{"some": "source"}, atc.VersionedResourceTypes{}, atc.Version{"key": "value"}, nil, "some-output-name", "some-resource")
+			err = build.SaveOutput("some-type", nil, atc.Source{"some": "source"}, atc.Version{"key": "value"}, nil, "some-output-name", "some-resource")
 			Expect(err).ToNot(HaveOccurred())
 
 			By("populating build events")
@@ -1688,7 +1688,7 @@ var _ = Describe("Pipeline", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			err = dbBuild.SaveOutput("some-type", atc.Source{"some": "source"}, atc.VersionedResourceTypes{}, atc.Version{"version": "v1"}, []db.ResourceConfigMetadataField{
+			err = dbBuild.SaveOutput("some-type", nil, atc.Source{"some": "source"}, atc.Version{"version": "v1"}, []db.ResourceConfigMetadataField{
 				{
 					Name:  "some",
 					Value: "value",
@@ -1700,7 +1700,7 @@ var _ = Describe("Pipeline", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			err = dbSecondBuild.SaveOutput("some-type", atc.Source{"some": "source"}, atc.VersionedResourceTypes{}, atc.Version{"version": "v1"}, []db.ResourceConfigMetadataField{
+			err = dbSecondBuild.SaveOutput("some-type", nil, atc.Source{"some": "source"}, atc.Version{"version": "v1"}, []db.ResourceConfigMetadataField{
 				{
 					Name:  "some",
 					Value: "value",
@@ -1708,7 +1708,7 @@ var _ = Describe("Pipeline", func() {
 			}, "some-output-name", "some-resource")
 			Expect(err).ToNot(HaveOccurred())
 
-			err = dbSecondBuild.SaveOutput("some-type", atc.Source{"some": "source"}, atc.VersionedResourceTypes{}, atc.Version{"version": "v3"}, nil, "some-output-name", "some-resource")
+			err = dbSecondBuild.SaveOutput("some-type", nil, atc.Source{"some": "source"}, atc.Version{"version": "v3"}, nil, "some-output-name", "some-resource")
 			Expect(err).ToNot(HaveOccurred())
 
 			rcv1 := scenario.ResourceVersion("some-resource", atc.Version{"version": "v1"})
@@ -1805,18 +1805,6 @@ var _ = Describe("Pipeline", func() {
 					Params:   atc.Params{"some": "params"},
 					Version:  &atc.Version{"some": "version"},
 					Tags:     atc.Tags{"some-tags"},
-					VersionedResourceTypes: atc.VersionedResourceTypes{
-						{
-							ResourceType: atc.ResourceType{
-								Name:       "some-name",
-								Source:     atc.Source{"some": "source"},
-								Type:       "some-type",
-								Privileged: true,
-								Tags:       atc.Tags{"some-tags"},
-							},
-							Version: atc.Version{"some-resource-type": "version"},
-						},
-					},
 				},
 			}
 
@@ -1857,7 +1845,7 @@ var _ = Describe("Pipeline", func() {
 		})
 	})
 
-	Describe("Resources", func() {
+	Describe("ResourceTypes", func() {
 		var resourceTypes db.ResourceTypes
 		var scenario *dbtest.Scenario
 
@@ -1877,17 +1865,6 @@ var _ = Describe("Pipeline", func() {
 						},
 					},
 				}),
-				builder.WithResourceTypeVersions("some-resource-type",
-					atc.Version{"version": "1"},
-					atc.Version{"version": "2"},
-				),
-				builder.WithResourceTypeVersions("some-other-resource-type",
-					atc.Version{"version": "3"},
-				),
-				builder.WithResourceTypeVersions("some-other-resource-type",
-					atc.Version{"version": "3"},
-					atc.Version{"version": "5"},
-				),
 			)
 		})
 
@@ -1897,10 +1874,12 @@ var _ = Describe("Pipeline", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 
-		It("returns the version", func() {
-			resourceTypeVersions := []atc.Version{resourceTypes[0].Version()}
-			resourceTypeVersions = append(resourceTypeVersions, resourceTypes[1].Version())
-			Expect(resourceTypeVersions).To(ConsistOf(atc.Version{"version": "2"}, atc.Version{"version": "5"}))
+		It("returns the resource types", func() {
+			var rtNames []string
+			for _, rt := range resourceTypes {
+				rtNames = append(rtNames, rt.Name())
+			}
+			Expect(rtNames).To(ConsistOf("some-other-resource-type", "some-resource-type"))
 		})
 	})
 

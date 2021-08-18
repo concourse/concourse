@@ -3,6 +3,7 @@ package builds_test
 import (
 	"encoding/json"
 	"testing"
+	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/builds"
@@ -28,12 +29,19 @@ type PlannerTest struct {
 	Config atc.StepConfig
 	Inputs []db.BuildInput
 
-	CompareIDs bool
-	PlanJSON   string
-	Err        error
+	CompareIDs             bool
+	OverwriteResourceTypes atc.ResourceTypes
+
+	PlanJSON string
+	Err      error
 }
 
 var resources = db.SchedulerResources{
+	db.SchedulerResource{
+		Name:   "some-child-resource",
+		Type:   "some-child-resource-type",
+		Source: atc.Source{"some": "child-source"},
+	},
 	db.SchedulerResource{
 		Name:   "some-resource",
 		Type:   "some-resource-type",
@@ -46,15 +54,12 @@ var resources = db.SchedulerResources{
 	},
 }
 
-var resourceTypes = atc.VersionedResourceTypes{
-	{
-		ResourceType: atc.ResourceType{
-			Name:     "some-resource-type",
-			Type:     "some-base-resource-type",
-			Source:   atc.Source{"some": "type-source"},
-			Defaults: atc.Source{"default-key": "default-value"},
-		},
-		Version: atc.Version{"some": "type-version"},
+var defaultResourceTypes = atc.ResourceTypes{
+	atc.ResourceType{
+		Name:     "some-resource-type",
+		Type:     "some-base-resource-type",
+		Source:   atc.Source{"some": "type-source"},
+		Defaults: atc.Source{"default-key": "default-value"},
 	},
 }
 
@@ -93,8 +98,9 @@ var factoryTests = []PlannerTest{
 				Version: atc.Version{"some": "version"},
 			},
 		},
+		CompareIDs: true,
 		PlanJSON: `{
-			"id": "(unique)",
+			"id": "1",
 			"get": {
 				"name": "some-name",
 				"type": "some-resource-type",
@@ -104,15 +110,438 @@ var factoryTests = []PlannerTest{
 				"version": {"some":"version"},
 				"tags": ["tag-1", "tag-2"],
 				"timeout": "1h",
-				"resource_types": [
-					{
-						"name": "some-resource-type",
-						"type": "some-base-resource-type",
-						"source": {"some": "type-source"},
-						"defaults": {"default-key":"default-value"},
-						"version": {"some": "type-version"}
+				"image": {
+					"base_type": "some-base-resource-type",
+					"check_plan": {
+						"id": "1/image-check",
+						"check": {
+							"name": "some-resource-type",
+							"type": "some-base-resource-type",
+							"resource_type": "some-resource-type",
+							"interval": "1m0s",
+							"source": {
+								 "some": "type-source"
+							},
+							"image": {
+								"base_type": "some-base-resource-type"
+							},
+							"tags": [
+								 "tag-1",
+								 "tag-2"
+							]
+						}
+					},
+					"get_plan": {
+						"id": "1/image-get",
+						"get": {
+							"name": "some-resource-type",
+							"type": "some-base-resource-type",
+							"source": {
+								 "some": "type-source"
+							},
+							"image": {
+								"base_type": "some-base-resource-type"
+							},
+							"version_from": "1/image-check",
+							"tags": [
+								 "tag-1",
+								 "tag-2"
+							]
+						}
 					}
-				]
+				}
+			}
+		}`,
+	},
+	{
+		Title: "get step with nested resource type",
+		Config: &atc.GetStep{
+			Name:     "some-name",
+			Resource: "some-child-resource",
+			Params:   atc.Params{"some": "params"},
+			Version:  &atc.VersionConfig{Pinned: atc.Version{"doesnt": "matter"}},
+			Tags:     atc.Tags{"tag-1", "tag-2"},
+		},
+		Inputs: []db.BuildInput{
+			{
+				Name:    "some-name",
+				Version: atc.Version{"some": "version"},
+			},
+		},
+		CompareIDs: true,
+		OverwriteResourceTypes: atc.ResourceTypes{
+			{
+				Name:   "some-child-resource-type",
+				Type:   "some-resource-type",
+				Source: atc.Source{"some": "child-source"},
+			},
+			{
+				Name:   "some-resource-type",
+				Type:   "some-base-resource-type",
+				Source: atc.Source{"some": "type-source"},
+			},
+		},
+		PlanJSON: `{
+			"id": "1",
+			"get": {
+				"name": "some-name",
+				"type": "some-child-resource-type",
+				"resource": "some-child-resource",
+				"source": {"some":"child-source"},
+				"params": {"some":"params"},
+				"version": {"some":"version"},
+				"tags": ["tag-1", "tag-2"],
+				"image": {
+					"base_type": "some-base-resource-type",
+					"check_plan": {
+						"id": "1/image-check",
+						"check": {
+							"name": "some-child-resource-type",
+							"type": "some-resource-type",
+							"resource_type": "some-child-resource-type",
+							"source": {
+								 "some": "child-source"
+							},
+							"interval": "1m0s",
+							"image": {
+								"base_type": "some-base-resource-type",
+								"get_plan": {
+									"id": "1/image-check/image-get",
+									"get": {
+										"name": "some-resource-type",
+										"type": "some-base-resource-type",
+										"source": {
+											 "some": "type-source"
+										},
+										"image": {
+											"base_type": "some-base-resource-type"
+										},
+										"version_from": "1/image-check/image-check",
+										"tags": [
+											 "tag-1",
+											 "tag-2"
+										]
+									}
+								},
+								"check_plan": {
+									"id": "1/image-check/image-check",
+									"check": {
+										"name": "some-resource-type",
+										"type": "some-base-resource-type",
+										"resource_type": "some-resource-type",
+										"source": {
+											"some": "type-source"
+										},
+										"image": {
+											"base_type": "some-base-resource-type"
+										},
+							      "interval": "1m0s",
+										"tags": [
+											 "tag-1",
+											 "tag-2"
+										]
+									}
+								}
+							},
+							"tags": [
+								 "tag-1",
+								 "tag-2"
+							]
+						}
+					},
+					"get_plan": {
+						"id": "1/image-get",
+						"get": {
+							"name": "some-child-resource-type",
+							"type": "some-resource-type",
+							"source": {
+								 "some": "child-source"
+							},
+							"image": {
+								"base_type": "some-base-resource-type",
+								"check_plan": {
+									"id": "1/image-get/image-check",
+									"check": {
+										"name": "some-resource-type",
+										"type": "some-base-resource-type",
+										"resource_type": "some-resource-type",
+										"source": {
+											"some": "type-source"
+										},
+										"image": {
+											"base_type": "some-base-resource-type"
+										},
+							      "interval": "1m0s",
+										"tags": [
+											 "tag-1",
+											 "tag-2"
+										]
+									}
+								},
+								"get_plan": {
+									"id": "1/image-get/image-get",
+									"get": {
+										"name": "some-resource-type",
+										"type": "some-base-resource-type",
+										"source": {
+											 "some": "type-source"
+										},
+										"image": {
+											"base_type": "some-base-resource-type"
+										},
+										"version_from": "1/image-get/image-check",
+										"tags": [
+											 "tag-1",
+											 "tag-2"
+										]
+									}
+								}
+							},
+							"version_from": "1/image-check",
+							"tags": [
+								 "tag-1",
+								 "tag-2"
+							]
+						}
+					}
+				}
+			}
+		}`,
+	},
+	{
+		Title: "get step with privileged nested resource type and no version",
+		Config: &atc.GetStep{
+			Name:     "some-name",
+			Resource: "some-child-resource",
+			Params:   atc.Params{"some": "params"},
+			Version:  &atc.VersionConfig{Pinned: atc.Version{"doesnt": "matter"}},
+			Tags:     atc.Tags{"tag-1", "tag-2"},
+		},
+		Inputs: []db.BuildInput{
+			{
+				Name:    "some-name",
+				Version: atc.Version{"some": "version"},
+			},
+		},
+		CompareIDs: true,
+		OverwriteResourceTypes: atc.ResourceTypes{
+			{
+				Name:       "some-child-resource-type",
+				Type:       "some-resource-type",
+				Source:     atc.Source{"some": "child-source"},
+				Privileged: true,
+			},
+			{
+				Name:       "some-resource-type",
+				Type:       "some-base-resource-type",
+				Source:     atc.Source{"some": "type-source"},
+				Privileged: true,
+			},
+		},
+		PlanJSON: `{
+			"id": "1",
+			"get": {
+				"name": "some-name",
+				"type": "some-child-resource-type",
+				"resource": "some-child-resource",
+				"source": {"some":"child-source"},
+				"params": {"some":"params"},
+				"version": {"some":"version"},
+				"tags": ["tag-1", "tag-2"],
+				"image": {
+					"privileged": true,
+					"base_type": "some-base-resource-type",
+					"check_plan": {
+						"id": "1/image-check",
+						"check": {
+							"name": "some-child-resource-type",
+							"type": "some-resource-type",
+							"resource_type": "some-child-resource-type",
+							"source": {
+								 "some": "child-source"
+							},
+							"interval": "1m0s",
+							"image": {
+								"privileged": true,
+								"base_type": "some-base-resource-type",
+								"check_plan": {
+									"id": "1/image-check/image-check",
+									"check": {
+										"name": "some-resource-type",
+										"type": "some-base-resource-type",
+										"resource_type": "some-resource-type",
+										"source": {
+											"some": "type-source"
+										},
+							      "interval": "1m0s",
+										"image": {
+											"base_type": "some-base-resource-type"
+										},
+										"tags": [
+											 "tag-1",
+											 "tag-2"
+										]
+									}
+								},
+								"get_plan": {
+									"id": "1/image-check/image-get",
+									"get": {
+										"name": "some-resource-type",
+										"type": "some-base-resource-type",
+										"source": {
+											 "some": "type-source"
+										},
+										"image": {
+											"base_type": "some-base-resource-type"
+										},
+										"version_from": "1/image-check/image-check",
+										"tags": [
+											 "tag-1",
+											 "tag-2"
+										]
+									}
+								}
+							},
+							"tags": [
+								 "tag-1",
+								 "tag-2"
+							]
+						}
+					},
+					"get_plan": {
+						"id": "1/image-get",
+						"get": {
+							"name": "some-child-resource-type",
+							"type": "some-resource-type",
+							"source": {
+								 "some": "child-source"
+							},
+							"image": {
+								"privileged": true,
+								"base_type": "some-base-resource-type",
+								"check_plan": {
+									"id": "1/image-get/image-check",
+									"check": {
+										"name": "some-resource-type",
+										"type": "some-base-resource-type",
+										"resource_type": "some-resource-type",
+										"source": {
+											"some": "type-source"
+										},
+										"image": {
+											"base_type": "some-base-resource-type"
+										},
+							      "interval": "1m0s",
+										"tags": [
+											 "tag-1",
+											 "tag-2"
+										]
+									}
+								},
+								"get_plan": {
+									"id": "1/image-get/image-get",
+									"get": {
+										"name": "some-resource-type",
+										"type": "some-base-resource-type",
+										"source": {
+											 "some": "type-source"
+										},
+										"image": {
+											"base_type": "some-base-resource-type"
+										},
+										"version_from": "1/image-get/image-check",
+										"tags": [
+											 "tag-1",
+											 "tag-2"
+										]
+									}
+								}
+							},
+							"version_from": "1/image-check",
+							"tags": [
+								 "tag-1",
+								 "tag-2"
+							]
+						}
+					}
+				}
+			}
+		}`,
+	},
+	{
+		Title: "get step with nested resource type configured with never check every",
+		Config: &atc.GetStep{
+			Name:     "some-name",
+			Resource: "some-resource",
+			Params:   atc.Params{"some": "params"},
+			Version:  &atc.VersionConfig{Pinned: atc.Version{"doesnt": "matter"}},
+			Tags:     atc.Tags{"tag-1", "tag-2"},
+		},
+		Inputs: []db.BuildInput{
+			{
+				Name:    "some-name",
+				Version: atc.Version{"some": "version"},
+			},
+		},
+		CompareIDs: true,
+		OverwriteResourceTypes: atc.ResourceTypes{
+			{
+				Name:       "some-resource-type",
+				Type:       "some-base-resource-type",
+				Source:     atc.Source{"some": "type-source"},
+				CheckEvery: &atc.CheckEvery{Never: true},
+			},
+		},
+		PlanJSON: `{
+			"id": "1",
+			"get": {
+				"name": "some-name",
+				"type": "some-resource-type",
+				"resource": "some-resource",
+				"source": {"some":"source"},
+				"params": {"some":"params"},
+				"version": {"some":"version"},
+				"tags": ["tag-1", "tag-2"],
+				"image": {
+					"base_type": "some-base-resource-type",
+					"check_plan": {
+						"id": "1/image-check",
+						"check": {
+							"name": "some-resource-type",
+							"type": "some-base-resource-type",
+							"resource_type": "some-resource-type",
+							"source": {
+								"some": "type-source"
+							},
+							"interval": "never",
+							"image": {
+								"base_type": "some-base-resource-type"
+							},
+							"tags": [
+								 "tag-1",
+								 "tag-2"
+							]
+						}
+					},
+					"get_plan": {
+						"id": "1/image-get",
+						"get": {
+							"name": "some-resource-type",
+							"type": "some-base-resource-type",
+							"source": {
+								 "some": "type-source"
+							},
+							"image": {
+								"base_type": "some-base-resource-type"
+							},
+							"version_from": "1/image-check",
+							"tags": [
+								 "tag-1",
+								 "tag-2"
+							]
+						}
+					}
+				}
 			}
 		}`,
 	},
@@ -141,15 +570,9 @@ var factoryTests = []PlannerTest{
 				"params": {"some":"params"},
 				"version": {"some":"version"},
 				"tags": ["tag-1", "tag-2"],
-				"resource_types": [
-					{
-						"name": "some-resource-type",
-						"type": "some-base-resource-type",
-						"source": {"some": "type-source"},
-						"defaults": {"default-key":"default-value"},
-						"version": {"some": "type-version"}
-					}
-				]
+				"image": {
+					"base_type": "some-base-resource-type"
+				}
 			}
 		}`,
 	},
@@ -173,7 +596,7 @@ var factoryTests = []PlannerTest{
 		Title: "put step",
 		Config: &atc.PutStep{
 			Name:      "some-name",
-			Resource:  "some-resource",
+			Resource:  "some-base-resource",
 			Params:    atc.Params{"some": "params"},
 			Tags:      atc.Tags{"tag-1", "tag-2"},
 			Inputs:    &atc.InputsConfig{All: true},
@@ -196,22 +619,106 @@ var factoryTests = []PlannerTest{
 					"id": "1",
 					"put": {
 						"name": "some-name",
-						"type": "some-resource-type",
-						"resource": "some-resource",
+						"type": "some-base-resource-type",
+						"resource": "some-base-resource",
 						"inputs": "all",
 						"source": {"some":"source","default-key":"default-value"},
 						"params": {"some":"params"},
 						"tags": ["tag-1", "tag-2"],
-						"timeout": "1h",
-						"resource_types": [
-							{
-								"name": "some-resource-type",
-								"type": "some-base-resource-type",
-								"source": {"some": "type-source"},
-								"defaults": {"default-key":"default-value"},
-								"version": {"some": "type-version"}
+						"image": {
+							"base_type": "some-base-resource-type"
+						},
+						"timeout": "1h"
+					}
+				},
+				"on_success": {
+					"id": "2",
+					"get": {
+						"name": "some-name",
+						"type": "some-base-resource-type",
+						"resource": "some-base-resource",
+						"source": {"some":"source","default-key":"default-value"},
+						"params": {"some":"get-params"},
+						"tags": ["tag-1", "tag-2"],
+						"version_from": "1",
+						"image": {
+							"base_type": "some-base-resource-type"
+						},
+						"timeout": "1h"
+					}
+				}
+			}
+		}`,
+	},
+	{
+		Title: "put step with nested resource type",
+		Config: &atc.PutStep{
+			Name:      "some-name",
+			Resource:  "some-resource",
+			Params:    atc.Params{"some": "params"},
+			Tags:      atc.Tags{"tag-1", "tag-2"},
+			Inputs:    &atc.InputsConfig{All: true},
+			GetParams: atc.Params{"some": "get-params"},
+		},
+		Inputs: []db.BuildInput{
+			{
+				Name:    "some-name",
+				Version: atc.Version{"some": "version"},
+			},
+		},
+		CompareIDs: true,
+		PlanJSON: `{
+			"id": "3",
+			"on_success": {
+				"step": {
+					"id": "1",
+					"put": {
+						"name": "some-name",
+						"type": "some-resource-type",
+						"resource": "some-resource",
+						"source": {
+							 "some": "source",
+							 "default-key": "default-value"
+						},
+						"params": {"some":"params"},
+						"tags": ["tag-1", "tag-2"],
+						"inputs": "all",
+						"image": {
+							"base_type": "some-base-resource-type",
+							"check_plan": {
+								"id": "1/image-check",
+								"check": {
+									"name": "some-resource-type",
+									"type": "some-base-resource-type",
+									"resource_type": "some-resource-type",
+									"source": { "some": "type-source" },
+									"image": {
+										"base_type": "some-base-resource-type"
+									},
+							    "interval": "1m0s",
+									"tags": [
+										 "tag-1",
+										 "tag-2"
+									]
+								}
+							},
+							"get_plan": {
+								"id": "1/image-get",
+								"get": {
+									"name": "some-resource-type",
+									"type": "some-base-resource-type",
+									"source": { "some": "type-source" },
+									"image": {
+										"base_type": "some-base-resource-type"
+									},
+									"version_from": "1/image-check",
+									"tags": [
+										 "tag-1",
+										 "tag-2"
+									]
+								}
 							}
-						]
+						}
 					}
 				},
 				"on_success": {
@@ -220,20 +727,157 @@ var factoryTests = []PlannerTest{
 						"name": "some-name",
 						"type": "some-resource-type",
 						"resource": "some-resource",
-						"source": {"some":"source","default-key":"default-value"},
+						"source": {
+							 "some": "source",
+							 "default-key": "default-value"
+						},
 						"params": {"some":"get-params"},
 						"tags": ["tag-1", "tag-2"],
 						"version_from": "1",
-						"timeout": "1h",
-						"resource_types": [
-							{
-								"name": "some-resource-type",
-								"type": "some-base-resource-type",
-								"source": {"some": "type-source"},
-								"defaults": {"default-key":"default-value"},
-								"version": {"some": "type-version"}
+						"image": {
+							"base_type": "some-base-resource-type",
+							"check_plan": {
+								"id": "2/image-check",
+								"check": {
+									"name": "some-resource-type",
+									"type": "some-base-resource-type",
+									"resource_type": "some-resource-type",
+									"source": { "some": "type-source" },
+									"image": {
+										"base_type": "some-base-resource-type"
+									},
+							    "interval": "1m0s",
+									"tags": [
+										 "tag-1",
+										 "tag-2"
+									]
+								}
+							},
+							"get_plan": {
+								"id": "2/image-get",
+								"get": {
+									"name": "some-resource-type",
+									"type": "some-base-resource-type",
+									"source": { "some": "type-source" },
+									"image": {
+										"base_type": "some-base-resource-type"
+									},
+									"version_from": "2/image-check",
+									"tags": [
+										 "tag-1",
+										 "tag-2"
+									]
+								}
 							}
-						]
+						}
+					}
+				}
+			}
+		}`,
+	},
+	{
+		Title: "put step using privileged custom resource type",
+		Config: &atc.PutStep{
+			Name:     "some-name",
+			Resource: "some-resource",
+		},
+		Inputs: []db.BuildInput{
+			{
+				Name:    "some-name",
+				Version: atc.Version{"some": "version"},
+			},
+		},
+		OverwriteResourceTypes: atc.ResourceTypes{
+			{
+				Name:       "some-resource-type",
+				Type:       "some-base-resource-type",
+				Source:     atc.Source{"some": "type-source"},
+				Privileged: true,
+			},
+		},
+		CompareIDs: true,
+		PlanJSON: `{
+			"id": "3",
+			"on_success": {
+				"step": {
+					"id": "1",
+					"put": {
+						"name": "some-name",
+						"type": "some-resource-type",
+						"resource": "some-resource",
+						"source": {
+							 "some": "source"
+						},
+						"image": {
+							"base_type": "some-base-resource-type",
+							"privileged": true,
+							"check_plan": {
+								"id": "1/image-check",
+								"check": {
+									"name": "some-resource-type",
+									"type": "some-base-resource-type",
+									"resource_type": "some-resource-type",
+									"source": { "some": "type-source" },
+							    "interval": "1m0s",
+									"image": {
+										"base_type": "some-base-resource-type"
+									}
+								}
+							},
+							"get_plan": {
+								"id": "1/image-get",
+								"get": {
+									"name": "some-resource-type",
+									"type": "some-base-resource-type",
+									"source": { "some": "type-source" },
+									"image": {
+										"base_type": "some-base-resource-type"
+									},
+									"version_from": "1/image-check"
+								}
+							}
+						}
+					}
+				},
+				"on_success": {
+					"id": "2",
+					"get": {
+						"name": "some-name",
+						"type": "some-resource-type",
+						"resource": "some-resource",
+						"source": {
+							 "some": "source"
+						},
+						"version_from": "1",
+						"image": {
+							"base_type": "some-base-resource-type",
+							"privileged": true,
+							"check_plan": {
+								"id": "2/image-check",
+								"check": {
+									"name": "some-resource-type",
+									"type": "some-base-resource-type",
+									"resource_type": "some-resource-type",
+									"source": { "some": "type-source" },
+							    "interval": "1m0s",
+									"image": {
+										"base_type": "some-base-resource-type"
+									}
+								}
+							},
+							"get_plan": {
+								"id": "2/image-get",
+								"get": {
+									"name": "some-resource-type",
+									"type": "some-base-resource-type",
+									"source": { "some": "type-source" },
+									"image": {
+										"base_type": "some-base-resource-type"
+									},
+									"version_from": "2/image-check"
+								}
+							}
+						}
 					}
 				}
 			}
@@ -281,8 +925,7 @@ var factoryTests = []PlannerTest{
 						"name": "some-resource-type",
 						"type": "some-base-resource-type",
 						"source": {"some": "type-source"},
-						"defaults": {"default-key":"default-value"},
-						"version": {"some": "type-version"}
+						"defaults": {"default-key":"default-value"}
 					}
 				]
 			}
@@ -335,8 +978,7 @@ var factoryTests = []PlannerTest{
 						"name": "some-resource-type",
 						"type": "some-base-resource-type",
 						"source": {"some": "type-source"},
-						"defaults": {"default-key":"default-value"},
-						"version": {"some": "type-version"}
+						"defaults": {"default-key":"default-value"}
 					}
 				]
 			}
@@ -821,8 +1463,15 @@ var factoryTests = []PlannerTest{
 }
 
 func (test PlannerTest) Run(s *PlannerSuite) {
+	atc.DefaultCheckInterval = 1 * time.Minute
+	atc.DefaultWebhookInterval = 2 * time.Minute
+
 	factory := builds.NewPlanner(atc.NewPlanFactory(0))
 
+	resourceTypes := defaultResourceTypes
+	if test.OverwriteResourceTypes != nil {
+		resourceTypes = test.OverwriteResourceTypes
+	}
 	actualPlan, actualErr := factory.Create(test.Config, resources, resourceTypes, prototypes, test.Inputs)
 
 	if test.Err != nil {
@@ -851,6 +1500,9 @@ func (test PlannerTest) Run(s *PlannerSuite) {
 	s.NoError(err)
 
 	s.JSONEq(test.PlanJSON, string(actualJSON))
+
+	atc.DefaultCheckInterval = 0
+	atc.DefaultWebhookInterval = 0
 }
 
 func (s *PlannerSuite) TestFactory() {

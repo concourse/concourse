@@ -32,14 +32,14 @@ var _ = Describe("CheckResourceType", func() {
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("POST", expectedURL, expectedQuery),
-					ghttp.VerifyJSON(`{"from":{"ref":"fake-ref"}}`),
+					ghttp.VerifyJSON(`{"from":{"ref":"fake-ref"},"shallow":true}`),
 					ghttp.RespondWithJSONEncoded(http.StatusOK, expectedCheck),
 				),
 			)
 		})
 
 		It("sends check resource request to ATC", func() {
-			check, found, err := team.CheckResourceType(pipelineRef, "myresource", atc.Version{"ref": "fake-ref"})
+			check, found, err := team.CheckResourceType(pipelineRef, "myresource", atc.Version{"ref": "fake-ref"}, true)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 			Expect(check).To(Equal(expectedCheck))
@@ -59,7 +59,7 @@ var _ = Describe("CheckResourceType", func() {
 		})
 
 		It("returns a ResourceNotFoundError", func() {
-			_, found, err := team.CheckResourceType(pipelineRef, "myresource", atc.Version{"ref": "fake-ref"})
+			_, found, err := team.CheckResourceType(pipelineRef, "myresource", atc.Version{"ref": "fake-ref"}, true)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeFalse())
 		})
@@ -76,7 +76,7 @@ var _ = Describe("CheckResourceType", func() {
 		})
 
 		It("returns an error", func() {
-			_, _, err := team.CheckResourceType(pipelineRef, "myresource", atc.Version{"ref": "fake-ref"})
+			_, _, err := team.CheckResourceType(pipelineRef, "myresource", atc.Version{"ref": "fake-ref"}, true)
 			Expect(err).To(HaveOccurred())
 
 			cre, ok := err.(concourse.GenericError)

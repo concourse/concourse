@@ -17,17 +17,17 @@ type ResourceCacheFactory interface {
 		version atc.Version,
 		source atc.Source,
 		params atc.Params,
-		resourceTypes atc.VersionedResourceTypes,
-	) (UsedResourceCache, error)
+		customTypeResourceCache ResourceCache,
+	) (ResourceCache, error)
 
 	// changing resource cache to interface to allow updates on object is not feasible.
 	// Since we need to pass it recursively in ResourceConfig.
 	// Also, metadata will be available to us before we create resource cache so this
 	// method can be removed at that point. See  https://github.com/concourse/concourse/issues/534
-	UpdateResourceCacheMetadata(UsedResourceCache, []atc.MetadataField) error
-	ResourceCacheMetadata(UsedResourceCache) (ResourceConfigMetadataFields, error)
+	UpdateResourceCacheMetadata(ResourceCache, []atc.MetadataField) error
+	ResourceCacheMetadata(ResourceCache) (ResourceConfigMetadataFields, error)
 
-	FindResourceCacheByID(id int) (UsedResourceCache, bool, error)
+	FindResourceCacheByID(id int) (ResourceCache, bool, error)
 }
 
 type resourceCacheFactory struct {
@@ -48,34 +48,102 @@ func (f *resourceCacheFactory) FindOrCreateResourceCache(
 	version atc.Version,
 	source atc.Source,
 	params atc.Params,
-	resourceTypes atc.VersionedResourceTypes,
-) (UsedResourceCache, error) {
-	resourceConfigDescriptor, err := constructResourceConfigDescriptor(resourceTypeName, source, resourceTypes)
-	if err != nil {
-		return nil, err
-	}
-
-	resourceCache := ResourceCacheDescriptor{
-		ResourceConfigDescriptor: resourceConfigDescriptor,
-		Version:                  version,
-		Params:                   params,
+	customTypeResourceCache ResourceCache,
+) (ResourceCache, error) {
+	rc := &resourceConfig{
+		lockFactory: f.lockFactory,
+		conn:        f.conn,
 	}
 
 	tx, err := f.conn.Begin()
 	if err != nil {
 		return nil, err
 	}
-
 	defer Rollback(tx)
 
-	usedResourceCache, err := resourceCache.findOrCreate(tx, f.lockFactory, f.conn)
+	err = findOrCreateResourceConfig(tx, rc, resourceTypeName, source, customTypeResourceCache, false)
 	if err != nil {
 		return nil, err
 	}
 
-	err = resourceCache.use(tx, usedResourceCache, resourceCacheUser)
+	marshaledVersion, _ := json.Marshal(version)
+	cacheVersion := string(marshaledVersion)
+
+	found := true
+	var id int
+	err = psql.Select("id").
+		From("resource_caches").
+		Where(sq.Eq{
+			"resource_config_id": rc.id,
+			"params_hash":        paramsHash(params),
+		}).
+		Where(sq.Expr("version_md5 = md5(?)", cacheVersion)).
+		Suffix("FOR SHARE").
+		RunWith(tx).
+		QueryRow().
+		Scan(&id)
 	if err != nil {
-		return nil, err
+		if err == sql.ErrNoRows {
+			found = false
+		} else {
+			return nil, err
+		}
+	}
+
+	if !found {
+		err = psql.Insert("resource_caches").
+			Columns(
+				"resource_config_id",
+				"version",
+				"version_md5",
+				"params_hash",
+			).
+			Values(
+				rc.id,
+				cacheVersion,
+				sq.Expr("md5(?)", cacheVersion),
+				paramsHash(params),
+			).
+			Suffix(`
+				ON CONFLICT (resource_config_id, version_md5, params_hash) DO UPDATE SET
+				resource_config_id = EXCLUDED.resource_config_id,
+				version = EXCLUDED.version,
+				version_md5 = EXCLUDED.version_md5,
+				params_hash = EXCLUDED.params_hash
+				RETURNING id
+			`).
+			RunWith(tx).
+			QueryRow().
+			Scan(&id)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	cols := resourceCacheUser.SQLMap()
+	cols["resource_cache_id"] = id
+
+	found = true
+	var resourceCacheUseExists int
+	err = psql.Select("1").
+		From("resource_cache_uses").
+		Where(sq.Eq(cols)).
+		RunWith(tx).
+		QueryRow().
+		Scan(&resourceCacheUseExists)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			found = false
+		} else {
+			return nil, err
+		}
+	}
+
+	if !found {
+		_, err = psql.Insert("resource_cache_uses").
+			SetMap(cols).
+			RunWith(tx).
+			Exec()
 	}
 
 	err = tx.Commit()
@@ -83,10 +151,17 @@ func (f *resourceCacheFactory) FindOrCreateResourceCache(
 		return nil, err
 	}
 
-	return usedResourceCache, nil
+	return &resourceCache{
+		id:             id,
+		resourceConfig: rc,
+		version:        version,
+
+		lockFactory: f.lockFactory,
+		conn:        f.conn,
+	}, nil
 }
 
-func (f *resourceCacheFactory) UpdateResourceCacheMetadata(resourceCache UsedResourceCache, metadata []atc.MetadataField) error {
+func (f *resourceCacheFactory) UpdateResourceCacheMetadata(resourceCache ResourceCache, metadata []atc.MetadataField) error {
 	metadataJSON, err := json.Marshal(metadata)
 	if err != nil {
 		return err
@@ -99,7 +174,7 @@ func (f *resourceCacheFactory) UpdateResourceCacheMetadata(resourceCache UsedRes
 	return err
 }
 
-func (f *resourceCacheFactory) ResourceCacheMetadata(resourceCache UsedResourceCache) (ResourceConfigMetadataFields, error) {
+func (f *resourceCacheFactory) ResourceCacheMetadata(resourceCache ResourceCache) (ResourceConfigMetadataFields, error) {
 	var metadataJSON sql.NullString
 	err := psql.Select("metadata").
 		From("resource_caches").
@@ -122,7 +197,7 @@ func (f *resourceCacheFactory) ResourceCacheMetadata(resourceCache UsedResourceC
 	return metadata, nil
 }
 
-func (f *resourceCacheFactory) FindResourceCacheByID(id int) (UsedResourceCache, bool, error) {
+func (f *resourceCacheFactory) FindResourceCacheByID(id int) (ResourceCache, bool, error) {
 	tx, err := f.conn.Begin()
 	if err != nil {
 		return nil, false, err
@@ -133,7 +208,7 @@ func (f *resourceCacheFactory) FindResourceCacheByID(id int) (UsedResourceCache,
 	return findResourceCacheByID(tx, id, f.lockFactory, f.conn)
 }
 
-func findResourceCacheByID(tx Tx, resourceCacheID int, lock lock.LockFactory, conn Conn) (UsedResourceCache, bool, error) {
+func findResourceCacheByID(tx Tx, resourceCacheID int, lock lock.LockFactory, conn Conn) (ResourceCache, bool, error) {
 	var rcID int
 	var versionBytes string
 
@@ -166,7 +241,7 @@ func findResourceCacheByID(tx Tx, resourceCacheID int, lock lock.LockFactory, co
 		return nil, false, nil
 	}
 
-	usedResourceCache := &usedResourceCache{
+	usedResourceCache := &resourceCache{
 		id:             resourceCacheID,
 		version:        version,
 		resourceConfig: rc,

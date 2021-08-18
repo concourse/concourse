@@ -249,31 +249,43 @@ run:
 
 	Context("when there is a pipeline job with the same input", func() {
 		BeforeEach(func() {
-			taskPlan.Task.VersionedResourceTypes = atc.VersionedResourceTypes{
-				atc.VersionedResourceType{
-					ResourceType: atc.ResourceType{
-						Name:   "resource-type",
-						Type:   "s3",
-						Source: atc.Source{},
-					},
+			taskPlan.Task.ResourceTypes = atc.ResourceTypes{
+				{
+					Name:   "resource-type",
+					Type:   "s3",
+					Source: atc.Source{},
 				},
 			}
 
 			planFactory := atc.NewPlanFactory(0)
 
+			expectedCheckPlan := planFactory.NewPlan(atc.CheckPlan{
+				Name:         "resource-type",
+				ResourceType: "resource-type",
+				Type:         "s3",
+				Source:       atc.Source{},
+				TypeImage:    atc.TypeImage{BaseType: "s3"},
+				Interval: atc.CheckEvery{
+					Interval: 0,
+				},
+			})
+			expectedGetPlan := planFactory.NewPlan(atc.GetPlan{
+				Name:        "resource-type",
+				Type:        "s3",
+				Source:      atc.Source{},
+				TypeImage:   atc.TypeImage{BaseType: "s3"},
+				VersionFrom: &expectedCheckPlan.ID,
+			})
 			expectedPlan = planFactory.NewPlan(atc.DoPlan{
 				planFactory.NewPlan(atc.InParallelPlan{
 					Steps: []atc.Plan{
 						planFactory.NewPlan(atc.GetPlan{
 							Name: "fixture",
-							VersionedResourceTypes: atc.VersionedResourceTypes{
-								atc.VersionedResourceType{
-									ResourceType: atc.ResourceType{
-										Name:   "resource-type",
-										Type:   "s3",
-										Source: atc.Source{},
-									},
-								},
+							Type: "resource-type",
+							TypeImage: atc.TypeImage{
+								BaseType:  "s3",
+								CheckPlan: &expectedCheckPlan,
+								GetPlan:   &expectedGetPlan,
 							},
 						}),
 					},
@@ -300,19 +312,17 @@ run:
 			atcServer.RouteToHandler("GET", "/api/v1/teams/main/pipelines/some-pipeline/jobs/some-job/inputs",
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/some-pipeline/jobs/some-job/inputs", expectedQueryParams),
-					ghttp.RespondWithJSONEncoded(200, []atc.BuildInput{atc.BuildInput{Name: "fixture"}}),
+					ghttp.RespondWithJSONEncoded(200, []atc.BuildInput{{Name: "fixture", Type: "resource-type"}}),
 				),
 			)
 			atcServer.RouteToHandler("GET", "/api/v1/teams/main/pipelines/some-pipeline/resource-types",
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/some-pipeline/resource-types", expectedQueryParams),
-					ghttp.RespondWithJSONEncoded(200, atc.VersionedResourceTypes{
-						atc.VersionedResourceType{
-							ResourceType: atc.ResourceType{
-								Name:   "resource-type",
-								Type:   "s3",
-								Source: atc.Source{},
-							},
+					ghttp.RespondWithJSONEncoded(200, atc.ResourceTypes{
+						{
+							Name:   "resource-type",
+							Type:   "s3",
+							Source: atc.Source{},
 						},
 					}),
 				),

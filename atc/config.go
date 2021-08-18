@@ -296,6 +296,111 @@ func (types ResourceTypes) Without(name string) ResourceTypes {
 	return newTypes
 }
 
+type ImagePlanner interface {
+	ImageForType(planID PlanID, resourceType string, stepTags Tags, skipInterval bool) TypeImage
+}
+
+func (types ResourceTypes) ImageForType(planID PlanID, resourceType string, stepTags Tags, skipInterval bool) TypeImage {
+	// Check if resource type is a custom type
+	parent, found := types.Lookup(resourceType)
+	if !found {
+		// If it is not a custom type, return back the image as a base type
+		return TypeImage{
+			BaseType: resourceType,
+		}
+	}
+
+	imageResource := ImageResource{
+		Name:   parent.Name,
+		Type:   parent.Type,
+		Source: parent.Source,
+		Params: parent.Params,
+		Tags:   parent.Tags,
+	}
+
+	getPlan, checkPlan := FetchImagePlan(planID, imageResource, types.Without(parent.Name), stepTags, skipInterval, parent.CheckEvery)
+	checkPlan.Check.ResourceType = resourceType
+
+	return TypeImage{
+		// Set the base type as the base type of its parent. The value of the base
+		// type will always be the base type at the bottom of the dependency chain.
+		//
+		// For example, if there is a resource that depends on a custom type that
+		// depends on a git base resource type, the BaseType value of the resource's
+		// TypeImage will be git.
+		BaseType: getPlan.Get.TypeImage.BaseType,
+
+		Privileged: parent.Privileged,
+
+		// GetPlan for fetching the custom type's image and CheckPlan
+		// for checking the version of the custom type.
+		GetPlan:   &getPlan,
+		CheckPlan: checkPlan,
+	}
+}
+
+func FetchImagePlan(planID PlanID, image ImageResource, resourceTypes ResourceTypes, stepTags Tags, skipInterval bool, checkEvery *CheckEvery) (Plan, *Plan) {
+	// If resource type is a custom type, recurse in order to resolve nested resource types
+	getPlanID := planID + "/image-get"
+
+	tags := image.Tags
+	if len(image.Tags) == 0 {
+		tags = stepTags
+	}
+
+	// Construct get plan for image
+	imageGetPlan := Plan{
+		ID: getPlanID,
+		Get: &GetPlan{
+			Name:   image.Name,
+			Type:   image.Type,
+			Source: image.Source,
+			Params: image.Params,
+
+			TypeImage: resourceTypes.ImageForType(getPlanID, image.Type, tags, skipInterval),
+
+			Tags: tags,
+		},
+	}
+
+	var maybeCheckPlan *Plan
+	if image.Version == nil {
+		checkPlanID := planID + "/image-check"
+		// don't know the version, need to do a Check before the Get
+		interval := CheckEvery{
+			Interval: DefaultCheckInterval,
+		}
+
+		if checkEvery != nil {
+			interval = *checkEvery
+		}
+
+		checkPlan := Plan{
+			ID: checkPlanID,
+			Check: &CheckPlan{
+				Name:     image.Name,
+				Type:     image.Type,
+				Source:   image.Source,
+				Interval: interval,
+
+				TypeImage: resourceTypes.ImageForType(checkPlanID, image.Type, tags, skipInterval),
+
+				Tags: tags,
+
+				SkipInterval: skipInterval,
+			},
+		}
+		maybeCheckPlan = &checkPlan
+
+		imageGetPlan.Get.VersionFrom = &checkPlan.ID
+	} else {
+		// version is already provided, only need to do Get step
+		imageGetPlan.Get.Version = &image.Version
+	}
+
+	return imageGetPlan, maybeCheckPlan
+}
+
 type ResourceConfigs []ResourceConfig
 
 func (resources ResourceConfigs) Lookup(name string) (ResourceConfig, bool) {

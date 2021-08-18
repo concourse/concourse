@@ -31,14 +31,14 @@ var _ = Describe("CheckPrototype", func() {
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("POST", expectedURL, expectedQuery),
-					ghttp.VerifyJSON(`{"from":{"ref":"fake-ref"}}`),
+					ghttp.VerifyJSON(`{"from":{"ref":"fake-ref"},"shallow":true}`),
 					ghttp.RespondWithJSONEncoded(http.StatusOK, expectedCheck),
 				),
 			)
 		})
 
 		It("sends check resource request to ATC", func() {
-			check, found, err := team.CheckPrototype(pipelineRef, "myprototype", atc.Version{"ref": "fake-ref"})
+			check, found, err := team.CheckPrototype(pipelineRef, "myprototype", atc.Version{"ref": "fake-ref"}, true)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 			Expect(check).To(Equal(expectedCheck))

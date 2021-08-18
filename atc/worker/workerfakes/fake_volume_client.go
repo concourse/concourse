@@ -111,11 +111,11 @@ type FakeVolumeClient struct {
 		result2 bool
 		result3 error
 	}
-	FindVolumeForResourceCacheStub        func(lager.Logger, db.UsedResourceCache) (worker.Volume, bool, error)
+	FindVolumeForResourceCacheStub        func(lager.Logger, db.ResourceCache) (worker.Volume, bool, error)
 	findVolumeForResourceCacheMutex       sync.RWMutex
 	findVolumeForResourceCacheArgsForCall []struct {
 		arg1 lager.Logger
-		arg2 db.UsedResourceCache
+		arg2 db.ResourceCache
 	}
 	findVolumeForResourceCacheReturns struct {
 		result1 worker.Volume
@@ -574,12 +574,12 @@ func (fake *FakeVolumeClient) FindOrCreateVolumeForResourceCertsReturnsOnCall(i 
 	}{result1, result2, result3}
 }
 
-func (fake *FakeVolumeClient) FindVolumeForResourceCache(arg1 lager.Logger, arg2 db.UsedResourceCache) (worker.Volume, bool, error) {
+func (fake *FakeVolumeClient) FindVolumeForResourceCache(arg1 lager.Logger, arg2 db.ResourceCache) (worker.Volume, bool, error) {
 	fake.findVolumeForResourceCacheMutex.Lock()
 	ret, specificReturn := fake.findVolumeForResourceCacheReturnsOnCall[len(fake.findVolumeForResourceCacheArgsForCall)]
 	fake.findVolumeForResourceCacheArgsForCall = append(fake.findVolumeForResourceCacheArgsForCall, struct {
 		arg1 lager.Logger
-		arg2 db.UsedResourceCache
+		arg2 db.ResourceCache
 	}{arg1, arg2})
 	stub := fake.FindVolumeForResourceCacheStub
 	fakeReturns := fake.findVolumeForResourceCacheReturns
@@ -600,13 +600,13 @@ func (fake *FakeVolumeClient) FindVolumeForResourceCacheCallCount() int {
 	return len(fake.findVolumeForResourceCacheArgsForCall)
 }
 
-func (fake *FakeVolumeClient) FindVolumeForResourceCacheCalls(stub func(lager.Logger, db.UsedResourceCache) (worker.Volume, bool, error)) {
+func (fake *FakeVolumeClient) FindVolumeForResourceCacheCalls(stub func(lager.Logger, db.ResourceCache) (worker.Volume, bool, error)) {
 	fake.findVolumeForResourceCacheMutex.Lock()
 	defer fake.findVolumeForResourceCacheMutex.Unlock()
 	fake.FindVolumeForResourceCacheStub = stub
 }
 
-func (fake *FakeVolumeClient) FindVolumeForResourceCacheArgsForCall(i int) (lager.Logger, db.UsedResourceCache) {
+func (fake *FakeVolumeClient) FindVolumeForResourceCacheArgsForCall(i int) (lager.Logger, db.ResourceCache) {
 	fake.findVolumeForResourceCacheMutex.RLock()
 	defer fake.findVolumeForResourceCacheMutex.RUnlock()
 	argsForCall := fake.findVolumeForResourceCacheArgsForCall[i]

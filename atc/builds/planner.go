@@ -20,7 +20,7 @@ func NewPlanner(planFactory atc.PlanFactory) Planner {
 func (planner Planner) Create(
 	planConfig atc.StepConfig,
 	resources db.SchedulerResources,
-	resourceTypes atc.VersionedResourceTypes,
+	resourceTypes atc.ResourceTypes,
 	prototypes atc.Prototypes,
 	inputs []db.BuildInput,
 ) (atc.Plan, error) {
@@ -45,7 +45,7 @@ type planVisitor struct {
 	planFactory atc.PlanFactory
 
 	resources     db.SchedulerResources
-	resourceTypes atc.VersionedResourceTypes
+	resourceTypes atc.ResourceTypes
 	prototypes    atc.Prototypes
 	inputs        []db.BuildInput
 
@@ -56,8 +56,8 @@ func (visitor *planVisitor) VisitTask(step *atc.TaskStep) error {
 	visitor.plan = visitor.planFactory.NewPlan(atc.TaskPlan{
 		Name:              step.Name,
 		Privileged:        step.Privileged,
-		Config:            step.Config,
 		Limits:            step.Limits,
+		Config:            step.Config,
 		ConfigPath:        step.ConfigPath,
 		Vars:              step.Vars,
 		Tags:              step.Tags,
@@ -67,7 +67,7 @@ func (visitor *planVisitor) VisitTask(step *atc.TaskStep) error {
 		ImageArtifactName: step.ImageArtifactName,
 		Timeout:           step.Timeout,
 
-		VersionedResourceTypes: visitor.resourceTypes,
+		ResourceTypes: visitor.resourceTypes,
 	})
 
 	return nil
@@ -119,7 +119,7 @@ func (visitor *planVisitor) VisitGet(step *atc.GetStep) error {
 
 	resource.ApplySourceDefaults(visitor.resourceTypes)
 
-	visitor.plan = visitor.planFactory.NewPlan(atc.GetPlan{
+	plan := visitor.planFactory.NewPlan(atc.GetPlan{
 		Name: step.Name,
 
 		Type:     resource.Type,
@@ -129,10 +129,10 @@ func (visitor *planVisitor) VisitGet(step *atc.GetStep) error {
 		Version:  &version,
 		Tags:     step.Tags,
 		Timeout:  step.Timeout,
-
-		VersionedResourceTypes: visitor.resourceTypes,
 	})
 
+	plan.Get.TypeImage = visitor.resourceTypes.ImageForType(plan.ID, resource.Type, step.Tags, false)
+	visitor.plan = plan
 	return nil
 }
 
@@ -151,40 +151,37 @@ func (visitor *planVisitor) VisitPut(step *atc.PutStep) error {
 
 	resource.ApplySourceDefaults(visitor.resourceTypes)
 
-	atcPutPlan := atc.PutPlan{
-		Name:                 logicalName,
-		Resource:             resourceName,
-		Type:                 resource.Type,
-		Source:               resource.Source,
-		Params:               step.Params,
+	plan := visitor.planFactory.NewPlan(atc.PutPlan{
+		Type:     resource.Type,
+		Name:     logicalName,
+		Resource: resourceName,
+		Source:   resource.Source,
+		Params:   step.Params,
+		Tags:     step.Tags,
+		Inputs:   step.Inputs,
+		Timeout:  step.Timeout,
+
 		ExposeBuildCreatedBy: resource.ExposeBuildCreatedBy,
-
-		Inputs: step.Inputs,
-
-		Tags:    step.Tags,
-		Timeout: step.Timeout,
-
-		VersionedResourceTypes: visitor.resourceTypes,
-	}
-
-	putPlan := visitor.planFactory.NewPlan(atcPutPlan)
-
-	dependentGetPlan := visitor.planFactory.NewPlan(atc.GetPlan{
-		Name:        logicalName,
-		Resource:    resourceName,
-		Type:        resource.Type,
-		Source:      resource.Source,
-		Params:      step.GetParams,
-		VersionFrom: &putPlan.ID,
-
-		Tags:    step.Tags,
-		Timeout: step.Timeout,
-
-		VersionedResourceTypes: visitor.resourceTypes,
 	})
 
+	plan.Put.TypeImage = visitor.resourceTypes.ImageForType(plan.ID, resource.Type, step.Tags, false)
+
+	dependentGetPlan := visitor.planFactory.NewPlan(atc.GetPlan{
+		Type:        resource.Type,
+		Name:        logicalName,
+		Resource:    resourceName,
+		Source:      resource.Source,
+		Params:      step.GetParams,
+		VersionFrom: &plan.ID,
+
+		Tags:    step.Tags,
+		Timeout: step.Timeout,
+	})
+
+	dependentGetPlan.Get.TypeImage = visitor.resourceTypes.ImageForType(dependentGetPlan.ID, resource.Type, step.Tags, false)
+
 	visitor.plan = visitor.planFactory.NewPlan(atc.OnSuccessPlan{
-		Step: putPlan,
+		Step: plan,
 		Next: dependentGetPlan,
 	})
 

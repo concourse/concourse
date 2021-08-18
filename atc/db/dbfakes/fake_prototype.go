@@ -21,19 +21,22 @@ type FakePrototype struct {
 	checkEveryReturnsOnCall map[int]struct {
 		result1 *atc.CheckEvery
 	}
-	CheckPlanStub        func(atc.Version, time.Duration, db.ResourceTypes, atc.Source) atc.CheckPlan
+	CheckPlanStub        func(atc.PlanFactory, atc.ImagePlanner, atc.Version, atc.CheckEvery, atc.Source, bool, bool) atc.Plan
 	checkPlanMutex       sync.RWMutex
 	checkPlanArgsForCall []struct {
-		arg1 atc.Version
-		arg2 time.Duration
-		arg3 db.ResourceTypes
-		arg4 atc.Source
+		arg1 atc.PlanFactory
+		arg2 atc.ImagePlanner
+		arg3 atc.Version
+		arg4 atc.CheckEvery
+		arg5 atc.Source
+		arg6 bool
+		arg7 bool
 	}
 	checkPlanReturns struct {
-		result1 atc.CheckPlan
+		result1 atc.Plan
 	}
 	checkPlanReturnsOnCall map[int]struct {
-		result1 atc.CheckPlan
+		result1 atc.Plan
 	}
 	CheckTimeoutStub        func() string
 	checkTimeoutMutex       sync.RWMutex
@@ -366,21 +369,24 @@ func (fake *FakePrototype) CheckEveryReturnsOnCall(i int, result1 *atc.CheckEver
 	}{result1}
 }
 
-func (fake *FakePrototype) CheckPlan(arg1 atc.Version, arg2 time.Duration, arg3 db.ResourceTypes, arg4 atc.Source) atc.CheckPlan {
+func (fake *FakePrototype) CheckPlan(arg1 atc.PlanFactory, arg2 atc.ImagePlanner, arg3 atc.Version, arg4 atc.CheckEvery, arg5 atc.Source, arg6 bool, arg7 bool) atc.Plan {
 	fake.checkPlanMutex.Lock()
 	ret, specificReturn := fake.checkPlanReturnsOnCall[len(fake.checkPlanArgsForCall)]
 	fake.checkPlanArgsForCall = append(fake.checkPlanArgsForCall, struct {
-		arg1 atc.Version
-		arg2 time.Duration
-		arg3 db.ResourceTypes
-		arg4 atc.Source
-	}{arg1, arg2, arg3, arg4})
+		arg1 atc.PlanFactory
+		arg2 atc.ImagePlanner
+		arg3 atc.Version
+		arg4 atc.CheckEvery
+		arg5 atc.Source
+		arg6 bool
+		arg7 bool
+	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
 	stub := fake.CheckPlanStub
 	fakeReturns := fake.checkPlanReturns
-	fake.recordInvocation("CheckPlan", []interface{}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("CheckPlan", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
 	fake.checkPlanMutex.Unlock()
 	if stub != nil {
-		return stub(arg1, arg2, arg3, arg4)
+		return stub(arg1, arg2, arg3, arg4, arg5, arg6, arg7)
 	}
 	if specificReturn {
 		return ret.result1
@@ -394,39 +400,39 @@ func (fake *FakePrototype) CheckPlanCallCount() int {
 	return len(fake.checkPlanArgsForCall)
 }
 
-func (fake *FakePrototype) CheckPlanCalls(stub func(atc.Version, time.Duration, db.ResourceTypes, atc.Source) atc.CheckPlan) {
+func (fake *FakePrototype) CheckPlanCalls(stub func(atc.PlanFactory, atc.ImagePlanner, atc.Version, atc.CheckEvery, atc.Source, bool, bool) atc.Plan) {
 	fake.checkPlanMutex.Lock()
 	defer fake.checkPlanMutex.Unlock()
 	fake.CheckPlanStub = stub
 }
 
-func (fake *FakePrototype) CheckPlanArgsForCall(i int) (atc.Version, time.Duration, db.ResourceTypes, atc.Source) {
+func (fake *FakePrototype) CheckPlanArgsForCall(i int) (atc.PlanFactory, atc.ImagePlanner, atc.Version, atc.CheckEvery, atc.Source, bool, bool) {
 	fake.checkPlanMutex.RLock()
 	defer fake.checkPlanMutex.RUnlock()
 	argsForCall := fake.checkPlanArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6, argsForCall.arg7
 }
 
-func (fake *FakePrototype) CheckPlanReturns(result1 atc.CheckPlan) {
+func (fake *FakePrototype) CheckPlanReturns(result1 atc.Plan) {
 	fake.checkPlanMutex.Lock()
 	defer fake.checkPlanMutex.Unlock()
 	fake.CheckPlanStub = nil
 	fake.checkPlanReturns = struct {
-		result1 atc.CheckPlan
+		result1 atc.Plan
 	}{result1}
 }
 
-func (fake *FakePrototype) CheckPlanReturnsOnCall(i int, result1 atc.CheckPlan) {
+func (fake *FakePrototype) CheckPlanReturnsOnCall(i int, result1 atc.Plan) {
 	fake.checkPlanMutex.Lock()
 	defer fake.checkPlanMutex.Unlock()
 	fake.CheckPlanStub = nil
 	if fake.checkPlanReturnsOnCall == nil {
 		fake.checkPlanReturnsOnCall = make(map[int]struct {
-			result1 atc.CheckPlan
+			result1 atc.Plan
 		})
 	}
 	fake.checkPlanReturnsOnCall[i] = struct {
-		result1 atc.CheckPlan
+		result1 atc.Plan
 	}{result1}
 }
 

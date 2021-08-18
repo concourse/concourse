@@ -1,6 +1,7 @@
 package dbtest
 
 import (
+	"context"
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
@@ -47,6 +48,7 @@ type Builder struct {
 	TeamFactory           db.TeamFactory
 	WorkerFactory         db.WorkerFactory
 	ResourceConfigFactory db.ResourceConfigFactory
+	ResourceCacheFactory  db.ResourceCacheFactory
 }
 
 func NewBuilder(conn db.Conn, lockFactory lock.LockFactory) Builder {
@@ -55,6 +57,7 @@ func NewBuilder(conn db.Conn, lockFactory lock.LockFactory) Builder {
 		TeamFactory:           db.NewTeamFactory(conn, lockFactory),
 		WorkerFactory:         db.NewWorkerFactory(conn, db.NewStaticWorkerCache(logger, conn, 0)),
 		ResourceConfigFactory: db.NewResourceConfigFactory(conn, lockFactory),
+		ResourceCacheFactory:  db.NewResourceCacheFactory(conn, lockFactory),
 	}
 }
 
@@ -151,6 +154,8 @@ func (builder Builder) WithBaseWorker() SetupFunc {
 	return builder.WithWorker(BaseWorker(unique("worker")))
 }
 
+// WithResourceVersions imitates running a check build and stores the provided
+// versions in the database.
 func (builder Builder) WithResourceVersions(resourceName string, versions ...atc.Version) SetupFunc {
 	return func(scenario *Scenario) error {
 		if scenario.Pipeline == nil {
@@ -184,15 +189,40 @@ func (builder Builder) WithResourceVersions(resourceName string, versions ...atc
 			return fmt.Errorf("resource '%s' not configured in pipeline", resourceName)
 		}
 
+		build, success, err := resource.CreateBuild(context.TODO(), false, atc.Plan{
+			ID: "check-resource",
+			Check: &atc.CheckPlan{
+				Name:   resource.Name(),
+				Type:   resource.Type(),
+				Source: resource.Source(),
+			},
+		})
+		if err != nil {
+			return fmt.Errorf("create check build: %w", err)
+		}
+		if !success {
+			return fmt.Errorf("failed to create check build")
+		}
+
 		resourceTypes, err := scenario.Pipeline.ResourceTypes()
 		if err != nil {
 			return fmt.Errorf("get pipeline resource types: %w", err)
 		}
 
+		var imageResourceCache db.ResourceCache
+		if resourceTypes != nil {
+			resourceType, _ := resourceTypes.Parent(resource)
+			if resourceType != nil {
+				imageResourceCache, err = builder.createResourceCache(build.ID(), resourceType, resourceTypes.Without(resourceType.Name()))
+				if err != nil {
+					return fmt.Errorf("create resource cache: %w", err)
+				}
+			}
+		}
 		resourceConfig, err := builder.ResourceConfigFactory.FindOrCreateResourceConfig(
 			resource.Type(),
 			resource.Source(),
-			resourceTypes.Deserialize(),
+			imageResourceCache,
 		)
 		if err != nil {
 			return fmt.Errorf("find or create resource config: %w", err)
@@ -218,10 +248,12 @@ func (builder Builder) WithResourceVersions(resourceName string, versions ...atc
 			return fmt.Errorf("set resource scope: %w", err)
 		}
 
-		return nil
+		return build.Finish(db.BuildStatusSucceeded)
 	}
 }
 
+// WithResourceTypeVersions imitates running a check build and stores the provided
+// versions in the database.
 func (builder Builder) WithResourceTypeVersions(resourceTypeName string, versions ...atc.Version) SetupFunc {
 	return func(scenario *Scenario) error {
 		if scenario.Pipeline == nil {
@@ -255,15 +287,44 @@ func (builder Builder) WithResourceTypeVersions(resourceTypeName string, version
 			return fmt.Errorf("resource type '%s' not configured in pipeline", resourceTypeName)
 		}
 
+		build, success, err := resourceType.CreateBuild(context.TODO(), false, atc.Plan{
+			ID: "check-resource",
+			Check: &atc.CheckPlan{
+				Name:   resourceType.Name(),
+				Type:   resourceType.Type(),
+				Source: resourceType.Source(),
+			},
+		})
+		if err != nil {
+			return fmt.Errorf("create check build: %w", err)
+		}
+		if !success {
+			return fmt.Errorf("failed to create check build")
+		}
+
 		resourceTypes, err := scenario.Pipeline.ResourceTypes()
 		if err != nil {
 			return fmt.Errorf("get pipeline resource types: %w", err)
 		}
 
+		var imageResourceCache db.ResourceCache
+		if resourceTypes != nil {
+			resourceTypes = resourceTypes.Without(resourceType.Name())
+			parentResourceType, _ := resourceTypes.Parent(resourceType)
+
+			if parentResourceType != nil {
+				filteredResourceTypes := resourceTypes.Without(parentResourceType.Name())
+				imageResourceCache, err = builder.createResourceCache(build.ID(), parentResourceType, filteredResourceTypes)
+				if err != nil {
+					return fmt.Errorf("create resource cache: %w", err)
+				}
+			}
+		}
+
 		resourceConfig, err := builder.ResourceConfigFactory.FindOrCreateResourceConfig(
 			resourceType.Type(),
 			resourceType.Source(),
-			resourceTypes.Filter(resourceType).Deserialize(),
+			imageResourceCache,
 		)
 		if err != nil {
 			return fmt.Errorf("find or create resource config: %w", err)
@@ -284,7 +345,7 @@ func (builder Builder) WithResourceTypeVersions(resourceTypeName string, version
 			return fmt.Errorf("set resource scope: %w", err)
 		}
 
-		return nil
+		return build.Finish(db.BuildStatusSucceeded)
 	}
 }
 
@@ -321,15 +382,40 @@ func (builder Builder) WithPrototypeVersions(prototypeName string, versions ...a
 			return fmt.Errorf("prototype '%s' not configured in pipeline", prototypeName)
 		}
 
+		build, success, err := prototype.CreateBuild(context.TODO(), false, atc.Plan{
+			ID: "check-prototype",
+			Check: &atc.CheckPlan{
+				Name:   prototype.Name(),
+				Type:   prototype.Type(),
+				Source: prototype.Source(),
+			},
+		})
+		if err != nil {
+			return fmt.Errorf("create check build: %w", err)
+		}
+		if !success {
+			return fmt.Errorf("failed to create check build")
+		}
+
 		resourceTypes, err := scenario.Pipeline.ResourceTypes()
 		if err != nil {
 			return fmt.Errorf("get pipeline prototypes: %w", err)
 		}
 
+		var imageResourceCache db.ResourceCache
+		if resourceTypes != nil {
+			resourceType, _ := resourceTypes.Parent(prototype)
+			if resourceType != nil {
+				imageResourceCache, err = builder.createResourceCache(build.ID(), resourceType, resourceTypes.Without(resourceType.Name()))
+				if err != nil {
+					return fmt.Errorf("create resource cache: %w", err)
+				}
+			}
+		}
 		resourceConfig, err := builder.ResourceConfigFactory.FindOrCreateResourceConfig(
 			prototype.Type(),
 			prototype.Source(),
-			resourceTypes.Filter(prototype).Deserialize(),
+			imageResourceCache,
 		)
 		if err != nil {
 			return fmt.Errorf("find or create resource config: %w", err)
@@ -490,10 +576,21 @@ func (builder Builder) WithJobBuild(assign *db.Build, jobName string, inputs Job
 				return fmt.Errorf("output '%s' refers to unknown resource '%s'", output.Name, output.Resource)
 			}
 
+			var imageResourceCache db.ResourceCache
+			if resourceTypes != nil {
+				resourceType, _ := resourceTypes.Parent(resource)
+				if resourceType != nil {
+					imageResourceCache, err = builder.createResourceCache(build.ID(), resourceType, resourceTypes.Without(resourceType.Name()))
+					if err != nil {
+						return fmt.Errorf("create resource cache: %w", err)
+					}
+				}
+			}
+
 			err = build.SaveOutput(
 				resource.Type(),
+				imageResourceCache,
 				resource.Source(),
-				resourceTypes.Deserialize(),
 				version,
 				nil, // metadata
 				output.Name,
@@ -770,4 +867,20 @@ func md5Version(version atc.Version) string {
 	hasher := md5.New()
 	hasher.Write([]byte(versionJSON))
 	return hex.EncodeToString(hasher.Sum(nil))
+}
+
+func (builder Builder) createResourceCache(buildID int, resourceType db.ResourceType, resourceTypes db.ResourceTypes) (db.ResourceCache, error) {
+	var imageResourceCache db.ResourceCache
+	if resourceTypes != nil {
+		parentResourceType, found := resourceTypes.Parent(resourceType)
+		if found {
+			var err error
+			imageResourceCache, err = builder.createResourceCache(buildID, parentResourceType, resourceTypes.Without(parentResourceType.Name()))
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return builder.ResourceCacheFactory.FindOrCreateResourceCache(db.ForBuild(buildID), resourceType.Type(), atc.Version{"custom-type": "version"}, resourceType.Source(), resourceType.Params(), imageResourceCache)
 }

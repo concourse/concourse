@@ -208,9 +208,9 @@ var _ = Describe("CheckDelegate", func() {
 				})
 			})
 
-			Context("when the build is manually triggered", func() {
+			Context("when the check plan is configured to skip interval", func() {
 				BeforeEach(func() {
-					fakeBuild.IsManuallyTriggeredReturns(true)
+					plan.Check.SkipInterval = true
 				})
 
 				It("does not rate limit", func() {
@@ -235,6 +235,12 @@ var _ = Describe("CheckDelegate", func() {
 
 					It("returns true", func() {
 						Expect(run).To(BeTrue())
+					})
+				})
+
+				Context("when the interval is set to never on the plan", func() {
+					It("does not exit early and attmpts to fetch the last check value", func() {
+						Expect(fakeResourceConfigScope.LastCheckCallCount()).To(Equal(1))
 					})
 				})
 
@@ -265,6 +271,20 @@ var _ = Describe("CheckDelegate", func() {
 						Expect(run).To(BeTrue())
 					})
 				})
+
+				Context("when the build fails with the create time earlier the last check start time", func() {
+					BeforeEach(func() {
+						fakeBuild.CreateTimeReturns(time.Now().Add(-5 * time.Second))
+						fakeResourceConfigScope.LastCheckReturns(db.LastCheck{
+							StartTime: time.Now(),
+							Succeeded: false,
+						}, nil)
+					})
+
+					It("returns true", func() {
+						Expect(run).To(BeTrue())
+					})
+				})
 			})
 
 			Context("when getting the last check end time errors", func() {
@@ -275,17 +295,15 @@ var _ = Describe("CheckDelegate", func() {
 				It("returns an error", func() {
 					Expect(runErr).To(HaveOccurred())
 				})
-
-				It("releases the lock", func() {
-					Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
-				})
 			})
 
 			Context("with an interval configured", func() {
 				var interval time.Duration = time.Minute
 
 				BeforeEach(func() {
-					plan.Check.Interval = interval.String()
+					plan.Check.Interval = atc.CheckEvery{
+						Interval: interval,
+					}
 				})
 
 				Context("when the interval has not elapsed since the last check", func() {
@@ -301,8 +319,8 @@ var _ = Describe("CheckDelegate", func() {
 						Expect(run).To(BeFalse())
 					})
 
-					It("releases the lock", func() {
-						Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
+					It("never attempts to acquire the lock", func() {
+						Expect(fakeResourceConfigScope.AcquireResourceCheckingLockCallCount()).To(Equal(0))
 					})
 				})
 
@@ -318,6 +336,51 @@ var _ = Describe("CheckDelegate", func() {
 					It("returns true", func() {
 						Expect(run).To(BeTrue())
 					})
+				})
+
+				Context("when the last check value gets updated after the first loop of attempting to acquire lock", func() {
+					BeforeEach(func() {
+						fakeResourceConfigScope.LastCheckReturnsOnCall(0, db.LastCheck{
+							StartTime: now.Add(-(interval + 10)),
+							EndTime:   now.Add(-(interval + 1)),
+							Succeeded: true,
+						}, nil)
+						fakeResourceConfigScope.LastCheckReturnsOnCall(1, db.LastCheck{
+							StartTime: now.Add(time.Second).Add(-(interval + 10)),
+							EndTime:   now.Add(time.Second).Add(-(interval - 1)),
+							Succeeded: true,
+						}, nil)
+						fakeResourceConfigScope.AcquireResourceCheckingLockReturns(nil, false, nil)
+						go fakeClock.WaitForWatcherAndIncrement(time.Second)
+					})
+
+					It("exits out of loop after last check gets updated in second loop and does not run", func() {
+						Expect(run).To(BeFalse())
+					})
+
+					It("only attempts to acquire lock in first loop", func() {
+						Expect(fakeResourceConfigScope.AcquireResourceCheckingLockCallCount()).To(Equal(1))
+					})
+
+					It("rechecks the last check value in both loops", func() {
+						Expect(fakeResourceConfigScope.LastCheckCallCount()).To(Equal(2))
+					})
+				})
+			})
+
+			Context("when the interval is never", func() {
+				BeforeEach(func() {
+					plan.Check.Interval = atc.CheckEvery{
+						Never: true,
+					}
+				})
+
+				It("returns false", func() {
+					Expect(run).To(BeFalse())
+				})
+
+				It("does not attempt to fetch the last check", func() {
+					Expect(fakeResourceConfigScope.LastCheckCallCount()).To(Equal(0))
 				})
 			})
 		})

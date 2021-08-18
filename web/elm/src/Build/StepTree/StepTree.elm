@@ -77,19 +77,24 @@ init buildId hl resources plan =
         Concourse.BuildStepTask _ ->
             step |> initBottom buildId hl resources plan Task
 
-        Concourse.BuildStepCheck _ ->
-            step |> initBottom buildId hl resources plan Check
+        Concourse.BuildStepCheck _ imagePlans ->
+            step
+                |> initBottom buildId hl resources plan Check
+                |> setImagePlans buildId step.id imagePlans
 
-        Concourse.BuildStepGet name _ version ->
+        Concourse.BuildStepGet name _ version imagePlans ->
             step
                 |> setupGetStep resources name version
                 |> initBottom buildId hl resources plan Get
+                |> setImagePlans buildId step.id imagePlans
 
         Concourse.BuildStepRun _ ->
             step |> initBottom buildId hl resources plan Run
 
-        Concourse.BuildStepPut _ _ ->
-            step |> initBottom buildId hl resources plan Put
+        Concourse.BuildStepPut _ _ imagePlans ->
+            step
+                |> initBottom buildId hl resources plan Put
+                |> setImagePlans buildId step.id imagePlans
 
         Concourse.BuildStepArtifactInput _ ->
             step |> initBottom buildId hl resources plan ArtifactInput
@@ -167,6 +172,18 @@ init buildId hl resources plan =
 
         Concourse.BuildStepTimeout subPlan ->
             initWrappedStep buildId hl resources Timeout subPlan
+
+
+setImagePlans : Maybe Concourse.JobBuildIdentifier -> StepID -> Maybe Concourse.ImageBuildPlans -> StepTreeModel -> StepTreeModel
+setImagePlans buildId stepId imagePlans model =
+    case imagePlans of
+        Nothing ->
+            model
+
+        Just { check, get } ->
+            model
+                |> setImageCheck buildId stepId check
+                |> setImageGet buildId stepId get
 
 
 setImageCheck : Maybe Concourse.JobBuildIdentifier -> StepID -> Concourse.BuildPlan -> StepTreeModel -> StepTreeModel
@@ -1224,16 +1241,16 @@ viewStepHeader step =
         Concourse.BuildStepLoadVar name ->
             simpleHeader "load_var:" Nothing name
 
-        Concourse.BuildStepCheck name ->
+        Concourse.BuildStepCheck name _ ->
             simpleHeader "check:" Nothing name
 
         Concourse.BuildStepRun message ->
             simpleHeader "run:" Nothing message
 
-        Concourse.BuildStepGet name _ _ ->
+        Concourse.BuildStepGet name _ _ _ ->
             simpleHeader "get:" (Just "new version") name
 
-        Concourse.BuildStepPut name _ ->
+        Concourse.BuildStepPut name _ _ ->
             simpleHeader "put:" Nothing name
 
         Concourse.BuildStepArtifactInput name ->
@@ -1294,16 +1311,16 @@ stepName header =
         Concourse.BuildStepArtifactOutput name ->
             Just name
 
-        Concourse.BuildStepCheck name ->
+        Concourse.BuildStepCheck name _ ->
             Just name
 
         Concourse.BuildStepRun message ->
             Just message
 
-        Concourse.BuildStepGet name _ _ ->
+        Concourse.BuildStepGet name _ _ _ ->
             Just name
 
-        Concourse.BuildStepPut name _ ->
+        Concourse.BuildStepPut name _ _ ->
             Just name
 
         Concourse.BuildStepAcross { vars } ->
@@ -1343,10 +1360,10 @@ stepName header =
 resourceName : Concourse.BuildStep -> Maybe String
 resourceName step =
     case step of
-        Concourse.BuildStepGet _ resource _ ->
+        Concourse.BuildStepGet _ resource _ _ ->
             resource
 
-        Concourse.BuildStepPut _ resource ->
+        Concourse.BuildStepPut _ resource _ ->
             resource
 
         _ ->

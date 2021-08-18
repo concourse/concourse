@@ -31,7 +31,7 @@ var _ = Describe("ResourceConfigFactory", func() {
 			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(
 				"some-base-resource-type",
 				atc.Source{"some": "unique-source"},
-				atc.VersionedResourceTypes{},
+				nil,
 			)
 			Expect(err).ToNot(HaveOccurred())
 		})
@@ -48,7 +48,7 @@ var _ = Describe("ResourceConfigFactory", func() {
 				sameConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(
 					"some-base-resource-type",
 					atc.Source{"some": "unique-source"},
-					atc.VersionedResourceTypes{},
+					nil,
 				)
 				Expect(err).ToNot(HaveOccurred())
 			})
@@ -66,7 +66,7 @@ var _ = Describe("ResourceConfigFactory", func() {
 				recreated, err := resourceConfigFactory.FindOrCreateResourceConfig(
 					"some-base-resource-type",
 					atc.Source{"some": "unique-source"},
-					atc.VersionedResourceTypes{},
+					nil,
 				)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(recreated.ID()).ToNot(Equal(resourceConfig.ID()))
@@ -80,7 +80,7 @@ var _ = Describe("ResourceConfigFactory", func() {
 				recreated, err := resourceConfigFactory.FindOrCreateResourceConfig(
 					"some-base-resource-type",
 					atc.Source{"some": "unique-source"},
-					atc.VersionedResourceTypes{},
+					nil,
 				)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(recreated.ID()).To(Equal(resourceConfig.ID()))
@@ -113,7 +113,7 @@ var _ = Describe("ResourceConfigFactory", func() {
 					case <-done:
 						return
 					default:
-						_, err := resourceConfigFactory.FindOrCreateResourceConfig("some-base-resource-type", atc.Source{"some": "unique-source"}, atc.VersionedResourceTypes{})
+						_, err := resourceConfigFactory.FindOrCreateResourceConfig("some-base-resource-type", atc.Source{"some": "unique-source"}, nil)
 						Expect(err).ToNot(HaveOccurred())
 					}
 				}
@@ -126,7 +126,7 @@ var _ = Describe("ResourceConfigFactory", func() {
 				defer wg.Done()
 
 				for i := 0; i < 100; i++ {
-					_, err := resourceConfigFactory.FindOrCreateResourceConfig("some-base-resource-type", atc.Source{"some": "unique-source"}, atc.VersionedResourceTypes{})
+					_, err := resourceConfigFactory.FindOrCreateResourceConfig("some-base-resource-type", atc.Source{"some": "unique-source"}, nil)
 					Expect(err).ToNot(HaveOccurred())
 				}
 			}()
@@ -171,7 +171,7 @@ var _ = Describe("ResourceConfigFactory", func() {
 				defer wg.Done()
 
 				for i := 0; i < 100; i++ {
-					_, err := resourceConfigFactory.FindOrCreateResourceConfig("some-base-resource-type", atc.Source{"some": "unique-source"}, atc.VersionedResourceTypes{})
+					_, err := resourceConfigFactory.FindOrCreateResourceConfig("some-base-resource-type", atc.Source{"some": "unique-source"}, nil)
 					Expect(err).ToNot(HaveOccurred())
 				}
 			}()
@@ -208,7 +208,7 @@ var _ = Describe("ResourceConfigFactory", func() {
 					Expect(err).NotTo(HaveOccurred())
 					Expect(setupTx.Commit()).To(Succeed())
 
-					createdResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig("base-resource-type-name", atc.Source{}, atc.VersionedResourceTypes{})
+					createdResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig("base-resource-type-name", atc.Source{}, nil)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(createdResourceConfig).ToNot(BeNil())
 
@@ -225,10 +225,10 @@ var _ = Describe("ResourceConfigFactory", func() {
 
 			Context("when the resource config uses a custom resource type", func() {
 				BeforeEach(func() {
-					pipelineResourceTypes, err := defaultPipeline.ResourceTypes()
+					imageResourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(db.ForBuild(build.ID()), "some-base-resource-type", atc.Version{}, atc.Source{}, nil, nil)
 					Expect(err).ToNot(HaveOccurred())
 
-					createdResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig("some-type", atc.Source{}, pipelineResourceTypes.Deserialize())
+					createdResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig("some-type", atc.Source{}, imageResourceCache)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(createdResourceConfig).ToNot(BeNil())
 

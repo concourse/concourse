@@ -3,7 +3,6 @@ package lidar_test
 import (
 	"context"
 	"errors"
-	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -22,14 +21,16 @@ var _ = Describe("Scanner", func() {
 		err error
 
 		fakeCheckFactory *dbfakes.FakeCheckFactory
+		planFactory      atc.PlanFactory
 
 		scanner Scanner
 	)
 
 	BeforeEach(func() {
+		planFactory = atc.NewPlanFactory(0)
 		fakeCheckFactory = new(dbfakes.FakeCheckFactory)
 
-		scanner = lidar.NewScanner(fakeCheckFactory)
+		scanner = lidar.NewScanner(fakeCheckFactory, planFactory)
 	})
 
 	JustBeforeEach(func() {
@@ -61,7 +62,7 @@ var _ = Describe("Scanner", func() {
 
 			Context("when fetching resource types fails", func() {
 				BeforeEach(func() {
-					fakeCheckFactory.ResourceTypesReturns(nil, errors.New("nope"))
+					fakeCheckFactory.ResourceTypesByPipelineReturns(nil, errors.New("nope"))
 				})
 
 				It("errors", func() {
@@ -72,17 +73,18 @@ var _ = Describe("Scanner", func() {
 			Context("when CheckEvery is never", func() {
 				BeforeEach(func() {
 					fakeResource.CheckEveryReturns(&atc.CheckEvery{Never: true})
-
 					fakeResource.TypeReturns("parent")
 					fakeResource.PipelineIDReturns(1)
 					fakeResourceType := new(dbfakes.FakeResourceType)
 					fakeResourceType.NameReturns("parent")
 					fakeResourceType.PipelineIDReturns(1)
-					fakeCheckFactory.ResourceTypesReturns([]db.ResourceType{fakeResourceType}, nil)
+					fakeCheckFactory.ResourceTypesByPipelineReturns(map[int]db.ResourceTypes{
+						1: {fakeResourceType},
+					}, nil)
 				})
 
-				It("does not check the resource but still checks the parent", func() {
-					Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
+				It("does not check the resource", func() {
+					Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(0))
 				})
 			})
 
@@ -96,13 +98,19 @@ var _ = Describe("Scanner", func() {
 					fakeResourceType.TagsReturns([]string{"some-tag"})
 					fakeResourceType.SourceReturns(atc.Source{"some": "type-source"})
 
-					fakeCheckFactory.ResourceTypesReturns([]db.ResourceType{fakeResourceType}, nil)
+					fakeCheckFactory.ResourceTypesByPipelineReturns(map[int]db.ResourceTypes{1: {fakeResourceType}}, nil)
 				})
 
 				Context("when the resource parent type is a base type", func() {
 					BeforeEach(func() {
-						fakeCheckFactory.ResourceTypesReturns([]db.ResourceType{}, nil)
+						fakeCheckFactory.ResourceTypesByPipelineReturns(map[int]db.ResourceTypes{}, nil)
 						fakeResource.TypeReturns("some-type")
+					})
+
+					It("creates a check with empty resource types list", func() {
+						_, _, resourceTypes, _, _, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+						var nilResourceTypes db.ResourceTypes
+						Expect(resourceTypes).To(Equal(nilResourceTypes))
 					})
 
 					Context("when the last check end time is past our interval", func() {
@@ -112,7 +120,7 @@ var _ = Describe("Scanner", func() {
 
 						Context("when try creating a check panics", func() {
 							BeforeEach(func() {
-								fakeCheckFactory.TryCreateCheckStub = func(context.Context, db.Checkable, db.ResourceTypes, atc.Version, bool) (db.Build, bool, error) {
+								fakeCheckFactory.TryCreateCheckStub = func(context.Context, db.Checkable, db.ResourceTypes, atc.Version, bool, bool) (db.Build, bool, error) {
 									panic("something went wrong")
 								}
 							})
@@ -128,9 +136,9 @@ var _ = Describe("Scanner", func() {
 							fakeResource.CurrentPinnedVersionReturns(atc.Version{"some": "version"})
 						})
 
-						It("creates a check", func() {
+						It("creates a check with that pinned version", func() {
 							Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
-							_, _, _, fromVersion, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+							_, _, _, fromVersion, _, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
 							Expect(fromVersion).To(Equal(atc.Version{"some": "version"}))
 						})
 					})
@@ -140,99 +148,26 @@ var _ = Describe("Scanner", func() {
 							fakeResource.CurrentPinnedVersionReturns(nil)
 						})
 
-						It("creates a check", func() {
+						It("creates a check with a nil pinned version", func() {
 							Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
-							_, _, _, fromVersion, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+							_, _, _, fromVersion, _, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
 							Expect(fromVersion).To(BeNil())
 						})
 					})
 				})
 
-				Context("when the resource has a parent type", func() {
-					BeforeEach(func() {
-						fakeResource.TypeReturns("custom-type")
-						fakeResource.PipelineIDReturns(1)
-						fakeResourceType.NameReturns("custom-type")
-						fakeResourceType.PipelineIDReturns(1)
-					})
-
-					It("creates a check for both the parent and the resource", func() {
-						Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(2))
-
-						_, checkable, _, _, manuallyTriggered := fakeCheckFactory.TryCreateCheckArgsForCall(0)
-						Expect(checkable).To(Equal(fakeResourceType))
-						Expect(manuallyTriggered).To(BeFalse())
-
-						_, checkable, _, _, manuallyTriggered = fakeCheckFactory.TryCreateCheckArgsForCall(1)
-						Expect(checkable).To(Equal(fakeResource))
-						Expect(manuallyTriggered).To(BeFalse())
-					})
-				})
-
-				Context("when a put-only resource has a parent-type", func() {
+				Context("when there's a put-only resource", func() {
 					BeforeEach(func() {
 						By("checkFactory.Resources should not return any put-only resources")
 						fakeResourceType.NameReturns("put-only-custom-type")
 						fakeResourceType.PipelineIDReturns(1)
 					})
 
-					It("creates a check for only the parent and not the put-only resource", func() {
-						Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(2),
-							"two checks created; one for the fakeResourceType and the second for the unrelated fakeResource")
-
-						_, checkable, _, _, manuallyTriggered := fakeCheckFactory.TryCreateCheckArgsForCall(0)
-						Expect(checkable).To(Equal(fakeResourceType))
-						Expect(manuallyTriggered).To(BeFalse())
+					It("does not check the put-only resource", func() {
+						Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1),
+							"one check created for the unrelated fakeResource")
 					})
 				})
-			})
-		})
-
-		Context("when there are multiple resources that use the same resource type", func() {
-			var fakeResource1, fakeResource2 *dbfakes.FakeResource
-			var fakeResourceType *dbfakes.FakeResourceType
-
-			BeforeEach(func() {
-				fakeResource1 = new(dbfakes.FakeResource)
-				fakeResource1.NameReturns("some-name")
-				fakeResource1.SourceReturns(atc.Source{"some": "source"})
-				fakeResource1.TypeReturns("custom-type")
-				fakeResource1.PipelineIDReturns(1)
-				fakeResource1.LastCheckEndTimeReturns(time.Now().Add(-time.Hour))
-
-				fakeResource2 = new(dbfakes.FakeResource)
-				fakeResource2.NameReturns("some-name")
-				fakeResource2.SourceReturns(atc.Source{"some": "source"})
-				fakeResource2.TypeReturns("custom-type")
-				fakeResource2.PipelineIDReturns(1)
-				fakeResource2.LastCheckEndTimeReturns(time.Now().Add(-time.Hour))
-
-				fakeCheckFactory.ResourcesReturns([]db.Resource{fakeResource1, fakeResource2}, nil)
-
-				fakeResourceType = new(dbfakes.FakeResourceType)
-				fakeResourceType.NameReturns("custom-type")
-				fakeResourceType.PipelineIDReturns(1)
-				fakeResourceType.TypeReturns("some-base-type")
-				fakeResourceType.SourceReturns(atc.Source{"some": "type-source"})
-				fakeResourceType.LastCheckEndTimeReturns(time.Now().Add(-time.Hour))
-
-				fakeCheckFactory.ResourceTypesReturns([]db.ResourceType{fakeResourceType}, nil)
-			})
-
-			It("only tries to create a check for the resource type once", func() {
-				Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(3))
-
-				var checked []string
-				_, checkable, _, _, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
-				checked = append(checked, checkable.Name())
-
-				_, checkable, _, _, _ = fakeCheckFactory.TryCreateCheckArgsForCall(1)
-				checked = append(checked, checkable.Name())
-
-				_, checkable, _, _, _ = fakeCheckFactory.TryCreateCheckArgsForCall(2)
-				checked = append(checked, checkable.Name())
-
-				Expect(checked).To(ConsistOf([]string{fakeResourceType.Name(), fakeResource1.Name(), fakeResource2.Name()}))
 			})
 		})
 	})

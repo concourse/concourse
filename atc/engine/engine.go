@@ -10,6 +10,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/builds"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/event"
@@ -21,24 +22,12 @@ import (
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
 
-//counterfeiter:generate . Engine
-type Engine interface {
-	NewBuild(db.Build) Runnable
-
-	Drain(context.Context)
-}
-
-//counterfeiter:generate . Runnable
-type Runnable interface {
-	Run(context.Context)
-}
-
 func NewEngine(
 	stepperFactory StepperFactory,
 	secrets creds.Secrets,
 	varSourcePool creds.VarSourcePool,
 ) Engine {
-	return &engine{
+	return Engine{
 		stepperFactory: stepperFactory,
 		release:        make(chan bool),
 		trackedStates:  new(sync.Map),
@@ -49,7 +38,7 @@ func NewEngine(
 	}
 }
 
-type engine struct {
+type Engine struct {
 	stepperFactory StepperFactory
 	release        chan bool
 	trackedStates  *sync.Map
@@ -59,7 +48,7 @@ type engine struct {
 	varSourcePool creds.VarSourcePool
 }
 
-func (engine *engine) Drain(ctx context.Context) {
+func (engine Engine) Drain(ctx context.Context) {
 	logger := lagerctx.FromContext(ctx)
 
 	logger.Info("start")
@@ -72,7 +61,7 @@ func (engine *engine) Drain(ctx context.Context) {
 	engine.waitGroup.Wait()
 }
 
-func (engine *engine) NewBuild(build db.Build) Runnable {
+func (engine Engine) NewBuild(build db.Build) builds.Runnable {
 	return NewBuild(
 		build,
 		engine.stepperFactory,
@@ -92,7 +81,7 @@ func NewBuild(
 	release chan bool,
 	trackedStates *sync.Map,
 	waitGroup *sync.WaitGroup,
-) Runnable {
+) builds.Runnable {
 	return &engineBuild{
 		build:   build,
 		builder: builder,
@@ -221,7 +210,6 @@ func (b *engineBuild) Run(ctx context.Context) {
 				runErr = err
 			}
 		}()
-
 		succeeded, runErr = state.Run(lagerctx.NewContext(ctx, logger), b.build.PrivatePlan())
 	}()
 

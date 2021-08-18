@@ -2,7 +2,11 @@ package atc
 
 import "encoding/json"
 
-func (plan Plan) Public() *json.RawMessage {
+func (plan *Plan) Public() *json.RawMessage {
+	if plan == nil {
+		return nil
+	}
+
 	var public struct {
 		ID PlanID `json:"id,omitempty"`
 
@@ -179,15 +183,19 @@ func (plan EnsurePlan) Public() *json.RawMessage {
 
 func (plan GetPlan) Public() *json.RawMessage {
 	return enc(struct {
-		Name     string   `json:"name"`
-		Type     string   `json:"type"`
-		Resource string   `json:"resource,omitempty"`
-		Version  *Version `json:"version,omitempty"`
+		Name           string           `json:"name"`
+		Type           string           `json:"type"`
+		Resource       string           `json:"resource,omitempty"`
+		Version        *Version         `json:"version,omitempty"`
+		ImageGetPlan   *json.RawMessage `json:"image_get_plan,omitempty"`
+		ImageCheckPlan *json.RawMessage `json:"image_check_plan,omitempty"`
 	}{
-		Type:     plan.Type,
-		Name:     plan.Name,
-		Resource: plan.Resource,
-		Version:  plan.Version,
+		Type:           plan.Type,
+		Name:           plan.Name,
+		Resource:       plan.Resource,
+		Version:        plan.Version,
+		ImageGetPlan:   plan.TypeImage.GetPlan.Public(),
+		ImageCheckPlan: plan.TypeImage.CheckPlan.Public(),
 	})
 }
 
@@ -245,23 +253,31 @@ func (plan OnSuccessPlan) Public() *json.RawMessage {
 
 func (plan PutPlan) Public() *json.RawMessage {
 	return enc(struct {
-		Name     string `json:"name"`
-		Type     string `json:"type"`
-		Resource string `json:"resource,omitempty"`
+		Name           string           `json:"name"`
+		Type           string           `json:"type"`
+		Resource       string           `json:"resource,omitempty"`
+		ImageGetPlan   *json.RawMessage `json:"image_get_plan,omitempty"`
+		ImageCheckPlan *json.RawMessage `json:"image_check_plan,omitempty"`
 	}{
-		Type:     plan.Type,
-		Name:     plan.Name,
-		Resource: plan.Resource,
+		Type:           plan.Type,
+		Name:           plan.Name,
+		Resource:       plan.Resource,
+		ImageGetPlan:   plan.TypeImage.GetPlan.Public(),
+		ImageCheckPlan: plan.TypeImage.CheckPlan.Public(),
 	})
 }
 
 func (plan CheckPlan) Public() *json.RawMessage {
 	return enc(struct {
-		Name string `json:"name"`
-		Type string `json:"type"`
+		Name           string           `json:"name"`
+		Type           string           `json:"type"`
+		ImageGetPlan   *json.RawMessage `json:"image_get_plan,omitempty"`
+		ImageCheckPlan *json.RawMessage `json:"image_check_plan,omitempty"`
 	}{
-		Type: plan.Type,
-		Name: plan.Name,
+		Type:           plan.Type,
+		Name:           plan.Name,
+		ImageGetPlan:   plan.TypeImage.GetPlan.Public(),
+		ImageCheckPlan: plan.TypeImage.CheckPlan.Public(),
 	})
 }
 
