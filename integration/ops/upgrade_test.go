@@ -8,6 +8,8 @@ import (
 )
 
 func TestUpgrade(t *testing.T) {
+	t.Skip("See https://github.com/concourse/concourse/issues/7397")
+
 	t.Parallel()
 
 	latestDC := dctest.Init(t, "../docker-compose.yml", "overrides/named.yml", "overrides/latest.yml")
