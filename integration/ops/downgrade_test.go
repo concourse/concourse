@@ -9,6 +9,8 @@ import (
 )
 
 func TestDowngrade(t *testing.T) {
+	t.Skip("See https://github.com/concourse/concourse/issues/7397")
+
 	t.Parallel()
 
 	devDC := dctest.Init(t, "../docker-compose.yml", "overrides/named.yml")
