@@ -2,13 +2,13 @@ package configserver
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
+	. "github.com/concourse/concourse/atc/api/helpers"
 	"github.com/concourse/concourse/atc/configvalidate"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
@@ -33,7 +33,7 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 		_, err := fmt.Sscanf(configVersionStr, "%d", &version)
 		if err != nil {
 			session.Error("malformed-config-version", err)
-			s.handleBadRequest(w, fmt.Sprintf("config version is malformed: %s", err))
+			HandleBadRequest(w, fmt.Sprintf("config version is malformed: %s", err))
 			return
 		}
 	}
@@ -43,7 +43,7 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	case "application/json", "application/x-yaml":
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
-			s.handleBadRequest(w, fmt.Sprintf("read failed: %s", err))
+			HandleBadRequest(w, fmt.Sprintf("read failed: %s", err))
 			return
 		}
 
@@ -53,7 +53,7 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 				"content-type": r.Header.Get("Content-Type"),
 			})
 
-			s.handleBadRequest(w, fmt.Sprintf("malformed config: %s", err))
+			HandleBadRequest(w, fmt.Sprintf("malformed config: %s", err))
 			return
 		}
 	default:
@@ -64,7 +64,7 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	warnings, errorMessages := configvalidate.Validate(config)
 	if len(errorMessages) > 0 {
 		session.Info("ignoring-invalid-config", lager.Data{"errors": errorMessages})
-		s.handleBadRequest(w, errorMessages...)
+		HandleBadRequest(w, errorMessages...)
 		return
 	}
 
@@ -72,7 +72,7 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	warning, err := atc.ValidateIdentifier(pipelineName, "pipeline")
 	if err != nil {
 		session.Info("ignoring-pipeline-name", lager.Data{"error": err.Error()})
-		s.handleBadRequest(w, err.Error())
+		HandleBadRequest(w, err.Error())
 		return
 	}
 	if warning != nil {
@@ -83,7 +83,7 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	warning, err = atc.ValidateIdentifier(teamName, "team")
 	if err != nil {
 		session.Info("ignoring-team-name", lager.Data{"error": err.Error()})
-		s.handleBadRequest(w, err.Error())
+		HandleBadRequest(w, err.Error())
 		return
 	}
 	if warning != nil {
@@ -95,11 +95,11 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	if atc.EnablePipelineInstances {
 		if err != nil {
 			session.Error("malformed-instance-vars", err)
-			s.handleBadRequest(w, fmt.Sprintf("instance vars are malformed: %v", err))
+			HandleBadRequest(w, fmt.Sprintf("instance vars are malformed: %v", err))
 			return
 		}
 	} else if pipelineRef.InstanceVars != nil {
-		s.handleBadRequest(w, "support for `instance vars` is disabled")
+		HandleBadRequest(w, "support for `instance vars` is disabled")
 		return
 	}
 
@@ -108,7 +108,7 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 
 		errs := validateCredParams(variables, config, session)
 		if errs != nil {
-			s.handleBadRequest(w, fmt.Sprintf("credential validation failed\n\n%s", errs))
+			HandleBadRequest(w, fmt.Sprintf("credential validation failed\n\n%s", errs))
 			return
 		}
 	}
@@ -152,7 +152,7 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}
 
-	s.writeSaveConfigResponse(w, atc.SaveConfigResponse{Warnings: warnings})
+	WriteSaveConfigResponse(w, atc.SaveConfigResponse{Warnings: warnings})
 }
 
 // Simply validate that the credentials exist; don't do anything with the actual secrets
@@ -218,27 +218,4 @@ func validateCredParams(credMgrVars vars.Variables, config atc.Config, session l
 	}
 
 	return errs
-}
-
-func (s *Server) handleBadRequest(w http.ResponseWriter, errorMessages ...string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusBadRequest)
-	s.writeSaveConfigResponse(w, atc.SaveConfigResponse{
-		Errors: errorMessages,
-	})
-}
-
-func (s *Server) writeSaveConfigResponse(w http.ResponseWriter, saveConfigResponse atc.SaveConfigResponse) {
-	responseJSON, err := json.Marshal(saveConfigResponse)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "failed to generate error response: %s", err)
-		return
-	}
-
-	_, err = w.Write(responseJSON)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
 }

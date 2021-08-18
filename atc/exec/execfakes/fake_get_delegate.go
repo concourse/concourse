@@ -23,21 +23,23 @@ type FakeGetDelegate struct {
 		arg1 lager.Logger
 		arg2 string
 	}
-	FetchImageStub        func(context.Context, atc.ImageResource, atc.VersionedResourceTypes, bool) (runtime.ImageSpec, error)
+	FetchImageStub        func(context.Context, atc.Plan, *atc.Plan, bool) (runtime.ImageSpec, db.ResourceCache, error)
 	fetchImageMutex       sync.RWMutex
 	fetchImageArgsForCall []struct {
 		arg1 context.Context
-		arg2 atc.ImageResource
-		arg3 atc.VersionedResourceTypes
+		arg2 atc.Plan
+		arg3 *atc.Plan
 		arg4 bool
 	}
 	fetchImageReturns struct {
 		result1 runtime.ImageSpec
-		result2 error
+		result2 db.ResourceCache
+		result3 error
 	}
 	fetchImageReturnsOnCall map[int]struct {
 		result1 runtime.ImageSpec
-		result2 error
+		result2 db.ResourceCache
+		result3 error
 	}
 	FinishedStub        func(lager.Logger, exec.ExitStatus, resource.VersionResult)
 	finishedMutex       sync.RWMutex
@@ -97,12 +99,12 @@ type FakeGetDelegate struct {
 	stdoutReturnsOnCall map[int]struct {
 		result1 io.Writer
 	}
-	UpdateMetadataStub        func(lager.Logger, string, db.UsedResourceCache, resource.VersionResult)
+	UpdateMetadataStub        func(lager.Logger, string, db.ResourceCache, resource.VersionResult)
 	updateMetadataMutex       sync.RWMutex
 	updateMetadataArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 string
-		arg3 db.UsedResourceCache
+		arg3 db.ResourceCache
 		arg4 resource.VersionResult
 	}
 	WaitingForWorkerStub        func(lager.Logger)
@@ -147,13 +149,13 @@ func (fake *FakeGetDelegate) ErroredArgsForCall(i int) (lager.Logger, string) {
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeGetDelegate) FetchImage(arg1 context.Context, arg2 atc.ImageResource, arg3 atc.VersionedResourceTypes, arg4 bool) (runtime.ImageSpec, error) {
+func (fake *FakeGetDelegate) FetchImage(arg1 context.Context, arg2 atc.Plan, arg3 *atc.Plan, arg4 bool) (runtime.ImageSpec, db.ResourceCache, error) {
 	fake.fetchImageMutex.Lock()
 	ret, specificReturn := fake.fetchImageReturnsOnCall[len(fake.fetchImageArgsForCall)]
 	fake.fetchImageArgsForCall = append(fake.fetchImageArgsForCall, struct {
 		arg1 context.Context
-		arg2 atc.ImageResource
-		arg3 atc.VersionedResourceTypes
+		arg2 atc.Plan
+		arg3 *atc.Plan
 		arg4 bool
 	}{arg1, arg2, arg3, arg4})
 	stub := fake.FetchImageStub
@@ -164,9 +166,9 @@ func (fake *FakeGetDelegate) FetchImage(arg1 context.Context, arg2 atc.ImageReso
 		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
-		return ret.result1, ret.result2
+		return ret.result1, ret.result2, ret.result3
 	}
-	return fakeReturns.result1, fakeReturns.result2
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
 func (fake *FakeGetDelegate) FetchImageCallCount() int {
@@ -175,43 +177,46 @@ func (fake *FakeGetDelegate) FetchImageCallCount() int {
 	return len(fake.fetchImageArgsForCall)
 }
 
-func (fake *FakeGetDelegate) FetchImageCalls(stub func(context.Context, atc.ImageResource, atc.VersionedResourceTypes, bool) (runtime.ImageSpec, error)) {
+func (fake *FakeGetDelegate) FetchImageCalls(stub func(context.Context, atc.Plan, *atc.Plan, bool) (runtime.ImageSpec, db.ResourceCache, error)) {
 	fake.fetchImageMutex.Lock()
 	defer fake.fetchImageMutex.Unlock()
 	fake.FetchImageStub = stub
 }
 
-func (fake *FakeGetDelegate) FetchImageArgsForCall(i int) (context.Context, atc.ImageResource, atc.VersionedResourceTypes, bool) {
+func (fake *FakeGetDelegate) FetchImageArgsForCall(i int) (context.Context, atc.Plan, *atc.Plan, bool) {
 	fake.fetchImageMutex.RLock()
 	defer fake.fetchImageMutex.RUnlock()
 	argsForCall := fake.fetchImageArgsForCall[i]
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
-func (fake *FakeGetDelegate) FetchImageReturns(result1 runtime.ImageSpec, result2 error) {
+func (fake *FakeGetDelegate) FetchImageReturns(result1 runtime.ImageSpec, result2 db.ResourceCache, result3 error) {
 	fake.fetchImageMutex.Lock()
 	defer fake.fetchImageMutex.Unlock()
 	fake.FetchImageStub = nil
 	fake.fetchImageReturns = struct {
 		result1 runtime.ImageSpec
-		result2 error
-	}{result1, result2}
+		result2 db.ResourceCache
+		result3 error
+	}{result1, result2, result3}
 }
 
-func (fake *FakeGetDelegate) FetchImageReturnsOnCall(i int, result1 runtime.ImageSpec, result2 error) {
+func (fake *FakeGetDelegate) FetchImageReturnsOnCall(i int, result1 runtime.ImageSpec, result2 db.ResourceCache, result3 error) {
 	fake.fetchImageMutex.Lock()
 	defer fake.fetchImageMutex.Unlock()
 	fake.FetchImageStub = nil
 	if fake.fetchImageReturnsOnCall == nil {
 		fake.fetchImageReturnsOnCall = make(map[int]struct {
 			result1 runtime.ImageSpec
-			result2 error
+			result2 db.ResourceCache
+			result3 error
 		})
 	}
 	fake.fetchImageReturnsOnCall[i] = struct {
 		result1 runtime.ImageSpec
-		result2 error
-	}{result1, result2}
+		result2 db.ResourceCache
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakeGetDelegate) Finished(arg1 lager.Logger, arg2 exec.ExitStatus, arg3 resource.VersionResult) {
@@ -517,12 +522,12 @@ func (fake *FakeGetDelegate) StdoutReturnsOnCall(i int, result1 io.Writer) {
 	}{result1}
 }
 
-func (fake *FakeGetDelegate) UpdateMetadata(arg1 lager.Logger, arg2 string, arg3 db.UsedResourceCache, arg4 resource.VersionResult) {
+func (fake *FakeGetDelegate) UpdateMetadata(arg1 lager.Logger, arg2 string, arg3 db.ResourceCache, arg4 resource.VersionResult) {
 	fake.updateMetadataMutex.Lock()
 	fake.updateMetadataArgsForCall = append(fake.updateMetadataArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 string
-		arg3 db.UsedResourceCache
+		arg3 db.ResourceCache
 		arg4 resource.VersionResult
 	}{arg1, arg2, arg3, arg4})
 	stub := fake.UpdateMetadataStub
@@ -539,13 +544,13 @@ func (fake *FakeGetDelegate) UpdateMetadataCallCount() int {
 	return len(fake.updateMetadataArgsForCall)
 }
 
-func (fake *FakeGetDelegate) UpdateMetadataCalls(stub func(lager.Logger, string, db.UsedResourceCache, resource.VersionResult)) {
+func (fake *FakeGetDelegate) UpdateMetadataCalls(stub func(lager.Logger, string, db.ResourceCache, resource.VersionResult)) {
 	fake.updateMetadataMutex.Lock()
 	defer fake.updateMetadataMutex.Unlock()
 	fake.UpdateMetadataStub = stub
 }
 
-func (fake *FakeGetDelegate) UpdateMetadataArgsForCall(i int) (lager.Logger, string, db.UsedResourceCache, resource.VersionResult) {
+func (fake *FakeGetDelegate) UpdateMetadataArgsForCall(i int) (lager.Logger, string, db.ResourceCache, resource.VersionResult) {
 	fake.updateMetadataMutex.RLock()
 	defer fake.updateMetadataMutex.RUnlock()
 	argsForCall := fake.updateMetadataArgsForCall[i]

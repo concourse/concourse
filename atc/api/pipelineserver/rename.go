@@ -7,6 +7,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
+	. "github.com/concourse/concourse/atc/api/helpers"
 	"github.com/concourse/concourse/atc/db"
 )
 
@@ -34,6 +35,8 @@ func (s *Server) RenamePipeline(team db.Team) http.Handler {
 		warning, err := atc.ValidateIdentifier(rename.NewName, "pipeline")
 		if err != nil {
 			errs = append(errs, err.Error())
+			HandleBadRequest(w, errs...)
+			return
 		}
 		if warning != nil {
 			warnings = append(warnings, *warning)

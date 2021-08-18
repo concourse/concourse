@@ -21,13 +21,14 @@ type FakeTaskDelegate struct {
 		arg1 lager.Logger
 		arg2 string
 	}
-	FetchImageStub        func(context.Context, atc.ImageResource, atc.VersionedResourceTypes, bool) (runtime.ImageSpec, error)
+	FetchImageStub        func(context.Context, atc.ImageResource, atc.ResourceTypes, bool, atc.Tags) (runtime.ImageSpec, error)
 	fetchImageMutex       sync.RWMutex
 	fetchImageArgsForCall []struct {
 		arg1 context.Context
 		arg2 atc.ImageResource
-		arg3 atc.VersionedResourceTypes
+		arg3 atc.ResourceTypes
 		arg4 bool
+		arg5 atc.Tags
 	}
 	fetchImageReturns struct {
 		result1 runtime.ImageSpec
@@ -141,21 +142,22 @@ func (fake *FakeTaskDelegate) ErroredArgsForCall(i int) (lager.Logger, string) {
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeTaskDelegate) FetchImage(arg1 context.Context, arg2 atc.ImageResource, arg3 atc.VersionedResourceTypes, arg4 bool) (runtime.ImageSpec, error) {
+func (fake *FakeTaskDelegate) FetchImage(arg1 context.Context, arg2 atc.ImageResource, arg3 atc.ResourceTypes, arg4 bool, arg5 atc.Tags) (runtime.ImageSpec, error) {
 	fake.fetchImageMutex.Lock()
 	ret, specificReturn := fake.fetchImageReturnsOnCall[len(fake.fetchImageArgsForCall)]
 	fake.fetchImageArgsForCall = append(fake.fetchImageArgsForCall, struct {
 		arg1 context.Context
 		arg2 atc.ImageResource
-		arg3 atc.VersionedResourceTypes
+		arg3 atc.ResourceTypes
 		arg4 bool
-	}{arg1, arg2, arg3, arg4})
+		arg5 atc.Tags
+	}{arg1, arg2, arg3, arg4, arg5})
 	stub := fake.FetchImageStub
 	fakeReturns := fake.fetchImageReturns
-	fake.recordInvocation("FetchImage", []interface{}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("FetchImage", []interface{}{arg1, arg2, arg3, arg4, arg5})
 	fake.fetchImageMutex.Unlock()
 	if stub != nil {
-		return stub(arg1, arg2, arg3, arg4)
+		return stub(arg1, arg2, arg3, arg4, arg5)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -169,17 +171,17 @@ func (fake *FakeTaskDelegate) FetchImageCallCount() int {
 	return len(fake.fetchImageArgsForCall)
 }
 
-func (fake *FakeTaskDelegate) FetchImageCalls(stub func(context.Context, atc.ImageResource, atc.VersionedResourceTypes, bool) (runtime.ImageSpec, error)) {
+func (fake *FakeTaskDelegate) FetchImageCalls(stub func(context.Context, atc.ImageResource, atc.ResourceTypes, bool, atc.Tags) (runtime.ImageSpec, error)) {
 	fake.fetchImageMutex.Lock()
 	defer fake.fetchImageMutex.Unlock()
 	fake.FetchImageStub = stub
 }
 
-func (fake *FakeTaskDelegate) FetchImageArgsForCall(i int) (context.Context, atc.ImageResource, atc.VersionedResourceTypes, bool) {
+func (fake *FakeTaskDelegate) FetchImageArgsForCall(i int) (context.Context, atc.ImageResource, atc.ResourceTypes, bool, atc.Tags) {
 	fake.fetchImageMutex.RLock()
 	defer fake.fetchImageMutex.RUnlock()
 	argsForCall := fake.fetchImageArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5
 }
 
 func (fake *FakeTaskDelegate) FetchImageReturns(result1 runtime.ImageSpec, result2 error) {

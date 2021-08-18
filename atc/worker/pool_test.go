@@ -334,19 +334,17 @@ var _ = Describe("Pool", func() {
 			scenario := Setup(
 				workertest.WithWorkers(
 					grt.NewWorker("worker1").
-						WithDBContainersInState(grt.Creating, "container1").
 						WithVolumesCreatedInDBAndBaggageclaim(
 							grt.NewVolume("resource-cache-1"),
 						),
 					grt.NewWorker("worker2").
-						WithDBContainersInState(grt.Creating, "container2").
 						WithVolumesCreatedInDBAndBaggageclaim(
 							grt.NewVolume("resource-cache-2"),
 						),
 					grt.NewWorker("worker3"),
 				),
 			)
-			resourceCache := scenario.FindOrCreateResourceCache("worker1", "container1")
+			resourceCache := scenario.FindOrCreateResourceCache("worker1")
 
 			err := scenario.WorkerVolume("worker1", "resource-cache-1").InitializeResourceCache(logger, resourceCache)
 			Expect(err).ToNot(HaveOccurred())
@@ -364,19 +362,17 @@ var _ = Describe("Pool", func() {
 			scenario := Setup(
 				workertest.WithWorkers(
 					grt.NewWorker("worker1").
-						WithDBContainersInState(grt.Creating, "container1").
 						WithVolumesCreatedInDBAndBaggageclaim(
 							grt.NewVolume("resource-cache-1"),
 						),
 					grt.NewWorker("worker2").
-						WithDBContainersInState(grt.Creating, "container2").
 						WithVolumesCreatedInDBAndBaggageclaim(
 							grt.NewVolume("resource-cache-2"),
 						),
 					grt.NewWorker("worker3"),
 				),
 			)
-			resourceCache := scenario.FindOrCreateResourceCache("worker1", "container1")
+			resourceCache := scenario.FindOrCreateResourceCache("worker1")
 
 			err := scenario.WorkerVolume("worker1", "resource-cache-1").InitializeResourceCache(logger, resourceCache)
 			Expect(err).ToNot(HaveOccurred())
@@ -399,14 +395,13 @@ var _ = Describe("Pool", func() {
 			scenario := Setup(
 				workertest.WithWorkers(
 					grt.NewWorker("worker1").
-						WithDBContainersInState(grt.Creating, "container1").
 						WithVolumesCreatedInDBAndBaggageclaim(
 							grt.NewVolume("resource-cache-1"),
 						).
 						WithState(db.WorkerStateStalled),
 				),
 			)
-			resourceCache := scenario.FindOrCreateResourceCache("worker1", "container1")
+			resourceCache := scenario.FindOrCreateResourceCache("worker1")
 
 			err := scenario.WorkerVolume("worker1", "resource-cache-1").InitializeResourceCache(logger, resourceCache)
 			Expect(err).ToNot(HaveOccurred())
@@ -422,19 +417,17 @@ var _ = Describe("Pool", func() {
 			scenario := Setup(
 				workertest.WithWorkers(
 					grt.NewWorker("worker1").
-						WithDBContainersInState(grt.Creating, "container1").
 						WithVolumesCreatedInDBAndBaggageclaim(
 							grt.NewVolume("resource-cache-1"),
 						),
 					grt.NewWorker("worker2").
-						WithDBContainersInState(grt.Creating, "container2").
 						WithVolumesCreatedInDBAndBaggageclaim(
 							grt.NewVolume("resource-cache-2"),
 						),
 					grt.NewWorker("worker3"),
 				),
 			)
-			resourceCache := scenario.FindOrCreateResourceCache("worker1", "container1")
+			resourceCache := scenario.FindOrCreateResourceCache("worker1")
 
 			err := scenario.WorkerVolume("worker1", "resource-cache-1").InitializeResourceCache(logger, resourceCache)
 			Expect(err).ToNot(HaveOccurred())
@@ -452,14 +445,13 @@ var _ = Describe("Pool", func() {
 			scenario := Setup(
 				workertest.WithWorkers(
 					grt.NewWorker("worker1").
-						WithDBContainersInState(grt.Creating, "container1").
 						WithVolumesCreatedInDBAndBaggageclaim(
 							grt.NewVolume("resource-cache-1"),
 						),
 				),
 			)
 
-			resourceCache := scenario.FindOrCreateResourceCache("worker1", "container1")
+			resourceCache := scenario.FindOrCreateResourceCache("worker1")
 
 			err := scenario.WorkerVolume("worker1", "resource-cache-1").InitializeResourceCache(logger, resourceCache)
 			Expect(err).ToNot(HaveOccurred())
@@ -474,14 +466,13 @@ var _ = Describe("Pool", func() {
 			scenario := Setup(
 				workertest.WithWorkers(
 					grt.NewWorker("stalled-worker").
-						WithDBContainersInState(grt.Creating, "container1").
 						WithVolumesCreatedInDBAndBaggageclaim(
 							grt.NewVolume("resource-cache-1"),
 						).
 						WithState(db.WorkerStateStalled),
 				),
 			)
-			resourceCache := scenario.FindOrCreateResourceCache("stalled-worker", "container1")
+			resourceCache := scenario.FindOrCreateResourceCache("stalled-worker")
 
 			err := scenario.WorkerVolume("stalled-worker", "resource-cache-1").InitializeResourceCache(logger, resourceCache)
 			Expect(err).ToNot(HaveOccurred())

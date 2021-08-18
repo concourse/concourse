@@ -12,13 +12,11 @@ var _ = Describe("ResourceConfig", func() {
 
 	Context("when non-unique", func() {
 		BeforeEach(func() {
-			types, err := defaultPipeline.ResourceTypes()
-			Expect(err).ToNot(HaveOccurred())
-
+			var err error
 			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(
 				defaultWorkerResourceType.Type,
 				atc.Source{"some": "source"},
-				types.Deserialize(),
+				nil,
 			)
 			Expect(err).ToNot(HaveOccurred())
 		})
@@ -79,13 +77,11 @@ var _ = Describe("ResourceConfig", func() {
 
 	Context("when using a unique base resource type", func() {
 		BeforeEach(func() {
-			types, err := defaultPipeline.ResourceTypes()
-			Expect(err).ToNot(HaveOccurred())
-
+			var err error
 			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(
 				uniqueWorkerResourceType.Type,
 				atc.Source{"some": "source"},
-				types.Deserialize(),
+				nil,
 			)
 			Expect(err).ToNot(HaveOccurred())
 		})

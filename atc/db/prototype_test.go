@@ -215,18 +215,27 @@ var _ = Describe("Prototype", func() {
 
 		It("returns a plan which will update the prototype", func() {
 			defaults := atc.Source{"sdk": "sdv"}
-			Expect(prototype.CheckPlan(atc.Version{"some": "version"}, time.Minute, resourceTypes, defaults)).To(Equal(atc.CheckPlan{
-				Name:   prototype.Name(),
-				Type:   prototype.Type(),
-				Source: defaults.Merge(prototype.Source()),
-				Tags:   prototype.Tags(),
+			Expect(prototype.CheckPlan(atc.NewPlanFactory(0), resourceTypes.Deserialize(), atc.Version{"some": "version"}, atc.CheckEvery{Interval: 1 * time.Hour}, defaults, false, false)).To(Equal(
+				atc.Plan{
+					ID: atc.PlanID("1"),
+					Check: &atc.CheckPlan{
+						Name:   prototype.Name(),
+						Type:   prototype.Type(),
+						Source: defaults.Merge(prototype.Source()),
+						Tags:   prototype.Tags(),
 
-				FromVersion:            atc.Version{"some": "version"},
-				Interval:               "1m0s",
-				VersionedResourceTypes: resourceTypes.Deserialize(),
+						FromVersion: atc.Version{"some": "version"},
+						Interval: atc.CheckEvery{
+							Interval: 1 * time.Hour,
+						},
 
-				Prototype: prototype.Name(),
-			}))
+						TypeImage: atc.TypeImage{
+							BaseType: "registry-image",
+						},
+
+						Prototype: prototype.Name(),
+					},
+				}))
 		})
 	})
 

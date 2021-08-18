@@ -4,11 +4,11 @@ import Application.Application as Application
 import Assets
 import Char
 import ColorValues
-import Common exposing (defineHoverBehaviour, hoverOver, queryView)
-import Concourse exposing (JsonValue(..), defaultFeatureFlags)
+import Common exposing (defineHoverBehaviour, hoverOver, initCustomOpts, queryView)
+import Concourse exposing (JsonValue(..))
 import Dashboard.SearchBar as SearchBar
 import DashboardTests exposing (iconSelector)
-import Data
+import Data exposing (featureFlags)
 import Dict
 import Expect exposing (..)
 import Html.Attributes as Attr
@@ -106,16 +106,6 @@ searchBarWidth =
 searchBarPadding : String
 searchBarPadding =
     "0 42px"
-
-
-flags : Application.Flags
-flags =
-    { turbulenceImgSrc = ""
-    , notFoundImgSrc = ""
-    , csrfToken = ""
-    , authToken = ""
-    , pipelineRunningKeyframes = ""
-    }
 
 
 instanceVars : Concourse.InstanceVars
@@ -796,8 +786,8 @@ all =
                 ]
             ]
         , rspecStyleDescribe "rendering top bar on causality page"
-            (Common.init "/teams/team/pipelines/pipeline/resources/resource/causality/1/downstream"
-                |> Common.withFeatureFlags { defaultFeatureFlags | resourceCausality = True }
+            (Common.initCustom { initCustomOpts | featureFlags = { featureFlags | resource_causality = True } }
+                "/teams/team/pipelines/pipeline/resources/resource/causality/1/downstream"
                 |> Application.handleCallback
                     (Callback.AllPipelinesFetched <|
                         Ok [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]

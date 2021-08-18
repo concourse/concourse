@@ -19,7 +19,7 @@ type VolumeRepository interface {
 	FindBaseResourceTypeVolume(*UsedWorkerBaseResourceType) (CreatingVolume, CreatedVolume, error)
 	CreateBaseResourceTypeVolume(*UsedWorkerBaseResourceType) (CreatingVolume, error)
 
-	FindResourceCacheVolume(workerName string, resourceCache UsedResourceCache) (CreatedVolume, bool, error)
+	FindResourceCacheVolume(workerName string, resourceCache ResourceCache) (CreatedVolume, bool, error)
 
 	FindTaskCacheVolume(teamID int, workerName string, taskCache UsedTaskCache) (CreatedVolume, bool, error)
 	CreateTaskCacheVolume(teamID int, uwtc *UsedWorkerTaskCache) (CreatingVolume, error)
@@ -438,7 +438,7 @@ func (repository *volumeRepository) CreateResourceCertsVolume(workerName string,
 	return volume, nil
 }
 
-func (repository *volumeRepository) FindResourceCacheVolume(workerName string, resourceCache UsedResourceCache) (CreatedVolume, bool, error) {
+func (repository *volumeRepository) FindResourceCacheVolume(workerName string, resourceCache ResourceCache) (CreatedVolume, bool, error) {
 	workerResourceCache, found, err := WorkerResourceCache{
 		WorkerName:    workerName,
 		ResourceCache: resourceCache,

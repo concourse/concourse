@@ -4,6 +4,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/format"
 )
 
 var _ = Describe("Plan", func() {
@@ -30,7 +31,6 @@ var _ = Describe("Plan", func() {
 								},
 							},
 						},
-
 						{
 							ID: "3",
 							Get: &atc.GetPlan{
@@ -41,9 +41,115 @@ var _ = Describe("Plan", func() {
 								Params:   atc.Params{"some": "params"},
 								Version:  &atc.Version{"some": "version"},
 								Tags:     atc.Tags{"tags"},
+								TypeImage: atc.TypeImage{
+									BaseType: "some-base-type",
+									GetPlan: &atc.Plan{
+										ID: "3/image-get",
+										Get: &atc.GetPlan{
+											Type:   "some-base-type",
+											Name:   "name",
+											Source: atc.Source{"some": "source"},
+											TypeImage: atc.TypeImage{
+												BaseType: "some-base-type",
+											},
+										},
+									},
+									CheckPlan: &atc.Plan{
+										ID: "3/image-check",
+										Check: &atc.CheckPlan{
+											Type:   "some-base-type",
+											Name:   "name",
+											Source: atc.Source{"some": "source"},
+											TypeImage: atc.TypeImage{
+												BaseType: "some-base-type",
+											},
+										},
+									},
+								},
 							},
 						},
 
+						{
+							ID: "3.1",
+							Get: &atc.GetPlan{
+								Name:     "name",
+								Resource: "resource",
+								Type:     "some-custom-type",
+								Source:   atc.Source{"some": "source"},
+								Params:   atc.Params{"some": "params"},
+								Version:  &atc.Version{"some": "version"},
+								Tags:     atc.Tags{"tags"},
+								TypeImage: atc.TypeImage{
+									BaseType: "some-base-type",
+									GetPlan: &atc.Plan{
+										ID: "3.1/image-get",
+										Get: &atc.GetPlan{
+											Name:   "some-custom-type",
+											Type:   "second-custom-type",
+											Source: atc.Source{"custom": "source"},
+											TypeImage: atc.TypeImage{
+												BaseType: "some-base-type",
+												GetPlan: &atc.Plan{
+													ID: "3.1/image-get/image-get",
+													Get: &atc.GetPlan{
+														Name:   "second-custom-type",
+														Type:   "some-base-type",
+														Source: atc.Source{"custom": "second-source"},
+														TypeImage: atc.TypeImage{
+															BaseType: "some-base-type",
+														},
+													},
+												},
+												CheckPlan: &atc.Plan{
+													ID: "3.1/image-get/image-check",
+													Check: &atc.CheckPlan{
+														Name:   "second-custom-type",
+														Type:   "some-base-type",
+														Source: atc.Source{"custom": "second-source"},
+														TypeImage: atc.TypeImage{
+															BaseType: "some-base-type",
+														},
+													},
+												},
+											},
+										},
+									},
+									CheckPlan: &atc.Plan{
+										ID: "3.1/image-check",
+										Check: &atc.CheckPlan{
+											Name:   "some-custom-type",
+											Type:   "second-custom-type",
+											Source: atc.Source{"custom": "source"},
+											TypeImage: atc.TypeImage{
+												BaseType: "some-base-type",
+												GetPlan: &atc.Plan{
+													ID: "3.1/image-check/image-get",
+													Get: &atc.GetPlan{
+														Name:   "second-custom-type",
+														Type:   "some-base-type",
+														Source: atc.Source{"custom": "second-source"},
+														TypeImage: atc.TypeImage{
+															BaseType: "some-base-type",
+														},
+													},
+												},
+												CheckPlan: &atc.Plan{
+													ID: "3.1/image-check/image-check",
+													Check: &atc.CheckPlan{
+														Name:   "second-custom-type",
+														Type:   "some-base-type",
+														Source: atc.Source{"custom": "second-source"},
+														TypeImage: atc.TypeImage{
+															BaseType: "some-base-type",
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
 						{
 							ID: "4",
 							Put: &atc.PutPlan{
@@ -53,9 +159,33 @@ var _ = Describe("Plan", func() {
 								Source:   atc.Source{"some": "source"},
 								Params:   atc.Params{"some": "params"},
 								Tags:     atc.Tags{"tags"},
+								TypeImage: atc.TypeImage{
+									BaseType: "some-base-type",
+									GetPlan: &atc.Plan{
+										ID: "4/image-get",
+										Get: &atc.GetPlan{
+											Type:   "some-base-type",
+											Name:   "name",
+											Source: atc.Source{"some": "source"},
+											TypeImage: atc.TypeImage{
+												BaseType: "some-base-type",
+											},
+										},
+									},
+									CheckPlan: &atc.Plan{
+										ID: "4/image-check",
+										Check: &atc.CheckPlan{
+											Type:   "some-base-type",
+											Name:   "name",
+											Source: atc.Source{"some": "source"},
+											TypeImage: atc.TypeImage{
+												BaseType: "some-base-type",
+											},
+										},
+									},
+								},
 							},
 						},
-
 						{
 							ID: "4.2",
 							Check: &atc.CheckPlan{
@@ -63,6 +193,31 @@ var _ = Describe("Plan", func() {
 								Name:   "name",
 								Source: atc.Source{"some": "source"},
 								Tags:   atc.Tags{"tags"},
+								TypeImage: atc.TypeImage{
+									BaseType: "some-base-type",
+									GetPlan: &atc.Plan{
+										ID: "4.2/image-get",
+										Get: &atc.GetPlan{
+											Type:   "some-base-type",
+											Name:   "name",
+											Source: atc.Source{"some": "source"},
+											TypeImage: atc.TypeImage{
+												BaseType: "some-base-type",
+											},
+										},
+									},
+									CheckPlan: &atc.Plan{
+										ID: "4.2/image-check",
+										Check: &atc.CheckPlan{
+											Type:   "some-base-type",
+											Name:   "name",
+											Source: atc.Source{"some": "source"},
+											TypeImage: atc.TypeImage{
+												BaseType: "some-base-type",
+											},
+										},
+									},
+								},
 							},
 						},
 
@@ -383,9 +538,19 @@ var _ = Describe("Plan", func() {
 								FailFast:        true,
 							},
 						},
+						{
+							ID: "42",
+							LoadVar: &atc.LoadVarPlan{
+								Name:   "some-name",
+								File:   "some-file",
+								Format: "some-format",
+								Reveal: true,
+							},
+						},
 					},
 				},
 			}
+			format.MaxLength = 999999
 
 			json := plan.Public()
 			Expect(json).ToNot(BeNil())
@@ -407,255 +572,350 @@ var _ = Describe("Plan", func() {
           ]
         }
       },
-      {
-        "id": "3",
-        "get": {
-          "type": "type",
-          "name": "name",
-          "resource": "resource",
-          "version": {
-            "some": "version"
-          }
-        }
-      },
-      {
-        "id": "4",
-        "put": {
-          "type": "type",
-          "name": "name",
-          "resource": "resource"
-        }
-      },
-      {
-        "id": "4.2",
-        "check": {
-          "type": "type",
-          "name": "name"
-        }
-      },
-      {
-        "id": "5",
-        "task": {
-          "name": "name",
-          "privileged": true
-        }
-      },
-      {
-        "id": "6",
-        "ensure": {
-          "step": {
-            "id": "7",
-            "task": {
-              "name": "name",
-              "privileged": false
-            }
-          },
-          "ensure": {
-            "id": "8",
-            "task": {
-              "name": "name",
-              "privileged": false
-            }
-          }
-        }
-      },
-      {
-        "id": "9",
-        "on_success": {
-          "step": {
-            "id": "10",
-            "task": {
-              "name": "name",
-              "privileged": false
-            }
-          },
-          "on_success": {
-            "id": "11",
-            "task": {
-              "name": "name",
-              "privileged": false
-            }
-          }
-        }
-      },
-      {
-        "id": "12",
-        "on_failure": {
-          "step": {
-            "id": "13",
-            "task": {
-              "name": "name",
-              "privileged": false
-            }
-          },
-          "on_failure": {
-            "id": "14",
-            "task": {
-              "name": "name",
-              "privileged": false
-            }
-          }
-        }
-      },
-      {
-        "id": "15",
-        "on_abort": {
-          "step": {
-            "id": "16",
-            "task": {
-              "name": "name",
-              "privileged": false
-            }
-          },
-          "on_abort": {
-            "id": "17",
-            "task": {
-              "name": "name",
-              "privileged": false
-            }
-          }
-        }
-      },
-      {
-        "id": "18",
-        "try": {
-          "step": {
-            "id": "19",
-            "task": {
-              "name": "name",
-              "privileged": false
-            }
-          }
-        }
-      },
-      {
-        "id": "20",
-        "timeout": {
-          "step": {
-            "id": "21",
-            "task": {
-              "name": "name",
-              "privileged": false
-            }
-          },
-          "duration": "lol"
-        }
-      },
-      {
-        "id": "22",
-        "do": [
-          {
-            "id": "23",
-            "task": {
-              "name": "name",
-              "privileged": false
-            }
-          }
-        ]
-      },
-      {
-        "id": "24",
-        "retry": [
-          {
-            "id": "25",
-            "task": {
-              "name": "name",
-              "privileged": false
-            }
-          },
-          {
-            "id": "26",
-            "task": {
-              "name": "name",
-              "privileged": false
-            }
-          },
-          {
-            "id": "27",
-            "task": {
-              "name": "name",
-              "privileged": false
-            }
-          }
-        ]
-      },
-      {
-        "id": "28",
-        "on_abort": {
-          "step": {
-            "id": "29",
-            "task": {
-              "name": "name",
-              "privileged": false
-            }
-          },
-          "on_abort": {
-            "id": "30",
-            "task": {
-              "name": "name",
-              "privileged": false
-            }
-          }
-        }
-      },
-      {
-        "id": "31",
-        "artifact_input": {
-          "artifact_id": 17,
-          "name": "some-name"
-        }
-      },
-      {
-        "id": "32",
-        "artifact_output": {
-          "name": "some-name"
-        }
-      },
-      {
-        "id": "33",
-        "on_error": {
-          "step": {
-            "id": "34",
-            "task": {
-              "name": "name",
-              "privileged": false
-            }
-          },
-          "on_error": {
-            "id": "35",
-            "task": {
-              "name": "name",
-              "privileged": false
-            }
-          }
-        }
-      },
-      {
-        "id": "36",
-        "in_parallel": {
-          "steps": [
-            {
-              "id": "37",
-              "task": {
-                "name": "name",
-                "privileged": false
-              }
-            }
-          ],
-          "limit": 1,
-          "fail_fast": true
-        }
-      },
-      {
-        "id": "38",
-        "set_pipeline": {
-          "name": "some-pipeline",
-          "team": "some-team",
-          "instance_vars": {
-            "branch": "feature/foo"
-          }
-        }
-      },
+			{
+				"id": "3",
+				"get": {
+					"type": "type",
+					"name": "name",
+					"resource": "resource",
+					"version": {
+						"some": "version"
+					},
+					"image_get_plan": {
+						"id": "3/image-get",
+						"get": {
+							"type": "some-base-type",
+							"name": "name"
+						}
+					},
+					"image_check_plan": {
+						"id": "3/image-check",
+						"check": {
+							"type": "some-base-type",
+							"name": "name"
+						}
+					}
+				}
+			},
+			{
+				"id": "3.1",
+				"get": {
+					"name": "name",
+					"type": "some-custom-type",
+					"resource": "resource",
+					"version": {
+						"some": "version"
+					},
+					"image_get_plan": {
+						"id": "3.1/image-get",
+						"get": {
+							"name": "some-custom-type",
+							"type": "second-custom-type",
+							"image_get_plan": {
+								"id": "3.1/image-get/image-get",
+								"get": {
+									"name": "second-custom-type",
+									"type": "some-base-type"
+								}
+							},
+							"image_check_plan": {
+								"id": "3.1/image-get/image-check",
+								"check": {
+									"name": "second-custom-type",
+									"type": "some-base-type"
+								}
+							}
+						}
+					},
+					"image_check_plan": {
+						"id": "3.1/image-check",
+						"check": {
+							"name": "some-custom-type",
+							"type": "second-custom-type",
+							"image_get_plan": {
+								"id": "3.1/image-check/image-get",
+								"get": {
+									"name": "second-custom-type",
+									"type": "some-base-type"
+								}
+							},
+							"image_check_plan": {
+								"id": "3.1/image-check/image-check",
+								"check": {
+									"name": "second-custom-type",
+									"type": "some-base-type"
+								}
+							}
+						}
+					}
+				}
+			},
+			{
+				"id": "4",
+				"put": {
+					"type": "type",
+					"name": "name",
+					"resource": "resource",
+					"image_get_plan": {
+						"id": "4/image-get",
+						"get": {
+							"type": "some-base-type",
+							"name": "name"
+						}
+					},
+					"image_check_plan": {
+						"id": "4/image-check",
+						"check": {
+							"type": "some-base-type",
+							"name": "name"
+						}
+					}
+				}
+			},
+			{
+				"id": "4.2",
+				"check": {
+					"type": "type",
+					"name": "name",
+					"image_get_plan": {
+						"id": "4.2/image-get",
+						"get": {
+							"type": "some-base-type",
+							"name": "name"
+						}
+					},
+					"image_check_plan": {
+						"id": "4.2/image-check",
+						"check": {
+							"type": "some-base-type",
+							"name": "name"
+						}
+					}
+				}
+			},
+			{
+				"id": "5",
+				"task": {
+					"name": "name",
+					"privileged": true
+				}
+			},
+			{
+				"id": "6",
+				"ensure": {
+					"step": {
+						"id": "7",
+						"task": {
+							"name": "name",
+							"privileged": false
+						}
+					},
+					"ensure": {
+						"id": "8",
+						"task": {
+							"name": "name",
+							"privileged": false
+						}
+					}
+				}
+			},
+			{
+				"id": "9",
+				"on_success": {
+					"step": {
+						"id": "10",
+						"task": {
+							"name": "name",
+							"privileged": false
+						}
+					},
+					"on_success": {
+						"id": "11",
+						"task": {
+							"name": "name",
+							"privileged": false
+						}
+					}
+				}
+			},
+			{
+				"id": "12",
+				"on_failure": {
+					"step": {
+						"id": "13",
+						"task": {
+							"name": "name",
+							"privileged": false
+						}
+					},
+					"on_failure": {
+						"id": "14",
+						"task": {
+							"name": "name",
+							"privileged": false
+						}
+					}
+				}
+			},
+			{
+				"id": "15",
+				"on_abort": {
+					"step": {
+						"id": "16",
+						"task": {
+							"name": "name",
+							"privileged": false
+						}
+					},
+					"on_abort": {
+						"id": "17",
+						"task": {
+							"name": "name",
+							"privileged": false
+						}
+					}
+				}
+			},
+			{
+				"id": "18",
+				"try": {
+					"step": {
+						"id": "19",
+						"task": {
+							"name": "name",
+							"privileged": false
+						}
+					}
+				}
+			},
+			{
+				"id": "20",
+				"timeout": {
+					"step": {
+						"id": "21",
+						"task": {
+							"name": "name",
+							"privileged": false
+						}
+					},
+					"duration": "lol"
+				}
+			},
+			{
+				"id": "22",
+				"do": [
+					{
+						"id": "23",
+						"task": {
+							"name": "name",
+							"privileged": false
+						}
+					}
+				]
+			},
+			{
+				"id": "24",
+				"retry": [
+					{
+						"id": "25",
+						"task": {
+							"name": "name",
+							"privileged": false
+						}
+					},
+					{
+						"id": "26",
+						"task": {
+							"name": "name",
+							"privileged": false
+						}
+					},
+					{
+						"id": "27",
+						"task": {
+							"name": "name",
+							"privileged": false
+						}
+					}
+				]
+			},
+			{
+				"id": "28",
+				"on_abort": {
+					"step": {
+						"id": "29",
+						"task": {
+							"name": "name",
+							"privileged": false
+						}
+					},
+					"on_abort": {
+						"id": "30",
+						"task": {
+							"name": "name",
+							"privileged": false
+						}
+					}
+				}
+			},
+			{
+				"id": "31",
+				"artifact_input": {
+					"artifact_id": 17,
+					"name": "some-name"
+				}
+			},
+			{
+				"id": "32",
+				"artifact_output": {
+					"name": "some-name"
+				}
+			},
+			{
+				"id": "33",
+				"on_error": {
+					"step": {
+						"id": "34",
+						"task": {
+							"name": "name",
+							"privileged": false
+						}
+					},
+					"on_error": {
+						"id": "35",
+						"task": {
+							"name": "name",
+							"privileged": false
+						}
+					}
+				}
+			},
+			{
+				"id": "36",
+				"in_parallel": {
+					"steps": [
+						{
+							"id": "37",
+							"task": {
+								"name": "name",
+								"privileged": false
+							}
+						}
+					],
+					"limit": 1,
+					"fail_fast": true
+				}
+			},
+			{
+				"id": "38",
+				"set_pipeline": {
+					"name": "some-pipeline",
+					"team": "some-team",
+					"instance_vars": {
+						"branch": "feature/foo"
+					}
+				}
+			},
       {
         "id": "39",
         "across": {
@@ -669,9 +929,15 @@ var _ = Describe("Plan", func() {
           ],
           "fail_fast": true
         }
-      }
-    ]
-  }
+      },
+			{
+				"id": "42",
+				"load_var": {
+					"name": "some-name"
+				}
+			}
+		]
+	}
 }
 `))
 		})

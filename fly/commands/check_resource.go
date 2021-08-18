@@ -35,14 +35,7 @@ func (command *CheckResourceCommand) Execute(args []string) error {
 		version = *command.Version
 	}
 
-	if !command.Shallow {
-		err = command.checkParent(target)
-		if err != nil {
-			return err
-		}
-	}
-
-	build, found, err := target.Team().CheckResource(command.Resource.PipelineRef, command.Resource.ResourceName, version)
+	build, found, err := target.Team().CheckResource(command.Resource.PipelineRef, command.Resource.ResourceName, version, command.Shallow)
 	if err != nil {
 		return err
 	}
@@ -74,52 +67,3 @@ func (command *CheckResourceCommand) Execute(args []string) error {
 	return nil
 }
 
-func (command *CheckResourceCommand) checkParent(target rc.Target) error {
-	resource, found, err := target.Team().Resource(command.Resource.PipelineRef, command.Resource.ResourceName)
-	if err != nil {
-		return err
-	}
-
-	if !found {
-		return fmt.Errorf("resource '%s' not found\n", command.Resource.ResourceName)
-	}
-
-	resourceTypes, found, err := target.Team().VersionedResourceTypes(command.Resource.PipelineRef)
-	if err != nil {
-		return err
-	}
-
-	if !found {
-		return fmt.Errorf("pipeline '%s' not found\n", command.Resource.PipelineRef.String())
-	}
-
-	parentType, found := command.findParent(resource, resourceTypes)
-	if !found {
-		return nil
-	}
-
-	cmd := &CheckResourceTypeCommand{
-		ResourceType: flaghelpers.ResourceFlag{
-			ResourceName: parentType.Name,
-			PipelineRef:  command.Resource.PipelineRef,
-		},
-	}
-
-	err = cmd.Execute(nil)
-	if err != nil {
-		return err
-	}
-
-	fmt.Println()
-
-	return nil
-}
-
-func (command *CheckResourceCommand) findParent(resource atc.Resource, resourceTypes atc.VersionedResourceTypes) (atc.VersionedResourceType, bool) {
-	for _, t := range resourceTypes {
-		if t.Name != resource.Name && t.Name == resource.Type {
-			return t, true
-		}
-	}
-	return atc.VersionedResourceType{}, false
-}

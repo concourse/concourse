@@ -955,11 +955,9 @@ var _ = Describe("JobFactory", func() {
 					Expect(len(jobs)).To(Equal(1))
 					Expect(jobs[0].Name()).To(Equal(job1.Name()))
 					Expect(jobs[0].ResourceTypes).To(ConsistOf(
-						atc.VersionedResourceType{
-							ResourceType: atc.ResourceType{
-								Name: "some-type",
-								Type: "other-type",
-							},
+						atc.ResourceType{
+							Name: "some-type",
+							Type: "other-type",
 						},
 					))
 				})
@@ -1025,40 +1023,32 @@ var _ = Describe("JobFactory", func() {
 					jobs, err := jobFactory.JobsToSchedule()
 					Expect(err).ToNot(HaveOccurred())
 
-					jobResourceTypes := make(map[string]atc.VersionedResourceTypes)
+					jobResourceTypes := make(map[string]atc.ResourceTypes)
 					for _, job := range jobs {
 						jobResourceTypes[job.Name()] = job.ResourceTypes
 					}
 
 					Expect(jobResourceTypes).To(MatchAllKeys(Keys{
 						job1.Name(): ConsistOf(
-							atc.VersionedResourceType{
-								ResourceType: atc.ResourceType{
-									Name: "some-type",
-									Type: "other-type",
-								},
+							atc.ResourceType{
+								Name: "some-type",
+								Type: "other-type",
 							},
 						),
 						job2.Name(): ConsistOf(
-							atc.VersionedResourceType{
-								ResourceType: atc.ResourceType{
-									Name: "some-type",
-									Type: "other-type",
-								},
+							atc.ResourceType{
+								Name: "some-type",
+								Type: "other-type",
 							},
 						),
 						job3.Name(): ConsistOf(
-							atc.VersionedResourceType{
-								ResourceType: atc.ResourceType{
-									Name: "some-type-1",
-									Type: "other-type-1",
-								},
+							atc.ResourceType{
+								Name: "some-type-1",
+								Type: "other-type-1",
 							},
-							atc.VersionedResourceType{
-								ResourceType: atc.ResourceType{
-									Name: "some-type-2",
-									Type: "other-type-2",
-								},
+							atc.ResourceType{
+								Name: "some-type-2",
+								Type: "other-type-2",
 							},
 						),
 					}))
@@ -1123,15 +1113,13 @@ var _ = Context("SchedulerResource", func() {
 	})
 
 	Context("ApplySourceDefaults", func() {
-		var resourceTypes atc.VersionedResourceTypes
+		var resourceTypes atc.ResourceTypes
 
 		BeforeEach(func() {
-			resourceTypes = atc.VersionedResourceTypes{
+			resourceTypes = atc.ResourceTypes{
 				{
-					ResourceType: atc.ResourceType{
-						Name:     "some-type",
-						Defaults: atc.Source{"default-key": "default-value"},
-					},
+					Name:     "some-type",
+					Defaults: atc.Source{"default-key": "default-value"},
 				},
 			}
 		})
@@ -1154,7 +1142,7 @@ var _ = Context("SchedulerResource", func() {
 
 		Context("when the parent resource is not found", func() {
 			BeforeEach(func() {
-				resourceTypes = atc.VersionedResourceTypes{}
+				resourceTypes = atc.ResourceTypes{}
 				atc.LoadBaseResourceTypeDefaults(map[string]atc.Source{
 					"some-type": {"default-key": "default-value"},
 				})

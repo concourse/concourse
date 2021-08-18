@@ -108,7 +108,7 @@ func (configSource FileConfigSource) Warnings() []string {
 // BaseResourceTypeDefaultsApplySource applies base resource type defaults to image_source.
 type BaseResourceTypeDefaultsApplySource struct {
 	ConfigSource  TaskConfigSource
-	ResourceTypes atc.VersionedResourceTypes
+	ResourceTypes atc.ResourceTypes
 }
 
 func (configSource BaseResourceTypeDefaultsApplySource) FetchConfig(ctx context.Context, logger lager.Logger, repo *build.Repository) (atc.TaskConfig, error) {

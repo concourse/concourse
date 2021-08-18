@@ -108,16 +108,21 @@ init session route =
                 |> Tuple.mapFirst FlySuccessModel
 
         Routes.Causality { id, direction } ->
-            Causality.init
-                { versionId = id
-                , direction = direction
-                }
-                |> Tuple.mapFirst CausalityModel
+            if session.featureFlags.resource_causality then
+                Causality.init
+                    { versionId = id
+                    , direction = direction
+                    }
+                    |> Tuple.mapFirst CausalityModel
+
+            else
+                NotFound.init { notFoundImgSrc = session.notFoundImgSrc, route = session.route }
+                    |> Tuple.mapFirst NotFoundModel
 
 
 handleNotFound : Session -> ET Model
 handleNotFound session ( model, effects ) =
-    case getUpdateMessage session model of
+    case getUpdateMessage model of
         UpdateMsg.NotFound ->
             let
                 ( newModel, newEffects ) =
@@ -129,8 +134,8 @@ handleNotFound session ( model, effects ) =
             ( model, effects )
 
 
-getUpdateMessage : Session -> Model -> UpdateMsg
-getUpdateMessage session model =
+getUpdateMessage : Model -> UpdateMsg
+getUpdateMessage model =
     case model of
         BuildModel mdl ->
             Build.getUpdateMessage mdl
@@ -145,7 +150,7 @@ getUpdateMessage session model =
             Pipeline.getUpdateMessage mdl
 
         CausalityModel mdl ->
-            Causality.getUpdateMessage session mdl
+            Causality.getUpdateMessage mdl
 
         _ ->
             UpdateMsg.AOK
@@ -276,8 +281,24 @@ handleGoToRoute route ( a, effs ) =
     ( a, effs ++ [ NavigateTo <| Routes.toString route ] )
 
 
-urlUpdate : Routes.Transition -> ET Model
-urlUpdate routes =
+urlUpdate : Session -> Routes.Transition -> ET Model
+urlUpdate session routes =
+    case ( session.featureFlags.resource_causality, routes.to ) of
+        ( False, Routes.Causality _ ) ->
+            -- If the feature flag is disabled, you can't navigate to the
+            -- causality page
+            handleNotFound session
+
+        _ ->
+            urlUpdateValid routes
+
+
+
+-- urlUpdateValid should be invoked only when we know the page can be navigated to
+
+
+urlUpdateValid : Routes.Transition -> ET Model
+urlUpdateValid routes =
     genericUpdate
         (case routes.to of
             Routes.Build { id, highlight } ->

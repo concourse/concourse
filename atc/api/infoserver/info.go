@@ -15,15 +15,7 @@ func (s *Server) Info(w http.ResponseWriter, r *http.Request) {
 		WorkerVersion: s.workerVersion,
 		ExternalURL:   s.externalURL,
 		ClusterName:   s.clusterName,
-		FeatureFlags: map[string]bool{
-			"global_resources":       atc.EnableGlobalResources,
-			"redact_secrets":         atc.EnableRedactSecrets,
-			"build_rerun":            atc.EnableBuildRerunWhenWorkerDisappears,
-			"across_step":            atc.EnableAcrossStep,
-			"pipeline_instances":     atc.EnablePipelineInstances,
-			"cache_streamed_volumes": atc.EnableCacheStreamedVolumes,
-			"resource_causality":     atc.EnableResourceCausality,
-		},
+		FeatureFlags:  atc.FeatureFlags(),
 	})
 	if err != nil {
 		logger.Error("failed-to-encode-info", err)

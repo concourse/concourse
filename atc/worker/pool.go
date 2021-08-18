@@ -152,7 +152,7 @@ func (pool Pool) ReleaseWorker(logger lager.Logger, containerSpec runtime.Contai
 	}
 }
 
-func (pool Pool) FindResourceCacheVolume(logger lager.Logger, teamID int, resourceCache db.UsedResourceCache, workerSpec Spec) (runtime.Volume, bool, error) {
+func (pool Pool) FindResourceCacheVolume(logger lager.Logger, teamID int, resourceCache db.ResourceCache, workerSpec Spec) (runtime.Volume, bool, error) {
 	team := pool.db.TeamFactory.GetByID(teamID)
 	workersWithCache, err := team.FindWorkersForResourceCache(resourceCache.ID())
 	if err != nil {
@@ -187,7 +187,7 @@ func (pool Pool) FindResourceCacheVolume(logger lager.Logger, teamID int, resour
 	return nil, false, nil
 }
 
-func (pool Pool) FindResourceCacheVolumeOnWorker(logger lager.Logger, resourceCache db.UsedResourceCache, workerSpec Spec, workerName string) (runtime.Volume, bool, error) {
+func (pool Pool) FindResourceCacheVolumeOnWorker(logger lager.Logger, resourceCache db.ResourceCache, workerSpec Spec, workerName string) (runtime.Volume, bool, error) {
 	worker, found, err := pool.db.WorkerFactory.GetWorker(workerName)
 	if err != nil {
 		return nil, false, err
@@ -201,7 +201,7 @@ func (pool Pool) FindResourceCacheVolumeOnWorker(logger lager.Logger, resourceCa
 	return pool.findResourceCacheVolumeOnWorker(logger, worker, resourceCache)
 }
 
-func (pool Pool) findResourceCacheVolumeOnWorker(logger lager.Logger, dbWorker db.Worker, resourceCache db.UsedResourceCache) (runtime.Volume, bool, error) {
+func (pool Pool) findResourceCacheVolumeOnWorker(logger lager.Logger, dbWorker db.Worker, resourceCache db.ResourceCache) (runtime.Volume, bool, error) {
 	volume, found, err := pool.db.VolumeRepo.FindResourceCacheVolume(dbWorker.Name(), resourceCache)
 	if err != nil {
 		return nil, false, err

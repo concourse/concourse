@@ -22,13 +22,7 @@ all =
     describe "dashboard cache tests"
         [ test "requests the cached jobs on page load" <|
             \_ ->
-                Application.init
-                    { turbulenceImgSrc = ""
-                    , notFoundImgSrc = "notfound.svg"
-                    , csrfToken = "csrf_token"
-                    , authToken = ""
-                    , pipelineRunningKeyframes = ""
-                    }
+                Application.init Data.flags
                     { protocol = Url.Http
                     , host = ""
                     , port_ = Nothing
@@ -40,13 +34,7 @@ all =
                     |> Common.contains LoadCachedJobs
         , test "requests the cached pipelines on page load" <|
             \_ ->
-                Application.init
-                    { turbulenceImgSrc = ""
-                    , notFoundImgSrc = "notfound.svg"
-                    , csrfToken = "csrf_token"
-                    , authToken = ""
-                    , pipelineRunningKeyframes = ""
-                    }
+                Application.init Data.flags
                     { protocol = Url.Http
                     , host = ""
                     , port_ = Nothing
@@ -58,13 +46,7 @@ all =
                     |> Common.contains LoadCachedPipelines
         , test "requests the cached teams on page load" <|
             \_ ->
-                Application.init
-                    { turbulenceImgSrc = ""
-                    , notFoundImgSrc = "notfound.svg"
-                    , csrfToken = "csrf_token"
-                    , authToken = ""
-                    , pipelineRunningKeyframes = ""
-                    }
+                Application.init Data.flags
                     { protocol = Url.Http
                     , host = ""
                     , port_ = Nothing

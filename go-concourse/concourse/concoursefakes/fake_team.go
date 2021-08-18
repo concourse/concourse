@@ -108,12 +108,13 @@ type FakeTeam struct {
 		result2 bool
 		result3 error
 	}
-	CheckPrototypeStub        func(atc.PipelineRef, string, atc.Version) (atc.Build, bool, error)
+	CheckPrototypeStub        func(atc.PipelineRef, string, atc.Version, bool) (atc.Build, bool, error)
 	checkPrototypeMutex       sync.RWMutex
 	checkPrototypeArgsForCall []struct {
 		arg1 atc.PipelineRef
 		arg2 string
 		arg3 atc.Version
+		arg4 bool
 	}
 	checkPrototypeReturns struct {
 		result1 atc.Build
@@ -125,12 +126,13 @@ type FakeTeam struct {
 		result2 bool
 		result3 error
 	}
-	CheckResourceStub        func(atc.PipelineRef, string, atc.Version) (atc.Build, bool, error)
+	CheckResourceStub        func(atc.PipelineRef, string, atc.Version, bool) (atc.Build, bool, error)
 	checkResourceMutex       sync.RWMutex
 	checkResourceArgsForCall []struct {
 		arg1 atc.PipelineRef
 		arg2 string
 		arg3 atc.Version
+		arg4 bool
 	}
 	checkResourceReturns struct {
 		result1 atc.Build
@@ -142,12 +144,13 @@ type FakeTeam struct {
 		result2 bool
 		result3 error
 	}
-	CheckResourceTypeStub        func(atc.PipelineRef, string, atc.Version) (atc.Build, bool, error)
+	CheckResourceTypeStub        func(atc.PipelineRef, string, atc.Version, bool) (atc.Build, bool, error)
 	checkResourceTypeMutex       sync.RWMutex
 	checkResourceTypeArgsForCall []struct {
 		arg1 atc.PipelineRef
 		arg2 string
 		arg3 atc.Version
+		arg4 bool
 	}
 	checkResourceTypeReturns struct {
 		result1 atc.Build
@@ -704,6 +707,21 @@ type FakeTeam struct {
 		result2 bool
 		result3 error
 	}
+	ResourceTypesStub        func(atc.PipelineRef) (atc.ResourceTypes, bool, error)
+	resourceTypesMutex       sync.RWMutex
+	resourceTypesArgsForCall []struct {
+		arg1 atc.PipelineRef
+	}
+	resourceTypesReturns struct {
+		result1 atc.ResourceTypes
+		result2 bool
+		result3 error
+	}
+	resourceTypesReturnsOnCall map[int]struct {
+		result1 atc.ResourceTypes
+		result2 bool
+		result3 error
+	}
 	ResourceVersionsStub        func(atc.PipelineRef, string, concourse.Page, atc.Version) ([]atc.ResourceVersion, concourse.Pagination, bool, error)
 	resourceVersionsMutex       sync.RWMutex
 	resourceVersionsArgsForCall []struct {
@@ -809,21 +827,6 @@ type FakeTeam struct {
 	unpinResourceReturnsOnCall map[int]struct {
 		result1 bool
 		result2 error
-	}
-	VersionedResourceTypesStub        func(atc.PipelineRef) (atc.VersionedResourceTypes, bool, error)
-	versionedResourceTypesMutex       sync.RWMutex
-	versionedResourceTypesArgsForCall []struct {
-		arg1 atc.PipelineRef
-	}
-	versionedResourceTypesReturns struct {
-		result1 atc.VersionedResourceTypes
-		result2 bool
-		result3 error
-	}
-	versionedResourceTypesReturnsOnCall map[int]struct {
-		result1 atc.VersionedResourceTypes
-		result2 bool
-		result3 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -1272,20 +1275,21 @@ func (fake *FakeTeam) BuildsWithVersionAsOutputReturnsOnCall(i int, result1 []at
 	}{result1, result2, result3}
 }
 
-func (fake *FakeTeam) CheckPrototype(arg1 atc.PipelineRef, arg2 string, arg3 atc.Version) (atc.Build, bool, error) {
+func (fake *FakeTeam) CheckPrototype(arg1 atc.PipelineRef, arg2 string, arg3 atc.Version, arg4 bool) (atc.Build, bool, error) {
 	fake.checkPrototypeMutex.Lock()
 	ret, specificReturn := fake.checkPrototypeReturnsOnCall[len(fake.checkPrototypeArgsForCall)]
 	fake.checkPrototypeArgsForCall = append(fake.checkPrototypeArgsForCall, struct {
 		arg1 atc.PipelineRef
 		arg2 string
 		arg3 atc.Version
-	}{arg1, arg2, arg3})
+		arg4 bool
+	}{arg1, arg2, arg3, arg4})
 	stub := fake.CheckPrototypeStub
 	fakeReturns := fake.checkPrototypeReturns
-	fake.recordInvocation("CheckPrototype", []interface{}{arg1, arg2, arg3})
+	fake.recordInvocation("CheckPrototype", []interface{}{arg1, arg2, arg3, arg4})
 	fake.checkPrototypeMutex.Unlock()
 	if stub != nil {
-		return stub(arg1, arg2, arg3)
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
@@ -1299,17 +1303,17 @@ func (fake *FakeTeam) CheckPrototypeCallCount() int {
 	return len(fake.checkPrototypeArgsForCall)
 }
 
-func (fake *FakeTeam) CheckPrototypeCalls(stub func(atc.PipelineRef, string, atc.Version) (atc.Build, bool, error)) {
+func (fake *FakeTeam) CheckPrototypeCalls(stub func(atc.PipelineRef, string, atc.Version, bool) (atc.Build, bool, error)) {
 	fake.checkPrototypeMutex.Lock()
 	defer fake.checkPrototypeMutex.Unlock()
 	fake.CheckPrototypeStub = stub
 }
 
-func (fake *FakeTeam) CheckPrototypeArgsForCall(i int) (atc.PipelineRef, string, atc.Version) {
+func (fake *FakeTeam) CheckPrototypeArgsForCall(i int) (atc.PipelineRef, string, atc.Version, bool) {
 	fake.checkPrototypeMutex.RLock()
 	defer fake.checkPrototypeMutex.RUnlock()
 	argsForCall := fake.checkPrototypeArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
 func (fake *FakeTeam) CheckPrototypeReturns(result1 atc.Build, result2 bool, result3 error) {
@@ -1341,20 +1345,21 @@ func (fake *FakeTeam) CheckPrototypeReturnsOnCall(i int, result1 atc.Build, resu
 	}{result1, result2, result3}
 }
 
-func (fake *FakeTeam) CheckResource(arg1 atc.PipelineRef, arg2 string, arg3 atc.Version) (atc.Build, bool, error) {
+func (fake *FakeTeam) CheckResource(arg1 atc.PipelineRef, arg2 string, arg3 atc.Version, arg4 bool) (atc.Build, bool, error) {
 	fake.checkResourceMutex.Lock()
 	ret, specificReturn := fake.checkResourceReturnsOnCall[len(fake.checkResourceArgsForCall)]
 	fake.checkResourceArgsForCall = append(fake.checkResourceArgsForCall, struct {
 		arg1 atc.PipelineRef
 		arg2 string
 		arg3 atc.Version
-	}{arg1, arg2, arg3})
+		arg4 bool
+	}{arg1, arg2, arg3, arg4})
 	stub := fake.CheckResourceStub
 	fakeReturns := fake.checkResourceReturns
-	fake.recordInvocation("CheckResource", []interface{}{arg1, arg2, arg3})
+	fake.recordInvocation("CheckResource", []interface{}{arg1, arg2, arg3, arg4})
 	fake.checkResourceMutex.Unlock()
 	if stub != nil {
-		return stub(arg1, arg2, arg3)
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
@@ -1368,17 +1373,17 @@ func (fake *FakeTeam) CheckResourceCallCount() int {
 	return len(fake.checkResourceArgsForCall)
 }
 
-func (fake *FakeTeam) CheckResourceCalls(stub func(atc.PipelineRef, string, atc.Version) (atc.Build, bool, error)) {
+func (fake *FakeTeam) CheckResourceCalls(stub func(atc.PipelineRef, string, atc.Version, bool) (atc.Build, bool, error)) {
 	fake.checkResourceMutex.Lock()
 	defer fake.checkResourceMutex.Unlock()
 	fake.CheckResourceStub = stub
 }
 
-func (fake *FakeTeam) CheckResourceArgsForCall(i int) (atc.PipelineRef, string, atc.Version) {
+func (fake *FakeTeam) CheckResourceArgsForCall(i int) (atc.PipelineRef, string, atc.Version, bool) {
 	fake.checkResourceMutex.RLock()
 	defer fake.checkResourceMutex.RUnlock()
 	argsForCall := fake.checkResourceArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
 func (fake *FakeTeam) CheckResourceReturns(result1 atc.Build, result2 bool, result3 error) {
@@ -1410,20 +1415,21 @@ func (fake *FakeTeam) CheckResourceReturnsOnCall(i int, result1 atc.Build, resul
 	}{result1, result2, result3}
 }
 
-func (fake *FakeTeam) CheckResourceType(arg1 atc.PipelineRef, arg2 string, arg3 atc.Version) (atc.Build, bool, error) {
+func (fake *FakeTeam) CheckResourceType(arg1 atc.PipelineRef, arg2 string, arg3 atc.Version, arg4 bool) (atc.Build, bool, error) {
 	fake.checkResourceTypeMutex.Lock()
 	ret, specificReturn := fake.checkResourceTypeReturnsOnCall[len(fake.checkResourceTypeArgsForCall)]
 	fake.checkResourceTypeArgsForCall = append(fake.checkResourceTypeArgsForCall, struct {
 		arg1 atc.PipelineRef
 		arg2 string
 		arg3 atc.Version
-	}{arg1, arg2, arg3})
+		arg4 bool
+	}{arg1, arg2, arg3, arg4})
 	stub := fake.CheckResourceTypeStub
 	fakeReturns := fake.checkResourceTypeReturns
-	fake.recordInvocation("CheckResourceType", []interface{}{arg1, arg2, arg3})
+	fake.recordInvocation("CheckResourceType", []interface{}{arg1, arg2, arg3, arg4})
 	fake.checkResourceTypeMutex.Unlock()
 	if stub != nil {
-		return stub(arg1, arg2, arg3)
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
@@ -1437,17 +1443,17 @@ func (fake *FakeTeam) CheckResourceTypeCallCount() int {
 	return len(fake.checkResourceTypeArgsForCall)
 }
 
-func (fake *FakeTeam) CheckResourceTypeCalls(stub func(atc.PipelineRef, string, atc.Version) (atc.Build, bool, error)) {
+func (fake *FakeTeam) CheckResourceTypeCalls(stub func(atc.PipelineRef, string, atc.Version, bool) (atc.Build, bool, error)) {
 	fake.checkResourceTypeMutex.Lock()
 	defer fake.checkResourceTypeMutex.Unlock()
 	fake.CheckResourceTypeStub = stub
 }
 
-func (fake *FakeTeam) CheckResourceTypeArgsForCall(i int) (atc.PipelineRef, string, atc.Version) {
+func (fake *FakeTeam) CheckResourceTypeArgsForCall(i int) (atc.PipelineRef, string, atc.Version, bool) {
 	fake.checkResourceTypeMutex.RLock()
 	defer fake.checkResourceTypeMutex.RUnlock()
 	argsForCall := fake.checkResourceTypeArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
 func (fake *FakeTeam) CheckResourceTypeReturns(result1 atc.Build, result2 bool, result3 error) {
@@ -3966,6 +3972,73 @@ func (fake *FakeTeam) ResourceReturnsOnCall(i int, result1 atc.Resource, result2
 	}{result1, result2, result3}
 }
 
+func (fake *FakeTeam) ResourceTypes(arg1 atc.PipelineRef) (atc.ResourceTypes, bool, error) {
+	fake.resourceTypesMutex.Lock()
+	ret, specificReturn := fake.resourceTypesReturnsOnCall[len(fake.resourceTypesArgsForCall)]
+	fake.resourceTypesArgsForCall = append(fake.resourceTypesArgsForCall, struct {
+		arg1 atc.PipelineRef
+	}{arg1})
+	stub := fake.ResourceTypesStub
+	fakeReturns := fake.resourceTypesReturns
+	fake.recordInvocation("ResourceTypes", []interface{}{arg1})
+	fake.resourceTypesMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+}
+
+func (fake *FakeTeam) ResourceTypesCallCount() int {
+	fake.resourceTypesMutex.RLock()
+	defer fake.resourceTypesMutex.RUnlock()
+	return len(fake.resourceTypesArgsForCall)
+}
+
+func (fake *FakeTeam) ResourceTypesCalls(stub func(atc.PipelineRef) (atc.ResourceTypes, bool, error)) {
+	fake.resourceTypesMutex.Lock()
+	defer fake.resourceTypesMutex.Unlock()
+	fake.ResourceTypesStub = stub
+}
+
+func (fake *FakeTeam) ResourceTypesArgsForCall(i int) atc.PipelineRef {
+	fake.resourceTypesMutex.RLock()
+	defer fake.resourceTypesMutex.RUnlock()
+	argsForCall := fake.resourceTypesArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeTeam) ResourceTypesReturns(result1 atc.ResourceTypes, result2 bool, result3 error) {
+	fake.resourceTypesMutex.Lock()
+	defer fake.resourceTypesMutex.Unlock()
+	fake.ResourceTypesStub = nil
+	fake.resourceTypesReturns = struct {
+		result1 atc.ResourceTypes
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeTeam) ResourceTypesReturnsOnCall(i int, result1 atc.ResourceTypes, result2 bool, result3 error) {
+	fake.resourceTypesMutex.Lock()
+	defer fake.resourceTypesMutex.Unlock()
+	fake.ResourceTypesStub = nil
+	if fake.resourceTypesReturnsOnCall == nil {
+		fake.resourceTypesReturnsOnCall = make(map[int]struct {
+			result1 atc.ResourceTypes
+			result2 bool
+			result3 error
+		})
+	}
+	fake.resourceTypesReturnsOnCall[i] = struct {
+		result1 atc.ResourceTypes
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeTeam) ResourceVersions(arg1 atc.PipelineRef, arg2 string, arg3 concourse.Page, arg4 atc.Version) ([]atc.ResourceVersion, concourse.Pagination, bool, error) {
 	fake.resourceVersionsMutex.Lock()
 	ret, specificReturn := fake.resourceVersionsReturnsOnCall[len(fake.resourceVersionsArgsForCall)]
@@ -4431,73 +4504,6 @@ func (fake *FakeTeam) UnpinResourceReturnsOnCall(i int, result1 bool, result2 er
 	}{result1, result2}
 }
 
-func (fake *FakeTeam) VersionedResourceTypes(arg1 atc.PipelineRef) (atc.VersionedResourceTypes, bool, error) {
-	fake.versionedResourceTypesMutex.Lock()
-	ret, specificReturn := fake.versionedResourceTypesReturnsOnCall[len(fake.versionedResourceTypesArgsForCall)]
-	fake.versionedResourceTypesArgsForCall = append(fake.versionedResourceTypesArgsForCall, struct {
-		arg1 atc.PipelineRef
-	}{arg1})
-	stub := fake.VersionedResourceTypesStub
-	fakeReturns := fake.versionedResourceTypesReturns
-	fake.recordInvocation("VersionedResourceTypes", []interface{}{arg1})
-	fake.versionedResourceTypesMutex.Unlock()
-	if stub != nil {
-		return stub(arg1)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2, ret.result3
-	}
-	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
-}
-
-func (fake *FakeTeam) VersionedResourceTypesCallCount() int {
-	fake.versionedResourceTypesMutex.RLock()
-	defer fake.versionedResourceTypesMutex.RUnlock()
-	return len(fake.versionedResourceTypesArgsForCall)
-}
-
-func (fake *FakeTeam) VersionedResourceTypesCalls(stub func(atc.PipelineRef) (atc.VersionedResourceTypes, bool, error)) {
-	fake.versionedResourceTypesMutex.Lock()
-	defer fake.versionedResourceTypesMutex.Unlock()
-	fake.VersionedResourceTypesStub = stub
-}
-
-func (fake *FakeTeam) VersionedResourceTypesArgsForCall(i int) atc.PipelineRef {
-	fake.versionedResourceTypesMutex.RLock()
-	defer fake.versionedResourceTypesMutex.RUnlock()
-	argsForCall := fake.versionedResourceTypesArgsForCall[i]
-	return argsForCall.arg1
-}
-
-func (fake *FakeTeam) VersionedResourceTypesReturns(result1 atc.VersionedResourceTypes, result2 bool, result3 error) {
-	fake.versionedResourceTypesMutex.Lock()
-	defer fake.versionedResourceTypesMutex.Unlock()
-	fake.VersionedResourceTypesStub = nil
-	fake.versionedResourceTypesReturns = struct {
-		result1 atc.VersionedResourceTypes
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakeTeam) VersionedResourceTypesReturnsOnCall(i int, result1 atc.VersionedResourceTypes, result2 bool, result3 error) {
-	fake.versionedResourceTypesMutex.Lock()
-	defer fake.versionedResourceTypesMutex.Unlock()
-	fake.VersionedResourceTypesStub = nil
-	if fake.versionedResourceTypesReturnsOnCall == nil {
-		fake.versionedResourceTypesReturnsOnCall = make(map[int]struct {
-			result1 atc.VersionedResourceTypes
-			result2 bool
-			result3 error
-		})
-	}
-	fake.versionedResourceTypesReturnsOnCall[i] = struct {
-		result1 atc.VersionedResourceTypes
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
 func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -4597,6 +4603,8 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.rerunJobBuildMutex.RUnlock()
 	fake.resourceMutex.RLock()
 	defer fake.resourceMutex.RUnlock()
+	fake.resourceTypesMutex.RLock()
+	defer fake.resourceTypesMutex.RUnlock()
 	fake.resourceVersionsMutex.RLock()
 	defer fake.resourceVersionsMutex.RUnlock()
 	fake.scheduleJobMutex.RLock()
@@ -4611,8 +4619,6 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.unpausePipelineMutex.RUnlock()
 	fake.unpinResourceMutex.RLock()
 	defer fake.unpinResourceMutex.RUnlock()
-	fake.versionedResourceTypesMutex.RLock()
-	defer fake.versionedResourceTypesMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"context"
 	"io"
 
 	"code.cloudfoundry.org/clock"
@@ -11,6 +12,7 @@ import (
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/policy"
+	"github.com/concourse/concourse/atc/runtime"
 )
 
 func NewTaskDelegate(
@@ -26,6 +28,7 @@ func NewTaskDelegate(
 		BuildStepDelegate: NewBuildStepDelegate(build, planID, state, clock, policyChecker),
 
 		eventOrigin: event.Origin{ID: event.OriginID(planID)},
+		planID:      planID,
 		build:       build,
 		clock:       clock,
 
@@ -37,6 +40,7 @@ func NewTaskDelegate(
 type taskDelegate struct {
 	exec.BuildStepDelegate
 
+	planID      atc.PlanID
 	config      atc.TaskConfig
 	build       db.Build
 	eventOrigin event.Origin
@@ -97,4 +101,47 @@ func (d *taskDelegate) Finished(
 	}
 
 	logger.Info("finished", lager.Data{"exit-status": exitStatus})
+}
+
+func (d *taskDelegate) FetchImage(
+	ctx context.Context,
+	image atc.ImageResource,
+	types atc.ResourceTypes,
+	privileged bool,
+	stepTags atc.Tags,
+) (runtime.ImageSpec, error) {
+	image.Name = "image"
+
+	getPlan, checkPlan := atc.FetchImagePlan(d.planID, image, types, stepTags, false, nil)
+
+	if checkPlan != nil {
+		err := d.build.SaveEvent(event.ImageCheck{
+			Time: d.clock.Now().Unix(),
+			Origin: event.Origin{
+				ID: event.OriginID(d.planID),
+			},
+			PublicPlan: checkPlan.Public(),
+		})
+		if err != nil {
+			return runtime.ImageSpec{}, err
+		}
+	}
+
+	err := d.build.SaveEvent(event.ImageGet{
+		Time: d.clock.Now().Unix(),
+		Origin: event.Origin{
+			ID: event.OriginID(d.planID),
+		},
+		PublicPlan: getPlan.Public(),
+	})
+	if err != nil {
+		return runtime.ImageSpec{}, err
+	}
+
+	imageSpec, _, err := d.BuildStepDelegate.FetchImage(ctx, getPlan, checkPlan, privileged)
+	if err != nil {
+		return runtime.ImageSpec{}, err
+	}
+
+	return imageSpec, nil
 }

@@ -41,7 +41,12 @@ func (e ErrResourceNotFound) Error() string {
 	return fmt.Sprintf("resource '%s' not found", e.ResourceName)
 }
 
-//counterfeiter:generate . GetDelegateFactory
+type GetResult struct {
+	Name          string
+	ResourceCache db.ResourceCache
+}
+
+//go:generate counterfeiter . GetDelegateFactory
 type GetDelegateFactory interface {
 	GetDelegate(state RunState) GetDelegate
 }
@@ -50,7 +55,7 @@ type GetDelegateFactory interface {
 type GetDelegate interface {
 	StartSpan(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
 
-	FetchImage(context.Context, atc.ImageResource, atc.VersionedResourceTypes, bool) (runtime.ImageSpec, error)
+	FetchImage(context.Context, atc.Plan, *atc.Plan, bool) (runtime.ImageSpec, db.ResourceCache, error)
 
 	Stdout() io.Writer
 	Stderr() io.Writer
@@ -63,7 +68,7 @@ type GetDelegate interface {
 	WaitingForWorker(lager.Logger)
 	SelectedWorker(lager.Logger, string)
 
-	UpdateMetadata(lager.Logger, string, db.UsedResourceCache, resource.VersionResult)
+	UpdateMetadata(lager.Logger, string, db.ResourceCache, resource.VersionResult)
 }
 
 // GetStep will fetch a version of a resource on a worker that supports the
@@ -136,40 +141,26 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 	}
 
 	workerSpec := worker.Spec{
-		Tags:         step.plan.Tags,
-		TeamID:       step.metadata.TeamID,
-		ResourceType: step.plan.VersionedResourceTypes.Base(step.plan.Type),
+		Tags:   step.plan.Tags,
+		TeamID: step.metadata.TeamID,
+
+		// Used to filter out non-Linux workers, simply because they don't support
+		// base resource types
+		ResourceType: step.plan.TypeImage.BaseType,
 	}
 
-	var imageSpec runtime.ImageSpec
-	resourceType, found := step.plan.VersionedResourceTypes.Lookup(step.plan.Type)
-	if found {
-		image := atc.ImageResource{
-			Name:    resourceType.Name,
-			Type:    resourceType.Type,
-			Source:  resourceType.Source,
-			Params:  resourceType.Params,
-			Version: resourceType.Version,
-			Tags:    resourceType.Tags,
-		}
-		if len(image.Tags) == 0 {
-			image.Tags = step.plan.Tags
-		}
-
-		types := step.plan.VersionedResourceTypes.Without(step.plan.Type)
-
+	var (
+		imageSpec          runtime.ImageSpec
+		imageResourceCache db.ResourceCache
+	)
+	if step.plan.TypeImage.GetPlan != nil {
 		var err error
-		imageSpec, err = delegate.FetchImage(ctx, image, types, resourceType.Privileged)
+		imageSpec, imageResourceCache, err = delegate.FetchImage(ctx, *step.plan.TypeImage.GetPlan, step.plan.TypeImage.CheckPlan, step.plan.TypeImage.Privileged)
 		if err != nil {
 			return false, err
 		}
 	} else {
-		imageSpec.ResourceType = step.plan.Type
-	}
-
-	resourceTypes, err := creds.NewVersionedResourceTypes(state, step.plan.VersionedResourceTypes).Evaluate()
-	if err != nil {
-		return false, err
+		imageSpec.ResourceType = step.plan.TypeImage.BaseType
 	}
 
 	version, err := NewVersionSourceFromPlan(&step.plan).Version(state)
@@ -199,7 +190,7 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 		version,
 		source,
 		params,
-		resourceTypes,
+		imageResourceCache,
 	)
 	if err != nil {
 		logger.Error("failed-to-create-resource-cache", err)
@@ -234,7 +225,10 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 
 	var succeeded bool
 	if processResult.ExitStatus == 0 {
-		state.StoreResult(step.planID, resourceCache)
+		state.StoreResult(step.planID, GetResult{
+			Name:          step.plan.Name,
+			ResourceCache: resourceCache,
+		})
 
 		state.ArtifactRepository().RegisterArtifact(
 			build.ArtifactName(step.plan.Name),
@@ -260,7 +254,7 @@ func (step *GetStep) retrieveFromCacheOrPerformGet(
 	ctx context.Context,
 	logger lager.Logger,
 	delegate GetDelegate,
-	resourceCache db.UsedResourceCache,
+	resourceCache db.ResourceCache,
 	getResource resource.Resource,
 	workerSpec worker.Spec,
 	containerSpec runtime.ContainerSpec,
@@ -384,7 +378,7 @@ func (step *GetStep) retrieveFromCacheOrPerformGet(
 
 func (step *GetStep) retrieveFromCache(
 	logger lager.Logger,
-	resourceCache db.UsedResourceCache,
+	resourceCache db.ResourceCache,
 	workerSpec worker.Spec,
 	worker runtime.Worker, // may be nil, in which case all compatible workers are possible candidates
 ) (runtime.Volume, resource.VersionResult, bool, error) {
@@ -404,6 +398,7 @@ func (step *GetStep) retrieveFromCache(
 	if !found {
 		return nil, resource.VersionResult{}, false, nil
 	}
+
 	metadata, err := step.resourceCacheFactory.ResourceCacheMetadata(resourceCache)
 	if err != nil {
 		return nil, resource.VersionResult{}, false, err
@@ -423,7 +418,7 @@ func (step *GetStep) performGetAndInitCache(
 	logger lager.Logger,
 	delegate GetDelegate,
 	getResource resource.Resource,
-	resourceCache db.UsedResourceCache,
+	resourceCache db.ResourceCache,
 	workerSpec worker.Spec,
 	containerSpec runtime.ContainerSpec,
 	containerOwner db.ContainerOwner,

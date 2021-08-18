@@ -238,7 +238,7 @@ var _ = Describe("Worker", func() {
 			resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(
 				"some-resource-type",
 				atc.Source{"some": "source"},
-				atc.VersionedResourceTypes{},
+				nil,
 			)
 			Expect(err).ToNot(HaveOccurred())
 

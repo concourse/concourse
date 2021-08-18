@@ -5,38 +5,38 @@ import (
 	"github.com/concourse/concourse/vars"
 )
 
-type VersionedResourceType struct {
-	atc.VersionedResourceType
+type ResourceType struct {
+	atc.ResourceType
 
 	Source Source
 }
 
-type VersionedResourceTypes []VersionedResourceType
+type ResourceTypes []ResourceType
 
-func NewVersionedResourceTypes(variables vars.Variables, rawTypes atc.VersionedResourceTypes) VersionedResourceTypes {
-	var types VersionedResourceTypes
+func NewResourceTypes(variables vars.Variables, rawTypes atc.ResourceTypes) ResourceTypes {
+	var types ResourceTypes
 	for _, t := range rawTypes {
-		types = append(types, VersionedResourceType{
-			VersionedResourceType: t,
-			Source:                NewSource(variables, t.Source),
+		types = append(types, ResourceType{
+			ResourceType: t,
+			Source:       NewSource(variables, t.Source),
 		})
 	}
 
 	return types
 }
 
-func (types VersionedResourceTypes) Lookup(name string) (VersionedResourceType, bool) {
+func (types ResourceTypes) Lookup(name string) (ResourceType, bool) {
 	for _, t := range types {
 		if t.Name == name {
 			return t, true
 		}
 	}
 
-	return VersionedResourceType{}, false
+	return ResourceType{}, false
 }
 
-func (types VersionedResourceTypes) Without(name string) VersionedResourceTypes {
-	newTypes := VersionedResourceTypes{}
+func (types ResourceTypes) Without(name string) ResourceTypes {
+	newTypes := ResourceTypes{}
 
 	for _, t := range types {
 		if t.Name != name {
@@ -47,9 +47,8 @@ func (types VersionedResourceTypes) Without(name string) VersionedResourceTypes 
 	return newTypes
 }
 
-func (types VersionedResourceTypes) Evaluate() (atc.VersionedResourceTypes, error) {
-
-	var rawTypes atc.VersionedResourceTypes
+func (types ResourceTypes) Evaluate() (atc.ResourceTypes, error) {
+	var rawTypes atc.ResourceTypes
 	for _, t := range types {
 		source, err := t.Source.Evaluate()
 		if err != nil {
@@ -59,10 +58,7 @@ func (types VersionedResourceTypes) Evaluate() (atc.VersionedResourceTypes, erro
 		resourceType := t.ResourceType
 		resourceType.Source = source
 
-		rawTypes = append(rawTypes, atc.VersionedResourceType{
-			ResourceType: resourceType,
-			Version:      t.Version,
-		})
+		rawTypes = append(rawTypes, resourceType)
 	}
 
 	return rawTypes, nil

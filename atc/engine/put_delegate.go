@@ -84,7 +84,7 @@ func (d *putDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus, 
 	logger.Info("finished", lager.Data{"exit-status": exitStatus, "version-info": info})
 }
 
-func (d *putDelegate) SaveOutput(log lager.Logger, plan atc.PutPlan, source atc.Source, resourceTypes atc.VersionedResourceTypes, info resource.VersionResult) {
+func (d *putDelegate) SaveOutput(log lager.Logger, plan atc.PutPlan, source atc.Source, imageResourceCache db.ResourceCache, info resource.VersionResult) {
 	logger := log.WithData(lager.Data{
 		"step":          plan.Name,
 		"resource":      plan.Resource,
@@ -94,8 +94,8 @@ func (d *putDelegate) SaveOutput(log lager.Logger, plan atc.PutPlan, source atc.
 
 	err := d.build.SaveOutput(
 		plan.Type,
+		imageResourceCache,
 		source,
-		resourceTypes,
 		info.Version,
 		db.NewResourceConfigMetadataFields(info.Metadata),
 		plan.Name,

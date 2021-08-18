@@ -559,10 +559,10 @@ type FakeBuild struct {
 	saveEventReturnsOnCall map[int]struct {
 		result1 error
 	}
-	SaveImageResourceVersionStub        func(db.UsedResourceCache) error
+	SaveImageResourceVersionStub        func(db.ResourceCache) error
 	saveImageResourceVersionMutex       sync.RWMutex
 	saveImageResourceVersionArgsForCall []struct {
-		arg1 db.UsedResourceCache
+		arg1 db.ResourceCache
 	}
 	saveImageResourceVersionReturns struct {
 		result1 error
@@ -570,12 +570,12 @@ type FakeBuild struct {
 	saveImageResourceVersionReturnsOnCall map[int]struct {
 		result1 error
 	}
-	SaveOutputStub        func(string, atc.Source, atc.VersionedResourceTypes, atc.Version, db.ResourceConfigMetadataFields, string, string) error
+	SaveOutputStub        func(string, db.ResourceCache, atc.Source, atc.Version, db.ResourceConfigMetadataFields, string, string) error
 	saveOutputMutex       sync.RWMutex
 	saveOutputArgsForCall []struct {
 		arg1 string
-		arg2 atc.Source
-		arg3 atc.VersionedResourceTypes
+		arg2 db.ResourceCache
+		arg3 atc.Source
 		arg4 atc.Version
 		arg5 db.ResourceConfigMetadataFields
 		arg6 string
@@ -3464,11 +3464,11 @@ func (fake *FakeBuild) SaveEventReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeBuild) SaveImageResourceVersion(arg1 db.UsedResourceCache) error {
+func (fake *FakeBuild) SaveImageResourceVersion(arg1 db.ResourceCache) error {
 	fake.saveImageResourceVersionMutex.Lock()
 	ret, specificReturn := fake.saveImageResourceVersionReturnsOnCall[len(fake.saveImageResourceVersionArgsForCall)]
 	fake.saveImageResourceVersionArgsForCall = append(fake.saveImageResourceVersionArgsForCall, struct {
-		arg1 db.UsedResourceCache
+		arg1 db.ResourceCache
 	}{arg1})
 	stub := fake.SaveImageResourceVersionStub
 	fakeReturns := fake.saveImageResourceVersionReturns
@@ -3489,13 +3489,13 @@ func (fake *FakeBuild) SaveImageResourceVersionCallCount() int {
 	return len(fake.saveImageResourceVersionArgsForCall)
 }
 
-func (fake *FakeBuild) SaveImageResourceVersionCalls(stub func(db.UsedResourceCache) error) {
+func (fake *FakeBuild) SaveImageResourceVersionCalls(stub func(db.ResourceCache) error) {
 	fake.saveImageResourceVersionMutex.Lock()
 	defer fake.saveImageResourceVersionMutex.Unlock()
 	fake.SaveImageResourceVersionStub = stub
 }
 
-func (fake *FakeBuild) SaveImageResourceVersionArgsForCall(i int) db.UsedResourceCache {
+func (fake *FakeBuild) SaveImageResourceVersionArgsForCall(i int) db.ResourceCache {
 	fake.saveImageResourceVersionMutex.RLock()
 	defer fake.saveImageResourceVersionMutex.RUnlock()
 	argsForCall := fake.saveImageResourceVersionArgsForCall[i]
@@ -3525,13 +3525,13 @@ func (fake *FakeBuild) SaveImageResourceVersionReturnsOnCall(i int, result1 erro
 	}{result1}
 }
 
-func (fake *FakeBuild) SaveOutput(arg1 string, arg2 atc.Source, arg3 atc.VersionedResourceTypes, arg4 atc.Version, arg5 db.ResourceConfigMetadataFields, arg6 string, arg7 string) error {
+func (fake *FakeBuild) SaveOutput(arg1 string, arg2 db.ResourceCache, arg3 atc.Source, arg4 atc.Version, arg5 db.ResourceConfigMetadataFields, arg6 string, arg7 string) error {
 	fake.saveOutputMutex.Lock()
 	ret, specificReturn := fake.saveOutputReturnsOnCall[len(fake.saveOutputArgsForCall)]
 	fake.saveOutputArgsForCall = append(fake.saveOutputArgsForCall, struct {
 		arg1 string
-		arg2 atc.Source
-		arg3 atc.VersionedResourceTypes
+		arg2 db.ResourceCache
+		arg3 atc.Source
 		arg4 atc.Version
 		arg5 db.ResourceConfigMetadataFields
 		arg6 string
@@ -3556,13 +3556,13 @@ func (fake *FakeBuild) SaveOutputCallCount() int {
 	return len(fake.saveOutputArgsForCall)
 }
 
-func (fake *FakeBuild) SaveOutputCalls(stub func(string, atc.Source, atc.VersionedResourceTypes, atc.Version, db.ResourceConfigMetadataFields, string, string) error) {
+func (fake *FakeBuild) SaveOutputCalls(stub func(string, db.ResourceCache, atc.Source, atc.Version, db.ResourceConfigMetadataFields, string, string) error) {
 	fake.saveOutputMutex.Lock()
 	defer fake.saveOutputMutex.Unlock()
 	fake.SaveOutputStub = stub
 }
 
-func (fake *FakeBuild) SaveOutputArgsForCall(i int) (string, atc.Source, atc.VersionedResourceTypes, atc.Version, db.ResourceConfigMetadataFields, string, string) {
+func (fake *FakeBuild) SaveOutputArgsForCall(i int) (string, db.ResourceCache, atc.Source, atc.Version, db.ResourceConfigMetadataFields, string, string) {
 	fake.saveOutputMutex.RLock()
 	defer fake.saveOutputMutex.RUnlock()
 	argsForCall := fake.saveOutputArgsForCall[i]

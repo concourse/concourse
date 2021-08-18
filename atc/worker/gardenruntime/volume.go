@@ -40,7 +40,7 @@ func (v Volume) DBVolume() db.CreatedVolume {
 	return v.dbVolume
 }
 
-func (v Volume) InitializeResourceCache(logger lager.Logger, cache db.UsedResourceCache) error {
+func (v Volume) InitializeResourceCache(logger lager.Logger, cache db.ResourceCache) error {
 	if err := v.bcVolume.SetPrivileged(false); err != nil {
 		logger.Error("failed-to-set-unprivileged", err)
 		return err
@@ -52,7 +52,7 @@ func (v Volume) InitializeResourceCache(logger lager.Logger, cache db.UsedResour
 	return nil
 }
 
-func (v Volume) InitializeStreamedResourceCache(logger lager.Logger, cache db.UsedResourceCache, sourceWorker string) error {
+func (v Volume) InitializeStreamedResourceCache(logger lager.Logger, cache db.ResourceCache, sourceWorker string) error {
 	if err := v.bcVolume.SetPrivileged(false); err != nil {
 		logger.Error("failed-to-set-unprivileged", err)
 		return err

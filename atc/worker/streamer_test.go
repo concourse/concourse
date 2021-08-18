@@ -84,7 +84,6 @@ var _ = Describe("Streamer", func() {
 		scenario := Setup(
 			workertest.WithWorkers(
 				grt.NewWorker("src-worker").
-					WithDBContainersInState(grt.Creating, "container1").
 					WithVolumesCreatedInDBAndBaggageclaim(
 						grt.NewVolume("src"),
 					),
@@ -108,9 +107,9 @@ var _ = Describe("Streamer", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 
-		var resourceCache db.UsedResourceCache
+		var resourceCache db.ResourceCache
 		By("initializing src as a resource cache", func() {
-			resourceCache = scenario.FindOrCreateResourceCache("src-worker", "container1")
+			resourceCache = scenario.FindOrCreateResourceCache("src-worker")
 			err := src.InitializeResourceCache(logger, resourceCache)
 			Expect(err).ToNot(HaveOccurred())
 		})
@@ -140,7 +139,6 @@ var _ = Describe("Streamer", func() {
 		scenario := Setup(
 			workertest.WithWorkers(
 				grt.NewWorker("src-worker").
-					WithDBContainersInState(grt.Creating, "container1").
 					WithVolumesCreatedInDBAndBaggageclaim(
 						grt.NewVolume("src"),
 					),
@@ -159,9 +157,9 @@ var _ = Describe("Streamer", func() {
 		src := scenario.WorkerVolume("src-worker", "src")
 		dst := scenario.WorkerVolume("dst-worker", "dst")
 
-		var resourceCache db.UsedResourceCache
+		var resourceCache db.ResourceCache
 		By("initializing src as a resource cache", func() {
-			resourceCache = scenario.FindOrCreateResourceCache("src-worker", "container1")
+			resourceCache = scenario.FindOrCreateResourceCache("src-worker")
 			err := src.InitializeResourceCache(logger, resourceCache)
 			Expect(err).ToNot(HaveOccurred())
 		})

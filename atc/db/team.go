@@ -14,7 +14,6 @@ import (
 	"github.com/lib/pq"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/event"
 )
@@ -68,7 +67,7 @@ type Team interface {
 	IsContainerWithinTeam(string, bool) (bool, error)
 
 	FindContainerByHandle(string) (Container, bool, error)
-	FindCheckContainers(lager.Logger, atc.PipelineRef, string, creds.Secrets, creds.VarSourcePool) ([]Container, map[int]time.Time, error)
+	FindCheckContainers(lager.Logger, atc.PipelineRef, string) ([]Container, map[int]time.Time, error)
 	FindContainersByMetadata(ContainerMetadata) ([]Container, error)
 	FindCreatedContainerByHandle(string) (CreatedContainer, bool, error)
 	FindWorkerForContainer(handle string) (Worker, bool, error)
@@ -977,7 +976,7 @@ func (t *team) UpdateProviderAuth(auth atc.TeamAuth) error {
 	return tx.Commit()
 }
 
-func (t *team) FindCheckContainers(logger lager.Logger, pipelineRef atc.PipelineRef, resourceName string, secretManager creds.Secrets, varSourcePool creds.VarSourcePool) ([]Container, map[int]time.Time, error) {
+func (t *team) FindCheckContainers(logger lager.Logger, pipelineRef atc.PipelineRef, resourceName string) ([]Container, map[int]time.Time, error) {
 	pipeline, found, err := t.Pipeline(pipelineRef)
 	if err != nil {
 		return nil, nil, err
@@ -994,42 +993,10 @@ func (t *team) FindCheckContainers(logger lager.Logger, pipelineRef atc.Pipeline
 		return nil, nil, nil
 	}
 
-	pipelineResourceTypes, err := pipeline.ResourceTypes()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	variables, err := pipeline.Variables(logger, secretManager, varSourcePool)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	versionedResourceTypes := pipelineResourceTypes.Deserialize()
-
-	source, err := creds.NewSource(variables, resource.Source()).Evaluate()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	resourceTypes, err := creds.NewVersionedResourceTypes(variables, versionedResourceTypes).Evaluate()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	resourceConfigFactory := NewResourceConfigFactory(t.conn, t.lockFactory)
-	resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(
-		resource.Type(),
-		source,
-		resourceTypes,
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	rows, err := selectContainers("c").
 		Join("resource_config_check_sessions rccs ON rccs.id = c.resource_config_check_session_id").
 		Where(sq.Eq{
-			"rccs.resource_config_id": resourceConfig.ID(),
+			"rccs.resource_config_id": resource.ResourceConfigID(),
 		}).
 		Distinct().
 		RunWith(t.conn).
@@ -1049,7 +1016,7 @@ func (t *team) FindCheckContainers(logger lager.Logger, pipelineRef atc.Pipeline
 		From("containers c").
 		Join("resource_config_check_sessions rccs ON rccs.id = c.resource_config_check_session_id").
 		Where(sq.Eq{
-			"rccs.resource_config_id": resourceConfig.ID(),
+			"rccs.resource_config_id": resource.ResourceConfigID(),
 		}).
 		Distinct().
 		RunWith(t.conn).

@@ -80,11 +80,11 @@ var _ = Describe("GetDelegate", func() {
 	})
 
 	Describe("UpdateMetadata", func() {
-		var dummyResourceCache db.UsedResourceCache
+		var dummyResourceCache db.ResourceCache
 		var resourceName string
 
 		JustBeforeEach(func() {
-			dummyResourceCache = new(dbfakes.FakeUsedResourceCache)
+			dummyResourceCache = new(dbfakes.FakeResourceCache)
 			delegate.UpdateMetadata(logger, resourceName, dummyResourceCache, info)
 		})
 

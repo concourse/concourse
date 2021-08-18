@@ -123,22 +123,20 @@ func (s *Scenario) WorkerVolume(workerName string, handle string) runtime.Volume
 	return volume
 }
 
-func (s *Scenario) FindOrCreateResourceCache(workerName string, containerHandle string) db.UsedResourceCache {
-	container := s.DB.Container(workerName, db.NewFixedHandleContainerOwner(containerHandle))
+func (s *Scenario) FindOrCreateResourceCache(workerName string) db.ResourceCache {
+	if s.JobName == "" {
+		WithBasicJob()(s)
+	}
+	var build db.Build
+	s.DB.Run(s.DBBuilder.WithJobBuild(&build, s.JobName, nil, nil))
+
 	cache, err := s.DBBuilder.ResourceCacheFactory.FindOrCreateResourceCache(
-		db.ForContainer(container.ID()),
-		"some-resource",
+		db.ForBuild(build.ID()),
+		dbtest.BaseResourceType,
 		atc.Version{},
 		atc.Source{},
 		atc.Params{},
-		atc.VersionedResourceTypes{
-			{
-				ResourceType: atc.ResourceType{
-					Name: "some-resource",
-					Type: dbtest.BaseResourceType,
-				},
-			},
-		},
+		nil,
 	)
 	Expect(err).ToNot(HaveOccurred())
 	return cache

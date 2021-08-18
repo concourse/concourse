@@ -4,6 +4,7 @@ import Application.Application as Application
 import Assets
 import Common exposing (defineHoverBehaviour, queryView)
 import DashboardTests exposing (iconSelector)
+import Data exposing (flags)
 import Expect exposing (Expectation)
 import Html.Attributes as Attr
 import Http
@@ -61,16 +62,6 @@ authToken =
 flyPort : Int
 flyPort =
     1234
-
-
-flags : Application.Flags
-flags =
-    { turbulenceImgSrc = ""
-    , notFoundImgSrc = ""
-    , csrfToken = ""
-    , authToken = authToken
-    , pipelineRunningKeyframes = ""
-    }
 
 
 

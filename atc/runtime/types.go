@@ -300,12 +300,12 @@ type Volume interface {
 
 	// InitializeResourceCache is called upon a successful run of the get step
 	// to register this Volume as a resource cache.
-	InitializeResourceCache(logger lager.Logger, urc db.UsedResourceCache) error
+	InitializeResourceCache(logger lager.Logger, urc db.ResourceCache) error
 
 	// InitializeStreamedResourceCache is called when an external resource
 	// cache volume is streamed locally to register this volume as a resource
 	// cache.
-	InitializeStreamedResourceCache(logger lager.Logger, urc db.UsedResourceCache, workerName string) error
+	InitializeStreamedResourceCache(logger lager.Logger, urc db.ResourceCache, workerName string) error
 
 	// InitializeTaskCache is called upon a successful run of the task step to
 	// register this Volume as a task cache.

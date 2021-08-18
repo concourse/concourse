@@ -10,7 +10,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/present"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 )
 
@@ -21,7 +20,7 @@ func (s *Server) ListContainers(team db.Team) http.Handler {
 			"params": params,
 		})
 
-		containerLocator, err := createContainerLocatorFromRequest(team, r, s.secretManager, s.varSourcePool)
+		containerLocator, err := createContainerLocatorFromRequest(team, r)
 		if err != nil {
 			hLog.Error("failed-to-parse-request", err)
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -59,7 +58,7 @@ type containerLocator interface {
 	Locate(lager.Logger) ([]db.Container, map[int]time.Time, error)
 }
 
-func createContainerLocatorFromRequest(team db.Team, r *http.Request, secretManager creds.Secrets, varSourcePool creds.VarSourcePool) (containerLocator, error) {
+func createContainerLocatorFromRequest(team db.Team, r *http.Request) (containerLocator, error) {
 	query := r.URL.Query()
 	delete(query, ":team_name")
 
@@ -85,11 +84,9 @@ func createContainerLocatorFromRequest(team db.Team, r *http.Request, secretMana
 
 	if query.Get("type") == "check" {
 		return &checkContainerLocator{
-			team:          team,
-			pipelineRef:   pipelineRef,
-			resourceName:  query.Get("resource_name"),
-			secretManager: secretManager,
-			varSourcePool: varSourcePool,
+			team:         team,
+			pipelineRef:  pipelineRef,
+			resourceName: query.Get("resource_name"),
 		}, nil
 	}
 
@@ -148,15 +145,13 @@ func (l *allContainersLocator) Locate(logger lager.Logger) ([]db.Container, map[
 }
 
 type checkContainerLocator struct {
-	team          db.Team
-	pipelineRef   atc.PipelineRef
-	resourceName  string
-	secretManager creds.Secrets
-	varSourcePool creds.VarSourcePool
+	team         db.Team
+	pipelineRef  atc.PipelineRef
+	resourceName string
 }
 
 func (l *checkContainerLocator) Locate(logger lager.Logger) ([]db.Container, map[int]time.Time, error) {
-	return l.team.FindCheckContainers(logger, l.pipelineRef, l.resourceName, l.secretManager, l.varSourcePool)
+	return l.team.FindCheckContainers(logger, l.pipelineRef, l.resourceName)
 }
 
 type stepContainerLocator struct {

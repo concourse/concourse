@@ -107,23 +107,21 @@ var _ = Describe("Container Placement Strategies", func() {
 				workertest.WithBasicJob(),
 				workertest.WithWorkers(
 					grt.NewWorker("worker1").
-						WithDBContainersInState(grt.Creating, "container1").
 						WithVolumesCreatedInDBAndBaggageclaim(
 							grt.NewVolume("input1"),
 							grt.NewVolume("cache-input2"),
 						),
 					grt.NewWorker("worker2").
-						WithDBContainersInState(grt.Creating, "container2").
 						WithVolumesCreatedInDBAndBaggageclaim(
 							grt.NewVolume("input2"),
 						),
 				),
 			)
-			resourceCache1 := scenario.FindOrCreateResourceCache("worker1", "container1")
+			resourceCache1 := scenario.FindOrCreateResourceCache("worker1")
 			err := scenario.WorkerVolume("worker1", "cache-input2").InitializeResourceCache(logger, resourceCache1)
 			Expect(err).ToNot(HaveOccurred())
 
-			resourceCache2 := scenario.FindOrCreateResourceCache("worker2", "container2")
+			resourceCache2 := scenario.FindOrCreateResourceCache("worker2")
 			err = scenario.WorkerVolume("worker2", "input2").InitializeResourceCache(logger, resourceCache2)
 			Expect(err).ToNot(HaveOccurred())
 

@@ -5,8 +5,8 @@ import Application.Models exposing (Session)
 import Assets
 import Build.StepTree.Models as STModels
 import ColorValues
-import Common exposing (defineHoverBehaviour, expectNoTooltip, expectTooltip, queryView)
-import Concourse exposing (JsonValue(..), defaultFeatureFlags)
+import Common exposing (defineHoverBehaviour, expectNoTooltip, expectTooltip, initCustomOpts, queryView)
+import Concourse exposing (JsonValue(..))
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.Pagination exposing (Direction(..), Page, Pagination)
 import DashboardTests
@@ -182,23 +182,11 @@ all =
                     |> Expect.equal "resource - Concourse"
         , test "fetches time zone on page load" <|
             \_ ->
-                Application.init
-                    { turbulenceImgSrc = ""
-                    , notFoundImgSrc = "notfound.svg"
-                    , csrfToken = "csrf_token"
-                    , authToken = ""
-                    , pipelineRunningKeyframes = "pipeline-running"
-                    }
+                Application.init Data.flags
                     { protocol = Url.Http
                     , host = ""
                     , port_ = Nothing
-                    , path =
-                        "/teams/"
-                            ++ teamName
-                            ++ "/pipelines/"
-                            ++ pipelineName
-                            ++ "/resources/"
-                            ++ resourceName
+                    , path = resourcePath
                     , query = Nothing
                     , fragment = Nothing
                     }
@@ -294,9 +282,12 @@ all =
                     |> Query.has [ text "some-build" ]
         , describe "when causality is enabled" <|
             let
+                featureFlags =
+                    Data.featureFlags
+
                 whenItsEnabled =
-                    init
-                        |> Common.withFeatureFlags { defaultFeatureFlags | resourceCausality = True }
+                    Common.initCustom { initCustomOpts | featureFlags = { featureFlags | resource_causality = True } }
+                        resourcePath
                         |> givenResourceIsNotPinned
                         |> givenVersionsWithoutPagination
                         |> update
@@ -380,7 +371,14 @@ all =
         , describe "when the url contains a version" <|
             let
                 initWithVersion =
-                    initQuery "filter=version:v2"
+                    Common.initCustom { initCustomOpts | query = Just "filter=version:v2" }
+                        ("/teams/"
+                            ++ teamName
+                            ++ "/pipelines/"
+                            ++ pipelineName
+                            ++ "/resources/"
+                            ++ resourceName
+                        )
             in
             [ describe "when the version is valid" <|
                 let
@@ -3073,7 +3071,7 @@ all =
                                 (Callback.PlanAndResourcesFetched 1 <|
                                     Ok <|
                                         ( { id = "plan"
-                                          , step = Concourse.BuildStepCheck "step"
+                                          , step = Concourse.BuildStepCheck "step" Nothing
                                           }
                                         , { inputs = [], outputs = [] }
                                         )
@@ -3261,7 +3259,7 @@ all =
                                 (Callback.PlanAndResourcesFetched 1 <|
                                     Ok <|
                                         ( { id = "plan"
-                                          , step = Concourse.BuildStepCheck "some-resource"
+                                          , step = Concourse.BuildStepCheck "some-resource" Nothing
                                           }
                                         , { inputs = [], outputs = [] }
                                         )
@@ -3280,7 +3278,7 @@ all =
                                 (Callback.PlanAndResourcesFetched 1 <|
                                     Ok <|
                                         ( { id = "plan"
-                                          , step = Concourse.BuildStepCheck "some-resource"
+                                          , step = Concourse.BuildStepCheck "some-resource" Nothing
                                           }
                                         , { inputs = [], outputs = [] }
                                         )
@@ -3296,7 +3294,7 @@ all =
                                                     , id = "plan"
                                                     }
                                                     { id = "image"
-                                                    , step = Concourse.BuildStepCheck "some-image"
+                                                    , step = Concourse.BuildStepCheck "some-image" Nothing
                                                     }
                                           }
                                         , { url = "/api/v1/builds/1/events"
@@ -3327,7 +3325,7 @@ all =
                                 (Callback.PlanAndResourcesFetched 1 <|
                                     Ok <|
                                         ( { id = "plan"
-                                          , step = Concourse.BuildStepCheck "some-resource"
+                                          , step = Concourse.BuildStepCheck "some-resource" Nothing
                                           }
                                         , { inputs = [], outputs = [] }
                                         )
@@ -3364,7 +3362,7 @@ all =
                                 (Callback.PlanAndResourcesFetched 1 <|
                                     Ok <|
                                         ( { id = "plan"
-                                          , step = Concourse.BuildStepCheck "some-resource"
+                                          , step = Concourse.BuildStepCheck "some-resource" Nothing
                                           }
                                         , { inputs = [], outputs = [] }
                                         )
@@ -3408,7 +3406,7 @@ all =
                                 (Callback.PlanAndResourcesFetched 1 <|
                                     Ok <|
                                         ( { id = "plan"
-                                          , step = Concourse.BuildStepCheck "some-resource"
+                                          , step = Concourse.BuildStepCheck "some-resource" Nothing
                                           }
                                         , { inputs = [], outputs = [] }
                                         )
@@ -3446,7 +3444,7 @@ all =
                                 (Callback.PlanAndResourcesFetched 1 <|
                                     Ok <|
                                         ( { id = "plan"
-                                          , step = Concourse.BuildStepCheck "some-resource"
+                                          , step = Concourse.BuildStepCheck "some-resource" Nothing
                                           }
                                         , { inputs = [], outputs = [] }
                                         )
@@ -3564,44 +3562,19 @@ all =
         ]
 
 
-csrfToken : String
-csrfToken =
-    "csrf_token"
-
-
-flags : Application.Flags
-flags =
-    { turbulenceImgSrc = ""
-    , notFoundImgSrc = ""
-    , csrfToken = csrfToken
-    , authToken = ""
-    , pipelineRunningKeyframes = ""
-    }
-
-
-initQuery : String -> Application.Model
-initQuery query =
-    Common.initQuery
-        ("/teams/"
-            ++ teamName
-            ++ "/pipelines/"
-            ++ pipelineName
-            ++ "/resources/"
-            ++ resourceName
-        )
-        (Just query)
+resourcePath : String
+resourcePath =
+    "/teams/"
+        ++ teamName
+        ++ "/pipelines/"
+        ++ pipelineName
+        ++ "/resources/"
+        ++ resourceName
 
 
 init : Application.Model
 init =
-    Common.init
-        ("/teams/"
-            ++ teamName
-            ++ "/pipelines/"
-            ++ pipelineName
-            ++ "/resources/"
-            ++ resourceName
-        )
+    Common.init resourcePath
 
 
 update :
@@ -4076,12 +4049,12 @@ session =
     , hovered = HoverState.NoHover
     , clusterName = ""
     , version = ""
-    , featureFlags = defaultFeatureFlags
-    , turbulenceImgSrc = flags.turbulenceImgSrc
-    , notFoundImgSrc = flags.notFoundImgSrc
-    , csrfToken = flags.csrfToken
-    , authToken = flags.authToken
-    , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
+    , featureFlags = Data.featureFlags
+    , turbulenceImgSrc = Data.flags.turbulenceImgSrc
+    , notFoundImgSrc = Data.flags.notFoundImgSrc
+    , csrfToken = Data.flags.csrfToken
+    , authToken = Data.flags.authToken
+    , pipelineRunningKeyframes = Data.flags.pipelineRunningKeyframes
     , expandedTeamsInAllPipelines = Set.empty
     , collapsedTeamsInFavorites = Set.empty
     , pipelines = RemoteData.NotAsked

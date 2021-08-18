@@ -24,6 +24,9 @@ const (
 	// task execution finished
 	EventTypeFinishTask atc.EventType = "finish-task"
 
+	// initialize checking something
+	EventTypeInitializeCheck atc.EventType = "initialize-check"
+
 	// initialize getting something
 	EventTypeInitializeGet atc.EventType = "initialize-get"
 

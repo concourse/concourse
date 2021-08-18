@@ -87,7 +87,7 @@ func (d *getDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus, 
 	logger.Info("finished", lager.Data{"exit-status": exitStatus})
 }
 
-func (d *getDelegate) UpdateMetadata(log lager.Logger, resourceName string, resourceCache db.UsedResourceCache, info resource.VersionResult) {
+func (d *getDelegate) UpdateMetadata(log lager.Logger, resourceName string, resourceCache db.ResourceCache, info resource.VersionResult) {
 	logger := log.WithData(lager.Data{
 		"pipeline-name": d.build.PipelineName(),
 		"pipeline-id":   d.build.PipelineID()},

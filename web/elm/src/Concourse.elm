@@ -25,6 +25,7 @@ module Concourse exposing
     , DatabaseID
     , FeatureFlags
     , HookedPlan
+    , ImageBuildPlans
     , InstanceGroupIdentifier
     , InstanceVars
     , Job
@@ -401,14 +402,29 @@ mapBuildPlan fn plan =
                 BuildStepArtifactInput _ ->
                     []
 
-                BuildStepPut _ _ ->
-                    []
+                BuildStepPut _ _ imagePlans ->
+                    case imagePlans of
+                        Nothing ->
+                            []
 
-                BuildStepCheck _ ->
-                    []
+                        Just { check, get } ->
+                            mapBuildPlan fn check ++ mapBuildPlan fn get
 
-                BuildStepGet _ _ _ ->
-                    []
+                BuildStepCheck _ imagePlans ->
+                    case imagePlans of
+                        Nothing ->
+                            []
+
+                        Just { check, get } ->
+                            mapBuildPlan fn check ++ mapBuildPlan fn get
+
+                BuildStepGet _ _ _ imagePlans ->
+                    case imagePlans of
+                        Nothing ->
+                            []
+
+                        Just { check, get } ->
+                            mapBuildPlan fn check ++ mapBuildPlan fn get
 
                 BuildStepRun _ ->
                     []
@@ -460,16 +476,22 @@ type alias ResourceName =
     String
 
 
+type alias ImageBuildPlans =
+    { check : BuildPlan
+    , get : BuildPlan
+    }
+
+
 type BuildStep
     = BuildStepTask StepName
     | BuildStepSetPipeline StepName InstanceVars
     | BuildStepLoadVar StepName
     | BuildStepArtifactInput StepName
-    | BuildStepCheck StepName
-    | BuildStepGet StepName (Maybe ResourceName) (Maybe Version)
+    | BuildStepCheck StepName (Maybe ImageBuildPlans)
+    | BuildStepGet StepName (Maybe ResourceName) (Maybe Version) (Maybe ImageBuildPlans)
     | BuildStepRun StepName
     | BuildStepArtifactOutput StepName
-    | BuildStepPut StepName (Maybe ResourceName)
+    | BuildStepPut StepName (Maybe ResourceName) (Maybe ImageBuildPlans)
     | BuildStepInParallel (Array BuildPlan)
     | BuildStepAcross AcrossPlan
     | BuildStepDo (Array BuildPlan)
@@ -702,6 +724,7 @@ decodeBuildStepGet =
         |> andMap (Json.Decode.field "name" Json.Decode.string)
         |> andMap (Json.Decode.maybe <| Json.Decode.field "resource" Json.Decode.string)
         |> andMap (Json.Decode.maybe <| Json.Decode.field "version" decodeVersion)
+        |> andMap (Json.Decode.maybe decodeImageBuildPlans)
 
 
 decodeBuildStepRun : Json.Decode.Decoder BuildStep
@@ -714,6 +737,14 @@ decodeBuildStepCheck : Json.Decode.Decoder BuildStep
 decodeBuildStepCheck =
     Json.Decode.succeed BuildStepCheck
         |> andMap (Json.Decode.field "name" Json.Decode.string)
+        |> andMap (Json.Decode.maybe decodeImageBuildPlans)
+
+
+decodeImageBuildPlans : Json.Decode.Decoder ImageBuildPlans
+decodeImageBuildPlans =
+    Json.Decode.succeed ImageBuildPlans
+        |> andMap (Json.Decode.field "image_check_plan" <| lazy (\_ -> decodeBuildPlan))
+        |> andMap (Json.Decode.field "image_get_plan" <| lazy (\_ -> decodeBuildPlan))
 
 
 decodeBuildStepArtifactOutput : Json.Decode.Decoder BuildStep
@@ -727,6 +758,7 @@ decodeBuildStepPut =
     Json.Decode.succeed BuildStepPut
         |> andMap (Json.Decode.field "name" Json.Decode.string)
         |> andMap (Json.Decode.maybe <| Json.Decode.field "resource" Json.Decode.string)
+        |> andMap (Json.Decode.maybe decodeImageBuildPlans)
 
 
 decodeBuildStepInParallel : Json.Decode.Decoder BuildStep
@@ -857,44 +889,33 @@ decodeAcrossSubstep =
 
 
 type alias FeatureFlags =
-    { globalResources : Bool
-    , redactSecrets : Bool
-    , buildRerun : Bool
-    , acrossStep : Bool
-    , pipelineInstances : Bool
-    , cacheStreamedVolumes : Bool
-    , resourceCausality : Bool
+    -- The fields must match the names in `atc/feature_flags.go -> FeatureFlags()`.
+    -- If a field is deleted on the Go side, it must also be deleted here.
+    { global_resources : Bool
+    , redact_secrets : Bool
+    , build_rerun : Bool
+    , across_step : Bool
+    , pipeline_instances : Bool
+    , cache_streamed_volumes : Bool
+    , resource_causality : Bool
     }
 
 
 defaultFeatureFlags : FeatureFlags
 defaultFeatureFlags =
-    { globalResources = False
-    , redactSecrets = False
-    , buildRerun = False
-    , acrossStep = False
-    , pipelineInstances = False
-    , cacheStreamedVolumes = False
-    , resourceCausality = False
+    { global_resources = False
+    , redact_secrets = False
+    , build_rerun = False
+    , across_step = False
+    , pipeline_instances = False
+    , cache_streamed_volumes = False
+    , resource_causality = False
     }
-
-
-decodeFeatureFlags : Json.Decode.Decoder FeatureFlags
-decodeFeatureFlags =
-    Json.Decode.succeed FeatureFlags
-        |> andMap (Json.Decode.field "global_resources" Json.Decode.bool)
-        |> andMap (Json.Decode.field "redact_secrets" Json.Decode.bool)
-        |> andMap (Json.Decode.field "build_rerun" Json.Decode.bool)
-        |> andMap (Json.Decode.field "across_step" Json.Decode.bool)
-        |> andMap (Json.Decode.field "pipeline_instances" Json.Decode.bool)
-        |> andMap (Json.Decode.field "cache_streamed_volumes" Json.Decode.bool)
-        |> andMap (Json.Decode.field "resource_causality" Json.Decode.bool)
 
 
 type alias ClusterInfo =
     { version : String
     , clusterName : String
-    , featureFlags : FeatureFlags
     }
 
 
@@ -903,7 +924,6 @@ decodeInfo =
     Json.Decode.succeed ClusterInfo
         |> andMap (Json.Decode.field "version" Json.Decode.string)
         |> andMap (defaultTo "" <| Json.Decode.field "cluster_name" Json.Decode.string)
-        |> andMap (Json.Decode.field "feature_flags" decodeFeatureFlags)
 
 
 

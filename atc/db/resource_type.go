@@ -48,10 +48,8 @@ type ResourceType interface {
 
 	SetResourceConfigScope(ResourceConfigScope) error
 
-	CheckPlan(atc.Version, time.Duration, ResourceTypes, atc.Source) atc.CheckPlan
+	CheckPlan(planFactory atc.PlanFactory, imagePlanner atc.ImagePlanner, from atc.Version, interval atc.CheckEvery, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) atc.Plan
 	CreateBuild(context.Context, bool, atc.Plan) (Build, bool, error)
-
-	Version() atc.Version
 
 	Reload() (bool, error)
 }
@@ -83,8 +81,8 @@ func (resourceTypes ResourceTypes) Filter(checkable Checkable) ResourceTypes {
 	}
 }
 
-func (resourceTypes ResourceTypes) Deserialize() atc.VersionedResourceTypes {
-	var versionedResourceTypes atc.VersionedResourceTypes
+func (resourceTypes ResourceTypes) Deserialize() atc.ResourceTypes {
+	var atcResourceTypes atc.ResourceTypes
 
 	for _, t := range resourceTypes {
 		// Apply source defaults to resource types
@@ -99,22 +97,19 @@ func (resourceTypes ResourceTypes) Deserialize() atc.VersionedResourceTypes {
 			}
 		}
 
-		versionedResourceTypes = append(versionedResourceTypes, atc.VersionedResourceType{
-			ResourceType: atc.ResourceType{
-				Name:       t.Name(),
-				Type:       t.Type(),
-				Source:     source,
-				Defaults:   t.Defaults(),
-				Privileged: t.Privileged(),
-				CheckEvery: t.CheckEvery(),
-				Tags:       t.Tags(),
-				Params:     t.Params(),
-			},
-			Version: t.Version(),
+		atcResourceTypes = append(atcResourceTypes, atc.ResourceType{
+			Name:       t.Name(),
+			Type:       t.Type(),
+			Source:     source,
+			Defaults:   t.Defaults(),
+			Privileged: t.Privileged(),
+			CheckEvery: t.CheckEvery(),
+			Tags:       t.Tags(),
+			Params:     t.Params(),
 		})
 	}
 
-	return versionedResourceTypes
+	return atcResourceTypes
 }
 
 func (resourceTypes ResourceTypes) Configs() atc.ResourceTypes {
@@ -136,13 +131,23 @@ func (resourceTypes ResourceTypes) Configs() atc.ResourceTypes {
 	return configs
 }
 
+func (resourceTypes ResourceTypes) Without(name string) ResourceTypes {
+	newTypes := ResourceTypes{}
+	for _, t := range resourceTypes {
+		if t.Name() != name {
+			newTypes = append(newTypes, t)
+		}
+	}
+
+	return newTypes
+}
+
 var resourceTypesQuery = psql.Select(
 	"r.id",
 	"r.pipeline_id",
 	"r.name",
 	"r.type",
 	"r.config",
-	"rcv.version",
 	"r.nonce",
 	"p.name",
 	"p.instance_vars",
@@ -158,13 +163,6 @@ var resourceTypesQuery = psql.Select(
 	Join("teams t ON t.id = p.team_id").
 	LeftJoin("resource_configs c ON c.id = r.resource_config_id").
 	LeftJoin("resource_config_scopes ro ON ro.resource_config_id = c.id").
-	LeftJoin(`LATERAL (
-		SELECT rcv.*
-		FROM resource_config_versions rcv
-		WHERE rcv.resource_config_scope_id = ro.id
-		ORDER BY rcv.check_order DESC
-		LIMIT 1
-	) AS rcv ON true`).
 	Where(sq.Eq{"r.active": true})
 
 type resourceType struct {
@@ -182,7 +180,6 @@ type resourceType struct {
 	defaults              atc.Source
 	params                atc.Params
 	tags                  atc.Tags
-	version               atc.Version
 	checkEvery            *atc.CheckEvery
 	lastCheckStartTime    time.Time
 	lastCheckEndTime      time.Time
@@ -205,7 +202,6 @@ func (t *resourceType) Tags() atc.Tags                { return t.tags }
 func (t *resourceType) ResourceConfigID() int         { return t.resourceConfigID }
 func (t *resourceType) ResourceConfigScopeID() int    { return t.resourceConfigScopeID }
 
-func (t *resourceType) Version() atc.Version              { return t.version }
 func (t *resourceType) CurrentPinnedVersion() atc.Version { return nil }
 
 func (t *resourceType) HasWebhook() bool {
@@ -247,19 +243,23 @@ func (r *resourceType) SetResourceConfigScope(scope ResourceConfigScope) error {
 	return nil
 }
 
-func (r *resourceType) CheckPlan(from atc.Version, interval time.Duration, resourceTypes ResourceTypes, sourceDefaults atc.Source) atc.CheckPlan {
-	return atc.CheckPlan{
-		Name:   r.Name(),
-		Type:   r.Type(),
-		Source: sourceDefaults.Merge(r.Source()),
-		Tags:   r.Tags(),
+func (r *resourceType) CheckPlan(planFactory atc.PlanFactory, imagePlanner atc.ImagePlanner, from atc.Version, interval atc.CheckEvery, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) atc.Plan {
+	plan := planFactory.NewPlan(atc.CheckPlan{
+		Name:   r.name,
+		Type:   r.type_,
+		Source: sourceDefaults.Merge(r.source),
+		Tags:   r.tags,
 
-		FromVersion:            from,
-		Interval:               interval.String(),
-		VersionedResourceTypes: resourceTypes.Deserialize(),
+		FromVersion: from,
+		Interval:    interval,
 
-		ResourceType: r.Name(),
-	}
+		SkipInterval: skipInterval,
+
+		ResourceType: r.name,
+	})
+
+	plan.Check.TypeImage = imagePlanner.ImageForType(plan.ID, r.type_, r.tags, skipInterval && skipIntervalRecursively)
+	return plan
 }
 
 func (r *resourceType) CreateBuild(ctx context.Context, manuallyTriggered bool, plan atc.Plan) (Build, bool, error) {
@@ -325,26 +325,19 @@ func (r *resourceType) CreateBuild(ctx context.Context, manuallyTriggered bool, 
 func scanResourceType(t *resourceType, row scannable) error {
 	var (
 		configJSON                           sql.NullString
-		rcsID, version, nonce                sql.NullString
+		rcsID, nonce                         sql.NullString
 		lastCheckStartTime, lastCheckEndTime pq.NullTime
 		pipelineInstanceVars                 sql.NullString
 		resourceConfigID                     sql.NullInt64
 	)
 
-	err := row.Scan(&t.id, &t.pipelineID, &t.name, &t.type_, &configJSON, &version, &nonce, &t.pipelineName, &pipelineInstanceVars, &t.teamID, &t.teamName, &resourceConfigID, &rcsID, &lastCheckStartTime, &lastCheckEndTime)
+	err := row.Scan(&t.id, &t.pipelineID, &t.name, &t.type_, &configJSON, &nonce, &t.pipelineName, &pipelineInstanceVars, &t.teamID, &t.teamName, &resourceConfigID, &rcsID, &lastCheckStartTime, &lastCheckEndTime)
 	if err != nil {
 		return err
 	}
 
 	t.lastCheckStartTime = lastCheckStartTime.Time
 	t.lastCheckEndTime = lastCheckEndTime.Time
-
-	if version.Valid {
-		err = json.Unmarshal([]byte(version.String), &t.version)
-		if err != nil {
-			return err
-		}
-	}
 
 	es := t.conn.EncryptionStrategy()
 

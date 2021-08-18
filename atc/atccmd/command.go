@@ -521,6 +521,8 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	atc.EnablePipelineInstances = cmd.FeatureFlags.EnablePipelineInstances
 	atc.EnableCacheStreamedVolumes = cmd.FeatureFlags.EnableCacheStreamedVolumes
 	atc.EnableResourceCausality = cmd.FeatureFlags.EnableResourceCausality
+	atc.DefaultCheckInterval = cmd.ResourceCheckingInterval
+	atc.DefaultWebhookInterval = cmd.ResourceWithWebhookCheckingInterval
 
 	if cmd.BaseResourceTypeDefaults.Path() != "" {
 		content, err := ioutil.ReadFile(cmd.BaseResourceTypeDefaults.Path())
@@ -792,11 +794,7 @@ func (cmd *RunCommand) constructAPIMembers(
 	dbVolumeRepository := db.NewVolumeRepository(dbConn)
 	gcContainerDestroyer := gc.NewDestroyer(logger, dbContainerRepository, dbVolumeRepository)
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod, cmd.GC.FailedGracePeriod)
-	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.varSourcePool, db.CheckDurations{
-		Interval:            cmd.ResourceCheckingInterval,
-		IntervalWithWebhook: cmd.ResourceWithWebhookCheckingInterval,
-		Timeout:             cmd.GlobalResourceCheckTimeout,
-	})
+	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.varSourcePool)
 	dbAccessTokenFactory := db.NewAccessTokenFactory(dbConn)
 	dbClock := db.NewClock()
 	dbWall := db.NewWall(dbConn, &dbClock)
@@ -994,11 +992,7 @@ func (cmd *RunCommand) backendComponents(
 	dbResourceConfigFactory := db.NewResourceConfigFactory(dbConn, lockFactory)
 
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod, cmd.GC.FailedGracePeriod)
-	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.varSourcePool, db.CheckDurations{
-		Interval:            cmd.ResourceCheckingInterval,
-		IntervalWithWebhook: cmd.ResourceWithWebhookCheckingInterval,
-		Timeout:             cmd.GlobalResourceCheckTimeout,
-	})
+	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.varSourcePool)
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
 	dbJobFactory := db.NewJobFactory(dbConn, lockFactory)
 	dbPipelineLifecycle := db.NewPipelineLifecycle(dbConn, lockFactory)
@@ -1066,7 +1060,10 @@ func (cmd *RunCommand) backendComponents(
 				Name:     atc.ComponentLidarScanner,
 				Interval: cmd.LidarScannerInterval,
 			},
-			Runnable: lidar.NewScanner(dbCheckFactory),
+			Runnable: lidar.NewScanner(
+				dbCheckFactory,
+				atc.NewPlanFactory(time.Now().Unix()),
+			),
 		},
 		{
 			Component: atc.Component{
@@ -1079,9 +1076,7 @@ func (cmd *RunCommand) backendComponents(
 				&scheduler.Scheduler{
 					Algorithm: alg,
 					BuildStarter: scheduler.NewBuildStarter(
-						builds.NewPlanner(
-							atc.NewPlanFactory(time.Now().Unix()),
-						),
+						builds.NewPlanner(atc.NewPlanFactory(time.Now().Unix())),
 						alg),
 				},
 				cmd.JobSchedulingMaxInFlight,

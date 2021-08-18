@@ -14,10 +14,10 @@ import (
 	"testing/fstest"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/worker/baggageclaim"
 	"github.com/concourse/concourse/atc/compression"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
+	"github.com/concourse/concourse/worker/baggageclaim"
 )
 
 type VolumeContent fstest.MapFS
@@ -59,12 +59,12 @@ func (v Volume) StreamOut(ctx context.Context, path string, compression compress
 	return v.Content.StreamOut(ctx, path, compression.Encoding())
 }
 
-func (v *Volume) InitializeResourceCache(_ lager.Logger, _ db.UsedResourceCache) error {
+func (v *Volume) InitializeResourceCache(_ lager.Logger, _ db.ResourceCache) error {
 	v.ResourceCacheInitialized = true
 	return nil
 }
 
-func (v *Volume) InitializeStreamedResourceCache(_ lager.Logger, _ db.UsedResourceCache, workerName string) error {
+func (v *Volume) InitializeStreamedResourceCache(_ lager.Logger, _ db.ResourceCache, workerName string) error {
 	v.ResourceCacheInitialized = true
 	v.ResourceCacheStreamedFrom = workerName
 	return nil
