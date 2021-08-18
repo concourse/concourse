@@ -379,6 +379,41 @@ var _ = Describe("CheckStep", func() {
 							Expect(privileged).To(BeTrue())
 						})
 					})
+
+					Context("when the timeout is bogus", func() {
+						BeforeEach(func() {
+							checkPlan.Timeout = "bogus"
+						})
+
+						It("fails miserably", func() {
+							Expect(stepErr).To(MatchError(ContainSubstring("parse timeout: time: invalid duration \"bogus\"")))
+						})
+					})
+				})
+
+				Context("when there is default check timeout", func() {
+					BeforeEach(func() {
+						defaultTimeout = time.Minute * 30
+					})
+
+					It("enforces it on the check", func() {
+						t, ok := chosenContainer.ContextOfRun().Deadline()
+						Expect(ok).To(BeTrue())
+						Expect(t).To(BeTemporally("~", time.Now().Add(time.Minute*30), time.Minute))
+					})
+				})
+
+				Context("when there is default check timeout and the plan specifies a timeout also", func() {
+					BeforeEach(func() {
+						defaultTimeout = time.Minute * 30
+						checkPlan.Timeout = "1h"
+					})
+
+					It("enforces the plan's timeout on the check", func() {
+						t, ok := chosenContainer.ContextOfRun().Deadline()
+						Expect(ok).To(BeTrue())
+						Expect(t).To(BeTemporally("~", time.Now().Add(time.Hour), time.Minute))
+					})
 				})
 
 				Context("when the plan is for a resource", func() {

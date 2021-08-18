@@ -569,6 +569,31 @@ var _ = Describe("GetStep", func() {
 		})
 	})
 
+	Context("when there is default get timeout", func() {
+		BeforeEach(func() {
+			defaultGetTimeout = time.Minute * 30
+		})
+
+		It("enforces it on the get", func() {
+			t, ok := chosenContainer.ContextOfRun().Deadline()
+			Expect(ok).To(BeTrue())
+			Expect(t).To(BeTemporally("~", time.Now().Add(time.Minute*30), time.Minute))
+		})
+	})
+
+	Context("when there is default get timeout and the plan specifies a timeout also", func() {
+		BeforeEach(func() {
+			defaultGetTimeout = time.Minute * 30
+			getPlan.Timeout = "1h"
+		})
+
+		It("enforces the plan's timeout on the get step", func() {
+			t, ok := chosenContainer.ContextOfRun().Deadline()
+			Expect(ok).To(BeTrue())
+			Expect(t).To(BeTemporally("~", time.Now().Add(time.Hour), time.Minute))
+		})
+	})
+
 	Context("when using a custom resource type", func() {
 		var (
 			fetchedImageSpec       runtime.ImageSpec

@@ -509,6 +509,31 @@ var _ = Describe("PutStep", func() {
 		})
 	})
 
+	Context("when there is default put timeout", func() {
+		BeforeEach(func() {
+			defaultPutTimeout = time.Minute * 30
+		})
+
+		It("enforces it on the put", func() {
+			t, ok := chosenContainer.ContextOfRun().Deadline()
+			Expect(ok).To(BeTrue())
+			Expect(t).To(BeTemporally("~", time.Now().Add(time.Minute*30), time.Minute))
+		})
+	})
+
+	Context("when there is default put timeout and the plan specifies a timeout also", func() {
+		BeforeEach(func() {
+			defaultPutTimeout = time.Minute * 30
+			putPlan.Timeout = "1h"
+		})
+
+		It("enforces the plan's timeout on the put", func() {
+			t, ok := chosenContainer.ContextOfRun().Deadline()
+			Expect(ok).To(BeTrue())
+			Expect(t).To(BeTemporally("~", time.Now().Add(time.Hour), time.Minute))
+		})
+	})
+
 	Context("when tracing is enabled", func() {
 		BeforeEach(func() {
 			tracing.ConfigureTraceProvider(oteltest.NewTracerProvider())
