@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -107,6 +108,34 @@ func serializeLabels(labels *prometheus.Labels) string {
 	return key
 }
 
+// rePrometheusLabelInvalid matches any invalid characters we may have in our
+// emitted labels.
+//
+// Prometheus format:
+//   > Label names may contain ASCII letters, numbers, as well as underscores.
+//   > They must match the regex [a-zA-Z_][a-zA-Z0-9_]*. Label names beginning
+//   > with __ are reserved for internal use.
+//   Link: https://prometheus.io/docs/concepts/data_model/#metric-names-and-labels
+var rePrometheusLabelInvalid = regexp.MustCompile(`[^a-zA-Z0-9_]+`)
+
+// rePrometheusLabelClean ensures we clean any duplicate underscores.
+var rePrometheusLabelClean = regexp.MustCompile(`__+`)
+
+// sanitizePrometheusLabels ensures all metric labels we register with the prometheus
+// emitter are sanitized to support Prometheus format. See rePrometheusLabelInvalid
+// for more information.
+func sanitizePrometheusLabels(labels map[string]string) map[string]string {
+	newLabels := make(map[string]string)
+
+	for k, v := range labels {
+		k = rePrometheusLabelInvalid.ReplaceAllString(k, "_")
+		k = strings.Trim(rePrometheusLabelClean.ReplaceAllString(k, "_"), "_")
+		newLabels[k] = v
+	}
+
+	return newLabels
+}
+
 func init() {
 	metric.Metrics.RegisterEmitter(&PrometheusConfig{})
 }
@@ -120,6 +149,9 @@ func (config *PrometheusConfig) bind() string {
 }
 
 func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric.Emitter, error) {
+	// ensure there are no invalid characters in label names.
+	attributes = sanitizePrometheusLabels(attributes)
+
 	// error log metrics
 	errorLogs := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -601,8 +633,10 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 // Event types (differentiated by the less-than-ideal string Name field) into different
 // Prometheus metrics.
 func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) {
+	// ensure there are no invalid characters in label names.
+	event.Attributes = sanitizePrometheusLabels(event.Attributes)
 
-	//update last seen counters, used to gc stale timeseries
+	// update last seen counters, used to gc stale timeseries
 	emitter.updateLastSeen(event)
 
 	switch event.Name {
@@ -704,7 +738,7 @@ func (emitter *PrometheusEmitter) errorLogsMetric(logger lager.Logger, event met
 	message, exists := event.Attributes["message"]
 	if !exists {
 		logger.Error("failed-to-find-message-in-event",
-			fmt.Errorf("expected team_name to exist in event.Attributes"))
+			fmt.Errorf("expected message to exist in event.Attributes"))
 		return
 	}
 
