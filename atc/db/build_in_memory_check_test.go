@@ -98,11 +98,7 @@ var _ = Describe("Build", func() {
 		It("Event should fail", func() {
 			_, err := build.Events(0)
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(Equal("no-build-event-yet"))
-		})
-
-		It("should panic before build starts", func() {
-			Expect(func() { build.ContainerOwner("some-plan") }).Should(PanicWith(Equal("in-memory-build-not-running-yet")))
+			Expect(err.Error()).To(Equal("no build event"))
 		})
 
 		Context("start to run", func() {
@@ -127,7 +123,7 @@ var _ = Describe("Build", func() {
 			It("Event should fail", func() {
 				_, err := build.Events(0)
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(Equal("no-build-event-yet"))
+				Expect(err.Error()).To(Equal("no build event"))
 			})
 
 			Context("OnCheckBuildStart", func() {

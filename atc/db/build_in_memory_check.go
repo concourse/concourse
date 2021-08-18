@@ -54,7 +54,11 @@ type inMemoryCheckBuild struct {
 }
 
 func newRunningInMemoryCheckBuild(conn Conn, lockFactory lock.LockFactory, checkable Checkable, plan atc.Plan, spanContext SpanContext, seqGen util.SequenceGenerator) (*inMemoryCheckBuild, error) {
-	build := newExistingInMemoryCheckBuild(conn, 0, checkable)
+	build, err := newExistingInMemoryCheckBuildForViewOnly(conn, 0, checkable)
+	if err != nil {
+		return nil, err
+	}
+
 	build.lockFactory = lockFactory
 	build.plan = plan
 	build.running = true
@@ -73,7 +77,7 @@ func newRunningInMemoryCheckBuild(conn Conn, lockFactory lock.LockFactory, check
 	return build, nil
 }
 
-func newExistingInMemoryCheckBuild(conn Conn, buildId int, checkable Checkable) *inMemoryCheckBuild {
+func newExistingInMemoryCheckBuildForViewOnly(conn Conn, buildId int, checkable Checkable) (*inMemoryCheckBuild, error) {
 	build := inMemoryCheckBuild{
 		id:        buildId,
 		conn:      conn,
@@ -88,10 +92,10 @@ func newExistingInMemoryCheckBuild(conn Conn, buildId int, checkable Checkable) 
 		build.resourceTypeId = resourceType.ID()
 		build.resourceTypeName = resourceType.Name()
 	} else {
-		panic("not-implemented")
+		return nil, errors.New("not supported checkable for in memory check build")
 	}
 
-	return &build
+	return &build, nil
 }
 
 func (b *inMemoryCheckBuild) RunStateID() string {
@@ -185,7 +189,7 @@ func (b *inMemoryCheckBuild) PrivatePlan() atc.Plan {
 // in-memory check build, this is a chance to initialize database connection.
 func (b *inMemoryCheckBuild) OnCheckBuildStart() error {
 	if !b.running {
-		return errors.New("not-running-build-cannot-start-check")
+		return errors.New("not running build cannot start check")
 	}
 
 	b.runningInContainer = true
@@ -216,7 +220,7 @@ func (b *inMemoryCheckBuild) OnCheckBuildStart() error {
 // intervals.
 func (b *inMemoryCheckBuild) AcquireTrackingLock(logger lager.Logger, interval time.Duration) (lock.Lock, bool, error) {
 	if !b.running {
-		return nil, false, errors.New("not-running-build-cannot-acquire-tracking-lock")
+		return nil, false, errors.New("not running build cannot acquire tracking lock")
 	}
 
 	var lockId lock.LockID
@@ -225,7 +229,7 @@ func (b *inMemoryCheckBuild) AcquireTrackingLock(logger lager.Logger, interval t
 	} else if b.ResourceTypeID() != 0 {
 		lockId = lock.NewInMemoryCheckBuildTrackingLockID("resourceType", b.ResourceTypeID())
 	} else {
-		panic("not-implemented")
+		return nil, false, errors.New("")
 	}
 
 	lock, acquired, err := b.lockFactory.Acquire(
@@ -247,7 +251,7 @@ func (b *inMemoryCheckBuild) AcquireTrackingLock(logger lager.Logger, interval t
 
 func (b *inMemoryCheckBuild) Finish(status BuildStatus) error {
 	if !b.running {
-		return errors.New("not-running-build-cannot-finish")
+		return errors.New("not running build cannot finish")
 	}
 
 	if !b.runningInContainer {
@@ -295,10 +299,6 @@ func (b *inMemoryCheckBuild) Finish(status BuildStatus) error {
 }
 
 func (b *inMemoryCheckBuild) saveEvent(tx Tx, event atc.Event) error {
-	if !b.running {
-		panic("not-implemented")
-	}
-
 	payload, err := json.Marshal(event)
 	if err != nil {
 		return err
@@ -327,7 +327,7 @@ func (b *inMemoryCheckBuild) Variables(logger lager.Logger, secrets creds.Secret
 
 func (b *inMemoryCheckBuild) SaveEvent(ev atc.Event) error {
 	if !b.running {
-		panic("not a running in-memory-check-build")
+		return errors.New("not running build cannot save event")
 	}
 
 	if !b.runningInContainer {
@@ -355,7 +355,7 @@ func (b *inMemoryCheckBuild) SaveEvent(ev atc.Event) error {
 
 func (b *inMemoryCheckBuild) Events(from uint) (EventSource, error) {
 	if b.id == 0 {
-		return nil, fmt.Errorf("no-build-event-yet")
+		return nil, fmt.Errorf("no build event")
 	}
 
 	notifier, err := newConditionNotifier(b.conn.Bus(), buildEventsChannel(b.id), func() (bool, error) {
@@ -434,21 +434,10 @@ func (b *inMemoryCheckBuild) PublicPlan() *json.RawMessage {
 // ResourceCacheUser return no-user because a check build may only generate a image
 // resource and image resource will be cached by SaveImageResourceVersion.
 func (b *inMemoryCheckBuild) ResourceCacheUser() ResourceCacheUser {
-	if !b.running {
-		panic("not-implemented")
-	}
 	return NoUser()
 }
 
 func (b *inMemoryCheckBuild) ContainerOwner(planId atc.PlanID) ContainerOwner {
-	if !b.running {
-		panic("not-implemented")
-	}
-
-	if b.id == 0 {
-		panic("in-memory-build-not-running-yet")
-	}
-
 	return NewInMemoryCheckBuildContainerOwner(b.id, planId, b.TeamID())
 }
 
@@ -598,7 +587,4 @@ func (b *inMemoryCheckBuild) AdoptRerunInputsAndPipes() ([]BuildInput, bool, err
 }
 func (b *inMemoryCheckBuild) SaveOutput(string, atc.Source, atc.VersionedResourceTypes, atc.Version, ResourceConfigMetadataFields, string, string) error {
 	return errors.New("not implemented for in memory build")
-}
-func (b *inMemoryCheckBuild) IsNewerThanLastCheckOf(input Resource) bool {
-	panic("not-implemented")
 }

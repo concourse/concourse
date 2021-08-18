@@ -149,7 +149,6 @@ type Build interface {
 	Status() BuildStatus
 	CreateTime() time.Time
 	StartTime() time.Time
-	IsNewerThanLastCheckOf(input Resource) bool
 	EndTime() time.Time
 	ReapTime() time.Time
 	IsManuallyTriggered() bool
@@ -372,9 +371,6 @@ func (b *build) Schema() string                   { return b.schema }
 func (b *build) PrivatePlan() atc.Plan            { return b.privatePlan }
 func (b *build) PublicPlan() *json.RawMessage     { return b.publicPlan }
 func (b *build) HasPlan() bool                    { return string(*b.publicPlan) != "{}" }
-func (b *build) IsNewerThanLastCheckOf(input Resource) bool {
-	return b.createTime.After(input.LastCheckEndTime())
-}
 func (b *build) CreateTime() time.Time { return b.createTime }
 func (b *build) StartTime() time.Time  { return b.startTime }
 func (b *build) EndTime() time.Time    { return b.endTime }
@@ -391,6 +387,10 @@ func (b *build) RerunOf() int          { return b.rerunOf }
 func (b *build) RerunOfName() string   { return b.rerunOfName }
 func (b *build) RerunNumber() int      { return b.rerunNumber }
 func (b *build) CreatedBy() *string    { return b.createdBy }
+
+func (b *build) isNewerThanLastCheckOf(input Resource) bool {
+	return b.createTime.After(input.LastCheckEndTime())
+}
 
 func (b *build) Reload() (bool, error) {
 	tx, err := b.conn.Begin()
@@ -1104,7 +1104,7 @@ func (b *build) Preparation() (BuildPreparation, bool, error) {
 					}
 
 					// input is blocking if its last check time is before build create time
-					if b.IsNewerThanLastCheckOf(resource) {
+					if b.isNewerThanLastCheckOf(resource) {
 						inputs[buildInput.Name] = BuildPreparationStatusBlocking
 						missingInputReasons.RegisterNoResourceCheckFinished(buildInput.Name)
 						inputsSatisfiedStatus = BuildPreparationStatusBlocking
@@ -1164,7 +1164,7 @@ func (b *build) Events(from uint) (EventSource, error) {
 				QueryRow().
 				Scan(&completed)
 			if err != nil {
-				return false, nil
+				return false, err
 			}
 			return completed, nil
 		},
