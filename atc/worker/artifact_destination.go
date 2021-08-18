@@ -4,7 +4,7 @@ import (
 	"context"
 	"io"
 
-	"github.com/concourse/baggageclaim"
+	"github.com/concourse/concourse/worker/baggageclaim"
 )
 
 //go:generate counterfeiter . ArtifactDestination

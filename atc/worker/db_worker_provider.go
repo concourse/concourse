@@ -1,17 +1,18 @@
 package worker
 
 import (
-	"github.com/concourse/concourse/atc/policy"
 	"net/http"
 	"time"
 
+	"github.com/concourse/concourse/atc/policy"
+
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
-	bclient "github.com/concourse/baggageclaim/client"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/worker/gclient"
 	"github.com/concourse/concourse/atc/worker/transport"
+	bclient "github.com/concourse/concourse/worker/baggageclaim/client"
 	"github.com/concourse/retryhttp"
 	"github.com/cppforlife/go-semi-semantic/version"
 )
@@ -32,7 +33,7 @@ type dbWorkerProvider struct {
 	workerVersion                     version.Version
 	baggageclaimResponseHeaderTimeout time.Duration
 	gardenRequestTimeout              time.Duration
-	policyChecker *policy.Checker
+	policyChecker                     *policy.Checker
 }
 
 func NewDBWorkerProvider(
@@ -68,7 +69,7 @@ func NewDBWorkerProvider(
 		workerVersion:                     workerVersion,
 		baggageclaimResponseHeaderTimeout: baggageclaimResponseHeaderTimeout,
 		gardenRequestTimeout:              gardenRequestTimeout,
-		policyChecker: policyChecker,
+		policyChecker:                     policyChecker,
 	}
 }
 

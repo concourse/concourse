@@ -3,7 +3,7 @@ package compression
 import (
 	"io"
 
-	"github.com/concourse/baggageclaim"
+	"github.com/concourse/concourse/worker/baggageclaim"
 	"github.com/klauspost/compress/zstd"
 )
 
