@@ -35,7 +35,7 @@ var _ = Describe("PrometheusEmitter garbage collector", func() {
 	BeforeEach(func() {
 		workerContainers = prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
-				Namespace: "concourse",
+				Namespace: "concoursedev",
 				Subsystem: "workers",
 				Name:      "containers",
 				Help:      "Number of containers per worker",
@@ -46,7 +46,7 @@ var _ = Describe("PrometheusEmitter garbage collector", func() {
 
 		workerVolumes = prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
-				Namespace: "concourse",
+				Namespace: "concoursedev",
 				Subsystem: "workers",
 				Name:      "volumes",
 				Help:      "Number of volumes per worker",
@@ -57,7 +57,7 @@ var _ = Describe("PrometheusEmitter garbage collector", func() {
 
 		workerTasks = prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
-				Namespace: "concourse",
+				Namespace: "concoursedev",
 				Subsystem: "workers",
 				Name:      "tasks",
 				Help:      "Number of active tasks per worker",
@@ -194,6 +194,7 @@ var _ = Describe("PrometheusEmitter", func() {
 			"__prefix__test__":  "bar",
 			"_prefix_testtwo__": "baz",
 		})
+		Expect(err).To(BeNil())
 	})
 
 	It("emits step waiting metric", func() {
