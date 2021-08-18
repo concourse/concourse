@@ -47,6 +47,7 @@ func (s *WorkerRunnerSuite) TestWorkDirIsCreated() {
 	s.wrkcmd.Runtime = "containerd"
 	s.wrkcmd.Containerd.CNIPluginsDir = "somedir"
 	s.wrkcmd.Containerd.InitBin = "somedir"
+	s.wrkcmd.Baggageclaim.Driver = "overlay"
 
 	_, err := s.wrkcmd.Runner([]string{})
 	s.NoError(err)
