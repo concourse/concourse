@@ -87,12 +87,13 @@ function redrawFunction(svg, jobs, resources, newUrl) {
     }
 
     var svgNode = svgNodes.enter().append("g")
-      .attr("class", function(node) { return "node " + node.class })
+      .attr("id", node => "node-" + node.id)
+      .attr("class", node => "node " + node.class)
       .on("mouseover", highlight)
       .on("mouseout", lowlight)
 
     var nodeLink = svgNode.append("svg:a")
-      .attr("xlink:href", function(node) { return node.url })
+      .attr("xlink:href", node => node.url)
       .on("click", function(node) {
         var ev = d3.event;
         if (ev.defaultPrevented) return; // dragged
@@ -228,9 +229,30 @@ function redrawFunction(svg, jobs, resources, newUrl) {
       .on("mouseover", highlight)
       .on("mouseout", lowlight)
 
-    var bbox = svg.node().getBBox();
+    const nodes = graph.nodes();
+    let first = true;
+    let minX, minY, maxX, maxY;
+    for (const node of graph.nodes()) {
+      const {x, y} = node.position();
+      const x2 = x + node.width();
+      const y2 = y + node.height();
+      if (first) {
+        minX = x;
+        minY = y;
+        maxX = x2;
+        maxY = y2;
+        first = false;
+      } else {
+        if (x < minX) minX = x;
+        if (y < minY) minY = y;
+        if (x2 > maxX) maxX = x2;
+        if (y2 > maxY) maxY = y2;
+      }
+    }
+    const width = maxX - minX;
+    const height = maxY - minY;
     d3.select(svg.node().parentNode)
-      .attr("viewBox", "" + (bbox.x - 20) + " " + (bbox.y - 20) + " " + (bbox.width + 40) + " " + (bbox.height + 40))
+      .attr("viewBox", "" + (minX - 20) + " " + (minY - 20) + " " + (width + 40) + " " + (height + 40))
 
     const originalJobs = [...document.querySelectorAll(".job")];
     const jobAnimations = originalJobs.map(el => el.cloneNode(true));
@@ -257,7 +279,7 @@ function redrawFunction(svg, jobs, resources, newUrl) {
       canvas.prepend(...jobAnimations);
     }
 
-    const largestEdge = Math.max(bbox.width, bbox.height);
+    const largestEdge = Math.max(width, height);
     const animations = document.querySelectorAll('.animation');
     animations.forEach(el => {
       if (largestEdge < 500) {
