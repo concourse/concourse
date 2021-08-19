@@ -9,8 +9,6 @@ import (
 	"net/http"
 	"strings"
 
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagertest"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
@@ -25,13 +23,11 @@ var _ = Describe("Baggage Claim Client", func() {
 	Describe("Interacting with the server", func() {
 		var (
 			bcServer *ghttp.Server
-			logger   lager.Logger
 			bcClient baggageclaim.Client
 		)
 
 		BeforeEach(func() {
 			bcServer = ghttp.NewServer()
-			logger = lagertest.NewTestLogger("client")
 			bcClient = client.New(bcServer.URL(), &http.Transport{DisableKeepAlives: true})
 		})
 
@@ -58,7 +54,7 @@ var _ = Describe("Baggage Claim Client", func() {
 							ghttp.RespondWith(http.StatusNotFound, ""),
 						),
 					)
-					foundVolume, found, err := bcClient.LookupVolume(logger, "some-handle")
+					foundVolume, found, err := bcClient.LookupVolume(context.Background(), "some-handle")
 					Expect(foundVolume).To(BeNil())
 					Expect(found).To(BeFalse())
 					Expect(err).ToNot(HaveOccurred())
@@ -68,7 +64,7 @@ var _ = Describe("Baggage Claim Client", func() {
 			Context("when unexpected error occurs", func() {
 				It("returns error code and useful message", func() {
 					mockErrorResponse("GET", "/volumes/some-handle", "lost baggage", http.StatusInternalServerError)
-					foundVolume, found, err := bcClient.LookupVolume(logger, "some-handle")
+					foundVolume, found, err := bcClient.LookupVolume(context.Background(), "some-handle")
 					Expect(foundVolume).To(BeNil())
 					Expect(found).To(BeFalse())
 					Expect(err).To(HaveOccurred())
@@ -81,7 +77,7 @@ var _ = Describe("Baggage Claim Client", func() {
 			Context("when unexpected error occurs", func() {
 				It("returns error code and useful message", func() {
 					mockErrorResponse("GET", "/volumes", "lost baggage", http.StatusInternalServerError)
-					volumes, err := bcClient.ListVolumes(logger, baggageclaim.VolumeProperties{})
+					volumes, err := bcClient.ListVolumes(context.Background(), baggageclaim.VolumeProperties{})
 					Expect(volumes).To(BeNil())
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(Equal("lost baggage"))
@@ -103,7 +99,7 @@ var _ = Describe("Baggage Claim Client", func() {
 							ghttp.RespondWithJSONEncoded(204, nil),
 						))
 
-					err := bcClient.DestroyVolumes(logger, handles)
+					err := bcClient.DestroyVolumes(context.Background(), handles)
 					Expect(err).NotTo(HaveOccurred())
 				})
 			})
@@ -121,7 +117,7 @@ var _ = Describe("Baggage Claim Client", func() {
 							ghttp.RespondWithJSONEncoded(500, handles),
 						))
 
-					err := bcClient.DestroyVolumes(logger, handles)
+					err := bcClient.DestroyVolumes(context.Background(), handles)
 					Expect(err).To(HaveOccurred())
 				})
 			})
@@ -140,7 +136,7 @@ var _ = Describe("Baggage Claim Client", func() {
 							ghttp.RespondWithJSONEncoded(204, nil),
 						))
 
-					err := bcClient.DestroyVolume(logger, handle)
+					err := bcClient.DestroyVolume(context.Background(), handle)
 					Expect(err).NotTo(HaveOccurred())
 				})
 			})
@@ -157,7 +153,7 @@ var _ = Describe("Baggage Claim Client", func() {
 							ghttp.RespondWithJSONEncoded(500, handle),
 						))
 
-					err := bcClient.DestroyVolume(logger, handle)
+					err := bcClient.DestroyVolume(context.Background(), handle)
 					Expect(err).To(HaveOccurred())
 				})
 			})
@@ -183,7 +179,7 @@ var _ = Describe("Baggage Claim Client", func() {
 						),
 					)
 
-					createdVolume, err := bcClient.CreateVolume(logger, "some-handle", baggageclaim.VolumeSpec{})
+					createdVolume, err := bcClient.CreateVolume(context.Background(), "some-handle", baggageclaim.VolumeSpec{})
 					Expect(createdVolume).To(BeNil())
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(Equal("lost baggage"))
@@ -215,7 +211,7 @@ var _ = Describe("Baggage Claim Client", func() {
 					),
 				)
 				var err error
-				vol, err = bcClient.CreateVolume(logger, "some-handle", baggageclaim.VolumeSpec{})
+				vol, err = bcClient.CreateVolume(context.Background(), "some-handle", baggageclaim.VolumeSpec{})
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -272,7 +268,7 @@ var _ = Describe("Baggage Claim Client", func() {
 					),
 				)
 				var err error
-				vol, err = bcClient.CreateVolume(logger, "some-handle", baggageclaim.VolumeSpec{})
+				vol, err = bcClient.CreateVolume(context.Background(), "some-handle", baggageclaim.VolumeSpec{})
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -342,21 +338,21 @@ var _ = Describe("Baggage Claim Client", func() {
 					),
 				)
 				var err error
-				vol, err = bcClient.CreateVolume(logger, "some-handle", baggageclaim.VolumeSpec{})
+				vol, err = bcClient.CreateVolume(context.Background(), "some-handle", baggageclaim.VolumeSpec{})
 				Expect(err).ToNot(HaveOccurred())
 			})
 
 			Context("when error occurs", func() {
 				It("returns API error message", func() {
 					mockErrorResponse("PUT", "/volumes/some-handle/properties/key", "lost baggage", http.StatusInternalServerError)
-					err := vol.SetProperty("key", "value")
+					err := vol.SetProperty(context.Background(), "key", "value")
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(Equal("lost baggage"))
 				})
 
 				It("returns ErrVolumeNotFound", func() {
 					mockErrorResponse("PUT", "/volumes/some-handle/properties/key", "lost baggage", http.StatusNotFound)
-					err := vol.SetProperty("key", "value")
+					err := vol.SetProperty(context.Background(), "key", "value")
 					Expect(err).To(HaveOccurred())
 					Expect(err).To(Equal(baggageclaim.ErrVolumeNotFound))
 				})
@@ -387,7 +383,7 @@ var _ = Describe("Baggage Claim Client", func() {
 					),
 				)
 				var err error
-				vol, err = bcClient.CreateVolume(logger, "some-handle", baggageclaim.VolumeSpec{})
+				vol, err = bcClient.CreateVolume(context.Background(), "some-handle", baggageclaim.VolumeSpec{})
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -444,7 +440,7 @@ var _ = Describe("Baggage Claim Client", func() {
 					),
 				)
 				var err error
-				vol, err = bcClient.CreateVolume(logger, "some-handle", baggageclaim.VolumeSpec{})
+				vol, err = bcClient.CreateVolume(context.Background(), "some-handle", baggageclaim.VolumeSpec{})
 				Expect(err).ToNot(HaveOccurred())
 			})
 
