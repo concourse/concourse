@@ -55,3 +55,7 @@ func (strategy ImportStrategy) Materialize(logger lager.Logger, handle string, f
 
 	return initVolume, nil
 }
+
+func (ImportStrategy) String() string {
+	return StrategyImport
+}

@@ -82,6 +82,11 @@ func NewRepository(
 }
 
 func (repo *repository) DestroyVolume(ctx context.Context, handle string) error {
+	ctx, span := tracing.StartSpan(ctx, "volumeRepository.DestroyVolume", tracing.Attrs{
+		"volume": handle,
+	})
+	defer span.End()
+
 	repo.locker.Lock(handle)
 	defer repo.locker.Unlock(handle)
 

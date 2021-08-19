@@ -32,3 +32,7 @@ func (strategy COWStrategy) Materialize(logger lager.Logger, handle string, fs F
 
 	return parentVolume.NewSubvolume(handle)
 }
+
+func (strateg COWStrategy) String() string {
+	return StrategyCopyOnWrite
+}
