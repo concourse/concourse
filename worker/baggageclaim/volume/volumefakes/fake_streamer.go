@@ -49,15 +49,16 @@ func (fake *FakeStreamer) In(arg1 io.Reader, arg2 string, arg3 bool) (bool, erro
 		arg2 string
 		arg3 bool
 	}{arg1, arg2, arg3})
+	stub := fake.InStub
+	fakeReturns := fake.inReturns
 	fake.recordInvocation("In", []interface{}{arg1, arg2, arg3})
 	fake.inMutex.Unlock()
-	if fake.InStub != nil {
-		return fake.InStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.inReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -114,15 +115,16 @@ func (fake *FakeStreamer) Out(arg1 io.Writer, arg2 string, arg3 bool) error {
 		arg2 string
 		arg3 bool
 	}{arg1, arg2, arg3})
+	stub := fake.OutStub
+	fakeReturns := fake.outReturns
 	fake.recordInvocation("Out", []interface{}{arg1, arg2, arg3})
 	fake.outMutex.Unlock()
-	if fake.OutStub != nil {
-		return fake.OutStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.outReturns
 	return fakeReturns.result1
 }
 

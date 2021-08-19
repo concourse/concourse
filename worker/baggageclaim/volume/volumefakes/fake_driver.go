@@ -64,15 +64,16 @@ func (fake *FakeDriver) CreateCopyOnWriteLayer(arg1 volume.FilesystemInitVolume,
 		arg1 volume.FilesystemInitVolume
 		arg2 volume.FilesystemLiveVolume
 	}{arg1, arg2})
+	stub := fake.CreateCopyOnWriteLayerStub
+	fakeReturns := fake.createCopyOnWriteLayerReturns
 	fake.recordInvocation("CreateCopyOnWriteLayer", []interface{}{arg1, arg2})
 	fake.createCopyOnWriteLayerMutex.Unlock()
-	if fake.CreateCopyOnWriteLayerStub != nil {
-		return fake.CreateCopyOnWriteLayerStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.createCopyOnWriteLayerReturns
 	return fakeReturns.result1
 }
 
@@ -124,15 +125,16 @@ func (fake *FakeDriver) CreateVolume(arg1 volume.FilesystemInitVolume) error {
 	fake.createVolumeArgsForCall = append(fake.createVolumeArgsForCall, struct {
 		arg1 volume.FilesystemInitVolume
 	}{arg1})
+	stub := fake.CreateVolumeStub
+	fakeReturns := fake.createVolumeReturns
 	fake.recordInvocation("CreateVolume", []interface{}{arg1})
 	fake.createVolumeMutex.Unlock()
-	if fake.CreateVolumeStub != nil {
-		return fake.CreateVolumeStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.createVolumeReturns
 	return fakeReturns.result1
 }
 
@@ -184,15 +186,16 @@ func (fake *FakeDriver) DestroyVolume(arg1 volume.FilesystemVolume) error {
 	fake.destroyVolumeArgsForCall = append(fake.destroyVolumeArgsForCall, struct {
 		arg1 volume.FilesystemVolume
 	}{arg1})
+	stub := fake.DestroyVolumeStub
+	fakeReturns := fake.destroyVolumeReturns
 	fake.recordInvocation("DestroyVolume", []interface{}{arg1})
 	fake.destroyVolumeMutex.Unlock()
-	if fake.DestroyVolumeStub != nil {
-		return fake.DestroyVolumeStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.destroyVolumeReturns
 	return fakeReturns.result1
 }
 
@@ -244,15 +247,16 @@ func (fake *FakeDriver) Recover(arg1 volume.Filesystem) error {
 	fake.recoverArgsForCall = append(fake.recoverArgsForCall, struct {
 		arg1 volume.Filesystem
 	}{arg1})
+	stub := fake.RecoverStub
+	fakeReturns := fake.recoverReturns
 	fake.recordInvocation("Recover", []interface{}{arg1})
 	fake.recoverMutex.Unlock()
-	if fake.RecoverStub != nil {
-		return fake.RecoverStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.recoverReturns
 	return fakeReturns.result1
 }
 
