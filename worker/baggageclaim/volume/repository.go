@@ -12,6 +12,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
+	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/worker/baggageclaim/uidgid"
 )
 
@@ -153,6 +154,11 @@ func (repo *repository) DestroyVolumeAndDescendants(ctx context.Context, handle 
 }
 
 func (repo *repository) CreateVolume(ctx context.Context, handle string, strategy Strategy, properties Properties, isPrivileged bool) (Volume, error) {
+	ctx, span := tracing.StartSpan(ctx, "volumeRepository.CreateVolume", tracing.Attrs{
+		"volume":   handle,
+		"strategy": strategy.String(),
+	})
+	defer span.End()
 	logger := lagerctx.FromContext(ctx).Session("create-volume", lager.Data{"handle": handle})
 
 	// only the import strategy uses the gzip streamer as,
@@ -204,6 +210,8 @@ func (repo *repository) CreateVolume(ctx context.Context, handle string, strateg
 }
 
 func (repo *repository) ListVolumes(ctx context.Context, queryProperties Properties) (Volumes, []string, error) {
+	ctx, span := tracing.StartSpan(ctx, "volumeRepository.ListVolumes", tracing.Attrs{})
+	defer span.End()
 	logger := lagerctx.FromContext(ctx).Session("list-volumes")
 
 	liveVolumes, err := repo.filesystem.ListVolumes()
@@ -236,6 +244,10 @@ func (repo *repository) ListVolumes(ctx context.Context, queryProperties Propert
 }
 
 func (repo *repository) GetVolume(ctx context.Context, handle string) (Volume, bool, error) {
+	ctx, span := tracing.StartSpan(ctx, "volumeRepository.GetVolume", tracing.Attrs{
+		"volume": handle,
+	})
+	defer span.End()
 	logger := lagerctx.FromContext(ctx).Session("get-volume", lager.Data{
 		"volume": handle,
 	})
@@ -265,6 +277,12 @@ func (repo *repository) GetVolume(ctx context.Context, handle string) (Volume, b
 }
 
 func (repo *repository) SetProperty(ctx context.Context, handle string, propertyName string, propertyValue string) error {
+	ctx, span := tracing.StartSpan(ctx, "volumeRepository.SetProperty", tracing.Attrs{
+		"volume":   handle,
+		"property": propertyName,
+	})
+	defer span.End()
+
 	repo.locker.Lock(handle)
 	defer repo.locker.Unlock(handle)
 
@@ -304,6 +322,11 @@ func (repo *repository) SetProperty(ctx context.Context, handle string, property
 }
 
 func (repo *repository) GetPrivileged(ctx context.Context, handle string) (bool, error) {
+	ctx, span := tracing.StartSpan(ctx, "volumeRepository.GetPrivileged", tracing.Attrs{
+		"volume": handle,
+	})
+	defer span.End()
+
 	repo.locker.Lock(handle)
 	defer repo.locker.Unlock(handle)
 
@@ -332,6 +355,11 @@ func (repo *repository) GetPrivileged(ctx context.Context, handle string) (bool,
 }
 
 func (repo *repository) SetPrivileged(ctx context.Context, handle string, privileged bool) error {
+	ctx, span := tracing.StartSpan(ctx, "volumeRepository.SetPrivileged", tracing.Attrs{
+		"volume": handle,
+	})
+	defer span.End()
+
 	repo.locker.Lock(handle)
 	defer repo.locker.Unlock(handle)
 
@@ -366,6 +394,13 @@ func (repo *repository) SetPrivileged(ctx context.Context, handle string, privil
 }
 
 func (repo *repository) StreamIn(ctx context.Context, handle string, path string, encoding string, stream io.Reader) (bool, error) {
+	ctx, span := tracing.StartSpan(ctx, "volumeRepository.StreamIn", tracing.Attrs{
+		"volume":   handle,
+		"sub-path": path,
+		"encoding": encoding,
+	})
+	defer span.End()
+
 	logger := lagerctx.FromContext(ctx).Session("stream-in", lager.Data{
 		"volume":   handle,
 		"sub-path": path,
@@ -418,6 +453,12 @@ func (repo *repository) StreamIn(ctx context.Context, handle string, path string
 }
 
 func (repo *repository) StreamOut(ctx context.Context, handle string, path string, encoding string, dest io.Writer) error {
+	ctx, span := tracing.StartSpan(ctx, "volumeRepository.StreamOut", tracing.Attrs{
+		"volume":   handle,
+		"sub-path": path,
+	})
+	defer span.End()
+
 	logger := lagerctx.FromContext(ctx).Session("stream-in", lager.Data{
 		"volume":   handle,
 		"sub-path": path,
@@ -457,6 +498,13 @@ func (repo *repository) StreamOut(ctx context.Context, handle string, path strin
 }
 
 func (repo *repository) StreamP2pOut(ctx context.Context, handle string, path string, encoding string, streamInURL string) error {
+	ctx, span := tracing.StartSpan(ctx, "volumeRepository.StreamP2pOut", tracing.Attrs{
+		"volume":   handle,
+		"sub-path": path,
+		"encoding": encoding,
+	})
+	defer span.End()
+
 	logger := lagerctx.FromContext(ctx).Session("stream-p2p-out", lager.Data{
 		"volume":   handle,
 		"sub-path": path,
