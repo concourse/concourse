@@ -54,8 +54,6 @@ type ResourceType interface {
 	CreateBuild(context.Context, bool, atc.Plan) (Build, bool, error)
 	CreateInMemoryBuild(context.Context, atc.Plan, util.SequenceGenerator) (Build, error)
 
-	Version() atc.Version
-
 	Reload() (bool, error)
 }
 

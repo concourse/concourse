@@ -714,7 +714,7 @@ var _ = Describe("Resources API", func() {
 						})
 
 						It("does not recursively skip the check interval", func() {
-							_, _, _, _, _, skipIntervalRecursively := dbCheckFactory.TryCreateCheckArgsForCall(0)
+							_, _, _, _, _, skipIntervalRecursively, _ := dbCheckFactory.TryCreateCheckArgsForCall(0)
 							Expect(skipIntervalRecursively).To(BeFalse())
 						})
 					})
@@ -1372,7 +1372,7 @@ var _ = Describe("Resources API", func() {
 						})
 
 						It("does not recursively skip the check interval", func() {
-							_, _, _, _, _, skipIntervalRecursively := dbCheckFactory.TryCreateCheckArgsForCall(0)
+							_, _, _, _, _, skipIntervalRecursively, _ := dbCheckFactory.TryCreateCheckArgsForCall(0)
 							Expect(skipIntervalRecursively).To(BeFalse())
 						})
 					})
@@ -1572,6 +1572,7 @@ var _ = Describe("Resources API", func() {
 							Expect(actualFromVersion).To(Equal(checkRequestBody.From))
 							Expect(manuallyTriggered).To(BeTrue())
 							Expect(skipIntervalRecursively).To(BeTrue())
+							Expect(toDb).To(BeTrue())
 						})
 					})
 

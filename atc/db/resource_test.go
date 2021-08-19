@@ -158,7 +158,7 @@ var _ = Describe("Resource", func() {
 					resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(
 						"some-base-resource-type",
 						atc.Source{"some": "repository"},
-						atc.VersionedResourceTypes{},
+						nil,
 					)
 					Expect(err).NotTo(HaveOccurred())
 

@@ -446,7 +446,7 @@ func (b *inMemoryCheckBuild) ContainerOwner(planId atc.PlanID) ContainerOwner {
 // resource config as resource_cache_id, so that the image's resource cache will not
 // be GC-ed. As checks run every minute, the resource_config's last_referenced time
 // keeps updated, then the image's resource cache will be always retained.
-func (b *inMemoryCheckBuild) SaveImageResourceVersion(cache UsedResourceCache) error {
+func (b *inMemoryCheckBuild) SaveImageResourceVersion(ResourceCache) error {
 	return nil
 }
 
@@ -585,6 +585,6 @@ func (b *inMemoryCheckBuild) AdoptInputsAndPipes() ([]BuildInput, bool, error) {
 func (b *inMemoryCheckBuild) AdoptRerunInputsAndPipes() ([]BuildInput, bool, error) {
 	return nil, false, errors.New("not implemented for in memory build")
 }
-func (b *inMemoryCheckBuild) SaveOutput(string, atc.Source, atc.VersionedResourceTypes, atc.Version, ResourceConfigMetadataFields, string, string) error {
+func (b *inMemoryCheckBuild) SaveOutput(string, ResourceCache, atc.Source, atc.Version, ResourceConfigMetadataFields, string, string) error {
 	return errors.New("not implemented for in memory build")
 }

@@ -2,7 +2,6 @@ package exec
 
 import (
 	"context"
-	"github.com/concourse/concourse/atc/db"
 	"io"
 
 	"code.cloudfoundry.org/lager"

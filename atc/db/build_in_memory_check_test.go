@@ -282,7 +282,7 @@ var _ = Describe("Build", func() {
 		var build db.Build
 
 		BeforeEach(func() {
-			resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(defaultResource.Type(), defaultResource.Source(), atc.VersionedResourceTypes{})
+			resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(defaultResource.Type(), defaultResource.Source(), nil)
 			Expect(err).ToNot(HaveOccurred())
 
 			scope, err := resourceConfig.FindOrCreateScope(defaultResource)

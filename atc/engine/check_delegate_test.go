@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"google.golang.org/genproto/googleapis/type/interval"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -238,6 +237,7 @@ var _ = Describe("CheckDelegate", func() {
 						Expect(fakeResourceConfigScope.LastCheckCallCount()).To(Equal(1))
 					})
 				})
+
 				Context("when the build create time earlier than last check start time", func() {
 					BeforeEach(func() {
 						fakeBuild.CreateTimeReturns(time.Now().Add(-5 * time.Second))
@@ -291,16 +291,22 @@ var _ = Describe("CheckDelegate", func() {
 				})
 			})
 
-			Context("when fail to get scope last start time", func() {
+			Context("with an interval configured", func() {
+				var interval time.Duration = time.Minute
+
 				BeforeEach(func() {
-					fakeResourceConfigScope.LastCheckReturns(db.LastCheck{}, errors.New("some-error"))
+					plan.Check.Interval = atc.CheckEvery{
+						Interval: interval,
+					}
 				})
 
 				Context("when the interval has not elapsed since the last check", func() {
 					BeforeEach(func() {
-						plan.Check.Interval = atc.CheckEvery{
-							Interval: interval,
-						}
+						fakeResourceConfigScope.LastCheckReturns(db.LastCheck{
+							StartTime: now.Add(-(interval + 10)),
+							EndTime:   now.Add(-(interval - 1)),
+							Succeeded: true,
+						}, nil)
 					})
 
 					It("returns false", func() {

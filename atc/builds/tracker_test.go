@@ -101,8 +101,8 @@ func (s *TrackerSuite) TestTrackInMemoryBuilds() {
 	}
 
 	running := make(chan db.Build, 3)
-	s.fakeEngine.NewBuildStub = func(build db.Build) engine.Runnable {
-		engineBuild := new(enginefakes.FakeRunnable)
+	s.fakeEngine.NewBuildStub = func(build db.Build) builds.Runnable {
+		engineBuild := new(buildsfakes.FakeRunnable)
 		engineBuild.RunStub = func(context.Context) {
 			running <- build
 		}
