@@ -56,6 +56,7 @@ type Cause struct {
 type Pipeline interface {
 	ID() int
 	Name() string
+	Ref() atc.PipelineRef
 	TeamID() int
 	TeamName() string
 	InstanceVars() atc.InstanceVars
@@ -179,8 +180,14 @@ func newPipeline(conn Conn, lockFactory lock.LockFactory) *pipeline {
 	}
 }
 
-func (p *pipeline) ID() int                          { return p.id }
-func (p *pipeline) Name() string                     { return p.name }
+func (p *pipeline) ID() int      { return p.id }
+func (p *pipeline) Name() string { return p.name }
+func (p *pipeline) Ref() atc.PipelineRef {
+	return atc.PipelineRef{
+		Name:         p.name,
+		InstanceVars: p.instanceVars,
+	}
+}
 func (p *pipeline) TeamID() int                      { return p.teamID }
 func (p *pipeline) TeamName() string                 { return p.teamName }
 func (p *pipeline) ParentJobID() int                 { return p.parentJobID }

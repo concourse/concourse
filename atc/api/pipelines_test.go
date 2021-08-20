@@ -1856,6 +1856,7 @@ var _ = Describe("Pipelines API", func() {
 					build1.NameReturns("2")
 					build1.JobNameReturns("some-job")
 					build1.PipelineNameReturns("some-pipeline")
+					build1.PipelineRefReturns(atc.PipelineRef{Name: "some-pipeline"})
 					build1.TeamNameReturns("some-team")
 					build1.StatusReturns(db.BuildStatusStarted)
 					build1.StartTimeReturns(time.Unix(1, 0))
@@ -1866,6 +1867,7 @@ var _ = Describe("Pipelines API", func() {
 					build2.NameReturns("1")
 					build2.JobNameReturns("some-job")
 					build2.PipelineNameReturns("some-pipeline")
+					build2.PipelineRefReturns(atc.PipelineRef{Name: "some-pipeline"})
 					build2.TeamNameReturns("some-team")
 					build2.StatusReturns(db.BuildStatusSucceeded)
 					build2.StartTimeReturns(time.Unix(101, 0))
@@ -1873,6 +1875,8 @@ var _ = Describe("Pipelines API", func() {
 
 					returnedBuilds = []db.Build{build1, build2}
 					fakePipeline.BuildsReturns(returnedBuilds, db.Pagination{}, nil)
+
+					fakePipeline.RefReturns(atc.PipelineRef{Name: "some-pipeline"})
 				})
 
 				It("returns 200 OK", func() {
@@ -1933,7 +1937,10 @@ var _ = Describe("Pipelines API", func() {
 
 					Context("and pipeline is instanced", func() {
 						BeforeEach(func() {
-							fakePipeline.InstanceVarsReturns(atc.InstanceVars{"branch": "master"})
+							fakePipeline.RefReturns(atc.PipelineRef{
+								Name:         "some-pipeline",
+								InstanceVars: atc.InstanceVars{"branch": "master"},
+							})
 						})
 
 						It("returns Link headers per rfc5988", func() {

@@ -56,7 +56,7 @@ func NewHandler(
 	dbCheckFactory db.CheckFactory,
 	dbResourceConfigFactory db.ResourceConfigFactory,
 	dbUserFactory db.UserFactory,
-	dbWebhooks db.Webhooks,
+	dbWebhooks webhookserver.Webhooks,
 
 	eventHandlerFactory buildserver.EventHandlerFactory,
 

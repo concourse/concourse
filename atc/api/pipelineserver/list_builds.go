@@ -64,10 +64,7 @@ func (s *Server) ListPipelineBuilds(pipeline db.Pipeline) http.Handler {
 			}
 		}
 
-		pipelineRef := atc.PipelineRef{
-			Name:         pipeline.Name(),
-			InstanceVars: pipeline.InstanceVars(),
-		}
+		pipelineRef := pipeline.Ref()
 		if pagination.Older != nil {
 			s.addNextLink(w, teamName, pipelineRef, *pagination.Older)
 		}

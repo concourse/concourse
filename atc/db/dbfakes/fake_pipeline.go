@@ -400,6 +400,16 @@ type FakePipeline struct {
 	publicReturnsOnCall map[int]struct {
 		result1 bool
 	}
+	RefStub        func() atc.PipelineRef
+	refMutex       sync.RWMutex
+	refArgsForCall []struct {
+	}
+	refReturns struct {
+		result1 atc.PipelineRef
+	}
+	refReturnsOnCall map[int]struct {
+		result1 atc.PipelineRef
+	}
 	ReloadStub        func() (bool, error)
 	reloadMutex       sync.RWMutex
 	reloadArgsForCall []struct {
@@ -2502,6 +2512,59 @@ func (fake *FakePipeline) PublicReturnsOnCall(i int, result1 bool) {
 	}{result1}
 }
 
+func (fake *FakePipeline) Ref() atc.PipelineRef {
+	fake.refMutex.Lock()
+	ret, specificReturn := fake.refReturnsOnCall[len(fake.refArgsForCall)]
+	fake.refArgsForCall = append(fake.refArgsForCall, struct {
+	}{})
+	stub := fake.RefStub
+	fakeReturns := fake.refReturns
+	fake.recordInvocation("Ref", []interface{}{})
+	fake.refMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakePipeline) RefCallCount() int {
+	fake.refMutex.RLock()
+	defer fake.refMutex.RUnlock()
+	return len(fake.refArgsForCall)
+}
+
+func (fake *FakePipeline) RefCalls(stub func() atc.PipelineRef) {
+	fake.refMutex.Lock()
+	defer fake.refMutex.Unlock()
+	fake.RefStub = stub
+}
+
+func (fake *FakePipeline) RefReturns(result1 atc.PipelineRef) {
+	fake.refMutex.Lock()
+	defer fake.refMutex.Unlock()
+	fake.RefStub = nil
+	fake.refReturns = struct {
+		result1 atc.PipelineRef
+	}{result1}
+}
+
+func (fake *FakePipeline) RefReturnsOnCall(i int, result1 atc.PipelineRef) {
+	fake.refMutex.Lock()
+	defer fake.refMutex.Unlock()
+	fake.RefStub = nil
+	if fake.refReturnsOnCall == nil {
+		fake.refReturnsOnCall = make(map[int]struct {
+			result1 atc.PipelineRef
+		})
+	}
+	fake.refReturnsOnCall[i] = struct {
+		result1 atc.PipelineRef
+	}{result1}
+}
+
 func (fake *FakePipeline) Reload() (bool, error) {
 	fake.reloadMutex.Lock()
 	ret, specificReturn := fake.reloadReturnsOnCall[len(fake.reloadArgsForCall)]
@@ -3349,6 +3412,8 @@ func (fake *FakePipeline) Invocations() map[string][][]interface{} {
 	defer fake.prototypesMutex.RUnlock()
 	fake.publicMutex.RLock()
 	defer fake.publicMutex.RUnlock()
+	fake.refMutex.RLock()
+	defer fake.refMutex.RUnlock()
 	fake.reloadMutex.RLock()
 	defer fake.reloadMutex.RUnlock()
 	fake.resourceMutex.RLock()

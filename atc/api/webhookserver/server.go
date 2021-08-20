@@ -7,6 +7,8 @@ import (
 	"github.com/concourse/concourse/atc"
 )
 
+//go:generate counterfeiter . Webhooks
+
 type Webhooks interface {
 	CheckResourcesMatchingWebhookPayload(logger lager.Logger, teamID int, name string, payload json.RawMessage, requestToken string) (int, error)
 	SaveWebhook(teamID int, webhook atc.Webhook) (bool, error)

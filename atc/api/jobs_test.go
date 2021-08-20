@@ -1263,6 +1263,7 @@ var _ = Describe("Jobs API", func() {
 				BeforeEach(func() {
 					fakeJob.NameReturns("some-job")
 					fakePipeline.JobReturns(fakeJob, true, nil)
+					fakePipeline.RefReturns(atc.PipelineRef{Name: "some-pipeline"})
 				})
 
 				Context("when no params are passed", func() {
@@ -1304,6 +1305,7 @@ var _ = Describe("Jobs API", func() {
 						build1.NameReturns("2")
 						build1.JobNameReturns("some-job")
 						build1.PipelineNameReturns("some-pipeline")
+						build1.PipelineRefReturns(atc.PipelineRef{Name: "some-pipeline"})
 						build1.TeamNameReturns("some-team")
 						build1.StatusReturns(db.BuildStatusStarted)
 						build1.StartTimeReturns(time.Unix(1, 0))
@@ -1314,6 +1316,7 @@ var _ = Describe("Jobs API", func() {
 						build2.NameReturns("1")
 						build2.JobNameReturns("some-job")
 						build2.PipelineNameReturns("some-pipeline")
+						build2.PipelineRefReturns(atc.PipelineRef{Name: "some-pipeline"})
 						build2.TeamNameReturns("some-team")
 						build2.StatusReturns(db.BuildStatusSucceeded)
 						build2.StartTimeReturns(time.Unix(101, 0))
@@ -1324,6 +1327,7 @@ var _ = Describe("Jobs API", func() {
 						build3.NameReturns("1.1")
 						build3.JobNameReturns("some-job")
 						build3.PipelineNameReturns("some-pipeline")
+						build3.PipelineRefReturns(atc.PipelineRef{Name: "some-pipeline"})
 						build3.TeamNameReturns("some-team")
 						build3.StatusReturns(db.BuildStatusSucceeded)
 						build3.StartTimeReturns(time.Unix(102, 0))
@@ -1410,7 +1414,10 @@ var _ = Describe("Jobs API", func() {
 
 						Context("and builds are on instanced pipeline", func() {
 							BeforeEach(func() {
-								fakePipeline.InstanceVarsReturns(atc.InstanceVars{"branch": "master"})
+								fakePipeline.RefReturns(atc.PipelineRef{
+									Name:         "some-pipeline",
+									InstanceVars: atc.InstanceVars{"branch": "master"},
+								})
 							})
 
 							It("returns Link headers per rfc5988", func() {

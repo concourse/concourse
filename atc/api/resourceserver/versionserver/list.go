@@ -89,10 +89,7 @@ func (s *Server) ListResourceVersions(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		pipelineRef := atc.PipelineRef{
-			Name:         pipeline.Name(),
-			InstanceVars: pipeline.InstanceVars(),
-		}
+		pipelineRef := pipeline.Ref()
 		if pagination.Older != nil {
 			s.addNextLink(w, teamName, pipelineRef, resourceName, *pagination.Older)
 		}

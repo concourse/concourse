@@ -399,6 +399,7 @@ var _ = Describe("Versions API", func() {
 					Context("when next/previous pages are available", func() {
 						BeforeEach(func() {
 							fakePipeline.NameReturns("some-pipeline")
+							fakePipeline.RefReturns(atc.PipelineRef{Name: "some-pipeline"})
 							fakeResource.VersionsReturns(returnedVersions, db.Pagination{
 								Newer: &db.Page{From: db.NewIntPtr(4), Limit: 2},
 								Older: &db.Page{To: db.NewIntPtr(2), Limit: 2},
@@ -414,7 +415,10 @@ var _ = Describe("Versions API", func() {
 
 						Context("and resource is on an instanced pipeline", func() {
 							BeforeEach(func() {
-								fakePipeline.InstanceVarsReturns(atc.InstanceVars{"branch": "master"})
+								fakePipeline.RefReturns(atc.PipelineRef{
+									Name:         "some-pipeline",
+									InstanceVars: atc.InstanceVars{"branch": "master"},
+								})
 							})
 
 							It("returns Link headers per rfc5988", func() {
