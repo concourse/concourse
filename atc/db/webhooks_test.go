@@ -87,6 +87,75 @@ var _ = Describe("Webhooks", func() {
 		Expect(scenario1.Resource("mismatched-payload").BuildSummary()).To(BeNil())
 	})
 
+	It("doesn't create a check for paused pipelines", func() {
+		scenario := dbtest.Setup(
+			builder.WithExistingTeam(defaultTeam),
+			builder.WithPipeline(atc.Config{
+				Resources: atc.ResourceConfigs{
+					{
+						Name: "match-type-and-payload",
+						Type: dbtest.BaseResourceType,
+						Webhooks: []atc.WebhookConfig{
+							{
+								Type:   "github",
+								Filter: json.RawMessage(`{"foo": "bar"}`),
+							},
+						},
+					},
+				},
+			}),
+		)
+
+		_, err := webhooks.SaveWebhook(defaultTeam.ID(), atc.Webhook{
+			Name:  "some-webhook",
+			Type:  "github",
+			Token: "abc123",
+		})
+		Expect(err).ToNot(HaveOccurred())
+
+		err = scenario.Pipeline.Pause("me")
+		Expect(err).ToNot(HaveOccurred())
+
+		payload := json.RawMessage(`{"foo": "bar"}`)
+		numChecksCreated, err := webhooks.CheckResourcesMatchingWebhookPayload(logger, defaultTeam.ID(), "some-webhook", payload, "abc123")
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(numChecksCreated).To(Equal(0))
+	})
+
+	It("doesn't create a check for pipelines in other teams", func() {
+		dbtest.Setup(
+			builder.WithTeam("some-new-team"),
+			builder.WithPipeline(atc.Config{
+				Resources: atc.ResourceConfigs{
+					{
+						Name: "match-type-and-payload",
+						Type: dbtest.BaseResourceType,
+						Webhooks: []atc.WebhookConfig{
+							{
+								Type:   "github",
+								Filter: json.RawMessage(`{"foo": "bar"}`),
+							},
+						},
+					},
+				},
+			}),
+		)
+
+		_, err := webhooks.SaveWebhook(defaultTeam.ID(), atc.Webhook{
+			Name:  "some-webhook",
+			Type:  "github",
+			Token: "abc123",
+		})
+		Expect(err).ToNot(HaveOccurred())
+
+		payload := json.RawMessage(`{"foo": "bar"}`)
+		numChecksCreated, err := webhooks.CheckResourcesMatchingWebhookPayload(logger, defaultTeam.ID(), "some-webhook", payload, "abc123")
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(numChecksCreated).To(Equal(0))
+	})
+
 	It("saving a webhook returns whether it is new", func() {
 		isNew, err := webhooks.SaveWebhook(defaultTeam.ID(), atc.Webhook{
 			Name:  "some-webhook",

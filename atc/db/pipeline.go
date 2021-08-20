@@ -719,6 +719,10 @@ func (p *pipeline) archive(tx Tx) error {
 		return err
 	}
 
+	if err := removeDependentTableRows(tx, p.id); err != nil {
+		return err
+	}
+
 	for _, table := range pipelineObjectTables {
 		err = clearConfigForPipelineObject(tx, p.id, table)
 		if err != nil {

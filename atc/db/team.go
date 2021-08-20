@@ -547,9 +547,16 @@ func savePipeline(
 			return 0, false, err
 		}
 
-		err = resetDependentTableStates(tx, pipelineID)
+		err = removeDependentTableRows(tx, pipelineID)
 		if err != nil {
 			return 0, false, err
+		}
+
+		for _, table := range pipelineObjectTables {
+			err = inactivateTableForPipeline(tx, pipelineID, table)
+			if err != nil {
+				return 0, false, err
+			}
 		}
 	}
 
@@ -1544,7 +1551,7 @@ func (t *team) queryTeam(tx Tx, query string, params ...interface{}) error {
 	return nil
 }
 
-func resetDependentTableStates(tx Tx, pipelineID int) error {
+func removeDependentTableRows(tx Tx, pipelineID int) error {
 	_, err := psql.Delete("jobs_serial_groups").
 		Where(sq.Expr(`job_id in (
         SELECT j.id
@@ -1569,13 +1576,7 @@ func resetDependentTableStates(tx Tx, pipelineID int) error {
 		return err
 	}
 
-	for _, table := range pipelineObjectTables {
-		err = inactivateTableForPipeline(tx, pipelineID, table)
-		if err != nil {
-			return err
-		}
-	}
-	return err
+	return nil
 }
 
 func inactivateTableForPipeline(tx Tx, pipelineID int, tableName string) error {

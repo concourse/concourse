@@ -22,6 +22,29 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+type ResourceWebhook struct {
+	ResourceID int
+	Type       string
+	Filter     string
+}
+
+func getResourceWebhooks() []ResourceWebhook {
+	rows, err := dbConn.Query("SELECT resource_id, webhook_type, webhook_filter FROM resource_webhooks")
+	Expect(err).ToNot(HaveOccurred())
+
+	defer rows.Close()
+
+	var webhooks []ResourceWebhook
+	for rows.Next() {
+		var webhook ResourceWebhook
+		err := rows.Scan(&webhook.ResourceID, &webhook.Type, &webhook.Filter)
+		Expect(err).ToNot(HaveOccurred())
+		webhooks = append(webhooks, webhook)
+	}
+
+	return webhooks
+}
+
 var _ = Describe("Team", func() {
 	var (
 		team      db.Team
@@ -1763,29 +1786,6 @@ var _ = Describe("Team", func() {
 		type SerialGroup struct {
 			JobID int
 			Name  string
-		}
-
-		type ResourceWebhook struct {
-			ResourceID int
-			Type       string
-			Filter     string
-		}
-
-		getResourceWebhooks := func() []ResourceWebhook {
-			rows, err := dbConn.Query("SELECT resource_id, webhook_type, webhook_filter FROM resource_webhooks")
-			Expect(err).ToNot(HaveOccurred())
-
-			defer rows.Close()
-
-			var webhooks []ResourceWebhook
-			for rows.Next() {
-				var webhook ResourceWebhook
-				err := rows.Scan(&webhook.ResourceID, &webhook.Type, &webhook.Filter)
-				Expect(err).ToNot(HaveOccurred())
-				webhooks = append(webhooks, webhook)
-			}
-
-			return webhooks
 		}
 
 		var (

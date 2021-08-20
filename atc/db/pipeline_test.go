@@ -1,6 +1,7 @@
 package db_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"time"
@@ -360,6 +361,33 @@ var _ = Describe("Pipeline", func() {
 				{Name: "some-prototype", Type: "base-type"},
 			}
 			Expect(prototypeConfigs).To(Equal(emptyPrototypeConfigs))
+		})
+
+		Context("when the pipeline has webhooks", func() {
+			BeforeEach(func() {
+				config, err := pipeline.Config()
+				Expect(err).ToNot(HaveOccurred())
+
+				config.Resources = append(config.Resources, atc.ResourceConfig{
+					Name: "some-other-resource",
+					Type: "some-type",
+					Webhooks: []atc.WebhookConfig{
+						{
+							Type:   "some-webhook-type",
+							Filter: json.RawMessage(`{"some": "filter"}`),
+						},
+					},
+				})
+
+				_, _, err = team.SavePipeline(pipeline.Ref(), config, pipeline.ConfigVersion(), false)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(getResourceWebhooks()).To(HaveLen(1))
+			})
+
+			It("should clear out the webhooks", func() {
+				Expect(getResourceWebhooks()).To(BeEmpty())
+			})
 		})
 	})
 
