@@ -1,0 +1,13 @@
+---
+resources:
+- name: some-resource
+  type: mock
+  check_every: never
+  webhooks:
+  - type: some-type
+    filter: {expected: payload}
+
+jobs:
+- name: some-job
+  plan:
+  - get: some-resource

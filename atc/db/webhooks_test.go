@@ -68,7 +68,11 @@ var _ = Describe("Webhooks", func() {
 			}),
 		)
 
-		err := webhooks.CreateWebhook(defaultTeam.ID(), "some-webhook", "github", "abc123")
+		_, err := webhooks.SaveWebhook(defaultTeam.ID(), atc.Webhook{
+			Name:  "some-webhook",
+			Type:  "github",
+			Token: "abc123",
+		})
 		Expect(err).ToNot(HaveOccurred())
 
 		payload := json.RawMessage(`{"foo": "bar", "array": [{"hello": "you", "num": 1}, {"hello": "world", "num": 2}]}`)
@@ -83,13 +87,43 @@ var _ = Describe("Webhooks", func() {
 		Expect(scenario1.Resource("mismatched-payload").BuildSummary()).To(BeNil())
 	})
 
+	It("saving a webhook returns whether it is new", func() {
+		isNew, err := webhooks.SaveWebhook(defaultTeam.ID(), atc.Webhook{
+			Name:  "some-webhook",
+			Type:  "github",
+			Token: "old-token",
+		})
+		Expect(err).ToNot(HaveOccurred())
+		Expect(isNew).To(BeTrue())
+
+		isNew, err = webhooks.SaveWebhook(defaultTeam.ID(), atc.Webhook{
+			Name:  "some-webhook",
+			Type:  "github",
+			Token: "new-token",
+		})
+		Expect(err).ToNot(HaveOccurred())
+		Expect(isNew).To(BeFalse())
+
+		isNew, err = webhooks.SaveWebhook(defaultTeam.ID(), atc.Webhook{
+			Name:  "new-webhook",
+			Type:  "github",
+			Token: "some-token",
+		})
+		Expect(err).ToNot(HaveOccurred())
+		Expect(isNew).To(BeTrue())
+	})
+
 	It("errors if the webhook does not exist", func() {
 		_, err := webhooks.CheckResourcesMatchingWebhookPayload(logger, defaultTeam.ID(), "invalid-webhook", nil, "abc123")
 		Expect(err).To(MatchError(db.ErrMissingWebhook))
 	})
 
 	It("errors if the token is invalid", func() {
-		err := webhooks.CreateWebhook(defaultTeam.ID(), "some-webhook", "github", "abc123")
+		_, err := webhooks.SaveWebhook(defaultTeam.ID(), atc.Webhook{
+			Name:  "some-webhook",
+			Type:  "github",
+			Token: "abc123",
+		})
 		Expect(err).ToNot(HaveOccurred())
 
 		_, err = webhooks.CheckResourcesMatchingWebhookPayload(logger, defaultTeam.ID(), "some-webhook", nil, "bad-token")

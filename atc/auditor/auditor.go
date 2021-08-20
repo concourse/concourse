@@ -135,6 +135,7 @@ func (a *auditor) ValidateAction(action string) bool {
 		atc.ClearTaskCache,
 		atc.SetLogLevel,
 		atc.GetLogLevel,
+		atc.SetTeamWebhook,
 		atc.DownloadCLI,
 		atc.GetInfo,
 		atc.GetInfoCreds,

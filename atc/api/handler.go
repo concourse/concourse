@@ -172,7 +172,8 @@ func NewHandler(
 		atc.CheckPrototype:          pipelineHandlerFactory.HandlerFor(resourceServer.CheckPrototype),
 		atc.ClearResourceCache:      pipelineHandlerFactory.HandlerFor(resourceServer.ClearResourceCache),
 
-		atc.TeamWebhook: teamHandlerFactory.HandlerFor(webhookServer.TeamWebhook),
+		atc.TeamWebhook:    teamHandlerFactory.HandlerFor(webhookServer.TeamWebhook),
+		atc.SetTeamWebhook: teamHandlerFactory.HandlerFor(webhookServer.SetTeamWebhook),
 
 		atc.ListResourceVersions:           pipelineHandlerFactory.HandlerFor(versionServer.ListResourceVersions),
 		atc.GetResourceVersion:             pipelineHandlerFactory.HandlerFor(versionServer.GetResourceVersion),

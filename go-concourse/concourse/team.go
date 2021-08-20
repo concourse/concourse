@@ -18,6 +18,8 @@ type Team interface {
 	RenameTeam(teamName, name string) (bool, []ConfigWarning, error)
 	DestroyTeam(teamName string) error
 
+	SetWebhook(atc.Webhook) (bool, error)
+
 	Pipeline(pipelineRef atc.PipelineRef) (atc.Pipeline, bool, error)
 	PipelineBuilds(pipelineRef atc.PipelineRef, page Page) ([]atc.Build, Pagination, bool, error)
 	DeletePipeline(pipelineRef atc.PipelineRef) (bool, error)

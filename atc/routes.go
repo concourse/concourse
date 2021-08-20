@@ -42,7 +42,8 @@ const (
 	CheckResourceType    = "CheckResourceType"
 	CheckPrototype       = "CheckPrototype"
 
-	TeamWebhook = "TeamWebhook"
+	TeamWebhook    = "TeamWebhook"
+	SetTeamWebhook = "SetTeamWebhook"
 
 	ListResourceVersions           = "ListResourceVersions"
 	GetResourceVersion             = "GetResourceVersion"
@@ -197,6 +198,7 @@ var Routes = rata.Routes([]rata.Route{
 	// {Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/causality", Method: "GET", Name: GetResourceCausality},
 
 	{Path: "/api/v1/teams/:team_name/webhooks/:webhook_name", Method: "POST", Name: TeamWebhook},
+	{Path: "/api/v1/teams/:team_name/webhooks", Method: "POST", Name: SetTeamWebhook},
 
 	{Path: "/api/v1/teams/:team_name/cc.xml", Method: "GET", Name: GetCC},
 

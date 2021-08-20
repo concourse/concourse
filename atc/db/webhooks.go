@@ -9,6 +9,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	sq "github.com/Masterminds/squirrel"
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
 	multierror "github.com/hashicorp/go-multierror"
 )
@@ -30,27 +31,31 @@ type Webhooks struct {
 	checkFactory CheckFactory
 }
 
-func (w Webhooks) CreateWebhook(teamID int, name string, type_ string, token string) error {
+func (w Webhooks) SaveWebhook(teamID int, webhook atc.Webhook) (bool, error) {
 	es := w.conn.EncryptionStrategy()
-	tokenEnc, nonce, err := es.Encrypt([]byte(token))
+	tokenEnc, nonce, err := es.Encrypt([]byte(webhook.Token))
 	if err != nil {
-		return err
+		return false, err
 	}
-	_, err = psql.Insert("webhooks").
+	var isNewWebhook bool
+	err = psql.Insert("webhooks").
 		SetMap(map[string]interface{}{
-			"name":    name,
+			"name":    webhook.Name,
 			"team_id": teamID,
-			"type":    type_,
+			"type":    webhook.Type,
 			"token":   tokenEnc,
 			"nonce":   nonce,
 		}).
+		Suffix(`ON CONFLICT (name, team_id) DO UPDATE SET type = EXCLUDED.type, token = EXCLUDED.token, nonce = EXCLUDED.nonce`).
+		Suffix("RETURNING (xmax = 0) AS inserted").
 		RunWith(w.conn).
-		Exec()
+		QueryRow().
+		Scan(&isNewWebhook)
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	return err
+	return isNewWebhook, err
 }
 
 func (w Webhooks) CheckResourcesMatchingWebhookPayload(logger lager.Logger, teamID int, name string, payload json.RawMessage, requestToken string) (int, error) {
