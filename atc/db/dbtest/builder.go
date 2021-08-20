@@ -61,6 +61,13 @@ func NewBuilder(conn db.Conn, lockFactory lock.LockFactory) Builder {
 	}
 }
 
+func (builder Builder) WithExistingTeam(team db.Team) SetupFunc {
+	return func(scenario *Scenario) error {
+		scenario.Team = team
+		return nil
+	}
+}
+
 func (builder Builder) WithTeam(teamName string) SetupFunc {
 	return func(scenario *Scenario) error {
 		t, err := builder.TeamFactory.CreateTeam(atc.Team{Name: teamName})
@@ -103,7 +110,7 @@ func (builder Builder) WithWorker(worker atc.Worker) SetupFunc {
 	}
 }
 
-func (builder Builder) WithPipeline(config atc.Config) SetupFunc {
+func (builder Builder) WithNamedPipeline(name string, config atc.Config) SetupFunc {
 	return func(scenario *Scenario) error {
 		if scenario.Team == nil {
 			err := builder.WithTeam(unique("team"))(scenario)
@@ -117,7 +124,7 @@ func (builder Builder) WithPipeline(config atc.Config) SetupFunc {
 			from = scenario.Pipeline.ConfigVersion()
 		}
 
-		p, _, err := scenario.Team.SavePipeline(atc.PipelineRef{Name: "some-pipeline"}, config, from, false)
+		p, _, err := scenario.Team.SavePipeline(atc.PipelineRef{Name: name}, config, from, false)
 		if err != nil {
 			return err
 		}
@@ -125,6 +132,10 @@ func (builder Builder) WithPipeline(config atc.Config) SetupFunc {
 		scenario.Pipeline = p
 		return nil
 	}
+}
+
+func (builder Builder) WithPipeline(config atc.Config) SetupFunc {
+	return builder.WithNamedPipeline("some-pipeline", config)
 }
 
 func BaseWorker(name string) atc.Worker {

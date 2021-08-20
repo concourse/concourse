@@ -44,6 +44,12 @@ var _ = Describe("ValidateConfig", func() {
 					Source: atc.Source{
 						"source-config": "some-value",
 					},
+					Webhooks: []atc.WebhookConfig{
+						{
+							Type:   "github",
+							Filter: json.RawMessage(`{}`),
+						},
+					},
 				},
 			},
 
@@ -565,6 +571,39 @@ var _ = Describe("ValidateConfig", func() {
 				Expect(errorMessages[0]).To(ContainSubstring("invalid resources:"))
 				Expect(errorMessages[0]).To(ContainSubstring(
 					"resources[0] and resources[1] have the same name ('some-resource')",
+				))
+			})
+		})
+
+		Context("when a resource configures a webhook with no type", func() {
+			BeforeEach(func() {
+				config.Resources[0].Webhooks = append(config.Resources[0].Webhooks, atc.WebhookConfig{
+					Type:   "",
+					Filter: json.RawMessage("{}"),
+				})
+			})
+
+			It("returns an error", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("invalid resources:"))
+				Expect(errorMessages[0]).To(ContainSubstring(
+					"resources.some-resource.webhooks[1] has no type",
+				))
+			})
+		})
+
+		Context("when a resource configures a webhook with no filter", func() {
+			BeforeEach(func() {
+				config.Resources[0].Webhooks = append(config.Resources[0].Webhooks, atc.WebhookConfig{
+					Type: "github",
+				})
+			})
+
+			It("returns an error", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("invalid resources:"))
+				Expect(errorMessages[0]).To(ContainSubstring(
+					"resources.some-resource.webhooks[1] has no filter",
 				))
 			})
 		})

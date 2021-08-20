@@ -17,6 +17,7 @@ var encryptedColumns = []encryptedColumn{
 	{"builds", "private_plan", "id"},
 	{"cert_cache", "cert", "domain"},
 	{"pipelines", "var_sources", "id"},
+	{"webhooks", "token", "id"},
 }
 
 type encryptedColumn struct {

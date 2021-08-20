@@ -43,6 +43,7 @@ var (
 	resourceCacheFactory                db.ResourceCacheFactory
 	taskCacheFactory                    db.TaskCacheFactory
 	checkFactory                        db.CheckFactory
+	webhooks                            db.Webhooks
 	workerBaseResourceTypeFactory       db.WorkerBaseResourceTypeFactory
 	workerTaskCacheFactory              db.WorkerTaskCacheFactory
 	userFactory                         db.UserFactory
@@ -120,6 +121,7 @@ var _ = BeforeEach(func() {
 	resourceCacheFactory = db.NewResourceCacheFactory(dbConn, lockFactory)
 	taskCacheFactory = db.NewTaskCacheFactory(dbConn)
 	checkFactory = db.NewCheckFactory(dbConn, lockFactory, fakeSecrets, fakeVarSourcePool)
+	webhooks = db.NewWebhooks(dbConn, lockFactory, checkFactory)
 	workerBaseResourceTypeFactory = db.NewWorkerBaseResourceTypeFactory(dbConn)
 	workerTaskCacheFactory = db.NewWorkerTaskCacheFactory(dbConn)
 	userFactory = db.NewUserFactory(dbConn)

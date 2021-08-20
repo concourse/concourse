@@ -200,6 +200,15 @@ func validateResources(c atc.Config) ([]atc.ConfigWarning, error) {
 		if resource.Type == "" {
 			errorMessages = append(errorMessages, identifier+" has no type")
 		}
+
+		for i, webhook := range resource.Webhooks {
+			if webhook.Type == "" {
+				errorMessages = append(errorMessages, fmt.Sprintf("%s.webhooks[%d] has no type", identifier, i))
+			}
+			if webhook.Filter == nil {
+				errorMessages = append(errorMessages, fmt.Sprintf("%s.webhooks[%d] has no filter", identifier, i))
+			}
+		}
 	}
 
 	errorMessages = append(errorMessages, validateResourcesUnused(c)...)

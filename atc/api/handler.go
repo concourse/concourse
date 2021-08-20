@@ -24,6 +24,7 @@ import (
 	"github.com/concourse/concourse/atc/api/usersserver"
 	"github.com/concourse/concourse/atc/api/volumeserver"
 	"github.com/concourse/concourse/atc/api/wallserver"
+	"github.com/concourse/concourse/atc/api/webhookserver"
 	"github.com/concourse/concourse/atc/api/workerserver"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
@@ -55,6 +56,7 @@ func NewHandler(
 	dbCheckFactory db.CheckFactory,
 	dbResourceConfigFactory db.ResourceConfigFactory,
 	dbUserFactory db.UserFactory,
+	dbWebhooks db.Webhooks,
 
 	eventHandlerFactory buildserver.EventHandlerFactory,
 
@@ -103,6 +105,7 @@ func NewHandler(
 	artifactServer := artifactserver.NewServer(logger, workerPool)
 	usersServer := usersserver.NewServer(logger, dbUserFactory)
 	wallServer := wallserver.NewServer(dbWall, logger)
+	webhookServer := webhookserver.NewServer(logger, dbWebhooks)
 
 	handlers := map[string]http.Handler{
 		atc.GetConfig:  http.HandlerFunc(configServer.GetConfig),
@@ -168,6 +171,8 @@ func NewHandler(
 		atc.CheckResourceType:       pipelineHandlerFactory.HandlerFor(resourceServer.CheckResourceType),
 		atc.CheckPrototype:          pipelineHandlerFactory.HandlerFor(resourceServer.CheckPrototype),
 		atc.ClearResourceCache:      pipelineHandlerFactory.HandlerFor(resourceServer.ClearResourceCache),
+
+		atc.TeamWebhook: teamHandlerFactory.HandlerFor(webhookServer.TeamWebhook),
 
 		atc.ListResourceVersions:           pipelineHandlerFactory.HandlerFor(versionServer.ListResourceVersions),
 		atc.GetResourceVersion:             pipelineHandlerFactory.HandlerFor(versionServer.GetResourceVersion),

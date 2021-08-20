@@ -42,6 +42,8 @@ const (
 	CheckResourceType    = "CheckResourceType"
 	CheckPrototype       = "CheckPrototype"
 
+	TeamWebhook = "TeamWebhook"
+
 	ListResourceVersions           = "ListResourceVersions"
 	GetResourceVersion             = "GetResourceVersion"
 	EnableResourceVersion          = "EnableResourceVersion"
@@ -193,6 +195,8 @@ var Routes = rata.Routes([]rata.Route{
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_config_version_id/downstream", Method: "GET", Name: GetDownstreamResourceCausality},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_config_version_id/upstream", Method: "GET", Name: GetUpstreamResourceCausality},
 	// {Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/causality", Method: "GET", Name: GetResourceCausality},
+
+	{Path: "/api/v1/teams/:team_name/webhooks/:webhook_name", Method: "POST", Name: TeamWebhook},
 
 	{Path: "/api/v1/teams/:team_name/cc.xml", Method: "GET", Name: GetCC},
 

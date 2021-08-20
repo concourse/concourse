@@ -3,6 +3,7 @@ package db_test
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"sync"
@@ -1764,6 +1765,29 @@ var _ = Describe("Team", func() {
 			Name  string
 		}
 
+		type ResourceWebhook struct {
+			ResourceID int
+			Type       string
+			Filter     string
+		}
+
+		getResourceWebhooks := func() []ResourceWebhook {
+			rows, err := dbConn.Query("SELECT resource_id, webhook_type, webhook_filter FROM resource_webhooks")
+			Expect(err).ToNot(HaveOccurred())
+
+			defer rows.Close()
+
+			var webhooks []ResourceWebhook
+			for rows.Next() {
+				var webhook ResourceWebhook
+				err := rows.Scan(&webhook.ResourceID, &webhook.Type, &webhook.Filter)
+				Expect(err).ToNot(HaveOccurred())
+				webhooks = append(webhooks, webhook)
+			}
+
+			return webhooks
+		}
+
 		var (
 			config       atc.Config
 			otherConfig  atc.Config
@@ -2609,6 +2633,46 @@ var _ = Describe("Team", func() {
 					Expect(updatedResource.APIPinnedVersion()).To(Equal(atc.Version{"version": "v1"}))
 				})
 			})
+		})
+
+		It("saves configured resource webhooks", func() {
+			config.Resources[0].Webhooks = []atc.WebhookConfig{
+				{
+					Type:   "github",
+					Filter: json.RawMessage(`{"foo": "bar"}`),
+				},
+				{
+					Type:   "github",
+					Filter: json.RawMessage(`{"foo": "qux"}`),
+				},
+			}
+
+			scenario := dbtest.Setup(
+				builder.WithPipeline(config),
+			)
+
+			resource := scenario.Resource(config.Resources[0].Name)
+			Expect(getResourceWebhooks()).To(ConsistOf([]ResourceWebhook{
+				{
+					ResourceID: resource.ID(),
+					Type:       "github",
+					Filter:     `{"foo": "bar"}`,
+				},
+				{
+					ResourceID: resource.ID(),
+					Type:       "github",
+					Filter:     `{"foo": "qux"}`,
+				},
+			}))
+
+			By("clearing out the resource webhooks")
+			config.Resources[0].Webhooks = nil
+
+			scenario.Run(
+				builder.WithPipeline(config),
+			)
+
+			Expect(getResourceWebhooks()).To(BeEmpty())
 		})
 
 		It("removes task caches for jobs that are no longer in pipeline", func() {

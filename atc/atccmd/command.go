@@ -825,6 +825,7 @@ func (cmd *RunCommand) constructAPIMembers(
 	dbAccessTokenFactory := db.NewAccessTokenFactory(dbConn)
 	dbClock := db.NewClock()
 	dbWall := db.NewWall(dbConn, &dbClock)
+	dbWebhooks := db.NewWebhooks(dbConn, lockFactory, dbCheckFactory)
 
 	tokenVerifier := cmd.constructTokenVerifier(dbAccessTokenFactory)
 
@@ -872,6 +873,7 @@ func (cmd *RunCommand) constructAPIMembers(
 		credsManagers,
 		accessFactory,
 		dbWall,
+		dbWebhooks,
 		policyChecker,
 	)
 	if err != nil {
@@ -1881,6 +1883,7 @@ func (cmd *RunCommand) constructAPIHandler(
 	credsManagers creds.Managers,
 	accessFactory accessor.AccessFactory,
 	dbWall db.Wall,
+	dbWebhooks db.Webhooks,
 	policyChecker policy.Checker,
 ) (http.Handler, error) {
 
@@ -1952,6 +1955,7 @@ func (cmd *RunCommand) constructAPIHandler(
 		dbCheckFactory,
 		resourceConfigFactory,
 		dbUserFactory,
+		dbWebhooks,
 
 		buildserver.NewEventHandler,
 

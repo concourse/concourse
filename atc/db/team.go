@@ -1295,6 +1295,17 @@ func saveResource(tx Tx, resource atc.ResourceConfig, pipelineID int) (int, erro
 		}
 	}
 
+	for _, webhook := range resource.Webhooks {
+		_, err = psql.Insert("resource_webhooks").
+			Columns("resource_id", "webhook_type", "webhook_filter").
+			Values(resourceID, webhook.Type, []byte(webhook.Filter)).
+			RunWith(tx).
+			Exec()
+		if err != nil {
+			return 0, err
+		}
+	}
+
 	return resourceID, nil
 }
 
@@ -1539,6 +1550,18 @@ func resetDependentTableStates(tx Tx, pipelineID int) error {
         SELECT j.id
         FROM jobs j
         WHERE j.pipeline_id = $1
+      )`, pipelineID)).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	_, err = psql.Delete("resource_webhooks").
+		Where(sq.Expr(`resource_id in (
+        SELECT r.id
+        FROM resources r
+        WHERE r.pipeline_id = $1
       )`, pipelineID)).
 		RunWith(tx).
 		Exec()

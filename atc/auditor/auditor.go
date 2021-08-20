@@ -115,6 +115,7 @@ func (a *auditor) ValidateAction(action string) bool {
 		atc.SetPinCommentOnResource,
 		atc.CheckResource,
 		atc.CheckResourceWebHook,
+		atc.TeamWebhook,
 		atc.CheckResourceType,
 		atc.CheckPrototype,
 		atc.ListResourceVersions,
