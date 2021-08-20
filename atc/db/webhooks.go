@@ -55,7 +55,28 @@ func (w Webhooks) SaveWebhook(teamID int, webhook atc.Webhook) (bool, error) {
 		return false, err
 	}
 
-	return isNewWebhook, err
+	return isNewWebhook, nil
+}
+
+func (w Webhooks) DeleteWebhook(teamID int, name string) error {
+	var exists bool
+	err := psql.Delete("webhooks").
+		Where(sq.Eq{
+			"name":    name,
+			"team_id": teamID,
+		}).
+		Suffix("RETURNING TRUE").
+		RunWith(w.conn).
+		QueryRowContext(context.Background()).
+		Scan(&exists)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrMissingWebhook
+		}
+		return err
+	}
+
+	return nil
 }
 
 func (w Webhooks) CheckResourcesMatchingWebhookPayload(logger lager.Logger, teamID int, name string, payload json.RawMessage, requestToken string) (int, error) {

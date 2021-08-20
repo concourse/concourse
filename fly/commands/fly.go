@@ -79,7 +79,8 @@ type FlyCommand struct {
 	AbortBuild AbortBuildCommand `command:"abort-build" alias:"ab" description:"Abort a build"`
 	RerunBuild RerunBuildCommand `command:"rerun-build" alias:"rb" description:"Rerun a build"`
 
-	SetWebhook SetWebhookCommand `command:"set-webhook" alias:"sw" description:"Create or modify a team-scoped webhook"`
+	SetWebhook     SetWebhookCommand     `command:"set-webhook"     alias:"sw" description:"Create or modify a team-scoped webhook"`
+	DestroyWebhook DestroyWebhookCommand `command:"destroy-webhook" alias:"dw" description:"Destroy a team-scoped webhook, preventing it from creating resource checks"`
 
 	TriggerJob TriggerJobCommand `command:"trigger-job" alias:"tj" description:"Start a job in a pipeline"`
 

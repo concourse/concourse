@@ -312,6 +312,17 @@ type FakeTeam struct {
 	destroyTeamReturnsOnCall map[int]struct {
 		result1 error
 	}
+	DestroyWebhookStub        func(string) error
+	destroyWebhookMutex       sync.RWMutex
+	destroyWebhookArgsForCall []struct {
+		arg1 string
+	}
+	destroyWebhookReturns struct {
+		result1 error
+	}
+	destroyWebhookReturnsOnCall map[int]struct {
+		result1 error
+	}
 	DisableResourceVersionStub        func(atc.PipelineRef, string, int) (bool, error)
 	disableResourceVersionMutex       sync.RWMutex
 	disableResourceVersionArgsForCall []struct {
@@ -784,6 +795,19 @@ type FakeTeam struct {
 		result2 error
 	}
 	setPinCommentReturnsOnCall map[int]struct {
+		result1 bool
+		result2 error
+	}
+	SetWebhookStub        func(atc.Webhook) (bool, error)
+	setWebhookMutex       sync.RWMutex
+	setWebhookArgsForCall []struct {
+		arg1 atc.Webhook
+	}
+	setWebhookReturns struct {
+		result1 bool
+		result2 error
+	}
+	setWebhookReturnsOnCall map[int]struct {
 		result1 bool
 		result2 error
 	}
@@ -2155,6 +2179,67 @@ func (fake *FakeTeam) DestroyTeamReturnsOnCall(i int, result1 error) {
 		})
 	}
 	fake.destroyTeamReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeTeam) DestroyWebhook(arg1 string) error {
+	fake.destroyWebhookMutex.Lock()
+	ret, specificReturn := fake.destroyWebhookReturnsOnCall[len(fake.destroyWebhookArgsForCall)]
+	fake.destroyWebhookArgsForCall = append(fake.destroyWebhookArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	stub := fake.DestroyWebhookStub
+	fakeReturns := fake.destroyWebhookReturns
+	fake.recordInvocation("DestroyWebhook", []interface{}{arg1})
+	fake.destroyWebhookMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeTeam) DestroyWebhookCallCount() int {
+	fake.destroyWebhookMutex.RLock()
+	defer fake.destroyWebhookMutex.RUnlock()
+	return len(fake.destroyWebhookArgsForCall)
+}
+
+func (fake *FakeTeam) DestroyWebhookCalls(stub func(string) error) {
+	fake.destroyWebhookMutex.Lock()
+	defer fake.destroyWebhookMutex.Unlock()
+	fake.DestroyWebhookStub = stub
+}
+
+func (fake *FakeTeam) DestroyWebhookArgsForCall(i int) string {
+	fake.destroyWebhookMutex.RLock()
+	defer fake.destroyWebhookMutex.RUnlock()
+	argsForCall := fake.destroyWebhookArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeTeam) DestroyWebhookReturns(result1 error) {
+	fake.destroyWebhookMutex.Lock()
+	defer fake.destroyWebhookMutex.Unlock()
+	fake.DestroyWebhookStub = nil
+	fake.destroyWebhookReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeTeam) DestroyWebhookReturnsOnCall(i int, result1 error) {
+	fake.destroyWebhookMutex.Lock()
+	defer fake.destroyWebhookMutex.Unlock()
+	fake.DestroyWebhookStub = nil
+	if fake.destroyWebhookReturnsOnCall == nil {
+		fake.destroyWebhookReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.destroyWebhookReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }
@@ -4310,6 +4395,70 @@ func (fake *FakeTeam) SetPinCommentReturnsOnCall(i int, result1 bool, result2 er
 	}{result1, result2}
 }
 
+func (fake *FakeTeam) SetWebhook(arg1 atc.Webhook) (bool, error) {
+	fake.setWebhookMutex.Lock()
+	ret, specificReturn := fake.setWebhookReturnsOnCall[len(fake.setWebhookArgsForCall)]
+	fake.setWebhookArgsForCall = append(fake.setWebhookArgsForCall, struct {
+		arg1 atc.Webhook
+	}{arg1})
+	stub := fake.SetWebhookStub
+	fakeReturns := fake.setWebhookReturns
+	fake.recordInvocation("SetWebhook", []interface{}{arg1})
+	fake.setWebhookMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeTeam) SetWebhookCallCount() int {
+	fake.setWebhookMutex.RLock()
+	defer fake.setWebhookMutex.RUnlock()
+	return len(fake.setWebhookArgsForCall)
+}
+
+func (fake *FakeTeam) SetWebhookCalls(stub func(atc.Webhook) (bool, error)) {
+	fake.setWebhookMutex.Lock()
+	defer fake.setWebhookMutex.Unlock()
+	fake.SetWebhookStub = stub
+}
+
+func (fake *FakeTeam) SetWebhookArgsForCall(i int) atc.Webhook {
+	fake.setWebhookMutex.RLock()
+	defer fake.setWebhookMutex.RUnlock()
+	argsForCall := fake.setWebhookArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeTeam) SetWebhookReturns(result1 bool, result2 error) {
+	fake.setWebhookMutex.Lock()
+	defer fake.setWebhookMutex.Unlock()
+	fake.SetWebhookStub = nil
+	fake.setWebhookReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) SetWebhookReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.setWebhookMutex.Lock()
+	defer fake.setWebhookMutex.Unlock()
+	fake.SetWebhookStub = nil
+	if fake.setWebhookReturnsOnCall == nil {
+		fake.setWebhookReturnsOnCall = make(map[int]struct {
+			result1 bool
+			result2 error
+		})
+	}
+	fake.setWebhookReturnsOnCall[i] = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeTeam) UnpauseJob(arg1 atc.PipelineRef, arg2 string) (bool, error) {
 	fake.unpauseJobMutex.Lock()
 	ret, specificReturn := fake.unpauseJobReturnsOnCall[len(fake.unpauseJobArgsForCall)]
@@ -4547,6 +4696,8 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.deletePipelineMutex.RUnlock()
 	fake.destroyTeamMutex.RLock()
 	defer fake.destroyTeamMutex.RUnlock()
+	fake.destroyWebhookMutex.RLock()
+	defer fake.destroyWebhookMutex.RUnlock()
 	fake.disableResourceVersionMutex.RLock()
 	defer fake.disableResourceVersionMutex.RUnlock()
 	fake.enableResourceVersionMutex.RLock()
@@ -4613,6 +4764,8 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.setJobBuildCommentMutex.RUnlock()
 	fake.setPinCommentMutex.RLock()
 	defer fake.setPinCommentMutex.RUnlock()
+	fake.setWebhookMutex.RLock()
+	defer fake.setWebhookMutex.RUnlock()
 	fake.unpauseJobMutex.RLock()
 	defer fake.unpauseJobMutex.RUnlock()
 	fake.unpausePipelineMutex.RLock()

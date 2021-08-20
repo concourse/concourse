@@ -57,9 +57,11 @@ func (command *SetWebhookCommand) Execute(args []string) error {
 		team = target.Team()
 	}
 
+	fmt.Println("\n\x1b[1mwarning\x1b[m: if the webhook already exists, this operation will overwrite the type and token")
+
 	if !command.SkipInteractive {
 		var confirm bool
-		err := interact.NewInteraction("\n\x1b[1mwarning\x1b[m: if the webhook already exists, you will overwrite the type and token.\r\napply webhook configuration?").Resolve(&confirm)
+		err := interact.NewInteraction("apply webhook configuration?").Resolve(&confirm)
 		if err != nil {
 		}
 		if !confirm {

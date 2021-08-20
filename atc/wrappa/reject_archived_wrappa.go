@@ -95,6 +95,7 @@ func (rw *RejectArchivedWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.CheckResourceWebHook,
 			atc.TeamWebhook,
 			atc.SetTeamWebhook,
+			atc.DestroyTeamWebhook,
 			atc.ListAllPipelines,
 			atc.ListBuilds,
 			atc.ListPipelines,

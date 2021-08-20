@@ -56,3 +56,38 @@ func (team *team) SetWebhook(webhook atc.Webhook) (bool, error) {
 		}
 	}
 }
+
+func (team *team) DestroyWebhook(name string) error {
+	params := rata.Params{
+		"team_name":    team.Name(),
+		"webhook_name": name,
+	}
+
+	resp, err := team.httpAgent.Send(internal.Request{
+		RequestName: atc.DestroyTeamWebhook,
+		Params:      params,
+		Header: http.Header{
+			"Content-Type": {"application/json"},
+		},
+	})
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	switch resp.StatusCode {
+	case http.StatusNoContent:
+		return nil
+	case http.StatusForbidden:
+		return fmt.Errorf("you do not have a role on team '%s'", team.Name())
+	case http.StatusNotFound:
+		return internal.ResourceNotFoundError{}
+	default:
+		body, _ := ioutil.ReadAll(resp.Body)
+		return internal.UnexpectedResponseError{
+			StatusCode: resp.StatusCode,
+			Status:     resp.Status,
+			Body:       string(body),
+		}
+	}
+}

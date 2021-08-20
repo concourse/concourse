@@ -51,6 +51,7 @@ var DefaultRoles = map[string]string{
 	atc.CheckPrototype:                 OperatorRole,
 	atc.TeamWebhook:                    OperatorRole,
 	atc.SetTeamWebhook:                 OperatorRole,
+	atc.DestroyTeamWebhook:             OperatorRole,
 	atc.ListResourceVersions:           ViewerRole,
 	atc.GetResourceVersion:             ViewerRole,
 	atc.EnableResourceVersion:          OperatorRole,

@@ -19,6 +19,7 @@ type Team interface {
 	DestroyTeam(teamName string) error
 
 	SetWebhook(atc.Webhook) (bool, error)
+	DestroyWebhook(string) error
 
 	Pipeline(pipelineRef atc.PipelineRef) (atc.Pipeline, bool, error)
 	PipelineBuilds(pipelineRef atc.PipelineRef, page Page) ([]atc.Build, Pagination, bool, error)

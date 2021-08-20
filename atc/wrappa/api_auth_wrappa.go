@@ -155,6 +155,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.HidePipeline,
 			atc.SaveConfig,
 			atc.SetTeamWebhook,
+			atc.DestroyTeamWebhook,
 			atc.ArchivePipeline,
 			atc.ClearTaskCache,
 			atc.ClearResourceCache,

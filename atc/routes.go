@@ -42,8 +42,9 @@ const (
 	CheckResourceType    = "CheckResourceType"
 	CheckPrototype       = "CheckPrototype"
 
-	TeamWebhook    = "TeamWebhook"
-	SetTeamWebhook = "SetTeamWebhook"
+	TeamWebhook        = "TeamWebhook"
+	SetTeamWebhook     = "SetTeamWebhook"
+	DestroyTeamWebhook = "DestroyTeamWebhook"
 
 	ListResourceVersions           = "ListResourceVersions"
 	GetResourceVersion             = "GetResourceVersion"
@@ -199,6 +200,7 @@ var Routes = rata.Routes([]rata.Route{
 
 	{Path: "/api/v1/teams/:team_name/webhooks/:webhook_name", Method: "POST", Name: TeamWebhook},
 	{Path: "/api/v1/teams/:team_name/webhooks", Method: "POST", Name: SetTeamWebhook},
+	{Path: "/api/v1/teams/:team_name/webhooks/:webhook_name", Method: "DELETE", Name: DestroyTeamWebhook},
 
 	{Path: "/api/v1/teams/:team_name/cc.xml", Method: "GET", Name: GetCC},
 

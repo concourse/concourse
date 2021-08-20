@@ -185,6 +185,24 @@ var _ = Describe("Webhooks", func() {
 	It("errors if the webhook does not exist", func() {
 		_, err := webhooks.CheckResourcesMatchingWebhookPayload(logger, defaultTeam.ID(), "invalid-webhook", nil, "abc123")
 		Expect(err).To(MatchError(db.ErrMissingWebhook))
+
+		By("creating and then deleting a webhook")
+		_, err = webhooks.SaveWebhook(defaultTeam.ID(), atc.Webhook{
+			Name:  "some-webhook",
+			Type:  "github",
+			Token: "token",
+		})
+		Expect(err).ToNot(HaveOccurred())
+
+		err = webhooks.DeleteWebhook(defaultTeam.ID(), "some-webhook")
+		Expect(err).ToNot(HaveOccurred())
+
+		_, err = webhooks.CheckResourcesMatchingWebhookPayload(logger, defaultTeam.ID(), "some-webhook", nil, "abc123")
+		Expect(err).To(MatchError(db.ErrMissingWebhook))
+
+		By("trying to delete a missing webhook")
+		err = webhooks.DeleteWebhook(defaultTeam.ID(), "some-webhook")
+		Expect(err).To(MatchError(db.ErrMissingWebhook))
 	})
 
 	It("errors if the token is invalid", func() {
