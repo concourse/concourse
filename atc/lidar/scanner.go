@@ -51,7 +51,6 @@ func (s *scanner) Run(ctx context.Context) error {
 	return nil
 }
 
-
 func (s *scanner) scanResources(ctx context.Context, resources []db.Resource, resourceTypesMap map[int]db.ResourceTypes) {
 	logger := lagerctx.FromContext(ctx)
 	waitGroup := new(sync.WaitGroup)
@@ -69,7 +68,6 @@ func (s *scanner) scanResources(ctx context.Context, resources []db.Resource, re
 			defer waitGroup.Done()
 
 			s.check(ctx, r, rts)
-
 		}(resource, resourceTypes)
 	}
 	waitGroup.Wait()

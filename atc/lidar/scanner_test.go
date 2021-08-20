@@ -108,9 +108,10 @@ var _ = Describe("Scanner", func() {
 					})
 
 					It("creates a check with empty resource types list", func() {
-						_, _, resourceTypes, _, _, _, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+						_, _, resourceTypes, _, _, _, toDb := fakeCheckFactory.TryCreateCheckArgsForCall(0)
 						var nilResourceTypes db.ResourceTypes
 						Expect(resourceTypes).To(Equal(nilResourceTypes))
+						Expect(toDb).To(BeFalse())
 					})
 
 					Context("when the last check end time is past our interval", func() {
@@ -152,8 +153,9 @@ var _ = Describe("Scanner", func() {
 
 						It("creates a check with a nil pinned version", func() {
 							Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
-							_, _, _, fromVersion, _, _, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+							_, _, _, fromVersion, _, _, toDb := fakeCheckFactory.TryCreateCheckArgsForCall(0)
 							Expect(fromVersion).To(BeNil())
+							Expect(toDb).To(BeFalse())
 						})
 					})
 				})

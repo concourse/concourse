@@ -157,7 +157,7 @@ func (c *checkFactory) Resources() ([]Resource, error) {
 			sq.And{
 				// find put-only resources that have errored
 				sq.Or{
-					sq.Eq{"rs.last_check_succeeded": nil},
+					sq.Eq{"rs.last_check_build_id": nil},
 					sq.Eq{"rs.last_check_succeeded": false},
 				},
 				sq.Eq{"ji.resource_id": nil},

@@ -38,7 +38,7 @@ const baseResourceTypesCacheExpiration = 10 * time.Minute
 // workers. But the cache data will have a expiration to ensure cache fresh.
 var baseResourceTypesCache = cache.New(0, 1*time.Hour)
 
-func warnUpBaseResourceTypesCache(runner sq.Runner) error {
+func warmUpBaseResourceTypesCache(runner sq.Runner) error {
 	rows, err := psql.Select("id, name, unique_version_history").
 		From("base_resource_types").
 		RunWith(runner).

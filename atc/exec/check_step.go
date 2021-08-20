@@ -183,7 +183,7 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 			return false, fmt.Errorf("update check start time: %w", err)
 		}
 
-		// Update build in logger
+		// Update build id in logger as in-memory build's id is only generated when starts to run check.
 		logger = logger.WithData(lager.Data{"build": buildId})
 		ctx = lagerctx.NewContext(ctx, logger)
 

@@ -120,30 +120,32 @@ func (f *resourceCacheFactory) FindOrCreateResourceCache(
 		}
 	}
 
-	cols := resourceCacheUser.SQLMap()
-	cols["resource_cache_id"] = id
+	if _, ok := resourceCacheUser.(noUser); !ok {
+		cols := resourceCacheUser.SQLMap()
+		cols["resource_cache_id"] = id
 
-	found = true
-	var resourceCacheUseExists int
-	err = psql.Select("1").
-		From("resource_cache_uses").
-		Where(sq.Eq(cols)).
-		RunWith(tx).
-		QueryRow().
-		Scan(&resourceCacheUseExists)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			found = false
-		} else {
-			return nil, err
-		}
-	}
-
-	if !found {
-		_, err = psql.Insert("resource_cache_uses").
-			SetMap(cols).
+		found = true
+		var resourceCacheUseExists int
+		err = psql.Select("1").
+			From("resource_cache_uses").
+			Where(sq.Eq(cols)).
 			RunWith(tx).
-			Exec()
+			QueryRow().
+			Scan(&resourceCacheUseExists)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				found = false
+			} else {
+				return nil, err
+			}
+		}
+
+		if !found {
+			_, err = psql.Insert("resource_cache_uses").
+				SetMap(cols).
+				RunWith(tx).
+				Exec()
+		}
 	}
 
 	err = tx.Commit()
