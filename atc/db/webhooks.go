@@ -141,13 +141,18 @@ func (w Webhooks) CheckResourcesMatchingWebhookPayload(logger lager.Logger, team
 
 	defer rows.Close()
 
+	seenIDs := map[int]bool{}
+
 	var resources []Resource
 	for rows.Next() {
 		resource := newEmptyResource(w.conn, w.lockFactory)
 		if err := scanResource(resource, rows); err != nil {
 			return 0, err
 		}
-		resources = append(resources, resource)
+		if !seenIDs[resource.ID()] {
+			resources = append(resources, resource)
+			seenIDs[resource.ID()] = true
+		}
 	}
 
 	resourceTypesByPipeline := map[int]ResourceTypes{}

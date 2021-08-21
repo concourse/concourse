@@ -87,6 +87,43 @@ var _ = Describe("Webhooks", func() {
 		Expect(scenario1.Resource("mismatched-payload").BuildSummary()).To(BeNil())
 	})
 
+	It("only creates one check per resource", func() {
+		dbtest.Setup(
+			builder.WithExistingTeam(defaultTeam),
+			builder.WithPipeline(atc.Config{
+				Resources: atc.ResourceConfigs{
+					{
+						Name: "match-type-and-payload",
+						Type: dbtest.BaseResourceType,
+						Webhooks: []atc.WebhookConfig{
+							{
+								Type:   "github",
+								Filter: json.RawMessage(`{"changed": ["file1"]}`),
+							},
+							{
+								Type:   "github",
+								Filter: json.RawMessage(`{"changed": ["file2"]}`),
+							},
+						},
+					},
+				},
+			}),
+		)
+
+		_, err := webhooks.SaveWebhook(defaultTeam.ID(), atc.Webhook{
+			Name:  "some-webhook",
+			Type:  "github",
+			Token: "abc123",
+		})
+		Expect(err).ToNot(HaveOccurred())
+
+		payload := json.RawMessage(`{"changed": ["file1", "file2"]}`)
+		numChecksCreated, err := webhooks.CheckResourcesMatchingWebhookPayload(logger, defaultTeam.ID(), "some-webhook", payload, "abc123")
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(numChecksCreated).To(Equal(1))
+	})
+
 	It("doesn't create a check for paused pipelines", func() {
 		scenario := dbtest.Setup(
 			builder.WithExistingTeam(defaultTeam),
