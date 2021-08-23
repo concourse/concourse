@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/worker/baggageclaim"
 	"github.com/concourse/concourse/worker/baggageclaim/volume/copy"
 )
 
@@ -57,5 +58,5 @@ func (strategy ImportStrategy) Materialize(logger lager.Logger, handle string, f
 }
 
 func (ImportStrategy) String() string {
-	return StrategyImport
+	return baggageclaim.StrategyImport
 }

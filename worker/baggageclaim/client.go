@@ -11,6 +11,12 @@ type Encoding string
 const GzipEncoding Encoding = "gzip"
 const ZstdEncoding Encoding = "zstd"
 
+const (
+	StrategyEmpty       = "empty"
+	StrategyCopyOnWrite = "cow"
+	StrategyImport      = "import"
+)
+
 //go:generate counterfeiter . Client
 
 // Client represents a client connection to a BaggageClaim server.
@@ -146,6 +152,7 @@ type VolumeSpec struct {
 
 type Strategy interface {
 	Encode() *json.RawMessage
+	String() string
 }
 
 // ImportStrategy creates a volume by copying a directory from the host.
@@ -174,6 +181,10 @@ func (strategy ImportStrategy) Encode() *json.RawMessage {
 	return &msg
 }
 
+func (ImportStrategy) String() string {
+	return StrategyImport
+}
+
 // COWStrategy creates a Copy-On-Write layer of another Volume.
 type COWStrategy struct {
 	// The parent volume that we should base the new volume on.
@@ -193,10 +204,18 @@ func (strategy COWStrategy) Encode() *json.RawMessage {
 	return &msg
 }
 
+func (COWStrategy) String() string {
+	return StrategyCopyOnWrite
+}
+
 // EmptyStrategy created a new empty volume.
 type EmptyStrategy struct{}
 
 func (EmptyStrategy) Encode() *json.RawMessage {
 	msg := json.RawMessage(`{"type":"empty"}`)
 	return &msg
+}
+
+func (EmptyStrategy) String() string {
+	return StrategyEmpty
 }

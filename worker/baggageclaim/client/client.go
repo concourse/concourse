@@ -14,7 +14,9 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/tedsuo/rata"
+	"go.opentelemetry.io/otel/propagation"
 
+	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/worker/baggageclaim"
 	"github.com/concourse/concourse/worker/baggageclaim/api"
 	"github.com/concourse/retryhttp"
@@ -67,6 +69,11 @@ func (c *client) httpClient(ctx context.Context) *http.Client {
 }
 
 func (c *client) CreateVolume(ctx context.Context, handle string, volumeSpec baggageclaim.VolumeSpec) (baggageclaim.Volume, error) {
+	ctx, span := tracing.StartSpan(ctx, "client.CreateVolume", tracing.Attrs{
+		"volume":  handle,
+		"strateg": volumeSpec.Strategy.String(),
+	})
+	defer span.End()
 	strategy := volumeSpec.Strategy
 	if strategy == nil {
 		strategy = baggageclaim.EmptyStrategy{}
@@ -110,7 +117,7 @@ func (c *client) CreateVolume(ctx context.Context, handle string, volumeSpec bag
 		handle: volumeFutureResponse.Handle,
 	}
 
-	defer volumeFuture.Destroy(lagerctx.NewContext(context.Background(), lagerctx.FromContext(ctx)))
+	defer volumeFuture.Destroy(ctx)
 
 	volume, err := volumeFuture.Wait(ctx)
 	if err != nil {
@@ -532,7 +539,6 @@ func (c *client) generateRequest(ctx context.Context,
 		return nil, err
 	}
 
-	request = request.WithContext(ctx)
-
+	tracing.Inject(ctx, propagation.HeaderCarrier(request.Header))
 	return request, nil
 }

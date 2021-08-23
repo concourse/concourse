@@ -10,10 +10,12 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
+	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/worker/baggageclaim"
 	"github.com/concourse/concourse/worker/baggageclaim/volume"
 	uuid "github.com/nu7hatch/gouuid"
 	"github.com/tedsuo/rata"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 const httpUnprocessableEntity = 422
@@ -80,17 +82,22 @@ func (vs *VolumeServer) CreateVolume(w http.ResponseWriter, req *http.Request) {
 }
 
 func (vs *VolumeServer) CreateVolumeAsync(w http.ResponseWriter, req *http.Request) {
+	ctx := tracing.Extract(req.Context(), propagation.HeaderCarrier(req.Header))
 	hLog := vs.logger.Session("create-volume-async")
 
 	hLog.Debug("start")
 	defer hLog.Debug("done")
 
-	ctx := lagerctx.NewContext(req.Context(), hLog)
-
 	request, handle, strategy, hLog, err := vs.prepareCreate(w, req, hLog)
 	if err != nil {
 		return
 	}
+
+	ctx, span := tracing.StartSpan(ctx, "server.CreateVolumeAsync", tracing.Attrs{
+		"volume":   handle,
+		"strategy": strategy.String(),
+	})
+	defer span.End()
 
 	handlers := &createVolumeHandlerAsync{
 		promise: volume.NewPromise(),

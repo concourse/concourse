@@ -1,6 +1,9 @@
 package volume
 
-import "code.cloudfoundry.org/lager"
+import (
+	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/worker/baggageclaim"
+)
 
 type EmptyStrategy struct{}
 
@@ -9,5 +12,5 @@ func (EmptyStrategy) Materialize(logger lager.Logger, handle string, fs Filesyst
 }
 
 func (EmptyStrategy) String() string {
-	return StrategyEmpty
+	return baggageclaim.StrategyEmpty
 }
