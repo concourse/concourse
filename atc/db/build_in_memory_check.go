@@ -277,8 +277,29 @@ func (b *inMemoryCheckBuild) Finish(status BuildStatus) error {
 
 	// Release the containers using in this build, so that they can be GC-ed.
 	_, err = psql.Update("containers").
-		Set("in_memory_check_build_id", nil).
-		Where(sq.Eq{"in_memory_check_build_id": b.id}).
+		Set("in_memory_build_id", nil).
+		Where(sq.Eq{"in_memory_build_id": b.id}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	// Release the resource_cache_uses using in this build, so that they can be GC-ed.
+	_, err = psql.Delete("resource_cache_uses").
+		Where(sq.Eq{"in_memory_build_id": b.preId}).
+		Where(sq.Eq{"in_memory_build_create_time": b.createTime.Nanosecond()}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	_, err = psql.Update("resources").
+		Set("in_memory_build_id", nil).
+		Set("in_memory_build_start_time", nil).
+		Set("in_memory_build_plan", nil).
+		Where(sq.Eq{"in_memory_build_id": b.id}).
 		RunWith(tx).
 		Exec()
 	if err != nil {
@@ -374,6 +395,20 @@ func (b *inMemoryCheckBuild) Events(from uint) (EventSource, error) {
 		func(tx Tx, buildID int) (bool, error) {
 			completed := false
 
+			var one int
+			err = psql.Select("1").
+				From("resources").
+				Where(sq.Eq{"in_memory_build_id": buildID}).
+				RunWith(tx).
+				QueryRow().
+				Scan(&one)
+			if err == nil {
+				return false, nil
+			}
+			if err != sql.ErrNoRows {
+				return false, err
+			}
+
 			var lastCheckStartTime, lastCheckEndTime pq.NullTime
 			err = psql.Select("last_check_start_time", "last_check_end_time").
 				From("resource_config_scopes").
@@ -431,13 +466,21 @@ func (b *inMemoryCheckBuild) PublicPlan() *json.RawMessage {
 	return &m
 }
 
-// ResourceCacheUser return no-user because a check build may only generate a image
-// resource and image resource will be cached by SaveImageResourceVersion.
+// ResourceCacheUser will in-memory build's preId as key in order to avoid unnecessary
+// db init. To ensure preId is unique across all ATCs, also use build's create time in
+// the key.
 func (b *inMemoryCheckBuild) ResourceCacheUser() ResourceCacheUser {
-	return NoUser()
+	return ForInMemoryBuild(b.preId, b.createTime.Nanosecond())
 }
 
+// ContainerOwner use in-memory build id as key. If build id is not generated yet, then
+// call OnCheckBuildStart to do db init. That's cause that, once a container is run, we
+// consider it is doing a real check, and we want to log all container events to db, so
+// that user can realtime view check logs on the GUI.
 func (b *inMemoryCheckBuild) ContainerOwner(planId atc.PlanID) ContainerOwner {
+	if b.id == 0 {
+		b.OnCheckBuildStart()
+	}
 	return NewInMemoryCheckBuildContainerOwner(b.id, planId, b.TeamID())
 }
 
@@ -491,6 +534,18 @@ func (b *inMemoryCheckBuild) initDbStuff(tx Tx) error {
 
 	for _, cachedEv := range b.cacheEvents {
 		err := b.saveEvent(tx, cachedEv)
+		if err != nil {
+			return err
+		}
+	}
+
+	if b.resourceId != 0 {
+		_, err := psql.Update("resources").
+			Set("in_memory_build_id", b.id).
+			Set("in_memory_build_start_time", b.StartTime()).
+			Set("in_memory_build_plan", b.PublicPlan()).
+			Where(sq.Eq{"id": b.resourceId}).
+			RunWith(tx).Exec()
 		if err != nil {
 			return err
 		}

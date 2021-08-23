@@ -20,13 +20,18 @@ func (user forBuild) SQLMap() map[string]interface{} {
 	}
 }
 
-type noUser struct {
+type forInMemoryBuild struct {
+	BuildID int
+	CreateTime int
 }
 
-func NoUser() ResourceCacheUser {
-	return noUser{}
+func ForInMemoryBuild(id int, createTime int) ResourceCacheUser {
+	return forInMemoryBuild{id, createTime}
 }
 
-func (user noUser) SQLMap() map[string]interface{} {
-	return map[string]interface{}{}
+func (user forInMemoryBuild) SQLMap() map[string]interface{} {
+	return map[string]interface{}{
+		"in_memory_build_id": user.BuildID,
+		"in_memory_build_create_time": user.CreateTime,
+	}
 }

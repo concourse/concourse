@@ -29,7 +29,7 @@ var _ = Describe("Build", func() {
 		plan = atc.Plan{
 			ID: "1234",
 			Check: &atc.CheckPlan{
-				Name:   "some-resource-check",
+				Name:   defaultResource.Name(),
 				Type:   "some-base-resource-type",
 				Source: atc.Source{"some-key": "some-value"},
 			},
@@ -205,7 +205,7 @@ var _ = Describe("Build", func() {
 				})
 
 				It("ResourceCacheUser", func() {
-					Expect(build.ResourceCacheUser()).To(Equal(db.NoUser()))
+					Expect(build.ResourceCacheUser()).To(Equal(db.ForInMemoryBuild(1, build.CreateTime().Nanosecond())))
 				})
 
 				It("ContainerOwner", func() {
@@ -242,7 +242,7 @@ var _ = Describe("Build", func() {
 				Context("Finish", func() {
 					BeforeEach(func() {
 						result, err := psql.Insert("containers").
-							Columns("handle", "plan_id", "pipeline_id", "resource_id", "worker_name", "team_id", "in_memory_check_build_id").
+							Columns("handle", "plan_id", "pipeline_id", "resource_id", "worker_name", "team_id", "in_memory_build_id").
 							Values("some-handle-1234567890", "some-plan", defaultResource.PipelineID(), defaultResource.ID(), defaultWorker.Name(), defaultResource.TeamID(), buildId).
 							RunWith(dbConn).
 							Exec()
@@ -266,7 +266,7 @@ var _ = Describe("Build", func() {
 					It("cleanup containers", func() {
 						rows, err := psql.Select("id").
 							From("containers").
-							Where(sq.Eq{"in_memory_check_build_id": buildId}).
+							Where(sq.Eq{"in_memory_build_id": buildId}).
 							RunWith(dbConn).
 							Query()
 						Expect(err).ToNot(HaveOccurred())

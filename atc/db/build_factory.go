@@ -54,21 +54,23 @@ func (f *buildFactory) Build(buildID int) (Build, bool, error) {
 			}
 
 			if !found {
-				resourceType, found, err := f.findResourceTypeOfInMemoryCheckBuild(buildID)
-				if err != nil {
-					return nil, false, err
-				}
+				return nil, false, nil
 
-				if !found {
-					return nil, false, nil
-				}
-
-				build, err := newExistingInMemoryCheckBuildForViewOnly(f.conn, buildID, resourceType)
-				if err != nil {
-					return nil, false, nil
-				}
-
-				return build, true, nil
+				//resourceType, found, err := f.findResourceTypeOfInMemoryCheckBuild(buildID)
+				//if err != nil {
+				//	return nil, false, err
+				//}
+				//
+				//if !found {
+				//	return nil, false, nil
+				//}
+				//
+				//build, err := newExistingInMemoryCheckBuildForViewOnly(f.conn, buildID, resourceType)
+				//if err != nil {
+				//	return nil, false, nil
+				//}
+				//
+				//return build, true, nil
 			}
 
 			build, err := newExistingInMemoryCheckBuildForViewOnly(f.conn, buildID, resource)
@@ -164,7 +166,10 @@ func (f *buildFactory) GetAllStartedBuilds() ([]Build, error) {
 func (f *buildFactory) findResourceOfInMemoryCheckBuild(buildId int) (Resource, bool, error) {
 	resource := newEmptyResource(f.conn, f.lockFactory)
 	row := resourcesQuery.
-		Where(sq.Eq{"rs.last_check_build_id": buildId}).
+		Where(sq.Or{
+			sq.Eq{"r.in_memory_build_id": buildId},
+			sq.Eq{"rs.last_check_build_id": buildId},
+		}).
 		Limit(1).
 		RunWith(f.conn).
 		QueryRow()
@@ -178,22 +183,22 @@ func (f *buildFactory) findResourceOfInMemoryCheckBuild(buildId int) (Resource, 
 	return resource, true, nil
 }
 
-func (f *buildFactory) findResourceTypeOfInMemoryCheckBuild(buildId int) (ResourceType, bool, error) {
-	resourceType := newEmptyResourceType(f.conn, f.lockFactory)
-	row := resourceTypesQuery.
-		Where(sq.Eq{"ro.last_check_build_id": buildId}).
-		Limit(1).
-		RunWith(f.conn).
-		QueryRow()
-	err := scanResourceType(resourceType, row)
-	if err == sql.ErrNoRows {
-		return nil, false, nil
-	}
-	if err != nil {
-		return nil, false, err
-	}
-	return resourceType, true, nil
-}
+//func (f *buildFactory) findResourceTypeOfInMemoryCheckBuild(buildId int) (ResourceType, bool, error) {
+//	resourceType := newEmptyResourceType(f.conn, f.lockFactory)
+//	row := resourceTypesQuery.
+//		Where(sq.Eq{"ro.last_check_build_id": buildId}).
+//		Limit(1).
+//		RunWith(f.conn).
+//		QueryRow()
+//	err := scanResourceType(resourceType, row)
+//	if err == sql.ErrNoRows {
+//		return nil, false, nil
+//	}
+//	if err != nil {
+//		return nil, false, err
+//	}
+//	return resourceType, true, nil
+//}
 
 func getBuilds(buildsQuery sq.SelectBuilder, conn Conn, lockFactory lock.LockFactory) ([]Build, error) {
 	rows, err := buildsQuery.RunWith(conn).Query()

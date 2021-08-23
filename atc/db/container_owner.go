@@ -218,8 +218,8 @@ func (c inMemoryCheckBuildContainerOwner) Create(Tx, string) (map[string]interfa
 
 func (c inMemoryCheckBuildContainerOwner) sqlMap() map[string]interface{} {
 	return map[string]interface{}{
-		"in_memory_check_build_id": c.BuildID,
-		"plan_id":                  c.PlanID,
-		"team_id":                  c.TeamID,
+		"in_memory_build_id": c.BuildID,
+		"plan_id":            c.PlanID,
+		"team_id":            c.TeamID,
 	}
 }

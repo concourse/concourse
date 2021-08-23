@@ -446,6 +446,10 @@ var _ = Describe("CheckFactory", func() {
 			err = putOnlyResource.SetResourceConfigScope(putOnlyResourceConfigScope)
 			Expect(err).NotTo(HaveOccurred())
 
+			found, err = putOnlyResourceConfigScope.UpdateLastCheckStartTime(99, nil)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
 			found, err = putOnlyResourceConfigScope.UpdateLastCheckEndTime(true)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
@@ -486,7 +490,11 @@ var _ = Describe("CheckFactory", func() {
 		Context("when a put-only resource", func() {
 			Context(fmt.Sprintf("has failed to check last time"), func() {
 				BeforeEach(func() {
-					found, err := putOnlyResourceConfigScope.UpdateLastCheckEndTime(false)
+					found, err := putOnlyResourceConfigScope.UpdateLastCheckStartTime(99, nil)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					found, err = putOnlyResourceConfigScope.UpdateLastCheckEndTime(false)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 				})
@@ -497,9 +505,13 @@ var _ = Describe("CheckFactory", func() {
 			Context("has NOT errored", func() {
 				BeforeEach(func() {
 					By("creating a successful build for the put-only resource")
-					build, created, err = putOnlyResource.CreateBuild(context.TODO(), false, atc.Plan{})
-					Expect(err).ToNot(HaveOccurred())
-					Expect(build.Finish(db.BuildStatusSucceeded)).To(Succeed())
+					found, err := putOnlyResourceConfigScope.UpdateLastCheckStartTime(99, nil)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					found, err = putOnlyResourceConfigScope.UpdateLastCheckEndTime(true)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
 				})
 				It("returns does not return the resource", func() {
 					Expect(resources).To(HaveLen(1))

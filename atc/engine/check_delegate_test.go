@@ -233,8 +233,8 @@ var _ = Describe("CheckDelegate", func() {
 				})
 
 				Context("when the interval is set to never on the plan", func() {
-					It("does not exit early and attmpts to fetch the last check value", func() {
-						Expect(fakeResourceConfigScope.LastCheckCallCount()).To(Equal(1))
+					It("does not exit early and attempts to fetch the last check value", func() {
+						Expect(fakeResourceConfigScope.LastCheckCallCount()).To(Equal(2))
 					})
 				})
 

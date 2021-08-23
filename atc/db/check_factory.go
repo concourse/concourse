@@ -53,7 +53,7 @@ type checkFactory struct {
 
 	planFactory atc.PlanFactory
 
-	checkBuildChan chan<- Build
+	checkBuildChan    chan<- Build
 	sequenceGenerator util.SequenceGenerator
 }
 

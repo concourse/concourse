@@ -143,6 +143,9 @@ var (
 		"rp.version",
 		"rp.comment_text",
 		"rp.config",
+		"r.in_memory_build_id",
+		"r.in_memory_build_start_time",
+		"r.in_memory_build_plan",
 	).
 		From("resources r").
 		Join("pipelines p ON p.id = r.pipeline_id").
@@ -841,13 +844,17 @@ func scanResource(r *resource, row scannable) error {
 		lastCheckBuildPlan                                sql.NullString
 		pinnedThroughConfig                               sql.NullBool
 		pipelineInstanceVars                              sql.NullString
+		inMemoryBuildId                                   sql.NullInt64
+		inMemoryBuildStartTime                            pq.NullTime
+		inMemoryBuildPlan                                 sql.NullString
 	)
 
 	err := row.Scan(&r.id, &r.name, &r.type_, &configBlob, &lastCheckStartTime,
 		&lastCheckEndTime, &lastCheckBuildId, &lastCheckSucceeded, &lastCheckBuildPlan,
 		&r.pipelineID, &nonce, &rcID, &rcScopeID,
 		&r.pipelineName, &pipelineInstanceVars, &r.teamID, &r.teamName,
-		&pinnedVersion, &pinComment, &pinnedThroughConfig)
+		&pinnedVersion, &pinComment, &pinnedThroughConfig,
+		&inMemoryBuildId, &inMemoryBuildStartTime, &inMemoryBuildPlan)
 	if err != nil {
 		return err
 	}
@@ -922,9 +929,8 @@ func scanResource(r *resource, row scannable) error {
 		}
 	}
 
-	if lastCheckBuildId.Valid {
+	if inMemoryBuildId.Valid || lastCheckBuildId.Valid {
 		r.buildSummary = &atc.BuildSummary{
-			ID:   int(lastCheckBuildId.Int64),
 			Name: CheckBuildName,
 
 			TeamName: r.teamName,
@@ -934,7 +940,9 @@ func scanResource(r *resource, row scannable) error {
 			PipelineInstanceVars: r.pipelineInstanceVars,
 		}
 
-		err := populateBuildSummary(r.buildSummary, lastCheckStartTime, lastCheckEndTime, lastCheckSucceeded, lastCheckBuildPlan)
+		err := populateBuildSummary(r.buildSummary, r.name,
+			inMemoryBuildId, inMemoryBuildStartTime, inMemoryBuildPlan,
+			lastCheckBuildId, lastCheckStartTime, lastCheckEndTime, lastCheckSucceeded, lastCheckBuildPlan)
 		if err != nil {
 			return err
 		}
@@ -944,9 +952,27 @@ func scanResource(r *resource, row scannable) error {
 }
 
 func populateBuildSummary(buildSummary *atc.BuildSummary,
+	name string,
+	inMemoryBuildId sql.NullInt64,
+	inMemoryBuildStartTime pq.NullTime,
+	inMemoryBuildPlan sql.NullString,
+	lastCheckBuildId sql.NullInt64,
 	lastCheckStartTime, lastCheckEndTime pq.NullTime,
 	lastCheckSucceeded sql.NullBool,
 	lastCheckBuildPlan sql.NullString) error {
+
+	if inMemoryBuildId.Valid {
+		buildSummary.ID = int(inMemoryBuildId.Int64)
+		buildSummary.StartTime = inMemoryBuildStartTime.Time.Unix()
+		buildSummary.Status = atc.StatusStarted
+		err := json.Unmarshal([]byte(inMemoryBuildPlan.String), &buildSummary.PublicPlan)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	buildSummary.ID = int(lastCheckBuildId.Int64)
 	if lastCheckStartTime.Valid {
 		buildSummary.StartTime = lastCheckStartTime.Time.Unix()
 
@@ -965,9 +991,36 @@ func populateBuildSummary(buildSummary *atc.BuildSummary,
 	}
 
 	if lastCheckBuildPlan.Valid {
-		err := json.Unmarshal([]byte(lastCheckBuildPlan.String), &buildSummary.PublicPlan)
-		if err != nil {
-			return err
+		if atc.EnableGlobalResources {
+			// When global_resources is enabled, name in check plan could be any
+			// resource name under the same scope. So we need to extra the plan
+			// and replace name with the current resource's name.
+			var plan struct {
+				ID    string `json:"id,omitempty"`
+				Check struct {
+					Name           string          `json:"name"`
+					Type           string          `json:"type"`
+					Resource       string          `json:"resource,omitempty"`
+					ImageGetPlan   json.RawMessage `json:"image_get_plan,omitempty"`
+					ImageCheckPlan json.RawMessage `json:"image_check_plan,omitempty"`
+				} `json:"check,omitempty"`
+			}
+			err := json.Unmarshal([]byte(lastCheckBuildPlan.String), &plan)
+			if err != nil {
+				return err
+			}
+
+			plan.Check.Name = name
+			b, err := json.Marshal(&plan)
+			if err != nil {
+				return err
+			}
+			buildSummary.PublicPlan = (*json.RawMessage)(&b)
+		} else {
+			err := json.Unmarshal([]byte(lastCheckBuildPlan.String), &buildSummary.PublicPlan)
+			if err != nil {
+				return err
+			}
 		}
 	}
 

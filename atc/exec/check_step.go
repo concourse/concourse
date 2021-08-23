@@ -156,6 +156,8 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 		return false, fmt.Errorf("wait: %w", err)
 	}
 
+	logger.Debug("after-wait-to-run", lager.Data{"run": run, "scope": scope.ID()})
+
 	if run {
 		defer func() {
 			err := lock.Release()

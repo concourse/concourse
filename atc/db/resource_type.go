@@ -405,23 +405,23 @@ func scanResourceType(t *resourceType, row scannable) error {
 		}
 	}
 
-	if lastCheckBuildId.Valid {
-		t.buildSummary = &atc.BuildSummary{
-			ID:   int(lastCheckBuildId.Int64),
-			Name: CheckBuildName,
-
-			TeamName: t.teamName,
-
-			PipelineID:           t.pipelineID,
-			PipelineName:         t.pipelineName,
-			PipelineInstanceVars: t.pipelineInstanceVars,
-		}
-
-		err := populateBuildSummary(t.buildSummary, lastCheckStartTime, lastCheckEndTime, lastCheckSucceeded, lastCheckBuildPlan)
-		if err != nil {
-			return err
-		}
-	}
+	//if lastCheckBuildId.Valid {
+	//	t.buildSummary = &atc.BuildSummary{
+	//		ID:   int(lastCheckBuildId.Int64),
+	//		Name: CheckBuildName,
+	//
+	//		TeamName: t.teamName,
+	//
+	//		PipelineID:           t.pipelineID,
+	//		PipelineName:         t.pipelineName,
+	//		PipelineInstanceVars: t.pipelineInstanceVars,
+	//	}
+	//
+	//	err := populateBuildSummary(t.buildSummary, lastCheckStartTime, lastCheckEndTime, lastCheckSucceeded, lastCheckBuildPlan)
+	//	if err != nil {
+	//		return err
+	//	}
+	//}
 
 	return nil
 }
