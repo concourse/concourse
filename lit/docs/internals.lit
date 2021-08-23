@@ -147,7 +147,7 @@ experienced users that want to dig deeper into how Concourse works.
   \reference{component-tsa}{TSA}.
 
   Workers by default listen on port \code{7777} for Garden and port \code{7788}
-  for Baggageclaim. Connections to both serves are forwarded over the SSH
+  for Baggageclaim. Connections to both servers are forwarded over the SSH
   connection made to the \reference{component-tsa}{TSA}.
 
   \section{
