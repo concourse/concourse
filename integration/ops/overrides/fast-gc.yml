@@ -1,0 +1,11 @@
+version: '3'
+
+services:
+  web:
+    environment:
+      CONCOURSE_GC_MISSING_GRACE_PERIOD: "0"
+      CONCOURSE_GC_INTERVAL: 10s
+
+  worker:
+    environment:
+      CONCOURSE_SWEEP_INTERVAL: 10s
