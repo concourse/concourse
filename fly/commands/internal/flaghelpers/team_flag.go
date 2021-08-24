@@ -1,6 +1,7 @@
 package flaghelpers
 
 import (
+	"github.com/concourse/concourse/go-concourse/concourse"
 	"strings"
 
 	"github.com/concourse/concourse/fly/rc"
@@ -34,4 +35,17 @@ func (flag *TeamFlag) Complete(match string) []flags.Completion {
 
 func (flag TeamFlag) Name() string {
 	return string(flag)
+}
+
+func (flag TeamFlag) LoadTeam(target rc.Target) (concourse.Team, error) {
+	teamFlag := string(flag)
+	team := target.Team()
+	var err error
+	if teamFlag != "" {
+		team, err = target.FindTeam(teamFlag)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return team, nil
 }

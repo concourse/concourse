@@ -12,8 +12,7 @@ import (
 type DestroyPipelineCommand struct {
 	Pipeline        flaghelpers.PipelineFlag `short:"p"  long:"pipeline" required:"true" description:"Pipeline to destroy"`
 	SkipInteractive bool                     `short:"n"  long:"non-interactive"          description:"Destroy the pipeline without confirmation"`
-
-	Team string `long:"team" description:"Name of the team to which the pipeline belongs, if different from the target default"`
+	Team flaghelpers.TeamFlag 				 `long:"team" description:"Name of the team to which the pipeline belongs, if different from the target default"`
 }
 
 func (command *DestroyPipelineCommand) Validate() error {
@@ -38,14 +37,9 @@ func (command *DestroyPipelineCommand) Execute(args []string) error {
 	}
 
 	var team concourse.Team
-
-	if command.Team != "" {
-		team, err = target.FindTeam(command.Team)
-		if err != nil {
-			return err
-		}
-	} else {
-		team = target.Team()
+	team, err = command.Team.LoadTeam(target)
+	if err != nil {
+		return err
 	}
 
 	pipelineRef := command.Pipeline.Ref()
