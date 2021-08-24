@@ -940,7 +940,7 @@ func scanResource(r *resource, row scannable) error {
 			PipelineInstanceVars: r.pipelineInstanceVars,
 		}
 
-		err := populateBuildSummary(r.buildSummary, r.name,
+		err := populateBuildSummary(r.buildSummary,
 			inMemoryBuildId, inMemoryBuildStartTime, inMemoryBuildPlan,
 			lastCheckBuildId, lastCheckStartTime, lastCheckEndTime, lastCheckSucceeded, lastCheckBuildPlan)
 		if err != nil {
@@ -952,7 +952,6 @@ func scanResource(r *resource, row scannable) error {
 }
 
 func populateBuildSummary(buildSummary *atc.BuildSummary,
-	name string,
 	inMemoryBuildId sql.NullInt64,
 	inMemoryBuildStartTime pq.NullTime,
 	inMemoryBuildPlan sql.NullString,
@@ -961,63 +960,37 @@ func populateBuildSummary(buildSummary *atc.BuildSummary,
 	lastCheckSucceeded sql.NullBool,
 	lastCheckBuildPlan sql.NullString) error {
 
-	if inMemoryBuildId.Valid {
+	if lastCheckBuildId.Valid {
+		buildSummary.ID = int(lastCheckBuildId.Int64)
+		if lastCheckStartTime.Valid {
+			buildSummary.StartTime = lastCheckStartTime.Time.Unix()
+
+			if lastCheckEndTime.Valid && lastCheckStartTime.Time.Before(lastCheckEndTime.Time) {
+				buildSummary.EndTime = lastCheckEndTime.Time.Unix()
+				if lastCheckSucceeded.Valid && lastCheckSucceeded.Bool {
+					buildSummary.Status = atc.StatusSucceeded
+				} else {
+					buildSummary.Status = atc.StatusFailed
+				}
+			} else {
+				buildSummary.Status = atc.StatusStarted
+			}
+		} else {
+			return errors.New("no check start time found")
+		}
+
+		if lastCheckBuildPlan.Valid {
+			err := json.Unmarshal([]byte(lastCheckBuildPlan.String), &buildSummary.PublicPlan)
+			if err != nil {
+				return err
+			}
+		}
+	} else if inMemoryBuildId.Valid {
 		buildSummary.ID = int(inMemoryBuildId.Int64)
 		buildSummary.StartTime = inMemoryBuildStartTime.Time.Unix()
 		buildSummary.Status = atc.StatusStarted
-		err := json.Unmarshal([]byte(inMemoryBuildPlan.String), &buildSummary.PublicPlan)
-		if err != nil {
-			return err
-		}
-		return nil
-	}
-
-	buildSummary.ID = int(lastCheckBuildId.Int64)
-	if lastCheckStartTime.Valid {
-		buildSummary.StartTime = lastCheckStartTime.Time.Unix()
-
-		if lastCheckEndTime.Valid && lastCheckStartTime.Time.Before(lastCheckEndTime.Time) {
-			buildSummary.EndTime = lastCheckEndTime.Time.Unix()
-			if lastCheckSucceeded.Valid && lastCheckSucceeded.Bool {
-				buildSummary.Status = atc.StatusSucceeded
-			} else {
-				buildSummary.Status = atc.StatusFailed
-			}
-		} else {
-			buildSummary.Status = atc.StatusStarted
-		}
-	} else {
-		return errors.New("no check start time found")
-	}
-
-	if lastCheckBuildPlan.Valid {
-		if atc.EnableGlobalResources {
-			// When global_resources is enabled, name in check plan could be any
-			// resource name under the same scope. So we need to extra the plan
-			// and replace name with the current resource's name.
-			var plan struct {
-				ID    string `json:"id,omitempty"`
-				Check struct {
-					Name           string          `json:"name"`
-					Type           string          `json:"type"`
-					Resource       string          `json:"resource,omitempty"`
-					ImageGetPlan   json.RawMessage `json:"image_get_plan,omitempty"`
-					ImageCheckPlan json.RawMessage `json:"image_check_plan,omitempty"`
-				} `json:"check,omitempty"`
-			}
-			err := json.Unmarshal([]byte(lastCheckBuildPlan.String), &plan)
-			if err != nil {
-				return err
-			}
-
-			plan.Check.Name = name
-			b, err := json.Marshal(&plan)
-			if err != nil {
-				return err
-			}
-			buildSummary.PublicPlan = (*json.RawMessage)(&b)
-		} else {
-			err := json.Unmarshal([]byte(lastCheckBuildPlan.String), &buildSummary.PublicPlan)
+		if inMemoryBuildPlan.Valid {
+			err := json.Unmarshal([]byte(inMemoryBuildPlan.String), &buildSummary.PublicPlan)
 			if err != nil {
 				return err
 			}

@@ -32,6 +32,7 @@ type BuildStepDelegate interface {
 	Finished(lager.Logger, bool)
 	Errored(lager.Logger, string)
 
+	BeforeSelectWorker(lager.Logger) error
 	WaitingForWorker(lager.Logger)
 	SelectedWorker(lager.Logger, string)
 

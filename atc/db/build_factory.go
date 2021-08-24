@@ -48,6 +48,9 @@ func (f *buildFactory) Build(buildID int) (Build, bool, error) {
 	err := scanBuild(build, row, f.conn.EncryptionStrategy())
 	if err != nil {
 		if err == sql.ErrNoRows {
+			// If it cannot find the build from table "builds", then try to see
+			// if the build is an in-memory build. As in-memory only runs against
+			// resources, thus we only need to try search for resources.
 			resource, found, err := f.findResourceOfInMemoryCheckBuild(buildID)
 			if err != nil {
 				return nil, false, err
@@ -55,22 +58,6 @@ func (f *buildFactory) Build(buildID int) (Build, bool, error) {
 
 			if !found {
 				return nil, false, nil
-
-				//resourceType, found, err := f.findResourceTypeOfInMemoryCheckBuild(buildID)
-				//if err != nil {
-				//	return nil, false, err
-				//}
-				//
-				//if !found {
-				//	return nil, false, nil
-				//}
-				//
-				//build, err := newExistingInMemoryCheckBuildForViewOnly(f.conn, buildID, resourceType)
-				//if err != nil {
-				//	return nil, false, nil
-				//}
-				//
-				//return build, true, nil
 			}
 
 			build, err := newExistingInMemoryCheckBuildForViewOnly(f.conn, buildID, resource)
@@ -182,23 +169,6 @@ func (f *buildFactory) findResourceOfInMemoryCheckBuild(buildId int) (Resource, 
 	}
 	return resource, true, nil
 }
-
-//func (f *buildFactory) findResourceTypeOfInMemoryCheckBuild(buildId int) (ResourceType, bool, error) {
-//	resourceType := newEmptyResourceType(f.conn, f.lockFactory)
-//	row := resourceTypesQuery.
-//		Where(sq.Eq{"ro.last_check_build_id": buildId}).
-//		Limit(1).
-//		RunWith(f.conn).
-//		QueryRow()
-//	err := scanResourceType(resourceType, row)
-//	if err == sql.ErrNoRows {
-//		return nil, false, nil
-//	}
-//	if err != nil {
-//		return nil, false, err
-//	}
-//	return resourceType, true, nil
-//}
 
 func getBuilds(buildsQuery sq.SelectBuilder, conn Conn, lockFactory lock.LockFactory) ([]Build, error) {
 	rows, err := buildsQuery.RunWith(conn).Query()

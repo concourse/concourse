@@ -30,7 +30,6 @@ type Checkable interface {
 	CurrentPinnedVersion() atc.Version
 
 	HasWebhook() bool
-	BuildSummary() *atc.BuildSummary
 
 	CheckPlan(planFactory atc.PlanFactory, imagePlanner atc.ImagePlanner, from atc.Version, interval atc.CheckEvery, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) atc.Plan
 	CreateBuild(context.Context, bool, atc.Plan) (Build, bool, error)

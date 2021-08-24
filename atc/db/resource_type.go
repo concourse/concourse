@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -46,7 +47,6 @@ type ResourceType interface {
 	ResourceConfigScopeID() int
 
 	HasWebhook() bool
-	BuildSummary() *atc.BuildSummary
 
 	SetResourceConfigScope(ResourceConfigScope) error
 
@@ -160,9 +160,6 @@ var resourceTypesQuery = psql.Select(
 	"ro.id",
 	"ro.last_check_start_time",
 	"ro.last_check_end_time",
-	"ro.last_check_build_id",
-	"ro.last_check_succeeded",
-	"ro.last_check_build_plan",
 ).
 	From("resource_types r").
 	Join("pipelines p ON p.id = r.pipeline_id").
@@ -189,7 +186,6 @@ type resourceType struct {
 	checkEvery            *atc.CheckEvery
 	lastCheckStartTime    time.Time
 	lastCheckEndTime      time.Time
-	buildSummary          *atc.BuildSummary
 }
 
 func (t *resourceType) ID() int                           { return t.id }
@@ -209,7 +205,6 @@ func (t *resourceType) Tags() atc.Tags                    { return t.tags }
 func (t *resourceType) ResourceConfigID() int             { return t.resourceConfigID }
 func (t *resourceType) ResourceConfigScopeID() int        { return t.resourceConfigScopeID }
 func (t *resourceType) CurrentPinnedVersion() atc.Version { return nil }
-func (t *resourceType) BuildSummary() *atc.BuildSummary   { return t.buildSummary }
 func (t *resourceType) HasWebhook() bool                  { return false }
 
 func newEmptyResourceType(conn Conn, lockFactory lock.LockFactory) *resourceType {
@@ -331,7 +326,7 @@ func (r *resourceType) CreateBuild(ctx context.Context, manuallyTriggered bool, 
 }
 
 func (r *resourceType) CreateInMemoryBuild(ctx context.Context, plan atc.Plan, seqGen util.SequenceGenerator) (Build, error) {
-	return newRunningInMemoryCheckBuild(r.conn, r.lockFactory, r, plan, NewSpanContext(ctx), seqGen)
+	return nil, errors.New("resource type not supporting in-memory check build as lidar no longer checking resource types")
 }
 
 func scanResourceType(t *resourceType, row scannable) error {
@@ -341,16 +336,12 @@ func scanResourceType(t *resourceType, row scannable) error {
 		lastCheckStartTime, lastCheckEndTime pq.NullTime
 		pipelineInstanceVars                 sql.NullString
 		resourceConfigID                     sql.NullInt64
-		lastCheckBuildId                     sql.NullInt64
-		lastCheckSucceeded                   sql.NullBool
-		lastCheckBuildPlan                   sql.NullString
 	)
 
 	err := row.Scan(&t.id, &t.pipelineID, &t.name, &t.type_, &configJSON,
 		&nonce, &t.pipelineName, &pipelineInstanceVars,
 		&t.teamID, &t.teamName, &resourceConfigID, &rcsID,
-		&lastCheckStartTime, &lastCheckEndTime, &lastCheckBuildId,
-		&lastCheckSucceeded, &lastCheckBuildPlan)
+		&lastCheckStartTime, &lastCheckEndTime)
 	if err != nil {
 		return err
 	}
@@ -404,24 +395,6 @@ func scanResourceType(t *resourceType, row scannable) error {
 			return err
 		}
 	}
-
-	//if lastCheckBuildId.Valid {
-	//	t.buildSummary = &atc.BuildSummary{
-	//		ID:   int(lastCheckBuildId.Int64),
-	//		Name: CheckBuildName,
-	//
-	//		TeamName: t.teamName,
-	//
-	//		PipelineID:           t.pipelineID,
-	//		PipelineName:         t.pipelineName,
-	//		PipelineInstanceVars: t.pipelineInstanceVars,
-	//	}
-	//
-	//	err := populateBuildSummary(t.buildSummary, lastCheckStartTime, lastCheckEndTime, lastCheckSucceeded, lastCheckBuildPlan)
-	//	if err != nil {
-	//		return err
-	//	}
-	//}
 
 	return nil
 }

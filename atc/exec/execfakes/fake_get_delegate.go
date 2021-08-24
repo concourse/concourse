@@ -17,6 +17,17 @@ import (
 )
 
 type FakeGetDelegate struct {
+	BeforeSelectWorkerStub        func(lager.Logger) error
+	beforeSelectWorkerMutex       sync.RWMutex
+	beforeSelectWorkerArgsForCall []struct {
+		arg1 lager.Logger
+	}
+	beforeSelectWorkerReturns struct {
+		result1 error
+	}
+	beforeSelectWorkerReturnsOnCall map[int]struct {
+		result1 error
+	}
 	ContainerOwnerStub        func(atc.PlanID) db.ContainerOwner
 	containerOwnerMutex       sync.RWMutex
 	containerOwnerArgsForCall []struct {
@@ -134,6 +145,67 @@ type FakeGetDelegate struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeGetDelegate) BeforeSelectWorker(arg1 lager.Logger) error {
+	fake.beforeSelectWorkerMutex.Lock()
+	ret, specificReturn := fake.beforeSelectWorkerReturnsOnCall[len(fake.beforeSelectWorkerArgsForCall)]
+	fake.beforeSelectWorkerArgsForCall = append(fake.beforeSelectWorkerArgsForCall, struct {
+		arg1 lager.Logger
+	}{arg1})
+	stub := fake.BeforeSelectWorkerStub
+	fakeReturns := fake.beforeSelectWorkerReturns
+	fake.recordInvocation("BeforeSelectWorker", []interface{}{arg1})
+	fake.beforeSelectWorkerMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeGetDelegate) BeforeSelectWorkerCallCount() int {
+	fake.beforeSelectWorkerMutex.RLock()
+	defer fake.beforeSelectWorkerMutex.RUnlock()
+	return len(fake.beforeSelectWorkerArgsForCall)
+}
+
+func (fake *FakeGetDelegate) BeforeSelectWorkerCalls(stub func(lager.Logger) error) {
+	fake.beforeSelectWorkerMutex.Lock()
+	defer fake.beforeSelectWorkerMutex.Unlock()
+	fake.BeforeSelectWorkerStub = stub
+}
+
+func (fake *FakeGetDelegate) BeforeSelectWorkerArgsForCall(i int) lager.Logger {
+	fake.beforeSelectWorkerMutex.RLock()
+	defer fake.beforeSelectWorkerMutex.RUnlock()
+	argsForCall := fake.beforeSelectWorkerArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeGetDelegate) BeforeSelectWorkerReturns(result1 error) {
+	fake.beforeSelectWorkerMutex.Lock()
+	defer fake.beforeSelectWorkerMutex.Unlock()
+	fake.BeforeSelectWorkerStub = nil
+	fake.beforeSelectWorkerReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeGetDelegate) BeforeSelectWorkerReturnsOnCall(i int, result1 error) {
+	fake.beforeSelectWorkerMutex.Lock()
+	defer fake.beforeSelectWorkerMutex.Unlock()
+	fake.BeforeSelectWorkerStub = nil
+	if fake.beforeSelectWorkerReturnsOnCall == nil {
+		fake.beforeSelectWorkerReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.beforeSelectWorkerReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeGetDelegate) ContainerOwner(arg1 atc.PlanID) db.ContainerOwner {
@@ -725,6 +797,8 @@ func (fake *FakeGetDelegate) WaitingForWorkerArgsForCall(i int) lager.Logger {
 func (fake *FakeGetDelegate) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.beforeSelectWorkerMutex.RLock()
+	defer fake.beforeSelectWorkerMutex.RUnlock()
 	fake.containerOwnerMutex.RLock()
 	defer fake.containerOwnerMutex.RUnlock()
 	fake.erroredMutex.RLock()

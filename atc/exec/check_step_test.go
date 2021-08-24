@@ -288,6 +288,12 @@ var _ = Describe("CheckStep", func() {
 					})
 				})
 
+				It("emits a BeforeSelectWorker event", func() {
+					Expect(fakeDelegate.BeforeSelectWorkerCallCount()).To(Equal(1))
+					_, workerName := fakeDelegate.SelectedWorkerArgsForCall(0)
+					Expect(workerName).To(Equal("worker"))
+				})
+
 				It("emits a SelectedWorker event", func() {
 					Expect(fakeDelegate.SelectedWorkerCallCount()).To(Equal(1))
 					_, workerName := fakeDelegate.SelectedWorkerArgsForCall(0)

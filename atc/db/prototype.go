@@ -39,7 +39,6 @@ type Prototype interface {
 	ResourceConfigScopeID() int
 
 	HasWebhook() bool
-	BuildSummary() *atc.BuildSummary
 
 	SetResourceConfigScope(ResourceConfigScope) error
 
@@ -142,7 +141,6 @@ func (p *prototype) Params() atc.Params              { return p.params }
 func (p *prototype) Tags() atc.Tags                  { return p.tags }
 func (p *prototype) ResourceConfigID() int           { return p.resourceConfigID }
 func (p *prototype) ResourceConfigScopeID() int      { return p.resourceConfigScopeID }
-func (p *prototype) BuildSummary() *atc.BuildSummary { return nil }
 
 func (p *prototype) Version() atc.Version              { return p.version }
 func (p *prototype) CurrentPinnedVersion() atc.Version { return nil }

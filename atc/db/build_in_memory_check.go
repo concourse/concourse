@@ -30,8 +30,6 @@ type inMemoryCheckBuild struct {
 	plan             atc.Plan
 	resourceId       int
 	resourceName     string
-	resourceTypeId   int
-	resourceTypeName string
 	spanContext      SpanContext
 
 	createTime time.Time
@@ -88,9 +86,6 @@ func newExistingInMemoryCheckBuildForViewOnly(conn Conn, buildId int, checkable 
 	if resource, ok := checkable.(Resource); ok {
 		build.resourceId = resource.ID()
 		build.resourceName = resource.Name()
-	} else if resourceType, ok := checkable.(ResourceType); ok {
-		build.resourceTypeId = resourceType.ID()
-		build.resourceTypeName = resourceType.Name()
 	} else {
 		return nil, errors.New("not supported checkable for in memory check build")
 	}
@@ -112,7 +107,7 @@ func (b *inMemoryCheckBuild) PipelineRef() atc.PipelineRef            { return b
 func (b *inMemoryCheckBuild) Pipeline() (Pipeline, bool, error)       { return b.checkable.Pipeline() }
 func (b *inMemoryCheckBuild) ResourceID() int                         { return b.resourceId }
 func (b *inMemoryCheckBuild) ResourceName() string                    { return b.resourceName }
-func (b *inMemoryCheckBuild) ResourceTypeID() int                     { return b.resourceTypeId }
+func (b *inMemoryCheckBuild) ResourceTypeID() int                     { return 0 }
 func (b *inMemoryCheckBuild) Schema() string                          { return schema }
 func (b *inMemoryCheckBuild) IsRunning() bool                         { return b.status == BuildStatusStarted }
 func (b *inMemoryCheckBuild) IsManuallyTriggered() bool               { return false }
@@ -192,6 +187,10 @@ func (b *inMemoryCheckBuild) OnCheckBuildStart() error {
 		return errors.New("not running build cannot start check")
 	}
 
+	if b.runningInContainer {
+		return nil
+	}
+
 	b.runningInContainer = true
 
 	tx, err := b.conn.Begin()
@@ -226,16 +225,12 @@ func (b *inMemoryCheckBuild) AcquireTrackingLock(logger lager.Logger, interval t
 	var lockId lock.LockID
 	if b.ResourceID() != 0 {
 		lockId = lock.NewInMemoryCheckBuildTrackingLockID("resource", b.ResourceID())
-	} else if b.ResourceTypeID() != 0 {
-		lockId = lock.NewInMemoryCheckBuildTrackingLockID("resourceType", b.ResourceTypeID())
 	} else {
 		return nil, false, errors.New("")
 	}
 
 	lock, acquired, err := b.lockFactory.Acquire(
-		logger.Session("lock", lager.Data{
-			"preBuildId": b.preId,
-		}),
+		logger.Session("lock", lager.Data{}),
 		lockId,
 	)
 	if err != nil {
@@ -278,7 +273,8 @@ func (b *inMemoryCheckBuild) Finish(status BuildStatus) error {
 	// Release the containers using in this build, so that they can be GC-ed.
 	_, err = psql.Update("containers").
 		Set("in_memory_build_id", nil).
-		Where(sq.Eq{"in_memory_build_id": b.id}).
+		Where(sq.Eq{"in_memory_build_id": b.preId}).
+		Where(sq.Eq{"in_memory_build_create_time": b.createTime.Nanosecond()}).
 		RunWith(tx).
 		Exec()
 	if err != nil {
@@ -289,17 +285,6 @@ func (b *inMemoryCheckBuild) Finish(status BuildStatus) error {
 	_, err = psql.Delete("resource_cache_uses").
 		Where(sq.Eq{"in_memory_build_id": b.preId}).
 		Where(sq.Eq{"in_memory_build_create_time": b.createTime.Nanosecond()}).
-		RunWith(tx).
-		Exec()
-	if err != nil {
-		return err
-	}
-
-	_, err = psql.Update("resources").
-		Set("in_memory_build_id", nil).
-		Set("in_memory_build_start_time", nil).
-		Set("in_memory_build_plan", nil).
-		Where(sq.Eq{"in_memory_build_id": b.id}).
 		RunWith(tx).
 		Exec()
 	if err != nil {
@@ -395,20 +380,6 @@ func (b *inMemoryCheckBuild) Events(from uint) (EventSource, error) {
 		func(tx Tx, buildID int) (bool, error) {
 			completed := false
 
-			var one int
-			err = psql.Select("1").
-				From("resources").
-				Where(sq.Eq{"in_memory_build_id": buildID}).
-				RunWith(tx).
-				QueryRow().
-				Scan(&one)
-			if err == nil {
-				return false, nil
-			}
-			if err != sql.ErrNoRows {
-				return false, err
-			}
-
 			var lastCheckStartTime, lastCheckEndTime pq.NullTime
 			err = psql.Select("last_check_start_time", "last_check_end_time").
 				From("resource_config_scopes").
@@ -418,15 +389,30 @@ func (b *inMemoryCheckBuild) Events(from uint) (EventSource, error) {
 				Scan(&lastCheckStartTime, &lastCheckEndTime)
 			if err != nil {
 				if err == sql.ErrNoRows {
+					var one int
+					err = psql.Select("1").
+						From("resources").
+						Where(sq.Eq{"in_memory_build_id": buildID}).
+						RunWith(tx).
+						QueryRow().
+						Scan(&one)
+					if err == nil {
+						return false, nil
+					}
+					if err != sql.ErrNoRows {
+						return false, err
+					}
+
+					// If the build id cannot be found in both resources and resource_config_scopes,
+					// then consider the build completed.
 					completed = true
 				} else {
 					return false, err
 				}
-			}
-
-			if lastCheckStartTime.Valid && lastCheckEndTime.Valid && lastCheckStartTime.Time.Before(lastCheckEndTime.Time) {
+			} else if lastCheckStartTime.Valid && lastCheckEndTime.Valid && lastCheckStartTime.Time.Before(lastCheckEndTime.Time) {
 				completed = true
 			}
+
 			return completed, nil
 		},
 	), nil
@@ -447,7 +433,12 @@ func (b *inMemoryCheckBuild) HasPlan() bool {
 	if b.plan.ID != "" {
 		return true
 	}
-	return b.checkable != nil && b.checkable.BuildSummary() != nil && b.checkable.BuildSummary().PublicPlan != nil
+
+	resource, ok := b.checkable.(Resource)
+	if !ok {
+		return false
+	}
+	return resource.BuildSummary() != nil && resource.BuildSummary().PublicPlan != nil
 }
 
 func (b *inMemoryCheckBuild) PublicPlan() *json.RawMessage {
@@ -455,10 +446,15 @@ func (b *inMemoryCheckBuild) PublicPlan() *json.RawMessage {
 		return b.plan.Public()
 	}
 
-	if b.checkable.BuildSummary() == nil || b.checkable.BuildSummary().PublicPlan == nil {
+	resource, ok := b.checkable.(Resource)
+	if !ok {
 		return nil
 	}
-	bytes, err := json.Marshal(b.checkable.BuildSummary().PublicPlan)
+
+	if resource.BuildSummary() == nil || resource.BuildSummary().PublicPlan == nil {
+		return nil
+	}
+	bytes, err := json.Marshal(resource.BuildSummary().PublicPlan)
 	if err != nil {
 		return nil
 	}
@@ -466,22 +462,18 @@ func (b *inMemoryCheckBuild) PublicPlan() *json.RawMessage {
 	return &m
 }
 
-// ResourceCacheUser will in-memory build's preId as key in order to avoid unnecessary
+// ResourceCacheUser will use in-memory build's preId as key in order to avoid unnecessary
 // db init. To ensure preId is unique across all ATCs, also use build's create time in
 // the key.
 func (b *inMemoryCheckBuild) ResourceCacheUser() ResourceCacheUser {
 	return ForInMemoryBuild(b.preId, b.createTime.Nanosecond())
 }
 
-// ContainerOwner use in-memory build id as key. If build id is not generated yet, then
-// call OnCheckBuildStart to do db init. That's cause that, once a container is run, we
-// consider it is doing a real check, and we want to log all container events to db, so
-// that user can realtime view check logs on the GUI.
+// ContainerOwner will use in-memory build's preId as key in order to avoid unnecessary
+// db init. To ensure preId is unique across all ATCs, also use build's create time in
+// the key.
 func (b *inMemoryCheckBuild) ContainerOwner(planId atc.PlanID) ContainerOwner {
-	if b.id == 0 {
-		b.OnCheckBuildStart()
-	}
-	return NewInMemoryCheckBuildContainerOwner(b.id, planId, b.TeamID())
+	return NewInMemoryCheckBuildContainerOwner(b.preId, b.createTime.Nanosecond(), planId, b.TeamID())
 }
 
 // SaveImageResourceVersion does nothing. Because if a check use a custom resource
@@ -519,8 +511,12 @@ func (b *inMemoryCheckBuild) AllAssociatedTeamNames() []string {
 		}
 		teamNames = append(teamNames, teamName)
 	}
-	b.cacheAssociatedTeams = teamNames
 
+	if len(teamNames) == 0 {
+		return []string{b.checkable.TeamName()}
+	}
+
+	b.cacheAssociatedTeams = teamNames
 	return b.cacheAssociatedTeams
 }
 

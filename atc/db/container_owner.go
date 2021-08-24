@@ -189,23 +189,28 @@ func (c fixedHandleContainerOwner) sqlMap() map[string]interface{} {
 	}
 }
 
-// NewInMemoryCheckBuildContainerOwner references a in-memory check build.
+// NewInMemoryCheckBuildContainerOwner references a in-memory check build. To
+// reduce burden to db, this will use in-memory build's pre-id. And to ensure
+// pre-id is unique, in-memory's create time is also used.
 func NewInMemoryCheckBuildContainerOwner(
 	buildID int,
+	createTime int,
 	planID atc.PlanID,
 	teamID int,
 ) ContainerOwner {
 	return inMemoryCheckBuildContainerOwner{
-		BuildID: buildID,
-		PlanID:  planID,
-		TeamID:  teamID,
+		BuildID:    buildID,
+		CreateTime: createTime,
+		PlanID:     planID,
+		TeamID:     teamID,
 	}
 }
 
 type inMemoryCheckBuildContainerOwner struct {
-	BuildID int
-	PlanID  atc.PlanID
-	TeamID  int
+	BuildID    int
+	CreateTime int
+	PlanID     atc.PlanID
+	TeamID     int
 }
 
 func (c inMemoryCheckBuildContainerOwner) Find(Conn) (sq.Eq, bool, error) {
@@ -218,8 +223,9 @@ func (c inMemoryCheckBuildContainerOwner) Create(Tx, string) (map[string]interfa
 
 func (c inMemoryCheckBuildContainerOwner) sqlMap() map[string]interface{} {
 	return map[string]interface{}{
-		"in_memory_build_id": c.BuildID,
-		"plan_id":            c.PlanID,
-		"team_id":            c.TeamID,
+		"in_memory_build_id":          c.BuildID,
+		"in_memory_build_create_time": c.CreateTime,
+		"plan_id":                     c.PlanID,
+		"team_id":                     c.TeamID,
 	}
 }

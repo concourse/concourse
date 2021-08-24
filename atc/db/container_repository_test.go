@@ -324,7 +324,7 @@ var _ = Describe("ContainerRepository", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				creatingContainer, err = defaultWorker.CreateContainer(
-					db.NewInMemoryCheckBuildContainerOwner(build.ID(), "simple-plan", defaultTeam.ID()),
+					db.NewInMemoryCheckBuildContainerOwner(build.ID(), build.CreateTime().Nanosecond(), "simple-plan", defaultTeam.ID()),
 					fullMetadata,
 				)
 				Expect(err).NotTo(HaveOccurred())

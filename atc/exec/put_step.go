@@ -36,6 +36,7 @@ type PutDelegate interface {
 	Finished(lager.Logger, ExitStatus, resource.VersionResult)
 	Errored(lager.Logger, string)
 
+	BeforeSelectWorker(lager.Logger) error
 	WaitingForWorker(lager.Logger)
 	SelectedWorker(lager.Logger, string)
 
@@ -174,12 +175,15 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 
 	owner := db.NewBuildStepContainerOwner(step.metadata.BuildID, step.planID, step.metadata.TeamID)
 
-	worker, err := step.workerPool.FindOrSelectWorker(ctx, owner, containerSpec, workerSpec, step.strategy, delegate)
+	err = delegate.BeforeSelectWorker(logger)
 	if err != nil {
 		return false, err
 	}
 
-	delegate.SelectedWorker(logger, worker.Name())
+	worker, err := step.workerPool.FindOrSelectWorker(ctx, owner, containerSpec, workerSpec, step.strategy, delegate)
+	if err != nil {
+		return false, err
+	}
 
 	defer func() {
 		step.workerPool.ReleaseWorker(
