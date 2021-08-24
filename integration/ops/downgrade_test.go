@@ -9,11 +9,9 @@ import (
 )
 
 func TestDowngrade(t *testing.T) {
-	t.Skip("See https://github.com/concourse/concourse/issues/7397")
-
 	t.Parallel()
 
-	devDC := dctest.Init(t, "../docker-compose.yml", "overrides/named.yml")
+	devDC := dctest.Init(t, "../docker-compose.yml", "overrides/named.yml", "overrides/fast-gc.yml")
 
 	t.Run("deploy dev", func(t *testing.T) {
 		devDC.Run(t, "up", "-d")
@@ -22,7 +20,7 @@ func TestDowngrade(t *testing.T) {
 	fly := flytest.Init(t, devDC)
 	setupUpgradeDowngrade(t, fly)
 
-	latestDC := dctest.Init(t, "../docker-compose.yml", "overrides/named.yml", "overrides/latest.yml")
+	latestDC := dctest.Init(t, "../docker-compose.yml", "overrides/named.yml", "overrides/latest.yml", "overrides/fast-gc.yml")
 
 	t.Run("migrate down to latest from clean deploy", func(t *testing.T) {
 		// just to see what it was before
@@ -39,6 +37,8 @@ func TestDowngrade(t *testing.T) {
 	})
 
 	fly = flytest.Init(t, latestDC)
+	waitForVolumesGC(t, fly)
+
 	verifyUpgradeDowngrade(t, fly)
 
 	t.Run("migrate up to dev and deploy dev", func(t *testing.T) {
@@ -46,5 +46,7 @@ func TestDowngrade(t *testing.T) {
 	})
 
 	fly = flytest.Init(t, devDC)
+	waitForVolumesGC(t, fly)
+
 	verifyUpgradeDowngrade(t, fly)
 }
