@@ -514,7 +514,7 @@ RankGroup.prototype.layout = function() {
 
     node._keyOffset = rollingKeyOffset;
 
-    this.ordering.fill(rollingKeyOffset, node._edgeKeys.length);
+    this.ordering.fill(rollingKeyOffset, Math.max(node._edgeKeys.length, 1));
 
     rollingKeyOffset += Math.max(node._edgeKeys.length, 1);
   }
