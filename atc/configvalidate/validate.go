@@ -86,6 +86,12 @@ func Validate(c atc.Config) ([]atc.ConfigWarning, []string) {
 	}
 	warnings = append(warnings, displayWarnings...)
 
+	cycleErr := validateCycle(c)
+
+	if cycleErr != nil {
+		errorMessages = append(errorMessages, formatErr("jobs", cycleErr))
+	}
+
 	return warnings, errorMessages
 }
 
@@ -489,4 +495,52 @@ func validateDisplay(c atc.Config) ([]atc.ConfigWarning, error) {
 	}
 
 	return warnings, nil
+}
+
+func detectCycle(j atc.JobConfig, visited map[string]int, pipelineConfig atc.Config) error {
+	const (
+		nonVisited = 0
+		semiVisited = 1
+		alreadyVisited = 2
+	)
+	visited[j.Name] = semiVisited
+	err := j.StepConfig().Visit(atc.StepRecursor{
+		OnGet: func(step *atc.GetStep) error {
+			for _, nextJobName := range step.Passed {
+				nextJob := findJobByName(nextJobName, pipelineConfig.Jobs)
+				if visited[nextJobName] == semiVisited {
+					return fmt.Errorf("pipeline contains a cycle that starts at Job '%s'", nextJobName)
+				} else if visited[nextJobName] == nonVisited {
+					err := detectCycle(nextJob, visited, pipelineConfig)
+					if err != nil {
+						return err
+					}
+				}
+			}
+			return nil
+		},
+	})
+	visited[j.Name] = alreadyVisited
+	return err
+}
+
+func findJobByName(jobName string, jobs atc.JobConfigs) atc.JobConfig {
+	for _, currJob := range jobs {
+		if jobName == currJob.Name {
+			return currJob
+		}
+	}
+	return atc.JobConfig{}
+}
+
+func validateCycle(c atc.Config) error {
+	jobs := c.Jobs
+	visitedJobsMap := make(map[string]int)
+	for _, job := range jobs {
+		err := detectCycle(job, visitedJobsMap, c)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
