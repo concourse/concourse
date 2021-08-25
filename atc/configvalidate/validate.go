@@ -497,28 +497,23 @@ func validateDisplay(c atc.Config) ([]atc.ConfigWarning, error) {
 	return warnings, nil
 }
 
-func detectCycle(j atc.JobConfig, visited map[string]int, initialJobConfig atc.Config) (bool, string) {
+func detectCycle(j atc.JobConfig, visited map[string]int, pipelineConfig atc.Config) error {
 	const (
 		nonVisited = 0
 		semiVisited = 1
 		alreadyVisited = 2
 	)
 	visited[j.Name] = semiVisited
-	cycleExist := false
-	cycleErrorJob := ""
-	_ = j.StepConfig().Visit(atc.StepRecursor{
+	err := j.StepConfig().Visit(atc.StepRecursor{
 		OnGet: func(step *atc.GetStep) error {
 			for _, nextJobName := range step.Passed {
-				nextJob := findJobByName(nextJobName, initialJobConfig.Jobs)
+				nextJob := findJobByName(nextJobName, pipelineConfig.Jobs)
 				if visited[nextJobName] == semiVisited {
-					cycleExist = true
-					cycleErrorJob = nextJobName
-					return nil
+					return fmt.Errorf("pipeline contains a cycle that starts at Job '%s'", nextJobName)
 				} else if visited[nextJobName] == nonVisited {
-					nextState, jobErrorName := detectCycle(nextJob, visited, initialJobConfig)
-					cycleExist = cycleExist || nextState
-					if jobErrorName != "" {
-						cycleErrorJob = jobErrorName
+					err := detectCycle(nextJob, visited, pipelineConfig)
+					if err != nil {
+						return err
 					}
 				}
 			}
@@ -526,7 +521,7 @@ func detectCycle(j atc.JobConfig, visited map[string]int, initialJobConfig atc.C
 		},
 	})
 	visited[j.Name] = alreadyVisited
-	return cycleExist, cycleErrorJob
+	return err
 }
 
 func findJobByName(jobName string, jobs atc.JobConfigs) atc.JobConfig {
@@ -540,18 +535,12 @@ func findJobByName(jobName string, jobs atc.JobConfigs) atc.JobConfig {
 
 func validateCycle(c atc.Config) error {
 	jobs := c.Jobs
-	cycleExist := false
-	cycleErrorJob := ""
 	visitedJobsMap := make(map[string]int)
 	for _, job := range jobs {
-		cycleExist, cycleErrorJob = detectCycle(job, visitedJobsMap, c)
-		if cycleExist == true {
-			break
+		err := detectCycle(job, visitedJobsMap, c)
+		if err != nil {
+			return err
 		}
-	}
-
-	if cycleExist == true {
-		return fmt.Errorf("pipeline contains a cycle that starts at Job '%s'", cycleErrorJob)
 	}
 	return nil
 }
