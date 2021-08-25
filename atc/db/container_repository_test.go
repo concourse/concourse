@@ -311,8 +311,7 @@ var _ = Describe("ContainerRepository", func() {
 
 		Describe("containers owned by a in-memory build", func() {
 			var (
-				creatingContainer db.CreatingContainer
-				build             db.Build
+				build db.Build
 			)
 
 			BeforeEach(func() {
@@ -323,8 +322,8 @@ var _ = Describe("ContainerRepository", func() {
 				err = build.OnCheckBuildStart()
 				Expect(err).NotTo(HaveOccurred())
 
-				creatingContainer, err = defaultWorker.CreateContainer(
-					db.NewInMemoryCheckBuildContainerOwner(build.ID(), build.CreateTime().Nanosecond(), "simple-plan", defaultTeam.ID()),
+				_, err = defaultWorker.CreateContainer(
+					db.NewInMemoryCheckBuildContainerOwner(build.ID(), build.CreateTime(), "simple-plan", defaultTeam.ID()),
 					fullMetadata,
 				)
 				Expect(err).NotTo(HaveOccurred())
@@ -351,8 +350,7 @@ var _ = Describe("ContainerRepository", func() {
 					creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindOrphanedContainers()
 					Expect(err).NotTo(HaveOccurred())
 
-					Expect(creatingContainers).To(HaveLen(1))
-					Expect(creatingContainers[0].Handle()).To(Equal(creatingContainer.Handle()))
+					Expect(creatingContainers).To(BeEmpty())
 					Expect(createdContainers).To(BeEmpty())
 					Expect(destroyingContainers).To(BeEmpty())
 				})

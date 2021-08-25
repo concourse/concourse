@@ -24,13 +24,13 @@ import (
 // inMemoryCheckBuild handles in-memory check builds only, thus it just implement
 // the necessary function of interface Build.
 type inMemoryCheckBuild struct {
-	preId            int
-	id               int
-	checkable        Checkable
-	plan             atc.Plan
-	resourceId       int
-	resourceName     string
-	spanContext      SpanContext
+	preId        int
+	id           int
+	checkable    Checkable
+	plan         atc.Plan
+	resourceId   int
+	resourceName string
+	spanContext  SpanContext
 
 	createTime time.Time
 	startTime  time.Time
@@ -226,7 +226,7 @@ func (b *inMemoryCheckBuild) AcquireTrackingLock(logger lager.Logger, interval t
 	if b.ResourceID() != 0 {
 		lockId = lock.NewInMemoryCheckBuildTrackingLockID("resource", b.ResourceID())
 	} else {
-		return nil, false, errors.New("")
+		return nil, false, errors.New("in memory check created for unknown type")
 	}
 
 	lock, acquired, err := b.lockFactory.Acquire(
@@ -271,10 +271,9 @@ func (b *inMemoryCheckBuild) Finish(status BuildStatus) error {
 	}
 
 	// Release the containers using in this build, so that they can be GC-ed.
-	_, err = psql.Update("containers").
-		Set("in_memory_build_id", nil).
+	_, err = psql.Delete("containers").
 		Where(sq.Eq{"in_memory_build_id": b.preId}).
-		Where(sq.Eq{"in_memory_build_create_time": b.createTime.Nanosecond()}).
+		Where(sq.Eq{"in_memory_build_create_time": b.createTime}).
 		RunWith(tx).
 		Exec()
 	if err != nil {
@@ -284,7 +283,7 @@ func (b *inMemoryCheckBuild) Finish(status BuildStatus) error {
 	// Release the resource_cache_uses using in this build, so that they can be GC-ed.
 	_, err = psql.Delete("resource_cache_uses").
 		Where(sq.Eq{"in_memory_build_id": b.preId}).
-		Where(sq.Eq{"in_memory_build_create_time": b.createTime.Nanosecond()}).
+		Where(sq.Eq{"in_memory_build_create_time": b.createTime}).
 		RunWith(tx).
 		Exec()
 	if err != nil {
@@ -466,14 +465,14 @@ func (b *inMemoryCheckBuild) PublicPlan() *json.RawMessage {
 // db init. To ensure preId is unique across all ATCs, also use build's create time in
 // the key.
 func (b *inMemoryCheckBuild) ResourceCacheUser() ResourceCacheUser {
-	return ForInMemoryBuild(b.preId, b.createTime.Nanosecond())
+	return ForInMemoryBuild(b.preId, b.createTime)
 }
 
 // ContainerOwner will use in-memory build's preId as key in order to avoid unnecessary
 // db init. To ensure preId is unique across all ATCs, also use build's create time in
 // the key.
 func (b *inMemoryCheckBuild) ContainerOwner(planId atc.PlanID) ContainerOwner {
-	return NewInMemoryCheckBuildContainerOwner(b.preId, b.createTime.Nanosecond(), planId, b.TeamID())
+	return NewInMemoryCheckBuildContainerOwner(b.preId, b.createTime, planId, b.TeamID())
 }
 
 // SaveImageResourceVersion does nothing. Because if a check use a custom resource

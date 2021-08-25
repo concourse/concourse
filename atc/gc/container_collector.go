@@ -87,6 +87,11 @@ func (c *containerCollector) markFailedContainersAsDestroying(logger lager.Logge
 }
 
 func (c *containerCollector) cleanupOrphanedContainers(logger lager.Logger) error {
+	_, err := c.containerRepository.DestroyDirtyInMemoryBuildContainers()
+	if err != nil {
+		logger.Error("failed-to-destroy-dirty-in-memory-build-containers", err)
+		return err
+	}
 
 	creatingContainers, createdContainers, destroyingContainers, err := c.containerRepository.FindOrphanedContainers()
 	if err != nil {

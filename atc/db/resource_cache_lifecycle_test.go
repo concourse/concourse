@@ -20,6 +20,56 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 		resourceCacheLifecycle = db.NewResourceCacheLifecycle(dbConn)
 	})
 
+	Describe("CleanDirtyInMemoryBuilds", func() {
+		Context("not in-memory build used cache", func() {
+			BeforeEach(func() {
+				resourceCacheForJobBuild()
+				Expect(countResourceCaches()).To(Equal(1))
+			})
+
+			It("should not clean up the use", func() {
+				err := resourceCacheLifecycle.CleanDirtyInMemoryBuildUses(logger)
+				Expect(err).ToNot(HaveOccurred())
+				err = resourceCacheLifecycle.CleanUpInvalidCaches(logger)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(countResourceCaches()).To(Equal(1))
+			})
+		})
+
+		Context("in-memory build used cache with 24 hours", func() {
+			BeforeEach(func() {
+				resourceCacheForInMemoryBuild(99, time.Now().Add(-time.Hour))
+				Expect(countResourceCaches()).To(Equal(1))
+			})
+
+			It("should not clean up the use", func() {
+				err := resourceCacheLifecycle.CleanDirtyInMemoryBuildUses(logger)
+				Expect(err).ToNot(HaveOccurred())
+				err = resourceCacheLifecycle.CleanUpInvalidCaches(logger)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(countResourceCaches()).To(Equal(1))
+			})
+		})
+
+		Context("in-memory build used cache earlier than 24 hours", func() {
+			BeforeEach(func() {
+				resourceCacheForInMemoryBuild(99, time.Now().Add(-25*time.Hour))
+				Expect(countResourceCaches()).To(Equal(1))
+			})
+
+			It("should not clean up the use", func() {
+				err := resourceCacheLifecycle.CleanDirtyInMemoryBuildUses(logger)
+				Expect(err).ToNot(HaveOccurred())
+				err = resourceCacheLifecycle.CleanUpInvalidCaches(logger)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(countResourceCaches()).To(Equal(0))
+			})
+		})
+	})
+
 	Describe("CleanUpInvalidCaches", func() {
 		Context("the resource cache is used by a build", func() {
 
@@ -379,6 +429,10 @@ func resourceCacheForJobBuild() (db.ResourceCache, db.Build) {
 	return createResourceCacheWithUser(db.ForBuild(build.ID())), build
 }
 
+func resourceCacheForInMemoryBuild(buildId int, createTime time.Time) {
+	createResourceCacheWithUser(db.ForInMemoryBuild(buildId, createTime))
+}
+
 func countResourceCaches() int {
 	var result int
 	err := psql.Select("count(*)").
@@ -387,9 +441,7 @@ func countResourceCaches() int {
 		QueryRow().
 		Scan(&result)
 	Expect(err).ToNot(HaveOccurred())
-
 	return result
-
 }
 
 func createResourceCacheWithUser(resourceCacheUser db.ResourceCacheUser) db.ResourceCache {

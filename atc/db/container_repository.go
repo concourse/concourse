@@ -18,6 +18,7 @@ type ContainerRepository interface {
 	UpdateContainersMissingSince(workerName string, handles []string) error
 	RemoveMissingContainers(time.Duration) (int, error)
 	DestroyUnknownContainers(workerName string, reportedHandles []string) (int, error)
+	DestroyDirtyInMemoryBuildContainers() (int, error)
 }
 
 type containerRepository struct {
@@ -227,7 +228,7 @@ func (repository *containerRepository) FindOrphanedContainers() ([]CreatingConta
 			sq.Eq{
 				"c.build_id":                         nil,
 				"c.resource_config_check_session_id": nil,
-				"c.in_memory_build_id":         nil,
+				"c.in_memory_build_id":               nil,
 			},
 			sq.And{
 				sq.NotEq{"c.build_id": nil},
@@ -421,4 +422,25 @@ func (repository *containerRepository) DestroyUnknownContainers(workerName strin
 	}
 
 	return len(unknownHandles), nil
+}
+
+func (repository *containerRepository) DestroyDirtyInMemoryBuildContainers() (int, error) {
+	result, err := psql.Update("containers").
+		Set("state", atc.ContainerStateDestroying).
+		Set("in_memory_build_id", nil).
+		Set("in_memory_build_create_time", nil).
+		Where(sq.Expr("((now() - in_memory_build_create_time) > '24 HOURS'::INTERVAL)")).
+		RunWith(repository.conn).
+		Exec()
+
+	if err != nil {
+		return 0, err
+	}
+
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+
+	return int(affected), nil
 }

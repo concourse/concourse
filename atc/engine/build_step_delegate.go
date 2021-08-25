@@ -169,7 +169,7 @@ func (delegate *buildStepDelegate) Finished(logger lager.Logger, succeeded bool)
 }
 
 func (delegate *buildStepDelegate) BeforeSelectWorker(logger lager.Logger) error {
-	if delegate.build.Name() == db.CheckBuildName {
+	if delegate.build.ResourceID() != 0 {
 		// For check builds, once a check build needs to select a worker, then
 		// we consider it needs to do run a real check. If it runs a real check,
 		// then we want to log it, so we call OnCheckBuildStart here to ensure

@@ -20,6 +20,17 @@ type FakeResourceCacheLifecycle struct {
 	cleanBuildImageResourceCachesReturnsOnCall map[int]struct {
 		result1 error
 	}
+	CleanDirtyInMemoryBuildUsesStub        func(lager.Logger) error
+	cleanDirtyInMemoryBuildUsesMutex       sync.RWMutex
+	cleanDirtyInMemoryBuildUsesArgsForCall []struct {
+		arg1 lager.Logger
+	}
+	cleanDirtyInMemoryBuildUsesReturns struct {
+		result1 error
+	}
+	cleanDirtyInMemoryBuildUsesReturnsOnCall map[int]struct {
+		result1 error
+	}
 	CleanUpInvalidCachesStub        func(lager.Logger) error
 	cleanUpInvalidCachesMutex       sync.RWMutex
 	cleanUpInvalidCachesArgsForCall []struct {
@@ -103,6 +114,67 @@ func (fake *FakeResourceCacheLifecycle) CleanBuildImageResourceCachesReturnsOnCa
 		})
 	}
 	fake.cleanBuildImageResourceCachesReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeResourceCacheLifecycle) CleanDirtyInMemoryBuildUses(arg1 lager.Logger) error {
+	fake.cleanDirtyInMemoryBuildUsesMutex.Lock()
+	ret, specificReturn := fake.cleanDirtyInMemoryBuildUsesReturnsOnCall[len(fake.cleanDirtyInMemoryBuildUsesArgsForCall)]
+	fake.cleanDirtyInMemoryBuildUsesArgsForCall = append(fake.cleanDirtyInMemoryBuildUsesArgsForCall, struct {
+		arg1 lager.Logger
+	}{arg1})
+	stub := fake.CleanDirtyInMemoryBuildUsesStub
+	fakeReturns := fake.cleanDirtyInMemoryBuildUsesReturns
+	fake.recordInvocation("CleanDirtyInMemoryBuildUses", []interface{}{arg1})
+	fake.cleanDirtyInMemoryBuildUsesMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeResourceCacheLifecycle) CleanDirtyInMemoryBuildUsesCallCount() int {
+	fake.cleanDirtyInMemoryBuildUsesMutex.RLock()
+	defer fake.cleanDirtyInMemoryBuildUsesMutex.RUnlock()
+	return len(fake.cleanDirtyInMemoryBuildUsesArgsForCall)
+}
+
+func (fake *FakeResourceCacheLifecycle) CleanDirtyInMemoryBuildUsesCalls(stub func(lager.Logger) error) {
+	fake.cleanDirtyInMemoryBuildUsesMutex.Lock()
+	defer fake.cleanDirtyInMemoryBuildUsesMutex.Unlock()
+	fake.CleanDirtyInMemoryBuildUsesStub = stub
+}
+
+func (fake *FakeResourceCacheLifecycle) CleanDirtyInMemoryBuildUsesArgsForCall(i int) lager.Logger {
+	fake.cleanDirtyInMemoryBuildUsesMutex.RLock()
+	defer fake.cleanDirtyInMemoryBuildUsesMutex.RUnlock()
+	argsForCall := fake.cleanDirtyInMemoryBuildUsesArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeResourceCacheLifecycle) CleanDirtyInMemoryBuildUsesReturns(result1 error) {
+	fake.cleanDirtyInMemoryBuildUsesMutex.Lock()
+	defer fake.cleanDirtyInMemoryBuildUsesMutex.Unlock()
+	fake.CleanDirtyInMemoryBuildUsesStub = nil
+	fake.cleanDirtyInMemoryBuildUsesReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeResourceCacheLifecycle) CleanDirtyInMemoryBuildUsesReturnsOnCall(i int, result1 error) {
+	fake.cleanDirtyInMemoryBuildUsesMutex.Lock()
+	defer fake.cleanDirtyInMemoryBuildUsesMutex.Unlock()
+	fake.CleanDirtyInMemoryBuildUsesStub = nil
+	if fake.cleanDirtyInMemoryBuildUsesReturnsOnCall == nil {
+		fake.cleanDirtyInMemoryBuildUsesReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.cleanDirtyInMemoryBuildUsesReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }
@@ -234,6 +306,8 @@ func (fake *FakeResourceCacheLifecycle) Invocations() map[string][][]interface{}
 	defer fake.invocationsMutex.RUnlock()
 	fake.cleanBuildImageResourceCachesMutex.RLock()
 	defer fake.cleanBuildImageResourceCachesMutex.RUnlock()
+	fake.cleanDirtyInMemoryBuildUsesMutex.RLock()
+	defer fake.cleanDirtyInMemoryBuildUsesMutex.RUnlock()
 	fake.cleanUpInvalidCachesMutex.RLock()
 	defer fake.cleanUpInvalidCachesMutex.RUnlock()
 	fake.cleanUsesForFinishedBuildsMutex.RLock()

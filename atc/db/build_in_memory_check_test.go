@@ -204,12 +204,12 @@ var _ = Describe("Build", func() {
 				})
 
 				It("ResourceCacheUser", func() {
-					Expect(build.ResourceCacheUser()).To(Equal(db.ForInMemoryBuild(1, build.CreateTime().Nanosecond())))
+					Expect(build.ResourceCacheUser()).To(Equal(db.ForInMemoryBuild(1, build.CreateTime())))
 				})
 
 				It("ContainerOwner", func() {
 					Expect(build.ContainerOwner("some-plan")).To(Equal(
-						db.NewInMemoryCheckBuildContainerOwner(buildId, build.CreateTime().Nanosecond(), "some-plan", defaultResource.TeamID())))
+						db.NewInMemoryCheckBuildContainerOwner(buildId, build.CreateTime(), "some-plan", defaultResource.TeamID())))
 				})
 
 				It("RunStateID", func() {
@@ -240,15 +240,7 @@ var _ = Describe("Build", func() {
 
 				Context("Finish", func() {
 					BeforeEach(func() {
-						result, err := psql.Insert("containers").
-							Columns("handle", "plan_id", "pipeline_id", "resource_id", "worker_name", "team_id", "in_memory_build_id").
-							Values("some-handle-1234567890", "some-plan", defaultResource.PipelineID(), defaultResource.ID(), defaultWorker.Name(), defaultResource.TeamID(), buildId).
-							RunWith(dbConn).
-							Exec()
-						Expect(err).ToNot(HaveOccurred())
-						Expect(result.RowsAffected()).To(Equal(int64(1)))
-
-						err = build.Finish(db.BuildStatusSucceeded)
+						err := build.Finish(db.BuildStatusSucceeded)
 						Expect(err).ToNot(HaveOccurred())
 					})
 
@@ -261,17 +253,6 @@ var _ = Describe("Build", func() {
 						Expect(ev.Event).To(Equal(event.EventTypeStatus))
 						Expect(ev.EventID).To(Equal("3"))
 					})
-
-					//It("cleanup containers", func() {
-					//	rows, err := psql.Select("id").
-					//		From("containers").
-					//		Where(sq.Eq{"in_memory_build_id": buildId}).
-					//		RunWith(dbConn).
-					//		Query()
-					//	Expect(err).ToNot(HaveOccurred())
-					//	Expect(rows.Next()).To(BeFalse())
-					//	Expect(rows.Close()).ToNot(HaveOccurred())
-					//})
 				})
 			})
 		})

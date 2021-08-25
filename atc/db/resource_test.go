@@ -151,9 +151,9 @@ var _ = Describe("Resource", func() {
 				Expect(scenario.Resource("some-resource").Source()).To(Equal(atc.Source{"some": "repository"}))
 			})
 
-			Context("when the resource has check build", func(){
+			Context("when the resource has check build", func() {
 				var publicPlan atc.Plan
-				BeforeEach(func(){
+				BeforeEach(func() {
 					resource := scenario.Resource("some-resource")
 					resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(
 						"some-base-resource-type",
@@ -181,13 +181,13 @@ var _ = Describe("Resource", func() {
 					resourceConfigScope.UpdateLastCheckEndTime(false)
 				})
 
-				It("return check build info", func(){
+				It("return check build info", func() {
 					Expect(scenario.Resource("some-resource").LastCheckStartTime()).Should(BeTemporally("~", time.Now(), time.Second))
 					Expect(scenario.Resource("some-resource").LastCheckEndTime()).Should(BeTemporally("~", time.Now(), time.Second))
 
 				})
 
-				It("return build summary", func(){
+				It("return build summary", func() {
 					buildSummary := scenario.Resource("some-resource").BuildSummary()
 					Expect(buildSummary).NotTo(BeNil())
 					Expect(buildSummary.ID).To(Equal(99))
@@ -1901,6 +1901,147 @@ var _ = Describe("Resource", func() {
 					Expect(hasResourceCacheVolume(scenario.Workers[0].Name(), firstUsedResourceCache)).To(BeTrue())
 					Expect(hasResourceCacheVolume(scenario.Workers[0].Name(), secondUsedResourceCache)).To(BeTrue())
 					Expect(hasResourceCacheVolume(scenario.Workers[1].Name(), firstUsedResourceCache)).To(BeTrue())
+				})
+			})
+		})
+	})
+
+	// This test focus on build id, status, start/end time. Other build data,
+	// like team/pipeline name, has been covered by other tests.
+	Describe("BuildSummary", func() {
+		var (
+			scenario            *dbtest.Scenario
+			resource            db.Resource
+			resourceConfigScope db.ResourceConfigScope
+		)
+
+		BeforeEach(func() {
+			scenario = dbtest.Setup(
+				builder.WithPipeline(atc.Config{
+					Resources: atc.ResourceConfigs{
+						{
+							Name:   "some-resource",
+							Type:   "some-base-resource-type",
+							Source: atc.Source{"some": "repository"},
+						},
+					},
+				}),
+			)
+
+			resource = scenario.Resource("some-resource")
+
+			resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(
+				"some-base-resource-type",
+				atc.Source{"some": "repository"},
+				nil,
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			resourceConfigScope, err = resourceConfig.FindOrCreateScope(resource)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = resource.SetResourceConfigScope(resourceConfigScope)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("when there is no check build", func() {
+			It("has no build summary", func() {
+				Expect(resource.BuildSummary()).To(BeNil())
+			})
+		})
+
+		Context("when first check build starts, not set a scope yet", func() {
+			var build db.Build
+			var publicPlan atc.Plan
+
+			BeforeEach(func() {
+				publicPlan = atc.Plan{
+					ID: atc.PlanID("1234"),
+					Check: &atc.CheckPlan{
+						Name: "some-resource",
+						Type: "some-resource-type",
+					},
+				}
+
+				var err error
+				build, err = resource.CreateInMemoryBuild(context.Background(), publicPlan, seqGenerator)
+				Expect(err).ToNot(HaveOccurred())
+
+				err = build.OnCheckBuildStart()
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			JustBeforeEach(func() {
+				found, err := resource.Reload()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+			})
+
+			It("has build summary", func() {
+				bs := resource.BuildSummary()
+				Expect(bs.ID).ToNot(BeZero())
+				Expect(bs.ID).To(Equal(build.ID()))
+				Expect(bs.Status).To(Equal(atc.StatusStarted))
+				Expect(time.Unix(bs.StartTime, 0)).Should(BeTemporally("~", time.Now(), time.Second))
+				Expect(bs.EndTime).To(BeZero())
+				Expect(bs.PublicPlan).To(Equal(build.PublicPlan()))
+			})
+
+			Context("when a scope is set", func() {
+				BeforeEach(func() {
+					err := resource.SetResourceConfigScope(resourceConfigScope)
+					Expect(err).NotTo(HaveOccurred())
+
+					resourceConfigScope.UpdateLastCheckStartTime(build.ID(), build.PublicPlan())
+					resourceConfigScope.UpdateLastCheckEndTime(false)
+				})
+
+				It("has build summary", func() {
+					bs := resource.BuildSummary()
+					Expect(bs.ID).ToNot(BeZero())
+					Expect(bs.ID).To(Equal(build.ID()))
+					Expect(bs.Status).To(Equal(atc.StatusFailed))
+					Expect(time.Unix(bs.StartTime, 0)).Should(BeTemporally("~", time.Now(), time.Second))
+					Expect(time.Unix(bs.EndTime, 0)).Should(BeTemporally("~", time.Now(), time.Second))
+					Expect(bs.PublicPlan).To(Equal(build.PublicPlan()))
+				})
+
+				Context("when other resource ran a check build for the scope", func() {
+					BeforeEach(func() {
+						resourceConfigScope.UpdateLastCheckStartTime(999999, build.PublicPlan())
+						resourceConfigScope.UpdateLastCheckEndTime(true)
+					})
+
+					It("has build summary", func() {
+						bs := resource.BuildSummary()
+						Expect(bs.ID).To(Equal(999999))
+						Expect(bs.Status).To(Equal(atc.StatusSucceeded))
+						Expect(time.Unix(bs.StartTime, 0)).Should(BeTemporally("~", time.Now(), time.Second))
+						Expect(time.Unix(bs.EndTime, 0)).Should(BeTemporally("~", time.Now(), time.Second))
+						Expect(bs.PublicPlan).To(Equal(build.PublicPlan()))
+					})
+
+					Context("when the resource starts a new build", func() {
+						var build2 db.Build
+						BeforeEach(func() {
+							var err error
+							build2, err = resource.CreateInMemoryBuild(context.Background(), publicPlan, seqGenerator)
+							Expect(err).ToNot(HaveOccurred())
+
+							err = build2.OnCheckBuildStart()
+							Expect(err).ToNot(HaveOccurred())
+						})
+
+						It("has build summary", func() {
+							bs := resource.BuildSummary()
+							Expect(bs.ID).ToNot(BeZero())
+							Expect(bs.ID).To(Equal(build2.ID()))
+							Expect(bs.Status).To(Equal(atc.StatusStarted))
+							Expect(time.Unix(bs.StartTime, 0)).Should(BeTemporally("~", time.Now(), time.Second))
+							Expect(bs.EndTime).To(BeZero())
+							Expect(bs.PublicPlan).To(Equal(build.PublicPlan()))
+						})
+					})
 				})
 			})
 		})

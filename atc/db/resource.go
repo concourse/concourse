@@ -838,29 +838,20 @@ func scanResource(r *resource, row scannable) error {
 	var (
 		configBlob                                        sql.NullString
 		nonce, rcID, rcScopeID, pinnedVersion, pinComment sql.NullString
-		lastCheckStartTime, lastCheckEndTime              pq.NullTime
-		lastCheckBuildId                                  sql.NullInt64
-		lastCheckSucceeded                                sql.NullBool
-		lastCheckBuildPlan                                sql.NullString
 		pinnedThroughConfig                               sql.NullBool
 		pipelineInstanceVars                              sql.NullString
-		inMemoryBuildId                                   sql.NullInt64
-		inMemoryBuildStartTime                            pq.NullTime
-		inMemoryBuildPlan                                 sql.NullString
+		buildData                                         buildData
 	)
 
-	err := row.Scan(&r.id, &r.name, &r.type_, &configBlob, &lastCheckStartTime,
-		&lastCheckEndTime, &lastCheckBuildId, &lastCheckSucceeded, &lastCheckBuildPlan,
+	err := row.Scan(&r.id, &r.name, &r.type_, &configBlob, &buildData.lastCheckStartTime,
+		&buildData.lastCheckEndTime, &buildData.lastCheckBuildId, &buildData.lastCheckSucceeded, &buildData.lastCheckBuildPlan,
 		&r.pipelineID, &nonce, &rcID, &rcScopeID,
 		&r.pipelineName, &pipelineInstanceVars, &r.teamID, &r.teamName,
 		&pinnedVersion, &pinComment, &pinnedThroughConfig,
-		&inMemoryBuildId, &inMemoryBuildStartTime, &inMemoryBuildPlan)
+		&buildData.inMemoryBuildId, &buildData.inMemoryBuildStartTime, &buildData.inMemoryBuildPlan)
 	if err != nil {
 		return err
 	}
-
-	r.lastCheckStartTime = lastCheckStartTime.Time
-	r.lastCheckEndTime = lastCheckEndTime.Time
 
 	es := r.conn.EncryptionStrategy()
 
@@ -929,7 +920,7 @@ func scanResource(r *resource, row scannable) error {
 		}
 	}
 
-	if inMemoryBuildId.Valid || lastCheckBuildId.Valid {
+	if buildData.inMemoryBuildId.Valid || buildData.lastCheckBuildId.Valid {
 		r.buildSummary = &atc.BuildSummary{
 			Name: CheckBuildName,
 
@@ -940,9 +931,7 @@ func scanResource(r *resource, row scannable) error {
 			PipelineInstanceVars: r.pipelineInstanceVars,
 		}
 
-		err := populateBuildSummary(r.buildSummary,
-			inMemoryBuildId, inMemoryBuildStartTime, inMemoryBuildPlan,
-			lastCheckBuildId, lastCheckStartTime, lastCheckEndTime, lastCheckSucceeded, lastCheckBuildPlan)
+		err := buildData.populate(r.buildSummary, &r.lastCheckStartTime, &r.lastCheckEndTime)
 		if err != nil {
 			return err
 		}
@@ -951,52 +940,75 @@ func scanResource(r *resource, row scannable) error {
 	return nil
 }
 
-func populateBuildSummary(buildSummary *atc.BuildSummary,
-	inMemoryBuildId sql.NullInt64,
-	inMemoryBuildStartTime pq.NullTime,
-	inMemoryBuildPlan sql.NullString,
-	lastCheckBuildId sql.NullInt64,
-	lastCheckStartTime, lastCheckEndTime pq.NullTime,
-	lastCheckSucceeded sql.NullBool,
-	lastCheckBuildPlan sql.NullString) error {
+type buildData struct {
+	inMemoryBuildId        sql.NullInt64
+	inMemoryBuildStartTime pq.NullTime
+	inMemoryBuildPlan      sql.NullString
 
-	if lastCheckBuildId.Valid {
-		buildSummary.ID = int(lastCheckBuildId.Int64)
-		if lastCheckStartTime.Valid {
-			buildSummary.StartTime = lastCheckStartTime.Time.Unix()
+	lastCheckBuildId   sql.NullInt64
+	lastCheckStartTime pq.NullTime
+	lastCheckEndTime   pq.NullTime
+	lastCheckSucceeded sql.NullBool
+	lastCheckBuildPlan sql.NullString
+}
 
-			if lastCheckEndTime.Valid && lastCheckStartTime.Time.Before(lastCheckEndTime.Time) {
-				buildSummary.EndTime = lastCheckEndTime.Time.Unix()
-				if lastCheckSucceeded.Valid && lastCheckSucceeded.Bool {
-					buildSummary.Status = atc.StatusSucceeded
-				} else {
-					buildSummary.Status = atc.StatusFailed
-				}
-			} else {
-				buildSummary.Status = atc.StatusStarted
-			}
+func (d buildData) populate(buildSummary *atc.BuildSummary, lastCheckStart *time.Time, lastCheckEnd *time.Time) error {
+	if d.inMemoryBuildId.Valid && d.lastCheckBuildId.Valid {
+		// If both ids are valid, and they are same, then we should use info
+		// from resource_config_scope; otherwise we use build start time to
+		// determine which one is newer.
+		if d.inMemoryBuildId.Int64 == d.lastCheckBuildId.Int64 {
+			return d.useLastCheckBuild(buildSummary, lastCheckStart, lastCheckEnd)
 		} else {
-			return errors.New("no check start time found")
+			if d.inMemoryBuildStartTime.Time.Before(d.lastCheckStartTime.Time) {
+				return d.useLastCheckBuild(buildSummary, lastCheckStart, lastCheckEnd)
+			} else {
+				return d.useInMemoryBuild(buildSummary, lastCheckStart)
+			}
 		}
+	} else if d.lastCheckBuildId.Valid {
+		return d.useLastCheckBuild(buildSummary, lastCheckStart, lastCheckEnd)
+	} else if d.inMemoryBuildId.Valid {
+		return d.useInMemoryBuild(buildSummary, lastCheckStart)
+	}
+	return errors.New("no build info available")
+}
 
-		if lastCheckBuildPlan.Valid {
-			err := json.Unmarshal([]byte(lastCheckBuildPlan.String), &buildSummary.PublicPlan)
-			if err != nil {
-				return err
-			}
-		}
-	} else if inMemoryBuildId.Valid {
-		buildSummary.ID = int(inMemoryBuildId.Int64)
-		buildSummary.StartTime = inMemoryBuildStartTime.Time.Unix()
-		buildSummary.Status = atc.StatusStarted
-		if inMemoryBuildPlan.Valid {
-			err := json.Unmarshal([]byte(inMemoryBuildPlan.String), &buildSummary.PublicPlan)
-			if err != nil {
-				return err
-			}
+func (d buildData) useInMemoryBuild(buildSummary *atc.BuildSummary, lastCheckStart *time.Time) error {
+	buildSummary.ID = int(d.inMemoryBuildId.Int64)
+	buildSummary.StartTime = d.inMemoryBuildStartTime.Time.Unix()
+	*lastCheckStart = d.inMemoryBuildStartTime.Time
+	buildSummary.Status = atc.StatusStarted
+	if d.inMemoryBuildPlan.Valid {
+		err := json.Unmarshal([]byte(d.inMemoryBuildPlan.String), &buildSummary.PublicPlan)
+		if err != nil {
+			return err
 		}
 	}
+	return nil
+}
 
+func (d buildData) useLastCheckBuild(buildSummary *atc.BuildSummary, lastCheckStart *time.Time, lastCheckEnd *time.Time) error {
+	buildSummary.ID = int(d.lastCheckBuildId.Int64)
+	buildSummary.StartTime = d.lastCheckStartTime.Time.Unix()
+	*lastCheckStart = d.lastCheckStartTime.Time
+	if d.lastCheckEndTime.Valid && d.lastCheckStartTime.Time.Before(d.lastCheckEndTime.Time) {
+		buildSummary.EndTime = d.lastCheckEndTime.Time.Unix()
+		*lastCheckEnd = d.lastCheckEndTime.Time
+		if d.lastCheckSucceeded.Valid && d.lastCheckSucceeded.Bool {
+			buildSummary.Status = atc.StatusSucceeded
+		} else {
+			buildSummary.Status = atc.StatusFailed
+		}
+	} else {
+		buildSummary.Status = atc.StatusStarted
+	}
+	if d.lastCheckBuildPlan.Valid {
+		err := json.Unmarshal([]byte(d.lastCheckBuildPlan.String), &buildSummary.PublicPlan)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

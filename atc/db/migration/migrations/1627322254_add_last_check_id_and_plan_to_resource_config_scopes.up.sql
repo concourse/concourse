@@ -1,5 +1,5 @@
 ALTER TABLE resource_config_scopes
-    ADD COLUMN last_check_build_id int8,
+    ADD COLUMN last_check_build_id bigint,
     ADD COLUMN last_check_build_plan json NULL DEFAULT '{}'::json;
 
 -- This index should not be unique, because a build may check multiple resources and resource types.

@@ -41,6 +41,12 @@ func (rcuc *resourceCacheUseCollector) Run(ctx context.Context) error {
 		logger.Error("failed-to-clean-build-image-uses", err)
 	}
 
+	err = rcuc.cacheLifecycle.CleanDirtyInMemoryBuildUses(logger.Session("clean-for-dirty-in-memory-builds"))
+	if err != nil {
+		errs = multierror.Append(errs, err)
+		logger.Error("failed-to-clean-dirty-in-memory-builds-uses", err)
+	}
+
 	err = rcuc.cacheLifecycle.CleanUsesForFinishedBuilds(logger.Session("clean-for-finished-builds"))
 	if err != nil {
 		errs = multierror.Append(errs, err)

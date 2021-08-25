@@ -298,6 +298,10 @@ var _ = Describe("Resource Config Scope", func() {
 	})
 
 	Describe("UpdateLastCheckStartTime", func() {
+		BeforeEach(func() {
+			err := scenario.Resource("some-resource").SetResourceConfigScope(resourceScope)
+			Expect(err).ToNot(HaveOccurred())
+		})
 		It("updates last check start time", func() {
 			lastTime := scenario.Resource("some-resource").LastCheckEndTime()
 			publicPlan := atc.Plan{
@@ -327,13 +331,17 @@ var _ = Describe("Resource Config Scope", func() {
 	})
 
 	Describe("UpdateLastCheckEndTime", func() {
+		BeforeEach(func() {
+			err := scenario.Resource("some-resource").SetResourceConfigScope(resourceScope)
+			Expect(err).ToNot(HaveOccurred())
+			_, err = resourceScope.UpdateLastCheckStartTime(99, nil)
+			Expect(err).ToNot(HaveOccurred())
+		})
 		It("updates last check end time", func() {
 			lastTime := scenario.Resource("some-resource").LastCheckEndTime()
-
 			updated, err := resourceScope.UpdateLastCheckEndTime(true)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(updated).To(BeTrue())
-
 			Expect(scenario.Resource("some-resource").LastCheckEndTime()).To(BeTemporally(">", lastTime))
 		})
 	})

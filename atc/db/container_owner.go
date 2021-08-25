@@ -194,7 +194,7 @@ func (c fixedHandleContainerOwner) sqlMap() map[string]interface{} {
 // pre-id is unique, in-memory's create time is also used.
 func NewInMemoryCheckBuildContainerOwner(
 	buildID int,
-	createTime int,
+	createTime time.Time,
 	planID atc.PlanID,
 	teamID int,
 ) ContainerOwner {
@@ -208,7 +208,7 @@ func NewInMemoryCheckBuildContainerOwner(
 
 type inMemoryCheckBuildContainerOwner struct {
 	BuildID    int
-	CreateTime int
+	CreateTime time.Time
 	PlanID     atc.PlanID
 	TeamID     int
 }
