@@ -105,13 +105,16 @@ func findOrCreateResourceConfig(
 
 	found = true
 	if updateLastReferenced {
-		err := psql.Update("resource_configs").
-			Set("last_referenced", sq.Expr("now()")).
+		// updateLastReferenced is called extremely frequently, which generates a lot of
+		// slow queries. However, last_referenced is only used for gc, it doesn't have to
+		// be super precise. Based on that, let's query first, and if last_update is within
+		// 1 minutes, then skip current update.
+		err := psql.Select("id", "last_referenced").
+			From("resource_configs").
 			Where(sq.Eq{
 				parentColumnName: parentID,
 				"source_hash":    mapHash(source),
 			}).
-			Suffix("RETURNING id, last_referenced").
 			RunWith(tx).
 			QueryRow().
 			Scan(&rc.id, &rc.lastReferenced)
@@ -119,6 +122,21 @@ func findOrCreateResourceConfig(
 			if err == sql.ErrNoRows {
 				found = false
 			} else {
+				return err
+			}
+		}
+		if found && rc.lastReferenced.Add(time.Minute).Before(time.Now()) {
+			err := psql.Update("resource_configs").
+				Set("last_referenced", sq.Expr("now()")).
+				Where(sq.Eq{
+					parentColumnName: parentID,
+					"source_hash":    mapHash(source),
+				}).
+				Suffix("RETURNING id, last_referenced").
+				RunWith(tx).
+				QueryRow().
+				Scan(&rc.id, &rc.lastReferenced)
+			if err != nil {
 				return err
 			}
 		}

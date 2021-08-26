@@ -11,9 +11,9 @@ import (
 	"github.com/onsi/gomega/types"
 )
 
-var _ = Describe("BuildFactory", func() {
+var _ = XDescribe("BuildFactory", func() {
 	var (
-		team      db.Team
+		team db.Team
 	)
 
 	BeforeEach(func() {
