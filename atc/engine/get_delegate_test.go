@@ -16,26 +16,25 @@ import (
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/policy/policyfakes"
-	"github.com/concourse/concourse/atc/runtime"
-	"github.com/concourse/concourse/atc/worker/workerfakes"
+	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/vars"
 )
 
 var _ = Describe("GetDelegate", func() {
 	var (
-		logger              *lagertest.TestLogger
-		fakeBuild           *dbfakes.FakeBuild
-		fakePipeline        *dbfakes.FakePipeline
-		fakeResource        *dbfakes.FakeResource
-		fakeClock           *fakeclock.FakeClock
-		fakePolicyChecker   *policyfakes.FakeChecker
-		fakeArtifactSourcer *workerfakes.FakeArtifactSourcer
+		logger                   *lagertest.TestLogger
+		fakeBuild                *dbfakes.FakeBuild
+		fakePipeline             *dbfakes.FakePipeline
+		fakeResource             *dbfakes.FakeResource
+		fakeClock                *fakeclock.FakeClock
+		fakePolicyChecker        *policyfakes.FakeChecker
+		fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
 
 		state exec.RunState
 
 		now        = time.Date(1991, 6, 3, 5, 30, 0, 0, time.UTC)
 		delegate   exec.GetDelegate
-		info       runtime.VersionResult
+		info       resource.VersionResult
 		exitStatus exec.ExitStatus
 	)
 
@@ -46,21 +45,21 @@ var _ = Describe("GetDelegate", func() {
 		fakePipeline = new(dbfakes.FakePipeline)
 		fakeResource = new(dbfakes.FakeResource)
 		fakeClock = fakeclock.NewFakeClock(now)
+		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 		credVars := vars.StaticVariables{
 			"source-param": "super-secret-source",
 			"git-key":      "{\n123\n456\n789\n}\n",
 		}
 		state = exec.NewRunState(noopStepper, credVars, true)
 
-		info = runtime.VersionResult{
+		info = resource.VersionResult{
 			Version:  atc.Version{"foo": "bar"},
 			Metadata: []atc.MetadataField{{Name: "baz", Value: "shmaz"}},
 		}
 
 		fakePolicyChecker = new(policyfakes.FakeChecker)
-		fakeArtifactSourcer = new(workerfakes.FakeArtifactSourcer)
 
-		delegate = engine.NewGetDelegate(fakeBuild, "some-plan-id", state, fakeClock, fakePolicyChecker, fakeArtifactSourcer)
+		delegate = engine.NewGetDelegate(fakeBuild, "some-plan-id", state, fakeClock, fakePolicyChecker, fakeResourceCacheFactory)
 	})
 
 	Describe("Finished", func() {
@@ -80,10 +79,31 @@ var _ = Describe("GetDelegate", func() {
 		})
 	})
 
-	Describe("UpdateVersion", func() {
+	Describe("UpdateMetadata", func() {
+		var dummyResourceCache db.ResourceCache
+		var resourceName string
+
 		JustBeforeEach(func() {
-			plan := atc.GetPlan{Resource: "some-resource"}
-			delegate.UpdateVersion(logger, plan, info)
+			dummyResourceCache = new(dbfakes.FakeResourceCache)
+			delegate.UpdateMetadata(logger, resourceName, dummyResourceCache, info)
+		})
+
+		BeforeEach(func() {
+			resourceName = "some-resource"
+		})
+
+		It("updates the resource cache metadata", func() {
+			Expect(fakeResourceCacheFactory.UpdateResourceCacheMetadataCallCount()).To(Equal(1))
+		})
+
+		Context("when the resource is not a named resource", func() {
+			BeforeEach(func() {
+				resourceName = ""
+			})
+
+			It("doesn't try to retrieve the pipeline", func() {
+				Expect(fakeBuild.PipelineCallCount()).To(Equal(0))
+			})
 		})
 
 		Context("when retrieving the pipeline fails", func() {

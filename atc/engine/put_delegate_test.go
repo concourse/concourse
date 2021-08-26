@@ -15,25 +15,23 @@ import (
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/policy/policyfakes"
-	"github.com/concourse/concourse/atc/runtime"
-	"github.com/concourse/concourse/atc/worker/workerfakes"
+	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/vars"
 )
 
 var _ = Describe("PutDelegate", func() {
 	var (
-		logger              *lagertest.TestLogger
-		fakeBuild           *dbfakes.FakeBuild
-		fakeClock           *fakeclock.FakeClock
-		fakePolicyChecker   *policyfakes.FakeChecker
-		fakeArtifactSourcer *workerfakes.FakeArtifactSourcer
+		logger            *lagertest.TestLogger
+		fakeBuild         *dbfakes.FakeBuild
+		fakeClock         *fakeclock.FakeClock
+		fakePolicyChecker *policyfakes.FakeChecker
 
 		state exec.RunState
 
 		now = time.Date(1991, 6, 3, 5, 30, 0, 0, time.UTC)
 
 		delegate   exec.PutDelegate
-		info       runtime.VersionResult
+		info       resource.VersionResult
 		exitStatus exec.ExitStatus
 	)
 
@@ -48,15 +46,14 @@ var _ = Describe("PutDelegate", func() {
 		}
 		state = exec.NewRunState(noopStepper, credVars, true)
 
-		info = runtime.VersionResult{
+		info = resource.VersionResult{
 			Version:  atc.Version{"foo": "bar"},
 			Metadata: []atc.MetadataField{{Name: "baz", Value: "shmaz"}},
 		}
 
 		fakePolicyChecker = new(policyfakes.FakeChecker)
-		fakeArtifactSourcer = new(workerfakes.FakeArtifactSourcer)
 
-		delegate = engine.NewPutDelegate(fakeBuild, "some-plan-id", state, fakeClock, fakePolicyChecker, fakeArtifactSourcer)
+		delegate = engine.NewPutDelegate(fakeBuild, "some-plan-id", state, fakeClock, fakePolicyChecker)
 	})
 
 	Describe("Finished", func() {

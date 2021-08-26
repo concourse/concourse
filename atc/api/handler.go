@@ -29,10 +29,16 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/gc"
 	"github.com/concourse/concourse/atc/mainredirect"
-	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/wrappa"
 	"github.com/tedsuo/rata"
 )
+
+//go:generate counterfeiter . Pool
+
+type Pool interface {
+	artifactserver.Pool
+	containerserver.Pool
+}
 
 func NewHandler(
 	logger lager.Logger,
@@ -58,7 +64,7 @@ func NewHandler(
 
 	eventHandlerFactory buildserver.EventHandlerFactory,
 
-	workerPool worker.Pool,
+	workerPool Pool,
 
 	sink *lager.ReconfigurableSink,
 

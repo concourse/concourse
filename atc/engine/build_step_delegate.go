@@ -10,14 +10,13 @@ import (
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/policy"
-	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
 	"go.opentelemetry.io/otel/trace"
@@ -25,14 +24,13 @@ import (
 )
 
 type buildStepDelegate struct {
-	build           db.Build
-	planID          atc.PlanID
-	clock           clock.Clock
-	state           exec.RunState
-	stderr          io.Writer
-	stdout          io.Writer
-	policyChecker   policy.Checker
-	artifactSourcer worker.ArtifactSourcer
+	build         db.Build
+	planID        atc.PlanID
+	clock         clock.Clock
+	state         exec.RunState
+	stderr        io.Writer
+	stdout        io.Writer
+	policyChecker policy.Checker
 }
 
 func NewBuildStepDelegate(
@@ -41,17 +39,15 @@ func NewBuildStepDelegate(
 	state exec.RunState,
 	clock clock.Clock,
 	policyChecker policy.Checker,
-	artifactSourcer worker.ArtifactSourcer,
 ) *buildStepDelegate {
 	return &buildStepDelegate{
-		build:           build,
-		planID:          planID,
-		clock:           clock,
-		state:           state,
-		stdout:          nil,
-		stderr:          nil,
-		policyChecker:   policyChecker,
-		artifactSourcer: artifactSourcer,
+		build:         build,
+		planID:        planID,
+		clock:         clock,
+		state:         state,
+		stdout:        nil,
+		stderr:        nil,
+		policyChecker: policyChecker,
 	}
 }
 
@@ -218,10 +214,10 @@ func (delegate *buildStepDelegate) FetchImage(
 	getPlan atc.Plan,
 	checkPlan *atc.Plan,
 	privileged bool,
-) (worker.ImageSpec, db.ResourceCache, error) {
+) (runtime.ImageSpec, db.ResourceCache, error) {
 	err := delegate.checkImagePolicy(getPlan.Get.Source, getPlan.Get.Type, privileged)
 	if err != nil {
-		return worker.ImageSpec{}, nil, err
+		return runtime.ImageSpec{}, nil, err
 	}
 
 	fetchState := delegate.state.NewLocalScope()
@@ -229,46 +225,41 @@ func (delegate *buildStepDelegate) FetchImage(
 	if checkPlan != nil {
 		ok, err := fetchState.Run(ctx, *checkPlan)
 		if err != nil {
-			return worker.ImageSpec{}, nil, err
+			return runtime.ImageSpec{}, nil, err
 		}
 
 		if !ok {
-			return worker.ImageSpec{}, nil, fmt.Errorf("image check failed")
+			return runtime.ImageSpec{}, nil, fmt.Errorf("image check failed")
 		}
 	}
 
 	ok, err := fetchState.Run(ctx, getPlan)
 	if err != nil {
-		return worker.ImageSpec{}, nil, err
+		return runtime.ImageSpec{}, nil, err
 	}
 
 	if !ok {
-		return worker.ImageSpec{}, nil, fmt.Errorf("image fetching failed")
+		return runtime.ImageSpec{}, nil, fmt.Errorf("image fetching failed")
 	}
 
 	var result exec.GetResult
 	if !fetchState.Result(getPlan.ID, &result) {
-		return worker.ImageSpec{}, nil, fmt.Errorf("get did not return a result")
+		return runtime.ImageSpec{}, nil, fmt.Errorf("get did not return a result")
 	}
 
 	err = delegate.build.SaveImageResourceVersion(result.ResourceCache)
 	if err != nil {
-		return worker.ImageSpec{}, nil, fmt.Errorf("save image version: %w", err)
+		return runtime.ImageSpec{}, nil, fmt.Errorf("save image version: %w", err)
 	}
 
-	art, found := fetchState.ArtifactRepository().ArtifactFor(build.ArtifactName(result.Name))
+	artifact, found := fetchState.ArtifactRepository().ArtifactFor(build.ArtifactName(result.Name))
 	if !found {
-		return worker.ImageSpec{}, nil, fmt.Errorf("fetched artifact not found")
+		return runtime.ImageSpec{}, nil, fmt.Errorf("fetched artifact not found")
 	}
 
-	source, err := delegate.artifactSourcer.SourceImage(lagerctx.FromContext(ctx), art)
-	if err != nil {
-		return worker.ImageSpec{}, nil, fmt.Errorf("wire image: %w", err)
-	}
-
-	return worker.ImageSpec{
-		ImageArtifactSource: source,
-		Privileged:          privileged,
+	return runtime.ImageSpec{
+		ImageArtifact: artifact,
+		Privileged:    privileged,
 	}, result.ResourceCache, nil
 }
 

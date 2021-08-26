@@ -11,16 +11,14 @@ import (
 	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/policy/policyfakes"
-	"github.com/concourse/concourse/atc/runtime/runtimefakes"
-	"github.com/concourse/concourse/atc/worker"
-	"github.com/concourse/concourse/atc/worker/workerfakes"
+	"github.com/concourse/concourse/atc/runtime"
+	"github.com/concourse/concourse/atc/runtime/runtimetest"
 	"github.com/concourse/concourse/vars"
 )
 
@@ -31,13 +29,12 @@ var noopStepper exec.Stepper = func(atc.Plan) exec.Step {
 
 var _ = Describe("TaskDelegate", func() {
 	var (
-		logger              *lagertest.TestLogger
-		fakeBuild           *dbfakes.FakeBuild
-		fakeClock           *fakeclock.FakeClock
-		fakePolicyChecker   *policyfakes.FakeChecker
-		fakeArtifactSourcer *workerfakes.FakeArtifactSourcer
-		fakeWorkerFactory   *dbfakes.FakeWorkerFactory
-		fakeLockFactory     *lockfakes.FakeLockFactory
+		logger            *lagertest.TestLogger
+		fakeBuild         *dbfakes.FakeBuild
+		fakeClock         *fakeclock.FakeClock
+		fakePolicyChecker *policyfakes.FakeChecker
+		fakeWorkerFactory *dbfakes.FakeWorkerFactory
+		fakeLockFactory   *lockfakes.FakeLockFactory
 
 		state exec.RunState
 
@@ -61,11 +58,11 @@ var _ = Describe("TaskDelegate", func() {
 		state = exec.NewRunState(noopStepper, credVars, true)
 
 		fakePolicyChecker = new(policyfakes.FakeChecker)
-		fakeArtifactSourcer = new(workerfakes.FakeArtifactSourcer)
 		fakeWorkerFactory = new(dbfakes.FakeWorkerFactory)
 		fakeLockFactory = new(lockfakes.FakeLockFactory)
 
-		delegate = NewTaskDelegate(fakeBuild, planID, state, fakeClock, fakePolicyChecker, fakeArtifactSourcer, fakeWorkerFactory, fakeLockFactory).(*taskDelegate)
+		delegate = NewTaskDelegate(fakeBuild, planID, state, fakeClock, fakePolicyChecker, fakeWorkerFactory, fakeLockFactory).(*taskDelegate)
+
 		delegate.SetTaskConfig(atc.TaskConfig{
 			Platform: "some-platform",
 			Run: atc.TaskRunConfig{
@@ -138,16 +135,8 @@ var _ = Describe("TaskDelegate", func() {
 	})
 
 	Describe("Finished", func() {
-		var fakeClient *workerfakes.FakeClient
-		var fakeStrategy *workerfakes.FakeContainerPlacementStrategy
-
-		BeforeEach(func() {
-			fakeClient = new(workerfakes.FakeClient)
-			fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
-		})
-
 		JustBeforeEach(func() {
-			delegate.Finished(logger, exitStatus, fakeStrategy, fakeClient)
+			delegate.Finished(logger, exitStatus)
 		})
 
 		It("saves an event", func() {
@@ -164,8 +153,7 @@ var _ = Describe("TaskDelegate", func() {
 		var types atc.ResourceTypes
 		var imageResource atc.ImageResource
 
-		var fakeArtifact *runtimefakes.FakeArtifact
-		var fakeSource *workerfakes.FakeStreamableArtifactSource
+		var volume *runtimetest.Volume
 		var fakeResourceCache *dbfakes.FakeResourceCache
 
 		var runPlans []atc.Plan
@@ -174,12 +162,12 @@ var _ = Describe("TaskDelegate", func() {
 		var tags []string
 		var privileged bool
 
-		var imageSpec worker.ImageSpec
+		var imageSpec runtime.ImageSpec
 		var fetchErr error
 
 		BeforeEach(func() {
 			atc.DefaultCheckInterval = 1 * time.Minute
-			fakeArtifact = new(runtimefakes.FakeArtifact)
+			volume = runtimetest.NewVolume("some-volume")
 
 			runPlans = nil
 			stepper = func(p atc.Plan) exec.Step {
@@ -189,7 +177,7 @@ var _ = Describe("TaskDelegate", func() {
 				fakeResourceCache = new(dbfakes.FakeResourceCache)
 				step.RunStub = func(_ context.Context, state exec.RunState) (bool, error) {
 					if p.Get != nil {
-						state.ArtifactRepository().RegisterArtifact("image", fakeArtifact)
+						state.ArtifactRepository().RegisterArtifact("image", volume)
 						state.StoreResult(expectedGetPlan.ID, exec.GetResult{
 							Name:          "image",
 							ResourceCache: fakeResourceCache,
@@ -201,10 +189,7 @@ var _ = Describe("TaskDelegate", func() {
 			}
 
 			runState := exec.NewRunState(stepper, nil, false)
-			delegate = NewTaskDelegate(fakeBuild, planID, runState, fakeClock, fakePolicyChecker, fakeArtifactSourcer, fakeWorkerFactory, fakeLockFactory)
-
-			fakeSource = new(workerfakes.FakeStreamableArtifactSource)
-			fakeArtifactSourcer.SourceImageReturns(fakeSource, nil)
+			delegate = NewTaskDelegate(fakeBuild, planID, runState, fakeClock, fakePolicyChecker, fakeWorkerFactory, fakeLockFactory)
 
 			imageResource = atc.ImageResource{
 				Type:   "docker",
@@ -273,9 +258,9 @@ var _ = Describe("TaskDelegate", func() {
 		})
 
 		It("returns an image spec containing the artifact", func() {
-			Expect(imageSpec).To(Equal(worker.ImageSpec{
-				ImageArtifactSource: fakeSource,
-				Privileged:          false,
+			Expect(imageSpec).To(Equal(runtime.ImageSpec{
+				ImageArtifact: volume,
+				Privileged:    false,
 			}))
 		})
 
@@ -327,59 +312,3 @@ var _ = Describe("TaskDelegate", func() {
 		})
 	})
 })
-
-func containerSpecDummy() worker.ContainerSpec {
-	cpu := uint64(1024)
-	memory := uint64(1024)
-
-	return worker.ContainerSpec{
-		TeamID: 123,
-		ImageSpec: worker.ImageSpec{
-			ImageArtifactSource: new(workerfakes.FakeStreamableArtifactSource),
-			Privileged:          false,
-		},
-		Limits: worker.ContainerLimits{
-			CPU:    &cpu,
-			Memory: &memory,
-		},
-		Dir:     "some-artifact-root",
-		Env:     []string{"SECURE=secret-task-param"},
-		Inputs:  []worker.InputSource{},
-		Outputs: worker.OutputPaths{},
-	}
-}
-
-func workerSpecDummy() worker.WorkerSpec {
-	return worker.WorkerSpec{
-		TeamID:   123,
-		Platform: "some-platform",
-		Tags:     []string{"step", "tags"},
-	}
-}
-
-func containerOwnerDummy() db.ContainerOwner {
-	return db.NewBuildStepContainerOwner(
-		1234,
-		atc.PlanID("42"),
-		123,
-	)
-}
-
-func workerStub() *dbfakes.FakeWorker {
-	fakeWorker := new(dbfakes.FakeWorker)
-	fakeWorker.NameReturns("some-worker")
-
-	activeTasks := 0
-	fakeWorker.IncreaseActiveTasksStub = func() (int, error) {
-		activeTasks++
-		return activeTasks, nil
-	}
-	fakeWorker.DecreaseActiveTasksStub = func() (int, error) {
-		activeTasks--
-		return activeTasks, nil
-	}
-	fakeWorker.ActiveTasksStub = func() (int, error) {
-		return activeTasks, nil
-	}
-	return fakeWorker
-}

@@ -34,8 +34,9 @@ type VolumeRepository interface {
 
 	GetDestroyingVolumes(workerName string) ([]string, error)
 
-	CreateVolume(int, string, VolumeType) (CreatingVolume, error)
-	FindCreatedVolume(handle string) (CreatedVolume, bool, error)
+	CreateVolume(teamID int, workerName string, volumeType VolumeType) (CreatingVolume, error)
+	CreateVolumeWithHandle(handle string, teamID int, workerName string, volumeType VolumeType) (CreatingVolume, error)
+	FindVolume(handle string) (CreatedVolume, bool, error)
 
 	RemoveDestroyingVolumes(workerName string, handles []string) (int, error)
 
@@ -275,11 +276,24 @@ func (repository *volumeRepository) CreateBaseResourceTypeVolume(uwbrt *UsedWork
 
 func (repository *volumeRepository) CreateVolume(teamID int, workerName string, volumeType VolumeType) (CreatingVolume, error) {
 	volume, err := repository.createVolume(
-		0,
+		teamID,
 		workerName,
-		map[string]interface{}{
-			"team_id": teamID,
-		},
+		map[string]interface{}{},
+		volumeType,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return volume, nil
+}
+
+func (repository *volumeRepository) CreateVolumeWithHandle(handle string, teamID int, workerName string, volumeType VolumeType) (CreatingVolume, error) {
+	volume, err := repository.createVolumeWithHandle(
+		handle,
+		teamID,
+		workerName,
+		map[string]interface{}{},
 		volumeType,
 	)
 	if err != nil {
@@ -451,7 +465,7 @@ func (repository *volumeRepository) FindResourceCacheVolume(workerName string, r
 	return createdVolume, true, nil
 }
 
-func (repository *volumeRepository) FindCreatedVolume(handle string) (CreatedVolume, bool, error) {
+func (repository *volumeRepository) FindVolume(handle string) (CreatedVolume, bool, error) {
 	_, createdVolume, err := getVolume(repository.conn, map[string]interface{}{
 		"v.handle": handle,
 	})
@@ -626,39 +640,41 @@ func (repository *volumeRepository) DestroyUnknownVolumes(workerName string, rep
 	return len(unknownHandles), nil
 }
 
-// 1. open tx
-// 2. lookup worker resource type id
-//   * if not found, fail; worker must have new version or no longer supports type
-// 3. insert into volumes in 'initializing' state
-//   * if fails (fkey violation; worker type gone), fail for same reason as 2.
-// 4. commit tx
 func (repository *volumeRepository) createVolume(
 	teamID int,
 	workerName string,
 	columns map[string]interface{},
 	volumeType VolumeType,
 ) (*creatingVolume, error) {
-	var volumeID int
 	handle, err := uuid.NewV4()
 	if err != nil {
 		return nil, err
 	}
+	return repository.createVolumeWithHandle(handle.String(), teamID, workerName, columns, volumeType)
+}
 
-	columnNames := []string{"worker_name", "handle"}
-	columnValues := []interface{}{workerName, handle.String()}
+func (repository *volumeRepository) createVolumeWithHandle(
+	handle string,
+	teamID int,
+	workerName string,
+	columns map[string]interface{},
+	volumeType VolumeType,
+) (*creatingVolume, error) {
+	var volumeID int
+	values := map[string]interface{}{
+		"worker_name": workerName,
+		"handle":      handle,
+	}
 	for name, value := range columns {
-		columnNames = append(columnNames, name)
-		columnValues = append(columnValues, value)
+		values[name] = value
 	}
 
 	if teamID != 0 {
-		columnNames = append(columnNames, "team_id")
-		columnValues = append(columnValues, teamID)
+		values["team_id"] = teamID
 	}
 
-	err = psql.Insert("volumes").
-		Columns(columnNames...). // hey, replace this with SetMap plz
-		Values(columnValues...).
+	err := psql.Insert("volumes").
+		SetMap(values).
 		Suffix("RETURNING id").
 		RunWith(repository.conn).
 		QueryRow().
@@ -671,7 +687,7 @@ func (repository *volumeRepository) createVolume(
 		workerName: workerName,
 
 		id:     volumeID,
-		handle: handle.String(),
+		handle: handle,
 		typ:    volumeType,
 		teamID: teamID,
 

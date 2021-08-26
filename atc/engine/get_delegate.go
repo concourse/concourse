@@ -11,8 +11,7 @@ import (
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/policy"
-	"github.com/concourse/concourse/atc/runtime"
-	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/atc/resource"
 )
 
 func NewGetDelegate(
@@ -21,23 +20,25 @@ func NewGetDelegate(
 	state exec.RunState,
 	clock clock.Clock,
 	policyChecker policy.Checker,
-	artifactSourcer worker.ArtifactSourcer,
+	resourceCacheFactory db.ResourceCacheFactory,
 ) exec.GetDelegate {
 	return &getDelegate{
-		BuildStepDelegate: NewBuildStepDelegate(build, planID, state, clock, policyChecker, artifactSourcer),
+		BuildStepDelegate: NewBuildStepDelegate(build, planID, state, clock, policyChecker),
 
-		eventOrigin: event.Origin{ID: event.OriginID(planID)},
-		build:       build,
-		clock:       clock,
+		eventOrigin:          event.Origin{ID: event.OriginID(planID)},
+		build:                build,
+		clock:                clock,
+		resourceCacheFactory: resourceCacheFactory,
 	}
 }
 
 type getDelegate struct {
 	exec.BuildStepDelegate
 
-	build       db.Build
-	eventOrigin event.Origin
-	clock       clock.Clock
+	build                db.Build
+	eventOrigin          event.Origin
+	clock                clock.Clock
+	resourceCacheFactory db.ResourceCacheFactory
 }
 
 func (d *getDelegate) Initializing(logger lager.Logger) {
@@ -66,7 +67,7 @@ func (d *getDelegate) Starting(logger lager.Logger) {
 	logger.Info("starting")
 }
 
-func (d *getDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus, info runtime.VersionResult) {
+func (d *getDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus, info resource.VersionResult) {
 	// PR#4398: close to flush stdout and stderr
 	d.Stdout().(io.Closer).Close()
 	d.Stderr().(io.Closer).Close()
@@ -86,11 +87,22 @@ func (d *getDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus, 
 	logger.Info("finished", lager.Data{"exit-status": exitStatus})
 }
 
-func (d *getDelegate) UpdateVersion(log lager.Logger, plan atc.GetPlan, info runtime.VersionResult) {
+func (d *getDelegate) UpdateMetadata(log lager.Logger, resourceName string, resourceCache db.ResourceCache, info resource.VersionResult) {
 	logger := log.WithData(lager.Data{
 		"pipeline-name": d.build.PipelineName(),
 		"pipeline-id":   d.build.PipelineID()},
 	)
+
+	err := d.resourceCacheFactory.UpdateResourceCacheMetadata(resourceCache, info.Metadata)
+	if err != nil {
+		logger.Error("failed-to-update-resource-cache-metadata", err)
+		return
+	}
+
+	// If not a named resource, don't need to do anything else.
+	if resourceName == "" {
+		return
+	}
 
 	pipeline, found, err := d.build.Pipeline()
 	if err != nil {
@@ -103,7 +115,7 @@ func (d *getDelegate) UpdateVersion(log lager.Logger, plan atc.GetPlan, info run
 		return
 	}
 
-	resource, found, err := pipeline.Resource(plan.Resource)
+	resource, found, err := pipeline.Resource(resourceName)
 	if err != nil {
 		logger.Error("failed-to-find-resource", err)
 		return

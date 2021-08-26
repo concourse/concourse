@@ -26,21 +26,19 @@ import (
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/atc/policy/policyfakes"
-	"github.com/concourse/concourse/atc/runtime/runtimefakes"
-	"github.com/concourse/concourse/atc/worker"
-	"github.com/concourse/concourse/atc/worker/workerfakes"
+	"github.com/concourse/concourse/atc/runtime"
+	"github.com/concourse/concourse/atc/runtime/runtimetest"
 	"github.com/concourse/concourse/vars"
 )
 
 var _ = Describe("BuildStepDelegate", func() {
 	var (
-		logger              *lagertest.TestLogger
-		fakeBuild           *dbfakes.FakeBuild
-		fakeClock           *fakeclock.FakeClock
-		planID              atc.PlanID
-		runState            *execfakes.FakeRunState
-		fakePolicyChecker   *policyfakes.FakeChecker
-		fakeArtifactSourcer *workerfakes.FakeArtifactSourcer
+		logger            *lagertest.TestLogger
+		fakeBuild         *dbfakes.FakeBuild
+		fakeClock         *fakeclock.FakeClock
+		planID            atc.PlanID
+		runState          *execfakes.FakeRunState
+		fakePolicyChecker *policyfakes.FakeChecker
 
 		credVars vars.StaticVariables
 
@@ -68,9 +66,7 @@ var _ = Describe("BuildStepDelegate", func() {
 
 		fakePolicyChecker = new(policyfakes.FakeChecker)
 
-		fakeArtifactSourcer = new(workerfakes.FakeArtifactSourcer)
-
-		delegate = engine.NewBuildStepDelegate(fakeBuild, planID, runState, fakeClock, fakePolicyChecker, fakeArtifactSourcer)
+		delegate = engine.NewBuildStepDelegate(fakeBuild, planID, runState, fakeClock, fakePolicyChecker)
 	})
 
 	Describe("Initializing", func() {
@@ -101,13 +97,12 @@ var _ = Describe("BuildStepDelegate", func() {
 		var delegate exec.BuildStepDelegate
 
 		var expectedCheckPlan, expectedGetPlan *atc.Plan
-		var fakeArtifact *runtimefakes.FakeArtifact
-		var fakeSource *workerfakes.FakeStreamableArtifactSource
+		var volume *runtimetest.Volume
 		var fakeResourceCache *dbfakes.FakeResourceCache
 
 		var privileged bool
 
-		var imageSpec worker.ImageSpec
+		var imageSpec runtime.ImageSpec
 		var fetchErr error
 		var resourceCache db.ResourceCache
 
@@ -116,6 +111,14 @@ var _ = Describe("BuildStepDelegate", func() {
 		var parentRunState exec.RunState
 
 		BeforeEach(func() {
+			repo := build.NewRepository()
+			runState.ArtifactRepositoryReturns(repo)
+
+			runState.GetStub = vars.StaticVariables{
+				"source-var": "super-secret-source",
+				"params-var": "super-secret-params",
+			}.Get
+
 			runPlans = nil
 
 			expectedCheckPlan = &atc.Plan{
@@ -145,11 +148,11 @@ var _ = Describe("BuildStepDelegate", func() {
 
 				fakeResourceCache = new(dbfakes.FakeResourceCache)
 				fakeResourceCache.IDReturns(123)
-				fakeArtifact = new(runtimefakes.FakeArtifact)
+				volume = runtimetest.NewVolume("image-handle")
 
 				step := new(execfakes.FakeStep)
 				step.RunStub = func(_ context.Context, state exec.RunState) (bool, error) {
-					state.ArtifactRepository().RegisterArtifact("image", fakeArtifact)
+					state.ArtifactRepository().RegisterArtifact("image", volume)
 					state.StoreResult(expectedGetPlan.ID, exec.GetResult{
 						Name:          "image",
 						ResourceCache: fakeResourceCache,
@@ -163,12 +166,10 @@ var _ = Describe("BuildStepDelegate", func() {
 
 			privileged = false
 
-			fakeSource = new(workerfakes.FakeStreamableArtifactSource)
-			fakeArtifactSourcer.SourceImageReturns(fakeSource, nil)
 		})
 
 		JustBeforeEach(func() {
-			delegate = engine.NewBuildStepDelegate(fakeBuild, planID, parentRunState, fakeClock, fakePolicyChecker, fakeArtifactSourcer)
+			delegate = engine.NewBuildStepDelegate(fakeBuild, planID, parentRunState, fakeClock, fakePolicyChecker)
 			imageSpec, resourceCache, fetchErr = delegate.FetchImage(context.TODO(), *expectedGetPlan, expectedCheckPlan, privileged)
 		})
 
@@ -177,9 +178,9 @@ var _ = Describe("BuildStepDelegate", func() {
 		})
 
 		It("returns an image spec containing the artifact", func() {
-			Expect(imageSpec).To(Equal(worker.ImageSpec{
-				ImageArtifactSource: fakeSource,
-				Privileged:          false,
+			Expect(imageSpec).To(Equal(runtime.ImageSpec{
+				ImageArtifact: volume,
+				Privileged:    false,
 			}))
 		})
 
@@ -199,21 +200,15 @@ var _ = Describe("BuildStepDelegate", func() {
 			Expect(fakeBuild.SaveImageResourceVersionArgsForCall(0)).To(Equal(fakeResourceCache))
 		})
 
-		It("converts the image artifact into a source", func() {
-			Expect(fakeArtifactSourcer.SourceImageCallCount()).To(Equal(1))
-			_, artifact := fakeArtifactSourcer.SourceImageArgsForCall(0)
-			Expect(artifact).To(Equal(fakeArtifact))
-		})
-
 		Context("when privileged", func() {
 			BeforeEach(func() {
 				privileged = true
 			})
 
 			It("returns a privileged image spec", func() {
-				Expect(imageSpec).To(Equal(worker.ImageSpec{
-					ImageArtifactSource: fakeSource,
-					Privileged:          true,
+				Expect(imageSpec).To(Equal(runtime.ImageSpec{
+					ImageArtifact: volume,
+					Privileged:    true,
 				}))
 			})
 		})
@@ -794,7 +789,7 @@ var _ = Describe("BuildStepDelegate", func() {
 		BeforeEach(func() {
 			credVars := vars.StaticVariables{}
 			runState = exec.NewRunState(noopStepper, credVars, false)
-			delegate = engine.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock, fakePolicyChecker, fakeArtifactSourcer)
+			delegate = engine.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock, fakePolicyChecker)
 		})
 
 		Context("Stdout", func() {
@@ -894,7 +889,7 @@ var _ = Describe("BuildStepDelegate", func() {
 
 		BeforeEach(func() {
 			runState = exec.NewRunState(noopStepper, credVars, true)
-			delegate = engine.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock, fakePolicyChecker, fakeArtifactSourcer)
+			delegate = engine.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock, fakePolicyChecker)
 
 			runState.Get(vars.Reference{Path: "source-param"})
 			runState.Get(vars.Reference{Path: "git-key"})

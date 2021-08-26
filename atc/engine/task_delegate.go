@@ -12,7 +12,7 @@ import (
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/policy"
-	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/atc/runtime"
 )
 
 func NewTaskDelegate(
@@ -21,12 +21,11 @@ func NewTaskDelegate(
 	state exec.RunState,
 	clock clock.Clock,
 	policyChecker policy.Checker,
-	artifactSourcer worker.ArtifactSourcer,
 	dbWorkerFactory db.WorkerFactory,
 	lockFactory lock.LockFactory,
 ) exec.TaskDelegate {
 	return &taskDelegate{
-		BuildStepDelegate: NewBuildStepDelegate(build, planID, state, clock, policyChecker, artifactSourcer),
+		BuildStepDelegate: NewBuildStepDelegate(build, planID, state, clock, policyChecker),
 
 		eventOrigin: event.Origin{ID: event.OriginID(planID)},
 		planID:      planID,
@@ -86,8 +85,6 @@ func (d *taskDelegate) Starting(logger lager.Logger) {
 func (d *taskDelegate) Finished(
 	logger lager.Logger,
 	exitStatus exec.ExitStatus,
-	strategy worker.ContainerPlacementStrategy,
-	chosenWorker worker.Client,
 ) {
 	// PR#4398: close to flush stdout and stderr
 	d.Stdout().(io.Closer).Close()
@@ -112,7 +109,7 @@ func (d *taskDelegate) FetchImage(
 	types atc.ResourceTypes,
 	privileged bool,
 	stepTags atc.Tags,
-) (worker.ImageSpec, error) {
+) (runtime.ImageSpec, error) {
 	image.Name = "image"
 
 	getPlan, checkPlan := atc.FetchImagePlan(d.planID, image, types, stepTags, false, nil)
@@ -126,7 +123,7 @@ func (d *taskDelegate) FetchImage(
 			PublicPlan: checkPlan.Public(),
 		})
 		if err != nil {
-			return worker.ImageSpec{}, err
+			return runtime.ImageSpec{}, err
 		}
 	}
 
@@ -138,12 +135,12 @@ func (d *taskDelegate) FetchImage(
 		PublicPlan: getPlan.Public(),
 	})
 	if err != nil {
-		return worker.ImageSpec{}, err
+		return runtime.ImageSpec{}, err
 	}
 
 	imageSpec, _, err := d.BuildStepDelegate.FetchImage(ctx, getPlan, checkPlan, privileged)
 	if err != nil {
-		return worker.ImageSpec{}, err
+		return runtime.ImageSpec{}, err
 	}
 
 	return imageSpec, nil

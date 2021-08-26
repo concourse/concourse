@@ -10,8 +10,8 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/runtime"
-	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -23,7 +23,7 @@ type FakeGetDelegate struct {
 		arg1 lager.Logger
 		arg2 string
 	}
-	FetchImageStub        func(context.Context, atc.Plan, *atc.Plan, bool) (worker.ImageSpec, db.ResourceCache, error)
+	FetchImageStub        func(context.Context, atc.Plan, *atc.Plan, bool) (runtime.ImageSpec, db.ResourceCache, error)
 	fetchImageMutex       sync.RWMutex
 	fetchImageArgsForCall []struct {
 		arg1 context.Context
@@ -32,21 +32,21 @@ type FakeGetDelegate struct {
 		arg4 bool
 	}
 	fetchImageReturns struct {
-		result1 worker.ImageSpec
+		result1 runtime.ImageSpec
 		result2 db.ResourceCache
 		result3 error
 	}
 	fetchImageReturnsOnCall map[int]struct {
-		result1 worker.ImageSpec
+		result1 runtime.ImageSpec
 		result2 db.ResourceCache
 		result3 error
 	}
-	FinishedStub        func(lager.Logger, exec.ExitStatus, runtime.VersionResult)
+	FinishedStub        func(lager.Logger, exec.ExitStatus, resource.VersionResult)
 	finishedMutex       sync.RWMutex
 	finishedArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 exec.ExitStatus
-		arg3 runtime.VersionResult
+		arg3 resource.VersionResult
 	}
 	InitializingStub        func(lager.Logger)
 	initializingMutex       sync.RWMutex
@@ -99,12 +99,13 @@ type FakeGetDelegate struct {
 	stdoutReturnsOnCall map[int]struct {
 		result1 io.Writer
 	}
-	UpdateVersionStub        func(lager.Logger, atc.GetPlan, runtime.VersionResult)
-	updateVersionMutex       sync.RWMutex
-	updateVersionArgsForCall []struct {
+	UpdateMetadataStub        func(lager.Logger, string, db.ResourceCache, resource.VersionResult)
+	updateMetadataMutex       sync.RWMutex
+	updateMetadataArgsForCall []struct {
 		arg1 lager.Logger
-		arg2 atc.GetPlan
-		arg3 runtime.VersionResult
+		arg2 string
+		arg3 db.ResourceCache
+		arg4 resource.VersionResult
 	}
 	WaitingForWorkerStub        func(lager.Logger)
 	waitingForWorkerMutex       sync.RWMutex
@@ -148,7 +149,7 @@ func (fake *FakeGetDelegate) ErroredArgsForCall(i int) (lager.Logger, string) {
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeGetDelegate) FetchImage(arg1 context.Context, arg2 atc.Plan, arg3 *atc.Plan, arg4 bool) (worker.ImageSpec, db.ResourceCache, error) {
+func (fake *FakeGetDelegate) FetchImage(arg1 context.Context, arg2 atc.Plan, arg3 *atc.Plan, arg4 bool) (runtime.ImageSpec, db.ResourceCache, error) {
 	fake.fetchImageMutex.Lock()
 	ret, specificReturn := fake.fetchImageReturnsOnCall[len(fake.fetchImageArgsForCall)]
 	fake.fetchImageArgsForCall = append(fake.fetchImageArgsForCall, struct {
@@ -176,7 +177,7 @@ func (fake *FakeGetDelegate) FetchImageCallCount() int {
 	return len(fake.fetchImageArgsForCall)
 }
 
-func (fake *FakeGetDelegate) FetchImageCalls(stub func(context.Context, atc.Plan, *atc.Plan, bool) (worker.ImageSpec, db.ResourceCache, error)) {
+func (fake *FakeGetDelegate) FetchImageCalls(stub func(context.Context, atc.Plan, *atc.Plan, bool) (runtime.ImageSpec, db.ResourceCache, error)) {
 	fake.fetchImageMutex.Lock()
 	defer fake.fetchImageMutex.Unlock()
 	fake.FetchImageStub = stub
@@ -189,41 +190,41 @@ func (fake *FakeGetDelegate) FetchImageArgsForCall(i int) (context.Context, atc.
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
-func (fake *FakeGetDelegate) FetchImageReturns(result1 worker.ImageSpec, result2 db.ResourceCache, result3 error) {
+func (fake *FakeGetDelegate) FetchImageReturns(result1 runtime.ImageSpec, result2 db.ResourceCache, result3 error) {
 	fake.fetchImageMutex.Lock()
 	defer fake.fetchImageMutex.Unlock()
 	fake.FetchImageStub = nil
 	fake.fetchImageReturns = struct {
-		result1 worker.ImageSpec
+		result1 runtime.ImageSpec
 		result2 db.ResourceCache
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakeGetDelegate) FetchImageReturnsOnCall(i int, result1 worker.ImageSpec, result2 db.ResourceCache, result3 error) {
+func (fake *FakeGetDelegate) FetchImageReturnsOnCall(i int, result1 runtime.ImageSpec, result2 db.ResourceCache, result3 error) {
 	fake.fetchImageMutex.Lock()
 	defer fake.fetchImageMutex.Unlock()
 	fake.FetchImageStub = nil
 	if fake.fetchImageReturnsOnCall == nil {
 		fake.fetchImageReturnsOnCall = make(map[int]struct {
-			result1 worker.ImageSpec
+			result1 runtime.ImageSpec
 			result2 db.ResourceCache
 			result3 error
 		})
 	}
 	fake.fetchImageReturnsOnCall[i] = struct {
-		result1 worker.ImageSpec
+		result1 runtime.ImageSpec
 		result2 db.ResourceCache
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakeGetDelegate) Finished(arg1 lager.Logger, arg2 exec.ExitStatus, arg3 runtime.VersionResult) {
+func (fake *FakeGetDelegate) Finished(arg1 lager.Logger, arg2 exec.ExitStatus, arg3 resource.VersionResult) {
 	fake.finishedMutex.Lock()
 	fake.finishedArgsForCall = append(fake.finishedArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 exec.ExitStatus
-		arg3 runtime.VersionResult
+		arg3 resource.VersionResult
 	}{arg1, arg2, arg3})
 	stub := fake.FinishedStub
 	fake.recordInvocation("Finished", []interface{}{arg1, arg2, arg3})
@@ -239,13 +240,13 @@ func (fake *FakeGetDelegate) FinishedCallCount() int {
 	return len(fake.finishedArgsForCall)
 }
 
-func (fake *FakeGetDelegate) FinishedCalls(stub func(lager.Logger, exec.ExitStatus, runtime.VersionResult)) {
+func (fake *FakeGetDelegate) FinishedCalls(stub func(lager.Logger, exec.ExitStatus, resource.VersionResult)) {
 	fake.finishedMutex.Lock()
 	defer fake.finishedMutex.Unlock()
 	fake.FinishedStub = stub
 }
 
-func (fake *FakeGetDelegate) FinishedArgsForCall(i int) (lager.Logger, exec.ExitStatus, runtime.VersionResult) {
+func (fake *FakeGetDelegate) FinishedArgsForCall(i int) (lager.Logger, exec.ExitStatus, resource.VersionResult) {
 	fake.finishedMutex.RLock()
 	defer fake.finishedMutex.RUnlock()
 	argsForCall := fake.finishedArgsForCall[i]
@@ -521,38 +522,39 @@ func (fake *FakeGetDelegate) StdoutReturnsOnCall(i int, result1 io.Writer) {
 	}{result1}
 }
 
-func (fake *FakeGetDelegate) UpdateVersion(arg1 lager.Logger, arg2 atc.GetPlan, arg3 runtime.VersionResult) {
-	fake.updateVersionMutex.Lock()
-	fake.updateVersionArgsForCall = append(fake.updateVersionArgsForCall, struct {
+func (fake *FakeGetDelegate) UpdateMetadata(arg1 lager.Logger, arg2 string, arg3 db.ResourceCache, arg4 resource.VersionResult) {
+	fake.updateMetadataMutex.Lock()
+	fake.updateMetadataArgsForCall = append(fake.updateMetadataArgsForCall, struct {
 		arg1 lager.Logger
-		arg2 atc.GetPlan
-		arg3 runtime.VersionResult
-	}{arg1, arg2, arg3})
-	stub := fake.UpdateVersionStub
-	fake.recordInvocation("UpdateVersion", []interface{}{arg1, arg2, arg3})
-	fake.updateVersionMutex.Unlock()
+		arg2 string
+		arg3 db.ResourceCache
+		arg4 resource.VersionResult
+	}{arg1, arg2, arg3, arg4})
+	stub := fake.UpdateMetadataStub
+	fake.recordInvocation("UpdateMetadata", []interface{}{arg1, arg2, arg3, arg4})
+	fake.updateMetadataMutex.Unlock()
 	if stub != nil {
-		fake.UpdateVersionStub(arg1, arg2, arg3)
+		fake.UpdateMetadataStub(arg1, arg2, arg3, arg4)
 	}
 }
 
-func (fake *FakeGetDelegate) UpdateVersionCallCount() int {
-	fake.updateVersionMutex.RLock()
-	defer fake.updateVersionMutex.RUnlock()
-	return len(fake.updateVersionArgsForCall)
+func (fake *FakeGetDelegate) UpdateMetadataCallCount() int {
+	fake.updateMetadataMutex.RLock()
+	defer fake.updateMetadataMutex.RUnlock()
+	return len(fake.updateMetadataArgsForCall)
 }
 
-func (fake *FakeGetDelegate) UpdateVersionCalls(stub func(lager.Logger, atc.GetPlan, runtime.VersionResult)) {
-	fake.updateVersionMutex.Lock()
-	defer fake.updateVersionMutex.Unlock()
-	fake.UpdateVersionStub = stub
+func (fake *FakeGetDelegate) UpdateMetadataCalls(stub func(lager.Logger, string, db.ResourceCache, resource.VersionResult)) {
+	fake.updateMetadataMutex.Lock()
+	defer fake.updateMetadataMutex.Unlock()
+	fake.UpdateMetadataStub = stub
 }
 
-func (fake *FakeGetDelegate) UpdateVersionArgsForCall(i int) (lager.Logger, atc.GetPlan, runtime.VersionResult) {
-	fake.updateVersionMutex.RLock()
-	defer fake.updateVersionMutex.RUnlock()
-	argsForCall := fake.updateVersionArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+func (fake *FakeGetDelegate) UpdateMetadataArgsForCall(i int) (lager.Logger, string, db.ResourceCache, resource.VersionResult) {
+	fake.updateMetadataMutex.RLock()
+	defer fake.updateMetadataMutex.RUnlock()
+	argsForCall := fake.updateMetadataArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
 func (fake *FakeGetDelegate) WaitingForWorker(arg1 lager.Logger) {
@@ -608,8 +610,8 @@ func (fake *FakeGetDelegate) Invocations() map[string][][]interface{} {
 	defer fake.stderrMutex.RUnlock()
 	fake.stdoutMutex.RLock()
 	defer fake.stdoutMutex.RUnlock()
-	fake.updateVersionMutex.RLock()
-	defer fake.updateVersionMutex.RUnlock()
+	fake.updateMetadataMutex.RLock()
+	defer fake.updateMetadataMutex.RUnlock()
 	fake.waitingForWorkerMutex.RLock()
 	defer fake.waitingForWorkerMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

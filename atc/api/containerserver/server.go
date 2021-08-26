@@ -7,13 +7,17 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/gc"
-	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/atc/runtime"
 )
+
+type Pool interface {
+	LocateContainer(logger lager.Logger, teamID int, handle string) (runtime.Container, runtime.Worker, bool, error)
+}
 
 type Server struct {
 	logger lager.Logger
 
-	workerPool              worker.Pool
+	workerPool              Pool
 	interceptTimeoutFactory InterceptTimeoutFactory
 	interceptUpdateInterval time.Duration
 	containerRepository     db.ContainerRepository
@@ -23,7 +27,7 @@ type Server struct {
 
 func NewServer(
 	logger lager.Logger,
-	workerPool worker.Pool,
+	workerPool Pool,
 	interceptTimeoutFactory InterceptTimeoutFactory,
 	interceptUpdateInterval time.Duration,
 	containerRepository db.ContainerRepository,

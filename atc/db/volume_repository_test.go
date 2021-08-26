@@ -450,6 +450,14 @@ var _ = Describe("VolumeRepository", func() {
 		})
 	})
 
+	Describe("CreateVolumeWithHandle", func() {
+		It("creates a CreatingVolume with a fixed handle", func() {
+			volume, err := volumeRepository.CreateVolumeWithHandle("my-handle", defaultTeam.ID(), defaultWorker.Name(), db.VolumeTypeArtifact)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(volume.Handle()).To(Equal("my-handle"))
+		})
+	})
+
 	Describe("FindBaseResourceTypeVolume", func() {
 		var usedWorkerBaseResourceType *db.UsedWorkerBaseResourceType
 		BeforeEach(func() {

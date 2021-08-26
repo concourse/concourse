@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/concourse/concourse"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
@@ -20,6 +21,37 @@ const BaseResourceTypeVersion = "some-global-type-version"
 
 const UniqueBaseResourceType = "unique-base-type"
 const UniqueBaseResourceTypeVersion = "some-unique-type-version"
+
+const CertsPath = "/path/to/certs"
+
+func BaseWorker(name string) atc.Worker {
+	certsPath := CertsPath
+	return atc.Worker{
+		Name: name,
+
+		Platform: "linux",
+		Version:  concourse.WorkerVersion,
+
+		GardenAddr:      unique("garden-addr"),
+		BaggageclaimURL: unique("baggageclaim-url"),
+
+		ResourceTypes: []atc.WorkerResourceType{
+			{
+				Type:    BaseResourceType,
+				Image:   "/path/to/global/image",
+				Version: "some-global-type-version",
+			},
+			{
+				Type:                 UniqueBaseResourceType,
+				Image:                "/path/to/unique/image",
+				Version:              "some-unique-type-version",
+				UniqueVersionHistory: true,
+			},
+		},
+
+		CertsPath: &certsPath,
+	}
+}
 
 type JobInputs []JobInput
 
@@ -45,19 +77,25 @@ func (inputs JobInputs) Lookup(name string) (JobInput, bool) {
 type JobOutputs map[string]atc.Version
 
 type Builder struct {
-	TeamFactory           db.TeamFactory
-	WorkerFactory         db.WorkerFactory
-	ResourceConfigFactory db.ResourceConfigFactory
-	ResourceCacheFactory  db.ResourceCacheFactory
+	TeamFactory            db.TeamFactory
+	WorkerFactory          db.WorkerFactory
+	ResourceConfigFactory  db.ResourceConfigFactory
+	VolumeRepo             db.VolumeRepository
+	ResourceCacheFactory   db.ResourceCacheFactory
+	TaskCacheFactory       db.TaskCacheFactory
+	WorkerTaskCacheFactory db.WorkerTaskCacheFactory
 }
 
 func NewBuilder(conn db.Conn, lockFactory lock.LockFactory) Builder {
 	logger := lagertest.NewTestLogger("dummy-logger")
 	return Builder{
-		TeamFactory:           db.NewTeamFactory(conn, lockFactory),
-		WorkerFactory:         db.NewWorkerFactory(conn, db.NewStaticWorkerCache(logger, conn, 0)),
-		ResourceConfigFactory: db.NewResourceConfigFactory(conn, lockFactory),
-		ResourceCacheFactory:  db.NewResourceCacheFactory(conn, lockFactory),
+		TeamFactory:            db.NewTeamFactory(conn, lockFactory),
+		WorkerFactory:          db.NewWorkerFactory(conn, db.NewStaticWorkerCache(logger, conn, 0)),
+		ResourceConfigFactory:  db.NewResourceConfigFactory(conn, lockFactory),
+		VolumeRepo:             db.NewVolumeRepository(conn),
+		ResourceCacheFactory:   db.NewResourceCacheFactory(conn, lockFactory),
+		TaskCacheFactory:       db.NewTaskCacheFactory(conn),
+		WorkerTaskCacheFactory: db.NewWorkerTaskCacheFactory(conn),
 	}
 }
 
@@ -103,6 +141,68 @@ func (builder Builder) WithWorker(worker atc.Worker) SetupFunc {
 	}
 }
 
+func (builder Builder) createContainer(workerName string, owner db.ContainerOwner, metadata db.ContainerMetadata) (db.CreatingContainer, error) {
+	worker, found, err := builder.WorkerFactory.GetWorker(workerName)
+	if err != nil {
+		return nil, err
+	}
+	if !found {
+		return nil, fmt.Errorf("worker does not exist: %s", workerName)
+	}
+
+	container, err := worker.CreateContainer(owner, metadata)
+	if err != nil {
+		return nil, err
+	}
+
+	return container, nil
+}
+
+func (builder Builder) WithCreatingContainer(workerName string, owner db.ContainerOwner, metadata db.ContainerMetadata) SetupFunc {
+	return func(scenario *Scenario) error {
+		_, err := builder.createContainer(workerName, owner, metadata)
+		return err
+	}
+}
+
+func (builder Builder) WithCreatedContainer(workerName string, owner db.ContainerOwner, metadata db.ContainerMetadata) SetupFunc {
+	return func(scenario *Scenario) error {
+		container, err := builder.createContainer(workerName, owner, metadata)
+		if err != nil {
+			return err
+		}
+
+		_, err = container.Created()
+		return err
+	}
+}
+
+func (builder Builder) createVolume(teamID int, workerName string, volumeType db.VolumeType, handle string) (db.CreatingVolume, error) {
+	if handle == "" {
+		return builder.VolumeRepo.CreateVolume(teamID, workerName, volumeType)
+	} else {
+		return builder.VolumeRepo.CreateVolumeWithHandle(handle, teamID, workerName, volumeType)
+	}
+}
+
+func (builder Builder) WithCreatingVolume(teamID int, workerName string, volumeType db.VolumeType, handle string) SetupFunc {
+	return func(scenario *Scenario) error {
+		_, err := builder.createVolume(teamID, workerName, volumeType, handle)
+		return err
+	}
+}
+
+func (builder Builder) WithCreatedVolume(teamID int, workerName string, volumeType db.VolumeType, handle string) SetupFunc {
+	return func(scenario *Scenario) error {
+		volume, err := builder.createVolume(teamID, workerName, volumeType, handle)
+		if err != nil {
+			return err
+		}
+		_, err = volume.Created()
+		return err
+	}
+}
+
 func (builder Builder) WithPipeline(config atc.Config) SetupFunc {
 	return func(scenario *Scenario) error {
 		if scenario.Team == nil {
@@ -124,29 +224,6 @@ func (builder Builder) WithPipeline(config atc.Config) SetupFunc {
 
 		scenario.Pipeline = p
 		return nil
-	}
-}
-
-func BaseWorker(name string) atc.Worker {
-	return atc.Worker{
-		Name: name,
-
-		GardenAddr:      unique("garden-addr"),
-		BaggageclaimURL: unique("baggageclaim-url"),
-
-		ResourceTypes: []atc.WorkerResourceType{
-			{
-				Type:    BaseResourceType,
-				Image:   "/path/to/global/image",
-				Version: BaseResourceTypeVersion,
-			},
-			{
-				Type:                 UniqueBaseResourceType,
-				Image:                "/path/to/unique/image",
-				Version:              UniqueBaseResourceTypeVersion,
-				UniqueVersionHistory: true,
-			},
-		},
 	}
 }
 
@@ -616,6 +693,37 @@ func (builder Builder) WithJobBuild(assign *db.Build, jobName string, inputs Job
 	}
 }
 
+func (builder Builder) WithJobBuildContainer(assign *db.CreatingContainer, jobName string, workerName string, teamID int) SetupFunc {
+	return func(scenario *Scenario) error {
+		if len(scenario.Workers) == 0 {
+			return fmt.Errorf("no workers set in scenario")
+		}
+
+		var build db.Build
+		scenario.Run(builder.WithJobBuild(&build, jobName, nil, nil))
+
+		owner := db.NewBuildStepContainerOwner(build.ID(), "123", teamID)
+
+		worker, found, err := builder.WorkerFactory.GetWorker(workerName)
+		if err != nil {
+			return err
+		}
+
+		if !found {
+			return fmt.Errorf("worker '%s' not set in the scenario", workerName)
+		}
+
+		containerMetadata := db.ContainerMetadata{}
+
+		*assign, err = worker.CreateContainer(owner, containerMetadata)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+}
+
 func (builder Builder) WithCheckContainer(resourceName string, workerName string) SetupFunc {
 	return func(scenario *Scenario) error {
 		if scenario.Pipeline == nil {
@@ -659,7 +767,7 @@ func (builder Builder) WithCheckContainer(resourceName string, workerName string
 		}
 
 		if !found {
-			return fmt.Errorf("worker '%d' not set in the scenario", rc.ID())
+			return fmt.Errorf("worker '%s' not set in the scenario", worker.Name())
 		}
 
 		containerMetadata := db.ContainerMetadata{
