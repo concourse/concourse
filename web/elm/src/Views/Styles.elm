@@ -169,11 +169,17 @@ clusterName =
     ]
 
 
-breadcrumbContainer : List (Html.Attribute msg)
-breadcrumbContainer =
+breadcrumbContainer : Bool -> List (Html.Attribute msg)
+breadcrumbContainer isArchived =
     [ style "flex-grow" "1"
     , style "display" "flex"
     , style "min-width" "0"
+    , style "background-color" <|
+        if isArchived then
+            Colors.background
+
+        else
+            ""
     ]
 
 

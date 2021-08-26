@@ -393,12 +393,16 @@ view session model =
                 [ SideBar.sideBarIcon session
                 , TopBar.concourseLogo
                 , TopBar.breadcrumbs session route
-                , TopBar.paused
-                    { paused = displayPaused
-                    , pausedBy = pausedBy model.pipeline
-                    , pausedAt = pausedAt model.pipeline
-                    , timeZone = session.timeZone
-                    }
+                , if isArchived model.pipeline then
+                    Html.text ""
+
+                  else
+                    TopBar.paused
+                        { paused = displayPaused
+                        , pausedBy = pausedBy model.pipeline
+                        , pausedAt = pausedAt model.pipeline
+                        , timeZone = session.timeZone
+                        }
                 , PinMenu.viewPinMenu session model
                 , Html.div
                     Styles.favoritedIcon

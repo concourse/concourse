@@ -9,8 +9,8 @@ import Assets
 import ColorValues
 import Concourse exposing (hyphenNotation)
 import Dashboard.FilterBuilder exposing (instanceGroupFilter)
-import Dict
 import DateFormat
+import Dict
 import Html exposing (Html)
 import Html.Attributes
     exposing
@@ -77,81 +77,89 @@ pausedText p =
 breadcrumbs : Session -> Routes.Route -> Html Message
 breadcrumbs session route =
     let
-        buildBreadcrumbs components =
-            case List.reverse components of
-                x :: xs ->
-                    (List.map (\fn -> fn False) xs
-                        |> List.reverse
-                    )
-                        ++ [ x True ]
+        buildBreadcrumbs ( components, isArchived ) =
+            Html.div
+                (id "breadcrumbs" :: Styles.breadcrumbContainer isArchived)
+            <|
+                case List.reverse components of
+                    x :: xs ->
+                        (List.map (\fn -> fn False) xs
+                            |> List.reverse
+                        )
+                            ++ [ x True ]
 
-                [] ->
-                    []
+                    [] ->
+                        []
     in
-    Html.div
-        (id "breadcrumbs" :: Styles.breadcrumbContainer)
-    <|
-        buildBreadcrumbs <|
-            case route of
-                Routes.Pipeline { id } ->
-                    case lookupPipeline (byPipelineId id) session of
-                        Nothing ->
-                            []
+    buildBreadcrumbs <|
+        case route of
+            Routes.Pipeline { id } ->
+                case lookupPipeline (byPipelineId id) session of
+                    Nothing ->
+                        ( [], False )
 
-                        Just pipeline ->
-                            pipelineBreadcrumbs session pipeline []
+                    Just pipeline ->
+                        ( pipelineBreadcrumbs session pipeline [], pipeline.archived )
 
-                Routes.Build { id, groups } ->
-                    case lookupPipeline (byPipelineId id) session of
-                        Nothing ->
-                            []
+            Routes.Build { id, groups } ->
+                case lookupPipeline (byPipelineId id) session of
+                    Nothing ->
+                        ( [], False )
 
-                        Just pipeline ->
-                            pipelineBreadcrumbs session pipeline groups
-                                ++ [ breadcrumbSeparator
-                                   , jobBreadcrumb id.jobName
-                                   ]
+                    Just pipeline ->
+                        ( pipelineBreadcrumbs session pipeline groups
+                            ++ [ breadcrumbSeparator
+                               , jobBreadcrumb id.jobName
+                               ]
+                        , pipeline.archived
+                        )
 
-                Routes.Resource { id, groups } ->
-                    case lookupPipeline (byPipelineId id) session of
-                        Nothing ->
-                            []
+            Routes.Resource { id, groups } ->
+                case lookupPipeline (byPipelineId id) session of
+                    Nothing ->
+                        ( [], False )
 
-                        Just pipeline ->
-                            pipelineBreadcrumbs session pipeline groups
-                                ++ [ breadcrumbSeparator
-                                   , resourceBreadcrumb id
-                                   ]
+                    Just pipeline ->
+                        ( pipelineBreadcrumbs session pipeline groups
+                            ++ [ breadcrumbSeparator
+                               , resourceBreadcrumb id
+                               ]
+                        , pipeline.archived
+                        )
 
-                Routes.Job { id, groups } ->
-                    case lookupPipeline (byPipelineId id) session of
-                        Nothing ->
-                            []
+            Routes.Job { id, groups } ->
+                case lookupPipeline (byPipelineId id) session of
+                    Nothing ->
+                        ( [], False )
 
-                        Just pipeline ->
-                            pipelineBreadcrumbs session pipeline groups
-                                ++ [ breadcrumbSeparator
-                                   , jobBreadcrumb id.jobName
-                                   ]
+                    Just pipeline ->
+                        ( pipelineBreadcrumbs session pipeline groups
+                            ++ [ breadcrumbSeparator
+                               , jobBreadcrumb id.jobName
+                               ]
+                        , pipeline.archived
+                        )
 
-                Routes.Dashboard _ ->
-                    [ clusterNameBreadcrumb session ]
+            Routes.Dashboard _ ->
+                ( [ clusterNameBreadcrumb session ], False )
 
-                Routes.Causality { id, direction, version, groups } ->
-                    case lookupPipeline (byPipelineId id) session of
-                        Nothing ->
-                            []
+            Routes.Causality { id, direction, version, groups } ->
+                case lookupPipeline (byPipelineId id) session of
+                    Nothing ->
+                        ( [], False )
 
-                        Just pipeline ->
-                            pipelineBreadcrumbs session pipeline groups
-                                ++ [ breadcrumbSeparator
-                                   , resourceBreadcrumb <| Concourse.resourceIdFromVersionedResourceId id
-                                   , breadcrumbSeparator
-                                   , causalityBreadCrumb id direction (Maybe.withDefault Dict.empty version)
-                                   ]
+                    Just pipeline ->
+                        ( pipelineBreadcrumbs session pipeline groups
+                            ++ [ breadcrumbSeparator
+                               , resourceBreadcrumb <| Concourse.resourceIdFromVersionedResourceId id
+                               , breadcrumbSeparator
+                               , causalityBreadCrumb id direction (Maybe.withDefault Dict.empty version)
+                               ]
+                        , pipeline.archived
+                        )
 
-                _ ->
-                    []
+            _ ->
+                ( [], False )
 
 
 breadcrumbComponent :
@@ -218,7 +226,7 @@ pipelineBreadcrumbs session pipeline groups =
                     :: Styles.breadcrumbItem True isLastBreadcrumb
                 )
                 [ InstanceGroupBadge.view ColorValues.white (List.length pipelineGroup)
-                , Html.text pipeline.name
+                , Html.text <| pipelineNameView pipeline.name pipeline.archived
                 ]
     in
     (if inInstanceGroup then
@@ -232,6 +240,15 @@ pipelineBreadcrumbs session pipeline groups =
         ++ [ pipelineBreadcrumb inInstanceGroup pipeline groups ]
 
 
+pipelineNameView : String -> Bool -> String
+pipelineNameView pipelineName isArchived =
+    if isArchived then
+        pipelineName ++ " (archived)"
+
+    else
+        pipelineName
+
+
 pipelineBreadcrumb : Bool -> Concourse.Pipeline -> List String -> Bool -> Html Message
 pipelineBreadcrumb inInstanceGroup pipeline groups isLastBreadcrumb =
     let
@@ -240,7 +257,7 @@ pipelineBreadcrumb inInstanceGroup pipeline groups isLastBreadcrumb =
                 hyphenNotation pipeline.instanceVars
 
             else
-                pipeline.name
+                pipelineNameView pipeline.name pipeline.archived
     in
     Html.a
         ([ id "breadcrumb-pipeline"
