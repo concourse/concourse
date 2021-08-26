@@ -13,7 +13,7 @@ import (
 
 var _ = Describe("BuildFactory", func() {
 	var (
-		team      db.Team
+		team db.Team
 	)
 
 	BeforeEach(func() {
