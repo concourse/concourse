@@ -45,8 +45,6 @@ type CheckDelegate interface {
 	PointToCheckedConfig(db.ResourceConfigScope) error
 	UpdateScopeLastCheckStartTime(db.ResourceConfigScope) (bool, int, error)
 	UpdateScopeLastCheckEndTime(db.ResourceConfigScope, bool) (bool, error)
-
-	IsManuallyTriggered() bool
 }
 
 func NewCheckStep(

@@ -72,7 +72,6 @@ import (
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/oauth2"
 	"golang.org/x/time/rate"
-	"gopkg.in/square/go-jose.v2/jwt"
 	"gopkg.in/yaml.v2"
 
 	// dynamically registered metric emitters

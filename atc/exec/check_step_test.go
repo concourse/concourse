@@ -99,6 +99,8 @@ var _ = Describe("CheckStep", func() {
 		fakeStderr = bytes.NewBufferString("err")
 		fakeDelegate.StderrReturns(fakeStderr)
 
+		fakeDelegate.ContainerOwnerReturns(expectedOwner)
+
 		containerMetadata = db.ContainerMetadata{}
 
 		fakeResourceConfigFactory = new(dbfakes.FakeResourceConfigFactory)
@@ -261,6 +263,10 @@ var _ = Describe("CheckStep", func() {
 				JustBeforeEach(func() {
 					Expect(fakePool.FindOrSelectWorkerCallCount()).To(Equal(1))
 					ctx, _, _, workerSpec, _, _ = fakePool.FindOrSelectWorkerArgsForCall(0)
+				})
+
+				It("get container owner from delegate", func(){
+					Expect(fakeDelegate.ContainerOwnerCallCount()).To(Equal(1))
 				})
 
 				It("doesn't enforce a timeout", func() {

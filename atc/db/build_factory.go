@@ -62,7 +62,7 @@ func (f *buildFactory) Build(buildID int) (Build, bool, error) {
 
 			build, err := newExistingInMemoryCheckBuildForViewOnly(f.conn, buildID, resource)
 			if err != nil {
-				return nil, false, nil
+				return nil, false, err
 			}
 
 			return build, true, nil

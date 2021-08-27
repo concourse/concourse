@@ -126,6 +126,7 @@ var _ = Describe("GetStep", func() {
 		fakeDelegate.StderrReturns(stderrBuf)
 		spanCtx = context.Background()
 		fakeDelegate.StartSpanReturns(spanCtx, tracing.NoopSpan)
+		fakeDelegate.ContainerOwnerReturns(expectedOwner)
 
 		fakeDelegateFactory = new(execfakes.FakeGetDelegateFactory)
 		fakeDelegateFactory.GetDelegateReturns(fakeDelegate)
@@ -479,6 +480,14 @@ var _ = Describe("GetStep", func() {
 		It("doesn't enforce a timeout", func() {
 			_, ok := ctx.Deadline()
 			Expect(ok).To(BeFalse())
+		})
+
+		It("get resource cache owner from delegate", func(){
+			Expect(fakeDelegate.ResourceCacheUserCallCount()).To(Equal(1))
+		})
+
+		It("get container owner from delegate", func(){
+			Expect(fakeDelegate.ContainerOwnerCallCount()).To(Equal(1))
 		})
 
 		It("emits a BeforeSelectWorker event", func() {

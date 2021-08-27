@@ -29,6 +29,7 @@ var _ = BeforeEach(func() {
 	postgresRunner.CreateTestDBFromTemplate()
 
 	dbConn = postgresRunner.OpenConn()
+	db.CleanupBaseResourceTypesCache()
 
 	ignore := func(logger lager.Logger, id lock.LockID) {}
 	lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton(), ignore, ignore)

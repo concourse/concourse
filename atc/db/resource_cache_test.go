@@ -7,6 +7,7 @@ import (
 	"github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"time"
 )
 
 var _ = Describe("ResourceCache", func() {
@@ -93,29 +94,25 @@ var _ = Describe("ResourceCache", func() {
 		})
 	})
 
-	//Describe("creating for no user", func() {
-	//	var urc db.ResourceCache
-	//
-	//	BeforeEach(func() {
-	//		var err error
-	//		urc, err = resourceCacheFactory.FindOrCreateResourceCache(
-	//			db.NoUser(),
-	//			"some-worker-resource-type",
-	//			atc.Version{"some-type": "version"},
-	//			atc.Source{
-	//				"cache": "source",
-	//			},
-	//			atc.Params{"some": "params"},
-	//			nil,
-	//		)
-	//		Expect(err).NotTo(HaveOccurred())
-	//	})
-	//
-	//	It("resource cache be deleted through use", func() {
-	//		var err error
-	//		// ON DELETE RESTRICT from resource_cache_uses -> resource_caches
-	//		_, err = psql.Delete("resource_caches").Where(sq.Eq{"id": urc.ID()}).RunWith(dbConn).Exec()
-	//		Expect(err).ToNot(HaveOccurred())
-	//	})
-	//})
+	Describe("creating for in-memory-build", func() {
+		It("can be created and used", func() {
+			urc, err := resourceCacheFactory.FindOrCreateResourceCache(
+				db.ForInMemoryBuild(99, time.Now()),
+				"some-worker-resource-type",
+				atc.Version{"some": "version"},
+				atc.Source{
+					"some": "source",
+				},
+				atc.Params{"some": "params"},
+				nil,
+			)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(urc.ID()).ToNot(BeZero())
+
+			// ON DELETE RESTRICT from resource_cache_uses -> resource_caches
+			_, err = psql.Delete("resource_caches").Where(sq.Eq{"id": urc.ID()}).RunWith(dbConn).Exec()
+			Expect(err).To(HaveOccurred())
+			Expect(err.(*pq.Error).Code.Name()).To(Equal("foreign_key_violation"))
+		})
+	})
 })

@@ -102,16 +102,6 @@ type FakeCheckDelegate struct {
 	initializingArgsForCall []struct {
 		arg1 lager.Logger
 	}
-	IsManuallyTriggeredStub        func() bool
-	isManuallyTriggeredMutex       sync.RWMutex
-	isManuallyTriggeredArgsForCall []struct {
-	}
-	isManuallyTriggeredReturns struct {
-		result1 bool
-	}
-	isManuallyTriggeredReturnsOnCall map[int]struct {
-		result1 bool
-	}
 	PointToCheckedConfigStub        func(db.ResourceConfigScope) error
 	pointToCheckedConfigMutex       sync.RWMutex
 	pointToCheckedConfigArgsForCall []struct {
@@ -656,59 +646,6 @@ func (fake *FakeCheckDelegate) InitializingArgsForCall(i int) lager.Logger {
 	defer fake.initializingMutex.RUnlock()
 	argsForCall := fake.initializingArgsForCall[i]
 	return argsForCall.arg1
-}
-
-func (fake *FakeCheckDelegate) IsManuallyTriggered() bool {
-	fake.isManuallyTriggeredMutex.Lock()
-	ret, specificReturn := fake.isManuallyTriggeredReturnsOnCall[len(fake.isManuallyTriggeredArgsForCall)]
-	fake.isManuallyTriggeredArgsForCall = append(fake.isManuallyTriggeredArgsForCall, struct {
-	}{})
-	stub := fake.IsManuallyTriggeredStub
-	fakeReturns := fake.isManuallyTriggeredReturns
-	fake.recordInvocation("IsManuallyTriggered", []interface{}{})
-	fake.isManuallyTriggeredMutex.Unlock()
-	if stub != nil {
-		return stub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fakeReturns.result1
-}
-
-func (fake *FakeCheckDelegate) IsManuallyTriggeredCallCount() int {
-	fake.isManuallyTriggeredMutex.RLock()
-	defer fake.isManuallyTriggeredMutex.RUnlock()
-	return len(fake.isManuallyTriggeredArgsForCall)
-}
-
-func (fake *FakeCheckDelegate) IsManuallyTriggeredCalls(stub func() bool) {
-	fake.isManuallyTriggeredMutex.Lock()
-	defer fake.isManuallyTriggeredMutex.Unlock()
-	fake.IsManuallyTriggeredStub = stub
-}
-
-func (fake *FakeCheckDelegate) IsManuallyTriggeredReturns(result1 bool) {
-	fake.isManuallyTriggeredMutex.Lock()
-	defer fake.isManuallyTriggeredMutex.Unlock()
-	fake.IsManuallyTriggeredStub = nil
-	fake.isManuallyTriggeredReturns = struct {
-		result1 bool
-	}{result1}
-}
-
-func (fake *FakeCheckDelegate) IsManuallyTriggeredReturnsOnCall(i int, result1 bool) {
-	fake.isManuallyTriggeredMutex.Lock()
-	defer fake.isManuallyTriggeredMutex.Unlock()
-	fake.IsManuallyTriggeredStub = nil
-	if fake.isManuallyTriggeredReturnsOnCall == nil {
-		fake.isManuallyTriggeredReturnsOnCall = make(map[int]struct {
-			result1 bool
-		})
-	}
-	fake.isManuallyTriggeredReturnsOnCall[i] = struct {
-		result1 bool
-	}{result1}
 }
 
 func (fake *FakeCheckDelegate) PointToCheckedConfig(arg1 db.ResourceConfigScope) error {
@@ -1260,8 +1197,6 @@ func (fake *FakeCheckDelegate) Invocations() map[string][][]interface{} {
 	defer fake.finishedMutex.RUnlock()
 	fake.initializingMutex.RLock()
 	defer fake.initializingMutex.RUnlock()
-	fake.isManuallyTriggeredMutex.RLock()
-	defer fake.isManuallyTriggeredMutex.RUnlock()
 	fake.pointToCheckedConfigMutex.RLock()
 	defer fake.pointToCheckedConfigMutex.RUnlock()
 	fake.selectedWorkerMutex.RLock()

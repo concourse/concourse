@@ -194,6 +194,8 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 		)
 	}()
 
+	delegate.SelectedWorker(logger, worker.Name())
+
 	ctx, cancel, err := MaybeTimeout(ctx, step.plan.Timeout)
 	if err != nil {
 		return false, err
