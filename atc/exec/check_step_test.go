@@ -431,6 +431,10 @@ var _ = Describe("CheckStep", func() {
 						}))
 					})
 
+					It("does not set the workdir", func() {
+						Expect(chosenContainer.Spec.Dir).To(Equal(""))
+					})
+
 					Context("when tracing is enabled", func() {
 						BeforeEach(func() {
 							tracing.ConfigureTraceProvider(oteltest.NewTracerProvider())

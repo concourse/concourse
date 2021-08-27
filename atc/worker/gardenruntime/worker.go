@@ -347,7 +347,7 @@ func (worker *Worker) createVolumes(
 
 	// if the working dir is already mounted, we can just re-use that volume.
 	// otherwise, we must create a new empty volume
-	if !anyMountTo(spec.Dir, ioVolumeMounts) {
+	if spec.Dir != "" && !anyMountTo(spec.Dir, ioVolumeMounts) {
 		workdirVolume, err := worker.findOrCreateVolumeForContainer(
 			logger,
 			baggageclaim.VolumeSpec{

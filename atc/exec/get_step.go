@@ -178,7 +178,7 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 		Env:  step.metadata.Env(),
 		Type: db.ContainerTypeGet,
 
-		Dir: step.containerMetadata.WorkingDirectory,
+		Dir: resource.ResourcesDir("get"),
 
 		CertsBindMount: true,
 	}
@@ -474,7 +474,7 @@ func (step *GetStep) performGetAndInitCache(
 		return nil, versionResult, processResult, nil
 	}
 
-	volume := resourceMountVolume(mounts)
+	volume := step.resourceMountVolume(mounts)
 
 	if err := volume.InitializeResourceCache(logger, resourceCache); err != nil {
 		logger.Error("failed-to-initialize-resource-cache", err)
@@ -484,7 +484,7 @@ func (step *GetStep) performGetAndInitCache(
 	return volume, versionResult, processResult, nil
 }
 
-func resourceMountVolume(mounts []runtime.VolumeMount) runtime.Volume {
+func (step *GetStep) resourceMountVolume(mounts []runtime.VolumeMount) runtime.Volume {
 	for _, mnt := range mounts {
 		if mnt.MountPath == resource.ResourcesDir("get") {
 			return mnt.Volume
