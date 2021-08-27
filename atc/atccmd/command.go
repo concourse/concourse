@@ -1688,7 +1688,6 @@ func (cmd *RunCommand) constructEngine(
 			rateLimiter,
 			policyChecker,
 			workerFactory,
-			resourceCacheFactory,
 			lockFactory,
 		),
 		secretManager,

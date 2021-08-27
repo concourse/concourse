@@ -11,17 +11,16 @@ import (
 )
 
 type DelegateFactory struct {
-	build                  db.Build
-	plan                   atc.Plan
-	rateLimiter            RateLimiter
-	policyChecker          policy.Checker
-	dbWorkerFactory        db.WorkerFactory
-	lockFactory            lock.LockFactory
-	dbResourceCacheFactory db.ResourceCacheFactory
+	build           db.Build
+	plan            atc.Plan
+	rateLimiter     RateLimiter
+	policyChecker   policy.Checker
+	dbWorkerFactory db.WorkerFactory
+	lockFactory     lock.LockFactory
 }
 
 func (delegate DelegateFactory) GetDelegate(state exec.RunState) exec.GetDelegate {
-	return NewGetDelegate(delegate.build, delegate.plan.ID, state, clock.NewClock(), delegate.policyChecker, delegate.dbResourceCacheFactory)
+	return NewGetDelegate(delegate.build, delegate.plan.ID, state, clock.NewClock(), delegate.policyChecker)
 }
 
 func (delegate DelegateFactory) PutDelegate(state exec.RunState) exec.PutDelegate {
