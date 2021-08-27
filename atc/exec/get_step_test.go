@@ -136,9 +136,10 @@ var _ = Describe("GetStep", func() {
 			TypeImage: atc.TypeImage{
 				BaseType: "some-base-type",
 			},
-			Source:  atc.Source{"some": "((source-var))"},
-			Params:  atc.Params{"some": "((params-var))"},
-			Version: &atc.Version{"some": "version"},
+			Resource: "some-resource",
+			Source:   atc.Source{"some": "((source-var))"},
+			Params:   atc.Params{"some": "((params-var))"},
+			Version:  &atc.Version{"some": "version"},
 		}
 	})
 
@@ -297,8 +298,12 @@ var _ = Describe("GetStep", func() {
 					Expect(getVolume.ResourceCacheInitialized).To(BeFalse())
 				})
 
-				It("updates the version metadata", func() {
-					Expect(fakeDelegate.UpdateMetadataCallCount()).To(Equal(1))
+				It("updates the resource version", func() {
+					Expect(fakeDelegate.UpdateResourceVersionCallCount()).To(Equal(1))
+				})
+
+				It("does not update the resource cache metadata", func() {
+					Expect(fakeResourceCacheFactory.UpdateResourceCacheMetadataCallCount()).To(Equal(0))
 				})
 
 				It("finishes with the correct version result", func() {
@@ -333,8 +338,22 @@ var _ = Describe("GetStep", func() {
 					Expect(getVolume.ResourceCacheInitialized).To(BeTrue())
 				})
 
-				It("updates the version metadata", func() {
-					Expect(fakeDelegate.UpdateMetadataCallCount()).To(Equal(1))
+				It("updates the version", func() {
+					Expect(fakeDelegate.UpdateResourceVersionCallCount()).To(Equal(1))
+				})
+
+				Context("when the get step is not for a named resource", func() {
+					BeforeEach(func() {
+						getPlan.Resource = ""
+					})
+
+					It("does not update the version", func() {
+						Expect(fakeDelegate.UpdateResourceVersionCallCount()).To(Equal(0))
+					})
+				})
+
+				It("updates the resource cache metadata", func() {
+					Expect(fakeResourceCacheFactory.UpdateResourceCacheMetadataCallCount()).To(Equal(1))
 				})
 
 				It("finishes the step via the delegate", func() {
@@ -665,8 +684,8 @@ var _ = Describe("GetStep", func() {
 			Expect(info.Metadata).To(Equal([]atc.MetadataField{{Name: "some", Value: "metadata"}}))
 		})
 
-		It("saves the version metadata for the resource", func() {
-			Expect(fakeDelegate.UpdateMetadataCallCount()).To(Equal(1))
+		It("saves the version for the resource", func() {
+			Expect(fakeDelegate.UpdateResourceVersionCallCount()).To(Equal(1))
 		})
 
 		It("does not return an err", func() {
@@ -692,6 +711,10 @@ var _ = Describe("GetStep", func() {
 
 		It("does not return an err", func() {
 			Expect(stepErr).ToNot(HaveOccurred())
+		})
+
+		It("does not update the resource version", func() {
+			Expect(fakeDelegate.UpdateResourceVersionCallCount()).To(Equal(0))
 		})
 	})
 })

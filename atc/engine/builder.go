@@ -39,28 +39,25 @@ func NewStepperFactory(
 	rateLimiter RateLimiter,
 	policyChecker policy.Checker,
 	dbWorkerFactory db.WorkerFactory,
-	dbResourceCacheFactory db.ResourceCacheFactory,
 	lockFactory lock.LockFactory,
 ) StepperFactory {
 	return &stepperFactory{
-		coreFactory:            coreFactory,
-		externalURL:            externalURL,
-		rateLimiter:            rateLimiter,
-		policyChecker:          policyChecker,
-		dbWorkerFactory:        dbWorkerFactory,
-		dbResourceCacheFactory: dbResourceCacheFactory,
-		lockFactory:            lockFactory,
+		coreFactory:     coreFactory,
+		externalURL:     externalURL,
+		rateLimiter:     rateLimiter,
+		policyChecker:   policyChecker,
+		dbWorkerFactory: dbWorkerFactory,
+		lockFactory:     lockFactory,
 	}
 }
 
 type stepperFactory struct {
-	coreFactory            CoreStepFactory
-	externalURL            string
-	rateLimiter            RateLimiter
-	policyChecker          policy.Checker
-	dbWorkerFactory        db.WorkerFactory
-	dbResourceCacheFactory db.ResourceCacheFactory
-	lockFactory            lock.LockFactory
+	coreFactory     CoreStepFactory
+	externalURL     string
+	rateLimiter     RateLimiter
+	policyChecker   policy.Checker
+	dbWorkerFactory db.WorkerFactory
+	lockFactory     lock.LockFactory
 }
 
 func (factory *stepperFactory) StepperForBuild(build db.Build) (exec.Stepper, error) {
@@ -75,13 +72,12 @@ func (factory *stepperFactory) StepperForBuild(build db.Build) (exec.Stepper, er
 
 func (factory *stepperFactory) buildDelegateFactory(build db.Build, plan atc.Plan) DelegateFactory {
 	return DelegateFactory{
-		build:                  build,
-		plan:                   plan,
-		rateLimiter:            factory.rateLimiter,
-		policyChecker:          factory.policyChecker,
-		dbWorkerFactory:        factory.dbWorkerFactory,
-		dbResourceCacheFactory: factory.dbResourceCacheFactory,
-		lockFactory:            factory.lockFactory,
+		build:           build,
+		plan:            plan,
+		rateLimiter:     factory.rateLimiter,
+		policyChecker:   factory.policyChecker,
+		dbWorkerFactory: factory.dbWorkerFactory,
+		lockFactory:     factory.lockFactory,
 	}
 }
 
