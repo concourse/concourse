@@ -28,7 +28,7 @@ type LastCheck struct {
 // the resource id. Resource versions will therefore be directly dependent on a resource config scope.
 type ResourceConfigScope interface {
 	ID() int
-	Resource() Resource
+	ResourceID() *int
 	ResourceConfig() ResourceConfig
 
 	SaveVersions(SpanContext, []atc.Version) error
@@ -46,7 +46,7 @@ type ResourceConfigScope interface {
 
 type resourceConfigScope struct {
 	id             int
-	resource       Resource
+	resourceID     *int
 	resourceConfig ResourceConfig
 
 	conn        Conn
@@ -54,7 +54,7 @@ type resourceConfigScope struct {
 }
 
 func (r *resourceConfigScope) ID() int                        { return r.id }
-func (r *resourceConfigScope) Resource() Resource             { return r.resource }
+func (r *resourceConfigScope) ResourceID() *int               { return r.resourceID }
 func (r *resourceConfigScope) ResourceConfig() ResourceConfig { return r.resourceConfig }
 
 func (r *resourceConfigScope) LastCheck() (LastCheck, error) {

@@ -377,7 +377,7 @@ var _ = Describe("Resource", func() {
 			resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(resource.Type(), resource.Source(), nil)
 			Expect(err).ToNot(HaveOccurred())
 
-			scope, err = resourceConfig.FindOrCreateScope(resource)
+			scope, err = resourceConfig.FindOrCreateScope(intptr(resource.ID()))
 			Expect(err).ToNot(HaveOccurred())
 		})
 

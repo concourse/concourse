@@ -176,7 +176,7 @@ var _ = Describe("Prototype", func() {
 		})
 
 		It("creates a shared scope for the prototype", func() {
-			Expect(scope.Resource()).To(BeNil())
+			Expect(scope.ResourceID()).To(BeNil())
 			Expect(scope.ResourceConfig()).ToNot(BeNil())
 		})
 

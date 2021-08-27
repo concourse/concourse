@@ -61,7 +61,7 @@ var _ = Describe("Resource Config Scope", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(found).To(BeTrue())
 
-		resourceScope, err = rc.FindOrCreateScope(scenario.Resource("some-resource"))
+		resourceScope, err = rc.FindOrCreateScope(intptr(scenario.Resource("some-resource").ID()))
 		Expect(err).ToNot(HaveOccurred())
 	})
 

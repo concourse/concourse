@@ -282,7 +282,7 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 				Expect(found).To(BeTrue())
 				Expect(err).ToNot(HaveOccurred())
 
-				resourceConfigScope, err := rc.FindOrCreateScope(scenario.Resource("some-resource"))
+				resourceConfigScope, err := rc.FindOrCreateScope(intptr(scenario.Resource("some-resource").ID()))
 				Expect(err).ToNot(HaveOccurred())
 
 				build, err := defaultJob.CreateBuild(defaultBuildCreatedBy)
