@@ -694,6 +694,32 @@ var _ = Describe("Garden Worker", func() {
 		}))
 	})
 
+	Test("workdir volume not created if Dir not specified", func() {
+		scenario := Setup(
+			workertest.WithWorkers(
+				grt.NewWorker("worker"),
+			),
+		)
+		worker := scenario.Worker("worker")
+
+		_, volumeMounts, err := worker.FindOrCreateContainer(
+			ctx,
+			db.NewFixedHandleContainerOwner("my-handle"),
+			db.ContainerMetadata{},
+			runtime.ContainerSpec{
+				ImageSpec: runtime.ImageSpec{
+					ImageURL: "raw:///img/rootfs",
+				},
+				Dir: "",
+			},
+		)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(volumeMountMap(volumeMounts)).To(consistOfMap(expectMap{
+			"/scratch": grt.HaveStrategy(baggageclaim.EmptyStrategy{}),
+		}))
+	})
+
 	Test("task caches", func() {
 		scenario := Setup(
 			workertest.WithBasicJob(),

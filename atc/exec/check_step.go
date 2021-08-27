@@ -260,8 +260,6 @@ func (step *CheckStep) runCheck(
 		Env:       step.metadata.Env(),
 		Type:      db.ContainerTypeCheck,
 
-		Dir: step.containerMetadata.WorkingDirectory,
-
 		CertsBindMount: true,
 	}
 	tracing.Inject(ctx, &containerSpec)
