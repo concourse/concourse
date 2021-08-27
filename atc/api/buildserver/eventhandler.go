@@ -14,7 +14,7 @@ import (
 const ProtocolVersionHeader = "X-ATC-Stream-Version"
 const CurrentProtocolVersion = "2.0"
 
-func NewEventHandler(logger lager.Logger, build db.Build) http.Handler {
+func NewEventHandler(logger lager.Logger, build db.BuildForAPI) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var eventID uint = 0
 		if r.Header.Get("Last-Event-ID") != "" {

@@ -258,8 +258,8 @@ var _ = Describe("Build", func() {
 		})
 	})
 
-	Describe("Existing in-memory build", func() {
-		var build db.Build
+	Describe("in-memory build for api", func() {
+		var build db.BuildForAPI
 
 		BeforeEach(func() {
 			resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(defaultResource.Type(), defaultResource.Source(), nil)
@@ -275,7 +275,7 @@ var _ = Describe("Build", func() {
 			err = defaultResource.SetResourceConfigScope(scope)
 			Expect(err).ToNot(HaveOccurred())
 
-			build, found, err = buildFactory.Build(1999)
+			build, found, err = buildFactory.BuildForAPI(1999)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 		})
@@ -292,11 +292,9 @@ var _ = Describe("Build", func() {
 			Expect(build.JobName()).To(BeEmpty())
 			Expect(build.ResourceID()).To(Equal(defaultResource.ID()))
 			Expect(build.ResourceName()).To(Equal(defaultResource.Name()))
-			Expect(build.ResourceTypeID()).To(Equal(0))
 			Expect(build.Schema()).To(Equal("exec.v2"))
 
 			Expect(build.IsRunning()).To(BeFalse())
-			Expect(build.IsManuallyTriggered()).To(BeFalse())
 
 			Expect(build.HasPlan()).To(BeTrue())
 			Expect(*build.PublicPlan()).To(Equal(*plan.Public()))
@@ -312,26 +310,9 @@ var _ = Describe("Build", func() {
 			}))
 		})
 
-		It("TracingAttrs", func() {
-			Expect(build.TracingAttrs()).To(Equal(tracing.Attrs{
-				"team":     defaultResource.TeamName(),
-				"pipeline": defaultResource.PipelineName(),
-				"build_id": "1999",
-				"resource": defaultResource.Name(),
-				"build":    "check",
-			}))
-		})
-
 		It("Events", func() {
 			_, err := build.Events(0)
 			Expect(err).ToNot(HaveOccurred())
-		})
-
-		It("should error", func() {
-			Expect(build.OnCheckBuildStart()).To(HaveOccurred())
-			Expect(build.Finish(db.BuildStatusSucceeded)).To(HaveOccurred())
-			_, _, err := build.AcquireTrackingLock(logger, time.Minute)
-			Expect(err).To(HaveOccurred())
 		})
 	})
 })

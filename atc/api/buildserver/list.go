@@ -46,7 +46,7 @@ func (s *Server) ListBuilds(w http.ResponseWriter, r *http.Request) {
 		page.UseDate = true
 	}
 
-	var builds []db.Build
+	var builds []db.BuildForAPI
 	var pagination db.Pagination
 
 	acc := accessor.GetAccessor(r)

@@ -8,7 +8,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 )
 
-func (s *Server) GetBuildPlan(build db.Build) http.Handler {
+func (s *Server) GetBuildPlan(build db.BuildForAPI) http.Handler {
 	hLog := s.logger.Session("get-build-plan")
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

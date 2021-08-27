@@ -1294,12 +1294,12 @@ var _ = Describe("Jobs API", func() {
 				})
 
 				Context("when getting the builds succeeds", func() {
-					var returnedBuilds []db.Build
+					var returnedBuilds []db.BuildForAPI
 
 					BeforeEach(func() {
 						queryParams = "?since=5&limit=2"
 
-						build1 := new(dbfakes.FakeBuild)
+						build1 := new(dbfakes.FakeBuildForAPI)
 						build1.IDReturns(4)
 						build1.NameReturns("2")
 						build1.JobNameReturns("some-job")
@@ -1309,7 +1309,7 @@ var _ = Describe("Jobs API", func() {
 						build1.StartTimeReturns(time.Unix(1, 0))
 						build1.EndTimeReturns(time.Unix(100, 0))
 
-						build2 := new(dbfakes.FakeBuild)
+						build2 := new(dbfakes.FakeBuildForAPI)
 						build2.IDReturns(2)
 						build2.NameReturns("1")
 						build2.JobNameReturns("some-job")
@@ -1319,7 +1319,7 @@ var _ = Describe("Jobs API", func() {
 						build2.StartTimeReturns(time.Unix(101, 0))
 						build2.EndTimeReturns(time.Unix(200, 0))
 
-						build3 := new(dbfakes.FakeBuild)
+						build3 := new(dbfakes.FakeBuildForAPI)
 						build3.IDReturns(3)
 						build3.NameReturns("1.1")
 						build3.JobNameReturns("some-job")
@@ -1332,7 +1332,7 @@ var _ = Describe("Jobs API", func() {
 						build3.RerunOfNameReturns("1")
 						build3.RerunNumberReturns(3)
 
-						returnedBuilds = []db.Build{build1, build2, build3}
+						returnedBuilds = []db.BuildForAPI{build1, build2, build3}
 						fakeJob.BuildsReturns(returnedBuilds, db.Pagination{}, nil)
 					})
 

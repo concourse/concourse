@@ -21,66 +21,28 @@ import (
 	"time"
 )
 
-// inMemoryCheckBuild handles in-memory check builds only, thus it just implement
-// the necessary function of interface Build.
-type inMemoryCheckBuild struct {
-	preId        int
+// inMemoryCheckBuildForApi implements db.BuildForAPI. It handles API operations
+// of a in-memory check build.
+type inMemoryCheckBuildForApi struct {
 	id           int
 	checkable    Checkable
 	plan         atc.Plan
 	resourceId   int
 	resourceName string
-	spanContext  SpanContext
+	startTime    time.Time
+	endTime      time.Time
+	status       BuildStatus
 
-	createTime time.Time
-	startTime  time.Time
-	endTime    time.Time
-	status     BuildStatus
-
-	running     bool
-	conn        Conn
-	lockFactory lock.LockFactory
-
-	// runningInContainer makes a check build really executed in a container on a worker.
-	runningInContainer bool
-	dbInited           bool
-
-	cacheEvents []atc.Event
-	eventIdSeq  util.SequenceGenerator
+	conn Conn
 
 	cacheAssociatedTeams []string
 }
 
-func newRunningInMemoryCheckBuild(conn Conn, lockFactory lock.LockFactory, checkable Checkable, plan atc.Plan, spanContext SpanContext, seqGen util.SequenceGenerator) (*inMemoryCheckBuild, error) {
-	build, err := newExistingInMemoryCheckBuildForViewOnly(conn, 0, checkable)
-	if err != nil {
-		return nil, err
-	}
-
-	build.lockFactory = lockFactory
-	build.plan = plan
-	build.running = true
-	build.spanContext = spanContext
-	build.preId = seqGen.Next()
-	build.eventIdSeq = util.NewSequenceGenerator(0)
-	build.createTime = time.Now()
-	build.startTime = time.Now()
-	build.status = BuildStatusStarted
-
-	build.SaveEvent(event.Status{
-		Status: atc.StatusStarted,
-		Time:   time.Now().Unix(),
-	})
-
-	return build, nil
-}
-
-func newExistingInMemoryCheckBuildForViewOnly(conn Conn, buildId int, checkable Checkable) (*inMemoryCheckBuild, error) {
-	build := inMemoryCheckBuild{
+func newExistingInMemoryCheckBuildForApi(conn Conn, buildId int, checkable Checkable) (*inMemoryCheckBuildForApi, error) {
+	build := inMemoryCheckBuildForApi{
 		id:        buildId,
 		conn:      conn,
 		checkable: checkable,
-		running:   false,
 	}
 
 	if resource, ok := checkable.(Resource); ok {
@@ -93,50 +55,44 @@ func newExistingInMemoryCheckBuildForViewOnly(conn Conn, buildId int, checkable 
 	return &build, nil
 }
 
-func (b *inMemoryCheckBuild) RunStateID() string {
-	return fmt.Sprintf("in-memory-check-build:%v", b.preId)
-}
-
-func (b *inMemoryCheckBuild) ID() int                                 { return b.id }
-func (b *inMemoryCheckBuild) Name() string                            { return CheckBuildName }
-func (b *inMemoryCheckBuild) TeamID() int                             { return b.checkable.TeamID() }
-func (b *inMemoryCheckBuild) TeamName() string                        { return b.checkable.TeamName() }
-func (b *inMemoryCheckBuild) PipelineID() int                         { return b.checkable.PipelineID() }
-func (b *inMemoryCheckBuild) PipelineName() string                    { return b.checkable.PipelineName() }
-func (b *inMemoryCheckBuild) PipelineRef() atc.PipelineRef            { return b.checkable.PipelineRef() }
-func (b *inMemoryCheckBuild) Pipeline() (Pipeline, bool, error)       { return b.checkable.Pipeline() }
-func (b *inMemoryCheckBuild) ResourceID() int                         { return b.resourceId }
-func (b *inMemoryCheckBuild) ResourceName() string                    { return b.resourceName }
-func (b *inMemoryCheckBuild) ResourceTypeID() int                     { return 0 }
-func (b *inMemoryCheckBuild) Schema() string                          { return schema }
-func (b *inMemoryCheckBuild) IsRunning() bool                         { return b.status == BuildStatusStarted }
-func (b *inMemoryCheckBuild) IsManuallyTriggered() bool               { return false }
-func (b *inMemoryCheckBuild) CreateTime() time.Time                   { return b.createTime }
-func (b *inMemoryCheckBuild) StartTime() time.Time                    { return b.startTime }
-func (b *inMemoryCheckBuild) EndTime() time.Time                      { return b.endTime }
-func (b *inMemoryCheckBuild) Status() BuildStatus                     { return b.status }
-func (b *inMemoryCheckBuild) CreatedBy() *string                      { return nil }
-func (b *inMemoryCheckBuild) SpanContext() propagation.TextMapCarrier { return b.spanContext }
-func (b *inMemoryCheckBuild) PipelineInstanceVars() atc.InstanceVars {
+func (b *inMemoryCheckBuildForApi) ID() int                           { return b.id }
+func (b *inMemoryCheckBuildForApi) Name() string                      { return CheckBuildName }
+func (b *inMemoryCheckBuildForApi) TeamID() int                       { return b.checkable.TeamID() }
+func (b *inMemoryCheckBuildForApi) TeamName() string                  { return b.checkable.TeamName() }
+func (b *inMemoryCheckBuildForApi) PipelineID() int                   { return b.checkable.PipelineID() }
+func (b *inMemoryCheckBuildForApi) PipelineName() string              { return b.checkable.PipelineName() }
+func (b *inMemoryCheckBuildForApi) PipelineRef() atc.PipelineRef      { return b.checkable.PipelineRef() }
+func (b *inMemoryCheckBuildForApi) Pipeline() (Pipeline, bool, error) { return b.checkable.Pipeline() }
+func (b *inMemoryCheckBuildForApi) ResourceID() int                   { return b.resourceId }
+func (b *inMemoryCheckBuildForApi) ResourceName() string              { return b.resourceName }
+func (b *inMemoryCheckBuildForApi) ResourceTypeID() int               { return 0 }
+func (b *inMemoryCheckBuildForApi) StartTime() time.Time              { return b.startTime }
+func (b *inMemoryCheckBuildForApi) EndTime() time.Time                { return b.endTime }
+func (b *inMemoryCheckBuildForApi) Status() BuildStatus               { return b.status }
+func (b *inMemoryCheckBuildForApi) CreatedBy() *string                { return nil }
+func (b *inMemoryCheckBuildForApi) Schema() string                    { return schema }
+func (b *inMemoryCheckBuildForApi) IsRunning() bool                   { return b.status == BuildStatusStarted }
+func (b *inMemoryCheckBuildForApi) IsDrained() bool                   { return false }
+func (b *inMemoryCheckBuildForApi) PipelineInstanceVars() atc.InstanceVars {
 	return b.checkable.PipelineInstanceVars()
 }
 
 // JobID returns 0 because check build doesn't belong to any job.
-func (b *inMemoryCheckBuild) JobID() int { return 0 }
+func (b *inMemoryCheckBuildForApi) JobID() int { return 0 }
 
 // JobName returns an empty string because check build doesn't belong to any job.
-func (b *inMemoryCheckBuild) JobName() string { return "" }
+func (b *inMemoryCheckBuildForApi) JobName() string { return "" }
 
-func (b *inMemoryCheckBuild) LagerData() lager.Data {
+func (b *inMemoryCheckBuildForApi) LagerData() lager.Data {
 	data := lager.Data{
 		"build":    b.Name(),
 		"team":     b.TeamName(),
 		"pipeline": b.PipelineName(),
 	}
 
-	if b.preId != 0 {
-		data["pre_build_id"] = b.preId
-	}
+	//if b.preId != 0 {
+	//	data["pre_build_id"] = b.preId
+	//}
 
 	if b.id != 0 {
 		data["build_id"] = b.id
@@ -144,6 +100,229 @@ func (b *inMemoryCheckBuild) LagerData() lager.Data {
 
 	if b.resourceId != 0 {
 		data["resource"] = b.resourceName
+	}
+
+	return data
+}
+
+func (b *inMemoryCheckBuildForApi) HasPlan() bool {
+	if b.plan.ID != "" {
+		return true
+	}
+
+	resource, ok := b.checkable.(Resource)
+	if !ok {
+		return false
+	}
+	return resource.BuildSummary() != nil && resource.BuildSummary().PublicPlan != nil
+}
+
+func (b *inMemoryCheckBuildForApi) PublicPlan() *json.RawMessage {
+	if b.plan.ID != "" {
+		return b.plan.Public()
+	}
+
+	resource, ok := b.checkable.(Resource)
+	if !ok {
+		return nil
+	}
+
+	if resource.BuildSummary() == nil || resource.BuildSummary().PublicPlan == nil {
+		return nil
+	}
+	bytes, err := json.Marshal(resource.BuildSummary().PublicPlan)
+	if err != nil {
+		return nil
+	}
+	m := json.RawMessage(bytes)
+	return &m
+}
+
+func (b *inMemoryCheckBuildForApi) AllAssociatedTeamNames() []string {
+	if b.cacheAssociatedTeams != nil {
+		return b.cacheAssociatedTeams
+	}
+
+	rows, err := psql.Select("distinct(t.name)").
+		From("resources r").
+		LeftJoin("pipelines p on r.pipeline_id = p.id").
+		LeftJoin("teams t on p.team_id = t.id").
+		Where(sq.Eq{"r.resource_config_scope_id": b.checkable.ResourceConfigScopeID()}).
+		RunWith(b.conn).
+		Query()
+	if err != nil {
+		return []string{b.checkable.TeamName()}
+	}
+	defer Close(rows)
+
+	var teamNames []string
+	for rows.Next() {
+		var teamName string
+		err := rows.Scan(&teamName)
+		if err != nil {
+			return teamNames
+		}
+		teamNames = append(teamNames, teamName)
+	}
+
+	if len(teamNames) == 0 {
+		return []string{b.checkable.TeamName()}
+	}
+
+	b.cacheAssociatedTeams = teamNames
+	return b.cacheAssociatedTeams
+}
+
+func (b *inMemoryCheckBuildForApi) Events(from uint) (EventSource, error) {
+	if b.id == 0 {
+		return nil, fmt.Errorf("no build event")
+	}
+
+	notifier, err := newConditionNotifier(b.conn.Bus(), buildEventsChannel(b.id), func() (bool, error) {
+		return true, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return newBuildEventSource(
+		b.id,
+		"check_build_events",
+		b.conn,
+		notifier,
+		from,
+		func(tx Tx, buildID int) (bool, error) {
+			completed := false
+
+			var lastCheckStartTime, lastCheckEndTime pq.NullTime
+			err = psql.Select("last_check_start_time", "last_check_end_time").
+				From("resource_config_scopes").
+				Where(sq.Eq{"last_check_build_id": buildID}).
+				RunWith(tx).
+				QueryRow().
+				Scan(&lastCheckStartTime, &lastCheckEndTime)
+			if err != nil {
+				if err == sql.ErrNoRows {
+					var one int
+					err = psql.Select("1").
+						From("resources").
+						Where(sq.Eq{"in_memory_build_id": buildID}).
+						RunWith(tx).
+						QueryRow().
+						Scan(&one)
+					if err == nil {
+						return false, nil
+					}
+					if err != sql.ErrNoRows {
+						return false, err
+					}
+
+					// If the build id cannot be found in both resources and resource_config_scopes,
+					// then consider the build completed.
+					completed = true
+				} else {
+					return false, err
+				}
+			} else if lastCheckStartTime.Valid && lastCheckEndTime.Valid && lastCheckStartTime.Time.Before(lastCheckEndTime.Time) {
+				completed = true
+			}
+
+			return completed, nil
+		},
+	), nil
+}
+
+func (b *inMemoryCheckBuildForApi) RerunOf() int        { return 0 }
+func (b *inMemoryCheckBuildForApi) RerunOfName() string { return "" }
+func (b *inMemoryCheckBuildForApi) RerunNumber() int    { return 0 }
+func (b *inMemoryCheckBuildForApi) ReapTime() time.Time { return time.Time{} }
+func (b *inMemoryCheckBuildForApi) Job() (Job, bool, error) {
+	return nil, false, errors.New("not implemented for in memory build")
+}
+func (b *inMemoryCheckBuildForApi) Comment() string {
+	return ""
+}
+func (b *inMemoryCheckBuildForApi) Artifacts() ([]WorkerArtifact, error) {
+	return nil, errors.New("not implemented for in memory build")
+}
+func (b *inMemoryCheckBuildForApi) Resources() ([]BuildInput, []BuildOutput, error) {
+	return nil, nil, errors.New("not implemented for in memory build")
+}
+func (b *inMemoryCheckBuildForApi) MarkAsAborted() error {
+	return errors.New("not implemented for in memory build")
+}
+func (b *inMemoryCheckBuildForApi) Preparation() (BuildPreparation, bool, error) {
+	return BuildPreparation{}, false, errors.New("not implemented for in memory build")
+}
+func (b *inMemoryCheckBuildForApi) SetComment(string) error {
+	return errors.New("not implemented for in memory build")
+}
+
+// inMemoryCheckBuild implements db.Build. It handles in-memory check builds
+// only, thus it just implement the necessary function of interface Build.
+type inMemoryCheckBuild struct {
+	inMemoryCheckBuildForApi
+
+	preId       int
+	spanContext SpanContext
+	createTime  time.Time
+	lockFactory lock.LockFactory
+
+	// runningInContainer makes a check build really executed in a container on a worker.
+	runningInContainer bool
+	dbInited           bool
+
+	cacheEvents []atc.Event
+	eventIdSeq  util.SequenceGenerator
+}
+
+func newRunningInMemoryCheckBuild(conn Conn, lockFactory lock.LockFactory, checkable Checkable, plan atc.Plan, spanContext SpanContext, seqGen util.SequenceGenerator) (*inMemoryCheckBuild, error) {
+	build := &inMemoryCheckBuild{
+		inMemoryCheckBuildForApi: inMemoryCheckBuildForApi{
+			id:        0,
+			conn:      conn,
+			checkable: checkable,
+			plan:      plan,
+			startTime: time.Now(),
+			status:    BuildStatusStarted,
+		},
+		lockFactory: lockFactory,
+		createTime:  time.Now(),
+		spanContext: spanContext,
+		preId:       seqGen.Next(),
+		eventIdSeq:  util.NewSequenceGenerator(0),
+	}
+
+	if resource, ok := checkable.(Resource); ok {
+		build.resourceId = resource.ID()
+		build.resourceName = resource.Name()
+	} else {
+		return nil, errors.New("not supported checkable for in memory check build")
+	}
+
+	build.SaveEvent(event.Status{
+		Status: atc.StatusStarted,
+		Time:   time.Now().Unix(),
+	})
+
+	return build, nil
+}
+
+func (b *inMemoryCheckBuild) RunStateID() string {
+	return fmt.Sprintf("in-memory-check-build:%v", b.preId)
+}
+
+func (b *inMemoryCheckBuild) IsRunning() bool           { return b.status == BuildStatusStarted }
+func (b *inMemoryCheckBuild) IsManuallyTriggered() bool { return false }
+func (b *inMemoryCheckBuild) CreateTime() time.Time     { return b.createTime }
+
+func (b *inMemoryCheckBuild) SpanContext() propagation.TextMapCarrier { return b.spanContext }
+
+func (b *inMemoryCheckBuild) LagerData() lager.Data {
+	data := b.inMemoryCheckBuildForApi.LagerData()
+
+	if b.preId != 0 {
+		data["pre_build_id"] = b.preId
 	}
 
 	return data
@@ -183,10 +362,6 @@ func (b *inMemoryCheckBuild) PrivatePlan() atc.Plan {
 // OnCheckBuildStart is a hook point called once a check build starts. For
 // in-memory check build, this is a chance to initialize database connection.
 func (b *inMemoryCheckBuild) OnCheckBuildStart() error {
-	if !b.running {
-		return errors.New("not running build cannot start check")
-	}
-
 	if b.runningInContainer {
 		return nil
 	}
@@ -218,10 +393,6 @@ func (b *inMemoryCheckBuild) OnCheckBuildStart() error {
 // avoid duplicate checks on the same checkable among ATCs and Lidar scan
 // intervals.
 func (b *inMemoryCheckBuild) AcquireTrackingLock(logger lager.Logger, interval time.Duration) (lock.Lock, bool, error) {
-	if !b.running {
-		return nil, false, errors.New("not running build cannot acquire tracking lock")
-	}
-
 	var lockId lock.LockID
 	if b.ResourceID() != 0 {
 		lockId = lock.NewInMemoryCheckBuildTrackingLockID("resource", b.ResourceID())
@@ -245,10 +416,6 @@ func (b *inMemoryCheckBuild) AcquireTrackingLock(logger lager.Logger, interval t
 }
 
 func (b *inMemoryCheckBuild) Finish(status BuildStatus) error {
-	if !b.running {
-		return errors.New("not running build cannot finish")
-	}
-
 	if !b.runningInContainer {
 		return nil
 	}
@@ -331,10 +498,6 @@ func (b *inMemoryCheckBuild) Variables(logger lager.Logger, secrets creds.Secret
 }
 
 func (b *inMemoryCheckBuild) SaveEvent(ev atc.Event) error {
-	if !b.running {
-		return errors.New("not running build cannot save event")
-	}
-
 	if !b.runningInContainer {
 		b.cacheEvents = append(b.cacheEvents, ev)
 		return nil
@@ -358,65 +521,6 @@ func (b *inMemoryCheckBuild) SaveEvent(ev atc.Event) error {
 	return b.conn.Bus().Notify(buildEventsChannel(b.id))
 }
 
-func (b *inMemoryCheckBuild) Events(from uint) (EventSource, error) {
-	if b.id == 0 {
-		return nil, fmt.Errorf("no build event")
-	}
-
-	notifier, err := newConditionNotifier(b.conn.Bus(), buildEventsChannel(b.id), func() (bool, error) {
-		return true, nil
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return newBuildEventSource(
-		b.id,
-		"check_build_events",
-		b.conn,
-		notifier,
-		from,
-		func(tx Tx, buildID int) (bool, error) {
-			completed := false
-
-			var lastCheckStartTime, lastCheckEndTime pq.NullTime
-			err = psql.Select("last_check_start_time", "last_check_end_time").
-				From("resource_config_scopes").
-				Where(sq.Eq{"last_check_build_id": buildID}).
-				RunWith(tx).
-				QueryRow().
-				Scan(&lastCheckStartTime, &lastCheckEndTime)
-			if err != nil {
-				if err == sql.ErrNoRows {
-					var one int
-					err = psql.Select("1").
-						From("resources").
-						Where(sq.Eq{"in_memory_build_id": buildID}).
-						RunWith(tx).
-						QueryRow().
-						Scan(&one)
-					if err == nil {
-						return false, nil
-					}
-					if err != sql.ErrNoRows {
-						return false, err
-					}
-
-					// If the build id cannot be found in both resources and resource_config_scopes,
-					// then consider the build completed.
-					completed = true
-				} else {
-					return false, err
-				}
-			} else if lastCheckStartTime.Valid && lastCheckEndTime.Valid && lastCheckStartTime.Time.Before(lastCheckEndTime.Time) {
-				completed = true
-			}
-
-			return completed, nil
-		},
-	), nil
-}
-
 // AbortNotifier returns NoopNotifier because there is no way to abort a in-memory
 // check build. Say a in-memory build may run on ATC-a, but abort-build API call
 // might be received by ATC-b, there is not a channel for ATC-b to tell ATC-a to
@@ -426,39 +530,6 @@ func (b *inMemoryCheckBuild) Events(from uint) (EventSource, error) {
 // table to see if current build should be aborted.
 func (b *inMemoryCheckBuild) AbortNotifier() (Notifier, error) {
 	return newNoopNotifier(), nil
-}
-
-func (b *inMemoryCheckBuild) HasPlan() bool {
-	if b.plan.ID != "" {
-		return true
-	}
-
-	resource, ok := b.checkable.(Resource)
-	if !ok {
-		return false
-	}
-	return resource.BuildSummary() != nil && resource.BuildSummary().PublicPlan != nil
-}
-
-func (b *inMemoryCheckBuild) PublicPlan() *json.RawMessage {
-	if b.plan.ID != "" {
-		return b.plan.Public()
-	}
-
-	resource, ok := b.checkable.(Resource)
-	if !ok {
-		return nil
-	}
-
-	if resource.BuildSummary() == nil || resource.BuildSummary().PublicPlan == nil {
-		return nil
-	}
-	bytes, err := json.Marshal(resource.BuildSummary().PublicPlan)
-	if err != nil {
-		return nil
-	}
-	m := json.RawMessage(bytes)
-	return &m
 }
 
 // ResourceCacheUser will use in-memory build's preId as key in order to avoid unnecessary
@@ -482,41 +553,6 @@ func (b *inMemoryCheckBuild) ContainerOwner(planId atc.PlanID) ContainerOwner {
 // keeps updated, then the image's resource cache will be always retained.
 func (b *inMemoryCheckBuild) SaveImageResourceVersion(ResourceCache) error {
 	return nil
-}
-
-func (b *inMemoryCheckBuild) AllAssociatedTeamNames() []string {
-	if b.cacheAssociatedTeams != nil {
-		return b.cacheAssociatedTeams
-	}
-
-	rows, err := psql.Select("distinct(t.name)").
-		From("resources r").
-		LeftJoin("pipelines p on r.pipeline_id = p.id").
-		LeftJoin("teams t on p.team_id = t.id").
-		Where(sq.Eq{"r.resource_config_scope_id": b.checkable.ResourceConfigScopeID()}).
-		RunWith(b.conn).
-		Query()
-	if err != nil {
-		return []string{b.checkable.TeamName()}
-	}
-	defer Close(rows)
-
-	var teamNames []string
-	for rows.Next() {
-		var teamName string
-		err := rows.Scan(&teamName)
-		if err != nil {
-			return teamNames
-		}
-		teamNames = append(teamNames, teamName)
-	}
-
-	if len(teamNames) == 0 {
-		return []string{b.checkable.TeamName()}
-	}
-
-	b.cacheAssociatedTeams = teamNames
-	return b.cacheAssociatedTeams
 }
 
 func (b *inMemoryCheckBuild) initDbStuff(tx Tx) error {
@@ -575,56 +611,33 @@ func (b *inMemoryCheckBuild) SyslogTag(origin event.OriginID) string {
 
 func (b *inMemoryCheckBuild) PrototypeID() int      { return 0 }
 func (b *inMemoryCheckBuild) PrototypeName() string { return "" }
-func (b *inMemoryCheckBuild) ReapTime() time.Time   { return time.Time{} }
 func (b *inMemoryCheckBuild) IsScheduled() bool     { return false }
-func (b *inMemoryCheckBuild) IsDrained() bool       { return false }
 func (b *inMemoryCheckBuild) IsAborted() bool       { return false }
 func (b *inMemoryCheckBuild) IsCompleted() bool     { return false }
 func (b *inMemoryCheckBuild) InputsReady() bool     { return false }
-func (b *inMemoryCheckBuild) RerunOf() int          { return 0 }
-func (b *inMemoryCheckBuild) RerunOfName() string   { return "" }
-func (b *inMemoryCheckBuild) RerunNumber() int      { return 0 }
+
 func (b *inMemoryCheckBuild) SetDrained(bool) error {
 	return errors.New("not implemented for in memory build")
 }
 func (b *inMemoryCheckBuild) Delete() (bool, error) {
 	return false, errors.New("not implemented for in memory build")
 }
-func (b *inMemoryCheckBuild) MarkAsAborted() error {
-	return errors.New("not implemented for in memory build")
-}
+
 func (b *inMemoryCheckBuild) Interceptible() (bool, error) {
 	return false, errors.New("not implemented for in memory build")
-}
-func (b *inMemoryCheckBuild) Preparation() (BuildPreparation, bool, error) {
-	return BuildPreparation{}, false, errors.New("not implemented for in memory build")
 }
 func (b *inMemoryCheckBuild) SetInterceptible(bool) error {
 	return errors.New("not implemented for in memory build")
 }
-func (b *inMemoryCheckBuild) Artifacts() ([]WorkerArtifact, error) {
-	return nil, errors.New("not implemented for in memory build")
-}
+
 func (b *inMemoryCheckBuild) Artifact(int) (WorkerArtifact, error) {
 	return nil, errors.New("not implemented for in memory build")
 }
 func (b *inMemoryCheckBuild) Start(atc.Plan) (bool, error) {
 	return false, errors.New("not implemented for in memory build")
 }
-func (b *inMemoryCheckBuild) Comment() string {
-	return ""
-}
-func (b *inMemoryCheckBuild) SetComment(string) error {
-	return errors.New("not implemented for in memory build")
-}
-func (b *inMemoryCheckBuild) Job() (Job, bool, error) {
-	return nil, false, errors.New("not implemented for in memory build")
-}
 func (b *inMemoryCheckBuild) ResourcesChecked() (bool, error) {
 	return false, errors.New("not implemented for in memory build")
-}
-func (b *inMemoryCheckBuild) Resources() ([]BuildInput, []BuildOutput, error) {
-	return nil, nil, errors.New("not implemented for in memory build")
 }
 func (b *inMemoryCheckBuild) SavePipeline(atc.PipelineRef, int, atc.Config, ConfigVersion, bool) (Pipeline, bool, error) {
 	return nil, false, errors.New("not implemented for in memory build")

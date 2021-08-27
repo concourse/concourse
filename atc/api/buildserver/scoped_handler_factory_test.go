@@ -46,10 +46,10 @@ var _ = Describe("ScopedHandlerFactory", func() {
 	})
 
 	Context("build is in the context", func() {
-		var contextBuild *dbfakes.FakeBuild
+		var contextBuild *dbfakes.FakeBuildForAPI
 
 		BeforeEach(func() {
-			contextBuild = new(dbfakes.FakeBuild)
+			contextBuild = new(dbfakes.FakeBuildForAPI)
 			handler = &wrapHandler{handler, contextBuild}
 		})
 
@@ -72,10 +72,10 @@ var _ = Describe("ScopedHandlerFactory", func() {
 
 type delegateHandler struct {
 	IsCalled bool
-	Build    db.Build
+	Build    db.BuildForAPI
 }
 
-func (handler *delegateHandler) GetHandler(build db.Build) http.Handler {
+func (handler *delegateHandler) GetHandler(build db.BuildForAPI) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		handler.IsCalled = true
 		handler.Build = build
@@ -84,7 +84,7 @@ func (handler *delegateHandler) GetHandler(build db.Build) http.Handler {
 
 type wrapHandler struct {
 	delegate     http.Handler
-	contextBuild db.Build
+	contextBuild db.BuildForAPI
 }
 
 func (h *wrapHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {

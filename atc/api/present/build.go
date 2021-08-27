@@ -9,7 +9,7 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-func Build(build db.Build, job db.Job, access accessor.Access) atc.Build {
+func Build(build db.BuildForAPI, job db.Job, access accessor.Access) atc.Build {
 
 	apiURL, err := atc.Routes.CreatePathForRoute(atc.GetBuild, rata.Params{
 		"build_id":  strconv.Itoa(build.ID()),

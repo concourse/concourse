@@ -56,7 +56,7 @@ func (h checkBuildWriteAccessHandler) ServeHTTP(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	build, found, err := h.buildFactory.Build(buildID)
+	build, found, err := h.buildFactory.BuildForAPI(buildID)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

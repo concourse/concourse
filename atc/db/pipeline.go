@@ -77,12 +77,12 @@ type Pipeline interface {
 
 	GetBuildsWithVersionAsInput(int, int) ([]Build, error)
 	GetBuildsWithVersionAsOutput(int, int) ([]Build, error)
-	Builds(page Page) ([]Build, Pagination, error)
 
 	CreateOneOffBuild() (Build, error)
 	CreateStartedBuild(plan atc.Plan) (Build, error)
 
-	BuildsWithTime(page Page) ([]Build, Pagination, error)
+	Builds(page Page) ([]BuildForAPI, Pagination, error)
+	BuildsWithTime(page Page) ([]BuildForAPI, Pagination, error)
 
 	DeleteBuildEventsByBuildIDs(buildIDs []int) error
 
@@ -478,12 +478,12 @@ func (p *pipeline) resource(where map[string]interface{}) (Resource, bool, error
 	return resource, true, nil
 }
 
-func (p *pipeline) Builds(page Page) ([]Build, Pagination, error) {
+func (p *pipeline) Builds(page Page) ([]BuildForAPI, Pagination, error) {
 	return getBuildsWithPagination(
 		buildsQuery.Where(sq.Eq{"b.pipeline_id": p.id}), minMaxIdQuery, page, p.conn, p.lockFactory)
 }
 
-func (p *pipeline) BuildsWithTime(page Page) ([]Build, Pagination, error) {
+func (p *pipeline) BuildsWithTime(page Page) ([]BuildForAPI, Pagination, error) {
 	return getBuildsWithDates(
 		buildsQuery.Where(sq.Eq{"b.pipeline_id": p.id}), minMaxIdQuery, page, p.conn, p.lockFactory)
 }

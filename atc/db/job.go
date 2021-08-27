@@ -86,8 +86,8 @@ type Job interface {
 	RequestSchedule() error
 	UpdateLastScheduled(time.Time) error
 
-	Builds(page Page) ([]Build, Pagination, error)
-	BuildsWithTime(page Page) ([]Build, Pagination, error)
+	Builds(page Page) ([]BuildForAPI, Pagination, error)
+	BuildsWithTime(page Page) ([]BuildForAPI, Pagination, error)
 	Build(name string) (Build, bool, error)
 	FinishedAndNextBuild() (Build, Build, error)
 	UpdateFirstLoggedBuildID(newFirstLoggedBuildID int) error
@@ -536,7 +536,7 @@ func (j *job) UpdateFirstLoggedBuildID(newFirstLoggedBuildID int) error {
 	return nil
 }
 
-func (j *job) BuildsWithTime(page Page) ([]Build, Pagination, error) {
+func (j *job) BuildsWithTime(page Page) ([]BuildForAPI, Pagination, error) {
 	newBuildsQuery := buildsQuery.Where(sq.Eq{"j.id": j.id})
 	newMinMaxIdQuery := minMaxIdQuery.
 		Join("jobs j ON b.job_id = j.id").
@@ -547,7 +547,7 @@ func (j *job) BuildsWithTime(page Page) ([]Build, Pagination, error) {
 	return getBuildsWithDates(newBuildsQuery, newMinMaxIdQuery, page, j.conn, j.lockFactory)
 }
 
-func (j *job) Builds(page Page) ([]Build, Pagination, error) {
+func (j *job) Builds(page Page) ([]BuildForAPI, Pagination, error) {
 	newBuildsQuery := buildsQuery.Where(sq.Eq{"j.id": j.id})
 	newMinMaxIdQuery := minMaxIdQuery.
 		Join("jobs j ON b.job_id = j.id").

@@ -91,7 +91,7 @@ func (br *buildLogCollector) reapLogsOfJob(pipeline db.Pipeline,
 		return nil
 	}
 
-	buildsToConsiderDeleting := []db.Build{}
+	buildsToConsiderDeleting := []db.BuildForAPI{}
 
 	from := job.FirstLoggedBuildID()
 	limit := br.batchSize
@@ -103,7 +103,7 @@ func (br *buildLogCollector) reapLogsOfJob(pipeline db.Pipeline,
 			return err
 		}
 
-		buildsOfBatch := []db.Build{}
+		buildsOfBatch := []db.BuildForAPI{}
 		for _, build := range builds {
 			// Ignore reaped builds
 			if !build.ReapTime().IsZero() {
@@ -147,7 +147,6 @@ func (br *buildLogCollector) reapLogsOfJob(pipeline db.Pipeline,
 
 		maxBuildsRetained := retainedBuilds >= logRetention.Builds
 		buildHasExpired := !build.EndTime().IsZero() && build.EndTime().AddDate(0, 0, logRetention.Days).Before(time.Now())
-
 
 		if logRetention.Builds != 0 {
 			if logRetention.MinimumSucceededBuilds != 0 {
