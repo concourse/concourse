@@ -20,25 +20,22 @@ func NewGetDelegate(
 	state exec.RunState,
 	clock clock.Clock,
 	policyChecker policy.Checker,
-	resourceCacheFactory db.ResourceCacheFactory,
 ) exec.GetDelegate {
 	return &getDelegate{
 		BuildStepDelegate: NewBuildStepDelegate(build, planID, state, clock, policyChecker),
 
-		eventOrigin:          event.Origin{ID: event.OriginID(planID)},
-		build:                build,
-		clock:                clock,
-		resourceCacheFactory: resourceCacheFactory,
+		eventOrigin: event.Origin{ID: event.OriginID(planID)},
+		build:       build,
+		clock:       clock,
 	}
 }
 
 type getDelegate struct {
 	exec.BuildStepDelegate
 
-	build                db.Build
-	eventOrigin          event.Origin
-	clock                clock.Clock
-	resourceCacheFactory db.ResourceCacheFactory
+	build       db.Build
+	eventOrigin event.Origin
+	clock       clock.Clock
 }
 
 func (d *getDelegate) Initializing(logger lager.Logger) {
@@ -87,22 +84,13 @@ func (d *getDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus, 
 	logger.Info("finished", lager.Data{"exit-status": exitStatus})
 }
 
-func (d *getDelegate) UpdateMetadata(log lager.Logger, resourceName string, resourceCache db.ResourceCache, info resource.VersionResult) {
+// UpdateResourceVersion must only be called on get steps for a named resource after
+// the get step succeeds.
+func (d *getDelegate) UpdateResourceVersion(log lager.Logger, resourceName string, info resource.VersionResult) {
 	logger := log.WithData(lager.Data{
 		"pipeline-name": d.build.PipelineName(),
 		"pipeline-id":   d.build.PipelineID()},
 	)
-
-	err := d.resourceCacheFactory.UpdateResourceCacheMetadata(resourceCache, info.Metadata)
-	if err != nil {
-		logger.Error("failed-to-update-resource-cache-metadata", err)
-		return
-	}
-
-	// If not a named resource, don't need to do anything else.
-	if resourceName == "" {
-		return
-	}
 
 	pipeline, found, err := d.build.Pipeline()
 	if err != nil {

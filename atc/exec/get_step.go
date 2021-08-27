@@ -68,7 +68,7 @@ type GetDelegate interface {
 	WaitingForWorker(lager.Logger)
 	SelectedWorker(lager.Logger, string)
 
-	UpdateMetadata(lager.Logger, string, db.ResourceCache, resource.VersionResult)
+	UpdateResourceVersion(lager.Logger, string, resource.VersionResult)
 }
 
 // GetStep will fetch a version of a resource on a worker that supports the
@@ -235,8 +235,9 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 			volume,
 		)
 
-		// step.plan.Resource can be empty if running for a non-named resource.
-		delegate.UpdateMetadata(logger, step.plan.Resource, resourceCache, versionResult)
+		if step.plan.Resource != "" {
+			delegate.UpdateResourceVersion(logger, step.plan.Resource, versionResult)
+		}
 
 		succeeded = true
 	}
@@ -478,6 +479,11 @@ func (step *GetStep) performGetAndInitCache(
 
 	if err := volume.InitializeResourceCache(logger, resourceCache); err != nil {
 		logger.Error("failed-to-initialize-resource-cache", err)
+		return nil, resource.VersionResult{}, runtime.ProcessResult{}, err
+	}
+
+	if err := step.resourceCacheFactory.UpdateResourceCacheMetadata(resourceCache, versionResult.Metadata); err != nil {
+		logger.Error("failed-to-update-resource-cache-metadata", err)
 		return nil, resource.VersionResult{}, runtime.ProcessResult{}, err
 	}
 
