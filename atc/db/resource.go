@@ -251,7 +251,7 @@ func (r *resource) SetResourceConfigScope(scope ResourceConfigScope) error {
 
 	defer Rollback(tx)
 
-	err = r.setResourceConfigScopeInTransaction(tx, scope)
+	err = setResourceConfigScopeForResource(tx, scope, sq.Eq{"id": r.id})
 	if err != nil {
 		return err
 	}
@@ -264,33 +264,32 @@ func (r *resource) SetResourceConfigScope(scope ResourceConfigScope) error {
 	return nil
 }
 
-func (r *resource) setResourceConfigScopeInTransaction(tx Tx, scope ResourceConfigScope) error {
-	results, err := psql.Update("resources").
+func setResourceConfigScopeForResource(tx Tx, scope ResourceConfigScope, pred interface{}, args ...interface{}) error {
+	var resourceID int
+	err := psql.Update("resources").
 		Set("resource_config_id", scope.ResourceConfig().ID()).
 		Set("resource_config_scope_id", scope.ID()).
-		Where(sq.Eq{"id": r.id}).
+		Where(pred, args...).
 		Where(sq.Or{
 			sq.Eq{"resource_config_id": nil},
 			sq.Eq{"resource_config_scope_id": nil},
 			sq.NotEq{"resource_config_id": scope.ResourceConfig().ID()},
 			sq.NotEq{"resource_config_scope_id": scope.ID()},
 		}).
+		Suffix("RETURNING id").
 		RunWith(tx).
-		Exec()
+		QueryRow().
+		Scan(&resourceID)
 	if err != nil {
-		return err
-	}
-
-	rowsAffected, err := results.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if rowsAffected > 0 {
-		err = requestScheduleForJobsUsingResource(tx, r.id)
-		if err != nil {
-			return err
+		if err == sql.ErrNoRows {
+			return nil
 		}
+		return err
+	}
+
+	err = requestScheduleForJobsUsingResource(tx, resourceID)
+	if err != nil {
+		return err
 	}
 
 	return nil

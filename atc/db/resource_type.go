@@ -227,14 +227,18 @@ func (t *resourceType) Reload() (bool, error) {
 }
 
 func (r *resourceType) SetResourceConfigScope(scope ResourceConfigScope) error {
+	return setResourceConfigScopeForResourceType(r.conn, scope, sq.Eq{"id": r.id})
+}
+
+func setResourceConfigScopeForResourceType(conn sq.Runner, scope ResourceConfigScope, pred interface{}, args ...interface{}) error {
 	_, err := psql.Update("resource_types").
 		Set("resource_config_id", scope.ResourceConfig().ID()).
-		Where(sq.Eq{"id": r.id}).
+		Where(pred, args...).
 		Where(sq.Or{
 			sq.Eq{"resource_config_id": nil},
 			sq.NotEq{"resource_config_id": scope.ResourceConfig().ID()},
 		}).
-		RunWith(r.conn).
+		RunWith(conn).
 		Exec()
 	if err != nil {
 		return err

@@ -29,10 +29,10 @@ type FakeResourceConfig struct {
 	createdByResourceCacheReturnsOnCall map[int]struct {
 		result1 db.ResourceCache
 	}
-	FindOrCreateScopeStub        func(db.Resource) (db.ResourceConfigScope, error)
+	FindOrCreateScopeStub        func(*int) (db.ResourceConfigScope, error)
 	findOrCreateScopeMutex       sync.RWMutex
 	findOrCreateScopeArgsForCall []struct {
-		arg1 db.Resource
+		arg1 *int
 	}
 	findOrCreateScopeReturns struct {
 		result1 db.ResourceConfigScope
@@ -182,11 +182,11 @@ func (fake *FakeResourceConfig) CreatedByResourceCacheReturnsOnCall(i int, resul
 	}{result1}
 }
 
-func (fake *FakeResourceConfig) FindOrCreateScope(arg1 db.Resource) (db.ResourceConfigScope, error) {
+func (fake *FakeResourceConfig) FindOrCreateScope(arg1 *int) (db.ResourceConfigScope, error) {
 	fake.findOrCreateScopeMutex.Lock()
 	ret, specificReturn := fake.findOrCreateScopeReturnsOnCall[len(fake.findOrCreateScopeArgsForCall)]
 	fake.findOrCreateScopeArgsForCall = append(fake.findOrCreateScopeArgsForCall, struct {
-		arg1 db.Resource
+		arg1 *int
 	}{arg1})
 	stub := fake.FindOrCreateScopeStub
 	fakeReturns := fake.findOrCreateScopeReturns
@@ -207,13 +207,13 @@ func (fake *FakeResourceConfig) FindOrCreateScopeCallCount() int {
 	return len(fake.findOrCreateScopeArgsForCall)
 }
 
-func (fake *FakeResourceConfig) FindOrCreateScopeCalls(stub func(db.Resource) (db.ResourceConfigScope, error)) {
+func (fake *FakeResourceConfig) FindOrCreateScopeCalls(stub func(*int) (db.ResourceConfigScope, error)) {
 	fake.findOrCreateScopeMutex.Lock()
 	defer fake.findOrCreateScopeMutex.Unlock()
 	fake.FindOrCreateScopeStub = stub
 }
 
-func (fake *FakeResourceConfig) FindOrCreateScopeArgsForCall(i int) db.Resource {
+func (fake *FakeResourceConfig) FindOrCreateScopeArgsForCall(i int) *int {
 	fake.findOrCreateScopeMutex.RLock()
 	defer fake.findOrCreateScopeMutex.RUnlock()
 	argsForCall := fake.findOrCreateScopeArgsForCall[i]

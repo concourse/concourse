@@ -1233,7 +1233,7 @@ func (b *build) SaveOutput(
 		return err
 	}
 
-	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, b.conn, b.lockFactory, rc, theResource)
+	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, b.conn, b.lockFactory, rc, NewIntPtr(theResource.ID()))
 	if err != nil {
 		return err
 	}
@@ -1257,7 +1257,9 @@ func (b *build) SaveOutput(
 		}
 	}
 
-	err = theResource.(*resource).setResourceConfigScopeInTransaction(tx, resourceConfigScope)
+	err = setResourceConfigScopeForResource(tx, resourceConfigScope, sq.Eq{
+		"id": theResource.ID(),
+	})
 	if err != nil {
 		return err
 	}

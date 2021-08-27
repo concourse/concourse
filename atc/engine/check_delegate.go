@@ -49,11 +49,8 @@ type checkDelegate struct {
 	eventOrigin event.Origin
 	clock       clock.Clock
 
-	// stashed away just so we don't have to query them multiple times
-	cachedPipeline     db.Pipeline
-	cachedResource     db.Resource
-	cachedResourceType db.ResourceType
-	cachedPrototype    db.Prototype
+	// stashed away just so we don't have to query it multiple times
+	cachedPipeline db.Pipeline
 
 	limiter RateLimiter
 }
@@ -73,12 +70,24 @@ func (d *checkDelegate) Initializing(logger lager.Logger) {
 }
 
 func (d *checkDelegate) FindOrCreateScope(config db.ResourceConfig) (db.ResourceConfigScope, error) {
-	resource, _, err := d.resource()
-	if err != nil {
-		return nil, fmt.Errorf("get resource: %w", err)
+	var resourceIDPtr *int
+	if d.plan.Resource != "" {
+		pipeline, err := d.pipeline()
+		if err != nil {
+			return nil, fmt.Errorf("get pipeline: %w", err)
+		}
+
+		resourceID, found, err := pipeline.ResourceID(d.plan.Resource)
+		if err != nil {
+			return nil, fmt.Errorf("get resource: %w", err)
+		}
+		if !found {
+			return nil, fmt.Errorf("resource '%s' deleted", d.plan.Resource)
+		}
+		resourceIDPtr = &resourceID
 	}
 
-	scope, err := config.FindOrCreateScope(resource) // ignore found, nil is ok
+	scope, err := config.FindOrCreateScope(resourceIDPtr)
 	if err != nil {
 		return nil, fmt.Errorf("find or create scope: %w", err)
 	}
@@ -173,37 +182,37 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 }
 
 func (d *checkDelegate) PointToCheckedConfig(scope db.ResourceConfigScope) error {
-	resource, found, err := d.resource()
-	if err != nil {
-		return fmt.Errorf("get resource: %w", err)
-	}
+	if d.plan.Resource != "" {
+		pipeline, err := d.pipeline()
+		if err != nil {
+			return fmt.Errorf("get pipeline: %w", err)
+		}
 
-	if found {
-		err := resource.SetResourceConfigScope(scope)
+		err = pipeline.SetResourceConfigScopeForResource(d.plan.Resource, scope)
 		if err != nil {
 			return fmt.Errorf("set resource scope: %w", err)
 		}
 	}
 
-	resourceType, found, err := d.resourceType()
-	if err != nil {
-		return fmt.Errorf("get resource type: %w", err)
-	}
+	if d.plan.ResourceType != "" {
+		pipeline, err := d.pipeline()
+		if err != nil {
+			return fmt.Errorf("get pipeline: %w", err)
+		}
 
-	if found {
-		err := resourceType.SetResourceConfigScope(scope)
+		err = pipeline.SetResourceConfigScopeForResourceType(d.plan.ResourceType, scope)
 		if err != nil {
 			return fmt.Errorf("set resource type scope: %w", err)
 		}
 	}
 
-	prototype, found, err := d.prototype()
-	if err != nil {
-		return fmt.Errorf("get prototype: %w", err)
-	}
+	if d.plan.Prototype != "" {
+		pipeline, err := d.pipeline()
+		if err != nil {
+			return fmt.Errorf("get pipeline: %w", err)
+		}
 
-	if found {
-		err := prototype.SetResourceConfigScope(scope)
+		err = pipeline.SetResourceConfigScopeForPrototype(d.plan.Prototype, scope)
 		if err != nil {
 			return fmt.Errorf("set prototype scope: %w", err)
 		}
@@ -229,88 +238,4 @@ func (d *checkDelegate) pipeline() (db.Pipeline, error) {
 	d.cachedPipeline = pipeline
 
 	return d.cachedPipeline, nil
-}
-
-func (d *checkDelegate) resource() (db.Resource, bool, error) {
-	if d.plan.Resource == "" {
-		return nil, false, nil
-	}
-
-	if d.cachedResource != nil {
-		return d.cachedResource, true, nil
-	}
-
-	pipeline, err := d.pipeline()
-	if err != nil {
-		return nil, false, err
-	}
-
-	resource, found, err := pipeline.Resource(d.plan.Resource)
-	if err != nil {
-		return nil, false, fmt.Errorf("get pipeline resource: %w", err)
-	}
-
-	if !found {
-		return nil, false, fmt.Errorf("resource '%s' deleted", d.plan.Resource)
-	}
-
-	d.cachedResource = resource
-
-	return d.cachedResource, true, nil
-}
-
-func (d *checkDelegate) resourceType() (db.ResourceType, bool, error) {
-	if d.plan.ResourceType == "" {
-		return nil, false, nil
-	}
-
-	if d.cachedResourceType != nil {
-		return d.cachedResourceType, true, nil
-	}
-
-	pipeline, err := d.pipeline()
-	if err != nil {
-		return nil, false, err
-	}
-
-	resourceType, found, err := pipeline.ResourceType(d.plan.ResourceType)
-	if err != nil {
-		return nil, false, fmt.Errorf("get pipeline resource type: %w", err)
-	}
-
-	if !found {
-		return nil, false, fmt.Errorf("resource type '%s' deleted", d.plan.ResourceType)
-	}
-
-	d.cachedResourceType = resourceType
-
-	return d.cachedResourceType, true, nil
-}
-
-func (d *checkDelegate) prototype() (db.Prototype, bool, error) {
-	if d.plan.Prototype == "" {
-		return nil, false, nil
-	}
-
-	if d.cachedPrototype != nil {
-		return d.cachedPrototype, true, nil
-	}
-
-	pipeline, err := d.pipeline()
-	if err != nil {
-		return nil, false, err
-	}
-
-	prototype, found, err := pipeline.Prototype(d.plan.Prototype)
-	if err != nil {
-		return nil, false, fmt.Errorf("get pipeline prototype: %w", err)
-	}
-
-	if !found {
-		return nil, false, fmt.Errorf("prototype '%s' deleted", d.plan.Prototype)
-	}
-
-	d.cachedPrototype = prototype
-
-	return d.cachedPrototype, true, nil
 }

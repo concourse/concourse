@@ -89,6 +89,7 @@ type Pipeline interface {
 	LoadDebugVersionsDB() (*atc.DebugVersionsDB, error)
 
 	Resource(name string) (Resource, bool, error)
+	ResourceID(name string) (int, bool, error)
 	ResourceByID(id int) (Resource, bool, error)
 	Resources() (Resources, error)
 
@@ -101,6 +102,10 @@ type Pipeline interface {
 
 	Prototypes() (Prototypes, error)
 	Prototype(name string) (Prototype, bool, error)
+
+	SetResourceConfigScopeForResource(name string, scope ResourceConfigScope) error
+	SetResourceConfigScopeForResourceType(name string, scope ResourceConfigScope) error
+	SetResourceConfigScopeForPrototype(name string, scope ResourceConfigScope) error
 
 	Job(name string) (Job, bool, error)
 	Jobs() (Jobs, error)
@@ -428,6 +433,28 @@ func (p *pipeline) Resource(name string) (Resource, bool, error) {
 		"r.pipeline_id": p.id,
 		"r.name":        name,
 	})
+}
+
+func (p *pipeline) ResourceID(name string) (int, bool, error) {
+	var id int
+	err := psql.Select("r.id").
+		From("resources r").
+		Where(sq.Eq{
+			"r.pipeline_id": p.id,
+			"r.name":        name,
+			"r.active":      true,
+		}).
+		RunWith(p.conn).
+		QueryRow().
+		Scan(&id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return 0, false, nil
+		}
+		return 0, false, err
+	}
+
+	return id, true, nil
 }
 
 func (p *pipeline) ResourceByID(id int) (Resource, bool, error) {
@@ -1219,6 +1246,44 @@ func resources(pipelineID int, conn Conn, lockFactory lock.LockFactory) (Resourc
 	}
 
 	return resources, nil
+}
+
+func (p *pipeline) SetResourceConfigScopeForResource(name string, scope ResourceConfigScope) error {
+	tx, err := p.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer Rollback(tx)
+
+	err = setResourceConfigScopeForResource(tx, scope, sq.Eq{
+		"pipeline_id": p.id,
+		"name":        name,
+	})
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p *pipeline) SetResourceConfigScopeForResourceType(name string, scope ResourceConfigScope) error {
+	return setResourceConfigScopeForResourceType(p.conn, scope, sq.Eq{
+		"pipeline_id": p.id,
+		"name":        name,
+	})
+}
+
+func (p *pipeline) SetResourceConfigScopeForPrototype(name string, scope ResourceConfigScope) error {
+	return setResourceConfigScopeForPrototype(p.conn, scope, sq.Eq{
+		"pipeline_id": p.id,
+		"name":        name,
+	})
 }
 
 // The SELECT query orders the jobs for updating to prevent deadlocking.

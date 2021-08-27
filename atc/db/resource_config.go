@@ -32,7 +32,7 @@ type ResourceConfig interface {
 
 	OriginBaseResourceType() *UsedBaseResourceType
 
-	FindOrCreateScope(Resource) (ResourceConfigScope, error)
+	FindOrCreateScope(resourceID *int) (ResourceConfigScope, error)
 }
 
 // ResourceConfig represents a resource type and config source.
@@ -73,7 +73,7 @@ func (r *resourceConfig) OriginBaseResourceType() *UsedBaseResourceType {
 	return r.createdByResourceCache.ResourceConfig().OriginBaseResourceType()
 }
 
-func (r *resourceConfig) FindOrCreateScope(resource Resource) (ResourceConfigScope, error) {
+func (r *resourceConfig) FindOrCreateScope(resourceID *int) (ResourceConfigScope, error) {
 	tx, err := r.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -86,7 +86,7 @@ func (r *resourceConfig) FindOrCreateScope(resource Resource) (ResourceConfigSco
 		r.conn,
 		r.lockFactory,
 		r,
-		resource,
+		resourceID,
 	)
 	if err != nil {
 		return nil, err
@@ -105,12 +105,10 @@ func findOrCreateResourceConfigScope(
 	conn Conn,
 	lockFactory lock.LockFactory,
 	resourceConfig ResourceConfig,
-	resource Resource,
+	resourceID *int,
 ) (ResourceConfigScope, error) {
-	var uniqueResource Resource
-	var resourceID *int
-
-	if resource != nil {
+	var uniqueResourceID *int
+	if resourceID != nil {
 		var unique bool
 		if !atc.EnableGlobalResources {
 			unique = true
@@ -121,10 +119,7 @@ func findOrCreateResourceConfigScope(
 		}
 
 		if unique {
-			id := resource.ID()
-
-			resourceID = &id
-			uniqueResource = resource
+			uniqueResourceID = resourceID
 		}
 	}
 
@@ -152,7 +147,7 @@ func findOrCreateResourceConfigScope(
 		if err != nil {
 			return nil, err
 		}
-	} else if uniqueResource != nil {
+	} else if uniqueResourceID != nil {
 		// This `SELECT ... FOR UPDATE` on the resource is just to avoid a
 		// deadlock, which occurs when concurrently setting a pipeline and
 		// running FindOrCreateScope on the resource that's being updated in
@@ -177,7 +172,7 @@ func findOrCreateResourceConfigScope(
 		_, err := psql.Select("1").
 			From("resources").
 			Where(sq.Eq{
-				"id": uniqueResource.ID(),
+				"id": *uniqueResourceID,
 			}).
 			Suffix("FOR UPDATE").
 			RunWith(tx).
@@ -189,7 +184,7 @@ func findOrCreateResourceConfigScope(
 		// delete outdated scopes for resource
 		_, err = psql.Delete("resource_config_scopes").
 			Where(sq.Eq{
-				"resource_id": resource.ID(),
+				"resource_id": *uniqueResourceID,
 			}).
 			Where(sq.NotEq{
 				"resource_config_id": resourceConfig.ID(),
@@ -202,13 +197,13 @@ func findOrCreateResourceConfigScope(
 
 		err = psql.Insert("resource_config_scopes").
 			Columns("resource_id", "resource_config_id").
-			Values(resource.ID(), resourceConfig.ID()).
+			Values(*resourceID, resourceConfig.ID()).
 			Suffix(`
 				ON CONFLICT (resource_id, resource_config_id) WHERE resource_id IS NOT NULL DO UPDATE SET
 					resource_id = ?,
 					resource_config_id = ?
 				RETURNING id
-			`, resource.ID(), resourceConfig.ID()).
+			`, *uniqueResourceID, resourceConfig.ID()).
 			RunWith(tx).
 			QueryRow().
 			Scan(&scopeID)
@@ -234,7 +229,7 @@ func findOrCreateResourceConfigScope(
 
 	return &resourceConfigScope{
 		id:             scopeID,
-		resource:       uniqueResource,
+		resourceID:     uniqueResourceID,
 		resourceConfig: resourceConfig,
 		conn:           conn,
 		lockFactory:    lockFactory,

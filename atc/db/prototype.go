@@ -161,14 +161,18 @@ func (p *prototype) Reload() (bool, error) {
 }
 
 func (p *prototype) SetResourceConfigScope(scope ResourceConfigScope) error {
+	return setResourceConfigScopeForPrototype(p.conn, scope, sq.Eq{"id": p.id})
+}
+
+func setResourceConfigScopeForPrototype(conn sq.Runner, scope ResourceConfigScope, pred interface{}, args ...interface{}) error {
 	_, err := psql.Update("prototypes").
 		Set("resource_config_id", scope.ResourceConfig().ID()).
-		Where(sq.Eq{"id": p.id}).
+		Where(pred, args...).
 		Where(sq.Or{
 			sq.Eq{"resource_config_id": nil},
 			sq.NotEq{"resource_config_id": scope.ResourceConfig().ID()},
 		}).
-		RunWith(p.conn).
+		RunWith(conn).
 		Exec()
 	if err != nil {
 		return err
