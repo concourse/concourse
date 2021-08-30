@@ -479,6 +479,9 @@
   }}
 
   Next let's change the \code{hello-world-task} to instead create a commit.
+  Since we want the commit to propagate to future steps, specifically the
+  \reference{put-step} we'll be adding soon, we will also need to add the
+  \code{repo} as an output of the task.
 
   \codeblock{yaml}{{
   resources:
@@ -504,6 +507,8 @@
           source:
             repository: gitea/gitea # use any image that has the git cli
         inputs:
+        - name: repo
+        outputs: # Add repo as an output
         - name: repo
         run:
           path: sh
@@ -561,6 +566,8 @@
           source:
             repository: gitea/gitea
         inputs:
+        - name: repo
+        outputs:
         - name: repo
         run:
           path: sh
