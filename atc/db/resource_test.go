@@ -162,7 +162,7 @@ var _ = Describe("Resource", func() {
 					)
 					Expect(err).NotTo(HaveOccurred())
 
-					resourceConfigScope, err := resourceConfig.FindOrCreateScope(resource)
+					resourceConfigScope, err := resourceConfig.FindOrCreateScope(intptr(resource.ID()))
 					Expect(err).NotTo(HaveOccurred())
 
 					err = resource.SetResourceConfigScope(resourceConfigScope)
@@ -1937,7 +1937,7 @@ var _ = Describe("Resource", func() {
 			)
 			Expect(err).NotTo(HaveOccurred())
 
-			resourceConfigScope, err = resourceConfig.FindOrCreateScope(resource)
+			resourceConfigScope, err = resourceConfig.FindOrCreateScope(intptr(resource.ID()))
 			Expect(err).NotTo(HaveOccurred())
 
 			err = resource.SetResourceConfigScope(resourceConfigScope)

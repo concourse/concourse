@@ -440,7 +440,7 @@ var _ = Describe("CheckFactory", func() {
 			)
 			Expect(err).NotTo(HaveOccurred())
 
-			putOnlyResourceConfigScope, err = resourceConfig.FindOrCreateScope(putOnlyResource)
+			putOnlyResourceConfigScope, err = resourceConfig.FindOrCreateScope(intptr(putOnlyResource.ID()))
 			Expect(err).NotTo(HaveOccurred())
 
 			err = putOnlyResource.SetResourceConfigScope(putOnlyResourceConfigScope)
