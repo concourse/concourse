@@ -57,7 +57,7 @@ func (sweeper *volumeSweeper) Run(signals <-chan os.Signal, ready chan<- struct{
 func (sweeper *volumeSweeper) sweep(logger lager.Logger) {
 	ctx := lagerctx.NewContext(context.Background(), logger)
 
-	volumes, err := sweeper.baggageclaimClient.ListVolumes(logger.Session("list-volumes"), baggageclaim.VolumeProperties{})
+	volumes, err := sweeper.baggageclaimClient.ListVolumes(lagerctx.NewContext(ctx, logger.Session("list-volumes")), baggageclaim.VolumeProperties{})
 	if err != nil {
 		logger.Error("failed-to-list-volumes", err)
 	} else {
@@ -84,7 +84,7 @@ func (sweeper *volumeSweeper) sweep(logger lager.Logger) {
 			wg.Add(1)
 
 			go func(handle string) {
-				err := sweeper.baggageclaimClient.DestroyVolume(logger.Session("destroy-volumes"), handle)
+				err := sweeper.baggageclaimClient.DestroyVolume(lagerctx.NewContext(ctx, logger.Session("destroy-volumes")), handle)
 				if err != nil {
 					logger.WithData(lager.Data{"handle": handle}).Error("failed-to-destroy-volume", err)
 				}
