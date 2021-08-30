@@ -20,8 +20,8 @@ import (
 const btrfsFSType = 0x9123683e
 
 func (cmd *BaggageclaimCommand) driver(logger lager.Logger) (volume.Driver, error) {
-	var fsStat syscall.Statfs_t
-	err := syscall.Statfs(cmd.VolumesDir.Path(), &fsStat)
+	var volMountInfo syscall.Statfs_t
+	err := syscall.Statfs(cmd.VolumesDir.Path(), &volMountInfo)
 	if err != nil {
 		return nil, fmt.Errorf("failed to stat volumes filesystem: %s", err)
 	}
@@ -60,25 +60,34 @@ func (cmd *BaggageclaimCommand) driver(logger lager.Logger) (volume.Driver, erro
 	}
 
 	volumesDir := cmd.VolumesDir.Path()
+	btrfsImg := volumesDir + ".img"
+	btrfsFS := fs.New(logger.Session("fs"), btrfsImg, volumesDir, cmd.MkfsBin)
 
-	if cmd.Driver == "btrfs" && uint32(fsStat.Type) != btrfsFSType {
-		volumesImage := volumesDir + ".img"
-		filesystem := fs.New(logger.Session("fs"), volumesImage, volumesDir, cmd.MkfsBin)
-
-		diskSize := fsStat.Blocks * uint64(fsStat.Bsize)
+	if cmd.Driver == "btrfs" && !isMountBtrfs(volMountInfo) {
+		diskSize := volMountInfo.Blocks * uint64(volMountInfo.Bsize)
 		mountSize := diskSize - (10 * 1024 * 1024 * 1024)
 		if int64(mountSize) < 0 {
 			mountSize = diskSize
 		}
 
-		err = filesystem.Create(mountSize)
+		err = btrfsFS.Create(mountSize)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create btrfs filesystem: %s", err)
 		}
 	}
 
-	if cmd.Driver == "overlay" && !kernelSupportsOverlay {
-		return nil, errors.New("overlay driver requires kernel version >= 4.0.0")
+	if cmd.Driver == "overlay" {
+		if !kernelSupportsOverlay {
+			return nil, errors.New("overlay driver requires kernel version >= 4.0.0")
+		}
+		// Clean up existing btrfs mount so we don't make overlay mounts inside
+		// a btrfs mount. Stuff gets flakey otherwise
+		if isMountBtrfs(volMountInfo) {
+			err = btrfsFS.Delete()
+			if err != nil {
+				return nil, fmt.Errorf("failed to delete existing btrfs filesystem at %s: %s", cmd.VolumesDir.Path(), err)
+			}
+		}
 	}
 
 	logger.Info("using-driver", lager.Data{"driver": cmd.Driver})
@@ -126,4 +135,8 @@ func supportsFilesystem(fs string) (bool, error) {
 	}
 
 	return false, nil
+}
+
+func isMountBtrfs(volMountInfo syscall.Statfs_t) bool {
+	return uint32(volMountInfo.Type) == btrfsFSType
 }
