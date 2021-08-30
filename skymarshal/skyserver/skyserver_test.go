@@ -344,15 +344,15 @@ var _ = Describe("Sky Server API", func() {
 								request.URL.RawQuery = "code=some-code&state=" + stateToken
 							})
 
-							It("errors", func() {
-								Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+							It("returns 404", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 							})
 						})
 
-						Context("when redirect URI is https:example.com", func() {
+						Context("when redirect URI is //example.com", func() {
 							BeforeEach(func() {
 								state, _ := json.Marshal(map[string]string{
-									"redirect_uri": "https:google.com",
+									"redirect_uri": "//example.com",
 								})
 
 								stateToken := base64.StdEncoding.EncodeToString(state)
@@ -361,7 +361,41 @@ var _ = Describe("Sky Server API", func() {
 								request.URL.RawQuery = "code=some-code&state=" + stateToken
 							})
 
-							It("doesn't error on Get https:google.com", func() {
+							It("returns 404", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+							})
+						})
+
+						Context("when redirect URI is http:///example.com/path", func() {
+							BeforeEach(func() {
+								state, _ := json.Marshal(map[string]string{
+									"redirect_uri": "http:///example.com/path",
+								})
+
+								stateToken := base64.StdEncoding.EncodeToString(state)
+								fakeTokenMiddleware.GetStateTokenReturns(stateToken)
+
+								request.URL.RawQuery = "code=some-code&state=" + stateToken
+							})
+
+							It("returns 404", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+							})
+						})
+
+						Context("when redirect URI is https:example.com", func() {
+							BeforeEach(func() {
+								state, _ := json.Marshal(map[string]string{
+									"redirect_uri": "https:example.com",
+								})
+
+								stateToken := base64.StdEncoding.EncodeToString(state)
+								fakeTokenMiddleware.GetStateTokenReturns(stateToken)
+
+								request.URL.RawQuery = "code=some-code&state=" + stateToken
+							})
+
+							It("returns 404", func() {
 								Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 							})
 						})
@@ -378,8 +412,8 @@ var _ = Describe("Sky Server API", func() {
 								request.URL.RawQuery = "code=some-code&state=" + stateToken
 							})
 
-							It("errors", func() {
-								Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+							It("returns 404", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 							})
 						})
 
