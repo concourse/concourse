@@ -206,6 +206,7 @@ func tick(logger lager.Logger, m *Monitor) {
 				Attributes: map[string]string{
 					"platform":   labels.Platform,
 					"teamId":     labels.TeamId,
+					"teamName":   labels.TeamName,
 					"type":       labels.Type,
 					"workerTags": labels.WorkerTags,
 				},
