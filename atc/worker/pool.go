@@ -152,7 +152,8 @@ func (pool Pool) ReleaseWorker(logger lager.Logger, containerSpec runtime.Contai
 	}
 }
 
-func (pool Pool) FindResourceCacheVolume(logger lager.Logger, teamID int, resourceCache db.ResourceCache, workerSpec Spec) (runtime.Volume, bool, error) {
+func (pool Pool) FindResourceCacheVolume(ctx context.Context, teamID int, resourceCache db.ResourceCache, workerSpec Spec) (runtime.Volume, bool, error) {
+	logger := lagerctx.FromContext(ctx)
 	team := pool.db.TeamFactory.GetByID(teamID)
 	workersWithCache, err := team.FindWorkersForResourceCache(resourceCache.ID())
 	if err != nil {
@@ -167,7 +168,7 @@ func (pool Pool) FindResourceCacheVolume(logger lager.Logger, teamID int, resour
 
 	for _, worker := range workersWithCache {
 		if pool.isWorkerCompatibleAndRunning(logger, worker, workerSpec) {
-			volume, found, err := pool.findResourceCacheVolumeOnWorker(logger, worker, resourceCache)
+			volume, found, err := pool.findResourceCacheVolumeOnWorker(ctx, worker, resourceCache)
 			if err != nil {
 				logger.Debug("ignore-find-volume-for-resource-cache-error",
 					lager.Data{
@@ -187,7 +188,7 @@ func (pool Pool) FindResourceCacheVolume(logger lager.Logger, teamID int, resour
 	return nil, false, nil
 }
 
-func (pool Pool) FindResourceCacheVolumeOnWorker(logger lager.Logger, resourceCache db.ResourceCache, workerSpec Spec, workerName string) (runtime.Volume, bool, error) {
+func (pool Pool) FindResourceCacheVolumeOnWorker(ctx context.Context, resourceCache db.ResourceCache, workerSpec Spec, workerName string) (runtime.Volume, bool, error) {
 	worker, found, err := pool.db.WorkerFactory.GetWorker(workerName)
 	if err != nil {
 		return nil, false, err
@@ -195,13 +196,13 @@ func (pool Pool) FindResourceCacheVolumeOnWorker(logger lager.Logger, resourceCa
 	if !found {
 		return nil, false, nil
 	}
-	if !pool.isWorkerCompatibleAndRunning(logger, worker, workerSpec) {
+	if !pool.isWorkerCompatibleAndRunning(lagerctx.FromContext(ctx), worker, workerSpec) {
 		return nil, false, nil
 	}
-	return pool.findResourceCacheVolumeOnWorker(logger, worker, resourceCache)
+	return pool.findResourceCacheVolumeOnWorker(ctx, worker, resourceCache)
 }
 
-func (pool Pool) findResourceCacheVolumeOnWorker(logger lager.Logger, dbWorker db.Worker, resourceCache db.ResourceCache) (runtime.Volume, bool, error) {
+func (pool Pool) findResourceCacheVolumeOnWorker(ctx context.Context, dbWorker db.Worker, resourceCache db.ResourceCache) (runtime.Volume, bool, error) {
 	volume, found, err := pool.db.VolumeRepo.FindResourceCacheVolume(dbWorker.Name(), resourceCache)
 	if err != nil {
 		return nil, false, err
@@ -209,8 +210,8 @@ func (pool Pool) findResourceCacheVolumeOnWorker(logger lager.Logger, dbWorker d
 	if !found {
 		return nil, false, nil
 	}
-	worker := pool.factory.NewWorker(logger, dbWorker)
-	return worker.LookupVolume(logger, volume.Handle())
+	worker := pool.factory.NewWorker(lagerctx.FromContext(ctx), dbWorker)
+	return worker.LookupVolume(ctx, volume.Handle())
 }
 
 func (pool Pool) FindWorkerForContainer(logger lager.Logger, owner db.ContainerOwner, workerSpec Spec) (runtime.Worker, bool, error) {
@@ -259,8 +260,8 @@ func (pool Pool) FindWorker(logger lager.Logger, name string) (runtime.Worker, b
 	return pool.factory.NewWorker(logger, worker), true, nil
 }
 
-func (pool Pool) LocateVolume(logger lager.Logger, teamID int, handle string) (runtime.Volume, runtime.Worker, bool, error) {
-	logger = logger.Session("worker-for-volume", lager.Data{"handle": handle, "team-id": teamID})
+func (pool Pool) LocateVolume(ctx context.Context, teamID int, handle string) (runtime.Volume, runtime.Worker, bool, error) {
+	logger := lagerctx.FromContext(ctx).Session("worker-for-volume", lager.Data{"handle": handle, "team-id": teamID})
 	team := pool.db.TeamFactory.GetByID(teamID)
 
 	dbWorker, found, err := team.FindWorkerForVolume(handle)
@@ -280,7 +281,7 @@ func (pool Pool) LocateVolume(logger lager.Logger, teamID int, handle string) (r
 
 	worker := pool.factory.NewWorker(logger, dbWorker)
 
-	volume, found, err := worker.LookupVolume(logger, handle)
+	volume, found, err := worker.LookupVolume(ctx, handle)
 	if err != nil {
 		logger.Error("failed-to-lookup-volume", err)
 		return nil, nil, false, err
@@ -293,8 +294,8 @@ func (pool Pool) LocateVolume(logger lager.Logger, teamID int, handle string) (r
 	return volume, worker, true, nil
 }
 
-func (pool Pool) LocateContainer(logger lager.Logger, teamID int, handle string) (runtime.Container, runtime.Worker, bool, error) {
-	logger = logger.Session("worker-for-container", lager.Data{"handle": handle, "team-id": teamID})
+func (pool Pool) LocateContainer(ctx context.Context, teamID int, handle string) (runtime.Container, runtime.Worker, bool, error) {
+	logger := lagerctx.FromContext(ctx).Session("worker-for-container", lager.Data{"handle": handle, "team-id": teamID})
 	team := pool.db.TeamFactory.GetByID(teamID)
 
 	dbWorker, found, err := team.FindWorkerForContainer(handle)
@@ -314,7 +315,7 @@ func (pool Pool) LocateContainer(logger lager.Logger, teamID int, handle string)
 
 	worker := pool.factory.NewWorker(logger, dbWorker)
 
-	container, found, err := worker.LookupContainer(logger, handle)
+	container, found, err := worker.LookupContainer(ctx, handle)
 	if err != nil {
 		logger.Error("failed-to-lookup-container", err)
 		return nil, nil, false, err
@@ -327,14 +328,15 @@ func (pool Pool) LocateContainer(logger lager.Logger, teamID int, handle string)
 	return container, worker, true, nil
 }
 
-func (pool Pool) CreateVolumeForArtifact(logger lager.Logger, spec Spec) (runtime.Volume, db.WorkerArtifact, error) {
+func (pool Pool) CreateVolumeForArtifact(ctx context.Context, spec Spec) (runtime.Volume, db.WorkerArtifact, error) {
+	logger := lagerctx.FromContext(ctx)
 	compatibleWorkers, err := pool.allCompatibleAndRunningWorkers(logger, spec)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	worker := pool.factory.NewWorker(logger, compatibleWorkers[rand.Intn(len(compatibleWorkers))])
-	return worker.CreateVolumeForArtifact(logger, spec.TeamID)
+	return worker.CreateVolumeForArtifact(ctx, spec.TeamID)
 }
 
 func (pool Pool) allCompatibleAndRunningWorkers(logger lager.Logger, spec Spec) ([]db.Worker, error) {

@@ -1,6 +1,8 @@
 package workertest
 
 import (
+	"context"
+
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse"
 	"github.com/concourse/concourse/atc"
@@ -117,7 +119,7 @@ func (s *Scenario) Worker(name string) runtime.Worker {
 
 func (s *Scenario) WorkerVolume(workerName string, handle string) runtime.Volume {
 	worker := s.Worker(workerName)
-	volume, found, err := worker.LookupVolume(dummyLogger, handle)
+	volume, found, err := worker.LookupVolume(context.Background(), handle)
 	Expect(err).ToNot(HaveOccurred())
 	Expect(found).To(BeTrue(), "missing volume %q on worker %q", handle, workerName)
 	return volume

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"reflect"
 
-	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/runtime"
@@ -69,7 +68,7 @@ func (w Worker) Name() string {
 	return w.WorkerName
 }
 
-func (w Worker) CreateVolumeForArtifact(logger lager.Logger, teamID int) (runtime.Volume, db.WorkerArtifact, error) {
+func (w Worker) CreateVolumeForArtifact(ctx context.Context, teamID int) (runtime.Volume, db.WorkerArtifact, error) {
 	panic("unimplemented")
 }
 
@@ -92,11 +91,11 @@ func (w Worker) FindContainerByOwner(owner db.ContainerOwner) (*WorkerContainer,
 	return nil, 0, false
 }
 
-func (w Worker) LookupContainer(logger lager.Logger, handle string) (runtime.Container, bool, error) {
+func (w Worker) LookupContainer(ctx context.Context, handle string) (runtime.Container, bool, error) {
 	panic("unimplemented")
 }
 
-func (w Worker) LookupVolume(logger lager.Logger, handle string) (runtime.Volume, bool, error) {
+func (w Worker) LookupVolume(ctx context.Context, handle string) (runtime.Volume, bool, error) {
 	for _, volume := range w.Volumes {
 		if volume.Handle() == handle {
 			return volume, true, nil

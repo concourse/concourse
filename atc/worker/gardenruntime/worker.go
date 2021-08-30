@@ -68,8 +68,7 @@ func (worker *Worker) FindOrCreateContainer(
 	metadata db.ContainerMetadata,
 	containerSpec runtime.ContainerSpec,
 ) (runtime.Container, []runtime.VolumeMount, error) {
-	logger := lagerctx.FromContext(ctx)
-	c, mounts, err := worker.findOrCreateContainer(ctx, logger, owner, metadata, containerSpec)
+	c, mounts, err := worker.findOrCreateContainer(ctx, owner, metadata, containerSpec)
 	if err != nil {
 		return nil, nil, fmt.Errorf("find or create container on worker %s: %w", worker.Name(), err)
 	}
@@ -78,11 +77,11 @@ func (worker *Worker) FindOrCreateContainer(
 
 func (worker *Worker) findOrCreateContainer(
 	ctx context.Context,
-	logger lager.Logger,
 	owner db.ContainerOwner,
 	metadata db.ContainerMetadata,
 	containerSpec runtime.ContainerSpec,
 ) (runtime.Container, []runtime.VolumeMount, error) {
+	logger := lagerctx.FromContext(ctx)
 	creatingContainer, createdContainer, err := worker.dbWorker.FindContainer(owner)
 	if err != nil {
 		return nil, nil, fmt.Errorf("find in db: %w", err)
@@ -127,7 +126,7 @@ func (worker *Worker) findOrCreateContainer(
 			return nil, nil, garden.ContainerNotFoundError{Handle: containerHandle}
 		}
 		return worker.constructContainer(
-			logger,
+			ctx,
 			createdContainer,
 			gardenContainer,
 		)
@@ -137,7 +136,7 @@ func (worker *Worker) findOrCreateContainer(
 	// will create one. If it does exist, we will transition the creatingContainer
 	// to created and return a worker.Container
 	if gardenContainer == nil {
-		gardenContainer, err = worker.createGardenContainer(ctx, logger, containerSpec, creatingContainer)
+		gardenContainer, err = worker.createGardenContainer(ctx, containerSpec, creatingContainer)
 		if err != nil {
 			logger.Error("failed-to-create-container-in-garden", err)
 			markContainerAsFailed(logger, creatingContainer)
@@ -158,7 +157,7 @@ func (worker *Worker) findOrCreateContainer(
 	metric.Metrics.ContainersCreated.Inc()
 
 	return worker.constructContainer(
-		logger,
+		ctx,
 		createdContainer,
 		gardenContainer,
 	)
@@ -166,13 +165,12 @@ func (worker *Worker) findOrCreateContainer(
 
 func (worker *Worker) createGardenContainer(
 	ctx context.Context,
-	logger lager.Logger,
 	containerSpec runtime.ContainerSpec,
 	creatingContainer db.CreatingContainer,
 ) (gclient.Container, error) {
+	logger := lagerctx.FromContext(ctx)
 	fetchedImage, err := worker.fetchImageForContainer(
 		ctx,
-		logger,
 		containerSpec.ImageSpec,
 		containerSpec.TeamID,
 		creatingContainer,
@@ -183,14 +181,14 @@ func (worker *Worker) createGardenContainer(
 		return nil, err
 	}
 
-	volumeMounts, err := worker.createVolumes(ctx, logger, fetchedImage.Privileged, creatingContainer, containerSpec)
+	volumeMounts, err := worker.createVolumes(ctx, fetchedImage.Privileged, creatingContainer, containerSpec)
 	if err != nil {
 		logger.Error("failed-to-create-volume-mounts-for-container", err)
 		markContainerAsFailed(logger, creatingContainer)
 		return nil, err
 	}
 
-	bindMounts, err := worker.getBindMounts(logger, volumeMounts, containerSpec)
+	bindMounts, err := worker.getBindMounts(ctx, volumeMounts, containerSpec)
 	if err != nil {
 		logger.Error("failed-to-create-bind-mounts-for-container", err)
 		markContainerAsFailed(logger, creatingContainer)
@@ -239,11 +237,11 @@ func (worker *Worker) containerEnv(containerSpec runtime.ContainerSpec, fetchedI
 }
 
 func (worker *Worker) constructContainer(
-	logger lager.Logger,
+	ctx context.Context,
 	createdContainer db.CreatedContainer,
 	gardenContainer gclient.Container,
 ) (Container, []runtime.VolumeMount, error) {
-	logger = logger.WithData(
+	logger := lagerctx.FromContext(ctx).WithData(
 		lager.Data{
 			"container": createdContainer.Handle(),
 			"worker":    worker.Name(),
@@ -266,7 +264,7 @@ func (worker *Worker) constructContainer(
 			"handle": dbVolume.Handle(),
 		})
 
-		volume, found, err := worker.LookupVolume(logger, dbVolume.Handle())
+		volume, found, err := worker.LookupVolume(ctx, dbVolume.Handle())
 		if err != nil {
 			volumeLogger.Error("failed-to-lookup-volume", err)
 			return Container{}, nil, err
@@ -299,7 +297,6 @@ func (worker *Worker) constructContainer(
 // * caches (COW if exists, empty otherwise)
 func (worker *Worker) createVolumes(
 	ctx context.Context,
-	logger lager.Logger,
 	privileged bool,
 	creatingContainer db.CreatingContainer,
 	spec runtime.ContainerSpec,
@@ -307,7 +304,7 @@ func (worker *Worker) createVolumes(
 	var volumeMounts []runtime.VolumeMount
 
 	scratchVolume, err := worker.findOrCreateVolumeForContainer(
-		logger,
+		ctx,
 		baggageclaim.VolumeSpec{
 			Strategy:   baggageclaim.EmptyStrategy{},
 			Privileged: privileged,
@@ -327,17 +324,17 @@ func (worker *Worker) createVolumes(
 
 	volumeMounts = append(volumeMounts, scratchMount)
 
-	inputVolumeMounts, inputDestinationPaths, err := worker.cloneInputVolumes(ctx, logger, spec, privileged, creatingContainer)
+	inputVolumeMounts, inputDestinationPaths, err := worker.cloneInputVolumes(ctx, spec, privileged, creatingContainer)
 	if err != nil {
 		return nil, err
 	}
 
-	outputVolumeMounts, err := worker.createOutputVolumes(logger, spec, privileged, creatingContainer, inputDestinationPaths)
+	outputVolumeMounts, err := worker.createOutputVolumes(ctx, spec, privileged, creatingContainer, inputDestinationPaths)
 	if err != nil {
 		return nil, err
 	}
 
-	cacheVolumeMounts, err := worker.cloneCacheVolumes(logger, spec, privileged, creatingContainer)
+	cacheVolumeMounts, err := worker.cloneCacheVolumes(ctx, spec, privileged, creatingContainer)
 	if err != nil {
 		return nil, err
 	}
@@ -349,7 +346,7 @@ func (worker *Worker) createVolumes(
 	// otherwise, we must create a new empty volume
 	if spec.Dir != "" && !anyMountTo(spec.Dir, ioVolumeMounts) {
 		workdirVolume, err := worker.findOrCreateVolumeForContainer(
-			logger,
+			ctx,
 			baggageclaim.VolumeSpec{
 				Strategy:   baggageclaim.EmptyStrategy{},
 				Privileged: privileged,
@@ -386,7 +383,6 @@ type remoteInput struct {
 
 func (worker *Worker) cloneInputVolumes(
 	ctx context.Context,
-	logger lager.Logger,
 	spec runtime.ContainerSpec,
 	privileged bool,
 	container db.CreatingContainer,
@@ -397,7 +393,7 @@ func (worker *Worker) cloneInputVolumes(
 	var remoteInputs []remoteInput
 
 	for _, input := range spec.Inputs {
-		volume, ok, err := worker.findVolumeForArtifact(logger, spec.TeamID, input.Artifact)
+		volume, ok, err := worker.findVolumeForArtifact(ctx, spec.TeamID, input.Artifact)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -418,7 +414,7 @@ func (worker *Worker) cloneInputVolumes(
 		}
 	}
 
-	locallyClonedVolumes, err := worker.streamRemoteInputVolumes(ctx, logger, spec, privileged, container, remoteInputs)
+	locallyClonedVolumes, err := worker.streamRemoteInputVolumes(ctx, spec, privileged, container, remoteInputs)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -429,7 +425,7 @@ func (worker *Worker) cloneInputVolumes(
 	// steps.
 	localInputs = append(localInputs, locallyClonedVolumes...)
 
-	mounts, err := worker.cloneLocalInputVolumes(logger, spec, privileged, container, localInputs)
+	mounts, err := worker.cloneLocalInputVolumes(ctx, spec, privileged, container, localInputs)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -438,7 +434,7 @@ func (worker *Worker) cloneInputVolumes(
 }
 
 func (worker *Worker) cloneLocalInputVolumes(
-	logger lager.Logger,
+	ctx context.Context,
 	spec runtime.ContainerSpec,
 	privileged bool,
 	container db.CreatingContainer,
@@ -448,7 +444,7 @@ func (worker *Worker) cloneLocalInputVolumes(
 
 	for i, input := range inputs {
 		cowVolume, err := worker.findOrCreateCOWVolumeForContainer(
-			logger,
+			ctx,
 			privileged,
 			container,
 			input.cowParent,
@@ -469,12 +465,12 @@ func (worker *Worker) cloneLocalInputVolumes(
 
 func (worker *Worker) streamRemoteInputVolumes(
 	ctx context.Context,
-	logger lager.Logger,
 	spec runtime.ContainerSpec,
 	privileged bool,
 	container db.CreatingContainer,
 	inputs []remoteInput,
 ) ([]mountableLocalInput, error) {
+	logger := lagerctx.FromContext(ctx)
 	if len(inputs) == 0 {
 		return nil, nil
 	}
@@ -498,7 +494,7 @@ func (worker *Worker) streamRemoteInputVolumes(
 		// findOrCreateVolumeForContainer so we can distinguish between
 		// streamed-in volumes and mounted volumes.
 		streamedVolume, err := worker.findOrCreateVolumeForStreaming(
-			logger,
+			ctx,
 			privileged,
 			container,
 			spec.TeamID,
@@ -528,7 +524,7 @@ func (worker *Worker) streamRemoteInputVolumes(
 }
 
 func (worker *Worker) createOutputVolumes(
-	logger lager.Logger,
+	ctx context.Context,
 	spec runtime.ContainerSpec,
 	privileged bool,
 	container db.CreatingContainer,
@@ -545,7 +541,7 @@ func (worker *Worker) createOutputVolumes(
 		}
 
 		outVolume, err := worker.findOrCreateVolumeForContainer(
-			logger,
+			ctx,
 			baggageclaim.VolumeSpec{
 				Strategy:   baggageclaim.EmptyStrategy{},
 				Privileged: privileged,
@@ -568,7 +564,7 @@ func (worker *Worker) createOutputVolumes(
 }
 
 func (worker *Worker) cloneCacheVolumes(
-	logger lager.Logger,
+	ctx context.Context,
 	spec runtime.ContainerSpec,
 	privileged bool,
 	container db.CreatingContainer,
@@ -579,7 +575,7 @@ func (worker *Worker) cloneCacheVolumes(
 		cachePath = filepath.Clean(cachePath)
 
 		// TODO: skip over cache if path already used?
-		volume, found, err := worker.findVolumeForTaskCache(logger, spec.TeamID, spec.JobID, spec.StepName, cachePath)
+		volume, found, err := worker.findVolumeForTaskCache(ctx, spec.TeamID, spec.JobID, spec.StepName, cachePath)
 		if err != nil {
 			return nil, err
 		}
@@ -594,7 +590,7 @@ func (worker *Worker) cloneCacheVolumes(
 			// create COW volumes for caches in case multiple builds are
 			// running with the same cache
 			mountedVolume, err = worker.findOrCreateCOWVolumeForContainer(
-				logger,
+				ctx,
 				privileged,
 				container,
 				volume,
@@ -609,7 +605,7 @@ func (worker *Worker) cloneCacheVolumes(
 			// host. these will become the new base cache volume for future
 			// builds
 			mountedVolume, err = worker.findOrCreateVolumeForContainer(
-				logger,
+				ctx,
 				baggageclaim.VolumeSpec{
 					Strategy:   baggageclaim.EmptyStrategy{},
 					Privileged: privileged,
@@ -632,7 +628,7 @@ func (worker *Worker) cloneCacheVolumes(
 	return mounts, nil
 }
 
-func (worker *Worker) getBindMounts(logger lager.Logger, volumeMounts []runtime.VolumeMount, spec runtime.ContainerSpec) ([]garden.BindMount, error) {
+func (worker *Worker) getBindMounts(ctx context.Context, volumeMounts []runtime.VolumeMount, spec runtime.ContainerSpec) ([]garden.BindMount, error) {
 	var bindMounts []garden.BindMount
 
 	for _, volumeMount := range volumeMounts {
@@ -644,7 +640,7 @@ func (worker *Worker) getBindMounts(logger lager.Logger, volumeMounts []runtime.
 	}
 
 	if spec.CertsBindMount {
-		certsVolume, found, err := worker.findOrCreateVolumeForResourceCerts(logger.Session("worker-certs-volume"))
+		certsVolume, found, err := worker.findOrCreateVolumeForResourceCerts(lagerctx.NewContext(ctx, lagerctx.FromContext(ctx).Session("worker-certs-volume")))
 		if err != nil {
 			return nil, err
 		}

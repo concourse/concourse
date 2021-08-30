@@ -13,7 +13,7 @@ func (s *Server) GetArtifact(team db.Team) http.Handler {
 	logger := s.logger.Session("get-artifact")
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
+		ctx := r.Context()
 		w.Header().Set("Content-Type", "application/octet-stream")
 
 		artifactID, err := strconv.Atoi(r.FormValue(":artifact_id"))
@@ -36,7 +36,7 @@ func (s *Server) GetArtifact(team db.Team) http.Handler {
 			return
 		}
 
-		volume, _, found, err := s.workerPool.LocateVolume(logger, team.ID(), artifactVolume.Handle())
+		volume, _, found, err := s.workerPool.LocateVolume(ctx, team.ID(), artifactVolume.Handle())
 		if err != nil {
 			logger.Error("failed-to-get-worker-volume", err)
 			w.WriteHeader(http.StatusInternalServerError)

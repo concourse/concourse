@@ -1,6 +1,7 @@
 package containerserver
 
 import (
+	"context"
 	"time"
 
 	"code.cloudfoundry.org/clock"
@@ -11,7 +12,7 @@ import (
 )
 
 type Pool interface {
-	LocateContainer(logger lager.Logger, teamID int, handle string) (runtime.Container, runtime.Worker, bool, error)
+	LocateContainer(ctx context.Context, teamID int, handle string) (runtime.Container, runtime.Worker, bool, error)
 }
 
 type Server struct {

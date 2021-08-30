@@ -83,13 +83,14 @@ func (t *interceptTimeout) Error() error {
 
 func (s *Server) HijackContainer(team db.Team) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 		handle := r.FormValue(":id")
 
 		hLog := s.logger.Session("hijack", lager.Data{
 			"handle": handle,
 		})
 
-		container, _, found, err := s.workerPool.LocateContainer(hLog, team.ID(), handle)
+		container, _, found, err := s.workerPool.LocateContainer(ctx, team.ID(), handle)
 		if err != nil {
 			hLog.Error("failed-to-find-container", err)
 			w.WriteHeader(http.StatusInternalServerError)

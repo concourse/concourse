@@ -309,7 +309,7 @@ func (step *GetStep) retrieveFromCacheOrPerformGet(
 	//     * If lock acquisition succeeded, then run the get script and
 	//       initialize the volume as a resource cache.
 	attemptGet := func() (runtime.Volume, resource.VersionResult, runtime.ProcessResult, bool, error) {
-		volume, versionResult, found, err := step.retrieveFromCache(logger, resourceCache, workerSpec, worker)
+		volume, versionResult, found, err := step.retrieveFromCache(ctx, resourceCache, workerSpec, worker)
 		if err != nil {
 			return volume, resource.VersionResult{}, runtime.ProcessResult{}, false, err
 		}
@@ -378,7 +378,7 @@ func (step *GetStep) retrieveFromCacheOrPerformGet(
 }
 
 func (step *GetStep) retrieveFromCache(
-	logger lager.Logger,
+	ctx context.Context,
 	resourceCache db.ResourceCache,
 	workerSpec worker.Spec,
 	worker runtime.Worker, // may be nil, in which case all compatible workers are possible candidates
@@ -389,9 +389,9 @@ func (step *GetStep) retrieveFromCache(
 		err    error
 	)
 	if worker == nil {
-		volume, found, err = step.workerPool.FindResourceCacheVolume(logger, step.metadata.TeamID, resourceCache, workerSpec)
+		volume, found, err = step.workerPool.FindResourceCacheVolume(ctx, step.metadata.TeamID, resourceCache, workerSpec)
 	} else {
-		volume, found, err = step.workerPool.FindResourceCacheVolumeOnWorker(logger, resourceCache, workerSpec, worker.Name())
+		volume, found, err = step.workerPool.FindResourceCacheVolumeOnWorker(ctx, resourceCache, workerSpec, worker.Name())
 	}
 	if err != nil {
 		return nil, resource.VersionResult{}, false, err
@@ -477,7 +477,7 @@ func (step *GetStep) performGetAndInitCache(
 
 	volume := step.resourceMountVolume(mounts)
 
-	if err := volume.InitializeResourceCache(logger, resourceCache); err != nil {
+	if err := volume.InitializeResourceCache(ctx, resourceCache); err != nil {
 		logger.Error("failed-to-initialize-resource-cache", err)
 		return nil, resource.VersionResult{}, runtime.ProcessResult{}, err
 	}

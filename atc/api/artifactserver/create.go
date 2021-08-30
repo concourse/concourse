@@ -14,6 +14,7 @@ func (s *Server) CreateArtifact(team db.Team) http.Handler {
 	hLog := s.logger.Session("create-artifact")
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 		w.Header().Set("Content-Type", "application/json")
 
 		// TODO: can probably check if fly sent us an etag header
@@ -26,7 +27,7 @@ func (s *Server) CreateArtifact(team db.Team) http.Handler {
 			Tags:     r.Form["tags"],
 		}
 
-		volume, artifact, err := s.workerPool.CreateVolumeForArtifact(hLog, workerSpec)
+		volume, artifact, err := s.workerPool.CreateVolumeForArtifact(ctx, workerSpec)
 		if err != nil {
 			hLog.Error("failed-to-create-volume", err)
 			w.WriteHeader(http.StatusInternalServerError)
