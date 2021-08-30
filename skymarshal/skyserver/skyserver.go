@@ -160,14 +160,14 @@ func (s *SkyServer) Callback(w http.ResponseWriter, r *http.Request) {
 func (s *SkyServer) Redirect(w http.ResponseWriter, r *http.Request, oauth2Token *oauth2.Token, redirectURI string) {
 	logger := s.config.Logger.Session("redirect")
 
-	redirectURL, err := url.ParseRequestURI(redirectURI)
+	redirectURL, err := url.ParseRequestURI("/" + strings.TrimLeft(redirectURI, "/"))
 	if err != nil {
 		logger.Error("failed-to-parse-redirect-url", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	if redirectURL.Host != "" {
+	if redirectURL.Host != "" || redirectURL.Scheme != "" {
 		logger.Error("invalid-redirect", fmt.Errorf("Unsupported redirect uri: %s", redirectURI))
 		w.WriteHeader(http.StatusBadRequest)
 		return
