@@ -443,6 +443,12 @@ func (step *GetStep) performGetAndInitCache(
 	// front.
 	if worker == nil {
 		var err error
+
+		err = delegate.BeforeSelectWorker(logger)
+		if err != nil {
+			return nil, resource.VersionResult{}, runtime.ProcessResult{}, err
+		}
+
 		worker, err = step.workerPool.FindOrSelectWorker(ctx, containerOwner, containerSpec, workerSpec, step.strategy, delegate)
 		if err != nil {
 			logger.Error("failed-to-select-worker", err)

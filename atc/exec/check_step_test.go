@@ -114,7 +114,7 @@ var _ = Describe("CheckStep", func() {
 
 		fakeResourceConfigScope = new(dbfakes.FakeResourceConfigScope)
 		fakeDelegate.FindOrCreateScopeReturns(fakeResourceConfigScope, nil)
-		fakeDelegate.UpdateScopeLastCheckStartTimeStub = func(scope db.ResourceConfigScope) (bool, int, error) {
+		fakeDelegate.UpdateScopeLastCheckStartTimeStub = func(scope db.ResourceConfigScope, nestedCheck bool) (bool, int, error) {
 			found, err := scope.UpdateLastCheckStartTime(int(time.Now().Unix()), nil)
 			return found, 678, err
 		}
@@ -161,12 +161,6 @@ var _ = Describe("CheckStep", func() {
 	Context("with a reasonable configuration", func() {
 		It("emits an Initializing event", func() {
 			Expect(fakeDelegate.InitializingCallCount()).To(Equal(1))
-		})
-
-		It("points the resource or resource type to the scope", func() {
-			Expect(fakeDelegate.PointToCheckedConfigCallCount()).To(Equal(1))
-			scope := fakeDelegate.PointToCheckedConfigArgsForCall(0)
-			Expect(scope).To(Equal(fakeResourceConfigScope))
 		})
 
 		Context("when not running", func() {
@@ -265,7 +259,7 @@ var _ = Describe("CheckStep", func() {
 					ctx, _, _, workerSpec, _, _ = fakePool.FindOrSelectWorkerArgsForCall(0)
 				})
 
-				It("get container owner from delegate", func(){
+				It("get container owner from delegate", func() {
 					Expect(fakeDelegate.ContainerOwnerCallCount()).To(Equal(1))
 				})
 
@@ -296,8 +290,6 @@ var _ = Describe("CheckStep", func() {
 
 				It("emits a BeforeSelectWorker event", func() {
 					Expect(fakeDelegate.BeforeSelectWorkerCallCount()).To(Equal(1))
-					_, workerName := fakeDelegate.SelectedWorkerArgsForCall(0)
-					Expect(workerName).To(Equal("worker"))
 				})
 
 				It("emits a SelectedWorker event", func() {
@@ -414,8 +406,64 @@ var _ = Describe("CheckStep", func() {
 						fakePool.FindOrSelectWorkerReturns(chosenWorker, nil)
 					})
 
+					It("points the resource or resource type to the scope", func() {
+						Expect(fakeDelegate.PointToCheckedConfigCallCount()).To(Equal(1))
+						scope := fakeDelegate.PointToCheckedConfigArgsForCall(0)
+						Expect(scope).To(Equal(fakeResourceConfigScope))
+					})
+
 					It("uses ResourceConfigCheckSessionOwner", func() {
 						Expect(chosenContainer.RunningProcesses()).To(HaveLen(1))
+					})
+
+					It("update scope's check start time", func() {
+						Expect(fakeDelegate.UpdateScopeLastCheckStartTimeCallCount()).To(Equal(1))
+						scope, nestedStep := fakeDelegate.UpdateScopeLastCheckStartTimeArgsForCall(0)
+						Expect(scope).To(Equal(fakeResourceConfigScope))
+						Expect(nestedStep).To(BeFalse())
+					})
+				})
+
+				Context("when the plan is nested", func() {
+					BeforeEach(func() {
+						checkPlan.Resource = ""
+
+						expectedOwner = db.NewBuildStepContainerOwner(
+							501,
+							atc.PlanID("502"),
+							503,
+						)
+						fakeDelegate.ContainerOwnerReturns(expectedOwner)
+
+						chosenWorker = runtimetest.NewWorker("worker").
+							WithContainer(
+								expectedOwner,
+								runtimetest.NewContainer().WithProcess(
+									runtime.ProcessSpec{
+										Path: "/opt/resource/check",
+									},
+									runtimetest.ProcessStub{},
+								),
+								nil,
+							)
+						chosenContainer = chosenWorker.Containers[0]
+						fakePool.FindOrSelectWorkerReturns(chosenWorker, nil)
+					})
+
+					It("not points the resource or resource type to the scope", func() {
+						Expect(fakeDelegate.PointToCheckedConfigCallCount()).To(Equal(0))
+					})
+
+					It("uses delegate's container owner", func() {
+						Expect(fakeDelegate.ContainerOwnerCallCount()).To(Equal(1))
+						Expect(chosenContainer.RunningProcesses()).To(HaveLen(1))
+					})
+
+					It("update scope's check start time", func() {
+						Expect(fakeDelegate.UpdateScopeLastCheckStartTimeCallCount()).To(Equal(1))
+						scope, nestedStep := fakeDelegate.UpdateScopeLastCheckStartTimeArgsForCall(0)
+						Expect(scope).To(Equal(fakeResourceConfigScope))
+						Expect(nestedStep).To(BeTrue())
 					})
 				})
 

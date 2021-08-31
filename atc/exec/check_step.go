@@ -43,7 +43,7 @@ type CheckDelegate interface {
 	FindOrCreateScope(db.ResourceConfig) (db.ResourceConfigScope, error)
 	WaitToRun(context.Context, db.ResourceConfigScope) (lock.Lock, bool, error)
 	PointToCheckedConfig(db.ResourceConfigScope) error
-	UpdateScopeLastCheckStartTime(db.ResourceConfigScope) (bool, int, error)
+	UpdateScopeLastCheckStartTime(db.ResourceConfigScope, bool) (bool, int, error)
 	UpdateScopeLastCheckEndTime(db.ResourceConfigScope, bool) (bool, error)
 }
 
@@ -144,9 +144,11 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 	// Point scope to resource before check runs. Because a resource's check build
 	// summary is associated with scope, only after pointing to scope, check status
 	// can be fetched.
-	err = delegate.PointToCheckedConfig(scope)
-	if err != nil {
-		return false, fmt.Errorf("update resource config scope: %w", err)
+	if step.plan.Resource != "" {
+		err = delegate.PointToCheckedConfig(scope)
+		if err != nil {
+			return false, fmt.Errorf("update resource config scope: %w", err)
+		}
 	}
 
 	lock, run, err := delegate.WaitToRun(ctx, scope)
@@ -178,14 +180,16 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 
 		metric.Metrics.ChecksStarted.Inc()
 
-		_, buildId, err := delegate.UpdateScopeLastCheckStartTime(scope)
+		_, buildId, err := delegate.UpdateScopeLastCheckStartTime(scope, (step.plan.Resource == ""))
 		if err != nil {
 			return false, fmt.Errorf("update check start time: %w", err)
 		}
 
-		// Update build id in logger as in-memory build's id is only generated when starts to run check.
-		logger = logger.WithData(lager.Data{"build": buildId})
-		ctx = lagerctx.NewContext(ctx, logger)
+		if buildId != 0 {
+			// Update build id in logger as in-memory build's id is only generated when starts to run check.
+			logger = logger.WithData(lager.Data{"build": buildId})
+			ctx = lagerctx.NewContext(ctx, logger)
+		}
 
 		versions, processResult, runErr := step.runCheck(ctx, logger, delegate, timeout, imageSpec, resourceConfig, source, fromVersion)
 		if runErr != nil || processResult.ExitStatus != 0 {
@@ -193,10 +197,6 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 
 			if _, err := delegate.UpdateScopeLastCheckEndTime(scope, false); err != nil {
 				return false, fmt.Errorf("update check end time: %w", err)
-			}
-
-			if err := delegate.PointToCheckedConfig(scope); err != nil {
-				return false, fmt.Errorf("update resource config scope: %w", err)
 			}
 
 			if errors.Is(runErr, context.DeadlineExceeded) {

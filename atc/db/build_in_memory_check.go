@@ -90,10 +90,6 @@ func (b *inMemoryCheckBuildForApi) LagerData() lager.Data {
 		"pipeline": b.PipelineName(),
 	}
 
-	//if b.preId != 0 {
-	//	data["pre_build_id"] = b.preId
-	//}
-
 	if b.id != 0 {
 		data["build_id"] = b.id
 	}
@@ -195,9 +191,11 @@ func (b *inMemoryCheckBuildForApi) Events(from uint) (EventSource, error) {
 			completed := false
 
 			var lastCheckStartTime, lastCheckEndTime pq.NullTime
-			err = psql.Select("last_check_start_time", "last_check_end_time").
-				From("resource_config_scopes").
-				Where(sq.Eq{"last_check_build_id": buildID}).
+			err = psql.Select("rcs.last_check_start_time", "rcs.last_check_end_time").
+				From("resource_config_scopes rcs").
+				Join("resources r ON r.resource_config_scope_id = rcs.id").
+				Where(sq.Eq{"r.id": b.resourceId}).
+				Where(sq.Eq{"rcs.last_check_build_id": buildID}).
 				RunWith(tx).
 				QueryRow().
 				Scan(&lastCheckStartTime, &lastCheckEndTime)
@@ -206,6 +204,7 @@ func (b *inMemoryCheckBuildForApi) Events(from uint) (EventSource, error) {
 					var one int
 					err = psql.Select("1").
 						From("resources").
+						Where(sq.Eq{"id": b.resourceId}).
 						Where(sq.Eq{"in_memory_build_id": buildID}).
 						RunWith(tx).
 						QueryRow().

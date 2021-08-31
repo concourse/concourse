@@ -204,11 +204,15 @@ func (r *resourceConfigScope) UpdateLastCheckStartTime(buildId int, publicPlan *
 
 	defer Rollback(tx)
 
+	var buildIdValue interface{}
+	if buildId != 0 {
+		buildIdValue = buildId
+	}
 	updated, err := checkIfRowsUpdated(tx, `
 		UPDATE resource_config_scopes
 		SET last_check_start_time = now(), last_check_build_id = $1, last_check_build_plan = $2
 		WHERE id = $3
-	`, buildId, publicPlan, r.id)
+	`, buildIdValue, publicPlan, r.id)
 	if err != nil {
 		return false, err
 	}
