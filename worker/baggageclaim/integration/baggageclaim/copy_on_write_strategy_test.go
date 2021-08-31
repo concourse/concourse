@@ -26,13 +26,13 @@ var _ = Describe("Copy On Write Strategy", func() {
 	Describe("API", func() {
 		Describe("POST /volumes with strategy: cow", func() {
 			It("creates a copy of the volume", func() {
-				parentVolume, err := client.CreateVolume(logger, "some-handle", baggageclaim.VolumeSpec{})
+				parentVolume, err := client.CreateVolume(ctx, "some-handle", baggageclaim.VolumeSpec{})
 				Expect(err).NotTo(HaveOccurred())
 
 				dataInParent := writeData(parentVolume.Path())
 				Expect(dataExistsInVolume(dataInParent, parentVolume.Path())).To(BeTrue())
 
-				childVolume, err := client.CreateVolume(logger, "another-handle", baggageclaim.VolumeSpec{
+				childVolume, err := client.CreateVolume(ctx, "another-handle", baggageclaim.VolumeSpec{
 					Strategy: baggageclaim.COWStrategy{
 						Parent: parentVolume,
 					},

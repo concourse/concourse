@@ -69,15 +69,15 @@ func (c *client) httpClient(ctx context.Context) *http.Client {
 }
 
 func (c *client) CreateVolume(ctx context.Context, handle string, volumeSpec baggageclaim.VolumeSpec) (baggageclaim.Volume, error) {
-	ctx, span := tracing.StartSpan(ctx, "client.CreateVolume", tracing.Attrs{
-		"volume":  handle,
-		"strateg": volumeSpec.Strategy.String(),
-	})
-	defer span.End()
 	strategy := volumeSpec.Strategy
 	if strategy == nil {
 		strategy = baggageclaim.EmptyStrategy{}
 	}
+	ctx, span := tracing.StartSpan(ctx, "client.CreateVolume", tracing.Attrs{
+		"volume":  handle,
+		"strateg": strategy.String(),
+	})
+	defer span.End()
 
 	buffer := &bytes.Buffer{}
 	json.NewEncoder(buffer).Encode(baggageclaim.VolumeRequest{
@@ -538,6 +538,7 @@ func (c *client) generateRequest(ctx context.Context,
 	if err != nil {
 		return nil, err
 	}
+	request = request.WithContext(ctx)
 
 	tracing.Inject(ctx, propagation.HeaderCarrier(request.Header))
 	return request, nil

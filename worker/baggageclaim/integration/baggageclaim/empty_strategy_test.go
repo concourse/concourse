@@ -36,7 +36,7 @@ var _ = Describe("Empty Strategy", func() {
 
 			JustBeforeEach(func() {
 				var err error
-				firstVolume, err = client.CreateVolume(logger, "some-handle", baggageclaim.VolumeSpec{})
+				firstVolume, err = client.CreateVolume(ctx, "some-handle", baggageclaim.VolumeSpec{})
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -64,7 +64,7 @@ var _ = Describe("Empty Strategy", func() {
 
 					JustBeforeEach(func() {
 						var err error
-						secondVolume, err = client.CreateVolume(logger, "second-handle", baggageclaim.VolumeSpec{})
+						secondVolume, err = client.CreateVolume(ctx, "second-handle", baggageclaim.VolumeSpec{})
 						Expect(err).NotTo(HaveOccurred())
 					})
 
@@ -86,7 +86,7 @@ var _ = Describe("Empty Strategy", func() {
 
 			JustBeforeEach(func() {
 				var err error
-				volumes, err = client.ListVolumes(logger, baggageclaim.VolumeProperties{})
+				volumes, err = client.ListVolumes(ctx, baggageclaim.VolumeProperties{})
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -99,7 +99,7 @@ var _ = Describe("Empty Strategy", func() {
 
 				BeforeEach(func() {
 					var err error
-					createdVolume, err = client.CreateVolume(logger, "some-handle", baggageclaim.VolumeSpec{Properties: properties})
+					createdVolume, err = client.CreateVolume(ctx, "some-handle", baggageclaim.VolumeSpec{Properties: properties})
 					Expect(err).NotTo(HaveOccurred())
 				})
 

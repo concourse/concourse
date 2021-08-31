@@ -1,4 +1,5 @@
-//+build linux
+//go:build linux
+// +build linux
 
 package integration_test
 
@@ -85,7 +86,7 @@ var _ = Describe("Privileges", func() {
 
 		client = runner.Client()
 
-		baseVolume, err = client.CreateVolume(logger, "some-handle", baggageclaim.VolumeSpec{})
+		baseVolume, err = client.CreateVolume(ctx, "some-handle", baggageclaim.VolumeSpec{})
 		Expect(err).NotTo(HaveOccurred())
 
 		dataFilename = writeData(baseVolume.Path())
@@ -107,7 +108,7 @@ var _ = Describe("Privileges", func() {
 
 		BeforeEach(func() {
 			var err error
-			childVolume, err = client.CreateVolume(logger, "another-handle", baggageclaim.VolumeSpec{
+			childVolume, err = client.CreateVolume(ctx, "another-handle", baggageclaim.VolumeSpec{
 				Strategy: baggageclaim.COWStrategy{
 					Parent: baseVolume,
 				},
@@ -162,7 +163,7 @@ var _ = Describe("Privileges", func() {
 
 				BeforeEach(func() {
 					var err error
-					privilegedVolume, err = client.CreateVolume(logger, "privileged-handle", baggageclaim.VolumeSpec{
+					privilegedVolume, err = client.CreateVolume(ctx, "privileged-handle", baggageclaim.VolumeSpec{
 						Strategy:   baggageclaim.EmptyStrategy{},
 						Privileged: true,
 					})
@@ -170,7 +171,7 @@ var _ = Describe("Privileges", func() {
 				})
 
 				It("maps uid 0 to uid 0", func() {
-					err := privilegedVolume.StreamIn(context.TODO(),".", baggageclaim.GzipEncoding, tgzStream)
+					err := privilegedVolume.StreamIn(context.TODO(), ".", baggageclaim.GzipEncoding, tgzStream)
 					Expect(err).ToNot(HaveOccurred())
 
 					stat, err := os.Stat(filepath.Join(privilegedVolume.Path(), dataFilename))
@@ -186,7 +187,7 @@ var _ = Describe("Privileges", func() {
 
 		Describe("converting the volume to privileged", func() {
 			BeforeEach(func() {
-				Expect(childVolume.SetPrivileged(true)).To(Succeed())
+				Expect(childVolume.SetPrivileged(ctx, true)).To(Succeed())
 			})
 
 			It("re-maps (MAX_UID) to uid 0", func() {
@@ -226,7 +227,7 @@ var _ = Describe("Privileges", func() {
 
 			BeforeEach(func() {
 				var err error
-				subChildVolume, err = client.CreateVolume(logger, "yet-another-handle", baggageclaim.VolumeSpec{
+				subChildVolume, err = client.CreateVolume(ctx, "yet-another-handle", baggageclaim.VolumeSpec{
 					Strategy: baggageclaim.COWStrategy{
 						Parent: childVolume,
 					},
@@ -247,7 +248,7 @@ var _ = Describe("Privileges", func() {
 
 			Describe("converting the volume to unprivileged", func() {
 				BeforeEach(func() {
-					Expect(subChildVolume.SetPrivileged(false)).To(Succeed())
+					Expect(subChildVolume.SetPrivileged(ctx, false)).To(Succeed())
 				})
 
 				It("re-maps (MAX_UID) to uid 0", func() {
@@ -268,7 +269,7 @@ var _ = Describe("Privileges", func() {
 
 		BeforeEach(func() {
 			var err error
-			childVolume, err = client.CreateVolume(logger, "another-handle", baggageclaim.VolumeSpec{
+			childVolume, err = client.CreateVolume(ctx, "another-handle", baggageclaim.VolumeSpec{
 				Strategy: baggageclaim.COWStrategy{
 					Parent: baseVolume,
 				},
@@ -296,7 +297,7 @@ var _ = Describe("Privileges", func() {
 
 			BeforeEach(func() {
 				var err error
-				tgzStream, err = childVolume.StreamOut(context.TODO(), dataFilename, baggageclaim.GzipEncoding)
+				tgzStream, err = childVolume.StreamOut(ctx, dataFilename, baggageclaim.GzipEncoding)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -323,7 +324,7 @@ var _ = Describe("Privileges", func() {
 
 				BeforeEach(func() {
 					var err error
-					unprivilegedVolume, err = client.CreateVolume(logger, "unprivileged-handle", baggageclaim.VolumeSpec{
+					unprivilegedVolume, err = client.CreateVolume(ctx, "unprivileged-handle", baggageclaim.VolumeSpec{
 						Strategy:   baggageclaim.EmptyStrategy{},
 						Privileged: false,
 					})
@@ -331,7 +332,7 @@ var _ = Describe("Privileges", func() {
 				})
 
 				It("maps uid 0 to (MAX_UID)", func() {
-					err := unprivilegedVolume.StreamIn(context.TODO(), ".", baggageclaim.GzipEncoding, tgzStream)
+					err := unprivilegedVolume.StreamIn(ctx, ".", baggageclaim.GzipEncoding, tgzStream)
 					Expect(err).ToNot(HaveOccurred())
 
 					stat, err := os.Stat(filepath.Join(unprivilegedVolume.Path(), dataFilename))

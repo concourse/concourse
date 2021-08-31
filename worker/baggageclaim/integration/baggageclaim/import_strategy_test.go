@@ -114,7 +114,7 @@ var _ = Describe("Import Strategy", func() {
 
 			JustBeforeEach(func() {
 				var err error
-				volume, err = client.CreateVolume(logger, "some-handle", baggageclaim.VolumeSpec{
+				volume, err = client.CreateVolume(ctx, "some-handle", baggageclaim.VolumeSpec{
 					Strategy: strategy,
 				})
 				Expect(err).NotTo(HaveOccurred())
