@@ -3919,7 +3919,7 @@ testHeaderButton name model { key, index, domID, backgroundColor, hoveredBackgro
 getStepLabel =
     [ style "color" Colors.pending
     , style "line-height" "28px"
-    , style "padding-left" "6px"
+    , style "padding-left" "8px"
     , containing [ text "get:" ]
     ]
 
@@ -3927,7 +3927,7 @@ getStepLabel =
 runStepLabel =
     [ style "color" Colors.pending
     , style "line-height" "28px"
-    , style "padding-left" "6px"
+    , style "padding-left" "8px"
     , containing [ text "run:" ]
     ]
 
@@ -3935,7 +3935,7 @@ runStepLabel =
 firstOccurrenceGetStepLabel =
     [ style "color" Colors.started
     , style "line-height" "28px"
-    , style "padding-left" "6px"
+    , style "padding-left" "8px"
     , containing [ text "get:" ]
     ]
 
@@ -3943,7 +3943,7 @@ firstOccurrenceGetStepLabel =
 putStepLabel =
     [ style "color" Colors.pending
     , style "line-height" "28px"
-    , style "padding-left" "6px"
+    , style "padding-left" "8px"
     , containing [ text "put:" ]
     ]
 
@@ -3951,7 +3951,7 @@ putStepLabel =
 taskStepLabel =
     [ style "color" Colors.pending
     , style "line-height" "28px"
-    , style "padding-left" "6px"
+    , style "padding-left" "8px"
     , containing [ text "task:" ]
     ]
 
@@ -3959,7 +3959,7 @@ taskStepLabel =
 setPipelineStepLabel =
     [ style "color" Colors.pending
     , style "line-height" "28px"
-    , style "padding-left" "6px"
+    , style "padding-left" "8px"
     , containing [ text "set_pipeline:" ]
     ]
 
@@ -3967,7 +3967,7 @@ setPipelineStepLabel =
 changedSetPipelineStepLabel =
     [ style "color" Colors.started
     , style "line-height" "28px"
-    , style "padding-left" "6px"
+    , style "padding-left" "8px"
     , containing [ text "set_pipeline:" ]
     ]
 
@@ -3975,7 +3975,7 @@ changedSetPipelineStepLabel =
 checkStepLabel =
     [ style "color" Colors.pending
     , style "line-height" "28px"
-    , style "padding-left" "6px"
+    , style "padding-left" "8px"
     , containing [ text "check:" ]
     ]
 
@@ -3983,7 +3983,7 @@ checkStepLabel =
 loadVarStepLabel =
     [ style "color" Colors.pending
     , style "line-height" "28px"
-    , style "padding-left" "6px"
+    , style "padding-left" "8px"
     , containing [ text "load_var:" ]
     ]
 
