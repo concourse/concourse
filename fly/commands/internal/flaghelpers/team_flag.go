@@ -38,11 +38,10 @@ func (flag TeamFlag) Name() string {
 }
 
 func (flag TeamFlag) LoadTeam(target rc.Target) (concourse.Team, error) {
-	teamFlag := string(flag)
 	team := target.Team()
 	var err error
-	if teamFlag != "" {
-		team, err = target.FindTeam(teamFlag)
+	if flag.Name() != "" {
+		team, err = target.FindTeam(flag.Name())
 		if err != nil {
 			return nil, err
 		}

@@ -196,7 +196,7 @@ var _ = Describe("AbortBuild", func() {
 		})
 	})
 
-	FContext("user is NOT targeting the same team the pipeline belongs to", func() {
+	Context("user is NOT targeting the same team the pipeline belongs to", func() {
 		team := "diff-team"
 		BeforeEach(func() {
 			atcServer.AppendHandlers(
