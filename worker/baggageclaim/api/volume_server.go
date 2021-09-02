@@ -462,6 +462,7 @@ func (vs *VolumeServer) SetPrivileged(w http.ResponseWriter, req *http.Request) 
 func (vs *VolumeServer) StreamIn(w http.ResponseWriter, req *http.Request) {
 	handle := rata.Param(req, "handle")
 
+	ctx := tracing.Extract(req.Context(), propagation.HeaderCarrier(req.Header))
 	hLog := vs.logger.Session("stream-in", lager.Data{
 		"volume": handle,
 	})
@@ -469,7 +470,7 @@ func (vs *VolumeServer) StreamIn(w http.ResponseWriter, req *http.Request) {
 	hLog.Debug("start")
 	defer hLog.Debug("done")
 
-	ctx := lagerctx.NewContext(req.Context(), hLog)
+	ctx = lagerctx.NewContext(req.Context(), hLog)
 
 	var subPath string
 	if queryPath, ok := req.URL.Query()["path"]; ok {
@@ -507,6 +508,7 @@ func (vs *VolumeServer) StreamIn(w http.ResponseWriter, req *http.Request) {
 func (vs *VolumeServer) StreamOut(w http.ResponseWriter, req *http.Request) {
 	handle := rata.Param(req, "handle")
 
+	ctx := tracing.Extract(req.Context(), propagation.HeaderCarrier(req.Header))
 	hLog := vs.logger.Session("stream-out", lager.Data{
 		"volume": handle,
 	})
@@ -514,7 +516,7 @@ func (vs *VolumeServer) StreamOut(w http.ResponseWriter, req *http.Request) {
 	hLog.Debug("start")
 	defer hLog.Debug("done")
 
-	ctx := lagerctx.NewContext(req.Context(), hLog)
+	ctx = lagerctx.NewContext(req.Context(), hLog)
 
 	var subPath string
 	if queryPath, ok := req.URL.Query()["path"]; ok {
@@ -550,6 +552,7 @@ func (vs *VolumeServer) StreamOut(w http.ResponseWriter, req *http.Request) {
 func (vs *VolumeServer) StreamP2pOut(w http.ResponseWriter, req *http.Request) {
 	handle := rata.Param(req, "handle")
 
+	ctx := tracing.Extract(req.Context(), propagation.HeaderCarrier(req.Header))
 	hLog := vs.logger.Session("stream-p2p-out", lager.Data{
 		"volume": handle,
 	})
@@ -557,7 +560,7 @@ func (vs *VolumeServer) StreamP2pOut(w http.ResponseWriter, req *http.Request) {
 	hLog.Debug("start")
 	defer hLog.Debug("done")
 
-	ctx := lagerctx.NewContext(req.Context(), hLog)
+	ctx = lagerctx.NewContext(req.Context(), hLog)
 
 	var subPath, streamInURL, encoding string
 	if queryPath, ok := req.URL.Query()["path"]; ok {
