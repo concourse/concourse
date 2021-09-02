@@ -130,8 +130,6 @@ func (c *client) CreateVolume(ctx context.Context, handle string, volumeSpec bag
 }
 
 func (c *client) ListVolumes(ctx context.Context, properties baggageclaim.VolumeProperties) (baggageclaim.Volumes, error) {
-	ctx, span := tracing.StartSpan(ctx, "volumeClient.ListVolumes", tracing.Attrs{})
-	defer span.End()
 	if properties == nil {
 		properties = baggageclaim.VolumeProperties{}
 	}
@@ -179,10 +177,6 @@ func (c *client) ListVolumes(ctx context.Context, properties baggageclaim.Volume
 }
 
 func (c *client) LookupVolume(ctx context.Context, handle string) (baggageclaim.Volume, bool, error) {
-	ctx, span := tracing.StartSpan(ctx, "volumeClient.LookupVolume", tracing.Attrs{
-		"volume": handle,
-	})
-	defer span.End()
 	volumeResponse, found, err := c.getVolumeResponse(ctx, handle)
 	if err != nil {
 		return nil, false, err
@@ -195,8 +189,6 @@ func (c *client) LookupVolume(ctx context.Context, handle string) (baggageclaim.
 }
 
 func (c *client) DestroyVolumes(ctx context.Context, handles []string) error {
-	ctx, span := tracing.StartSpan(ctx, "volumeClient.DestroyVolumes", tracing.Attrs{})
-	defer span.End()
 	var buf bytes.Buffer
 	err := json.NewEncoder(&buf).Encode(handles)
 	if err != nil {
@@ -225,10 +217,6 @@ func (c *client) DestroyVolumes(ctx context.Context, handles []string) error {
 }
 
 func (c *client) DestroyVolume(ctx context.Context, handle string) error {
-	ctx, span := tracing.StartSpan(ctx, "volumeClient.DestroyVolumes", tracing.Attrs{
-		"volume": handle,
-	})
-	defer span.End()
 	request, err := c.generateRequest(ctx, baggageclaim.DestroyVolume, rata.Params{"handle": handle}, nil)
 	if err != nil {
 		return err
@@ -454,11 +442,6 @@ func (c *client) getVolumeResponse(ctx context.Context, handle string) (baggagec
 }
 
 func (c *client) destroy(ctx context.Context, handle string) error {
-	ctx, span := tracing.StartSpan(ctx, "volumeClient.destroy", tracing.Attrs{
-		"volume": handle,
-	})
-	defer span.End()
-
 	request, err := c.generateRequest(ctx, baggageclaim.DestroyVolume, rata.Params{
 		"handle": handle,
 	}, nil)
@@ -509,11 +492,6 @@ func (c *client) getPrivileged(ctx context.Context, handle string) (bool, error)
 }
 
 func (c *client) setPrivileged(ctx context.Context, handle string, privileged bool) error {
-	ctx, span := tracing.StartSpan(ctx, "volumeClient.setPrivileged", tracing.Attrs{
-		"volume": handle,
-	})
-	defer span.End()
-
 	buffer := &bytes.Buffer{}
 	json.NewEncoder(buffer).Encode(baggageclaim.PrivilegedRequest{
 		Value: privileged,

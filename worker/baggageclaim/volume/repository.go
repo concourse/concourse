@@ -83,11 +83,6 @@ func NewRepository(
 }
 
 func (repo *repository) DestroyVolume(ctx context.Context, handle string) error {
-	ctx, span := tracing.StartSpan(ctx, "volumeRepository.DestroyVolume", tracing.Attrs{
-		"volume": handle,
-	})
-	defer span.End()
-
 	repo.locker.Lock(handle)
 	defer repo.locker.Unlock(handle)
 
@@ -210,8 +205,6 @@ func (repo *repository) CreateVolume(ctx context.Context, handle string, strateg
 }
 
 func (repo *repository) ListVolumes(ctx context.Context, queryProperties Properties) (Volumes, []string, error) {
-	ctx, span := tracing.StartSpan(ctx, "volumeRepository.ListVolumes", tracing.Attrs{})
-	defer span.End()
 	logger := lagerctx.FromContext(ctx).Session("list-volumes")
 
 	liveVolumes, err := repo.filesystem.ListVolumes()
@@ -244,10 +237,6 @@ func (repo *repository) ListVolumes(ctx context.Context, queryProperties Propert
 }
 
 func (repo *repository) GetVolume(ctx context.Context, handle string) (Volume, bool, error) {
-	ctx, span := tracing.StartSpan(ctx, "volumeRepository.GetVolume", tracing.Attrs{
-		"volume": handle,
-	})
-	defer span.End()
 	logger := lagerctx.FromContext(ctx).Session("get-volume", lager.Data{
 		"volume": handle,
 	})
@@ -277,12 +266,6 @@ func (repo *repository) GetVolume(ctx context.Context, handle string) (Volume, b
 }
 
 func (repo *repository) SetProperty(ctx context.Context, handle string, propertyName string, propertyValue string) error {
-	ctx, span := tracing.StartSpan(ctx, "volumeRepository.SetProperty", tracing.Attrs{
-		"volume":   handle,
-		"property": propertyName,
-	})
-	defer span.End()
-
 	repo.locker.Lock(handle)
 	defer repo.locker.Unlock(handle)
 
@@ -322,11 +305,6 @@ func (repo *repository) SetProperty(ctx context.Context, handle string, property
 }
 
 func (repo *repository) GetPrivileged(ctx context.Context, handle string) (bool, error) {
-	ctx, span := tracing.StartSpan(ctx, "volumeRepository.GetPrivileged", tracing.Attrs{
-		"volume": handle,
-	})
-	defer span.End()
-
 	repo.locker.Lock(handle)
 	defer repo.locker.Unlock(handle)
 
@@ -355,11 +333,6 @@ func (repo *repository) GetPrivileged(ctx context.Context, handle string) (bool,
 }
 
 func (repo *repository) SetPrivileged(ctx context.Context, handle string, privileged bool) error {
-	ctx, span := tracing.StartSpan(ctx, "volumeRepository.SetPrivileged", tracing.Attrs{
-		"volume": handle,
-	})
-	defer span.End()
-
 	repo.locker.Lock(handle)
 	defer repo.locker.Unlock(handle)
 
