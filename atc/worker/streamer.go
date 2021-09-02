@@ -116,12 +116,9 @@ func (s Streamer) streamThroughATC(ctx context.Context, src runtime.Artifact, ds
 		traceAttrs["origin-volume"] = srcVolume.Handle()
 		traceAttrs["origin-worker"] = srcVolume.DBVolume().WorkerName()
 	}
-	_, outSpan := tracing.StartSpan(ctx, "volume.StreamOut", traceAttrs)
-	defer outSpan.End()
 	out, err := src.StreamOut(ctx, ".", s.compression)
 
 	if err != nil {
-		tracing.End(outSpan, err)
 		return err
 	}
 
