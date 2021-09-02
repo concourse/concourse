@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"github.com/concourse/concourse/go-concourse/concourse"
 	"strconv"
 
 	"github.com/concourse/concourse/atc"
@@ -10,8 +11,9 @@ import (
 )
 
 type AbortBuildCommand struct {
-	Job   flaghelpers.JobFlag `short:"j" long:"job" value-name:"PIPELINE/JOB"   description:"Name of a job to cancel"`
-	Build string              `short:"b" long:"build" required:"true" description:"If job is specified: build number to cancel. If job not specified: build id"`
+	Job   flaghelpers.JobFlag 	`short:"j" long:"job" value-name:"PIPELINE/JOB"   description:"Name of a job to cancel"`
+	Build string              	`short:"b" long:"build" required:"true" description:"If job is specified: build number to cancel. If job not specified: build id"`
+	Team  flaghelpers.TeamFlag  `long:"team" description:"Name of the team to which the pipeline belongs, if different from the target default"`
 }
 
 func (command *AbortBuildCommand) Execute([]string) error {
@@ -25,12 +27,18 @@ func (command *AbortBuildCommand) Execute([]string) error {
 		return err
 	}
 
+	var team concourse.Team
+	team, err = command.Team.LoadTeam(target)
+	if err != nil {
+		return err
+	}
+
 	var build atc.Build
 	var exists bool
 	if command.Job.PipelineRef.Name == "" && command.Job.JobName == "" {
 		build, exists, err = target.Client().Build(command.Build)
 	} else {
-		build, exists, err = target.Team().JobBuild(command.Job.PipelineRef, command.Job.JobName, command.Build)
+		build, exists, err = team.JobBuild(command.Job.PipelineRef, command.Job.JobName, command.Build)
 	}
 	if err != nil {
 		return err
