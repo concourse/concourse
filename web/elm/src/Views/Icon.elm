@@ -18,6 +18,7 @@ icon { sizePx, image } attrs =
          , style "width" (String.fromInt sizePx ++ "px")
          , style "background-position" "50% 50%"
          , style "background-repeat" "no-repeat"
+         , style "background-size" "cover"
          ]
             ++ attrs
         )

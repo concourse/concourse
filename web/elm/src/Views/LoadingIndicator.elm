@@ -16,7 +16,7 @@ view =
             ]
             [ Spinner.spinner
                 { sizePx = 14
-                , margin = "7px"
+                , margin = "0 7px"
                 }
             , Html.h3 [] [ Html.text "loading..." ]
             ]

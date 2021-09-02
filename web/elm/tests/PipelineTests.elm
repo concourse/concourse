@@ -573,7 +573,7 @@ all =
                         |> Tuple.first
                         |> Common.queryView
                         |> Query.find [ id "top-bar-app" ]
-                        |> Query.has [ style "background-color" "#3498db" ]
+                        |> Query.has [ style "background-color" "#4BAFF2" ]
             , test "top nav bar isn't blue when pipeline is archived" <|
                 \_ ->
                     Common.init "/teams/team/pipelines/pipeline"

@@ -503,7 +503,7 @@ sideBarIcon model =
                    )
             )
             [ Icon.icon
-                { sizePx = 54, image = assetSideBarIcon }
+                { sizePx = 22, image = assetSideBarIcon }
                 []
             ]
 
