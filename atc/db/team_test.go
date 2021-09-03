@@ -2010,6 +2010,42 @@ var _ = Describe("Team", func() {
 			}))
 		})
 
+		It("clears the resource's config_id and config_scope_id if the source changed", func() {
+			pipeline, _, err := team.SavePipeline(pipelineRef, config, 0, false)
+			resource, found, err := pipeline.Resource("some-resource")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(
+				defaultWorkerResourceType.Type, resource.Source(), nil)
+			Expect(err).ToNot(HaveOccurred())
+
+			id := resource.ID()
+			resourceConfigScope, err := resourceConfig.FindOrCreateScope(&id)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = resource.SetResourceConfigScope(resourceConfigScope)
+			Expect(err).ToNot(HaveOccurred())
+
+			resource.Reload()
+			Expect(resource.ResourceConfigID()).ToNot(Equal(0))
+			Expect(resource.ResourceConfigScopeID()).ToNot(Equal(0))
+
+			config.Resources[0].Source = atc.Source{
+				"source-other-config": "some-other-value",
+			}
+
+			savedPipeline, _, err := team.SavePipeline(pipelineRef, config, pipeline.ConfigVersion(), false)
+			Expect(err).ToNot(HaveOccurred())
+
+			// config_id and config_scope_id are cleared out by trigger resources_config_update_clears_config_ids_trigger
+			resource, found, err = savedPipeline.Resource("some-resource")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(resource.ResourceConfigID()).To(Equal(0))
+			Expect(resource.ResourceConfigScopeID()).To(Equal(0))
+		})
+
 		It("clears out api pinned version when resaving a pinned version on the pipeline config", func() {
 			scenario := dbtest.Setup(
 				builder.WithPipeline(config),
