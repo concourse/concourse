@@ -1144,7 +1144,7 @@ viewStepState state stepID =
         StepStateRunning ->
             Spinner.spinner
                 { sizePx = 14
-                , margin = "7px"
+                , margin = "0px"
                 }
 
         StepStatePending ->
