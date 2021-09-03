@@ -390,55 +390,55 @@ view session model =
             (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
             [ Html.div
                 (id "top-bar-app" :: Views.Styles.topBar displayPaused)
-                [ SideBar.sideBarIcon session
-                , TopBar.concourseLogo
-                , TopBar.breadcrumbs session route
-                , if isArchived model.pipeline then
-                    Html.text ""
+                (SideBar.sideBarIcon session
+                    :: TopBar.breadcrumbs session route
+                    ++ [ if isArchived model.pipeline then
+                            Html.text ""
 
-                  else
-                    TopBar.paused
-                        { paused = displayPaused
-                        , pausedBy = pausedBy model.pipeline
-                        , pausedAt = pausedAt model.pipeline
-                        , timeZone = session.timeZone
-                        }
-                , PinMenu.viewPinMenu session model
-                , Html.div
-                    Styles.favoritedIcon
-                    [ FavoritedIcon.view
-                        { isHovered = HoverState.isHovered (TopBarFavoritedIcon <| getPipelineId model.pipeline) session.hovered
-                        , isFavorited =
-                            model.pipeline
-                                |> RemoteData.map (Favorites.isPipelineFavorited session)
-                                |> RemoteData.withDefault False
-                        , isSideBar = False
-                        , domID = TopBarFavoritedIcon <| getPipelineId model.pipeline
-                        }
-                        [ style "margin" "17px" ]
-                    ]
-                , if isArchived model.pipeline then
-                    Html.text ""
+                         else
+                            TopBar.paused
+                                { paused = displayPaused
+                                , pausedBy = pausedBy model.pipeline
+                                , pausedAt = pausedAt model.pipeline
+                                , timeZone = session.timeZone
+                                }
+                       , PinMenu.viewPinMenu session model
+                       , Html.div
+                            Styles.favoritedIcon
+                            [ FavoritedIcon.view
+                                { isHovered = HoverState.isHovered (TopBarFavoritedIcon <| getPipelineId model.pipeline) session.hovered
+                                , isFavorited =
+                                    model.pipeline
+                                        |> RemoteData.map (Favorites.isPipelineFavorited session)
+                                        |> RemoteData.withDefault False
+                                , isSideBar = False
+                                , domID = TopBarFavoritedIcon <| getPipelineId model.pipeline
+                                }
+                                [ style "margin" "17px" ]
+                            ]
+                       , if isArchived model.pipeline then
+                            Html.text ""
 
-                  else
-                    Html.div
-                        Styles.pauseToggle
-                        [ PauseToggle.view
-                            { pipeline = model.pipelineLocator
-                            , isPaused = isPaused model.pipeline
-                            , isToggleHovered =
-                                HoverState.isHovered
-                                    (TopBarPauseToggle model.pipelineLocator)
-                                    session.hovered
-                            , isToggleLoading = model.isToggleLoading
-                            , tooltipPosition = Views.Styles.Below
-                            , margin = "17px"
-                            , userState = session.userState
-                            , domID = TopBarPauseToggle model.pipelineLocator
-                            }
-                        ]
-                , Login.view session.userState model
-                ]
+                         else
+                            Html.div
+                                Styles.pauseToggle
+                                [ PauseToggle.view
+                                    { pipeline = model.pipelineLocator
+                                    , isPaused = isPaused model.pipeline
+                                    , isToggleHovered =
+                                        HoverState.isHovered
+                                            (TopBarPauseToggle model.pipelineLocator)
+                                            session.hovered
+                                    , isToggleLoading = model.isToggleLoading
+                                    , tooltipPosition = Views.Styles.Below
+                                    , margin = "17px"
+                                    , userState = session.userState
+                                    , domID = TopBarPauseToggle model.pipelineLocator
+                                    }
+                                ]
+                       , Login.view session.userState model
+                       ]
+                )
             , Html.div
                 (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
               <|

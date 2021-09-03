@@ -133,7 +133,6 @@ buildView session model =
         [ Html.div
             (id "top-bar-app" :: Views.Styles.topBar False)
             [ SideBar.sideBarIcon session
-            , TopBar.concourseLogo
             , breadcrumbs session model
             , Login.view session.userState model
             ]

@@ -26,6 +26,7 @@ module Views.Styles exposing
     , pauseToggleTooltip
     , separator
     , topBar
+    , topBarBackground
     )
 
 import Assets
@@ -146,8 +147,8 @@ topBar isPaused =
     ]
 
 
-concourseLogo : List (Html.Attribute msg)
-concourseLogo =
+concourseLogo : Bool -> Bool -> List (Html.Attribute msg)
+concourseLogo isPaused isArchived =
     [ style "background-image" <|
         Assets.backgroundImage <|
             Just Assets.ConcourseLogoWhite
@@ -157,6 +158,7 @@ concourseLogo =
     , style "display" "inline-block"
     , style "width" "54px"
     , style "height" "54px"
+    , topBarBackground isPaused isArchived
     ]
 
 
@@ -169,18 +171,32 @@ clusterName =
     ]
 
 
-breadcrumbContainer : Bool -> List (Html.Attribute msg)
-breadcrumbContainer isArchived =
+breadcrumbContainer : Bool -> Bool -> List (Html.Attribute msg)
+breadcrumbContainer isPaused isArchived =
     [ style "flex-grow" "1"
     , style "display" "flex"
     , style "min-width" "0"
-    , style "background-color" <|
-        if isArchived then
-            Colors.background
-
-        else
-            ""
+    , topBarBackground isPaused isArchived
     ]
+
+
+topBarBackground : Bool -> Bool -> Html.Attribute msg
+topBarBackground paused archived =
+    style
+        "background-color"
+    <|
+        case ( paused, archived ) of
+            ( True, False ) ->
+                Colors.paused
+
+            ( True, True ) ->
+                Colors.background
+
+            ( False, False ) ->
+                ""
+
+            ( False, True ) ->
+                Colors.background
 
 
 breadcrumbComponent :

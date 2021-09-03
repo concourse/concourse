@@ -30,7 +30,7 @@ import Views.Styles as Styles
 
 concourseLogo : Html Message
 concourseLogo =
-    Html.a (href "/" :: Styles.concourseLogo) []
+    Html.a (href "/" :: Styles.concourseLogo False False) []
 
 
 paused :
@@ -74,13 +74,14 @@ pausedText p =
         ""
 
 
-breadcrumbs : Session -> Routes.Route -> Html Message
+breadcrumbs : Session -> Routes.Route -> List (Html Message)
 breadcrumbs session route =
     let
-        buildBreadcrumbs ( components, isArchived ) =
-            Html.div
-                (id "breadcrumbs" :: Styles.breadcrumbContainer isArchived)
-            <|
+        buildBreadcrumbs ( components, isPaused, isArchived ) =
+            [ Html.a (href "/" :: Styles.concourseLogo isPaused isArchived) []
+            , Html.div
+                (id "breadcrumbs" :: Styles.breadcrumbContainer isPaused isArchived)
+              <|
                 case List.reverse components of
                     x :: xs ->
                         (List.map (\fn -> fn False) xs
@@ -90,63 +91,67 @@ breadcrumbs session route =
 
                     [] ->
                         []
+            ]
     in
     buildBreadcrumbs <|
         case route of
             Routes.Pipeline { id } ->
                 case lookupPipeline (byPipelineId id) session of
                     Nothing ->
-                        ( [], False )
+                        ( [], False, False )
 
                     Just pipeline ->
-                        ( pipelineBreadcrumbs session pipeline [], pipeline.archived )
+                        ( pipelineBreadcrumbs session pipeline [], pipeline.paused, pipeline.archived )
 
             Routes.Build { id, groups } ->
                 case lookupPipeline (byPipelineId id) session of
                     Nothing ->
-                        ( [], False )
+                        ( [], False, False )
 
                     Just pipeline ->
                         ( pipelineBreadcrumbs session pipeline groups
                             ++ [ breadcrumbSeparator
                                , jobBreadcrumb id.jobName
                                ]
+                        , pipeline.paused
                         , pipeline.archived
                         )
 
             Routes.Resource { id, groups } ->
                 case lookupPipeline (byPipelineId id) session of
                     Nothing ->
-                        ( [], False )
+                        ( [], False, False )
 
                     Just pipeline ->
                         ( pipelineBreadcrumbs session pipeline groups
                             ++ [ breadcrumbSeparator
                                , resourceBreadcrumb id
                                ]
+                        , pipeline.paused
                         , pipeline.archived
                         )
 
             Routes.Job { id, groups } ->
                 case lookupPipeline (byPipelineId id) session of
                     Nothing ->
-                        ( [], False )
+                        ( [], False, False )
 
                     Just pipeline ->
                         ( pipelineBreadcrumbs session pipeline groups
                             ++ [ breadcrumbSeparator
                                , jobBreadcrumb id.jobName
                                ]
+                        , pipeline.paused
                         , pipeline.archived
                         )
 
             Routes.Dashboard _ ->
-                ( [ clusterNameBreadcrumb session ], False )
+                ( [ clusterNameBreadcrumb session ], False, False )
 
             Routes.Causality { id, direction, version, groups } ->
                 case lookupPipeline (byPipelineId id) session of
                     Nothing ->
-                        ( [], False )
+                        ( [], False, False )
 
                     Just pipeline ->
                         ( pipelineBreadcrumbs session pipeline groups
@@ -155,11 +160,12 @@ breadcrumbs session route =
                                , breadcrumbSeparator
                                , causalityBreadCrumb id direction (Maybe.withDefault Dict.empty version)
                                ]
+                        , pipeline.paused
                         , pipeline.archived
                         )
 
             _ ->
-                ( [], False )
+                ( [], False, False )
 
 
 breadcrumbComponent :
