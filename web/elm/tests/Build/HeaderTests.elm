@@ -465,6 +465,7 @@ session =
     , timeZone = Time.utc
     , favoritedPipelines = Set.empty
     , favoritedInstanceGroups = Set.empty
+    , recentlyViewed = []
     , route = Routes.Build { id = Data.jobBuildId, highlight = Routes.HighlightNothing, groups = [] }
     }
 

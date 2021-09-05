@@ -22,7 +22,7 @@ defaultState =
     { active = False
     , hovered = False
     , favorited = False
-    , isFavoritesSection = False
+    , section = AllPipelinesSection
     }
 
 
@@ -165,7 +165,7 @@ regularPipeline =
             [ test "domID is for AllPipelines section" <|
                 \_ ->
                     pipeline
-                        |> viewPipeline { defaultState | isFavoritesSection = False }
+                        |> viewPipeline { defaultState | section = AllPipelinesSection }
                         |> .domID
                         |> Expect.equal
                             (SideBarPipeline AllPipelinesSection pipeline.id)
@@ -174,10 +174,19 @@ regularPipeline =
             [ test "domID is for Favorites section" <|
                 \_ ->
                     pipeline
-                        |> viewPipeline { defaultState | isFavoritesSection = True }
+                        |> viewPipeline { defaultState | section = FavoritesSection }
                         |> .domID
                         |> Expect.equal
                             (SideBarPipeline FavoritesSection pipeline.id)
+            ]
+        , describe "when in recently viewed section"
+            [ test "domID is for RecentlyViewed section" <|
+                \_ ->
+                    pipeline
+                        |> viewPipeline { defaultState | section = RecentlyViewedSection }
+                        |> .domID
+                        |> Expect.equal
+                            (SideBarPipeline RecentlyViewedSection pipeline.id)
             ]
         ]
 
@@ -215,11 +224,11 @@ viewPipeline :
     { active : Bool
     , hovered : Bool
     , favorited : Bool
-    , isFavoritesSection : Bool
+    , section : PipelinesSection
     }
     -> Concourse.Pipeline
     -> Views.Pipeline
-viewPipeline { active, hovered, favorited, isFavoritesSection } p =
+viewPipeline { active, hovered, favorited, section } p =
     let
         hoveredDomId =
             if hovered then
@@ -246,7 +255,7 @@ viewPipeline { active, hovered, favorited, isFavoritesSection } p =
         { hovered = hoveredDomId
         , currentPipeline = activePipeline
         , favoritedPipelines = favoritedPipelines
-        , isFavoritesSection = isFavoritesSection
+        , section = section
         }
         p
 
@@ -255,11 +264,11 @@ viewInstancedPipeline :
     { active : Bool
     , hovered : Bool
     , favorited : Bool
-    , isFavoritesSection : Bool
+    , section : PipelinesSection
     }
     -> Concourse.Pipeline
     -> Views.Pipeline
-viewInstancedPipeline { active, hovered, favorited, isFavoritesSection } p =
+viewInstancedPipeline { active, hovered, favorited, section } p =
     let
         hoveredDomId =
             if hovered then
@@ -286,7 +295,7 @@ viewInstancedPipeline { active, hovered, favorited, isFavoritesSection } p =
         { hovered = hoveredDomId
         , currentPipeline = activePipeline
         , favoritedPipelines = favoritedPipelines
-        , isFavoritesSection = isFavoritesSection
+        , section = section
         }
         p
 

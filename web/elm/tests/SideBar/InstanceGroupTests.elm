@@ -23,7 +23,7 @@ defaultState =
     { active = False
     , hovered = False
     , favorited = False
-    , isFavoritesSection = False
+    , section = AllPipelinesSection
     }
 
 
@@ -147,16 +147,23 @@ all =
         , describe "when in all pipelines section"
             [ test "domID is for AllPipelines section" <|
                 \_ ->
-                    viewInstanceGroup { defaultState | isFavoritesSection = False }
+                    viewInstanceGroup { defaultState | section = AllPipelinesSection }
                         |> .domID
                         |> Expect.equal (SideBarInstanceGroup AllPipelinesSection "team" "group")
             ]
         , describe "when in favorites section"
             [ test "domID is for Favorites section" <|
                 \_ ->
-                    viewInstanceGroup { defaultState | isFavoritesSection = True }
+                    viewInstanceGroup { defaultState | section = FavoritesSection }
                         |> .domID
                         |> Expect.equal (SideBarInstanceGroup FavoritesSection "team" "group")
+            ]
+        , describe "when in recently viewed section"
+            [ test "domID is for RecentlyViewed section" <|
+                \_ ->
+                    viewInstanceGroup { defaultState | section = RecentlyViewedSection }
+                        |> .domID
+                        |> Expect.equal (SideBarInstanceGroup RecentlyViewedSection "team" "group")
             ]
         ]
 
@@ -165,10 +172,10 @@ viewInstanceGroup :
     { active : Bool
     , hovered : Bool
     , favorited : Bool
-    , isFavoritesSection : Bool
+    , section : PipelinesSection
     }
     -> Views.InstanceGroup
-viewInstanceGroup { active, hovered, favorited, isFavoritesSection } =
+viewInstanceGroup { active, hovered, favorited, section } =
     let
         hoveredDomId =
             if hovered then
@@ -195,7 +202,7 @@ viewInstanceGroup { active, hovered, favorited, isFavoritesSection } =
         { hovered = hoveredDomId
         , currentPipeline = activePipeline
         , favoritedInstanceGroups = favoritedInstanceGroups
-        , isFavoritesSection = isFavoritesSection
+        , section = section
         }
         (pipeline 1)
         [ pipeline 2, pipeline 3 ]

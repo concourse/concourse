@@ -740,6 +740,9 @@ runEffect effect key csrfToken =
 pipelinesSectionName : PipelinesSection -> String
 pipelinesSectionName section =
     case section of
+        RecentlyViewedSection ->
+            "RecentlyViewed"
+
         FavoritesSection ->
             "Favorites"
 

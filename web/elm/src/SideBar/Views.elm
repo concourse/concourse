@@ -4,6 +4,8 @@ module SideBar.Views exposing
     , Pipeline
     , Team
     , TeamListItem(..)
+    , viewInstanceGroup
+    , viewPipeline
     , viewTeam
     )
 

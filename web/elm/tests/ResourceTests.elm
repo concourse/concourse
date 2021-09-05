@@ -4058,6 +4058,7 @@ session =
     , expandedTeamsInAllPipelines = Set.empty
     , collapsedTeamsInFavorites = Set.empty
     , pipelines = RemoteData.NotAsked
+    , recentlyViewed = []
     , sideBarState =
         { isOpen = False
         , width = 275

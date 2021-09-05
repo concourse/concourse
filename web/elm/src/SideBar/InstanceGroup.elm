@@ -23,7 +23,7 @@ instanceGroup :
         | hovered : HoverState.HoverState
         , currentPipeline : Maybe (PipelineScoped b)
         , favoritedInstanceGroups : Set ( Concourse.TeamName, Concourse.PipelineName )
-        , isFavoritesSection : Bool
+        , section : PipelinesSection
     }
     -> Concourse.Pipeline
     -> List Concourse.Pipeline
@@ -43,15 +43,7 @@ instanceGroup params p ps =
                     False
 
         domID =
-            SideBarInstanceGroup
-                (if params.isFavoritesSection then
-                    FavoritesSection
-
-                 else
-                    AllPipelinesSection
-                )
-                p.teamName
-                p.name
+            SideBarInstanceGroup params.section p.teamName p.name
 
         isHovered =
             HoverState.isHovered domID params.hovered

@@ -87,6 +87,26 @@ init flags url =
                 { isOpen = False
                 , width = 275
                 }
+            , recentlyViewed =
+                let
+                    toPipelineIdentifier =
+                        \p -> { teamName = p.teamName, pipelineName = p.pipelineName, pipelineInstanceVars = p.pipelineInstanceVars }
+                in
+                case route of
+                    Routes.Pipeline { id } ->
+                        [ id ]
+
+                    Routes.Job { id } ->
+                        [ toPipelineIdentifier id ]
+
+                    Routes.Build { id } ->
+                        [ toPipelineIdentifier id ]
+
+                    Routes.Resource { id } ->
+                        [ toPipelineIdentifier id ]
+
+                    _ ->
+                        []
             , draggingSideBar = False
             , screenSize = ScreenSize.Desktop
             , timeZone = Time.utc

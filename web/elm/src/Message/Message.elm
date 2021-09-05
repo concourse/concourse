@@ -123,7 +123,8 @@ type DomID
 
 
 type PipelinesSection
-    = FavoritesSection
+    = RecentlyViewedSection
+    | FavoritesSection
     | AllPipelinesSection
 
 

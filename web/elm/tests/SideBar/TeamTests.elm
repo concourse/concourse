@@ -22,7 +22,7 @@ defaultState =
     , expanded = False
     , hovered = False
     , hasFavorited = False
-    , isFavoritesSection = False
+    , section = AllPipelinesSection
     }
 
 
@@ -284,7 +284,7 @@ all =
         , describe "when in all pipelines section"
             [ test "domID is for AllPipelines section" <|
                 \_ ->
-                    team { defaultState | isFavoritesSection = False }
+                    team { defaultState | section = AllPipelinesSection }
                         |> .name
                         |> .domID
                         |> Expect.equal (SideBarTeam AllPipelinesSection "team")
@@ -292,10 +292,18 @@ all =
         , describe "when in favorites section"
             [ test "domID is for Favorites section" <|
                 \_ ->
-                    team { defaultState | isFavoritesSection = True }
+                    team { defaultState | section = FavoritesSection }
                         |> .name
                         |> .domID
                         |> Expect.equal (SideBarTeam FavoritesSection "team")
+            ]
+        , describe "when in recently viewed section"
+            [ test "domID is for RecentlyViewed section" <|
+                \_ ->
+                    team { defaultState | section = RecentlyViewedSection }
+                        |> .name
+                        |> .domID
+                        |> Expect.equal (SideBarTeam RecentlyViewedSection "team")
             ]
         ]
 
@@ -305,10 +313,10 @@ team :
     , expanded : Bool
     , hovered : Bool
     , hasFavorited : Bool
-    , isFavoritesSection : Bool
+    , section : PipelinesSection
     }
     -> Views.Team
-team { active, expanded, hovered, hasFavorited, isFavoritesSection } =
+team { active, expanded, hovered, hasFavorited, section } =
     let
         hoveredDomId =
             if hovered then
@@ -343,7 +351,7 @@ team { active, expanded, hovered, hasFavorited, isFavoritesSection } =
         , currentPipeline = activePipeline
         , favoritedPipelines = favoritedPipelines
         , favoritedInstanceGroups = Set.empty
-        , isFavoritesSection = isFavoritesSection
+        , section = section
         }
         { name = "team"
         , isExpanded = expanded

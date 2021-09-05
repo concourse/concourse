@@ -52,6 +52,7 @@ type alias Model m =
                 | expandedTeamsInAllPipelines : Set String
                 , collapsedTeamsInFavorites : Set String
                 , pipelines : WebData (List Concourse.Pipeline)
+                , recentlyViewed : List Concourse.PipelineIdentifier
                 , sideBarState : SideBarState
                 , draggingSideBar : Bool
                 , screenSize : ScreenSize.ScreenSize
@@ -113,6 +114,9 @@ updateSidebar message model =
                       }
                     , []
                     )
+
+                _ ->
+                    ( model, [] )
 
         Click SideBarResizeHandle ->
             ( { model | draggingSideBar = True }, [] )
@@ -189,6 +193,44 @@ handleDeliverySidebar delivery ( model, effects ) =
         SideBarStateReceived (Ok state) ->
             ( { model | sideBarState = state }, effects )
 
+        RouteChanged route ->
+            let
+                recentlyViewedLimit =
+                    5
+
+                toPipelineIdentifier =
+                    \p -> { teamName = p.teamName, pipelineName = p.pipelineName, pipelineInstanceVars = p.pipelineInstanceVars }
+
+                addRecentlyViewed =
+                    \id ->
+                        (id :: model.recentlyViewed)
+                            |> List.foldl
+                                (\item accum ->
+                                    if List.member item accum then
+                                        accum
+
+                                    else
+                                        accum ++ [ item ]
+                                )
+                                []
+                            |> List.take recentlyViewedLimit
+            in
+            case route of
+                Routes.Pipeline { id } ->
+                    ( { model | recentlyViewed = addRecentlyViewed <| id }, effects )
+
+                Routes.Job { id } ->
+                    ( { model | recentlyViewed = addRecentlyViewed <| toPipelineIdentifier id }, effects )
+
+                Routes.Build { id } ->
+                    ( { model | recentlyViewed = addRecentlyViewed <| toPipelineIdentifier id }, effects )
+
+                Routes.Resource { id } ->
+                    ( { model | recentlyViewed = addRecentlyViewed <| toPipelineIdentifier id }, effects )
+
+                _ ->
+                    ( model, effects )
+
         Moused pos ->
             if model.draggingSideBar then
                 let
@@ -236,7 +278,8 @@ view model currentPipeline =
             (id "side-bar" :: Styles.sideBar newState)
             -- I'd love to use the curPipeline function instead of passing it in to view,
             -- but that doesn't work for OneOffBuilds that point to a JobBuild
-            (favoritedPipelinesSection model currentPipeline
+            (recentlyViewedPipelinesSection model currentPipeline
+                ++ favoritedPipelinesSection model currentPipeline
                 ++ allPipelinesSection model currentPipeline
                 ++ [ Html.div
                         (Styles.sideBarHandle newState
@@ -340,28 +383,33 @@ tooltip model =
             Nothing
 
 
+collectPipelinesByTeam : (Concourse.PipelineGrouping Concourse.Pipeline -> List b) -> List Concourse.Pipeline -> List ( Concourse.TeamName, List b )
+collectPipelinesByTeam transform =
+    List.Extra.gatherEqualsBy .teamName
+        >> List.map
+            (\( p, ps ) ->
+                ( p.teamName
+                , Concourse.groupPipelinesWithinTeam (p :: ps)
+                    |> List.concatMap transform
+                )
+            )
+        >> List.filter (Tuple.second >> List.isEmpty >> not)
+
+
 allPipelinesSection : Model m -> Maybe (PipelineScoped a) -> List (Html Message)
 allPipelinesSection model currentPipeline =
     let
         pipelinesByTeam =
             visiblePipelines model
-                |> List.Extra.gatherEqualsBy .teamName
-                |> List.map
-                    (\( p, ps ) ->
-                        ( p.teamName
-                        , Concourse.groupPipelinesWithinTeam (p :: ps)
-                            |> List.map
-                                (\g ->
-                                    case g of
-                                        Concourse.RegularPipeline p_ ->
-                                            RegularPipeline p_
+                |> collectPipelinesByTeam
+                    (\g ->
+                        case g of
+                            Concourse.RegularPipeline p_ ->
+                                [ RegularPipeline p_ ]
 
-                                        Concourse.InstanceGroup p_ ps_ ->
-                                            InstanceGroup p_ ps_
-                                )
-                        )
+                            Concourse.InstanceGroup p_ ps_ ->
+                                [ InstanceGroup p_ ps_ ]
                     )
-                |> List.filter (Tuple.second >> List.isEmpty >> not)
     in
     [ Html.div Styles.sectionHeader [ Html.text "all pipelines" ]
     , Html.div [ id "all-pipelines" ]
@@ -374,7 +422,7 @@ allPipelinesSection model currentPipeline =
                         , currentPipeline = currentPipeline
                         , favoritedPipelines = model.favoritedPipelines
                         , favoritedInstanceGroups = model.favoritedInstanceGroups
-                        , isFavoritesSection = False
+                        , section = AllPipelinesSection
                         }
                         { name = teamName
                         , isExpanded = Set.member teamName model.expandedTeamsInAllPipelines
@@ -388,9 +436,9 @@ allPipelinesSection model currentPipeline =
 favoritedPipelinesSection : Model m -> Maybe (PipelineScoped a) -> List (Html Message)
 favoritedPipelinesSection model currentPipeline =
     let
-        extractTeamFavorites pipelines =
-            Concourse.groupPipelinesWithinTeam pipelines
-                |> List.concatMap
+        favoritedPipelinesByTeam =
+            visiblePipelines model
+                |> collectPipelinesByTeam
                     (\g ->
                         case g of
                             Concourse.RegularPipeline p ->
@@ -416,17 +464,6 @@ favoritedPipelinesSection model currentPipeline =
                                 )
                                     ++ (favoritedInstances |> List.map InstancedPipeline)
                     )
-
-        favoritedPipelinesByTeam =
-            visiblePipelines model
-                |> List.Extra.gatherEqualsBy .teamName
-                |> List.map
-                    (\( p, ps ) ->
-                        ( p.teamName
-                        , extractTeamFavorites (p :: ps)
-                        )
-                    )
-                |> List.filter (Tuple.second >> List.isEmpty >> not)
     in
     if List.isEmpty favoritedPipelinesByTeam then
         []
@@ -443,12 +480,71 @@ favoritedPipelinesSection model currentPipeline =
                             , currentPipeline = currentPipeline
                             , favoritedPipelines = model.favoritedPipelines
                             , favoritedInstanceGroups = model.favoritedInstanceGroups
-                            , isFavoritesSection = True
+                            , section = FavoritesSection
                             }
                             { name = teamName
                             , isExpanded =
                                 not <|
                                     Set.member teamName model.collapsedTeamsInFavorites
+                            }
+                            |> Views.viewTeam
+                    )
+            )
+        , Views.Styles.separator 10
+        ]
+
+
+recentlyViewedPipelinesSection : Model m -> Maybe (PipelineScoped a) -> List (Html Message)
+recentlyViewedPipelinesSection model currentPipeline =
+    let
+        recentlyViewedPipelinesByTeam =
+            visiblePipelines model
+                |> collectPipelinesByTeam
+                    (\g ->
+                        let
+                            toPipelineIdentifier =
+                                \p -> { teamName = p.teamName, pipelineName = p.name, pipelineInstanceVars = p.instanceVars }
+                        in
+                        case g of
+                            Concourse.RegularPipeline p ->
+                                if List.member (toPipelineIdentifier p) model.recentlyViewed then
+                                    [ RegularPipeline p ]
+
+                                else
+                                    []
+
+                            Concourse.InstanceGroup p ps ->
+                                let
+                                    recentInstances =
+                                        List.filter (\x -> List.member (toPipelineIdentifier x) model.recentlyViewed) (p :: ps)
+                                            |> List.map InstancedPipeline
+                                in
+                                if not <| List.isEmpty recentInstances then
+                                    InstanceGroup p ps :: recentInstances
+
+                                else
+                                    []
+                    )
+    in
+    if List.isEmpty model.recentlyViewed then
+        []
+
+    else
+        [ Html.div Styles.sectionHeader [ Html.text "recently viewed pipelines" ]
+        , Html.div [ id "recently-viewed" ]
+            (recentlyViewedPipelinesByTeam
+                |> List.map
+                    (\( teamName, pipelines ) ->
+                        Team.team
+                            { hovered = model.hovered
+                            , pipelines = pipelines
+                            , currentPipeline = currentPipeline
+                            , favoritedPipelines = model.favoritedPipelines
+                            , favoritedInstanceGroups = model.favoritedInstanceGroups
+                            , section = RecentlyViewedSection
+                            }
+                            { name = teamName
+                            , isExpanded = True
                             }
                             |> Views.viewTeam
                     )

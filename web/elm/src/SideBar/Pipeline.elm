@@ -25,7 +25,7 @@ type alias Params a b =
         | hovered : HoverState.HoverState
         , currentPipeline : Maybe (PipelineScoped b)
         , favoritedPipelines : Set Int
-        , isFavoritesSection : Bool
+        , section : PipelinesSection
     }
 
 
@@ -53,14 +53,7 @@ pipeline isInstancedPipeline params p =
                 SideBarPipeline
 
         domID =
-            domIDFn
-                (if params.isFavoritesSection then
-                    FavoritesSection
-
-                 else
-                    AllPipelinesSection
-                )
-                p.id
+            domIDFn params.section p.id
 
         isHovered =
             HoverState.isHovered domID params.hovered

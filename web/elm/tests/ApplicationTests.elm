@@ -258,4 +258,10 @@ all =
                         |> Routes.getGroups
                         |> Expect.equal []
             ]
+        , test "adds initial page to recently viewed pages" <|
+            \_ ->
+                Common.init "/teams/t/pipelines/p"
+                    |> .session
+                    |> .recentlyViewed
+                    |> Expect.equal [ { teamName = "t", pipelineName = "p", pipelineInstanceVars = Dict.empty } ]
         ]

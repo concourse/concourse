@@ -32,21 +32,14 @@ team :
         , currentPipeline : Maybe (PipelineScoped b)
         , favoritedPipelines : Set Int
         , favoritedInstanceGroups : Set ( Concourse.TeamName, Concourse.PipelineName )
-        , isFavoritesSection : Bool
+        , section : PipelinesSection
     }
     -> { name : String, isExpanded : Bool }
     -> Views.Team
 team params t =
     let
         domID =
-            SideBarTeam
-                (if params.isFavoritesSection then
-                    FavoritesSection
-
-                 else
-                    AllPipelinesSection
-                )
-                t.name
+            SideBarTeam params.section t.name
 
         isHovered =
             HoverState.isHovered domID params.hovered
