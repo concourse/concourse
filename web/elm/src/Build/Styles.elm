@@ -204,7 +204,7 @@ stepHeaderLabel changed =
         else
             Colors.pending
     , style "line-height" "28px"
-    , style "padding-left" "6px"
+    , style "padding-left" "8px"
     ]
 
 
