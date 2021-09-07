@@ -984,10 +984,10 @@
   resolved "https://registry.yarnpkg.com/@discoveryjs/json-ext/-/json-ext-0.5.2.tgz#8f03a22a04de437254e8ce8cc84ba39689288752"
   integrity sha512-HyYEUDeIj5rRQU2Hk5HTB2uHsbRQpF70nvMhVzi+VJR0X+xNEhjPui4/kBf3VeH/wqD28PT4sVOm8qqLjBrSZg==
 
-"@mdi/svg@^5.9.55":
-  version "5.9.55"
-  resolved "https://registry.yarnpkg.com/@mdi/svg/-/svg-5.9.55.tgz#7cba058135afd5d8a3da977f51b71ffc6a3a3699"
-  integrity sha512-gO0ZpKIeCn9vFg46QduK9MM+n1fuCNwSdcdlBTtbafnnuvwLveK2uj+byhdLtg/8VJGXDhp+DJ35QUMbeWeULA==
+"@mdi/svg@^6.1.95":
+  version "6.1.95"
+  resolved "https://registry.yarnpkg.com/@mdi/svg/-/svg-6.1.95.tgz#86837e6335579236673ce2bd82727d2398c7b21f"
+  integrity sha512-X3qD1LWJotRUMnkjuAdAJxb1fqRsa+uWh3UugEM2b66mj7NSC6jhn97W8b/UW/ukhDvdP/jRPrqz+2mJf2jN9w==
 
 "@types/eslint-scope@^3.7.0":
   version "3.7.0"
