@@ -85,6 +85,7 @@ and viewers cannot.
   - ExposePipeline
   - HidePipeline
   - RenamePipeline
+  - ArchivePipeline
   - CreatePipelineBuild
   - RegisterWorker
   - LandWorker
