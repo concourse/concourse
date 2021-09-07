@@ -1036,8 +1036,8 @@ go.opentelemetry.io/otel v1.0.0-RC1/go.mod h1:x9tRa9HK4hSSq7jf2TKbqFbtt58/TGk0f9
 go.opentelemetry.io/otel v1.0.0-RC2/go.mod h1:w1thVQ7qbAy8MHb0IFj8a5Q2QU0l2ksf8u/CN8m3NOM=
 go.opentelemetry.io/otel v1.0.0-RC3 h1:kvwiyEkiUT/JaadXzVLI/R1wDO934A7r3Bs2wEe6wqA=
 go.opentelemetry.io/otel v1.0.0-RC3/go.mod h1:Ka5j3ua8tZs4Rkq4Ex3hwgBgOchyPVq5S6P2lz//nKQ=
-go.opentelemetry.io/otel/exporters/jaeger v1.0.0-RC2 h1:RF0nWsIDpDBe+s06lkLxUw9CWQUAhO6hBSxxB7dz45s=
-go.opentelemetry.io/otel/exporters/jaeger v1.0.0-RC2/go.mod h1:sZZqN3Vb0iT+NE6mZ1S7sNyH3t4PFk6ElK5TLGFBZ7E=
+go.opentelemetry.io/otel/exporters/jaeger v1.0.0-RC3 h1:pKXuRvOc+5NgM0vv05PVIUetreuM57mcC6QQAKkcqZA=
+go.opentelemetry.io/otel/exporters/jaeger v1.0.0-RC3/go.mod h1:UbP19Xlhk9tcRZ+A3PfvyN5ld4X4YrSnzXaYzx1yNLc=
 go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.0.0-RC2/go.mod h1:T+s8GKi1OqMwPuZ+ouDtZW4vWYpJuzIzh2Matq4Jo9k=
 go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.0.0-RC3 h1:5gOhYk62x9f5NAGSQl9WBc6J5nCI0tuofzMZ/dAR01Q=
 go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.0.0-RC3/go.mod h1:1tvDhRy/GCexiD9dQZzqwqGnI7/fnZOsi31DyvK3zyQ=
