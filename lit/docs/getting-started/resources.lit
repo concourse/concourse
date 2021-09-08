@@ -454,6 +454,8 @@
     source:
       # changed uri to ssh format
       uri: git@github.com:concourse/examples.git
+      # specify branch because it's required for the put step
+      branch: master
       private_key: |
       -----BEGIN OPENSSH PRIVATE KEY-----
       ...
@@ -489,6 +491,7 @@
     type: git
     source:
       uri: git@github.com:concourse/examples.git
+      branch: master
       private_key: |
       -----BEGIN OPENSSH PRIVATE KEY-----
       ...
@@ -510,6 +513,9 @@
         - name: repo
         outputs: # Add repo as an output
         - name: repo
+        params: # Change these to match your personal info
+          EMAIL: person@example.com
+          GIT_AUTHOR_NAME: Person Doe
         run:
           path: sh
           args:
@@ -548,6 +554,7 @@
     type: git
     source:
       uri: git@github.com:concourse/examples.git
+      branch: master
       private_key: |
       -----BEGIN OPENSSH PRIVATE KEY-----
       ...
@@ -569,6 +576,9 @@
         - name: repo
         outputs:
         - name: repo
+        params:
+          EMAIL: person@example.com
+          GIT_AUTHOR_NAME: Person Doe
         run:
           path: sh
           args:
