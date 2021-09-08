@@ -54,7 +54,7 @@ require (
 	github.com/krishicks/yaml-patch v0.0.10
 	github.com/lib/pq v1.10.3
 	github.com/mattn/go-colorable v0.1.8
-	github.com/mattn/go-isatty v0.0.13
+	github.com/mattn/go-isatty v0.0.14
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.4.1
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b
 	github.com/miekg/dns v1.1.43
