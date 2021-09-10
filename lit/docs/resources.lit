@@ -135,9 +135,23 @@ with the following schema.
       /api/v1/teams/TEAM_NAME/pipelines/PIPELINE_NAME/resources/RESOURCE_NAME/check/webhook?webhook_token=WEBHOOK_TOKEN
     }}
 
-    Note that the request payload sent to this API endpoint is entirely ignored.
-    You should configure the resource as if you're not using web hooks, as the
-    resource config is still the "source of truth."
+    For \reference{managing-instanced-pipelines}{instance pipelines} you will
+    need to include the pipeline vars for a single pipeline instance. Currently
+    you can not have webhooks for all instances of a pipeline.
+
+    The pipeline vars should be added to the webhook URL as \link{URL
+    parameters}{https://developer.mozilla.org/en-US/docs/Learn/Common_questions/What_is_a_URL#parameters}
+    with the format \code{vars.MY-VAR="SOME-VALUE"}. A webhook URL for a
+    pipeline instance may look like this:
+
+    \code{{
+      /api/v1/teams/TEAM_NAME/pipelines/PIPELINE_NAME/resources/RESOURCE_NAME/check/webhook?webhook_token=WEBHOOK_TOKEN&vars.my-var="some-value"&vars.second-var="two"
+    }}
+
+    Note that the request payload sent to this API endpoint is entirely
+    ignored.  You should configure the resource as if you're not using web
+    hooks, as the resource \reference{schema.resource.source}{config} is still
+    the "source of truth."
   }
 }
 
