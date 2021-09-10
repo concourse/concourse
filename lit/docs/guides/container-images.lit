@@ -333,3 +333,115 @@
     more about their other configuration options.
   }
 }
+
+\section{
+  \title{Building an Image and Using it in a Task}
+  \omit-children-from-table-of-contents
+
+  This guide will show you how to build and use an image within one
+  \reference{jobs}{job} without pushing the image to an external image
+  registry like Docker Hub.
+
+  \section{
+    \title{Build The Image}
+
+    To avoid repeating ourselves we're going to use the pipeline made in the
+    other guide \reference{building-and-pushing-an-image}. We will start with
+    the pipeline from the \reference{defining-the-build-context} section.
+
+    We will add the \code{UNPACK_ROOTFS} parameter to the task. This paramter
+    tells the
+    \link{oci-build-task}{https://github.com/concourse/oci-build-task} to
+    include the image in a special format that Concourse's container runtime
+    uses. \italic{In the future this may not be necessary if Concourse starts
+    using the OCI image format.}
+
+    \titled-codeblock{build-and-use-image.yml}{yaml}{{
+    resources:
+    # The repo with our Dockerfile
+    - name: concourse-examples
+      type: git
+      icon: github
+      source:
+        uri: https://github.com/concourse/examples.git
+        branch: master
+
+    jobs:
+    - name: build-and-run
+      plan:
+      - get: concourse-examples
+      - task: build-image
+        privileged: true # oci-build-task must run in a privileged container
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source:
+              repository: concourse/oci-build-task
+          inputs:
+          - name: concourse-examples
+          outputs:
+          - name: image
+          params:
+            CONTEXT: concourse-examples/Dockerfiles/simple
+            UNPACK_ROOTFS: true #add this param
+          run: # binary used to build the image
+            path: build
+    }}
+    \inset{} {- spacer -}
+
+    The above pipeline will build a container image and also output it in
+    Concourse's rootfs image format.
+  }
+
+  \section{
+    \title{Use the Image}
+
+    Next we want to add a second task to this job which will use the image
+    generated from the first task as its container image. To use the image from
+    the previous step add the top-level
+    \reference{schema.step.task-step.image}{image} key to the
+    \reference{schema.step.task-step.task}{task step}.
+
+    \titled-codeblock{build-and-use-image.yml}{yaml}{{
+    resources: ...  # omitting for brevity
+
+    jobs:
+    - name: build-and-run
+      plan:
+      - get: concourse-examples
+      - task: build-image
+        privileged: true
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source:
+              repository: concourse/oci-build-task
+          inputs:
+          - name: concourse-examples
+          outputs:
+          - name: image
+          params:
+            CONTEXT: concourse-examples/Dockerfiles/simple
+            UNPACK_ROOTFS: true
+          run:
+            path: build
+      - task: use-built-image-in-task  # add a new task step
+        image: image  # using the image built in the previous step
+        config:
+          platform: linux
+          run:
+            path: cat
+            args: ["/stranger"]
+    }}
+    \inset{} {- spacer -}
+
+    You can set the pipeline with the following fly command.
+
+    \codeblock{bash}{{{
+    fly -t <target> set-pipeline -p build-and-use-image \
+      -c ./build-and-use-image.yml \
+    }}}
+  }
+}
