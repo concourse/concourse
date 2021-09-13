@@ -4,7 +4,7 @@ set -e -u
 
 cd $(dirname $0)/..
 
-go get github.com/vito/booklit/cmd/booklit
+go install github.com/vito/booklit/cmd/booklit
 
 booklit -i lit/index.lit -o . \
   --save-search-index \
