@@ -513,7 +513,7 @@
         - name: repo
         outputs: # Add repo as an output
         - name: repo
-        params: # Change these to match your personal info
+        params: # Change these to match your ssh key info
           EMAIL: person@example.com
           GIT_AUTHOR_NAME: Person Doe
         run:
@@ -525,6 +525,8 @@
             cd repo
             date +%Y-%m-%d > todays-date
             git add ./todays-date
+            git config --global user.email $EMAIL
+            git config --global user.name $GIT_AUTHOR_NAME
             git commit -m "Update todays date"
   }}
 
@@ -587,6 +589,8 @@
             cd repo
             date +%Y-%m-%d > todays-date
             git add ./todays-date
+            git config --global user.email $EMAIL
+            git config --global user.name $GIT_AUTHOR_NAME
             git commit -m "Update todays date"
     - put: repo
       params:
