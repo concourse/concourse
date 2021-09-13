@@ -1,12 +1,16 @@
 module Colors exposing
     ( aborted
     , abortedFaded
+    , abortedTextFaded
     , asciiArt
     , background
     , backgroundDark
+    , black
     , border
     , bottomBarText
     , buildStatusColor
+    , buildTabBorderColor
+    , buildTabTextColor
     , buildTooltipText
     , buttonDisabledGrey
     , card
@@ -21,8 +25,10 @@ module Colors exposing
     , error
     , errorFaded
     , errorLog
+    , errorTextFaded
     , failure
     , failureFaded
+    , failureTextFaded
     , flySuccessButtonHover
     , flySuccessCard
     , flySuccessTokenCopied
@@ -35,12 +41,16 @@ module Colors exposing
     , infoBarBackground
     , inputOutline
     , instanceGroupBanner
+    , metadataKeyBackground
+    , metadataValueBackground
     , noPipelinesPlaceholderBackground
     , paginationHover
     , paused
     , pausedFaded
+    , pausedTextFaded
     , pending
     , pendingFaded
+    , pendingTextFaded
     , pinIconHover
     , pinMenuBackground
     , pinMenuHover
@@ -60,9 +70,11 @@ module Colors exposing
     , sideBarTextDim
     , started
     , startedFaded
+    , startedTextFaded
     , statusColor
     , success
     , successFaded
+    , successTextFaded
     , text
     , tooltipBackground
     , tooltipText
@@ -213,6 +225,11 @@ white =
     ColorValues.white
 
 
+black : String
+black =
+    ColorValues.black
+
+
 
 ----
 
@@ -255,69 +272,104 @@ startedFaded =
     "#f1c40f"
 
 
+startedTextFaded : String
+startedTextFaded =
+    ColorValues.grey20
+
+
 success : String
 success =
-    "#11c560"
+    ColorValues.success40
 
 
 successFaded : String
 successFaded =
-    "#419867"
+    ColorValues.success70
+
+
+successTextFaded : String
+successTextFaded =
+    ColorValues.success20
 
 
 paused : String
 paused =
-    "#3498db"
+    ColorValues.paused40
 
 
 pausedFaded : String
 pausedFaded =
-    "#2776ab"
+    ColorValues.paused70
+
+
+pausedTextFaded : String
+pausedTextFaded =
+    ColorValues.paused20
 
 
 pending : String
 pending =
-    "#9b9b9b"
+    ColorValues.grey40
 
 
 pendingFaded : String
 pendingFaded =
-    "#7a7373"
+    ColorValues.grey60
+
+
+pendingTextFaded : String
+pendingTextFaded =
+    ColorValues.grey20
 
 
 unknown : String
 unknown =
-    "#9b9b9b"
+    ColorValues.grey40
 
 
 failure : String
 failure =
-    "#ed4b35"
+    ColorValues.failure50
 
 
 failureFaded : String
 failureFaded =
-    "#bd3826"
+    ColorValues.failure80
+
+
+failureTextFaded : String
+failureTextFaded =
+    ColorValues.failure20
 
 
 error : String
 error =
-    "#f5a623"
+    ColorValues.error40
 
 
 errorFaded : String
 errorFaded =
-    "#ec9910"
+    ColorValues.error50
+
+
+errorTextFaded : String
+errorTextFaded =
+    ColorValues.error20
 
 
 aborted : String
 aborted =
-    "#8b572a"
+    ColorValues.error70
 
 
 abortedFaded : String
 abortedFaded =
-    "#6a401c"
+    ColorValues.error80
+
+
+abortedTextFaded : String
+abortedTextFaded =
+    ColorValues.error50
 
 
 
@@ -401,6 +453,20 @@ asciiArt =
 paginationHover : String
 paginationHover =
     "#504b4b"
+
+
+
+----
+
+
+metadataKeyBackground : String
+metadataKeyBackground =
+    ColorValues.grey70
+
+
+metadataValueBackground : String
+metadataValueBackground =
+    ColorValues.grey90
 
 
 
@@ -567,6 +633,32 @@ statusColor isBright status =
                 abortedFaded
 
 
+buildTabBorderColor : Bool -> BuildStatus -> String
+buildTabBorderColor isBright status =
+    if isBright then
+        case status of
+            BuildStatusStarted ->
+                started
+
+            BuildStatusPending ->
+                pending
+
+            BuildStatusSucceeded ->
+                success
+
+            BuildStatusFailed ->
+                failure
+
+            BuildStatusErrored ->
+                error
+
+            BuildStatusAborted ->
+                aborted
+
+    else
+        ColorValues.grey100
+
+
 buildStatusColor : Bool -> BuildStatus -> String
 buildStatusColor isBright status =
     if isBright then
@@ -608,6 +700,32 @@ buildStatusColor isBright status =
 
             BuildStatusAborted ->
                 abortedFaded
+
+
+buildTabTextColor : Bool -> BuildStatus -> String
+buildTabTextColor isCurrent status =
+    if isCurrent then
+        white
+
+    else
+        case status of
+            BuildStatusStarted ->
+                startedTextFaded
+
+            BuildStatusPending ->
+                pendingTextFaded
+
+            BuildStatusSucceeded ->
+                successTextFaded
+
+            BuildStatusFailed ->
+                failureTextFaded
+
+            BuildStatusErrored ->
+                errorTextFaded
+
+            BuildStatusAborted ->
+                abortedTextFaded
 
 
 

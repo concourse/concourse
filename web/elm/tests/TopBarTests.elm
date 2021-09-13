@@ -80,7 +80,7 @@ backgroundGrey =
 
 pausedBlue : String
 pausedBlue =
-    "#3498db"
+    "#4BAFF2"
 
 
 topBarHeight : String

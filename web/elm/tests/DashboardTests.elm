@@ -82,17 +82,17 @@ middleGrey =
 
 lightGrey : String
 lightGrey =
-    "#9b9b9b"
+    "#A4A4A4"
 
 
 green : String
 green =
-    "#11c560"
+    "#1CBD63"
 
 
 blue : String
 blue =
-    "#3498db"
+    "#4BAFF2"
 
 
 darkGrey : String
@@ -102,17 +102,17 @@ darkGrey =
 
 red : String
 red =
-    "#ed4b35"
+    "#DB5442"
 
 
 amber : String
 amber =
-    "#f5a623"
+    "#DE951D"
 
 
 brown : String
 brown =
-    "#8b572a"
+    "#6E4500"
 
 
 white : String
@@ -122,7 +122,7 @@ white =
 
 fadedGreen : String
 fadedGreen =
-    "#419867"
+    "#0D9448"
 
 
 orange : String

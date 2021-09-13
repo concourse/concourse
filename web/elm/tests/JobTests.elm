@@ -867,12 +867,12 @@ all =
 
 darkGreen : String
 darkGreen =
-    "#419867"
+    "#0D9448"
 
 
 brightGreen : String
 brightGreen =
-    "#11c560"
+    "#1CBD63"
 
 
 someJobInfo : Concourse.JobIdentifier
@@ -959,7 +959,7 @@ loadingIndicatorSelector =
         "container-rotate 1568ms linear infinite"
     , style "height" "14px"
     , style "width" "14px"
-    , style "margin" "7px"
+    , style "margin" "0 7px"
     ]
 
 

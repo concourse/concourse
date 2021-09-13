@@ -1477,7 +1477,7 @@ all =
                         |> Tuple.first
                         |> Common.queryView
                         |> Query.find [ class "build-duration" ]
-                        |> Query.find [ tag "tr", containing [ text "finished" ] ]
+                        |> Query.find [ tag "tr", containing [ tag "tr", containing [ text "finished" ] ] ]
                         |> Query.has [ text "2s ago" ]
             , test "when build finishes succesfully, header background is green" <|
                 \_ ->
@@ -1558,42 +1558,42 @@ all =
                             |> fetchBuildWithStatus BuildStatusPending
                             |> Common.queryView
                             |> Query.find [ id "build-header" ]
-                            |> Query.has [ style "background" "#9b9b9b" ]
+                            |> Query.has [ style "background" brightGrey ]
                 , test "started build has yellow banner" <|
                     \_ ->
                         Common.init "/teams/t/pipelines/p/jobs/j/builds/1"
                             |> fetchBuildWithStatus BuildStatusStarted
                             |> Common.queryView
                             |> Query.find [ id "build-header" ]
-                            |> Query.has [ style "background" "#f1c40f" ]
+                            |> Query.has [ style "background" brightYellow ]
                 , test "succeeded build has green banner" <|
                     \_ ->
                         Common.init "/teams/t/pipelines/p/jobs/j/builds/1"
                             |> fetchBuildWithStatus BuildStatusSucceeded
                             |> Common.queryView
                             |> Query.find [ id "build-header" ]
-                            |> Query.has [ style "background" "#11c560" ]
+                            |> Query.has [ style "background" brightGreen ]
                 , test "failed build has red banner" <|
                     \_ ->
                         Common.init "/teams/t/pipelines/p/jobs/j/builds/1"
                             |> fetchBuildWithStatus BuildStatusFailed
                             |> Common.queryView
                             |> Query.find [ id "build-header" ]
-                            |> Query.has [ style "background" "#ed4b35" ]
+                            |> Query.has [ style "background" brightRed ]
                 , test "errored build has amber banner" <|
                     \_ ->
                         Common.init "/teams/t/pipelines/p/jobs/j/builds/1"
                             |> fetchBuildWithStatus BuildStatusErrored
                             |> Common.queryView
                             |> Query.find [ id "build-header" ]
-                            |> Query.has [ style "background" "#f5a623" ]
+                            |> Query.has [ style "background" brightAmber ]
                 , test "aborted build has brown banner" <|
                     \_ ->
                         Common.init "/teams/t/pipelines/p/jobs/j/builds/1"
                             |> fetchBuildWithStatus BuildStatusAborted
                             |> Common.queryView
                             |> Query.find [ id "build-header" ]
-                            |> Query.has [ style "background" "#8b572a" ]
+                            |> Query.has [ style "background" brightBrown ]
                 ]
             , describe "build history tab coloration"
                 [ test "pending build has grey tab in build history" <|
@@ -1603,7 +1603,7 @@ all =
                             |> Common.queryView
                             |> Query.find [ id "builds" ]
                             |> Query.find [ tag "li" ]
-                            |> Query.has [ style "background" "#9b9b9b" ]
+                            |> Query.has [ style "background" brightGrey ]
                 , test "started build has animated striped yellow tab in build history" <|
                     \_ ->
                         Common.init "/teams/t/pipelines/p/jobs/j/builds/1"
@@ -1611,7 +1611,7 @@ all =
                             |> Common.queryView
                             |> Query.find [ id "builds" ]
                             |> Query.find [ tag "li" ]
-                            |> isColorWithStripes { thick = "#f1c40f", thin = "#fad43b" }
+                            |> isColorWithStripes { thick = darkYellow, thin = brightYellow }
                 , test "succeeded build has green tab in build history" <|
                     \_ ->
                         Common.init "/teams/t/pipelines/p/jobs/j/builds/1"
@@ -1619,7 +1619,7 @@ all =
                             |> Common.queryView
                             |> Query.find [ id "builds" ]
                             |> Query.find [ tag "li" ]
-                            |> Query.has [ style "background" "#11c560" ]
+                            |> Query.has [ style "background" brightGreen ]
                 , test "failed build has red tab in build history" <|
                     \_ ->
                         Common.init "/teams/t/pipelines/p/jobs/j/builds/1"
@@ -1627,7 +1627,7 @@ all =
                             |> Common.queryView
                             |> Query.find [ id "builds" ]
                             |> Query.find [ tag "li" ]
-                            |> Query.has [ style "background" "#ed4b35" ]
+                            |> Query.has [ style "background" brightRed ]
                 , test "errored build has amber tab in build history" <|
                     \_ ->
                         Common.init "/teams/t/pipelines/p/jobs/j/builds/1"
@@ -1635,7 +1635,7 @@ all =
                             |> Common.queryView
                             |> Query.find [ id "builds" ]
                             |> Query.find [ tag "li" ]
-                            |> Query.has [ style "background" "#f5a623" ]
+                            |> Query.has [ style "background" brightAmber ]
                 , test "aborted build has brown tab in build history" <|
                     \_ ->
                         Common.init "/teams/t/pipelines/p/jobs/j/builds/1"
@@ -1643,7 +1643,7 @@ all =
                             |> Common.queryView
                             |> Query.find [ id "builds" ]
                             |> Query.find [ tag "li" ]
-                            |> Query.has [ style "background" "#8b572a" ]
+                            |> Query.has [ style "background" brightBrown ]
                 ]
             , test "header spreads out contents" <|
                 givenBuildFetched
@@ -1814,7 +1814,7 @@ all =
                             )
                         >> Tuple.first
                         >> Common.queryView
-                        >> Query.has [ text " #2" ]
+                        >> Query.has [ text "#2" ]
                 , test "pressing Command-L does nothing" <|
                     givenBuildFetched
                         >> Tuple.first
@@ -2213,7 +2213,7 @@ all =
                         >> Query.first
                         >> Query.has
                             (iconSelector
-                                { size = "40px"
+                                { size = "28px"
                                 , image = Assets.AddCircleIcon |> Assets.CircleOutlineIcon
                                 }
                             )
@@ -2271,7 +2271,7 @@ all =
                         { description = "grey plus icon"
                         , selector =
                             iconSelector
-                                { size = "40px"
+                                { size = "28px"
                                 , image = Assets.AddCircleIcon |> Assets.CircleOutlineIcon
                                 }
                         }
@@ -2279,7 +2279,7 @@ all =
                         { description = "grey plus icon"
                         , selector =
                             iconSelector
-                                { size = "40px"
+                                { size = "28px"
                                 , image = Assets.AddCircleIcon |> Assets.CircleOutlineIcon
                                 }
                         }
@@ -3133,7 +3133,7 @@ all =
                         >> Query.index -1
                         >> Query.has
                             (iconSelector
-                                { size = "28px"
+                                { size = "14px"
                                 , image = Assets.SuccessCheckIcon
                                 }
                                 ++ [ style "background-size" "14px 14px" ]
@@ -3416,7 +3416,7 @@ all =
                         >> Query.index -1
                         >> Query.has
                             (iconSelector
-                                { size = "28px"
+                                { size = "14px"
                                 , image = Assets.PendingIcon
                                 }
                                 ++ [ style "background-size" "14px 14px" ]
@@ -3452,7 +3452,7 @@ all =
                         >> Query.index -1
                         >> Query.has
                             (iconSelector
-                                { size = "28px"
+                                { size = "14px"
                                 , image = Assets.InterruptedIcon
                                 }
                                 ++ [ style "background-size" "14px 14px" ]
@@ -3500,7 +3500,7 @@ all =
                         >> Query.index -1
                         >> Query.has
                             (iconSelector
-                                { size = "28px"
+                                { size = "14px"
                                 , image = Assets.CancelledIcon
                                 }
                                 ++ [ style "background-size" "14px 14px" ]
@@ -3543,7 +3543,7 @@ all =
                         >> Query.index -1
                         >> Query.has
                             (iconSelector
-                                { size = "28px"
+                                { size = "14px"
                                 , image = Assets.FailureTimesIcon
                                 }
                                 ++ [ style "background-size" "14px 14px" ]
@@ -3569,7 +3569,7 @@ all =
                         >> Query.index -1
                         >> Query.has
                             (iconSelector
-                                { size = "28px"
+                                { size = "14px"
                                 , image = Assets.ExclamationTriangleIcon
                                 }
                                 ++ [ style "background-size" "14px 14px" ]
@@ -3894,7 +3894,7 @@ testHeaderButton name model { key, index, domID, backgroundColor, hoveredBackgro
         button
             >> Query.children []
             >> Query.first
-            >> Query.has (iconSelector { size = "40px", image = icon })
+            >> Query.has (iconSelector { size = "28px", image = icon })
     , test (name ++ " button has correct tooltip") <|
         model
             >> expectTooltip domID tooltip
@@ -3912,72 +3912,54 @@ testHeaderButton name model { key, index, domID, backgroundColor, hoveredBackgro
 
 getStepLabel =
     [ style "color" Colors.pending
-    , style "line-height" "28px"
-    , style "padding-left" "8px"
     , containing [ text "get:" ]
     ]
 
 
 runStepLabel =
     [ style "color" Colors.pending
-    , style "line-height" "28px"
-    , style "padding-left" "8px"
     , containing [ text "run:" ]
     ]
 
 
 firstOccurrenceGetStepLabel =
     [ style "color" Colors.started
-    , style "line-height" "28px"
-    , style "padding-left" "8px"
     , containing [ text "get:" ]
     ]
 
 
 putStepLabel =
     [ style "color" Colors.pending
-    , style "line-height" "28px"
-    , style "padding-left" "8px"
     , containing [ text "put:" ]
     ]
 
 
 taskStepLabel =
     [ style "color" Colors.pending
-    , style "line-height" "28px"
-    , style "padding-left" "8px"
     , containing [ text "task:" ]
     ]
 
 
 setPipelineStepLabel =
     [ style "color" Colors.pending
-    , style "line-height" "28px"
-    , style "padding-left" "8px"
     , containing [ text "set_pipeline:" ]
     ]
 
 
 changedSetPipelineStepLabel =
     [ style "color" Colors.started
-    , style "line-height" "28px"
-    , style "padding-left" "8px"
     , containing [ text "set_pipeline:" ]
     ]
 
 
 checkStepLabel =
     [ style "color" Colors.pending
-    , style "line-height" "28px"
-    , style "padding-left" "8px"
     , containing [ text "check:" ]
     ]
 
 
 loadVarStepLabel =
     [ style "color" Colors.pending
-    , style "line-height" "28px"
-    , style "padding-left" "8px"
     , containing [ text "load_var:" ]
     ]
 
@@ -4006,19 +3988,14 @@ hoverSetPipelineChangedLabel =
         >> Tuple.first
 
 
-tooltipGreyHex : String
-tooltipGreyHex =
-    "#9b9b9b"
-
-
 darkRed : String
 darkRed =
-    "#bd3826"
+    "#5E1D14"
 
 
 brightRed : String
 brightRed =
-    "#ed4b35"
+    "#DB5442"
 
 
 darkYellow : String
@@ -4031,19 +4008,44 @@ brightYellow =
     "#fad43b"
 
 
+brightAmber : String
+brightAmber =
+    "#DE951D"
+
+
+darkAmber : String
+darkAmber =
+    "#B57200"
+
+
 darkGreen : String
 darkGreen =
-    "#419867"
+    "#0D9448"
 
 
 brightGreen : String
 brightGreen =
-    "#11c560"
+    "#1CBD63"
+
+
+brightGrey : String
+brightGrey =
+    "#A4A4A4"
 
 
 darkGrey : String
 darkGrey =
     "#3d3c3c"
+
+
+brightBrown : String
+brightBrown =
+    "#6E4500"
+
+
+darkBrown : String
+darkBrown =
+    "#4A3107"
 
 
 receiveEvent :

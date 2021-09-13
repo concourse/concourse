@@ -273,6 +273,7 @@ sideBarMenu :
 sideBarMenu isClickable =
     [ style "border-right" <| "1px solid " ++ Colors.border
     , style "opacity" "1"
+    , style "padding" "16px"
     , style "cursor" <|
         if isClickable then
             "pointer"

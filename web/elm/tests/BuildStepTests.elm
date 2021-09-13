@@ -62,12 +62,6 @@ all =
                     >> when iAmLookingAtTheStepBody
                     >> when iAmLookingAtTheMetadataTable
                     >> then_ iSeeABottomMargin
-            , test "has a table that has cells with bottom borders" <|
-                given iVisitABuildWithAGetStep
-                    >> given theGetStepIsExpanded
-                    >> when iAmLookingAtTheStepBody
-                    >> when iAmLookingAtTheMetadataTableCells
-                    >> then_ iSeeLightGrayBottomBorder
             , test "has a table with cells that don't have a shared border" <|
                 given iVisitABuildWithAGetStep
                     >> given theGetStepIsExpanded
@@ -1188,11 +1182,11 @@ iSeeTheyTopAlignText =
 
 
 iSeeLightGrayCellBackground =
-    Query.has [ style "background-color" "rgb(45,45,45)" ]
+    Query.has [ style "background-color" "#4D4D4D" ]
 
 
 iSeeDarkGrayCellBackground =
-    Query.has [ style "background-color" "rgb(30,30,30)" ]
+    Query.has [ style "background-color" "#262626" ]
 
 
 iSeeATableWithBorderCollapse =
@@ -1204,11 +1198,12 @@ iSeeABottomMargin =
 
 
 iSeeLightGrayBottomBorder =
-    Query.each (Query.has [ style "border-bottom" "5px solid rgb(45,45,45)" ])
+    Query.first
+        >> Query.has [ style "border-bottom" "8px solid #4D4D4D" ]
 
 
 iSeeTheyHavePaddingAllAround =
-    Query.each (Query.has [ style "padding" "5px" ])
+    Query.each (Query.has [ style "padding" "8px" ])
 
 
 iAmLookingAtTheTabList =
@@ -1279,7 +1274,7 @@ iSeeASpinner =
 iSeeStatusIcon asset =
     Query.has
         (iconSelector
-            { size = "28px"
+            { size = "14px"
             , image = asset
             }
         )
