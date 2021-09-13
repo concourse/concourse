@@ -230,6 +230,8 @@ var _ = Describe("Streamer", func() {
 		stream, err := streamer.StreamFile(ctx, src, "folder/file")
 		Expect(err).ToNot(HaveOccurred())
 
+		defer stream.Close()
+
 		fileContent, err := ioutil.ReadAll(stream)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -250,6 +252,8 @@ var _ = Describe("Streamer", func() {
 		ctx := context.Background()
 		stream, err := streamer.StreamFile(ctx, artifact, "folder/file")
 		Expect(err).ToNot(HaveOccurred())
+
+		defer stream.Close()
 
 		fileContent, err := ioutil.ReadAll(stream)
 		Expect(err).ToNot(HaveOccurred())
