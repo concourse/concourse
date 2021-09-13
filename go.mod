@@ -29,7 +29,7 @@ require (
 	github.com/coreos/go-iptables v0.6.0
 	github.com/cppforlife/go-semi-semantic v0.0.0-20160921010311-576b6af77ae4
 	github.com/creack/pty v1.1.11 // indirect
-	github.com/cyberark/conjur-api-go v0.7.1
+	github.com/cyberark/conjur-api-go v0.8.0
 	github.com/fatih/color v1.12.0
 	github.com/felixge/httpsnoop v1.0.2
 	github.com/gobwas/glob v0.2.3
