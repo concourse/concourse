@@ -462,6 +462,7 @@ var _ = Describe("Volume Server", func() {
 
 					zstdReader, err := zstd.NewReader(recorder.Body)
 					Expect(err).NotTo(HaveOccurred())
+					defer zstdReader.Close()
 					err = tarfs.Extract(zstdReader, unpackedDir)
 					Expect(err).NotTo(HaveOccurred())
 
@@ -576,9 +577,9 @@ var _ = Describe("Volume Server", func() {
 
 					tarByteReader, err := zstd.NewReader(recorder.Body)
 					Expect(err).NotTo(HaveOccurred())
+					defer tarByteReader.Close()
 					err = tarfs.Extract(tarByteReader, unpackedDir)
 					Expect(err).NotTo(HaveOccurred())
-					tarByteReader.Close()
 					fileInfo, err := os.Stat(filepath.Join(unpackedDir, "other-file"))
 					Expect(err).NotTo(HaveOccurred())
 					Expect(fileInfo.IsDir()).To(BeFalse())
