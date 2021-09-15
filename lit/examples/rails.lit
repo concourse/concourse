@@ -3,7 +3,7 @@
 
 \use-plugin{concourse-docs}
 
-You can run the tests for a Rails that requires a specific version of ruby and relies on a Postges database.
+You can run the tests for a Rails that requires a specific version of ruby and relies on a Postgres database.
 
 \frame{https://ci.concourse-ci.org/teams/examples/pipelines/rails}
 
