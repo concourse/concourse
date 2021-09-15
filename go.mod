@@ -24,7 +24,7 @@ require (
 	github.com/concourse/go-archive v1.0.1
 	github.com/concourse/retryhttp v1.1.1
 	github.com/containerd/containerd v1.5.5
-	github.com/containerd/go-cni v1.0.2
+	github.com/containerd/go-cni v1.1.0
 	github.com/containerd/typeurl v1.0.2
 	github.com/coreos/go-iptables v0.6.0
 	github.com/cppforlife/go-semi-semantic v0.0.0-20160921010311-576b6af77ae4
