@@ -690,11 +690,10 @@ view session model =
         (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
         [ Html.div
             (id "top-bar-app" :: Views.Styles.topBar False)
-            [ SideBar.sideBarIcon session
-            , TopBar.concourseLogo
-            , breadcrumbs session model
-            , Login.view session.userState model
-            ]
+            (SideBar.sideBarIcon session
+                :: breadcrumbs session model
+                ++ [ Login.view session.userState model ]
+            )
         , Html.div
             (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
             [ SideBar.view session
@@ -738,7 +737,7 @@ tryAll maybes =
         maybes
 
 
-breadcrumbs : Session -> Model -> Html Message
+breadcrumbs : Session -> Model -> List (Html Message)
 breadcrumbs session model =
     case ( model.job, model.page ) of
         ( Just jobId, _ ) ->
@@ -758,7 +757,7 @@ breadcrumbs session model =
                     }
 
         _ ->
-            Html.text ""
+            [ Html.text "" ]
 
 
 viewBuildPage : Session -> Model -> Html Message
