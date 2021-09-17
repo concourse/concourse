@@ -7,7 +7,7 @@
     line-height: 60px;
     float: left;
     margin: 0;
-    margin-left: 18px;
+    margin-left: 16px;
   }
 }
 
@@ -19,7 +19,7 @@
     line-height: 60px;
     float: left;
     margin: 0;
-    margin-left: 18px;
+    margin-left: 16px;
   }
 }
 
@@ -34,7 +34,7 @@
 
 .build-header .build-duration {
   float: left;
-  margin: 6px 0 6px 24px;
+  height: 60px;
 }
 
 .pagination-header .last-checked {
@@ -109,11 +109,13 @@
 
 #builds li a,
 .builds-list li a {
-  font-size: 20px;
-  line-height: 1em;
+  font-size: 23px;
+  line-height: 24px;
   text-align: center;
   margin: 0;
-  padding: 5px;
+  padding: 4px 6px 4px 4px;
+  min-width: 24px;
+  height: 24px;
   display: block;
   font-weight: bold;
   text-decoration: none;
@@ -160,7 +162,7 @@ li.prep-status {
 }
 
 .step-body {
-  padding: 10px 0 10px 10px;
+  padding: 8px 0 8px 8px;
 }
 
 .build-step pre {
@@ -176,7 +178,7 @@ li.prep-status {
 }
 
 .seq {
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .steps .seq:last-child {
@@ -193,7 +195,9 @@ li.prep-status {
 .build-step .header {
   cursor: pointer;
   clear: both;
-  min-height: 28px;
+  line-height: 15px;
+  font-size: 15px;
+  padding: 8px;
   border: 1px solid transparent;
   position: sticky;
   top: 0;
@@ -201,7 +205,6 @@ li.prep-status {
 }
 
 .build-step .header i {
-  line-height: 28px;
   width: 28px;
 }
 
@@ -218,19 +221,21 @@ li.prep-status {
 .build-step .header .dict-key,
 .build-step .header .dict-value {
   font-size: 14px;
-  line-height: 28px;
-  padding: 0 6px;
+  padding-right: 16px;
 }
 
 .build-step .dictionary {
   float: right;
 }
 
+.build-step .header .dictionary tr:not(:last-child) td {
+  padding-bottom: 8px;
+}
+
 .build-step .header h3 {
   margin: 0;
-  padding: 0 6px;
+  padding: 0 16px;
   float: left;
-  line-height: 28px;
 }
 
 .step-body .dictionary {
@@ -241,10 +246,14 @@ li.prep-status {
   max-width: 100%;
 }
 
+.step-body table tr:not(:last-child) td {
+  border-bottom: 8px solid @grey70;
+}
+
 .dict-key {
   text-align: right;
   vertical-align: top;
-  padding: 0 10px 0 0;
+  padding: 0 8px 0 0;
   margin: 0;
 }
 

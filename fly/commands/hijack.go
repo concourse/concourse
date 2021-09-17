@@ -35,7 +35,7 @@ type HijackCommand struct {
 	PositionalArgs struct {
 		Command []string `positional-arg-name:"command" description:"The command to run in the container (default: bash)"`
 	} `positional-args:"yes"`
-	Team string `long:"team" description:"Name of the team to which the container belongs, if different from the target default"`
+	Team 		  flaghelpers.TeamFlag 		`long:"team" description:"Name of the team to which the container belongs, if different from the target default"`
 }
 
 func (command *HijackCommand) Execute([]string) error {
@@ -69,13 +69,9 @@ func (command *HijackCommand) Execute([]string) error {
 		return err
 	}
 
-	if command.Team != "" {
-		team, err = target.FindTeam(command.Team)
-		if err != nil {
-			return err
-		}
-	} else {
-		team = target.Team()
+	team, err = command.Team.LoadTeam(target)
+	if err != nil {
+		return err
 	}
 
 	if command.Handle != "" {

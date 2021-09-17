@@ -914,8 +914,7 @@ viewInitializationToggle step =
             { sizePx = 14
             , image = Assets.CogsIcon
             }
-            [ style "margin" "7px 0"
-            , style "background-size" "contain"
+            [ style "background-size" "contain"
             ]
         ]
 
@@ -1145,12 +1144,12 @@ viewStepState state stepID =
         StepStateRunning ->
             Spinner.spinner
                 { sizePx = 14
-                , margin = "7px"
+                , margin = "0px"
                 }
 
         StepStatePending ->
             Icon.icon
-                { sizePx = 28
+                { sizePx = 14
                 , image = Assets.PendingIcon
                 }
                 (attribute "data-step-state" "pending"
@@ -1160,7 +1159,7 @@ viewStepState state stepID =
 
         StepStateInterrupted ->
             Icon.icon
-                { sizePx = 28
+                { sizePx = 14
                 , image = Assets.InterruptedIcon
                 }
                 (attribute "data-step-state" "interrupted"
@@ -1170,7 +1169,7 @@ viewStepState state stepID =
 
         StepStateCancelled ->
             Icon.icon
-                { sizePx = 28
+                { sizePx = 14
                 , image = Assets.CancelledIcon
                 }
                 (attribute "data-step-state" "cancelled"
@@ -1180,7 +1179,7 @@ viewStepState state stepID =
 
         StepStateSucceeded ->
             Icon.icon
-                { sizePx = 28
+                { sizePx = 14
                 , image = Assets.SuccessCheckIcon
                 }
                 (attribute "data-step-state" "succeeded"
@@ -1190,7 +1189,7 @@ viewStepState state stepID =
 
         StepStateFailed ->
             Icon.icon
-                { sizePx = 28
+                { sizePx = 14
                 , image = Assets.FailureTimesIcon
                 }
                 (attribute "data-step-state" "failed"
@@ -1200,7 +1199,7 @@ viewStepState state stepID =
 
         StepStateErrored ->
             Icon.icon
-                { sizePx = 28
+                { sizePx = 14
                 , image = Assets.ExclamationTriangleIcon
                 }
                 (attribute "data-step-state" "errored"

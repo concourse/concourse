@@ -28,9 +28,9 @@ type SetPipelineCommand struct {
 	YAMLVar      []flaghelpers.YAMLVariablePairFlag `short:"y"  long:"yaml-var"      unquote:"false"  value-name:"[NAME=YAML]"    description:"Specify a YAML value to set for a variable in the pipeline"`
 	InstanceVars []flaghelpers.YAMLVariablePairFlag `short:"i"  long:"instance-var"  unquote:"false"  hidden:"true"  value-name:"[NAME=STRING]"  description:"Specify a YAML value to set for an instance variable"`
 
-	VarsFrom []atc.PathFlag `short:"l"  long:"load-vars-from"  description:"Variable flag that can be used for filling in template values in configuration from a YAML file"`
+	VarsFrom 	 []atc.PathFlag `short:"l"  long:"load-vars-from"  description:"Variable flag that can be used for filling in template values in configuration from a YAML file"`
 
-	Team string `long:"team"              description:"Name of the team to which the pipeline belongs, if different from the target default"`
+	Team 		 flaghelpers.TeamFlag `long:"team"              description:"Name of the team to which the pipeline belongs, if different from the target default"`
 }
 
 func (command *SetPipelineCommand) Validate() ([]concourse.ConfigWarning, error) {
@@ -39,9 +39,9 @@ func (command *SetPipelineCommand) Validate() ([]concourse.ConfigWarning, error)
 	if strings.Contains(command.PipelineName, "/") {
 		err = errors.New("pipeline name cannot contain '/'")
 	}
-	if command.Team != "" {
+	if string(command.Team) != "" {
 		var warning *atc.ConfigWarning
-		if warning, err = atc.ValidateIdentifier(command.Team, "team"); warning != nil {
+		if warning, err = atc.ValidateIdentifier(string(command.Team), "team"); warning != nil {
 			warnings = append(warnings, concourse.ConfigWarning{
 				Type:    warning.Type,
 				Message: warning.Message,
@@ -71,14 +71,9 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 	}
 
 	var team concourse.Team
-
-	if command.Team != "" {
-		team, err = target.FindTeam(command.Team)
-		if err != nil {
-			return err
-		}
-	} else {
-		team = target.Team()
+	team, err = command.Team.LoadTeam(target)
+	if err != nil {
+		return err
 	}
 
 	ansi.DisableColors(command.DisableAnsiColor)
@@ -103,7 +98,7 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 		SkipInteraction:  command.SkipInteractive || command.Config.FromStdin(),
 		CheckCredentials: command.CheckCredentials,
 		CommandWarnings:  warnings,
-		GivenTeamName:    command.Team,
+		GivenTeamName:    string(command.Team),
 	}
 
 	yamlTemplateWithParams := templatehelpers.NewYamlTemplateWithParams(configPath, templateVariablesFiles, command.Var, command.YAMLVar, instanceVars)

@@ -8,10 +8,10 @@
     "request": "^2.86.0"
   },
   "devDependencies": {
-    "@babel/core": "^7.15.0",
+    "@babel/core": "^7.15.5",
     "@babel/plugin-syntax-dynamic-import": "^7.8.3",
-    "@babel/preset-env": "^7.15.0",
-    "@mdi/svg": "^5.9.55",
+    "@babel/preset-env": "^7.15.6",
+    "@mdi/svg": "^6.1.95",
     "babel-loader": "^8.2.2",
     "child-process-promise": "^2.2.1",
     "clean-css-cli": "^5.3.3",
@@ -22,8 +22,8 @@
     "less": "^4.1.1",
     "less-plugin-autoprefix": "^2.0.0",
     "puppeteer": "^10.2.0",
-    "uglify-js": "^3.14.1",
-    "webpack": "^5.51.1",
+    "uglify-js": "^3.14.2",
+    "webpack": "^5.52.1",
     "webpack-cli": "^4.8.0"
   },
   "resolutions": {

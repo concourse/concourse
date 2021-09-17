@@ -155,43 +155,57 @@ viewWidget widget =
 
 viewDuration : BuildDuration -> Html Message
 viewDuration buildDuration =
-    Html.table [ class "dictionary build-duration" ] <|
-        case buildDuration of
-            Pending ->
-                [ Html.tr []
-                    [ Html.td [ class "dict-key" ] [ Html.text "pending" ]
-                    , Html.td [ class "dict-value" ] []
-                    ]
-                ]
+    Html.table
+        [ class "dictionary build-duration"
+        , style "color" Colors.black
+        ]
+        [ Html.tr []
+            [ Html.td [ class "horizontal-cell" ] <|
+                case buildDuration of
+                    Pending ->
+                        [ Html.tr []
+                            [ Html.td [ class "dict-key" ] [ Html.text "pending" ]
+                            , Html.td [ class "dict-value" ] []
+                            ]
+                        ]
 
-            Running timestamp ->
-                [ Html.tr []
-                    [ Html.td [ class "dict-key" ] [ Html.text "started" ]
-                    , viewTimestamp timestamp
-                    ]
-                ]
+                    Running timestamp ->
+                        [ Html.tr []
+                            [ Html.td [ class "dict-key" ] [ Html.text "started" ]
+                            , viewTimestamp timestamp
+                            ]
+                        ]
 
-            Cancelled timestamp ->
-                [ Html.tr []
-                    [ Html.td [ class "dict-key" ] [ Html.text "finished" ]
-                    , viewTimestamp timestamp
-                    ]
-                ]
+                    Cancelled timestamp ->
+                        [ Html.tr []
+                            [ Html.td [ class "dict-key" ] [ Html.text "finished" ]
+                            , viewTimestamp timestamp
+                            ]
+                        ]
 
-            Finished { started, finished, duration } ->
-                [ Html.tr []
-                    [ Html.td [ class "dict-key" ] [ Html.text "started" ]
-                    , viewTimestamp started
-                    ]
-                , Html.tr []
-                    [ Html.td [ class "dict-key" ] [ Html.text "finished" ]
-                    , viewTimestamp finished
-                    ]
-                , Html.tr []
-                    [ Html.td [ class "dict-key" ] [ Html.text "duration" ]
-                    , Html.td [ class "dict-value" ] [ Html.text <| viewTimespan duration ]
-                    ]
-                ]
+                    Finished { started, finished } ->
+                        [ Html.tr []
+                            [ Html.td [ class "dict-key" ] [ Html.text "started" ]
+                            , viewTimestamp started
+                            ]
+                        , Html.tr []
+                            [ Html.td [ class "dict-key" ] [ Html.text "finished" ]
+                            , viewTimestamp finished
+                            ]
+                        ]
+            , Html.td [ class "horizontal-cell" ] <|
+                case buildDuration of
+                    Finished { duration } ->
+                        [ Html.tr []
+                            [ Html.td [ class "dict-key" ] [ Html.text "duration" ]
+                            , Html.td [ class "dict-value" ] [ Html.text <| viewTimespan duration ]
+                            ]
+                        ]
+
+                    _ ->
+                        []
+            ]
+        ]
 
 
 viewTimestamp : Timestamp -> Html Message
@@ -247,7 +261,8 @@ viewBuildTabs backgroundColor =
 viewBuildTab : BuildStatus -> BuildTab -> Html Message
 viewBuildTab backgroundColor tab =
     Html.li
-        ((id <| toHtmlID <| Message.BuildTab tab.id tab.name)
+        (class "history-item"
+            :: (id <| toHtmlID <| Message.BuildTab tab.id tab.name)
             :: Styles.historyItem backgroundColor tab.isCurrent tab.background
         )
         ((if tab.hasComment then
@@ -257,7 +272,8 @@ viewBuildTab backgroundColor tab =
             []
          )
             ++ [ Html.a
-                    [ onLeftClick <| Click <| Message.BuildTab tab.id tab.name
+                    [ style "color" <| Colors.buildTabTextColor tab.isCurrent tab.background
+                    , onLeftClick <| Click <| Message.BuildTab tab.id tab.name
                     , onMouseEnter <| Hover <| Just <| Message.BuildTab tab.id tab.name
                     , onMouseLeave <| Hover Nothing
                     , href <| Routes.toString tab.href
@@ -313,7 +329,7 @@ viewButton { type_, backgroundColor, backgroundShade, isClickable } =
                     Message.RerunBuildButton
 
         styles =
-            [ style "padding" "10px"
+            [ style "padding" "16px"
             , style "outline" "none"
             , style "margin" "0"
             , style "border-width" "0 0 0 1px"
@@ -351,7 +367,7 @@ viewButton { type_, backgroundColor, backgroundShade, isClickable } =
             ++ styles
         )
         [ Icon.icon
-            { sizePx = 40
+            { sizePx = 28
             , image = image
             }
             []
@@ -386,7 +402,11 @@ viewTitle name jobID createdBy =
                         , buildNameLineHeight
                         ]
                         [ Html.span [ class "build-name" ] [ Html.text jid.jobName ]
-                        , Html.span [ style "letter-spacing" "-1px" ] [ Html.text (" #" ++ name) ]
+                        , Html.span
+                            [ style "letter-spacing" "-1px"
+                            , style "margin-left" "16px"
+                            ]
+                            [ Html.text ("#" ++ name) ]
                         ]
 
                 Nothing ->

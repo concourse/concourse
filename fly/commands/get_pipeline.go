@@ -20,7 +20,7 @@ import (
 type GetPipelineCommand struct {
 	Pipeline flaghelpers.PipelineFlag `short:"p" long:"pipeline" required:"true" description:"Get configuration of this pipeline"`
 	JSON     bool                     `short:"j" long:"json"                     description:"Print config as json instead of yaml"`
-	Team     string                   `long:"team" description:"Name of the team to which the pipeline belongs, if different from the target default"`
+	Team     flaghelpers.TeamFlag     `long:"team" description:"Name of the team to which the pipeline belongs, if different from the target default"`
 }
 
 func (command *GetPipelineCommand) Validate() error {
@@ -45,14 +45,9 @@ func (command *GetPipelineCommand) Execute(args []string) error {
 	}
 
 	var team concourse.Team
-
-	if command.Team != "" {
-		team, err = target.FindTeam(command.Team)
-		if err != nil {
-			return err
-		}
-	} else {
-		team = target.Team()
+	team, err = command.Team.LoadTeam(target)
+	if err != nil {
+		return err
 	}
 
 	config, _, found, err := team.PipelineConfig(command.Pipeline.Ref())

@@ -1070,13 +1070,11 @@ topBar session model =
     Html.div
         (id "top-bar-app" :: Views.Styles.topBar False)
     <|
-        [ Html.div [ style "display" "flex", style "align-items" "center" ]
-            [ SideBar.sideBarIcon session
-            , TopBar.concourseLogo
-            , TopBar.breadcrumbs session session.route
-            ]
-        ]
-            ++ (let
+        Html.div [ style "display" "flex", style "align-items" "center" ]
+            (SideBar.sideBarIcon session
+                :: TopBar.breadcrumbs session session.route
+            )
+            :: (let
                     isDropDownHidden =
                         model.dropdown == Hidden
 

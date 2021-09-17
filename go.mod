@@ -14,7 +14,7 @@ require (
 	github.com/Masterminds/squirrel v1.5.0
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/aryann/difflib v0.0.0-20170710044230-e206f873d14a
-	github.com/aws/aws-sdk-go v1.40.31
+	github.com/aws/aws-sdk-go v1.40.43
 	github.com/caarlos0/env v3.5.0+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e // indirect
@@ -29,11 +29,11 @@ require (
 	github.com/coreos/go-iptables v0.6.0
 	github.com/cppforlife/go-semi-semantic v0.0.0-20160921010311-576b6af77ae4
 	github.com/creack/pty v1.1.11 // indirect
-	github.com/cyberark/conjur-api-go v0.7.1
+	github.com/cyberark/conjur-api-go v0.8.0
 	github.com/fatih/color v1.12.0
 	github.com/felixge/httpsnoop v1.0.2
 	github.com/gobwas/glob v0.2.3
-	github.com/goccy/go-yaml v1.9.2
+	github.com/goccy/go-yaml v1.9.3
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
 	github.com/google/jsonapi v0.0.0-20180618021926-5d047c6bc66b
@@ -49,16 +49,16 @@ require (
 	github.com/influxdata/influxdb1-client v0.0.0-20191209144304-8bf82d3c094d
 	github.com/jackpal/gateway v1.0.7
 	github.com/jessevdk/go-flags v1.4.1-0.20200711081900-c17162fe8fd7
-	github.com/klauspost/compress v1.13.4
+	github.com/klauspost/compress v1.13.5
 	github.com/kr/pty v1.1.8
 	github.com/krishicks/yaml-patch v0.0.10
-	github.com/lib/pq v1.10.2
+	github.com/lib/pq v1.10.3
 	github.com/mattn/go-colorable v0.1.8
-	github.com/mattn/go-isatty v0.0.13
+	github.com/mattn/go-isatty v0.0.14
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.4.1
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b
 	github.com/miekg/dns v1.1.43
-	github.com/mitchellh/mapstructure v1.4.1
+	github.com/mitchellh/mapstructure v1.4.2
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.16.0
@@ -82,13 +82,13 @@ require (
 	github.com/vito/go-sse v0.0.0-20160212001227-fd69d275caac
 	github.com/vito/houdini v1.1.1
 	github.com/vito/twentythousandtonnesofcrudeoil v0.0.0-20180305154709-3b21ad808fcb
-	go.opentelemetry.io/otel v1.0.0-RC2
-	go.opentelemetry.io/otel/exporters/jaeger v1.0.0-RC2
-	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.0.0-RC2
-	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.0.0-RC2
-	go.opentelemetry.io/otel/oteltest v1.0.0-RC2
-	go.opentelemetry.io/otel/sdk v1.0.0-RC2
-	go.opentelemetry.io/otel/trace v1.0.0-RC2
+	go.opentelemetry.io/otel v1.0.0-RC3
+	go.opentelemetry.io/otel/exporters/jaeger v1.0.0-RC3
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.0.0-RC3
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.0.0-RC3
+	go.opentelemetry.io/otel/oteltest v1.0.0-RC3
+	go.opentelemetry.io/otel/sdk v1.0.0-RC3
+	go.opentelemetry.io/otel/trace v1.0.0-RC3
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
 	golang.org/x/oauth2 v0.0.0-20210628180205-a41e5a781914
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c

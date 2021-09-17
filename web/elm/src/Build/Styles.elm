@@ -39,7 +39,7 @@ header status =
     , style "background" <|
         case status of
             BuildStatusStarted ->
-                Colors.startedFaded
+                Colors.started
 
             BuildStatusPending ->
                 Colors.pending
@@ -69,41 +69,69 @@ body =
 
 historyItem : BuildStatus -> Bool -> BuildStatus -> List (Html.Attribute msg)
 historyItem currentBuildStatus isCurrent status =
+    let
+        borderColor =
+            Colors.buildTabBorderColor isCurrent currentBuildStatus
+    in
     [ style "position" "relative"
     , style "letter-spacing" "-1px"
-    , style "padding" "0 2px 0 2px"
-    , style "border-top" <| "1px solid " ++ Colors.buildStatusColor isCurrent currentBuildStatus
-    , style "border-right" <| "1px solid " ++ Colors.buildStatusColor False status
-    , style "opacity" <|
-        if isCurrent then
-            "1"
-
-        else
-            "0.8"
+    , style "padding-top" "0"
+    , style "padding-bottom" "0"
+    , style "border-top" <| "1px solid " ++ borderColor
+    , style "border-bottom" <| "1px solid " ++ borderColor
     ]
-        ++ (case status of
-                BuildStatusStarted ->
-                    striped
-                        { pipelineRunningKeyframes = "pipeline-running"
-                        , thickColor = Colors.startedFaded
-                        , thinColor = Colors.started
-                        }
+        ++ buildTabBackground isCurrent status
 
-                BuildStatusPending ->
-                    [ style "background" Colors.pending ]
 
-                BuildStatusSucceeded ->
-                    [ style "background" Colors.success ]
+buildTabBackground : Bool -> BuildStatus -> List (Html.Attribute msg)
+buildTabBackground isCurrent status =
+    let
+        startedBackground =
+            striped
+                { pipelineRunningKeyframes = "pipeline-running"
+                , thickColor = Colors.startedFaded
+                , thinColor = Colors.started
+                }
+    in
+    if isCurrent then
+        case status of
+            BuildStatusStarted ->
+                startedBackground
 
-                BuildStatusFailed ->
-                    [ style "background" Colors.failure ]
+            BuildStatusPending ->
+                [ style "background" Colors.pending ]
 
-                BuildStatusErrored ->
-                    [ style "background" Colors.error ]
+            BuildStatusSucceeded ->
+                [ style "background" Colors.success ]
 
-                BuildStatusAborted ->
-                    [ style "background" Colors.aborted ]
-           )
+            BuildStatusFailed ->
+                [ style "background" Colors.failure ]
+
+            BuildStatusErrored ->
+                [ style "background" Colors.error ]
+
+            BuildStatusAborted ->
+                [ style "background" Colors.aborted ]
+
+    else
+        case status of
+            BuildStatusStarted ->
+                style "opacity" "0.8" :: startedBackground
+
+            BuildStatusPending ->
+                [ style "background" Colors.pendingFaded ]
+
+            BuildStatusSucceeded ->
+                [ style "background" Colors.successFaded ]
+
+            BuildStatusFailed ->
+                [ style "background" Colors.failureFaded ]
+
+            BuildStatusErrored ->
+                [ style "background" Colors.errorFaded ]
+
+            BuildStatusAborted ->
+                [ style "background" Colors.abortedFaded ]
 
 
 historyTriangle : String -> List (Html.Attribute msg)
@@ -203,8 +231,6 @@ stepHeaderLabel changed =
 
         else
             Colors.pending
-    , style "line-height" "28px"
-    , style "padding-left" "6px"
     ]
 
 
@@ -297,17 +323,15 @@ metadataCell cell =
         Key ->
             [ style "text-align" "left"
             , style "vertical-align" "top"
-            , style "background-color" "rgb(45,45,45)"
-            , style "border-bottom" "5px solid rgb(45,45,45)"
-            , style "padding" "5px"
+            , style "background-color" Colors.metadataKeyBackground
+            , style "padding" "8px"
             ]
 
         Value ->
             [ style "text-align" "left"
             , style "vertical-align" "top"
-            , style "background-color" "rgb(30,30,30)"
-            , style "border-bottom" "5px solid rgb(45,45,45)"
-            , style "padding" "5px"
+            , style "background-color" Colors.metadataValueBackground
+            , style "padding" "8px"
             ]
 
 

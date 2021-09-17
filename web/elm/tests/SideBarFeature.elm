@@ -1032,7 +1032,7 @@ hoveredSideBarIcon opened =
 
 
 sidebarIconWidth =
-    "54px"
+    "22px"
 
 
 iSeeItLaysOutHorizontally =

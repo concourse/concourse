@@ -139,12 +139,12 @@ success10 =
 
 success20 : String
 success20 =
-    "#9AF5C2"
+    "#B4F0CE"
 
 
 success30 : String
 success30 =
-    "#5AE095"
+    "#70DB9F"
 
 
 success40 : String
@@ -154,7 +154,7 @@ success40 =
 
 success50 : String
 success50 =
-    "#0D9448"
+    "#70DB9F"
 
 
 success60 : String
@@ -164,7 +164,7 @@ success60 =
 
 success70 : String
 success70 =
-    "#0F5930"
+    "#0D9448"
 
 
 success80 : String

@@ -1,6 +1,7 @@
 package integration_test
 
 import (
+	"fmt"
 	"net/http"
 	"os/exec"
 
@@ -192,6 +193,81 @@ var _ = Describe("AbortBuild", func() {
 			}).To(Change(func() int {
 				return len(atcServer.ReceivedRequests())
 			}).By(2))
+		})
+	})
+
+	Context("user is NOT targeting the same team the pipeline belongs to", func() {
+		team := "diff-team"
+		BeforeEach(func() {
+			atcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", fmt.Sprintf("/api/v1/teams/%s", team)),
+					ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{
+						Name: team,
+					}),
+				),
+			)
+		})
+
+		Context("when the job id and the build id are specified", func() {
+
+
+			Context("when the job and the build exist", func() {
+				BeforeEach(func() {
+					expectedURL := "/api/v1/teams/diff-team/pipelines/my-pipeline/jobs/my-job/builds/3"
+
+					atcServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", expectedURL),
+							ghttp.RespondWithJSONEncoded(http.StatusOK, expectedBuild),
+						),
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("PUT", expectedAbortURL),
+							ghttp.RespondWith(http.StatusNoContent, ""),
+						),
+					)
+				})
+
+				It("abort the build", func() {
+					flyCmd := exec.Command(flyPath, "-t", targetName, "abort-build", "-j", "my-pipeline/my-job", "-b", "3", "--team", team)
+
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+
+					Eventually(sess).Should(gexec.Exit(0))
+
+					Expect(sess.Out).To(gbytes.Say("build successfully aborted"))
+				})
+			})
+
+			Context("when the job or build doesn't exist", func() {
+				BeforeEach(func() {
+					expectedURL := "/api/v1/teams/diff-team/pipelines/my-pipeline/jobs/non-existing-job/builds/3"
+
+					atcServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", expectedURL),
+							ghttp.RespondWithJSONEncoded(http.StatusNotFound, expectedBuild),
+						),
+
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("PUT", expectedAbortURL),
+							ghttp.RespondWith(http.StatusNoContent, ""),
+						),
+					)
+				})
+
+				It("returns a helpful error message", func() {
+					flyCmd := exec.Command(flyPath, "-t", targetName, "abort-build", "-j", "my-pipeline/non-existing-job", "-b", "3", "--team", team)
+
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+
+					Eventually(sess).Should(gexec.Exit(1))
+
+					Expect(sess.Err).To(gbytes.Say("error: build does not exist"))
+				})
+			})
 		})
 	})
 })
