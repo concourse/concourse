@@ -1,11 +1,12 @@
 package gc
 
 import (
+	"context"
+	"time"
+
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
-	"context"
 	"github.com/concourse/concourse/atc/db"
-	"time"
 )
 
 type buildLogCollector struct {
@@ -58,7 +59,7 @@ func (br *buildLogCollector) Run(ctx context.Context) error {
 		jobs, err := pipeline.Jobs()
 		if err != nil {
 			logger.Error("failed-to-get-dashboard", err)
-			return err
+			continue
 		}
 
 		for _, job := range jobs {
@@ -68,7 +69,7 @@ func (br *buildLogCollector) Run(ctx context.Context) error {
 
 			err = br.reapLogsOfJob(pipeline, job, logger)
 			if err != nil {
-				return err
+				continue
 			}
 		}
 	}
@@ -147,7 +148,6 @@ func (br *buildLogCollector) reapLogsOfJob(pipeline db.Pipeline,
 
 		maxBuildsRetained := retainedBuilds >= logRetention.Builds
 		buildHasExpired := !build.EndTime().IsZero() && build.EndTime().AddDate(0, 0, logRetention.Days).Before(time.Now())
-
 
 		if logRetention.Builds != 0 {
 			if logRetention.MinimumSucceededBuilds != 0 {

@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"time"
 
+	"code.cloudfoundry.org/lager/lagerctx"
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
@@ -13,6 +15,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 )
 
 var _ = Describe("BuildLogCollector", func() {
@@ -22,6 +25,8 @@ var _ = Describe("BuildLogCollector", func() {
 		fakePipelineLifecycle *dbfakes.FakePipelineLifecycle
 		batchSize             int
 		buildLogRetainCalc    BuildLogRetentionCalculator
+		logger                *lagertest.TestLogger
+		ctx                   context.Context
 	)
 
 	BeforeEach(func() {
@@ -29,6 +34,8 @@ var _ = Describe("BuildLogCollector", func() {
 		fakePipelineLifecycle = new(dbfakes.FakePipelineLifecycle)
 		batchSize = 5
 		buildLogRetainCalc = NewBuildLogRetentionCalculator(0, 0, 0, 0)
+		logger = lagertest.NewTestLogger("test")
+		ctx = lagerctx.NewContext(context.Background(), logger)
 	})
 
 	JustBeforeEach(func() {
@@ -42,7 +49,7 @@ var _ = Describe("BuildLogCollector", func() {
 	})
 
 	It("removes build events from deleted pipelines", func() {
-		err := buildLogCollector.Run(context.TODO())
+		err := buildLogCollector.Run(ctx)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(fakePipelineLifecycle.RemoveBuildEventsForDeletedPipelinesCallCount()).To(Equal(1))
 	})
@@ -53,7 +60,7 @@ var _ = Describe("BuildLogCollector", func() {
 		})
 
 		It("errors", func() {
-			err := buildLogCollector.Run(context.TODO())
+			err := buildLogCollector.Run(ctx)
 			Expect(err).To(HaveOccurred())
 		})
 	})
@@ -76,9 +83,9 @@ var _ = Describe("BuildLogCollector", func() {
 				fakePipeline.JobsReturns(nil, disaster)
 			})
 
-			It("returns the error", func() {
-				err := buildLogCollector.Run(context.TODO())
-				Expect(err).To(Equal(disaster))
+			It("logs the error", func() {
+				Expect(buildLogCollector.Run(ctx)).To(BeNil())
+				Eventually(logger.Buffer()).Should(gbytes.Say(disaster.Error()))
 			})
 		})
 
@@ -122,7 +129,7 @@ var _ = Describe("BuildLogCollector", func() {
 				})
 
 				JustBeforeEach(func() {
-					err := buildLogCollector.Run(context.TODO())
+					err := buildLogCollector.Run(ctx)
 					Expect(err).NotTo(HaveOccurred())
 				})
 
@@ -172,7 +179,7 @@ var _ = Describe("BuildLogCollector", func() {
 					fakeJob.UpdateFirstLoggedBuildIDReturns(nil)
 				})
 				It("should reap builds if draining is not configured", func() {
-					err := buildLogCollector.Run(context.TODO())
+					err := buildLogCollector.Run(ctx)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(Equal(1))
 
@@ -201,13 +208,13 @@ var _ = Describe("BuildLogCollector", func() {
 					fakePipeline.DeleteBuildEventsByBuildIDsReturns(disaster)
 				})
 
-				It("returns the error", func() {
-					err := buildLogCollector.Run(context.TODO())
-					Expect(err).To(Equal(disaster))
+				It("logs the error", func() {
+					Expect(buildLogCollector.Run(ctx)).To(BeNil())
+					Eventually(logger.Buffer()).Should(gbytes.Say(disaster.Error()))
 				})
 
 				It("does not update first logged build id", func() {
-					buildLogCollector.Run(context.TODO())
+					buildLogCollector.Run(ctx)
 
 					Expect(fakeJob.UpdateFirstLoggedBuildIDCallCount()).To(BeZero())
 				})
@@ -230,9 +237,9 @@ var _ = Describe("BuildLogCollector", func() {
 					fakeJob.UpdateFirstLoggedBuildIDReturns(disaster)
 				})
 
-				It("returns the error", func() {
-					err := buildLogCollector.Run(context.TODO())
-					Expect(err).To(Equal(disaster))
+				It("logs the error", func() {
+					Expect(buildLogCollector.Run(ctx)).To(BeNil())
+					Eventually(logger.Buffer()).Should(gbytes.Say(disaster.Error()))
 				})
 			})
 
@@ -264,7 +271,7 @@ var _ = Describe("BuildLogCollector", func() {
 				})
 
 				JustBeforeEach(func() {
-					err := buildLogCollector.Run(context.TODO())
+					err := buildLogCollector.Run(ctx)
 					Expect(err).NotTo(HaveOccurred())
 				})
 
@@ -298,7 +305,7 @@ var _ = Describe("BuildLogCollector", func() {
 				})
 
 				JustBeforeEach(func() {
-					err := buildLogCollector.Run(context.TODO())
+					err := buildLogCollector.Run(ctx)
 					Expect(err).NotTo(HaveOccurred())
 				})
 
@@ -321,7 +328,7 @@ var _ = Describe("BuildLogCollector", func() {
 				})
 
 				It("doesn't reap any builds", func() {
-					err := buildLogCollector.Run(context.TODO())
+					err := buildLogCollector.Run(ctx)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(BeZero())
@@ -338,9 +345,9 @@ var _ = Describe("BuildLogCollector", func() {
 					fakeJob.BuildsReturns(nil, db.Pagination{}, disaster)
 				})
 
-				It("returns the error", func() {
-					err := buildLogCollector.Run(context.TODO())
-					Expect(err).To(Equal(disaster))
+				It("logs the error", func() {
+					Expect(buildLogCollector.Run(ctx)).To(BeNil())
+					Eventually(logger.Buffer()).Should(gbytes.Say(disaster.Error()))
 				})
 			})
 
@@ -366,7 +373,7 @@ var _ = Describe("BuildLogCollector", func() {
 				})
 
 				It("should delete 1 build event", func() {
-					err := buildLogCollector.Run(context.TODO())
+					err := buildLogCollector.Run(ctx)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(Equal(1))
@@ -397,7 +404,7 @@ var _ = Describe("BuildLogCollector", func() {
 				})
 
 				It("should delete nothing, because of the date retention", func() {
-					err := buildLogCollector.Run(context.TODO())
+					err := buildLogCollector.Run(ctx)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(Equal(0))
@@ -426,7 +433,7 @@ var _ = Describe("BuildLogCollector", func() {
 						return nil, db.Pagination{}, nil
 					}
 
-					err := buildLogCollector.Run(context.TODO())
+					err := buildLogCollector.Run(ctx)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(Equal(0))
@@ -441,7 +448,7 @@ var _ = Describe("BuildLogCollector", func() {
 						return nil, db.Pagination{}, nil
 					}
 
-					err := buildLogCollector.Run(context.TODO())
+					err := buildLogCollector.Run(ctx)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(Equal(0))
@@ -456,7 +463,7 @@ var _ = Describe("BuildLogCollector", func() {
 						return nil, db.Pagination{}, nil
 					}
 
-					err := buildLogCollector.Run(context.TODO())
+					err := buildLogCollector.Run(ctx)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(Equal(1))
@@ -487,7 +494,7 @@ var _ = Describe("BuildLogCollector", func() {
 				})
 
 				It("should delete before that", func() {
-					err := buildLogCollector.Run(context.TODO())
+					err := buildLogCollector.Run(ctx)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(Equal(1))
@@ -523,7 +530,7 @@ var _ = Describe("BuildLogCollector", func() {
 				})
 
 				JustBeforeEach(func() {
-					err := buildLogCollector.Run(context.TODO())
+					err := buildLogCollector.Run(ctx)
 					Expect(err).NotTo(HaveOccurred())
 				})
 
@@ -575,7 +582,7 @@ var _ = Describe("BuildLogCollector", func() {
 				})
 
 				JustBeforeEach(func() {
-					err := buildLogCollector.Run(context.TODO())
+					err := buildLogCollector.Run(ctx)
 					Expect(err).NotTo(HaveOccurred())
 				})
 
@@ -626,7 +633,7 @@ var _ = Describe("BuildLogCollector", func() {
 				})
 
 				It("FirstLoggedBuildID doesn't get reset to 0", func() {
-					Expect(buildLogCollector.Run(context.TODO())).NotTo(HaveOccurred())
+					Expect(buildLogCollector.Run(ctx)).NotTo(HaveOccurred())
 					Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(Equal(1))
 					Expect(fakePipeline.DeleteBuildEventsByBuildIDsArgsForCall(0)).To(ConsistOf(9, 8, 7, 6, 5))
 					Expect(fakeJob.UpdateFirstLoggedBuildIDCallCount()).To(Equal(0))
@@ -665,7 +672,7 @@ var _ = Describe("BuildLogCollector", func() {
 					})
 
 					It("uses build log calculator", func() {
-						Expect(buildLogCollector.Run(context.TODO())).NotTo(HaveOccurred())
+						Expect(buildLogCollector.Run(ctx)).NotTo(HaveOccurred())
 						Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(Equal(1))
 						Expect(fakePipeline.DeleteBuildEventsByBuildIDsArgsForCall(0)).To(ConsistOf(1))
 					})
@@ -680,9 +687,9 @@ var _ = Describe("BuildLogCollector", func() {
 						fakeJob.BuildsReturns(nil, db.Pagination{}, disaster)
 					})
 
-					It("returns the error", func() {
-						err := buildLogCollector.Run(context.TODO())
-						Expect(err).To(Equal(disaster))
+					It("logs the error", func() {
+						Expect(buildLogCollector.Run(ctx)).To(BeNil())
+						Eventually(logger.Buffer()).Should(gbytes.Say(disaster.Error()))
 					})
 				})
 			})
@@ -705,7 +712,7 @@ var _ = Describe("BuildLogCollector", func() {
 			})
 
 			It("skips the reaping step for that job", func() {
-				err := buildLogCollector.Run(context.TODO())
+				err := buildLogCollector.Run(ctx)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(fakeJob.BuildsCallCount()).To(BeZero())
@@ -727,7 +734,7 @@ var _ = Describe("BuildLogCollector", func() {
 		})
 
 		It("skips the reaping step for that pipeline", func() {
-			err := buildLogCollector.Run(context.TODO())
+			err := buildLogCollector.Run(ctx)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(BeZero())
@@ -766,7 +773,7 @@ var _ = Describe("BuildLogCollector", func() {
 		})
 
 		It("skips the reaping step for that job", func() {
-			err := buildLogCollector.Run(context.TODO())
+			err := buildLogCollector.Run(ctx)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(BeZero())
@@ -784,7 +791,7 @@ var _ = Describe("BuildLogCollector", func() {
 		})
 
 		It("returns the error", func() {
-			err := buildLogCollector.Run(context.TODO())
+			err := buildLogCollector.Run(ctx)
 			Expect(err).To(Equal(disaster))
 		})
 	})
