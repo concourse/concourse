@@ -216,6 +216,9 @@
     This pipeline has two tasks. The first task outputs a file with the date. The
     second task reads and prints the contents of the file from the first task.
 
+    Here's a visualization of the job.
+    \diagram{images/how-to-guides/pipelines/explore-task-inputs-outs-example-one-10.gif}{100%}
+
     \titled-codeblock{passing-artifacts.yml}{yaml}{{
     busybox: &busybox #YAML anchor
       type: registry-image
@@ -277,15 +280,25 @@
     This scenario is to satisfy the curiosity cat inside all of us. Never do this
     in real life because you're definitely going to hurt yourself!
 
-    We are going to go over two versions of this example. The first one has three
-    steps. The first two steps run
-    \reference{schema.step.in-parallel-step.in_parallel}{\code{in_parallel}}.
-    This makes it unclear which step will finish first. Both steps have an output
-    with the same name, \code{artifact}. The third step tries to read
-    \code{file1} and \code{file2} from \code{artifact}. It will error because
-    only one of those files will exist. Whichever of the first two jobs finishes
-    last will have its \code{artifact} passed onto the third job. \bold{Last to
-    write wins!}
+
+    There are two \reference{jobs} in this pipeline. The first job,
+    \code{writing-in-parallel}, has two \reference{steps}; both steps will produce an
+    artifact named \code{the-output} in parallel. If you run the
+    \code{writing-to-the-same-output-in-parallel} job multiple times you'll see
+    the file in \code{the-output} folder changes depending on which of the
+    parallel tasks finished last. Here's a visualization of the first job.
+
+    \diagram{images/how-to-guides/pipelines/explore-task-inputs-outs-example-two-parallel.gif}{100%}
+
+    The second job, \code{writing-to-the-same-output-serially}, is a serial
+    version of the first job. In this job the second task always wins because
+    it's the last task that outputs \code{the-output}, so only \code{file2}
+    will be in \code{the-output} directory in the last step in the job plan.
+
+    \diagram{images/how-to-guides/pipelines/explore-task-inputs-outs-example-two-serial.gif}{100%}
+
+    The lesson to take away from this example is that \bold{last to write wins}
+    when it comes to the state of any particular artifact in your job.
 
     \titled-codeblock{parallel-artifacts.yml}{yaml}{{
     busybox: &busybox #YAML anchor
@@ -293,7 +306,7 @@
       source: {repository: busybox}
 
     jobs:
-    - name: writing-in-parallel
+    - name: writing-to-the-same-output-in-parallel
       plan:
       # running two tasks that output in parallel?!?
       # who will win??
@@ -303,27 +316,27 @@
             platform: linux
             image_resource: *busybox
             outputs:
-              - name: artifact
+              - name: the-output
             run:
               path: /bin/sh
               args:
                 - -cx
                 - |
                   ls -lah
-                  date > ./artifact/file1
+                  date > ./the-output/file1
         - task: also-create-the-output
           config:
             platform: linux
             image_resource: *busybox
             outputs:
-              - name: artifact
+              - name: the-output
             run:
               path: /bin/sh
               args:
                 - -cx
                 - |
                   ls -lah
-                  date > ./artifact/file2
+                  date > ./the-output/file2
       # run this job multiple times to see which
       # previous task wins each time
       - task: read-ouput-from-previous-step
@@ -331,15 +344,58 @@
           platform: linux
           image_resource: *busybox
           inputs:
-            - name: artifact
+            - name: the-output
           run:
             path: /bin/sh
             args:
               - -cx
               - |
-                ls -lah ./artifact
+                ls -lah ./the-ouput
                 echo "Get ready to error!"
-                cat ./artifact/file1 ./artifact/file2
+                cat ./the-output/file1 ./the-output/file2
+
+    - name: writing-to-the-same-output-serially
+      plan:
+      - task: create-the-output
+        config:
+          platform: linux
+          image_resource: *busybox
+          outputs:
+            - name: the-output
+          run:
+            path: /bin/sh
+            args:
+              - -cx
+              - |
+                ls -lah
+                date > ./the-output/file1
+      - task: also-create-the-output
+        config:
+          platform: linux
+          image_resource: *busybox
+          outputs:
+            - name: the-output
+          run:
+            path: /bin/sh
+            args:
+              - -cx
+              - |
+                ls -lah
+                date > ./the-output/file2
+      - task: read-ouput-from-previous-step
+        config:
+          platform: linux
+          image_resource: *busybox
+          inputs:
+            - name: the-output
+          run:
+            path: /bin/sh
+            args:
+              - -cx
+              - |
+                ls -lah ./the-ouput
+                echo "Get ready to error! file1 will never exist"
+                cat ./the-output/file1 ./the-output/file2
     }}
 
     Set and run this pipeline to see the results yourself. Save the pipeline in a
@@ -349,6 +405,7 @@
     fly -t tutorial set-pipeline -p parallel-artifacts -c parallel-artifacts.yml
     fly -t tutorial unpause-pipeline -p parallel-artifacts
     fly -t tutorial trigger-job --job parallel-artifacts/writing-in-parallel --watch
+    fly -t tutorial trigger-job --job parallel-artifacts/writing-to-the-same-output-serially --watch
     }}
   }
 
@@ -377,6 +434,14 @@
     The third task reads and prints the contents of the file under another name,
     \code{generic-input}. The \code{demo-disk} artifact in the job plan is mapped
     to \code{generic-input}.
+
+    The fourth task tries to use the artifact named \code{the-output} as its input.
+    This task fails to even start because there was no artifact with the name
+    \code{the-output} available in the \reference{schema.job.plan}{job plan}; it was remapped to \code{demo-disk}.
+
+    Here's a visualization of the job.
+
+    \diagram{images/how-to-guides/pipelines/explore-task-inputs-outs-example-three-1.gif}{100%}
 
     \titled-codeblock{mapping-artifacts.yml}{yaml}{{
     busybox: &busybox #YAML anchor
@@ -484,6 +549,9 @@
     This means you can pass something between a bunch of tasks and have each task
     add or modify something in the artifact.
 
+    Here's a visualization of the job.
+    \diagram{images/how-to-guides/pipelines/explore-task-inputs-outs-example-four.gif}{100%}
+
     \titled-codeblock{existing-artifact.yml}{yaml}{{
     jobs:
     - name: add-file-to-output
@@ -558,6 +626,9 @@
 
     The answer is no. A task will only get the artifacts that match the name of
     the inputs listed in the task's config.
+
+    Here's a visualization of the job.
+    \diagram{images/how-to-guides/pipelines/explore-task-inputs-outs-example-five.gif}{100%}
 
     \titled-codeblock{multiple-artifacts.yml}{yaml}{{
     jobs:
@@ -637,6 +708,9 @@
     \reference{resources}{resource}, which means they have at least one \reference{get-step}{get step}.
     Using a \reference{get-step}{get step} in a job makes an artifact with the name of the get step
     available for later steps in the job plan to consume as inputs.
+
+    Here's a visualization of the job.
+    \diagram{images/how-to-guides/pipelines/explore-task-inputs-outs-example-six.gif}{100%}
 
     \titled-codeblock{get-artifact.yml}{yaml}{{
     resources:
