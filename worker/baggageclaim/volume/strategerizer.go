@@ -12,12 +12,6 @@ type Strategerizer interface {
 	StrategyFor(baggageclaim.VolumeRequest) (Strategy, error)
 }
 
-const (
-	StrategyEmpty       = "empty"
-	StrategyCopyOnWrite = "cow"
-	StrategyImport      = "import"
-)
-
 var ErrNoStrategy = errors.New("no strategy given")
 var ErrUnknownStrategy = errors.New("unknown strategy")
 
@@ -45,12 +39,12 @@ func (s *strategerizer) StrategyFor(request baggageclaim.VolumeRequest) (Strateg
 
 	var strategy Strategy
 	switch strategyType {
-	case StrategyEmpty:
+	case baggageclaim.StrategyEmpty:
 		strategy = EmptyStrategy{}
-	case StrategyCopyOnWrite:
+	case baggageclaim.StrategyCopyOnWrite:
 		volume, _ := strategyInfo["volume"].(string)
 		strategy = COWStrategy{volume}
-	case StrategyImport:
+	case baggageclaim.StrategyImport:
 		path, _ := strategyInfo["path"].(string)
 		followSymlinks, _ := strategyInfo["follow_symlinks"].(bool)
 		strategy = ImportStrategy{

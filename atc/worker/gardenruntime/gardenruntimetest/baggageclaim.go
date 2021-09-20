@@ -8,7 +8,6 @@ import (
 	"net/http/httptest"
 	"strings"
 
-	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/runtime/runtimetest"
 	"github.com/concourse/concourse/worker/baggageclaim"
 )
@@ -46,12 +45,12 @@ func (b *Baggageclaim) AddVolume(volume *Volume) *Volume {
 	return volume
 }
 
-func (b *Baggageclaim) CreateVolume(_ lager.Logger, handle string, spec baggageclaim.VolumeSpec) (baggageclaim.Volume, error) {
+func (b *Baggageclaim) CreateVolume(_ context.Context, handle string, spec baggageclaim.VolumeSpec) (baggageclaim.Volume, error) {
 	volume := b.AddVolume(NewVolume(handle).WithSpec(spec))
 	return volume, nil
 }
 
-func (b *Baggageclaim) ListVolumes(_ lager.Logger, filter baggageclaim.VolumeProperties) (baggageclaim.Volumes, error) {
+func (b *Baggageclaim) ListVolumes(_ context.Context, filter baggageclaim.VolumeProperties) (baggageclaim.Volumes, error) {
 	filteredVolumes := b.FilteredVolumes(func(v *Volume) bool {
 		return matchesFilter(v.Spec.Properties, filter)
 	})
@@ -62,19 +61,19 @@ func (b *Baggageclaim) ListVolumes(_ lager.Logger, filter baggageclaim.VolumePro
 	return bcVolumes, nil
 }
 
-func (b *Baggageclaim) LookupVolume(_ lager.Logger, handle string) (baggageclaim.Volume, bool, error) {
+func (b *Baggageclaim) LookupVolume(_ context.Context, handle string) (baggageclaim.Volume, bool, error) {
 	v, _, ok := b.FindVolume(handle)
 	return v, ok, nil
 }
 
-func (b *Baggageclaim) DestroyVolumes(logger lager.Logger, handles []string) error {
+func (b *Baggageclaim) DestroyVolumes(_ context.Context, handles []string) error {
 	for _, handle := range handles {
-		b.DestroyVolume(logger, handle)
+		b.DestroyVolume(context.Background(), handle)
 	}
 	return nil
 }
 
-func (b *Baggageclaim) DestroyVolume(_ lager.Logger, handle string) error {
+func (b *Baggageclaim) DestroyVolume(_ context.Context, handle string) error {
 	b.Volumes = b.FilteredVolumes(func(v *Volume) bool {
 		return v.handle != handle
 	})
@@ -123,19 +122,19 @@ func (v Volume) WithSpec(spec baggageclaim.VolumeSpec) *Volume {
 func (v Volume) Handle() string { return v.handle }
 func (v Volume) Path() string   { return v.path }
 
-func (v Volume) SetProperty(key, value string) error {
+func (v Volume) SetProperty(_ context.Context, key, value string) error {
 	v.Spec.Properties[key] = value
 	return nil
 }
-func (v Volume) Properties() (baggageclaim.VolumeProperties, error) {
+func (v Volume) Properties(_ context.Context) (baggageclaim.VolumeProperties, error) {
 	return v.Spec.Properties, nil
 }
 
-func (v *Volume) SetPrivileged(p bool) error {
+func (v *Volume) SetPrivileged(_ context.Context, p bool) error {
 	v.Spec.Privileged = p
 	return nil
 }
-func (v Volume) GetPrivileged() (bool, error) { return v.Spec.Privileged, nil }
+func (v Volume) GetPrivileged(_ context.Context) (bool, error) { return v.Spec.Privileged, nil }
 
 func (v Volume) StreamIn(ctx context.Context, path string, encoding baggageclaim.Encoding, tarStream io.Reader) error {
 	return v.Content.StreamIn(ctx, path, encoding, tarStream)
@@ -171,6 +170,6 @@ func (v Volume) StreamP2pOut(ctx context.Context, path string, streamInURL strin
 	return err
 }
 
-func (v Volume) Destroy() error {
+func (v Volume) Destroy(_ context.Context) error {
 	return nil
 }

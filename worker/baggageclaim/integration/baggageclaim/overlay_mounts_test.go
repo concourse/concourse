@@ -1,4 +1,5 @@
-//+build linux
+//go:build linux
+// +build linux
 
 package integration_test
 
@@ -52,14 +53,14 @@ var _ = Describe("baggageclaim restart", func() {
 		)
 
 		BeforeEach(func() {
-			createdVolume, err = client.CreateVolume(logger, "some-handle", baggageclaim.VolumeSpec{Strategy: baggageclaim.EmptyStrategy{}})
+			createdVolume, err = client.CreateVolume(ctx, "some-handle", baggageclaim.VolumeSpec{Strategy: baggageclaim.EmptyStrategy{}})
 			Expect(err).NotTo(HaveOccurred())
 
 			dataInParent = writeData(createdVolume.Path())
 			Expect(dataExistsInVolume(dataInParent, createdVolume.Path())).To(BeTrue())
 
 			createdCOWVolume, err = client.CreateVolume(
-				logger,
+				ctx,
 				"some-cow-handle",
 				baggageclaim.VolumeSpec{
 					Strategy:   baggageclaim.COWStrategy{Parent: createdVolume},
@@ -76,7 +77,7 @@ var _ = Describe("baggageclaim restart", func() {
 			))
 
 			createdCOWCOWVolume, err = client.CreateVolume(
-				logger,
+				ctx,
 				"some-cow-cow-handle",
 				baggageclaim.VolumeSpec{
 					Strategy:   baggageclaim.COWStrategy{Parent: createdCOWVolume},

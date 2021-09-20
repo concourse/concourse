@@ -120,15 +120,16 @@ func (fake *FakeFilesystemLiveVolume) DataPath() string {
 	ret, specificReturn := fake.dataPathReturnsOnCall[len(fake.dataPathArgsForCall)]
 	fake.dataPathArgsForCall = append(fake.dataPathArgsForCall, struct {
 	}{})
+	stub := fake.DataPathStub
+	fakeReturns := fake.dataPathReturns
 	fake.recordInvocation("DataPath", []interface{}{})
 	fake.dataPathMutex.Unlock()
-	if fake.DataPathStub != nil {
-		return fake.DataPathStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.dataPathReturns
 	return fakeReturns.result1
 }
 
@@ -172,15 +173,16 @@ func (fake *FakeFilesystemLiveVolume) Destroy() error {
 	ret, specificReturn := fake.destroyReturnsOnCall[len(fake.destroyArgsForCall)]
 	fake.destroyArgsForCall = append(fake.destroyArgsForCall, struct {
 	}{})
+	stub := fake.DestroyStub
+	fakeReturns := fake.destroyReturns
 	fake.recordInvocation("Destroy", []interface{}{})
 	fake.destroyMutex.Unlock()
-	if fake.DestroyStub != nil {
-		return fake.DestroyStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.destroyReturns
 	return fakeReturns.result1
 }
 
@@ -224,15 +226,16 @@ func (fake *FakeFilesystemLiveVolume) Handle() string {
 	ret, specificReturn := fake.handleReturnsOnCall[len(fake.handleArgsForCall)]
 	fake.handleArgsForCall = append(fake.handleArgsForCall, struct {
 	}{})
+	stub := fake.HandleStub
+	fakeReturns := fake.handleReturns
 	fake.recordInvocation("Handle", []interface{}{})
 	fake.handleMutex.Unlock()
-	if fake.HandleStub != nil {
-		return fake.HandleStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.handleReturns
 	return fakeReturns.result1
 }
 
@@ -276,15 +279,16 @@ func (fake *FakeFilesystemLiveVolume) LoadPrivileged() (bool, error) {
 	ret, specificReturn := fake.loadPrivilegedReturnsOnCall[len(fake.loadPrivilegedArgsForCall)]
 	fake.loadPrivilegedArgsForCall = append(fake.loadPrivilegedArgsForCall, struct {
 	}{})
+	stub := fake.LoadPrivilegedStub
+	fakeReturns := fake.loadPrivilegedReturns
 	fake.recordInvocation("LoadPrivileged", []interface{}{})
 	fake.loadPrivilegedMutex.Unlock()
-	if fake.LoadPrivilegedStub != nil {
-		return fake.LoadPrivilegedStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.loadPrivilegedReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -331,15 +335,16 @@ func (fake *FakeFilesystemLiveVolume) LoadProperties() (volume.Properties, error
 	ret, specificReturn := fake.loadPropertiesReturnsOnCall[len(fake.loadPropertiesArgsForCall)]
 	fake.loadPropertiesArgsForCall = append(fake.loadPropertiesArgsForCall, struct {
 	}{})
+	stub := fake.LoadPropertiesStub
+	fakeReturns := fake.loadPropertiesReturns
 	fake.recordInvocation("LoadProperties", []interface{}{})
 	fake.loadPropertiesMutex.Unlock()
-	if fake.LoadPropertiesStub != nil {
-		return fake.LoadPropertiesStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.loadPropertiesReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -387,15 +392,16 @@ func (fake *FakeFilesystemLiveVolume) NewSubvolume(arg1 string) (volume.Filesyst
 	fake.newSubvolumeArgsForCall = append(fake.newSubvolumeArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.NewSubvolumeStub
+	fakeReturns := fake.newSubvolumeReturns
 	fake.recordInvocation("NewSubvolume", []interface{}{arg1})
 	fake.newSubvolumeMutex.Unlock()
-	if fake.NewSubvolumeStub != nil {
-		return fake.NewSubvolumeStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.newSubvolumeReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -449,15 +455,16 @@ func (fake *FakeFilesystemLiveVolume) Parent() (volume.FilesystemLiveVolume, boo
 	ret, specificReturn := fake.parentReturnsOnCall[len(fake.parentArgsForCall)]
 	fake.parentArgsForCall = append(fake.parentArgsForCall, struct {
 	}{})
+	stub := fake.ParentStub
+	fakeReturns := fake.parentReturns
 	fake.recordInvocation("Parent", []interface{}{})
 	fake.parentMutex.Unlock()
-	if fake.ParentStub != nil {
-		return fake.ParentStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.parentReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -508,15 +515,16 @@ func (fake *FakeFilesystemLiveVolume) StorePrivileged(arg1 bool) error {
 	fake.storePrivilegedArgsForCall = append(fake.storePrivilegedArgsForCall, struct {
 		arg1 bool
 	}{arg1})
+	stub := fake.StorePrivilegedStub
+	fakeReturns := fake.storePrivilegedReturns
 	fake.recordInvocation("StorePrivileged", []interface{}{arg1})
 	fake.storePrivilegedMutex.Unlock()
-	if fake.StorePrivilegedStub != nil {
-		return fake.StorePrivilegedStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.storePrivilegedReturns
 	return fakeReturns.result1
 }
 
@@ -568,15 +576,16 @@ func (fake *FakeFilesystemLiveVolume) StoreProperties(arg1 volume.Properties) er
 	fake.storePropertiesArgsForCall = append(fake.storePropertiesArgsForCall, struct {
 		arg1 volume.Properties
 	}{arg1})
+	stub := fake.StorePropertiesStub
+	fakeReturns := fake.storePropertiesReturns
 	fake.recordInvocation("StoreProperties", []interface{}{arg1})
 	fake.storePropertiesMutex.Unlock()
-	if fake.StorePropertiesStub != nil {
-		return fake.StorePropertiesStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.storePropertiesReturns
 	return fakeReturns.result1
 }
 

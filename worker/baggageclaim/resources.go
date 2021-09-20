@@ -5,16 +5,16 @@ import (
 )
 
 type VolumeRequest struct {
-	Handle       string           `json:"handle"`
-	Strategy     *json.RawMessage `json:"strategy"`
-	Properties   VolumeProperties `json:"properties"`
-	Privileged   bool             `json:"privileged,omitempty"`
+	Handle     string           `json:"handle"`
+	Strategy   *json.RawMessage `json:"strategy"`
+	Properties VolumeProperties `json:"properties"`
+	Privileged bool             `json:"privileged,omitempty"`
 }
 
 type VolumeResponse struct {
-	Handle       string           `json:"handle"`
-	Path         string           `json:"path"`
-	Properties   VolumeProperties `json:"properties"`
+	Handle     string           `json:"handle"`
+	Path       string           `json:"path"`
+	Properties VolumeProperties `json:"properties"`
 }
 
 type VolumeFutureResponse struct {

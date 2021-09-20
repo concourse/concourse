@@ -2,9 +2,9 @@
 package apifakes
 
 import (
+	"context"
 	"sync"
 
-	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/api"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/runtime"
@@ -12,10 +12,10 @@ import (
 )
 
 type FakePool struct {
-	CreateVolumeForArtifactStub        func(lager.Logger, worker.Spec) (runtime.Volume, db.WorkerArtifact, error)
+	CreateVolumeForArtifactStub        func(context.Context, worker.Spec) (runtime.Volume, db.WorkerArtifact, error)
 	createVolumeForArtifactMutex       sync.RWMutex
 	createVolumeForArtifactArgsForCall []struct {
-		arg1 lager.Logger
+		arg1 context.Context
 		arg2 worker.Spec
 	}
 	createVolumeForArtifactReturns struct {
@@ -28,10 +28,10 @@ type FakePool struct {
 		result2 db.WorkerArtifact
 		result3 error
 	}
-	LocateContainerStub        func(lager.Logger, int, string) (runtime.Container, runtime.Worker, bool, error)
+	LocateContainerStub        func(context.Context, int, string) (runtime.Container, runtime.Worker, bool, error)
 	locateContainerMutex       sync.RWMutex
 	locateContainerArgsForCall []struct {
-		arg1 lager.Logger
+		arg1 context.Context
 		arg2 int
 		arg3 string
 	}
@@ -47,10 +47,10 @@ type FakePool struct {
 		result3 bool
 		result4 error
 	}
-	LocateVolumeStub        func(lager.Logger, int, string) (runtime.Volume, runtime.Worker, bool, error)
+	LocateVolumeStub        func(context.Context, int, string) (runtime.Volume, runtime.Worker, bool, error)
 	locateVolumeMutex       sync.RWMutex
 	locateVolumeArgsForCall []struct {
-		arg1 lager.Logger
+		arg1 context.Context
 		arg2 int
 		arg3 string
 	}
@@ -70,11 +70,11 @@ type FakePool struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakePool) CreateVolumeForArtifact(arg1 lager.Logger, arg2 worker.Spec) (runtime.Volume, db.WorkerArtifact, error) {
+func (fake *FakePool) CreateVolumeForArtifact(arg1 context.Context, arg2 worker.Spec) (runtime.Volume, db.WorkerArtifact, error) {
 	fake.createVolumeForArtifactMutex.Lock()
 	ret, specificReturn := fake.createVolumeForArtifactReturnsOnCall[len(fake.createVolumeForArtifactArgsForCall)]
 	fake.createVolumeForArtifactArgsForCall = append(fake.createVolumeForArtifactArgsForCall, struct {
-		arg1 lager.Logger
+		arg1 context.Context
 		arg2 worker.Spec
 	}{arg1, arg2})
 	stub := fake.CreateVolumeForArtifactStub
@@ -96,13 +96,13 @@ func (fake *FakePool) CreateVolumeForArtifactCallCount() int {
 	return len(fake.createVolumeForArtifactArgsForCall)
 }
 
-func (fake *FakePool) CreateVolumeForArtifactCalls(stub func(lager.Logger, worker.Spec) (runtime.Volume, db.WorkerArtifact, error)) {
+func (fake *FakePool) CreateVolumeForArtifactCalls(stub func(context.Context, worker.Spec) (runtime.Volume, db.WorkerArtifact, error)) {
 	fake.createVolumeForArtifactMutex.Lock()
 	defer fake.createVolumeForArtifactMutex.Unlock()
 	fake.CreateVolumeForArtifactStub = stub
 }
 
-func (fake *FakePool) CreateVolumeForArtifactArgsForCall(i int) (lager.Logger, worker.Spec) {
+func (fake *FakePool) CreateVolumeForArtifactArgsForCall(i int) (context.Context, worker.Spec) {
 	fake.createVolumeForArtifactMutex.RLock()
 	defer fake.createVolumeForArtifactMutex.RUnlock()
 	argsForCall := fake.createVolumeForArtifactArgsForCall[i]
@@ -138,11 +138,11 @@ func (fake *FakePool) CreateVolumeForArtifactReturnsOnCall(i int, result1 runtim
 	}{result1, result2, result3}
 }
 
-func (fake *FakePool) LocateContainer(arg1 lager.Logger, arg2 int, arg3 string) (runtime.Container, runtime.Worker, bool, error) {
+func (fake *FakePool) LocateContainer(arg1 context.Context, arg2 int, arg3 string) (runtime.Container, runtime.Worker, bool, error) {
 	fake.locateContainerMutex.Lock()
 	ret, specificReturn := fake.locateContainerReturnsOnCall[len(fake.locateContainerArgsForCall)]
 	fake.locateContainerArgsForCall = append(fake.locateContainerArgsForCall, struct {
-		arg1 lager.Logger
+		arg1 context.Context
 		arg2 int
 		arg3 string
 	}{arg1, arg2, arg3})
@@ -165,13 +165,13 @@ func (fake *FakePool) LocateContainerCallCount() int {
 	return len(fake.locateContainerArgsForCall)
 }
 
-func (fake *FakePool) LocateContainerCalls(stub func(lager.Logger, int, string) (runtime.Container, runtime.Worker, bool, error)) {
+func (fake *FakePool) LocateContainerCalls(stub func(context.Context, int, string) (runtime.Container, runtime.Worker, bool, error)) {
 	fake.locateContainerMutex.Lock()
 	defer fake.locateContainerMutex.Unlock()
 	fake.LocateContainerStub = stub
 }
 
-func (fake *FakePool) LocateContainerArgsForCall(i int) (lager.Logger, int, string) {
+func (fake *FakePool) LocateContainerArgsForCall(i int) (context.Context, int, string) {
 	fake.locateContainerMutex.RLock()
 	defer fake.locateContainerMutex.RUnlock()
 	argsForCall := fake.locateContainerArgsForCall[i]
@@ -210,11 +210,11 @@ func (fake *FakePool) LocateContainerReturnsOnCall(i int, result1 runtime.Contai
 	}{result1, result2, result3, result4}
 }
 
-func (fake *FakePool) LocateVolume(arg1 lager.Logger, arg2 int, arg3 string) (runtime.Volume, runtime.Worker, bool, error) {
+func (fake *FakePool) LocateVolume(arg1 context.Context, arg2 int, arg3 string) (runtime.Volume, runtime.Worker, bool, error) {
 	fake.locateVolumeMutex.Lock()
 	ret, specificReturn := fake.locateVolumeReturnsOnCall[len(fake.locateVolumeArgsForCall)]
 	fake.locateVolumeArgsForCall = append(fake.locateVolumeArgsForCall, struct {
-		arg1 lager.Logger
+		arg1 context.Context
 		arg2 int
 		arg3 string
 	}{arg1, arg2, arg3})
@@ -237,13 +237,13 @@ func (fake *FakePool) LocateVolumeCallCount() int {
 	return len(fake.locateVolumeArgsForCall)
 }
 
-func (fake *FakePool) LocateVolumeCalls(stub func(lager.Logger, int, string) (runtime.Volume, runtime.Worker, bool, error)) {
+func (fake *FakePool) LocateVolumeCalls(stub func(context.Context, int, string) (runtime.Volume, runtime.Worker, bool, error)) {
 	fake.locateVolumeMutex.Lock()
 	defer fake.locateVolumeMutex.Unlock()
 	fake.LocateVolumeStub = stub
 }
 
-func (fake *FakePool) LocateVolumeArgsForCall(i int) (lager.Logger, int, string) {
+func (fake *FakePool) LocateVolumeArgsForCall(i int) (context.Context, int, string) {
 	fake.locateVolumeMutex.RLock()
 	defer fake.locateVolumeMutex.RUnlock()
 	argsForCall := fake.locateVolumeArgsForCall[i]

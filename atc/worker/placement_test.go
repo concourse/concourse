@@ -118,11 +118,11 @@ var _ = Describe("Container Placement Strategies", func() {
 				),
 			)
 			resourceCache1 := scenario.FindOrCreateResourceCache("worker1")
-			err := scenario.WorkerVolume("worker1", "cache-input2").InitializeResourceCache(logger, resourceCache1)
+			err := scenario.WorkerVolume("worker1", "cache-input2").InitializeResourceCache(ctx, resourceCache1)
 			Expect(err).ToNot(HaveOccurred())
 
 			resourceCache2 := scenario.FindOrCreateResourceCache("worker2")
-			err = scenario.WorkerVolume("worker2", "input2").InitializeResourceCache(logger, resourceCache2)
+			err = scenario.WorkerVolume("worker2", "input2").InitializeResourceCache(ctx, resourceCache2)
 			Expect(err).ToNot(HaveOccurred())
 
 			workers, err := volumeLocalityStrategy().Order(logger, scenario.Pool, scenario.DB.Workers, runtime.ContainerSpec{
@@ -164,13 +164,13 @@ var _ = Describe("Container Placement Strategies", func() {
 			)
 
 			err := scenario.WorkerVolume("worker1", "cache1_worker1").
-				InitializeTaskCache(logger, scenario.JobID, scenario.StepName, "/cache1", false)
+				InitializeTaskCache(ctx, scenario.JobID, scenario.StepName, "/cache1", false)
 			Expect(err).ToNot(HaveOccurred())
 			err = scenario.WorkerVolume("worker1", "cache2_worker1").
-				InitializeTaskCache(logger, scenario.JobID, scenario.StepName, "/cache2", false)
+				InitializeTaskCache(ctx, scenario.JobID, scenario.StepName, "/cache2", false)
 			Expect(err).ToNot(HaveOccurred())
 			err = scenario.WorkerVolume("worker2", "cache1_worker2").
-				InitializeTaskCache(logger, scenario.JobID, scenario.StepName, "/cache1", false)
+				InitializeTaskCache(ctx, scenario.JobID, scenario.StepName, "/cache1", false)
 			Expect(err).ToNot(HaveOccurred())
 
 			workers, err := volumeLocalityStrategy().Order(logger, scenario.Pool, scenario.DB.Workers, runtime.ContainerSpec{

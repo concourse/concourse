@@ -10,10 +10,12 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
+	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/worker/baggageclaim"
 	"github.com/concourse/concourse/worker/baggageclaim/volume"
 	uuid "github.com/nu7hatch/gouuid"
 	"github.com/tedsuo/rata"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 const httpUnprocessableEntity = 422
@@ -80,17 +82,22 @@ func (vs *VolumeServer) CreateVolume(w http.ResponseWriter, req *http.Request) {
 }
 
 func (vs *VolumeServer) CreateVolumeAsync(w http.ResponseWriter, req *http.Request) {
+	ctx := tracing.Extract(req.Context(), propagation.HeaderCarrier(req.Header))
 	hLog := vs.logger.Session("create-volume-async")
 
 	hLog.Debug("start")
 	defer hLog.Debug("done")
 
-	ctx := lagerctx.NewContext(req.Context(), hLog)
-
 	request, handle, strategy, hLog, err := vs.prepareCreate(w, req, hLog)
 	if err != nil {
 		return
 	}
+
+	ctx, span := tracing.StartSpan(ctx, "server.CreateVolumeAsync", tracing.Attrs{
+		"volume":   handle,
+		"strategy": strategy.String(),
+	})
+	defer span.End()
 
 	handlers := &createVolumeHandlerAsync{
 		promise: volume.NewPromise(),
@@ -455,6 +462,7 @@ func (vs *VolumeServer) SetPrivileged(w http.ResponseWriter, req *http.Request) 
 func (vs *VolumeServer) StreamIn(w http.ResponseWriter, req *http.Request) {
 	handle := rata.Param(req, "handle")
 
+	ctx := tracing.Extract(req.Context(), propagation.HeaderCarrier(req.Header))
 	hLog := vs.logger.Session("stream-in", lager.Data{
 		"volume": handle,
 	})
@@ -462,7 +470,7 @@ func (vs *VolumeServer) StreamIn(w http.ResponseWriter, req *http.Request) {
 	hLog.Debug("start")
 	defer hLog.Debug("done")
 
-	ctx := lagerctx.NewContext(req.Context(), hLog)
+	ctx = lagerctx.NewContext(req.Context(), hLog)
 
 	var subPath string
 	if queryPath, ok := req.URL.Query()["path"]; ok {
@@ -500,6 +508,7 @@ func (vs *VolumeServer) StreamIn(w http.ResponseWriter, req *http.Request) {
 func (vs *VolumeServer) StreamOut(w http.ResponseWriter, req *http.Request) {
 	handle := rata.Param(req, "handle")
 
+	ctx := tracing.Extract(req.Context(), propagation.HeaderCarrier(req.Header))
 	hLog := vs.logger.Session("stream-out", lager.Data{
 		"volume": handle,
 	})
@@ -507,7 +516,7 @@ func (vs *VolumeServer) StreamOut(w http.ResponseWriter, req *http.Request) {
 	hLog.Debug("start")
 	defer hLog.Debug("done")
 
-	ctx := lagerctx.NewContext(req.Context(), hLog)
+	ctx = lagerctx.NewContext(req.Context(), hLog)
 
 	var subPath string
 	if queryPath, ok := req.URL.Query()["path"]; ok {
@@ -543,6 +552,7 @@ func (vs *VolumeServer) StreamOut(w http.ResponseWriter, req *http.Request) {
 func (vs *VolumeServer) StreamP2pOut(w http.ResponseWriter, req *http.Request) {
 	handle := rata.Param(req, "handle")
 
+	ctx := tracing.Extract(req.Context(), propagation.HeaderCarrier(req.Header))
 	hLog := vs.logger.Session("stream-p2p-out", lager.Data{
 		"volume": handle,
 	})
@@ -550,7 +560,7 @@ func (vs *VolumeServer) StreamP2pOut(w http.ResponseWriter, req *http.Request) {
 	hLog.Debug("start")
 	defer hLog.Debug("done")
 
-	ctx := lagerctx.NewContext(req.Context(), hLog)
+	ctx = lagerctx.NewContext(req.Context(), hLog)
 
 	var subPath, streamInURL, encoding string
 	if queryPath, ok := req.URL.Query()["path"]; ok {

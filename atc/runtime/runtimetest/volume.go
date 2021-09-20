@@ -13,7 +13,6 @@ import (
 	"strings"
 	"testing/fstest"
 
-	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/compression"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
@@ -59,18 +58,18 @@ func (v Volume) StreamOut(ctx context.Context, path string, compression compress
 	return v.Content.StreamOut(ctx, path, compression.Encoding())
 }
 
-func (v *Volume) InitializeResourceCache(_ lager.Logger, _ db.ResourceCache) error {
+func (v *Volume) InitializeResourceCache(_ context.Context, _ db.ResourceCache) error {
 	v.ResourceCacheInitialized = true
 	return nil
 }
 
-func (v *Volume) InitializeStreamedResourceCache(_ lager.Logger, _ db.ResourceCache, workerName string) error {
+func (v *Volume) InitializeStreamedResourceCache(_ context.Context, _ db.ResourceCache, workerName string) error {
 	v.ResourceCacheInitialized = true
 	v.ResourceCacheStreamedFrom = workerName
 	return nil
 }
 
-func (v *Volume) InitializeTaskCache(_ lager.Logger, _ int, _, _ string, _ bool) error {
+func (v *Volume) InitializeTaskCache(_ context.Context, _ int, _, _ string, _ bool) error {
 	v.TaskCacheInitialized = true
 	return nil
 }

@@ -8,6 +8,7 @@ import (
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker/gardenruntime/gclient"
@@ -22,8 +23,8 @@ type Container struct {
 	GardenContainer gclient.Container
 }
 
-func (worker *Worker) LookupContainer(logger lager.Logger, handle string) (runtime.Container, bool, error) {
-	logger = logger.Session("lookup-container", lager.Data{"handle": handle, "worker": worker.Name()})
+func (worker *Worker) LookupContainer(ctx context.Context, handle string) (runtime.Container, bool, error) {
+	logger := lagerctx.FromContext(ctx).Session("lookup-container", lager.Data{"handle": handle, "worker": worker.Name()})
 
 	_, createdContainer, err := worker.dbWorker.FindContainer(db.NewFixedHandleContainerOwner(handle))
 	if err != nil {

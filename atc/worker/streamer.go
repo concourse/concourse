@@ -81,7 +81,7 @@ func (s Streamer) Stream(ctx context.Context, src runtime.Artifact, dst runtime.
 			}
 		}
 
-		err = dst.InitializeStreamedResourceCache(logger, usedResourceCache, srcVolume.DBVolume().WorkerName())
+		err = dst.InitializeStreamedResourceCache(ctx, usedResourceCache, srcVolume.DBVolume().WorkerName())
 		if err != nil {
 			logger.Error("failed-to-init-resource-cache-on-dest-worker", err)
 			return err
@@ -116,12 +116,9 @@ func (s Streamer) streamThroughATC(ctx context.Context, src runtime.Artifact, ds
 		traceAttrs["origin-volume"] = srcVolume.Handle()
 		traceAttrs["origin-worker"] = srcVolume.DBVolume().WorkerName()
 	}
-	_, outSpan := tracing.StartSpan(ctx, "volume.StreamOut", traceAttrs)
-	defer outSpan.End()
 	out, err := src.StreamOut(ctx, ".", s.compression)
 
 	if err != nil {
-		tracing.End(outSpan, err)
 		return err
 	}
 

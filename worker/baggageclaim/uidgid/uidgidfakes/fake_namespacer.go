@@ -36,9 +36,10 @@ func (fake *FakeNamespacer) NamespaceCommand(arg1 *exec.Cmd) {
 	fake.namespaceCommandArgsForCall = append(fake.namespaceCommandArgsForCall, struct {
 		arg1 *exec.Cmd
 	}{arg1})
+	stub := fake.NamespaceCommandStub
 	fake.recordInvocation("NamespaceCommand", []interface{}{arg1})
 	fake.namespaceCommandMutex.Unlock()
-	if fake.NamespaceCommandStub != nil {
+	if stub != nil {
 		fake.NamespaceCommandStub(arg1)
 	}
 }
@@ -69,15 +70,16 @@ func (fake *FakeNamespacer) NamespacePath(arg1 lager.Logger, arg2 string) error 
 		arg1 lager.Logger
 		arg2 string
 	}{arg1, arg2})
+	stub := fake.NamespacePathStub
+	fakeReturns := fake.namespacePathReturns
 	fake.recordInvocation("NamespacePath", []interface{}{arg1, arg2})
 	fake.namespacePathMutex.Unlock()
-	if fake.NamespacePathStub != nil {
-		return fake.NamespacePathStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.namespacePathReturns
 	return fakeReturns.result1
 }
 

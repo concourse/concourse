@@ -9,11 +9,15 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/tedsuo/rata"
+	"go.opentelemetry.io/otel/propagation"
 
+	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/worker/baggageclaim"
 	"github.com/concourse/concourse/worker/baggageclaim/api"
 	"github.com/concourse/retryhttp"
@@ -51,13 +55,13 @@ func NewWithHTTPClient(apiURL string, httpClient *http.Client) Client {
 	}
 }
 
-func (c *client) httpClient(logger lager.Logger) *http.Client {
+func (c *client) httpClient(ctx context.Context) *http.Client {
 	if c.givenHttpClient != nil {
 		return c.givenHttpClient
 	}
 	return &http.Client{
 		Transport: &retryhttp.RetryRoundTripper{
-			Logger:         logger.Session("retry-round-tripper"),
+			Logger:         lagerctx.FromContext(ctx).Session("retry-round-tripper"),
 			BackOffFactory: c.retryBackOffFactory,
 			RoundTripper:   c.nestedRoundTripper,
 			Retryer:        &retryhttp.DefaultRetryer{},
@@ -65,11 +69,17 @@ func (c *client) httpClient(logger lager.Logger) *http.Client {
 	}
 }
 
-func (c *client) CreateVolume(logger lager.Logger, handle string, volumeSpec baggageclaim.VolumeSpec) (baggageclaim.Volume, error) {
+func (c *client) CreateVolume(ctx context.Context, handle string, volumeSpec baggageclaim.VolumeSpec) (baggageclaim.Volume, error) {
 	strategy := volumeSpec.Strategy
 	if strategy == nil {
 		strategy = baggageclaim.EmptyStrategy{}
 	}
+	ctx, span := tracing.StartSpan(ctx, "volumeClient.CreateVolume", tracing.Attrs{
+		"volume":     handle,
+		"strategy":   strategy.String(),
+		"privileged": strconv.FormatBool(volumeSpec.Privileged),
+	})
+	defer span.End()
 
 	buffer := &bytes.Buffer{}
 	json.NewEncoder(buffer).Encode(baggageclaim.VolumeRequest{
@@ -79,8 +89,12 @@ func (c *client) CreateVolume(logger lager.Logger, handle string, volumeSpec bag
 		Privileged: volumeSpec.Privileged,
 	})
 
-	request, _ := c.requestGenerator.CreateRequest(baggageclaim.CreateVolumeAsync, nil, buffer)
-	response, err := c.httpClient(logger).Do(request)
+	request, err := c.generateRequest(ctx, baggageclaim.CreateVolumeAsync, nil, buffer)
+	if err != nil {
+		return nil, err
+	}
+
+	response, err := c.httpClient(ctx).Do(request)
 	if err != nil {
 		return nil, err
 	}
@@ -103,12 +117,11 @@ func (c *client) CreateVolume(logger lager.Logger, handle string, volumeSpec bag
 	volumeFuture := &volumeFuture{
 		client: c,
 		handle: volumeFutureResponse.Handle,
-		logger: logger,
 	}
 
-	defer volumeFuture.Destroy()
+	defer volumeFuture.Destroy(ctx)
 
-	volume, err := volumeFuture.Wait()
+	volume, err := volumeFuture.Wait(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -116,12 +129,12 @@ func (c *client) CreateVolume(logger lager.Logger, handle string, volumeSpec bag
 	return volume, nil
 }
 
-func (c *client) ListVolumes(logger lager.Logger, properties baggageclaim.VolumeProperties) (baggageclaim.Volumes, error) {
+func (c *client) ListVolumes(ctx context.Context, properties baggageclaim.VolumeProperties) (baggageclaim.Volumes, error) {
 	if properties == nil {
 		properties = baggageclaim.VolumeProperties{}
 	}
 
-	request, err := c.requestGenerator.CreateRequest(baggageclaim.ListVolumes, nil, nil)
+	request, err := c.generateRequest(ctx, baggageclaim.ListVolumes, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +146,7 @@ func (c *client) ListVolumes(logger lager.Logger, properties baggageclaim.Volume
 
 	request.URL.RawQuery = queryString.Encode()
 
-	response, err := c.httpClient(logger).Do(request)
+	response, err := c.httpClient(ctx).Do(request)
 	if err != nil {
 		return nil, err
 	}
@@ -156,15 +169,15 @@ func (c *client) ListVolumes(logger lager.Logger, properties baggageclaim.Volume
 
 	var volumes baggageclaim.Volumes
 	for _, vr := range volumesResponse {
-		v := c.newVolume(logger, vr)
+		v := c.newVolume(vr)
 		volumes = append(volumes, v)
 	}
 
 	return volumes, nil
 }
 
-func (c *client) LookupVolume(logger lager.Logger, handle string) (baggageclaim.Volume, bool, error) {
-	volumeResponse, found, err := c.getVolumeResponse(logger, handle)
+func (c *client) LookupVolume(ctx context.Context, handle string) (baggageclaim.Volume, bool, error) {
+	volumeResponse, found, err := c.getVolumeResponse(ctx, handle)
 	if err != nil {
 		return nil, false, err
 	}
@@ -172,24 +185,24 @@ func (c *client) LookupVolume(logger lager.Logger, handle string) (baggageclaim.
 		return nil, found, nil
 	}
 
-	return c.newVolume(logger, volumeResponse), true, nil
+	return c.newVolume(volumeResponse), true, nil
 }
 
-func (c *client) DestroyVolumes(logger lager.Logger, handles []string) error {
+func (c *client) DestroyVolumes(ctx context.Context, handles []string) error {
 	var buf bytes.Buffer
 	err := json.NewEncoder(&buf).Encode(handles)
 	if err != nil {
 		return err
 	}
 
-	request, err := c.requestGenerator.CreateRequest(baggageclaim.DestroyVolumes, rata.Params{}, &buf)
+	request, err := c.generateRequest(ctx, baggageclaim.DestroyVolumes, rata.Params{}, &buf)
 	if err != nil {
 		return err
 	}
 
 	request.Header.Add("Content-type", "application/json")
 
-	response, err := c.httpClient(logger).Do(request)
+	response, err := c.httpClient(ctx).Do(request)
 	if err != nil {
 		return err
 	}
@@ -197,21 +210,21 @@ func (c *client) DestroyVolumes(logger lager.Logger, handles []string) error {
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusNoContent {
-		logger.Info("failed-volumes-deletion", lager.Data{"status": response.StatusCode})
+		lagerctx.FromContext(ctx).Info("failed-volumes-deletion", lager.Data{"status": response.StatusCode})
 		return ErrVolumeDeletion
 	}
 	return nil
 }
 
-func (c *client) DestroyVolume(logger lager.Logger, handle string) error {
-	request, err := c.requestGenerator.CreateRequest(baggageclaim.DestroyVolume, rata.Params{"handle": handle}, nil)
+func (c *client) DestroyVolume(ctx context.Context, handle string) error {
+	request, err := c.generateRequest(ctx, baggageclaim.DestroyVolume, rata.Params{"handle": handle}, nil)
 	if err != nil {
 		return err
 	}
 
 	request.Header.Add("Content-type", "application/json")
 
-	response, err := c.httpClient(logger).Do(request)
+	response, err := c.httpClient(ctx).Do(request)
 	if err != nil {
 		return err
 	}
@@ -219,16 +232,14 @@ func (c *client) DestroyVolume(logger lager.Logger, handle string) error {
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusNoContent {
-		logger.Info("failed-volume-deletion", lager.Data{"status": response.StatusCode})
+		lagerctx.FromContext(ctx).Info("failed-volume-deletion", lager.Data{"status": response.StatusCode})
 		return ErrVolumeDeletion
 	}
 	return nil
 }
 
-func (c *client) newVolume(logger lager.Logger, apiVolume baggageclaim.VolumeResponse) baggageclaim.Volume {
+func (c *client) newVolume(apiVolume baggageclaim.VolumeResponse) baggageclaim.Volume {
 	volume := &clientVolume{
-		logger: logger,
-
 		handle: apiVolume.Handle,
 		path:   apiVolume.Path,
 
@@ -238,8 +249,14 @@ func (c *client) newVolume(logger lager.Logger, apiVolume baggageclaim.VolumeRes
 	return volume
 }
 
-func (c *client) streamIn(ctx context.Context, logger lager.Logger, destHandle string, path string, encoding baggageclaim.Encoding, tarContent io.Reader) error {
-	request, err := c.requestGenerator.CreateRequest(baggageclaim.StreamIn, rata.Params{
+func (c *client) streamIn(ctx context.Context, destHandle string, path string, encoding baggageclaim.Encoding, tarContent io.Reader) error {
+	ctx, span := tracing.StartSpan(ctx, "volumeClient.streamIn", tracing.Attrs{
+		"volume":   destHandle,
+		"encoding": string(encoding),
+	})
+	defer span.End()
+
+	request, err := c.generateRequest(ctx, baggageclaim.StreamIn, rata.Params{
 		"handle": destHandle,
 	}, tarContent)
 
@@ -249,9 +266,7 @@ func (c *client) streamIn(ctx context.Context, logger lager.Logger, destHandle s
 	}
 	request.Header.Set("Content-Encoding", string(encoding))
 
-	request = request.WithContext(ctx)
-
-	response, err := c.httpClient(logger).Do(request)
+	response, err := c.httpClient(ctx).Do(request)
 	if err != nil {
 		return err
 	}
@@ -263,16 +278,14 @@ func (c *client) streamIn(ctx context.Context, logger lager.Logger, destHandle s
 	return getError(response)
 }
 
-func (c *client) getStreamInP2pUrl(ctx context.Context, logger lager.Logger, destHandle string, path string) (string, error) {
+func (c *client) getStreamInP2pUrl(ctx context.Context, destHandle string, path string) (string, error) {
 	// First, get dest worker's p2p url.
-	request, err := c.requestGenerator.CreateRequest(baggageclaim.GetP2pUrl, rata.Params{}, nil)
+	request, err := c.generateRequest(ctx, baggageclaim.GetP2pUrl, rata.Params{}, nil)
 	if err != nil {
 		return "", err
 	}
 
-	request = request.WithContext(ctx)
-
-	response, err := c.httpClient(logger).Do(request)
+	response, err := c.httpClient(ctx).Do(request)
 	if err != nil {
 		return "", err
 	}
@@ -296,7 +309,7 @@ func (c *client) getStreamInP2pUrl(ctx context.Context, logger lager.Logger, des
 	}
 
 	// Then build a StreamIn URL and replace with dest worker's host.
-	streamInRequest, err := c.requestGenerator.CreateRequest(baggageclaim.StreamIn, rata.Params{
+	streamInRequest, err := c.generateRequest(ctx, baggageclaim.StreamIn, rata.Params{
 		"handle": destHandle,
 	}, nil)
 
@@ -308,13 +321,19 @@ func (c *client) getStreamInP2pUrl(ctx context.Context, logger lager.Logger, des
 	streamInRequest.URL.Scheme = destUrl.Scheme
 	streamInRequest.URL.Host = destUrl.Host
 
-	logger.Debug("get-stream-in-p2p-url", lager.Data{"url": streamInRequest.URL.String()})
+	lagerctx.FromContext(ctx).Debug("get-stream-in-p2p-url", lager.Data{"url": streamInRequest.URL.String()})
 
 	return streamInRequest.URL.String(), nil
 }
 
-func (c *client) streamOut(ctx context.Context, logger lager.Logger, srcHandle string, encoding baggageclaim.Encoding, path string) (io.ReadCloser, error) {
-	request, err := c.requestGenerator.CreateRequest(baggageclaim.StreamOut, rata.Params{
+func (c *client) streamOut(ctx context.Context, srcHandle string, encoding baggageclaim.Encoding, path string) (io.ReadCloser, error) {
+	ctx, span := tracing.StartSpan(ctx, "volumeClient.streamOut", tracing.Attrs{
+		"volume":   srcHandle,
+		"encoding": string(encoding),
+	})
+	defer span.End()
+
+	request, err := c.generateRequest(ctx, baggageclaim.StreamOut, rata.Params{
 		"handle": srcHandle,
 	}, nil)
 
@@ -324,9 +343,7 @@ func (c *client) streamOut(ctx context.Context, logger lager.Logger, srcHandle s
 	}
 	request.Header.Set("Accept-Encoding", string(encoding))
 
-	request = request.WithContext(ctx)
-
-	response, err := c.httpClient(logger).Do(request)
+	response, err := c.httpClient(ctx).Do(request)
 	if err != nil {
 		return nil, err
 	}
@@ -338,8 +355,14 @@ func (c *client) streamOut(ctx context.Context, logger lager.Logger, srcHandle s
 	return response.Body, nil
 }
 
-func (c *client) streamP2pOut(ctx context.Context, logger lager.Logger, srcHandle string, encoding baggageclaim.Encoding, path string, streamInURL string) error {
-	request, err := c.requestGenerator.CreateRequest(baggageclaim.StreamP2pOut, rata.Params{
+func (c *client) streamP2pOut(ctx context.Context, srcHandle string, encoding baggageclaim.Encoding, path string, streamInURL string) error {
+	ctx, span := tracing.StartSpan(ctx, "volumeClient.streamP2pOut", tracing.Attrs{
+		"volume":   srcHandle,
+		"encoding": string(encoding),
+	})
+	defer span.End()
+
+	request, err := c.generateRequest(ctx, baggageclaim.StreamP2pOut, rata.Params{
 		"handle": srcHandle,
 	}, nil)
 
@@ -352,8 +375,7 @@ func (c *client) streamP2pOut(ctx context.Context, logger lager.Logger, srcHandl
 		return err
 	}
 
-	request = request.WithContext(ctx)
-	response, err := c.httpClient(logger).Do(request)
+	response, err := c.httpClient(ctx).Do(request)
 	if err != nil {
 		return err
 	}
@@ -383,15 +405,15 @@ func getError(response *http.Response) error {
 	return errors.New(errorResponse.Message)
 }
 
-func (c *client) getVolumeResponse(logger lager.Logger, handle string) (baggageclaim.VolumeResponse, bool, error) {
-	request, err := c.requestGenerator.CreateRequest(baggageclaim.GetVolume, rata.Params{
+func (c *client) getVolumeResponse(ctx context.Context, handle string) (baggageclaim.VolumeResponse, bool, error) {
+	request, err := c.generateRequest(ctx, baggageclaim.GetVolume, rata.Params{
 		"handle": handle,
 	}, nil)
 	if err != nil {
 		return baggageclaim.VolumeResponse{}, false, err
 	}
 
-	response, err := c.httpClient(logger).Do(request)
+	response, err := c.httpClient(ctx).Do(request)
 	if err != nil {
 		return baggageclaim.VolumeResponse{}, false, err
 	}
@@ -419,15 +441,15 @@ func (c *client) getVolumeResponse(logger lager.Logger, handle string) (baggagec
 	return volumeResponse, true, nil
 }
 
-func (c *client) destroy(logger lager.Logger, handle string) error {
-	request, err := c.requestGenerator.CreateRequest(baggageclaim.DestroyVolume, rata.Params{
+func (c *client) destroy(ctx context.Context, handle string) error {
+	request, err := c.generateRequest(ctx, baggageclaim.DestroyVolume, rata.Params{
 		"handle": handle,
 	}, nil)
 	if err != nil {
 		return err
 	}
 
-	response, err := c.httpClient(logger).Do(request)
+	response, err := c.httpClient(ctx).Do(request)
 	if err != nil {
 		return err
 	}
@@ -441,15 +463,15 @@ func (c *client) destroy(logger lager.Logger, handle string) error {
 	return nil
 }
 
-func (c *client) getPrivileged(logger lager.Logger, handle string) (bool, error) {
-	request, err := c.requestGenerator.CreateRequest(baggageclaim.GetPrivileged, rata.Params{
+func (c *client) getPrivileged(ctx context.Context, handle string) (bool, error) {
+	request, err := c.generateRequest(ctx, baggageclaim.GetPrivileged, rata.Params{
 		"handle": handle,
 	}, nil)
 	if err != nil {
 		return false, err
 	}
 
-	response, err := c.httpClient(logger).Do(request)
+	response, err := c.httpClient(ctx).Do(request)
 	if err != nil {
 		return false, err
 	}
@@ -469,13 +491,13 @@ func (c *client) getPrivileged(logger lager.Logger, handle string) (bool, error)
 	return privileged, nil
 }
 
-func (c *client) setPrivileged(logger lager.Logger, handle string, privileged bool) error {
+func (c *client) setPrivileged(ctx context.Context, handle string, privileged bool) error {
 	buffer := &bytes.Buffer{}
 	json.NewEncoder(buffer).Encode(baggageclaim.PrivilegedRequest{
 		Value: privileged,
 	})
 
-	request, err := c.requestGenerator.CreateRequest(baggageclaim.SetPrivileged, rata.Params{
+	request, err := c.generateRequest(ctx, baggageclaim.SetPrivileged, rata.Params{
 		"handle": handle,
 	}, buffer)
 	if err != nil {
@@ -484,7 +506,7 @@ func (c *client) setPrivileged(logger lager.Logger, handle string, privileged bo
 
 	request.Header.Add("Content-type", "application/json")
 
-	response, err := c.httpClient(logger).Do(request)
+	response, err := c.httpClient(ctx).Do(request)
 	if err != nil {
 		return err
 	}
@@ -498,13 +520,13 @@ func (c *client) setPrivileged(logger lager.Logger, handle string, privileged bo
 	return nil
 }
 
-func (c *client) setProperty(logger lager.Logger, handle string, propertyName string, propertyValue string) error {
+func (c *client) setProperty(ctx context.Context, handle string, propertyName string, propertyValue string) error {
 	buffer := &bytes.Buffer{}
 	json.NewEncoder(buffer).Encode(baggageclaim.PropertyRequest{
 		Value: propertyValue,
 	})
 
-	request, err := c.requestGenerator.CreateRequest(baggageclaim.SetProperty, rata.Params{
+	request, err := c.generateRequest(ctx, baggageclaim.SetProperty, rata.Params{
 		"handle":   handle,
 		"property": propertyName,
 	}, buffer)
@@ -512,7 +534,7 @@ func (c *client) setProperty(logger lager.Logger, handle string, propertyName st
 		return err
 	}
 
-	response, err := c.httpClient(logger).Do(request)
+	response, err := c.httpClient(ctx).Do(request)
 	if err != nil {
 		return err
 	}
@@ -524,4 +546,20 @@ func (c *client) setProperty(logger lager.Logger, handle string, propertyName st
 	}
 
 	return nil
+}
+
+func (c *client) generateRequest(ctx context.Context,
+	name string,
+	params rata.Params,
+	body io.Reader,
+) (*http.Request, error) {
+
+	request, err := c.requestGenerator.CreateRequest(name, params, body)
+	if err != nil {
+		return nil, err
+	}
+	request = request.WithContext(ctx)
+
+	tracing.Inject(ctx, propagation.HeaderCarrier(request.Header))
+	return request, nil
 }

@@ -73,10 +73,10 @@ type OutputHandler func(io.Writer) error
 
 type Pool interface {
 	FindOrSelectWorker(context.Context, db.ContainerOwner, runtime.ContainerSpec, worker.Spec, worker.PlacementStrategy, worker.PoolCallback) (runtime.Worker, error)
-	FindResourceCacheVolume(lager.Logger, int, db.ResourceCache, worker.Spec) (runtime.Volume, bool, error)
-	FindResourceCacheVolumeOnWorker(lager.Logger, db.ResourceCache, worker.Spec, string) (runtime.Volume, bool, error)
+	FindResourceCacheVolume(context.Context, int, db.ResourceCache, worker.Spec) (runtime.Volume, bool, error)
+	FindResourceCacheVolumeOnWorker(context.Context, db.ResourceCache, worker.Spec, string) (runtime.Volume, bool, error)
 	ReleaseWorker(lager.Logger, runtime.ContainerSpec, runtime.Worker, worker.PlacementStrategy)
-	LocateVolume(logger lager.Logger, teamID int, handle string) (runtime.Volume, runtime.Worker, bool, error)
+	LocateVolume(ctx context.Context, teamID int, handle string) (runtime.Volume, runtime.Worker, bool, error)
 }
 
 //go:generate counterfeiter . Streamer

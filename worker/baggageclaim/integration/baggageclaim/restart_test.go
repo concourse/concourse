@@ -26,7 +26,7 @@ var _ = Describe("Restarting", func() {
 	})
 
 	It("can get volumes after the process restarts", func() {
-		createdVolume, err := client.CreateVolume(logger, "some-handle", baggageclaim.VolumeSpec{})
+		createdVolume, err := client.CreateVolume(ctx, "some-handle", baggageclaim.VolumeSpec{})
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(runner.CurrentHandles()).To(ConsistOf(createdVolume.Handle()))

@@ -6,4 +6,5 @@ import "code.cloudfoundry.org/lager"
 
 type Strategy interface {
 	Materialize(lager.Logger, string, Filesystem, Streamer) (FilesystemInitVolume, error)
+	String() string
 }

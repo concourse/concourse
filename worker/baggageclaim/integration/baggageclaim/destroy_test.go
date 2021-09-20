@@ -26,12 +26,12 @@ var _ = Describe("Destroying", func() {
 	})
 
 	It("destroys volume", func() {
-		createdVolume, err := client.CreateVolume(logger, "some-handle", baggageclaim.VolumeSpec{})
+		createdVolume, err := client.CreateVolume(ctx, "some-handle", baggageclaim.VolumeSpec{})
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(runner.CurrentHandles()).To(ConsistOf(createdVolume.Handle()))
 
-		err = createdVolume.Destroy()
+		err = createdVolume.Destroy(ctx)
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(runner.CurrentHandles()).NotTo(ConsistOf(createdVolume.Handle()))

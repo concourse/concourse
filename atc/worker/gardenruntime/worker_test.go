@@ -410,11 +410,11 @@ var _ = Describe("Garden Worker", func() {
 		)
 
 		resourceCache1 := scenario.FindOrCreateResourceCache("worker1")
-		err := scenario.WorkerVolume("worker1", "locally-cached-volume").InitializeResourceCache(logger, resourceCache1)
+		err := scenario.WorkerVolume("worker1", "locally-cached-volume").InitializeResourceCache(ctx, resourceCache1)
 		Expect(err).ToNot(HaveOccurred())
 
 		resourceCache2 := scenario.FindOrCreateResourceCache("worker2")
-		err = scenario.WorkerVolume("worker2", "remote-volume").InitializeResourceCache(logger, resourceCache2)
+		err = scenario.WorkerVolume("worker2", "remote-volume").InitializeResourceCache(ctx, resourceCache2)
 		Expect(err).ToNot(HaveOccurred())
 
 		worker := scenario.Worker("worker1")
@@ -619,11 +619,11 @@ var _ = Describe("Garden Worker", func() {
 		)
 
 		resourceCache1 := scenario.FindOrCreateResourceCache("worker1")
-		err := scenario.WorkerVolume("worker1", "locally-cached-volume").InitializeResourceCache(logger, resourceCache1)
+		err := scenario.WorkerVolume("worker1", "locally-cached-volume").InitializeResourceCache(ctx, resourceCache1)
 		Expect(err).ToNot(HaveOccurred())
 
 		resourceCache2 := scenario.FindOrCreateResourceCache("worker2")
-		err = scenario.WorkerVolume("worker2", "remote-volume").InitializeStreamedResourceCache(logger, resourceCache2, "worker1")
+		err = scenario.WorkerVolume("worker2", "remote-volume").InitializeStreamedResourceCache(ctx, resourceCache2, "worker1")
 		Expect(err).ToNot(HaveOccurred())
 
 		worker := scenario.Worker("worker1")
@@ -733,11 +733,11 @@ var _ = Describe("Garden Worker", func() {
 		)
 
 		origCacheHitVol := scenario.WorkerVolume("worker", "previous-cache-1").(gardenruntime.Volume)
-		err := origCacheHitVol.InitializeTaskCache(logger, scenario.JobID, scenario.StepName, "cache-hit", false)
+		err := origCacheHitVol.InitializeTaskCache(ctx, scenario.JobID, scenario.StepName, "cache-hit", false)
 		Expect(err).ToNot(HaveOccurred())
 
 		origWorkdirCacheVol := scenario.WorkerVolume("worker", "previous-cache-2").(gardenruntime.Volume)
-		err = origWorkdirCacheVol.InitializeTaskCache(logger, scenario.JobID, scenario.StepName, ".", false)
+		err = origWorkdirCacheVol.InitializeTaskCache(ctx, scenario.JobID, scenario.StepName, ".", false)
 		Expect(err).ToNot(HaveOccurred())
 
 		worker := scenario.Worker("worker")
@@ -773,15 +773,15 @@ var _ = Describe("Garden Worker", func() {
 		var newWorkdirVol *grt.Volume
 		By("re-initializing the cache volumes", func() {
 			cacheHitVol := volumeMount(volumeMounts, "/workdir/cache-hit").Volume.(gardenruntime.Volume)
-			err := cacheHitVol.InitializeTaskCache(logger, scenario.JobID, scenario.StepName, "./cache-hit", false)
+			err := cacheHitVol.InitializeTaskCache(ctx, scenario.JobID, scenario.StepName, "./cache-hit", false)
 			Expect(err).ToNot(HaveOccurred())
 
 			workdirVol := volumeMount(volumeMounts, "/workdir").Volume.(gardenruntime.Volume)
-			err = workdirVol.InitializeTaskCache(logger, scenario.JobID, scenario.StepName, ".", false)
+			err = workdirVol.InitializeTaskCache(ctx, scenario.JobID, scenario.StepName, ".", false)
 			Expect(err).ToNot(HaveOccurred())
 
 			cacheMissVol := volumeMount(volumeMounts, "/cache-miss").Volume.(gardenruntime.Volume)
-			err = cacheMissVol.InitializeTaskCache(logger, scenario.JobID, scenario.StepName, "/cache-miss", false)
+			err = cacheMissVol.InitializeTaskCache(ctx, scenario.JobID, scenario.StepName, "/cache-miss", false)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("validating an import volume was created only when the cache already existed", func() {

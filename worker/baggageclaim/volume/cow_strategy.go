@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/worker/baggageclaim"
 )
 
 var ErrNoParentVolumeProvided = errors.New("no parent volume provided")
@@ -31,4 +32,8 @@ func (strategy COWStrategy) Materialize(logger lager.Logger, handle string, fs F
 	}
 
 	return parentVolume.NewSubvolume(handle)
+}
+
+func (strateg COWStrategy) String() string {
+	return baggageclaim.StrategyCopyOnWrite
 }

@@ -1,12 +1,12 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
 
-	"code.cloudfoundry.org/lager"
 	"github.com/cenkalti/backoff"
 	"github.com/tedsuo/rata"
 
@@ -16,11 +16,10 @@ import (
 type volumeFuture struct {
 	client *client
 	handle string
-	logger lager.Logger
 }
 
-func (f *volumeFuture) Wait() (baggageclaim.Volume, error) {
-	request, err := f.client.requestGenerator.CreateRequest(baggageclaim.CreateVolumeAsyncCheck, rata.Params{
+func (f *volumeFuture) Wait(ctx context.Context) (baggageclaim.Volume, error) {
+	request, err := f.client.generateRequest(ctx, baggageclaim.CreateVolumeAsyncCheck, rata.Params{
 		"handle": f.handle,
 	}, nil)
 	if err != nil {
@@ -33,7 +32,7 @@ func (f *volumeFuture) Wait() (baggageclaim.Volume, error) {
 	exponentialBackoff.MaxElapsedTime = 0
 
 	for {
-		response, err := f.client.httpClient(f.logger).Do(request)
+		response, err := f.client.httpClient(ctx).Do(request)
 		if err != nil {
 			return nil, err
 		}
@@ -65,19 +64,19 @@ func (f *volumeFuture) Wait() (baggageclaim.Volume, error) {
 			return nil, err
 		}
 
-		return f.client.newVolume(f.logger, volumeResponse), nil
+		return f.client.newVolume(volumeResponse), nil
 	}
 }
 
-func (f *volumeFuture) Destroy() error {
-	request, err := f.client.requestGenerator.CreateRequest(baggageclaim.CreateVolumeAsyncCancel, rata.Params{
+func (f *volumeFuture) Destroy(ctx context.Context) error {
+	request, err := f.client.generateRequest(ctx, baggageclaim.CreateVolumeAsyncCancel, rata.Params{
 		"handle": f.handle,
 	}, nil)
 	if err != nil {
 		return err
 	}
 
-	response, err := f.client.httpClient(f.logger).Do(request)
+	response, err := f.client.httpClient(ctx).Do(request)
 	if err != nil {
 		return err
 	}

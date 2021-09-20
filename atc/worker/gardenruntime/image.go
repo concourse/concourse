@@ -9,6 +9,7 @@ import (
 	"path"
 
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/runtime"
@@ -33,13 +34,13 @@ type ImageMetadata struct {
 
 func (worker *Worker) fetchImageForContainer(
 	ctx context.Context,
-	logger lager.Logger,
 	imageSpec runtime.ImageSpec,
 	teamID int,
 	container db.CreatingContainer,
 ) (FetchedImage, error) {
+	logger := lagerctx.FromContext(ctx)
 	if imageSpec.ImageArtifact != nil {
-		volume, ok, err := worker.findVolumeForArtifact(logger, teamID, imageSpec.ImageArtifact)
+		volume, ok, err := worker.findVolumeForArtifact(ctx, teamID, imageSpec.ImageArtifact)
 		if err != nil {
 			logger.Error("failed-to-locate-artifact-volume", err)
 			return FetchedImage{}, err
@@ -49,14 +50,14 @@ func (worker *Worker) fetchImageForContainer(
 			volumeOnWorker := volume.(Volume)
 			return worker.imageProvidedByPreviousStepOnSameWorker(ctx, logger, imageSpec.Privileged, teamID, container, volumeOnWorker)
 		} else {
-			return worker.imageProvidedByPreviousStepOnDifferentWorker(ctx, logger, imageSpec.Privileged, teamID, container, imageSpec.ImageArtifact)
+			return worker.imageProvidedByPreviousStepOnDifferentWorker(ctx, imageSpec.Privileged, teamID, container, imageSpec.ImageArtifact)
 		}
 	}
 
 	if imageSpec.ResourceType != "" {
 		for _, t := range worker.dbWorker.ResourceTypes() {
 			if t.Type == imageSpec.ResourceType {
-				return worker.imageFromBaseResourceType(ctx, logger, t, imageSpec.ResourceType, teamID, container)
+				return worker.imageFromBaseResourceType(ctx, t, imageSpec.ResourceType, teamID, container)
 			}
 		}
 		return FetchedImage{}, ErrUnsupportedResourceType
@@ -74,7 +75,7 @@ func (worker *Worker) imageProvidedByPreviousStepOnSameWorker(
 	artifactVolume Volume,
 ) (FetchedImage, error) {
 	imageVolume, err := worker.findOrCreateCOWVolumeForContainer(
-		logger,
+		ctx,
 		privileged,
 		container,
 		artifactVolume,
@@ -111,14 +112,14 @@ func (worker *Worker) imageProvidedByPreviousStepOnSameWorker(
 
 func (worker *Worker) imageProvidedByPreviousStepOnDifferentWorker(
 	ctx context.Context,
-	logger lager.Logger,
 	privileged bool,
 	teamID int,
 	container db.CreatingContainer,
 	artifact runtime.Artifact,
 ) (FetchedImage, error) {
+	logger := lagerctx.FromContext(ctx)
 	streamedVolume, err := worker.findOrCreateVolumeForStreaming(
-		logger,
+		ctx,
 		privileged,
 		container,
 		teamID,
@@ -136,7 +137,7 @@ func (worker *Worker) imageProvidedByPreviousStepOnDifferentWorker(
 	logger.Debug("streamed-non-local-image-volume")
 
 	imageVolume, err := worker.findOrCreateCOWVolumeForContainer(
-		logger,
+		ctx,
 		privileged,
 		container,
 		streamedVolume,
@@ -173,14 +174,13 @@ func (worker *Worker) imageProvidedByPreviousStepOnDifferentWorker(
 
 func (worker *Worker) imageFromBaseResourceType(
 	ctx context.Context,
-	logger lager.Logger,
 	resourceType atc.WorkerResourceType,
 	resourceTypeName string,
 	teamID int,
 	container db.CreatingContainer,
 ) (FetchedImage, error) {
 	importVolume, err := worker.findOrCreateVolumeForBaseResourceType(
-		logger,
+		ctx,
 		baggageclaim.VolumeSpec{
 			Strategy:   baggageclaim.ImportStrategy{Path: resourceType.Image},
 			Privileged: resourceType.Privileged,
@@ -193,7 +193,7 @@ func (worker *Worker) imageFromBaseResourceType(
 	}
 
 	cowVolume, err := worker.findOrCreateCOWVolumeForContainer(
-		logger,
+		ctx,
 		resourceType.Privileged,
 		container,
 		importVolume,

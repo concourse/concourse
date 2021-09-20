@@ -103,14 +103,14 @@ var _ = Describe("Streamer", func() {
 		dst := scenario.WorkerVolume("dst-worker", "dst")
 
 		By("setting the dst volume as privileged", func() {
-			err := baggageclaimVolume(dst).SetPrivileged(true)
+			err := baggageclaimVolume(dst).SetPrivileged(ctx, true)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
 		var resourceCache db.ResourceCache
 		By("initializing src as a resource cache", func() {
 			resourceCache = scenario.FindOrCreateResourceCache("src-worker")
-			err := src.InitializeResourceCache(logger, resourceCache)
+			err := src.InitializeResourceCache(ctx, resourceCache)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -160,7 +160,7 @@ var _ = Describe("Streamer", func() {
 		var resourceCache db.ResourceCache
 		By("initializing src as a resource cache", func() {
 			resourceCache = scenario.FindOrCreateResourceCache("src-worker")
-			err := src.InitializeResourceCache(logger, resourceCache)
+			err := src.InitializeResourceCache(ctx, resourceCache)
 			Expect(err).ToNot(HaveOccurred())
 		})
 

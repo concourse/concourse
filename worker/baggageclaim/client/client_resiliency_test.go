@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/worker/baggageclaim"
 	"github.com/concourse/concourse/worker/baggageclaim/client"
 	"github.com/concourse/concourse/worker/baggageclaim/volume"
@@ -70,7 +69,7 @@ var _ = Describe("baggageclaim http client", func() {
 
 				c := client.New(gServer.URL(), http.DefaultTransport)
 
-				volume, err := c.CreateVolume(lager.NewLogger("test"), "some-volume", baggageclaim.VolumeSpec{Properties: map[string]string{}, Privileged: false})
+				volume, err := c.CreateVolume(context.Background(), "some-volume", baggageclaim.VolumeSpec{Properties: map[string]string{}, Privileged: false})
 				Expect(err).ToNot(HaveOccurred())
 
 				var wg sync.WaitGroup

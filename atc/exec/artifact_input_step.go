@@ -55,7 +55,7 @@ func (step *ArtifactInputStep) Run(ctx context.Context, state RunState) (bool, e
 	}
 
 	// TODO (runtime/#3607): artifact_input_step shouldn't be looking up the volume on the worker
-	volume, _, found, err := step.workerPool.LocateVolume(logger, createdVolume.TeamID(), createdVolume.Handle())
+	volume, _, found, err := step.workerPool.LocateVolume(ctx, createdVolume.TeamID(), createdVolume.Handle())
 	if err != nil {
 		return false, err
 	}

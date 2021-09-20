@@ -5,7 +5,6 @@ import (
 	"io"
 	"strings"
 
-	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/compression"
 	"github.com/concourse/concourse/atc/db"
 	"go.opentelemetry.io/otel/propagation"
@@ -32,13 +31,13 @@ type Worker interface {
 	// CreateVolumeForArtifact creates a new empty Volume to be used as a
 	// WorkerArtifact. This is used for uploading local inputs to a worker via
 	// `fly execute -i ...`.
-	CreateVolumeForArtifact(logger lager.Logger, teamID int) (Volume, db.WorkerArtifact, error)
+	CreateVolumeForArtifact(ctx context.Context, teamID int) (Volume, db.WorkerArtifact, error)
 
 	// LookupContainer finds the Container on the Worker by its handle, if it
 	// exists.
-	LookupContainer(logger lager.Logger, handle string) (Container, bool, error)
+	LookupContainer(ctx context.Context, handle string) (Container, bool, error)
 	// LookupVolume finds the Volume on the Worker by its handle, if it exists.
-	LookupVolume(logger lager.Logger, handle string) (Volume, bool, error)
+	LookupVolume(ctx context.Context, handle string) (Volume, bool, error)
 
 	DBWorker() db.Worker
 }
@@ -300,16 +299,16 @@ type Volume interface {
 
 	// InitializeResourceCache is called upon a successful run of the get step
 	// to register this Volume as a resource cache.
-	InitializeResourceCache(logger lager.Logger, urc db.ResourceCache) error
+	InitializeResourceCache(ctx context.Context, urc db.ResourceCache) error
 
 	// InitializeStreamedResourceCache is called when an external resource
 	// cache volume is streamed locally to register this volume as a resource
 	// cache.
-	InitializeStreamedResourceCache(logger lager.Logger, urc db.ResourceCache, workerName string) error
+	InitializeStreamedResourceCache(ctx context.Context, urc db.ResourceCache, workerName string) error
 
 	// InitializeTaskCache is called upon a successful run of the task step to
 	// register this Volume as a task cache.
-	InitializeTaskCache(logger lager.Logger, jobID int, stepName string, path string, privileged bool) error
+	InitializeTaskCache(ctx context.Context, jobID int, stepName string, path string, privileged bool) error
 
 	DBVolume() db.CreatedVolume
 }

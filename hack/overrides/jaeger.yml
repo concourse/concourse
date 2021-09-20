@@ -14,6 +14,10 @@ services:
     environment:
       CONCOURSE_TRACING_SERVICE_NAME: atc
       CONCOURSE_TRACING_OTLP_ADDRESS: otel-collector:55680
+  worker:
+    environment:
+      CONCOURSE_TRACING_SERVICE_NAME: worker
+      CONCOURSE_TRACING_OTLP_ADDRESS: otel-collector:55680
 
   otel-collector:
     image: otel/opentelemetry-collector

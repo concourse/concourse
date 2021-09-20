@@ -309,7 +309,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 
 	// Do not initialize caches for one-off builds
 	if step.metadata.JobID != 0 {
-		if err := step.registerCaches(logger, repository, config, volumeMounts, step.containerMetadata); err != nil {
+		if err := step.registerCaches(ctx, repository, config, volumeMounts, step.containerMetadata); err != nil {
 			return false, err
 		}
 	}
@@ -464,7 +464,8 @@ func (step *TaskStep) registerOutputs(logger lager.Logger, repository *build.Rep
 	}
 }
 
-func (step *TaskStep) registerCaches(logger lager.Logger, repository *build.Repository, config atc.TaskConfig, volumeMounts []runtime.VolumeMount, metadata db.ContainerMetadata) error {
+func (step *TaskStep) registerCaches(ctx context.Context, repository *build.Repository, config atc.TaskConfig, volumeMounts []runtime.VolumeMount, metadata db.ContainerMetadata) error {
+	logger := lagerctx.FromContext(ctx)
 	for _, cacheConfig := range config.Caches {
 		for _, volumeMount := range volumeMounts {
 			mountPath := resolvePath(metadata.WorkingDirectory, cacheConfig.Path)
@@ -473,7 +474,7 @@ func (step *TaskStep) registerCaches(logger lager.Logger, repository *build.Repo
 					"cache": cacheConfig.Path,
 				})
 				err := volumeMount.Volume.InitializeTaskCache(
-					logger,
+					ctx,
 					step.metadata.JobID,
 					step.plan.Name,
 					cacheConfig.Path,

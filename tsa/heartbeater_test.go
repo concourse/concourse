@@ -8,7 +8,6 @@ import (
 
 	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/garden"
-	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
@@ -235,7 +234,7 @@ var _ = Describe("Heartbeater", func() {
 				return <-containers, nil
 			}
 
-			fakeBaggageclaimClient.ListVolumesStub = func(lager.Logger, baggageclaim.VolumeProperties) (baggageclaim.Volumes, error) {
+			fakeBaggageclaimClient.ListVolumesStub = func(context.Context, baggageclaim.VolumeProperties) (baggageclaim.Volumes, error) {
 				return <-volumes, nil
 			}
 		})

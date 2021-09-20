@@ -1,6 +1,7 @@
 package integration_test
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -26,6 +27,7 @@ import (
 )
 
 var logger lager.Logger
+var ctx = context.Background()
 var baggageClaimPath string
 
 func TestIntegration(t *testing.T) {
@@ -136,7 +138,7 @@ func (bcr *BaggageClaimRunner) Port() int {
 }
 
 func (bcr *BaggageClaimRunner) CurrentHandles() []string {
-	volumes, err := bcr.Client().ListVolumes(logger, nil)
+	volumes, err := bcr.Client().ListVolumes(ctx, nil)
 	Expect(err).NotTo(HaveOccurred())
 
 	handles := []string{}

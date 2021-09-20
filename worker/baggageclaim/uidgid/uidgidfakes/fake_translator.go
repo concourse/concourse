@@ -2,7 +2,7 @@
 package uidgidfakes
 
 import (
-	"os"
+	"io/fs"
 	"os/exec"
 	"sync"
 
@@ -15,11 +15,11 @@ type FakeTranslator struct {
 	translateCommandArgsForCall []struct {
 		arg1 *exec.Cmd
 	}
-	TranslatePathStub        func(string, os.FileInfo, error) error
+	TranslatePathStub        func(string, fs.FileInfo, error) error
 	translatePathMutex       sync.RWMutex
 	translatePathArgsForCall []struct {
 		arg1 string
-		arg2 os.FileInfo
+		arg2 fs.FileInfo
 		arg3 error
 	}
 	translatePathReturns struct {
@@ -37,9 +37,10 @@ func (fake *FakeTranslator) TranslateCommand(arg1 *exec.Cmd) {
 	fake.translateCommandArgsForCall = append(fake.translateCommandArgsForCall, struct {
 		arg1 *exec.Cmd
 	}{arg1})
+	stub := fake.TranslateCommandStub
 	fake.recordInvocation("TranslateCommand", []interface{}{arg1})
 	fake.translateCommandMutex.Unlock()
-	if fake.TranslateCommandStub != nil {
+	if stub != nil {
 		fake.TranslateCommandStub(arg1)
 	}
 }
@@ -63,23 +64,24 @@ func (fake *FakeTranslator) TranslateCommandArgsForCall(i int) *exec.Cmd {
 	return argsForCall.arg1
 }
 
-func (fake *FakeTranslator) TranslatePath(arg1 string, arg2 os.FileInfo, arg3 error) error {
+func (fake *FakeTranslator) TranslatePath(arg1 string, arg2 fs.FileInfo, arg3 error) error {
 	fake.translatePathMutex.Lock()
 	ret, specificReturn := fake.translatePathReturnsOnCall[len(fake.translatePathArgsForCall)]
 	fake.translatePathArgsForCall = append(fake.translatePathArgsForCall, struct {
 		arg1 string
-		arg2 os.FileInfo
+		arg2 fs.FileInfo
 		arg3 error
 	}{arg1, arg2, arg3})
+	stub := fake.TranslatePathStub
+	fakeReturns := fake.translatePathReturns
 	fake.recordInvocation("TranslatePath", []interface{}{arg1, arg2, arg3})
 	fake.translatePathMutex.Unlock()
-	if fake.TranslatePathStub != nil {
-		return fake.TranslatePathStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.translatePathReturns
 	return fakeReturns.result1
 }
 
@@ -89,13 +91,13 @@ func (fake *FakeTranslator) TranslatePathCallCount() int {
 	return len(fake.translatePathArgsForCall)
 }
 
-func (fake *FakeTranslator) TranslatePathCalls(stub func(string, os.FileInfo, error) error) {
+func (fake *FakeTranslator) TranslatePathCalls(stub func(string, fs.FileInfo, error) error) {
 	fake.translatePathMutex.Lock()
 	defer fake.translatePathMutex.Unlock()
 	fake.TranslatePathStub = stub
 }
 
-func (fake *FakeTranslator) TranslatePathArgsForCall(i int) (string, os.FileInfo, error) {
+func (fake *FakeTranslator) TranslatePathArgsForCall(i int) (string, fs.FileInfo, error) {
 	fake.translatePathMutex.RLock()
 	defer fake.translatePathMutex.RUnlock()
 	argsForCall := fake.translatePathArgsForCall[i]

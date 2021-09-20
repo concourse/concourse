@@ -22,6 +22,7 @@ import (
 var Configured bool
 
 type Config struct {
+	//TODO: set default value in resective cmd package (web, worker)
 	ServiceName string            `long:"service-name"  description:"service name to attach to traces as metadata" default:"concourse-web"`
 	Attributes  map[string]string `long:"attribute"  description:"attributes to attach to traces as metadata"`
 	Honeycomb   Honeycomb
@@ -136,6 +137,10 @@ func FromContext(ctx context.Context) trace.Span {
 
 func Inject(ctx context.Context, carrier propagation.TextMapCarrier) {
 	propagation.TraceContext{}.Inject(ctx, carrier)
+}
+
+func Extract(ctx context.Context, carrier propagation.TextMapCarrier) context.Context {
+	return propagation.TraceContext{}.Extract(ctx, carrier)
 }
 
 type WithSpanContext interface {

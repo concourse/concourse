@@ -261,7 +261,8 @@ func (heartbeater *Heartbeater) pingWorker(logger lager.Logger) (atc.Worker, boo
 
 	beforeBaggageclaim := time.Now()
 
-	volumes, err := heartbeater.baggageclaimClient.ListVolumes(logger.Session("list-volumes"), nil)
+	ctx := lagerctx.NewContext(context.Background(), logger.Session("list-volumes"))
+	volumes, err := heartbeater.baggageclaimClient.ListVolumes(ctx, nil)
 	if err != nil {
 		logger.Error("failed-to-list-volumes", err)
 		healthy = false

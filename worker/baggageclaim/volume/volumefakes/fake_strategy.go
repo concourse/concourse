@@ -25,6 +25,16 @@ type FakeStrategy struct {
 		result1 volume.FilesystemInitVolume
 		result2 error
 	}
+	StringStub        func() string
+	stringMutex       sync.RWMutex
+	stringArgsForCall []struct {
+	}
+	stringReturns struct {
+		result1 string
+	}
+	stringReturnsOnCall map[int]struct {
+		result1 string
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -38,15 +48,16 @@ func (fake *FakeStrategy) Materialize(arg1 lager.Logger, arg2 string, arg3 volum
 		arg3 volume.Filesystem
 		arg4 volume.Streamer
 	}{arg1, arg2, arg3, arg4})
+	stub := fake.MaterializeStub
+	fakeReturns := fake.materializeReturns
 	fake.recordInvocation("Materialize", []interface{}{arg1, arg2, arg3, arg4})
 	fake.materializeMutex.Unlock()
-	if fake.MaterializeStub != nil {
-		return fake.MaterializeStub(arg1, arg2, arg3, arg4)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.materializeReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -95,11 +106,66 @@ func (fake *FakeStrategy) MaterializeReturnsOnCall(i int, result1 volume.Filesys
 	}{result1, result2}
 }
 
+func (fake *FakeStrategy) String() string {
+	fake.stringMutex.Lock()
+	ret, specificReturn := fake.stringReturnsOnCall[len(fake.stringArgsForCall)]
+	fake.stringArgsForCall = append(fake.stringArgsForCall, struct {
+	}{})
+	stub := fake.StringStub
+	fakeReturns := fake.stringReturns
+	fake.recordInvocation("String", []interface{}{})
+	fake.stringMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeStrategy) StringCallCount() int {
+	fake.stringMutex.RLock()
+	defer fake.stringMutex.RUnlock()
+	return len(fake.stringArgsForCall)
+}
+
+func (fake *FakeStrategy) StringCalls(stub func() string) {
+	fake.stringMutex.Lock()
+	defer fake.stringMutex.Unlock()
+	fake.StringStub = stub
+}
+
+func (fake *FakeStrategy) StringReturns(result1 string) {
+	fake.stringMutex.Lock()
+	defer fake.stringMutex.Unlock()
+	fake.StringStub = nil
+	fake.stringReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeStrategy) StringReturnsOnCall(i int, result1 string) {
+	fake.stringMutex.Lock()
+	defer fake.stringMutex.Unlock()
+	fake.StringStub = nil
+	if fake.stringReturnsOnCall == nil {
+		fake.stringReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.stringReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
+}
+
 func (fake *FakeStrategy) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.materializeMutex.RLock()
 	defer fake.materializeMutex.RUnlock()
+	fake.stringMutex.RLock()
+	defer fake.stringMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
