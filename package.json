@@ -21,7 +21,7 @@
     "elm-test": "^0.19.1-revision7",
     "less": "^4.1.1",
     "less-plugin-autoprefix": "^2.0.0",
-    "puppeteer": "^10.2.0",
+    "puppeteer": "^10.4.0",
     "uglify-js": "^3.14.2",
     "webpack": "^5.53.0",
     "webpack-cli": "^4.8.0"
