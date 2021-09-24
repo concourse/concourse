@@ -68,6 +68,19 @@ var _ = Describe("On Error Step", func() {
 		})
 	})
 
+	Context("when the step error is retriable", func() {
+		BeforeEach(func() {
+			disaster = multierror.Append(disaster, exec.Retriable{})
+			step.RunReturns(false, disaster)
+		})
+
+		It("does not run the error hook", func() {
+			Expect(stepErr).To(Equal(disaster))
+			Expect(hook.RunCallCount()).To(Equal(0))
+			Expect(step.RunCallCount()).To(Equal(1))
+		})
+	})
+
 	Context("when the step succeeds", func() {
 		BeforeEach(func() {
 			step.RunReturns(true, nil)
