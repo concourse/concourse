@@ -43,5 +43,5 @@ func waitForVolumesGC(t *testing.T, fly flytest.Cmd) {
 	require.Eventually(t, func() bool {
 		volumes := fly.Table(t, "volumes")
 		return len(volumes) == 0
-	}, 1*time.Minute, 5*time.Second)
+	}, 2*time.Minute, 5*time.Second)
 }
