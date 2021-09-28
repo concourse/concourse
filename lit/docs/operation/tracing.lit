@@ -42,12 +42,28 @@ platforms. Currently tracing can be configured to integrates with:
   the default location that the \code{gcloud} CLI expects, or from GCP's
   metadata server (if Concourse is deployed on GCP).
 
-  To export spans to Lightstep via the OTLP Exporter, specify your collector access token and endpoint:
+  To export spans the \link{OpenTelemetry Collector}{https://github.com/open-telemetry/opentelemetry-collector} via the OTLP Exporter, specify your collector access endpoint:
+
+  \codeblock{bash}{{{
+  CONCOURSE_TRACING_OTLP_ADDRESS=otel-collector.example.com:4317
+  CONCOURSE_TRACING_OTLP_USE_TLS=false
+  }}}
+
+  To export spans to \link{Lightstep}{https://opentelemetry.lightstep.com/} via the OTLP Exporter, specify your collector access token and endpoint:
 
   \codeblock{bash}{{{
   CONCOURSE_TRACING_OTLP_ADDRESS=ingest.lightstep.com:443
   CONCOURSE_TRACING_OTLP_HEADERS=lightstep-access-token:mysupersecrettoken
   }}}
+
+
+  To export spans to \link{Elastic Observability}{https://www.elastic.co/guide/en/apm/get-started/current/open-telemetry-elastic.html} via the OTLP Exporter, specify your Elastic APM secret token and endpoint:
+
+  \codeblock{bash}{{{
+  CONCOURSE_TRACING_OTLP_ADDRESS=elastic-apm-server.example.com:443
+  CONCOURSE_TRACING_OTLP_HEADERS=Authorization=Bearer your-secret-token
+  }}}
+
 
   To export spans to Honeycomb.io, specify the API key, dataset and
   optionally the service name:
