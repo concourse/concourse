@@ -76,6 +76,14 @@ platforms. Currently tracing can be configured to integrates with:
 }
 
 \section{
+  \title{Trace context propagation}
+  When tracing is enabled, trace context propagation is activated in pipeline tasks thanks to the 
+  injection of the environment variable \code{TRACEPARENT} in \code{run} commands.
+  The environment variable \code{TRACEPARENT} complies with the 
+  \link{W3C Trace Context}{https://www.w3.org/TR/trace-context/} specification.
+}
+
+\section{
   \title{What's emitted?}
 
   Below is a summary of the various operations that Concourse currently traces.
