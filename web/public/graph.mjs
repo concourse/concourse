@@ -626,7 +626,9 @@ GraphNode.prototype.width = function() {
   if (this._cachedWidth == 0) {
     var id = this.id;
 
-    var svgNode = this.svg.select("#node-" + id);
+    var svgNode = this.svg.selectAll("g.node").filter(function(node) {
+      return node.id == id;
+    })
 
     var textNode = svgNode.select("text").node();
     var imageNode = svgNode.select("image").node();
