@@ -1,6 +1,7 @@
 package topgun_test
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -95,7 +96,7 @@ var _ = Describe("Garbage-collecting volumes", func() {
 			}, 10*time.Minute, time.Second).Should(BeZero())
 
 			By("having removed the volumes from the worker")
-			volumes, err := WorkerBaggageclaimClient.ListVolumes(Logger, nil)
+			volumes, err := WorkerBaggageclaimClient.ListVolumes(context.Background(), nil)
 			Expect(err).ToNot(HaveOccurred())
 
 			existingHandles = []string{}
@@ -173,7 +174,7 @@ var _ = Describe("Garbage-collecting volumes", func() {
 			}, 10*time.Minute, time.Second).Should(BeZero())
 
 			By("having removed the volumes from the worker")
-			volumes, err := WorkerBaggageclaimClient.ListVolumes(Logger, nil)
+			volumes, err := WorkerBaggageclaimClient.ListVolumes(context.Background(), nil)
 			Expect(err).ToNot(HaveOccurred())
 
 			existingHandles := []string{}
