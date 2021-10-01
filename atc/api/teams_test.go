@@ -692,12 +692,12 @@ var _ = Describe("Teams API", func() {
 			})
 
 			Context("when getting the builds succeeds", func() {
-				var returnedBuilds []db.Build
+				var returnedBuilds []db.BuildForAPI
 
 				BeforeEach(func() {
 					queryParams = "?since=5&limit=2"
 
-					build1 := new(dbfakes.FakeBuild)
+					build1 := new(dbfakes.FakeBuildForAPI)
 					build1.IDReturns(4)
 					build1.NameReturns("2")
 					build1.JobNameReturns("some-job")
@@ -707,7 +707,7 @@ var _ = Describe("Teams API", func() {
 					build1.StartTimeReturns(time.Unix(1, 0))
 					build1.EndTimeReturns(time.Unix(100, 0))
 
-					build2 := new(dbfakes.FakeBuild)
+					build2 := new(dbfakes.FakeBuildForAPI)
 					build2.IDReturns(2)
 					build2.NameReturns("1")
 					build2.JobNameReturns("some-job")
@@ -717,7 +717,7 @@ var _ = Describe("Teams API", func() {
 					build2.StartTimeReturns(time.Unix(101, 0))
 					build2.EndTimeReturns(time.Unix(200, 0))
 
-					returnedBuilds = []db.Build{build1, build2}
+					returnedBuilds = []db.BuildForAPI{build1, build2}
 					fakeTeam.BuildsReturns(returnedBuilds, db.Pagination{}, nil)
 				})
 

@@ -8,18 +8,18 @@ import (
 )
 
 type FakeBuildFactory struct {
-	AllBuildsStub        func(db.Page) ([]db.Build, db.Pagination, error)
+	AllBuildsStub        func(db.Page) ([]db.BuildForAPI, db.Pagination, error)
 	allBuildsMutex       sync.RWMutex
 	allBuildsArgsForCall []struct {
 		arg1 db.Page
 	}
 	allBuildsReturns struct {
-		result1 []db.Build
+		result1 []db.BuildForAPI
 		result2 db.Pagination
 		result3 error
 	}
 	allBuildsReturnsOnCall map[int]struct {
-		result1 []db.Build
+		result1 []db.BuildForAPI
 		result2 db.Pagination
 		result3 error
 	}
@@ -35,6 +35,21 @@ type FakeBuildFactory struct {
 	}
 	buildReturnsOnCall map[int]struct {
 		result1 db.Build
+		result2 bool
+		result3 error
+	}
+	BuildForAPIStub        func(int) (db.BuildForAPI, bool, error)
+	buildForAPIMutex       sync.RWMutex
+	buildForAPIArgsForCall []struct {
+		arg1 int
+	}
+	buildForAPIReturns struct {
+		result1 db.BuildForAPI
+		result2 bool
+		result3 error
+	}
+	buildForAPIReturnsOnCall map[int]struct {
+		result1 db.BuildForAPI
 		result2 bool
 		result3 error
 	}
@@ -72,34 +87,34 @@ type FakeBuildFactory struct {
 	markNonInterceptibleBuildsReturnsOnCall map[int]struct {
 		result1 error
 	}
-	PublicBuildsStub        func(db.Page) ([]db.Build, db.Pagination, error)
+	PublicBuildsStub        func(db.Page) ([]db.BuildForAPI, db.Pagination, error)
 	publicBuildsMutex       sync.RWMutex
 	publicBuildsArgsForCall []struct {
 		arg1 db.Page
 	}
 	publicBuildsReturns struct {
-		result1 []db.Build
+		result1 []db.BuildForAPI
 		result2 db.Pagination
 		result3 error
 	}
 	publicBuildsReturnsOnCall map[int]struct {
-		result1 []db.Build
+		result1 []db.BuildForAPI
 		result2 db.Pagination
 		result3 error
 	}
-	VisibleBuildsStub        func([]string, db.Page) ([]db.Build, db.Pagination, error)
+	VisibleBuildsStub        func([]string, db.Page) ([]db.BuildForAPI, db.Pagination, error)
 	visibleBuildsMutex       sync.RWMutex
 	visibleBuildsArgsForCall []struct {
 		arg1 []string
 		arg2 db.Page
 	}
 	visibleBuildsReturns struct {
-		result1 []db.Build
+		result1 []db.BuildForAPI
 		result2 db.Pagination
 		result3 error
 	}
 	visibleBuildsReturnsOnCall map[int]struct {
-		result1 []db.Build
+		result1 []db.BuildForAPI
 		result2 db.Pagination
 		result3 error
 	}
@@ -107,7 +122,7 @@ type FakeBuildFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeBuildFactory) AllBuilds(arg1 db.Page) ([]db.Build, db.Pagination, error) {
+func (fake *FakeBuildFactory) AllBuilds(arg1 db.Page) ([]db.BuildForAPI, db.Pagination, error) {
 	fake.allBuildsMutex.Lock()
 	ret, specificReturn := fake.allBuildsReturnsOnCall[len(fake.allBuildsArgsForCall)]
 	fake.allBuildsArgsForCall = append(fake.allBuildsArgsForCall, struct {
@@ -132,7 +147,7 @@ func (fake *FakeBuildFactory) AllBuildsCallCount() int {
 	return len(fake.allBuildsArgsForCall)
 }
 
-func (fake *FakeBuildFactory) AllBuildsCalls(stub func(db.Page) ([]db.Build, db.Pagination, error)) {
+func (fake *FakeBuildFactory) AllBuildsCalls(stub func(db.Page) ([]db.BuildForAPI, db.Pagination, error)) {
 	fake.allBuildsMutex.Lock()
 	defer fake.allBuildsMutex.Unlock()
 	fake.AllBuildsStub = stub
@@ -145,30 +160,30 @@ func (fake *FakeBuildFactory) AllBuildsArgsForCall(i int) db.Page {
 	return argsForCall.arg1
 }
 
-func (fake *FakeBuildFactory) AllBuildsReturns(result1 []db.Build, result2 db.Pagination, result3 error) {
+func (fake *FakeBuildFactory) AllBuildsReturns(result1 []db.BuildForAPI, result2 db.Pagination, result3 error) {
 	fake.allBuildsMutex.Lock()
 	defer fake.allBuildsMutex.Unlock()
 	fake.AllBuildsStub = nil
 	fake.allBuildsReturns = struct {
-		result1 []db.Build
+		result1 []db.BuildForAPI
 		result2 db.Pagination
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakeBuildFactory) AllBuildsReturnsOnCall(i int, result1 []db.Build, result2 db.Pagination, result3 error) {
+func (fake *FakeBuildFactory) AllBuildsReturnsOnCall(i int, result1 []db.BuildForAPI, result2 db.Pagination, result3 error) {
 	fake.allBuildsMutex.Lock()
 	defer fake.allBuildsMutex.Unlock()
 	fake.AllBuildsStub = nil
 	if fake.allBuildsReturnsOnCall == nil {
 		fake.allBuildsReturnsOnCall = make(map[int]struct {
-			result1 []db.Build
+			result1 []db.BuildForAPI
 			result2 db.Pagination
 			result3 error
 		})
 	}
 	fake.allBuildsReturnsOnCall[i] = struct {
-		result1 []db.Build
+		result1 []db.BuildForAPI
 		result2 db.Pagination
 		result3 error
 	}{result1, result2, result3}
@@ -236,6 +251,73 @@ func (fake *FakeBuildFactory) BuildReturnsOnCall(i int, result1 db.Build, result
 	}
 	fake.buildReturnsOnCall[i] = struct {
 		result1 db.Build
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeBuildFactory) BuildForAPI(arg1 int) (db.BuildForAPI, bool, error) {
+	fake.buildForAPIMutex.Lock()
+	ret, specificReturn := fake.buildForAPIReturnsOnCall[len(fake.buildForAPIArgsForCall)]
+	fake.buildForAPIArgsForCall = append(fake.buildForAPIArgsForCall, struct {
+		arg1 int
+	}{arg1})
+	stub := fake.BuildForAPIStub
+	fakeReturns := fake.buildForAPIReturns
+	fake.recordInvocation("BuildForAPI", []interface{}{arg1})
+	fake.buildForAPIMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+}
+
+func (fake *FakeBuildFactory) BuildForAPICallCount() int {
+	fake.buildForAPIMutex.RLock()
+	defer fake.buildForAPIMutex.RUnlock()
+	return len(fake.buildForAPIArgsForCall)
+}
+
+func (fake *FakeBuildFactory) BuildForAPICalls(stub func(int) (db.BuildForAPI, bool, error)) {
+	fake.buildForAPIMutex.Lock()
+	defer fake.buildForAPIMutex.Unlock()
+	fake.BuildForAPIStub = stub
+}
+
+func (fake *FakeBuildFactory) BuildForAPIArgsForCall(i int) int {
+	fake.buildForAPIMutex.RLock()
+	defer fake.buildForAPIMutex.RUnlock()
+	argsForCall := fake.buildForAPIArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeBuildFactory) BuildForAPIReturns(result1 db.BuildForAPI, result2 bool, result3 error) {
+	fake.buildForAPIMutex.Lock()
+	defer fake.buildForAPIMutex.Unlock()
+	fake.BuildForAPIStub = nil
+	fake.buildForAPIReturns = struct {
+		result1 db.BuildForAPI
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeBuildFactory) BuildForAPIReturnsOnCall(i int, result1 db.BuildForAPI, result2 bool, result3 error) {
+	fake.buildForAPIMutex.Lock()
+	defer fake.buildForAPIMutex.Unlock()
+	fake.BuildForAPIStub = nil
+	if fake.buildForAPIReturnsOnCall == nil {
+		fake.buildForAPIReturnsOnCall = make(map[int]struct {
+			result1 db.BuildForAPI
+			result2 bool
+			result3 error
+		})
+	}
+	fake.buildForAPIReturnsOnCall[i] = struct {
+		result1 db.BuildForAPI
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
@@ -406,7 +488,7 @@ func (fake *FakeBuildFactory) MarkNonInterceptibleBuildsReturnsOnCall(i int, res
 	}{result1}
 }
 
-func (fake *FakeBuildFactory) PublicBuilds(arg1 db.Page) ([]db.Build, db.Pagination, error) {
+func (fake *FakeBuildFactory) PublicBuilds(arg1 db.Page) ([]db.BuildForAPI, db.Pagination, error) {
 	fake.publicBuildsMutex.Lock()
 	ret, specificReturn := fake.publicBuildsReturnsOnCall[len(fake.publicBuildsArgsForCall)]
 	fake.publicBuildsArgsForCall = append(fake.publicBuildsArgsForCall, struct {
@@ -431,7 +513,7 @@ func (fake *FakeBuildFactory) PublicBuildsCallCount() int {
 	return len(fake.publicBuildsArgsForCall)
 }
 
-func (fake *FakeBuildFactory) PublicBuildsCalls(stub func(db.Page) ([]db.Build, db.Pagination, error)) {
+func (fake *FakeBuildFactory) PublicBuildsCalls(stub func(db.Page) ([]db.BuildForAPI, db.Pagination, error)) {
 	fake.publicBuildsMutex.Lock()
 	defer fake.publicBuildsMutex.Unlock()
 	fake.PublicBuildsStub = stub
@@ -444,36 +526,36 @@ func (fake *FakeBuildFactory) PublicBuildsArgsForCall(i int) db.Page {
 	return argsForCall.arg1
 }
 
-func (fake *FakeBuildFactory) PublicBuildsReturns(result1 []db.Build, result2 db.Pagination, result3 error) {
+func (fake *FakeBuildFactory) PublicBuildsReturns(result1 []db.BuildForAPI, result2 db.Pagination, result3 error) {
 	fake.publicBuildsMutex.Lock()
 	defer fake.publicBuildsMutex.Unlock()
 	fake.PublicBuildsStub = nil
 	fake.publicBuildsReturns = struct {
-		result1 []db.Build
+		result1 []db.BuildForAPI
 		result2 db.Pagination
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakeBuildFactory) PublicBuildsReturnsOnCall(i int, result1 []db.Build, result2 db.Pagination, result3 error) {
+func (fake *FakeBuildFactory) PublicBuildsReturnsOnCall(i int, result1 []db.BuildForAPI, result2 db.Pagination, result3 error) {
 	fake.publicBuildsMutex.Lock()
 	defer fake.publicBuildsMutex.Unlock()
 	fake.PublicBuildsStub = nil
 	if fake.publicBuildsReturnsOnCall == nil {
 		fake.publicBuildsReturnsOnCall = make(map[int]struct {
-			result1 []db.Build
+			result1 []db.BuildForAPI
 			result2 db.Pagination
 			result3 error
 		})
 	}
 	fake.publicBuildsReturnsOnCall[i] = struct {
-		result1 []db.Build
+		result1 []db.BuildForAPI
 		result2 db.Pagination
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakeBuildFactory) VisibleBuilds(arg1 []string, arg2 db.Page) ([]db.Build, db.Pagination, error) {
+func (fake *FakeBuildFactory) VisibleBuilds(arg1 []string, arg2 db.Page) ([]db.BuildForAPI, db.Pagination, error) {
 	var arg1Copy []string
 	if arg1 != nil {
 		arg1Copy = make([]string, len(arg1))
@@ -504,7 +586,7 @@ func (fake *FakeBuildFactory) VisibleBuildsCallCount() int {
 	return len(fake.visibleBuildsArgsForCall)
 }
 
-func (fake *FakeBuildFactory) VisibleBuildsCalls(stub func([]string, db.Page) ([]db.Build, db.Pagination, error)) {
+func (fake *FakeBuildFactory) VisibleBuildsCalls(stub func([]string, db.Page) ([]db.BuildForAPI, db.Pagination, error)) {
 	fake.visibleBuildsMutex.Lock()
 	defer fake.visibleBuildsMutex.Unlock()
 	fake.VisibleBuildsStub = stub
@@ -517,30 +599,30 @@ func (fake *FakeBuildFactory) VisibleBuildsArgsForCall(i int) ([]string, db.Page
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeBuildFactory) VisibleBuildsReturns(result1 []db.Build, result2 db.Pagination, result3 error) {
+func (fake *FakeBuildFactory) VisibleBuildsReturns(result1 []db.BuildForAPI, result2 db.Pagination, result3 error) {
 	fake.visibleBuildsMutex.Lock()
 	defer fake.visibleBuildsMutex.Unlock()
 	fake.VisibleBuildsStub = nil
 	fake.visibleBuildsReturns = struct {
-		result1 []db.Build
+		result1 []db.BuildForAPI
 		result2 db.Pagination
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakeBuildFactory) VisibleBuildsReturnsOnCall(i int, result1 []db.Build, result2 db.Pagination, result3 error) {
+func (fake *FakeBuildFactory) VisibleBuildsReturnsOnCall(i int, result1 []db.BuildForAPI, result2 db.Pagination, result3 error) {
 	fake.visibleBuildsMutex.Lock()
 	defer fake.visibleBuildsMutex.Unlock()
 	fake.VisibleBuildsStub = nil
 	if fake.visibleBuildsReturnsOnCall == nil {
 		fake.visibleBuildsReturnsOnCall = make(map[int]struct {
-			result1 []db.Build
+			result1 []db.BuildForAPI
 			result2 db.Pagination
 			result3 error
 		})
 	}
 	fake.visibleBuildsReturnsOnCall[i] = struct {
-		result1 []db.Build
+		result1 []db.BuildForAPI
 		result2 db.Pagination
 		result3 error
 	}{result1, result2, result3}
@@ -553,6 +635,8 @@ func (fake *FakeBuildFactory) Invocations() map[string][][]interface{} {
 	defer fake.allBuildsMutex.RUnlock()
 	fake.buildMutex.RLock()
 	defer fake.buildMutex.RUnlock()
+	fake.buildForAPIMutex.RLock()
+	defer fake.buildForAPIMutex.RUnlock()
 	fake.getAllStartedBuildsMutex.RLock()
 	defer fake.getAllStartedBuildsMutex.RUnlock()
 	fake.getDrainableBuildsMutex.RLock()

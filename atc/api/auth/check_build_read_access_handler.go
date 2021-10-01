@@ -66,7 +66,7 @@ func (h checkBuildReadAccessHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	build, found, err := h.buildFactory.Build(buildID)
+	build, found, err := h.buildFactory.BuildForAPI(buildID)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -103,9 +103,14 @@ func (h checkBuildReadAccessHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 // above
 var errDisappeared = errors.New("internal: build parent disappeared")
 
-func (h checkBuildReadAccessHandler) allow(build db.Build, acc accessor.Access) (bool, error) {
-	if acc.IsAuthenticated() && acc.IsAuthorized(build.TeamName()) {
-		return true, nil
+func (h checkBuildReadAccessHandler) allow(build db.BuildForAPI, acc accessor.Access) (bool, error) {
+	if acc.IsAuthenticated() {
+		allTeams := build.AllAssociatedTeamNames()
+		for _, team := range allTeams {
+			if acc.IsAuthorized(team) {
+				return true, nil
+			}
+		}
 	}
 
 	if build.PipelineID() == 0 {

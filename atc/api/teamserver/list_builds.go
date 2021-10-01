@@ -17,7 +17,7 @@ func (s *Server) ListTeamBuilds(team db.Team) http.Handler {
 			from       int
 			to         int
 			limit      int
-			builds     []db.Build
+			builds     []db.BuildForAPI
 			pagination db.Pagination
 			err        error
 		)

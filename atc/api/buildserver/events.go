@@ -6,7 +6,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 )
 
-func (s *Server) BuildEvents(build db.Build) http.Handler {
+func (s *Server) BuildEvents(build db.BuildForAPI) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		streamDone := make(chan struct{})
 

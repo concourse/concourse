@@ -2,6 +2,8 @@ package db
 
 import (
 	"database/sql"
+	"github.com/patrickmn/go-cache"
+	"time"
 
 	sq "github.com/Masterminds/squirrel"
 )
@@ -28,6 +30,43 @@ type UsedBaseResourceType struct {
 	UniqueVersionHistory bool   // If set to true, will create unique version histories for each of the resources using this base resource type
 }
 
+const baseResourceTypesCacheExpiration = 10 * time.Minute
+
+// baseResourceTypesCache caches base resource types in memory as base resource
+// types are steady. In theory, they should never change unless an upgrade happens,
+// because Concourse doesn't provide a way to upgrade base resource types on
+// workers. But the cache data will have a expiration to ensure cache fresh.
+var baseResourceTypesCache = cache.New(0, 1*time.Hour)
+
+func warmUpBaseResourceTypesCache(runner sq.Runner) error {
+	rows, err := psql.Select("id, name, unique_version_history").
+		From("base_resource_types").
+		RunWith(runner).
+		Query()
+	if err != nil {
+		return err
+	}
+
+	for rows.Next() {
+		var id int
+		var name string
+		var unique bool
+		err := rows.Scan(&id, &name, &unique)
+		if err != nil {
+			return err
+		}
+		ubrt := UsedBaseResourceType{ID: id, Name: name, UniqueVersionHistory: unique}
+		baseResourceTypesCache.Set(name, &ubrt, baseResourceTypesCacheExpiration)
+	}
+
+	return nil
+}
+
+// CleanupBaseResourceTypesCache should only be used in unit tests' BeforeEach.
+func CleanupBaseResourceTypesCache() {
+	baseResourceTypesCache = cache.New(0, 1*time.Hour)
+}
+
 // FindOrCreate looks for an existing BaseResourceType and creates it if it
 // doesn't exist. It returns a UsedBaseResourceType.
 func (brt BaseResourceType) FindOrCreate(tx Tx, unique bool) (*UsedBaseResourceType, error) {
@@ -44,6 +83,10 @@ func (brt BaseResourceType) FindOrCreate(tx Tx, unique bool) (*UsedBaseResourceT
 }
 
 func (brt BaseResourceType) Find(runner sq.Runner) (*UsedBaseResourceType, bool, error) {
+	if ubrt, found := baseResourceTypesCache.Get(brt.Name); found {
+		return ubrt.(*UsedBaseResourceType), true, nil
+	}
+
 	var id int
 	var unique bool
 	err := psql.Select("id, unique_version_history").
@@ -61,7 +104,10 @@ func (brt BaseResourceType) Find(runner sq.Runner) (*UsedBaseResourceType, bool,
 		return nil, false, err
 	}
 
-	return &UsedBaseResourceType{ID: id, Name: brt.Name, UniqueVersionHistory: unique}, true, nil
+	ubrt := UsedBaseResourceType{ID: id, Name: brt.Name, UniqueVersionHistory: unique}
+	baseResourceTypesCache.Set(brt.Name, &ubrt, baseResourceTypesCacheExpiration)
+
+	return &ubrt, true, nil
 }
 
 func (brt BaseResourceType) create(tx Tx, unique bool) (*UsedBaseResourceType, error) {
@@ -83,5 +129,8 @@ func (brt BaseResourceType) create(tx Tx, unique bool) (*UsedBaseResourceType, e
 		return nil, err
 	}
 
-	return &UsedBaseResourceType{ID: id, Name: brt.Name, UniqueVersionHistory: savedUnique}, nil
+	ubrt := UsedBaseResourceType{ID: id, Name: brt.Name, UniqueVersionHistory: savedUnique}
+	baseResourceTypesCache.Set(brt.Name, &ubrt, baseResourceTypesCacheExpiration)
+
+	return &ubrt, nil
 }

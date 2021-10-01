@@ -18,7 +18,7 @@ func (s *Server) ListPipelineBuilds(pipeline db.Pipeline) http.Handler {
 			from       int
 			to         int
 			limit      int
-			builds     []db.Build
+			builds     []db.BuildForAPI
 			pagination db.Pagination
 		)
 

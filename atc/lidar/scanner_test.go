@@ -108,9 +108,10 @@ var _ = Describe("Scanner", func() {
 					})
 
 					It("creates a check with empty resource types list", func() {
-						_, _, resourceTypes, _, _, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+						_, _, resourceTypes, _, _, _, toDb := fakeCheckFactory.TryCreateCheckArgsForCall(0)
 						var nilResourceTypes db.ResourceTypes
 						Expect(resourceTypes).To(Equal(nilResourceTypes))
+						Expect(toDb).To(BeFalse())
 					})
 
 					Context("when the last check end time is past our interval", func() {
@@ -120,7 +121,7 @@ var _ = Describe("Scanner", func() {
 
 						Context("when try creating a check panics", func() {
 							BeforeEach(func() {
-								fakeCheckFactory.TryCreateCheckStub = func(context.Context, db.Checkable, db.ResourceTypes, atc.Version, bool, bool) (db.Build, bool, error) {
+								fakeCheckFactory.TryCreateCheckStub = func(context.Context, db.Checkable, db.ResourceTypes, atc.Version, bool, bool, bool) (db.Build, bool, error) {
 									panic("something went wrong")
 								}
 							})
@@ -138,8 +139,10 @@ var _ = Describe("Scanner", func() {
 
 						It("creates a check with that pinned version", func() {
 							Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
-							_, _, _, fromVersion, _, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+							_, _, _, fromVersion, manuallyTriggered, _, toDb := fakeCheckFactory.TryCreateCheckArgsForCall(0)
 							Expect(fromVersion).To(Equal(atc.Version{"some": "version"}))
+							Expect(manuallyTriggered).To(BeFalse())
+							Expect(toDb).To(BeFalse())
 						})
 					})
 
@@ -150,8 +153,9 @@ var _ = Describe("Scanner", func() {
 
 						It("creates a check with a nil pinned version", func() {
 							Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
-							_, _, _, fromVersion, _, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+							_, _, _, fromVersion, _, _, toDb := fakeCheckFactory.TryCreateCheckArgsForCall(0)
 							Expect(fromVersion).To(BeNil())
+							Expect(toDb).To(BeFalse())
 						})
 					})
 				})

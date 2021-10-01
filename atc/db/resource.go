@@ -14,6 +14,7 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
+	"github.com/concourse/concourse/atc/util"
 )
 
 var ErrPinnedThroughConfig = errors.New("resource is pinned through config")
@@ -111,6 +112,7 @@ type Resource interface {
 
 	CheckPlan(planFactory atc.PlanFactory, imagePlanner atc.ImagePlanner, from atc.Version, interval atc.CheckEvery, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) atc.Plan
 	CreateBuild(context.Context, bool, atc.Plan) (Build, bool, error)
+	CreateInMemoryBuild(context.Context, atc.Plan, util.SequenceGenerator) (Build, error)
 
 	NotifyScan() error
 
@@ -127,6 +129,9 @@ var (
 		"r.config",
 		"rs.last_check_start_time",
 		"rs.last_check_end_time",
+		"rs.last_check_build_id",
+		"rs.last_check_succeeded",
+		"rs.last_check_build_plan",
 		"r.pipeline_id",
 		"r.nonce",
 		"r.resource_config_id",
@@ -138,16 +143,13 @@ var (
 		"rp.version",
 		"rp.comment_text",
 		"rp.config",
-		"b.id",
-		"b.name",
-		"b.status",
-		"b.start_time",
-		"b.end_time",
+		"r.in_memory_build_id",
+		"r.in_memory_build_start_time",
+		"r.in_memory_build_plan",
 	).
 		From("resources r").
 		Join("pipelines p ON p.id = r.pipeline_id").
 		Join("teams t ON t.id = p.team_id").
-		LeftJoin("builds b ON b.id = r.build_id").
 		LeftJoin("resource_config_scopes rs ON r.resource_config_scope_id = rs.id").
 		LeftJoin("resource_pins rp ON rp.resource_id = r.id").
 		Where(sq.Eq{"r.active": true})
@@ -361,15 +363,6 @@ func (r *resource) CreateBuild(ctx context.Context, manuallyTriggered bool, plan
 		return nil, false, err
 	}
 
-	_, err = psql.Update("resources").
-		Set("build_id", build.ID()).
-		Where(sq.Eq{"id": r.id}).
-		RunWith(tx).
-		Exec()
-	if err != nil {
-		return nil, false, err
-	}
-
 	err = tx.Commit()
 	if err != nil {
 		return nil, false, err
@@ -386,6 +379,10 @@ func (r *resource) CreateBuild(ctx context.Context, manuallyTriggered bool, plan
 	}
 
 	return build, true, nil
+}
+
+func (r *resource) CreateInMemoryBuild(ctx context.Context, plan atc.Plan, seqGen util.SequenceGenerator) (Build, error) {
+	return newRunningInMemoryCheckBuild(r.conn, r.lockFactory, r, plan, NewSpanContext(ctx), seqGen)
 }
 
 func (r *resource) UpdateMetadata(version atc.Version, metadata ResourceConfigMetadataFields) (bool, error) {
@@ -841,26 +838,20 @@ func scanResource(r *resource, row scannable) error {
 	var (
 		configBlob                                        sql.NullString
 		nonce, rcID, rcScopeID, pinnedVersion, pinComment sql.NullString
-		lastCheckStartTime, lastCheckEndTime              pq.NullTime
 		pinnedThroughConfig                               sql.NullBool
 		pipelineInstanceVars                              sql.NullString
+		buildData                                         buildData
 	)
 
-	var build struct {
-		id        sql.NullInt64
-		name      sql.NullString
-		status    sql.NullString
-		startTime pq.NullTime
-		endTime   pq.NullTime
-	}
-
-	err := row.Scan(&r.id, &r.name, &r.type_, &configBlob, &lastCheckStartTime, &lastCheckEndTime, &r.pipelineID, &nonce, &rcID, &rcScopeID, &r.pipelineName, &pipelineInstanceVars, &r.teamID, &r.teamName, &pinnedVersion, &pinComment, &pinnedThroughConfig, &build.id, &build.name, &build.status, &build.startTime, &build.endTime)
+	err := row.Scan(&r.id, &r.name, &r.type_, &configBlob, &buildData.lastCheckStartTime,
+		&buildData.lastCheckEndTime, &buildData.lastCheckBuildId, &buildData.lastCheckSucceeded, &buildData.lastCheckBuildPlan,
+		&r.pipelineID, &nonce, &rcID, &rcScopeID,
+		&r.pipelineName, &pipelineInstanceVars, &r.teamID, &r.teamName,
+		&pinnedVersion, &pinComment, &pinnedThroughConfig,
+		&buildData.inMemoryBuildId, &buildData.inMemoryBuildStartTime, &buildData.inMemoryBuildPlan)
 	if err != nil {
 		return err
 	}
-
-	r.lastCheckStartTime = lastCheckStartTime.Time
-	r.lastCheckEndTime = lastCheckEndTime.Time
 
 	es := r.conn.EncryptionStrategy()
 
@@ -929,12 +920,9 @@ func scanResource(r *resource, row scannable) error {
 		}
 	}
 
-	if build.id.Valid {
+	if buildData.inMemoryBuildId.Valid || buildData.lastCheckBuildId.Valid {
 		r.buildSummary = &atc.BuildSummary{
-			ID:   int(build.id.Int64),
-			Name: build.name.String,
-
-			Status: atc.BuildStatus(build.status.String),
+			Name: CheckBuildName,
 
 			TeamName: r.teamName,
 
@@ -943,15 +931,84 @@ func scanResource(r *resource, row scannable) error {
 			PipelineInstanceVars: r.pipelineInstanceVars,
 		}
 
-		if build.startTime.Valid {
-			r.buildSummary.StartTime = build.startTime.Time.Unix()
-		}
-
-		if build.endTime.Valid {
-			r.buildSummary.EndTime = build.endTime.Time.Unix()
+		err := buildData.populate(r.buildSummary, &r.lastCheckStartTime, &r.lastCheckEndTime)
+		if err != nil {
+			return err
 		}
 	}
 
+	return nil
+}
+
+type buildData struct {
+	inMemoryBuildId        sql.NullInt64
+	inMemoryBuildStartTime pq.NullTime
+	inMemoryBuildPlan      sql.NullString
+
+	lastCheckBuildId   sql.NullInt64
+	lastCheckStartTime pq.NullTime
+	lastCheckEndTime   pq.NullTime
+	lastCheckSucceeded sql.NullBool
+	lastCheckBuildPlan sql.NullString
+}
+
+func (d buildData) populate(buildSummary *atc.BuildSummary, lastCheckStart *time.Time, lastCheckEnd *time.Time) error {
+	if d.inMemoryBuildId.Valid && d.lastCheckBuildId.Valid {
+		// If both ids are valid, and they are same, then we should use info
+		// from resource_config_scope; otherwise we use build start time to
+		// determine which one is newer.
+		if d.inMemoryBuildId.Int64 == d.lastCheckBuildId.Int64 {
+			return d.useLastCheckBuild(buildSummary, lastCheckStart, lastCheckEnd)
+		} else {
+			if d.inMemoryBuildStartTime.Time.Before(d.lastCheckStartTime.Time) {
+				return d.useLastCheckBuild(buildSummary, lastCheckStart, lastCheckEnd)
+			} else {
+				return d.useInMemoryBuild(buildSummary, lastCheckStart)
+			}
+		}
+	} else if d.lastCheckBuildId.Valid {
+		return d.useLastCheckBuild(buildSummary, lastCheckStart, lastCheckEnd)
+	} else if d.inMemoryBuildId.Valid {
+		return d.useInMemoryBuild(buildSummary, lastCheckStart)
+	}
+	return errors.New("no build info available")
+}
+
+func (d buildData) useInMemoryBuild(buildSummary *atc.BuildSummary, lastCheckStart *time.Time) error {
+	buildSummary.ID = int(d.inMemoryBuildId.Int64)
+	buildSummary.StartTime = d.inMemoryBuildStartTime.Time.Unix()
+	*lastCheckStart = d.inMemoryBuildStartTime.Time
+	buildSummary.Status = atc.StatusStarted
+	if d.inMemoryBuildPlan.Valid {
+		err := json.Unmarshal([]byte(d.inMemoryBuildPlan.String), &buildSummary.PublicPlan)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (d buildData) useLastCheckBuild(buildSummary *atc.BuildSummary, lastCheckStart *time.Time, lastCheckEnd *time.Time) error {
+	buildSummary.ID = int(d.lastCheckBuildId.Int64)
+	buildSummary.StartTime = d.lastCheckStartTime.Time.Unix()
+	*lastCheckStart = d.lastCheckStartTime.Time
+	if d.lastCheckEndTime.Valid && d.lastCheckStartTime.Time.Before(d.lastCheckEndTime.Time) {
+		buildSummary.EndTime = d.lastCheckEndTime.Time.Unix()
+		*lastCheckEnd = d.lastCheckEndTime.Time
+		if d.lastCheckSucceeded.Valid && d.lastCheckSucceeded.Bool {
+			buildSummary.Status = atc.StatusSucceeded
+		} else {
+			buildSummary.Status = atc.StatusFailed
+		}
+	} else {
+		buildSummary.Status = atc.StatusStarted
+	}
+	if d.lastCheckBuildPlan.Valid {
+		err := json.Unmarshal([]byte(d.lastCheckBuildPlan.String), &buildSummary.PublicPlan)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

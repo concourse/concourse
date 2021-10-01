@@ -41,6 +41,7 @@ var _ = Describe("CheckBuildWriteAccessHandler", func() {
 		pipeline = new(dbfakes.FakePipeline)
 		build.PipelineReturns(pipeline, true, nil)
 		build.TeamNameReturns("some-team")
+		build.AllAssociatedTeamNamesReturns([]string{"some-team"})
 		build.JobNameReturns("some-job")
 
 		innerHandler := handlerFactory.HandlerFor(delegate, auth.UnauthorizedRejector{})
@@ -78,7 +79,7 @@ var _ = Describe("CheckBuildWriteAccessHandler", func() {
 
 		Context("when build exists", func() {
 			BeforeEach(func() {
-				buildFactory.BuildReturns(build, true, nil)
+				buildFactory.BuildForAPIReturns(build, true, nil)
 			})
 
 			It("returns 200 ok", func() {
@@ -93,7 +94,7 @@ var _ = Describe("CheckBuildWriteAccessHandler", func() {
 
 		Context("when build is not found", func() {
 			BeforeEach(func() {
-				buildFactory.BuildReturns(nil, false, nil)
+				buildFactory.BuildForAPIReturns(nil, false, nil)
 			})
 
 			It("returns 404", func() {
@@ -103,7 +104,7 @@ var _ = Describe("CheckBuildWriteAccessHandler", func() {
 
 		Context("when getting build fails", func() {
 			BeforeEach(func() {
-				buildFactory.BuildReturns(nil, false, errors.New("disaster"))
+				buildFactory.BuildForAPIReturns(nil, false, errors.New("disaster"))
 			})
 
 			It("returns 404", func() {
@@ -116,7 +117,7 @@ var _ = Describe("CheckBuildWriteAccessHandler", func() {
 		BeforeEach(func() {
 			fakeaccess.IsAuthenticatedReturns(true)
 			fakeaccess.IsAuthorizedReturns(false)
-			buildFactory.BuildReturns(build, true, nil)
+			buildFactory.BuildForAPIReturns(build, true, nil)
 		})
 
 		It("returns 403", func() {

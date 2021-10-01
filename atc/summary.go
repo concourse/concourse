@@ -1,5 +1,7 @@
 package atc
 
+import "encoding/json"
+
 type JobSummary struct {
 	ID   int    `json:"id"`
 	Name string `json:"name"`
@@ -41,6 +43,8 @@ type BuildSummary struct {
 	PipelineInstanceVars InstanceVars `json:"pipeline_instance_vars,omitempty"`
 
 	JobName string `json:"job_name,omitempty"`
+
+	PublicPlan *json.RawMessage `json:"plan,omitempty"`
 }
 
 type JobInputSummary struct {

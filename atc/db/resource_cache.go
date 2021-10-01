@@ -88,4 +88,3 @@ func paramsHash(p atc.Params) string {
 
 	return mapHash(atc.Params{})
 }
-

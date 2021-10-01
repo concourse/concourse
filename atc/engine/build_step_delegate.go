@@ -168,6 +168,22 @@ func (delegate *buildStepDelegate) Finished(logger lager.Logger, succeeded bool)
 	logger.Info("finished")
 }
 
+func (delegate *buildStepDelegate) BeforeSelectWorker(logger lager.Logger) error {
+	if delegate.build.ResourceID() != 0 {
+		// For check builds, once a check build needs to select a worker, then
+		// we consider it needs to do run a real check. If it runs a real check,
+		// then we want to log it, so we call OnCheckBuildStart here to ensure
+		// the build can be logged. Note that, OnCheckBuildStart can be safely
+		// called multiple times.
+		err := delegate.build.OnCheckBuildStart()
+		if err != nil {
+			logger.Error("failed-to-call-on-check-build-start", err)
+			return err
+		}
+	}
+	return nil
+}
+
 func (delegate *buildStepDelegate) WaitingForWorker(logger lager.Logger) {
 	err := delegate.build.SaveEvent(event.WaitingForWorker{
 		Time: time.Now().Unix(),
@@ -387,6 +403,10 @@ func (delegate *buildStepDelegate) redactImageSource(source atc.Source) (atc.Sou
 		return source, err
 	}
 	return newSource, nil
+}
+
+func (delegate *buildStepDelegate) ContainerOwner(planId atc.PlanID) db.ContainerOwner {
+	return delegate.build.ContainerOwner(planId)
 }
 
 type credVarsIterator struct {

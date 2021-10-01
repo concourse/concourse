@@ -8,6 +8,7 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/util"
 )
 
 type FakePrototype struct {
@@ -64,6 +65,21 @@ type FakePrototype struct {
 		result1 db.Build
 		result2 bool
 		result3 error
+	}
+	CreateInMemoryBuildStub        func(context.Context, atc.Plan, util.SequenceGenerator) (db.Build, error)
+	createInMemoryBuildMutex       sync.RWMutex
+	createInMemoryBuildArgsForCall []struct {
+		arg1 context.Context
+		arg2 atc.Plan
+		arg3 util.SequenceGenerator
+	}
+	createInMemoryBuildReturns struct {
+		result1 db.Build
+		result2 error
+	}
+	createInMemoryBuildReturnsOnCall map[int]struct {
+		result1 db.Build
+		result2 error
 	}
 	CurrentPinnedVersionStub        func() atc.Version
 	currentPinnedVersionMutex       sync.RWMutex
@@ -556,6 +572,72 @@ func (fake *FakePrototype) CreateBuildReturnsOnCall(i int, result1 db.Build, res
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
+}
+
+func (fake *FakePrototype) CreateInMemoryBuild(arg1 context.Context, arg2 atc.Plan, arg3 util.SequenceGenerator) (db.Build, error) {
+	fake.createInMemoryBuildMutex.Lock()
+	ret, specificReturn := fake.createInMemoryBuildReturnsOnCall[len(fake.createInMemoryBuildArgsForCall)]
+	fake.createInMemoryBuildArgsForCall = append(fake.createInMemoryBuildArgsForCall, struct {
+		arg1 context.Context
+		arg2 atc.Plan
+		arg3 util.SequenceGenerator
+	}{arg1, arg2, arg3})
+	stub := fake.CreateInMemoryBuildStub
+	fakeReturns := fake.createInMemoryBuildReturns
+	fake.recordInvocation("CreateInMemoryBuild", []interface{}{arg1, arg2, arg3})
+	fake.createInMemoryBuildMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakePrototype) CreateInMemoryBuildCallCount() int {
+	fake.createInMemoryBuildMutex.RLock()
+	defer fake.createInMemoryBuildMutex.RUnlock()
+	return len(fake.createInMemoryBuildArgsForCall)
+}
+
+func (fake *FakePrototype) CreateInMemoryBuildCalls(stub func(context.Context, atc.Plan, util.SequenceGenerator) (db.Build, error)) {
+	fake.createInMemoryBuildMutex.Lock()
+	defer fake.createInMemoryBuildMutex.Unlock()
+	fake.CreateInMemoryBuildStub = stub
+}
+
+func (fake *FakePrototype) CreateInMemoryBuildArgsForCall(i int) (context.Context, atc.Plan, util.SequenceGenerator) {
+	fake.createInMemoryBuildMutex.RLock()
+	defer fake.createInMemoryBuildMutex.RUnlock()
+	argsForCall := fake.createInMemoryBuildArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakePrototype) CreateInMemoryBuildReturns(result1 db.Build, result2 error) {
+	fake.createInMemoryBuildMutex.Lock()
+	defer fake.createInMemoryBuildMutex.Unlock()
+	fake.CreateInMemoryBuildStub = nil
+	fake.createInMemoryBuildReturns = struct {
+		result1 db.Build
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakePrototype) CreateInMemoryBuildReturnsOnCall(i int, result1 db.Build, result2 error) {
+	fake.createInMemoryBuildMutex.Lock()
+	defer fake.createInMemoryBuildMutex.Unlock()
+	fake.CreateInMemoryBuildStub = nil
+	if fake.createInMemoryBuildReturnsOnCall == nil {
+		fake.createInMemoryBuildReturnsOnCall = make(map[int]struct {
+			result1 db.Build
+			result2 error
+		})
+	}
+	fake.createInMemoryBuildReturnsOnCall[i] = struct {
+		result1 db.Build
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakePrototype) CurrentPinnedVersion() atc.Version {
@@ -1858,6 +1940,8 @@ func (fake *FakePrototype) Invocations() map[string][][]interface{} {
 	defer fake.checkTimeoutMutex.RUnlock()
 	fake.createBuildMutex.RLock()
 	defer fake.createBuildMutex.RUnlock()
+	fake.createInMemoryBuildMutex.RLock()
+	defer fake.createInMemoryBuildMutex.RUnlock()
 	fake.currentPinnedVersionMutex.RLock()
 	defer fake.currentPinnedVersionMutex.RUnlock()
 	fake.defaultsMutex.RLock()

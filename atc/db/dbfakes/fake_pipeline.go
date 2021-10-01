@@ -33,33 +33,33 @@ type FakePipeline struct {
 	archivedReturnsOnCall map[int]struct {
 		result1 bool
 	}
-	BuildsStub        func(db.Page) ([]db.Build, db.Pagination, error)
+	BuildsStub        func(db.Page) ([]db.BuildForAPI, db.Pagination, error)
 	buildsMutex       sync.RWMutex
 	buildsArgsForCall []struct {
 		arg1 db.Page
 	}
 	buildsReturns struct {
-		result1 []db.Build
+		result1 []db.BuildForAPI
 		result2 db.Pagination
 		result3 error
 	}
 	buildsReturnsOnCall map[int]struct {
-		result1 []db.Build
+		result1 []db.BuildForAPI
 		result2 db.Pagination
 		result3 error
 	}
-	BuildsWithTimeStub        func(db.Page) ([]db.Build, db.Pagination, error)
+	BuildsWithTimeStub        func(db.Page) ([]db.BuildForAPI, db.Pagination, error)
 	buildsWithTimeMutex       sync.RWMutex
 	buildsWithTimeArgsForCall []struct {
 		arg1 db.Page
 	}
 	buildsWithTimeReturns struct {
-		result1 []db.Build
+		result1 []db.BuildForAPI
 		result2 db.Pagination
 		result3 error
 	}
 	buildsWithTimeReturnsOnCall map[int]struct {
-		result1 []db.Build
+		result1 []db.BuildForAPI
 		result2 db.Pagination
 		result3 error
 	}
@@ -724,7 +724,7 @@ func (fake *FakePipeline) ArchivedReturnsOnCall(i int, result1 bool) {
 	}{result1}
 }
 
-func (fake *FakePipeline) Builds(arg1 db.Page) ([]db.Build, db.Pagination, error) {
+func (fake *FakePipeline) Builds(arg1 db.Page) ([]db.BuildForAPI, db.Pagination, error) {
 	fake.buildsMutex.Lock()
 	ret, specificReturn := fake.buildsReturnsOnCall[len(fake.buildsArgsForCall)]
 	fake.buildsArgsForCall = append(fake.buildsArgsForCall, struct {
@@ -749,7 +749,7 @@ func (fake *FakePipeline) BuildsCallCount() int {
 	return len(fake.buildsArgsForCall)
 }
 
-func (fake *FakePipeline) BuildsCalls(stub func(db.Page) ([]db.Build, db.Pagination, error)) {
+func (fake *FakePipeline) BuildsCalls(stub func(db.Page) ([]db.BuildForAPI, db.Pagination, error)) {
 	fake.buildsMutex.Lock()
 	defer fake.buildsMutex.Unlock()
 	fake.BuildsStub = stub
@@ -762,36 +762,36 @@ func (fake *FakePipeline) BuildsArgsForCall(i int) db.Page {
 	return argsForCall.arg1
 }
 
-func (fake *FakePipeline) BuildsReturns(result1 []db.Build, result2 db.Pagination, result3 error) {
+func (fake *FakePipeline) BuildsReturns(result1 []db.BuildForAPI, result2 db.Pagination, result3 error) {
 	fake.buildsMutex.Lock()
 	defer fake.buildsMutex.Unlock()
 	fake.BuildsStub = nil
 	fake.buildsReturns = struct {
-		result1 []db.Build
+		result1 []db.BuildForAPI
 		result2 db.Pagination
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakePipeline) BuildsReturnsOnCall(i int, result1 []db.Build, result2 db.Pagination, result3 error) {
+func (fake *FakePipeline) BuildsReturnsOnCall(i int, result1 []db.BuildForAPI, result2 db.Pagination, result3 error) {
 	fake.buildsMutex.Lock()
 	defer fake.buildsMutex.Unlock()
 	fake.BuildsStub = nil
 	if fake.buildsReturnsOnCall == nil {
 		fake.buildsReturnsOnCall = make(map[int]struct {
-			result1 []db.Build
+			result1 []db.BuildForAPI
 			result2 db.Pagination
 			result3 error
 		})
 	}
 	fake.buildsReturnsOnCall[i] = struct {
-		result1 []db.Build
+		result1 []db.BuildForAPI
 		result2 db.Pagination
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakePipeline) BuildsWithTime(arg1 db.Page) ([]db.Build, db.Pagination, error) {
+func (fake *FakePipeline) BuildsWithTime(arg1 db.Page) ([]db.BuildForAPI, db.Pagination, error) {
 	fake.buildsWithTimeMutex.Lock()
 	ret, specificReturn := fake.buildsWithTimeReturnsOnCall[len(fake.buildsWithTimeArgsForCall)]
 	fake.buildsWithTimeArgsForCall = append(fake.buildsWithTimeArgsForCall, struct {
@@ -816,7 +816,7 @@ func (fake *FakePipeline) BuildsWithTimeCallCount() int {
 	return len(fake.buildsWithTimeArgsForCall)
 }
 
-func (fake *FakePipeline) BuildsWithTimeCalls(stub func(db.Page) ([]db.Build, db.Pagination, error)) {
+func (fake *FakePipeline) BuildsWithTimeCalls(stub func(db.Page) ([]db.BuildForAPI, db.Pagination, error)) {
 	fake.buildsWithTimeMutex.Lock()
 	defer fake.buildsWithTimeMutex.Unlock()
 	fake.BuildsWithTimeStub = stub
@@ -829,30 +829,30 @@ func (fake *FakePipeline) BuildsWithTimeArgsForCall(i int) db.Page {
 	return argsForCall.arg1
 }
 
-func (fake *FakePipeline) BuildsWithTimeReturns(result1 []db.Build, result2 db.Pagination, result3 error) {
+func (fake *FakePipeline) BuildsWithTimeReturns(result1 []db.BuildForAPI, result2 db.Pagination, result3 error) {
 	fake.buildsWithTimeMutex.Lock()
 	defer fake.buildsWithTimeMutex.Unlock()
 	fake.BuildsWithTimeStub = nil
 	fake.buildsWithTimeReturns = struct {
-		result1 []db.Build
+		result1 []db.BuildForAPI
 		result2 db.Pagination
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakePipeline) BuildsWithTimeReturnsOnCall(i int, result1 []db.Build, result2 db.Pagination, result3 error) {
+func (fake *FakePipeline) BuildsWithTimeReturnsOnCall(i int, result1 []db.BuildForAPI, result2 db.Pagination, result3 error) {
 	fake.buildsWithTimeMutex.Lock()
 	defer fake.buildsWithTimeMutex.Unlock()
 	fake.BuildsWithTimeStub = nil
 	if fake.buildsWithTimeReturnsOnCall == nil {
 		fake.buildsWithTimeReturnsOnCall = make(map[int]struct {
-			result1 []db.Build
+			result1 []db.BuildForAPI
 			result2 db.Pagination
 			result3 error
 		})
 	}
 	fake.buildsWithTimeReturnsOnCall[i] = struct {
-		result1 []db.Build
+		result1 []db.BuildForAPI
 		result2 db.Pagination
 		result3 error
 	}{result1, result2, result3}

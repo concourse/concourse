@@ -13,6 +13,7 @@ type ResourceCacheLifecycle interface {
 	CleanUsesForFinishedBuilds(lager.Logger) error
 	CleanBuildImageResourceCaches(lager.Logger) error
 	CleanUpInvalidCaches(lager.Logger) error
+	CleanDirtyInMemoryBuildUses(lager.Logger) error
 }
 
 type resourceCacheLifecycle struct {
@@ -25,7 +26,7 @@ func NewResourceCacheLifecycle(conn Conn) ResourceCacheLifecycle {
 	}
 }
 
-func (f *resourceCacheLifecycle) CleanBuildImageResourceCaches(logger lager.Logger) error {
+func (f *resourceCacheLifecycle) CleanBuildImageResourceCaches(lager.Logger) error {
 	_, err := sq.Delete("build_image_resource_caches birc USING builds b").
 		Where("birc.build_id = b.id").
 		Where(sq.Expr("((now() - b.end_time) > '24 HOURS'::INTERVAL)")).
@@ -35,12 +36,20 @@ func (f *resourceCacheLifecycle) CleanBuildImageResourceCaches(logger lager.Logg
 	return err
 }
 
-func (f *resourceCacheLifecycle) CleanUsesForFinishedBuilds(logger lager.Logger) error {
+func (f *resourceCacheLifecycle) CleanUsesForFinishedBuilds(lager.Logger) error {
 	_, err := psql.Delete("resource_cache_uses rcu USING builds b").
 		Where(sq.And{
 			sq.Expr("rcu.build_id = b.id"),
 			sq.Expr("b.interceptible = false"),
 		}).
+		RunWith(f.conn).
+		Exec()
+	return err
+}
+
+func (f *resourceCacheLifecycle) CleanDirtyInMemoryBuildUses(lager.Logger) error {
+	_, err := sq.Delete("resource_cache_uses").
+		Where(sq.Expr("((now() - in_memory_build_create_time) > '24 HOURS'::INTERVAL)")).
 		RunWith(f.conn).
 		Exec()
 	return err

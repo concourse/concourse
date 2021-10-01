@@ -99,6 +99,8 @@ var _ = Describe("CheckStep", func() {
 		fakeStderr = bytes.NewBufferString("err")
 		fakeDelegate.StderrReturns(fakeStderr)
 
+		fakeDelegate.ContainerOwnerReturns(expectedOwner)
+
 		containerMetadata = db.ContainerMetadata{}
 
 		fakeResourceConfigFactory = new(dbfakes.FakeResourceConfigFactory)
@@ -112,6 +114,13 @@ var _ = Describe("CheckStep", func() {
 
 		fakeResourceConfigScope = new(dbfakes.FakeResourceConfigScope)
 		fakeDelegate.FindOrCreateScopeReturns(fakeResourceConfigScope, nil)
+		fakeDelegate.UpdateScopeLastCheckStartTimeStub = func(scope db.ResourceConfigScope, nestedCheck bool) (bool, int, error) {
+			found, err := scope.UpdateLastCheckStartTime(int(time.Now().Unix()), nil)
+			return found, 678, err
+		}
+		fakeDelegate.UpdateScopeLastCheckEndTimeStub = func(scope db.ResourceConfigScope, succeeded bool) (bool, error) {
+			return scope.UpdateLastCheckEndTime(succeeded)
+		}
 
 		fakeDelegateFactory.CheckDelegateReturns(fakeDelegate)
 
@@ -250,6 +259,10 @@ var _ = Describe("CheckStep", func() {
 					ctx, _, _, workerSpec, _, _ = fakePool.FindOrSelectWorkerArgsForCall(0)
 				})
 
+				It("get container owner from delegate", func() {
+					Expect(fakeDelegate.ContainerOwnerCallCount()).To(Equal(1))
+				})
+
 				It("doesn't enforce a timeout", func() {
 					_, ok := ctx.Deadline()
 					Expect(ok).To(BeFalse())
@@ -273,6 +286,10 @@ var _ = Describe("CheckStep", func() {
 							Expect(workerSpec.Tags).To(Equal([]string{"some", "tags"}))
 						})
 					})
+				})
+
+				It("emits a BeforeSelectWorker event", func() {
+					Expect(fakeDelegate.BeforeSelectWorkerCallCount()).To(Equal(1))
 				})
 
 				It("emits a SelectedWorker event", func() {
@@ -389,8 +406,64 @@ var _ = Describe("CheckStep", func() {
 						fakePool.FindOrSelectWorkerReturns(chosenWorker, nil)
 					})
 
+					It("points the resource or resource type to the scope", func() {
+						Expect(fakeDelegate.PointToCheckedConfigCallCount()).To(Equal(1))
+						scope := fakeDelegate.PointToCheckedConfigArgsForCall(0)
+						Expect(scope).To(Equal(fakeResourceConfigScope))
+					})
+
 					It("uses ResourceConfigCheckSessionOwner", func() {
 						Expect(chosenContainer.RunningProcesses()).To(HaveLen(1))
+					})
+
+					It("update scope's check start time", func() {
+						Expect(fakeDelegate.UpdateScopeLastCheckStartTimeCallCount()).To(Equal(1))
+						scope, nestedStep := fakeDelegate.UpdateScopeLastCheckStartTimeArgsForCall(0)
+						Expect(scope).To(Equal(fakeResourceConfigScope))
+						Expect(nestedStep).To(BeFalse())
+					})
+				})
+
+				Context("when the plan is nested", func() {
+					BeforeEach(func() {
+						checkPlan.Resource = ""
+
+						expectedOwner = db.NewBuildStepContainerOwner(
+							501,
+							atc.PlanID("502"),
+							503,
+						)
+						fakeDelegate.ContainerOwnerReturns(expectedOwner)
+
+						chosenWorker = runtimetest.NewWorker("worker").
+							WithContainer(
+								expectedOwner,
+								runtimetest.NewContainer().WithProcess(
+									runtime.ProcessSpec{
+										Path: "/opt/resource/check",
+									},
+									runtimetest.ProcessStub{},
+								),
+								nil,
+							)
+						chosenContainer = chosenWorker.Containers[0]
+						fakePool.FindOrSelectWorkerReturns(chosenWorker, nil)
+					})
+
+					It("not points the resource or resource type to the scope", func() {
+						Expect(fakeDelegate.PointToCheckedConfigCallCount()).To(Equal(0))
+					})
+
+					It("uses delegate's container owner", func() {
+						Expect(fakeDelegate.ContainerOwnerCallCount()).To(Equal(1))
+						Expect(chosenContainer.RunningProcesses()).To(HaveLen(1))
+					})
+
+					It("update scope's check start time", func() {
+						Expect(fakeDelegate.UpdateScopeLastCheckStartTimeCallCount()).To(Equal(1))
+						scope, nestedStep := fakeDelegate.UpdateScopeLastCheckStartTimeArgsForCall(0)
+						Expect(scope).To(Equal(fakeResourceConfigScope))
+						Expect(nestedStep).To(BeTrue())
 					})
 				})
 
@@ -545,7 +618,7 @@ var _ = Describe("CheckStep", func() {
 
 				Context("before running the check", func() {
 					BeforeEach(func() {
-						fakeResourceConfigScope.UpdateLastCheckStartTimeStub = func() (bool, error) {
+						fakeResourceConfigScope.UpdateLastCheckStartTimeStub = func(int, *json.RawMessage) (bool, error) {
 							Expect(chosenContainer.RunningProcesses()).To(BeEmpty())
 							return true, nil
 						}
@@ -560,7 +633,6 @@ var _ = Describe("CheckStep", func() {
 				Context("after saving", func() {
 					BeforeEach(func() {
 						fakeResourceConfigScope.SaveVersionsStub = func(db.SpanContext, []atc.Version) error {
-							Expect(fakeDelegate.PointToCheckedConfigCallCount()).To(BeZero())
 							Expect(fakeResourceConfigScope.UpdateLastCheckEndTimeCallCount()).To(Equal(0))
 							return nil
 						}
@@ -570,24 +642,8 @@ var _ = Describe("CheckStep", func() {
 						Expect(fakeResourceConfigScope.UpdateLastCheckEndTimeCallCount()).To(Equal(1))
 					})
 
-					It("points the resource or resource type to the scope", func() {
-						Expect(fakeResourceConfigScope.SaveVersionsCallCount()).To(Equal(1))
-						Expect(fakeDelegate.PointToCheckedConfigCallCount()).To(Equal(1))
-						scope := fakeDelegate.PointToCheckedConfigArgsForCall(0)
-						Expect(scope).To(Equal(fakeResourceConfigScope))
-					})
-				})
-
-				Context("after pointing the resource type to the scope", func() {
-					BeforeEach(func() {
-						fakeDelegate.PointToCheckedConfigStub = func(db.ResourceConfigScope) error {
-							Expect(fakeLock.ReleaseCallCount()).To(Equal(0))
-							return nil
-						}
-					})
-
 					It("releases the lock", func() {
-						Expect(fakeDelegate.PointToCheckedConfigCallCount()).To(Equal(1))
+						Expect(fakeResourceConfigScope.SaveVersionsCallCount()).To(Equal(1))
 						Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
 					})
 				})
@@ -600,16 +656,6 @@ var _ = Describe("CheckStep", func() {
 
 				It("errors", func() {
 					Expect(stepErr).To(MatchError(ContainSubstring("run-check-step-err")))
-				})
-
-				It("points the resource or resource type to the scope", func() {
-					// even though we failed to check, we should still point to the new
-					// scope; it'd be kind of weird leave the resource pointing to the old
-					// scope for a substantial config change that also happens to be
-					// broken.
-					Expect(fakeDelegate.PointToCheckedConfigCallCount()).To(Equal(1))
-					scope := fakeDelegate.PointToCheckedConfigArgsForCall(0)
-					Expect(scope).To(Equal(fakeResourceConfigScope))
 				})
 
 				It("updates the scope's last check end time", func() {

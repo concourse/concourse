@@ -6,7 +6,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 )
 
-func (s *Server) AbortBuild(build db.Build) http.Handler {
+func (s *Server) AbortBuild(build db.BuildForAPI) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		aLog := s.logger.Session("abort", build.LagerData())
 

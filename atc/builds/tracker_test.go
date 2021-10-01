@@ -1,6 +1,7 @@
 package builds_test
 
 import (
+	"code.cloudfoundry.org/lager/lagertest"
 	"context"
 	"io/ioutil"
 	"testing"
@@ -27,7 +28,10 @@ type TrackerSuite struct {
 	fakeBuildFactory *dbfakes.FakeBuildFactory
 	fakeEngine       *buildsfakes.FakeEngine
 
-	tracker *builds.Tracker
+	tracker   *builds.Tracker
+	buildChan chan db.Build
+
+	logger *lagertest.TestLogger
 }
 
 func TestTracker(t *testing.T) {
@@ -37,12 +41,16 @@ func TestTracker(t *testing.T) {
 }
 
 func (s *TrackerSuite) SetupTest() {
+	s.logger = lagertest.NewTestLogger("test")
 	s.fakeBuildFactory = new(dbfakes.FakeBuildFactory)
 	s.fakeEngine = new(buildsfakes.FakeEngine)
+	s.buildChan = make(chan db.Build, 10)
 
 	s.tracker = builds.NewTracker(
+		s.logger,
 		s.fakeBuildFactory,
 		s.fakeEngine,
+		s.buildChan,
 	)
 }
 
@@ -77,6 +85,41 @@ func (s *TrackerSuite) TestTrackRunsStartedBuilds() {
 		(<-running).ID(),
 		(<-running).ID(),
 		(<-running).ID(),
+	})
+}
+
+func (s *TrackerSuite) TestTrackInMemoryBuilds() {
+	inMemoryBuilds := []db.Build{}
+	for i := 0; i < 3; i++ {
+		fakeBuild := new(dbfakes.FakeBuild)
+		// When tracked, in-memory builds have no id yet, thus let's use fake
+		// team id to verify test result.
+		fakeBuild.IDReturns(0)
+		fakeBuild.TeamIDReturns(i + 1)
+		inMemoryBuilds = append(inMemoryBuilds, fakeBuild)
+		s.buildChan <- fakeBuild
+	}
+
+	running := make(chan db.Build, 3)
+	s.fakeEngine.NewBuildStub = func(build db.Build) builds.Runnable {
+		engineBuild := new(buildsfakes.FakeRunnable)
+		engineBuild.RunStub = func(context.Context) {
+			running <- build
+		}
+		return engineBuild
+	}
+
+	err := s.tracker.Run(context.TODO())
+	s.NoError(err)
+
+	s.ElementsMatch([]int{
+		inMemoryBuilds[0].TeamID(),
+		inMemoryBuilds[1].TeamID(),
+		inMemoryBuilds[2].TeamID(),
+	}, []int{
+		(<-running).TeamID(),
+		(<-running).TeamID(),
+		(<-running).TeamID(),
 	})
 }
 

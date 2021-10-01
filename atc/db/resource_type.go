@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -11,6 +12,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
+	"github.com/concourse/concourse/atc/util"
 	"github.com/lib/pq"
 )
 
@@ -50,6 +52,7 @@ type ResourceType interface {
 
 	CheckPlan(planFactory atc.PlanFactory, imagePlanner atc.ImagePlanner, from atc.Version, interval atc.CheckEvery, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) atc.Plan
 	CreateBuild(context.Context, bool, atc.Plan) (Build, bool, error)
+	CreateInMemoryBuild(context.Context, atc.Plan, util.SequenceGenerator) (Build, error)
 
 	Reload() (bool, error)
 }
@@ -185,28 +188,24 @@ type resourceType struct {
 	lastCheckEndTime      time.Time
 }
 
-func (t *resourceType) ID() int                       { return t.id }
-func (t *resourceType) TeamID() int                   { return t.teamID }
-func (t *resourceType) TeamName() string              { return t.teamName }
-func (t *resourceType) Name() string                  { return t.name }
-func (t *resourceType) Type() string                  { return t.type_ }
-func (t *resourceType) Privileged() bool              { return t.privileged }
-func (t *resourceType) CheckEvery() *atc.CheckEvery   { return t.checkEvery }
-func (t *resourceType) CheckTimeout() string          { return "" }
-func (r *resourceType) LastCheckStartTime() time.Time { return r.lastCheckStartTime }
-func (r *resourceType) LastCheckEndTime() time.Time   { return r.lastCheckEndTime }
-func (t *resourceType) Source() atc.Source            { return t.source }
-func (t *resourceType) Defaults() atc.Source          { return t.defaults }
-func (t *resourceType) Params() atc.Params            { return t.params }
-func (t *resourceType) Tags() atc.Tags                { return t.tags }
-func (t *resourceType) ResourceConfigID() int         { return t.resourceConfigID }
-func (t *resourceType) ResourceConfigScopeID() int    { return t.resourceConfigScopeID }
-
+func (t *resourceType) ID() int                           { return t.id }
+func (t *resourceType) TeamID() int                       { return t.teamID }
+func (t *resourceType) TeamName() string                  { return t.teamName }
+func (t *resourceType) Name() string                      { return t.name }
+func (t *resourceType) Type() string                      { return t.type_ }
+func (t *resourceType) Privileged() bool                  { return t.privileged }
+func (t *resourceType) CheckEvery() *atc.CheckEvery       { return t.checkEvery }
+func (t *resourceType) CheckTimeout() string              { return "" }
+func (r *resourceType) LastCheckStartTime() time.Time     { return r.lastCheckStartTime }
+func (r *resourceType) LastCheckEndTime() time.Time       { return r.lastCheckEndTime }
+func (t *resourceType) Source() atc.Source                { return t.source }
+func (t *resourceType) Defaults() atc.Source              { return t.defaults }
+func (t *resourceType) Params() atc.Params                { return t.params }
+func (t *resourceType) Tags() atc.Tags                    { return t.tags }
+func (t *resourceType) ResourceConfigID() int             { return t.resourceConfigID }
+func (t *resourceType) ResourceConfigScopeID() int        { return t.resourceConfigScopeID }
 func (t *resourceType) CurrentPinnedVersion() atc.Version { return nil }
-
-func (t *resourceType) HasWebhook() bool {
-	return false
-}
+func (t *resourceType) HasWebhook() bool                  { return false }
 
 func newEmptyResourceType(conn Conn, lockFactory lock.LockFactory) *resourceType {
 	return &resourceType{pipelineRef: pipelineRef{conn: conn, lockFactory: lockFactory}}
@@ -326,6 +325,10 @@ func (r *resourceType) CreateBuild(ctx context.Context, manuallyTriggered bool, 
 	return build, true, nil
 }
 
+func (r *resourceType) CreateInMemoryBuild(ctx context.Context, plan atc.Plan, seqGen util.SequenceGenerator) (Build, error) {
+	return nil, errors.New("resource type not supporting in-memory check build as lidar no longer checking resource types")
+}
+
 func scanResourceType(t *resourceType, row scannable) error {
 	var (
 		configJSON                           sql.NullString
@@ -335,7 +338,10 @@ func scanResourceType(t *resourceType, row scannable) error {
 		resourceConfigID                     sql.NullInt64
 	)
 
-	err := row.Scan(&t.id, &t.pipelineID, &t.name, &t.type_, &configJSON, &nonce, &t.pipelineName, &pipelineInstanceVars, &t.teamID, &t.teamName, &resourceConfigID, &rcsID, &lastCheckStartTime, &lastCheckEndTime)
+	err := row.Scan(&t.id, &t.pipelineID, &t.name, &t.type_, &configJSON,
+		&nonce, &t.pipelineName, &pipelineInstanceVars,
+		&t.teamID, &t.teamName, &resourceConfigID, &rcsID,
+		&lastCheckStartTime, &lastCheckEndTime)
 	if err != nil {
 		return err
 	}

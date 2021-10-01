@@ -65,10 +65,14 @@ type GetDelegate interface {
 	Finished(lager.Logger, ExitStatus, resource.VersionResult)
 	Errored(lager.Logger, string)
 
+	BeforeSelectWorker(lager.Logger) error
 	WaitingForWorker(lager.Logger)
 	SelectedWorker(lager.Logger, string)
 
 	UpdateResourceVersion(lager.Logger, string, resource.VersionResult)
+
+	ResourceCacheUser() db.ResourceCacheUser
+	ContainerOwner(planId atc.PlanID) db.ContainerOwner
 }
 
 // GetStep will fetch a version of a resource on a worker that supports the
@@ -185,7 +189,7 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 	tracing.Inject(ctx, &containerSpec)
 
 	resourceCache, err := step.resourceCacheFactory.FindOrCreateResourceCache(
-		db.ForBuild(step.metadata.BuildID),
+		delegate.ResourceCacheUser(),
 		step.plan.Type,
 		version,
 		source,
@@ -197,7 +201,7 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 		return false, err
 	}
 
-	containerOwner := db.NewBuildStepContainerOwner(step.metadata.BuildID, step.planID, step.metadata.TeamID)
+	containerOwner := delegate.ContainerOwner(step.planID)
 
 	delegate.Starting(logger)
 	volume, versionResult, processResult, err := step.retrieveFromCacheOrPerformGet(
@@ -273,6 +277,12 @@ func (step *GetStep) retrieveFromCacheOrPerformGet(
 	// ton of streaming out.
 	if !atc.EnableCacheStreamedVolumes {
 		var err error
+
+		err = delegate.BeforeSelectWorker(logger)
+		if err != nil {
+			return nil, resource.VersionResult{}, runtime.ProcessResult{}, err
+		}
+
 		worker, err = step.workerPool.FindOrSelectWorker(ctx, containerOwner, containerSpec, workerSpec, step.strategy, delegate)
 		if err != nil {
 			logger.Error("failed-to-select-worker", err)
@@ -433,6 +443,12 @@ func (step *GetStep) performGetAndInitCache(
 	// front.
 	if worker == nil {
 		var err error
+
+		err = delegate.BeforeSelectWorker(logger)
+		if err != nil {
+			return nil, resource.VersionResult{}, runtime.ProcessResult{}, err
+		}
+
 		worker, err = step.workerPool.FindOrSelectWorker(ctx, containerOwner, containerSpec, workerSpec, step.strategy, delegate)
 		if err != nil {
 			logger.Error("failed-to-select-worker", err)

@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -126,27 +127,12 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 	var lock lock.Lock = lock.NoopLock{}
 	if d.plan.IsPeriodic() {
 		for {
-			lastCheck, err := scope.LastCheck()
+			run, err := d.shouldPeriodicCheckRun(scope, interval)
 			if err != nil {
 				return nil, false, err
 			}
-
-			if d.plan.SkipInterval { // if the check was manually triggered
-				// If the check plan does not provide a from version
-				if d.plan.FromVersion == nil {
-					// If the last check succeeded and the check was created before the last
-					// check start time, then don't run
-					// This is so that we will avoid running redundant mnaual checks
-					if lastCheck.Succeeded && d.build.CreateTime().Before(lastCheck.StartTime) {
-						return nil, false, nil
-					}
-				}
-			} else {
-				// For periodic checks, if the current time is before the end of the last
-				// check + the interval, do not run
-				if d.clock.Now().Before(lastCheck.EndTime.Add(interval)) {
-					return nil, false, nil
-				}
+			if !run {
+				return nil, false, nil
 			}
 
 			var acquired bool
@@ -154,11 +140,27 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 			if err != nil {
 				return nil, false, fmt.Errorf("acquire lock: %w", err)
 			}
-
 			if acquired {
+				// After acquired the lock, see if needs to run again. Because for global
+				// resources, a previous check will result in current check no longer need
+				// to run.
+				run, err := d.shouldPeriodicCheckRun(scope, interval)
+				if err != nil {
+					err2 := lock.Release()
+					if err2 != nil {
+						return nil, false, err2
+					}
+					return nil, false, err
+				}
+				if !run {
+					err2 := lock.Release()
+					if err2 != nil {
+						return nil, false, err2
+					}
+					return nil, false, nil
+				}
 				break
 			}
-
 			select {
 			case <-ctx.Done():
 				return nil, false, ctx.Err()
@@ -179,6 +181,33 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 	}
 
 	return lock, true, nil
+}
+
+func (d *checkDelegate) shouldPeriodicCheckRun(scope db.ResourceConfigScope, checkInterval time.Duration) (bool, error) {
+	lastCheck, err := scope.LastCheck()
+	if err != nil {
+		return false, err
+	}
+
+	if d.plan.SkipInterval { // if the check was manually triggered
+		// If the check plan does not provide a from version
+		if d.plan.FromVersion == nil {
+			// If the last check succeeded and the check was created before the last
+			// check start time, then don't run
+			// This is so that we will avoid running redundant mnaual checks
+			if lastCheck.Succeeded && d.build.CreateTime().Before(lastCheck.StartTime) {
+				return false, nil
+			}
+		}
+	} else {
+		// For periodic checks, if the current time is before the end of the last
+		// check + the interval, do not run
+		if d.clock.Now().Before(lastCheck.EndTime.Add(checkInterval)) {
+			return false, nil
+		}
+	}
+
+	return true, nil
 }
 
 func (d *checkDelegate) PointToCheckedConfig(scope db.ResourceConfigScope) error {
@@ -219,6 +248,24 @@ func (d *checkDelegate) PointToCheckedConfig(scope db.ResourceConfigScope) error
 	}
 
 	return nil
+}
+
+func (d *checkDelegate) UpdateScopeLastCheckStartTime(scope db.ResourceConfigScope, nestedCheck bool) (bool, int, error) {
+	var publicPlan *json.RawMessage
+	var buildId int
+	if !nestedCheck {
+		if err := d.build.OnCheckBuildStart(); err != nil {
+			return false, 0, err
+		}
+		publicPlan = d.build.PublicPlan()
+		buildId = d.build.ID()
+	}
+	found, err := scope.UpdateLastCheckStartTime(buildId, publicPlan)
+	return found, buildId, err
+}
+
+func (d *checkDelegate) UpdateScopeLastCheckEndTime(scope db.ResourceConfigScope, succeeded bool) (bool, error) {
+	return scope.UpdateLastCheckEndTime(succeeded)
 }
 
 func (d *checkDelegate) pipeline() (db.Pipeline, error) {

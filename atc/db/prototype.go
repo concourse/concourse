@@ -4,13 +4,16 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"strconv"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/lib/pq"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
-	"github.com/lib/pq"
+	"github.com/concourse/concourse/atc/util"
 )
 
 //counterfeiter:generate . Prototype
@@ -41,6 +44,8 @@ type Prototype interface {
 
 	CheckPlan(planFactory atc.PlanFactory, imagePlanner atc.ImagePlanner, from atc.Version, interval atc.CheckEvery, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) atc.Plan
 	CreateBuild(context.Context, bool, atc.Plan) (Build, bool, error)
+
+	CreateInMemoryBuild(context.Context, atc.Plan, util.SequenceGenerator) (Build, error)
 
 	Version() atc.Version
 
@@ -120,22 +125,22 @@ type prototype struct {
 	lastCheckEndTime      time.Time
 }
 
-func (p *prototype) ID() int                       { return p.id }
-func (p *prototype) TeamID() int                   { return p.teamID }
-func (p *prototype) TeamName() string              { return p.teamName }
-func (p *prototype) Name() string                  { return p.name }
-func (p *prototype) Type() string                  { return p.type_ }
-func (p *prototype) Privileged() bool              { return p.privileged }
-func (p *prototype) CheckEvery() *atc.CheckEvery   { return p.checkEvery }
-func (p *prototype) CheckTimeout() string          { return "" }
-func (p *prototype) LastCheckStartTime() time.Time { return p.lastCheckStartTime }
-func (p *prototype) LastCheckEndTime() time.Time   { return p.lastCheckEndTime }
-func (p *prototype) Source() atc.Source            { return p.source }
-func (p *prototype) Defaults() atc.Source          { return p.defaults }
-func (p *prototype) Params() atc.Params            { return p.params }
-func (p *prototype) Tags() atc.Tags                { return p.tags }
-func (p *prototype) ResourceConfigID() int         { return p.resourceConfigID }
-func (p *prototype) ResourceConfigScopeID() int    { return p.resourceConfigScopeID }
+func (p *prototype) ID() int                         { return p.id }
+func (p *prototype) TeamID() int                     { return p.teamID }
+func (p *prototype) TeamName() string                { return p.teamName }
+func (p *prototype) Name() string                    { return p.name }
+func (p *prototype) Type() string                    { return p.type_ }
+func (p *prototype) Privileged() bool                { return p.privileged }
+func (p *prototype) CheckEvery() *atc.CheckEvery     { return p.checkEvery }
+func (p *prototype) CheckTimeout() string            { return "" }
+func (p *prototype) LastCheckStartTime() time.Time   { return p.lastCheckStartTime }
+func (p *prototype) LastCheckEndTime() time.Time     { return p.lastCheckEndTime }
+func (p *prototype) Source() atc.Source              { return p.source }
+func (p *prototype) Defaults() atc.Source            { return p.defaults }
+func (p *prototype) Params() atc.Params              { return p.params }
+func (p *prototype) Tags() atc.Tags                  { return p.tags }
+func (p *prototype) ResourceConfigID() int           { return p.resourceConfigID }
+func (p *prototype) ResourceConfigScopeID() int      { return p.resourceConfigScopeID }
 
 func (p *prototype) Version() atc.Version              { return p.version }
 func (p *prototype) CurrentPinnedVersion() atc.Version { return nil }
@@ -237,6 +242,10 @@ func (p *prototype) CreateBuild(ctx context.Context, manuallyTriggered bool, pla
 	}
 
 	return build, true, nil
+}
+
+func (p *prototype) CreateInMemoryBuild(context.Context, atc.Plan, util.SequenceGenerator) (Build, error) {
+	return nil, errors.New("prototype not supporting in-memory build yet")
 }
 
 func scanPrototype(p *prototype, row scannable) error {

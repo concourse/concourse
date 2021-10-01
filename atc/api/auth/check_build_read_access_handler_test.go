@@ -26,7 +26,7 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 		handler        http.Handler
 		fakeAccessor   *accessorfakes.FakeAccessFactory
 		fakeaccess     *accessorfakes.FakeAccess
-		build          *dbfakes.FakeBuild
+		build          *dbfakes.FakeBuildForAPI
 		pipeline       *dbfakes.FakePipeline
 	)
 
@@ -38,12 +38,13 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 
 		delegate = &buildDelegateHandler{}
 
-		build = new(dbfakes.FakeBuild)
+		build = new(dbfakes.FakeBuildForAPI)
 		pipeline = new(dbfakes.FakePipeline)
 		build.PipelineIDReturns(41)
 		build.PipelineReturns(pipeline, true, nil)
 		build.TeamIDReturns(42)
 		build.TeamNameReturns("some-team")
+		build.AllAssociatedTeamNamesReturns([]string{"some-team"})
 		build.JobIDReturns(43)
 		build.JobNameReturns("some-job")
 	})
@@ -77,7 +78,7 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 	WithExistingBuild := func(buildExistsFunc func()) {
 		Context("when build exists", func() {
 			BeforeEach(func() {
-				buildFactory.BuildReturns(build, true, nil)
+				buildFactory.BuildForAPIReturns(build, true, nil)
 			})
 
 			buildExistsFunc()
@@ -95,10 +96,10 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 
 		Context("when getting build fails", func() {
 			BeforeEach(func() {
-				buildFactory.BuildReturns(nil, false, errors.New("disaster"))
+				buildFactory.BuildForAPIReturns(nil, false, errors.New("disaster"))
 			})
 
-			It("returns 404", func() {
+			It("returns 503", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 			})
 		})
@@ -359,10 +360,10 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 
 type buildDelegateHandler struct {
 	IsCalled     bool
-	ContextBuild db.Build
+	ContextBuild db.BuildForAPI
 }
 
 func (handler *buildDelegateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	handler.IsCalled = true
-	handler.ContextBuild = r.Context().Value(auth.BuildContextKey).(db.Build)
+	handler.ContextBuild = r.Context().Value(auth.BuildContextKey).(db.BuildForAPI)
 }

@@ -8,7 +8,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 )
 
-type EventHandlerFactory func(lager.Logger, db.Build) http.Handler
+type EventHandlerFactory func(lager.Logger, db.BuildForAPI) http.Handler
 
 type Server struct {
 	logger lager.Logger

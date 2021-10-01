@@ -2,7 +2,9 @@ package engine_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -231,8 +233,8 @@ var _ = Describe("CheckDelegate", func() {
 				})
 
 				Context("when the interval is set to never on the plan", func() {
-					It("does not exit early and attmpts to fetch the last check value", func() {
-						Expect(fakeResourceConfigScope.LastCheckCallCount()).To(Equal(1))
+					It("does not exit early and attempts to fetch the last check value", func() {
+						Expect(fakeResourceConfigScope.LastCheckCallCount()).To(Equal(2))
 					})
 				})
 
@@ -558,5 +560,165 @@ var _ = Describe("CheckDelegate", func() {
 				})
 			})
 		})
+	})
+
+	Describe("UpdateScopeLastCheckStartTime", func() {
+		var (
+			found        bool
+			buildId      int
+			nestedCheck  bool
+			err          error
+			expectedPlan json.RawMessage
+		)
+
+		BeforeEach(func() {
+			fakeResourceConfigScope.UpdateLastCheckStartTimeReturns(true, nil)
+			expectedPlan = json.RawMessage(`{"id": 99}`)
+			fakeBuild.IDReturns(9999)
+			fakeBuild.PublicPlanReturns(&expectedPlan)
+		})
+
+		JustBeforeEach(func() {
+			found, buildId, err = delegate.UpdateScopeLastCheckStartTime(fakeResourceConfigScope, nestedCheck)
+		})
+
+		Context("Resource check", func() {
+			BeforeEach(func() {
+				nestedCheck = false
+			})
+
+			Context("OnCheckBuildStart", func() {
+				It("should call build.OnCheckBuildStart", func() {
+					Expect(fakeBuild.OnCheckBuildStartCallCount()).To(Equal(1))
+				})
+
+				Context("when fails", func() {
+					BeforeEach(func() {
+						fakeBuild.OnCheckBuildStartReturns(fmt.Errorf("some-error"))
+					})
+
+					It("should fail", func() {
+						Expect(err).To(HaveOccurred())
+						Expect(err.Error()).To(Equal("some-error"))
+						Expect(found).To(BeFalse())
+					})
+				})
+			})
+
+			Context("delegate to scope", func() {
+				It("should succeeded", func() {
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(buildId).To(Equal(9999))
+				})
+
+				It("should delegate to scope", func() {
+					Expect(fakeResourceConfigScope.UpdateLastCheckStartTimeCallCount()).To(Equal(1))
+					b, p := fakeResourceConfigScope.UpdateLastCheckStartTimeArgsForCall(0)
+					Expect(b).To(Equal(9999))
+					Expect(p).To(Equal(&expectedPlan))
+				})
+
+				It("Build id and public plan should not be nil", func() {
+					buildId, publicPlan := fakeResourceConfigScope.UpdateLastCheckStartTimeArgsForCall(0)
+					Expect(buildId).To(Equal(9999))
+					Expect(publicPlan).To(Equal(&expectedPlan))
+				})
+
+				Context("when update fails", func() {
+					BeforeEach(func() {
+						fakeResourceConfigScope.UpdateLastCheckStartTimeReturns(false, fmt.Errorf("some-error"))
+					})
+
+					It("should fail", func() {
+						Expect(err).To(HaveOccurred())
+						Expect(err.Error()).To(Equal("some-error"))
+						Expect(found).To(BeFalse())
+						Expect(buildId).To(Equal(9999))
+					})
+				})
+			})
+		})
+
+		Context("Step nested check", func() {
+			BeforeEach(func() {
+				nestedCheck = true
+			})
+
+			It("should not call build.OnCheckBuildStart", func() {
+				Expect(fakeBuild.OnCheckBuildStartCallCount()).To(Equal(0))
+			})
+
+			Context("delegate to scope", func() {
+				It("should succeeded", func() {
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(buildId).To(Equal(0))
+				})
+
+				It("should delegate to scope", func() {
+					Expect(fakeResourceConfigScope.UpdateLastCheckStartTimeCallCount()).To(Equal(1))
+				})
+
+				It("Build id and public plan should be nil", func() {
+					buildId, publicPlan := fakeResourceConfigScope.UpdateLastCheckStartTimeArgsForCall(0)
+					Expect(buildId).To(Equal(0))
+					Expect(publicPlan).To(BeNil())
+				})
+
+				Context("when update fails", func() {
+					BeforeEach(func() {
+						fakeResourceConfigScope.UpdateLastCheckStartTimeReturns(false, fmt.Errorf("some-error"))
+					})
+
+					It("should fail", func() {
+						Expect(err).To(HaveOccurred())
+						Expect(err.Error()).To(Equal("some-error"))
+						Expect(found).To(BeFalse())
+						Expect(buildId).To(Equal(0))
+					})
+				})
+			})
+		})
+	})
+
+	Describe("UpdateScopeLastCheckEndTime", func() {
+		var (
+			found bool
+			err   error
+		)
+
+		BeforeEach(func() {
+			fakeResourceConfigScope.UpdateLastCheckEndTimeReturns(true, nil)
+		})
+
+		JustBeforeEach(func() {
+			found, err = delegate.UpdateScopeLastCheckEndTime(fakeResourceConfigScope, true)
+		})
+
+		It("should succeeded", func() {
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+		})
+
+		It("should delegate to scope", func() {
+			Expect(fakeResourceConfigScope.UpdateLastCheckEndTimeCallCount()).To(Equal(1))
+			s := fakeResourceConfigScope.UpdateLastCheckEndTimeArgsForCall(0)
+			Expect(s).To(BeTrue())
+		})
+
+		Context("when update fails", func() {
+			BeforeEach(func() {
+				fakeResourceConfigScope.UpdateLastCheckEndTimeReturns(false, fmt.Errorf("some-error"))
+			})
+
+			It("should fail", func() {
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(Equal("some-error"))
+				Expect(found).To(BeFalse())
+			})
+		})
+
 	})
 })

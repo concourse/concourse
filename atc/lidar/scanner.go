@@ -91,7 +91,7 @@ func (s *scanner) check(ctx context.Context, checkable db.Checkable, resourceTyp
 		return
 	}
 
-	_, created, err := s.checkFactory.TryCreateCheck(lagerctx.NewContext(spanCtx, logger), checkable, resourceTypes, version, false, false)
+	_, created, err := s.checkFactory.TryCreateCheck(lagerctx.NewContext(spanCtx, logger), checkable, resourceTypes, version, false, false, false)
 	if err != nil {
 		logger.Error("failed-to-create-check", err)
 		return

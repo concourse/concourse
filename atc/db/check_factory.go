@@ -10,6 +10,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db/lock"
+	"github.com/concourse/concourse/atc/util"
 )
 
 //counterfeiter:generate . Checkable
@@ -32,11 +33,12 @@ type Checkable interface {
 
 	CheckPlan(planFactory atc.PlanFactory, imagePlanner atc.ImagePlanner, from atc.Version, interval atc.CheckEvery, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) atc.Plan
 	CreateBuild(context.Context, bool, atc.Plan) (Build, bool, error)
+	CreateInMemoryBuild(context.Context, atc.Plan, util.SequenceGenerator) (Build, error)
 }
 
 //counterfeiter:generate . CheckFactory
 type CheckFactory interface {
-	TryCreateCheck(context.Context, Checkable, ResourceTypes, atc.Version, bool, bool) (Build, bool, error)
+	TryCreateCheck(context.Context, Checkable, ResourceTypes, atc.Version, bool, bool, bool) (Build, bool, error)
 	Resources() ([]Resource, error)
 	ResourceTypesByPipeline() (map[int]ResourceTypes, error)
 }
@@ -49,6 +51,9 @@ type checkFactory struct {
 	varSourcePool creds.VarSourcePool
 
 	planFactory atc.PlanFactory
+
+	checkBuildChan    chan<- Build
+	sequenceGenerator util.SequenceGenerator
 }
 
 func NewCheckFactory(
@@ -56,6 +61,8 @@ func NewCheckFactory(
 	lockFactory lock.LockFactory,
 	secrets creds.Secrets,
 	varSourcePool creds.VarSourcePool,
+	checkBuildChan chan<- Build,
+	sequenceGenerator util.SequenceGenerator,
 ) CheckFactory {
 	return &checkFactory{
 		conn:        conn,
@@ -65,13 +72,14 @@ func NewCheckFactory(
 		varSourcePool: varSourcePool,
 
 		planFactory: atc.NewPlanFactory(time.Now().Unix()),
+
+		checkBuildChan:    checkBuildChan,
+		sequenceGenerator: sequenceGenerator,
 	}
 }
 
-func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, resourceTypes ResourceTypes, from atc.Version, manuallyTriggered bool, skipIntervalRecursively bool) (Build, bool, error) {
+func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, resourceTypes ResourceTypes, from atc.Version, manuallyTriggered bool, skipIntervalRecursively bool, toDB bool) (Build, bool, error) {
 	logger := lagerctx.FromContext(ctx)
-
-	var err error
 
 	sourceDefaults := atc.Source{}
 	parentType, found := resourceTypes.Parent(checkable)
@@ -104,18 +112,31 @@ func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, 
 
 	deserializedResourceTypes := resourceTypes.Filter(checkable).Deserialize()
 	plan := checkable.CheckPlan(c.planFactory, deserializedResourceTypes, from, interval, sourceDefaults, skipInterval, skipIntervalRecursively)
-	build, created, err := checkable.CreateBuild(ctx, manuallyTriggered, plan)
-	if err != nil {
-		return nil, false, fmt.Errorf("create build: %w", err)
+
+	if toDB {
+		build, created, err := checkable.CreateBuild(ctx, manuallyTriggered, plan)
+		if err != nil {
+			return nil, false, fmt.Errorf("create check build: %w", err)
+		}
+
+		if !created {
+			return nil, false, nil
+		}
+
+		logger.Debug("created-check-build", build.LagerData())
+
+		return build, true, nil
+	} else {
+		build, err := checkable.CreateInMemoryBuild(ctx, plan, c.sequenceGenerator)
+		if err != nil {
+			return nil, false, err
+		}
+
+		logger.Debug("created-in-memory-check-build", build.LagerData())
+		c.checkBuildChan <- build
+
+		return build, true, nil
 	}
-
-	if !created {
-		return nil, false, nil
-	}
-
-	logger.Info("created-build", build.LagerData())
-
-	return build, true, nil
 }
 
 func (c *checkFactory) Resources() ([]Resource, error) {
@@ -134,10 +155,14 @@ func (c *checkFactory) Resources() ([]Resource, error) {
 			},
 			sq.And{
 				// find put-only resources that have errored
-				sq.Expr("b.status IN ('aborted','failed','errored')"),
+				sq.Or{
+					sq.Eq{"rs.last_check_build_id": nil},
+					sq.Eq{"rs.last_check_succeeded": false},
+				},
 				sq.Eq{"ji.resource_id": nil},
 			},
 		}).
+		OrderBy("r.id ASC").
 		RunWith(c.conn).
 		Query()
 
@@ -167,6 +192,7 @@ func (c *checkFactory) ResourceTypesByPipeline() (map[int]ResourceTypes, error) 
 		Where(sq.And{
 			sq.Eq{"p.paused": false},
 		}).
+		OrderBy("r.id ASC").
 		RunWith(c.conn).
 		Query()
 

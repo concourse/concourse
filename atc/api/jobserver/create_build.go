@@ -79,6 +79,7 @@ func (s *Server) CreateJobBuild(pipeline db.Pipeline) http.Handler {
 					// types - doing so would result in a ton of checks running
 					// unnecessarily.
 					false,
+					true,
 				)
 				if err != nil {
 					logger.Error("failed-to-create-check", err)

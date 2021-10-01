@@ -31,33 +31,33 @@ type FakeTeam struct {
 	authReturnsOnCall map[int]struct {
 		result1 atc.TeamAuth
 	}
-	BuildsStub        func(db.Page) ([]db.Build, db.Pagination, error)
+	BuildsStub        func(db.Page) ([]db.BuildForAPI, db.Pagination, error)
 	buildsMutex       sync.RWMutex
 	buildsArgsForCall []struct {
 		arg1 db.Page
 	}
 	buildsReturns struct {
-		result1 []db.Build
+		result1 []db.BuildForAPI
 		result2 db.Pagination
 		result3 error
 	}
 	buildsReturnsOnCall map[int]struct {
-		result1 []db.Build
+		result1 []db.BuildForAPI
 		result2 db.Pagination
 		result3 error
 	}
-	BuildsWithTimeStub        func(db.Page) ([]db.Build, db.Pagination, error)
+	BuildsWithTimeStub        func(db.Page) ([]db.BuildForAPI, db.Pagination, error)
 	buildsWithTimeMutex       sync.RWMutex
 	buildsWithTimeArgsForCall []struct {
 		arg1 db.Page
 	}
 	buildsWithTimeReturns struct {
-		result1 []db.Build
+		result1 []db.BuildForAPI
 		result2 db.Pagination
 		result3 error
 	}
 	buildsWithTimeReturnsOnCall map[int]struct {
-		result1 []db.Build
+		result1 []db.BuildForAPI
 		result2 db.Pagination
 		result3 error
 	}
@@ -323,18 +323,18 @@ type FakeTeam struct {
 		result1 []db.Pipeline
 		result2 error
 	}
-	PrivateAndPublicBuildsStub        func(db.Page) ([]db.Build, db.Pagination, error)
+	PrivateAndPublicBuildsStub        func(db.Page) ([]db.BuildForAPI, db.Pagination, error)
 	privateAndPublicBuildsMutex       sync.RWMutex
 	privateAndPublicBuildsArgsForCall []struct {
 		arg1 db.Page
 	}
 	privateAndPublicBuildsReturns struct {
-		result1 []db.Build
+		result1 []db.BuildForAPI
 		result2 db.Pagination
 		result3 error
 	}
 	privateAndPublicBuildsReturnsOnCall map[int]struct {
-		result1 []db.Build
+		result1 []db.BuildForAPI
 		result2 db.Pagination
 		result3 error
 	}
@@ -540,7 +540,7 @@ func (fake *FakeTeam) AuthReturnsOnCall(i int, result1 atc.TeamAuth) {
 	}{result1}
 }
 
-func (fake *FakeTeam) Builds(arg1 db.Page) ([]db.Build, db.Pagination, error) {
+func (fake *FakeTeam) Builds(arg1 db.Page) ([]db.BuildForAPI, db.Pagination, error) {
 	fake.buildsMutex.Lock()
 	ret, specificReturn := fake.buildsReturnsOnCall[len(fake.buildsArgsForCall)]
 	fake.buildsArgsForCall = append(fake.buildsArgsForCall, struct {
@@ -565,7 +565,7 @@ func (fake *FakeTeam) BuildsCallCount() int {
 	return len(fake.buildsArgsForCall)
 }
 
-func (fake *FakeTeam) BuildsCalls(stub func(db.Page) ([]db.Build, db.Pagination, error)) {
+func (fake *FakeTeam) BuildsCalls(stub func(db.Page) ([]db.BuildForAPI, db.Pagination, error)) {
 	fake.buildsMutex.Lock()
 	defer fake.buildsMutex.Unlock()
 	fake.BuildsStub = stub
@@ -578,36 +578,36 @@ func (fake *FakeTeam) BuildsArgsForCall(i int) db.Page {
 	return argsForCall.arg1
 }
 
-func (fake *FakeTeam) BuildsReturns(result1 []db.Build, result2 db.Pagination, result3 error) {
+func (fake *FakeTeam) BuildsReturns(result1 []db.BuildForAPI, result2 db.Pagination, result3 error) {
 	fake.buildsMutex.Lock()
 	defer fake.buildsMutex.Unlock()
 	fake.BuildsStub = nil
 	fake.buildsReturns = struct {
-		result1 []db.Build
+		result1 []db.BuildForAPI
 		result2 db.Pagination
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakeTeam) BuildsReturnsOnCall(i int, result1 []db.Build, result2 db.Pagination, result3 error) {
+func (fake *FakeTeam) BuildsReturnsOnCall(i int, result1 []db.BuildForAPI, result2 db.Pagination, result3 error) {
 	fake.buildsMutex.Lock()
 	defer fake.buildsMutex.Unlock()
 	fake.BuildsStub = nil
 	if fake.buildsReturnsOnCall == nil {
 		fake.buildsReturnsOnCall = make(map[int]struct {
-			result1 []db.Build
+			result1 []db.BuildForAPI
 			result2 db.Pagination
 			result3 error
 		})
 	}
 	fake.buildsReturnsOnCall[i] = struct {
-		result1 []db.Build
+		result1 []db.BuildForAPI
 		result2 db.Pagination
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakeTeam) BuildsWithTime(arg1 db.Page) ([]db.Build, db.Pagination, error) {
+func (fake *FakeTeam) BuildsWithTime(arg1 db.Page) ([]db.BuildForAPI, db.Pagination, error) {
 	fake.buildsWithTimeMutex.Lock()
 	ret, specificReturn := fake.buildsWithTimeReturnsOnCall[len(fake.buildsWithTimeArgsForCall)]
 	fake.buildsWithTimeArgsForCall = append(fake.buildsWithTimeArgsForCall, struct {
@@ -632,7 +632,7 @@ func (fake *FakeTeam) BuildsWithTimeCallCount() int {
 	return len(fake.buildsWithTimeArgsForCall)
 }
 
-func (fake *FakeTeam) BuildsWithTimeCalls(stub func(db.Page) ([]db.Build, db.Pagination, error)) {
+func (fake *FakeTeam) BuildsWithTimeCalls(stub func(db.Page) ([]db.BuildForAPI, db.Pagination, error)) {
 	fake.buildsWithTimeMutex.Lock()
 	defer fake.buildsWithTimeMutex.Unlock()
 	fake.BuildsWithTimeStub = stub
@@ -645,30 +645,30 @@ func (fake *FakeTeam) BuildsWithTimeArgsForCall(i int) db.Page {
 	return argsForCall.arg1
 }
 
-func (fake *FakeTeam) BuildsWithTimeReturns(result1 []db.Build, result2 db.Pagination, result3 error) {
+func (fake *FakeTeam) BuildsWithTimeReturns(result1 []db.BuildForAPI, result2 db.Pagination, result3 error) {
 	fake.buildsWithTimeMutex.Lock()
 	defer fake.buildsWithTimeMutex.Unlock()
 	fake.BuildsWithTimeStub = nil
 	fake.buildsWithTimeReturns = struct {
-		result1 []db.Build
+		result1 []db.BuildForAPI
 		result2 db.Pagination
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakeTeam) BuildsWithTimeReturnsOnCall(i int, result1 []db.Build, result2 db.Pagination, result3 error) {
+func (fake *FakeTeam) BuildsWithTimeReturnsOnCall(i int, result1 []db.BuildForAPI, result2 db.Pagination, result3 error) {
 	fake.buildsWithTimeMutex.Lock()
 	defer fake.buildsWithTimeMutex.Unlock()
 	fake.BuildsWithTimeStub = nil
 	if fake.buildsWithTimeReturnsOnCall == nil {
 		fake.buildsWithTimeReturnsOnCall = make(map[int]struct {
-			result1 []db.Build
+			result1 []db.BuildForAPI
 			result2 db.Pagination
 			result3 error
 		})
 	}
 	fake.buildsWithTimeReturnsOnCall[i] = struct {
-		result1 []db.Build
+		result1 []db.BuildForAPI
 		result2 db.Pagination
 		result3 error
 	}{result1, result2, result3}
@@ -1926,7 +1926,7 @@ func (fake *FakeTeam) PipelinesReturnsOnCall(i int, result1 []db.Pipeline, resul
 	}{result1, result2}
 }
 
-func (fake *FakeTeam) PrivateAndPublicBuilds(arg1 db.Page) ([]db.Build, db.Pagination, error) {
+func (fake *FakeTeam) PrivateAndPublicBuilds(arg1 db.Page) ([]db.BuildForAPI, db.Pagination, error) {
 	fake.privateAndPublicBuildsMutex.Lock()
 	ret, specificReturn := fake.privateAndPublicBuildsReturnsOnCall[len(fake.privateAndPublicBuildsArgsForCall)]
 	fake.privateAndPublicBuildsArgsForCall = append(fake.privateAndPublicBuildsArgsForCall, struct {
@@ -1951,7 +1951,7 @@ func (fake *FakeTeam) PrivateAndPublicBuildsCallCount() int {
 	return len(fake.privateAndPublicBuildsArgsForCall)
 }
 
-func (fake *FakeTeam) PrivateAndPublicBuildsCalls(stub func(db.Page) ([]db.Build, db.Pagination, error)) {
+func (fake *FakeTeam) PrivateAndPublicBuildsCalls(stub func(db.Page) ([]db.BuildForAPI, db.Pagination, error)) {
 	fake.privateAndPublicBuildsMutex.Lock()
 	defer fake.privateAndPublicBuildsMutex.Unlock()
 	fake.PrivateAndPublicBuildsStub = stub
@@ -1964,30 +1964,30 @@ func (fake *FakeTeam) PrivateAndPublicBuildsArgsForCall(i int) db.Page {
 	return argsForCall.arg1
 }
 
-func (fake *FakeTeam) PrivateAndPublicBuildsReturns(result1 []db.Build, result2 db.Pagination, result3 error) {
+func (fake *FakeTeam) PrivateAndPublicBuildsReturns(result1 []db.BuildForAPI, result2 db.Pagination, result3 error) {
 	fake.privateAndPublicBuildsMutex.Lock()
 	defer fake.privateAndPublicBuildsMutex.Unlock()
 	fake.PrivateAndPublicBuildsStub = nil
 	fake.privateAndPublicBuildsReturns = struct {
-		result1 []db.Build
+		result1 []db.BuildForAPI
 		result2 db.Pagination
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakeTeam) PrivateAndPublicBuildsReturnsOnCall(i int, result1 []db.Build, result2 db.Pagination, result3 error) {
+func (fake *FakeTeam) PrivateAndPublicBuildsReturnsOnCall(i int, result1 []db.BuildForAPI, result2 db.Pagination, result3 error) {
 	fake.privateAndPublicBuildsMutex.Lock()
 	defer fake.privateAndPublicBuildsMutex.Unlock()
 	fake.PrivateAndPublicBuildsStub = nil
 	if fake.privateAndPublicBuildsReturnsOnCall == nil {
 		fake.privateAndPublicBuildsReturnsOnCall = make(map[int]struct {
-			result1 []db.Build
+			result1 []db.BuildForAPI
 			result2 db.Pagination
 			result3 error
 		})
 	}
 	fake.privateAndPublicBuildsReturnsOnCall[i] = struct {
-		result1 []db.Build
+		result1 []db.BuildForAPI
 		result2 db.Pagination
 		result3 error
 	}{result1, result2, result3}

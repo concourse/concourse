@@ -40,7 +40,7 @@ type ResourceConfigScope interface {
 	) (lock.Lock, bool, error)
 
 	LastCheck() (LastCheck, error)
-	UpdateLastCheckStartTime() (bool, error)
+	UpdateLastCheckStartTime(int, *json.RawMessage) (bool, error)
 	UpdateLastCheckEndTime(bool) (bool, error)
 }
 
@@ -196,7 +196,7 @@ func (r *resourceConfigScope) AcquireResourceCheckingLock(
 	)
 }
 
-func (r *resourceConfigScope) UpdateLastCheckStartTime() (bool, error) {
+func (r *resourceConfigScope) UpdateLastCheckStartTime(buildId int, publicPlan *json.RawMessage) (bool, error) {
 	tx, err := r.conn.Begin()
 	if err != nil {
 		return false, err
@@ -204,11 +204,15 @@ func (r *resourceConfigScope) UpdateLastCheckStartTime() (bool, error) {
 
 	defer Rollback(tx)
 
+	var buildIdValue interface{}
+	if buildId != 0 {
+		buildIdValue = buildId
+	}
 	updated, err := checkIfRowsUpdated(tx, `
 		UPDATE resource_config_scopes
-		SET last_check_start_time = now()
-		WHERE id = $1
-	`, r.id)
+		SET last_check_start_time = now(), last_check_build_id = $1, last_check_build_plan = $2
+		WHERE id = $3
+	`, buildIdValue, publicPlan, r.id)
 	if err != nil {
 		return false, err
 	}

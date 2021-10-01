@@ -16,6 +16,17 @@ import (
 )
 
 type FakeBuildStepDelegate struct {
+	BeforeSelectWorkerStub        func(lager.Logger) error
+	beforeSelectWorkerMutex       sync.RWMutex
+	beforeSelectWorkerArgsForCall []struct {
+		arg1 lager.Logger
+	}
+	beforeSelectWorkerReturns struct {
+		result1 error
+	}
+	beforeSelectWorkerReturnsOnCall map[int]struct {
+		result1 error
+	}
 	ConstructAcrossSubstepsStub        func([]byte, []atc.AcrossVar, [][]interface{}) ([]atc.VarScopedPlan, error)
 	constructAcrossSubstepsMutex       sync.RWMutex
 	constructAcrossSubstepsArgsForCall []struct {
@@ -30,6 +41,17 @@ type FakeBuildStepDelegate struct {
 	constructAcrossSubstepsReturnsOnCall map[int]struct {
 		result1 []atc.VarScopedPlan
 		result2 error
+	}
+	ContainerOwnerStub        func(atc.PlanID) db.ContainerOwner
+	containerOwnerMutex       sync.RWMutex
+	containerOwnerArgsForCall []struct {
+		arg1 atc.PlanID
+	}
+	containerOwnerReturns struct {
+		result1 db.ContainerOwner
+	}
+	containerOwnerReturnsOnCall map[int]struct {
+		result1 db.ContainerOwner
 	}
 	ErroredStub        func(lager.Logger, string)
 	erroredMutex       sync.RWMutex
@@ -121,6 +143,67 @@ type FakeBuildStepDelegate struct {
 	invocationsMutex sync.RWMutex
 }
 
+func (fake *FakeBuildStepDelegate) BeforeSelectWorker(arg1 lager.Logger) error {
+	fake.beforeSelectWorkerMutex.Lock()
+	ret, specificReturn := fake.beforeSelectWorkerReturnsOnCall[len(fake.beforeSelectWorkerArgsForCall)]
+	fake.beforeSelectWorkerArgsForCall = append(fake.beforeSelectWorkerArgsForCall, struct {
+		arg1 lager.Logger
+	}{arg1})
+	stub := fake.BeforeSelectWorkerStub
+	fakeReturns := fake.beforeSelectWorkerReturns
+	fake.recordInvocation("BeforeSelectWorker", []interface{}{arg1})
+	fake.beforeSelectWorkerMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeBuildStepDelegate) BeforeSelectWorkerCallCount() int {
+	fake.beforeSelectWorkerMutex.RLock()
+	defer fake.beforeSelectWorkerMutex.RUnlock()
+	return len(fake.beforeSelectWorkerArgsForCall)
+}
+
+func (fake *FakeBuildStepDelegate) BeforeSelectWorkerCalls(stub func(lager.Logger) error) {
+	fake.beforeSelectWorkerMutex.Lock()
+	defer fake.beforeSelectWorkerMutex.Unlock()
+	fake.BeforeSelectWorkerStub = stub
+}
+
+func (fake *FakeBuildStepDelegate) BeforeSelectWorkerArgsForCall(i int) lager.Logger {
+	fake.beforeSelectWorkerMutex.RLock()
+	defer fake.beforeSelectWorkerMutex.RUnlock()
+	argsForCall := fake.beforeSelectWorkerArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeBuildStepDelegate) BeforeSelectWorkerReturns(result1 error) {
+	fake.beforeSelectWorkerMutex.Lock()
+	defer fake.beforeSelectWorkerMutex.Unlock()
+	fake.BeforeSelectWorkerStub = nil
+	fake.beforeSelectWorkerReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBuildStepDelegate) BeforeSelectWorkerReturnsOnCall(i int, result1 error) {
+	fake.beforeSelectWorkerMutex.Lock()
+	defer fake.beforeSelectWorkerMutex.Unlock()
+	fake.BeforeSelectWorkerStub = nil
+	if fake.beforeSelectWorkerReturnsOnCall == nil {
+		fake.beforeSelectWorkerReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.beforeSelectWorkerReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeBuildStepDelegate) ConstructAcrossSubsteps(arg1 []byte, arg2 []atc.AcrossVar, arg3 [][]interface{}) ([]atc.VarScopedPlan, error) {
 	var arg1Copy []byte
 	if arg1 != nil {
@@ -200,6 +283,67 @@ func (fake *FakeBuildStepDelegate) ConstructAcrossSubstepsReturnsOnCall(i int, r
 		result1 []atc.VarScopedPlan
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeBuildStepDelegate) ContainerOwner(arg1 atc.PlanID) db.ContainerOwner {
+	fake.containerOwnerMutex.Lock()
+	ret, specificReturn := fake.containerOwnerReturnsOnCall[len(fake.containerOwnerArgsForCall)]
+	fake.containerOwnerArgsForCall = append(fake.containerOwnerArgsForCall, struct {
+		arg1 atc.PlanID
+	}{arg1})
+	stub := fake.ContainerOwnerStub
+	fakeReturns := fake.containerOwnerReturns
+	fake.recordInvocation("ContainerOwner", []interface{}{arg1})
+	fake.containerOwnerMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeBuildStepDelegate) ContainerOwnerCallCount() int {
+	fake.containerOwnerMutex.RLock()
+	defer fake.containerOwnerMutex.RUnlock()
+	return len(fake.containerOwnerArgsForCall)
+}
+
+func (fake *FakeBuildStepDelegate) ContainerOwnerCalls(stub func(atc.PlanID) db.ContainerOwner) {
+	fake.containerOwnerMutex.Lock()
+	defer fake.containerOwnerMutex.Unlock()
+	fake.ContainerOwnerStub = stub
+}
+
+func (fake *FakeBuildStepDelegate) ContainerOwnerArgsForCall(i int) atc.PlanID {
+	fake.containerOwnerMutex.RLock()
+	defer fake.containerOwnerMutex.RUnlock()
+	argsForCall := fake.containerOwnerArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeBuildStepDelegate) ContainerOwnerReturns(result1 db.ContainerOwner) {
+	fake.containerOwnerMutex.Lock()
+	defer fake.containerOwnerMutex.Unlock()
+	fake.ContainerOwnerStub = nil
+	fake.containerOwnerReturns = struct {
+		result1 db.ContainerOwner
+	}{result1}
+}
+
+func (fake *FakeBuildStepDelegate) ContainerOwnerReturnsOnCall(i int, result1 db.ContainerOwner) {
+	fake.containerOwnerMutex.Lock()
+	defer fake.containerOwnerMutex.Unlock()
+	fake.ContainerOwnerStub = nil
+	if fake.containerOwnerReturnsOnCall == nil {
+		fake.containerOwnerReturnsOnCall = make(map[int]struct {
+			result1 db.ContainerOwner
+		})
+	}
+	fake.containerOwnerReturnsOnCall[i] = struct {
+		result1 db.ContainerOwner
+	}{result1}
 }
 
 func (fake *FakeBuildStepDelegate) Errored(arg1 lager.Logger, arg2 string) {
@@ -642,8 +786,12 @@ func (fake *FakeBuildStepDelegate) WaitingForWorkerArgsForCall(i int) lager.Logg
 func (fake *FakeBuildStepDelegate) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.beforeSelectWorkerMutex.RLock()
+	defer fake.beforeSelectWorkerMutex.RUnlock()
 	fake.constructAcrossSubstepsMutex.RLock()
 	defer fake.constructAcrossSubstepsMutex.RUnlock()
+	fake.containerOwnerMutex.RLock()
+	defer fake.containerOwnerMutex.RUnlock()
 	fake.erroredMutex.RLock()
 	defer fake.erroredMutex.RUnlock()
 	fake.fetchImageMutex.RLock()

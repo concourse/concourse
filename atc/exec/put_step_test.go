@@ -182,6 +182,10 @@ var _ = Describe("PutStep", func() {
 			Expect(ok).To(BeFalse())
 		})
 
+		It("emits a BeforeSelectWorker event", func() {
+			Expect(fakeDelegate.BeforeSelectWorkerCallCount()).To(Equal(1))
+		})
+
 		It("calls SelectWorker with the correct WorkerSpec", func() {
 			Expect(workerSpec).To(Equal(
 				worker.Spec{

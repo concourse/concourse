@@ -1,7 +1,9 @@
 package db
 
 import (
+	"code.cloudfoundry.org/lager"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"time"
@@ -10,14 +12,70 @@ import (
 	"github.com/concourse/concourse/atc/db/lock"
 )
 
+//counterfeiter:generate . BuildForAPI
+
+// BuildForAPI is a smaller interface of db.Build that should only be used within
+// API packages.
+type BuildForAPI interface {
+	PipelineRef
+
+	ID() int
+	Name() string
+
+	TeamID() int
+	TeamName() string
+
+	JobID() int
+	JobName() string
+
+	Job() (Job, bool, error)
+
+	// AllAssociatedTeamNames is only meaningful for check build. For a global
+	// resource's check build, it may associate to resources across multiple
+	// teams.
+	AllAssociatedTeamNames() []string
+
+	ResourceID() int
+	ResourceName() string
+
+	LagerData() lager.Data
+	Schema() string
+	PublicPlan() *json.RawMessage
+	HasPlan() bool
+
+	Comment() string
+	StartTime() time.Time
+	EndTime() time.Time
+	ReapTime() time.Time
+	Status() BuildStatus
+	RerunOf() int
+	RerunOfName() string
+	RerunNumber() int
+	CreatedBy() *string
+
+	IsDrained() bool
+	IsRunning() bool
+
+	Artifacts() ([]WorkerArtifact, error)
+	Events(uint) (EventSource, error)
+	Resources() ([]BuildInput, []BuildOutput, error)
+	Preparation() (BuildPreparation, bool, error)
+
+	MarkAsAborted() error
+	SetComment(string) error
+}
+
 //counterfeiter:generate . BuildFactory
 type BuildFactory interface {
+	BuildForAPI(int) (BuildForAPI, bool, error)
+	VisibleBuilds([]string, Page) ([]BuildForAPI, Pagination, error)
+	AllBuilds(Page) ([]BuildForAPI, Pagination, error)
+	PublicBuilds(Page) ([]BuildForAPI, Pagination, error)
+
 	Build(int) (Build, bool, error)
-	VisibleBuilds([]string, Page) ([]Build, Pagination, error)
-	AllBuilds(Page) ([]Build, Pagination, error)
-	PublicBuilds(Page) ([]Build, Pagination, error)
 	GetAllStartedBuilds() ([]Build, error)
 	GetDrainableBuilds() ([]Build, error)
+
 	// TODO: move to BuildLifecycle, new interface (see WorkerLifecycle)
 	MarkNonInterceptibleBuilds() error
 }
@@ -38,6 +96,42 @@ func NewBuildFactory(conn Conn, lockFactory lock.LockFactory, oneOffGracePeriod 
 	}
 }
 
+func (f *buildFactory) BuildForAPI(buildID int) (BuildForAPI, bool, error) {
+	build := newEmptyBuild(f.conn, f.lockFactory)
+	row := buildsQuery.
+		Where(sq.Eq{"b.id": buildID}).
+		RunWith(f.conn).
+		QueryRow()
+
+	err := scanBuild(build, row, f.conn.EncryptionStrategy())
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// If it cannot find the build from table "builds", then try to see
+			// if the build is an in-memory build. As in-memory only runs against
+			// resources, thus we only need to try search for resources.
+			resource, found, err := f.findResourceOfInMemoryCheckBuild(buildID)
+			if err != nil {
+				return nil, false, err
+			}
+
+			if !found {
+				return nil, false, nil
+			}
+
+			build, err := newExistingInMemoryCheckBuildForApi(f.conn, buildID, resource)
+			if err != nil {
+				return nil, false, err
+			}
+
+			return build, true, nil
+		}
+
+		return nil, false, err
+	}
+
+	return build, true, nil
+}
+
 func (f *buildFactory) Build(buildID int) (Build, bool, error) {
 	build := newEmptyBuild(f.conn, f.lockFactory)
 	row := buildsQuery.
@@ -50,13 +144,14 @@ func (f *buildFactory) Build(buildID int) (Build, bool, error) {
 		if err == sql.ErrNoRows {
 			return nil, false, nil
 		}
+
 		return nil, false, err
 	}
 
 	return build, true, nil
 }
 
-func (f *buildFactory) VisibleBuilds(teamNames []string, page Page) ([]Build, Pagination, error) {
+func (f *buildFactory) VisibleBuilds(teamNames []string, page Page) ([]BuildForAPI, Pagination, error) {
 	newBuildsQuery := buildsQuery.
 		Where(sq.Or{
 			sq.Eq{"p.public": true},
@@ -71,7 +166,7 @@ func (f *buildFactory) VisibleBuilds(teamNames []string, page Page) ([]Build, Pa
 		f.lockFactory)
 }
 
-func (f *buildFactory) AllBuilds(page Page) ([]Build, Pagination, error) {
+func (f *buildFactory) AllBuilds(page Page) ([]BuildForAPI, Pagination, error) {
 	if page.UseDate {
 		return getBuildsWithDates(buildsQuery, minMaxIdQuery, page, f.conn,
 			f.lockFactory)
@@ -80,7 +175,7 @@ func (f *buildFactory) AllBuilds(page Page) ([]Build, Pagination, error) {
 		page, f.conn, f.lockFactory)
 }
 
-func (f *buildFactory) PublicBuilds(page Page) ([]Build, Pagination, error) {
+func (f *buildFactory) PublicBuilds(page Page) ([]BuildForAPI, Pagination, error) {
 	return getBuildsWithPagination(
 		buildsQuery.Where(sq.Eq{"p.public": true}), minMaxIdQuery,
 		page, f.conn, f.lockFactory)
@@ -132,6 +227,26 @@ func (f *buildFactory) GetAllStartedBuilds() ([]Build, error) {
 	return getBuilds(query, f.conn, f.lockFactory)
 }
 
+func (f *buildFactory) findResourceOfInMemoryCheckBuild(buildId int) (Resource, bool, error) {
+	resource := newEmptyResource(f.conn, f.lockFactory)
+	row := resourcesQuery.
+		Where(sq.Or{
+			sq.Eq{"r.in_memory_build_id": buildId},
+			sq.Eq{"rs.last_check_build_id": buildId},
+		}).
+		Limit(1).
+		RunWith(f.conn).
+		QueryRow()
+	err := scanResource(resource, row)
+	if err == sql.ErrNoRows {
+		return nil, false, nil
+	}
+	if err != nil {
+		return nil, false, err
+	}
+	return resource, true, nil
+}
+
 func getBuilds(buildsQuery sq.SelectBuilder, conn Conn, lockFactory lock.LockFactory) ([]Build, error) {
 	rows, err := buildsQuery.RunWith(conn).Query()
 	if err != nil {
@@ -155,7 +270,7 @@ func getBuilds(buildsQuery sq.SelectBuilder, conn Conn, lockFactory lock.LockFac
 	return bs, nil
 }
 
-func getBuildsWithDates(buildsQuery, minMaxIdQuery sq.SelectBuilder, page Page, conn Conn, lockFactory lock.LockFactory) ([]Build, Pagination, error) {
+func getBuildsWithDates(buildsQuery, minMaxIdQuery sq.SelectBuilder, page Page, conn Conn, lockFactory lock.LockFactory) ([]BuildForAPI, Pagination, error) {
 	var newPage = Page{Limit: page.Limit}
 
 	tx, err := conn.Begin()
@@ -176,7 +291,7 @@ func getBuildsWithDates(buildsQuery, minMaxIdQuery sq.SelectBuilder, page Page, 
 		if err != nil {
 			// The user has no builds since that given time
 			if err == sql.ErrNoRows {
-				return []Build{}, Pagination{}, nil
+				return []BuildForAPI{}, Pagination{}, nil
 			}
 
 			return nil, Pagination{}, err
@@ -196,7 +311,7 @@ func getBuildsWithDates(buildsQuery, minMaxIdQuery sq.SelectBuilder, page Page, 
 			newPage.From = NewIntPtr(build.ID())
 		}
 		if !found {
-			return []Build{}, Pagination{}, nil
+			return []BuildForAPI{}, Pagination{}, nil
 		}
 	}
 
@@ -210,7 +325,7 @@ func getBuildsWithDates(buildsQuery, minMaxIdQuery sq.SelectBuilder, page Page, 
 		if err != nil {
 			// The user has no builds since that given time
 			if err == sql.ErrNoRows {
-				return []Build{}, Pagination{}, nil
+				return []BuildForAPI{}, Pagination{}, nil
 			}
 		}
 
@@ -228,7 +343,7 @@ func getBuildsWithDates(buildsQuery, minMaxIdQuery sq.SelectBuilder, page Page, 
 			newPage.To = NewIntPtr(build.ID())
 		}
 		if !found {
-			return []Build{}, Pagination{}, nil
+			return []BuildForAPI{}, Pagination{}, nil
 		}
 	}
 
@@ -240,7 +355,7 @@ func getBuildsWithDates(buildsQuery, minMaxIdQuery sq.SelectBuilder, page Page, 
 	return getBuildsWithPagination(buildsQuery, minMaxIdQuery, newPage, conn, lockFactory)
 }
 
-func getBuildsWithPagination(buildsQuery, minMaxIdQuery sq.SelectBuilder, page Page, conn Conn, lockFactory lock.LockFactory) ([]Build, Pagination, error) {
+func getBuildsWithPagination(buildsQuery, minMaxIdQuery sq.SelectBuilder, page Page, conn Conn, lockFactory lock.LockFactory) ([]BuildForAPI, Pagination, error) {
 	var (
 		rows    *sql.Rows
 		err     error
@@ -290,7 +405,7 @@ func getBuildsWithPagination(buildsQuery, minMaxIdQuery sq.SelectBuilder, page P
 
 	defer Close(rows)
 
-	builds := make([]Build, 0)
+	builds := make([]BuildForAPI, 0)
 	for rows.Next() {
 		build := newEmptyBuild(conn, lockFactory)
 		err = scanBuild(build, rows, conn.EncryptionStrategy())

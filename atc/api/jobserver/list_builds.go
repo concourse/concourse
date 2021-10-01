@@ -15,7 +15,7 @@ import (
 func (s *Server) ListJobBuilds(pipeline db.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var (
-			builds     []db.Build
+			builds     []db.BuildForAPI
 			pagination db.Pagination
 			err        error
 			from       int

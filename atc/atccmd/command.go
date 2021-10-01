@@ -46,6 +46,7 @@ import (
 	"github.com/concourse/concourse/atc/scheduler"
 	"github.com/concourse/concourse/atc/scheduler/algorithm"
 	"github.com/concourse/concourse/atc/syslog"
+	"github.com/concourse/concourse/atc/util"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/wrappa"
 	"github.com/concourse/concourse/skymarshal/dexserver"
@@ -598,6 +599,11 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		return nil, err
 	}
 
+	err = db.CacheWarmUp(backendConn)
+	if err != nil {
+		return nil, err
+	}
+
 	storage, err := storage.NewPostgresStorage(logger, cmd.Postgres)
 	if err != nil {
 		return nil, err
@@ -681,16 +687,13 @@ func (cmd *RunCommand) constructMembers(
 	}
 
 	workerCache, err := db.NewWorkerCache(logger.Session("worker-cache"), backendConn, 1*time.Minute)
+	checkBuildsChan := make(chan db.Build, 2000)
+	apiMembers, err := cmd.constructAPIMembers(logger, reconfigurableSink, apiConn, workerConn, storage, lockFactory, secretManager, policyChecker, workerCache, checkBuildsChan)
 	if err != nil {
 		return nil, err
 	}
 
-	apiMembers, err := cmd.constructAPIMembers(logger, reconfigurableSink, apiConn, workerConn, storage, lockFactory, secretManager, policyChecker, workerCache)
-	if err != nil {
-		return nil, err
-	}
-
-	backendComponents, err := cmd.backendComponents(logger, backendConn, lockFactory, secretManager, policyChecker, workerCache)
+	backendComponents, err := cmd.backendComponents(logger, backendConn, lockFactory, secretManager, policyChecker, workerCache, checkBuildsChan)
 	if err != nil {
 		return nil, err
 	}
@@ -754,6 +757,7 @@ func (cmd *RunCommand) constructAPIMembers(
 	secretManager creds.Secrets,
 	policyChecker policy.Checker,
 	workerCache *db.WorkerCache,
+	checkBuildsChan chan db.Build,
 ) ([]grouper.Member, error) {
 
 	httpClient, err := cmd.skyHttpClient()
@@ -794,7 +798,7 @@ func (cmd *RunCommand) constructAPIMembers(
 	dbVolumeRepository := db.NewVolumeRepository(dbConn)
 	gcContainerDestroyer := gc.NewDestroyer(logger, dbContainerRepository, dbVolumeRepository)
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod, cmd.GC.FailedGracePeriod)
-	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.varSourcePool)
+	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.varSourcePool, checkBuildsChan, nil)
 	dbAccessTokenFactory := db.NewAccessTokenFactory(dbConn)
 	dbClock := db.NewClock()
 	dbWall := db.NewWall(dbConn, &dbClock)
@@ -975,6 +979,7 @@ func (cmd *RunCommand) backendComponents(
 	secretManager creds.Secrets,
 	policyChecker policy.Checker,
 	workerCache *db.WorkerCache,
+	checkBuildsChan chan db.Build,
 ) ([]RunnableComponent, error) {
 
 	if cmd.Syslog.Address != "" && cmd.Syslog.Transport == "" {
@@ -992,7 +997,7 @@ func (cmd *RunCommand) backendComponents(
 	dbResourceConfigFactory := db.NewResourceConfigFactory(dbConn, lockFactory)
 
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod, cmd.GC.FailedGracePeriod)
-	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.varSourcePool)
+	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.varSourcePool, checkBuildsChan, util.NewSequenceGenerator(1))
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
 	dbJobFactory := db.NewJobFactory(dbConn, lockFactory)
 	dbPipelineLifecycle := db.NewPipelineLifecycle(dbConn, lockFactory)
@@ -1087,7 +1092,7 @@ func (cmd *RunCommand) backendComponents(
 				Name:     atc.ComponentBuildTracker,
 				Interval: cmd.BuildTrackerInterval,
 			},
-			Runnable: builds.NewTracker(dbBuildFactory, engine),
+			Runnable: builds.NewTracker(logger, dbBuildFactory, engine, checkBuildsChan),
 		},
 		{
 			Component: atc.Component{

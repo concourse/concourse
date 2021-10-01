@@ -1,6 +1,8 @@
 package db_test
 
 import (
+	"context"
+	"github.com/concourse/concourse/atc/util"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -301,6 +303,54 @@ var _ = Describe("ContainerRepository", func() {
 
 					Expect(creatingContainers).To(HaveLen(1))
 					Expect(creatingContainers[0].Handle()).To(Equal(creatingContainer.Handle()))
+					Expect(createdContainers).To(BeEmpty())
+					Expect(destroyingContainers).To(BeEmpty())
+				})
+			})
+		})
+
+		Describe("containers owned by a in-memory build", func() {
+			var (
+				build db.Build
+			)
+
+			BeforeEach(func() {
+				var err error
+				build, err = defaultResource.CreateInMemoryBuild(context.Background(), atc.Plan{}, util.NewSequenceGenerator(1))
+				Expect(err).NotTo(HaveOccurred())
+
+				err = build.OnCheckBuildStart()
+				Expect(err).NotTo(HaveOccurred())
+
+				_, err = defaultWorker.CreateContainer(
+					db.NewInMemoryCheckBuildContainerOwner(build.ID(), build.CreateTime(), "simple-plan", defaultTeam.ID()),
+					fullMetadata,
+				)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			Context("when the build is running", func() {
+				It("does not find container for deletion", func() {
+					creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindOrphanedContainers()
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(creatingContainers).To(BeEmpty())
+					Expect(createdContainers).To(BeEmpty())
+					Expect(destroyingContainers).To(BeEmpty())
+				})
+			})
+
+			Context("when build is finished", func() {
+				BeforeEach(func() {
+					err := build.Finish(db.BuildStatusSucceeded)
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("finds container for deletion", func() {
+					creatingContainers, createdContainers, destroyingContainers, err := containerRepository.FindOrphanedContainers()
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(creatingContainers).To(BeEmpty())
 					Expect(createdContainers).To(BeEmpty())
 					Expect(destroyingContainers).To(BeEmpty())
 				})

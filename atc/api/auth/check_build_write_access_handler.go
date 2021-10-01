@@ -56,7 +56,7 @@ func (h checkBuildWriteAccessHandler) ServeHTTP(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	build, found, err := h.buildFactory.Build(buildID)
+	build, found, err := h.buildFactory.BuildForAPI(buildID)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -67,7 +67,15 @@ func (h checkBuildWriteAccessHandler) ServeHTTP(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	if !acc.IsAuthorized(build.TeamName()) {
+	allTeams := build.AllAssociatedTeamNames()
+	authorized := false
+	for _, team := range allTeams {
+		if acc.IsAuthorized(team) {
+			authorized = true
+			break
+		}
+	}
+	if !authorized {
 		h.rejector.Forbidden(w, r)
 		return
 	}

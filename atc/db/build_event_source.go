@@ -20,12 +20,15 @@ type EventSource interface {
 	Close() error
 }
 
+type buildCompleteWatcherFunc func(Tx, int) (bool, error)
+
 func newBuildEventSource(
 	buildID int,
 	table string,
 	conn Conn,
 	notifier Notifier,
 	from uint,
+	watcher buildCompleteWatcherFunc,
 ) *buildEventSource {
 	wg := new(sync.WaitGroup)
 
@@ -40,6 +43,8 @@ func newBuildEventSource(
 		events: make(chan event.Envelope, 2000),
 		stop:   make(chan struct{}),
 		wg:     wg,
+
+		watcherFunc: watcher,
 	}
 
 	wg.Add(1)
@@ -59,6 +64,8 @@ type buildEventSource struct {
 	stop   chan struct{}
 	err    error
 	wg     *sync.WaitGroup
+
+	watcherFunc buildCompleteWatcherFunc
 }
 
 func (source *buildEventSource) Next() (event.Envelope, error) {
@@ -100,8 +107,6 @@ func (source *buildEventSource) collectEvents(from uint) {
 		default:
 		}
 
-		completed := false
-
 		tx, err := source.conn.Begin()
 		if err != nil {
 			return
@@ -109,12 +114,7 @@ func (source *buildEventSource) collectEvents(from uint) {
 
 		defer Rollback(tx)
 
-		err = psql.Select("completed").
-			From("builds").
-			Where(sq.Eq{"id": source.buildID}).
-			RunWith(tx).
-			QueryRow().
-			Scan(&completed)
+		completed, err := source.watcherFunc(tx, source.buildID)
 		if err != nil {
 			source.err = err
 			close(source.events)

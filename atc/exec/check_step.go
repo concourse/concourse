@@ -43,6 +43,8 @@ type CheckDelegate interface {
 	FindOrCreateScope(db.ResourceConfig) (db.ResourceConfigScope, error)
 	WaitToRun(context.Context, db.ResourceConfigScope) (lock.Lock, bool, error)
 	PointToCheckedConfig(db.ResourceConfigScope) error
+	UpdateScopeLastCheckStartTime(db.ResourceConfigScope, bool) (bool, int, error)
+	UpdateScopeLastCheckEndTime(db.ResourceConfigScope, bool) (bool, error)
 }
 
 func NewCheckStep(
@@ -139,10 +141,22 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 		return false, fmt.Errorf("create resource config scope: %w", err)
 	}
 
+	// Point scope to resource before check runs. Because a resource's check build
+	// summary is associated with scope, only after pointing to scope, check status
+	// can be fetched.
+	if step.plan.Resource != "" {
+		err = delegate.PointToCheckedConfig(scope)
+		if err != nil {
+			return false, fmt.Errorf("update resource config scope: %w", err)
+		}
+	}
+
 	lock, run, err := delegate.WaitToRun(ctx, scope)
 	if err != nil {
 		return false, fmt.Errorf("wait: %w", err)
 	}
+
+	logger.Debug("after-wait-to-run", lager.Data{"run": run, "scope": scope.ID()})
 
 	if run {
 		defer func() {
@@ -166,21 +180,23 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 
 		metric.Metrics.ChecksStarted.Inc()
 
-		_, err = scope.UpdateLastCheckStartTime()
+		_, buildId, err := delegate.UpdateScopeLastCheckStartTime(scope, (step.plan.Resource == ""))
 		if err != nil {
 			return false, fmt.Errorf("update check start time: %w", err)
+		}
+
+		if buildId != 0 {
+			// Update build id in logger as in-memory build's id is only generated when starts to run check.
+			logger = logger.WithData(lager.Data{"build": buildId})
+			ctx = lagerctx.NewContext(ctx, logger)
 		}
 
 		versions, processResult, runErr := step.runCheck(ctx, logger, delegate, timeout, imageSpec, resourceConfig, source, fromVersion)
 		if runErr != nil || processResult.ExitStatus != 0 {
 			metric.Metrics.ChecksFinishedWithError.Inc()
 
-			if _, err := scope.UpdateLastCheckEndTime(false); err != nil {
+			if _, err := delegate.UpdateScopeLastCheckEndTime(scope, false); err != nil {
 				return false, fmt.Errorf("update check end time: %w", err)
-			}
-
-			if err := delegate.PointToCheckedConfig(scope); err != nil {
-				return false, fmt.Errorf("update resource config scope: %w", err)
 			}
 
 			if errors.Is(runErr, context.DeadlineExceeded) {
@@ -207,7 +223,7 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 			state.StoreResult(step.planID, versions[len(versions)-1])
 		}
 
-		_, err = scope.UpdateLastCheckEndTime(true)
+		_, err = delegate.UpdateScopeLastCheckEndTime(scope, true)
 		if err != nil {
 			return false, fmt.Errorf("update check end time: %w", err)
 		}
@@ -220,11 +236,6 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 		if found {
 			state.StoreResult(step.planID, atc.Version(latestVersion.Version()))
 		}
-	}
-
-	err = delegate.PointToCheckedConfig(scope)
-	if err != nil {
-		return false, fmt.Errorf("update resource config scope: %w", err)
 	}
 
 	delegate.Finished(logger, true)
@@ -264,7 +275,13 @@ func (step *CheckStep) runCheck(
 	}
 	tracing.Inject(ctx, &containerSpec)
 
-	containerOwner := step.containerOwner(resourceConfig)
+	containerOwner := step.containerOwner(delegate, resourceConfig)
+
+	err := delegate.BeforeSelectWorker(logger)
+	if err != nil {
+		return nil, runtime.ProcessResult{}, err
+	}
+
 	worker, err := step.workerPool.FindOrSelectWorker(ctx, containerOwner, containerSpec, workerSpec, step.strategy, delegate)
 	if err != nil {
 		return nil, runtime.ProcessResult{}, err
@@ -298,13 +315,9 @@ func (step *CheckStep) runCheck(
 	}.Check(ctx, container, delegate.Stderr())
 }
 
-func (step *CheckStep) containerOwner(resourceConfig db.ResourceConfig) db.ContainerOwner {
+func (step *CheckStep) containerOwner(delegate CheckDelegate, resourceConfig db.ResourceConfig) db.ContainerOwner {
 	if step.plan.Resource == "" {
-		return db.NewBuildStepContainerOwner(
-			step.metadata.BuildID,
-			step.planID,
-			step.metadata.TeamID,
-		)
+		return delegate.ContainerOwner(step.planID)
 	}
 
 	expires := db.ContainerOwnerExpiries{

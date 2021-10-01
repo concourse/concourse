@@ -9,7 +9,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 )
 
-func (s *Server) SetBuildComment(build db.Build) http.Handler {
+func (s *Server) SetBuildComment(build db.BuildForAPI) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		logger := s.logger.Session("set-comment")

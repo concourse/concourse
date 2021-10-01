@@ -89,14 +89,14 @@ var (
 )
 
 type fakeEventHandlerFactory struct {
-	build db.Build
+	build db.BuildForAPI
 
 	lock sync.Mutex
 }
 
 func (f *fakeEventHandlerFactory) Construct(
 	logger lager.Logger,
-	build db.Build,
+	build db.BuildForAPI,
 ) http.Handler {
 	f.lock.Lock()
 	f.build = build

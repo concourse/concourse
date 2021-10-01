@@ -10,7 +10,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 )
 
-func (s *Server) BuildResources(build db.Build) http.Handler {
+func (s *Server) BuildResources(build db.BuildForAPI) http.Handler {
 	logger := s.logger.Session("build-resources")
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
