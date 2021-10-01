@@ -28,8 +28,8 @@
       - task: business-stuff
     }}
 
-    To reduce the waiting time to the length of longest running get step, put all
-    get steps under an \reference{in-parallel-step}.
+    To reduce the waiting time to the length of the longest running get step,
+    put all get steps under an \reference{in-parallel-step}.
 
     \codeblock{yaml}{{
     jobs:
@@ -105,7 +105,7 @@
 
     Here's what this looks like in practice:
 
-    \titled-codeblock{todays-date.yml, stored in some git repo under a folder named "task"}{yaml}{{
+    \titled-codeblock{print-date.yml, stored in some git repo under a folder named "tasks"}{yaml}{{
     platform: linux
 
     image_resource: # define a default image for the task to use
@@ -126,14 +126,14 @@
     - name: ci
       type: git
       source:
-        uri: http://github.com/username/my-ci-repo
+        uri: https://github.com/concourse/examples.git
 
     jobs:
     - name: the-best-job
       plan:
       - get: ci
-      - task: what-day-is-it
-        file: ci/tasks/todays-date.yml
+      - task: today
+        file: ci/tasks/print-date.yml
     }}
   }
 
