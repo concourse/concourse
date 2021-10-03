@@ -85,6 +85,13 @@ configured multiple times with different parameters
   \code{foo: hello-((bar))-goodbye}, its value will be concatenated with the
   surrounding content. If the \code{((var))} resolves to a non-string value, an
   error will be raised.
+
+  If you are using the YAML operator for merging \code{<<}, you will need to
+  wrap it in double quotes like so \code{"<<": ((foobars))}, to avoid a cryptic
+  error message such as "error: yaml: map merge requires map or sequence of
+  maps as the value". This will allow you to merge in values from various vars.
+  See \link{YAML merge specification}{https://yaml.org/type/merge.html} for
+  more information on how this normally works.
 }
 
 \section{
