@@ -780,7 +780,6 @@
     \code{trigger: true} for any of the jobs \reference{get-step}{get steps}.
 
     \codeblock{yaml}{{
----
 jobs:
 - name: run-automatically
   plan:
@@ -821,7 +820,6 @@ resources:
     to multiple jobs as well.
 
     \codeblock{yaml}{{
----
 jobs:
 # three pre-gate jobs
 - name: job-a
@@ -879,7 +877,6 @@ resources:
     notify someone that a new build of your application is ready to be shipped.
 
     \codeblock{yaml}{{{
----
 jobs:
 - name: build-it
   plan:
