@@ -159,11 +159,11 @@ decide much on its own.
   \section{
     \title{Scaling Workers}
 
-    More workers should be added to accomodate more pipelines. To know when
+    More workers should be added to accommodate more pipelines. To know when
     this is necessary you should probably set up \reference{metrics} and keep
-    an eye on container counts. If it's starting to approach 200 or so, you
-    should probably add another worker. Load average is another metric to keep
-    an eye on.
+    an eye on container counts. If average container count starts to approach
+    200 or so per worker, you should probably add another worker. Load average
+    is another metric to keep an eye on.
 
     To add a worker, just create another machine for the worker and follow the
     \reference{worker-running} instructions again.
@@ -173,6 +173,20 @@ decide much on its own.
       since they'll both be contending for the same physical resources.
       Workers should be given their own VMs or physical machines to maximize
       resource usage.
+    }
+
+    \section{
+      \title{Horizontal vs Vertical Scaling}
+
+      The answer to whether you should scale your workers horizontally or
+      vertically depends heavily on what workloads your pipelines are running.
+      Anecdotally though, we have seen that a lot of smaller workers
+      (horizontal scaling) is usually better than a few large workers (vertical
+      scaling).
+
+      Again, this is not an absolute answer! You will have to test this out
+      against the workloads your pipelines demand and adjust based on the
+      \reference{metrics} that you are tracking.
     }
   }
 
