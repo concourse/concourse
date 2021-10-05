@@ -23,7 +23,7 @@
     "less-plugin-autoprefix": "^2.0.0",
     "puppeteer": "^10.4.0",
     "uglify-js": "^3.14.2",
-    "webpack": "^5.56.0",
+    "webpack": "^5.56.1",
     "webpack-cli": "^4.8.0"
   },
   "resolutions": {
