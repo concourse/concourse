@@ -151,6 +151,8 @@ func (step *LoadVarStep) fetchVars(
 		return nil, err
 	}
 
+	defer stream.Close()
+
 	fileContent, err := ioutil.ReadAll(stream)
 	if err != nil {
 		return nil, err
