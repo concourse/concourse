@@ -454,12 +454,16 @@
   \link{registry-image
   resource}{https://github.com/concourse/registry-image-resource/}.
 
+  The following example downloads the \link{alpine
+  image}{https://hub.docker.com/_/alpine} from docker hub and uses it in a task
+  to run \code{cat /proc/version}.
+
   \codeblock{yaml}{{
   resources:
   - name: alpine
     type: registry-image
     source:
-      repository: alpine
+      repository: alpine  # could also be the full URL "docker.io/alpine"
 
   jobs:
   - name: fetch-and-run
