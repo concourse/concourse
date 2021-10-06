@@ -445,3 +445,32 @@
     }}}
   }
 }
+
+\section{
+  \title{Fetching an Image and Using it in a Task}
+  \omit-children-from-table-of-contents
+
+  You can fetch an image and use it in a subsequent task using the
+  \link{registry-image
+  resource}{https://github.com/concourse/registry-image-resource/}.
+
+  \codeblock{yaml}{{
+  resources:
+  - name: alpine
+    type: registry-image
+    source:
+      repository: alpine
+
+  jobs:
+  - name: fetch-and-run
+    plan:
+    - get: alpine
+    - task: use-fetched-image-in-task
+      image: alpine   # reference the image from the get step
+      config:
+        platform: linux
+        run:
+          path: cat
+          args: ["/proc/version"]
+  }}
+}
