@@ -56,7 +56,7 @@ func (cmd *WorkerCommand) guardianRunner(logger lager.Logger) (ifrit.Runner, err
 	}
 
 	// guardian does not overwrite existing assets. Therefore it can end up using
-	// old versions of assets that it's packed with
+	// old versions of the assets that it was packed with.
 	os.RemoveAll("/var/gdn/assets")
 
 	members := grouper.Members{}
