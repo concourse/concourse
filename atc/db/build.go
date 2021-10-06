@@ -1775,26 +1775,6 @@ func newNullInt64(i int) sql.NullInt64 {
 	}
 }
 
-func (b *build) refreshEventIdSeq(runner sq.Runner) error {
-	var currentEventID sql.NullInt64
-	err := psql.Select("max(event_id)").
-		From(b.eventsTable()).
-		Where(sq.Eq{"build_id": b.id}).
-		RunWith(runner).
-		QueryRow().
-		Scan(&currentEventID)
-	if err != nil {
-		return err
-	}
-
-	var seqIDInit uint64
-	if currentEventID.Valid {
-		seqIDInit = uint64(currentEventID.Int64) + 1
-	}
-	b.eventID = seqIDInit
-	return nil
-}
-
 func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) error {
 	var (
 		jobID, resourceID, resourceTypeID, pipelineID, rerunOf, rerunNumber               sql.NullInt64
@@ -1935,6 +1915,26 @@ func (b *build) saveEvent(tx Tx, event atc.Event) error {
 		RunWith(tx).
 		Exec()
 	return err
+}
+
+func (b *build) refreshEventIdSeq(runner sq.Runner) error {
+	var currentEventID sql.NullInt64
+	err := psql.Select("max(event_id)").
+		From(b.eventsTable()).
+		Where(sq.Eq{"build_id": b.id}).
+		RunWith(runner).
+		QueryRow().
+		Scan(&currentEventID)
+	if err != nil {
+		return err
+	}
+
+	var seqIDInit uint64
+	if currentEventID.Valid {
+		seqIDInit = uint64(currentEventID.Int64) + 1
+	}
+	b.eventID = seqIDInit
+	return nil
 }
 
 func (b *build) isForCheck() bool {
