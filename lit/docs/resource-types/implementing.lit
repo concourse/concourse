@@ -28,8 +28,8 @@ UI, so you should make your output pretty.
 
   A resource type's \code{check} script is invoked to detect new versions of
   the resource. It is given the configured source and current version on \code{stdin},
-  and must print the array of new versions, in chronological order, to \code{stdout},
-  including the requested version if it's still valid.
+  and must print the array of new versions, in chronological order (oldest first), to
+  \code{stdout}, including the requested version if it's still valid.
 
   The request body will have the following fields:
 
