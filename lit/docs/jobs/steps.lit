@@ -1149,6 +1149,9 @@ by configuring \reference{schema.step.on_failure} or
     the \reference{set-pipeline-step}, and \reference{instanced-pipelines}{instanced pipelines}
     to maintain a dynamically sized group of related pipelines.
 
+    More fields are also available for variable interpolation with the across
+    step. See \reference{dynamic-vars-across-step} for details.
+
     \example-toggle{Multi-branch workflows}{
       You can use the \code{across} step to set a pipeline for each branch in a
       git repository.
@@ -1173,6 +1176,35 @@ by configuring \reference{schema.step.on_failure} or
       the \reference{set-pipeline-step}.
 
       For a more complete example, refer to \reference{multi-branch-workflows}.
+    }
+    \warn{
+      The \code{across} step does not work well with the \reference{get-step}
+      or \reference{put-step}. The names of resouces are not interpolated
+      within across steps. Trying to do the following will not work.
+      \codeblock{yaml}{{
+      - across:
+        - var: version
+          values: ["1.16", "1.17"]
+        do:
+          - get: go-((.:version))
+          # or this
+          - get: golang
+            resource: go-((.version))
+      }}
+
+      The main reason this does not work is that Concourse determines the
+      inputs for a job before the job starts. Concourse has no way of
+      determining inputs for a job while it's in the middle of running.
+
+      Current pipeline valdiation logic will also block you from setting the
+      pipeline at all since Concourse validates the relationship between all
+      resources and jobs by looking at get and put steps.
+
+      The above example will return an error like this when trying to set the pipeline:
+      \codeblock{}{{
+      invalid jobs:
+        jobs.job.plan.do[0].across.get(go): unknown resource 'go-((.:version))'
+      }}
     }
   }
 

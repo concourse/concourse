@@ -315,9 +315,27 @@ configured multiple times with different parameters
   }{
     \reference{schema.step.task-step.params} on a task step in a pipeline
   }{
-    \reference{tasks} in their entirety - whether from
-    \reference{schema.step.task-step.file} or \reference{schema.step.task-step.config} in a pipeline,
-    or a config executed with \reference{fly-execute}
+    \reference{tasks}{tasks configuration} in their entirety - whether from
+    \reference{schema.step.task-step.file} or
+    \reference{schema.step.task-step.config} in a pipeline, or a config
+    executed with \reference{fly-execute}
+  }
+
+  \section{
+    \title{Across Step & Dynamic Vars}{dynamic-vars-across-step}
+
+    For the \reference{schema.step.across} more fields can be dynamically
+    interpolated during runtime:
+
+    \list{
+      \reference{set-pipeline-step} identifier and
+      \reference{schema.step.set-pipeline-step.file}{\code{file}} field
+    }{
+      \reference{task-step} identifier,
+      \reference{schema.step.task-step.input_mapping}{\code{input_mapping}}, and
+      \reference{schema.step.task-step.output_mapping}{\code{output_mapping}}, in
+      addition to the all other fields mentioned above for the task step
+    }
   }
 
   Concourse will fetch values for vars as late as possible - i.e. when a step
