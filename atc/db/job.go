@@ -708,11 +708,6 @@ func (j *job) EnsurePendingBuildExists(ctx context.Context) error {
 			return err
 		}
 
-		err = createBuildEventSeq(tx, buildID)
-		if err != nil {
-			return err
-		}
-
 		latestNonRerunID, err := latestCompletedNonRerunBuild(tx, j.id)
 		if err != nil {
 			return err

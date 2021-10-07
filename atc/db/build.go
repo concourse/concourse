@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -250,6 +251,8 @@ type build struct {
 	completed bool
 
 	spanContext SpanContext
+
+	eventID uint64
 }
 
 func newEmptyBuild(conn Conn, lockFactory lock.LockFactory) *build {
@@ -600,13 +603,6 @@ func (b *build) Finish(status BuildStatus) error {
 		Status: atc.BuildStatus(status),
 		Time:   endTime.Unix(),
 	})
-	if err != nil {
-		return err
-	}
-
-	_, err = tx.Exec(fmt.Sprintf(`
-		DROP SEQUENCE %s
-	`, buildEventSeq(b.id)))
 	if err != nil {
 		return err
 	}
@@ -1779,17 +1775,6 @@ func newNullInt64(i int) sql.NullInt64 {
 	}
 }
 
-func createBuildEventSeq(tx Tx, buildid int) error {
-	_, err := tx.Exec(fmt.Sprintf(`
-		CREATE SEQUENCE %s MINVALUE 0
-	`, buildEventSeq(buildid)))
-	return err
-}
-
-func buildEventSeq(buildid int) string {
-	return fmt.Sprintf("build_event_id_seq_%d", buildid)
-}
-
 func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) error {
 	var (
 		jobID, resourceID, resourceTypeID, pipelineID, rerunOf, rerunNumber               sql.NullInt64
@@ -1917,12 +1902,39 @@ func (b *build) saveEvent(tx Tx, event atc.Event) error {
 		return err
 	}
 
+	if b.eventID == 0 {
+		if err := b.refreshEventIdSeq(tx); err != nil {
+			return err
+		}
+	}
+
+	eventID := atomic.AddUint64(&b.eventID, 1) - 1
 	_, err = psql.Insert(b.eventsTable()).
 		Columns("event_id", "build_id", "type", "version", "payload").
-		Values(sq.Expr("nextval('"+buildEventSeq(b.id)+"')"), b.id, string(event.EventType()), string(event.Version()), payload).
+		Values(eventID, b.id, string(event.EventType()), string(event.Version()), payload).
 		RunWith(tx).
 		Exec()
 	return err
+}
+
+func (b *build) refreshEventIdSeq(runner sq.Runner) error {
+	var currentEventID sql.NullInt64
+	err := psql.Select("max(event_id)").
+		From(b.eventsTable()).
+		Where(sq.Eq{"build_id": b.id}).
+		RunWith(runner).
+		QueryRow().
+		Scan(&currentEventID)
+	if err != nil {
+		return err
+	}
+
+	var seqIDInit uint64
+	if currentEventID.Valid {
+		seqIDInit = uint64(currentEventID.Int64) + 1
+	}
+	b.eventID = seqIDInit
+	return nil
 }
 
 func (b *build) isForCheck() bool {
@@ -1969,7 +1981,7 @@ func createBuild(tx Tx, build *build, vals map[string]interface{}) error {
 		return err
 	}
 
-	return createBuildEventSeq(tx, buildID)
+	return nil
 }
 
 type startedBuildArgs struct {

@@ -13,7 +13,7 @@ import (
 
 var _ = Describe("BuildFactory", func() {
 	var (
-		team      db.Team
+		team db.Team
 	)
 
 	BeforeEach(func() {
@@ -440,7 +440,7 @@ var _ = Describe("BuildFactory", func() {
 			_, err = build4DB.Reload()
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(builds).To(ConsistOf(build4DB))
+			Expect(containsBuild(builds, build4DB)).To(BeTrue())
 		})
 	})
 
@@ -489,7 +489,8 @@ var _ = Describe("BuildFactory", func() {
 			_, err = build2DB.Reload()
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(builds).To(ConsistOf(build1DB, build2DB))
+			Expect(containsBuild(builds, build1DB)).To(BeTrue())
+			Expect(containsBuild(builds, build2DB)).To(BeTrue())
 		})
 	})
 
@@ -568,3 +569,12 @@ var _ = Describe("BuildFactory", func() {
 		})
 	})
 })
+
+func containsBuild(builds []db.Build, build db.Build) bool {
+	for _, b := range builds {
+		if b.ID() == build.ID() {
+			return true
+		}
+	}
+	return false
+}

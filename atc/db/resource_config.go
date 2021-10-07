@@ -152,13 +152,16 @@ func (r *ResourceConfigDescriptor) findOrCreate(tx Tx, lockFactory lock.LockFact
 
 	var found bool
 	var err error
-	if updateLastReferenced {
-		found, err = r.updateLastReferenced(tx, rc, parentColumnName, parentID)
-	} else {
-		found, err = r.findWithParentID(tx, rc, parentColumnName, parentID)
-	}
+	found, err = r.findWithParentID(tx, rc, parentColumnName, parentID)
 	if err != nil {
 		return nil, err
+	}
+
+	if found && updateLastReferenced && rc.lastReferenced.Add(time.Minute).Before(time.Now()) {
+		found, err = r.updateLastReferenced(tx, rc, parentColumnName, parentID)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if !found {
