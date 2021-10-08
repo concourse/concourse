@@ -329,23 +329,24 @@ by configuring \reference{schema.step.on_failure} or
           This can be used in to explicitly keep track of dependent images:
 
           \codeblock{yaml}{{{
-          resources:
-          - name: my-image
-            type: registry-image
-            source: {repository: golang, tag: "1.13"}
+            resources:
+            - name: golang
+              type: registry-image
+              source:
+                repository: golang  # could also be the full URL "docker.io/golang"
+                tag: "1.17"
 
-          - name: my-repo
-            type: git
-            source: # ...
-
-          jobs:
-          - name: use-image
-            plan:
-            - get: my-image
-            - get: my-repo
-            - task: unit
-              file: my-repo/ci/unit.yml
-              image: my-image
+            jobs:
+            - name: fetch-and-run
+              plan:
+              - get: golang
+              - task: use-fetched-image-in-task
+                image: golang   # reference the image from the get step
+                config:
+                  platform: linux
+                  run:
+                    path: go
+                    args: ["version"]
           }}}
         }
 
