@@ -97,7 +97,7 @@ func newNoopNotifier() Notifier {
 }
 
 type noopNotifier struct {
-	notify   chan struct{}
+	notify chan struct{}
 }
 
 func (notifier *noopNotifier) Notify() <-chan struct{} {

@@ -2,6 +2,10 @@ package integration_test
 
 import (
 	"fmt"
+	"io"
+	"net/http"
+	"os/exec"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo"
@@ -9,9 +13,6 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
-	"io"
-	"net/http"
-	"os/exec"
 )
 
 var _ = Describe("Fly CLI", func() {

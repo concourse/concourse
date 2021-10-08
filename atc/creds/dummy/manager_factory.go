@@ -2,6 +2,7 @@ package dummy
 
 import (
 	"fmt"
+
 	"github.com/concourse/concourse/atc/creds"
 	flags "github.com/jessevdk/go-flags"
 )

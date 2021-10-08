@@ -1,13 +1,14 @@
 package resourceserver
 
 import (
-	"code.cloudfoundry.org/lager"
 	"encoding/json"
 	"fmt"
-	"github.com/concourse/concourse/atc"
-	"github.com/google/jsonapi"
 	"io"
 	"net/http"
+
+	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc"
+	"github.com/google/jsonapi"
 
 	"github.com/concourse/concourse/atc/db"
 )
@@ -37,8 +38,8 @@ func (s *Server) ClearResourceCache(pipeline db.Pipeline) http.Handler {
 
 		if !found {
 			logger.Debug("could-not-find-resource", lager.Data{
-				"resource":   	  resourceName,
-				"version":    	  version,
+				"resource": resourceName,
+				"version":  version,
 			})
 			w.Header().Set("Content-Type", jsonapi.MediaType)
 			w.WriteHeader(http.StatusNotFound)

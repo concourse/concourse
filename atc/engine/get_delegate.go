@@ -127,4 +127,3 @@ func (d *getDelegate) UpdateResourceVersion(log lager.Logger, resourceName strin
 func (d *getDelegate) ResourceCacheUser() db.ResourceCacheUser {
 	return d.build.ResourceCacheUser()
 }
-

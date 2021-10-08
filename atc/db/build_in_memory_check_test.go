@@ -1,10 +1,11 @@
 package db_test
 
 import (
-	"code.cloudfoundry.org/lager"
 	"context"
 	"fmt"
 	"time"
+
+	"code.cloudfoundry.org/lager"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"

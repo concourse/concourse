@@ -27,7 +27,7 @@ var _ = Describe("External Tasks", func() {
 	Context("when external task relies on template variables", func() {
 		var taskFileContents string
 
-		BeforeEach(func(){
+		BeforeEach(func() {
 			// we are testing an external task with two external variables - ((image_resource_type)) and ((echo_text))
 			taskFileContents = `---
 platform: linux
@@ -43,7 +43,6 @@ run:
 		})
 
 		JustBeforeEach(func() {
-
 
 			err := ioutil.WriteFile(
 				filepath.Join(fixture, "task.yml"),
@@ -140,7 +139,7 @@ echo_text: Hello World From Command Line
 		})
 
 		Context("when task vars are not used, task should get vars from var_sources", func() {
-			BeforeEach(func(){
+			BeforeEach(func() {
 				taskFileContents = `---
 platform: linux
 

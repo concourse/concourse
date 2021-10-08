@@ -28,9 +28,9 @@ type SetPipelineCommand struct {
 	YAMLVar      []flaghelpers.YAMLVariablePairFlag `short:"y"  long:"yaml-var"      unquote:"false"  value-name:"[NAME=YAML]"    description:"Specify a YAML value to set for a variable in the pipeline"`
 	InstanceVars []flaghelpers.YAMLVariablePairFlag `short:"i"  long:"instance-var"  unquote:"false"  hidden:"true"  value-name:"[NAME=STRING]"  description:"Specify a YAML value to set for an instance variable"`
 
-	VarsFrom 	 []atc.PathFlag `short:"l"  long:"load-vars-from"  description:"Variable flag that can be used for filling in template values in configuration from a YAML file"`
+	VarsFrom []atc.PathFlag `short:"l"  long:"load-vars-from"  description:"Variable flag that can be used for filling in template values in configuration from a YAML file"`
 
-	Team 		 flaghelpers.TeamFlag `long:"team"              description:"Name of the team to which the pipeline belongs, if different from the target default"`
+	Team flaghelpers.TeamFlag `long:"team"              description:"Name of the team to which the pipeline belongs, if different from the target default"`
 }
 
 func (command *SetPipelineCommand) Validate() ([]concourse.ConfigWarning, error) {

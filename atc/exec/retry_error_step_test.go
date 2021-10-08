@@ -98,12 +98,12 @@ var _ = Describe("RetryErrorStep", func() {
 				Expect(message).To(Equal(fmt.Sprintf("%s, will retry ...", cause.Error())))
 			})
 
-			Context("when build aborted", func(){
-				BeforeEach(func(){
+			Context("when build aborted", func() {
+				BeforeEach(func() {
 					cancel()
 				})
 
-				It("should not retry", func(){
+				It("should not retry", func() {
 					Expect(runErr).To(Equal(cause))
 				})
 			})

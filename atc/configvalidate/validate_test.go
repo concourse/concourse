@@ -2274,13 +2274,13 @@ var _ = Describe("ValidateConfig", func() {
 					},
 					Jobs: atc.JobConfigs{
 						{
-							Name:   "some-job-1",
+							Name: "some-job-1",
 							PlanSequence: []atc.Step{
 								{
 									Config: &atc.GetStep{
 										Name:     "some-input",
 										Resource: "some-resource",
-										Passed: []string{"some-job-1"},
+										Passed:   []string{"some-job-1"},
 									},
 								},
 							},
@@ -2308,54 +2308,53 @@ var _ = Describe("ValidateConfig", func() {
 					},
 					Jobs: atc.JobConfigs{
 						{
-							Name:   "some-job-1",
+							Name: "some-job-1",
 							PlanSequence: []atc.Step{
 								{
 									Config: &atc.GetStep{
 										Name:     "some-input",
 										Resource: "some-resource",
-										Passed: []string{"some-job-2"},
+										Passed:   []string{"some-job-2"},
 									},
 								},
 							},
 						},
 						{
-							Name:   "some-job-2",
+							Name: "some-job-2",
 							PlanSequence: []atc.Step{
 								{
 									Config: &atc.GetStep{
 										Name:     "some-input",
 										Resource: "some-resource",
-										Passed: []string{"some-job-3"},
+										Passed:   []string{"some-job-3"},
 									},
 								},
 							},
 						},
 						{
-							Name:   "some-job-3",
+							Name: "some-job-3",
 							PlanSequence: []atc.Step{
 								{
 									Config: &atc.GetStep{
 										Name:     "some-input",
 										Resource: "some-resource",
-										Passed: []string{"some-job-4"},
+										Passed:   []string{"some-job-4"},
 									},
 								},
 							},
 						},
 						{
-							Name:   "some-job-4",
+							Name: "some-job-4",
 							PlanSequence: []atc.Step{
 								{
 									Config: &atc.GetStep{
 										Name:     "some-input",
 										Resource: "some-resource",
-										Passed: []string{"some-job-2"},
+										Passed:   []string{"some-job-2"},
 									},
 								},
 							},
 						},
-
 					},
 				}
 			})
@@ -2379,31 +2378,31 @@ var _ = Describe("ValidateConfig", func() {
 					},
 					Jobs: atc.JobConfigs{
 						{
-							Name:   "some-job-1",
+							Name: "some-job-1",
 							PlanSequence: []atc.Step{
 								{
 									Config: &atc.GetStep{
 										Name:     "some-input",
 										Resource: "some-resource",
-										Passed: []string{"some-job-2"},
+										Passed:   []string{"some-job-2"},
 									},
 								},
 							},
 						},
 						{
-							Name:   "some-job-2",
+							Name: "some-job-2",
 							PlanSequence: []atc.Step{
 								{
 									Config: &atc.GetStep{
 										Name:     "some-input",
 										Resource: "some-resource",
-										Passed: []string{"some-job-3", "some-job-4"},
+										Passed:   []string{"some-job-3", "some-job-4"},
 									},
 								},
 							},
 						},
 						{
-							Name:   "some-job-3",
+							Name: "some-job-3",
 							PlanSequence: []atc.Step{
 								{
 									Config: &atc.GetStep{
@@ -2414,18 +2413,17 @@ var _ = Describe("ValidateConfig", func() {
 							},
 						},
 						{
-							Name:   "some-job-4",
+							Name: "some-job-4",
 							PlanSequence: []atc.Step{
 								{
 									Config: &atc.GetStep{
 										Name:     "some-input",
 										Resource: "some-resource",
-										Passed: []string{"some-job-3"},
+										Passed:   []string{"some-job-3"},
 									},
 								},
 							},
 						},
-
 					},
 				}
 			})

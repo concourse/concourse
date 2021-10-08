@@ -1,11 +1,15 @@
 package db
 
 import (
-	"code.cloudfoundry.org/lager"
 	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
+	"time"
+
+	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
@@ -16,9 +20,6 @@ import (
 	"github.com/concourse/concourse/vars"
 	"github.com/lib/pq"
 	"go.opentelemetry.io/otel/propagation"
-	"strconv"
-	"strings"
-	"time"
 )
 
 // inMemoryCheckBuildForApi implements db.BuildForAPI. It handles API operations

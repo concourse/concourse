@@ -3,11 +3,12 @@ package concourse
 import (
 	"bytes"
 	"encoding/json"
+	"net/http"
+	"net/url"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/go-concourse/concourse/internal"
 	"github.com/tedsuo/rata"
-	"net/http"
-	"net/url"
 )
 
 func (team *team) Resource(pipelineRef atc.PipelineRef, resourceName string) (atc.Resource, bool, error) {
@@ -52,7 +53,6 @@ func (team *team) ListResources(pipelineRef atc.PipelineRef) ([]atc.Resource, er
 
 	return resources, err
 }
-
 
 func (team *team) ClearResourceCache(pipelineRef atc.PipelineRef, ResourceName string, version atc.Version) (int64, error) {
 	params := rata.Params{

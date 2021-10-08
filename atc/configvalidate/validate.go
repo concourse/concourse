@@ -499,8 +499,8 @@ func validateDisplay(c atc.Config) ([]atc.ConfigWarning, error) {
 
 func detectCycle(j atc.JobConfig, visited map[string]int, pipelineConfig atc.Config) error {
 	const (
-		nonVisited = 0
-		semiVisited = 1
+		nonVisited     = 0
+		semiVisited    = 1
 		alreadyVisited = 2
 	)
 	visited[j.Name] = semiVisited

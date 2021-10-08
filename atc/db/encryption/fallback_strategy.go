@@ -23,4 +23,3 @@ func (n *FallbackStrategy) Decrypt(text string, nonce *string) ([]byte, error) {
 	}
 	return n.fallback.Decrypt(text, nonce)
 }
-

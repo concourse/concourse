@@ -18,17 +18,17 @@ func init() {
 }
 
 type SAMLFlags struct {
-	DisplayName        string      `long:"display-name" description:"The auth provider name displayed to users on the login page"`
-	SsoURL             string      `long:"sso-url" description:"(Required) SSO URL used for POST value"`
-	CACert             flag.File   `long:"ca-cert" description:"(Required) CA Certificate"`
-	EntityIssuer       string      `long:"entity-issuer" description:"Manually specify dex's Issuer value."`
-	SsoIssuer          string      `long:"sso-issuer" description:"Issuer value expected in the SAML response."`
-	UsernameAttr       string      `long:"username-attr" default:"name" description:"The user name indicates which claim to use to map an external user name to a Concourse user name."`
-	EmailAttr          string      `long:"email-attr" default:"email" description:"The email indicates which claim to use to map an external user email to a Concourse user email."`
-	GroupsAttr         string      `long:"groups-attr" default:"groups" description:"The groups key indicates which attribute to use to map external groups to Concourse teams."`
-	GroupsDelim        string      `long:"groups-delim" description:"If specified, groups are returned as string, this delimiter will be used to split the group string."`
-	NameIDPolicyFormat string      `long:"name-id-policy-format" description:"Requested format of the NameID. The NameID value is is mapped to the ID Token 'sub' claim."`
-	InsecureSkipVerify bool        `long:"skip-ssl-validation" description:"Skip SSL validation"`
+	DisplayName        string    `long:"display-name" description:"The auth provider name displayed to users on the login page"`
+	SsoURL             string    `long:"sso-url" description:"(Required) SSO URL used for POST value"`
+	CACert             flag.File `long:"ca-cert" description:"(Required) CA Certificate"`
+	EntityIssuer       string    `long:"entity-issuer" description:"Manually specify dex's Issuer value."`
+	SsoIssuer          string    `long:"sso-issuer" description:"Issuer value expected in the SAML response."`
+	UsernameAttr       string    `long:"username-attr" default:"name" description:"The user name indicates which claim to use to map an external user name to a Concourse user name."`
+	EmailAttr          string    `long:"email-attr" default:"email" description:"The email indicates which claim to use to map an external user email to a Concourse user email."`
+	GroupsAttr         string    `long:"groups-attr" default:"groups" description:"The groups key indicates which attribute to use to map external groups to Concourse teams."`
+	GroupsDelim        string    `long:"groups-delim" description:"If specified, groups are returned as string, this delimiter will be used to split the group string."`
+	NameIDPolicyFormat string    `long:"name-id-policy-format" description:"Requested format of the NameID. The NameID value is is mapped to the ID Token 'sub' claim."`
+	InsecureSkipVerify bool      `long:"skip-ssl-validation" description:"Skip SSL validation"`
 }
 
 func (flag *SAMLFlags) Name() string {

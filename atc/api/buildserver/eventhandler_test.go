@@ -3,11 +3,12 @@ package buildserver_test
 import (
 	"encoding/json"
 	"errors"
-	. "github.com/concourse/concourse/atc/testhelpers"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"time"
+
+	. "github.com/concourse/concourse/atc/testhelpers"
 
 	"code.cloudfoundry.org/lager/lagertest"
 	. "github.com/concourse/concourse/atc/api/buildserver"

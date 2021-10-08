@@ -2,9 +2,10 @@ package wrappa_test
 
 import (
 	"fmt"
-	. "github.com/concourse/concourse/atc/testhelpers"
 	"net/http"
 	"net/http/httptest"
+
+	. "github.com/concourse/concourse/atc/testhelpers"
 
 	"github.com/concourse/concourse/atc/wrappa"
 

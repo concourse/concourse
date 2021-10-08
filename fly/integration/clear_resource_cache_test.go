@@ -20,9 +20,9 @@ var _ = Describe("Fly CLI", func() {
 		var (
 			expectedQueryParams []string
 			expectedURL         = "/api/v1/teams/main/pipelines/some-pipeline/resources/some-resource/cache"
-			stdin io.Writer
-			args  []string
-			sess  *gexec.Session
+			stdin               io.Writer
+			args                []string
+			sess                *gexec.Session
 		)
 
 		BeforeEach(func() {
@@ -57,7 +57,6 @@ var _ = Describe("Fly CLI", func() {
 				Expect(sess.Err).To(gbytes.Say("error: the required flag `" + osFlag("r", "resource") + "' was not specified"))
 			})
 		})
-
 
 		Context("when resource and a version are specified", func() {
 			JustBeforeEach(func() {
@@ -121,7 +120,6 @@ var _ = Describe("Fly CLI", func() {
 				})
 			})
 
-
 			Context("when the resource does not exist", func() {
 				var expectedURL = "/api/v1/teams/main/pipelines/some-pipeline/resources/no-existing-resource/cache"
 
@@ -135,7 +133,7 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				BeforeEach(func() {
-					args = append(args,  "-r", "some-pipeline/no-existing-resource")
+					args = append(args, "-r", "some-pipeline/no-existing-resource")
 				})
 
 				It("writes that it did not exist", func() {

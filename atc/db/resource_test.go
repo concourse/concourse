@@ -3,9 +3,10 @@ package db_test
 import (
 	"context"
 	"encoding/json"
-	"github.com/concourse/concourse/atc/util"
 	"strconv"
 	"time"
+
+	"github.com/concourse/concourse/atc/util"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"

@@ -5,12 +5,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/concourse/go-archive/tgzfs"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+
+	"github.com/concourse/go-archive/tgzfs"
 
 	"github.com/concourse/concourse/worker/baggageclaim/uidgid/uidgidfakes"
 	"github.com/concourse/concourse/worker/baggageclaim/volume"

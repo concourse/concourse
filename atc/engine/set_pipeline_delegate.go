@@ -15,16 +15,16 @@ func NewSetPipelineStepDelegate(
 	planID atc.PlanID,
 	state exec.RunState,
 	clock clock.Clock,
-	policyChecker    policy.Checker,
+	policyChecker policy.Checker,
 ) *setPipelineStepDelegate {
 	return &setPipelineStepDelegate{
 		buildStepDelegate{
-			build:  build,
-			planID: planID,
-			clock:  clock,
-			state:  state,
-			stdout: nil,
-			stderr: nil,
+			build:         build,
+			planID:        planID,
+			clock:         clock,
+			state:         state,
+			stdout:        nil,
+			stderr:        nil,
 			policyChecker: policyChecker,
 		},
 	}

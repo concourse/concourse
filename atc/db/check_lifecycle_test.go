@@ -2,6 +2,7 @@ package db_test
 
 import (
 	"context"
+
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -17,7 +18,7 @@ var _ = Describe("Check Lifecycle", func() {
 		plan                       atc.Plan
 		scopeOfDefaultResource     db.ResourceConfigScope
 		scopeOfDefaultResourceType db.ResourceConfigScope
-		scopeOfDefaultPrototype db.ResourceConfigScope
+		scopeOfDefaultPrototype    db.ResourceConfigScope
 	)
 
 	BeforeEach(func() {

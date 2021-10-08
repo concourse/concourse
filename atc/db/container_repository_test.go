@@ -2,8 +2,9 @@ package db_test
 
 import (
 	"context"
-	"github.com/concourse/concourse/atc/util"
 	"time"
+
+	"github.com/concourse/concourse/atc/util"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
