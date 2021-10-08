@@ -74,6 +74,8 @@ var _ = Describe("PutStep", func() {
 		stderrBuf *gbytes.Buffer
 
 		versionResult resource.VersionResult
+
+		defaultPutTimeout time.Duration = 0
 	)
 
 	BeforeEach(func() {
@@ -160,6 +162,7 @@ var _ = Describe("PutStep", func() {
 			nil,
 			fakePool,
 			fakeDelegateFactory,
+			defaultPutTimeout,
 		)
 
 		stepOk, stepErr = putStep.Run(ctx, state)
@@ -503,6 +506,31 @@ var _ = Describe("PutStep", func() {
 			It("fails miserably", func() {
 				Expect(stepErr).To(MatchError("parse timeout: time: invalid duration \"bogus\""))
 			})
+		})
+	})
+
+	Context("when there is default put timeout", func() {
+		BeforeEach(func() {
+			defaultPutTimeout = time.Minute * 30
+		})
+
+		It("enforces it on the put", func() {
+			t, ok := chosenContainer.ContextOfRun().Deadline()
+			Expect(ok).To(BeTrue())
+			Expect(t).To(BeTemporally("~", time.Now().Add(time.Minute*30), time.Minute))
+		})
+	})
+
+	Context("when there is default put timeout and the plan specifies a timeout also", func() {
+		BeforeEach(func() {
+			defaultPutTimeout = time.Minute * 30
+			putPlan.Timeout = "1h"
+		})
+
+		It("enforces the plan's timeout on the put", func() {
+			t, ok := chosenContainer.ContextOfRun().Deadline()
+			Expect(ok).To(BeTrue())
+			Expect(t).To(BeTemporally("~", time.Now().Add(time.Hour), time.Minute))
 		})
 	})
 

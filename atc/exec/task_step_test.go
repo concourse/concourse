@@ -64,6 +64,8 @@ var _ = Describe("TaskStep", func() {
 		planID = atc.PlanID("42")
 
 		expectedOwner = db.NewBuildStepContainerOwner(stepMetadata.BuildID, planID, stepMetadata.TeamID)
+
+		defaultTaskTimeout time.Duration = 0
 	)
 
 	BeforeEach(func() {
@@ -117,6 +119,7 @@ var _ = Describe("TaskStep", func() {
 			fakePool,
 			fakeStreamer,
 			fakeDelegateFactory,
+			defaultTaskTimeout,
 		)
 
 		stepOk, stepErr = taskStep.Run(ctx, state)
@@ -307,6 +310,31 @@ var _ = Describe("TaskStep", func() {
 			})
 		})
 
+		Context("when there is default task timeout", func() {
+			BeforeEach(func() {
+				defaultTaskTimeout = time.Minute * 30
+			})
+
+			It("enforces it on the task", func() {
+				t, ok := chosenContainer.ContextOfRun().Deadline()
+				Expect(ok).To(BeTrue())
+				Expect(t).To(BeTemporally("~", time.Now().Add(time.Minute*30), time.Minute))
+			})
+		})
+
+		Context("when there is default task timeout and the plan specifies a timeout also", func() {
+			BeforeEach(func() {
+				defaultTaskTimeout = time.Minute * 30
+				taskPlan.Timeout = "1h"
+			})
+
+			It("enforces the plan's timeout on the task step", func() {
+				t, ok := chosenContainer.ContextOfRun().Deadline()
+				Expect(ok).To(BeTrue())
+				Expect(t).To(BeTemporally("~", time.Now().Add(time.Hour), time.Minute))
+			})
+		})
+
 		Context("when rootfs uri is set instead of image resource", func() {
 			BeforeEach(func() {
 				taskPlan.Config.RootfsURI = "some-image"
@@ -322,6 +350,7 @@ var _ = Describe("TaskStep", func() {
 
 		Context("when tracing is enabled", func() {
 			BeforeEach(func() {
+				defaultTaskTimeout = 0
 				tracing.ConfigureTraceProvider(oteltest.NewTracerProvider())
 
 				spanCtx, buildSpan := tracing.StartSpan(ctx, "build", nil)

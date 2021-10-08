@@ -23,6 +23,8 @@ type Container struct {
 
 	mtx       *sync.Mutex
 	processes []*Process
+
+	runContext context.Context
 }
 
 func NewContainer() *Container {
@@ -46,6 +48,7 @@ func (c *Container) WithProcess(spec runtime.ProcessSpec, stub ProcessStub) *Con
 }
 
 func (c *Container) Run(ctx context.Context, spec runtime.ProcessSpec, io runtime.ProcessIO) (runtime.Process, error) {
+	c.runContext = ctx
 	for i, pd := range c.ProcessDefs {
 		if reflect.DeepEqual(pd.Spec, spec) {
 			// remove current ProcessDefinition
@@ -62,6 +65,10 @@ func (c *Container) Run(ctx context.Context, spec runtime.ProcessSpec, io runtim
 		}
 	}
 	return nil, fmt.Errorf("must setup a ProcessStub for process %q (%+v)", spec.ID, spec)
+}
+
+func (c *Container) ContextOfRun() context.Context {
+	return c.runContext
 }
 
 func (c *Container) RunningProcesses() []*Process {

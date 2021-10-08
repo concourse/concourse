@@ -78,6 +78,8 @@ var _ = Describe("GetStep", func() {
 		planID = atc.PlanID("56")
 
 		expectedOwner = db.NewBuildStepContainerOwner(stepMetadata.BuildID, planID, stepMetadata.TeamID)
+
+		defaultGetTimeout time.Duration = 0
 	)
 
 	BeforeEach(func() {
@@ -166,6 +168,7 @@ var _ = Describe("GetStep", func() {
 			nil,
 			fakeDelegateFactory,
 			fakePool,
+			defaultGetTimeout,
 		)
 
 		stepOk, stepErr = getStep.Run(ctx, runState)
@@ -482,11 +485,11 @@ var _ = Describe("GetStep", func() {
 			Expect(ok).To(BeFalse())
 		})
 
-		It("get resource cache owner from delegate", func(){
+		It("get resource cache owner from delegate", func() {
 			Expect(fakeDelegate.ResourceCacheUserCallCount()).To(Equal(1))
 		})
 
-		It("get container owner from delegate", func(){
+		It("get container owner from delegate", func() {
 			Expect(fakeDelegate.ContainerOwnerCallCount()).To(Equal(1))
 		})
 
@@ -563,6 +566,31 @@ var _ = Describe("GetStep", func() {
 			It("fails miserably", func() {
 				Expect(stepErr).To(MatchError("parse timeout: time: invalid duration \"bogus\""))
 			})
+		})
+	})
+
+	Context("when there is default get timeout", func() {
+		BeforeEach(func() {
+			defaultGetTimeout = time.Minute * 30
+		})
+
+		It("enforces it on the get", func() {
+			t, ok := chosenContainer.ContextOfRun().Deadline()
+			Expect(ok).To(BeTrue())
+			Expect(t).To(BeTemporally("~", time.Now().Add(time.Minute*30), time.Minute))
+		})
+	})
+
+	Context("when there is default get timeout and the plan specifies a timeout also", func() {
+		BeforeEach(func() {
+			defaultGetTimeout = time.Minute * 30
+			getPlan.Timeout = "1h"
+		})
+
+		It("enforces the plan's timeout on the get step", func() {
+			t, ok := chosenContainer.ContextOfRun().Deadline()
+			Expect(ok).To(BeTrue())
+			Expect(t).To(BeTemporally("~", time.Now().Add(time.Hour), time.Minute))
 		})
 	})
 

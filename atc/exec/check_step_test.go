@@ -41,7 +41,7 @@ var _ = Describe("CheckStep", func() {
 		fakeDelegate              *execfakes.FakeCheckDelegate
 		fakeDelegateFactory       *execfakes.FakeCheckDelegateFactory
 		spanCtx                   context.Context
-		defaultTimeout            = time.Hour
+		defaultTimeout            time.Duration = 0
 
 		fakePool        *execfakes.FakePool
 		chosenWorker    *runtimetest.Worker
@@ -378,6 +378,41 @@ var _ = Describe("CheckStep", func() {
 							_, _, _, privileged := fakeDelegate.FetchImageArgsForCall(0)
 							Expect(privileged).To(BeTrue())
 						})
+					})
+
+					Context("when the timeout is bogus", func() {
+						BeforeEach(func() {
+							checkPlan.Timeout = "bogus"
+						})
+
+						It("fails miserably", func() {
+							Expect(stepErr).To(MatchError(ContainSubstring("parse timeout: time: invalid duration \"bogus\"")))
+						})
+					})
+				})
+
+				Context("when there is default check timeout", func() {
+					BeforeEach(func() {
+						defaultTimeout = time.Minute * 30
+					})
+
+					It("enforces it on the check", func() {
+						t, ok := chosenContainer.ContextOfRun().Deadline()
+						Expect(ok).To(BeTrue())
+						Expect(t).To(BeTemporally("~", time.Now().Add(time.Minute*30), time.Minute))
+					})
+				})
+
+				Context("when there is default check timeout and the plan specifies a timeout also", func() {
+					BeforeEach(func() {
+						defaultTimeout = time.Minute * 30
+						checkPlan.Timeout = "1h"
+					})
+
+					It("enforces the plan's timeout on the check", func() {
+						t, ok := chosenContainer.ContextOfRun().Deadline()
+						Expect(ok).To(BeTrue())
+						Expect(t).To(BeTemporally("~", time.Now().Add(time.Hour), time.Minute))
 					})
 				})
 
@@ -716,16 +751,6 @@ var _ = Describe("CheckStep", func() {
 			It("errors", func() {
 				Expect(stepErr).To(HaveOccurred())
 			})
-		})
-	})
-
-	Context("when a bogus timeout is given", func() {
-		BeforeEach(func() {
-			checkPlan.Timeout = "bogus"
-		})
-
-		It("fails miserably", func() {
-			Expect(stepErr).To(MatchError("parse timeout: time: invalid duration \"bogus\""))
 		})
 	})
 })

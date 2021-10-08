@@ -87,6 +87,7 @@ type GetStep struct {
 	workerPool           Pool
 	lockFactory          lock.LockFactory
 	delegateFactory      GetDelegateFactory
+	defaultGetTimeout    time.Duration
 }
 
 func NewGetStep(
@@ -99,6 +100,7 @@ func NewGetStep(
 	strategy worker.PlacementStrategy,
 	delegateFactory GetDelegateFactory,
 	pool Pool,
+	defaultGetTimeout time.Duration,
 ) Step {
 	return &GetStep{
 		planID:               planID,
@@ -110,6 +112,7 @@ func NewGetStep(
 		lockFactory:          lockFactory,
 		delegateFactory:      delegateFactory,
 		workerPool:           pool,
+		defaultGetTimeout:    defaultGetTimeout,
 	}
 }
 
@@ -467,7 +470,7 @@ func (step *GetStep) performGetAndInitCache(
 		}()
 	}
 
-	ctx, cancel, err := MaybeTimeout(ctx, step.plan.Timeout)
+	ctx, cancel, err := MaybeTimeout(ctx, step.plan.Timeout, step.defaultGetTimeout)
 	if err != nil {
 		return nil, resource.VersionResult{}, runtime.ProcessResult{}, err
 	}

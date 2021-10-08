@@ -101,14 +101,6 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 
 	delegate.Initializing(logger)
 
-	timeout := step.defaultCheckTimeout
-	if step.plan.Timeout != "" {
-		var err error
-		timeout, err = time.ParseDuration(step.plan.Timeout)
-		if err != nil {
-			return false, fmt.Errorf("parse timeout: %w", err)
-		}
-	}
 	source, err := creds.NewSource(state, step.plan.Source).Evaluate()
 	if err != nil {
 		return false, fmt.Errorf("resource config creds evaluation: %w", err)
@@ -191,7 +183,7 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 			ctx = lagerctx.NewContext(ctx, logger)
 		}
 
-		versions, processResult, runErr := step.runCheck(ctx, logger, delegate, timeout, imageSpec, resourceConfig, source, fromVersion)
+		versions, processResult, runErr := step.runCheck(ctx, logger, delegate, imageSpec, resourceConfig, source, fromVersion)
 		if runErr != nil || processResult.ExitStatus != 0 {
 			metric.Metrics.ChecksFinishedWithError.Inc()
 
@@ -247,7 +239,6 @@ func (step *CheckStep) runCheck(
 	ctx context.Context,
 	logger lager.Logger,
 	delegate CheckDelegate,
-	timeout time.Duration,
 	imageSpec runtime.ImageSpec,
 	resourceConfig db.ResourceConfig,
 	source atc.Source,
@@ -298,8 +289,10 @@ func (step *CheckStep) runCheck(
 		)
 	}()
 
-	ctx, cancel := context.WithTimeout(ctx, timeout)
-	ctx = lagerctx.NewContext(ctx, logger)
+	ctx, cancel, err := MaybeTimeout(ctx, step.plan.Timeout, step.defaultCheckTimeout)
+	if err != nil {
+		return nil, runtime.ProcessResult{}, err
+	}
 
 	defer cancel()
 
