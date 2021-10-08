@@ -1149,7 +1149,134 @@ by configuring \reference{schema.step.on_failure} or
     the \reference{set-pipeline-step}, and \reference{instanced-pipelines}{instanced pipelines}
     to maintain a dynamically sized group of related pipelines.
 
-    \example-toggle{Multi-branch workflows}{
+    More fields are also available for variable interpolation with the across
+    step. See \reference{dynamic-vars-across-step} for details.
+
+    \warn{
+      Outputs from steps ran within the across step are not available to steps
+      outside of the across step.
+    }
+
+    \example-toggle{Across with task step}{
+      \codeblock{yaml}{{
+        jobs:
+        - name: job
+          plan:
+          - across:
+            - var: some-text
+              values: ["hello-world", "hello-concourse"]
+            task: running-((.:some-text))
+            config:
+              platform: linux
+              image_resource:
+                type: mock
+                source:
+                  mirror_self: true
+              run:
+                path: echo
+                args: ["((.:some-text))"]
+      }}
+    }
+    \example-toggle{Across with input and output mapping}{
+      \codeblock{yaml}{{
+        resources:
+        - name: ci
+          type: git
+          source:
+            uri: https://github.com/concourse/examples.git
+
+        jobs:
+        - name: job
+          plan:
+          - get: ci
+          - across:
+            - var: pipeline
+              values: ["hello-world", "time-triggered"]
+            do:
+              - task: running-((.:pipeline))
+                input_mapping:
+                  ((.:pipeline)): ci
+                output_mapping:
+                  ((.:pipeline)): newci
+                config:
+                  platform: linux
+                  image_resource:
+                    type: mock
+                    source:
+                      mirror_self: true
+                  inputs:
+                    - name: ((.:pipeline))
+                  outputs:
+                    - name: ((.:pipeline))
+                  run:
+                    path: cat
+                    args: ["((.:pipeline))/pipelines/((.:pipeline)).yml"]
+              - task: newci-((.:pipeline))
+                config:
+                  platform: linux
+                  image_resource:
+                    type: mock
+                    source:
+                      mirror_self: true
+                  inputs:
+                    - name: newci
+                  run:
+                    path: cat
+                    args: ["newci/pipelines/((.:pipeline)).yml"]
+      }}
+    }
+    \example-toggle{Across with set_pipeline step}{
+      \codeblock{yaml}{{
+        resources:
+        - name: ci
+          type: git
+          source:
+            uri: https://github.com/concourse/examples.git
+
+        jobs:
+        - name: job
+          plan:
+          - get: ci
+          - across:
+            - var: pipeline
+              values: ["hello-world", "time-triggered"]
+            set_pipeline: ((.:pipeline))
+            file: ci/pipelines/((.:pipeline)).yml
+      }}
+    }
+    \example-toggle{Across with multiple steps}{
+      Use the \reference{do-step} to \code{across} over multiple steps.
+      \codeblock{yaml}{{
+        jobs:
+        - name: job
+          plan:
+          - across:
+            - var: name
+              values: ["Kaladin", "Jasnah"]
+            do:  # takes a list of steps
+            - task: saying-hello
+              config:
+                platform: linux
+                image_resource:
+                  type: mock
+                  source:
+                    mirror_self: true
+                run:
+                  path: echo
+                  args: ["Hello ((.:name))!"]
+            - task: saying-bye
+              config:
+                platform: linux
+                image_resource:
+                  type: mock
+                  source:
+                    mirror_self: true
+                run:
+                  path: echo
+                  args: ["Bye ((.:name))!"]
+      }}
+    }
+    \example-toggle{Multi-branch workflows (instance pipelines)}{
       You can use the \code{across} step to set a pipeline for each branch in a
       git repository.
 
@@ -1173,6 +1300,36 @@ by configuring \reference{schema.step.on_failure} or
       the \reference{set-pipeline-step}.
 
       For a more complete example, refer to \reference{multi-branch-workflows}.
+    }
+
+    \warn{
+      The \code{across} step does not work well with the \reference{get-step}
+      or \reference{put-step}. The names of resouces are not interpolated
+      within across steps. Trying to do the following will not work.
+      \codeblock{yaml}{{
+      - across:
+        - var: version
+          values: ["1.16", "1.17"]
+        do:
+          - get: go-((.:version))
+          # or this
+          - get: golang
+            resource: go-((.version))
+      }}
+
+      The main reason this does not work is that Concourse determines the
+      inputs for a job before the job starts. Concourse has no way of
+      determining inputs for a job while it's in the middle of running.
+
+      Current pipeline valdiation logic will also block you from setting the
+      pipeline at all since Concourse validates the relationship between all
+      resources and jobs by looking at get and put steps.
+
+      The above example will return an error like this when trying to set the pipeline:
+      \codeblock{}{{
+      invalid jobs:
+        jobs.job.plan.do[0].across.get(go): unknown resource 'go-((.:version))'
+      }}
     }
   }
 
