@@ -371,22 +371,22 @@ func (b *build) Schema() string                   { return b.schema }
 func (b *build) PrivatePlan() atc.Plan            { return b.privatePlan }
 func (b *build) PublicPlan() *json.RawMessage     { return b.publicPlan }
 func (b *build) HasPlan() bool                    { return string(*b.publicPlan) != "{}" }
-func (b *build) CreateTime() time.Time { return b.createTime }
-func (b *build) StartTime() time.Time  { return b.startTime }
-func (b *build) EndTime() time.Time    { return b.endTime }
-func (b *build) ReapTime() time.Time   { return b.reapTime }
-func (b *build) Comment() string       { return b.comment }
-func (b *build) Status() BuildStatus   { return b.status }
-func (b *build) IsScheduled() bool     { return b.scheduled }
-func (b *build) IsDrained() bool       { return b.drained }
-func (b *build) IsRunning() bool       { return !b.completed }
-func (b *build) IsAborted() bool       { return b.aborted }
-func (b *build) IsCompleted() bool     { return b.completed }
-func (b *build) InputsReady() bool     { return b.inputsReady }
-func (b *build) RerunOf() int          { return b.rerunOf }
-func (b *build) RerunOfName() string   { return b.rerunOfName }
-func (b *build) RerunNumber() int      { return b.rerunNumber }
-func (b *build) CreatedBy() *string    { return b.createdBy }
+func (b *build) CreateTime() time.Time            { return b.createTime }
+func (b *build) StartTime() time.Time             { return b.startTime }
+func (b *build) EndTime() time.Time               { return b.endTime }
+func (b *build) ReapTime() time.Time              { return b.reapTime }
+func (b *build) Comment() string                  { return b.comment }
+func (b *build) Status() BuildStatus              { return b.status }
+func (b *build) IsScheduled() bool                { return b.scheduled }
+func (b *build) IsDrained() bool                  { return b.drained }
+func (b *build) IsRunning() bool                  { return !b.completed }
+func (b *build) IsAborted() bool                  { return b.aborted }
+func (b *build) IsCompleted() bool                { return b.completed }
+func (b *build) InputsReady() bool                { return b.inputsReady }
+func (b *build) RerunOf() int                     { return b.rerunOf }
+func (b *build) RerunOfName() string              { return b.rerunOfName }
+func (b *build) RerunNumber() int                 { return b.rerunNumber }
+func (b *build) CreatedBy() *string               { return b.createdBy }
 
 func (b *build) isNewerThanLastCheckOf(input Resource) bool {
 	return b.createTime.After(input.LastCheckEndTime())

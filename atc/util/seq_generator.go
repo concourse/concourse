@@ -8,7 +8,7 @@ type SequenceGenerator interface {
 
 type seqGenerator struct {
 	current int
-	lock sync.Mutex
+	lock    sync.Mutex
 }
 
 func NewSequenceGenerator(start int) SequenceGenerator {
@@ -22,6 +22,6 @@ func (g *seqGenerator) Next() int {
 	defer g.lock.Unlock()
 
 	next := g.current
-	g.current ++
+	g.current++
 	return next
 }

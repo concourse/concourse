@@ -2,8 +2,9 @@ package db
 
 import (
 	"database/sql"
-	"github.com/patrickmn/go-cache"
 	"time"
+
+	"github.com/patrickmn/go-cache"
 
 	sq "github.com/Masterminds/squirrel"
 )

@@ -6,9 +6,9 @@ import (
 	"net"
 	"time"
 
-	"golang.org/x/crypto/ssh"
 	"github.com/concourse/concourse/tsa"
 	"github.com/concourse/concourse/tsa/tsafakes"
+	"golang.org/x/crypto/ssh"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -16,13 +16,13 @@ import (
 
 var _ = Describe("KeepAlive", func() {
 	var (
-		ctx context.Context
+		ctx       context.Context
 		sshClient *ssh.Client
-		fakeConn *tsafakes.FakeConn
-		tcpConn *net.TCPConn
+		fakeConn  *tsafakes.FakeConn
+		tcpConn   *net.TCPConn
 	)
 
-	BeforeEach(func(){
+	BeforeEach(func() {
 		ctx = context.Background()
 
 		fakeConn = &tsafakes.FakeConn{}
@@ -35,31 +35,30 @@ var _ = Describe("KeepAlive", func() {
 
 	})
 
-	JustBeforeEach(func(){
-		go tsa.KeepAlive(ctx, sshClient, tcpConn, time.Millisecond * 50, time.Millisecond * 50)
+	JustBeforeEach(func() {
+		go tsa.KeepAlive(ctx, sshClient, tcpConn, time.Millisecond*50, time.Millisecond*50)
 
 	})
 
-	Context("when SendRequest fails", func(){
-		BeforeEach(func(){
+	Context("when SendRequest fails", func() {
+		BeforeEach(func() {
 			fakeConn.SendRequestReturns(false, []byte{}, errors.New("some foo error"))
 		})
-		It("closes the connection", func(){
+		It("closes the connection", func() {
 			Eventually(fakeConn.CloseCallCount).Should(Equal(1))
 		})
 	})
 
-	Context("when SendRequest times out", func(){
-		BeforeEach(func(){
-			fakeConn.SendRequestStub = func(name string, wantReply bool, payload []byte) (bool, []byte, error){
+	Context("when SendRequest times out", func() {
+		BeforeEach(func() {
+			fakeConn.SendRequestStub = func(name string, wantReply bool, payload []byte) (bool, []byte, error) {
 				time.Sleep(time.Millisecond * 500)
 				return true, []byte{}, nil
 			}
 		})
-		It("closes the connection", func(){
+		It("closes the connection", func() {
 			Eventually(fakeConn.CloseCallCount).Should(Equal(1))
 		})
 	})
 
 })
-

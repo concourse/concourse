@@ -1,9 +1,10 @@
 package builds
 
 import (
-	"code.cloudfoundry.org/lager"
 	"context"
 	"sync"
+
+	"code.cloudfoundry.org/lager"
 
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc/db"

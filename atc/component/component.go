@@ -9,4 +9,3 @@ type Component interface {
 	Reload() (bool, error)
 	UpdateLastRan() error
 }
-

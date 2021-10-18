@@ -2,10 +2,11 @@ package token_test
 
 import (
 	"errors"
-	"github.com/concourse/concourse/atc/atcfakes"
 	"net/http"
 	"net/http/httptest"
 	"time"
+
+	"github.com/concourse/concourse/atc/atcfakes"
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc/db"

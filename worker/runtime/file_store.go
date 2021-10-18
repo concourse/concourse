@@ -70,8 +70,6 @@ func (f fileStore) Append(name string, content []byte) error {
 	return nil
 }
 
-
-
 func (f fileStore) Delete(path string) error {
 	absPath := filepath.Join(f.root, path)
 

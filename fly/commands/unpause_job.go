@@ -9,8 +9,8 @@ import (
 )
 
 type UnpauseJobCommand struct {
-	Job  flaghelpers.JobFlag 	`short:"j" long:"job" required:"true" value-name:"PIPELINE/JOB" description:"Name of a job to unpause"`
-	Team flaghelpers.TeamFlag    `long:"team" description:"Name of the team to which the job belongs, if different from the target default"`
+	Job  flaghelpers.JobFlag  `short:"j" long:"job" required:"true" value-name:"PIPELINE/JOB" description:"Name of a job to unpause"`
+	Team flaghelpers.TeamFlag `long:"team" description:"Name of the team to which the job belongs, if different from the target default"`
 }
 
 func (command *UnpauseJobCommand) Execute(args []string) error {

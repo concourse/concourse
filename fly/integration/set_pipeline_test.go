@@ -1276,7 +1276,7 @@ this is super secure
 					))
 
 					atcServer.RouteToHandler("GET", path_get, ghttp.RespondWithJSONEncoded(http.StatusOK,
-					  atc.Pipeline{ID: 1, Name: "awesome-pipeline", Paused: false, TeamName: "main", ParentBuildID: 321, ParentJobID: 123}))
+						atc.Pipeline{ID: 1, Name: "awesome-pipeline", Paused: false, TeamName: "main", ParentBuildID: 321, ParentJobID: 123}))
 
 					config.Jobs[0].Name = "updated-name"
 				})

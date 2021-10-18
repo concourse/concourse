@@ -1,12 +1,13 @@
 package db
 
 import (
-	"code.cloudfoundry.org/lager"
 	"database/sql"
 	"encoding/json"
 	"fmt"
 	"strconv"
 	"time"
+
+	"code.cloudfoundry.org/lager"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc/db/lock"

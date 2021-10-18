@@ -10,9 +10,9 @@ import (
 
 var _ = Describe("Policy checker", func() {
 	var (
-		checker policy.Checker
-		filter  policy.Filter
-		err     error
+		checker    policy.Checker
+		filter     policy.Filter
+		err        error
 		fakeResult *policyfakes.FakePolicyCheckResult
 	)
 
@@ -101,7 +101,7 @@ var _ = Describe("Policy checker", func() {
 					}))
 				})
 
-				It("return the same result the agent returns", func(){
+				It("return the same result the agent returns", func() {
 					Expect(checkErr).ToNot(HaveOccurred())
 					Expect(output).To(Equal(fakeResult))
 				})

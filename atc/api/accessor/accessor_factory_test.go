@@ -2,8 +2,9 @@ package accessor_test
 
 import (
 	"errors"
-	"github.com/concourse/concourse/atc/atcfakes"
 	"net/http"
+
+	"github.com/concourse/concourse/atc/atcfakes"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"

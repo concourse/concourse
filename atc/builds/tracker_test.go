@@ -1,11 +1,12 @@
 package builds_test
 
 import (
-	"code.cloudfoundry.org/lager/lagertest"
 	"context"
 	"io/ioutil"
 	"testing"
 	"time"
+
+	"code.cloudfoundry.org/lager/lagertest"
 
 	"github.com/concourse/concourse/atc/builds"
 	"github.com/concourse/concourse/atc/builds/buildsfakes"

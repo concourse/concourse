@@ -1,23 +1,24 @@
 package tsa
 
 import (
-	"code.cloudfoundry.org/lager/lagerctx"
 	"context"
 	"errors"
-	"golang.org/x/crypto/ssh"
 	"net"
 	"time"
+
+	"code.cloudfoundry.org/lager/lagerctx"
+	"golang.org/x/crypto/ssh"
 )
 
 //
-func KeepAlive(ctx context.Context, sshClient *ssh.Client, tcpConn *net.TCPConn, interval time.Duration, timeout time.Duration){
+func KeepAlive(ctx context.Context, sshClient *ssh.Client, tcpConn *net.TCPConn, interval time.Duration, timeout time.Duration) {
 	logger := lagerctx.WithSession(ctx, "keepalive")
 	keepAliveTicker := time.NewTicker(interval)
 
 	for {
 
-		sendKeepAliveRequest := make(chan error,1)
-		go func (){
+		sendKeepAliveRequest := make(chan error, 1)
+		go func() {
 			defer close(sendKeepAliveRequest)
 			// ignore reply; server may just not have handled it, since there's no
 			// standard keepalive request name

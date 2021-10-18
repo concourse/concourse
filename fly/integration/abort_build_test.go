@@ -211,7 +211,6 @@ var _ = Describe("AbortBuild", func() {
 
 		Context("when the job id and the build id are specified", func() {
 
-
 			Context("when the job and the build exist", func() {
 				BeforeEach(func() {
 					expectedURL := "/api/v1/teams/diff-team/pipelines/my-pipeline/jobs/my-job/builds/3"

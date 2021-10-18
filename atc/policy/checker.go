@@ -53,7 +53,7 @@ type PolicyCheckResult interface {
 }
 
 type internalPolicyCheckResult struct {
-	allowed bool
+	allowed  bool
 	messages []string
 }
 
@@ -72,7 +72,7 @@ func (r internalPolicyCheckResult) Messages() []string {
 // PassedPolicyCheck creates a generic passed check
 func PassedPolicyCheck() PolicyCheckResult {
 	return internalPolicyCheckResult{
-		allowed: true,
+		allowed:  true,
 		messages: []string{""},
 	}
 }

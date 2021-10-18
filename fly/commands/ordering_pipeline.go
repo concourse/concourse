@@ -3,9 +3,10 @@ package commands
 import (
 	"errors"
 	"fmt"
-	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"sort"
 	"strings"
+
+	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/rc"
@@ -15,9 +16,9 @@ import (
 var ErrMissingPipelineName = errors.New("Need to specify at least one pipeline name")
 
 type OrderPipelinesCommand struct {
-	Alphabetical bool     				`short:"a"  long:"alphabetical" description:"Order all pipelines alphabetically"`
-	Pipelines    []string 				`short:"p" long:"pipeline" description:"Name of pipeline (can be specified multiple times to provide relative ordering)"`
-	Team         flaghelpers.TeamFlag   `long:"team" description:"Name of the team to which the pipelines belong, if different from the target default"`
+	Alphabetical bool                 `short:"a"  long:"alphabetical" description:"Order all pipelines alphabetically"`
+	Pipelines    []string             `short:"p" long:"pipeline" description:"Name of pipeline (can be specified multiple times to provide relative ordering)"`
+	Team         flaghelpers.TeamFlag `long:"team" description:"Name of the team to which the pipelines belong, if different from the target default"`
 }
 
 func (command *OrderPipelinesCommand) Execute(args []string) error {

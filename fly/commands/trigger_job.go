@@ -15,9 +15,9 @@ import (
 )
 
 type TriggerJobCommand struct {
-	Job   flaghelpers.JobFlag 	`short:"j" long:"job" required:"true" value-name:"PIPELINE/JOB" description:"Name of a job to trigger"`
-	Watch bool                	`short:"w" long:"watch" description:"Start watching the build output"`
-	Team  flaghelpers.TeamFlag  `long:"team" description:"Name of the team to which the job belongs, if different from the target default"`
+	Job   flaghelpers.JobFlag  `short:"j" long:"job" required:"true" value-name:"PIPELINE/JOB" description:"Name of a job to trigger"`
+	Watch bool                 `short:"w" long:"watch" description:"Start watching the build output"`
+	Team  flaghelpers.TeamFlag `long:"team" description:"Name of the team to which the job belongs, if different from the target default"`
 }
 
 func (command *TriggerJobCommand) Execute(args []string) error {

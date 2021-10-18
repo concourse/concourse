@@ -2,8 +2,9 @@ package commands
 
 import (
 	"fmt"
-	"github.com/concourse/concourse/go-concourse/concourse"
 	"strconv"
+
+	"github.com/concourse/concourse/go-concourse/concourse"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
@@ -11,9 +12,9 @@ import (
 )
 
 type AbortBuildCommand struct {
-	Job   flaghelpers.JobFlag 	`short:"j" long:"job" value-name:"PIPELINE/JOB"   description:"Name of a job to cancel"`
-	Build string              	`short:"b" long:"build" required:"true" description:"If job is specified: build number to cancel. If job not specified: build id"`
-	Team  flaghelpers.TeamFlag  `long:"team" description:"Name of the team to which the pipeline belongs, if different from the target default"`
+	Job   flaghelpers.JobFlag  `short:"j" long:"job" value-name:"PIPELINE/JOB"   description:"Name of a job to cancel"`
+	Build string               `short:"b" long:"build" required:"true" description:"If job is specified: build number to cancel. If job not specified: build id"`
+	Team  flaghelpers.TeamFlag `long:"team" description:"Name of the team to which the pipeline belongs, if different from the target default"`
 }
 
 func (command *AbortBuildCommand) Execute([]string) error {

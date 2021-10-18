@@ -66,4 +66,3 @@ func (command *CheckResourceCommand) Execute(args []string) error {
 
 	return nil
 }
-

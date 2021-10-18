@@ -1,9 +1,10 @@
 package vault
 
 import (
-	"code.cloudfoundry.org/lager"
 	"sync"
 	"time"
+
+	"code.cloudfoundry.org/lager"
 
 	"github.com/cenkalti/backoff"
 )

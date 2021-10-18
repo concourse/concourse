@@ -3,6 +3,7 @@ package commands
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/vito/go-interact/interact"
 
 	"github.com/concourse/concourse/atc"

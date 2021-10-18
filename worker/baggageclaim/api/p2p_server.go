@@ -1,13 +1,14 @@
 package api
 
 import (
-	"code.cloudfoundry.org/lager"
 	"errors"
 	"fmt"
 	"net"
 	"net/http"
 	"regexp"
 	"strings"
+
+	"code.cloudfoundry.org/lager"
 )
 
 var ErrGetP2pUrlFailed = errors.New("failed to get p2p url")

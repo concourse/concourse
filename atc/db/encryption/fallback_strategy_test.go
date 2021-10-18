@@ -52,4 +52,3 @@ var _ = Describe("Encryption Key with Fallback", func() {
 		})
 	})
 })
-

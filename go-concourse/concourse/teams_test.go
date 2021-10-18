@@ -2,8 +2,9 @@ package concourse_test
 
 import (
 	"errors"
-	"github.com/concourse/concourse/atc/api/teamserver"
 	"net/http"
+
+	"github.com/concourse/concourse/atc/api/teamserver"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/go-concourse/concourse"

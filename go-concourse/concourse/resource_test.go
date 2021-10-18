@@ -122,9 +122,9 @@ var _ = Describe("ATC Handler Resource", func() {
 	Describe("ClearResourceCache", func() {
 		var (
 			expectedQueryParams []string
-			expectedURL = "/api/v1/teams/some-team/pipelines/some-pipeline/resources/some-resource/cache"
-			version = atc.Version{}
-			pipelineRef = atc.PipelineRef{Name: "some-pipeline"}
+			expectedURL         = "/api/v1/teams/some-team/pipelines/some-pipeline/resources/some-resource/cache"
+			version             = atc.Version{}
+			pipelineRef         = atc.PipelineRef{Name: "some-pipeline"}
 		)
 
 		Context("when the API call succeeds", func() {

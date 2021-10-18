@@ -3,8 +3,9 @@ package testhelpers
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/onsi/gomega/types"
 	"net/http"
+
+	"github.com/onsi/gomega/types"
 )
 
 func IncludeHeaderEntries(expected map[string]string) types.GomegaMatcher {
