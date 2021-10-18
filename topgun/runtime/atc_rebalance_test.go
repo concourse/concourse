@@ -36,17 +36,17 @@ var _ = Describe("Rebalancing workers", func() {
 		It("rotates the worker to between both web nodes over a period of time", func() {
 			Eventually(func() string {
 				workers := FlyTable("workers", "-d")
-				return strings.Split(workers[0]["garden address"], ":")[0]
+				return parseInstanceID(workers[0])
 			}).Should(SatisfyAny(
-				Equal(webInstances[0].IP),
+				Equal(webInstances[0].ID),
 				Equal(webInstances[0].DNS),
 			))
 
 			Eventually(func() string {
 				workers := FlyTable("workers", "-d")
-				return strings.Split(workers[0]["garden address"], ":")[0]
+				return parseInstanceID(workers[0])
 			}).Should(SatisfyAny(
-				Equal(webInstances[1].IP),
+				Equal(webInstances[1].ID),
 				Equal(webInstances[1].DNS),
 			))
 		})
@@ -86,3 +86,7 @@ var _ = Describe("Rebalancing workers", func() {
 		})
 	})
 })
+
+func parseInstanceID(output map[string]string) string {
+	return strings.Split(strings.Split(output["garden address"], ":")[0], ".")[0]
+}

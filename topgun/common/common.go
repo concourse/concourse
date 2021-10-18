@@ -294,10 +294,10 @@ func LoadJobInstances() (map[string][]BoshInstance, map[string][]BoshInstance) {
 
 			instance = BoshInstance{
 				Name:  group + "/" + id,
-				Group: group,
-				ID:    id,
-				IP:    instanceMatch[4],
-				DNS:   instanceMatch[5],
+				Group: group,            // web, worker or db
+				ID:    id,               // 6248cb3b-7e24-4b97-b609-d79722c3276d
+				IP:    instanceMatch[4], // 10.0.0.29
+				DNS:   instanceMatch[5], // concourse-topgun-runtime-6
 			}
 
 			instances[group] = append(instances[group], instance)
