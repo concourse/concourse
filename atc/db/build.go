@@ -2011,15 +2011,8 @@ func (b *build) eventsTable() string {
 func createBuild(tx Tx, build *build, vals map[string]interface{}) error {
 	var buildID int
 
-	buildVals := make(map[string]interface{})
-	for name, value := range vals {
-		buildVals[name] = value
-	}
-
-	buildVals["needs_v6_migration"] = false
-
 	err := psql.Insert("builds").
-		SetMap(buildVals).
+		SetMap(vals).
 		Suffix("RETURNING id").
 		RunWith(tx).
 		QueryRow().
@@ -2080,6 +2073,7 @@ func createStartedBuild(tx Tx, build *build, args startedBuildArgs) error {
 	buildVals["status"] = BuildStatusStarted
 	buildVals["start_time"] = sq.Expr("now()")
 	buildVals["schema"] = schema
+	buildVals["needs_v6_migration"] = false
 
 	for name, value := range args.ExtraValues {
 		buildVals[name] = value
