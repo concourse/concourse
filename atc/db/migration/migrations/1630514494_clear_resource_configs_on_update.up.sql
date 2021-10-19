@@ -11,10 +11,7 @@ CREATE TRIGGER resources_config_update_clears_config_ids_trigger
 	AFTER UPDATE on resources
 	FOR EACH ROW
 	WHEN (
-		(
-			(NEW.config::jsonb->'source' IS DISTINCT FROM OLD.config::jsonb->'source') OR
-			(NEW.config::jsonb->'type' IS DISTINCT FROM OLD.config::jsonb->'type')
-		)
-		AND (NEW.active IS TRUE)
+		(NEW.config IS DISTINCT FROM OLD.config) AND
+		(NEW.active IS TRUE)
 	)
 	EXECUTE PROCEDURE clear_resource_config_ids();
