@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"sync/atomic"
+	"sync"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -252,11 +252,12 @@ type build struct {
 
 	spanContext SpanContext
 
-	eventID uint64
+	eventID     uint64
+	eventIDLock *sync.Mutex
 }
 
 func newEmptyBuild(conn Conn, lockFactory lock.LockFactory) *build {
-	return &build{pipelineRef: pipelineRef{conn: conn, lockFactory: lockFactory}}
+	return &build{pipelineRef: pipelineRef{conn: conn, lockFactory: lockFactory}, eventIDLock: &sync.Mutex{}}
 }
 
 var ErrBuildDisappeared = errors.New("build disappeared from db")
@@ -1902,13 +1903,11 @@ func (b *build) saveEvent(tx Tx, event atc.Event) error {
 		return err
 	}
 
-	if b.eventID == 0 {
-		if err := b.refreshEventIdSeq(tx); err != nil {
-			return err
-		}
+	eventID, err := b.getNextEventId(tx)
+	if err != nil {
+		return err
 	}
 
-	eventID := atomic.AddUint64(&b.eventID, 1) - 1
 	_, err = psql.Insert(b.eventsTable()).
 		Columns("event_id", "build_id", "type", "version", "payload").
 		Values(eventID, b.id, string(event.EventType()), string(event.Version()), payload).
@@ -1917,24 +1916,30 @@ func (b *build) saveEvent(tx Tx, event atc.Event) error {
 	return err
 }
 
-func (b *build) refreshEventIdSeq(runner sq.Runner) error {
-	var currentEventID sql.NullInt64
-	err := psql.Select("max(event_id)").
-		From(b.eventsTable()).
-		Where(sq.Eq{"build_id": b.id}).
-		RunWith(runner).
-		QueryRow().
-		Scan(&currentEventID)
-	if err != nil {
-		return err
+func (b *build) getNextEventId(runner sq.Runner) (uint64, error) {
+	b.eventIDLock.Lock()
+	defer b.eventIDLock.Unlock()
+
+	if b.eventID == 0 {
+		var currentEventID sql.NullInt64
+		err := psql.Select("max(event_id)").
+			From(b.eventsTable()).
+			Where(sq.Eq{"build_id": b.id}).
+			RunWith(runner).
+			QueryRow().
+			Scan(&currentEventID)
+		if err != nil {
+			return 0, err
+		}
+
+		if currentEventID.Valid {
+			b.eventID = uint64(currentEventID.Int64) + 1
+		}
+	} else {
+		b.eventID = b.eventID + 1
 	}
 
-	var seqIDInit uint64
-	if currentEventID.Valid {
-		seqIDInit = uint64(currentEventID.Int64) + 1
-	}
-	b.eventID = seqIDInit
-	return nil
+	return b.eventID, nil
 }
 
 func (b *build) isForCheck() bool {
