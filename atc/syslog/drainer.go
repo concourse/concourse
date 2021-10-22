@@ -122,7 +122,7 @@ func (d *drainer) sendEvent(logger lager.Logger, build db.Build, syslog *Syslog,
 		}
 		ts = time.Unix(initEvent.Time, 0)
 		tag = build.SyslogTag(initEvent.Origin.ID)
-		message = fmt.Sprintf("initializing")
+		message = "initializing"
 	case event.EventTypeInitializeGet:
 		var initGetEvent event.InitializeGet
 		err := json.Unmarshal(*ev.Data, &initGetEvent)
@@ -132,7 +132,7 @@ func (d *drainer) sendEvent(logger lager.Logger, build db.Build, syslog *Syslog,
 		}
 		ts = time.Unix(initGetEvent.Time, 0)
 		tag = build.SyslogTag(initGetEvent.Origin.ID)
-		message = fmt.Sprintf("get initializing")
+		message = "get initializing"
 	case event.EventTypeInitializePut:
 		var initPutEvent event.InitializePut
 		err := json.Unmarshal(*ev.Data, &initPutEvent)
@@ -142,7 +142,7 @@ func (d *drainer) sendEvent(logger lager.Logger, build db.Build, syslog *Syslog,
 		}
 		ts = time.Unix(initPutEvent.Time, 0)
 		tag = build.SyslogTag(initPutEvent.Origin.ID)
-		message = fmt.Sprintf("put initializing")
+		message = "put initializing"
 	case event.EventTypeInitializeCheck:
 		var initCheckEvent event.InitializeCheck
 		err := json.Unmarshal(*ev.Data, &initCheckEvent)
@@ -162,7 +162,7 @@ func (d *drainer) sendEvent(logger lager.Logger, build db.Build, syslog *Syslog,
 		}
 		ts = time.Unix(initTaskEvent.Time, 0)
 		tag = build.SyslogTag(initTaskEvent.Origin.ID)
-		message = fmt.Sprintf("task initializing")
+		message = "task initializing"
 	case event.EventTypeSelectedWorker:
 		var selectedWorkerEvent event.SelectedWorker
 		err := json.Unmarshal(*ev.Data, &selectedWorkerEvent)
