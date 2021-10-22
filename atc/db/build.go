@@ -1917,6 +1917,9 @@ func (b *build) saveEvent(tx Tx, event atc.Event) error {
 }
 
 func (b *build) getNextEventId(runner sq.Runner) (uint64, error) {
+	if b.eventIDLock == nil {
+		return 0, errors.New("event id mutex lock not initialzied for build")
+	}
 	b.eventIDLock.Lock()
 	defer b.eventIDLock.Unlock()
 
