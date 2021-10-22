@@ -8,12 +8,13 @@ type SequenceGenerator interface {
 
 type seqGenerator struct {
 	current int
-	lock    sync.Mutex
+	lock    *sync.Mutex
 }
 
 func NewSequenceGenerator(start int) SequenceGenerator {
 	return &seqGenerator{
 		current: start,
+		lock:    &sync.Mutex{},
 	}
 }
 

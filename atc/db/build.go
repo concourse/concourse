@@ -1983,7 +1983,10 @@ func (b *build) saveEvent(tx Tx, event atc.Event) error {
 	}
 
 	if b.eventIdSeq == nil {
-		b.refreshEventIdSeq(tx)
+		err = b.refreshEventIdSeq(tx)
+		if err != nil {
+			return err
+		}
 	}
 
 	_, err = psql.Insert(b.eventsTable()).
