@@ -144,6 +144,9 @@ func (f *resourceCacheFactory) FindOrCreateResourceCache(
 			SetMap(cols).
 			RunWith(tx).
 			Exec()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	err = tx.Commit()
