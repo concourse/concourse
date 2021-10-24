@@ -1103,8 +1103,8 @@ func causalityBuilds(tx Tx, resourceID int, versionMD5 string, direction Causali
 
 	defer rows.Close()
 
-	builds := make(map[int]*atc.CausalityBuild, 0)
-	jobs := make(map[int]*atc.CausalityJob, 0)
+	builds := make(map[int]*atc.CausalityBuild)
+	jobs := make(map[int]*atc.CausalityJob)
 
 	var i int
 	for i = 0; rows.Next(); i++ {

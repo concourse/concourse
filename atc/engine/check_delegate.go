@@ -107,7 +107,7 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 	logger := lagerctx.FromContext(ctx)
 
 	if !d.plan.SkipInterval {
-		if d.plan.Interval.Never == true {
+		if d.plan.Interval.Never {
 			// exit early if user specified to never run periodic checks
 			return nil, false, nil
 		} else if d.plan.Resource != "" {

@@ -691,6 +691,9 @@ func (cmd *RunCommand) constructMembers(
 	}
 
 	workerCache, err := db.NewWorkerCache(logger.Session("worker-cache"), backendConn, 1*time.Minute)
+	if err != nil {
+		return nil, err
+	}
 	checkBuildsChan := make(chan db.Build, 2000)
 	apiMembers, err := cmd.constructAPIMembers(logger, reconfigurableSink, apiConn, workerConn, storage, lockFactory, secretManager, policyChecker, workerCache, checkBuildsChan)
 	if err != nil {
