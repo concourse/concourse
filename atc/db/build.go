@@ -252,7 +252,7 @@ type build struct {
 
 	spanContext SpanContext
 
-	eventID     uint64
+	eventID     uint64 // you must grab the eventIDLock before reading/writing to this var
 	eventIDLock *sync.Mutex
 }
 
