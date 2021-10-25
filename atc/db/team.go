@@ -563,6 +563,18 @@ func savePipeline(
 		return 0, false, err
 	}
 
+	_, err = psql.Update("resources").
+		Set("resource_config_id", nil).
+		Where(sq.Eq{
+			"pipeline_id": pipelineID,
+			"active":      false,
+		}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return 0, false, err
+	}
+
 	err = saveResourceTypes(tx, config.ResourceTypes, pipelineID)
 	if err != nil {
 		return 0, false, err
