@@ -76,7 +76,7 @@ type PrometheusEmitter struct {
 	workerUnknownVolumes               *prometheus.GaugeVec
 	workerTasks                        *prometheus.GaugeVec
 	workersRegistered                  *prometheus.GaugeVec
-	workerOrphanedVolumesToBeCollected *prometheus.GaugeVec
+	workerOrphanedVolumesToBeCollected prometheus.Counter
 
 	workerContainersLabels map[string]map[string]prometheus.Labels
 	workerVolumesLabels    map[string]map[string]prometheus.Labels
@@ -534,14 +534,14 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 	)
 	prometheus.MustRegister(volumesStreamed)
 
-	workerOrphanedVolumesToBeCollected := prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
+	workerOrphanedVolumesToBeCollected := prometheus.NewCounter(
+		prometheus.CounterOpts{
 			Namespace:   "concourse",
 			Subsystem:   "volumes",
 			Name:        "orphaned_volumes_to_be_deleted",
 			Help:        "Number of orphaned volumes to be garbage collected.",
 			ConstLabels: attributes,
-		}, []string{"workerOrphanedVolumesToBeCollected"},
+		},
 	)
 	prometheus.MustRegister(workerOrphanedVolumesToBeCollected)
 
@@ -709,7 +709,7 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 	case "worker state":
 		emitter.workersRegisteredMetric(logger, event)
 	case "orphaned volumes to be garbage collected":
-		emitter.workerOrphanedVolumesToBeCollected.Set(event.Value)
+		emitter.workerOrphanedVolumesToBeCollected.Add(event.Value)
 	case "http response time":
 		emitter.httpResponseTimeMetrics(logger, event)
 	case "database queries":
