@@ -70,12 +70,13 @@ type PrometheusEmitter struct {
 	getStepCacheHits       prometheus.Counter
 	streamedResourceCaches prometheus.Counter
 
-	workerContainers        *prometheus.GaugeVec
-	workerUnknownContainers *prometheus.GaugeVec
-	workerVolumes           *prometheus.GaugeVec
-	workerUnknownVolumes    *prometheus.GaugeVec
-	workerTasks             *prometheus.GaugeVec
-	workersRegistered       *prometheus.GaugeVec
+	workerContainers                   *prometheus.GaugeVec
+	workerUnknownContainers            *prometheus.GaugeVec
+	workerVolumes                      *prometheus.GaugeVec
+	workerUnknownVolumes               *prometheus.GaugeVec
+	workerTasks                        *prometheus.GaugeVec
+	workersRegistered                  *prometheus.GaugeVec
+	workerOrphanedVolumesToBeCollected *prometheus.GaugeFunc
 
 	workerContainersLabels map[string]map[string]prometheus.Labels
 	workerVolumesLabels    map[string]map[string]prometheus.Labels
@@ -533,6 +534,17 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 	)
 	prometheus.MustRegister(volumesStreamed)
 
+	workerOrphanedVolumesToBeCollected := prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace:   "concourse",
+			Subsystem:   "volumes",
+			Name:        "orphaned_volumes_to_be_deleted",
+			Help:        "Number of orphaned volumes to be garbage collected.",
+			ConstLabels: attributes,
+		}, []string{"workerOrphanedVolumesToBeCollected"},
+	)
+	prometheus.MustRegister(workerOrphanedVolumesToBeCollected)
+
 	getStepCacheHits := prometheus.NewCounter(
 		prometheus.CounterOpts{
 			Namespace:   "concourse",
@@ -607,16 +619,17 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 
 		checksEnqueued: checksEnqueued,
 
-		workerContainers:        workerContainers,
-		workersRegistered:       workersRegistered,
-		workerContainersLabels:  map[string]map[string]prometheus.Labels{},
-		workerVolumesLabels:     map[string]map[string]prometheus.Labels{},
-		workerTasksLabels:       map[string]map[string]prometheus.Labels{},
-		workerLastSeen:          map[string]time.Time{},
-		workerVolumes:           workerVolumes,
-		workerTasks:             workerTasks,
-		workerUnknownContainers: workerUnknownContainers,
-		workerUnknownVolumes:    workerUnknownVolumes,
+		workerContainers:                   workerContainers,
+		workersRegistered:                  workersRegistered,
+		workerContainersLabels:             map[string]map[string]prometheus.Labels{},
+		workerVolumesLabels:                map[string]map[string]prometheus.Labels{},
+		workerTasksLabels:                  map[string]map[string]prometheus.Labels{},
+		workerLastSeen:                     map[string]time.Time{},
+		workerVolumes:                      workerVolumes,
+		workerTasks:                        workerTasks,
+		workerUnknownContainers:            workerUnknownContainers,
+		workerUnknownVolumes:               workerUnknownVolumes,
+		workerOrphanedVolumesToBeCollected: workerOrphanedVolumesToBeCollected,
 
 		volumesStreamed: volumesStreamed,
 
@@ -695,6 +708,8 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 		emitter.workerTasksMetric(logger, event)
 	case "worker state":
 		emitter.workersRegisteredMetric(logger, event)
+	case "orphaned volumes to be garbage collected":
+		emitter.workerOrphanedVolumesToBeCollected.Set(event.Value)
 	case "http response time":
 		emitter.httpResponseTimeMetrics(logger, event)
 	case "database queries":
