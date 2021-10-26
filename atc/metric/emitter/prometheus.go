@@ -76,7 +76,7 @@ type PrometheusEmitter struct {
 	workerUnknownVolumes               *prometheus.GaugeVec
 	workerTasks                        *prometheus.GaugeVec
 	workersRegistered                  *prometheus.GaugeVec
-	workerOrphanedVolumesToBeCollected *prometheus.GaugeFunc
+	workerOrphanedVolumesToBeCollected *prometheus.GaugeVec
 
 	workerContainersLabels map[string]map[string]prometheus.Labels
 	workerVolumesLabels    map[string]map[string]prometheus.Labels
