@@ -1304,6 +1304,49 @@ this is super secure
 				})
 			})
 
+			Context("when dry-run mode has been enabled whilst setting a pipeline", func() {
+				BeforeEach(func() {
+					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+					Expect(err).NotTo(HaveOccurred())
+
+					path_get, err := atc.Routes.CreatePathForRoute(atc.GetPipeline, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+					Expect(err).NotTo(HaveOccurred())
+
+					atcServer.RouteToHandler("PUT", path, ghttp.CombineHandlers(
+						ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
+						func(w http.ResponseWriter, r *http.Request) {
+							config := getConfig(r)
+							Expect(config).To(MatchYAML(payload))
+						},
+						ghttp.RespondWith(http.StatusCreated, "{}"),
+					))
+
+					atcServer.RouteToHandler("GET", path_get, ghttp.RespondWithJSONEncoded(http.StatusOK,
+						atc.Pipeline{ID: 1, Name: "awesome-pipeline", Paused: false, TeamName: "main", ParentBuildID: 321, ParentJobID: 123}))
+
+					config.Jobs[0].Name = "updated-name"
+				})
+
+				It("prints pipeline diff and exits", func() {
+					Expect(func() {
+						flyCmd := exec.Command(flyPath, "-t", targetName, "set-pipeline", "-p", "awesome-pipeline", "-c", configFile.Name(), "-d")
+
+						_, err := flyCmd.StdinPipe()
+						Expect(err).NotTo(HaveOccurred())
+
+						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+						Expect(err).NotTo(HaveOccurred())
+
+						Eventually(sess).Should(gbytes.Say("Dry-run mode was set, exiting."))
+
+						<-sess.Exited
+						Expect(sess.ExitCode()).To(Equal(0))
+					}).To(Change(func() int {
+						return len(atcServer.ReceivedRequests())
+					}).By(2))
+				})
+			})
+
 			Context("when the pipeline is paused", func() {
 				AssertSuccessWithPausedPipelineHelp := func(expectCreationMessage bool) {
 					It("succeeds and prints a message to help the user", func() {

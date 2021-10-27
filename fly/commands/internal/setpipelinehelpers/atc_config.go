@@ -27,6 +27,7 @@ type ATCConfig struct {
 	Target           string
 	SkipInteraction  bool
 	CheckCredentials bool
+	DryRun           bool
 	CommandWarnings  []concourse.ConfigWarning
 	GivenTeamName    string
 }
@@ -92,6 +93,10 @@ func (atcConfig ATCConfig) Set(yamlTemplateWithParams templatehelpers.YamlTempla
 	}
 	fmt.Println()
 
+	if atcConfig.DryRun {
+		fmt.Println("Dry-run mode was set, exiting.")
+		return nil
+	}
 	pipeline, _, err := atcConfig.Team.Pipeline(atcConfig.PipelineRef)
 	if err != nil {
 		return err
