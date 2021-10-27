@@ -11,6 +11,7 @@ var _ = Describe("ValidateIdentifier", func() {
 	type testCase struct {
 		description string
 		identifier  string
+		context     []string
 		warningMsg  string
 		warning     bool
 		errorMsg    string
@@ -73,6 +74,18 @@ var _ = Describe("ValidateIdentifier", func() {
 			identifier:  "",
 			errorMsg:    ": identifier cannot be an empty string",
 		},
+		{
+			description: "is a var from across step in task",
+			context:     []string{".across", ".task(running-((.:name)))"},
+			identifier:  "((.:name))",
+			warning:     false,
+		},
+		{
+			description: "is a var from across step in set_pipeline",
+			context:     []string{".across", ".set_pipeline(((.:name)))"},
+			identifier:  "running-((.:name))",
+			warning:     false,
+		},
 	} {
 		test := test
 
@@ -84,7 +97,7 @@ var _ = Describe("ValidateIdentifier", func() {
 				it = "runs without warning"
 			}
 			It(it, func() {
-				warning, err := atc.ValidateIdentifier(test.identifier)
+				warning, err := atc.ValidateIdentifier(test.identifier, test.context...)
 				if test.warning {
 					Expect(warning).NotTo(BeNil())
 					Expect(warning.Message).To(ContainSubstring(test.warningMsg))

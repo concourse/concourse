@@ -19,8 +19,15 @@ func ValidateIdentifier(identifier string, context ...string) (*ConfigWarning, e
 	if identifier == "" {
 		return nil, fmt.Errorf("%s: identifier cannot be an empty string", strings.Join(context, ""))
 	}
+
+	contextLen := len(context)
+	if contextLen >= 2 && (strings.Contains(context[contextLen-1], "set_pipeline") || strings.Contains(context[contextLen-1], "task")) && context[contextLen-2] == ".across" {
+		return nil, nil
+	}
+
 	if !validIdentifiers.MatchString(identifier) {
 		var reason string
+
 		if startsWithLetter.MatchString(identifier) {
 			reason = "must start with a lowercase letter"
 		} else if invalidChar := invalidCharacter.Find([]byte(identifier[1:])); invalidChar != nil {
