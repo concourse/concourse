@@ -70,14 +70,15 @@ type PrometheusEmitter struct {
 	getStepCacheHits       prometheus.Counter
 	streamedResourceCaches prometheus.Counter
 
-	workerContainers                   *prometheus.GaugeVec
-	workerUnknownContainers            *prometheus.GaugeVec
-	workerVolumes                      *prometheus.GaugeVec
-	workerUnknownVolumes               *prometheus.GaugeVec
-	workerTasks                        *prometheus.GaugeVec
-	workersRegistered                  *prometheus.GaugeVec
-	workerOrphanedVolumesToBeCollected prometheus.Counter
-	droppedContainer                   *prometheus.GaugeVec
+	workerContainers                      *prometheus.GaugeVec
+	workerUnknownContainers               *prometheus.GaugeVec
+	workerVolumes                         *prometheus.GaugeVec
+	workerUnknownVolumes                  *prometheus.GaugeVec
+	workerTasks                           *prometheus.GaugeVec
+	workersRegistered                     *prometheus.GaugeVec
+	workerOrphanedVolumesToBeCollected    prometheus.Counter
+	droppedContainer                      *prometheus.GaugeVec
+	destroyingVolumesToBeGarbageCollected prometheus.Counter
 
 	workerContainersLabels      map[string]map[string]prometheus.Labels
 	workerVolumesLabels         map[string]map[string]prometheus.Labels
@@ -557,6 +558,18 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 		}, []string{"worker"},
 	)
 
+	destroyingVolumesToBeGarbageCollected := prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Namespace:   "concourse",
+			Subsystem:   "volumes",
+			Name:        "destroying volumes to be garbage collected",
+			Help:        "Volumes being destroyed to be garbage collected",
+			ConstLabels: attributes,
+		},
+	)
+
+	prometheus.MustRegister(destroyingVolumesToBeGarbageCollected)
+
 	getStepCacheHits := prometheus.NewCounter(
 		prometheus.CounterOpts{
 			Namespace:   "concourse",
@@ -725,6 +738,8 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 		emitter.workerOrphanedVolumesToBeCollected.Add(event.Value)
 	case "GC container collector job dropped":
 		emitter.droppedContainerJobMetric(logger, event)
+	case "destroying volumes to be garbage collected":
+		emitter.destroyingVolumesToBeGarbageCollected.Add(event.Value)
 	case "http response time":
 		emitter.httpResponseTimeMetrics(logger, event)
 	case "database queries":
