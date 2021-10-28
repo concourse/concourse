@@ -80,6 +80,9 @@ type PrometheusEmitter struct {
 	droppedContainer                      *prometheus.GaugeVec
 	destroyingVolumesToBeGarbageCollected prometheus.Counter
 
+	creatingContainersToBeGarbageCollected prometheus.Counter
+	createdContainersToBeGarbageCollected  prometheus.Counter
+
 	workerContainersLabels      map[string]map[string]prometheus.Labels
 	workerVolumesLabels         map[string]map[string]prometheus.Labels
 	workerTasksLabels           map[string]map[string]prometheus.Labels
@@ -548,16 +551,6 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 	)
 	prometheus.MustRegister(workerOrphanedVolumesToBeCollected)
 
-	droppedContainer := prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Namespace:   "concourse",
-			Subsystem:   "volumes",
-			Name:        "GC container collector job dropped",
-			Help:        "Workers that have the container collector job dropped",
-			ConstLabels: attributes,
-		}, []string{"worker"},
-	)
-
 	destroyingVolumesToBeGarbageCollected := prometheus.NewCounter(
 		prometheus.CounterOpts{
 			Namespace:   "concourse",
@@ -567,8 +560,39 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 			ConstLabels: attributes,
 		},
 	)
-
 	prometheus.MustRegister(destroyingVolumesToBeGarbageCollected)
+
+	creatingContainersToBeGarbageCollected := prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Namespace:   "concourse",
+			Subsystem:   "containers",
+			Name:        "creating containers to be garbage collected",
+			Help:        "Creating Containers being garbage collected",
+			ConstLabels: attributes,
+		},
+	)
+	prometheus.MustRegister(creatingContainersToBeGarbageCollected)
+
+	createdContainersToBeGarbageCollected := prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Namespace:   "concourse",
+			Subsystem:   "containers",
+			Name:        "created containers to be garbage collected",
+			Help:        "Created Containers being garbage collected",
+			ConstLabels: attributes,
+		},
+	)
+	prometheus.MustRegister(createdContainersToBeGarbageCollected)
+
+	droppedContainer := prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace:   "concourse",
+			Subsystem:   "volumes",
+			Name:        "GC container collector job dropped",
+			Help:        "Workers that have the container collector job dropped",
+			ConstLabels: attributes,
+		}, []string{"worker"},
+	)
 
 	getStepCacheHits := prometheus.NewCounter(
 		prometheus.CounterOpts{
@@ -724,6 +748,10 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 		emitter.checkBuildFinishedMetrics(logger, event)
 	case "worker containers":
 		emitter.workerContainersMetric(logger, event)
+	case "creating containers to be garbage collected":
+		emitter.creatingContainersToBeGarbageCollected.Add(event.Value)
+	case "created containers to be garbage collected":
+		emitter.createdContainersToBeGarbageCollected.Add(event.Value)
 	case "worker volumes":
 		emitter.workerVolumesMetric(logger, event)
 	case "worker unknown containers":
