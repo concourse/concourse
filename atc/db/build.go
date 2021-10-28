@@ -378,15 +378,31 @@ func (b *build) RerunNumber() int      { return b.rerunNumber }
 func (b *build) CreatedBy() *string    { return b.createdBy }
 
 func (b *build) Reload() (bool, error) {
+	tx, err := b.conn.Begin()
+	if err != nil {
+		return false, err
+	}
+	defer tx.Rollback()
+
 	row := buildsQuery.Where(sq.Eq{"b.id": b.id}).
-		RunWith(b.conn).
+		RunWith(tx).
 		QueryRow()
 
-	err := scanBuild(b, row, b.conn.EncryptionStrategy())
+	err = scanBuild(b, row, b.conn.EncryptionStrategy())
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return false, nil
 		}
+		return false, err
+	}
+
+	err = b.refreshEventIdSeq(tx)
+	if err != nil {
+		return false, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
 		return false, err
 	}
 
