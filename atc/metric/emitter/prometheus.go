@@ -77,6 +77,7 @@ type PrometheusEmitter struct {
 	workerTasks                           *prometheus.GaugeVec
 	workersRegistered                     *prometheus.GaugeVec
 	workerOrphanedVolumesToBeCollected    prometheus.Counter
+	gcBuildCollectorDuration              prometheus.Histogram
 	droppedContainer                      *prometheus.GaugeVec
 	destroyingVolumesToBeGarbageCollected prometheus.Counter
 
@@ -555,7 +556,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 		prometheus.CounterOpts{
 			Namespace:   "concourse",
 			Subsystem:   "volumes",
-			Name:        "destroying volumes to be garbage collected",
+			Name:        "destroying_volumes_to_be_garbage_collected",
 			Help:        "Volumes being destroyed to be garbage collected",
 			ConstLabels: attributes,
 		},
@@ -566,7 +567,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 		prometheus.CounterOpts{
 			Namespace:   "concourse",
 			Subsystem:   "containers",
-			Name:        "creating containers to be garbage collected",
+			Name:        "creating_containers_to_be_garbage_collected",
 			Help:        "Creating Containers being garbage collected",
 			ConstLabels: attributes,
 		},
@@ -577,7 +578,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 		prometheus.CounterOpts{
 			Namespace:   "concourse",
 			Subsystem:   "containers",
-			Name:        "created containers to be garbage collected",
+			Name:        "created_containers_to_be_garbage_collected",
 			Help:        "Created Containers being garbage collected",
 			ConstLabels: attributes,
 		},
@@ -588,11 +589,26 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 		prometheus.GaugeOpts{
 			Namespace:   "concourse",
 			Subsystem:   "volumes",
-			Name:        "GC container collector job dropped",
+			Name:        "gc_container_collector_job_dropped",
 			Help:        "Workers that have the container collector job dropped",
 			ConstLabels: attributes,
 		}, []string{"worker"},
 	)
+
+	prometheus.MustRegister(droppedContainer)
+
+	gcBuildCollectorDuration := prometheus.NewHistogram(
+		prometheus.HistogramOpts{
+			Namespace:   "concourse",
+			Subsystem:   "gc",
+			Name:        "gc_build_collector_duration",
+			Help:        "Duration of gc build collector (ms)",
+			ConstLabels: attributes,
+			Buckets:     []float64{1, 60, 180, 300, 600, 900, 1200, 1800, 2700, 3600, 7200, 18000, 36000},
+		},
+	)
+
+	prometheus.MustRegister(gcBuildCollectorDuration)
 
 	getStepCacheHits := prometheus.NewCounter(
 		prometheus.CounterOpts{
@@ -680,6 +696,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 		workerUnknownVolumes:               workerUnknownVolumes,
 		workerOrphanedVolumesToBeCollected: workerOrphanedVolumesToBeCollected,
 		droppedContainer:                   droppedContainer,
+		gcBuildCollectorDuration:           gcBuildCollectorDuration,
 
 		volumesStreamed: volumesStreamed,
 
@@ -764,6 +781,8 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 		emitter.workersRegisteredMetric(logger, event)
 	case "orphaned volumes to be garbage collected":
 		emitter.workerOrphanedVolumesToBeCollected.Add(event.Value)
+	case "gc: build collector duration (ms)":
+		emitter.gcBuildCollectorDuration.Observe(event.Value)
 	case "GC container collector job dropped":
 		emitter.droppedContainerJobMetric(logger, event)
 	case "destroying volumes to be garbage collected":
