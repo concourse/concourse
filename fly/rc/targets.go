@@ -162,7 +162,12 @@ func selectTarget(selectedTarget TargetName) (TargetProps, error) {
 }
 
 func userHomeDir() string {
-	home := os.Getenv("HOME")
+	home := os.Getenv("FLY_HOME")
+	if home != "" {
+		return home
+	}
+
+	home = os.Getenv("HOME")
 	if home != "" {
 		return home
 	}
