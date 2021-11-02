@@ -3990,7 +3990,7 @@ hoverSetPipelineChangedLabel =
 
 darkRed : String
 darkRed =
-    "#5E1D14"
+    "#912617"
 
 
 brightRed : String

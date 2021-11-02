@@ -400,6 +400,7 @@ viewTitle name jobID createdBy =
                         , onMouseLeave <| Hover Nothing
                         , id <| toHtmlID Message.JobName
                         , buildNameLineHeight
+                        , style "color" Colors.buildTitleTextColor
                         ]
                         [ Html.span [ class "build-name" ] [ Html.text jid.jobName ]
                         , Html.span
@@ -429,6 +430,7 @@ viewTitle name jobID createdBy =
                         , style "text-overflow" "ellipsis"
                         , style "white-space" "nowrap"
                         , style "overflow" "hidden"
+                        , style "color" Colors.buildTitleTextColor
                         , title text
                         ]
                         [ Html.text text ]
