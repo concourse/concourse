@@ -205,7 +205,6 @@ func (r *ResourceConfigDescriptor) findWithParentID(tx Tx, rc *resourceConfig, p
 			parentColumnName: parentID,
 			"source_hash":    mapHash(r.Source),
 		}).
-		Suffix("FOR SHARE").
 		RunWith(tx).
 		QueryRow().
 		Scan(&rc.id, &rc.lastReferenced)
