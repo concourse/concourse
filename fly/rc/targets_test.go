@@ -57,6 +57,45 @@ var _ = Describe("Targets", func() {
 				}))
 			})
 		})
+
+		Context("hierarchy of loading config file", func() {
+			BeforeEach(func() {
+				flyrcContents := `targets:
+  some-target:
+    api: http://concourse.com
+    team: main`
+				ioutil.WriteFile(flyrc, []byte(flyrcContents), 0777)
+			})
+
+			AfterEach(func() {
+				os.Unsetenv("FLY_HOME")
+				os.Unsetenv("HOME")
+			})
+
+			Context("when FLY_HOME is set", func() {
+				BeforeEach(func() {
+					os.Setenv("FLY_HOME", tmpDir)
+					os.Setenv("HOME", "/an/invalid/path")
+				})
+				It("loads from the path set in FLY_HOME in preference to HOME", func() {
+					targets, err := rc.LoadTargets()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(targets).To(HaveLen(1))
+				})
+			})
+
+			Context("when FLY_HOME is unset and HOME is set", func() {
+				BeforeEach(func() {
+					os.Setenv("FLY_HOME", "")
+					os.Setenv("HOME", tmpDir)
+				})
+				It("loads from the path set in HOME", func() {
+					targets, err := rc.LoadTargets()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(targets).To(HaveLen(1))
+				})
+			})
+		})
 	})
 
 	Describe("Deleting Target", func() {
