@@ -11,6 +11,7 @@ module Colors exposing
     , buildStatusColor
     , buildTabBorderColor
     , buildTabTextColor
+    , buildTitleTextColor
     , buildTooltipText
     , buttonDisabledGrey
     , card
@@ -334,12 +335,12 @@ failure =
 
 failureFaded : String
 failureFaded =
-    ColorValues.failure80
+    ColorValues.failure70
 
 
 failureTextFaded : String
 failureTextFaded =
-    ColorValues.failure20
+    ColorValues.failure10
 
 
 error : String
@@ -702,10 +703,23 @@ buildStatusColor isBright status =
                 abortedFaded
 
 
+buildTitleTextColor : String
+buildTitleTextColor =
+    ColorValues.grey100
+
+
 buildTabTextColor : Bool -> BuildStatus -> String
 buildTabTextColor isCurrent status =
     if isCurrent then
-        white
+        case status of
+            BuildStatusStarted ->
+                ColorValues.grey100
+
+            BuildStatusPending ->
+                ColorValues.grey100
+
+            _ ->
+                white
 
     else
         case status of
