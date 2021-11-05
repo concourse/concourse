@@ -157,7 +157,7 @@ func (r *ResourceConfigDescriptor) findOrCreate(tx Tx, lockFactory lock.LockFact
 		return nil, err
 	}
 
-	if found && updateLastReferenced && rc.lastReferenced.Add(time.Minute).Before(time.Now()) {
+	if updateLastReferenced && found && rc.lastReferenced.Add(time.Minute).Before(time.Now()) {
 		found, err = r.updateLastReferenced(tx, rc, parentColumnName, parentID)
 		if err != nil {
 			return nil, err
@@ -207,11 +207,10 @@ func (r *ResourceConfigDescriptor) findWithParentID(tx Tx, rc *resourceConfig, p
 		})
 
 	if addShareLock {
-		builder.Suffix("FOR SHARE")
+		builder = builder.Suffix("FOR SHARE")
 	}
 
-	err := builder.
-		RunWith(tx).
+	err := builder.RunWith(tx).
 		QueryRow().
 		Scan(&rc.id, &rc.lastReferenced)
 	if err != nil {
