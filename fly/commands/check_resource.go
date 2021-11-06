@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"github.com/concourse/concourse/go-concourse/concourse"
 	"os"
 	"strconv"
 
@@ -17,6 +18,7 @@ type CheckResourceCommand struct {
 	Version  *atc.Version             `short:"f" long:"from"                     value-name:"VERSION"           description:"Version of the resource to check from, e.g. ref:abcd or path:thing-1.2.3.tgz"`
 	Async    bool                     `short:"a" long:"async"                    value-name:"ASYNC"             description:"Return the check without waiting for its result"`
 	Shallow  bool                     `long:"shallow"                          value-name:"SHALLOW"         description:"Check the resource itself only"`
+	Team  flaghelpers.TeamFlag  `long:"team" description:"Name of the team to which the pipeline belongs, if different from the target default"`
 }
 
 func (command *CheckResourceCommand) Execute(args []string) error {
@@ -30,12 +32,18 @@ func (command *CheckResourceCommand) Execute(args []string) error {
 		return err
 	}
 
+	var team concourse.Team
+	team, err = command.Team.LoadTeam(target)
+	if err != nil {
+		return err
+	}
+
 	var version atc.Version
 	if command.Version != nil {
 		version = *command.Version
 	}
 
-	build, found, err := target.Team().CheckResource(command.Resource.PipelineRef, command.Resource.ResourceName, version, command.Shallow)
+	build, found, err := team.CheckResource(command.Resource.PipelineRef, command.Resource.ResourceName, version, command.Shallow)
 	if err != nil {
 		return err
 	}

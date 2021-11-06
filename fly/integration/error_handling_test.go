@@ -139,6 +139,14 @@ var _ = Describe("Fly CLI", func() {
 				exec.Command(flyPath, "-t", targetName, "abort-build", "-j", "pipeline/job", "-b", "4", "--team", nonExistentTeam)),
 			Entry("archive-pipeline command returns an error",
 				exec.Command(flyPath, "-t", targetName, "archive-pipeline", "-p", "pipeline", "--team", nonExistentTeam)),
+			Entry("resources command returns an error",
+				exec.Command(flyPath, "-t", targetName, "resources", "-p", "pipeline", "--team", nonExistentTeam)),
+			Entry("check-resource-type command returns an error",
+				exec.Command(flyPath, "-t", targetName, "check-resource-type", "-r", "mypipeline/branch:master/myresource", "--shallow", "-a", "--team", nonExistentTeam)),
+			Entry("check-resource command returns an error",
+				exec.Command(flyPath, "-t", targetName, "check-resource", "-r", "mypipeline/branch:master/myresource", "--shallow", "-a", "--team", nonExistentTeam)),
+			Entry("resource-versions command returns an error",
+				exec.Command(flyPath, "-t", targetName, "resource-versions", "-r", "pipeline/branch:master/foo", "--team", nonExistentTeam)),
 		)
 
 		DescribeTable("and you are NOT authorized to view the team",
@@ -185,6 +193,14 @@ var _ = Describe("Fly CLI", func() {
 				exec.Command(flyPath, "-t", targetName, "abort-build", "-j", "pipeline/job", "-b", "4", "--team", otherTeam)),
 			Entry("archive-pipeline command returns an error",
 				exec.Command(flyPath, "-t", targetName, "archive-pipeline", "-p", "pipeline", "--team", otherTeam)),
+			Entry("resources command returns an error",
+				exec.Command(flyPath, "-t", targetName, "resources", "-p", "pipeline", "--team", otherTeam)),
+			Entry("check-resource-type command returns an error",
+				exec.Command(flyPath, "-t", targetName, "check-resource-type", "-r", "mypipeline/branch:master/myresource", "--shallow", "-a", "--team", otherTeam)),
+			Entry("check-resource command returns an error",
+				exec.Command(flyPath, "-t", targetName, "check-resource", "-r", "mypipeline/branch:master/myresource", "--shallow", "-a", "--team", otherTeam)),
+			Entry("resource-versions command returns an error",
+				exec.Command(flyPath, "-t", targetName, "resource-versions", "-r", "pipeline/branch:master/foo", "--team", otherTeam)),
 		)
 	})
 })
