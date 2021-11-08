@@ -97,6 +97,13 @@ with the following schema.
     resource can still be checked manually via the web UI, fly, or webhooks.
   }
 
+  \optional-attribute{check_timeout}{duration | `never`}{
+    \italic{Default \code{1h}.} The time limit on checking new versions of
+    resources. Acceptable interval options are defined by the
+    \link{time.ParseDuration
+    function}{https://golang.org/pkg/time/#ParseDuration}.
+  }
+
   \optional-attribute{tags}{[string]}{
     \italic{Default \code{[]}.} A list of tags to determine which workers the
     checks will be performed on. You'll want to specify this if the source is
