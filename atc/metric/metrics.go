@@ -343,7 +343,7 @@ type CreatedContainersToBeGarbageCollected struct {
 
 func (event CreatedContainersToBeGarbageCollected) Emit(logger lager.Logger) {
 	Metrics.emit(
-		logger.Session("gc-found-created-ccontainers-for-deletion"),
+		logger.Session("gc-found-created-containers-for-deletion"),
 		Event{
 			Name:       "created containers to be garbage collected",
 			Value:      float64(event.Containers),

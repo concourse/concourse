@@ -44,6 +44,17 @@ type PrometheusEmitter struct {
 	buildsFinishedVec *prometheus.CounterVec
 	buildsSucceeded   prometheus.Counter
 
+	gcBuildCollectorDuration                      prometheus.Histogram
+	gcWorkerCollectorDuration                     prometheus.Histogram
+	gcResourceCacheUseCollectorDuration           prometheus.Histogram
+	gcResourceConfigCollectorDuration             prometheus.Histogram
+	gcResourceCacheCollectorDuration              prometheus.Histogram
+	gcResourceTaskCacheCollectorDuration          prometheus.Histogram
+	gcResourceConfigCheckSessionCollectorDuration prometheus.Histogram
+	gcArtifactCollectorDuration                   prometheus.Histogram
+	gcContainerCollectorDuration                  prometheus.Histogram
+	gcVolumeCollectorDuration                     prometheus.Histogram
+
 	checkBuildsAborted   prometheus.Counter
 	checkBuildsErrored   prometheus.Counter
 	checkBuildsFailed    prometheus.Counter
@@ -70,18 +81,29 @@ type PrometheusEmitter struct {
 	getStepCacheHits       prometheus.Counter
 	streamedResourceCaches prometheus.Counter
 
-	workerContainers        *prometheus.GaugeVec
-	workerUnknownContainers *prometheus.GaugeVec
-	workerVolumes           *prometheus.GaugeVec
-	workerUnknownVolumes    *prometheus.GaugeVec
-	workerTasks             *prometheus.GaugeVec
-	workersRegistered       *prometheus.GaugeVec
+	workerContainers                   *prometheus.GaugeVec
+	workerUnknownContainers            *prometheus.GaugeVec
+	workerVolumes                      *prometheus.GaugeVec
+	workerUnknownVolumes               *prometheus.GaugeVec
+	workerTasks                        *prometheus.GaugeVec
+	workersRegistered                  *prometheus.GaugeVec
+	workerOrphanedVolumesToBeCollected prometheus.Counter
+	droppedContainer                   *prometheus.GaugeVec
 
-	workerContainersLabels map[string]map[string]prometheus.Labels
-	workerVolumesLabels    map[string]map[string]prometheus.Labels
-	workerTasksLabels      map[string]map[string]prometheus.Labels
-	workerLastSeen         map[string]time.Time
-	mu                     sync.Mutex
+	creatingContainersToBeGarbageCollected   prometheus.Counter
+	createdContainersToBeGarbageCollected    prometheus.Counter
+	failedContainersToBeGarbageCollected     prometheus.Counter
+	destroyingContainersToBeGarbageCollected prometheus.Counter
+	createdVolumesToBeGarbageCollected       prometheus.Counter
+	destroyingVolumesToBeGarbageCollected    prometheus.Counter
+	failedVolumesToBeGarbageCollected        prometheus.Counter
+
+	workerContainersLabels      map[string]map[string]prometheus.Labels
+	workerVolumesLabels         map[string]map[string]prometheus.Labels
+	workerTasksLabels           map[string]map[string]prometheus.Labels
+	containerJobCollectorLabels map[string]map[string]prometheus.Labels
+	workerLastSeen              map[string]time.Time
+	mu                          sync.Mutex
 }
 
 type PrometheusConfig struct {
@@ -533,6 +555,225 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 	)
 	prometheus.MustRegister(volumesStreamed)
 
+	workerOrphanedVolumesToBeCollected := prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Namespace:   "concourse",
+			Subsystem:   "volumes",
+			Name:        "orphaned_volumes_to_be_deleted",
+			Help:        "Number of orphaned volumes to be garbage collected.",
+			ConstLabels: attributes,
+		},
+	)
+	prometheus.MustRegister(workerOrphanedVolumesToBeCollected)
+
+	creatingContainersToBeGarbageCollected := prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Namespace:   "concourse",
+			Subsystem:   "gc",
+			Name:        "creating_containers_to_be_garbage_collected",
+			Help:        "Creating Containers being garbage collected",
+			ConstLabels: attributes,
+		},
+	)
+	prometheus.MustRegister(creatingContainersToBeGarbageCollected)
+
+	createdContainersToBeGarbageCollected := prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Namespace:   "concourse",
+			Subsystem:   "gc",
+			Name:        "created_containers_to_be_garbage_collected",
+			Help:        "Created Containers being garbage collected",
+			ConstLabels: attributes,
+		},
+	)
+	prometheus.MustRegister(createdContainersToBeGarbageCollected)
+
+	failedContainersToBeGarbageCollected := prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Namespace:   "concourse",
+			Subsystem:   "gc",
+			Name:        "failed_containers_to_be_garbage_collected",
+			Help:        "Failed Containers being garbage collected",
+			ConstLabels: attributes,
+		},
+	)
+	prometheus.MustRegister(failedContainersToBeGarbageCollected)
+
+	destroyingContainersToBeGarbageCollected := prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Namespace:   "concourse",
+			Subsystem:   "gc",
+			Name:        "destroying_containers_to_be_garbage_collected",
+			Help:        "Destorying Containers being garbage collected",
+			ConstLabels: attributes,
+		},
+	)
+	prometheus.MustRegister(destroyingContainersToBeGarbageCollected)
+
+	createdVolumesToBeGarbageCollected := prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Namespace:   "concourse",
+			Subsystem:   "gc",
+			Name:        "created_volumes_to_be_garbage_collected",
+			Help:        "Created Volumes being garbage collected",
+			ConstLabels: attributes,
+		},
+	)
+	prometheus.MustRegister(createdVolumesToBeGarbageCollected)
+
+	destroyingVolumesToBeGarbageCollected := prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Namespace:   "concourse",
+			Subsystem:   "gc",
+			Name:        "destroying_volumes_to_be_garbage_collected",
+			Help:        "Destroying Volumes being garbage collected",
+			ConstLabels: attributes,
+		},
+	)
+	prometheus.MustRegister(destroyingVolumesToBeGarbageCollected)
+
+	failedVolumesToBeGarbageCollected := prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Namespace:   "concourse",
+			Subsystem:   "gc",
+			Name:        "failed_volumes_to_be_garbage_collected",
+			Help:        "Failed Volumes being garbage collected",
+			ConstLabels: attributes,
+		},
+	)
+	prometheus.MustRegister(failedVolumesToBeGarbageCollected)
+
+	droppedContainer := prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace:   "concourse",
+			Subsystem:   "volumes",
+			Name:        "gc_container_collector_job_dropped",
+			Help:        "Workers that have the container collector job dropped",
+			ConstLabels: attributes,
+		}, []string{"worker"},
+	)
+	prometheus.MustRegister(droppedContainer)
+
+	gcBuildCollectorDuration := prometheus.NewHistogram(
+		prometheus.HistogramOpts{
+			Namespace:   "concourse",
+			Subsystem:   "gc",
+			Name:        "gc_build_collector_duration",
+			Help:        "Duration of gc build collector (ms)",
+			ConstLabels: attributes,
+			Buckets:     []float64{1, 60, 180, 300, 600, 900, 1200, 1800, 2700, 3600, 7200, 18000, 36000},
+		},
+	)
+	prometheus.MustRegister(gcBuildCollectorDuration)
+
+	gcWorkerCollectorDuration := prometheus.NewHistogram(
+		prometheus.HistogramOpts{
+			Namespace:   "concourse",
+			Subsystem:   "gc",
+			Name:        "gc_worker_collector_duration",
+			Help:        "Duration of gc worker collector (ms)",
+			ConstLabels: attributes,
+			Buckets:     []float64{1, 60, 180, 300, 600, 900, 1200, 1800, 2700, 3600, 7200, 18000, 36000},
+		},
+	)
+	prometheus.MustRegister(gcWorkerCollectorDuration)
+
+	gcResourceCacheUseCollectorDuration := prometheus.NewHistogram(
+		prometheus.HistogramOpts{
+			Namespace:   "concourse",
+			Subsystem:   "gc",
+			Name:        "gc_resource_cache_use_collector_duration",
+			Help:        "Duration of gc resource cache use collector (ms)",
+			ConstLabels: attributes,
+			Buckets:     []float64{1, 60, 180, 300, 600, 900, 1200, 1800, 2700, 3600, 7200, 18000, 36000},
+		},
+	)
+	prometheus.MustRegister(gcResourceCacheUseCollectorDuration)
+
+	gcResourceConfigCollectorDuration := prometheus.NewHistogram(
+		prometheus.HistogramOpts{
+			Namespace:   "concourse",
+			Subsystem:   "gc",
+			Name:        "gc_resource_config_collector_duration",
+			Help:        "Duration of gc resource config collector (ms)",
+			ConstLabels: attributes,
+			Buckets:     []float64{1, 60, 180, 300, 600, 900, 1200, 1800, 2700, 3600, 7200, 18000, 36000},
+		},
+	)
+	prometheus.MustRegister(gcResourceConfigCollectorDuration)
+
+	gcResourceCacheCollectorDuration := prometheus.NewHistogram(
+		prometheus.HistogramOpts{
+			Namespace:   "concourse",
+			Subsystem:   "gc",
+			Name:        "gc_resource_cache_collector_duration",
+			Help:        "Duration of gc resource cache collector (ms)",
+			ConstLabels: attributes,
+			Buckets:     []float64{1, 60, 180, 300, 600, 900, 1200, 1800, 2700, 3600, 7200, 18000, 36000},
+		},
+	)
+	prometheus.MustRegister(gcResourceCacheCollectorDuration)
+
+	gcResourceTaskCacheCollectorDuration := prometheus.NewHistogram(
+		prometheus.HistogramOpts{
+			Namespace:   "concourse",
+			Subsystem:   "gc",
+			Name:        "gc_task_cache_collector_duration",
+			Help:        "Duration of gc task cache collector (ms)",
+			ConstLabels: attributes,
+			Buckets:     []float64{1, 60, 180, 300, 600, 900, 1200, 1800, 2700, 3600, 7200, 18000, 36000},
+		},
+	)
+	prometheus.MustRegister(gcResourceTaskCacheCollectorDuration)
+
+	gcResourceConfigCheckSessionCollectorDuration := prometheus.NewHistogram(
+		prometheus.HistogramOpts{
+			Namespace:   "concourse",
+			Subsystem:   "gc",
+			Name:        "gc_resource_config_check_session_collector_duration",
+			Help:        "Duration of gc resource config check session collector (ms)",
+			ConstLabels: attributes,
+			Buckets:     []float64{1, 60, 180, 300, 600, 900, 1200, 1800, 2700, 3600, 7200, 18000, 36000},
+		},
+	)
+	prometheus.MustRegister(gcResourceConfigCheckSessionCollectorDuration)
+
+	gcArtifactCollectorDuration := prometheus.NewHistogram(
+		prometheus.HistogramOpts{
+			Namespace:   "concourse",
+			Subsystem:   "gc",
+			Name:        "gc_artifact_collector_duration",
+			Help:        "Duration of gc artifact collector (ms)",
+			ConstLabels: attributes,
+			Buckets:     []float64{1, 60, 180, 300, 600, 900, 1200, 1800, 2700, 3600, 7200, 18000, 36000},
+		},
+	)
+	prometheus.MustRegister(gcArtifactCollectorDuration)
+
+	gcContainerCollectorDuration := prometheus.NewHistogram(
+		prometheus.HistogramOpts{
+			Namespace:   "concourse",
+			Subsystem:   "gc",
+			Name:        "gc_container_collector_duration",
+			Help:        "Duration of gc container collector (ms)",
+			ConstLabels: attributes,
+			Buckets:     []float64{1, 60, 180, 300, 600, 900, 1200, 1800, 2700, 3600, 7200, 18000, 36000},
+		},
+	)
+	prometheus.MustRegister(gcContainerCollectorDuration)
+
+	gcVolumeCollectorDuration := prometheus.NewHistogram(
+		prometheus.HistogramOpts{
+			Namespace:   "concourse",
+			Subsystem:   "gc",
+			Name:        "gc_volume_collector_duration",
+			Help:        "Duration of gc volume collector (ms)",
+			ConstLabels: attributes,
+			Buckets:     []float64{1, 60, 180, 300, 600, 900, 1200, 1800, 2700, 3600, 7200, 18000, 36000},
+		},
+	)
+	prometheus.MustRegister(gcVolumeCollectorDuration)
+
 	getStepCacheHits := prometheus.NewCounter(
 		prometheus.CounterOpts{
 			Namespace:   "concourse",
@@ -578,6 +819,25 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 		stepsWaiting:         stepsWaiting,
 		stepsWaitingDuration: stepsWaitingDuration,
 
+		creatingContainersToBeGarbageCollected:   creatingContainersToBeGarbageCollected,
+		createdContainersToBeGarbageCollected:    createdContainersToBeGarbageCollected,
+		failedContainersToBeGarbageCollected:     failedContainersToBeGarbageCollected,
+		destroyingContainersToBeGarbageCollected: destroyingContainersToBeGarbageCollected,
+		createdVolumesToBeGarbageCollected:       createdVolumesToBeGarbageCollected,
+		destroyingVolumesToBeGarbageCollected:    destroyingVolumesToBeGarbageCollected,
+		failedVolumesToBeGarbageCollected:        failedVolumesToBeGarbageCollected,
+
+		gcBuildCollectorDuration:                      gcBuildCollectorDuration,
+		gcWorkerCollectorDuration:                     gcWorkerCollectorDuration,
+		gcResourceCacheUseCollectorDuration:           gcResourceCacheUseCollectorDuration,
+		gcResourceConfigCollectorDuration:             gcResourceConfigCollectorDuration,
+		gcResourceCacheCollectorDuration:              gcResourceCacheCollectorDuration,
+		gcResourceTaskCacheCollectorDuration:          gcResourceTaskCacheCollectorDuration,
+		gcResourceConfigCheckSessionCollectorDuration: gcResourceConfigCheckSessionCollectorDuration,
+		gcArtifactCollectorDuration:                   gcArtifactCollectorDuration,
+		gcContainerCollectorDuration:                  gcContainerCollectorDuration,
+		gcVolumeCollectorDuration:                     gcVolumeCollectorDuration,
+
 		buildDurationsVec: buildDurationsVec,
 		buildsAborted:     buildsAborted,
 		buildsErrored:     buildsErrored,
@@ -607,16 +867,18 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 
 		checksEnqueued: checksEnqueued,
 
-		workerContainers:        workerContainers,
-		workersRegistered:       workersRegistered,
-		workerContainersLabels:  map[string]map[string]prometheus.Labels{},
-		workerVolumesLabels:     map[string]map[string]prometheus.Labels{},
-		workerTasksLabels:       map[string]map[string]prometheus.Labels{},
-		workerLastSeen:          map[string]time.Time{},
-		workerVolumes:           workerVolumes,
-		workerTasks:             workerTasks,
-		workerUnknownContainers: workerUnknownContainers,
-		workerUnknownVolumes:    workerUnknownVolumes,
+		workerContainers:                   workerContainers,
+		workersRegistered:                  workersRegistered,
+		workerContainersLabels:             map[string]map[string]prometheus.Labels{},
+		workerVolumesLabels:                map[string]map[string]prometheus.Labels{},
+		workerTasksLabels:                  map[string]map[string]prometheus.Labels{},
+		workerLastSeen:                     map[string]time.Time{},
+		workerVolumes:                      workerVolumes,
+		workerTasks:                        workerTasks,
+		workerUnknownContainers:            workerUnknownContainers,
+		workerUnknownVolumes:               workerUnknownVolumes,
+		workerOrphanedVolumesToBeCollected: workerOrphanedVolumesToBeCollected,
+		droppedContainer:                   droppedContainer,
 
 		volumesStreamed: volumesStreamed,
 
@@ -685,6 +947,20 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 		emitter.checkBuildFinishedMetrics(logger, event)
 	case "worker containers":
 		emitter.workerContainersMetric(logger, event)
+	case "creating containers to be garbage collected":
+		emitter.creatingContainersToBeGarbageCollected.Add(event.Value)
+	case "created containers to be garbage collected":
+		emitter.createdContainersToBeGarbageCollected.Add(event.Value)
+	case "failed containers to be garbage collected":
+		emitter.failedContainersToBeGarbageCollected.Add(event.Value)
+	case "destroying containers to be garbage collected":
+		emitter.destroyingContainersToBeGarbageCollected.Add(event.Value)
+	case "created volumes to be garbage collected":
+		emitter.createdVolumesToBeGarbageCollected.Add(event.Value)
+	case "destroying volumes to be garbage collected":
+		emitter.destroyingVolumesToBeGarbageCollected.Add(event.Value)
+	case "failed volumes to be garbage collected":
+		emitter.failedVolumesToBeGarbageCollected.Add(event.Value)
 	case "worker volumes":
 		emitter.workerVolumesMetric(logger, event)
 	case "worker unknown containers":
@@ -695,6 +971,30 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 		emitter.workerTasksMetric(logger, event)
 	case "worker state":
 		emitter.workersRegisteredMetric(logger, event)
+	case "orphaned volumes to be garbage collected":
+		emitter.workerOrphanedVolumesToBeCollected.Add(event.Value)
+	case "gc: build collector duration (ms)":
+		emitter.gcBuildCollectorDuration.Observe(event.Value)
+	case "gc: worker collector duration (ms)":
+		emitter.gcWorkerCollectorDuration.Observe(event.Value)
+	case "gc: resource cache use collector duration (ms)":
+		emitter.gcResourceCacheUseCollectorDuration.Observe(event.Value)
+	case "gc: resource config collector duration (ms)":
+		emitter.gcResourceConfigCollectorDuration.Observe(event.Value)
+	case "gc: resource cache collector duration (ms)":
+		emitter.gcResourceCacheCollectorDuration.Observe(event.Value)
+	case "gc: task cache collector duration (ms)":
+		emitter.gcResourceTaskCacheCollectorDuration.Observe(event.Value)
+	case "gc: resource config check session collector duration (ms)":
+		emitter.gcResourceConfigCheckSessionCollectorDuration.Observe(event.Value)
+	case "gc: artifact collector duration (ms)":
+		emitter.gcArtifactCollectorDuration.Observe(event.Value)
+	case "gc: container collector duration (ms)":
+		emitter.gcContainerCollectorDuration.Observe(event.Value)
+	case "gc: volume collector duration (ms)":
+		emitter.gcVolumeCollectorDuration.Observe(event.Value)
+	case "GC container collector job dropped":
+		emitter.droppedContainerJobMetric(logger, event)
 	case "http response time":
 		emitter.httpResponseTimeMetrics(logger, event)
 	case "database queries":
@@ -1022,6 +1322,26 @@ func (emitter *PrometheusEmitter) periodicMetricGC() {
 	}
 }
 
+func (emitter *PrometheusEmitter) droppedContainerJobMetric(logger lager.Logger, event metric.Event) {
+	worker, exists := event.Attributes["worker"]
+
+	if !exists {
+		logger.Error("failed-to-find-worker-in-event", fmt.Errorf("expected worker to exist in event.Attributes"))
+		return
+	}
+
+	labels := prometheus.Labels{
+		"worker": worker,
+	}
+
+	key := serializeLabels(&labels)
+	if emitter.containerJobCollectorLabels[worker] == nil {
+		emitter.containerJobCollectorLabels[worker] = make(map[string]prometheus.Labels)
+	}
+	emitter.containerJobCollectorLabels[worker][key] = labels
+	emitter.droppedContainer.With(emitter.workerContainersLabels[worker][key]).Set(event.Value)
+}
+
 // DoGarbageCollection retrieves and deletes stale metrics by their labels.
 func DoGarbageCollection(emitter PrometheusGarbageCollectable, worker string) {
 	for _, labels := range emitter.WorkerContainersLabels()[worker] {
@@ -1036,6 +1356,10 @@ func DoGarbageCollection(emitter PrometheusGarbageCollectable, worker string) {
 		emitter.WorkerTasks().Delete(labels)
 	}
 
+	for _, labels := range emitter.ContainerJobCollectorLabels()[worker] {
+		emitter.DroppedContainer().Delete(labels)
+	}
+
 	delete(emitter.WorkerContainersLabels(), worker)
 	delete(emitter.WorkerVolumesLabels(), worker)
 	delete(emitter.WorkerTasksLabels(), worker)
@@ -1046,10 +1370,12 @@ type PrometheusGarbageCollectable interface {
 	WorkerContainers() *prometheus.GaugeVec
 	WorkerVolumes() *prometheus.GaugeVec
 	WorkerTasks() *prometheus.GaugeVec
+	DroppedContainer() *prometheus.GaugeVec
 
 	WorkerContainersLabels() map[string]map[string]prometheus.Labels
 	WorkerVolumesLabels() map[string]map[string]prometheus.Labels
 	WorkerTasksLabels() map[string]map[string]prometheus.Labels
+	ContainerJobCollectorLabels() map[string]map[string]prometheus.Labels
 }
 
 func (emitter *PrometheusEmitter) WorkerContainers() *prometheus.GaugeVec {
@@ -1064,6 +1390,10 @@ func (emitter *PrometheusEmitter) WorkerTasks() *prometheus.GaugeVec {
 	return emitter.workerTasks
 }
 
+func (emitter *PrometheusEmitter) DroppedContainer() *prometheus.GaugeVec {
+	return emitter.droppedContainer
+}
+
 func (emitter *PrometheusEmitter) WorkerContainersLabels() map[string]map[string]prometheus.Labels {
 	return emitter.workerContainersLabels
 }
@@ -1074,4 +1404,8 @@ func (emitter *PrometheusEmitter) WorkerVolumesLabels() map[string]map[string]pr
 
 func (emitter *PrometheusEmitter) WorkerTasksLabels() map[string]map[string]prometheus.Labels {
 	return emitter.workerTasksLabels
+}
+
+func (emitter *PrometheusEmitter) ContainerJobCollectorLabels() map[string]map[string]prometheus.Labels {
+	return emitter.containerJobCollectorLabels
 }
