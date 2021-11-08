@@ -152,12 +152,12 @@ func (r *ResourceConfigDescriptor) findOrCreate(tx Tx, lockFactory lock.LockFact
 
 	var found bool
 	var err error
-	found, err = r.findWithParentID(tx, rc, parentColumnName, parentID)
+	found, err = r.findWithParentID(tx, rc, parentColumnName, parentID, !updateLastReferenced)
 	if err != nil {
 		return nil, err
 	}
 
-	if found && updateLastReferenced && rc.lastReferenced.Add(time.Minute).Before(time.Now()) {
+	if updateLastReferenced && found && rc.lastReferenced.Add(time.Minute).Before(time.Now()) {
 		found, err = r.updateLastReferenced(tx, rc, parentColumnName, parentID)
 		if err != nil {
 			return nil, err
@@ -198,15 +198,19 @@ func (r *ResourceConfigDescriptor) findOrCreate(tx Tx, lockFactory lock.LockFact
 	return rc, nil
 }
 
-func (r *ResourceConfigDescriptor) findWithParentID(tx Tx, rc *resourceConfig, parentColumnName string, parentID int) (bool, error) {
-	err := psql.Select("id", "last_referenced").
+func (r *ResourceConfigDescriptor) findWithParentID(tx Tx, rc *resourceConfig, parentColumnName string, parentID int, addShareLock bool) (bool, error) {
+	builder := psql.Select("id", "last_referenced").
 		From("resource_configs").
 		Where(sq.Eq{
 			parentColumnName: parentID,
 			"source_hash":    mapHash(r.Source),
-		}).
-		Suffix("FOR SHARE").
-		RunWith(tx).
+		})
+
+	if addShareLock {
+		builder = builder.Suffix("FOR SHARE")
+	}
+
+	err := builder.RunWith(tx).
 		QueryRow().
 		Scan(&rc.id, &rc.lastReferenced)
 	if err != nil {

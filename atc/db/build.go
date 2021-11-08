@@ -252,7 +252,7 @@ type build struct {
 
 	spanContext SpanContext
 
-	eventID uint64
+	eventIDCounter SeqCounter
 }
 
 func newEmptyBuild(conn Conn, lockFactory lock.LockFactory) *build {
@@ -1918,13 +1918,15 @@ func (b *build) saveEvent(tx Tx, event atc.Event) error {
 		return err
 	}
 
-	if b.eventID == 0 {
+	if b.eventIDCounter == nil {
 		if err := b.refreshEventIdSeq(tx); err != nil {
 			return err
 		}
 	}
 
-	eventID := atomic.AddUint64(&b.eventID, 1) - 1
+	// Subtract 1 because Next returns the incremented event counter but we
+	// actually want to insert the current event id
+	eventID := b.eventIDCounter.Next() - 1
 	_, err = psql.Insert(b.eventsTable()).
 		Columns("event_id", "build_id", "type", "version", "payload").
 		Values(eventID, b.id, string(event.EventType()), string(event.Version()), payload).
@@ -1949,7 +1951,7 @@ func (b *build) refreshEventIdSeq(runner sq.Runner) error {
 	if currentEventID.Valid {
 		seqIDInit = uint64(currentEventID.Int64) + 1
 	}
-	b.eventID = seqIDInit
+	b.eventIDCounter = &seqCounter{sequenceID: seqIDInit}
 	return nil
 }
 
@@ -2191,4 +2193,16 @@ func updateTransitionBuildForJob(tx Tx, jobID int, buildID int, buildStatus Buil
 
 func isNotRerunBuild(rerunID int) bool {
 	return rerunID == 0
+}
+
+type SeqCounter interface {
+	Next() uint64
+}
+
+type seqCounter struct {
+	sequenceID uint64
+}
+
+func (s *seqCounter) Next() uint64 {
+	return atomic.AddUint64(&s.sequenceID, 1)
 }
