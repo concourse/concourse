@@ -10,9 +10,9 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/skymarshal/dexserver"
 	store "github.com/concourse/concourse/skymarshal/storage"
-	"github.com/concourse/dex/server"
-	"github.com/concourse/dex/storage"
 	"github.com/concourse/flag"
+	"github.com/dexidp/dex/server"
+	"github.com/dexidp/dex/storage"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -203,7 +203,7 @@ var _ = Describe("Dex Server", func() {
 			})
 		})
 
-		Context("when clients are configured in plain text", func() {
+		Context("when clients are configured", func() {
 			BeforeEach(func() {
 				config.Clients = map[string]string{
 					"some-client-id": "some-client-secret",
@@ -211,30 +211,12 @@ var _ = Describe("Dex Server", func() {
 				config.RedirectURL = "http://example.com"
 			})
 
-			It("should contain the configured clients with a bcrypted secret", func() {
+			It("should contain the configured clients", func() {
 				clients, err := storage.ListClients()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(clients).To(HaveLen(1))
 				Expect(clients[0].ID).To(Equal("some-client-id"))
-				Expect(bcrypt.CompareHashAndPassword([]byte(clients[0].Secret), []byte("some-client-secret"))).NotTo(HaveOccurred())
-				Expect(clients[0].RedirectURIs).To(ContainElement("http://example.com"))
-			})
-		})
-
-		Context("when clients are configured in bcrypt format", func() {
-			BeforeEach(func() {
-				config.Clients = map[string]string{
-					"some-client-id": "$2a$10$3veRX245rLrpOKrgu7jIyOEKF5Km5tY86bZql6/oTMssgPO/6XJju",
-				}
-				config.RedirectURL = "http://example.com"
-			})
-
-			It("should contain the configured clients with the given secret", func() {
-				clients, err := storage.ListClients()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(clients).To(HaveLen(1))
-				Expect(clients[0].ID).To(Equal("some-client-id"))
-				Expect(clients[0].Secret).To(Equal("$2a$10$3veRX245rLrpOKrgu7jIyOEKF5Km5tY86bZql6/oTMssgPO/6XJju"))
+				Expect(clients[0].Secret).To(Equal("some-client-secret"))
 				Expect(clients[0].RedirectURIs).To(ContainElement("http://example.com"))
 			})
 		})

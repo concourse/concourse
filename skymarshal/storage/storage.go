@@ -3,8 +3,8 @@ package storage
 import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/skymarshal/logger"
-	"github.com/concourse/dex/storage"
-	"github.com/concourse/dex/storage/sql"
+	"github.com/dexidp/dex/storage"
+	"github.com/dexidp/dex/storage/sql"
 	"github.com/concourse/flag"
 )
 

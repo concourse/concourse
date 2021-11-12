@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/concourse/dex/connector/saml"
+	"github.com/dexidp/dex/connector/saml"
 	"github.com/concourse/flag"
 	multierror "github.com/hashicorp/go-multierror"
 )

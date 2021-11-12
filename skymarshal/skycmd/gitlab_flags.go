@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/concourse/dex/connector/gitlab"
+	"github.com/dexidp/dex/connector/gitlab"
 	multierror "github.com/hashicorp/go-multierror"
 )
 

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/concourse/dex/connector/bitbucketcloud"
+	"github.com/dexidp/dex/connector/bitbucketcloud"
 	"github.com/hashicorp/go-multierror"
 )
 

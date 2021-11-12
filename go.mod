@@ -19,7 +19,6 @@ require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e // indirect
 	github.com/cloudfoundry/socks5-proxy v0.0.0-20180530211953-3659db090cb2 // indirect
-	github.com/concourse/dex v0.7.0
 	github.com/concourse/flag v1.1.0
 	github.com/concourse/go-archive v1.0.1
 	github.com/concourse/retryhttp v1.1.1
@@ -30,6 +29,7 @@ require (
 	github.com/cppforlife/go-semi-semantic v0.0.0-20160921010311-576b6af77ae4
 	github.com/creack/pty v1.1.11 // indirect
 	github.com/cyberark/conjur-api-go v0.8.0
+	github.com/dexidp/dex v0.0.0-20210802203454-3fac2ab6bc3b
 	github.com/fatih/color v1.13.0
 	github.com/felixge/httpsnoop v1.0.2
 	github.com/gobwas/glob v0.2.3
@@ -48,13 +48,14 @@ require (
 	github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf
 	github.com/influxdata/influxdb1-client v0.0.0-20191209144304-8bf82d3c094d
 	github.com/jackpal/gateway v1.0.7
-	github.com/jessevdk/go-flags v1.4.1-0.20200711081900-c17162fe8fd7
+	github.com/jessevdk/go-flags v1.5.0
 	github.com/klauspost/compress v1.13.6
 	github.com/kr/pty v1.1.8
 	github.com/krishicks/yaml-patch v0.0.10
 	github.com/lib/pq v1.10.4
 	github.com/mattn/go-colorable v0.1.11
 	github.com/mattn/go-isatty v0.0.14
+	github.com/mattn/go-sqlite3 v1.14.9 // indirect
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.4.1
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b
 	github.com/miekg/dns v1.1.43
@@ -71,6 +72,7 @@ require (
 	github.com/pkg/term v0.0.0-20190109203006-aa71e9d9e942
 	github.com/prometheus/client_golang v1.11.0
 	github.com/racksec/srslog v0.0.0-20180709174129-a4725f04ec91
+	github.com/russellhaering/goxmldsig v1.1.1 // indirect
 	github.com/sirupsen/logrus v1.8.1
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/square/certstrap v1.2.0
@@ -95,7 +97,6 @@ require (
 	golang.org/x/sys v0.0.0-20210927094055-39ccf1dd6fa6
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac
 	google.golang.org/grpc v1.42.0
-	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/square/go-jose.v2 v2.6.0
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.22.3

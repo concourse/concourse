@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/concourse/dex/connector/microsoft"
+	"github.com/dexidp/dex/connector/microsoft"
 	multierror "github.com/hashicorp/go-multierror"
 )
 
