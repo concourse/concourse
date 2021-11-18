@@ -31,16 +31,10 @@ var _ = Describe("Resource Certs", func() {
 			Fly.Run("check-resource", "-r", "resources/no-certs")
 			Fly.Run("check-resource", "-r", "resources/certs")
 
-			hijackSession := Fly.Start("hijack", "-c", "resources/no-certs", "--", "ls", "/etc/ssl/certs")
+			hijackSession := Fly.Start("hijack", "-c", "resources/certs", "--", "ls", "/etc/ssl/certs")
 			<-hijackSession.Exited
 
 			certsContent := string(hijackSession.Out.Contents())
-			Expect(certsContent).To(HaveLen(0))
-
-			hijackSession = Fly.Start("hijack", "-c", "resources/certs", "--", "ls", "/etc/ssl/certs")
-			<-hijackSession.Exited
-
-			certsContent = string(hijackSession.Out.Contents())
 			Expect(certsContent).ToNot(HaveLen(0))
 		})
 
