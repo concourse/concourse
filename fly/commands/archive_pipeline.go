@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"github.com/concourse/concourse/go-concourse/concourse"
 	"os"
 
 	"github.com/concourse/concourse/atc"
@@ -17,6 +18,7 @@ type ArchivePipelineCommand struct {
 	Pipeline        *flaghelpers.PipelineFlag `short:"p"  long:"pipeline"        description:"Pipeline to archive"`
 	All             bool                      `short:"a"  long:"all"             description:"Archive all pipelines"`
 	SkipInteractive bool                      `short:"n"  long:"non-interactive" description:"Skips interactions, uses default values"`
+	Team  flaghelpers.TeamFlag  `long:"team" description:"Name of the team to which the pipeline belongs, if different from the target default"`
 }
 
 func (command *ArchivePipelineCommand) Validate() error {
@@ -48,13 +50,19 @@ func (command *ArchivePipelineCommand) Execute(args []string) error {
 		return err
 	}
 
+	var team concourse.Team
+	team, err = command.Team.LoadTeam(target)
+	if err != nil {
+		return err
+	}
+
 	var pipelineRefs []atc.PipelineRef
 	if command.Pipeline != nil {
 		pipelineRefs = []atc.PipelineRef{command.Pipeline.Ref()}
 	}
 
 	if command.All {
-		pipelines, err := target.Team().ListPipelines()
+		pipelines, err := team.ListPipelines()
 		if err != nil {
 			return err
 		}
@@ -78,7 +86,7 @@ func (command *ArchivePipelineCommand) Execute(args []string) error {
 	}
 
 	for _, pipelineRef := range pipelineRefs {
-		found, err := target.Team().ArchivePipeline(pipelineRef)
+		found, err := team.ArchivePipeline(pipelineRef)
 		if err != nil {
 			return err
 		}

@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"github.com/concourse/concourse/go-concourse/concourse"
 	"os"
 
 	"github.com/concourse/concourse/atc"
@@ -14,6 +15,8 @@ import (
 type ResourcesCommand struct {
 	Pipeline flaghelpers.PipelineFlag `short:"p" long:"pipeline" required:"true" description:"Get resources in this pipeline"`
 	Json     bool                     `long:"json" description:"Print command result as JSON"`
+	Team  flaghelpers.TeamFlag  `long:"team" description:"Name of the team to which the pipeline belongs, if different from the target default"`
+
 }
 
 func (command *ResourcesCommand) Execute([]string) error {
@@ -29,8 +32,14 @@ func (command *ResourcesCommand) Execute([]string) error {
 
 	var headers []string
 	var resources []atc.Resource
+	var team concourse.Team
 
-	resources, err = target.Team().ListResources(command.Pipeline.Ref())
+	team, err = command.Team.LoadTeam(target)
+	if err != nil {
+		return err
+	}
+
+	resources, err = team.ListResources(command.Pipeline.Ref())
 	if err != nil {
 		return err
 	}
