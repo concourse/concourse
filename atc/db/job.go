@@ -22,7 +22,7 @@ type InputConfigs []InputConfig
 
 type InputConfig struct {
 	Name            string
-	Trigger         bool
+	Trigger         atc.Trigger
 	Passed          JobSet
 	UseEveryVersion bool
 	PinnedVersion   atc.Version
@@ -278,7 +278,7 @@ func (j *job) AlgorithmInputs() (InputConfigs, error) {
 			Name:       inputName,
 			ResourceID: resourceID,
 			JobID:      j.id,
-			Trigger:    trigger,
+			Trigger:    atc.Trigger(trigger),
 		}
 
 		if pinnedVersionString.Valid {
@@ -366,7 +366,7 @@ func (j *job) Inputs() ([]atc.JobInput, error) {
 		inputs = append(inputs, atc.JobInput{
 			Name:     inputName,
 			Resource: resourceName,
-			Trigger:  trigger,
+			Trigger:  atc.Trigger(trigger),
 			Version:  version,
 			Passed:   passed,
 		})

@@ -31,7 +31,7 @@ type Job struct {
 type JobInput struct {
 	Name     string         `json:"name"`
 	Resource string         `json:"resource"`
-	Trigger  bool           `json:"trigger"`
+	Trigger  Trigger        `json:"trigger"`
 	Passed   []string       `json:"passed,omitempty"`
 	Version  *VersionConfig `json:"version,omitempty"`
 }

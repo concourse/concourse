@@ -46,6 +46,45 @@ var factoryTests = []StepTest{
 		},
 	},
 	{
+		Title: "get step with stringable trigger: true",
+		ConfigYAML: `
+			get: some-name
+			trigger: "true"
+			resource: some-resource
+		`,
+		StepConfig: &atc.GetStep{
+			Name:     "some-name",
+			Resource: "some-resource",
+			Trigger:  true,
+		},
+	},
+	{
+		Title: "get step with stringable trigger: false",
+		ConfigYAML: `
+			get: some-name
+			trigger: "False"
+			resource: some-resource
+		`,
+		StepConfig: &atc.GetStep{
+			Name:     "some-name",
+			Resource: "some-resource",
+			Trigger:  false,
+		},
+	},
+	{
+		Title: "get step with trigger: true",
+		ConfigYAML: `
+			get: some-name
+			trigger: true
+			resource: some-resource
+		`,
+		StepConfig: &atc.GetStep{
+			Name:     "some-name",
+			Resource: "some-resource",
+			Trigger:  true,
+		},
+	},
+	{
 		Title: "put step",
 
 		ConfigYAML: `
@@ -393,7 +432,7 @@ var factoryTests = []StepTest{
 			across:
 			- var: var1
 			  values: [1, 2, 3]
-			  bogus_field: lol what ru gonna do about it 
+			  bogus_field: lol what ru gonna do about it
 		`,
 
 		Err: `error unmarshaling JSON: while decoding JSON: malformed across step: json: unknown field "bogus_field"`,

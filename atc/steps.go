@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 )
 
@@ -292,13 +293,27 @@ var StepPrecedence = []StepDetector{
 	},
 }
 
+// Trigger represents if a step can be triggered by another event. Trigger
+// also supports unmarshalling from a boolean represented as a string, e.g.
+// "true", "True", "1", etc.
+type Trigger bool
+
+func (b *Trigger) UnmarshalJSON(data []byte) error {
+	converted, err := strconv.ParseBool(strings.Trim(string(data), "\""))
+	*b = Trigger(converted)
+	if err != nil {
+		return fmt.Errorf("Trigger unmarshal error: %w", err)
+	}
+	return nil
+}
+
 type GetStep struct {
 	Name     string         `json:"get"`
 	Resource string         `json:"resource,omitempty"`
 	Version  *VersionConfig `json:"version,omitempty"`
 	Params   Params         `json:"params,omitempty"`
 	Passed   []string       `json:"passed,omitempty"`
-	Trigger  bool           `json:"trigger,omitempty"`
+	Trigger  Trigger        `json:"trigger,omitempty"`
 	Tags     Tags           `json:"tags,omitempty"`
 	Timeout  string         `json:"timeout,omitempty"`
 }
