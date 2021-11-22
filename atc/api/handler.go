@@ -52,6 +52,7 @@ func NewHandler(
 	dbPipelineFactory db.PipelineFactory,
 	dbJobFactory db.JobFactory,
 	dbResourceFactory db.ResourceFactory,
+	dbResourceConfigScopeFactory db.ResourceConfigScopeFactory,
 	dbWorkerFactory db.WorkerFactory,
 	workerTeamFactory db.TeamFactory,
 	volumeRepository db.VolumeRepository,
@@ -95,7 +96,7 @@ func NewHandler(
 	jobServer := jobserver.NewServer(logger, externalURL, secretManager, dbJobFactory, dbCheckFactory)
 	resourceServer := resourceserver.NewServer(logger, secretManager, varSourcePool, dbCheckFactory, dbResourceFactory, dbResourceConfigFactory)
 
-	versionServer := versionserver.NewServer(logger, externalURL)
+	versionServer := versionserver.NewServer(logger, externalURL, dbResourceConfigScopeFactory)
 	pipelineServer := pipelineserver.NewServer(logger, dbTeamFactory, dbPipelineFactory, externalURL)
 	configServer := configserver.NewServer(logger, dbTeamFactory, secretManager)
 	ccServer := ccserver.NewServer(logger, dbTeamFactory, externalURL)
