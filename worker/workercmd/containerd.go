@@ -23,7 +23,7 @@ import (
 	"github.com/tedsuo/ifrit/grouper"
 )
 
-const containerdNamespace = "concourse"
+var containerdNamespace = "concourse" + os.Getenv("CONCOURSE_CONTAINERD_NAMESPACE_SUFFIX")
 
 // WriteDefaultContainerdConfig writes a default containerd configuration file
 // to a destination.
