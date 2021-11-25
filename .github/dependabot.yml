@@ -7,6 +7,10 @@ updates:
     interval: daily
     time: "00:00"
   labels: ["go", "dependencies", "misc", "release/undocumented"]
+  ignore:
+      # For AWS SDK, ignore all patch updates
+    - dependency-name: "aws-sdk-go"
+      update-types: ["version-update:semver-patch"]
 
 - package-ecosystem: elm
   directory: /web/elm
