@@ -35,8 +35,7 @@ func (pl *pipelineLifecycle) ArchiveAbandonedPipelines() error {
 	defer Rollback(tx)
 
 	rows, err := pipelinesQuery.
-		LeftJoin("jobs j ON j.id = p.parent_job_id").
-		LeftJoin("pipelines p2 ON j.pipeline_id = p2.id").
+		LeftJoin("jobs j ON (j.id = p.parent_job_id AND j.pipeline_id = p.id)").
 		Where(sq.Or{
 			// parent pipeline was destroyed
 			sq.And{
@@ -46,7 +45,7 @@ func (pl *pipelineLifecycle) ArchiveAbandonedPipelines() error {
 			// pipeline was set by a job. The job was removed from the parent pipeline
 			sq.Eq{"j.active": false},
 			// parent pipeline was archived
-			sq.Eq{"p2.archived": true},
+			sq.Eq{"p.archived": true},
 		}).
 		RunWith(tx).
 		Query()
