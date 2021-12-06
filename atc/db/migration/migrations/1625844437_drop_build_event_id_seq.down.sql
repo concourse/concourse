@@ -14,7 +14,7 @@ begin
         elsif b.pipeline_id is null or b.pipeline_id = 0 then
             execute 'select max(event_id) from team_build_events_' || b.team_id || ' where build_id=' || b.id into startValue;
         else
-            execute 'select max(event_id) from pipeline_build_events_' | b.pipeline_id || ' where build_id=' || b.id into startValue;
+            execute 'select max(event_id) from pipeline_build_events_' || b.pipeline_id || ' where build_id=' || b.id into startValue;
         end if;
 
         if startValue is null then
