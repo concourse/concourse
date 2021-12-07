@@ -4,38 +4,39 @@ updates:
 - package-ecosystem: gomod
   directory: /
   schedule:
-    interval: daily
+    interval: weekly
+    day: "sunday"
     time: "00:00"
   labels: ["go", "dependencies", "misc", "release/undocumented"]
-  ignore:
-      # ignore all patch updates
-    - dependency-name: "*"
-      update-types: ["version-update:semver-patch"]
 
 - package-ecosystem: elm
   directory: /web/elm
   schedule:
-    interval: daily
+    interval: weekly
+    day: "thursday"
     time: "00:00"
   labels: ["elm", "dependencies", "misc", "release/undocumented"]
 
 - package-ecosystem: npm
   directory: /
   schedule:
-    interval: daily
+    interval: weekly
+    day: "thursday"
     time: "00:00"
   labels: ["javascript", "dependencies", "misc", "release/undocumented"]
 
 - package-ecosystem: npm
   directory: /web/wats
   schedule:
-    interval: daily
+    interval: weekly
+    day: "thursday"
     time: "00:00"
   labels: ["javascript", "dependencies", "misc", "release/undocumented"]
 
 - package-ecosystem: github-actions
   directory: /
   schedule:
-    interval: daily
+    interval: weekly
+    day: "thursday"
     time: "00:00"
   labels: ["github-actions", "dependencies", "misc", "release/undocumented"]
