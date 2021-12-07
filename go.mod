@@ -24,7 +24,7 @@ require (
 	github.com/concourse/flag v1.1.0
 	github.com/concourse/go-archive v1.0.1
 	github.com/concourse/retryhttp v1.1.1
-	github.com/containerd/containerd v1.5.4
+	github.com/containerd/containerd v1.5.8
 	github.com/containerd/go-cni v1.0.2
 	github.com/containerd/typeurl v1.0.2
 	github.com/coreos/go-iptables v0.6.0
@@ -33,6 +33,7 @@ require (
 	github.com/cyberark/conjur-api-go v0.7.1
 	github.com/fatih/color v1.12.0
 	github.com/felixge/httpsnoop v1.0.2
+	github.com/gobuffalo/packr v1.30.1
 	github.com/gobwas/glob v0.2.3
 	github.com/goccy/go-yaml v1.9.2
 	github.com/gogo/protobuf v1.3.2
@@ -63,7 +64,7 @@ require (
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.14.0
-	github.com/opencontainers/runc v1.0.1
+	github.com/opencontainers/runc v1.0.2
 	github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/peterhellberg/link v1.1.0
