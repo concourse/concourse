@@ -281,25 +281,22 @@ func (strategy limitActiveTasksStrategy) Order(logger lager.Logger, pool Pool, w
 }
 
 func (strategy limitActiveTasksStrategy) Approve(logger lager.Logger, worker db.Worker, spec runtime.ContainerSpec) error {
-	if spec.Type != db.ContainerTypeTask {
+	if spec.Type != db.ContainerTypeTask || strategy.MaxTasks == 0 {
 		return nil
 	}
 
-	activeTasks, err := worker.IncreaseActiveTasks()
+	activeTasks, err := worker.ActiveTasks()
 	if err != nil {
 		return err
 	}
 
-	if strategy.MaxTasks > 0 && activeTasks > strategy.MaxTasks {
-		_, err := worker.DecreaseActiveTasks()
-		if err != nil {
-			logger.Error("failed-to-decrease-active-tasks", err)
-		}
-
+	if activeTasks >= strategy.MaxTasks {
 		return ErrTooManyActiveTasks
 	}
 
-	return nil
+	_, err = worker.IncreaseActiveTasks()
+
+	return err
 }
 
 func (strategy limitActiveTasksStrategy) Release(logger lager.Logger, worker db.Worker, spec runtime.ContainerSpec) {
