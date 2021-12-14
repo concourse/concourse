@@ -4,7 +4,7 @@ declare
     startValue int;
 begin
     for b in
-        select id, name, pipeline_id, team_id from builds where status = 'started' and completed = false and aborted = false
+        select id, name, pipeline_id, team_id from builds where status = 'started' and completed = false
     loop
         raise notice 'dropping sequence build_event_id_seq_% ...', b.id;
         execute 'drop sequence if exists build_event_id_seq_' || b.id;
