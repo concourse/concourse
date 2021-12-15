@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/concourse/concourse/atc"
@@ -118,7 +119,7 @@ func (h *Hijacker) handleOutput(conn *websocket.Conn, pio ProcessIO) (int, bool)
 
 		if output.ExitStatus != nil {
 			exitStatus = *output.ExitStatus
-		} else if output.ExecutableNotFound {
+		} else if output.ExecutableNotFound || strings.Contains(output.Error, "executable file not found") {
 			exeNotFound = true
 		} else if len(output.Error) > 0 {
 			fmt.Fprintf(ui.Stderr, "%s\n", ansi.Color(output.Error, "red+b"))
