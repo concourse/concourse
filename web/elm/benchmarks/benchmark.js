@@ -9,7 +9,10 @@ class Benchmark {
   async run() {
     await this.web.init();
     await this.web.page.goto(this.url);
-    await this.web.waitForText('Benchmark Report');
+    await this.web.waitForText('Benchmark Report')
+    .catch(e => {
+      console.log('wait for text "Benchmark Report failed"', e);
+    })
     const bodyHandle = await this.web.page.$('body > div > div');
     const html = await this.web.page.evaluate(body => body.innerText, bodyHandle);
     await bodyHandle.dispose();
