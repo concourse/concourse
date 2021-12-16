@@ -37,6 +37,15 @@ var _ = Describe("PipelineLifecycle", func() {
 				build.Finish(db.BuildStatusSucceeded)
 			})
 
+			Context("parent and child pipelines happily exist", func() {
+				It("neither pipeline should be archived", func() {
+					childPipeline.Reload()
+					defaultPipeline.Reload()
+					Expect(childPipeline.Archived()).To(BeFalse())
+					Expect(defaultPipeline.Archived()).To(BeFalse())
+				})
+			})
+
 			Context("parent pipeline is destroyed", func() {
 				BeforeEach(func() {
 					defaultPipeline.Destroy()
