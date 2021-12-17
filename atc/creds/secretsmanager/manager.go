@@ -17,13 +17,13 @@ const DefaultTeamSecretTemplate = "/concourse/{{.Team}}/{{.Secret}}"
 const DefaultSharedSecretTemplate = "/concourse/{{.Secret}}"
 
 type Manager struct {
-	AwsAccessKeyID         string `long:"access-key" description:"AWS Access key ID"`
-	AwsSecretAccessKey     string `long:"secret-key" description:"AWS Secret Access Key"`
-	AwsSessionToken        string `long:"session-token" description:"AWS Session Token"`
-	AwsRegion              string `long:"region" description:"AWS region to send requests to"`
-	PipelineSecretTemplate string `long:"pipeline-secret-template" description:"AWS Secrets Manager secret identifier template used for pipeline specific parameter" default:"/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"`
-	TeamSecretTemplate     string `long:"team-secret-template" description:"AWS Secrets Manager secret identifier  template used for team specific parameter" default:"/concourse/{{.Team}}/{{.Secret}}"`
-	SharedSecretTemplate   string `long:"shared-secret-template" description:"AWS Secrets Manager secret identifier  template used for shared parameter that can be used by all teams and pipelines" default:"/concourse/{{.Secret}}"`
+	AwsAccessKeyID         string `mapstructure:"access_key" long:"access-key" description:"AWS Access key ID"`
+	AwsSecretAccessKey     string `mapstructure:"secret_key" long:"secret-key" description:"AWS Secret Access Key"`
+	AwsSessionToken        string `mapstructure:"session_token" long:"session-token" description:"AWS Session Token"`
+	AwsRegion              string `mapstructure:"region" long:"region" description:"AWS region to send requests to"`
+	PipelineSecretTemplate string `mapstructure:"pipeline_secret_template" long:"pipeline-secret-template" description:"AWS Secrets Manager secret identifier template used for pipeline specific parameter" default:"/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"`
+	TeamSecretTemplate     string `mapstructure:"team_secret_template" long:"team-secret-template" description:"AWS Secrets Manager secret identifier  template used for team specific parameter" default:"/concourse/{{.Team}}/{{.Secret}}"`
+	SharedSecretTemplate   string `mapstructure:"shared_secret_template" long:"shared-secret-template" description:"AWS Secrets Manager secret identifier  template used for shared parameter that can be used by all teams and pipelines" default:"/concourse/{{.Secret}}"`
 	SecretManager          *SecretsManager
 }
 
