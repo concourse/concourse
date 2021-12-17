@@ -46,6 +46,7 @@ class Web {
       polling: 100,
       timeout: 90000
     }, text)
+    .catch(_ => {})
   }
 
   async waitForBackgroundColor(selector, backgroundColor, {timeout = 30000} = {}) {
@@ -57,7 +58,8 @@ class Web {
     }, {timeout}, {
       selector,
       expectedBackground: backgroundColor.rgb().string(),
-    });
+    })
+    .catch(_ => {});
   }
 
   async scrollIntoView(selector) {

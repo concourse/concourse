@@ -101,7 +101,8 @@ test('picks up cluster name from configuration', async t => {
     return document.querySelector(selector).innerText.length > 0;
   }, {timeout: 10000}, {
     selector: clusterNameSelector,
-  });
+  })
+  .catch(_ => {});
 
   const clusterName = await t.context.web.page.$eval(clusterNameSelector, el => el.innerText);
 
