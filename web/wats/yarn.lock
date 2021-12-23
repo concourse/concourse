@@ -2232,10 +2232,10 @@ pupa@^2.1.1:
   dependencies:
     escape-goat "^2.0.0"
 
-puppeteer@^13.0.0:
-  version "13.0.0"
-  resolved "https://registry.yarnpkg.com/puppeteer/-/puppeteer-13.0.0.tgz#f241d9bbbe5c8388da922f4f6ea3f84866e17f81"
-  integrity sha512-kZfGAieIVSo4bFqYuvY2KvhgP9txzmPbbnpZIzLlfdt8nEu9evXEwsbBt1BHocVQM4fJmCiS+FRyw7c8aWadNg==
+puppeteer@^13.0.1:
+  version "13.0.1"
+  resolved "https://registry.yarnpkg.com/puppeteer/-/puppeteer-13.0.1.tgz#9cd9bb8ec090bade183ca186bf342396bdffa135"
+  integrity sha512-wqGIx59LzYqWhYcJQphMT+ux0sgatEUbjKG0lbjJxNVqVIT3ZC5m4Bvmq2gHE3qhb63EwS+rNkql08bm4BvO0A==
   dependencies:
     debug "4.3.2"
     devtools-protocol "0.0.937139"
