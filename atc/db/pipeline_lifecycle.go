@@ -34,28 +34,31 @@ func (pl *pipelineLifecycle) ArchiveAbandonedPipelines() error {
 
 	defer Rollback(tx)
 
-	rows, err := pipelinesQuery.
-		LeftJoin("jobs j ON j.id = p.parent_job_id").
-		LeftJoin("pipelines p2 ON j.pipeline_id = p2.id").
-		Where(sq.Or{
-			// parent pipeline was destroyed
-			sq.And{
-				sq.NotEq{"p.parent_build_id": nil},
+	pipelinesToArchive, err := pipelinesQuery.
+		LeftJoin("jobs j ON (j.id = p.parent_job_id)").
+		LeftJoin("pipelines parent ON (j.pipeline_id = parent.id)").
+		Where(sq.And{
+			// pipeline was set by some build
+			sq.NotEq{"p.parent_job_id": nil},
+			sq.Or{
+				// job (that set child pipeline) from parent pipeline is
+				// removed, Concourse marks job as inactive
+				sq.Eq{"j.active": false},
+				// parent pipeline was destroyed, entire job record is gone
 				sq.Eq{"j.id": nil},
-			},
-			// pipeline was set by a job. The job was removed from the parent pipeline
-			sq.Eq{"j.active": false},
-			// parent pipeline was archived
-			sq.Eq{"p2.archived": true},
-		}).
+				// parent pipeline was archived
+				sq.Eq{"parent.archived": true},
+				// build that set the pipeline is not the most recent for the job
+				sq.Expr("p.parent_build_id != j.latest_completed_build_id"),
+			}}).
 		RunWith(tx).
 		Query()
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
+	defer pipelinesToArchive.Close()
 
-	err = archivePipelines(tx, pl.conn, pl.lockFactory, rows)
+	err = archivePipelines(tx, pl.conn, pl.lockFactory, pipelinesToArchive)
 	if err != nil {
 		return err
 	}

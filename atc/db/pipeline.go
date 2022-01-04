@@ -723,7 +723,7 @@ func (p *pipeline) archive(tx Tx) error {
 		Set("archived", true).
 		Set("last_updated", sq.Expr("now()")).
 		Set("paused", true).
-		Set("paused_by", nil).
+		Set("paused_by", "automatic-pipeline-archiver").
 		Set("paused_at", time.Now()).
 		Set("version", 0).
 		Where(sq.Eq{"id": p.id}).
