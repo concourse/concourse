@@ -82,7 +82,7 @@ func (cmd *BaggageclaimCommand) driver(logger lager.Logger) (volume.Driver, erro
 		}
 		// Clean up existing btrfs mount so we don't make overlay mounts inside
 		// a btrfs mount. Stuff gets flakey otherwise
-		if isMountBtrfs(volMountInfo) {
+		if _, err := os.Stat(btrfsImg); isMountBtrfs(volMountInfo) && err == nil {
 			err = btrfsFS.Delete()
 			if err != nil {
 				return nil, fmt.Errorf("failed to delete existing btrfs filesystem at %s: %s", cmd.VolumesDir.Path(), err)
