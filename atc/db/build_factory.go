@@ -212,10 +212,13 @@ func (f *buildFactory) constructBuildFilter() sq.Or {
 }
 
 func (f *buildFactory) GetDrainableBuilds() ([]Build, error) {
-	query := buildsQuery.Where(sq.Eq{
-		"b.completed": true,
-		"b.drained":   false,
-	})
+	query := buildsQuery.Where(
+		sq.Eq{
+			"b.completed":        true,
+			"b.drained":          false,
+			"b.resource_id":      nil,
+			"b.resource_type_id": nil,
+		})
 
 	return getBuilds(query, f.conn, f.lockFactory)
 }
