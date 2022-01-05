@@ -45,7 +45,7 @@ var _ = Describe("PipelinePauser", func() {
 				b1, err := jobOne.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).NotTo(HaveOccurred())
 				b1.Finish(db.BuildStatusSucceeded)
-				_, err = dbConn.Exec(`UPDATE jobs SET last_scheduled = NOW() - INTERVAL '15' DAY WHERE name = 'job-one'`)
+				_, err = dbConn.Exec(`UPDATE builds SET end_time = NOW() - INTERVAL '15' DAY WHERE id = $1`, b1.ID())
 				Expect(err).NotTo(HaveOccurred())
 
 				By("creating a job that ran 20 days ago")
@@ -56,7 +56,7 @@ var _ = Describe("PipelinePauser", func() {
 				b2, err := jobTwo.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).NotTo(HaveOccurred())
 				b2.Finish(db.BuildStatusSucceeded)
-				_, err = dbConn.Exec(`UPDATE jobs SET last_scheduled = NOW() - INTERVAL '20' DAY WHERE name = 'job-two'`)
+				_, err = dbConn.Exec(`UPDATE builds SET end_time = NOW() - INTERVAL '20' DAY WHERE id = $1`, b2.ID())
 				Expect(err).NotTo(HaveOccurred())
 
 				By("running the pipeline pauser")
@@ -84,7 +84,7 @@ var _ = Describe("PipelinePauser", func() {
 				b1, err := jobOne.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).NotTo(HaveOccurred())
 				b1.Finish(db.BuildStatusSucceeded)
-				_, err = dbConn.Exec(`UPDATE jobs SET last_scheduled = NOW() - INTERVAL '1' DAY WHERE name = 'job-one'`)
+				_, err = dbConn.Exec(`UPDATE builds SET end_time = NOW() - INTERVAL '1' DAY WHERE id = $1`, b1.ID())
 				Expect(err).NotTo(HaveOccurred())
 
 				By("creating a job that ran 11 days ago")
@@ -95,7 +95,7 @@ var _ = Describe("PipelinePauser", func() {
 				b2, err := jobTwo.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).NotTo(HaveOccurred())
 				b2.Finish(db.BuildStatusSucceeded)
-				_, err = dbConn.Exec(`UPDATE jobs SET last_scheduled = NOW() - INTERVAL '11' DAY WHERE name = 'job-two'`)
+				_, err = dbConn.Exec(`UPDATE builds SET end_time = NOW() - INTERVAL '11' DAY WHERE id = $1`, b2.ID())
 				Expect(err).NotTo(HaveOccurred())
 
 				By("running the pipeline pauser")
@@ -123,7 +123,7 @@ var _ = Describe("PipelinePauser", func() {
 				b1, err := jobOne.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).NotTo(HaveOccurred())
 				b1.Finish(db.BuildStatusSucceeded)
-				_, err = dbConn.Exec(`UPDATE jobs SET last_scheduled = NOW() - INTERVAL '10' DAY WHERE name = 'job-one'`)
+				_, err = dbConn.Exec(`UPDATE builds SET end_time = NOW() - INTERVAL '10' DAY WHERE id = $1`, b1.ID())
 				Expect(err).NotTo(HaveOccurred())
 
 				By("creating a job that ran 20 days ago")
@@ -134,7 +134,7 @@ var _ = Describe("PipelinePauser", func() {
 				b2, err := jobTwo.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).NotTo(HaveOccurred())
 				b2.Finish(db.BuildStatusSucceeded)
-				_, err = dbConn.Exec(`UPDATE jobs SET last_scheduled = NOW() - INTERVAL '20' DAY WHERE name = 'job-two'`)
+				_, err = dbConn.Exec(`UPDATE builds SET end_time = NOW() - INTERVAL '20' DAY WHERE id = $1`, b2.ID())
 				Expect(err).NotTo(HaveOccurred())
 
 				By("running the pipeline pauser")

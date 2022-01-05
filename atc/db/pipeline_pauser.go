@@ -29,7 +29,11 @@ func (p *pipelinePauser) PausePipelines(daysSinceLastBuild int) error {
 		sq.Eq{
 			"p.paused": false,
 		},
-		sq.Expr("NOT EXISTS (SELECT 1 FROM jobs j WHERE j.pipeline_id = p.id AND j.last_scheduled > CURRENT_DATE - ?::INTERVAL)", strconv.Itoa(daysSinceLastBuild)+" day"),
+		sq.Expr(`NOT EXISTS (SELECT 1 FROM jobs j
+							JOIN builds b ON j.latest_completed_build_id = b.id
+							WHERE j.pipeline_id = p.id
+							AND b.end_time > CURRENT_DATE - ?::INTERVAL)`,
+			strconv.Itoa(daysSinceLastBuild)+" day"),
 	}).RunWith(p.conn).Query()
 
 	if err != nil {
