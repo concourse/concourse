@@ -14,6 +14,7 @@ import (
 
 const DefaultPipelineSecretTemplate = "/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"
 const DefaultTeamSecretTemplate = "/concourse/{{.Team}}/{{.Secret}}"
+const DefaultTopLevelSecretTemplate = "/concourse/{{.Secret}}"
 
 type Manager struct {
 	AwsAccessKeyID         string `long:"access-key" description:"AWS Access key ID"`
@@ -22,6 +23,7 @@ type Manager struct {
 	AwsRegion              string `long:"region" description:"AWS region to send requests to"`
 	PipelineSecretTemplate string `long:"pipeline-secret-template" description:"AWS Secrets Manager secret identifier template used for pipeline specific parameter" default:"/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"`
 	TeamSecretTemplate     string `long:"team-secret-template" description:"AWS Secrets Manager secret identifier  template used for team specific parameter" default:"/concourse/{{.Team}}/{{.Secret}}"`
+	TopLevelSecretTemplate string `long:"top-level-secret-template" description:"AWS Secrets Manager secret identifier  template used for top level parameter that can be used by all teams" default:"/concourse/{{.Secret}}"`
 	SecretManager          *SecretsManager
 }
 
@@ -87,6 +89,9 @@ func (manager *Manager) Validate() error {
 	if _, err := creds.BuildSecretTemplate("team-secret-template", manager.TeamSecretTemplate); err != nil {
 		return err
 	}
+	if _, err := creds.BuildSecretTemplate("top-level-secret-template", manager.TopLevelSecretTemplate); err != nil {
+		return err
+	}
 
 	// All of the AWS credential variables may be empty since credentials may be obtained via environemnt variables
 	// or other means. However, if one of them is provided, then all of them (except session token) must be provided.
@@ -127,7 +132,12 @@ func (manager *Manager) NewSecretsFactory(log lager.Logger) (creds.SecretsFactor
 		return nil, err
 	}
 
-	return NewSecretsManagerFactory(log, sess, []*creds.SecretTemplate{pipelineSecretTemplate, teamSecretTemplate}), nil
+	topLevelSecretTemplate, err := creds.BuildSecretTemplate("top-level-secret-template", manager.TopLevelSecretTemplate)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewSecretsManagerFactory(log, sess, []*creds.SecretTemplate{pipelineSecretTemplate, teamSecretTemplate, topLevelSecretTemplate}), nil
 }
 
 func (manager Manager) Close(logger lager.Logger) {
