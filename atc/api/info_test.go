@@ -413,6 +413,7 @@ var _ = Describe("Pipelines API", func() {
 					AwsRegion:              "blah",
 					PipelineSecretTemplate: "pipeline-secret-template",
 					TeamSecretTemplate:     "team-secret-template",
+					TopLevelSecretTemplate: "top-level-secret-template",
 					SecretManager:          secretsManagerAccess,
 				}
 
@@ -434,6 +435,7 @@ var _ = Describe("Pipelines API", func() {
 						"aws_region": "blah",
 						"pipeline_secret_template": "pipeline-secret-template",
 						"team_secret_template": "team-secret-template",
+						"top_level_secret_template": "top-level-secret-template",
 						"health": {
 							"error": "some error occurred",
 							"method": "GetSecretValue"
@@ -459,6 +461,7 @@ var _ = Describe("Pipelines API", func() {
 						"aws_region": "blah",
 						"pipeline_secret_template": "pipeline-secret-template",
 						"team_secret_template": "team-secret-template",
+						"top_level_secret_template": "top-level-secret-template",
 						"health": {
 							"response": {
 								"status": "UP"

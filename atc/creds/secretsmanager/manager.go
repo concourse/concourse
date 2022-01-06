@@ -71,10 +71,11 @@ func (manager *Manager) MarshalJSON() ([]byte, error) {
 	}
 
 	return json.Marshal(&map[string]interface{}{
-		"aws_region":               manager.AwsRegion,
-		"pipeline_secret_template": manager.PipelineSecretTemplate,
-		"team_secret_template":     manager.TeamSecretTemplate,
-		"health":                   health,
+		"aws_region":                manager.AwsRegion,
+		"pipeline_secret_template":  manager.PipelineSecretTemplate,
+		"team_secret_template":      manager.TeamSecretTemplate,
+		"top_level_secret_template": manager.TopLevelSecretTemplate,
+		"health":                    health,
 	})
 }
 
