@@ -1,7 +1,7 @@
-import test from 'ava';
-import Fly from '../helpers/fly';
-import Web from '../helpers/web';
-import puppeteer from 'puppeteer';
+const Fly = require('../helpers/fly');
+const Web = require('../helpers/web');
+
+const test = require('ava');
 
 test.beforeEach(async t => {
   let url = process.env.ATC_URL || 'http://localhost:8080';

@@ -1,5 +1,4 @@
-import test from 'ava';
-
+const test = require('ava');
 const Suite = require('../helpers/suite');
 
 const color = require('color');
