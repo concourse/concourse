@@ -4,6 +4,9 @@
 ARG base_image=concourse/dev
 FROM ${base_image} AS base
 
+ARG goproxy
+ENV GOPROXY=$goproxy
+
 # download go modules separately so this doesn't re-run on every change
 WORKDIR /src
 COPY go.mod .
