@@ -35,7 +35,7 @@ var _ = Describe("Manager", func() {
 			Expect(err).To(BeNil())
 			Expect(manager.PipelineSecretTemplate).To(Equal(secretsmanager.DefaultPipelineSecretTemplate))
 			Expect(manager.TeamSecretTemplate).To(Equal(secretsmanager.DefaultTeamSecretTemplate))
-			Expect(manager.TopLevelSecretTemplate).To(Equal(secretsmanager.DefaultTopLevelSecretTemplate))
+			Expect(manager.SharedSecretTemplate).To(Equal(secretsmanager.DefaultSharedSecretTemplate))
 		})
 
 		It("passes on default parameters", func() {
@@ -107,13 +107,13 @@ var _ = Describe("Manager", func() {
 			Expect(manager.Validate()).ToNot(BeNil())
 		})
 
-		It("passes on top level secret template containing no specialization", func() {
-			manager.TopLevelSecretTemplate = "var"
+		It("passes on shared secret template containing no specialization", func() {
+			manager.SharedSecretTemplate = "var"
 			Expect(manager.Validate()).To(BeNil())
 		})
 
-		It("fails on empty top level secret template", func() {
-			manager.TopLevelSecretTemplate = ""
+		It("fails on empty shared secret template", func() {
+			manager.SharedSecretTemplate = ""
 			Expect(manager.Validate()).ToNot(BeNil())
 		})
 	})

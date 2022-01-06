@@ -51,7 +51,7 @@ var _ = Describe("SecretsManager", func() {
 		t2, err := creds.BuildSecretTemplate("t2", DefaultTeamSecretTemplate)
 		Expect(t2).NotTo(BeNil())
 		Expect(err).To(BeNil())
-		t3, err := creds.BuildSecretTemplate("t3", DefaultTopLevelSecretTemplate)
+		t3, err := creds.BuildSecretTemplate("t3", DefaultSharedSecretTemplate)
 		Expect(t3).NotTo(BeNil())
 		Expect(err).To(BeNil())
 		secretAccess = NewSecretsManager(lagertest.NewTestLogger("secretsmanager_test"), &mockService, []*creds.SecretTemplate{t1, t2, t3})
@@ -101,15 +101,15 @@ var _ = Describe("SecretsManager", func() {
 			Expect(err).To(BeNil())
 		})
 
-		It("should return top level parameter if exists", func() {
+		It("should return shared parameter if exists", func() {
 			mockService.stubGetParameter = func(input string) (*secretsmanager.GetSecretValueOutput, error) {
 				if input != "/concourse/cheery" {
 					return nil, awserr.New(secretsmanager.ErrCodeResourceNotFoundException, "", nil)
 				}
-				return &secretsmanager.GetSecretValueOutput{SecretString: aws.String("top level decrypted value")}, nil
+				return &secretsmanager.GetSecretValueOutput{SecretString: aws.String("shared decrypted value")}, nil
 			}
 			value, found, err := variables.Get(varRef)
-			Expect(value).To(BeEquivalentTo("top level decrypted value"))
+			Expect(value).To(BeEquivalentTo("shared decrypted value"))
 			Expect(found).To(BeTrue())
 			Expect(err).To(BeNil())
 		})
