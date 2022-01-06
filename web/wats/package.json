@@ -3,15 +3,15 @@
   "version": "1.0.0",
   "description": "Concourse web UI acceptance tests",
   "dependencies": {
-    "@ava/babel": "^2.0.0",
-    "ava": "^4.0.0",
     "child-process-promise": "^2.2.1",
     "color": "^4.1.0",
     "puppeteer": "^13.0.1",
     "tmp-promise": "^3.0.3",
     "uuid": "^8.3.2"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "ava": "^4.0.0"
+  },
   "scripts": {
     "test": "ava --serial"
   },
@@ -23,7 +23,6 @@
   },
   "homepage": "https://github.com/concourse/concourse#readme",
   "ava": {
-    "timeout": "5m",
-    "babel": true
+    "timeout": "5m"
   }
 }

@@ -1,8 +1,6 @@
-import test from 'ava';
-import Fly from '../helpers/fly'
-import Web from '../helpers/web'
-import puppeteer from 'puppeteer';
+const Web = require('../helpers/web');
 
+const test = require('ava');
 const Suite = require('../helpers/suite');
 
 const color = require('color');
