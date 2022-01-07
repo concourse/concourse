@@ -14,6 +14,7 @@ import (
 
 const DefaultPipelineSecretTemplate = "/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"
 const DefaultTeamSecretTemplate = "/concourse/{{.Team}}/{{.Secret}}"
+const DefaultSharedSecretTemplate = "/concourse/{{.Secret}}"
 
 type Manager struct {
 	AwsAccessKeyID         string `long:"access-key" description:"AWS Access key ID"`
@@ -22,6 +23,7 @@ type Manager struct {
 	AwsRegion              string `long:"region" description:"AWS region to send requests to"`
 	PipelineSecretTemplate string `long:"pipeline-secret-template" description:"AWS Secrets Manager secret identifier template used for pipeline specific parameter" default:"/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"`
 	TeamSecretTemplate     string `long:"team-secret-template" description:"AWS Secrets Manager secret identifier  template used for team specific parameter" default:"/concourse/{{.Team}}/{{.Secret}}"`
+	SharedSecretTemplate   string `long:"shared-secret-template" description:"AWS Secrets Manager secret identifier  template used for shared parameter that can be used by all teams and pipelines" default:"/concourse/{{.Secret}}"`
 	SecretManager          *SecretsManager
 }
 
@@ -72,6 +74,7 @@ func (manager *Manager) MarshalJSON() ([]byte, error) {
 		"aws_region":               manager.AwsRegion,
 		"pipeline_secret_template": manager.PipelineSecretTemplate,
 		"team_secret_template":     manager.TeamSecretTemplate,
+		"shared_secret_template":   manager.SharedSecretTemplate,
 		"health":                   health,
 	})
 }
@@ -85,6 +88,9 @@ func (manager *Manager) Validate() error {
 		return err
 	}
 	if _, err := creds.BuildSecretTemplate("team-secret-template", manager.TeamSecretTemplate); err != nil {
+		return err
+	}
+	if _, err := creds.BuildSecretTemplate("shared-secret-template", manager.SharedSecretTemplate); err != nil {
 		return err
 	}
 
@@ -127,7 +133,12 @@ func (manager *Manager) NewSecretsFactory(log lager.Logger) (creds.SecretsFactor
 		return nil, err
 	}
 
-	return NewSecretsManagerFactory(log, sess, []*creds.SecretTemplate{pipelineSecretTemplate, teamSecretTemplate}), nil
+	sharedSecretTemplate, err := creds.BuildSecretTemplate("shared-secret-template", manager.SharedSecretTemplate)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewSecretsManagerFactory(log, sess, []*creds.SecretTemplate{pipelineSecretTemplate, teamSecretTemplate, sharedSecretTemplate}), nil
 }
 
 func (manager Manager) Close(logger lager.Logger) {
