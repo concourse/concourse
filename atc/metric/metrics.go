@@ -427,23 +427,6 @@ func (event FailedVolumesToBeGarbageCollected) Emit(logger lager.Logger) {
 	)
 }
 
-type GarbageCollectionContainerCollectorJobDropped struct {
-	WorkerName string
-}
-
-func (event GarbageCollectionContainerCollectorJobDropped) Emit(logger lager.Logger) {
-	Metrics.emit(
-		logger.Session("gc-container-collector-dropped"),
-		Event{
-			Name:  "GC container collector job dropped",
-			Value: 1,
-			Attributes: map[string]string{
-				"worker": event.WorkerName,
-			},
-		},
-	)
-}
-
 type BuildStarted struct {
 	Build db.Build
 }
