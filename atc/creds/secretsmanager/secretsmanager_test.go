@@ -133,5 +133,15 @@ var _ = Describe("SecretsManager", func() {
 			Expect(found).To(BeTrue())
 			Expect(err).To(BeNil())
 		})
+
+		It("should treat marked for deletion as deleted", func() {
+			mockService.stubGetParameter = func(input string) (*secretsmanager.GetSecretValueOutput, error) {
+				return nil, awserr.New(secretsmanager.ErrCodeInvalidRequestException, "", nil)
+			}
+			value, found, err := variables.Get(varRef)
+			Expect(value).To(BeNil())
+			Expect(found).To(BeFalse())
+			Expect(err).To(BeNil())
+		})
 	})
 })

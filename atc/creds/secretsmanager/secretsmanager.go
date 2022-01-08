@@ -73,7 +73,9 @@ func (s *SecretsManager) getSecretById(path string) (interface{}, *time.Time, bo
 			}
 			return values, nil, true, nil
 		}
-	} else if errObj, ok := err.(awserr.Error); ok && errObj.Code() == secretsmanager.ErrCodeResourceNotFoundException {
+	} else if errObj, ok := err.(awserr.Error); ok && (errObj.Code() == secretsmanager.ErrCodeResourceNotFoundException ||
+		// a secret that's marked for deletion will return an invalid request exception as an error
+		errObj.Code() == secretsmanager.ErrCodeInvalidRequestException) {
 		return nil, nil, false, nil
 	}
 
