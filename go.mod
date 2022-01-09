@@ -90,8 +90,8 @@ require (
 	google.golang.org/grpc v1.42.0
 	gopkg.in/square/go-jose.v2 v2.6.0
 	gopkg.in/yaml.v2 v2.4.0
-	k8s.io/api v0.23.0
-	k8s.io/apimachinery v0.23.0
+	k8s.io/api v0.23.1
+	k8s.io/apimachinery v0.23.1
 	k8s.io/client-go v0.23.0
 	sigs.k8s.io/yaml v1.3.0
 )
@@ -183,7 +183,7 @@ require (
 	go.opencensus.io v0.23.0 // indirect
 	go.opentelemetry.io/proto/otlp v0.10.0 // indirect
 	golang.org/x/mod v0.4.2 // indirect
-	golang.org/x/net v0.0.0-20210825183410-e898025ed96a // indirect
+	golang.org/x/net v0.0.0-20211209124913-491a49abca63 // indirect
 	golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/tools v0.1.5 // indirect
