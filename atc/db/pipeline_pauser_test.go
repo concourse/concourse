@@ -105,8 +105,6 @@ var _ = Describe("PipelinePauser", func() {
 				_, err = twoJobPipeline.Reload()
 				Expect(err).To(BeNil())
 				Expect(twoJobPipeline.Paused()).To(BeFalse(), "pipeline should NOT be paused")
-
-				pauser.PausePipelines(10)
 			})
 		})
 		Context("last run was 10 days ago", func() {
@@ -144,8 +142,6 @@ var _ = Describe("PipelinePauser", func() {
 				_, err = twoJobPipeline.Reload()
 				Expect(err).To(BeNil())
 				Expect(twoJobPipeline.Paused()).To(BeFalse(), "pipeline should NOT be paused")
-
-				pauser.PausePipelines(10)
 			})
 		})
 	})
