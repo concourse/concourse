@@ -66,8 +66,26 @@ var _ = Describe("PipelinePauser", func() {
 				_, err = twoJobPipeline.Reload()
 				Expect(err).To(BeNil())
 				Expect(twoJobPipeline.Paused()).To(BeTrue(), "pipeline should be paused")
+			})
 
-				pauser.PausePipelines(10)
+			It("should say the pipeline was paused by 'automatic-pipeline-pauser'", func() {
+				By("using the default pipeline with one job")
+				Expect(defaultPipeline.Paused()).To(BeFalse(), "pipeline should start unpaused")
+
+				By("creating a job that ran 20 days ago")
+				b1, err := defaultJob.CreateBuild(defaultBuildCreatedBy)
+				Expect(err).NotTo(HaveOccurred())
+				b1.Finish(db.BuildStatusSucceeded)
+				_, err = dbConn.Exec(`UPDATE builds SET end_time = NOW() - INTERVAL '20' DAY WHERE id = $1`, b1.ID())
+				Expect(err).NotTo(HaveOccurred())
+				By("running the pipeline pauser")
+				err = pauser.PausePipelines(10)
+				Expect(err).NotTo(HaveOccurred())
+
+				_, err = defaultPipeline.Reload()
+				Expect(err).To(BeNil())
+				Expect(defaultPipeline.Paused()).To(BeTrue(), "pipeline should be paused")
+				Expect(defaultPipeline.PausedBy()).To(Equal("automatic-pipeline-pauser"))
 			})
 		})
 		Context("last run was 1 day ago", func() {
