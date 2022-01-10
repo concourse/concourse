@@ -21,7 +21,7 @@ require (
 	github.com/concourse/flag v1.1.0
 	github.com/concourse/go-archive v1.0.1
 	github.com/concourse/retryhttp v1.1.1
-	github.com/containerd/containerd v1.5.8
+	github.com/containerd/containerd v1.5.9
 	github.com/containerd/go-cni v1.1.0
 	github.com/containerd/typeurl v1.0.2
 	github.com/coreos/go-iptables v0.6.0
@@ -169,7 +169,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
-	github.com/opencontainers/image-spec v1.0.1 // indirect
+	github.com/opencontainers/image-spec v1.0.2 // indirect
 	github.com/opencontainers/selinux v1.8.2 // indirect
 	github.com/pierrec/lz4 v2.6.0+incompatible // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
