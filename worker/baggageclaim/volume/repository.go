@@ -513,6 +513,7 @@ func (repo *repository) StreamP2pOut(ctx context.Context, handle string, path st
 
 	reader, writer := io.Pipe()
 	go func() {
+		var err error
 		switch encoding {
 		case ZstdEncoding:
 			err = repo.zstdStreamer.Out(writer, srcPath, isPrivileged)
