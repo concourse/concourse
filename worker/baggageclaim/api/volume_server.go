@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"sync"
 	"time"
@@ -590,6 +591,13 @@ func (vs *VolumeServer) StreamP2pOut(w http.ResponseWriter, req *http.Request) {
 		RespondWithError(w, ErrStreamP2pOutFailed, http.StatusBadRequest)
 		return
 	}
+
+	rawUrl, err := url.Parse(streamInURL)
+	if err != nil {
+		hLog.Info("bad-param-streamInURL")
+		RespondWithError(w, ErrStreamP2pOutFailed, http.StatusBadRequest)
+	}
+	streamInURL = rawUrl.String()
 
 	w.Header().Set("Content-Type", "plain/text")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
