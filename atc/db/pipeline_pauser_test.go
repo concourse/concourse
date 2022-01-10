@@ -34,40 +34,72 @@ var _ = Describe("PipelinePauser", func() {
 
 	Describe("PausePipelines that haven't run in more than 10 days", func() {
 		Context("last run was 15 days ago", func() {
-			It("should be paused", func() {
-				By("creating a pipeline with two jobs")
-				twoJobPipeline, _, err = defaultTeam.SavePipeline(pipelineRef, twoJobPipelineConfig, db.ConfigVersion(0), false)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(twoJobPipeline.Paused()).To(BeFalse(), "pipeline should start unpaused")
+			Context("and one job has zero builds", func() {
+				It("should be paused", func() {
+					By("creating a pipeline with two jobs")
+					twoJobPipeline, _, err = defaultTeam.SavePipeline(pipelineRef, twoJobPipelineConfig, db.ConfigVersion(0), false)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(twoJobPipeline.Paused()).To(BeFalse(), "pipeline should start unpaused")
 
-				By("creating a job that ran 15 days ago")
-				jobOne, found, err := twoJobPipeline.Job("job-one")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-				b1, err := jobOne.CreateBuild(defaultBuildCreatedBy)
-				Expect(err).NotTo(HaveOccurred())
-				b1.Finish(db.BuildStatusSucceeded)
-				_, err = dbConn.Exec(`UPDATE builds SET end_time = NOW() - INTERVAL '15' DAY WHERE id = $1`, b1.ID())
-				Expect(err).NotTo(HaveOccurred())
+					By("creating a job that ran 15 days ago")
+					jobOne, found, err := twoJobPipeline.Job("job-one")
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+					b1, err := jobOne.CreateBuild(defaultBuildCreatedBy)
+					Expect(err).NotTo(HaveOccurred())
+					b1.Finish(db.BuildStatusSucceeded)
+					_, err = dbConn.Exec(`UPDATE builds SET end_time = NOW() - INTERVAL '15' DAY WHERE id = $1`, b1.ID())
+					Expect(err).NotTo(HaveOccurred())
 
-				By("creating a job that ran 20 days ago")
-				jobTwo, found, err := twoJobPipeline.Job("job-two")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-				jobTwo.CreateBuild(defaultBuildCreatedBy)
-				b2, err := jobTwo.CreateBuild(defaultBuildCreatedBy)
-				Expect(err).NotTo(HaveOccurred())
-				b2.Finish(db.BuildStatusSucceeded)
-				_, err = dbConn.Exec(`UPDATE builds SET end_time = NOW() - INTERVAL '20' DAY WHERE id = $1`, b2.ID())
-				Expect(err).NotTo(HaveOccurred())
+					By("having a second job with zero builds")
+					// yup, do nothing
 
-				By("running the pipeline pauser")
-				err = pauser.PausePipelines(context.TODO(), 10)
-				Expect(err).NotTo(HaveOccurred())
+					By("running the pipeline pauser")
+					err = pauser.PausePipelines(context.TODO(), 10)
+					Expect(err).NotTo(HaveOccurred())
 
-				_, err = twoJobPipeline.Reload()
-				Expect(err).To(BeNil())
-				Expect(twoJobPipeline.Paused()).To(BeTrue(), "pipeline should be paused")
+					_, err = twoJobPipeline.Reload()
+					Expect(err).To(BeNil())
+					Expect(twoJobPipeline.Paused()).To(BeTrue(), "pipeline should be paused")
+				})
+			})
+
+			Context("all jobs have builds", func() {
+				It("should be paused", func() {
+					By("creating a pipeline with two jobs")
+					twoJobPipeline, _, err = defaultTeam.SavePipeline(pipelineRef, twoJobPipelineConfig, db.ConfigVersion(0), false)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(twoJobPipeline.Paused()).To(BeFalse(), "pipeline should start unpaused")
+
+					By("creating a job that ran 15 days ago")
+					jobOne, found, err := twoJobPipeline.Job("job-one")
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+					b1, err := jobOne.CreateBuild(defaultBuildCreatedBy)
+					Expect(err).NotTo(HaveOccurred())
+					b1.Finish(db.BuildStatusSucceeded)
+					_, err = dbConn.Exec(`UPDATE builds SET end_time = NOW() - INTERVAL '15' DAY WHERE id = $1`, b1.ID())
+					Expect(err).NotTo(HaveOccurred())
+
+					By("creating a job that ran 20 days ago")
+					jobTwo, found, err := twoJobPipeline.Job("job-two")
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+					jobTwo.CreateBuild(defaultBuildCreatedBy)
+					b2, err := jobTwo.CreateBuild(defaultBuildCreatedBy)
+					Expect(err).NotTo(HaveOccurred())
+					b2.Finish(db.BuildStatusSucceeded)
+					_, err = dbConn.Exec(`UPDATE builds SET end_time = NOW() - INTERVAL '20' DAY WHERE id = $1`, b2.ID())
+					Expect(err).NotTo(HaveOccurred())
+
+					By("running the pipeline pauser")
+					err = pauser.PausePipelines(context.TODO(), 10)
+					Expect(err).NotTo(HaveOccurred())
+
+					_, err = twoJobPipeline.Reload()
+					Expect(err).To(BeNil())
+					Expect(twoJobPipeline.Paused()).To(BeTrue(), "pipeline should be paused")
+				})
 			})
 
 			It("should say the pipeline was paused by 'automatic-pipeline-pauser'", func() {
@@ -163,6 +195,22 @@ var _ = Describe("PipelinePauser", func() {
 				Expect(err).To(BeNil())
 				Expect(twoJobPipeline.Paused()).To(BeFalse(), "pipeline should NOT be paused")
 			})
+		})
+	})
+	Describe("newly set pipeline whose jobs have no builds", func() {
+		It("should not be paused if all of its jobs have no builds", func() {
+			By("creating a new pipeline")
+			newPipeline, _, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "new-pipeline"}, defaultPipelineConfig, db.ConfigVersion(0), false)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(newPipeline.Paused()).To(BeFalse(), "pipeline should start unpaused")
+
+			By("running the pipeline pauser")
+			err = pauser.PausePipelines(context.TODO(), 10)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = newPipeline.Reload()
+			Expect(err).To(BeNil())
+			Expect(newPipeline.Paused()).To(BeFalse(), "pipeline should NOT be paused")
 		})
 	})
 })

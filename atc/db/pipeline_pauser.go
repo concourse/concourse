@@ -33,10 +33,13 @@ func (p *pipelinePauser) PausePipelines(ctx context.Context, daysSinceLastBuild 
 		sq.Eq{
 			"p.paused": false,
 		},
-		sq.Expr(`NOT EXISTS (SELECT 1 FROM jobs j
-							JOIN builds b ON j.latest_completed_build_id = b.id
+		sq.Expr(`p.id NOT IN (SELECT j.pipeline_id FROM jobs j
+							LEFT JOIN builds b ON j.latest_completed_build_id = b.id
 							WHERE j.pipeline_id = p.id
-							AND b.end_time > CURRENT_DATE - ?::INTERVAL)`,
+							AND (
+								b.end_time > CURRENT_DATE - ?::INTERVAL
+								OR j.latest_completed_build_id IS NULL
+							))`,
 			strconv.Itoa(daysSinceLastBuild)+" day"),
 	}).RunWith(p.conn).Query()
 
