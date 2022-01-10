@@ -1,6 +1,8 @@
 package db_test
 
 import (
+	"context"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 
@@ -60,7 +62,7 @@ var _ = Describe("PipelinePauser", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				By("running the pipeline pauser")
-				err = pauser.PausePipelines(10)
+				err = pauser.PausePipelines(context.TODO(), 10)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = twoJobPipeline.Reload()
@@ -79,7 +81,7 @@ var _ = Describe("PipelinePauser", func() {
 				_, err = dbConn.Exec(`UPDATE builds SET end_time = NOW() - INTERVAL '20' DAY WHERE id = $1`, b1.ID())
 				Expect(err).NotTo(HaveOccurred())
 				By("running the pipeline pauser")
-				err = pauser.PausePipelines(10)
+				err = pauser.PausePipelines(context.TODO(), 10)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = defaultPipeline.Reload()
@@ -117,7 +119,7 @@ var _ = Describe("PipelinePauser", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				By("running the pipeline pauser")
-				err = pauser.PausePipelines(10)
+				err = pauser.PausePipelines(context.TODO(), 10)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = twoJobPipeline.Reload()
@@ -154,7 +156,7 @@ var _ = Describe("PipelinePauser", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				By("running the pipeline pauser")
-				err = pauser.PausePipelines(10)
+				err = pauser.PausePipelines(context.TODO(), 10)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = twoJobPipeline.Reload()
