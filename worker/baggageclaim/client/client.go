@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -382,6 +383,28 @@ func (c *client) streamP2pOut(ctx context.Context, srcHandle string, encoding ba
 
 	if response.StatusCode != http.StatusOK {
 		return getError(response)
+	}
+
+	// Write response body for p2p-streaming result
+	var result string
+	buf := make([]byte, 1024)
+	for {
+		len, err := response.Body.Read(buf);
+		if len > 0 {
+			result += strings.TrimSpace(string(buf[:len]))
+		}
+
+		if err == io.EOF {
+			if result == "ok" {
+				break
+			}
+
+			return errors.New(result)
+		}
+
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

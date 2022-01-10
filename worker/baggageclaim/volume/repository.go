@@ -1,7 +1,6 @@
 package volume
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -510,24 +509,27 @@ func (repo *repository) StreamP2pOut(ctx context.Context, handle string, path st
 		return err
 	}
 
-	buffer := new(bytes.Buffer)
-	switch encoding {
-	case ZstdEncoding:
-		err = repo.zstdStreamer.Out(buffer, srcPath, isPrivileged)
-	case GzipEncoding:
-		err = repo.gzipStreamer.Out(buffer, srcPath, isPrivileged)
-	default:
-		return ErrUnsupportedStreamEncoding
-	}
-	if err != nil {
-		logger.Error("failed-to-compress-volume", err)
-		return err
-	}
-
 	logger.Debug("p2p-streaming-start", lager.Data{"streamInURL": streamInURL})
 
+	reader, writer := io.Pipe()
+	go func() {
+		switch encoding {
+		case ZstdEncoding:
+			err = repo.zstdStreamer.Out(writer, srcPath, isPrivileged)
+		case GzipEncoding:
+			err = repo.gzipStreamer.Out(writer, srcPath, isPrivileged)
+		default:
+			err = ErrUnsupportedStreamEncoding
+		}
+		if err != nil {
+			writer.CloseWithError(fmt.Errorf("failed to compress source volume: %w", err))
+			return
+		}
+		writer.Close()
+	}()
+
 	client := &http.Client{}
-	req, err := http.NewRequest(http.MethodPut, streamInURL, buffer)
+	req, err := http.NewRequest(http.MethodPut, streamInURL, reader)
 	if err != nil {
 		logger.Error("failed-to-create-p2p-request", err)
 		return err
@@ -536,7 +538,6 @@ func (repo *repository) StreamP2pOut(ctx context.Context, handle string, path st
 	req.Header.Set("Content-Encoding", encoding)
 	resp, err := client.Do(req)
 	if err != nil {
-		logger.Error("failed-to-streaming-to-peer", err)
 		return err
 	}
 
