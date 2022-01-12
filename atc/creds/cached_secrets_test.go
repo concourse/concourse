@@ -162,4 +162,19 @@ var _ = Describe("Caching of secrets", func() {
 		Expect(underlyingMisses).To(BeIdenticalTo(4))
 	})
 
+	It("should not cache forever if expiration is now", func() {
+		now := time.Now()
+		secretManager.GetStub = makeGetStub("foo", "value", &now, true, nil, &underlyingReads, &underlyingMisses)
+
+		// initial get should cause a read
+		_, expiration, _, _ := cachedSecretManager.Get("foo")
+		Expect(expiration).To(BeIdenticalTo(&now))
+		Expect(underlyingReads).To(BeIdenticalTo(1))
+		Expect(underlyingMisses).To(BeIdenticalTo(0))
+
+		// result should not be cached causing another read
+		_, _, _, _ = cachedSecretManager.Get("foo")
+		Expect(underlyingReads).To(BeIdenticalTo(2))
+		Expect(underlyingMisses).To(BeIdenticalTo(0))
+	})
 })

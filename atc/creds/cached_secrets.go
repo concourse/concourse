@@ -66,7 +66,14 @@ func (cs *CachedSecrets) Get(secretPath string) (interface{}, *time.Time, bool, 
 				duration = itemDuration
 			}
 		}
-		cs.cache.Set(secretPath, entry, duration)
+
+		// a negative duration will cause the cache to never expire the secret
+		// reduce the minimum cache duration to 1s and assume anything within that second is requesting
+		// a cache duration of 0 (do not cache).
+		seconds := duration.Seconds()
+		if seconds >= 1 || seconds <= -1 {
+			cs.cache.Set(secretPath, entry, duration)
+		}
 	} else {
 		cs.cache.Set(secretPath, entry, cs.cacheConfig.DurationNotFound)
 	}
