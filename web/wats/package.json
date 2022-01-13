@@ -10,7 +10,7 @@
     "uuid": "^8.3.2"
   },
   "devDependencies": {
-    "ava": "^4.0.0"
+    "ava": "^4.0.1"
   },
   "scripts": {
     "test": "ava --serial"
