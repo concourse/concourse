@@ -460,7 +460,7 @@ var _ = Describe("Baggage Claim Client", func() {
 						Expect(err).ToNot(HaveOccurred())
 					})
 				})
-				Context("when p2p streaming succeeds", func() {
+				Context("when p2p streaming fails", func() {
 					BeforeEach(func() {
 						bcServer.AppendHandlers(
 							ghttp.CombineHandlers(
