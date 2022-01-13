@@ -884,8 +884,6 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 	// ensure there are no invalid characters in label names.
 	event.Attributes = sanitizePrometheusLabels(event.Attributes)
 
-	// update last seen counters, used to gc stale timeseries
-	emitter.updateLastSeen(event)
 
 	switch event.Name {
 	case "error log":
@@ -932,6 +930,8 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 	case "check build finished":
 		emitter.checkBuildFinishedMetrics(logger, event)
 	case "worker containers":
+		// update last seen counters, used to gc stale timeseries
+		emitter.updateLastSeen(event)
 		emitter.workerContainersMetric(logger, event)
 	case "creating containers to be garbage collected":
 		emitter.creatingContainersToBeGarbageCollected.Add(event.Value)
@@ -948,12 +948,16 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 	case "failed volumes to be garbage collected":
 		emitter.failedVolumesToBeGarbageCollected.Add(event.Value)
 	case "worker volumes":
+		// update last seen counters, used to gc stale timeseries
+		emitter.updateLastSeen(event)
 		emitter.workerVolumesMetric(logger, event)
 	case "worker unknown containers":
 		emitter.workerUnknownContainersMetric(logger, event)
 	case "worker unknown volumes":
 		emitter.workerUnknownVolumesMetric(logger, event)
 	case "worker tasks":
+		// update last seen counters, used to gc stale timeseries
+		emitter.updateLastSeen(event)
 		emitter.workerTasksMetric(logger, event)
 	case "worker state":
 		emitter.workersRegisteredMetric(logger, event)
@@ -1296,7 +1300,7 @@ func (emitter *PrometheusEmitter) periodicMetricGC() {
 		emitter.mu.Lock()
 		now := time.Now()
 		for worker, lastSeen := range emitter.workerLastSeen {
-			if now.Sub(lastSeen) > 5*time.Minute {
+			if now.Sub(lastSeen) > 2*time.Minute {
 				DoGarbageCollection(emitter, worker)
 				delete(emitter.workerLastSeen, worker)
 			}
