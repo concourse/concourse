@@ -88,7 +88,6 @@ type PrometheusEmitter struct {
 	workerTasks                        *prometheus.GaugeVec
 	workersRegistered                  *prometheus.GaugeVec
 	workerOrphanedVolumesToBeCollected prometheus.Counter
-	droppedContainer                   *prometheus.GaugeVec
 
 	creatingContainersToBeGarbageCollected   prometheus.Counter
 	createdContainersToBeGarbageCollected    prometheus.Counter
@@ -98,12 +97,11 @@ type PrometheusEmitter struct {
 	destroyingVolumesToBeGarbageCollected    prometheus.Counter
 	failedVolumesToBeGarbageCollected        prometheus.Counter
 
-	workerContainersLabels      map[string]map[string]prometheus.Labels
-	workerVolumesLabels         map[string]map[string]prometheus.Labels
-	workerTasksLabels           map[string]map[string]prometheus.Labels
-	containerJobCollectorLabels map[string]map[string]prometheus.Labels
-	workerLastSeen              map[string]time.Time
-	mu                          sync.Mutex
+	workerContainersLabels map[string]map[string]prometheus.Labels
+	workerVolumesLabels    map[string]map[string]prometheus.Labels
+	workerTasksLabels      map[string]map[string]prometheus.Labels
+	workerLastSeen         map[string]time.Time
+	mu                     sync.Mutex
 }
 
 type PrometheusConfig struct {
@@ -643,17 +641,6 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 	)
 	prometheus.MustRegister(failedVolumesToBeGarbageCollected)
 
-	droppedContainer := prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Namespace:   "concourse",
-			Subsystem:   "volumes",
-			Name:        "gc_container_collector_job_dropped",
-			Help:        "Workers that have the container collector job dropped",
-			ConstLabels: attributes,
-		}, []string{"worker"},
-	)
-	prometheus.MustRegister(droppedContainer)
-
 	gcBuildCollectorDuration := prometheus.NewHistogram(
 		prometheus.HistogramOpts{
 			Namespace:   "concourse",
@@ -878,7 +865,6 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 		workerUnknownContainers:            workerUnknownContainers,
 		workerUnknownVolumes:               workerUnknownVolumes,
 		workerOrphanedVolumesToBeCollected: workerOrphanedVolumesToBeCollected,
-		droppedContainer:                   droppedContainer,
 
 		volumesStreamed: volumesStreamed,
 
@@ -898,8 +884,6 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 	// ensure there are no invalid characters in label names.
 	event.Attributes = sanitizePrometheusLabels(event.Attributes)
 
-	// update last seen counters, used to gc stale timeseries
-	emitter.updateLastSeen(event)
 
 	switch event.Name {
 	case "error log":
@@ -946,6 +930,8 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 	case "check build finished":
 		emitter.checkBuildFinishedMetrics(logger, event)
 	case "worker containers":
+		// update last seen counters, used to gc stale timeseries
+		emitter.updateLastSeen(event)
 		emitter.workerContainersMetric(logger, event)
 	case "creating containers to be garbage collected":
 		emitter.creatingContainersToBeGarbageCollected.Add(event.Value)
@@ -962,12 +948,16 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 	case "failed volumes to be garbage collected":
 		emitter.failedVolumesToBeGarbageCollected.Add(event.Value)
 	case "worker volumes":
+		// update last seen counters, used to gc stale timeseries
+		emitter.updateLastSeen(event)
 		emitter.workerVolumesMetric(logger, event)
 	case "worker unknown containers":
 		emitter.workerUnknownContainersMetric(logger, event)
 	case "worker unknown volumes":
 		emitter.workerUnknownVolumesMetric(logger, event)
 	case "worker tasks":
+		// update last seen counters, used to gc stale timeseries
+		emitter.updateLastSeen(event)
 		emitter.workerTasksMetric(logger, event)
 	case "worker state":
 		emitter.workersRegisteredMetric(logger, event)
@@ -993,8 +983,6 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 		emitter.gcContainerCollectorDuration.Observe(event.Value)
 	case "gc: volume collector duration (ms)":
 		emitter.gcVolumeCollectorDuration.Observe(event.Value)
-	case "GC container collector job dropped":
-		emitter.droppedContainerJobMetric(logger, event)
 	case "http response time":
 		emitter.httpResponseTimeMetrics(logger, event)
 	case "database queries":
@@ -1312,7 +1300,7 @@ func (emitter *PrometheusEmitter) periodicMetricGC() {
 		emitter.mu.Lock()
 		now := time.Now()
 		for worker, lastSeen := range emitter.workerLastSeen {
-			if now.Sub(lastSeen) > 5*time.Minute {
+			if now.Sub(lastSeen) > 2*time.Minute {
 				DoGarbageCollection(emitter, worker)
 				delete(emitter.workerLastSeen, worker)
 			}
@@ -1320,26 +1308,6 @@ func (emitter *PrometheusEmitter) periodicMetricGC() {
 		emitter.mu.Unlock()
 		time.Sleep(60 * time.Second)
 	}
-}
-
-func (emitter *PrometheusEmitter) droppedContainerJobMetric(logger lager.Logger, event metric.Event) {
-	worker, exists := event.Attributes["worker"]
-
-	if !exists {
-		logger.Error("failed-to-find-worker-in-event", fmt.Errorf("expected worker to exist in event.Attributes"))
-		return
-	}
-
-	labels := prometheus.Labels{
-		"worker": worker,
-	}
-
-	key := serializeLabels(&labels)
-	if emitter.containerJobCollectorLabels[worker] == nil {
-		emitter.containerJobCollectorLabels[worker] = make(map[string]prometheus.Labels)
-	}
-	emitter.containerJobCollectorLabels[worker][key] = labels
-	emitter.droppedContainer.With(emitter.workerContainersLabels[worker][key]).Set(event.Value)
 }
 
 // DoGarbageCollection retrieves and deletes stale metrics by their labels.
@@ -1356,10 +1324,6 @@ func DoGarbageCollection(emitter PrometheusGarbageCollectable, worker string) {
 		emitter.WorkerTasks().Delete(labels)
 	}
 
-	for _, labels := range emitter.ContainerJobCollectorLabels()[worker] {
-		emitter.DroppedContainer().Delete(labels)
-	}
-
 	delete(emitter.WorkerContainersLabels(), worker)
 	delete(emitter.WorkerVolumesLabels(), worker)
 	delete(emitter.WorkerTasksLabels(), worker)
@@ -1370,12 +1334,10 @@ type PrometheusGarbageCollectable interface {
 	WorkerContainers() *prometheus.GaugeVec
 	WorkerVolumes() *prometheus.GaugeVec
 	WorkerTasks() *prometheus.GaugeVec
-	DroppedContainer() *prometheus.GaugeVec
 
 	WorkerContainersLabels() map[string]map[string]prometheus.Labels
 	WorkerVolumesLabels() map[string]map[string]prometheus.Labels
 	WorkerTasksLabels() map[string]map[string]prometheus.Labels
-	ContainerJobCollectorLabels() map[string]map[string]prometheus.Labels
 }
 
 func (emitter *PrometheusEmitter) WorkerContainers() *prometheus.GaugeVec {
@@ -1390,10 +1352,6 @@ func (emitter *PrometheusEmitter) WorkerTasks() *prometheus.GaugeVec {
 	return emitter.workerTasks
 }
 
-func (emitter *PrometheusEmitter) DroppedContainer() *prometheus.GaugeVec {
-	return emitter.droppedContainer
-}
-
 func (emitter *PrometheusEmitter) WorkerContainersLabels() map[string]map[string]prometheus.Labels {
 	return emitter.workerContainersLabels
 }
@@ -1404,8 +1362,4 @@ func (emitter *PrometheusEmitter) WorkerVolumesLabels() map[string]map[string]pr
 
 func (emitter *PrometheusEmitter) WorkerTasksLabels() map[string]map[string]prometheus.Labels {
 	return emitter.workerTasksLabels
-}
-
-func (emitter *PrometheusEmitter) ContainerJobCollectorLabels() map[string]map[string]prometheus.Labels {
-	return emitter.containerJobCollectorLabels
 }

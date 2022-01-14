@@ -9,26 +9,6 @@ import (
 )
 
 type FakePrometheusGarbageCollectable struct {
-	ContainerJobCollectorLabelsStub        func() map[string]map[string]prometheus.Labels
-	containerJobCollectorLabelsMutex       sync.RWMutex
-	containerJobCollectorLabelsArgsForCall []struct {
-	}
-	containerJobCollectorLabelsReturns struct {
-		result1 map[string]map[string]prometheus.Labels
-	}
-	containerJobCollectorLabelsReturnsOnCall map[int]struct {
-		result1 map[string]map[string]prometheus.Labels
-	}
-	DroppedContainerStub        func() *prometheus.GaugeVec
-	droppedContainerMutex       sync.RWMutex
-	droppedContainerArgsForCall []struct {
-	}
-	droppedContainerReturns struct {
-		result1 *prometheus.GaugeVec
-	}
-	droppedContainerReturnsOnCall map[int]struct {
-		result1 *prometheus.GaugeVec
-	}
 	WorkerContainersStub        func() *prometheus.GaugeVec
 	workerContainersMutex       sync.RWMutex
 	workerContainersArgsForCall []struct {
@@ -91,112 +71,6 @@ type FakePrometheusGarbageCollectable struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
-}
-
-func (fake *FakePrometheusGarbageCollectable) ContainerJobCollectorLabels() map[string]map[string]prometheus.Labels {
-	fake.containerJobCollectorLabelsMutex.Lock()
-	ret, specificReturn := fake.containerJobCollectorLabelsReturnsOnCall[len(fake.containerJobCollectorLabelsArgsForCall)]
-	fake.containerJobCollectorLabelsArgsForCall = append(fake.containerJobCollectorLabelsArgsForCall, struct {
-	}{})
-	stub := fake.ContainerJobCollectorLabelsStub
-	fakeReturns := fake.containerJobCollectorLabelsReturns
-	fake.recordInvocation("ContainerJobCollectorLabels", []interface{}{})
-	fake.containerJobCollectorLabelsMutex.Unlock()
-	if stub != nil {
-		return stub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fakeReturns.result1
-}
-
-func (fake *FakePrometheusGarbageCollectable) ContainerJobCollectorLabelsCallCount() int {
-	fake.containerJobCollectorLabelsMutex.RLock()
-	defer fake.containerJobCollectorLabelsMutex.RUnlock()
-	return len(fake.containerJobCollectorLabelsArgsForCall)
-}
-
-func (fake *FakePrometheusGarbageCollectable) ContainerJobCollectorLabelsCalls(stub func() map[string]map[string]prometheus.Labels) {
-	fake.containerJobCollectorLabelsMutex.Lock()
-	defer fake.containerJobCollectorLabelsMutex.Unlock()
-	fake.ContainerJobCollectorLabelsStub = stub
-}
-
-func (fake *FakePrometheusGarbageCollectable) ContainerJobCollectorLabelsReturns(result1 map[string]map[string]prometheus.Labels) {
-	fake.containerJobCollectorLabelsMutex.Lock()
-	defer fake.containerJobCollectorLabelsMutex.Unlock()
-	fake.ContainerJobCollectorLabelsStub = nil
-	fake.containerJobCollectorLabelsReturns = struct {
-		result1 map[string]map[string]prometheus.Labels
-	}{result1}
-}
-
-func (fake *FakePrometheusGarbageCollectable) ContainerJobCollectorLabelsReturnsOnCall(i int, result1 map[string]map[string]prometheus.Labels) {
-	fake.containerJobCollectorLabelsMutex.Lock()
-	defer fake.containerJobCollectorLabelsMutex.Unlock()
-	fake.ContainerJobCollectorLabelsStub = nil
-	if fake.containerJobCollectorLabelsReturnsOnCall == nil {
-		fake.containerJobCollectorLabelsReturnsOnCall = make(map[int]struct {
-			result1 map[string]map[string]prometheus.Labels
-		})
-	}
-	fake.containerJobCollectorLabelsReturnsOnCall[i] = struct {
-		result1 map[string]map[string]prometheus.Labels
-	}{result1}
-}
-
-func (fake *FakePrometheusGarbageCollectable) DroppedContainer() *prometheus.GaugeVec {
-	fake.droppedContainerMutex.Lock()
-	ret, specificReturn := fake.droppedContainerReturnsOnCall[len(fake.droppedContainerArgsForCall)]
-	fake.droppedContainerArgsForCall = append(fake.droppedContainerArgsForCall, struct {
-	}{})
-	stub := fake.DroppedContainerStub
-	fakeReturns := fake.droppedContainerReturns
-	fake.recordInvocation("DroppedContainer", []interface{}{})
-	fake.droppedContainerMutex.Unlock()
-	if stub != nil {
-		return stub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fakeReturns.result1
-}
-
-func (fake *FakePrometheusGarbageCollectable) DroppedContainerCallCount() int {
-	fake.droppedContainerMutex.RLock()
-	defer fake.droppedContainerMutex.RUnlock()
-	return len(fake.droppedContainerArgsForCall)
-}
-
-func (fake *FakePrometheusGarbageCollectable) DroppedContainerCalls(stub func() *prometheus.GaugeVec) {
-	fake.droppedContainerMutex.Lock()
-	defer fake.droppedContainerMutex.Unlock()
-	fake.DroppedContainerStub = stub
-}
-
-func (fake *FakePrometheusGarbageCollectable) DroppedContainerReturns(result1 *prometheus.GaugeVec) {
-	fake.droppedContainerMutex.Lock()
-	defer fake.droppedContainerMutex.Unlock()
-	fake.DroppedContainerStub = nil
-	fake.droppedContainerReturns = struct {
-		result1 *prometheus.GaugeVec
-	}{result1}
-}
-
-func (fake *FakePrometheusGarbageCollectable) DroppedContainerReturnsOnCall(i int, result1 *prometheus.GaugeVec) {
-	fake.droppedContainerMutex.Lock()
-	defer fake.droppedContainerMutex.Unlock()
-	fake.DroppedContainerStub = nil
-	if fake.droppedContainerReturnsOnCall == nil {
-		fake.droppedContainerReturnsOnCall = make(map[int]struct {
-			result1 *prometheus.GaugeVec
-		})
-	}
-	fake.droppedContainerReturnsOnCall[i] = struct {
-		result1 *prometheus.GaugeVec
-	}{result1}
 }
 
 func (fake *FakePrometheusGarbageCollectable) WorkerContainers() *prometheus.GaugeVec {
@@ -520,10 +394,6 @@ func (fake *FakePrometheusGarbageCollectable) WorkerVolumesLabelsReturnsOnCall(i
 func (fake *FakePrometheusGarbageCollectable) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.containerJobCollectorLabelsMutex.RLock()
-	defer fake.containerJobCollectorLabelsMutex.RUnlock()
-	fake.droppedContainerMutex.RLock()
-	defer fake.droppedContainerMutex.RUnlock()
 	fake.workerContainersMutex.RLock()
 	defer fake.workerContainersMutex.RUnlock()
 	fake.workerContainersLabelsMutex.RLock()
