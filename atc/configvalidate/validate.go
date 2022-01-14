@@ -439,7 +439,7 @@ func validateVarSources(c atc.Config) ([]atc.ConfigWarning, error) {
 			// TODO: this check should eventually be removed once all credential managers
 			// are supported in pipeline. - @evanchaoli
 			switch varSource.Type {
-			case "vault", "dummy", "ssm":
+			case "vault", "dummy", "ssm", "secretsmanager":
 			default:
 				errorMessages = append(errorMessages, fmt.Sprintf("credential manager type %s is not supported in pipeline yet", varSource.Type))
 			}

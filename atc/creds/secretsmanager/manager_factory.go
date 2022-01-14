@@ -3,6 +3,7 @@ package secretsmanager
 import (
 	"github.com/concourse/concourse/atc/creds"
 	flags "github.com/jessevdk/go-flags"
+	"github.com/mitchellh/mapstructure"
 )
 
 type managerFactory struct{}
@@ -28,6 +29,25 @@ func (factory *managerFactory) AddConfig(group *flags.Group) creds.Manager {
 	return manager
 }
 
-func (factory *managerFactory) NewInstance(interface{}) (creds.Manager, error) {
-	return &Manager{}, nil
+func (factory *managerFactory) NewInstance(config interface{}) (creds.Manager, error) {
+	manager := &Manager{
+		TeamSecretTemplate:     DefaultTeamSecretTemplate,
+		SharedSecretTemplate:   DefaultSharedSecretTemplate,
+		PipelineSecretTemplate: DefaultPipelineSecretTemplate,
+	}
+
+	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		ErrorUnused: true,
+		Result:      &manager,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	err = decoder.Decode(config)
+	if err != nil {
+		return nil, err
+	}
+
+	return manager, nil
 }
