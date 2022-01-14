@@ -4,18 +4,22 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"sync"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
-	"github.com/concourse/concourse/tracing"
-	"github.com/concourse/concourse/worker/baggageclaim"
-	"github.com/concourse/concourse/worker/baggageclaim/volume"
 	uuid "github.com/nu7hatch/gouuid"
 	"github.com/tedsuo/rata"
 	"go.opentelemetry.io/otel/propagation"
+
+	"github.com/concourse/concourse/tracing"
+	"github.com/concourse/concourse/worker/baggageclaim"
+	"github.com/concourse/concourse/worker/baggageclaim/volume"
 )
 
 const httpUnprocessableEntity = 422
@@ -588,29 +592,47 @@ func (vs *VolumeServer) StreamP2pOut(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	err := vs.volumeRepo.StreamP2pOut(ctx, handle, subPath, encoding, streamInURL)
+	rawUrl, err := url.Parse(streamInURL)
 	if err != nil {
-		if err == volume.ErrVolumeDoesNotExist {
-			hLog.Info("volume-not-found")
-			RespondWithError(w, ErrStreamOutNotFound, http.StatusNotFound)
+		hLog.Info("bad-param-streamInURL")
+		RespondWithError(w, ErrStreamP2pOutFailed, http.StatusBadRequest)
+	}
+	streamInURL = rawUrl.String()
+
+	w.Header().Set("Content-Type", "plain/text")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+
+	doneChan := make(chan error, 1)
+	go func(doneChan chan<- error) {
+		err := vs.volumeRepo.StreamP2pOut(ctx, handle, subPath, encoding, streamInURL)
+		if err != nil {
+			hLog.Error("failed-to-stream-out", err)
+			doneChan <- fmt.Errorf("%s: %w", ErrStreamP2pOutFailed, err)
+		} else {
+			close(doneChan)
+		}
+	}(doneChan)
+
+	// Send a white space to client as an indicator of in-progress every 30 seconds.
+	// After source worker finishes sending volume to dest worker, send client "ok"
+	// for success or an error message.
+	tick := time.NewTicker(30 * time.Second)
+	for {
+		select {
+		case <-tick.C:
+			fmt.Fprintf(w, "\n")
+			if f, ok := w.(http.Flusher); ok {
+				f.Flush()
+			}
+		case err := <-doneChan:
+			if err != nil {
+				fmt.Fprintf(w, "%s", err.Error())
+			} else {
+				fmt.Fprintf(w, "ok")
+			}
+			tick.Stop()
 			return
 		}
-
-		if err == volume.ErrUnsupportedStreamEncoding {
-			hLog.Info("unsupported-stream-encoding")
-			RespondWithError(w, ErrStreamP2pOutFailed, http.StatusBadRequest)
-			return
-		}
-
-		if os.IsNotExist(err) {
-			hLog.Info("source-path-not-found")
-			RespondWithError(w, ErrStreamOutNotFound, http.StatusNotFound)
-			return
-		}
-
-		hLog.Error("failed-to-stream-out", err)
-		RespondWithError(w, ErrStreamP2pOutFailed, http.StatusInternalServerError)
-		return
 	}
 }
 

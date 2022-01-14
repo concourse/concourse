@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -445,17 +446,34 @@ var _ = Describe("Baggage Claim Client", func() {
 			})
 
 			Context("when api succeeds", func() {
-				BeforeEach(func() {
-					bcServer.AppendHandlers(
-						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("PUT", "/volumes/some-handle/stream-p2p-out"),
-							ghttp.RespondWith(http.StatusOK, ""),
-						),
-					)
+				Context("when p2p streaming succeeds", func() {
+					BeforeEach(func() {
+						bcServer.AppendHandlers(
+							ghttp.CombineHandlers(
+								ghttp.VerifyRequest("PUT", "/volumes/some-handle/stream-p2p-out"),
+								ghttp.RespondWith(http.StatusOK, "\n\n\nok"),
+							),
+						)
+					})
+					It("should succeed", func() {
+						err := vol.StreamP2pOut(context.TODO(), "some-dest-path", "http://some-url", "gzip")
+						Expect(err).ToNot(HaveOccurred())
+					})
 				})
-				It("should succeed", func() {
-					err := vol.StreamP2pOut(context.TODO(), "some-dest-path", "http://some-url", "gzip")
-					Expect(err).ToNot(HaveOccurred())
+				Context("when p2p streaming fails", func() {
+					BeforeEach(func() {
+						bcServer.AppendHandlers(
+							ghttp.CombineHandlers(
+								ghttp.VerifyRequest("PUT", "/volumes/some-handle/stream-p2p-out"),
+								ghttp.RespondWith(http.StatusOK, "\n\n\nsome-error"),
+							),
+						)
+					})
+					It("should fail", func() {
+						err := vol.StreamP2pOut(context.TODO(), "some-dest-path", "http://some-url", "gzip")
+						Expect(err).To(HaveOccurred())
+						Expect(err).To(Equal(errors.New("some-error")))
+					})
 				})
 			})
 

@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/concourse/go-archive/tarfs"
@@ -42,7 +43,7 @@ var _ = Describe("Volume Server", func() {
 	BeforeEach(func() {
 		var err error
 
-		tempDir, err = ioutil.TempDir("", fmt.Sprintf("baggageclaim_volume_dir_%d", GinkgoParallelNode()))
+		tempDir, err = ioutil.TempDir("", fmt.Sprintf("baggageclaim_volume_dir_%d", GinkgoParallelProcess()))
 		Expect(err).NotTo(HaveOccurred())
 
 		// ioutil.TempDir creates it 0700; we need public readability for
@@ -1130,17 +1131,14 @@ var _ = Describe("Volume Server", func() {
 			}
 		})
 
-		It("returns 404 when source path is invalid", func() {
-			request, _ := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-p2p-out?path=%s&streamInURL=some-url&encoding=gzip", myVolume.Handle, "bogus-path"), nil)
+		It("returns an error when source path is invalid", func() {
+			streamInP2pURL := fmt.Sprintf("%s/volumes/%s/stream-in?path=dest-path", otherWorker.URL, myVolume.Handle)
+			request, _ := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-p2p-out?path=%s&streamInURL=%s&encoding=gzip", myVolume.Handle, "bogus-path", streamInP2pURL), nil)
 			request.Header.Set("Accept-Encoding", string(baggageclaim.GzipEncoding))
 			recorder := httptest.NewRecorder()
 			handler.ServeHTTP(recorder, request)
-			Expect(recorder.Code).To(Equal(404))
-
-			var responseError *api.ErrorResponse
-			err := json.NewDecoder(recorder.Body).Decode(&responseError)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(responseError.Message).To(Equal("no such file or directory"))
+			Expect(recorder.Code).To(Equal(200)) // status code should always be 200, error is in body
+			Expect(recorder.Body.String()).To(MatchRegexp("failed to compress source volume: .*: no such file or directory"))
 		})
 
 		Context("when streaming a file", func() {
@@ -1159,6 +1157,7 @@ var _ = Describe("Volume Server", func() {
 				streamP2pOutRecorder := httptest.NewRecorder()
 				handler.ServeHTTP(streamP2pOutRecorder, streamP2pOutRequest)
 				Expect(streamP2pOutRecorder.Code).To(Equal(200))
+				Expect(strings.TrimSpace(streamP2pOutRecorder.Body.String())).To(Equal("ok"))
 
 				destContentsPath := filepath.Join(volumeDir, "live", myVolume.Handle, "volume", "dest-path", "some-file")
 				Expect(destContentsPath).To(BeAnExistingFile())
@@ -1202,6 +1201,7 @@ var _ = Describe("Volume Server", func() {
 				streamP2pOutRecorder := httptest.NewRecorder()
 				handler.ServeHTTP(streamP2pOutRecorder, streamP2pOutRequest)
 				Expect(streamP2pOutRecorder.Code).To(Equal(200))
+				Expect(strings.TrimSpace(streamP2pOutRecorder.Body.String())).To(Equal("ok"))
 
 				someContentsPath := filepath.Join(volumeDir, "live", myVolume.Handle, "volume", "dest-path", "sub", "some-file")
 				Expect(someContentsPath).To(BeAnExistingFile())
