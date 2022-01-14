@@ -613,10 +613,10 @@ func (vs *VolumeServer) StreamP2pOut(w http.ResponseWriter, req *http.Request) {
 		}
 	}(doneChan)
 
-	// Send a white space to client as an indicator of in-progress every 10 seconds.
+	// Send a white space to client as an indicator of in-progress every 30 seconds.
 	// After source worker finishes sending volume to dest worker, send client "ok"
 	// for success or an error message.
-	tick := time.NewTicker(10 * time.Second)
+	tick := time.NewTicker(30 * time.Second)
 	for {
 		select {
 		case <-tick.C:
