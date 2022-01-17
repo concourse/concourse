@@ -1137,8 +1137,9 @@ var _ = Describe("Volume Server", func() {
 			request.Header.Set("Accept-Encoding", string(baggageclaim.GzipEncoding))
 			recorder := httptest.NewRecorder()
 			handler.ServeHTTP(recorder, request)
+
 			Expect(recorder.Code).To(Equal(200)) // status code should always be 200, error is in body
-			Expect(recorder.Body.String()).To(MatchRegexp("failed to compress source volume: .*: no such file or directory"))
+			Expect(recorder.Body.String()).To(MatchRegexp("failed to compress source volume: .*: (no such file or directory|The system cannot find the file specified)"))
 		})
 
 		Context("when streaming a file", func() {
