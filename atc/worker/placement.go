@@ -20,9 +20,8 @@ type PlacementOptions struct {
 }
 
 var (
-	ErrTooManyActiveTasks = errors.New("worker has too many active tasks")
-	ErrTooManyContainers  = errors.New("worker has too many containers")
-	ErrTooManyVolumes     = errors.New("worker has too many volumes")
+	ErrTooManyContainers = errors.New("worker has too many containers")
+	ErrTooManyVolumes    = errors.New("worker has too many volumes")
 )
 
 func NewPlacementStrategy(options PlacementOptions) (PlacementStrategy, error) {
@@ -285,16 +284,7 @@ func (strategy limitActiveTasksStrategy) Approve(logger lager.Logger, worker db.
 		return nil
 	}
 
-	activeTasks, err := worker.ActiveTasks()
-	if err != nil {
-		return err
-	}
-
-	if activeTasks >= strategy.MaxTasks {
-		return ErrTooManyActiveTasks
-	}
-
-	_, err = worker.IncreaseActiveTasks()
+	_, err := worker.IncreaseActiveTasks(strategy.MaxTasks)
 
 	return err
 }
