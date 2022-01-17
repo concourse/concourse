@@ -1140,7 +1140,6 @@ var _ = Describe("Volume Server", func() {
 			var responseError *api.ErrorResponse
 			err := json.NewDecoder(recorder.Body).Decode(&responseError)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(responseError.Message).To(Equal("no such file or directory"))
 		})
 
 		Context("when streaming a file", func() {
