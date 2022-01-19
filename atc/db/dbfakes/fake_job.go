@@ -85,6 +85,21 @@ type FakeJob struct {
 		result2 db.Pagination
 		result3 error
 	}
+	ChronoBuildsStub        func(db.Page) ([]db.BuildForAPI, db.Pagination, error)
+	chronoBuildsMutex       sync.RWMutex
+	chronoBuildsArgsForCall []struct {
+		arg1 db.Page
+	}
+	chronoBuildsReturns struct {
+		result1 []db.BuildForAPI
+		result2 db.Pagination
+		result3 error
+	}
+	chronoBuildsReturnsOnCall map[int]struct {
+		result1 []db.BuildForAPI
+		result2 db.Pagination
+		result3 error
+	}
 	ClearTaskCacheStub        func(string, string) (int64, error)
 	clearTaskCacheMutex       sync.RWMutex
 	clearTaskCacheArgsForCall []struct {
@@ -842,6 +857,73 @@ func (fake *FakeJob) BuildsWithTimeReturnsOnCall(i int, result1 []db.BuildForAPI
 		})
 	}
 	fake.buildsWithTimeReturnsOnCall[i] = struct {
+		result1 []db.BuildForAPI
+		result2 db.Pagination
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeJob) ChronoBuilds(arg1 db.Page) ([]db.BuildForAPI, db.Pagination, error) {
+	fake.chronoBuildsMutex.Lock()
+	ret, specificReturn := fake.chronoBuildsReturnsOnCall[len(fake.chronoBuildsArgsForCall)]
+	fake.chronoBuildsArgsForCall = append(fake.chronoBuildsArgsForCall, struct {
+		arg1 db.Page
+	}{arg1})
+	stub := fake.ChronoBuildsStub
+	fakeReturns := fake.chronoBuildsReturns
+	fake.recordInvocation("ChronoBuilds", []interface{}{arg1})
+	fake.chronoBuildsMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+}
+
+func (fake *FakeJob) ChronoBuildsCallCount() int {
+	fake.chronoBuildsMutex.RLock()
+	defer fake.chronoBuildsMutex.RUnlock()
+	return len(fake.chronoBuildsArgsForCall)
+}
+
+func (fake *FakeJob) ChronoBuildsCalls(stub func(db.Page) ([]db.BuildForAPI, db.Pagination, error)) {
+	fake.chronoBuildsMutex.Lock()
+	defer fake.chronoBuildsMutex.Unlock()
+	fake.ChronoBuildsStub = stub
+}
+
+func (fake *FakeJob) ChronoBuildsArgsForCall(i int) db.Page {
+	fake.chronoBuildsMutex.RLock()
+	defer fake.chronoBuildsMutex.RUnlock()
+	argsForCall := fake.chronoBuildsArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeJob) ChronoBuildsReturns(result1 []db.BuildForAPI, result2 db.Pagination, result3 error) {
+	fake.chronoBuildsMutex.Lock()
+	defer fake.chronoBuildsMutex.Unlock()
+	fake.ChronoBuildsStub = nil
+	fake.chronoBuildsReturns = struct {
+		result1 []db.BuildForAPI
+		result2 db.Pagination
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeJob) ChronoBuildsReturnsOnCall(i int, result1 []db.BuildForAPI, result2 db.Pagination, result3 error) {
+	fake.chronoBuildsMutex.Lock()
+	defer fake.chronoBuildsMutex.Unlock()
+	fake.ChronoBuildsStub = nil
+	if fake.chronoBuildsReturnsOnCall == nil {
+		fake.chronoBuildsReturnsOnCall = make(map[int]struct {
+			result1 []db.BuildForAPI
+			result2 db.Pagination
+			result3 error
+		})
+	}
+	fake.chronoBuildsReturnsOnCall[i] = struct {
 		result1 []db.BuildForAPI
 		result2 db.Pagination
 		result3 error
@@ -3059,6 +3141,8 @@ func (fake *FakeJob) Invocations() map[string][][]interface{} {
 	defer fake.buildsMutex.RUnlock()
 	fake.buildsWithTimeMutex.RLock()
 	defer fake.buildsWithTimeMutex.RUnlock()
+	fake.chronoBuildsMutex.RLock()
+	defer fake.chronoBuildsMutex.RUnlock()
 	fake.clearTaskCacheMutex.RLock()
 	defer fake.clearTaskCacheMutex.RUnlock()
 	fake.configMutex.RLock()
