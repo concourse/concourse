@@ -1,8 +1,10 @@
 package db_test
 
 import (
+	"context"
 	"time"
 
+	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	. "github.com/onsi/ginkgo"
@@ -391,7 +393,7 @@ var _ = Describe("BuildFactory", func() {
 	})
 
 	Describe("GetDrainableBuilds", func() {
-		var build2DB, build3DB, build4DB db.Build
+		var checkBuild1, checkBuild2, build2DB, build3DB, build4DB db.Build
 
 		BeforeEach(func() {
 			pipeline, _, err := team.SavePipeline(atc.PipelineRef{Name: "other-pipeline"}, atc.Config{
@@ -400,12 +402,66 @@ var _ = Describe("BuildFactory", func() {
 						Name: "some-job",
 					},
 				},
+				Resources: atc.ResourceConfigs{
+					{
+						Name: "some-resource",
+						Type: "some-base-resource-type",
+						Source: atc.Source{
+							"some": "source",
+						},
+					},
+				},
+				ResourceTypes: atc.ResourceTypes{
+					{
+						Name: "some-type",
+						Type: "some-base-resource-type",
+						Source: atc.Source{
+							"some-type": "source",
+						},
+					},
+				},
 			}, db.ConfigVersion(0), false)
 			Expect(err).NotTo(HaveOccurred())
 
 			job, found, err := pipeline.Job("some-job")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
+
+			resource, found, err := pipeline.Resource("some-resource")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			resourceType, found, err := pipeline.ResourceType("some-type")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			resourceTypes, err := pipeline.ResourceTypes()
+			Expect(err).NotTo(HaveOccurred())
+
+			var created bool
+			checkBuild1, created, err = checkFactory.TryCreateCheck(
+				lagerctx.NewContext(context.Background(), logger),
+				resource,
+				resourceTypes,
+				nil,
+				false,
+				false,
+				true, // only non in-memory check will be recorded in DB
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(created).To(BeTrue())
+
+			checkBuild2, created, err = checkFactory.TryCreateCheck(
+				lagerctx.NewContext(context.Background(), logger),
+				resourceType,
+				resourceTypes,
+				nil,
+				true,
+				false,
+				true,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(created).To(BeTrue())
 
 			_, err = team.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
@@ -431,21 +487,24 @@ var _ = Describe("BuildFactory", func() {
 
 			err = build4DB.Finish("failed")
 			Expect(err).NotTo(HaveOccurred())
+
+			err = checkBuild1.Finish("succeeded")
+			Expect(err).NotTo(HaveOccurred())
+
+			err = checkBuild2.Finish("failed")
+			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("returns all builds that have been completed and not drained", func() {
+		It("returns all builds that have been completed and not drained and not being check build", func() {
 			builds, err := buildFactory.GetDrainableBuilds()
 			Expect(err).NotTo(HaveOccurred())
 
-			_, err = build4DB.Reload()
-			Expect(err).NotTo(HaveOccurred())
-
+			var buildIds []int
 			for _, build := range builds {
-				_, err := build.Reload()
-				Expect(err).NotTo(HaveOccurred())
+				buildIds = append(buildIds, build.ID())
 			}
 
-			Expect(builds).To(ConsistOf(build4DB))
+			Expect(buildIds).To(ConsistOf(build4DB.ID()))
 		})
 	})
 
