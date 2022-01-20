@@ -1213,6 +1213,7 @@ func (cmd *RunCommand) gcComponents(
 ) ([]RunnableComponent, error) {
 	dbWorkerLifecycle := db.NewWorkerLifecycle(gcConn)
 	dbResourceCacheLifecycle := db.NewResourceCacheLifecycle(gcConn)
+	dbTaskCacheLifecycle := db.NewTaskCacheLifecycle(gcConn)
 	dbContainerRepository := db.NewContainerRepository(gcConn)
 	dbArtifactLifecycle := db.NewArtifactLifecycle(gcConn)
 	dbAccessTokenLifecycle := db.NewAccessTokenLifecycle(gcConn)
@@ -1238,6 +1239,7 @@ func (cmd *RunCommand) gcComponents(
 		atc.ComponentCollectorWorkers:           gc.NewWorkerCollector(dbWorkerLifecycle),
 		atc.ComponentCollectorResourceConfigs:   gc.NewResourceConfigCollector(dbResourceConfigFactory, unreferencedConfigGracePeriod),
 		atc.ComponentCollectorResourceCaches:    gc.NewResourceCacheCollector(dbResourceCacheLifecycle),
+		atc.ComponentCollectorTaskCaches:        gc.NewTaskCacheCollector(dbTaskCacheLifecycle),
 		atc.ComponentCollectorResourceCacheUses: gc.NewResourceCacheUseCollector(dbResourceCacheLifecycle),
 		atc.ComponentCollectorArtifacts:         gc.NewArtifactCollector(dbArtifactLifecycle),
 		atc.ComponentCollectorVolumes:           gc.NewVolumeCollector(dbVolumeRepository, cmd.GC.MissingGracePeriod),
