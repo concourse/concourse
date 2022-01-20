@@ -197,20 +197,4 @@ var _ = Describe("PipelinePauser", func() {
 			})
 		})
 	})
-	Describe("newly set pipeline whose jobs have no builds", func() {
-		It("should not be paused if all of its jobs have no builds", func() {
-			By("creating a new pipeline")
-			newPipeline, _, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "new-pipeline"}, defaultPipelineConfig, db.ConfigVersion(0), false)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(newPipeline.Paused()).To(BeFalse(), "pipeline should start unpaused")
-
-			By("running the pipeline pauser")
-			err = pauser.PausePipelines(context.TODO(), 10)
-			Expect(err).NotTo(HaveOccurred())
-
-			_, err = newPipeline.Reload()
-			Expect(err).To(BeNil())
-			Expect(newPipeline.Paused()).To(BeFalse(), "pipeline should NOT be paused")
-		})
-	})
 })
