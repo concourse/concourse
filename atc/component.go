@@ -16,6 +16,7 @@ const (
 	ComponentCollectorContainers        = "collector_containers"
 	ComponentCollectorResourceCacheUses = "collector_resource_cache_uses"
 	ComponentCollectorResourceCaches    = "collector_resource_caches"
+	ComponentCollectorTaskCaches        = "collector_task_caches"
 	ComponentCollectorResourceConfigs   = "collector_resource_configs"
 	ComponentCollectorVolumes           = "collector_volumes"
 	ComponentCollectorWorkers           = "collector_workers"
