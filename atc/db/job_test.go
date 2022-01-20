@@ -355,6 +355,40 @@ var _ = Describe("Job", func() {
 		})
 	})
 
+	Describe("ChronoBuilds", func() {
+		var (
+			someJob                     db.Job
+			build1, build2, rerunBuild1 db.Build
+			err                         error
+		)
+
+		BeforeEach(func() {
+			var found bool
+			someJob, found, err = pipeline.Job("some-job")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			build1, err = someJob.CreateBuild(defaultBuildCreatedBy)
+			Expect(err).NotTo(HaveOccurred())
+
+			build2, err = someJob.CreateBuild(defaultBuildCreatedBy)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("when there is rerun build of first build that created after second build", func() {
+			BeforeEach(func() {
+				rerunBuild1, err = someJob.RerunBuild(build1, defaultBuildCreatedBy)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("returns the builds in chronological order", func() {
+				buildsPage, _, err := someJob.ChronoBuilds(db.Page{Limit: 3})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(buildsPage).To(Equal([]db.BuildForAPI{rerunBuild1, build2, build1}))
+			})
+		})
+	})
+
 	Describe("Builds", func() {
 		var (
 			builds       [10]db.Build
