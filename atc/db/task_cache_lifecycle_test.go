@@ -44,4 +44,33 @@ var _ = Describe("TaskCacheLifecycle", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(deletedCacheIDs).To(ConsistOf(taskCache.ID()))
 	})
+
+	It("cleans up task caches belonging to a paused pipeline", func() {
+		archivedScenario := dbtest.Setup(
+			builder.WithPipeline(atc.Config{
+				Jobs: []atc.JobConfig{
+					{Name: "some-job"},
+				},
+			}),
+		)
+		otherScenario := dbtest.Setup(
+			builder.WithPipeline(atc.Config{
+				Jobs: []atc.JobConfig{
+					{Name: "some-other-job"},
+				},
+			}),
+		)
+		taskCache, err := taskCacheFactory.FindOrCreate(archivedScenario.Job("some-job").ID(), "some-step", "some-path")
+		Expect(err).ToNot(HaveOccurred())
+
+		_, err = taskCacheFactory.FindOrCreate(otherScenario.Job("some-other-job").ID(), "some-step", "some-path")
+		Expect(err).ToNot(HaveOccurred())
+
+		err = archivedScenario.Pipeline.Pause("tester")
+		Expect(err).ToNot(HaveOccurred())
+
+		deletedCacheIDs, err := taskCacheLifecycle.CleanUpInvalidTaskCaches()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(deletedCacheIDs).To(ConsistOf(taskCache.ID()))
+	})
 })
