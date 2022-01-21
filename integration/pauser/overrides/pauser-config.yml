@@ -1,0 +1,19 @@
+version: '3'
+
+services:
+  db:
+    # we need to persist the db between restarts
+    environment:
+      PGDATA: /var/lib/postgresql/data
+    volumes:
+    - postgresData:/var/lib/postgresql/data
+
+  web:
+    environment:
+      # faketime doesn't work with go binaries. The code relies on sql to
+      # determine the current time anyways so we can workaround this by simply
+      # having the pipeline pauser run more frequently
+      CONCOURSE_PAUSE_PIPELINES_AFTER: 3
+
+volumes:
+  postgresData:

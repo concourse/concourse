@@ -122,3 +122,8 @@ func (cmd Cmd) Table(t *testing.T, args ...string) Table {
 
 	return result
 }
+
+func (cmd Cmd) PipelineIsPaused(t *testing.T, pipeline string) bool {
+	pausedPipelines := cmd.Output(t, "paused-pipelines")
+	return strings.Contains(pausedPipelines, pipeline)
+}

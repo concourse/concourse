@@ -1,0 +1,19 @@
+version: '3'
+
+services:
+  db:
+    image: postgres:faketime
+    build:
+      context: .
+      dockerfile: ./pauser/images/postgres.Dockerfile
+      args:
+        postgres_image: ${TEST_POSTGRES_IMAGE:-postgres}
+    # no LD_PRELOAD because that's done when the image is built
+    environment:
+      FAKETIME: "-5d"
+  web:
+    environment:
+      # have to set this to something large because the component runner uses
+      # the time from postgres and its' own time.Now() to determine the
+      # interval, so every component runs every 10s
+      CONCOURSE_PIPELINE_PAUSER_INTERVAL: 999h
