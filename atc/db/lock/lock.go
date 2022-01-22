@@ -87,25 +87,21 @@ func NewLockFactory(
 	for i := 0; i < CountOfLockTypes; i ++ {
 		dbs[i] = &lockDB{
 			conn:  conn[i],
-			//mutex: &sync.Mutex{},
 		}
 		locks[i] = &lockRepo{
-			//locks: map[string]bool{},
-			//mutex: &sync.Mutex{},
 			locks: hashmap.HashMap{},
 		}
 	}
 
-	locks[LockTypeResourceConfigChecking].(*lockRepo).capacity = 300
+	locks[LockTypeResourceConfigChecking].(*lockRepo).capacity = 200
 	locks[LockTypeBuildTracking].(*lockRepo).capacity = 100
-	locks[LockTypeInMemoryCheckBuildTracking].(*lockRepo).capacity = 500
+	locks[LockTypeInMemoryCheckBuildTracking].(*lockRepo).capacity = 300
 
 	return &lockFactory{
 		db: dbs,
 		acquireFunc: acquire,
 		releaseFunc: release,
 		locks: locks,
-		//acquireMutex: &sync.Mutex{},
 	}
 }
 
