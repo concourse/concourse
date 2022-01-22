@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/cornelk/hashmap"
 )
 
 const (
@@ -22,6 +23,7 @@ const (
 	LockTypeActiveTasks
 	LockTypeResourceScanning
 	LockTypeJobScheduling
+	CountOfLockTypes // Keep this line as the last item
 )
 
 var ErrLostLock = errors.New("lock was lost while held, possibly due to connection breakage")
@@ -65,9 +67,8 @@ type LockFactory interface {
 }
 
 type lockFactory struct {
-	db           LockDB
-	locks        lockRepo
-	acquireMutex *sync.Mutex
+	db    [CountOfLockTypes]LockDB
+	locks [CountOfLockTypes]LockRepo
 
 	acquireFunc LogFunc
 	releaseFunc LogFunc
@@ -80,43 +81,55 @@ func NewLockFactory(
 	acquire LogFunc,
 	release LogFunc,
 ) LockFactory {
-	return &lockFactory{
-		db: &lockDB{
+	dbs := [CountOfLockTypes]LockDB{}
+	locks := [CountOfLockTypes]LockRepo{}
+	for i := 0; i < CountOfLockTypes; i++ {
+		dbs[i] = &lockDB{
 			conn:  conn,
 			mutex: &sync.Mutex{},
-		},
+		}
+
+		capacity := 0
+		switch i {
+		case LockTypeResourceConfigChecking:
+			capacity = 500
+		case LockTypeBuildTracking:
+			capacity = 500
+		}
+		locks[i] = newLockRepo(capacity)
+	}
+
+	return &lockFactory{
+		db:          dbs,
 		acquireFunc: acquire,
 		releaseFunc: release,
-		locks: lockRepo{
-			locks: map[string]bool{},
-			mutex: &sync.Mutex{},
-		},
-		acquireMutex: &sync.Mutex{},
+		locks:       locks,
 	}
 }
 
-func NewTestLockFactory(db LockDB) LockFactory {
+func NewTestLockFactory(dbs [CountOfLockTypes]LockDB) LockFactory {
+	locks := [CountOfLockTypes]LockRepo{}
+	for i := 0; i < CountOfLockTypes; i++ {
+		locks[i] = newLockRepo(0)
+	}
+
 	return &lockFactory{
-		db: db,
-		locks: lockRepo{
-			locks: map[string]bool{},
-			mutex: &sync.Mutex{},
-		},
-		acquireMutex: &sync.Mutex{},
-		acquireFunc:  func(logger lager.Logger, id LockID) {},
-		releaseFunc:  func(logger lager.Logger, id LockID) {},
+		db:          dbs,
+		locks:       locks,
+		acquireFunc: func(logger lager.Logger, id LockID) {},
+		releaseFunc: func(logger lager.Logger, id LockID) {},
 	}
 }
 
 func (f *lockFactory) Acquire(logger lager.Logger, id LockID) (Lock, bool, error) {
+	lockType := id[0]
 	l := &lock{
-		logger:       logger,
-		db:           f.db,
-		id:           id,
-		locks:        f.locks,
-		acquireMutex: f.acquireMutex,
-		acquired:     f.acquireFunc,
-		released:     f.releaseFunc,
+		logger:   logger,
+		db:       f.db[lockType],
+		id:       id,
+		locks:    f.locks[lockType],
+		acquired: f.acquireFunc,
+		released: f.releaseFunc,
 	}
 
 	acquired, err := l.Acquire()
@@ -149,7 +162,7 @@ type lock struct {
 
 	logger       lager.Logger
 	db           LockDB
-	locks        lockRepo
+	locks        LockRepo
 	acquireMutex *sync.Mutex
 
 	acquired LogFunc
@@ -157,14 +170,15 @@ type lock struct {
 }
 
 func (l *lock) Acquire() (bool, error) {
-	l.acquireMutex.Lock()
-	defer l.acquireMutex.Unlock()
-
 	logger := l.logger.Session("acquire", lager.Data{"id": l.id})
 
 	if l.locks.IsRegistered(l.id) {
 		logger.Debug("not-acquired-already-held-locally")
 		return false, nil
+	}
+
+	if l.locks.IsFull() {
+		return false, fmt.Errorf("lock %d capacity full", l.id[0])
 	}
 
 	acquired, err := l.db.Acquire(l.id)
@@ -236,33 +250,45 @@ func (db *lockDB) Release(id LockID) (bool, error) {
 	return released, nil
 }
 
-type lockRepo struct {
-	locks map[string]bool
-	mutex *sync.Mutex
+type LockRepo interface {
+	IsRegistered(LockID) bool
+	Register(LockID)
+	Unregister(LockID)
+	IsFull() bool
 }
 
-func (lr lockRepo) IsRegistered(id LockID) bool {
-	lr.mutex.Lock()
-	defer lr.mutex.Unlock()
+type lockRepo struct {
+	locks    hashmap.HashMap
+	capacity int
+}
 
-	if _, ok := lr.locks[id.toKey()]; ok {
+func newLockRepo(capacity int) *lockRepo {
+	return &lockRepo{
+		locks:    hashmap.HashMap{},
+		capacity: capacity,
+	}
+}
+
+func (lr *lockRepo) IsFull() bool {
+	if lr.capacity == 0 {
+		return false
+	}
+	return lr.locks.Len() >= lr.capacity
+}
+
+func (lr *lockRepo) IsRegistered(id LockID) bool {
+	if _, ok := lr.locks.Get(id.toKey()); ok {
 		return true
 	}
 	return false
 }
 
-func (lr lockRepo) Register(id LockID) {
-	lr.mutex.Lock()
-	defer lr.mutex.Unlock()
-
-	lr.locks[id.toKey()] = true
+func (lr *lockRepo) Register(id LockID) {
+	lr.locks.Set(id.toKey(), true)
 }
 
-func (lr lockRepo) Unregister(id LockID) {
-	lr.mutex.Lock()
-	defer lr.mutex.Unlock()
-
-	delete(lr.locks, id.toKey())
+func (lr *lockRepo) Unregister(id LockID) {
+	lr.locks.Del(id.toKey())
 }
 
 type LockID []int

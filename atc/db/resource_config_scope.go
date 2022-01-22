@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"time"
 
-	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
@@ -31,10 +30,6 @@ type ResourceConfigScope interface {
 	LatestVersion() (ResourceConfigVersion, bool, error)
 
 	SetCheckError(error) error
-
-	AcquireResourceCheckingLock(
-		logger lager.Logger,
-	) (lock.Lock, bool, error)
 
 	UpdateLastCheckStartTime(
 		interval time.Duration,
@@ -189,15 +184,6 @@ func (r *resourceConfigScope) SetCheckError(cause error) error {
 	}
 
 	return err
-}
-
-func (r *resourceConfigScope) AcquireResourceCheckingLock(
-	logger lager.Logger,
-) (lock.Lock, bool, error) {
-	return r.lockFactory.Acquire(
-		logger,
-		lock.NewResourceConfigCheckingLockID(r.resourceConfig.ID()),
-	)
 }
 
 func (r *resourceConfigScope) UpdateLastCheckStartTime(

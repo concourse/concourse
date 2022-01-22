@@ -20,7 +20,7 @@ type NotificationsBus interface {
 // Schedulable represents a workload that is executed normally on a periodic
 // schedule, but can also be run immediately.
 type Schedulable interface {
-	RunPeriodically(context.Context)
+	RunPeriodically(context.Context) bool
 	RunImmediately(context.Context)
 }
 
@@ -55,8 +55,9 @@ func (scheduler *Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 
 	close(ready)
 
+	interval := scheduler.Interval
 	for {
-		timer := Clock.NewTimer(scheduler.Interval)
+		timer := Clock.NewTimer(interval)
 
 		select {
 		case <-notifier:
@@ -66,7 +67,14 @@ func (scheduler *Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 
 		case <-timer.C():
 			runCtx := lagerctx.NewContext(ctx, scheduler.Logger.Session("tick"))
-			scheduler.Schedulable.RunPeriodically(runCtx)
+			hasRun := scheduler.Schedulable.RunPeriodically(runCtx)
+			if hasRun {
+				interval = scheduler.Interval * 2
+			} else {
+				if interval > time.Second*2 {
+					interval -= time.Second
+				}
+			}
 
 		case <-ctx.Done():
 			timer.Stop()

@@ -31,6 +31,7 @@ require (
 	github.com/containerd/ttrpc v0.0.0-20191028202541-4f1b8fe65a5c // indirect
 	github.com/containerd/typeurl v0.0.0-20190911142611-5eb25027c9fd
 	github.com/coreos/go-iptables v0.4.5
+	github.com/cornelk/hashmap v1.0.1
 	github.com/cppforlife/go-semi-semantic v0.0.0-20160921010311-576b6af77ae4
 	github.com/creack/pty v1.1.9 // indirect
 	github.com/cyberark/conjur-api-go v0.6.0
