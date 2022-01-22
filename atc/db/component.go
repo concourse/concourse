@@ -57,7 +57,15 @@ func (c *component) Reload() (bool, error) {
 }
 
 func (c *component) IntervalElapsed() bool {
-	return time.Now().After(c.lastRan.Add(c.interval))
+	threshold := 500 * time.Millisecond
+	if c.Interval() >= 10 * time.Second {
+		threshold = 2 * time.Second
+	}
+	diff := time.Now().Sub(c.lastRan)
+	if diff < 0 {
+		diff = -diff
+	}
+	return diff < threshold
 }
 
 func (c *component) UpdateLastRan() error {

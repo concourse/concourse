@@ -97,9 +97,9 @@ func NewLockFactory(
 		}
 	}
 
-	locks[LockTypeResourceConfigChecking].(*lockRepo).capacity = 500
-	locks[LockTypeBuildTracking].(*lockRepo).capacity = 500
-	locks[LockTypeInMemoryCheckBuildTracking].(*lockRepo).capacity = 1500
+	locks[LockTypeResourceConfigChecking].(*lockRepo).capacity = 100
+	locks[LockTypeBuildTracking].(*lockRepo).capacity = 100
+	locks[LockTypeInMemoryCheckBuildTracking].(*lockRepo).capacity = 500
 
 	return &lockFactory{
 		db: dbs,
