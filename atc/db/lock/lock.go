@@ -70,7 +70,6 @@ type LockFactory interface {
 type lockFactory struct {
 	db           [CountOfLockTypes]LockDB
 	locks        [CountOfLockTypes]LockRepo
-	//acquireMutex *sync.Mutex
 
 	acquireFunc LogFunc
 	releaseFunc LogFunc
@@ -97,7 +96,7 @@ func NewLockFactory(
 		}
 	}
 
-	locks[LockTypeResourceConfigChecking].(*lockRepo).capacity = 100
+	locks[LockTypeResourceConfigChecking].(*lockRepo).capacity = 300
 	locks[LockTypeBuildTracking].(*lockRepo).capacity = 100
 	locks[LockTypeInMemoryCheckBuildTracking].(*lockRepo).capacity = 500
 
