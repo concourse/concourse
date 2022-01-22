@@ -4,14 +4,16 @@ package lockfakes
 import (
 	"sync"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db/lock"
 )
 
 type FakeLockDB struct {
-	AcquireStub        func(lock.LockID) (bool, error)
+	AcquireStub        func(lager.Logger, lock.LockID) (bool, error)
 	acquireMutex       sync.RWMutex
 	acquireArgsForCall []struct {
-		arg1 lock.LockID
+		arg1 lager.Logger
+		arg2 lock.LockID
 	}
 	acquireReturns struct {
 		result1 bool
@@ -21,10 +23,11 @@ type FakeLockDB struct {
 		result1 bool
 		result2 error
 	}
-	ReleaseStub        func(lock.LockID) (bool, error)
+	ReleaseStub        func(lager.Logger, lock.LockID) (bool, error)
 	releaseMutex       sync.RWMutex
 	releaseArgsForCall []struct {
-		arg1 lock.LockID
+		arg1 lager.Logger
+		arg2 lock.LockID
 	}
 	releaseReturns struct {
 		result1 bool
@@ -38,18 +41,19 @@ type FakeLockDB struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeLockDB) Acquire(arg1 lock.LockID) (bool, error) {
+func (fake *FakeLockDB) Acquire(arg1 lager.Logger, arg2 lock.LockID) (bool, error) {
 	fake.acquireMutex.Lock()
 	ret, specificReturn := fake.acquireReturnsOnCall[len(fake.acquireArgsForCall)]
 	fake.acquireArgsForCall = append(fake.acquireArgsForCall, struct {
-		arg1 lock.LockID
-	}{arg1})
+		arg1 lager.Logger
+		arg2 lock.LockID
+	}{arg1, arg2})
 	stub := fake.AcquireStub
 	fakeReturns := fake.acquireReturns
-	fake.recordInvocation("Acquire", []interface{}{arg1})
+	fake.recordInvocation("Acquire", []interface{}{arg1, arg2})
 	fake.acquireMutex.Unlock()
 	if stub != nil {
-		return stub(arg1)
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -63,17 +67,17 @@ func (fake *FakeLockDB) AcquireCallCount() int {
 	return len(fake.acquireArgsForCall)
 }
 
-func (fake *FakeLockDB) AcquireCalls(stub func(lock.LockID) (bool, error)) {
+func (fake *FakeLockDB) AcquireCalls(stub func(lager.Logger, lock.LockID) (bool, error)) {
 	fake.acquireMutex.Lock()
 	defer fake.acquireMutex.Unlock()
 	fake.AcquireStub = stub
 }
 
-func (fake *FakeLockDB) AcquireArgsForCall(i int) lock.LockID {
+func (fake *FakeLockDB) AcquireArgsForCall(i int) (lager.Logger, lock.LockID) {
 	fake.acquireMutex.RLock()
 	defer fake.acquireMutex.RUnlock()
 	argsForCall := fake.acquireArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeLockDB) AcquireReturns(result1 bool, result2 error) {
@@ -102,18 +106,19 @@ func (fake *FakeLockDB) AcquireReturnsOnCall(i int, result1 bool, result2 error)
 	}{result1, result2}
 }
 
-func (fake *FakeLockDB) Release(arg1 lock.LockID) (bool, error) {
+func (fake *FakeLockDB) Release(arg1 lager.Logger, arg2 lock.LockID) (bool, error) {
 	fake.releaseMutex.Lock()
 	ret, specificReturn := fake.releaseReturnsOnCall[len(fake.releaseArgsForCall)]
 	fake.releaseArgsForCall = append(fake.releaseArgsForCall, struct {
-		arg1 lock.LockID
-	}{arg1})
+		arg1 lager.Logger
+		arg2 lock.LockID
+	}{arg1, arg2})
 	stub := fake.ReleaseStub
 	fakeReturns := fake.releaseReturns
-	fake.recordInvocation("Release", []interface{}{arg1})
+	fake.recordInvocation("Release", []interface{}{arg1, arg2})
 	fake.releaseMutex.Unlock()
 	if stub != nil {
-		return stub(arg1)
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -127,17 +132,17 @@ func (fake *FakeLockDB) ReleaseCallCount() int {
 	return len(fake.releaseArgsForCall)
 }
 
-func (fake *FakeLockDB) ReleaseCalls(stub func(lock.LockID) (bool, error)) {
+func (fake *FakeLockDB) ReleaseCalls(stub func(lager.Logger, lock.LockID) (bool, error)) {
 	fake.releaseMutex.Lock()
 	defer fake.releaseMutex.Unlock()
 	fake.ReleaseStub = stub
 }
 
-func (fake *FakeLockDB) ReleaseArgsForCall(i int) lock.LockID {
+func (fake *FakeLockDB) ReleaseArgsForCall(i int) (lager.Logger, lock.LockID) {
 	fake.releaseMutex.RLock()
 	defer fake.releaseMutex.RUnlock()
 	argsForCall := fake.releaseArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeLockDB) ReleaseReturns(result1 bool, result2 error) {
