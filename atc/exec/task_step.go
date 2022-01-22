@@ -225,6 +225,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 	}
 
 	delegate.Initializing(logger)
+	fmt.Fprintf(delegate.Stderr(), "initializing\n")
 
 	imageSpec, err := step.imageSpec(ctx, logger, state, delegate, config)
 	if err != nil {
@@ -239,6 +240,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 
 	owner := db.NewBuildStepContainerOwner(step.metadata.BuildID, step.planID, step.metadata.TeamID)
 
+	fmt.Fprintf(delegate.Stderr(), "before select worker\n")
 	err = delegate.BeforeSelectWorker(logger)
 	if err != nil {
 		return false, err
@@ -275,7 +277,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 
 	delegate.SelectedWorker(logger, worker.Name())
 
-	container, volumeMounts, err := worker.FindOrCreateContainer(ctx, owner, step.containerMetadata, containerSpec)
+	container, volumeMounts, err := worker.FindOrCreateContainer(ctx, owner, step.containerMetadata, containerSpec, delegate.Stderr())
 	if err != nil {
 		return false, err
 	}

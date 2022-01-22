@@ -67,8 +67,9 @@ func (worker *Worker) FindOrCreateContainer(
 	owner db.ContainerOwner,
 	metadata db.ContainerMetadata,
 	containerSpec runtime.ContainerSpec,
+	stderr io.Writer,
 ) (runtime.Container, []runtime.VolumeMount, error) {
-	c, mounts, err := worker.findOrCreateContainer(ctx, owner, metadata, containerSpec)
+	c, mounts, err := worker.findOrCreateContainer(ctx, owner, metadata, containerSpec, stderr)
 	if err != nil {
 		return nil, nil, fmt.Errorf("find or create container on worker %s: %w", worker.Name(), err)
 	}
@@ -80,8 +81,10 @@ func (worker *Worker) findOrCreateContainer(
 	owner db.ContainerOwner,
 	metadata db.ContainerMetadata,
 	containerSpec runtime.ContainerSpec,
+	stderr io.Writer,
 ) (runtime.Container, []runtime.VolumeMount, error) {
 	logger := lagerctx.FromContext(ctx)
+	fmt.Fprintf(stderr, "before FindContainer, owner=%v\n", owner)
 	creatingContainer, createdContainer, err := worker.dbWorker.FindContainer(owner)
 	if err != nil {
 		return nil, nil, fmt.Errorf("find in db: %w", err)
@@ -94,6 +97,7 @@ func (worker *Worker) findOrCreateContainer(
 	} else if createdContainer != nil {
 		containerHandle = createdContainer.Handle()
 	} else {
+		fmt.Fprintf(stderr, "before creating-container-in-db\n")
 		logger.Debug("creating-container-in-db")
 		creatingContainer, err = worker.dbWorker.CreateContainer(
 			owner,
@@ -104,6 +108,7 @@ func (worker *Worker) findOrCreateContainer(
 			return nil, nil, fmt.Errorf("create container: %w", err)
 		}
 		logger.Debug("created-creating-container-in-db")
+		fmt.Fprintf(stderr, "created-creating-container-in-db\n")
 		containerHandle = creatingContainer.Handle()
 	}
 
@@ -136,7 +141,7 @@ func (worker *Worker) findOrCreateContainer(
 	// will create one. If it does exist, we will transition the creatingContainer
 	// to created and return a worker.Container
 	if gardenContainer == nil {
-		gardenContainer, err = worker.createGardenContainer(ctx, containerSpec, creatingContainer)
+		gardenContainer, err = worker.createGardenContainer(ctx, containerSpec, creatingContainer, stderr)
 		if err != nil {
 			logger.Error("failed-to-create-container-in-garden", err)
 			markContainerAsFailed(logger, creatingContainer)
@@ -167,13 +172,16 @@ func (worker *Worker) createGardenContainer(
 	ctx context.Context,
 	containerSpec runtime.ContainerSpec,
 	creatingContainer db.CreatingContainer,
+	stderr io.Writer,
 ) (gclient.Container, error) {
 	logger := lagerctx.FromContext(ctx)
+	fmt.Fprintf(stderr, "before fetchImageForContainer\n")
 	fetchedImage, err := worker.fetchImageForContainer(
 		ctx,
 		containerSpec.ImageSpec,
 		containerSpec.TeamID,
 		creatingContainer,
+		stderr,
 	)
 	if err != nil {
 		logger.Error("failed-to-fetch-image-for-container", err)
@@ -181,7 +189,7 @@ func (worker *Worker) createGardenContainer(
 		return nil, err
 	}
 
-	volumeMounts, err := worker.createVolumes(ctx, fetchedImage.Privileged, creatingContainer, containerSpec)
+	volumeMounts, err := worker.createVolumes(ctx, fetchedImage.Privileged, creatingContainer, containerSpec, stderr)
 	if err != nil {
 		logger.Error("failed-to-create-volume-mounts-for-container", err)
 		markContainerAsFailed(logger, creatingContainer)
@@ -195,6 +203,7 @@ func (worker *Worker) createGardenContainer(
 		return nil, err
 	}
 
+	fmt.Fprintf(stderr, "creating-garden-container\n")
 	logger.Debug("creating-garden-container")
 
 	gardenContainer, err := worker.gardenClient.Create(
@@ -300,6 +309,7 @@ func (worker *Worker) createVolumes(
 	privileged bool,
 	creatingContainer db.CreatingContainer,
 	spec runtime.ContainerSpec,
+	stderr io.Writer,
 ) ([]runtime.VolumeMount, error) {
 	var volumeMounts []runtime.VolumeMount
 
@@ -312,6 +322,7 @@ func (worker *Worker) createVolumes(
 		creatingContainer,
 		spec.TeamID,
 		"/scratch",
+		stderr,
 	)
 	if err != nil {
 		return nil, err
@@ -354,6 +365,7 @@ func (worker *Worker) createVolumes(
 			creatingContainer,
 			spec.TeamID,
 			spec.Dir,
+			io.Discard,
 		)
 		if err != nil {
 			return nil, err
@@ -393,7 +405,7 @@ func (worker *Worker) cloneInputVolumes(
 	var remoteInputs []remoteInput
 
 	for _, input := range spec.Inputs {
-		volume, ok, err := worker.findVolumeForArtifact(ctx, spec.TeamID, input.Artifact)
+		volume, ok, err := worker.findVolumeForArtifact(ctx, spec.TeamID, input.Artifact, io.Discard)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -450,6 +462,7 @@ func (worker *Worker) cloneLocalInputVolumes(
 			input.cowParent,
 			spec.TeamID,
 			input.mountPath,
+			io.Discard,
 		)
 		if err != nil {
 			return nil, err
@@ -499,6 +512,7 @@ func (worker *Worker) streamRemoteInputVolumes(
 			container,
 			spec.TeamID,
 			input.mountPath,
+			io.Discard,
 		)
 		if err != nil {
 			return nil, err
@@ -549,6 +563,7 @@ func (worker *Worker) createOutputVolumes(
 			container,
 			spec.TeamID,
 			cleanedOutputPath,
+			io.Discard,
 		)
 		if err != nil {
 			return nil, err
@@ -596,6 +611,7 @@ func (worker *Worker) cloneCacheVolumes(
 				volume,
 				spec.TeamID,
 				mountPath,
+				io.Discard,
 			)
 			if err != nil {
 				return nil, err
@@ -613,6 +629,7 @@ func (worker *Worker) cloneCacheVolumes(
 				container,
 				spec.TeamID,
 				mountPath,
+				io.Discard,
 			)
 			if err != nil {
 				return nil, err

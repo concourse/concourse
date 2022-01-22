@@ -2,6 +2,7 @@ package gardenruntime
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"path/filepath"
 	"time"
@@ -183,10 +184,12 @@ func (worker *Worker) findOrCreateVolumeForContainer(
 	container db.CreatingContainer,
 	teamID int,
 	mountPath string,
+	stderr io.Writer,
 ) (Volume, error) {
 	ctx = lagerctx.NewContext(ctx, lagerctx.FromContext(ctx).Session("find-or-create-volume-for-container"))
 	return worker.findOrCreateVolume(
 		ctx,
+		stderr,
 		volumeSpec,
 		func() (db.CreatingVolume, db.CreatedVolume, error) {
 			return worker.db.VolumeRepo.FindContainerVolume(teamID, worker.Name(), container, mountPath)
@@ -203,6 +206,7 @@ func (worker *Worker) findOrCreateVolumeForStreaming(
 	container db.CreatingContainer,
 	teamID int,
 	mountPath string,
+	stderr io.Writer,
 ) (Volume, error) {
 	return worker.findOrCreateVolumeForContainer(
 		ctx,
@@ -215,6 +219,7 @@ func (worker *Worker) findOrCreateVolumeForStreaming(
 		// we prefix the mount path to distinguish between streamed-in volumes
 		// and mounted volumes.
 		streamedVolumePathPrefix+mountPath,
+		stderr,
 	)
 }
 
@@ -225,10 +230,12 @@ func (worker *Worker) findOrCreateCOWVolumeForContainer(
 	parent Volume,
 	teamID int,
 	mountPath string,
+	stderr io.Writer,
 ) (Volume, error) {
 	ctx = lagerctx.NewContext(ctx, lagerctx.FromContext(ctx).Session("find-or-create-cow-volume-for-container"))
 	return worker.findOrCreateVolume(
 		ctx,
+		stderr,
 		baggageclaim.VolumeSpec{
 			Strategy:   parent.COWStrategy(),
 			Privileged: privileged,
@@ -247,10 +254,12 @@ func (worker *Worker) findOrCreateVolumeForBaseResourceType(
 	volumeSpec baggageclaim.VolumeSpec,
 	teamID int,
 	resourceTypeName string,
+	stderr io.Writer,
 ) (Volume, error) {
 	logger := lagerctx.FromContext(ctx).Session("find-or-create-volume-for-base-resource-type", lager.Data{
 		"resource-type": resourceTypeName,
 	})
+	fmt.Fprintf(stderr, "before worker.db.WorkerBaseResourceTypeFactory.Find %s\n", resourceTypeName)
 	workerBaseResourceType, found, err := worker.db.WorkerBaseResourceTypeFactory.Find(resourceTypeName, worker.dbWorker)
 	if err != nil {
 		logger.Error("failed-to-lookup-base-resource-type", err)
@@ -260,9 +269,11 @@ func (worker *Worker) findOrCreateVolumeForBaseResourceType(
 		logger.Error("base-resource-type-not-found", ErrBaseResourceTypeNotFound)
 		return Volume{}, ErrBaseResourceTypeNotFound
 	}
+	fmt.Fprintf(stderr, "after worker.db.WorkerBaseResourceTypeFactory.Find %s\n", resourceTypeName)
 
 	return worker.findOrCreateVolume(
 		lagerctx.NewContext(ctx, logger),
+		stderr,
 		volumeSpec,
 		func() (db.CreatingVolume, db.CreatedVolume, error) {
 			return worker.db.VolumeRepo.FindBaseResourceTypeVolume(workerBaseResourceType)
@@ -340,6 +351,7 @@ func (worker *Worker) createVolumeForTaskCache(
 
 	return worker.findOrCreateVolume(
 		lagerctx.NewContext(ctx, logger.Session("create-volume-for-task-cache")),
+		io.Discard,
 		baggageclaim.VolumeSpec{
 			Strategy:   baggageclaim.ImportStrategy{Path: importFromVolume.Path()},
 			Privileged: privileged,
@@ -368,6 +380,7 @@ func (worker *Worker) findVolumeForArtifact(
 	ctx context.Context,
 	teamID int,
 	artifact runtime.Artifact,
+	stderr io.Writer,
 ) (runtime.Volume, bool, error) {
 	logger := lagerctx.FromContext(ctx).Session("find-volume-for-artifact", lager.Data{"worker": worker.Name()})
 
@@ -376,7 +389,9 @@ func (worker *Worker) findVolumeForArtifact(
 		return nil, false, nil
 	}
 
+	fmt.Fprintf(stderr, "findVolumeForArtifact, volume.worker=%s, volme.handle=%s\n", volume.DBVolume().WorkerName(), volume.Handle())
 	if volume.DBVolume().WorkerName() == worker.Name() {
+		fmt.Fprintf(stderr, "findVolumeForArtifact, same worker\n")
 		return volume, true, nil
 	}
 
@@ -385,25 +400,32 @@ func (worker *Worker) findVolumeForArtifact(
 		return volume, true, nil
 	}
 
+	fmt.Fprintf(stderr, "findVolumeForArtifact: resourceCacheId=%d\n", resourceCacheID)
+
 	resourceCache, found, err := worker.db.ResourceCacheFactory.FindResourceCacheByID(resourceCacheID)
 	if err != nil {
 		logger.Error("failed-to-find-resource-cache-by-id", err, lager.Data{"resource-cache": resourceCacheID})
 		return nil, false, err
 	}
 	if !found {
+		fmt.Fprintf(stderr, "findVolumeForArtifact: resourceCacheId=%d NOT found\n", resourceCacheID)
 		logger.Debug("resource-cache-not-found", lager.Data{"resource-cache": resourceCacheID})
 		return volume, true, nil
 	}
+	fmt.Fprintf(stderr, "findVolumeForArtifact: resourceCacheId=%d found\n", resourceCacheID)
 
-	dbCacheVolume, found, err := worker.db.VolumeRepo.FindResourceCacheVolume(worker.Name(), resourceCache)
+	dbCacheVolume, found, err := worker.db.VolumeRepo.FindResourceCacheVolume(worker.Name(), resourceCache, stderr)
 	if err != nil {
 		logger.Error("failed-to-find-resource-cache-volume", err, lager.Data{"resource-cache": resourceCacheID})
 		return nil, false, err
 	}
 	if !found {
+		fmt.Fprintf(stderr, "findVolumeForArtifact: resourceCacheId=%d NOT found on worker %s\n", resourceCacheID, worker.Name())
 		logger.Info("resource-cache-volume-disappeared-from-worker", lager.Data{"resource-cache": resourceCacheID})
 		return volume, true, nil
 	}
+
+	fmt.Fprintf(stderr, "findVolumeForArtifact: resourceCacheId=%d found on worker %s\n", resourceCacheID, worker.Name())
 
 	bcCacheVolume, found, err := worker.bcClient.LookupVolume(ctx, dbCacheVolume.Handle())
 	if err != nil {
@@ -412,8 +434,10 @@ func (worker *Worker) findVolumeForArtifact(
 	}
 
 	if !found {
+		fmt.Fprintf(stderr, "findVolumeForArtifact: resourceCacheId=%d volume NOT found on worker %s\n", resourceCacheID, worker.Name())
 		return volume, true, nil
 	}
+	fmt.Fprintf(stderr, "findVolumeForArtifact: resourceCacheId=%d volume found on worker %s\n", resourceCacheID, worker.Name())
 
 	return worker.newVolume(bcCacheVolume, dbCacheVolume), true, nil
 }
@@ -439,6 +463,7 @@ func (worker *Worker) findOrCreateVolumeForResourceCerts(ctx context.Context) (V
 
 	volume, err := worker.findOrCreateVolume(
 		lagerctx.NewContext(ctx, logger.Session("find-or-create-volume-for-resource-certs")),
+		io.Discard,
 		baggageclaim.VolumeSpec{
 			Strategy: baggageclaim.ImportStrategy{
 				Path:           *certsPath,
@@ -458,11 +483,13 @@ func (worker *Worker) findOrCreateVolumeForResourceCerts(ctx context.Context) (V
 
 func (worker *Worker) findOrCreateVolume(
 	ctx context.Context,
+	stderr io.Writer,
 	volumeSpec baggageclaim.VolumeSpec,
 	findVolumeFunc func() (db.CreatingVolume, db.CreatedVolume, error),
 	createVolumeFunc func() (db.CreatingVolume, error),
 ) (Volume, error) {
 	logger := lagerctx.FromContext(ctx)
+	fmt.Fprintf(stderr, "before findVolumeFunc\n")
 	creatingVolume, createdVolume, err := findVolumeFunc()
 	if err != nil {
 		logger.Error("failed-to-find-volume-in-db", err)
@@ -472,6 +499,7 @@ func (worker *Worker) findOrCreateVolume(
 	if createdVolume != nil {
 		logger = logger.WithData(lager.Data{"volume": createdVolume.Handle()})
 
+		fmt.Fprintf(stderr, "before bcClient.LookupVolume\n")
 		bcVolume, bcVolumeFound, err := worker.bcClient.LookupVolume(ctx, createdVolume.Handle())
 		if err != nil {
 			logger.Error("failed-to-lookup-volume-in-baggageclaim", err)
@@ -483,6 +511,7 @@ func (worker *Worker) findOrCreateVolume(
 		}
 
 		logger.Debug("found-created-volume")
+		fmt.Fprintf(stderr, "found-created-volume\n")
 		return worker.newVolume(bcVolume, createdVolume), nil
 	}
 
@@ -490,6 +519,7 @@ func (worker *Worker) findOrCreateVolume(
 		logger = logger.WithData(lager.Data{"volume": creatingVolume.Handle()})
 		logger.Debug("found-creating-volume")
 	} else {
+		fmt.Fprintf(stderr, "before createVolumeFunc\n")
 		creatingVolume, err = createVolumeFunc()
 		if err != nil {
 			logger.Error("failed-to-create-volume-in-db", err)
@@ -497,20 +527,23 @@ func (worker *Worker) findOrCreateVolume(
 		}
 
 		logger = logger.WithData(lager.Data{"volume": creatingVolume.Handle()})
-
+		fmt.Fprintf(stderr, "created-creating-volume\n")
 		logger.Debug("created-creating-volume")
 	}
 
+	fmt.Fprintf(stderr, "before accquire create-volume lock\n")
 	lock, acquired, err := worker.db.LockFactory.Acquire(logger, lock.NewVolumeCreatingLockID(creatingVolume.ID()))
 	if err != nil {
 		logger.Error("failed-to-acquire-volume-creating-lock", err)
 		return Volume{}, err
 	}
 	if !acquired {
+		fmt.Fprintf(stderr, "after accquire create-volume lock, lock-already-held, retry-in %d\n", creatingVolumeRetryDelay)
 		logger.Debug("lock-already-held", lager.Data{"retry-in": creatingVolumeRetryDelay})
 		time.Sleep(creatingVolumeRetryDelay)
-		return worker.findOrCreateVolume(ctx, volumeSpec, findVolumeFunc, createVolumeFunc)
+		return worker.findOrCreateVolume(ctx, stderr, volumeSpec, findVolumeFunc, createVolumeFunc)
 	}
+	fmt.Fprintf(stderr, "after accquire create-volume lock\n")
 	defer lock.Release()
 
 	bcVolume, bcVolumeFound, err := worker.bcClient.LookupVolume(ctx, creatingVolume.Handle())
@@ -519,8 +552,10 @@ func (worker *Worker) findOrCreateVolume(
 		return Volume{}, err
 	}
 	if bcVolumeFound {
+		fmt.Fprintf(stderr, "real-volume-exists\n")
 		logger.Debug("real-volume-exists")
 	} else {
+		fmt.Fprintf(stderr, "creating-real-volume, volumSpec=%v\n", volumeSpec)
 		logger.Debug("creating-real-volume")
 
 		bcVolume, err = worker.bcClient.CreateVolume(
@@ -540,6 +575,7 @@ func (worker *Worker) findOrCreateVolume(
 
 			return Volume{}, err
 		}
+		fmt.Fprintf(stderr, "after worker.bcClient.CreateVolume\n")
 
 		metric.Metrics.VolumesCreated.Inc()
 	}

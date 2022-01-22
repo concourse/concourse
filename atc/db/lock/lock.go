@@ -8,8 +8,10 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/cornelk/hashmap"
 )
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
@@ -21,9 +23,10 @@ const (
 	LockTypeVolumeCreating
 	LockTypeContainerCreating
 	LockTypeDatabaseMigration
-	LockTypeResourceScanning
+	LockTypeResourceScanning // no longer used, but don't delete it, because we don't want to change lock id
 	LockTypeJobScheduling
 	LockTypeInMemoryCheckBuildTracking
+	CountOfLockTypes // Keep this line as the last item
 )
 
 var ErrLostLock = errors.New("lock was lost while held, possibly due to connection breakage")
@@ -66,9 +69,9 @@ type LockFactory interface {
 }
 
 type lockFactory struct {
-	db           LockDB
-	locks        lockRepo
-	acquireMutex *sync.Mutex
+	db           [CountOfLockTypes]LockDB
+	locks        [CountOfLockTypes]LockRepo
+	//acquireMutex *sync.Mutex
 
 	acquireFunc LogFunc
 	releaseFunc LogFunc
@@ -81,41 +84,55 @@ func NewLockFactory(
 	acquire LogFunc,
 	release LogFunc,
 ) LockFactory {
-	return &lockFactory{
-		db: &lockDB{
+	dbs := [CountOfLockTypes]LockDB{}
+	locks := [CountOfLockTypes]LockRepo{}
+	for i := 0; i < CountOfLockTypes; i ++ {
+		dbs[i] = &lockDB{
 			conn:  conn,
 			mutex: &sync.Mutex{},
-		},
+		}
+		locks[i] = &lockRepo{
+			//locks: map[string]bool{},
+			//mutex: &sync.Mutex{},
+			locks: hashmap.HashMap{},
+		}
+	}
+
+	locks[LockTypeResourceConfigChecking].(*lockRepo).capacity = 500
+	locks[LockTypeBuildTracking].(*lockRepo).capacity = 500
+	locks[LockTypeInMemoryCheckBuildTracking].(*lockRepo).capacity = 1500
+
+	return &lockFactory{
+		db: dbs,
 		acquireFunc: acquire,
 		releaseFunc: release,
-		locks: lockRepo{
-			locks: map[string]bool{},
-			mutex: &sync.Mutex{},
-		},
-		acquireMutex: &sync.Mutex{},
+		locks: locks,
+		//acquireMutex: &sync.Mutex{},
 	}
 }
 
-func NewTestLockFactory(db LockDB) LockFactory {
-	return &lockFactory{
-		db: db,
-		locks: lockRepo{
-			locks: map[string]bool{},
-			mutex: &sync.Mutex{},
-		},
-		acquireMutex: &sync.Mutex{},
-		acquireFunc:  func(logger lager.Logger, id LockID) {},
-		releaseFunc:  func(logger lager.Logger, id LockID) {},
-	}
-}
+//func NewTestLockFactory(db LockDB) LockFactory {
+//	return &lockFactory{
+//		db: db,
+//		locks: lockRepo{
+//			//locks: map[string]bool{},
+//			//mutex: &sync.Mutex{},
+//			locks: hashmap.HashMap{},
+//		},
+//		acquireMutex: &sync.Mutex{},
+//		acquireFunc:  func(logger lager.Logger, id LockID) {},
+//		releaseFunc:  func(logger lager.Logger, id LockID) {},
+//	}
+//}
 
 func (f *lockFactory) Acquire(logger lager.Logger, id LockID) (Lock, bool, error) {
+	lockType := id[0]
 	l := &lock{
 		logger:       logger,
-		db:           f.db,
+		db:           f.db[lockType],
 		id:           id,
-		locks:        f.locks,
-		acquireMutex: f.acquireMutex,
+		locks:        f.locks[lockType],
+		//acquireMutex: f.acquireMutex,
 		acquired:     f.acquireFunc,
 		released:     f.releaseFunc,
 	}
@@ -145,8 +162,8 @@ func (NoopLock) Release() error { return nil }
 
 //counterfeiter:generate . LockDB
 type LockDB interface {
-	Acquire(id LockID) (bool, error)
-	Release(id LockID) (bool, error)
+	Acquire(logger lager.Logger, id LockID) (bool, error)
+	Release(logger lager.Logger, id LockID) (bool, error)
 }
 
 type lock struct {
@@ -154,25 +171,29 @@ type lock struct {
 
 	logger       lager.Logger
 	db           LockDB
-	locks        lockRepo
-	acquireMutex *sync.Mutex
+	locks        LockRepo
+	//acquireMutex *sync.Mutex
 
 	acquired LogFunc
 	released LogFunc
 }
 
 func (l *lock) Acquire() (bool, error) {
-	l.acquireMutex.Lock()
-	defer l.acquireMutex.Unlock()
-
 	logger := l.logger.Session("acquire", lager.Data{"id": l.id})
+
+	//l.acquireMutex.Lock()
+	//defer l.acquireMutex.Unlock()
+
+	if l.locks.IsFull() {
+		return false, fmt.Errorf("lock %d capacity full", l.id[0])
+	}
 
 	if l.locks.IsRegistered(l.id) {
 		logger.Debug("not-acquired-already-held-locally")
 		return false, nil
 	}
 
-	acquired, err := l.db.Acquire(l.id)
+	acquired, err := l.db.Acquire(logger, l.id)
 	if err != nil {
 		logger.Error("failed-to-register-in-db", err)
 		return false, err
@@ -193,7 +214,7 @@ func (l *lock) Acquire() (bool, error) {
 func (l *lock) Release() error {
 	logger := l.logger.Session("release", lager.Data{"id": l.id})
 
-	released, err := l.db.Release(l.id)
+	released, err := l.db.Release(logger, l.id)
 	if err != nil {
 		logger.Error("failed-to-release-in-db-but-continuing-anyway", err)
 	}
@@ -215,9 +236,11 @@ type lockDB struct {
 	mutex *sync.Mutex
 }
 
-func (db *lockDB) Acquire(id LockID) (bool, error) {
+func (db *lockDB) Acquire(logger lager.Logger, id LockID) (bool, error) {
 	db.mutex.Lock()
 	defer db.mutex.Unlock()
+
+	start := time.Now()
 
 	var acquired bool
 	err := db.conn.QueryRow(`SELECT pg_try_advisory_lock(`+id.toDBParams()+`)`, id.toDBArgs()...).Scan(&acquired)
@@ -225,12 +248,18 @@ func (db *lockDB) Acquire(id LockID) (bool, error) {
 		return false, err
 	}
 
+	if time.Now().Sub(start) > time.Second {
+		logger.Info("EVAN:db lock too long", lager.Data{"lock-id": id, "duration": (time.Now().Sub(start).Seconds())})
+	}
+
 	return acquired, nil
 }
 
-func (db *lockDB) Release(id LockID) (bool, error) {
+func (db *lockDB) Release(logger lager.Logger, id LockID) (bool, error) {
 	db.mutex.Lock()
 	defer db.mutex.Unlock()
+
+	start := time.Now()
 
 	var released bool
 	err := db.conn.QueryRow(`SELECT pg_advisory_unlock(`+id.toDBParams()+`)`, id.toDBArgs()...).Scan(&released)
@@ -238,36 +267,61 @@ func (db *lockDB) Release(id LockID) (bool, error) {
 		return false, err
 	}
 
+	if time.Now().Sub(start) > time.Second {
+		logger.Info("EVAN:db unlock too long", lager.Data{"lock-id": id, "duration": (time.Now().Sub(start).Seconds())})
+	}
+
 	return released, nil
 }
 
-type lockRepo struct {
-	locks map[string]bool
-	mutex *sync.Mutex
+type LockRepo interface {
+	IsRegistered(LockID) bool
+	Register(LockID)
+	Unregister(LockID)
+	IsFull() bool
 }
 
-func (lr lockRepo) IsRegistered(id LockID) bool {
-	lr.mutex.Lock()
-	defer lr.mutex.Unlock()
+type lockRepo struct {
+	//locks map[string]bool
+	//mutex *sync.Mutex
+	locks hashmap.HashMap
+	capacity int
+}
 
-	if _, ok := lr.locks[id.toKey()]; ok {
+func (lr *lockRepo) IsFull() bool {
+	if lr.capacity == 0 {
+		return false
+	}
+	return lr.locks.Len() >= lr.capacity
+}
+
+func (lr *lockRepo) IsRegistered(id LockID) bool {
+	//lr.mutex.Lock()
+	//defer lr.mutex.Unlock()
+	//
+	//if _, ok := lr.locks[id.toKey()]; ok {
+	//	return true
+	//}
+	if _, ok := lr.locks.Get(id.toKey()); ok {
 		return true
 	}
 	return false
 }
 
-func (lr lockRepo) Register(id LockID) {
-	lr.mutex.Lock()
-	defer lr.mutex.Unlock()
-
-	lr.locks[id.toKey()] = true
+func (lr *lockRepo) Register(id LockID) {
+	//lr.mutex.Lock()
+	//defer lr.mutex.Unlock()
+	//
+	//lr.locks[id.toKey()] = true
+	lr.locks.Set(id.toKey(), true)
 }
 
-func (lr lockRepo) Unregister(id LockID) {
-	lr.mutex.Lock()
-	defer lr.mutex.Unlock()
-
-	delete(lr.locks, id.toKey())
+func (lr *lockRepo) Unregister(id LockID) {
+	//lr.mutex.Lock()
+	//defer lr.mutex.Unlock()
+	//
+	//delete(lr.locks, id.toKey())
+	lr.locks.Del(id.toKey())
 }
 
 type LockID []int

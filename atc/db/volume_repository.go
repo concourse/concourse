@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"io"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -19,7 +20,7 @@ type VolumeRepository interface {
 	FindBaseResourceTypeVolume(*UsedWorkerBaseResourceType) (CreatingVolume, CreatedVolume, error)
 	CreateBaseResourceTypeVolume(*UsedWorkerBaseResourceType) (CreatingVolume, error)
 
-	FindResourceCacheVolume(workerName string, resourceCache ResourceCache) (CreatedVolume, bool, error)
+	FindResourceCacheVolume(workerName string, resourceCache ResourceCache, at io.Writer) (CreatedVolume, bool, error)
 
 	FindTaskCacheVolume(teamID int, workerName string, taskCache UsedTaskCache) (CreatedVolume, bool, error)
 	CreateTaskCacheVolume(teamID int, uwtc *UsedWorkerTaskCache) (CreatingVolume, error)
@@ -438,7 +439,7 @@ func (repository *volumeRepository) CreateResourceCertsVolume(workerName string,
 	return volume, nil
 }
 
-func (repository *volumeRepository) FindResourceCacheVolume(workerName string, resourceCache ResourceCache) (CreatedVolume, bool, error) {
+func (repository *volumeRepository) FindResourceCacheVolume(workerName string, resourceCache ResourceCache, stderr io.Writer) (CreatedVolume, bool, error) {
 	workerResourceCache, found, err := WorkerResourceCache{
 		WorkerName:    workerName,
 		ResourceCache: resourceCache,
@@ -448,6 +449,7 @@ func (repository *volumeRepository) FindResourceCacheVolume(workerName string, r
 	}
 
 	if !found {
+		fmt.Fprintf(stderr, "WorkerResourceCache.Find not found, worker=%s, resourceCacheId=%d\n", workerName, resourceCache.ID())
 		return nil, false, nil
 	}
 
@@ -459,6 +461,7 @@ func (repository *volumeRepository) FindResourceCacheVolume(workerName string, r
 	}
 
 	if createdVolume == nil {
+		fmt.Fprintf(stderr, "repository.findVolume not found, worker=%s, worker_resource_cache_id=%d\n", workerName, workerResourceCache.ID)
 		return nil, false, nil
 	}
 

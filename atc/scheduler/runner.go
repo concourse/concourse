@@ -46,8 +46,6 @@ func NewRunner(logger lager.Logger, jobFactory db.JobFactory, scheduler BuildSch
 func (s *Runner) Run(ctx context.Context) error {
 	sLog := s.logger.Session("run")
 
-	sLog.Debug("start")
-	defer sLog.Debug("done")
 	spanCtx, span := tracing.StartSpan(ctx, "scheduler.Run", nil)
 	defer span.End()
 

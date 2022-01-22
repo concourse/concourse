@@ -478,7 +478,7 @@ func (step *GetStep) performGetAndInitCache(
 
 	defer cancel()
 
-	container, mounts, err := worker.FindOrCreateContainer(ctx, containerOwner, step.containerMetadata, containerSpec)
+	container, mounts, err := worker.FindOrCreateContainer(ctx, containerOwner, step.containerMetadata, containerSpec, delegate.Stderr())
 	if err != nil {
 		logger.Error("failed-to-create-container", err)
 		return nil, resource.VersionResult{}, runtime.ProcessResult{}, err

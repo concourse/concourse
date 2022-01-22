@@ -136,12 +136,12 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 	// Point scope to resource before check runs. Because a resource's check build
 	// summary is associated with scope, only after pointing to scope, check status
 	// can be fetched.
-	if step.plan.Resource != "" {
+	//if step.plan.Resource != "" || step.plan.ResourceType != "" {
 		err = delegate.PointToCheckedConfig(scope)
 		if err != nil {
 			return false, fmt.Errorf("update resource config scope: %w", err)
 		}
-	}
+	//}
 
 	lock, run, err := delegate.WaitToRun(ctx, scope)
 	if err != nil {
@@ -289,6 +289,8 @@ func (step *CheckStep) runCheck(
 		)
 	}()
 
+	fmt.Fprintf(delegate.Stderr(), "before MaybeTimeout\n")
+
 	ctx, cancel, err := MaybeTimeout(ctx, step.plan.Timeout, step.defaultCheckTimeout)
 	if err != nil {
 		return nil, runtime.ProcessResult{}, err
@@ -296,10 +298,14 @@ func (step *CheckStep) runCheck(
 
 	defer cancel()
 
-	container, _, err := worker.FindOrCreateContainer(ctx, containerOwner, step.containerMetadata, containerSpec)
+	fmt.Fprintf(delegate.Stderr(), "before FindOrCreateContainer\n")
+
+	container, _, err := worker.FindOrCreateContainer(ctx, containerOwner, step.containerMetadata, containerSpec, delegate.Stderr())
 	if err != nil {
 		return nil, runtime.ProcessResult{}, err
 	}
+
+	fmt.Fprintf(delegate.Stderr(), "after FindOrCreateContainer\n")
 
 	delegate.Starting(logger)
 	return resource.Resource{

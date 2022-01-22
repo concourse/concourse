@@ -127,15 +127,8 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 	var lock lock.Lock = lock.NoopLock{}
 	if d.plan.IsPeriodic() {
 		for {
-			run, err := d.shouldPeriodicCheckRun(scope, interval)
-			if err != nil {
-				return nil, false, err
-			}
-			if !run {
-				return nil, false, nil
-			}
-
 			var acquired bool
+			var err error
 			lock, acquired, err = scope.AcquireResourceCheckingLock(logger)
 			if err != nil {
 				return nil, false, fmt.Errorf("acquire lock: %w", err)
@@ -172,7 +165,6 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 		if err != nil {
 			return nil, false, err
 		}
-
 		// If last check succeeded and the end of the last check is after the start
 		// of this check, then don't run
 		if lastCheck.Succeeded && lastCheck.EndTime.After(d.build.StartTime()) {

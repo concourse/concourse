@@ -3,6 +3,7 @@ package worker
 import (
 	"errors"
 	"fmt"
+	"io"
 	"math/rand"
 	"sort"
 	"strings"
@@ -173,7 +174,7 @@ func (strategy volumeLocalityStrategy) Order(logger lager.Logger, pool Pool, wor
 			if worker.Name() == srcWorker {
 				continue
 			}
-			_, found, err := pool.db.VolumeRepo.FindResourceCacheVolume(worker.Name(), resourceCache)
+			_, found, err := pool.db.VolumeRepo.FindResourceCacheVolume(worker.Name(), resourceCache, io.Discard)
 			if err != nil {
 				logger.Error("failed-to-find-resource-cache-volume", err)
 				return nil, err

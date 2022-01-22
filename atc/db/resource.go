@@ -77,6 +77,7 @@ type Resource interface {
 	Source() atc.Source
 	CheckEvery() *atc.CheckEvery
 	CheckTimeout() string
+	LastUpdatedTime() time.Time
 	LastCheckStartTime() time.Time
 	LastCheckEndTime() time.Time
 	Tags() atc.Tags
@@ -138,6 +139,7 @@ var (
 		"r.resource_config_scope_id",
 		"p.name",
 		"p.instance_vars",
+		"p.last_updated",
 		"t.id",
 		"t.name",
 		"rp.version",
@@ -163,6 +165,7 @@ type resource struct {
 	teamID                int
 	teamName              string
 	type_                 string
+	lastUpdatedTime       time.Time
 	lastCheckStartTime    time.Time
 	lastCheckEndTime      time.Time
 	config                atc.ResourceConfig
@@ -215,6 +218,7 @@ func (r *resource) Type() string                     { return r.type_ }
 func (r *resource) Source() atc.Source               { return r.config.Source }
 func (r *resource) CheckEvery() *atc.CheckEvery      { return r.config.CheckEvery }
 func (r *resource) CheckTimeout() string             { return r.config.CheckTimeout }
+func (r *resource) LastUpdatedTime() time.Time {return r.lastUpdatedTime}
 func (r *resource) LastCheckStartTime() time.Time    { return r.lastCheckStartTime }
 func (r *resource) LastCheckEndTime() time.Time      { return r.lastCheckEndTime }
 func (r *resource) Tags() atc.Tags                   { return r.config.Tags }
@@ -846,7 +850,7 @@ func scanResource(r *resource, row scannable) error {
 	err := row.Scan(&r.id, &r.name, &r.type_, &configBlob, &buildData.lastCheckStartTime,
 		&buildData.lastCheckEndTime, &buildData.lastCheckBuildId, &buildData.lastCheckSucceeded, &buildData.lastCheckBuildPlan,
 		&r.pipelineID, &nonce, &rcID, &rcScopeID,
-		&r.pipelineName, &pipelineInstanceVars, &r.teamID, &r.teamName,
+		&r.pipelineName, &pipelineInstanceVars, &r.lastUpdatedTime, &r.teamID, &r.teamName,
 		&pinnedVersion, &pinComment, &pinnedThroughConfig,
 		&buildData.inMemoryBuildId, &buildData.inMemoryBuildStartTime, &buildData.inMemoryBuildPlan)
 	if err != nil {

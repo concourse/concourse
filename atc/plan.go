@@ -300,8 +300,11 @@ type CheckPlan struct {
 	Tags Tags `json:"tags,omitempty"`
 }
 
+// IsPeriodic returns if a check is periodic check (Lidar triggered check).
+// Note that, resource type is no longer checked by Lidar since 7.5.0.
+// FIXME: Should Prototype be here???
 func (plan CheckPlan) IsPeriodic() bool {
-	return plan.Resource != "" || plan.ResourceType != "" || plan.Prototype != ""
+	return plan.Resource != "" || plan.Prototype != ""
 }
 
 type TaskPlan struct {

@@ -20,6 +20,7 @@ import (
 	"github.com/concourse/concourse/vars"
 	"github.com/lib/pq"
 	"go.opentelemetry.io/otel/propagation"
+	"github.com/cornelk/hashmap"
 )
 
 // inMemoryCheckBuildForApi implements db.BuildForAPI. It handles API operations
@@ -258,6 +259,46 @@ func (b *inMemoryCheckBuildForApi) SetComment(string) error {
 	return errors.New("not implemented for in memory build")
 }
 
+type imbRepo struct {
+	//Repo map[int]interface{}
+	//Mutex *sync.Mutex
+	repo hashmap.HashMap
+}
+
+type imbRepoLock struct {
+	repo *imbRepo
+	id int
+}
+
+var ir = &imbRepo{
+	//Repo: map[int]interface{}{},
+	//Mutex: &sync.Mutex{},
+	repo: hashmap.HashMap{},
+}
+
+func (r *imbRepo) Acquire(id int) (lock.Lock, bool, error) {
+	//r.Mutex.Lock()
+	//if _, ok := r.Repo[id]; ok {
+	//	r.Mutex.Unlock()
+	//	return nil, false, nil
+	//}
+	//r.Repo[id] = nil
+	//r.Mutex.Unlock()
+	if _, ok := r.repo.Get(id); ok {
+		return nil, false, nil
+	}
+	r.repo.Set(id, nil)
+	return &imbRepoLock{repo: r, id: id}, true, nil
+}
+
+func (l *imbRepoLock) Release() error {
+	//l.repo.Mutex.Lock()
+	//delete(l.repo.Repo, l.id)
+	//l.repo.Mutex.Unlock()
+	l.repo.repo.Del(l.id)
+	return nil
+}
+
 // inMemoryCheckBuild implements db.Build. It handles in-memory check builds
 // only, thus it just implement the necessary function of interface Build.
 type inMemoryCheckBuild struct {
@@ -274,6 +315,8 @@ type inMemoryCheckBuild struct {
 
 	cacheEvents []atc.Event
 	eventIdSeq  util.SequenceGenerator
+
+	imbRepo *imbRepo
 }
 
 func newRunningInMemoryCheckBuild(conn Conn, lockFactory lock.LockFactory, checkable Checkable, plan atc.Plan, spanContext SpanContext, seqGen util.SequenceGenerator) (*inMemoryCheckBuild, error) {
@@ -291,6 +334,7 @@ func newRunningInMemoryCheckBuild(conn Conn, lockFactory lock.LockFactory, check
 		spanContext: spanContext,
 		preId:       seqGen.Next(),
 		eventIdSeq:  util.NewSequenceGenerator(0),
+		imbRepo: ir,
 	}
 
 	if resource, ok := checkable.(Resource); ok {
@@ -413,6 +457,11 @@ func (b *inMemoryCheckBuild) AcquireTrackingLock(logger lager.Logger, interval t
 	}
 
 	return lock, true, nil
+	//if b.ResourceID() != 0 {
+	//	return b.imbRepo.Acquire(b.ResourceID())
+	//} else {
+	//	return nil, false, errors.New("in memory check created for unknown type")
+	//}
 }
 
 func (b *inMemoryCheckBuild) Finish(status BuildStatus) error {
@@ -529,7 +578,7 @@ func (b *inMemoryCheckBuild) SaveEvent(ev atc.Event) error {
 // and API insert in-memory build id to the table, and AbortNotifier watches the
 // table to see if current build should be aborted.
 func (b *inMemoryCheckBuild) AbortNotifier() (Notifier, error) {
-	return newNoopNotifier(), nil
+	return nil, nil
 }
 
 // ResourceCacheUser will use in-memory build's preId as key in order to avoid unnecessary

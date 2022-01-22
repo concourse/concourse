@@ -3,6 +3,7 @@ package worker
 import (
 	"context"
 	"fmt"
+	"io"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -203,7 +204,7 @@ func (pool Pool) FindResourceCacheVolumeOnWorker(ctx context.Context, resourceCa
 }
 
 func (pool Pool) findResourceCacheVolumeOnWorker(ctx context.Context, dbWorker db.Worker, resourceCache db.ResourceCache) (runtime.Volume, bool, error) {
-	volume, found, err := pool.db.VolumeRepo.FindResourceCacheVolume(dbWorker.Name(), resourceCache)
+	volume, found, err := pool.db.VolumeRepo.FindResourceCacheVolume(dbWorker.Name(), resourceCache, io.Discard)
 	if err != nil {
 		return nil, false, err
 	}

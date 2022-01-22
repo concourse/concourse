@@ -27,7 +27,7 @@ type Worker interface {
 	// It can be thought of as declaratively saying "I want a container
 	// matching these specifications" - and the Worker implementation will
 	// "make it so", regardless of what Containers/Volumes already exist.
-	FindOrCreateContainer(context.Context, db.ContainerOwner, db.ContainerMetadata, ContainerSpec) (Container, []VolumeMount, error)
+	FindOrCreateContainer(context.Context, db.ContainerOwner, db.ContainerMetadata, ContainerSpec, io.Writer) (Container, []VolumeMount, error)
 	// CreateVolumeForArtifact creates a new empty Volume to be used as a
 	// WorkerArtifact. This is used for uploading local inputs to a worker via
 	// `fly execute -i ...`.

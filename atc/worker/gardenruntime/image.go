@@ -37,10 +37,11 @@ func (worker *Worker) fetchImageForContainer(
 	imageSpec runtime.ImageSpec,
 	teamID int,
 	container db.CreatingContainer,
+	stderr io.Writer,
 ) (FetchedImage, error) {
 	logger := lagerctx.FromContext(ctx)
 	if imageSpec.ImageArtifact != nil {
-		volume, ok, err := worker.findVolumeForArtifact(ctx, teamID, imageSpec.ImageArtifact)
+		volume, ok, err := worker.findVolumeForArtifact(ctx, teamID, imageSpec.ImageArtifact, stderr)
 		if err != nil {
 			logger.Error("failed-to-locate-artifact-volume", err)
 			return FetchedImage{}, err
@@ -48,16 +49,19 @@ func (worker *Worker) fetchImageForContainer(
 		if ok && volume.DBVolume().WorkerName() == worker.Name() {
 			// it's on the same worker, so it will be a baggageclaim volume
 			volumeOnWorker := volume.(Volume)
-			return worker.imageProvidedByPreviousStepOnSameWorker(ctx, logger, imageSpec.Privileged, teamID, container, volumeOnWorker)
+			fmt.Fprintf(stderr, "image found on same worker %s\n", worker.Name())
+			return worker.imageProvidedByPreviousStepOnSameWorker(ctx, logger, imageSpec.Privileged, teamID, container, volumeOnWorker, stderr)
 		} else {
-			return worker.imageProvidedByPreviousStepOnDifferentWorker(ctx, imageSpec.Privileged, teamID, container, imageSpec.ImageArtifact)
+			return worker.imageProvidedByPreviousStepOnDifferentWorker(ctx, imageSpec.Privileged, teamID, container, imageSpec.ImageArtifact, stderr)
 		}
 	}
 
 	if imageSpec.ResourceType != "" {
+		fmt.Fprintf(stderr, "before iterate worker.dbWorker.ResourceTypes()\n")
 		for _, t := range worker.dbWorker.ResourceTypes() {
 			if t.Type == imageSpec.ResourceType {
-				return worker.imageFromBaseResourceType(ctx, t, imageSpec.ResourceType, teamID, container)
+				fmt.Fprintf(stderr, "before imageFromBaseResourceType %s\n", imageSpec.ResourceType)
+				return worker.imageFromBaseResourceType(ctx, t, imageSpec.ResourceType, teamID, container, stderr)
 			}
 		}
 		return FetchedImage{}, ErrUnsupportedResourceType
@@ -73,7 +77,9 @@ func (worker *Worker) imageProvidedByPreviousStepOnSameWorker(
 	teamID int,
 	container db.CreatingContainer,
 	artifactVolume Volume,
+	stderr io.Writer,
 ) (FetchedImage, error) {
+	fmt.Fprintf(stderr, "imageProvidedByPreviousStepOnSameWorker: before findOrCreateCOWVolumeForContainer\n")
 	imageVolume, err := worker.findOrCreateCOWVolumeForContainer(
 		ctx,
 		privileged,
@@ -81,18 +87,21 @@ func (worker *Worker) imageProvidedByPreviousStepOnSameWorker(
 		artifactVolume,
 		teamID,
 		"/",
+		stderr,
 	)
 	if err != nil {
 		logger.Error("failed-to-create-image-artifact-cow-volume", err)
 		return FetchedImage{}, fmt.Errorf("create COW volume: %w", err)
 	}
 
+	fmt.Fprintf(stderr, "imageProvidedByPreviousStepOnSameWorker: before StreamFile %s\n", ImageMetadataFile)
 	imageMetadataReader, err := worker.streamer.StreamFile(ctx, artifactVolume, ImageMetadataFile)
 	if err != nil {
 		logger.Error("failed-to-stream-metadata-file", err)
 		return FetchedImage{}, fmt.Errorf("stream metadata: %w", err)
 	}
 
+	fmt.Fprintf(stderr, "imageProvidedByPreviousStepOnSameWorker: before loadMetadata %s\n", ImageMetadataFile)
 	metadata, err := loadMetadata(imageMetadataReader)
 	if err != nil {
 		return FetchedImage{}, fmt.Errorf("load metadata: %w", err)
@@ -116,6 +125,7 @@ func (worker *Worker) imageProvidedByPreviousStepOnDifferentWorker(
 	teamID int,
 	container db.CreatingContainer,
 	artifact runtime.Artifact,
+	stderr io.Writer,
 ) (FetchedImage, error) {
 	logger := lagerctx.FromContext(ctx)
 	streamedVolume, err := worker.findOrCreateVolumeForStreaming(
@@ -124,6 +134,7 @@ func (worker *Worker) imageProvidedByPreviousStepOnDifferentWorker(
 		container,
 		teamID,
 		"/",
+		stderr,
 	)
 	if err != nil {
 		logger.Error("failed-to-create-image-artifact-replicated-volume", err)
@@ -143,6 +154,8 @@ func (worker *Worker) imageProvidedByPreviousStepOnDifferentWorker(
 		streamedVolume,
 		teamID,
 		"/",
+		stderr,
+
 	)
 	if err != nil {
 		logger.Error("failed-to-create-cow-volume-for-image", err)
@@ -178,7 +191,9 @@ func (worker *Worker) imageFromBaseResourceType(
 	resourceTypeName string,
 	teamID int,
 	container db.CreatingContainer,
+	stderr io.Writer,
 ) (FetchedImage, error) {
+	fmt.Fprintf(stderr, "before findOrCreateVolumeForBaseResourceType\n")
 	importVolume, err := worker.findOrCreateVolumeForBaseResourceType(
 		ctx,
 		baggageclaim.VolumeSpec{
@@ -187,11 +202,13 @@ func (worker *Worker) imageFromBaseResourceType(
 		},
 		teamID,
 		resourceTypeName,
+		stderr,
 	)
 	if err != nil {
 		return FetchedImage{}, err
 	}
 
+	fmt.Fprintf(stderr, "before imageFromBaseResourceType.findOrCreateCOWVolumeForContainer\n")
 	cowVolume, err := worker.findOrCreateCOWVolumeForContainer(
 		ctx,
 		resourceType.Privileged,
@@ -199,10 +216,12 @@ func (worker *Worker) imageFromBaseResourceType(
 		importVolume,
 		teamID,
 		"/",
+		stderr,
 	)
 	if err != nil {
 		return FetchedImage{}, err
 	}
+	fmt.Fprintf(stderr, "after imageFromBaseResourceType.findOrCreateCOWVolumeForContainer\n")
 
 	rootFSURL := url.URL{
 		Scheme: RawRootFSScheme,

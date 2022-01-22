@@ -27,6 +27,7 @@ require (
 	github.com/containerd/go-cni v1.1.0
 	github.com/containerd/typeurl v1.0.2
 	github.com/coreos/go-iptables v0.6.0
+	github.com/cornelk/hashmap v1.0.1
 	github.com/cppforlife/go-semi-semantic v0.0.0-20160921010311-576b6af77ae4
 	github.com/creack/pty v1.1.11 // indirect
 	github.com/cyberark/conjur-api-go v0.8.0

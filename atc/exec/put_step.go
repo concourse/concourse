@@ -208,7 +208,7 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 
 	defer cancel()
 
-	container, _, err := worker.FindOrCreateContainer(ctx, owner, step.containerMetadata, containerSpec)
+	container, _, err := worker.FindOrCreateContainer(ctx, owner, step.containerMetadata, containerSpec, delegate.Stderr())
 	if err != nil {
 		return false, err
 	}
