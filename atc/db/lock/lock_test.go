@@ -10,7 +10,6 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
-	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/lib/pq"
 
 	. "github.com/onsi/ginkgo"
@@ -67,11 +66,11 @@ var _ = Describe("Locks", func() {
 		It("Acquire can only obtain lock once", func() {
 			var acquired bool
 			var err error
-			dbLock, acquired, err = lockFactory.Acquire(logger, lock.LockID{42})
+			dbLock, acquired, err = lockFactory.Acquire(logger, lock.NewBuildTrackingLockID(42))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(acquired).To(BeTrue())
 
-			_, acquired, err = lockFactory.Acquire(logger, lock.LockID{42})
+			_, acquired, err = lockFactory.Acquire(logger, lock.NewBuildTrackingLockID(42))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(acquired).To(BeFalse())
 		})
@@ -79,7 +78,7 @@ var _ = Describe("Locks", func() {
 		It("Acquire accepts list of ids", func() {
 			var acquired bool
 			var err error
-			dbLock, acquired, err = lockFactory.Acquire(logger, lock.LockID{42, 56})
+			dbLock, acquired, err = lockFactory.Acquire(logger, lock.NewBuildTrackingLockID(56))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(acquired).To(BeTrue())
 
@@ -94,7 +93,7 @@ var _ = Describe("Locks", func() {
 					go func() {
 						defer wg.Done()
 
-						_, _, err := lockFactory.Acquire(logger, lock.LockID{42, 56})
+						_, _, err := lockFactory.Acquire(logger, lock.NewBuildTrackingLockID(56))
 						if err != nil {
 							anyError = err
 						}
@@ -107,11 +106,11 @@ var _ = Describe("Locks", func() {
 				return anyError
 			}, 1500*time.Millisecond, 100*time.Millisecond).ShouldNot(HaveOccurred())
 
-			dbLock, acquired, err = lockFactory.Acquire(logger, lock.LockID{56, 42})
+			dbLock, acquired, err = lockFactory.Acquire(logger, lock.NewResourceConfigCheckingLockID(42))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(acquired).To(BeTrue())
 
-			_, acquired, err = lockFactory.Acquire(logger, lock.LockID{56, 42})
+			_, acquired, err = lockFactory.Acquire(logger, lock.NewResourceConfigCheckingLockID(42))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(acquired).To(BeFalse())
 		})
@@ -126,11 +125,11 @@ var _ = Describe("Locks", func() {
 			It("does not acquire the lock", func() {
 				var acquired bool
 				var err error
-				dbLock, acquired, err = lockFactory.Acquire(logger, lock.LockID{42})
+				dbLock, acquired, err = lockFactory.Acquire(logger, lock.NewResourceConfigCheckingLockID(42))
 				Expect(err).NotTo(HaveOccurred())
 				Expect(acquired).To(BeTrue())
 
-				_, acquired, err = lockFactory2.Acquire(logger, lock.LockID{42})
+				_, acquired, err = lockFactory2.Acquire(logger, lock.NewResourceConfigCheckingLockID(42))
 				Expect(err).NotTo(HaveOccurred())
 				Expect(acquired).To(BeFalse())
 
@@ -141,105 +140,23 @@ var _ = Describe("Locks", func() {
 			It("acquires the locks once it is released", func() {
 				var acquired bool
 				var err error
-				dbLock, acquired, err = lockFactory.Acquire(logger, lock.LockID{42})
+				dbLock, acquired, err = lockFactory.Acquire(logger, lock.NewResourceConfigCheckingLockID(42))
 				Expect(err).NotTo(HaveOccurred())
 				Expect(acquired).To(BeTrue())
 
-				dbLock2, acquired, err := lockFactory2.Acquire(logger, lock.LockID{42})
+				dbLock2, acquired, err := lockFactory2.Acquire(logger, lock.NewResourceConfigCheckingLockID(42))
 				Expect(err).NotTo(HaveOccurred())
 				Expect(acquired).To(BeFalse())
 
 				err = dbLock.Release()
 				Expect(err).NotTo(HaveOccurred())
 
-				dbLock2, acquired, err = lockFactory2.Acquire(logger, lock.LockID{42})
+				dbLock2, acquired, err = lockFactory2.Acquire(logger, lock.NewResourceConfigCheckingLockID(42))
 				Expect(err).NotTo(HaveOccurred())
 				Expect(acquired).To(BeTrue())
 
 				err = dbLock2.Release()
 				Expect(err).NotTo(HaveOccurred())
-			})
-		})
-
-		Context("when two locks are being acquired at the same time", func() {
-			var fakeLockDB *lockfakes.FakeLockDB
-			var acquiredLock2 chan struct{}
-			var lock2Err error
-			var lock2Acquired bool
-			var fakeLockFactory lock.LockFactory
-
-			BeforeEach(func() {
-				fakeLockDB = new(lockfakes.FakeLockDB)
-				fakeLockFactory = lock.NewTestLockFactory(fakeLockDB)
-				acquiredLock2 = make(chan struct{})
-
-				called := false
-				readyToAcquire := make(chan struct{})
-
-				fakeLockDB.AcquireStub = func(id lock.LockID) (bool, error) {
-					if !called {
-						called = true
-
-						go func() {
-							close(readyToAcquire)
-							_, lock2Acquired, lock2Err = fakeLockFactory.Acquire(logger, id)
-							close(acquiredLock2)
-						}()
-
-						<-readyToAcquire
-					}
-
-					return true, nil
-				}
-			})
-
-			It("only acquires one of the locks", func() {
-				_, acquired, err := fakeLockFactory.Acquire(logger, lock.LockID{57})
-				Expect(err).NotTo(HaveOccurred())
-				Expect(acquired).To(BeTrue())
-
-				<-acquiredLock2
-
-				Expect(lock2Err).NotTo(HaveOccurred())
-				Expect(lock2Acquired).To(BeFalse())
-			})
-
-			Context("when locks are being created on different lock factory (different db conn)", func() {
-				var fakeLockFactory2 lock.LockFactory
-
-				BeforeEach(func() {
-					fakeLockFactory2 = lock.NewTestLockFactory(fakeLockDB)
-
-					called := false
-					readyToAcquire := make(chan struct{})
-
-					fakeLockDB.AcquireStub = func(id lock.LockID) (bool, error) {
-						if !called {
-							called = true
-
-							go func() {
-								close(readyToAcquire)
-								_, lock2Acquired, lock2Err = fakeLockFactory2.Acquire(logger, id)
-								close(acquiredLock2)
-							}()
-
-							<-readyToAcquire
-						}
-
-						return true, nil
-					}
-				})
-
-				It("allows to acquire both locks", func() {
-					_, acquired, err := fakeLockFactory.Acquire(logger, lock.LockID{57})
-					Expect(err).NotTo(HaveOccurred())
-					Expect(acquired).To(BeTrue())
-
-					<-acquiredLock2
-
-					Expect(lock2Err).NotTo(HaveOccurred())
-					Expect(lock2Acquired).To(BeTrue())
-				})
 			})
 		})
 	})
