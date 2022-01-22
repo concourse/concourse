@@ -61,11 +61,7 @@ func (c *component) IntervalElapsed() bool {
 	if c.Interval() >= 10 * time.Second {
 		threshold = 2 * time.Second
 	}
-	diff := time.Now().Sub(c.lastRan)
-	if diff < 0 {
-		diff = -diff
-	}
-	return diff < threshold
+	return c.lastRan.Add(c.Interval()).Before(time.Now().Add(threshold))
 }
 
 func (c *component) UpdateLastRan() error {
