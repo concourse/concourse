@@ -7,7 +7,6 @@ import (
 	"hash/crc32"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -89,7 +88,7 @@ func NewLockFactory(
 	for i := 0; i < CountOfLockTypes; i ++ {
 		dbs[i] = &lockDB{
 			conn:  conn,
-			mutex: &sync.Mutex{},
+			//mutex: &sync.Mutex{},
 		}
 		locks[i] = &lockRepo{
 			//locks: map[string]bool{},
@@ -233,12 +232,12 @@ func (l *lock) Release() error {
 
 type lockDB struct {
 	conn  *sql.DB
-	mutex *sync.Mutex
+	//mutex *sync.Mutex
 }
 
 func (db *lockDB) Acquire(logger lager.Logger, id LockID) (bool, error) {
-	db.mutex.Lock()
-	defer db.mutex.Unlock()
+	//db.mutex.Lock()
+	//defer db.mutex.Unlock()
 
 	start := time.Now()
 
@@ -256,8 +255,8 @@ func (db *lockDB) Acquire(logger lager.Logger, id LockID) (bool, error) {
 }
 
 func (db *lockDB) Release(logger lager.Logger, id LockID) (bool, error) {
-	db.mutex.Lock()
-	defer db.mutex.Unlock()
+	//db.mutex.Lock()
+	//defer db.mutex.Unlock()
 
 	start := time.Now()
 
