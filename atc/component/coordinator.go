@@ -1,6 +1,7 @@
 package component
 
 import (
+	"code.cloudfoundry.org/lager"
 	"context"
 
 	"code.cloudfoundry.org/lager/lagerctx"
@@ -23,7 +24,7 @@ func (coordinator *Coordinator) RunImmediately(ctx context.Context) {
 }
 
 func (coordinator *Coordinator) run(ctx context.Context, immediate bool) bool {
-	logger := lagerctx.FromContext(ctx)
+	logger := lagerctx.FromContext(ctx).WithData(lager.Data{"name": coordinator.Component.Name()})
 
 	lockID := lock.NewTaskLockID(coordinator.Component.Name())
 

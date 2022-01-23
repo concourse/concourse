@@ -77,24 +77,26 @@ type lockFactory struct {
 type LogFunc func(logger lager.Logger, id LockID)
 
 func NewLockFactory(
-	conn *sql.DB,
+	conn [CountOfLockTypes]*sql.DB,
 	acquire LogFunc,
 	release LogFunc,
+	maxTrackingBuilds int,
+	maxCheckingResourceScopes int,
 ) LockFactory {
 	dbs := [CountOfLockTypes]LockDB{}
 	locks := [CountOfLockTypes]LockRepo{}
 	for i := 0; i < CountOfLockTypes; i++ {
 		dbs[i] = &lockDB{
-			conn:  conn,
+			conn:  conn[i],
 			mutex: &sync.Mutex{},
 		}
 
 		capacity := 0
 		switch i {
 		case LockTypeResourceConfigChecking:
-			capacity = 500
+			capacity = maxCheckingResourceScopes
 		case LockTypeBuildTracking:
-			capacity = 500
+			capacity = maxTrackingBuilds
 		}
 		locks[i] = newLockRepo(capacity)
 	}

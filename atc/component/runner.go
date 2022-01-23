@@ -2,6 +2,7 @@ package component
 
 import (
 	"context"
+	"math/rand"
 	"os"
 	"time"
 
@@ -29,6 +30,7 @@ type Schedulable interface {
 type Runner struct {
 	Logger lager.Logger
 
+	ActCount  int
 	Interval  time.Duration
 	Component Component
 	Bus       NotificationsBus
@@ -57,7 +59,8 @@ func (scheduler *Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 
 	interval := scheduler.Interval
 	for {
-		timer := Clock.NewTimer(interval)
+		drift := time.Duration(250-rand.Int()%500) * time.Millisecond
+		timer := Clock.NewTimer(interval + drift)
 
 		select {
 		case <-notifier:
@@ -69,10 +72,10 @@ func (scheduler *Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 			runCtx := lagerctx.NewContext(ctx, scheduler.Logger.Session("tick"))
 			hasRun := scheduler.Schedulable.RunPeriodically(runCtx)
 			if hasRun {
-				interval = scheduler.Interval * 2
+				interval = scheduler.Interval + time.Duration(scheduler.ActCount) * time.Second
 			} else {
-				if interval > time.Second*2 {
-					interval -= time.Second
+				if interval > scheduler.Interval {
+					interval -= 1
 				}
 			}
 

@@ -254,6 +254,10 @@ type RunCommand struct {
 	} `group:"Feature Flags"`
 
 	BaseResourceTypeDefaults flag.File `long:"base-resource-type-defaults" description:"Base resource type defaults"`
+
+	AtcCount                  int `long:"atc-count" description:"Count of ATCs. This will help coordinate components." default:"1"`
+	MaxTrackingBuilds         int `long:"max-tracking-builds" description:"Max builds running per ATC" default:"0"`
+	MaxCheckingResourceScopes int `long:"max-checking-resource-scopes" description:"Max builds running per ATC" default:"0"`
 }
 
 type Migration struct {
@@ -534,12 +538,12 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		return nil, err
 	}
 
-	lockConn, err := cmd.constructLockConn(retryingDriverName)
+	lockConns, err := cmd.constructLockConn(retryingDriverName)
 	if err != nil {
 		return nil, err
 	}
 
-	lockFactory := lock.NewLockFactory(lockConn, metric.LogLockAcquired, metric.LogLockReleased)
+	lockFactory := lock.NewLockFactory(lockConns, metric.LogLockAcquired, metric.LogLockReleased, cmd.MaxTrackingBuilds, cmd.MaxCheckingResourceScopes)
 
 	apiConn, err := cmd.constructDBConn(retryingDriverName, logger, cmd.APIMaxOpenConnections, "api", lockFactory)
 	if err != nil {
@@ -602,7 +606,10 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	}
 
 	onExit := func() {
-		for _, closer := range []Closer{lockConn, apiConn, backendConn, gcConn, storage} {
+		for _, closer := range []Closer{apiConn, backendConn, gcConn, storage} {
+			closer.Close()
+		}
+		for _, closer := range lockConns {
 			closer.Close()
 		}
 
@@ -1576,17 +1583,22 @@ type Closer interface {
 	Close() error
 }
 
-func (cmd *RunCommand) constructLockConn(driverName string) (*sql.DB, error) {
-	dbConn, err := sql.Open(driverName, cmd.Postgres.ConnectionString())
-	if err != nil {
-		return nil, err
+func (cmd *RunCommand) constructLockConn(driverName string) ([lock.CountOfLockTypes]*sql.DB, error) {
+	dbConns := [lock.CountOfLockTypes]*sql.DB{}
+	for i := 0; i < lock.CountOfLockTypes; i++ {
+		dbConn, err := sql.Open(driverName, cmd.Postgres.ConnectionString())
+		if err != nil {
+			return dbConns, err
+		}
+
+		dbConn.SetMaxOpenConns(1)
+		dbConn.SetMaxIdleConns(1)
+		dbConn.SetConnMaxLifetime(0)
+
+		dbConns[i] = dbConn
 	}
 
-	dbConn.SetMaxOpenConns(1)
-	dbConn.SetMaxIdleConns(1)
-	dbConn.SetConnMaxLifetime(0)
-
-	return dbConn, nil
+	return dbConns, nil
 }
 
 func (cmd *RunCommand) chooseBuildContainerStrategy() (worker.ContainerPlacementStrategy, error) {

@@ -57,8 +57,15 @@ func (c *component) Reload() (bool, error) {
 	return true, nil
 }
 
+// IntervalElapsed has a tiny threshold to allow a component to be scheduled
+// a little easier than interval reached, so that a component get more chance
+// to run.
 func (c *component) IntervalElapsed() bool {
-	return time.Now().After(c.lastRan.Add(c.interval))
+	threshold := 500 * time.Millisecond
+	if c.Interval() >= 10 * time.Second {
+		threshold = 2 * time.Second
+	}
+	return c.lastRan.Add(c.Interval()).Before(time.Now().Add(threshold))
 }
 
 func (c *component) UpdateLastRan() error {
