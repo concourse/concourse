@@ -69,6 +69,7 @@ type LockFactory interface {
 type lockFactory struct {
 	db    [CountOfLockTypes]LockDB
 	locks [CountOfLockTypes]LockRepo
+	mutex [CountOfLockTypes]Mutex
 
 	acquireFunc LogFunc
 	releaseFunc LogFunc
@@ -85,6 +86,7 @@ func NewLockFactory(
 ) LockFactory {
 	dbs := [CountOfLockTypes]LockDB{}
 	locks := [CountOfLockTypes]LockRepo{}
+	mutex := [CountOfLockTypes]Mutex{}
 	for i := 0; i < CountOfLockTypes; i++ {
 		dbs[i] = &lockDB{
 			conn:  conn[i],
@@ -99,6 +101,12 @@ func NewLockFactory(
 			capacity = maxTrackingBuilds
 		}
 		locks[i] = newLockRepo(capacity)
+
+		if capacity == 0 {
+			mutex[i] = noopMutex{}
+		} else {
+			mutex[i] = &sync.Mutex{}
+		}
 	}
 
 	return &lockFactory{
@@ -106,6 +114,7 @@ func NewLockFactory(
 		acquireFunc: acquire,
 		releaseFunc: release,
 		locks:       locks,
+		mutex:       mutex,
 	}
 }
 
@@ -126,12 +135,13 @@ func NewTestLockFactory(dbs [CountOfLockTypes]LockDB) LockFactory {
 func (f *lockFactory) Acquire(logger lager.Logger, id LockID) (Lock, bool, error) {
 	lockType := id[0]
 	l := &lock{
-		logger:   logger,
-		db:       f.db[lockType],
-		id:       id,
-		locks:    f.locks[lockType],
-		acquired: f.acquireFunc,
-		released: f.releaseFunc,
+		logger:       logger,
+		db:           f.db[lockType],
+		id:           id,
+		locks:        f.locks[lockType],
+		acquireMutex: f.mutex[lockType],
+		acquired:     f.acquireFunc,
+		released:     f.releaseFunc,
 	}
 
 	acquired, err := l.Acquire()
@@ -165,13 +175,16 @@ type lock struct {
 	logger       lager.Logger
 	db           LockDB
 	locks        LockRepo
-	acquireMutex *sync.Mutex
+	acquireMutex Mutex
 
 	acquired LogFunc
 	released LogFunc
 }
 
 func (l *lock) Acquire() (bool, error) {
+	l.acquireMutex.Lock()
+	defer l.acquireMutex.Unlock()
+
 	logger := l.logger.Session("acquire", lager.Data{"id": l.id})
 
 	if l.locks.IsRegistered(l.id) {
@@ -323,4 +336,17 @@ func (l LockID) toDBArgs() []interface{} {
 
 func lockIDFromString(taskName string) int {
 	return int(int32(crc32.ChecksumIEEE([]byte(taskName))))
+}
+
+type Mutex interface {
+	Lock()
+	Unlock()
+}
+
+type noopMutex struct{}
+
+func (m noopMutex) Lock() {
+}
+
+func (m noopMutex) Unlock() {
 }
