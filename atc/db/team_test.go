@@ -2008,6 +2008,8 @@ var _ = Describe("Team", func() {
 			Expect(resource.Source()).To(Equal(atc.Source{
 				"source-other-config": "some-other-value",
 			}))
+			Expect(resource.ResourceConfigID()).To(BeZero())
+			Expect(resource.ResourceConfigScopeID()).To(BeZero())
 		})
 
 		It("clears out api pinned version when resaving a pinned version on the pipeline config", func() {
@@ -2509,7 +2511,7 @@ var _ = Describe("Team", func() {
 				Expect(err).To(HaveOccurred())
 			})
 
-			Context("when new resource exists but is disabled", func() {
+			Context("when resource is renamed but has a disabled version", func() {
 				var scenario *dbtest.Scenario
 				var resource db.Resource
 
@@ -2530,7 +2532,7 @@ var _ = Describe("Team", func() {
 					resource = scenario.Resource("some-resource")
 				})
 
-				It("should not change the disabled version", func() {
+				It("the disabled version should still be in the resource's version history", func() {
 					config.Resources[0].Name = "disabled-resource"
 					config.Resources[0].OldName = "some-resource"
 					config.Jobs[0].PlanSequence = []atc.Step{
@@ -2549,6 +2551,8 @@ var _ = Describe("Team", func() {
 
 					scenario.Run(
 						builder.WithPipeline(config),
+						// Imitate a check run that found no new versions
+						builder.WithResourceVersions("disabled-resource"),
 					)
 
 					updatedResource := scenario.Resource("disabled-resource")

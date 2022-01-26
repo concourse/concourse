@@ -563,18 +563,6 @@ func savePipeline(
 		return 0, false, err
 	}
 
-	_, err = psql.Update("resources").
-		Set("resource_config_id", nil).
-		Where(sq.Eq{
-			"pipeline_id": pipelineID,
-			"active":      false,
-		}).
-		RunWith(tx).
-		Exec()
-	if err != nil {
-		return 0, false, err
-	}
-
 	err = saveResourceTypes(tx, config.ResourceTypes, pipelineID)
 	if err != nil {
 		return 0, false, err
@@ -1258,7 +1246,7 @@ func saveResource(tx Tx, resource atc.ResourceConfig, pipelineID int) (int, erro
 	err = psql.Insert("resources").
 		Columns("name", "pipeline_id", "config", "active", "nonce", "type").
 		Values(resource.Name, pipelineID, encryptedPayload, true, nonce, resource.Type).
-		Suffix("ON CONFLICT (name, pipeline_id) DO UPDATE SET config = EXCLUDED.config, active = EXCLUDED.active, nonce = EXCLUDED.nonce, type = EXCLUDED.type").
+		Suffix("ON CONFLICT (name, pipeline_id) DO UPDATE SET config = EXCLUDED.config, active = EXCLUDED.active, nonce = EXCLUDED.nonce, type = EXCLUDED.type, resource_config_id = NULL, resource_config_scope_id = NULL").
 		Suffix("RETURNING id").
 		RunWith(tx).
 		QueryRow().
