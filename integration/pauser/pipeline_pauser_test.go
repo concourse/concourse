@@ -18,23 +18,8 @@ func TestPipelinePauser(t *testing.T) {
 	fly := flytest.Init(t, pastDc)
 	t.Run("set and run test pipeline", func(t *testing.T) {
 		fly.Run(t, "set-pipeline", "-p", "pauser-test", "-c", "pipelines/one-job.yml", "-n")
-		stopUnpausing := make(chan int)
-		go func() {
-			// sometimes the pipeline pauser pauses the pipeline even after we
-			// unpaused it. This workaround persistently unpauses the pipeline
-			// until the job is done running
-			for {
-				select {
-				case <-stopUnpausing:
-					return
-				default:
-					fly.Run(t, "unpause-pipeline", "-p", "pauser-test")
-					time.Sleep(10 * time.Second)
-				}
-			}
-		}()
+		fly.Run(t, "unpause-pipeline", "-p", "pauser-test")
 		fly.Run(t, "trigger-job", "-j", "pauser-test/one-job", "-w")
-		close(stopUnpausing)
 	})
 
 	presentDc := dctest.Init(t, "../docker-compose.yml", "overrides/pauser-config.yml", "overrides/short-pauser-interval.yml")

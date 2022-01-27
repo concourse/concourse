@@ -33,6 +33,9 @@ func (p *pipelinePauser) PausePipelines(ctx context.Context, daysSinceLastBuild 
 		sq.Eq{
 			"p.paused": false,
 		},
+		// subquery returns a list of pipelines who jobs ran WITHIN the range.
+		// These are the pipelines that SHOULD NOT be paused which we use to
+		// build our list of pipelines that SHOULD be paused
 		sq.Expr(`p.id NOT IN (SELECT j.pipeline_id FROM jobs j
 							LEFT JOIN builds b ON j.latest_completed_build_id = b.id
 							WHERE j.pipeline_id = p.id AND j.active = true
@@ -40,6 +43,9 @@ func (p *pipelinePauser) PausePipelines(ctx context.Context, daysSinceLastBuild 
 								b.end_time > CURRENT_DATE - ?::INTERVAL
 							))`,
 			strconv.Itoa(daysSinceLastBuild)+" day"),
+		// Covers edge case where pipelines that were just set could be paused automatically
+		// Only pauses the pipeline if it was last updated more than 24hrs ago
+		sq.Expr(`p.last_updated < CURRENT_DATE - '1 day'::INTERVAL`),
 	}).RunWith(p.conn).Query()
 
 	if err != nil {
