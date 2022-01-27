@@ -417,7 +417,7 @@ initAcrossWithDo =
                         [ [ JsonString "v1" ] ]
                         << Array.fromList
                      <|
-                        [ Models.Do <|
+                        [ Models.Do "do-id" <|
                             Array.fromList
                                 [ Models.Task "task-a-id"
                                 , Models.Task "task-b-id"
@@ -429,6 +429,7 @@ initAcrossWithDo =
             \_ ->
                 assertSteps
                     [ someStep "across-id" across Models.StepStatePending
+                    , someExpandedStep "do-id" do Models.StepStatePending
                     , someStep "task-a-id" (task "a") Models.StepStatePending
                     , someStep "task-b-id" (task "b") Models.StepStatePending
                     ]

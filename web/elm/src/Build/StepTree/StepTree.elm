@@ -112,7 +112,9 @@ init buildId hl resources plan =
             initMultiStep buildId hl resources plan.id InParallel plans Nothing
 
         Concourse.BuildStepDo plans ->
-            initMultiStep buildId hl resources plan.id Do plans Nothing
+            step
+                |> Just
+                |> initMultiStep buildId hl resources plan.id (Do plan.id) plans
 
         Concourse.BuildStepAcross { vars, steps } ->
             let
@@ -172,6 +174,10 @@ init buildId hl resources plan =
 
         Concourse.BuildStepTimeout subPlan ->
             initWrappedStep buildId hl resources Timeout subPlan
+
+
+
+-- |> setImagePlans buildId step.id imagePlans
 
 
 setImagePlans : Maybe Concourse.JobBuildIdentifier -> StepID -> Maybe Concourse.ImageBuildPlans -> StepTreeModel -> StepTreeModel
@@ -661,9 +667,22 @@ viewTree session model tree depth =
             Html.div [ class "parallel" ]
                 (Array.toList <| Array.map (viewSeq session model depth) trees)
 
-        Do trees ->
+        Do stepId trees ->
             Html.div [ class "do" ]
-                (Array.toList <| Array.map (viewSeq session model depth) trees)
+                ((case Dict.get stepId model.steps of
+                    Nothing ->
+                        Html.text ""
+
+                    Just step ->
+                        case step.error of
+                            Nothing ->
+                                Html.span [] []
+
+                            Just msg ->
+                                Html.span [ class "error" ] [ Html.pre [ style "margin-top" "0px" ] [ Html.text msg ] ]
+                 )
+                    :: (Array.toList <| Array.map (viewSeq session model depth) trees)
+                )
 
         OnSuccess { step, hook } ->
             viewHooked session "success" model depth step hook

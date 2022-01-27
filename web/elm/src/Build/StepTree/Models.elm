@@ -57,7 +57,7 @@ type StepTree
     | InParallel (Array StepTree)
     | Across StepID (List String) (List (List Concourse.JsonValue)) (Array StepTree)
     | Retry StepID (Array StepTree)
-    | Do (Array StepTree)
+    | Do StepID (Array StepTree)
     | OnSuccess HookedStep
     | OnFailure HookedStep
     | OnAbort HookedStep
@@ -283,8 +283,8 @@ activeStepIds model tree =
         InParallel trees ->
             List.concatMap (activeStepIds model) (Array.toList trees)
 
-        Do trees ->
-            List.concatMap (activeStepIds model) (Array.toList trees)
+        Do stepId trees ->
+            stepId :: List.concatMap (activeStepIds model) (Array.toList trees)
 
         Across _ _ _ trees ->
             List.concatMap (activeStepIds model) (Array.toList trees)
@@ -358,8 +358,8 @@ updateTreeNodeAt id fn tree =
         InParallel trees ->
             InParallel <| Array.map (updateTreeNodeAt id fn) trees
 
-        Do trees ->
-            Do <| Array.map (updateTreeNodeAt id fn) trees
+        Do stepId trees ->
+            Do stepId <| Array.map (updateTreeNodeAt id fn) trees
 
         Across stepId vars vals trees ->
             let

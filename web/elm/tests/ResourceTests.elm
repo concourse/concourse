@@ -2866,6 +2866,8 @@ all =
                     ]
                 , test "when check is created, fetches resource" <|
                     \_ ->
+                      let build = Data.build BuildStatusPending
+                      in
                         init
                             |> givenResourceIsNotPinned
                             |> givenUserIsAuthorized
@@ -2880,7 +2882,11 @@ all =
                                         Data.build Concourse.BuildStatus.BuildStatusStarted
                                 )
                             |> Tuple.second
-                            |> Expect.equal [ Effects.FetchResource Data.resourceId ]
+                            |> Expect.equal [
+                                Effects.FetchResource Data.resourceId,
+                                Effects.CloseBuildEventStream,
+                                Effects.FetchBuildPlan build.id
+                              ]
                 , test "when check returns 401, redirects to login" <|
                     \_ ->
                         init
