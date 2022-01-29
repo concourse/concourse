@@ -256,7 +256,7 @@ var _ = Describe("Workers API", func() {
 
 					BeforeEach(func() {
 						foundTeam = new(dbfakes.FakeTeam)
-						dbTeamFactory.FindTeamReturns(foundTeam, true, nil)
+						dbWorkerTeamFactory.FindTeamReturns(foundTeam, true, nil)
 					})
 
 					It("saves team name in db", func() {
@@ -286,7 +286,7 @@ var _ = Describe("Workers API", func() {
 
 				Context("when specified team does not exist", func() {
 					BeforeEach(func() {
-						dbTeamFactory.FindTeamReturns(nil, false, nil)
+						dbWorkerTeamFactory.FindTeamReturns(nil, false, nil)
 					})
 
 					It("returns 400", func() {
