@@ -43,7 +43,7 @@ require (
 	github.com/influxdata/influxdb1-client v0.0.0-20191209144304-8bf82d3c094d
 	github.com/jackpal/gateway v1.0.7
 	github.com/jessevdk/go-flags v1.4.1-0.20200711081900-c17162fe8fd7
-	github.com/klauspost/compress v1.14.1
+	github.com/klauspost/compress v1.14.2
 	github.com/kr/pty v1.1.8
 	github.com/krishicks/yaml-patch v0.0.10
 	github.com/lib/pq v1.10.4
