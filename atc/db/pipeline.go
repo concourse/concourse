@@ -480,7 +480,7 @@ func (p *pipeline) resource(where map[string]interface{}) (Resource, bool, error
 
 func (p *pipeline) Builds(page Page) ([]BuildForAPI, Pagination, error) {
 	return getBuildsWithPagination(
-		buildsQuery.Where(sq.Eq{"b.pipeline_id": p.id}), minMaxIdQuery, page, p.conn, p.lockFactory)
+		buildsQuery.Where(sq.Eq{"b.pipeline_id": p.id}), minMaxIdQuery, page, p.conn, p.lockFactory, false)
 }
 
 func (p *pipeline) BuildsWithTime(page Page) ([]BuildForAPI, Pagination, error) {

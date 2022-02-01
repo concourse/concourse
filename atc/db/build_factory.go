@@ -164,7 +164,7 @@ func (f *buildFactory) VisibleBuilds(teamNames []string, page Page) ([]BuildForA
 			f.lockFactory)
 	}
 	return getBuildsWithPagination(newBuildsQuery, minMaxIdQuery, page, f.conn,
-		f.lockFactory)
+		f.lockFactory, false)
 }
 
 func (f *buildFactory) AllBuilds(page Page) ([]BuildForAPI, Pagination, error) {
@@ -173,13 +173,13 @@ func (f *buildFactory) AllBuilds(page Page) ([]BuildForAPI, Pagination, error) {
 			f.lockFactory)
 	}
 	return getBuildsWithPagination(buildsQuery, minMaxIdQuery,
-		page, f.conn, f.lockFactory)
+		page, f.conn, f.lockFactory, false)
 }
 
 func (f *buildFactory) PublicBuilds(page Page) ([]BuildForAPI, Pagination, error) {
 	return getBuildsWithPagination(
 		buildsQuery.Where(sq.Eq{"p.public": true}), minMaxIdQuery,
-		page, f.conn, f.lockFactory)
+		page, f.conn, f.lockFactory, false)
 }
 
 func (f *buildFactory) MarkNonInterceptibleBuilds() error {
@@ -356,10 +356,10 @@ func getBuildsWithDates(buildsQuery, minMaxIdQuery sq.SelectBuilder, page Page, 
 		return nil, Pagination{}, err
 	}
 
-	return getBuildsWithPagination(buildsQuery, minMaxIdQuery, newPage, conn, lockFactory)
+	return getBuildsWithPagination(buildsQuery, minMaxIdQuery, newPage, conn, lockFactory, false)
 }
 
-func getBuildsWithPagination(buildsQuery, minMaxIdQuery sq.SelectBuilder, page Page, conn Conn, lockFactory lock.LockFactory) ([]BuildForAPI, Pagination, error) {
+func getBuildsWithPagination(buildsQuery, minMaxIdQuery sq.SelectBuilder, page Page, conn Conn, lockFactory lock.LockFactory, chronological bool) ([]BuildForAPI, Pagination, error) {
 	var (
 		rows    *sql.Rows
 		err     error
@@ -377,18 +377,25 @@ func getBuildsWithPagination(buildsQuery, minMaxIdQuery sq.SelectBuilder, page P
 
 	buildsQuery = buildsQuery.Limit(uint64(page.Limit))
 
+	desc := "COALESCE(b.rerun_of, b.id) DESC, b.id DESC"
+	asc := "COALESCE(b.rerun_of, b.id) ASC, b.id ASC"
+	if chronological {
+		desc = "b.id DESC"
+		asc = "b.id ASC"
+	}
+
 	if page.From == nil && page.To == nil { // none
 		buildsQuery = buildsQuery.
-			OrderBy("COALESCE(b.rerun_of, b.id) DESC, b.id DESC")
+			OrderBy(desc)
 	} else if page.From != nil && page.To == nil { // only from
 		buildsQuery = buildsQuery.
 			Where(sq.GtOrEq{"b.id": uint64(*page.From)}).
-			OrderBy("COALESCE(b.rerun_of, b.id) ASC, b.id ASC")
+			OrderBy(asc)
 		reverse = true
 	} else if page.From == nil && page.To != nil { // only to
 		buildsQuery = buildsQuery.
 			Where(sq.LtOrEq{"b.id": uint64(*page.To)}).
-			OrderBy("COALESCE(b.rerun_of, b.id) DESC, b.id DESC")
+			OrderBy(desc)
 	} else if page.From != nil && page.To != nil { // both
 		if *page.From > *page.To {
 			return nil, Pagination{}, fmt.Errorf("invalid range boundaries")
@@ -399,7 +406,7 @@ func getBuildsWithPagination(buildsQuery, minMaxIdQuery sq.SelectBuilder, page P
 				sq.GtOrEq{"b.id": uint64(*page.From)},
 				sq.LtOrEq{"b.id": uint64(*page.To)},
 			}).
-			OrderBy("COALESCE(b.rerun_of, b.id) ASC, b.id ASC")
+			OrderBy(asc)
 	}
 
 	rows, err = buildsQuery.RunWith(tx).Query()

@@ -86,6 +86,7 @@ type Job interface {
 	RequestSchedule() error
 	UpdateLastScheduled(time.Time) error
 
+	ChronoBuilds(page Page) ([]BuildForAPI, Pagination, error)
 	Builds(page Page) ([]BuildForAPI, Pagination, error)
 	BuildsWithTime(page Page) ([]BuildForAPI, Pagination, error)
 	Build(name string) (Build, bool, error)
@@ -556,7 +557,19 @@ func (j *job) Builds(page Page) ([]BuildForAPI, Pagination, error) {
 			"j.pipeline_id": j.pipelineID,
 		})
 
-	return getBuildsWithPagination(newBuildsQuery, newMinMaxIdQuery, page, j.conn, j.lockFactory)
+	return getBuildsWithPagination(newBuildsQuery, newMinMaxIdQuery, page, j.conn, j.lockFactory, false)
+}
+
+func (j *job) ChronoBuilds(page Page) ([]BuildForAPI, Pagination, error) {
+	newBuildsQuery := buildsQuery.Where(sq.Eq{"j.id": j.id})
+	newMinMaxIdQuery := minMaxIdQuery.
+		Join("jobs j ON b.job_id = j.id").
+		Where(sq.Eq{
+			"j.name":        j.name,
+			"j.pipeline_id": j.pipelineID,
+		})
+
+	return getBuildsWithPagination(newBuildsQuery, newMinMaxIdQuery, page, j.conn, j.lockFactory, true)
 }
 
 func (j *job) Build(name string) (Build, bool, error) {

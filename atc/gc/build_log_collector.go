@@ -98,7 +98,7 @@ func (br *buildLogCollector) reapLogsOfJob(pipeline db.Pipeline,
 	limit := br.batchSize
 	page := &db.Page{From: &from, Limit: limit}
 	for page != nil {
-		builds, pagination, err := job.Builds(*page)
+		builds, pagination, err := job.ChronoBuilds(*page)
 		if err != nil {
 			logger.Error("failed-to-get-job-builds-to-delete", err)
 			return err

@@ -918,7 +918,7 @@ func (t *team) PrivateAndPublicBuilds(page Page) ([]BuildForAPI, Pagination, err
 	newBuildsQuery := buildsQuery.
 		Where(sq.Or{sq.Eq{"p.public": true}, sq.Eq{"t.id": t.id}})
 
-	return getBuildsWithPagination(newBuildsQuery, minMaxIdQuery, page, t.conn, t.lockFactory)
+	return getBuildsWithPagination(newBuildsQuery, minMaxIdQuery, page, t.conn, t.lockFactory, false)
 }
 
 func (t *team) BuildsWithTime(page Page) ([]BuildForAPI, Pagination, error) {
@@ -926,7 +926,7 @@ func (t *team) BuildsWithTime(page Page) ([]BuildForAPI, Pagination, error) {
 }
 
 func (t *team) Builds(page Page) ([]BuildForAPI, Pagination, error) {
-	return getBuildsWithPagination(buildsQuery.Where(sq.Eq{"t.id": t.id}), minMaxIdQuery, page, t.conn, t.lockFactory)
+	return getBuildsWithPagination(buildsQuery.Where(sq.Eq{"t.id": t.id}), minMaxIdQuery, page, t.conn, t.lockFactory, false)
 }
 
 func (t *team) SaveWorker(atcWorker atc.Worker, ttl time.Duration) (Worker, error) {
