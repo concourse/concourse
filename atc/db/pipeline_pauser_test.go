@@ -91,7 +91,6 @@ var _ = Describe("PipelinePauser", func() {
 					jobTwo, found, err := twoJobPipeline.Job("job-two")
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
-					jobTwo.CreateBuild(defaultBuildCreatedBy)
 					b2, err := jobTwo.CreateBuild(defaultBuildCreatedBy)
 					Expect(err).NotTo(HaveOccurred())
 					b2.Finish(db.BuildStatusSucceeded)
@@ -121,6 +120,7 @@ var _ = Describe("PipelinePauser", func() {
 				b1.Finish(db.BuildStatusSucceeded)
 				_, err = dbConn.Exec(`UPDATE builds SET end_time = NOW() - INTERVAL '20' DAY WHERE id = $1`, b1.ID())
 				Expect(err).NotTo(HaveOccurred())
+
 				By("running the pipeline pauser")
 				err = pauser.PausePipelines(context.TODO(), 10)
 				Expect(err).NotTo(HaveOccurred())
@@ -220,6 +220,36 @@ var _ = Describe("PipelinePauser", func() {
 			_, err = newPipeline.Reload()
 			Expect(err).To(BeNil())
 			Expect(newPipeline.Paused()).To(BeFalse(), "pipeline should NOT be paused")
+		})
+	})
+	Describe("pipeline with a build currently running", func() {
+		It("should not be paused", func() {
+			By("using the default pipeline with one job")
+			Expect(defaultPipeline.Paused()).To(BeFalse(), "pipeline should start unpaused")
+			By("making it look like the pipeline was updated 5 days ago")
+			_, err = dbConn.Exec(`UPDATE pipelines SET last_updated = NOW() - INTERVAL '5' DAY WHERE id = $1`, defaultPipeline.ID())
+			Expect(err).NotTo(HaveOccurred())
+
+			By("creating a build that ran 11 days ago")
+			b1, err := defaultJob.CreateBuild(defaultBuildCreatedBy)
+			Expect(err).NotTo(HaveOccurred())
+			b1.Finish(db.BuildStatusSucceeded)
+			_, err = dbConn.Exec(`UPDATE builds SET end_time = NOW() - INTERVAL '11' DAY WHERE id = $1`, b1.ID())
+			Expect(err).NotTo(HaveOccurred())
+
+			By("creating a build that's currently running")
+			b2, err := defaultJob.CreateBuild(defaultBuildCreatedBy)
+			Expect(err).NotTo(HaveOccurred())
+			b2.Reload()
+			Expect(b2.IsRunning()).To(Equal(true))
+
+			By("running the pipeline pauser")
+			err = pauser.PausePipelines(context.TODO(), 10)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = defaultPipeline.Reload()
+			Expect(err).To(BeNil())
+			Expect(defaultPipeline.Paused()).To(BeFalse(), "pipeline should not be paused")
 		})
 	})
 })
