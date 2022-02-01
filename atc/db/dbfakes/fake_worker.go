@@ -163,9 +163,10 @@ type FakeWorker struct {
 	hTTPSProxyURLReturnsOnCall map[int]struct {
 		result1 string
 	}
-	IncreaseActiveTasksStub        func() (int, error)
+	IncreaseActiveTasksStub        func(int) (int, error)
 	increaseActiveTasksMutex       sync.RWMutex
 	increaseActiveTasksArgsForCall []struct {
+		arg1 int
 	}
 	increaseActiveTasksReturns struct {
 		result1 int
@@ -1109,17 +1110,18 @@ func (fake *FakeWorker) HTTPSProxyURLReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
-func (fake *FakeWorker) IncreaseActiveTasks() (int, error) {
+func (fake *FakeWorker) IncreaseActiveTasks(arg1 int) (int, error) {
 	fake.increaseActiveTasksMutex.Lock()
 	ret, specificReturn := fake.increaseActiveTasksReturnsOnCall[len(fake.increaseActiveTasksArgsForCall)]
 	fake.increaseActiveTasksArgsForCall = append(fake.increaseActiveTasksArgsForCall, struct {
-	}{})
+		arg1 int
+	}{arg1})
 	stub := fake.IncreaseActiveTasksStub
 	fakeReturns := fake.increaseActiveTasksReturns
-	fake.recordInvocation("IncreaseActiveTasks", []interface{}{})
+	fake.recordInvocation("IncreaseActiveTasks", []interface{}{arg1})
 	fake.increaseActiveTasksMutex.Unlock()
 	if stub != nil {
-		return stub()
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -1133,10 +1135,17 @@ func (fake *FakeWorker) IncreaseActiveTasksCallCount() int {
 	return len(fake.increaseActiveTasksArgsForCall)
 }
 
-func (fake *FakeWorker) IncreaseActiveTasksCalls(stub func() (int, error)) {
+func (fake *FakeWorker) IncreaseActiveTasksCalls(stub func(int) (int, error)) {
 	fake.increaseActiveTasksMutex.Lock()
 	defer fake.increaseActiveTasksMutex.Unlock()
 	fake.IncreaseActiveTasksStub = stub
+}
+
+func (fake *FakeWorker) IncreaseActiveTasksArgsForCall(i int) int {
+	fake.increaseActiveTasksMutex.RLock()
+	defer fake.increaseActiveTasksMutex.RUnlock()
+	argsForCall := fake.increaseActiveTasksArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeWorker) IncreaseActiveTasksReturns(result1 int, result2 error) {

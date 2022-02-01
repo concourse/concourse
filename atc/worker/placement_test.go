@@ -365,7 +365,7 @@ var _ = Describe("Container Placement Strategies", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			err = strategy.Approve(logger, workers[0], spec)
-			Expect(err).To(MatchError(worker.ErrTooManyActiveTasks))
+			Expect(err).To(MatchError(db.ErrTooManyActiveTasks))
 
 			By("validating the limit only applies to task containers", func() {
 				spec.Type = db.ContainerTypeCheck

@@ -20,9 +20,8 @@ type PlacementOptions struct {
 }
 
 var (
-	ErrTooManyActiveTasks = errors.New("worker has too many active tasks")
-	ErrTooManyContainers  = errors.New("worker has too many containers")
-	ErrTooManyVolumes     = errors.New("worker has too many volumes")
+	ErrTooManyContainers = errors.New("worker has too many containers")
+	ErrTooManyVolumes    = errors.New("worker has too many volumes")
 )
 
 func NewPlacementStrategy(options PlacementOptions) (PlacementStrategy, error) {
@@ -281,25 +280,13 @@ func (strategy limitActiveTasksStrategy) Order(logger lager.Logger, pool Pool, w
 }
 
 func (strategy limitActiveTasksStrategy) Approve(logger lager.Logger, worker db.Worker, spec runtime.ContainerSpec) error {
-	if spec.Type != db.ContainerTypeTask {
+	if spec.Type != db.ContainerTypeTask || strategy.MaxTasks == 0 {
 		return nil
 	}
 
-	activeTasks, err := worker.IncreaseActiveTasks()
-	if err != nil {
-		return err
-	}
+	_, err := worker.IncreaseActiveTasks(strategy.MaxTasks)
 
-	if strategy.MaxTasks > 0 && activeTasks > strategy.MaxTasks {
-		_, err := worker.DecreaseActiveTasks()
-		if err != nil {
-			logger.Error("failed-to-decrease-active-tasks", err)
-		}
-
-		return ErrTooManyActiveTasks
-	}
-
-	return nil
+	return err
 }
 
 func (strategy limitActiveTasksStrategy) Release(logger lager.Logger, worker db.Worker, spec runtime.ContainerSpec) {

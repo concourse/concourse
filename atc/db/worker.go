@@ -15,6 +15,7 @@ import (
 
 var (
 	ErrWorkerNotPresent         = errors.New("worker not present in db")
+	ErrTooManyActiveTasks       = errors.New("worker has too many active tasks")
 	ErrCannotPruneRunningWorker = errors.New("worker not stalled for pruning")
 )
 
@@ -77,7 +78,7 @@ type Worker interface {
 	Delete() error
 
 	ActiveTasks() (int, error)
-	IncreaseActiveTasks() (int, error)
+	IncreaseActiveTasks(int) (int, error)
 	DecreaseActiveTasks() (int, error)
 
 	FindContainer(owner ContainerOwner) (CreatingContainer, CreatedContainer, error)
@@ -384,17 +385,23 @@ func (worker *worker) ActiveTasks() (int, error) {
 	return worker.activeTasks, nil
 }
 
-func (worker *worker) IncreaseActiveTasks() (int, error) {
+func (worker *worker) IncreaseActiveTasks(maxTaskNum int) (int, error) {
 	err := psql.Update("workers").
 		Set("active_tasks", sq.Expr("active_tasks+1")).
 		Where(sq.Eq{"name": worker.name}).
+		Where(sq.Lt{"active_tasks": maxTaskNum}).
 		Suffix("RETURNING \"active_tasks\"").
 		RunWith(worker.conn).
 		QueryRow().
 		Scan(&worker.activeTasks)
+
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return 0, ErrTooManyActiveTasks
+		}
 		return 0, err
 	}
+
 	return worker.activeTasks, nil
 }
 

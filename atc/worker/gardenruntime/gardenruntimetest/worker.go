@@ -182,7 +182,7 @@ func (w Worker) WithActiveTasks(activeTasks int) *Worker {
 	return w.WithSetup(func(s *workertest.Scenario) {
 		worker := s.DB.Worker(w.Name())
 		for i := 0; i < activeTasks; i++ {
-			_, err := worker.IncreaseActiveTasks()
+			_, err := worker.IncreaseActiveTasks(activeTasks)
 			Expect(err).ToNot(HaveOccurred())
 		}
 	})
