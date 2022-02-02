@@ -72,7 +72,7 @@ func (w Worker) CreateVolumeForArtifact(ctx context.Context, teamID int) (runtim
 	panic("unimplemented")
 }
 
-func (w *Worker) FindOrCreateContainer(ctx context.Context, owner db.ContainerOwner, metadata db.ContainerMetadata, spec runtime.ContainerSpec) (runtime.Container, []runtime.VolumeMount, error) {
+func (w *Worker) FindOrCreateContainer(ctx context.Context, owner db.ContainerOwner, metadata db.ContainerMetadata, spec runtime.ContainerSpec, delegate runtime.BuildStepDelegate) (runtime.Container, []runtime.VolumeMount, error) {
 	c, _, ok := w.FindContainerByOwner(owner)
 	if !ok {
 		panic("unimplemented: runtimetest.Worker.FindOrCreateContainer can currently only find a container.\n" +

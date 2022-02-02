@@ -45,6 +45,8 @@ type CheckDelegate interface {
 	PointToCheckedConfig(db.ResourceConfigScope) error
 	UpdateScopeLastCheckStartTime(db.ResourceConfigScope, bool) (bool, int, error)
 	UpdateScopeLastCheckEndTime(db.ResourceConfigScope, bool) (bool, error)
+
+	StreamingVolume(lager.Logger, string, string, string)
 }
 
 func NewCheckStep(
@@ -296,7 +298,7 @@ func (step *CheckStep) runCheck(
 
 	defer cancel()
 
-	container, _, err := worker.FindOrCreateContainer(ctx, containerOwner, step.containerMetadata, containerSpec)
+	container, _, err := worker.FindOrCreateContainer(ctx, containerOwner, step.containerMetadata, containerSpec, delegate)
 	if err != nil {
 		return nil, runtime.ProcessResult{}, err
 	}

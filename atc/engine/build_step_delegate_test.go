@@ -1064,4 +1064,19 @@ var _ = Describe("BuildStepDelegate", func() {
 			Expect(planId).To(Equal(atc.PlanID("some-plan")))
 		})
 	})
+
+	Describe("StreamingVolume", func() {
+		JustBeforeEach(func() {
+			delegate.StreamingVolume(logger, "some-volume", "src-worker", "dest-worker")
+		})
+
+		It("saves an event", func() {
+			Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
+			e := fakeBuild.SaveEventArgsForCall(0)
+			Expect(e.EventType()).To(Equal(atc.EventType("streaming-volume")))
+			Expect(e.(event.StreamingVolume).Volume).To(Equal("some-volume"))
+			Expect(e.(event.StreamingVolume).SourceWorker).To(Equal("src-worker"))
+			Expect(e.(event.StreamingVolume).DestWorker).To(Equal("dest-worker"))
+		})
+	})
 })

@@ -68,6 +68,7 @@ type GetDelegate interface {
 	BeforeSelectWorker(lager.Logger) error
 	WaitingForWorker(lager.Logger)
 	SelectedWorker(lager.Logger, string)
+	StreamingVolume(lager.Logger, string, string, string)
 
 	UpdateResourceVersion(lager.Logger, string, resource.VersionResult)
 
@@ -478,7 +479,7 @@ func (step *GetStep) performGetAndInitCache(
 
 	defer cancel()
 
-	container, mounts, err := worker.FindOrCreateContainer(ctx, containerOwner, step.containerMetadata, containerSpec)
+	container, mounts, err := worker.FindOrCreateContainer(ctx, containerOwner, step.containerMetadata, containerSpec, delegate)
 	if err != nil {
 		logger.Error("failed-to-create-container", err)
 		return nil, resource.VersionResult{}, runtime.ProcessResult{}, err

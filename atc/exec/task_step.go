@@ -76,6 +76,7 @@ type TaskDelegate interface {
 	BeforeSelectWorker(lager.Logger) error
 	WaitingForWorker(lager.Logger)
 	SelectedWorker(lager.Logger, string)
+	StreamingVolume(lager.Logger, string, string, string)
 }
 
 // TaskStep executes a TaskConfig, whose inputs will be fetched from the
@@ -275,7 +276,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 
 	delegate.SelectedWorker(logger, worker.Name())
 
-	container, volumeMounts, err := worker.FindOrCreateContainer(ctx, owner, step.containerMetadata, containerSpec)
+	container, volumeMounts, err := worker.FindOrCreateContainer(ctx, owner, step.containerMetadata, containerSpec, delegate)
 	if err != nil {
 		return false, err
 	}

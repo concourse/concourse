@@ -212,6 +212,23 @@ func (delegate *buildStepDelegate) SelectedWorker(logger lager.Logger, worker st
 	}
 }
 
+func (delegate *buildStepDelegate) StreamingVolume(logger lager.Logger, volume string, sourceWorker string, destWorker string) {
+	err := delegate.build.SaveEvent(event.StreamingVolume{
+		Time: time.Now().Unix(),
+		Origin: event.Origin{
+			ID: event.OriginID(delegate.planID),
+		},
+		Volume:       volume,
+		SourceWorker: sourceWorker,
+		DestWorker:   destWorker,
+	})
+
+	if err != nil {
+		logger.Error("failed-to-save-streaming-volume-event", err)
+		return
+	}
+}
+
 func (delegate *buildStepDelegate) Errored(logger lager.Logger, message string) {
 	err := delegate.build.SaveEvent(event.Error{
 		Message: message,

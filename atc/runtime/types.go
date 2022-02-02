@@ -5,6 +5,7 @@ import (
 	"io"
 	"strings"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/compression"
 	"github.com/concourse/concourse/atc/db"
 	"go.opentelemetry.io/otel/propagation"
@@ -27,7 +28,7 @@ type Worker interface {
 	// It can be thought of as declaratively saying "I want a container
 	// matching these specifications" - and the Worker implementation will
 	// "make it so", regardless of what Containers/Volumes already exist.
-	FindOrCreateContainer(context.Context, db.ContainerOwner, db.ContainerMetadata, ContainerSpec) (Container, []VolumeMount, error)
+	FindOrCreateContainer(context.Context, db.ContainerOwner, db.ContainerMetadata, ContainerSpec, BuildStepDelegate) (Container, []VolumeMount, error)
 	// CreateVolumeForArtifact creates a new empty Volume to be used as a
 	// WorkerArtifact. This is used for uploading local inputs to a worker via
 	// `fly execute -i ...`.
@@ -121,6 +122,10 @@ type ContainerSpec struct {
 	// CertsBindMount indicates whether or not to mount the worker's Certs
 	// volume onto the container.
 	CertsBindMount bool
+}
+
+type BuildStepDelegate interface {
+	StreamingVolume(lager.Logger, string, string, string)
 }
 
 // ContainerSpec must implement propagation.TextMapCarrier so that it can be

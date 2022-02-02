@@ -35,6 +35,7 @@ type BuildStepDelegate interface {
 	BeforeSelectWorker(lager.Logger) error
 	WaitingForWorker(lager.Logger)
 	SelectedWorker(lager.Logger, string)
+	StreamingVolume(lager.Logger, string, string, string)
 
 	ConstructAcrossSubsteps([]byte, []atc.AcrossVar, [][]interface{}) ([]atc.VarScopedPlan, error)
 	ContainerOwner(planId atc.PlanID) db.ContainerOwner

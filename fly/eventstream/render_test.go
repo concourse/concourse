@@ -341,6 +341,31 @@ var _ = Describe("V1.0 Renderer", func() {
 		})
 	})
 
+	Context("when a StreamingVolume event is received", func() {
+		BeforeEach(func() {
+			receivedEvents <- event.StreamingVolume{
+				Time:         time.Now().Unix(),
+				Volume:       "some-volume",
+				SourceWorker: "source-worker",
+				DestWorker:   "dest-worker",
+			}
+		})
+
+		It("prints the event", func() {
+			Expect(out.Contents()).To(ContainSubstring("\x1b[1mstreaming volume\u001B[0m some-volume \x1b[1mfrom\u001B[0m source-worker \x1b[1mto\u001B[0m dest-worker\n"))
+		})
+
+		Context("and time configuration enabled", func() {
+			BeforeEach(func() {
+				options.ShowTimestamp = true
+			})
+
+			It("timestamp is prefixed", func() {
+				Expect(out).To(gbytes.Say(`\d{2}\:\d{2}\:\d{2}\s{2}\w*`))
+			})
+		})
+	})
+
 	Context("when an UnknownEventTypeError or UnknownEventVersionError is received", func() {
 
 		BeforeEach(func() {

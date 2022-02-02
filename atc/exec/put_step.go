@@ -40,6 +40,7 @@ type PutDelegate interface {
 	BeforeSelectWorker(lager.Logger) error
 	WaitingForWorker(lager.Logger)
 	SelectedWorker(lager.Logger, string)
+	StreamingVolume(lager.Logger, string, string, string)
 
 	SaveOutput(lager.Logger, atc.PutPlan, atc.Source, db.ResourceCache, resource.VersionResult)
 }
@@ -208,7 +209,7 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 
 	defer cancel()
 
-	container, _, err := worker.FindOrCreateContainer(ctx, owner, step.containerMetadata, containerSpec)
+	container, _, err := worker.FindOrCreateContainer(ctx, owner, step.containerMetadata, containerSpec, delegate)
 	if err != nil {
 		return false, err
 	}

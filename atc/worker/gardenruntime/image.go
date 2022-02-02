@@ -37,6 +37,7 @@ func (worker *Worker) fetchImageForContainer(
 	imageSpec runtime.ImageSpec,
 	teamID int,
 	container db.CreatingContainer,
+	delegate runtime.BuildStepDelegate,
 ) (FetchedImage, error) {
 	logger := lagerctx.FromContext(ctx)
 	if imageSpec.ImageArtifact != nil {
@@ -50,7 +51,7 @@ func (worker *Worker) fetchImageForContainer(
 			volumeOnWorker := volume.(Volume)
 			return worker.imageProvidedByPreviousStepOnSameWorker(ctx, logger, imageSpec.Privileged, teamID, container, volumeOnWorker)
 		} else {
-			return worker.imageProvidedByPreviousStepOnDifferentWorker(ctx, imageSpec.Privileged, teamID, container, imageSpec.ImageArtifact)
+			return worker.imageProvidedByPreviousStepOnDifferentWorker(ctx, imageSpec.Privileged, teamID, container, imageSpec.ImageArtifact, delegate)
 		}
 	}
 
@@ -116,6 +117,7 @@ func (worker *Worker) imageProvidedByPreviousStepOnDifferentWorker(
 	teamID int,
 	container db.CreatingContainer,
 	artifact runtime.Artifact,
+	delegate runtime.BuildStepDelegate,
 ) (FetchedImage, error) {
 	logger := lagerctx.FromContext(ctx)
 	streamedVolume, err := worker.findOrCreateVolumeForStreaming(
@@ -128,6 +130,11 @@ func (worker *Worker) imageProvidedByPreviousStepOnDifferentWorker(
 	if err != nil {
 		logger.Error("failed-to-create-image-artifact-replicated-volume", err)
 		return FetchedImage{}, err
+	}
+
+	srcVolume, isSrcVolume := artifact.(runtime.Volume)
+	if isSrcVolume {
+		delegate.StreamingVolume(logger, "for image", srcVolume.DBVolume().WorkerName(), streamedVolume.DBVolume().WorkerName())
 	}
 
 	if err := worker.streamer.Stream(ctx, artifact, streamedVolume); err != nil {

@@ -12,6 +12,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbtest"
 	"github.com/concourse/concourse/atc/db/lock"
+	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/runtime/runtimetest"
 	"github.com/concourse/concourse/atc/worker/gardenruntime"
@@ -25,6 +26,7 @@ import (
 
 var _ = Describe("Garden Worker", func() {
 	logger := lagertest.NewTestLogger("dummy")
+	delegate := new(execfakes.FakeBuildStepDelegate)
 	ctx := context.Background()
 
 	Test("running a process on a newly created container", func() {
@@ -45,6 +47,7 @@ var _ = Describe("Garden Worker", func() {
 					ImageURL: "raw:///img/rootfs",
 				},
 			},
+			delegate,
 		)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -121,6 +124,7 @@ var _ = Describe("Garden Worker", func() {
 					ImageURL: "raw:///img/rootfs",
 				},
 			},
+			delegate,
 		)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -152,6 +156,7 @@ var _ = Describe("Garden Worker", func() {
 					ImageURL: "raw:///img/rootfs",
 				},
 			},
+			delegate,
 		)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -226,6 +231,7 @@ var _ = Describe("Garden Worker", func() {
 					ImageURL: "raw:///img/rootfs",
 				},
 			},
+			delegate,
 		)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -259,6 +265,7 @@ var _ = Describe("Garden Worker", func() {
 					ImageURL: "raw:///img/rootfs",
 				},
 			},
+			delegate,
 		)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -291,6 +298,7 @@ var _ = Describe("Garden Worker", func() {
 					ImageURL: "raw:///img/rootfs",
 				},
 			},
+			delegate,
 		)
 		Expect(err).To(MatchError(garden.ContainerNotFoundError{Handle: "not-in-garden"}))
 	})
@@ -312,6 +320,7 @@ var _ = Describe("Garden Worker", func() {
 					ImageURL: "",
 				},
 			},
+			delegate,
 		)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(gardenContainer(container).Spec.RootFSPath).To(Equal(""))
@@ -344,6 +353,7 @@ var _ = Describe("Garden Worker", func() {
 				},
 				Env: []string{"A=b"},
 			},
+			delegate,
 		)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -428,6 +438,7 @@ var _ = Describe("Garden Worker", func() {
 					ImageArtifact: scenario.WorkerVolume("worker2", "remote-volume"),
 				},
 			},
+			delegate,
 		)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -449,6 +460,7 @@ var _ = Describe("Garden Worker", func() {
 	})
 
 	Test("fetch image from volume on different worker", func() {
+		delegate := new(execfakes.FakeBuildStepDelegate)
 		imageVolume := grt.NewVolume("remote-image-volume").WithContent(runtimetest.VolumeContent{
 			"metadata.json": grt.ImageMetadataFile(gardenruntime.ImageMetadata{
 				Env:  []string{"FOO=bar"},
@@ -476,8 +488,17 @@ var _ = Describe("Garden Worker", func() {
 					ImageArtifact: scenario.WorkerVolume("worker2", imageVolume.Handle()),
 				},
 			},
+			delegate,
 		)
 		Expect(err).ToNot(HaveOccurred())
+
+		By("validating that streaming volume event is emitted", func() {
+			Expect(delegate.StreamingVolumeCallCount()).To(Equal(1))
+			_, volume, src, dest := delegate.StreamingVolumeArgsForCall(0)
+			Expect(volume).To(Equal("for image"))
+			Expect(src).To(Equal("worker2"))
+			Expect(dest).To(Equal("worker1"))
+		})
 
 		var streamedVolume *grt.Volume
 		By("validating the volume was streamed and then COW'd", func() {
@@ -513,6 +534,7 @@ var _ = Describe("Garden Worker", func() {
 					ResourceType: dbtest.BaseResourceType,
 				},
 			},
+			delegate,
 		)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -531,6 +553,7 @@ var _ = Describe("Garden Worker", func() {
 	})
 
 	Test("input and output volumes", func() {
+		delegate := new(execfakes.FakeBuildStepDelegate)
 		localInputVolume1 := grt.NewVolume("local-input1")
 		localInputVolume2 := grt.NewVolume("local-input2")
 		remoteInputVolume := grt.NewVolume("remote-input").WithContent(runtimetest.VolumeContent{
@@ -573,6 +596,7 @@ var _ = Describe("Garden Worker", func() {
 					"output": "/output",
 				},
 			},
+			delegate,
 		)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -587,6 +611,14 @@ var _ = Describe("Garden Worker", func() {
 			"/remote-input":          grt.HaveStrategy(baggageclaim.COWStrategy{Parent: remoteVolumeParent}),
 			"/output":                grt.HaveStrategy(baggageclaim.EmptyStrategy{}),
 		}))
+
+		By("validating that streaming volume event is emitted", func() {
+			Expect(delegate.StreamingVolumeCallCount()).To(Equal(1))
+			_, volume, src, dest := delegate.StreamingVolumeArgsForCall(0)
+			Expect(volume).To(Equal("remote-input"))
+			Expect(src).To(Equal("worker2"))
+			Expect(dest).To(Equal("worker1"))
+		})
 
 		By("validating the IO mounts are sorted by path and appear after the scratch/workdir mounts", func() {
 			var bindMountPaths []string
@@ -644,6 +676,7 @@ var _ = Describe("Garden Worker", func() {
 					},
 				},
 			},
+			delegate,
 		)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -685,6 +718,7 @@ var _ = Describe("Garden Worker", func() {
 					"output": "/workdir",
 				},
 			},
+			delegate,
 		)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -712,6 +746,7 @@ var _ = Describe("Garden Worker", func() {
 				},
 				Dir: "",
 			},
+			delegate,
 		)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -758,7 +793,7 @@ var _ = Describe("Garden Worker", func() {
 			},
 		}
 
-		_, volumeMounts, err := worker.FindOrCreateContainer(ctx, db.NewFixedHandleContainerOwner("my-handle"), db.ContainerMetadata{}, spec)
+		_, volumeMounts, err := worker.FindOrCreateContainer(ctx, db.NewFixedHandleContainerOwner("my-handle"), db.ContainerMetadata{}, spec, delegate)
 		Expect(err).ToNot(HaveOccurred())
 
 		Expect(volumeMountMap(volumeMounts)).To(consistOfMap(expectMap{
@@ -803,7 +838,7 @@ var _ = Describe("Garden Worker", func() {
 		})
 
 		By("creating a new container and validating that the newly initialized cache volumes are used", func() {
-			_, volumeMounts, err := worker.FindOrCreateContainer(ctx, db.NewFixedHandleContainerOwner("new-container"), db.ContainerMetadata{}, spec)
+			_, volumeMounts, err := worker.FindOrCreateContainer(ctx, db.NewFixedHandleContainerOwner("new-container"), db.ContainerMetadata{}, spec, delegate)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(volumeMountMap(volumeMounts)).To(consistOfMap(expectMap{
@@ -834,6 +869,7 @@ var _ = Describe("Garden Worker", func() {
 				Dir:            "/workdir",
 				CertsBindMount: true,
 			},
+			delegate,
 		)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -899,6 +935,7 @@ var _ = Describe("Garden Worker", func() {
 
 				CertsBindMount: true,
 			},
+			delegate,
 		)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -965,6 +1002,7 @@ var _ = Describe("Garden Worker", func() {
 
 				CertsBindMount: true,
 			},
+			delegate,
 		)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -1008,6 +1046,7 @@ var _ = Describe("Garden Worker", func() {
 				},
 				Dir: "/workdir",
 			},
+			delegate,
 		)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -1039,6 +1078,7 @@ var _ = Describe("Garden Worker", func() {
 				},
 				Dir: "/workdir",
 			},
+			delegate,
 		)
 		Expect(err).To(MatchError(MatchRegexp(`volume .* disappeared from worker`)))
 	})
@@ -1078,6 +1118,7 @@ var _ = Describe("Garden Worker", func() {
 					},
 					Dir: "/workdir",
 				},
+				delegate,
 			)
 			done <- err
 		}()
@@ -1119,6 +1160,7 @@ var _ = Describe("Garden Worker", func() {
 				},
 				Dir: "/workdir",
 			},
+			delegate,
 		)
 		Expect(err).To(HaveOccurred())
 
@@ -1147,6 +1189,7 @@ var _ = Describe("Garden Worker", func() {
 				},
 				Dir: "/workdir",
 			},
+			delegate,
 		)
 		Expect(err).ToNot(HaveOccurred())
 
