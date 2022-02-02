@@ -45,13 +45,24 @@ var _ = Describe("TaskCacheLifecycle", func() {
 		Expect(deletedCacheIDs).To(ConsistOf(taskCache.ID()))
 	})
 
-	It("cleans up task caches belonging to a paused pipeline", func() {
-		archivedScenario := dbtest.Setup(
+	It("cleans up task caches belonging to a paused pipeline if its jobs are not running", func() {
+		var pendingBuild, startedBuild, finishedBuild db.Build
+
+		plan := atc.Plan{
+			Get: &atc.GetPlan{
+				Name: "some-name",
+			},
+		}
+
+		pausedScenario := dbtest.Setup(
 			builder.WithPipeline(atc.Config{
 				Jobs: []atc.JobConfig{
-					{Name: "some-job"},
+					{Name: "some-job-1"},
+					{Name: "some-job-2"},
 				},
 			}),
+			builder.WithPendingJobBuild(&pendingBuild, "some-job-1"),
+			builder.WithStartedJobBuild(&startedBuild, "some-job-2", plan),
 		)
 		otherScenario := dbtest.Setup(
 			builder.WithPipeline(atc.Config{
@@ -59,14 +70,25 @@ var _ = Describe("TaskCacheLifecycle", func() {
 					{Name: "some-other-job"},
 				},
 			}),
+			builder.WithPendingJobBuild(&finishedBuild, "some-other-job"),
 		)
-		taskCache, err := taskCacheFactory.FindOrCreate(archivedScenario.Job("some-job").ID(), "some-step", "some-path")
+
+		err := finishedBuild.Finish(db.BuildStatusSucceeded)
 		Expect(err).ToNot(HaveOccurred())
 
-		_, err = taskCacheFactory.FindOrCreate(otherScenario.Job("some-other-job").ID(), "some-step", "some-path")
+		taskCache, err := taskCacheFactory.FindOrCreate(otherScenario.Job("some-other-job").ID(), "some-step", "some-path")
 		Expect(err).ToNot(HaveOccurred())
 
-		err = archivedScenario.Pipeline.Pause("tester")
+		_, err = taskCacheFactory.FindOrCreate(pausedScenario.Job("some-job-1").ID(), "some-step", "some-path")
+		Expect(err).ToNot(HaveOccurred())
+
+		_, err = taskCacheFactory.FindOrCreate(pausedScenario.Job("some-job-2").ID(), "some-step", "some-path")
+		Expect(err).ToNot(HaveOccurred())
+
+		err = pausedScenario.Pipeline.Pause("tester")
+		Expect(err).ToNot(HaveOccurred())
+
+		err = otherScenario.Pipeline.Pause("tester")
 		Expect(err).ToNot(HaveOccurred())
 
 		deletedCacheIDs, err := taskCacheLifecycle.CleanUpInvalidTaskCaches()

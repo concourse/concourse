@@ -26,7 +26,10 @@ func (f *taskCacheLifecycle) CleanUpInvalidTaskCaches() ([]int, error) {
 		Join("pipelines p ON p.id = j.pipeline_id").
 		Where(sq.Or{
 			sq.Expr("p.archived"),
-			sq.Expr("p.paused"),
+			sq.And{
+				sq.Expr("p.paused"),
+				sq.Expr("j.next_build_id IS NULL"),
+			},
 		}).
 		ToSql()
 	if err != nil {
