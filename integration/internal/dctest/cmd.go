@@ -52,7 +52,7 @@ func Init(t *testing.T, composeFile string, overrides ...string) Cmd {
 		}
 
 		dc.Run(t, "kill")
-		dc.Run(t, "down")
+		dc.Run(t, "down", "-v")
 	})
 
 	return Cmd{

@@ -2,16 +2,18 @@
 package dbfakes
 
 import (
+	"context"
 	"sync"
 
 	"github.com/concourse/concourse/atc/db"
 )
 
 type FakePipelinePauser struct {
-	PausePipelinesStub        func(int) error
+	PausePipelinesStub        func(context.Context, int) error
 	pausePipelinesMutex       sync.RWMutex
 	pausePipelinesArgsForCall []struct {
-		arg1 int
+		arg1 context.Context
+		arg2 int
 	}
 	pausePipelinesReturns struct {
 		result1 error
@@ -23,18 +25,19 @@ type FakePipelinePauser struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakePipelinePauser) PausePipelines(arg1 int) error {
+func (fake *FakePipelinePauser) PausePipelines(arg1 context.Context, arg2 int) error {
 	fake.pausePipelinesMutex.Lock()
 	ret, specificReturn := fake.pausePipelinesReturnsOnCall[len(fake.pausePipelinesArgsForCall)]
 	fake.pausePipelinesArgsForCall = append(fake.pausePipelinesArgsForCall, struct {
-		arg1 int
-	}{arg1})
+		arg1 context.Context
+		arg2 int
+	}{arg1, arg2})
 	stub := fake.PausePipelinesStub
 	fakeReturns := fake.pausePipelinesReturns
-	fake.recordInvocation("PausePipelines", []interface{}{arg1})
+	fake.recordInvocation("PausePipelines", []interface{}{arg1, arg2})
 	fake.pausePipelinesMutex.Unlock()
 	if stub != nil {
-		return stub(arg1)
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
@@ -48,17 +51,17 @@ func (fake *FakePipelinePauser) PausePipelinesCallCount() int {
 	return len(fake.pausePipelinesArgsForCall)
 }
 
-func (fake *FakePipelinePauser) PausePipelinesCalls(stub func(int) error) {
+func (fake *FakePipelinePauser) PausePipelinesCalls(stub func(context.Context, int) error) {
 	fake.pausePipelinesMutex.Lock()
 	defer fake.pausePipelinesMutex.Unlock()
 	fake.PausePipelinesStub = stub
 }
 
-func (fake *FakePipelinePauser) PausePipelinesArgsForCall(i int) int {
+func (fake *FakePipelinePauser) PausePipelinesArgsForCall(i int) (context.Context, int) {
 	fake.pausePipelinesMutex.RLock()
 	defer fake.pausePipelinesMutex.RUnlock()
 	argsForCall := fake.pausePipelinesArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakePipelinePauser) PausePipelinesReturns(result1 error) {

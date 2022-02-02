@@ -1,15 +1,18 @@
 package db
 
 import (
+	"context"
 	"strconv"
 
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc/db/lock"
 )
 
 //counterfeiter:generate . PipelinePauser
 type PipelinePauser interface {
-	PausePipelines(daysSinceLastBuild int) error
+	PausePipelines(ctx context.Context, daysSinceLastBuild int) error
 }
 
 func NewPipelinePauser(conn Conn, lockFactory lock.LockFactory) PipelinePauser {
@@ -24,19 +27,29 @@ type pipelinePauser struct {
 	lockFactory lock.LockFactory
 }
 
-func (p *pipelinePauser) PausePipelines(daysSinceLastBuild int) error {
-	activePipelines, err := getActivePipelines(p.conn, daysSinceLastBuild)
-	if err != nil {
-		return err
-	}
-
+func (p *pipelinePauser) PausePipelines(ctx context.Context, daysSinceLastBuild int) error {
+	logger := lagerctx.FromContext(ctx).Session("pipeline-pauser")
 	rows, err := pipelinesQuery.Where(sq.And{
 		sq.Eq{
 			"p.paused": false,
 		},
-		sq.NotEq{
-			"p.id": activePipelines,
-		},
+		// subquery returns a list of pipelines who jobs ran WITHIN the range.
+		// These are the pipelines that SHOULD NOT be paused which we use to
+		// build our list of pipelines that SHOULD be paused
+		sq.Expr(`p.id NOT IN (SELECT j.pipeline_id FROM jobs j
+							LEFT JOIN builds b ON j.latest_completed_build_id = b.id
+							WHERE j.pipeline_id = p.id
+								AND j.active = true
+								AND (
+									(b.end_time > CURRENT_DATE - ?::INTERVAL)
+									--Don't pause pipelines with builds currently running
+									OR j.next_build_id IS NOT NULL
+								)
+						)`,
+			strconv.Itoa(daysSinceLastBuild)+" day"),
+		// Covers edge case where pipelines that were just set could be paused automatically
+		// Only pauses the pipeline if it was last updated more than 24hrs ago
+		sq.Expr(`p.last_updated < CURRENT_DATE - '1 day'::INTERVAL`),
 	}).RunWith(p.conn).Query()
 
 	if err != nil {
@@ -50,43 +63,22 @@ func (p *pipelinePauser) PausePipelines(daysSinceLastBuild int) error {
 
 	for _, pipeline := range pipelines {
 		err = pipeline.Pause("automatic-pipeline-pauser")
+		loggingData := p.generateLoggingData(pipeline)
 		if err != nil {
+			logger.Error("failed-to-pause-pipeline", err, loggingData)
 			return err
 		}
+		logger.Info("paused-pipeline", loggingData)
 	}
 
 	return nil
 }
 
-// Couldn't put a subquery inside a WHERE clause: https://github.com/Masterminds/squirrel/issues/258
-// This is a workaround. I really tried to put this in as a subquery similar to
-// how it's done in worker_lifecycle.go but the placeholder value for the days
-// was never getting parsed correctly, even after figuring out that it also
-// needs to be cast to INTERVAL.
-// Maybe I was doing something stupid; there may be a way to get this in as a subquery
-func getActivePipelines(conn Conn, days int) ([]int, error) {
-	stmt, err := conn.Prepare(`SELECT p.id FROM pipelines AS p
-							LEFT JOIN jobs AS j ON j.pipeline_id = p.id
-							WHERE j.last_scheduled > CURRENT_DATE - $1::INTERVAL`)
-	if err != nil {
-		return nil, err
-	}
-	defer stmt.Close()
-
-	rows, err := stmt.Query(strconv.Itoa(days) + " day")
-	if err != nil {
-		return nil, err
+func (_ *pipelinePauser) generateLoggingData(pipeline Pipeline) lager.Data {
+	loggingData := lager.Data{"pipeline": pipeline.Name(), "team": pipeline.TeamName()}
+	if len(pipeline.InstanceVars()) > 0 {
+		loggingData["instanceVars"] = pipeline.InstanceVars().String
 	}
 
-	var pipelineIds []int
-	for rows.Next() {
-		var id int
-		err = rows.Scan(&id)
-		if err != nil {
-			return nil, err
-		}
-		pipelineIds = append(pipelineIds, id)
-	}
-
-	return pipelineIds, nil
+	return loggingData
 }

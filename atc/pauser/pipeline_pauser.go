@@ -27,7 +27,8 @@ func (p *pipelinePauser) Run(ctx context.Context) error {
 	logger.Debug("start")
 	defer logger.Debug("done")
 
-	err := p.dbPipelinePauser.PausePipelines(p.daysSinceLastBuild)
+	ctx = lagerctx.NewContext(ctx, logger)
+	err := p.dbPipelinePauser.PausePipelines(ctx, p.daysSinceLastBuild)
 	if err != nil {
 		logger.Error("failed-to-pause-pipelines", err)
 		return err

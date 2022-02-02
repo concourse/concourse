@@ -152,6 +152,7 @@ type RunCommand struct {
 	ResourceWithWebhookCheckingInterval time.Duration `long:"resource-with-webhook-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources that has webhook defined."`
 	MaxChecksPerSecond                  int           `long:"max-checks-per-second" description:"Maximum number of checks that can be started per second. If not specified, this will be calculated as (# of resources)/(resource checking interval). -1 value will remove this maximum limit of checks per second."`
 	PausePipelinesAfter                 int           `long:"pause-pipelines-after" default:"0" description:"The number of days after which a pipeline will be automatically paused if none of its jobs have run in more than the given number of days. A value of zero disables this component."`
+	PipelinePauserInterval              time.Duration `long:"pipeline-pauser-interval" default:"24h" hidden:"true" description:"The frequency on which the Pipeline Pauser component will be run to check if any pipelines need to be paused."`
 
 	ContainerPlacementStrategyOptions worker.PlacementOptions `group:"Container Placement Strategy"`
 
@@ -1083,7 +1084,7 @@ func (cmd *RunCommand) backendComponents(
 		{
 			Component: atc.Component{
 				Name:     atc.ComponentPipelinePauser,
-				Interval: 24 * time.Hour,
+				Interval: cmd.PipelinePauserInterval,
 			},
 			Runnable: pauser.NewPipelinePauser(
 				dbPipelinePauser,

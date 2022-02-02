@@ -31,14 +31,15 @@ var _ = Describe("PipelinePauser", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(fakePipelinePauser.PausePipelinesCallCount()).To(Equal(1))
-			Expect(fakePipelinePauser.PausePipelinesArgsForCall(0)).To(Equal(10))
+			_, givenDays := fakePipelinePauser.PausePipelinesArgsForCall(0)
+			Expect(givenDays).To(Equal(10))
 		})
 		It("it short circuts if days is zero", func() {
 			pauseComp = pauser.NewPipelinePauser(fakePipelinePauser, 0)
 			err := pauseComp.Run(context.TODO())
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(fakePipelinePauser.PausePipelinesCallCount()).To(Equal(0))
+			Expect(fakePipelinePauser.PausePipelinesCallCount()).To(Equal(0), "should not call the db.PipelinePauser")
 		})
 	})
 })
