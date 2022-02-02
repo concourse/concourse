@@ -1788,6 +1788,7 @@ var _ = Describe("Team", func() {
 						Source: atc.Source{
 							"source-config": "some-value",
 						},
+						Icon: "some-icon",
 					},
 				},
 
@@ -1990,26 +1991,81 @@ var _ = Describe("Team", func() {
 			}))
 		})
 
-		It("updates resource config", func() {
-			pipeline, _, err := team.SavePipeline(pipelineRef, config, 0, false)
-			Expect(err).ToNot(HaveOccurred())
-
-			config.Resources[0].Source = atc.Source{
-				"source-other-config": "some-other-value",
-			}
-
-			savedPipeline, _, err := team.SavePipeline(pipelineRef, config, pipeline.ConfigVersion(), false)
-			Expect(err).ToNot(HaveOccurred())
-
-			resource, found, err := savedPipeline.Resource("some-resource")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
-			Expect(resource.Type()).To(Equal("some-type"))
-			Expect(resource.Source()).To(Equal(atc.Source{
-				"source-other-config": "some-other-value",
+		It("updates resource config source and resets config_id and config_scope_id", func() {
+			scenario := dbtest.Setup(
+				builder.WithPipeline(config),
+				builder.WithBaseResourceType(dbConn, "some-type"),
+				builder.WithResourceVersions(
+					"some-resource",
+					atc.Version{"version": "v1"},
+					atc.Version{"version": "v2"},
+				),
+			)
+			Expect(scenario.Resource("some-resource").Source()).To(Equal(atc.Source{
+				"source-config": "some-value",
 			}))
-			Expect(resource.ResourceConfigID()).To(BeZero())
-			Expect(resource.ResourceConfigScopeID()).To(BeZero())
+			Expect(scenario.Resource("some-resource").ResourceConfigID()).ToNot(BeZero())
+			Expect(scenario.Resource("some-resource").ResourceConfigScopeID()).ToNot(BeZero())
+
+			config.Resources[0].Source = atc.Source{"new-source-config": "some-other-value"}
+			scenario.Run(
+				builder.WithPipeline(config),
+			)
+
+			Expect(scenario.Resource("some-resource").Source()).To(Equal(atc.Source{
+				"new-source-config": "some-other-value",
+			}))
+			Expect(scenario.Resource("some-resource").ResourceConfigID()).To(BeZero())
+			Expect(scenario.Resource("some-resource").ResourceConfigScopeID()).To(BeZero())
+		})
+
+		It("updates resource config type and resets config_id and config_scope_id", func() {
+			scenario := dbtest.Setup(
+				builder.WithPipeline(config),
+				builder.WithBaseResourceType(dbConn, "some-type"),
+				builder.WithResourceVersions(
+					"some-resource",
+					atc.Version{"version": "v1"},
+					atc.Version{"version": "v2"},
+				),
+			)
+			Expect(scenario.Resource("some-resource").Type()).To(Equal("some-type"))
+			Expect(scenario.Resource("some-resource").ResourceConfigID()).ToNot(BeZero())
+			Expect(scenario.Resource("some-resource").ResourceConfigScopeID()).ToNot(BeZero())
+
+			config.Resources[0].Type = "some-other-type"
+			scenario.Run(
+				builder.WithPipeline(config),
+			)
+
+			Expect(scenario.Resource("some-resource").Type()).To(Equal("some-other-type"))
+			Expect(scenario.Resource("some-resource").ResourceConfigID()).To(BeZero())
+			Expect(scenario.Resource("some-resource").ResourceConfigScopeID()).To(BeZero())
+		})
+
+		It("updates other resource fields and does not reset config_id and config_scope_id", func() {
+			scenario := dbtest.Setup(
+				builder.WithPipeline(config),
+				builder.WithBaseResourceType(dbConn, "some-type"),
+				builder.WithResourceVersions(
+					"some-resource",
+					atc.Version{"version": "v1"},
+					atc.Version{"version": "v2"},
+				),
+			)
+			Expect(scenario.Resource("some-resource").Icon()).To(Equal("some-icon"))
+			configID, configScopeID := scenario.Resource("some-resource").ResourceConfigID(), scenario.Resource("some-resource").ResourceConfigScopeID()
+			Expect(configID).ToNot(BeZero())
+			Expect(configScopeID).ToNot(BeZero())
+
+			config.Resources[0].Icon = "some-other-icon"
+			scenario.Run(
+				builder.WithPipeline(config),
+			)
+
+			Expect(scenario.Resource("some-resource").Icon()).To(Equal("some-other-icon"))
+			Expect(scenario.Resource("some-resource").ResourceConfigID()).To(Equal(configID))
+			Expect(scenario.Resource("some-resource").ResourceConfigScopeID()).To(Equal(configScopeID))
 		})
 
 		It("clears out api pinned version when resaving a pinned version on the pipeline config", func() {

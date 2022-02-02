@@ -1242,11 +1242,21 @@ func saveResource(tx Tx, resource atc.ResourceConfig, pipelineID int) (int, erro
 		return 0, err
 	}
 
+	onConflict := "ON CONFLICT (name, pipeline_id) DO UPDATE SET config = EXCLUDED.config, active = EXCLUDED.active, nonce = EXCLUDED.nonce, type = EXCLUDED.type"
+
+	oldConfig, oldType, err := existingResourceConfig(tx, resource.Name, pipelineID)
+	if err != nil {
+		return 0, err
+	}
+	if mapHash(resource.Source) != mapHash(oldConfig.Source) || resource.Type != oldType {
+		onConflict = onConflict + ", resource_config_id = NULL, resource_config_scope_id = NULL"
+	}
+
 	var resourceID int
 	err = psql.Insert("resources").
 		Columns("name", "pipeline_id", "config", "active", "nonce", "type").
 		Values(resource.Name, pipelineID, encryptedPayload, true, nonce, resource.Type).
-		Suffix("ON CONFLICT (name, pipeline_id) DO UPDATE SET config = EXCLUDED.config, active = EXCLUDED.active, nonce = EXCLUDED.nonce, type = EXCLUDED.type, resource_config_id = NULL, resource_config_scope_id = NULL").
+		Suffix(onConflict).
 		Suffix("RETURNING id").
 		RunWith(tx).
 		QueryRow().
@@ -1284,6 +1294,47 @@ func saveResource(tx Tx, resource atc.ResourceConfig, pipelineID int) (int, erro
 	}
 
 	return resourceID, nil
+}
+
+func existingResourceConfig(tx Tx, name string, pipelineID int) (atc.ResourceConfig, string, error) {
+	var (
+		configBlob, nonce sql.NullString
+		oldType           string
+	)
+	row := psql.Select("config", "type", "nonce").
+		From("resources").
+		Where(sq.Eq{
+			"name":        name,
+			"pipeline_id": pipelineID,
+		}).
+		RunWith(tx).
+		QueryRow()
+	err := row.Scan(&configBlob, &oldType, &nonce)
+	if err != nil && err != sql.ErrNoRows {
+		if err == sql.ErrNoRows {
+			return atc.ResourceConfig{}, "", nil
+		}
+		return atc.ResourceConfig{}, "", err
+	}
+
+	var noncense *string
+	if nonce.Valid {
+		noncense = &nonce.String
+	}
+
+	oldConfig := atc.ResourceConfig{}
+	if configBlob.Valid {
+		decryptedConfig, err := tx.EncryptionStrategy().Decrypt(configBlob.String, noncense)
+		if err != nil {
+			return atc.ResourceConfig{}, "", err
+		}
+
+		err = json.Unmarshal(decryptedConfig, &oldConfig)
+		if err != nil {
+			return atc.ResourceConfig{}, "", err
+		}
+	}
+	return oldConfig, oldType, nil
 }
 
 func saveResourceType(tx Tx, resourceType atc.ResourceType, pipelineID int) error {
