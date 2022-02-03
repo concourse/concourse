@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -1230,113 +1232,6 @@ func registerSerialGroup(tx Tx, serialGroup string, jobID int) error {
 	return err
 }
 
-func saveResource(tx Tx, resource atc.ResourceConfig, pipelineID int) (int, error) {
-	configPayload, err := json.Marshal(resource)
-	if err != nil {
-		return 0, err
-	}
-
-	es := tx.EncryptionStrategy()
-	encryptedPayload, nonce, err := es.Encrypt(configPayload)
-	if err != nil {
-		return 0, err
-	}
-
-	onConflict := "ON CONFLICT (name, pipeline_id) DO UPDATE SET config = EXCLUDED.config, active = EXCLUDED.active, nonce = EXCLUDED.nonce, type = EXCLUDED.type"
-
-	oldConfig, oldType, err := existingResourceConfig(tx, resource.Name, pipelineID)
-	if err != nil {
-		return 0, err
-	}
-	if mapHash(resource.Source) != mapHash(oldConfig.Source) || resource.Type != oldType {
-		onConflict = onConflict + ", resource_config_id = NULL, resource_config_scope_id = NULL"
-	}
-
-	var resourceID int
-	err = psql.Insert("resources").
-		Columns("name", "pipeline_id", "config", "active", "nonce", "type").
-		Values(resource.Name, pipelineID, encryptedPayload, true, nonce, resource.Type).
-		Suffix(onConflict).
-		Suffix("RETURNING id").
-		RunWith(tx).
-		QueryRow().
-		Scan(&resourceID)
-	if err != nil {
-		return 0, err
-	}
-
-	_, err = psql.Delete("resource_pins").
-		Where(sq.Eq{
-			"resource_id": resourceID,
-			"config":      true,
-		}).
-		RunWith(tx).
-		Exec()
-	if err != nil {
-		return 0, err
-	}
-
-	if resource.Version != nil {
-		version, err := json.Marshal(resource.Version)
-		if err != nil {
-			return 0, err
-		}
-
-		_, err = psql.Insert("resource_pins").
-			Columns("resource_id", "version", "comment_text", "config").
-			Values(resourceID, version, "", true).
-			Suffix("ON CONFLICT (resource_id) DO UPDATE SET version = EXCLUDED.version, comment_text = EXCLUDED.comment_text, config = true").
-			RunWith(tx).
-			Exec()
-		if err != nil {
-			return 0, err
-		}
-	}
-
-	return resourceID, nil
-}
-
-func existingResourceConfig(tx Tx, name string, pipelineID int) (atc.ResourceConfig, string, error) {
-	var (
-		configBlob, nonce sql.NullString
-		oldType           string
-	)
-	row := psql.Select("config", "type", "nonce").
-		From("resources").
-		Where(sq.Eq{
-			"name":        name,
-			"pipeline_id": pipelineID,
-		}).
-		RunWith(tx).
-		QueryRow()
-	err := row.Scan(&configBlob, &oldType, &nonce)
-	if err != nil && err != sql.ErrNoRows {
-		if err == sql.ErrNoRows {
-			return atc.ResourceConfig{}, "", nil
-		}
-		return atc.ResourceConfig{}, "", err
-	}
-
-	var noncense *string
-	if nonce.Valid {
-		noncense = &nonce.String
-	}
-
-	oldConfig := atc.ResourceConfig{}
-	if configBlob.Valid {
-		decryptedConfig, err := tx.EncryptionStrategy().Decrypt(configBlob.String, noncense)
-		if err != nil {
-			return atc.ResourceConfig{}, "", err
-		}
-
-		err = json.Unmarshal(decryptedConfig, &oldConfig)
-		if err != nil {
-			return atc.ResourceConfig{}, "", err
-		}
-	}
-	return oldConfig, oldType, nil
-}
-
 func saveResourceType(tx Tx, resourceType atc.ResourceType, pipelineID int) error {
 	configPayload, err := json.Marshal(resourceType)
 	if err != nil {
@@ -1606,17 +1501,161 @@ func inactivateTableForPipeline(tx Tx, pipelineID int, tableName string) error {
 }
 
 func saveResources(tx Tx, resources atc.ResourceConfigs, pipelineID int) (map[string]int, error) {
-	resourceNameToID := make(map[string]int)
+	if len(resources) == 0 {
+		return nil, nil
+	}
+	insertQuery := psql.Insert("resources").
+		Columns("name", "pipeline_id", "config", "active", "nonce", "type", "resource_config_id", "resource_config_scope_id").
+		Suffix("ON CONFLICT (name, pipeline_id) DO UPDATE SET config = EXCLUDED.config, active = EXCLUDED.active, nonce = EXCLUDED.nonce, type = EXCLUDED.type, resource_config_id = EXCLUDED.resource_config_id, resource_config_scope_id = EXCLUDED.resource_config_scope_id").
+		Suffix("RETURNING name, id")
+	resourcesToPin := map[string][]byte{}
+
+	existingResources, err := existingResources(tx, pipelineID)
+	if err != nil {
+		return nil, nil
+	}
+
 	for _, resource := range resources {
-		resourceID, err := saveResource(tx, resource, pipelineID)
+		configPayload, err := json.Marshal(resource)
 		if err != nil {
 			return nil, err
 		}
 
-		resourceNameToID[resource.Name] = resourceID
+		es := tx.EncryptionStrategy()
+		encryptedPayload, nonce, err := es.Encrypt(configPayload)
+		if err != nil {
+			return nil, err
+		}
+		values := []interface{}{resource.Name, pipelineID, encryptedPayload, true, nonce, resource.Type}
+
+		existing, exists := existingResources[resource.Name]
+		if !exists || (mapHash(resource.Source) != mapHash(existing.Config.Source) || resource.Type != existing.Type) {
+			values = append(values, nil, nil)
+		} else {
+			values = append(values, existing.ResourceConfigID, existing.ResourceConfigScopeID)
+		}
+
+		if resource.Version != nil {
+			version, err := json.Marshal(resource.Version)
+			if err != nil {
+				return nil, err
+			}
+			resourcesToPin[resource.Name] = version
+		}
+
+		insertQuery = insertQuery.Values(values...)
 	}
 
+	resourceNameToID := make(map[string]int)
+	resourceIDs := []int{}
+
+	rows, err := insertQuery.RunWith(tx).Query()
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		var (
+			name string
+			id   int
+		)
+		err = rows.Scan(&name, &id)
+		if err != nil {
+			return nil, err
+		}
+		resourceNameToID[name] = id
+		resourceIDs = append(resourceIDs, id)
+	}
+	err = resetResourcePins(tx, resourceIDs, resourcesToPin, resourceNameToID)
+	if err != nil {
+		return nil, err
+	}
 	return resourceNameToID, nil
+}
+
+type existingResource struct {
+	Type                  string
+	Config                atc.ResourceConfig
+	ResourceConfigID      interface{}
+	ResourceConfigScopeID interface{}
+}
+
+func existingResources(tx Tx, pipelineID int) (map[string]existingResource, error) {
+	var configBlob, nonce sql.NullString
+	var rcID, rcScopeID sql.NullInt64
+
+	rows, err := psql.Select("name", "config", "type", "nonce", "resource_config_id", "resource_config_scope_id").
+		From("resources").
+		Where(sq.Eq{"pipeline_id": pipelineID}).
+		RunWith(tx).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+	defer Close(rows)
+
+	resources := map[string]existingResource{}
+
+	for rows.Next() {
+		var name string
+		r := &existingResource{}
+		err = rows.Scan(&name, &configBlob, &r.Type, &nonce, &rcID, &rcScopeID)
+		if err != nil {
+			return nil, err
+		}
+
+		var noncense *string
+		if nonce.Valid {
+			noncense = &nonce.String
+		}
+
+		if configBlob.Valid {
+			decryptedConfig, err := tx.EncryptionStrategy().Decrypt(configBlob.String, noncense)
+			if err != nil {
+				return nil, err
+			}
+
+			err = json.Unmarshal(decryptedConfig, &r.Config)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			r.Config = atc.ResourceConfig{}
+		}
+
+		r.ResourceConfigID, _ = rcID.Value()
+		r.ResourceConfigScopeID, _ = rcScopeID.Value()
+		resources[name] = r
+	}
+
+	return resources, nil
+}
+
+func resetResourcePins(tx Tx, resourceIDs []int, resourcesToPin map[string][]byte, resourceNameToID map[string]int) error {
+	ids := []string{}
+	for _, resourceID := range resourceIDs {
+		ids = append(ids, strconv.Itoa(resourceID))
+	}
+	_, err := psql.Delete("resource_pins").
+		Where(sq.Eq{"config": true}).
+		Where(sq.Expr(`resource_id IN (` + strings.Join(ids, ",") + `)`)).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
+	}
+	if len(resourcesToPin) > 0 {
+		pinQuery := psql.Insert("resource_pins").
+			Columns("resource_id", "version", "comment_text", "config").
+			Suffix("ON CONFLICT (resource_id) DO UPDATE SET version = EXCLUDED.version, comment_text = EXCLUDED.comment_text, config = true")
+
+		for resource, version := range resourcesToPin {
+			pinQuery = pinQuery.Values(resourceNameToID[resource], version, "", true)
+		}
+
+		_, err = pinQuery.RunWith(tx).Exec()
+		return err
+	}
+	return nil
 }
 
 func saveResourceTypes(tx Tx, resourceTypes atc.ResourceTypes, pipelineID int) error {
