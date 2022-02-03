@@ -30,6 +30,10 @@ func (f *taskCacheLifecycle) CleanUpInvalidTaskCaches() ([]int, error) {
 				sq.Expr("p.paused"),
 				sq.Expr("j.next_build_id IS NULL"),
 			},
+			sq.And{
+				sq.Expr("j.paused"),
+				sq.Expr("j.next_build_id IS NULL"),
+			},
 		}).
 		ToSql()
 	if err != nil {
