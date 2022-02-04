@@ -16,6 +16,7 @@ import (
 	"github.com/lib/pq"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db/encryption"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/event"
 )
@@ -1529,10 +1530,19 @@ func saveResources(tx Tx, resources atc.ResourceConfigs, pipelineID int) (map[st
 		values := []interface{}{resource.Name, pipelineID, encryptedPayload, true, nonce, resource.Type}
 
 		existing, exists := existingResources[resource.Name]
-		if !exists || (mapHash(resource.Source) != mapHash(existing.Config.Source) || resource.Type != existing.Type) {
+
+		if !exists {
 			values = append(values, nil, nil)
 		} else {
-			values = append(values, existing.ResourceConfigID, existing.ResourceConfigScopeID)
+			configsDiffer, err := configsDifferent(resource, encryptedPayload, existing, es)
+			if err != nil {
+				return nil, err
+			}
+			if configsDiffer || resource.Type != existing.Type {
+				values = append(values, nil, nil)
+			} else {
+				values = append(values, existing.ResourceConfigID, existing.ResourceConfigScopeID)
+			}
 		}
 
 		if resource.Version != nil {
@@ -1574,15 +1584,13 @@ func saveResources(tx Tx, resources atc.ResourceConfigs, pipelineID int) (map[st
 
 type existingResource struct {
 	Type                  string
-	Config                atc.ResourceConfig
+	ConfigBlob            string
+	Nonce                 *string
 	ResourceConfigID      interface{}
 	ResourceConfigScopeID interface{}
 }
 
 func existingResources(tx Tx, pipelineID int) (map[string]existingResource, error) {
-	var configBlob, nonce sql.NullString
-	var rcID, rcScopeID sql.NullInt64
-
 	rows, err := psql.Select("name", "config", "type", "nonce", "resource_config_id", "resource_config_scope_id").
 		From("resources").
 		Where(sq.Eq{"pipeline_id": pipelineID}).
@@ -1596,6 +1604,8 @@ func existingResources(tx Tx, pipelineID int) (map[string]existingResource, erro
 	resources := map[string]existingResource{}
 
 	for rows.Next() {
+		var configBlob, nonce sql.NullString
+		var rcID, rcScopeID sql.NullInt64
 		var name string
 		r := &existingResource{}
 		err = rows.Scan(&name, &configBlob, &r.Type, &nonce, &rcID, &rcScopeID)
@@ -1603,31 +1613,41 @@ func existingResources(tx Tx, pipelineID int) (map[string]existingResource, erro
 			return nil, err
 		}
 
-		var noncense *string
 		if nonce.Valid {
-			noncense = &nonce.String
+			r.Nonce = &nonce.String
 		}
 
 		if configBlob.Valid {
-			decryptedConfig, err := tx.EncryptionStrategy().Decrypt(configBlob.String, noncense)
-			if err != nil {
-				return nil, err
-			}
-
-			err = json.Unmarshal(decryptedConfig, &r.Config)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			r.Config = atc.ResourceConfig{}
+			r.ConfigBlob = configBlob.String
 		}
 
 		r.ResourceConfigID, _ = rcID.Value()
 		r.ResourceConfigScopeID, _ = rcScopeID.Value()
-		resources[name] = r
+		resources[name] = *r
 	}
 
 	return resources, nil
+}
+
+func configsDifferent(resourceConfig atc.ResourceConfig, encryptedBlob string, existing existingResource, es encryption.Strategy) (bool, error) {
+	if encryptedBlob == existing.ConfigBlob {
+		return false, nil
+	}
+
+	decryptedConfig, err := es.Decrypt(existing.ConfigBlob, existing.Nonce)
+	if err != nil {
+		return false, err
+	}
+
+	existingConfig := atc.ResourceConfig{}
+	if string(decryptedConfig) != "" {
+		err = json.Unmarshal(decryptedConfig, &existingConfig)
+		if err != nil {
+			return false, err
+		}
+	}
+
+	return mapHash(resourceConfig.Source) != mapHash(existingConfig.Source), nil
 }
 
 func resetResourcePins(tx Tx, resourceIDs []int, resourcesToPin map[string][]byte, resourceNameToID map[string]int) error {
