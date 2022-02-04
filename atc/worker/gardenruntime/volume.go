@@ -33,6 +33,10 @@ func (v Volume) Handle() string {
 	return v.bcVolume.Handle()
 }
 
+func (v Volume) Source() string {
+	return v.dbVolume.WorkerName()
+}
+
 func (v Volume) Path() string {
 	return v.bcVolume.Path()
 }

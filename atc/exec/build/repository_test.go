@@ -18,6 +18,14 @@ func (a Artifact) StreamOut(_ context.Context, _ string, _ compression.Compressi
 	panic("unimplemented")
 }
 
+func (a Artifact) Handle() string {
+	panic("unimplemented")
+}
+
+func (a Artifact) Source() string {
+	panic("unimplemented")
+}
+
 var _ = Describe("ArtifactRepository", func() {
 	var (
 		repo *Repository

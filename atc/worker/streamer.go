@@ -39,13 +39,10 @@ func NewStreamer(cacheFactory db.ResourceCacheFactory, compression compression.C
 
 func (s Streamer) Stream(ctx context.Context, src runtime.Artifact, dst runtime.Volume) error {
 	loggerData := lager.Data{
-		"to":        dst.DBVolume().WorkerName(),
-		"to-handle": dst.Handle(),
-	}
-	srcVolume, isSrcVolume := src.(runtime.Volume)
-	if isSrcVolume {
-		loggerData["from"] = srcVolume.DBVolume().WorkerName()
-		loggerData["from-handle"] = srcVolume.Handle()
+		"to":          dst.DBVolume().WorkerName(),
+		"to-handle":   dst.Handle(),
+		"from":        src.Source(),
+		"from-handle": src.Handle(),
 	}
 	logger := lagerctx.FromContext(ctx).Session("stream", loggerData)
 	logger.Info("start")
@@ -56,6 +53,7 @@ func (s Streamer) Stream(ctx context.Context, src runtime.Artifact, dst runtime.
 		return err
 	}
 
+	srcVolume, isSrcVolume := src.(runtime.Volume)
 	if !isSrcVolume {
 		return nil
 	}

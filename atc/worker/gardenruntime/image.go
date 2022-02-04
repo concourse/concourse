@@ -132,10 +132,7 @@ func (worker *Worker) imageProvidedByPreviousStepOnDifferentWorker(
 		return FetchedImage{}, err
 	}
 
-	srcVolume, isSrcVolume := artifact.(runtime.Volume)
-	if isSrcVolume {
-		delegate.StreamingVolume(logger, "for image", srcVolume.DBVolume().WorkerName(), streamedVolume.DBVolume().WorkerName())
-	}
+	delegate.StreamingVolume(logger, "for image", artifact.Source(), streamedVolume.DBVolume().WorkerName())
 
 	if err := worker.streamer.Stream(ctx, artifact, streamedVolume); err != nil {
 		logger.Error("failed-to-stream-image-artifact", err)

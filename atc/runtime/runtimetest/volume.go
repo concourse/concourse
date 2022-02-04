@@ -50,6 +50,10 @@ func (v Volume) Handle() string {
 	return v.VolumeHandle
 }
 
+func (v Volume) Source() string {
+	return fmt.Sprintf("%s-worker", v.Handle())
+}
+
 func (v Volume) StreamIn(ctx context.Context, path string, compression compression.Compression, reader io.Reader) error {
 	return v.Content.StreamIn(ctx, path, compression.Encoding(), reader)
 }

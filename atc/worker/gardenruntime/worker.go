@@ -517,11 +517,8 @@ func (worker *Worker) streamRemoteInputVolumes(
 			mountPath: input.mountPath,
 		}
 
-		srcVolume, isSrcVolume := input.volume.(runtime.Volume)
-		if isSrcVolume {
-			_, inputPath := path.Split(input.mountPath)
-			delegate.StreamingVolume(logger, inputPath, srcVolume.DBVolume().WorkerName(), streamedVolume.DBVolume().WorkerName())
-		}
+		_, inputPath := path.Split(input.mountPath)
+		delegate.StreamingVolume(logger, inputPath, input.volume.Source(), streamedVolume.DBVolume().WorkerName())
 
 		g.Go(func() error {
 			return worker.streamer.Stream(groupCtx, input.volume, streamedVolume)
