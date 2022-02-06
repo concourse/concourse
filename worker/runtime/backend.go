@@ -9,10 +9,14 @@ import (
 	"context"
 	"fmt"
 	"time"
+	"encoding/json"
+	"io/ioutil"
+
 
 	"code.cloudfoundry.org/garden"
 	"github.com/concourse/concourse/worker/runtime/libcontainerd"
 	bespec "github.com/concourse/concourse/worker/runtime/spec"
+	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/containerd/containerd"
 	"github.com/containerd/containerd/cio"
 	"github.com/containerd/containerd/errdefs"
@@ -25,12 +29,14 @@ var _ garden.Backend = (*GardenBackend)(nil)
 // GardenBackend implements a Garden backend backed by `containerd`.
 //
 type GardenBackend struct {
-	client        libcontainerd.Client
-	killer        Killer
-	network       Network
-	rootfsManager RootfsManager
-	userNamespace UserNamespace
-	initBinPath   string
+	client         libcontainerd.Client
+	killer         Killer
+	network        Network
+	rootfsManager  RootfsManager
+	userNamespace  UserNamespace
+	initBinPath    string
+	seccompProfilePath string
+	seccompProfile specs.LinuxSeccomp
 
 	maxContainers  int
 	requestTimeout time.Duration
@@ -102,6 +108,12 @@ func WithInitBinPath(initBinPath string) GardenBackendOpt {
 	}
 }
 
+func WithSeccompProfilePath(seccompProfilePath string) GardenBackendOpt {
+	return func(b *GardenBackend) {
+		b.seccompProfilePath = seccompProfilePath
+	}
+}
+
 // NewGardenBackend instantiates a GardenBackend with tweakable configurations passed as Config.
 //
 func NewGardenBackend(client libcontainerd.Client, opts ...GardenBackendOpt) (b GardenBackend, err error) {
@@ -129,6 +141,16 @@ func NewGardenBackend(client libcontainerd.Client, opts ...GardenBackendOpt) (b 
 			return b, fmt.Errorf("network init: %w", err)
 		}
 	}
+
+	var defaultProfile = bespec.GetDefaultSeccompProfile();
+	if b.seccompProfilePath != "" {
+		var seccompJsonContent, err = ioutil.ReadFile(b.seccompProfilePath)
+		if err != nil {
+			return b, fmt.Errorf("seccomp file: %w", err)
+		}
+		json.Unmarshal(seccompJsonContent, &defaultProfile)
+	}
+	b.seccompProfile = defaultProfile
 
 	if b.killer == nil {
 		b.killer = NewKiller()
@@ -230,7 +252,7 @@ func (b *GardenBackend) createContainer(ctx context.Context, gdnSpec garden.Cont
 		return nil, fmt.Errorf("getting uid and gid maps: %w", err)
 	}
 
-	oci, err := bespec.OciSpec(b.initBinPath, gdnSpec, maxUid, maxGid)
+	oci, err := bespec.OciSpec(b.initBinPath, b.seccompProfile, gdnSpec, maxUid, maxGid)
 	if err != nil {
 		return nil, fmt.Errorf("garden spec to oci spec: %w", err)
 	}

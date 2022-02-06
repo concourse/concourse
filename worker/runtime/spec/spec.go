@@ -27,7 +27,7 @@ func swapLimitEnabled() bool {
 
 // OciSpec converts a given `garden` container specification to an OCI spec.
 //
-func OciSpec(initBinPath string, gdn garden.ContainerSpec, maxUid, maxGid uint32) (oci *specs.Spec, err error) {
+func OciSpec(initBinPath string, seccomp specs.LinuxSeccomp, gdn garden.ContainerSpec, maxUid, maxGid uint32) (oci *specs.Spec, err error) {
 	if gdn.Handle == "" {
 		err = fmt.Errorf("handle must be specified")
 		return
@@ -53,7 +53,7 @@ func OciSpec(initBinPath string, gdn garden.ContainerSpec, maxUid, maxGid uint32
 	cgroupsPath := OciCgroupsPath(baseCgroupsPath, gdn.Handle, gdn.Privileged)
 
 	oci = merge(
-		defaultGardenOciSpec(initBinPath, gdn.Privileged, maxUid, maxGid),
+		defaultGardenOciSpec(initBinPath, seccomp, gdn.Privileged, maxUid, maxGid),
 		&specs.Spec{
 			Version:  specs.Version,
 			Hostname: gdn.Handle,
@@ -192,7 +192,7 @@ func OciCgroupsPath(basePath, handle string, privileged bool) string {
 // ps.: this spec is NOT completed - it must be merged with more properties to
 // form a properly working container.
 //
-func defaultGardenOciSpec(initBinPath string, privileged bool, maxUid, maxGid uint32) *specs.Spec {
+func defaultGardenOciSpec(initBinPath string, seccomp specs.LinuxSeccomp, privileged bool, maxUid, maxGid uint32) *specs.Spec {
 	var (
 		namespaces   = OciNamespaces(privileged)
 		capabilities = OciCapabilities(privileged)
@@ -217,7 +217,7 @@ func defaultGardenOciSpec(initBinPath string, privileged bool, maxUid, maxGid ui
 	}
 
 	if !privileged {
-		spec.Linux.Seccomp = seccomp
+		spec.Linux.Seccomp = &seccomp
 	}
 
 	return spec
