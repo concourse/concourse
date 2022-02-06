@@ -125,7 +125,7 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 	interval := d.plan.Interval.Interval
 
 	var lock lock.Lock = lock.NoopLock{}
-	if d.plan.IsPeriodic() {
+	if d.build.Name() == db.CheckBuildName {
 		for {
 			run, err := d.shouldPeriodicCheckRun(scope, interval)
 			if err != nil {

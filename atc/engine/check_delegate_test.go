@@ -381,6 +381,7 @@ var _ = Describe("CheckDelegate", func() {
 
 		Context("when not running for a resource", func() {
 			BeforeEach(func() {
+				fakeBuild.NameReturns("1")
 				plan.Check.Resource = ""
 			})
 

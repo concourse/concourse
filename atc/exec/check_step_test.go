@@ -462,6 +462,7 @@ var _ = Describe("CheckStep", func() {
 				Context("when the plan is nested", func() {
 					BeforeEach(func() {
 						checkPlan.Resource = ""
+						checkPlan.ResourceType = "some-resource-type"
 
 						expectedOwner = db.NewBuildStepContainerOwner(
 							501,
@@ -485,8 +486,8 @@ var _ = Describe("CheckStep", func() {
 						fakePool.FindOrSelectWorkerReturns(chosenWorker, nil)
 					})
 
-					It("not points the resource or resource type to the scope", func() {
-						Expect(fakeDelegate.PointToCheckedConfigCallCount()).To(Equal(0))
+					It("points the resource type to the scope", func() {
+						Expect(fakeDelegate.PointToCheckedConfigCallCount()).To(Equal(1))
 					})
 
 					It("uses delegate's container owner", func() {
