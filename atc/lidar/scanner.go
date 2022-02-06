@@ -4,6 +4,7 @@ import (
 	"context"
 	"strconv"
 	"sync"
+	"time"
 
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
@@ -54,7 +55,24 @@ func (s *scanner) Run(ctx context.Context) error {
 func (s *scanner) scanResources(ctx context.Context, resources []db.Resource, resourceTypesMap map[int]db.ResourceTypes) {
 	logger := lagerctx.FromContext(ctx)
 	waitGroup := new(sync.WaitGroup)
+
+	now := time.Now()
 	for _, resource := range resources {
+		if resource.CheckEvery() != nil && resource.CheckEvery().Never {
+			return
+		}
+
+		checkInterval := atc.DefaultCheckInterval
+		if resource.CheckEvery() != nil {
+			checkInterval = resource.CheckEvery().Interval
+		}
+
+		if !resource.LastCheckEndTime().IsZero() &&
+			resource.LastUpdatedTime().Before(resource.LastCheckStartTime()) &&
+			resource.LastCheckEndTime().Add(checkInterval).After(now) {
+			continue
+		}
+
 		waitGroup.Add(1)
 
 		resourceTypes := resourceTypesMap[resource.PipelineID()]
@@ -86,10 +104,6 @@ func (s *scanner) check(ctx context.Context, checkable db.Checkable, resourceTyp
 	defer span.End()
 
 	version := checkable.CurrentPinnedVersion()
-
-	if checkable.CheckEvery() != nil && checkable.CheckEvery().Never {
-		return
-	}
 
 	_, created, err := s.checkFactory.TryCreateCheck(lagerctx.NewContext(spanCtx, logger), checkable, resourceTypes, version, false, false, false)
 	if err != nil {
