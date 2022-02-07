@@ -9,10 +9,12 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/metric"
@@ -22,6 +24,8 @@ import (
 	"github.com/concourse/concourse/worker/baggageclaim"
 	"golang.org/x/sync/errgroup"
 )
+
+var WaitingForStreamedVolumePollingInterval = 5 * time.Second
 
 type Streamer interface {
 	Stream(ctx context.Context, src runtime.Artifact, dst runtime.Volume) error
@@ -382,11 +386,6 @@ type mountableLocalInput struct {
 	mountPath string
 }
 
-type remoteInput struct {
-	volume    runtime.Artifact
-	mountPath string
-}
-
 func (worker *Worker) cloneInputVolumes(
 	ctx context.Context,
 	spec runtime.ContainerSpec,
@@ -394,43 +393,35 @@ func (worker *Worker) cloneInputVolumes(
 	container db.CreatingContainer,
 	delegate runtime.BuildStepDelegate,
 ) ([]runtime.VolumeMount, map[string]bool, error) {
+
 	inputDestinationPaths := make(map[string]bool)
+	localInputs := make([]mountableLocalInput, len(spec.Inputs))
+	g, groupCtx := errgroup.WithContext(ctx)
 
-	var localInputs []mountableLocalInput
-	var remoteInputs []remoteInput
+	ctx, span := tracing.StartSpan(ctx, "worker.cloneInputVolumes", tracing.Attrs{"container_id": container.Handle()})
+	defer span.End()
 
-	for _, input := range spec.Inputs {
-		volume, ok, err := worker.findVolumeForArtifact(ctx, spec.TeamID, input.Artifact)
-		if err != nil {
-			return nil, nil, err
-		}
+	for i, input := range spec.Inputs {
+		i, input := i, input // keep a local copy for the goroutine
 
 		cleanedInputPath := filepath.Clean(input.DestinationPath)
 		inputDestinationPaths[cleanedInputPath] = true
 
-		if ok && volume.DBVolume().WorkerName() == worker.Name() {
-			localInputs = append(localInputs, mountableLocalInput{
-				cowParent: volume.(Volume),
+		g.Go(func() error {
+			v, err := worker.findOrStreamVolume(groupCtx, privileged, spec.TeamID, container, input.Artifact, input.DestinationPath, delegate)
+			if err != nil {
+				return err
+			}
+			localInputs[i] = mountableLocalInput{
+				cowParent: v,
 				mountPath: input.DestinationPath,
-			})
-		} else {
-			remoteInputs = append(remoteInputs, remoteInput{
-				volume:    input.Artifact,
-				mountPath: input.DestinationPath,
-			})
-		}
+			}
+			return nil
+		})
 	}
-
-	locallyClonedVolumes, err := worker.streamRemoteInputVolumes(ctx, spec, privileged, container, remoteInputs, delegate)
-	if err != nil {
+	if err := g.Wait(); err != nil {
 		return nil, nil, err
 	}
-	// after we stream the remote volumes, they become "local" inputs. note
-	// that we can't mount the streamed volumes directly, since those streamed
-	// volumes may be cached locally - if we were to mount the raw volume and
-	// if the container modifies the volume in any way, it'd affect subsequent
-	// steps.
-	localInputs = append(localInputs, locallyClonedVolumes...)
 
 	mounts, err := worker.cloneLocalInputVolumes(ctx, spec, privileged, container, localInputs)
 	if err != nil {
@@ -466,70 +457,6 @@ func (worker *Worker) cloneLocalInputVolumes(
 			MountPath: input.mountPath,
 		}
 	}
-
-	return mounts, nil
-}
-
-func (worker *Worker) streamRemoteInputVolumes(
-	ctx context.Context,
-	spec runtime.ContainerSpec,
-	privileged bool,
-	container db.CreatingContainer,
-	inputs []remoteInput,
-	delegate runtime.BuildStepDelegate,
-) ([]mountableLocalInput, error) {
-	logger := lagerctx.FromContext(ctx)
-	if len(inputs) == 0 {
-		return nil, nil
-	}
-	mounts := make([]mountableLocalInput, len(inputs))
-
-	ctx, span := tracing.StartSpan(ctx, "worker.streamRemoteInputVolumes", tracing.Attrs{"container_id": container.Handle()})
-	defer span.End()
-
-	g, groupCtx := errgroup.WithContext(ctx)
-
-	for i, input := range inputs {
-		// capture loop vars so each goroutine gets its own copy
-		i, input := i, input
-
-		// create an empty volume to stream-in the remote volume. this volume
-		// will only be used as a parent volume (i.e. it won't be directly
-		// mounted to a container) - this is because it may be saved as a
-		// resource cache.
-		//
-		// we use a unique mount path used as a search criteria in
-		// findOrCreateVolumeForContainer so we can distinguish between
-		// streamed-in volumes and mounted volumes.
-		streamedVolume, err := worker.findOrCreateVolumeForStreaming(
-			ctx,
-			privileged,
-			container,
-			spec.TeamID,
-			input.mountPath,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		mounts[i] = mountableLocalInput{
-			cowParent: streamedVolume,
-			mountPath: input.mountPath,
-		}
-
-		_, inputPath := path.Split(input.mountPath)
-		delegate.StreamingVolume(logger, inputPath, input.volume.Source(), streamedVolume.DBVolume().WorkerName())
-
-		g.Go(func() error {
-			return worker.streamer.Stream(groupCtx, input.volume, streamedVolume)
-		})
-	}
-
-	if err := g.Wait(); err != nil {
-		return nil, err
-	}
-
-	logger.Debug("streamed-non-local-volumes", lager.Data{"volumes-streamed": len(inputs)})
 
 	return mounts, nil
 }
@@ -712,4 +639,90 @@ func (worker *Worker) GardenClient() gclient.Client {
 }
 func (worker *Worker) BaggageclaimClient() baggageclaim.Client {
 	return worker.bcClient
+}
+
+func (worker *Worker) acquireVolumeStreamingLock(
+	ctx context.Context,
+	volume string,
+	destination string,
+) (lock.Lock, bool, error) {
+	// if caching of streamed volumes is not enabled then we should not globally
+	// lock the volume streaming since steps cannot share the streamed volumes as caches
+	if !atc.EnableCacheStreamedVolumes {
+		return lock.NoopLock{}, true, nil
+	}
+
+	logger := lagerctx.FromContext(ctx)
+	return worker.db.LockFactory.Acquire(logger, lock.NewVolumeStreamingLockID(volume, destination))
+}
+
+func (worker *Worker) findOrStreamVolume(
+	ctx context.Context,
+	privileged bool,
+	teamID int,
+	container db.CreatingContainer,
+	artifact runtime.Artifact,
+	mountPath string,
+	delegate runtime.BuildStepDelegate,
+) (Volume, error) {
+	logger := lagerctx.FromContext(ctx)
+	var tick *time.Ticker
+
+	_, inputPath := path.Split(mountPath)
+	if inputPath == "" {
+		inputPath = "for image"
+	}
+
+	for {
+		localVolume, ok, err := worker.findVolumeForArtifact(ctx, teamID, artifact)
+		if err != nil {
+			logger.Error("failed-to-find-volume-for-artifact", err)
+			return Volume{}, err
+		}
+		if ok && localVolume.DBVolume().WorkerName() == worker.Name() {
+			volume := localVolume.(Volume)
+			return volume, nil
+		}
+
+		lock, acquired, err := worker.acquireVolumeStreamingLock(ctx, artifact.Handle(), container.WorkerName())
+		if err != nil {
+			logger.Error("failed-to-acquire-lock-for-volume-streaming", err)
+			return Volume{}, err
+		}
+
+		if acquired {
+			defer lock.Release()
+
+			streamedVolume, err := worker.findOrCreateVolumeForStreaming(
+				ctx,
+				privileged,
+				container,
+				teamID,
+				mountPath,
+			)
+			if err != nil {
+				logger.Error("failed-to-create-volume-for-streaming", err)
+				return Volume{}, err
+			}
+
+			delegate.StreamingVolume(logger, inputPath, artifact.Source(), streamedVolume.DBVolume().WorkerName())
+			if err := worker.streamer.Stream(ctx, artifact, streamedVolume); err != nil {
+				logger.Error("failed-to-stream-artifact", err)
+				return Volume{}, err
+			}
+			logger.Debug("streamed-non-local-volume")
+			return streamedVolume, nil
+		}
+
+		if tick == nil {
+			tick = time.NewTicker(WaitingForStreamedVolumePollingInterval)
+			defer tick.Stop()
+		}
+		select {
+		case <-ctx.Done():
+			return Volume{}, ctx.Err()
+		case <-tick.C:
+			continue
+		}
+	}
 }
