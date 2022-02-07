@@ -150,6 +150,7 @@ var _ = Describe("Resource", func() {
 				Expect(scenario.Resource("some-resource").Name()).To(Equal("some-resource"))
 				Expect(scenario.Resource("some-resource").Type()).To(Equal("some-base-resource-type"))
 				Expect(scenario.Resource("some-resource").Source()).To(Equal(atc.Source{"some": "repository"}))
+				Expect(scenario.Resource("some-resource").LastUpdatedTime()).To(Equal(scenario.Pipeline.LastUpdated()))
 			})
 
 			Context("when the resource has check build", func() {

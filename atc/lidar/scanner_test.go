@@ -3,6 +3,7 @@ package lidar_test
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -171,6 +172,22 @@ var _ = Describe("Scanner", func() {
 						Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1),
 							"one check created for the unrelated fakeResource")
 					})
+				})
+			})
+
+			Context("when resource doesn't reach to next check time", func(){
+				BeforeEach(func(){
+					now := time.Now()
+					fakeResource.LastUpdatedTimeReturns(now.Add(-10*time.Second))
+					fakeResource.LastCheckStartTimeReturns(now.Add(-5*time.Second))
+					fakeResource.LastCheckEndTimeReturns(now.Add(-4*time.Second))
+					fakeResource.CheckEveryReturns(&atc.CheckEvery{
+						Interval: time.Minute,
+					})
+				})
+
+				It("does not create check", func() {
+					Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(0))
 				})
 			})
 		})
