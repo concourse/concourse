@@ -605,6 +605,13 @@ var _ = Describe("Garden Worker", func() {
 					Expect(streamedSrc).To(Equal("worker2"))
 					Expect(streamedDest).To(Equal("worker1"))
 				})
+
+				By("validating a waiting-for-streamed-volume event is emitted", func() {
+					Expect(delegate.WaitingForStreamedVolumeCallCount()).To(Equal(1))
+					_, waitingVolume, waitingDest := delegate.WaitingForStreamedVolumeArgsForCall(0)
+					Expect(waitingVolume).To(Equal("for image"))
+					Expect(waitingDest).To(Equal("worker1"))
+				})
 			})
 		})
 
@@ -844,6 +851,13 @@ var _ = Describe("Garden Worker", func() {
 					Expect(streamedVolume).To(Equal("remote-input"))
 					Expect(streamedSrc).To(Equal("worker2"))
 					Expect(streamedDest).To(Equal("worker1"))
+				})
+
+				By("validating a waiting-for-streamed-volume event is emitted", func() {
+					Expect(delegate.WaitingForStreamedVolumeCallCount()).To(Equal(1))
+					_, waitingVolume, waitingDest := delegate.WaitingForStreamedVolumeArgsForCall(0)
+					Expect(waitingVolume).To(Equal("remote-input"))
+					Expect(waitingDest).To(Equal("worker1"))
 				})
 			})
 		})

@@ -207,6 +207,7 @@ type BuildEvent
     | WaitingForWorker Origin (Maybe Time.Posix)
     | SelectedWorker Origin String (Maybe Time.Posix)
     | StreamingVolume Origin String String (Maybe Time.Posix)
+    | WaitingForStreamedVolume Origin String (Maybe Time.Posix)
     | Error Origin String Time.Posix
     | ImageCheck Origin Concourse.BuildPlan
     | ImageGet Origin Concourse.BuildPlan

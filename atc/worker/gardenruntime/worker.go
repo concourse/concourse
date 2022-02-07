@@ -715,6 +715,7 @@ func (worker *Worker) findOrStreamVolume(
 		}
 
 		if tick == nil {
+			delegate.WaitingForStreamedVolume(logger, inputPath, container.WorkerName())
 			tick = time.NewTicker(WaitingForStreamedVolumePollingInterval)
 			defer tick.Stop()
 		}

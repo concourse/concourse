@@ -159,6 +159,13 @@ type FakeSetPipelineStepDelegate struct {
 		arg3 string
 		arg4 string
 	}
+	WaitingForStreamedVolumeStub        func(lager.Logger, string, string)
+	waitingForStreamedVolumeMutex       sync.RWMutex
+	waitingForStreamedVolumeArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 string
+		arg3 string
+	}
 	WaitingForWorkerStub        func(lager.Logger)
 	waitingForWorkerMutex       sync.RWMutex
 	waitingForWorkerArgsForCall []struct {
@@ -905,6 +912,40 @@ func (fake *FakeSetPipelineStepDelegate) StreamingVolumeArgsForCall(i int) (lage
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
+func (fake *FakeSetPipelineStepDelegate) WaitingForStreamedVolume(arg1 lager.Logger, arg2 string, arg3 string) {
+	fake.waitingForStreamedVolumeMutex.Lock()
+	fake.waitingForStreamedVolumeArgsForCall = append(fake.waitingForStreamedVolumeArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 string
+		arg3 string
+	}{arg1, arg2, arg3})
+	stub := fake.WaitingForStreamedVolumeStub
+	fake.recordInvocation("WaitingForStreamedVolume", []interface{}{arg1, arg2, arg3})
+	fake.waitingForStreamedVolumeMutex.Unlock()
+	if stub != nil {
+		fake.WaitingForStreamedVolumeStub(arg1, arg2, arg3)
+	}
+}
+
+func (fake *FakeSetPipelineStepDelegate) WaitingForStreamedVolumeCallCount() int {
+	fake.waitingForStreamedVolumeMutex.RLock()
+	defer fake.waitingForStreamedVolumeMutex.RUnlock()
+	return len(fake.waitingForStreamedVolumeArgsForCall)
+}
+
+func (fake *FakeSetPipelineStepDelegate) WaitingForStreamedVolumeCalls(stub func(lager.Logger, string, string)) {
+	fake.waitingForStreamedVolumeMutex.Lock()
+	defer fake.waitingForStreamedVolumeMutex.Unlock()
+	fake.WaitingForStreamedVolumeStub = stub
+}
+
+func (fake *FakeSetPipelineStepDelegate) WaitingForStreamedVolumeArgsForCall(i int) (lager.Logger, string, string) {
+	fake.waitingForStreamedVolumeMutex.RLock()
+	defer fake.waitingForStreamedVolumeMutex.RUnlock()
+	argsForCall := fake.waitingForStreamedVolumeArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
 func (fake *FakeSetPipelineStepDelegate) WaitingForWorker(arg1 lager.Logger) {
 	fake.waitingForWorkerMutex.Lock()
 	fake.waitingForWorkerArgsForCall = append(fake.waitingForWorkerArgsForCall, struct {
@@ -970,6 +1011,8 @@ func (fake *FakeSetPipelineStepDelegate) Invocations() map[string][][]interface{
 	defer fake.stdoutMutex.RUnlock()
 	fake.streamingVolumeMutex.RLock()
 	defer fake.streamingVolumeMutex.RUnlock()
+	fake.waitingForStreamedVolumeMutex.RLock()
+	defer fake.waitingForStreamedVolumeMutex.RUnlock()
 	fake.waitingForWorkerMutex.RLock()
 	defer fake.waitingForWorkerMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
