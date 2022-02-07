@@ -324,10 +324,6 @@ var _ = Describe("Engine", func() {
 									Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
 								})
 
-								It("closes the notifier", func() {
-									Expect(fakeNotifier.CloseCallCount()).To(Equal(1))
-								})
-
 								It("saves an error event", func() {
 									Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 									Expect(fakeBuild.SaveEventArgsForCall(0).EventType()).To(Equal(event.EventTypeError))
@@ -344,10 +340,6 @@ var _ = Describe("Engine", func() {
 								Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
 							})
 
-							It("closes the notifier", func() {
-								Expect(fakeNotifier.CloseCallCount()).To(Equal(1))
-							})
-
 							It("saves an error event", func() {
 								Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 								Expect(fakeBuild.SaveEventArgsForCall(0).EventType()).To(Equal(event.EventTypeError))
@@ -358,10 +350,6 @@ var _ = Describe("Engine", func() {
 					Context("when listening for aborts fails", func() {
 						BeforeEach(func() {
 							fakeBuild.AbortNotifierReturns(nil, errors.New("nope"))
-						})
-
-						It("does not build the step", func() {
-							Expect(fakeStepperFactory.StepperForBuildCallCount()).To(BeZero())
 						})
 
 						It("releases the lock", func() {

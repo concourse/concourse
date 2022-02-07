@@ -141,14 +141,6 @@ func (b *engineBuild) Run(ctx context.Context) {
 		return
 	}
 
-	notifier, err := b.build.AbortNotifier()
-	if err != nil {
-		logger.Error("failed-to-listen-for-aborts", err)
-		return
-	}
-
-	defer notifier.Close()
-
 	ctx, span := tracing.StartSpanFollowing(ctx, b.build, "build", b.build.TracingAttrs())
 	defer span.End()
 
@@ -182,19 +174,30 @@ func (b *engineBuild) Run(ctx context.Context) {
 	}
 	defer b.clearRunState()
 
-	ctx, cancel := context.WithCancel(ctx)
+	notifier, err := b.build.AbortNotifier()
+	if err != nil {
+		logger.Error("failed-to-listen-for-aborts", err)
+		return
+	}
 
-	noleak := make(chan bool)
-	defer close(noleak)
+	if notifier != nil {
+		defer notifier.Close()
 
-	go func() {
-		select {
-		case <-noleak:
-		case <-notifier.Notify():
-			logger.Info("aborting")
-			cancel()
-		}
-	}()
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithCancel(ctx)
+
+		noleak := make(chan bool)
+		defer close(noleak)
+
+		go func() {
+			select {
+			case <-noleak:
+			case <-notifier.Notify():
+				logger.Info("aborting")
+				cancel()
+			}
+		}()
+	}
 
 	var succeeded bool
 	var runErr error
