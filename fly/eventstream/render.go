@@ -50,7 +50,7 @@ func Render(dst io.Writer, src eventstream.EventStream, options RenderOptions) i
 
 		case event.StreamingVolume:
 			dstImpl.SetTimestamp(e.Time)
-			fmt.Fprintf(dstImpl, "\x1b[1mstreaming volume\x1b[0m %s \x1b[1mfrom\x1b[0m %s \x1b[1mto\x1b[0m %s\n", e.Volume, e.SourceWorker, e.DestWorker)
+			fmt.Fprintf(dstImpl, "\x1b[1mstreaming volume\x1b[0m %s \x1b[1mfrom worker\x1b[0m %s\n", e.Volume, e.SourceWorker)
 
 		case event.InitializeCheck:
 			dstImpl.SetTimestamp(e.Time)

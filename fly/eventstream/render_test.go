@@ -352,7 +352,7 @@ var _ = Describe("V1.0 Renderer", func() {
 		})
 
 		It("prints the event", func() {
-			Expect(out.Contents()).To(ContainSubstring("\x1b[1mstreaming volume\u001B[0m some-volume \x1b[1mfrom\u001B[0m source-worker \x1b[1mto\u001B[0m dest-worker\n"))
+			Expect(out.Contents()).To(ContainSubstring("\x1b[1mstreaming volume\u001B[0m some-volume \x1b[1mfrom worker\u001B[0m source-worker\n"))
 		})
 
 		Context("and time configuration enabled", func() {

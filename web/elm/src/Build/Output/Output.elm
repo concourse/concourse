@@ -170,8 +170,8 @@ handleEvent event ( model, effects ) =
             , effects
             )
 
-        StreamingVolume origin volume src dest time ->
-            ( updateStep origin.id (setRunning << appendStepLog ("\u{001B}[1mstreaming volume \u{001B}[0m" ++ volume ++ " \u{001B}[1mfrom\u{001B}[0m " ++ src ++ " \u{001B}[1mto\u{001B}[0m " ++ dest ++ "\n") time) model
+        StreamingVolume origin volume src time ->
+            ( updateStep origin.id (setRunning << appendStepLog ("\u{001B}[1mstreaming volume \u{001B}[0m" ++ volume ++ " \u{001B}[1mfrom\u{001B}[0m " ++ src ++ "\n") time) model
             , effects
             )
 

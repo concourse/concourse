@@ -182,7 +182,7 @@ func (d *drainer) sendEvent(logger lager.Logger, build db.Build, syslog *Syslog,
 		}
 		ts = time.Unix(streamingVolumeEvent.Time, 0)
 		tag = build.SyslogTag(streamingVolumeEvent.Origin.ID)
-		message = fmt.Sprintf("streaming volume %s from %s to %s", streamingVolumeEvent.Volume, streamingVolumeEvent.SourceWorker, streamingVolumeEvent.DestWorker)
+		message = fmt.Sprintf("streaming volume %s from worker %s", streamingVolumeEvent.Volume, streamingVolumeEvent.SourceWorker)
 	case event.EventTypeStartTask:
 		var startTaskEvent event.StartTask
 		err := json.Unmarshal(*ev.Data, &startTaskEvent)
