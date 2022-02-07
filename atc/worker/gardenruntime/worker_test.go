@@ -519,6 +519,127 @@ var _ = Describe("Garden Worker", func() {
 		})
 	})
 
+	Describe("when parallel steps require the same remote image volume", func() {
+		var (
+			delegate              *execfakes.FakeBuildStepDelegate
+			containerVolumeMounts sync.Map
+		)
+
+		JustBeforeEach(func() {
+			gardenruntime.WaitingForStreamedVolumePollingInterval = 10 * time.Millisecond
+			containerVolumeMounts = sync.Map{}
+			delegate = new(execfakes.FakeBuildStepDelegate)
+			imageVolume := grt.NewVolume("remote-image-volume").WithContent(runtimetest.VolumeContent{
+				"metadata.json": grt.ImageMetadataFile(gardenruntime.ImageMetadata{
+					Env:  []string{"FOO=bar"},
+					User: "somebody",
+				}),
+				"rootfs/other_file": {Data: []byte("some rootfs content")},
+			})
+			scenario := Setup(
+				workertest.WithWorkers(
+					grt.NewWorker("worker1"),
+					grt.NewWorker("worker2").
+						WithVolumesCreatedInDBAndBaggageclaim(
+							imageVolume,
+						),
+				),
+			)
+
+			worker := scenario.Worker("worker1")
+			done := make(chan error, 2)
+			findOrCreateContainer := func(handle string) {
+				defer GinkgoRecover()
+				_, volumeMounts, err := worker.FindOrCreateContainer(
+					ctx,
+					db.NewFixedHandleContainerOwner(handle),
+					db.ContainerMetadata{},
+					runtime.ContainerSpec{
+						ImageSpec: runtime.ImageSpec{
+							ImageArtifact: scenario.WorkerVolume("worker2", "remote-image-volume"),
+						},
+					},
+					delegate,
+				)
+				containerVolumeMounts.Store(handle, volumeMounts)
+				done <- err
+			}
+
+			By("initializing remote input as a resource cache", func() {
+				resourceCache := scenario.FindOrCreateResourceCache("worker2")
+				err := scenario.WorkerVolume("worker2", "remote-image-volume").InitializeResourceCache(ctx, resourceCache)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			By("trying to find or create two containers with the same resource in parallel", func() {
+				go findOrCreateContainer("handle-1")
+				go findOrCreateContainer("handle-2")
+				Eventually(done, 10*time.Second).Should(Receive(BeNil()))
+				Eventually(done, 10*time.Second).Should(Receive(BeNil()))
+			})
+		})
+
+		Describe("with cache streamed volumes enabled", func() {
+			BeforeEach(func() {
+				atc.EnableCacheStreamedVolumes = true
+			})
+
+			Test("volume is only streamed once", func() {
+				By("validating both volumes share a parent", func() {
+					var parents []string
+
+					for _, handle := range []string{"handle-1", "handle-2"} {
+						mount, ok := containerVolumeMounts.Load(handle)
+						Expect(ok).To(BeTrue())
+						remoteMount := volumeMount(mount.([]runtime.VolumeMount), "/").Volume.(gardenruntime.Volume)
+						Expect(remoteMount.DBVolume().WorkerName()).To(Equal("worker1"))
+						parents = append(parents, remoteMount.DBVolume().ParentHandle())
+					}
+					Expect(parents[0]).To(Equal(parents[1]))
+				})
+
+				By("validating only a single streaming-volume event is emitted", func() {
+					Expect(delegate.StreamingVolumeCallCount()).To(Equal(1))
+					_, streamedVolume, streamedSrc, streamedDest := delegate.StreamingVolumeArgsForCall(0)
+					Expect(streamedVolume).To(Equal("for image"))
+					Expect(streamedSrc).To(Equal("worker2"))
+					Expect(streamedDest).To(Equal("worker1"))
+				})
+			})
+		})
+
+		Describe("without cache streamed volumes enabled", func() {
+			BeforeEach(func() {
+				atc.EnableCacheStreamedVolumes = false
+			})
+
+			Test("volume is streamed multiple times", func() {
+				By("validating both volumes have unique parents", func() {
+					var parents []string
+
+					for _, handle := range []string{"handle-1", "handle-2"} {
+						mount, ok := containerVolumeMounts.Load(handle)
+						Expect(ok).To(BeTrue())
+						remoteMount := volumeMount(mount.([]runtime.VolumeMount), "/").Volume.(gardenruntime.Volume)
+						Expect(remoteMount.DBVolume().WorkerName()).To(Equal("worker1"))
+						parents = append(parents, remoteMount.DBVolume().ParentHandle())
+					}
+					Expect(parents[0]).ToNot(Equal(parents[1]))
+				})
+
+				By("validating 2 streaming-volume events are emitted", func() {
+					Expect(delegate.StreamingVolumeCallCount()).To(Equal(2))
+					for i := 0; i < 2; i++ {
+						_, volume, src, dest := delegate.StreamingVolumeArgsForCall(i)
+						Expect(volume).To(Equal("for image"))
+						Expect(src).To(Equal("worker2"))
+						Expect(dest).To(Equal("worker1"))
+					}
+				})
+			})
+		})
+	})
+
 	Test("image from base resource type", func() {
 		scenario := Setup(
 			workertest.WithWorkers(
