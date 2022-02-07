@@ -127,9 +127,9 @@ var jobsQuery = psql.Select(
 	"j.disable_manual_trigger",
 	"j.paused_by",
 	"j.paused_at").
-	From("jobs j, pipelines p").
-	LeftJoin("teams t ON p.team_id = t.id").
-	Where(sq.Expr("j.pipeline_id = p.id"))
+	From("jobs j").
+	LeftJoin("pipelines p ON j.pipeline_id = p.id").
+	LeftJoin("teams t ON p.team_id = t.id")
 
 type FirstLoggedBuildIDDecreasedError struct {
 	Job   string
