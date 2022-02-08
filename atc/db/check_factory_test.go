@@ -67,6 +67,7 @@ var _ = Describe("CheckFactory", func() {
 			fakeBuild.LagerDataReturns(lager.Data{})
 			fakeResource.CreateBuildReturns(fakeBuild, true, nil)
 			fakeResource.CreateInMemoryBuildReturns(fakeBuild, nil)
+			fakeResource.TimeToCheckReturns(true)
 
 			fakeResourceType = new(dbfakes.FakeResourceType)
 			fakeResourceType.NameReturns("some-type")
@@ -307,6 +308,7 @@ var _ = Describe("CheckFactory", func() {
 				fakeResourceType.CheckPlanReturns(checkPlan)
 				fakeResourceType.CreateBuildReturns(fakeBuild, true, nil)
 				fakeResourceType.CreateInMemoryBuildReturns(fakeBuild, nil)
+				manuallyTriggered = true
 			})
 
 			JustBeforeEach(func() {

@@ -303,7 +303,6 @@ var _ = Describe("Resource Config Scope", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 		It("updates last check start time", func() {
-			lastTime := scenario.Resource("some-resource").LastCheckEndTime()
 			publicPlan := atc.Plan{
 				ID: atc.PlanID("1234"),
 				Check: &atc.CheckPlan{
@@ -316,8 +315,6 @@ var _ = Describe("Resource Config Scope", func() {
 			updated, err := resourceScope.UpdateLastCheckStartTime(99, &jr)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(updated).To(BeTrue())
-
-			Expect(scenario.Resource("some-resource").LastCheckStartTime()).To(BeTemporally(">", lastTime))
 
 			buildSummary := scenario.Resource("some-resource").BuildSummary()
 			Expect(buildSummary.ID).To(Equal(99))

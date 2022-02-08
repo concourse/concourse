@@ -26,7 +26,7 @@ type Checkable interface {
 	Tags() atc.Tags
 	CheckEvery() *atc.CheckEvery
 	CheckTimeout() string
-	LastCheckEndTime() time.Time
+	TimeToCheck() bool
 	CurrentPinnedVersion() atc.Version
 
 	HasWebhook() bool
@@ -92,26 +92,14 @@ func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, 
 		}
 	}
 
-	interval := atc.CheckEvery{
-		Interval: atc.DefaultCheckInterval,
-	}
-
-	if checkable.HasWebhook() {
-		interval.Interval = atc.DefaultWebhookInterval
-	}
-
-	if checkable.CheckEvery() != nil {
-		interval = *checkable.CheckEvery()
-	}
-
 	skipInterval := manuallyTriggered
-	if !skipInterval && time.Now().Before(checkable.LastCheckEndTime().Add(interval.Interval)) {
+	if !skipInterval && !checkable.TimeToCheck() {
 		// skip creating the check if its interval hasn't elapsed yet
 		return nil, false, nil
 	}
 
 	deserializedResourceTypes := resourceTypes.Filter(checkable).Deserialize()
-	plan := checkable.CheckPlan(c.planFactory, deserializedResourceTypes, from, interval, sourceDefaults, skipInterval, skipIntervalRecursively)
+	plan := checkable.CheckPlan(c.planFactory, deserializedResourceTypes, from, safeCheckEvery(checkable), sourceDefaults, skipInterval, skipIntervalRecursively)
 
 	if toDB {
 		build, created, err := checkable.CreateBuild(ctx, manuallyTriggered, plan)
@@ -213,4 +201,16 @@ func (c *checkFactory) ResourceTypesByPipeline() (map[int]ResourceTypes, error) 
 	}
 
 	return resourceTypes, nil
+}
+
+func safeCheckEvery(checkable Checkable) atc.CheckEvery {
+	if checkable.CheckEvery() != nil {
+		return *checkable.CheckEvery()
+	}
+	checkInterval := atc.DefaultCheckInterval
+	if checkable.HasWebhook() {
+		checkInterval = atc.DefaultWebhookInterval
+	}
+
+	return atc.CheckEvery{Interval: checkInterval}
 }

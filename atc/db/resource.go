@@ -77,9 +77,10 @@ type Resource interface {
 	Source() atc.Source
 	CheckEvery() *atc.CheckEvery
 	CheckTimeout() string
-	LastUpdatedTime() time.Time
-	LastCheckStartTime() time.Time
+	//LastUpdatedTime() time.Time
+	//LastCheckStartTime() time.Time
 	LastCheckEndTime() time.Time
+	TimeToCheck() bool
 	Tags() atc.Tags
 	WebhookToken() string
 	Config() atc.ResourceConfig
@@ -218,8 +219,6 @@ func (r *resource) Type() string                     { return r.type_ }
 func (r *resource) Source() atc.Source               { return r.config.Source }
 func (r *resource) CheckEvery() *atc.CheckEvery      { return r.config.CheckEvery }
 func (r *resource) CheckTimeout() string             { return r.config.CheckTimeout }
-func (r *resource) LastUpdatedTime() time.Time       { return r.lastUpdatedTime }
-func (r *resource) LastCheckStartTime() time.Time    { return r.lastCheckStartTime }
 func (r *resource) LastCheckEndTime() time.Time      { return r.lastCheckEndTime }
 func (r *resource) Tags() atc.Tags                   { return r.config.Tags }
 func (r *resource) WebhookToken() string             { return r.config.WebhookToken }
@@ -230,6 +229,28 @@ func (r *resource) PinComment() string               { return r.pinComment }
 func (r *resource) ResourceConfigID() int            { return r.resourceConfigID }
 func (r *resource) ResourceConfigScopeID() int       { return r.resourceConfigScopeID }
 func (r *resource) Icon() string                     { return r.config.Icon }
+
+func (r *resource) TimeToCheck() bool {
+	checkEvery := safeCheckEvery(r)
+
+	if checkEvery.Never {
+		return false
+	}
+
+	if r.lastCheckEndTime.IsZero() {
+		return true
+	}
+
+	if r.lastUpdatedTime.After(r.lastCheckStartTime) {
+		return true
+	}
+
+	if r.lastCheckEndTime.Add(checkEvery.Interval).Before(time.Now()) {
+		return true
+	}
+
+	return false
+}
 
 func (r *resource) HasWebhook() bool { return r.WebhookToken() != "" }
 

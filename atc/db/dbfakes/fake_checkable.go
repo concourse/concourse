@@ -4,7 +4,6 @@ package dbfakes
 import (
 	"context"
 	"sync"
-	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -100,16 +99,6 @@ type FakeCheckable struct {
 	}
 	hasWebhookReturnsOnCall map[int]struct {
 		result1 bool
-	}
-	LastCheckEndTimeStub        func() time.Time
-	lastCheckEndTimeMutex       sync.RWMutex
-	lastCheckEndTimeArgsForCall []struct {
-	}
-	lastCheckEndTimeReturns struct {
-		result1 time.Time
-	}
-	lastCheckEndTimeReturnsOnCall map[int]struct {
-		result1 time.Time
 	}
 	NameStub        func() string
 	nameMutex       sync.RWMutex
@@ -224,6 +213,16 @@ type FakeCheckable struct {
 	}
 	teamNameReturnsOnCall map[int]struct {
 		result1 string
+	}
+	TimeToCheckStub        func() bool
+	timeToCheckMutex       sync.RWMutex
+	timeToCheckArgsForCall []struct {
+	}
+	timeToCheckReturns struct {
+		result1 bool
+	}
+	timeToCheckReturnsOnCall map[int]struct {
+		result1 bool
 	}
 	TypeStub        func() string
 	typeMutex       sync.RWMutex
@@ -650,59 +649,6 @@ func (fake *FakeCheckable) HasWebhookReturnsOnCall(i int, result1 bool) {
 	}
 	fake.hasWebhookReturnsOnCall[i] = struct {
 		result1 bool
-	}{result1}
-}
-
-func (fake *FakeCheckable) LastCheckEndTime() time.Time {
-	fake.lastCheckEndTimeMutex.Lock()
-	ret, specificReturn := fake.lastCheckEndTimeReturnsOnCall[len(fake.lastCheckEndTimeArgsForCall)]
-	fake.lastCheckEndTimeArgsForCall = append(fake.lastCheckEndTimeArgsForCall, struct {
-	}{})
-	stub := fake.LastCheckEndTimeStub
-	fakeReturns := fake.lastCheckEndTimeReturns
-	fake.recordInvocation("LastCheckEndTime", []interface{}{})
-	fake.lastCheckEndTimeMutex.Unlock()
-	if stub != nil {
-		return stub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fakeReturns.result1
-}
-
-func (fake *FakeCheckable) LastCheckEndTimeCallCount() int {
-	fake.lastCheckEndTimeMutex.RLock()
-	defer fake.lastCheckEndTimeMutex.RUnlock()
-	return len(fake.lastCheckEndTimeArgsForCall)
-}
-
-func (fake *FakeCheckable) LastCheckEndTimeCalls(stub func() time.Time) {
-	fake.lastCheckEndTimeMutex.Lock()
-	defer fake.lastCheckEndTimeMutex.Unlock()
-	fake.LastCheckEndTimeStub = stub
-}
-
-func (fake *FakeCheckable) LastCheckEndTimeReturns(result1 time.Time) {
-	fake.lastCheckEndTimeMutex.Lock()
-	defer fake.lastCheckEndTimeMutex.Unlock()
-	fake.LastCheckEndTimeStub = nil
-	fake.lastCheckEndTimeReturns = struct {
-		result1 time.Time
-	}{result1}
-}
-
-func (fake *FakeCheckable) LastCheckEndTimeReturnsOnCall(i int, result1 time.Time) {
-	fake.lastCheckEndTimeMutex.Lock()
-	defer fake.lastCheckEndTimeMutex.Unlock()
-	fake.LastCheckEndTimeStub = nil
-	if fake.lastCheckEndTimeReturnsOnCall == nil {
-		fake.lastCheckEndTimeReturnsOnCall = make(map[int]struct {
-			result1 time.Time
-		})
-	}
-	fake.lastCheckEndTimeReturnsOnCall[i] = struct {
-		result1 time.Time
 	}{result1}
 }
 
@@ -1295,6 +1241,59 @@ func (fake *FakeCheckable) TeamNameReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
+func (fake *FakeCheckable) TimeToCheck() bool {
+	fake.timeToCheckMutex.Lock()
+	ret, specificReturn := fake.timeToCheckReturnsOnCall[len(fake.timeToCheckArgsForCall)]
+	fake.timeToCheckArgsForCall = append(fake.timeToCheckArgsForCall, struct {
+	}{})
+	stub := fake.TimeToCheckStub
+	fakeReturns := fake.timeToCheckReturns
+	fake.recordInvocation("TimeToCheck", []interface{}{})
+	fake.timeToCheckMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeCheckable) TimeToCheckCallCount() int {
+	fake.timeToCheckMutex.RLock()
+	defer fake.timeToCheckMutex.RUnlock()
+	return len(fake.timeToCheckArgsForCall)
+}
+
+func (fake *FakeCheckable) TimeToCheckCalls(stub func() bool) {
+	fake.timeToCheckMutex.Lock()
+	defer fake.timeToCheckMutex.Unlock()
+	fake.TimeToCheckStub = stub
+}
+
+func (fake *FakeCheckable) TimeToCheckReturns(result1 bool) {
+	fake.timeToCheckMutex.Lock()
+	defer fake.timeToCheckMutex.Unlock()
+	fake.TimeToCheckStub = nil
+	fake.timeToCheckReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeCheckable) TimeToCheckReturnsOnCall(i int, result1 bool) {
+	fake.timeToCheckMutex.Lock()
+	defer fake.timeToCheckMutex.Unlock()
+	fake.TimeToCheckStub = nil
+	if fake.timeToCheckReturnsOnCall == nil {
+		fake.timeToCheckReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.timeToCheckReturnsOnCall[i] = struct {
+		result1 bool
+	}{result1}
+}
+
 func (fake *FakeCheckable) Type() string {
 	fake.typeMutex.Lock()
 	ret, specificReturn := fake.typeReturnsOnCall[len(fake.typeArgsForCall)]
@@ -1365,8 +1364,6 @@ func (fake *FakeCheckable) Invocations() map[string][][]interface{} {
 	defer fake.currentPinnedVersionMutex.RUnlock()
 	fake.hasWebhookMutex.RLock()
 	defer fake.hasWebhookMutex.RUnlock()
-	fake.lastCheckEndTimeMutex.RLock()
-	defer fake.lastCheckEndTimeMutex.RUnlock()
 	fake.nameMutex.RLock()
 	defer fake.nameMutex.RUnlock()
 	fake.pipelineMutex.RLock()
@@ -1389,6 +1386,8 @@ func (fake *FakeCheckable) Invocations() map[string][][]interface{} {
 	defer fake.teamIDMutex.RUnlock()
 	fake.teamNameMutex.RLock()
 	defer fake.teamNameMutex.RUnlock()
+	fake.timeToCheckMutex.RLock()
+	defer fake.timeToCheckMutex.RUnlock()
 	fake.typeMutex.RLock()
 	defer fake.typeMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

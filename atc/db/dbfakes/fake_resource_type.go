@@ -4,7 +4,6 @@ package dbfakes
 import (
 	"context"
 	"sync"
-	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -120,26 +119,6 @@ type FakeResourceType struct {
 	}
 	iDReturnsOnCall map[int]struct {
 		result1 int
-	}
-	LastCheckEndTimeStub        func() time.Time
-	lastCheckEndTimeMutex       sync.RWMutex
-	lastCheckEndTimeArgsForCall []struct {
-	}
-	lastCheckEndTimeReturns struct {
-		result1 time.Time
-	}
-	lastCheckEndTimeReturnsOnCall map[int]struct {
-		result1 time.Time
-	}
-	LastCheckStartTimeStub        func() time.Time
-	lastCheckStartTimeMutex       sync.RWMutex
-	lastCheckStartTimeArgsForCall []struct {
-	}
-	lastCheckStartTimeReturns struct {
-		result1 time.Time
-	}
-	lastCheckStartTimeReturnsOnCall map[int]struct {
-		result1 time.Time
 	}
 	NameStub        func() string
 	nameMutex       sync.RWMutex
@@ -307,6 +286,16 @@ type FakeResourceType struct {
 	}
 	teamNameReturnsOnCall map[int]struct {
 		result1 string
+	}
+	TimeToCheckStub        func() bool
+	timeToCheckMutex       sync.RWMutex
+	timeToCheckArgsForCall []struct {
+	}
+	timeToCheckReturns struct {
+		result1 bool
+	}
+	timeToCheckReturnsOnCall map[int]struct {
+		result1 bool
 	}
 	TypeStub        func() string
 	typeMutex       sync.RWMutex
@@ -839,112 +828,6 @@ func (fake *FakeResourceType) IDReturnsOnCall(i int, result1 int) {
 	}
 	fake.iDReturnsOnCall[i] = struct {
 		result1 int
-	}{result1}
-}
-
-func (fake *FakeResourceType) LastCheckEndTime() time.Time {
-	fake.lastCheckEndTimeMutex.Lock()
-	ret, specificReturn := fake.lastCheckEndTimeReturnsOnCall[len(fake.lastCheckEndTimeArgsForCall)]
-	fake.lastCheckEndTimeArgsForCall = append(fake.lastCheckEndTimeArgsForCall, struct {
-	}{})
-	stub := fake.LastCheckEndTimeStub
-	fakeReturns := fake.lastCheckEndTimeReturns
-	fake.recordInvocation("LastCheckEndTime", []interface{}{})
-	fake.lastCheckEndTimeMutex.Unlock()
-	if stub != nil {
-		return stub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fakeReturns.result1
-}
-
-func (fake *FakeResourceType) LastCheckEndTimeCallCount() int {
-	fake.lastCheckEndTimeMutex.RLock()
-	defer fake.lastCheckEndTimeMutex.RUnlock()
-	return len(fake.lastCheckEndTimeArgsForCall)
-}
-
-func (fake *FakeResourceType) LastCheckEndTimeCalls(stub func() time.Time) {
-	fake.lastCheckEndTimeMutex.Lock()
-	defer fake.lastCheckEndTimeMutex.Unlock()
-	fake.LastCheckEndTimeStub = stub
-}
-
-func (fake *FakeResourceType) LastCheckEndTimeReturns(result1 time.Time) {
-	fake.lastCheckEndTimeMutex.Lock()
-	defer fake.lastCheckEndTimeMutex.Unlock()
-	fake.LastCheckEndTimeStub = nil
-	fake.lastCheckEndTimeReturns = struct {
-		result1 time.Time
-	}{result1}
-}
-
-func (fake *FakeResourceType) LastCheckEndTimeReturnsOnCall(i int, result1 time.Time) {
-	fake.lastCheckEndTimeMutex.Lock()
-	defer fake.lastCheckEndTimeMutex.Unlock()
-	fake.LastCheckEndTimeStub = nil
-	if fake.lastCheckEndTimeReturnsOnCall == nil {
-		fake.lastCheckEndTimeReturnsOnCall = make(map[int]struct {
-			result1 time.Time
-		})
-	}
-	fake.lastCheckEndTimeReturnsOnCall[i] = struct {
-		result1 time.Time
-	}{result1}
-}
-
-func (fake *FakeResourceType) LastCheckStartTime() time.Time {
-	fake.lastCheckStartTimeMutex.Lock()
-	ret, specificReturn := fake.lastCheckStartTimeReturnsOnCall[len(fake.lastCheckStartTimeArgsForCall)]
-	fake.lastCheckStartTimeArgsForCall = append(fake.lastCheckStartTimeArgsForCall, struct {
-	}{})
-	stub := fake.LastCheckStartTimeStub
-	fakeReturns := fake.lastCheckStartTimeReturns
-	fake.recordInvocation("LastCheckStartTime", []interface{}{})
-	fake.lastCheckStartTimeMutex.Unlock()
-	if stub != nil {
-		return stub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fakeReturns.result1
-}
-
-func (fake *FakeResourceType) LastCheckStartTimeCallCount() int {
-	fake.lastCheckStartTimeMutex.RLock()
-	defer fake.lastCheckStartTimeMutex.RUnlock()
-	return len(fake.lastCheckStartTimeArgsForCall)
-}
-
-func (fake *FakeResourceType) LastCheckStartTimeCalls(stub func() time.Time) {
-	fake.lastCheckStartTimeMutex.Lock()
-	defer fake.lastCheckStartTimeMutex.Unlock()
-	fake.LastCheckStartTimeStub = stub
-}
-
-func (fake *FakeResourceType) LastCheckStartTimeReturns(result1 time.Time) {
-	fake.lastCheckStartTimeMutex.Lock()
-	defer fake.lastCheckStartTimeMutex.Unlock()
-	fake.LastCheckStartTimeStub = nil
-	fake.lastCheckStartTimeReturns = struct {
-		result1 time.Time
-	}{result1}
-}
-
-func (fake *FakeResourceType) LastCheckStartTimeReturnsOnCall(i int, result1 time.Time) {
-	fake.lastCheckStartTimeMutex.Lock()
-	defer fake.lastCheckStartTimeMutex.Unlock()
-	fake.LastCheckStartTimeStub = nil
-	if fake.lastCheckStartTimeReturnsOnCall == nil {
-		fake.lastCheckStartTimeReturnsOnCall = make(map[int]struct {
-			result1 time.Time
-		})
-	}
-	fake.lastCheckStartTimeReturnsOnCall[i] = struct {
-		result1 time.Time
 	}{result1}
 }
 
@@ -1813,6 +1696,59 @@ func (fake *FakeResourceType) TeamNameReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
+func (fake *FakeResourceType) TimeToCheck() bool {
+	fake.timeToCheckMutex.Lock()
+	ret, specificReturn := fake.timeToCheckReturnsOnCall[len(fake.timeToCheckArgsForCall)]
+	fake.timeToCheckArgsForCall = append(fake.timeToCheckArgsForCall, struct {
+	}{})
+	stub := fake.TimeToCheckStub
+	fakeReturns := fake.timeToCheckReturns
+	fake.recordInvocation("TimeToCheck", []interface{}{})
+	fake.timeToCheckMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeResourceType) TimeToCheckCallCount() int {
+	fake.timeToCheckMutex.RLock()
+	defer fake.timeToCheckMutex.RUnlock()
+	return len(fake.timeToCheckArgsForCall)
+}
+
+func (fake *FakeResourceType) TimeToCheckCalls(stub func() bool) {
+	fake.timeToCheckMutex.Lock()
+	defer fake.timeToCheckMutex.Unlock()
+	fake.TimeToCheckStub = stub
+}
+
+func (fake *FakeResourceType) TimeToCheckReturns(result1 bool) {
+	fake.timeToCheckMutex.Lock()
+	defer fake.timeToCheckMutex.Unlock()
+	fake.TimeToCheckStub = nil
+	fake.timeToCheckReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeResourceType) TimeToCheckReturnsOnCall(i int, result1 bool) {
+	fake.timeToCheckMutex.Lock()
+	defer fake.timeToCheckMutex.Unlock()
+	fake.TimeToCheckStub = nil
+	if fake.timeToCheckReturnsOnCall == nil {
+		fake.timeToCheckReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.timeToCheckReturnsOnCall[i] = struct {
+		result1 bool
+	}{result1}
+}
+
 func (fake *FakeResourceType) Type() string {
 	fake.typeMutex.Lock()
 	ret, specificReturn := fake.typeReturnsOnCall[len(fake.typeArgsForCall)]
@@ -1887,10 +1823,6 @@ func (fake *FakeResourceType) Invocations() map[string][][]interface{} {
 	defer fake.hasWebhookMutex.RUnlock()
 	fake.iDMutex.RLock()
 	defer fake.iDMutex.RUnlock()
-	fake.lastCheckEndTimeMutex.RLock()
-	defer fake.lastCheckEndTimeMutex.RUnlock()
-	fake.lastCheckStartTimeMutex.RLock()
-	defer fake.lastCheckStartTimeMutex.RUnlock()
 	fake.nameMutex.RLock()
 	defer fake.nameMutex.RUnlock()
 	fake.paramsMutex.RLock()
@@ -1923,6 +1855,8 @@ func (fake *FakeResourceType) Invocations() map[string][][]interface{} {
 	defer fake.teamIDMutex.RUnlock()
 	fake.teamNameMutex.RLock()
 	defer fake.teamNameMutex.RUnlock()
+	fake.timeToCheckMutex.RLock()
+	defer fake.timeToCheckMutex.RUnlock()
 	fake.typeMutex.RLock()
 	defer fake.typeMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

@@ -237,26 +237,6 @@ type FakeResource struct {
 	lastCheckEndTimeReturnsOnCall map[int]struct {
 		result1 time.Time
 	}
-	LastCheckStartTimeStub        func() time.Time
-	lastCheckStartTimeMutex       sync.RWMutex
-	lastCheckStartTimeArgsForCall []struct {
-	}
-	lastCheckStartTimeReturns struct {
-		result1 time.Time
-	}
-	lastCheckStartTimeReturnsOnCall map[int]struct {
-		result1 time.Time
-	}
-	LastUpdatedTimeStub        func() time.Time
-	lastUpdatedTimeMutex       sync.RWMutex
-	lastUpdatedTimeArgsForCall []struct {
-	}
-	lastUpdatedTimeReturns struct {
-		result1 time.Time
-	}
-	lastUpdatedTimeReturnsOnCall map[int]struct {
-		result1 time.Time
-	}
 	NameStub        func() string
 	nameMutex       sync.RWMutex
 	nameArgsForCall []struct {
@@ -457,6 +437,16 @@ type FakeResource struct {
 	}
 	teamNameReturnsOnCall map[int]struct {
 		result1 string
+	}
+	TimeToCheckStub        func() bool
+	timeToCheckMutex       sync.RWMutex
+	timeToCheckArgsForCall []struct {
+	}
+	timeToCheckReturns struct {
+		result1 bool
+	}
+	timeToCheckReturnsOnCall map[int]struct {
+		result1 bool
 	}
 	TypeStub        func() string
 	typeMutex       sync.RWMutex
@@ -1630,112 +1620,6 @@ func (fake *FakeResource) LastCheckEndTimeReturnsOnCall(i int, result1 time.Time
 	}{result1}
 }
 
-func (fake *FakeResource) LastCheckStartTime() time.Time {
-	fake.lastCheckStartTimeMutex.Lock()
-	ret, specificReturn := fake.lastCheckStartTimeReturnsOnCall[len(fake.lastCheckStartTimeArgsForCall)]
-	fake.lastCheckStartTimeArgsForCall = append(fake.lastCheckStartTimeArgsForCall, struct {
-	}{})
-	stub := fake.LastCheckStartTimeStub
-	fakeReturns := fake.lastCheckStartTimeReturns
-	fake.recordInvocation("LastCheckStartTime", []interface{}{})
-	fake.lastCheckStartTimeMutex.Unlock()
-	if stub != nil {
-		return stub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fakeReturns.result1
-}
-
-func (fake *FakeResource) LastCheckStartTimeCallCount() int {
-	fake.lastCheckStartTimeMutex.RLock()
-	defer fake.lastCheckStartTimeMutex.RUnlock()
-	return len(fake.lastCheckStartTimeArgsForCall)
-}
-
-func (fake *FakeResource) LastCheckStartTimeCalls(stub func() time.Time) {
-	fake.lastCheckStartTimeMutex.Lock()
-	defer fake.lastCheckStartTimeMutex.Unlock()
-	fake.LastCheckStartTimeStub = stub
-}
-
-func (fake *FakeResource) LastCheckStartTimeReturns(result1 time.Time) {
-	fake.lastCheckStartTimeMutex.Lock()
-	defer fake.lastCheckStartTimeMutex.Unlock()
-	fake.LastCheckStartTimeStub = nil
-	fake.lastCheckStartTimeReturns = struct {
-		result1 time.Time
-	}{result1}
-}
-
-func (fake *FakeResource) LastCheckStartTimeReturnsOnCall(i int, result1 time.Time) {
-	fake.lastCheckStartTimeMutex.Lock()
-	defer fake.lastCheckStartTimeMutex.Unlock()
-	fake.LastCheckStartTimeStub = nil
-	if fake.lastCheckStartTimeReturnsOnCall == nil {
-		fake.lastCheckStartTimeReturnsOnCall = make(map[int]struct {
-			result1 time.Time
-		})
-	}
-	fake.lastCheckStartTimeReturnsOnCall[i] = struct {
-		result1 time.Time
-	}{result1}
-}
-
-func (fake *FakeResource) LastUpdatedTime() time.Time {
-	fake.lastUpdatedTimeMutex.Lock()
-	ret, specificReturn := fake.lastUpdatedTimeReturnsOnCall[len(fake.lastUpdatedTimeArgsForCall)]
-	fake.lastUpdatedTimeArgsForCall = append(fake.lastUpdatedTimeArgsForCall, struct {
-	}{})
-	stub := fake.LastUpdatedTimeStub
-	fakeReturns := fake.lastUpdatedTimeReturns
-	fake.recordInvocation("LastUpdatedTime", []interface{}{})
-	fake.lastUpdatedTimeMutex.Unlock()
-	if stub != nil {
-		return stub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fakeReturns.result1
-}
-
-func (fake *FakeResource) LastUpdatedTimeCallCount() int {
-	fake.lastUpdatedTimeMutex.RLock()
-	defer fake.lastUpdatedTimeMutex.RUnlock()
-	return len(fake.lastUpdatedTimeArgsForCall)
-}
-
-func (fake *FakeResource) LastUpdatedTimeCalls(stub func() time.Time) {
-	fake.lastUpdatedTimeMutex.Lock()
-	defer fake.lastUpdatedTimeMutex.Unlock()
-	fake.LastUpdatedTimeStub = stub
-}
-
-func (fake *FakeResource) LastUpdatedTimeReturns(result1 time.Time) {
-	fake.lastUpdatedTimeMutex.Lock()
-	defer fake.lastUpdatedTimeMutex.Unlock()
-	fake.LastUpdatedTimeStub = nil
-	fake.lastUpdatedTimeReturns = struct {
-		result1 time.Time
-	}{result1}
-}
-
-func (fake *FakeResource) LastUpdatedTimeReturnsOnCall(i int, result1 time.Time) {
-	fake.lastUpdatedTimeMutex.Lock()
-	defer fake.lastUpdatedTimeMutex.Unlock()
-	fake.LastUpdatedTimeStub = nil
-	if fake.lastUpdatedTimeReturnsOnCall == nil {
-		fake.lastUpdatedTimeReturnsOnCall = make(map[int]struct {
-			result1 time.Time
-		})
-	}
-	fake.lastUpdatedTimeReturnsOnCall[i] = struct {
-		result1 time.Time
-	}{result1}
-}
-
 func (fake *FakeResource) Name() string {
 	fake.nameMutex.Lock()
 	ret, specificReturn := fake.nameReturnsOnCall[len(fake.nameArgsForCall)]
@@ -2779,6 +2663,59 @@ func (fake *FakeResource) TeamNameReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
+func (fake *FakeResource) TimeToCheck() bool {
+	fake.timeToCheckMutex.Lock()
+	ret, specificReturn := fake.timeToCheckReturnsOnCall[len(fake.timeToCheckArgsForCall)]
+	fake.timeToCheckArgsForCall = append(fake.timeToCheckArgsForCall, struct {
+	}{})
+	stub := fake.TimeToCheckStub
+	fakeReturns := fake.timeToCheckReturns
+	fake.recordInvocation("TimeToCheck", []interface{}{})
+	fake.timeToCheckMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeResource) TimeToCheckCallCount() int {
+	fake.timeToCheckMutex.RLock()
+	defer fake.timeToCheckMutex.RUnlock()
+	return len(fake.timeToCheckArgsForCall)
+}
+
+func (fake *FakeResource) TimeToCheckCalls(stub func() bool) {
+	fake.timeToCheckMutex.Lock()
+	defer fake.timeToCheckMutex.Unlock()
+	fake.TimeToCheckStub = stub
+}
+
+func (fake *FakeResource) TimeToCheckReturns(result1 bool) {
+	fake.timeToCheckMutex.Lock()
+	defer fake.timeToCheckMutex.Unlock()
+	fake.TimeToCheckStub = nil
+	fake.timeToCheckReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeResource) TimeToCheckReturnsOnCall(i int, result1 bool) {
+	fake.timeToCheckMutex.Lock()
+	defer fake.timeToCheckMutex.Unlock()
+	fake.TimeToCheckStub = nil
+	if fake.timeToCheckReturnsOnCall == nil {
+		fake.timeToCheckReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.timeToCheckReturnsOnCall[i] = struct {
+		result1 bool
+	}{result1}
+}
+
 func (fake *FakeResource) Type() string {
 	fake.typeMutex.Lock()
 	ret, specificReturn := fake.typeReturnsOnCall[len(fake.typeArgsForCall)]
@@ -3115,10 +3052,6 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.iconMutex.RUnlock()
 	fake.lastCheckEndTimeMutex.RLock()
 	defer fake.lastCheckEndTimeMutex.RUnlock()
-	fake.lastCheckStartTimeMutex.RLock()
-	defer fake.lastCheckStartTimeMutex.RUnlock()
-	fake.lastUpdatedTimeMutex.RLock()
-	defer fake.lastUpdatedTimeMutex.RUnlock()
 	fake.nameMutex.RLock()
 	defer fake.nameMutex.RUnlock()
 	fake.notifyScanMutex.RLock()
@@ -3157,6 +3090,8 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.teamIDMutex.RUnlock()
 	fake.teamNameMutex.RLock()
 	defer fake.teamNameMutex.RUnlock()
+	fake.timeToCheckMutex.RLock()
+	defer fake.timeToCheckMutex.RUnlock()
 	fake.typeMutex.RLock()
 	defer fake.typeMutex.RUnlock()
 	fake.unpinVersionMutex.RLock()

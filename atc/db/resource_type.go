@@ -7,13 +7,11 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/util"
-	"github.com/lib/pq"
 )
 
 type ResourceTypeNotFoundError struct {
@@ -40,8 +38,7 @@ type ResourceType interface {
 	Tags() atc.Tags
 	CheckEvery() *atc.CheckEvery
 	CheckTimeout() string
-	LastCheckStartTime() time.Time
-	LastCheckEndTime() time.Time
+	TimeToCheck() bool
 	CurrentPinnedVersion() atc.Version
 	ResourceConfigID() int
 	ResourceConfigScopeID() int
@@ -157,15 +154,10 @@ var resourceTypesQuery = psql.Select(
 	"t.id",
 	"t.name",
 	"r.resource_config_id",
-	"ro.id",
-	"ro.last_check_start_time",
-	"ro.last_check_end_time",
 ).
 	From("resource_types r").
 	Join("pipelines p ON p.id = r.pipeline_id").
 	Join("teams t ON t.id = p.team_id").
-	LeftJoin("resource_configs c ON c.id = r.resource_config_id").
-	LeftJoin("resource_config_scopes ro ON ro.resource_config_id = c.id").
 	Where(sq.Eq{"r.active": true})
 
 type resourceType struct {
@@ -184,8 +176,6 @@ type resourceType struct {
 	params                atc.Params
 	tags                  atc.Tags
 	checkEvery            *atc.CheckEvery
-	lastCheckStartTime    time.Time
-	lastCheckEndTime      time.Time
 }
 
 func (t *resourceType) ID() int                           { return t.id }
@@ -196,8 +186,6 @@ func (t *resourceType) Type() string                      { return t.type_ }
 func (t *resourceType) Privileged() bool                  { return t.privileged }
 func (t *resourceType) CheckEvery() *atc.CheckEvery       { return t.checkEvery }
 func (t *resourceType) CheckTimeout() string              { return "" }
-func (r *resourceType) LastCheckStartTime() time.Time     { return r.lastCheckStartTime }
-func (r *resourceType) LastCheckEndTime() time.Time       { return r.lastCheckEndTime }
 func (t *resourceType) Source() atc.Source                { return t.source }
 func (t *resourceType) Defaults() atc.Source              { return t.defaults }
 func (t *resourceType) Params() atc.Params                { return t.params }
@@ -206,6 +194,14 @@ func (t *resourceType) ResourceConfigID() int             { return t.resourceCon
 func (t *resourceType) ResourceConfigScopeID() int        { return t.resourceConfigScopeID }
 func (t *resourceType) CurrentPinnedVersion() atc.Version { return nil }
 func (t *resourceType) HasWebhook() bool                  { return false }
+
+// TimeToCheck always returns false because a resource type is no longer
+// checked by Lidar since 7.5.0. Instead, it's only checked by build
+// nested check, and check step will no longer pin resource config id
+// to resource type, so that this function should never be called.
+func (t *resourceType) TimeToCheck() bool {
+	return false
+}
 
 func newEmptyResourceType(conn Conn, lockFactory lock.LockFactory) *resourceType {
 	return &resourceType{pipelineRef: pipelineRef{conn: conn, lockFactory: lockFactory}}
@@ -331,23 +327,18 @@ func (r *resourceType) CreateInMemoryBuild(ctx context.Context, plan atc.Plan, s
 
 func scanResourceType(t *resourceType, row scannable) error {
 	var (
-		configJSON                           sql.NullString
-		rcsID, nonce                         sql.NullString
-		lastCheckStartTime, lastCheckEndTime pq.NullTime
-		pipelineInstanceVars                 sql.NullString
-		resourceConfigID                     sql.NullInt64
+		configJSON           sql.NullString
+		rcsID, nonce         sql.NullString
+		pipelineInstanceVars sql.NullString
+		resourceConfigID     sql.NullInt64
 	)
 
 	err := row.Scan(&t.id, &t.pipelineID, &t.name, &t.type_, &configJSON,
 		&nonce, &t.pipelineName, &pipelineInstanceVars,
-		&t.teamID, &t.teamName, &resourceConfigID, &rcsID,
-		&lastCheckStartTime, &lastCheckEndTime)
+		&t.teamID, &t.teamName, &resourceConfigID)
 	if err != nil {
 		return err
 	}
-
-	t.lastCheckStartTime = lastCheckStartTime.Time
-	t.lastCheckEndTime = lastCheckEndTime.Time
 
 	es := t.conn.EncryptionStrategy()
 

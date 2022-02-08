@@ -1,17 +1,15 @@
 package lidar
 
 import (
-	"context"
-	"strconv"
-	"sync"
-	"time"
-
 	"code.cloudfoundry.org/lager/lagerctx"
+	"context"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/util"
 	"github.com/concourse/concourse/tracing"
+	"strconv"
+	"sync"
 )
 
 func NewScanner(checkFactory db.CheckFactory, planFactory atc.PlanFactory) *scanner {
@@ -56,20 +54,8 @@ func (s *scanner) scanResources(ctx context.Context, resources []db.Resource, re
 	logger := lagerctx.FromContext(ctx)
 	waitGroup := new(sync.WaitGroup)
 
-	now := time.Now()
 	for _, resource := range resources {
-		if resource.CheckEvery() != nil && resource.CheckEvery().Never {
-			return
-		}
-
-		checkInterval := atc.DefaultCheckInterval
-		if resource.CheckEvery() != nil {
-			checkInterval = resource.CheckEvery().Interval
-		}
-
-		if !resource.LastCheckEndTime().IsZero() &&
-			resource.LastUpdatedTime().Before(resource.LastCheckStartTime()) &&
-			resource.LastCheckEndTime().Add(checkInterval).After(now) {
+		if !resource.TimeToCheck() {
 			continue
 		}
 
