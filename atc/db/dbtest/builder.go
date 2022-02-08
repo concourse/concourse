@@ -5,6 +5,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -540,6 +541,40 @@ func (builder Builder) WithPendingJobBuild(assign *db.Build, jobName string) Set
 		build, err := job.CreateBuild("some-user")
 		if err != nil {
 			return fmt.Errorf("create build: %w", err)
+		}
+
+		*assign = build
+
+		return nil
+	}
+}
+
+func (builder Builder) WithStartedJobBuild(assign *db.Build, jobName string, plan atc.Plan) SetupFunc {
+	return func(scenario *Scenario) error {
+		if scenario.Pipeline == nil {
+			return fmt.Errorf("no pipeline set in scenario")
+		}
+
+		job, found, err := scenario.Pipeline.Job(jobName)
+		if err != nil {
+			return err
+		}
+
+		if !found {
+			return fmt.Errorf("job '%s' not configured in pipeline", jobName)
+		}
+
+		build, err := job.CreateBuild("some-user")
+		if err != nil {
+			return fmt.Errorf("create build: %w", err)
+		}
+
+		started, err := build.Start(plan)
+		if err != nil {
+			return fmt.Errorf("start build: %w", err)
+		}
+		if !started {
+			return fmt.Errorf("start build: %w", errors.New("build not started"))
 		}
 
 		*assign = build
