@@ -50,7 +50,7 @@ type ImageResource struct {
 	// was last checked, and the build has not been manually triggered, the check
 	// will be skipped. It will also be set as Never if the user has specified
 	// for it to not be checked periodically.
-	CurrentResourceConfigScope int
+	CurrentResourceConfigScope int `json:"-"`
 }
 
 func (ir *ImageResource) ApplySourceDefaults(resourceTypes ResourceTypes) {

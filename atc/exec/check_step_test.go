@@ -441,10 +441,30 @@ var _ = Describe("CheckStep", func() {
 						fakePool.FindOrSelectWorkerReturns(chosenWorker, nil)
 					})
 
-					It("points the resource or resource type to the scope", func() {
-						Expect(fakeDelegate.PointToCheckedConfigCallCount()).To(Equal(1))
-						scope := fakeDelegate.PointToCheckedConfigArgsForCall(0)
-						Expect(scope).To(Equal(fakeResourceConfigScope))
+					Context("points the resource or resource type to the scope", func(){
+						Context("when scope changed", func(){
+							BeforeEach(func(){
+								checkPlan.CurrentResourceConfigScope = 1
+								fakeResourceConfigScope.IDReturns(2)
+							})
+
+							It("points the resource or resource type to the scope", func() {
+								Expect(fakeDelegate.PointToCheckedConfigCallCount()).To(Equal(1))
+								scope := fakeDelegate.PointToCheckedConfigArgsForCall(0)
+								Expect(scope).To(Equal(fakeResourceConfigScope))
+							})
+						})
+
+						Context("when scope unchanged", func(){
+							BeforeEach(func(){
+								checkPlan.CurrentResourceConfigScope = 1
+								fakeResourceConfigScope.IDReturns(1)
+							})
+
+							It("points the resource or resource type to the scope", func() {
+								Expect(fakeDelegate.PointToCheckedConfigCallCount()).To(Equal(0))
+							})
+						})
 					})
 
 					It("uses ResourceConfigCheckSessionOwner", func() {
@@ -463,6 +483,8 @@ var _ = Describe("CheckStep", func() {
 					BeforeEach(func() {
 						checkPlan.Resource = ""
 						checkPlan.ResourceType = "some-resource-type"
+						checkPlan.CurrentResourceConfigScope = 1
+						fakeResourceConfigScope.IDReturns(2)
 
 						expectedOwner = db.NewBuildStepContainerOwner(
 							501,

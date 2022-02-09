@@ -282,7 +282,7 @@ type CheckPlan struct {
 	ResourceType string `json:"resource_type,omitempty"`
 	Prototype    string `json:"prototype,omitempty"`
 
-	// The internal on which to check - if it has not elapsed since the config
+	// The interval on which to check - if it has not elapsed since the config
 	// was last checked, and the build has not been manually triggered, the check
 	// will be skipped. It will also be set as Never if the user has specified
 	// for it to not be checked periodically.
@@ -302,7 +302,7 @@ type CheckPlan struct {
 	// This is a internal field that carries current resource config scope id
 	// when check plan is created. So that when a new scope id is figured out,
 	// we know if scope is changed. If not, then no need to update db.
-	CurrentResourceConfigScope int
+	CurrentResourceConfigScope int `json:"-"`
 }
 
 func (plan CheckPlan) IsResourceCheck() bool {

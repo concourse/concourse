@@ -200,7 +200,7 @@ type ResourceType struct {
 	Tags       Tags        `json:"tags,omitempty"`
 	Params     Params      `json:"params,omitempty"`
 
-	CurrentResourceConfigScope int
+	CurrentResourceConfigScope int `json:"-"`
 }
 
 type Prototype struct {
