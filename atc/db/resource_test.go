@@ -2046,4 +2046,145 @@ var _ = Describe("Resource", func() {
 			})
 		})
 	})
+
+	Describe("TimeToCheck", func() {
+		var scenario *dbtest.Scenario
+		var resource db.Resource
+		var resourceConfigScope db.ResourceConfigScope
+
+		JustBeforeEach(func() {
+			var found bool
+			var err error
+			resource, found, err = scenario.Pipeline.Resource("some-resource")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(
+				"some-base-resource-type",
+				atc.Source{"some": "repository"},
+				nil,
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			resourceConfigScope, err = resourceConfig.FindOrCreateScope(intptr(resource.ID()))
+			Expect(err).NotTo(HaveOccurred())
+
+			err = resource.SetResourceConfigScope(resourceConfigScope)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("when never check", func() {
+			BeforeEach(func() {
+				scenario = dbtest.Setup(
+					builder.WithPipeline(atc.Config{
+						Resources: atc.ResourceConfigs{
+							{
+								Name:       "some-resource",
+								Type:       "some-base-resource-type",
+								Source:     atc.Source{"some": "repository"},
+								CheckEvery: &atc.CheckEvery{Never: true},
+							},
+						},
+					}),
+				)
+			})
+
+			It("should not check", func() {
+				Expect(resource.TimeToCheck()).To(BeFalse())
+			})
+		})
+
+		Context("when no check has been done", func() {
+			BeforeEach(func() {
+				scenario = dbtest.Setup(
+					builder.WithPipeline(atc.Config{
+						Resources: atc.ResourceConfigs{
+							{
+								Name:       "some-resource",
+								Type:       "some-base-resource-type",
+								Source:     atc.Source{"some": "repository"},
+								CheckEvery: &atc.CheckEvery{Interval: 10 * time.Second},
+							},
+						},
+					}),
+				)
+			})
+
+			It("should check", func() {
+				Expect(resource.TimeToCheck()).To(BeTrue())
+			})
+		})
+
+		Context("when resource has been updated since last check started", func() {
+			BeforeEach(func() {
+				scenario = dbtest.Setup(
+					builder.WithPipeline(atc.Config{
+						Resources: atc.ResourceConfigs{
+							{
+								Name:       "some-resource",
+								Type:       "some-base-resource-type",
+								Source:     atc.Source{"some": "repository"},
+								CheckEvery: &atc.CheckEvery{Interval: 10 * time.Second},
+							},
+						},
+					}),
+				)
+			})
+
+			JustBeforeEach(func() {
+				resourceConfigScope.UpdateLastCheckStartTime(99, nil)
+
+				scenario = dbtest.Setup(
+					builder.WithPipeline(atc.Config{
+						Resources: atc.ResourceConfigs{
+							{
+								Name:       "some-resource",
+								Type:       "some-base-resource-type",
+								Source:     atc.Source{"some": "repository-1"},
+								CheckEvery: &atc.CheckEvery{Interval: 10 * time.Second},
+							},
+						},
+					}),
+				)
+
+				var found bool
+				var err error
+				resource, found, err = scenario.Pipeline.Resource("some-resource")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+			})
+
+			It("should check", func() {
+				Expect(resource.TimeToCheck()).To(BeTrue())
+			})
+		})
+
+		Context("when a check has been done", func() {
+			BeforeEach(func() {
+				scenario = dbtest.Setup(
+					builder.WithPipeline(atc.Config{
+						Resources: atc.ResourceConfigs{
+							{
+								Name:       "some-resource",
+								Type:       "some-base-resource-type",
+								Source:     atc.Source{"some": "repository"},
+								CheckEvery: &atc.CheckEvery{Interval: 10 * time.Second},
+							},
+						},
+					}),
+				)
+			})
+
+			JustBeforeEach(func() {
+				resourceConfigScope.UpdateLastCheckStartTime(99, nil)
+				resourceConfigScope.UpdateLastCheckEndTime(true)
+				_, err := resource.Reload()
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("should not check", func() {
+				Expect(resource.TimeToCheck()).To(BeFalse())
+			})
+		})
+	})
 })

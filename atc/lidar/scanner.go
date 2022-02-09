@@ -3,13 +3,14 @@ package lidar
 import (
 	"code.cloudfoundry.org/lager/lagerctx"
 	"context"
+	"strconv"
+	"sync"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/util"
 	"github.com/concourse/concourse/tracing"
-	"strconv"
-	"sync"
 )
 
 func NewScanner(checkFactory db.CheckFactory, planFactory atc.PlanFactory) *scanner {

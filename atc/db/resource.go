@@ -77,8 +77,6 @@ type Resource interface {
 	Source() atc.Source
 	CheckEvery() *atc.CheckEvery
 	CheckTimeout() string
-	//LastUpdatedTime() time.Time
-	//LastCheckStartTime() time.Time
 	LastCheckEndTime() time.Time
 	TimeToCheck() bool
 	Tags() atc.Tags

@@ -164,7 +164,7 @@ var _ = Describe("CheckFactory", func() {
 
 				Context("when the interval has not elapsed", func() {
 					BeforeEach(func() {
-						fakeResource.LastCheckEndTimeReturns(time.Now().Add(defaultCheckInterval))
+						fakeResource.TimeToCheckReturns(false)
 					})
 
 					It("does not create a build for the resource", func() {
@@ -213,7 +213,7 @@ var _ = Describe("CheckFactory", func() {
 
 				Context("when the default webhook interval has not elapsed", func() {
 					BeforeEach(func() {
-						fakeResource.LastCheckEndTimeReturns(time.Now().Add(-(defaultWebhookCheckInterval / 2)))
+						fakeResource.TimeToCheckReturns(false)
 					})
 
 					It("does not create a build for the resource", func() {
@@ -335,7 +335,7 @@ var _ = Describe("CheckFactory", func() {
 				It("starts the build with the check plan", func() {
 					Expect(fakeResourceType.CreateBuildCallCount()).To(Equal(1))
 					_, manuallyTriggered, plan := fakeResourceType.CreateBuildArgsForCall(0)
-					Expect(manuallyTriggered).To(BeFalse())
+					Expect(manuallyTriggered).To(BeTrue())
 					Expect(plan).To(Equal(checkPlan))
 				})
 			})
@@ -364,7 +364,7 @@ var _ = Describe("CheckFactory", func() {
 				It("starts the build with the check plan", func() {
 					Expect(fakeResourceType.CreateInMemoryBuildCallCount()).To(Equal(1))
 					_, plan, seqGen := fakeResourceType.CreateInMemoryBuildArgsForCall(0)
-					Expect(manuallyTriggered).To(BeFalse())
+					Expect(manuallyTriggered).To(BeTrue())
 					Expect(plan).To(Equal(checkPlan))
 					Expect(seqGen).To(Equal(seqGenerator))
 				})

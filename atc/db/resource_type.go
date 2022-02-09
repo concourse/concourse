@@ -154,10 +154,13 @@ var resourceTypesQuery = psql.Select(
 	"t.id",
 	"t.name",
 	"r.resource_config_id",
+	"ro.id",
 ).
 	From("resource_types r").
 	Join("pipelines p ON p.id = r.pipeline_id").
 	Join("teams t ON t.id = p.team_id").
+	LeftJoin("resource_configs c ON c.id = r.resource_config_id").
+	LeftJoin("resource_config_scopes ro ON ro.resource_config_id = c.id").
 	Where(sq.Eq{"r.active": true})
 
 type resourceType struct {
@@ -335,7 +338,7 @@ func scanResourceType(t *resourceType, row scannable) error {
 
 	err := row.Scan(&t.id, &t.pipelineID, &t.name, &t.type_, &configJSON,
 		&nonce, &t.pipelineName, &pipelineInstanceVars,
-		&t.teamID, &t.teamName, &resourceConfigID)
+		&t.teamID, &t.teamName, &resourceConfigID, &rcsID)
 	if err != nil {
 		return err
 	}

@@ -3,8 +3,6 @@ package lidar_test
 import (
 	"context"
 	"errors"
-	"time"
-
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
@@ -57,6 +55,7 @@ var _ = Describe("Scanner", func() {
 				fakeResource.NameReturns("some-name")
 				fakeResource.TagsReturns([]string{"tag-a", "tag-b"})
 				fakeResource.SourceReturns(atc.Source{"some": "source"})
+				fakeResource.TimeToCheckReturns(true)
 
 				fakeCheckFactory.ResourcesReturns([]db.Resource{fakeResource}, nil)
 			})
@@ -68,24 +67,6 @@ var _ = Describe("Scanner", func() {
 
 				It("errors", func() {
 					Expect(err).To(HaveOccurred())
-				})
-			})
-
-			Context("when CheckEvery is never", func() {
-				BeforeEach(func() {
-					fakeResource.CheckEveryReturns(&atc.CheckEvery{Never: true})
-					fakeResource.TypeReturns("parent")
-					fakeResource.PipelineIDReturns(1)
-					fakeResourceType := new(dbfakes.FakeResourceType)
-					fakeResourceType.NameReturns("parent")
-					fakeResourceType.PipelineIDReturns(1)
-					fakeCheckFactory.ResourceTypesByPipelineReturns(map[int]db.ResourceTypes{
-						1: {fakeResourceType},
-					}, nil)
-				})
-
-				It("does not check the resource", func() {
-					Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(0))
 				})
 			})
 
@@ -177,13 +158,7 @@ var _ = Describe("Scanner", func() {
 
 			Context("when resource doesn't reach to next check time", func(){
 				BeforeEach(func(){
-					now := time.Now()
-					fakeResource.LastUpdatedTimeReturns(now.Add(-10*time.Second))
-					fakeResource.LastCheckStartTimeReturns(now.Add(-5*time.Second))
-					fakeResource.LastCheckEndTimeReturns(now.Add(-4*time.Second))
-					fakeResource.CheckEveryReturns(&atc.CheckEvery{
-						Interval: time.Minute,
-					})
+					fakeResource.TimeToCheckReturns(false)
 				})
 
 				It("does not create check", func() {
