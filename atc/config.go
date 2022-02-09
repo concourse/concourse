@@ -199,6 +199,8 @@ type ResourceType struct {
 	CheckEvery *CheckEvery `json:"check_every,omitempty"`
 	Tags       Tags        `json:"tags,omitempty"`
 	Params     Params      `json:"params,omitempty"`
+
+	CurrentResourceConfigScope int
 }
 
 type Prototype struct {
@@ -314,6 +316,8 @@ func (types ResourceTypes) ImageForType(planID PlanID, resourceType string, step
 		Source: parent.Source,
 		Params: parent.Params,
 		Tags:   parent.Tags,
+
+		CurrentResourceConfigScope: parent.CurrentResourceConfigScope,
 	}
 
 	getPlan, checkPlan := FetchImagePlan(planID, imageResource, types.Without(parent.Name), stepTags, skipInterval, parent.CheckEvery)
@@ -386,6 +390,8 @@ func FetchImagePlan(planID PlanID, image ImageResource, resourceTypes ResourceTy
 				Tags: tags,
 
 				SkipInterval: skipInterval,
+
+				CurrentResourceConfigScope: image.CurrentResourceConfigScope,
 			},
 		}
 		maybeCheckPlan = &checkPlan

@@ -45,6 +45,12 @@ type ImageResource struct {
 	Version Version `json:"version,omitempty"`
 	Params  Params  `json:"params,omitempty"`
 	Tags    Tags    `json:"tags,omitempty"`
+
+	// The internal on which to check - if it has not elapsed since the config
+	// was last checked, and the build has not been manually triggered, the check
+	// will be skipped. It will also be set as Never if the user has specified
+	// for it to not be checked periodically.
+	CurrentResourceConfigScope int
 }
 
 func (ir *ImageResource) ApplySourceDefaults(resourceTypes ResourceTypes) {

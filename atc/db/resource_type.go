@@ -101,14 +101,15 @@ func (resourceTypes ResourceTypes) Deserialize() atc.ResourceTypes {
 		}
 
 		atcResourceTypes = append(atcResourceTypes, atc.ResourceType{
-			Name:       t.Name(),
-			Type:       t.Type(),
-			Source:     source,
-			Defaults:   t.Defaults(),
-			Privileged: t.Privileged(),
-			CheckEvery: t.CheckEvery(),
-			Tags:       t.Tags(),
-			Params:     t.Params(),
+			Name:                       t.Name(),
+			Type:                       t.Type(),
+			Source:                     source,
+			Defaults:                   t.Defaults(),
+			Privileged:                 t.Privileged(),
+			CheckEvery:                 t.CheckEvery(),
+			Tags:                       t.Tags(),
+			Params:                     t.Params(),
+			CurrentResourceConfigScope: t.ResourceConfigScopeID(),
 		})
 	}
 
@@ -120,14 +121,15 @@ func (resourceTypes ResourceTypes) Configs() atc.ResourceTypes {
 
 	for _, r := range resourceTypes {
 		configs = append(configs, atc.ResourceType{
-			Name:       r.Name(),
-			Type:       r.Type(),
-			Source:     r.Source(),
-			Defaults:   r.Defaults(),
-			Privileged: r.Privileged(),
-			CheckEvery: r.CheckEvery(),
-			Tags:       r.Tags(),
-			Params:     r.Params(),
+			Name:                       r.Name(),
+			Type:                       r.Type(),
+			Source:                     r.Source(),
+			Defaults:                   r.Defaults(),
+			Privileged:                 r.Privileged(),
+			CheckEvery:                 r.CheckEvery(),
+			Tags:                       r.Tags(),
+			Params:                     r.Params(),
+			CurrentResourceConfigScope: r.ResourceConfigScopeID(),
 		})
 	}
 
@@ -259,6 +261,7 @@ func (r *resourceType) CheckPlan(planFactory atc.PlanFactory, imagePlanner atc.I
 		SkipInterval: skipInterval,
 
 		ResourceType: r.name,
+		CurrentResourceConfigScope: r.resourceConfigScopeID,
 	})
 
 	plan.Check.TypeImage = imagePlanner.ImageForType(plan.ID, r.type_, r.tags, skipInterval && skipIntervalRecursively)
