@@ -72,7 +72,7 @@ func (d *checkDelegate) Initializing(logger lager.Logger) {
 
 func (d *checkDelegate) FindOrCreateScope(config db.ResourceConfig) (db.ResourceConfigScope, error) {
 	var resourceIDPtr *int
-	if d.plan.Resource != "" {
+	if d.plan.IsResourceCheck() {
 		pipeline, err := d.pipeline()
 		if err != nil {
 			return nil, fmt.Errorf("get pipeline: %w", err)
@@ -125,7 +125,7 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 	interval := d.plan.Interval.Interval
 
 	var lock lock.Lock = lock.NoopLock{}
-	if d.plan.IsPeriodic() {
+	if d.plan.IsResourceCheck() {
 		for {
 			run, err := d.shouldPeriodicCheckRun(scope, interval)
 			if err != nil {
