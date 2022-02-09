@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -67,8 +68,9 @@ func (worker *Worker) FindOrCreateContainer(
 	owner db.ContainerOwner,
 	metadata db.ContainerMetadata,
 	containerSpec runtime.ContainerSpec,
+	delegate runtime.BuildStepDelegate,
 ) (runtime.Container, []runtime.VolumeMount, error) {
-	c, mounts, err := worker.findOrCreateContainer(ctx, owner, metadata, containerSpec)
+	c, mounts, err := worker.findOrCreateContainer(ctx, owner, metadata, containerSpec, delegate)
 	if err != nil {
 		return nil, nil, fmt.Errorf("find or create container on worker %s: %w", worker.Name(), err)
 	}
@@ -80,6 +82,7 @@ func (worker *Worker) findOrCreateContainer(
 	owner db.ContainerOwner,
 	metadata db.ContainerMetadata,
 	containerSpec runtime.ContainerSpec,
+	delegate runtime.BuildStepDelegate,
 ) (runtime.Container, []runtime.VolumeMount, error) {
 	logger := lagerctx.FromContext(ctx)
 	creatingContainer, createdContainer, err := worker.dbWorker.FindContainer(owner)
@@ -136,7 +139,7 @@ func (worker *Worker) findOrCreateContainer(
 	// will create one. If it does exist, we will transition the creatingContainer
 	// to created and return a worker.Container
 	if gardenContainer == nil {
-		gardenContainer, err = worker.createGardenContainer(ctx, containerSpec, creatingContainer)
+		gardenContainer, err = worker.createGardenContainer(ctx, containerSpec, creatingContainer, delegate)
 		if err != nil {
 			logger.Error("failed-to-create-container-in-garden", err)
 			markContainerAsFailed(logger, creatingContainer)
@@ -167,6 +170,7 @@ func (worker *Worker) createGardenContainer(
 	ctx context.Context,
 	containerSpec runtime.ContainerSpec,
 	creatingContainer db.CreatingContainer,
+	delegate runtime.BuildStepDelegate,
 ) (gclient.Container, error) {
 	logger := lagerctx.FromContext(ctx)
 	fetchedImage, err := worker.fetchImageForContainer(
@@ -174,6 +178,7 @@ func (worker *Worker) createGardenContainer(
 		containerSpec.ImageSpec,
 		containerSpec.TeamID,
 		creatingContainer,
+		delegate,
 	)
 	if err != nil {
 		logger.Error("failed-to-fetch-image-for-container", err)
@@ -181,7 +186,7 @@ func (worker *Worker) createGardenContainer(
 		return nil, err
 	}
 
-	volumeMounts, err := worker.createVolumes(ctx, fetchedImage.Privileged, creatingContainer, containerSpec)
+	volumeMounts, err := worker.createVolumes(ctx, fetchedImage.Privileged, creatingContainer, containerSpec, delegate)
 	if err != nil {
 		logger.Error("failed-to-create-volume-mounts-for-container", err)
 		markContainerAsFailed(logger, creatingContainer)
@@ -300,6 +305,7 @@ func (worker *Worker) createVolumes(
 	privileged bool,
 	creatingContainer db.CreatingContainer,
 	spec runtime.ContainerSpec,
+	delegate runtime.BuildStepDelegate,
 ) ([]runtime.VolumeMount, error) {
 	var volumeMounts []runtime.VolumeMount
 
@@ -324,7 +330,7 @@ func (worker *Worker) createVolumes(
 
 	volumeMounts = append(volumeMounts, scratchMount)
 
-	inputVolumeMounts, inputDestinationPaths, err := worker.cloneInputVolumes(ctx, spec, privileged, creatingContainer)
+	inputVolumeMounts, inputDestinationPaths, err := worker.cloneInputVolumes(ctx, spec, privileged, creatingContainer, delegate)
 	if err != nil {
 		return nil, err
 	}
@@ -386,6 +392,7 @@ func (worker *Worker) cloneInputVolumes(
 	spec runtime.ContainerSpec,
 	privileged bool,
 	container db.CreatingContainer,
+	delegate runtime.BuildStepDelegate,
 ) ([]runtime.VolumeMount, map[string]bool, error) {
 	inputDestinationPaths := make(map[string]bool)
 
@@ -414,7 +421,7 @@ func (worker *Worker) cloneInputVolumes(
 		}
 	}
 
-	locallyClonedVolumes, err := worker.streamRemoteInputVolumes(ctx, spec, privileged, container, remoteInputs)
+	locallyClonedVolumes, err := worker.streamRemoteInputVolumes(ctx, spec, privileged, container, remoteInputs, delegate)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -469,6 +476,7 @@ func (worker *Worker) streamRemoteInputVolumes(
 	privileged bool,
 	container db.CreatingContainer,
 	inputs []remoteInput,
+	delegate runtime.BuildStepDelegate,
 ) ([]mountableLocalInput, error) {
 	logger := lagerctx.FromContext(ctx)
 	if len(inputs) == 0 {
@@ -508,6 +516,9 @@ func (worker *Worker) streamRemoteInputVolumes(
 			cowParent: streamedVolume,
 			mountPath: input.mountPath,
 		}
+
+		_, inputPath := path.Split(input.mountPath)
+		delegate.StreamingVolume(logger, inputPath, input.volume.Source(), streamedVolume.DBVolume().WorkerName())
 
 		g.Go(func() error {
 			return worker.streamer.Stream(groupCtx, input.volume, streamedVolume)

@@ -5,6 +5,7 @@ import (
 	"io"
 	"strings"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/compression"
 	"github.com/concourse/concourse/atc/db"
 	"go.opentelemetry.io/otel/propagation"
@@ -27,7 +28,7 @@ type Worker interface {
 	// It can be thought of as declaratively saying "I want a container
 	// matching these specifications" - and the Worker implementation will
 	// "make it so", regardless of what Containers/Volumes already exist.
-	FindOrCreateContainer(context.Context, db.ContainerOwner, db.ContainerMetadata, ContainerSpec) (Container, []VolumeMount, error)
+	FindOrCreateContainer(context.Context, db.ContainerOwner, db.ContainerMetadata, ContainerSpec, BuildStepDelegate) (Container, []VolumeMount, error)
 	// CreateVolumeForArtifact creates a new empty Volume to be used as a
 	// WorkerArtifact. This is used for uploading local inputs to a worker via
 	// `fly execute -i ...`.
@@ -121,6 +122,10 @@ type ContainerSpec struct {
 	// CertsBindMount indicates whether or not to mount the worker's Certs
 	// volume onto the container.
 	CertsBindMount bool
+}
+
+type BuildStepDelegate interface {
+	StreamingVolume(lager.Logger, string, string, string)
 }
 
 // ContainerSpec must implement propagation.TextMapCarrier so that it can be
@@ -276,13 +281,23 @@ type ContainerLimits struct {
 // Artifact represents an output from a step that can be used as an input to
 // other steps.
 type Artifact interface {
+	// StreamOut converts the contents of the Artifact under path to a compressed
+	// tar stream. The result of StreamOut can be passed in to StreamIn for
+	// another Artifact.
+	//
+	// path is a relative path - "." indicates using the root of the Artifact.
 	StreamOut(ctx context.Context, path string, compression compression.Compression) (io.ReadCloser, error)
+
+	// Handle gives the globally unique ID of the Volume.
+	Handle() string
+
+	// Source gives the original source of the artifact e.g. worker name
+	Source() string
 }
 
 // Volume represents a data volume that can be mounted to a Container.
 type Volume interface {
-	// Handle gives the globally unique ID of the Volume.
-	Handle() string
+	Artifact
 
 	// StreamIn accepts a compressed tar stream and populates the contents of
 	// the Volume with the contents under path. This tar stream can be the
@@ -290,12 +305,6 @@ type Volume interface {
 	//
 	// path is a relative path - "." indicates using the root of the Volume.
 	StreamIn(ctx context.Context, path string, compression compression.Compression, reader io.Reader) error
-	// StreamOut converts the contents of the Volume under path to a compressed
-	// tar stream. The result of StreamOut can be passed in to StreamIn for
-	// another Volume.
-	//
-	// path is a relative path - "." indicates using the root of the Volume.
-	StreamOut(ctx context.Context, path string, compression compression.Compression) (io.ReadCloser, error)
 
 	// InitializeResourceCache is called upon a successful run of the get step
 	// to register this Volume as a resource cache.
@@ -312,9 +321,6 @@ type Volume interface {
 
 	DBVolume() db.CreatedVolume
 }
-
-// A Volume is a type of Artifact that is mounted to a Container.
-var _ Artifact = (Volume)(nil)
 
 // P2PVolume is an interface that may also be satisfied by Volume
 // implementations. When streaming contents from one Volume to another, if both

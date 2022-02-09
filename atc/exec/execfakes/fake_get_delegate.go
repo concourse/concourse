@@ -131,6 +131,14 @@ type FakeGetDelegate struct {
 	stdoutReturnsOnCall map[int]struct {
 		result1 io.Writer
 	}
+	StreamingVolumeStub        func(lager.Logger, string, string, string)
+	streamingVolumeMutex       sync.RWMutex
+	streamingVolumeArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 string
+		arg3 string
+		arg4 string
+	}
 	UpdateResourceVersionStub        func(lager.Logger, string, resource.VersionResult)
 	updateResourceVersionMutex       sync.RWMutex
 	updateResourceVersionArgsForCall []struct {
@@ -728,6 +736,41 @@ func (fake *FakeGetDelegate) StdoutReturnsOnCall(i int, result1 io.Writer) {
 	}{result1}
 }
 
+func (fake *FakeGetDelegate) StreamingVolume(arg1 lager.Logger, arg2 string, arg3 string, arg4 string) {
+	fake.streamingVolumeMutex.Lock()
+	fake.streamingVolumeArgsForCall = append(fake.streamingVolumeArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 string
+		arg3 string
+		arg4 string
+	}{arg1, arg2, arg3, arg4})
+	stub := fake.StreamingVolumeStub
+	fake.recordInvocation("StreamingVolume", []interface{}{arg1, arg2, arg3, arg4})
+	fake.streamingVolumeMutex.Unlock()
+	if stub != nil {
+		fake.StreamingVolumeStub(arg1, arg2, arg3, arg4)
+	}
+}
+
+func (fake *FakeGetDelegate) StreamingVolumeCallCount() int {
+	fake.streamingVolumeMutex.RLock()
+	defer fake.streamingVolumeMutex.RUnlock()
+	return len(fake.streamingVolumeArgsForCall)
+}
+
+func (fake *FakeGetDelegate) StreamingVolumeCalls(stub func(lager.Logger, string, string, string)) {
+	fake.streamingVolumeMutex.Lock()
+	defer fake.streamingVolumeMutex.Unlock()
+	fake.StreamingVolumeStub = stub
+}
+
+func (fake *FakeGetDelegate) StreamingVolumeArgsForCall(i int) (lager.Logger, string, string, string) {
+	fake.streamingVolumeMutex.RLock()
+	defer fake.streamingVolumeMutex.RUnlock()
+	argsForCall := fake.streamingVolumeArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+}
+
 func (fake *FakeGetDelegate) UpdateResourceVersion(arg1 lager.Logger, arg2 string, arg3 resource.VersionResult) {
 	fake.updateResourceVersionMutex.Lock()
 	fake.updateResourceVersionArgsForCall = append(fake.updateResourceVersionArgsForCall, struct {
@@ -821,6 +864,8 @@ func (fake *FakeGetDelegate) Invocations() map[string][][]interface{} {
 	defer fake.stderrMutex.RUnlock()
 	fake.stdoutMutex.RLock()
 	defer fake.stdoutMutex.RUnlock()
+	fake.streamingVolumeMutex.RLock()
+	defer fake.streamingVolumeMutex.RUnlock()
 	fake.updateResourceVersionMutex.RLock()
 	defer fake.updateResourceVersionMutex.RUnlock()
 	fake.waitingForWorkerMutex.RLock()

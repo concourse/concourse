@@ -170,6 +170,11 @@ handleEvent event ( model, effects ) =
             , effects
             )
 
+        StreamingVolume origin volume src time ->
+            ( updateStep origin.id (setRunning << appendStepLog ("\u{001B}[1mstreaming volume \u{001B}[0m" ++ volume ++ " \u{001B}[1mfrom\u{001B}[0m " ++ src ++ "\n") time) model
+            , effects
+            )
+
         Error origin message time ->
             ( updateStep origin.id (setStepError message time) model
             , effects

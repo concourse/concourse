@@ -15,6 +15,9 @@ const (
 	// a step (get/put/task) selected worker
 	EventTypeSelectedWorker atc.EventType = "selected-worker"
 
+	// a step (get/put/task) is streaming a volume from another worker
+	EventTypeStreamingVolume atc.EventType = "streaming-volume"
+
 	// task execution started
 	EventTypeStartTask atc.EventType = "start-task"
 
