@@ -140,16 +140,16 @@ type volumeLocalityStrategy struct{}
 func (strategy volumeLocalityStrategy) Order(logger lager.Logger, pool Pool, workers []db.Worker, spec runtime.ContainerSpec) ([]db.Worker, error) {
 	counts := make(map[string]int, len(workers))
 
-	for _, input := range spec.Inputs {
-		volume, ok := input.Artifact.(runtime.Volume)
+	updateCountsForArtifact := func(artifact runtime.Artifact, destinationPath string) error {
+		volume, ok := artifact.(runtime.Volume)
 		if !ok {
 			// Non-volume artifacts don't live on workers, so don't affect
 			// volume locality decisions.
-			continue
+			return nil
 		}
 		logger := logger.WithData(lager.Data{
 			"handle": volume.Handle(),
-			"path":   input.DestinationPath,
+			"path":   destinationPath,
 		})
 		srcWorker := volume.DBVolume().WorkerName()
 		counts[srcWorker]++
@@ -157,16 +157,16 @@ func (strategy volumeLocalityStrategy) Order(logger lager.Logger, pool Pool, wor
 		resourceCacheID := volume.DBVolume().GetResourceCacheID()
 		if resourceCacheID == 0 {
 			logger.Debug("resource-not-cached")
-			continue
+			return nil
 		}
 		resourceCache, found, err := pool.db.ResourceCacheFactory.FindResourceCacheByID(resourceCacheID)
 		if err != nil {
 			logger.Error("failed-to-find-resource-cache", err)
-			return nil, err
+			return err
 		}
 		if !found {
 			logger.Debug("resource-cache-not-found")
-			continue
+			return nil
 		}
 		for _, worker := range workers {
 			if worker.Name() == srcWorker {
@@ -175,11 +175,24 @@ func (strategy volumeLocalityStrategy) Order(logger lager.Logger, pool Pool, wor
 			_, found, err := pool.db.VolumeRepo.FindResourceCacheVolume(worker.Name(), resourceCache)
 			if err != nil {
 				logger.Error("failed-to-find-resource-cache-volume", err)
-				return nil, err
+				return err
 			}
 			if found {
 				counts[worker.Name()]++
 			}
+		}
+		return nil
+	}
+
+	err := updateCountsForArtifact(spec.ImageSpec.ImageArtifact, "/")
+	if err != nil {
+		return nil, err
+	}
+
+	for _, input := range spec.Inputs {
+		err := updateCountsForArtifact(input.Artifact, input.DestinationPath)
+		if err != nil {
+			return nil, err
 		}
 	}
 
