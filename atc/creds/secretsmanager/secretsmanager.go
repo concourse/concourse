@@ -65,7 +65,11 @@ func (s *SecretsManager) getSecretById(path string) (interface{}, *time.Time, bo
 	if err == nil {
 		switch {
 		case value.SecretString != nil:
-			return *value.SecretString, nil, true, nil
+			values, err := decodeJsonValue([]byte(*value.SecretString))
+			if err != nil {
+				return *value.SecretString, nil, true, nil
+			}
+			return values, nil, true, nil
 		case value.SecretBinary != nil:
 			values, err := decodeJsonValue(value.SecretBinary)
 			if err != nil {
