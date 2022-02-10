@@ -145,7 +145,8 @@ type RunCommand struct {
 
 	ComponentRunnerInterval time.Duration `long:"component-runner-interval" default:"10s" description:"Interval on which runners are kicked off for builds, locks, scans, and checks"`
 
-	LidarScannerInterval time.Duration `long:"lidar-scanner-interval" default:"10s" description:"Interval on which the resource scanner will run to see if new checks need to be scheduled"`
+	LidarScannerInterval  time.Duration `long:"lidar-scanner-interval" default:"10s" description:"Interval on which the resource scanner will run to see if new checks need to be scheduled"`
+	LidarScannerBatchSize int           `long:"lidar-scanner-batch-size" default:"0" description:"Max resources to scan in a round. 0 means no limit."`
 
 	GlobalResourceCheckTimeout          time.Duration `long:"global-resource-check-timeout" default:"1h" description:"Time limit on checking for new versions of resources."`
 	ResourceCheckingInterval            time.Duration `long:"resource-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources."`
@@ -1079,6 +1080,7 @@ func (cmd *RunCommand) backendComponents(
 			Runnable: lidar.NewScanner(
 				dbCheckFactory,
 				atc.NewPlanFactory(time.Now().Unix()),
+				cmd.LidarScannerBatchSize,
 			),
 		},
 		{

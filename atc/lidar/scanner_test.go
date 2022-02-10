@@ -24,16 +24,17 @@ var _ = Describe("Scanner", func() {
 		planFactory      atc.PlanFactory
 
 		scanner Scanner
+		batchSize int
 	)
 
 	BeforeEach(func() {
 		planFactory = atc.NewPlanFactory(0)
 		fakeCheckFactory = new(dbfakes.FakeCheckFactory)
-
-		scanner = lidar.NewScanner(fakeCheckFactory, planFactory)
+		batchSize = 0
 	})
 
 	JustBeforeEach(func() {
+		scanner = lidar.NewScanner(fakeCheckFactory, planFactory, batchSize)
 		err = scanner.Run(context.TODO())
 	})
 
@@ -118,18 +119,6 @@ var _ = Describe("Scanner", func() {
 						It("creates a check", func() {
 							Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
 						})
-
-						Context("when try creating a check panics", func() {
-							BeforeEach(func() {
-								fakeCheckFactory.TryCreateCheckStub = func(context.Context, db.Checkable, db.ResourceTypes, atc.Version, bool, bool, bool) (db.Build, bool, error) {
-									panic("something went wrong")
-								}
-							})
-
-							It("recovers from the panic", func() {
-								Expect(err).ToNot(HaveOccurred())
-							})
-						})
 					})
 
 					Context("when the checkable has a pinned version", func() {
@@ -172,6 +161,51 @@ var _ = Describe("Scanner", func() {
 							"one check created for the unrelated fakeResource")
 					})
 				})
+			})
+		})
+
+		Context("when batchSize is specified", func(){
+			var fakeResource1, fakeResource2, fakeResource3, fakeResource4, fakeResource5 *dbfakes.FakeResource
+			var scannedResources []db.Checkable
+
+			BeforeEach(func() {
+				fakeResource1 = new(dbfakes.FakeResource)
+				fakeResource1.NameReturns("some-name")
+				fakeResource1.SourceReturns(atc.Source{"some": "source"})
+
+				fakeResource2 = new(dbfakes.FakeResource)
+				fakeResource2.NameReturns("some-name")
+				fakeResource2.SourceReturns(atc.Source{"some": "source"})
+
+				fakeResource3 = new(dbfakes.FakeResource)
+				fakeResource3.NameReturns("some-name")
+				fakeResource3.SourceReturns(atc.Source{"some": "source"})
+
+				fakeResource4 = new(dbfakes.FakeResource)
+				fakeResource4.NameReturns("some-name")
+				fakeResource4.SourceReturns(atc.Source{"some": "source"})
+
+				fakeResource5 = new(dbfakes.FakeResource)
+				fakeResource5.NameReturns("some-name")
+				fakeResource5.SourceReturns(atc.Source{"some": "source"})
+
+				fakeCheckFactory.ResourcesReturns([]db.Resource{fakeResource1, fakeResource2, fakeResource3, fakeResource4, fakeResource5}, nil)
+
+				fakeCheckFactory.TryCreateCheckStub = func(ctx context.Context, checkable db.Checkable, types db.ResourceTypes, version atc.Version, b bool, b2 bool, b3 bool) (db.Build, bool, error) {
+					scannedResources = append(scannedResources, checkable)
+					return new(dbfakes.FakeBuild), true, nil
+				}
+
+				batchSize = 3
+				scannedResources = []db.Checkable{}
+			})
+
+			It("should not fail", func(){
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("scanned 3 resources", func(){
+				Expect(len(scannedResources)).To(Equal(3))
 			})
 		})
 	})
