@@ -88,6 +88,21 @@ var _ = Describe("SecretsManager", func() {
 			}))
 		})
 
+		It("should get json string parameter", func() {
+			mockService.stubGetParameter = func(path string) (*secretsmanager.GetSecretValueOutput, error) {
+				return &secretsmanager.GetSecretValueOutput{
+					SecretString: aws.String(`{"name": "yours", "pass": "truely"}`),
+				}, nil
+			}
+			value, found, err := variables.Get(vars.Reference{Path: "user"})
+			Expect(err).To(BeNil())
+			Expect(found).To(BeTrue())
+			Expect(value).To(BeEquivalentTo(map[string]interface{}{
+				"name": "yours",
+				"pass": "truely",
+			}))
+		})
+
 		It("should get team parameter if exists", func() {
 			mockService.stubGetParameter = func(input string) (*secretsmanager.GetSecretValueOutput, error) {
 				if input != "/concourse/alpha/cheery" {
