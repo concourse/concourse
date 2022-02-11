@@ -60,8 +60,8 @@ func NewInMemoryCheckBuildTrackingLockID(checkableType string, checkableId int) 
 	return LockID{LockTypeInMemoryCheckBuildTracking, lockIDFromString(fmt.Sprintf("%s-%d", checkableType, checkableId))}
 }
 
-func NewVolumeStreamingLockID(volume string, worker string) LockID {
-	return LockID{LockTypeJobScheduling, lockIDFromString(fmt.Sprintf("%s-%s", volume, worker))}
+func NewVolumeStreamingLockID(resourceCacheID int, worker string) LockID {
+	return LockID{LockTypeJobScheduling, lockIDFromString(fmt.Sprintf("%d-%s", resourceCacheID, worker))}
 }
 
 //counterfeiter:generate . LockFactory

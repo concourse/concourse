@@ -643,7 +643,7 @@ func (worker *Worker) BaggageclaimClient() baggageclaim.Client {
 
 func (worker *Worker) acquireVolumeStreamingLock(
 	ctx context.Context,
-	volume string,
+	resourceCacheID int,
 	destination string,
 ) (lock.Lock, bool, error) {
 	// if caching of streamed volumes is not enabled then we should not globally
@@ -653,7 +653,7 @@ func (worker *Worker) acquireVolumeStreamingLock(
 	}
 
 	logger := lagerctx.FromContext(ctx)
-	return worker.db.LockFactory.Acquire(logger, lock.NewVolumeStreamingLockID(volume, destination))
+	return worker.db.LockFactory.Acquire(logger, lock.NewVolumeStreamingLockID(resourceCacheID, destination))
 }
 
 func (worker *Worker) findOrStreamVolume(
@@ -684,14 +684,24 @@ func (worker *Worker) findOrStreamVolume(
 			return volume, nil
 		}
 
-		lock, acquired, err := worker.acquireVolumeStreamingLock(ctx, artifact.Handle(), container.WorkerName())
-		if err != nil {
-			logger.Error("failed-to-acquire-lock-for-volume-streaming", err)
-			return Volume{}, err
+		volume, ok := artifact.(Volume)
+		var resourceCacheLock lock.Lock
+		var acquired bool
+		if ok {
+			resourceCacheLock, acquired, err = worker.acquireVolumeStreamingLock(ctx, volume.dbVolume.GetResourceCacheID(), container.WorkerName())
+			if err != nil {
+				logger.Error("failed-to-acquire-lock-for-volume-streaming", err, lager.Data{
+					"resource-cache": volume.dbVolume.GetResourceCacheID(),
+				})
+				return Volume{}, err
+			}
+		} else {
+			// If the artifact is not a volume we cannot cache it so always stream
+			resourceCacheLock, acquired = lock.NoopLock{}, true
 		}
 
 		if acquired {
-			defer lock.Release()
+			defer resourceCacheLock.Release()
 
 			streamedVolume, err := worker.findOrCreateVolumeForStreaming(
 				ctx,
