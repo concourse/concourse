@@ -233,6 +233,32 @@ type FakeVolumeRepository struct {
 		result1 []db.CreatedVolume
 		result2 error
 	}
+	FindWorkersForResourceCacheStub        func(db.ResourceCache) ([]string, error)
+	findWorkersForResourceCacheMutex       sync.RWMutex
+	findWorkersForResourceCacheArgsForCall []struct {
+		arg1 db.ResourceCache
+	}
+	findWorkersForResourceCacheReturns struct {
+		result1 []string
+		result2 error
+	}
+	findWorkersForResourceCacheReturnsOnCall map[int]struct {
+		result1 []string
+		result2 error
+	}
+	FindWorkersForTaskCacheStub        func(db.UsedTaskCache) ([]string, error)
+	findWorkersForTaskCacheMutex       sync.RWMutex
+	findWorkersForTaskCacheArgsForCall []struct {
+		arg1 db.UsedTaskCache
+	}
+	findWorkersForTaskCacheReturns struct {
+		result1 []string
+		result2 error
+	}
+	findWorkersForTaskCacheReturnsOnCall map[int]struct {
+		result1 []string
+		result2 error
+	}
 	GetDestroyingVolumesStub        func(string) ([]string, error)
 	getDestroyingVolumesMutex       sync.RWMutex
 	getDestroyingVolumesArgsForCall []struct {
@@ -1307,6 +1333,134 @@ func (fake *FakeVolumeRepository) FindVolumesForContainerReturnsOnCall(i int, re
 	}{result1, result2}
 }
 
+func (fake *FakeVolumeRepository) FindWorkersForResourceCache(arg1 db.ResourceCache) ([]string, error) {
+	fake.findWorkersForResourceCacheMutex.Lock()
+	ret, specificReturn := fake.findWorkersForResourceCacheReturnsOnCall[len(fake.findWorkersForResourceCacheArgsForCall)]
+	fake.findWorkersForResourceCacheArgsForCall = append(fake.findWorkersForResourceCacheArgsForCall, struct {
+		arg1 db.ResourceCache
+	}{arg1})
+	stub := fake.FindWorkersForResourceCacheStub
+	fakeReturns := fake.findWorkersForResourceCacheReturns
+	fake.recordInvocation("FindWorkersForResourceCache", []interface{}{arg1})
+	fake.findWorkersForResourceCacheMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeVolumeRepository) FindWorkersForResourceCacheCallCount() int {
+	fake.findWorkersForResourceCacheMutex.RLock()
+	defer fake.findWorkersForResourceCacheMutex.RUnlock()
+	return len(fake.findWorkersForResourceCacheArgsForCall)
+}
+
+func (fake *FakeVolumeRepository) FindWorkersForResourceCacheCalls(stub func(db.ResourceCache) ([]string, error)) {
+	fake.findWorkersForResourceCacheMutex.Lock()
+	defer fake.findWorkersForResourceCacheMutex.Unlock()
+	fake.FindWorkersForResourceCacheStub = stub
+}
+
+func (fake *FakeVolumeRepository) FindWorkersForResourceCacheArgsForCall(i int) db.ResourceCache {
+	fake.findWorkersForResourceCacheMutex.RLock()
+	defer fake.findWorkersForResourceCacheMutex.RUnlock()
+	argsForCall := fake.findWorkersForResourceCacheArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeVolumeRepository) FindWorkersForResourceCacheReturns(result1 []string, result2 error) {
+	fake.findWorkersForResourceCacheMutex.Lock()
+	defer fake.findWorkersForResourceCacheMutex.Unlock()
+	fake.FindWorkersForResourceCacheStub = nil
+	fake.findWorkersForResourceCacheReturns = struct {
+		result1 []string
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeVolumeRepository) FindWorkersForResourceCacheReturnsOnCall(i int, result1 []string, result2 error) {
+	fake.findWorkersForResourceCacheMutex.Lock()
+	defer fake.findWorkersForResourceCacheMutex.Unlock()
+	fake.FindWorkersForResourceCacheStub = nil
+	if fake.findWorkersForResourceCacheReturnsOnCall == nil {
+		fake.findWorkersForResourceCacheReturnsOnCall = make(map[int]struct {
+			result1 []string
+			result2 error
+		})
+	}
+	fake.findWorkersForResourceCacheReturnsOnCall[i] = struct {
+		result1 []string
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeVolumeRepository) FindWorkersForTaskCache(arg1 db.UsedTaskCache) ([]string, error) {
+	fake.findWorkersForTaskCacheMutex.Lock()
+	ret, specificReturn := fake.findWorkersForTaskCacheReturnsOnCall[len(fake.findWorkersForTaskCacheArgsForCall)]
+	fake.findWorkersForTaskCacheArgsForCall = append(fake.findWorkersForTaskCacheArgsForCall, struct {
+		arg1 db.UsedTaskCache
+	}{arg1})
+	stub := fake.FindWorkersForTaskCacheStub
+	fakeReturns := fake.findWorkersForTaskCacheReturns
+	fake.recordInvocation("FindWorkersForTaskCache", []interface{}{arg1})
+	fake.findWorkersForTaskCacheMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeVolumeRepository) FindWorkersForTaskCacheCallCount() int {
+	fake.findWorkersForTaskCacheMutex.RLock()
+	defer fake.findWorkersForTaskCacheMutex.RUnlock()
+	return len(fake.findWorkersForTaskCacheArgsForCall)
+}
+
+func (fake *FakeVolumeRepository) FindWorkersForTaskCacheCalls(stub func(db.UsedTaskCache) ([]string, error)) {
+	fake.findWorkersForTaskCacheMutex.Lock()
+	defer fake.findWorkersForTaskCacheMutex.Unlock()
+	fake.FindWorkersForTaskCacheStub = stub
+}
+
+func (fake *FakeVolumeRepository) FindWorkersForTaskCacheArgsForCall(i int) db.UsedTaskCache {
+	fake.findWorkersForTaskCacheMutex.RLock()
+	defer fake.findWorkersForTaskCacheMutex.RUnlock()
+	argsForCall := fake.findWorkersForTaskCacheArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeVolumeRepository) FindWorkersForTaskCacheReturns(result1 []string, result2 error) {
+	fake.findWorkersForTaskCacheMutex.Lock()
+	defer fake.findWorkersForTaskCacheMutex.Unlock()
+	fake.FindWorkersForTaskCacheStub = nil
+	fake.findWorkersForTaskCacheReturns = struct {
+		result1 []string
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeVolumeRepository) FindWorkersForTaskCacheReturnsOnCall(i int, result1 []string, result2 error) {
+	fake.findWorkersForTaskCacheMutex.Lock()
+	defer fake.findWorkersForTaskCacheMutex.Unlock()
+	fake.FindWorkersForTaskCacheStub = nil
+	if fake.findWorkersForTaskCacheReturnsOnCall == nil {
+		fake.findWorkersForTaskCacheReturnsOnCall = make(map[int]struct {
+			result1 []string
+			result2 error
+		})
+	}
+	fake.findWorkersForTaskCacheReturnsOnCall[i] = struct {
+		result1 []string
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeVolumeRepository) GetDestroyingVolumes(arg1 string) ([]string, error) {
 	fake.getDestroyingVolumesMutex.Lock()
 	ret, specificReturn := fake.getDestroyingVolumesReturnsOnCall[len(fake.getDestroyingVolumesArgsForCall)]
@@ -1725,6 +1879,10 @@ func (fake *FakeVolumeRepository) Invocations() map[string][][]interface{} {
 	defer fake.findVolumeMutex.RUnlock()
 	fake.findVolumesForContainerMutex.RLock()
 	defer fake.findVolumesForContainerMutex.RUnlock()
+	fake.findWorkersForResourceCacheMutex.RLock()
+	defer fake.findWorkersForResourceCacheMutex.RUnlock()
+	fake.findWorkersForTaskCacheMutex.RLock()
+	defer fake.findWorkersForTaskCacheMutex.RUnlock()
 	fake.getDestroyingVolumesMutex.RLock()
 	defer fake.getDestroyingVolumesMutex.RUnlock()
 	fake.getOrphanedVolumesMutex.RLock()
