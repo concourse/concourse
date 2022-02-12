@@ -244,6 +244,10 @@ type Input struct {
 	//
 	// May be absolute or relative to ContainerSpec.Dir.
 	DestinationPath string
+	// FromCache indicates if the artifact is found from cache or not.
+	// If an artifact is found from cache, then if it should not be considered
+	// by volume-locality strategy.
+	FromCache bool
 }
 
 // OutputPaths is a mapping from output name to its path in the container.

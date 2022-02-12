@@ -141,6 +141,10 @@ func (strategy volumeLocalityStrategy) Order(logger lager.Logger, pool Pool, wor
 	counts := make(map[string]int, len(workers))
 
 	for _, input := range spec.Inputs {
+		if input.FromCache {
+			continue
+		}
+
 		volume, ok := input.Artifact.(runtime.Volume)
 		if !ok {
 			// Non-volume artifacts don't live on workers, so don't affect

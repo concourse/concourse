@@ -134,7 +134,7 @@ jobs:
 
 		state.GetStub = vars.StaticVariables{"source-param": "super-secret-source"}.Get
 
-		artifactRepository.RegisterArtifact("some-resource", runtimetest.NewVolume("some-handle"))
+		artifactRepository.RegisterArtifact("some-resource", runtimetest.NewVolume("some-handle"), false)
 
 		stdout = gbytes.NewBuffer()
 		stderr = gbytes.NewBuffer()

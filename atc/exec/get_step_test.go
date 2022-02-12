@@ -283,9 +283,10 @@ var _ = Describe("GetStep", func() {
 				})
 
 				It("registers the volume as an artifact", func() {
-					artifact, found := artifactRepository.ArtifactFor(build.ArtifactName(getPlan.Name))
+					artifact, fromCache, found := artifactRepository.ArtifactFor(build.ArtifactName(getPlan.Name))
 					Expect(artifact).To(Equal(cacheVolume))
 					Expect(found).To(BeTrue())
+					Expect(fromCache).To(BeTrue())
 				})
 
 				It("stores the resource cache as the step result", func() {
@@ -698,9 +699,10 @@ var _ = Describe("GetStep", func() {
 		})
 
 		It("registers the resulting artifact in the RunState.ArtifactRepository", func() {
-			artifact, found := artifactRepository.ArtifactFor(build.ArtifactName(getPlan.Name))
+			artifact, fromCache, found := artifactRepository.ArtifactFor(build.ArtifactName(getPlan.Name))
 			Expect(artifact).To(Equal(getVolume))
 			Expect(found).To(BeTrue())
+			Expect(fromCache).To(BeFalse())
 		})
 
 		It("initializes the resource cache on the get volume", func() {

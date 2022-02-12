@@ -6,8 +6,6 @@ import (
 
 	"github.com/concourse/concourse/atc/compression"
 	. "github.com/concourse/concourse/atc/exec/build"
-	"github.com/concourse/concourse/atc/runtime"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -36,24 +34,25 @@ var _ = Describe("ArtifactRepository", func() {
 	})
 
 	It("initially does not contain any artifacts", func() {
-		_, found := repo.ArtifactFor("first-artifact")
+		_, _, found := repo.ArtifactFor("first-artifact")
 		Expect(found).To(BeFalse())
 	})
 
 	Context("when a artifact is registered", func() {
 		BeforeEach(func() {
-			repo.RegisterArtifact("first-artifact", Artifact("first"))
+			repo.RegisterArtifact("first-artifact", Artifact("first"), false)
 		})
 
 		Describe("ArtifactFor", func() {
 			It("yields the artifact by the given name", func() {
-				artifact, found := repo.ArtifactFor("first-artifact")
+				artifact, fromCache, found := repo.ArtifactFor("first-artifact")
 				Expect(found).To(BeTrue())
+				Expect(fromCache).To(BeFalse())
 				Expect(artifact).To(Equal(Artifact("first")))
 			})
 
 			It("yields nothing for unregistered names", func() {
-				_, found := repo.ArtifactFor("bogus-artifact")
+				_, _, found := repo.ArtifactFor("bogus-artifact")
 				Expect(found).To(BeFalse())
 			})
 		})
@@ -75,33 +74,48 @@ var _ = Describe("ArtifactRepository", func() {
 
 			Context("when an artifact is registered", func() {
 				BeforeEach(func() {
-					child.RegisterArtifact("second-artifact", Artifact("second"))
+					child.RegisterArtifact("second-artifact", Artifact("second"), false)
 				})
 
 				It("is present in the child but not the parent", func() {
-					Expect(child.AsMap()).To(Equal(map[ArtifactName]runtime.Artifact{
-						"first-artifact":  Artifact("first"),
-						"second-artifact": Artifact("second"),
+					Expect(child.AsMap()).To(Equal(map[ArtifactName]ArtifactEntry{
+						"first-artifact": {
+							Artifact:  Artifact("first"),
+							FromCache: false,
+						},
+						"second-artifact": {
+							Artifact:  Artifact("second"),
+							FromCache: false,
+						},
 					}))
 
-					Expect(repo.AsMap()).To(Equal(map[ArtifactName]runtime.Artifact{
-						"first-artifact": Artifact("first"),
+					Expect(repo.AsMap()).To(Equal(map[ArtifactName]ArtifactEntry{
+						"first-artifact": {
+							Artifact:  Artifact("first"),
+							FromCache: false,
+						},
 					}))
 				})
 			})
 
 			Context("when an artifact is overridden", func() {
 				BeforeEach(func() {
-					child.RegisterArtifact("first-artifact", Artifact("modified-first"))
+					child.RegisterArtifact("first-artifact", Artifact("modified-first"), false)
 				})
 
 				It("is overridden in the child but not the parent", func() {
-					Expect(child.AsMap()).To(Equal(map[ArtifactName]runtime.Artifact{
-						"first-artifact": Artifact("modified-first"),
+					Expect(child.AsMap()).To(Equal(map[ArtifactName]ArtifactEntry{
+						"first-artifact": {
+							Artifact:  Artifact("modified-first"),
+							FromCache: false,
+						},
 					}))
 
-					Expect(repo.AsMap()).To(Equal(map[ArtifactName]runtime.Artifact{
-						"first-artifact": Artifact("first"),
+					Expect(repo.AsMap()).To(Equal(map[ArtifactName]ArtifactEntry{
+						"first-artifact": {
+							Artifact:  Artifact("first"),
+							FromCache: false,
+						},
 					}))
 				})
 			})
@@ -109,33 +123,41 @@ var _ = Describe("ArtifactRepository", func() {
 
 		Context("when a second artifact is registered", func() {
 			BeforeEach(func() {
-				repo.RegisterArtifact("second-artifact", Artifact("second"))
+				repo.RegisterArtifact("second-artifact", Artifact("second"), false)
 			})
 
 			Describe("AsMap", func() {
 				It("returns all artifacts", func() {
-					Expect(repo.AsMap()).To(Equal(map[ArtifactName]runtime.Artifact{
-						"first-artifact":  Artifact("first"),
-						"second-artifact": Artifact("second"),
+					Expect(repo.AsMap()).To(Equal(map[ArtifactName]ArtifactEntry{
+						"first-artifact": {
+							Artifact:  Artifact("first"),
+							FromCache: false,
+						},
+						"second-artifact": {
+							Artifact:  Artifact("second"),
+							FromCache: false,
+						},
 					}))
 				})
 			})
 
 			Describe("ArtifactFor", func() {
 				It("yields the first artifact by the given name", func() {
-					actualArtifact, found := repo.ArtifactFor("first-artifact")
+					actualArtifact, fromCache, found := repo.ArtifactFor("first-artifact")
 					Expect(found).To(BeTrue())
+					Expect(fromCache).To(BeFalse())
 					Expect(actualArtifact).To(Equal(Artifact("first")))
 				})
 
 				It("yields the second artifact by the given name", func() {
-					actualArtifact, found := repo.ArtifactFor("second-artifact")
+					actualArtifact, fromCache, found := repo.ArtifactFor("second-artifact")
 					Expect(found).To(BeTrue())
+					Expect(fromCache).To(BeFalse())
 					Expect(actualArtifact).To(Equal(Artifact("second")))
 				})
 
 				It("yields nothing for unregistered names", func() {
-					_, found := repo.ArtifactFor("bogus-artifact")
+					_, _, found := repo.ArtifactFor("bogus-artifact")
 					Expect(found).To(BeFalse())
 				})
 			})

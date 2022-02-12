@@ -389,8 +389,9 @@ var _ = Describe("TaskStep", func() {
 
 			Context("when all inputs are present", func() {
 				BeforeEach(func() {
-					repo.RegisterArtifact("some-input", input1)
-					repo.RegisterArtifact("some-other-input", input2)
+					// If or not framCache when RegisterArtifact, that should not impact task execution.
+					repo.RegisterArtifact("some-input", input1, false)
+					repo.RegisterArtifact("some-other-input", input2, true)
 				})
 
 				It("configures the inputs for the containerSpec correctly", func() {
@@ -398,10 +399,12 @@ var _ = Describe("TaskStep", func() {
 						{
 							Artifact:        input1,
 							DestinationPath: "some-artifact-root/some-input-configured-path",
+							FromCache:       false,
 						},
 						{
 							Artifact:        input2,
 							DestinationPath: "some-artifact-root/some-other-input",
+							FromCache:       true,
 						},
 					}))
 					Expect(stepErr).ToNot(HaveOccurred())
@@ -410,12 +413,36 @@ var _ = Describe("TaskStep", func() {
 
 			Context("when any of the inputs are missing", func() {
 				BeforeEach(func() {
-					repo.RegisterArtifact("some-input", input1)
+					repo.RegisterArtifact("some-input", input1, false)
 				})
 
 				It("returns a MissingInputsError", func() {
 					Expect(stepErr).To(BeAssignableToTypeOf(exec.MissingInputsError{}))
 					Expect(stepErr.(exec.MissingInputsError).Inputs).To(ConsistOf("some-other-input"))
+				})
+			})
+
+			Context("when only inputs are cache", func() {
+				BeforeEach(func() {
+					// If or not framCache when RegisterArtifact, that should not impact task execution.
+					repo.RegisterArtifact("some-input", input1, true)
+					repo.RegisterArtifact("some-other-input", input2, true)
+				})
+
+				It("configures the inputs for the containerSpec correctly", func() {
+					Expect(chosenContainer.Spec.Inputs).To(ConsistOf([]runtime.Input{
+						{
+							Artifact:        input1,
+							DestinationPath: "some-artifact-root/some-input-configured-path",
+							FromCache:       true,
+						},
+						{
+							Artifact:        input2,
+							DestinationPath: "some-artifact-root/some-other-input",
+							FromCache:       true,
+						},
+					}))
+					Expect(stepErr).ToNot(HaveOccurred())
 				})
 			})
 		})
@@ -433,7 +460,7 @@ var _ = Describe("TaskStep", func() {
 
 			Context("when all inputs are present in the in artifact repository", func() {
 				BeforeEach(func() {
-					repo.RegisterArtifact("remapped-input-src", remappedInputArtifact)
+					repo.RegisterArtifact("remapped-input-src", remappedInputArtifact, false)
 				})
 
 				It("uses remapped input", func() {
@@ -466,8 +493,8 @@ var _ = Describe("TaskStep", func() {
 
 			Context("when an optional input is missing", func() {
 				BeforeEach(func() {
-					repo.RegisterArtifact("required-input", requiredInputArtifact)
-					repo.RegisterArtifact("optional-input-2", optionalInput2Artifact)
+					repo.RegisterArtifact("required-input", requiredInputArtifact, false)
+					repo.RegisterArtifact("optional-input-2", optionalInput2Artifact, false)
 				})
 
 				It("runs successfully without the optional input", func() {
@@ -487,8 +514,8 @@ var _ = Describe("TaskStep", func() {
 
 			Context("when a required input is missing", func() {
 				BeforeEach(func() {
-					repo.RegisterArtifact("optional-input", optionalInputArtifact)
-					repo.RegisterArtifact("optional-input-2", optionalInput2Artifact)
+					repo.RegisterArtifact("optional-input", optionalInputArtifact, false)
+					repo.RegisterArtifact("optional-input-2", optionalInput2Artifact, false)
 				})
 
 				It("returns a MissingInputsError", func() {
@@ -617,10 +644,19 @@ var _ = Describe("TaskStep", func() {
 			})
 
 			It("registers the outputs in the build repo", func() {
-				Expect(repo.AsMap()).To(Equal(map[build.ArtifactName]runtime.Artifact{
-					"some-output":                outputVolume1,
-					"some-remapped-output":       outputVolume2,
-					"some-trailing-slash-output": outputVolume3,
+				Expect(repo.AsMap()).To(Equal(map[build.ArtifactName]build.ArtifactEntry{
+					"some-output": {
+						Artifact:  outputVolume1,
+						FromCache: false,
+					},
+					"some-remapped-output": {
+						Artifact:  outputVolume2,
+						FromCache: false,
+					},
+					"some-trailing-slash-output": {
+						Artifact:  outputVolume3,
+						FromCache: false,
+					},
 				}))
 			})
 		})
@@ -663,7 +699,7 @@ var _ = Describe("TaskStep", func() {
 
 				BeforeEach(func() {
 					imageVolume = runtimetest.NewVolume("image-volume")
-					repo.RegisterArtifact("some-image-artifact", imageVolume)
+					repo.RegisterArtifact("some-image-artifact", imageVolume, false)
 				})
 
 				It("configures it in the containerSpec's ImageSpec", func() {

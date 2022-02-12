@@ -118,7 +118,7 @@ var _ = Describe("TaskConfigSource", func() {
 
 			BeforeEach(func() {
 				volume = runtimetest.NewVolume("some-volume")
-				repo.RegisterArtifact(build.ArtifactName(artifactName), volume)
+				repo.RegisterArtifact(build.ArtifactName(artifactName), volume, false)
 			})
 
 			Context("when the artifact provides a proper file", func() {

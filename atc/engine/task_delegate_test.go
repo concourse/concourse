@@ -177,7 +177,7 @@ var _ = Describe("TaskDelegate", func() {
 				fakeResourceCache = new(dbfakes.FakeResourceCache)
 				step.RunStub = func(_ context.Context, state exec.RunState) (bool, error) {
 					if p.Get != nil {
-						state.ArtifactRepository().RegisterArtifact("image", volume)
+						state.ArtifactRepository().RegisterArtifact("image", volume, false)
 						state.StoreResult(expectedGetPlan.ID, exec.GetResult{
 							Name:          "image",
 							ResourceCache: fakeResourceCache,

@@ -123,7 +123,7 @@ func (step *LoadVarStep) fetchVars(
 	}
 	logger.Debug("figure-out-format", lager.Data{"format": format})
 
-	art, found := state.ArtifactRepository().ArtifactFor(build.ArtifactName(artifactName))
+	art, _, found := state.ArtifactRepository().ArtifactFor(build.ArtifactName(artifactName))
 	if !found {
 		return nil, UnknownArtifactSourceError{build.ArtifactName(artifactName), filePath}
 	}
