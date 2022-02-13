@@ -9,6 +9,20 @@ import (
 )
 
 type FakeCNI struct {
+	CheckStub        func(context.Context, string, string, ...cni.NamespaceOpts) error
+	checkMutex       sync.RWMutex
+	checkArgsForCall []struct {
+		arg1 context.Context
+		arg2 string
+		arg3 string
+		arg4 []cni.NamespaceOpts
+	}
+	checkReturns struct {
+		result1 error
+	}
+	checkReturnsOnCall map[int]struct {
+		result1 error
+	}
 	GetConfigStub        func() *cni.ConfigResult
 	getConfigMutex       sync.RWMutex
 	getConfigArgsForCall []struct {
@@ -72,6 +86,70 @@ type FakeCNI struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeCNI) Check(arg1 context.Context, arg2 string, arg3 string, arg4 ...cni.NamespaceOpts) error {
+	fake.checkMutex.Lock()
+	ret, specificReturn := fake.checkReturnsOnCall[len(fake.checkArgsForCall)]
+	fake.checkArgsForCall = append(fake.checkArgsForCall, struct {
+		arg1 context.Context
+		arg2 string
+		arg3 string
+		arg4 []cni.NamespaceOpts
+	}{arg1, arg2, arg3, arg4})
+	stub := fake.CheckStub
+	fakeReturns := fake.checkReturns
+	fake.recordInvocation("Check", []interface{}{arg1, arg2, arg3, arg4})
+	fake.checkMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4...)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeCNI) CheckCallCount() int {
+	fake.checkMutex.RLock()
+	defer fake.checkMutex.RUnlock()
+	return len(fake.checkArgsForCall)
+}
+
+func (fake *FakeCNI) CheckCalls(stub func(context.Context, string, string, ...cni.NamespaceOpts) error) {
+	fake.checkMutex.Lock()
+	defer fake.checkMutex.Unlock()
+	fake.CheckStub = stub
+}
+
+func (fake *FakeCNI) CheckArgsForCall(i int) (context.Context, string, string, []cni.NamespaceOpts) {
+	fake.checkMutex.RLock()
+	defer fake.checkMutex.RUnlock()
+	argsForCall := fake.checkArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+}
+
+func (fake *FakeCNI) CheckReturns(result1 error) {
+	fake.checkMutex.Lock()
+	defer fake.checkMutex.Unlock()
+	fake.CheckStub = nil
+	fake.checkReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeCNI) CheckReturnsOnCall(i int, result1 error) {
+	fake.checkMutex.Lock()
+	defer fake.checkMutex.Unlock()
+	fake.CheckStub = nil
+	if fake.checkReturnsOnCall == nil {
+		fake.checkReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.checkReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeCNI) GetConfig() *cni.ConfigResult {
@@ -375,6 +453,8 @@ func (fake *FakeCNI) StatusReturnsOnCall(i int, result1 error) {
 func (fake *FakeCNI) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.checkMutex.RLock()
+	defer fake.checkMutex.RUnlock()
 	fake.getConfigMutex.RLock()
 	defer fake.getConfigMutex.RUnlock()
 	fake.loadMutex.RLock()
