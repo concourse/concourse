@@ -70,6 +70,13 @@ func (d *checkDelegate) Initializing(logger lager.Logger) {
 	logger.Info("initializing")
 }
 
+func (d *checkDelegate) BeforeSelectWorker(logger lager.Logger) error {
+	logger.Info("initializing build events")
+
+	err := d.build.OnCheckBuildStart()
+	return err
+}
+
 func (d *checkDelegate) FindOrCreateScope(config db.ResourceConfig) (db.ResourceConfigScope, error) {
 	var resourceIDPtr *int
 	if d.plan.Resource != "" {
@@ -254,9 +261,6 @@ func (d *checkDelegate) UpdateScopeLastCheckStartTime(scope db.ResourceConfigSco
 	var publicPlan *json.RawMessage
 	var buildId int
 	if !nestedCheck {
-		if err := d.build.OnCheckBuildStart(); err != nil {
-			return false, 0, err
-		}
 		publicPlan = d.build.PublicPlan()
 		buildId = d.build.ID()
 	}

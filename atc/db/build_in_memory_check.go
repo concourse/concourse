@@ -277,17 +277,19 @@ type inMemoryCheckBuild struct {
 }
 
 func newRunningInMemoryCheckBuild(conn Conn, lockFactory lock.LockFactory, checkable Checkable, plan atc.Plan, spanContext SpanContext, seqGen util.SequenceGenerator) (*inMemoryCheckBuild, error) {
+	timeNow := time.Now()
+
 	build := &inMemoryCheckBuild{
 		inMemoryCheckBuildForApi: inMemoryCheckBuildForApi{
 			id:        0,
 			conn:      conn,
 			checkable: checkable,
 			plan:      plan,
-			startTime: time.Now(),
+			startTime: timeNow,
 			status:    BuildStatusStarted,
 		},
 		lockFactory: lockFactory,
-		createTime:  time.Now(),
+		createTime:  timeNow,
 		spanContext: spanContext,
 		preId:       seqGen.Next(),
 		eventIdSeq:  util.NewSequenceGenerator(0),
@@ -302,7 +304,7 @@ func newRunningInMemoryCheckBuild(conn Conn, lockFactory lock.LockFactory, check
 
 	build.SaveEvent(event.Status{
 		Status: atc.StatusStarted,
-		Time:   time.Now().Unix(),
+		Time:   timeNow.Unix(),
 	})
 
 	return build, nil

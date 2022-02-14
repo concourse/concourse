@@ -579,12 +579,8 @@ handleCallback callback session ( model, effects ) =
             , effects
             )
 
-        Checked (Ok build) ->
-            ( model
-            , effects
-                ++ [ FetchResource model.resourceIdentifier ]
-            )
-                |> initBuild (Just build)
+        Checked (Ok _) ->
+            ( model, effects ++ [ FetchResource model.resourceIdentifier ] )
 
         Checked (Err (Http.BadStatus { status })) ->
             ( model

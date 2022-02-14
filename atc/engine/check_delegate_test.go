@@ -12,6 +12,7 @@ import (
 
 	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
@@ -26,6 +27,7 @@ import (
 
 var _ = Describe("CheckDelegate", func() {
 	var (
+		logger            *lagertest.TestLogger
 		fakeBuild         *dbfakes.FakeBuild
 		fakeClock         *fakeclock.FakeClock
 		fakeRateLimiter   *enginefakes.FakeRateLimiter
@@ -43,6 +45,7 @@ var _ = Describe("CheckDelegate", func() {
 	)
 
 	BeforeEach(func() {
+		logger = lagertest.NewTestLogger("test")
 		fakeBuild = new(dbfakes.FakeBuild)
 		fakeClock = fakeclock.NewFakeClock(now)
 		fakeRateLimiter = new(enginefakes.FakeRateLimiter)
@@ -562,6 +565,35 @@ var _ = Describe("CheckDelegate", func() {
 		})
 	})
 
+	Describe("BeforeSelectWorker", func() {
+		var (
+			found bool
+			err   error
+		)
+
+		JustBeforeEach(func() {
+			err = delegate.BeforeSelectWorker(logger)
+		})
+
+		Context("Init", func() {
+			It("should call build.OnCheckBuildStart", func() {
+				Expect(fakeBuild.OnCheckBuildStartCallCount()).To(Equal(1))
+			})
+		})
+
+		Context("when fails", func() {
+			BeforeEach(func() {
+				fakeBuild.OnCheckBuildStartReturns(fmt.Errorf("some-error"))
+			})
+
+			It("should fail", func() {
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(Equal("some-error"))
+				Expect(found).To(BeFalse())
+			})
+		})
+	})
+
 	Describe("UpdateScopeLastCheckStartTime", func() {
 		var (
 			found        bool
@@ -585,24 +617,6 @@ var _ = Describe("CheckDelegate", func() {
 		Context("Resource check", func() {
 			BeforeEach(func() {
 				nestedCheck = false
-			})
-
-			Context("OnCheckBuildStart", func() {
-				It("should call build.OnCheckBuildStart", func() {
-					Expect(fakeBuild.OnCheckBuildStartCallCount()).To(Equal(1))
-				})
-
-				Context("when fails", func() {
-					BeforeEach(func() {
-						fakeBuild.OnCheckBuildStartReturns(fmt.Errorf("some-error"))
-					})
-
-					It("should fail", func() {
-						Expect(err).To(HaveOccurred())
-						Expect(err.Error()).To(Equal("some-error"))
-						Expect(found).To(BeFalse())
-					})
-				})
 			})
 
 			Context("delegate to scope", func() {
