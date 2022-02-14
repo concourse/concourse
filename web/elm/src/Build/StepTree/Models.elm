@@ -365,7 +365,7 @@ updateTreeNodeAt id fn tree =
         Across stepId vars vals trees ->
             let
                 withUpdatedChildren =
-                    Across stepId vars vals <| Array.map (updateTreeNodeAt stepId fn) trees
+                    Across stepId vars vals <| Array.map (updateTreeNodeAt id fn) trees
             in
             if stepId == id then
                 fn withUpdatedChildren
