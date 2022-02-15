@@ -55,7 +55,7 @@ require (
 	github.com/mitchellh/mapstructure v1.4.3
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.18.0
+	github.com/onsi/gomega v1.18.1
 	github.com/opencontainers/runc v1.1.0
 	github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417
 	github.com/patrickmn/go-cache v2.1.0+incompatible
@@ -138,8 +138,6 @@ require (
 	github.com/go-logr/logr v1.2.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-sql-driver/mysql v1.6.0 // indirect
-	github.com/gobuffalo/envy v1.7.0 // indirect
-	github.com/gobuffalo/packd v0.3.0 // indirect
 	github.com/gogo/googleapis v1.4.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.3 // indirect
@@ -159,7 +157,6 @@ require (
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/huandu/xstrings v1.3.2 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
-	github.com/joho/godotenv v1.3.0 // indirect
 	github.com/jonboulle/clockwork v0.2.2 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
@@ -182,7 +179,6 @@ require (
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.32.1 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
-	github.com/rogpeppe/go-internal v1.8.0 // indirect
 	github.com/russellhaering/goxmldsig v1.1.1 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
@@ -216,7 +212,6 @@ require (
 	github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e // indirect
 	github.com/cloudfoundry/socks5-proxy v0.0.0-20180530211953-3659db090cb2 // indirect
 	github.com/creack/pty v1.1.11 // indirect
-	github.com/gobuffalo/packr v1.30.1
 	github.com/hashicorp/go-version v1.2.0 // indirect
 	github.com/hashicorp/vault/sdk v0.1.14-0.20191112033314-390e96e22eb2 // indirect
 	github.com/pierrec/lz4 v2.6.0+incompatible // indirect
