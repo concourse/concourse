@@ -63,6 +63,48 @@ var _ = Describe("Container Placement Strategies", func() {
 			Expect(workerNames(workers)).To(Equal([]string{"worker1", "worker2", "worker3"}))
 		})
 
+		Test("sorts the workers by number of local inputs with less candidate workers", func() {
+			scenario := Setup(
+				workertest.WithBasicJob(),
+				workertest.WithWorkers(
+					grt.NewWorker("worker1").
+						WithVolumesCreatedInDBAndBaggageclaim(
+							grt.NewVolume("input1"),
+							grt.NewVolume("input3"),
+						),
+					grt.NewWorker("worker2").
+						WithVolumesCreatedInDBAndBaggageclaim(
+							grt.NewVolume("input2"),
+						),
+					grt.NewWorker("worker3"),
+				),
+			)
+
+			candidateWorkers := []db.Worker{scenario.Worker("worker1").DBWorker(), scenario.Worker("worker3").DBWorker()}
+			workers, err := volumeLocalityStrategy().Order(logger, scenario.Pool, candidateWorkers, runtime.ContainerSpec{
+				TeamID:   scenario.TeamID,
+				JobID:    scenario.JobID,
+				StepName: scenario.StepName,
+
+				Inputs: []runtime.Input{
+					{
+						Artifact:        scenario.WorkerVolume("worker1", "input1"),
+						DestinationPath: "/input1",
+					},
+					{
+						Artifact:        scenario.WorkerVolume("worker2", "input2"),
+						DestinationPath: "/input2",
+					},
+					{
+						Artifact:        scenario.WorkerVolume("worker1", "input3"),
+						DestinationPath: "/input3",
+					},
+				},
+			})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(workerNames(workers)).To(Equal([]string{"worker1", "worker3"}))
+		})
+
 		Test("includes all workers in the case of a tie", func() {
 			scenario := Setup(
 				workertest.WithBasicJob(),
@@ -145,6 +187,49 @@ var _ = Describe("Container Placement Strategies", func() {
 			Expect(workerNames(workers)).To(Equal([]string{"worker1", "worker2"}))
 		})
 
+		Test("considers resource caches with less candidate workers", func() {
+			scenario := Setup(
+				workertest.WithBasicJob(),
+				workertest.WithWorkers(
+					grt.NewWorker("worker1").
+						WithVolumesCreatedInDBAndBaggageclaim(
+							grt.NewVolume("input1"),
+							grt.NewVolume("cache-input2"),
+						),
+					grt.NewWorker("worker2").
+						WithVolumesCreatedInDBAndBaggageclaim(
+							grt.NewVolume("input2"),
+						),
+				),
+			)
+			resourceCache1 := scenario.FindOrCreateResourceCache("worker1")
+			err := scenario.WorkerVolume("worker1", "cache-input2").InitializeResourceCache(ctx, resourceCache1)
+			Expect(err).ToNot(HaveOccurred())
+
+			resourceCache2 := scenario.FindOrCreateResourceCache("worker2")
+			err = scenario.WorkerVolume("worker2", "input2").InitializeResourceCache(ctx, resourceCache2)
+			Expect(err).ToNot(HaveOccurred())
+
+			workers, err := volumeLocalityStrategy().Order(logger, scenario.Pool, []db.Worker{scenario.Worker("worker1").DBWorker()}, runtime.ContainerSpec{
+				TeamID:   scenario.TeamID,
+				JobID:    scenario.JobID,
+				StepName: scenario.StepName,
+
+				Inputs: []runtime.Input{
+					{
+						Artifact:        scenario.WorkerVolume("worker1", "input1"),
+						DestinationPath: "/input1",
+					},
+					{
+						Artifact:        scenario.WorkerVolume("worker2", "input2"),
+						DestinationPath: "/input2",
+					},
+				},
+			})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(workerNames(workers)).To(Equal([]string{"worker1"}))
+		})
+
 		Test("considers task caches", func() {
 			scenario := Setup(
 				workertest.WithBasicJob(),
@@ -193,6 +278,56 @@ var _ = Describe("Container Placement Strategies", func() {
 			})
 			Expect(err).ToNot(HaveOccurred())
 			Expect(workerNames(workers)).To(Equal([]string{"worker1", "worker2"}))
+		})
+
+		Test("considers task caches with less candidate workers", func() {
+			scenario := Setup(
+				workertest.WithBasicJob(),
+				workertest.WithWorkers(
+					grt.NewWorker("worker1").
+						WithVolumesCreatedInDBAndBaggageclaim(
+							grt.NewVolume("input1"),
+							grt.NewVolume("cache1_worker1"),
+							grt.NewVolume("cache2_worker1"),
+						),
+					grt.NewWorker("worker2").
+						WithVolumesCreatedInDBAndBaggageclaim(
+							grt.NewVolume("input2"),
+							grt.NewVolume("cache1_worker2"),
+						),
+				),
+			)
+
+			err := scenario.WorkerVolume("worker1", "cache1_worker1").
+				InitializeTaskCache(ctx, scenario.JobID, scenario.StepName, "/cache1", false)
+			Expect(err).ToNot(HaveOccurred())
+			err = scenario.WorkerVolume("worker1", "cache2_worker1").
+				InitializeTaskCache(ctx, scenario.JobID, scenario.StepName, "/cache2", false)
+			Expect(err).ToNot(HaveOccurred())
+			err = scenario.WorkerVolume("worker2", "cache1_worker2").
+				InitializeTaskCache(ctx, scenario.JobID, scenario.StepName, "/cache1", false)
+			Expect(err).ToNot(HaveOccurred())
+
+			workers, err := volumeLocalityStrategy().Order(logger, scenario.Pool, []db.Worker{scenario.Worker("worker1").DBWorker()}, runtime.ContainerSpec{
+				TeamID:   scenario.TeamID,
+				JobID:    scenario.JobID,
+				StepName: scenario.StepName,
+
+				Inputs: []runtime.Input{
+					{
+						Artifact:        scenario.WorkerVolume("worker1", "input1"),
+						DestinationPath: "/input1",
+					},
+					{
+						Artifact:        scenario.WorkerVolume("worker2", "input2"),
+						DestinationPath: "/input2",
+					},
+				},
+
+				Caches: []string{"/cache1", "/cache2"},
+			})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(workerNames(workers)).To(Equal([]string{"worker1"}))
 		})
 
 		Test("ignores non-Volume artifacts", func() {

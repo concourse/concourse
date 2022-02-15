@@ -139,6 +139,9 @@ type volumeLocalityStrategy struct{}
 
 func (strategy volumeLocalityStrategy) Order(logger lager.Logger, pool Pool, workers []db.Worker, spec runtime.ContainerSpec) ([]db.Worker, error) {
 	counts := make(map[string]int, len(workers))
+	for _, worker := range workers {
+		counts[worker.Name()] = 0
+	}
 
 	for _, input := range spec.Inputs {
 		volume, ok := input.Artifact.(runtime.Volume)
@@ -152,7 +155,9 @@ func (strategy volumeLocalityStrategy) Order(logger lager.Logger, pool Pool, wor
 			"path":   input.DestinationPath,
 		})
 		srcWorker := volume.DBVolume().WorkerName()
-		counts[srcWorker]++
+		if _, ok := counts[srcWorker]; ok {
+			counts[srcWorker]++
+		}
 
 		resourceCacheID := volume.DBVolume().GetResourceCacheID()
 		if resourceCacheID == 0 {
@@ -178,7 +183,10 @@ func (strategy volumeLocalityStrategy) Order(logger lager.Logger, pool Pool, wor
 			if worker == srcWorker {
 				continue
 			}
-			counts[worker]++
+
+			if _, ok := counts[worker]; ok {
+				counts[worker]++
+			}
 		}
 	}
 
@@ -200,7 +208,9 @@ func (strategy volumeLocalityStrategy) Order(logger lager.Logger, pool Pool, wor
 			return nil, err
 		}
 		for _, worker := range workerNames {
-			counts[worker]++
+			if _, ok := counts[worker]; ok {
+				counts[worker]++
+			}
 		}
 	}
 
