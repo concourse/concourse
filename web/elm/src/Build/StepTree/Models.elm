@@ -54,6 +54,7 @@ type StepTree
     | LoadVar StepID
     | ArtifactInput StepID
     | ArtifactOutput StepID
+    | Aggregate (Array StepTree)
     | InParallel (Array StepTree)
     | Across StepID (List String) (List (List Concourse.JsonValue)) (Array StepTree)
     | Retry StepID (Array StepTree)
@@ -281,6 +282,9 @@ activeStepIds model tree =
         LoadVar stepId ->
             [ stepId ]
 
+        Aggregate trees ->
+            List.concatMap (activeStepIds model) (Array.toList trees)
+
         InParallel trees ->
             List.concatMap (activeStepIds model) (Array.toList trees)
 
@@ -355,6 +359,9 @@ updateTreeNodeAt id fn tree =
 
         LoadVar stepId ->
             updateSelf stepId
+
+        Aggregate trees ->
+            Aggregate <| Array.map (updateTreeNodeAt id fn) trees
 
         InParallel trees ->
             InParallel <| Array.map (updateTreeNodeAt id fn) trees

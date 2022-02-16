@@ -432,6 +432,9 @@ mapBuildPlan fn plan =
                 BuildStepArtifactOutput _ ->
                     []
 
+                BuildStepAggregate plans ->
+                    List.concatMap (mapBuildPlan fn) (Array.toList plans)
+
                 BuildStepInParallel plans ->
                     List.concatMap (mapBuildPlan fn) (Array.toList plans)
 
@@ -492,6 +495,7 @@ type BuildStep
     | BuildStepRun StepName
     | BuildStepArtifactOutput StepName
     | BuildStepPut StepName (Maybe ResourceName) (Maybe ImageBuildPlans)
+    | BuildStepAggregate (Array BuildPlan)
     | BuildStepInParallel (Array BuildPlan)
     | BuildStepAcross AcrossPlan
     | BuildStepDo (Array BuildPlan)
@@ -676,6 +680,8 @@ decodeBuildPlan =
                     lazy (\_ -> decodeBuildStepArtifactOutput)
                 , Json.Decode.field "dependent_get" <|
                     lazy (\_ -> decodeBuildStepGet)
+                , Json.Decode.field "aggregate" <|
+                    lazy (\_ -> decodeBuildStepAggregate)
                 , Json.Decode.field "in_parallel" <|
                     lazy (\_ -> decodeBuildStepInParallel)
                 , Json.Decode.field "do" <|
@@ -759,6 +765,12 @@ decodeBuildStepPut =
         |> andMap (Json.Decode.field "name" Json.Decode.string)
         |> andMap (Json.Decode.maybe <| Json.Decode.field "resource" Json.Decode.string)
         |> andMap (Json.Decode.maybe decodeImageBuildPlans)
+
+
+decodeBuildStepAggregate : Json.Decode.Decoder BuildStep
+decodeBuildStepAggregate =
+    Json.Decode.succeed BuildStepAggregate
+        |> andMap (Json.Decode.array (lazy (\_ -> decodeBuildPlan)))
 
 
 decodeBuildStepInParallel : Json.Decode.Decoder BuildStep
