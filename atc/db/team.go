@@ -1634,6 +1634,11 @@ func configsDifferent(resourceConfig atc.ResourceConfig, encryptedBlob string, e
 		return false, nil
 	}
 
+	// Archived pipelines may have a NULL existing config
+	if existing.ConfigBlob == "" {
+		return true, nil
+	}
+
 	decryptedConfig, err := es.Decrypt(existing.ConfigBlob, existing.Nonce)
 	if err != nil {
 		return false, err
