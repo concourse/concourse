@@ -431,7 +431,7 @@ func (repo *repository) StreamOut(ctx context.Context, handle string, path strin
 	})
 	defer span.End()
 
-	logger := lagerctx.FromContext(ctx).Session("stream-in", lager.Data{
+	logger := lagerctx.FromContext(ctx).Session("stream-out", lager.Data{
 		"volume":   handle,
 		"sub-path": path,
 	})
