@@ -4,7 +4,7 @@
   "description": "Concourse web UI acceptance tests",
   "dependencies": {
     "child-process-promise": "^2.2.1",
-    "color": "^4.2.0",
+    "color": "^4.2.1",
     "puppeteer": "^13.3.2",
     "tmp-promise": "^3.0.3",
     "uuid": "^8.3.2"
