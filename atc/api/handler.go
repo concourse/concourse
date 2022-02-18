@@ -176,6 +176,8 @@ func NewHandler(
 		atc.ClearResourceCache:      pipelineHandlerFactory.HandlerFor(resourceServer.ClearResourceCache),
 
 		atc.ListResourceVersions:           pipelineHandlerFactory.HandlerFor(versionServer.ListResourceVersions),
+		atc.ClearResourceVersions:          pipelineHandlerFactory.HandlerFor(versionServer.ClearResourceVersions),
+		atc.ClearResourceTypeVersions:      pipelineHandlerFactory.HandlerFor(versionServer.ClearResourceTypeVersions),
 		atc.GetResourceVersion:             pipelineHandlerFactory.HandlerFor(versionServer.GetResourceVersion),
 		atc.EnableResourceVersion:          pipelineHandlerFactory.HandlerFor(versionServer.EnableResourceVersion),
 		atc.DisableResourceVersion:         pipelineHandlerFactory.HandlerFor(versionServer.DisableResourceVersion),

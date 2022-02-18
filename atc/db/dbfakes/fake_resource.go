@@ -98,6 +98,16 @@ type FakeResource struct {
 		result1 int64
 		result2 error
 	}
+	ClearVersionsStub        func() error
+	clearVersionsMutex       sync.RWMutex
+	clearVersionsArgsForCall []struct {
+	}
+	clearVersionsReturns struct {
+		result1 error
+	}
+	clearVersionsReturnsOnCall map[int]struct {
+		result1 error
+	}
 	ConfigStub        func() atc.ResourceConfig
 	configMutex       sync.RWMutex
 	configArgsForCall []struct {
@@ -923,6 +933,59 @@ func (fake *FakeResource) ClearResourceCacheReturnsOnCall(i int, result1 int64, 
 		result1 int64
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeResource) ClearVersions() error {
+	fake.clearVersionsMutex.Lock()
+	ret, specificReturn := fake.clearVersionsReturnsOnCall[len(fake.clearVersionsArgsForCall)]
+	fake.clearVersionsArgsForCall = append(fake.clearVersionsArgsForCall, struct {
+	}{})
+	stub := fake.ClearVersionsStub
+	fakeReturns := fake.clearVersionsReturns
+	fake.recordInvocation("ClearVersions", []interface{}{})
+	fake.clearVersionsMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeResource) ClearVersionsCallCount() int {
+	fake.clearVersionsMutex.RLock()
+	defer fake.clearVersionsMutex.RUnlock()
+	return len(fake.clearVersionsArgsForCall)
+}
+
+func (fake *FakeResource) ClearVersionsCalls(stub func() error) {
+	fake.clearVersionsMutex.Lock()
+	defer fake.clearVersionsMutex.Unlock()
+	fake.ClearVersionsStub = stub
+}
+
+func (fake *FakeResource) ClearVersionsReturns(result1 error) {
+	fake.clearVersionsMutex.Lock()
+	defer fake.clearVersionsMutex.Unlock()
+	fake.ClearVersionsStub = nil
+	fake.clearVersionsReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeResource) ClearVersionsReturnsOnCall(i int, result1 error) {
+	fake.clearVersionsMutex.Lock()
+	defer fake.clearVersionsMutex.Unlock()
+	fake.ClearVersionsStub = nil
+	if fake.clearVersionsReturnsOnCall == nil {
+		fake.clearVersionsReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.clearVersionsReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeResource) Config() atc.ResourceConfig {
@@ -3028,6 +3091,8 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.checkTimeoutMutex.RUnlock()
 	fake.clearResourceCacheMutex.RLock()
 	defer fake.clearResourceCacheMutex.RUnlock()
+	fake.clearVersionsMutex.RLock()
+	defer fake.clearVersionsMutex.RUnlock()
 	fake.configMutex.RLock()
 	defer fake.configMutex.RUnlock()
 	fake.configPinnedVersionMutex.RLock()

@@ -43,6 +43,8 @@ const (
 	CheckPrototype       = "CheckPrototype"
 
 	ListResourceVersions           = "ListResourceVersions"
+	ClearResourceVersions          = "ClearResourceVersions"
+	ClearResourceTypeVersions      = "ClearResourceTypeVersions"
 	GetResourceVersion             = "GetResourceVersion"
 	EnableResourceVersion          = "EnableResourceVersion"
 	DisableResourceVersion         = "DisableResourceVersion"
@@ -182,6 +184,8 @@ var Routes = rata.Routes([]rata.Route{
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/cache", Method: "DELETE", Name: ClearResourceCache},
 
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions", Method: "GET", Name: ListResourceVersions},
+	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions", Method: "DELETE", Name: ClearResourceVersions},
+	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resource-types/:resource_type_name/versions", Method: "DELETE", Name: ClearResourceTypeVersions},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_config_version_id", Method: "GET", Name: GetResourceVersion},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_config_version_id/enable", Method: "PUT", Name: EnableResourceVersion},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_config_version_id/disable", Method: "PUT", Name: DisableResourceVersion},

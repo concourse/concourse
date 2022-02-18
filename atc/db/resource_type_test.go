@@ -6,6 +6,7 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/dbtest"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/tracing"
 	. "github.com/onsi/ginkgo"
@@ -1006,6 +1007,124 @@ var _ = Describe("ResourceType", func() {
 					}
 					Expect(createdCheckPlan).To(Equal(expectedPlan))
 				})
+			})
+		})
+	})
+
+	Context("ClearVersions", func() {
+		var (
+			scenario         *dbtest.Scenario
+			someResourceType db.ResourceType
+		)
+
+		JustBeforeEach(func() {
+			err := someResourceType.ClearVersions()
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		Context("when there is one resource type with a version history", func() {
+			BeforeEach(func() {
+				scenario = dbtest.Setup(
+					builder.WithPipeline(atc.Config{
+						ResourceTypes: atc.ResourceTypes{
+							{
+								Name:   "some-resource-type",
+								Type:   "some-base-resource-type",
+								Source: atc.Source{"some": "source"},
+							},
+						},
+					}),
+					builder.WithResourceTypeVersions(
+						"some-resource-type",
+						atc.Version{"ref": "v0"},
+						atc.Version{"ref": "v1"},
+						atc.Version{"ref": "v2"},
+					),
+				)
+
+				someResourceType = scenario.ResourceType("some-resource-type")
+			})
+
+			It("clears the version history for the resource type", func() {
+				resourceConfig, found, err := resourceConfigFactory.FindResourceConfigByID(someResourceType.ResourceConfigID())
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				scope, err := resourceConfig.FindOrCreateScope(nil)
+				Expect(err).ToNot(HaveOccurred())
+
+				_, found, err = scope.FindVersion(atc.Version{"ref": "v0"})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeFalse())
+
+				_, found, err = scope.FindVersion(atc.Version{"ref": "v1"})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeFalse())
+
+				_, found, err = scope.FindVersion(atc.Version{"ref": "v2"})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeFalse())
+			})
+		})
+
+		Context("with global resources, when there are multiple resource types sharing the same version history", func() {
+			var someOtherResourceType db.ResourceType
+
+			BeforeEach(func() {
+				atc.EnableGlobalResources = true
+
+				scenario = dbtest.Setup(
+					builder.WithPipeline(atc.Config{
+						ResourceTypes: atc.ResourceTypes{
+							{
+								Name:   "some-resource-type",
+								Type:   "some-base-resource-type",
+								Source: atc.Source{"some": "source"},
+							},
+							{
+								Name:   "some-other-resource-type",
+								Type:   "some-base-resource-type",
+								Source: atc.Source{"some": "source"},
+							},
+						},
+					}),
+					builder.WithResourceTypeVersions(
+						"some-resource-type",
+						atc.Version{"ref": "v0"},
+						atc.Version{"ref": "v1"},
+						atc.Version{"ref": "v2"},
+					),
+					builder.WithResourceTypeVersions(
+						"some-other-resource-type",
+						atc.Version{"ref": "v0"},
+						atc.Version{"ref": "v1"},
+						atc.Version{"ref": "v2"},
+					),
+				)
+
+				someResourceType = scenario.ResourceType("some-resource-type")
+				someOtherResourceType = scenario.ResourceType("some-other-resource-type")
+			})
+
+			It("clears the version history for the shared resource types", func() {
+				resourceConfig, found, err := resourceConfigFactory.FindResourceConfigByID(someOtherResourceType.ResourceConfigID())
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				scope, err := resourceConfig.FindOrCreateScope(nil)
+				Expect(err).ToNot(HaveOccurred())
+
+				_, found, err = scope.FindVersion(atc.Version{"ref": "v0"})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeFalse())
+
+				_, found, err = scope.FindVersion(atc.Version{"ref": "v1"})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeFalse())
+
+				_, found, err = scope.FindVersion(atc.Version{"ref": "v2"})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeFalse())
 			})
 		})
 	})

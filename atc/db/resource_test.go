@@ -651,6 +651,143 @@ var _ = Describe("Resource", func() {
 		})
 	})
 
+	Context("ClearVersions", func() {
+		var (
+			scenario     *dbtest.Scenario
+			someResource db.Resource
+		)
+
+		JustBeforeEach(func() {
+			err := someResource.ClearVersions()
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		Context("when there is one resource with a version history", func() {
+			BeforeEach(func() {
+				scenario = dbtest.Setup(
+					builder.WithPipeline(atc.Config{
+						Resources: atc.ResourceConfigs{
+							{
+								Name:   "some-resource",
+								Type:   "some-base-resource-type",
+								Source: atc.Source{"some": "source"},
+							},
+						},
+					}),
+					builder.WithResourceVersions(
+						"some-resource",
+						atc.Version{"ref": "v0"},
+						atc.Version{"ref": "v1"},
+						atc.Version{"ref": "v2"},
+					),
+				)
+
+				someResource = scenario.Resource("some-resource")
+				versions, _, found, err := someResource.Versions(db.Page{Limit: 1}, nil)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(versions).ToNot(BeNil())
+			})
+
+			It("clears the version history for the resource", func() {
+				versions, _, found, err := someResource.Versions(db.Page{Limit: 5}, nil)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(versions).To(BeNil())
+			})
+
+			Context("when there are pinned/disabled versions", func() {
+				BeforeEach(func() {
+					pinned, err := someResource.PinVersion(scenario.ResourceVersion("some-resource", atc.Version{"ref": "v1"}).ID())
+					Expect(err).ToNot(HaveOccurred())
+					Expect(pinned).To(BeTrue())
+
+					err = someResource.DisableVersion(scenario.ResourceVersion("some-resource", atc.Version{"ref": "v0"}).ID())
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("keeps the state of pinned/disabled versions even after deleting the version history", func() {
+					scenario.Run(builder.WithResourceVersions(
+						"some-resource",
+						atc.Version{"ref": "v0"},
+						atc.Version{"ref": "v1"},
+						atc.Version{"ref": "v2"},
+					))
+
+					versions, _, found, err := someResource.Versions(db.Page{Limit: 5}, nil)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(versions).To(HaveLen(3))
+					for _, version := range versions {
+						if version.ID == scenario.ResourceVersion("some-resource", atc.Version{"ref": "v0"}).ID() {
+							Expect(version.Enabled).To(BeFalse())
+						}
+					}
+
+					found, err = someResource.Reload()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					pinnedVersion := someResource.CurrentPinnedVersion()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(pinnedVersion).To(Equal(atc.Version{"ref": "v1"}))
+				})
+			})
+		})
+
+		Context("with global resources, when there are multiple resources sharing the same version history", func() {
+			var someOtherResource db.Resource
+
+			BeforeEach(func() {
+				atc.EnableGlobalResources = true
+
+				scenario = dbtest.Setup(
+					builder.WithPipeline(atc.Config{
+						Resources: atc.ResourceConfigs{
+							{
+								Name:   "some-resource",
+								Type:   "some-base-resource-type",
+								Source: atc.Source{"some": "source"},
+							},
+							{
+								Name:   "some-other-resource",
+								Type:   "some-base-resource-type",
+								Source: atc.Source{"some": "source"},
+							},
+						},
+					}),
+					builder.WithResourceVersions(
+						"some-resource",
+						atc.Version{"ref": "v0"},
+						atc.Version{"ref": "v1"},
+						atc.Version{"ref": "v2"},
+					),
+					builder.WithResourceVersions(
+						"some-other-resource",
+						atc.Version{"ref": "v0"},
+						atc.Version{"ref": "v1"},
+						atc.Version{"ref": "v2"},
+					),
+				)
+
+				someResource = scenario.Resource("some-resource")
+				someOtherResource = scenario.Resource("some-other-resource")
+			})
+
+			It("clears the version history for the shared resources", func() {
+				versions, _, found, err := someResource.Versions(db.Page{Limit: 5}, nil)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(versions).To(BeNil())
+
+				versions, _, found, err = someOtherResource.Versions(db.Page{Limit: 5}, nil)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(versions).To(BeNil())
+			})
+		})
+	})
+
 	Context("Versions", func() {
 		var (
 			scenario *dbtest.Scenario

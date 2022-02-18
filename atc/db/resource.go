@@ -96,6 +96,7 @@ type Resource interface {
 
 	BuildSummary() *atc.BuildSummary
 
+	ClearVersions() error
 	Versions(page Page, versionFilter atc.Version) ([]atc.ResourceVersion, Pagination, bool, error)
 	FindVersion(filter atc.Version) (ResourceConfigVersion, bool, error) // Only used in tests!!
 	UpdateMetadata(atc.Version, ResourceConfigMetadataFields) (bool, error)
@@ -472,6 +473,17 @@ func (r *resource) CurrentPinnedVersion() atc.Version {
 
 func (r *resource) BuildSummary() *atc.BuildSummary {
 	return r.buildSummary
+}
+
+func (r *resource) ClearVersions() error {
+	_, err := psql.Delete("resource_config_versions").
+		Where(sq.Eq{
+			"resource_config_scope_id": r.resourceConfigScopeID,
+		}).
+		RunWith(r.conn).
+		Exec()
+
+	return err
 }
 
 func (r *resource) Versions(page Page, versionFilter atc.Version) ([]atc.ResourceVersion, Pagination, bool, error) {

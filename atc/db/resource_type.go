@@ -54,6 +54,8 @@ type ResourceType interface {
 	CreateBuild(context.Context, bool, atc.Plan) (Build, bool, error)
 	CreateInMemoryBuild(context.Context, atc.Plan, util.SequenceGenerator) (Build, error)
 
+	ClearVersions() error
+
 	Reload() (bool, error)
 }
 
@@ -327,6 +329,17 @@ func (r *resourceType) CreateBuild(ctx context.Context, manuallyTriggered bool, 
 
 func (r *resourceType) CreateInMemoryBuild(ctx context.Context, plan atc.Plan, seqGen util.SequenceGenerator) (Build, error) {
 	return nil, errors.New("resource type not supporting in-memory check build as lidar no longer checking resource types")
+}
+
+func (r *resourceType) ClearVersions() error {
+	_, err := psql.Delete("resource_config_versions").
+		Where(sq.Eq{
+			"resource_config_scope_id": r.resourceConfigScopeID,
+		}).
+		RunWith(r.conn).
+		Exec()
+
+	return err
 }
 
 func scanResourceType(t *resourceType, row scannable) error {
