@@ -32,5 +32,15 @@ func (rcc *resourceCacheCollector) Run(ctx context.Context) error {
 		}.Emit(logger)
 	}()
 
-	return rcc.cacheLifecycle.CleanUpInvalidCaches(logger)
+	err := rcc.cacheLifecycle.CleanUpInvalidCaches(logger)
+	if err != nil {
+		return err
+	}
+
+	err = rcc.cacheLifecycle.CleanInvalidWorkerResourceCaches(logger)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
