@@ -392,14 +392,14 @@ var _ = Describe("PutStep", func() {
 				})
 			})
 
-			Context("when only some inputs are from cache ", func() {
+			Context("when only inputs are from cache ", func() {
 				BeforeEach(func() {
 					putPlan.Inputs = &atc.InputsConfig{
 						Specified: []string{"input2"},
 					}
 				})
 
-				It("runs with specified inputs", func() {
+				It("runs with cached inputs", func() {
 					Expect(chosenContainer.Spec.Inputs).To(ConsistOf([]runtime.Input{
 						{
 							Artifact:        volume2,
