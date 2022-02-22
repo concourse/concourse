@@ -413,6 +413,13 @@ func (volume *createdVolume) InitializeStreamedResourceCache(resourceCache Resou
 		// cache, but we also don't want to error the build.
 		return nil
 	}
+	if sourceWorkerResourceCache.WorkerBaseResourceTypeID == 0 {
+		// same as not found above. If source worker resource cache's worker
+		// base resource type id is 0, that means source worker's base resource
+		// type has been invalidated, in this case, we don't want to initialize
+		// this volume as a cache, but we also don't want to error the build.
+		return nil
+	}
 
 	initialized, err := volume.initializeResourceCache(tx, resourceCache, sourceWorkerResourceCache.WorkerBaseResourceTypeID)
 	if err != nil {

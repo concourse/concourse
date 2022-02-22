@@ -917,13 +917,13 @@ var _ = Describe("Team", func() {
 			})
 		})
 
-		Context("when there is a second worker", func(){
+		Context("when there is a second worker", func() {
 			var atcWorker2 = atc.Worker{
 				GardenAddr:       "some-garden-addr-2",
 				BaggageclaimURL:  "some-bc-url-2",
 				HTTPProxyURL:     "some-http-proxy-url-2",
 				HTTPSProxyURL:    "some-https-proxy-url-2",
-				NoProxy:          "some-no-proxy",
+				NoProxy:          "some-no-proxy-2",
 				ActiveContainers: 140,
 				ResourceTypes: []atc.WorkerResourceType{
 					{
@@ -937,6 +937,8 @@ var _ = Describe("Team", func() {
 				StartTime: 55,
 			}
 
+			var volumeOnWorker2 db.CreatedVolume
+
 			BeforeEach(func() {
 				_, err := workerFactory.SaveWorker(atcWorker2, 0)
 				Expect(err).ToNot(HaveOccurred())
@@ -944,10 +946,10 @@ var _ = Describe("Team", func() {
 				creatingVolume, err := volumeRepository.CreateVolume(defaultTeam.ID(), atcWorker2.Name, db.VolumeTypeResource)
 				Expect(err).ToNot(HaveOccurred())
 
-				createdVolume, err := creatingVolume.Created()
+				volumeOnWorker2, err = creatingVolume.Created()
 				Expect(err).ToNot(HaveOccurred())
 
-				err = createdVolume.InitializeResourceCache(urc)
+				err = volumeOnWorker2.InitializeStreamedResourceCache(urc, atcWorker.Name)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -970,22 +972,68 @@ var _ = Describe("Team", func() {
 					Expect(workers[1].Name()).To(Equal("some-worker-name-2"))
 				})
 
-				Context("when worker1 is pruned", func(){
-					BeforeEach(func(){
+				Context("when worker1 is pruned", func() {
+					BeforeEach(func() {
 						_, err := psql.Delete("workers").Where(sq.Eq{"name": "some-worker-name"}).RunWith(dbConn).Exec()
 						Expect(err).ToNot(HaveOccurred())
 					})
 
-					It("should not find any worker", func(){
+					It("should not find any worker", func() {
 						workers, err := defaultTeam.FindWorkersForResourceCache(urc.ID())
 						Expect(err).ToNot(HaveOccurred())
 						Expect(len(workers)).To(Equal(0))
 					})
 
-					It("cached volume should still exist on worker2", func(){
+					It("cached volume should still exist on worker2", func() {
 						_, found, err := volumeRepository.FindResourceCacheVolume("some-worker-name-2", urc)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(found).To(BeTrue())
+					})
+
+					Context("when worker3 fetch the resource again and streamed to worker2 again", func() {
+						var atcWorker3 = atc.Worker{
+							GardenAddr:       "some-garden-addr-3",
+							BaggageclaimURL:  "some-bc-url-3",
+							HTTPProxyURL:     "some-http-proxy-url-3",
+							HTTPSProxyURL:    "some-https-proxy-url-3",
+							NoProxy:          "some-no-proxy-3",
+							ActiveContainers: 140,
+							ResourceTypes: []atc.WorkerResourceType{
+								{
+									Type:    "some-base-resource-type",
+									Image:   "some-image",
+									Version: "some-version",
+								},
+							},
+							Platform:  "some-platform",
+							Name:      "some-worker-name-3",
+							StartTime: 55,
+							State:     string(db.WorkerStateRunning),
+						}
+						BeforeEach(func() {
+							_, err := workerFactory.SaveWorker(atcWorker3, 0)
+							Expect(err).ToNot(HaveOccurred())
+
+							creatingVolume, err := volumeRepository.CreateVolume(defaultTeam.ID(), atcWorker3.Name, db.VolumeTypeResource)
+							Expect(err).ToNot(HaveOccurred())
+
+							createdVolume, err := creatingVolume.Created()
+							Expect(err).ToNot(HaveOccurred())
+
+							err = createdVolume.InitializeResourceCache(urc)
+							Expect(err).ToNot(HaveOccurred())
+
+							err = volumeOnWorker2.InitializeStreamedResourceCache(urc, atcWorker3.Name)
+							Expect(err).ToNot(HaveOccurred())
+						})
+
+						It("should find both workers", func() {
+							workers, err := defaultTeam.FindWorkersForResourceCache(urc.ID())
+							Expect(err).ToNot(HaveOccurred())
+							Expect(len(workers)).To(Equal(2))
+							Expect(workers[0].Name()).To(Equal("some-worker-name-2"))
+							Expect(workers[1].Name()).To(Equal("some-worker-name-3"))
+						})
 					})
 				})
 			})
