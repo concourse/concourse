@@ -69,7 +69,7 @@ var _ = Describe("ArtifactOutputStep", func() {
 			volume = runtimetest.NewVolume("some-volume")
 			fakeWorkerPool.LocateVolumeReturns(volume, runtimetest.NewWorker("worker"), true, nil)
 
-			state.ArtifactRepository().RegisterArtifact(build.ArtifactName(artifactName), volume)
+			state.ArtifactRepository().RegisterArtifact(build.ArtifactName(artifactName), volume, false)
 		})
 
 		Context("when initializing the artifact fails", func() {

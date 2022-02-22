@@ -12,6 +12,11 @@ import (
 // more self-documenting.
 type ArtifactName string
 
+type ArtifactEntry struct {
+	Artifact  runtime.Artifact
+	FromCache bool
+}
+
 // Repository is the mapping from a ArtifactName to an Artifact.
 // Steps will both populate this map with new artifacts (e.g. the resource
 // fetched by a Get step), and look up required artifacts (e.g. the inputs
@@ -21,7 +26,7 @@ type ArtifactName string
 // execution.
 //
 type Repository struct {
-	repo  map[ArtifactName]runtime.Artifact
+	repo  map[ArtifactName]ArtifactEntry
 	repoL sync.RWMutex
 
 	parent *Repository
@@ -30,36 +35,42 @@ type Repository struct {
 // NewRepository constructs a new repository.
 func NewRepository() *Repository {
 	return &Repository{
-		repo: make(map[ArtifactName]runtime.Artifact),
+		repo: make(map[ArtifactName]ArtifactEntry),
 	}
 }
 
 // RegisterArtifact inserts an Artifact into the map under the given
 // ArtifactName. Producers of artifacts, e.g. the Get step and the Task step,
 // will call this after they've successfully produced their artifact(s).
-func (repo *Repository) RegisterArtifact(name ArtifactName, artifact runtime.Artifact) {
+func (repo *Repository) RegisterArtifact(name ArtifactName, artifact runtime.Artifact, fromCache bool) {
 	repo.repoL.Lock()
-	repo.repo[name] = artifact
+	repo.repo[name] = ArtifactEntry{
+		Artifact:  artifact,
+		FromCache: fromCache,
+	}
 	repo.repoL.Unlock()
 }
 
 // ArtifactFor looks up the Artifact for a given ArtifactName. Consumers of
 // artifacts, e.g. the Task step, will call this to locate their dependencies.
-func (repo *Repository) ArtifactFor(name ArtifactName) (runtime.Artifact, bool) {
+func (repo *Repository) ArtifactFor(name ArtifactName) (runtime.Artifact, bool, bool) {
 	repo.repoL.RLock()
-	artifact, found := repo.repo[name]
+	artifactEntry, found := repo.repo[name]
 	repo.repoL.RUnlock()
 	if !found && repo.parent != nil {
-		artifact, found = repo.parent.ArtifactFor(name)
+		return repo.parent.ArtifactFor(name)
 	}
-	return artifact, found
+	if !found {
+		return nil, false, false
+	}
+	return artifactEntry.Artifact, artifactEntry.FromCache, true
 }
 
 // AsMap extracts the current contents of the ArtifactRepository into a new map
 // and returns it. Changes to the returned map or the ArtifactRepository will not
 // affect each other.
-func (repo *Repository) AsMap() map[ArtifactName]runtime.Artifact {
-	result := make(map[ArtifactName]runtime.Artifact)
+func (repo *Repository) AsMap() map[ArtifactName]ArtifactEntry {
+	result := make(map[ArtifactName]ArtifactEntry)
 
 	if repo.parent != nil {
 		for name, artifact := range repo.parent.AsMap() {

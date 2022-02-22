@@ -69,7 +69,7 @@ func (step *ArtifactInputStep) Run(ctx context.Context, state RunState) (bool, e
 		"handle":      volume.Handle(),
 	})
 
-	state.ArtifactRepository().RegisterArtifact(build.ArtifactName(step.plan.ArtifactInput.Name), volume)
+	state.ArtifactRepository().RegisterArtifact(build.ArtifactName(step.plan.ArtifactInput.Name), volume, false)
 
 	return true, nil
 }

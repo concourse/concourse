@@ -74,7 +74,7 @@ func (configSource FileConfigSource) FetchConfig(ctx context.Context, logger lag
 	sourceName := build.ArtifactName(segs[0])
 	filePath := segs[1]
 
-	artifact, found := repo.ArtifactFor(sourceName)
+	artifact, _, found := repo.ArtifactFor(sourceName)
 	if !found {
 		return atc.TaskConfig{}, UnknownArtifactSourceError{sourceName, configSource.ConfigPath}
 	}

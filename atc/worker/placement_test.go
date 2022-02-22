@@ -232,6 +232,72 @@ var _ = Describe("Container Placement Strategies", func() {
 			Expect(workerNames(workers)).To(Equal([]string{"worker2", "worker1"}))
 		})
 
+		Test("ignores volumes from cache", func() {
+			scenario := Setup(
+				workertest.WithBasicJob(),
+				workertest.WithWorkers(
+					grt.NewWorker("worker1").
+						WithVolumesCreatedInDBAndBaggageclaim(
+							grt.NewVolume("input1-1"),
+							grt.NewVolume("input1-2"),
+							grt.NewVolume("input1-3"),
+						),
+					grt.NewWorker("worker2").
+						WithVolumesCreatedInDBAndBaggageclaim(
+							grt.NewVolume("input2-1"),
+							grt.NewVolume("input2-2"),
+						),
+					grt.NewWorker("worker3").
+						WithVolumesCreatedInDBAndBaggageclaim(
+							grt.NewVolume("input3-1"),
+						),
+				),
+			)
+
+			workers, err := volumeLocalityStrategy().Order(
+				logger,
+				scenario.Pool,
+				scenario.DB.Workers,
+				runtime.ContainerSpec{
+					TeamID:   scenario.TeamID,
+					JobID:    scenario.JobID,
+					StepName: scenario.StepName,
+
+					Inputs: []runtime.Input{
+						{
+							Artifact:        scenario.WorkerVolume("worker1", "input1-1"),
+							DestinationPath: "/input1-1",
+							FromCache:       true,
+						},
+						{
+							Artifact:        scenario.WorkerVolume("worker1", "input1-2"),
+							DestinationPath: "/input1-2",
+							FromCache:       true,
+						},
+						{
+							Artifact:        scenario.WorkerVolume("worker1", "input1-3"),
+							DestinationPath: "/input1-3",
+							FromCache:       true,
+						},
+						{
+							Artifact:        scenario.WorkerVolume("worker2", "input2-1"),
+							DestinationPath: "/input2-1",
+						},
+						{
+							Artifact:        scenario.WorkerVolume("worker2", "input2-2"),
+							DestinationPath: "/input2-2",
+						},
+						{
+							Artifact:        scenario.WorkerVolume("worker3", "input3-1"),
+							DestinationPath: "/input3-1",
+						},
+					},
+				},
+			)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(workerNames(workers)).To(Equal([]string{"worker2", "worker3", "worker1"}))
+		})
+
 		Test("does not consider workers that have been filtered out", func() {
 			scenario := Setup(
 				workertest.WithBasicJob(),

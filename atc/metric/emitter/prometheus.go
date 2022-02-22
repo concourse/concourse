@@ -884,7 +884,6 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 	// ensure there are no invalid characters in label names.
 	event.Attributes = sanitizePrometheusLabels(event.Attributes)
 
-
 	switch event.Name {
 	case "error log":
 		emitter.errorLogsMetric(logger, event)

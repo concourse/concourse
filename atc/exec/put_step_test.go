@@ -139,9 +139,9 @@ var _ = Describe("PutStep", func() {
 		volume2 = runtimetest.NewVolume("volume2")
 		volume3 = runtimetest.NewVolume("volume3")
 
-		repo.RegisterArtifact("input1", volume1)
-		repo.RegisterArtifact("input2", volume2)
-		repo.RegisterArtifact("input3", volume3)
+		repo.RegisterArtifact("input1", volume1, false)
+		repo.RegisterArtifact("input2", volume2, true)
+		repo.RegisterArtifact("input3", volume3, false)
 	})
 
 	AfterEach(func() {
@@ -238,14 +238,17 @@ var _ = Describe("PutStep", func() {
 					{
 						Artifact:        volume1,
 						DestinationPath: "/tmp/build/put/input1",
+						FromCache:       false,
 					},
 					{
 						Artifact:        volume2,
 						DestinationPath: "/tmp/build/put/input2",
+						FromCache:       true,
 					},
 					{
 						Artifact:        volume3,
 						DestinationPath: "/tmp/build/put/input3",
+						FromCache:       false,
 					},
 				}))
 			})
@@ -257,14 +260,17 @@ var _ = Describe("PutStep", func() {
 					{
 						Artifact:        volume1,
 						DestinationPath: "/tmp/build/put/input1",
+						FromCache:       false,
 					},
 					{
 						Artifact:        volume2,
 						DestinationPath: "/tmp/build/put/input2",
+						FromCache:       true,
 					},
 					{
 						Artifact:        volume3,
 						DestinationPath: "/tmp/build/put/input3",
+						FromCache:       false,
 					},
 				}))
 			})
@@ -282,10 +288,12 @@ var _ = Describe("PutStep", func() {
 					{
 						Artifact:        volume1,
 						DestinationPath: "/tmp/build/put/input1",
+						FromCache:       false,
 					},
 					{
 						Artifact:        volume3,
 						DestinationPath: "/tmp/build/put/input3",
+						FromCache:       false,
 					},
 				}))
 			})
@@ -347,10 +355,12 @@ var _ = Describe("PutStep", func() {
 						{
 							Artifact:        volume1,
 							DestinationPath: "/tmp/build/put/input1",
+							FromCache:       false,
 						},
 						{
 							Artifact:        volume2,
 							DestinationPath: "/tmp/build/put/input2",
+							FromCache:       true,
 						},
 					}))
 				})
@@ -371,10 +381,30 @@ var _ = Describe("PutStep", func() {
 						{
 							Artifact:        volume1,
 							DestinationPath: "/tmp/build/put/input1",
+							FromCache:       false,
 						},
 						{
 							Artifact:        volume2,
 							DestinationPath: "/tmp/build/put/input2",
+							FromCache:       true,
+						},
+					}))
+				})
+			})
+
+			Context("when only inputs are from cache ", func() {
+				BeforeEach(func() {
+					putPlan.Inputs = &atc.InputsConfig{
+						Specified: []string{"input2"},
+					}
+				})
+
+				It("runs with cached inputs", func() {
+					Expect(chosenContainer.Spec.Inputs).To(ConsistOf([]runtime.Input{
+						{
+							Artifact:        volume2,
+							DestinationPath: "/tmp/build/put/input2",
+							FromCache:       true,
 						},
 					}))
 				})

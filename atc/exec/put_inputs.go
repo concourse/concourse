@@ -111,20 +111,21 @@ func (i detectInputs) FindAll(artifacts *build.Repository) ([]runtime.Input, err
 
 	inputs := []runtime.Input{}
 	for _, name := range i.guessedNames {
-		artifact, found := artifactsMap[name]
+		artifactEntry, found := artifactsMap[name]
 		if !found {
 			// false positive; not an artifact
 			continue
 		}
-		inputs = append(inputs, putInput(name, artifact))
+		inputs = append(inputs, putInput(name, artifactEntry))
 	}
 
 	return inputs, nil
 }
 
-func putInput(name build.ArtifactName, artifact runtime.Artifact) runtime.Input {
+func putInput(name build.ArtifactName, artifactEntry build.ArtifactEntry) runtime.Input {
 	return runtime.Input{
-		Artifact:        artifact,
+		Artifact:        artifactEntry.Artifact,
 		DestinationPath: filepath.Join(resource.ResourcesDir("put"), string(name)),
+		FromCache:       artifactEntry.FromCache,
 	}
 }

@@ -125,12 +125,13 @@ var _ = Describe("ArtifactInputStep", func() {
 				})
 
 				It("registers the artifact", func() {
-					artifact, found := state.ArtifactRepository().ArtifactFor(build.ArtifactName("some-input-artifact-name"))
+					artifact, fromCache, found := state.ArtifactRepository().ArtifactFor(build.ArtifactName("some-input-artifact-name"))
 
 					Expect(stepErr).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 
 					Expect(artifact).To(Equal(volume))
+					Expect(fromCache).To(BeFalse())
 				})
 
 				It("succeeds", func() {

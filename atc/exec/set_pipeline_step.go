@@ -342,7 +342,7 @@ func (s setPipelineSource) fetchPipelineBits(path string) ([]byte, error) {
 }
 
 func (s setPipelineSource) retrieveFromArtifact(name, file string) (io.ReadCloser, error) {
-	art, found := s.repo.ArtifactFor(build.ArtifactName(name))
+	art, _, found := s.repo.ArtifactFor(build.ArtifactName(name))
 	if !found {
 		return nil, UnknownArtifactSourceError{build.ArtifactName(name), file}
 	}

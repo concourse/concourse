@@ -78,7 +78,7 @@ var _ = Describe("LoadVarStep", func() {
 		state = new(execfakes.FakeRunState)
 		state.ArtifactRepositoryReturns(artifactRepository)
 
-		artifactRepository.RegisterArtifact("some-resource", runtimetest.NewVolume("some-handle"))
+		artifactRepository.RegisterArtifact("some-resource", runtimetest.NewVolume("some-handle"), false)
 
 		stdout = gbytes.NewBuffer()
 		stderr = gbytes.NewBuffer()

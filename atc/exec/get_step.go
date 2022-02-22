@@ -208,7 +208,7 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 	containerOwner := delegate.ContainerOwner(step.planID)
 
 	delegate.Starting(logger)
-	volume, versionResult, processResult, err := step.retrieveFromCacheOrPerformGet(
+	volume, fromCache, versionResult, processResult, err := step.retrieveFromCacheOrPerformGet(
 		ctx,
 		logger,
 		delegate,
@@ -241,6 +241,7 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 		state.ArtifactRepository().RegisterArtifact(
 			build.ArtifactName(step.plan.Name),
 			volume,
+			fromCache,
 		)
 
 		if step.plan.Resource != "" {
@@ -268,7 +269,7 @@ func (step *GetStep) retrieveFromCacheOrPerformGet(
 	workerSpec worker.Spec,
 	containerSpec runtime.ContainerSpec,
 	containerOwner db.ContainerOwner,
-) (runtime.Volume, resource.VersionResult, runtime.ProcessResult, error) {
+) (runtime.Volume, bool, resource.VersionResult, runtime.ProcessResult, error) {
 	var worker runtime.Worker
 
 	lockName := strconv.Itoa(resourceCache.ID())
@@ -284,13 +285,13 @@ func (step *GetStep) retrieveFromCacheOrPerformGet(
 
 		err = delegate.BeforeSelectWorker(logger)
 		if err != nil {
-			return nil, resource.VersionResult{}, runtime.ProcessResult{}, err
+			return nil, false, resource.VersionResult{}, runtime.ProcessResult{}, err
 		}
 
 		worker, err = step.workerPool.FindOrSelectWorker(ctx, containerOwner, containerSpec, workerSpec, step.strategy, delegate)
 		if err != nil {
 			logger.Error("failed-to-select-worker", err)
-			return nil, resource.VersionResult{}, runtime.ProcessResult{}, err
+			return nil, false, resource.VersionResult{}, runtime.ProcessResult{}, err
 		}
 
 		// The lock is unique only to the current worker when not caching
@@ -322,16 +323,16 @@ func (step *GetStep) retrieveFromCacheOrPerformGet(
 	//       GetResourceLockInterval)
 	//     * If lock acquisition succeeded, then run the get script and
 	//       initialize the volume as a resource cache.
-	attemptGet := func() (runtime.Volume, resource.VersionResult, runtime.ProcessResult, bool, error) {
+	attemptGet := func() (runtime.Volume, bool, resource.VersionResult, runtime.ProcessResult, bool, error) {
 		volume, versionResult, found, err := step.retrieveFromCache(ctx, resourceCache, workerSpec, worker)
 		if err != nil {
-			return volume, resource.VersionResult{}, runtime.ProcessResult{}, false, err
+			return nil, false, resource.VersionResult{}, runtime.ProcessResult{}, false, err
 		}
 		if found {
 			metric.Metrics.GetStepCacheHits.Inc()
 			fmt.Fprintln(delegate.Stderr(), "\x1b[1;36mINFO: found existing resource cache\x1b[0m")
 			fmt.Fprintln(delegate.Stderr(), "")
-			return volume, versionResult, runtime.ProcessResult{ExitStatus: 0}, true, nil
+			return volume, true, versionResult, runtime.ProcessResult{ExitStatus: 0}, true, nil
 		}
 
 		lockLogger := logger.Session("lock", lager.Data{"lock-name": lockName})
@@ -340,30 +341,30 @@ func (step *GetStep) retrieveFromCacheOrPerformGet(
 			lockLogger.Error("failed-to-get-lock", err)
 			// not returning error for consistency with prior behaviour - we just
 			// retry after GetResourceLockInterval
-			return nil, resource.VersionResult{}, runtime.ProcessResult{}, false, nil
+			return nil, false, resource.VersionResult{}, runtime.ProcessResult{}, false, nil
 		}
 
 		if !acquired {
 			lockLogger.Debug("did-not-get-lock")
-			return nil, resource.VersionResult{}, runtime.ProcessResult{}, false, nil
+			return nil, false, resource.VersionResult{}, runtime.ProcessResult{}, false, nil
 		}
 
 		defer lock.Release()
 
 		volume, versionResult, processResult, err := step.performGetAndInitCache(ctx, logger, delegate, getResource, resourceCache, workerSpec, containerSpec, containerOwner, worker)
 		if err != nil {
-			return nil, resource.VersionResult{}, runtime.ProcessResult{}, false, err
+			return nil, false, resource.VersionResult{}, runtime.ProcessResult{}, false, err
 		}
 
-		return volume, versionResult, processResult, true, nil
+		return volume, false, versionResult, processResult, true, nil
 	}
 
-	volume, versionResult, processResult, ok, err := attemptGet()
+	volume, fromCache, versionResult, processResult, ok, err := attemptGet()
 	if err != nil {
-		return nil, resource.VersionResult{}, runtime.ProcessResult{}, err
+		return nil, false, resource.VersionResult{}, runtime.ProcessResult{}, err
 	}
 	if ok {
-		return volume, versionResult, processResult, nil
+		return volume, fromCache, versionResult, processResult, nil
 	}
 
 	// Resource not cached and failed to acquire lock. Try again after
@@ -377,14 +378,14 @@ func (step *GetStep) retrieveFromCacheOrPerformGet(
 	for {
 		select {
 		case <-ctx.Done():
-			return nil, resource.VersionResult{}, runtime.ProcessResult{}, ctx.Err()
+			return nil, false, resource.VersionResult{}, runtime.ProcessResult{}, ctx.Err()
 		case <-ticker.C:
-			volume, versionResult, processResult, ok, err := attemptGet()
+			volume, fromCache, versionResult, processResult, ok, err := attemptGet()
 			if err != nil {
-				return nil, resource.VersionResult{}, runtime.ProcessResult{}, err
+				return nil, false, resource.VersionResult{}, runtime.ProcessResult{}, err
 			}
 			if ok {
-				return volume, versionResult, processResult, nil
+				return volume, fromCache, versionResult, processResult, nil
 			}
 			// Still can't acquire that darn lock. Wait another interval.
 		}
