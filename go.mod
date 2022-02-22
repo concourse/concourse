@@ -22,7 +22,7 @@ require (
 	github.com/concourse/go-archive v1.0.1
 	github.com/concourse/retryhttp v1.1.1
 	github.com/containerd/containerd v1.5.9
-	github.com/containerd/go-cni v1.1.0
+	github.com/containerd/go-cni v1.1.3
 	github.com/containerd/typeurl v1.0.2
 	github.com/coreos/go-iptables v0.6.0
 	github.com/cppforlife/go-semi-semantic v0.0.0-20160921010311-576b6af77ae4
@@ -34,7 +34,7 @@ require (
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
 	github.com/google/jsonapi v0.0.0-20180618021926-5d047c6bc66b
-	github.com/gorilla/websocket v1.4.2
+	github.com/gorilla/websocket v1.5.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-rootcerts v1.0.2
 	github.com/hashicorp/vault/api v1.0.5-0.20191108163347-bdd38fca2cff
