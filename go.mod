@@ -77,7 +77,7 @@ require (
 	github.com/vito/twentythousandtonnesofcrudeoil v0.0.0-20180305154709-3b21ad808fcb
 	go.opentelemetry.io/otel v1.4.1
 	go.opentelemetry.io/otel/exporters/jaeger v1.4.0
-	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.4.0
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.4.1
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.4.0
 	go.opentelemetry.io/otel/oteltest v1.0.0-RC3
 	go.opentelemetry.io/otel/sdk v1.4.1
@@ -186,7 +186,7 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/objx v0.2.0 // indirect
 	go.opencensus.io v0.23.0 // indirect
-	go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.4.0 // indirect
+	go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.4.1 // indirect
 	go.opentelemetry.io/proto/otlp v0.12.0 // indirect
 	golang.org/x/mod v0.5.0 // indirect
 	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect
