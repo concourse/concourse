@@ -206,6 +206,7 @@ func (b *inMemoryCheckBuildForApi) Events(from uint) (EventSource, error) {
 					err = psql.Select("1").
 						From("resources").
 						Where(sq.Eq{"id": b.resourceId}).
+						Where(sq.Eq{"in_memory_build_status": BuildStatusStarted}).
 						Where(sq.Eq{"in_memory_build_id": buildID}).
 						RunWith(tx).
 						QueryRow().
@@ -286,7 +287,7 @@ func newRunningInMemoryCheckBuild(conn Conn, lockFactory lock.LockFactory, check
 			checkable: checkable,
 			plan:      plan,
 			startTime: timeNow,
-			status:    BuildStatusStarted,
+			status:    BuildStatusPending,
 		},
 		lockFactory: lockFactory,
 		createTime:  timeNow,
@@ -314,7 +315,7 @@ func (b *inMemoryCheckBuild) RunStateID() string {
 	return fmt.Sprintf("in-memory-check-build:%v", b.preId)
 }
 
-func (b *inMemoryCheckBuild) IsRunning() bool           { return b.status == BuildStatusStarted }
+func (b *inMemoryCheckBuild) IsRunning() bool           { return b.endTime.IsZero() }
 func (b *inMemoryCheckBuild) IsManuallyTriggered() bool { return false }
 func (b *inMemoryCheckBuild) CreateTime() time.Time     { return b.createTime }
 
@@ -437,6 +438,18 @@ func (b *inMemoryCheckBuild) Finish(status BuildStatus) error {
 	})
 	if err != nil {
 		return err
+	}
+
+	// Update in memory build status in resources table
+	if b.resourceId != 0 {
+		_, err := psql.Update("resources").
+			Set("in_memory_build_status", status).
+			Where(sq.Eq{"id": b.resourceId}).
+			RunWith(tx).
+			Exec()
+		if err != nil {
+			return err
+		}
 	}
 
 	// Release the containers using in this build, so that they can be GC-ed.
@@ -577,6 +590,7 @@ func (b *inMemoryCheckBuild) initDbStuff(tx Tx) error {
 			Set("in_memory_build_id", b.id).
 			Set("in_memory_build_start_time", b.StartTime()).
 			Set("in_memory_build_plan", b.PublicPlan()).
+			Set("in_memory_build_status", BuildStatusStarted).
 			Where(sq.Eq{"id": b.resourceId}).
 			RunWith(tx).Exec()
 		if err != nil {
