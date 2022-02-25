@@ -30,6 +30,9 @@ type VolumeRepository interface {
 	FindVolumesForContainer(container CreatedContainer) ([]CreatedVolume, error)
 	GetOrphanedVolumes() ([]CreatedVolume, error)
 
+	FindWorkersForResourceCache(resourceCache ResourceCache) ([]string, error)
+	FindWorkersForTaskCache(taskCache UsedTaskCache) ([]string, error)
+
 	DestroyFailedVolumes() (count int, err error)
 
 	GetDestroyingVolumes(workerName string) ([]string, error)
@@ -463,6 +466,58 @@ func (repository *volumeRepository) FindResourceCacheVolume(workerName string, r
 	}
 
 	return createdVolume, true, nil
+}
+
+func (repository *volumeRepository) FindWorkersForResourceCache(resourceCache ResourceCache) ([]string, error) {
+	rows, err := psql.Select("distinct(c.worker_name)").
+		From("worker_resource_caches c").
+		LeftJoin("workers w on c.worker_name = w.name").
+		Where(sq.Eq{
+			"c.resource_cache_id": resourceCache.ID(),
+			"w.state": "running",
+		}).
+		RunWith(repository.conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	var workers []string
+	for rows.Next() {
+		var workerName string
+		err := rows.Scan(&workerName)
+		if err != nil {
+			return nil, err
+		}
+		workers = append(workers, workerName)
+	}
+	return workers, nil
+}
+
+func (repository *volumeRepository) FindWorkersForTaskCache(taskCache UsedTaskCache) ([]string, error) {
+	rows, err := psql.Select("distinct(c.worker_name)").
+		From("worker_task_caches c").
+		LeftJoin("workers w on c.worker_name = w.name").
+		Where(sq.Eq{
+			"c.task_cache_id": taskCache.ID(),
+			"w.state": "running",
+		}).
+		RunWith(repository.conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	var workers []string
+	for rows.Next() {
+		var workerName string
+		err := rows.Scan(&workerName)
+		if err != nil {
+			return nil, err
+		}
+		workers = append(workers, workerName)
+	}
+	return workers, nil
 }
 
 func (repository *volumeRepository) FindVolume(handle string) (CreatedVolume, bool, error) {

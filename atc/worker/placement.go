@@ -139,6 +139,9 @@ type volumeLocalityStrategy struct{}
 
 func (strategy volumeLocalityStrategy) Order(logger lager.Logger, pool Pool, workers []db.Worker, spec runtime.ContainerSpec) ([]db.Worker, error) {
 	counts := make(map[string]int, len(workers))
+	for _, worker := range workers {
+		counts[worker.Name()] = 0
+	}
 
 	for _, input := range spec.Inputs {
 		if input.FromCache {
@@ -156,7 +159,9 @@ func (strategy volumeLocalityStrategy) Order(logger lager.Logger, pool Pool, wor
 			"path":   input.DestinationPath,
 		})
 		srcWorker := volume.DBVolume().WorkerName()
-		counts[srcWorker]++
+		if _, ok := counts[srcWorker]; ok {
+			counts[srcWorker]++
+		}
 
 		resourceCacheID := volume.DBVolume().GetResourceCacheID()
 		if resourceCacheID == 0 {
@@ -172,17 +177,19 @@ func (strategy volumeLocalityStrategy) Order(logger lager.Logger, pool Pool, wor
 			logger.Debug("resource-cache-not-found")
 			continue
 		}
-		for _, worker := range workers {
-			if worker.Name() == srcWorker {
+
+		workerNames, err := pool.db.VolumeRepo.FindWorkersForResourceCache(resourceCache)
+		if err != nil {
+			logger.Error("failed-to-find-workers-for-resource-cache", err)
+			return nil, err
+		}
+		for _, worker := range workerNames {
+			if worker == srcWorker {
 				continue
 			}
-			_, found, err := pool.db.VolumeRepo.FindResourceCacheVolume(worker.Name(), resourceCache)
-			if err != nil {
-				logger.Error("failed-to-find-resource-cache-volume", err)
-				return nil, err
-			}
-			if found {
-				counts[worker.Name()]++
+
+			if _, ok := counts[worker]; ok {
+				counts[worker]++
 			}
 		}
 	}
@@ -199,14 +206,14 @@ func (strategy volumeLocalityStrategy) Order(logger lager.Logger, pool Pool, wor
 			continue
 		}
 
-		for _, worker := range workers {
-			_, found, err := pool.db.VolumeRepo.FindTaskCacheVolume(spec.TeamID, worker.Name(), usedTaskCache)
-			if err != nil {
-				logger.Error("failed-to-find-task-cache-volume", err)
-				return nil, err
-			}
-			if found {
-				counts[worker.Name()]++
+		workerNames, err := pool.db.VolumeRepo.FindWorkersForTaskCache(usedTaskCache)
+		if err != nil {
+			logger.Error("failed-to-find-workers-for-task-cache", err)
+			return nil, err
+		}
+		for _, worker := range workerNames {
+			if _, ok := counts[worker]; ok {
+				counts[worker]++
 			}
 		}
 	}
