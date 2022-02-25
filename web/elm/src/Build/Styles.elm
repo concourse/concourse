@@ -325,6 +325,7 @@ metadataCell cell =
             , style "vertical-align" "top"
             , style "background-color" Colors.metadataKeyBackground
             , style "padding" "8px"
+            , style "white-space" "pre-wrap"
             ]
 
         Value ->
@@ -332,6 +333,7 @@ metadataCell cell =
             , style "vertical-align" "top"
             , style "background-color" Colors.metadataValueBackground
             , style "padding" "8px"
+            , style "white-space" "pre-wrap"
             ]
 
 
