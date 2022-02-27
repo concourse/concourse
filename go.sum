@@ -394,8 +394,8 @@ github.com/creack/pty v1.1.7/go.mod h1:lj5s0c3V2DBrqTV7llrYr5NG6My20zk30Fl46Y7Do
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/creack/pty v1.1.11 h1:07n33Z8lZxZ2qwegKbObQohDhXDQxiMMz1NOUGYlesw=
 github.com/creack/pty v1.1.11/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
-github.com/cyberark/conjur-api-go v0.8.1 h1:aHRVPSGqez4pjS52FXBSkfr8CgGo1tGlUZJEdp4GR6A=
-github.com/cyberark/conjur-api-go v0.8.1/go.mod h1:xryKmROpicAe7lmHYSFqQlfU6712rviOFERBGkNDhXg=
+github.com/cyberark/conjur-api-go v0.9.0 h1:AXhx+pNbCECbMmGvjV4I63pbrRc+DH0kvCbu83P/DTk=
+github.com/cyberark/conjur-api-go v0.9.0/go.mod h1:xryKmROpicAe7lmHYSFqQlfU6712rviOFERBGkNDhXg=
 github.com/cyphar/filepath-securejoin v0.2.2/go.mod h1:FpkQEhXnPnOthhzymB7CGsFk2G9VLXONKD9G7QGMM+4=
 github.com/cyphar/filepath-securejoin v0.2.3/go.mod h1:aPGpWjXOXUn2NCNjFvBE6aRxGGx79pTxQpKOJNYHHl4=
 github.com/d2g/dhcp4 v0.0.0-20170904100407-a1d1b6c41b1c/go.mod h1:Ct2BUK8SB0YC1SMSibvLzxjeJLnrYEVLULFNiHY9YfQ=
