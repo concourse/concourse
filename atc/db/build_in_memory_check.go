@@ -419,10 +419,6 @@ func (b *inMemoryCheckBuild) AcquireTrackingLock(logger lager.Logger, interval t
 }
 
 func (b *inMemoryCheckBuild) Finish(status BuildStatus) error {
-	if !b.runningInContainer {
-		return nil
-	}
-
 	b.status = status
 	b.endTime = time.Now()
 
@@ -431,6 +427,13 @@ func (b *inMemoryCheckBuild) Finish(status BuildStatus) error {
 		return err
 	}
 	defer Rollback(tx)
+
+	if !b.dbInited {
+		err := b.initDbStuff(tx)
+		if err != nil {
+			return err
+		}
+	}
 
 	err = b.saveEvent(tx, event.Status{
 		Status: atc.BuildStatus(status),

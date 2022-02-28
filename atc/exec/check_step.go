@@ -99,10 +99,6 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 		"step-name": step.plan.Name,
 	})
 
-	if err := delegate.BeforeSelectWorker(logger); err != nil {
-		return false, err
-	}
-
 	delegate.Initializing(logger)
 
 	source, err := creds.NewSource(state, step.plan.Source).Evaluate()
@@ -271,6 +267,11 @@ func (step *CheckStep) runCheck(
 	tracing.Inject(ctx, &containerSpec)
 
 	containerOwner := step.containerOwner(delegate, resourceConfig)
+
+	err := delegate.BeforeSelectWorker(logger)
+	if err != nil {
+		return nil, runtime.ProcessResult{}, err
+	}
 
 	worker, err := step.workerPool.FindOrSelectWorker(ctx, containerOwner, containerSpec, workerSpec, step.strategy, delegate)
 	if err != nil {
