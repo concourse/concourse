@@ -70,13 +70,6 @@ func (d *checkDelegate) Initializing(logger lager.Logger) {
 	logger.Info("initializing")
 }
 
-func (d *checkDelegate) BeforeSelectWorker(logger lager.Logger) error {
-	logger.Info("initializing build events")
-
-	err := d.build.OnCheckBuildStart()
-	return err
-}
-
 func (d *checkDelegate) FindOrCreateScope(config db.ResourceConfig) (db.ResourceConfigScope, error) {
 	var resourceIDPtr *int
 	if d.plan.Resource != "" {

@@ -419,6 +419,10 @@ func (b *inMemoryCheckBuild) AcquireTrackingLock(logger lager.Logger, interval t
 }
 
 func (b *inMemoryCheckBuild) Finish(status BuildStatus) error {
+	if !b.runningInContainer && status == BuildStatusSucceeded {
+		return nil
+	}
+
 	b.status = status
 	b.endTime = time.Now()
 
