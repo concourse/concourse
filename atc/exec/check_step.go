@@ -43,8 +43,9 @@ type CheckDelegate interface {
 	FindOrCreateScope(db.ResourceConfig) (db.ResourceConfigScope, error)
 	WaitToRun(context.Context, db.ResourceConfigScope) (lock.Lock, bool, error)
 	PointToCheckedConfig(db.ResourceConfigScope) error
-	UpdateScopeLastCheckStartTime(db.ResourceConfigScope, bool) (bool, int, error)
+	UpdateScopeLastCheckStartTime(db.ResourceConfigScope) (bool, error)
 	UpdateScopeLastCheckEndTime(db.ResourceConfigScope, bool) (bool, error)
+	OnCheckBuildStart() (int, error)
 
 	StreamingVolume(lager.Logger, string, string, string)
 }
@@ -172,15 +173,19 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 
 		metric.Metrics.ChecksStarted.Inc()
 
-		_, buildId, err := delegate.UpdateScopeLastCheckStartTime(scope, !step.plan.IsResourceCheck())
-		if err != nil {
-			return false, fmt.Errorf("update check start time: %w", err)
-		}
-
-		if buildId != 0 {
+		if step.plan.Resource != "" {
+			buildId, err := delegate.OnCheckBuildStart()
+			if err != nil {
+				return false, fmt.Errorf("failed to call on-check-build-start: %w", err)
+			}
 			// Update build id in logger as in-memory build's id is only generated when starts to run check.
 			logger = logger.WithData(lager.Data{"build": buildId})
 			ctx = lagerctx.NewContext(ctx, logger)
+		}
+
+		_, err := delegate.UpdateScopeLastCheckStartTime(scope)
+		if err != nil {
+			return false, fmt.Errorf("update check start time: %w", err)
 		}
 
 		versions, processResult, runErr := step.runCheck(ctx, logger, delegate, imageSpec, resourceConfig, source, fromVersion)
@@ -267,11 +272,6 @@ func (step *CheckStep) runCheck(
 	tracing.Inject(ctx, &containerSpec)
 
 	containerOwner := step.containerOwner(delegate, resourceConfig)
-
-	err := delegate.BeforeSelectWorker(logger)
-	if err != nil {
-		return nil, runtime.ProcessResult{}, err
-	}
 
 	worker, err := step.workerPool.FindOrSelectWorker(ctx, containerOwner, containerSpec, workerSpec, step.strategy, delegate)
 	if err != nil {

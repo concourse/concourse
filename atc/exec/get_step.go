@@ -65,7 +65,6 @@ type GetDelegate interface {
 	Finished(lager.Logger, ExitStatus, resource.VersionResult)
 	Errored(lager.Logger, string)
 
-	BeforeSelectWorker(lager.Logger) error
 	WaitingForWorker(lager.Logger)
 	SelectedWorker(lager.Logger, string)
 	StreamingVolume(lager.Logger, string, string, string)
@@ -282,12 +281,6 @@ func (step *GetStep) retrieveFromCacheOrPerformGet(
 	// ton of streaming out.
 	if !atc.EnableCacheStreamedVolumes {
 		var err error
-
-		err = delegate.BeforeSelectWorker(logger)
-		if err != nil {
-			return nil, false, resource.VersionResult{}, runtime.ProcessResult{}, err
-		}
-
 		worker, err = step.workerPool.FindOrSelectWorker(ctx, containerOwner, containerSpec, workerSpec, step.strategy, delegate)
 		if err != nil {
 			logger.Error("failed-to-select-worker", err)
@@ -448,11 +441,6 @@ func (step *GetStep) performGetAndInitCache(
 	// front.
 	if worker == nil {
 		var err error
-
-		err = delegate.BeforeSelectWorker(logger)
-		if err != nil {
-			return nil, resource.VersionResult{}, runtime.ProcessResult{}, err
-		}
 
 		worker, err = step.workerPool.FindOrSelectWorker(ctx, containerOwner, containerSpec, workerSpec, step.strategy, delegate)
 		if err != nil {

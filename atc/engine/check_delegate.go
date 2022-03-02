@@ -2,7 +2,6 @@ package engine
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -250,18 +249,16 @@ func (d *checkDelegate) PointToCheckedConfig(scope db.ResourceConfigScope) error
 	return nil
 }
 
-func (d *checkDelegate) UpdateScopeLastCheckStartTime(scope db.ResourceConfigScope, nestedCheck bool) (bool, int, error) {
-	var publicPlan *json.RawMessage
-	var buildId int
-	if !nestedCheck {
-		if err := d.build.OnCheckBuildStart(); err != nil {
-			return false, 0, err
-		}
-		publicPlan = d.build.PublicPlan()
-		buildId = d.build.ID()
+func (d *checkDelegate) OnCheckBuildStart() (int, error) {
+	err := d.build.OnCheckBuildStart()
+	if err != nil {
+		return 0, err
 	}
-	found, err := scope.UpdateLastCheckStartTime(buildId, publicPlan)
-	return found, buildId, err
+	return d.build.ID(), nil
+}
+
+func (d *checkDelegate) UpdateScopeLastCheckStartTime(scope db.ResourceConfigScope) (bool, error) {
+	return scope.UpdateLastCheckStartTime(d.build.ID(), d.build.PublicPlan())
 }
 
 func (d *checkDelegate) UpdateScopeLastCheckEndTime(scope db.ResourceConfigScope, succeeded bool) (bool, error) {
