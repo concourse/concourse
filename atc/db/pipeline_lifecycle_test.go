@@ -29,12 +29,13 @@ var _ = Describe("PipelineLifecycle", func() {
 		Context("child pipeline is set by a job in a pipeline", func() {
 			var (
 				childPipeline db.Pipeline
+				setChildBuild db.Build
 			)
 
 			BeforeEach(func() {
-				build, _ := defaultJob.CreateBuild(defaultBuildCreatedBy)
-				childPipeline, _, _ = build.SavePipeline(atc.PipelineRef{Name: "child-pipeline"}, defaultTeam.ID(), defaultPipelineConfig, db.ConfigVersion(0), false)
-				build.Finish(db.BuildStatusSucceeded)
+				setChildBuild, _ = defaultJob.CreateBuild(defaultBuildCreatedBy)
+				childPipeline, _, _ = setChildBuild.SavePipeline(atc.PipelineRef{Name: "child-pipeline"}, defaultTeam.ID(), defaultPipelineConfig, db.ConfigVersion(0), false)
+				setChildBuild.Finish(db.BuildStatusSucceeded)
 			})
 
 			Context("parent and child pipelines happily exist", func() {
@@ -79,6 +80,30 @@ var _ = Describe("PipelineLifecycle", func() {
 				})
 
 				It("archives all child pipelines set by the deleted job", func() {
+					childPipeline.Reload()
+					Expect(childPipeline.Archived()).To(BeTrue())
+				})
+			})
+
+			Context("when build that set child pipeline is later than latest completed build", func() {
+				BeforeEach(func() {
+					err := childPipeline.SetParentIDs(defaultJob.ID(), setChildBuild.ID()+1)
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("should not archive child pipeline", func() {
+					childPipeline.Reload()
+					Expect(childPipeline.Archived()).To(BeFalse())
+				})
+			})
+
+			Context("when build that set child pipeline is not most recent", func() {
+				BeforeEach(func() {
+					setChildBuild, _ = defaultJob.CreateBuild(defaultBuildCreatedBy)
+					setChildBuild.Finish(db.BuildStatusSucceeded)
+				})
+
+				It("should archive child pipeline", func() {
 					childPipeline.Reload()
 					Expect(childPipeline.Archived()).To(BeTrue())
 				})
