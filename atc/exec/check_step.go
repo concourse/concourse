@@ -170,7 +170,7 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 
 		metric.Metrics.ChecksStarted.Inc()
 
-		_, buildId, err := delegate.UpdateScopeLastCheckStartTime(scope, (step.plan.Resource == ""))
+		_, buildId, err := delegate.UpdateScopeLastCheckStartTime(scope, !step.plan.IsResourceCheck())
 		if err != nil {
 			return false, fmt.Errorf("update check start time: %w", err)
 		}
