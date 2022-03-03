@@ -15,7 +15,7 @@ import (
 var _ = Describe("Container Placement Strategies", func() {
 	Describe("Volume Locality", func() {
 		volumeLocalityStrategy := func() worker.PlacementStrategy {
-			strategy, err := worker.NewPlacementStrategy(worker.PlacementOptions{
+			strategy, _, err := worker.NewPlacementStrategy(worker.PlacementOptions{
 				Strategies: []string{"volume-locality"},
 			})
 			Expect(err).ToNot(HaveOccurred())
@@ -469,7 +469,7 @@ var _ = Describe("Container Placement Strategies", func() {
 
 	Describe("Fewest Build Containers", func() {
 		fewestBuildContainersStrategy := func() worker.PlacementStrategy {
-			strategy, err := worker.NewPlacementStrategy(worker.PlacementOptions{
+			strategy, _, err := worker.NewPlacementStrategy(worker.PlacementOptions{
 				Strategies: []string{"fewest-build-containers"},
 			})
 			Expect(err).ToNot(HaveOccurred())
@@ -505,7 +505,7 @@ var _ = Describe("Container Placement Strategies", func() {
 
 	Describe("Limit Active Tasks", func() {
 		limitActiveTasksStrategy := func(max int) worker.PlacementStrategy {
-			strategy, err := worker.NewPlacementStrategy(worker.PlacementOptions{
+			strategy, _, err := worker.NewPlacementStrategy(worker.PlacementOptions{
 				Strategies:              []string{"limit-active-tasks"},
 				MaxActiveTasksPerWorker: max,
 			})
@@ -582,7 +582,7 @@ var _ = Describe("Container Placement Strategies", func() {
 
 	Describe("Limit Active Containers", func() {
 		limitActiveContainersStrategy := func(max int) worker.PlacementStrategy {
-			strategy, err := worker.NewPlacementStrategy(worker.PlacementOptions{
+			strategy, _, err := worker.NewPlacementStrategy(worker.PlacementOptions{
 				Strategies:                   []string{"limit-active-containers"},
 				MaxActiveContainersPerWorker: max,
 			})
@@ -670,7 +670,7 @@ var _ = Describe("Container Placement Strategies", func() {
 
 	Describe("Limit Active Volumes", func() {
 		limitActiveVolumesStrategy := func(max int) worker.PlacementStrategy {
-			strategy, err := worker.NewPlacementStrategy(worker.PlacementOptions{
+			strategy, _, err := worker.NewPlacementStrategy(worker.PlacementOptions{
 				Strategies:                []string{"limit-active-volumes"},
 				MaxActiveVolumesPerWorker: max,
 			})
