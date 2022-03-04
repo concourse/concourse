@@ -1027,7 +1027,7 @@ func (cmd *RunCommand) backendComponents(
 		return nil, err
 	}
 
-	buildContainerStrategy, noInputBuildContainerStrategy, err := cmd.chooseBuildContainerStrategy()
+	buildContainerStrategy, err := cmd.chooseBuildContainerStrategy()
 	if err != nil {
 		return nil, err
 	}
@@ -1051,7 +1051,6 @@ func (cmd *RunCommand) backendComponents(
 		secretManager,
 		defaultLimits,
 		buildContainerStrategy,
-		noInputBuildContainerStrategy,
 		lockFactory,
 		rateLimiter,
 		policyChecker,
@@ -1658,18 +1657,8 @@ func constructLockConn(driverName, connectionString string) (*sql.DB, error) {
 	return dbConn, nil
 }
 
-func (cmd *RunCommand) chooseBuildContainerStrategy() (worker.PlacementStrategy, worker.PlacementStrategy, error) {
-	strategy, err := worker.NewPlacementStrategy(cmd.ContainerPlacementStrategyOptions)
-	if err != nil {
-		return nil, nil, err
-	}
-	noInputStepStrategy, err := worker.NewPlacementStrategy(worker.PlacementOptions{
-		Strategies: []string{"fewest-build-containers"},
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-	return strategy, noInputStepStrategy, nil
+func (cmd *RunCommand) chooseBuildContainerStrategy() (worker.PlacementStrategy, error) {
+	return worker.NewPlacementStrategy(cmd.ContainerPlacementStrategyOptions)
 }
 
 func (cmd *RunCommand) configureAuthForDefaultTeam(teamFactory db.TeamFactory) error {
@@ -1705,7 +1694,6 @@ func (cmd *RunCommand) constructEngine(
 	secretManager creds.Secrets,
 	defaultLimits atc.ContainerLimits,
 	strategy worker.PlacementStrategy,
-	noInputStrategy worker.PlacementStrategy,
 	lockFactory lock.LockFactory,
 	rateLimiter engine.RateLimiter,
 	policyChecker policy.Checker,
@@ -1722,7 +1710,6 @@ func (cmd *RunCommand) constructEngine(
 				resourceConfigFactory,
 				defaultLimits,
 				strategy,
-				noInputStrategy,
 				cmd.GlobalResourceCheckTimeout,
 				cmd.DefaultGetTimeout,
 				cmd.DefaultPutTimeout,
