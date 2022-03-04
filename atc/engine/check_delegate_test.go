@@ -382,6 +382,7 @@ var _ = Describe("CheckDelegate", func() {
 		Context("when not running for a resource", func() {
 			BeforeEach(func() {
 				plan.Check.Resource = ""
+				plan.Check.ResourceType = "some-resource-type"
 			})
 
 			It("does not rate limit", func() {

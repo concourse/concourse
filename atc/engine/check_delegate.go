@@ -72,7 +72,7 @@ func (d *checkDelegate) Initializing(logger lager.Logger) {
 
 func (d *checkDelegate) FindOrCreateScope(config db.ResourceConfig) (db.ResourceConfigScope, error) {
 	var resourceIDPtr *int
-	if d.plan.Resource != "" {
+	if d.plan.IsResourceCheck() {
 		pipeline, err := d.pipeline()
 		if err != nil {
 			return nil, fmt.Errorf("get pipeline: %w", err)
@@ -110,7 +110,7 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 		if d.plan.Interval.Never {
 			// exit early if user specified to never run periodic checks
 			return nil, false, nil
-		} else if d.plan.Resource != "" {
+		} else if d.plan.IsResourceCheck() {
 			// rate limit periodic resource checks so worker load (plus load on
 			// external services) isn't too spiky. note that we don't rate limit
 			// resource type or prototype checks, because they are created every time a
@@ -125,7 +125,7 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 	interval := d.plan.Interval.Interval
 
 	var lock lock.Lock = lock.NoopLock{}
-	if d.plan.IsPeriodic() {
+	if d.plan.IsResourceCheck() {
 		for {
 			run, err := d.shouldPeriodicCheckRun(scope, interval)
 			if err != nil {

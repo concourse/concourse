@@ -300,8 +300,8 @@ type CheckPlan struct {
 	Tags Tags `json:"tags,omitempty"`
 }
 
-func (plan CheckPlan) IsPeriodic() bool {
-	return plan.Resource != "" || plan.ResourceType != "" || plan.Prototype != ""
+func (plan CheckPlan) IsResourceCheck() bool {
+	return plan.Resource != ""
 }
 
 type TaskPlan struct {

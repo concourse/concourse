@@ -138,11 +138,9 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 	// Point scope to resource before check runs. Because a resource's check build
 	// summary is associated with scope, only after pointing to scope, check status
 	// can be fetched.
-	if step.plan.Resource != "" {
-		err = delegate.PointToCheckedConfig(scope)
-		if err != nil {
-			return false, fmt.Errorf("update resource config scope: %w", err)
-		}
+	err = delegate.PointToCheckedConfig(scope)
+	if err != nil {
+		return false, fmt.Errorf("update resource config scope: %w", err)
 	}
 
 	lock, run, err := delegate.WaitToRun(ctx, scope)
@@ -174,7 +172,7 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 
 		metric.Metrics.ChecksStarted.Inc()
 
-		_, buildId, err := delegate.UpdateScopeLastCheckStartTime(scope, (step.plan.Resource == ""))
+		_, buildId, err := delegate.UpdateScopeLastCheckStartTime(scope, !step.plan.IsResourceCheck())
 		if err != nil {
 			return false, fmt.Errorf("update check start time: %w", err)
 		}
@@ -311,7 +309,7 @@ func (step *CheckStep) runCheck(
 }
 
 func (step *CheckStep) containerOwner(delegate CheckDelegate, resourceConfig db.ResourceConfig) db.ContainerOwner {
-	if step.plan.Resource == "" {
+	if !step.plan.IsResourceCheck() {
 		return delegate.ContainerOwner(step.planID)
 	}
 
