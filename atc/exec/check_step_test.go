@@ -114,9 +114,9 @@ var _ = Describe("CheckStep", func() {
 
 		fakeResourceConfigScope = new(dbfakes.FakeResourceConfigScope)
 		fakeDelegate.FindOrCreateScopeReturns(fakeResourceConfigScope, nil)
-		fakeDelegate.UpdateScopeLastCheckStartTimeStub = func(scope db.ResourceConfigScope, nestedCheck bool) (bool, int, error) {
+		fakeDelegate.UpdateScopeLastCheckStartTimeStub = func(scope db.ResourceConfigScope) (bool, error) {
 			found, err := scope.UpdateLastCheckStartTime(int(time.Now().Unix()), nil)
-			return found, 678, err
+			return found, err
 		}
 		fakeDelegate.UpdateScopeLastCheckEndTimeStub = func(scope db.ResourceConfigScope, succeeded bool) (bool, error) {
 			return scope.UpdateLastCheckEndTime(succeeded)
@@ -288,10 +288,6 @@ var _ = Describe("CheckStep", func() {
 					})
 				})
 
-				It("emits a BeforeSelectWorker event", func() {
-					Expect(fakeDelegate.BeforeSelectWorkerCallCount()).To(Equal(1))
-				})
-
 				It("emits a SelectedWorker event", func() {
 					Expect(fakeDelegate.SelectedWorkerCallCount()).To(Equal(1))
 					_, workerName := fakeDelegate.SelectedWorkerArgsForCall(0)
@@ -451,11 +447,14 @@ var _ = Describe("CheckStep", func() {
 						Expect(chosenContainer.RunningProcesses()).To(HaveLen(1))
 					})
 
+					It("call OnCheckBuildStart", func(){
+						Expect(fakeDelegate.OnCheckBuildStartCallCount()).To(Equal(1))
+					})
+
 					It("update scope's check start time", func() {
 						Expect(fakeDelegate.UpdateScopeLastCheckStartTimeCallCount()).To(Equal(1))
-						scope, nestedStep := fakeDelegate.UpdateScopeLastCheckStartTimeArgsForCall(0)
+						scope := fakeDelegate.UpdateScopeLastCheckStartTimeArgsForCall(0)
 						Expect(scope).To(Equal(fakeResourceConfigScope))
-						Expect(nestedStep).To(BeFalse())
 					})
 				})
 
@@ -495,11 +494,14 @@ var _ = Describe("CheckStep", func() {
 						Expect(chosenContainer.RunningProcesses()).To(HaveLen(1))
 					})
 
+					It("not call OnCheckBuildStart", func(){
+						Expect(fakeDelegate.OnCheckBuildStartCallCount()).To(Equal(0))
+					})
+
 					It("update scope's check start time", func() {
 						Expect(fakeDelegate.UpdateScopeLastCheckStartTimeCallCount()).To(Equal(1))
-						scope, nestedStep := fakeDelegate.UpdateScopeLastCheckStartTimeArgsForCall(0)
+						scope := fakeDelegate.UpdateScopeLastCheckStartTimeArgsForCall(0)
 						Expect(scope).To(Equal(fakeResourceConfigScope))
-						Expect(nestedStep).To(BeTrue())
 					})
 				})
 
