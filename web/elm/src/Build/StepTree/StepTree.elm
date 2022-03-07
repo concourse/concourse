@@ -108,6 +108,9 @@ init buildId hl resources plan =
         Concourse.BuildStepLoadVar _ ->
             step |> initBottom buildId hl resources plan LoadVar
 
+        Concourse.BuildStepAggregate plans ->
+            initMultiStep buildId hl resources plan.id Aggregate plans Nothing
+
         Concourse.BuildStepInParallel plans ->
             initMultiStep buildId hl resources plan.id InParallel plans Nothing
 
@@ -656,6 +659,10 @@ viewTree session model tree depth =
 
         Timeout subTree ->
             viewTree session model subTree depth
+
+        Aggregate trees ->
+            Html.div [ class "aggregate" ]
+                (Array.toList <| Array.map (viewSeq session model depth) trees)
 
         InParallel trees ->
             Html.div [ class "parallel" ]
@@ -1264,6 +1271,9 @@ viewStepHeader step =
         Concourse.BuildStepDo _ ->
             Html.text ""
 
+        Concourse.BuildStepAggregate _ ->
+            Html.text ""
+
         Concourse.BuildStepInParallel _ ->
             Html.text ""
 
@@ -1326,6 +1336,9 @@ stepName header =
             Just <| String.join ", " vars
 
         Concourse.BuildStepDo _ ->
+            Nothing
+
+        Concourse.BuildStepAggregate _ ->
             Nothing
 
         Concourse.BuildStepInParallel _ ->
