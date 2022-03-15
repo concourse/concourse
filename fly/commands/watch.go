@@ -10,17 +10,19 @@ import (
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/eventstream"
 	"github.com/concourse/concourse/fly/rc"
+	"github.com/concourse/concourse/go-concourse/concourse"
 )
 
 type WatchCommand struct {
-	Job                      flaghelpers.JobFlag `short:"j" long:"job"         value-name:"PIPELINE/JOB"  description:"Watches builds of the given job"`
-	Build                    string              `short:"b" long:"build"                                  description:"Watches a specific build"`
-	Url                      string              `short:"u" long:"url"                                    description:"URL for the build or job to watch"`
-	Timestamp                bool                `short:"t" long:"timestamps"                             description:"Print with local timestamp"`
-	IgnoreEventParsingErrors bool                `long:"ignore-event-parsing-errors"                      description:"Ignore event parsing errors"`
+	Job                      flaghelpers.JobFlag  `short:"j" long:"job"         value-name:"PIPELINE/JOB"  description:"Watches builds of the given job"`
+	Build                    string               `short:"b" long:"build"                                  description:"Watches a specific build"`
+	Url                      string               `short:"u" long:"url"                                    description:"URL for the build or job to watch"`
+	Timestamp                bool                 `short:"t" long:"timestamps"                             description:"Print with local timestamp"`
+	IgnoreEventParsingErrors bool                 `long:"ignore-event-parsing-errors"                      description:"Ignore event parsing errors"`
+	Team                     flaghelpers.TeamFlag `long:"team" description:"Name of the team to which the pipeline belongs, if different from the target default"`
 }
 
-func getBuildIDFromURL(target rc.Target, urlParam string) (int, error) {
+func getBuildIDFromURL(target rc.Target, urlParam string, team concourse.Team) (int, error) {
 	var buildId int
 	client := target.Client()
 
@@ -42,9 +44,9 @@ func getBuildIDFromURL(target rc.Target, urlParam string) (int, error) {
 		return 0, err
 	}
 
-	team := urlMap["teams"]
-	if team != "" && team != target.Team().Name() {
-		err = fmt.Errorf("Team in URL doesn't match the current team of the target (%s, %s)", urlParam, team)
+	teamName := urlMap["teams"]
+	if teamName != "" && teamName != team.Name() {
+		err = fmt.Errorf("Team in URL doesn't match the provided team name or current team of the target  (%s, %s)", urlParam, team.Name())
 		return 0, err
 	}
 
@@ -54,7 +56,7 @@ func getBuildIDFromURL(target rc.Target, urlParam string) (int, error) {
 		if err != nil {
 			return 0, err
 		}
-		build, err := GetBuild(client, target.Team(), urlMap["jobs"], urlMap["builds"], pipelineRef)
+		build, err := GetBuild(client, team, urlMap["jobs"], urlMap["builds"], pipelineRef)
 
 		if err != nil {
 			return 0, err
@@ -83,10 +85,17 @@ func (command *WatchCommand) Execute(args []string) error {
 		return err
 	}
 
+	var team concourse.Team
+
+	team, err = command.Team.LoadTeam(target)
+	if err != nil {
+		return err
+	}
+
 	var buildId int
 	client := target.Client()
 	if command.Job.JobName != "" || command.Build == "" && command.Url == "" {
-		build, err := GetBuild(client, target.Team(), command.Job.JobName, command.Build, command.Job.PipelineRef)
+		build, err := GetBuild(client, team, command.Job.JobName, command.Build, command.Job.PipelineRef)
 		if err != nil {
 			return err
 		}
@@ -98,7 +107,7 @@ func (command *WatchCommand) Execute(args []string) error {
 			return err
 		}
 	} else if command.Url != "" {
-		buildId, err = getBuildIDFromURL(target, command.Url)
+		buildId, err = getBuildIDFromURL(target, command.Url, team)
 
 		if err != nil {
 			return err

@@ -147,6 +147,8 @@ var _ = Describe("Fly CLI", func() {
 				exec.Command(flyPath, "-t", targetName, "check-resource", "-r", "mypipeline/branch:master/myresource", "--shallow", "-a", "--team", nonExistentTeam)),
 			Entry("resource-versions command returns an error",
 				exec.Command(flyPath, "-t", targetName, "resource-versions", "-r", "pipeline/branch:master/foo", "--team", nonExistentTeam)),
+			Entry("watch command returns an error",
+				exec.Command(flyPath, "-t", targetName, "watch", "-j", "pipeline/job", "--team", nonExistentTeam)),
 		)
 
 		DescribeTable("and you are NOT authorized to view the team",
@@ -201,6 +203,8 @@ var _ = Describe("Fly CLI", func() {
 				exec.Command(flyPath, "-t", targetName, "check-resource", "-r", "mypipeline/branch:master/myresource", "--shallow", "-a", "--team", otherTeam)),
 			Entry("resource-versions command returns an error",
 				exec.Command(flyPath, "-t", targetName, "resource-versions", "-r", "pipeline/branch:master/foo", "--team", otherTeam)),
+			Entry("watch command returns an error",
+				exec.Command(flyPath, "-t", targetName, "watch", "-j", "pipeline/job", "--team", nonExistentTeam)),
 		)
 	})
 })
