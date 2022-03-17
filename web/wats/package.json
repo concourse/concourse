@@ -5,7 +5,7 @@
   "dependencies": {
     "child-process-promise": "^2.2.1",
     "color": "^4.2.1",
-    "puppeteer": "^13.4.1",
+    "puppeteer": "^13.5.1",
     "tmp-promise": "^3.0.3",
     "uuid": "^8.3.2"
   },
