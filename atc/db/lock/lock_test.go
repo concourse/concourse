@@ -41,7 +41,7 @@ var _ = Describe("Locks", func() {
 
 		logger = lagertest.NewTestLogger("test")
 
-		lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton(), fakeLogFunc, fakeLogFunc)
+		lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton(), postgresRunner.OpenSingleton(), fakeLogFunc, fakeLogFunc)
 
 		dbConn = postgresRunner.OpenConn()
 		teamFactory = db.NewTeamFactory(dbConn, lockFactory)
@@ -120,7 +120,7 @@ var _ = Describe("Locks", func() {
 			var lockFactory2 lock.LockFactory
 
 			BeforeEach(func() {
-				lockFactory2 = lock.NewLockFactory(postgresRunner.OpenSingleton(), fakeLogFunc, fakeLogFunc)
+				lockFactory2 = lock.NewLockFactory(postgresRunner.OpenSingleton(), postgresRunner.OpenSingleton(), fakeLogFunc, fakeLogFunc)
 			})
 
 			It("does not acquire the lock", func() {

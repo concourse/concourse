@@ -71,12 +71,19 @@ type lockFactory struct {
 
 	acquireFunc LogFunc
 	releaseFunc LogFunc
+
+	// FIXME: as a temp fix, give volume-creating lock type a dedicate
+	// set stuffs.
+	dbForVolumeCreating           LockDB
+	locksForVolumeCreating        lockRepo
+	acquireMutexForVolumeCreating *sync.Mutex
 }
 
 type LogFunc func(logger lager.Logger, id LockID)
 
 func NewLockFactory(
 	conn *sql.DB,
+	connForVC *sql.DB,
 	acquire LogFunc,
 	release LogFunc,
 ) LockFactory {
@@ -92,6 +99,16 @@ func NewLockFactory(
 			mutex: &sync.Mutex{},
 		},
 		acquireMutex: &sync.Mutex{},
+
+		dbForVolumeCreating: &lockDB{
+			conn: connForVC,
+			mutex: &sync.Mutex{},
+		},
+		locksForVolumeCreating: lockRepo{
+			locks: map[string]bool{},
+			mutex: &sync.Mutex{},
+		},
+		acquireMutexForVolumeCreating: &sync.Mutex{},
 	}
 }
 
@@ -117,6 +134,12 @@ func (f *lockFactory) Acquire(logger lager.Logger, id LockID) (Lock, bool, error
 		acquireMutex: f.acquireMutex,
 		acquired:     f.acquireFunc,
 		released:     f.releaseFunc,
+	}
+
+	if id[0] == LockTypeVolumeCreating{
+		l.db = f.dbForVolumeCreating
+		l.acquireMutex = f.acquireMutexForVolumeCreating
+		l.locks = f.locksForVolumeCreating
 	}
 
 	acquired, err := l.Acquire()

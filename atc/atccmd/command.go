@@ -539,7 +539,12 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		return nil, err
 	}
 
-	lockFactory := lock.NewLockFactory(lockConn, metric.LogLockAcquired, metric.LogLockReleased)
+	lockConnForVolumeCreating, err := cmd.constructLockConn(retryingDriverName)
+	if err != nil {
+		return nil, err
+	}
+
+	lockFactory := lock.NewLockFactory(lockConn, lockConnForVolumeCreating, metric.LogLockAcquired, metric.LogLockReleased)
 
 	apiConn, err := cmd.constructDBConn(retryingDriverName, logger, cmd.APIMaxOpenConnections, cmd.APIMaxOpenConnections/2, "api", lockFactory)
 	if err != nil {
