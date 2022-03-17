@@ -204,7 +204,7 @@ var _ = Describe("Fly CLI", func() {
 			Entry("resource-versions command returns an error",
 				exec.Command(flyPath, "-t", targetName, "resource-versions", "-r", "pipeline/branch:master/foo", "--team", otherTeam)),
 			Entry("watch command returns an error",
-				exec.Command(flyPath, "-t", targetName, "watch", "-j", "pipeline/job", "--team", nonExistentTeam)),
+				exec.Command(flyPath, "-t", targetName, "watch", "-j", "pipeline/job", "--team", otherTeam)),
 		)
 	})
 })
