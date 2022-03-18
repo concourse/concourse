@@ -2,6 +2,7 @@ package worker
 
 import (
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/concourse/concourse/atc/policy"
@@ -73,8 +74,75 @@ func NewDBWorkerProvider(
 	}
 }
 
+type workerCache struct {
+	started bool
+	workers []db.Worker
+	err     error
+	lock    *sync.RWMutex
+}
+
+var cachedWorkers = &workerCache{
+	started: false,
+	workers: nil,
+	lock:    &sync.RWMutex{},
+}
+
+func (c *workerCache) GetWorkers(provider *dbWorkerProvider) ([]db.Worker, error) {
+	c.lock.RLock()
+	if !c.started {
+		c.lock.RUnlock()
+
+		c.lock.Lock()
+
+		var err error
+		var savedWorkers []db.Worker
+		if !c.started {
+			savedWorkers, err = provider.dbWorkerFactory.Workers()
+
+			c.workers = savedWorkers
+			c.err = err
+
+			go func(provider *dbWorkerProvider) {
+				interval := time.Duration(5)
+				for {
+					time.Sleep(interval * time.Second)
+
+					savedWorkers, err := provider.dbWorkerFactory.Workers()
+					c.lock.Lock()
+					c.workers = savedWorkers
+					c.err = err
+					c.lock.Unlock()
+
+					if err != nil {
+						interval = time.Duration(5)
+					} else {
+						interval = time.Duration(1)
+					}
+				}
+			}(provider)
+			c.started = true
+		} else {
+			savedWorkers = c.workers
+			err = c.err
+		}
+
+		c.lock.Unlock()
+		return savedWorkers, err
+	} else {
+		err := c.err
+		var cpy []db.Worker
+		if err == nil {
+			cpy = make([]db.Worker, len(c.workers))
+			copy(cpy, c.workers)
+		}
+		c.lock.RUnlock()
+		return cpy, err
+	}
+}
+
 func (provider *dbWorkerProvider) RunningWorkers(logger lager.Logger) ([]Worker, error) {
-	savedWorkers, err := provider.dbWorkerFactory.Workers()
+	//savedWorkers, err := provider.dbWorkerFactory.Workers()
+	savedWorkers, err := cachedWorkers.GetWorkers(provider)
 	if err != nil {
 		return nil, err
 	}
