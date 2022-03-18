@@ -2,6 +2,7 @@ package db_test
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -49,7 +50,8 @@ var _ = Describe("PipelineLifecycle", func() {
 
 			Context("parent pipeline is destroyed", func() {
 				BeforeEach(func() {
-					defaultPipeline.Destroy()
+					err := defaultPipeline.Destroy()
+					Expect(err).ToNot(HaveOccurred())
 				})
 
 				It("should archive all child pipelines", func() {
@@ -58,9 +60,37 @@ var _ = Describe("PipelineLifecycle", func() {
 				})
 			})
 
+			Context("needs to be archived but is already archived", func() {
+				var lastUpdated time.Time
+
+				BeforeEach(func() {
+					err := childPipeline.Archive()
+					Expect(err).ToNot(HaveOccurred())
+
+					reloaded, err := childPipeline.Reload()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(reloaded).To(BeTrue())
+
+					lastUpdated = childPipeline.LastUpdated()
+
+					err = defaultPipeline.Destroy()
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("should not rearchive pipeline if it is already archived", func() {
+					reloaded, err := childPipeline.Reload()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(reloaded).To(BeTrue())
+
+					Expect(childPipeline.Archived()).To(BeTrue())
+					Expect(childPipeline.LastUpdated()).To(Equal(lastUpdated))
+				})
+			})
+
 			Context("parent pipeline is archived", func() {
 				BeforeEach(func() {
-					defaultPipeline.Archive()
+					err := defaultPipeline.Archive()
+					Expect(err).ToNot(HaveOccurred())
 				})
 
 				It("should archive all child pipelines", func() {
@@ -106,6 +136,18 @@ var _ = Describe("PipelineLifecycle", func() {
 				It("should archive child pipeline", func() {
 					childPipeline.Reload()
 					Expect(childPipeline.Archived()).To(BeTrue())
+				})
+			})
+
+			Context("when build that set child pipeline is not most recent but was not successful", func() {
+				BeforeEach(func() {
+					setChildBuild, _ = defaultJob.CreateBuild(defaultBuildCreatedBy)
+					setChildBuild.Finish(db.BuildStatusFailed)
+				})
+
+				It("should not archive child pipeline", func() {
+					childPipeline.Reload()
+					Expect(childPipeline.Archived()).To(BeFalse())
 				})
 			})
 		})

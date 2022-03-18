@@ -40,6 +40,8 @@ func (pl *pipelineLifecycle) ArchiveAbandonedPipelines() error {
 		Where(sq.And{
 			// pipeline was set by some build
 			sq.NotEq{"p.parent_job_id": nil},
+			// pipeline is not already archived
+			sq.Eq{"p.archived": false},
 			sq.Or{
 				// job (that set child pipeline) from parent pipeline is
 				// removed, Concourse marks job as inactive
@@ -51,9 +53,20 @@ func (pl *pipelineLifecycle) ArchiveAbandonedPipelines() error {
 				// build that set the pipeline is not the most recent for the job.
 				// parent_build_id can be later than latest_completed_build_id if this
 				// gc query runs during a run of a build, specifically between the time
-				// of a completed set pipeline step and the build finishing
-				sq.Expr("p.parent_build_id < j.latest_completed_build_id"),
-			}}).
+				// of a completed set pipeline step and the build finishing. Also only
+				// take into account successful builds in order to know if this child
+				// pipeline had its set_pipeline step removed from parent job.
+				sq.And{
+					sq.Expr("p.parent_build_id < j.latest_completed_build_id"),
+					sq.Expr(`EXISTS (
+						SELECT 1
+						FROM builds lb
+						WHERE lb.id = j.latest_completed_build_id
+						AND lb.status = ?
+					)`, BuildStatusSucceeded),
+				},
+			},
+		}).
 		RunWith(tx).
 		Query()
 	if err != nil {
