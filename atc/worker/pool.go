@@ -231,17 +231,15 @@ func (pool Pool) findWorkerForContainer(logger lager.Logger, owner db.ContainerO
 		return nil, nil, false, err
 	}
 
+	for _, w := range workersWithContainer {
+		if pool.isWorkerCompatibleAndRunning(logger, w, workerSpec) {
+			return w, nil, true, nil
+		}
+	}
+
 	compatibleWorkers, err := pool.allCompatibleAndRunningWorkers(logger, workerSpec)
 	if err != nil {
 		return nil, nil, false, err
-	}
-
-	for _, w := range workersWithContainer {
-		for _, c := range compatibleWorkers {
-			if w.Name() == c.Name() {
-				return w, compatibleWorkers, true, nil
-			}
-		}
 	}
 
 	return nil, compatibleWorkers, false, nil
