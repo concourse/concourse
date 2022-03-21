@@ -169,6 +169,12 @@ func (pool *pool) FindOrChooseWorkerForContainer(
 		return nil, err
 	}
 
+	for _, w := range workersWithContainer {
+		if w.Satisfies(logger, workerSpec) {
+			return w, nil
+		}
+	}
+
 	compatibleWorkers, err := pool.allSatisfying(logger, workerSpec)
 	if err != nil {
 		return nil, err

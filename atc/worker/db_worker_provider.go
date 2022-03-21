@@ -187,6 +187,10 @@ func (provider *dbWorkerProvider) FindWorkersForContainerByOwner(
 
 	var workers []Worker
 	for _, w := range dbWorkers {
+		if w.State() != db.WorkerStateRunning{
+			continue
+		}
+
 		worker := provider.NewGardenWorker(logger, w, 0)
 		if worker.IsVersionCompatible(logger, provider.workerVersion) {
 			workers = append(workers, worker)
