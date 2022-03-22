@@ -418,6 +418,18 @@ type FakeResource struct {
 	setResourceConfigScopeReturnsOnCall map[int]struct {
 		result1 error
 	}
+	SharedResourcesAndTypesStub        func() (atc.ResourcesAndTypes, error)
+	sharedResourcesAndTypesMutex       sync.RWMutex
+	sharedResourcesAndTypesArgsForCall []struct {
+	}
+	sharedResourcesAndTypesReturns struct {
+		result1 atc.ResourcesAndTypes
+		result2 error
+	}
+	sharedResourcesAndTypesReturnsOnCall map[int]struct {
+		result1 atc.ResourcesAndTypes
+		result2 error
+	}
 	SourceStub        func() atc.Source
 	sourceMutex       sync.RWMutex
 	sourceArgsForCall []struct {
@@ -2567,6 +2579,62 @@ func (fake *FakeResource) SetResourceConfigScopeReturnsOnCall(i int, result1 err
 	}{result1}
 }
 
+func (fake *FakeResource) SharedResourcesAndTypes() (atc.ResourcesAndTypes, error) {
+	fake.sharedResourcesAndTypesMutex.Lock()
+	ret, specificReturn := fake.sharedResourcesAndTypesReturnsOnCall[len(fake.sharedResourcesAndTypesArgsForCall)]
+	fake.sharedResourcesAndTypesArgsForCall = append(fake.sharedResourcesAndTypesArgsForCall, struct {
+	}{})
+	stub := fake.SharedResourcesAndTypesStub
+	fakeReturns := fake.sharedResourcesAndTypesReturns
+	fake.recordInvocation("SharedResourcesAndTypes", []interface{}{})
+	fake.sharedResourcesAndTypesMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeResource) SharedResourcesAndTypesCallCount() int {
+	fake.sharedResourcesAndTypesMutex.RLock()
+	defer fake.sharedResourcesAndTypesMutex.RUnlock()
+	return len(fake.sharedResourcesAndTypesArgsForCall)
+}
+
+func (fake *FakeResource) SharedResourcesAndTypesCalls(stub func() (atc.ResourcesAndTypes, error)) {
+	fake.sharedResourcesAndTypesMutex.Lock()
+	defer fake.sharedResourcesAndTypesMutex.Unlock()
+	fake.SharedResourcesAndTypesStub = stub
+}
+
+func (fake *FakeResource) SharedResourcesAndTypesReturns(result1 atc.ResourcesAndTypes, result2 error) {
+	fake.sharedResourcesAndTypesMutex.Lock()
+	defer fake.sharedResourcesAndTypesMutex.Unlock()
+	fake.SharedResourcesAndTypesStub = nil
+	fake.sharedResourcesAndTypesReturns = struct {
+		result1 atc.ResourcesAndTypes
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeResource) SharedResourcesAndTypesReturnsOnCall(i int, result1 atc.ResourcesAndTypes, result2 error) {
+	fake.sharedResourcesAndTypesMutex.Lock()
+	defer fake.sharedResourcesAndTypesMutex.Unlock()
+	fake.SharedResourcesAndTypesStub = nil
+	if fake.sharedResourcesAndTypesReturnsOnCall == nil {
+		fake.sharedResourcesAndTypesReturnsOnCall = make(map[int]struct {
+			result1 atc.ResourcesAndTypes
+			result2 error
+		})
+	}
+	fake.sharedResourcesAndTypesReturnsOnCall[i] = struct {
+		result1 atc.ResourcesAndTypes
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeResource) Source() atc.Source {
 	fake.sourceMutex.Lock()
 	ret, specificReturn := fake.sourceReturnsOnCall[len(fake.sourceArgsForCall)]
@@ -3149,6 +3217,8 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.setPinCommentMutex.RUnlock()
 	fake.setResourceConfigScopeMutex.RLock()
 	defer fake.setResourceConfigScopeMutex.RUnlock()
+	fake.sharedResourcesAndTypesMutex.RLock()
+	defer fake.sharedResourcesAndTypesMutex.RUnlock()
 	fake.sourceMutex.RLock()
 	defer fake.sourceMutex.RUnlock()
 	fake.tagsMutex.RLock()

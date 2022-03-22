@@ -17,7 +17,19 @@ import (
 	"github.com/concourse/concourse/atc/util"
 )
 
-var ErrPinnedThroughConfig = errors.New("resource is pinned through config")
+var (
+	ErrTooManyBuilds           = errors.New("too many builds")
+	ErrTooManyResourceVersions = errors.New("too many resoruce versions")
+	ErrPinnedThroughConfig     = errors.New("resource is pinned through config")
+)
+
+type ResourceHasNoScopeErr struct {
+	Name string
+}
+
+func (e ResourceHasNoScopeErr) Error() string {
+	return fmt.Sprintf("resource/resource-type %s has no scope", e.Name)
+}
 
 const CheckBuildName = "check"
 
@@ -57,11 +69,6 @@ WITH RECURSIVE build_ids AS (
 	// arbitrary numbers based around what we observed to be reasonable
 	causalityMaxBuilds        = 5000
 	causalityMaxInputsOutputs = 25000
-)
-
-var (
-	ErrTooManyBuilds           = errors.New("too many builds")
-	ErrTooManyResourceVersions = errors.New("too many resoruce versions")
 )
 
 //counterfeiter:generate . Resource
@@ -118,6 +125,8 @@ type Resource interface {
 	NotifyScan() error
 
 	ClearResourceCache(atc.Version) (int64, error)
+
+	SharedResourcesAndTypes() (atc.ResourcesAndTypes, error)
 
 	Reload() (bool, error)
 }
@@ -845,6 +854,74 @@ func (r *resource) ClearResourceCache(version atc.Version) (int64, error) {
 	}
 
 	return rowsDeleted, tx.Commit()
+}
+
+func (r *resource) SharedResourcesAndTypes() (atc.ResourcesAndTypes, error) {
+	return sharedResourcesAndTypes(r.conn, r.resourceConfigScopeID, r.name)
+}
+
+func sharedResourcesAndTypes(conn Conn, resourceConfigScopeID int, name string) (atc.ResourcesAndTypes, error) {
+	if resourceConfigScopeID == 0 {
+		return atc.ResourcesAndTypes{}, ResourceHasNoScopeErr{name}
+	}
+
+	rows, err := psql.Select("r.name", "p.name", "t.name").
+		From("resources r").
+		Join("pipelines p ON p.id = r.pipeline_id").
+		Join("teams t ON t.id = p.team_id").
+		Where(sq.Eq{
+			"r.resource_config_scope_id": resourceConfigScopeID,
+		}).
+		RunWith(conn).
+		Query()
+	if err != nil {
+		return atc.ResourcesAndTypes{}, err
+	}
+
+	var shared atc.ResourcesAndTypes
+	for rows.Next() {
+		var resourceName, pipelineName, teamName string
+		err = rows.Scan(&resourceName, &pipelineName, &teamName)
+		if err != nil {
+			return atc.ResourcesAndTypes{}, err
+		}
+
+		shared.Resources = append(shared.Resources, atc.ResourceIdentifier{
+			Name:         resourceName,
+			PipelineName: pipelineName,
+			TeamName:     teamName,
+		})
+	}
+
+	rows, err = psql.Select("rt.name", "p.name", "t.name").
+		From("resource_types rt").
+		Join("pipelines p ON p.id = rt.pipeline_id").
+		Join("teams t ON t.id = p.team_id").
+		Join("resource_config_scopes rs ON rs.resource_config_id = rt.resource_config_id").
+		Where(sq.Eq{
+			"rs.id": resourceConfigScopeID,
+		}).
+		RunWith(conn).
+		Query()
+	if err != nil {
+		return atc.ResourcesAndTypes{}, err
+	}
+
+	for rows.Next() {
+		var resourceTypeName, pipelineName, teamName string
+		err = rows.Scan(&resourceTypeName, &pipelineName, &teamName)
+		if err != nil {
+			return atc.ResourcesAndTypes{}, err
+		}
+
+		shared.ResourceTypes = append(shared.ResourceTypes, atc.ResourceIdentifier{
+			Name:         resourceTypeName,
+			PipelineName: pipelineName,
+			TeamName:     teamName,
+		})
+	}
+
+	return shared, nil
 }
 
 func scanResource(r *resource, row scannable) error {

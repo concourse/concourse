@@ -16,3 +16,16 @@ type Resource struct {
 
 	Build *BuildSummary `json:"build,omitempty"`
 }
+
+type ResourcesAndTypes struct {
+	Resources     ResourceIdentifiers `json:"resources"`
+	ResourceTypes ResourceIdentifiers `json:"resource_types"`
+}
+
+type ResourceIdentifiers []ResourceIdentifier
+
+type ResourceIdentifier struct {
+	Name         string `json:"name"`
+	PipelineName string `json:"pipeline_name"`
+	TeamName     string `json:"team_name"`
+}

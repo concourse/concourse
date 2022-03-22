@@ -49,6 +49,7 @@ type ResourceType interface {
 	HasWebhook() bool
 
 	SetResourceConfigScope(ResourceConfigScope) error
+	SharedResourcesAndTypes() (atc.ResourcesAndTypes, error)
 
 	CheckPlan(planFactory atc.PlanFactory, imagePlanner atc.ImagePlanner, from atc.Version, interval atc.CheckEvery, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) atc.Plan
 	CreateBuild(context.Context, bool, atc.Plan) (Build, bool, error)
@@ -340,6 +341,10 @@ func (r *resourceType) ClearVersions() error {
 		Exec()
 
 	return err
+}
+
+func (r *resourceType) SharedResourcesAndTypes() (atc.ResourcesAndTypes, error) {
+	return sharedResourcesAndTypes(r.conn, r.resourceConfigScopeID, r.name)
 }
 
 func scanResourceType(t *resourceType, row scannable) error {

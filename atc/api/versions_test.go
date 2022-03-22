@@ -1306,6 +1306,16 @@ var _ = Describe("Versions API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				fakeAccess.IsAuthenticatedReturns(false)
+			})
+
+			It("returns Unauthorized", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			})
+		})
+
 		Context("when authenticated", func() {
 			BeforeEach(func() {
 				fakeAccess.IsAuthenticatedReturns(true)
@@ -1326,7 +1336,7 @@ var _ = Describe("Versions API", func() {
 					fakeAccess.IsAdminReturns(true)
 				})
 
-				It("tries to find the resource", func() {
+				It("tries to find the resource type", func() {
 					Expect(fakePipeline.ResourceTypeCallCount()).To(Equal(1))
 					Expect(fakePipeline.ResourceTypeArgsForCall(0)).To(Equal("some-resource-type"))
 				})

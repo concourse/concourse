@@ -33,14 +33,16 @@ const (
 
 	ClearTaskCache = "ClearTaskCache"
 
-	ListAllResources     = "ListAllResources"
-	ListResources        = "ListResources"
-	ListResourceTypes    = "ListResourceTypes"
-	GetResource          = "GetResource"
-	CheckResource        = "CheckResource"
-	CheckResourceWebHook = "CheckResourceWebHook"
-	CheckResourceType    = "CheckResourceType"
-	CheckPrototype       = "CheckPrototype"
+	ListAllResources          = "ListAllResources"
+	ListSharedForResource     = "ListSharedForResource"
+	ListSharedForResourceType = "ListSharedForResourceType"
+	ListResources             = "ListResources"
+	ListResourceTypes         = "ListResourceTypes"
+	GetResource               = "GetResource"
+	CheckResource             = "CheckResource"
+	CheckResourceWebHook      = "CheckResourceWebHook"
+	CheckResourceType         = "CheckResourceType"
+	CheckPrototype            = "CheckPrototype"
 
 	ListResourceVersions           = "ListResourceVersions"
 	ClearResourceVersions          = "ClearResourceVersions"
@@ -175,6 +177,8 @@ var Routes = rata.Routes([]rata.Route{
 
 	{Path: "/api/v1/resources", Method: "GET", Name: ListAllResources},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources", Method: "GET", Name: ListResources},
+	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/shared", Method: "GET", Name: ListSharedForResource},
+	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resource-types/:resource_type_name/shared", Method: "GET", Name: ListSharedForResourceType},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resource-types", Method: "GET", Name: ListResourceTypes},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name", Method: "GET", Name: GetResource},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/check", Method: "POST", Name: CheckResource},

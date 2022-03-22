@@ -1996,4 +1996,376 @@ var _ = Describe("Resources API", func() {
 			})
 		})
 	})
+
+	Describe("GET /api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/shared", func() {
+		var response *http.Response
+		var fakeResource *dbfakes.FakeResource
+
+		JustBeforeEach(func() {
+			var err error
+
+			response, err = client.Get(server.URL + "/api/v1/teams/a-team/pipelines/a-pipeline/resources/some-resource/shared")
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				fakeAccess.IsAuthenticatedReturns(false)
+			})
+
+			It("returns Unauthorized", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			})
+		})
+
+		Context("when authenticated", func() {
+			BeforeEach(func() {
+				fakeAccess.IsAuthenticatedReturns(true)
+			})
+
+			Context("when not admin", func() {
+				BeforeEach(func() {
+					fakeAccess.IsAdminReturns(false)
+				})
+
+				It("returns Forbidden", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+				})
+			})
+
+			Context("when user is admin", func() {
+				BeforeEach(func() {
+					fakeAccess.IsAdminReturns(true)
+				})
+
+				It("tries to find the resource", func() {
+					Expect(fakePipeline.ResourceCallCount()).To(Equal(1))
+					Expect(fakePipeline.ResourceArgsForCall(0)).To(Equal("some-resource"))
+				})
+
+				Context("when the resource exists", func() {
+					BeforeEach(func() {
+						fakeResource = new(dbfakes.FakeResource)
+						fakePipeline.ResourceReturns(fakeResource, true, nil)
+					})
+
+					It("tries to find all the shared resources and types", func() {
+						Expect(fakeResource.SharedResourcesAndTypesCallCount()).To(Equal(1))
+					})
+
+					Context("when finding shared resources and types succeeds", func() {
+						BeforeEach(func() {
+							fakeResource.SharedResourcesAndTypesReturns(atc.ResourcesAndTypes{
+								Resources: atc.ResourceIdentifiers{
+									{
+										Name:         "some-resource",
+										PipelineName: "pipeline-a",
+										TeamName:     "team-a",
+									},
+									{
+										Name:         "resource-1",
+										PipelineName: "pipeline-a",
+										TeamName:     "team-a",
+									},
+									{
+										Name:         "resource-2",
+										PipelineName: "pipeline-b",
+										TeamName:     "team-a",
+									},
+									{
+										Name:         "resource-3",
+										PipelineName: "pipeline-c",
+										TeamName:     "team-b",
+									},
+								},
+								ResourceTypes: atc.ResourceIdentifiers{
+									{
+										Name:         "resource-type-a",
+										PipelineName: "pipeline-a",
+										TeamName:     "team-a",
+									},
+									{
+										Name:         "resource-type-b",
+										PipelineName: "pipeline-b",
+										TeamName:     "team-a",
+									},
+								},
+							}, nil)
+						})
+
+						It("returns 200 OK", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusOK))
+						})
+
+						It("returns Content-Type 'application/json'", func() {
+							expectedHeaderEntries := map[string]string{
+								"Content-Type": "application/json",
+							}
+							Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
+						})
+
+						It("returns shared resources", func() {
+							body, err := ioutil.ReadAll(response.Body)
+							Expect(err).NotTo(HaveOccurred())
+
+							Expect(body).To(MatchJSON(`{
+							"resources": [
+								{
+									"name": "some-resource",
+									"pipeline_name": "pipeline-a",
+									"team_name": "team-a"
+								},
+								{
+									"name": "resource-1",
+									"pipeline_name": "pipeline-a",
+									"team_name": "team-a"
+								},
+								{
+									"name": "resource-2",
+									"pipeline_name": "pipeline-b",
+									"team_name": "team-a"
+								},
+								{
+									"name": "resource-3",
+									"pipeline_name": "pipeline-c",
+									"team_name": "team-b"
+								}
+							],
+							"resource_types": [
+								{
+									"name": "resource-type-a",
+									"pipeline_name": "pipeline-a",
+									"team_name": "team-a"
+								},
+								{
+									"name": "resource-type-b",
+									"pipeline_name": "pipeline-b",
+									"team_name": "team-a"
+								}
+							]
+						}`))
+						})
+					})
+
+					Context("when getting shared resources fails", func() {
+						BeforeEach(func() {
+							fakeResource.SharedResourcesAndTypesReturns(atc.ResourcesAndTypes{}, errors.New("error"))
+						})
+
+						It("returns 500", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+						})
+					})
+				})
+
+				Context("when getting the resource fails", func() {
+					Context("when the resource are not found", func() {
+						BeforeEach(func() {
+							fakePipeline.ResourceReturns(nil, false, nil)
+						})
+
+						It("returns 404", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+						})
+					})
+
+					Context("with an unknown error", func() {
+						BeforeEach(func() {
+							fakePipeline.ResourceReturns(nil, false, errors.New("oh no!"))
+						})
+
+						It("returns 500", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+						})
+					})
+				})
+			})
+		})
+	})
+
+	Describe("GET /api/v1/teams/:team_name/pipelines/:pipeline_name/resource-types/:resource_type_name/shared", func() {
+		var response *http.Response
+		var fakeResourceType *dbfakes.FakeResourceType
+
+		JustBeforeEach(func() {
+			var err error
+
+			response, err = client.Get(server.URL + "/api/v1/teams/a-team/pipelines/a-pipeline/resource-types/some-resource-type/shared")
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				fakeAccess.IsAuthenticatedReturns(false)
+			})
+
+			It("returns Unauthorized", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			})
+		})
+
+		Context("when authenticated", func() {
+			BeforeEach(func() {
+				fakeAccess.IsAuthenticatedReturns(true)
+			})
+
+			Context("when not admin", func() {
+				BeforeEach(func() {
+					fakeAccess.IsAdminReturns(false)
+				})
+
+				It("returns Forbidden", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+				})
+			})
+
+			Context("when user is admin", func() {
+				BeforeEach(func() {
+					fakeAccess.IsAdminReturns(true)
+				})
+
+				It("tries to find the resource type", func() {
+					Expect(fakePipeline.ResourceTypeCallCount()).To(Equal(1))
+					Expect(fakePipeline.ResourceTypeArgsForCall(0)).To(Equal("some-resource-type"))
+				})
+
+				Context("when the resource type exists", func() {
+					BeforeEach(func() {
+						fakeResourceType = new(dbfakes.FakeResourceType)
+						fakePipeline.ResourceTypeReturns(fakeResourceType, true, nil)
+					})
+
+					It("tries to find all the shared resource and resource types", func() {
+						Expect(fakeResourceType.SharedResourcesAndTypesCallCount()).To(Equal(1))
+					})
+
+					Context("when finding shared resources and resource types succeeds", func() {
+						BeforeEach(func() {
+							fakeResourceType.SharedResourcesAndTypesReturns(atc.ResourcesAndTypes{
+								Resources: atc.ResourceIdentifiers{
+									{
+										Name:         "some-resource",
+										PipelineName: "pipeline-a",
+										TeamName:     "team-a",
+									},
+									{
+										Name:         "resource-1",
+										PipelineName: "pipeline-b",
+										TeamName:     "team-a",
+									},
+								},
+								ResourceTypes: atc.ResourceIdentifiers{
+									{
+										Name:         "some-resource-type",
+										PipelineName: "pipeline-a",
+										TeamName:     "team-a",
+									},
+									{
+										Name:         "resource-type-a",
+										PipelineName: "pipeline-a",
+										TeamName:     "team-a",
+									},
+									{
+										Name:         "resource-type-b",
+										PipelineName: "pipeline-b",
+										TeamName:     "team-a",
+									},
+									{
+										Name:         "resource-type-c",
+										PipelineName: "pipeline-c",
+										TeamName:     "team-b",
+									},
+								},
+							}, nil)
+						})
+
+						It("returns 200 OK", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusOK))
+						})
+
+						It("returns Content-Type 'application/json'", func() {
+							expectedHeaderEntries := map[string]string{
+								"Content-Type": "application/json",
+							}
+							Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
+						})
+
+						It("returns shared resources and resource types", func() {
+							body, err := ioutil.ReadAll(response.Body)
+							Expect(err).NotTo(HaveOccurred())
+
+							Expect(body).To(MatchJSON(`{
+							"resources": [
+								{
+									"name": "some-resource",
+									"pipeline_name": "pipeline-a",
+									"team_name": "team-a"
+								},
+								{
+									"name": "resource-1",
+									"pipeline_name": "pipeline-b",
+									"team_name": "team-a"
+								}
+							],
+							"resource_types": [
+								{
+									"name": "some-resource-type",
+									"pipeline_name": "pipeline-a",
+									"team_name": "team-a"
+								},
+								{
+									"name": "resource-type-a",
+									"pipeline_name": "pipeline-a",
+									"team_name": "team-a"
+								},
+								{
+									"name": "resource-type-b",
+									"pipeline_name": "pipeline-b",
+									"team_name": "team-a"
+								},
+								{
+									"name": "resource-type-c",
+									"pipeline_name": "pipeline-c",
+									"team_name": "team-b"
+								}
+							]
+						}`))
+						})
+					})
+
+					Context("when getting shared resources and types fails", func() {
+						BeforeEach(func() {
+							fakeResourceType.SharedResourcesAndTypesReturns(atc.ResourcesAndTypes{}, errors.New("error"))
+						})
+
+						It("returns 500", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+						})
+					})
+				})
+
+				Context("when getting the resource type fails", func() {
+					Context("when the resource are not found", func() {
+						BeforeEach(func() {
+							fakePipeline.ResourceTypeReturns(nil, false, nil)
+						})
+
+						It("returns 404", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+						})
+					})
+
+					Context("with an unknown error", func() {
+						BeforeEach(func() {
+							fakePipeline.ResourceTypeReturns(nil, false, errors.New("oh no!"))
+						})
+
+						It("returns 500", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+						})
+					})
+				})
+			})
+		})
+	})
 })

@@ -117,7 +117,9 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.SetWall,
 			atc.ClearWall,
 			atc.ClearResourceVersions,
-			atc.ClearResourceTypeVersions:
+			atc.ClearResourceTypeVersions,
+			atc.ListSharedForResource,
+			atc.ListSharedForResourceType:
 			newHandler = auth.CheckAdminHandler(handler, rejector)
 
 		// authorized (requested team matches resource team and has required role, or is admin)
