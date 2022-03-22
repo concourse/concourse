@@ -1246,17 +1246,31 @@ var _ = Describe("Versions API", func() {
 
 					Context("when deleting the resource versions succeeds", func() {
 						BeforeEach(func() {
-							fakeResource.ClearVersionsReturns(nil)
+							fakeResource.ClearVersionsReturns(3, nil)
 						})
 
 						It("returns 200", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusOK))
 						})
+
+						It("returns Content-Type 'application/json'", func() {
+							expectedHeaderEntries := map[string]string{
+								"Content-Type": "application/json",
+							}
+							Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
+						})
+
+						It("returns the number of rows deleted", func() {
+							body, err := ioutil.ReadAll(response.Body)
+							Expect(err).NotTo(HaveOccurred())
+
+							Expect(body).To(MatchJSON(`{"versions_removed": 3}`))
+						})
 					})
 
 					Context("when deleting the resource versions fail", func() {
 						BeforeEach(func() {
-							fakeResource.ClearVersionsReturns(errors.New("failed"))
+							fakeResource.ClearVersionsReturns(0, errors.New("failed"))
 						})
 
 						It("returns 500", func() {
@@ -1352,17 +1366,31 @@ var _ = Describe("Versions API", func() {
 
 					Context("when deleting the resource type versions succeeds", func() {
 						BeforeEach(func() {
-							fakeResourceType.ClearVersionsReturns(nil)
+							fakeResourceType.ClearVersionsReturns(3, nil)
 						})
 
 						It("returns 200", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusOK))
 						})
+
+						It("returns Content-Type 'application/json'", func() {
+							expectedHeaderEntries := map[string]string{
+								"Content-Type": "application/json",
+							}
+							Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
+						})
+
+						It("returns the number of rows deleted", func() {
+							body, err := ioutil.ReadAll(response.Body)
+							Expect(err).NotTo(HaveOccurred())
+
+							Expect(body).To(MatchJSON(`{"versions_removed": 3}`))
+						})
 					})
 
 					Context("when deleting the resource type versions fail", func() {
 						BeforeEach(func() {
-							fakeResourceType.ClearVersionsReturns(errors.New("failed"))
+							fakeResourceType.ClearVersionsReturns(0, errors.New("failed"))
 						})
 
 						It("returns 500", func() {

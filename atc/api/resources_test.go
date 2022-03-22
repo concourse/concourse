@@ -1847,7 +1847,6 @@ var _ = Describe("Resources API", func() {
 				})
 
 				Context("when it tries to find a resource", func() {
-
 					It("calls the resource", func() {
 						resourceName := fakePipeline.ResourceArgsForCall(0)
 						Expect(resourceName).To(Equal("resource-name"))

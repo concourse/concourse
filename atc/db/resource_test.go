@@ -655,11 +655,35 @@ var _ = Describe("Resource", func() {
 		var (
 			scenario     *dbtest.Scenario
 			someResource db.Resource
+			numDeleted   int64
 		)
 
 		JustBeforeEach(func() {
-			err := someResource.ClearVersions()
+			var err error
+			numDeleted, err = someResource.ClearVersions()
 			Expect(err).ToNot(HaveOccurred())
+		})
+
+		Context("when resource has no versions", func() {
+			BeforeEach(func() {
+				scenario = dbtest.Setup(
+					builder.WithPipeline(atc.Config{
+						Resources: atc.ResourceConfigs{
+							{
+								Name:   "some-resource",
+								Type:   "some-base-resource-type",
+								Source: atc.Source{"some": "source"},
+							},
+						},
+					}),
+				)
+
+				someResource = scenario.Resource("some-resource")
+			})
+
+			It("deletes zero versions", func() {
+				Expect(numDeleted).To(Equal(int64(0)))
+			})
 		})
 
 		Context("when there is one resource with a version history", func() {
@@ -690,6 +714,8 @@ var _ = Describe("Resource", func() {
 			})
 
 			It("clears the version history for the resource", func() {
+				Expect(numDeleted).To(Equal(int64(3)))
+
 				versions, _, found, err := someResource.Versions(db.Page{Limit: 5}, nil)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
@@ -698,6 +724,8 @@ var _ = Describe("Resource", func() {
 
 			Context("when there are pinned/disabled versions", func() {
 				BeforeEach(func() {
+					Expect(numDeleted).To(Equal(int64(3)))
+
 					pinned, err := someResource.PinVersion(scenario.ResourceVersion("some-resource", atc.Version{"ref": "v1"}).ID())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(pinned).To(BeTrue())
@@ -707,6 +735,8 @@ var _ = Describe("Resource", func() {
 				})
 
 				It("keeps the state of pinned/disabled versions even after deleting the version history", func() {
+					Expect(numDeleted).To(Equal(int64(3)))
+
 					scenario.Run(builder.WithResourceVersions(
 						"some-resource",
 						atc.Version{"ref": "v0"},
@@ -775,6 +805,8 @@ var _ = Describe("Resource", func() {
 			})
 
 			It("clears the version history for the shared resources", func() {
+				Expect(numDeleted).To(Equal(int64(3)))
+
 				versions, _, found, err := someResource.Versions(db.Page{Limit: 5}, nil)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())

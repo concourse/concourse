@@ -1015,11 +1015,35 @@ var _ = Describe("ResourceType", func() {
 		var (
 			scenario         *dbtest.Scenario
 			someResourceType db.ResourceType
+			numDeleted       int64
 		)
 
 		JustBeforeEach(func() {
-			err := someResourceType.ClearVersions()
+			var err error
+			numDeleted, err = someResourceType.ClearVersions()
 			Expect(err).ToNot(HaveOccurred())
+		})
+
+		Context("when resource type has no versions", func() {
+			BeforeEach(func() {
+				scenario = dbtest.Setup(
+					builder.WithPipeline(atc.Config{
+						ResourceTypes: atc.ResourceTypes{
+							{
+								Name:   "some-resource-type",
+								Type:   "some-base-resource-type",
+								Source: atc.Source{"some": "source"},
+							},
+						},
+					}),
+				)
+
+				someResourceType = scenario.ResourceType("some-resource-type")
+			})
+
+			It("deletes zero versions", func() {
+				Expect(numDeleted).To(Equal(int64(0)))
+			})
 		})
 
 		Context("when there is one resource type with a version history", func() {
@@ -1046,6 +1070,8 @@ var _ = Describe("ResourceType", func() {
 			})
 
 			It("clears the version history for the resource type", func() {
+				Expect(numDeleted).To(Equal(int64(3)))
+
 				resourceConfig, found, err := resourceConfigFactory.FindResourceConfigByID(someResourceType.ResourceConfigID())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
@@ -1107,6 +1133,8 @@ var _ = Describe("ResourceType", func() {
 			})
 
 			It("clears the version history for the shared resource types", func() {
+				Expect(numDeleted).To(Equal(int64(3)))
+
 				resourceConfig, found, err := resourceConfigFactory.FindResourceConfigByID(someOtherResourceType.ResourceConfigID())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())

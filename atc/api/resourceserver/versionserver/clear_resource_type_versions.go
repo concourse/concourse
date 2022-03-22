@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 )
 
@@ -25,13 +26,13 @@ func (s *Server) ClearResourceTypeVersions(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		err = resourceType.ClearVersions()
+		versionsDeleted, err := resourceType.ClearVersions()
 		if err != nil {
 			logger.Error("failed-to-clear-versions", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		w.WriteHeader(http.StatusOK)
+		s.writeJSONResponse(w, atc.ClearVersionsResponse{VersionsRemoved: versionsDeleted})
 	})
 }
