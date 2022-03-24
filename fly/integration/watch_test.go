@@ -241,4 +241,50 @@ var _ = Describe("Watching", func() {
 			})
 		})
 	})
+	Context("when watching a build from non-default team", func() {
+		BeforeEach(func() {
+			atcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/api/v1/teams/other-team"),
+					ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{
+						Name: "other-team",
+					}),
+				),
+			)
+		})
+
+		Context("with a specific job and pipeline", func() {
+			var (
+				expectedURL      string
+				expectedResponse interface{}
+			)
+			BeforeEach(func() {
+				expectedURL = "/api/v1/teams/other-team/pipelines/some-pipeline/jobs/some-job/builds/3"
+				expectedResponse = atc.Build{
+					ID:      3,
+					Name:    "3",
+					Status:  "failed",
+					JobName: "some-job",
+				}
+			})
+
+			JustBeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", expectedURL),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedResponse),
+					),
+					eventsHandler(),
+				)
+			})
+
+			It("watches the build for non-default team", func() {
+				watch("--job", "some-pipeline/branch:master/some-job", "--build", "3", "--team", "other-team")
+			})
+			It("watches the job's finished build URL", func() {
+				watch("--url", atcServer.URL()+"/teams/other-team/pipelines/some-pipeline/jobs/some-job/builds/3", "--team", "other-team")
+			})
+
+		})
+	})
 })
