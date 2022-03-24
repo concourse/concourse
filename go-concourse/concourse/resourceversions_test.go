@@ -546,4 +546,84 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 			})
 		})
 	})
+
+	Describe("ClearResourceVersions", func() {
+		var (
+			expectedQueryParams []string
+			expectedURL         = "/api/v1/teams/some-team/pipelines/some-pipeline/resources/some-resource/versions"
+			pipelineRef         = atc.PipelineRef{Name: "some-pipeline"}
+		)
+
+		Context("when the API call succeeds", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("DELETE", expectedURL, strings.Join(expectedQueryParams, "&")),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, atc.ClearVersionsResponse{VersionsRemoved: 1}),
+					),
+				)
+			})
+
+			It("return no error", func() {
+				rowsDeleted, err := team.ClearResourceVersions(pipelineRef, "some-resource")
+				Expect(err).NotTo(HaveOccurred())
+				Eventually(rowsDeleted).Should(Equal(int64(1)))
+			})
+		})
+
+		Context("when the API call errors", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("DELETE", expectedURL, strings.Join(expectedQueryParams, "&")),
+						ghttp.RespondWithJSONEncoded(http.StatusInternalServerError, nil),
+					),
+				)
+			})
+			It("returns error", func() {
+				_, err := team.ClearResourceVersions(pipelineRef, "some-resource")
+				Expect(err).To(HaveOccurred())
+			})
+		})
+	})
+
+	Describe("ClearResourceTypeVersions", func() {
+		var (
+			expectedQueryParams []string
+			expectedURL         = "/api/v1/teams/some-team/pipelines/some-pipeline/resource-types/some-resource-type/versions"
+			pipelineRef         = atc.PipelineRef{Name: "some-pipeline"}
+		)
+
+		Context("when the API call succeeds", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("DELETE", expectedURL, strings.Join(expectedQueryParams, "&")),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, atc.ClearVersionsResponse{VersionsRemoved: 1}),
+					),
+				)
+			})
+
+			It("return no error", func() {
+				rowsDeleted, err := team.ClearResourceTypeVersions(pipelineRef, "some-resource-type")
+				Expect(err).NotTo(HaveOccurred())
+				Eventually(rowsDeleted).Should(Equal(int64(1)))
+			})
+		})
+
+		Context("when the API call errors", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("DELETE", expectedURL, strings.Join(expectedQueryParams, "&")),
+						ghttp.RespondWithJSONEncoded(http.StatusInternalServerError, nil),
+					),
+				)
+			})
+			It("returns error", func() {
+				_, err := team.ClearResourceTypeVersions(pipelineRef, "some-resource-type")
+				Expect(err).To(HaveOccurred())
+			})
+		})
+	})
 })

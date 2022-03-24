@@ -70,6 +70,7 @@ type FlyCommand struct {
 	EnableResourceVersion  EnableResourceVersionCommand  `command:"enable-resource-version"    alias:"erv"  description:"Enable a version of a resource"`
 	DisableResourceVersion DisableResourceVersionCommand `command:"disable-resource-version"   alias:"drv"  description:"Disable a version of a resource"`
 	ClearResourceCache     ClearResourceCacheCommand     `command:"clear-resource-cache"       alias:"crc"  description:"Clear cache of a resource"`
+	ClearVersions          ClearVersionsCommand          `command:"clear-versions"       alias:"cv"  description:"Clear versions of a resource or resource type"`
 
 	CheckResourceType CheckResourceTypeCommand `command:"check-resource-type" alias:"crt"  description:"Check a resource-type"`
 

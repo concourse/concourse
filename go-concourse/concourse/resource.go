@@ -88,3 +88,28 @@ func (team *team) ClearResourceCache(pipelineRef atc.PipelineRef, ResourceName s
 		return crcResponse.CachesRemoved, nil
 	}
 }
+
+func (team *team) ListSharedForResource(pipelineRef atc.PipelineRef, resourceName string) (atc.ResourcesAndTypes, bool, error) {
+	params := rata.Params{
+		"pipeline_name": pipelineRef.Name,
+		"resource_name": resourceName,
+		"team_name":     team.Name(),
+	}
+
+	var shared atc.ResourcesAndTypes
+	err := team.connection.Send(internal.Request{
+		RequestName: atc.ListSharedForResource,
+		Params:      params,
+		Query:       pipelineRef.QueryParams(),
+	}, &internal.Response{
+		Result: &shared,
+	})
+	switch err.(type) {
+	case nil:
+		return shared, true, nil
+	case internal.ResourceNotFoundError:
+		return shared, false, nil
+	default:
+		return shared, false, err
+	}
+}

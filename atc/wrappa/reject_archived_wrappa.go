@@ -124,7 +124,11 @@ func (rw *RejectArchivedWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.ClearTaskCache,
 			atc.CreateArtifact,
 			atc.ClearResourceCache,
-			atc.GetArtifact:
+			atc.GetArtifact,
+			atc.ListSharedForResource,
+			atc.ListSharedForResourceType,
+			atc.ClearResourceVersions,
+			atc.ClearResourceTypeVersions:
 
 		default:
 			panic("how do archived pipelines affect your endpoint?")

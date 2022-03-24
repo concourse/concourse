@@ -51,8 +51,12 @@ type Team interface {
 
 	Resource(pipelineRef atc.PipelineRef, resourceName string) (atc.Resource, bool, error)
 	ListResources(pipelineRef atc.PipelineRef) ([]atc.Resource, error)
+	ListSharedForResource(pipelineRef atc.PipelineRef, resourceName string) (atc.ResourcesAndTypes, bool, error)
+	ListSharedForResourceType(pipelineRef atc.PipelineRef, resourceTypeName string) (atc.ResourcesAndTypes, bool, error)
 	ResourceTypes(pipelineRef atc.PipelineRef) (atc.ResourceTypes, bool, error)
 	ResourceVersions(pipelineRef atc.PipelineRef, resourceName string, page Page, filter atc.Version) ([]atc.ResourceVersion, Pagination, bool, error)
+	ClearResourceVersions(pipelineRef atc.PipelineRef, resourceName string) (int64, error)
+	ClearResourceTypeVersions(pipelineRef atc.PipelineRef, resourceName string) (int64, error)
 	CheckResource(pipelineRef atc.PipelineRef, resourceName string, version atc.Version, shallow bool) (atc.Build, bool, error)
 	CheckResourceType(pipelineRef atc.PipelineRef, resourceTypeName string, version atc.Version, shallow bool) (atc.Build, bool, error)
 	CheckPrototype(pipelineRef atc.PipelineRef, prototypeName string, version atc.Version, shallow bool) (atc.Build, bool, error)

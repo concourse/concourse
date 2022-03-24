@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 
 	"github.com/concourse/concourse/atc"
@@ -144,5 +145,61 @@ func (team *team) sendResourceVersion(pipelineRef atc.PipelineRef, resourceName 
 		return false, nil
 	default:
 		return false, err
+	}
+}
+
+func (team *team) ClearResourceVersions(pipelineRef atc.PipelineRef, ResourceName string) (int64, error) {
+	params := rata.Params{
+		"team_name":     team.Name(),
+		"pipeline_name": pipelineRef.Name,
+		"resource_name": ResourceName,
+	}
+
+	queryParams := url.Values{}
+	var crvResponse atc.ClearVersionsResponse
+	responseHeaders := http.Header{}
+	response := internal.Response{
+		Headers: &responseHeaders,
+		Result:  &crvResponse,
+	}
+	request := internal.Request{
+		RequestName: atc.ClearResourceVersions,
+		Params:      params,
+		Query:       merge(queryParams, pipelineRef.QueryParams()),
+		Header:      http.Header{"Content-Type": []string{"application/json"}},
+	}
+	err := team.connection.Send(request, &response)
+	if err != nil {
+		return 0, err
+	} else {
+		return crvResponse.VersionsRemoved, nil
+	}
+}
+
+func (team *team) ClearResourceTypeVersions(pipelineRef atc.PipelineRef, ResourceTypeName string) (int64, error) {
+	params := rata.Params{
+		"team_name":          team.Name(),
+		"pipeline_name":      pipelineRef.Name,
+		"resource_type_name": ResourceTypeName,
+	}
+
+	queryParams := url.Values{}
+	var crvResponse atc.ClearVersionsResponse
+	responseHeaders := http.Header{}
+	response := internal.Response{
+		Headers: &responseHeaders,
+		Result:  &crvResponse,
+	}
+	request := internal.Request{
+		RequestName: atc.ClearResourceTypeVersions,
+		Params:      params,
+		Query:       merge(queryParams, pipelineRef.QueryParams()),
+		Header:      http.Header{"Content-Type": []string{"application/json"}},
+	}
+	err := team.connection.Send(request, &response)
+	if err != nil {
+		return 0, err
+	} else {
+		return crvResponse.VersionsRemoved, nil
 	}
 }
