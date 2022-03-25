@@ -337,7 +337,7 @@ func (step *GetStep) retrieveFromCacheOrPerformGet(
 		}
 
 		lockLogger := logger.Session("lock", lager.Data{"lock-name": lockName})
-		lock, acquired, err := step.lockFactory.Acquire(lockLogger, lock.NewTaskLockID(lockName))
+		lock, acquired, err := step.lockFactory.Acquire(lockLogger, lock.NewResourceGetLockID(lockName))
 		if err != nil {
 			lockLogger.Error("failed-to-get-lock", err)
 			// not returning error for consistency with prior behaviour - we just

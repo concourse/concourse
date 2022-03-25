@@ -2,6 +2,7 @@ package algorithm_test
 
 import (
 	"context"
+	"database/sql"
 	"os"
 	"testing"
 
@@ -58,7 +59,11 @@ var _ = BeforeEach(func() {
 	dbConn = postgresRunner.OpenConn()
 	db.CleanupBaseResourceTypesCache()
 
-	lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton(), metric.LogLockAcquired, metric.LogLockReleased)
+	var lockConns [lock.FactoryCount]*sql.DB
+	for i := 0; i < lock.FactoryCount; i++ {
+		lockConns[i] = postgresRunner.OpenSingleton()
+	}
+	lockFactory = lock.NewLockFactory(lockConns, metric.LogLockAcquired, metric.LogLockReleased)
 	teamFactory = db.NewTeamFactory(dbConn, lockFactory)
 })
 

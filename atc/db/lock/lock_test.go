@@ -1,6 +1,7 @@
 package lock_test
 
 import (
+	"database/sql"
 	"sync"
 	"time"
 
@@ -31,6 +32,8 @@ var _ = Describe("Locks", func() {
 
 		logger      *lagertest.TestLogger
 		fakeLogFunc = func(logger lager.Logger, id lock.LockID) {}
+
+		lockConns [lock.FactoryCount]*sql.DB
 	)
 
 	BeforeEach(func() {
@@ -41,7 +44,11 @@ var _ = Describe("Locks", func() {
 
 		logger = lagertest.NewTestLogger("test")
 
-		lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton(), fakeLogFunc, fakeLogFunc)
+		for i := 0; i < lock.FactoryCount; i++ {
+			lockConns[i] = postgresRunner.OpenSingleton()
+		}
+
+		lockFactory = lock.NewLockFactory(lockConns, fakeLogFunc, fakeLogFunc)
 
 		dbConn = postgresRunner.OpenConn()
 		teamFactory = db.NewTeamFactory(dbConn, lockFactory)
@@ -120,9 +127,13 @@ var _ = Describe("Locks", func() {
 
 		Context("when another connection is holding the lock", func() {
 			var lockFactory2 lock.LockFactory
+			var lockConns2 [lock.FactoryCount]*sql.DB
 
 			BeforeEach(func() {
-				lockFactory2 = lock.NewLockFactory(postgresRunner.OpenSingleton(), fakeLogFunc, fakeLogFunc)
+				for i := 0; i < lock.FactoryCount; i++ {
+					lockConns2[i] = postgresRunner.OpenSingleton()
+				}
+				lockFactory2 = lock.NewLockFactory(lockConns2, fakeLogFunc, fakeLogFunc)
 			})
 
 			It("does not acquire the lock", func() {

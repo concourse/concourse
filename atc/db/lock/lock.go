@@ -24,7 +24,38 @@ const (
 	LockTypeResourceScanning
 	LockTypeJobScheduling
 	LockTypeInMemoryCheckBuildTracking
+	LockTypeResourceGet
+	LockTypeVolumeStreaming
 )
+
+const (
+	factoryDefault = iota
+	factoryVolumeCreating
+	factoryResourceConfigChecking
+	factoryInMemoryCheckBuildTracking
+	factoryBuildTracking
+	factoryJobScheduling
+
+	// FactoryCount must be the last item
+	FactoryCount
+)
+
+func mapLockTypeToFactory(lockType int) int {
+	switch lockType {
+	case LockTypeVolumeCreating:
+		return factoryVolumeCreating
+	case LockTypeResourceConfigChecking:
+		return factoryResourceConfigChecking
+	case LockTypeInMemoryCheckBuildTracking:
+		return factoryInMemoryCheckBuildTracking
+	case factoryBuildTracking:
+		return LockTypeBuildTracking
+	case LockTypeJobScheduling:
+		return factoryJobScheduling
+	default:
+		return factoryDefault
+	}
+}
 
 var ErrLostLock = errors.New("lock was lost while held, possibly due to connection breakage")
 
@@ -61,7 +92,11 @@ func NewInMemoryCheckBuildTrackingLockID(checkableType string, checkableId int) 
 }
 
 func NewVolumeStreamingLockID(resourceCacheID int, worker string) LockID {
-	return LockID{LockTypeJobScheduling, lockIDFromString(fmt.Sprintf("%d-%s", resourceCacheID, worker))}
+	return LockID{LockTypeVolumeStreaming, lockIDFromString(fmt.Sprintf("%d-%s", resourceCacheID, worker))}
+}
+
+func NewResourceGetLockID(name string) LockID {
+	return LockID{LockTypeResourceGet, lockIDFromString(name)}
 }
 
 //counterfeiter:generate . LockFactory
@@ -81,23 +116,29 @@ type lockFactory struct {
 type LogFunc func(logger lager.Logger, id LockID)
 
 func NewLockFactory(
-	conn *sql.DB,
+	conn [FactoryCount]*sql.DB,
 	acquire LogFunc,
 	release LogFunc,
 ) LockFactory {
-	return &lockFactory{
-		db: &lockDB{
-			conn:  conn,
-			mutex: &sync.Mutex{},
-		},
-		acquireFunc: acquire,
-		releaseFunc: release,
-		locks: lockRepo{
-			locks: map[string]bool{},
-			mutex: &sync.Mutex{},
-		},
-		acquireMutex: &sync.Mutex{},
+	factories := lockFactories{}
+
+	for i := 0; i < FactoryCount; i++ {
+		factories[i] = &lockFactory{
+			db: &lockDB{
+				conn:  conn[i],
+				mutex: &sync.Mutex{},
+			},
+			acquireFunc: acquire,
+			releaseFunc: release,
+			locks: lockRepo{
+				locks: map[string]bool{},
+				mutex: &sync.Mutex{},
+			},
+			acquireMutex: &sync.Mutex{},
+		}
 	}
+
+	return factories
 }
 
 func NewTestLockFactory(db LockDB) LockFactory {
@@ -111,6 +152,13 @@ func NewTestLockFactory(db LockDB) LockFactory {
 		acquireFunc:  func(logger lager.Logger, id LockID) {},
 		releaseFunc:  func(logger lager.Logger, id LockID) {},
 	}
+}
+
+type lockFactories [FactoryCount]*lockFactory
+
+func (f lockFactories) Acquire(logger lager.Logger, id LockID) (Lock, bool, error) {
+	factory := f[mapLockTypeToFactory(id[0])]
+	return factory.Acquire(logger, id)
 }
 
 func (f *lockFactory) Acquire(logger lager.Logger, id LockID) (Lock, bool, error) {

@@ -2,6 +2,7 @@ package gc_test
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -67,7 +68,11 @@ var _ = BeforeEach(func() {
 	dbConn = postgresRunner.OpenConn()
 	db.CleanupBaseResourceTypesCache()
 
-	lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton(), fakeLogFunc, fakeLogFunc)
+	var lockConns [lock.FactoryCount]*sql.DB
+	for i := 0; i < lock.FactoryCount; i++ {
+		lockConns[i] = postgresRunner.OpenSingleton()
+	}
+	lockFactory = lock.NewLockFactory(lockConns, fakeLogFunc, fakeLogFunc)
 
 	builder = dbtest.NewBuilder(dbConn, lockFactory)
 
