@@ -40,6 +40,8 @@ func (pl *pipelineLifecycle) ArchiveAbandonedPipelines() error {
 		Where(sq.And{
 			// pipeline was set by some build
 			sq.NotEq{"p.parent_job_id": nil},
+			// pipeline is not already archived
+			sq.Eq{"p.archived": false},
 			sq.Or{
 				// job (that set child pipeline) from parent pipeline is
 				// removed, Concourse marks job as inactive
@@ -48,9 +50,8 @@ func (pl *pipelineLifecycle) ArchiveAbandonedPipelines() error {
 				sq.Eq{"j.id": nil},
 				// parent pipeline was archived
 				sq.Eq{"parent.archived": true},
-				// build that set the pipeline is not the most recent for the job
-				sq.Expr("p.parent_build_id != j.latest_completed_build_id"),
-			}}).
+			},
+		}).
 		RunWith(tx).
 		Query()
 	if err != nil {
