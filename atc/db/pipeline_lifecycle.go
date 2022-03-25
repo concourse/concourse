@@ -50,21 +50,6 @@ func (pl *pipelineLifecycle) ArchiveAbandonedPipelines() error {
 				sq.Eq{"j.id": nil},
 				// parent pipeline was archived
 				sq.Eq{"parent.archived": true},
-				// build that set the pipeline is not the most recent for the job.
-				// parent_build_id can be later than latest_completed_build_id if this
-				// gc query runs during a run of a build, specifically between the time
-				// of a completed set pipeline step and the build finishing. Also only
-				// take into account successful builds in order to know if this child
-				// pipeline had its set_pipeline step removed from parent job.
-				sq.And{
-					sq.Expr("p.parent_build_id < j.latest_completed_build_id"),
-					sq.Expr(`EXISTS (
-						SELECT 1
-						FROM builds lb
-						WHERE lb.id = j.latest_completed_build_id
-						AND lb.status = ?
-					)`, BuildStatusSucceeded),
-				},
 			},
 		}).
 		RunWith(tx).
