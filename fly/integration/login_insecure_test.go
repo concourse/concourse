@@ -110,7 +110,7 @@ var _ = Describe("login -k Command", func() {
 
 						<-sess.Exited
 						Expect(sess.ExitCode()).To(Equal(1))
-						Eventually(sess.Err).Should(gbytes.Say("x509: certificate signed by unknown authority"))
+						Eventually(sess.Err).Should(gbytes.Say("x509: certificate signed by unknown authority|certificate is not trusted"))
 					})
 				})
 			})
@@ -135,7 +135,7 @@ var _ = Describe("login -k Command", func() {
 
 					<-sess.Exited
 					Expect(sess.ExitCode()).To(Equal(1))
-					Eventually(sess.Err).Should(gbytes.Say("x509: certificate signed by unknown authority"))
+					Eventually(sess.Err).Should(gbytes.Say("x509: certificate signed by unknown authority|certificate is not trusted"))
 				})
 			})
 
