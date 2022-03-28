@@ -22,7 +22,7 @@ require (
 	github.com/concourse/go-archive v1.0.1
 	github.com/concourse/retryhttp v1.1.1
 	github.com/containerd/containerd v1.6.1
-	github.com/containerd/go-cni v1.1.3
+	github.com/containerd/go-cni v1.1.4
 	github.com/containerd/typeurl v1.0.2
 	github.com/coreos/go-iptables v0.6.0
 	github.com/cppforlife/go-semi-semantic v0.0.0-20160921010311-576b6af77ae4
@@ -67,7 +67,7 @@ require (
 	github.com/sirupsen/logrus v1.8.1
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/square/certstrap v1.2.0
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.7.1
 	github.com/tedsuo/ifrit v0.0.0-20180802180643-bea94bb476cc
 	github.com/tedsuo/rata v1.0.1-0.20170830210128-07d200713958
 	github.com/vbauerster/mpb/v4 v4.6.1-0.20190319154207-3a6acfe12ac6
@@ -75,19 +75,19 @@ require (
 	github.com/vito/go-sse v0.0.0-20160212001227-fd69d275caac
 	github.com/vito/houdini v1.1.1
 	github.com/vito/twentythousandtonnesofcrudeoil v0.0.0-20180305154709-3b21ad808fcb
-	go.opentelemetry.io/otel v1.5.0
+	go.opentelemetry.io/otel v1.6.0
 	go.opentelemetry.io/otel/exporters/jaeger v1.5.0
-	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.4.1
-	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.4.1
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.6.0
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.6.0
 	go.opentelemetry.io/otel/oteltest v1.0.0-RC3
-	go.opentelemetry.io/otel/sdk v1.5.0
-	go.opentelemetry.io/otel/trace v1.5.0
+	go.opentelemetry.io/otel/sdk v1.6.0
+	go.opentelemetry.io/otel/trace v1.6.0
 	golang.org/x/crypto v0.0.0-20220208050332-20e1d8d225ab
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/sys v0.0.0-20220207234003-57398862261d
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac
-	google.golang.org/grpc v1.44.0
+	google.golang.org/grpc v1.45.0
 	gopkg.in/square/go-jose.v2 v2.6.0
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.23.4
@@ -135,7 +135,7 @@ require (
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/go-asn1-ber/asn1-ber v1.5.3 // indirect
 	github.com/go-ldap/ldap/v3 v3.4.1 // indirect
-	github.com/go-logr/logr v1.2.2 // indirect
+	github.com/go-logr/logr v1.2.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-sql-driver/mysql v1.6.0 // indirect
 	github.com/gogo/googleapis v1.4.0 // indirect
@@ -186,7 +186,7 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/objx v0.2.0 // indirect
 	go.opencensus.io v0.23.0 // indirect
-	go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.4.1 // indirect
+	go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.6.0 // indirect
 	go.opentelemetry.io/proto/otlp v0.12.0 // indirect
 	golang.org/x/mod v0.5.0 // indirect
 	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect
