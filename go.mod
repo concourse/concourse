@@ -3,11 +3,11 @@ module github.com/concourse/concourse
 go 1.17
 
 require (
-	code.cloudfoundry.org/clock v0.0.0-20180518195852-02e53af36e6c
-	code.cloudfoundry.org/credhub-cli v0.0.0-20190415201820-e3951663d25c
-	code.cloudfoundry.org/garden v0.0.0-20181108172608-62470dc86365
+	code.cloudfoundry.org/clock v1.0.0
+	code.cloudfoundry.org/credhub-cli v0.0.0-20220328130336-fdf1c309c819
+	code.cloudfoundry.org/garden v0.0.0-20220318131934-d57de807d0ca
 	code.cloudfoundry.org/lager v2.0.0+incompatible
-	code.cloudfoundry.org/localip v0.0.0-20170223024724-b88ad0dea95c
+	code.cloudfoundry.org/localip v0.0.0-20220131190813-865a62baabe7
 	code.cloudfoundry.org/urljoiner v0.0.0-20170223060717-5cabba6c0a50
 	github.com/DataDog/datadog-go v4.8.3+incompatible
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace v1.3.0
@@ -29,6 +29,7 @@ require (
 	github.com/cyberark/conjur-api-go v0.9.0
 	github.com/fatih/color v1.13.0
 	github.com/felixge/httpsnoop v1.0.2
+	github.com/gobuffalo/packr v1.30.1
 	github.com/gobwas/glob v0.2.3
 	github.com/goccy/go-yaml v1.9.5
 	github.com/gogo/protobuf v1.3.2
@@ -55,7 +56,7 @@ require (
 	github.com/mitchellh/mapstructure v1.4.3
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.18.1
+	github.com/onsi/gomega v1.19.0
 	github.com/opencontainers/runc v1.1.0
 	github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417
 	github.com/patrickmn/go-cache v2.1.0+incompatible
@@ -68,7 +69,7 @@ require (
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/square/certstrap v1.2.0
 	github.com/stretchr/testify v1.7.1
-	github.com/tedsuo/ifrit v0.0.0-20180802180643-bea94bb476cc
+	github.com/tedsuo/ifrit v0.0.0-20191009134036-9a97d0632f00
 	github.com/tedsuo/rata v1.0.1-0.20170830210128-07d200713958
 	github.com/vbauerster/mpb/v4 v4.6.1-0.20190319154207-3a6acfe12ac6
 	github.com/vito/go-interact v0.0.0-20171111012221-fa338ed9e9ec
@@ -82,10 +83,10 @@ require (
 	go.opentelemetry.io/otel/oteltest v1.0.0-RC3
 	go.opentelemetry.io/otel/sdk v1.6.0
 	go.opentelemetry.io/otel/trace v1.6.0
-	golang.org/x/crypto v0.0.0-20220208050332-20e1d8d225ab
+	golang.org/x/crypto v0.0.0-20220321153916-2c7772ba3064
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20220315194320-039c03cc5b86
+	golang.org/x/sys v0.0.0-20220328115105-d36c6a25d886
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac
 	google.golang.org/grpc v1.45.0
 	gopkg.in/square/go-jose.v2 v2.6.0
@@ -116,10 +117,10 @@ require (
 	github.com/beevik/etree v1.1.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
-	github.com/bmizerany/pat v0.0.0-20170815010413-6226ea591a40 // indirect
+	github.com/bmizerany/pat v0.0.0-20210406213842-e4b6760bdd6f // indirect
 	github.com/cenkalti/backoff/v4 v4.1.2 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
-	github.com/charlievieth/fs v0.0.0-20170613215519-7dc373669fa1 // indirect
+	github.com/charlievieth/fs v0.0.2 // indirect
 	github.com/containerd/cgroups v1.0.3 // indirect
 	github.com/containerd/continuity v0.2.2 // indirect
 	github.com/containerd/fifo v1.0.0 // indirect
@@ -189,7 +190,7 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.6.0 // indirect
 	go.opentelemetry.io/proto/otlp v0.12.0 // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220106191415-9b9b3d81d5e3 // indirect
-	golang.org/x/net v0.0.0-20220225172249-27dd8689420f // indirect
+	golang.org/x/net v0.0.0-20220325170049-de3da57026de // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/tools v0.1.10 // indirect
@@ -197,7 +198,7 @@ require (
 	google.golang.org/api v0.68.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20220207185906-7721543eae58 // indirect
-	google.golang.org/protobuf v1.27.1 // indirect
+	google.golang.org/protobuf v1.28.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
@@ -210,10 +211,14 @@ require (
 
 require (
 	github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e // indirect
-	github.com/cloudfoundry/socks5-proxy v0.0.0-20180530211953-3659db090cb2 // indirect
+	github.com/cloudfoundry/socks5-proxy v0.2.48 // indirect
 	github.com/creack/pty v1.1.11 // indirect
-	github.com/hashicorp/go-version v1.2.0 // indirect
+	github.com/gobuffalo/envy v1.7.0 // indirect
+	github.com/gobuffalo/packd v0.3.0 // indirect
+	github.com/hashicorp/go-version v1.4.0 // indirect
 	github.com/hashicorp/vault/sdk v0.1.14-0.20191112033314-390e96e22eb2 // indirect
+	github.com/joho/godotenv v1.3.0 // indirect
 	github.com/moby/sys/signal v0.6.0 // indirect
 	github.com/pierrec/lz4 v2.6.0+incompatible // indirect
+	github.com/rogpeppe/go-internal v1.8.1 // indirect
 )
