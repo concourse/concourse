@@ -176,10 +176,6 @@ init buildId hl resources plan =
             initWrappedStep buildId hl resources Timeout subPlan
 
 
-
--- |> setImagePlans buildId step.id imagePlans
-
-
 setImagePlans : Maybe Concourse.JobBuildIdentifier -> StepID -> Maybe Concourse.ImageBuildPlans -> StepTreeModel -> StepTreeModel
 setImagePlans buildId stepId imagePlans model =
     case imagePlans of
