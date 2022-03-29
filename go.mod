@@ -90,9 +90,9 @@ require (
 	google.golang.org/grpc v1.45.0
 	gopkg.in/square/go-jose.v2 v2.6.0
 	gopkg.in/yaml.v2 v2.4.0
-	k8s.io/api v0.23.4
+	k8s.io/api v0.23.5
 	k8s.io/apimachinery v0.23.5
-	k8s.io/client-go v0.23.4
+	k8s.io/client-go v0.23.5
 	sigs.k8s.io/yaml v1.3.0
 )
 
