@@ -195,7 +195,6 @@ var _ = Describe("Resource", func() {
 					Expect(buildSummary.Name).To(Equal(db.CheckBuildName))
 					Expect(buildSummary.TeamName).To(Equal(scenario.Team.Name()))
 					Expect(buildSummary.PipelineName).To(Equal(scenario.Pipeline.Name()))
-					Expect(buildSummary.Status).To(Equal(atc.StatusFailed))
 					Expect(buildSummary.JobName).To(BeEmpty())
 					Expect(time.Unix(buildSummary.StartTime, 0)).Should(BeTemporally("~", time.Now(), time.Second))
 					Expect(time.Unix(buildSummary.EndTime, 0)).Should(BeTemporally("~", time.Now(), time.Second))

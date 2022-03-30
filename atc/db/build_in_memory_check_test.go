@@ -62,6 +62,7 @@ var _ = Describe("Build", func() {
 			Expect(build.ResourceName()).To(Equal(defaultResource.Name()))
 			Expect(build.ResourceTypeID()).To(Equal(0))
 			Expect(build.Schema()).To(Equal("exec.v2"))
+			Expect(build.Status()).To(Equal(db.BuildStatusPending))
 
 			Expect(build.IsRunning()).To(BeTrue())
 			Expect(build.IsManuallyTriggered()).To(BeFalse())
@@ -126,6 +127,46 @@ var _ = Describe("Build", func() {
 				Expect(err.Error()).To(Equal("no build event"))
 			})
 
+			Context("BeforeCheckBuildStart", func() {
+				Context("Finish", func() {
+					Context("when build finishes with status succeed", func() {
+						BeforeEach(func() {
+							err := build.Finish(db.BuildStatusSucceeded)
+							Expect(err).ToNot(HaveOccurred())
+						})
+
+						It("does not init DB", func() {
+							Expect(build.ID()).To(Equal(0))
+						})
+					})
+
+					Context("when build finishes with status errored", func() {
+						BeforeEach(func() {
+							err := build.Finish(db.BuildStatusErrored)
+							Expect(err).ToNot(HaveOccurred())
+						})
+
+						It("update in-memory build status for resource", func() {
+							reloaded, err := defaultResource.Reload()
+							Expect(reloaded).To(BeTrue())
+							Expect(err).ToNot(HaveOccurred())
+							Expect(defaultResource.BuildSummary().Status).To(Equal(atc.StatusErrored))
+						})
+
+						It("save build status", func() {
+							eventSource, err := build.Events(3)
+							Expect(err).ToNot(HaveOccurred())
+
+							ev, err := eventSource.Next()
+							Expect(err).ToNot(HaveOccurred())
+							Expect(ev.Event).To(Equal(event.EventTypeStatus))
+							Expect(ev.EventID).To(Equal("3"))
+							Expect(string(*ev.Data)).To(ContainSubstring("errored"))
+						})
+					})
+				})
+			})
+
 			Context("OnCheckBuildStart", func() {
 				var buildId int
 
@@ -138,6 +179,14 @@ var _ = Describe("Build", func() {
 
 				It("get a build id", func() {
 					Expect(buildId).To(BeNumerically(">", 0))
+				})
+
+				It("update in-memory build status for resource", func() {
+					reloaded, err := defaultResource.Reload()
+					Expect(reloaded).To(BeTrue())
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(defaultResource.BuildSummary().Status).To(Equal(atc.StatusStarted))
 				})
 
 				It("LagerData", func() {
@@ -243,6 +292,14 @@ var _ = Describe("Build", func() {
 					BeforeEach(func() {
 						err := build.Finish(db.BuildStatusSucceeded)
 						Expect(err).ToNot(HaveOccurred())
+					})
+
+					It("update in-memory build status for resource", func() {
+						reloaded, err := defaultResource.Reload()
+						Expect(reloaded).To(BeTrue())
+						Expect(err).ToNot(HaveOccurred())
+
+						Expect(defaultResource.BuildSummary().Status).To(Equal(atc.StatusSucceeded))
 					})
 
 					It("save build status", func() {

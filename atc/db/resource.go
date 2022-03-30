@@ -146,6 +146,7 @@ var (
 		"r.in_memory_build_id",
 		"r.in_memory_build_start_time",
 		"r.in_memory_build_plan",
+		"r.in_memory_build_status",
 	).
 		From("resources r").
 		Join("pipelines p ON p.id = r.pipeline_id").
@@ -848,7 +849,7 @@ func scanResource(r *resource, row scannable) error {
 		&r.pipelineID, &nonce, &rcID, &rcScopeID,
 		&r.pipelineName, &pipelineInstanceVars, &r.teamID, &r.teamName,
 		&pinnedVersion, &pinComment, &pinnedThroughConfig,
-		&buildData.inMemoryBuildId, &buildData.inMemoryBuildStartTime, &buildData.inMemoryBuildPlan)
+		&buildData.inMemoryBuildId, &buildData.inMemoryBuildStartTime, &buildData.inMemoryBuildPlan, &buildData.inMemoryBuildStatus)
 	if err != nil {
 		return err
 	}
@@ -944,6 +945,7 @@ type buildData struct {
 	inMemoryBuildId        sql.NullInt64
 	inMemoryBuildStartTime pq.NullTime
 	inMemoryBuildPlan      sql.NullString
+	inMemoryBuildStatus    sql.NullString
 
 	lastCheckBuildId   sql.NullInt64
 	lastCheckStartTime pq.NullTime
@@ -977,8 +979,8 @@ func (d buildData) populate(buildSummary *atc.BuildSummary, lastCheckStart *time
 func (d buildData) useInMemoryBuild(buildSummary *atc.BuildSummary, lastCheckStart *time.Time) error {
 	buildSummary.ID = int(d.inMemoryBuildId.Int64)
 	buildSummary.StartTime = d.inMemoryBuildStartTime.Time.Unix()
+	buildSummary.Status = atc.BuildStatus(d.inMemoryBuildStatus.String)
 	*lastCheckStart = d.inMemoryBuildStartTime.Time
-	buildSummary.Status = atc.StatusStarted
 	if d.inMemoryBuildPlan.Valid {
 		err := json.Unmarshal([]byte(d.inMemoryBuildPlan.String), &buildSummary.PublicPlan)
 		if err != nil {
@@ -1003,6 +1005,7 @@ func (d buildData) useLastCheckBuild(buildSummary *atc.BuildSummary, lastCheckSt
 	} else {
 		buildSummary.Status = atc.StatusStarted
 	}
+
 	if d.lastCheckBuildPlan.Valid {
 		err := json.Unmarshal([]byte(d.lastCheckBuildPlan.String), &buildSummary.PublicPlan)
 		if err != nil {
