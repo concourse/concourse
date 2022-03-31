@@ -974,7 +974,10 @@ var _ = Describe("Team", func() {
 
 				Context("when worker1 is pruned", func() {
 					BeforeEach(func() {
-						_, err := psql.Delete("workers").Where(sq.Eq{"name": "some-worker-name"}).RunWith(dbConn).Exec()
+						worker, found, err := workerFactory.GetWorker("some-worker-name")
+						Expect(err).ToNot(HaveOccurred())
+						Expect(found).To(BeTrue())
+						err = worker.Delete()
 						Expect(err).ToNot(HaveOccurred())
 					})
 
