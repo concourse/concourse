@@ -10,6 +10,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/runtime"
@@ -231,15 +232,29 @@ func (pool Pool) findWorkerForContainer(logger lager.Logger, owner db.ContainerO
 		return nil, nil, false, err
 	}
 
-	for _, w := range workersWithContainer {
-		if pool.isWorkerCompatibleAndRunning(logger, w, workerSpec) {
-			return w, nil, true, nil
+	// When global-resources is enabled, a check-container may run on any team
+	// worker, which enables this optimization. Details refer to PR#8184.
+	if atc.EnableGlobalResources {
+		for _, w := range workersWithContainer {
+			if pool.isWorkerCompatibleAndRunning(logger, w, workerSpec) {
+				return w, nil, true, nil
+			}
 		}
 	}
 
 	compatibleWorkers, err := pool.allCompatibleAndRunningWorkers(logger, workerSpec)
 	if err != nil {
 		return nil, nil, false, err
+	}
+
+	if !atc.EnableGlobalResources {
+		for _, w := range workersWithContainer {
+			for _, c := range compatibleWorkers {
+				if w.Name() == c.Name() {
+					return w, compatibleWorkers, true, nil
+				}
+			}
+		}
 	}
 
 	return nil, compatibleWorkers, false, nil
