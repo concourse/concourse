@@ -148,11 +148,11 @@ func (team *team) sendResourceVersion(pipelineRef atc.PipelineRef, resourceName 
 	}
 }
 
-func (team *team) ClearResourceVersions(pipelineRef atc.PipelineRef, ResourceName string) (int64, error) {
+func (team *team) ClearResourceVersions(pipelineRef atc.PipelineRef, resourceName string) (int64, error) {
 	params := rata.Params{
 		"team_name":     team.Name(),
 		"pipeline_name": pipelineRef.Name,
-		"resource_name": ResourceName,
+		"resource_name": resourceName,
 	}
 
 	queryParams := url.Values{}
@@ -176,11 +176,11 @@ func (team *team) ClearResourceVersions(pipelineRef atc.PipelineRef, ResourceNam
 	}
 }
 
-func (team *team) ClearResourceTypeVersions(pipelineRef atc.PipelineRef, ResourceTypeName string) (int64, error) {
+func (team *team) ClearResourceTypeVersions(pipelineRef atc.PipelineRef, resourceTypeName string) (int64, error) {
 	params := rata.Params{
 		"team_name":          team.Name(),
 		"pipeline_name":      pipelineRef.Name,
-		"resource_type_name": ResourceTypeName,
+		"resource_type_name": resourceTypeName,
 	}
 
 	queryParams := url.Values{}
