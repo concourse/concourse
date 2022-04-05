@@ -170,8 +170,13 @@ func (b *GardenBackend) Start() (err error) {
 // Stop closes the client's underlying connections and frees any resources
 // associated with it.
 //
-func (b *GardenBackend) Stop() {
-	_ = b.client.Stop()
+func (b *GardenBackend) Stop() (err error) {
+	err = b.client.Stop()
+	if err != nil {
+		return fmt.Errorf("client stop: %w", err)
+	}
+
+	return
 }
 
 // Ping pings the garden server in order to check connectivity.
