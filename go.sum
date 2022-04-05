@@ -1058,6 +1058,8 @@ github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINE
 github.com/pkg/sftp v1.10.1/go.mod h1:lYOWFsE0bwd1+KfKJaKeuokY15vzFx25BLbzYYoAxZI=
 github.com/pkg/term v0.0.0-20190109203006-aa71e9d9e942 h1:A7GG7zcGjl3jqAqGPmcNjd/D9hzL95SuoOQAaFNdLU0=
 github.com/pkg/term v0.0.0-20190109203006-aa71e9d9e942/go.mod h1:eCbImbZ95eXtAUIbLAuAVnBnwf83mjf6QIVH8SHYwqQ=
+github.com/pkg/term v1.1.1-0.20201205102247-e502d17f6e7f h1:bsaAp+5dC+68yF0O53LFVk7IN7SoO8xPuyid9Tn5j9c=
+github.com/pkg/term v1.1.1-0.20201205102247-e502d17f6e7f/go.mod h1:E25nymQcrSllhX42Ok8MRm1+hyBdHY0dCeiKZ9jpNGw=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/posener/complete v1.1.1/go.mod h1:em0nMJCgc9GFtwrmVmEMR/ZL6WyhyjMBndrE9hABlRI=
@@ -1240,6 +1242,8 @@ github.com/vito/go-sse v0.0.0-20160212001227-fd69d275caac h1:W7dFvBGUW6cNTGkOzxn
 github.com/vito/go-sse v0.0.0-20160212001227-fd69d275caac/go.mod h1:ucnL4HfIfa4NNk+m4v4X5jyciInx9MftRZsMhkk+7xE=
 github.com/vito/houdini v1.1.1 h1:6oYBTNNcJAtd/WxrxokyFr+WXxoBN43IL7r2TYuGrHg=
 github.com/vito/houdini v1.1.1/go.mod h1:9T7AKNV+G5ckCYdDeGEnonREED7IqPz/LTKIkIz3MM4=
+github.com/vito/houdini v1.1.2-0.20220405022641-2f7acd2695d3 h1:0ZeW1L7nE+FL/b6p87Sy/P6D2bMFkn+OA+P7tm7PlAw=
+github.com/vito/houdini v1.1.2-0.20220405022641-2f7acd2695d3/go.mod h1:QTyvB+6/HXfyXpf+ndFcvrgCXJo0O5V39r1RSoBfF5I=
 github.com/vito/twentythousandtonnesofcrudeoil v0.0.0-20180305154709-3b21ad808fcb h1:OlLJlAyoyYjUAQIbycSXFSyYSC7tBf0Fos2Fyu7GeDY=
 github.com/vito/twentythousandtonnesofcrudeoil v0.0.0-20180305154709-3b21ad808fcb/go.mod h1:NhbXFsoSa/atpWDPj5okj24Vnvd5bgEW+W5+hFAFodA=
 github.com/willf/bitset v1.1.11-0.20200630133818-d5bec3311243/go.mod h1:RjeCKbqT1RxIR/KWY6phxZiaY1IyutSBfGjNPySAYV4=

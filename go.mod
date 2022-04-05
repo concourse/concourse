@@ -62,7 +62,7 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/peterhellberg/link v1.1.0
 	github.com/pkg/errors v0.9.1
-	github.com/pkg/term v0.0.0-20190109203006-aa71e9d9e942
+	github.com/pkg/term v1.1.1-0.20201205102247-e502d17f6e7f
 	github.com/prometheus/client_golang v1.12.1
 	github.com/racksec/srslog v0.0.0-20180709174129-a4725f04ec91
 	github.com/sirupsen/logrus v1.8.1
@@ -74,7 +74,7 @@ require (
 	github.com/vbauerster/mpb/v4 v4.6.1-0.20190319154207-3a6acfe12ac6
 	github.com/vito/go-interact v0.0.0-20171111012221-fa338ed9e9ec
 	github.com/vito/go-sse v0.0.0-20160212001227-fd69d275caac
-	github.com/vito/houdini v1.1.1
+	github.com/vito/houdini v1.1.2-0.20220405022641-2f7acd2695d3
 	github.com/vito/twentythousandtonnesofcrudeoil v0.0.0-20180305154709-3b21ad808fcb
 	go.opentelemetry.io/otel v1.6.0
 	go.opentelemetry.io/otel/exporters/jaeger v1.5.0
