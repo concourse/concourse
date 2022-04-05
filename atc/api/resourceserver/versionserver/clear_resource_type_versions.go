@@ -30,6 +30,7 @@ func (s *Server) ClearResourceTypeVersions(pipeline db.Pipeline) http.Handler {
 		if err != nil {
 			logger.Error("failed-to-clear-versions", err)
 			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(err.Error()))
 			return
 		}
 

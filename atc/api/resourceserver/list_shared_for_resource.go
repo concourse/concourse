@@ -31,6 +31,7 @@ func (s *Server) ListSharedForResource(pipeline db.Pipeline) http.Handler {
 		if err != nil {
 			logger.Error("failed-to-get-shared-resource-and-types", err)
 			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(err.Error()))
 			return
 		}
 

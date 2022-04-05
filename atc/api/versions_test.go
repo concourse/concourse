@@ -1275,6 +1275,7 @@ var _ = Describe("Versions API", func() {
 
 						It("returns 500", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+							Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("failed")))
 						})
 					})
 				})
@@ -1395,6 +1396,7 @@ var _ = Describe("Versions API", func() {
 
 						It("returns 500", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+							Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("failed")))
 						})
 					})
 				})

@@ -2148,11 +2148,12 @@ var _ = Describe("Resources API", func() {
 
 					Context("when getting shared resources fails", func() {
 						BeforeEach(func() {
-							fakeResource.SharedResourcesAndTypesReturns(atc.ResourcesAndTypes{}, errors.New("error"))
+							fakeResource.SharedResourcesAndTypesReturns(atc.ResourcesAndTypes{}, errors.New("some-error"))
 						})
 
 						It("returns 500", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+							Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("some-error")))
 						})
 					})
 				})
@@ -2334,11 +2335,12 @@ var _ = Describe("Resources API", func() {
 
 					Context("when getting shared resources and types fails", func() {
 						BeforeEach(func() {
-							fakeResourceType.SharedResourcesAndTypesReturns(atc.ResourcesAndTypes{}, errors.New("error"))
+							fakeResourceType.SharedResourcesAndTypesReturns(atc.ResourcesAndTypes{}, errors.New("some-error"))
 						})
 
 						It("returns 500", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+							Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("some-error")))
 						})
 					})
 				})
