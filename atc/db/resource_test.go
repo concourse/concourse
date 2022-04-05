@@ -724,8 +724,6 @@ var _ = Describe("Resource", func() {
 
 			Context("when there are pinned/disabled versions", func() {
 				BeforeEach(func() {
-					Expect(numDeleted).To(Equal(int64(3)))
-
 					pinned, err := someResource.PinVersion(scenario.ResourceVersion("some-resource", atc.Version{"ref": "v1"}).ID())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(pinned).To(BeTrue())
