@@ -2,7 +2,6 @@
 resource_types:
 - name: my-time
   type: registry-image
-  check_every: never
   source: {repository: concourse/time-resource}
 
 resources:
