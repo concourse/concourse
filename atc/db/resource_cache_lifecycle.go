@@ -57,10 +57,10 @@ func (f *resourceCacheLifecycle) CleanDirtyInMemoryBuildUses(lager.Logger) error
 }
 
 func (f *resourceCacheLifecycle) CleanInvalidWorkerResourceCaches(lager.Logger) error {
-	_, err := sq.Delete("worker_resource_caches").
+	_, err := sq.Delete("worker_resource_caches w").
 		Where(sq.And{
-			sq.Eq{"worker_base_resource_type_id": nil},
-			sq.Expr("resource_cache_id NOT IN (SELECT DISTINCT(resource_cache_id) FROM resource_cache_uses)"),
+			sq.Eq{"w.worker_base_resource_type_id": nil},
+			sq.Expr("NOT EXISTS (SELECT 1 FROM resource_cache_uses u WHERE w.resource_cache_id = u.resource_cache_id LIMIT 1)"),
 		}).
 		RunWith(f.conn).
 		Exec()
