@@ -174,8 +174,9 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 		}
 
 		// If last check succeeded and the end of the last check is after the start
-		// of this check, then don't run
-		if lastCheck.Succeeded && lastCheck.EndTime.After(d.build.StartTime()) {
+		// of this check, OR the check interval has no elapsed since the last check
+		// end time then don't run
+		if lastCheck.Succeeded && lastCheck.EndTime.After(d.build.StartTime()) || d.clock.Now().Before(lastCheck.EndTime.Add(interval)) {
 			return nil, false, nil
 		}
 	}
