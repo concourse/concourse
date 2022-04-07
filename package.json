@@ -14,7 +14,7 @@
     "@mdi/svg": "^6.6.96",
     "babel-loader": "^8.2.4",
     "child-process-promise": "^2.2.1",
-    "clean-css-cli": "^5.5.2",
+    "clean-css-cli": "^5.6.0",
     "elm": "^0.19.1",
     "elm-analyse": "stil4m/elm-analyse#701b8b4013a4f057b9382d368e42adc6fe08e14e",
     "elm-format": "0.8.5",
