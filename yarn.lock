@@ -1532,20 +1532,20 @@ chrome-trace-event@^1.0.2:
   dependencies:
     tslib "^1.9.0"
 
-clean-css-cli@^5.5.2:
-  version "5.5.2"
-  resolved "https://registry.yarnpkg.com/clean-css-cli/-/clean-css-cli-5.5.2.tgz#c7931f89255561200be2ff5a3cf2688343234d87"
-  integrity sha512-4y5FD+ayRz7IWqZRCCMvFxNUhluc1Yv8mNPmrHbrm2NjKsv9uaQZedZKN4L+QMkTqANL1RfOwhpe22neDEgEMA==
+clean-css-cli@^5.6.0:
+  version "5.6.0"
+  resolved "https://registry.yarnpkg.com/clean-css-cli/-/clean-css-cli-5.6.0.tgz#ba25b2f28ec72b69f671920aa894aaccde009dfb"
+  integrity sha512-68vorNEG808D1QzeerO9AlwQVTuaR8YSK4aqwIsjJq0wDSyPH11ApHY0O+EQrdEGUZcN+d72v+Nn/gpxjAFewQ==
   dependencies:
     chokidar "^3.5.2"
-    clean-css "^5.2.4"
+    clean-css "^5.3.0"
     commander "7.x"
     glob "^7.1.6"
 
-clean-css@^5.2.4:
-  version "5.2.4"
-  resolved "https://registry.yarnpkg.com/clean-css/-/clean-css-5.2.4.tgz#982b058f8581adb2ae062520808fb2429bd487a4"
-  integrity sha512-nKseG8wCzEuji/4yrgM/5cthL9oTDc5UOQyFMvW/Q53oP6gLH690o1NbuTh6Y18nujr7BxlsFuS7gXLnLzKJGg==
+clean-css@^5.3.0:
+  version "5.3.0"
+  resolved "https://registry.yarnpkg.com/clean-css/-/clean-css-5.3.0.tgz#ad3d8238d5f3549e83d5f87205189494bc7cbb59"
+  integrity sha512-YYuuxv4H/iNb1Z/5IbMRoxgrzjWGhOEFfd+groZ5dMCVkpENiMZmwspdrzBo9286JjM1gZJPAyL7ZIdzuvu2AQ==
   dependencies:
     source-map "~0.6.0"
 
