@@ -117,8 +117,8 @@ viewHeader header =
              ]
                 ++ Styles.header header.backgroundColor
             )
-            [ Html.div [] (List.map viewWidget header.leftWidgets)
-            , Html.div [ style "display" "flex" ] (List.map viewWidget header.rightWidgets)
+            [ Html.div [] (List.map (viewWidget header.backgroundColor) header.leftWidgets)
+            , Html.div [ style "display" "flex" ] (List.map (viewWidget header.backgroundColor) header.rightWidgets)
             ]
          , viewHistory header.backgroundColor header.tabs
          ]
@@ -140,24 +140,28 @@ viewHeader header =
         )
 
 
-viewWidget : Widget -> Html Message
-viewWidget widget =
+viewWidget : BuildStatus -> Widget -> Html Message
+viewWidget status widget =
+    let
+        textColor =
+            Styles.titleTextColor status
+    in
     case widget of
         Button button ->
             Maybe.map viewButton button |> Maybe.withDefault (Html.text "")
 
         Title name jobId createdBy ->
-            viewTitle name jobId createdBy
+            viewTitle name textColor jobId createdBy
 
         Duration duration ->
-            viewDuration duration
+            viewDuration duration textColor
 
 
-viewDuration : BuildDuration -> Html Message
-viewDuration buildDuration =
+viewDuration : BuildDuration -> String -> Html Message
+viewDuration buildDuration textColor =
     Html.table
         [ class "dictionary build-duration"
-        , style "color" Colors.black
+        , style "color" textColor
         ]
         [ Html.tr []
             [ Html.td [ class "horizontal-cell" ] <|
@@ -374,8 +378,8 @@ viewButton { type_, backgroundColor, backgroundShade, isClickable } =
         ]
 
 
-viewTitle : String -> Maybe Concourse.JobIdentifier -> Concourse.BuildCreatedBy -> Html Message
-viewTitle name jobID createdBy =
+viewTitle : String -> String -> Maybe Concourse.JobIdentifier -> Concourse.BuildCreatedBy -> Html Message
+viewTitle name textColor jobID createdBy =
     let
         hasCreatedBy =
             createdBy /= Nothing
@@ -400,7 +404,7 @@ viewTitle name jobID createdBy =
                         , onMouseLeave <| Hover Nothing
                         , id <| toHtmlID Message.JobName
                         , buildNameLineHeight
-                        , style "color" Colors.buildTitleTextColor
+                        , style "color" textColor
                         ]
                         [ Html.span [ class "build-name" ] [ Html.text jid.jobName ]
                         , Html.span
@@ -430,7 +434,7 @@ viewTitle name jobID createdBy =
                         , style "text-overflow" "ellipsis"
                         , style "white-space" "nowrap"
                         , style "overflow" "hidden"
-                        , style "color" Colors.buildTitleTextColor
+                        , style "color" textColor
                         , title text
                         ]
                         [ Html.text text ]
