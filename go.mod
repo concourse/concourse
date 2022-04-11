@@ -76,7 +76,7 @@ require (
 	github.com/vito/houdini v1.1.2-0.20220405022641-2f7acd2695d3
 	github.com/vito/twentythousandtonnesofcrudeoil v0.0.0-20180305154709-3b21ad808fcb
 	go.opentelemetry.io/otel v1.6.3
-	go.opentelemetry.io/otel/exporters/jaeger v1.6.1
+	go.opentelemetry.io/otel/exporters/jaeger v1.6.3
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.6.3
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.6.1
 	go.opentelemetry.io/otel/oteltest v1.0.0-RC3
