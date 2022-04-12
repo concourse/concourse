@@ -58,7 +58,7 @@ func testCredentialManagement(
 			Fly.Run("unpause-pipeline", "-p", "pipeline-creds-test")
 		})
 
-		It("parameterizes via Vault and leaves the pipeline uninterpolated", func() {
+		It("parameterizes via creds manager and leaves the pipeline uninterpolated", func() {
 			By("triggering job")
 			watch := Fly.Start("trigger-job", "-w", "-j", "pipeline-creds-test/some-job")
 			Wait(watch)
