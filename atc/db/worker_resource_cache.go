@@ -38,20 +38,11 @@ func (workerResourceCache WorkerResourceCache) FindOrCreate(tx Tx, sourceWorkerB
 	}
 	if found {
 		// If the found worker resource cache's worker base resource type id is
-		// 0, then means the original source has been invalidated, so we need to
-		// reset the worker resource cache with the new base resource type id.
+		// 0, then means the original source has been invalidated. But as this
+		// worker resource cache can still be found and used, so before this cache
+		// is GC-ed, let's not recreate the cache.
 		if uwrc.WorkerBaseResourceTypeID == 0 {
-			_, err := psql.Update("worker_resource_caches").
-				Set("worker_base_resource_type_id", sourceWorkerBaseResourceTypeID).
-				Where(sq.And{
-					sq.Eq{"resource_cache_id": workerResourceCache.ResourceCache.ID()},
-					sq.Eq{"worker_name": workerResourceCache.WorkerName},
-				}).RunWith(tx).Exec()
-			if err != nil {
-				return nil, false, err
-			}
-			uwrc.WorkerBaseResourceTypeID = sourceWorkerBaseResourceTypeID
-			return uwrc, true, nil
+			return nil, false, errors.New("invalidated-worker-resource-cache-exists")
 		}
 
 		valid := sourceWorkerBaseResourceTypeID == uwrc.WorkerBaseResourceTypeID
