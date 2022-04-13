@@ -456,19 +456,53 @@ var _ = Describe("CheckDelegate", func() {
 				})
 			})
 
+			Context("when the checking interval has elapsed since the last check end time and it is a manual check", func() {
+				BeforeEach(func() {
+					plan.Check.SkipInterval = true
+					fakeResourceConfigScope.LastCheckReturns(db.LastCheck{
+						StartTime: now.Add(-6 * time.Minute),
+						EndTime:   now.Add(-5 * time.Minute),
+						Succeeded: true,
+					}, nil)
+					fakeBuild.StartTimeReturns(now)
+				})
+
+				It("returns true", func() {
+					Expect(run).To(BeTrue())
+				})
+			})
+
 			Context("when the checking interval has not elapsed since the last check end time", func() {
 				BeforeEach(func() {
 					plan.Check.Interval.Interval = time.Hour
+					plan.Check.SkipInterval = false
 					fakeResourceConfigScope.LastCheckReturns(db.LastCheck{
 						StartTime: now,
 						EndTime:   now,
-						Succeeded: true,
+						Succeeded: false,
 					}, nil)
 					fakeBuild.StartTimeReturns(now.Add(1 * time.Minute))
 				})
 
 				It("returns false", func() {
 					Expect(run).To(BeFalse())
+				})
+			})
+
+			Context("when the checking interval has not elapsed since the last check end time but it is a manual check", func() {
+				BeforeEach(func() {
+					plan.Check.Interval.Interval = time.Hour
+					plan.Check.SkipInterval = true
+					fakeResourceConfigScope.LastCheckReturns(db.LastCheck{
+						StartTime: now,
+						EndTime:   now,
+						Succeeded: false,
+					}, nil)
+					fakeBuild.StartTimeReturns(now.Add(1 * time.Minute))
+				})
+
+				It("returns true", func() {
+					Expect(run).To(BeTrue())
 				})
 			})
 		})
