@@ -155,8 +155,10 @@ func cartesianProduct(varValues [][]interface{}) [][]interface{} {
 	var product [][]interface{}
 	subProduct := cartesianProduct(varValues[:len(varValues)-1])
 	for _, vec := range subProduct {
+		vec_copy := make([]interface{}, len(vec))
+		_ = copy(vec_copy, vec)
 		for _, val := range varValues[len(varValues)-1] {
-			product = append(product, append(vec, val))
+			product = append(product, append(vec_copy, val))
 		}
 	}
 	return product
