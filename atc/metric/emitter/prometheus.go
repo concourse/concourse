@@ -21,9 +21,9 @@ import (
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
 
 type PrometheusEmitter struct {
-	jobsScheduled  prometheus.Counter
-	jobsScheduling prometheus.Gauge
-	jobsSchedulingDuration: prometheus.Histogram
+	jobsScheduled          prometheus.Counter
+	jobsScheduling         prometheus.Gauge
+	jobsSchedulingDuration prometheus.Histogram
 
 	buildsStarted prometheus.Counter
 	buildsRunning prometheus.Gauge
@@ -215,10 +215,10 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 	prometheus.MustRegister(jobsScheduling)
 
 	jobsSchedulingDuration := prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Namespace: "concourse",
-		Subsystem: "jobs",
-		Name: "schedulingDuration",
-		Help: "Duration of jobs being scheduled in milliseconds",
+		Namespace:   "concourse",
+		Subsystem:   "jobs",
+		Name:        "schedulingDuration",
+		Help:        "Duration of jobs being scheduled in milliseconds",
 		ConstLabels: attributes,
 		Buckets:     []float64{1, 60, 180, 300, 600, 900, 1200, 1800, 2700, 3600, 7200, 18000, 36000},
 	}, []string{"pipeline", "job", "job_id"})
@@ -910,7 +910,7 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 		emitter.jobsSchedulingDuration.WithLabels(
 			event.Attributes["pipeline"],
 			event.Attributes["job"],
-			event.Attributes["job_id"],	
+			event.Attributes["job_id"],
 		).Observe(event.Value)
 	case "builds started":
 		emitter.buildsStarted.Add(event.Value)
