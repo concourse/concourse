@@ -125,10 +125,10 @@ arrify@^3.0.0:
   resolved "https://registry.yarnpkg.com/arrify/-/arrify-3.0.0.tgz#ccdefb8eaf2a1d2ab0da1ca2ce53118759fd46bc"
   integrity sha512-tLkvA81vQG/XqE2mjDkGQHoOINtMHtysSnemrmoGe6PydDPMRbVugqyk4A6V/WDWEfm3l+0d8anA9r8cv/5Jaw==
 
-ava@^4.1.0:
-  version "4.1.0"
-  resolved "https://registry.yarnpkg.com/ava/-/ava-4.1.0.tgz#a8e2fb84f17ff7b2b40b389103f677edf11351b9"
-  integrity sha512-QD6MBWHzagAwb9vxduXzVWx6Q77DUHLxvIebSY6+enL+Ri6KzSZYj0IBOFifA26wfpJPZnWKLUh3vwx1LyVh/g==
+ava@^4.2.0:
+  version "4.2.0"
+  resolved "https://registry.yarnpkg.com/ava/-/ava-4.2.0.tgz#50c954cb32fd433b01d1e8245ea2f5cfb6e4412d"
+  integrity sha512-96N/rH2ZlBjoh18CsjH3zfo/rzukkRoqNK7R/Z3MLRrqu6cRRf+i4Zwna7ZRYEIl55yF1BKh/nSPCZWqoXfPJA==
   dependencies:
     acorn "^8.7.0"
     acorn-walk "^8.2.0"
