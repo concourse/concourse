@@ -23,7 +23,7 @@ import (
 type PrometheusEmitter struct {
 	jobsScheduled          prometheus.Counter
 	jobsScheduling         prometheus.Gauge
-	jobsSchedulingDuration prometheus.Histogram
+	jobsSchedulingDuration *prometheus.HistogramVec
 
 	buildsStarted prometheus.Counter
 	buildsRunning prometheus.Gauge
