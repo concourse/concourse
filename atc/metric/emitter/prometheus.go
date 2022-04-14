@@ -907,7 +907,7 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 	case "jobs scheduling":
 		emitter.jobsScheduling.Set(event.Value)
 	case "scheduling: job duration (ms)":
-		emitter.jobsSchedulingDuration.WithLabels(
+		emitter.jobsSchedulingDuration.WithLabelValues(
 			event.Attributes["pipeline"],
 			event.Attributes["job"],
 			event.Attributes["job_id"],
