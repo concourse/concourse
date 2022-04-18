@@ -21,8 +21,9 @@ import (
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
 
 type PrometheusEmitter struct {
-	jobsScheduled  prometheus.Counter
-	jobsScheduling prometheus.Gauge
+	jobsScheduled          prometheus.Counter
+	jobsScheduling         prometheus.Gauge
+	jobsSchedulingDuration *prometheus.HistogramVec
 
 	buildsStarted prometheus.Counter
 	buildsRunning prometheus.Gauge
@@ -212,6 +213,17 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 		ConstLabels: attributes,
 	})
 	prometheus.MustRegister(jobsScheduling)
+
+	jobsSchedulingDuration := prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Namespace:   "concourse",
+		Subsystem:   "jobs",
+		Name:        "schedulingDuration",
+		Help:        "Duration of jobs being scheduled in milliseconds",
+		ConstLabels: attributes,
+		Buckets:     []float64{30, 60, 180, 300, 600, 900, 1200, 1800, 2700, 3600, 7200, 18000, 36000},
+	}, []string{"pipeline", "job", "job_id"})
+
+	prometheus.MustRegister(jobsSchedulingDuration)
 
 	// build metrics
 	buildsStarted := prometheus.NewCounter(prometheus.CounterOpts{
@@ -791,8 +803,9 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 	go http.Serve(listener, promhttp.Handler())
 
 	emitter := &PrometheusEmitter{
-		jobsScheduled:  jobsScheduled,
-		jobsScheduling: jobsScheduling,
+		jobsScheduled:          jobsScheduled,
+		jobsScheduling:         jobsScheduling,
+		jobsSchedulingDuration: jobsSchedulingDuration,
 
 		buildsStarted: buildsStarted,
 		buildsRunning: buildsRunning,
@@ -893,6 +906,12 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 		emitter.jobsScheduled.Add(event.Value)
 	case "jobs scheduling":
 		emitter.jobsScheduling.Set(event.Value)
+	case "scheduling: job duration (ms)":
+		emitter.jobsSchedulingDuration.WithLabelValues(
+			event.Attributes["pipeline"],
+			event.Attributes["job"],
+			event.Attributes["job_id"],
+		).Observe(event.Value)
 	case "builds started":
 		emitter.buildsStarted.Add(event.Value)
 	case "builds running":
