@@ -220,7 +220,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 		Name:        "schedulingDuration",
 		Help:        "Duration of jobs being scheduled in milliseconds",
 		ConstLabels: attributes,
-		Buckets:     []float64{1, 60, 180, 300, 600, 900, 1200, 1800, 2700, 3600, 7200, 18000, 36000},
+		Buckets:     []float64{30, 60, 180, 300, 600, 900, 1200, 1800, 2700, 3600, 7200, 18000, 36000},
 	}, []string{"pipeline", "job", "job_id"})
 
 	prometheus.MustRegister(jobsSchedulingDuration)
