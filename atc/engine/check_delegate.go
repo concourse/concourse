@@ -175,9 +175,11 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 
 		// If last check succeeded and the end of the last check is after the start
 		// of this check, OR the check interval has no elapsed since the last check
-		// end time and it is not a manual check then don't run
-		if lastCheck.Succeeded && lastCheck.EndTime.After(d.build.StartTime()) || (d.clock.Now().Before(lastCheck.EndTime.Add(interval)) && !d.plan.SkipInterval) {
-			return nil, false, nil
+		// end time of a successful check and it is not a manual check then don't run
+		if lastCheck.Succeeded {
+			if lastCheck.EndTime.After(d.build.StartTime()) || (d.clock.Now().Before(lastCheck.EndTime.Add(interval)) && !d.plan.SkipInterval) {
+				return nil, false, nil
+			}
 		}
 	}
 

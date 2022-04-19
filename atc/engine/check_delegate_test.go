@@ -479,7 +479,7 @@ var _ = Describe("CheckDelegate", func() {
 					fakeResourceConfigScope.LastCheckReturns(db.LastCheck{
 						StartTime: now,
 						EndTime:   now,
-						Succeeded: false,
+						Succeeded: true,
 					}, nil)
 					fakeBuild.StartTimeReturns(now.Add(1 * time.Minute))
 				})
@@ -493,6 +493,22 @@ var _ = Describe("CheckDelegate", func() {
 				BeforeEach(func() {
 					plan.Check.Interval.Interval = time.Hour
 					plan.Check.SkipInterval = true
+					fakeResourceConfigScope.LastCheckReturns(db.LastCheck{
+						StartTime: now,
+						EndTime:   now,
+						Succeeded: true,
+					}, nil)
+					fakeBuild.StartTimeReturns(now.Add(1 * time.Minute))
+				})
+
+				It("returns true", func() {
+					Expect(run).To(BeTrue())
+				})
+			})
+
+			Context("when the last check is not successful and checking interval has not elapsed since the last check end time", func() {
+				BeforeEach(func() {
+					plan.Check.Interval.Interval = time.Hour
 					fakeResourceConfigScope.LastCheckReturns(db.LastCheck{
 						StartTime: now,
 						EndTime:   now,
