@@ -18,6 +18,7 @@ module Build.Styles exposing
     , stepHeaderLabel
     , stepStatusIcon
     , tab
+    , titleTextColor
     , triggerButton
     )
 
@@ -58,6 +59,16 @@ header status =
     ]
 
 
+titleTextColor : BuildStatus -> String
+titleTextColor status =
+    case status of
+        BuildStatusAborted ->
+            Colors.white
+
+        _ ->
+            Colors.buildTitleTextColor
+
+
 body : List (Html.Attribute msg)
 body =
     [ style "overflow-y" "auto"
@@ -72,13 +83,17 @@ historyItem currentBuildStatus isCurrent status =
     let
         borderColor =
             Colors.buildTabBorderColor isCurrent currentBuildStatus
+
+        borderStyle =
+            "1px solid " ++ borderColor
     in
     [ style "position" "relative"
     , style "letter-spacing" "-1px"
     , style "padding-top" "0"
     , style "padding-bottom" "0"
-    , style "border-top" <| "1px solid " ++ borderColor
-    , style "border-bottom" <| "1px solid " ++ borderColor
+    , style "border-top" borderStyle
+    , style "border-right" borderStyle
+    , style "border-bottom" borderStyle
     ]
         ++ buildTabBackground isCurrent status
 
