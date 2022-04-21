@@ -178,7 +178,7 @@ var _ = Describe("TaskStep", func() {
 		})
 
 		It("Task env includes atc external url", func(){
-			Expect(chosenContainer.Spec.Env).To(ContainElement("ATC_EXTERNAL_URL=http://foo.bar"))
+			Expect(chosenContainer.Spec.Env).To(ConsistOf("ATC_EXTERNAL_URL=http://foo.bar", "SECURE=secret-task-param"))
 		})
 
 		Context("before running the task", func() {
