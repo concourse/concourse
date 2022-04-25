@@ -22,11 +22,13 @@ var _ = Describe("A pipeline-provided resource type", func() {
 		<-buildSession.Exited
 		Expect(buildSession.ExitCode()).To(Equal(1))
 
-		By("expecting a container for the resource check, resource type check, and task image check")
-		Expect(ContainersBy("type", "check")).To(HaveLen(3))
+		// very small chance of racing here as the resource check container could be gone if GC kick in right after
+		// check is finished, which will then result in only 3 check containers in total
+		By("expecting a container for the resource check, resource type check, get step resource type check and task image check")
+		Expect(ContainersBy("type", "check")).To(HaveLen(4))
 
-		By("expecting a container for the resource check, resource type check, build resource image get, build get, build task image check, build task image get, and build task")
-		expectedContainersBefore := 7
+		By("expecting a container for the resource check, resource type check, resource type get, build resource type check, build resource get, build task image check, build task image get and build task")
+		expectedContainersBefore := 8
 		Expect(FlyTable("containers")).Should(HaveLen(expectedContainersBefore))
 
 		By("triggering the build again")
@@ -35,7 +37,7 @@ var _ = Describe("A pipeline-provided resource type", func() {
 		Expect(buildSession.ExitCode()).To(Equal(1))
 
 		By("expecting only one additional check container for the task's image check")
-		Expect(ContainersBy("type", "check")).To(HaveLen(4))
+		Expect(ContainersBy("type", "check")).To(HaveLen(5))
 
 		By("expecting to only have new containers for build task image check and build task")
 		Expect(FlyTable("containers")).Should(HaveLen(expectedContainersBefore + 2))
