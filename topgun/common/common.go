@@ -56,6 +56,7 @@ var (
 	concourseReleaseVersion, bpmReleaseVersion, postgresReleaseVersion string
 	vaultReleaseVersion, credhubReleaseVersion, uaaReleaseVersion      string
 	stemcellVersion                                                    string
+	stemcellVariant                                                    string
 	backupAndRestoreReleaseVersion                                     string
 
 	pipelineName string
@@ -117,6 +118,12 @@ var _ = BeforeEach(func() {
 	if stemcellVersion == "" {
 		stemcellVersion = "latest"
 	}
+
+	stemcellVariant = os.Getenv("STEMCELL_VARIANT")
+	if stemcellVariant == "" {
+		stemcellVariant = "bionic"
+	}
+
 	backupAndRestoreReleaseVersion = os.Getenv("BACKUP_AND_RESTORE_SDK_RELEASE_VERSION")
 	if backupAndRestoreReleaseVersion == "" {
 		backupAndRestoreReleaseVersion = "latest"
@@ -199,6 +206,7 @@ func StartDeploy(manifest string, args ...string) *gexec.Session {
 			"-v", "uaa_release_version='" + uaaReleaseVersion + "'",
 			"-v", "backup_and_restore_sdk_release_version='" + backupAndRestoreReleaseVersion + "'",
 			"-v", "stemcell_version='" + stemcellVersion + "'",
+			"-v", "stemcell_variant='" + stemcellVariant + "'",
 		}, args...)...,
 	)
 }
