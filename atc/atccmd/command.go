@@ -1414,6 +1414,7 @@ func (cmd *RunCommand) skyHttpClient() (*http.Client, error) {
 		}
 
 		httpClient.Transport = &http.Transport{
+			Proxy: http.ProxyFromEnvironment,
 			TLSClientConfig: &tls.Config{
 				RootCAs: certpool,
 			},
