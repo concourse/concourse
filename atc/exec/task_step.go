@@ -73,7 +73,6 @@ type TaskDelegate interface {
 	Finished(lager.Logger, ExitStatus)
 	Errored(lager.Logger, string)
 
-	BeforeSelectWorker(lager.Logger) error
 	WaitingForWorker(lager.Logger)
 	SelectedWorker(lager.Logger, string)
 	StreamingVolume(lager.Logger, string, string, string)
@@ -239,11 +238,6 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 	tracing.Inject(ctx, &containerSpec)
 
 	owner := db.NewBuildStepContainerOwner(step.metadata.BuildID, step.planID, step.metadata.TeamID)
-
-	err = delegate.BeforeSelectWorker(logger)
-	if err != nil {
-		return false, err
-	}
 
 	worker, err := step.workerPool.FindOrSelectWorker(
 		ctx,

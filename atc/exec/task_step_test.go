@@ -206,10 +206,6 @@ var _ = Describe("TaskStep", func() {
 				Expect(ok).To(BeFalse())
 			})
 
-			It("emits a BeforeSelectWorker event", func() {
-				Expect(fakeDelegate.BeforeSelectWorkerCallCount()).To(Equal(1))
-			})
-
 			It("emits a SelectedWorker event", func() {
 				Expect(fakeDelegate.SelectedWorkerCallCount()).To(Equal(1))
 				_, workerName := fakeDelegate.SelectedWorkerArgsForCall(0)

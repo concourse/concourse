@@ -37,7 +37,6 @@ type PutDelegate interface {
 	Finished(lager.Logger, ExitStatus, resource.VersionResult)
 	Errored(lager.Logger, string)
 
-	BeforeSelectWorker(lager.Logger) error
 	WaitingForWorker(lager.Logger)
 	SelectedWorker(lager.Logger, string)
 	StreamingVolume(lager.Logger, string, string, string)
@@ -179,11 +178,6 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 	tracing.Inject(ctx, &containerSpec)
 
 	owner := db.NewBuildStepContainerOwner(step.metadata.BuildID, step.planID, step.metadata.TeamID)
-
-	err = delegate.BeforeSelectWorker(logger)
-	if err != nil {
-		return false, err
-	}
 
 	worker, err := step.workerPool.FindOrSelectWorker(ctx, owner, containerSpec, workerSpec, step.strategy, delegate)
 	if err != nil {

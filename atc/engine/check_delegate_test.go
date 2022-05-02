@@ -647,8 +647,6 @@ var _ = Describe("CheckDelegate", func() {
 	Describe("UpdateScopeLastCheckStartTime", func() {
 		var (
 			found        bool
-			buildId      int
-			nestedCheck  bool
 			err          error
 			expectedPlan json.RawMessage
 		)
@@ -661,37 +659,18 @@ var _ = Describe("CheckDelegate", func() {
 		})
 
 		JustBeforeEach(func() {
-			found, buildId, err = delegate.UpdateScopeLastCheckStartTime(fakeResourceConfigScope, nestedCheck)
+			found, err = delegate.UpdateScopeLastCheckStartTime(fakeResourceConfigScope)
 		})
 
 		Context("Resource check", func() {
 			BeforeEach(func() {
-				nestedCheck = false
-			})
-
-			Context("OnCheckBuildStart", func() {
-				It("should call build.OnCheckBuildStart", func() {
-					Expect(fakeBuild.OnCheckBuildStartCallCount()).To(Equal(1))
-				})
-
-				Context("when fails", func() {
-					BeforeEach(func() {
-						fakeBuild.OnCheckBuildStartReturns(fmt.Errorf("some-error"))
-					})
-
-					It("should fail", func() {
-						Expect(err).To(HaveOccurred())
-						Expect(err.Error()).To(Equal("some-error"))
-						Expect(found).To(BeFalse())
-					})
-				})
+				plan.Check.Resource = "some-resource"
 			})
 
 			Context("delegate to scope", func() {
 				It("should succeeded", func() {
 					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeTrue())
-					Expect(buildId).To(Equal(9999))
 				})
 
 				It("should delegate to scope", func() {
@@ -716,7 +695,6 @@ var _ = Describe("CheckDelegate", func() {
 						Expect(err).To(HaveOccurred())
 						Expect(err.Error()).To(Equal("some-error"))
 						Expect(found).To(BeFalse())
-						Expect(buildId).To(Equal(9999))
 					})
 				})
 			})
@@ -724,7 +702,7 @@ var _ = Describe("CheckDelegate", func() {
 
 		Context("Step nested check", func() {
 			BeforeEach(func() {
-				nestedCheck = true
+				plan.Check.Resource = ""
 			})
 
 			It("should not call build.OnCheckBuildStart", func() {
@@ -735,17 +713,16 @@ var _ = Describe("CheckDelegate", func() {
 				It("should succeeded", func() {
 					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeTrue())
-					Expect(buildId).To(Equal(0))
 				})
 
 				It("should delegate to scope", func() {
 					Expect(fakeResourceConfigScope.UpdateLastCheckStartTimeCallCount()).To(Equal(1))
 				})
 
-				It("Build id and public plan should be nil", func() {
+				It("Build id and public plan should not be nil", func() {
 					buildId, publicPlan := fakeResourceConfigScope.UpdateLastCheckStartTimeArgsForCall(0)
-					Expect(buildId).To(Equal(0))
-					Expect(publicPlan).To(BeNil())
+					Expect(buildId).To(Equal(9999))
+					Expect(publicPlan).To(Equal(&expectedPlan))
 				})
 
 				Context("when update fails", func() {
@@ -757,7 +734,6 @@ var _ = Describe("CheckDelegate", func() {
 						Expect(err).To(HaveOccurred())
 						Expect(err.Error()).To(Equal("some-error"))
 						Expect(found).To(BeFalse())
-						Expect(buildId).To(Equal(0))
 					})
 				})
 			})
