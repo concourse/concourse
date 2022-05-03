@@ -37,6 +37,14 @@ func (workerResourceCache WorkerResourceCache) FindOrCreate(tx Tx, sourceWorkerB
 		return nil, false, err
 	}
 	if found {
+		// If the found worker resource cache's worker base resource type id is
+		// 0, then means the original source has been invalidated. But as this
+		// worker resource cache can still be found and used, so before this cache
+		// is GC-ed, let's not recreate the cache.
+		if uwrc.WorkerBaseResourceTypeID == 0 {
+			return nil, false, errors.New("invalidated-worker-resource-cache-exists")
+		}
+
 		valid := sourceWorkerBaseResourceTypeID == uwrc.WorkerBaseResourceTypeID
 		return uwrc, valid, nil
 	}
@@ -71,6 +79,9 @@ func (workerResourceCache WorkerResourceCache) FindOrCreate(tx Tx, sourceWorkerB
 }
 
 // Find looks for a worker resource cache by resource cache id and worker name.
+// If returned worker_resource_cache's worker_base_resource_type_id is 0, that
+// means the source base resource type has been invalidated, thus the cache itself
+// can still be used, but it should no longer be cached again on other workers.
 func (workerResourceCache WorkerResourceCache) Find(runner sq.Runner) (*UsedWorkerResourceCache, bool, error) {
 	uwrc, found, err := workerResourceCache.find(runner)
 	return uwrc, found, err
@@ -78,7 +89,7 @@ func (workerResourceCache WorkerResourceCache) Find(runner sq.Runner) (*UsedWork
 
 func (workerResourceCache WorkerResourceCache) find(runner sq.Runner) (*UsedWorkerResourceCache, bool, error) {
 	var id int
-	var workerBaseResourceTypeID int
+	var workerBaseResourceTypeID sql.NullInt64
 	err := psql.Select("id", "worker_base_resource_type_id").
 		From("worker_resource_caches").
 		Where(sq.Eq{
@@ -96,5 +107,10 @@ func (workerResourceCache WorkerResourceCache) find(runner sq.Runner) (*UsedWork
 		return nil, false, err
 	}
 
-	return &UsedWorkerResourceCache{ID: id, WorkerBaseResourceTypeID: workerBaseResourceTypeID}, true, nil
+	wbrtId := 0
+	if workerBaseResourceTypeID.Valid {
+		wbrtId = int(workerBaseResourceTypeID.Int64)
+	}
+
+	return &UsedWorkerResourceCache{ID: id, WorkerBaseResourceTypeID: wbrtId}, true, nil
 }

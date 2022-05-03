@@ -330,7 +330,7 @@ var _ = Describe("Volume", func() {
 					Expect(found).To(BeTrue())
 				})
 
-				It("should be invalidated when the original base resource type is invalidated", func() {
+				It("should be still usable when the original base resource type is invalidated", func() {
 					scenario.Run(
 						builder.WithWorker(atc.Worker{
 							Name:          scenario.Workers[0].Name(),
@@ -342,15 +342,15 @@ var _ = Describe("Volume", func() {
 
 					_, found, err := volumeRepository.FindResourceCacheVolume(scenario.Workers[0].Name(), resourceCache)
 					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeFalse())
+					Expect(found).To(BeTrue())
 
 					_, found, err = volumeRepository.FindResourceCacheVolume(scenario.Workers[1].Name(), resourceCache)
 					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeFalse())
+					Expect(found).To(BeTrue())
 
 					_, found, err = volumeRepository.FindResourceCacheVolume(scenario.Workers[2].Name(), resourceCache)
 					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeFalse())
+					Expect(found).To(BeTrue())
 				})
 			})
 		})
@@ -377,6 +377,10 @@ var _ = Describe("Volume", func() {
 				streamedVolume := volumeOnWorker(scenario.Workers[1])
 				err = streamedVolume.InitializeStreamedResourceCache(resourceCache, scenario.Workers[0].Name())
 				Expect(err).ToNot(HaveOccurred())
+
+				workers, err := defaultTeam.FindWorkersForResourceCache(resourceCache.ID())
+				Expect(err).ToNot(HaveOccurred())
+				Expect(len(workers)).To(Equal(0))
 
 				Expect(streamedVolume.Type()).To(Equal(db.VolumeTypeContainer))
 			})

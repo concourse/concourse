@@ -13,6 +13,7 @@ type ResourceCacheLifecycle interface {
 	CleanUsesForFinishedBuilds(lager.Logger) error
 	CleanBuildImageResourceCaches(lager.Logger) error
 	CleanUpInvalidCaches(lager.Logger) error
+	CleanInvalidWorkerResourceCaches(lager.Logger) error
 	CleanDirtyInMemoryBuildUses(lager.Logger) error
 }
 
@@ -50,6 +51,17 @@ func (f *resourceCacheLifecycle) CleanUsesForFinishedBuilds(lager.Logger) error 
 func (f *resourceCacheLifecycle) CleanDirtyInMemoryBuildUses(lager.Logger) error {
 	_, err := sq.Delete("resource_cache_uses").
 		Where(sq.Expr("((now() - in_memory_build_create_time) > '24 HOURS'::INTERVAL)")).
+		RunWith(f.conn).
+		Exec()
+	return err
+}
+
+func (f *resourceCacheLifecycle) CleanInvalidWorkerResourceCaches(lager.Logger) error {
+	_, err := sq.Delete("worker_resource_caches w").
+		Where(sq.And{
+			sq.Eq{"w.worker_base_resource_type_id": nil},
+			sq.Expr("NOT EXISTS (SELECT 1 FROM resource_cache_uses u WHERE w.resource_cache_id = u.resource_cache_id LIMIT 1)"),
+		}).
 		RunWith(f.conn).
 		Exec()
 	return err

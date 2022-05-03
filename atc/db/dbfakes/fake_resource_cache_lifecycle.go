@@ -31,6 +31,17 @@ type FakeResourceCacheLifecycle struct {
 	cleanDirtyInMemoryBuildUsesReturnsOnCall map[int]struct {
 		result1 error
 	}
+	CleanInvalidWorkerResourceCachesStub        func(lager.Logger) error
+	cleanInvalidWorkerResourceCachesMutex       sync.RWMutex
+	cleanInvalidWorkerResourceCachesArgsForCall []struct {
+		arg1 lager.Logger
+	}
+	cleanInvalidWorkerResourceCachesReturns struct {
+		result1 error
+	}
+	cleanInvalidWorkerResourceCachesReturnsOnCall map[int]struct {
+		result1 error
+	}
 	CleanUpInvalidCachesStub        func(lager.Logger) error
 	cleanUpInvalidCachesMutex       sync.RWMutex
 	cleanUpInvalidCachesArgsForCall []struct {
@@ -179,6 +190,67 @@ func (fake *FakeResourceCacheLifecycle) CleanDirtyInMemoryBuildUsesReturnsOnCall
 	}{result1}
 }
 
+func (fake *FakeResourceCacheLifecycle) CleanInvalidWorkerResourceCaches(arg1 lager.Logger) error {
+	fake.cleanInvalidWorkerResourceCachesMutex.Lock()
+	ret, specificReturn := fake.cleanInvalidWorkerResourceCachesReturnsOnCall[len(fake.cleanInvalidWorkerResourceCachesArgsForCall)]
+	fake.cleanInvalidWorkerResourceCachesArgsForCall = append(fake.cleanInvalidWorkerResourceCachesArgsForCall, struct {
+		arg1 lager.Logger
+	}{arg1})
+	stub := fake.CleanInvalidWorkerResourceCachesStub
+	fakeReturns := fake.cleanInvalidWorkerResourceCachesReturns
+	fake.recordInvocation("CleanInvalidWorkerResourceCaches", []interface{}{arg1})
+	fake.cleanInvalidWorkerResourceCachesMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeResourceCacheLifecycle) CleanInvalidWorkerResourceCachesCallCount() int {
+	fake.cleanInvalidWorkerResourceCachesMutex.RLock()
+	defer fake.cleanInvalidWorkerResourceCachesMutex.RUnlock()
+	return len(fake.cleanInvalidWorkerResourceCachesArgsForCall)
+}
+
+func (fake *FakeResourceCacheLifecycle) CleanInvalidWorkerResourceCachesCalls(stub func(lager.Logger) error) {
+	fake.cleanInvalidWorkerResourceCachesMutex.Lock()
+	defer fake.cleanInvalidWorkerResourceCachesMutex.Unlock()
+	fake.CleanInvalidWorkerResourceCachesStub = stub
+}
+
+func (fake *FakeResourceCacheLifecycle) CleanInvalidWorkerResourceCachesArgsForCall(i int) lager.Logger {
+	fake.cleanInvalidWorkerResourceCachesMutex.RLock()
+	defer fake.cleanInvalidWorkerResourceCachesMutex.RUnlock()
+	argsForCall := fake.cleanInvalidWorkerResourceCachesArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeResourceCacheLifecycle) CleanInvalidWorkerResourceCachesReturns(result1 error) {
+	fake.cleanInvalidWorkerResourceCachesMutex.Lock()
+	defer fake.cleanInvalidWorkerResourceCachesMutex.Unlock()
+	fake.CleanInvalidWorkerResourceCachesStub = nil
+	fake.cleanInvalidWorkerResourceCachesReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeResourceCacheLifecycle) CleanInvalidWorkerResourceCachesReturnsOnCall(i int, result1 error) {
+	fake.cleanInvalidWorkerResourceCachesMutex.Lock()
+	defer fake.cleanInvalidWorkerResourceCachesMutex.Unlock()
+	fake.CleanInvalidWorkerResourceCachesStub = nil
+	if fake.cleanInvalidWorkerResourceCachesReturnsOnCall == nil {
+		fake.cleanInvalidWorkerResourceCachesReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.cleanInvalidWorkerResourceCachesReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeResourceCacheLifecycle) CleanUpInvalidCaches(arg1 lager.Logger) error {
 	fake.cleanUpInvalidCachesMutex.Lock()
 	ret, specificReturn := fake.cleanUpInvalidCachesReturnsOnCall[len(fake.cleanUpInvalidCachesArgsForCall)]
@@ -308,6 +380,8 @@ func (fake *FakeResourceCacheLifecycle) Invocations() map[string][][]interface{}
 	defer fake.cleanBuildImageResourceCachesMutex.RUnlock()
 	fake.cleanDirtyInMemoryBuildUsesMutex.RLock()
 	defer fake.cleanDirtyInMemoryBuildUsesMutex.RUnlock()
+	fake.cleanInvalidWorkerResourceCachesMutex.RLock()
+	defer fake.cleanInvalidWorkerResourceCachesMutex.RUnlock()
 	fake.cleanUpInvalidCachesMutex.RLock()
 	defer fake.cleanUpInvalidCachesMutex.RUnlock()
 	fake.cleanUsesForFinishedBuildsMutex.RLock()
