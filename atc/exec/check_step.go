@@ -275,7 +275,7 @@ func (step *CheckStep) runCheck(
 
 	strategy := step.strategy
 	if step.plan.IsResourceCheck() {
-		// Resource check containers should be placed randomly. Refer to PR#3251.
+		// Resource check containers should be placed randomly. Refer to issue #3251.
 		strategy = nil
 	}
 	worker, err := step.workerPool.FindOrSelectWorker(ctx, containerOwner, containerSpec, workerSpec, strategy, delegate)
