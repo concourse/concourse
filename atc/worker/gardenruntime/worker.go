@@ -402,22 +402,22 @@ func (worker *Worker) cloneInputVolumes(
 	defer span.End()
 
 	for i, input := range spec.Inputs {
-		i, input := i, input // keep a local copy for the goroutine
-
 		cleanedInputPath := filepath.Clean(input.DestinationPath)
 		inputDestinationPaths[cleanedInputPath] = true
 
-		g.Go(func() error {
-			v, err := worker.findOrStreamVolume(groupCtx, privileged, spec.TeamID, container, input.Artifact, input.DestinationPath, delegate)
-			if err != nil {
-				return err
-			}
-			localInputs[i] = mountableLocalInput{
-				cowParent: v,
-				mountPath: input.DestinationPath,
-			}
-			return nil
-		})
+		func(i int, input runtime.Input) {
+			g.Go(func() error {
+				v, err := worker.findOrStreamVolume(groupCtx, privileged, spec.TeamID, container, input.Artifact, input.DestinationPath, delegate)
+				if err != nil {
+					return err
+				}
+				localInputs[i] = mountableLocalInput{
+					cowParent: v,
+					mountPath: input.DestinationPath,
+				}
+				return nil
+			})
+		}(i, input)
 	}
 	if err := g.Wait(); err != nil {
 		return nil, nil, err

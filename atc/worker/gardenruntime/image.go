@@ -3,6 +3,7 @@ package gardenruntime
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/url"
 	"path"
@@ -43,7 +44,7 @@ func (worker *Worker) fetchImageForContainer(
 		volume, err := worker.findOrStreamVolume(ctx, imageSpec.Privileged, teamID, container, imageSpec.ImageArtifact, "/", delegate)
 		if err != nil {
 			logger.Error("failed-to-find-or-stream-volume-for-image", err)
-			return FetchedImage{}, err
+			return FetchedImage{}, fmt.Errorf("find or stream volume: %w", err)
 		}
 
 		imageVolume, err := worker.findOrCreateCOWVolumeForContainer(
@@ -56,18 +57,18 @@ func (worker *Worker) fetchImageForContainer(
 		)
 		if err != nil {
 			logger.Error("failed-to-create-cow-volume-for-image", err)
-			return FetchedImage{}, err
+			return FetchedImage{}, fmt.Errorf("create COW volume: %w", err)
 		}
 
 		imageMetadataReader, err := worker.streamer.StreamFile(ctx, imageSpec.ImageArtifact, ImageMetadataFile)
 		if err != nil {
 			logger.Error("failed-to-stream-metadata-file", err)
-			return FetchedImage{}, err
+			return FetchedImage{}, fmt.Errorf("stream image metadata file: %w", err)
 		}
 
 		metadata, err := loadMetadata(imageMetadataReader)
 		if err != nil {
-			return FetchedImage{}, err
+			return FetchedImage{}, fmt.Errorf("load image metadata: %w", err)
 		}
 
 		imageURL := url.URL{
