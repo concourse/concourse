@@ -218,6 +218,12 @@ func (w Worker) WithVersion(version string) *Worker {
 	})
 }
 
+func (w Worker) WithOverloadedState(overloaded bool) *Worker {
+	return w.WithWorkerSetup(func(w *atc.Worker) {
+		w.Overloaded = overloaded
+	})
+}
+
 func containerHandles(containers []*Container) []string {
 	handles := make([]string, len(containers))
 	for i, c := range containers {

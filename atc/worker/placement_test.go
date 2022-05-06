@@ -755,6 +755,42 @@ var _ = Describe("Container Placement Strategies", func() {
 			}
 		})
 	})
+
+	Describe("Worker overloaded", func() {
+		Test("removes workers that are overloaded", func() {
+			strategy, err := worker.NewPlacementStrategy(worker.PlacementOptions{
+				Strategies: []string{"worker-overloaded"},
+			})
+			Expect(err).ToNot(HaveOccurred())
+			scenario := Setup(
+				workertest.WithBasicJob(),
+				workertest.WithWorkers(
+					grt.NewWorker("worker1").WithOverloadedState(false),
+					grt.NewWorker("worker2").WithOverloadedState(true),
+					grt.NewWorker("worker3").WithOverloadedState(false),
+				),
+			)
+
+			spec := runtime.ContainerSpec{
+				TeamID:   scenario.TeamID,
+				JobID:    scenario.JobID,
+				StepName: scenario.StepName,
+			}
+
+			workers, err := strategy.Order(logger, scenario.Pool, scenario.DB.Workers, spec)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(workerNames(workers)).To(ConsistOf("worker1", "worker2", "worker3"))
+
+			for _, w := range workers {
+				err = strategy.Approve(logger, w, spec)
+				if w.Overloaded() {
+					Expect(err).To(MatchError(worker.ErrWorkerOverloaded))
+				} else {
+					Expect(err).ToNot(HaveOccurred())
+				}
+			}
+		})
+	})
 })
 
 func BeOneOf(vals ...interface{}) types.GomegaMatcher {

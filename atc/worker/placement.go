@@ -13,7 +13,7 @@ import (
 )
 
 type PlacementOptions struct {
-	Strategies                   []string `long:"container-placement-strategy" default:"volume-locality" choice:"volume-locality" choice:"random" choice:"fewest-build-containers" choice:"limit-active-tasks" choice:"limit-active-containers" choice:"limit-active-volumes" description:"Method by which a worker is selected during container placement. If multiple methods are specified, they will be applied in order. Random strategy should only be used alone."`
+	Strategies                   []string `long:"container-placement-strategy" default:"volume-locality" choice:"volume-locality" choice:"random" choice:"fewest-build-containers" choice:"limit-active-tasks" choice:"limit-active-containers" choice:"limit-active-volumes" choice:"worker-overloaded"  description:"Method by which a worker is selected during container placement. If multiple methods are specified, they will be applied in order. Random strategy should only be used alone."`
 	MaxActiveTasksPerWorker      int      `long:"max-active-tasks-per-worker" default:"0" description:"Maximum allowed number of active build tasks per worker. Has effect only when used with limit-active-tasks placement strategy. 0 means no limit."`
 	MaxActiveContainersPerWorker int      `long:"max-active-containers-per-worker" default:"0" description:"Maximum allowed number of active containers per worker. Has effect only when used with limit-active-containers placement strategy. 0 means no limit."`
 	MaxActiveVolumesPerWorker    int      `long:"max-active-volumes-per-worker" default:"0" description:"Maximum allowed number of active volumes per worker. Has effect only when used with limit-active-volumes placement strategy. 0 means no limit."`
@@ -22,6 +22,7 @@ type PlacementOptions struct {
 var (
 	ErrTooManyContainers = errors.New("worker has too many containers")
 	ErrTooManyVolumes    = errors.New("worker has too many volumes")
+	ErrWorkerOverloaded  = errors.New("worker is currently overloaded")
 )
 
 func NewPlacementStrategy(options PlacementOptions) (PlacementStrategy, error) {
@@ -51,6 +52,8 @@ func NewPlacementStrategy(options PlacementOptions) (PlacementStrategy, error) {
 				return nil, errors.New("max-active-volumes-per-worker must be greater or equal than 0")
 			}
 			strategy = append(strategy, limitActiveVolumesStrategy{MaxVolumes: options.MaxActiveVolumesPerWorker})
+		case "worker-overloaded":
+			strategy = append(strategy, workerOverloadedStrategy{})
 		default:
 			return nil, fmt.Errorf("invalid container placement strategy %s", strategy)
 		}
@@ -367,6 +370,24 @@ func (strategy limitActiveVolumesStrategy) Approve(_ lager.Logger, worker db.Wor
 }
 
 func (strategy limitActiveVolumesStrategy) Release(lager.Logger, db.Worker, runtime.ContainerSpec) {
+}
+
+// worker-overloaded
+
+type workerOverloadedStrategy struct{}
+
+func (strategy workerOverloadedStrategy) Order(_ lager.Logger, _ Pool, workers []db.Worker, _ runtime.ContainerSpec) ([]db.Worker, error) {
+	return workers, nil
+}
+
+func (strategy workerOverloadedStrategy) Approve(logger lager.Logger, worker db.Worker, _ runtime.ContainerSpec) error {
+	if worker.Overloaded() {
+		return ErrWorkerOverloaded
+	}
+	return nil
+}
+
+func (strategy workerOverloadedStrategy) Release(lager.Logger, db.Worker, runtime.ContainerSpec) {
 }
 
 // helpers
