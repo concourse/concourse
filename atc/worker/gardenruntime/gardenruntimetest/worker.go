@@ -2,6 +2,7 @@ package gardenruntimetest
 
 import (
 	"strconv"
+	"sync"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/compression"
@@ -62,7 +63,7 @@ func (w Worker) Build(db worker.DB, dbWorker db.Worker) runtime.Worker {
 	return gardenruntime.NewWorker(
 		dbWorker,
 		&Garden{ContainerList: w.Containers},
-		&Baggageclaim{Volumes: w.Volumes},
+		&Baggageclaim{Volumes: w.Volumes, Mutex: sync.Mutex{}},
 		db.ToGardenRuntimeDB(),
 		worker.NewStreamer(db.ResourceCacheFactory, compression.NewGzipCompression(), worker.P2PConfig{
 			Enabled: false,

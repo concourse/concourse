@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 
 	"github.com/concourse/concourse/atc/runtime/runtimetest"
 	"github.com/concourse/concourse/worker/baggageclaim"
@@ -14,9 +15,12 @@ import (
 
 type Baggageclaim struct {
 	Volumes []*Volume
+	Mutex   sync.Mutex
 }
 
 func (b *Baggageclaim) FindVolume(handle string) (*Volume, int, bool) {
+	b.Mutex.Lock()
+	defer b.Mutex.Unlock()
 	for i, v := range b.Volumes {
 		if v.handle == handle {
 			return v, i, true
@@ -37,6 +41,8 @@ func (b *Baggageclaim) FilteredVolumes(pred func(*Volume) bool) []*Volume {
 
 func (b *Baggageclaim) AddVolume(volume *Volume) *Volume {
 	_, i, ok := b.FindVolume(volume.handle)
+	b.Mutex.Lock()
+	defer b.Mutex.Unlock()
 	if ok {
 		b.Volumes[i] = volume
 		return volume
@@ -67,6 +73,8 @@ func (b *Baggageclaim) LookupVolume(_ context.Context, handle string) (baggagecl
 }
 
 func (b *Baggageclaim) DestroyVolumes(_ context.Context, handles []string) error {
+	b.Mutex.Lock()
+	defer b.Mutex.Unlock()
 	for _, handle := range handles {
 		b.DestroyVolume(context.Background(), handle)
 	}
