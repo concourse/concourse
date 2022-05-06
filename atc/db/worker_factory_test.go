@@ -29,6 +29,7 @@ var _ = Describe("WorkerFactory", func() {
 			Ephemeral:        true,
 			ActiveContainers: 140,
 			ActiveVolumes:    550,
+			Overloaded:       true,
 			ResourceTypes: []atc.WorkerResourceType{
 				{
 					Type:       "some-resource-type",
@@ -228,6 +229,7 @@ var _ = Describe("WorkerFactory", func() {
 				Expect(foundWorker.Ephemeral()).To(Equal(true))
 				Expect(foundWorker.ActiveContainers()).To(Equal(140))
 				Expect(foundWorker.ActiveVolumes()).To(Equal(550))
+				Expect(foundWorker.Overloaded()).To(BeTrue())
 				Expect(foundWorker.ResourceTypes()).To(Equal([]atc.WorkerResourceType{
 					{
 						Type:       "some-resource-type",

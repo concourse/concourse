@@ -206,6 +206,16 @@ type FakeWorker struct {
 	noProxyReturnsOnCall map[int]struct {
 		result1 string
 	}
+	OverloadedStub        func() bool
+	overloadedMutex       sync.RWMutex
+	overloadedArgsForCall []struct {
+	}
+	overloadedReturns struct {
+		result1 bool
+	}
+	overloadedReturnsOnCall map[int]struct {
+		result1 bool
+	}
 	PlatformStub        func() string
 	platformMutex       sync.RWMutex
 	platformArgsForCall []struct {
@@ -1333,6 +1343,59 @@ func (fake *FakeWorker) NoProxyReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
+func (fake *FakeWorker) Overloaded() bool {
+	fake.overloadedMutex.Lock()
+	ret, specificReturn := fake.overloadedReturnsOnCall[len(fake.overloadedArgsForCall)]
+	fake.overloadedArgsForCall = append(fake.overloadedArgsForCall, struct {
+	}{})
+	stub := fake.OverloadedStub
+	fakeReturns := fake.overloadedReturns
+	fake.recordInvocation("Overloaded", []interface{}{})
+	fake.overloadedMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeWorker) OverloadedCallCount() int {
+	fake.overloadedMutex.RLock()
+	defer fake.overloadedMutex.RUnlock()
+	return len(fake.overloadedArgsForCall)
+}
+
+func (fake *FakeWorker) OverloadedCalls(stub func() bool) {
+	fake.overloadedMutex.Lock()
+	defer fake.overloadedMutex.Unlock()
+	fake.OverloadedStub = stub
+}
+
+func (fake *FakeWorker) OverloadedReturns(result1 bool) {
+	fake.overloadedMutex.Lock()
+	defer fake.overloadedMutex.Unlock()
+	fake.OverloadedStub = nil
+	fake.overloadedReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeWorker) OverloadedReturnsOnCall(i int, result1 bool) {
+	fake.overloadedMutex.Lock()
+	defer fake.overloadedMutex.Unlock()
+	fake.OverloadedStub = nil
+	if fake.overloadedReturnsOnCall == nil {
+		fake.overloadedReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.overloadedReturnsOnCall[i] = struct {
+		result1 bool
+	}{result1}
+}
+
 func (fake *FakeWorker) Platform() string {
 	fake.platformMutex.Lock()
 	ret, specificReturn := fake.platformReturnsOnCall[len(fake.platformArgsForCall)]
@@ -2017,6 +2080,8 @@ func (fake *FakeWorker) Invocations() map[string][][]interface{} {
 	defer fake.nameMutex.RUnlock()
 	fake.noProxyMutex.RLock()
 	defer fake.noProxyMutex.RUnlock()
+	fake.overloadedMutex.RLock()
+	defer fake.overloadedMutex.RUnlock()
 	fake.platformMutex.RLock()
 	defer fake.platformMutex.RUnlock()
 	fake.pruneMutex.RLock()

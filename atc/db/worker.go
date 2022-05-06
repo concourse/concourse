@@ -80,6 +80,7 @@ type Worker interface {
 	ActiveTasks() (int, error)
 	IncreaseActiveTasks(int) (int, error)
 	DecreaseActiveTasks() (int, error)
+	Overloaded() bool
 
 	FindContainer(owner ContainerOwner) (CreatingContainer, CreatedContainer, error)
 	CreateContainer(owner ContainerOwner, meta ContainerMetadata) (CreatingContainer, error)
@@ -99,6 +100,7 @@ type worker struct {
 	activeContainers int
 	activeVolumes    int
 	activeTasks      int
+	overloaded       bool
 	resourceTypes    []atc.WorkerResourceType
 	platform         string
 	tags             []string
@@ -122,6 +124,7 @@ func (worker *worker) HTTPSProxyURL() string                   { return worker.h
 func (worker *worker) NoProxy() string                         { return worker.noProxy }
 func (worker *worker) ActiveContainers() int                   { return worker.activeContainers }
 func (worker *worker) ActiveVolumes() int                      { return worker.activeVolumes }
+func (worker *worker) Overloaded() bool                        { return worker.overloaded }
 func (worker *worker) ResourceTypes() []atc.WorkerResourceType { return worker.resourceTypes }
 func (worker *worker) Platform() string                        { return worker.platform }
 func (worker *worker) Tags() []string                          { return worker.tags }

@@ -17,9 +17,10 @@ type Worker struct {
 	HTTPSProxyURL string `json:"https_proxy_url,omitempty"`
 	NoProxy       string `json:"no_proxy,omitempty"`
 
-	ActiveContainers int `json:"active_containers"`
-	ActiveVolumes    int `json:"active_volumes"`
-	ActiveTasks      int `json:"active_tasks"`
+	ActiveContainers int  `json:"active_containers"`
+	ActiveVolumes    int  `json:"active_volumes"`
+	ActiveTasks      int  `json:"active_tasks"`
+	Overloaded       bool `json:"overloaded"`
 
 	ResourceTypes []WorkerResourceType `json:"resource_types"`
 
