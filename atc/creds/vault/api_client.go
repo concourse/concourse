@@ -22,6 +22,7 @@ type APIClient struct {
 
 	apiURL       string
 	namespace    string
+	clientConfig ClientConfig
 	tlsConfig    TLSConfig
 	authConfig   AuthConfig
 	queryTimeout time.Duration
@@ -32,12 +33,13 @@ type APIClient struct {
 }
 
 // NewAPIClient with the associated authorization config and underlying vault client.
-func NewAPIClient(logger lager.Logger, apiURL string, tlsConfig TLSConfig, authConfig AuthConfig, namespace string, queryTimeout time.Duration) (*APIClient, error) {
+func NewAPIClient(logger lager.Logger, apiURL string, clientConfig ClientConfig, tlsConfig TLSConfig, authConfig AuthConfig, namespace string, queryTimeout time.Duration) (*APIClient, error) {
 	ac := &APIClient{
 		logger: logger,
 
 		apiURL:       apiURL,
 		namespace:    namespace,
+		clientConfig: clientConfig,
 		tlsConfig:    tlsConfig,
 		authConfig:   authConfig,
 		queryTimeout: queryTimeout,
@@ -223,6 +225,10 @@ func (ac *APIClient) baseClient() (*vaultapi.Client, error) {
 	err = client.SetAddress(ac.apiURL)
 	if err != nil {
 		return nil, err
+	}
+
+	if !ac.clientConfig.DisableSRVLookup {
+		client.SetSRVLookup(true)
 	}
 
 	if ac.namespace != "" {
