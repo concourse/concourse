@@ -7,7 +7,6 @@ import (
 	"github.com/concourse/concourse/atc/creds"
 
 	"code.cloudfoundry.org/credhub-cli/credhub/credentials"
-	"code.cloudfoundry.org/credhub-cli/errors"
 	"code.cloudfoundry.org/lager"
 )
 
@@ -58,13 +57,14 @@ func (c CredHubAtc) findCred(path string) (credentials.Credential, bool, error) 
 		return cred, false, err
 	}
 
-	_, err = ch.FindByPartialName(path)
+	results, err := ch.FindByPartialName(path)
 	if err != nil {
-		if err.Error() == errors.NewNoMatchingCredentialsFoundError().Error() {
-			return cred, false, nil
-		}
-
 		return cred, false, err
+	}
+
+	// same as https://github.com/cloudfoundry/credhub-cli/blob/main/commands/find.go#L22
+	if len(results.Credentials) == 0 {
+		return cred, false, nil
 	}
 
 	cred, err = ch.GetLatestVersion(path)
