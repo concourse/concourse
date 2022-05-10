@@ -273,7 +273,12 @@ func (step *CheckStep) runCheck(
 		return nil, runtime.ProcessResult{}, err
 	}
 
-	worker, err := step.workerPool.FindOrSelectWorker(ctx, containerOwner, containerSpec, workerSpec, step.strategy, delegate)
+	strategy := step.strategy
+	if step.plan.IsResourceCheck() {
+		// Resource check containers should be placed randomly. Refer to issue #3251.
+		strategy = nil
+	}
+	worker, err := step.workerPool.FindOrSelectWorker(ctx, containerOwner, containerSpec, workerSpec, strategy, delegate)
 	if err != nil {
 		return nil, runtime.ProcessResult{}, err
 	}
@@ -285,7 +290,7 @@ func (step *CheckStep) runCheck(
 			logger,
 			containerSpec,
 			worker,
-			step.strategy,
+			strategy,
 		)
 	}()
 

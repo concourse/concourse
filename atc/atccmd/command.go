@@ -1027,7 +1027,7 @@ func (cmd *RunCommand) backendComponents(
 		return nil, err
 	}
 
-	buildContainerStrategy, err := cmd.chooseBuildContainerStrategy()
+	buildContainerStrategy, noInputBuildContainerStrategy, err := cmd.chooseBuildContainerStrategy()
 	if err != nil {
 		return nil, err
 	}
@@ -1051,6 +1051,7 @@ func (cmd *RunCommand) backendComponents(
 		secretManager,
 		defaultLimits,
 		buildContainerStrategy,
+		noInputBuildContainerStrategy,
 		lockFactory,
 		rateLimiter,
 		policyChecker,
@@ -1657,7 +1658,7 @@ func constructLockConn(driverName, connectionString string) (*sql.DB, error) {
 	return dbConn, nil
 }
 
-func (cmd *RunCommand) chooseBuildContainerStrategy() (worker.PlacementStrategy, error) {
+func (cmd *RunCommand) chooseBuildContainerStrategy() (worker.PlacementStrategy, worker.PlacementStrategy, error) {
 	return worker.NewPlacementStrategy(cmd.ContainerPlacementStrategyOptions)
 }
 
@@ -1694,6 +1695,7 @@ func (cmd *RunCommand) constructEngine(
 	secretManager creds.Secrets,
 	defaultLimits atc.ContainerLimits,
 	strategy worker.PlacementStrategy,
+	noInputStrategy worker.PlacementStrategy,
 	lockFactory lock.LockFactory,
 	rateLimiter engine.RateLimiter,
 	policyChecker policy.Checker,
@@ -1710,6 +1712,7 @@ func (cmd *RunCommand) constructEngine(
 				resourceConfigFactory,
 				defaultLimits,
 				strategy,
+				noInputStrategy,
 				cmd.GlobalResourceCheckTimeout,
 				cmd.DefaultGetTimeout,
 				cmd.DefaultPutTimeout,
