@@ -93,6 +93,9 @@ policy domID =
         PipelineCardName _ _ ->
             OnlyShowWhenOverflowing
 
+        UserDisplayName _ ->
+            OnlyShowWhenOverflowing
+
         InstanceGroupCardName _ _ _ ->
             OnlyShowWhenOverflowing
 

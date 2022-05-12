@@ -102,6 +102,7 @@ type DomID
     | LoginButton
     | LogoutButton
     | UserMenu
+    | UserDisplayName String
     | PaginationButton Page
     | VersionHeader VersionId
     | VersionToggle VersionId

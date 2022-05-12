@@ -1,13 +1,14 @@
-module Login.Login exposing (Model, update, userDisplayName, view)
+module Login.Login exposing (Model, tooltip, update, userDisplayName, view)
 
 import Concourse
 import EffectTransformer exposing (ET)
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, href, id)
-import Html.Events exposing (onClick)
+import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Login.Styles as Styles
 import Message.Effects exposing (Effect(..))
 import Message.Message exposing (DomID(..), Message(..))
+import Tooltip
 import UserState exposing (UserState(..))
 
 
@@ -31,6 +32,19 @@ update msg ( model, effects ) =
 
         _ ->
             ( model, effects )
+
+
+tooltip : String -> Maybe Tooltip.Tooltip
+tooltip username =
+    Just
+        { body = Html.text username
+        , attachPosition =
+            { direction = Tooltip.Bottom
+            , alignment = Tooltip.End
+            }
+        , arrow = Just 5
+        , containerAttrs = Nothing
+        }
 
 
 view : UserState -> Model r -> Html Message
@@ -65,16 +79,24 @@ viewLoginState userState isUserMenuExpanded =
             ]
 
         UserStateLoggedIn user ->
+            let
+                displayName =
+                    userDisplayName user
+            in
             [ Html.div
                 ([ id "login-container"
                  , onClick <| Click UserMenu
                  ]
                     ++ Styles.loginContainer
                 )
-                [ Html.div (id "user-id" :: Styles.loginItem)
-                    (Html.div
-                        Styles.loginText
-                        [ Html.text (userDisplayName user) ]
+                [ Html.div
+                    (id "user-id"
+                        :: Styles.loginItem
+                        ++ [ onMouseEnter <| Hover <| Just (UserDisplayName displayName)
+                           , onMouseLeave <| Hover Nothing
+                           ]
+                    )
+                    (Html.text displayName
                         :: (if isUserMenuExpanded then
                                 [ Html.div
                                     ([ id "logout-button"

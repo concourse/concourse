@@ -54,6 +54,10 @@ all : Test
 all =
     describe "build page" <|
         let
+            sampleUser : Concourse.User
+            sampleUser =
+                { id = "1", userName = "test", name = "Bob", isAdmin = False, email = "bob@bob.com", teams = Dict.empty, displayUserId = "sample-user" }
+
             fetchPipeline : Application.Model -> ( Application.Model, List Effects.Effect )
             fetchPipeline =
                 Application.handleCallback <|
@@ -1401,6 +1405,18 @@ all =
                         |> Common.queryView
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.has [ id "login-component" ]
+            , test "username text does not overflow or wrap" <|
+                \_ ->
+                    Common.init "/teams/t/pipelines/p/jobs/j/builds/1"
+                        |> Application.handleCallback
+                            (Callback.UserFetched <| Ok sampleUser)
+                        |> Tuple.first
+                        |> Common.queryView
+                        |> Query.find [ id "user-id" ]
+                        |> Query.has
+                            [ style "overflow" "hidden"
+                            , style "text-overflow" "ellipsis"
+                            ]
             ]
         , test "page below top bar has padding to accomodate top bar" <|
             \_ ->

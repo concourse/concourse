@@ -34,7 +34,6 @@ import Concourse.Pagination
         , chevronContainer
         , chevronLeft
         , chevronRight
-        , equal
         )
 import DateFormat
 import Dict
@@ -1171,6 +1170,9 @@ tooltip model session =
                 , arrow = Just 5
                 , containerAttrs = Nothing
                 }
+
+        HoverState.Tooltip (UserDisplayName username) _ ->
+            Login.tooltip username
 
         _ ->
             model.output

@@ -23,6 +23,7 @@ import HoverState
 import Html exposing (Html)
 import Html.Attributes exposing (style)
 import List.Extra
+import Login.Login as Login
 import Maybe.Extra
 import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects exposing (Effect(..), toHtmlID)
@@ -271,6 +272,9 @@ tooltip model session =
                                         }
                                     )
                     )
+
+        HoverState.Tooltip (UserDisplayName username) _ ->
+            Login.tooltip username
 
         _ ->
             Nothing
