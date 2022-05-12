@@ -1844,6 +1844,7 @@ var _ = Describe("Build", func() {
 							},
 						},
 					}),
+					builder.WithResourceVersions("some-resource"),
 				)
 
 				expectedBuildPrep.Inputs = map[string]db.BuildPreparationStatus{
