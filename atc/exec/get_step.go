@@ -69,6 +69,7 @@ type GetDelegate interface {
 	WaitingForWorker(lager.Logger)
 	SelectedWorker(lager.Logger, string)
 	StreamingVolume(lager.Logger, string, string, string)
+	WaitingForStreamedVolume(lager.Logger, string, string)
 
 	UpdateResourceVersion(lager.Logger, string, resource.VersionResult)
 

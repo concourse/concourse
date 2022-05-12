@@ -113,6 +113,15 @@ decodeBuildEvent =
                                 (Json.Decode.maybe <| Json.Decode.field "time" <| Json.Decode.map dateFromSeconds Json.Decode.int)
                             )
 
+                    "waiting-for-streamed-volume" ->
+                        Json.Decode.field
+                            "data"
+                            (Json.Decode.map3 WaitingForStreamedVolume
+                                (Json.Decode.field "origin" <| Json.Decode.lazy (\_ -> decodeOrigin))
+                                (Json.Decode.field "volume" Json.Decode.string)
+                                (Json.Decode.maybe <| Json.Decode.field "time" <| Json.Decode.map dateFromSeconds Json.Decode.int)
+                            )
+
                     "error" ->
                         Json.Decode.field "data" decodeErrorEvent
 

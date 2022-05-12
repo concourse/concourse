@@ -1079,4 +1079,18 @@ var _ = Describe("BuildStepDelegate", func() {
 			Expect(e.(event.StreamingVolume).DestWorker).To(Equal("dest-worker"))
 		})
 	})
+
+	Describe("WaitingForStreamedVolume", func() {
+		JustBeforeEach(func() {
+			delegate.WaitingForStreamedVolume(logger, "some-volume", "dest-worker")
+		})
+
+		It("saves an event", func() {
+			Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
+			e := fakeBuild.SaveEventArgsForCall(0)
+			Expect(e.EventType()).To(Equal(atc.EventType("waiting-for-streamed-volume")))
+			Expect(e.(event.WaitingForStreamedVolume).Volume).To(Equal("some-volume"))
+			Expect(e.(event.WaitingForStreamedVolume).DestWorker).To(Equal("dest-worker"))
+		})
+	})
 })

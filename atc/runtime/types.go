@@ -126,6 +126,7 @@ type ContainerSpec struct {
 
 type BuildStepDelegate interface {
 	StreamingVolume(lager.Logger, string, string, string)
+	WaitingForStreamedVolume(lager.Logger, string, string)
 }
 
 // ContainerSpec must implement propagation.TextMapCarrier so that it can be
