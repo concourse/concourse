@@ -144,7 +144,7 @@ and the following resource types:
 				It("fails to delete versions", func() {
 					yes()
 					Eventually(sess.Err).Should(gbytes.Say("Unexpected Response"))
-					Expect(sess.ExitCode()).To(Equal(1))
+					Expect(sess.ExitCode()).ToNot(Equal(0))
 				})
 			})
 
@@ -260,7 +260,7 @@ and the following resource types:
 				It("fails to delete versions", func() {
 					yes()
 					Eventually(sess.Err).Should(gbytes.Say("Unexpected Response"))
-					Expect(sess.ExitCode()).To(Equal(1))
+					Expect(sess.ExitCode()).ToNot(Equal(0))
 				})
 			})
 
