@@ -137,8 +137,9 @@ var _ = Describe("VaultManager", func() {
 			fakeVault.StartTLS()
 
 			config = map[string]interface{}{
-				"url":         fakeVault.URL,
-				"path_prefix": "/path-prefix",
+				"url":                fakeVault.URL,
+				"disable_srv_lookup": true,
+				"path_prefix":        "/path-prefix",
 				"lookup_templates": []string{
 					"/what/{{.Team}}/blah/{{.Pipeline}}/{{.Secret}}",
 					"/thing/{{.Team}}/{{.Secret}}",
@@ -184,6 +185,7 @@ var _ = Describe("VaultManager", func() {
 			Expect(configErr).ToNot(HaveOccurred())
 
 			Expect(manager.URL).To(Equal(fakeVault.URL))
+			Expect(manager.ClientConfig.DisableSRVLookup).To(Equal(true))
 			Expect(manager.PathPrefix).To(Equal("/path-prefix"))
 			Expect(manager.LookupTemplates).To(Equal([]string{
 				"/what/{{.Team}}/blah/{{.Pipeline}}/{{.Secret}}",
@@ -211,11 +213,13 @@ var _ = Describe("VaultManager", func() {
 				delete(config, "auth_retry_max")
 				delete(config, "auth_retry_initial")
 				delete(config, "lookup_templates")
+				delete(config, "disable_srv_lookup")
 			})
 
 			It("has sane defaults", func() {
 				Expect(configErr).ToNot(HaveOccurred())
 
+				Expect(manager.ClientConfig.DisableSRVLookup).To(Equal(false))
 				Expect(manager.PathPrefix).To(Equal("/concourse"))
 				Expect(manager.Auth.RetryMax).To(Equal(5 * time.Minute))
 				Expect(manager.Auth.RetryInitial).To(Equal(time.Second))

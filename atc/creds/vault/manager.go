@@ -24,12 +24,17 @@ type VaultManager struct {
 	LoginTimeout    time.Duration `mapstructure:"login_timeout" long:"login-timeout" default:"60s" description:"Timeout value for Vault login."`
 	QueryTimeout    time.Duration `mapstructure:"query_timeout" long:"query-timeout" default:"60s" description:"Timeout value for Vault query."`
 
-	TLS  TLSConfig  `mapstructure:",squash"`
-	Auth AuthConfig `mapstructure:",squash"`
+	ClientConfig ClientConfig `mapstructure:",squash"`
+	TLS          TLSConfig    `mapstructure:",squash"`
+	Auth         AuthConfig   `mapstructure:",squash"`
 
 	Client        *APIClient
 	ReAuther      *ReAuther
 	SecretFactory *vaultFactory
+}
+
+type ClientConfig struct {
+	DisableSRVLookup bool `mapstructure:"disable_srv_lookup" long:"disable-srv-lookup" description:"When vault URL contains NO port, use this flag to control if the client will lookup the host through DNS SRV lookup. When vault URL contains port, SRV lookup is diabled and this flag has no impact."`
 }
 
 type TLSConfig struct {
@@ -61,7 +66,7 @@ type AuthConfig struct {
 func (manager *VaultManager) Init(log lager.Logger) error {
 	var err error
 
-	manager.Client, err = NewAPIClient(log, manager.URL, manager.TLS, manager.Auth, manager.Namespace, manager.QueryTimeout)
+	manager.Client, err = NewAPIClient(log, manager.URL, manager.ClientConfig, manager.TLS, manager.Auth, manager.Namespace, manager.QueryTimeout)
 	if err != nil {
 		return err
 	}
