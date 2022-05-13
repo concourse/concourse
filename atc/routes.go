@@ -73,13 +73,14 @@ const (
 	CreatePipelineBuild       = "CreatePipelineBuild"
 	PipelineBadge             = "PipelineBadge"
 
-	RegisterWorker  = "RegisterWorker"
-	LandWorker      = "LandWorker"
-	RetireWorker    = "RetireWorker"
-	PruneWorker     = "PruneWorker"
-	HeartbeatWorker = "HeartbeatWorker"
-	ListWorkers     = "ListWorkers"
-	DeleteWorker    = "DeleteWorker"
+	RegisterWorker   = "RegisterWorker"
+	LandWorker       = "LandWorker"
+	RetireWorker     = "RetireWorker"
+	PruneWorker      = "PruneWorker"
+	HeartbeatWorker  = "HeartbeatWorker"
+	ListWorkers      = "ListWorkers"
+	DeleteWorker     = "DeleteWorker"
+	WorkerOverloaded = "WorkerOverloaded"
 
 	SetLogLevel = "SetLogLevel"
 	GetLogLevel = "GetLogLevel"
@@ -202,6 +203,7 @@ var Routes = rata.Routes([]rata.Route{
 	{Path: "/api/v1/workers/:worker_name/retire", Method: "PUT", Name: RetireWorker},
 	{Path: "/api/v1/workers/:worker_name/prune", Method: "PUT", Name: PruneWorker},
 	{Path: "/api/v1/workers/:worker_name/heartbeat", Method: "PUT", Name: HeartbeatWorker},
+	{Path: "/api/v1/workers/:worker_name/overloaded", Method: "PUT", Name: WorkerOverloaded},
 	{Path: "/api/v1/workers/:worker_name", Method: "DELETE", Name: DeleteWorker},
 
 	{Path: "/api/v1/log-level", Method: "GET", Name: GetLogLevel},
