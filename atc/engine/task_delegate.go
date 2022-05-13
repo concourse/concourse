@@ -109,10 +109,11 @@ func (d *taskDelegate) FetchImage(
 	types atc.ResourceTypes,
 	privileged bool,
 	stepTags atc.Tags,
+	skipInterval bool,
 ) (runtime.ImageSpec, error) {
 	image.Name = "image"
 
-	getPlan, checkPlan := atc.FetchImagePlan(d.planID, image, types, stepTags, false, nil)
+	getPlan, checkPlan := atc.FetchImagePlan(d.planID, image, types, stepTags, skipInterval, nil)
 
 	if checkPlan != nil {
 		err := d.build.SaveEvent(event.ImageCheck{

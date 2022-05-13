@@ -75,10 +75,7 @@ func (s *Server) CreateJobBuild(pipeline db.Pipeline) http.Handler {
 					resourceTypes,
 					version,
 					true,
-					// Don't recursively skip the interval for checks for parent resource
-					// types - doing so would result in a ton of checks running
-					// unnecessarily.
-					false,
+					true,
 					true,
 				)
 				if err != nil {

@@ -787,7 +787,7 @@ var _ = Describe("TaskStep", func() {
 
 			It("fetches the image", func() {
 				Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
-				_, imageResource, types, privileged, tags := fakeDelegate.FetchImageArgsForCall(0)
+				_, imageResource, types, privileged, tags, skipInterval := fakeDelegate.FetchImageArgsForCall(0)
 				Expect(imageResource).To(Equal(atc.ImageResource{
 					Type:   "docker",
 					Source: atc.Source{"some": "super-secret-source"},
@@ -796,6 +796,7 @@ var _ = Describe("TaskStep", func() {
 				Expect(types).To(Equal(taskPlan.ResourceTypes))
 				Expect(privileged).To(BeFalse())
 				Expect(tags).To(Equal(atc.Tags{"some", "tags"}))
+				Expect(skipInterval).To(Equal(false))
 			})
 
 			It("creates the specs with the fetched image", func() {
@@ -809,8 +810,20 @@ var _ = Describe("TaskStep", func() {
 
 				It("fetches a privileged image", func() {
 					Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
-					_, _, _, privileged, _ := fakeDelegate.FetchImageArgsForCall(0)
+					_, _, _, privileged, _, _ := fakeDelegate.FetchImageArgsForCall(0)
 					Expect(privileged).To(BeTrue())
+				})
+			})
+
+			Context("when check skip interval is true", func() {
+				BeforeEach(func() {
+					taskPlan.CheckSkipInterval = true
+				})
+
+				It("fetches an image with forced check", func() {
+					Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
+					_, _, _, _, _, skipInterval := fakeDelegate.FetchImageArgsForCall(0)
+					Expect(skipInterval).To(BeTrue())
 				})
 			})
 		})
