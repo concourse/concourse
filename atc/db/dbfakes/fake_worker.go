@@ -282,6 +282,17 @@ type FakeWorker struct {
 	retireReturnsOnCall map[int]struct {
 		result1 error
 	}
+	SetOverloadedStub        func(bool) error
+	setOverloadedMutex       sync.RWMutex
+	setOverloadedArgsForCall []struct {
+		arg1 bool
+	}
+	setOverloadedReturns struct {
+		result1 error
+	}
+	setOverloadedReturnsOnCall map[int]struct {
+		result1 error
+	}
 	StartTimeStub        func() time.Time
 	startTimeMutex       sync.RWMutex
 	startTimeArgsForCall []struct {
@@ -1723,6 +1734,67 @@ func (fake *FakeWorker) RetireReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeWorker) SetOverloaded(arg1 bool) error {
+	fake.setOverloadedMutex.Lock()
+	ret, specificReturn := fake.setOverloadedReturnsOnCall[len(fake.setOverloadedArgsForCall)]
+	fake.setOverloadedArgsForCall = append(fake.setOverloadedArgsForCall, struct {
+		arg1 bool
+	}{arg1})
+	stub := fake.SetOverloadedStub
+	fakeReturns := fake.setOverloadedReturns
+	fake.recordInvocation("SetOverloaded", []interface{}{arg1})
+	fake.setOverloadedMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeWorker) SetOverloadedCallCount() int {
+	fake.setOverloadedMutex.RLock()
+	defer fake.setOverloadedMutex.RUnlock()
+	return len(fake.setOverloadedArgsForCall)
+}
+
+func (fake *FakeWorker) SetOverloadedCalls(stub func(bool) error) {
+	fake.setOverloadedMutex.Lock()
+	defer fake.setOverloadedMutex.Unlock()
+	fake.SetOverloadedStub = stub
+}
+
+func (fake *FakeWorker) SetOverloadedArgsForCall(i int) bool {
+	fake.setOverloadedMutex.RLock()
+	defer fake.setOverloadedMutex.RUnlock()
+	argsForCall := fake.setOverloadedArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeWorker) SetOverloadedReturns(result1 error) {
+	fake.setOverloadedMutex.Lock()
+	defer fake.setOverloadedMutex.Unlock()
+	fake.SetOverloadedStub = nil
+	fake.setOverloadedReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeWorker) SetOverloadedReturnsOnCall(i int, result1 error) {
+	fake.setOverloadedMutex.Lock()
+	defer fake.setOverloadedMutex.Unlock()
+	fake.SetOverloadedStub = nil
+	if fake.setOverloadedReturnsOnCall == nil {
+		fake.setOverloadedReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.setOverloadedReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeWorker) StartTime() time.Time {
 	fake.startTimeMutex.Lock()
 	ret, specificReturn := fake.startTimeReturnsOnCall[len(fake.startTimeArgsForCall)]
@@ -2094,6 +2166,8 @@ func (fake *FakeWorker) Invocations() map[string][][]interface{} {
 	defer fake.resourceTypesMutex.RUnlock()
 	fake.retireMutex.RLock()
 	defer fake.retireMutex.RUnlock()
+	fake.setOverloadedMutex.RLock()
+	defer fake.setOverloadedMutex.RUnlock()
 	fake.startTimeMutex.RLock()
 	defer fake.startTimeMutex.RUnlock()
 	fake.stateMutex.RLock()

@@ -475,4 +475,41 @@ var _ = Describe("Worker", func() {
 			})
 		})
 	})
+
+	Describe("Overloaded status", func() {
+		BeforeEach(func() {
+			var err error
+			worker, err = workerFactory.SaveWorker(atcWorker, 5*time.Minute)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("when the worker registers", func() {
+			It("is not overloaded", func() {
+				status := worker.Overloaded()
+				Expect(status).To(BeFalse())
+			})
+		})
+
+		Context("when the worker is overloaded", func() {
+			It("overload status returns true", func() {
+				err := worker.SetOverloaded(true)
+				Expect(err).ToNot(HaveOccurred())
+
+				worker.Reload()
+				status := worker.Overloaded()
+				Expect(status).To(BeTrue())
+			})
+		})
+
+		Context("when the worker is no longer overloaded", func() {
+			It("overloaded status returns false", func() {
+				err := worker.SetOverloaded(false)
+				Expect(err).ToNot(HaveOccurred())
+
+				worker.Reload()
+				status := worker.Overloaded()
+				Expect(status).To(BeFalse())
+			})
+		})
+	})
 })

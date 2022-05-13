@@ -81,6 +81,7 @@ type Worker interface {
 	IncreaseActiveTasks(int) (int, error)
 	DecreaseActiveTasks() (int, error)
 	Overloaded() bool
+	SetOverloaded(bool) error
 
 	FindContainer(owner ContainerOwner) (CreatingContainer, CreatedContainer, error)
 	CreateContainer(owner ContainerOwner, meta ContainerMetadata) (CreatingContainer, error)
@@ -420,4 +421,16 @@ func (worker *worker) DecreaseActiveTasks() (int, error) {
 		return 0, err
 	}
 	return worker.activeTasks, nil
+}
+
+func (worker *worker) SetOverloaded(overloaded bool) error {
+	_, err := psql.Update("workers").
+		Set("overloaded", overloaded).
+		Where(sq.Eq{"name": worker.name}).
+		RunWith(worker.conn).
+		Exec()
+	if err != nil {
+		return err
+	}
+	return nil
 }
