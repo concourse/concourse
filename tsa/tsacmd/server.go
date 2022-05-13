@@ -8,6 +8,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -537,6 +538,18 @@ func (server *server) parseRequest(cli string) (request, string, error) {
 		req = reportVolumesRequest{
 			server:        server,
 			volumeHandles: args,
+		}
+	case tsa.ReportOverloadedStatus:
+		if len(args) < 1 {
+			return nil, "", errors.New("no overloaded status reported from the client")
+		}
+		status, err := strconv.ParseBool(args[0])
+		if err != nil {
+			return nil, "", fmt.Errorf("unknown overloaded status reported: %s", args)
+		}
+		req = reportOverloadedStatus{
+			server:     server,
+			overloaded: status,
 		}
 	default:
 		return nil, "", fmt.Errorf("unknown command: %s", command)

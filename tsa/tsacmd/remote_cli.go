@@ -327,6 +327,31 @@ func (req reportVolumesRequest) Handle(ctx context.Context, state ConnState, cha
 	}).WorkerStatus(ctx, worker, tsa.ReportVolumes)
 }
 
+type reportOverloadedStatus struct {
+	server     *server
+	overloaded bool
+}
+
+func (req reportOverloadedStatus) Handle(ctx context.Context, state ConnState, channel ssh.Channel) error {
+	var worker atc.Worker
+	err := json.NewDecoder(channel).Decode(&worker)
+	if err != nil {
+		return err
+	}
+
+	if err := checkTeam(state, worker); err != nil {
+		return err
+	}
+
+	s := &tsa.OverloadedStatus{
+		ATCEndpoint: req.server.atcEndpointPicker.Pick(),
+		HTTPClient:  req.server.httpClient,
+		Overloaded:  req.overloaded,
+	}
+
+	return s.SetOverload(ctx, worker)
+}
+
 func gardenURL(addr string) string {
 	return fmt.Sprintf("http://%s", addr)
 }

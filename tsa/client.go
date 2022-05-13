@@ -11,6 +11,7 @@ import (
 	"math/rand"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -318,6 +319,25 @@ func (client *Client) ReportVolumes(ctx context.Context, handles []string) error
 	defer sshClient.Close()
 
 	command := append([]string{"report-volumes"}, handles...)
+
+	return client.run(ctx, sshClient, strings.Join(command, " "), os.Stdout)
+}
+
+// ReportOverloadedStatus invokes the 'report-overloaded-status' comand,
+// letting the web node(s) know that the current worker is overloaded or
+// no longer overloaded from its container workloads
+func (client *Client) ReportOverloadedStatus(ctx context.Context, overloaded bool) error {
+	logger := lagerctx.FromContext(ctx)
+
+	sshClient, _, err := client.dial(ctx, 0)
+	if err != nil {
+		logger.Error("failed-to-dial", err)
+		return err
+	}
+
+	defer sshClient.Close()
+
+	command := []string{ReportOverloadedStatus, strconv.FormatBool(overloaded)}
 
 	return client.run(ctx, sshClient, strings.Join(command, " "), os.Stdout)
 }
