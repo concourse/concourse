@@ -1191,4 +1191,236 @@ var _ = Describe("Versions API", func() {
 			})
 		})
 	})
+
+	Describe("DELETE /api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions", func() {
+		var response *http.Response
+		var fakeResource *dbfakes.FakeResource
+
+		BeforeEach(func() {
+			fakeResource = new(dbfakes.FakeResource)
+		})
+
+		JustBeforeEach(func() {
+			var err error
+
+			request, err := http.NewRequest("DELETE", server.URL+"/api/v1/teams/a-team/pipelines/a-pipeline/resources/some-resource/versions", nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			response, err = client.Do(request)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("when authenticated", func() {
+			BeforeEach(func() {
+				fakeAccess.IsAuthenticatedReturns(true)
+			})
+
+			Context("when the user is not admin", func() {
+				BeforeEach(func() {
+					fakeAccess.IsAdminReturns(false)
+				})
+
+				It("returns Forbidden", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+				})
+			})
+
+			Context("when the user is an admin", func() {
+				BeforeEach(func() {
+					fakeAccess.IsAdminReturns(true)
+				})
+
+				It("tries to find the resource", func() {
+					Expect(fakePipeline.ResourceCallCount()).To(Equal(1))
+					Expect(fakePipeline.ResourceArgsForCall(0)).To(Equal("some-resource"))
+				})
+
+				Context("when the resource exists", func() {
+					BeforeEach(func() {
+						fakePipeline.ResourceReturns(fakeResource, true, nil)
+					})
+
+					It("tries to delete the versions", func() {
+						Expect(fakeResource.ClearVersionsCallCount()).To(Equal(1))
+					})
+
+					Context("when deleting the resource versions succeeds", func() {
+						BeforeEach(func() {
+							fakeResource.ClearVersionsReturns(3, nil)
+						})
+
+						It("returns 200", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusOK))
+						})
+
+						It("returns Content-Type 'application/json'", func() {
+							expectedHeaderEntries := map[string]string{
+								"Content-Type": "application/json",
+							}
+							Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
+						})
+
+						It("returns the number of rows deleted", func() {
+							body, err := ioutil.ReadAll(response.Body)
+							Expect(err).NotTo(HaveOccurred())
+
+							Expect(body).To(MatchJSON(`{"versions_removed": 3}`))
+						})
+					})
+
+					Context("when deleting the resource versions fail", func() {
+						BeforeEach(func() {
+							fakeResource.ClearVersionsReturns(0, errors.New("failed"))
+						})
+
+						It("returns 500", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+							Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("failed")))
+						})
+					})
+				})
+
+				Context("when the resource is not found", func() {
+					BeforeEach(func() {
+						fakePipeline.ResourceReturns(nil, false, nil)
+					})
+
+					It("returns 404", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+					})
+				})
+
+				Context("when finding the resource errors", func() {
+					BeforeEach(func() {
+						fakePipeline.ResourceReturns(nil, false, errors.New("woops"))
+					})
+
+					It("returns 500", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
+			})
+		})
+	})
+
+	Describe("DELETE /api/v1/teams/:team_name/pipelines/:pipeline_name/resource-types/:resource_type_name/versions", func() {
+		var response *http.Response
+		var fakeResourceType *dbfakes.FakeResourceType
+
+		BeforeEach(func() {
+			fakeResourceType = new(dbfakes.FakeResourceType)
+		})
+
+		JustBeforeEach(func() {
+			var err error
+
+			request, err := http.NewRequest("DELETE", server.URL+"/api/v1/teams/a-team/pipelines/a-pipeline/resource-types/some-resource-type/versions", nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			response, err = client.Do(request)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				fakeAccess.IsAuthenticatedReturns(false)
+			})
+
+			It("returns Unauthorized", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			})
+		})
+
+		Context("when authenticated", func() {
+			BeforeEach(func() {
+				fakeAccess.IsAuthenticatedReturns(true)
+			})
+
+			Context("when the user is not admin", func() {
+				BeforeEach(func() {
+					fakeAccess.IsAdminReturns(false)
+				})
+
+				It("returns Forbidden", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+				})
+			})
+
+			Context("when the user is an admin", func() {
+				BeforeEach(func() {
+					fakeAccess.IsAdminReturns(true)
+				})
+
+				It("tries to find the resource type", func() {
+					Expect(fakePipeline.ResourceTypeCallCount()).To(Equal(1))
+					Expect(fakePipeline.ResourceTypeArgsForCall(0)).To(Equal("some-resource-type"))
+				})
+
+				Context("when the resource type exists", func() {
+					BeforeEach(func() {
+						fakePipeline.ResourceTypeReturns(fakeResourceType, true, nil)
+					})
+
+					It("tries to delete the versions", func() {
+						Expect(fakeResourceType.ClearVersionsCallCount()).To(Equal(1))
+					})
+
+					Context("when deleting the resource type versions succeeds", func() {
+						BeforeEach(func() {
+							fakeResourceType.ClearVersionsReturns(3, nil)
+						})
+
+						It("returns 200", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusOK))
+						})
+
+						It("returns Content-Type 'application/json'", func() {
+							expectedHeaderEntries := map[string]string{
+								"Content-Type": "application/json",
+							}
+							Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
+						})
+
+						It("returns the number of rows deleted", func() {
+							body, err := ioutil.ReadAll(response.Body)
+							Expect(err).NotTo(HaveOccurred())
+
+							Expect(body).To(MatchJSON(`{"versions_removed": 3}`))
+						})
+					})
+
+					Context("when deleting the resource type versions fail", func() {
+						BeforeEach(func() {
+							fakeResourceType.ClearVersionsReturns(0, errors.New("failed"))
+						})
+
+						It("returns 500", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+							Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("failed")))
+						})
+					})
+				})
+
+				Context("when the resource type is not found", func() {
+					BeforeEach(func() {
+						fakePipeline.ResourceTypeReturns(nil, false, nil)
+					})
+
+					It("returns 404", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+					})
+				})
+
+				Context("when finding the resource type errors", func() {
+					BeforeEach(func() {
+						fakePipeline.ResourceTypeReturns(nil, false, errors.New("woops"))
+					})
+
+					It("returns 500", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
+			})
+		})
+	})
 })

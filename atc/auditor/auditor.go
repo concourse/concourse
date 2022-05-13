@@ -124,7 +124,11 @@ func (a *auditor) ValidateAction(action string) bool {
 		atc.PinResourceVersion,
 		atc.ClearResourceCache,
 		atc.GetDownstreamResourceCausality,
-		atc.GetUpstreamResourceCausality:
+		atc.GetUpstreamResourceCausality,
+		atc.ListSharedForResource,
+		atc.ListSharedForResourceType,
+		atc.ClearResourceVersions,
+		atc.ClearResourceTypeVersions:
 		return a.EnableResourceAuditLog
 	case
 		atc.SaveConfig,

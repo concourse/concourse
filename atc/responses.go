@@ -16,3 +16,7 @@ type ConfigResponse struct {
 type ClearResourceCacheResponse struct {
 	CachesRemoved int64 `json:"caches_removed"`
 }
+
+type ClearVersionsResponse struct {
+	VersionsRemoved int64 `json:"versions_removed"`
+}

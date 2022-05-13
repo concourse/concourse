@@ -49,6 +49,18 @@ type FakeResourceType struct {
 	checkTimeoutReturnsOnCall map[int]struct {
 		result1 string
 	}
+	ClearVersionsStub        func() (int64, error)
+	clearVersionsMutex       sync.RWMutex
+	clearVersionsArgsForCall []struct {
+	}
+	clearVersionsReturns struct {
+		result1 int64
+		result2 error
+	}
+	clearVersionsReturnsOnCall map[int]struct {
+		result1 int64
+		result2 error
+	}
 	CreateBuildStub        func(context.Context, bool, atc.Plan) (db.Build, bool, error)
 	createBuildMutex       sync.RWMutex
 	createBuildArgsForCall []struct {
@@ -267,6 +279,18 @@ type FakeResourceType struct {
 	}
 	setResourceConfigScopeReturnsOnCall map[int]struct {
 		result1 error
+	}
+	SharedResourcesAndTypesStub        func() (atc.ResourcesAndTypes, error)
+	sharedResourcesAndTypesMutex       sync.RWMutex
+	sharedResourcesAndTypesArgsForCall []struct {
+	}
+	sharedResourcesAndTypesReturns struct {
+		result1 atc.ResourcesAndTypes
+		result2 error
+	}
+	sharedResourcesAndTypesReturnsOnCall map[int]struct {
+		result1 atc.ResourcesAndTypes
+		result2 error
 	}
 	SourceStub        func() atc.Source
 	sourceMutex       sync.RWMutex
@@ -493,6 +517,62 @@ func (fake *FakeResourceType) CheckTimeoutReturnsOnCall(i int, result1 string) {
 	fake.checkTimeoutReturnsOnCall[i] = struct {
 		result1 string
 	}{result1}
+}
+
+func (fake *FakeResourceType) ClearVersions() (int64, error) {
+	fake.clearVersionsMutex.Lock()
+	ret, specificReturn := fake.clearVersionsReturnsOnCall[len(fake.clearVersionsArgsForCall)]
+	fake.clearVersionsArgsForCall = append(fake.clearVersionsArgsForCall, struct {
+	}{})
+	stub := fake.ClearVersionsStub
+	fakeReturns := fake.clearVersionsReturns
+	fake.recordInvocation("ClearVersions", []interface{}{})
+	fake.clearVersionsMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeResourceType) ClearVersionsCallCount() int {
+	fake.clearVersionsMutex.RLock()
+	defer fake.clearVersionsMutex.RUnlock()
+	return len(fake.clearVersionsArgsForCall)
+}
+
+func (fake *FakeResourceType) ClearVersionsCalls(stub func() (int64, error)) {
+	fake.clearVersionsMutex.Lock()
+	defer fake.clearVersionsMutex.Unlock()
+	fake.ClearVersionsStub = stub
+}
+
+func (fake *FakeResourceType) ClearVersionsReturns(result1 int64, result2 error) {
+	fake.clearVersionsMutex.Lock()
+	defer fake.clearVersionsMutex.Unlock()
+	fake.ClearVersionsStub = nil
+	fake.clearVersionsReturns = struct {
+		result1 int64
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeResourceType) ClearVersionsReturnsOnCall(i int, result1 int64, result2 error) {
+	fake.clearVersionsMutex.Lock()
+	defer fake.clearVersionsMutex.Unlock()
+	fake.ClearVersionsStub = nil
+	if fake.clearVersionsReturnsOnCall == nil {
+		fake.clearVersionsReturnsOnCall = make(map[int]struct {
+			result1 int64
+			result2 error
+		})
+	}
+	fake.clearVersionsReturnsOnCall[i] = struct {
+		result1 int64
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeResourceType) CreateBuild(arg1 context.Context, arg2 bool, arg3 atc.Plan) (db.Build, bool, error) {
@@ -1601,6 +1681,62 @@ func (fake *FakeResourceType) SetResourceConfigScopeReturnsOnCall(i int, result1
 	}{result1}
 }
 
+func (fake *FakeResourceType) SharedResourcesAndTypes() (atc.ResourcesAndTypes, error) {
+	fake.sharedResourcesAndTypesMutex.Lock()
+	ret, specificReturn := fake.sharedResourcesAndTypesReturnsOnCall[len(fake.sharedResourcesAndTypesArgsForCall)]
+	fake.sharedResourcesAndTypesArgsForCall = append(fake.sharedResourcesAndTypesArgsForCall, struct {
+	}{})
+	stub := fake.SharedResourcesAndTypesStub
+	fakeReturns := fake.sharedResourcesAndTypesReturns
+	fake.recordInvocation("SharedResourcesAndTypes", []interface{}{})
+	fake.sharedResourcesAndTypesMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeResourceType) SharedResourcesAndTypesCallCount() int {
+	fake.sharedResourcesAndTypesMutex.RLock()
+	defer fake.sharedResourcesAndTypesMutex.RUnlock()
+	return len(fake.sharedResourcesAndTypesArgsForCall)
+}
+
+func (fake *FakeResourceType) SharedResourcesAndTypesCalls(stub func() (atc.ResourcesAndTypes, error)) {
+	fake.sharedResourcesAndTypesMutex.Lock()
+	defer fake.sharedResourcesAndTypesMutex.Unlock()
+	fake.SharedResourcesAndTypesStub = stub
+}
+
+func (fake *FakeResourceType) SharedResourcesAndTypesReturns(result1 atc.ResourcesAndTypes, result2 error) {
+	fake.sharedResourcesAndTypesMutex.Lock()
+	defer fake.sharedResourcesAndTypesMutex.Unlock()
+	fake.SharedResourcesAndTypesStub = nil
+	fake.sharedResourcesAndTypesReturns = struct {
+		result1 atc.ResourcesAndTypes
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeResourceType) SharedResourcesAndTypesReturnsOnCall(i int, result1 atc.ResourcesAndTypes, result2 error) {
+	fake.sharedResourcesAndTypesMutex.Lock()
+	defer fake.sharedResourcesAndTypesMutex.Unlock()
+	fake.SharedResourcesAndTypesStub = nil
+	if fake.sharedResourcesAndTypesReturnsOnCall == nil {
+		fake.sharedResourcesAndTypesReturnsOnCall = make(map[int]struct {
+			result1 atc.ResourcesAndTypes
+			result2 error
+		})
+	}
+	fake.sharedResourcesAndTypesReturnsOnCall[i] = struct {
+		result1 atc.ResourcesAndTypes
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeResourceType) Source() atc.Source {
 	fake.sourceMutex.Lock()
 	ret, specificReturn := fake.sourceReturnsOnCall[len(fake.sourceArgsForCall)]
@@ -1875,6 +2011,8 @@ func (fake *FakeResourceType) Invocations() map[string][][]interface{} {
 	defer fake.checkPlanMutex.RUnlock()
 	fake.checkTimeoutMutex.RLock()
 	defer fake.checkTimeoutMutex.RUnlock()
+	fake.clearVersionsMutex.RLock()
+	defer fake.clearVersionsMutex.RUnlock()
 	fake.createBuildMutex.RLock()
 	defer fake.createBuildMutex.RUnlock()
 	fake.createInMemoryBuildMutex.RLock()
@@ -1915,6 +2053,8 @@ func (fake *FakeResourceType) Invocations() map[string][][]interface{} {
 	defer fake.resourceConfigScopeIDMutex.RUnlock()
 	fake.setResourceConfigScopeMutex.RLock()
 	defer fake.setResourceConfigScopeMutex.RUnlock()
+	fake.sharedResourcesAndTypesMutex.RLock()
+	defer fake.sharedResourcesAndTypesMutex.RUnlock()
 	fake.sourceMutex.RLock()
 	defer fake.sourceMutex.RUnlock()
 	fake.tagsMutex.RLock()

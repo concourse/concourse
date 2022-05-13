@@ -49,10 +49,13 @@ type ResourceType interface {
 	HasWebhook() bool
 
 	SetResourceConfigScope(ResourceConfigScope) error
+	SharedResourcesAndTypes() (atc.ResourcesAndTypes, error)
 
 	CheckPlan(planFactory atc.PlanFactory, imagePlanner atc.ImagePlanner, from atc.Version, interval atc.CheckEvery, sourceDefaults atc.Source, skipInterval bool, skipIntervalRecursively bool) atc.Plan
 	CreateBuild(context.Context, bool, atc.Plan) (Build, bool, error)
 	CreateInMemoryBuild(context.Context, atc.Plan, util.SequenceGenerator) (Build, error)
+
+	ClearVersions() (int64, error)
 
 	Reload() (bool, error)
 }
@@ -327,6 +330,26 @@ func (r *resourceType) CreateBuild(ctx context.Context, manuallyTriggered bool, 
 
 func (r *resourceType) CreateInMemoryBuild(ctx context.Context, plan atc.Plan, seqGen util.SequenceGenerator) (Build, error) {
 	return nil, errors.New("resource type not supporting in-memory check build as lidar no longer checking resource types")
+}
+
+func (r *resourceType) ClearVersions() (int64, error) {
+	results, err := psql.Delete("resource_config_versions").
+		Where(sq.Eq{
+			"resource_config_scope_id": r.resourceConfigScopeID,
+		}).
+		RunWith(r.conn).
+		Exec()
+
+	rowsDeleted, err := results.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+
+	return rowsDeleted, err
+}
+
+func (r *resourceType) SharedResourcesAndTypes() (atc.ResourcesAndTypes, error) {
+	return sharedResourcesAndTypes(r.conn, r.resourceConfigScopeID, r.name)
 }
 
 func scanResourceType(t *resourceType, row scannable) error {

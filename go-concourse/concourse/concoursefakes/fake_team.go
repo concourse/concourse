@@ -177,6 +177,34 @@ type FakeTeam struct {
 		result1 int64
 		result2 error
 	}
+	ClearResourceTypeVersionsStub        func(atc.PipelineRef, string) (int64, error)
+	clearResourceTypeVersionsMutex       sync.RWMutex
+	clearResourceTypeVersionsArgsForCall []struct {
+		arg1 atc.PipelineRef
+		arg2 string
+	}
+	clearResourceTypeVersionsReturns struct {
+		result1 int64
+		result2 error
+	}
+	clearResourceTypeVersionsReturnsOnCall map[int]struct {
+		result1 int64
+		result2 error
+	}
+	ClearResourceVersionsStub        func(atc.PipelineRef, string) (int64, error)
+	clearResourceVersionsMutex       sync.RWMutex
+	clearResourceVersionsArgsForCall []struct {
+		arg1 atc.PipelineRef
+		arg2 string
+	}
+	clearResourceVersionsReturns struct {
+		result1 int64
+		result2 error
+	}
+	clearResourceVersionsReturnsOnCall map[int]struct {
+		result1 int64
+		result2 error
+	}
 	ClearTaskCacheStub        func(atc.PipelineRef, string, string, string) (int64, error)
 	clearTaskCacheMutex       sync.RWMutex
 	clearTaskCacheArgsForCall []struct {
@@ -506,6 +534,38 @@ type FakeTeam struct {
 	listResourcesReturnsOnCall map[int]struct {
 		result1 []atc.Resource
 		result2 error
+	}
+	ListSharedForResourceStub        func(atc.PipelineRef, string) (atc.ResourcesAndTypes, bool, error)
+	listSharedForResourceMutex       sync.RWMutex
+	listSharedForResourceArgsForCall []struct {
+		arg1 atc.PipelineRef
+		arg2 string
+	}
+	listSharedForResourceReturns struct {
+		result1 atc.ResourcesAndTypes
+		result2 bool
+		result3 error
+	}
+	listSharedForResourceReturnsOnCall map[int]struct {
+		result1 atc.ResourcesAndTypes
+		result2 bool
+		result3 error
+	}
+	ListSharedForResourceTypeStub        func(atc.PipelineRef, string) (atc.ResourcesAndTypes, bool, error)
+	listSharedForResourceTypeMutex       sync.RWMutex
+	listSharedForResourceTypeArgsForCall []struct {
+		arg1 atc.PipelineRef
+		arg2 string
+	}
+	listSharedForResourceTypeReturns struct {
+		result1 atc.ResourcesAndTypes
+		result2 bool
+		result3 error
+	}
+	listSharedForResourceTypeReturnsOnCall map[int]struct {
+		result1 atc.ResourcesAndTypes
+		result2 bool
+		result3 error
 	}
 	ListVolumesStub        func() ([]atc.Volume, error)
 	listVolumesMutex       sync.RWMutex
@@ -1546,6 +1606,136 @@ func (fake *FakeTeam) ClearResourceCacheReturnsOnCall(i int, result1 int64, resu
 		})
 	}
 	fake.clearResourceCacheReturnsOnCall[i] = struct {
+		result1 int64
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) ClearResourceTypeVersions(arg1 atc.PipelineRef, arg2 string) (int64, error) {
+	fake.clearResourceTypeVersionsMutex.Lock()
+	ret, specificReturn := fake.clearResourceTypeVersionsReturnsOnCall[len(fake.clearResourceTypeVersionsArgsForCall)]
+	fake.clearResourceTypeVersionsArgsForCall = append(fake.clearResourceTypeVersionsArgsForCall, struct {
+		arg1 atc.PipelineRef
+		arg2 string
+	}{arg1, arg2})
+	stub := fake.ClearResourceTypeVersionsStub
+	fakeReturns := fake.clearResourceTypeVersionsReturns
+	fake.recordInvocation("ClearResourceTypeVersions", []interface{}{arg1, arg2})
+	fake.clearResourceTypeVersionsMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeTeam) ClearResourceTypeVersionsCallCount() int {
+	fake.clearResourceTypeVersionsMutex.RLock()
+	defer fake.clearResourceTypeVersionsMutex.RUnlock()
+	return len(fake.clearResourceTypeVersionsArgsForCall)
+}
+
+func (fake *FakeTeam) ClearResourceTypeVersionsCalls(stub func(atc.PipelineRef, string) (int64, error)) {
+	fake.clearResourceTypeVersionsMutex.Lock()
+	defer fake.clearResourceTypeVersionsMutex.Unlock()
+	fake.ClearResourceTypeVersionsStub = stub
+}
+
+func (fake *FakeTeam) ClearResourceTypeVersionsArgsForCall(i int) (atc.PipelineRef, string) {
+	fake.clearResourceTypeVersionsMutex.RLock()
+	defer fake.clearResourceTypeVersionsMutex.RUnlock()
+	argsForCall := fake.clearResourceTypeVersionsArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeTeam) ClearResourceTypeVersionsReturns(result1 int64, result2 error) {
+	fake.clearResourceTypeVersionsMutex.Lock()
+	defer fake.clearResourceTypeVersionsMutex.Unlock()
+	fake.ClearResourceTypeVersionsStub = nil
+	fake.clearResourceTypeVersionsReturns = struct {
+		result1 int64
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) ClearResourceTypeVersionsReturnsOnCall(i int, result1 int64, result2 error) {
+	fake.clearResourceTypeVersionsMutex.Lock()
+	defer fake.clearResourceTypeVersionsMutex.Unlock()
+	fake.ClearResourceTypeVersionsStub = nil
+	if fake.clearResourceTypeVersionsReturnsOnCall == nil {
+		fake.clearResourceTypeVersionsReturnsOnCall = make(map[int]struct {
+			result1 int64
+			result2 error
+		})
+	}
+	fake.clearResourceTypeVersionsReturnsOnCall[i] = struct {
+		result1 int64
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) ClearResourceVersions(arg1 atc.PipelineRef, arg2 string) (int64, error) {
+	fake.clearResourceVersionsMutex.Lock()
+	ret, specificReturn := fake.clearResourceVersionsReturnsOnCall[len(fake.clearResourceVersionsArgsForCall)]
+	fake.clearResourceVersionsArgsForCall = append(fake.clearResourceVersionsArgsForCall, struct {
+		arg1 atc.PipelineRef
+		arg2 string
+	}{arg1, arg2})
+	stub := fake.ClearResourceVersionsStub
+	fakeReturns := fake.clearResourceVersionsReturns
+	fake.recordInvocation("ClearResourceVersions", []interface{}{arg1, arg2})
+	fake.clearResourceVersionsMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeTeam) ClearResourceVersionsCallCount() int {
+	fake.clearResourceVersionsMutex.RLock()
+	defer fake.clearResourceVersionsMutex.RUnlock()
+	return len(fake.clearResourceVersionsArgsForCall)
+}
+
+func (fake *FakeTeam) ClearResourceVersionsCalls(stub func(atc.PipelineRef, string) (int64, error)) {
+	fake.clearResourceVersionsMutex.Lock()
+	defer fake.clearResourceVersionsMutex.Unlock()
+	fake.ClearResourceVersionsStub = stub
+}
+
+func (fake *FakeTeam) ClearResourceVersionsArgsForCall(i int) (atc.PipelineRef, string) {
+	fake.clearResourceVersionsMutex.RLock()
+	defer fake.clearResourceVersionsMutex.RUnlock()
+	argsForCall := fake.clearResourceVersionsArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeTeam) ClearResourceVersionsReturns(result1 int64, result2 error) {
+	fake.clearResourceVersionsMutex.Lock()
+	defer fake.clearResourceVersionsMutex.Unlock()
+	fake.ClearResourceVersionsStub = nil
+	fake.clearResourceVersionsReturns = struct {
+		result1 int64
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) ClearResourceVersionsReturnsOnCall(i int, result1 int64, result2 error) {
+	fake.clearResourceVersionsMutex.Lock()
+	defer fake.clearResourceVersionsMutex.Unlock()
+	fake.ClearResourceVersionsStub = nil
+	if fake.clearResourceVersionsReturnsOnCall == nil {
+		fake.clearResourceVersionsReturnsOnCall = make(map[int]struct {
+			result1 int64
+			result2 error
+		})
+	}
+	fake.clearResourceVersionsReturnsOnCall[i] = struct {
 		result1 int64
 		result2 error
 	}{result1, result2}
@@ -3057,6 +3247,142 @@ func (fake *FakeTeam) ListResourcesReturnsOnCall(i int, result1 []atc.Resource, 
 	}{result1, result2}
 }
 
+func (fake *FakeTeam) ListSharedForResource(arg1 atc.PipelineRef, arg2 string) (atc.ResourcesAndTypes, bool, error) {
+	fake.listSharedForResourceMutex.Lock()
+	ret, specificReturn := fake.listSharedForResourceReturnsOnCall[len(fake.listSharedForResourceArgsForCall)]
+	fake.listSharedForResourceArgsForCall = append(fake.listSharedForResourceArgsForCall, struct {
+		arg1 atc.PipelineRef
+		arg2 string
+	}{arg1, arg2})
+	stub := fake.ListSharedForResourceStub
+	fakeReturns := fake.listSharedForResourceReturns
+	fake.recordInvocation("ListSharedForResource", []interface{}{arg1, arg2})
+	fake.listSharedForResourceMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+}
+
+func (fake *FakeTeam) ListSharedForResourceCallCount() int {
+	fake.listSharedForResourceMutex.RLock()
+	defer fake.listSharedForResourceMutex.RUnlock()
+	return len(fake.listSharedForResourceArgsForCall)
+}
+
+func (fake *FakeTeam) ListSharedForResourceCalls(stub func(atc.PipelineRef, string) (atc.ResourcesAndTypes, bool, error)) {
+	fake.listSharedForResourceMutex.Lock()
+	defer fake.listSharedForResourceMutex.Unlock()
+	fake.ListSharedForResourceStub = stub
+}
+
+func (fake *FakeTeam) ListSharedForResourceArgsForCall(i int) (atc.PipelineRef, string) {
+	fake.listSharedForResourceMutex.RLock()
+	defer fake.listSharedForResourceMutex.RUnlock()
+	argsForCall := fake.listSharedForResourceArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeTeam) ListSharedForResourceReturns(result1 atc.ResourcesAndTypes, result2 bool, result3 error) {
+	fake.listSharedForResourceMutex.Lock()
+	defer fake.listSharedForResourceMutex.Unlock()
+	fake.ListSharedForResourceStub = nil
+	fake.listSharedForResourceReturns = struct {
+		result1 atc.ResourcesAndTypes
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeTeam) ListSharedForResourceReturnsOnCall(i int, result1 atc.ResourcesAndTypes, result2 bool, result3 error) {
+	fake.listSharedForResourceMutex.Lock()
+	defer fake.listSharedForResourceMutex.Unlock()
+	fake.ListSharedForResourceStub = nil
+	if fake.listSharedForResourceReturnsOnCall == nil {
+		fake.listSharedForResourceReturnsOnCall = make(map[int]struct {
+			result1 atc.ResourcesAndTypes
+			result2 bool
+			result3 error
+		})
+	}
+	fake.listSharedForResourceReturnsOnCall[i] = struct {
+		result1 atc.ResourcesAndTypes
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeTeam) ListSharedForResourceType(arg1 atc.PipelineRef, arg2 string) (atc.ResourcesAndTypes, bool, error) {
+	fake.listSharedForResourceTypeMutex.Lock()
+	ret, specificReturn := fake.listSharedForResourceTypeReturnsOnCall[len(fake.listSharedForResourceTypeArgsForCall)]
+	fake.listSharedForResourceTypeArgsForCall = append(fake.listSharedForResourceTypeArgsForCall, struct {
+		arg1 atc.PipelineRef
+		arg2 string
+	}{arg1, arg2})
+	stub := fake.ListSharedForResourceTypeStub
+	fakeReturns := fake.listSharedForResourceTypeReturns
+	fake.recordInvocation("ListSharedForResourceType", []interface{}{arg1, arg2})
+	fake.listSharedForResourceTypeMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+}
+
+func (fake *FakeTeam) ListSharedForResourceTypeCallCount() int {
+	fake.listSharedForResourceTypeMutex.RLock()
+	defer fake.listSharedForResourceTypeMutex.RUnlock()
+	return len(fake.listSharedForResourceTypeArgsForCall)
+}
+
+func (fake *FakeTeam) ListSharedForResourceTypeCalls(stub func(atc.PipelineRef, string) (atc.ResourcesAndTypes, bool, error)) {
+	fake.listSharedForResourceTypeMutex.Lock()
+	defer fake.listSharedForResourceTypeMutex.Unlock()
+	fake.ListSharedForResourceTypeStub = stub
+}
+
+func (fake *FakeTeam) ListSharedForResourceTypeArgsForCall(i int) (atc.PipelineRef, string) {
+	fake.listSharedForResourceTypeMutex.RLock()
+	defer fake.listSharedForResourceTypeMutex.RUnlock()
+	argsForCall := fake.listSharedForResourceTypeArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeTeam) ListSharedForResourceTypeReturns(result1 atc.ResourcesAndTypes, result2 bool, result3 error) {
+	fake.listSharedForResourceTypeMutex.Lock()
+	defer fake.listSharedForResourceTypeMutex.Unlock()
+	fake.ListSharedForResourceTypeStub = nil
+	fake.listSharedForResourceTypeReturns = struct {
+		result1 atc.ResourcesAndTypes
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeTeam) ListSharedForResourceTypeReturnsOnCall(i int, result1 atc.ResourcesAndTypes, result2 bool, result3 error) {
+	fake.listSharedForResourceTypeMutex.Lock()
+	defer fake.listSharedForResourceTypeMutex.Unlock()
+	fake.ListSharedForResourceTypeStub = nil
+	if fake.listSharedForResourceTypeReturnsOnCall == nil {
+		fake.listSharedForResourceTypeReturnsOnCall = make(map[int]struct {
+			result1 atc.ResourcesAndTypes
+			result2 bool
+			result3 error
+		})
+	}
+	fake.listSharedForResourceTypeReturnsOnCall[i] = struct {
+		result1 atc.ResourcesAndTypes
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeTeam) ListVolumes() ([]atc.Volume, error) {
 	fake.listVolumesMutex.Lock()
 	ret, specificReturn := fake.listVolumesReturnsOnCall[len(fake.listVolumesArgsForCall)]
@@ -4529,6 +4855,10 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.checkResourceTypeMutex.RUnlock()
 	fake.clearResourceCacheMutex.RLock()
 	defer fake.clearResourceCacheMutex.RUnlock()
+	fake.clearResourceTypeVersionsMutex.RLock()
+	defer fake.clearResourceTypeVersionsMutex.RUnlock()
+	fake.clearResourceVersionsMutex.RLock()
+	defer fake.clearResourceVersionsMutex.RUnlock()
 	fake.clearTaskCacheMutex.RLock()
 	defer fake.clearTaskCacheMutex.RUnlock()
 	fake.createArtifactMutex.RLock()
@@ -4575,6 +4905,10 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.listPipelinesMutex.RUnlock()
 	fake.listResourcesMutex.RLock()
 	defer fake.listResourcesMutex.RUnlock()
+	fake.listSharedForResourceMutex.RLock()
+	defer fake.listSharedForResourceMutex.RUnlock()
+	fake.listSharedForResourceTypeMutex.RLock()
+	defer fake.listSharedForResourceTypeMutex.RUnlock()
 	fake.listVolumesMutex.RLock()
 	defer fake.listVolumesMutex.RUnlock()
 	fake.nameMutex.RLock()

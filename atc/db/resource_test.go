@@ -651,6 +651,173 @@ var _ = Describe("Resource", func() {
 		})
 	})
 
+	Context("ClearVersions", func() {
+		var (
+			scenario     *dbtest.Scenario
+			someResource db.Resource
+			numDeleted   int64
+		)
+
+		JustBeforeEach(func() {
+			var err error
+			numDeleted, err = someResource.ClearVersions()
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		Context("when resource has no versions", func() {
+			BeforeEach(func() {
+				scenario = dbtest.Setup(
+					builder.WithPipeline(atc.Config{
+						Resources: atc.ResourceConfigs{
+							{
+								Name:   "some-resource",
+								Type:   "some-base-resource-type",
+								Source: atc.Source{"some": "source"},
+							},
+						},
+					}),
+				)
+
+				someResource = scenario.Resource("some-resource")
+			})
+
+			It("deletes zero versions", func() {
+				Expect(numDeleted).To(Equal(int64(0)))
+			})
+		})
+
+		Context("when there is one resource with a version history", func() {
+			BeforeEach(func() {
+				scenario = dbtest.Setup(
+					builder.WithPipeline(atc.Config{
+						Resources: atc.ResourceConfigs{
+							{
+								Name:   "some-resource",
+								Type:   "some-base-resource-type",
+								Source: atc.Source{"some": "source"},
+							},
+						},
+					}),
+					builder.WithResourceVersions(
+						"some-resource",
+						atc.Version{"ref": "v0"},
+						atc.Version{"ref": "v1"},
+						atc.Version{"ref": "v2"},
+					),
+				)
+
+				someResource = scenario.Resource("some-resource")
+				versions, _, found, err := someResource.Versions(db.Page{Limit: 1}, nil)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(versions).ToNot(BeNil())
+			})
+
+			It("clears the version history for the resource", func() {
+				Expect(numDeleted).To(Equal(int64(3)))
+
+				versions, _, found, err := someResource.Versions(db.Page{Limit: 5}, nil)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(versions).To(BeNil())
+			})
+
+			Context("when there are pinned/disabled versions", func() {
+				BeforeEach(func() {
+					pinned, err := someResource.PinVersion(scenario.ResourceVersion("some-resource", atc.Version{"ref": "v1"}).ID())
+					Expect(err).ToNot(HaveOccurred())
+					Expect(pinned).To(BeTrue())
+
+					err = someResource.DisableVersion(scenario.ResourceVersion("some-resource", atc.Version{"ref": "v0"}).ID())
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("keeps the state of pinned/disabled versions even after deleting the version history", func() {
+					Expect(numDeleted).To(Equal(int64(3)))
+
+					scenario.Run(builder.WithResourceVersions(
+						"some-resource",
+						atc.Version{"ref": "v0"},
+						atc.Version{"ref": "v1"},
+						atc.Version{"ref": "v2"},
+					))
+
+					versions, _, found, err := someResource.Versions(db.Page{Limit: 5}, nil)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(versions).To(HaveLen(3))
+					for _, version := range versions {
+						if version.ID == scenario.ResourceVersion("some-resource", atc.Version{"ref": "v0"}).ID() {
+							Expect(version.Enabled).To(BeFalse())
+						}
+					}
+
+					found, err = someResource.Reload()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					pinnedVersion := someResource.CurrentPinnedVersion()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(pinnedVersion).To(Equal(atc.Version{"ref": "v1"}))
+				})
+			})
+		})
+
+		Context("with global resources, when there are multiple resources sharing the same version history", func() {
+			var someOtherResource db.Resource
+
+			BeforeEach(func() {
+				atc.EnableGlobalResources = true
+
+				scenario = dbtest.Setup(
+					builder.WithPipeline(atc.Config{
+						Resources: atc.ResourceConfigs{
+							{
+								Name:   "some-resource",
+								Type:   "some-base-resource-type",
+								Source: atc.Source{"some": "source"},
+							},
+							{
+								Name:   "some-other-resource",
+								Type:   "some-base-resource-type",
+								Source: atc.Source{"some": "source"},
+							},
+						},
+					}),
+					builder.WithResourceVersions(
+						"some-resource",
+						atc.Version{"ref": "v0"},
+						atc.Version{"ref": "v1"},
+						atc.Version{"ref": "v2"},
+					),
+					builder.WithResourceVersions(
+						"some-other-resource",
+						atc.Version{"ref": "v0"},
+						atc.Version{"ref": "v1"},
+						atc.Version{"ref": "v2"},
+					),
+				)
+
+				someResource = scenario.Resource("some-resource")
+				someOtherResource = scenario.Resource("some-other-resource")
+			})
+
+			It("clears the version history for the shared resources", func() {
+				Expect(numDeleted).To(Equal(int64(3)))
+
+				versions, _, found, err := someResource.Versions(db.Page{Limit: 5}, nil)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(versions).To(BeNil())
+
+				versions, _, found, err = someOtherResource.Versions(db.Page{Limit: 5}, nil)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(versions).To(BeNil())
+			})
+		})
+	})
+
 	Context("Versions", func() {
 		var (
 			scenario *dbtest.Scenario
@@ -2042,6 +2209,260 @@ var _ = Describe("Resource", func() {
 							Expect(bs.PublicPlan).To(Equal(build.PublicPlan()))
 						})
 					})
+				})
+			})
+		})
+	})
+
+	Describe("SharedResourcesAndTypes", func() {
+		var (
+			scenario, scenario2 *dbtest.Scenario
+			resource            db.Resource
+			sharedErr           error
+			shared              atc.ResourcesAndTypes
+		)
+
+		BeforeEach(func() {
+			atc.EnableGlobalResources = true
+
+			scenario = dbtest.Setup(
+				builder.WithPipeline(atc.Config{
+					Resources: atc.ResourceConfigs{
+						{
+							Name:   "some-resource",
+							Type:   "some-base-resource-type",
+							Source: atc.Source{"some": "repository"},
+						},
+					},
+				}),
+			)
+
+			resource = scenario.Resource("some-resource")
+		})
+
+		JustBeforeEach(func() {
+			reloaded, err := resource.Reload()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(reloaded).To(BeTrue())
+
+			shared, sharedErr = resource.SharedResourcesAndTypes()
+		})
+
+		Context("when the resource has no scope", func() {
+			It("returns resource has no scope error", func() {
+				Expect(sharedErr).To(HaveOccurred())
+				Expect(sharedErr).To(Equal(db.ResourceHasNoScopeErr{"some-resource"}))
+				Expect(shared).To(Equal(atc.ResourcesAndTypes{}))
+			})
+		})
+
+		Context("when the resource has a scope", func() {
+			BeforeEach(func() {
+				scenario.Run(builder.WithResourceVersions(
+					"some-resource",
+					atc.Version{"ref": "v0"},
+					atc.Version{"ref": "v1"},
+					atc.Version{"ref": "v2"},
+				))
+			})
+
+			Context("when the resource is sharing resources/resource types", func() {
+				BeforeEach(func() {
+					scenario2 = dbtest.Setup(builder.WithPipeline(atc.Config{
+						Resources: atc.ResourceConfigs{
+							{
+								Name:   "some-resource",
+								Type:   "some-base-resource-type",
+								Source: atc.Source{"some": "repository"},
+							},
+							{
+								Name:   "other-resource",
+								Type:   "some-base-resource-type",
+								Source: atc.Source{"some": "repository"},
+							},
+						},
+						ResourceTypes: atc.ResourceTypes{
+							{
+								Name:   "some-resource-type",
+								Type:   "some-base-resource-type",
+								Source: atc.Source{"some": "repository"},
+							},
+						},
+					}),
+						builder.WithResourceVersions("some-resource", atc.Version{"ref": "v0"}),
+						builder.WithResourceVersions("other-resource", atc.Version{"ref": "v0"}),
+						builder.WithResourceTypeVersions("some-resource-type", atc.Version{"ref": "v0"}),
+					)
+				})
+
+				It("fetches the shared resources and types", func() {
+					Expect(sharedErr).ToNot(HaveOccurred())
+					Expect(shared.Resources).To(ConsistOf(atc.ResourceIdentifiers{
+						{
+							Name:         "some-resource",
+							PipelineName: scenario.Pipeline.Name(),
+							TeamName:     scenario.Team.Name(),
+						},
+						{
+							Name:         "some-resource",
+							PipelineName: scenario2.Pipeline.Name(),
+							TeamName:     scenario2.Team.Name(),
+						},
+						{
+							Name:         "other-resource",
+							PipelineName: scenario2.Pipeline.Name(),
+							TeamName:     scenario2.Team.Name(),
+						},
+					}))
+					Expect(shared.ResourceTypes).To(Equal(atc.ResourceIdentifiers{
+						{
+							Name:         "some-resource-type",
+							PipelineName: scenario2.Pipeline.Name(),
+							TeamName:     scenario2.Team.Name(),
+						},
+					}))
+				})
+			})
+
+			Context("when the resource has not sharing the scope", func() {
+				It("returns the resource itself", func() {
+					Expect(sharedErr).ToNot(HaveOccurred())
+					Expect(shared).To(Equal(atc.ResourcesAndTypes{
+						Resources: atc.ResourceIdentifiers{
+							{
+								Name:         "some-resource",
+								PipelineName: scenario.Pipeline.Name(),
+								TeamName:     scenario.Team.Name(),
+							},
+						},
+					}))
+				})
+			})
+		})
+	})
+
+	Describe("SharedResourcesAndTypes", func() {
+		var (
+			scenario, scenario2 *dbtest.Scenario
+			resourceType        db.ResourceType
+			sharedErr           error
+			shared              atc.ResourcesAndTypes
+		)
+
+		BeforeEach(func() {
+			atc.EnableGlobalResources = true
+
+			scenario = dbtest.Setup(
+				builder.WithPipeline(atc.Config{
+					ResourceTypes: atc.ResourceTypes{
+						{
+							Name:   "some-resource-type",
+							Type:   "some-base-resource-type",
+							Source: atc.Source{"some": "repository"},
+						},
+					},
+				}),
+			)
+
+			resourceType = scenario.ResourceType("some-resource-type")
+		})
+
+		JustBeforeEach(func() {
+			reloaded, err := resourceType.Reload()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(reloaded).To(BeTrue())
+
+			shared, sharedErr = resourceType.SharedResourcesAndTypes()
+		})
+
+		Context("when the resource type has no scope", func() {
+			It("returns resource type has no scope error", func() {
+				Expect(sharedErr).To(HaveOccurred())
+				Expect(sharedErr).To(Equal(db.ResourceHasNoScopeErr{"some-resource-type"}))
+				Expect(shared).To(Equal(atc.ResourcesAndTypes{}))
+			})
+		})
+
+		Context("when the resource type has a scope", func() {
+			BeforeEach(func() {
+				scenario.Run(builder.WithResourceTypeVersions(
+					"some-resource-type",
+					atc.Version{"ref": "v0"},
+					atc.Version{"ref": "v1"},
+					atc.Version{"ref": "v2"},
+				))
+			})
+
+			Context("when the resource type is sharing resources/resource types", func() {
+				BeforeEach(func() {
+					scenario2 = dbtest.Setup(builder.WithPipeline(atc.Config{
+						Resources: atc.ResourceConfigs{
+							{
+								Name:   "some-resource",
+								Type:   "some-base-resource-type",
+								Source: atc.Source{"some": "repository"},
+							},
+						},
+						ResourceTypes: atc.ResourceTypes{
+							{
+								Name:   "some-resource-type",
+								Type:   "some-base-resource-type",
+								Source: atc.Source{"some": "repository"},
+							},
+							{
+								Name:   "other-resource-type",
+								Type:   "some-base-resource-type",
+								Source: atc.Source{"some": "repository"},
+							},
+						},
+					}),
+						builder.WithResourceVersions("some-resource", atc.Version{"ref": "v0"}),
+						builder.WithResourceTypeVersions("other-resource-type", atc.Version{"ref": "v0"}),
+						builder.WithResourceTypeVersions("some-resource-type", atc.Version{"ref": "v0"}),
+					)
+				})
+
+				It("fetches the shared resources and types", func() {
+					Expect(sharedErr).ToNot(HaveOccurred())
+					Expect(shared.Resources).To(Equal(atc.ResourceIdentifiers{
+						{
+							Name:         "some-resource",
+							PipelineName: scenario2.Pipeline.Name(),
+							TeamName:     scenario2.Team.Name(),
+						},
+					}))
+					Expect(shared.ResourceTypes).To(ConsistOf(atc.ResourceIdentifiers{
+						{
+							Name:         "some-resource-type",
+							PipelineName: scenario.Pipeline.Name(),
+							TeamName:     scenario.Team.Name(),
+						},
+						{
+							Name:         "some-resource-type",
+							PipelineName: scenario2.Pipeline.Name(),
+							TeamName:     scenario2.Team.Name(),
+						},
+						{
+							Name:         "other-resource-type",
+							PipelineName: scenario2.Pipeline.Name(),
+							TeamName:     scenario2.Team.Name(),
+						},
+					}))
+				})
+			})
+
+			Context("when the resource type has not sharing the scope", func() {
+				It("returns the resource type itself", func() {
+					Expect(sharedErr).ToNot(HaveOccurred())
+					Expect(shared).To(Equal(atc.ResourcesAndTypes{
+						ResourceTypes: atc.ResourceIdentifiers{
+							{
+								Name:         "some-resource-type",
+								PipelineName: scenario.Pipeline.Name(),
+								TeamName:     scenario.Team.Name(),
+							},
+						},
+					}))
 				})
 			})
 		})
