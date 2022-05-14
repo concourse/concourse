@@ -296,7 +296,7 @@ and the following resource types:
 
 			It("errors", func() {
 				Eventually(sess.Err).Should(gbytes.Say(fmt.Sprintf("can specify only one of --resource or --resource-type\n")))
-				Expect(sess.ExitCode()).To(Equal(1))
+				Expect(sess.ExitCode()).ToNot(Equal(0))
 			})
 		})
 	})
