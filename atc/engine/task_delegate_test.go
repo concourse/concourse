@@ -250,7 +250,7 @@ var _ = Describe("TaskDelegate", func() {
 		})
 
 		JustBeforeEach(func() {
-			imageSpec, fetchErr = delegate.FetchImage(context.TODO(), imageResource, types, privileged, tags)
+			imageSpec, fetchErr = delegate.FetchImage(context.TODO(), imageResource, types, privileged, tags, false)
 		})
 
 		It("succeeds", func() {
