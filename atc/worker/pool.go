@@ -232,8 +232,9 @@ func (pool Pool) findWorkerForContainer(logger lager.Logger, owner db.ContainerO
 		return nil, nil, false, err
 	}
 
-	// When global-resources is enabled, a check-container may run on any team
-	// worker, which enables this optimization. Details refer to PR#8184.
+	// When global-resources is enabled, a check-container may run on any worker
+	// as long as the scope is the same, which enables this optimization. Details
+	// refer to PR#8184.
 	if atc.EnableGlobalResources {
 		for _, w := range workersWithContainer {
 			if pool.isWorkerCompatibleAndRunning(logger, w, workerSpec) {
