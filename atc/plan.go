@@ -345,6 +345,10 @@ type TaskPlan struct {
 
 	// Resource types to have available for use when fetching the task's image.
 	ResourceTypes ResourceTypes `json:"resource_types,omitempty"`
+
+	// If set, the check plan for the image will be forced to run and not respect
+	// the checking interval
+	CheckSkipInterval bool `json:"check_skip_interval,omitempty"`
 }
 
 type RunPlan struct {
