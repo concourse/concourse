@@ -30,7 +30,7 @@ type OIDCFlags struct {
 	InsecureSkipVerify        bool        `long:"skip-ssl-validation" description:"Skip SSL validation"`
 	DisableGroups             bool        `long:"disable-groups" description:"Disable OIDC groups claims"`
 	InsecureSkipEmailVerified bool        `long:"skip-email-verified-validation" description:"Ignore the email_verified claim from the upstream provider, treating all users as if email_verified were true."`
-	GetUserInfo               bool        `long:"get-user-info" description:"When enabled, the OpenID Connector will query the UserInfo endpoint for additional claims, e.g. groups"`
+	DisableGetUserInfo        bool        `long:"disable-get-user-info" description:"When disabled, the OpenID Connector will not query the UserInfo endpoint for additional claims, e.g. groups"`
 }
 
 func (flag *OIDCFlags) Name() string {
@@ -80,7 +80,7 @@ func (flag *OIDCFlags) Serialize(redirectURI string) ([]byte, error) {
 		RedirectURI:               redirectURI,
 		InsecureEnableGroups:      !flag.DisableGroups,
 		InsecureSkipEmailVerified: flag.InsecureSkipEmailVerified,
-		GetUserInfo:               flag.GetUserInfo,
+		GetUserInfo:               !flag.DisableGetUserInfo,
 	}
 
 	config.ClaimMapping.GroupsKey = flag.GroupsKey
