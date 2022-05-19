@@ -10,7 +10,7 @@
   "devDependencies": {
     "@babel/core": "^7.17.12",
     "@babel/plugin-syntax-dynamic-import": "^7.8.3",
-    "@babel/preset-env": "^7.17.10",
+    "@babel/preset-env": "^7.17.12",
     "@mdi/svg": "^6.7.96",
     "babel-loader": "^8.2.5",
     "child-process-promise": "^2.2.1",
