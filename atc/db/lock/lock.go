@@ -116,7 +116,7 @@ type lockFactory struct {
 type LogFunc func(logger lager.Logger, id LockID)
 
 func NewLockFactory(
-	conn [FactoryCount]*sql.DB,
+	conns [FactoryCount]*sql.DB,
 	acquire LogFunc,
 	release LogFunc,
 ) LockFactory {
@@ -125,7 +125,7 @@ func NewLockFactory(
 	for i := 0; i < FactoryCount; i++ {
 		factories[i] = &lockFactory{
 			db: &lockDB{
-				conn:  conn[i],
+				conn:  conns[i],
 				mutex: &sync.Mutex{},
 			},
 			acquireFunc: acquire,
