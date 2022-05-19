@@ -25,8 +25,8 @@ var _ = Describe("A pipeline-provided resource type", func() {
 		By("expecting a container for the resource check, resource type check, task resource type check and task image check")
 		Expect(ContainersBy("type", "check")).To(HaveLen(4))
 
-		By("expecting a container for resource type check, resource check, resource get in get step. expecting a container for nested resource type check, image check, image get and task run in task step. In total 7 containers.")
-		expectedContainersBefore := 7
+		By("expecting a container for resource type check, resource type get, resource check, resource get in get step. expecting a container for nested resource type check, image check, image get and task run in task step. In total 8 containers.")
+		expectedContainersBefore := 8
 		Expect(FlyTable("containers")).Should(HaveLen(expectedContainersBefore))
 
 		By("triggering the build again")
