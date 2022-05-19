@@ -135,7 +135,7 @@ func (visitor *planVisitor) VisitGet(step *atc.GetStep) error {
 		Timeout:  step.Timeout,
 	})
 
-	plan.Get.TypeImage = visitor.resourceTypes.ImageForType(plan.ID, resource.Type, step.Tags, visitor.manuallyTriggered)
+	plan.Get.TypeImage = visitor.resourceTypes.ImageForType(plan.ID, resource.Type, step.Tags, false)
 	visitor.plan = plan
 	return nil
 }
