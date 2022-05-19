@@ -702,7 +702,6 @@ var factoryTests = []PlannerTest{
 								 "some": "child-source"
 							},
 							"interval": "1m0s",
-							"skip_interval": true,
 							"image": {
 								"base_type": "some-base-resource-type",
 								"get_plan": {
@@ -736,7 +735,6 @@ var factoryTests = []PlannerTest{
 											"base_type": "some-base-resource-type"
 										},
 							      "interval": "1m0s",
-										"skip_interval": true,
 										"tags": [
 											 "tag-1",
 											 "tag-2"
@@ -773,7 +771,6 @@ var factoryTests = []PlannerTest{
 											"base_type": "some-base-resource-type"
 										},
 							      "interval": "1m0s",
-										"skip_interval": true,
 										"tags": [
 											 "tag-1",
 											 "tag-2"
