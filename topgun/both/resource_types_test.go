@@ -34,11 +34,11 @@ var _ = Describe("A pipeline-provided resource type", func() {
 		<-buildSession.Exited
 		Expect(buildSession.ExitCode()).To(Equal(1))
 
-		By("expecting only one additional check containers for the task's image check")
-		Expect(ContainersBy("type", "check")).To(HaveLen(4))
+		By("expecting 2 additional check containers for the task's image check and resource type check")
+		Expect(ContainersBy("type", "check")).To(HaveLen(5))
 
-		By("expecting to only have new containers for build task image check and build task")
-		Expect(FlyTable("containers")).Should(HaveLen(expectedContainersBefore + 2))
+		By("expecting to only have new containers for build task image check, build task run and resource type check")
+		Expect(FlyTable("containers")).Should(HaveLen(expectedContainersBefore + 3))
 	})
 })
 
