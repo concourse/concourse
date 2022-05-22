@@ -108,10 +108,10 @@ github.com/DATA-DOG/go-sqlmock v1.5.0/go.mod h1:f/Ixk793poVmq4qj/V1dPUg2JEAKC73Q
 github.com/DataDog/datadog-go v3.2.0+incompatible/go.mod h1:LButxg5PwREeZtORoXG3tL4fMGNddJ+vMq1mwgfaqoQ=
 github.com/DataDog/datadog-go v4.8.3+incompatible h1:fNGaYSuObuQb5nzeTQqowRAd9bpDIRRV4/gUtIBjh8Q=
 github.com/DataDog/datadog-go v4.8.3+incompatible/go.mod h1:LButxg5PwREeZtORoXG3tL4fMGNddJ+vMq1mwgfaqoQ=
-github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace v1.6.1 h1:LNl8Tg6N6qChoiM6lKC1Z44Z+CkPAdYx45L/lJDgThs=
-github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace v1.6.1/go.mod h1:ZFRHg4zuQuc6sQyx16A53fB7kxPvPguSeE8GFVpT6rQ=
-github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.30.1 h1:JftlZfpIvptFTzSD/BXuoK9i0nT3D1GSz1EEBr+jjuM=
-github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.30.1/go.mod h1:j+FS9VBW3mwtHBmm9KOJEy5Tq68fCp7fE/R9bV/flIM=
+github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace v1.7.0 h1:8vpIORQCKkwM0r/IZ1faAddG56t7byhqSxATphc+8MI=
+github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace v1.7.0/go.mod h1:HuFNmMWVYJDj2IxyIlUOW2vguRBM8ct9mOuAtWRU2EQ=
+github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.31.0 h1:tfaeStvrph8eJEmo1iji3A4DXen3s6ZMM17nQmvo0WA=
+github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.31.0/go.mod h1:j+FS9VBW3mwtHBmm9KOJEy5Tq68fCp7fE/R9bV/flIM=
 github.com/Masterminds/goutils v1.1.1 h1:5nUrii3FMTL5diU80unEVvNevw1nH4+ZV4DSLVJLSYI=
 github.com/Masterminds/goutils v1.1.1/go.mod h1:8cTjp+g8YejhMuvIA5y2vz3BpJxksy863GQaJW2MFNU=
 github.com/Masterminds/semver v1.5.0 h1:H65muMkzWKEuNDnfl9d70GUjFniHKHRbFPGBuZ3QEww=
