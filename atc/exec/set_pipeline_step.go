@@ -133,8 +133,13 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState, delegate S
 	}
 
 	var team db.Team
+	var detach bool
 	if step.plan.Team == "" {
 		team = step.teamFactory.GetByID(step.metadata.TeamID)
+		// When team is not specified, target team equals to current team.
+		if team.Admin(){
+			detach = step.plan.Detach
+		}
 	} else {
 		fmt.Fprintln(stderr, "\x1b[1;33mWARNING: specifying the team in a set_pipeline step is experimental and may be removed in the future!\x1b[0m")
 		fmt.Fprintln(stderr, "")
@@ -163,6 +168,7 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState, delegate S
 		}
 		if currentTeam.Admin() {
 			permitted = true
+			detach = step.plan.Detach
 		}
 		if !permitted {
 			return false, fmt.Errorf(
@@ -172,6 +178,13 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState, delegate S
 		}
 
 		team = targetTeam
+	}
+
+	if detach != step.plan.Detach {
+		return false, fmt.Errorf(
+			"only %s team can set detached pipeline",
+			atc.DefaultTeamName,
+		)
 	}
 
 	pipelineRef := atc.PipelineRef{
@@ -202,7 +215,12 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState, delegate S
 		fmt.Fprintf(stdout, "no changes to apply.\n")
 
 		if found {
-			err := pipeline.SetParentIDs(step.metadata.JobID, step.metadata.BuildID)
+			var err error
+			if detach {
+				err = pipeline.DetachParent()
+			} else {
+				err = pipeline.SetParentIDs(step.metadata.JobID, step.metadata.BuildID)
+			}
 			if err != nil {
 				return false, err
 			}
@@ -230,7 +248,7 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState, delegate S
 		return false, fmt.Errorf("set_pipeline step not attached to a buildID")
 	}
 
-	pipeline, _, err = parentBuild.SavePipeline(pipelineRef, team.ID(), atcConfig, fromVersion, false)
+	pipeline, _, err = parentBuild.SavePipeline(pipelineRef, team.ID(), atcConfig, fromVersion, false, detach)
 	if err != nil {
 		if err == db.ErrSetByNewerBuild {
 			fmt.Fprintln(stderr, "\x1b[1;33mWARNING: the pipeline was not saved because it was already saved by a newer build\x1b[0m")

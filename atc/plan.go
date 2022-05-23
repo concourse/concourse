@@ -384,6 +384,7 @@ type SetPipelinePlan struct {
 	Vars         map[string]interface{} `json:"vars,omitempty"`
 	VarFiles     []string               `json:"var_files,omitempty"`
 	InstanceVars map[string]interface{} `json:"instance_vars,omitempty"`
+	Detach       bool                   `json:"detach,omitempty"`
 }
 
 type LoadVarPlan struct {

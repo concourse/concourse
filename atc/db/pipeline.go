@@ -127,6 +127,7 @@ type Pipeline interface {
 	Variables(lager.Logger, creds.Secrets, creds.VarSourcePool) (vars.Variables, error)
 
 	SetParentIDs(jobID, buildID int) error
+	DetachParent() error
 }
 
 type pipeline struct {
@@ -1166,6 +1167,39 @@ func (p *pipeline) Variables(logger lager.Logger, globalSecrets creds.Secrets, v
 	}
 
 	return allVars, nil
+}
+
+func (p *pipeline) DetachParent() error {
+	tx, err := p.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer Rollback(tx)
+
+	nullID := sql.NullInt64{Valid: false}
+	result, err := psql.Update("pipelines").
+		Set("parent_job_id", nullID).
+		Set("parent_build_id", nullID).
+		Where(sq.Eq{
+			"id": p.id,
+		}).
+		RunWith(tx).
+		Exec()
+
+	if err != nil {
+		return err
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return ErrSetByNewerBuild
+	}
+
+	return tx.Commit()
 }
 
 func (p *pipeline) SetParentIDs(jobID, buildID int) error {
