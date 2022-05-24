@@ -129,32 +129,44 @@ var _ = Describe("AcrossStep", func() {
 			},
 			{
 				Var:    "var4",
-				Values: []interface{}{"d1"},
+				Values: []interface{}{"d1", "d2"},
 			},
 		}
 		stepperFailOnCount = -1
 		stepperPanicOnCount = -1
 		stepperCount = 0
 
-		started = make(chan vals, 12)
+		started = make(chan vals, 24)
 		terminate = map[vals]chan error{}
 
 		allVals = []vals{
 			{"a1", "b1", "c1", "d1"},
+			{"a1", "b1", "c1", "d2"},
 			{"a1", "b1", "c2", "d1"},
+			{"a1", "b1", "c2", "d2"},
 			{"a1", "b1", "c3", "d1"},
+			{"a1", "b1", "c3", "d2"},
 
 			{"a1", "b2", "c1", "d1"},
+			{"a1", "b2", "c1", "d2"},
 			{"a1", "b2", "c2", "d1"},
+			{"a1", "b2", "c2", "d2"},
 			{"a1", "b2", "c3", "d1"},
+			{"a1", "b2", "c3", "d2"},
 
 			{"a2", "b1", "c1", "d1"},
+			{"a2", "b1", "c1", "d2"},
 			{"a2", "b1", "c2", "d1"},
+			{"a2", "b1", "c2", "d2"},
 			{"a2", "b1", "c3", "d1"},
+			{"a2", "b1", "c3", "d2"},
 
 			{"a2", "b2", "c1", "d1"},
+			{"a2", "b2", "c1", "d2"},
 			{"a2", "b2", "c2", "d1"},
+			{"a2", "b2", "c2", "d2"},
 			{"a2", "b2", "c3", "d1"},
+			{"a2", "b2", "c3", "d2"},
 		}
 		plans := make([]atc.VarScopedPlan, len(allVals))
 		for i, vals := range allVals {
@@ -225,20 +237,32 @@ var _ = Describe("AcrossStep", func() {
 		_, _, valueCombinations := fakeDelegate.ConstructAcrossSubstepsArgsForCall(0)
 		Expect(valueCombinations).To(Equal([][]interface{}{
 			{"a1", "b1", "c1", "d1"},
+			{"a1", "b1", "c1", "d2"},
 			{"a1", "b1", "c2", "d1"},
+			{"a1", "b1", "c2", "d2"},
 			{"a1", "b1", "c3", "d1"},
+			{"a1", "b1", "c3", "d2"},
 
 			{"a1", "b2", "c1", "d1"},
+			{"a1", "b2", "c1", "d2"},
 			{"a1", "b2", "c2", "d1"},
+			{"a1", "b2", "c2", "d2"},
 			{"a1", "b2", "c3", "d1"},
+			{"a1", "b2", "c3", "d2"},
 
 			{"a2", "b1", "c1", "d1"},
+			{"a2", "b1", "c1", "d2"},
 			{"a2", "b1", "c2", "d1"},
+			{"a2", "b1", "c2", "d2"},
 			{"a2", "b1", "c3", "d1"},
+			{"a2", "b1", "c3", "d2"},
 
 			{"a2", "b2", "c1", "d1"},
+			{"a2", "b2", "c1", "d2"},
 			{"a2", "b2", "c2", "d1"},
+			{"a2", "b2", "c2", "d2"},
 			{"a2", "b2", "c3", "d1"},
+			{"a2", "b2", "c3", "d2"},
 		}))
 	})
 
@@ -278,6 +302,26 @@ var _ = Describe("AcrossStep", func() {
 				receivedVals = append(receivedVals, <-started)
 			}
 			Expect(receivedVals).To(ConsistOf(
+				vals{"a1", "b1", "c1", "d2"},
+				vals{"a1", "b1", "c2", "d2"},
+				vals{"a1", "b1", "c3", "d2"},
+				vals{"a2", "b1", "c1", "d2"},
+				vals{"a2", "b1", "c2", "d2"},
+				vals{"a2", "b1", "c3", "d2"},
+			))
+			Consistently(started).ShouldNot(Receive())
+
+			By("the second stage completing successfully")
+			for _, v := range receivedVals {
+				terminate[v] <- nil
+			}
+
+			By("running the third stage")
+			receivedVals = []vals{}
+			for i := 0; i < 6; i++ {
+				receivedVals = append(receivedVals, <-started)
+			}
+			Expect(receivedVals).To(ConsistOf(
 				vals{"a1", "b2", "c1", "d1"},
 				vals{"a1", "b2", "c2", "d1"},
 				vals{"a1", "b2", "c3", "d1"},
@@ -285,6 +329,32 @@ var _ = Describe("AcrossStep", func() {
 				vals{"a2", "b2", "c2", "d1"},
 				vals{"a2", "b2", "c3", "d1"},
 			))
+			Consistently(started).ShouldNot(Receive())
+
+			By("the third stage completing successfully")
+			for _, v := range receivedVals {
+				terminate[v] <- nil
+			}
+
+			By("running the forth stage")
+			receivedVals = []vals{}
+			for i := 0; i < 6; i++ {
+				receivedVals = append(receivedVals, <-started)
+			}
+			Expect(receivedVals).To(ConsistOf(
+				vals{"a1", "b2", "c1", "d2"},
+				vals{"a1", "b2", "c2", "d2"},
+				vals{"a1", "b2", "c3", "d2"},
+				vals{"a2", "b2", "c1", "d2"},
+				vals{"a2", "b2", "c2", "d2"},
+				vals{"a2", "b2", "c3", "d2"},
+			))
+			Consistently(started).ShouldNot(Receive())
+
+			By("the forth stage completing successfully")
+			for _, v := range receivedVals {
+				terminate[v] <- nil
+			}
 		})
 
 		Context("when fail fast is true", func() {
@@ -296,7 +366,7 @@ var _ = Describe("AcrossStep", func() {
 
 			It("stops running steps after a failure", func() {
 				// Allow the failed step to terminate
-				terminate[allVals[1]] <- nil
+				terminate[allVals[0]] <- nil
 
 				By("running the step")
 				ok, err := step.Run(ctx, state)
@@ -304,7 +374,7 @@ var _ = Describe("AcrossStep", func() {
 				Expect(ok).To(BeFalse())
 
 				By("ensuring not all steps were started")
-				Expect(started).ToNot(HaveLen(12))
+				Expect(started).ToNot(HaveLen(24))
 			})
 		})
 
@@ -326,7 +396,7 @@ var _ = Describe("AcrossStep", func() {
 				Expect(ok).To(BeFalse())
 
 				By("ensuring all steps were run")
-				Expect(started).To(HaveLen(12))
+				Expect(started).To(HaveLen(24))
 			})
 		})
 	})
