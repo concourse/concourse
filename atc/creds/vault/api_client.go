@@ -81,6 +81,7 @@ func (ac *APIClient) Read(path string) (*vaultapi.Secret, error) {
 	if kv2 {
 		if data, ok := secret.Data["data"]; ok && data != nil {
 			secret.Data = data.(map[string]interface{})
+			secret.LeaseDuration = -1
 		} else {
 			// Return a nil secret object if the secret was deleted, but not destroyed
 			return nil, nil

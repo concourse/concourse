@@ -82,11 +82,15 @@ func (v Vault) findSecret(path string) (*vaultapi.Secret, *time.Time, bool, erro
 	}
 
 	if secret != nil {
-		// The lease duration is TTL: the time in seconds for which the lease is valid
-		// A consumer of this secret must renew the lease within that time.
-		duration := time.Duration(secret.LeaseDuration) * time.Second / 2
-		expiration := time.Now().Add(duration)
-		return secret, &expiration, true, nil
+		if secret.LeaseDuration != -1 {
+			// The lease duration is TTL: the time in seconds for which the lease is valid
+			// A consumer of this secret must renew the lease within that time.
+			duration := time.Duration(secret.LeaseDuration) * time.Second / 2
+			expiration := time.Now().Add(duration)
+			return secret, &expiration, true, nil
+		}
+
+		return secret, nil, true, nil
 	}
 
 	return nil, nil, false, nil
