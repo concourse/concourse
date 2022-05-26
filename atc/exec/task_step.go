@@ -409,6 +409,9 @@ func (step *TaskStep) containerInputs(logger lager.Logger, repository *build.Rep
 }
 
 func (step *TaskStep) containerSpec(logger lager.Logger, state RunState, imageSpec runtime.ImageSpec, config atc.TaskConfig, metadata db.ContainerMetadata) (runtime.ContainerSpec, error) {
+	env := step.metadata.TaskEnv()
+	env = append(env, config.Params.Env()...)
+
 	containerSpec := runtime.ContainerSpec{
 		TeamID:   step.metadata.TeamID,
 		TeamName: step.metadata.TeamName,
@@ -416,7 +419,7 @@ func (step *TaskStep) containerSpec(logger lager.Logger, state RunState, imageSp
 		StepName: step.plan.Name,
 
 		ImageSpec: imageSpec,
-		Env:       config.Params.Env(),
+		Env:       env,
 		Type:      metadata.Type,
 
 		Dir: metadata.WorkingDirectory,

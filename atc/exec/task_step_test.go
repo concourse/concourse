@@ -56,9 +56,10 @@ var _ = Describe("TaskStep", func() {
 		}
 
 		stepMetadata = exec.StepMetadata{
-			TeamID:  123,
-			BuildID: 1234,
-			JobID:   12345,
+			TeamID:      123,
+			BuildID:     1234,
+			JobID:       12345,
+			ExternalURL: "http://foo.bar",
 		}
 
 		planID = atc.PlanID("42")
@@ -174,6 +175,10 @@ var _ = Describe("TaskStep", func() {
 			chosenContainer = chosenWorker.Containers[0]
 			fakePool = new(execfakes.FakePool)
 			fakePool.FindOrSelectWorkerReturns(chosenWorker, nil)
+		})
+
+		It("Task env includes atc external url", func(){
+			Expect(chosenContainer.Spec.Env).To(ConsistOf("ATC_EXTERNAL_URL=http://foo.bar", "SECURE=secret-task-param"))
 		})
 
 		Context("before running the task", func() {

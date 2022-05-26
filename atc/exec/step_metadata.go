@@ -69,3 +69,11 @@ func (metadata StepMetadata) Env() []string {
 
 	return env
 }
+
+func (metadata StepMetadata) TaskEnv() []string {
+	env := []string{}
+	if metadata.ExternalURL != "" {
+		env = append(env, "ATC_EXTERNAL_URL="+metadata.ExternalURL)
+	}
+	return env
+}
