@@ -109,6 +109,22 @@ var _ = Describe("Vault", func() {
 				close(loggedInCh)
 			})
 
+			It("should set expiration", func() {
+				v.SecretReader = &MockSecretReader{&[]MockSecret{
+					{
+						path: "/concourse/team/pipeline/foo",
+						secret: &vaultapi.Secret{
+							Data: map[string]interface{}{"value": "bar"},
+						},
+					}},
+				}
+				value, expiration, found, err := v.Get("/concourse/team/pipeline/foo")
+				Expect(value).To(BeEquivalentTo("bar"))
+				Expect(expiration).ToNot(BeNil())
+				Expect(found).To(BeTrue())
+				Expect(err).To(BeNil())
+			})
+
 			It("should get secret from pipeline", func() {
 				v.SecretReader = &MockSecretReader{&[]MockSecret{
 					{
@@ -360,6 +376,20 @@ var _ = Describe("Vault KV2", func() {
 	})
 
 	Describe("Get()", func() {
+		It("should not return an expiration", func() {
+			server.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/v1/concourse/data/team/pipeline/foo"),
+					ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, createMockV2Secret("bar")),
+				),
+			)
+			value, expiration, found, err := v.Get("team/pipeline/foo")
+			Expect(value).To(BeEquivalentTo("bar"))
+			Expect(expiration).To(BeNil())
+			Expect(found).To(BeTrue())
+			Expect(err).To(BeNil())
+		})
+
 		It("should get secret from pipeline", func() {
 			server.AppendHandlers(
 				ghttp.CombineHandlers(
