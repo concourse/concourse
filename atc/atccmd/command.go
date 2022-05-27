@@ -149,6 +149,7 @@ type RunCommand struct {
 
 	GlobalResourceCheckTimeout          time.Duration `long:"global-resource-check-timeout" default:"1h" description:"Time limit on checking for new versions of resources."`
 	ResourceCheckingInterval            time.Duration `long:"resource-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources."`
+	ResourceTypeCheckingInterval        time.Duration `long:"resource-type-checking-interval" default:"1m" description:"Interval on which to check for new versions of resource types."`
 	ResourceWithWebhookCheckingInterval time.Duration `long:"resource-with-webhook-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources that has webhook defined."`
 	MaxChecksPerSecond                  int           `long:"max-checks-per-second" description:"Maximum number of checks that can be started per second. If not specified, this will be calculated as (# of resources)/(resource checking interval). -1 value will remove this maximum limit of checks per second."`
 	PausePipelinesAfter                 int           `long:"pause-pipelines-after" default:"0" description:"The number of days after which a pipeline will be automatically paused if none of its jobs have run in more than the given number of days. A value of zero disables this component."`
@@ -531,6 +532,7 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	atc.EnableResourceCausality = cmd.FeatureFlags.EnableResourceCausality
 	atc.DefaultCheckInterval = cmd.ResourceCheckingInterval
 	atc.DefaultWebhookInterval = cmd.ResourceWithWebhookCheckingInterval
+	atc.DefaultResourceTypeInterval = cmd.ResourceTypeCheckingInterval
 
 	if cmd.BaseResourceTypeDefaults.Path() != "" {
 		content, err := ioutil.ReadFile(cmd.BaseResourceTypeDefaults.Path())
@@ -1069,6 +1071,15 @@ func (cmd *RunCommand) backendComponents(
 				"newValue": cmd.ResourceCheckingInterval,
 			})
 		cmd.ResourceWithWebhookCheckingInterval = cmd.ResourceCheckingInterval
+	}
+
+	if cmd.ResourceTypeCheckingInterval < cmd.ResourceCheckingInterval {
+		logger.Info("update-resource-type-checking-interval",
+			lager.Data{
+				"oldValue": cmd.ResourceTypeCheckingInterval,
+				"newValue": cmd.ResourceCheckingInterval,
+			})
+		cmd.ResourceTypeCheckingInterval = cmd.ResourceCheckingInterval
 	}
 
 	components := []RunnableComponent{
