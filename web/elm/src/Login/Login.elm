@@ -96,21 +96,18 @@ viewLoginState userState isUserMenuExpanded =
                            , onMouseLeave <| Hover Nothing
                            ]
                     )
-                    (Html.text displayName
-                        :: (if isUserMenuExpanded then
-                                [ Html.div
-                                    ([ id "logout-button"
-                                     , onClick <| Click LogoutButton
-                                     ]
-                                        ++ Styles.logoutButton
-                                    )
-                                    [ Html.text "logout" ]
-                                ]
+                    [ Html.text displayName ]
+                , if isUserMenuExpanded then
+                    Html.div
+                        ([ id "logout-button"
+                         , onClick <| Click LogoutButton
+                         ]
+                            ++ Styles.logoutButton
+                        )
+                        [ Html.text "logout" ]
 
-                            else
-                                []
-                           )
-                    )
+                  else
+                    Html.text ""
                 ]
             ]
 
