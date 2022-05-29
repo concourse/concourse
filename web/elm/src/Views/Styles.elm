@@ -386,6 +386,7 @@ ellipsedText : List (Html.Attribute msg)
 ellipsedText =
     [ style "overflow" "hidden"
     , style "text-overflow" "ellipsis"
+    , style "white-space" "nowrap"
     ]
 
 
