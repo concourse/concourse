@@ -1494,7 +1494,7 @@ all =
                         |> Common.queryView
                         |> Query.find [ class "build-duration" ]
                         |> Query.find [ tag "tr", containing [ tag "tr", containing [ text "finished" ] ] ]
-                        |> Query.has [ text "2s ago" ]
+                        |> Query.has [ text "2s ago", style "white-space" "nowrap" ]
             , test "when build finishes succesfully, header background is green" <|
                 \_ ->
                     Common.init "/teams/t/pipelines/p/jobs/j/builds/1"

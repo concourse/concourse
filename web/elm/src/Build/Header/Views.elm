@@ -119,7 +119,7 @@ viewHeader header =
              ]
                 ++ Styles.header header.backgroundColor
             )
-            [ Html.div [] (List.map (viewWidget header.backgroundColor) header.leftWidgets)
+            [ Html.div [ style "overflow-x" "auto" ] (List.map (viewWidget header.backgroundColor) header.leftWidgets)
             , Html.div [ style "display" "flex" ] (List.map (viewWidget header.backgroundColor) header.rightWidgets)
             ]
          , viewHistory header.backgroundColor header.tabs
@@ -204,7 +204,7 @@ viewDuration buildDuration textColor =
                     Finished { duration } ->
                         [ Html.tr []
                             [ Html.td [ class "dict-key" ] [ Html.text "duration" ]
-                            , Html.td [ class "dict-value" ] [ Html.text <| viewTimespan duration ]
+                            , Html.td Styles.time [ Html.text <| viewTimespan duration ]
                             ]
                         ]
 
@@ -219,22 +219,21 @@ viewTimestamp timestamp =
     case timestamp of
         Relative timespan formatted ->
             Html.td
-                [ class "dict-value"
-                , title formatted
-                ]
+                (title formatted
+                    :: Styles.time
+                )
                 [ Html.span [] [ Html.text <| viewTimespan timespan ++ " ago" ] ]
 
         Absolute formatted (Just timespan) ->
             Html.td
-                [ class "dict-value"
-                , title <| viewTimespan timespan
-                ]
+                (title (viewTimespan timespan)
+                    :: Styles.time
+                )
                 [ Html.span [] [ Html.text formatted ] ]
 
         Absolute formatted Nothing ->
             Html.td
-                [ class "dict-value"
-                ]
+                Styles.time
                 [ Html.span [] [ Html.text formatted ] ]
 
 
