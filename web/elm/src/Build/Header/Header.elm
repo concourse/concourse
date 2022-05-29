@@ -276,6 +276,9 @@ tooltip model session =
         HoverState.Tooltip (UserDisplayName username) _ ->
             Login.tooltip username
 
+        HoverState.Tooltip (CreatedBy text) _ ->
+            Views.tooltip text
+
         _ ->
             Nothing
 

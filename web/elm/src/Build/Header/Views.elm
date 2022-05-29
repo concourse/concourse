@@ -7,6 +7,7 @@ module Build.Header.Views exposing
     , Timespan(..)
     , Timestamp(..)
     , Widget(..)
+    , tooltip
     , viewHeader
     )
 
@@ -27,10 +28,11 @@ import Html.Attributes
         )
 import Html.Events exposing (onBlur, onFocus, onMouseEnter, onMouseLeave)
 import Html.Lazy
-import Message.Effects exposing (toHtmlID)
-import Message.Message as Message exposing (Message(..))
+import Message.Effects exposing (Effect(..), toHtmlID)
+import Message.Message as Message exposing (DomID(..), Message(..))
 import Routes
 import StrictEvents exposing (onLeftClick, onWheel)
+import Tooltip
 import Views.CommentBar as CommentBar
 import Views.Icon as Icon
 
@@ -378,6 +380,19 @@ viewButton { type_, backgroundColor, backgroundShade, isClickable } =
         ]
 
 
+tooltip : String -> Maybe Tooltip.Tooltip
+tooltip username =
+    Just
+        { body = Html.text username
+        , attachPosition =
+            { direction = Tooltip.Bottom
+            , alignment = Tooltip.Start
+            }
+        , arrow = Just 5
+        , containerAttrs = Nothing
+        }
+
+
 viewTitle : String -> String -> Maybe Concourse.JobIdentifier -> Concourse.BuildCreatedBy -> Html Message
 viewTitle name textColor jobID createdBy =
     let
@@ -425,18 +440,22 @@ viewTitle name textColor jobID createdBy =
                             "created by " ++ who
                     in
                     Html.span
-                        [ style "position" "absolute"
-                        , style "font-size" "12px"
-                        , style "bottom" "6px"
-                        , style "line-height" "16px"
-                        , style "right" "0"
-                        , style "left" "0"
-                        , style "text-overflow" "ellipsis"
-                        , style "white-space" "nowrap"
-                        , style "overflow" "hidden"
-                        , style "color" textColor
-                        , title text
-                        ]
+                        (id "created-by"
+                            :: [ style "position" "absolute"
+                               , style "font-size" "12px"
+                               , style "bottom" "6px"
+                               , style "line-height" "16px"
+                               , style "right" "0"
+                               , style "left" "0"
+                               , style "text-overflow" "ellipsis"
+                               , style "white-space" "nowrap"
+                               , style "overflow" "hidden"
+                               , style "color" textColor
+                               ]
+                            ++ [ onMouseEnter <| Hover <| Just (CreatedBy text)
+                               , onMouseLeave <| Hover Nothing
+                               ]
+                        )
                         [ Html.text text ]
 
                 Nothing ->

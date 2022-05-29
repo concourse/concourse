@@ -809,6 +809,9 @@ toHtmlID domId =
         UserDisplayName _ ->
             "user-id"
 
+        CreatedBy _ ->
+            "created-by"
+
         PipelineCardNameHD p ->
             "HD_"
                 ++ encodePipelineId p

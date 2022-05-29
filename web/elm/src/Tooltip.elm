@@ -96,6 +96,9 @@ policy domID =
         UserDisplayName _ ->
             OnlyShowWhenOverflowing
 
+        CreatedBy _ ->
+            OnlyShowWhenOverflowing
+
         InstanceGroupCardName _ _ _ ->
             OnlyShowWhenOverflowing
 
