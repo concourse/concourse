@@ -439,22 +439,20 @@ viewTitle name textColor jobID createdBy =
                             "created by " ++ who
                     in
                     Html.span
-                        (id "created-by"
-                            :: [ style "position" "absolute"
-                               , style "font-size" "12px"
-                               , style "bottom" "6px"
-                               , style "line-height" "16px"
-                               , style "right" "0"
-                               , style "left" "0"
-                               , style "text-overflow" "ellipsis"
-                               , style "white-space" "nowrap"
-                               , style "overflow" "hidden"
-                               , style "color" textColor
-                               ]
-                            ++ [ onMouseEnter <| Hover <| Just (CreatedBy text)
-                               , onMouseLeave <| Hover Nothing
-                               ]
-                        )
+                        [ id "created-by"
+                        , style "position" "absolute"
+                        , style "font-size" "12px"
+                        , style "bottom" "6px"
+                        , style "line-height" "16px"
+                        , style "right" "0"
+                        , style "left" "0"
+                        , style "text-overflow" "ellipsis"
+                        , style "white-space" "nowrap"
+                        , style "overflow" "hidden"
+                        , style "color" textColor
+                        , onMouseEnter <| Hover <| Just (CreatedBy text)
+                        , onMouseLeave <| Hover Nothing
+                        ]
                         [ Html.text text ]
 
                 Nothing ->
