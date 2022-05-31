@@ -8,6 +8,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/event"
 )
 
@@ -121,12 +122,20 @@ func (source *buildEventSource) collectEvents(from uint) {
 			return
 		}
 
-		rows, err := psql.Select("event_id", "type", "version", "payload").
-			From(source.table).
-			Where(sq.Or{
+		eventsQuery := psql.Select("event_id", "type", "version", "payload").
+			From(source.table)
+
+		var query sq.SelectBuilder
+		if source.buildID > lock.MaxInt {
+			query = eventsQuery.Where(sq.Eq{"build_id": source.buildID})
+		} else {
+			query = eventsQuery.Where(sq.Or{
 				sq.Eq{"build_id": source.buildID},
 				sq.Eq{"build_id_old": source.buildID},
-			}).
+			})
+		}
+
+		rows, err := query.
 			Where(sq.Gt{"event_id": cursor}).
 			OrderBy("event_id ASC").
 			Limit(uint64(batchSize)).

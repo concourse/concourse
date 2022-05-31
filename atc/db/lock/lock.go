@@ -15,6 +15,7 @@ import (
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
 
 const (
+	MaxInt                         = 2147483647
 	LockTypeResourceConfigChecking = iota
 	LockTypeBuildTracking
 	LockTypeBatch
@@ -29,7 +30,7 @@ const (
 var ErrLostLock = errors.New("lock was lost while held, possibly due to connection breakage")
 
 func NewBuildTrackingLockID(buildID int) LockID {
-	return LockID{LockTypeBuildTracking, buildID}
+	return LockID{LockTypeBuildTracking, buildID % MaxInt}
 }
 
 func NewResourceConfigCheckingLockID(resourceConfigID int) LockID {
