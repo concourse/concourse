@@ -3,12 +3,12 @@ package db
 import (
 	"encoding/json"
 	"errors"
+	"math"
 	"strconv"
 	"sync"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/event"
 )
 
@@ -126,7 +126,7 @@ func (source *buildEventSource) collectEvents(from uint) {
 			From(source.table)
 
 		var query sq.SelectBuilder
-		if source.buildID > lock.MaxInt {
+		if source.buildID > math.MaxInt32 {
 			query = eventsQuery.Where(sq.Eq{"build_id": source.buildID})
 		} else {
 			query = eventsQuery.Where(sq.Or{

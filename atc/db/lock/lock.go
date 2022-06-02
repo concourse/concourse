@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"hash/crc32"
+	"math"
 	"strconv"
 	"strings"
 	"sync"
@@ -15,7 +16,6 @@ import (
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
 
 const (
-	MaxInt                         = 2147483647
 	LockTypeResourceConfigChecking = iota
 	LockTypeBuildTracking
 	LockTypeBatch
@@ -30,7 +30,7 @@ const (
 var ErrLostLock = errors.New("lock was lost while held, possibly due to connection breakage")
 
 func NewBuildTrackingLockID(buildID int) LockID {
-	return LockID{LockTypeBuildTracking, buildID % MaxInt}
+	return LockID{LockTypeBuildTracking, buildID % math.MaxInt32}
 }
 
 func NewResourceConfigCheckingLockID(resourceConfigID int) LockID {
@@ -42,7 +42,7 @@ func NewTaskLockID(taskName string) LockID {
 }
 
 func NewVolumeCreatingLockID(volumeID int) LockID {
-	return LockID{LockTypeVolumeCreating, volumeID}
+	return LockID{LockTypeVolumeCreating, volumeID % math.MaxInt32}
 }
 
 func NewDatabaseMigrationLockID() LockID {
