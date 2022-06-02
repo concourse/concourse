@@ -29,6 +29,14 @@ const (
 
 var ErrLostLock = errors.New("lock was lost while held, possibly due to connection breakage")
 
+/*
+	When adding a new lock type or update existing ones, consider if
+	the ID will be exhausting max int32 ID pool quickly. If yes,
+	use ID % math.MaxInt32 to prevent pg_try_advisory_lock(int, int)
+	query from failing by "integer out of range" error.
+	Refer to https://github.com/concourse/concourse/pull/8390
+*/
+
 func NewBuildTrackingLockID(buildID int) LockID {
 	return LockID{LockTypeBuildTracking, buildID % math.MaxInt32}
 }
