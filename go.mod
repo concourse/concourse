@@ -10,7 +10,7 @@ require (
 	code.cloudfoundry.org/localip v0.0.0-20220131190813-865a62baabe7
 	code.cloudfoundry.org/urljoiner v0.0.0-20170223060717-5cabba6c0a50
 	github.com/DataDog/datadog-go v4.8.3+incompatible
-	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace v1.7.0
+	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace v1.8.0
 	github.com/Masterminds/squirrel v1.5.3
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/aryann/difflib v0.0.0-20170710044230-e206f873d14a
@@ -228,7 +228,7 @@ require (
 )
 
 require (
-	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.31.0 // indirect
+	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.32.0 // indirect
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
 	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
 	github.com/emicklei/go-restful v2.9.5+incompatible // indirect
@@ -240,4 +240,5 @@ require (
 	github.com/mailru/easyjson v0.7.6 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/pierrec/lz4 v2.6.0+incompatible // indirect
+	go.uber.org/multierr v1.8.0 // indirect
 )
