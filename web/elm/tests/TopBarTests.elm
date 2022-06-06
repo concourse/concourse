@@ -237,31 +237,20 @@ all =
                         >> Query.find [ id "login-container" ]
                         >> Query.has
                             [ style "border-left" <| "1px solid " ++ borderGrey ]
-                , it "renders login container tall enough" <|
-                    Query.children []
-                        >> Query.index -1
-                        >> Query.find [ id "login-container" ]
-                        >> Query.has
-                            [ style "line-height" lineHeight ]
                 , it "has the login username styles" <|
                     Query.children []
                         >> Query.index -1
                         >> Query.find [ id "user-id" ]
                         >> Expect.all
                             [ Query.has
-                                [ style "padding" "0 30px"
+                                [ style "margin" "19px 30px"
                                 , style "cursor" "pointer"
-                                , style "display" "flex"
                                 , style "align-items" "center"
                                 , style "justify-content" "center"
                                 , style "flex-grow" "1"
+                                , style "overflow" "hidden"
+                                , style "text-overflow" "ellipsis"
                                 ]
-                            , Query.children []
-                                >> Query.index 0
-                                >> Query.has
-                                    [ style "overflow" "hidden"
-                                    , style "text-overflow" "ellipsis"
-                                    ]
                             ]
                 , it "shows the logged in displayUserId when the user is logged in" <|
                     Query.children []
@@ -582,16 +571,14 @@ all =
                         , style "display" "flex"
                         , style "flex-direction" "column"
                         , style "border-left" <| "1px solid " ++ borderGrey
-                        , style "line-height" lineHeight
                         ]
             , it "has the login username styles" <|
                 Query.children []
                     >> Query.index -1
                     >> Query.find [ id "login-item" ]
                     >> Query.has
-                        [ style "padding" "0 30px"
+                        [ style "margin" "19px 30px"
                         , style "cursor" "pointer"
-                        , style "display" "flex"
                         , style "align-items" "center"
                         , style "justify-content" "center"
                         , style "flex-grow" "1"

@@ -485,6 +485,9 @@ tooltip model session =
                 , containerAttrs = Nothing
                 }
 
+        HoverState.Tooltip (UserDisplayName username) _ ->
+            Login.tooltip username
+
         _ ->
             PinMenu.tooltip model session
 

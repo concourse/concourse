@@ -18,6 +18,7 @@ module Build.Styles exposing
     , stepHeaderLabel
     , stepStatusIcon
     , tab
+    , time
     , titleTextColor
     , triggerButton
     )
@@ -28,8 +29,15 @@ import Colors
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Dashboard.Styles exposing (striped)
 import Html
-import Html.Attributes exposing (style)
+import Html.Attributes exposing (class, style)
 import Views.Styles
+
+
+time : List (Html.Attribute msg)
+time =
+    [ class "dict-value"
+    , style "white-space" "nowrap"
+    ]
 
 
 header : BuildStatus -> List (Html.Attribute msg)
