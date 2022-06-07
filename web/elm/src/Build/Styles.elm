@@ -259,9 +259,7 @@ stepHeaderLabel changed =
 
 keyValuePairHeaderLabel : List (Html.Attribute msg)
 keyValuePairHeaderLabel =
-    [ style "line-height" "28px"
-    , style "padding-left" "6px"
-    ]
+    [ style "padding-left" "6px" ]
 
 
 stepStatusIcon : List (Html.Attribute msg)
