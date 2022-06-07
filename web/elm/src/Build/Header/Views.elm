@@ -7,6 +7,7 @@ module Build.Header.Views exposing
     , Timespan(..)
     , Timestamp(..)
     , Widget(..)
+    , tooltip
     , viewHeader
     )
 
@@ -27,10 +28,11 @@ import Html.Attributes
         )
 import Html.Events exposing (onBlur, onFocus, onMouseEnter, onMouseLeave)
 import Html.Lazy
-import Message.Effects exposing (toHtmlID)
-import Message.Message as Message exposing (Message(..))
+import Message.Effects exposing (Effect(..), toHtmlID)
+import Message.Message as Message exposing (DomID(..), Message(..))
 import Routes
 import StrictEvents exposing (onLeftClick, onWheel)
+import Tooltip
 import Views.CommentBar as CommentBar
 import Views.Icon as Icon
 
@@ -117,7 +119,7 @@ viewHeader header =
              ]
                 ++ Styles.header header.backgroundColor
             )
-            [ Html.div [] (List.map (viewWidget header.backgroundColor) header.leftWidgets)
+            [ Html.div [ style "overflow-x" "auto" ] (List.map (viewWidget header.backgroundColor) header.leftWidgets)
             , Html.div [ style "display" "flex" ] (List.map (viewWidget header.backgroundColor) header.rightWidgets)
             ]
          , viewHistory header.backgroundColor header.tabs
@@ -202,7 +204,7 @@ viewDuration buildDuration textColor =
                     Finished { duration } ->
                         [ Html.tr []
                             [ Html.td [ class "dict-key" ] [ Html.text "duration" ]
-                            , Html.td [ class "dict-value" ] [ Html.text <| viewTimespan duration ]
+                            , Html.td Styles.time [ Html.text <| viewTimespan duration ]
                             ]
                         ]
 
@@ -217,22 +219,21 @@ viewTimestamp timestamp =
     case timestamp of
         Relative timespan formatted ->
             Html.td
-                [ class "dict-value"
-                , title formatted
-                ]
+                (title formatted
+                    :: Styles.time
+                )
                 [ Html.span [] [ Html.text <| viewTimespan timespan ++ " ago" ] ]
 
         Absolute formatted (Just timespan) ->
             Html.td
-                [ class "dict-value"
-                , title <| viewTimespan timespan
-                ]
+                (title (viewTimespan timespan)
+                    :: Styles.time
+                )
                 [ Html.span [] [ Html.text formatted ] ]
 
         Absolute formatted Nothing ->
             Html.td
-                [ class "dict-value"
-                ]
+                Styles.time
                 [ Html.span [] [ Html.text formatted ] ]
 
 
@@ -378,6 +379,19 @@ viewButton { type_, backgroundColor, backgroundShade, isClickable } =
         ]
 
 
+tooltip : String -> Maybe Tooltip.Tooltip
+tooltip username =
+    Just
+        { body = Html.text username
+        , attachPosition =
+            { direction = Tooltip.Bottom
+            , alignment = Tooltip.Start
+            }
+        , arrow = Just 5
+        , containerAttrs = Nothing
+        }
+
+
 viewTitle : String -> String -> Maybe Concourse.JobIdentifier -> Concourse.BuildCreatedBy -> Html Message
 viewTitle name textColor jobID createdBy =
     let
@@ -425,7 +439,8 @@ viewTitle name textColor jobID createdBy =
                             "created by " ++ who
                     in
                     Html.span
-                        [ style "position" "absolute"
+                        [ id "created-by"
+                        , style "position" "absolute"
                         , style "font-size" "12px"
                         , style "bottom" "6px"
                         , style "line-height" "16px"
@@ -435,7 +450,8 @@ viewTitle name textColor jobID createdBy =
                         , style "white-space" "nowrap"
                         , style "overflow" "hidden"
                         , style "color" textColor
-                        , title text
+                        , onMouseEnter <| Hover <| Just (CreatedBy text)
+                        , onMouseLeave <| Hover Nothing
                         ]
                         [ Html.text text ]
 
