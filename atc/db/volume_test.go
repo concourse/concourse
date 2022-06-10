@@ -241,6 +241,7 @@ var _ = Describe("Volume", func() {
 			createdVolume = volumeOnWorker(scenario.Workers[0])
 			err = createdVolume.InitializeResourceCache(resourceCache)
 			Expect(err).ToNot(HaveOccurred())
+			Expect(createdVolume.Type()).To(Equal(db.VolumeTypeResource))
 		})
 
 		Context("when initialize created resource cache", func() {
@@ -356,15 +357,9 @@ var _ = Describe("Volume", func() {
 		})
 
 		Context("when streaming a volume cache that has been invalidated on the source worker", func() {
-			It("leaves the volume owned by the container", func() {
-				scenario.Run(
-					builder.WithBaseWorker(), // workers[1]
-				)
+			var streamedVolume db.CreatedVolume
 
-				cachedVolume := volumeOnWorker(scenario.Workers[0])
-				err := cachedVolume.InitializeResourceCache(resourceCache)
-				Expect(err).ToNot(HaveOccurred())
-
+			BeforeEach(func() {
 				scenario.Run(
 					builder.WithWorker(atc.Worker{
 						Name:          scenario.Workers[0].Name(),
@@ -374,15 +369,74 @@ var _ = Describe("Volume", func() {
 					}),
 				)
 
-				streamedVolume := volumeOnWorker(scenario.Workers[1])
-				err = streamedVolume.InitializeStreamedResourceCache(resourceCache, scenario.Workers[0].Name())
-				Expect(err).ToNot(HaveOccurred())
+				scenario.Run(
+					builder.WithBaseWorker(), // workers[1]
+				)
 
+				streamedVolume = volumeOnWorker(scenario.Workers[1])
+			})
+
+			It("InitializeStreamedResourceCache should not fail", func() {
+				err := streamedVolume.InitializeStreamedResourceCache(resourceCache, scenario.Workers[0].Name())
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("should not found the resource cache because source is invalidated", func() {
 				workers, err := defaultTeam.FindWorkersForResourceCache(resourceCache.ID())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(workers)).To(Equal(0))
+			})
 
+			It("leaves the volume owned by the container", func() {
 				Expect(streamedVolume.Type()).To(Equal(db.VolumeTypeContainer))
+			})
+		})
+
+		Context("when a streamed resource cache is invalidated", func() {
+			var streamedVolumeOnWorker1 db.CreatedVolume
+			var newVolume db.CreatedVolume
+
+			BeforeEach(func() {
+				scenario.Run(
+					builder.WithBaseWorker(), // workers[1]
+				)
+
+				streamedVolumeOnWorker1 = volumeOnWorker(scenario.Workers[1])
+				err := streamedVolumeOnWorker1.InitializeStreamedResourceCache(resourceCache, scenario.Workers[0].Name())
+				Expect(err).ToNot(HaveOccurred())
+				Expect(streamedVolumeOnWorker1.Type()).To(Equal(db.VolumeTypeResource))
+
+				workers, err := defaultTeam.FindWorkersForResourceCache(resourceCache.ID())
+				Expect(err).ToNot(HaveOccurred())
+				Expect(len(workers)).To(Equal(2))
+
+				err = scenario.Workers[0].Land()
+				Expect(err).ToNot(HaveOccurred())
+				err = scenario.Workers[0].Prune()
+				Expect(err).ToNot(HaveOccurred())
+
+				foundVolume, found, err := volumeRepository.FindResourceCacheVolume(scenario.Workers[1].Name(), resourceCache)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(foundVolume.Handle()).To(Equal(streamedVolumeOnWorker1.Handle()))
+
+				newVolume = volumeOnWorker(scenario.Workers[1])
+			})
+
+			It("initializing resource cache on the new volume should not fail", func() {
+				err := newVolume.InitializeResourceCache(resourceCache)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("leaves the volume owned by the container", func() {
+				Expect(newVolume.Type()).To(Equal(db.VolumeTypeContainer))
+			})
+
+			It("original invalidated resource cache volume still be found", func() {
+				foundVolume, found, err := volumeRepository.FindResourceCacheVolume(scenario.Workers[1].Name(), resourceCache)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(foundVolume.Handle()).To(Equal(streamedVolumeOnWorker1.Handle()))
 			})
 		})
 	})
