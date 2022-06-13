@@ -42,7 +42,7 @@ func (workerResourceCache WorkerResourceCache) FindOrCreate(tx Tx, sourceWorkerB
 		// worker resource cache can still be found and used, so before this cache
 		// is GC-ed, let's not recreate the cache.
 		if uwrc.WorkerBaseResourceTypeID == 0 {
-			return nil, false, errors.New("invalidated-worker-resource-cache-exists")
+			return nil, false, nil
 		}
 
 		valid := sourceWorkerBaseResourceTypeID == uwrc.WorkerBaseResourceTypeID
