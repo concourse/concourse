@@ -2,7 +2,6 @@ module Login.Styles exposing
     ( loginComponent
     , loginContainer
     , loginItem
-    , loginText
     , logoutButton
     )
 
@@ -26,25 +25,19 @@ loginContainer =
     , style "border-left" <|
         "1px solid "
             ++ Colors.background
-    , style "line-height" "54px"
     ]
 
 
 loginItem : List (Html.Attribute msg)
 loginItem =
-    [ style "padding" "0 30px"
+    [ style "margin" "19px 30px"
     , style "cursor" "pointer"
-    , style "display" "flex"
     , style "align-items" "center"
     , style "justify-content" "center"
     , style "flex-grow" "1"
-    ]
-
-
-loginText : List (Html.Attribute msg)
-loginText =
-    [ style "overflow" "hidden"
+    , style "overflow" "hidden"
     , style "text-overflow" "ellipsis"
+    , style "white-space" "nowrap"
     ]
 
 
@@ -52,6 +45,7 @@ logoutButton : List (Html.Attribute msg)
 logoutButton =
     [ style "position" "absolute"
     , style "top" "55px"
+    , style "left" "0px"
     , style "background-color" Colors.topBarBackground
     , style "height" "54px"
     , style "width" "100%"

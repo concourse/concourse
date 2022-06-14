@@ -1061,6 +1061,9 @@ tooltip session =
                 , containerAttrs = Just Styles.cardTooltip
                 }
 
+        HoverState.Tooltip (UserDisplayName username) _ ->
+            Login.tooltip username
+
         _ ->
             Nothing
 
