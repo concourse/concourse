@@ -1,10 +1,13 @@
 package ssm
 
 import (
+	"encoding/json"
+	"fmt"
 	"strings"
 	"time"
 
 	"github.com/concourse/concourse/atc/creds"
+	"gopkg.in/yaml.v2"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/aws/aws-sdk-go/aws"
@@ -42,6 +45,7 @@ func (s *Ssm) NewSecretLookupPaths(teamName string, pipelineName string, allowRo
 func (s *Ssm) Get(secretPath string) (interface{}, *time.Time, bool, error) {
 	// Try to get the parameter as string value, by name
 	value, expiration, found, err := s.getParameterByName(secretPath)
+
 	if err != nil {
 		s.log.Error("unable to retrieve aws ssm secret by name", err, lager.Data{
 			"secretPath": secretPath,
@@ -71,8 +75,17 @@ func (s *Ssm) getParameterByName(name string) (interface{}, *time.Time, bool, er
 		WithDecryption: aws.Bool(true),
 	})
 	if err == nil {
-		return *param.Parameter.Value, nil, true, nil
+		format, err := s.getParameterFormat(&name)
+		if err != nil {
+			return nil, nil, false, err
+		}
 
+		value, err := unmarshalParameterFormat(*param.Parameter.Value, format)
+		if err != nil {
+			return nil, nil, false, err
+		}
+
+		return value, nil, true, nil
 	} else if errObj, ok := err.(awserr.Error); ok && errObj.Code() == ssm.ErrCodeParameterNotFound {
 		return nil, nil, false, nil
 	}
@@ -99,5 +112,63 @@ func (s *Ssm) getParameterByPath(path string) (interface{}, *time.Time, bool, er
 	if len(value) == 0 {
 		return nil, nil, false, nil
 	}
+
 	return value, nil, true, nil
+}
+
+func isValidFormat(format string) bool {
+	switch format {
+	case "raw", "trim", "yml", "yaml", "json":
+		return true
+	}
+	return false
+}
+
+func (s *Ssm) getParameterFormat(id *string) (string, error) {
+	format := "raw"
+
+	tags, err := s.api.ListTagsForResource(&ssm.ListTagsForResourceInput{
+		ResourceType: aws.String(ssm.ResourceTypeForTaggingParameter),
+		ResourceId:   id,
+	})
+
+	if err == nil {
+		for i := range tags.TagList {
+			tag := strings.ToLower(*tags.TagList[i].Key)
+			if tag == "format" {
+				format = strings.ToLower(*tags.TagList[i].Value)
+			}
+		}
+
+		if !isValidFormat(format) {
+			return "nil", fmt.Errorf("invalid format %s", format)
+		}
+	}
+
+	return format, nil
+}
+
+func unmarshalParameterFormat(input string, format string) (interface{}, error) {
+	var value interface{}
+
+	switch format {
+	case "json":
+		err := json.Unmarshal([]byte(input), &value)
+		if err != nil {
+			return nil, err
+		}
+	case "yml", "yaml":
+		err := yaml.Unmarshal([]byte(input), &value)
+		if err != nil {
+			return nil, err
+		}
+	case "trim":
+		value = strings.TrimSpace(string(input))
+	case "raw":
+		value = string(input)
+	default:
+		return nil, fmt.Errorf("unknown format %s, should never happen, ", format)
+	}
+
+	return value, nil
 }
