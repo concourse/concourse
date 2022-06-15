@@ -1,10 +1,12 @@
 package ssm_test
 
 import (
+	"encoding/json"
 	"errors"
 	"strconv"
 
 	"code.cloudfoundry.org/lager/lagertest"
+	"gopkg.in/yaml.v2"
 
 	"github.com/concourse/concourse/atc/creds"
 
@@ -44,6 +46,7 @@ type MockSsmService struct {
 
 	stubGetParameter             func(name string) (string, error)
 	stubGetParametersByPathPages func(path string) []mockPathResultPage
+	stubListTagsForResource      func(id string) (map[string]string, error)
 }
 
 func (mock *MockSsmService) GetParameter(input *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
@@ -84,6 +87,30 @@ func (mock *MockSsmService) GetParametersByPathPages(input *ssm.GetParametersByP
 	return nil
 }
 
+func (mock *MockSsmService) ListTagsForResource(input *ssm.ListTagsForResourceInput) (*ssm.ListTagsForResourceOutput, error) {
+	if mock.stubListTagsForResource == nil {
+		return nil, errors.New("stubListTagsForResource is not defined")
+	}
+	Expect(input).ToNot(BeNil())
+	Expect(input.ResourceId).ToNot(BeNil())
+	Expect(input.ResourceType).To(Equal(aws.String(ssm.ResourceTypeForTaggingParameter)))
+
+	var tags []*ssm.Tag
+	tagMap, err := mock.stubListTagsForResource(*input.ResourceId)
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range tagMap {
+		tags = append(tags, &ssm.Tag{
+			Key:   &k,
+			Value: &v,
+		})
+	}
+
+	return &ssm.ListTagsForResourceOutput{TagList: tags}, nil
+}
+
 var _ = Describe("Ssm", func() {
 	var ssmAccess *Ssm
 	var variables vars.Variables
@@ -110,6 +137,9 @@ var _ = Describe("Ssm", func() {
 		mockService.stubGetParametersByPathPages = func(path string) []mockPathResultPage {
 			return []mockPathResultPage{}
 		}
+		mockService.stubListTagsForResource = func(id string) (map[string]string, error) {
+			return map[string]string{}, nil
+		}
 	})
 
 	Describe("Get()", func() {
@@ -120,13 +150,13 @@ var _ = Describe("Ssm", func() {
 			Expect(err).To(BeNil())
 		})
 
-		It("should get complex paramter", func() {
+		It("should get complex parameter", func() {
 			mockService.stubGetParametersByPathPages = func(path string) []mockPathResultPage {
 				return []mockPathResultPage{
 					{
 						params: map[string]string{
 							"/concourse/alpha/bogus/user/name": "yours",
-							"/concourse/alpha/bogus/user/pass": "truely",
+							"/concourse/alpha/bogus/user/pass": "truly",
 						},
 						err: nil,
 					},
@@ -135,7 +165,7 @@ var _ = Describe("Ssm", func() {
 			value, found, err := variables.Get(vars.Reference{Path: "user"})
 			Expect(value).To(BeEquivalentTo(map[string]interface{}{
 				"name": "yours",
-				"pass": "truely",
+				"pass": "truly",
 			}))
 			Expect(found).To(BeTrue())
 			Expect(err).To(BeNil())
@@ -182,6 +212,78 @@ var _ = Describe("Ssm", func() {
 			Expect(value).To(BeEquivalentTo("team power"))
 			Expect(found).To(BeTrue())
 			Expect(err).To(BeNil())
+		})
+
+		It("should still read even when unable to list tags", func() {
+			mockService.stubListTagsForResource = nil
+			value, found, err := variables.Get(varRef)
+			Expect(value).To(BeEquivalentTo("ssm decrypted value"))
+			Expect(found).To(BeTrue())
+			Expect(err).To(BeNil())
+		})
+
+		It("should return a json object if the json format tag is set", func() {
+			object := map[string]interface{}{
+				"hello": "world",
+				"nested": map[string]interface{}{
+					"array": []interface{}{1.2, 3.4, 5.6, 7.8},
+				},
+				"testing": true,
+			}
+			objectData, err := json.Marshal(object)
+			Expect(err).To(BeNil())
+			objectText := string(objectData)
+
+			mockService.stubGetParameter = func(input string) (string, error) {
+				return objectText, nil
+			}
+			mockService.stubListTagsForResource = func(input string) (map[string]string, error) {
+				return map[string]string{"format": "json"}, nil
+			}
+
+			value, found, err := variables.Get(varRef)
+			Expect(found).To(BeTrue())
+			Expect(err).To(BeNil())
+			Expect(value).To(BeEquivalentTo(object))
+		})
+
+		It("should return a yaml object if the yaml format tag is set", func() {
+			object := map[interface{}]interface{}{
+				"hello": "world",
+				"nested": map[interface{}]interface{}{
+					"array": []interface{}{1.2, 3.4, 5.6, 7.8},
+				},
+				"testing": true,
+			}
+			objectData, err := yaml.Marshal(object)
+			Expect(err).To(BeNil())
+			objectText := string(objectData)
+
+			mockService.stubGetParameter = func(input string) (string, error) {
+				return objectText, nil
+			}
+			mockService.stubListTagsForResource = func(input string) (map[string]string, error) {
+				return map[string]string{"format": "yaml"}, nil
+			}
+
+			value, found, err := variables.Get(varRef)
+			Expect(found).To(BeTrue())
+			Expect(err).To(BeNil())
+			Expect(value).To(BeEquivalentTo(object))
+		})
+
+		It("should trim a value with extra spaces", func() {
+			mockService.stubGetParameter = func(input string) (string, error) {
+				return "  hello world  ", nil
+			}
+			mockService.stubListTagsForResource = func(input string) (map[string]string, error) {
+				return map[string]string{"format": "trim"}, nil
+			}
+
+			value, found, err := variables.Get(varRef)
+			Expect(found).To(BeTrue())
+			Expect(err).To(BeNil())
+			Expect(value).To(BeEquivalentTo("hello world"))
 		})
 	})
 })
