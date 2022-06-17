@@ -214,7 +214,7 @@ func (db *db) QueryRowContext(ctx context.Context, query string, args ...interfa
 type dbTx struct {
 	*sql.Tx
 
-	session            *ConnectionSession
+	session            ConnectionSession
 	encryptionStrategy encryption.Strategy
 }
 
