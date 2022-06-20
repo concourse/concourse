@@ -14,7 +14,7 @@ require (
 	github.com/Masterminds/squirrel v1.5.3
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/aryann/difflib v0.0.0-20170710044230-e206f873d14a
-	github.com/aws/aws-sdk-go v1.44.32
+	github.com/aws/aws-sdk-go v1.44.37
 	github.com/caarlos0/env v3.5.0+incompatible
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/concourse/dex v0.8.0
@@ -67,7 +67,7 @@ require (
 	github.com/sirupsen/logrus v1.8.1
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/square/certstrap v1.2.0
-	github.com/stretchr/testify v1.7.2
+	github.com/stretchr/testify v1.7.3
 	github.com/tedsuo/ifrit v0.0.0-20191009134036-9a97d0632f00
 	github.com/tedsuo/rata v1.0.1-0.20170830210128-07d200713958
 	github.com/vbauerster/mpb/v4 v4.6.1-0.20190319154207-3a6acfe12ac6
@@ -202,7 +202,7 @@ require (
 	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/spf13/cast v1.4.1 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/stretchr/objx v0.2.0 // indirect
+	github.com/stretchr/objx v0.4.0 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.7.0 // indirect
 	go.opentelemetry.io/proto/otlp v0.16.0 // indirect
