@@ -1,0 +1,16 @@
+{
+  "extends": ["config:base", "group:all"],
+  "packageRules": [
+    {
+      "matchLanguages": ["js"],
+      "addLabels": ["javascript"],
+      "extends": ["schedule:monthly"]
+    },
+    {
+      "matchLanguages": ["go"],
+      "addLabels": ["golang"],
+      "extends": ["schedule:weekly"]
+    }
+  ],
+  "labels": ["dependencies", "misc", "release/undocumented"]
+}
