@@ -18,7 +18,7 @@
     "elm": "^0.19.1",
     "elm-analyse": "stil4m/elm-analyse#701b8b4013a4f057b9382d368e42adc6fe08e14e",
     "elm-format": "0.8.5",
-    "elm-test": "^0.19.1-revision7",
+    "elm-test": "^0.19.1-revision8",
     "less": "^4.1.3",
     "less-plugin-autoprefix": "^2.0.0",
     "puppeteer": "^14.4.0",
