@@ -5,11 +5,15 @@
       "matchLanguages": ["js"],
       "addLabels": ["javascript"],
       "extends": ["schedule:monthly"]
+      "groupName": "javasript",
+      "groupSlug": "js"
     },
     {
       "matchLanguages": ["go"],
       "addLabels": ["golang"],
       "extends": ["schedule:weekly"]
+      "groupName": "golang",
+      "groupSlug": "go"
     }
   ],
   "labels": ["dependencies", "misc", "release/undocumented"]
