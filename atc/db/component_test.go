@@ -53,7 +53,7 @@ var _ = Describe("Component", func() {
 				err = component.UpdateLastRan()
 				Expect(err).NotTo(HaveOccurred())
 
-				time.Sleep(1 * time.Second)
+				time.Sleep(2 * time.Second)
 			})
 
 			It("returns true", func() {
