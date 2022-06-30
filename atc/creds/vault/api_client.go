@@ -1,6 +1,7 @@
 package vault
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"io/ioutil"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/hashicorp/go-rootcerts"
 	vaultapi "github.com/hashicorp/vault/api"
 )
@@ -216,6 +218,18 @@ func (ac *APIClient) baseClient() (*vaultapi.Client, error) {
 	err := ac.configureTLS(config.HttpClient.Transport.(*http.Transport).TLSClientConfig)
 	if err != nil {
 		return nil, err
+	}
+
+	config.CheckRetry = func(ctx context.Context, resp *http.Response, err error) (bool, error) {
+		retryable, err := retryablehttp.DefaultRetryPolicy(ctx, resp, err)
+		if err != nil || retryable {
+			return retryable, err
+		}
+		// We also want to retry when hitting Vault rate limit.
+		if resp.StatusCode == 429 {
+			return true, nil
+		}
+		return false, nil
 	}
 
 	client, err := vaultapi.NewClient(config)
