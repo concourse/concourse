@@ -31,6 +31,7 @@ type component struct {
 	interval time.Duration
 	lastRan  time.Time
 	paused   bool
+	rander   *rand.Rand
 
 	conn Conn
 }
@@ -54,6 +55,10 @@ func (c *component) Reload() (bool, error) {
 		return false, err
 	}
 
+	if c.rander == nil {
+		c.rander = rand.New(rand.NewSource(time.Now().Unix()))
+	}
+
 	return true, nil
 }
 
@@ -63,7 +68,7 @@ func (c *component) Reload() (bool, error) {
 // component to across ATCs more evenly.
 func (c *component) IntervalElapsed() bool {
 	interval := c.interval
-	drift := time.Duration(rand.Int())%(2*time.Second) - time.Second
+	drift := time.Duration(c.rander.Int())%(2*time.Second) - time.Second
 	if interval+drift > 0 {
 		interval += drift
 	}
