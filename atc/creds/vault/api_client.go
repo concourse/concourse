@@ -232,6 +232,11 @@ func (ac *APIClient) baseClient() (*vaultapi.Client, error) {
 		return false, nil
 	}
 
+	// Let's define retry backoff parameters explicitly
+	config.MinRetryWait = time.Millisecond * 1000
+	config.MaxRetryWait = time.Millisecond * 2000
+	config.MaxRetries = 3
+
 	client, err := vaultapi.NewClient(config)
 	if err != nil {
 		return nil, err
