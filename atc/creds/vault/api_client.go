@@ -221,9 +221,9 @@ func (ac *APIClient) baseClient() (*vaultapi.Client, error) {
 	}
 
 	config.CheckRetry = func(ctx context.Context, resp *http.Response, err error) (bool, error) {
-		retryable, err := retryablehttp.DefaultRetryPolicy(ctx, resp, err)
-		if err != nil || retryable {
-			return retryable, err
+		retryable, retryErr := retryablehttp.DefaultRetryPolicy(ctx, resp, err)
+		if retryErr != nil || retryable {
+			return retryable, retryErr
 		}
 		// We also want to retry when hitting Vault rate limit.
 		if resp.StatusCode == 429 {
@@ -234,8 +234,8 @@ func (ac *APIClient) baseClient() (*vaultapi.Client, error) {
 
 	// Let's define retry backoff parameters explicitly
 	config.MinRetryWait = time.Millisecond * 1000
-	config.MaxRetryWait = time.Millisecond * 2000
-	config.MaxRetries = 3
+	config.MaxRetryWait = time.Millisecond * 3000
+	config.MaxRetries = 2
 
 	client, err := vaultapi.NewClient(config)
 	if err != nil {
