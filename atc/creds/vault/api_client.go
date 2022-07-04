@@ -225,10 +225,19 @@ func (ac *APIClient) baseClient() (*vaultapi.Client, error) {
 		if retryErr != nil || retryable {
 			return retryable, retryErr
 		}
+
 		// We also want to retry when hitting Vault rate limit.
-		if resp.StatusCode == 429 {
+		//
+		// Per https://www.vaultproject.io/api-docs, 429 is default return code
+		// for health status of standby nodes.
+		//
+		// And per https://github.com/hashicorp/vault/blob/main/api/response.go#L32,
+		// only when request path is not "/v1/sys/health", 429 is treated as quota
+		// limit reached.
+		if resp.StatusCode == http.StatusTooManyRequests && resp.Request.URL.Path != "/v1/sys/health" {
 			return true, nil
 		}
+
 		return false, nil
 	}
 
