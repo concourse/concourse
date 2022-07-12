@@ -1,7 +1,6 @@
 package vault
 
 import (
-	"context"
 	"crypto/tls"
 	"fmt"
 	"io/ioutil"
@@ -220,31 +219,23 @@ func (ac *APIClient) baseClient() (*vaultapi.Client, error) {
 		return nil, err
 	}
 
-	config.CheckRetry = func(ctx context.Context, resp *http.Response, err error) (bool, error) {
-		retryable, retryErr := retryablehttp.DefaultRetryPolicy(ctx, resp, err)
-		if retryErr != nil || retryable {
-			return retryable, retryErr
+	// Enabling Vault rate limit header by
+	//  $ vault write sys/quotas/config enable_rate_limit_response_headers=true
+	// will make Vault API response header to include "Retry-After", and
+	// retryablehttp.DefaultBackoff() will just use the value of "Retry-After"
+	// as backoff duration. But sometime "Retry-After" might be 0, based on testing,
+	// immediate retry will hit rate limit error again. Thus we need to overwrite
+	// 0 duration with MinRetryWait.
+	//
+	// TODO: Once retryablehttp.DefaultBackoff fixed the 0 duration problem, this piece
+	// of code can be deleted.
+	config.Backoff = func(min, max time.Duration, attemptNum int, resp *http.Response) time.Duration {
+		d := retryablehttp.DefaultBackoff(min, max, attemptNum, resp)
+		if d == 0 {
+			d = config.MinRetryWait
 		}
-
-		// We also want to retry when hitting Vault rate limit.
-		//
-		// Per https://www.vaultproject.io/api-docs, 429 is default return code
-		// for health status of standby nodes.
-		//
-		// And per https://github.com/hashicorp/vault/blob/main/api/response.go#L32,
-		// only when request path is not "/v1/sys/health", 429 is treated as quota
-		// limit reached.
-		if resp.StatusCode == http.StatusTooManyRequests && resp.Request.URL.Path != "/v1/sys/health" {
-			return true, nil
-		}
-
-		return false, nil
+		return d
 	}
-
-	// Let's define retry backoff parameters explicitly
-	config.MinRetryWait = time.Millisecond * 1000
-	config.MaxRetryWait = time.Millisecond * 3000
-	config.MaxRetries = 2
 
 	client, err := vaultapi.NewClient(config)
 	if err != nil {
