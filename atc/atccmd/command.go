@@ -573,10 +573,17 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		return nil, err
 	}
 
+	// Connection tracker is off by default. Can be turned on/ff at runtime.
 	http.HandleFunc("/debug/connections", func(w http.ResponseWriter, r *http.Request) {
 		for _, stack := range db.GlobalConnectionTracker.Current() {
 			fmt.Fprintln(w, stack)
 		}
+	})
+	http.HandleFunc("/debug/connections/on", func(w http.ResponseWriter, r *http.Request) {
+		db.InitConnectionTracker(true)
+	})
+	http.HandleFunc("/debug/connections/off", func(w http.ResponseWriter, r *http.Request) {
+		db.InitConnectionTracker(false)
 	})
 
 	if err := cmd.configureMetrics(logger); err != nil {

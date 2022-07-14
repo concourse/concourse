@@ -5,22 +5,39 @@ import (
 	"sync"
 )
 
-var GlobalConnectionTracker = NewConnectionTracker()
+var GlobalConnectionTracker ConnectionTracker
 
-type ConnectionTracker struct {
-	sessions  map[*ConnectionSession]struct{}
+func init()  {
+	InitConnectionTracker(false)
+}
+
+type ConnectionTracker interface {
+	Track() ConnectionSession
+	Current() []string
+}
+
+type ConnectionSession interface {
+	Release()
+}
+
+type connectionTracker struct {
+	sessions  map[*connectionSession]struct{}
 	sessionsL *sync.Mutex
 }
 
-func NewConnectionTracker() *ConnectionTracker {
-	return &ConnectionTracker{
-		sessions:  map[*ConnectionSession]struct{}{},
-		sessionsL: &sync.Mutex{},
+func InitConnectionTracker(on bool) {
+	if on {
+		GlobalConnectionTracker = &connectionTracker{
+			sessions:  map[*connectionSession]struct{}{},
+			sessionsL: &sync.Mutex{},
+		}
+	} else {
+		GlobalConnectionTracker = fakeConnectionTracker{}
 	}
 }
 
-func (tracker *ConnectionTracker) Track() *ConnectionSession {
-	session := &ConnectionSession{
+func (tracker *connectionTracker) Track() ConnectionSession {
+	session := &connectionSession{
 		tracker: tracker,
 		stack:   string(debug.Stack()),
 	}
@@ -32,7 +49,7 @@ func (tracker *ConnectionTracker) Track() *ConnectionSession {
 	return session
 }
 
-func (tracker *ConnectionTracker) Current() []string {
+func (tracker *connectionTracker) Current() []string {
 	stacks := []string{}
 
 	tracker.sessionsL.Lock()
@@ -46,17 +63,34 @@ func (tracker *ConnectionTracker) Current() []string {
 	return stacks
 }
 
-func (tracker *ConnectionTracker) remove(session *ConnectionSession) {
+func (tracker *connectionTracker) remove(session *connectionSession) {
 	tracker.sessionsL.Lock()
 	delete(tracker.sessions, session)
 	tracker.sessionsL.Unlock()
 }
 
-type ConnectionSession struct {
-	tracker *ConnectionTracker
+type connectionSession struct {
+	tracker *connectionTracker
 	stack   string
 }
 
-func (session *ConnectionSession) Release() {
+func (session *connectionSession) Release() {
 	session.tracker.remove(session)
+}
+
+type fakeConnectionTracker struct {
+}
+
+func (t fakeConnectionTracker) Track() ConnectionSession {
+	return fakeConnectionSession{}
+}
+
+func (t fakeConnectionTracker) Current() []string {
+	return []string{"connection tracker is turned off"}
+}
+
+type fakeConnectionSession struct {
+}
+
+func (s fakeConnectionSession) Release() {
 }
