@@ -217,7 +217,7 @@ var _ = Describe("VolumeRepository", func() {
 			resourceCacheVolumeCreated, err := resourceCacheVolume.Created()
 			Expect(err).NotTo(HaveOccurred())
 
-			err = resourceCacheVolumeCreated.InitializeResourceCache(usedResourceCache)
+			_, err = resourceCacheVolumeCreated.InitializeResourceCache(usedResourceCache)
 			Expect(err).NotTo(HaveOccurred())
 
 			artifactVolume, err := volumeRepository.CreateVolume(defaultTeam.ID(), defaultWorker.Name(), db.VolumeTypeArtifact)
@@ -545,7 +545,7 @@ var _ = Describe("VolumeRepository", func() {
 				existingVolume, err = resourceCacheVolume.Created()
 				Expect(err).NotTo(HaveOccurred())
 
-				err = existingVolume.InitializeResourceCache(usedResourceCache)
+				_, err = existingVolume.InitializeResourceCache(usedResourceCache)
 				Expect(err).NotTo(HaveOccurred())
 			})
 

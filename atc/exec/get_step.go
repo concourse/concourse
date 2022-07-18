@@ -499,7 +499,7 @@ func (step *GetStep) performGetAndInitCache(
 
 	volume := step.resourceMountVolume(mounts)
 
-	if err := volume.InitializeResourceCache(ctx, resourceCache); err != nil {
+	if _, err := volume.InitializeResourceCache(ctx, resourceCache); err != nil {
 		logger.Error("failed-to-initialize-resource-cache", err)
 		return nil, resource.VersionResult{}, runtime.ProcessResult{}, err
 	}

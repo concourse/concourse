@@ -816,6 +816,7 @@ var _ = Describe("Team", func() {
 		}
 
 		var urc db.ResourceCache
+		var uwrc *db.UsedWorkerResourceCache
 
 		BeforeEach(func() {
 			_, err := workerFactory.SaveWorker(atcWorker, 0)
@@ -842,7 +843,7 @@ var _ = Describe("Team", func() {
 			createdVolume, err := creatingVolume.Created()
 			Expect(err).ToNot(HaveOccurred())
 
-			err = createdVolume.InitializeResourceCache(urc)
+			uwrc, err = createdVolume.InitializeResourceCache(urc)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -949,7 +950,7 @@ var _ = Describe("Team", func() {
 				volumeOnWorker2, err = creatingVolume.Created()
 				Expect(err).ToNot(HaveOccurred())
 
-				err = volumeOnWorker2.InitializeStreamedResourceCache(urc, atcWorker.Name)
+				_, err = volumeOnWorker2.InitializeStreamedResourceCache(urc, uwrc.ID)
 				Expect(err).ToNot(HaveOccurred())
 			})
 

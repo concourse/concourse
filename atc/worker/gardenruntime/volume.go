@@ -45,30 +45,36 @@ func (v Volume) DBVolume() db.CreatedVolume {
 	return v.dbVolume
 }
 
-func (v Volume) InitializeResourceCache(ctx context.Context, cache db.ResourceCache) error {
+func (v Volume) InitializeResourceCache(ctx context.Context, cache db.ResourceCache) (*db.UsedWorkerResourceCache, error) {
 	logger := lagerctx.FromContext(ctx)
 	if err := v.bcVolume.SetPrivileged(ctx, false); err != nil {
 		logger.Error("failed-to-set-unprivileged", err)
-		return err
+		return nil, err
 	}
-	if err := v.dbVolume.InitializeResourceCache(cache); err != nil {
+
+	var uwrc *db.UsedWorkerResourceCache
+	var err error
+	if uwrc, err = v.dbVolume.InitializeResourceCache(cache); err != nil {
 		logger.Error("failed-to-initialize-resource-cache", err)
-		return err
+		return nil, err
 	}
-	return nil
+	return uwrc, nil
 }
 
-func (v Volume) InitializeStreamedResourceCache(ctx context.Context, cache db.ResourceCache, sourceWorker string) error {
+func (v Volume) InitializeStreamedResourceCache(ctx context.Context, cache db.ResourceCache, sourceWorkerResourceCacheID int) (*db.UsedWorkerResourceCache, error) {
 	logger := lagerctx.FromContext(ctx)
 	if err := v.bcVolume.SetPrivileged(ctx, false); err != nil {
 		logger.Error("failed-to-set-unprivileged", err)
-		return err
+		return nil, err
 	}
-	if err := v.dbVolume.InitializeStreamedResourceCache(cache, sourceWorker); err != nil {
+
+	var uwrc *db.UsedWorkerResourceCache
+	var err error
+	if uwrc, err = v.dbVolume.InitializeStreamedResourceCache(cache, sourceWorkerResourceCacheID); err != nil {
 		logger.Error("failed-to-initialize-resource-cache", err)
-		return err
+		return nil, err
 	}
-	return nil
+	return uwrc, nil
 }
 
 func (v Volume) InitializeTaskCache(ctx context.Context, jobID int, stepName string, path string, privileged bool) error {

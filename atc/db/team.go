@@ -164,6 +164,8 @@ func (t *team) FindWorkerForVolume(handle string) (Worker, bool, error) {
 	}))
 }
 
+// FindWorkersForResourceCache returns workers that contain valid resource caches.
+// A valid resource cache's worker_base_resource_type_id is not nil.
 func (t *team) FindWorkersForResourceCache(rcId int) ([]Worker, error) {
 	return getWorkers(
 		t.conn, workersQuery.

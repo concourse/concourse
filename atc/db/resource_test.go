@@ -1954,7 +1954,7 @@ var _ = Describe("Resource", func() {
 				createdVolume, err := resourceCacheVolume.Created()
 				Expect(err).ToNot(HaveOccurred())
 
-				err = createdVolume.InitializeResourceCache(resourceCache)
+				_, err = createdVolume.InitializeResourceCache(resourceCache)
 				Expect(err).ToNot(HaveOccurred())
 			}
 

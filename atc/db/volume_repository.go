@@ -797,6 +797,7 @@ var volumeColumns = []string{
 	"c.handle",
 	"pv.handle",
 	"v.team_id",
+	"wrc.id",
 	"wrc.resource_cache_id",
 	"v.worker_base_resource_type_id",
 	"v.worker_task_cache_id",
@@ -822,6 +823,7 @@ func scanVolume(row sq.RowScanner, conn Conn) (CreatingVolume, CreatedVolume, De
 	var sqContainerHandle sql.NullString
 	var sqParentHandle sql.NullString
 	var sqTeamID sql.NullInt64
+	var sqWorkerResourceCacheID sql.NullInt64
 	var sqResourceCacheID sql.NullInt64
 	var sqWorkerBaseResourceTypeID sql.NullInt64
 	var sqWorkerTaskCacheID sql.NullInt64
@@ -838,6 +840,7 @@ func scanVolume(row sq.RowScanner, conn Conn) (CreatingVolume, CreatedVolume, De
 		&sqContainerHandle,
 		&sqParentHandle,
 		&sqTeamID,
+		&sqWorkerResourceCacheID,
 		&sqResourceCacheID,
 		&sqWorkerBaseResourceTypeID,
 		&sqWorkerTaskCacheID,
@@ -867,6 +870,11 @@ func scanVolume(row sq.RowScanner, conn Conn) (CreatingVolume, CreatedVolume, De
 	var teamID int
 	if sqTeamID.Valid {
 		teamID = int(sqTeamID.Int64)
+	}
+
+	var workerResourceCacheID int
+	if sqWorkerResourceCacheID.Valid {
+		workerResourceCacheID = int(sqWorkerResourceCacheID.Int64)
 	}
 
 	var resourceCacheID int
@@ -905,6 +913,7 @@ func scanVolume(row sq.RowScanner, conn Conn) (CreatingVolume, CreatedVolume, De
 			workerName:               workerName,
 			containerHandle:          containerHandle,
 			parentHandle:             parentHandle,
+			workerResourceCacheID:    workerResourceCacheID,
 			resourceCacheID:          resourceCacheID,
 			workerBaseResourceTypeID: workerBaseResourceTypeID,
 			workerTaskCacheID:        workerTaskCacheID,
