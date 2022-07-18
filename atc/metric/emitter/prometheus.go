@@ -71,7 +71,6 @@ type PrometheusEmitter struct {
 
 	locksHeld *prometheus.GaugeVec
 
-	// TODO: deprecate
 	checksFinished *prometheus.CounterVec
 	checksStarted  prometheus.Counter
 
@@ -861,7 +860,6 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 
 		locksHeld: locksHeld,
 
-		// TODO: deprecate
 		checksFinished: checksFinished,
 		checksStarted:  checksStarted,
 
@@ -945,8 +943,6 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 			).Observe(event.Value)
 	case "build finished":
 		emitter.buildFinishedMetrics(logger, event)
-	case "check build finished":
-		emitter.checkBuildFinishedMetrics(logger, event)
 	case "worker containers":
 		// update last seen counters, used to gc stale timeseries
 		emitter.updateLastSeen(event)
@@ -1007,10 +1003,8 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 		emitter.databaseMetrics(logger, event)
 	case "database connections":
 		emitter.databaseMetrics(logger, event)
-	// TODO: deprecate
 	case "checks finished":
 		emitter.checksFinished.WithLabelValues(event.Attributes["status"]).Add(event.Value)
-	// TODO: deprecate
 	case "checks started":
 		emitter.checksStarted.Add(event.Value)
 	case "checks enqueued":

@@ -273,10 +273,6 @@ func (b *engineBuild) trackStarted(logger lager.Logger) {
 		metric.BuildStarted{
 			Build: b.build,
 		}.Emit(logger)
-	} else {
-		metric.CheckBuildStarted{
-			Build: b.build,
-		}.Emit(logger)
 	}
 }
 
@@ -295,10 +291,6 @@ func (b *engineBuild) trackFinished(logger lager.Logger) {
 	if !b.build.IsRunning() {
 		if b.build.Name() != db.CheckBuildName {
 			metric.BuildFinished{
-				Build: b.build,
-			}.Emit(logger)
-		} else {
-			metric.CheckBuildFinished{
 				Build: b.build,
 			}.Emit(logger)
 		}
