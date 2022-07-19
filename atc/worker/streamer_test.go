@@ -110,7 +110,7 @@ var _ = Describe("Streamer", func() {
 		var resourceCache db.ResourceCache
 		By("initializing src as a resource cache", func() {
 			resourceCache = scenario.FindOrCreateResourceCache("src-worker")
-			err := src.InitializeResourceCache(ctx, resourceCache)
+			_, err := src.InitializeResourceCache(ctx, resourceCache)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -160,7 +160,7 @@ var _ = Describe("Streamer", func() {
 		var resourceCache db.ResourceCache
 		By("initializing src as a resource cache", func() {
 			resourceCache = scenario.FindOrCreateResourceCache("src-worker")
-			err := src.InitializeResourceCache(ctx, resourceCache)
+			_, err := src.InitializeResourceCache(ctx, resourceCache)
 			Expect(err).ToNot(HaveOccurred())
 		})
 

@@ -346,10 +346,10 @@ var _ = Describe("Pool", func() {
 			)
 			resourceCache := scenario.FindOrCreateResourceCache("worker1")
 
-			err := scenario.WorkerVolume("worker1", "resource-cache-1").InitializeResourceCache(ctx, resourceCache)
+			_, err := scenario.WorkerVolume("worker1", "resource-cache-1").InitializeResourceCache(ctx, resourceCache)
 			Expect(err).ToNot(HaveOccurred())
 
-			err = scenario.WorkerVolume("worker2", "resource-cache-2").InitializeResourceCache(ctx, resourceCache)
+			_, err = scenario.WorkerVolume("worker2", "resource-cache-2").InitializeResourceCache(ctx, resourceCache)
 			Expect(err).ToNot(HaveOccurred())
 
 			cacheVolume, found, err := scenario.Pool.FindResourceCacheVolume(ctx, 0, resourceCache, worker.Spec{})
@@ -374,10 +374,10 @@ var _ = Describe("Pool", func() {
 			)
 			resourceCache := scenario.FindOrCreateResourceCache("worker1")
 
-			err := scenario.WorkerVolume("worker1", "resource-cache-1").InitializeResourceCache(ctx, resourceCache)
+			_, err := scenario.WorkerVolume("worker1", "resource-cache-1").InitializeResourceCache(ctx, resourceCache)
 			Expect(err).ToNot(HaveOccurred())
 
-			err = scenario.WorkerVolume("worker2", "resource-cache-2").InitializeResourceCache(ctx, resourceCache)
+			_, err = scenario.WorkerVolume("worker2", "resource-cache-2").InitializeResourceCache(ctx, resourceCache)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("destroying one of the worker's resource cache volumes", func() {
@@ -403,7 +403,7 @@ var _ = Describe("Pool", func() {
 			)
 			resourceCache := scenario.FindOrCreateResourceCache("worker1")
 
-			err := scenario.WorkerVolume("worker1", "resource-cache-1").InitializeResourceCache(ctx, resourceCache)
+			_, err := scenario.WorkerVolume("worker1", "resource-cache-1").InitializeResourceCache(ctx, resourceCache)
 			Expect(err).ToNot(HaveOccurred())
 
 			_, found, err := scenario.Pool.FindResourceCacheVolume(ctx, 0, resourceCache, worker.Spec{})
@@ -429,10 +429,10 @@ var _ = Describe("Pool", func() {
 			)
 			resourceCache := scenario.FindOrCreateResourceCache("worker1")
 
-			err := scenario.WorkerVolume("worker1", "resource-cache-1").InitializeResourceCache(ctx, resourceCache)
+			_, err := scenario.WorkerVolume("worker1", "resource-cache-1").InitializeResourceCache(ctx, resourceCache)
 			Expect(err).ToNot(HaveOccurred())
 
-			err = scenario.WorkerVolume("worker2", "resource-cache-2").InitializeResourceCache(ctx, resourceCache)
+			_, err = scenario.WorkerVolume("worker2", "resource-cache-2").InitializeResourceCache(ctx, resourceCache)
 			Expect(err).ToNot(HaveOccurred())
 
 			cacheVolume, found, err := scenario.Pool.FindResourceCacheVolumeOnWorker(ctx, resourceCache, worker.Spec{}, "worker1")
@@ -453,7 +453,7 @@ var _ = Describe("Pool", func() {
 
 			resourceCache := scenario.FindOrCreateResourceCache("worker1")
 
-			err := scenario.WorkerVolume("worker1", "resource-cache-1").InitializeResourceCache(ctx, resourceCache)
+			_, err := scenario.WorkerVolume("worker1", "resource-cache-1").InitializeResourceCache(ctx, resourceCache)
 			Expect(err).ToNot(HaveOccurred())
 
 			_, found, err := scenario.Pool.FindResourceCacheVolumeOnWorker(ctx, resourceCache, worker.Spec{}, "invalid-worker")
@@ -474,7 +474,7 @@ var _ = Describe("Pool", func() {
 			)
 			resourceCache := scenario.FindOrCreateResourceCache("stalled-worker")
 
-			err := scenario.WorkerVolume("stalled-worker", "resource-cache-1").InitializeResourceCache(ctx, resourceCache)
+			_, err := scenario.WorkerVolume("stalled-worker", "resource-cache-1").InitializeResourceCache(ctx, resourceCache)
 			Expect(err).ToNot(HaveOccurred())
 
 			_, found, err := scenario.Pool.FindResourceCacheVolumeOnWorker(ctx, resourceCache, worker.Spec{}, "stalled-worker")
