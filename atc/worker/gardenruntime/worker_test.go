@@ -422,11 +422,11 @@ var _ = Describe("Garden Worker", func() {
 		)
 
 		resourceCache1 := scenario.FindOrCreateResourceCache("worker1")
-		err := scenario.WorkerVolume("worker1", "locally-cached-volume").InitializeResourceCache(ctx, resourceCache1)
+		_, err := scenario.WorkerVolume("worker1", "locally-cached-volume").InitializeResourceCache(ctx, resourceCache1)
 		Expect(err).ToNot(HaveOccurred())
 
 		resourceCache2 := scenario.FindOrCreateResourceCache("worker2")
-		err = scenario.WorkerVolume("worker2", "remote-volume").InitializeResourceCache(ctx, resourceCache2)
+		_, err = scenario.WorkerVolume("worker2", "remote-volume").InitializeResourceCache(ctx, resourceCache2)
 		Expect(err).ToNot(HaveOccurred())
 
 		worker := scenario.Worker("worker1")
@@ -567,7 +567,7 @@ var _ = Describe("Garden Worker", func() {
 
 			By("initializing remote input as a resource cache", func() {
 				resourceCache := scenario.FindOrCreateResourceCache("worker2")
-				err := scenario.WorkerVolume("worker2", "remote-image-volume").InitializeResourceCache(ctx, resourceCache)
+				_, err := scenario.WorkerVolume("worker2", "remote-image-volume").InitializeResourceCache(ctx, resourceCache)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -814,7 +814,7 @@ var _ = Describe("Garden Worker", func() {
 
 			By("initializing remote input as a resource cache", func() {
 				resourceCache := scenario.FindOrCreateResourceCache("worker2")
-				err := scenario.WorkerVolume("worker2", "remote-input").InitializeResourceCache(ctx, resourceCache)
+				_, err := scenario.WorkerVolume("worker2", "remote-input").InitializeResourceCache(ctx, resourceCache)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -909,11 +909,15 @@ var _ = Describe("Garden Worker", func() {
 		)
 
 		resourceCache1 := scenario.FindOrCreateResourceCache("worker1")
-		err := scenario.WorkerVolume("worker1", "locally-cached-volume").InitializeResourceCache(ctx, resourceCache1)
+		_, err := scenario.WorkerVolume("worker1", "locally-cached-volume").InitializeResourceCache(ctx, resourceCache1)
 		Expect(err).ToNot(HaveOccurred())
 
 		resourceCache2 := scenario.FindOrCreateResourceCache("worker2")
-		err = scenario.WorkerVolume("worker2", "remote-volume").InitializeStreamedResourceCache(ctx, resourceCache2, "worker1")
+		removeVolume := scenario.WorkerVolume("worker2", "remote-volume")
+		uwrc2, err := removeVolume.InitializeResourceCache(ctx, resourceCache2)
+		Expect(err).ToNot(HaveOccurred())
+
+		_, err = scenario.WorkerVolume("worker2", "remote-volume").InitializeStreamedResourceCache(ctx, resourceCache2, uwrc2.ID)
 		Expect(err).ToNot(HaveOccurred())
 
 		worker := scenario.Worker("worker1")

@@ -487,6 +487,7 @@ func (volume *createdVolume) initializeResourceCache(tx Tx, resourceCache Resour
 		return nil, false, ErrVolumeMissing
 	}
 
+	volume.workerResourceCacheID = workerResourceCache.ID
 	volume.resourceCacheID = resourceCache.ID()
 	volume.typ = VolumeTypeResource
 
