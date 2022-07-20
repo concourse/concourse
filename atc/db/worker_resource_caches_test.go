@@ -164,7 +164,7 @@ var _ = Describe("WorkerResourceCaches", func() {
 						Expect(err).ToNot(HaveOccurred())
 					})
 
-					FIt("should still find an invalid cache on worker1", func(){
+					It("should still find an invalid cache on worker1", func(){
 						uwrc, found, err := db.WorkerResourceCache{
 							WorkerName:    scenario.Workers[1].Name(),
 							ResourceCache: resourceCache,
