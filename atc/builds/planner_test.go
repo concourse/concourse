@@ -1169,6 +1169,77 @@ var factoryTests = []PlannerTest{
 		}`,
 	},
 	{
+		Title: "put step with no_get",
+		Config: &atc.PutStep{
+			Name:      "some-name",
+			Resource:  "some-resource",
+			Params:    atc.Params{"some": "params"},
+			Tags:      atc.Tags{"tag-1", "tag-2"},
+			Inputs:    &atc.InputsConfig{All: true},
+			NoGet: true,
+		},
+		Inputs: []db.BuildInput{
+			{
+				Name:    "some-name",
+				Version: atc.Version{"some": "version"},
+			},
+		},
+		ManuallyTriggered: true,
+		CompareIDs:        true,
+		PlanJSON: `{
+			"id": "1",
+			"put": {
+				"name": "some-name",
+				"type": "some-resource-type",
+				"resource": "some-resource",
+				"source": {
+					 "some": "source",
+					 "default-key": "default-value"
+				},
+				"params": {"some":"params"},
+				"tags": ["tag-1", "tag-2"],
+				"inputs": "all",
+				"image": {
+					"base_type": "some-base-resource-type",
+					"check_plan": {
+						"id": "1/image-check",
+						"check": {
+							"name": "some-resource-type",
+							"type": "some-base-resource-type",
+							"resource_type": "some-resource-type",
+							"source": { "some": "type-source" },
+							"image": {
+								"base_type": "some-base-resource-type"
+							},
+						"interval": "1m0s",
+							"skip_interval": true,
+							"tags": [
+								 "tag-1",
+								 "tag-2"
+							]
+						}
+					},
+					"get_plan": {
+						"id": "1/image-get",
+						"get": {
+							"name": "some-resource-type",
+							"type": "some-base-resource-type",
+							"source": { "some": "type-source" },
+							"image": {
+								"base_type": "some-base-resource-type"
+							},
+							"version_from": "1/image-check",
+							"tags": [
+								 "tag-1",
+								 "tag-2"
+							]
+						}
+					}
+				}
+			}
+		}`,
+	},
+	{
 		Title: "task step",
 
 		Config: &atc.TaskStep{

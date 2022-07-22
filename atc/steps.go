@@ -323,6 +323,7 @@ type PutStep struct {
 	Tags      Tags          `json:"tags,omitempty"`
 	GetParams Params        `json:"get_params,omitempty"`
 	Timeout   string        `json:"timeout,omitempty"`
+	NoGet     bool          `json:"no_get,omitempty"`
 }
 
 func (step *PutStep) ResourceName() string {
