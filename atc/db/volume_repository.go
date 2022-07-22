@@ -454,6 +454,10 @@ func (repository *volumeRepository) FindResourceCacheVolume(workerName string, r
 		return nil, false, nil
 	}
 
+	if workerResourceCache.WorkerBaseResourceTypeID == 0 {
+		return nil, false, nil
+	}
+
 	_, createdVolume, err := repository.findVolume(0, workerName, map[string]interface{}{
 		"v.worker_resource_cache_id": workerResourceCache.ID,
 	})
@@ -474,7 +478,7 @@ func (repository *volumeRepository) FindWorkersForResourceCache(resourceCache Re
 		LeftJoin("workers w on c.worker_name = w.name").
 		Where(sq.Eq{
 			"c.resource_cache_id": resourceCache.ID(),
-			"w.state": "running",
+			"w.state":             "running",
 		}).
 		RunWith(repository.conn).
 		Query()
@@ -500,7 +504,7 @@ func (repository *volumeRepository) FindWorkersForTaskCache(taskCache UsedTaskCa
 		LeftJoin("workers w on c.worker_name = w.name").
 		Where(sq.Eq{
 			"c.task_cache_id": taskCache.ID(),
-			"w.state": "running",
+			"w.state":         "running",
 		}).
 		RunWith(repository.conn).
 		Query()

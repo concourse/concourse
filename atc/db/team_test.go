@@ -939,9 +939,11 @@ var _ = Describe("Team", func() {
 			}
 
 			var volumeOnWorker2 db.CreatedVolume
+			var uwrc2 *db.UsedWorkerResourceCache
 
 			BeforeEach(func() {
-				_, err := workerFactory.SaveWorker(atcWorker2, 0)
+				var err error
+				_, err = workerFactory.SaveWorker(atcWorker2, 0)
 				Expect(err).ToNot(HaveOccurred())
 
 				creatingVolume, err := volumeRepository.CreateVolume(defaultTeam.ID(), atcWorker2.Name, db.VolumeTypeResource)
@@ -950,8 +952,9 @@ var _ = Describe("Team", func() {
 				volumeOnWorker2, err = creatingVolume.Created()
 				Expect(err).ToNot(HaveOccurred())
 
-				_, err = volumeOnWorker2.InitializeStreamedResourceCache(urc, uwrc.ID)
+				uwrc2, err = volumeOnWorker2.InitializeStreamedResourceCache(urc, uwrc.ID)
 				Expect(err).ToNot(HaveOccurred())
+				Expect(uwrc2).ToNot(BeNil())
 			})
 
 			Context("when the workers are running", func() {
@@ -988,10 +991,17 @@ var _ = Describe("Team", func() {
 						Expect(len(workers)).To(Equal(0))
 					})
 
-					It("cached volume should still exist on worker2", func() {
+					It("cached volume should not found on worker2", func() {
 						_, found, err := volumeRepository.FindResourceCacheVolume("some-worker-name-2", urc)
 						Expect(err).ToNot(HaveOccurred())
+						Expect(found).To(BeFalse())
+					})
+
+					It("but the volume should be still there", func(){
+						v, found, err := volumeRepository.FindVolume(volumeOnWorker2.Handle())
+						Expect(err).ToNot(HaveOccurred())
 						Expect(found).To(BeTrue())
+						Expect(v.WorkerResourceCacheID()).To(Equal(uwrc2.ID))
 					})
 				})
 			})

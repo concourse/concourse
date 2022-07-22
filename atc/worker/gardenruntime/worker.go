@@ -715,6 +715,12 @@ func (worker *Worker) findOrStreamVolume(
 				return Volume{}, err
 			}
 
+			// TODO: find artifact again
+			// From `get` to where it artificat is used, it may take time, and during
+			// the period, original worker may have been pruned, but the artifact might
+			// have been streamed to other workers, thus find the artifact again can make
+			// sure the artifact exist.
+
 			delegate.StreamingVolume(logger, inputPath, artifact.Source(), streamedVolume.DBVolume().WorkerName())
 			if err := worker.streamer.Stream(ctx, artifact, streamedVolume); err != nil {
 				logger.Error("failed-to-stream-artifact", err)

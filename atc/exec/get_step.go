@@ -333,6 +333,7 @@ func (step *GetStep) retrieveFromCacheOrPerformGet(
 			metric.Metrics.GetStepCacheHits.Inc()
 			fmt.Fprintln(delegate.Stderr(), "\x1b[1;36mINFO: found existing resource cache\x1b[0m")
 			fmt.Fprintln(delegate.Stderr(), "")
+
 			return volume, true, versionResult, runtime.ProcessResult{ExitStatus: 0}, true, nil
 		}
 
