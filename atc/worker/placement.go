@@ -14,7 +14,8 @@ import (
 
 type PlacementOptions struct {
 	Strategies                   []string `long:"container-placement-strategy" default:"volume-locality" choice:"volume-locality" choice:"random" choice:"fewest-build-containers" choice:"limit-active-tasks" choice:"limit-active-containers" choice:"limit-active-volumes" description:"Method by which a worker is selected during container placement. If multiple methods are specified, they will be applied in order. Random strategy should only be used alone."`
-	NoInputStrategies            []string `long:"no-input-container-placement-strategy" choice:"volume-locality" choice:"random" choice:"fewest-build-containers" choice:"limit-active-tasks" choice:"limit-active-containers" choice:"limit-active-volumes" description:"A second container placement strategy that will only be used for get and nested check steps."`
+	NoInputStrategies            []string `long:"no-input-container-placement-strategy"  choice:"random" choice:"fewest-build-containers" choice:"limit-active-tasks" choice:"limit-active-containers" choice:"limit-active-volumes" description:"A second container placement strategy that will only be used for get and nested check steps."`
+	CheckStrategies              []string `long:"check-container-placement-strategy" default:"random" choice:"random" choice:"fewest-build-containers" choice:"limit-active-tasks" choice:"limit-active-containers" choice:"limit-active-volumes" description:"A second container placement strategy that will only be used for lidar checks."`
 	MaxActiveTasksPerWorker      int      `long:"max-active-tasks-per-worker" default:"0" description:"Maximum allowed number of active build tasks per worker. Has effect only when used with limit-active-tasks placement strategy. 0 means no limit."`
 	MaxActiveContainersPerWorker int      `long:"max-active-containers-per-worker" default:"0" description:"Maximum allowed number of active containers per worker. Has effect only when used with limit-active-containers placement strategy. 0 means no limit."`
 	MaxActiveVolumesPerWorker    int      `long:"max-active-volumes-per-worker" default:"0" description:"Maximum allowed number of active volumes per worker. Has effect only when used with limit-active-volumes placement strategy. 0 means no limit."`
@@ -25,7 +26,7 @@ var (
 	ErrTooManyVolumes    = errors.New("worker has too many volumes")
 )
 
-func NewPlacementStrategy(options PlacementOptions) (PlacementStrategy, PlacementStrategy, error) {
+func NewPlacementStrategy(options PlacementOptions) (PlacementStrategy, PlacementStrategy, PlacementStrategy, error) {
 	// If no-input-container-placement-strategy is not configured, then just use
 	// container-placement-strategy.
 	if len(options.NoInputStrategies) == 0 {
@@ -34,14 +35,18 @@ func NewPlacementStrategy(options PlacementOptions) (PlacementStrategy, Placemen
 
 	strategy, err := newPlaceStrategy(options, options.Strategies)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	noInputStrategy, err := newPlaceStrategy(options, options.NoInputStrategies)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
+	}
+	checkStrategy, err := newPlaceStrategy(options, options.CheckStrategies)
+	if err != nil {
+		return nil, nil, nil, err
 	}
 
-	return strategy, noInputStrategy, nil
+	return strategy, noInputStrategy, checkStrategy, nil
 }
 
 func newPlaceStrategy(options PlacementOptions, chain []string) (PlacementStrategy, error) {

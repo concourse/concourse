@@ -25,7 +25,8 @@ type CheckStep struct {
 	metadata              StepMetadata
 	containerMetadata     db.ContainerMetadata
 	resourceConfigFactory db.ResourceConfigFactory
-	strategy              worker.PlacementStrategy
+	noInputStrategy       worker.PlacementStrategy
+	checkStrategy         worker.PlacementStrategy
 	delegateFactory       CheckDelegateFactory
 	workerPool            Pool
 	defaultCheckTimeout   time.Duration
@@ -55,7 +56,8 @@ func NewCheckStep(
 	metadata StepMetadata,
 	resourceConfigFactory db.ResourceConfigFactory,
 	containerMetadata db.ContainerMetadata,
-	strategy worker.PlacementStrategy,
+	noInputStrategy worker.PlacementStrategy,
+	checkStrategy worker.PlacementStrategy,
 	pool Pool,
 	delegateFactory CheckDelegateFactory,
 	defaultCheckTimeout time.Duration,
@@ -67,7 +69,8 @@ func NewCheckStep(
 		resourceConfigFactory: resourceConfigFactory,
 		containerMetadata:     containerMetadata,
 		workerPool:            pool,
-		strategy:              strategy,
+		noInputStrategy:       noInputStrategy,
+		checkStrategy:         checkStrategy,
 		delegateFactory:       delegateFactory,
 		defaultCheckTimeout:   defaultCheckTimeout,
 	}
@@ -273,10 +276,9 @@ func (step *CheckStep) runCheck(
 		return nil, runtime.ProcessResult{}, err
 	}
 
-	strategy := step.strategy
+	strategy := step.noInputStrategy
 	if step.plan.IsResourceCheck() {
-		// Resource check containers should be placed randomly. Refer to issue #3251.
-		strategy = nil
+		strategy = step.checkStrategy
 	}
 	worker, err := step.workerPool.FindOrSelectWorker(ctx, containerOwner, containerSpec, workerSpec, strategy, delegate)
 	if err != nil {
