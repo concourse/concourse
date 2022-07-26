@@ -137,6 +137,7 @@ func (factory *coreStepFactory) CheckStep(
 		factory.resourceConfigFactory,
 		containerMetadata,
 		factory.noInputStrategy,
+		factory.checkStrategy,
 		factory.pool,
 		delegateFactory,
 		factory.defaultCheckTimeout,
