@@ -261,14 +261,41 @@ var _ = Describe("Engine", func() {
 								})
 
 								Context("when the build finishes with error", func() {
-									BeforeEach(func() {
-										fakeStep.RunReturns(false, errors.New("nope"))
+									Context("when the error is not retryable", func() {
+										BeforeEach(func() {
+											fakeStep.RunReturns(false, errors.New("nope"))
+										})
+
+										It("finishes the build", func() {
+											waitGroup.Wait()
+											Expect(fakeBuild.FinishCallCount()).To(Equal(1))
+											Expect(fakeBuild.FinishArgsForCall(0)).To(Equal(db.BuildStatusErrored))
+										})
 									})
 
-									It("finishes the build", func() {
-										waitGroup.Wait()
-										Expect(fakeBuild.FinishCallCount()).To(Equal(1))
-										Expect(fakeBuild.FinishArgsForCall(0)).To(Equal(db.BuildStatusErrored))
+									Context("when the error is retryable", func() {
+										BeforeEach(func() {
+											fakeStep.RunReturns(false, exec.Retriable{Cause: errors.New("nope")})
+										})
+
+										Context("when this is a check build", func() {
+											BeforeEach(func() {
+												fakeBuild.NameReturns(db.CheckBuildName)
+											})
+
+											It("should not retry, thus finishes the build", func() {
+												waitGroup.Wait()
+												Expect(fakeBuild.FinishCallCount()).To(Equal(1))
+												Expect(fakeBuild.FinishArgsForCall(0)).To(Equal(db.BuildStatusErrored))
+											})
+										})
+
+										Context("when this is a normal build", func() {
+											It("should retry, thus not finishe the build", func() {
+												waitGroup.Wait()
+												Expect(fakeBuild.FinishCallCount()).To(Equal(0))
+											})
+										})
 									})
 								})
 

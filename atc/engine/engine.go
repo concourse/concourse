@@ -220,7 +220,9 @@ func (b *engineBuild) Run(ctx context.Context) {
 		logger.Info("releasing")
 
 	case <-done:
-		if errors.As(runErr, &exec.Retriable{}) {
+		// Don't retry check build because if a check build drops into endless retry,
+		// there is no way to abort it.
+		if b.build.Name() != db.CheckBuildName && errors.As(runErr, &exec.Retriable{}) {
 			return
 		}
 
