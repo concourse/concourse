@@ -1,6 +1,6 @@
 module github.com/concourse/concourse
 
-go 1.17
+go 1.19
 
 require (
 	code.cloudfoundry.org/clock v1.0.0
@@ -9,20 +9,20 @@ require (
 	code.cloudfoundry.org/lager v2.0.0+incompatible
 	code.cloudfoundry.org/localip v0.0.0-20220131190813-865a62baabe7
 	code.cloudfoundry.org/urljoiner v0.0.0-20170223060717-5cabba6c0a50
-	github.com/DataDog/datadog-go v4.8.3+incompatible
-	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace v1.8.2
+	github.com/DataDog/datadog-go/v5 v5.1.1
+	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace v1.8.4
 	github.com/Masterminds/squirrel v1.5.3
 	github.com/NYTimes/gziphandler v1.1.1
-	github.com/aryann/difflib v0.0.0-20170710044230-e206f873d14a
-	github.com/aws/aws-sdk-go v1.44.37
-	github.com/caarlos0/env v3.5.0+incompatible
+	github.com/aryann/difflib ff5ff6dc229b
+	github.com/aws/aws-sdk-go v1.44.68
+	github.com/caarlos0/env/v6 v6.9.3
 	github.com/cenkalti/backoff v2.2.1+incompatible
-	github.com/concourse/dex v0.8.0
+	github.com/concourse/dex v1.1.0
 	github.com/concourse/flag v1.1.0
 	github.com/concourse/go-archive v1.0.1
 	github.com/concourse/retryhttp v1.1.1
 	github.com/containerd/containerd v1.6.6
-	github.com/containerd/go-cni v1.1.6
+	github.com/containerd/go-cni v1.1.7
 	github.com/containerd/typeurl v1.0.2
 	github.com/coreos/go-iptables v0.6.0
 	github.com/cppforlife/go-semi-semantic v0.0.0-20160921010311-576b6af77ae4
@@ -33,7 +33,7 @@ require (
 	github.com/goccy/go-yaml v1.9.5
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
-	github.com/google/jsonapi v0.0.0-20180618021926-5d047c6bc66b
+	github.com/google/jsonapi v1.0.0
 	github.com/gorilla/websocket v1.5.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-retryablehttp v0.7.1
@@ -41,22 +41,22 @@ require (
 	github.com/hashicorp/vault/api v1.7.2
 	github.com/imdario/mergo v0.3.13
 	github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf
-	github.com/influxdata/influxdb1-client v0.0.0-20191209144304-8bf82d3c094d
+	github.com/influxdata/influxdb1-client a9ab5670611c
 	github.com/jackpal/gateway v1.0.7
 	github.com/jessevdk/go-flags v1.5.0
-	github.com/klauspost/compress v1.15.6
+	github.com/klauspost/compress v1.15.9
 	github.com/kr/pty v1.1.8
 	github.com/krishicks/yaml-patch v0.0.10
 	github.com/lib/pq v1.10.6
 	github.com/mattn/go-colorable v0.1.12
 	github.com/mattn/go-isatty v0.0.14
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.5.0
-	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b
-	github.com/miekg/dns v1.1.49
+	github.com/mgutz/ansi d51e80ef957d
+	github.com/miekg/dns v1.1.50
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.19.0
+	github.com/onsi/gomega v1.20.0
 	github.com/opencontainers/runc v1.1.3
 	github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417
 	github.com/patrickmn/go-cache v2.1.0+incompatible
@@ -65,35 +65,35 @@ require (
 	github.com/pkg/term v1.1.1-0.20201205102247-e502d17f6e7f
 	github.com/prometheus/client_golang v1.12.2
 	github.com/racksec/srslog v0.0.0-20180709174129-a4725f04ec91
-	github.com/sirupsen/logrus v1.8.1
+	github.com/sirupsen/logrus v1.9.0
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
-	github.com/square/certstrap v1.2.0
-	github.com/stretchr/testify v1.7.2
-	github.com/tedsuo/ifrit v0.0.0-20191009134036-9a97d0632f00
+	github.com/square/certstrap v1.3.0
+	github.com/stretchr/testify v1.8.0
+	github.com/tedsuo/ifrit dd274de71113
 	github.com/tedsuo/rata v1.0.1-0.20170830210128-07d200713958
-	github.com/vbauerster/mpb/v4 v4.6.1-0.20190319154207-3a6acfe12ac6
-	github.com/vito/go-interact v0.0.0-20171111012221-fa338ed9e9ec
-	github.com/vito/go-sse v0.0.0-20160212001227-fd69d275caac
-	github.com/vito/houdini v1.1.2-0.20220405022641-2f7acd2695d3
+	github.com/vbauerster/mpb/v4 v4.12.2
+	github.com/vito/go-interact v1.0.1
+	github.com/vito/go-sse v1.0.0
+	github.com/vito/houdini v1.1.2
 	github.com/vito/twentythousandtonnesofcrudeoil v0.0.0-20180305154709-3b21ad808fcb
-	go.opentelemetry.io/otel v1.7.0
-	go.opentelemetry.io/otel/exporters/jaeger v1.7.0
-	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.7.0
-	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.7.0
+	go.opentelemetry.io/otel v1.9.0
+	go.opentelemetry.io/otel/exporters/jaeger v1.9.0
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.9.0
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.9.0
 	go.opentelemetry.io/otel/oteltest v1.0.0-RC3
-	go.opentelemetry.io/otel/sdk v1.7.0
-	go.opentelemetry.io/otel/trace v1.7.0
-	golang.org/x/crypto v0.0.0-20220321153916-2c7772ba3064
-	golang.org/x/oauth2 v0.0.0-20220309155454-6242fa91716a
-	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20220412211240-33da011f77ad
-	golang.org/x/time v0.0.0-20220210224613-90d013bbcef8
-	google.golang.org/grpc v1.47.0
+	go.opentelemetry.io/otel/sdk v1.9.0
+	go.opentelemetry.io/otel/trace v1.9.0
+	golang.org/x/crypto 630584e8d5aa
+	golang.org/x/oauth2 128564f6959c
+	golang.org/x/sync 886fb9371eb4
+	golang.org/x/sys a90be440212d
+	golang.org/x/time e5dcc9cfc0b9
+	google.golang.org/grpc v1.48.0
 	gopkg.in/square/go-jose.v2 v2.6.0
 	gopkg.in/yaml.v2 v2.4.0
-	k8s.io/api v0.24.2
-	k8s.io/apimachinery v0.24.2
-	k8s.io/client-go v0.24.2
+	k8s.io/api v0.24.3
+	k8s.io/apimachinery v0.24.3
+	k8s.io/client-go v1.5.2
 	sigs.k8s.io/yaml v1.3.0
 )
 
