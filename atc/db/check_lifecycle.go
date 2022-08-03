@@ -61,16 +61,14 @@ func (cl *checkLifecycle) DeleteCompletedChecks(logger lager.Logger) error {
 	}
 
 	_, err2 := cl.conn.Exec(`
-      WITH resource_builds AS (
-        SELECT distinct(last_check_build_id) as build_id
-        FROM resource_config_scopes
-        WHERE last_check_build_id IS NOT NULL
-		  UNION ALL
-        SELECT distinct(in_memory_build_id) as build_id
-        FROM resources
-        WHERE in_memory_build_id IS NOT NULL
+      WITH expired_imb_ids AS (
+          SELECT distinct(build_id) AS build_id
+              FROM check_build_events cbe
+              WHERE NOT EXISTS (SELECT 1 FROM resources WHERE in_memory_build_id = cbe.build_id)
+                AND NOT EXISTS (SELECT 1 FROM builds WHERE id = cbe.build_id)
       )
-      DELETE FROM check_build_events WHERE build_id NOT IN (SELECT build_id FROM resource_builds)
+      DELETE FROM check_build_events cbe2 USING expired_imb_ids 
+          WHERE cbe2.build_id = expired_imb_ids.build_id;
     `)
 
 	if err1 != nil {
