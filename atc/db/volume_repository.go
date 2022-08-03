@@ -19,7 +19,7 @@ type VolumeRepository interface {
 	FindBaseResourceTypeVolume(*UsedWorkerBaseResourceType) (CreatingVolume, CreatedVolume, error)
 	CreateBaseResourceTypeVolume(*UsedWorkerBaseResourceType) (CreatingVolume, error)
 
-	FindResourceCacheVolume(workerName string, resourceCache ResourceCache) (CreatedVolume, bool, error)
+	FindResourceCacheVolume(workerName string, resourceCache ResourceCache, volumeShouldBeValidBefore time.Time) (CreatedVolume, bool, error)
 
 	FindTaskCacheVolume(teamID int, workerName string, taskCache UsedTaskCache) (CreatedVolume, bool, error)
 	CreateTaskCacheVolume(teamID int, uwtc *UsedWorkerTaskCache) (CreatingVolume, error)
@@ -441,20 +441,19 @@ func (repository *volumeRepository) CreateResourceCertsVolume(workerName string,
 	return volume, nil
 }
 
-func (repository *volumeRepository) FindResourceCacheVolume(workerName string, resourceCache ResourceCache) (CreatedVolume, bool, error) {
+// FindResourceCacheVolume returns a volume for specified resource cache on specified worker.
+// If the worker resource cache has been invalided before volumeShouldBeValidBefore (usually
+// equal to a build start time), then the corresponding volume should no longer be used.
+func (repository *volumeRepository) FindResourceCacheVolume(workerName string, resourceCache ResourceCache, volumeShouldBeValidBefore time.Time) (CreatedVolume, bool, error) {
 	workerResourceCache, found, err := WorkerResourceCache{
 		WorkerName:    workerName,
 		ResourceCache: resourceCache,
-	}.Find(repository.conn)
+	}.Find(repository.conn, volumeShouldBeValidBefore)
 	if err != nil {
 		return nil, false, err
 	}
 
 	if !found {
-		return nil, false, nil
-	}
-
-	if workerResourceCache.WorkerBaseResourceTypeID == 0 {
 		return nil, false, nil
 	}
 

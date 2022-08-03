@@ -6,6 +6,7 @@ import (
 	"github.com/concourse/concourse/atc/db/dbtest"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"time"
 )
 
 var _ = Describe("WorkerResourceCaches", func() {
@@ -164,16 +165,44 @@ var _ = Describe("WorkerResourceCaches", func() {
 						Expect(err).ToNot(HaveOccurred())
 					})
 
-					It("should still find an invalid cache on worker1", func(){
-						uwrc, found, err := db.WorkerResourceCache{
-							WorkerName:    scenario.Workers[1].Name(),
-							ResourceCache: resourceCache,
-						}.Find(dbConn)
-						Expect(err).ToNot(HaveOccurred())
-						Expect(found).To(BeTrue())
-						Expect(uwrc).ToNot(BeNil())
-						Expect(uwrc.ID).To(Equal(uwrc2.ID))
-						Expect(uwrc.WorkerBaseResourceTypeID).To(BeZero())
+					Context("Invalidated cache", func(){
+						var (
+							buildStartTime time.Time
+							uwrc *db.UsedWorkerResourceCache
+							found bool
+							err error
+						)
+						JustBeforeEach(func(){
+							uwrc, found, err = db.WorkerResourceCache{
+								WorkerName:    scenario.Workers[1].Name(),
+								ResourceCache: resourceCache,
+							}.Find(dbConn, buildStartTime)
+						})
+
+						Context("when build started before cache invalidated", func(){
+							BeforeEach(func(){
+								buildStartTime = time.Now().Add(-100*time.Second)
+							})
+							It("should still find an invalid cache on worker1", func(){
+
+								Expect(err).ToNot(HaveOccurred())
+								Expect(found).To(BeTrue())
+								Expect(uwrc).ToNot(BeNil())
+								Expect(uwrc.ID).To(Equal(uwrc2.ID))
+								Expect(uwrc.WorkerBaseResourceTypeID).To(BeZero())
+							})
+						})
+
+						Context("when build started after cache invalidated", func(){
+							BeforeEach(func(){
+								buildStartTime = time.Now().Add(100*time.Second)
+							})
+							It("should not find an invalid cache on worker1", func(){
+								Expect(err).ToNot(HaveOccurred())
+								Expect(found).To(BeFalse())
+								Expect(uwrc).To(BeNil())
+							})
+						})
 					})
 
 					Context("Create a worker resource cache on worker1 with worker2's base base resource type", func(){

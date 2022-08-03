@@ -817,6 +817,7 @@ var _ = Describe("Team", func() {
 
 		var urc db.ResourceCache
 		var uwrc *db.UsedWorkerResourceCache
+		var buildStartTime time.Time
 
 		BeforeEach(func() {
 			_, err := workerFactory.SaveWorker(atcWorker, 0)
@@ -824,6 +825,8 @@ var _ = Describe("Team", func() {
 
 			build, err := defaultTeam.CreateOneOffBuild()
 			Expect(err).ToNot(HaveOccurred())
+
+			buildStartTime = time.Now().Add(-100 * time.Second)
 
 			urc, err = resourceCacheFactory.FindOrCreateResourceCache(
 				db.ForBuild(build.ID()),
@@ -855,7 +858,7 @@ var _ = Describe("Team", func() {
 			})
 
 			It("should find the worker", func() {
-				workers, err := defaultTeam.FindWorkersForResourceCache(urc.ID())
+				workers, err := defaultTeam.FindWorkersForResourceCache(urc.ID(), buildStartTime)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(workers)).To(Equal(1))
 				Expect(workers[0].Name()).To(Equal("some-worker-name"))
@@ -870,7 +873,7 @@ var _ = Describe("Team", func() {
 			})
 
 			It("should not find the worker", func() {
-				workers, err := defaultTeam.FindWorkersForResourceCache(urc.ID())
+				workers, err := defaultTeam.FindWorkersForResourceCache(urc.ID(), buildStartTime)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(workers)).To(Equal(0))
 			})
@@ -884,7 +887,7 @@ var _ = Describe("Team", func() {
 			})
 
 			It("should not find the worker", func() {
-				workers, err := defaultTeam.FindWorkersForResourceCache(urc.ID())
+				workers, err := defaultTeam.FindWorkersForResourceCache(urc.ID(), buildStartTime)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(workers)).To(Equal(0))
 			})
@@ -898,7 +901,7 @@ var _ = Describe("Team", func() {
 			})
 
 			It("should not find the worker", func() {
-				workers, err := defaultTeam.FindWorkersForResourceCache(urc.ID())
+				workers, err := defaultTeam.FindWorkersForResourceCache(urc.ID(), buildStartTime)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(workers)).To(Equal(0))
 			})
@@ -912,7 +915,7 @@ var _ = Describe("Team", func() {
 			})
 
 			It("should not find the worker", func() {
-				workers, err := defaultTeam.FindWorkersForResourceCache(urc.ID())
+				workers, err := defaultTeam.FindWorkersForResourceCache(urc.ID(), buildStartTime)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(workers)).To(Equal(0))
 			})
@@ -969,7 +972,7 @@ var _ = Describe("Team", func() {
 				})
 
 				It("should find both workers", func() {
-					workers, err := defaultTeam.FindWorkersForResourceCache(urc.ID())
+					workers, err := defaultTeam.FindWorkersForResourceCache(urc.ID(), buildStartTime)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(len(workers)).To(Equal(2))
 					Expect(workers[0].Name()).To(Equal("some-worker-name"))
@@ -981,27 +984,62 @@ var _ = Describe("Team", func() {
 						worker, found, err := workerFactory.GetWorker("some-worker-name")
 						Expect(err).ToNot(HaveOccurred())
 						Expect(found).To(BeTrue())
-						err = worker.Delete()
+						err = worker.Land()
+						Expect(err).ToNot(HaveOccurred())
+						err = worker.Prune()
 						Expect(err).ToNot(HaveOccurred())
 					})
 
-					It("should not find any worker", func() {
-						workers, err := defaultTeam.FindWorkersForResourceCache(urc.ID())
-						Expect(err).ToNot(HaveOccurred())
-						Expect(len(workers)).To(Equal(0))
+					Context("when build started before worker1 is pruned", func() {
+						BeforeEach(func() {
+							buildStartTime = time.Now().Add(-100 * time.Second)
+						})
+
+						It("should still find worker2", func() {
+							workers, err := defaultTeam.FindWorkersForResourceCache(urc.ID(), buildStartTime)
+							Expect(err).ToNot(HaveOccurred())
+							Expect(len(workers)).To(Equal(1))
+							Expect(workers[0].Name()).To(Equal("some-worker-name-2"))
+						})
+
+						It("cached volume should found on worker2", func() {
+							volume, found, err := volumeRepository.FindResourceCacheVolume("some-worker-name-2", urc, buildStartTime)
+							Expect(err).ToNot(HaveOccurred())
+							Expect(found).To(BeTrue())
+							Expect(volume.Handle()).To(Equal(volumeOnWorker2.Handle()))
+						})
+
+						It("the volume should be still there", func() {
+							v, found, err := volumeRepository.FindVolume(volumeOnWorker2.Handle())
+							Expect(err).ToNot(HaveOccurred())
+							Expect(found).To(BeTrue())
+							Expect(v.WorkerResourceCacheID()).To(Equal(uwrc2.ID))
+						})
 					})
 
-					It("cached volume should not found on worker2", func() {
-						_, found, err := volumeRepository.FindResourceCacheVolume("some-worker-name-2", urc)
-						Expect(err).ToNot(HaveOccurred())
-						Expect(found).To(BeFalse())
-					})
+					Context("when build started after worker1 is pruned", func() {
+						BeforeEach(func() {
+							buildStartTime = time.Now().Add(100 * time.Second)
+						})
 
-					It("but the volume should be still there", func(){
-						v, found, err := volumeRepository.FindVolume(volumeOnWorker2.Handle())
-						Expect(err).ToNot(HaveOccurred())
-						Expect(found).To(BeTrue())
-						Expect(v.WorkerResourceCacheID()).To(Equal(uwrc2.ID))
+						It("should not find any worker", func() {
+							workers, err := defaultTeam.FindWorkersForResourceCache(urc.ID(), buildStartTime)
+							Expect(err).ToNot(HaveOccurred())
+							Expect(len(workers)).To(Equal(0))
+						})
+
+						It("cached volume should not found on worker2", func() {
+							_, found, err := volumeRepository.FindResourceCacheVolume("some-worker-name-2", urc, buildStartTime)
+							Expect(err).ToNot(HaveOccurred())
+							Expect(found).To(BeFalse())
+						})
+
+						It("but the volume should be still there", func() {
+							v, found, err := volumeRepository.FindVolume(volumeOnWorker2.Handle())
+							Expect(err).ToNot(HaveOccurred())
+							Expect(found).To(BeTrue())
+							Expect(v.WorkerResourceCacheID()).To(Equal(uwrc2.ID))
+						})
 					})
 				})
 			})

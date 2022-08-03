@@ -3,6 +3,7 @@ package worker_test
 import (
 	"context"
 	"io/ioutil"
+	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -118,7 +119,7 @@ var _ = Describe("Streamer", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		By("validating the volume was marked as a resource cache on the dst worker", func() {
-			volume, found, err := scenario.DBBuilder.VolumeRepo.FindResourceCacheVolume("dst-worker", resourceCache)
+			volume, found, err := scenario.DBBuilder.VolumeRepo.FindResourceCacheVolume("dst-worker", resourceCache, time.Now())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 			Expect(volume.Handle()).To(Equal(dst.Handle()))
@@ -168,7 +169,7 @@ var _ = Describe("Streamer", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		By("validating the volume was NOT marked as a resource cache on the dst worker", func() {
-			_, found, err := scenario.DBBuilder.VolumeRepo.FindResourceCacheVolume("dst-worker", resourceCache)
+			_, found, err := scenario.DBBuilder.VolumeRepo.FindResourceCacheVolume("dst-worker", resourceCache, time.Now())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeFalse())
 		})

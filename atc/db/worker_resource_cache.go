@@ -9,6 +9,23 @@ import (
 	"github.com/lib/pq"
 )
 
+// WorkerResourceCache stores resource caches on each worker. WorkerBaseResourceTypeID
+// field records the original worker's base resource id when the cache is created. For
+// example, when a resource cache is created on worker-1 and WorkerBaseResourceTypeID
+// is 100. Then the resource cache is streamed to worker-2, a new worker resource cache
+// will be created for worker-2, and WorkerBaseResourceTypeID will still be 100.
+//
+// If worker-1 is pruned, the worker resource cache on worker-2 will be invalidated by
+// setting WorkerBaseResourceTypeID to 0 and invalid_since to current time. Thus, a worker
+// resource cache is called "valid" when its WorkerBaseResourceTypeID is not 0, and called
+// "invalidated" when its WorkerBaseResourceTypeID is 0.
+//
+// Builds started before invalid_since of an invalidated worker resource cache will still
+// be able to use the cache. But if the cache is streamed to other workers, streamed
+// volumes should no longer be marked as cache again.
+//
+// When there is no running build started before invalid_since of an invalidated cache,
+// the cache will be GC-ed.
 type WorkerResourceCache struct {
 	WorkerName    string
 	ResourceCache ResourceCache
@@ -33,11 +50,11 @@ var ErrWorkerBaseResourceTypeDisappeared = errors.New("worker base resource type
 // we only want a single worker_resource_cache in the end for the destination
 // worker, so the "first write wins".
 func (workerResourceCache WorkerResourceCache) FindOrCreate(tx Tx, sourceWorkerBaseResourceTypeID int) (*UsedWorkerResourceCache, bool, error) {
-	uwrc, found, err := workerResourceCache.find(tx)
+	uwrc, found, err := workerResourceCache.find(tx, nil)
 	if err != nil {
 		return nil, false, err
 	}
-	if found && uwrc.WorkerBaseResourceTypeID != 0 {
+	if found {
 		valid := sourceWorkerBaseResourceTypeID == uwrc.WorkerBaseResourceTypeID
 		return uwrc, valid, nil
 	}
@@ -73,16 +90,13 @@ func (workerResourceCache WorkerResourceCache) FindOrCreate(tx Tx, sourceWorkerB
 
 // Find looks for a worker resource cache by resource cache id and worker name.
 // If there is a valid cache, it will return it; otherwise an invalidated cache
-// (worker_base_resource_type_id is 0) might be returned. Different is that if a
-// valid worker resource cache is streamed to another worker, then streamed volume
-// can be marked as a cache on dest worker. An invalidated worker resource cache
-// can still be used by builds, but streamed volumed should not be marked as cache.
-func (workerResourceCache WorkerResourceCache) Find(runner sq.Runner) (*UsedWorkerResourceCache, bool, error) {
-	uwrc, found, err := workerResourceCache.find(runner)
-	return uwrc, found, err
+// (worker_base_resource_type_id is 0) might be returned, but the invalidated
+// cache's invalid_since must be later than volumeShouldBeValidBefore.
+func (workerResourceCache WorkerResourceCache) Find(runner sq.Runner, volumeShouldBeValidBefore time.Time) (*UsedWorkerResourceCache, bool, error) {
+	return workerResourceCache.find(runner, &volumeShouldBeValidBefore)
 }
 
-// FindExact looks for a worker resource cache by resource cache id, worker name
+// FindByID looks for a worker resource cache by resource cache id, worker name
 // and worker_base_resource_type_id. To init a streamed volume as cache, it should
 // check to see if the original cache is still valid.
 func (workerResourceCache WorkerResourceCache) FindByID(runner sq.Runner, id int) (*UsedWorkerResourceCache, bool, error) {
@@ -110,7 +124,13 @@ func (workerResourceCache WorkerResourceCache) FindByID(runner sq.Runner, id int
 	}, true, nil
 }
 
-func (workerResourceCache WorkerResourceCache) find(runner sq.Runner) (*UsedWorkerResourceCache, bool, error) {
+// find should only return a valid worker resource cache if volumeShouldBeValidBefore is nil.
+// When volumeShouldBeValidBefore is not nil, if a cache's invalid_since is later than
+// volumeShouldBeValidBefore, then the cache is considered as valid. If there is a valid cache,
+// then the valid cache should be returned; if there are multiple invalid caches with
+// invalid_since later than volumeShouldBeValidBefore, the latest invalid_since one should be
+// returned.
+func (workerResourceCache WorkerResourceCache) find(runner sq.Runner, volumeShouldBeValidBefore *time.Time) (*UsedWorkerResourceCache, bool, error) {
 	var id int
 	var workerBaseResourceTypeID sql.NullInt64
 	var invalidSince pq.NullTime
@@ -144,9 +164,13 @@ func (workerResourceCache WorkerResourceCache) find(runner sq.Runner) (*UsedWork
 		}
 
 		if wbrtId != 0 {
-			// There should be only 1 valid worker resource cache of a resource per worker.
+			// There should be only one valid worker resource cache of a resource per worker.
 			return &UsedWorkerResourceCache{ID: id, WorkerBaseResourceTypeID: wbrtId}, true, nil
 		} else {
+			if volumeShouldBeValidBefore == nil || invalidSince.Time.Before(*volumeShouldBeValidBefore) {
+				continue
+			}
+
 			if invalidSince.Time.After(invalidSinceOfNewestInvalid) {
 				idOfNewestInvalid = id
 				invalidSinceOfNewestInvalid = invalidSince.Time

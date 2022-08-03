@@ -1959,7 +1959,7 @@ var _ = Describe("Resource", func() {
 			}
 
 			hasResourceCacheVolume := func(workerName string, usedResourceCache db.ResourceCache) bool {
-				_, found, err := volumeRepository.FindResourceCacheVolume(workerName, usedResourceCache)
+				_, found, err := volumeRepository.FindResourceCacheVolume(workerName, usedResourceCache, time.Now())
 				Expect(err).ToNot(HaveOccurred())
 				return found
 			}

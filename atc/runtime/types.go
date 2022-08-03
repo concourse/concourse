@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"strings"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/compression"
@@ -127,6 +128,7 @@ type ContainerSpec struct {
 type BuildStepDelegate interface {
 	StreamingVolume(lager.Logger, string, string, string)
 	WaitingForStreamedVolume(lager.Logger, string, string)
+	BuildStartTime() time.Time
 }
 
 // ContainerSpec must implement propagation.TextMapCarrier so that it can be

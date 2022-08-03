@@ -550,7 +550,7 @@ var _ = Describe("VolumeRepository", func() {
 			})
 
 			It("returns created volume", func() {
-				createdVolume, found, err := volumeRepository.FindResourceCacheVolume(defaultWorker.Name(), usedResourceCache)
+				createdVolume, found, err := volumeRepository.FindResourceCacheVolume(defaultWorker.Name(), usedResourceCache, time.Now())
 				Expect(err).NotTo(HaveOccurred())
 				Expect(createdVolume.Handle()).To(Equal(existingVolume.Handle()))
 				Expect(found).To(BeTrue())

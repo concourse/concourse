@@ -65,6 +65,8 @@ type GetDelegate interface {
 	Finished(lager.Logger, ExitStatus, resource.VersionResult)
 	Errored(lager.Logger, string)
 
+	BuildStartTime() time.Time
+
 	BeforeSelectWorker(lager.Logger) error
 	WaitingForWorker(lager.Logger)
 	SelectedWorker(lager.Logger, string)
@@ -325,7 +327,7 @@ func (step *GetStep) retrieveFromCacheOrPerformGet(
 	//     * If lock acquisition succeeded, then run the get script and
 	//       initialize the volume as a resource cache.
 	attemptGet := func() (runtime.Volume, bool, resource.VersionResult, runtime.ProcessResult, bool, error) {
-		volume, versionResult, found, err := step.retrieveFromCache(ctx, resourceCache, workerSpec, worker)
+		volume, versionResult, found, err := step.retrieveFromCache(ctx, resourceCache, workerSpec, worker, delegate)
 		if err != nil {
 			return nil, false, resource.VersionResult{}, runtime.ProcessResult{}, false, err
 		}
@@ -399,6 +401,7 @@ func (step *GetStep) retrieveFromCache(
 	resourceCache db.ResourceCache,
 	workerSpec worker.Spec,
 	worker runtime.Worker, // may be nil, in which case all compatible workers are possible candidates
+	delegate GetDelegate,
 ) (runtime.Volume, resource.VersionResult, bool, error) {
 	var (
 		volume runtime.Volume
@@ -406,9 +409,9 @@ func (step *GetStep) retrieveFromCache(
 		err    error
 	)
 	if worker == nil {
-		volume, found, err = step.workerPool.FindResourceCacheVolume(ctx, step.metadata.TeamID, resourceCache, workerSpec)
+		volume, found, err = step.workerPool.FindResourceCacheVolume(ctx, step.metadata.TeamID, resourceCache, workerSpec, delegate.BuildStartTime())
 	} else {
-		volume, found, err = step.workerPool.FindResourceCacheVolumeOnWorker(ctx, resourceCache, workerSpec, worker.Name())
+		volume, found, err = step.workerPool.FindResourceCacheVolumeOnWorker(ctx, resourceCache, workerSpec, worker.Name(), delegate.BuildStartTime())
 	}
 	if err != nil {
 		return nil, resource.VersionResult{}, false, err
