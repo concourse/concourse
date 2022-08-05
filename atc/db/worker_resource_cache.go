@@ -124,12 +124,11 @@ func (workerResourceCache WorkerResourceCache) FindByID(runner sq.Runner, id int
 	}, true, nil
 }
 
-// find should only return a valid worker resource cache if volumeShouldBeValidBefore is nil.
-// When volumeShouldBeValidBefore is not nil, if a cache's invalid_since is later than
-// volumeShouldBeValidBefore, then the cache is considered as valid. If there is a valid cache,
-// then the valid cache should be returned; if there are multiple invalid caches with
-// invalid_since later than volumeShouldBeValidBefore, the latest invalid_since one should be
-// returned.
+// find should return a valid worker resource cache if its WorkerBaseResourceTypeID is not 0.
+// find should return an invalidated worker resource cache if its WorkerBaseResourceTypeID is 0 and 
+// a cache's invalid_since is later than volumeShouldBeValidBefore.
+// If there are multiple invalidated caches with invalid_since later than volumeShouldBeValidBefore, 
+// the invalidated cache with newest invalid_since should be returned.
 func (workerResourceCache WorkerResourceCache) find(runner sq.Runner, volumeShouldBeValidBefore *time.Time) (*UsedWorkerResourceCache, bool, error) {
 	var id int
 	var workerBaseResourceTypeID sql.NullInt64

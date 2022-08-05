@@ -176,11 +176,9 @@ func (t *team) FindWorkersForResourceCache(rcId int, shouldBeValidBefore time.Ti
 			Join("worker_resource_caches wrc ON w.name = wrc.worker_name").
 			Where(sq.And{
 				sq.Eq{"wrc.resource_cache_id": rcId},
-				sq.And{
-					sq.Or{
-						sq.NotEq{"wrc.worker_base_resource_type_id": nil},
-						sq.Expr("wrc.invalid_since > to_timestamp(?)", shouldBeValidBefore.Unix()),
-					},
+				sq.Or{
+					sq.NotEq{"wrc.worker_base_resource_type_id": nil},
+					sq.Expr("wrc.invalid_since > to_timestamp(?)", shouldBeValidBefore.Unix()),
 				},
 				sq.Eq{"w.state": WorkerStateRunning},
 			}))

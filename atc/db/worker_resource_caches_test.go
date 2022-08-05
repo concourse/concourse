@@ -183,7 +183,7 @@ var _ = Describe("WorkerResourceCaches", func() {
 							BeforeEach(func(){
 								buildStartTime = time.Now().Add(-100*time.Second)
 							})
-							It("should still find an invalid cache on worker1", func(){
+							It("should still find an invalidated cache on worker1", func(){
 
 								Expect(err).ToNot(HaveOccurred())
 								Expect(found).To(BeTrue())
@@ -197,7 +197,7 @@ var _ = Describe("WorkerResourceCaches", func() {
 							BeforeEach(func(){
 								buildStartTime = time.Now().Add(100*time.Second)
 							})
-							It("should not find an invalid cache on worker1", func(){
+							It("should not find an invalidated cache on worker1", func(){
 								Expect(err).ToNot(HaveOccurred())
 								Expect(found).To(BeFalse())
 								Expect(uwrc).To(BeNil())
