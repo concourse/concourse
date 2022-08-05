@@ -140,7 +140,7 @@ var _ = Describe("Resource Config Scope", func() {
 			})
 
 			Context("when a new version is added for non-trigger resource", func() {
-				It("requests schedule on the jobs that use the resource", func() {
+				It("should not request schedule on the jobs that use the resource", func() {
 					err := resourceScope.SaveVersions(nil, originalVersionSlice)
 					Expect(err).ToNot(HaveOccurred())
 
