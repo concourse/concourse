@@ -15,46 +15,47 @@ import (
 var _ = Describe("Resource Config Scope", func() {
 	var scenario *dbtest.Scenario
 	var resourceScope db.ResourceConfigScope
+	var pipelineConfig atc.Config = atc.Config{
+		Resources: atc.ResourceConfigs{
+			{
+				Name: "some-resource",
+				Type: "some-base-resource-type",
+				Source: atc.Source{
+					"some": "source",
+				},
+			},
+		},
+		Jobs: atc.JobConfigs{
+			{
+				Name: "some-job",
+				PlanSequence: []atc.Step{
+					{
+						Config: &atc.GetStep{
+							Name: "some-resource",
+						},
+					},
+				},
+			},
+			{
+				Name: "downstream-job",
+				PlanSequence: []atc.Step{
+					{
+						Config: &atc.GetStep{
+							Name:   "some-resource",
+							Passed: []string{"some-job"},
+						},
+					},
+				},
+			},
+			{
+				Name: "some-other-job",
+			},
+		},
+	}
 
 	BeforeEach(func() {
 		scenario = dbtest.Setup(
-			builder.WithPipeline(atc.Config{
-				Resources: atc.ResourceConfigs{
-					{
-						Name: "some-resource",
-						Type: "some-base-resource-type",
-						Source: atc.Source{
-							"some": "source",
-						},
-					},
-				},
-				Jobs: atc.JobConfigs{
-					{
-						Name: "some-job",
-						PlanSequence: []atc.Step{
-							{
-								Config: &atc.GetStep{
-									Name: "some-resource",
-								},
-							},
-						},
-					},
-					{
-						Name: "downstream-job",
-						PlanSequence: []atc.Step{
-							{
-								Config: &atc.GetStep{
-									Name:   "some-resource",
-									Passed: []string{"some-job"},
-								},
-							},
-						},
-					},
-					{
-						Name: "some-other-job",
-					},
-				},
-			}),
+			builder.WithPipeline(pipelineConfig),
 			builder.WithResourceVersions("some-resource"),
 		)
 
@@ -138,8 +139,8 @@ var _ = Describe("Resource Config Scope", func() {
 				Expect(latestVR.CheckOrder()).To(Equal(2))
 			})
 
-			Context("when a new version is added", func() {
-				It("requests schedule on the jobs that use the resource", func() {
+			Context("when a new version is added for non-trigger resource", func() {
+				It("should not request schedule on the jobs that use the resource", func() {
 					err := resourceScope.SaveVersions(nil, originalVersionSlice)
 					Expect(err).ToNot(HaveOccurred())
 
@@ -152,7 +153,7 @@ var _ = Describe("Resource Config Scope", func() {
 					err = resourceScope.SaveVersions(nil, newVersions)
 					Expect(err).ToNot(HaveOccurred())
 
-					Expect(scenario.Job("some-job").ScheduleRequestedTime()).Should(BeTemporally(">", requestedSchedule))
+					Expect(scenario.Job("some-job").ScheduleRequestedTime()).Should(BeTemporally("==", requestedSchedule))
 				})
 
 				It("does not request schedule on the jobs that use the resource but through passed constraints", func() {
@@ -185,6 +186,43 @@ var _ = Describe("Resource Config Scope", func() {
 					Expect(err).ToNot(HaveOccurred())
 
 					Expect(scenario.Job("some-other-job").ScheduleRequestedTime()).Should(BeTemporally("==", requestedSchedule))
+				})
+			})
+
+			Context("when a new version is added for trigger resource", func() {
+				BeforeEach(func() {
+					pipelineConfig.Jobs = atc.JobConfigs{
+						{
+							Name: "some-job",
+							PlanSequence: []atc.Step{
+								{
+									Config: &atc.GetStep{
+										Name:    "some-resource",
+										Trigger: true,
+									},
+								},
+							},
+						},
+					}
+					scenario.Run(
+						builder.WithPipeline(pipelineConfig),
+					)
+				})
+
+				It("requests schedule on the jobs that use the resource", func() {
+					err := resourceScope.SaveVersions(nil, originalVersionSlice)
+					Expect(err).ToNot(HaveOccurred())
+
+					requestedSchedule := scenario.Job("some-job").ScheduleRequestedTime()
+
+					newVersions := []atc.Version{
+						{"ref": "v0"},
+						{"ref": "v3"},
+					}
+					err = resourceScope.SaveVersions(nil, newVersions)
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(scenario.Job("some-job").ScheduleRequestedTime()).Should(BeTemporally(">", requestedSchedule))
 				})
 			})
 		})

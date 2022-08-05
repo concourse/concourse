@@ -314,14 +314,26 @@ func incrementCheckOrder(tx Tx, rcsID int, version string) error {
 // Updating multiple rows using a SELECT subquery does not preserve the same
 // order for the updates, which can lead to deadlocking.
 func requestScheduleForJobsUsingResourceConfigScope(tx Tx, rcsID int) error {
-	rows, err := psql.Select("DISTINCT j.job_id").
-		From("job_inputs j").
-		Join("resources r ON r.id = j.resource_id").
-		Where(sq.Eq{
-			"r.resource_config_scope_id": rcsID,
-			"j.passed_job_id":            nil,
+	rows, err := psql.Select("DISTINCT ji.job_id").
+		From("job_inputs ji").
+		Join("resources r ON r.id = ji.resource_id").
+		Join("jobs j ON j.id = ji.job_id").
+		Where(sq.Or{
+			sq.Eq{
+				"r.resource_config_scope_id": rcsID,
+				"ji.passed_job_id":           nil,
+				"ji.trigger":                 true,
+			},
+			sq.And{
+				sq.Eq{
+					"r.resource_config_scope_id": rcsID,
+					"ji.passed_job_id":           nil,
+					"ji.trigger":                 false,
+				},
+				sq.NotEq{"j.next_build_id": nil},
+			},
 		}).
-		OrderBy("j.job_id DESC").
+		OrderBy("ji.job_id DESC").
 		RunWith(tx).
 		Query()
 	if err != nil {
