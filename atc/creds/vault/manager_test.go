@@ -82,7 +82,7 @@ var _ = Describe("VaultManager", func() {
 			key, err := pkix.CreateRSAKey(1024)
 			Expect(err).ToNot(HaveOccurred())
 
-			ca, err := pkix.CreateCertificateAuthority(key, "", time.Now().Add(time.Hour), "", "", "", "", "vault-ca")
+			ca, err := pkix.CreateCertificateAuthority(key, "", time.Now().Add(time.Hour), "", "", "", "", "vault-ca", nil)
 			Expect(err).ToNot(HaveOccurred())
 
 			serverKey, err := pkix.CreateRSAKey(1024)

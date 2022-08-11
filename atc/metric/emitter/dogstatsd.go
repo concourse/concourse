@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/DataDog/datadog-go/statsd"
+	"github.com/DataDog/datadog-go/v5/statsd"
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/pkg/errors"
 )
@@ -36,23 +36,23 @@ func (config *DogstatsDBConfig) IsConfigured() bool {
 func (config *DogstatsDBConfig) NewEmitter(_ map[string]string) (metric.Emitter, error) {
 	var client *statsd.Client
 	var err error
+	var address string
+
 	if config.UDS != "" {
-		client, err = statsd.New("unix://" + config.UDS)
+		address = "unix://" + config.UDS
 	} else {
-		client, err = statsd.New(fmt.Sprintf("%s:%s", config.Host, config.Port))
+		address = fmt.Sprintf("%s:%s", config.Host, config.Port)
+	}
+
+	if config.Prefix != "" {
+		client, err = statsd.New(address, statsd.WithNamespace(config.Prefix))
+	} else {
+		client, err = statsd.New(address)
 	}
 
 	if err != nil {
 		log.Fatal(err)
 		return &DogstatsdEmitter{}, err
-	}
-
-	if config.Prefix != "" {
-		if strings.HasSuffix(config.Prefix, ".") {
-			client.Namespace = config.Prefix
-		} else {
-			client.Namespace = fmt.Sprintf("%s.", config.Prefix)
-		}
 	}
 
 	return &DogstatsdEmitter{
