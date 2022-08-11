@@ -98,11 +98,11 @@ var _ = Describe("WorkerResourceCaches", func() {
 			})
 
 			Context("Create a worker resource cache again on worker0 again with it's own base resource type", func() {
-				var uwrc2 *db.UsedWorkerResourceCache
+				var uwrc *db.UsedWorkerResourceCache
 				BeforeEach(func() {
 					tx, err := dbConn.Begin()
 					Expect(err).ToNot(HaveOccurred())
-					uwrc2, valid, findErr = db.WorkerResourceCache{
+					uwrc, valid, findErr = db.WorkerResourceCache{
 						WorkerName:    scenario.Workers[0].Name(),
 						ResourceCache: resourceCache,
 					}.FindOrCreate(tx, usedBaseResourceTypeOnWorker0.ID)
@@ -112,17 +112,17 @@ var _ = Describe("WorkerResourceCaches", func() {
 				It("should find a cache", func() {
 					Expect(findErr).ToNot(HaveOccurred())
 					Expect(valid).To(BeTrue())
-					Expect(uwrc2).ToNot(BeNil())
-					Expect(*uwrc2).To(Equal(*usedWorkerResourceCache))
+					Expect(uwrc).ToNot(BeNil())
+					Expect(*uwrc).To(Equal(*usedWorkerResourceCache))
 				})
 			})
 
 			Context("Create a worker resource cache again on worker0 with worker1's base resource type", func() {
-				var uwrc2 *db.UsedWorkerResourceCache
+				var uwrc *db.UsedWorkerResourceCache
 				BeforeEach(func() {
 					tx, err := dbConn.Begin()
 					Expect(err).ToNot(HaveOccurred())
-					uwrc2, valid, findErr = db.WorkerResourceCache{
+					uwrc, valid, findErr = db.WorkerResourceCache{
 						WorkerName:    scenario.Workers[0].Name(),
 						ResourceCache: resourceCache,
 					}.FindOrCreate(tx, usedBaseResourceTypeOnWorker1.ID)
@@ -132,17 +132,17 @@ var _ = Describe("WorkerResourceCaches", func() {
 				It("should not create a cache, but find the existing cache", func() {
 					Expect(findErr).ToNot(HaveOccurred())
 					Expect(valid).To(BeFalse()) // valid is false as this is not the cache to create
-					Expect(uwrc2).ToNot(BeNil())
-					Expect(*uwrc2).To(Equal(*usedWorkerResourceCache))
+					Expect(uwrc).ToNot(BeNil())
+					Expect(*uwrc).To(Equal(*usedWorkerResourceCache))
 				})
 			})
 
 			Context("Create a worker resource cache on worker1 with worker0's base base resource type", func(){
-				var uwrc2 *db.UsedWorkerResourceCache
+				var uwrcOnWorker1 *db.UsedWorkerResourceCache
 				BeforeEach(func() {
 					tx, err := dbConn.Begin()
 					Expect(err).ToNot(HaveOccurred())
-					uwrc2, valid, findErr = db.WorkerResourceCache{
+					uwrcOnWorker1, valid, findErr = db.WorkerResourceCache{
 						WorkerName:    scenario.Workers[1].Name(),
 						ResourceCache: resourceCache,
 					}.FindOrCreate(tx, usedBaseResourceTypeOnWorker0.ID)
@@ -152,9 +152,9 @@ var _ = Describe("WorkerResourceCaches", func() {
 				It("should create a cache", func(){
 					Expect(findErr).ToNot(HaveOccurred())
 					Expect(valid).To(BeTrue())
-					Expect(uwrc2).ToNot(BeNil())
-					Expect(*uwrc2).ToNot(Equal(*usedWorkerResourceCache))
-					Expect(uwrc2.WorkerBaseResourceTypeID).To(Equal(usedBaseResourceTypeOnWorker0.ID))
+					Expect(uwrcOnWorker1).ToNot(BeNil())
+					Expect(*uwrcOnWorker1).ToNot(Equal(*usedWorkerResourceCache))
+					Expect(uwrcOnWorker1.WorkerBaseResourceTypeID).To(Equal(usedBaseResourceTypeOnWorker0.ID))
 				})
 
 				Context("Prune worker0", func(){
@@ -168,12 +168,12 @@ var _ = Describe("WorkerResourceCaches", func() {
 					Context("Invalidated cache", func(){
 						var (
 							buildStartTime time.Time
-							uwrc *db.UsedWorkerResourceCache
+							uwrcOnWorker1AfterPrune *db.UsedWorkerResourceCache
 							found bool
 							err error
 						)
 						JustBeforeEach(func(){
-							uwrc, found, err = db.WorkerResourceCache{
+							uwrcOnWorker1AfterPrune, found, err = db.WorkerResourceCache{
 								WorkerName:    scenario.Workers[1].Name(),
 								ResourceCache: resourceCache,
 							}.Find(dbConn, buildStartTime)
@@ -187,9 +187,9 @@ var _ = Describe("WorkerResourceCaches", func() {
 
 								Expect(err).ToNot(HaveOccurred())
 								Expect(found).To(BeTrue())
-								Expect(uwrc).ToNot(BeNil())
-								Expect(uwrc.ID).To(Equal(uwrc2.ID))
-								Expect(uwrc.WorkerBaseResourceTypeID).To(BeZero())
+								Expect(uwrcOnWorker1AfterPrune).ToNot(BeNil())
+								Expect(uwrcOnWorker1AfterPrune.ID).To(Equal(uwrcOnWorker1.ID))
+								Expect(uwrcOnWorker1AfterPrune.WorkerBaseResourceTypeID).To(BeZero())
 							})
 						})
 
@@ -200,17 +200,17 @@ var _ = Describe("WorkerResourceCaches", func() {
 							It("should not find an invalidated cache on worker1", func(){
 								Expect(err).ToNot(HaveOccurred())
 								Expect(found).To(BeFalse())
-								Expect(uwrc).To(BeNil())
+								Expect(uwrcOnWorker1AfterPrune).To(BeNil())
 							})
 						})
 					})
 
 					Context("Create a worker resource cache on worker1 with worker2's base base resource type", func(){
-						var uwrc3 *db.UsedWorkerResourceCache
+						var newUwrcOnWorker1 *db.UsedWorkerResourceCache
 						BeforeEach(func(){
 							tx, err := dbConn.Begin()
 							Expect(err).ToNot(HaveOccurred())
-							uwrc3, valid, findErr = db.WorkerResourceCache{
+							newUwrcOnWorker1, valid, findErr = db.WorkerResourceCache{
 								WorkerName:    scenario.Workers[1].Name(),
 								ResourceCache: resourceCache,
 							}.FindOrCreate(tx, usedBaseResourceTypeOnWorker2.ID)
@@ -220,13 +220,13 @@ var _ = Describe("WorkerResourceCaches", func() {
 						It("should create a cache", func(){
 							Expect(findErr).ToNot(HaveOccurred())
 							Expect(valid).To(BeTrue())
-							Expect(uwrc3).ToNot(BeNil())
-							Expect(*uwrc3).ToNot(Equal(*usedWorkerResourceCache))
-							Expect(uwrc3.WorkerBaseResourceTypeID).To(Equal(usedBaseResourceTypeOnWorker2.ID))
+							Expect(newUwrcOnWorker1).ToNot(BeNil())
+							Expect(*newUwrcOnWorker1).ToNot(Equal(*usedWorkerResourceCache))
+							Expect(newUwrcOnWorker1.WorkerBaseResourceTypeID).To(Equal(usedBaseResourceTypeOnWorker2.ID))
 						})
 
 						It("should invalidated cache still be there", func(){
-							uwrc, found, err := db.WorkerResourceCache{}.FindByID(dbConn, uwrc2.ID)
+							uwrc, found, err := db.WorkerResourceCache{}.FindByID(dbConn, uwrcOnWorker1.ID)
 							Expect(err).ToNot(HaveOccurred())
 							Expect(found).To(BeTrue())
 							Expect(uwrc).ToNot(BeNil())

@@ -96,9 +96,9 @@ func (workerResourceCache WorkerResourceCache) Find(runner sq.Runner, volumeShou
 	return workerResourceCache.find(runner, &volumeShouldBeValidBefore)
 }
 
-// FindByID looks for a worker resource cache by resource cache id, worker name
-// and worker_base_resource_type_id. To init a streamed volume as cache, it should
-// check to see if the original cache is still valid.
+// FindByID looks for a worker resource cache by resource cache id. To init a
+// streamed volume as cache, it should check to see if the original cache is
+// still valid.
 func (workerResourceCache WorkerResourceCache) FindByID(runner sq.Runner, id int) (*UsedWorkerResourceCache, bool, error) {
 	var sqWorkerBaseResourceTypeID sql.NullInt64
 	err := psql.Select("worker_base_resource_type_id").
