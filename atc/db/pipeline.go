@@ -989,6 +989,10 @@ func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
 }
 
 func (p *pipeline) DeleteBuildEventsByBuildIDs(buildIDs []int) error {
+	return chunkByMaxParams(buildIDs, p.rawDeleteBuildEventsByBuildIDs)
+}
+
+func (p *pipeline) rawDeleteBuildEventsByBuildIDs(buildIDs []int) error {
 	if len(buildIDs) == 0 {
 		return nil
 	}
