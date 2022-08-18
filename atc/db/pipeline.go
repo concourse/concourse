@@ -989,22 +989,8 @@ func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
 }
 
 func (p *pipeline) DeleteBuildEventsByBuildIDs(buildIDs []int) error {
-	return chunkByMaxParams(buildIDs, p.rawDeleteBuildEventsByBuildIDs)
-}
-
-func (p *pipeline) rawDeleteBuildEventsByBuildIDs(buildIDs []int) error {
 	if len(buildIDs) == 0 {
 		return nil
-	}
-
-	interfaceBuildIDs := make([]interface{}, len(buildIDs))
-	for i, buildID := range buildIDs {
-		interfaceBuildIDs[i] = buildID
-	}
-
-	indexStrings := make([]string, len(buildIDs))
-	for i := range indexStrings {
-		indexStrings[i] = "$" + strconv.Itoa(i+1)
 	}
 
 	tx, err := p.conn.Begin()
@@ -1014,25 +1000,37 @@ func (p *pipeline) rawDeleteBuildEventsByBuildIDs(buildIDs []int) error {
 
 	defer Rollback(tx)
 
-	_, err = tx.Exec(`
-   DELETE FROM `+p.eventsTable()+`
-	 WHERE build_id IN (`+strings.Join(indexStrings, ",")+`)
-	 `, interfaceBuildIDs...)
+	err = chunkByMaxParams(buildIDs, func(chunk []int) error {
+		interfaceBuildIDs := make([]interface{}, len(chunk))
+		for i, buildID := range chunk {
+			interfaceBuildIDs[i] = buildID
+		}
+
+		indexStrings := make([]string, len(chunk))
+		for i := range indexStrings {
+			indexStrings[i] = "$" + strconv.Itoa(i+1)
+		}
+
+		_, err := tx.Exec(`
+	   DELETE FROM `+p.eventsTable()+`
+		 WHERE build_id IN (`+strings.Join(indexStrings, ",")+`)
+		 `, interfaceBuildIDs...)
+		if err != nil {
+			return err
+		}
+
+		_, err = tx.Exec(`
+			UPDATE builds
+			SET reap_time = now()
+			WHERE id IN (`+strings.Join(indexStrings, ",")+`)
+		`, interfaceBuildIDs...)
+		return err
+	})
 	if err != nil {
 		return err
 	}
 
-	_, err = tx.Exec(`
-		UPDATE builds
-		SET reap_time = now()
-		WHERE id IN (`+strings.Join(indexStrings, ",")+`)
-	`, interfaceBuildIDs...)
-	if err != nil {
-		return err
-	}
-
-	err = tx.Commit()
-	return err
+	return tx.Commit()
 }
 
 func (p *pipeline) eventsTable() string {
