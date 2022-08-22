@@ -330,7 +330,10 @@ func requestScheduleForJobsUsingResourceConfigScope(tx Tx, rcsID int) error {
 					"ji.passed_job_id":           nil,
 					"ji.trigger":                 false,
 				},
-				sq.NotEq{"j.next_build_id": nil},
+				sq.Or{
+					sq.NotEq{"j.next_build_id": nil},
+					sq.Eq{"j.inputs_determined": false},
+				},
 			},
 		}).
 		OrderBy("ji.job_id DESC").
