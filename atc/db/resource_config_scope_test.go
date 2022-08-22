@@ -140,6 +140,16 @@ var _ = Describe("Resource Config Scope", func() {
 			})
 
 			Context("when a new version is added for non-trigger resource", func() {
+				BeforeEach(func() {
+					scenario.Run(
+						builder.WithNextInputMapping("some-job", dbtest.JobInputs{
+							{
+								Name: "some-resource",
+							},
+						}),
+					)
+				})
+
 				It("should not request schedule on the jobs that use the resource", func() {
 					err := resourceScope.SaveVersions(nil, originalVersionSlice)
 					Expect(err).ToNot(HaveOccurred())
