@@ -4,8 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"strconv"
-	"strings"
+	"github.com/lib/pq"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -993,16 +992,6 @@ func (p *pipeline) DeleteBuildEventsByBuildIDs(buildIDs []int) error {
 		return nil
 	}
 
-	interfaceBuildIDs := make([]interface{}, len(buildIDs))
-	for i, buildID := range buildIDs {
-		interfaceBuildIDs[i] = buildID
-	}
-
-	indexStrings := make([]string, len(buildIDs))
-	for i := range indexStrings {
-		indexStrings[i] = "$" + strconv.Itoa(i+1)
-	}
-
 	tx, err := p.conn.Begin()
 	if err != nil {
 		return err
@@ -1010,10 +999,12 @@ func (p *pipeline) DeleteBuildEventsByBuildIDs(buildIDs []int) error {
 
 	defer Rollback(tx)
 
+	a := pq.Array(buildIDs)
+
 	_, err = tx.Exec(`
    DELETE FROM `+p.eventsTable()+`
-	 WHERE build_id IN (`+strings.Join(indexStrings, ",")+`)
-	 `, interfaceBuildIDs...)
+	 WHERE build_id = ANY($1)
+	 `, a)
 	if err != nil {
 		return err
 	}
@@ -1021,8 +1012,8 @@ func (p *pipeline) DeleteBuildEventsByBuildIDs(buildIDs []int) error {
 	_, err = tx.Exec(`
 		UPDATE builds
 		SET reap_time = now()
-		WHERE id IN (`+strings.Join(indexStrings, ",")+`)
-	`, interfaceBuildIDs...)
+		WHERE id = ANY($1)
+	`, a)
 	if err != nil {
 		return err
 	}
