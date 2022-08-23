@@ -14,6 +14,10 @@
       "extends": ["schedule:weekly"],
       "groupName": "golang",
       "groupSlug": "go"
+    },
+    {
+      "matchPackageNames": ["k8s.io/client-go"],
+      "allowedVersions": "!/1\\.(4\\.0|5\\.0|5\\.1|5\\.2)$/"
     }
   ],
   "labels": ["dependencies", "misc", "release/undocumented"]
