@@ -27,7 +27,7 @@ func swapLimitEnabled() bool {
 
 // OciSpec converts a given `garden` container specification to an OCI spec.
 //
-func OciSpec(initBinPath string, seccomp specs.LinuxSeccomp, gdn garden.ContainerSpec, maxUid, maxGid uint32) (oci *specs.Spec, err error) {
+func OciSpec(initBinPath string, seccomp specs.LinuxSeccomp, hooks specs.Hooks, gdn garden.ContainerSpec, maxUid, maxGid uint32) (oci *specs.Spec, err error) {
 	if gdn.Handle == "" {
 		err = fmt.Errorf("handle must be specified")
 		return
@@ -60,6 +60,7 @@ func OciSpec(initBinPath string, seccomp specs.LinuxSeccomp, gdn garden.Containe
 			Process: &specs.Process{
 				Env: gdn.Env,
 			},
+			Hooks:       &hooks,
 			Root:        &specs.Root{Path: rootfs},
 			Mounts:      mounts,
 			Annotations: map[string]string(gdn.Properties),

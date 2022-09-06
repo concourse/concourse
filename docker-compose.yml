@@ -41,13 +41,13 @@ services:
   worker:
     build: .
     image: concourse/concourse:local
-    command: worker
+    command: sh -c "/usr/local/concourse/bin/concourse worker --seccomp-profile-path=/concourse-seccomp/seccomp.json --oci-hooks-dir=/concourse-hooks/"
     privileged: true
     depends_on: [web]
     ports:
     - 9990:9990
     - 9991:9991
-    volumes: ["./hack/keys:/concourse-keys"]
+    volumes: ["./hack/keys:/concourse-keys", "./hack/seccomp.json:/concourse-seccomp/seccomp.json"]
     stop_signal: SIGUSR2
     environment:
       CONCOURSE_RUNTIME: containerd

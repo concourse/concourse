@@ -7,19 +7,18 @@ package runtime
 
 import (
 	"context"
-	"fmt"
-	"time"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
-
+	"time"
 
 	"code.cloudfoundry.org/garden"
 	"github.com/concourse/concourse/worker/runtime/libcontainerd"
 	bespec "github.com/concourse/concourse/worker/runtime/spec"
-	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/containerd/containerd"
 	"github.com/containerd/containerd/cio"
 	"github.com/containerd/containerd/errdefs"
+	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
@@ -29,14 +28,20 @@ var _ garden.Backend = (*GardenBackend)(nil)
 // GardenBackend implements a Garden backend backed by `containerd`.
 //
 type GardenBackend struct {
-	client         libcontainerd.Client
-	killer         Killer
-	network        Network
-	rootfsManager  RootfsManager
-	userNamespace  UserNamespace
-	initBinPath    string
+	client        libcontainerd.Client
+	killer        Killer
+	network       Network
+	rootfsManager RootfsManager
+	userNamespace UserNamespace
+	initBinPath   string
+	// override path for the seccomp profile
 	seccompProfilePath string
+	// content of the upper path, or the default ones (default or privileged)
 	seccompProfile specs.LinuxSeccomp
+	// path to the hosts OCI hooks dir
+	ociHooksDir string
+	// the deserialized hooks
+	ociHooks specs.Hooks
 
 	maxContainers  int
 	requestTimeout time.Duration
@@ -114,6 +119,12 @@ func WithSeccompProfilePath(seccompProfilePath string) GardenBackendOpt {
 	}
 }
 
+func WithOciHooksDir(ociHooksDir string) GardenBackendOpt {
+	return func(b *GardenBackend) {
+		b.ociHooksDir = ociHooksDir
+	}
+}
+
 // NewGardenBackend instantiates a GardenBackend with tweakable configurations passed as Config.
 //
 func NewGardenBackend(client libcontainerd.Client, opts ...GardenBackendOpt) (b GardenBackend, err error) {
@@ -142,15 +153,46 @@ func NewGardenBackend(client libcontainerd.Client, opts ...GardenBackendOpt) (b 
 		}
 	}
 
-	var defaultProfile = bespec.GetDefaultSeccompProfile();
+	var hooks specs.Hooks
+	if b.ociHooksDir != "" {
+		files, err := ioutil.ReadDir(b.ociHooksDir)
+		if err != nil {
+			return b, fmt.Errorf("ociHooksDir: %w", err)
+		}
+
+		for _, f := range files {
+			var hookJsonContent, err = ioutil.ReadAll(f)
+			if err != nil {
+				return b, fmt.Errorf("ociHooksDir file: %w", err)
+			}
+			var hooksParsed specs.Hooks
+			var err2 = json.Unmarshal(hookJsonContent, &hooksParsed)
+			if err2 != nil {
+				return b, fmt.Errorf("ociHooks file failed to parse: %w", err2)
+			}
+			hooks.CreateContainer = append(hooks.CreateContainer, hooksParsed.CreateContainer...)
+			hooks.CreateRuntime = append(hooks.CreateRuntime, hooksParsed.CreateRuntime...)
+			hooks.Poststart = append(hooks.Poststart, hooksParsed.Poststart...)
+			hooks.Poststop = append(hooks.Poststop, hooksParsed.Poststop...)
+			hooks.StartContainer = append(hooks.StartContainer, hooksParsed.StartContainer...)
+		}
+	}
+	b.ociHooks = hooks
+
 	if b.seccompProfilePath != "" {
 		var seccompJsonContent, err = ioutil.ReadFile(b.seccompProfilePath)
 		if err != nil {
 			return b, fmt.Errorf("seccomp file: %w", err)
 		}
-		json.Unmarshal(seccompJsonContent, &defaultProfile)
+		var profile specs.LinuxSeccomp
+		var err2 = json.Unmarshal(seccompJsonContent, &profile)
+		if err2 != nil {
+			return b, fmt.Errorf("seccomp file failed to parse: %w", err2)
+		}
+		b.seccompProfile = profile
+	} else {
+		b.seccompProfile = bespec.GetDefaultSeccompProfile()
 	}
-	b.seccompProfile = defaultProfile
 
 	if b.killer == nil {
 		b.killer = NewKiller()
@@ -252,7 +294,7 @@ func (b *GardenBackend) createContainer(ctx context.Context, gdnSpec garden.Cont
 		return nil, fmt.Errorf("getting uid and gid maps: %w", err)
 	}
 
-	oci, err := bespec.OciSpec(b.initBinPath, b.seccompProfile, gdnSpec, maxUid, maxGid)
+	oci, err := bespec.OciSpec(b.initBinPath, b.seccompProfile, b.ociHooks, gdnSpec, maxUid, maxGid)
 	if err != nil {
 		return nil, fmt.Errorf("garden spec to oci spec: %w", err)
 	}

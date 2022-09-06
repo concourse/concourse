@@ -42,6 +42,7 @@ type ContainerdRuntime struct {
 	Bin                string        `long:"bin"        description:"Path to a containerd executable (non-absolute names get resolved from $PATH)."`
 	InitBin            string        `long:"init-bin"   description:"Path to an init executable. By default will search within the concourse/bin directory the concourse binary is in."`
 	seccompProfilePath string        `long:"seccomp-profile" description:"Path to a seccomp filter override. By default will use a restrictive default set."`
+	ociHooksDir        string        `long:"oci-hooks-dir" description:"Path to the oci hooks dir. By default none is provided."`
 	CNIPluginsDir      string        `long:"cni-plugins-dir" description:"Path to CNI network plugins. By default will set to the concourse/bin directory the concourse binary is in."`
 	RequestTimeout     time.Duration `long:"request-timeout" default:"5m" description:"How long to wait for requests to Containerd to complete. 0 means no timeout."`
 
