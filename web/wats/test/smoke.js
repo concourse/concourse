@@ -19,6 +19,8 @@ test('running pipelines', async t => {
   await t.context.fly.run('set-pipeline -n -p some-pipeline -c fixtures/smoke-pipeline.yml');
   await t.context.fly.run('unpause-pipeline -p some-pipeline');
 
+  await t.context.fly.run('check-resource -r some-pipeline/mockery');
+
   var result = await t.context.fly.run('trigger-job -j some-pipeline/say-hello -w');
   t.regex(result.stdout, /Hello, world!/);
   t.regex(result.stdout, /pushing version: put-version/);
