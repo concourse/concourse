@@ -146,8 +146,8 @@ func (cmd *WorkerCommand) buildUpBackendOpts(logger lager.Logger, cniNetwork run
 		runtime.WithRequestTimeout(cmd.Containerd.RequestTimeout),
 		runtime.WithMaxContainers(cmd.Containerd.MaxContainers),
 		runtime.WithInitBinPath(cmd.Containerd.InitBin),
-		runtime.WithSeccompProfilePath(cmd.Containerd.seccompProfilePath),
-		runtime.WithOciHooksDir(cmd.Containerd.ociHooksDir),
+		runtime.WithSeccompProfilePath(cmd.Containerd.SeccompProfilePath),
+		runtime.WithOciHooksDir(cmd.Containerd.OCIHooksDir),
 	}, nil
 }
 
