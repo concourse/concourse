@@ -9,7 +9,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"time"
 
 	"code.cloudfoundry.org/garden"
@@ -155,16 +155,21 @@ func NewGardenBackend(client libcontainerd.Client, opts ...GardenBackendOpt) (b 
 
 	var hooks specs.Hooks
 	if b.ociHooksDir != "" {
-		files, err := ioutil.ReadDir(b.ociHooksDir)
+		files, err := os.ReadDir(b.ociHooksDir)
 		if err != nil {
 			return b, fmt.Errorf("ociHooksDir: %w", err)
 		}
 
-		for _, f := range files {
-			var hookJsonContent, err = ioutil.ReadAll(f)
+		for _, direntry := range files {
+			if direntry.IsDir() {
+				continue
+			}
+			var f = b.ociHooksDir + "/" + direntry.Name()
+			var hookJsonContent, err = os.ReadFile(f)
 			if err != nil {
 				return b, fmt.Errorf("ociHooksDir file: %w", err)
 			}
+			fmt.Println("Parsing hooks file", f)
 			var hooksParsed specs.Hooks
 			var err2 = json.Unmarshal(hookJsonContent, &hooksParsed)
 			if err2 != nil {
@@ -180,7 +185,7 @@ func NewGardenBackend(client libcontainerd.Client, opts ...GardenBackendOpt) (b 
 	b.ociHooks = hooks
 
 	if b.seccompProfilePath != "" {
-		var seccompJsonContent, err = ioutil.ReadFile(b.seccompProfilePath)
+		var seccompJsonContent, err = os.ReadFile(b.seccompProfilePath)
 		if err != nil {
 			return b, fmt.Errorf("seccomp file: %w", err)
 		}
@@ -189,6 +194,7 @@ func NewGardenBackend(client libcontainerd.Client, opts ...GardenBackendOpt) (b 
 		if err2 != nil {
 			return b, fmt.Errorf("seccomp file failed to parse: %w", err2)
 		}
+		fmt.Println("Using seccomp rules from path by default:", b.seccompProfilePath)
 		b.seccompProfile = profile
 	} else {
 		b.seccompProfile = bespec.GetDefaultSeccompProfile()
