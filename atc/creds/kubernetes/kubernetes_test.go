@@ -1,6 +1,8 @@
 package kubernetes_test
 
 import (
+	"context"
+
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
@@ -76,14 +78,14 @@ var _ = Describe("Kubernetes", func() {
 
 		Entry("team-scoped vars with a value field", Example{
 			Setup: func() {
-				fakeClientset.CoreV1().Secrets("prefix-some-team").Create(&v1.Secret{
+				fakeClientset.CoreV1().Secrets("prefix-some-team").Create(context.TODO(), &v1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: secretName,
 					},
 					Data: map[string][]byte{
 						"value": []byte("some-value"),
 					},
-				})
+				}, metav1.CreateOptions{})
 			},
 
 			Template: "((" + secretName + "))",
@@ -92,14 +94,14 @@ var _ = Describe("Kubernetes", func() {
 
 		Entry("pipeline-scoped vars with a value field", Example{
 			Setup: func() {
-				fakeClientset.CoreV1().Secrets("prefix-some-team").Create(&v1.Secret{
+				fakeClientset.CoreV1().Secrets("prefix-some-team").Create(context.TODO(), &v1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "some-pipeline." + secretName,
 					},
 					Data: map[string][]byte{
 						"value": []byte("some-value"),
 					},
-				})
+				}, metav1.CreateOptions{})
 			},
 
 			Template: "((" + secretName + "))",
@@ -108,14 +110,14 @@ var _ = Describe("Kubernetes", func() {
 
 		Entry("pipeline-scoped vars with arbitrary fields", Example{
 			Setup: func() {
-				fakeClientset.CoreV1().Secrets("prefix-some-team").Create(&v1.Secret{
+				fakeClientset.CoreV1().Secrets("prefix-some-team").Create(context.TODO(), &v1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "some-pipeline." + secretName,
 					},
 					Data: map[string][]byte{
 						"some-field": []byte("some-field-value"),
 					},
-				})
+				}, metav1.CreateOptions{})
 			},
 
 			Template: atc.Source{
@@ -130,14 +132,14 @@ var _ = Describe("Kubernetes", func() {
 
 		Entry("pipeline-scoped vars with arbitrary fields accessed via template", Example{
 			Setup: func() {
-				fakeClientset.CoreV1().Secrets("prefix-some-team").Create(&v1.Secret{
+				fakeClientset.CoreV1().Secrets("prefix-some-team").Create(context.TODO(), &v1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "some-pipeline." + secretName,
 					},
 					Data: map[string][]byte{
 						"some-field": []byte("some-field-value"),
 					},
-				})
+				}, metav1.CreateOptions{})
 			},
 
 			Template: "((" + secretName + ".some-field))",
