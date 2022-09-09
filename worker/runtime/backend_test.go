@@ -522,3 +522,75 @@ func (s *BackendSuite) TestGraceTimeReturnsDuration() {
 	result := s.backend.GraceTime(fakeContainer)
 	s.Equal(time.Duration(123), result)
 }
+
+
+func (s *BackendSuite) TestHookFileParse() {
+var samples = map[string]runtime.HookFile{`
+{
+    "version": "1.0.0",
+    "hook": {
+        "path": "/usr/libexec/oci/hooks.d/oci-seccomp-bpf-hook",
+        "args": [
+            "oci-seccomp-bpf-hook",
+            "-s"
+        ]
+    },
+    "when": {
+        "annotations": {
+            "^io\\.containers\\.trace-syscall$": ".*"
+        }
+    },
+    "stages": [
+        "prestart"
+    ]
+}
+`: runtime.HookFile {
+	Version: "1.0.0",
+	Hook: specs.Hook {
+		Path: "/usr/libexec/oci/hooks.d/oci-seccomp-bpf-hook",
+		Args: ["oci-seccomp-bpf-hook", "-s"],
+		Env: ["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"],
+	},
+	When: {
+		Annotations: {
+			"^io\\.containers\\.trace-syscall$" : ".*"
+		},
+	}
+	Stages: ["prestart"]
+},
+`{
+    "version": "1.0.0",
+    "hook": {
+        "path": "/usr/bin/nvidia-container-toolkit",
+        "args": ["nvidia-container-toolkit", "prestart"],
+        "env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+        ]
+    },
+    "when": {
+        "always": true,
+        "commands": [".*"]
+    },
+    "stages": ["prestart"]
+}
+`: runtime.HookFile {
+	Version: "1.0.0",
+	Hook: specs.Hook {
+		Path: "/usr/bin/nvidia-container-toolkit",
+		Args: ["nvidia-container-toolkit", "prestart"],
+		Env: ["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"]
+	},
+	When: {
+		Always: true,
+		Commands: [".*"],
+	}
+	Stages: ["prestart"]
+}
+
+	for (sample_json, expected_outcome) := samples {
+		var dest runtime.HookFile
+		var err := unmarshalStrict(sample_json, &dest);
+		s.Equal(err, nil)
+		s.Equal(dest, expected_outcome)
+	}
+}

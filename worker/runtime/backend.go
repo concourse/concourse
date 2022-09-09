@@ -125,6 +125,20 @@ func WithOciHooksDir(ociHooksDir string) GardenBackendOpt {
 	}
 }
 
+type When struct {
+	Always      bool              `json:"always,omitempty"`
+	Annotations map[string]string `json:"annotations,omitempty"`
+	Commands    []string          `json:"commands,omitempty"`
+}
+
+// Hook specifies a command that is run at a particular event in the lifecycle of a container
+type HookFile struct {
+	Version string     `json:"version"`
+	Hook    specs.Hook `json:"hook"`
+	When    When       `json:"when,omitempty"`
+	Stages  []string   `json:"stages,omitempty"`
+}
+
 // NewGardenBackend instantiates a GardenBackend with tweakable configurations passed as Config.
 //
 func NewGardenBackend(client libcontainerd.Client, opts ...GardenBackendOpt) (b GardenBackend, err error) {
@@ -162,7 +176,10 @@ func NewGardenBackend(client libcontainerd.Client, opts ...GardenBackendOpt) (b 
 
 		for _, direntry := range files {
 			if direntry.IsDir() {
+				fmt.Println("Dir entry", direntry)
 				continue
+			} else {
+				fmt.Println("Processing", direntry)
 			}
 			var f = b.ociHooksDir + "/" + direntry.Name()
 			var hookJsonContent, err = os.ReadFile(f)
@@ -170,17 +187,32 @@ func NewGardenBackend(client libcontainerd.Client, opts ...GardenBackendOpt) (b 
 				return b, fmt.Errorf("ociHooksDir file: %w", err)
 			}
 			fmt.Println("Parsing hooks file", f)
-			var hooksParsed specs.Hooks
+			var hooksParsed HookFile
 			var err2 = json.Unmarshal(hookJsonContent, &hooksParsed)
 			if err2 != nil {
 				return b, fmt.Errorf("ociHooks file failed to parse: %w", err2)
 			}
-			hooks.CreateContainer = append(hooks.CreateContainer, hooksParsed.CreateContainer...)
-			hooks.CreateRuntime = append(hooks.CreateRuntime, hooksParsed.CreateRuntime...)
-			hooks.Poststart = append(hooks.Poststart, hooksParsed.Poststart...)
-			hooks.Poststop = append(hooks.Poststop, hooksParsed.Poststop...)
-			hooks.StartContainer = append(hooks.StartContainer, hooksParsed.StartContainer...)
+			for _, stage := range hooksParsed.Stages {
+				fmt.Println("Add hook to stage", stage)
+				switch stage {
+				case "prestart":
+					hooks.Prestart = append(hooks.Prestart, hooksParsed.Hook)
+				case "createRuntime":
+					hooks.CreateRuntime = append(hooks.CreateRuntime, hooksParsed.Hook)
+				case "createContainer":
+					hooks.CreateContainer = append(hooks.CreateContainer, hooksParsed.Hook)
+				case "startContainer":
+					hooks.StartContainer = append(hooks.StartContainer, hooksParsed.Hook)
+				case "poststart":
+					hooks.Poststart = append(hooks.Poststart, hooksParsed.Hook)
+				case "poststop":
+					hooks.Poststop = append(hooks.Poststop, hooksParsed.Hook)
+				}
+			}
 		}
+		fmt.Println("Adding hooks:::", hooks)
+	} else {
+		fmt.Println("No hooks dir given, skipping hook discovery", hooks)
 	}
 	b.ociHooks = hooks
 
@@ -303,6 +335,8 @@ func (b *GardenBackend) createContainer(ctx context.Context, gdnSpec garden.Cont
 	oci, err := bespec.OciSpec(b.initBinPath, b.seccompProfile, b.ociHooks, gdnSpec, maxUid, maxGid)
 	if err != nil {
 		return nil, fmt.Errorf("garden spec to oci spec: %w", err)
+	} else {
+		fmt.Println("Using OCI spec", oci)
 	}
 
 	netMounts, err := b.network.SetupMounts(gdnSpec.Handle)
