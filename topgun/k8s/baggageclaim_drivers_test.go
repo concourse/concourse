@@ -1,6 +1,7 @@
 package k8s_test
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -110,7 +111,7 @@ func baggageclaimFails(driver string, selectorFlags ...string) {
 				var logs []byte
 				pods := getPods(namespace, metav1.ListOptions{LabelSelector: "app=" + namespace + "-worker"})
 				for _, p := range pods {
-					contents, _ := kubeClient.CoreV1().Pods(namespace).GetLogs(p.Name, &corev1.PodLogOptions{}).Do().Raw()
+					contents, _ := kubeClient.CoreV1().Pods(namespace).GetLogs(p.Name, &corev1.PodLogOptions{}).Do(context.TODO()).Raw()
 					logs = append(logs, contents...)
 				}
 
@@ -132,27 +133,27 @@ func deployWithDriverAndSelectors(driver string, selectorFlags ...string) {
 }
 
 func createBtrfsStorageClass(name string) {
-	_, err := kubeClient.StorageV1().StorageClasses().Create(&v1.StorageClass{
+	_, err := kubeClient.StorageV1().StorageClasses().Create(context.TODO(), &v1.StorageClass{
 		ObjectMeta:  metav1.ObjectMeta{Name: "btrfs"},
 		Provisioner: "kubernetes.io/gce-pd",
 		Parameters: map[string]string{
 			"type":   "pd-standard",
 			"fstype": name,
 		},
-	})
+	}, metav1.CreateOptions{})
 	if err != nil && !k8sErrs.IsAlreadyExists(err) {
 		Fail("failed to create btrfs storage class: " + err.Error())
 	}
 }
 func createPVC(name string, scName string) {
 	_, err := kubeClient.CoreV1().PersistentVolumeClaims(namespace).
-		Create(&corev1.PersistentVolumeClaim{
+		Create(context.TODO(), &corev1.PersistentVolumeClaim{
 			ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
 			Spec: corev1.PersistentVolumeClaimSpec{
 				StorageClassName: &scName,
 				AccessModes:      []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
 				Resources: corev1.ResourceRequirements{Requests: corev1.ResourceList{
 					corev1.ResourceStorage: resource.MustParse("1Gi")}},
-			}})
+			}}, metav1.CreateOptions{})
 	Expect(err).To(BeNil(), "failed to create persistent volume claim "+name)
 }
