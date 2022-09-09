@@ -10,7 +10,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/gorilla/websocket"
 	"github.com/mgutz/ansi"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"

@@ -2,7 +2,7 @@ package vars_test
 
 import (
 	"github.com/concourse/concourse/vars"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"sigs.k8s.io/yaml"
 )

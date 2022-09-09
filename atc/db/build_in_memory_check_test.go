@@ -14,7 +14,7 @@ import (
 	"github.com/concourse/concourse/atc/util"
 	"github.com/concourse/concourse/tracing"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 

@@ -8,8 +8,8 @@ import (
 	"github.com/concourse/concourse/atc"
 	. "github.com/concourse/concourse/atc/db"
 
-	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
 )

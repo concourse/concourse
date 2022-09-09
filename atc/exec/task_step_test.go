@@ -19,7 +19,7 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"go.opentelemetry.io/otel/oteltest"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
@@ -177,7 +177,7 @@ var _ = Describe("TaskStep", func() {
 			fakePool.FindOrSelectWorkerReturns(chosenWorker, nil)
 		})
 
-		It("Task env includes atc external url", func(){
+		It("Task env includes atc external url", func() {
 			Expect(chosenContainer.Spec.Env).To(ConsistOf("ATC_EXTERNAL_URL=http://foo.bar", "SECURE=secret-task-param"))
 		})
 

@@ -6,7 +6,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 	//lint:ignore ST1001 this is used for tests
 	. "github.com/onsi/gomega"
 )

@@ -3,7 +3,7 @@ package k8s_test
 import (
 	"strconv"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 )
 
 var _ = Describe("Scaling web instances", func() {

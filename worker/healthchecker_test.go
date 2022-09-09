@@ -9,7 +9,7 @@ import (
 	"github.com/onsi/gomega/ghttp"
 
 	. "github.com/concourse/concourse/worker"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 

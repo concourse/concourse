@@ -11,7 +11,7 @@ import (
 	"github.com/concourse/concourse/tsa"
 	"github.com/concourse/concourse/worker"
 	"github.com/concourse/concourse/worker/workerfakes"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/ifrit"
 )
