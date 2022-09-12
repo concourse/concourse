@@ -544,7 +544,7 @@ func (s *BackendSuite) TestHookFileParse() {
         "prestart"
     ]
 }
-`: runtime.HookFile{
+`: {
 		Version: "1.0.0",
 		Hook: specs.Hook{
 			Path: "/usr/libexec/oci/hooks.d/oci-seccomp-bpf-hook",
@@ -575,7 +575,7 @@ func (s *BackendSuite) TestHookFileParse() {
     },
     "stages": ["prestart"]
 }
-`: runtime.HookFile{
+`: {
 			Version: "1.0.0",
 			Hook: specs.Hook{
 				Path: "/usr/bin/nvidia-container-toolkit",
