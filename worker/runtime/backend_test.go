@@ -2,6 +2,7 @@ package runtime_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"sync"
 	"testing"
@@ -523,9 +524,8 @@ func (s *BackendSuite) TestGraceTimeReturnsDuration() {
 	s.Equal(time.Duration(123), result)
 }
 
-
 func (s *BackendSuite) TestHookFileParse() {
-var samples = map[string]runtime.HookFile{`
+	var samples = map[string]runtime.HookFile{`
 {
     "version": "1.0.0",
     "hook": {
@@ -544,21 +544,23 @@ var samples = map[string]runtime.HookFile{`
         "prestart"
     ]
 }
-`: runtime.HookFile {
-	Version: "1.0.0",
-	Hook: specs.Hook {
-		Path: "/usr/libexec/oci/hooks.d/oci-seccomp-bpf-hook",
-		Args: ["oci-seccomp-bpf-hook", "-s"],
-		Env: ["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"],
-	},
-	When: {
-		Annotations: {
-			"^io\\.containers\\.trace-syscall$" : ".*"
+`: runtime.HookFile{
+		Version: "1.0.0",
+		Hook: specs.Hook{
+			Path: "/usr/libexec/oci/hooks.d/oci-seccomp-bpf-hook",
+			Args: []string{"oci-seccomp-bpf-hook", "-s"},
+			Env:  nil,
 		},
-	}
-	Stages: ["prestart"]
-},
-`{
+		When: runtime.When{
+			Annotations: map[string]string{
+				"^io\\.containers\\.trace-syscall$": ".*",
+			},
+			Always:   false,
+			Commands: nil,
+		},
+		Stages: []string{"prestart"},
+	},
+		`{
     "version": "1.0.0",
     "hook": {
         "path": "/usr/bin/nvidia-container-toolkit",
@@ -573,23 +575,24 @@ var samples = map[string]runtime.HookFile{`
     },
     "stages": ["prestart"]
 }
-`: runtime.HookFile {
-	Version: "1.0.0",
-	Hook: specs.Hook {
-		Path: "/usr/bin/nvidia-container-toolkit",
-		Args: ["nvidia-container-toolkit", "prestart"],
-		Env: ["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"]
-	},
-	When: {
-		Always: true,
-		Commands: [".*"],
-	}
-	Stages: ["prestart"]
-}
+`: runtime.HookFile{
+			Version: "1.0.0",
+			Hook: specs.Hook{
+				Path: "/usr/bin/nvidia-container-toolkit",
+				Args: []string{"nvidia-container-toolkit", "prestart"},
+				Env:  []string{"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"},
+			},
+			When: runtime.When{
+				Always:      true,
+				Commands:    []string{".*"},
+				Annotations: nil,
+			},
+			Stages: []string{"prestart"},
+		}}
 
-	for (sample_json, expected_outcome) := samples {
+	for sample_json, expected_outcome := range samples {
 		var dest runtime.HookFile
-		var err := unmarshalStrict(sample_json, &dest);
+		var err = json.Unmarshal([]byte(sample_json), &dest)
 		s.Equal(err, nil)
 		s.Equal(dest, expected_outcome)
 	}
