@@ -41,7 +41,7 @@ services:
   worker:
     build: .
     image: concourse/concourse:local
-    command: sh -c "/usr/local/concourse/bin/concourse worker --seccomp-profile-path=/concourse-seccomp/seccomp.json --oci-hooks-dir=/concourse-hooks/"
+    command: worker
     privileged: true
     depends_on: [web]
     ports:
