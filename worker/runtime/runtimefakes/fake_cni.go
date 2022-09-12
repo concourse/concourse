@@ -9,6 +9,20 @@ import (
 )
 
 type FakeCNI struct {
+	CheckStub        func(context.Context, string, string, ...cni.NamespaceOpts) error
+	checkMutex       sync.RWMutex
+	checkArgsForCall []struct {
+		arg1 context.Context
+		arg2 string
+		arg3 string
+		arg4 []cni.NamespaceOpts
+	}
+	checkReturns struct {
+		result1 error
+	}
+	checkReturnsOnCall map[int]struct {
+		result1 error
+	}
 	GetConfigStub        func() *cni.ConfigResult
 	getConfigMutex       sync.RWMutex
 	getConfigArgsForCall []struct {
@@ -19,10 +33,10 @@ type FakeCNI struct {
 	getConfigReturnsOnCall map[int]struct {
 		result1 *cni.ConfigResult
 	}
-	LoadStub        func(...cni.CNIOpt) error
+	LoadStub        func(...cni.Opt) error
 	loadMutex       sync.RWMutex
 	loadArgsForCall []struct {
-		arg1 []cni.CNIOpt
+		arg1 []cni.Opt
 	}
 	loadReturns struct {
 		result1 error
@@ -44,7 +58,7 @@ type FakeCNI struct {
 	removeReturnsOnCall map[int]struct {
 		result1 error
 	}
-	SetupStub        func(context.Context, string, string, ...cni.NamespaceOpts) (*cni.CNIResult, error)
+	SetupStub        func(context.Context, string, string, ...cni.NamespaceOpts) (*cni.Result, error)
 	setupMutex       sync.RWMutex
 	setupArgsForCall []struct {
 		arg1 context.Context
@@ -53,11 +67,27 @@ type FakeCNI struct {
 		arg4 []cni.NamespaceOpts
 	}
 	setupReturns struct {
-		result1 *cni.CNIResult
+		result1 *cni.Result
 		result2 error
 	}
 	setupReturnsOnCall map[int]struct {
-		result1 *cni.CNIResult
+		result1 *cni.Result
+		result2 error
+	}
+	SetupSeriallyStub        func(context.Context, string, string, ...cni.NamespaceOpts) (*cni.Result, error)
+	setupSeriallyMutex       sync.RWMutex
+	setupSeriallyArgsForCall []struct {
+		arg1 context.Context
+		arg2 string
+		arg3 string
+		arg4 []cni.NamespaceOpts
+	}
+	setupSeriallyReturns struct {
+		result1 *cni.Result
+		result2 error
+	}
+	setupSeriallyReturnsOnCall map[int]struct {
+		result1 *cni.Result
 		result2 error
 	}
 	StatusStub        func() error
@@ -72,6 +102,69 @@ type FakeCNI struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeCNI) Check(arg1 context.Context, arg2 string, arg3 string, arg4 ...cni.NamespaceOpts) error {
+	fake.checkMutex.Lock()
+	ret, specificReturn := fake.checkReturnsOnCall[len(fake.checkArgsForCall)]
+	fake.checkArgsForCall = append(fake.checkArgsForCall, struct {
+		arg1 context.Context
+		arg2 string
+		arg3 string
+		arg4 []cni.NamespaceOpts
+	}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("Check", []interface{}{arg1, arg2, arg3, arg4})
+	fake.checkMutex.Unlock()
+	if fake.CheckStub != nil {
+		return fake.CheckStub(arg1, arg2, arg3, arg4...)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.checkReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeCNI) CheckCallCount() int {
+	fake.checkMutex.RLock()
+	defer fake.checkMutex.RUnlock()
+	return len(fake.checkArgsForCall)
+}
+
+func (fake *FakeCNI) CheckCalls(stub func(context.Context, string, string, ...cni.NamespaceOpts) error) {
+	fake.checkMutex.Lock()
+	defer fake.checkMutex.Unlock()
+	fake.CheckStub = stub
+}
+
+func (fake *FakeCNI) CheckArgsForCall(i int) (context.Context, string, string, []cni.NamespaceOpts) {
+	fake.checkMutex.RLock()
+	defer fake.checkMutex.RUnlock()
+	argsForCall := fake.checkArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+}
+
+func (fake *FakeCNI) CheckReturns(result1 error) {
+	fake.checkMutex.Lock()
+	defer fake.checkMutex.Unlock()
+	fake.CheckStub = nil
+	fake.checkReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeCNI) CheckReturnsOnCall(i int, result1 error) {
+	fake.checkMutex.Lock()
+	defer fake.checkMutex.Unlock()
+	fake.CheckStub = nil
+	if fake.checkReturnsOnCall == nil {
+		fake.checkReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.checkReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeCNI) GetConfig() *cni.ConfigResult {
@@ -126,11 +219,11 @@ func (fake *FakeCNI) GetConfigReturnsOnCall(i int, result1 *cni.ConfigResult) {
 	}{result1}
 }
 
-func (fake *FakeCNI) Load(arg1 ...cni.CNIOpt) error {
+func (fake *FakeCNI) Load(arg1 ...cni.Opt) error {
 	fake.loadMutex.Lock()
 	ret, specificReturn := fake.loadReturnsOnCall[len(fake.loadArgsForCall)]
 	fake.loadArgsForCall = append(fake.loadArgsForCall, struct {
-		arg1 []cni.CNIOpt
+		arg1 []cni.Opt
 	}{arg1})
 	fake.recordInvocation("Load", []interface{}{arg1})
 	fake.loadMutex.Unlock()
@@ -150,13 +243,13 @@ func (fake *FakeCNI) LoadCallCount() int {
 	return len(fake.loadArgsForCall)
 }
 
-func (fake *FakeCNI) LoadCalls(stub func(...cni.CNIOpt) error) {
+func (fake *FakeCNI) LoadCalls(stub func(...cni.Opt) error) {
 	fake.loadMutex.Lock()
 	defer fake.loadMutex.Unlock()
 	fake.LoadStub = stub
 }
 
-func (fake *FakeCNI) LoadArgsForCall(i int) []cni.CNIOpt {
+func (fake *FakeCNI) LoadArgsForCall(i int) []cni.Opt {
 	fake.loadMutex.RLock()
 	defer fake.loadMutex.RUnlock()
 	argsForCall := fake.loadArgsForCall[i]
@@ -249,7 +342,7 @@ func (fake *FakeCNI) RemoveReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeCNI) Setup(arg1 context.Context, arg2 string, arg3 string, arg4 ...cni.NamespaceOpts) (*cni.CNIResult, error) {
+func (fake *FakeCNI) Setup(arg1 context.Context, arg2 string, arg3 string, arg4 ...cni.NamespaceOpts) (*cni.Result, error) {
 	fake.setupMutex.Lock()
 	ret, specificReturn := fake.setupReturnsOnCall[len(fake.setupArgsForCall)]
 	fake.setupArgsForCall = append(fake.setupArgsForCall, struct {
@@ -276,7 +369,7 @@ func (fake *FakeCNI) SetupCallCount() int {
 	return len(fake.setupArgsForCall)
 }
 
-func (fake *FakeCNI) SetupCalls(stub func(context.Context, string, string, ...cni.NamespaceOpts) (*cni.CNIResult, error)) {
+func (fake *FakeCNI) SetupCalls(stub func(context.Context, string, string, ...cni.NamespaceOpts) (*cni.Result, error)) {
 	fake.setupMutex.Lock()
 	defer fake.setupMutex.Unlock()
 	fake.SetupStub = stub
@@ -289,28 +382,94 @@ func (fake *FakeCNI) SetupArgsForCall(i int) (context.Context, string, string, [
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
-func (fake *FakeCNI) SetupReturns(result1 *cni.CNIResult, result2 error) {
+func (fake *FakeCNI) SetupReturns(result1 *cni.Result, result2 error) {
 	fake.setupMutex.Lock()
 	defer fake.setupMutex.Unlock()
 	fake.SetupStub = nil
 	fake.setupReturns = struct {
-		result1 *cni.CNIResult
+		result1 *cni.Result
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCNI) SetupReturnsOnCall(i int, result1 *cni.CNIResult, result2 error) {
+func (fake *FakeCNI) SetupReturnsOnCall(i int, result1 *cni.Result, result2 error) {
 	fake.setupMutex.Lock()
 	defer fake.setupMutex.Unlock()
 	fake.SetupStub = nil
 	if fake.setupReturnsOnCall == nil {
 		fake.setupReturnsOnCall = make(map[int]struct {
-			result1 *cni.CNIResult
+			result1 *cni.Result
 			result2 error
 		})
 	}
 	fake.setupReturnsOnCall[i] = struct {
-		result1 *cni.CNIResult
+		result1 *cni.Result
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeCNI) SetupSerially(arg1 context.Context, arg2 string, arg3 string, arg4 ...cni.NamespaceOpts) (*cni.Result, error) {
+	fake.setupSeriallyMutex.Lock()
+	ret, specificReturn := fake.setupSeriallyReturnsOnCall[len(fake.setupSeriallyArgsForCall)]
+	fake.setupSeriallyArgsForCall = append(fake.setupSeriallyArgsForCall, struct {
+		arg1 context.Context
+		arg2 string
+		arg3 string
+		arg4 []cni.NamespaceOpts
+	}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("SetupSerially", []interface{}{arg1, arg2, arg3, arg4})
+	fake.setupSeriallyMutex.Unlock()
+	if fake.SetupSeriallyStub != nil {
+		return fake.SetupSeriallyStub(arg1, arg2, arg3, arg4...)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.setupSeriallyReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeCNI) SetupSeriallyCallCount() int {
+	fake.setupSeriallyMutex.RLock()
+	defer fake.setupSeriallyMutex.RUnlock()
+	return len(fake.setupSeriallyArgsForCall)
+}
+
+func (fake *FakeCNI) SetupSeriallyCalls(stub func(context.Context, string, string, ...cni.NamespaceOpts) (*cni.Result, error)) {
+	fake.setupSeriallyMutex.Lock()
+	defer fake.setupSeriallyMutex.Unlock()
+	fake.SetupSeriallyStub = stub
+}
+
+func (fake *FakeCNI) SetupSeriallyArgsForCall(i int) (context.Context, string, string, []cni.NamespaceOpts) {
+	fake.setupSeriallyMutex.RLock()
+	defer fake.setupSeriallyMutex.RUnlock()
+	argsForCall := fake.setupSeriallyArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+}
+
+func (fake *FakeCNI) SetupSeriallyReturns(result1 *cni.Result, result2 error) {
+	fake.setupSeriallyMutex.Lock()
+	defer fake.setupSeriallyMutex.Unlock()
+	fake.SetupSeriallyStub = nil
+	fake.setupSeriallyReturns = struct {
+		result1 *cni.Result
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeCNI) SetupSeriallyReturnsOnCall(i int, result1 *cni.Result, result2 error) {
+	fake.setupSeriallyMutex.Lock()
+	defer fake.setupSeriallyMutex.Unlock()
+	fake.SetupSeriallyStub = nil
+	if fake.setupSeriallyReturnsOnCall == nil {
+		fake.setupSeriallyReturnsOnCall = make(map[int]struct {
+			result1 *cni.Result
+			result2 error
+		})
+	}
+	fake.setupSeriallyReturnsOnCall[i] = struct {
+		result1 *cni.Result
 		result2 error
 	}{result1, result2}
 }
@@ -370,6 +529,8 @@ func (fake *FakeCNI) StatusReturnsOnCall(i int, result1 error) {
 func (fake *FakeCNI) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.checkMutex.RLock()
+	defer fake.checkMutex.RUnlock()
 	fake.getConfigMutex.RLock()
 	defer fake.getConfigMutex.RUnlock()
 	fake.loadMutex.RLock()
@@ -378,6 +539,8 @@ func (fake *FakeCNI) Invocations() map[string][][]interface{} {
 	defer fake.removeMutex.RUnlock()
 	fake.setupMutex.RLock()
 	defer fake.setupMutex.RUnlock()
+	fake.setupSeriallyMutex.RLock()
+	defer fake.setupSeriallyMutex.RUnlock()
 	fake.statusMutex.RLock()
 	defer fake.statusMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
