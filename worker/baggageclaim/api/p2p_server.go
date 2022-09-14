@@ -11,7 +11,10 @@ import (
 	"code.cloudfoundry.org/lager"
 )
 
-var ErrGetP2pUrlFailed = errors.New("failed to get p2p url")
+var ErrGetP2pUrlFailed = errors.New("failed to get p2p url, network interface list is empty")
+var ErrGetListSysNetworkInterface = errors.New("failed to get a list of the system's network interface")
+var ErrGetNetworkInterfaceAddr = errors.New("failed to get network interface addr for given interface")
+
 
 func NewP2pServer(
 	logger lager.Logger,
@@ -42,7 +45,7 @@ func (server *P2pServer) GetP2pUrl(w http.ResponseWriter, req *http.Request) {
 
 	ifaces, err := net.Interfaces()
 	if err != nil {
-		RespondWithError(w, ErrGetP2pUrlFailed, http.StatusInternalServerError)
+		RespondWithError(w, ErrGetListSysNetworkInterface, http.StatusInternalServerError)
 		return
 	}
 
@@ -53,7 +56,7 @@ func (server *P2pServer) GetP2pUrl(w http.ResponseWriter, req *http.Request) {
 
 		addrs, err := i.Addrs()
 		if err != nil {
-			RespondWithError(w, ErrGetP2pUrlFailed, http.StatusInternalServerError)
+			RespondWithError(w, ErrGetNetworkInterfaceAddr, http.StatusInternalServerError)
 			return
 		}
 
