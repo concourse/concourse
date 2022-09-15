@@ -3,7 +3,6 @@ package k8s_test
 import (
 	"bufio"
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -130,6 +129,7 @@ func setReleaseNameAndNamespace(description string) {
 
 // pod corresponds to the Json object that represents a Kuberneted pod from the
 // apiserver perspective.
+//
 type pod struct {
 	Status struct {
 		Conditions []struct {
@@ -148,6 +148,7 @@ type pod struct {
 }
 
 // Endpoint represents a service that can be reached from a given address.
+//
 type Endpoint interface {
 	Address() (addr string)
 	Close() (err error)
@@ -155,6 +156,7 @@ type Endpoint interface {
 
 // EndpointFactory represents those entities able to generate Endpoints for
 // both services and pods.
+//
 type EndpointFactory interface {
 	NewServiceEndpoint(namespace, service, port string) (endpoint Endpoint)
 	NewPodEndpoint(namespace, pod, port string) (endpoint Endpoint)
@@ -162,6 +164,7 @@ type EndpointFactory interface {
 
 // PortForwardingEndpoint is a service that can be reached through a local
 // address, having connections port forwarded to entities in a cluster.
+//
 type PortForwardingEndpoint struct {
 	session *gexec.Session
 	address string
@@ -177,6 +180,7 @@ func (p PortForwardingEndpoint) Close() error {
 }
 
 // AddressEndpoint represents a direct address without any underlying session.
+//
 type AddressEndpoint struct {
 	address string
 }
@@ -191,6 +195,7 @@ func (p AddressEndpoint) Close() error {
 
 // PortForwardingFactory deals with creating endpoints that reach the targets
 // through port-forwarding.
+//
 type PortForwardingEndpointFactory struct{}
 
 func (f PortForwardingEndpointFactory) NewServiceEndpoint(namespace, service, port string) Endpoint {
@@ -213,6 +218,7 @@ func (f PortForwardingEndpointFactory) NewPodEndpoint(namespace, pod, port strin
 
 // AddressFactory deals with creating endpoints that reach the targets
 // through port-forwarding.
+//
 type AddressEndpointFactory struct{}
 
 func (f AddressEndpointFactory) NewServiceEndpoint(namespace, service, port string) Endpoint {
@@ -240,12 +246,14 @@ func podAddress(namespace, pod string) string {
 
 // serviceAddress retrieves the ClusterIP address of a service on a given
 // namespace.
+//
 func serviceAddress(namespace, serviceName string) (address string) {
 	return serviceName + "." + namespace
 }
 
 // portForward establishes a port-forwarding session against a given kubernetes
 // resource, for a particular port.
+//
 func portForward(namespace, resource, port string) (*gexec.Session, string) {
 	sess := Start(nil,
 		"kubectl", "port-forward",
@@ -331,7 +339,7 @@ func helmDestroy(releaseName, namespace string) {
 }
 
 func getPods(namespace string, listOptions metav1.ListOptions) []corev1.Pod {
-	pods, err := kubeClient.CoreV1().Pods(namespace).List(context.TODO(), listOptions)
+	pods, err := kubeClient.CoreV1().Pods(namespace).List(listOptions)
 	Expect(err).ToNot(HaveOccurred())
 
 	return pods.Items
@@ -419,7 +427,7 @@ func waitAndLogin(namespace, service string) Endpoint {
 func cleanupReleases() {
 	for releaseName, namespace := range deployedReleases {
 		helmDestroy(releaseName, namespace)
-		kubeClient.CoreV1().Namespaces().Delete(context.TODO(), namespace, metav1.DeleteOptions{})
+		kubeClient.CoreV1().Namespaces().Delete(namespace, &metav1.DeleteOptions{})
 	}
 
 	deployedReleases = make(map[string]string)
