@@ -30,7 +30,7 @@ func (f *TeamScopedHandlerFactory) HandlerFor(teamScopedHandler func(db.Team) ht
 		logger := f.logger.Session("team-scoped-handler")
 		acc := accessor.GetAccessor(r)
 
-		teamName := r.FormValue(":team_name")
+		teamName := r.URL.Query().Get(":team_name")
 
 		if acc.IsAuthorized(teamName) {
 			team, found, err := f.teamFactory.FindTeam(teamName)
