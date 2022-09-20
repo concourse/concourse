@@ -41,3 +41,5 @@ FROM base
 # set up a volume so locally built web UI changes auto-propagate
 VOLUME /src
 ENV CONCOURSE_WEB_PUBLIC_DIR=/src/web/public
+
+RUN apt-get -y install docker.io

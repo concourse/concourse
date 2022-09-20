@@ -1,6 +1,9 @@
 package spec
 
-import "github.com/opencontainers/runtime-spec/specs-go"
+import (
+	"github.com/opencontainers/runtime-spec/specs-go"
+	"os"
+)
 
 const DefaultInitBinPath = "/usr/local/concourse/bin/init"
 
@@ -60,6 +63,20 @@ func ContainerMounts(privileged bool, initBinPath string) []specs.Mount {
 		Type:        "bind",
 		Options:     []string{"bind"},
 	})
+
+	// If container is privileged and docker is running, expose docker socket to the container
+	// this is so the container can run things like docker-compose on the worker
+	const dockerSocketPath = "/var/run/docker.sock"
+	var _, err = os.Stat(dockerSocketPath)
+	if privileged && err != nil {
+		mounts = append(mounts, specs.Mount{
+			Source:      dockerSocketPath,
+			Destination: dockerSocketPath,
+			Type:        "bind",
+			Options:     []string{"bind"},
+		})
+	}
+
 	// Following the current behaviour for privileged containers in Docker
 	if privileged {
 		for i, ociMount := range mounts {

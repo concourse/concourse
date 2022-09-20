@@ -47,7 +47,7 @@ services:
     ports:
     - 7777:7777
     - 7788:7788
-    volumes: ["./hack/keys:/concourse-keys"]
+    volumes: ["./hack/keys:/concourse-keys", "/var/run/docker.sock:/var/run/docker.sock"]
     stop_signal: SIGUSR2
     environment:
       CONCOURSE_RUNTIME: containerd
