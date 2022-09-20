@@ -30,8 +30,8 @@ type RejectArchivedHandler struct {
 }
 
 func (ra RejectArchivedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	teamName := r.FormValue(":team_name")
-	pipelineName := r.FormValue(":pipeline_name")
+	teamName := r.URL.Query().Get(":team_name")
+	pipelineName := r.URL.Query().Get(":pipeline_name")
 	pipelineRef := atc.PipelineRef{Name: pipelineName}
 	var err error
 	pipelineRef.InstanceVars, err = atc.InstanceVarsFromQueryParams(r.URL.Query())
