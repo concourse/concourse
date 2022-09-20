@@ -42,8 +42,8 @@ type checkPipelineAccessHandler struct {
 }
 
 func (h checkPipelineAccessHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	teamName := r.FormValue(":team_name")
-	pipelineName := r.FormValue(":pipeline_name")
+	teamName := r.URL.Query().Get(":team_name")
+	pipelineName := r.URL.Query().Get(":pipeline_name")
 
 	team, found, err := h.teamFactory.FindTeam(teamName)
 	if err != nil {
