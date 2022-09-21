@@ -338,18 +338,19 @@ func (step *PutStep) Visit(v StepVisitor) error {
 }
 
 type TaskStep struct {
-	Name              string            `json:"task"`
-	Privileged        bool              `json:"privileged,omitempty"`
-	ConfigPath        string            `json:"file,omitempty"`
-	Limits            *ContainerLimits  `json:"container_limits,omitempty"`
-	Config            *TaskConfig       `json:"config,omitempty"`
-	Params            TaskEnv           `json:"params,omitempty"`
-	Vars              Params            `json:"vars,omitempty"`
-	Tags              Tags              `json:"tags,omitempty"`
-	InputMapping      map[string]string `json:"input_mapping,omitempty"`
-	OutputMapping     map[string]string `json:"output_mapping,omitempty"`
-	ImageArtifactName string            `json:"image,omitempty"`
-	Timeout           string            `json:"timeout,omitempty"`
+	Name              string               `json:"task"`
+	Privileged        bool                 `json:"privileged,omitempty"`
+	ConfigPath        string               `json:"file,omitempty"`
+	Limits            *ContainerLimits     `json:"container_limits,omitempty"`
+	Config            *TaskConfig          `json:"config,omitempty"`
+	Params            TaskEnv              `json:"params,omitempty"`
+	Vars              Params               `json:"vars,omitempty"`
+	Tags              Tags                 `json:"tags,omitempty"`
+	InputMapping      map[string]string    `json:"input_mapping,omitempty"`
+	OutputMapping     map[string]string    `json:"output_mapping,omitempty"`
+	ImageArtifactName string               `json:"image,omitempty"`
+	Timeout           string               `json:"timeout,omitempty"`
+	Services          *[]TaskServiceConfig `json:"services,omitempty"`
 }
 
 func (step *TaskStep) Visit(v StepVisitor) error {
