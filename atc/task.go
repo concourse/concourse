@@ -36,6 +36,9 @@ type TaskConfig struct {
 
 	// Path to cached directory that will be shared between builds for the same task.
 	Caches []TaskCacheConfig `json:"caches,omitempty"`
+
+	// Services to run alongside the task.
+	Services []TaskServiceConfig `json:"services,omitempty'"`
 }
 
 type ImageResource struct {
@@ -155,6 +158,52 @@ type TaskOutputConfig struct {
 
 type TaskCacheConfig struct {
 	Path string `json:"path,omitempty"`
+}
+
+type TaskServicePortsConfig struct {
+	Name   string `json:"name"`
+	Number uint16 `json:"number"`
+}
+
+type TaskServiceStartupProbe struct {
+	Run              TaskRunConfig `json:"run"`
+	FailureThreshold int           `json:"failure_threshold"`
+	PeriodSeconds    int           `json:"period_seconds"`
+}
+
+type TaskServiceDefinitionConfig struct {
+	TaskConfig   TaskConfig
+	Ports        []TaskServicePortsConfig `json:"ports,omitempty"`
+	StartupProbe TaskServiceStartupProbe  `json:"startup_probe,omitempty"`
+}
+
+func (tsdc *TaskServiceDefinitionConfig) UnmarshalJSON(p []byte) error {
+	type TaskServiceJson struct {
+		TaskConfig       TaskConfig
+		PortsJson        *json.RawMessage `json:"ports,omitempty"`
+		StartupProbeJson *json.RawMessage `json:"startup_probe,omitempty"`
+	}
+	var serviceJson TaskServiceJson
+	if err := json.Unmarshal(p, &serviceJson); err != nil {
+		return err
+	}
+	if serviceJson.PortsJson != nil {
+		if err := json.Unmarshal(*serviceJson.PortsJson, &tsdc.Ports); err != nil {
+			return err
+		}
+	}
+	if serviceJson.StartupProbeJson != nil {
+		if err := json.Unmarshal(*serviceJson.StartupProbeJson, &tsdc.StartupProbe); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+type TaskServiceConfig struct {
+	Name   string                      `json:"name"`
+	File   string                      `json:"file,omitempty"`
+	Config TaskServiceDefinitionConfig `json:"config,omitempty"`
 }
 
 type TaskEnv map[string]string
