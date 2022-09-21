@@ -66,7 +66,7 @@ func (emitter *DogstatsdEmitter) Emit(logger lager.Logger, event metric.Event) {
 	name := specialChars.ReplaceAllString(strings.Replace(strings.ToLower(event.Name), " ", "_", -1), "")
 
 	tags := []string{
-		fmt.Sprintf("host:%s", event.Host),
+		fmt.Sprintf("event_host:%s", event.Host),
 	}
 
 	for k, v := range event.Attributes {
