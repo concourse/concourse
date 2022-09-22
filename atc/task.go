@@ -178,7 +178,7 @@ type TaskServiceRelatedConfig struct {
 
 type TaskServiceDefinitionConfig struct {
 	TaskConfig               TaskConfig
-	TaskServiceRelatedConfig TaskServicePortsConfig
+	TaskServiceRelatedConfig TaskServiceRelatedConfig
 }
 
 //func (tsdc *TaskServiceDefinitionConfig) MarshalJSON() ([]byte, error) {
