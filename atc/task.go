@@ -218,6 +218,7 @@ func (tsdc *TaskServiceDefinitionConfig) UnmarshalJSON(p []byte) error {
 	if err := json.Unmarshal(p, &serviceJson); err != nil {
 		return err
 	}
+	tsdc.TaskConfig = serviceJson.TaskConfig
 	if serviceJson.PortsJson != nil {
 		if err := json.Unmarshal(*serviceJson.PortsJson, &tsdc.Ports); err != nil {
 			return err
