@@ -177,6 +177,37 @@ type TaskServiceDefinitionConfig struct {
 	StartupProbe TaskServiceStartupProbe  `json:"startup_probe,omitempty"`
 }
 
+func (tsdc *TaskServiceDefinitionConfig) MarshalJSON() ([]byte, error) {
+	type TaskServiceJson struct {
+		PortsJson        *json.RawMessage `json:"ports,omitempty"`
+		StartupProbeJson *json.RawMessage `json:"startup_probe,omitempty"`
+	}
+
+	b, err := json.Marshal(tsdc.TaskConfig)
+	if err != nil {
+		return nil, err
+	}
+	var objMap map[string]interface{}
+	err = json.Unmarshal(b, &objMap)
+	if err != nil {
+		return nil, err
+	}
+
+	portsMarshal, err := json.Marshal(tsdc.Ports)
+	if err != nil {
+		return nil, err
+	}
+	objMap["ports"] = json.RawMessage(portsMarshal)
+
+	startupProbeMarshal, err := json.Marshal(tsdc.StartupProbe)
+	if err != nil {
+		return nil, err
+	}
+	objMap["startup_probe"] = json.RawMessage(startupProbeMarshal)
+
+	return json.Marshal(objMap)
+}
+
 func (tsdc *TaskServiceDefinitionConfig) UnmarshalJSON(p []byte) error {
 	type TaskServiceJson struct {
 		TaskConfig       TaskConfig

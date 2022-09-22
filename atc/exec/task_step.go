@@ -306,12 +306,12 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 		if err != nil {
 			return false, err
 		}
-		tracing.Inject(ctx, &containerSpec)
+		tracing.Inject(ctx, &containerSpec) // FIXME: ??
 
 		serviceContainerSpecs = append(serviceContainerSpecs, containerSpec)
 	}
 
-	ctx, cancel, err := MaybeTimeout(ctx, step.plan.Timeout, step.defaultTaskTimeout)
+	ctx, cancel, err := MaybeTimeout(ctx, step.plan.Timeout, step.defaultTaskTimeout) // FIXME: how does this apply to service timeouts?
 	if err != nil {
 		return false, err
 	}
