@@ -171,15 +171,15 @@ type TaskServiceStartupProbe struct {
 	PeriodSeconds    int           `json:"period_seconds"`
 }
 
-type TaskServiceRelatedConfig struct {
-	Ports        []TaskServicePortsConfig `json:"ports,omitempty"`
-	StartupProbe TaskServiceStartupProbe  `json:"startup_probe,omitempty"`
-}
-
-type TaskServiceDefinitionConfig struct {
-	TaskConfig               TaskConfig
-	TaskServiceRelatedConfig TaskServiceRelatedConfig
-}
+//type TaskServiceRelatedConfig struct {
+//	Ports        []TaskServicePortsConfig `json:"ports,omitempty"`
+//	StartupProbe TaskServiceStartupProbe  `json:"startup_probe,omitempty"`
+//}
+//
+//type TaskServiceDefinitionConfig struct {
+//	TaskConfig               TaskConfig
+//	TaskServiceRelatedConfig TaskServiceRelatedConfig
+//}
 
 //func (tsdc *TaskServiceDefinitionConfig) MarshalJSON() ([]byte, error) {
 //	type TaskServiceJson struct {
@@ -242,9 +242,9 @@ type TaskServiceDefinitionConfig struct {
 //}
 
 type TaskServiceConfig struct {
-	Name   string                      `json:"name"`
-	File   string                      `json:"file,omitempty"`
-	Config TaskServiceDefinitionConfig `json:"config,omitempty"`
+	Name   string     `json:"name"`
+	File   string     `json:"file,omitempty"`
+	Config TaskConfig `json:"config,omitempty"`
 
 	// An artifact in the build plan to use as the service's image. Overrides any
 	// image set in the service's config.
