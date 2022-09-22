@@ -1,0 +1,18 @@
+jobs:
+  - name: hello-services
+    plan:
+      - task: say-hi-with-a-service
+        file: afile/asdf
+        services:
+          - name: test-service
+            file: file.yml
+#        plan:
+#          config:
+#            platform: linux
+#            image_resource:
+#              type: registry-image
+#              source:
+#                repository: alpine
+#            run:
+#              path: echo
+#              args: ["Hello, services!"]
