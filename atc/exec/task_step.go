@@ -225,7 +225,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 
 	var serviceConfigs []atc.TaskConfig
 	for _, s := range *config.Services {
-		serviceConfigSource := step.loadTaskConfigSource(state, s.File, &s.Config)
+		serviceConfigSource := step.loadTaskConfigSource(state, s.File, s.Config)
 		serviceConfig, err := serviceConfigSource.FetchConfig(ctx, logger, repository)
 
 		serviceConfigs = append(serviceConfigs, serviceConfig)
