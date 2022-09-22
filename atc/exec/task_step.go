@@ -67,8 +67,10 @@ type TaskDelegate interface {
 	Stderr() io.Writer
 
 	SetTaskConfig(config atc.TaskConfig)
+	SetServiceConfigs(configs []atc.TaskConfig)
 
 	Initializing(lager.Logger)
+	InitializingServices(lager.Logger)
 	Starting(lager.Logger)
 	Finished(lager.Logger, ExitStatus)
 	Errored(lager.Logger, string)
@@ -221,14 +223,33 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 		return false, err
 	}
 
-	if config.Limits == nil {
-		config.Limits = &atc.ContainerLimits{}
+	var serviceConfigs []atc.TaskConfig
+	for _, s := range config.Services {
+		serviceConfigSource := step.loadTaskConfigSource(state, s.File, &s.Config.TaskConfig)
+		serviceConfig, err := serviceConfigSource.FetchConfig(ctx, logger, repository)
+
+		serviceConfigs = append(serviceConfigs, serviceConfig)
+		delegate.SetServiceConfigs(serviceConfigs)
+
+		for _, warning := range taskConfigSource.Warnings() {
+			fmt.Fprintln(delegate.Stderr(), "[WARNING]", warning)
+		}
+
+		if err != nil {
+			return false, err
+		}
 	}
-	if config.Limits.CPU == nil {
-		config.Limits.CPU = step.defaultLimits.CPU
-	}
-	if config.Limits.Memory == nil {
-		config.Limits.Memory = step.defaultLimits.Memory
+
+	for _, c := range append(serviceConfigs, config) {
+		if c.Limits == nil {
+			c.Limits = &atc.ContainerLimits{}
+		}
+		if c.Limits.CPU == nil {
+			c.Limits.CPU = step.defaultLimits.CPU
+		}
+		if c.Limits.Memory == nil {
+			c.Limits.Memory = step.defaultLimits.Memory
+		}
 	}
 
 	delegate.Initializing(logger)
@@ -272,6 +293,24 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 		)
 	}()
 
+	delegate.InitializingServices(logger)
+
+	var serviceContainerSpecs []runtime.ContainerSpec
+	for _, c := range serviceConfigs {
+		imageSpec, err := step.imageSpec(ctx, logger, state, delegate, c)
+		if err != nil {
+			return false, err
+		}
+
+		containerSpec, err := step.containerSpec(logger, state, imageSpec, c, step.containerMetadata) // FIXME: Container metadata?
+		if err != nil {
+			return false, err
+		}
+		tracing.Inject(ctx, &containerSpec)
+
+		serviceContainerSpecs = append(serviceContainerSpecs, containerSpec)
+	}
+
 	ctx, cancel, err := MaybeTimeout(ctx, step.plan.Timeout, step.defaultTaskTimeout)
 	if err != nil {
 		return false, err
@@ -281,6 +320,45 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 	ctx = lagerctx.NewContext(ctx, logger)
 
 	delegate.SelectedWorker(logger, worker.Name())
+
+	// FIXME delegate.StartingServices(logger)
+	var serviceProcesses []runtime.Process
+	for _, s := range serviceContainerSpecs {
+		// FIXME: do we do something with volume mounts?
+		container, _, err := worker.FindOrCreateContainer(ctx, owner, step.containerMetadata, s, delegate) // FIXME: Container metadata
+		if err != nil {
+			return false, err
+		}
+
+		process, err := attachOrRun(
+			ctx,
+			container,
+			runtime.ProcessSpec{
+				ID:   taskProcessID,                                                        // FIXME ?
+				Path: config.Run.Path,                                                      // FIXME ?
+				Args: config.Run.Args,                                                      // FIXME ?
+				Dir:  resolvePath(step.containerMetadata.WorkingDirectory, config.Run.Dir), // FIXME how do we pick this?
+				User: config.Run.User,
+				// Guardian sets the default TTY window size to width: 80, height: 24,
+				// which creates ANSI control sequences that do not work with other window sizes
+				TTY: &runtime.TTYSpec{
+					WindowSize: runtime.WindowSize{
+						Columns: 500,
+						Rows:    500,
+					},
+				},
+			},
+			runtime.ProcessIO{
+				Stdout: delegate.Stdout(), // FIXME where does service stdout and err go
+				Stderr: delegate.Stderr(),
+			},
+		)
+		if err != nil {
+			return false, err
+		}
+
+		serviceProcesses = append(serviceProcesses, process)
+	}
 
 	container, volumeMounts, err := worker.FindOrCreateContainer(ctx, owner, step.containerMetadata, containerSpec, delegate)
 	if err != nil {
@@ -316,6 +394,14 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 	}
 
 	result, runErr := process.Wait(ctx)
+
+	for _, p := range serviceProcesses {
+		_, err := p.Wait(ctx)
+		if err != nil {
+			//FIXME delegate.ServiceErrored(logger, TimeoutLogMessage)
+		}
+		//FIXME delegate.ServiceStopped(logger, ExitStatus(result.ExitStatus))
+	}
 
 	step.registerOutputs(logger, repository, config, volumeMounts, step.containerMetadata)
 

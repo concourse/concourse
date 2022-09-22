@@ -40,11 +40,12 @@ func NewTaskDelegate(
 type taskDelegate struct {
 	exec.BuildStepDelegate
 
-	planID      atc.PlanID
-	config      atc.TaskConfig
-	build       db.Build
-	eventOrigin event.Origin
-	clock       clock.Clock
+	planID         atc.PlanID
+	config         atc.TaskConfig
+	serviceConfigs []atc.TaskConfig
+	build          db.Build
+	eventOrigin    event.Origin
+	clock          clock.Clock
 
 	dbWorkerFactory db.WorkerFactory
 	lockFactory     lock.LockFactory
@@ -54,11 +55,20 @@ func (d *taskDelegate) SetTaskConfig(config atc.TaskConfig) {
 	d.config = config
 }
 
+func (d *taskDelegate) SetServiceConfigs(configs []atc.TaskConfig) {
+	d.serviceConfigs = configs
+}
+
 func (d *taskDelegate) Initializing(logger lager.Logger) {
+	var shadowedServiceConfigs []event.TaskConfig
+	for _, c := range d.serviceConfigs {
+		shadowedServiceConfigs = append(shadowedServiceConfigs, event.ShadowTaskConfig(c))
+	}
 	err := d.build.SaveEvent(event.InitializeTask{
-		Origin:     d.eventOrigin,
-		Time:       d.clock.Now().Unix(),
-		TaskConfig: event.ShadowTaskConfig(d.config),
+		Origin:         d.eventOrigin,
+		Time:           d.clock.Now().Unix(),
+		TaskConfig:     event.ShadowTaskConfig(d.config),
+		ServiceConfigs: shadowedServiceConfigs,
 	})
 	if err != nil {
 		logger.Error("failed-to-save-initialize-task-event", err)
@@ -68,11 +78,35 @@ func (d *taskDelegate) Initializing(logger lager.Logger) {
 	logger.Info("initializing")
 }
 
+func (d *taskDelegate) InitializingServices(logger lager.Logger) {
+	var shadowedServiceConfigs []event.TaskConfig
+	for _, c := range d.serviceConfigs {
+		shadowedServiceConfigs = append(shadowedServiceConfigs, event.ShadowTaskConfig(c))
+	}
+	err := d.build.SaveEvent(event.InitializeTask{
+		Origin:         d.eventOrigin,
+		Time:           d.clock.Now().Unix(),
+		TaskConfig:     event.ShadowTaskConfig(d.config),
+		ServiceConfigs: shadowedServiceConfigs,
+	})
+	if err != nil {
+		logger.Error("failed-to-save-services-initialize-task-event", err)
+		return
+	}
+
+	logger.Info("services-initializing")
+}
+
 func (d *taskDelegate) Starting(logger lager.Logger) {
+	var shadowedServiceConfigs []event.TaskConfig
+	for _, c := range d.serviceConfigs {
+		shadowedServiceConfigs = append(shadowedServiceConfigs, event.ShadowTaskConfig(c))
+	}
 	err := d.build.SaveEvent(event.StartTask{
-		Origin:     d.eventOrigin,
-		Time:       d.clock.Now().Unix(),
-		TaskConfig: event.ShadowTaskConfig(d.config),
+		Origin:         d.eventOrigin,
+		Time:           d.clock.Now().Unix(),
+		TaskConfig:     event.ShadowTaskConfig(d.config),
+		ServiceConfigs: shadowedServiceConfigs,
 	})
 	if err != nil {
 		logger.Error("failed-to-save-initialize-task-event", err)
