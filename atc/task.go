@@ -242,9 +242,9 @@ type TaskServiceStartupProbe struct {
 //}
 
 type TaskServiceConfig struct {
-	Name   string     `json:"name"`
-	File   string     `json:"file,omitempty"`
-	Config TaskConfig `json:"config,omitempty"`
+	Name   string      `json:"name"`
+	File   string      `json:"file,omitempty"`
+	Config *TaskConfig `json:"config,omitempty"`
 
 	// An artifact in the build plan to use as the service's image. Overrides any
 	// image set in the service's config.
