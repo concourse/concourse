@@ -209,17 +209,17 @@ func (tsdc *TaskServiceDefinitionConfig) MarshalJSON() ([]byte, error) {
 }
 
 func (tsdc *TaskServiceDefinitionConfig) UnmarshalJSON(p []byte) error {
-	var objMap map[string]*json.RawMessage
+	var objMap map[string]json.RawMessage
 	if err := json.Unmarshal(p, &objMap); err != nil {
 		return err
 	}
 	if val, ok := objMap["ports"]; ok {
-		if err := json.Unmarshal(*val, &tsdc.Ports); err != nil {
+		if err := json.Unmarshal(val, &tsdc.Ports); err != nil {
 			return err
 		}
 	}
 	if val, ok := objMap["startup_probe"]; ok {
-		if err := json.Unmarshal(*val, &tsdc.StartupProbe); err != nil {
+		if err := json.Unmarshal(val, &tsdc.StartupProbe); err != nil {
 			return err
 		}
 	}
