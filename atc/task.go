@@ -38,7 +38,7 @@ type TaskConfig struct {
 	Caches []TaskCacheConfig `json:"caches,omitempty"`
 
 	// Services to run alongside the task.
-	Services []TaskServiceConfig `json:"services,omitempty'"`
+	Services *[]TaskServiceConfig `json:"services,omitempty'"`
 }
 
 type ImageResource struct {
