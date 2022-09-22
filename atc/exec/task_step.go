@@ -148,19 +148,14 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) (bool, error) {
 	return ok, err
 }
 
-func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDelegate) (bool, error) {
-	logger := lagerctx.FromContext(ctx)
-	logger = logger.Session("task-step", lager.Data{
-		"step-name": step.plan.Name,
-		"job-id":    step.metadata.JobID,
-	})
-
+// can load a TaskConfigSource for a task step or a service of a task step
+func (step *TaskStep) loadTaskConfigSource(state RunState, configPath string, config *atc.TaskConfig) TaskConfigSource {
 	var taskConfigSource TaskConfigSource
 	var taskVars []vars.Variables
 
-	if step.plan.ConfigPath != "" {
+	if configPath != "" {
 		// external task - construct a source which reads it from file, and apply base resource type defaults.
-		taskConfigSource = FileConfigSource{ConfigPath: step.plan.ConfigPath, Streamer: step.streamer}
+		taskConfigSource = FileConfigSource{ConfigPath: configPath, Streamer: step.streamer}
 
 		// for interpolation - use 'vars' from the pipeline, and then fill remaining with cred variables.
 		// this 2-phase strategy allows to interpolate 'vars' by cred variables.
@@ -174,7 +169,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 		taskVars = []vars.Variables{state}
 	} else {
 		// embedded task - first we take it
-		taskConfigSource = StaticConfigSource{Config: step.plan.Config}
+		taskConfigSource = StaticConfigSource{Config: config}
 
 		// for interpolation - use just cred variables
 		taskVars = []vars.Variables{state}
@@ -202,8 +197,18 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 	// validate
 	taskConfigSource = ValidatingConfigSource{ConfigSource: taskConfigSource}
 
-	repository := state.ArtifactRepository()
+	return taskConfigSource
+}
 
+func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDelegate) (bool, error) {
+	logger := lagerctx.FromContext(ctx)
+	logger = logger.Session("task-step", lager.Data{
+		"step-name": step.plan.Name,
+		"job-id":    step.metadata.JobID,
+	})
+
+	taskConfigSource := step.loadTaskConfigSource(state, step.plan.ConfigPath, step.plan.Config)
+	repository := state.ArtifactRepository()
 	config, err := taskConfigSource.FetchConfig(ctx, logger, repository)
 
 	delegate.SetTaskConfig(config)
