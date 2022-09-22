@@ -67,7 +67,7 @@ func ContainerMounts(privileged bool, initBinPath string) []specs.Mount {
 	// If container is privileged and docker is running, expose docker socket to the container
 	// this is so the container can run things like docker-compose on the worker
 	const dockerSocketPath = "/var/run/docker.sock"
-	var _, err = os.Stat(dockerSocketPath)
+	_, err := os.Stat(dockerSocketPath)
 	if privileged && err != nil {
 		mounts = append(mounts, specs.Mount{
 			Source:      dockerSocketPath,
