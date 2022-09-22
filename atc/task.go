@@ -209,25 +209,30 @@ func (tsdc *TaskServiceDefinitionConfig) MarshalJSON() ([]byte, error) {
 }
 
 func (tsdc *TaskServiceDefinitionConfig) UnmarshalJSON(p []byte) error {
-	type TaskServiceJson struct {
-		TaskConfig       TaskConfig
-		PortsJson        *json.RawMessage `json:"ports,omitempty"`
-		StartupProbeJson *json.RawMessage `json:"startup_probe,omitempty"`
-	}
-	var serviceJson TaskServiceJson
-	if err := json.Unmarshal(p, &serviceJson); err != nil {
+	var objMap map[string]*json.RawMessage
+	if err := json.Unmarshal(p, &objMap); err != nil {
 		return err
 	}
-	tsdc.TaskConfig = serviceJson.TaskConfig
-	if serviceJson.PortsJson != nil {
-		if err := json.Unmarshal(*serviceJson.PortsJson, &tsdc.Ports); err != nil {
+	if val, ok := objMap["ports"]; ok {
+		if err := json.Unmarshal(*val, &tsdc.Ports); err != nil {
 			return err
 		}
 	}
-	if serviceJson.StartupProbeJson != nil {
-		if err := json.Unmarshal(*serviceJson.StartupProbeJson, &tsdc.StartupProbe); err != nil {
+	if val, ok := objMap["startup_probe"]; ok {
+		if err := json.Unmarshal(*val, &tsdc.StartupProbe); err != nil {
 			return err
 		}
+	}
+	delete(objMap, "ports")
+	delete(objMap, "startup_probe")
+	marshal, err := json.Marshal(objMap)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(marshal, &tsdc.TaskConfig)
+	if err != nil {
+		return err
 	}
 	return nil
 }
