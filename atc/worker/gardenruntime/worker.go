@@ -206,6 +206,11 @@ func (worker *Worker) createGardenContainer(
 
 	logger.Debug("creating-garden-container")
 
+	var netIns []garden.NetIn
+	for _, p := range containerSpec.Ports {
+		netIns = append(netIns, garden.NetIn{ContainerPort: p})
+	}
+
 	gardenContainer, err := worker.gardenClient.Create(
 		garden.ContainerSpec{
 			Handle:     creatingContainer.Handle(),
@@ -217,6 +222,7 @@ func (worker *Worker) createGardenContainer(
 			Properties: garden.Properties{
 				userPropertyName: fetchedImage.Metadata.User,
 			},
+			NetIn: netIns,
 		})
 	if err != nil {
 		logger.Error("failed-to-create-container-in-garden", err)
@@ -300,8 +306,9 @@ func (worker *Worker) constructContainer(
 // * scratch (empty volume)
 // * working dir (i.e. spec.Dir, empty volume)
 // * inputs
-//   * local volumes are COW'd
-//   * remote volumes are streamed into an empty volume, then COW'd (only COW is mounted)
+//   - local volumes are COW'd
+//   - remote volumes are streamed into an empty volume, then COW'd (only COW is mounted)
+//
 // * outputs (empty volumes)
 // * caches (COW if exists, empty otherwise)
 func (worker *Worker) createVolumes(

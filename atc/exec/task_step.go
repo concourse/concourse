@@ -296,13 +296,16 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 	delegate.InitializingServices(logger)
 
 	var serviceContainerSpecs []runtime.ContainerSpec
-	for _, c := range serviceConfigs {
+	for i, c := range serviceConfigs {
 		imageSpec, err := step.imageSpec(ctx, logger, state, delegate, c)
 		if err != nil {
 			return false, err
 		}
 
 		containerSpec, err := step.containerSpec(logger, state, imageSpec, c, step.containerMetadata) // FIXME: Container metadata?
+		for _, p := range step.plan.Services[i].Config.Ports {
+			containerSpec.Ports = append(containerSpec.Ports, p.Number)
+		}
 		if err != nil {
 			return false, err
 		}

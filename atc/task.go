@@ -159,7 +159,7 @@ type TaskCacheConfig struct {
 
 type TaskServicePortsConfig struct {
 	Name   string `json:"name"`
-	Number uint16 `json:"number"`
+	Number uint32 `json:"number"`
 }
 
 type TaskServiceStartupProbe struct {

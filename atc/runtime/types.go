@@ -122,6 +122,9 @@ type ContainerSpec struct {
 	// CertsBindMount indicates whether or not to mount the worker's Certs
 	// volume onto the container.
 	CertsBindMount bool
+
+	// Ports inside the container to expose to other containers
+	Ports []uint32
 }
 
 type BuildStepDelegate interface {
