@@ -185,7 +185,7 @@ type TaskServicePlan struct {
 
 	// An artifact in the build plan to use as the service's image. Overrides any
 	// image set in the service's config.
-	ImageArtifactName string `json:"image,omitempty"`
+	ImageArtifactName string `json:"image,omitempty"` // FIXME: don't think this is being used yet
 }
 
 type TaskEnv map[string]string
