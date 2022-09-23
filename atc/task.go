@@ -174,8 +174,8 @@ type TaskServiceSpecificConfig struct {
 }
 
 type TaskServiceConfig struct {
-	TaskConfig                TaskConfig
-	TaskServiceSpecificConfig TaskServiceSpecificConfig
+	TaskConfig
+	TaskServiceSpecificConfig
 }
 
 type TaskServicePlan struct {
