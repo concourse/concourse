@@ -349,6 +349,9 @@ type TaskPlan struct {
 	// If set, the check plan for the image will be forced to run and not respect
 	// the checking interval
 	CheckSkipInterval bool `json:"check_skip_interval,omitempty"`
+
+	// Services to run alongside the task
+	Services []TaskServiceConfig `json:"services,omitempty"`
 }
 
 type RunPlan struct {

@@ -36,9 +36,6 @@ type TaskConfig struct {
 
 	// Path to cached directory that will be shared between builds for the same task.
 	Caches []TaskCacheConfig `json:"caches,omitempty"`
-
-	// Services to run alongside the task.
-	Services []TaskServiceConfig `json:"services,omitempty'"`
 }
 
 type ImageResource struct {
