@@ -335,9 +335,9 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 			ctx,
 			container,
 			runtime.ProcessSpec{
-				ID:   taskProcessID,                                                        // FIXME ?
-				Path: config.Run.Path,                                                      // FIXME ?
-				Args: config.Run.Args,                                                      // FIXME ?
+				ID:   taskProcessID, // FIXME ?
+				Path: config.Run.Path,
+				Args: config.Run.Args,
 				Dir:  resolvePath(step.containerMetadata.WorkingDirectory, config.Run.Dir), // FIXME how do we pick this?
 				User: config.Run.User,
 				// Guardian sets the default TTY window size to width: 80, height: 24,
