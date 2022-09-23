@@ -169,8 +169,8 @@ type TaskServiceStartupProbe struct {
 }
 
 type TaskServiceSpecificConfig struct {
-	TaskServicePortsConfig  TaskServicePortsConfig
-	TaskServiceStartupProbe TaskServiceStartupProbe
+	Ports        []TaskServicePortsConfig `json:"ports,omitempty"`
+	StartupProbe TaskServiceStartupProbe  `json:"startup_probe,omitempty"`
 }
 
 type TaskServiceConfig struct {
