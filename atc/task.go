@@ -168,10 +168,20 @@ type TaskServiceStartupProbe struct {
 	PeriodSeconds    int           `json:"period_seconds"`
 }
 
+type TaskServiceSpecificConfig struct {
+	TaskServicePortsConfig  TaskServicePortsConfig
+	TaskServiceStartupProbe TaskServiceStartupProbe
+}
+
 type TaskServiceConfig struct {
-	Name   string      `json:"name"`
-	File   string      `json:"file,omitempty"`
-	Config *TaskConfig `json:"config,omitempty"`
+	TaskConfig                TaskConfig
+	TaskServiceSpecificConfig TaskServiceSpecificConfig
+}
+
+type TaskServicePlan struct {
+	Name   string             `json:"name"`
+	File   string             `json:"file,omitempty"`
+	Config *TaskServiceConfig `json:"config,omitempty"`
 
 	// An artifact in the build plan to use as the service's image. Overrides any
 	// image set in the service's config.

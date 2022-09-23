@@ -351,7 +351,7 @@ type TaskPlan struct {
 	CheckSkipInterval bool `json:"check_skip_interval,omitempty"`
 
 	// Services to run alongside the task
-	Services []TaskServiceConfig `json:"services,omitempty"`
+	Services []TaskServicePlan `json:"services,omitempty"`
 }
 
 type RunPlan struct {
