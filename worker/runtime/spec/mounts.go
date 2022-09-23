@@ -68,7 +68,7 @@ func ContainerMounts(privileged bool, initBinPath string) []specs.Mount {
 	// this is so the container can run things like docker-compose on the worker
 	const dockerSocketPath = "/var/run/docker.sock"
 	_, err := os.Stat(dockerSocketPath)
-	if privileged && err != nil {
+	if privileged && err == nil {
 		mounts = append(mounts, specs.Mount{
 			Source:      dockerSocketPath,
 			Destination: dockerSocketPath,
