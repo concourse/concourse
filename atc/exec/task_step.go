@@ -323,13 +323,14 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 
 	// FIXME delegate.StartingServices(logger)
 	var serviceProcesses []runtime.Process
-	for _, s := range serviceContainerSpecs {
+	for i, s := range serviceContainerSpecs {
 		// FIXME: do we do something with volume mounts?
 		container, _, err := worker.FindOrCreateContainer(ctx, owner, step.containerMetadata, s, delegate) // FIXME: Container metadata
 		if err != nil {
 			return false, err
 		}
 
+		config := serviceConfigs[i]
 		process, err := attachOrRun(
 			ctx,
 			container,
