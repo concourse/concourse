@@ -8,14 +8,16 @@ import (
 )
 
 type pipelinePauser struct {
-	daysSinceLastBuild int
-	dbPipelinePauser   db.PipelinePauser
+	daysSinceLastBuild           int
+	daysSinceCreatedWithoutBuild int
+	dbPipelinePauser             db.PipelinePauser
 }
 
-func NewPipelinePauser(dbPipelinePauser db.PipelinePauser, daysSinceLastBuild int) *pipelinePauser {
+func NewPipelinePauser(dbPipelinePauser db.PipelinePauser, daysSinceLastBuild int, daysSinceCreatedWithoutBuild int) *pipelinePauser {
 	return &pipelinePauser{
-		daysSinceLastBuild: daysSinceLastBuild,
-		dbPipelinePauser:   dbPipelinePauser,
+		daysSinceLastBuild:           daysSinceLastBuild,
+		daysSinceCreatedWithoutBuild: daysSinceCreatedWithoutBuild,
+		dbPipelinePauser:             dbPipelinePauser,
 	}
 }
 func (p *pipelinePauser) Run(ctx context.Context) error {
@@ -28,7 +30,7 @@ func (p *pipelinePauser) Run(ctx context.Context) error {
 	defer logger.Debug("done")
 
 	ctx = lagerctx.NewContext(ctx, logger)
-	err := p.dbPipelinePauser.PausePipelines(ctx, p.daysSinceLastBuild)
+	err := p.dbPipelinePauser.PausePipelines(ctx, p.daysSinceLastBuild, p.daysSinceCreatedWithoutBuild)
 	if err != nil {
 		logger.Error("failed-to-pause-pipelines", err)
 		return err

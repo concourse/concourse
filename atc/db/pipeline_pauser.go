@@ -12,7 +12,7 @@ import (
 
 //counterfeiter:generate . PipelinePauser
 type PipelinePauser interface {
-	PausePipelines(ctx context.Context, daysSinceLastBuild int) error
+	PausePipelines(ctx context.Context, daysSinceLastBuild int, daysSinceCreatedWithoutBuild int) error
 }
 
 func NewPipelinePauser(conn Conn, lockFactory lock.LockFactory) PipelinePauser {
@@ -27,7 +27,7 @@ type pipelinePauser struct {
 	lockFactory lock.LockFactory
 }
 
-func (p *pipelinePauser) PausePipelines(ctx context.Context, daysSinceLastBuild int) error {
+func (p *pipelinePauser) PausePipelines(ctx context.Context, daysSinceLastBuild int, daysSinceCreatedWithoutBuild int) error {
 	logger := lagerctx.FromContext(ctx).Session("pipeline-pauser")
 	rows, err := pipelinesQuery.Where(sq.And{
 		sq.Eq{
@@ -48,8 +48,8 @@ func (p *pipelinePauser) PausePipelines(ctx context.Context, daysSinceLastBuild 
 						)`,
 			strconv.Itoa(daysSinceLastBuild)+" day"),
 		// Covers edge case where pipelines that were just set could be paused automatically
-		// Only pauses the pipeline if it was last updated more than 24hrs ago
-		sq.Expr(`p.last_updated < CURRENT_DATE - '1 day'::INTERVAL`),
+		// Only pauses the pipeline if it was last updated more than $daysSinceCreatedWithoutBuild days ago
+		sq.Expr(`p.last_updated < CURRENT_DATE - ?::INTERVAL`, strconv.Itoa(daysSinceCreatedWithoutBuild)+" day"),
 	}).RunWith(p.conn).Query()
 
 	if err != nil {
