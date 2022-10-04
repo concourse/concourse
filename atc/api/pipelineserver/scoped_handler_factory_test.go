@@ -5,6 +5,8 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"strings"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/auth"
@@ -106,6 +108,28 @@ var _ = Describe("Handler", func() {
 			It("looks up the team by the right name", func() {
 				Expect(dbTeamFactory.FindTeamCallCount()).To(Equal(1))
 				Expect(dbTeamFactory.FindTeamArgsForCall(0)).To(Equal("some-team"))
+			})
+
+			Context("when the request has team name in body with content-type application/x-www-form-urlencoded", func() {
+				JustBeforeEach(func() {
+					body := url.Values{
+						":team_name": {"some-other-team"},
+					}
+
+					request, err := http.NewRequest("POST", server.URL+"?:team_name=some-team&:pipeline_name=some-pipeline", strings.NewReader(body.Encode()))
+					Expect(err).NotTo(HaveOccurred())
+
+					request.Header.Add("Content-type", "application/x-www-form-urlencoded")
+
+					response, err = new(http.Client).Do(request)
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("looks up the team by the team name in URL", func() {
+					Expect(dbTeamFactory.FindTeamCallCount()).To(Equal(2))
+					Expect(dbTeamFactory.FindTeamArgsForCall(1)).To(Equal("some-team"))
+
+				})
 			})
 
 			Context("when the pipeline exists", func() {

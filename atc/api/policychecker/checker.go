@@ -45,7 +45,7 @@ func (c *checker) Check(action string, acc accessor.Access, req *http.Request) (
 		return policy.PassedPolicyCheck(), nil
 	}
 
-	team := req.FormValue(":team_name")
+	team := req.URL.Query().Get(":team_name")
 	input := policy.PolicyCheckInput{
 		HttpMethod: req.Method,
 		Action:     action,
