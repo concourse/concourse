@@ -24,7 +24,7 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 
 	acc := accessor.GetAccessor(r)
 
-	teamName := r.FormValue(":team_name")
+	teamName := r.URL.Query().Get(":team_name")
 
 	var atcTeam atc.Team
 	err := json.NewDecoder(r.Body).Decode(&atcTeam)

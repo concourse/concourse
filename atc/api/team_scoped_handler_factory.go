@@ -28,7 +28,7 @@ func (f *TeamScopedHandlerFactory) HandlerFor(teamScopedHandler func(db.Team) ht
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := f.logger.Session("team-scoped-handler")
 
-		teamName := r.FormValue(":team_name")
+		teamName := r.URL.Query().Get(":team_name")
 		team, found, err := f.teamFactory.FindTeam(teamName)
 		if err != nil {
 			logger.Error("failed-to-find-team-in-db", err)
