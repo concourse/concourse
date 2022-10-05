@@ -118,7 +118,6 @@ func NewDexServerConfig(config *DexConfig) (server.Config, error) {
 		Storage:                config.Storage,
 		Web:                    webConfig,
 		Logger:                 logger.New(config.Logger),
-		HashClientSecret:       true,
 	}, nil
 }
 
