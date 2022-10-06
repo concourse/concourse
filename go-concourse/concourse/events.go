@@ -5,10 +5,12 @@ import (
 	"github.com/concourse/concourse/go-concourse/concourse/eventstream"
 	"github.com/concourse/concourse/go-concourse/concourse/internal"
 	"github.com/tedsuo/rata"
+	"github.com/vito/go-sse/sse"
 )
 
 type Events interface {
 	NextEvent() (atc.Event, error)
+	NextEventRaw() (sse.Event, error)
 	Close() error
 }
 
