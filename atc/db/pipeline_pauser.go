@@ -48,7 +48,7 @@ func (p *pipelinePauser) PausePipelines(ctx context.Context, daysSinceLastBuild 
 						)`,
 			strconv.Itoa(daysSinceLastBuild)+" day"),
 		// Covers edge case where pipelines that were just set could be paused automatically
-		// Only pauses the pipeline if it was last updated more than $daysSinceLastBuild days ago
+		// Only pauses the pipeline if it was last updated more than ${daysSinceLastBuild} days ago
 		sq.Expr(`p.last_updated < CURRENT_DATE - ?::INTERVAL`, strconv.Itoa(daysSinceLastBuild)+" day"),
 	}).RunWith(p.conn).Query()
 
