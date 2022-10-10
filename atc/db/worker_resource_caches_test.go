@@ -137,7 +137,7 @@ var _ = Describe("WorkerResourceCaches", func() {
 				})
 			})
 
-			Context("Create a worker resource cache on worker1 with worker0's base base resource type", func(){
+			Context("Create a worker resource cache on worker1 with worker0's base base resource type", func() {
 				var uwrcOnWorker1 *db.UsedWorkerResourceCache
 				BeforeEach(func() {
 					tx, err := dbConn.Begin()
@@ -149,7 +149,7 @@ var _ = Describe("WorkerResourceCaches", func() {
 					tx.Commit()
 				})
 
-				It("should create a cache", func(){
+				It("should create a cache", func() {
 					Expect(findErr).ToNot(HaveOccurred())
 					Expect(valid).To(BeTrue())
 					Expect(uwrcOnWorker1).ToNot(BeNil())
@@ -157,34 +157,33 @@ var _ = Describe("WorkerResourceCaches", func() {
 					Expect(uwrcOnWorker1.WorkerBaseResourceTypeID).To(Equal(usedBaseResourceTypeOnWorker0.ID))
 				})
 
-				Context("Prune worker0", func(){
-					BeforeEach(func(){
+				Context("Prune worker0", func() {
+					BeforeEach(func() {
 						err := scenario.Workers[0].Land()
 						Expect(err).ToNot(HaveOccurred())
 						err = scenario.Workers[0].Prune()
 						Expect(err).ToNot(HaveOccurred())
 					})
 
-					Context("Invalidated cache", func(){
+					Context("Invalidated cache", func() {
 						var (
-							buildStartTime time.Time
+							buildStartTime          time.Time
 							uwrcOnWorker1AfterPrune *db.UsedWorkerResourceCache
-							found bool
-							err error
+							found                   bool
+							err                     error
 						)
-						JustBeforeEach(func(){
+						JustBeforeEach(func() {
 							uwrcOnWorker1AfterPrune, found, err = db.WorkerResourceCache{
 								WorkerName:    scenario.Workers[1].Name(),
 								ResourceCache: resourceCache,
 							}.Find(dbConn, buildStartTime)
 						})
 
-						Context("when build started before cache invalidated", func(){
-							BeforeEach(func(){
-								buildStartTime = time.Now().Add(-100*time.Second)
+						Context("when build started before cache invalidated", func() {
+							BeforeEach(func() {
+								buildStartTime = time.Now().Add(-100 * time.Second)
 							})
-							It("should still find an invalidated cache on worker1", func(){
-
+							It("should still find an invalidated cache on worker1", func() {
 								Expect(err).ToNot(HaveOccurred())
 								Expect(found).To(BeTrue())
 								Expect(uwrcOnWorker1AfterPrune).ToNot(BeNil())
@@ -193,11 +192,11 @@ var _ = Describe("WorkerResourceCaches", func() {
 							})
 						})
 
-						Context("when build started after cache invalidated", func(){
-							BeforeEach(func(){
-								buildStartTime = time.Now().Add(100*time.Second)
+						Context("when build started after cache invalidated", func() {
+							BeforeEach(func() {
+								buildStartTime = time.Now().Add(100 * time.Second)
 							})
-							It("should not find an invalidated cache on worker1", func(){
+							It("should not find an invalidated cache on worker1", func() {
 								Expect(err).ToNot(HaveOccurred())
 								Expect(found).To(BeFalse())
 								Expect(uwrcOnWorker1AfterPrune).To(BeNil())
@@ -205,9 +204,9 @@ var _ = Describe("WorkerResourceCaches", func() {
 						})
 					})
 
-					Context("Create a worker resource cache on worker1 with worker2's base base resource type", func(){
+					Context("Create a worker resource cache on worker1 with worker2's base base resource type", func() {
 						var newUwrcOnWorker1 *db.UsedWorkerResourceCache
-						BeforeEach(func(){
+						BeforeEach(func() {
 							tx, err := dbConn.Begin()
 							Expect(err).ToNot(HaveOccurred())
 							newUwrcOnWorker1, valid, findErr = db.WorkerResourceCache{
@@ -217,7 +216,7 @@ var _ = Describe("WorkerResourceCaches", func() {
 							tx.Commit()
 						})
 
-						It("should create a cache", func(){
+						It("should create a cache", func() {
 							Expect(findErr).ToNot(HaveOccurred())
 							Expect(valid).To(BeTrue())
 							Expect(newUwrcOnWorker1).ToNot(BeNil())
@@ -225,7 +224,7 @@ var _ = Describe("WorkerResourceCaches", func() {
 							Expect(newUwrcOnWorker1.WorkerBaseResourceTypeID).To(Equal(usedBaseResourceTypeOnWorker2.ID))
 						})
 
-						It("should invalidated cache still be there", func(){
+						It("should invalidated cache still be there", func() {
 							uwrc, found, err := db.WorkerResourceCache{}.FindByID(dbConn, uwrcOnWorker1.ID)
 							Expect(err).ToNot(HaveOccurred())
 							Expect(found).To(BeTrue())

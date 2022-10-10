@@ -124,65 +124,64 @@ func (workerResourceCache WorkerResourceCache) FindByID(runner sq.Runner, id int
 	}, true, nil
 }
 
-// find should return a valid worker resource cache if its WorkerBaseResourceTypeID is not 0.
-// find should return an invalidated worker resource cache if its WorkerBaseResourceTypeID is 0 and 
-// a cache's invalid_since is later than volumeShouldBeValidBefore.
-// If there are multiple invalidated caches with invalid_since later than volumeShouldBeValidBefore, 
-// the invalidated cache with newest invalid_since should be returned.
+// find should return a valid worker resource cache if its WorkerBaseResourceTypeID is not null.
+// When volumeShouldBeValidBefore find should only return a valid worker resource cache; otherwise
+// find may return an invalidated worker resource cache whose WorkerBaseResourceTypeID is null and
+// invalid_since is later than volumeShouldBeValidBefore. If there are multiple invalidated caches
+// with invalid_since later than volumeShouldBeValidBefore, the invalidated cache with newest
+// invalid_since should be returned.
 func (workerResourceCache WorkerResourceCache) find(runner sq.Runner, volumeShouldBeValidBefore *time.Time) (*UsedWorkerResourceCache, bool, error) {
 	var id int
 	var workerBaseResourceTypeID sql.NullInt64
 	var invalidSince pq.NullTime
 
-	var idOfNewestInvalid int
-	var invalidSinceOfNewestInvalid time.Time
-
-	rows, err := psql.Select("id", "worker_base_resource_type_id", "invalid_since").
-		From("worker_resource_caches").
-		Where(sq.Eq{
-			"resource_cache_id": workerResourceCache.ResourceCache.ID(),
-			"worker_name":       workerResourceCache.WorkerName,
-		}).
+	err := psql.Select("id", "worker_base_resource_type_id", "invalid_since").
+		From("valid_caches").
+		OrderBy("priority").
+		Limit(1).
+		Prefix(
+			`WITH candidates AS (
+                     SELECT id, worker_base_resource_type_id, invalid_since
+                       FROM worker_resource_caches
+                       WHERE resource_cache_id = $1 and worker_name = $2
+                 ),
+				 valid_caches AS (
+                     SELECT id, worker_base_resource_type_id, invalid_since, 1 as priority
+                       FROM candidates
+                       WHERE worker_base_resource_type_id is not null
+				     UNION ALL
+				     SELECT id, worker_base_resource_type_id, invalid_since, 2 as priority
+                       FROM candidates
+                       WHERE worker_base_resource_type_id is null
+                       ORDER BY invalid_since DESC
+                       LIMIT 1
+                 )`,
+			workerResourceCache.ResourceCache.ID(), workerResourceCache.WorkerName,
+		).
 		Suffix("FOR SHARE").
 		RunWith(runner).
-		Query()
+		QueryRow().
+		Scan(&id, &workerBaseResourceTypeID, &invalidSince)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, false, nil
+		}
 		return nil, false, err
 	}
-	defer rows.Close()
 
-	for rows.Next() {
-		err := rows.Scan(&id, &workerBaseResourceTypeID, &invalidSince)
-		if err != nil {
-			return nil, false, err
-		}
-
-		wbrtId := 0
-		if workerBaseResourceTypeID.Valid {
-			wbrtId = int(workerBaseResourceTypeID.Int64)
-		}
-
-		if wbrtId != 0 {
-			// There should be only one valid worker resource cache of a resource per worker.
-			return &UsedWorkerResourceCache{ID: id, WorkerBaseResourceTypeID: wbrtId}, true, nil
-		} else {
-			if volumeShouldBeValidBefore == nil || invalidSince.Time.Before(*volumeShouldBeValidBefore) {
-				continue
-			}
-
-			if invalidSince.Time.After(invalidSinceOfNewestInvalid) {
-				idOfNewestInvalid = id
-				invalidSinceOfNewestInvalid = invalidSince.Time
-			}
-		}
-	}
-
-	if idOfNewestInvalid != 0 {
+	if workerBaseResourceTypeID.Valid {
 		return &UsedWorkerResourceCache{
-			ID:                       idOfNewestInvalid,
-			WorkerBaseResourceTypeID: 0,
+			ID:                       id,
+			WorkerBaseResourceTypeID: int(workerBaseResourceTypeID.Int64),
 		}, true, nil
 	}
 
-	return nil, false, nil
+	if volumeShouldBeValidBefore == nil || invalidSince.Valid && invalidSince.Time.Before(*volumeShouldBeValidBefore) {
+		return nil, false, nil
+	}
+
+	return &UsedWorkerResourceCache{
+		ID:                       id,
+		WorkerBaseResourceTypeID: 0,
+	}, true, nil
 }
