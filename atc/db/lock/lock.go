@@ -334,7 +334,7 @@ func (lr lockRepo) Unregister(id LockID) {
 type LockID []int
 
 func (l LockID) toKey() string {
-	s := []string{}
+	s := make([]string, 0, len(l))
 	for i := range l {
 		s = append(s, strconv.Itoa(l[i]))
 	}
@@ -342,7 +342,7 @@ func (l LockID) toKey() string {
 }
 
 func (l LockID) toDBParams() string {
-	s := []string{}
+	s := make([]string, 0, len(l))
 	for i := range l {
 		s = append(s, fmt.Sprintf("$%d", i+1))
 	}
