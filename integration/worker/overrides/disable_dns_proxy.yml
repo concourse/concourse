@@ -1,0 +1,7 @@
+version: '3'
+
+services:
+  worker:
+    environment:
+      CONCOURSE_CONTAINERD_DNS_PROXY_ENABLE: "false"
+      CONCOURSE_RUNTIME: containerd
