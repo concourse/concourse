@@ -38,33 +38,33 @@ func (command *RerunBuildCommand) Execute(args []string) error {
 	}
 	fmt.Printf("started %s/%s #%s\n", pipelineRef.String(), jobName, build.Name)
 
-	if command.Watch {
-		terminate := make(chan os.Signal, 1)
-
-		go func(terminate <-chan os.Signal) {
-			<-terminate
-			fmt.Fprintf(ui.Stderr, "\ndetached, build is still running...\n")
-			fmt.Fprintf(ui.Stderr, "re-attach to it with:\n\n")
-			fmt.Fprintf(ui.Stderr, "    "+ui.Embolden(fmt.Sprintf("fly -t %s watch -j %s/%s -b %s\n\n", Fly.Target, pipelineRef.QueryParams(), jobName, build.Name)))
-			os.Exit(2)
-		}(terminate)
-
-		signal.Notify(terminate, syscall.SIGINT, syscall.SIGTERM)
-
-		fmt.Println("")
-		eventSource, err := target.Client().BuildEvents(fmt.Sprintf("%d", build.ID))
-		if err != nil {
-			return err
-		}
-
-		renderOptions := eventstream.RenderOptions{}
-
-		exitCode := eventstream.Render(os.Stdout, eventSource, renderOptions)
-
-		eventSource.Close()
-
-		os.Exit(exitCode)
+	if !command.Watch {
+		return nil
 	}
 
-	return nil
+	terminate := make(chan os.Signal, 1)
+
+	go func(terminate <-chan os.Signal) {
+		<-terminate
+		_, _ = fmt.Fprintf(ui.Stderr, "\ndetached, build is still running...\n")
+		_, _ = fmt.Fprintf(ui.Stderr, "re-attach to it with:\n\n")
+		_, _ = fmt.Fprintf(ui.Stderr, "    "+ui.Embolden(fmt.Sprintf("fly -t %s watch -j %s/%s -b %s\n\n", Fly.Target, pipelineRef.QueryParams(), jobName, build.Name)))
+		os.Exit(2)
+	}(terminate)
+
+	signal.Notify(terminate, syscall.SIGINT, syscall.SIGTERM)
+
+	fmt.Println("")
+	eventSource, err := target.Client().BuildEvents(fmt.Sprintf("%d", build.ID))
+	if err != nil {
+		return err
+	}
+
+	renderOptions := eventstream.RenderOptions{}
+
+	exitCode := eventstream.Render(os.Stdout, eventSource, renderOptions)
+
+	_ = eventSource.Close()
+
+	os.Exit(exitCode)
 }
