@@ -3,7 +3,7 @@ module github.com/concourse/concourse
 require (
 	code.cloudfoundry.org/clock v0.0.0-20180518195852-02e53af36e6c
 	code.cloudfoundry.org/credhub-cli v0.0.0-20190415201820-e3951663d25c
-	code.cloudfoundry.org/garden v0.0.0-20181108172608-62470dc86365
+	code.cloudfoundry.org/garden v0.0.0-20220318131934-d57de807d0ca
 	code.cloudfoundry.org/lager v2.0.0+incompatible
 	code.cloudfoundry.org/localip v0.0.0-20170223024724-b88ad0dea95c
 	code.cloudfoundry.org/urljoiner v0.0.0-20170223060717-5cabba6c0a50
@@ -59,13 +59,13 @@ require (
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d
-	github.com/onsi/ginkgo v1.16.4
+	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.19.0
 	github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/peterhellberg/link v1.0.0
 	github.com/pkg/errors v0.9.1
-	github.com/pkg/term v0.0.0-20190109203006-aa71e9d9e942
+	github.com/pkg/term v1.1.1-0.20201205102247-e502d17f6e7f
 	github.com/prometheus/client_golang v1.13.0
 	github.com/racksec/srslog v0.0.0-20180709174129-a4725f04ec91
 	github.com/shopspring/decimal v1.3.1 // indirect
@@ -78,7 +78,7 @@ require (
 	github.com/vbauerster/mpb/v4 v4.6.1-0.20190319154207-3a6acfe12ac6
 	github.com/vito/go-interact v0.0.0-20171111012221-fa338ed9e9ec
 	github.com/vito/go-sse v0.0.0-20160212001227-fd69d275caac
-	github.com/vito/houdini v1.1.1
+	github.com/vito/houdini v1.1.2
 	github.com/vito/twentythousandtonnesofcrudeoil v0.0.0-20180305154709-3b21ad808fcb
 	go.opentelemetry.io/otel v1.9.0
 	go.opentelemetry.io/otel/exporters/jaeger v1.9.0
