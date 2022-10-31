@@ -11,7 +11,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/types"
+	"github.com/onsi/gomega/types"
 )
 
 var _ = Describe("Worker", func() {
@@ -151,7 +151,7 @@ var _ = Describe("Worker", func() {
 	Describe("Prune", func() {
 		Context("when worker exists", func() {
 			DescribeTable("worker in state",
-				func(workerState string, errMatch GomegaMatcher) {
+				func(workerState string, errMatch types.GomegaMatcher) {
 					worker, err := workerFactory.SaveWorker(atc.Worker{
 						Name:       "worker-to-prune",
 						GardenAddr: "1.2.3.4",
