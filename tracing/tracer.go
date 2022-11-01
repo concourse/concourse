@@ -9,7 +9,7 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	"go.opentelemetry.io/otel/semconv"
+	semconv "go.opentelemetry.io/otel/semconv/v1.9.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -21,8 +21,6 @@ import (
 //
 // This variable is needed in order to shortcircuit span generation when
 // tracing hasn't been configured.
-//
-//
 var Configured bool
 
 type Config struct {
@@ -36,7 +34,7 @@ func (c Config) resource() *resource.Resource {
 		semconv.TelemetrySDKLanguageKey.String("go"),
 	}
 
-	return resource.NewWithAttributes(attributes...)
+	return resource.NewSchemaless(attributes...)
 }
 
 func (c Config) Prepare() error {
@@ -72,11 +70,11 @@ func (c Config) Prepare() error {
 // ```
 // func fn () {
 //
-//     rootCtx, rootSpan := StartSpan(context.Background(), "foo", nil)
-//     defer rootSpan.End()
+//	rootCtx, rootSpan := StartSpan(context.Background(), "foo", nil)
+//	defer rootSpan.End()
 //
-//     _, childSpan := StartSpan(rootCtx, "bar", nil)
-//     defer childSpan.End()
+//	_, childSpan := StartSpan(rootCtx, "bar", nil)
+//	defer childSpan.End()
 //
 // }
 // ```
@@ -85,14 +83,15 @@ func (c Config) Prepare() error {
 //
 // ```
 // foo   0--------3
-//   bar    1----2
+//
+//	bar    1----2
+//
 // ```
 //
 // where (0) is the start of the root span, which then gets a child `bar`
 // initializing at (1), having its end called (2), and then the last span
 // finalization happening for the root span (3) given how `defer` statements
 // stack.
-//
 func StartSpan(
 	ctx context.Context,
 	component string,
@@ -150,7 +149,7 @@ func startSpan(
 	ctx context.Context,
 	component string,
 	attrs Attrs,
-	opts ...trace.SpanOption,
+	opts ...trace.SpanStartOption,
 ) (context.Context, trace.Span) {
 	if !Configured {
 		return ctx, NoopSpan
@@ -188,7 +187,6 @@ func End(span trace.Span, err error) {
 //
 // By default, a noop tracer is registered, thus, it's safe to call StartSpan
 // and other related methods even before `ConfigureTracer` it called.
-//
 func ConfigureTraceProvider(tp trace.TracerProvider) {
 	otel.SetTracerProvider(tp)
 	Configured = true
