@@ -40,7 +40,7 @@ type suiteData struct {
 }
 
 var _ = SynchronizedBeforeSuite(func() []byte {
-	bcPath, err := gexec.Build("github.com/concourse/concourse/worker/baggageclaim/cmd/baggageclaim")
+	bcPath, err := gexec.Build("github.com/concourse/concourse/worker/baggageclaim/cmd/baggageclaim", "-buildvcs=false")
 	Expect(err).NotTo(HaveOccurred())
 
 	data, err := json.Marshal(suiteData{
