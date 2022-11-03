@@ -46,7 +46,7 @@ var teams = []atc.Team{
 }
 
 var _ = SynchronizedBeforeSuite(func() []byte {
-	binPath, err := gexec.Build("github.com/concourse/concourse/fly")
+	binPath, err := gexec.Build("github.com/concourse/concourse/fly", "-buildvcs=false")
 	Expect(err).NotTo(HaveOccurred())
 
 	return []byte(binPath)
