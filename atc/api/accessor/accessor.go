@@ -93,51 +93,64 @@ func contains(arr []string, val string) bool {
 }
 
 func (a *access) rolesForTeam(auth atc.TeamAuth) []string {
-	roleSet := map[string]bool{}
-
-	groups := a.groups()
 	connectorID := a.connectorID()
 	userID := a.userID()
+	if userID != "" {
+		userID = fmt.Sprintf("%v:%v", connectorID, userID)
+	}
 	userName := a.userName()
-
-	for role, auth := range auth {
-		userAuth := auth["users"]
-		groupAuth := auth["groups"]
-
-		// backwards compatibility for allow-all-users
-		if len(userAuth) == 0 && len(groupAuth) == 0 {
-			roleSet[role] = true
-		}
-
-		for _, user := range userAuth {
-			if userID != "" {
-				if strings.EqualFold(user, fmt.Sprintf("%v:%v", connectorID, userID)) {
-					roleSet[role] = true
-				}
-			}
-			if userName != "" {
-				if strings.EqualFold(user, fmt.Sprintf("%v:%v", connectorID, userName)) {
-					roleSet[role] = true
-				}
-			}
-		}
-
-		for _, group := range groupAuth {
-			for _, claimGroup := range groups {
-				if claimGroup != "" {
-					if strings.EqualFold(group, fmt.Sprintf("%v:%v", connectorID, claimGroup)) {
-						roleSet[role] = true
-					}
-				}
-			}
+	if userName != "" {
+		userName = fmt.Sprintf("%v:%v", connectorID, userName)
+	}
+	var groups []string
+	for _, group := range a.groups() {
+		if group != "" {
+			groups = append(groups, fmt.Sprintf("%v:%v", connectorID, group))
 		}
 	}
-
 	var roles []string
-	for role := range roleSet {
-		roles = append(roles, role)
+	for role, roleAuth := range auth {
+		if roleOnTeam(userID, userName, groups, roleAuth) {
+			roles = append(roles, role)
+		}
 	}
+
 	return roles
+}
+
+func roleOnTeam(userID string, userName string, groups []string, roleAuth map[string][]string) bool {
+	userAuth := roleAuth["users"]
+	groupAuth := roleAuth["groups"]
+
+	// backwards compatibility for allow-all-users
+	if len(userAuth) == 0 && len(groupAuth) == 0 {
+		return true
+	}
+
+	for _, user := range userAuth {
+		if userID != "" {
+			if strings.EqualFold(user, userID) {
+				return true
+			}
+		}
+		if userName != "" {
+			if strings.EqualFold(user, userName) {
+				return true
+			}
+		}
+	}
+
+	for _, group := range groupAuth {
+		for _, claimGroup := range groups {
+			if claimGroup != "" {
+				if strings.EqualFold(group, claimGroup) {
+					return true
+				}
+			}
+		}
+	}
+
+	return false
 }
 
 func (a *access) HasToken() bool {
