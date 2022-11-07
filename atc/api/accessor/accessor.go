@@ -283,6 +283,7 @@ func (a *access) Claims() Claims {
 	}
 }
 
+// fake line
 func (a *access) UserInfo() atc.UserInfo {
 	claims := a.Claims()
 	return atc.UserInfo{
