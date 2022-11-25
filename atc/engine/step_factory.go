@@ -25,6 +25,7 @@ type coreStepFactory struct {
 	defaultLimits         atc.ContainerLimits
 	strategy              worker.PlacementStrategy
 	noInputStrategy       worker.PlacementStrategy
+	checkStrategy worker.PlacementStrategy
 	defaultCheckTimeout   time.Duration
 	defaultGetTimeout     time.Duration
 	defaultPutTimeout     time.Duration
@@ -42,6 +43,7 @@ func NewCoreStepFactory(
 	defaultLimits atc.ContainerLimits,
 	strategy worker.PlacementStrategy,
 	noInputStrategy worker.PlacementStrategy,
+	checkStrategy worker.PlacementStrategy,
 	defaultCheckTimeout time.Duration,
 	defaultGetTimeout time.Duration,
 	defaultPutTimeout time.Duration,
@@ -58,6 +60,7 @@ func NewCoreStepFactory(
 		defaultLimits:         defaultLimits,
 		strategy:              strategy,
 		noInputStrategy:       noInputStrategy,
+		checkStrategy: checkStrategy,
 		defaultCheckTimeout:   defaultCheckTimeout,
 		defaultGetTimeout:     defaultGetTimeout,
 		defaultPutTimeout:     defaultPutTimeout,
@@ -134,6 +137,7 @@ func (factory *coreStepFactory) CheckStep(
 		factory.resourceConfigFactory,
 		containerMetadata,
 		factory.noInputStrategy,
+		factory.checkStrategy,
 		factory.pool,
 		delegateFactory,
 		factory.defaultCheckTimeout,
