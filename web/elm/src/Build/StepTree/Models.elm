@@ -157,12 +157,16 @@ mostSevereStepState model stepTree =
     activeTreeSteps model stepTree
         |> List.foldl
             (\step state ->
-                case stepStateOrdering step.state state of
-                    LT ->
-                        step.state
-
-                    _ ->
+                case step.buildStep of
+                    Concourse.BuildStepDo _ ->
                         state
+                    _ ->
+                        case stepStateOrdering step.state state of
+                            LT ->
+                                step.state
+
+                            _ ->
+                                state
             )
             StepStateSucceeded
 
