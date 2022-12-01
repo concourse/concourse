@@ -176,10 +176,7 @@ func NewGardenBackend(client libcontainerd.Client, opts ...GardenBackendOpt) (b 
 
 		for _, direntry := range files {
 			if direntry.IsDir() {
-				fmt.Println("Dir entry", direntry)
 				continue
-			} else {
-				fmt.Println("Processing", direntry)
 			}
 			var f = b.ociHooksDir + "/" + direntry.Name()
 			var hookJsonContent, err = os.ReadFile(f)
@@ -210,9 +207,6 @@ func NewGardenBackend(client libcontainerd.Client, opts ...GardenBackendOpt) (b 
 				}
 			}
 		}
-		fmt.Println("Adding hooks:::", hooks)
-	} else {
-		fmt.Println("No hooks dir given, skipping hook discovery", hooks)
 	}
 	b.ociHooks = hooks
 
@@ -226,7 +220,6 @@ func NewGardenBackend(client libcontainerd.Client, opts ...GardenBackendOpt) (b 
 		if err2 != nil {
 			return b, fmt.Errorf("seccomp file failed to parse: %w", err2)
 		}
-		fmt.Println("Using seccomp rules from path by default:", b.seccompProfilePath)
 		b.seccompProfile = profile
 	} else {
 		b.seccompProfile = bespec.GetDefaultSeccompProfile()
@@ -335,8 +328,6 @@ func (b *GardenBackend) createContainer(ctx context.Context, gdnSpec garden.Cont
 	oci, err := bespec.OciSpec(b.initBinPath, b.seccompProfile, b.ociHooks, gdnSpec, maxUid, maxGid)
 	if err != nil {
 		return nil, fmt.Errorf("garden spec to oci spec: %w", err)
-	} else {
-		fmt.Println("Using OCI spec", oci)
 	}
 
 	netMounts, err := b.network.SetupMounts(gdnSpec.Handle)
