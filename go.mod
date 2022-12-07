@@ -239,7 +239,9 @@ require (
 	github.com/google/gnostic v0.5.7-v3refs // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.1.0 // indirect
 	github.com/huandu/xstrings v1.3.2 // indirect
-	github.com/influxdata/influxdb-client-go/v2 v2.12.0 // indirect
+	github.com/influxdata/influxdb-client-go v1.4.0
+	github.com/influxdata/influxdb-client-go/v2 v2.12.1 // indirect
+	github.com/influxdata/influxdb1-client v0.0.0-20220302092344-a9ab5670611c // indirect
 	github.com/influxdata/line-protocol v0.0.0-20200327222509-2487e7298839 // indirect
 	github.com/joho/godotenv v1.3.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
