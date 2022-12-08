@@ -50,7 +50,7 @@ var ErrWorkerBaseResourceTypeDisappeared = errors.New("worker base resource type
 // we only want a single worker_resource_cache in the end for the destination
 // worker, so the "first write wins".
 func (workerResourceCache WorkerResourceCache) FindOrCreate(tx Tx, sourceWorkerBaseResourceTypeID int) (*UsedWorkerResourceCache, bool, error) {
-	uwrc, found, err := workerResourceCache.find(tx, nil)
+	uwrc, found, err := workerResourceCache.find(tx, nil, true)
 	if err != nil {
 		return nil, false, err
 	}
@@ -93,7 +93,7 @@ func (workerResourceCache WorkerResourceCache) FindOrCreate(tx Tx, sourceWorkerB
 // (worker_base_resource_type_id is 0) might be returned, but the invalidated
 // cache's invalid_since must be later than volumeShouldBeValidBefore.
 func (workerResourceCache WorkerResourceCache) Find(runner sq.Runner, volumeShouldBeValidBefore time.Time) (*UsedWorkerResourceCache, bool, error) {
-	return workerResourceCache.find(runner, &volumeShouldBeValidBefore)
+	return workerResourceCache.find(runner, &volumeShouldBeValidBefore, false)
 }
 
 // FindByID looks for a worker resource cache by resource cache id. To init a
@@ -130,15 +130,14 @@ func (workerResourceCache WorkerResourceCache) FindByID(runner sq.Runner, id int
 // invalid_since is later than volumeShouldBeValidBefore. If there are multiple invalidated caches
 // with invalid_since later than volumeShouldBeValidBefore, the invalidated cache with newest
 // invalid_since should be returned.
-func (workerResourceCache WorkerResourceCache) find(runner sq.Runner, volumeShouldBeValidBefore *time.Time) (*UsedWorkerResourceCache, bool, error) {
+func (workerResourceCache WorkerResourceCache) find(runner sq.Runner, volumeShouldBeValidBefore *time.Time, forShare bool) (*UsedWorkerResourceCache, bool, error) {
 	var id int
 	var workerBaseResourceTypeID sql.NullInt64
 	var invalidSince pq.NullTime
 
-	err := psql.Select("id", "worker_base_resource_type_id", "invalid_since").
-		From("valid_caches").
-		OrderBy("priority").
-		Limit(1).
+	sb := psql.Select("id", "worker_base_resource_type_id", "invalid_since").
+		From("worker_resource_caches").
+		Where(sq.Expr("id = (select id from best_cache)")).
 		Prefix(
 			`WITH candidates AS (
                      SELECT id, worker_base_resource_type_id, invalid_since
@@ -146,22 +145,25 @@ func (workerResourceCache WorkerResourceCache) find(runner sq.Runner, volumeShou
                        WHERE resource_cache_id = $1 and worker_name = $2
                  ),
 				 valid_caches AS (
-                     SELECT id, worker_base_resource_type_id, invalid_since, 1 as priority
+                     SELECT id, invalid_since, 1 as priority
                        FROM candidates
                        WHERE worker_base_resource_type_id is not null
 				     UNION ALL
-				     SELECT id, worker_base_resource_type_id, invalid_since, 2 as priority
+				     SELECT id, invalid_since, 2 as priority
                        FROM candidates
                        WHERE worker_base_resource_type_id is null
                        ORDER BY invalid_since DESC
                        LIMIT 1
+                 ),
+                 best_cache as (
+                     select id from valid_caches order by priority limit 1
                  )`,
 			workerResourceCache.ResourceCache.ID(), workerResourceCache.WorkerName,
-		).
-		Suffix("FOR SHARE").
-		RunWith(runner).
-		QueryRow().
-		Scan(&id, &workerBaseResourceTypeID, &invalidSince)
+		)
+	if forShare {
+		sb = sb.Suffix("FOR SHARE")
+	}
+	err := sb.RunWith(runner).QueryRow().Scan(&id, &workerBaseResourceTypeID, &invalidSince)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, false, nil
