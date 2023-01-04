@@ -31,10 +31,11 @@ type FakeResourceCacheLifecycle struct {
 	cleanDirtyInMemoryBuildUsesReturnsOnCall map[int]struct {
 		result1 error
 	}
-	CleanInvalidWorkerResourceCachesStub        func(lager.Logger) error
+	CleanInvalidWorkerResourceCachesStub        func(lager.Logger, int) error
 	cleanInvalidWorkerResourceCachesMutex       sync.RWMutex
 	cleanInvalidWorkerResourceCachesArgsForCall []struct {
 		arg1 lager.Logger
+		arg2 int
 	}
 	cleanInvalidWorkerResourceCachesReturns struct {
 		result1 error
@@ -190,18 +191,19 @@ func (fake *FakeResourceCacheLifecycle) CleanDirtyInMemoryBuildUsesReturnsOnCall
 	}{result1}
 }
 
-func (fake *FakeResourceCacheLifecycle) CleanInvalidWorkerResourceCaches(arg1 lager.Logger) error {
+func (fake *FakeResourceCacheLifecycle) CleanInvalidWorkerResourceCaches(arg1 lager.Logger, arg2 int) error {
 	fake.cleanInvalidWorkerResourceCachesMutex.Lock()
 	ret, specificReturn := fake.cleanInvalidWorkerResourceCachesReturnsOnCall[len(fake.cleanInvalidWorkerResourceCachesArgsForCall)]
 	fake.cleanInvalidWorkerResourceCachesArgsForCall = append(fake.cleanInvalidWorkerResourceCachesArgsForCall, struct {
 		arg1 lager.Logger
-	}{arg1})
+		arg2 int
+	}{arg1, arg2})
 	stub := fake.CleanInvalidWorkerResourceCachesStub
 	fakeReturns := fake.cleanInvalidWorkerResourceCachesReturns
-	fake.recordInvocation("CleanInvalidWorkerResourceCaches", []interface{}{arg1})
+	fake.recordInvocation("CleanInvalidWorkerResourceCaches", []interface{}{arg1, arg2})
 	fake.cleanInvalidWorkerResourceCachesMutex.Unlock()
 	if stub != nil {
-		return stub(arg1)
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
@@ -215,17 +217,17 @@ func (fake *FakeResourceCacheLifecycle) CleanInvalidWorkerResourceCachesCallCoun
 	return len(fake.cleanInvalidWorkerResourceCachesArgsForCall)
 }
 
-func (fake *FakeResourceCacheLifecycle) CleanInvalidWorkerResourceCachesCalls(stub func(lager.Logger) error) {
+func (fake *FakeResourceCacheLifecycle) CleanInvalidWorkerResourceCachesCalls(stub func(lager.Logger, int) error) {
 	fake.cleanInvalidWorkerResourceCachesMutex.Lock()
 	defer fake.cleanInvalidWorkerResourceCachesMutex.Unlock()
 	fake.CleanInvalidWorkerResourceCachesStub = stub
 }
 
-func (fake *FakeResourceCacheLifecycle) CleanInvalidWorkerResourceCachesArgsForCall(i int) lager.Logger {
+func (fake *FakeResourceCacheLifecycle) CleanInvalidWorkerResourceCachesArgsForCall(i int) (lager.Logger, int) {
 	fake.cleanInvalidWorkerResourceCachesMutex.RLock()
 	defer fake.cleanInvalidWorkerResourceCachesMutex.RUnlock()
 	argsForCall := fake.cleanInvalidWorkerResourceCachesArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeResourceCacheLifecycle) CleanInvalidWorkerResourceCachesReturns(result1 error) {

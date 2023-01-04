@@ -168,6 +168,10 @@ func (delegate *buildStepDelegate) Finished(logger lager.Logger, succeeded bool)
 	logger.Info("finished")
 }
 
+func (delegate *buildStepDelegate) BuildStartTime() time.Time {
+	return delegate.build.StartTime()
+}
+
 func (delegate *buildStepDelegate) BeforeSelectWorker(logger lager.Logger) error {
 	if delegate.build.ResourceID() != 0 {
 		// For check builds, once a check build needs to select a worker, then

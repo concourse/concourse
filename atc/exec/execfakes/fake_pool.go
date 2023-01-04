@@ -4,6 +4,7 @@ package execfakes
 import (
 	"context"
 	"sync"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
@@ -31,13 +32,14 @@ type FakePool struct {
 		result1 runtime.Worker
 		result2 error
 	}
-	FindResourceCacheVolumeStub        func(context.Context, int, db.ResourceCache, worker.Spec) (runtime.Volume, bool, error)
+	FindResourceCacheVolumeStub        func(context.Context, int, db.ResourceCache, worker.Spec, time.Time) (runtime.Volume, bool, error)
 	findResourceCacheVolumeMutex       sync.RWMutex
 	findResourceCacheVolumeArgsForCall []struct {
 		arg1 context.Context
 		arg2 int
 		arg3 db.ResourceCache
 		arg4 worker.Spec
+		arg5 time.Time
 	}
 	findResourceCacheVolumeReturns struct {
 		result1 runtime.Volume
@@ -49,13 +51,14 @@ type FakePool struct {
 		result2 bool
 		result3 error
 	}
-	FindResourceCacheVolumeOnWorkerStub        func(context.Context, db.ResourceCache, worker.Spec, string) (runtime.Volume, bool, error)
+	FindResourceCacheVolumeOnWorkerStub        func(context.Context, db.ResourceCache, worker.Spec, string, time.Time) (runtime.Volume, bool, error)
 	findResourceCacheVolumeOnWorkerMutex       sync.RWMutex
 	findResourceCacheVolumeOnWorkerArgsForCall []struct {
 		arg1 context.Context
 		arg2 db.ResourceCache
 		arg3 worker.Spec
 		arg4 string
+		arg5 time.Time
 	}
 	findResourceCacheVolumeOnWorkerReturns struct {
 		result1 runtime.Volume
@@ -167,7 +170,7 @@ func (fake *FakePool) FindOrSelectWorkerReturnsOnCall(i int, result1 runtime.Wor
 	}{result1, result2}
 }
 
-func (fake *FakePool) FindResourceCacheVolume(arg1 context.Context, arg2 int, arg3 db.ResourceCache, arg4 worker.Spec) (runtime.Volume, bool, error) {
+func (fake *FakePool) FindResourceCacheVolume(arg1 context.Context, arg2 int, arg3 db.ResourceCache, arg4 worker.Spec, arg5 time.Time) (runtime.Volume, bool, error) {
 	fake.findResourceCacheVolumeMutex.Lock()
 	ret, specificReturn := fake.findResourceCacheVolumeReturnsOnCall[len(fake.findResourceCacheVolumeArgsForCall)]
 	fake.findResourceCacheVolumeArgsForCall = append(fake.findResourceCacheVolumeArgsForCall, struct {
@@ -175,13 +178,14 @@ func (fake *FakePool) FindResourceCacheVolume(arg1 context.Context, arg2 int, ar
 		arg2 int
 		arg3 db.ResourceCache
 		arg4 worker.Spec
-	}{arg1, arg2, arg3, arg4})
+		arg5 time.Time
+	}{arg1, arg2, arg3, arg4, arg5})
 	stub := fake.FindResourceCacheVolumeStub
 	fakeReturns := fake.findResourceCacheVolumeReturns
-	fake.recordInvocation("FindResourceCacheVolume", []interface{}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("FindResourceCacheVolume", []interface{}{arg1, arg2, arg3, arg4, arg5})
 	fake.findResourceCacheVolumeMutex.Unlock()
 	if stub != nil {
-		return stub(arg1, arg2, arg3, arg4)
+		return stub(arg1, arg2, arg3, arg4, arg5)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
@@ -195,17 +199,17 @@ func (fake *FakePool) FindResourceCacheVolumeCallCount() int {
 	return len(fake.findResourceCacheVolumeArgsForCall)
 }
 
-func (fake *FakePool) FindResourceCacheVolumeCalls(stub func(context.Context, int, db.ResourceCache, worker.Spec) (runtime.Volume, bool, error)) {
+func (fake *FakePool) FindResourceCacheVolumeCalls(stub func(context.Context, int, db.ResourceCache, worker.Spec, time.Time) (runtime.Volume, bool, error)) {
 	fake.findResourceCacheVolumeMutex.Lock()
 	defer fake.findResourceCacheVolumeMutex.Unlock()
 	fake.FindResourceCacheVolumeStub = stub
 }
 
-func (fake *FakePool) FindResourceCacheVolumeArgsForCall(i int) (context.Context, int, db.ResourceCache, worker.Spec) {
+func (fake *FakePool) FindResourceCacheVolumeArgsForCall(i int) (context.Context, int, db.ResourceCache, worker.Spec, time.Time) {
 	fake.findResourceCacheVolumeMutex.RLock()
 	defer fake.findResourceCacheVolumeMutex.RUnlock()
 	argsForCall := fake.findResourceCacheVolumeArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5
 }
 
 func (fake *FakePool) FindResourceCacheVolumeReturns(result1 runtime.Volume, result2 bool, result3 error) {
@@ -237,7 +241,7 @@ func (fake *FakePool) FindResourceCacheVolumeReturnsOnCall(i int, result1 runtim
 	}{result1, result2, result3}
 }
 
-func (fake *FakePool) FindResourceCacheVolumeOnWorker(arg1 context.Context, arg2 db.ResourceCache, arg3 worker.Spec, arg4 string) (runtime.Volume, bool, error) {
+func (fake *FakePool) FindResourceCacheVolumeOnWorker(arg1 context.Context, arg2 db.ResourceCache, arg3 worker.Spec, arg4 string, arg5 time.Time) (runtime.Volume, bool, error) {
 	fake.findResourceCacheVolumeOnWorkerMutex.Lock()
 	ret, specificReturn := fake.findResourceCacheVolumeOnWorkerReturnsOnCall[len(fake.findResourceCacheVolumeOnWorkerArgsForCall)]
 	fake.findResourceCacheVolumeOnWorkerArgsForCall = append(fake.findResourceCacheVolumeOnWorkerArgsForCall, struct {
@@ -245,13 +249,14 @@ func (fake *FakePool) FindResourceCacheVolumeOnWorker(arg1 context.Context, arg2
 		arg2 db.ResourceCache
 		arg3 worker.Spec
 		arg4 string
-	}{arg1, arg2, arg3, arg4})
+		arg5 time.Time
+	}{arg1, arg2, arg3, arg4, arg5})
 	stub := fake.FindResourceCacheVolumeOnWorkerStub
 	fakeReturns := fake.findResourceCacheVolumeOnWorkerReturns
-	fake.recordInvocation("FindResourceCacheVolumeOnWorker", []interface{}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("FindResourceCacheVolumeOnWorker", []interface{}{arg1, arg2, arg3, arg4, arg5})
 	fake.findResourceCacheVolumeOnWorkerMutex.Unlock()
 	if stub != nil {
-		return stub(arg1, arg2, arg3, arg4)
+		return stub(arg1, arg2, arg3, arg4, arg5)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
@@ -265,17 +270,17 @@ func (fake *FakePool) FindResourceCacheVolumeOnWorkerCallCount() int {
 	return len(fake.findResourceCacheVolumeOnWorkerArgsForCall)
 }
 
-func (fake *FakePool) FindResourceCacheVolumeOnWorkerCalls(stub func(context.Context, db.ResourceCache, worker.Spec, string) (runtime.Volume, bool, error)) {
+func (fake *FakePool) FindResourceCacheVolumeOnWorkerCalls(stub func(context.Context, db.ResourceCache, worker.Spec, string, time.Time) (runtime.Volume, bool, error)) {
 	fake.findResourceCacheVolumeOnWorkerMutex.Lock()
 	defer fake.findResourceCacheVolumeOnWorkerMutex.Unlock()
 	fake.FindResourceCacheVolumeOnWorkerStub = stub
 }
 
-func (fake *FakePool) FindResourceCacheVolumeOnWorkerArgsForCall(i int) (context.Context, db.ResourceCache, worker.Spec, string) {
+func (fake *FakePool) FindResourceCacheVolumeOnWorkerArgsForCall(i int) (context.Context, db.ResourceCache, worker.Spec, string, time.Time) {
 	fake.findResourceCacheVolumeOnWorkerMutex.RLock()
 	defer fake.findResourceCacheVolumeOnWorkerMutex.RUnlock()
 	argsForCall := fake.findResourceCacheVolumeOnWorkerArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5
 }
 
 func (fake *FakePool) FindResourceCacheVolumeOnWorkerReturns(result1 runtime.Volume, result2 bool, result3 error) {

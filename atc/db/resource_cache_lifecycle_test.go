@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbtest"
@@ -415,6 +416,161 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 			})
 		})
 	})
+
+	Describe("CleanInvalidWorkerResourceCaches", func() {
+		var resourceCache db.ResourceCache
+		var build db.Build
+		var scenario *dbtest.Scenario
+		var usedBaseResourceTypeOnWorker0 *db.UsedWorkerBaseResourceType
+
+		BeforeEach(func() {
+			scenario = dbtest.Setup(
+				builder.WithTeam("some-team"),
+				builder.WithBaseWorker(), // worker0
+				builder.WithBaseWorker(), // worker1
+				builder.WithBaseWorker(), // worker2
+			)
+
+			var err error
+			build, err = scenario.Team.CreateOneOffBuild()
+			Expect(err).ToNot(HaveOccurred())
+
+			resourceTypeCache, err := resourceCacheFactory.FindOrCreateResourceCache(
+				db.ForBuild(build.ID()),
+				dbtest.BaseResourceType,
+				atc.Version{"some-type": "version"},
+				atc.Source{
+					"some-type": "source",
+				},
+				nil,
+				nil,
+			)
+
+			resourceCache, err = resourceCacheFactory.FindOrCreateResourceCache(
+				db.ForBuild(build.ID()),
+				"some-type",
+				atc.Version{"some": "version"},
+				atc.Source{
+					"some": "source",
+				},
+				atc.Params{"some": "params"},
+				resourceTypeCache,
+			)
+			Expect(err).ToNot(HaveOccurred())
+
+			var found bool
+			usedBaseResourceTypeOnWorker0, found, err = db.WorkerBaseResourceType{
+				Name:       resourceCache.BaseResourceType().Name,
+				WorkerName: scenario.Workers[0].Name(),
+			}.Find(dbConn)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			tx, err := dbConn.Begin()
+			Expect(err).ToNot(HaveOccurred())
+			_, valid, findErr := db.WorkerResourceCache{
+				WorkerName:    scenario.Workers[0].Name(),
+				ResourceCache: resourceCache,
+			}.FindOrCreate(tx, usedBaseResourceTypeOnWorker0.ID)
+			tx.Commit()
+			Expect(findErr).ToNot(HaveOccurred())
+			Expect(valid).To(BeTrue())
+		})
+
+		Context("when no running build", func() {
+			BeforeEach(func() {
+				tx, err := dbConn.Begin()
+				Expect(err).ToNot(HaveOccurred())
+				_, valid, findErr := db.WorkerResourceCache{
+					WorkerName:    scenario.Workers[1].Name(),
+					ResourceCache: resourceCache,
+				}.FindOrCreate(tx, usedBaseResourceTypeOnWorker0.ID)
+				tx.Commit()
+				Expect(findErr).ToNot(HaveOccurred())
+				Expect(valid).To(BeTrue())
+
+				tx, err = dbConn.Begin()
+				Expect(err).ToNot(HaveOccurred())
+				_, valid, findErr = db.WorkerResourceCache{
+					WorkerName:    scenario.Workers[2].Name(),
+					ResourceCache: resourceCache,
+				}.FindOrCreate(tx, usedBaseResourceTypeOnWorker0.ID)
+				tx.Commit()
+				Expect(findErr).ToNot(HaveOccurred())
+				Expect(valid).To(BeTrue())
+
+				err = scenario.Workers[0].Land()
+				Expect(err).ToNot(HaveOccurred())
+				err = scenario.Workers[0].Prune()
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("should have 2 invalid caches", func() {
+				Expect(countInvalidWorkerResourceCaches()).To(Equal(2))
+			})
+
+			It("should cleanup invalid caches", func() {
+				// there are 2 invalid caches, delete one and one should be left
+				err := resourceCacheLifecycle.CleanInvalidWorkerResourceCaches(logger, 1)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(countInvalidWorkerResourceCaches()).To(Equal(1))
+
+				// delete one again and zero should be left
+				err = resourceCacheLifecycle.CleanInvalidWorkerResourceCaches(logger, 1)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(countInvalidWorkerResourceCaches()).To(Equal(0))
+
+				// now no invalid cache left, cleanup should not return error
+				err = resourceCacheLifecycle.CleanInvalidWorkerResourceCaches(logger, 1)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(countInvalidWorkerResourceCaches()).To(Equal(0))
+			})
+		})
+
+		Context("when there are running builds", func() {
+			BeforeEach(func() {
+				tx, err := dbConn.Begin()
+				Expect(err).ToNot(HaveOccurred())
+				_, valid, findErr := db.WorkerResourceCache{
+					WorkerName:    scenario.Workers[1].Name(),
+					ResourceCache: resourceCache,
+				}.FindOrCreate(tx, usedBaseResourceTypeOnWorker0.ID)
+				tx.Commit()
+				Expect(findErr).ToNot(HaveOccurred())
+				Expect(valid).To(BeTrue())
+
+				tx, err = dbConn.Begin()
+				Expect(err).ToNot(HaveOccurred())
+				_, valid, findErr = db.WorkerResourceCache{
+					WorkerName:    scenario.Workers[2].Name(),
+					ResourceCache: resourceCache,
+				}.FindOrCreate(tx, usedBaseResourceTypeOnWorker0.ID)
+				tx.Commit()
+				Expect(findErr).ToNot(HaveOccurred())
+				Expect(valid).To(BeTrue())
+
+				_, err = build.Start(atc.Plan{})
+				Expect(err).ToNot(HaveOccurred())
+
+				err = scenario.Workers[0].Land()
+				Expect(err).ToNot(HaveOccurred())
+				err = scenario.Workers[0].Prune()
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("should have 2 invalid caches", func() {
+				Expect(countInvalidWorkerResourceCaches()).To(Equal(2))
+			})
+
+			It("should cleanup invalid caches", func() {
+				// there are 2 invalid caches, but as they got invalid later than
+				// the build started, thus they should not be deleted.
+				err := resourceCacheLifecycle.CleanInvalidWorkerResourceCaches(logger, 1)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(countInvalidWorkerResourceCaches()).To(Equal(2))
+			})
+		})
+	})
 })
 
 func resourceCacheForOneOffBuild() (db.ResourceCache, db.Build) {
@@ -458,4 +614,16 @@ func createResourceCacheWithUser(resourceCacheUser db.ResourceCacheUser) db.Reso
 	Expect(err).ToNot(HaveOccurred())
 
 	return usedResourceCache
+}
+
+func countInvalidWorkerResourceCaches() int {
+	var result int
+	err := psql.Select("count(*)").
+		From("worker_resource_caches").
+		Where(sq.Expr("worker_base_resource_type_id is null")).
+		RunWith(dbConn).
+		QueryRow().
+		Scan(&result)
+	Expect(err).ToNot(HaveOccurred())
+	return result
 }

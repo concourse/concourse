@@ -45,30 +45,36 @@ func (v Volume) DBVolume() db.CreatedVolume {
 	return v.dbVolume
 }
 
-func (v Volume) InitializeResourceCache(ctx context.Context, cache db.ResourceCache) error {
+func (v Volume) InitializeResourceCache(ctx context.Context, cache db.ResourceCache) (*db.UsedWorkerResourceCache, error) {
 	logger := lagerctx.FromContext(ctx)
 	if err := v.bcVolume.SetPrivileged(ctx, false); err != nil {
 		logger.Error("failed-to-set-unprivileged", err)
-		return err
+		return nil, err
 	}
-	if err := v.dbVolume.InitializeResourceCache(cache); err != nil {
+
+	var uwrc *db.UsedWorkerResourceCache
+	var err error
+	if uwrc, err = v.dbVolume.InitializeResourceCache(cache); err != nil {
 		logger.Error("failed-to-initialize-resource-cache", err)
-		return err
+		return nil, err
 	}
-	return nil
+	return uwrc, nil
 }
 
-func (v Volume) InitializeStreamedResourceCache(ctx context.Context, cache db.ResourceCache, sourceWorker string) error {
+func (v Volume) InitializeStreamedResourceCache(ctx context.Context, cache db.ResourceCache, sourceWorkerResourceCacheID int) (*db.UsedWorkerResourceCache, error) {
 	logger := lagerctx.FromContext(ctx)
 	if err := v.bcVolume.SetPrivileged(ctx, false); err != nil {
 		logger.Error("failed-to-set-unprivileged", err)
-		return err
+		return nil, err
 	}
-	if err := v.dbVolume.InitializeStreamedResourceCache(cache, sourceWorker); err != nil {
+
+	var uwrc *db.UsedWorkerResourceCache
+	var err error
+	if uwrc, err = v.dbVolume.InitializeStreamedResourceCache(cache, sourceWorkerResourceCacheID); err != nil {
 		logger.Error("failed-to-initialize-resource-cache", err)
-		return err
+		return nil, err
 	}
-	return nil
+	return uwrc, nil
 }
 
 func (v Volume) InitializeTaskCache(ctx context.Context, jobID int, stepName string, path string, privileged bool) error {
@@ -364,7 +370,11 @@ func (worker *Worker) createVolumeForTaskCache(
 // 1. The Artifact is a Volume on the current worker (return the input Volume)
 // 2. The Artifact is a Volume on another worker, but there is an equivalent
 //    resource cache Volume on the current worker (return the local resource
-//    cache Volume)
+//    cache Volume). In this case, worker_resource_cache on the other worker
+//    should be valid before the time of volumeShouldBeValidBefore. In other
+//    words, if a worker resource cache has been invalidated, then later build
+//    should never use it, but builds started before the cache is invalidated
+//    may still use it.
 // 3. The Artifact is a Volume on another worker with no local resource cache
 //    Volume (return the input Volume)
 // 4. The Artifact is not a Volume (return not ok)
@@ -372,6 +382,7 @@ func (worker *Worker) findVolumeForArtifact(
 	ctx context.Context,
 	teamID int,
 	artifact runtime.Artifact,
+	volumeShouldBeValidBefore time.Time,
 ) (runtime.Volume, bool, error) {
 	logger := lagerctx.FromContext(ctx).Session("find-volume-for-artifact", lager.Data{"worker": worker.Name()})
 
@@ -380,6 +391,7 @@ func (worker *Worker) findVolumeForArtifact(
 		return nil, false, nil
 	}
 
+	// See if the volume is on the current worker. If yes, just return it.
 	if volume.DBVolume().WorkerName() == worker.Name() {
 		return volume, true, nil
 	}
@@ -399,7 +411,9 @@ func (worker *Worker) findVolumeForArtifact(
 		return volume, true, nil
 	}
 
-	dbCacheVolume, found, err := worker.db.VolumeRepo.FindResourceCacheVolume(worker.Name(), resourceCache)
+	// See if the volume has an equivalent resource cache volume on the current worker,
+	// If yes, return the local volume.
+	dbCacheVolume, found, err := worker.db.VolumeRepo.FindResourceCacheVolume(worker.Name(), resourceCache, volumeShouldBeValidBefore)
 	if err != nil {
 		logger.Error("failed-to-find-resource-cache-volume", err, lager.Data{"resource-cache": resourceCacheID})
 		return nil, false, err
@@ -414,12 +428,11 @@ func (worker *Worker) findVolumeForArtifact(
 		logger.Error("failed-to-lookup-volume-in-bc", err)
 		return nil, false, err
 	}
-
-	if !found {
-		return volume, true, nil
+	if found {
+		return worker.newVolume(bcCacheVolume, dbCacheVolume), true, nil
 	}
 
-	return worker.newVolume(bcCacheVolume, dbCacheVolume), true, nil
+	return volume, true, nil
 }
 
 func (worker *Worker) findOrCreateVolumeForResourceCerts(ctx context.Context) (Volume, bool, error) {

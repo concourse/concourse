@@ -26,7 +26,7 @@ type Volume struct {
 
 	VolumeHandle              string
 	ResourceCacheInitialized  bool
-	ResourceCacheStreamedFrom string
+	ResourceCacheStreamedFrom int
 	TaskCacheInitialized      bool
 	DBVolume_                 *dbfakes.FakeCreatedVolume
 }
@@ -62,15 +62,15 @@ func (v Volume) StreamOut(ctx context.Context, path string, compression compress
 	return v.Content.StreamOut(ctx, path, compression.Encoding())
 }
 
-func (v *Volume) InitializeResourceCache(_ context.Context, _ db.ResourceCache) error {
+func (v *Volume) InitializeResourceCache(_ context.Context, _ db.ResourceCache) (*db.UsedWorkerResourceCache, error) {
 	v.ResourceCacheInitialized = true
-	return nil
+	return nil, nil
 }
 
-func (v *Volume) InitializeStreamedResourceCache(_ context.Context, _ db.ResourceCache, workerName string) error {
+func (v *Volume) InitializeStreamedResourceCache(_ context.Context, _ db.ResourceCache, sourceWorkerResourceCacheID int) (*db.UsedWorkerResourceCache, error) {
 	v.ResourceCacheInitialized = true
-	v.ResourceCacheStreamedFrom = workerName
-	return nil
+	v.ResourceCacheStreamedFrom = sourceWorkerResourceCacheID
+	return nil, nil
 }
 
 func (v *Volume) InitializeTaskCache(_ context.Context, _ int, _, _ string, _ bool) error {

@@ -13,7 +13,7 @@ type ResourceCacheLifecycle interface {
 	CleanUsesForFinishedBuilds(lager.Logger) error
 	CleanBuildImageResourceCaches(lager.Logger) error
 	CleanUpInvalidCaches(lager.Logger) error
-	CleanInvalidWorkerResourceCaches(lager.Logger) error
+	CleanInvalidWorkerResourceCaches(lager.Logger, int) error
 	CleanDirtyInMemoryBuildUses(lager.Logger) error
 }
 
@@ -56,12 +56,18 @@ func (f *resourceCacheLifecycle) CleanDirtyInMemoryBuildUses(lager.Logger) error
 	return err
 }
 
-func (f *resourceCacheLifecycle) CleanInvalidWorkerResourceCaches(lager.Logger) error {
-	_, err := sq.Delete("worker_resource_caches w").
-		Where(sq.And{
-			sq.Eq{"w.worker_base_resource_type_id": nil},
-			sq.Expr("NOT EXISTS (SELECT 1 FROM resource_cache_uses u WHERE w.resource_cache_id = u.resource_cache_id LIMIT 1)"),
-		}).
+func (f *resourceCacheLifecycle) CleanInvalidWorkerResourceCaches(logger lager.Logger, batchSize int) error {
+	_, err := sq.Delete("worker_resource_caches").
+		Where(sq.Expr("id in (SELECT id FROM invalid_caches)")).
+		Prefix(
+			`WITH invalid_caches AS (
+				    SELECT id FROM worker_resource_caches 
+				    WHERE worker_base_resource_type_id IS NULL AND 
+				        invalid_since < (
+				            SELECT COALESCE(MIN(start_time), now()) FROM builds WHERE status = 'started'
+				        )
+				    LIMIT $1
+			  )`, batchSize).
 		RunWith(f.conn).
 		Exec()
 	return err
