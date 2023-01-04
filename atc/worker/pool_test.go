@@ -75,7 +75,7 @@ var _ = Describe("Pool", func() {
 				),
 			)
 
-			strategy, _, err := worker.NewPlacementStrategy(worker.PlacementOptions{
+			strategy, _, _, err := worker.NewPlacementStrategy(worker.PlacementOptions{
 				Strategies: []string{"fewest-build-containers"},
 			})
 			Expect(err).ToNot(HaveOccurred())
@@ -268,7 +268,7 @@ var _ = Describe("Pool", func() {
 				),
 			)
 
-			strategy, _, err := worker.NewPlacementStrategy(worker.PlacementOptions{
+			strategy, _, _, err := worker.NewPlacementStrategy(worker.PlacementOptions{
 				Strategies:              []string{"limit-active-tasks"},
 				MaxActiveTasksPerWorker: 1,
 			})

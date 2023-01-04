@@ -1040,7 +1040,7 @@ func (cmd *RunCommand) backendComponents(
 		return nil, err
 	}
 
-	buildContainerStrategy, noInputBuildContainerStrategy, err := cmd.chooseBuildContainerStrategy()
+	buildContainerStrategy, noInputBuildContainerStrategy, checkBuildContainerStrategy, err := cmd.chooseBuildContainerStrategy()
 	if err != nil {
 		return nil, err
 	}
@@ -1065,6 +1065,7 @@ func (cmd *RunCommand) backendComponents(
 		defaultLimits,
 		buildContainerStrategy,
 		noInputBuildContainerStrategy,
+		checkBuildContainerStrategy,
 		lockFactory,
 		rateLimiter,
 		policyChecker,
@@ -1676,7 +1677,7 @@ func constructLockConns(driverName, connectionString string) ([lock.FactoryCount
 	return conns, nil
 }
 
-func (cmd *RunCommand) chooseBuildContainerStrategy() (worker.PlacementStrategy, worker.PlacementStrategy, error) {
+func (cmd *RunCommand) chooseBuildContainerStrategy() (worker.PlacementStrategy, worker.PlacementStrategy, worker.PlacementStrategy, error) {
 	return worker.NewPlacementStrategy(cmd.ContainerPlacementStrategyOptions)
 }
 
@@ -1714,6 +1715,7 @@ func (cmd *RunCommand) constructEngine(
 	defaultLimits atc.ContainerLimits,
 	strategy worker.PlacementStrategy,
 	noInputStrategy worker.PlacementStrategy,
+	checkStrategy worker.PlacementStrategy,
 	lockFactory lock.LockFactory,
 	rateLimiter engine.RateLimiter,
 	policyChecker policy.Checker,
@@ -1731,6 +1733,7 @@ func (cmd *RunCommand) constructEngine(
 				defaultLimits,
 				strategy,
 				noInputStrategy,
+				checkStrategy,
 				cmd.GlobalResourceCheckTimeout,
 				cmd.DefaultGetTimeout,
 				cmd.DefaultPutTimeout,

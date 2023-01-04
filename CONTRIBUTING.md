@@ -185,7 +185,7 @@ hello world job:
 
 ```sh
 $ git clone git@github.com:concourse/examples.git
-$ fly -t dev set-pipeline -p example -c examples/time-triggered.yml
+$ fly -t dev set-pipeline -p example -c examples/pipelines/time-triggered.yml
 ```
 
 **Unpause the example pipeline:**

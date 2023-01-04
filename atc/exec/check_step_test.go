@@ -54,7 +54,7 @@ var _ = Describe("CheckStep", func() {
 		checkPlan         atc.CheckPlan
 		containerMetadata db.ContainerMetadata
 
-		strategy worker.PlacementStrategy
+		noInputStrategy, checkStrategy worker.PlacementStrategy
 
 		stepOk  bool
 		stepErr error
@@ -140,8 +140,9 @@ var _ = Describe("CheckStep", func() {
 		}
 
 		var err error
-		strategy, _, err = worker.NewPlacementStrategy(worker.PlacementOptions{
-			Strategies: []string{},
+		_, noInputStrategy, checkStrategy, err = worker.NewPlacementStrategy(worker.PlacementOptions{
+			NoInputStrategies: []string{},
+			CheckStrategies: []string{},
 		})
 		Expect(err).ToNot(HaveOccurred())
 	})
@@ -157,7 +158,8 @@ var _ = Describe("CheckStep", func() {
 			stepMetadata,
 			fakeResourceConfigFactory,
 			containerMetadata,
-			strategy,
+			noInputStrategy,
+			checkStrategy,
 			fakePool,
 			fakeDelegateFactory,
 			defaultTimeout,
@@ -449,9 +451,9 @@ var _ = Describe("CheckStep", func() {
 						fakePool.FindOrSelectWorkerReturns(chosenWorker, nil)
 					})
 
-					It("should use nil(random) strategy", func() {
+					It("should use check strategy", func() {
 						_, _, _, _, expectedStrategy, _ := fakePool.FindOrSelectWorkerArgsForCall(0)
-						Expect(expectedStrategy).To(BeNil())
+						Expect(expectedStrategy).To(Equal(checkStrategy))
 					})
 
 					It("points the resource or resource type to the scope", func() {
@@ -501,7 +503,7 @@ var _ = Describe("CheckStep", func() {
 
 					It("should use specified strategy", func() {
 						_, _, _, _, expectedStrategy, _ := fakePool.FindOrSelectWorkerArgsForCall(0)
-						Expect(expectedStrategy).To(Equal(strategy))
+						Expect(expectedStrategy).To(Equal(noInputStrategy))
 					})
 
 					It("points the resource or resource type to the scope", func() {

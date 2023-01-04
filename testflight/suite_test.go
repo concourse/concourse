@@ -96,7 +96,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	atcGuestUsername := os.Getenv("ATC_GUEST_USERNAME")
 	if atcGuestUsername != "" {
-		config.ATCGuestUsername = atcUsername
+		config.ATCGuestUsername = atcGuestUsername
 	}
 
 	atcGuestPassword := os.Getenv("ATC_GUEST_PASSWORD")

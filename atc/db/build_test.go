@@ -1259,67 +1259,13 @@ var _ = Describe("Build", func() {
 				Expect(buildOutputs[0].Version).To(Equal(outputVersion))
 			})
 
-			Context("with a job in a separate team downstream of the same non-trigger resource config", func() {
+			Context("with a job in a separate team downstream of the same resource config", func() {
 				var otherScenario *dbtest.Scenario
 
 				var beforeTime, otherJobBeforeTime time.Time
 				var otherTeamBeforeTime, otherTeamOtherJobBeforeTime time.Time
 
 				BeforeEach(func() {
-					otherScenario = dbtest.Setup(
-						builder.WithTeam("other-team"),
-						builder.WithPipeline(pipelineConfig),
-						builder.WithResourceVersions("some-resource", atc.Version{"some": "version"}),
-						builder.WithResourceVersions("some-other-resource", atc.Version{"some": "other-version"}),
-					)
-
-					beforeTime = scenario.Job("some-job").ScheduleRequestedTime()
-					otherTeamBeforeTime = otherScenario.Job("some-job").ScheduleRequestedTime()
-
-					otherJobBeforeTime = scenario.Job("some-other-job").ScheduleRequestedTime()
-					otherTeamOtherJobBeforeTime = otherScenario.Job("some-other-job").ScheduleRequestedTime()
-				})
-
-				It("requests schedule on jobs which use the same config", func() {
-					Expect(scenario.Job("some-job").ScheduleRequestedTime()).To(BeTemporally(">", beforeTime))
-					Expect(otherScenario.Job("some-job").ScheduleRequestedTime()).To(BeTemporally("==", otherTeamBeforeTime))
-
-					Expect(scenario.Job("some-other-job").ScheduleRequestedTime()).To(BeTemporally("==", otherJobBeforeTime))
-					Expect(otherScenario.Job("some-other-job").ScheduleRequestedTime()).To(BeTemporally("==", otherTeamOtherJobBeforeTime))
-				})
-			})
-
-			Context("with a job in a separate team downstream of the same trigger resource config", func() {
-				var otherScenario *dbtest.Scenario
-
-				var beforeTime, otherJobBeforeTime time.Time
-				var otherTeamBeforeTime, otherTeamOtherJobBeforeTime time.Time
-
-				BeforeEach(func() {
-					pipelineConfig.Jobs = atc.JobConfigs{
-						{
-							Name: "some-job",
-							PlanSequence: []atc.Step{
-								{
-									Config: &atc.GetStep{
-										Name:    "some-resource",
-										Trigger: true,
-									},
-								},
-							},
-						},
-						{
-							Name: "some-other-job",
-							PlanSequence: []atc.Step{
-								{
-									Config: &atc.GetStep{
-										Name:    "some-other-resource",
-										Trigger: true,
-									},
-								},
-							},
-						},
-					}
 					otherScenario = dbtest.Setup(
 						builder.WithTeam("other-team"),
 						builder.WithPipeline(pipelineConfig),

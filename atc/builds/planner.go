@@ -171,6 +171,11 @@ func (visitor *planVisitor) VisitPut(step *atc.PutStep) error {
 
 	plan.Put.TypeImage = visitor.resourceTypes.ImageForType(plan.ID, resource.Type, step.Tags, visitor.manuallyTriggered)
 
+	if step.NoGet {
+		visitor.plan = plan
+		return nil
+	}
+
 	dependentGetPlan := visitor.planFactory.NewPlan(atc.GetPlan{
 		Type:        resource.Type,
 		Name:        logicalName,
