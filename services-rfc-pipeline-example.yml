@@ -10,6 +10,9 @@ jobs:
                 type: registry-image
                 source:
                   repository: redis
+              ports:
+                - name: default
+                  number: 6379
               run:
                 path: '/usr/local/bin/redis-server'
         config:
@@ -19,5 +22,8 @@ jobs:
             source:
               repository: alpine
           run:
-            path: echo
-            args: [ "Hello, not service!" ]
+            path: sh
+            args:
+              - -exc
+              - |
+                sleep 10000

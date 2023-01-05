@@ -230,6 +230,14 @@ func (worker *Worker) createGardenContainer(
 		return nil, err
 	}
 
+	//for _, p := range containerSpec.Ports {
+	//	hostPort, containerPort, err := gardenContainer.NetIn(0, p)
+	//	if err != nil {
+	//		logger.Error("failed-to-netin-garden", err)
+	//	}
+	//	logger.Info("port-mapped", map[string]interface{}{"containerPort": containerPort, "hostPort": hostPort})
+	//}
+
 	return gardenContainer, nil
 }
 

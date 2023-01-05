@@ -41,7 +41,7 @@ fi
 
 trace_pid=$(docker exec $container_name pidof concourse)
 
-docker build --tag dlv ./hack/dlv
+#docker build --tag dlv ./hack/dlv
 
 docker run $docker_flags \
   --pid=container:$container_name \

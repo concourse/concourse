@@ -71,7 +71,6 @@ type TaskDelegate interface {
 	SetServiceConfigs(configs []atc.TaskConfig)
 
 	Initializing(lager.Logger)
-	InitializingServices(lager.Logger)
 	Starting(lager.Logger)
 	Finished(lager.Logger, ExitStatus)
 	Errored(lager.Logger, string)
@@ -294,11 +293,9 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 		)
 	}()
 
-	delegate.InitializingServices(logger)
-
 	var serviceContainerSpecs []runtime.ContainerSpec
 	for i, c := range serviceConfigs {
-		imageSpec, err := step.serviceImageSpec("redis", ctx, logger, state, delegate, c)
+		imageSpec, err := step.serviceImageSpec("redis", ctx, logger, state, delegate, c) // FIXME: remove hard-code
 		if err != nil {
 			return false, err
 		}
@@ -332,8 +329,8 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 
 		// FIXME: do we do something with volume mounts?
 		var serviceContainerMetadata = db.ContainerMetadata{
-			Type:                 step.containerMetadata.Type, // FIXME: add custom service container type?
-			StepName:             step.containerMetadata.StepName,
+			Type:                 db.ContainerTypeService,
+			StepName:             step.containerMetadata.StepName + "-redis",
 			Attempt:              step.containerMetadata.Attempt,
 			WorkingDirectory:     s.Dir,
 			User:                 step.containerMetadata.User,
@@ -345,6 +342,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 			JobName:              step.containerMetadata.JobName,
 			BuildName:            step.containerMetadata.BuildName,
 		}
+		owner := db.NewBuildStepContainerOwner(step.metadata.BuildID, step.planID+"/service-redis", step.metadata.TeamID)
 		container, _, err := worker.FindOrCreateContainer(ctx, owner, serviceContainerMetadata, s, delegate) // FIXME: Container metadata
 		if err != nil {
 			return false, err
