@@ -20,7 +20,7 @@ jobs:
           image_resource:
             type: registry-image
             source:
-              repository: alpine
+              repository: redis
           run:
             path: sh
             args:
