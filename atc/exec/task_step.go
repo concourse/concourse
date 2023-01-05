@@ -376,6 +376,15 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 			return false, err
 		}
 
+		// FIXME: remove, or move to real logging
+		properties, err := container.Properties()
+		if err == nil {
+			_, err := fmt.Fprintln(delegate.Stderr(), properties)
+			if err == nil {
+				fmt.Fprintln(delegate.Stderr(), "Couldn't get service container properties")
+			}
+		}
+
 		serviceProcesses = append(serviceProcesses, process)
 	}
 

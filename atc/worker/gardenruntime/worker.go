@@ -206,10 +206,10 @@ func (worker *Worker) createGardenContainer(
 
 	logger.Debug("creating-garden-container")
 
-	var netIns []garden.NetIn
-	for _, p := range containerSpec.Ports {
-		netIns = append(netIns, garden.NetIn{ContainerPort: p})
-	}
+	//var netIns []garden.NetIn
+	//for _, p := range containerSpec.Ports {
+	//	netIns = append(netIns, garden.NetIn{ContainerPort: p})
+	//}
 
 	gardenContainer, err := worker.gardenClient.Create(
 		garden.ContainerSpec{
@@ -222,7 +222,7 @@ func (worker *Worker) createGardenContainer(
 			Properties: garden.Properties{
 				userPropertyName: fetchedImage.Metadata.User,
 			},
-			NetIn: netIns,
+			//NetIn: netIns,
 		})
 	if err != nil {
 		logger.Error("failed-to-create-container-in-garden", err)
