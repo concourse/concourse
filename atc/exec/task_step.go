@@ -62,6 +62,7 @@ type TaskDelegate interface {
 	StartSpan(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
 
 	FetchImage(context.Context, atc.ImageResource, atc.ResourceTypes, bool, atc.Tags, bool) (runtime.ImageSpec, error)
+	FetchServiceImage(string, context.Context, atc.ImageResource, atc.ResourceTypes, bool, atc.Tags, bool) (runtime.ImageSpec, error)
 
 	Stdout() io.Writer
 	Stderr() io.Writer
@@ -297,7 +298,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 
 	var serviceContainerSpecs []runtime.ContainerSpec
 	for i, c := range serviceConfigs {
-		imageSpec, err := step.imageSpec(ctx, logger, state, delegate, c)
+		imageSpec, err := step.serviceImageSpec("redis", ctx, logger, state, delegate, c)
 		if err != nil {
 			return false, err
 		}
@@ -327,8 +328,24 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 	// FIXME delegate.StartingServices(logger)
 	var serviceProcesses []runtime.Process
 	for i, s := range serviceContainerSpecs {
+		ctx = lagerctx.NewContext(ctx, logger)
+
 		// FIXME: do we do something with volume mounts?
-		container, _, err := worker.FindOrCreateContainer(ctx, owner, step.containerMetadata, s, delegate) // FIXME: Container metadata
+		var serviceContainerMetadata = db.ContainerMetadata{
+			Type:                 step.containerMetadata.Type, // FIXME: add custom service container type?
+			StepName:             step.containerMetadata.StepName,
+			Attempt:              step.containerMetadata.Attempt,
+			WorkingDirectory:     s.Dir,
+			User:                 step.containerMetadata.User,
+			PipelineID:           step.containerMetadata.PipelineID,
+			JobID:                step.containerMetadata.JobID,
+			BuildID:              step.containerMetadata.BuildID,
+			PipelineName:         step.containerMetadata.PipelineName,
+			PipelineInstanceVars: step.containerMetadata.PipelineInstanceVars,
+			JobName:              step.containerMetadata.JobName,
+			BuildName:            step.containerMetadata.BuildName,
+		}
+		container, _, err := worker.FindOrCreateContainer(ctx, owner, serviceContainerMetadata, s, delegate) // FIXME: Container metadata
 		if err != nil {
 			return false, err
 		}
@@ -338,7 +355,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 			ctx,
 			container,
 			runtime.ProcessSpec{
-				ID:   taskProcessID, // FIXME ?
+				ID:   taskProcessID + "service", // FIXME ?
 				Path: config.Run.Path,
 				Args: config.Run.Args,
 				Dir:  resolvePath(step.containerMetadata.WorkingDirectory, config.Run.Dir), // FIXME how do we pick this?
@@ -353,7 +370,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 				},
 			},
 			runtime.ProcessIO{
-				Stdout: delegate.Stdout(), // FIXME where does service stdout and err go
+				Stdout: delegate.Stdout(), // FIXME where does service stdout and err go, prob into new db writer
 				Stderr: delegate.Stderr(),
 			},
 		)
@@ -399,13 +416,13 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 
 	result, runErr := process.Wait(ctx)
 
-	for _, p := range serviceProcesses {
-		_, err := p.Wait(ctx)
-		if err != nil {
-			//FIXME delegate.ServiceErrored(logger, TimeoutLogMessage)
-		}
-		//FIXME delegate.ServiceStopped(logger, ExitStatus(result.ExitStatus))
-	}
+	//for _, p := range serviceProcesses {
+	//	_, err := p.Wait(ctx)
+	//	if err != nil {
+	//		//FIXME delegate.ServiceErrored(logger, TimeoutLogMessage)
+	//	}
+	//	//FIXME delegate.ServiceStopped(logger, ExitStatus(result.ExitStatus))
+	//}
 
 	step.registerOutputs(logger, repository, config, volumeMounts, step.containerMetadata)
 
@@ -435,6 +452,41 @@ func attachOrRun(ctx context.Context, container runtime.Container, spec runtime.
 		return process, nil
 	}
 	return container.Run(ctx, spec, io)
+}
+
+func (step *TaskStep) serviceImageSpec(serviceName string, ctx context.Context, logger lager.Logger, state RunState, delegate TaskDelegate, config atc.TaskConfig) (runtime.ImageSpec, error) {
+	imageSpec := runtime.ImageSpec{
+		Privileged: bool(step.plan.Privileged),
+	}
+
+	// Determine the source of the container image
+	// a reference to an artifact (get step, task output) ?
+	if step.plan.ImageArtifactName != "" {
+		artifact, _, found := state.ArtifactRepository().ArtifactFor(build.ArtifactName(step.plan.ImageArtifactName))
+		if !found {
+			return runtime.ImageSpec{}, MissingTaskImageSourceError{step.plan.ImageArtifactName}
+		}
+		imageSpec.ImageArtifact = artifact
+
+		//an image_resource
+	} else if config.ImageResource != nil {
+		imageSpec, err := delegate.FetchServiceImage(
+			serviceName,
+			ctx,
+			*config.ImageResource,
+			step.plan.ResourceTypes,
+			step.plan.Privileged,
+			step.plan.Tags,
+			step.plan.CheckSkipInterval,
+		)
+		return imageSpec, err
+
+		// a rootfs_uri
+	} else if config.RootfsURI != "" {
+		imageSpec.ImageURL = config.RootfsURI
+	}
+
+	return imageSpec, nil
 }
 
 func (step *TaskStep) imageSpec(ctx context.Context, logger lager.Logger, state RunState, delegate TaskDelegate, config atc.TaskConfig) (runtime.ImageSpec, error) {

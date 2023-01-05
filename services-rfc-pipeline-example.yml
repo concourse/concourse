@@ -3,16 +3,15 @@ jobs:
     plan:
       - task: say-hi-with-a-service
         services:
-          - name: hello-service
+          - name: redis
             config:
               platform: linux
               image_resource:
                 type: registry-image
                 source:
-                  repository: alpine
+                  repository: redis
               run:
-                path: echo
-                args: [ "Hello, services!" ]
+                path: '/usr/local/bin/redis-server'
         config:
           platform: linux
           image_resource:

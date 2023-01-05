@@ -25,7 +25,7 @@ while test $# -gt 0; do
             ;;
         --listen)
             shift
-            dlv_flags=" --headless=true --listen=:$1"
+            dlv_flags=" --headless=true --listen=:$1 --api-version=2 --accept-multiclient"
             docker_flags+=" -p $1:$1"
             shift
             ;;
