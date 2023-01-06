@@ -22,7 +22,7 @@ jobs:
             source:
               repository: redis
           params:
-            MOO: ((.svc:test))
+            MOO: ((.svc:redis.host))
           run:
             path: sh
             args:
