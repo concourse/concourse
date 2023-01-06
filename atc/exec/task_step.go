@@ -209,6 +209,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 		"job-id":    step.metadata.JobID,
 	})
 
+	state.AddServiceVar("test", "beef cake", false)
 	taskConfigSource := step.loadTaskConfigSource(state, step.plan.ConfigPath, step.plan.Config)
 	repository := state.ArtifactRepository()
 	config, err := taskConfigSource.FetchConfig(ctx, logger, repository)

@@ -21,9 +21,11 @@ jobs:
             type: registry-image
             source:
               repository: redis
+          params:
+            MOO: ((.svc:test))
           run:
             path: sh
             args:
               - -exc
               - |
-                sleep 10000
+                echo $MOO

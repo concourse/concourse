@@ -44,6 +44,7 @@ type RunState interface {
 
 	NewLocalScope() RunState
 	AddLocalVar(name string, val interface{}, redact bool)
+	AddServiceVar(name string, val interface{}, redact bool)
 
 	IterateInterpolatedCreds(vars.TrackedVarsIterator)
 	RedactionEnabled() bool

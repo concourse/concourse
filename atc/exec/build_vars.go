@@ -12,8 +12,9 @@ type buildVariables struct {
 		IterateInterpolatedCreds(iter vars.TrackedVarsIterator)
 	}
 
-	localVars vars.StaticVariables
-	tracker   *vars.Tracker
+	localVars   vars.StaticVariables
+	serviceVars vars.StaticVariables
+	tracker     *vars.Tracker
 
 	lock sync.RWMutex
 }
@@ -24,8 +25,9 @@ func newBuildVariables(credVars vars.Variables, enableRedaction bool) *buildVari
 			CredVars: credVars,
 			Tracker:  vars.NewTracker(enableRedaction),
 		},
-		localVars: vars.StaticVariables{},
-		tracker:   vars.NewTracker(enableRedaction),
+		localVars:   vars.StaticVariables{},
+		serviceVars: vars.StaticVariables{},
+		tracker:     vars.NewTracker(enableRedaction),
 	}
 }
 
@@ -33,6 +35,13 @@ func (b *buildVariables) Get(ref vars.Reference) (interface{}, bool, error) {
 	if ref.Source == "." {
 		b.lock.RLock()
 		val, found, err := b.localVars.Get(ref.WithoutSource())
+		b.lock.RUnlock()
+		if found || err != nil {
+			return val, found, err
+		}
+	} else if ref.Source == ".svc" {
+		b.lock.RLock()
+		val, found, err := b.serviceVars.Get(ref.WithoutSource())
 		b.lock.RUnlock()
 		if found || err != nil {
 			return val, found, err
@@ -51,6 +60,9 @@ func (b *buildVariables) List() ([]vars.Reference, error) {
 	for k := range b.localVars {
 		list = append(list, vars.Reference{Source: ".", Path: k})
 	}
+	for k := range b.serviceVars {
+		list = append(list, vars.Reference{Source: ".svc", Path: k})
+	}
 	return list, nil
 }
 
@@ -63,6 +75,7 @@ func (b *buildVariables) NewLocalScope() *buildVariables {
 	return &buildVariables{
 		parentScope: b,
 		localVars:   vars.StaticVariables{},
+		serviceVars: vars.StaticVariables{},
 		tracker:     vars.NewTracker(b.tracker.Enabled),
 	}
 }
@@ -74,6 +87,16 @@ func (b *buildVariables) AddLocalVar(name string, val interface{}, redact bool) 
 
 	if redact {
 		b.tracker.Track(vars.Reference{Source: ".", Path: name}, val)
+	}
+}
+
+func (b *buildVariables) AddServiceVar(name string, val interface{}, redact bool) {
+	b.lock.Lock()
+	b.serviceVars[name] = val
+	b.lock.Unlock()
+
+	if redact {
+		b.tracker.Track(vars.Reference{Source: ".svc", Path: name}, val)
 	}
 }
 
