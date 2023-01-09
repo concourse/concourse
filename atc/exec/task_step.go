@@ -81,6 +81,7 @@ type TaskDelegate interface {
 	SelectedWorker(lager.Logger, string)
 	StreamingVolume(lager.Logger, string, string, string)
 	WaitingForStreamedVolume(lager.Logger, string, string)
+	BuildStartTime() time.Time
 }
 
 // TaskStep executes a TaskConfig, whose inputs will be fetched from the
