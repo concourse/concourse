@@ -217,15 +217,15 @@ func (step *TaskStep) setLimitDefaultsOnConfig(c *atc.TaskConfig) {
 }
 
 func (step *TaskStep) runServices(ctx context.Context, state RunState, worker runtime.Worker, delegate TaskDelegate) ([]runtime.Process, error) {
-	logger := lagerctx.FromContext(ctx)
-	logger = logger.Session("start-services-task-step", lager.Data{
-		"step-name": step.plan.Name, // FIXME
-		"job-id":    step.metadata.JobID,
-	})
-
 	var serviceConfigs []atc.TaskConfig
 	var serviceProcesses []runtime.Process
 	for _, s := range step.plan.Services {
+		logger := lagerctx.FromContext(ctx)
+		logger = logger.Session("start-services-task-step", lager.Data{
+			"step-name":    step.plan.Name,
+			"service-name": s.Name,
+			"job-id":       step.metadata.JobID,
+		})
 		serviceConfigSource := step.loadTaskConfigSource(state, s.File, &s.Config.TaskConfig, true)
 		config, err := serviceConfigSource.FetchConfig(ctx, logger, state.ArtifactRepository())
 		serviceConfigs = append(serviceConfigs, config)
@@ -280,10 +280,10 @@ func (step *TaskStep) runServices(ctx context.Context, state RunState, worker ru
 			ctx,
 			container,
 			runtime.ProcessSpec{
-				ID:   taskProcessID + "service", // FIXME ?
+				ID:   taskProcessID + "-" + s.Name + "-service",
 				Path: config.Run.Path,
 				Args: config.Run.Args,
-				Dir:  resolvePath(step.containerMetadata.WorkingDirectory, config.Run.Dir), // FIXME how do we pick this?
+				Dir:  resolvePath(step.containerMetadata.WorkingDirectory, config.Run.Dir),
 				User: config.Run.User,
 				// Guardian sets the default TTY window size to width: 80, height: 24,
 				// which creates ANSI control sequences that do not work with other window sizes
@@ -306,12 +306,6 @@ func (step *TaskStep) runServices(ctx context.Context, state RunState, worker ru
 
 		properties, err := container.Properties()
 		if err == nil {
-			// FIXME: remove, or move to real logging
-			_, err := fmt.Fprintln(delegate.Stderr(), properties)
-			if err != nil {
-				logger.Error("read-service-container-properties", err)
-			}
-
 			addresses := make(map[string]interface{})
 			ports := make(map[string]interface{})
 			portMappings := map[string]interface{}{"addresses": addresses, "ports": ports}
@@ -331,7 +325,7 @@ func (step *TaskStep) runServices(ctx context.Context, state RunState, worker ru
 	return serviceProcesses, nil
 }
 
-func (step *TaskStep) getSpecs(ctx context.Context, state RunState, expectAllKeys bool, delegate TaskDelegate) (atc.TaskConfig, runtime.ContainerSpec, error) {
+func (step *TaskStep) getContainerSpecAndConfig(ctx context.Context, state RunState, expectAllKeys bool, delegate TaskDelegate) (atc.TaskConfig, runtime.ContainerSpec, error) {
 	logger := lagerctx.FromContext(ctx)
 
 	taskConfigSource := step.loadTaskConfigSource(state, step.plan.ConfigPath, step.plan.Config, expectAllKeys)
@@ -373,8 +367,8 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 		"job-id":    step.metadata.JobID,
 	})
 
-	// on first load do not expectAllKeys in state, we will not have svc variables until after services are run
-	config, containerSpec, err := step.getSpecs(ctx, state, false, delegate)
+	// on first load do not expectAllKeys in state, we will not have svc variables until after services are started
+	config, containerSpec, err := step.getContainerSpecAndConfig(ctx, state, false, delegate)
 	if err != nil {
 		return false, err
 	}
@@ -416,9 +410,9 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 	delegate.SelectedWorker(logger, worker.Name())
 
 	serviceCtx, cancelServices := context.WithCancel(ctx)
-	// FIXME delegate.StartingServices(logger)
 	serviceProcesses, err := step.runServices(serviceCtx, state, worker, delegate)
 	if err != nil {
+		cancelServices()
 		return false, err
 	}
 	wg := sync.WaitGroup{}
@@ -426,10 +420,11 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 		wg.Add(1)
 		go func(p runtime.Process) {
 			defer wg.Done()
+			logger.Info("waiting-for-service-to-exit", lager.Data{"service-process-id": p.ID()})
 			_, err := p.Wait(serviceCtx)
-			logger.Info("service-stopped")
+			logger.Info("service-exit", lager.Data{"service-process-id": p.ID()})
 			if err != nil {
-				logger.Error("error-stopping-service", err)
+				logger.Error("error-stopping-service", err, lager.Data{"service-process-id": p.ID()})
 			}
 		}(p)
 		//FIXME delegate.ServiceErrored(logger, TimeoutLogMessage)
@@ -441,7 +436,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 	}()
 
 	// reload config and containerSpec with new service variable interpolation
-	config, containerSpec, err = step.getSpecs(ctx, state, true, delegate)
+	config, containerSpec, err = step.getContainerSpecAndConfig(ctx, state, true, delegate)
 	if err != nil {
 		return false, err
 	}
@@ -478,15 +473,16 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 	if err != nil {
 		return false, err
 	}
-	result, runErr := process.Wait(ctx) // FIXME done semantics, use ctx done to stop services with wait
+	result, runErr := process.Wait(ctx)
 
-	step.registerOutputs(logger, state.ArtifactRepository(), config, volumeMounts, step.containerMetadata)
+	step.registerOutputs(logger, state.ArtifactRepository(), config, volumeMounts, step.containerMetadata) // FIXME: services?
 
 	// Do not initialize caches for one-off builds
 	if step.metadata.JobID != 0 {
 		if err := step.registerCaches(ctx, state.ArtifactRepository(), config, volumeMounts, step.containerMetadata); err != nil {
 			return false, err
 		}
+		// FIXME: service caches?
 	}
 
 	if runErr != nil {
@@ -515,17 +511,8 @@ func (step *TaskStep) serviceImageSpec(serviceName string, ctx context.Context, 
 		Privileged: bool(step.plan.Privileged),
 	}
 
-	// Determine the source of the container image
-	// a reference to an artifact (get step, task output) ?
-	if step.plan.ImageArtifactName != "" {
-		artifact, _, found := state.ArtifactRepository().ArtifactFor(build.ArtifactName(step.plan.ImageArtifactName))
-		if !found {
-			return runtime.ImageSpec{}, MissingTaskImageSourceError{step.plan.ImageArtifactName}
-		}
-		imageSpec.ImageArtifact = artifact
-
-		//an image_resource
-	} else if config.ImageResource != nil {
+	// an image_resource
+	if config.ImageResource != nil {
 		imageSpec, err := delegate.FetchServiceImage(
 			serviceName,
 			ctx,
