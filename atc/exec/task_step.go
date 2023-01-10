@@ -308,6 +308,7 @@ func (step *TaskStep) runServices(ctx context.Context, state RunState, worker ru
 			addresses := make(map[string]interface{})
 			ports := make(map[string]interface{})
 			portMappings := map[string]interface{}{"addresses": addresses, "ports": ports}
+			// FIXME: what about other runtimes?
 			for i, p := range s.Config.Ports {
 				if p.Name == "default" || i == 0 {
 					portMappings["host"] = properties["garden.network.container-ip"]
