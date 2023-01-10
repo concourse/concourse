@@ -217,7 +217,6 @@ func (worker *Worker) createGardenContainer(
 			Properties: garden.Properties{
 				userPropertyName: fetchedImage.Metadata.User,
 			},
-			//NetIn: netIns,
 		})
 	if err != nil {
 		logger.Error("failed-to-create-container-in-garden", err)
