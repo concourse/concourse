@@ -69,7 +69,6 @@ type TaskDelegate interface {
 	Stderr() io.Writer
 
 	SetTaskConfig(config atc.TaskConfig)
-	SetServiceConfigs(configs []atc.TaskConfig)
 
 	Initializing(lager.Logger)
 	Starting(lager.Logger)
@@ -321,7 +320,6 @@ func (step *TaskStep) runServices(ctx context.Context, state RunState, worker ru
 		}
 	}
 
-	delegate.SetServiceConfigs(serviceConfigs)
 	return serviceProcesses, nil
 }
 

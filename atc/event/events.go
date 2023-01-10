@@ -25,10 +25,9 @@ func (FinishTask) EventType() atc.EventType  { return EventTypeFinishTask }
 func (FinishTask) Version() atc.EventVersion { return "4.0" }
 
 type InitializeTask struct {
-	Time           int64        `json:"time"`
-	Origin         Origin       `json:"origin"`
-	TaskConfig     TaskConfig   `json:"config"`
-	ServiceConfigs []TaskConfig `json:"service_configs"`
+	Time       int64      `json:"time"`
+	Origin     Origin     `json:"origin"`
+	TaskConfig TaskConfig `json:"config"`
 }
 
 func (InitializeTask) EventType() atc.EventType  { return EventTypeInitializeTask }
@@ -77,10 +76,9 @@ func ShadowTaskConfig(config atc.TaskConfig) TaskConfig {
 }
 
 type StartTask struct {
-	Time           int64        `json:"time"`
-	Origin         Origin       `json:"origin"`
-	TaskConfig     TaskConfig   `json:"config"`
-	ServiceConfigs []TaskConfig `json:"service_configs"`
+	Time       int64      `json:"time"`
+	Origin     Origin     `json:"origin"`
+	TaskConfig TaskConfig `json:"config"`
 }
 
 func (StartTask) EventType() atc.EventType  { return EventTypeStartTask }
