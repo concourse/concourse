@@ -245,6 +245,7 @@ func (step *TaskStep) runServices(ctx context.Context, state RunState, worker ru
 		}
 
 		// FIXME: do we do something with volume mounts?
+		// FIXME: go through each thing in metadata and re-eval if it's the right setting
 		var serviceContainerMetadata = db.ContainerMetadata{
 			Type:                 db.ContainerTypeService,
 			StepName:             step.containerMetadata.StepName + "-" + s.Name,
