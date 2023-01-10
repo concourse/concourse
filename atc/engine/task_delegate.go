@@ -116,29 +116,30 @@ func (d *taskDelegate) FetchServiceImage(
 
 	getPlan, checkPlan := atc.FetchImagePlan(image.Name, d.planID, image, types, stepTags, skipInterval, nil)
 
-	if checkPlan != nil {
-		err := d.build.SaveEvent(event.ImageCheck{
-			Time: d.clock.Now().Unix(),
-			Origin: event.Origin{
-				ID: event.OriginID(d.planID),
-			},
-			PublicPlan: checkPlan.Public(),
-		})
-		if err != nil {
-			return runtime.ImageSpec{}, err
-		}
-	}
-
-	err := d.build.SaveEvent(event.ImageGet{
-		Time: d.clock.Now().Unix(),
-		Origin: event.Origin{
-			ID: event.OriginID(d.planID),
-		},
-		PublicPlan: getPlan.Public(),
-	})
-	if err != nil {
-		return runtime.ImageSpec{}, err
-	}
+	// FIXME: create own service events
+	//if checkPlan != nil {
+	//	err := d.build.SaveEvent(event.ImageCheck{
+	//		Time: d.clock.Now().Unix(),
+	//		Origin: event.Origin{
+	//			ID: event.OriginID(d.planID),
+	//		},
+	//		PublicPlan: checkPlan.Public(),
+	//	})
+	//	if err != nil {
+	//		return runtime.ImageSpec{}, err
+	//	}
+	//}
+	//
+	//err := d.build.SaveEvent(event.ImageGet{
+	//	Time: d.clock.Now().Unix(),
+	//	Origin: event.Origin{
+	//		ID: event.OriginID(d.planID),
+	//	},
+	//	PublicPlan: getPlan.Public(),
+	//})
+	//if err != nil {
+	//	return runtime.ImageSpec{}, err
+	//}
 
 	imageSpec, _, err := d.BuildStepDelegate.FetchImage(ctx, getPlan, checkPlan, privileged)
 	if err != nil {
