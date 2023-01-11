@@ -300,9 +300,8 @@ func (worker *Worker) constructContainer(
 // * scratch (empty volume)
 // * working dir (i.e. spec.Dir, empty volume)
 // * inputs
-//   - local volumes are COW'd
-//   - remote volumes are streamed into an empty volume, then COW'd (only COW is mounted)
-//
+//   * local volumes are COW'd
+//   * remote volumes are streamed into an empty volume, then COW'd (only COW is mounted)
 // * outputs (empty volumes)
 // * caches (COW if exists, empty otherwise)
 func (worker *Worker) createVolumes(
