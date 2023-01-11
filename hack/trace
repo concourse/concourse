@@ -25,7 +25,7 @@ while test $# -gt 0; do
             ;;
         --listen)
             shift
-            dlv_flags=" --headless=true --listen=:$1 --api-version=2 --accept-multiclient"
+            dlv_flags=" --headless=true --listen=:$1"
             docker_flags+=" -p $1:$1"
             shift
             ;;
@@ -41,7 +41,7 @@ fi
 
 trace_pid=$(docker exec $container_name pidof concourse)
 
-#docker build --tag dlv ./hack/dlv
+docker build --tag dlv ./hack/dlv
 
 docker run $docker_flags \
   --pid=container:$container_name \
