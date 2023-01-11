@@ -5,12 +5,12 @@
   "dependencies": {
     "child-process-promise": "2.2.1",
     "color": "4.2.3",
-    "puppeteer": "14.4.0",
+    "puppeteer": "19.5.1",
     "tmp-promise": "3.0.3",
-    "uuid": "8.3.2"
+    "uuid": "9.0.0"
   },
   "devDependencies": {
-    "ava": "4.3.0"
+    "ava": "5.1.0"
   },
   "scripts": {
     "test": "ava --serial"
