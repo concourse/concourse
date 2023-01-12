@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/concourse/dex/connector/cf"
+	"github.com/concourse/dex/connector/cloudfoundry"
 	"github.com/concourse/flag"
 	multierror "github.com/hashicorp/go-multierror"
 )
@@ -58,7 +58,7 @@ func (flag *CFFlags) Serialize(redirectURI string) ([]byte, error) {
 		caCerts = append(caCerts, file.Path())
 	}
 
-	return json.Marshal(cf.Config{
+	return json.Marshal(cloudfoundry.Config{
 		ClientID:           flag.ClientID,
 		ClientSecret:       flag.ClientSecret,
 		APIURL:             flag.APIURL,
