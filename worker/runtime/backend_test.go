@@ -2,6 +2,7 @@ package runtime_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"sync"
 	"testing"
@@ -521,4 +522,78 @@ func (s *BackendSuite) TestGraceTimeReturnsDuration() {
 	fakeContainer.PropertyReturns("123", nil)
 	result := s.backend.GraceTime(fakeContainer)
 	s.Equal(time.Duration(123), result)
+}
+
+func (s *BackendSuite) TestHookFileParse() {
+	var samples = map[string]runtime.HookFile{`
+{
+    "version": "1.0.0",
+    "hook": {
+        "path": "/usr/libexec/oci/hooks.d/oci-seccomp-bpf-hook",
+        "args": [
+            "oci-seccomp-bpf-hook",
+            "-s"
+        ]
+    },
+    "when": {
+        "annotations": {
+            "^io\\.containers\\.trace-syscall$": ".*"
+        }
+    },
+    "stages": [
+        "prestart"
+    ]
+}
+`: {
+		Version: "1.0.0",
+		Hook: specs.Hook{
+			Path: "/usr/libexec/oci/hooks.d/oci-seccomp-bpf-hook",
+			Args: []string{"oci-seccomp-bpf-hook", "-s"},
+			Env:  nil,
+		},
+		When: runtime.When{
+			Annotations: map[string]string{
+				"^io\\.containers\\.trace-syscall$": ".*",
+			},
+			Always:   false,
+			Commands: nil,
+		},
+		Stages: []string{"prestart"},
+	},
+		`{
+    "version": "1.0.0",
+    "hook": {
+        "path": "/usr/bin/nvidia-container-toolkit",
+        "args": ["nvidia-container-toolkit", "prestart"],
+        "env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+        ]
+    },
+    "when": {
+        "always": true,
+        "commands": [".*"]
+    },
+    "stages": ["prestart"]
+}
+`: {
+			Version: "1.0.0",
+			Hook: specs.Hook{
+				Path: "/usr/bin/nvidia-container-toolkit",
+				Args: []string{"nvidia-container-toolkit", "prestart"},
+				Env:  []string{"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"},
+			},
+			When: runtime.When{
+				Always:      true,
+				Commands:    []string{".*"},
+				Annotations: nil,
+			},
+			Stages: []string{"prestart"},
+		}}
+
+	for sample_json, expected_outcome := range samples {
+		var dest runtime.HookFile
+		var err = json.Unmarshal([]byte(sample_json), &dest)
+		s.Equal(err, nil)
+		s.Equal(dest, expected_outcome)
+	}
 }
