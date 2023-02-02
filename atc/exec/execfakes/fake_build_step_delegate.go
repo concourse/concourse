@@ -5,6 +5,7 @@ import (
 	"context"
 	"io"
 	"sync"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
@@ -26,6 +27,16 @@ type FakeBuildStepDelegate struct {
 	}
 	beforeSelectWorkerReturnsOnCall map[int]struct {
 		result1 error
+	}
+	BuildStartTimeStub        func() time.Time
+	buildStartTimeMutex       sync.RWMutex
+	buildStartTimeArgsForCall []struct {
+	}
+	buildStartTimeReturns struct {
+		result1 time.Time
+	}
+	buildStartTimeReturnsOnCall map[int]struct {
+		result1 time.Time
 	}
 	ConstructAcrossSubstepsStub        func([]byte, []atc.AcrossVar, [][]interface{}) ([]atc.VarScopedPlan, error)
 	constructAcrossSubstepsMutex       sync.RWMutex
@@ -216,6 +227,59 @@ func (fake *FakeBuildStepDelegate) BeforeSelectWorkerReturnsOnCall(i int, result
 	}
 	fake.beforeSelectWorkerReturnsOnCall[i] = struct {
 		result1 error
+	}{result1}
+}
+
+func (fake *FakeBuildStepDelegate) BuildStartTime() time.Time {
+	fake.buildStartTimeMutex.Lock()
+	ret, specificReturn := fake.buildStartTimeReturnsOnCall[len(fake.buildStartTimeArgsForCall)]
+	fake.buildStartTimeArgsForCall = append(fake.buildStartTimeArgsForCall, struct {
+	}{})
+	stub := fake.BuildStartTimeStub
+	fakeReturns := fake.buildStartTimeReturns
+	fake.recordInvocation("BuildStartTime", []interface{}{})
+	fake.buildStartTimeMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeBuildStepDelegate) BuildStartTimeCallCount() int {
+	fake.buildStartTimeMutex.RLock()
+	defer fake.buildStartTimeMutex.RUnlock()
+	return len(fake.buildStartTimeArgsForCall)
+}
+
+func (fake *FakeBuildStepDelegate) BuildStartTimeCalls(stub func() time.Time) {
+	fake.buildStartTimeMutex.Lock()
+	defer fake.buildStartTimeMutex.Unlock()
+	fake.BuildStartTimeStub = stub
+}
+
+func (fake *FakeBuildStepDelegate) BuildStartTimeReturns(result1 time.Time) {
+	fake.buildStartTimeMutex.Lock()
+	defer fake.buildStartTimeMutex.Unlock()
+	fake.BuildStartTimeStub = nil
+	fake.buildStartTimeReturns = struct {
+		result1 time.Time
+	}{result1}
+}
+
+func (fake *FakeBuildStepDelegate) BuildStartTimeReturnsOnCall(i int, result1 time.Time) {
+	fake.buildStartTimeMutex.Lock()
+	defer fake.buildStartTimeMutex.Unlock()
+	fake.BuildStartTimeStub = nil
+	if fake.buildStartTimeReturnsOnCall == nil {
+		fake.buildStartTimeReturnsOnCall = make(map[int]struct {
+			result1 time.Time
+		})
+	}
+	fake.buildStartTimeReturnsOnCall[i] = struct {
+		result1 time.Time
 	}{result1}
 }
 
@@ -872,6 +936,8 @@ func (fake *FakeBuildStepDelegate) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.beforeSelectWorkerMutex.RLock()
 	defer fake.beforeSelectWorkerMutex.RUnlock()
+	fake.buildStartTimeMutex.RLock()
+	defer fake.buildStartTimeMutex.RUnlock()
 	fake.constructAcrossSubstepsMutex.RLock()
 	defer fake.constructAcrossSubstepsMutex.RUnlock()
 	fake.containerOwnerMutex.RLock()

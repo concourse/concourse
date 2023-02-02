@@ -153,10 +153,10 @@ func (pool Pool) ReleaseWorker(logger lager.Logger, containerSpec runtime.Contai
 	}
 }
 
-func (pool Pool) FindResourceCacheVolume(ctx context.Context, teamID int, resourceCache db.ResourceCache, workerSpec Spec) (runtime.Volume, bool, error) {
+func (pool Pool) FindResourceCacheVolume(ctx context.Context, teamID int, resourceCache db.ResourceCache, workerSpec Spec, shouldBeValidBefore time.Time) (runtime.Volume, bool, error) {
 	logger := lagerctx.FromContext(ctx)
 	team := pool.db.TeamFactory.GetByID(teamID)
-	workersWithCache, err := team.FindWorkersForResourceCache(resourceCache.ID())
+	workersWithCache, err := team.FindWorkersForResourceCache(resourceCache.ID(), shouldBeValidBefore)
 	if err != nil {
 		return nil, false, err
 	}
@@ -169,7 +169,7 @@ func (pool Pool) FindResourceCacheVolume(ctx context.Context, teamID int, resour
 
 	for _, worker := range workersWithCache {
 		if pool.isWorkerCompatibleAndRunning(logger, worker, workerSpec) {
-			volume, found, err := pool.findResourceCacheVolumeOnWorker(ctx, worker, resourceCache)
+			volume, found, err := pool.findResourceCacheVolumeOnWorker(ctx, worker, resourceCache, shouldBeValidBefore)
 			if err != nil {
 				logger.Debug("ignore-find-volume-for-resource-cache-error",
 					lager.Data{
@@ -189,7 +189,7 @@ func (pool Pool) FindResourceCacheVolume(ctx context.Context, teamID int, resour
 	return nil, false, nil
 }
 
-func (pool Pool) FindResourceCacheVolumeOnWorker(ctx context.Context, resourceCache db.ResourceCache, workerSpec Spec, workerName string) (runtime.Volume, bool, error) {
+func (pool Pool) FindResourceCacheVolumeOnWorker(ctx context.Context, resourceCache db.ResourceCache, workerSpec Spec, workerName string, shouldBeValidBefore time.Time) (runtime.Volume, bool, error) {
 	worker, found, err := pool.db.WorkerFactory.GetWorker(workerName)
 	if err != nil {
 		return nil, false, err
@@ -200,11 +200,11 @@ func (pool Pool) FindResourceCacheVolumeOnWorker(ctx context.Context, resourceCa
 	if !pool.isWorkerCompatibleAndRunning(lagerctx.FromContext(ctx), worker, workerSpec) {
 		return nil, false, nil
 	}
-	return pool.findResourceCacheVolumeOnWorker(ctx, worker, resourceCache)
+	return pool.findResourceCacheVolumeOnWorker(ctx, worker, resourceCache, shouldBeValidBefore)
 }
 
-func (pool Pool) findResourceCacheVolumeOnWorker(ctx context.Context, dbWorker db.Worker, resourceCache db.ResourceCache) (runtime.Volume, bool, error) {
-	volume, found, err := pool.db.VolumeRepo.FindResourceCacheVolume(dbWorker.Name(), resourceCache)
+func (pool Pool) findResourceCacheVolumeOnWorker(ctx context.Context, dbWorker db.Worker, resourceCache db.ResourceCache, shouldBeValidBefore time.Time) (runtime.Volume, bool, error) {
+	volume, found, err := pool.db.VolumeRepo.FindResourceCacheVolume(dbWorker.Name(), resourceCache, shouldBeValidBefore)
 	if err != nil {
 		return nil, false, err
 	}

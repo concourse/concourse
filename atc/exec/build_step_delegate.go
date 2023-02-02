@@ -3,6 +3,7 @@ package exec
 import (
 	"context"
 	"io"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	"go.opentelemetry.io/otel/trace"
@@ -37,6 +38,7 @@ type BuildStepDelegate interface {
 	SelectedWorker(lager.Logger, string)
 	StreamingVolume(lager.Logger, string, string, string)
 	WaitingForStreamedVolume(lager.Logger, string, string)
+	BuildStartTime() time.Time
 
 	ConstructAcrossSubsteps([]byte, []atc.AcrossVar, [][]interface{}) ([]atc.VarScopedPlan, error)
 	ContainerOwner(planId atc.PlanID) db.ContainerOwner

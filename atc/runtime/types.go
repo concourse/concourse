@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"strings"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/compression"
@@ -127,6 +128,7 @@ type ContainerSpec struct {
 type BuildStepDelegate interface {
 	StreamingVolume(lager.Logger, string, string, string)
 	WaitingForStreamedVolume(lager.Logger, string, string)
+	BuildStartTime() time.Time
 }
 
 // ContainerSpec must implement propagation.TextMapCarrier so that it can be
@@ -313,12 +315,12 @@ type Volume interface {
 
 	// InitializeResourceCache is called upon a successful run of the get step
 	// to register this Volume as a resource cache.
-	InitializeResourceCache(ctx context.Context, urc db.ResourceCache) error
+	InitializeResourceCache(ctx context.Context, urc db.ResourceCache) (*db.UsedWorkerResourceCache, error)
 
 	// InitializeStreamedResourceCache is called when an external resource
 	// cache volume is streamed locally to register this volume as a resource
 	// cache.
-	InitializeStreamedResourceCache(ctx context.Context, urc db.ResourceCache, workerName string) error
+	InitializeStreamedResourceCache(ctx context.Context, urc db.ResourceCache, sourceWorkerResourceCacheID int) (*db.UsedWorkerResourceCache, error)
 
 	// InitializeTaskCache is called upon a successful run of the task step to
 	// register this Volume as a task cache.
