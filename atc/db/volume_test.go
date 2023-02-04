@@ -186,8 +186,10 @@ var _ = Describe("Volume", func() {
 	Describe("createdVolume.InitializeResourceCache", func() {
 		var createdVolume db.CreatedVolume
 		var resourceCache db.ResourceCache
+		var workerResourceCache *db.UsedWorkerResourceCache
 		var build db.Build
 		var scenario *dbtest.Scenario
+		var buildStartTime time.Time
 
 		volumeOnWorker := func(worker db.Worker) db.CreatedVolume {
 			creatingContainer, err := worker.CreateContainer(db.NewBuildStepContainerOwner(build.ID(), "some-plan", scenario.Team.ID()), db.ContainerMetadata{
@@ -239,23 +241,29 @@ var _ = Describe("Volume", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			createdVolume = volumeOnWorker(scenario.Workers[0])
-			err = createdVolume.InitializeResourceCache(resourceCache)
+			workerResourceCache, err = createdVolume.InitializeResourceCache(resourceCache)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(createdVolume.Type()).To(Equal(db.VolumeTypeResource))
+
+			buildStartTime = time.Now().Add(-100 * time.Second)
 		})
 
 		Context("when initialize created resource cache", func() {
 			It("should find the worker resource cache", func() {
-				_, found, err := db.WorkerResourceCache{
+				uwrc, found, err := db.WorkerResourceCache{
 					WorkerName:    scenario.Workers[0].Name(),
 					ResourceCache: resourceCache,
-				}.Find(dbConn)
+				}.Find(dbConn, time.Now())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
+				Expect(uwrc).ToNot(BeNil())
+				Expect(uwrc.WorkerBaseResourceTypeID).ToNot(BeZero())
+				Expect(uwrc.WorkerBaseResourceTypeID).To(Equal(workerResourceCache.WorkerBaseResourceTypeID))
+				Expect(uwrc.ID).To(Equal(workerResourceCache.ID))
 			})
 
 			It("associates the volume to the resource cache", func() {
-				foundVolume, found, err := volumeRepository.FindResourceCacheVolume(scenario.Workers[0].Name(), resourceCache)
+				foundVolume, found, err := volumeRepository.FindResourceCacheVolume(scenario.Workers[0].Name(), resourceCache, buildStartTime)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(foundVolume.Handle()).To(Equal(createdVolume.Handle()))
 				Expect(found).To(BeTrue())
@@ -264,7 +272,7 @@ var _ = Describe("Volume", func() {
 			Context("when there's already an initialized resource cache on the same worker", func() {
 				It("leaves the volume owned by the container", func() {
 					createdVolume2 := volumeOnWorker(scenario.Workers[0])
-					err := createdVolume2.InitializeResourceCache(resourceCache)
+					_, err := createdVolume2.InitializeResourceCache(resourceCache)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(createdVolume2.Type()).To(Equal(db.VolumeTypeContainer))
 				})
@@ -275,11 +283,11 @@ var _ = Describe("Volume", func() {
 			It("leaves the volume owned by the container", func() {
 				scenario.Run(builder.WithBaseWorker())
 				worker2CacheVolume := volumeOnWorker(scenario.Workers[1])
-				err := worker2CacheVolume.InitializeResourceCache(resourceCache)
+				uwrc, err := worker2CacheVolume.InitializeResourceCache(resourceCache)
 				Expect(err).ToNot(HaveOccurred())
 
 				worker1Volume := volumeOnWorker(scenario.Workers[0])
-				err = worker1Volume.InitializeStreamedResourceCache(resourceCache, scenario.Workers[1].Name())
+				_, err = worker1Volume.InitializeStreamedResourceCache(resourceCache, uwrc.ID)
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(worker1Volume.Type()).To(Equal(db.VolumeTypeContainer))
@@ -288,70 +296,94 @@ var _ = Describe("Volume", func() {
 
 		Context("when initialize streamed resource cache", func() {
 			var streamedVolume1 db.CreatedVolume
+			var workerResourceCache1 *db.UsedWorkerResourceCache
 
 			BeforeEach(func() {
 				scenario.Run(builder.WithBaseWorker())
 
 				streamedVolume1 = volumeOnWorker(scenario.Workers[1])
-				err := streamedVolume1.InitializeStreamedResourceCache(resourceCache, scenario.Workers[0].Name())
+				var err error
+				workerResourceCache1, err = streamedVolume1.InitializeStreamedResourceCache(resourceCache, workerResourceCache.ID)
 				Expect(err).ToNot(HaveOccurred())
-			})
-
-			It("should find the worker resource cache", func() {
-				_, found, err := db.WorkerResourceCache{
-					WorkerName:    scenario.Workers[1].Name(),
-					ResourceCache: resourceCache,
-				}.Find(dbConn)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
 			})
 
 			It("associates the volume to the resource cache", func() {
-				foundVolume, found, err := volumeRepository.FindResourceCacheVolume(scenario.Workers[1].Name(), resourceCache)
+				foundVolume, found, err := volumeRepository.FindResourceCacheVolume(scenario.Workers[1].Name(), resourceCache, buildStartTime)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(foundVolume.Handle()).To(Equal(streamedVolume1.Handle()))
 			})
 
 			Context("when a streamed resource cache is streamed to another worker", func() {
+				var streamedVolume2 db.CreatedVolume
 				BeforeEach(func() {
 					scenario.Run(builder.WithBaseWorker())
 
-					streamedVolume2 := volumeOnWorker(scenario.Workers[2])
-					err := streamedVolume2.InitializeStreamedResourceCache(resourceCache, scenario.Workers[1].Name())
+					streamedVolume2 = volumeOnWorker(scenario.Workers[2])
+					var err error
+					workerResourceCache1, err = streamedVolume2.InitializeStreamedResourceCache(resourceCache, workerResourceCache1.ID)
 					Expect(err).ToNot(HaveOccurred())
 				})
 
-				It("should find the worker resource cache", func() {
-					_, found, err := db.WorkerResourceCache{
-						WorkerName:    scenario.Workers[2].Name(),
-						ResourceCache: resourceCache,
-					}.Find(dbConn)
+				It("associates the volume to the resource cache", func() {
+					foundVolume, found, err := volumeRepository.FindResourceCacheVolume(scenario.Workers[2].Name(), resourceCache, buildStartTime)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeTrue())
+					Expect(foundVolume.Handle()).To(Equal(streamedVolume2.Handle()))
 				})
 
-				It("should be still usable when the original base resource type is invalidated", func() {
-					scenario.Run(
-						builder.WithWorker(atc.Worker{
-							Name:          scenario.Workers[0].Name(),
-							ResourceTypes: []atc.WorkerResourceType{
-								// empty => invalidate the existing worker_base_resource_type
-							},
-						}),
-					)
+				Context("when the original base resource type is invalidated", func() {
+					BeforeEach(func() {
+						scenario.Run(
+							builder.WithWorker(atc.Worker{
+								Name:          scenario.Workers[0].Name(),
+								ResourceTypes: []atc.WorkerResourceType{
+									// empty => invalidate the existing worker_base_resource_type
+								},
+							}),
+						)
+					})
 
-					_, found, err := volumeRepository.FindResourceCacheVolume(scenario.Workers[0].Name(), resourceCache)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeTrue())
+					Context("when build started before original invalidated", func() {
+						BeforeEach(func() {
+							buildStartTime = time.Now().Add(-100 * time.Second)
+						})
 
-					_, found, err = volumeRepository.FindResourceCacheVolume(scenario.Workers[1].Name(), resourceCache)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeTrue())
+						It("should be still usable when the original base resource type is invalidated", func() {
 
-					_, found, err = volumeRepository.FindResourceCacheVolume(scenario.Workers[2].Name(), resourceCache)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeTrue())
+							_, found, err := volumeRepository.FindResourceCacheVolume(scenario.Workers[0].Name(), resourceCache, buildStartTime)
+							Expect(err).ToNot(HaveOccurred())
+							Expect(found).To(BeTrue())
+
+							_, found, err = volumeRepository.FindResourceCacheVolume(scenario.Workers[1].Name(), resourceCache, buildStartTime)
+							Expect(err).ToNot(HaveOccurred())
+							Expect(found).To(BeTrue())
+
+							_, found, err = volumeRepository.FindResourceCacheVolume(scenario.Workers[2].Name(), resourceCache, buildStartTime)
+							Expect(err).ToNot(HaveOccurred())
+							Expect(found).To(BeTrue())
+						})
+					})
+
+					Context("when build started after original invalidated", func() {
+						BeforeEach(func() {
+							buildStartTime = time.Now().Add(100 * time.Second)
+						})
+
+						It("should not be usable when the original base resource type is invalidated", func() {
+							_, found, err := volumeRepository.FindResourceCacheVolume(scenario.Workers[0].Name(), resourceCache, buildStartTime)
+							Expect(err).ToNot(HaveOccurred())
+							Expect(found).To(BeFalse())
+
+							_, found, err = volumeRepository.FindResourceCacheVolume(scenario.Workers[1].Name(), resourceCache, buildStartTime)
+							Expect(err).ToNot(HaveOccurred())
+							Expect(found).To(BeFalse())
+
+							_, found, err = volumeRepository.FindResourceCacheVolume(scenario.Workers[2].Name(), resourceCache, buildStartTime)
+							Expect(err).ToNot(HaveOccurred())
+							Expect(found).To(BeFalse())
+						})
+					})
 				})
 			})
 		})
@@ -364,7 +396,7 @@ var _ = Describe("Volume", func() {
 					builder.WithWorker(atc.Worker{
 						Name:          scenario.Workers[0].Name(),
 						ResourceTypes: []atc.WorkerResourceType{
-							// empty => invalidate the existing worker_resource_cache
+							// empty => invalidate the existing worker_resource_cache from worker0
 						},
 					}),
 				)
@@ -377,24 +409,44 @@ var _ = Describe("Volume", func() {
 			})
 
 			It("InitializeStreamedResourceCache should not fail", func() {
-				err := streamedVolume.InitializeStreamedResourceCache(resourceCache, scenario.Workers[0].Name())
+				_, err := streamedVolume.InitializeStreamedResourceCache(resourceCache, workerResourceCache.ID)
 				Expect(err).ToNot(HaveOccurred())
-			})
 
-			It("should not found the resource cache because source is invalidated", func() {
-				workers, err := defaultTeam.FindWorkersForResourceCache(resourceCache.ID())
-				Expect(err).ToNot(HaveOccurred())
-				Expect(len(workers)).To(Equal(0))
-			})
-
-			It("leaves the volume owned by the container", func() {
+				// leaves the volume owned by the container
 				Expect(streamedVolume.Type()).To(Equal(db.VolumeTypeContainer))
+			})
+
+			Context("when build started before cache is invalidated", func() {
+				BeforeEach(func() {
+					buildStartTime = time.Now().Add(-100 * time.Second)
+				})
+
+				It("should still found the resource cache because source is invalidated", func() {
+					workers, err := defaultTeam.FindWorkersForResourceCache(resourceCache.ID(), buildStartTime)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(len(workers)).To(Equal(1))
+					Expect(workers[0].Name()).To(Equal(scenario.Workers[0].Name()))
+				})
+			})
+
+			Context("when build started after cache is invalidated", func() {
+				BeforeEach(func() {
+					buildStartTime = time.Now().Add(100 * time.Second)
+				})
+
+				It("should still found the resource cache because source is invalidated", func() {
+					workers, err := defaultTeam.FindWorkersForResourceCache(resourceCache.ID(), buildStartTime)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(len(workers)).To(Equal(0))
+				})
 			})
 		})
 
 		Context("when a streamed resource cache is invalidated", func() {
 			var streamedVolumeOnWorker1 db.CreatedVolume
+			var workerResourceCacheOnWorker1 *db.UsedWorkerResourceCache
 			var newVolume db.CreatedVolume
+			var newWorkerResourceCache *db.UsedWorkerResourceCache
 			var initErr error
 
 			BeforeEach(func() {
@@ -403,36 +455,80 @@ var _ = Describe("Volume", func() {
 				)
 
 				streamedVolumeOnWorker1 = volumeOnWorker(scenario.Workers[1])
-				err := streamedVolumeOnWorker1.InitializeStreamedResourceCache(resourceCache, scenario.Workers[0].Name())
+				var err error
+				workerResourceCacheOnWorker1, err = streamedVolumeOnWorker1.InitializeStreamedResourceCache(resourceCache, workerResourceCache.ID)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(streamedVolumeOnWorker1.Type()).To(Equal(db.VolumeTypeResource))
+				Expect(workerResourceCacheOnWorker1).NotTo(BeNil())
 
-				workers, err := defaultTeam.FindWorkersForResourceCache(resourceCache.ID())
+				workers, err := defaultTeam.FindWorkersForResourceCache(resourceCache.ID(), buildStartTime)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(workers)).To(Equal(2))
 
+				// Prune worker0, so that streamed worker resource caches should be invalidated.
 				err = scenario.Workers[0].Land()
 				Expect(err).ToNot(HaveOccurred())
 				err = scenario.Workers[0].Prune()
 				Expect(err).ToNot(HaveOccurred())
 
+				// After the old cached is invalidated, init a new cache.
 				newVolume = volumeOnWorker(scenario.Workers[1])
-				initErr = newVolume.InitializeResourceCache(resourceCache)
+				newWorkerResourceCache, initErr = newVolume.InitializeResourceCache(resourceCache)
 			})
 
-			It("initializing resource cache on the new volume should not fail", func() {
+			It("initializing resource cache on the new volume should succeed", func() {
 				Expect(initErr).ToNot(HaveOccurred())
+				Expect(newWorkerResourceCache).NotTo(BeNil())
+				Expect(newWorkerResourceCache.WorkerBaseResourceTypeID).ToNot(BeZero())
+				Expect(newWorkerResourceCache.ID).NotTo(Equal(workerResourceCacheOnWorker1))
 			})
 
-			It("leaves the new volume owned by the container", func() {
-				Expect(newVolume.Type()).To(Equal(db.VolumeTypeContainer))
+			It("new volume owned by the resource", func() {
+				Expect(newVolume.Type()).To(Equal(db.VolumeTypeResource))
 			})
 
-			It("resource cache volume still be found on worker 1 after original invalidated on worker 0", func() {
-				foundVolume, found, err := volumeRepository.FindResourceCacheVolume(scenario.Workers[1].Name(), resourceCache)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(foundVolume.Handle()).To(Equal(streamedVolumeOnWorker1.Handle()))
+			Context("when build started before the cache is invalidated", func() {
+				BeforeEach(func() {
+					buildStartTime = time.Now().Add(-100 * time.Second)
+				})
+
+				It("resource cache volume should be found on both worker1", func() {
+					foundVolume, found, err := volumeRepository.FindResourceCacheVolume(scenario.Workers[1].Name(), resourceCache, buildStartTime)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(foundVolume.Handle()).To(Equal(newVolume.Handle()))
+				})
+
+				It("there is an invalid worker resource cache on worker1", func() {
+					invalidUwrc, found, err := db.WorkerResourceCache{}.FindByID(dbConn, workerResourceCacheOnWorker1.ID)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(invalidUwrc).ToNot(BeNil())
+					Expect(invalidUwrc.WorkerBaseResourceTypeID).To(BeZero())
+				})
+			})
+
+			// In this test, no matter build started before or after the original cache is invalidated,
+			// they should behave the same because new cache has been initialized on worker-1.
+			Context("when build started after the cache is invalidated", func() {
+				BeforeEach(func() {
+					buildStartTime = time.Now().Add(100 * time.Second)
+				})
+
+				It("resource cache volume should be found on worker1", func() {
+					foundVolume, found, err := volumeRepository.FindResourceCacheVolume(scenario.Workers[1].Name(), resourceCache, buildStartTime)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(foundVolume.Handle()).To(Equal(newVolume.Handle()))
+				})
+
+				It("there is an invalid worker resource cache on worker1", func() {
+					invalidUwrc, found, err := db.WorkerResourceCache{}.FindByID(dbConn, workerResourceCacheOnWorker1.ID)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(invalidUwrc).ToNot(BeNil())
+					Expect(invalidUwrc.WorkerBaseResourceTypeID).To(BeZero())
+				})
 			})
 		})
 	})
@@ -645,7 +741,7 @@ var _ = Describe("Volume", func() {
 
 			Expect(createdVolume.Type()).To(Equal(db.VolumeType(db.VolumeTypeContainer)))
 
-			err = createdVolume.InitializeResourceCache(resourceCache)
+			_, err = createdVolume.InitializeResourceCache(resourceCache)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(createdVolume.Type()).To(Equal(db.VolumeType(db.VolumeTypeResource)))
@@ -657,7 +753,7 @@ var _ = Describe("Volume", func() {
 			Expect(volumeResourceType.ResourceType.Version).To(Equal(atc.Version{"some-custom-type": "version"}))
 			Expect(volumeResourceType.Version).To(Equal(atc.Version{"some": "version"}))
 
-			createdVolume, found, err := volumeRepository.FindResourceCacheVolume(defaultWorker.Name(), resourceCache)
+			createdVolume, found, err := volumeRepository.FindResourceCacheVolume(defaultWorker.Name(), resourceCache, time.Now())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 			Expect(createdVolume.Type()).To(Equal(db.VolumeType(db.VolumeTypeResource)))
@@ -735,7 +831,8 @@ var _ = Describe("Volume", func() {
 
 			Expect(sourceVolume.Type()).To(Equal(db.VolumeType(db.VolumeTypeContainer)))
 
-			err = sourceVolume.InitializeResourceCache(resourceCache)
+			var workerResourceCache *db.UsedWorkerResourceCache
+			workerResourceCache, err = sourceVolume.InitializeResourceCache(resourceCache)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(sourceVolume.Type()).To(Equal(db.VolumeType(db.VolumeTypeResource)))
@@ -754,7 +851,7 @@ var _ = Describe("Volume", func() {
 
 			Expect(destinationVolume.Type()).To(Equal(db.VolumeType(db.VolumeTypeContainer)))
 
-			err = destinationVolume.InitializeStreamedResourceCache(resourceCache, sourceWorker.Name())
+			_, err = destinationVolume.InitializeStreamedResourceCache(resourceCache, workerResourceCache.ID)
 			Expect(err).ToNot(HaveOccurred())
 
 			volumeResourceType, err := destinationVolume.ResourceType()
@@ -867,7 +964,7 @@ var _ = Describe("Volume", func() {
 			parentVolume, err = creatingParentVolume.Created()
 			Expect(err).ToNot(HaveOccurred())
 
-			err = parentVolume.InitializeResourceCache(usedResourceCache)
+			_, err = parentVolume.InitializeResourceCache(usedResourceCache)
 			Expect(err).ToNot(HaveOccurred())
 		})
 

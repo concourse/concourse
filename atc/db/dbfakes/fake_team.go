@@ -213,10 +213,11 @@ type FakeTeam struct {
 		result2 bool
 		result3 error
 	}
-	FindWorkersForResourceCacheStub        func(int) ([]db.Worker, error)
+	FindWorkersForResourceCacheStub        func(int, time.Time) ([]db.Worker, error)
 	findWorkersForResourceCacheMutex       sync.RWMutex
 	findWorkersForResourceCacheArgsForCall []struct {
 		arg1 int
+		arg2 time.Time
 	}
 	findWorkersForResourceCacheReturns struct {
 		result1 []db.Worker
@@ -1371,18 +1372,19 @@ func (fake *FakeTeam) FindWorkerForVolumeReturnsOnCall(i int, result1 db.Worker,
 	}{result1, result2, result3}
 }
 
-func (fake *FakeTeam) FindWorkersForResourceCache(arg1 int) ([]db.Worker, error) {
+func (fake *FakeTeam) FindWorkersForResourceCache(arg1 int, arg2 time.Time) ([]db.Worker, error) {
 	fake.findWorkersForResourceCacheMutex.Lock()
 	ret, specificReturn := fake.findWorkersForResourceCacheReturnsOnCall[len(fake.findWorkersForResourceCacheArgsForCall)]
 	fake.findWorkersForResourceCacheArgsForCall = append(fake.findWorkersForResourceCacheArgsForCall, struct {
 		arg1 int
-	}{arg1})
+		arg2 time.Time
+	}{arg1, arg2})
 	stub := fake.FindWorkersForResourceCacheStub
 	fakeReturns := fake.findWorkersForResourceCacheReturns
-	fake.recordInvocation("FindWorkersForResourceCache", []interface{}{arg1})
+	fake.recordInvocation("FindWorkersForResourceCache", []interface{}{arg1, arg2})
 	fake.findWorkersForResourceCacheMutex.Unlock()
 	if stub != nil {
-		return stub(arg1)
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -1396,17 +1398,17 @@ func (fake *FakeTeam) FindWorkersForResourceCacheCallCount() int {
 	return len(fake.findWorkersForResourceCacheArgsForCall)
 }
 
-func (fake *FakeTeam) FindWorkersForResourceCacheCalls(stub func(int) ([]db.Worker, error)) {
+func (fake *FakeTeam) FindWorkersForResourceCacheCalls(stub func(int, time.Time) ([]db.Worker, error)) {
 	fake.findWorkersForResourceCacheMutex.Lock()
 	defer fake.findWorkersForResourceCacheMutex.Unlock()
 	fake.FindWorkersForResourceCacheStub = stub
 }
 
-func (fake *FakeTeam) FindWorkersForResourceCacheArgsForCall(i int) int {
+func (fake *FakeTeam) FindWorkersForResourceCacheArgsForCall(i int) (int, time.Time) {
 	fake.findWorkersForResourceCacheMutex.RLock()
 	defer fake.findWorkersForResourceCacheMutex.RUnlock()
 	argsForCall := fake.findWorkersForResourceCacheArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeTeam) FindWorkersForResourceCacheReturns(result1 []db.Worker, result2 error) {

@@ -674,7 +674,7 @@ func (worker *Worker) findOrStreamVolume(
 	}
 
 	for {
-		localVolume, ok, err := worker.findVolumeForArtifact(ctx, teamID, artifact)
+		localVolume, ok, err := worker.findVolumeForArtifact(ctx, teamID, artifact, delegate.BuildStartTime())
 		if err != nil {
 			logger.Error("failed-to-find-volume-for-artifact", err)
 			return Volume{}, err

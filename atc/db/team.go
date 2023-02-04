@@ -75,7 +75,7 @@ type Team interface {
 	FindCreatedContainerByHandle(string) (CreatedContainer, bool, error)
 	FindWorkerForContainer(handle string) (Worker, bool, error)
 	FindWorkerForVolume(handle string) (Worker, bool, error)
-	FindWorkersForResourceCache(rcId int) ([]Worker, error)
+	FindWorkersForResourceCache(rcId int, shouldBeValidBefore time.Time) ([]Worker, error)
 
 	UpdateProviderAuth(auth atc.TeamAuth) error
 }
@@ -164,13 +164,22 @@ func (t *team) FindWorkerForVolume(handle string) (Worker, bool, error) {
 	}))
 }
 
-func (t *team) FindWorkersForResourceCache(rcId int) ([]Worker, error) {
+// FindWorkersForResourceCache returns workers that contain valid resource caches.
+// A valid resource cache's worker_base_resource_type_id is not nil. If an invalidated
+// worker resource cache is only got invalidated after shouldBeValidBefore, then it can
+// also be returned, where shouldBeValidBefore is usually a build start time, meaning
+// that, if a worker resource cache is invalidated after a build is started, then the
+// build can still use the cache.
+func (t *team) FindWorkersForResourceCache(rcId int, shouldBeValidBefore time.Time) ([]Worker, error) {
 	return getWorkers(
 		t.conn, workersQuery.
 			Join("worker_resource_caches wrc ON w.name = wrc.worker_name").
 			Where(sq.And{
 				sq.Eq{"wrc.resource_cache_id": rcId},
-				sq.NotEq{"wrc.worker_base_resource_type_id": nil},
+				sq.Or{
+					sq.NotEq{"wrc.worker_base_resource_type_id": nil},
+					sq.Expr("wrc.invalid_since > to_timestamp(?)", shouldBeValidBefore.Unix()),
+				},
 				sq.Eq{"w.state": WorkerStateRunning},
 			}))
 }

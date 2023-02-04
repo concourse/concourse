@@ -42,6 +42,7 @@ type PutDelegate interface {
 	SelectedWorker(lager.Logger, string)
 	StreamingVolume(lager.Logger, string, string, string)
 	WaitingForStreamedVolume(lager.Logger, string, string)
+	BuildStartTime() time.Time
 
 	SaveOutput(lager.Logger, atc.PutPlan, atc.Source, db.ResourceCache, resource.VersionResult)
 }

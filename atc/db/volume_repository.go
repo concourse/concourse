@@ -19,7 +19,7 @@ type VolumeRepository interface {
 	FindBaseResourceTypeVolume(*UsedWorkerBaseResourceType) (CreatingVolume, CreatedVolume, error)
 	CreateBaseResourceTypeVolume(*UsedWorkerBaseResourceType) (CreatingVolume, error)
 
-	FindResourceCacheVolume(workerName string, resourceCache ResourceCache) (CreatedVolume, bool, error)
+	FindResourceCacheVolume(workerName string, resourceCache ResourceCache, volumeShouldBeValidBefore time.Time) (CreatedVolume, bool, error)
 
 	FindTaskCacheVolume(teamID int, workerName string, taskCache UsedTaskCache) (CreatedVolume, bool, error)
 	CreateTaskCacheVolume(teamID int, uwtc *UsedWorkerTaskCache) (CreatingVolume, error)
@@ -441,11 +441,14 @@ func (repository *volumeRepository) CreateResourceCertsVolume(workerName string,
 	return volume, nil
 }
 
-func (repository *volumeRepository) FindResourceCacheVolume(workerName string, resourceCache ResourceCache) (CreatedVolume, bool, error) {
+// FindResourceCacheVolume returns a volume for specified resource cache on specified worker.
+// If the worker resource cache has been invalided before volumeShouldBeValidBefore (usually
+// equal to a build start time), then the corresponding volume should no longer be used.
+func (repository *volumeRepository) FindResourceCacheVolume(workerName string, resourceCache ResourceCache, volumeShouldBeValidBefore time.Time) (CreatedVolume, bool, error) {
 	workerResourceCache, found, err := WorkerResourceCache{
 		WorkerName:    workerName,
 		ResourceCache: resourceCache,
-	}.Find(repository.conn)
+	}.Find(repository.conn, volumeShouldBeValidBefore)
 	if err != nil {
 		return nil, false, err
 	}
@@ -474,7 +477,7 @@ func (repository *volumeRepository) FindWorkersForResourceCache(resourceCache Re
 		LeftJoin("workers w on c.worker_name = w.name").
 		Where(sq.Eq{
 			"c.resource_cache_id": resourceCache.ID(),
-			"w.state": "running",
+			"w.state":             "running",
 		}).
 		RunWith(repository.conn).
 		Query()
@@ -500,7 +503,7 @@ func (repository *volumeRepository) FindWorkersForTaskCache(taskCache UsedTaskCa
 		LeftJoin("workers w on c.worker_name = w.name").
 		Where(sq.Eq{
 			"c.task_cache_id": taskCache.ID(),
-			"w.state": "running",
+			"w.state":         "running",
 		}).
 		RunWith(repository.conn).
 		Query()
@@ -797,6 +800,7 @@ var volumeColumns = []string{
 	"c.handle",
 	"pv.handle",
 	"v.team_id",
+	"wrc.id",
 	"wrc.resource_cache_id",
 	"v.worker_base_resource_type_id",
 	"v.worker_task_cache_id",
@@ -822,6 +826,7 @@ func scanVolume(row sq.RowScanner, conn Conn) (CreatingVolume, CreatedVolume, De
 	var sqContainerHandle sql.NullString
 	var sqParentHandle sql.NullString
 	var sqTeamID sql.NullInt64
+	var sqWorkerResourceCacheID sql.NullInt64
 	var sqResourceCacheID sql.NullInt64
 	var sqWorkerBaseResourceTypeID sql.NullInt64
 	var sqWorkerTaskCacheID sql.NullInt64
@@ -838,6 +843,7 @@ func scanVolume(row sq.RowScanner, conn Conn) (CreatingVolume, CreatedVolume, De
 		&sqContainerHandle,
 		&sqParentHandle,
 		&sqTeamID,
+		&sqWorkerResourceCacheID,
 		&sqResourceCacheID,
 		&sqWorkerBaseResourceTypeID,
 		&sqWorkerTaskCacheID,
@@ -867,6 +873,11 @@ func scanVolume(row sq.RowScanner, conn Conn) (CreatingVolume, CreatedVolume, De
 	var teamID int
 	if sqTeamID.Valid {
 		teamID = int(sqTeamID.Int64)
+	}
+
+	var workerResourceCacheID int
+	if sqWorkerResourceCacheID.Valid {
+		workerResourceCacheID = int(sqWorkerResourceCacheID.Int64)
 	}
 
 	var resourceCacheID int
@@ -905,6 +916,7 @@ func scanVolume(row sq.RowScanner, conn Conn) (CreatingVolume, CreatedVolume, De
 			workerName:               workerName,
 			containerHandle:          containerHandle,
 			parentHandle:             parentHandle,
+			workerResourceCacheID:    workerResourceCacheID,
 			resourceCacheID:          resourceCacheID,
 			workerBaseResourceTypeID: workerBaseResourceTypeID,
 			workerTaskCacheID:        workerTaskCacheID,
