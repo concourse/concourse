@@ -178,7 +178,19 @@ func (c *client) ListVolumes(ctx context.Context, properties baggageclaim.Volume
 }
 
 func (c *client) LookupVolume(ctx context.Context, handle string) (baggageclaim.Volume, bool, error) {
-	volumeResponse, found, err := c.getVolumeResponse(ctx, handle)
+	volumeResponse, found, err := c.getVolumeResponse(ctx, handle, false)
+	if err != nil {
+		return nil, false, err
+	}
+	if !found {
+		return nil, found, nil
+	}
+
+	return c.newVolume(volumeResponse), true, nil
+}
+
+func (c *client) LookupVolumeWithSize(ctx context.Context, handle string) (baggageclaim.Volume, bool, error) {
+	volumeResponse, found, err := c.getVolumeResponse(ctx, handle, true)
 	if err != nil {
 		return nil, false, err
 	}
@@ -243,6 +255,7 @@ func (c *client) newVolume(apiVolume baggageclaim.VolumeResponse) baggageclaim.V
 	volume := &clientVolume{
 		handle: apiVolume.Handle,
 		path:   apiVolume.Path,
+		size:   apiVolume.Size,
 
 		bcClient: c,
 	}
@@ -428,8 +441,12 @@ func getError(response *http.Response) error {
 	return errors.New(errorResponse.Message)
 }
 
-func (c *client) getVolumeResponse(ctx context.Context, handle string) (baggageclaim.VolumeResponse, bool, error) {
-	request, err := c.generateRequest(ctx, baggageclaim.GetVolume, rata.Params{
+func (c *client) getVolumeResponse(ctx context.Context, handle string, requestSize bool) (baggageclaim.VolumeResponse, bool, error) {
+	requestName := baggageclaim.GetVolume
+	if requestSize {
+		requestName = baggageclaim.GetVolumeWithSize
+	}
+	request, err := c.generateRequest(ctx, requestName, rata.Params{
 		"handle": handle,
 	}, nil)
 	if err != nil {

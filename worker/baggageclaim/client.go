@@ -50,6 +50,16 @@ type Client interface {
 	// or an error as to why the volume could not be found.
 	LookupVolume(context.Context, string) (Volume, bool, error)
 
+	// LookupVolumeWithSize finds a volume with volume size that is present on the server.
+	//  It takes a string that corresponds to the Handle of the Volume.
+	//
+	// You are required to pass in a logger to the call to retain context across
+	// the library boundary.
+	//
+	// LookupVolumeWithSize returns a bool if the volume with volume size is found with the matching volume
+	// or an error as to why the volume could not be found.
+	LookupVolumeWithSize(context.Context, string) (Volume, bool, error)
+
 	// DestroyVolumes deletes the list of volumes that is present on the server. It takes
 	// a string of volumes
 	//
@@ -82,6 +92,8 @@ type Volume interface {
 	// Path returns the filesystem path to the volume on the server. This can be
 	// supplied to other systems in order to let them use the volume.
 	Path() string
+
+	Size() int
 
 	// SetProperty sets a property on the Volume. Properties can be used to
 	// filter the results in the ListVolumes call above.

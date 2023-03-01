@@ -333,7 +333,39 @@ func (vs *VolumeServer) GetVolume(w http.ResponseWriter, req *http.Request) {
 
 	ctx := lagerctx.NewContext(req.Context(), hLog)
 
-	vol, found, err := vs.volumeRepo.GetVolume(ctx, handle)
+	vol, found, err := vs.volumeRepo.GetVolume(ctx, handle, false)
+	if err != nil {
+		hLog.Error("failed-to-get-volume", err)
+		RespondWithError(w, ErrGetVolumeFailed, http.StatusInternalServerError)
+		return
+	}
+
+	if !found {
+		hLog.Info("volume-not-found")
+		RespondWithError(w, ErrGetVolumeFailed, http.StatusNotFound)
+		return
+	}
+
+	if err := json.NewEncoder(w).Encode(vol); err != nil {
+		hLog.Error("failed-to-encode", err)
+	}
+}
+
+func (vs *VolumeServer) GetVolumeWithSize(w http.ResponseWriter, req *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	handle := rata.Param(req, "handle")
+
+	hLog := vs.logger.Session("get-volume", lager.Data{
+		"volume": handle,
+	})
+
+	hLog.Debug("start")
+	defer hLog.Debug("done")
+
+	ctx := lagerctx.NewContext(req.Context(), hLog)
+
+	vol, found, err := vs.volumeRepo.GetVolume(ctx, handle, true)
 	if err != nil {
 		hLog.Error("failed-to-get-volume", err)
 		RespondWithError(w, ErrGetVolumeFailed, http.StatusInternalServerError)

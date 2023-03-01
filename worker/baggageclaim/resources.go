@@ -14,6 +14,7 @@ type VolumeRequest struct {
 type VolumeResponse struct {
 	Handle     string           `json:"handle"`
 	Path       string           `json:"path"`
+	Size       int              `json:"size"`
 	Properties VolumeProperties `json:"properties"`
 }
 
