@@ -113,6 +113,7 @@ type StreamingVolume struct {
 	Time         int64  `json:"time"`
 	Origin       Origin `json:"origin"`
 	Volume       string `json:"volume"`
+	VolumeSize   int    `json:"volume_size"`
 	SourceWorker string `json:"source_worker"`
 	DestWorker   string `json:"dest_worker"`
 }
