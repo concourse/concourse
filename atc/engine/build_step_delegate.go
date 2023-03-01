@@ -216,13 +216,14 @@ func (delegate *buildStepDelegate) SelectedWorker(logger lager.Logger, worker st
 	}
 }
 
-func (delegate *buildStepDelegate) StreamingVolume(logger lager.Logger, volume string, sourceWorker string, destWorker string) {
+func (delegate *buildStepDelegate) StreamingVolume(logger lager.Logger, volume string, sourceWorker string, destWorker string, volumeSize int) {
 	err := delegate.build.SaveEvent(event.StreamingVolume{
 		Time: time.Now().Unix(),
 		Origin: event.Origin{
 			ID: event.OriginID(delegate.planID),
 		},
 		Volume:       volume,
+		VolumeSize:   volumeSize,
 		SourceWorker: sourceWorker,
 		DestWorker:   destWorker,
 	})

@@ -26,6 +26,7 @@ const streamedVolumePathPrefix = "streamed-no-mount:"
 type Volume struct {
 	dbVolume db.CreatedVolume
 	bcVolume baggageclaim.Volume
+	Size     int
 	worker   *Worker
 }
 
