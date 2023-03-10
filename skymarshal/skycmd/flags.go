@@ -31,9 +31,6 @@ func WireConnectors(group *flags.Group) {
 		description := fmt.Sprintf("%s (%s)", group.ShortDescription, c.Name())
 		connGroup, _ := group.AddGroup(description, description, c.config)
 		connGroup.Namespace = c.ID()
-		if c.ID() == "cloudfoundry" {
-			connGroup.Namespace = "cf"
-		}
 	}
 }
 
@@ -42,9 +39,6 @@ func WireTeamConnectors(group *flags.Group) {
 		description := fmt.Sprintf("%s (%s)", group.ShortDescription, c.Name())
 		connTeamGroup, _ := group.AddGroup(description, description, c.teamConfig)
 		connTeamGroup.Namespace = c.ID()
-		if c.ID() == "cloudfoundry" {
-			connTeamGroup.Namespace = "cf"
-		}
 	}
 }
 
@@ -217,6 +211,9 @@ type Connector struct {
 }
 
 func (con *Connector) ID() string {
+	if con.id == "cloudfoundry" {
+		return "cf"
+	}
 	return con.id
 }
 
