@@ -20,5 +20,6 @@
       "allowedVersions": "!/1\\.(4\\.0|5\\.0|5\\.1|5\\.2)$/"
     }
   ],
+  "ignoreDeps": ["elm", "client-go"],
   "labels": ["dependencies", "misc", "release/undocumented"]
 }
