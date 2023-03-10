@@ -31,6 +31,9 @@ func WireConnectors(group *flags.Group) {
 		description := fmt.Sprintf("%s (%s)", group.ShortDescription, c.Name())
 		connGroup, _ := group.AddGroup(description, description, c.config)
 		connGroup.Namespace = c.ID()
+		if c.ID() == "cloudfoundry" {
+			connGroup.Namespace = "cf"
+		}
 	}
 }
 
@@ -39,6 +42,9 @@ func WireTeamConnectors(group *flags.Group) {
 		description := fmt.Sprintf("%s (%s)", group.ShortDescription, c.Name())
 		connTeamGroup, _ := group.AddGroup(description, description, c.teamConfig)
 		connTeamGroup.Namespace = c.ID()
+		if c.ID() == "cloudfoundry" {
+			connTeamGroup.Namespace = "cf"
+		}
 	}
 }
 
@@ -72,7 +78,7 @@ func (flag *AuthTeamFlags) Format() (atc.TeamAuth, error) {
 
 // e.g.
 // The github connector has configuration for: users, teams, orgs
-// The cf conncetor has configuration for: users, orgs, spaces
+// The cloudfoundry conncetor has configuration for: users, orgs, spaces
 
 func (flag *AuthTeamFlags) formatFromFile() (atc.TeamAuth, error) {
 
