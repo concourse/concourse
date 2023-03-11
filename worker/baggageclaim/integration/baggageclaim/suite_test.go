@@ -77,9 +77,9 @@ type BaggageClaimRunner struct {
 }
 
 func NewRunner(path string, driver string) *BaggageClaimRunner {
-	port := 7788 + GinkgoParallelNode()
+	port := 7788 + GinkgoParallelProcess()
 
-	volumeDir, err := ioutil.TempDir("", fmt.Sprintf("baggageclaim_volume_dir_%d", GinkgoParallelNode()))
+	volumeDir, err := ioutil.TempDir("", fmt.Sprintf("baggageclaim_volume_dir_%d", GinkgoParallelProcess()))
 	Expect(err).NotTo(HaveOccurred())
 
 	err = os.Mkdir(filepath.Join(volumeDir, "overlays"), 0700)
@@ -99,7 +99,7 @@ func (bcr *BaggageClaimRunner) Start() {
 		Command: exec.Command(
 			bcr.path,
 			"--bind-port", strconv.Itoa(bcr.port),
-			"--debug-bind-port", strconv.Itoa(8099+GinkgoParallelNode()),
+			"--debug-bind-port", strconv.Itoa(8099+GinkgoParallelProcess()),
 			"--volumes", bcr.volumeDir,
 			"--driver", bcr.driver,
 			"--overlays-dir", filepath.Join(bcr.volumeDir, "overlays"),

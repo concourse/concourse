@@ -28,7 +28,7 @@ func GinkgoRunner(runner *Runner) none {
 
 func InitializeRunnerForGinkgo(runner *Runner, dbProcess *ifrit.Process) {
 	*runner = Runner{
-		Port: 5433 + GinkgoParallelNode(),
+		Port: 5433 + GinkgoParallelProcess(),
 	}
 	*dbProcess = ifrit.Invoke(*runner)
 	runner.InitializeTestDBTemplate()

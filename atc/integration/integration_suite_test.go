@@ -61,7 +61,7 @@ var _ = BeforeEach(func() {
 	cmd.Server.ClientSecret = "client-secret"
 	cmd.Logger.LogLevel = "debug"
 	cmd.Logger.SetWriterSink(GinkgoWriter)
-	cmd.BindPort = 9090 + uint16(GinkgoParallelNode())
+	cmd.BindPort = 9090 + uint16(GinkgoParallelProcess())
 	cmd.DebugBindPort = 0
 
 	signingKey, err := rsa.GenerateKey(rand.Reader, 1024)

@@ -184,7 +184,7 @@ func randomPipelineName() string {
 	guid, err := uuid.NewV4()
 	Expect(err).ToNot(HaveOccurred())
 
-	return fmt.Sprintf("%s-%d-%s", pipelinePrefix, GinkgoParallelNode(), guid)
+	return fmt.Sprintf("%s-%d-%s", pipelinePrefix, GinkgoParallelProcess(), guid)
 }
 
 func fly(argv ...string) *gexec.Session {

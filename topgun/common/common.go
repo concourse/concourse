@@ -129,7 +129,7 @@ var _ = BeforeEach(func() {
 		backupAndRestoreReleaseVersion = "latest"
 	}
 
-	deploymentNumber := GinkgoParallelNode()
+	deploymentNumber := GinkgoParallelProcess()
 
 	DeploymentName = fmt.Sprintf("%s-%d", deploymentNamePrefix, deploymentNumber)
 	Fly.Target = DeploymentName

@@ -21,7 +21,7 @@ var _ = Describe("Startup", func() {
 	})
 
 	It("exits with an error if --volumes is not specified", func() {
-		port := 7788 + GinkgoParallelNode()
+		port := 7788 + GinkgoParallelProcess()
 
 		command := exec.Command(
 			baggageClaimPath,

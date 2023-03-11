@@ -91,8 +91,8 @@ var _ = BeforeEach(func() {
 
 	fly = FlyCli{
 		Bin:    Environment.FlyPath,
-		Target: "concourse-topgun-k8s-" + strconv.Itoa(GinkgoParallelNode()),
-		Home:   filepath.Join(tmp, "fly-home-"+strconv.Itoa(GinkgoParallelNode())),
+		Target: "concourse-topgun-k8s-" + strconv.Itoa(GinkgoParallelProcess()),
+		Home:   filepath.Join(tmp, "fly-home-"+strconv.Itoa(GinkgoParallelProcess())),
 	}
 
 	endpointFactory = PortForwardingEndpointFactory{}

@@ -4,7 +4,6 @@ import (
 	"github.com/concourse/concourse/atc/creds/conjur"
 	"github.com/jessevdk/go-flags"
 
-	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )

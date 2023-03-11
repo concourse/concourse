@@ -85,10 +85,10 @@ var (
 )
 
 var _ = BeforeEach(func() {
-	tsaPort = 9800 + GinkgoParallelNode()
-	tsaDebugPort = 9900 + GinkgoParallelNode()
+	tsaPort = 9800 + GinkgoParallelProcess()
+	tsaDebugPort = 9900 + GinkgoParallelProcess()
 
-	gardenPort := 9001 + GinkgoParallelNode()
+	gardenPort := 9001 + GinkgoParallelProcess()
 	gardenAddr = fmt.Sprintf("127.0.0.1:%d", gardenPort)
 
 	fakeBackend = new(gfakes.FakeBackend)

@@ -2,7 +2,7 @@ package algorithm_test
 
 import (
 	"github.com/concourse/concourse/atc/db"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 )
 
 var _ = DescribeTable("Regression tests",

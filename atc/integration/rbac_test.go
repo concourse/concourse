@@ -151,7 +151,7 @@ jobs:
 
 		BeforeEach(func() {
 			var err error
-			tmp, err = ioutil.TempDir("", fmt.Sprintf("tmp-%d", GinkgoParallelNode()))
+			tmp, err = ioutil.TempDir("", fmt.Sprintf("tmp-%d", GinkgoParallelProcess()))
 			Expect(err).ToNot(HaveOccurred())
 		})
 

@@ -34,7 +34,7 @@ Fly is built using [Go](http://golang.org/). Building and testing fly is most ea
 3. You can also now run tests by installing and running [ginkgo](http://onsi.github.io/ginkgo/):
 
   ```bash
-  go get github.com/onsi/ginkgo/ginkgo
+  go get github.com/onsi/ginkgo/v2/ginkgo
   ginkgo -r
   ```
 

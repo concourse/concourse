@@ -376,8 +376,7 @@ var _ = Describe("NotificationBus", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				close(done)
-			}, 5)
-
+			})
 		})
 
 		Context("when the notification channel fills up while unlistening", func() {
@@ -400,7 +399,7 @@ var _ = Describe("NotificationBus", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				close(done)
-			}, 5)
+			})
 		})
 	})
 })
