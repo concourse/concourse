@@ -62,12 +62,12 @@ var _ = Describe("skyDisplayUserIdGenerator", func() {
 				Entry("ldap connector", "ldap", "userid"),
 				Entry("github connector", "github", "preferredUsername"),
 				Entry("bitbucket-cloud connector", "bitbucket-cloud", "username"),
-				Entry("cf connector", "cf", "email"),
-				Entry("gitlab connector", "cf", "email"),
-				Entry("microsoft connector", "cf", "email"),
-				Entry("oauth connector", "cf", "email"),
-				Entry("oidc connector", "cf", "email"),
-				Entry("saml connector", "cf", "email"),
+				Entry("cloudfoundry connector", "cf", "email"),
+				Entry("gitlab connector", "gitlab", "email"),
+				Entry("microsoft connector", "microsoft", "email"),
+				Entry("oauth connector", "oauth", "email"),
+				Entry("oidc connector", "oidc", "email"),
+				Entry("saml connector", "saml", "email"),
 			)
 		})
 	})
