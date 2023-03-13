@@ -10,6 +10,7 @@ type Encoding string
 
 const GzipEncoding Encoding = "gzip"
 const ZstdEncoding Encoding = "zstd"
+const NoZipEncoding Encoding = "nozip"
 
 const (
 	StrategyEmpty       = "empty"

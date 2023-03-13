@@ -12,15 +12,13 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/tracing"
+	"github.com/concourse/concourse/worker/baggageclaim"
 	"github.com/concourse/concourse/worker/baggageclaim/uidgid"
 )
 
 var ErrVolumeDoesNotExist = errors.New("volume does not exist")
 var ErrVolumeIsCorrupted = errors.New("volume is corrupted")
 var ErrUnsupportedStreamEncoding = errors.New("unsupported stream encoding")
-
-const GzipEncoding string = "gzip"
-const ZstdEncoding string = "zstd"
 
 //go:generate counterfeiter . Repository
 
@@ -35,10 +33,10 @@ type Repository interface {
 	GetPrivileged(ctx context.Context, handle string) (bool, error)
 	SetPrivileged(ctx context.Context, handle string, privileged bool) error
 
-	StreamIn(ctx context.Context, handle string, path string, encoding string, stream io.Reader) (bool, error)
-	StreamOut(ctx context.Context, handle string, path string, encoding string, dest io.Writer) error
+	StreamIn(ctx context.Context, handle string, path string, encoding baggageclaim.Encoding, stream io.Reader) (bool, error)
+	StreamOut(ctx context.Context, handle string, path string, encoding baggageclaim.Encoding, dest io.Writer) error
 
-	StreamP2pOut(ctx context.Context, handle string, path string, encoding string, streamInURL string) error
+	StreamP2pOut(ctx context.Context, handle string, path string, encoding baggageclaim.Encoding, streamInURL string) error
 
 	VolumeParent(ctx context.Context, handle string) (Volume, bool, error)
 }
@@ -48,9 +46,10 @@ type repository struct {
 
 	locker LockManager
 
-	gzipStreamer Streamer
-	zstdStreamer Streamer
-	namespacer   func(bool) uidgid.Namespacer
+	gzipStreamer  Streamer
+	zstdStreamer  Streamer
+	nozipStreamer Streamer
+	namespacer    func(bool) uidgid.Namespacer
 }
 
 func NewRepository(
@@ -62,6 +61,11 @@ func NewRepository(
 	return &repository{
 		filesystem: filesystem,
 		locker:     locker,
+
+		nozipStreamer: &tarGzipStreamer{
+			namespacer: unprivilegedNamespacer,
+			skipGzip:   true,
+		},
 
 		gzipStreamer: &tarGzipStreamer{
 			namespacer: unprivilegedNamespacer,
@@ -365,11 +369,11 @@ func (repo *repository) SetPrivileged(ctx context.Context, handle string, privil
 	return nil
 }
 
-func (repo *repository) StreamIn(ctx context.Context, handle string, path string, encoding string, stream io.Reader) (bool, error) {
+func (repo *repository) StreamIn(ctx context.Context, handle string, path string, encoding baggageclaim.Encoding, stream io.Reader) (bool, error) {
 	ctx, span := tracing.StartSpan(ctx, "volumeRepository.StreamIn", tracing.Attrs{
 		"volume":   handle,
 		"sub-path": path,
-		"encoding": encoding,
+		"encoding": string(encoding),
 	})
 	defer span.End()
 
@@ -415,16 +419,18 @@ func (repo *repository) StreamIn(ctx context.Context, handle string, path string
 	}
 
 	switch encoding {
-	case ZstdEncoding:
+	case baggageclaim.ZstdEncoding:
 		return repo.zstdStreamer.In(stream, destinationPath, privileged)
-	case GzipEncoding:
+	case baggageclaim.GzipEncoding:
 		return repo.gzipStreamer.In(stream, destinationPath, privileged)
+	case baggageclaim.NoZipEncoding:
+		return repo.nozipStreamer.In(stream, destinationPath, privileged)
 	}
 
 	return false, ErrUnsupportedStreamEncoding
 }
 
-func (repo *repository) StreamOut(ctx context.Context, handle string, path string, encoding string, dest io.Writer) error {
+func (repo *repository) StreamOut(ctx context.Context, handle string, path string, encoding baggageclaim.Encoding, dest io.Writer) error {
 	ctx, span := tracing.StartSpan(ctx, "volumeRepository.StreamOut", tracing.Attrs{
 		"volume":   handle,
 		"sub-path": path,
@@ -460,20 +466,22 @@ func (repo *repository) StreamOut(ctx context.Context, handle string, path strin
 	}
 
 	switch encoding {
-	case ZstdEncoding:
+	case baggageclaim.ZstdEncoding:
 		return repo.zstdStreamer.Out(dest, srcPath, isPrivileged)
-	case GzipEncoding:
+	case baggageclaim.GzipEncoding:
 		return repo.gzipStreamer.Out(dest, srcPath, isPrivileged)
+	case baggageclaim.NoZipEncoding:
+		return repo.nozipStreamer.Out(dest, srcPath, isPrivileged)
 	}
 
 	return ErrUnsupportedStreamEncoding
 }
 
-func (repo *repository) StreamP2pOut(ctx context.Context, handle string, path string, encoding string, streamInURL string) error {
+func (repo *repository) StreamP2pOut(ctx context.Context, handle string, path string, encoding baggageclaim.Encoding, streamInURL string) error {
 	ctx, span := tracing.StartSpan(ctx, "volumeRepository.StreamP2pOut", tracing.Attrs{
 		"volume":   handle,
 		"sub-path": path,
-		"encoding": encoding,
+		"encoding": string(encoding),
 	})
 	defer span.End()
 
@@ -515,10 +523,12 @@ func (repo *repository) StreamP2pOut(ctx context.Context, handle string, path st
 	go func() {
 		var err error
 		switch encoding {
-		case ZstdEncoding:
+		case baggageclaim.ZstdEncoding:
 			err = repo.zstdStreamer.Out(writer, srcPath, isPrivileged)
-		case GzipEncoding:
+		case baggageclaim.GzipEncoding:
 			err = repo.gzipStreamer.Out(writer, srcPath, isPrivileged)
+		case baggageclaim.NoZipEncoding:
+			err = repo.nozipStreamer.Out(writer, srcPath, isPrivileged)
 		default:
 			err = ErrUnsupportedStreamEncoding
 		}
@@ -536,7 +546,7 @@ func (repo *repository) StreamP2pOut(ctx context.Context, handle string, path st
 		return err
 	}
 
-	req.Header.Set("Content-Encoding", encoding)
+	req.Header.Set("Content-Encoding", string(encoding))
 	resp, err := client.Do(req)
 	if err != nil {
 		return err
