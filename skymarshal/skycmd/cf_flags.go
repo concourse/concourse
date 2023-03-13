@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/concourse/dex/connector/cloudfoundry"
-	"github.com/concourse/flag"
+	"github.com/concourse/flag/v2"
 	multierror "github.com/hashicorp/go-multierror"
 )
 

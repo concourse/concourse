@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"strings"
 
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 	"github.com/Masterminds/squirrel"
 )
 

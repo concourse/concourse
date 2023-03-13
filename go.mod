@@ -6,7 +6,7 @@ require (
 	code.cloudfoundry.org/clock v1.0.0
 	code.cloudfoundry.org/credhub-cli v0.0.0-20230109140612-2e6c285deddc
 	code.cloudfoundry.org/garden v0.0.0-20220318131934-d57de807d0ca
-	code.cloudfoundry.org/lager v2.0.0+incompatible
+	code.cloudfoundry.org/lager/v3 v3.0.0
 	code.cloudfoundry.org/localip v0.0.0-20220131190813-865a62baabe7
 	code.cloudfoundry.org/urljoiner v0.0.0-20170223060717-5cabba6c0a50
 	github.com/DataDog/datadog-go/v5 v5.1.1
@@ -18,9 +18,9 @@ require (
 	github.com/caarlos0/env/v6 v6.10.1
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/concourse/dex v1.6.0
-	github.com/concourse/flag v1.1.0
+	github.com/concourse/flag/v2 v2.0.0
 	github.com/concourse/go-archive v1.0.1
-	github.com/concourse/retryhttp v1.1.1
+	github.com/concourse/retryhttp v1.2.0
 	github.com/containerd/containerd v1.6.18
 	github.com/containerd/go-cni v1.1.7
 	github.com/containerd/typeurl v1.0.2
@@ -55,9 +55,9 @@ require (
 	github.com/miekg/dns v1.1.50
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d
-	github.com/onsi/ginkgo/v2 v2.9.0
-	github.com/onsi/gomega v1.27.1
-	github.com/opencontainers/runc v1.1.5
+	github.com/onsi/ginkgo/v2 v2.9.1
+	github.com/onsi/gomega v1.27.3
+	github.com/opencontainers/runc v1.1.4
 	github.com/opencontainers/runtime-spec v1.0.3-0.20220909204839-494a5a6aca78
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/peterhellberg/link v1.2.0
@@ -84,10 +84,10 @@ require (
 	go.opentelemetry.io/otel/oteltest v1.0.0-RC3
 	go.opentelemetry.io/otel/sdk v1.11.2
 	go.opentelemetry.io/otel/trace v1.11.2
-	golang.org/x/crypto v0.5.0
+	golang.org/x/crypto v0.7.0
 	golang.org/x/oauth2 v0.3.0
 	golang.org/x/sync v0.1.0
-	golang.org/x/sys v0.5.0
+	golang.org/x/sys v0.6.0
 	golang.org/x/time v0.3.0
 	google.golang.org/grpc v1.51.0
 	gopkg.in/square/go-jose.v2 v2.6.0
@@ -124,7 +124,6 @@ require (
 	github.com/creack/pty v1.1.11 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dexidp/dex/api/v2 v2.1.0 // indirect
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
 	github.com/docker/go-events v0.0.0-20190806004212-e31b211e4f1c // indirect
 	github.com/evanphx/json-patch v4.12.0+incompatible // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
@@ -132,7 +131,7 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-sql-driver/mysql v1.6.0 // indirect
 	github.com/gogo/googleapis v1.4.0 // indirect
-	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
@@ -189,11 +188,11 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.11.2 // indirect
 	go.opentelemetry.io/proto/otlp v0.19.0 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
-	golang.org/x/mod v0.8.0 // indirect
-	golang.org/x/net v0.7.0 // indirect
-	golang.org/x/term v0.5.0 // indirect
-	golang.org/x/text v0.7.0 // indirect
-	golang.org/x/tools v0.6.0 // indirect
+	golang.org/x/mod v0.9.0 // indirect
+	golang.org/x/net v0.8.0 // indirect
+	golang.org/x/term v0.6.0 // indirect
+	golang.org/x/text v0.8.0 // indirect
+	golang.org/x/tools v0.7.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	google.golang.org/api v0.99.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
@@ -210,6 +209,7 @@ require (
 )
 
 require (
+	code.cloudfoundry.org/lager v2.0.0+incompatible // indirect
 	filippo.io/edwards25519 v1.0.0-rc.1 // indirect
 	github.com/AppsFlyer/go-sundheit v0.5.0 // indirect
 	github.com/Azure/go-ntlmssp v0.0.0-20220621081337-cb9428e4ac1e // indirect
@@ -226,6 +226,7 @@ require (
 	github.com/go-openapi/jsonreference v0.20.1 // indirect
 	github.com/go-openapi/swag v0.22.3 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
+	github.com/golang-jwt/jwt/v5 v5.0.0-rc.1 // indirect
 	github.com/google/gnostic v0.5.7-v3refs // indirect
 	github.com/google/pprof v0.0.0-20210720184732-4bb14d4b1be1 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.2.0 // indirect
@@ -242,5 +243,3 @@ require (
 	go.uber.org/multierr v1.8.0 // indirect
 	golang.org/x/exp v0.0.0-20221004215720-b9f4876ce741 // indirect
 )
-
-replace github.com/onsi/ginkgo => github.com/phil9909/ginkgo v1.16.6-0.20220211153547-67da0e38b07d

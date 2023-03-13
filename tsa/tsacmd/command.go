@@ -16,10 +16,10 @@ import (
 	"os/signal"
 	"syscall"
 
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/tsa"
-	"github.com/concourse/flag"
+	"github.com/concourse/flag/v2"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"

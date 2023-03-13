@@ -4,7 +4,7 @@ package pipelineserverfakes
 import (
 	"sync"
 
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 )
 
 type FakeLogger struct {

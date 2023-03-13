@@ -7,7 +7,7 @@ import (
 
 	"github.com/concourse/concourse/atc/metric"
 
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 )
 
 func (s *Server) ReportWorkerContainers(w http.ResponseWriter, r *http.Request) {

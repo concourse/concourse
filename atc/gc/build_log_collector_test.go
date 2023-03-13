@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"code.cloudfoundry.org/lager/lagerctx"
-	"code.cloudfoundry.org/lager/lagertest"
+	"code.cloudfoundry.org/lager/v3/lagerctx"
+	"code.cloudfoundry.org/lager/v3/lagertest"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"

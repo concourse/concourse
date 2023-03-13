@@ -17,8 +17,8 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/clock"
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagerctx"
+	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager/v3/lagerctx"
 	"github.com/concourse/concourse"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api"
@@ -58,7 +58,7 @@ import (
 	"github.com/concourse/concourse/skymarshal/token"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/web"
-	"github.com/concourse/flag"
+	"github.com/concourse/flag/v2"
 	"gopkg.in/square/go-jose.v2/jwt"
 
 	"github.com/cppforlife/go-semi-semantic/version"

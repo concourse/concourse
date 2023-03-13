@@ -17,7 +17,7 @@ import (
 	"github.com/concourse/concourse/atc/atccmd"
 	"github.com/concourse/concourse/atc/postgresrunner"
 	"github.com/concourse/concourse/go-concourse/concourse"
-	"github.com/concourse/flag"
+	"github.com/concourse/flag/v2"
 	"github.com/jessevdk/go-flags"
 	"github.com/tedsuo/ifrit"
 	"golang.org/x/oauth2"

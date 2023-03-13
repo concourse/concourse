@@ -16,7 +16,7 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/garden/routes"
 	"code.cloudfoundry.org/garden/transport"
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 	"github.com/tedsuo/rata"
 )
 

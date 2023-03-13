@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagerctx"
+	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager/v3/lagerctx"
 	"sigs.k8s.io/yaml"
 
 	"github.com/concourse/concourse/atc"

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/garden"
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 	"github.com/concourse/concourse/atc/worker/gardenruntime/gclient"
 	"github.com/concourse/concourse/atc/worker/gardenruntime/transport/transportfakes"
 	"github.com/concourse/retryhttp"

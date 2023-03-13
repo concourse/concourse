@@ -6,11 +6,11 @@ import (
 	"os"
 	"regexp"
 
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 	"github.com/concourse/concourse/worker/baggageclaim/api"
 	"github.com/concourse/concourse/worker/baggageclaim/uidgid"
 	"github.com/concourse/concourse/worker/baggageclaim/volume"
-	"github.com/concourse/flag"
+	"github.com/concourse/flag/v2"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"

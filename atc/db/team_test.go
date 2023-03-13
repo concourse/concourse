@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagertest"
+	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager/v3/lagertest"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
