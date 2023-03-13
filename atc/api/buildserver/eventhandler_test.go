@@ -17,7 +17,7 @@ import (
 	"github.com/concourse/concourse/atc/event"
 	"github.com/vito/go-sse/sse"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 

@@ -10,7 +10,7 @@ baggageclaim_dir=$(realpath $(dirname $(dirname $0)))
 
 if not_installed ginkgo; then
   echo "# ginkgo is not installed! run the following command:"
-  echo "    go install github.com/onsi/ginkgo/ginkgo"
+  echo "    go install github.com/onsi/ginkgo/v2/ginkgo"
   exit 1
 fi
 

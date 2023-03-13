@@ -1,15 +1,16 @@
 package db_test
 
 import (
-	"code.cloudfoundry.org/clock"
 	"fmt"
+	"strconv"
+	"time"
+
+	"code.cloudfoundry.org/clock"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db/dbtest"
 	"github.com/concourse/concourse/vars"
 	"github.com/lib/pq"
-	"strconv"
-	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -18,7 +19,7 @@ import (
 	// load dummy credential manager
 	_ "github.com/concourse/concourse/atc/creds/dummy"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 

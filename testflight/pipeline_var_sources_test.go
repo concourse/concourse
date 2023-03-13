@@ -1,7 +1,7 @@
 package testflight_test
 
 import (
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 )
 
 var _ = Describe("Pipeline Var Sources", func() {

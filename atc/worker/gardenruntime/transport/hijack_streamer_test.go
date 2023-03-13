@@ -20,7 +20,7 @@ import (
 	gconn "github.com/concourse/concourse/atc/worker/gardenruntime/gclient/connection"
 	"github.com/concourse/concourse/atc/worker/gardenruntime/transport"
 	"github.com/concourse/concourse/atc/worker/gardenruntime/transport/transportfakes"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/rata"
 

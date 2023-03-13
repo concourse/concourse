@@ -10,7 +10,7 @@ tsa_dir=$(cd $(dirname $(dirname $0)) && pwd)
 
 if not_installed ginkgo; then
   echo "# ginkgo is not installed! run the following command:"
-  echo "    go install github.com/onsi/ginkgo/ginkgo"
+  echo "    go install github.com/onsi/ginkgo/v2/ginkgo"
   exit 1
 fi
 

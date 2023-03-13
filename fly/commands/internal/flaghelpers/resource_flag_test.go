@@ -4,7 +4,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	. "github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 

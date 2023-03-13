@@ -15,7 +15,7 @@ import (
 	"path/filepath"
 	"syscall"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/concourse/worker/baggageclaim"
@@ -50,7 +50,7 @@ var _ = Describe("Privileges", func() {
 
 	makeSentinel := func(volumePath string) string {
 		sentinel, err := ioutil.TempFile("",
-			fmt.Sprintf("baggageclaim_link_sentinel_%d", GinkgoParallelNode()))
+			fmt.Sprintf("baggageclaim_link_sentinel_%d", GinkgoParallelProcess()))
 
 		Expect(err).NotTo(HaveOccurred())
 

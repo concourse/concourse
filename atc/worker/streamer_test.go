@@ -13,7 +13,7 @@ import (
 	"github.com/concourse/concourse/atc/worker/gardenruntime"
 	grt "github.com/concourse/concourse/atc/worker/gardenruntime/gardenruntimetest"
 	"github.com/concourse/concourse/atc/worker/workertest"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 

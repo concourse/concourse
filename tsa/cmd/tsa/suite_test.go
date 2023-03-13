@@ -21,7 +21,7 @@ import (
 	"code.cloudfoundry.org/localip"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/tsa"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
@@ -85,10 +85,10 @@ var (
 )
 
 var _ = BeforeEach(func() {
-	tsaPort = 9800 + GinkgoParallelNode()
-	tsaDebugPort = 9900 + GinkgoParallelNode()
+	tsaPort = 9800 + GinkgoParallelProcess()
+	tsaDebugPort = 9900 + GinkgoParallelProcess()
 
-	gardenPort := 9001 + GinkgoParallelNode()
+	gardenPort := 9001 + GinkgoParallelProcess()
 	gardenAddr = fmt.Sprintf("127.0.0.1:%d", gardenPort)
 
 	fakeBackend = new(gfakes.FakeBackend)

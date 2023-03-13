@@ -3,7 +3,7 @@ package dexserver_test
 import (
 	"sort"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"code.cloudfoundry.org/lager"
@@ -29,7 +29,7 @@ var _ = Describe("Dex Server", func() {
 
 		storage, err = store.NewPostgresStorage(logger, flag.PostgresConfig{
 			Host:     "127.0.0.1",
-			Port:     uint16(5433 + GinkgoParallelNode()),
+			Port:     uint16(5433 + GinkgoParallelProcess()),
 			User:     "postgres",
 			SSLMode:  "disable",
 			Database: "testdb",

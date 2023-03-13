@@ -6,7 +6,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"gopkg.in/square/go-jose.v2/jwt"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
