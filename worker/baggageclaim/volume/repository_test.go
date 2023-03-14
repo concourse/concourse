@@ -13,6 +13,7 @@ import (
 
 	"github.com/concourse/go-archive/tgzfs"
 
+	"github.com/concourse/concourse/worker/baggageclaim"
 	"github.com/concourse/concourse/worker/baggageclaim/uidgid/uidgidfakes"
 	"github.com/concourse/concourse/worker/baggageclaim/volume"
 	"github.com/concourse/concourse/worker/baggageclaim/volume/volumefakes"
@@ -1129,7 +1130,7 @@ var _ = Describe("Repository", func() {
 				serverReadBytes, err = ioutil.ReadAll(r.Body)
 				Expect(err).ToNot(HaveOccurred())
 			}))
-			streamErr = repository.StreamP2pOut(context.Background(), "some-handle", filepath.Base(tempFile.Name()), volume.GzipEncoding, server.URL)
+			streamErr = repository.StreamP2pOut(context.Background(), "some-handle", filepath.Base(tempFile.Name()), baggageclaim.GzipEncoding, server.URL)
 		})
 
 		Context("when lookup volume fails", func() {

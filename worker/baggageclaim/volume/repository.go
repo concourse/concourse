@@ -423,7 +423,7 @@ func (repo *repository) StreamIn(ctx context.Context, handle string, path string
 		return repo.zstdStreamer.In(stream, destinationPath, privileged)
 	case baggageclaim.GzipEncoding:
 		return repo.gzipStreamer.In(stream, destinationPath, privileged)
-	case baggageclaim.NoZipEncoding:
+	case baggageclaim.RawEncoding:
 		return repo.nozipStreamer.In(stream, destinationPath, privileged)
 	}
 
@@ -470,7 +470,7 @@ func (repo *repository) StreamOut(ctx context.Context, handle string, path strin
 		return repo.zstdStreamer.Out(dest, srcPath, isPrivileged)
 	case baggageclaim.GzipEncoding:
 		return repo.gzipStreamer.Out(dest, srcPath, isPrivileged)
-	case baggageclaim.NoZipEncoding:
+	case baggageclaim.RawEncoding:
 		return repo.nozipStreamer.Out(dest, srcPath, isPrivileged)
 	}
 
@@ -527,7 +527,7 @@ func (repo *repository) StreamP2pOut(ctx context.Context, handle string, path st
 			err = repo.zstdStreamer.Out(writer, srcPath, isPrivileged)
 		case baggageclaim.GzipEncoding:
 			err = repo.gzipStreamer.Out(writer, srcPath, isPrivileged)
-		case baggageclaim.NoZipEncoding:
+		case baggageclaim.RawEncoding:
 			err = repo.nozipStreamer.Out(writer, srcPath, isPrivileged)
 		default:
 			err = ErrUnsupportedStreamEncoding

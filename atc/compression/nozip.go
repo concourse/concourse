@@ -17,7 +17,7 @@ func (c *nozipCompression) NewReader(reader io.ReadCloser) (io.ReadCloser, error
 }
 
 func (c *nozipCompression) Encoding() baggageclaim.Encoding {
-	return baggageclaim.NoZipEncoding
+	return baggageclaim.RawEncoding
 }
 
 type zozipReader struct {
