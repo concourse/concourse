@@ -35,8 +35,7 @@ type client struct {
 
 	retryBackOffFactory retryhttp.BackOffFactory
 	nestedRoundTripper  http.RoundTripper
-
-	givenHttpClient *http.Client
+	givenHttpClient     *http.Client
 }
 
 func New(apiURL string, nestedRoundTripper http.RoundTripper) Client {
@@ -389,7 +388,7 @@ func (c *client) streamP2pOut(ctx context.Context, srcHandle string, encoding ba
 	var result string
 	buf := make([]byte, 1024)
 	for {
-		len, err := response.Body.Read(buf);
+		len, err := response.Body.Read(buf)
 		if len > 0 {
 			result += strings.TrimSpace(string(buf[:len]))
 		}

@@ -10,7 +10,7 @@ import (
 	"github.com/containerd/containerd"
 	"github.com/containerd/containerd/cio"
 	"github.com/containerd/containerd/runtime/v2/runc/options"
-	"github.com/containerd/typeurl"
+	"github.com/containerd/typeurl/v2"
 )
 
 const (
@@ -40,7 +40,6 @@ const (
 //counterfeiter:generate . Killer
 
 // Killer terminates tasks.
-//
 type Killer interface {
 	// Kill terminates a task either with a specific behaviour.
 	//
@@ -55,19 +54,16 @@ type Killer interface {
 //
 // Only processes created through `task.Exec` are targetted to receive the the
 // first signals it delivers.
-//
 type killer struct {
 	gracePeriod   time.Duration
 	processKiller ProcessKiller
 }
 
 // KillerOpt is a functional option that modifies the behavior of a killer.
-//
 type KillerOpt func(k *killer)
 
 // WithProcessKiller modifies the default process killer used by the task
 // killer.
-//
 func WithProcessKiller(f ProcessKiller) KillerOpt {
 	return func(k *killer) {
 		k.processKiller = f
@@ -76,7 +72,6 @@ func WithProcessKiller(f ProcessKiller) KillerOpt {
 
 // WithGracePeriod configures the grace period used when waiting for a process
 // to be gracefully finished.
-//
 func WithGracePeriod(p time.Duration) KillerOpt {
 	return func(k *killer) {
 		k.gracePeriod = p
@@ -97,7 +92,6 @@ func NewKiller(opts ...KillerOpt) *killer {
 }
 
 // Kill delivers a signal to each exec'ed process in the task.
-//
 func (k killer) Kill(ctx context.Context, task containerd.Task, behaviour KillBehaviour) error {
 	switch behaviour {
 	case KillGracefully:
@@ -143,7 +137,6 @@ func (k killer) gracefullyKill(ctx context.Context, task containerd.Task) (bool,
 
 // killTaskProcesses delivers a signal to every live process that has been
 // created through a `task.Exec`.
-//
 func (k killer) killTaskExecedProcesses(ctx context.Context, task containerd.Task, signal syscall.Signal) error {
 	procs, err := taskExecedProcesses(ctx, task)
 	if err != nil {
@@ -159,7 +152,6 @@ func (k killer) killTaskExecedProcesses(ctx context.Context, task containerd.Tas
 }
 
 // taskProcesses retrieves a task's processes.
-//
 func taskExecedProcesses(ctx context.Context, task containerd.Task) ([]containerd.Process, error) {
 	pids, err := task.Pids(context.Background())
 	if err != nil {
@@ -198,7 +190,6 @@ func taskExecedProcesses(ctx context.Context, task containerd.Task) ([]container
 
 // killProcesses takes care of delivering a termination signal to a set of
 // processes and waiting for their statuses.
-//
 func (k killer) killProcesses(ctx context.Context, procs []containerd.Process, signal syscall.Signal) error {
 
 	// TODO - this could (probably *should*) be concurrent

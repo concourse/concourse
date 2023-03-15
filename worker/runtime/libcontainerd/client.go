@@ -19,7 +19,6 @@ import (
 
 // Client represents the minimum interface used to communicate with containerd
 // to manage containers.
-//
 type Client interface {
 
 	// Init provides the initialization of internal structures necessary by

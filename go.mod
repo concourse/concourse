@@ -20,10 +20,11 @@ require (
 	github.com/concourse/dex v1.6.0
 	github.com/concourse/flag v1.1.0
 	github.com/concourse/go-archive v1.0.1
-	github.com/concourse/retryhttp v1.2.0
+	github.com/concourse/retryhttp v1.1.1
 	github.com/containerd/containerd v1.7.0
 	github.com/containerd/go-cni v1.1.9
 	github.com/containerd/typeurl v1.0.2
+	github.com/containerd/typeurl/v2 v2.1.0
 	github.com/coreos/go-iptables v0.6.0
 	github.com/cppforlife/go-semi-semantic v0.0.0-20160921010311-576b6af77ae4
 	github.com/cyberark/conjur-api-go v0.11.0
@@ -196,7 +197,6 @@ require (
 
 require (
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
-	code.cloudfoundry.org/lager/v3 v3.0.0 // indirect
 	filippo.io/edwards25519 v1.0.0-rc.1 // indirect
 	github.com/AdaLogics/go-fuzz-headers v0.0.0-20230106234847-43070de90fa1 // indirect
 	github.com/AdamKorcz/go-118-fuzz-build v0.0.0-20221215162035-5330a85ea652 // indirect
@@ -208,7 +208,6 @@ require (
 	github.com/Masterminds/sprig/v3 v3.2.2 // indirect
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d // indirect
 	github.com/alessio/shellescape v1.4.1 // indirect
-	github.com/containerd/typeurl/v2 v2.1.0 // indirect
 	github.com/coreos/go-oidc/v3 v3.4.0 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.3 // indirect
 	github.com/danieljoos/wincred v1.1.2 // indirect
