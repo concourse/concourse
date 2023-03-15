@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse"
 	"github.com/concourse/concourse/atc/worker/gardenruntime/gclient"
 	concourseCmd "github.com/concourse/concourse/cmd"

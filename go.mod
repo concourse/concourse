@@ -5,7 +5,8 @@ go 1.20
 require (
 	code.cloudfoundry.org/clock v1.0.0
 	code.cloudfoundry.org/credhub-cli v0.0.0-20230109140612-2e6c285deddc
-	code.cloudfoundry.org/garden v0.0.0-20220318131934-d57de807d0ca
+	code.cloudfoundry.org/garden v0.0.0-20230306193518-45ed0a0a91f2
+	code.cloudfoundry.org/lager v2.0.0+incompatible
 	code.cloudfoundry.org/lager/v3 v3.0.0
 	code.cloudfoundry.org/localip v0.0.0-20220131190813-865a62baabe7
 	code.cloudfoundry.org/urljoiner v0.0.0-20170223060717-5cabba6c0a50
@@ -209,7 +210,6 @@ require (
 )
 
 require (
-	code.cloudfoundry.org/lager v2.0.0+incompatible // indirect
 	filippo.io/edwards25519 v1.0.0-rc.1 // indirect
 	github.com/AppsFlyer/go-sundheit v0.5.0 // indirect
 	github.com/Azure/go-ntlmssp v0.0.0-20220621081337-cb9428e4ac1e // indirect
