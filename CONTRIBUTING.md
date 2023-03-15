@@ -481,7 +481,7 @@ and suite runner of choice for Go code. You'll need to install the `ginkgo` CLI
 to run the unit tests and `testflight`:
 
 ```sh
-$ go get github.com/onsi/ginkgo/ginkgo
+$ go get github.com/onsi/ginkgo/v2/ginkgo
 ```
 
 We use [Counterfeiter](https://github.com/maxbrunsfeld/counterfeiter) to generate
