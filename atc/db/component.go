@@ -3,10 +3,13 @@ package db
 import (
 	"database/sql"
 	"math/rand"
+	"runtime"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
+
+	"github.com/concourse/concourse/atc/util"
 )
 
 var componentsQuery = psql.Select("c.id, c.name, c.interval, c.last_ran, c.paused").
@@ -68,7 +71,8 @@ func (c *component) Reload() (bool, error) {
 // component to across ATCs more evenly.
 func (c *component) IntervalElapsed() bool {
 	interval := c.interval
-	drift := time.Duration(c.rander.Int())%(2*time.Second) - time.Second
+	//drift := time.Duration(c.rander.Int())%(2*time.Second) - time.Second
+	drift := util.ComputeDrift(runtime.NumGoroutine())
 	if interval+drift > 0 {
 		interval += drift
 	}
