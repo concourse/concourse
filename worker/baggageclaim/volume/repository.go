@@ -46,10 +46,10 @@ type repository struct {
 
 	locker LockManager
 
-	gzipStreamer  Streamer
-	zstdStreamer  Streamer
-	nozipStreamer Streamer
-	namespacer    func(bool) uidgid.Namespacer
+	gzipStreamer Streamer
+	zstdStreamer Streamer
+	rawStreamer  Streamer
+	namespacer   func(bool) uidgid.Namespacer
 }
 
 func NewRepository(
@@ -62,7 +62,7 @@ func NewRepository(
 		filesystem: filesystem,
 		locker:     locker,
 
-		nozipStreamer: &tarGzipStreamer{
+		rawStreamer: &tarGzipStreamer{
 			namespacer: unprivilegedNamespacer,
 			skipGzip:   true,
 		},
@@ -424,7 +424,7 @@ func (repo *repository) StreamIn(ctx context.Context, handle string, path string
 	case baggageclaim.GzipEncoding:
 		return repo.gzipStreamer.In(stream, destinationPath, privileged)
 	case baggageclaim.RawEncoding:
-		return repo.nozipStreamer.In(stream, destinationPath, privileged)
+		return repo.rawStreamer.In(stream, destinationPath, privileged)
 	}
 
 	return false, ErrUnsupportedStreamEncoding
@@ -471,7 +471,7 @@ func (repo *repository) StreamOut(ctx context.Context, handle string, path strin
 	case baggageclaim.GzipEncoding:
 		return repo.gzipStreamer.Out(dest, srcPath, isPrivileged)
 	case baggageclaim.RawEncoding:
-		return repo.nozipStreamer.Out(dest, srcPath, isPrivileged)
+		return repo.rawStreamer.Out(dest, srcPath, isPrivileged)
 	}
 
 	return ErrUnsupportedStreamEncoding
@@ -528,7 +528,7 @@ func (repo *repository) StreamP2pOut(ctx context.Context, handle string, path st
 		case baggageclaim.GzipEncoding:
 			err = repo.gzipStreamer.Out(writer, srcPath, isPrivileged)
 		case baggageclaim.RawEncoding:
-			err = repo.nozipStreamer.Out(writer, srcPath, isPrivileged)
+			err = repo.rawStreamer.Out(writer, srcPath, isPrivileged)
 		default:
 			err = ErrUnsupportedStreamEncoding
 		}
