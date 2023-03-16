@@ -1173,7 +1173,7 @@ func (cmd *RunCommand) compression() compression.Compression {
 	if cmd.StreamingArtifactsCompression == "zstd" {
 		return compression.NewZstdCompression()
 	} else if cmd.StreamingArtifactsCompression == "raw" {
-		return compression.NewNoZipCompression()
+		return compression.NewNoCompression()
 	} else {
 		return compression.NewGzipCompression()
 	}
