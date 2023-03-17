@@ -89,7 +89,11 @@ func (streamer *tarZstdStreamer) Out(tzstOutput io.Writer, src string, privilege
 }
 
 func (streamer *tarGzipStreamer) In(tgzStream io.Reader, dest string, privileged bool) (bool, error) {
-	tarCommand, dirFd, err := tarCmd(streamer.namespacer, privileged, dest, "-xz")
+	tarOptions := "-xz"
+	if streamer.skipGzip {
+		tarOptions = "-x"
+	}
+	tarCommand, dirFd, err := tarCmd(streamer.namespacer, privileged, dest, tarOptions)
 	if err != nil {
 		return false, err
 	}
@@ -128,7 +132,11 @@ func (streamer *tarGzipStreamer) Out(w io.Writer, src string, privileged bool) e
 		tarCommandDir = filepath.Dir(src)
 	}
 
-	tarCommand, dirFd, err := tarCmd(streamer.namespacer, privileged, tarCommandDir, "-cz", tarCommandPath)
+	tarOptions := "-cz"
+	if streamer.skipGzip {
+		tarOptions = "-c"
+	}
+	tarCommand, dirFd, err := tarCmd(streamer.namespacer, privileged, tarCommandDir, tarOptions, tarCommandPath)
 	if err != nil {
 		return err
 	}
