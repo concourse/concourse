@@ -10,7 +10,6 @@ import (
 //counterfeiter:generate . FileStore
 
 // FileStore is responsible for managing files associated with containers.
-//
 type FileStore interface {
 	// CreateFile creates a file with a particular content in the store.
 	//

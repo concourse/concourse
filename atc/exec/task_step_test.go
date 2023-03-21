@@ -279,6 +279,16 @@ var _ = Describe("TaskStep", func() {
 			})
 		})
 
+		Context("when hermetic is configured", func() {
+			BeforeEach(func() {
+				taskPlan.Hermetic = true
+			})
+
+			It("returns the context.Canceled error", func() {
+				Expect(chosenContainer.Spec.Hermetic).To(Equal(true))
+			})
+		})
+
 		Context("when a timeout is configured", func() {
 			BeforeEach(func() {
 				taskPlan.Timeout = "1ms"

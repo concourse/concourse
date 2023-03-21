@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"path"
 	"path/filepath"
 	"sort"
@@ -217,6 +218,7 @@ func (worker *Worker) createGardenContainer(
 			Properties: garden.Properties{
 				userPropertyName: fetchedImage.Metadata.User,
 			},
+			NetOut: worker.getNetOut(containerSpec.Hermetic),
 		})
 	if err != nil {
 		logger.Error("failed-to-create-container-in-garden", err)
@@ -300,8 +302,9 @@ func (worker *Worker) constructContainer(
 // * scratch (empty volume)
 // * working dir (i.e. spec.Dir, empty volume)
 // * inputs
-//   * local volumes are COW'd
-//   * remote volumes are streamed into an empty volume, then COW'd (only COW is mounted)
+//   - local volumes are COW'd
+//   - remote volumes are streamed into an empty volume, then COW'd (only COW is mounted)
+//
 // * outputs (empty volumes)
 // * caches (COW if exists, empty otherwise)
 func (worker *Worker) createVolumes(
@@ -592,6 +595,24 @@ func (worker *Worker) getBindMounts(ctx context.Context, volumeMounts []runtime.
 	}
 
 	return bindMounts, nil
+}
+
+func (worker *Worker) getNetOut(hermetic bool) []garden.NetOutRule {
+	// All outgoing network traffic will be dropped during runtime
+	if hermetic {
+		return nil
+	}
+
+	return []garden.NetOutRule{
+		{
+			Networks: []garden.IPRange{
+				{
+					Start: net.ParseIP("0.0.0.0"),
+					End:   net.ParseIP("255.255.255.255"),
+				},
+			},
+		},
+	}
 }
 
 func anyMountTo(path string, volumeMounts []runtime.VolumeMount) bool {

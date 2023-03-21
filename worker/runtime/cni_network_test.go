@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"net"
+	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 
@@ -327,6 +329,11 @@ func (s *CNINetworkSuite) TestAdd() {
 	_, id, netns, _ := s.cni.SetupArgsForCall(0)
 	s.Equal("id", id)
 	s.Equal("/proc/123/ns/net", netns)
+
+	s.Equal(s.store.AppendCallCount(), 1)
+	path, content := s.store.AppendArgsForCall(0)
+	s.Equal(path, "container-handle/hosts")
+	s.Equal(content, []byte("10.8.0.1 container-handle\n"))
 }
 
 func (s *CNINetworkSuite) TestRemoveNilTask() {
@@ -358,4 +365,52 @@ func (s *CNINetworkSuite) TestRemove() {
 	s.Equal(1, s.store.DeleteCallCount())
 	path := s.store.DeleteArgsForCall(0)
 	s.Equal("some-handle", path)
+}
+
+func (s *CNINetworkSuite) TestDropContainerTraffic() {
+	network, err := runtime.NewCNINetwork(
+		runtime.WithDefaultsForTesting(),
+		runtime.WithCNIFileStore(s.store),
+		runtime.WithIptables(s.iptables),
+	)
+	s.NoError(err)
+
+	handle := os.TempDir()
+	content := []byte("10.8.0.1" + " " + handle + "\n")
+
+	err = os.WriteFile(filepath.Join(handle, "/hosts"), content, 0644)
+	s.NoError(err)
+
+	err = network.DropContainerTraffic(handle)
+	s.NoError(err)
+
+	s.Equal(s.iptables.AppendRuleCallCount(), 1)
+	table, chain, rulespec := s.iptables.AppendRuleArgsForCall(0)
+	s.Equal(table, "filter")
+	s.Equal(chain, "INPUT")
+	s.Equal(rulespec, []string{"-I", "-s", "10.8.0.1", "-j", "DROP"})
+}
+
+func (s *CNINetworkSuite) TestResumeContainerTraffic() {
+	network, err := runtime.NewCNINetwork(
+		runtime.WithDefaultsForTesting(),
+		runtime.WithCNIFileStore(s.store),
+		runtime.WithIptables(s.iptables),
+	)
+	s.NoError(err)
+
+	handle := os.TempDir()
+	content := []byte("10.8.0.1" + " " + handle + "\n")
+
+	err = os.WriteFile(filepath.Join(handle, "/hosts"), content, 0644)
+	s.NoError(err)
+
+	err = network.ResumeContainerTraffic(handle)
+	s.NoError(err)
+
+	s.Equal(s.iptables.DeleteRuleCallCount(), 1)
+	table, chain, rulespec := s.iptables.DeleteRuleArgsForCall(0)
+	s.Equal(table, "filter")
+	s.Equal(chain, "INPUT")
+	s.Equal(rulespec, []string{"-I", "-s", "10.8.0.1", "-j", "DROP"})
 }

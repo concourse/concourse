@@ -71,6 +71,7 @@ require (
 	github.com/stretchr/testify v1.8.1
 	github.com/tedsuo/ifrit v0.0.0-20220120221754-dd274de71113
 	github.com/tedsuo/rata v1.0.1-0.20170830210128-07d200713958
+	github.com/txn2/txeh v1.3.0
 	github.com/vbauerster/mpb/v4 v4.12.2
 	github.com/vito/go-interact v1.0.1
 	github.com/vito/go-sse v1.0.0

@@ -123,6 +123,9 @@ type ContainerSpec struct {
 	// CertsBindMount indicates whether or not to mount the worker's Certs
 	// volume onto the container.
 	CertsBindMount bool
+
+	// Hermetic indicates whether or not the container has external network access.
+	Hermetic bool
 }
 
 type BuildStepDelegate interface {
