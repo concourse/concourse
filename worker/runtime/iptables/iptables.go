@@ -10,6 +10,7 @@ import (
 type Iptables interface {
 	CreateChainOrFlushIfExists(table string, chain string) error
 	AppendRule(table string, chain string, rulespec ...string) error
+	InsertRule(table string, chain string, pos int, rulespec ...string) error
 	DeleteRule(table string, chain string, rulespec ...string) error
 }
 
@@ -39,6 +40,11 @@ func (ipt *iptables) CreateChainOrFlushIfExists(table string, chain string) erro
 
 func (ipt *iptables) AppendRule(table string, chain string, rulespec ...string) error {
 	err := ipt.goipt.Append(table, chain, rulespec...)
+	return err
+}
+
+func (ipt *iptables) InsertRule(table string, chain string, pos int, rulespec ...string) error {
+	err := ipt.goipt.Insert(table, chain, pos, rulespec...)
 	return err
 }
 

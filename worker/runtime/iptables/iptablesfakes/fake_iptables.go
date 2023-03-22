@@ -46,6 +46,20 @@ type FakeIptables struct {
 	deleteRuleReturnsOnCall map[int]struct {
 		result1 error
 	}
+	InsertRuleStub        func(string, string, int, ...string) error
+	insertRuleMutex       sync.RWMutex
+	insertRuleArgsForCall []struct {
+		arg1 string
+		arg2 string
+		arg3 int
+		arg4 []string
+	}
+	insertRuleReturns struct {
+		result1 error
+	}
+	insertRuleReturnsOnCall map[int]struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -238,6 +252,70 @@ func (fake *FakeIptables) DeleteRuleReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeIptables) InsertRule(arg1 string, arg2 string, arg3 int, arg4 ...string) error {
+	fake.insertRuleMutex.Lock()
+	ret, specificReturn := fake.insertRuleReturnsOnCall[len(fake.insertRuleArgsForCall)]
+	fake.insertRuleArgsForCall = append(fake.insertRuleArgsForCall, struct {
+		arg1 string
+		arg2 string
+		arg3 int
+		arg4 []string
+	}{arg1, arg2, arg3, arg4})
+	stub := fake.InsertRuleStub
+	fakeReturns := fake.insertRuleReturns
+	fake.recordInvocation("InsertRule", []interface{}{arg1, arg2, arg3, arg4})
+	fake.insertRuleMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4...)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeIptables) InsertRuleCallCount() int {
+	fake.insertRuleMutex.RLock()
+	defer fake.insertRuleMutex.RUnlock()
+	return len(fake.insertRuleArgsForCall)
+}
+
+func (fake *FakeIptables) InsertRuleCalls(stub func(string, string, int, ...string) error) {
+	fake.insertRuleMutex.Lock()
+	defer fake.insertRuleMutex.Unlock()
+	fake.InsertRuleStub = stub
+}
+
+func (fake *FakeIptables) InsertRuleArgsForCall(i int) (string, string, int, []string) {
+	fake.insertRuleMutex.RLock()
+	defer fake.insertRuleMutex.RUnlock()
+	argsForCall := fake.insertRuleArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+}
+
+func (fake *FakeIptables) InsertRuleReturns(result1 error) {
+	fake.insertRuleMutex.Lock()
+	defer fake.insertRuleMutex.Unlock()
+	fake.InsertRuleStub = nil
+	fake.insertRuleReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeIptables) InsertRuleReturnsOnCall(i int, result1 error) {
+	fake.insertRuleMutex.Lock()
+	defer fake.insertRuleMutex.Unlock()
+	fake.InsertRuleStub = nil
+	if fake.insertRuleReturnsOnCall == nil {
+		fake.insertRuleReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.insertRuleReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeIptables) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -247,6 +325,8 @@ func (fake *FakeIptables) Invocations() map[string][][]interface{} {
 	defer fake.createChainOrFlushIfExistsMutex.RUnlock()
 	fake.deleteRuleMutex.RLock()
 	defer fake.deleteRuleMutex.RUnlock()
+	fake.insertRuleMutex.RLock()
+	defer fake.insertRuleMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

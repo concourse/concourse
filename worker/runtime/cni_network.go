@@ -367,7 +367,7 @@ func (n cniNetwork) DropContainerTraffic(containerHandle string) error {
 		return fmt.Errorf("error getting container IP: %w", err)
 	}
 
-	err = n.ipt.AppendRule(filterTable, "INPUT", "-I", "-s", containerIp, "-j", "DROP")
+	err = n.ipt.InsertRule(filterTable, "INPUT", 1, "-s", containerIp, "-j", "DROP")
 	if err != nil {
 		return fmt.Errorf("error appending iptables rule to drop container traffic: %w", err)
 	}
@@ -381,7 +381,7 @@ func (n cniNetwork) ResumeContainerTraffic(containerHandle string) error {
 		return fmt.Errorf("error getting container IP: %w", err)
 	}
 
-	err = n.ipt.DeleteRule(filterTable, "INPUT", "-I", "-s", containerIp, "-j", "DROP")
+	err = n.ipt.DeleteRule(filterTable, "INPUT", "-s", containerIp, "-j", "DROP")
 	if err != nil {
 		return fmt.Errorf("error deleting iptables rule to resume container traffic: %w", err)
 	}

@@ -378,11 +378,12 @@ func (s *CNINetworkSuite) TestDropContainerTraffic() {
 	err = network.DropContainerTraffic("some-handle")
 	s.NoError(err)
 
-	s.Equal(s.iptables.AppendRuleCallCount(), 1)
-	table, chain, rulespec := s.iptables.AppendRuleArgsForCall(0)
+	s.Equal(s.iptables.InsertRuleCallCount(), 1)
+	table, chain, pos, rulespec := s.iptables.InsertRuleArgsForCall(0)
 	s.Equal(table, "filter")
 	s.Equal(chain, "INPUT")
-	s.Equal(rulespec, []string{"-I", "-s", "10.8.0.1", "-j", "DROP"})
+	s.Equal(pos, 1)
+	s.Equal(rulespec, []string{"-s", "10.8.0.1", "-j", "DROP"})
 }
 
 func (s *CNINetworkSuite) TestResumeContainerTraffic() {
