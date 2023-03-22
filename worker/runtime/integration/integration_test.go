@@ -26,8 +26,8 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-//Note: Some of these integration tests call on functionality that manipulates
-//the iptable rule set. They lack isolation and, therefore, should never be run in parallel.
+// Note: Some of these integration tests call on functionality that manipulates
+// the iptable rule set. They lack isolation and, therefore, should never be run in parallel.
 type IntegrationSuite struct {
 	suite.Suite
 	*require.Assertions
@@ -175,7 +175,6 @@ func (s *IntegrationSuite) TestPing() {
 // 2. running a process in it
 // 3. stopping the process
 // 4. deleting the container
-//
 func (s *IntegrationSuite) TestContainerCreateRunStopedDestroy() {
 	handle := uuid()
 	properties := garden.Properties{"test": uuid()}
@@ -204,7 +203,6 @@ func (s *IntegrationSuite) TestContainerCreateRunStopedDestroy() {
 // TestContainerNetworkEgress aims at verifying that a process that we run in a
 // container that we create through our gardenBackend is able to make requests to
 // external services.
-//
 func (s *IntegrationSuite) TestContainerNetworkEgress() {
 	handle := uuid()
 
@@ -244,7 +242,6 @@ func (s *IntegrationSuite) TestContainerNetworkEgress() {
 // TestContainerNetworkEgressWithRestrictedNetworks verifies that a process that we run in a
 // container that we create through our gardenBackend is not able to reach an address that
 // we have blocked access to.
-//
 func (s *IntegrationSuite) TestContainerNetworkEgressWithRestrictedNetworks() {
 	// Using custom backend, clean up BeforeTest() stuff
 	s.gardenBackend.Stop()
@@ -311,7 +308,6 @@ func (s *IntegrationSuite) TestContainerNetworkEgressWithRestrictedNetworks() {
 
 // TestContainerBlocksHostAccess verifies that a process that we run in a
 // container is not able to reach the host but is able to reach the internet.
-//
 func (s *IntegrationSuite) TestContainerBlocksHostAccess() {
 	handle := uuid()
 	container, err := s.gardenBackend.Create(garden.ContainerSpec{
@@ -409,6 +405,11 @@ func (s *IntegrationSuite) TestContainerAllowsHostAccess() {
 		Handle:     handle,
 		RootFSPath: "raw://" + s.rootfs,
 		Privileged: true,
+		NetOut: []garden.NetOutRule{
+			{
+				Log: true,
+			},
+		},
 	})
 	s.NoError(err)
 
@@ -488,7 +489,6 @@ func (s *IntegrationSuite) TestContainerNetworkHosts() {
 
 // TestRunPrivileged tests whether we're able to run a process in a privileged
 // container.
-//
 func (s *IntegrationSuite) TestRunPrivileged() {
 	s.runToCompletion(true)
 }
@@ -499,7 +499,6 @@ func (s *IntegrationSuite) TestRunPrivileged() {
 // Differently from the privileged counterpart, we first need to change the
 // ownership of the rootfs so the uid 0 inside the container has the permissions
 // to execute the executable in there.
-//
 func (s *IntegrationSuite) TestRunUnprivileged() {
 	maxUid, maxGid, err := runtime.NewUserNamespace().MaxValidIds()
 	s.NoError(err)
@@ -552,7 +551,6 @@ func (s *IntegrationSuite) runToCompletion(privileged bool) {
 // TestRunWithoutTerminalStdinReturnsEOF validates that when running a process
 // with TTY disabled, the stdin stream eventually sends an EOF (so stdin can be
 // read to completion)
-//
 func (s *IntegrationSuite) TestRunWithoutTerminalStdinReturnsEOF() {
 	handle := uuid()
 	container, err := s.gardenBackend.Create(garden.ContainerSpec{
@@ -597,7 +595,6 @@ func (s *IntegrationSuite) TestRunWithoutTerminalStdinReturnsEOF() {
 // the process does not exit.
 //
 // Note that only (Concourse) tasks has TTY enabled
-//
 func (s *IntegrationSuite) TestRunWithTerminalStdinClosed() {
 	handle := uuid()
 	container, err := s.gardenBackend.Create(garden.ContainerSpec{
@@ -640,7 +637,6 @@ func (s *IntegrationSuite) TestRunWithTerminalStdinClosed() {
 
 // TestAttachToUnknownProc verifies that trying to attach to a process that does
 // not exist lead to an error.
-//
 func (s *IntegrationSuite) TestAttachToUnknownProc() {
 	handle := uuid()
 
@@ -665,7 +661,6 @@ func (s *IntegrationSuite) TestAttachToUnknownProc() {
 // TestAttach tries to validate that we're able to start a process in a
 // container, get rid of the original client that originated the process, and
 // then attach back to that process from a new client.
-//
 func (s *IntegrationSuite) TestAttach() {
 	handle := uuid()
 
@@ -722,7 +717,6 @@ func (s *IntegrationSuite) TestAttach() {
 
 // TestCustomDNS verfies that when a network is setup with custom NameServers
 // those NameServers should appear in the container's etc/resolv.conf
-//
 func (s *IntegrationSuite) TestCustomDNS() {
 	namespace := "test-custom-dns"
 	requestTimeout := 3 * time.Second
@@ -789,7 +783,6 @@ func (s *IntegrationSuite) TestCustomDNS() {
 
 // TestUngracefulStop aims at validating that we're giving the process enough
 // opportunity to finish, but that at the same time, we don't wait forever.
-//
 func (s *IntegrationSuite) TestUngracefulStop() {
 	var ungraceful = true
 	s.testStop(ungraceful)
@@ -797,7 +790,6 @@ func (s *IntegrationSuite) TestUngracefulStop() {
 
 // TestGracefulStop aims at validating that we're giving the process enough
 // opportunity to finish, but that at the same time, we don't wait forever.
-//
 func (s *IntegrationSuite) TestGracefulStop() {
 	var ungraceful = false
 	s.testStop(ungraceful)
@@ -832,7 +824,6 @@ func (s *IntegrationSuite) testStop(kill bool) {
 
 // TestMaxContainers aims at making sure that when the max container count is
 // reached, any additional Create calls will fail
-//
 func (s *IntegrationSuite) TestMaxContainers() {
 	namespace := "test-max-containers"
 	requestTimeout := 1 * time.Second
@@ -913,7 +904,6 @@ func (s *IntegrationSuite) TestRequestTimeoutZero() {
 
 // TestPropertiesGetChunked tests that we are able to store arbitrarily long
 // properties, getting around containerd's label length restriction.
-//
 func (s *IntegrationSuite) TestPropertiesGetChunked() {
 	handle := uuid()
 

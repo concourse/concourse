@@ -597,12 +597,16 @@ func (worker *Worker) getBindMounts(ctx context.Context, volumeMounts []runtime.
 	return bindMounts, nil
 }
 
+// All outgoing network traffic will be dropped during runtime
+// depends on if NetOutRul is set
 func (worker *Worker) getNetOut(hermetic bool) []garden.NetOutRule {
-	// All outgoing network traffic will be dropped during runtime
+	// set NetOutRule to nil so worker runtime knows nothing is allowed
+	// to reach outside
 	if hermetic {
 		return nil
 	}
 
+	// set NetOutRule to whitelist all range of IPs
 	return []garden.NetOutRule{
 		{
 			Networks: []garden.IPRange{

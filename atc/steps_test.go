@@ -73,6 +73,7 @@ var factoryTests = []StepTest{
 		ConfigYAML: `
 			task: some-task
 			privileged: true
+			hermetic: true
 			config:
 			  platform: linux
 			  run: {path: hello}
@@ -89,6 +90,7 @@ var factoryTests = []StepTest{
 		StepConfig: &atc.TaskStep{
 			Name:       "some-task",
 			Privileged: true,
+			Hermetic:   true,
 			Config: &atc.TaskConfig{
 				Platform: "linux",
 				Run:      atc.TaskRunConfig{Path: "hello"},
